@@ -20,11 +20,12 @@
 #include "SymbolicTrajectoryAlgebra.h"
 #include "Stream.h"
 
-
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
 #include <string>
+#include <vector>
+
 using namespace std;
 
 
@@ -1176,11 +1177,11 @@ const bool Pattern::checkType(const ListExpr type){
   return listutils::isSymbol(type, BasicType());
 }
 
-bool Pattern::checkCurULabel() {
-  if ((curULabel < 0) || (curULabel == maxULabel)) {
-    cout << "ULabel " << curULabel << " does not exist" << endl;
+bool Pattern::checkStartValues() {
+  if ((currentULabel < 0) || (currentULabel >= maxULabel))
     return false;
-  }
+  if ((currentPattern < 0) || (currentPattern >= s_pattern.size()))
+    return false;
   else
     return true;
 }
@@ -1195,7 +1196,10 @@ void Pattern::setStartEnd() {
 }
 
 bool Pattern::checkLabels() {
-  return ul.Passes(*(new CcString(true, pattern.lbs[0]))) ? true : false;
+  CcString *label = new CcString(true, pattern.lbs[0]);
+  bool result = ul.Passes(*label) ? true : false;
+  label->DeleteIfAllowed();
+  return result;
 }
 
 bool Pattern::checkTimeRanges() {
@@ -1293,9 +1297,14 @@ bool Pattern::checkConditions() {
     // op : 1="="; 2="<"; 4=">"
     switch (patEquation.key) {
       case 1:
-        if (patEquation.op & 1)
-          if (!ul.Passes(*(new CcString(true, patEquation.value))))
+        if (patEquation.op & 1) {
+          CcString *valueString = new CcString(true, patEquation.value);
+          if (!ul.Passes(*valueString)) {
+            valueString->DeleteIfAllowed();
             return false;
+          }
+          valueString->DeleteIfAllowed();
+        }
         break;
       case 3:
         startPatternDateTime.ReadFrom(getSecDateTimeString(getFullDateTime(
@@ -1318,23 +1327,117 @@ bool Pattern::checkConditions() {
   return true;
 }
 
-void Pattern::initializeMatching(size_t startULabel, MLabel const &ml) {
-  endDate.SetType(datetime::instanttype);
-  duration.SetType(datetime::durationtype);
-  startTime.SetType(datetime::instanttype);
-  endTime.SetType(datetime::instanttype);
-  startDate2.SetType(datetime::instanttype);
-  startPatternDateTime.SetType(datetime::instanttype);
-  endPatternDateTime.SetType(datetime::instanttype);
-  startDate.SetType(datetime::instanttype);
-  curULabel = startULabel;
-  firstMatchULabel = -1;
-  lastMatchULabel = -1;
-  maxULabel = ml.GetNoComponents();
-  wildcard = false;
-  possibleMatch = true;
+size_t Pattern::checkCardinalities() {
+  bool result = false;
+  for (size_t i = 0; i < matchings.size(); i++)
+    if (matchings[i].hasCardinalityCondition)
+      for (size_t j = 0;
+           j < s_pattern[matchings[i].patternPos].conditions.size(); j++) {
+        patEquation = s_pattern[matchings[i].patternPos].conditions[j];
+        size_t equationValue = str2Int(patEquation.value);
+        switch (patEquation.op) {
+          case 1: // "="
+            if (i == 0) // wildcard with card. cond. in the beginning
+              result = (equationValue == matchings[i+1].labelPos);
+            else if (i == matchings.size() - 1) // at the end
+              result = (equationValue == maxULabel - matchings[i].labelPos);
+            else
+              result = (equationValue ==
+                        matchings[i+1].labelPos - matchings[i-1].labelPos - 1);
+            break;
+          case 2: // "<"
+            if (i == 0) // wildcard with card. cond. in the beginning
+              result = (equationValue > matchings[i+1].labelPos);
+            else if (i == matchings.size() - 1) // at the end
+              result = (equationValue > maxULabel - matchings[i].labelPos);
+            else
+              result = (equationValue >
+                        matchings[i+1].labelPos - matchings[i-1].labelPos - 1);
+            break;
+          case 4: // ">"
+            if (i == 0) // wildcard with card. cond. in the beginning
+              result = (equationValue < matchings[i+1].labelPos);
+            else if (i == matchings.size() - 1) // at the end
+              result = (equationValue < maxULabel - matchings[i].labelPos);
+            else
+              result = (equationValue <
+                        matchings[i+1].labelPos - matchings[i-1].labelPos - 1);
+            break;
+          default: // should not occur
+            cout << patEquation.op << " is an illegal operator" << endl;
+            return false;
+        }
+        if (!result)
+          return i;
+      }
+  return matchings.size();
 }
 
+void Pattern::setMatching(bool isW) {
+  matching.labelPos = currentULabel;
+  matching.patternPos = currentPattern;
+  matching.isWildcard = isW;
+  matching.hasCardinalityCondition = false;
+  if (isW && !pattern.conditions.empty())
+    for (size_t i = 0; i < pattern.conditions.size(); i++)
+      if (pattern.conditions[i].key == 6)
+        matching.hasCardinalityCondition = true;
+}
+
+void Pattern::matchingsToString() {
+  for (size_t i = 0; i < matchings.size(); i++)
+    cout << (matchings[i].isWildcard ? "wildcard at " : "   match at ") <<
+             matchings[i].labelPos << "  " << matchings[i].patternPos <<
+             (matchings[i].hasCardinalityCondition ? " *" : "") << "\n\n";
+}
+
+size_t Pattern::lastWildcardPosition(size_t skip) {
+  size_t counter = 0;
+  for (size_t i = matchings.size() - 1; i >= 0; i--)
+    if (matchings[i].isWildcard) {
+      counter ++;
+      if (counter > skip)
+        return i;        // if skip equals 2, the position of the 3rd last
+                         // wildcard is returned
+    }
+  return matchings.size();
+}
+
+size_t Pattern::prepareBacktrack(size_t position) {
+  size_t nextStartL = 0;
+  matchesToDelete = matchings.size() - position;
+  for (size_t j = 0; j < matchesToDelete; j++) { // delete old matchings
+    if (!matchings.back().isWildcard)
+      nextStartL = matchings.back().labelPos + 1;
+    else {
+      pattern = s_pattern[matchings.back().patternPos];
+      if (!checkConditions())
+        return maxULabel; // finish if wildcard breaks condition(s)
+    }
+    matchings.pop_back();
+  }
+  return result;
+}
+
+size_t Pattern::countWildcards() {
+  size_t result = 0;
+  for (size_t i = 0; i < matchings.size(); i++)
+    if (matchings[i].isWildcard)
+      result ++;
+  return result;
+}
+
+bool Pattern::completeBacktrack(MLabel const &ml) {
+  bool result = false;
+  while (currentULabel < maxULabel) {
+    matchingsToString();
+    lastWildcardPos = lastWildcardPosition(0);
+    nextStartLabel = prepareBacktrack(lastWildcardPos);
+    cout << nextStartLabel << " " << lastWildcardPos << endl;
+    result = SuffixMatch(ml, nextStartLabel, lastWildcardPos);
+  }
+  return result;
+}
 
 Pattern::Pattern(string const &Text) {
   text = Text;
@@ -1472,91 +1575,124 @@ vector<SinglePattern> Pattern::getPattern()
   return patParser.getPattern(); 
 }
 
+bool Pattern::SingleMatch() {
+  if (!pattern.lbs.empty())
+    if (!checkLabels())
+      return false;
+  if (!pattern.trs.empty())
+    if (!checkTimeRanges())
+      return false;
+  if (!pattern.dtrs.empty())
+    if (!checkDateRanges())
+      return false;
+  if (!pattern.sts.empty())
+    if (!checkSemanticRanges())
+      return false;
+  if (!pattern.conditions.empty()) {
+    if (!checkConditions())
+      return false;
+    size_t cardCheck = checkCardinalities();
+    if (cardCheck == matchings.size())
+      cout << "cardinalities ok" << endl;
+    else {
+      cout << "cardinality mismatch: "
+           << s_pattern[matchings[cardCheck].patternPos].toString() << endl;
+      return false;
+    }
+  }
+  return true;
+}
 
-bool Pattern::Matches(MLabel const &ml, size_t startULabel, bool backtrack) {
-  initializeMatching(startULabel, ml);
-  if (!checkCurULabel())
-    return false;
-  dt = new DateTime(0, 1, durationtype);
+bool Pattern::TotalMatch(MLabel const &ml) {
+  endDate.SetType(datetime::instanttype);
+  duration.SetType(datetime::durationtype);
+  startTime.SetType(datetime::instanttype);
+  endTime.SetType(datetime::instanttype);
+  startDate2.SetType(datetime::instanttype);
+  startPatternDateTime.SetType(datetime::instanttype);
+  endPatternDateTime.SetType(datetime::instanttype);
+  startDate.SetType(datetime::instanttype);
+  maxULabel = ml.GetNoComponents();
+  wildcard = false;
   s_pattern = getPattern();
-  size_t i = 0;
-  while ((i < s_pattern.size()) && (curULabel < maxULabel) && possibleMatch) {
-    pattern = s_pattern[i];
-    if (curULabel == maxULabel) {
-      if (dt)
-        delete dt;
-      return result ? true : false;
+  bool totalMatch;
+  dt = new DateTime(0, 1, durationtype);
+  bool match = SuffixMatch(ml, 0, 0);
+  numberOfWildcards = countWildcards();
+  matchingsToString();
+  if (match) {
+    if (matchings.back().isWildcard) {
+      totalMatch = true; // (_ at_home) (_ at_university) *
+      cout << "matches because last non-wildcard pattern matches a prefix of "
+           << "the mlabel and is followed just by a wildcard" << endl;
     }
-    ml.Get(curULabel, ul);
-    interval.CopyFrom(ul.timeInterval);
-    setStartEnd();
-    if (pattern.wildcard == '*') {
-      backtrack = true;
-      wildcard = true;
-      i++;
-      continue;
-    } 
-    else
-      curULabel++;
-    result = true; 
-    if (!pattern.isSequence()) {
-      if (!pattern.lbs.empty())
-        if (!checkLabels())
-          result = false;
-
-      if (!pattern.trs.empty())
-        if (!checkTimeRanges())
-          result = false;
-
-      if (!pattern.dtrs.empty())
-        if (!checkDateRanges())
-          result = false;
-
-      if (!pattern.sts.empty())
-        if (!checkSemanticRanges())
-          result = false;
-
-      if (!pattern.conditions.empty())
-        if (!checkConditions())
-          result = false;
-
-      if ((firstMatchULabel == -1) && result) // save position where first
-        firstMatchULabel = curULabel;         // single pattern matches
-    } // if not sequence
-    if (!result && !wildcard) {
-      if (backtrack)
-        possibleMatch = false;
-      else  // mlabel does not match pattern
-        return false;
+    else if (currentULabel == maxULabel) {
+      totalMatch = true;
+      cout << "matches because the ends match without wildcard" << endl;
     }
-    // if existing, wildcard is set to the current value (wildcard = !result)
-    // the current pattern will be used for the next ulabel if the ulabel does
-    // not match the pattern (--i)
-    if (wildcard)
-      if ((wildcard = !result))
-        --i;
-    i++;
-  } // while
-  if (result && (i == s_pattern.size()))
-    lastMatchULabel = curULabel;
+    else if (numberOfWildcards > 0) {
+      totalMatch = completeBacktrack(ml);
+      cout << (totalMatch ? "matches after backtracking" : "no match") << endl;
+    }
+    else { // no wildcard
+      totalMatch = false;
+      cout << "too short match without wildcard - no match" << endl;
+    }
+  }
+  else if (numberOfWildcards == 0) {
+    totalMatch = false;
+    cout << "no match, no wildcard - no chance" << endl;
+  }
+  else { // no match && lastWildcardPosition() < matchings.size() - 1
+    totalMatch = completeBacktrack(ml);
+    cout << (totalMatch ? "matches after backtracking" : "no match") << endl;
+  }
   if (dt)
     delete dt;
-  if (wildcard && !result && backtrack)
-    return (firstMatchULabel != -1) ? Matches(ml, firstMatchULabel + 1, true)
-                                    : false;
-  if (!wildcard && result && backtrack) {
-    if ((size_t)lastMatchULabel == maxULabel) {
-      return true;
-    }
-    else if (curULabel == maxULabel)
-      return false;
-    else
-      return Matches(ml, firstMatchULabel, true);
-  }
-  if (!wildcard && (curULabel != maxULabel)) // no backtracking without any *
-    return backtrack ? Matches(ml, firstMatchULabel, true) : false;
-  return (!wildcard && !result) ? false : true;
+  return totalMatch;
 }
+
+bool Pattern::SuffixMatch(MLabel const &ml, size_t firstULabel,
+                          size_t firstPattern) {
+  currentULabel = firstULabel;
+  currentPattern = firstPattern;
+  if (!checkStartValues())
+    return false;
+  while (currentPattern < s_pattern.size()) {
+    if (currentULabel >= maxULabel)
+      return false;
+    pattern = s_pattern[currentPattern];
+    ml.Get(currentULabel, ul);
+    interval.CopyFrom(ul.timeInterval);
+    setStartEnd();
+    result = true;
+    if (pattern.wildcard == '*') {
+      wildcard = true;
+      setMatching(true);
+      matchings.push_back(matching);
+      if (!pattern.conditions.empty())
+        if (!checkConditions())
+          return false;
+    }
+    else {
+      if (!SingleMatch() && !wildcard)
+        return false;
+      if (!SingleMatch())
+        result = false;
+      if (result) {
+        setMatching(false);
+        matchings.push_back(matching);
+      }
+      if (wildcard)
+        if ((wildcard = !result))
+          --currentPattern;
+      currentULabel ++;
+    }
+    currentPattern ++;
+  }
+  return result;
+}
+
 
 
 //***********************************************************************
@@ -2203,7 +2339,7 @@ matchesFun_MP (Word* args, Word& result, int message,
 
   CcBool* b = static_cast<CcBool*>( result.addr );
 
-  bool res = (pattern->Matches(*mlabel, 0, false));
+  bool res = (pattern->TotalMatch(*mlabel));
 
   b->Set(true, res); //the first argument says the boolean
                      //value is defined, the second is the
@@ -2225,7 +2361,7 @@ matchesFun_MT (Word* args, Word& result, int message,
 
   CcBool* b = static_cast<CcBool*>( result.addr );
 
-  bool res = (pattern.Matches(*mlabel, 0, false));
+  bool res = (pattern.TotalMatch(*mlabel));
 
   b->Set(true, res); //the first argument says the boolean
                      //value is defined, the second is the

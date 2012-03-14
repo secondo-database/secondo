@@ -74,6 +74,8 @@ class ULabel : public UString {
     static bool CheckULabel( ListExpr type, ListExpr& errorInfo );
 };
 
+
+
 class Pattern {
   public:
     Pattern(string const &text);
@@ -83,7 +85,9 @@ class Pattern {
     inline string GetText() const;
     void SetText( string const &Text );
     inline void SetPatParser(PatParser const &patParser);
-    bool Matches(MLabel const &mlabel, size_t startULabel, bool backtrack);
+    bool TotalMatch(MLabel const &ml);
+    bool SingleMatch();
+    bool SuffixMatch(MLabel const &ml, size_t firstULabel, size_t firstPattern);
     inline bool isValid();
     inline string getErrMsg();
     Pattern* Clone();
@@ -104,32 +108,53 @@ class Pattern {
     // other functions
     static const string BasicType();
     static const bool checkType(const ListExpr type);
-    bool checkCurULabel();
+    bool checkStartValues();
     void setStartEnd();
     bool checkLabels();
     bool checkTimeRanges();
     bool checkDateRanges();
     bool checkSemanticRanges();
     bool checkConditions();
-    void initializeMatching(size_t startULabel, MLabel const &ml);
+    size_t checkCardinalities(); // returns the first pattern position having
+                                 // a non-matching cardinality condition
+    void setMatching(bool isW);
+    void matchingsToString();
+    size_t lastWildcardPosition(size_t skip); // skips ~skip~ many wildcards
+               // and returns the position of the (skip + 1)th last wildcard
+    size_t prepareBacktrack(size_t position);
+    size_t countWildcards();
+    bool completeBacktrack(MLabel const &ml);
+
 
   private:
+    struct Matching {
+      size_t labelPos;
+      size_t patternPos;
+      bool isWildcard;
+      bool hasCardinalityCondition;
+    };
+    
     Pattern() {};
     vector<SinglePattern> getPattern();
     string text;
     PatParser patParser;
     vector<SinglePattern> s_pattern;
+    size_t currentULabel, maxULabel, currentPattern, matchesToDelete,
+           nextStartLabel, lastWildcardPos, numberOfWildcards;
     SinglePattern pattern;
-    size_t curULabel, maxULabel;
-    int64_t firstMatchULabel, lastMatchULabel;
+    int64_t firstMatchULabel, lastMatchULabel, countAt;
     ULabel ul;
-    bool wildcard, result, possibleMatch;
+    bool wildcard, result, patternResult;
     Interval<Instant> interval;
     string startTimeRange, endTimeRange, timeRange;
     PatEquation patEquation;
     DateTime *dt;
     DateTime startDate, endDate, duration, startTime, endTime, startDate2,
              startPatternDateTime, endPatternDateTime;
+    Matching matching, lastWildcard;
+    vector<Matching> matchings;
+    
 };
+
 
 }

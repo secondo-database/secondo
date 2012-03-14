@@ -33,26 +33,23 @@ int PatEquation::setValue(int key, int op, const string& value, string& errMsg)
     case 1: 
       PatEquation::value = value;
       break;
-   
     case 3:
     case 4:
-      if ( !isDate(value) ) {
+      if (!isDate(value)) {
         errMsg = "In condition: start/end value is not a date!";
         return 1; 
       } 
       else
         PatEquation::value = getFullDate(value); 
       break; 
-
     case 6: 
-      if ( !isNumeric(value) ) {
+      if (!isNumeric(value)) {
         errMsg = "In condition: card value is not a number!";
         return 1; 
       }  
       else
-        PatEquation::value = str2Int(value);
+        PatEquation::value = value;
       break; 
-
     default: 
       errMsg = "In condition: unknown key!";
       return 1; 
@@ -224,7 +221,7 @@ int PatParser::getConds(string const &text, string &errMsg) {
     else {
       errMsg = "No Operator found in condition (e.g. < or >)!";
       return 1;
-    }  
+    }
   } // end for
   return 0;
 }
@@ -703,9 +700,9 @@ int SinglePattern::set(PrePat const &prePat, string &errMsg)
 
 
 int SinglePattern::addCondition(Condition const &cond, string &errMsg) {  
-  if ( (SinglePattern::variable == cond.variable) ) {
+  if ((SinglePattern::variable == cond.variable)) {
     PatEquation patEquation;
-    if ( patEquation.setValue(cond.key, cond.op, cond.value, errMsg) )
+    if (patEquation.setValue(cond.key, cond.op, cond.value, errMsg))
       return 1;
     SinglePattern::conditions.push_back(patEquation);
   }

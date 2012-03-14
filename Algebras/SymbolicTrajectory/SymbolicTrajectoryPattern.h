@@ -43,7 +43,6 @@ struct PatEquation
 
   int key; // 1="lbs"; 3="start"; 4="end"; 6="card" 
   int op; // 1="="; 2="<"; 4=">"  
-
   string value;
 };
 
