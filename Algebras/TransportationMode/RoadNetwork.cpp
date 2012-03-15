@@ -751,7 +751,15 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
       return;
    }
 
-
+   if(gp1->GetRouteId() == gp2->GetRouteId()){//the same route
+        res_path->SetNetworkId(gp1->GetNetworkId());
+        res_path->AddRouteInterval(gp1->GetRouteId(), 
+                                   gp1->GetPosition(), gp2->GetPosition());
+        res_path->SetDefined(true);
+        res_path->SetSorted(false);
+        res_path->TrimToSize();
+        return;
+   }
 
    //////////////////////////////////////////////////////////////////////
    /////////find the junction node for gp1 and gp2//////////////////////
@@ -760,12 +768,11 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
    ////////// collect all junction points of gp1.rid, gp2.rid//////////
    //////// find the node id of these junction points in road graph////
    ///////////////////////////////////////////////////////////////////
-   
+
    vector<GP_Point> gp_p_list1;
    rg->GetJunctionsNode(gp1->GetRouteId(), gp_p_list1);
    assert(gp_p_list1.size() > 0);
 //   LOOP_PRINT2(gp_p_list1);
-
 
    vector<GP_Point> gp_p_list2;
    rg->GetJunctionsNode(gp2->GetRouteId(), gp_p_list2);
@@ -819,7 +826,8 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
       }
    }
 
-
+//   cout<<"exist_jun1 "<<exist_jun1<<" exist_jun2 "<<exist_jun2<<endl;
+//   cout<<gp_p_list1.size()<<" "<<gp_p_list2.size()<<endl;
 
    priority_queue<RNPath_elem> path_queue;
    vector<RNPath_elem> expand_queue;
@@ -827,8 +835,7 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
    //////////////////////////////////////////////////////////////////////////
    //////////////////initialize the start node /////////////////////////////
    /////////////////////////////////////////////////////////////////////////
-   vector<GP_Point>  start_jun_list;
-   
+
    if(exist_jun1 == false){///start location is not equal to junction point 
      if(gp_p_list1.size() == 1){
 
@@ -844,10 +851,29 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
           path_queue.push(rn_elem);
           expand_queue.push_back(rn_elem);
 //          ri.Print(cout);
-          start_jun_list.push_back(gp_p_list1[0]);
+
+
+     }else if(gp_p_list1.size() == 2){/////////two junction points
+
+         for(unsigned int i = 0;i < gp_p_list1.size();i++){
+
+          RouteInterval ri(gp1->GetRouteId(), gp1->GetPosition(), 
+                          gp_p_list1[i].pos1);
+          double w = fabs(gp1->GetPosition() - gp_p_list1[i].pos1);
+          double hw = gp_p_list1[i].loc1.Distance(loc_end);
+
+          int cur_size = expand_queue.size();
+          RNPath_elem rn_elem(-1, cur_size, gp_p_list1[i].oid, w + hw, w,
+                              ri, true, gp_p_list1[i].loc1);
+
+          path_queue.push(rn_elem);
+          expand_queue.push_back(rn_elem);
+
+         }
 
      }else{
         for(unsigned int i = 0;i < gp_p_list1.size();i++){
+//          cout<<"i "<<i<<" "<<gp_p_list1[i].pos1<<endl;
 //          if(i == 0 && gp1->GetPosition() < gp_p_list1[i].pos1){//first jun
           if(i == 0){
             if(gp1->GetPosition() < gp_p_list1[i].pos1){
@@ -863,7 +889,6 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
               path_queue.push(rn_elem);
               expand_queue.push_back(rn_elem);
 
-              start_jun_list.push_back(gp_p_list1[i]);
               break;
             }
 //           }else if(i == gp_p_list1.size() - 1 && 
@@ -882,8 +907,6 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
                 path_queue.push(rn_elem);
                 expand_queue.push_back(rn_elem);
-
-                start_jun_list.push_back(gp_p_list1[i]);
 
                 break;
             }
@@ -914,14 +937,12 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
             path_queue.push(rn_elem2);
             expand_queue.push_back(rn_elem2);
 
-            start_jun_list.push_back(gp_p_list1[i - 1]);
-            start_jun_list.push_back(gp_p_list1[i]);
-
             break;
           }
 
         }
      }
+
    }else{////////start location is equal to jun point 
 
      assert(0 <= start_index && start_index < (int)gp_p_list1.size());
@@ -980,6 +1001,9 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
    if(exist_jun2 == false){//find the junction point to end location
       if(gp_p_list2.size() == 1){
           end_jun_list.push_back(gp_p_list2[0]);
+      }else if(gp_p_list2.size() == 2){
+            end_jun_list.push_back(gp_p_list2[0]);
+            end_jun_list.push_back(gp_p_list2[1]);
       }else{
          for(unsigned int i = 0;i < gp_p_list2.size();i++){
 //            if(i == 0 && gp2->GetPosition() < gp_p_list2[i].pos1){//first jun
@@ -1005,22 +1029,6 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
          }
       }
 
-      ////////start and end locations are on the same road sections
-      if(start_jun_list.size() == end_jun_list.size()){
-          unsigned int i;
-          for(i = 0;i < start_jun_list.size();i++){
-            if(start_jun_list[i].oid != end_jun_list[i].oid)break;
-          }
-          if(i == start_jun_list.size()){
-              res_path->SetNetworkId(gp1->GetNetworkId());
-              res_path->AddRouteInterval(gp1->GetRouteId(), 
-                                        gp1->GetPosition(), gp2->GetPosition());
-              res_path->SetDefined(true);
-              res_path->SetSorted(false);
-              res_path->TrimToSize();
-              return;
-          }
-      }
    }
 
 
@@ -1282,6 +1290,16 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
       return;
    }
 
+   if(gp1->GetRouteId() == gp2->GetRouteId()){//the same route
+        res_path->SetNetworkId(gp1->GetNetworkId());
+        res_path->AddRouteInterval(gp1->GetRouteId(), 
+                                   gp1->GetPosition(), gp2->GetPosition());
+        res_path->SetDefined(true);
+        res_path->SetSorted(false);
+        res_path->TrimToSize();
+        return;
+   }
+
    Rectangle<2> bbox = rn->GetRTree()->BoundingBox();
    double mid_x = (bbox.MinD(0) + bbox.MaxD(0))/2;
    double mid_y = (bbox.MinD(1) + bbox.MaxD(1))/2;
@@ -1370,8 +1388,7 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
    //////////////////////////////////////////////////////////////////////////
    //////////////////initialize the start node /////////////////////////////
    /////////////////////////////////////////////////////////////////////////
-   vector<GP_Point>  start_jun_list;
-   
+
    if(exist_jun1 == false){///start location is not equal to junction point 
      if(gp_p_list1.size() == 1){
 
@@ -1387,7 +1404,24 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
           path_queue.push(rn_elem);
           expand_queue.push_back(rn_elem);
 //          ri.Print(cout);
-          start_jun_list.push_back(gp_p_list1[0]);
+
+     }else if(gp_p_list1.size() == 2){/////////two junction points
+
+         for(unsigned int i = 0;i < gp_p_list1.size();i++){
+
+          RouteInterval ri(gp1->GetRouteId(), gp1->GetPosition(), 
+                          gp_p_list1[i].pos1);
+          double w = fabs(gp1->GetPosition() - gp_p_list1[i].pos1);
+          double hw = gp_p_list1[i].loc1.Distance(loc_end);
+
+          int cur_size = expand_queue.size();
+          RNPath_elem rn_elem(-1, cur_size, gp_p_list1[i].oid, w + hw, w,
+                              ri, true, gp_p_list1[i].loc1);
+
+          path_queue.push(rn_elem);
+          expand_queue.push_back(rn_elem);
+
+         }
 
      }else{
         for(unsigned int i = 0;i < gp_p_list1.size();i++){
@@ -1406,7 +1440,6 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
                   path_queue.push(rn_elem);
                   expand_queue.push_back(rn_elem);
 
-                  start_jun_list.push_back(gp_p_list1[i]);
                   break;
                 }
 //          }else if(i == gp_p_list1.size() - 1 && 
@@ -1426,8 +1459,6 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
                 path_queue.push(rn_elem);
                 expand_queue.push_back(rn_elem);
-
-                start_jun_list.push_back(gp_p_list1[i]);
 
                 break;
             }
@@ -1457,9 +1488,6 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
             path_queue.push(rn_elem2);
             expand_queue.push_back(rn_elem2);
-
-            start_jun_list.push_back(gp_p_list1[i - 1]);
-            start_jun_list.push_back(gp_p_list1[i]);
 
             break;
           }
@@ -1524,6 +1552,9 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
    if(exist_jun2 == false){//find the junction point to end location
       if(gp_p_list2.size() == 1){
           end_jun_list.push_back(gp_p_list2[0]);
+      }else if(gp_p_list2.size() == 2){
+          end_jun_list.push_back(gp_p_list2[0]);
+          end_jun_list.push_back(gp_p_list2[1]);
       }else{
          for(unsigned int i = 0;i < gp_p_list2.size();i++){
 //           if(i == 0 && gp2->GetPosition() < gp_p_list2[i].pos1){//first jun
@@ -1549,24 +1580,7 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
          }
       }
 
-      ////////start and end locations are on the same road sections
-      if(start_jun_list.size() == end_jun_list.size()){
-          unsigned int i;
-          for(i = 0;i < start_jun_list.size();i++){
-            if(start_jun_list[i].oid != end_jun_list[i].oid)break;
-          }
-          if(i == start_jun_list.size()){
-              res_path->SetNetworkId(gp1->GetNetworkId());
-              res_path->AddRouteInterval(gp1->GetRouteId(), 
-                                        gp1->GetPosition(), gp2->GetPosition());
-              res_path->SetDefined(true);
-              res_path->SetSorted(false);
-              res_path->TrimToSize();
-              return;
-          }
-      }
    }
-
 
    //////////////////////////////start searching//////////////////////////
 
@@ -1792,6 +1806,16 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
       return;
    }
 
+   if(gp1->GetRouteId() == gp2->GetRouteId()){//the same route
+        res_path->SetNetworkId(gp1->GetNetworkId());
+        res_path->AddRouteInterval(gp1->GetRouteId(), 
+                                   gp1->GetPosition(), gp2->GetPosition());
+        res_path->SetDefined(true);
+        res_path->SetSorted(false);
+        res_path->TrimToSize();
+        return;
+   }
+   
    //////////////////////////////////////////////////////////////////////
    /////////find the junction node for gp1 and gp2//////////////////////
    /////////////////////////////////////////////////////////////////////
@@ -1866,8 +1890,7 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
    //////////////////////////////////////////////////////////////////////////
    //////////////////initialize the start node /////////////////////////////
    /////////////////////////////////////////////////////////////////////////
-   vector<GP_Point>  start_jun_list;
-   
+
    if(exist_jun1 == false){///start location is not equal to junction point 
      if(gp_p_list1.size() == 1){
 
@@ -1883,8 +1906,24 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
           path_queue.push(rn_elem);
           expand_queue.push_back(rn_elem);
 //          ri.Print(cout);
-          start_jun_list.push_back(gp_p_list1[0]);
 
+     }else if(gp_p_list1.size() == 2){/////two junction points
+
+         for(unsigned int i = 0;i < gp_p_list1.size();i++){
+
+          RouteInterval ri(gp1->GetRouteId(), gp1->GetPosition(), 
+                          gp_p_list1[i].pos1);
+          double w = fabs(gp1->GetPosition() - gp_p_list1[i].pos1);
+          double hw = gp_p_list1[i].loc1.Distance(loc_end);
+
+          int cur_size = expand_queue.size();
+          RNPath_elem rn_elem(-1, cur_size, gp_p_list1[i].oid, w + hw, w,
+                              ri, true, gp_p_list1[i].loc1);
+
+          path_queue.push(rn_elem);
+          expand_queue.push_back(rn_elem);
+
+         }
      }else{
         for(unsigned int i = 0;i < gp_p_list1.size();i++){
 //         if(i == 0 && gp1->GetPosition() < gp_p_list1[i].pos1){//first jun
@@ -1902,7 +1941,6 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
                 path_queue.push(rn_elem);
                 expand_queue.push_back(rn_elem);
 
-                start_jun_list.push_back(gp_p_list1[i]);
                 break;
              }
 //           }else if(i == gp_p_list1.size() - 1 && 
@@ -1922,8 +1960,6 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
                 path_queue.push(rn_elem);
                 expand_queue.push_back(rn_elem);
-
-                start_jun_list.push_back(gp_p_list1[i]);
 
                 break;
             }
@@ -1953,9 +1989,6 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
             path_queue.push(rn_elem2);
             expand_queue.push_back(rn_elem2);
-
-            start_jun_list.push_back(gp_p_list1[i - 1]);
-            start_jun_list.push_back(gp_p_list1[i]);
 
             break;
           }
@@ -2020,6 +2053,9 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
    if(exist_jun2 == false){//find the junction point to end location
       if(gp_p_list2.size() == 1){
           end_jun_list.push_back(gp_p_list2[0]);
+      }else if(gp_p_list2.size() == 2){
+          end_jun_list.push_back(gp_p_list2[0]);
+          end_jun_list.push_back(gp_p_list2[1]);
       }else{
          for(unsigned int i = 0;i < gp_p_list2.size();i++){
 //            if(i == 0 && gp2->GetPosition() < gp_p_list2[i].pos1){//first jun
@@ -2045,22 +2081,6 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
          }
       }
 
-      ////////start and end locations are on the same road sections
-      if(start_jun_list.size() == end_jun_list.size()){
-          unsigned int i;
-          for(i = 0;i < start_jun_list.size();i++){
-            if(start_jun_list[i].oid != end_jun_list[i].oid)break;
-          }
-          if(i == start_jun_list.size()){
-              res_path->SetNetworkId(gp1->GetNetworkId());
-              res_path->AddRouteInterval(gp1->GetRouteId(), 
-                                        gp1->GetPosition(), gp2->GetPosition());
-              res_path->SetDefined(true);
-              res_path->SetSorted(false);
-              res_path->TrimToSize();
-              return;
-          }
-      }
    }
 
 
