@@ -1365,12 +1365,15 @@ size_t Pattern::checkCardinalities() {
             break;
           default: // should not occur
             cout << patEquation.op << " is an illegal operator" << endl;
-            return false;
+            return i;
         }
-        if (!result)
+        if (!result) {
+          cout << "cardinality mismatch at position " << i << endl;
           return i;
+        }
       }
-  return matchings.size();
+  cout << "cardinalities ok" << endl;
+  return s_pattern.size();
 }
 
 void Pattern::setMatching(bool isW) {
@@ -1405,7 +1408,10 @@ size_t Pattern::lastWildcardPosition(size_t skip) {
 
 size_t Pattern::prepareBacktrack(size_t position) {
   size_t nextStartL = 0;
-  matchesToDelete = matchings.size() - position;
+  if (cardProblem != s_pattern.size())
+    matchesToDelete = matchings.size() - cardProblem;
+  else  
+    matchesToDelete = matchings.size() - position;
   for (size_t j = 0; j < matchesToDelete; j++) { // delete old matchings
     if (!matchings.back().isWildcard)
       nextStartL = matchings.back().labelPos + 1;
@@ -1416,7 +1422,7 @@ size_t Pattern::prepareBacktrack(size_t position) {
     }
     matchings.pop_back();
   }
-  return result;
+  return nextStartL;
 }
 
 size_t Pattern::countWildcards() {
@@ -1591,14 +1597,6 @@ bool Pattern::SingleMatch() {
   if (!pattern.conditions.empty()) {
     if (!checkConditions())
       return false;
-    size_t cardCheck = checkCardinalities();
-    if (cardCheck == matchings.size())
-      cout << "cardinalities ok" << endl;
-    else {
-      cout << "cardinality mismatch: "
-           << s_pattern[matchings[cardCheck].patternPos].toString() << endl;
-      return false;
-    }
   }
   return true;
 }
@@ -1690,6 +1688,9 @@ bool Pattern::SuffixMatch(MLabel const &ml, size_t firstULabel,
     }
     currentPattern ++;
   }
+  cardProblem = checkCardinalities();
+  if (cardProblem != s_pattern.size()) // mismatch
+    return false;
   return result;
 }
 

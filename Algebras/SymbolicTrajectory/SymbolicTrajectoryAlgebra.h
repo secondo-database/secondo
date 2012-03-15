@@ -140,7 +140,7 @@ class Pattern {
     PatParser patParser;
     vector<SinglePattern> s_pattern;
     size_t currentULabel, maxULabel, currentPattern, matchesToDelete,
-           nextStartLabel, lastWildcardPos, numberOfWildcards;
+           nextStartLabel, lastWildcardPos, numberOfWildcards, cardProblem;
     SinglePattern pattern;
     int64_t firstMatchULabel, lastMatchULabel, countAt;
     ULabel ul;
