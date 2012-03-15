@@ -183,6 +183,9 @@ void MHTRouteCandidate::AddSection(const DirectedNetworkSection& rSection)
 {
     m_Sections.push_back(rSection);
 
+    // Add score for every Section -> prefer candidates with fewer sections
+    m_dScore += 5.0;
+
     ++m_nCountLastEmptySections;
 
     // Don't save more than 6 sections
