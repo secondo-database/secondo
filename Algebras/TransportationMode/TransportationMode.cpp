@@ -7047,9 +7047,9 @@ ListExpr Navigation1ListTypeMap(ListExpr args)
 
                   nl->SymbolAtom("tuple"),
                       nl->FourElemList(
-                        nl->TwoElemList(nl->SymbolAtom("loc1"),
+                        nl->TwoElemList(nl->SymbolAtom("Loc1"),
                                     nl->SymbolAtom("point")),
-                        nl->TwoElemList(nl->SymbolAtom("loc2"),
+                        nl->TwoElemList(nl->SymbolAtom("Loc2"),
                                     nl->SymbolAtom("point")),
                         nl->TwoElemList(nl->SymbolAtom("Trip1"),
                                     nl->SymbolAtom("genmo")),
@@ -10115,13 +10115,13 @@ ListExpr OpTMGetInterestP1TypeMap ( ListExpr args )
                nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
                      nl->FourElemList(
-                       nl->TwoElemList(nl->SymbolAtom("rid"),
+                       nl->TwoElemList(nl->SymbolAtom("Rid"),
                                    nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("loc1"),
+                       nl->TwoElemList(nl->SymbolAtom("Loc1"),
                                     nl->SymbolAtom("point")),
-                       nl->TwoElemList(nl->SymbolAtom("loc2"),
+                       nl->TwoElemList(nl->SymbolAtom("Loc2"),
                                     nl->SymbolAtom("point")),
-                       nl->TwoElemList(nl->SymbolAtom("ptype"),
+                       nl->TwoElemList(nl->SymbolAtom("Ptype"),
                                     nl->SymbolAtom("bool"))
                   )
                 )
@@ -10190,11 +10190,11 @@ ListExpr OpTMGetInterestP2TypeMap ( ListExpr args )
                nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
                      nl->ThreeElemList(
-                       nl->TwoElemList(nl->SymbolAtom("oid"),
+                       nl->TwoElemList(nl->SymbolAtom("Oid"),
                                    nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("loc1"),
+                       nl->TwoElemList(nl->SymbolAtom("Loc1"),
                                     nl->SymbolAtom("point")),
-                       nl->TwoElemList(nl->SymbolAtom("loc2"),
+                       nl->TwoElemList(nl->SymbolAtom("Loc2"),
                                     nl->SymbolAtom("point"))
                   )
                 )
@@ -12094,10 +12094,10 @@ ListExpr OpTMGetAdjNodeTypeMap ( ListExpr args )
 
                 nl->FourElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop1"),
+                        nl->SymbolAtom("Bus_stop1"),
                         nl->SymbolAtom("busstop")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("bus_stop2"),
+                        nl->SymbolAtom("Bus_stop2"),
                         nl->SymbolAtom("busstop")),
                     nl->TwoElemList(
                         nl->SymbolAtom("Path"),
@@ -12118,11 +12118,11 @@ ListExpr OpTMGetAdjNodeTypeMap ( ListExpr args )
                nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
                      nl->ThreeElemList(
-                       nl->TwoElemList(nl->SymbolAtom("oid"),
+                       nl->TwoElemList(nl->SymbolAtom("Oid"),
                                    nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("loc"),
+                       nl->TwoElemList(nl->SymbolAtom("Loc"),
                                     nl->SymbolAtom("point")),
-                      nl->TwoElemList(nl->SymbolAtom("connection"),
+                      nl->TwoElemList(nl->SymbolAtom("Connection"),
                                     nl->SymbolAtom("line"))
                   )
                 )
@@ -12139,9 +12139,9 @@ ListExpr OpTMGetAdjNodeTypeMap ( ListExpr args )
                nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
                      nl->TwoElemList(
-                       nl->TwoElemList(nl->SymbolAtom("oid"),
+                       nl->TwoElemList(nl->SymbolAtom("Oid"),
                                    nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("pavement"),
+                       nl->TwoElemList(nl->SymbolAtom("Pavement"),
                                     nl->SymbolAtom("region"))
                   )
                 )
@@ -12158,11 +12158,11 @@ ListExpr OpTMGetAdjNodeTypeMap ( ListExpr args )
                nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
                      nl->ThreeElemList(
-                       nl->TwoElemList(nl->SymbolAtom("tid1"),
+                       nl->TwoElemList(nl->SymbolAtom("Tid1"),
                                    nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("tid2"),
+                       nl->TwoElemList(nl->SymbolAtom("Tid2"),
                                     nl->SymbolAtom("int")),
-                      nl->TwoElemList(nl->SymbolAtom("connection"),
+                      nl->TwoElemList(nl->SymbolAtom("Connection"),
                                     nl->SymbolAtom("line3d"))
                   )
                 )
@@ -12182,10 +12182,10 @@ ListExpr OpTMGetAdjNodeTypeMap ( ListExpr args )
 
                 nl->FourElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("metro_stop1"),
+                        nl->SymbolAtom("Metro_stop1"),
                         nl->SymbolAtom("busstop")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("metro_stop2"),
+                        nl->SymbolAtom("Metro_stop2"),
                         nl->SymbolAtom("busstop")),
                     nl->TwoElemList(
                         nl->SymbolAtom("Path"),
@@ -12209,10 +12209,10 @@ ListExpr OpTMGetAdjNodeTypeMap ( ListExpr args )
 
                 nl->FourElemList(
                     nl->TwoElemList(
-                        nl->SymbolAtom("jun1"),
+                        nl->SymbolAtom("Jun1"),
                         nl->SymbolAtom("gpoint")),
                     nl->TwoElemList(
-                        nl->SymbolAtom("jun2"),
+                        nl->SymbolAtom("Jun2"),
                         nl->SymbolAtom("gpoint")),
                     nl->TwoElemList(
                         nl->SymbolAtom("Path"),
@@ -12223,7 +12223,7 @@ ListExpr OpTMGetAdjNodeTypeMap ( ListExpr args )
                     )));
     return res; 
   }
-  
+
   return nl->SymbolAtom ( "typeerror" );
 
 }
@@ -14153,15 +14153,15 @@ ListExpr OpTMCheckRoadsTypeMap ( ListExpr args )
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
                       nl->FiveElemList(
-                        nl->TwoElemList(nl->SymbolAtom("id"),
+                        nl->TwoElemList(nl->SymbolAtom("Id"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("lengt"),
+                        nl->TwoElemList(nl->SymbolAtom("Lengt"),
                                     nl->SymbolAtom("real")),
-                        nl->TwoElemList(nl->SymbolAtom("curve"),
+                        nl->TwoElemList(nl->SymbolAtom("Curve"),
                                     nl->SymbolAtom("sline")),
-                        nl->TwoElemList(nl->SymbolAtom("dual"),
+                        nl->TwoElemList(nl->SymbolAtom("Dual"),
                                     nl->SymbolAtom("bool")),
-                        nl->TwoElemList(nl->SymbolAtom("startSmaller"),
+                        nl->TwoElemList(nl->SymbolAtom("StartSmaller"),
                                     nl->SymbolAtom("bool"))
                   )
                 )
@@ -22069,6 +22069,7 @@ class TransportationModeAlgebra : public Algebra
    ///////////////////////////////////////////////////////////////////
    ///////////////  operators for debuging           ////////////////
    ////////////// comment them out when for testing  ////////////////
+   ////////////// change attribute names to be capital///////////////
    //////////////////////////////////////////////////////////////////
    //    AddOperator(&fillpavement); //////comment it out for debuging
 
