@@ -7965,12 +7965,13 @@ void GenMObject::GenerateGenMO7(Space* sp, Periods* peri, int mo_no,
 
 //        cout<<"metro path size "<<mn_nav->path_list.size()<<endl;
 
-         ConnectTwoMetroStops(mn_nav, ps_list1[1], 
-                                                ps_list2[1],
-                           genmo, mo, start_time, dg, res_path);
+//          ConnectTwoMetroStops(mn_nav, ps_list1[1], ps_list2[1],
+//                            genmo, mo, start_time, dg, res_path);
+
+        ConnectTwoMetroStops(mn_nav, ps_list1[1], ps_list2[1],
+                           genmo, mo, start_time, dg);
 
         delete mn_nav;
-
 
         ///////////////////////////////////////////////////////////////////
         /////////////4 connect end location to last metro stop//////////////
@@ -8104,17 +8105,18 @@ create the moving object between two metro stops in metro network
 */
 void GenMObject::ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep, 
                                      GenMO* genmo_input,
-                          MPoint* mo, Instant& start_time,
-                          DualGraph* dg, Line* res_path)
+                          MPoint* mo, Instant& start_time, DualGraph* dg)
+//                          DualGraph* dg, Line* res_path)
+
 {
     GenMO* genmo = new GenMO(0);
     genmo->StartBulkLoad();
 
     const double delta_t = 0.01;//seconds
 
-    Line* l = new Line(0); ////////trajectory in metro network
-    l->StartBulkLoad();
-    int edgeno = 0;
+//     Line* l = new Line(0); ////////trajectory in metro network
+//     l->StartBulkLoad();
+//     int edgeno = 0;
 
     ////////////////////////////////////////////////////////////////////
 
@@ -8306,16 +8308,16 @@ void GenMObject::ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep,
 //                            t*1.0/(24.0*60.0*60.0));
         }
 
-            for(int j = 0;j < sl->Size();j++){
-              HalfSegment hs1;
-              sl->Get(j, hs1);
-              if(!hs1.IsLeftDomPoint()) continue;
-              HalfSegment hs2(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
-              hs2.attr.edgeno = edgeno++;
-              *l += hs2;
-              hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
-              *l += hs2;
-            }
+//             for(int j = 0;j < sl->Size();j++){ //not needed to calculate path
+//               HalfSegment hs1;
+//               sl->Get(j, hs1);
+//               if(!hs1.IsLeftDomPoint()) continue;
+//               HalfSegment hs2(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
+//               hs2.attr.edgeno = edgeno++;
+//               *l += hs2;
+//               hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+//               *l += hs2;
+//             }
 
             last_ms = ms2;
             delete start_loc;
@@ -8324,14 +8326,14 @@ void GenMObject::ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep,
 
     } /////end for big for 
 
-    l->EndBulkLoad();
+//    l->EndBulkLoad();
 
-    Line* temp_l = new Line(0);
-    l->Union(*res_path, *temp_l);
-    *res_path = *temp_l;
-    delete temp_l;
+//     Line* temp_l = new Line(0);
+//     l->Union(*res_path, *temp_l);
+//     *res_path = *temp_l;
+//     delete temp_l;
 
-    delete l;
+//    delete l;
 
 
     genmo->EndBulkLoad(false, false);
@@ -8777,8 +8779,11 @@ void GenMObject::GenerateGenMOMIW(Space* sp, IndoorInfra* i_infra,
 
      /////////////////////////////////////////////////////////////////////
 
+//      ConnectTwoMetroStops(mn_nav, ps_list1[1], ps_list2[1],
+//                           genmo, mo, start_time, dg, res_path);
+
      ConnectTwoMetroStops(mn_nav, ps_list1[1], ps_list2[1],
-                          genmo, mo, start_time, dg, res_path);
+                          genmo, mo, start_time, dg);
 
      delete mn_nav;
 

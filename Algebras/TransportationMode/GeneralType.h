@@ -1108,8 +1108,9 @@ struct GenMObject{
                              Point query_loc, vector<int>& tid_list);
 
   void ConnectTwoMetroStops(MNNav* mn_nav, Point sp, Point ep, GenMO* genmo,
-                          MPoint* mo, Instant& start_time,
-                          DualGraph* dg, Line* res_path);
+                          MPoint* mo, Instant& start_time, DualGraph* dg);
+//                          DualGraph* dg, Line* res_path);
+
   //////////////////////////////////////////////////////////////////////
   ////////////////Indoor Metro Walk/////////////////////////////////////
   //////////////////////////////////////////////////////////////////////
