@@ -229,14 +229,14 @@ const std::vector<MHTRouteCandidate::PointData*>& MHTRouteCandidate::
 
 void MHTRouteCandidate::AddPoint(const Point& rPoint,
                                  const Point& rPointProjection,
-                                 const NetworkRoute& rRoute,
+                                 const DirectedNetworkSection& rSection,
                                  const double dDistance,
                                  const DateTime& rDateTime)
 {
     double dScore = dDistance;
 
     PointData* pData = new PointData(rPoint,
-                                     rPointProjection, rRoute,
+                                     rPointProjection, rSection,
                                      dScore, rDateTime);
     m_Points.push_back(pData);
     assert(m_Sections.size() > 0);
@@ -265,42 +265,75 @@ void MHTRouteCandidate::RemoveLastPoint(void)
     {
         PointData* pData = m_Points.back();
         m_Points.pop_back();
+
+        bool bOffroadPoint = false;
+
         if (pData != NULL)
         {
+            bOffroadPoint = (pData->GetPointProjection() == NULL);
             m_dScore -= pData->GetScore();
             delete pData;
         }
-
-        m_nCountLastEmptySections = 0; // recalculate EmptySections
-
-        bool bFound = false;
-
-        std::deque<SectionCandidate>::reverse_iterator it = m_Sections.rbegin();
-        for (/*empty*/; it != m_Sections.rend() && !bFound; ++it)
+        else
         {
-            if (it->m_Points.size() > 0)
-            {
-                it->m_Points.pop_back();
-                bFound = true;
-                if (it->m_Points.size() == 0)
-                {
-                    ++m_nCountLastEmptySections;
-
-                    ++it;
-                    for (/*empty*/; it != m_Sections.rend() &&
-                                    it->m_Points.size() == 0; ++it)
-                    {
-                        ++m_nCountLastEmptySections;
-                    }
-                }
-            }
-            else
-            {
-                ++m_nCountLastEmptySections;
-            }
+            assert(false);
         }
 
-        assert(bFound);
+        if (!bOffroadPoint)
+        {
+            // Remove point from section and
+            // recalculate EmptySections
+            m_nCountLastEmptySections = 0;
+
+            bool bFound = false;
+
+            std::deque<SectionCandidate>::reverse_iterator it =
+                                                            m_Sections.rbegin();
+            for (/*empty*/; it != m_Sections.rend() && !bFound; ++it)
+            {
+                if (it->m_Points.size() > 0)
+                {
+                    it->m_Points.pop_back();
+                    bFound = true;
+                    if (it->m_Points.size() == 0)
+                    {
+                        ++m_nCountLastEmptySections;
+
+                        ++it;
+                        for (/*empty*/;
+                             it != m_Sections.rend() &&
+                             it->m_Points.size() == 0;
+                             ++it)
+                        {
+                            ++m_nCountLastEmptySections;
+                        }
+                    }
+                }
+                else
+                {
+                    ++m_nCountLastEmptySections;
+                }
+            }
+
+            assert(bFound);
+
+
+            // recalculate Offroad-Points
+            m_nCountLastOffRoadPoints = 0;
+            std::vector<PointData*>::reverse_iterator itPts = m_Points.rbegin();
+            for (/*empty*/;
+                 itPts != m_Points.rend() &&
+                 (*itPts)->GetPointProjection() == NULL;
+                 ++itPts)
+            {
+                ++m_nCountLastOffRoadPoints;
+            }
+        }
+        else
+        {
+            assert(m_nCountLastOffRoadPoints > 0);
+            --m_nCountLastOffRoadPoints;
+        }
     }
 }
 
@@ -317,6 +350,134 @@ void MHTRouteCandidate::MarkAsInvalid(void)
 bool MHTRouteCandidate::IsInvalid(void) const
 {
     return AlmostEqual(m_dScore, std::numeric_limits<double>::max());
+}
+
+
+bool MHTRouteCandidate::CorrectUTurn(const DirectedNetworkSection&
+                                                                  rNextAdjacent,
+                                     Network& rNetwork,
+                                     double dNetworkScale)
+{
+    assert(GetCountPointsOfLastSection() > 0);
+
+    // Assign to end node of section
+    Point PointNewProjection(false);
+    DirectedNetworkSection NewSection;
+
+    // find previous section, which is not empty and
+    // which is the predecessor of rNextAdjacent
+    // (stop at first non-empty section)
+
+    std::deque<SectionCandidate>::reverse_iterator it = m_Sections.rbegin();
+    if (it != m_Sections.rend())
+    {
+        ++it;
+    }
+    else
+    {
+        assert(false);
+        return false;
+    }
+
+    bool bFound = false;
+
+    for (/*empty*/; it != m_Sections.rend() && !bFound; ++it)
+    {
+        const SectionCandidate& rSectionCandidate = *it;
+
+        // empty section (Section with no point assignt) ->
+        // Check adjacent sections
+
+        const bool bUpDown = (rSectionCandidate.m_Section.GetDirection()
+                                         == DirectedNetworkSection::DIR_UP);
+
+        vector<DirectedSection> adjSectionList;
+        rNetwork.GetAdjacentSections(
+                rSectionCandidate.m_Section.GetSectionID(), bUpDown,
+                adjSectionList);
+
+        for (size_t i = 0; i < adjSectionList.size() && !bFound; ++i)
+        {
+            Tuple* pSectionTuple = rNetwork.GetSection(
+                                         adjSectionList[i].GetSectionTid());
+            DirectedNetworkSection adjSection(pSectionTuple,
+                                              &rNetwork,
+                                              false);
+
+            bFound = (adjSection.GetSectionID() ==
+                                              rNextAdjacent.GetSectionID());
+        }
+
+        if (bFound)
+        {
+            NewSection = rSectionCandidate.m_Section;
+
+            PointNewProjection = (NewSection.GetDirection() ==
+                                  DirectedNetworkSection::DIR_UP ?
+                                          NewSection.GetEndPoint() :
+                                          NewSection.GetStartPoint());
+
+        }
+
+        if (rSectionCandidate.m_Points.size() > 0)
+        {
+            break;
+        }
+    }
+
+    if (!bFound)
+    {
+        // ????
+        // Assign to start-node of rNextAdjacent
+        NewSection = rNextAdjacent;
+
+        PointNewProjection = (NewSection.GetDirection() ==
+                              DirectedNetworkSection::DIR_UP ?
+                                      NewSection.GetStartPoint() :
+                                      NewSection.GetEndPoint());
+    }
+
+    if (!PointNewProjection.IsDefined())
+    {
+        ofstream StreamBadNetwork(
+                                 "/home/secondo/Traces/BadNetwork.txt",
+                                 ios_base::out | ios_base::ate | ios_base::app);
+
+        StreamBadNetwork << "Undefined start- or endpoint: ";
+        StreamBadNetwork << "Section: ";
+        StreamBadNetwork << NewSection.GetSectionID();
+        StreamBadNetwork << endl;
+
+        return false;
+    }
+
+
+    std::stack<MHTRouteCandidate::PointData> stackPointData;
+
+    while (GetCountPointsOfLastSection() > 0)
+    {
+        stackPointData.push(MHTRouteCandidate::PointData(
+                                               GetLastPoint() != NULL ?
+                                               *GetLastPoint():
+                                               MHTRouteCandidate::PointData()));
+         RemoveLastPoint();
+    }
+
+
+    while (!stackPointData.empty())
+    {
+        MHTRouteCandidate::PointData& Data = stackPointData.top();
+
+        double dDistance = MMUtil::CalcDistance(PointNewProjection,
+                *Data.GetPointGPS(), dNetworkScale);
+
+        AddPoint(*Data.GetPointGPS(), PointNewProjection,
+                 NewSection, dDistance, Data.GetTime());
+
+        stackPointData.pop();
+    }
+
+    return true;
 }
 
 void MHTRouteCandidate::Print(std::ostream& os, int nNetworkId) const
@@ -419,13 +580,13 @@ MHTRouteCandidate::PointData::PointData()
 
 MHTRouteCandidate::PointData::PointData(const Point& rPointGPS,
                                         const Point& rPointProjection,
-                                        const NetworkRoute& rRoute,
+                                        const DirectedNetworkSection& rSection,
                                         const double dScore,
                                         const datetime::DateTime& rDateTime)
 :m_pGPoint(NULL),
  m_pPointGPS(new Point(rPointGPS)),
  m_pPointProjection(new Point(rPointProjection)),
- m_Route(rRoute),
+ m_Section(rSection),
  m_dScore(dScore),
  m_Time(rDateTime)
 {
@@ -437,7 +598,7 @@ MHTRouteCandidate::PointData::PointData(const Point& rPoint,
 :m_pGPoint(NULL),
  m_pPointGPS(new Point(rPoint)),
  m_pPointProjection(NULL),
- m_Route(NULL),
+ m_Section(),
  m_dScore(dScore),
  m_Time(rDateTime)
 {
@@ -450,7 +611,7 @@ MHTRouteCandidate::PointData::PointData(const PointData& rPointData)
              new Point(*rPointData.m_pPointGPS) : NULL),
  m_pPointProjection(rPointData.m_pPointProjection != NULL ?
              new Point(*rPointData.m_pPointProjection) : NULL),
- m_Route(rPointData.m_Route),
+ m_Section(rPointData.m_Section),
  m_dScore(rPointData.m_dScore),
  m_Time(rPointData.m_Time)
 {
@@ -482,7 +643,7 @@ MHTRouteCandidate::PointData& MHTRouteCandidate::PointData::operator=(
         if (rPointData.m_pPointProjection != NULL)
             m_pPointProjection = new Point(*rPointData.m_pPointProjection);
 
-        m_Route = rPointData.m_Route;
+        m_Section = rPointData.m_Section;
 
         m_dScore = rPointData.m_dScore;
 
@@ -530,14 +691,20 @@ GPoint* MHTRouteCandidate::PointData::GetGPoint(int nNetworkId) const
     if (m_pGPoint != NULL)
         return m_pGPoint;
 
-    if (!m_Route.IsDefined() ||
+    if (!m_Section.IsDefined() ||
         m_pPointProjection == NULL || !m_pPointProjection->IsDefined())
     {
         return NULL;
     }
 
-    const bool RouteStartsSmaller = m_Route.GetStartsSmaller();
-    const SimpleLine* pRouteCurve = m_Route.GetCurve();
+    const NetworkRoute& rRoute = m_Section.GetRoute();
+    if (!rRoute.IsDefined())
+    {
+        return NULL;
+    }
+
+    const bool RouteStartsSmaller = rRoute.GetStartsSmaller();
+    const SimpleLine* pRouteCurve = rRoute.GetCurve();
 
     double dPos = 0.0;
     if (pRouteCurve != NULL &&
@@ -545,7 +712,7 @@ GPoint* MHTRouteCandidate::PointData::GetGPoint(int nNetworkId) const
                                    RouteStartsSmaller, 0.000001 * 1000, dPos))
        //pRouteCurve->AtPoint(PointProjection, RouteStartsSmaller, dPos))
     {
-        m_pGPoint = new GPoint(true, nNetworkId, m_Route.GetRouteID(),
+        m_pGPoint = new GPoint(true, nNetworkId, rRoute.GetRouteID(),
                                dPos, None);
         return m_pGPoint;
     }

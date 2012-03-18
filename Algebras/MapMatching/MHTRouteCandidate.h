@@ -72,14 +72,15 @@ public:
     void AddSection(const DirectedNetworkSection& rSection);
     const DirectedNetworkSection& GetLastSection(void) const;
 
-    void AddPoint(/*const GPoint& rGPoint,*/ const Point& rPoint,
-                  const Point& rPointProjection, const NetworkRoute& rRoute,
-                  const double dDistance, const datetime::DateTime& rDateTime/*,
-                  bool bClosed*/);
+    void AddPoint(const Point& rPoint,
+                  const Point& rPointProjection,
+                  const DirectedNetworkSection& rSection,
+                  const double dDistance,
+                  const datetime::DateTime& rDateTime);
 
     void AddPoint(const Point& rPoint,
-                  const double dDistance, const datetime::DateTime& rDateTime/*,
-                  bool bClosed*/);
+                  const double dDistance,
+                  const datetime::DateTime& rDateTime);
 
     void RemoveLastPoint(void);
 
@@ -106,13 +107,14 @@ public:
         PointData();
 
         PointData(const Point& rPointGPS,
-                  const Point& rPointProjection, const NetworkRoute& rRoute,
+                  const Point& rPointProjection,
+                  const DirectedNetworkSection& rSection,
                   const double dDistance,
                   const datetime::DateTime& rDateTime);
 
         // Constructor without GPoint - Offroad-case
         PointData(const Point& rPoint, const double dDistance,
-                  const datetime::DateTime& rDateTime/*, bool bClosed*/);
+                  const datetime::DateTime& rDateTime);
 
         PointData(const PointData& rPointData);
 
@@ -124,7 +126,6 @@ public:
         inline Point* GetPointGPS(void) const {return m_pPointGPS;}
         inline Point* GetPointProjection(void) const
                                               {return m_pPointProjection;}
-        inline const NetworkRoute& GetNetworkRoute(void) {return m_Route;}
         inline double GetScore(void) const {return m_dScore;}
         inline datetime::DateTime GetTime(void) const {return m_Time;}
 
@@ -134,7 +135,7 @@ public:
         mutable GPoint* m_pGPoint;
         Point* m_pPointGPS;
         Point* m_pPointProjection;
-        NetworkRoute m_Route;
+        DirectedNetworkSection m_Section;
         double m_dScore;
         datetime::DateTime m_Time;
     };
@@ -148,11 +149,18 @@ public:
 
     const std::vector<PointData*>& GetPointsOfLastSection(void) const;
 
+    // Return the number of (assigned) points to last section
+    // (No "Offroad"-points !!)
     inline size_t GetCountPointsOfLastSection(void) const
                                      {return m_Sections.back().m_Points.size();}
 
     inline size_t GetCountLastOffRoadPoints(void) const
                                              {return m_nCountLastOffRoadPoints;}
+
+    bool CorrectUTurn(const DirectedNetworkSection& rNextAdjacent,
+                      class Network& rNetwork, double dNetworkScale);
+
+    bool IsFirstSection(void) const {return m_Sections.size() == 1;}
 
     // Debugging
     void Print(std::ostream& os, int nNetworkId) const;

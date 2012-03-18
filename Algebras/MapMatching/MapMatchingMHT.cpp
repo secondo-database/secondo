@@ -385,13 +385,18 @@ void MapMatchingMHT::TripSegmentation(
     ofstream streamBadData("/home/secondo/Traces/BadData.txt");
 #endif
 
+//#define TRACE_GAPS
+#ifdef TRACE_GAPS
+    ofstream streamGaps("/home/secondo/Traces/Gaps.txt");
+#endif
+
     // Detect spatial and temporal gaps in input-data
     // Divide the data if the time gap is longer than 40 seconds or
     // the distance is larger than 500 meters
 
     const double dMaxDistance = 750.0; // 750 meter
-    //const DateTime MaxTimeDiff(durationtype, 60000); // 60 seconds
-    int64_t MaxTimeDiff = 60000; // 60 seconds
+    const int64_t MaxTimeDiff = 60000; // 60 seconds
+    const int64_t MaxTimeDiff2 = 180000; // 180 seconds
     const Geoid  GeodeticSystem(Geoid::WGS1984);
 
     DbArrayPtr<DbArray<MapMatchData> > pActArray(NULL);
@@ -446,12 +451,36 @@ void MapMatchingMHT::TripSegmentation(
         else
         {
             bool bValid = true;
-            if ((ActData.m_Time - prevEndTime) > MaxTimeDiff ||
-                prevEndPoint.DistanceOrthodrome(ActData.GetPoint()  *
-                                                        (1.0 / m_dNetworkScale),
-                                                GeodeticSystem,
-                                                bValid) > dMaxDistance)
+            const double dDistance = prevEndPoint.DistanceOrthodrome(
+                                   ActData.GetPoint() * (1.0 / m_dNetworkScale),
+                                   GeodeticSystem,
+                                   bValid);
+
+            bool bGap = dDistance > dMaxDistance;
+
+            if (!bGap && ((ActData.m_Time - prevEndTime) > MaxTimeDiff))
             {
+                // Temporal gap
+                // check, whether the distance is very small
+                // (stop at traffic light)
+
+                bGap = (dDistance > 100.0 ||
+                        (ActData.m_Time - prevEndTime) >  MaxTimeDiff2);
+            }
+
+            if (bGap)
+            {
+#ifdef TRACE_GAPS
+                streamGaps << "*****************" << endl;
+                streamGaps << "Gap detected : ";
+                ActData.Print(streamGaps);
+                streamGaps << endl;
+                streamGaps << "TimeDiff: " << (ActData.m_Time - prevEndTime);
+                streamGaps << endl;
+                streamGaps << "Distance: " << dDistance;
+                streamGaps << endl;
+#endif
+
                 // gap detected -> finalize current array
                 if (pActArray->Size() >= 10)
                 {
@@ -1010,9 +1039,11 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
 
         }
 
-        pCandidate->AddPoint(rPoint, PointProjection,
-                             rSection.GetRoute(),
-                             dDistance, rTime);
+        pCandidate->AddPoint(rPoint,
+                             PointProjection,
+                             rSection,
+                             dDistance,
+                             rTime);
         return true;
     }
     else
@@ -1227,7 +1258,7 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
     if (m_pNetwork == NULL || pCandidate == NULL)
         return;
 
-    unsigned short nMoveLastPoints = 0;
+    bool bCorrectUTurn = false;
 
     const DirectedNetworkSection& rSection = pCandidate->GetLastSection();
 
@@ -1240,15 +1271,26 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
     {
         // U-Turn
 
+        if (pCandidate->IsFirstSection())
+        {
+            // First section -> do not assign adjacent sections (No U-Turn)
+            return;
+        }
+
         size_t nPointsOfLastSection = pCandidate->GetCountPointsOfLastSection();
 
-        if (nPointsOfLastSection <= 2)
+        if (nPointsOfLastSection == 0)
+        {
+            // No points assigned
+            return;
+        }
+        else if (nPointsOfLastSection <= 2)
         {
             // U-Turn and only one/two assigned point/s to last section
             // -> Remove last point/S and assign this point/s to
-            // start point of adjacent section
+            // end point of previous section
 
-            nMoveLastPoints = nPointsOfLastSection;
+            bCorrectUTurn = true;
         }
         else if (nPointsOfLastSection <= 5)
         {
@@ -1291,13 +1333,12 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
                 }
             }
 
-            if (dMaxDistance < dMaxAllowedDistance)
-                nMoveLastPoints = nPointsOfLastSection;
+            bCorrectUTurn = (dMaxDistance < dMaxAllowedDistance);
         }
 
         // Calculate Score for U-Turn (only when nMoveLastPoints <= 0)
         const SimpleLine* pCurve = rSection.GetCurve();
-        if (nMoveLastPoints <= 0 && pCurve != NULL && pCurve->IsDefined())
+        if (!bCorrectUTurn && pCurve != NULL && pCurve->IsDefined())
         {
             const Point ptRef = bUpDown ? rSection.GetEndPoint() :
                                           rSection.GetStartPoint();
@@ -1356,55 +1397,17 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
             MHTRouteCandidate* pNewCandidate =
                                              new MHTRouteCandidate(*pCandidate);
 
-            if (nMoveLastPoints > 0)
+            if (bCorrectUTurn)
             {
-                std::stack<MHTRouteCandidate::PointData> stackPointData;
+                // Assign to end node of previous section
 
-                for (unsigned short i = 0 ; i < nMoveLastPoints; ++i)
+                if (!pNewCandidate->CorrectUTurn(adjSection,
+                                                 *m_pNetwork,
+                                                 m_dNetworkScale))
                 {
-                    stackPointData.push(MHTRouteCandidate::PointData(
-                                         pNewCandidate->GetLastPoint() != NULL ?
-                                         *(pNewCandidate->GetLastPoint()):
-                                         MHTRouteCandidate::PointData()));
-                    pNewCandidate->RemoveLastPoint();
-                }
-
-                // Assign to start node of new section
-                Point PointNewProjection(adjSection.GetDirection() ==
-                                            DirectedNetworkSection::DIR_UP ?
-                                                    adjSection.GetStartPoint() :
-                                                    adjSection.GetEndPoint());
-
-                if (!PointNewProjection.IsDefined())
-                {
-                    ofstream StreamBadNetwork(
-                                     "/home/secondo/Traces/BadNetwork.txt",
-                                     ios_base::out|ios_base::ate|ios_base::app);
-
-                    StreamBadNetwork << "Undefined start- or endpoint: ";
-                    StreamBadNetwork << "Section: ";
-                    StreamBadNetwork << adjSection.GetSectionID();
-                    StreamBadNetwork << endl;
-
-                    delete pNewCandidate; pNewCandidate = NULL;
+                    delete pNewCandidate;
+                    pNewCandidate = NULL;
                     continue;
-                }
-
-                while (!stackPointData.empty())
-                {
-                    MHTRouteCandidate::PointData& Data = stackPointData.top();
-
-                    double dDistance = MMUtil::CalcDistance(PointNewProjection,
-                                                            *Data.GetPointGPS(),
-                                                            m_dNetworkScale);
-
-                    pNewCandidate->AddPoint(*Data.GetPointGPS(),
-                                            PointNewProjection,
-                                            adjSection.GetRoute(),
-                                            dDistance,
-                                            Data.GetTime());
-
-                    stackPointData.pop();
                 }
             }
             else
