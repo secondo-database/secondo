@@ -505,45 +505,70 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
         CcReal* pLat    = static_cast<CcReal*>(pTpl->GetAttribute(nIdxLat));
         CcReal* pLon    = static_cast<CcReal*>(pTpl->GetAttribute(nIdxLon));
         DateTime* pTime = static_cast<DateTime*>(pTpl->GetAttribute(nIdxTime));
-        CcInt* pFix     = static_cast<CcInt*>(pTpl->GetAttribute(nIdxFix));
-        CcInt* pSat     = static_cast<CcInt*>(pTpl->GetAttribute(nIdxSat));
-        CcReal* pHdop   = static_cast<CcReal*>(pTpl->GetAttribute(nIdxHdop));
-        CcReal* pVdop   = static_cast<CcReal*>(pTpl->GetAttribute(nIdxVdop));
-        CcReal* pPdop   = static_cast<CcReal*>(pTpl->GetAttribute(nIdxPdop));
+
+        CcInt* pFix     = NULL;
+        if (nIdxFix >= 0)
+            pFix = static_cast<CcInt*>(pTpl->GetAttribute(nIdxFix));
+
+        CcInt* pSat     = NULL;
+        if (nIdxSat >= 0)
+            pSat = static_cast<CcInt*>(pTpl->GetAttribute(nIdxSat));
+
+        CcReal* pHdop   = NULL;
+        if (nIdxHdop >= 0)
+            pHdop = static_cast<CcReal*>(pTpl->GetAttribute(nIdxHdop));
+
+        CcReal* pVdop   = NULL;
+        if (nIdxVdop >= 0)
+            pVdop = static_cast<CcReal*>(pTpl->GetAttribute(nIdxVdop));
+
+        CcReal* pPdop   = NULL;
+        if (nIdxPdop >= 0)
+            pPdop = static_cast<CcReal*>(pTpl->GetAttribute(nIdxPdop));
+
         /*
-        CcReal* pCourse = static_cast<CcReal*>(pTpl->GetAttribute(nIdxCourse));
-        CcReal* pSpeed  = static_cast<CcReal*>(pTpl->GetAttribute(nIdxSpeed));
-        CcReal* pEle    = static_cast<CcReal*>(pTpl->GetAttribute(nIdxEle));
+        CcReal* pCourse = NULL;
+        if (nIdxCourse >= 0)
+            pCourse = static_cast<CcReal*>(pTpl->GetAttribute(nIdxCourse));
+
+        CcReal* pSpeed  = NULL;
+        if (nIdxSpeed >= 0)
+            pSpeed = static_cast<CcReal*>(pTpl->GetAttribute(nIdxSpeed));
+
+        CcReal* pEle    = NULL;
+        if (nIdxEle >= 0)
+            pEle = static_cast<CcReal*>(pTpl->GetAttribute(nIdxEle));
         */
 
-        if (pLat->IsDefined() && pLon->IsDefined() && pTime->IsDefined())
+        if (pLat != NULL && pLon != NULL && pTime != NULL &&
+            pLat->IsDefined() && pLon->IsDefined() && pTime->IsDefined())
         {
             MapMatchingMHT::MapMatchData Data(pLat->GetValue() * dNetworkScale,
                                               pLon->GetValue() * dNetworkScale,
                                               pTime->millisecondsToNull());
 
-            if (pFix->IsDefined())
+            if (pFix != NULL && pFix->IsDefined())
                 Data.m_nFix = pFix->GetValue();
 
-            if (pSat->IsDefined())
+            if (pSat != NULL && pSat->IsDefined())
                 Data.m_nSat = pSat->GetValue();
 
-            if (pHdop->IsDefined())
+            if (pHdop != NULL && pHdop->IsDefined())
                 Data.m_dHdop = pHdop->GetValue();
 
-            if (pVdop->IsDefined())
+            if (pVdop != NULL && pVdop->IsDefined())
                 Data.m_dVdop = pVdop->GetValue();
 
-            if (pPdop->IsDefined())
+            if (pPdop != NULL && pPdop->IsDefined())
                 Data.m_dPdop = pPdop->GetValue();
             /*
-            if (pCourse->IsDefined())
+            if (pCourse != NULL && pCourse->IsDefined())
                 Data.m_dCourse = pCourse->GetValue();
 
-            if (pSpeed->IsDefined())
+            if (pSpeed != NULL && pSpeed->IsDefined())
                 Data.m_dSpeed = pSpeed->GetValue()
 
-            if (pEle->IsDefined())
+            if (pEle != NULL && pEle->IsDefined())
                 Data.m_dEle = pEle->GetValue();
              */
 

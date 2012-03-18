@@ -640,7 +640,7 @@ int MapMatchingMHT::DevelopRoutes(const DbArray<MapMatchData>* pDbaMMData,
         {
             ofstream StreamBadNetwork("/home/secondo/Traces/BadNetwork.txt",
             ios_base::out|ios_base::ate|ios_base::app);
-            StreamBadNetwork << "Match point failed: " << endl;
+            StreamBadNetwork << "CheckRouteCandidates failed: " << endl;
             ActData.Print(StreamBadNetwork);
             StreamBadNetwork << endl;
 
@@ -1223,7 +1223,6 @@ bool MapMatchingMHT::CheckRouteCandidates(const std::vector<MHTRouteCandidate*>&
 
     if (nCandidates == 0)
     {
-        assert(false);
         return false;
     }
 
