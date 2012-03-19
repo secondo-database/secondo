@@ -150,7 +150,7 @@ operator generate_ip1 alias GENERATE_IP1 pattern op(_,_,_)
 operator generate_mo1 alias GENERATE_MO1 pattern op(_,_,_,_,_,_)
 operator getindoorpath alias GETINDOORPATH pattern op(_,_)
 operator indoornavigation alias INDOORNAVIGATION pattern op(_,_,_,_,_,_)
-operator instant2day alias INSTANT2DAY pattern op(_)
+
 
 operator maxrect alias MAXRECT pattern op(_)
 operator remove_dirty alias REMOVE_DIRTY pattern op(_,_,_)

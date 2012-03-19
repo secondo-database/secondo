@@ -1283,10 +1283,10 @@ const string OpTMRemoveDirtySpec  =
 const string OpTMModifyLineSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>line -> line</text--->"
-    "<text>modifyline(line)</text--->"
-    "<text>modify the coordinates of a line, for numeric problem</text--->"
-    "<text>query modifyline([const line value ((2.33 3.33 4.444 5.555))])"
+    "( <text>sline -> sline</text--->"
+    "<text>modifyline(sline)</text--->"
+    "<text>modify the coordinates of a sline, for numeric problem</text--->"
+    "<text>query modifyline([const sline value ((2.33 3.33 4.444 5.555))])"
     "</text--->"
     ") )";
 

@@ -211,7 +211,7 @@ Operator : at_point
 Number   : 2
 Signature: sline x point x bool -> real
 Example  : query at_point([const sline value ((2 2 3 3))], [const point value (2 2)], TRUE);
-Result   : 0.0
+Result   : 0
 
 Operator : decomposetri
 Number   : 2
@@ -812,14 +812,6 @@ Example  : query remove_dirty(region_elems, id, covarea) count;
 Result   : 20 
 
 
-Operator : instant2day 
-Number   : 1
-Signature: instant -> int
-Example  : query instant2day(theInstant(2007,6,3,9,0,0,0));
-Result   : 3989
-
-
- 
 Operator : ref_id
 Number   : 1
 Signature: genloc -> int
@@ -841,7 +833,7 @@ Result   : 1
 Operator : tm_at3
 Number   : 1
 Signature: genmo x mreal x genloc x string -> genmo
-Example  : query no_components(tm_at3([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], genmoindex([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]),tm_genloc(2.0, -1.0, -1.0), "Indoor"));
+Example  : query no_components(tm_at3([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))], genmoindex([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 3.0)) (1 (3.0 3.0)) "Indoor"))]),tm_genloc(2, -1.0, -1.0), "Indoor"));
 Result   : 0
 
 
@@ -893,7 +885,7 @@ Result   : (("2010-12-7-8:04:10") (1 (3.0 3.0)))
 Operator : tm_build_id
 Number   : 1
 Signature: int x space -> int
-Example  : query tm_build_id(0, space_1);
+Example  : query tm_build_id(0, [const space value ( 1 )]);
 Result   : -1
 
 Operator : bcontains
@@ -911,7 +903,7 @@ Result   : TRUE
 Operator : tm_room_id
 Number   : 1
 Signature: int x space -> int
-Example  : query tm_room_id(0, space_1);
+Example  : query tm_room_id(0, [const space value ( 1 )]);
 Result   : -1
 
 
@@ -987,17 +979,17 @@ Signature: mpoint3d -> line3d
 Example  : query size(trajectory([const mpoint3d value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 2.0 3.0) (1 3.0 3.0)))]));
 Result   : 1
 
+
 Operator : gentrajectory
 Number   : 1
-Signature: genmo -> genrange
-Example  : query size(gentrajectory([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))], space_1));
+Signature: genmo x space -> genrange
+Example  : query size(trajectory([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (0 (2.0 -1.0)) (0 (3.0 -1.0)) "Car"))], [const space value (1)]));
 Result   : 1
-
 
 Operator : genrangevisible
 Number   : 1
 Signature: genrange -> (stream(((x1 t1) ... (xn tn))))
-Example  : query genrangevisible((gentrajectory([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (1 (2.0 -1.0)) (1 (3.0 -1.0)) "Car"))], space_1))) count;
+Example  : query genrangevisible(trajectory([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (0 (2.0 -1.0)) (0 (3.0 -1.0)) "Free"))], [const space value (1)]),[const space value (1)]) count;
 Result   : 1
 
 
@@ -1031,8 +1023,8 @@ Result   : 1
 Operator : mapgenmo 
 Number   : 1
 Signature: genmo x mpoint -> mpoint
-Example  : query no_components(mapgenmo([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (10 (-1.0 -1.0)) (10 (-1.0 -1.0)) "Bus"))], [const mpoint value ((("2007-02-27-16:05:54.922" "2007-02-27-16:05:55.922" TRUE FALSE) (7.495008333333334 51.37592333333333 7.495061666666667 51.37594166666667)))])) count;
-Result   : 1
+Example  : query no_components(mapgenmo([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (10 (-1.0 -1.0)) (10 (-1.0 -1.0)) "Bus"))], [const mpoint value ((("2007-02-27-16:05:54.922" "2007-02-27-16:05:55.922" TRUE FALSE) (7.495008333333334 51.37592333333333 7.495061666666667 51.37594166666667)))]));
+Result   : 0
 
 
 
@@ -1092,7 +1084,7 @@ Operator : genmo_tm_list
 Number   : 1
 Signature: bool -> (stream(((x1 t1) ... (xn tn))))
 Example  : query genmo_tm_list(TRUE) count;
-Result   : 17
+Result   : 18
 
 Operator : generate_genmo
 Number   : 1
@@ -1179,9 +1171,9 @@ Result   : 1
 
 Operator : modifyline
 Number   : 1
-Signature: line -> line
-Example  : query modifyline([const line value((2.33 3.33 4.444 5.555))]);
-Result   : (line value ((2.33 3.33 4.44 5.56)))
+Signature: sline -> sline
+Example  : query size(modifyline([const sline value((2.0 1.0 3.0 1.0))]));
+Result   : 1
 
 
 Operator : checkroads
