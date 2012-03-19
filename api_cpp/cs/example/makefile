@@ -21,7 +21,7 @@ all: Config.ini app$(EXEEXT)
 
 
 
-LDFLAGS:=-L../lib/ -lsecondo    -lfl -ly -lstdc++ 
+LDFLAGS:=-L../lib/ -lsecondo    -lfl -ly -lstdc++ -lpthread
 ifeq ($(SECONDO_PLATFORM),win32)
 LDFLAGS+=-lwsock32 -lws2_32
 endif
