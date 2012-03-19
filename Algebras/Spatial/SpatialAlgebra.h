@@ -1695,6 +1695,13 @@ Checks whether ~p~ is located on this line.
   bool Contains(const Point& p, const Geoid* geoid=0) const;
 
 /*
+Inside
+
+*/
+
+bool Inside( const SimpleLine& l, const Geoid* geoid=0 ) const;
+
+/*
 ~TrimToSize~
 
 Changes the capacities of the contained arrays to the required size.
@@ -1827,6 +1834,7 @@ void SubLine(const double pos1, const double pos2, SimpleLine& l) const;
 
 void Crossings(const SimpleLine& l, Points& result,
                const Geoid* geoid=0) const;
+
 
 /*
 ~Union~
