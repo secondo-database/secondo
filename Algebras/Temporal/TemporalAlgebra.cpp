@@ -5522,8 +5522,9 @@ void MPoint::Breaks(Periods& result, const DateTime& dur,
     }
 
     result.SetDefined(true);
+    Periods tmp(0);
     int size = GetNoComponents();
-    result.StartBulkLoad();
+    //result.StartBulkLoad();
     UPoint unit;
     UPoint firstUnit;
     Point firstPoint;
@@ -5548,7 +5549,8 @@ void MPoint::Breaks(Periods& result, const DateTime& dur,
            if(index>=size){
              if(currentDur >= dur){
                Interval<Instant> iv(firstTime, firstTime+currentDur,true,true);
-               result.MergeAdd(iv);
+               result.Union(iv, tmp);
+               result.CopyFrom(&tmp);
              }
              firstIndex = index;
 
@@ -5563,7 +5565,8 @@ void MPoint::Breaks(Periods& result, const DateTime& dur,
            if(currentDur >= dur){
               Interval<Instant> iv(firstTime,firstTime + currentDur, 
                                    true, true); 
-              result.MergeAdd(iv);
+              result.Union(iv, tmp);
+              result.CopyFrom(&tmp);
            }
            firstIndex = index; // start a new try
         } else {
@@ -5573,12 +5576,13 @@ void MPoint::Breaks(Periods& result, const DateTime& dur,
              if(currentDur >= dur){
                 Interval<Instant> iv(firstTime,firstTime + currentDur, 
                                      true, true); 
-                result.MergeAdd(iv);
+                result.Union(iv, tmp);
+                result.CopyFrom(&tmp);
                 firstIndex = index;
              } else {
                 // start a new try
                 firstIndex++;
-                index = firstIndex; 
+                index = firstIndex;
             }
           } else {
             // extend the possible break   
@@ -5588,15 +5592,16 @@ void MPoint::Breaks(Periods& result, const DateTime& dur,
                firstIndex = index;
                if(currentDur >= dur){
                 Interval<Instant> iv(firstTime,firstTime + currentDur,
-                                     true, true); 
-                result.MergeAdd(iv);
+                                     true, true);
+                result.Union(iv, tmp);
+                result.CopyFrom(&tmp);
                }
             }
           } 
         }
       }
     }
-    result.EndBulkLoad();
+    //result.EndBulkLoad();
 }
 
 
