@@ -2746,6 +2746,12 @@ UnitBaseTypeMapBool( ListExpr args )
     if( ((nl->IsEqual( arg1, URegion::BasicType() )
       && nl->IsEqual( arg2, Point::BasicType() ))) )
       return nl->SymbolAtom( CcBool::BasicType() );
+    if( ((nl->IsEqual( arg1, UPoint::BasicType() )
+      && nl->IsEqual( arg2, Region::BasicType() ))) )
+      return nl->SymbolAtom( CcBool::BasicType() );
+    if( ((nl->IsEqual( arg1, UPoint::BasicType() )
+      && nl->IsEqual( arg2, Rectangle<2>::BasicType() ))) )
+      return nl->SymbolAtom( CcBool::BasicType() );
   }
   return nl->SymbolAtom( Symbol::TYPEERROR() );
 }
@@ -2819,9 +2825,13 @@ TUPassesSelect( ListExpr args )
       nl->SymbolValue( arg2 ) == Region::BasicType() )
     return 5;
 
-//  if( nl->SymbolValue( arg1 ) == UPoint::BasicType() &&
-//      nl->SymbolValue( arg2 ) == Region::BasicType() )
-//      return 6;
+  if( nl->SymbolValue( arg1 ) == UPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Region::BasicType() )
+    return 6;
+
+  if( nl->SymbolValue( arg1 ) == UPoint::BasicType() &&
+      nl->SymbolValue( arg2 ) == Rectangle<2>::BasicType() )
+    return 7;
 
   return -1; // This point should never be reached
 }
@@ -2832,7 +2842,9 @@ ValueMapping temporalunitpassesmap[] = {
   MappingUnitPasses<UReal, CcReal>,      //2
   MappingUnitPasses<UPoint, Point>,      //3
   MappingUnitPasses<UString, CcString>,  //4
-  MappingUnitPasses<URegion, Region> };  //5
+  MappingUnitPasses<URegion, Region>,    //5
+  MappingUnitPasses<UPoint, Region>,     //6
+  MappingUnitPasses<UPoint, Rectangle<2> >};  //7
 
 /*
 5.12.5  Definition of operator ~passes~
@@ -2840,7 +2852,7 @@ ValueMapping temporalunitpassesmap[] = {
 */
 Operator temporalunitpasses( "passes",
                          TemporalSpecPasses,
-                         6,
+                         8,
                          temporalunitpassesmap,
                          TUPassesSelect,
                          UnitBaseTypeMapBool);
@@ -10138,6 +10150,7 @@ Operator temporalunitcanmeet( "canmeet",
                                TypeMapTemporalUnitCanMeet);
 
 
+
 /*
 5.46 Operator ~when~
 
@@ -10623,6 +10636,63 @@ Operator temporalunitwhen( "when",
                             UnitWhenTypeMap );
 
 
+/*
+5.47.1 Operator atRect Value Mapping
+
+*/
+
+int atRectUVM( Word* args, Word& result, int message, Word&
+ local, Supplier s ){
+  UPoint* up = (UPoint*) args[0].addr;
+  Rectangle<2>* rect = (Rectangle<2>*) args[1].addr;
+  result = qp->ResultStorage(s);
+  UPoint* res = (UPoint*) result.addr;
+  up->At(*rect,*res);
+  return 0;
+}
+
+/*
+5.47.2 Operator atRect Type Mapping
+
+   Signature is: upoint x rect -> upoint
+
+*/
+
+ListExpr atRectUTM(ListExpr args){
+  string err ="upoint x rect expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  if(!UPoint::checkType(nl->First(args)) ||
+     !Rectangle<2>::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  return nl->SymbolAtom(UPoint::BasicType());
+}
+
+/*
+5.47.3 Specification
+
+*/
+const string atRectUSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>upoint x rect -> upoint </text---> "
+    "<text> up atRect r  </text--->"
+    "<text>Restricts the upoint up to the part inside r "
+    "</text--->"
+    "<text>query getunit(train7, 1) atRect bbox(thecenter)</text--->"
+    ") )";
+
+/*
+5.47.4 Definition of operator atRect
+
+*/
+Operator atRectU( "atRect",
+                 atRectUSpec,
+                 atRectUVM,
+                 Operator::SimpleSelect,
+                 atRectUTM);
+
 
 /*
 5.44 Operator ~~
@@ -10721,6 +10791,7 @@ public:
     AddOperator( &temporalunittheivalue );
     AddOperator( &temporalunitlength );
     AddOperator( &temporalunitcanmeet);
+    AddOperator( &atRectU);
   }
   ~TemporalUnitAlgebra() {};
 };
