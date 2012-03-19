@@ -6859,7 +6859,8 @@ void MRegion::InsideAddUBool(MBool& res,
                      << pending->timeInterval.rc
                      << endl;
 
-            res.Add(*pending);
+            if(pending->IsValid())
+              res.Add(*pending);
             delete pending;
 
             Interval<Instant> iv(start, end, lc, rc);
@@ -6941,7 +6942,8 @@ MRegion::MRegion(const MPoint& mp, const Region& _r) :
                up.timeInterval,
                *r,
                msegmentdata.Size());
-        Add(ur);
+        if(ur.IsValid())
+          Add(ur);
     }
     del.isDefined=true;
     r->DeleteIfAllowed();
@@ -7387,8 +7389,8 @@ which needs to be added to the result.
     if (pending) {
         if (MRA_DEBUG)
             cerr << "MRegion::Inside() adding pending" << endl;
-
-        res.Add(*pending);
+        if(pending->IsValid())
+          res.Add(*pending);
         delete pending;
     }
 }
