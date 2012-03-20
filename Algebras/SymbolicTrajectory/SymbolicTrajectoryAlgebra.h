@@ -74,7 +74,7 @@ class ULabel : public UString {
     static bool CheckULabel( ListExpr type, ListExpr& errorInfo );
 };
 
-
+enum Wildcard {NO, ASTERISK, PLUS};
 
 class Pattern {
   public:
@@ -89,6 +89,7 @@ class Pattern {
     bool SingleMatch();
     bool SuffixMatch(MLabel const &ml, size_t firstULabel, size_t firstPattern);
     inline bool isValid();
+    bool hasConstraints();
     inline string getErrMsg();
     Pattern* Clone();
 
@@ -117,7 +118,7 @@ class Pattern {
     bool checkConditions();
     size_t checkCardinalities(); // returns the first pattern position having
                                  // a non-matching cardinality condition
-    void setMatching(bool isW);
+    void setMatching(Wildcard w);
     void matchingsToString();
     size_t lastWildcardPosition(size_t skip); // skips ~skip~ many wildcards
                // and returns the position of the (skip + 1)th last wildcard
@@ -130,7 +131,7 @@ class Pattern {
     struct Matching {
       size_t labelPos;
       size_t patternPos;
-      bool isWildcard;
+      Wildcard isWildcard;
       bool hasCardinalityCondition;
     };
     
@@ -142,9 +143,8 @@ class Pattern {
     size_t currentULabel, maxULabel, currentPattern, matchesToDelete,
            nextStartLabel, lastWildcardPos, numberOfWildcards, cardProblem;
     SinglePattern pattern;
-    int64_t firstMatchULabel, lastMatchULabel, countAt;
     ULabel ul;
-    bool wildcard, result, patternResult;
+    bool wildcard, result, patternResult, endsMustMatch;
     Interval<Instant> interval;
     string startTimeRange, endTimeRange, timeRange;
     PatEquation patEquation;

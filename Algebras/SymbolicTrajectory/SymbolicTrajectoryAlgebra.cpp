@@ -1195,6 +1195,14 @@ void Pattern::setStartEnd() {
     endDate.Minus(dt);
 }
 
+bool Pattern::hasConstraints() {
+  if (pattern.lbs.empty() && pattern.trs.empty() && pattern.dtrs.empty()
+    && pattern.sts.empty() && pattern.conditions.empty())
+    return false;
+  else
+    return true;
+}
+
 bool Pattern::checkLabels() {
   CcString *label = new CcString(true, pattern.lbs[0]);
   bool result = ul.Passes(*label) ? true : false;
@@ -1322,6 +1330,8 @@ bool Pattern::checkConditions() {
          || ((patEquation.op & 4) && (endDate > endPatternDateTime))))
           return false;
         break;
+      default:
+        return true;
     }
   }
   return true;
@@ -1376,73 +1386,127 @@ size_t Pattern::checkCardinalities() {
   return s_pattern.size();
 }
 
-void Pattern::setMatching(bool isW) {
+void Pattern::setMatching(Wildcard w) {
   matching.labelPos = currentULabel;
   matching.patternPos = currentPattern;
-  matching.isWildcard = isW;
+  matching.isWildcard = w;
   matching.hasCardinalityCondition = false;
-  if (isW && !pattern.conditions.empty())
+  if (w && !pattern.conditions.empty())
     for (size_t i = 0; i < pattern.conditions.size(); i++)
       if (pattern.conditions[i].key == 6)
         matching.hasCardinalityCondition = true;
+  matchings.push_back(matching);
+  matchingsToString();
 }
 
 void Pattern::matchingsToString() {
-  for (size_t i = 0; i < matchings.size(); i++)
-    cout << (matchings[i].isWildcard ? "wildcard at " : "   match at ") <<
-             matchings[i].labelPos << "  " << matchings[i].patternPos <<
-             (matchings[i].hasCardinalityCondition ? " *" : "") << "\n\n";
+  if (!matchings.empty())
+    for (size_t i = 0; i < matchings.size(); i++) {
+      string wildcard = " ";
+      switch (matchings[i].isWildcard) {
+        case ASTERISK:
+          wildcard = "    *";
+          break;
+        case PLUS:
+          wildcard = "    +";
+          break;
+        default:
+          break;
+      }
+      cout << (matchings[i].isWildcard ? wildcard : "match") << " at "
+           << matchings[i].labelPos << "  " << matchings[i].patternPos
+           << (matchings[i].hasCardinalityCondition ? " *" : "") << "\n";
+    }
+  else
+    cout << "no matchings" << endl;
+  cout << endl;
 }
 
 size_t Pattern::lastWildcardPosition(size_t skip) {
   size_t counter = 0;
-  for (size_t i = matchings.size() - 1; i >= 0; i--)
-    if (matchings[i].isWildcard) {
-      counter ++;
-      if (counter > skip)
-        return i;        // if skip equals 2, the position of the 3rd last
-                         // wildcard is returned
-    }
-  return matchings.size();
+  if (!matchings.empty()) {
+    for (size_t i = matchings.size() - 1; i >= 0; i--)
+      if (matchings[i].isWildcard) {
+        counter ++;
+        if (counter > skip)
+          return i;        // if skip equals n, the position of the (n+1)th
+      }                    // last wildcard is returned
+    return matchings.size();
+  }
+  else
+    return 0;
 }
 
 size_t Pattern::prepareBacktrack(size_t position) {
-  size_t nextStartL = 0;
+  cardProblem = checkCardinalities();
+  size_t previousLabel = (matchings.empty() ? 0 : matchings.back().labelPos);
+  size_t result = 0;
   if (cardProblem != s_pattern.size())
     matchesToDelete = matchings.size() - cardProblem;
-  else  
+  else 
     matchesToDelete = matchings.size() - position;
   for (size_t j = 0; j < matchesToDelete; j++) { // delete old matchings
     if (!matchings.back().isWildcard)
-      nextStartL = matchings.back().labelPos + 1;
+      result = matchings.back().labelPos + 1;
     else {
+      if (matchings.back().isWildcard == PLUS)
+        result = previousLabel;
       pattern = s_pattern[matchings.back().patternPos];
-      if (!checkConditions())
-        return maxULabel; // finish if wildcard breaks condition(s)
+      if (!pattern.conditions.empty())
+        if (!checkConditions())
+          return maxULabel; // finish if wildcard does not fulfill condition(s)
     }
+    previousLabel = matchings.back().labelPos;
     matchings.pop_back();
   }
-  return nextStartL;
+  result = (result > nextStartLabel) ? result : nextStartLabel;
+  if (!matchings.empty())
+    if (matchings.back().isWildcard)
+      for (size_t)
+      result ++;
+  return result;
 }
 
 size_t Pattern::countWildcards() {
   size_t result = 0;
-  for (size_t i = 0; i < matchings.size(); i++)
-    if (matchings[i].isWildcard)
+  for (size_t i = 0; i < s_pattern.size(); i++)
+    if ((s_pattern[i].wildcard == '*') || (s_pattern[i].wildcard == '+'))
       result ++;
   return result;
 }
 
 bool Pattern::completeBacktrack(MLabel const &ml) {
-  bool result = false;
-  while (currentULabel < maxULabel) {
-    matchingsToString();
-    lastWildcardPos = lastWildcardPosition(0);
-    nextStartLabel = prepareBacktrack(lastWildcardPos);
-    cout << nextStartLabel << " " << lastWildcardPos << endl;
-    result = SuffixMatch(ml, nextStartLabel, lastWildcardPos);
-  }
-  return result;
+  bool stagnation = false;
+  size_t lastStartLabel = 0;
+  size_t i = 0;
+  matchingsToString();
+  size_t nextStartPattern = 0;
+  do {
+    while ((currentULabel < maxULabel) && !stagnation) {
+      lastWildcardPos = lastWildcardPosition(i);
+      lastStartLabel = nextStartLabel;
+      nextStartLabel = prepareBacktrack(lastWildcardPos);
+      if (lastStartLabel == nextStartLabel)
+        stagnation = true;
+      nextStartPattern = (matchings.empty()) ?
+                     0 : matchings.back().patternPos + 1;
+      matchingsToString();
+      cout << nextStartLabel << " " << nextStartPattern << endl;
+      if (SuffixMatch(ml, nextStartLabel, nextStartPattern)) {
+        if (!endsMustMatch)
+          return true;
+        else // no wildcard at the end
+          if (currentULabel == maxULabel)
+            return true;
+      }
+      if (matchings.empty())
+        return false;
+    }
+    i++;
+    nextStartLabel = 0;
+    nextStartPattern = 0;
+  } while (i < numberOfWildcards);
+  return false;
 }
 
 Pattern::Pattern(string const &Text) {
@@ -1602,6 +1666,7 @@ bool Pattern::SingleMatch() {
 }
 
 bool Pattern::TotalMatch(MLabel const &ml) {
+  endsMustMatch = false;
   endDate.SetType(datetime::instanttype);
   duration.SetType(datetime::durationtype);
   startTime.SetType(datetime::instanttype);
@@ -1613,22 +1678,37 @@ bool Pattern::TotalMatch(MLabel const &ml) {
   maxULabel = ml.GetNoComponents();
   wildcard = false;
   s_pattern = getPattern();
+  for (size_t i = 0; i < s_pattern.size(); i++)
+    cout << s_pattern[i].toString() << endl;
   bool totalMatch;
   dt = new DateTime(0, 1, durationtype);
   bool match = SuffixMatch(ml, 0, 0);
   numberOfWildcards = countWildcards();
-  matchingsToString();
+  if (matchings.empty())
+    return false;
   if (match) {
-    if (matchings.back().isWildcard) {
+    if (matchings.back().isWildcard == ASTERISK) {
       totalMatch = true; // (_ at_home) (_ at_university) *
       cout << "matches because last non-wildcard pattern matches a prefix of "
-           << "the mlabel and is followed just by a wildcard" << endl;
+           << "the mlabel and is followed just by an asterisk" << endl;
+    }
+    else if (matchings.back().isWildcard == PLUS) {
+      if (!hasConstraints()) {
+        totalMatch = true; // (_ at_home) (_ at_university) +
+        cout << "matches because last non-wildcard pattern matches a prefix "
+             << "of the mlabel and is followed just by a plus" << endl;
+      }
+      else {
+        endsMustMatch = true;
+        totalMatch = completeBacktrack(ml);
+      }
     }
     else if (currentULabel == maxULabel) {
       totalMatch = true;
       cout << "matches because the ends match without wildcard" << endl;
     }
     else if (numberOfWildcards > 0) {
+      endsMustMatch = true; // because no wildcard is at the end
       totalMatch = completeBacktrack(ml);
       cout << (totalMatch ? "matches after backtracking" : "no match") << endl;
     }
@@ -1642,6 +1722,7 @@ bool Pattern::TotalMatch(MLabel const &ml) {
     cout << "no match, no wildcard - no chance" << endl;
   }
   else { // no match && lastWildcardPosition() < matchings.size() - 1
+    endsMustMatch = true;
     totalMatch = completeBacktrack(ml);
     cout << (totalMatch ? "matches after backtracking" : "no match") << endl;
   }
@@ -1654,6 +1735,7 @@ bool Pattern::SuffixMatch(MLabel const &ml, size_t firstULabel,
                           size_t firstPattern) {
   currentULabel = firstULabel;
   currentPattern = firstPattern;
+  bool asteriskOccurs = false;
   if (!checkStartValues())
     return false;
   while (currentPattern < s_pattern.size()) {
@@ -1666,21 +1748,39 @@ bool Pattern::SuffixMatch(MLabel const &ml, size_t firstULabel,
     result = true;
     if (pattern.wildcard == '*') {
       wildcard = true;
-      setMatching(true);
-      matchings.push_back(matching);
+      asteriskOccurs = true;
       if (!pattern.conditions.empty())
         if (!checkConditions())
           return false;
+      setMatching(ASTERISK);
+    }
+    else if (pattern.wildcard == '+') {
+      wildcard = true;
+      if (!SingleMatch() && !wildcard)
+        return false;
+      if (!pattern.conditions.empty())
+        if (!checkConditions()) {
+          if (!wildcard)
+            return false;
+          else
+            result = false;
+        }
+      if (!SingleMatch())
+        result = false;
+      else
+        setMatching(PLUS);
+      asteriskOccurs = true;
+      if (wildcard && !result)
+        --currentPattern;
+      currentULabel ++;
     }
     else {
       if (!SingleMatch() && !wildcard)
         return false;
       if (!SingleMatch())
         result = false;
-      if (result) {
-        setMatching(false);
-        matchings.push_back(matching);
-      }
+      if (result)
+        setMatching(NO);
       if (wildcard)
         if ((wildcard = !result))
           --currentPattern;
@@ -1689,8 +1789,14 @@ bool Pattern::SuffixMatch(MLabel const &ml, size_t firstULabel,
     currentPattern ++;
   }
   cardProblem = checkCardinalities();
-  if (cardProblem != s_pattern.size()) // mismatch
+  if (cardProblem != s_pattern.size()) // cardinality mismatch
     return false;
+  if (!asteriskOccurs && (currentULabel < maxULabel)) // handle ((...))
+    for (size_t i = currentULabel; i < maxULabel; i++) {
+      if (!SingleMatch())
+        return false;
+    }
+    return true;
   return result;
 }
 

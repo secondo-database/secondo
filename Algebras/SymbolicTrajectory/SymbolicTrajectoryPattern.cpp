@@ -227,31 +227,40 @@ int PatParser::getConds(string const &text, string &errMsg) {
 }
 
 
-int PatParser::getPrePats(string text, string &errMsg) 
-{
-  bool open_paranthesis = false;
-  bool open_square_bracket = false;  
-  bool open_set_bracket = false;  
+int PatParser::getPrePats(string text, string &errMsg) {
+  unsigned char open_parentheses = 0;
+  bool isSequence = false;
+  bool open_square_bracket = false;
+  bool open_set_bracket = false;
   string token = "";
   int element_count = 0;
   PrePat prePat;
-  text += " ";  
+  text += " ";
   token = "";
   char char_cur; 
   for (size_t i = 0; i < text.length(); i++) {
     char_cur = text[i];
     switch (char_cur) {
       case '(' :
-        if (open_paranthesis) {
-          errMsg = "Two open paranthesis!";
+        if (open_parentheses == 2) {
+          errMsg = "Three open parantheses!";
           return 1;
-        } 
+        }
+        else if (open_parentheses == 1) { // sequence pattern ((_ at_home))
+          isSequence = true;
+          open_parentheses ++;
+          if (!token.empty()) {
+            prePat.variable = token;
+            token = "";
+          }
+        }
         else if (open_set_bracket) {
           errMsg = "Open set bracket before open paranthesis!";
           return 1;
         }
         else {
-          open_paranthesis = true;
+          // unit pattern
+          open_parentheses ++;
           if (!token.empty()) {
             prePat.variable = token;
             token = "";
@@ -260,12 +269,20 @@ int PatParser::getPrePats(string text, string &errMsg)
         break;
 
       case ')' : 
-        if (!open_paranthesis) {
+        if (open_parentheses == 0) {
           errMsg = "Close paranthesis without an open!";
           return 1;
         } 
+        else if (open_parentheses == 2) {
+          if (text[i+1] != ')') { // TODO: schöner machen
+            errMsg = "Please close a sequence pattern with two consecutive "
+                     "parentheses.";
+            return 1;
+          }
+          open_parentheses --;
+        }
         else {
-          open_paranthesis = false;
+          open_parentheses --;
           if (token.empty()) {
             switch (element_count) {
               case 1:
@@ -273,33 +290,40 @@ int PatParser::getPrePats(string text, string &errMsg)
                 return 1;
                 break;
               case 0:
-              case 2: 
+              case 2:
+                if (isSequence)
+                  prePat.wildcard = '+';
                 pushAndClearPrePat(prePat);
                 element_count = 0;
                 break;
               default:
-                errMsg = "You entered more than two elements!"; 
+                errMsg = "You entered more than two elements!";
                 return 1;
                 break;
             }
-          } 
+          }
           else {
             switch (++element_count) {
-              case 1: 
+              case 1:
+                if (isSequence)
+                  prePat.wildcard = '+';
                 prePat.left = token;
                 break;
-              case 2: 
+              case 2:
+                if (isSequence)
+                  prePat.wildcard = '+';
                 prePat.right = token;
                 pushAndClearPrePat(prePat);
                 element_count = 0;
                 break;
               default:
-                errMsg = "You entered more than two elements!"; 
+                errMsg = "You entered more than two elements!";
                 return 1;
                 break;
             }
-            token = "";
+          token = "";
           }
+        isSequence = false;
         }
         break;
    
@@ -308,7 +332,7 @@ int PatParser::getPrePats(string text, string &errMsg)
           errMsg = "Two open square brackets!";
           return 1;
         } 
-        else if (open_paranthesis) {
+        else if (open_parentheses > 0) {
           errMsg = "Open paranthesis before open square bracket!";
           return 1;
         }
@@ -340,7 +364,7 @@ int PatParser::getPrePats(string text, string &errMsg)
           errMsg = "Two open brackets!";
           return 1;
         } 
-        else if (!open_paranthesis) {
+        else if (open_parentheses == 0) {
           errMsg = "Open set bracket without open paranthesis!";
           return 1;
         }
@@ -381,7 +405,7 @@ int PatParser::getPrePats(string text, string &errMsg)
       case ' ' :
         if (!open_set_bracket) {
           if (!token.empty()) {
-            if (open_paranthesis) {
+            if (open_parentheses > 0) {
               switch (++element_count) {
                 case 1: 
                   prePat.left = token;
@@ -410,7 +434,7 @@ int PatParser::getPrePats(string text, string &errMsg)
       case '+' : 
         if (!open_set_bracket) { 
           if (!token.empty()) {
-            if (open_paranthesis) {
+            if (open_parentheses > 0) {
               errMsg = "The Character + is not allowed as an element!";
               return 1;
             }
@@ -429,7 +453,7 @@ int PatParser::getPrePats(string text, string &errMsg)
       case '*' :
         if (!open_set_bracket) { 
           if (!token.empty()) {
-            if (open_paranthesis) {
+            if (open_parentheses > 0) {
               errMsg = "The Character * is not allowed as an element!";
               return 1;
             }
@@ -448,18 +472,18 @@ int PatParser::getPrePats(string text, string &errMsg)
       default :
         token += char_cur;
     
-        if (!open_paranthesis && (char_cur < 65 or char_cur > 90)) {
+        if ((open_parentheses == 0) && (char_cur < 65 or char_cur > 90)) {
           errMsg = "Only capital letters are allowed for variables!";
           return 1;
         } 
-        if (!open_paranthesis && (token.length() > 2)) {
+        if ((open_parentheses == 0) && (token.length() > 2)) {
           errMsg = "Maximal two letters are allowed for variables!";
           return 1;
         }   
         break;
     } // switch
   } // for
-  if (open_paranthesis) 
+  if (open_parentheses > 0)
   {
     errMsg = "Missing close paranthesis!";
     return 1;

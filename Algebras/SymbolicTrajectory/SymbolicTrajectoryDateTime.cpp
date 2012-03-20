@@ -233,7 +233,7 @@ bool checkMaskOfDateTime(string const &mask)
 
 
 bool checkRangeMask(string const &mask) {
-  // acceptedDefaultMask = "0000-00-00#00:00:00_0000-00-00#00:00:00";
+  // acceptedDefaultMask = "0000-00-00#00:00:00/0000-00-00#00:00:00";
   vector<string> masks = split(mask, '/');
   switch (masks.size()) {
     case 2: // end element
@@ -252,7 +252,7 @@ bool checkRangeMask(string const &mask) {
  
 
 bool checkTimeRangeMask(string const &mask) {
-  // acceptedDefaultMask = "00:00:00_00:00:00";
+  // acceptedDefaultMask = "00:00:00/00:00:00";
   vector<string> masks = split(mask, '/');
   switch (masks.size()) {
     case 2: // end element
