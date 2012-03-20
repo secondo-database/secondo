@@ -9441,7 +9441,7 @@ bool BusGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
   if(!node_rel->Save(in_xValueRecord,inout_iOffset,xNumericType))
       return false;
-  
+
   ////////////////save btree on nodes///////////////////////////
    nl->ReadFromString(NodeBTreeTypeInfo, xType);
    xNumericType = SecondoSystem::GetCatalog()->NumericType(xType); 

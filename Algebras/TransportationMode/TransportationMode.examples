@@ -1,4 +1,4 @@
-Database: testgenmo
+Database: testtmdb
 Restore : yes
 
 Operator : checksline

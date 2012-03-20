@@ -22078,7 +22078,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&generate_bench_1);//regular movement and trip planning
    AddOperator(&generate_bench_2);// movement in one environment 
    AddOperator(&generate_bench_3);// movement based on NN search car
-   AddOperator(&generate_bench_4);// movement based on NN search tax,bus,metro
+   AddOperator(&generate_bench_4);// movement based on NN search taxi,bus,metro
    AddOperator(&generate_bench_5);// long trip 
    /////////////////////////////////////////////////////////////////////////
    //////////////// improve shortest path computing in road network////////
