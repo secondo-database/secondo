@@ -66,4 +66,4 @@ RobustGeometryAlgebra.o: RobustGeometryAlgebra.cpp \
  /home/secondo/secondo/include/TypeMapUtils.h ../Spatial/SpatialAlgebra.h \
  ../Spatial/../../Tools/Flob/DbArray.h ../Spatial/../../Tools/Flob/Flob.h \
  ../Spatial/../Rectangle/RectangleAlgebra.h ../Spatial/AVLSegment.h \
- RobustGeometryAlgebra.h
+ RobustGeometryAlgebra.h ../Spatial/HalfSegment.h ../Spatial/Coord.h

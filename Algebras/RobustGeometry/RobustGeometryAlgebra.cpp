@@ -34,6 +34,7 @@ using namespace std;
 #include "SpatialAlgebra.h"
 #include "RobustGeometryAlgebra.h"
 #include "AVLSegment.h"
+#include "HalfSegment.h"
 
 #include <vector>
 #include <queue>
@@ -142,6 +143,81 @@ int RobustGeometrySetOpSelect(ListExpr args)
   return -1;
 }
 
+
+/*
+Implementation of ~BOEvent~
+
+*/
+
+/*
+Constructors
+
+~Standard Constructor~
+
+*/
+
+robustGeometry::BOEvent::BOEvent():
+	   x(0),y(0),
+	   owner(avlseg::none),
+	   pointType(nothing)
+	{ };
+
+robustGeometry::BOEvent::BOEvent
+(const avlseg::ExtendedHalfSegment& hs,
+			const double x,
+			const double y,
+			const robustGeometry::boPointType pointtype ,
+			const avlseg::ownertype owner)
+	{
+		setX(x);
+		setY(y);
+		setExtededHalfSegment(hs);
+		setPointType(pointType);
+		setOwner(owner);
+	};
+
+robustGeometry::BOEvent::BOEvent
+(const avlseg::ExtendedHalfSegment& ahs,
+	const avlseg::ExtendedHalfSegment& bhs,
+	const double x,
+	const double y,
+	const robustGeometry::boPointType pointtype )
+	{
+		setX(x);
+		setY(y);
+		setAboveEHS(ahs);
+		setBelowEHS(bhs);
+		setPointType(pointType);
+	};
+
+robustGeometry::BOEvent::BOEvent
+(const double x,
+ const double y,
+ const robustGeometry::boPointType pointType):
+	owner(avlseg::none)
+	{
+		setX( x );
+		setY( y );
+		setPointType( pointType );
+	}
+
+
+/*
+~Print~
+
+This function writes this event to __out__.
+
+*/
+
+void robustGeometry::BOEvent::Print(ostream& out)const
+{
+
+	out << "X :"<<getX( )<<
+		   ",Y : " << getY( ) <<
+		   ", owner :" << getOwner( ) <<
+		   ", pointType : "<< getPointType();
+}
+
 const string intersectionSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>{line} x"
@@ -161,138 +237,461 @@ class MakeBO
 class MakeBo
 {
 public:
-   MakeBo() {};
+   MakeBo()
+   {
+	   //sL.clear();
+	   	//events.clear();
+	   	//Line* result = new Line(1);
+	   	//result.Clear();
+	   	//outputPoints=outputPoints();
+	   	//outputPoints.Clear();
+   };
    ~MakeBo() {};
 
-   void IntersectionBO(const Line& line1, const Line& line2,Points& result);
- };
+  void IntersectionBO(const Line& line1, const Line& line2,Points& result);
+  int intersect(double sx1,double sy1,double ex2,
+		double ey2,double sx3,double sy3,double ex4,
+		double ey4,double x,double y);
+  void checkIS(robustGeometry::BOEvent currEv, avlseg::AVLSegment currAS);
+  void findAndSwap(avlseg::AVLSegment aboveAS, avlseg::AVLSegment belowAS);
+  void planeSweepCase1(robustGeometry::BOEvent currEv);
+  void planeSweepCase2(robustGeometry::BOEvent currEv);
+  void planeSweepCase3(robustGeometry::BOEvent currEv);
+  avlseg::AVLSegment* getAbove(double aktXPos,double aktYPos);
+  avlseg::AVLSegment* getBelow(double aktXPos,double aktYPos);
 
-/*
-~IsRobustGeometryType~
 
-This function checks whether the type given as a ListExpr is one of
-~point~,  ~line~
+private:
+  //avltree::AVLTree<avlseg::AVLSegment> sweepLine;
+  vector <avlseg::AVLSegment > sL;
+  vector <robustGeometry::BOEvent> events;
+  Points* outputPoints;
 
-bool IsRobustGeometryType(ListExpr type)
+};
+
+
+//todo zu Klasse MakeBO als operator
+bool sortBOEvents( const robustGeometry::BOEvent &i,
+		const robustGeometry::BOEvent &j)
 {
-   if(!nl->IsAtom(type))
-   {
-      return false;
-   }
-   if(nl->AtomType(type)!=SymbolType)
-   {
-      return false;
-   }
-   string t = nl->SymbolValue(type);
-   if(t==Line::BasicType()) return true;
-   return false;
+	if( i.getX()==j.getX()) return (i.getY()<j.getY());
+	return (i.getX()<j.getX());
 }
 
-*/
+void MakeBo::findAndSwap(avlseg::AVLSegment aboveAS,
+		avlseg::AVLSegment belowAS)
+{
+	avlseg::AVLSegment tmp;
+	int pos1=-1;
+	int pos2=-1;
+
+	//Suche in Segmente X-Koord gleich, Y-Koord groesser
+	vector< avlseg::AVLSegment >::iterator row_it = sL.begin();
+	vector< avlseg::AVLSegment >::iterator row_end = sL.end();
+
+	int i = 0;
+	double tempx1=0.0;
+	double tempx2=0.0;
+	double tempy1=0.0;
+	double tempy2=0.0;
+	for ( ; row_it != row_end; ++row_it)
+	{
+
+	    avlseg::AVLSegment tmpAS = *row_it;
+	    tempx1=tmpAS.getX1();
+		tempy1=tmpAS.getY1();
+		tempx2=tmpAS.getX2();
+		tempy2=tmpAS.getY2();
+
+		if((tempx1 == aboveAS.getX1()) && (tempy1 == aboveAS.getY1()) &&
+		(tempx1 == aboveAS.getX2()) && (tempy1 == aboveAS.getY2()))
+		{
+			pos1=i;
+		}
+		if((tempx1 == belowAS.getX1()) && (tempy1 == belowAS.getY1()) &&
+		(tempx1 == belowAS.getX2()) && (tempy1 == belowAS.getY2()))
+		{
+			pos2=i;
+		}
+		i++;
+		if(pos1>=0 && pos2>=0)
+		{
+			tmp = aboveAS;
+			sL.at(pos1)=belowAS;
+			sL.at(pos2)=tmp;
+		}
+	}
+
+}
+int MakeBo::intersect(double sx1,double sy1,double ex2,double ey2,
+		double sx3,double sy3,double ex4,double ey4,double x,double y)
+{
+  //return =0 OK, 1 lines parallel, 2 no intersection point
+  //x,y intersection point
+	double a1=0.0;
+	double a2=0.0;
+	double b1=0.0;
+	double b2=0.0;
+	double c1=0.0;
+	double c2=0.0; // Coefficients of line
+	double m=0.0;
+
+	a1= ey2-sy1;
+	b1= sx1-ex2;
+	c1= ex2*sy1-sx1*ey2;
+  //a1*x + b1*y + c1 = 0 is segment 1
+
+	a2= ey4-sy3;
+	b2= sx3-ex4;
+	c2= ex4*sy3-sx3*ey4;
+  //a2*x + b2*y + c2 = 0 is segment 2
+
+	m= a1*b2-a2*b1;
+	if (m == 0) return 1;
+
+	x=(b1*c2-b2*c1)/m;
+  // intersection range
+
+	if(x < sx1 || x < sx3 || x > ex2 || x > ex4) return 2;
+
+	y=(a2*c1-a1*c2)/m;
+
+
+  return 0;
+}
+
+avlseg::AVLSegment* MakeBo::getAbove(double aktXPos,double aktYPos)
+{
+	//Suche in Segmente X-Koord gleich, Y-Koord groesser
+	vector< avlseg::AVLSegment >::iterator row_it = sL.begin();
+	vector< avlseg::AVLSegment >::iterator row_end = sL.end();
+
+	double tempx1=0.0;
+	double tempx2=0.0;
+	double tempy1=0.0;
+	double tempy2=0.0;
+	for ( ; row_it != row_end; ++row_it)
+	{
+
+	    avlseg::AVLSegment tmpAS = *row_it;
+	    tempx1=tmpAS.getX1();
+		tempy1=tmpAS.getY1();
+		tempx2=tmpAS.getX2();
+		tempy2=tmpAS.getY2();
+
+		if((tempx1 == aktXPos) && (tempy1 >= aktYPos))
+			//|| ((tempx1 == aktXPos) && (tempy1 >= aktYPos)))
+		{
+			return &tmpAS;
+		}
+	}
+	return NULL;
+}
+avlseg::AVLSegment* MakeBo::getBelow(double aktXPos,double aktYPos)
+{
+	//Suche in Segmente X-Koord gleich, Y-Koord groesser
+	vector< avlseg::AVLSegment >::iterator row_it = sL.begin();
+	vector< avlseg::AVLSegment >::iterator row_end = sL.end();
+
+	double tempx1=0.0;
+	double tempx2=0.0;
+	double tempy1=0.0;
+	double tempy2=0.0;
+	for ( ; row_it != row_end; ++row_it)
+	{
+
+	    avlseg::AVLSegment tmpAS = *row_it;
+	    tempx1=tmpAS.getX1();
+		tempy1=tmpAS.getY1();
+		tempx2=tmpAS.getX2();
+		tempy2=tmpAS.getY2();
+
+		if((tempx1 == aktXPos) && (tempy1 <= aktYPos))
+			//|| ((tempx1 == aktXPos) && (tempy1 >= aktYPos)))
+		{
+			return &tmpAS;
+		}
+	}
+	return NULL;
+}
+
+void MakeBo::checkIS(robustGeometry::BOEvent currEv, avlseg::AVLSegment currAS)
+{
+	double sx1=0.0;
+	double sy1=0.0;
+	double ex1=0.0;
+	double ey1=0.0;
+	double sx2=0.0;
+	double sy2=0.0;
+	double ex2=0.0;
+	double ey2=0.0;
+	double is_x=0.0;
+	double is_y=0.0;
+	int isIntersected = 1;
+
+	avlseg::ownertype currOwner;
+	avlseg::ownertype nextOwner;
+
+	sx2 = currAS.getX1();
+	sy2 = currAS.getY1();
+	ex2 = currAS.getX2();
+	ey2 = currAS.getY2();
+	nextOwner = currAS.getOwner();
+
+	sx1 = currEv.getX();
+	sy1 = currEv.getY();
+	ex1 = currEv.getExtendedHalfSegment().GetRightPoint().GetX();
+	ey1 = currEv.getExtendedHalfSegment().GetRightPoint().GetY();
+	currOwner = currEv.getOwner();
+
+	//check owner first, second, todo kÃ¶nnten auch beide none sein
+	if (currOwner != nextOwner)
+	{
+		isIntersected = intersect
+				(sx1,sy1,ex1,ey1,sx2,sy2,ex2,ey2,is_x,is_y);
+		if (isIntersected==0)
+		{
+		//Insert Intersection point into event, if not already there;
+			//IntIterator i = find(events.begin(), events.end(), 5);
+			//sort( events.begin(), events.end(), sortBOEvents);
+
+			//if (i = vw.end())
+			//{
+
+			robustGeometry::BOEvent
+			intersP = robustGeometry::BOEvent(
+			currAS.convertToExtendedHs( true, currAS.getOwner() ),
+				currEv.getExtendedHalfSegment(),
+				is_x,
+				is_y,
+				robustGeometry::intersect);
+				events.push_back(intersP);
+			//}
+		}
+	}
+}
+void MakeBo::planeSweepCase1(robustGeometry::BOEvent currEv)
+{
+	double sx1=0.0;
+	double sy1=0.0;
+
+	avlseg::AVLSegment currAS
+	(currEv.getExtendedHalfSegment(),currEv.getOwner());
+	sL.push_back(currAS);
+
+	//currEv muss startP sein, Schnittpb falsch, wenn s/e vertauscht?
+	sx1 = currEv.getX();
+	sy1 = currEv.getY();
+	//currAS=0;
+	//currAS = getAbove(sx1,sy1);
+	//if (currAS==0) return;
+	checkIS(currEv,currAS);
+
+	//*currAS=0;
+	//currAS = getBelow(sx1,sy1);
+	//if (currAS==0) return;
+	checkIS(currEv,currAS);
+}
+
+void MakeBo::planeSweepCase2(robustGeometry::BOEvent currEv)
+{
+	double sx1=0.0;
+	double sy1=0.0;
+	//avlseg::AVLSegment* currAS=0;
+
+	avlseg::AVLSegment currAS
+	(currEv.getExtendedHalfSegment(),currEv.getOwner() );
+	//sL.remove(currAS);
+
+	sx1 = currEv.getX();
+	sy1 = currEv.getY();
+	//currAS=0;
+	//currAS = getAbove(sx1,sy1);
+	//if (currAS==0) return;
+	checkIS(currEv,currAS);
+
+	//currAS=0;
+	//currAS = getBelow(sx1,sy1);
+	//if (currAS==0) return;
+	checkIS(currEv,currAS);
+}
+void MakeBo::planeSweepCase3(robustGeometry::BOEvent currEv)
+{
+	Point currIsP;
+	double ix1=0.0;
+	double iy1=0.0;
+
+	avlseg::AVLSegment* currAS=0;
+
+	//find corresponding segments
+	avlseg::AVLSegment aboveEHS(currEv.getAboveEHS(),currEv.getOwner() );
+	avlseg::AVLSegment belowEHS(currEv.getBelowEHS(),currEv.getOwner() );
+
+	ix1 = currEv.getX();
+	iy1 = currEv.getY();
+	currIsP = Point(true, ix1,iy1);
+	//outputPoints += currIsP;
+
+	//cout <<" case3 outputPoints ";
+	//outputPoints..Print(cout);  cout << endl;
+
+    //Swap their positions in SL so that belowEHS is now above aboveEHS;
+	//search in SL, swap the entries
+	findAndSwap(aboveEHS,belowEHS);
+
+    //let segA = the segment above belowEHS in SL;
+	//currAS = getAbove(ix1,iy1);
+	//if (currAS==0) return;
+	//checkIS(currEv,currAS);
+
+    //Let segB = the segment below aboveEHS in SL;
+   	//currAS=0;
+	//currAS = getBelow(ix1,iy1);
+	//if (currAS==0) return;
+	//checkIS(currEv,currAS);
+
+}
 
 /*
 intersection-operator for two line-objects
 
 */
-void MakeBo::IntersectionBO(const Line& line1,
-		const Line& line2, Points& result)
+void MakeBo::IntersectionBO
+(const Line& line1, const Line& line2, Points& result)
 {
-
 	// Initialisation
 	result.Clear();
 
 	result.SetDefined(true);
 	if(line1.Size()==0 || line2.Size()==0)
 	{
-		return; // empty line
+		return; //empty line
 	}
 
-	// Initialize event queue: all segment endpoints
-	// Sort x by increasing x and y
-	priority_queue<avlseg::ExtendedHalfSegment,
+	//Initialize event queue: all segment endpoints
+	//Sort x by increasing x and y
+	  priority_queue<avlseg::ExtendedHalfSegment,
 	                 vector<avlseg::ExtendedHalfSegment>,
 	                 greater<avlseg::ExtendedHalfSegment> > q1;
-	priority_queue<avlseg::ExtendedHalfSegment,
+	  priority_queue<avlseg::ExtendedHalfSegment,
 	                 vector<avlseg::ExtendedHalfSegment>,
 	                 greater<avlseg::ExtendedHalfSegment> > q2;
-	avltree::AVLTree<avlseg::AVLSegment> sss;
-	avlseg::ownertype owner;
-	int pos1 = 0;
-	int pos2 = 0;
-	avlseg::ExtendedHalfSegment nextHs;
-	int src = 0;
 
-	const avlseg::AVLSegment* member=0;
-	const avlseg::AVLSegment* leftN = 0;
-	const avlseg::AVLSegment* rightN = 0;
+	  avltree::AVLTree<avlseg::AVLSegment> sss;
+	  avlseg::ownertype owner;
 
-	avlseg::AVLSegment left1,right1,common1,left2,right2;
+	  int pos1 = 0;
+	  int pos2 = 0;
+	  avlseg::ExtendedHalfSegment nextExtHs;
+	  int src = 0;
 
-	avlseg::AVLSegment tmpL,tmpR;
+	  //const avlseg::AVLSegment* member=0;
+	  //const avlseg::AVLSegment* leftN = 0;
+	  //const avlseg::AVLSegment* rightN = 0;
 
- 	result.StartBulkLoad();
-  	while( (owner=selectNext(line1,pos1,
-  			                 line2,pos2,
-  			                 q1,q2,
-  			                 nextHs,
-  			                 src))!=avlseg::none)
-  	{
-  		// cout << "line1:"; line1.Print(cout); cout << endl;
-  		cout << "Pos1:" << pos1 << endl;
-  		// cout << "line2:"; line2.Print(cout); cout << endl;
-  		cout << "Pos2:" << pos2 << endl;
-  		cout << "nextHs:"; nextHs.Print(cout); cout << endl;
-  		cout << "src:" << src << endl;
+	  avlseg::AVLSegment left1,right1,common1, left2,right2;
+	  avlseg::AVLSegment tmpL,tmpR;
+	  avlseg::ownertype boOwner;
 
+	  result.StartBulkLoad();
 
-  		avlseg::AVLSegment current(nextHs,owner);
-  		cout << "owner:" << owner << endl;
-		// cout << "sss:"; sss.Print(cout); cout << endl;
-  	    member = sss.getMember(current,leftN,rightN);
-  	    if (member) {  cout << "member:";
-  	    member->Print(cout); cout << endl; };
+	  //int i = 0;
 
-  	    cout << "AVLSegment current"; current.Print(cout); cout << endl;
+	  while( ( owner=selectNext(line1,pos1,
+ 	  			                 line2,pos2,
+ 	  			                 q1,q2,
+ 	  			                 nextExtHs,
+ 	  			                 src))!= avlseg::none)
+ 	{
+		  cout << "owner" << owner << endl;
+		  boOwner = owner;
+		  cout << "boOwner" << boOwner << endl;
 
+ 		bool found_it = false;
 
-  	    if(leftN)
-  	    {
-  	    	tmpL = *leftN;
-  	    	leftN = &tmpL;
-  	    	cout << "AVLSegment leftN";leftN->Print(cout);
-  	    	cout << endl;
-  	    }
-  	    if(rightN)
-  	    {
-  	    	tmpR = *rightN;
-  	    	rightN = &tmpR;
-  	    	cout << "AVLSegment rightN";rightN->Print(cout);
-  	    	cout << endl;
-  	    }
+ 		for (int i=0;i<events.size(); i++ )
+ 	  	{
+ 		//eliminate duplicate value
+ 			if (events[i].getExtendedHalfSegment().
+ 				GetLeftPoint() == nextExtHs.GetLeftPoint( ) &&
+ 				events[i].getExtendedHalfSegment().
+ 				GetRightPoint() == nextExtHs.GetRightPoint( ))
+			{	found_it = true;
+			    break;
+			}
+		}
+		if (found_it) continue;
+		robustGeometry::BOEvent nextEventl = robustGeometry::BOEvent(
+			nextExtHs,
+			nextExtHs.GetLeftPoint().GetX(),
+			nextExtHs.GetLeftPoint().GetY(),
+			robustGeometry::start,
+			boOwner);
+		events.push_back(nextEventl);
 
-
-  	    if(nextHs.IsLeftDomPoint())
-  	    {
-  	    	insertEvents(right1,true,true,q1,q2);
-  	    }
-
- /*      else if (nextHs.IsRightDomPoint())
-       {
-
-
-       }
-       else
-       {
-
-       }
-
-       */
-
-  	  // remove nextHs from
-    }
+		robustGeometry::BOEvent nextEventr = robustGeometry::BOEvent(
+			nextExtHs,
+			nextExtHs.GetRightPoint().GetX(),
+			nextExtHs.GetRightPoint().GetY(),
+			robustGeometry::end,
+			boOwner);
+		events.push_back(nextEventr);
+ 	};
+	sort( events.begin(), events.end(), sortBOEvents);
 
 
-  result.EndBulkLoad(true,false,false);
+	for (int i=0;i<events.size(); i++ )
+ 	{
+ 		cout << "events:" << i << " "; events[i].Print(cout);
+ 		cout << endl;
+ 	};
+
+
+	robustGeometry::BOEvent currEv;
+	while (!events.empty())
+	{
+		currEv = events[0];
+		int i =0;
+		cout << "events:" << i << " "; currEv.Print(cout); cout << endl;
+
+
+	   if(currEv.getPointType()==robustGeometry::start)
+	   {
+			planeSweepCase1(currEv);
+	   }
+	   else if(currEv.getPointType()==robustGeometry::end)
+	   {
+			planeSweepCase2(currEv);
+	   }
+	   else if(currEv.getPointType()==robustGeometry::intersect)
+	   {
+			planeSweepCase3(currEv);
+	   }
+
+		//cout << "line1:"; line1.Print(cout); cout << endl;
+		//cout << "Pos1:" << pos1 << endl;
+		//cout << "line2:"; line2.Print(cout); cout << endl;
+		//cout << "Pos2:" << pos2 << endl;
+		//cout << "currHs:"; currHs.Print(cout); cout << endl;
+		//cout << "src:" << src << endl;
+
+	//avlseg::AVLSegment current(nextHs,owner);
+	//cout << "owner:" << owner << endl;
+	//cout << "sss:"; sss.Print(cout); cout << endl;
+	//member = sss.getMember(current,leftN,rightN);
+	//if (member) {  cout << "member:";
+	//member->Print(cout); cout << endl; };
+	//cout << "AVLSegment current"; current.Print(cout); cout << endl;
+
+
+	   events.erase(events.begin());
+	   //iter = v.erase(iter);
+	   sort( events.begin(), events.end(), sortBOEvents);
+
+	}
+  //result = outputPoints;
+  //cout << "result = "; result.Print(cout); cout << endl;
+  //result.EndBulkLoad(true,false,false);
 }
 
 /*
@@ -307,9 +706,6 @@ Word& local, Supplier s )
    result = qp->ResultStorage( s );
    Line *line1 = ((Line*)args[0].addr);
    Line *line2 = ((Line*)args[1].addr);
- //ostream& Line::Print( ostream &os ) const
- // cout << line1.Print(cout) << endl;
- //  cout << line2.Print(cout) << endl;
 
    cerr << "line1 = "; line1->Print(cerr); cerr << endl;
    cerr << "line2 = "; line2->Print(cerr); cerr << endl;
