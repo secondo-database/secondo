@@ -6,8 +6,10 @@ OK=$?
 
 if [ "$OK" == "0" ]; then
   echo "true"
+  export SECONDO_HAS_RECODE="true"
 else
   echo "false" 
+  export SECONDO_HAS_RECODE="false"
 fi
 
 
