@@ -33,13 +33,13 @@ DEBUG = -ggdb
 # gcc -dM -E <file>
 
 # Uncomment one of the next lines to compile with code optimizations. 
-OPTIMIZE = -O1 -finline-functions  -fearly-inlining -finline-limit=1800 -funit-at-a-time --param inline-unit-growth=300
+#OPTIMIZE = -O1 -finline-functions  -fearly-inlining -finline-limit=1800 -funit-at-a-time --param inline-unit-growth=300
 
 # Use more optimizations
 #OPTIMIZE += -O2 -finline-functions -mcpu=athlon-xp  
 
 # Use even more optimization
-OPTIMIZE += -O3 -march=native
+#OPTIMIZE += -O3 -march=native
 #OPTIMIZE += -O3
 
 # Do not use assertions. 
