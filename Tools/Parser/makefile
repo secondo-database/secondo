@@ -34,7 +34,6 @@
 
 include ../../makefile.env
 
-ALL_ALGEBRA_DIRS := $(shell find ../../Algebras -maxdepth 1 -type d ! -name "Algebras" ! -name "Management" ! -name "CVS" -printf "%p ")
 
 SPECFILES := $(wildcard $(addsuffix /*.spec, $(ALL_ALGEBRA_DIRS) ))
 
