@@ -66,8 +66,7 @@ operator getallpoints alias GETALLPOINTS pattern op(_)
 operator rotationsweep alias ROTATIONSWEEP pattern op(_,_,_,_,_)
 operator gethole alias GETHOLE pattern op(_)
 
-operator geninterestp1 alias GENINTERESTP1 pattern op(_,_,_,_,_,_,_)
-operator geninterestp2 alias GENINTERESTP2 pattern op(_,_,_,_,_,_)
+
 operator thepavement alias THEPAVEMENT pattern op(_,_)
 operator cellbox alias CELLBOX pattern op(_,_)
 operator create_bus_route1 alias CREATE_BUS_ROUTE1 pattern op(_,_,_,_,_,_,_)
@@ -224,7 +223,7 @@ operator shortestpath_tm alias SHORTESTPATH_TM pattern op(_,_,_,_)
 operator navigation1 alias NAVIGATION1 pattern op(_,_,_,_,_,_,_)
 
 operator modifyline alias MODIFYLINE pattern op(_)
-operator checkroads alias CHECKROADS pattern op(_,_)
+
 operator tm_join1 alias TM_JOIN1 pattern op(_,_,_)
 
 

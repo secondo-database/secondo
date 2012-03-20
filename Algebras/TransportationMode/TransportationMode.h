@@ -654,8 +654,7 @@ const string OpTMGetSectionsSpec  =
     "<text>query getsections(n, r, paveregions, curve, rid, crossreg) count;"
     "</text--->"
     ") )";
-
-const string OpTMGenInterestP1Spec  =
+/*const string OpTMGenInterestP1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text> rel x rel x attr1 x attr2 x attr3 x attr4"
@@ -665,8 +664,6 @@ const string OpTMGenInterestP1Spec  =
     "<text>query geninterestp1(subsections, pave_regions1, rid, sec,"
     "pavement1, pavement2) count;</text--->"
     ") )";
-
-
 const string OpTMGenInterestP2Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -676,8 +673,7 @@ const string OpTMGenInterestP2Spec  =
     "<text>map the point inot a triangle and represent it by triangle</text--->"
     "<text>query geninterestp2(interestp, dg_node, rtree_dg, loc2, pavement, 2)"
     "count;</text--->"
-    ") )";
-
+    ") )";*/
 const string OpTMCellBoxSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "

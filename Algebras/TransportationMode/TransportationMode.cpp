@@ -2746,6 +2746,18 @@ int RefIdGenLocValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+int RefIdSpaceValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  Space* genl = (Space*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(genl->IsDefined() && genl->GetSpaceId() >= 0){
+      ((CcInt*)result.addr)->Set(true, genl->GetSpaceId());
+  }else
+    ((CcInt*)result.addr)->Set(false, 0);
+  return 0;
+}
+
 int RefIdUGenLocValueMap(Word* args, Word& result, int message,
                     Word& local, Supplier s)
 {
@@ -2813,6 +2825,24 @@ int RefIdBusNetworkValueMap(Word* args, Word& result, int message,
       cout<<"bus graph id "<<bn->GraphId()<<endl;
   else
       cout<<"bus graph not initialized"<<endl; 
+
+  return 0;
+}
+
+int RefIdMetroNetworkValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  MetroNetwork* mn = (MetroNetwork*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(mn->IsDefined() && mn->GetId() > 0){
+      ((CcInt*)result.addr)->Set(true, mn->GetId());
+  }else
+    ((CcInt*)result.addr)->Set(false, 0);
+  
+  if(mn->IsGraphInit())
+      cout<<"metro graph id "<<mn->GraphId()<<endl;
+  else
+      cout<<"metro graph not initialized"<<endl; 
 
   return 0;
 }
@@ -5360,7 +5390,9 @@ ValueMapping RefIdValueMapVM[]={
   RefIdRoadNetworkValueMap,
   RefIdBuildingValueMap,
   RefIdIndoorInfraValueMap,
-  RefIdUGenLocValueMap
+  RefIdUGenLocValueMap,
+  RefIdMetroNetworkValueMap,
+  RefIdSpaceValueMap
 };
 
 int RefIdOpSelect(ListExpr args)
@@ -5386,6 +5418,11 @@ int RefIdOpSelect(ListExpr args)
     return 8;
   if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "ugenloc"))
     return 9;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "metronetwork"))
+    return 10;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "space"))
+    return 11;
+
   return -1;
 }
 
@@ -5567,11 +5604,11 @@ ListExpr RefIdTypeMap(ListExpr args)
       return listutils::typeError(err);
   }
   ListExpr arg1 = nl->First(args);
-  if(nl->IsEqual(arg1, "genloc") || 
+  if(nl->IsEqual(arg1, "genloc") || nl->IsEqual(arg1, "space") ||
      nl->IsEqual(arg1, "ioref") || 
      nl->IsEqual(arg1, "busstop") || 
      nl->IsEqual(arg1, "busroute") || 
-     nl->IsEqual(arg1, "busnetwork") || 
+     nl->IsEqual(arg1, "busnetwork") || nl->IsEqual(arg1, "metronetwork") ||
      nl->IsEqual(arg1, "pavenetwork") || 
      nl->IsEqual(arg1, "network") || 
      nl->IsEqual(arg1, "building") || 
@@ -7064,7 +7101,7 @@ ListExpr Navigation1ListTypeMap(ListExpr args)
 
 Operator ref_id("ref_id",
     SpatialSpecRefId,
-    10,
+    12,
     RefIdValueMapVM,
     RefIdOpSelect,
     RefIdTypeMap
@@ -21094,6 +21131,7 @@ Operator getsections(
 
 */
 
+/*
 Operator geninterestp1(
     "geninterestp1",
     OpTMGenInterestP1Spec,
@@ -21110,6 +21148,7 @@ Operator geninterestp2(
     OpTMGetInterestP2TypeMap
 );
 
+*/
 Operator cellbox(
   "cellbox",
   OpTMCellBoxSpec,
@@ -21693,6 +21732,7 @@ Operator modifyline(
     OpTMModifyLineTypeMap        // type mapping
 );
 
+/*
 Operator checkroads(
     "checkroads",
     OpTMCheckRoadsSpec,
@@ -21700,6 +21740,8 @@ Operator checkroads(
     Operator::SimpleSelect,        // selection function
     OpTMCheckRoadsTypeMap
 );
+
+*/
 
 Operator tm_join1(
     "tm_join1",
@@ -21848,8 +21890,8 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&getcontour);
     AddOperator(&getpolygon);
 
-    AddOperator(&geninterestp1);
-    AddOperator(&geninterestp2);
+//    AddOperator(&geninterestp1);//create points on the pavements
+//    AddOperator(&geninterestp2);
     AddOperator(&thepavement); //create region based outdoor infrastructure 
     ///////////////////////////////////////////////////////////////////
     ///////////////rotational plane sweep algorithm////////////////////
@@ -22057,7 +22099,7 @@ class TransportationModeAlgebra : public Algebra
    ///////////////////////////////////////////////////////////////////
    AddOperator(&checksline);
    AddOperator(&modifyline);
-   AddOperator(&checkroads);
+//   AddOperator(&checkroads);
    
    ///////////////////two join operators, using rtree//////////////////////
    AddOperator(&tm_join1);
