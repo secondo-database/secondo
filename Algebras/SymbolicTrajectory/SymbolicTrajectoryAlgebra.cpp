@@ -1451,6 +1451,8 @@ size_t Pattern::prepareBacktrack(size_t position) {
     else {
       if (matchings.back().isWildcard == PLUS)
         result = previousLabel;
+      if (matchings.back().isWildcard == ASTERISK)
+        result = previousLabel + 1;
       pattern = s_pattern[matchings.back().patternPos];
       if (!pattern.conditions.empty())
         if (!checkConditions())
@@ -1460,10 +1462,10 @@ size_t Pattern::prepareBacktrack(size_t position) {
     matchings.pop_back();
   }
   result = (result > nextStartLabel) ? result : nextStartLabel;
-  if (!matchings.empty())
+  /*if (!matchings.empty())
     if (matchings.back().isWildcard)
       for (size_t)
-      result ++;
+      result ++; */
   return result;
 }
 
@@ -1503,6 +1505,7 @@ bool Pattern::completeBacktrack(MLabel const &ml) {
         return false;
     }
     i++;
+    stagnation = false;
     nextStartLabel = 0;
     nextStartPattern = 0;
   } while (i < numberOfWildcards);
