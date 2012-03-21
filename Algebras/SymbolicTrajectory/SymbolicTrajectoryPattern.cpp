@@ -344,6 +344,20 @@ int PatParser::getPrePats(string text, string &errMsg) {
         }  
         break;
 
+      case '|' :
+        if (!open_square_bracket) {
+          errMsg = "Square brackets required around |.";
+          return 1;
+        }
+        if (open_parentheses > 0) {
+          errMsg = "Character | not allowed in open parentheses.";
+          return 1;
+        }
+        else {
+          // TODO: handle [p|q]
+        }
+        break;
+
       case ']' : 
         if (!open_square_bracket) {
           errMsg = "Close square bracket without an open!";
@@ -402,7 +416,7 @@ int PatParser::getPrePats(string text, string &errMsg) {
         open_set_bracket = false;
         break;
         
-      case ' ' :
+      case ' ' : // TODO distinguish [(_ at_home)]+ and [(_ at_home)] +
         if (!open_set_bracket) {
           if (!token.empty()) {
             if (open_parentheses > 0) {
@@ -420,8 +434,11 @@ int PatParser::getPrePats(string text, string &errMsg) {
               }
             }
             else {
-              if (!prePat.variable.empty())
+              if (!prePat.variable.empty()) {
+                if (prePat.variable.length() == 2)
+                  prePat.wildcard = '*'; // XX is a sequence pattern
                 pushAndClearPrePat(prePat);
+              }
               prePat.variable = token;
             }
           token = "";
@@ -471,7 +488,6 @@ int PatParser::getPrePats(string text, string &errMsg) {
 
       default :
         token += char_cur;
-    
         if ((open_parentheses == 0) && (char_cur < 65 or char_cur > 90)) {
           errMsg = "Only capital letters are allowed for variables!";
           return 1;
@@ -479,22 +495,23 @@ int PatParser::getPrePats(string text, string &errMsg) {
         if ((open_parentheses == 0) && (token.length() > 2)) {
           errMsg = "Maximal two letters are allowed for variables!";
           return 1;
-        }   
+        }
         break;
     } // switch
   } // for
-  if (open_parentheses > 0)
-  {
+  if (open_parentheses > 0) {
     errMsg = "Missing close paranthesis!";
     return 1;
-  }   
-  if (open_square_bracket) 
-  {
+  }
+  if (open_square_bracket) {
     errMsg = "Missing close square bracket!";
     return 1;
   }
-  if (!((prePat).variable).empty())
-    pushAndClearPrePat(prePat);  
+  if (!((prePat).variable).empty()) {
+    if (prePat.variable.length() == 2)
+      prePat.wildcard = '*'; // XX is a sequence pattern
+    pushAndClearPrePat(prePat);
+  }
   return 0;
 }
 

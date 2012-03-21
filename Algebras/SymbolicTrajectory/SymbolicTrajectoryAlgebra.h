@@ -124,6 +124,7 @@ class Pattern {
                // and returns the position of the (skip + 1)th last wildcard
     size_t prepareBacktrack(size_t position);
     size_t countWildcards();
+    bool endsMatch(MLabel const &ml);
     bool completeBacktrack(MLabel const &ml);
 
 

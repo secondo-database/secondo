@@ -1382,8 +1382,12 @@ size_t Pattern::checkCardinalities() {
           return i;
         }
       }
-  cout << "cardinalities ok" << endl;
-  return s_pattern.size();
+  if (result) {
+    cout << "cardinalities ok" << endl;
+    return s_pattern.size();
+  }
+  else
+    return s_pattern.size() + 1; // no cardinality condition
 }
 
 void Pattern::setMatching(Wildcard w) {
@@ -1441,7 +1445,7 @@ size_t Pattern::prepareBacktrack(size_t position) {
   cardProblem = checkCardinalities();
   size_t previousLabel = (matchings.empty() ? 0 : matchings.back().labelPos);
   size_t result = 0;
-  if (cardProblem != s_pattern.size())
+  if (cardProblem < s_pattern.size())
     matchesToDelete = matchings.size() - cardProblem;
   else 
     matchesToDelete = matchings.size() - position;
@@ -1454,7 +1458,7 @@ size_t Pattern::prepareBacktrack(size_t position) {
       if (matchings.back().isWildcard == ASTERISK)
         result = previousLabel + 1;
       pattern = s_pattern[matchings.back().patternPos];
-      if (!pattern.conditions.empty())
+      if (pattern.conditions.empty())
         if (!checkConditions())
           return maxULabel; // finish if wildcard does not fulfill condition(s)
     }
@@ -1477,11 +1481,25 @@ size_t Pattern::countWildcards() {
   return result;
 }
 
+bool Pattern::endsMatch(MLabel const &ml) {
+  size_t startAt = currentULabel;
+  while (currentULabel < maxULabel) {
+    ml.Get(currentULabel, ul);
+    interval.CopyFrom(ul.timeInterval);
+    setStartEnd();
+    if (!SingleMatch())
+      return false;
+    currentULabel ++;
+  }
+  cout << "last unit pattern matches unit labels from " << startAt << " to "
+       << maxULabel - 1 << endl;
+  return true;
+}
+
 bool Pattern::completeBacktrack(MLabel const &ml) {
   bool stagnation = false;
   size_t lastStartLabel = 0;
   size_t i = 0;
-  matchingsToString();
   size_t nextStartPattern = 0;
   do {
     while ((currentULabel < maxULabel) && !stagnation) {
@@ -1493,12 +1511,11 @@ bool Pattern::completeBacktrack(MLabel const &ml) {
       nextStartPattern = (matchings.empty()) ?
                      0 : matchings.back().patternPos + 1;
       matchingsToString();
-      cout << nextStartLabel << " " << nextStartPattern << endl;
       if (SuffixMatch(ml, nextStartLabel, nextStartPattern)) {
         if (!endsMustMatch)
           return true;
-        else // no wildcard at the end
-          if (currentULabel == maxULabel)
+        else // no unconditioned wildcard at the end
+          if ((currentULabel == maxULabel) || endsMatch(ml))
             return true;
       }
       if (matchings.empty())
@@ -1690,16 +1707,13 @@ bool Pattern::TotalMatch(MLabel const &ml) {
   if (matchings.empty())
     return false;
   if (match) {
-    if (matchings.back().isWildcard == ASTERISK) {
-      totalMatch = true; // (_ at_home) (_ at_university) *
-      cout << "matches because last non-wildcard pattern matches a prefix of "
-           << "the mlabel and is followed just by an asterisk" << endl;
-    }
-    else if (matchings.back().isWildcard == PLUS) {
+    if (matchings.back().isWildcard) {
       if (!hasConstraints()) {
-        totalMatch = true; // (_ at_home) (_ at_university) +
-        cout << "matches because last non-wildcard pattern matches a prefix "
-             << "of the mlabel and is followed just by a plus" << endl;
+        totalMatch = true; // (_ at_home) (_ at_university) [*|+]
+        cout << "matches because last non-wildcard pattern matches a prefix"
+             << " of the mlabel and is followed just by a"
+             << (matchings.back().isWildcard == PLUS ?
+             " plus" : "n asterisk") << endl;
       }
       else {
         endsMustMatch = true;
@@ -1792,7 +1806,7 @@ bool Pattern::SuffixMatch(MLabel const &ml, size_t firstULabel,
     currentPattern ++;
   }
   cardProblem = checkCardinalities();
-  if (cardProblem != s_pattern.size()) // cardinality mismatch
+  if (cardProblem < s_pattern.size()) // cardinality mismatch
     return false;
   if (!asteriskOccurs && (currentULabel < maxULabel)) // handle ((...))
     for (size_t i = currentULabel; i < maxULabel; i++) {
