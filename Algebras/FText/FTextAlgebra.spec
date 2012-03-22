@@ -88,6 +88,7 @@ operator str2real alias STRTOREAL pattern  op(_)
 operator str2int alias STRTOINT pattern  op(_)
 operator recode alias RECODE pattern _ op [_, _]
 operator endsWith alias ENDSWITH pattern _ infixop _
+operator startsWith alias STARTSWITH pattern _ infixop _
 
 operator markText alias markText pattern _ op[_,_,_,_,_] 
 operator bashModifier alias BASHMODIFIER pattern op(_)

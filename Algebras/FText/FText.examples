@@ -966,6 +966,32 @@ Signature : text x text -> bool
 Example   : query 'Hello' endsWith 'llo'
 Result    : TRUE
 
+Operator  : startsWith
+Number    : 1 
+Signature : string x string -> bool
+Example   : query "Hello" startsWith "llo"
+Result    : FALSE
+
+Operator  : startsWith
+Number    : 2
+Signature : string x text -> bool
+Example   : query "Hello" startsWith 'Hell'
+Result    : TRUE
+
+
+Operator  : startsWith
+Number    : 3 
+Signature : text x string -> bool
+Example   : query 'Hello' startsWith "llo"
+Result    : FALSE
+
+Operator  : startsWith
+Number    : 4 
+Signature : text x text -> bool
+Example   : query 'Hello' startsWith 'Hell'
+Result    : TRUE
+
+
 Operator  : markText
 Number    : 1
 Signature : stream(tuple) x ai x aj x text x string x string -> text
