@@ -498,7 +498,8 @@ void MakeBo::planeSweepCase2(robustGeometry::BOEvent currEv)
 	avlseg::AVLSegment* currAS=0;
 
 	(currEv.getExtendedHalfSegment(),currEv.getOwner() );
-	//sL.remove(currAS);
+
+	sL.erase( remove(sL.begin(),sL.end(),*currAS), sL.end() );
 
 	sx1 = currEv.getX();
 	sy1 = currEv.getY();
