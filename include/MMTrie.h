@@ -65,18 +65,31 @@ class TrieNode{
      return sons[x];
   }
 
-   void writeStrings(stringstream& ss, string str){
+   void writeStrings(stringstream& ss, string str, const string& sep){
       if(contained){
-         ss << "str" << " ";
+         ss << str << sep;
       } 
       for(unsigned int i=0;i<CHARS; i++){
         if(sons[i]){
            char c = (char)i;
            string sn = str.append(&c,1);
-           sons[i]->writeStrings(ss, sn);     
+           sons[i]->writeStrings(ss, sn,sep);     
         }
       }
    }
+
+
+   ostream& print(ostream& out, const string& sep, string prefix){
+     if(contained){
+        out << prefix << sep;
+     } 
+     for(unsigned int i=0;i<CHARS;i++){
+        if(sons[i]){
+           sons[i]->print(out,sep, prefix + (char)i);
+        }
+     }
+     return out;
+   } 
 
    bool contained;
    TrieNode* sons[CHARS]; 
@@ -88,10 +101,15 @@ class Trie{
      Trie() : root(0) {}
 
      ~Trie() {
-         if(root){
-           root->destroySubTrees();
-           delete root;
-         }
+         clear();
+      }
+
+      void clear(){
+        if(root){
+         root->destroySubTrees();
+         delete root;
+         root = 0;
+        }
       }
 
       bool contains(const string& str) const{
@@ -131,15 +149,15 @@ class Trie{
           node->contained = true;
       }
 
-      string concatStrings() const{
-         if(!root){
-            return "";
-         } else {
-            stringstream ss;
-            root->writeStrings(ss,"");
-            return ss.str();
-         }
-      }     
+
+
+     ostream& print(ostream& out, const string& sep = " "){
+       if(root){
+         root->print(out, sep, "");
+       }
+       return out;
+     }
+
 
   private:
       TrieNode* root;
