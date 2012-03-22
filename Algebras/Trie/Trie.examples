@@ -12,7 +12,7 @@ Remark   : A InvFile has not out function
 
 
 Operator : createInvFile
-Number   : 1
+Number   : 2
 Signature: stream(tuple) x a_i x a_j x bool x int x text-> invfile ; a_i : text, a_j : tid
 Example  : query SEC2OPERATORINFO feed addid createInvFile[Signature, TID, TRUE, 3, 'the a'] 
 Result   : unpredictable
