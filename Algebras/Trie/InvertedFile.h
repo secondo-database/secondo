@@ -33,7 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ListUtils.h"
 #include "StringUtils.h"
 #include "VTrie2.h"
-//#include "MMTrie.h"
+#include "MMTrie.h"
 
 #include "LRU.h"
 
@@ -473,7 +473,7 @@ Inserts the words contained within ~text~ into this inverted file.
               stringutils::toLower(token);
             } 
             if(memStopWords==0 ||  
-               memStopWords->find(token)==memStopWords->end()){
+               !memStopWords->contains(token)){
                insert(token, tid, wc, pos, cache, triecache);
                wc++;
             } 
@@ -901,7 +901,7 @@ Returns data about the underlying files.
       if(memStopWords){
           memStopWords->clear();
       } else {
-          memStopWords = new set<string>();
+          memStopWords = new mmtrie::Trie();
       }
       stringutils::StringTokenizer st(stopWords, getSeparatorsString());
       while(st.hasNextToken()){
@@ -936,7 +936,7 @@ Returns data about the underlying files.
      bool ignoreCase;
      uint32_t minWordLength;
      SmiRecordId stopWordsId;
-     set<string>* memStopWords; 
+     mmtrie::Trie* memStopWords; 
 
     
 
@@ -1007,21 +1007,22 @@ inserts a new element into this inverted file
   }
 
   void writeStopWordsToDisk(){
-     stringstream all;
-     set<string>::const_iterator it;
-     for(it = memStopWords->begin(); it!=memStopWords->end(); it++){
-        all << (*it) << " ";
+     if(!memStopWords){
+        return;
      }
-     string str = all.str();
-     const char* buffer = str.c_str();
+     stringstream allss;
+     memStopWords->print(allss); 
+     string all = allss.str();
+     
+     const char* buffer = all.c_str();
      SmiRecord record;
      if(stopWordsId==0){
         listFile.AppendRecord(stopWordsId, record);
      } else {
         listFile.SelectRecord(stopWordsId,record);
      }
-     record.Resize(str.length());
-     record.Write(buffer, str.length(), 0);
+     record.Resize(all.length());
+     record.Write(buffer, all.length(), 0);
        
   }
 
@@ -1038,7 +1039,7 @@ inserts a new element into this inverted file
       char* buffer = listFile.GetData(stopWordsId,length, true);
       string str(buffer,length);
       if(memStopWords==0){
-         memStopWords = new set<string>();
+         memStopWords = new mmtrie::Trie();
       } else {
          memStopWords->clear();
       }
