@@ -236,36 +236,38 @@ class MakeBO
 
 class MakeBo
 {
+
 public:
+	 void IntersectionBO(const Line& line1,
+			 const Line& line2,Points& result);
+	  int intersect(double sx1,double sy1,double ex2,
+			double ey2,double sx3,double sy3,double ex4,
+			double ey4,double x,double y);
+	  void checkIS(robustGeometry::BOEvent currEv,
+			  avlseg::AVLSegment currAS);
+	  void findAndSwap(avlseg::AVLSegment aboveAS,
+			  avlseg::AVLSegment belowAS);
+	  void planeSweepCase1(robustGeometry::BOEvent currEv);
+	  void planeSweepCase2(robustGeometry::BOEvent currEv);
+	  void planeSweepCase3(robustGeometry::BOEvent currEv);
+	  avlseg::AVLSegment* getAbove(double aktXPos,double aktYPos);
+	  avlseg::AVLSegment* getBelow(double aktXPos,double aktYPos);
+	  Points* outputPoints;
    MakeBo()
    {
 	   //sL.clear();
 	   	//events.clear();
 	   	//Line* result = new Line(1);
 	   	//result.Clear();
-	   	//outputPoints=outputPoints();
-	   	//outputPoints.Clear();
+	   Points* outputPoints= new Points();
+	   outputPoints->Clear();
    };
    ~MakeBo() {};
-
-  void IntersectionBO(const Line& line1, const Line& line2,Points& result);
-  int intersect(double sx1,double sy1,double ex2,
-		double ey2,double sx3,double sy3,double ex4,
-		double ey4,double x,double y);
-  void checkIS(robustGeometry::BOEvent currEv, avlseg::AVLSegment currAS);
-  void findAndSwap(avlseg::AVLSegment aboveAS, avlseg::AVLSegment belowAS);
-  void planeSweepCase1(robustGeometry::BOEvent currEv);
-  void planeSweepCase2(robustGeometry::BOEvent currEv);
-  void planeSweepCase3(robustGeometry::BOEvent currEv);
-  avlseg::AVLSegment* getAbove(double aktXPos,double aktYPos);
-  avlseg::AVLSegment* getBelow(double aktXPos,double aktYPos);
-
 
 private:
   //avltree::AVLTree<avlseg::AVLSegment> sweepLine;
   vector <avlseg::AVLSegment > sL;
   vector <robustGeometry::BOEvent> events;
-  Points* outputPoints;
 
 };
 
@@ -475,45 +477,44 @@ void MakeBo::planeSweepCase1(robustGeometry::BOEvent currEv)
 	double sx1=0.0;
 	double sy1=0.0;
 
-	avlseg::AVLSegment currAS
+	avlseg::AVLSegment* currAS=0;
 	(currEv.getExtendedHalfSegment(),currEv.getOwner());
-	sL.push_back(currAS);
+	sL.push_back(*currAS);
 
 	//currEv muss startP sein, Schnittpb falsch, wenn s/e vertauscht?
 	sx1 = currEv.getX();
 	sy1 = currEv.getY();
-	//currAS=0;
-	//currAS = getAbove(sx1,sy1);
-	//if (currAS==0) return;
-	checkIS(currEv,currAS);
+	currAS=0;
+	currAS = getAbove(sx1,sy1);
+	if (currAS==0) return;
+	checkIS(currEv,*currAS);
 
-	//*currAS=0;
-	//currAS = getBelow(sx1,sy1);
-	//if (currAS==0) return;
-	checkIS(currEv,currAS);
+	currAS=0;
+	currAS = getBelow(sx1,sy1);
+	if (currAS==0) return;
+	checkIS(currEv,*currAS);
 }
 
 void MakeBo::planeSweepCase2(robustGeometry::BOEvent currEv)
 {
 	double sx1=0.0;
 	double sy1=0.0;
-	//avlseg::AVLSegment* currAS=0;
+	avlseg::AVLSegment* currAS=0;
 
-	avlseg::AVLSegment currAS
 	(currEv.getExtendedHalfSegment(),currEv.getOwner() );
 	//sL.remove(currAS);
 
 	sx1 = currEv.getX();
 	sy1 = currEv.getY();
-	//currAS=0;
-	//currAS = getAbove(sx1,sy1);
-	//if (currAS==0) return;
-	checkIS(currEv,currAS);
 
-	//currAS=0;
-	//currAS = getBelow(sx1,sy1);
-	//if (currAS==0) return;
-	checkIS(currEv,currAS);
+	currAS = getAbove(sx1,sy1);
+	if (currAS==0) return;
+	checkIS(currEv,*currAS);
+
+	currAS=0;
+	currAS = getBelow(sx1,sy1);
+	if (currAS==0) return;
+	checkIS(currEv,*currAS);
 }
 void MakeBo::planeSweepCase3(robustGeometry::BOEvent currEv)
 {
@@ -530,25 +531,26 @@ void MakeBo::planeSweepCase3(robustGeometry::BOEvent currEv)
 	ix1 = currEv.getX();
 	iy1 = currEv.getY();
 	currIsP = Point(true, ix1,iy1);
-	//outputPoints += currIsP;
+	//Points& Points::operator+=( const Point& p )
+	*outputPoints += currIsP;
 
-	//cout <<" case3 outputPoints ";
-	//outputPoints..Print(cout);  cout << endl;
+	cout <<" case3 outputPoints ";
+	MakeBo:: outputPoints->Print(cout);  cout << endl;
 
     //Swap their positions in SL so that belowEHS is now above aboveEHS;
 	//search in SL, swap the entries
 	findAndSwap(aboveEHS,belowEHS);
 
     //let segA = the segment above belowEHS in SL;
-	//currAS = getAbove(ix1,iy1);
-	//if (currAS==0) return;
-	//checkIS(currEv,currAS);
+	currAS = getAbove(ix1,iy1);
+	if (currAS==0) return;
+	checkIS(currEv,*currAS);
 
     //Let segB = the segment below aboveEHS in SL;
-   	//currAS=0;
-	//currAS = getBelow(ix1,iy1);
-	//if (currAS==0) return;
-	//checkIS(currEv,currAS);
+   	currAS=0;
+	currAS = getBelow(ix1,iy1);
+	if (currAS==0) return;
+	checkIS(currEv,*currAS);
 
 }
 
@@ -689,8 +691,12 @@ void MakeBo::IntersectionBO
 	   sort( events.begin(), events.end(), sortBOEvents);
 
 	}
-  //result = outputPoints;
-  //cout << "result = "; result.Print(cout); cout << endl;
+	//void Points::RemoveDuplicates()
+	//../Spatial/SpatialAlgebra.h:643: error:
+	//‘void Points::RemoveDuplicates()’ is private
+	//outputPoints->RemoveDuplicates();
+	result = *outputPoints;
+	cout << "result = "; result.Print(cout); cout << endl;
   //result.EndBulkLoad(true,false,false);
 }
 
