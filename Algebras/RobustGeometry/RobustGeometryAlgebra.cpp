@@ -255,12 +255,8 @@ public:
 	  Points* outputPoints;
    MakeBo()
    {
-	   //sL.clear();
-	   	//events.clear();
-	   	//Line* result = new Line(1);
-	   	//result.Clear();
 	   Points* outputPoints= new Points();
-	   outputPoints->Clear();
+
    };
    ~MakeBo() {};
 
