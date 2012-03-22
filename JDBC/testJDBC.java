@@ -41,7 +41,7 @@ public class testJDBC {
 		
 		try {
 			stmt = Con1.createStatement();
-			Con1.setAutoCommit(false);
+			//Con1.setAutoCommit(false);
 			
 			System.out.println("Enter a query: ");
 			try {
