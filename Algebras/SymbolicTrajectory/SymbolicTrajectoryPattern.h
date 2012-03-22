@@ -75,7 +75,7 @@ struct SinglePattern {
   vector<string> lbs; // labels
   vector<string> trs; // time ranges 
   vector<string> dtrs; // date ranges
-  vector<SemTime> sts; // weekdays, months, datetimes 
+  vector<SemTime> sts; // weekdays, months, daytimes
   
   string variable;
   string cp_variable;   
@@ -104,7 +104,8 @@ private:
    vector<PrePat> prePats_;
    vector<SinglePattern> pats_;   
    vector<Condition> conds_;   
-   bool valid;   
+   bool valid;
+   bool alternative;
    string errMsg;
    
    int setPattern(string const &text, string &errMsg);   

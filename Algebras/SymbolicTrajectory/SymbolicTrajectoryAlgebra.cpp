@@ -1698,11 +1698,11 @@ bool Pattern::TotalMatch(MLabel const &ml) {
   maxULabel = ml.GetNoComponents();
   wildcard = false;
   s_pattern = getPattern();
-  for (size_t i = 0; i < s_pattern.size(); i++)
-    cout << s_pattern[i].toString() << endl;
   bool totalMatch;
   dt = new DateTime(0, 1, durationtype);
   bool match = SuffixMatch(ml, 0, 0);
+  for (size_t i = 0; i < s_pattern.size(); i++)
+    cout << s_pattern[i].toString() << endl;
   numberOfWildcards = countWildcards();
   if (matchings.empty())
     return false;

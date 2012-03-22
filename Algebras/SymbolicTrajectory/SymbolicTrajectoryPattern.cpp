@@ -97,10 +97,11 @@ PatParser::PatParser(string const &text)
 {
    if ( setPattern(text, errMsg) )
    {
-     valid = false;     
+     valid = false;
    }  
    else 
-     valid = true;    
+     valid = true;
+   alternative = false;
 }
 
 
@@ -139,6 +140,7 @@ void PatParser::pushAndClearPrePat(PrePat &prePat) {
   string cp_variable = prePat.cp_variable;
   prePat.clear();
   prePat.cp_variable = cp_variable;
+  alternative = false;
 }
 
 
@@ -232,6 +234,7 @@ int PatParser::getPrePats(string text, string &errMsg) {
   bool isSequence = false;
   bool open_square_bracket = false;
   bool open_set_bracket = false;
+  alternative = false;
   string token = "";
   int element_count = 0;
   PrePat prePat;
@@ -274,7 +277,7 @@ int PatParser::getPrePats(string text, string &errMsg) {
           return 1;
         } 
         else if (open_parentheses == 2) {
-          if (text[i+1] != ')') { // TODO: schöner machen
+          if (text[i+1] != ')') {
             errMsg = "Please close a sequence pattern with two consecutive "
                      "parentheses.";
             return 1;
@@ -355,6 +358,7 @@ int PatParser::getPrePats(string text, string &errMsg) {
         }
         else {
           // TODO: handle [p|q]
+          alternative = true;
         }
         break;
 
@@ -416,7 +420,7 @@ int PatParser::getPrePats(string text, string &errMsg) {
         open_set_bracket = false;
         break;
         
-      case ' ' : // TODO distinguish [(_ at_home)]+ and [(_ at_home)] +
+      case ' ' :
         if (!open_set_bracket) {
           if (!token.empty()) {
             if (open_parentheses > 0) {
@@ -448,41 +452,49 @@ int PatParser::getPrePats(string text, string &errMsg) {
           token += char_cur;
         break;
 
-      case '+' : 
-        if (!open_set_bracket) { 
-          if (!token.empty()) {
-            if (open_parentheses > 0) {
-              errMsg = "The Character + is not allowed as an element!";
-              return 1;
+      case '+' :
+        if (!open_set_bracket) {
+          if (text[i-1] != ' ') // distinguishes [(t l)]+ and [(t l)] +
+            prePats_.back().wildcard = '+';
+          else {
+            if (!token.empty()) {
+              if (open_parentheses > 0) {
+                errMsg = "The character + is not allowed as an element!";
+                return 1;
+              }
+              else {
+                if (!prePat.variable.empty())
+                  pushAndClearPrePat(prePat);
+                prePat.variable = token;
+                token = "";
+              }
             }
-            else {
-              if (!prePat.variable.empty())
-                pushAndClearPrePat(prePat);  
-              prePat.variable = token;
-              token = "";
-            }
+            prePat.wildcard = '+';
+            pushAndClearPrePat(prePat);
           }
-          prePat.wildcard = '+';
-          pushAndClearPrePat(prePat);
         }
         break;
 
       case '*' :
-        if (!open_set_bracket) { 
-          if (!token.empty()) {
-            if (open_parentheses > 0) {
-              errMsg = "The Character * is not allowed as an element!";
-              return 1;
+        if (!open_set_bracket) {
+          if (text[i-1] != ' ') // distinguishes [(t l)]* and [(t l)] *
+            prePats_.back().wildcard = '*';
+          else {
+            if (!token.empty()) {
+              if (open_parentheses > 0) {
+                errMsg = "The character * is not allowed as an element!";
+                return 1;
+              }
+              else {
+                if (!prePat.variable.empty())
+                  pushAndClearPrePat(prePat);
+                prePat.variable = token;
+                token = "";
+              }
             }
-            else {
-              if (!prePat.variable.empty())
-                pushAndClearPrePat(prePat);
-              prePat.variable = token;
-              token = "";
-            }
+            prePat.wildcard = '*';
+            pushAndClearPrePat(prePat);
           }
-          prePat.wildcard = '*';
-          pushAndClearPrePat(prePat);
         }
         break;
 
