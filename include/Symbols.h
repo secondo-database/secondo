@@ -77,6 +77,7 @@ class Kind{
     static const std::string UNCERTAIN()     { return "UNCERTAIN"; }
     static const std::string UNIT()          { return "UNIT"; }
     static const std::string VISUALGRAPH()   { return "VISUALGRAPH"; }
+    static const std::string DELIVERABLE()   { return "DELIVERABLE"; }
 };
 
 /*
