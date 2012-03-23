@@ -82,4 +82,30 @@ Example  : query dis_file_list collect[0,0] count
 Result   : crashes
 Remark   : There is a lack of parallel processing configurations normally
 
+Operator : para
+Number   : 1
+Signature:  
+Example  : query para(dis_file_list) 
+Result   : crashes
+Remark   : There is a lack of parallel processing configurations normally
 
+Operator: TPARA
+Number: 1
+Signature: ( flist(ANY) ) -> ANY
+Example  : query plz feed spread[;PLZ,5,TRUE;] hadoopMap[;. consume];
+Result: crashes
+Remark   : There is a lack of parallel processing configurations normally
+
+Operator : createFList
+Number   : 1
+Signature: T -> flist(T)
+Example  : let One = 1; query createFList(One);
+Result   : crashes
+Remark   : There is a lack of parallel processing configurations normally
+
+Operator : hadoopMap
+Number   : 1
+Signature: flist(T) x [string] x [text] x [(DLO):DLF] x ( map T T1 ) -> flist(T1)
+Example  : query plz feed spread[;PLZ,5,TRUE;] hadoopMap[;. consume];
+Result   : crashes
+Remark   : There is a lack of parallel processing configurations normally

@@ -27,3 +27,6 @@ operator hadoopjoin alias HADOOPJOIN pattern _ _ op [_, _, _, _; list; fun] impl
 operator fdistribute alias FDISTRIBUTE pattern _ op [list; list; list; list]
 operator spread alias SPREAD pattern _op [list;list;list]
 operator collect alias COLLECT pattern _op[list]
+operator para alias PARA pattern op (_)
+operator hadoopMap alias HADOOPMAP pattern _ op [list;fun] implicit parameter lobject1 type TPARA
+operator createFList alias CREATEFLIST pattern op(_)

@@ -61,10 +61,13 @@ And includes one method:
 #include "Profiles.h"
 #include <ifaddrs.h>
 #include <arpa/inet.h>
+#include "Stream.h"
 
 const int MAX_COPYTIMES = 5;
 const size_t MAX_OPENFILE_NUM = 100;
 const string dbLoc = "<READ DB/>";
+
+class fList;
 
 //Uses Function from ArrayAlgebra
 void extractIds(const ListExpr,int&,int&);
@@ -75,7 +78,14 @@ getLocalFilePath(string path, const string fileName,
             string suffix, bool appendFileName = true);
 string addFileIndex(string fileName, int index);
 ListExpr AntiNumericType(ListExpr numericType);
-bool isFListDescription(const NList& typeInfo);
+bool isFListStreamDescription(const NList& typeInfo);
+ListExpr replaceFList(ListExpr createQuery, string listName,
+    fList* listObject, vector<string>& DLF_NameList,
+    vector<string>& DLF_fileLocList, bool& ok);
+ListExpr replaceParaOp(
+    ListExpr createQuery, vector<string>& flistParaList,
+    vector<fList*>& flistObjList, bool& ok);
+
 
 /*
 1.1 deLocalInfo Class
@@ -389,10 +399,25 @@ then the ~searchLocalNode~ function cannot return a correct result.
     return result;
   }
 
-  inline bool isOK(){  return available;  }
+  inline bool isOK(){  return available; }
+  inline size_t getSlaveSize(){
+    if (disks){
+        return (disks->size() - 1);
+    }
+    else
+      return 0;
+  }
+
   inline size_t getClusterSize(){
-    if (disks)
-      return disks->size();
+    if (disks){
+      if (masterNode == 0){
+        return disks->size();
+      }
+      else{
+        //The master is a slave too.
+        return (disks->size() - 1);
+      }
+    }
     else
       return 0;
   }
@@ -746,20 +771,29 @@ public:
 1.7 fList class
 
 */
+typedef enum { UNDEF, DGO, DLO, DLF } fListKind;
 class fList
 {
 public:
+
   fList(string objectName, NList typeList,
       clusterInfo *ci,NList fileLocList,
       size_t dupTime,
-      bool isInDB = false,
-      bool isDistributed = false);
+      size_t maxRNum = 0, size_t maxCNum = 0,
+      bool isDistributed = false,
+      fListKind kind = UNDEF );
   fList(fList& rhg);
   ~fList()
   {
     if (interCluster)
       delete interCluster;
   }
+
+  static Word Backup_In(const ListExpr typeInfo,
+                 const ListExpr instance,
+                 const int errorPos,
+                 ListExpr& errorInfo,
+                 bool& correct);
 
   static Word In(const ListExpr typeInfo,
                  const ListExpr instance,
@@ -779,7 +813,7 @@ public:
                    const ListExpr typeInfo,
                    Word& w);
 
-  static ListExpr SaveToList(ListExpr typeInfo, Word value);
+//  static ListExpr SaveToList(ListExpr typeInfo, Word value);
   static Word RestoreFromList(
       const ListExpr typeInfo, const ListExpr instance,
       const int errorPos, ListExpr& errorInfo, bool& correct );
@@ -794,56 +828,78 @@ public:
   }
 
   void appendFileLocList(NList elem);
+
   void inline setDistributed() {
-    available = verifyLocList();
-    if (available){
-      isDistributed = true;
-    }
+    isDistributed = true;
   }
 
   //Auxiliary methods
   int SizeOfObj();
-  inline bool isAvailable() { return available; }
+  inline bool isAvailable() {
+    return ((objKind != UNDEF) && isDistributed);
+  }
   inline bool isCollectable(NList currentCluster)
   {
-    if (available && isDistributed && (!inDB)){
+    if (isAvailable() && objKind == DLF){
       return interCluster->covers(currentCluster);
     }
-
     return false;
   }
-  size_t getPartitionFileLoc(size_t row, vector<string>& locations);
-  NList getColumnList(size_t row);
 
-  inline string getObjName(){ return objName; }
-  inline int getNodesNum()  { return interCluster->getClusterSize(); }
+  size_t getPartitionFileLoc(size_t row, vector<string>& locations);
+  NList  getColumnList(size_t row);
+
+  inline string getSubName(){ return subName; }
   inline int getMtxRowNum() { return mrNum; }
   inline int getMtxColNum() { return mcNum; }
   inline int getDupTimes() { return dupTimes; }
-  inline NList getTypeList() { return objectType; }
+  inline NList getInterTypeList() {
+    NList inType = objectType.second();
+    if (inType.isAtom()){
+      inType = inType.enclose();
+    }
+    return inType;
+  }
   inline NList getNodeList() {
     return interCluster->toNestedList();
   }
   inline NList getLocList() { return fileLocList; }
-  inline bool describeDatabaseObjects() { return inDB; }
+  inline bool isInDB() { return (isAvailable() && (objKind == DLO));}
+  inline fListKind getKind() { return objKind; }
+
+  inline static string tempName(const bool isDB){
+    stringstream ss;
+    if (isDB){
+      ss << "SubXXXDB_" <<
+          SecondoSystem::GetInstance()->GetDatabaseName();
+    }
+    else{
+      ss << "SubXXXFL_" << clock()
+          << "_" << WinUnix::getpid();
+    }
+
+    return ss.str();
+  }
+
 
 private:
   fList() {}
 
-  string objName;
+  string subName;
   NList objectType;
   clusterInfo *interCluster;
 
   NList fileLocList;
-  size_t dupTimes; // duplicate times
-  bool inDB; //distributed objects are kept in Secondo databases
-  bool available;
-  size_t  mrNum, // matrix row number
-          mcNum; // matrix column number
+  size_t dupTimes;  // duplicate times
+  size_t  mrNum,    // matrix row number
+          mcNum;    // matrix column number
   bool isDistributed;
+  fListKind objKind;
 
   bool setLocList(NList fllist);
   bool verifyLocList();
+  static bool verifyLocList(NList fileLocList, size_t clusterScale,
+      int& maxRNum, int& maxCNum);
 
   friend class ConstructorFunctions<fList>;
 };
