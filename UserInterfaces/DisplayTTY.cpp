@@ -3261,9 +3261,11 @@ struct DisplayFileList : DisplayFunction {
       string objName = nl->StringValue(nl->First(value));
       ListExpr nodeList = nl->Second(value);
       ListExpr locList = nl->Third(value);
-      size_t dupTimes = nl->IntValue(nl->Fourth(value));
-      bool inDB = nl->BoolValue(nl->Fifth(value));
-      bool isDistributed = nl->BoolValue(nl->Sixth(value));
+      size_t maxRN = nl->IntValue(nl->Fourth(value));
+      size_t maxCN = nl->IntValue(nl->Fifth(value));
+      size_t dupTimes = nl->IntValue(nl->Sixth(value));
+      bool isDistributed = nl->BoolValue(nl->Nth(7, value));
+      int dataKind = nl->IntValue(nl->Nth(8, value));
 
       cout << "Name : " << objName << endl;
       cout << "Type : " << nl->ToString(type) << endl;
@@ -3286,44 +3288,44 @@ struct DisplayFileList : DisplayFunction {
         rest = nl->Rest(rest);
       }
 
-      cout << "rowNo.\tcolumnNo.\tlocNode\tdupTimes" << endl;
-      size_t rowNum = 1;
-      while (!nl->IsEmpty(locList))
+      if (!nl->IsEmpty(locList))
       {
-        ListExpr aRow = nl->First(locList);
+        cout << "rowNo.\tcolumnNo.\tlocNode\tdupTimes" << endl;
+        size_t rowNum = 1;
+        while (!nl->IsEmpty(locList))
+        {
+          ListExpr aRow = nl->First(locList);
 
-        size_t locNode = nl->IntValue(nl->First(aRow));
+          size_t locNode = nl->IntValue(nl->First(aRow));
 
-        ListExpr cfs = nl->Second(aRow);
-        string dataLoc = nl->Text2String(nl->Third(aRow));
-        if (inDB){
-          dataLoc = "<READ DB/>";
-        }
+          ListExpr cfs = nl->Second(aRow);
+          string dataLoc = nl->Text2String(nl->Third(aRow));
 
-        cout << rowNum << ".";
-        if (nl->IsEmpty(cfs)){
-          cout << endl;
-        }
-        else{
-          while (!nl->IsEmpty(cfs))
-          {
-            ListExpr aCF = nl->First(cfs);
-            cout << "\t_" << nl->IntValue(aCF)
-                << "\t" << locNode << ":'" << dataLoc << "'"
-                << "\t" << dupTimes << endl;
-            cfs = nl->Rest(cfs);
+          cout << rowNum << ".";
+          if (nl->IsEmpty(cfs)){
+            cout << endl;
           }
-        }
+          else{
+            while (!nl->IsEmpty(cfs))
+            {
+              ListExpr aCF = nl->First(cfs);
+              cout << "\t_" << nl->IntValue(aCF)
+                  << "\t" << locNode << ":'" << dataLoc << "'"
+                  << "\t" << dupTimes << endl;
+              cfs = nl->Rest(cfs);
+            }
+          }
 
-        locList = nl->Rest(locList);
-        rowNum++;
+          locList = nl->Rest(locList);
+          rowNum++;
+        }
       }
 
-
-      cout << "Data are '" <<
-          (inDB ? "SET" : "NOT" ) << "' in databases." << endl;
       cout << "Data distribute status: " <<
-          (isDistributed ? "Done" :"Unknown" );
+          (isDistributed ? "Done" :"Unknown" ) << endl;
+
+      string kinds[4] = {"UNDEF", "DGO", "DLO", "DLF"};
+      cout << "Data kind: " << kinds[dataKind] << endl;
     }
   }
 };
