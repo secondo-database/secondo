@@ -54,7 +54,7 @@ void processDir(const string& dn){
           } else if( type == S_IFREG )
             //cout << "pürocess File " << fn << endl;
             if(!written && endsWith(fn,".h")){
-              cout << fn << " ";
+              cout << "-I" << dn << " ";
               written = true;           
             }  
          } else {

@@ -7,4 +7,4 @@ all: findinc.cpp
 
 .PHONY:clean
 clean: 
-	rm -f findinc
+	rm -f findinc findinc.exe
