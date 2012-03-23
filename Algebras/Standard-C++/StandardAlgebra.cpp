@@ -5398,6 +5398,8 @@ class CcAlgebra1 : public Algebra
     ccBool.AssociateKind( Kind::CSVIMPORTABLE() );
     ccString.AssociateKind( Kind::CSVIMPORTABLE() );
 
+    ccInt.AssociateKind( Kind::DELIVERABLE() );
+
     AddOperator( &ccplus );
     AddOperator( &ccminus );
     AddOperator( &ccproduct );
