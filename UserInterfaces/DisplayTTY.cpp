@@ -3261,8 +3261,6 @@ struct DisplayFileList : DisplayFunction {
       string objName = nl->StringValue(nl->First(value));
       ListExpr nodeList = nl->Second(value);
       ListExpr locList = nl->Third(value);
-      size_t maxRN = nl->IntValue(nl->Fourth(value));
-      size_t maxCN = nl->IntValue(nl->Fifth(value));
       size_t dupTimes = nl->IntValue(nl->Sixth(value));
       bool isDistributed = nl->BoolValue(nl->Nth(7, value));
       int dataKind = nl->IntValue(nl->Nth(8, value));
