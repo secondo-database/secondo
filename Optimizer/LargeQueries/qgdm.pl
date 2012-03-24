@@ -659,13 +659,13 @@ optimizeAllRemainingEdges(NonSpanningEdges):-
   Query    = (select Args from _ where _),
   mapAttributes(PredsExternal, MappedPredsExternal),
   NewQuery = (select Args from TemporaryRelNames where MappedPredsExternal),
-  nl,write('New Query: '), write(NewQuery),
+  %nl,write('New Query: '), write(NewQuery),
   
   %this is done in predicate 'optimize/3'
   retractall(removefilter(_)),
   rewriteQuery(NewQuery, NewQueryR),
   callLookup(NewQueryR, NewQuery2), !,
-  nl,write('New Query2: '), write(NewQuery2),
+  %nl,write('New Query2: '), write(NewQuery2),
   translate(NewQuery2, Stream, _,_,Cost), 
   append(NotOptimizedEdges, NonSpanningEdges, AllNotOptimizedEdges),
   removePredinfos(Stream, AllNotOptimizedEdges, ResultPlan, _, Stream),
