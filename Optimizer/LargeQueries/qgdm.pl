@@ -652,16 +652,20 @@ optimizeAllRemainingEdges(NonSpanningEdges):-
   qgedgeList2predList(NotOptimizedEdges, NotOptimizedPreds1),
   qgedgeList2predList(NonSpanningEdges, NotOptimizedPreds2),
   append(NotOptimizedPreds1, NotOptimizedPreds2, NotOptimizedPreds),
+  nl, write('NotOptimizedPreds: '), write(NotOptimizedPreds),
   getExternalPredNames(NotOptimizedPreds, PredsExternal),
 
   getQuery(Query),
   Query    = (select Args from _ where _),
-  NewQuery = (select Args from TemporaryRelNames where PredsExternal),
+  mapAttributes(PredsExternal, MappedPredsExternal),
+  NewQuery = (select Args from TemporaryRelNames where MappedPredsExternal),
+  nl,write('New Query: '), write(NewQuery),
   
   %this is done in predicate 'optimize/3'
   retractall(removefilter(_)),
   rewriteQuery(NewQuery, NewQueryR),
   callLookup(NewQueryR, NewQuery2), !,
+  nl,write('New Query2: '), write(NewQuery2),
   translate(NewQuery2, Stream, _,_,Cost), 
   append(NotOptimizedEdges, NonSpanningEdges, AllNotOptimizedEdges),
   removePredinfos(Stream, AllNotOptimizedEdges, ResultPlan, _, Stream),
@@ -688,12 +692,15 @@ optimizeAllRemainingEdges(NonSpanningEdges):-
     
   qgedgeList2predList(NotOptimizedEdges, NotOptimizedPreds1),
   qgedgeList2predList(NonSpanningEdges, NotOptimizedPreds2),
+  
   append(NotOptimizedPreds1, NotOptimizedPreds2, NotOptimizedPreds),
   getExternalPredNames(NotOptimizedPreds, PredsExternal),
 
   getQuery(Query),
   Query    = (select Args from _ where _),
-  NewQuery = (select Args from TemporaryRelNames where PredsExternal),
+  mapAttributes(PredsExternal, MappedPredsExternal),
+  NewQuery = (select Args from TemporaryRelNames where MappedPredsExternal),
+  
   
   %this is done in predicate 'optimize/3'
   retractall(removefilter(_)),
@@ -851,9 +858,21 @@ materializeComponent(Component):-
   NumberNodes =:= 1,
   length(Edges, NumberEdges),
   NumberEdges =:=  0,  
-  NodeList = [qgNode(_, rel(RelName,_),_)|_],      
+  NodeList = [qgNode(_, rel(RelName,*),_)|_],      
   createRelationNameMap(NodeList,RelName),
   assert(mcomponent(Component, relname(RelName))).
+
+/* Special case: Component with 1 node and no edges and Alias Name:*/
+materializeComponent(Component):-
+  Component = component(nodes(NodeList),edges(Edges),_),
+  length(NodeList, NumberNodes),
+  NumberNodes =:= 1,
+  length(Edges, NumberEdges),
+  NumberEdges =:=  0,  
+  NodeList = [qgNode(_, rel(RelName,Alias),_)|_],      
+  createRelationNameMap(NodeList,RelName as Alias),
+  assert(mcomponent(Component, relname(RelName as Alias))).
+
 
 materializeComponent(Component):-
   Component = component(nodes(NodeList),edges(_),Plan),
@@ -1456,4 +1475,119 @@ embeddedsubstituteTempRel([Arg | Args], [Arg2 | Args2], TempRelName) :-
   substituteTempRel(Arg, Arg2,TempRelName),
   embeddedsubstituteTempRel(Args, Args2,TempRelName).
 
+
+/*
+
+1.33 mapAttributes
+
+*/
  
+
+/*
+
+----    mapAttributes(+Preds,-MappedPreds) 
+----
+
+Description:
+
+Maps all predicates in ~Preds~ to materialized names 
+(e.g. p5:plz = p6:plz * 2 is mapped to plz_p5=plz_p6*2) 
+This is neccessary because in temporary relations the attribute 
+names are changed when table alias names are used in the query
+
+Input:
+
+~Preds~: Predicate List
+
+
+Output:
+
+~MappedPreds~: Mapped Predicates
+
+
+*/
+
+mapAttributes([],[]).
+
+mapAttributes([Attribute|Rest], [MappedAttribute|Rest2]):-
+  mapAttribute(Attribute, MappedAttribute),
+  mapAttributes(Rest, Rest2).
+
+
+/*
+
+1.34 mapAttribute
+
+*/ 
+
+/*
+
+----    mapAttribute(-Predicate, +MappedPredicate)
+----
+
+Description:
+
+Replaces an attribute of type <Alias>:<Column> 
+by <Column>[_]<Alias> in the Predicate
+
+Input:
+
+~Predicate~: Predicate 
+
+Output:
+
+~MappedPredicate~: Predicate with mapped attribute names
+
+
+*/   
+
+mapAttribute(Attribute, MappedAttribute) :-  
+  Attribute = A:B,
+  
+  map2Attribute(A:B, MappedAttribute), 
+  !.
+
+mapAttribute(Term, Term2) :-
+  compound(Term), !,
+  Term =.. [Functor | Args],
+  embeddedmapAttribute(Args, Args2),
+  Term2 =.. [Functor | Args2].
+ 
+
+mapAttribute(Term, Term).
+
+embeddedmapAttribute([], []).
+
+embeddedmapAttribute([Arg | Args], [Arg2 | Args2]) :-
+  mapAttribute(Arg, Arg2),
+  embeddedmapAttribute(Args, Args2).
+
+
+:-dynamic(component/3).
+
+/*
+
+if a component exists, which contains just a single node,  
+then the attribute name is not mapped 
+(because it was not physically materialized and 
+the attribute names did not change)
+
+*/
+
+map2Attribute(Attribute, MappedAttribute):-
+  Attribute = Alias:_,
+  findall(_, component(nodes([qgNode(_,rel(_,Alias),_)]),
+  edges(_),_), List),
+  length(List,1),
+  MappedAttribute = Attribute.
+
+/*
+
+in all other cases the attribute is mapped:
+
+*/
+
+map2Attribute(Attribute, MappedAttribute):-
+  Attribute = Alias:Column,
+  plan_to_atom(a(Alias:Column,_,l),MappedAttribute).
+  
