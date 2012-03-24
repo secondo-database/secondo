@@ -64,8 +64,15 @@ public:
     Reads a GPX file
 
 */
-    GPXImporter(const std::string strFileName);
+    GPXImporter(const std::string strFileName, double dScale = 1.0);
     ~GPXImporter();
+
+
+/*
+ 3.1 Set scale-factor for coordinates (lat, lon)
+
+*/
+    void SetScaleFactor(double dScale);
 
 /*
 3.2 GetNextTrkPt
@@ -86,6 +93,7 @@ private:
     TupleType* m_pTupleTypeTrkPt;
     bool m_bOk;
     class CTrkPointIterator* m_pTrkPointIterator;
+    double m_dScale; // Scale for coordinates (lat, lon)
 };
 
 
