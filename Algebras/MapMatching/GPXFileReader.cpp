@@ -585,6 +585,8 @@ GPXFileReader::SGPXTrkPointData& GPXFileReader::SGPXTrkPointData::operator=(
         m_dHDOP = rData.m_dHDOP;
         m_dVDOP = rData.m_dVDOP;
         m_dPDOP = rData.m_dPDOP;
+        m_dCourse = rData.m_dCourse;
+        m_dSpeed = rData.m_dSpeed;
         m_dElevation = rData.m_dElevation;
     }
 
