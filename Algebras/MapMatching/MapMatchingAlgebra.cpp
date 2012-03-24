@@ -172,7 +172,7 @@ struct MapMatchMHTInfo : OperatorInfo
                         "(stream (tuple([Lat:real, Lon:real, Time:DateTime "
                                         "[,Fix:int] [,Sat:int] [,Hdop : real]"
                                         "[,Vdop:real] [,Pdop:real] "
-                                        "[,Course:real] [,Speed:real]])))"
+                                        "[,Course:real] [,Speed(m/s):real]])))"
                         + " -> " +
                         MGPoint::BasicType());
 
@@ -181,7 +181,7 @@ struct MapMatchMHTInfo : OperatorInfo
                     "the data from a gpx-file or "
                     "the data of a tuple stream "
                     "to the given network as well as possible.";
-        example   = "mapmatchmht (DortmundNet, 'Trk_Dormund.gpx')";
+        example   = "mapmatchmht (DortmundNet, 'Trk_Dortmund.gpx')";
     }
 };
 
@@ -468,8 +468,8 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
     const CcInt* pIdxHdop   = static_cast<CcInt*>(args[7].addr);
     const CcInt* pIdxVdop   = static_cast<CcInt*>(args[8].addr);
     const CcInt* pIdxPdop   = static_cast<CcInt*>(args[9].addr);
-    //const CcInt* pIdxCourse = static_cast<CcInt*>(args[10].addr);
-    //const CcInt* pIdxSpeed  = static_cast<CcInt*>(args[11].addr);
+    const CcInt* pIdxCourse = static_cast<CcInt*>(args[10].addr);
+    const CcInt* pIdxSpeed  = static_cast<CcInt*>(args[11].addr);
     //const CcInt* pIdxEle    = static_cast<CcInt*>(args[12].addr);
 
     const int nIdxLat    = pIdxLat->GetValue();
@@ -480,8 +480,8 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
     const int nIdxHdop   = pIdxHdop->GetValue();
     const int nIdxVdop   = pIdxVdop->GetValue();
     const int nIdxPdop   = pIdxPdop->GetValue();
-    //const int nIdxCourse = pIdxCourse->GetValue();
-    //const int nIdxSpeed  = pIdxSpeed->GetValue();
+    const int nIdxCourse = pIdxCourse->GetValue();
+    const int nIdxSpeed  = pIdxSpeed->GetValue();
     //const int nIdxEle    = pIdxEle->GetValue();
 
     if (nIdxLat < 0 || nIdxLon < 0 || nIdxTime < 0)
@@ -489,8 +489,6 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
         assert(false);
         return 0;
     }
-
-    const double dNetworkScale = 1000.0; // TODO pNetwork->GetScalefactor();
 
     DbArrayPtr<DbArray<MapMatchingMHT::MapMatchData> >
                          pArrData(new DbArray<MapMatchingMHT::MapMatchData>(0));
@@ -526,7 +524,6 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
         if (nIdxPdop >= 0)
             pPdop = static_cast<CcReal*>(pTpl->GetAttribute(nIdxPdop));
 
-        /*
         CcReal* pCourse = NULL;
         if (nIdxCourse >= 0)
             pCourse = static_cast<CcReal*>(pTpl->GetAttribute(nIdxCourse));
@@ -535,7 +532,7 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
         if (nIdxSpeed >= 0)
             pSpeed = static_cast<CcReal*>(pTpl->GetAttribute(nIdxSpeed));
 
-        CcReal* pEle    = NULL;
+        /*CcReal* pEle    = NULL;
         if (nIdxEle >= 0)
             pEle = static_cast<CcReal*>(pTpl->GetAttribute(nIdxEle));
         */
@@ -543,8 +540,8 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
         if (pLat != NULL && pLon != NULL && pTime != NULL &&
             pLat->IsDefined() && pLon->IsDefined() && pTime->IsDefined())
         {
-            MapMatchingMHT::MapMatchData Data(pLat->GetValue() * dNetworkScale,
-                                              pLon->GetValue() * dNetworkScale,
+            MapMatchingMHT::MapMatchData Data(pLat->GetValue(),
+                                              pLon->GetValue(),
                                               pTime->millisecondsToNull());
 
             if (pFix != NULL && pFix->IsDefined())
@@ -561,13 +558,14 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
 
             if (pPdop != NULL && pPdop->IsDefined())
                 Data.m_dPdop = pPdop->GetValue();
-            /*
+
             if (pCourse != NULL && pCourse->IsDefined())
                 Data.m_dCourse = pCourse->GetValue();
 
             if (pSpeed != NULL && pSpeed->IsDefined())
-                Data.m_dSpeed = pSpeed->GetValue()
+                Data.m_dSpeed = pSpeed->GetValue();
 
+            /*
             if (pEle != NULL && pEle->IsDefined())
                 Data.m_dEle = pEle->GetValue();
              */
@@ -647,8 +645,17 @@ struct GPXImportInfo : OperatorInfo
                                   "Vdop: CcReal, Pdop: CcReal, Course: CcReal, "
                                   "Speed: CcReal]))";
 
-        syntax    = "gpximport ( _ )";
-        meaning   = "Imports the trackpoint data of a gpx file";
+        appendSignature(FText::BasicType() +
+                        CcReal::BasicType() + " -> " +
+                        "stream(tuple([Time: DateTime, Lat: CcReal, "
+                        "Lon: CcReal, Fix: CcInt, Sat: CcInt, Hdop: CcReal, "
+                        "Vdop: CcReal, Pdop: CcReal, Course: CcReal, "
+                        "Speed: CcReal]))");
+
+        syntax    = "gpximport ( _ [, _ ] )";
+        meaning   = "Imports the trackpoint data of a gpx file."
+                    "With the optional parameter (CcReal) a scaling factor "
+                    "for the coordinates (Lat, Lon) can be specified.";
         example   = "gpximport ('gpx-filename')";
     }
 };
@@ -662,12 +669,17 @@ ListExpr OpGPXImportTypeMap(ListExpr in_xArgs)
 {
     NList param(in_xArgs);
 
-    if( param.length() != 1)
-        return listutils::typeError("one argument expected");
+    if( param.length() > 2)
+        return listutils::typeError("one or two arguments expected");
 
     if (!param.first().isSymbol(FText::BasicType()))
         return listutils::typeError("1st argument must be " +
                                                             FText::BasicType());
+
+    if (param.length() == 2 && !param.second().isSymbol(CcReal::BasicType()))
+        return listutils::typeError("2nd argument must be " +
+                                                           CcReal::BasicType());
+
     return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                            GPXImporter::GetTupleTypeTrkPtListExpr());
 }
@@ -730,6 +742,56 @@ int OpGPXImportValueMapping(Word* args,
     }
 }
 
+int OpGPXImportValueMappingWithScale(Word* args,
+                                     Word& result,
+                                     int message,
+                                     Word& local,
+                                     Supplier in_xSupplier)
+{
+
+    int nRet = OpGPXImportValueMapping(args, result, message,
+                                       local, in_xSupplier);
+
+    if (message == OPEN)
+    {
+        GPXImporter* pImporter = static_cast<GPXImporter*>(local.addr);
+        if (pImporter != NULL)
+        {
+            CcReal* pScale = static_cast<CcReal*>(args[1].addr);
+            pImporter->SetScaleFactor((pScale != NULL && pScale->IsDefined()) ?
+                                                      pScale->GetValue() : 1.0);
+        }
+        else
+        {
+            assert(false);
+        }
+    }
+
+    return nRet;
+}
+
+/*
+ 5.4 Selection Function
+
+*/
+
+int GPXImportSelect(ListExpr args)
+{
+    NList type(args);
+    if (type.length() == 1)
+    {
+        return 0;
+    }
+    else if (type.length() == 2)
+    {
+        return 1;
+    }
+    else
+    {
+        return -1;
+    }
+}
+
 
 
 /*
@@ -770,9 +832,14 @@ MapMatchingAlgebra::MapMatchingAlgebra()
                 OpMapMatchingMHTTypeMap);
 
 
-    // GPXImport
+    // GPXImport - overloaded
+    ValueMapping GPXImportFuns[] = { OpGPXImportValueMapping,
+                                     OpGPXImportValueMappingWithScale,
+                                     0 };
+
     AddOperator(GPXImportInfo(),
-                OpGPXImportValueMapping,
+                GPXImportFuns,
+                GPXImportSelect,
                 OpGPXImportTypeMap);
 }
 
