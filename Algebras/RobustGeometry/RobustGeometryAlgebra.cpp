@@ -381,6 +381,7 @@ avlseg::AVLSegment* MakeBo::getAbove(double aktXPos,double aktYPos)
 			//|| ((tempx1 == aktXPos) && (tempy1 >= aktYPos)))
 		{
 			return &tmpAS;
+
 		}
 	}
 	return NULL;
@@ -413,7 +414,8 @@ avlseg::AVLSegment* MakeBo::getBelow(double aktXPos,double aktYPos)
 	return NULL;
 }
 
-void MakeBo::checkIS(robustGeometry::BOEvent currEv, avlseg::AVLSegment currAS)
+void MakeBo::checkIS(robustGeometry::BOEvent currEv,
+		avlseg::AVLSegment currAS)
 {
 	double sx1=0.0;
 	double sy1=0.0;
@@ -449,22 +451,33 @@ void MakeBo::checkIS(robustGeometry::BOEvent currEv, avlseg::AVLSegment currAS)
 				(sx1,sy1,ex1,ey1,sx2,sy2,ex2,ey2,is_x,is_y);
 		if (isIntersected==0)
 		{
-		//Insert Intersection point into event, if not already there;
-			//IntIterator i = find(events.begin(), events.end(), 5);
-			//sort( events.begin(), events.end(), sortBOEvents);
 
-			//if (i = vw.end())
-			//{
-
-			robustGeometry::BOEvent
-			intersP = robustGeometry::BOEvent(
-			currAS.convertToExtendedHs( true, currAS.getOwner() ),
-				currEv.getExtendedHalfSegment(),
-				is_x,
-				is_y,
-				robustGeometry::intersect);
-				events.push_back(intersP);
-			//}
+			bool found_it = false;
+			for (int i=0;i<events.size(); i++ )
+			{
+			//eliminate duplicate value
+				if (( events[i].getX()== is_x ) &&
+						( events[i].getY()== is_y )
+					&& ( events[i].getPointType() ==
+				robustGeometry::intersect ))
+				{	found_it = true;
+					break;
+				}
+			}
+			if (!found_it)
+			{
+				robustGeometry::BOEvent
+				intersP = robustGeometry::BOEvent(
+				currAS.convertToExtendedHs( true,
+						currAS.getOwner() ),
+					currEv.getExtendedHalfSegment(),
+					is_x,
+					is_y,
+					robustGeometry::intersect);
+					events.push_back(intersP);
+			}
+			cout << "Check IS Intersect at : x "
+					<< is_x << " y " << is_y << endl;
 		}
 	}
 }
@@ -480,15 +493,28 @@ void MakeBo::planeSweepCase1(robustGeometry::BOEvent currEv)
 	//currEv muss startP sein, Schnittpb falsch, wenn s/e vertauscht?
 	sx1 = currEv.getX();
 	sy1 = currEv.getY();
-	currAS=0;
-	currAS = getAbove(sx1,sy1);
-	if (currAS==0) return;
-	checkIS(currEv,*currAS);
 
-	currAS=0;
+	cout << "Case 1 X " << sx1 << " Y " << sy1;
+	currAS = getAbove(sx1,sy1);
+	if (currAS!=0)
+	{
+		cout << "Above : CurrAS X1 " << currAS->getX1()
+				<< " Y1 " << currAS->getY1() <<
+				" X2 " << currAS->getX2()
+				<< " Y2 " << currAS->getY2();
+		checkIS(currEv,*currAS);
+	}
+
 	currAS = getBelow(sx1,sy1);
-	if (currAS==0) return;
-	checkIS(currEv,*currAS);
+	if (currAS!=0)
+	{
+		cout << "Below : CurrAS X1 " << currAS->getX1()
+				<< " Y1 " << currAS->getY1() <<
+		        " X2 " << currAS->getX2()
+		        << " Y2 " << currAS->getY2();
+		checkIS(currEv,*currAS);
+	}
+	cout << endl;
 }
 
 void MakeBo::planeSweepCase2(robustGeometry::BOEvent currEv)
@@ -504,14 +530,27 @@ void MakeBo::planeSweepCase2(robustGeometry::BOEvent currEv)
 	sx1 = currEv.getX();
 	sy1 = currEv.getY();
 
+	cout << "Case 2 X " << sx1 << " Y " << sy1;
 	currAS = getAbove(sx1,sy1);
-	if (currAS==0) return;
-	checkIS(currEv,*currAS);
+	if (currAS!=0)
+	{
+		cout << "Above : CurrAS X1 " << currAS->getX1()
+				<< " Y1 " << currAS->getY1() <<
+				" X2 " << currAS->getX2()
+			  << " Y2 " << currAS->getY2();
+		checkIS(currEv,*currAS);
+	}
 
-	currAS=0;
 	currAS = getBelow(sx1,sy1);
-	if (currAS==0) return;
-	checkIS(currEv,*currAS);
+	if (currAS!=0)
+	{
+		cout << "Below : CurrAS X1 " << currAS->getX1()
+				<< " Y1 " << currAS->getY1() <<
+				" X2 " << currAS->getX2()
+				 << " Y2 " << currAS->getY2();
+		checkIS(currEv,*currAS);
+	}
+	cout << endl;
 }
 void MakeBo::planeSweepCase3(robustGeometry::BOEvent currEv)
 {
@@ -522,32 +561,46 @@ void MakeBo::planeSweepCase3(robustGeometry::BOEvent currEv)
 	avlseg::AVLSegment* currAS=0;
 
 	//find corresponding segments
-	avlseg::AVLSegment aboveEHS(currEv.getAboveEHS(),currEv.getOwner() );
-	avlseg::AVLSegment belowEHS(currEv.getBelowEHS(),currEv.getOwner() );
+	avlseg::AVLSegment aboveEHS(currEv.getAboveEHS(),
+			currEv.getOwner() );
+	avlseg::AVLSegment belowEHS(currEv.getBelowEHS(),
+			currEv.getOwner() );
 
 	ix1 = currEv.getX();
 	iy1 = currEv.getY();
 	currIsP = Point(true, ix1,iy1);
-	//Points& Points::operator+=( const Point& p )
-	*outputPoints += currIsP;
 
-	cout <<" case3 outputPoints ";
-	MakeBo:: outputPoints->Print(cout);  cout << endl;
+	//if(!outputPoints->Contains(currIsP,geoid))
+	*outputPoints += currIsP;
 
     //Swap their positions in SL so that belowEHS is now above aboveEHS;
 	//search in SL, swap the entries
 	findAndSwap(aboveEHS,belowEHS);
 
     //let segA = the segment above belowEHS in SL;
+
+	cout << "Case 3 X " << ix1 << " Y " << iy1;
 	currAS = getAbove(ix1,iy1);
-	if (currAS==0) return;
-	checkIS(currEv,*currAS);
+	if (currAS!=0)
+	{
+		cout << "Above : CurrAS X1 "
+		<< currAS->getX1() << " Y1 " << currAS->getY1() <<
+		 " X2 " << currAS->getX2() << " Y2 "
+		 << currAS->getY2();
+		checkIS(currEv,*currAS);
+	}
 
     //Let segB = the segment below aboveEHS in SL;
-   	currAS=0;
 	currAS = getBelow(ix1,iy1);
-	if (currAS==0) return;
-	checkIS(currEv,*currAS);
+	if (currAS!=0)
+	{
+		cout << "Below : CurrAS X1 " << currAS->getX1()
+				<< " Y1 " << currAS->getY1() <<
+				 " X2 " << currAS->getX2()
+			  << " Y2 " << currAS->getY2();
+		checkIS(currEv,*currAS);
+	}
+	cout << endl;
 
 }
 
@@ -602,9 +655,9 @@ void MakeBo::IntersectionBO
  	  			                 nextExtHs,
  	  			                 src))!= avlseg::none)
  	{
-		  cout << "owner" << owner << endl;
+		  cout << "owner: " << owner << endl;
 		  boOwner = owner;
-		  cout << "boOwner" << boOwner << endl;
+		  cout << "boOwner: " << boOwner << endl;
 
  		bool found_it = false;
 
@@ -614,19 +667,39 @@ void MakeBo::IntersectionBO
  			if (events[i].getExtendedHalfSegment().
  				GetLeftPoint() == nextExtHs.GetLeftPoint( ) &&
  				events[i].getExtendedHalfSegment().
- 				GetRightPoint() == nextExtHs.GetRightPoint( ))
+				GetRightPoint() == nextExtHs.GetRightPoint( ))
 			{	found_it = true;
 			    break;
 			}
 		}
 		if (found_it) continue;
-		robustGeometry::BOEvent nextEventl = robustGeometry::BOEvent(
+
+		cout << "after eliminate duplicate value " <<  endl;
+		cout << " nextExtHs.GetLeftPoint().IsDefined() : "
+				<< nextExtHs.GetLeftPoint().IsDefined() << endl;
+		cout << " nextExtHs.GetRightPoint().IsDefined() : "
+		<< nextExtHs.GetRightPoint().IsDefined() << endl;
+		robustGeometry::BOEvent nextEventl =
+				robustGeometry::BOEvent(
 			nextExtHs,
 			nextExtHs.GetLeftPoint().GetX(),
 			nextExtHs.GetLeftPoint().GetY(),
 			robustGeometry::start,
 			boOwner);
+
+		cout << "before nextEventl " <<  endl;
+		cout <<	 "nextEventl.getExtendedHalfSegment()."
+				"GetLeftPoint().IsDefined()" << nextEventl.
+				getExtendedHalfSegment().GetLeftPoint().
+				IsDefined() << endl;
+		cout <<	 "nextEventl.getExtendedHalfSegment()"
+				".GetRightPoint().IsDefined()" << nextEventl.
+				getExtendedHalfSegment().GetRightPoint().
+				IsDefined() << endl;
 		events.push_back(nextEventl);
+
+
+		cout << "after nextEventl " <<  endl;
 
 		robustGeometry::BOEvent nextEventr = robustGeometry::BOEvent(
 			nextExtHs,
@@ -634,10 +707,13 @@ void MakeBo::IntersectionBO
 			nextExtHs.GetRightPoint().GetY(),
 			robustGeometry::end,
 			boOwner);
-		events.push_back(nextEventr);
- 	};
-	sort( events.begin(), events.end(), sortBOEvents);
 
+		events.push_back(nextEventr);
+		cout << "after nextEventr " <<  endl;
+ 	};
+	 cout << "before sortBOEvents " <<  endl;
+	sort( events.begin(), events.end(), sortBOEvents);
+	cout << "after sortBOEvents " <<  endl;
 
 	for (int i=0;i<events.size(); i++ )
  	{
@@ -652,7 +728,6 @@ void MakeBo::IntersectionBO
 		currEv = events[0];
 		int i =0;
 		cout << "events:" << i << " "; currEv.Print(cout); cout << endl;
-
 
 	   if(currEv.getPointType()==robustGeometry::start)
 	   {
@@ -682,16 +757,14 @@ void MakeBo::IntersectionBO
 	//member->Print(cout); cout << endl; };
 	//cout << "AVLSegment current"; current.Print(cout); cout << endl;
 
-
+	   sort( events.begin(), events.end(), sortBOEvents);
 	   events.erase(events.begin());
 	   //iter = v.erase(iter);
-	   sort( events.begin(), events.end(), sortBOEvents);
 
 	}
-	//void Points::RemoveDuplicates()
-	//../Spatial/SpatialAlgebra.h:643: error:
-	//‘void Points::RemoveDuplicates()’ is private
-	//outputPoints->RemoveDuplicates();
+	cout <<" outputPoints ";
+	MakeBo:: outputPoints->Print(cout);  cout << endl;
+
 	result = *outputPoints;
 	cout << "result = "; result.Print(cout); cout << endl;
   //result.EndBulkLoad(true,false,false);
