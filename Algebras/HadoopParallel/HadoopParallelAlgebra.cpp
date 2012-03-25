@@ -7257,12 +7257,6 @@ ListExpr replaceFList(ListExpr createQuery, string listName,
         string objectName = listObject->getSubName();
         switch (listObject->getKind())
         {
-          case DGO:{
-            ListExpr objectList =
-              SecondoSystem::GetCatalog()->GetObjectValue(objectName);
-            if (!nl->IsEmpty(objectList))
-              return objectList;
-          }
           case DLO:{
             return nl->SymbolAtom(objectName);
           }

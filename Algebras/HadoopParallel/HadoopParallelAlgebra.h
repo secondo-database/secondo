@@ -771,7 +771,7 @@ public:
 1.7 fList class
 
 */
-typedef enum { UNDEF, DGO, DLO, DLF } fListKind;
+typedef enum { UNDEF, DLO, DLF } fListKind;
 class fList
 {
 public:
