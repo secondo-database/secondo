@@ -6714,9 +6714,12 @@ ListExpr hadoopMapTypeMap(ListExpr args){
     return l.typeError(uafErr);
   qStr = coQuery.convertToString();
 
+  //Query Parameter
+  string coParaName = l.third().second().second().first().str();
+
   //If it is a DLF, then the output type must be tuple stream or DATA
   //Several different export type for creating DLF kind flist:
-  //0 : non-DLF kind
+  //0 : DLO, non-DLF kind
   //1 : stream(tuple)
   //2 : stream(T)      < T in DATA kind >
   //3 : T              < T in DATA kind >
@@ -6787,7 +6790,8 @@ ListExpr hadoopMapTypeMap(ListExpr args){
   return NList(NList(Symbol::APPEND()),
       NList(NList(qStr, true, true),
             NList(objName, true, false),
-            NList(dlfType)),
+            NList(dlfType),
+            NList(coParaName, true, false)),
       resultType).listExpr();
 
 }
@@ -6807,6 +6811,8 @@ int hadoopMapValueMap(Word* args, Word& result,
     //Get the export file type
     int CreateObjectType =
         ((CcInt*)args[5].addr)->GetValue();
+    string inParaName =
+        ((CcString*)args[6].addr)->GetValue();
 
     //Optional parameters
     string CreateFilePath = "";
@@ -6840,7 +6846,7 @@ int hadoopMapValueMap(Word* args, Word& result,
       nl->ReadFromString(CreateQuery, CreateQueryList);
       vector<string> flistParaList;
       vector<fList*> flistObjList;
-      flistParaList.push_back("lobject11"); //The input parameter
+      flistParaList.push_back(inParaName); //The input parameter
       flistObjList.push_back(inputFList);
       vector<string> DLF_NameList, DLF_fileLocList;
 
@@ -6870,6 +6876,7 @@ int hadoopMapValueMap(Word* args, Word& result,
       }
 
       NList dlfNameList, dlfLocList;
+      ListExpr sidList;
       if (!ok){
         cerr << "Reading flist data fails." << endl;
       }
@@ -6913,11 +6920,9 @@ int hadoopMapValueMap(Word* args, Word& result,
             {
               stringstream ss;
               ss << buf;
-              istringstream iss(ss.str());
-              int key;
-              bool globalResult;
-              iss >> key >> std::boolalpha >> globalResult;
-              ok = globalResult;
+              string locListStr = ss.str();
+              locListStr = locListStr.substr(locListStr.find_first_of(' '));
+              nl->ReadFromString(locListStr, sidList);
             }
             else
               ok = false;
@@ -6932,24 +6937,32 @@ int hadoopMapValueMap(Word* args, Word& result,
         int slaveSize = (int)ci->getSlaveSize();
         NList fileLocList;
 
-        if (CreateObjectType > 0){
-          //Create DLF kind flist
-          for (int i = 1; i <= slaveSize; i++)
-          {
-            if (i == 1){
-              fileLocList.makeHead(
-                  NList(NList(1), NList(1).enclose(),
-                      NList(CreateFilePath, true, true)));
-            }
-            else{
-              fileLocList.append(
-                  NList(NList(i), NList(1).enclose(),
-                  NList(CreateFilePath, true, true)));
-            }
+        if (CreateObjectType == 0)
+          CreateFilePath = dbLoc;
+
+        //Create file location list
+        ListExpr rest = sidList;
+        while (!nl->IsEmpty(rest))
+        {
+          int slaveIdx = nl->IntValue(nl->First(rest));
+          cerr << "Get one slave Index as: " << slaveIdx << endl;
+
+          if (fileLocList.isEmpty()){
+            fileLocList.makeHead(
+                NList(NList(slaveIdx), NList(1).enclose(),
+                    NList(CreateFilePath, true, true)));
           }
+          else{
+            fileLocList.append(
+                NList(NList(slaveIdx), NList(1).enclose(),
+                NList(CreateFilePath, true, true)));
+          }
+
+          rest = nl->Rest(rest);
         }
+
         resultFList = new fList(CreateObjectName, NList(resultType),
-            ci, fileLocList, 1, slaveSize, 1, true, kind);
+          ci, fileLocList, 1, slaveSize, 1, true, kind);
       }
       else{
         //If the creation job is not successfully returned,
