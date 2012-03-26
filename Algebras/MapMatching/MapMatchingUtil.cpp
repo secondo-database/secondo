@@ -41,6 +41,7 @@ utilities for map matching
 #include "MapMatchingUtil.h"
 #include <SpatialAlgebra.h>
 #include <NetworkAlgebra.h>
+#include "NetworkSection.h"
 
 #include <stdio.h>
 #include <limits>
@@ -246,7 +247,8 @@ Point MMUtil::CalcProjection(const SimpleLine& rLine,
                              const Point& rPt,
                              double& rdDistanceRes,
                              bool& bIsOrthogonal,
-                             const double dScale)
+                             const double dScale,
+                             HalfSegment* pResHS)
 {
     Point ResPoint(false /*not defined*/);
     double dShortestDistance = std::numeric_limits<double>::max();
@@ -266,6 +268,8 @@ Point MMUtil::CalcProjection(const SimpleLine& rLine,
                 dShortestDistance = dDistance;
                 ResPoint = ResPointSeg;
                 bIsOrthogonal = bOrthogonal;
+                if (pResHS != NULL)
+                    *pResHS = hs;
             }
         }
     }
@@ -276,7 +280,9 @@ Point MMUtil::CalcProjection(const SimpleLine& rLine,
 
 static double CalcDistanceSimple(const Point& rPoint1, const Point& rPoint2)
 {
-    const double dRadiusEarth = 6378.137;
+    // TODO http://www.movable-type.co.uk/scripts/latlong.html
+
+    const double dRadiusEarth = 6371.00; // km
 
     Point Point1Rad(true, degToRad(rPoint1.GetX()), degToRad(rPoint1.GetY()));
     Point Point2Rad(true, degToRad(rPoint2.GetX()), degToRad(rPoint2.GetY()));
@@ -473,6 +479,72 @@ double MMUtil::CalcLengthCurve(const SimpleLine* pCurve,
     return dLength;
 
 #endif
+}
+
+double MMUtil::CalcHeading(const Point& rPt1,
+                           const Point& rPt2,
+                           bool bAtPt2,
+                           double dScale)
+{
+    static Geoid s_Geoid(Geoid::WGS1984);
+
+    if (AlmostEqual(dScale, 1.0))
+    {
+        return rPt1.Direction(rPt2, true, /*ReturnHeading*/
+                              &s_Geoid, bAtPt2);
+    }
+    else
+    {
+        Point Point1(rPt1);
+        Point1.Scale(1.0 / dScale);
+        Point Point2(rPt2);
+        Point2.Scale(1.0 / dScale);
+
+        return Point1.Direction(Point2, true, /*ReturnHeading*/
+                                &s_Geoid, bAtPt2);
+    }
+}
+
+double MMUtil::CalcHeading(const DirectedNetworkSection& rSection,
+                           const HalfSegment& rHS,
+                           double dScale)
+{
+   Point Pt1 = rHS.GetLeftPoint();
+   Point Pt2 = rHS.GetRightPoint();
+
+   const SimpleLine* pCurve = rSection.GetCurve();
+
+   LRS lrs;
+   pCurve->Get(rHS.attr.edgeno, lrs);
+   HalfSegment HS;
+   pCurve->Get(lrs.hsPos, HS);
+
+   double dPos1 = lrs.lrsPos + Pt1.Distance(HS.GetDomPoint());
+   double dPos2 = lrs.lrsPos + Pt2.Distance(HS.GetDomPoint());
+
+   if (!rSection.GetCurveStartsSmaller())
+   {
+       dPos1 = pCurve->Length() - dPos1;
+       dPos2 = pCurve->Length() - dPos2;
+   }
+
+   if ((rSection.GetDirection() == DirectedNetworkSection::DIR_UP &&
+        dPos1 < dPos2) ||
+        (rSection.GetDirection() == DirectedNetworkSection::DIR_DOWN &&
+        dPos2 < dPos1))
+    {
+       return MMUtil::CalcHeading(Pt1,
+                                  Pt2,
+                                  false /*AtEndPoint*/,
+                                  dScale);
+    }
+    else
+    {
+       return MMUtil::CalcHeading(Pt2,
+                                  Pt1,
+                                  false /*AtEndPoint*/,
+                                  dScale);
+    }
 }
 
 // modified copy of SimpleLine::AtPoint

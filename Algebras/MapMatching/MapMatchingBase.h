@@ -74,7 +74,8 @@ public:
         // Do not initialize data !!
         // because this struct is used in DbArray -> Get-method
         //:m_dLat(0.0), m_dLon(0.0), m_Time(0), m_nFix(-1), m_nSat(-1),
-        //m_dHdop(-1.0), m_dVdop(-1.0), m_dPdop(-1.0)
+        //m_dHdop(-1.0), m_dVdop(-1.0), m_dPdop(-1.0),
+        //m_dCourse(-1.0), m_dSpeed(-1.0)
         {
 
         }
@@ -82,16 +83,19 @@ public:
         MapMatchData(MapMatchData& rData)
         :m_dLat(rData.m_dLat), m_dLon(rData.m_dLon), m_Time(rData.m_Time),
          m_nFix(rData.m_nFix), m_nSat(rData.m_nSat), m_dHdop(rData.m_dHdop),
-         m_dVdop(rData.m_dVdop), m_dPdop(rData.m_dPdop)
+         m_dVdop(rData.m_dVdop), m_dPdop(rData.m_dPdop),
+         m_dCourse(rData.m_dCourse), m_dSpeed(rData.m_dSpeed)
         {
         }
 
         MapMatchData(double dLat, double dLon, int64_t Time,
                      int nFix = -1, int nSat = -1, double dHdop = -1.0,
-                     double dVdop = -1.0, double dPdop = -1.0)
+                     double dVdop = -1.0, double dPdop = -1.0,
+                     double dCourse = -1.0, double dSpeed = -1.0)
         :m_dLat(dLat), m_dLon(dLon), m_Time(Time),
          m_nFix(nFix), m_nSat(nSat), m_dHdop(dHdop),
-         m_dVdop(dVdop), m_dPdop(dPdop)
+         m_dVdop(dVdop), m_dPdop(dPdop),
+         m_dCourse(dCourse), m_dSpeed(dSpeed)
         {
         }
 
@@ -109,7 +113,8 @@ public:
             os << "Lat: " << m_dLat << ";" << "Lon: " << m_dLon << "; ";
             os << "Time: " << m_Time << ";" << "Fix: " << m_nFix << ";";
             os << "Sat: " << m_nSat << ";" << "Hdop: " << m_dHdop << ";";
-            os << "Vdop: " << m_dVdop << ";" << "PDop: " << m_dPdop;
+            os << "Vdop: " << m_dVdop << ";" << "PDop: " << m_dPdop << ";";
+            os << "Course: " << m_dCourse << ";" << "Speed: " << m_dSpeed;
         }
 
         double m_dLat;
@@ -120,6 +125,8 @@ public:
         double m_dHdop;
         double m_dVdop;
         double m_dPdop;
+        double m_dCourse;
+        double m_dSpeed;
     };
 
 /*

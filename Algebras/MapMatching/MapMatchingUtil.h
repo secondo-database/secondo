@@ -53,6 +53,8 @@ class Network;
 
 namespace mapmatch {
 
+class DirectedNetworkSection;
+
 /*
 3 ~MMUtil~
 
@@ -82,7 +84,8 @@ public:
                                 const Point& rPt,
                                 /*OUT*/ double& rdDistanceRes,
                                 /*OUT*/ bool& bIsOrthogonal,
-                                /*IN*/  const double dScale);
+                                /*IN*/  const double dScale,
+                                /*OUT*/ HalfSegment* pResHS = NULL);
 
     static double CalcDistance(const Point& rPt1,
                                const Point& rPt2,
@@ -97,6 +100,15 @@ public:
 
     static double CalcLengthCurve(const SimpleLine* pCurve,
                                   const double dScale);
+
+    static double CalcHeading(const Point& rPt1,
+                              const Point& rPt2,
+                              bool bAtPt2 = false,
+                              double dScale = 1.0);
+
+    static double CalcHeading(const DirectedNetworkSection& rSection,
+                              const HalfSegment& rHS,
+                              double dScale = 1.0);
 
     static bool GetPosOnSimpleLine( const SimpleLine& rLine,
                                     const Point& p,

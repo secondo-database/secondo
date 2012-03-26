@@ -107,9 +107,10 @@ private:
                     int nIndexFirstComponent,
                     std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
 
-    void DevelopRoutes(const Point& rPoint,
-                       const datetime::DateTime& rTime,
+    void DevelopRoutes(const MapMatchData& rMMData,
                        std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
+
+    void CheckData(DbArray<MapMatchData>* pDbaMMData);
 
     bool CheckQualityOfGPSFix(const MapMatchData& rMMData);
 
@@ -120,8 +121,8 @@ private:
         CANDIDATES_DOWN,
         CANDIDATES_UP_DOWN
     };
-    bool AssignPoint(MHTRouteCandidate* pCandidate, const Point& rPoint,
-                     const datetime::DateTime& rTime,
+    bool AssignPoint(MHTRouteCandidate* pCandidate,
+                     const MapMatchData& rMMData,
                      /*OUT*/ ENextCandidates& eNextCandidates);
 
     void ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&

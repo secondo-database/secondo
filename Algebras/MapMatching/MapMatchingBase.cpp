@@ -132,15 +132,15 @@ bool MapMatchingBase::InitMapMatching(MGPoint* pResMGPoint)
         m_pResMGPoint = pResMGPoint;
         m_pResMGPoint->Clear();
 
+        pResMGPoint->SetDefined(true); // always defined
+
         if (m_pNetwork == NULL || !m_pNetwork->IsDefined() ||
             m_pDbaMMData == NULL || m_pDbaMMData->Size() == 0)
         {
-            pResMGPoint->SetDefined(false);
             return false;
         }
         else
         {
-            pResMGPoint->SetDefined(true);
             pResMGPoint->StartBulkLoad();
 
             if (m_pRITree != NULL)
@@ -158,7 +158,9 @@ void MapMatchingBase::FinalizeMapMatching(void)
     if (m_pResMGPoint != NULL && m_pRITree != NULL)
     {
         m_pResMGPoint->EndBulkLoad(true);
-        m_pResMGPoint->SetDefined(!m_pRITree->IsEmpty());
+        //m_pResMGPoint->SetDefined(!m_pRITree->IsEmpty());
+        m_pResMGPoint->SetDefined(true); // always defined,
+                    // because a undefined MGPoint is problematic (asserts, ...)
         if (!m_pRITree->IsEmpty())
         {
             m_pRITree->TreeToDbArray(&m_pResMGPoint->m_trajectory, 0);

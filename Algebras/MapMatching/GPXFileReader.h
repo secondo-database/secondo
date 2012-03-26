@@ -99,7 +99,7 @@ public:
         CcReal m_dVDOP;
         CcReal m_dPDOP;
         CcReal m_dCourse;
-        CcReal m_dSpeed;
+        CcReal m_dSpeed; // m/s
         CcReal m_dElevation;
     };
 
