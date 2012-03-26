@@ -25,12 +25,15 @@ class ExtendedHalfSegment: public HalfSegment{
     ExtendedHalfSegment(){initialized=false;}
     
     ExtendedHalfSegment(const ExtendedHalfSegment& ehs):
-      HalfSegment(ehs),
       originX1(ehs.originX1),
       originX2(ehs.originX2),
       originY1(ehs.originY1),
       originY2(ehs.originY2),
-      initialized(ehs.initialized){ }
+      initialized(ehs.initialized){
+      if(ehs.initialized){
+         HalfSegment::operator=(ehs);
+      }
+    }
 
     ExtendedHalfSegment(const HalfSegment& hs):
      HalfSegment(hs){
@@ -45,7 +48,9 @@ class ExtendedHalfSegment: public HalfSegment{
 
 
     ExtendedHalfSegment& operator=(const ExtendedHalfSegment& hs){
-        HalfSegment::operator=(hs);
+        if(hs.initialized){
+          HalfSegment::operator=(hs);
+        }
         originX1 = hs.originX1;
         originY1 = hs.originY1;
         originX2 = hs.originX2;
