@@ -1012,3 +1012,8 @@ Signature : -> text
 Example   : query getBashModifiers() contains "NORMAL"
 Result    : TRUE
 
+Operator  : pointerTest
+Number    : 1
+Signature : int x int -> int
+Example   : query pointerTest(3,8)
+Result    : 11

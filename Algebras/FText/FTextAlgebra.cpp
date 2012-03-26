@@ -8375,6 +8375,132 @@ Operator getBashModifiersOp
 
 
 
+/*
+5.1 Operator pointertest
+
+  adds two integer values using a pointer within a subquery
+
+5.1.1 Type Mapping
+
+
+*/
+ListExpr pointerTestTM(ListExpr args){
+   string err = "int x int expected";
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+   }
+   if(!CcInt::checkType(nl->First(args)) ||
+      !CcInt::checkType(nl->Second(args))){
+      return listutils::typeError(err);
+   }
+   return listutils::basicSymbol<CcInt>();
+}
+
+/*
+5.1.2 Value Mapping
+
+*/
+
+int pointerTestVM( Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+
+   CcInt* i1 = (CcInt*)args[0].addr;
+   CcInt* i2 = (CcInt*) args[1].addr;
+   result = qp->ResultStorage(s);
+   CcInt* res = (CcInt*) result.addr;
+
+   string query = "[const int  pointer " + 
+                  nl->ToString(listutils::getPtrList(i1) ) + 
+                  " ] + [const int pointer "
+                   + nl->ToString(listutils::getPtrList(i2)) + " ] ";
+
+   // cout << "Query = " << query << endl;
+
+   SecParser mySecParser;
+
+   string queryAsListStr; 
+   if (mySecParser.Text2List("query " +  query,
+                              queryAsListStr)!= 0) {
+    //  cerr << "Cannot parse query" << endl;
+      res->SetDefined(false);
+      return 0;
+   }
+
+
+   // step 1 tnaslate to nested list
+   ListExpr list;
+   bool success = nl->ReadFromString(queryAsListStr,list);
+   if(!success){
+     // cout << "problem in converting to a list" << endl;
+      res->SetDefined(false);
+   } else {
+      list = nl->Second(list);
+    //  cout << "List successful created : " << nl->ToString(list) << endl;
+      // step 2: create a new QueryProcessor
+      QueryProcessor* qpp =  new QueryProcessor( nl,
+                           SecondoSystem::GetAlgebraManager() );
+      //step 3 : Built operator tree
+      bool correct, evaluable, defined, isFunction;
+      OpTree tree;
+      ListExpr resultType;
+    //  cout << "call Construt" << endl;
+      try{
+        qpp->Construct( list, correct,
+                      evaluable, defined, isFunction, tree, resultType ); 
+       
+      } catch(int i){
+         cout << "int error" <<  i << endl;
+      }
+       
+     // cout << "Construct finished" << endl; 
+      if( ! correct || !evaluable || !defined || isFunction){
+       //  cout << "correct = " << correct << endl;
+       //  cout << "evaluable = " << evaluable << endl;
+       //  cout << "defined = " << defined << endl;
+       //  cout << "isFunction = " << isFunction << endl;
+         res->SetDefined(false);
+      } else {
+         if(!CcInt::checkType(resultType)){
+          //  cerr << "Reuslt not of type int" << endl;
+            res->SetDefined(false);
+         } else {
+          //  cerr << "ok, evaluate " << endl;
+            // step 4: evaluate
+            Word qResult;
+            qpp->EvalS( tree, qResult, OPEN );
+            // step 5: destroy operator tree
+            qpp->Destroy( tree, false );
+            // step 5: process result;
+            CcInt* iqResult = (CcInt*)  qResult.addr;
+            (*res) =   (*iqResult);
+             // step 6: delete result
+             iqResult->DeleteIfAllowed();
+       
+             
+         }
+      }
+   delete qpp;
+   }
+   return 0; 
+}
+
+
+OperatorSpec pointerTestSpec(
+           "int x int -> int",
+           " pointerTest(_,_)",
+           "Adds two integers using pointers and subqueries ",
+           " query pointerTest(8,9) ");
+
+
+
+Operator pointerTest
+  (
+  "pointerTest",             //name
+   pointerTestSpec.getStr(),         //specification
+   pointerTestVM,        //value mapping
+   Operator::SimpleSelect,   //trivial selection function
+   pointerTestTM        //type mapping
+  );
 
 
 
@@ -8470,6 +8596,8 @@ Operator getBashModifiersOp
       AddOperator(&markText);
       AddOperator(&bashModifierOp);
       AddOperator(&getBashModifiersOp);
+      
+       AddOperator(&pointerTest);
 
 #ifdef RECODE
       AddOperator(&recode);
