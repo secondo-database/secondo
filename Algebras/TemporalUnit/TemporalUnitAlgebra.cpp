@@ -257,6 +257,7 @@ helping operators for indexing instant values in R-trees.
 #include "ListUtils.h"
 #include "Symbols.h"
 #include "Stream.h"
+#include "GenericTC.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -10695,40 +10696,253 @@ Operator atRectU( "atRect",
 
 
 /*
-5.44 Operator ~~
+5.47 Operator ~contains~
 
 ----
-     (insert signature here)
-
+     periods x periods -> bool
 ----
 
 */
 
 /*
-5.46.1 Type mapping function for ~~
+5.47.1 Type mapping function for ~contains~
+
+*/
+ListExpr containsTM(ListExpr args) {
+  if (nl->ListLength(args) != 2) {
+    ErrorReporter::ReportError("Exactly two arguments required.");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  }
+  if (!nl->IsEqual(nl->First(args), Periods::BasicType())) {
+    ErrorReporter::ReportError("Type periods required for first argument.");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  }
+  if (!nl->IsEqual(nl->Second(args), Periods::BasicType())) {
+    ErrorReporter::ReportError("Type periods required for second argument.");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  }
+  return nl->SymbolAtom(CcBool::BasicType());
+}
+
+/*
+5.47.2 Value mapping for operator ~contains~
+
+*/
+
+
+/*
+5.47.3 Class ~SecInterval~
+
+*/
+class SecInterval : public Attribute, public Interval<Instant> {
+  public:
+   /*
+    Constructors
+
+    */
+    SecInterval() {}
+
+    SecInterval(int dummy):Attribute(true) {} // TODO? Intitialize interval
+    
+    SecInterval(Instant s, Instant e): Attribute(true),
+                                       Interval<Instant>(s,e,true,true) {
+      //start = s;
+      //end = e;
+      //leftclosed = true;
+      //rightclosed = true;
+    }
+    
+    SecInterval(Instant s, Instant e, bool lc, bool rc): Attribute(true),
+      Interval<Instant>(s,e,lc,rc) {
+    }
+    /*
+    additional functions
+
+    */
+    static const string BasicType() {
+      return "secinterval";
+    }
+    
+    static const bool checkType(const ListExpr type) {
+      return listutils::isSymbol(type, BasicType());
+    }
+
+    static bool CheckKind(ListExpr type, ListExpr& errorInfo) {
+      return checkType(type);
+    }
+     
+    size_t Sizeof() const {
+      return 2 * sizeof(Instant) + 2 * sizeof(CcBool);
+    }
+
+    int Compare(const Attribute* attr) const {
+       SecInterval* si = (SecInterval*) attr;
+       if(!IsDefined()) {
+         return si->IsDefined()?-1:0;
+       }
+       if(!si->IsDefined()){
+         return 1;
+      }
+      return Interval<Instant>::CompareTo(*si);
+    }
+
+    bool Adjacent(const Attribute* attr) const {
+      if(!IsDefined() || !attr->IsDefined()){
+        return false;
+      }
+      return Interval<Instant>::Adjacent(*((Interval<Instant>*)attr));
+    }
+
+    SecInterval* Clone() const {
+      SecInterval* i = new SecInterval(*this);
+      return i;
+    }
+
+    size_t HashValue() const {
+      return (this->start).HashValue() + (this->end).HashValue();
+    }
+
+    void CopyFrom(const Attribute *attr) {
+      *this = *((SecInterval*)attr);
+    }
+
+    void WriteTo(char *dest) {
+      strcpy(dest, ToString().c_str());
+    }
+
+
+    string ToString() {
+      string result = "(" + start.ToString() + " " + end.ToString() + " "
+                      + (lc ? "TRUE" : "FALSE") + " "
+                      + (rc ? "TRUE" : "FALSE") + ")";
+      return result;
+    }
+
+    ListExpr ToListExpr(const ListExpr typeInfo) const{
+      if(IsDefined()){
+         return nl->FourElemList(
+                   start.ToListExpr(false),
+                   end.ToListExpr(false),
+                   nl->BoolAtom(lc),
+                   nl->BoolAtom(rc));
+      } else {
+        return nl->SymbolAtom(Symbol::UNDEFINED());
+      }   
+    }
+    
+
+
+    
+
+    SmiSize SizeOfChars() {
+      string key = this->ToString();
+      return (SmiSize)key.length();
+    }
+
+    vector<string> split(string const& text, const char delimiter) {
+      vector<string> result(0);
+      string token;
+      istringstream iss(text);
+      while (getline(iss, token, delimiter))
+        result.push_back(token);
+      return result;
+    }
+
+
+   bool ReadFrom(const ListExpr instance, const ListExpr typeInfo){
+     if(listutils::isSymbolUndefined(instance)){
+       SetDefined(false);
+       return true;
+     }
+     if(!nl->HasLength(instance,4)){
+        return false;  
+     }
+     DateTime s(instanttype);
+     DateTime e(instanttype);
+     bool lc;
+     bool rc;
+     if(!s.ReadFrom(nl->First(instance),false)){
+       return false;
+    }     
+    if(!e.ReadFrom(nl->Second(instance),false)){
+       return false;
+    }
+    ListExpr Lc = nl->Third(instance);
+    if(nl->AtomType(Lc)!=BoolType){
+      return false;
+    } else {
+      lc = nl->BoolValue(Lc);
+    }
+    ListExpr Rc = nl->Fourth(instance);
+    if(nl->AtomType(Rc)!=BoolType){
+      return false;
+    } else {
+      rc = nl->BoolValue(Rc);
+    }
+    return Set(s,e,lc,rc);
+  }
+
+  bool Set(const DateTime& s, const DateTime& e, const bool lc, const bool rc){
+    if ((s < e) || ((s == e) && lc && rc)) {
+      SetDefined(true);
+      this->start = s;
+      this->end = e;
+      this->lc = lc;
+      this->rc = rc;
+      return true;
+    }
+    return false;
+  }
+
+  static ListExpr Property(){
+    return (nl->TwoElemList(
+            nl->FiveElemList(
+              nl->StringAtom("Signature"),
+              nl->StringAtom("Example Type List"),
+              nl->StringAtom("List Rep"),
+              nl->StringAtom("Example List"),
+              nl->StringAtom("Remarks")),
+            nl->FiveElemList(
+              nl->StringAtom("-> SecInterval"),
+              nl->StringAtom(SecInterval::BasicType()),
+              nl->StringAtom("(start end leftclosed rightclosed)"),
+              nl->TextAtom
+                  ("2004-4-12-8:03:32.645 2011-07-01-08:55:22.000 TRUE FALSE"),
+              nl->StringAtom("This type represents an interval")
+         )));
+  }
+};
+
+GenTC<SecInterval> secinterval;
+
+/*
+5.47.4 Specification for operator ~contains~
+
+*/
+const string ContainsSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\") "
+  "( <text>periods x periods -> bool</text--->"
+  "<text>_ contains _ </text--->"
+  "<text>decides whether the first argument contains the second</text--->"
+  "<text>p1 contains p2</text--->) )";
+
+/*
+5.47.5 Selection Function of operator ~contains~
+
 
 */
 
 /*
-5.46.2 Value mapping for operator ~~
+5.47.6 Definition of operator ~contains~
+
+
+Operator temporalcontains("contains",
+                          ContainsSpec,
+                          containsVM,
+                          containsSelect,
+                          containsTM);
 
 */
-
-/*
-5.46.3 Specification for operator ~~
-
-*/
-
-/*
-5.46.4 Selection Function of operator ~~
-
-*/
-
-/*
-5.46.5 Definition of operator ~~
-
-*/
-
 
 /*
 6 Creating the Algebra
@@ -10740,6 +10954,10 @@ class TemporalUnitAlgebra : public Algebra
 public:
   TemporalUnitAlgebra() : Algebra()
   {
+
+    AddTypeConstructor(&secinterval);
+    secinterval.AssociateKind("DATA");
+    
     AddOperator( &temporalunitmakemvalue );
     AddOperator( &temporalunitthemvalue );
     AddOperator( &the_mvalue2 );
@@ -10792,6 +11010,7 @@ public:
     AddOperator( &temporalunitlength );
     AddOperator( &temporalunitcanmeet);
     AddOperator( &atRectU);
+    //  AddOperator(&tempotalcontains);
   }
   ~TemporalUnitAlgebra() {};
 };
