@@ -992,30 +992,12 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
         if (dDistance > 350.0) // too far away
             return false;
 
-        // Check if the startnode or endpoint has been reached.
+        // Check if the startpoint or endpoint has been reached.
         const bool bStartsSmaller = rSection.GetCurveStartsSmaller();
         const Point ptStart = pCurve->StartPoint(bStartsSmaller);
         const Point ptEnd = pCurve->EndPoint(bStartsSmaller);
 
-#if 0
-        // Never assign to endnode
-        if (rSection.GetDirection() == DirectedNetworkSection::DIR_UP)
-        {
-            if (AlmostEqual(PointProjection, ptEnd))
-                return false;
-        }
-        else if (rSection.GetDirection() == DirectedNetworkSection::DIR_DOWN)
-        {
-            if (AlmostEqual(PointProjection, ptStart))
-                return false;
-        }
-        else
-        {
-            if (AlmostEqual(PointProjection, ptStart) ||
-                AlmostEqual(PointProjection, ptEnd))
-                return false;
-        }
-#else
+        // Only assign to endpoint if it is orthogonal or distance <= 50 m
         if (!bIsOrthogonal)
         {
             bool bIsEndPoint = false;
@@ -1037,15 +1019,13 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
 
             if (bIsEndPoint)
             {
-                // Anly assign to endnode if distance <= 50.0 m
+                // Only assign to endpoint if distance <= 50.0 m
                 if (dDistance > 50.0)
                     return false;
             }
         }
 
-#endif
-
-        // Only assign to startnode if it is orthogonal
+        // Only assign to startpoint if it is orthogonal
         if (!bIsOrthogonal)
         {
             if (rSection.GetDirection() == DirectedNetworkSection::DIR_UP)
@@ -1078,7 +1058,7 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
         double dDistanceTravelled = MMUtil::CalcDistance(vecPoints,
                                                          m_dNetworkScale);
 
-        // Add Distance from Start-Point to first projected point
+        // Add distance from startpoint to first projected point
         Point* pFirstProjectedPoint = &PointProjection;
         if (nPointsLastSection > 0 && vecPointsLastSection[0] != NULL)
         {
@@ -1130,8 +1110,12 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
 
         }
 
+        double dScore = dDistance;
+
         if (rMMData.m_dCourse >= 0.)
         {
+            // Course is defined -> add heading difference to score
+
             const double dHeadingSection =
                    MMUtil::CalcHeading(rSection, HSProjection, m_dNetworkScale);
 
@@ -1148,13 +1132,15 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
                       std::min(abs(rMMData.m_dCourse - dReverseHeadingSection),
                         360. - abs(rMMData.m_dCourse - dReverseHeadingSection));
 
-            dDistance += std::min(dHeadingDiff, dReverseHeadingDiff);
+            dScore += std::min(dHeadingDiff, dReverseHeadingDiff);
+
+            dScore += dHeadingDiff;
         }
 
         pCandidate->AddPoint(rPoint,
                              PointProjection,
                              rSection,
-                             dDistance,
+                             dScore,
                              DateTime(rMMData.m_Time));
         return true;
     }
@@ -1167,6 +1153,7 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
 
     return false;
 }
+
 
 static bool RouteCandidateScoreCompare(const MHTRouteCandidate* pRC1,
                                        const MHTRouteCandidate* pRC2)
@@ -1225,15 +1212,14 @@ void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
 
     const bool bInInitPhase = (rvecRouteCandidates[0]->GetPoints().size() < 5);
 
-    if (bInInitPhase &&
-        rvecRouteCandidates.size() < 20)
+    if (bInInitPhase && rvecRouteCandidates.size() < 20)
         return;
 
     MHTRouteCandidate* pBestCandidate = rvecRouteCandidates[0];
     const size_t nPoints = pBestCandidate->GetPoints().size();
     const double dBestAvgScorePerPoint = pBestCandidate->GetScore() / nPoints;
 
-    // remove candidates with very bad score
+    // mark candidates with very bad score as invalid
     size_t nCandidates = rvecRouteCandidates.size();
     for (size_t i = 0; !bInInitPhase && i < nCandidates; ++i)
     {
@@ -1248,8 +1234,8 @@ void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
     }
 
     std::sort(rvecRouteCandidates.begin(),
-                  rvecRouteCandidates.end(),
-                  RouteCandidateScoreCompare);
+              rvecRouteCandidates.end(),
+              RouteCandidateScoreCompare);
 
     // remove invalid candidates
     while (rvecRouteCandidates.size() > 1)
@@ -1282,14 +1268,14 @@ void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
 
             if (*pRouteCandidate1 == *pRouteCandidate2)
             {
-                rvecRouteCandidates[j]->MarkAsInvalid();
+                pRouteCandidate2->MarkAsInvalid();
             }
             else if (!bInInitPhase &&
                      (pRouteCandidate1->GetLastSection() ==
                                        pRouteCandidate2->GetLastSection()) &&
                      LastPointsEqual(pRouteCandidate1, pRouteCandidate2, 5))
             {
-                rvecRouteCandidates[j]->MarkAsInvalid();
+                pRouteCandidate2->MarkAsInvalid();
             }
         }
     }
@@ -1356,7 +1342,190 @@ bool MapMatchingMHT::CheckRouteCandidates(const std::vector<MHTRouteCandidate*>&
 }
 
 /*
-3.9 MapMatchingMHT::AddAdjacentSections
+3.9 MapMatchingMHT::CheckUTurn
+
+*/
+
+bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
+                                bool bUpDown,
+                                bool& rbCorrectUTurn,
+                                double& rdAdditionalUTurnScore)
+{
+    if (pCandidate == NULL || pCandidate->IsFirstSection())
+    {
+        // First section -> do not assign adjacent sections (No U-Turn)
+        return false;
+    }
+
+    const DirectedNetworkSection& rSection = pCandidate->GetLastSection();
+    size_t nPointsOfLastSection = pCandidate->GetCountPointsOfLastSection();
+
+    if (nPointsOfLastSection == 0)
+    {
+        // No points assigned
+        return false;
+    }
+    else if (nPointsOfLastSection <= 2)
+    {
+        // U-Turn and only one/two assigned point/s to last section
+        // -> Remove last point/s and assign this point/s to
+        // end point of previous section
+
+        rbCorrectUTurn = true;
+    }
+    else if (nPointsOfLastSection <= 10)
+    {
+        // more than 2 points ->
+        // check distance between projected points
+
+        const std::vector<MHTRouteCandidate::PointData*>& rvecPoints =
+                                           pCandidate->GetPointsOfLastSection();
+
+        const double dMaxAllowedDistance = 15.0; // 15 m
+
+        double dMaxDistance = 0.0;
+
+        for (size_t i = 0;
+             i < nPointsOfLastSection - 1 && dMaxDistance < dMaxAllowedDistance;
+             ++i)
+        {
+            MHTRouteCandidate::PointData* pData1 = rvecPoints[i];
+            const Point* pPt1 = pData1 != NULL ?
+                                            pData1->GetPointProjection() : NULL;
+
+            for (size_t j = i + 1;
+                 j < nPointsOfLastSection && dMaxDistance < dMaxAllowedDistance;
+                 ++j)
+            {
+                MHTRouteCandidate::PointData* pData2 = rvecPoints[j];
+                const Point* pPt2 = pData2 != NULL ?
+                                            pData2->GetPointProjection() : NULL;
+
+                if (pPt1 != NULL && pPt2 != NULL)
+                {
+                    double dDist = MMUtil::CalcDistance(*pPt1,
+                                                        *pPt2,
+                                                        m_dNetworkScale);
+
+                    if (dDist > dMaxDistance)
+                    {
+                        dMaxDistance = dDist;
+                    }
+                }
+            }
+        }
+
+        rbCorrectUTurn = (dMaxDistance < dMaxAllowedDistance);
+
+        Point PtMaxDistance1(false);
+        Point PtMaxDistance2(false);
+
+        if (!rbCorrectUTurn || nPointsOfLastSection > 5)
+        {
+            double dMaxDistanceGPS = 0.0;
+            for (size_t i = 0; i < nPointsOfLastSection - 1; ++i)
+            {
+                MHTRouteCandidate::PointData* pData1 = rvecPoints[i];
+
+                const Point* pPt1 = pData1 != NULL ?
+                                                   pData1->GetPointGPS() : NULL;
+
+                for (size_t j = i + 1; j < nPointsOfLastSection; ++j)
+                {
+                    MHTRouteCandidate::PointData* pData2 = rvecPoints[j];
+                    const Point* pPt2 = pData2 != NULL ?
+                                                   pData2->GetPointGPS() : NULL;
+
+                    if (pPt1 != NULL && pPt2 != NULL)
+                    {
+                        double dDist = MMUtil::CalcDistance(*pPt1, *pPt2,
+                                                            m_dNetworkScale);
+
+                        if (dDist > dMaxDistance)
+                        {
+                            dMaxDistanceGPS = dDist;
+
+                            PtMaxDistance1 = *pPt1;
+                            PtMaxDistance2 = *pPt2;
+                        }
+                    }
+                }
+            }
+        }
+
+        if ((!rbCorrectUTurn || nPointsOfLastSection > 5 )&&
+             PtMaxDistance1.IsDefined() && PtMaxDistance2.IsDefined())
+        {
+            // Check direction
+            double dDirectionGPS = MMUtil::CalcHeading(PtMaxDistance1,
+                                                       PtMaxDistance2,
+                                                       false /*AtEndPoint*/,
+                                                       m_dNetworkScale);
+
+            Point PtSectionStart(false);
+            Point PtSectionEnd(false);
+
+            if (rSection.GetDirection() == DirectedNetworkSection::DIR_UP)
+            {
+                PtSectionStart = rSection.GetStartPoint();
+                PtSectionEnd = rSection.GetEndPoint();
+            }
+            else
+            {
+                PtSectionStart = rSection.GetEndPoint();
+                PtSectionEnd = rSection.GetStartPoint();
+            }
+
+            if (PtSectionStart.IsDefined() && PtSectionEnd.IsDefined())
+            {
+                double dDirectionSection = MMUtil::CalcHeading(PtSectionStart,
+                                                               PtSectionEnd,
+                                                               false,
+                                                               m_dNetworkScale);
+
+                double dDiff = std::min(abs(dDirectionGPS - dDirectionSection),
+                                 360. - abs(dDirectionGPS - dDirectionSection));
+
+                rbCorrectUTurn = (abs(dDiff) > 45.0);
+            }
+        }
+    }
+
+    // Calculate Score for U-Turn (only when no UTurn-correction)
+    const SimpleLine* pCurve = rSection.GetCurve();
+    if (!rbCorrectUTurn && pCurve != NULL && pCurve->IsDefined())
+    {
+        const Point ptRef = bUpDown ? rSection.GetEndPoint() :
+                                              rSection.GetStartPoint();
+
+        const vector<MHTRouteCandidate::PointData*>& vecPointsLastSection =
+                                           pCandidate->GetPointsOfLastSection();
+
+        // Calculate maximum distance of points of last
+        // section to End-/StartPoint
+        const size_t nPoints = vecPointsLastSection.size();
+        for (size_t i = 0; i < nPoints; ++i)
+        {
+            Point* pPt = vecPointsLastSection[i]->GetPointProjection();
+            if (pPt != NULL)
+            {
+                double dDist = MMUtil::CalcDistance(*pPt,
+                                                    ptRef,
+                                                    m_dNetworkScale);
+
+                rdAdditionalUTurnScore = std::max(rdAdditionalUTurnScore,
+                                                  dDist);
+            }
+        }
+    }
+
+    rdAdditionalUTurnScore *= 2.0;
+
+    return true;
+}
+
+/*
+3.10 MapMatchingMHT::AddAdjacentSections
 adds adjacent sections to route candidates
 
 */
@@ -1375,203 +1544,23 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
         return;
     }
 
-    bool bCorrectUTurn = false;
-
     const DirectedNetworkSection& rSection = pCandidate->GetLastSection();
 
+    bool bCorrectUTurn = false;
     double dAdditionalUTurnScore = 0.0;
 
     if ((rSection.GetDirection() ==
-            DirectedNetworkSection::DIR_UP && !bUpDown) ||
+                                  DirectedNetworkSection::DIR_UP && !bUpDown) ||
         (rSection.GetDirection() ==
-            DirectedNetworkSection::DIR_DOWN && bUpDown))
+                                  DirectedNetworkSection::DIR_DOWN && bUpDown))
     {
         // U-Turn
-
-        if (pCandidate->IsFirstSection())
+        if (!CheckUTurn(pCandidate, bUpDown,
+                        bCorrectUTurn, dAdditionalUTurnScore))
         {
-            // First section -> do not assign adjacent sections (No U-Turn)
             return;
         }
-
-        size_t nPointsOfLastSection = pCandidate->GetCountPointsOfLastSection();
-
-        if (nPointsOfLastSection == 0)
-        {
-            // No points assigned
-            return;
-        }
-        else if (nPointsOfLastSection <= 2)
-        {
-            // U-Turn and only one/two assigned point/s to last section
-            // -> Remove last point/s and assign this point/s to
-            // end point of previous section
-
-            bCorrectUTurn = true;
-        }
-        else if (nPointsOfLastSection <= 10)
-        {
-            // more than 2 points ->
-            // check distance between projected points
-
-            const std::vector<MHTRouteCandidate::PointData*>& rvecPoints =
-                                           pCandidate->GetPointsOfLastSection();
-
-            const double dMaxAllowedDistance = 15.0; // 15 m
-
-            double dMaxDistance = 0.0;
-
-            for (size_t i = 0;
-                 i < nPointsOfLastSection - 1 &&
-                 dMaxDistance < dMaxAllowedDistance;
-                 ++i)
-            {
-                MHTRouteCandidate::PointData* pData1 = rvecPoints[i];
-                const Point* pPt1 = pData1 != NULL ?
-                                            pData1->GetPointProjection() : NULL;
-
-                for (size_t j = i + 1;
-                     j < nPointsOfLastSection &&
-                     dMaxDistance < dMaxAllowedDistance;
-                     ++j)
-                {
-                    MHTRouteCandidate::PointData* pData2 = rvecPoints[j];
-                    const Point* pPt2 = pData2 != NULL ?
-                                            pData2->GetPointProjection() : NULL;
-
-                    if (pPt1 != NULL && pPt2 != NULL)
-                    {
-                        double dDist = MMUtil::CalcDistance(*pPt1,
-                                                            *pPt2,
-                                                            m_dNetworkScale);
-
-                        if (dDist > dMaxDistance)
-                        {
-                            dMaxDistance = dDist;
-                        }
-                    }
-                }
-            }
-
-            bCorrectUTurn = (dMaxDistance < dMaxAllowedDistance);
-
-            Point PtMaxDistance1(false);
-            Point PtMaxDistance2(false);
-
-            if (!bCorrectUTurn || nPointsOfLastSection > 5)
-            {
-                double dMaxDistanceGPS = 0.0;
-                for (size_t i = 0; i < nPointsOfLastSection - 1; ++i)
-                {
-                    MHTRouteCandidate::PointData* pData1 = rvecPoints[i];
-
-                    const Point* pPt1 = pData1 != NULL ?
-                                        pData1->GetPointGPS() : NULL;
-
-                    for (size_t j = i + 1; j < nPointsOfLastSection; ++j)
-                    {
-                        MHTRouteCandidate::PointData* pData2 = rvecPoints[j];
-                        const Point* pPt2 = pData2 != NULL ?
-                                            pData2->GetPointGPS() : NULL;
-
-                        if (pPt1 != NULL && pPt2 != NULL)
-                        {
-                            double dDist = MMUtil::CalcDistance(*pPt1, *pPt2,
-                                                               m_dNetworkScale);
-
-                            if (dDist > dMaxDistance)
-                            {
-                                dMaxDistanceGPS = dDist;
-
-                                PtMaxDistance1 = *pPt1;
-                                PtMaxDistance2 = *pPt2;
-                            }
-                        }
-                    }
-                }
-            }
-
-
-            if ((!bCorrectUTurn || nPointsOfLastSection > 5 )&&
-                PtMaxDistance1.IsDefined() && PtMaxDistance2.IsDefined())
-            {
-                // Check direction
-                double dDirectionGPS = MMUtil::CalcHeading(PtMaxDistance1,
-                                                           PtMaxDistance2,
-                                                           false /*AtEndPoint*/,
-                                                           m_dNetworkScale);
-
-                Point PtSectionStart(false);
-                Point PtSectionEnd(false);
-
-                if (rSection.GetDirection() == DirectedNetworkSection::DIR_UP)
-                {
-                    PtSectionStart = rSection.GetStartPoint();
-                    PtSectionEnd = rSection.GetEndPoint();
-                }
-                else
-                {
-                    PtSectionStart = rSection.GetEndPoint();
-                    PtSectionEnd = rSection.GetStartPoint();
-                }
-
-                if (PtSectionStart.IsDefined() && PtSectionEnd.IsDefined())
-                {
-                    double dDirectionSection =
-                                       MMUtil::CalcHeading(PtSectionStart,
-                                                           PtSectionEnd,
-                                                           false /*AtEndPoint*/,
-                                                           m_dNetworkScale);
-
-                    double dDiff =
-                        std::min(abs(dDirectionGPS - dDirectionSection),
-                                 360. - abs(dDirectionGPS - dDirectionSection));
-
-                    if (abs(dDiff) > 45.0)
-                    {
-                        bCorrectUTurn = true;
-                    }
-                    else
-                    {
-                        bCorrectUTurn = false;
-                    }
-                }
-
-            }
-        }
-
-        // Calculate Score for U-Turn (only when no UTurn-correction)
-        const SimpleLine* pCurve = rSection.GetCurve();
-        if (!bCorrectUTurn && pCurve != NULL && pCurve->IsDefined())
-        {
-            const Point ptRef = bUpDown ? rSection.GetEndPoint() :
-                                          rSection.GetStartPoint();
-
-            const vector<MHTRouteCandidate::PointData*>& vecPointsLastSection =
-                                           pCandidate->GetPointsOfLastSection();
-
-            // Calculate maximum distance of points of last
-            // section to End-/StartPoint
-            const size_t nPoints = vecPointsLastSection.size();
-            for (size_t i = 0; i < nPoints; ++i)
-            {
-                Point* pPt = vecPointsLastSection[i]->GetPointProjection();
-                if (pPt != NULL)
-                {
-                    double dDist = MMUtil::CalcDistance(*pPt,
-                                                        ptRef,
-                                                        m_dNetworkScale);
-
-                    dAdditionalUTurnScore = std::max(dAdditionalUTurnScore,
-                                                     dDist);
-                }
-            }
-        }
-
-        dAdditionalUTurnScore *= 2.0;
     }
-
-    //const int nDebugSectionID = rSection.GetSectionID();
 
     vector<DirectedSection> adjSectionList;
     m_pNetwork->GetAdjacentSections(rSection.GetSectionID(), bUpDown,
@@ -1633,7 +1622,7 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
 }
 
 /*
-3.10 MapMatchingMHT::DetermineBestRouteCandidate
+3.11 MapMatchingMHT::DetermineBestRouteCandidate
 finds the best route candidate
 
 */
@@ -1666,7 +1655,7 @@ MHTRouteCandidate* MapMatchingMHT::DetermineBestRouteCandidate(
 }
 
 /*
-3.11 MapMatchingMHT::CreateCompleteRoute
+3.12 MapMatchingMHT::CreateCompleteRoute
 concatenates routes
 
 */
@@ -1842,7 +1831,7 @@ void MapMatchingMHT::CreateCompleteRoute(
 #endif
 
 /*
-3.11 MapMatchingMHT::TraceRouteCandidates
+3.13 MapMatchingMHT::TraceRouteCandidates
 Debugging of route candidates
 
 */

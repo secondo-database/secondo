@@ -131,6 +131,9 @@ private:
     bool CheckRouteCandidates(const std::vector<MHTRouteCandidate*>&
                                                            rvecRouteCandidates);
 
+    bool CheckUTurn(const MHTRouteCandidate* pCandidate, bool bUpDown,
+                    bool& rbCorrectUTurn, double& rdAdditionalUTurnScore);
+
     MHTRouteCandidate* DetermineBestRouteCandidate(
                           std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
 
