@@ -7314,14 +7314,17 @@ bool SimpleLine::AtPosition( double pos,
                              bool startsSmaller,
                              Point& p,
                              const Geoid* geoid /* = 0 */) const {
-  if (IsDefined()){
+  if (IsDefined() && 0.0 <= pos && pos <= length){
     if(startSmaller == startsSmaller)
       return AtPosition(pos, p, geoid);
     else
       return AtPosition(length - pos,p,geoid);
   }
-  else
+  else{
+    p.SetDefined(false);
     return false;
+  }
+
 }
 
 /*
@@ -17860,7 +17863,9 @@ int SpatialCollect_slineVMPointstream(Word* args, Word& result, int message,
     return 0;
   }
   Point FirstPoint = *P0;
+  Point SecondPoint = FirstPoint;
   Point LastPoint = FirstPoint;
+  bool first = true;
   L->StartBulkLoad();
   qp->Request(args[0].addr, elem);
   while ( qp->Received(args[0].addr) ){
@@ -17874,6 +17879,11 @@ int SpatialCollect_slineVMPointstream(Word* args, Word& result, int message,
       if(P1){ P1->DeleteIfAllowed(); P1 = 0; }
       qp->Close(args[0].addr);
       return 0;
+    }
+    if (first)
+    {
+      SecondPoint = *P1;
+      first = false;
     }
     LastPoint = *P1;
     if(AlmostEqual(*P0,*P1)){
@@ -17891,8 +17901,16 @@ int SpatialCollect_slineVMPointstream(Word* args, Word& result, int message,
     }
    }
    L->EndBulkLoad(); // sort and realminize
-   if(FirstPoint > LastPoint) L->SetStartSmaller(false);
-   else L->SetStartSmaller(true);
+   if (L->IsCycle())
+   {
+     if (FirstPoint > SecondPoint) L->SetStartSmaller(false);
+     else L->SetStartSmaller(true);
+   }
+   else
+   {
+    if(FirstPoint > LastPoint) L->SetStartSmaller(false);
+    else L->SetStartSmaller(true);
+   }
 
    qp->Close(args[0].addr);
    if(P0){ P0->DeleteIfAllowed(); P0 = 0; }
@@ -20549,7 +20567,7 @@ public:
 Constructor initializes values
 
 */
-  LongLinesLocalInfo(Line* li){
+LongLinesLocalInfo(Line* li) : firstPoint(false, 0.0,0.0){
     assert(li->IsDefined() && !li->IsEmpty());
     this->theLine = li;
     size = li->Size();
@@ -20683,7 +20701,9 @@ private:
           if (lengths->at(pos1) > 0.0){
             for (int i = 0 ; i < l1.Size(); i++) {
               l1.Get(i,hs);
-              hs.attr.edgeno = edgeno;
+              AttrType attr = hs.GetAttr();
+              attr.edgeno = edgeno;
+              hs.SetAttr(attr);
               inres->operator+=(hs);
               if (hs.IsLeftDomPoint()) hs.SetLeftDomPoint(false);
               else hs.SetLeftDomPoint(true);
@@ -20694,7 +20714,9 @@ private:
           if (lengths->at(pos2) > 0.0){
             for (int i = 0 ; i < l2.Size(); i++) {
               l2.Get(i,hs);
-              hs.attr.edgeno = edgeno;
+              AttrType attr = hs.GetAttr();
+              attr.edgeno = edgeno;
+              hs.SetAttr(attr);
               inres->operator+=(hs);
               if (hs.IsLeftDomPoint()) hs.SetLeftDomPoint(false);
               else hs.SetLeftDomPoint(true);
@@ -20717,24 +20739,37 @@ private:
   };
 
   void AddHalfSegmentToResult(SimpleLine* result, int index,
-                              Point& curEndPoint,
+                              Point& curEndPoint, Point& firstPoint,
                               double& length, int& partnerpos,
                               bool& done, int& edgeno, bool first){
     HalfSegment curHs;
     theLine->Get(index, curHs);
+    AttrType attr = curHs.GetAttr();
     curEndPoint = curHs.GetSecPoint();
+    partnerpos = attr.partnerno;
+    attr.edgeno = edgeno;
+    curHs.SetAttr(attr);
     if (pointset->find(curEndPoint) != pointset->end() && !first) {
       done = true;
+      if (AlmostEqual(curEndPoint,firstPoint)) {
+        used->at(index) = true;
+        used->at(partnerpos) = true;
+        length += curHs.Length();
+        result->operator+=(curHs);
+        pointset->insert(curEndPoint);
+        if (curHs.IsLeftDomPoint()) curHs.SetLeftDomPoint(false);
+        else curHs.SetLeftDomPoint(true);
+        result->operator+=(curHs);
+        edgeno++;
+      }
     } else {
       used->at(index) = true;
-      curHs.attr.edgeno = edgeno;
+      used->at(partnerpos) = true;
       result->operator+=(curHs);
       pointset->insert(curEndPoint);
       if (curHs.IsLeftDomPoint()) curHs.SetLeftDomPoint(false);
       else curHs.SetLeftDomPoint(true);
       result->operator+=(curHs);
-      partnerpos = curHs.GetAttr().partnerno;
-      used->at(partnerpos) = true;
       length += curHs.Length();
       edgeno++;
     }
@@ -20749,12 +20784,13 @@ private:
     HalfSegment curHs;
     theLine->Get(indStart, curHs);
     Point curStartPoint = curHs.GetDomPoint();
+    firstPoint = curStartPoint;
     Point curEndPoint = curHs.GetSecPoint();
     pointset->insert(curStartPoint);
     int partnerpos = curHs.GetAttr().partnerno;
     bool done = false;
     int edgeno = 0;
-    AddHalfSegmentToResult(result, indStart, curEndPoint,
+    AddHalfSegmentToResult(result, indStart, curEndPoint, firstPoint,
                            length, partnerpos, done, edgeno, true);
     // The dominating point of the next segment in the line is equal to the
     // endpoint of the currentSegment. The next halfsegment therefore is stored
@@ -20766,49 +20802,46 @@ private:
       int lastPos = partnerpos;
       int countLeft = 0;
       int countRight = 0;
-      int countPos = 0;
       int curPos = partnerpos -1;
       HalfSegment test;
       if (curPos >= 0 && curPos < size)
       {
         theLine->Get(curPos,test);
-        while (AlmostEqual(test.GetDomPoint(),curEndPoint) && curPos > 0){
+        while (AlmostEqual(test.GetDomPoint(),curEndPoint) && curPos >= 0){
           if (!used->at(curPos)) countLeft++;
-          countPos++;
           curPos--;
-          theLine->Get(curPos, test);
+          if (curPos >= 0)theLine->Get(curPos, test);
         }
       }
-      if (countLeft > 0) firstPos = firstPos - countPos;
+      if (countLeft > 0) firstPos = curPos + 1;
       if (firstPos < 0) firstPos = 0;
       // Continue search at right of partnerpos
       curPos = partnerpos + 1;
-      countPos = 0;
       if (curPos >= 0 && curPos < size) {
         theLine->Get(curPos,test);
-        while (AlmostEqual(test.GetDomPoint(), curEndPoint) && curPos < size-1){
+        while (AlmostEqual(test.GetDomPoint(), curEndPoint) && curPos < size){
           if (!used->at(curPos)) countRight++;
           curPos++;
-          countPos++;
-          theLine->Get(curPos,test);
+          if (curPos < size)theLine->Get(curPos,test);
         }
       }
 
-      if (countRight > 0) lastPos = lastPos + countPos;
-      if (lastPos > size-1) lastPos = size-1;
+      if (countRight > 0) lastPos = curPos - 1;
+      if (lastPos >= size) lastPos = size-1;
       int count = countLeft + countRight;
       if (count == 1) {
-      //only one possible followup segment found insert into line
-        for (int i = firstPos; i <= lastPos; i++){
+        int i = firstPos;
+        bool ok = false;
+        while (!ok && i <= lastPos){
           if(i != partnerpos && !used->at(i)){
-            AddHalfSegmentToResult(result, i, curEndPoint,
+            AddHalfSegmentToResult(result, i, curEndPoint,firstPoint,
                                    length, partnerpos, done, edgeno, false);
-            break;
+            ok = true;
           }
+          i++;
         }
       } else {
         if (count > 1) {
-          //different possible followup Segments
           vector<double>* followLength = new vector<double>();
           vector<int>* followPos = new vector<int>();
           vector<SimpleLine>* followLine = new vector<SimpleLine>();
@@ -20839,7 +20872,9 @@ private:
           } else {
             for (int i = 0; i < ind->Size(); i++){
               ind->Get(i,test);
-              test.attr.edgeno = edgeno;
+              AttrType attr = test.GetAttr();
+              attr.edgeno = edgeno;
+              test.SetAttr(attr);
               result->operator+=(test);
               if (test.IsLeftDomPoint()) test.SetLeftDomPoint(false);
               else test.SetLeftDomPoint(true);
@@ -20851,7 +20886,6 @@ private:
             done = true;
           }
         } else { // count < 1 ,
-          //no more segments stop computation
           done = true;
         }
       }
@@ -20861,6 +20895,11 @@ private:
     return result;
   };
 
+/*
+First point of current computed line for check of valid cycle
+
+*/
+  Point firstPoint;
 
 /*
 Pointer to a boolean array telling if a HalfSegement has been used or not.
@@ -20881,7 +20920,7 @@ Number of HalfSegments of source line.
   int size;
 
 /*
-Indexpositions of Halfsegments with possible start, way and splitpoints of line.
+Already touched line points.
 
 */
 
