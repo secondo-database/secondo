@@ -3072,7 +3072,6 @@ Fill routes relation of network
 */
 void Network::FillRoutes ( const Relation *routes )
 {
-
   ListExpr ptrList = listutils::getPtrList(routes);
 
   string strQuery = "(consume (sort (feed (" + routesTypeInfo +
@@ -3096,7 +3095,6 @@ void Network::FillRoutes ( const Relation *routes )
   QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
   assert ( QueryExecuted );
   m_pRTreeRoutes = ( R_Tree<2,TupleId>* ) xResult.addr;
-
 }
 
 
@@ -3158,8 +3156,17 @@ JUNCTION_ROUTE1_ID );
     CcReal* pMeas = ( CcReal* ) pNewJunction->GetAttribute (
 JUNCTION_ROUTE1_MEAS );
     Point* pPoint = new Point ( true );
-    pLine->AtPosition ( pMeas->GetRealval(), startSmaller, *pPoint );
-    pNewJunction->PutAttribute ( JUNCTION_POS, pPoint );
+    if(pLine->AtPosition ( pMeas->GetRealval(), startSmaller, *pPoint ))
+      pNewJunction->PutAttribute ( JUNCTION_POS, pPoint );
+    else {
+      if (AlmostEqualAbsolute(pMeas->GetRealval(), pLine->Length(),
+                              m_scalefactor*0.01))
+        pLine->AtPosition(pLine->Length(), startSmaller, *pPoint);
+      else
+        if (AlmostEqualAbsolute(pMeas->GetRealval(), 0.0, m_scalefactor*0.01))
+          pLine->AtPosition(pLine->Length(), startSmaller, *pPoint);
+      pNewJunction->PutAttribute(JUNCTION_POS, pPoint);
+    }
 
     pRoute->DeleteIfAllowed();
     delete pRoutesIter;
@@ -3176,13 +3183,13 @@ JUNCTION_ROUTE2_ID );
 
     // Pointers to sections are filled in FillSections
     pNewJunction->PutAttribute ( JUNCTION_SECTION_AUP_RC,
-                                 new TupleIdentifier ( false ) );
+                                 new TupleIdentifier ( false,0 ) );
     pNewJunction->PutAttribute ( JUNCTION_SECTION_ADOWN_RC,
-                                 new TupleIdentifier ( false ) );
+                                 new TupleIdentifier ( false,0 ) );
     pNewJunction->PutAttribute ( JUNCTION_SECTION_BUP_RC,
-                                 new TupleIdentifier ( false ) );
+                                 new TupleIdentifier ( false,0 ) );
     pNewJunction->PutAttribute ( JUNCTION_SECTION_BDOWN_RC,
-                                 new TupleIdentifier ( false ) );
+                                 new TupleIdentifier ( false,0 ) );
 
     /////////////////////////////////////////////////////////////////////
     //
@@ -3203,7 +3210,7 @@ JUNCTION_ROUTE2_ID );
 
   string strQuery = "(consume (sortby (feed (" + junctionsInternalTypeInfo +
                     " (ptr " + nl->ToString(ptrList) +
-                    "))) ((R1id asc)(Meas1 asc))))";
+                    "))) ((R1id asc)(Meas1 asc)(R2id asc)(Meas2 asc))))";
 
   Word xResult;
   int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
@@ -3253,6 +3260,10 @@ void Network::FillSections()
   //
   Tuple* pRoute = 0;
   TupleId iSectionTid = 0;
+  vector<int> xIndices;
+  vector<Attribute*> xAttrs;
+  vector<JunctionTidSortEntry> xJunctions;
+  Tuple* actTuple = 0;
   while ( ( pRoute = pRoutesIt->GetNextTuple() ) != 0 )
   {
     // Current position on route - starting at the beginning of the route
@@ -3267,385 +3278,280 @@ void Network::FillSections()
     //
     // We need to find all junctions belonging to this route
     //
-    vector<JunctionSortEntry> xJunctions;
     xJunctions.clear();
-    GetJunctionsOnRoute ( xRouteId,
-                          xJunctions );
+    GetTidJunctionsOnRoute ( xRouteId,
+                             xJunctions );
     /////////////////////////////////////////////////////////////////////
     //
     // Now that we found all relevant junctions we can iterate over them.
     //
-    JunctionSortEntry xCurrentEntry;
-    xCurrentEntry.m_pJunction = 0;
-    xCurrentEntry.m_bFirstRoute = false;
+    JunctionTidSortEntry xCurrentEntry(0,false,m_pJunctions);
+    bool curFirst = false;
     for ( size_t i = 0; i < xJunctions.size(); i++ )
     {
       // Get next junction
       xCurrentEntry = xJunctions[i];
-
+      if(actTuple) actTuple->DeleteIfAllowed();
+      actTuple = xCurrentEntry.GetTuple();
       // Find values for the new section
       double dStartPos = dCurrentPosOnRoute;
+      curFirst = xCurrentEntry.m_bFirstRoute;
       double dEndPos = xCurrentEntry.GetRouteMeas();
-
-      // If the first junction is at the very start of the route, no
-      // section will be added
-      if ( xCurrentEntry.GetRouteMeas() == 0.0 )
+      xIndices.clear();
+      xAttrs.clear();
+      if (AlmostEqualAbsolute(pRouteCurve->Length(), dEndPos,
+          m_scalefactor*0.01))
       {
-        vector<int> xIndices;
-        vector<Attribute*> xAttrs;
-        if ( xCurrentEntry.m_bFirstRoute )
+        if ( curFirst )
         {
-          xIndices.push_back ( JUNCTION_SECTION_ADOWN_RC );
-          xAttrs.push_back ( new TupleIdentifier ( true,
-                                       0));
+          xIndices.push_back ( JUNCTION_SECTION_AUP_RC );
         }
         else
         {
-          xIndices.push_back ( JUNCTION_SECTION_BDOWN_RC );
-          xAttrs.push_back ( new TupleIdentifier ( true,
-                                         0) );
+          xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
         }
-        m_pJunctions->UpdateTuple ( xCurrentEntry.m_pJunction,
-                                    xIndices,
-                                    xAttrs );
-        continue;
+        xAttrs.push_back ( new TupleIdentifier ( true, 0));
+        m_pJunctions->UpdateTuple ( actTuple, xIndices, xAttrs );
+        xIndices.clear();
+        xAttrs.clear();
       }
+      if ( curFirst)
+      {
+        xIndices.push_back ( JUNCTION_SECTION_ADOWN_RC );
+      }
+      else
+      {
+        xIndices.push_back ( JUNCTION_SECTION_BDOWN_RC );
+      }
+      if ( AlmostEqualAbsolute(dEndPos, 0.0, m_scalefactor*0.01))
+      {
+        // If the first junction is at the very start of the route, no
+        // section will be added
+        xAttrs.push_back ( new TupleIdentifier(true,0));
+      }
+      else
+      {
+        /////////////////////////////////////////////////////////////////////
+        //
+        // Create a new section
+        //
+        // Section will only be created if the length is > 0. Otherwise the
+        // one before remains valid.
+        if ( !AlmostEqualAbsolute(dEndPos, dStartPos, m_scalefactor*0.01))
+        {
+          // A sline for the section
+          SimpleLine* pLine = new SimpleLine ( 0 );
+
+          // Take start from the route
+          bool bStartSmaller = ( ( CcBool* ) pRoute->GetAttribute (
+          ROUTE_STARTSSMALLER ) )->GetBoolval();
+
+          pRouteCurve->SubLine ( dStartPos,
+                                 dEndPos,
+                                 bStartSmaller,
+                                 *pLine );
+
+          // The new section
+          Tuple* pNewSection = new Tuple ( nl->Second ( xNumType ) );
+          pNewSection->PutAttribute ( SECTION_RID, new CcInt ( true,
+                                                               iRouteId ) );
+          pNewSection->PutAttribute ( SECTION_DUAL, new CcBool ( true,
+                                                                 bDual ) );
+          pNewSection->PutAttribute ( SECTION_MEAS1, new CcReal ( true,
+                                                                  dStartPos) );
+          pNewSection->PutAttribute ( SECTION_MEAS2, new CcReal ( true,
+                                                                  dEndPos ));
+          pNewSection->PutAttribute ( SECTION_RRC, new TupleIdentifier ( true,
+                                                                   iTupleId ) );
+          pNewSection->PutAttribute ( SECTION_CURVE, pLine );
+          pNewSection->PutAttribute ( SECTION_CURVE_STARTS_SMALLER,
+                                              new CcBool ( true,
+                                                     pLine->GetStartSmaller()));
+          pNewSection->PutAttribute ( SECTION_SID,
+                                      new CcInt ( true,
+                                                m_pSections->GetNoTuples()+1 ));
+          m_pSections->AppendTuple ( pNewSection );
+          iSectionTid++;
+          pNewSection->DeleteIfAllowed();
+          // Update position for next loop
+          dCurrentPosOnRoute = dEndPos;
+        }
+        xAttrs.push_back ( new TupleIdentifier ( true, iSectionTid ) );
+      }
+      if(actTuple) actTuple->DeleteIfAllowed();
+      actTuple = xCurrentEntry.GetTuple();
+      m_pJunctions->UpdateTuple ( actTuple, xIndices, xAttrs );
+      xIndices.clear();
+      xAttrs.clear();
 
       /////////////////////////////////////////////////////////////////////
       //
-      // Create a new section
+      // The last section of the route is still missing, if the last
+      // junction is not at the end of the route.
       //
-      // Section will only be created if the length is > 0. Otherwise the
-      // one before remains valid.
-      if ( !AlmostEqualAbsolute(dEndPos, dStartPos,m_scalefactor*0.01))
+      if ( i == xJunctions.size()-1 &&
+          (!AlmostEqualAbsolute(pRouteCurve->Length(),
+                                dCurrentPosOnRoute, m_scalefactor*0.01) ||
+           dCurrentPosOnRoute == 0.0 ))
       {
-        // A sline for the section
-        SimpleLine* pLine = new SimpleLine ( 0 );
+        // Find values for the new section
+        int iRouteId =
+          ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ))->GetIntval();
+        bool bDual =
+          ( ( CcBool* ) pRoute->GetAttribute ( ROUTE_DUAL ))->GetBoolval();
+        double dStartPos = dCurrentPosOnRoute;
+        double dEndPos = pRouteCurve->Length();
+        TupleId iTupleId = pRoute->GetTupleId();
 
-        // Take start from the route
+        // Calculate line
+        SimpleLine* pLine = new SimpleLine ( 0 );
         bool bStartSmaller = ( ( CcBool* ) pRoute->GetAttribute (
                                    ROUTE_STARTSSMALLER ) )->GetBoolval();
-
         pRouteCurve->SubLine ( dStartPos,
                                dEndPos,
                                bStartSmaller,
                                *pLine );
 
-        // Find out, if the orientation of the subline differs from the position
-        // of the line. If so, the direction has to be changed.
-        /*bool bLineStartsSmaller;
-        Point pStartPoint ( true );
-        pRouteCurve->AtPosition ( dStartPos, bStartSmaller, pStartPoint );
-        Point pEndPoint ( true );
-        pRouteCurve->AtPosition ( dEndPos, bStartSmaller, pEndPoint );
-        if ( pStartPoint.GetX() < pEndPoint.GetX() ||
-                (
-                    pStartPoint.GetX() == pEndPoint.GetX() &&
-                    pStartPoint.GetY() < pEndPoint.GetY()
-                )
-           )
-        {
-          // Normal orientation
-          bLineStartsSmaller = true;
-        }
-        else
-        {
-          // Opposite orientation
-          bLineStartsSmaller = false;
-        }*/
-
-        // The new section
+        // Create a new Section
         Tuple* pNewSection = new Tuple ( nl->Second ( xNumType ) );
         pNewSection->PutAttribute ( SECTION_RID, new CcInt ( true, iRouteId ) );
         pNewSection->PutAttribute ( SECTION_DUAL, new CcBool ( true, bDual ) );
-        pNewSection->PutAttribute ( SECTION_MEAS1, new CcReal ( true,
-                                                                dStartPos) );
-        pNewSection->PutAttribute ( SECTION_MEAS2, new CcReal ( true,
-                                                                dEndPos ));
-        pNewSection->PutAttribute ( SECTION_RRC, new TupleIdentifier ( true,
-                                    iTupleId ) );
+        pNewSection->PutAttribute ( SECTION_MEAS1,new CcReal(true, dStartPos ));
+        pNewSection->PutAttribute ( SECTION_MEAS2, new CcReal(true,dEndPos ) );
+        pNewSection->PutAttribute ( SECTION_RRC,
+                                    new TupleIdentifier ( true, iTupleId ) );
         pNewSection->PutAttribute ( SECTION_CURVE, pLine );
         pNewSection->PutAttribute ( SECTION_CURVE_STARTS_SMALLER,
-                                    new CcBool ( true,
-                                                 pLine->GetStartSmaller()));
+                                    new CcBool(true, pLine->GetStartSmaller()));
         pNewSection->PutAttribute ( SECTION_SID,
-                                    new CcInt ( true,
-                                                m_pSections->GetNoTuples()+1 ));
+                            new CcInt( true, m_pSections->GetNoTuples() + 1 ) );
         m_pSections->AppendTuple ( pNewSection );
         iSectionTid++;
         pNewSection->DeleteIfAllowed();
-        // Update position for next loop
-        dCurrentPosOnRoute = dEndPos;
-      }
-
-      /////////////////////////////////////////////////////////////////////
-      //
-      // Store ID of new section in junction behind that section.
-      //
-      vector<int> xIndices;
-      vector<Attribute*> xAttrs;
-      if ( xCurrentEntry.m_bFirstRoute )
-      {
-        xIndices.push_back ( JUNCTION_SECTION_ADOWN_RC );
-        xAttrs.push_back ( new TupleIdentifier ( true, iSectionTid ) );
-      }
-      else
-      {
-        xIndices.push_back ( JUNCTION_SECTION_BDOWN_RC );
-        xAttrs.push_back ( new TupleIdentifier ( true, iSectionTid ) );
-      }
-      m_pJunctions->UpdateTuple ( xCurrentEntry.m_pJunction,
-                                  xIndices,
-                                  xAttrs );
-      if ( AlmostEqual(pRouteCurve->Length(), xCurrentEntry.GetRouteMeas()))
-      {
-        vector<int> xIndices;
-        vector<Attribute*> xAttrs;
-        if ( xCurrentEntry.m_bFirstRoute )
+        // Store ID of new section in Junction
+        if (curFirst)
         {
           xIndices.push_back ( JUNCTION_SECTION_AUP_RC );
-          xAttrs.push_back ( new TupleIdentifier ( true,
-                                   0 ) );
         }
         else
         {
           xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
-          xAttrs.push_back ( new TupleIdentifier ( true,
-                                   0));
         }
-        m_pJunctions->UpdateTuple ( xCurrentEntry.m_pJunction,
+        xAttrs.push_back ( new TupleIdentifier ( true, iSectionTid ) );
+        if(actTuple) actTuple->DeleteIfAllowed();
+        actTuple = xCurrentEntry.GetTuple();
+        m_pJunctions->UpdateTuple ( actTuple,
                                     xIndices,
                                     xAttrs );
-      }
-
-    } // End junctions-loop
-
-
-
-    /////////////////////////////////////////////////////////////////////
-    //
-    // The last section of the route is still missing, if the last
-    // junction is not at the end of the route.
-    //
-    if ( !AlmostEqual(pRouteCurve->Length(), dCurrentPosOnRoute) ||
-            dCurrentPosOnRoute == 0.0 )
-    {
-      // Find values for the new section
-      int iRouteId =
-        ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ))->GetIntval();
-      bool bDual =
-        ( ( CcBool* ) pRoute->GetAttribute ( ROUTE_DUAL ))->GetBoolval();
-      double dStartPos = dCurrentPosOnRoute;
-      double dEndPos = pRouteCurve->Length();
-      TupleId iTupleId = pRoute->GetTupleId();
-
-      // Calculate line
-      SimpleLine* pLine = new SimpleLine ( 0 );
-      bool bStartSmaller = ( ( CcBool* ) pRoute->GetAttribute (
-                                 ROUTE_STARTSSMALLER ) )->GetBoolval();
-      pRouteCurve->SubLine ( dStartPos,
-                             dEndPos,
-                             bStartSmaller,
-                             *pLine );
-
-      // Find out, if the orientation of the subline differs from the position
-      // of the sline. If so, the direction has to be changed.
-      /*bool bLineStartsSmaller;
-      Point pStartPoint ( true );
-      pRouteCurve->AtPosition ( dStartPos, bStartSmaller, pStartPoint );
-      Point pEndPoint ( true );
-      pRouteCurve->AtPosition ( dEndPos, bStartSmaller, pEndPoint );
-      if ( pStartPoint.GetX() < pEndPoint.GetX() ||
-              (
-                  pStartPoint.GetX() == pEndPoint.GetX() &&
-                  pStartPoint.GetY() < pEndPoint.GetY()
-              )
-         )
-      {
-        // Normal orientation
-        bLineStartsSmaller = true;
-      }
-      else
-      {
-        // Opposite orientation
-        bLineStartsSmaller = false;
-      }*/
-
-      // Create a new Section
-      Tuple* pNewSection = new Tuple ( nl->Second ( xNumType ) );
-      pNewSection->PutAttribute ( SECTION_RID, new CcInt ( true, iRouteId ) );
-      pNewSection->PutAttribute ( SECTION_DUAL, new CcBool ( true, bDual ) );
-      pNewSection->PutAttribute ( SECTION_MEAS1,new CcReal ( true, dStartPos ));
-      pNewSection->PutAttribute ( SECTION_MEAS2, new CcReal ( true, dEndPos ) );
-      pNewSection->PutAttribute ( SECTION_RRC,
-                                  new TupleIdentifier ( true, iTupleId ) );
-      pNewSection->PutAttribute ( SECTION_CURVE, pLine );
-      pNewSection->PutAttribute ( SECTION_CURVE_STARTS_SMALLER,
-                                  new CcBool ( true, pLine->GetStartSmaller()));
-      pNewSection->PutAttribute ( SECTION_SID,
-                          new CcInt ( true, m_pSections->GetNoTuples() + 1 ) );
-      m_pSections->AppendTuple ( pNewSection );
-      iSectionTid++;
-      pNewSection->DeleteIfAllowed();
-      // Store ID of new section in Junction
-      if ( xCurrentEntry.m_pJunction != 0 )
-      {
-        vector<int> xIndicesLast;
-        vector<Attribute*> xAttrsLast;
-        if ( xCurrentEntry.m_bFirstRoute )
-        {
-          xIndicesLast.push_back ( JUNCTION_SECTION_AUP_RC );
-          xAttrsLast.push_back ( new TupleIdentifier ( true,
-                                 iSectionTid ) );
-        }
-        else
-        {
-          xIndicesLast.push_back ( JUNCTION_SECTION_BUP_RC );
-          xAttrsLast.push_back ( new TupleIdentifier ( true,
-                                 iSectionTid ) );
-        }
-        m_pJunctions->UpdateTuple ( xCurrentEntry.m_pJunction,
-                                    xIndicesLast,
-                                    xAttrsLast );
-      }
-    } // end if
+        xIndices.clear();
+        xAttrs.clear();
+      } // end if
+    } //end junctionsloop
+    // delete Tuples from xJunctions
+    xJunctions.clear();
+    if(actTuple) actTuple->DeleteIfAllowed();
+    actTuple = 0;
     ////////////////////////////////////////////////////////////////////
     //
     // Fill Up-Pointers of all sections but the last
     //
-    vector<JunctionSortEntry> yJunctions;
-    yJunctions.clear();
-    GetJunctionsOnRoute ( xRouteId,
-                          yJunctions );
-    if ( yJunctions.size() > 2 )
-    {
-      for ( int i = yJunctions.size()-2; i >= 0; i-- )
-      {
-        // Get next junction
-        JunctionSortEntry xEntry = yJunctions[i];
-        JunctionSortEntry xEntryBehind = yJunctions[i + 1];
+    GetTidJunctionsOnRoute ( xRouteId,
+                             xJunctions );
 
-        vector<int> xIndices;
-        if ( xEntry.m_bFirstRoute )
-        {
-          xIndices.push_back ( JUNCTION_SECTION_AUP_RC );
-        }
-        else
-        {
-          xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
-        }
-        vector<Attribute*> xAttrs;
-        if ( AlmostEqual(xEntryBehind.GetRouteMeas(), xEntry.GetRouteMeas()))
-        {
-          // Two junctions at the same place. In this case they do have
-          // the same up-pointers
-          if ( xEntryBehind.m_bFirstRoute )
-          {
-            TupleId iTid = xEntryBehind.GetUpSectionId();
-            xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
-          }
-          else
-          {
-            TupleId iTid = xEntryBehind.GetUpSectionId();
-            xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
-          }
-        }
-        else
-        {
-          // Junctions not on the same place. The down-pointer of the second is
-          // the up-pointer of the first.
-          if ( xEntryBehind.m_bFirstRoute )
-          {
-            TupleId iTid = xEntryBehind.GetDownSectionId();
-            xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
-          }
-          else
-          {
-            TupleId iTid = xEntryBehind.GetDownSectionId();
-            xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
-          }
-        }
-        m_pJunctions->UpdateTuple ( xEntry.m_pJunction,
-                                    xIndices,
-                                    xAttrs );
-      }
-    }
-    else
+    if (xJunctions.size()> 1)
     {
-      if ( yJunctions.size() == 2 )
+      TupleId iTid = xJunctions[xJunctions.size()-1].GetUpSectionId();
+
+      if ( xJunctions.size() > 2 )
       {
-        JunctionSortEntry xEntry = yJunctions[0];
-        JunctionSortEntry xEntryBehind = yJunctions[1];
-        vector<int> xIndices;
-        if ( xEntry.m_bFirstRoute )
+        bool done = false;
+        size_t i = xJunctions.size()-2;
+        while(!done)
         {
-          xIndices.push_back ( JUNCTION_SECTION_AUP_RC );
-        }
-        else
-        {
-          xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
-        }
-        vector<Attribute*> xAttrs;
-        if ( AlmostEqual( xEntry.GetRouteMeas(),xEntryBehind.GetRouteMeas()))
-        {
-          if ( xEntryBehind.m_bFirstRoute )
+          // Get next junction
+          JunctionTidSortEntry xEntry = xJunctions[i];
+          JunctionTidSortEntry xEntryBehind = xJunctions[i + 1];
+          if(actTuple) actTuple->DeleteIfAllowed();
+          actTuple = xEntry.GetTuple();
+          if ( xEntry.m_bFirstRoute )
           {
-            TupleId iTid = xEntryBehind.GetUpSectionId();
+            xIndices.push_back ( JUNCTION_SECTION_AUP_RC );
+          }
+          else
+          {
+            xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
+          }
+          if ( AlmostEqualAbsolute(xEntryBehind.GetRouteMeas(),
+                            xEntry.GetRouteMeas(), m_scalefactor*0.01))
+          {
+            // Two junctions at the same place. In this case they do have
+            // the same up-pointers
             xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
           }
           else
           {
-            TupleId iTid = xEntryBehind.GetUpSectionId();
+            // Junctions not on the same place. The down-pointer of the second
+            // is the up-pointer of the first.
+            iTid = xEntryBehind.GetDownSectionId();
             xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
           }
-          m_pJunctions->UpdateTuple ( xEntry.m_pJunction,
+          m_pJunctions->UpdateTuple ( actTuple,
                                       xIndices,
                                       xAttrs );
+          xIndices.clear();
+          xAttrs.clear();
+          if (i == 0) done = true;
+          else i--;
         }
-        else
+        if(actTuple) actTuple->DeleteIfAllowed();
+        actTuple = 0;
+      }
+      else
+      {
+        if ( xJunctions.size() == 2 )
         {
-          if ( xEntryBehind.m_bFirstRoute )
+          JunctionTidSortEntry xEntry = xJunctions[0];
+          JunctionTidSortEntry xEntryBehind = xJunctions[1];
+          if(actTuple) actTuple->DeleteIfAllowed();
+          actTuple = xEntry.GetTuple();
+          if ( xEntry.m_bFirstRoute )
           {
-            TupleId iTid = xEntryBehind.GetDownSectionId();
+            xIndices.push_back ( JUNCTION_SECTION_AUP_RC );
+          }
+          else
+          {
+            xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
+          }
+          if ( AlmostEqualAbsolute( xEntry.GetRouteMeas(),
+                                    xEntryBehind.GetRouteMeas(),
+                                    m_scalefactor*0.01))
+          {
             xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
           }
           else
           {
-            TupleId iTid = xEntryBehind.GetDownSectionId();
+            iTid = xEntryBehind.GetDownSectionId();
             xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
           }
-          m_pJunctions->UpdateTuple ( xEntry.m_pJunction,
+          m_pJunctions->UpdateTuple ( actTuple,
                                       xIndices,
                                       xAttrs );
+          xIndices.clear();
+          xAttrs.clear();
+          if(actTuple) actTuple->DeleteIfAllowed();
+          actTuple = 0;
         }
       }
+      pRoute->DeleteIfAllowed();
     }
-    pRoute->DeleteIfAllowed();
-
     // delete Tuples from xJunctions
-    for ( unsigned int i=0;i<xJunctions.size();i++ )
-    {
-      if ( xJunctions[i].m_pJunction )
-      {
-        xJunctions[i].m_pJunction->DeleteIfAllowed();
-      }
-    }
     xJunctions.clear();
-    // delete Tuples from yJunctions
-    for ( unsigned int i=0;i<yJunctions.size();i++ )
-    {
-      if ( yJunctions[i].m_pJunction )
-      {
-        yJunctions[i].m_pJunction->DeleteIfAllowed();
-      }
-    }
-    yJunctions.clear();
+    if (actTuple) actTuple->DeleteIfAllowed();
+    actTuple = 0;
 
   } // End while Routes
   delete pRoutesIt;
-
   // Create B-Tree for the sections
-
   ListExpr ptrList = listutils::getPtrList(m_pSections);
   string strQuery = "(createbtree (" + sectionsInternalTypeInfo +
                     " (ptr " + nl->ToString(ptrList) + "))" + " Rid)";
@@ -4600,6 +4506,31 @@ void Network::GetJunctionsOnRoute ( CcInt* in_pRouteId,
     Tuple* pCurrentJunction = m_pJunctions->GetTuple ( pJunctionsIt->GetId(),
                                                        false );
     inout_xJunctions.push_back(JunctionSortEntry(false, pCurrentJunction));
+  }
+  delete pJunctionsIt;
+  stable_sort(inout_xJunctions.begin(), inout_xJunctions.end());
+}
+
+void Network::GetTidJunctionsOnRoute ( CcInt* in_pRouteId,
+                               vector<JunctionTidSortEntry>& inout_xJunctions)
+  const
+{
+  BTreeIterator* pJunctionsIt;
+  pJunctionsIt = m_pBTreeJunctionsByRoute1->ExactMatch ( in_pRouteId );
+  inout_xJunctions.clear();
+  while(pJunctionsIt->Next())
+  {
+    inout_xJunctions.push_back(JunctionTidSortEntry(true,
+                                                    pJunctionsIt->GetId(),
+                                                    m_pJunctions));
+  }
+  delete pJunctionsIt;
+  pJunctionsIt = m_pBTreeJunctionsByRoute2->ExactMatch ( in_pRouteId );
+  while ( pJunctionsIt->Next() )
+  {
+    inout_xJunctions.push_back(JunctionTidSortEntry(false,
+                                                    pJunctionsIt->GetId(),
+                                                    m_pJunctions));
   }
   delete pJunctionsIt;
   stable_sort(inout_xJunctions.begin(), inout_xJunctions.end());

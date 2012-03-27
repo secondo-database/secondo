@@ -1642,37 +1642,33 @@ struct JunctionSortEntry
   }
 
   ~JunctionSortEntry(){}
-  bool m_bFirstRoute;
 
+  bool m_bFirstRoute;
   Tuple* m_pJunction;
+
+  int Compare(const JunctionSortEntry& in_xOther) const {
+    if (GetRouteId() < in_xOther.GetRouteId()) return -1;
+    if (GetRouteId() > in_xOther.GetRouteId()) return 1;
+    if (GetRouteMeas() < in_xOther.GetRouteMeas()) return -1;
+    if (GetRouteMeas() > in_xOther.GetRouteMeas()) return 1;
+    if (GetOtherRouteId() < in_xOther.GetOtherRouteId()) return -1;
+    if (GetOtherRouteId() > in_xOther.GetOtherRouteId()) return 1;
+    if (GetOtherRouteMeas()< in_xOther.GetOtherRouteMeas())return -1;
+    if (GetOtherRouteMeas()> in_xOther.GetOtherRouteMeas())return 1;
+    if (m_bFirstRoute == in_xOther.m_bFirstRoute) return 0;
+    if (m_bFirstRoute) return -1;
+    if (in_xOther.m_bFirstRoute) return 1;
+    return 1;
+  }
 
   bool operator<(const JunctionSortEntry& in_xOther) const
   {
-    return GetRouteMeas() < in_xOther.GetRouteMeas();
-    /*
-    CcReal* xMeas1;
-    if(m_bFirstRoute)
-    {
-      xMeas1 = (CcReal*)m_pJunction->GetAttribute(JUNCTION_ROUTE1_MEAS);
-    }
-    else
-    {
-      xMeas1 = (CcReal*)m_pJunction->GetAttribute(JUNCTION_ROUTE2_MEAS);
-    }
+    return Compare(in_xOther) < 0;
+  }
 
-    CcReal* xMeas2;
-    if(in_xOther.m_bFirstRoute)
-    {
-      xMeas2 =
-          (CcReal*)in_xOther.m_pJunction->GetAttribute(JUNCTION_ROUTE1_MEAS);
-    }
-    else
-    {
-      xMeas2 =
-          (CcReal*)in_xOther.m_pJunction->GetAttribute(JUNCTION_ROUTE2_MEAS);
-    }
-
-    return (xMeas1->GetRealval() < xMeas2->GetRealval());*/
+  bool operator<=(const JunctionSortEntry& in_xOther) const
+  {
+    return Compare(in_xOther) < 1;
   }
 
   double GetRouteMeas() const
@@ -1703,6 +1699,16 @@ struct JunctionSortEntry
     }
     return pMeas->GetRealval();
 
+  }
+
+  int GetRouteId() const{
+    CcInt* pRouteId;
+    if (m_bFirstRoute) {
+      pRouteId = (CcInt*)m_pJunction->GetAttribute(JUNCTION_ROUTE1_ID);
+    } else {
+      pRouteId = (CcInt*)m_pJunction->GetAttribute(JUNCTION_ROUTE2_ID);
+    }
+    return pRouteId->GetIntval();
   }
 
   int GetOtherRouteId() const {
@@ -1754,6 +1760,216 @@ struct JunctionSortEntry
     os << "Tuple: ";
     m_pJunction->Print(os);
     os << endl;
+    return os;
+  }
+};
+
+
+/*
+4.2.9 Class JunctionSortEntry
+
+A helper struct for junction lists.
+
+*/
+
+struct JunctionTidSortEntry
+{
+  JunctionTidSortEntry()
+  {}
+
+  JunctionTidSortEntry(const bool in_bFirstRoute,
+                       TupleId in_pJunction,
+                       Relation* in_JuncRel):
+    m_bFirstRoute(in_bFirstRoute),
+    m_pJunction(in_pJunction),
+    m_JuncRel(in_JuncRel)
+  {
+  }
+
+  ~JunctionTidSortEntry(){}
+
+  bool m_bFirstRoute;
+  TupleId m_pJunction;
+  Relation* m_JuncRel;
+
+  void GetValues(int& rid1, double& rmeas1, int& rid2, double& rmeas2) const
+  {
+    Tuple *t = GetTuple();
+    if (m_bFirstRoute)
+    {
+      rid1 = ((CcInt*)t->GetAttribute(JUNCTION_ROUTE1_ID))->GetIntval();
+      rid2 = ((CcInt*)t->GetAttribute(JUNCTION_ROUTE2_ID))->GetIntval();
+      rmeas1 = ((CcReal*)t->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval();
+      rmeas2 = ((CcReal*)t->GetAttribute(JUNCTION_ROUTE2_MEAS))->GetRealval();
+    }
+    else
+    {
+      rid1 = ((CcInt*)t->GetAttribute(JUNCTION_ROUTE2_ID))->GetIntval();
+      rid2 = ((CcInt*)t->GetAttribute(JUNCTION_ROUTE1_ID))->GetIntval();
+      rmeas1 = ((CcReal*)t->GetAttribute(JUNCTION_ROUTE2_MEAS))->GetRealval();
+      rmeas2 = ((CcReal*)t->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval();
+    }
+    t->DeleteIfAllowed();
+  }
+
+int Compare(const JunctionTidSortEntry& in_xOther) const
+{
+  if (m_pJunction == in_xOther.m_pJunction)
+  {
+    if (m_bFirstRoute == in_xOther.m_bFirstRoute) return 0;
+    if (m_bFirstRoute) return -1;
+    return 1;
+  }
+  int trid1, trid2, orid1, orid2;
+  double trm1, trm2, orm1, orm2;
+  GetValues(trid1, trm1, trid2, trm2);
+  in_xOther.GetValues(orid1, orm1, orid2, orm2);
+  if (trid1 < orid1) return -1;
+  if (trid1 > orid1) return 1;
+  if (trm1 < orm1) return -1;
+  if (trm1 > orm1) return 1;
+  if (m_bFirstRoute != in_xOther.m_bFirstRoute){
+    if (m_bFirstRoute) return -1;
+    return 1;
+  }
+  if (trid2 < orid2) return -1;
+  if (trid2 > orid2) return 1;
+  if (trm2 < orm2) return -1;
+  if (trm2 > orm2) return 1;
+  return 0;
+}
+
+  bool operator<(const JunctionTidSortEntry& in_xOther) const
+  {
+    return Compare(in_xOther) < 0;
+  }
+
+  bool operator<=(const JunctionTidSortEntry& in_xOther) const
+  {
+    return Compare(in_xOther) < 1;
+  }
+
+  Tuple* GetTuple() const
+  {
+    return m_JuncRel->GetTuple(m_pJunction,false);
+  }
+
+  double GetRouteMeas() const
+  {
+    Tuple* actJunct = GetTuple();
+    double result = 0.0;
+    if(m_bFirstRoute)
+    {
+      result =
+        ((CcReal*)actJunct->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval();
+    }
+    else
+    {
+      result =
+        ((CcReal*)actJunct->GetAttribute(JUNCTION_ROUTE2_MEAS))->GetRealval();
+    }
+    actJunct->DeleteIfAllowed();
+    return result;
+  }
+
+  double GetOtherRouteMeas() const
+  {
+    Tuple* actJunct = GetTuple();
+    double result = 0.0;
+    if(m_bFirstRoute)
+    {
+      result =
+        ((CcReal*)actJunct->GetAttribute(JUNCTION_ROUTE2_MEAS))->GetRealval();
+    }
+    else
+    {
+      result =
+        ((CcReal*)actJunct->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval();
+    }
+    actJunct->DeleteIfAllowed();
+    return result;
+  }
+
+  int GetRouteId() const{
+    Tuple* actJunct = GetTuple();
+    int result = 0;
+    if(m_bFirstRoute)
+    {
+      result =
+        ((CcInt*)actJunct->GetAttribute(JUNCTION_ROUTE1_ID))->GetIntval();
+    }
+    else
+    {
+      result =
+        ((CcInt*)actJunct->GetAttribute(JUNCTION_ROUTE2_ID))->GetIntval();
+    }
+    actJunct->DeleteIfAllowed();
+    return result;
+  }
+
+  int GetOtherRouteId() const {
+    Tuple* actJunct = GetTuple();
+    int result = 0;
+    if(m_bFirstRoute)
+    {
+      result =
+        ((CcInt*)actJunct->GetAttribute(JUNCTION_ROUTE2_ID))->GetIntval();
+    }
+    else
+    {
+      result =
+        ((CcInt*)actJunct->GetAttribute(JUNCTION_ROUTE1_ID))->GetIntval();
+    }
+    actJunct->DeleteIfAllowed();
+    return result;
+  }
+
+  TupleId GetUpSectionId() const
+  {
+    Tuple* actJunct = GetTuple();
+    TupleId result = 0;
+    if(m_bFirstRoute)
+    {
+      result =
+        ((TupleIdentifier*) actJunct->GetAttribute(JUNCTION_SECTION_AUP_RC)
+         )->GetTid();
+    }
+    else
+    {
+      result =
+        ((TupleIdentifier*)actJunct->GetAttribute(JUNCTION_SECTION_BUP_RC)
+          )->GetTid();
+    }
+    actJunct->DeleteIfAllowed();
+    return result;
+  }
+
+  TupleId GetDownSectionId() const
+  {
+    Tuple* actJunct = GetTuple();
+    TupleId result = 0;
+    if(m_bFirstRoute)
+    {
+      result =
+        ((TupleIdentifier*) actJunct->GetAttribute(JUNCTION_SECTION_ADOWN_RC)
+           )->GetTid();
+    }
+    else
+    {
+      result =
+        ((TupleIdentifier*)actJunct->GetAttribute(JUNCTION_SECTION_BDOWN_RC)
+              )->GetTid();
+    }
+    actJunct->DeleteIfAllowed();
+    return result;
+  }
+
+  ostream& Print(ostream& os) const
+  {
+    os << "JunctionTidSortEntry: ";
+    if (m_bFirstRoute) os << "firstRoute";
+    else os << "secondRoute";
+    os << ", TupleId: " << m_pJunction << endl;
     return os;
   }
 };
@@ -1973,6 +2189,10 @@ Returns the junction from the start of the route to the end.
 */
     void GetJunctionsOnRoute(CcInt* in_pRouteId,
                              vector<JunctionSortEntry>& inout_xJunctions) const;
+
+    void GetTidJunctionsOnRoute(CcInt* in_pRouteId,
+                                vector<JunctionTidSortEntry>& io_xJunctions)
+                               const;
 
 /*
 Returns the section ~tuple~ of the network which includes the ~GPoint~.
