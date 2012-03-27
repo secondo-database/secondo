@@ -78,8 +78,8 @@ Betriebsystems realisiert werden.
 
 Uneingeschr[ae]nkt schreibberechtigte Benutzer sind dem Linux-Benutzer "spieker",
 der den Gruppen "crew" und "cvs-crew" angeh[oe]rt zuzuordnen. Fuer Studenten stehen
-die Linux-Benutzer "diplomand1, diplomand2, ..., dimplomand10" zur Verf[ue]gung. F[ue]r
-"1 < X < 11" sind die Benutzer jeweils der Gruppe "diplomandX" und "cvs-dipl"
+die Linux-Benutzer "diplomand1, diplomand2, ..., dimplomand20" zur Verf[ue]gung. F[ue]r
+"1 < X < 20" sind die Benutzer jeweils der Gruppe "diplomandX" und "cvs-dipl"
 zugeordnet.
 
 Durch eine geeignete Zuordnung von CVS-Benutzer auf Linux-Benutzer sowie der
@@ -98,6 +98,13 @@ Damit CVS-Clients von entfernten Rechner eine Verbindung herstellen k[oe]nnen mu
 CVS f[ue]r den Internet-D[ae]mon ~xinet~ konfiguriert werden. Andernfalls kann CVS
 nur f[ue]r Benutzer, die sich auf dem Server einloggen, benutzt werden. Die xinet
 Konfiguration wird in der Datei "/etc/xinet.d/cvs" definiert.
+
+F[ue]r CVS-User ist zus[ae]tzlich auf Bassi in /etc/mail/secondo-users.txt ein 
+Mailverteiler eingerichtet[ue]ber den alle secondo CVS-User mit 
+secondo-users@bassi.fernuni-hagen.de 
+angemailt werden k[oe]nnen. 
+
+Studenten mit Abschlussarbeit sind dort jeweils ein- bzw. auszutragen.
 
 */
 
