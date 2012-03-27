@@ -590,6 +590,12 @@ valueexpr  : ZZIDENTIFIER        {$$ = $1;}
         NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($5,
           NestedText::AtomC(")")  ))));}
+    | '[' ZZCONST typeexpr ZZPOINTER nestedlist ']'
+      {$$ = NestedText::Concat(NestedText::AtomC("("),
+        NestedText::Concat($3,
+        NestedText::Concat(NestedText::AtomC(" ( ptr"),
+        NestedText::Concat($5,
+          NestedText::AtomC("))")  ))));}
     | '[' list ']'        {$$ = $2;}
 
     | '.'          {$$ = NestedText::AtomC(param1);}

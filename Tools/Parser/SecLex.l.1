@@ -148,6 +148,7 @@ objects		{yylval = NestedText::Atom( yytext, yyleng ); return ZZOBJECTS;}
 counters	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCOUNTERS;}
 ".."		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDOUBLE;}
 value		{yylval = NestedText::Atom( yytext, yyleng ); return ZZVALUE;}
+pointer		{yylval = NestedText::Atom( yytext, yyleng ); return ZZPOINTER;}
 "="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZINFIXOP;}
 memory		{yylval = NestedText::Atom( yytext, yyleng ); return ZZMEMORY;}
 if		{yylval = NestedText::Atom( yytext, yyleng ); return ZZIF;}
