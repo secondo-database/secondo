@@ -690,3 +690,9 @@ Number   : 2
 Signature: ((stream uT) periods) -> stream uT
 Example  : query units(train7) when[speed(train7) > 24.0] the_mvalue
 Result   : (mpoint(    (        ("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE FALSE)        (13592.0 5253.0 13540.0 5518.0))    (       ("2003-11-20-06:16:11.187" "2003-11-20-06:16:16.201" TRUE FALSE)        (13540.0 5518.0 13537.0 5639.0))    (       ("2003-11-20-06:16:16.201" "2003-11-20-06:16:20.430" TRUE FALSE)        (13537.0 5639.0 13552.0 5740.0))    (       ("2003-11-20-06:16:20.430" "2003-11-20-06:16:25.041" TRUE FALSE)        (13552.0 5740.0 13525.0 5848.0))    (       ("2003-11-20-06:16:25.041" "2003-11-20-06:16:50" TRUE FALSE)        (13525.0 5848.0 13262.0 6390.0))))
+
+Operator : contains
+Number   : 1
+Signature: secinterval x secinterval -> bool
+Example  : query [const secinterval value("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE TRUE)] contains [const secinterval value("2003-11-20-06:16" "2003-11-20-06:16:11.187" FALSE FALSE)]
+Result   : TRUE
