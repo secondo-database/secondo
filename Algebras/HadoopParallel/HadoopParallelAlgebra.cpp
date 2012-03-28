@@ -3207,13 +3207,12 @@ Tuple* FFeedLocalInfo::getNextTuple(){
   {
     blockSize -= sizeof(blockSize);
     char *tupleBlock = new char[blockSize];
-    TupleId tid = tupleBlockFile->tellg();
-    tupleBlockFile->seekg(tid);
+//    TupleId tid = tupleBlockFile->tellg();
     tupleBlockFile->read(tupleBlock, blockSize);
 
     t = new Tuple(tupleType);
     t->ReadFromBin(tupleBlock, blockSize);
-    t->SetTupleId(tid);
+//    t->SetTupleId(tid);
     delete[] tupleBlock;
   }
 
