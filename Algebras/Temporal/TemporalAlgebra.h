@@ -1297,6 +1297,11 @@ if the unified function is not representable as a single unit.
 3.5.3 Attributes
 
 */
+  inline const Interval<Instant>& getTimeInterval() const{
+    return timeInterval;
+  }
+
+
 
   Interval<Instant> timeInterval;
 /*

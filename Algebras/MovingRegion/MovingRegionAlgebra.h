@@ -533,6 +533,12 @@ leave this attribute public to mimic a ~Unit~'s behaviour.
 */
     Interval<Instant> timeInterval;
 
+    const Interval<Instant>& getTimeInterval() const{
+      return timeInterval;
+    }
+
+
+
 /*
 1.1 Constructors
 

@@ -17934,7 +17934,7 @@ int getIntervalsVM( Word* args, Word& result, int message, Word&
 
   size_t* li = (size_t*) local.addr;
   Range<DateTime>* p = (Range<DateTime>*) args[0].addr;
-  
+
   switch(message){
        case OPEN: {
                      if(li){

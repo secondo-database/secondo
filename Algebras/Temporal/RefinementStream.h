@@ -174,7 +174,7 @@ private:
       } else {
          u1 = *unit1;
       }
-      iv1 = u1.timeInterval;
+      iv1 = u1.getTimeInterval();
     } else {
       pos1 = -1;
       done = pos2 < 0;
@@ -202,7 +202,7 @@ private:
       } else {
          u2 = *unit2;
       }
-      iv2 = u2.timeInterval;
+      iv2 = u2.getTimeInterval();
     } else {
       pos2 = -1;
       done = pos1 <0;
