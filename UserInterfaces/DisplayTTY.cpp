@@ -3322,7 +3322,7 @@ struct DisplayFileList : DisplayFunction {
       cout << "Data distribute status: " <<
           (isDistributed ? "Done" :"Unknown" ) << endl;
 
-      string kinds[4] = {"UNDEF", "DGO", "DLO", "DLF"};
+      string kinds[4] = {"UNDEF", "DLO", "DLF"};
       cout << "Data kind: " << kinds[dataKind] << endl;
     }
   }
