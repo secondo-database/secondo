@@ -4743,37 +4743,38 @@ template <unsigned dim>
 void DeleteRTree( const ListExpr typeInfo, Word& w )
 {
 
-
-  if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
+  if (nl->ListLength(typeInfo) == 4)
   {
-    R_Tree<dim, TwoLayerLeafInfo>* rtree = (R_Tree<dim,
-                                            TwoLayerLeafInfo>*)w.addr;
-/*    rtree->DeleteFile();
-    delete rtree;*/
-//    cout<<"DeleteRTree1 "<<rtree->GetShare()<<endl;
-    if(rtree->GetShare() > 0){
-       rtree->DecreaseShare();
-       rtree->CloseFile();
-     }else{
-       rtree->DeleteFile();
-       delete rtree;
+    if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
+      {
+        R_Tree<dim, TwoLayerLeafInfo>* rtree = (R_Tree<dim,
+                                                TwoLayerLeafInfo>*)w.addr;
+    /*    rtree->DeleteFile();
+        delete rtree;*/
+    //    cout<<"DeleteRTree1 "<<rtree->GetShare()<<endl;
+        if(rtree->GetShare() > 0){
+           rtree->DecreaseShare();
+           rtree->CloseFile();
+         }else{
+           rtree->DeleteFile();
+           delete rtree;
+          }
+        return;
       }
+  }
 
-  }
-  else
-  {
-    R_Tree<dim, TupleId>* rtree = (R_Tree<dim, TupleId>*)w.addr;
-/*    rtree->DeleteFile();
-    delete rtree;*/
-//    cout<<"DeleteRTree2 "<<rtree->GetShare()<<endl;
-    if(rtree->GetShare() > 0){
-      rtree->DecreaseShare();
-      rtree->CloseFile();
-    }else{
-      rtree->DeleteFile();
-      delete rtree;
-     }
-  }
+  R_Tree<dim, TupleId>* rtree = (R_Tree<dim, TupleId>*)w.addr;
+  /*    rtree->DeleteFile();
+  delete rtree;*/
+  //    cout<<"DeleteRTree2 "<<rtree->GetShare()<<endl;
+  if(rtree->GetShare() > 0){
+    rtree->DecreaseShare();
+    rtree->CloseFile();
+  }else{
+    rtree->DeleteFile();
+    delete rtree;
+   }
+
 }
 
 /*
