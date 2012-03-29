@@ -12929,7 +12929,7 @@ int DistanceTraversedOperatorValueMapping(ArgVector args, Word& result,
   dist->CopyFrom(tmp);
   tmp->DeleteIfAllowed();
   result = SetWord(dist);
-  if (debugme)	{
+  if (debugme) {
     cout.flush();
     dist->Print(cout);
     cout.flush();
