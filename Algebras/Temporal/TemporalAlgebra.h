@@ -105,6 +105,9 @@ extern QueryProcessor* qp;
 using namespace datetime;
 
 
+class SecInterval;
+
+
 
 //#define REF_DEBUG(msg) cout << msg << endl;
 #define REF_DEBUG(msg)
@@ -164,6 +167,9 @@ The creation of the interval setting all attributes.
 3.2.2 Member functions
 
 */
+  const Interval<Instant>& getTimeInterval() const {
+     return  *this;
+  }
 
   void CopyFrom( const Interval<Alpha>& interval );
 
@@ -201,7 +207,14 @@ Returns ~true~ if this interval is different to the interval ~i~ and ~false~ if 
   bool operator<(const Interval<Alpha>& i) const;
   bool operator>(const Interval<Alpha>& i) const;
 
-
+/*
+Returns always true, because it is not an attribute data type.
+Required e.g., for RefinementStream for Periods values.
+   
+*/
+  bool IsDefined() const{
+    return true;
+  }
 
 
   bool R_Disjoint( const Interval<Alpha>& i ) const;
@@ -1564,7 +1577,40 @@ typedef Range<CcString> RString;
 3.6 Class ~Periods~
 
 */
-typedef Range<Instant> Periods;
+class Periods : public Range<Instant> {
+  public:
+/*
+Constructors
+
+*/
+  Periods() {}
+  
+/*
+The constructor. Initializes space for ~n~ elements.
+
+*/
+  Periods(const int n) : Range<Instant>(n) {};
+
+  Periods(const Periods& src) : Range<Instant>(src) {};
+
+/*
+The ~contains~ functions
+
+*/
+  const bool Contains(const SecInterval& si) const;
+  const bool Contains(const Periods& per) const;
+  inline bool Contains( const Instant& a ) const{
+    return Range<Instant>::Contains(a);
+  }
+  inline bool Contains( const Interval<Instant>& iv,
+                   const bool ignoreCloseness = false ) const{
+
+     return Range<Instant>::Contains(iv,ignoreCloseness);                   
+  }
+
+};
+
+
 
 /*
 3.6 ConstTemporalUnit
