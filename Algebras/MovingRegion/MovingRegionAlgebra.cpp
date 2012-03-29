@@ -6187,7 +6187,10 @@ void URegion::AddSegment(MSegmentData newSeg)
   }
 }
 
-URegion::URegion(int i, MRegion& mr):segments(0) {
+URegion::URegion(int i, MRegion& mr):
+   SpatialTemporalUnit<Region, 3>(true),
+   segments(0)
+ {
 
   assert( mr.IsDefined() );
   assert( i>=0 );
