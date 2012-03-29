@@ -1186,7 +1186,7 @@ int MappingMakemvaluePlain(Word* args,Word& result,int message,
                       Word& local,Supplier s)
 {
   Word currentUnit;
-  Unit* unit;
+  Unit* unit1;
   Instant lastInst(instanttype, 0);
   bool lastRC= false;
   DbArray<Unit> allUnits(0);
@@ -1199,35 +1199,39 @@ int MappingMakemvaluePlain(Word* args,Word& result,int message,
   m->SetDefined( true );
 
   while ( qp->Received(args[0].addr) ) { // get all tuples
-      unit = static_cast<Unit*>(currentUnit.addr);
-      if(unit == 0) {
+      unit1 = static_cast<Unit*>(currentUnit.addr);
+      if(unit1 == 0) {
         cout << endl << __PRETTY_FUNCTION__ << ": Received Nullpointer!"
              << endl;
         assert( false );
-      } else if(unit->IsDefined()) {
-          allUnits.Append(*unit);
+      } else if(unit1->IsDefined()) {
+          allUnits.Append(*unit1);
       } else {
         cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit "
              << endl;
       }
+      unit1->DeleteIfAllowed();
       qp->Request(args[0].addr, currentUnit);
   }
   qp->Close(args[0].addr);
   if(allUnits.Size() == 0) return 0;
 
   allUnits.Sort( UCompare<Unit> );
-  allUnits.Get(0, *unit);
-  lastInst= unit->timeInterval.start;
+
+  
+  Unit unit2;
+  allUnits.Get(0, unit2);
+  lastInst= unit2.timeInterval.start;
   for(int i=0; i< allUnits.Size(); ++i)
   {
-    allUnits.Get(i, *unit);
-    if(unit->timeInterval.start > lastInst ||
-        ((unit->timeInterval.start == lastInst) &&
-          !(unit->timeInterval.lc && lastRC) ))
+    allUnits.Get(i, unit2);
+    if(unit2.timeInterval.start > lastInst ||
+        ((unit2.timeInterval.start == lastInst) &&
+          !(unit2.timeInterval.lc && lastRC) ))
     {
-      m->MergeAdd( *unit );
-      lastInst= unit->timeInterval.end;
-      lastRC= unit->timeInterval.rc;
+      m->MergeAdd( unit2 );
+      lastInst= unit2.timeInterval.end;
+      lastRC= unit2.timeInterval.rc;
     }
   }
 
