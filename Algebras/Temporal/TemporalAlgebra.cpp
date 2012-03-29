@@ -12892,30 +12892,26 @@ int Vertices(Word* args, Word& result,
 16.3.30 Value mapping function for the operator ~delay~
 
 */
-int DelayOperatorValueMapping( ArgVector args, Word& result,
-		int msg, Word& local, Supplier s )
-{
-	bool debugme=false;
-
-	MPoint* pActual = static_cast<MPoint*>( args[0].addr );
-	MPoint* pScheduled = static_cast<MPoint*>( args[1].addr );
-  Geoid*  geoid = (qp->GetNoSons(s)==3)?static_cast<Geoid*>(args[2].addr):0;
-	MReal* delay= (MReal*) qp->ResultStorage(s).addr;
-
-  MReal* tmp= pScheduled->DelayOperator(pActual,geoid);
-	delay->CopyFrom(tmp);
-	tmp->DeleteIfAllowed();
-	result= SetWord(delay);
-	if(debugme)
-	{
-		cout.flush();
-		delay->Print(cout);
-		cout.flush();
-	}
-	return 0;
-//	result = qp->ResultStorage(s);
-//	result.addr=  pScheduled->DelayOperator(pActual);
-//	return 0;
+int DelayOperatorValueMapping(ArgVector args, Word& result,
+                              int msg, Word& local, Supplier s) {
+  bool debugme = false;
+  MPoint* pActual = static_cast<MPoint*>(args[0].addr);
+  MPoint* pScheduled = static_cast<MPoint*>(args[1].addr);
+  Geoid* geoid = (qp->GetNoSons(s) == 3) ? static_cast<Geoid*>(args[2].addr):0;
+  MReal* delay= (MReal*) qp->ResultStorage(s).addr;
+  MReal* tmp = pScheduled->DelayOperator(pActual,geoid);
+  delay->CopyFrom(tmp);
+  tmp->DeleteIfAllowed();
+  result= SetWord(delay);
+  if (debugme) {
+    cout.flush();
+    delay->Print(cout);
+    cout.flush();
+  }
+  return 0;
+// result = qp->ResultStorage(s);
+// result.addr=  pScheduled->DelayOperator(pActual);
+// return 0;
 }
 
 /*
@@ -12923,28 +12919,25 @@ int DelayOperatorValueMapping( ArgVector args, Word& result,
 
 */
 
-int DistanceTraversedOperatorValueMapping( ArgVector args, Word& result,
-		int msg, Word& local, Supplier s )
-{
-	bool debugme=false;
-	MPoint* p = static_cast<MPoint*>( args[0].addr );
-  MReal* dist= static_cast<MReal*>(qp->ResultStorage(s).addr);
-  Geoid* geoid = (qp->GetNoSons(s)==1)?0:static_cast<Geoid*>(args[1].addr);
-
-	MReal* tmp= p->DistanceTraversed(geoid);
-	dist->CopyFrom(tmp);
-	tmp->DeleteIfAllowed();
-	result= SetWord(dist);
-	if(debugme)
-	{
-		cout.flush();
-		dist->Print(cout);
-		cout.flush();
-	}
-	return 0;
-//	result = qp->ResultStorage(s);
-//	result.addr=  pScheduled->DelayOperator(pActual);
-//	return 0;
+int DistanceTraversedOperatorValueMapping(ArgVector args, Word& result,
+                                          int msg, Word& local, Supplier s) {
+  bool debugme = false;
+  MPoint* p = static_cast<MPoint*>(args[0].addr);
+  MReal* dist = static_cast<MReal*>(qp->ResultStorage(s).addr);
+  Geoid* geoid = (qp->GetNoSons(s) == 1) ? 0:static_cast<Geoid*>(args[1].addr);
+  MReal* tmp = p->DistanceTraversed(geoid);
+  dist->CopyFrom(tmp);
+  tmp->DeleteIfAllowed();
+  result = SetWord(dist);
+  if (debugme)	{
+    cout.flush();
+    dist->Print(cout);
+    cout.flush();
+  }
+  return 0;
+// result = qp->ResultStorage(s);
+// result.addr=  pScheduled->DelayOperator(pActual);
+// return 0;
 }
 
 /*
@@ -16930,13 +16923,13 @@ Operator p2mp( "p2mp",
                       Operator::SimpleSelect,
                       P2MpTypeMap );
 
-Operator delayoperator(  DelayOperatorInfo,
-		   DelayOperatorValueMapping,
-		   DelayOperatorTypeMapping );
+Operator delayoperator(DelayOperatorInfo,
+                       DelayOperatorValueMapping,
+                       DelayOperatorTypeMapping);
 
-Operator distancetraversedoperator( DistanceTraversedOperatorInfo,
-		   DistanceTraversedOperatorValueMapping,
-		   DistanceTraversedOperatorTypeMapping );
+Operator distancetraversedoperator(DistanceTraversedOperatorInfo,
+                                   DistanceTraversedOperatorValueMapping,
+                                   DistanceTraversedOperatorTypeMapping);
 
 Operator turns( TurnsOperatorInfo,
                 TurnsOperatorValueMapping,
