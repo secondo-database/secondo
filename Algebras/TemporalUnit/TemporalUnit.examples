@@ -693,6 +693,24 @@ Result   : (mpoint(    (        ("2003-11-20-06:16" "2003-11-20-06:16:11.187" TR
 
 Operator : contains
 Number   : 1
-Signature: secinterval x secinterval -> bool
-Example  : query [const secinterval value("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE TRUE)] contains [const secinterval value("2003-11-20-06:16" "2003-11-20-06:16:11.187" FALSE FALSE)]
+Signature: interval x interval -> bool
+Example  : query [const interval value("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE TRUE)] contains [const interval value("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE FALSE)]
+Result   : TRUE
+
+Operator : contains
+Number   : 2
+Signature: interval x periods -> bool
+Example  : query [const interval value("2003-11-20-06:16" "2003-11-20-06:16:11.187" FALSE TRUE)] contains [const periods value(("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE TRUE))]
+Result   : FALSE
+
+Operator : contains
+Number   : 3
+Signature: periods x interval -> bool
+Example  : query [const periods value(("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE TRUE))] contains [const interval value("2003-11-20-06:16" "2003-11-20-06:16:11.187" FALSE FALSE)]
+Result   : TRUE
+
+Operator : contains
+Number   : 4
+Signature: periods x periods -> bool
+Example  : query [const periods value(("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE TRUE))] contains [const periods value(("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE FALSE))]
 Result   : TRUE
