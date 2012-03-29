@@ -17982,7 +17982,7 @@ int getIntervalsVM( Word* args, Word& result, int message, Word&
                            p->Get(*li,iv);
                            (*li)++;
                            if(single){
-                              result.addr = iv.Clone();
+                              result.addr = new SecInterval(iv);
                            } else {
                              Range<DateTime>* r = new Range<DateTime>(1);
                              r->Add(iv);

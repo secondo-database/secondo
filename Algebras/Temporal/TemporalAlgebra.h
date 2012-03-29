@@ -1598,14 +1598,16 @@ The ~contains~ functions
 
 */
   const bool Contains(const SecInterval& si) const;
+  
   const bool Contains(const Periods& per) const;
-  inline bool Contains( const Instant& a ) const{
+  
+  inline bool Contains(const Instant& a) const{
     return Range<Instant>::Contains(a);
   }
-  inline bool Contains( const Interval<Instant>& iv,
-                   const bool ignoreCloseness = false ) const{
-
-     return Range<Instant>::Contains(iv,ignoreCloseness);                   
+  
+  inline bool Contains(const Interval<Instant>& iv,
+                       const bool ignoreCloseness = false ) const {
+    return Range<Instant>::Contains(iv,ignoreCloseness);                   
   }
 
 };
