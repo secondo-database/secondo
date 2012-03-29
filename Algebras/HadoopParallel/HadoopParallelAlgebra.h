@@ -410,13 +410,7 @@ then the ~searchLocalNode~ function cannot return a correct result.
 
   inline size_t getClusterSize(){
     if (disks){
-      if (masterNode == 0){
-        return disks->size();
-      }
-      else{
-        //The master is a slave too.
-        return (disks->size() - 1);
-      }
+      return disks->size();
     }
     else
       return 0;
@@ -880,7 +874,6 @@ public:
 
     return ss.str();
   }
-
 
 private:
   fList() {}

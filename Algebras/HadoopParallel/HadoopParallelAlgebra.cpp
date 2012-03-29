@@ -6650,6 +6650,7 @@ ListExpr hadoopMapTypeMap(ListExpr args){
   string hnmErr = "ERROR! Exists homonymous flist type file in: ";
   string fwtErr = "ERROR! Failed writing type into file: ";
   string expErr = "ERROR! Improper output type for DLF flist";
+  string udnErr = "ERROR! Long database name is set.";
 
   string objName, filePath, qStr;
   fListKind kind = DLO;
@@ -6716,35 +6717,20 @@ ListExpr hadoopMapTypeMap(ListExpr args){
   //Query Parameter
   string coParaName = l.third().second().second().first().str();
 
-  //If it is a DLF, then the output type must be tuple stream or DATA
-  //Several different export type for creating DLF kind flist:
+  //If it is a DLF, then the output type must be a tuple stream
+  //--Several different export type for creating DLF kind flist:
   //0 : DLO, non-DLF kind
   //1 : stream(tuple)
-  //2 : stream(T)      < T in DATA kind >
-  //3 : T              < T in DATA kind >
+  //--2 : stream(T)      < T in DATA kind >
+  //--3 : T              < T in DATA kind >
   int dlfType = 0;
   if (kind == DLF)
   {
-    if (listutils::isStream(coType.listExpr()))
-    {
-      if (listutils::isTupleStream(coType.listExpr())){
-        dlfType = 1;
-      }
-      else{
-        NList exType = coType.second().first();
-        if (!listutils::isKind(exType.listExpr(), Kind::DATA())){
-          return l.typeError(expErr);
-        }
-        dlfType = 2;
-      }
+    if (!listutils::isTupleStream(coType.listExpr())){
+      return l.typeError(expErr);
     }
-    else
-    {
-      NList exType = coType.first();
-      if (!listutils::isKind(exType.listExpr(), Kind::DATA())){
-        return l.typeError(expErr);
-      }
-      dlfType = 3;
+    else{
+      dlfType = 1;
     }
   }
 
@@ -6768,7 +6754,9 @@ ListExpr hadoopMapTypeMap(ListExpr args){
       ListExpr exeType;
       bool ok = false;
       if (nl->ReadFromFile(filePath, exeType)){
-          if (nl->Equal(exeType, nl->Second(resultType.listExpr()))){
+        //TODO Need to be more compatible with file-related operators
+          if (nl->Equal(nl->Second(exeType),
+              resultType.second().second().listExpr())){
             ok = true;
           }
       }
@@ -6786,11 +6774,20 @@ ListExpr hadoopMapTypeMap(ListExpr args){
     }
   }
 
+  //Check the length of the database name
+  string dbName = fList::tempName(true);
+  if (dbName.length() >= 16){
+    //16 is the maximum length that a database name can be
+    return l.typeError(udnErr);
+  }
+
+
   return NList(NList(Symbol::APPEND()),
       NList(NList(qStr, true, true),
             NList(objName, true, false),
             NList(dlfType),
-            NList(coParaName, true, false)),
+            NList(coParaName, true, false),
+            NList(dbName, true, false)),
       resultType).listExpr();
 
 }
@@ -6812,6 +6809,9 @@ int hadoopMapValueMap(Word* args, Word& result,
         ((CcInt*)args[5].addr)->GetValue();
     string inParaName =
         ((CcString*)args[6].addr)->GetValue();
+    //Get the database name
+    string dbName =
+        ((CcString*)args[7].addr)->GetValue();
 
     //Optional parameters
     string CreateFilePath = "";
@@ -6840,7 +6840,6 @@ int hadoopMapValueMap(Word* args, Word& result,
       int dupTimes = inputFList->getDupTimes();
 
       //Parameters required by the Hadoop job are:
-      string dbName = fList::tempName(true);
       ListExpr CreateQueryList;
       nl->ReadFromString(CreateQuery, CreateQueryList);
       vector<string> flistParaList;
