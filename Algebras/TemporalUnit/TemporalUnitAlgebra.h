@@ -67,6 +67,9 @@ public:
   SecInterval(Instant s, Instant e, bool lc, bool rc):
                         Attribute(true), Interval<Instant>(s, e, lc, rc) {}
 
+  SecInterval(const Interval<Instant>& iv): Attribute(true),
+                                            Interval<Instant>(iv) {}
+
   static const string BasicType();
 
   static const bool checkType(const ListExpr type);

@@ -10712,10 +10712,6 @@ Operator atRectU( "atRect",
 5.47.1 Class ~SecInterval~
 
 */
-  /*
-  additional functions
-
-  */
 const string SecInterval::BasicType() {
   return "interval";
 }
@@ -10959,7 +10955,6 @@ Operator temporalcontains("contains",
                           containsvm,
                           containsSelect,
                           containsTM);
-
 
 /*
 6 Creating the Algebra
