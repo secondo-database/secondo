@@ -8043,25 +8043,26 @@ class UnitsLocalInfo
     double feedunittime;
     bool sonIsObjectNode;
 
-    UnitsLocalInfo(Mapping *m, Unit *u, const Supplier &s) :
+    UnitsLocalInfo(Mapping *m, const Supplier &s) :
         unitIndex(0), noUnits(-1), totalSize(0.0), attrSize(0.0),
         attrSizeExt(0.0), progressinitialized(false), feedunittime(0.0001),
         sonIsObjectNode(false) {
-      attrSizeExt = ((double)(u->Sizeof()));
-      attrSize = attrSizeExt;
-      if(m->IsDefined()) {
-        noUnits = m->GetNoComponents();
-        if(noUnits > 0) { // compute and add FLOB size
-          for(int f = 0; f < m->NumOfFLOBs(); f++) {
-            totalSize += m->GetFLOB(f)->getSize();
+        Unit u(false);
+        attrSizeExt = ((double)(u.Sizeof()));
+        attrSize = attrSizeExt;
+        if(m->IsDefined()) {
+          noUnits = m->GetNoComponents();
+          if(noUnits > 0) { // compute and add FLOB size
+            for(int f = 0; f < m->NumOfFLOBs(); f++) {
+              totalSize += m->GetFLOB(f)->getSize();
+            }
+            attrSizeExt += ( totalSize / ((double)noUnits) );
           }
-          attrSizeExt += ( totalSize / ((double)noUnits) );
+        } else {
+          unitIndex = -1; // will provoke "CANCEL" on first REQUEST
         }
-      } else {
-        unitIndex = -1; // will provoke "CANCEL" on first REQUEST
-      }
-      feedunittime = 0.00042 * attrSizeExt;
-      sonIsObjectNode = qp->IsObjectNode(qp->GetSupplierSon(s,0));
+        feedunittime = 0.00042 * attrSizeExt;
+        sonIsObjectNode = qp->IsObjectNode(qp->GetSupplierSon(s,0));
     }
 
     ~UnitsLocalInfo() {}
@@ -8073,7 +8074,6 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
   Mapping* m = static_cast<Mapping*>(args[0].addr);
   UnitsLocalInfo<Mapping, Unit> *localinfo =
                       static_cast<UnitsLocalInfo<Mapping, Unit> *>(local.addr);
-  Unit *u = 0;
 
 #ifdef USE_PROGRESS
   ProgressInfo *pRes = (ProgressInfo*) result.addr;
@@ -8083,13 +8083,11 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
   switch( message )
   {
     case OPEN:
-      u = new Unit(false);
       if(localinfo){
         delete localinfo;
       }
-      localinfo = new UnitsLocalInfo<Mapping, Unit>(m, u, s);
+      localinfo = new UnitsLocalInfo<Mapping, Unit>(m,  s);
       local = SetWord(localinfo);
-      delete u; u = 0;
       return 0;
 
     case REQUEST:
@@ -8097,9 +8095,9 @@ int MappingUnits(Word* args, Word& result, int message, Word& local, Supplier s)
       if( local.addr == 0 ) {
         return CANCEL;
       } else if( localinfo->unitIndex < localinfo->noUnits ) {
-        Unit *unit = new Unit(true);
-        m->Get( localinfo->unitIndex++, *unit );
-        result = SetWord( unit );
+        Unit unit(true);
+        m->Get( localinfo->unitIndex++, unit );
+        result = SetWord( unit.Clone());
         return YIELD;
       } else {
         return CANCEL;
