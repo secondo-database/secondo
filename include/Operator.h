@@ -34,6 +34,7 @@ AlgebraClassDef.h and AlgebraInit.h
 #include "NestedList.h"
 #include "NList.h"
 #include "AlgebraTypes.h"
+#include "CostEstimation.h"
 
 //extern NestedList* nl;
 
@@ -221,7 +222,8 @@ class Operator
             const int noF,
             ValueMapping vms[],
             SelectFunction sf,
-            TypeMapping tm );
+            TypeMapping tm,
+            CreateCostEstimation* createCE = 0 );
 /*
 Constructs an operator with ~noF~ overloaded evaluation functions.
 
@@ -230,7 +232,8 @@ Constructs an operator with ~noF~ overloaded evaluation functions.
             const string& spec,
             ValueMapping vm,
             SelectFunction sf,
-            TypeMapping tm );
+            TypeMapping tm,
+            CreateCostEstimation* createCE = 0 );
 
 /*
 Constructs an operator with *one* evaluation functions.
@@ -239,12 +242,14 @@ Constructs an operator with *one* evaluation functions.
 
   Operator( const OperatorInfo& oi,
             ValueMapping vm,
-            TypeMapping tm );
+            TypeMapping tm,
+            CreateCostEstimation* createCE = 0 );
 
   Operator( const OperatorInfo& oi,
             ValueMapping vms[],
             SelectFunction sf,
-            TypeMapping tm );
+            TypeMapping tm,
+            CreateCostEstimation* createCE = 0 );
 
 /*
 Versions using ~OperatorInfo~.
@@ -255,8 +260,23 @@ Versions using ~OperatorInfo~.
 
   virtual ~Operator()
   {
-    delete[] valueMap;
-    delete[] calls;
+    if(valueMap){
+      delete[] valueMap;
+    }
+    if(calls){
+       delete[] calls;
+    }
+    if(createCostEstimation){
+      delete[] createCostEstimation;
+    }
+    if(costEstimation){
+      for(int i=0;i<numOfFunctions;i++){
+        if(costEstimation[i]){
+           delete costEstimation[i];
+        }
+      }
+      delete[] costEstimation;
+    }
   }
 /*
 Destroys an operator instance.
@@ -293,7 +313,28 @@ the argument types ~argtypes~.
     return valueMap[index];
   }
 
+/*
+~getCreateCostEstimation~
 
+Returns the Function pointer for creating a cost estimation for the 
+specified value mapping. Returns null if this value mapping has no
+CreateCostEstimation function.
+
+*/
+  CreateCostEstimation getCreateCostEstimation(const int index){
+     return createCostEstimation?createCostEstimation[index]:0;
+  }
+
+/*
+~getCostEstimation~
+
+Returns a pointer to the cost estimation instance for the specified
+value mapping. If there is nothing, null is returned.
+
+*/
+  CostEstimation* getCostEstimation(const int index){
+     return costEstimation?costEstimation[index]:0;
+  }
   
 /*
 Calls the value mapping function of the operator.
@@ -421,10 +462,6 @@ Increments the number of calls;
 */
 
 
-/*
-Returns the number calls of the specified value mapping.
-
-*/
   int GetCalls(){
     int sum = 0;
     for(int i=0;i<numOfFunctions;i++){
@@ -464,6 +501,11 @@ Adds a value mapping function to the list of overloaded operator functions.
 						// function 
     bool           usesMemory;     // Operator uses a large memory buffer
                                    // like a tuple buffer	
+    CreateCostEstimation* createCostEstimation; // array to creation 
+                                                //functions for
+                                                // dynamic progress estimation
+    CostEstimation** costEstimation; // array of CostEstimation instances for
+                                      // static cost estimation
 };
 
 

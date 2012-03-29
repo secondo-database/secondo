@@ -125,7 +125,8 @@ Operator::Operator( const string& nm,
                     const int noF,
                     ValueMapping vms[],
                     SelectFunction sf,
-                    TypeMapping tm )
+                    TypeMapping tm,
+                    CreateCostEstimation* createCE)
 {
   name           = nm;
   specString     = specStr;
@@ -133,6 +134,8 @@ Operator::Operator( const string& nm,
   selectFunc     = sf;
   valueMap       = new ValueMapping[numOfFunctions];
   calls          = new unsigned int[numOfFunctions];
+  createCostEstimation = new CreateCostEstimation[numOfFunctions];
+  costEstimation = new CostEstimation*[numOfFunctions];
   typeMap        = tm;
   supportsProgress = false;
   requestsArgs   = false;
@@ -143,6 +146,13 @@ Operator::Operator( const string& nm,
   for ( int i = 0; i < numOfFunctions; i++ ){
     calls[i] = 0;
     AddValueMapping( i, vms[i] );
+    if(createCE){
+       createCostEstimation[i] = createCE[i];
+       costEstimation[i] = createCE[i]?createCE[i]():0;
+    } else {
+       createCostEstimation[i] = 0;
+       costEstimation[i] = 0;
+    }
   }
 }
 
@@ -150,7 +160,8 @@ Operator::Operator( const string& nm,
                     const string& specStr,
                     ValueMapping vm,
                     SelectFunction sf,
-                    TypeMapping tm )
+                    TypeMapping tm,
+                    CreateCostEstimation* createCE )
 {
   name           = nm;
   specString     = specStr;
@@ -159,12 +170,23 @@ Operator::Operator( const string& nm,
      numOfFunctions = 1;
      valueMap       = new ValueMapping[1];
      calls          = new unsigned int[1];
+     createCostEstimation = new CreateCostEstimation[1];
+     costEstimation = new CostEstimation*[1];
      AddValueMapping( 0, vm );
      calls[0] = 0;
+     if(createCE){
+       createCostEstimation[0] = createCE[0];
+       costEstimation[0] = createCE[0]?createCE[0]():0;
+     } else {
+       createCostEstimation[0] = 0;
+       costEstimation[0] = 0;
+     }
   } else {
      valueMap = 0;
      calls = 0;
      numOfFunctions = 0;
+     createCostEstimation = 0;
+     costEstimation = 0;
   }
   typeMap        = tm;
   supportsProgress = false;
@@ -175,7 +197,8 @@ Operator::Operator( const string& nm,
 
 Operator::Operator( const OperatorInfo& oi,
                     ValueMapping vm,
-                    TypeMapping tm )
+                    TypeMapping tm,
+                    CreateCostEstimation* createCE )
 {
   // define member attributes
   name           = oi.name;
@@ -187,12 +210,23 @@ Operator::Operator( const OperatorInfo& oi,
      numOfFunctions = 1;
      valueMap       = new ValueMapping[1];
      calls          = new unsigned int[1];
+     createCostEstimation = new CreateCostEstimation[1];
+     costEstimation = new CostEstimation*[1];
      AddValueMapping( 0, vm );
      calls[0] = 0;
+     if(createCE){
+        createCostEstimation[0] = createCE[0];
+        costEstimation[0] = createCE[0]?createCE[0]():0;
+     } else {
+         createCostEstimation[0] = 0;
+         costEstimation[0] = 0;
+     }
   } else {
      valueMap = 0;
      numOfFunctions = 0;
      calls = 0;
+     createCostEstimation = 0;
+     costEstimation = 0;
   }
 
   selectFunc     = SimpleSelect;
@@ -207,7 +241,8 @@ Operator::Operator( const OperatorInfo& oi,
 Operator::Operator( const OperatorInfo& oi,
                     ValueMapping vms[],
                     SelectFunction sf,
-                    TypeMapping tm )
+                    TypeMapping tm,
+                    CreateCostEstimation* createCE )
 {
   int max = 0;
   while ( vms[max] != 0 ) { max++; }
@@ -220,6 +255,8 @@ Operator::Operator( const OperatorInfo& oi,
   selectFunc     = sf;
   valueMap       = new ValueMapping[max];
   calls          = new unsigned int[max];
+  createCostEstimation = new CreateCostEstimation[max];
+  costEstimation = new CostEstimation*[max];
   typeMap        = tm;
   supportsProgress = oi.supportsProgress ? true : false;
   requestsArgs   = oi.requestsArgs ? true : false;
@@ -231,6 +268,13 @@ Operator::Operator( const OperatorInfo& oi,
     //cout << (void*) vms[i] << endl;
     AddValueMapping( i, vms[i] );
     calls[i] = 0;
+    if(createCE){
+       createCostEstimation[i] = createCE[i];
+       costEstimation[i] = createCE[i]?createCE[i]():0;   
+    } else {
+       createCostEstimation[i] = 0;
+       costEstimation[i]=0;
+    }
   }
 }
 
