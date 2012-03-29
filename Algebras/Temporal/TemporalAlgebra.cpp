@@ -7616,17 +7616,19 @@ void MPoint::AtRect(const Rectangle<2>& rect, MPoint& result) const{
 }
 
 const bool Periods::Contains(const SecInterval& iv) const {
-  if (!IsDefined() || !iv.IsDefined())
+  if (!IsDefined() || !iv.IsDefined()) {
     return false;
+  }
   int startIvPos = GetIndexOf(iv.start, true);
-  int endIvPos = GetIndexOf(iv.end, true);
-  if ((startIvPos != endIvPos) || (startIvPos == -1))
+  if (startIvPos < 0) {
     return false;
-  if (!iv.lc && !iv.rc)
-    return true;
-  Interval<Instant> theIv;
-  Get(startIvPos, theIv);
-  return ((theIv.lc >= iv.lc) && (theIv.rc >= iv.rc)) ? true : false;
+  }
+  Interval<Instant> startIv;
+  Get(startIvPos, startIv);
+  if (startIv.lc < iv.lc) {
+    return false;
+  }
+  return startIv.Contains(iv);
 }
 
 const bool Periods::Contains(const Periods& per) const {
@@ -7635,10 +7637,12 @@ const bool Periods::Contains(const Periods& per) const {
   int p1, p2;
   Interval<Instant> iv;
   while (rs.getNext(iv, p1, p2)) {
-    if(p1 < 0)
+    if(p1 < 0) {
       return false;
-    if(rs.finished2())
+    }
+    if(rs.finished2()) {
       return true;
+    }
   }
   return true;
 }
