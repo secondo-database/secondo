@@ -97,5 +97,5 @@ operator fillGaps alias fillGaps pattern op(_,_)
 operator removeShort alias REMOVESHORT pattern op(_,_)
 
 operator getIntervals alias GETINTERVALS pattern op(_)
-
+operator components alias COMPONENTS pattern op(_)
 
