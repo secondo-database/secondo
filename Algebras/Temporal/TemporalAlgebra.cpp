@@ -18005,7 +18005,7 @@ int getIntervalsVM( Word* args, Word& result, int message, Word&
 
 
 /*
-5.2.6.4 Specification
+5.2.6.3 Specification
 
 */
 const string getIntervalsSpec =
@@ -18030,7 +18030,65 @@ Operator getIntervals(
            Operator::SimpleSelect,
            getIntervalsTM);
 
+/*
+5.2.7 Operator ~components~
 
+----
+    periods -> stream(interval)
+----
+
+*/
+
+/*
+5.2.7.1 Type Mapping for operator ~components~
+
+*/
+
+ListExpr componentsTM(ListExpr args) {
+  string err = "one argument of type periods expected";
+  if (!nl->HasLength(args, 1)){
+    return listutils::typeError(err);
+  }
+  if (!Periods::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return nl->TwoElemList( listutils::basicSymbol<Stream<SecInterval> >(),
+                          listutils::basicSymbol<SecInterval> () );
+}
+
+/*
+5.2.7.2 Value Mapping for operator ~components~
+
+This operator uses the same Value Mapping as the operator ~getIntervals~
+
+*/
+
+/*
+5.2.7.3 Specification
+
+*/
+const string componentsSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> periods -> stream(interval)"
+    "</text---> "
+    "<text> components(_) </text--->"
+    "<text>Puts the intervals of a periods value into a stream "
+    "</text--->"
+    "<text>query components(deftime(train7)) count"
+    " </text--->"
+    ") )";
+
+/*
+5.2.6.4 Operator instance
+
+*/
+Operator components(
+           "components",
+           componentsSpec,
+           getIntervalsVM<true>,
+           Operator::SimpleSelect,
+           componentsTM);
+  
 /*
 6 Creating the Algebra
 
@@ -18196,6 +18254,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&removeShort);
     
     AddOperator(&getIntervals);
+    AddOperator(&components);
 
 
 #ifdef USE_PROGRESS

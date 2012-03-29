@@ -704,12 +704,14 @@ Signature: (mT mbool) -> mT
 Example  : query train7 when[speed(train7) > 24.0]
 Result   : (mpoint(    (        ("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE FALSE)        (13592.0 5253.0 13540.0 5518.0))    (        ("2003-11-20-06:16:11.187" "2003-11-20-06:16:16.201" TRUE FALSE)       (13540.0 5518.0 13537.0 5639.0))   (        ("2003-11-20-06:16:16.201" "2003-11-20-06:16:20.430" TRUE FALSE)        (13537.0 5639.0 13552.0 5740.0))    (       ("2003-11-20-06:16:20.430" "2003-11-20-06:16:25.041" TRUE FALSE)        (13552.0 5740.0 13525.0 5848.0))    (        ("2003-11-20-06:16:25.041" "2003-11-20-06:16:50" TRUE FALSE)        (13525.0 5848.0 13262.0 6390.0))))
 
-
-
-Operator  :  getIntervals
+Operator  : getIntervals
 Number    : 1
 Signature : periods -> stream(periods)
 Example   : query getIntervals(deftime(train7)) count
 Result    : 1
 
-
+Operator  : components
+Number    : 1
+Signature : periods -> stream(interval)
+Example   : query components(deftime(train7 when[speed(train7) > 10.0])) count
+Result    : 22
