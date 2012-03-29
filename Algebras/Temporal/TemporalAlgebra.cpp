@@ -17946,8 +17946,13 @@ ListExpr getIntervalsTM(ListExpr args){
 /*
 5.2.6.2 Value Mapping
 
-*/
+The template parameter controls whether the resulting stream returns 
+intervals (single = true) or intervals wrapped into a periods 
+value (single = false).
 
+
+*/
+template<bool single>
 int getIntervalsVM( Word* args, Word& result, int message, Word&
                     local, Supplier s ){
 
@@ -17976,9 +17981,13 @@ int getIntervalsVM( Word* args, Word& result, int message, Word&
                            Interval<DateTime> iv;
                            p->Get(*li,iv);
                            (*li)++;
-                           Range<DateTime>* r = new Range<DateTime>(1);
-                           r->Add(iv);
-                           result.addr = r;
+                           if(single){
+                              result.addr = iv.Clone();
+                           } else {
+                             Range<DateTime>* r = new Range<DateTime>(1);
+                             r->Add(iv);
+                             result.addr = r;
+                           }
                            return YIELD;
                         }
                         
@@ -18017,7 +18026,7 @@ const string getIntervalsSpec =
 Operator getIntervals(
            "getIntervals",
            getIntervalsSpec,
-           getIntervalsVM,
+           getIntervalsVM<false>,
            Operator::SimpleSelect,
            getIntervalsTM);
 
