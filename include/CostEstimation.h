@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AlgebraTypes.h"
 
 // forward declarations
-class ProgressLocalInfo;
+class ProgressInfo;
 
 /*
 1.1 Class CostEstimation
@@ -41,13 +41,38 @@ class ProgressLocalInfo;
 
 class CostEstimation{
   public:
-    CostEstimation() : progressInfo(0), supplier(0), returned(0) {}
+    CostEstimation() :  supplier(0), returned(0) {}
+
+    virtual ~CostEstimation(){}
+
+    virtual int requestProgress(Word* args,
+                                ProgressInfo* result,
+                                void* localInfo,
+                                const bool argsAvailable) = 0;
 
 
-  private:
-    ProgressLocalInfo* progressInfo;
-    Supplier* supplier;
+
+
+    virtual void init(Word* args, void* localInfo) = 0;
+                                
+    void setSupplier(Supplier s){
+        supplier = s;
+    }
+
+    inline void incReturned(){
+        returned++;
+    }
+
+    inline size_t getReturned() const{
+        return returned;
+    }
+
+  protected:
+    Supplier supplier;
     size_t returned;
+
+  
+
 };
 
 
@@ -56,7 +81,7 @@ class CostEstimation{
 
 */
 
-typedef CostEstimation*  (*CreateCostEstimation)(  );
+typedef CostEstimation*  (*CreateCostEstimation)();
 
 
 

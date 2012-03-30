@@ -213,6 +213,8 @@ to determine selectivities of predicates while processing a query. Furthermore s
 */
 #include <stdexcept>
 
+
+#include "CostEstimation.h"
 #include "NameIndex.h"
 #include "NestedList.h"
 #include "NList.h"
@@ -586,6 +588,8 @@ arguments. In this case the operator must
       bool usesMemory;          // true if the operator uses a memory buffer
       size_t memorySize;        // amount of memory assigned to this operator
                                 // in MB
+      CostEstimation* costEstimation;
+      bool argsAvailable;
     } op;
   } u;
 
@@ -647,7 +651,9 @@ OpNode(OpNodeType type) :
       u.op.predCost = 0.1;
       u.op.supportsProgress = false;
       u.op.usesMemory = false;
-      u.op.memorySize = 0;      
+      u.op.memorySize = 0;     
+      u.op.costEstimation = 0; 
+      u.op.argsAvailable = false;
       break;
     }
     default :
@@ -3025,6 +3031,16 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->u.op.usesMemory = 
               algebraManager->getOperator(algebraId, opId)->UsesMemory();
       node->u.op.memorySize = 0;
+      assert(!node->u.op.costEstimation);
+      CreateCostEstimation createCE = 
+                      node->u.op.theOperator->getCreateCostEstimation(funId);
+      if(createCE){
+         node->u.op.costEstimation = createCE();
+         node->u.op.costEstimation->setSupplier(node);
+         node->u.op.supportsProgress = true;
+         node->u.op.argsAvailable = false;
+      } 
+
       if (traceNodes)
       {
         cout << "QP_OPERATOR:" << endl;
@@ -3601,6 +3617,10 @@ Deletes an operator tree object.
               << " was not destroyed. local=" << tree->u.op.local.addr
               << endl;
         }
+        if(tree->u.op.costEstimation){
+          delete tree->u.op.costEstimation;
+          tree->u.op.costEstimation = 0;
+        }
         break;
       }
       case Object:
@@ -3930,6 +3950,10 @@ Then call the operator's value mapping function.
              // if(message!=CLOSEPROGRESS){assert(arg[i].addr);}
             }
         }
+        if(message<=CLOSE){
+          tree->u.op.argsAvailable = true;
+        }
+
 
         if ( tree->isAbstraction()) { 
           ArgVectorPointer absArgs;
@@ -3991,9 +4015,28 @@ Then call the operator's value mapping function.
                         }
 
           tree->u.op.theOperator->incCalls(tree->u.op.opFunId / 65536);
-          status =
-            (*(tree->u.op.valueMap))( arg, result, message,
+          if(tree->u.op.costEstimation){
+             switch(message){
+               case CLOSEPROGRESS : break; // not required 
+               case REQUESTPROGRESS : status = 
+                                 tree->u.op.costEstimation->requestProgress(
+                                       arg, (ProgressInfo*)result.addr, 
+                                       tree->u.op.local.addr, 
+                                       tree->u.op.argsAvailable); 
+                                 break;
+               default: status =
+                            (*(tree->u.op.valueMap))( arg, result, message,
+                                                      tree->u.op.local, tree);
+                        if((message == REQUEST) && (status==YIELD)){
+                          tree->u.op.costEstimation->incReturned();
+                        }
+
+             }
+          } else {
+            status =
+               (*(tree->u.op.valueMap))( arg, result, message,
                                       tree->u.op.local, tree );
+          }
 
           tree->u.received = (status == YIELD);
           if ( status == FAILURE )  //new error code
@@ -4224,8 +4267,10 @@ QueryProcessor::RequestProgress( const Supplier s, ProgressInfo* p )
   OpTree tree = (OpTree) s;
   bool trace = false;  //set to true for tracing
 
-  if ( trace ) cout << "RequestProgress called with Supplier = " <<
-        (void*) s << "  ProgressInfo* = " << (void*) p << endl;
+  if ( trace ){
+       cout << "RequestProgress called with Supplier = " 
+            << (void*) s << "  ProgressInfo* = " << (void*) p << endl;
+  }
 
 
   assert(tree != 0);
@@ -4496,6 +4541,16 @@ QueryProcessor::ResultStorage( const Supplier s )
   return (tree->u.op.resultWord);
 }
 
+CostEstimation*
+QueryProcessor::getCostEstimation( const Supplier s )
+{
+  OpTree tree = (OpTree) s;
+  if (tree->nodetype != Operator) {
+    throw qp_error("Nodetype != Operator");
+  }
+
+  return (tree->u.op.costEstimation);
+}
 
 /*
 Function ~ChangeResultStorage~.

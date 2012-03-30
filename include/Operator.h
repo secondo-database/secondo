@@ -233,7 +233,7 @@ Constructs an operator with ~noF~ overloaded evaluation functions.
             ValueMapping vm,
             SelectFunction sf,
             TypeMapping tm,
-            CreateCostEstimation* createCE = 0 );
+            CreateCostEstimation createCE = 0 );
 
 /*
 Constructs an operator with *one* evaluation functions.
@@ -243,7 +243,7 @@ Constructs an operator with *one* evaluation functions.
   Operator( const OperatorInfo& oi,
             ValueMapping vm,
             TypeMapping tm,
-            CreateCostEstimation* createCE = 0 );
+            CreateCostEstimation createCE = 0 );
 
   Operator( const OperatorInfo& oi,
             ValueMapping vms[],

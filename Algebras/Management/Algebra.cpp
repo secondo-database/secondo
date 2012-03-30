@@ -161,7 +161,7 @@ Operator::Operator( const string& nm,
                     ValueMapping vm,
                     SelectFunction sf,
                     TypeMapping tm,
-                    CreateCostEstimation* createCE )
+                    CreateCostEstimation createCE )
 {
   name           = nm;
   specString     = specStr;
@@ -175,8 +175,8 @@ Operator::Operator( const string& nm,
      AddValueMapping( 0, vm );
      calls[0] = 0;
      if(createCE){
-       createCostEstimation[0] = createCE[0];
-       costEstimation[0] = createCE[0]?createCE[0]():0;
+       createCostEstimation[0] = createCE;
+       costEstimation[0] = createCE?createCE():0;
      } else {
        createCostEstimation[0] = 0;
        costEstimation[0] = 0;
@@ -198,7 +198,7 @@ Operator::Operator( const string& nm,
 Operator::Operator( const OperatorInfo& oi,
                     ValueMapping vm,
                     TypeMapping tm,
-                    CreateCostEstimation* createCE )
+                    CreateCostEstimation createCE )
 {
   // define member attributes
   name           = oi.name;
@@ -215,8 +215,8 @@ Operator::Operator( const OperatorInfo& oi,
      AddValueMapping( 0, vm );
      calls[0] = 0;
      if(createCE){
-        createCostEstimation[0] = createCE[0];
-        costEstimation[0] = createCE[0]?createCE[0]():0;
+        createCostEstimation[0] = createCE;
+        costEstimation[0] = createCE?createCE():0;
      } else {
          createCostEstimation[0] = 0;
          costEstimation[0] = 0;

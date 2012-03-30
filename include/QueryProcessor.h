@@ -407,6 +407,8 @@ calls to ~request~ etc.
 
 */
   Word ResultStorage( const Supplier s );
+  
+
 
   template<class T>
   inline T& ResultStorage( Word& result, const Supplier s )
@@ -425,6 +427,15 @@ passed to the evaluation function in parameter ~opTreeNode~.
 The secondo variant returns directly a reference to the allocated result
 value. This version should be preferred, the old variant is provided for
 compatibility only.
+
+*/
+  
+
+  CostEstimation* getCostEstimation( const Supplier s );
+/*
+Returns the CostEtsimation of an Operator node. If the Valuemapping
+does not suppport costEstimation via a CostEstimation class, null 
+is returned. 
 
 */
   
