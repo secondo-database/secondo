@@ -123,6 +123,7 @@ This file contains the implementation of the stream operators.
 #include <time.h>
 
 
+#include "CostEstimation.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
@@ -3759,6 +3760,209 @@ struct intstreamInfo : OperatorInfo
   }
 };
 
+
+
+/*
+5 TestOperator
+
+the following operator does the same as the intstream operator. But
+it uses a new method for progress estimation. 
+
+5.1.1 Type Mapping
+
+*/
+ListExpr intstream2TM(ListExpr args){
+   string err = "int x int expected";
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+   }
+   if(!CcInt::checkType(nl->First(args)) ||
+      !CcInt::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+   }
+   return nl->TwoElemList( listutils::basicSymbol<Stream<CcInt> >(),
+                           listutils::basicSymbol<CcInt>());
+}
+
+/*
+5.1.2 LocalInfo class
+
+Don't care about progress estimation!
+
+*/
+class IntStream2Info{
+  public:
+    IntStream2Info(CcInt* i1, CcInt* i2){
+       if(!i1->IsDefined() || !i2->IsDefined()){
+         current = 1;
+         max = 0;
+       } else {
+          current = i1->GetValue();
+          max = i2->GetValue();
+       }
+    }
+
+    CcInt* next(){
+      return current>max?0:new CcInt(true,++current);
+    }
+  private:
+    int current;
+    int max;
+};
+
+/*
+5.1.3 Value Mapping
+
+Call the init Function of the CostEstimation class 
+when open is called.
+
+*/
+
+int
+intstream2VM(Word* args, Word& result,
+             int message, Word& local, Supplier s){
+
+   IntStream2Info* li = (IntStream2Info*) local.addr;
+   switch(message){
+     case OPEN:  {  if(li){
+                       delete li;
+                    }
+                    local.addr = new IntStream2Info((CcInt*) args[0].addr,
+                                                    (CcInt*) args[1].addr);
+                    qp->getCostEstimation(s)->init(args,local.addr);
+                    return 0;
+                 }
+     case REQUEST:{
+                     if(!li){
+                       result.addr = 0;
+                     } else {
+                       result.addr = li->next();
+                     }
+                     return result.addr?YIELD:CANCEL;
+                  }
+    case CLOSE:{
+                   if(li){
+                     delete li;
+                     local.addr = 0;
+                   }
+                   return 0;
+               }
+    }
+    return -1;
+   
+}
+
+/*
+5.1.4 Specification
+
+*/
+OperatorSpec intstream2Spec(
+               "int x int -> int",
+               "intstream2(min, max)",
+               "returns  a stream of integer from min to max (both included)",
+               "query intstream2(3, 5) count "); 
+
+/*
+5.1.5 CostEstimation
+
+*/
+class IntStream2CE: public CostEstimation{
+  public:
+   IntStream2CE():initialized(false),
+                  firstCall(true),pi(0), timePerElem(0.001) {
+   }
+
+
+   virtual void init(Word* args, void* localInfo){
+      CcInt* i1 = (CcInt*) args[0].addr;
+      CcInt* i2 = (CcInt*) args[1].addr;
+      returned = 0;
+      initialized = true;
+      firstCall = true;
+      if(!pi){
+        pi = new ProgressInfo();
+        pi->attrSize = new double[1];
+        pi->attrSizeExt = new double[1];
+      }
+      if(!i1->IsDefined() || !i2->IsDefined()){
+         pi->Card = 0; 
+      } else {
+         int v1 = i1->GetValue();
+         int v2 = i2->GetValue();
+         pi->Card = v1>v2?0: (v2 - v1) + 1;
+      }
+      pi->Size = sizeof(CcInt);
+      pi->SizeExt = i1->Sizeof(); 
+      pi->noAttrs = 1;
+      pi->attrSize[0] = pi->Size;
+      pi->attrSizeExt[0] = pi->SizeExt;
+      pi->sizesChanged = true;
+      pi->Time = 0;
+      pi->Progress = 0;
+      pi->BTime = 0;
+      pi->BProgress = 1;
+      
+   }
+
+   virtual ~IntStream2CE(){
+      if(pi){
+         delete[] pi->attrSize;
+         delete[] pi->attrSizeExt;
+         delete pi;
+         pi = 0;
+      }
+   }
+
+   virtual int requestProgress(Word* args,
+                               ProgressInfo* result,
+                               void* localInfo,
+                               const bool argsAvailable) {
+      if(!initialized){
+        return CANCEL;
+      }
+      
+      pi->sizesChanged = firstCall;
+      firstCall = false;
+      result->CopySizes(*pi);
+      
+      result->Progress = pi->Card>0?(double)returned / (double)pi->Card : 1.0;
+      result->Time = (double) (pi->Card - returned) * timePerElem;
+      return YIELD;
+   }
+ 
+  private:
+    bool initialized;
+    bool firstCall;
+    ProgressInfo* pi;
+    double timePerElem;
+};
+
+
+CostEstimation* intstream2CECreator(){
+   return new IntStream2CE();
+}
+
+
+
+
+
+/*
+5.1.5 Operator instance
+  
+*/
+Operator intstream2(
+          "intstream2",
+          intstream2Spec.getStr(),
+          intstream2VM,
+          Operator::SimpleSelect,
+          intstream2TM,
+          intstream2CECreator);
+
+
+
+
+
+
 /*
 6 Type operators
 
@@ -4742,6 +4946,8 @@ public:
     AddOperator( &kinds);
     AddOperator( &timeout);
     AddOperator( &isOrdered);
+
+    AddOperator(&intstream2);
 
 #ifdef USE_PROGRESS
     streamcount.EnableProgress();

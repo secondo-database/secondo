@@ -244,3 +244,8 @@ Example  : query intstream(10,1000) isOrdered
 Result   : TRUE
 
 
+Operator : intstream2
+Number   : 1
+Signature: int x int -> stream<int>
+Example  : query intstream2(1,10)  count
+Result   : 10
