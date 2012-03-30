@@ -17957,52 +17957,49 @@ value (single = false).
 
 */
 template<bool single>
-int getIntervalsVM( Word* args, Word& result, int message, Word&
-                    local, Supplier s ){
-
+int getIntervalsVM(Word* args, Word& result, int message,
+                   Word& local, Supplier s) {
   size_t* li = (size_t*) local.addr;
-  Range<DateTime>* p = (Range<DateTime>*) args[0].addr;
-
-  switch(message){
-       case OPEN: {
-                     if(li){
-                        delete li;
-                        local.addr = 0;
-                     }
-                     if(p->IsDefined()){
-                        local.addr = new size_t(0);
-                     }
-                     return 0;
-                  }
-       case REQUEST: {
-                        if(!li){
-                           return CANCEL;
-                        }
-                        size_t v = *li;
-                        if(v>=(size_t)p->GetNoComponents()){
-                           return CANCEL;
-                        } else {
-                           Interval<DateTime> iv;
-                           p->Get(*li,iv);
-                           (*li)++;
-                           if(single){
-                              result.addr = new SecInterval(iv);
-                           } else {
-                             Range<DateTime>* r = new Range<DateTime>(1);
-                             r->Add(iv);
-                             result.addr = r;
-                           }
-                           return YIELD;
-                        }
-                        
-                     }
-        case CLOSE : {
-                        if(li){
-                          delete li;
-                          local.addr = 0;
-                        }   
-                        return 0;
-                     }
+  Range<DateTime>* p = (Range<DateTime>*)args[0].addr;
+  size_t v;
+  switch(message) {
+    case OPEN: 
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      if (p->IsDefined()) {
+        local.addr = new size_t(0);
+      }
+      return 0;
+    case REQUEST: 
+      if (!li) {
+        return CANCEL;
+      }
+      v = *li;
+      if (v >= (size_t)p->GetNoComponents()) {
+        return CANCEL;
+      }
+      else {
+        Interval<DateTime> iv;
+        p->Get(*li, iv);
+        (*li)++;
+        if (single) {
+          result.addr = new SecInterval(iv);
+        }
+        else {
+          Range<DateTime>* r = new Range<DateTime>(1);
+          r->Add(iv);
+          result.addr = r;
+        }
+        return YIELD;
+      }
+    case CLOSE:
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
   }
   return -1;
 }
