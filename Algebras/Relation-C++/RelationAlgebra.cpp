@@ -2077,13 +2077,129 @@ Filter(Word* args, Word& result, int message,
 
 #else
 
-// progress version
+class FilterCostEst: public CostEstimation{
+   public:
+      FilterCostEst() : read(0), done(false), 
+                        initialized(false), pi_source()
+       {
 
-struct FilterLocalInfo
-{
-  int current;    //tuples read
-  int returned;    //tuples returned
-  bool done;            //arg stream exhausted
+      }
+
+      ~FilterCostEst() {}
+
+      virtual int requestProgress(Word* args,
+                                  ProgressInfo* result,
+                                  void* localInfo,
+                                  const bool argsAvailable) {
+
+          const double uFilter = 1.0;
+          if(!qp->RequestProgress(args[0].addr,&pi_source)){
+            return CANCEL;
+          } 
+          result->CopySizes(pi_source);
+          if(done){
+            result->Card = returned;
+            result->Progress = 1.0;
+            result->CopyBlocking(pi_source);
+            double predCost = qp->GetPredCost(supplier);
+            result->Time = pi_source.Time + (double)read*predCost * uFilter;
+            return YIELD;
+          }
+
+          double selectivity = 1.0; // will be overwritten
+          result->Progress = pi_source.Progress; // may be overwritten later
+          bool overwriteProgress = !(pi_source.BTime < 0.1 && 
+                                     pipelinedProgress);
+          result->Time = pi_source.Time + pi_source.Card * 
+                                         qp->GetPredCost(supplier) * uFilter;
+
+          if(returned > (size_t)enoughSuccessesSelection ||
+             returned >= pi_source.Card * qp->GetSelectivity(supplier)){
+             // stable state assumed now or more returned than cold estimate
+             selectivity = (double) returned / (double) read;
+             if(overwriteProgress){
+               result->Progress = (pi_source.Progress*pi_source.Time +
+                                   read*qp->GetPredCost(supplier)*uFilter) / 
+                                  result->Time; 
+             }
+          }  else {
+             // cold state
+             selectivity = qp->GetSelectivity(supplier);
+             if(overwriteProgress){
+                result->Progress = (pi_source.Progress * pi_source.Time)/
+                                   result->Time;
+             }
+          }
+          result->Card = pi_source.Card * selectivity;
+          
+          result->CopyBlocking(pi_source);
+          return YIELD; 
+      }
+
+     virtual void init(Word* args, void* localInfo) {
+        read = 0;
+        returned = 0;
+        done = false;
+        initialized = true;
+     }
+
+     void incInput(){
+        read++;
+     }
+
+     void finished(){
+       done = true;
+     }
+
+
+   private:
+     int read;
+     bool done;
+     bool initialized;
+     ProgressInfo pi_source;
+};
+
+CostEstimation* filterCostEstimation(){
+   return new FilterCostEst();
+}
+
+
+class FilterLocalInfo{
+
+  public:
+     FilterLocalInfo(Word s, Word _fun, FilterCostEst* _fce):
+         stream(s), fun(_fun), fce(_fce) {
+        funargs = qp->Argument(fun.addr);
+        stream.open();
+        fce->init(0,0);
+     }
+
+     ~FilterLocalInfo(){
+        stream.close();
+     }
+
+     Tuple* next(){
+       Tuple* tuple;
+       Word funres;
+       while( (tuple = stream.request() ) != 0){
+          fce->incInput();
+          (*funargs)[0].addr = tuple;
+          qp->Request(fun.addr,funres);
+          CcBool* res = (CcBool*) funres.addr;
+          if(res->IsDefined() && res->GetBoolval()){
+            return tuple;
+          }
+          tuple->DeleteIfAllowed();
+       }
+       fce->finished();
+       return 0;
+     }
+
+  private:
+    Stream<Tuple> stream;
+    Word fun;
+    ArgVectorPointer funargs;
+    FilterCostEst* fce;
 };
 
 
@@ -2091,142 +2207,35 @@ int
 Filter(Word* args, Word& result, int message,
        Word& local, Supplier s)
 {
-  bool found = false;
-  Word elem, funresult;
-  ArgVectorPointer funargs;
-  Tuple* tuple = 0;
-  FilterLocalInfo* fli;
-
+  FilterLocalInfo* li = (FilterLocalInfo*) local.addr;
   switch ( message )
   {
-
-    case OPEN:
-
-      fli = (FilterLocalInfo*) local.addr;
-      if ( fli ) delete fli;
-
-      fli = new FilterLocalInfo;
-      fli->current = 0;
-      fli->returned = 0;
-      fli->done = false;
-      local.setAddr(fli);
-
-      qp->Open (args[0].addr);
-      return 0;
-
-    case REQUEST:
-
-      fli = (FilterLocalInfo*) local.addr;
-
-      funargs = qp->Argument(args[1].addr);
-      qp->Request(args[0].addr, elem);
-      found = false;
-      while (qp->Received(args[0].addr) && !found)
-      {
-        fli->current++;
-        tuple = (Tuple*)elem.addr;
-        (*funargs)[0] = elem;
-        qp->Request(args[1].addr, funresult);
-        if (((Attribute*)funresult.addr)->IsDefined())
-        {
-          found = ((CcBool*)funresult.addr)->GetBoolval();
-        }
-        if (!found)
-        {
-          tuple->DeleteIfAllowed();
-          qp->Request(args[0].addr, elem);
-        }
+    case OPEN:{
+      if(li){
+        delete li;
       }
-      if (found)
-      {
-        fli->returned++;
-        result.setAddr(tuple);
-        return YIELD;
-      }
-      else
-          {
-            fli->done = true;
-        return CANCEL;
-          }
-
-    case CLOSE:
-
-      // Note: object deletion is handled in (repeated) OPEN and CLOSEPROGRESS
-      qp->Close(args[0].addr);
+      local.addr = new FilterLocalInfo(args[0], args[1],
+                                (FilterCostEst*) qp->getCostEstimation(s));
       return 0;
+    }
 
-
-    case CLOSEPROGRESS:
-      fli = (FilterLocalInfo*) local.addr;
-      if ( fli )
-      {
-         delete fli;
-         local.setAddr(0);
-      }
-      return 0;
-
-
-    case REQUESTPROGRESS:
-
-      ProgressInfo p1;
-      ProgressInfo* pRes;
-      const double uFilter = 1.0;
-
-      pRes = (ProgressInfo*) result.addr;
-      fli = (FilterLocalInfo*) local.addr;
-
-      if ( qp->RequestProgress(args[0].addr, &p1) )
-      {
-        pRes->CopySizes(p1);
-
-        if ( fli )    //filter was started
-        {
-                  if ( fli->done )      //arg stream exhausted, all known
-                  {
-                    pRes->Card = (double) fli->returned;
-                        pRes->Time = p1.Time + (double) fli->current
-                          * qp->GetPredCost(s) * uFilter;
-                    pRes->Progress = 1.0;
-                        pRes->CopyBlocking(p1);
-                        return YIELD;
-                  }
-
-          if ( fli->returned >= enoughSuccessesSelection ||
-		       fli->returned >= p1.Card * qp->GetSelectivity(s) )
-            //stable state assumed now - or more returned than cold estimate
-          {
-            pRes->Card =  p1.Card *
-              ( (double) fli->returned / (double) (fli->current));
-            pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter;
-
-            if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
-                                                        //use pipelining
-              pRes->Progress = p1.Progress;
-            else
-              pRes->Progress = (p1.Progress * p1.Time
-                + fli->current * qp->GetPredCost(s) * uFilter) / pRes->Time;
-
-            pRes->CopyBlocking(p1);
-            return YIELD;
-          }
-        }
-    //filter not yet started or not enough seen
-
-        pRes->Card = p1.Card * qp->GetSelectivity(s);
-        pRes->Time = p1.Time + p1.Card * qp->GetPredCost(s) * uFilter;
-
-        if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
-                                                        //use pipelining
-          pRes->Progress = p1.Progress;
-        else
-          pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
-          pRes->CopyBlocking(p1);
-        return YIELD;
+    case REQUEST:{
+      if(!li){
+        result.addr = 0;
       } else {
-        return CANCEL;
+        result.addr = li->next();
       }
+      return result.addr?YIELD:CANCEL;
+    }
+    case CLOSE:{
+      if(li){
+        delete li;
+        local.addr = 0;
+      };
+      return 0;
+    }
   }
-  return 0;
+  return -1;
 }
 
 #endif
@@ -2259,7 +2268,8 @@ Operator relalgfilter (
          FilterSpec,             // specification
          Filter,                 // value mapping
          Operator::SimpleSelect, // trivial selection function
-         FilterTypeMap           // type mapping
+         FilterTypeMap,           // type mapping
+         filterCostEstimation
 );
 
 
