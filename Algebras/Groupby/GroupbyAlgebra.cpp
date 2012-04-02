@@ -1,8 +1,8 @@
 /*
-----
+
 This file is part of SECONDO.
 
-Copyright (C) 2004-2008, University in Hagen, Faculty of Mathematics and
+Copyright (C) 2004-2012, University in Hagen, Faculty of Mathematics and
 Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -18,7 +18,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
+
 
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
@@ -29,15 +29,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[>] [\ensuremath{>}]
 //[<] [\ensuremath{<}]
 
- 
+\newpage
 
-Dieter Capek: Module Groupby Algebra
+[1] Implementation of Module Groupby Algebra
 
-from Sept 2011    Implementation of Module Groupby Algebra
-15.12.2011         Changed data type for hash buckets to STL vectors
-19.01.2012         Introduced symmetric merging
-23.01.2012         Refined UsedMemory calculation
-08.01.2010         Phases to handle memory constraints
+April 2012. Dieter Capek
+
+[TOC]
+
+\newpage
+
+
+1 Includes and Defines
 
 */
 
@@ -66,67 +69,94 @@ from Sept 2011    Implementation of Module Groupby Algebra
 #include "FTextAlgebra.h"
 #include "SecondoCatalog.h"
 
+#define NUMBUCKETS 99997
+#define Normal_Merge 0
+#define Symmetric_Merge 1
+
+
 extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
 using namespace listutils;
 
+
+/*
+2 Operator groupby2
+
+Groups an input tuple stream using hashing. 
+The operator supports aggregation with or witout grouping.
+A list of aggregation functions is supported.
+The operator supports normal and symmetric merging of attributes.
+The operator respects main memory limits and partitions the problem into phases.
+The operator does support Secondo progess estimation.
+
+2.1 Specification
+
+Operator description for the Secondo user.
+
+*/
+
 const string groupby2Spec = 
   "( ( \"Signature\" \"Syntax\" \"Meaning\"  ) "
   "( <text>stream(Tuple) x AttrList x "
   "(NewAttr-1 x (Tuple x Data -> Data) x Data) .. "
-  "(NewAttr-j  x (Tuple x Data -> Data) x Data) -> "
+  "(NewAttr-j x (Data x Data -> Data) x (Tuple -> Data) -> "
   "stream(Tuple(Attrlist) o Tuple([NewAttr-1: Data]..[NewAttr-j: Data])"
   "</text--->"
 
   "<text>_ groupby2 [list; funlist]</text--->"
   
-  "<text>groupby2: Groups a tuple stream according to the attributes "
+  "<text>Groups a tuple stream according to the attributes "
   "in AttrList and computes aggregate functions for each group. "
-  "The result functions are appended to the grouping attributes." 
+  "The aggregation attributes are appended to the grouping attributes." 
   "</text--->"
   ") )";
 
 
-#define NUMBUCKETS 99997
-#define Normal_Merge 0
-#define Symmetric_Merge 1
+
+struct AggrStackEntry {
+  int level;
+  Attribute* value;
+};
 
 
-// Type Mapping Funktion für groupby2 =========================================
+/*
+2.2 Type Mapping Function
+
+Checks if the supplied data types are correct for the operator.
+Returs the data types which result from the operator run.
+Using the Secondo Append mechanism the number of groupting attributes, their
+positions, the number of aggregate functions and the types of merging required
+are forwarded to the value mapping function.
+
+*/
+
+
+// Type Mapping Function for groupby2 =========================================
 ListExpr groupby2TypeMap(ListExpr args)
 {
-  ListExpr first, second, third;     // list used for analysing input
-
-  // listp will contain the positions of the groupint attributes
-  // listn will contain the names and data types
-  ListExpr listn, lastlistn, listp, lastlistp;  // for constructing output
-  ListExpr first2, t, result, attrtype, t1, t2, t3, t4;
-  ListExpr rest, firstr, newAttr, mapDef, firstInit, mapOut;
-  ListExpr merge, lastmerge;     // indicates merge type for aggregate functions
-  string resstring;
-
-  // Test
-  // nl->WriteToString(resstring, args);
-  // cout << "groupby2 Type Mapping Input = " << resstring << endl;
-
-
-  string err = 
-    "stream(tuple(X)) x (g1..gn) x (tuple(X)xtxt -> t), t in DATA expected";
- 
-  first = second = third = nl->TheEmptyList();
-  listn = lastlistn = listp = nl->TheEmptyList();
-  merge = lastmerge = nl->TheEmptyList();
-
-  string relSymbolStr = Relation::BasicType();
+  int j;
+  ListExpr first, second, third;           // analysing input
+  ListExpr listn,                          // names and data types
+    lastlistn, 
+    listp,                                 // positions of grouping attributes
+    lastlistp;
+  ListExpr attrtype, result, t, t1, t2, t3, t4;
+  ListExpr rest, newAttr, mapDef, firstInit, mapOut;
+  ListExpr merge, lastmerge;                    // indicates merge type
+  string attrname, resstring;
   string tupleSymbolStr = Tuple::BasicType();
+  string err = 
+    "stream(tuple(X)) x (g1..gn) x (tuple(X)xtxt -> t), t in DATA expected"; 
+  bool firstcall;
 
- 
+
+  first = second = third = merge = lastmerge = nl->TheEmptyList();
+  listn = lastlistn = listp = nl->TheEmptyList();
   // Number of input parameters must be three
   if(! nl->HasLength(args,3))
     return listutils::typeError("Need to specify three parameters.");
-
   // Get the three arguments
   first  = nl->First(args);         // input stream
   second = nl->Second(args);        // list of grouping attributes
@@ -135,35 +165,31 @@ ListExpr groupby2TypeMap(ListExpr args)
   // Missing values are only allowed for grouping attributes
   if ( nl->IsEmpty(first) || nl->IsEmpty(third))
     return listutils::typeError("Mandatory argument is missing.");
-
   // First argument must be of type stream
   if(!Stream<Tuple>::checkType(first))
     return listutils::typeError("First argument must be of type stream.");
-
   // Each grouping attribute must be part of the input stream
   rest = second;
   lastlistp = nl->TheEmptyList();
-  bool firstcall = true;
+  firstcall = true;
 
   while (!nl->IsEmpty(rest))
   {
     attrtype = nl->TheEmptyList();
-    first2 = nl->First(rest);
-    if(nl->AtomType(first2)!=SymbolType)
+    t = nl->First(rest);
+    if(nl->AtomType(t)!=SymbolType)
       return listutils::typeError("Wrong format for an attribute name");
-
-    string attrname = nl->SymbolValue(first2);
+    attrname = nl->SymbolValue(t);
 
     // Get position of attribute within tuple
-    int j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
-
+    j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
     if (j) {
       if (!firstcall) {
-        lastlistn = nl->Append(lastlistn,nl->TwoElemList(first2,attrtype));
+        lastlistn = nl->Append(lastlistn,nl->TwoElemList(t,attrtype));
         lastlistp = nl->Append(lastlistp,nl->IntAtom(j));
       } else {
         firstcall = false;
-        listn = nl->OneElemList(nl->TwoElemList(first2,attrtype));
+        listn = nl->OneElemList(nl->TwoElemList(t,attrtype));
         lastlistn = listn;
         listp = nl->OneElemList(nl->IntAtom(j));
         lastlistp = listp;
@@ -186,21 +212,17 @@ ListExpr groupby2TypeMap(ListExpr args)
   while (!(nl->IsEmpty(rest))) 
   {
     // Iterate over function list and initial values
-    firstr = nl->First(rest);  // functions
+    t = nl->First(rest);  // functions
     rest = nl->Rest(rest);
-
     // Format must be Name:Funktion::Initial Value 
-    if(nl->ListLength(firstr) != 3)
+    if(nl->ListLength(t) != 3)
       return listutils::typeError("Each function must have three elements.");
-
-    newAttr  = nl->First(firstr);       // function name
-    mapDef   = nl->Second(firstr);      // aggregate function 
-    firstInit = nl->Third(firstr);      // function definition or inital value
-
+    newAttr  = nl->First(t);       // function name
+    mapDef   = nl->Second(t);      // aggregate function 
+    firstInit = nl->Third(t);      // function definition or inital value
     // Checking attribute name
     if ( !(nl->IsAtom(newAttr)) || !(nl->AtomType(newAttr) == SymbolType) )
       return listutils::typeError("Attribut name for function is not valid.");
-
     // Checking aggregate function
     if(!listutils::isMap<2>(mapDef))  
       return listutils::typeError("Aggregation function is not valid.");
@@ -218,31 +240,25 @@ ListExpr groupby2TypeMap(ListExpr args)
       if(! nl->Equal(firstInit, nl->Third(mapDef)))
         return listutils::typeError(
         "Map argument 2 and start value must have same type.");
-
       // Function result and initial value must be from same type
       if(! nl->Equal(firstInit, nl->Fourth(mapDef)))
       return listutils::typeError(
         "Map result and start value must have same type.");
-
       // indicate normal merging 
       if (nl->IsEmpty(merge)) {
         merge = nl->OneElemList(nl->IntAtom(Normal_Merge));
         lastmerge = merge;
       } else
         lastmerge = nl->Append(lastmerge, nl->IntAtom(Normal_Merge));
-
     } else {
       // check the syntax for symmetric merging:  name:function1:function2
-
       // Checking function2
       if(!listutils::isMap<1>(firstInit))  
         return listutils::typeError("Function2 must have one argument.");
-
       // Tuple must be first function2 argument 
       t = nl->Second(first);
       if(!nl->Equal(t, nl->Second(firstInit)))
       return listutils::typeError("Function2 argument must be stream tuple.");
-
       t1 = nl->Second(mapDef);    // Function1 first argument
       t2 = nl->Third(mapDef);     // Function1 second argument
       t3 = nl->Fourth(mapDef);    // Function1 result
@@ -252,11 +268,9 @@ ListExpr groupby2TypeMap(ListExpr args)
            !listutils::isDATA(t3) || !listutils::isDATA(t4) )
       return listutils::typeError(
       "Function1 arguments and both functions results must be of kind DATA.");
-
       if ( !nl->Equal(t1,t2) || !nl->Equal(t1,t3) || !nl->Equal(t1,t4) )
       return listutils::typeError(
       "Function1 arguments and both functions results must be of same type.");
-
       // indicate symmetric merging 
       if (nl->IsEmpty(merge)) {
         merge = nl->OneElemList(nl->IntAtom(Symmetric_Merge));
@@ -264,7 +278,6 @@ ListExpr groupby2TypeMap(ListExpr args)
       } else
         lastmerge = nl->Append(lastmerge, nl->IntAtom(Symmetric_Merge));
     } // end-if: check a single aggregate function
-
 
     // add function name and result type to list
     if (    (nl->EndOfList( lastlistn ) == true)
@@ -280,7 +293,6 @@ ListExpr groupby2TypeMap(ListExpr args)
     }
   } // end while for aggregate functions
 
-
   // sample: (2 1 2 4 0 1 0 0)
   // # of gourp attributes, followed by their positions
   // # of aggregation functions, followed by merging type
@@ -293,7 +305,6 @@ ListExpr groupby2TypeMap(ListExpr args)
   // Check if the name for the aggregate is used already
   if ( !CompareNames(listn) )
     return listutils::typeError("Attribute names are not unique.");
-
   // Type mapping is correct, return result type.
   result =
     nl->ThreeElemList(
@@ -303,24 +314,23 @@ ListExpr groupby2TypeMap(ListExpr args)
         nl->SymbolAtom(Symbol::STREAM()),   // text STREAM
         nl->TwoElemList( nl->SymbolAtom(tupleSymbolStr), listn))
     );
-
-
-  // Test
-  // nl->WriteToString(resstring, result);
-  // cout << "groupby2 Type Mapping Ergebnis: " << resstring << endl;
-
-  // Abbruch
-  // return listutils::typeError("Type Mapping End. Abbruch.");
-
   return result;
 }  // end of type mapping for groupby2 operator
 
 
+/*
+2.3 C++ Class groupby2LocalInfo
 
-struct AggrStackEntry {
-  int level;
-  Attribute* value;
-};
+This class keeps all local operator information between the individuall 
+calls from the query processor. The class contains all methods required to
+initialize groups, aggregate tuples into groups and estimate operator cost.
+
+2.3.1 Local Data Elements
+
+Local data contains all aggregation results, information on tuple buffers and 
+tuple scans, available and used memory and progress information.
+
+*/
 
 
 // groupby2LocalInfo class ====================================================
@@ -355,7 +365,7 @@ public:
     read_this_phase;   // tuples read from TB_In this phase (from phase 2)
 
   // progress information
-  int stableValue;
+  unsigned int stableValue;
   bool sizesFinal;
   double *attrSizeTmp;
   double *attrSizeExtTmp;
@@ -375,9 +385,17 @@ public:
   {}
 
 
+/*
+2.3.2 Function InitTuple
+
+Get first function values from tuple and initial values.
+tres is the group tuple, s the tuple from the input stream.
+
+*/
+
+
   void InitTuple (Tuple* tres, Tuple* s, Supplier addr)  
-  { // get first function values from tuple and initial values
-    // tres is the group tuple, s the tuple from the input stream
+  { 
     int i;
     Supplier supp1, supp2, supp3, supp4;
     ArgVectorPointer funargs;
@@ -433,9 +451,16 @@ public:
   } // end of InitTuple
 
 
+/*
+2.3.3 Function AggregateTuple
+
+Aggregate input tuple s into group tuple tres.
+tres is the group tuple, s the tuple from the input stream.
+
+*/
+
   void AggregateTuple (Tuple* tres, Tuple* s, Supplier addr)  
-  { // aggregate input tuple s into group tuple tres
-    // tres is the group tuple, s the tuple from the input stream
+  { 
     int i, StackLevel;
     Supplier supp1, supp2, supp3, supp4;
     ArgVectorPointer funargs;
@@ -516,8 +541,15 @@ public:
   } // end of AggregateTuple
 
 
+/*
+2.3.4 Function ShrinkStack
+
+Shrink the stacks for symmetric merging to a regular tuple.
+
+*/
+
   void ShrinkStack (Tuple* t, Supplier addr)  
-  { // shrink the stacks for symmetric merging to a regular tuple
+  { 
     int i;
     Supplier supp1, supp2, supp3;
     ArgVectorPointer funargs;
@@ -566,9 +598,15 @@ public:
     } // end-for
   } // end ShrinkStack
 
+/*
+2.3.5 Function RestoreGroup
+
+Restore a group tuple to memory.
+
+*/
 
   void RestoreGroup (Tuple* t)
-  { // restore a group tuple to memory
+  { 
     size_t hash1, hash2;
     int i, k;
     AggrStackEntry FirstEntry;
@@ -626,9 +664,16 @@ public:
   } // end destructor
 
 
-  // Test function
+
+/*
+2.3.6 Function ReportStatus
+
+Test function: report status information on processing in phases.
+
+*/
+
   void ReportStatus (string text)
-  { // report information on processing
+  { 
     cout << endl << text << endl;
     cout << "Phase:             " << Phase << endl;
     cout << "Used_Memory:       " << Used_Memory << endl;
@@ -643,9 +688,15 @@ public:
   } // end of ReportStatus
  
 
-  // Calculate cost model M3 in milliseconds
-  // n=#input tuples, g=#groups, tpct=fraction of input tupes merged already
-  // tpct=0: cost of complete model; tpct in [0;1]: cost of remaining problem
+/*
+2.3.7 Function M3Cost
+
+Calculate cost model M3 in milliseconds.
+n=no input tuples, g=no groups, tpct=fraction of input tupes merged already
+tpct=0: cost of complete model; tpct in 0-1: cost of remaining problem
+
+*/
+
   float M3Cost (float n, float g, float tpct)
   { 
     const double model_ct2 = 8.35E-08;
@@ -711,32 +762,36 @@ public:
 }; // end of class groupby2LocalInfo
 
 
+/*
+2.4 Value Mapping Function
 
-// Value Mapping für groupby2 =================================================
+The argument vector contains the following values:                            \\
+args[0] =     input stream of tuples                                          \\
+args[1] =     list of grouping attributes                                     \\
+args[2] =     list of functions (with elements name, function, initial value) \\
+args[3] =     number of grouping attributes (added by APPEND)                 \\
+args[4..m] =  position of grouping attributes (added by APPEND)               \\      
+args[m] =     number of aggregate functions (added by APPEND)                 \\
+args[m+1..] = type of merging for each aggregate function                     \\
+
+Sample with three grouping attributes and two aggregate functions:            \\ 
+     APPEND (3 1 2 3 2 1 0) is created during type mapping. 
+
+The result is:    \\
+     arg[3] = 3    Number of grouping attributes                              \\
+     arg[4] = 1    Index of first grouping attribute within tuple             \\
+     arg[5] = 2    Index of second grouping attribute within tuple            \\
+     arg[6] = 3    Index of third grouping attribute within tuple             \\
+     arg[7] = 2    Number of aggregate functions                              \\
+     arg[8] = 1    Symmetric merging required for function 1                  \\
+     arg[9] = 0    Normal merging required for function 0   
+
+
+*/
+
 int groupby2ValueMapping (Word* args, Word& result, int message, Word& local, 
                           Supplier supplier)
 {
-  // The argument vector contains the following values:
-  // args[0] = input stream of tuples
-  // args[1] = list of grouping attributes
-  // args[2] = list of functions (with elements name, function, initial value)
-  // args[3] = number of grouping attributes (added by APPEND)
-  // args[4..m] =  position of grouping attributes (added by APPEND);
-  // args[m] = number of aggregate functions (added by APPEND)
-  // args[m+1 ..] = type of merging for each aggregate function, 
-  //                values Normal_Merge, Symmetric_Merge
-
-  /* Sample with three grouping attributes and two aggregate functions 
-     APPEND (3 1 2 3 2 1 0) is created during type mapping. The result is:
-     arg[3] = 3    Number of grouping attributes
-     arg[4] = 1    Index of first grouping attribute within tuple
-     arg[5] = 2    Index of second grouping attribute within tuple
-     arg[6] = 3    Index of third grouping attribute within tuple
-     arg[7] = 2    Number of aggregate functions
-     arg[8] = 1    Symmetric merging required for function 1
-     arg[9] = 0    Normal merging required for function 0   
-  */
-
   Word sWord(Address(0));
   groupby2LocalInfo *gbli = (groupby2LocalInfo *) local.addr;
   ListExpr resultType;
@@ -766,8 +821,11 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
 
   switch(message)
   {
+/*
+2.4.1 OPEN message processing
+
+*/
     case OPEN:
-      // open the stream and get the first tuple ==============================
       qp->Open(args[0].addr);
       qp->Request(args[0].addr, sWord);
      
@@ -812,11 +870,23 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
         gbli->MAX_MEMORY -= sizeof(*gbli);
         // need at least 1 MB memory to run
         assert(gbli->MAX_MEMORY > 1048576); 
+
+        // initialize data for progress estimation
+        gbli->attrSizeTmp = new double[gbli->noAttrs];
+        gbli->attrSizeExtTmp = new double[gbli->noAttrs];
+        for (int i = 0; i < gbli->noAttrs; i++) {
+          gbli->attrSizeTmp[i] = 0.0;
+          gbli->attrSizeExtTmp[i] = 0.0;
+        }
       } else {
         local.setAddr(0);         // no tuple received
       }
       return 0;
 
+/*
+2.4.2 REQUEST message processing
+
+*/
     case REQUEST:
       if (!gbli) return CANCEL;                 // empty input stream
       if (gbli->t == 0) return CANCEL;          // stream has ended
@@ -828,8 +898,10 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
         // first REQUEST call: aggregate and return first result tuple 
         s = gbli->t;        // first tuple is available from OPEN
         gbli->FirstREQUEST = false;
+/*
+2.4.3 First REQUEST message: Aggregation without grouping
 
-        // no grouping, aggretate totals only ===============================
+*/
         if (gbli->numberatt == 0) {
           // there is a single result tuple with function aggregates only
           tres = new Tuple(gbli->resultTupleType);
@@ -860,7 +932,10 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
           return YIELD;
         } // end-if: aggregation without grouping
 
-        // aggregation with grouping =========================================
+/*
+2.4.4 First REQUEST message: Aggregation with grouping 
+
+*/
         // process individual tuple s
         while (s) {
         // get the hash value from the grouping attributes
@@ -986,8 +1061,10 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
         } // end-for
         // empty result
         return CANCEL;
+/*
+2.4.5 Following REQUEST messages: return result tuples
 
-      // following REQUEST calls: return result tuples ========================
+*/
       } else {
         result.addr = 0;          // did not yet find a tuple
 
@@ -1046,8 +1123,19 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
         if (result.addr) {
           (gbli->No_RetTuples)++;
 
-          // Phase change: last group tuple from memory is returned ===========
-          // Output buffer contains unprocessed tuples
+          // sum up attribute sizes for progress information
+          if ( gbli->No_RetTuples <= gbli->stableValue ) {
+            for (int i = 0; i < gbli->noAttrs; i++) {
+              gbli->attrSizeTmp[i] += current->GetSize(i);
+              gbli->attrSizeExtTmp[i] += current->GetExtSize(i);
+            }
+          }
+/*
+2.4.6 Phase change
+
+*/
+          // last group tuple from memory is returned,
+          // output buffer contains unprocessed tuples
           if ((gbli->No_RetTuples + gbli->TB_Group->GetNoTuples()
                == gbli->No_GTuples)
               && (gbli->TB_Out->GetNoTuples() > 0)) 
@@ -1123,10 +1211,18 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
         }
      } // end-if REQUEST processing
 
+/*
+2.4.7 CLOSE message processing
+
+*/
     case CLOSE: 
       qp->Close(args[0].addr);      // close input stream
       return 0;
 
+/*
+2.4.8 CLOSEPROGRESS message processing
+
+*/
     case CLOSEPROGRESS: 
       if (gbli) {
         delete gbli;
@@ -1134,6 +1230,10 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
       }
       return 0;
 
+/*
+2.4.9 REQUESTPROGRESS message processing
+
+*/
     case REQUESTPROGRESS:
       pRes = (ProgressInfo*) result.addr;
       if (!gbli) return CANCEL;
@@ -1146,26 +1246,38 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
           gbli->attrSizeExt = new double[gbli->noAttrs];
         }
 
-        if (!gbli->sizesInitialized || p1.sizesChanged) {
-          gbli->Size = 0;
-          gbli->SizeExt = 0;
+        // the third condition makes sure that the actual sizes are used
+        if (!gbli->sizesInitialized || p1.sizesChanged ||
+            (gbli->No_RetTuples > gbli->stableValue && !gbli->sizesFinal)) {
 
-          // for grouping atts: copy predecessor info
-          for (i=0; i < gbli->numberatt; i++) {
-            attribIdx = 
-              ((CcInt*)args[PosExtraArguments+i].addr)->GetIntval();
+          if (gbli->No_RetTuples < gbli->stableValue) {
+            // for grouping atts: copy predecessor info
+            for (i=0; i < gbli->numberatt; i++) {
+              attribIdx = ((CcInt*)args[PosExtraArguments+i].addr)->GetIntval();
+              gbli->attrSize[i] = p1.attrSize[attribIdx-1];
+              gbli->attrSizeExt[i] = p1.attrSizeExt[attribIdx-1];   
+            }
+            // for aggregation results: assume integer
+            for (i=0; i < gbli->noOffun; i++) {
+              gbli->attrSize[i+gbli->numberatt] = 12;
+              gbli->attrSizeExt[i+gbli->numberatt] = 12;   
+            }
+          } else {           
+            // actual sizes from returned group tuples
+            for (int i = 0; i < gbli->noAttrs; i++) {
+              gbli->attrSize[i] = gbli->attrSizeTmp[i] / gbli->stableValue;
+              gbli->attrSizeExt[i] = gbli->attrSizeExtTmp[i]/gbli->stableValue;
+            }
+            // this is run only once
+            gbli->sizesFinal = true;
+          }
 
-            gbli->attrSize[i] = p1.attrSize[attribIdx-1];
-            gbli->attrSizeExt[i] = p1.attrSizeExt[attribIdx-1];   
+          // summary sizes
+          gbli->Size = 0.0;
+          gbli->SizeExt = 0.0;
+          for (int i = 0; i < gbli->noAttrs; i++) {
             gbli->Size += gbli->attrSize[i];
             gbli->SizeExt += gbli->attrSizeExt[i];
-          }
-          // for aggregation results: assume integer
-          for (i=0; i < gbli->noOffun; i++) {
-            gbli->attrSize[i+gbli->numberatt] = 12;
-            gbli->attrSizeExt[i+gbli->numberatt] = 12;   
-            gbli->Size += gbli->attrSize[i+gbli->numberatt];
-            gbli->SizeExt += gbli->attrSizeExt[i+gbli->numberatt];
           }
 
           gbli->sizesInitialized = true;
@@ -1220,6 +1332,11 @@ int groupby2ValueMapping (Word* args, Word& result, int message, Word& local,
 } // Ende groupby2ValueMapping ================================================
 
 
+/*
+2.5 Operator definition
+
+*/
+
 Operator groupby2 (
          "groupby2",             // name
          groupby2Spec,           // specification
@@ -1231,15 +1348,12 @@ Operator groupby2 (
 
 /*
 
-3 Class ~GroupbyAlgebra~
+3 Class GroupbyAlgebra
 
-A new subclass ~GroupbyAlgebra~ of class ~Algebra~ is declared. The only
-specialization with respect to class ~Algebra~ takes place within the
+A new subclass GroupbyAlgebra of class Algebra is declared. The only
+specialization with respect to class Algebra takes place within the
 constructor: all type constructors and operators are registered at the
 actual algebra.
-
-After declaring the new class, its only instance ~extendedRelationAlgebra~
-is defined.
 
 */
 
@@ -1270,13 +1384,9 @@ of the algebra class and to provide references to the global nested list
 container (used to store constructor, type, operator and object information)
 and to the query processor.
 
-The function has a C interface to make it possible to load the algebra
-dynamically at runtime.
-
 */
 
-extern "C"
-Algebra*
+extern "C" Algebra*
 InitializeGroupbyAlgebra( NestedList* nlRef,
                           QueryProcessor* qpRef,
                           AlgebraManager* amRef )
