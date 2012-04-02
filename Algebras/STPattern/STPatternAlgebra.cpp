@@ -1448,6 +1448,199 @@ bool CSPSetPredsArgs(Supplier predList, Tuple* tup)
   return true;
 }
 
+/*
+~ComputeClosure~\\
+Computes the closure within the Type Map
+
+*/
+ListExpr ComputeClosure(ListExpr ConstraintList, vector<string> IntervalVars)
+{
+  bool debugme= false;
+
+  if(debugme)
+  {
+    string cList= nl->ToString(ConstraintList);
+    cerr<<endl<<cList<<endl;
+    for(vector<string>::iterator it= IntervalVars.begin(); it!=
+        IntervalVars.end(); ++it)
+      cerr<<*it<<'\t';
+  }
+
+  enum relIndex{
+  aA=0, ab=1, aB=2, ba=3, bA=4, bB=5, Ab=6, AB=7, Ba=8, BA=9, Aa=10, Bb=11};
+  //defined in TemporalReasoner.h
+  //enum PARelation{lss=0, leq=1, grt=2, geq=3, eql=4, neq=5, uni=6, inc=7};
+  PARelation PARels[12];
+  int aIndex, AIndex, bIndex, BIndex;
+  unsigned int numIntervals= 2 * IntervalVars.size();
+  PointAlgebraReasoner PAReasoner(numIntervals);
+  map<string, int> alias2IAIndex;
+  ListExpr ConstraintListRest = nl->Second(ConstraintList);
+  ListExpr STConstraint;
+  ListExpr IARelListRest;
+  STVector IAVector(0);
+  string alias, IARel;
+  set<pair<int, int> > relatedPairs;
+  int i=-1, j;
+
+  for(vector<string>::iterator
+      it=IntervalVars.begin(); it< IntervalVars.end(); ++it)
+    assert(alias2IAIndex.insert(pair<string, int>(*it, ++i)).second);
+  while( !nl->IsEmpty(ConstraintListRest) )
+  {
+    STConstraint = nl->First(ConstraintListRest);
+    ConstraintListRest = nl->Rest(ConstraintListRest);
+
+    alias= nl->StringValue(nl->Second(STConstraint));
+    i= alias2IAIndex[alias];
+
+    alias= nl->StringValue(nl->Third(STConstraint));
+    j= alias2IAIndex[alias];
+
+    if((! relatedPairs.insert(make_pair<int,int>(i,j)).second) ||
+       (! relatedPairs.insert(make_pair<int,int>(j,i)).second))
+      return nl->TwoElemList(nl->IntAtom(0), nl->IntAtom(notPA));
+
+    IAVector.Clear();
+    IARelListRest= nl->Fourth(STConstraint); //(vec "aabb"  "abab" ...)
+    IARelListRest= nl->Rest(IARelListRest);  //("aabb"  "abab" ...)
+    while( !nl->IsEmpty(IARelListRest) )
+    {
+      IARel= nl->StringValue(nl->First(IARelListRest));
+      IARelListRest= nl->Rest(IARelListRest);
+      IAVector.Add(IARel);
+    }
+    if(! IAVector.Vector2PARelations((int*)PARels))
+      return nl->TwoElemList(nl->IntAtom(0), nl->IntAtom(notPA));
+    aIndex= i*2; AIndex= (i*2)+1; bIndex= j*2; BIndex= (j*2)+1;
+    for(int k=0; k<12; ++k)
+    {
+      if(PARels[k] == unknown) continue;
+      switch(k)
+      {
+      case aA: PAReasoner.Add(aIndex, AIndex, PARels[k]);
+      break;
+      case ab: PAReasoner.Add(aIndex, bIndex, PARels[k]);
+      break;
+      case aB: PAReasoner.Add(aIndex, BIndex, PARels[k]);
+      break;
+      case ba: PAReasoner.Add(bIndex, aIndex, PARels[k]);
+      break;
+      case bA: PAReasoner.Add(bIndex, AIndex, PARels[k]);
+      break;
+      case bB: PAReasoner.Add(bIndex, BIndex, PARels[k]);
+      break;
+      case Ab: PAReasoner.Add(AIndex, bIndex, PARels[k]);
+      break;
+      case AB: PAReasoner.Add(AIndex, BIndex, PARels[k]);
+      break;
+      case Ba: PAReasoner.Add(BIndex, aIndex, PARels[k]);
+      break;
+      case BA: PAReasoner.Add(BIndex, AIndex, PARels[k]);
+      break;
+      case Aa: PAReasoner.Add(AIndex, aIndex, PARels[k]);
+      break;
+      case Bb: PAReasoner.Add(BIndex, bIndex, PARels[k]);
+      break;
+      default: assert(0);
+      }
+    }
+  }
+
+  if(debugme)
+    PAReasoner.Print(cerr);
+  bool isConsistent= PAReasoner.Close();
+  if(!isConsistent)
+    return nl->TwoElemList(nl->IntAtom(0), nl->IntAtom(inconsistent));
+  if(debugme)
+    PAReasoner.Print(cerr);
+  return PAReasoner.ExportToNestedList();
+}
+
+/*
+~ImportPAReasonerFromArgs~\\
+This function is used to import the PointAlgebraReasoner in the value mapping.
+
+*/
+ClosureResult ImportPAReasonerFromArgs(
+    Supplier TRTable, PointAlgebraReasoner*& paReasoner)
+{
+  Word value;
+  bool debugme=false;
+  if(debugme)
+    qp->ListOfTree(TRTable, cerr);
+  Supplier son= qp->GetSon(TRTable, 0), raw;
+  qp->Request(son, value);
+  int PAReasonerN= static_cast<CcInt*>(value.addr)->GetValue();
+  int tblIndex=0;
+  ClosureResult res= consistent;
+  if(PAReasonerN != 0)
+  {
+    paReasoner= new PointAlgebraReasoner(PAReasonerN);
+    int *Table= new int[PAReasonerN * PAReasonerN + 1];
+    Table[tblIndex++]= PAReasonerN;
+    for(int i=1; i<= PAReasonerN; ++i)
+    {
+      if(debugme)
+        cerr<<endl;
+      raw= qp->GetSon(TRTable, i);
+      for(int j=0; j< PAReasonerN ; ++j)
+      {
+        son= qp->GetSon(raw, j);
+        qp->Request(son, value);
+        Table[tblIndex++]= static_cast<CcInt*>(value.addr)->GetIntval();
+        if(debugme)
+          cerr<<static_cast<CcInt*>(value.addr)->GetIntval()<<",";
+      }
+    }
+    paReasoner->ImportFromArray(Table);
+    delete[] Table;
+  }
+  else
+  {
+    son= qp->GetSon(TRTable, 1);
+    qp->Request(son, value);
+    res= static_cast<ClosureResult>(
+        static_cast<CcInt*>(value.addr)->GetIntval());
+  }
+  return res;
+}
+
+/*
+~CreateMaximalPeriods~\\
+
+*/
+Periods* CreateMaximalPeriods()
+{
+  Instant i1(instanttype);    i1.ToMinimum();
+  Instant i2(instanttype);    i2.ToMaximum();
+  Interval<Instant> I(i1, i2, true, true);
+  Periods* periods= new Periods(0);
+  periods->Add(I);
+  return periods;
+}
+
+/*
+~CSPSetPredsArgs~\\
+
+*/
+bool CSPSetPredsArgs(Supplier predList, Tuple* tup, Periods* periods)
+{
+  ArgVectorPointer funargs;
+  Supplier namedpred,alias,pred;
+  int noofpreds= qp->GetNoSons(predList);
+  for(int i=0; i< noofpreds; i++)
+  {
+    namedpred= qp->GetSupplierSon(predList, i);
+    alias= qp->GetSupplierSon(namedpred, 0);
+    pred = qp->GetSupplierSon(namedpred, 1);
+    funargs = qp->Argument(pred);
+    ((*funargs)[0]).setAddr(tup);
+    ((*funargs)[1]).setAddr(periods);
+  }
+  return true;
+}
+
 
 /*
 \section{Algebra Types and Operators}
@@ -1758,7 +1951,7 @@ ListExpr STPatternExtendTM(ListExpr args)
   else if(!extended && enableTemporalReasoner && extendstream)
     opName= "stpatternextendstream2";
   else if(extended && !enableTemporalReasoner && extendstream)
-    opName= "stpatternextendstream";
+    opName= "stpatternexextendstream";
   else if(extended && enableTemporalReasoner && !extendstream)
     opName= "stpatternexextend2";
   else if(!extended && !enableTemporalReasoner && extendstream)
@@ -3979,203 +4172,6 @@ ClosureResult CSP::GetClosureResult()
 {
   return closureRes;
 }
-
-/*
-~ComputeClosure~\\
-Computes the closure within the Type Map
-
-*/
-ListExpr ComputeClosure(ListExpr ConstraintList, vector<string> IntervalVars)
-{
-  bool debugme= false;
-
-  if(debugme)
-  {
-    string cList= nl->ToString(ConstraintList);
-    cerr<<endl<<cList<<endl;
-    for(vector<string>::iterator it= IntervalVars.begin(); it!=
-        IntervalVars.end(); ++it)
-      cerr<<*it<<'\t';
-  }
-
-  enum relIndex{
-  aA=0, ab=1, aB=2, ba=3, bA=4, bB=5, Ab=6, AB=7, Ba=8, BA=9, Aa=10, Bb=11};
-  //defined in TemporalReasoner.h
-  //enum PARelation{lss=0, leq=1, grt=2, geq=3, eql=4, neq=5, uni=6, inc=7};
-  PARelation PARels[12];
-  int aIndex, AIndex, bIndex, BIndex;
-  unsigned int numIntervals= 2 * IntervalVars.size();
-  PointAlgebraReasoner PAReasoner(numIntervals);
-  map<string, int> alias2IAIndex;
-  ListExpr ConstraintListRest = nl->Second(ConstraintList);
-  ListExpr STConstraint;
-  ListExpr IARelListRest;
-  STVector IAVector(0);
-  string alias, IARel;
-  set<pair<int, int> > relatedPairs;
-  int i=-1, j;
-
-  for(vector<string>::iterator
-      it=IntervalVars.begin(); it< IntervalVars.end(); ++it)
-    assert(alias2IAIndex.insert(pair<string, int>(*it, ++i)).second);
-  while( !nl->IsEmpty(ConstraintListRest) )
-  {
-    STConstraint = nl->First(ConstraintListRest);
-    ConstraintListRest = nl->Rest(ConstraintListRest);
-
-    alias= nl->StringValue(nl->Second(STConstraint));
-    i= alias2IAIndex[alias];
-
-    alias= nl->StringValue(nl->Third(STConstraint));
-    j= alias2IAIndex[alias];
-
-    if((! relatedPairs.insert(make_pair<int,int>(i,j)).second) ||
-       (! relatedPairs.insert(make_pair<int,int>(j,i)).second))
-      return nl->TwoElemList(nl->IntAtom(0), nl->IntAtom(notPA));
-
-    IAVector.Clear();
-    IARelListRest= nl->Fourth(STConstraint); //(vec "aabb"  "abab" ...)
-    IARelListRest= nl->Rest(IARelListRest);  //("aabb"  "abab" ...)
-    while( !nl->IsEmpty(IARelListRest) )
-    {
-      IARel= nl->StringValue(nl->First(IARelListRest));
-      IARelListRest= nl->Rest(IARelListRest);
-      IAVector.Add(IARel);
-    }
-    if(! IAVector.Vector2PARelations((int*)PARels))
-      return nl->TwoElemList(nl->IntAtom(0), nl->IntAtom(notPA));
-    aIndex= i*2; AIndex= (i*2)+1; bIndex= j*2; BIndex= (j*2)+1;
-    for(int k=0; k<12; ++k)
-    {
-      if(PARels[k] == unknown) continue;
-      switch(k)
-      {
-      case aA: PAReasoner.Add(aIndex, AIndex, PARels[k]);
-      break;
-      case ab: PAReasoner.Add(aIndex, bIndex, PARels[k]);
-      break;
-      case aB: PAReasoner.Add(aIndex, BIndex, PARels[k]);
-      break;
-      case ba: PAReasoner.Add(bIndex, aIndex, PARels[k]);
-      break;
-      case bA: PAReasoner.Add(bIndex, AIndex, PARels[k]);
-      break;
-      case bB: PAReasoner.Add(bIndex, BIndex, PARels[k]);
-      break;
-      case Ab: PAReasoner.Add(AIndex, bIndex, PARels[k]);
-      break;
-      case AB: PAReasoner.Add(AIndex, BIndex, PARels[k]);
-      break;
-      case Ba: PAReasoner.Add(BIndex, aIndex, PARels[k]);
-      break;
-      case BA: PAReasoner.Add(BIndex, AIndex, PARels[k]);
-      break;
-      case Aa: PAReasoner.Add(AIndex, aIndex, PARels[k]);
-      break;
-      case Bb: PAReasoner.Add(BIndex, bIndex, PARels[k]);
-      break;
-      default: assert(0);
-      }
-    }
-  }
-
-  if(debugme)
-    PAReasoner.Print(cerr);
-  bool isConsistent= PAReasoner.Close();
-  if(!isConsistent)
-    return nl->TwoElemList(nl->IntAtom(0), nl->IntAtom(inconsistent));
-  if(debugme)
-    PAReasoner.Print(cerr);
-  return PAReasoner.ExportToNestedList();
-}
-
-/*
-~ImportPAReasonerFromArgs~\\
-This function is used to import the PointAlgebraReasoner in the value mapping.
-
-*/
-ClosureResult ImportPAReasonerFromArgs(
-    Supplier TRTable, PointAlgebraReasoner*& paReasoner)
-{
-  Word value;
-  bool debugme=false;
-  if(debugme)
-    qp->ListOfTree(TRTable, cerr);
-  Supplier son= qp->GetSon(TRTable, 0), raw;
-  qp->Request(son, value);
-  int PAReasonerN= static_cast<CcInt*>(value.addr)->GetValue();
-  int tblIndex=0;
-  ClosureResult res= consistent;
-  if(PAReasonerN != 0)
-  {
-    paReasoner= new PointAlgebraReasoner(PAReasonerN);
-    int *Table= new int[PAReasonerN * PAReasonerN + 1];
-    Table[tblIndex++]= PAReasonerN;
-    for(int i=1; i<= PAReasonerN; ++i)
-    {
-      if(debugme)
-        cerr<<endl;
-      raw= qp->GetSon(TRTable, i);
-      for(int j=0; j< PAReasonerN ; ++j)
-      {
-        son= qp->GetSon(raw, j);
-        qp->Request(son, value);
-        Table[tblIndex++]= static_cast<CcInt*>(value.addr)->GetIntval();
-        if(debugme)
-          cerr<<static_cast<CcInt*>(value.addr)->GetIntval()<<",";
-      }
-    }
-    paReasoner->ImportFromArray(Table);
-    delete[] Table;
-  }
-  else
-  {
-    son= qp->GetSon(TRTable, 1);
-    qp->Request(son, value);
-    res= static_cast<ClosureResult>(
-        static_cast<CcInt*>(value.addr)->GetIntval());
-  }
-  return res;
-}
-
-/*
-~CreateMaximalPeriods~\\
-
-*/
-Periods* CreateMaximalPeriods()
-{
-  Instant i1(instanttype);    i1.ToMinimum();
-  Instant i2(instanttype);    i2.ToMaximum();
-  Interval<Instant> I(i1, i2, true, true);
-  Periods* periods= new Periods(0);
-  periods->Add(I);
-  return periods;
-}
-
-/*
-~CSPSetPredsArgs~\\
-
-*/
-bool CSPSetPredsArgs(Supplier predList, Tuple* tup, Periods* periods)
-{
-  ArgVectorPointer funargs;
-  Supplier namedpred,alias,pred;
-  int noofpreds= qp->GetNoSons(predList);
-  for(int i=0; i< noofpreds; i++)
-  {
-    namedpred= qp->GetSupplierSon(predList, i);
-    alias= qp->GetSupplierSon(namedpred, 0);
-    pred = qp->GetSupplierSon(namedpred, 1);
-    funargs = qp->Argument(pred);
-    ((*funargs)[0]).setAddr(tup);
-    ((*funargs)[1]).setAddr(periods);
-  }
-  return true;
-}
-
-
-
-
 
 /*
 \section{The Algebra Definition}
