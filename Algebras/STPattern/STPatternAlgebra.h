@@ -157,7 +157,7 @@ connectors.
 Output: the count value
 
 */  
-  inline int Count(int vec);
+  int Count(int vec);
   
 /*
 The Str2Simple helper function.
@@ -185,7 +185,12 @@ public:
   STVector(int vec):v(vec), count(Count(vec)){};
   STVector(STVector* vec):v(vec->v), count(vec->count){};
   ~STVector(){};
-
+  static const string BasicType(){
+    return "stvector";
+  }
+  static const bool checkType(const ListExpr list){
+    return listutils::isSymbol(list, BasicType());
+  }
 /*
 The Add function. Used to add a simple temporal connector to "this".
 Input: a string representation for the simple connector.

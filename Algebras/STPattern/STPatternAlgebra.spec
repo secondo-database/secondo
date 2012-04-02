@@ -19,9 +19,9 @@
 
 operator vec alias CREATESTVECTOR pattern op(_)
 operator stpattern alias STPATTERN pattern _ op[funlist;list]
-operator stpattern2 alias STPATTERN2 pattern _ _ op[funlist;list]
+operator stpattern2 alias STPATTERN2 pattern _ op[funlist;list]
 operator stpatternex alias STPATTERNEX pattern _ op[funlist;list;_]
-operator stpatternex2 alias STPATTERNEX2 pattern _ _ op[funlist;list;_]
+operator stpatternex2 alias STPATTERNEX2 pattern _ op[funlist;list;_]
 operator stpatternextend alias STPATTERNEXTEND pattern _ op[funlist;list] implicit parameter streamelem type STREAMELEM
 operator stpatternextend2 alias STPATTERNEXTEND2 pattern _ op[funlist;list] implicit parameter streamelem type STREAMELEM
 operator stpatternexextend alias STPATTERNEXEXTEND pattern _ op[funlist;list;fun] implicit parameter streamelem type STREAMELEM
@@ -36,4 +36,4 @@ operator start alias START pattern op(_)
 operator randommbool alias RandomMBool pattern op(_)
 operator passmbool alias PassMBool pattern op(_)
 operator randomdelay alias RANDOMDELAY pattern op(_,_)
-operator computeclosure alias COMPUTECLOSURE pattern _ _ op[funlist;list]
+operator computeclosure alias COMPUTECLOSURE pattern _ op[funlist;list]
