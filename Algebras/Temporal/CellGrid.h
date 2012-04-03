@@ -36,7 +36,7 @@ is open in y direction.
 
 */
 
-
+#include <limits>
 #include "Attribute.h"
 #include "NestedList.h"
 #include "RectangleAlgebra.h"
