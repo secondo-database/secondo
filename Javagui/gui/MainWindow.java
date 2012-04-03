@@ -70,8 +70,10 @@ private Vector ListOfObjects=null;
 
 /* the current Viewer and all possible Viewers */
 private SecondoViewer CurrentViewer;
+private SecondoViewer emptyViewer;
 private Vector AllViewers;
 private Vector ViewerMenuItems;
+private Vector SeparatedViewers;  // boolean flags for speparatly showed viewers
 private JFileChooser ViewerFileChooser;
 private MenuVector CurrentMenuVector;
 
@@ -174,6 +176,7 @@ private JMenu Viewers;
 private JMenuItem MI_ShowOnlyViewer;
 private boolean onlyViewerShow = false;
 private JMenuItem MI_AddViewer;
+private JMenuItem MI_SeparateViewer;
 private Container DefaultContentPane;
 
 private MenuListener BlendOutList; // a Menu cannot overlap a List ??
@@ -264,8 +267,25 @@ public MainWindow(String Title,String user,String passwd){
   PriorityDlg = new PriorityDialog(this);
 
   CurrentViewer = null;
+
+  emptyViewer = new SecondoViewer(){
+     public String getName(){ return "empty";}
+     public void removeObject(SecondoObject o) {}
+     public void removeAll(){}
+     public boolean canDisplay(SecondoObject o) { return false;}
+     public boolean isDisplayed(SecondoObject o){ return false;}
+     public boolean selectObject(SecondoObject o){ return false;}
+     public boolean addObject(SecondoObject o){ return false;}
+     public Dimension getMinimumSize( ) { return d; }
+     public Dimension getMaximumSize() { return d; }
+     public Dimension getPreferredSize() { return d;}
+     private Dimension d = new Dimension(1,1);
+  };
+
+
   ViewerMenuItems = new Vector(10);
   AllViewers = new Vector(10);
+  SeparatedViewers = new Vector(10);
   DefaultContentPane = getContentPane();
 
   String ServerName = "localhost";
@@ -1050,6 +1070,7 @@ private void viewersChanged(){
 private void addViewer(SecondoViewer NewViewer){
    if (AllViewers.indexOf(NewViewer)<0){  // really a new Viewer
       AllViewers.add(NewViewer);
+      SeparatedViewers.add(new Boolean(false));
       JMenuItem MI_Viewer = new JMenuItem(NewViewer.getName());
       ViewerMenuItems.add(MI_Viewer);
       Viewers.insert(MI_Viewer,AllViewers.size()-1);
@@ -1088,9 +1109,31 @@ private void setViewerindex(int index){
 }
 
 
+public void closeSeparatedViewer(SecondoViewer sv){
+   int index = AllViewers.indexOf(sv);
+   if(index < 0){
+     return;
+   }
+   SeparatedViewers.set(index, new Boolean(false));
+   setViewer(sv);
+}
+
+
 /** set the current viewer to SV **/
 private void setViewer(SecondoViewer SV){
  if (SV!=null) {
+    
+    if(SV != emptyViewer){ 
+      int index = AllViewers.indexOf(SV);
+      if(index < 0){
+         return;
+      } 
+      boolean isSeparated = ((Boolean)SeparatedViewers.get(index)).booleanValue();
+      if(isSeparated){
+        return;
+      }
+    }
+
     cleanMenu(false);
     CurrentMenuVector = null;
     MainMenu.revalidate();
@@ -2191,9 +2234,10 @@ public void processResult(String command,ListExpr ResultList,IntByReference Erro
                 Reporter.showError("no viewer found to display the result");
               }
               else{
-                  if(SV!=CurrentViewer)
+                  if(SV!=CurrentViewer && !isSeparated(SV)){
                      setViewer(SV);
-                  CurrentViewer.addObject(o);
+                  }
+                  SV.addObject(o);
                   OList.updateMarks();
                }
   
@@ -2207,6 +2251,16 @@ public void processResult(String command,ListExpr ResultList,IntByReference Erro
   }
   ComPanel.showPrompt();
 }
+
+/** CHecks whether the given viewer is displayed within a separate window **/
+public boolean isSeparated(SecondoViewer sv){
+   int index = AllViewers.indexOf(sv);
+   if(index <0){
+      return false;
+   }
+   return  ((Boolean)SeparatedViewers.get(index)).booleanValue();
+}
+
 
 
 /** tests if the current Viewer can display SO **/
@@ -2235,13 +2289,13 @@ public boolean isActualDisplayed(SecondoObject SO){
 
 /** shows SO in current Viewer if possible **/
 public boolean showObject(SecondoObject SO){
-  if (CurrentViewer==null) 
+  if (CurrentViewer==null) {
       return false;
-  else
+  } else {
      try{
-        if(CurrentViewer.canDisplay(SO))
+        if(CurrentViewer.canDisplay(SO)){
            return CurrentViewer.addObject(SO);
-        else{
+        } else {
           SecondoViewer TheBest = PriorityDlg.getBestViewer(CurrentViewer,SO);
           if(TheBest==null){
              Reporter.showError("no Viewer found to display this object");
@@ -2249,7 +2303,7 @@ public boolean showObject(SecondoObject SO){
           }
           else{
              setViewer(TheBest);
-             return CurrentViewer.addObject(SO);
+             return TheBest.addObject(SO);
           }  
         }  
      }      
@@ -2257,6 +2311,7 @@ public boolean showObject(SecondoObject SO){
         Reporter.debug("error in Viewer :"+CurrentViewer+" method addObject", e);
         return false;
      }
+  }
 }
 
 
@@ -2800,6 +2855,14 @@ private void createMenuBar(){
      }
    });
 
+  MI_SeparateViewer = Viewers.add("Show in own window");
+  MI_SeparateViewer.addActionListener(new ActionListener(){
+     public void actionPerformed(ActionEvent evt){
+        separateCurrentViewer();
+     }
+  });
+
+
    updateMenu(); // insert all stuff
    setJMenuBar(MainMenu);
 }
@@ -2821,6 +2884,28 @@ public void clearAll(){
                          tools.Environment.formatMemory(tools.Environment.usedMemory()-usedMemory));
   }
 }
+
+
+/** shows the current viewer within a separate window **/
+private void separateCurrentViewer(){
+  int index = AllViewers.indexOf(CurrentViewer);
+  if(index <0){
+     return;
+  }
+  boolean isSeparated = ((Boolean)SeparatedViewers.get(index)).booleanValue();
+  if(isSeparated){
+     return;
+  }
+  if(CurrentViewer == emptyViewer){
+     return;
+  }
+  SecondoViewer oldViewer = CurrentViewer;
+  setViewer(emptyViewer);
+  ViewerWindow vw =  new ViewerWindow(oldViewer,this);
+  SeparatedViewers.set(index, new Boolean(true));
+  vw.setVisible(true);
+}
+
 
 
 
