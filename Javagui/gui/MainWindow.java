@@ -213,6 +213,10 @@ public Frame getMainFrame(){ return this; }
 public MainWindow(String Title,String user,String passwd){
 
   super(Title);
+  VCLs = new Vector(10);  // ViewerChangeListeners
+  ViewerMenuItems = new Vector(10);
+  AllViewers = new Vector(10);
+  SeparatedViewers = new Vector(10);
   String StartScript=null;
   setSize(800,600);
   ServerDlg = new ServerDialog(this);
@@ -225,7 +229,6 @@ public MainWindow(String Title,String user,String passwd){
   OList = new ObjectList(this,this);
   PanelTopRight = new JPanel();
   CurrentMenuVector = null;
-  VCLs = new Vector(10);  // ViewerChangeListeners
   VSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT,true,
                               PanelTop,PanelTopRight);
   HSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,false,
@@ -283,9 +286,6 @@ public MainWindow(String Title,String user,String passwd){
   };
 
 
-  ViewerMenuItems = new Vector(10);
-  AllViewers = new Vector(10);
-  SeparatedViewers = new Vector(10);
   DefaultContentPane = getContentPane();
 
   String ServerName = "localhost";
@@ -1096,6 +1096,7 @@ public SecondoViewer[] getViewers(){
       tmpViewers[i] = (SecondoViewer) AllViewers.get(i);
    return tmpViewers;
 }
+
 
 
 /** set the current Viewer to AllViewers[index]); */
@@ -2314,6 +2315,38 @@ public boolean showObject(SecondoObject SO){
   }
 }
 
+/** shows an objects within a viewer specified by name **/
+public boolean displayAt(String viewerName, SecondoObject o){
+  int index = getViewer(viewerName);
+  if(index < 0){
+     return false;
+  }
+  SecondoViewer v = (SecondoViewer)AllViewers.get(index);
+  if(!v.canDisplay(o)){
+    return false;
+  }
+  boolean isSep = ((Boolean)SeparatedViewers.get(index)).booleanValue();
+  if(v!=CurrentViewer && !isSep){
+     setViewer(v);
+  }
+  v.addObject(o);
+  if(v==CurrentViewer){
+    OList.updateMarks();
+  }
+  return true;
+}
+
+int getViewer(String vName){
+   if(vName==null){
+     return -1;
+   }
+   for(int i=0;i<AllViewers.size();i++){
+     if(vName.equals( ((SecondoViewer)AllViewers.get(i)).getName())){
+        return i;
+     }
+   }
+   return -1;
+}
 
 /** hide this Object in all Viewers and update the
   * marks in the ObjectList 

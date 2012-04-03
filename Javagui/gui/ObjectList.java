@@ -33,8 +33,10 @@ import javax.swing.event.*;
 import extern.*;
 import extern.binarylist.*;
 import tools.Reporter;
+import viewer.SecondoViewer;
 
-public class ObjectList extends JPanel{
+
+public class ObjectList extends JPanel implements ViewerChangeListener{
 
 public final static int NO_ERROR=0;
 public final static int ERROR_NAME_EXISTS=1;
@@ -57,6 +59,8 @@ private JButton StoreBtn;    // save the selected Object into database
 private JButton RenameBtn;   // set a new name for this object
 private boolean isRenameMode;
 private boolean StoringEnabled;
+
+private JPopupMenu jPopupMenu;
 
 private JFileChooser FileChooser;
 private RenamePanel aRenamePanel;
@@ -130,7 +134,65 @@ public ObjectList(ResultProcessor aRP,ViewerControl aVC){
   ControlPanel.add(RenameBtn);
   FileChooser = new JFileChooser();
   addAllListeners();
+
+  createContentMenu();
+
+  aVC.addViewerChangeListener(this);
+
+  jPopupMenu = new JPopupMenu();
+  viewerChanged();
 }
+
+
+private void createContentMenu(){
+
+   Content.addMouseListener(new MouseAdapter(){
+      public void mousePressed(MouseEvent e){
+         check(e); 
+      }
+      public void mouseReleased(MouseEvent e){
+         check(e); 
+      }
+
+      public void check(MouseEvent e){
+         if(e.isPopupTrigger()){
+           Content.setSelectedIndex(Content.locationToIndex(e.getPoint()));
+           jPopupMenu.show(Content, e.getX(), e.getY());
+         }
+      }
+   });
+}
+
+
+public void viewerChanged(){
+   SecondoViewer[] viewers = VC.getViewers();
+   jPopupMenu.removeAll();
+   jPopupMenu.setLabel("Show in");
+
+   ActionListener al = new ActionListener(){
+     public void actionPerformed(ActionEvent evt){
+        JMenuItem source = (JMenuItem) evt.getSource();
+        String label = source.getLabel();
+        showSelectionInViewer(label);
+     }
+   };
+   for(int i=0;i<viewers.length;i++){
+      JMenuItem jmi = new JMenuItem(viewers[i].getName());
+      jmi.addActionListener(al);
+      jPopupMenu.add(jmi);
+   }
+}
+
+
+private void showSelectionInViewer(String viewerName){
+   int index = Content.getSelectedIndex();
+   if(index < 0 || index > Objects.size()){
+     return;
+   } 
+   SecondoObject o = (SecondoObject) Objects.get(index);
+   VC.displayAt(viewerName, o);
+}
+
 
 
 
@@ -409,6 +471,7 @@ public void hideAll(){
    }
    updateMarks();
 }
+
 
 /* sends the showObject message for the selected object to the ViewerControl */
 public boolean showSelectedObject(){

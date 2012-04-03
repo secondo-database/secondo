@@ -23,6 +23,7 @@ import viewer.SecondoViewer;
 import sj.lang.ListExpr;
 import sj.lang.IntByReference;
 import java.awt.*;
+import java.util.Vector;
 
 public interface ViewerControl{
 
@@ -46,6 +47,10 @@ public interface ViewerControl{
  
 /** a object is selected in Sender-Component */ 
 public void selectObject(Object Sender,SecondoObject SO);
+
+
+/** shows an object at a viewer specified by name if possible **/
+public boolean displayAt(String viewerName, SecondoObject o);
 
 
 /** this method should be invoked from viewer if the menu is changed **/
@@ -94,7 +99,7 @@ public boolean execUserCommand(String cmd);
 
 /** A general method for ececuting commands */
 public boolean execCommand(String cmd, IntByReference errorCode, ListExpr resultList, StringBuffer errorMessage);
-  
+
 
 }
 
