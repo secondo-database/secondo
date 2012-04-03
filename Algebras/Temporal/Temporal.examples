@@ -660,6 +660,13 @@ Signature : {int,real} x {int, real} x {int,real} x {int,real} x int -> gridcell
 Example   : query createCellGrid2D( 1.0, 1.0, 4.0, 5.0, 7)
 Result    : (cellgrid2d (1.0 1.0 4.0 5.0 7))
 
+Operator  : createCellGrid3D
+Number    : 1
+Signature : {int,real} x {int, real} x {int,real} x {int,real} x {int, real} x {int,real} x {int,real} x int x int -> gridcell3d
+Example   : query createCellGrid3D( 1.0, 1.0, 1.0, 4.0, 5.0, 6.0, 7, 8)
+Result    : (cellgrid3d (1.0 1.0 1.0 4.0 5.0 6.0 7 8))
+
+
 
 Operator  : getRefinementPartion
 Number    : 1
