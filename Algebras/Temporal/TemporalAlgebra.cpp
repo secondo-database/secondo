@@ -186,7 +186,8 @@ ostream& operator<<(ostream& o, const UPoint& u){
    if(!u.IsDefined()){
        o << "Undefined";
    } else {
-       o << "UPoint[" << u.timeInterval << ", " << u.p0 << ", " << u.p1 << "]";
+       o << "UPoint[" << u.timeInterval
+           << ", " << u.p0 << ", " << u.p1 << "]";
    }
    o.flags(oldOptions);
    return o;
@@ -243,12 +244,14 @@ bool UReal::Passes( const CcReal& val ) const
   return false;
 }
 
-bool UReal::At( const CcReal& val, TemporalUnit<CcReal>& result ) const
-  // CD - Implementation causes problem, as the result could be a set of
-  // 0-2 Units!
-  // Use UReal::PeriodAtValue() or UReal::AtValue() instead!
+bool UReal::At( const CcReal& val, TemporalUnit<CcReal>& result )
+  const
+// CD - Implementation causes problem, as the result could be a set
+// of 0-2 Units!
+// Use UReal::PeriodAtValue() or UReal::AtValue() instead!
 {
-  cerr << "UReal::At() is not implementable! Use UReal::AtValue() instead!"
+  cerr << "UReal::At() is not implementable! "
+          "Use UReal::AtValue() instead!"
        << endl;
   assert( false );
   return false;
@@ -351,14 +354,16 @@ double AntiderivativeSQRTpoly2(const double a, const double b,
   }
   double result = t1 + t2;
 
-  /* Unfortunately , small rounding errors in the anti2 computation
-     are often multiplied with very large numbers for (f) in many
-     datasets. This leads to very wrong results if these data are used.
-     For this reason, we compute the valid range of the result. If the
-     computed result is outside of this value, we approximate the integral
-     by the integral of a linear function between the values at the boundaries.
-     (the same as integrate(linearize2(unit))
-   */
+/*
+Unfortunately , small rounding errors in the anti2 computation
+are often multiplied with very large numbers for (f) in many
+datasets. This leads to very wrong results if these data are used.
+For this reason, we compute the valid range of the result. If the
+computed result is outside of this value, we approximate the integral
+by the integral of a linear function between the values at the boundaries.
+(the same as integrate(linearize2(unit))
+
+*/
 
   // compute the minimum and the maximum value
   double xs = -1.0*b / (2*a);
@@ -510,8 +515,8 @@ double UReal::Min(bool& correct) const{
   }
   // debug
   //if(isnan(v1) || isnan(v2) || isnan(v3)){
-  //    cerr << "UReal::Min(): cannot determine the value within a unit"
-  //         << endl;
+  // cerr << "UReal::Min(): cannot determine the value within a unit"
+  //      << endl;
   //}
   // determine the minimum of v1 .. v3
   double min = v1;
@@ -602,8 +607,10 @@ void UReal::Linearize(UReal& result1, UReal& result2) const{
     TemporalFunction(ixst,V,true);
     double v3 = V.GetRealval();
 
-    Interval<Instant> interval1(timeInterval.start,ixst,timeInterval.lc,true);
-    Interval<Instant> interval2(ixst,timeInterval.end,false,timeInterval.rc);
+    Interval<Instant> interval1(
+        timeInterval.start,ixst,timeInterval.lc,true);
+    Interval<Instant> interval2(
+        ixst,timeInterval.end,false,timeInterval.rc);
 
     result1 = UReal(interval1,v1,v3);
     result1.SetDefined(true);
@@ -629,16 +636,16 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
   DateTime t0(durationtype), t1(instanttype);
   Interval<Instant> iv;
 
-//   cout << "UReal::PeriodsAtVal( " << value << ", ...) called." << endl;
-//   cout << "\ta=" << a << " b=" << b << " c=" << c << " r=" << r << endl;
-//   cout << "\tstart=" << timeInterval.start.ToDouble()
-//        << " end=" << timeInterval.end.ToDouble()
-//        << " lc=" << timeInterval.lc
-//        << " rc=" << timeInterval.rc << endl;
+//cout << "UReal::PeriodsAtVal("<< value << ", ...) called." << endl;
+//cout << "\ta=" << a << " b=" << b << " c=" <<c<< " r=" <<r << endl;
+//cout << "\tstart=" << timeInterval.start.ToDouble()
+//     << " end=" << timeInterval.end.ToDouble()
+//     << " lc=" << timeInterval.lc
+//     << " rc=" << timeInterval.rc << endl;
   times.Clear();
   if( !IsDefined() )
   {
-//      cout << "UReal::PeriodsAtVal(): Undefined UReal -> 0 results." << endl;
+//cout<<"UReal::PeriodsAtVal(): Undefined UReal -> 0 results."<<endl;
     times.SetDefined( false );
     return 0;
   }
@@ -649,18 +656,18 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
     {
 //       cout << "UReal::PeriodsAtVal(): constant case" << endl;
       if ( (!r && AlmostEqual(c, value)) ||
-           (r &&
-             (AlmostEqual(sqrt(c), value) || AlmostEqual(c, value*value) ) ) )
+           (r && (AlmostEqual(sqrt(c), value)
+               || AlmostEqual(c, value*value) ) ) )
       {
         times.StartBulkLoad();
         times.Add(timeInterval);
         times.EndBulkLoad();
-//         cout << "UReal::PeriodsAtVal(): constant UReal -> 1 result." << endl;
+//cout<<"UReal::PeriodsAtVal(): constant UReal -> 1 result." << endl;
         return times.GetNoComponents();
       }
       else // no result
       {
-//      cout << "UReal::PeriodsAtVal(): constant UReal -> 0 results." << endl;
+//cout<<"UReal::PeriodsAtVal(): constant UReal -> 0 results."<< endl;
         return 0;
       }
     }
@@ -674,7 +681,7 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
 //     cout << "UReal::PeriodsAtVal(): r==true" << endl;
     if (value < 0.0)
     {
-//       cout << "UReal::PeriodsAtVal(): radix cannot become <0. -> 0 results."
+//cout<<"UReal::PeriodsAtVal(): radix cannot become <0. -> 0 results."
 //            << endl;
       return 0;
     }
@@ -682,7 +689,8 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
       no_res = SolvePoly(a, b, (c-(value*value)), inst_d, true);
   }
 //   times.Print(cout);
-//   cout << "SolvePoly found no_res=" << no_res << " results." << endl;
+//   cout << "SolvePoly found no_res=" << no_res << " results."
+//<< endl;
   for(int i=0; i<no_res; i++)
   {
 //     cout << "Processing inst_d[" << i << "]=" << inst_d[i] << endl;
@@ -9054,6 +9062,13 @@ TypeConstructor movingpoint(
 
 GenTC<CellGrid2D> cellgrid2d;
 
+/*
+4.12.6 Creation of the type constructore ~cellgrid3d~
+
+*/
+
+GenTC<CellGrid<3> > cellgrid3d;
+
 
 
 /*
@@ -17081,6 +17096,466 @@ Operator createCellGrid2D(
 
 
 /*
+5.2.1 Operator ~createCellGrid3D~
+
+~TypeMapping~ and ~Selection Function~
+
+*/
+
+static complexTM getCreateCellGrid3DCTM(){
+   complexTM tm;
+   tm.add(tm9<CcInt, CcInt, CcInt, CcInt, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcInt, CcInt, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcInt, CcInt, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcInt, CcInt, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcInt, CcReal, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcInt, CcReal, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcInt, CcReal, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcInt, CcReal, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcReal, CcInt, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcReal, CcInt, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcReal, CcInt, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcReal, CcInt, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcReal, CcReal, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcReal, CcReal, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcReal, CcReal, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcInt, CcReal, CcReal, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcInt, CcInt, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcInt, CcInt, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcInt, CcInt, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcInt, CcInt, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcInt, CcReal, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcInt, CcReal, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcInt, CcReal, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcInt, CcReal, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcReal, CcInt, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcReal, CcInt, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcReal, CcInt, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcReal, CcInt, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcReal, CcReal, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcReal, CcReal, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcReal, CcReal, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcInt, CcReal, CcReal, CcReal, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcInt, CcInt, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcInt, CcInt, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcInt, CcInt, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcInt, CcInt, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcInt, CcReal, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcInt, CcReal, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcInt, CcReal, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcInt, CcReal, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcReal, CcInt, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcReal, CcInt, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcReal, CcInt, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcReal, CcInt, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcReal, CcReal, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcReal, CcReal, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcReal, CcReal, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcInt, CcReal, CcReal, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcInt, CcInt, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcInt, CcInt, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcInt, CcInt, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcInt, CcInt, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcInt, CcReal, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcInt, CcReal, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcInt, CcReal, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcInt, CcReal, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcReal, CcInt, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcReal, CcInt, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcReal, CcInt, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcReal, CcInt, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcReal, CcReal, CcInt, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcReal, CcReal, CcInt, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcReal, CcReal, CcReal, CcInt,
+     CcInt, CcInt, CellGrid<3> >());
+   tm.add(tm9<CcReal, CcReal, CcReal, CcReal, CcReal, CcReal,
+     CcInt, CcInt, CellGrid<3> >());
+   return tm;
+}
+
+
+static ListExpr createCellGrid3DTypeMap(ListExpr args){
+  return getCreateCellGrid3DCTM()(args);
+}
+
+static int createCellGrid3DSelect(ListExpr args){
+   return getCreateCellGrid3DCTM().select(args);
+}
+
+/*
+~Functor~ and ~Value Mapping Array~
+
+*/
+
+template<class A1,class A2, class A3, class A4,
+  class A5, class A6, class A7, class A8, class R>
+class CreateCellGrid3DF{
+public:
+  void operator()(const A1* a1, const A2* a2, const A3* a3,
+                  const A4* a4, const A5* a5, const A6* a6,
+                  const A7* a7, const A8* a8, R* res){
+
+   double origin[3] = { (double)a1->GetValue(),
+       (double)a2->GetValue(), (double)a3->GetValue()};
+   double cwidth[3] = { (double)a4->GetValue(),
+       (double)a5->GetValue(), (double)a6->GetValue()};
+   int32_t cn[2] = { (int32_t)a7->GetValue(), (int32_t)a8->GetValue()};
+
+   res->set(origin, cwidth, cn);
+
+/*
+   res->set(a1->GetValue(), a2->GetValue(), a3->GetValue(),
+            a4->GetValue(), a5->GetValue(), a6->GetValue(),
+            a7->GetValue(), a8->GetValue());
+*/
+  }
+};
+
+ValueMapping createCellGrid3DValueMap[] = {
+    GenVM9<CcInt, CcInt, CcInt, CcInt, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcInt, CcInt,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcInt, CcInt, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcInt, CcInt,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcInt, CcInt, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcInt, CcInt,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcInt, CcInt, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcInt, CcInt,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcInt, CcReal, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcInt, CcReal,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcInt, CcReal, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcInt, CcReal,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcInt, CcReal, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcInt, CcReal,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcInt, CcReal, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcInt, CcReal,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcReal, CcInt, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcReal, CcInt,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcReal, CcInt, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcReal, CcInt,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcReal, CcInt, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcReal, CcInt,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcReal, CcInt, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcReal, CcInt,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcReal, CcReal, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcReal, CcReal,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcReal, CcReal, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcReal, CcReal,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcReal, CcReal, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcReal, CcReal,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcInt, CcReal, CcReal, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcInt, CcReal, CcReal,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcInt, CcInt, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcInt, CcInt,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcInt, CcInt, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcInt, CcInt,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcInt, CcInt, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcInt, CcInt,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcInt, CcInt, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcInt, CcInt,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcInt, CcReal, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcInt, CcReal,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcInt, CcReal, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcInt, CcReal,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcInt, CcReal, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcInt, CcReal,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcInt, CcReal, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcInt, CcReal,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcReal, CcInt, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcReal, CcInt,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcReal, CcInt, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcReal, CcInt,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcReal, CcInt, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcReal, CcInt,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcReal, CcInt, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcReal, CcInt,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcReal, CcReal, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcReal, CcReal,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcReal, CcReal, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcReal, CcReal,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcReal, CcReal, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcReal, CcReal,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcInt, CcReal, CcReal, CcReal, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcInt, CcReal, CcReal, CcReal,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcInt, CcInt, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcInt, CcInt,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcInt, CcInt, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcInt, CcInt,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcInt, CcInt, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcInt, CcInt,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcInt, CcInt, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcInt, CcInt,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcInt, CcReal, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcInt, CcReal,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcInt, CcReal, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcInt, CcReal,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcInt, CcReal, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcInt, CcReal,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcInt, CcReal, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcInt, CcReal,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcReal, CcInt, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcReal, CcInt,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcReal, CcInt, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcReal, CcInt,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcReal, CcInt, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcReal, CcInt,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcReal, CcInt, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcReal, CcInt,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcReal, CcReal, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcReal, CcReal,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcReal, CcReal, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcReal, CcReal,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcReal, CcReal, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcReal, CcReal,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcInt, CcReal, CcReal, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcInt, CcReal, CcReal,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcInt, CcInt, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcInt, CcInt,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcInt, CcInt, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcInt, CcInt,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcInt, CcInt, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcInt, CcInt,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcInt, CcInt, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcInt, CcInt,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcInt, CcReal, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcInt, CcReal,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcInt, CcReal, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcInt, CcReal,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcInt, CcReal, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcInt, CcReal,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcInt, CcReal, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcInt, CcReal,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcReal, CcInt, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcReal, CcInt,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcReal, CcInt, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcReal, CcInt,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcReal, CcInt, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcReal, CcInt,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcReal, CcInt, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcReal, CcInt,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcReal, CcReal, CcInt, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcReal, CcReal,
+      CcInt, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcReal, CcReal, CcInt, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcReal, CcReal,
+      CcInt, CcReal, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcReal, CcReal, CcReal, CcInt, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcReal, CcReal,
+      CcReal, CcInt, CcInt, CcInt, CellGrid<3> > >,
+
+    GenVM9<CcReal, CcReal, CcReal, CcReal, CcReal, CcReal, CcInt, CcInt,
+      CellGrid<3>, CreateCellGrid3DF<CcReal, CcReal, CcReal, CcReal,
+      CcReal, CcReal, CcInt, CcInt, CellGrid<3> > >
+};
+
+/*
+~Operator Instance~
+
+*/
+
+Operator createCellGrid3D(
+         "createCellGrid3D",
+          getCreateCellGrid3DCTM().getSpecification(
+              "createCellGrid2D(x0, y0, z0, xw, yw, z0, "
+              "no_cells_x, no_cells_y ) ",
+              "Creates a 3D cell grid from the arguments, (x0, y0, z0) "
+              " defines a corner point of the grid, xw, yw, zw are "
+              " the width for each dimension, "
+              " no_cells_x and no_cells_y is"
+              " the number of cells in x and y direction",
+              "query createCellgrid2D(1.0, 1.0, 1.0, 3.0, 3.0, 3.0, 5, 5)"),
+          getCreateCellGrid3DCTM().getVMCount(),
+          createCellGrid3DValueMap,
+          createCellGrid3DSelect,
+          createCellGrid3DTypeMap);
+
+
+
+
+/*
 5.2.2 Operator ~getRefinementPartition~
 
 */
@@ -18118,6 +18593,7 @@ class TemporalAlgebra : public Algebra
     AddTypeConstructor( &movingpoint );
 
     AddTypeConstructor( &cellgrid2d);
+    AddTypeConstructor( &cellgrid3d);
 
     rangeint.AssociateKind( Kind::RANGE() );
     rangeint.AssociateKind( Kind::DATA() );
@@ -18155,6 +18631,7 @@ class TemporalAlgebra : public Algebra
     movingpoint.AssociateKind( Kind::DATA() );
 
     cellgrid2d.AssociateKind( Kind::DATA() );
+    cellgrid3d.AssociateKind( Kind::DATA() );
 
     AddOperator( &temporalisempty );
     AddOperator( &temporalequal );
@@ -18248,6 +18725,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&getrefinementpartition);
 
     AddOperator(&createCellGrid2D);
+    AddOperator(&createCellGrid3D);
     
     AddOperator(&atRect);
     AddOperator(&moveTo);

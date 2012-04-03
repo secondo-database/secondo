@@ -361,6 +361,28 @@ public:
   }
 };
 
+/*
+1.3 class tm11
+
+Type mapping template for 9 operators.
+
+*/
+template<class A1, class A2, class A3, class A4, class A5,
+  class A6, class A7, class A8, class R>
+class tm9 : public simpleTMHelper{
+public:
+  tm9():simpleTMHelper(R::BasicType()){
+    *this << A1::BasicType();
+    *this << A2::BasicType();
+    *this << A3::BasicType();
+    *this << A4::BasicType();
+    *this << A5::BasicType();
+    *this << A6::BasicType();
+    *this << A7::BasicType();
+    *this << A8::BasicType();
+  }
+};
+
 
 
 /*
@@ -558,7 +580,7 @@ Returns the number of stored value mappings.
 
   This function realized value mappings in the form
     A1 [x] A2 [x] A3 [x] A4 [x] A5 [->] R
-  where Fun is the function applied to a1,a2,a3, and a4.
+  where Fun is the function applied to a1,a2,a3,a4 and a5.
 
 */
   template<class A1, class A2, class A3,class A4, class A5, 
@@ -578,6 +600,41 @@ Returns the number of stored value mappings.
     }  else {
       Fun fun;
       fun(a1,a2,a3,a4,a5,res);
+  }
+  return 0;
+}
+
+/*
+  ~Generic Value Mapping Function~
+
+  This function realized value mappings in the form
+    A1 [x] A2 [x] A3 [x] A4 [x] A5 [x] A6 [x] A7 [x] A8 [->] R
+  where Fun is the function applied to a1,a2,a3,a4,a5,a6,a7, and a8.
+
+*/
+  template<class A1, class A2, class A3,
+           class A4, class A5, class A6,
+           class A7, class A8, class R,
+           class Fun>
+  int GenVM9(Word* args, Word& result, int message,
+            Word& local, Supplier s){
+    result = ::qp->ResultStorage(s);
+    A1* a1 = static_cast<A1*>(args[0].addr);
+    A2* a2 = static_cast<A2*>(args[1].addr);
+    A3* a3 = static_cast<A3*>(args[2].addr);
+    A4* a4 = static_cast<A4*>(args[3].addr);
+    A5* a5 = static_cast<A5*>(args[4].addr);
+    A6* a6 = static_cast<A6*>(args[5].addr);
+    A7* a7 = static_cast<A7*>(args[6].addr);
+    A8* a8 = static_cast<A8*>(args[7].addr);
+    R* res = static_cast<R*>(result.addr);
+    if(!a1->IsDefined() || !a2->IsDefined() || !a3->IsDefined()||
+       !a4->IsDefined() || !a5->IsDefined() || !a6->IsDefined()||
+       !a7->IsDefined() || !a8->IsDefined() ){
+      res->SetDefined(false);
+    }  else {
+      Fun fun;
+      fun(a1,a2,a3,a4,a5,a6,a7,a8,res);
   }
   return 0;
 }

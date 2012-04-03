@@ -2735,6 +2735,27 @@ struct DisplayCellgrid2D : DisplayFunction {
 
 };
 
+struct DisplayCellgrid3D : DisplayFunction {
+
+  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  {
+    if(nl->IsEqual(value,Symbol::UNDEFINED())){
+        cout << Symbol::UNDEFINED();
+    } else {
+      cout << "[ x0 = " << nl->RealValue(nl->First(value))
+           << ", y0 = " << nl->RealValue(nl->Second(value))
+           << ", y0 = " << nl->RealValue(nl->Third(value))
+           << ", wx = " << nl->RealValue(nl->Fourth(value))
+           << ", wy = " << nl->RealValue(nl->Fifth(value))
+           << ", wy = " << nl->RealValue(nl->Sixth(value))
+           << ", nx = " << nl->IntValue(nl->Nth(7, value))
+           << ", nx = " << nl->IntValue(nl->Nth(8, value))
+           << "]";
+    }
+  }
+
+};
+
 /*
 Displayfunctions for JNetAlgebra
 
@@ -3386,6 +3407,7 @@ DisplayTTY::Initialize()
   d.Insert( "histogram2d", new DisplayHistogram2d() );
 
   d.Insert( "cellgrid2d", new DisplayCellgrid2D() );
+  d.Insert( "cellgrid3d", new DisplayCellgrid3D() );
 
   d.Insert( "flist", new DisplayFileList() );
 
