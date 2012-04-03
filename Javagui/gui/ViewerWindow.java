@@ -13,6 +13,7 @@ public class ViewerWindow extends JFrame{
     this.mw = mw;
     this. viewer = sv;
     setSize(640,480);
+    setTitle("Javagui: " + sv.getName());
     getContentPane().add(sv);
     addWindowListener( new WindowAdapter(){
        public void windowClosing(WindowEvent evt){
