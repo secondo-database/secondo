@@ -200,6 +200,12 @@ Signature: rect x cellgrid2d ->  stream(int)
 Example  : query cellnumber(rectangle2(3.0, 25.0, 3.0, 25.0), createCellGrid2D(0.0, 0.0, 2.0, 5.0, 16)) printstream count
 Result   : 60
 
+Operator : cellnumber
+Number   : 3
+Signature: rect3 x cellgrid3d ->  stream(int)
+Example  : query cellnumber(rectangle3(0.3, 2.5, 0.3, 2.5, -0.2, 0.3), createCellGrid3D(0.0, 0.0, -0.2, 0.5, 0.5, 0.4, 10, 6)) printstream count
+Result   : 50
+
 
 Operator : gridintersects
 Number   : 1
@@ -213,6 +219,11 @@ Signature: cellgrid2d x rect x rect x int -> bool
 Example  : query gridintersects( createCellGrid2D(0.0, 0.0, 0.5, 0.5, 10), rectangle2(0.3, 1.5, 0.3, 1.5), rectangle2(0.6, 1.7, 0.6, 1.7), 12)
 Result   : TRUE
 
+Operator : gridintersects
+Number   : 3
+Signature: cellgrid3d x rect3 x rect3 x int -> bool
+Example  : query gridintersects( createCellGrid3D(0.0, 0.0, 0.0, 0.5, 0.5, 0.5, 10, 10), rectangle3(0.3, 1.5, 0.3, 1.5, 0.2, 0.8), rectangle3(0.6, 1.7, 0.6, 1.7, 0.6, 0.8), 112)
+Result   : TRUE
 
 Operator : gridcell2rect
 Number   : 1

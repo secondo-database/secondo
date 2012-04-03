@@ -877,20 +877,36 @@ nx is the number of cells on every row,
 ny is the number of cells on every column.
 The grid can be endless along with z-axis.
 
+Update by Christian D[ue]ntgen
+Accept cellgrid2D data type
+
+Update by Jiamin Lu at 2th Apr.
+Accept cellgrid3D data type,
+and use CellGrid class to replace the CellGrid2D class for 2-dimension.
+
+
+
 */
 ListExpr
 cellNumberTM( ListExpr args )
 {
   NList l(args);
   string err = "cellnumber expects(rect, real, real, real, real, int) "
-      "or (rect3, real, real, real, real, real, real, int, int) ";
+      "or (rect3, real, real, real, real, real, real, int, int) "
+      "or (rect, cellgrid2d)"
+      "or (rect3, cellgrid3d)";
 
   bool is3D = false;
   int len = l.length();
 
   if(len==2){ // rect x gridcell2d -> stream(int)
-    if(listutils::isSymbol(nl->First(args), Rectangle<2>::BasicType()) &&
-       listutils::isSymbol(nl->Second(args), CellGrid2D::BasicType())){
+    ListExpr first = nl->First(args);
+    ListExpr second = nl->Second(args);
+    if( (listutils::isSymbol(first, Rectangle<2>::BasicType()) &&
+        listutils::isSymbol(second, CellGrid<2>::BasicType()))
+//        listutils::isSymbol(second, CellGrid2D::BasicType()))
+     ||(listutils::isSymbol(first, Rectangle<3>::BasicType()) &&
+        listutils::isSymbol(second, CellGrid<3>::BasicType()))){
        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                               nl->SymbolAtom(CcInt::BasicType()));
     }
@@ -947,7 +963,7 @@ and the cn is the number of the cell that need to be verified.
 The operator also can support 3D grid, and the map becomes
 
 real x real x real x real x real x real
- x int x int x rect x rect x int -> booln
+ x int x int x rect3 x rect3 x int -> bool
 
 The parameter list contains:
 x0, y0, z0, x-width, y-width, z-width, nx, ny, rectA, rectB, cn.
@@ -958,6 +974,21 @@ nx and ny decides the amount of cells on every row and column of the grid.
 The grid is end-less in z-axis.
 cn is also the number of the cell that need to be verified.
 
+Update by Christian D[ue]ntgen
+Accept CellGrid2D data type, maps
+
+----
+cellgrid2d x rect x rect x int -> bool
+----
+
+Update by Jiamin Lu
+Accept CellGrid3D data type, maps
+
+----
+cellgrid3d x rect3 x rect3 x int -> bool
+----
+
+
 */
 
 ListExpr
@@ -966,25 +997,37 @@ gridIntersectsTM( ListExpr args )
   NList l(args);
   string err = "gridIntersects expects "
       "(x0, y0, xw, yw, nx, rectA, rectB, cn) or "
-      "(x0, y0, z0, xw, yw, zw, nx, ny, rectA, rectB, cn) or"
-      "(cellgrid2d, rectA, rectB, cn)";
-
-
-
+      "(x0, y0, z0, xw, yw, zw, nx, ny, rect3A, rect3B, cn) or"
+      "(cellgrid2d, rectA, rectB, cn) or"
+      "(cellgrid3d, rect3A, rect3B, cn)";
 
 
   bool is3D = false;
   int len = l.length();
 
   if(len==4){ // 2D - using cellgrid
-    if(!listutils::isSymbol(nl->First(args), CellGrid2D::BasicType()) ||
-      !listutils::isSymbol(nl->Second(args), Rectangle<2>::BasicType()) ||
-      !listutils::isSymbol(nl->Third(args), Rectangle<2>::BasicType() ) ||
-       !listutils::isSymbol(nl->Fourth(args), CcInt::BasicType())){
-      return listutils::typeError(err);
-    } else {
-       return  nl->SymbolAtom(CcBool::BasicType());
-    }
+    ListExpr first  = nl->First(args);
+    ListExpr second = nl->Second(args);
+    ListExpr third  = nl->Third(args);
+    ListExpr fourth = nl->Fourth(args);
+
+//      if ( ( listutils::isSymbol(first, CellGrid2D::BasicType()) &&
+      if ( ( listutils::isSymbol(first, CellGrid<2>::BasicType()) &&
+             listutils::isSymbol(second, Rectangle<2>::BasicType()) &&
+             listutils::isSymbol(third, Rectangle<2>::BasicType()) &&
+             listutils::isSymbol(fourth, CcInt::BasicType()) )
+        || ( listutils::isSymbol(first, CellGrid<3>::BasicType()) &&
+             listutils::isSymbol(second, Rectangle<3>::BasicType()) &&
+             listutils::isSymbol(third, Rectangle<3>::BasicType()) &&
+             listutils::isSymbol(fourth, CcInt::BasicType()) ) )
+      {
+        return nl->SymbolAtom(CcBool::BasicType());
+      }
+      else
+      {
+        return listutils::typeError(err);
+      }
+
   }
 
   if (len == 11)
@@ -1937,8 +1980,10 @@ int
 cellNumberVM(Word* args, Word& result,
                     int message, Word& local, Supplier s)
 {
-struct CellGrid{
-  CellGrid(double _x0, double _y0, double _z0,
+struct InCellGrid{
+  //Internal Cell Grid,
+  //to different from the CellGrid class in TemporalAlgebra
+  InCellGrid(double _x0, double _y0, double _z0,
            double _xw, double _yw, double _zw,
            int _nx, int _ny, bool _3D):
     nx(_nx), ny(_ny),
@@ -2064,7 +2109,7 @@ with cell numbers that bigger than 0.
   bool is3D;
 };
 
-  CellGrid* grid = static_cast<CellGrid*>(local.addr);
+  InCellGrid* grid = static_cast<InCellGrid*>(local.addr);
 
   switch (message) {
   case OPEN: {
@@ -2083,15 +2128,40 @@ with cell numbers that bigger than 0.
         return CANCEL;
       }
     }
-    if(len==2){
-      Rectangle<2> *rect = (Rectangle<2> *)args[0].addr;
-      const CellGrid2D* g = static_cast<CellGrid2D*>(args[1].addr);
-      grid = new CellGrid(g->getX0(), g->getY0(), 0.0,
-                          g->getXw(), g->getYw(), 0.0,
-                          g->getNx(), 0, false);
-      grid->setBoundBox(rect->MinD(0), rect->MaxD(0),
-                        rect->MinD(1),rect->MaxD(1));
+    if(len==2)
+    {
+      ListExpr rectType = qp->GetSupplierTypeExpr(qp->GetSon(s, 0));
+      if (listutils::isSymbol(rectType, Rectangle<2>::BasicType()))
+      {
+        Rectangle<2> *rect = (Rectangle<2> *)args[0].addr;
+        const CellGrid<2>* g = static_cast<CellGrid<2>*>(args[1].addr);
+        x0 = g->getOrigin(0);
+        y0 = g->getOrigin(1);
+        xw = g->getCellWidth(0);
+        yw = g->getCellWidth(1);
+        nx = g->getCellNum(0);
+        grid = new InCellGrid(x0, y0, z0, xw, yw, zw, nx, ny, false);
+        grid->setBoundBox(rect->MinD(0), rect->MaxD(0),
+                          rect->MinD(1),rect->MaxD(1));
+      }
+      else if (listutils::isSymbol(rectType, Rectangle<3>::BasicType()))
+      {
+        Rectangle<3> *rect = (Rectangle<3> *)args[0].addr;
+        const CellGrid<3>* g = static_cast<CellGrid<3>*>(args[1].addr);
 
+        x0 = g->getOrigin(0);
+        y0 = g->getOrigin(1);
+        z0 = g->getOrigin(2);
+        xw = g->getCellWidth(0);
+        yw = g->getCellWidth(1);
+        zw = g->getCellWidth(2);
+        nx = g->getCellNum(0);
+        ny = g->getCellNum(1);
+        grid = new InCellGrid(x0, y0, z0, xw, yw, zw, nx, ny, true);
+        grid->setBoundBox(rect->MinD(0), rect->MaxD(0),
+                          rect->MinD(1), rect->MaxD(1),
+                          rect->MinD(2), rect->MaxD(2));
+      }
     } else if (6 == len) {
       Rectangle<2> *rect = (Rectangle<2> *)args[0].addr;
       x0 = ((CcReal *)args[1].addr)->GetValue();
@@ -2099,7 +2169,7 @@ with cell numbers that bigger than 0.
       xw = ((CcReal *)args[3].addr)->GetValue();
       yw = ((CcReal *)args[4].addr)->GetValue();
       nx = ((CcInt *)args[5].addr)->GetValue();
-      grid = new CellGrid(x0, y0, z0, xw, yw, zw, nx, ny, false);
+      grid = new InCellGrid(x0, y0, z0, xw, yw, zw, nx, ny, false);
       grid->setBoundBox(rect->MinD(0), rect->MaxD(0),
                         rect->MinD(1),rect->MaxD(1));
     } else { // len = 9
@@ -2112,7 +2182,8 @@ with cell numbers that bigger than 0.
       zw = ((CcReal *)args[6].addr)->GetValue();
       nx = ((CcInt *)args[7].addr)->GetValue();
       ny = ((CcInt *)args[8].addr)->GetValue();
-      grid = new CellGrid(x0, y0, z0, xw, yw, zw, nx, ny, true);
+
+      grid = new InCellGrid(x0, y0, z0, xw, yw, zw, nx, ny, true);
       grid->setBoundBox(rect->MinD(0), rect->MaxD(0),
                         rect->MinD(1), rect->MaxD(1),
                         rect->MinD(2), rect->MaxD(2));
@@ -2193,22 +2264,58 @@ gridIntersectsVM(Word* args, Word& result,
     }
   }
 
-  if(noSons==4){ // 2d grid using cellgrid2d
-    const CellGrid2D* grid = static_cast<CellGrid2D*>(args[0].addr);
-    const Rectangle<2>* rectA = static_cast<const Rectangle<2>*>(args[1].addr);
-    const Rectangle<2>* rectB = static_cast<const Rectangle<2>*>(args[2].addr);
-    cellno = (static_cast<CcInt*>(args[3].addr))->GetValue();
-    if (!rectA->Intersects(*rectB)) {
-      res->Set( true, false );
-      return 0;
-    } else {
-      x0 = grid->getX0();
-      y0 = grid->getY0();
-      xw = grid->getXw();
-      yw = grid->getYw();
-      nx = grid->getNx();
-      interx = max(rectA->MinD(0), rectB->MinD(0));
-      intery = max(rectA->MinD(1), rectB->MinD(1));
+  if(noSons==4){
+    ListExpr gridType = qp->GetSupplierTypeExpr(qp->GetSon(s, 0));
+
+    if (listutils::isSymbol(gridType, CellGrid<2>::BasicType()))
+    {
+      // 2d grid using cellgrid2d
+      const CellGrid<2>* grid = static_cast<CellGrid<2>*>(args[0].addr);
+      const Rectangle<2>* rectA =
+          static_cast<const Rectangle<2>*>(args[1].addr);
+      const Rectangle<2>* rectB =
+          static_cast<const Rectangle<2>*>(args[2].addr);
+      cellno = (static_cast<CcInt*>(args[3].addr))->GetValue();
+      if (!rectA->Intersects(*rectB)) {
+        res->Set( true, false );
+        return 0;
+      } else {
+        x0 = grid->getOrigin(0);
+        y0 = grid->getOrigin(1);
+        xw = grid->getCellWidth(0);
+        yw = grid->getCellWidth(1);
+        nx = grid->getCellNum(0);
+
+        interx = max(rectA->MinD(0), rectB->MinD(0));
+        intery = max(rectA->MinD(1), rectB->MinD(1));
+      }
+    }
+    else
+    {
+      // 3d grid using cellgrid3d
+      is3D = true;
+      Rectangle<3> *rectA = (Rectangle<3> *)args[1].addr;
+      Rectangle<3> *rectB = (Rectangle<3> *)args[2].addr;
+      cellno = ((CcInt *)args[3].addr)->GetValue();
+
+      if (!rectA->Intersects(*rectB)) {
+        res->Set(true, false);
+        return 0;
+      } else {
+        const CellGrid<3>* grid = static_cast<CellGrid<3>*>(args[0].addr);
+        x0 = grid->getOrigin(0);
+        y0 = grid->getOrigin(1);
+        z0 = grid->getOrigin(2);
+        xw = grid->getCellWidth(0);
+        yw = grid->getCellWidth(1);
+        zw = grid->getCellWidth(2);
+        nx = grid->getCellNum(0);
+        ny = grid->getCellNum(1);
+
+        interx = max(rectA->MinD(0), rectB->MinD(0));
+        intery = max(rectA->MinD(1), rectB->MinD(1));
+        interz = max(rectA->MinD(2), rectB->MinD(2));
+      }
     }
   } else if (noSons == 8) { // 2D grid, using definition of grid
     Rectangle<2> *rectA = (Rectangle<2> *)args[5].addr;
@@ -2950,7 +3057,9 @@ struct cellnumber_Info : OperatorInfo {
     signature =
         "rect x real x real x real x real x int -> stream(int)\n"
         "rect3 x real x real x real x real x real x real x int x int"
-        "-> stream(int)";
+        "-> stream(int)\n"
+        "rect x cellgrid2d -> stream(int)\n"
+        "rect3 x cellgrid3d -> stream(int)";
     syntax = "cellnumber( box, x0, y0, [z0,] wx, wy, [wz,] nx, [ny] )";
     meaning = "Returns a stream of numbers of all cells intersected by box "
         "with respect to a regular 2D- [3D-] grid starting at (x0,y0 [,z0]) and"
@@ -2968,10 +3077,12 @@ struct gridintersects_Info : OperatorInfo {
   gridintersects_Info() : OperatorInfo()
   {
     name = "gridintersects";
-    signature = "real x real [x real] x real x real [x real] x int [x int] x "
-        "rectangle x rectangle -> bool\n"
-        "real x real x real x real x real x real"
-        "x int x int x rect x rect x int -> bool";
+    signature =
+        "real x real x real x real x int x rect x rect -> bool\n"
+        "real x real x real x real x real x real x int x int "
+        "x rect3 x rect3 x int -> bool\n"
+        "cellgrid2d x rect x rect x int ->bool\n"
+        "cellgrid3d x rect3 x rect3 x int ->bool";
     syntax = "op ( x0, y0, [z0,] wx, wy, [wz,] nx, [ny,] box1, box2)";
     meaning = "Return whether the current cell is "
     "the smallest common grid cell overlapped by these two rectangles. For "
