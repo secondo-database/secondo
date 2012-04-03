@@ -79,6 +79,35 @@ public QueryViewer(){
    }
  }
 
+ public boolean displayAt(String viewerName, SecondoObject o){
+   int index  = getViewerIndex(viewerName);
+   if(index<0){
+      return false;
+   }
+   SecondoViewer sv = (SecondoViewer) SubViewers.get(index);
+   if(!sv.canDisplay(o)){
+      return false;
+   }
+   selectViewerIndex(index);
+   sv.addObject(o);
+   return true;
+ }
+
+
+ int getViewerIndex(String name){
+   if(name==null){
+     return -1;
+   }
+   for(int i=0;i<SubViewers.size();i++){
+      SecondoViewer sv = (SecondoViewer) SubViewers.get(i);
+      if(name.equals(sv.getName())){
+        return i;
+      }
+   }
+   return -1;
+ }
+
+
  public void removeObject(SecondoObject o){
    RelSplitter.removeObject(o);
    SecondoViewer SV;
