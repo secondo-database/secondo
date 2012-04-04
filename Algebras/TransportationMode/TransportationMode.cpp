@@ -5063,7 +5063,7 @@ int GetRGNodesValueMap(Word* args, Word& result, int message,
         rd->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        rd->GetRGNodes();
+        rd->GetRGNodes();//BusNetwork.cpp
         local.setAddr(rd);
 
         return 0;
@@ -9088,6 +9088,59 @@ ListExpr OpTMWalkSPTypeMap ( ListExpr args )
      nl->SymbolValue(arg1) == "pavenetwork"){
     return nl->SymbolAtom("line");
   }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator walksp with pavement infrastructure considering the 
+type of points
+
+*/
+
+ListExpr OpTMWalkSPTYTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 6 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+  ListExpr arg6 = nl->Sixth(args);
+
+
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  ListExpr xType;
+  nl->ReadFromString(VisualGraph::Query2TypeInfo, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(arg3))
+  return listutils::typeError("para3 should be a relation");
+
+  if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(arg4))
+  return listutils::typeError("para4 should be a relation");
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
+  if(!CompareSchemas(arg4, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  if(!listutils::isBTreeDescription(arg5))
+    return listutils::typeError("para5 should be a btree");
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "pavenetwork" && 
+     nl->SymbolValue(arg6) == "int"){
+    return nl->SymbolAtom("line");
+  }
+
 
   return nl->SymbolAtom ( "typeerror" );
 }
@@ -14154,6 +14207,28 @@ ListExpr OpTMModifyLineTypeMap ( ListExpr args )
 }
 
 /*
+TypeMap fun for operator refinedata
+
+*/
+
+ListExpr OpTMRefineDataTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+
+
+  if (nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+      nl->SymbolValue(param1) == "sline" )
+  {
+    return nl->SymbolAtom ( "sline" );
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
 TypeMap fun for operator checkroads
 
 */
@@ -15363,6 +15438,51 @@ int OpTMWalkSPValueMap ( Word* args, Word& result, int message,
       pn->CloseVisualGraph(vg); 
       return 0;
 }
+
+/*
+trip planning in obstacle space with considering the type of points
+
+*/
+
+int OpTMWalkSPTypeValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+      Pavement* pn = (Pavement*)args[0].addr;
+
+      Relation* r1 = (Relation*)args[1].addr;
+      Relation* r2 = (Relation*)args[2].addr;
+      Relation* r3 = (Relation*)args[3].addr;
+      result = qp->ResultStorage(in_pSupplier);
+      if(pn->IsDGInit() == false){
+        cout<<"dual graph is not initialized"<<endl;
+        return 0;
+      }
+      if(pn->IsVGInit() == false){
+        cout<<"visual graph is not initialized"<<endl;
+        return 0;
+      }
+      DualGraph* dg = pn->GetDualGraph();
+      VisualGraph* vg = pn->GetVisualGraph();
+      if(dg == NULL || vg == NULL){
+        cout<<"graph invalid"<<endl;
+        return 0; 
+      }
+
+      BTree* btree = (BTree*)args[4].addr;
+      int type = ((CcInt*)args[5].addr)->GetIntval();
+
+      Walk_SP* wsp = new Walk_SP(dg, vg, r1, r2);
+      wsp->rel3 = r3;
+
+      Line* res = static_cast<Line*>(result.addr);
+      wsp->WalkShortestPath_Type(res, btree, type);
+      
+      delete wsp; 
+      pn->CloseDualGraph(dg);
+      pn->CloseVisualGraph(vg); 
+      return 0;
+}
+
 
 /*
 Value Mapping for testwalksp old  operator
@@ -20439,7 +20559,30 @@ int OpTMModifyLinemap ( Word* args, Word& result, int message,
 
 
   DataClean* datacl = new DataClean(); 
-  datacl->ModifyLine(l, pResult);
+  datacl->ModifyLine(l, pResult); //Partition.cpp
+  delete datacl;
+
+  return 0;
+}
+
+/*
+given a line value, modify its coordinates value. not so many numbers after 
+dot.
+
+*/
+
+int OpTMRefineDatamap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  SimpleLine* l = (SimpleLine*)args[0].addr;
+
+  result = qp->ResultStorage( in_pSupplier );
+  SimpleLine *pResult = (SimpleLine *)result.addr;
+
+
+  DataClean* datacl = new DataClean(); 
+  datacl->RefineData(l, pResult); //Partition.cpp
   delete datacl;
 
   return 0;
@@ -20465,7 +20608,7 @@ int OpTMCheckRoadsmap ( Word* args, Word& result, int message,
         datacl->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        datacl->CheckRoads(rel, rtree);
+        datacl->CheckRoads(rel, rtree);//Partition.cpp
         local.setAddr(datacl);
         return 0;
       }
@@ -20898,6 +21041,14 @@ Operator walk_sp(
     OpTMWalkSPValueMap,
     Operator::SimpleSelect,
     OpTMWalkSPTypeMap
+);
+
+Operator walk_sp_type(
+    "walk_sp_type",
+    OpTMWalkSPTypeSpec,
+    OpTMWalkSPTypeValueMap,
+    Operator::SimpleSelect,
+    OpTMWalkSPTYTypeMap
 );
 
 
@@ -21732,6 +21883,14 @@ Operator modifyline(
     OpTMModifyLineTypeMap        // type mapping
 );
 
+Operator refinedata(
+    "refinedata",               // name
+    OpTMRefineDataSpec,          // specification
+    OpTMRefineDatamap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMRefineDataTypeMap        // type mapping
+);
+
 /*
 Operator checkroads(
     "checkroads",
@@ -21866,6 +22025,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&walk_sp_old);//trip planning for pedestrian 
     AddOperator(&test_walk_sp); //test the algorithm of trip planning 
     AddOperator(&walk_sp);//trip planning for pedestrian 
+    AddOperator(&walk_sp_type);//trip planning for pedestrian considering type
     AddOperator(&setpave_rid);//set rid value for each pavement 
     AddOperator(&pave_loc_togp);//map pavements locations to gpoints 
     ////////////////////////////////////////////////////////////////
@@ -22100,7 +22260,8 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&checksline);
    AddOperator(&modifyline);
 //   AddOperator(&checkroads);
-   
+   AddOperator(&refinedata);
+
    ///////////////////two join operators, using rtree//////////////////////
    AddOperator(&tm_join1);
    ////////////////////////////////////////////////////////////////////

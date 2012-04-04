@@ -6431,6 +6431,62 @@ void DataClean::ModifyLine(SimpleLine* in, SimpleLine* out)
 }
 
 /*
+modeify the data, delete some digits after dot
+
+*/
+void DataClean::RefineData(SimpleLine* in, SimpleLine* out)
+{
+//  *out = *in;
+  out->Clear();
+  out->StartBulkLoad();
+  int edgeno = 0;
+
+  const double delta_dist = 0.001;
+  SpacePartition* sp = new SpacePartition();
+  vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
+  sp->ReorderLine(in, seq_halfseg);
+  
+  vector<Point> ps_list;
+  for(unsigned int i = 0;i < seq_halfseg.size();i++){
+      Point p1 = seq_halfseg[i].from;
+      Point p2 = seq_halfseg[i].to;
+/*      printf("%.6f %.6f %.6f %.6f\n",p1.GetX(), p1.GetY(), 
+                                     p2.GetX(), p2.GetY());*/
+      Modify_Point4(p1);
+      Modify_Point4(p2);
+
+/*      printf("%.6f %.6f %.6f %.6f\n",p1.GetX(), p1.GetY(), 
+                                     p2.GetX(), p2.GetY());*/
+      if(i == 0){
+        if(p1.Distance(p2) > delta_dist){
+          ps_list.push_back(p1);
+          ps_list.push_back(p2);
+        }else
+          ps_list.push_back(p1);
+      }else{
+        Point last_p = ps_list[ps_list.size() - 1];
+        if(p1.Distance(last_p) > delta_dist)
+          ps_list.push_back(p1);
+        last_p = ps_list[ps_list.size() - 1];
+        if(p2.Distance(last_p) > delta_dist)
+          ps_list.push_back(p2);
+      }
+  }
+  delete sp;
+
+  for(unsigned int i = 0;i < ps_list.size() - 1;i++){
+      HalfSegment hs(true, ps_list[i], ps_list[i + 1]);
+      hs.attr.edgeno = edgeno++;
+      *out += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *out += hs;
+  }
+
+  out->EndBulkLoad();
+
+}
+
+/*
 check the coordinates; data clean for roads data 
 it checks whether two roads have overlapping. if it is, then delete the two
 old roads, and create a new one by doing union on them 
@@ -6856,7 +6912,7 @@ double PointOnSline(SimpleLine* sl, Point* loc, bool b)
   if(sl->AtPoint(*loc, b, result) == false){
     cout<<"error"<<endl;
   }
-  
+
   if(fabs(res - result) > 0.001){
     cout<<"too large deviation "<<endl;
     cout<<"res "<<res<<" atpoint "<<result<<endl;

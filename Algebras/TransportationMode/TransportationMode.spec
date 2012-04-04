@@ -35,6 +35,7 @@ operator createdualgraph alias CREATEDUALGRAPH pattern op(_,_,_)
 
 operator walk_sp_old alias WALK_SP_OLD pattern op(_,_,_,_,_)
 operator walk_sp alias WALK_SP pattern op(_,_,_,_)
+operator walk_sp_type alias WALK_SP_TYPE pattern op(_,_,_,_,_,_)
 operator test_walk_sp alias TEST_WALK_SP pattern op(_,_,_,_,_)
 operator setpave_rid alias SETPAVE_RID pattern op(_,_,_)
 operator pave_loc_togp alias PAVE_LOC_TOGP pattern op(_,_,_,_)
@@ -223,7 +224,7 @@ operator shortestpath_tm alias SHORTESTPATH_TM pattern op(_,_,_,_)
 operator navigation1 alias NAVIGATION1 pattern op(_,_,_,_,_,_,_)
 
 operator modifyline alias MODIFYLINE pattern op(_)
-
+operator refinedata alias REFINEDATA pattern op(_)
 operator tm_join1 alias TM_JOIN1 pattern op(_,_,_)
 
 

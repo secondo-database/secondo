@@ -4014,6 +4014,90 @@ void Walk_SP::WalkShortestPath(Line* res)
 }
 
 /*
+trip planning for pedestrians in obstacles space considering the type of points
+
+*/
+
+void Walk_SP::WalkShortestPath_Type(Line* res, BTree* btree_qloc, int type)
+{
+  cout<<"WalkShortestPath_Type"<<endl;
+
+  if(rel1->GetNoTuples() != 1){
+    cout<<"input query relation is not correct"<<endl;
+    return;
+  }
+  Tuple* t1 = rel1->GetTuple(1, false);
+  int oid1 = ((CcInt*)t1->GetAttribute(VisualGraph::QOID))->GetIntval();
+  Point* p1 = (Point*)t1->GetAttribute(VisualGraph::QLOC2);
+  Point loc1(*p1);
+  t1->DeleteIfAllowed(); 
+
+
+//  cout<<"tri_id1 "<<oid1<<" tri_id2 "<<oid2<<endl;
+//  cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
+  oid1 -= dg->min_tri_oid_1;
+
+
+  int no_node_graph = dg->No_Of_Node();
+  if(oid1 < 1 || oid1 > no_node_graph){
+    cout<<"loc1 does not exist"<<endl;
+    return;
+  }
+
+  Tuple* tuple1 = dg->GetNodeRel()->GetTuple(oid1, false);
+  Region* reg1 = (Region*)tuple1->GetAttribute(DualGraph::PAVEMENT);
+  
+  CompTriangle* ct1 = new CompTriangle(reg1);
+  assert(ct1->PolygonConvex()); 
+  delete ct1; 
+  
+  if(loc1.Inside(*reg1) == false){
+    tuple1->DeleteIfAllowed();
+    cout<<"point1 is not inside the polygon"<<endl;
+    return;
+  }
+  tuple1->DeleteIfAllowed();
+
+  ////////////////////////////////////////////////////
+  ////////debuging euclidean connection//////////////
+//   oid1 = 34450 - dg->min_tri_oid_1;
+//   oid2 = 34430 - dg->min_tri_oid_1;
+//   loc1.Set(24164.01, 15711.896);
+//   loc2.Set(24170.12, 15720.85);
+
+  //////////////////////////////////////////////////
+  
+//  WalkShortestPath2(oid1, oid2, loc1, loc2, res);
+
+ ///without the following lines 0.383s
+ //with 0.49s
+
+  CcInt* search_id = new CcInt(true, type);
+  BTreeIterator* btree_iter = btree_qloc->ExactMatch(search_id);
+
+  vector<double> dist_list;
+  
+  while(btree_iter->Next()){
+        Tuple* tuple = rel2->GetTuple(btree_iter->GetId(), false);
+        int oid =
+          ((CcInt*)tuple->GetAttribute(VisualGraph::TY_QOID))->GetIntval();
+        Point d_loc1 = *((Point*)tuple->GetAttribute(VisualGraph::TY_QLOC1));
+        Point d_loc2 = *((Point*)tuple->GetAttribute(VisualGraph::TY_QLOC2));
+        int ty =
+          ((CcInt*)tuple->GetAttribute(VisualGraph::TY_VAL))->GetIntval();
+        assert(ty == type);
+        tuple->DeleteIfAllowed();
+        dist_list.push_back(d_loc2.Distance(loc1));
+  }
+  delete btree_iter;
+  delete search_id;
+
+
+  sort(dist_list.begin(), dist_list.end());
+  
+}
+
+/*
 test shortest path for pedestrian 
 
 */
@@ -4651,6 +4735,8 @@ bool Walk_SP::EuclideanConnect2(int oid1, Point loc1, int oid2, Point loc2)
 
     return find;
 }
+
+
 
 /*
 Randomly generates points inside pavement polygon
@@ -7389,6 +7475,10 @@ string VisualGraph::EdgeTypeInfo =
   "(rel(tuple((Oid1 int)(Oid2 int)(Connection line))))";
 string VisualGraph::QueryTypeInfo =
   "(rel(tuple((Oid int)(Loc1 point)(Loc2 point))))";
+
+string VisualGraph::Query2TypeInfo =
+  "(rel(tuple((Oid int)(Loc1 point)(Loc2 point)(Type int))))";
+
 
 VisualGraph::~VisualGraph()
 {

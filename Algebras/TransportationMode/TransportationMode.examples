@@ -98,6 +98,11 @@ Signature: pavement x rel1 x rel2 x rel3  -> line
 Example  : query no_components(walk_sp(pn, query_loc1 feed addcounter[Id,1] filter[.Id = 32] remove[Id] consume, query_loc1 feed addcounter[Id,1] filter[.Id = 26] remove[Id] consume, tri_reg_new));
 Result   : 1
 
+Operator : walk_sp_type
+Number   : 2
+Signature: pavement x rel1 x rel2 x rel3 x btree x int  -> line
+Example  : query no_components(walk_sp_type(pn, query_loc1 feed addcounter[Id,1] filter[.Id = 32] remove[Id] consume, query_loc1 feed addcounter[Id,1] filter[.Id = 26] remove[Id] consume, tri_reg_new, btree_qloc, 2));
+Result   : 1
 
 Operator : test_walk_sp
 Number   : 2
@@ -1163,6 +1168,11 @@ Signature: sline -> sline
 Example  : query size(modifyline([const sline value((2.0 1.0 3.0 1.0))]));
 Result   : 1
 
+Operator : refinedata
+Number   : 1
+Signature: sline -> sline
+Example  : query size(refinedata([const sline value((2.0 1.0 3.0 1.0))]));
+Result   : 1
 
 Operator : tm_join1
 Number   : 1

@@ -410,7 +410,18 @@ const string OpTMWalkSPSpec  =
     "<text>query walk_sp(pn, query_loc1, query_loc2,tri_reg_new);"
     "</text--->"
     ") )";
-    
+
+const string OpTMWalkSPTypeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>pavement x rel1 x rel2 x rel3 x btree x int-> line</text--->"
+    "<text>walk_sp_type(pn, rel, rel, rel, btree, int)</text--->"
+    "<text>get the shortest path for pedestrian</text--->"
+    "<text>query walk_sp_type(pn, query_loc1, query_loc2, "
+    "tri_reg_new, btree_qloc, 2);"
+    "</text--->"
+    ") )";
+
 const string OpTMTestWalkSPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -1283,6 +1294,16 @@ const string OpTMModifyLineSpec  =
     "<text>modifyline(sline)</text--->"
     "<text>modify the coordinates of a sline, for numeric problem</text--->"
     "<text>query modifyline([const sline value ((2.33 3.33 4.444 5.555))])"
+    "</text--->"
+    ") )";
+
+const string OpTMRefineDataSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>sline -> sline</text--->"
+    "<text>refinedata(sline)</text--->"
+    "<text>modify the coordinates of a sline, for numeric problem</text--->"
+    "<text>query refinedata([const sline value ((2.33 3.33 4.444 5.555))])"
     "</text--->"
     ") )";
 

@@ -612,6 +612,51 @@ inline void Modify_Point3(Point& p, double f)
 
 }
 
+inline void Modify_Point4(Point& p)
+{
+    double x,y;
+
+    x = p.GetX();
+    y = p.GetY();
+
+    char buffer1[64];
+    sprintf(buffer1, "%f", x);
+
+    int i = 0;
+    int length = 0; 
+//    while(buffer1[i] != '\0'){
+    while(buffer1[i] != '.'){
+//      cout<<buffer1[i]<<endl;
+      i++;
+    }
+    length = i + 3 + 1;
+//    cout<<buffer1<<endl;
+    char buffer1_new[64];
+    strncpy(buffer1_new, buffer1, length);
+    buffer1_new[length] = '\0';
+    double xx;
+    sscanf(buffer1_new, "%lf", &xx);
+//    cout<<buffer1_new<<" "<<xx<<endl;
+
+
+    char buffer2[64];
+    sprintf(buffer2, "%f", y);
+    i = 0; length = 0;
+    while(buffer2[i] != '.'){
+      i++;
+    }
+    length = i + 3 + 1;
+
+    char buffer2_new[64];
+    strncpy(buffer2_new, buffer2, length);
+    buffer2_new[length] = '\0';
+    double yy;
+    sscanf(buffer2_new, "%lf", &yy);
+
+    p.Set(xx, yy);
+
+}
+
 void MySetOp(const Region& reg1, const Region& reg2,Region& result,
            myavlseg::SetOperation op);
 void MySetOp(const Line& line, const Region& region, Line& result,
@@ -1081,6 +1126,7 @@ struct DataClean{
 
 
   void ModifyLine(SimpleLine* in, SimpleLine* out);
+  void RefineData(SimpleLine* in, SimpleLine* out);
   void CheckRoads(Relation* r, R_Tree<2,TupleId>* rtree);
   void DFTraverse(Relation* rel,R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
                           Line* sl, vector<int>& id_list, unsigned int id);

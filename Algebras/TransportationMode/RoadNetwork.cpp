@@ -761,6 +761,7 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
         return;
    }
 
+//   cout<<*gp1<<" "<<*gp2<<endl;
    //////////////////////////////////////////////////////////////////////
    /////////find the junction node for gp1 and gp2//////////////////////
    /////////////////////////////////////////////////////////////////////
@@ -771,12 +772,15 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
    vector<GP_Point> gp_p_list1;
    rg->GetJunctionsNode(gp1->GetRouteId(), gp_p_list1);
+   if(gp_p_list1.size() == 0) return; //disjoint road segment 
    assert(gp_p_list1.size() > 0);
 //   LOOP_PRINT2(gp_p_list1);
 
    vector<GP_Point> gp_p_list2;
    rg->GetJunctionsNode(gp2->GetRouteId(), gp_p_list2);
-   assert(gp_p_list1.size() > 0);
+   if(gp_p_list2.size() == 0) return; //disjoint road segment 
+
+   assert(gp_p_list2.size() > 0);
 //   LOOP_PRINT2(gp_p_list2);
 
 
