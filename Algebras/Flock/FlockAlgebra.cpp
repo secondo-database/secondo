@@ -358,15 +358,23 @@ Flock::printCoordinates(){
   printf("\n");
 };
 
+// type name used in Secondo:
+const string Flock::BasicType()
+{
+  return "flock";
+}
+const bool Flock::checkType(const ListExpr type){
+  return listutils::isSymbol(type, BasicType());
+}
 
 
 
 bool MFlock::CanAdd(Flock* arg)
 {
   if(this->GetNoComponents()== 0) return true;
-  const UFlock* lastUnit;
+  UFlock lastUnit;
   this->Get(this->GetNoComponents()-1, lastUnit);
-  return (lastUnit->constValue.Compare( arg ) == 0);
+  return (lastUnit.constValue.Compare( arg ) == 0);
 }
 void MFlock::MFlockMergeAdd(UFlock& unit)
 {
@@ -379,7 +387,7 @@ function.
 
 */
   UFlock lastunit;
-  const UFlock *u1transfer;
+  UFlock u1transfer;
   int size = units.Size();
   if ( !unit.IsValid() )
   {
@@ -391,7 +399,7 @@ function.
 
   if (size > 0) {
     units.Get( size - 1, u1transfer );
-    lastunit = *u1transfer;
+    lastunit = u1transfer;
     if (lastunit.EqualValue(unit) &&
 /*
 The following condition is modified to be "<=" rather than "==" in the standard
@@ -430,14 +438,14 @@ void FinalizeLastUnit(::std::vector<MFlock*>* mflocks,
   bool debugme=true;
   ::std::vector<MFlock*>::iterator mflockIt;
   MFlock* mflock;
-  const UFlock *lastUnit;
+  UFlock lastUnit;
   UFlock extended(true);
   for(mflockIt= mflocks->begin(); mflockIt!= mflocks->end(); ++mflockIt)
   {
     mflock= *mflockIt;
     if((*mflockIt)->finalized) continue;
     mflock->Get(mflock->GetNoComponents()-1, lastUnit);
-    extended.CopyFrom(lastUnit);
+    extended.CopyFrom(&lastUnit);
     if(debugme)
     {
        cout<<endl<<"Finalizing MFlock "<<extended.constValue.points[0];
@@ -527,9 +535,9 @@ findFlocks(char* filename, double radius, double tolerance, int flocksize,
             if(debugme)
             {
               cout<<endl<<"Flock "<< (*flockIt)->points[0]<<" joined MFlock ";
-              const UFlock* tmp1;
+              UFlock tmp1;
               (*mflockIt)->Get(0,tmp1);
-              cout<<tmp1->constValue.points[0];
+              cout<<tmp1.constValue.points[0];
               cout.flush();
             }
             consumed=true;
@@ -1725,7 +1733,7 @@ foreach uflock in this
 
 */
   res->SetDefined(true);
-  const UFlock* curUFlock;
+  UFlock curUFlock;
   Flock* curFlock= new Flock(0);
   Instant curTime(instanttype);
   Instant finalTime(instanttype);
@@ -1750,12 +1758,12 @@ Computing the left part of the URegion (i.e. the values at the start instant)
 
 */
     this->Get(unitIndex, curUFlock);
-    curTime= curUFlock->timeInterval.start;
-    finalTime= curUFlock->timeInterval.end;
+    curTime= curUFlock.timeInterval.start;
+    finalTime= curUFlock.timeInterval.end;
     finalTime-= samplingDuration ;
-    *curFlock = curUFlock->constValue;
+    *curFlock = curUFlock.constValue;
     unitInterval.start= curTime;
-    unitInterval.lc= curUFlock->timeInterval.lc;
+    unitInterval.lc= curUFlock.timeInterval.lc;
     ps= curFlock->Flock2Points(curTime, ids, sourceMPoints);
     GrahamScan::convexHull(ps,reg1);
     delete ps;
@@ -1811,7 +1819,7 @@ Adding the last instant in the unit
     ps= curFlock->Flock2Points(curTime, ids, sourceMPoints);
     GrahamScan::convexHull(ps, reg2);
     unitInterval.end= curTime;
-    unitInterval.rc= curUFlock->timeInterval.rc;
+    unitInterval.rc= curUFlock.timeInterval.rc;
     reginter2=new RegionForInterpolation(reg2);
     sm=new OptimalMatch(reginter1, reginter2, weigths);
     lines=new mLineRep(sm);
@@ -1851,7 +1859,7 @@ MFlock2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
     std::vector<MPoint*>* mpoints;
     std::vector<MPoint*>::iterator mpointsIt;
     std::vector<int>* ids;
-    const UFlock* uflock;
+    UFlock uflock;
     Tuple* tuple;
     std::vector<Tuple*>* delBuffer= new std::vector<Tuple*>(0);
     std::vector<Tuple*>::iterator delBufferIt;
@@ -1868,7 +1876,7 @@ MFlock2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
       for(int i=0; i< mflock->GetNoComponents(); ++i)
       {
         mflock->Get(i, uflock);
-        count= const_cast<UFlock*>(uflock)->constValue.getPoints(idsUnit);
+        count= uflock.constValue.getPoints(idsUnit);
         usedIDs->insert(idsUnit, idsUnit + count);
         //uflock->DeleteIfAllowed();
       }

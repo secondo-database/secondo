@@ -141,6 +141,9 @@ class Flock: public Attribute {
    static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
    static int      SizeOfObj();
    static ListExpr Property();
+   // type name used in Secondo:
+   inline static const string BasicType();
+   static const bool checkType(const ListExpr type);
    
    int addPoint(OctreePoint* point);
    int addPointID(int point);
