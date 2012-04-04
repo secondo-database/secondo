@@ -92,7 +92,7 @@ Remark   : There is a lack of parallel processing configurations normally
 Operator: TPARA
 Number: 1
 Signature: ( flist(ANY) ) -> ANY
-Example  : query plz feed spread[;PLZ,5,TRUE;] hadoopMap[;. consume];
+Example  : query plz feed spread[ ; PLZ, 5, TRUE ; ] hadoopMap[ ; . consume];
 Result: crashes
 Remark   : There is a lack of parallel processing configurations normally
 
@@ -106,6 +106,6 @@ Remark   : There is a lack of parallel processing configurations normally
 Operator : hadoopMap
 Number   : 1
 Signature: flist(T) x [string] x [text] x [(DLO):DLF] x ( map T T1 ) -> flist(T1)
-Example  : query plz feed spread[;PLZ,5,TRUE;] hadoopMap[;. consume];
+Example  : query plz feed spread[ ; PLZ, 5, TRUE ; ] hadoopMap[ ; . consume];
 Result   : crashes
 Remark   : There is a lack of parallel processing configurations normally
