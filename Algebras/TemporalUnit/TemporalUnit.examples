@@ -714,3 +714,9 @@ Number   : 4
 Signature: periods x periods -> bool
 Example  : query [const periods value(("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE TRUE))] contains [const periods value(("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE FALSE))]
 Result   : TRUE
+
+Operator  : atRect
+Number    : 1
+Signature : upoint x rect -> upoint
+Example   : query deftime(getunit(train7,1) atRect bbox(thecenter)) = deftime(getunit(train7,1) at (bbox(thecenter) rect2region))
+Result    : TRUE

@@ -66,5 +66,6 @@ operator >= alias GE pattern _ infixop _
 operator canmeet alias CANMEET pattern op ( _ , _ , _ , _ )
 
 operator the_mvalue2 alias THE_MVALUE2 pattern _ op
+operator atRect alias atRect pattern _ infixop _
 
 operator contains alias CONTAINS pattern _ infixop _
