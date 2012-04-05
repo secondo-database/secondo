@@ -1,0 +1,120 @@
+###########################################################################
+#
+# Construction of a road network from OpenStreetMap Data in OrderedRelation
+# Graph Representation
+#
+# Uses NestedRelationAlgebra
+#
+###########################################################################
+
+# Database Hombruch
+
+query fullosmimport('Hombruch.osm', "City")
+
+let Roads = 
+  CityNodes feed projectextend[NodeId;  Pos: makepoint(.Lon, .Lat)]  
+  CityWays feed hashjoin[NodeId, NodeRef] sortby[WayId, NodeCounter] nest[WayId; NodeList] 
+    extend[Curve  : .NodeList afeed projecttransformstream[Pos] collect_line[TRUE]] 
+  CityWayTags feed nest[WayIdInTag; WayInfo] hashjoin[WayId, WayIdInTag] 
+    filter[.WayInfo afeed filter[.WayTagKey = "highway"] count > 0] 
+  consume
+
+# compute Nodes as the union of start points, end points and intersections of roads
+
+let Nodes = 
+  CityWays feed 
+  CityWays feed {h2}
+  hashjoin[NodeRef, NodeRef_h2]
+  filter[.WayId # .WayId_h2]
+  CityNodes feed projectextend[NodeId;  Pos: makepoint(.Lon, .Lat)]  
+  hashjoin[NodeRef, NodeId]
+  Roads feed {r1} hashjoin[WayId, WayId_r1]
+  Roads feed {r2} hashjoin[WayId_h2, WayId_r2]
+  project[WayId, NodeCounter, NodeRef, Pos]
+Roads feed 
+  projectextend[WayId; Node: .NodeList afeed filter[.NodeCounter = 0] aconsume]
+  unnest[Node]
+  project[WayId, NodeCounter, NodeRef, Pos]
+  concat
+Roads feed 
+  extend[HighNodeNo: (.NodeList afeed count) - 1]
+  projectextend[WayId; Node:  fun(t: TUPLE) 
+    attr(t, NodeList) afeed filter[.NodeCounter = attr(t, HighNodeNo)] aconsume]
+  unnest[Node]
+  project[WayId, NodeCounter, NodeRef, Pos]
+  concat
+  sortby[WayId, NodeCounter]
+  rdup
+  consume
+
+let EdgesUp =
+  Nodes feed nest[WayId; SectionNodes]
+    projectextend[WayId; Sections: .SectionNodes afeed
+      extend_last[Source: ..NodeRef::0, Target: .NodeRef::0, 
+        SourcePos: ..Pos::[const point value undef], 
+        TargetPos: .Pos::[const point value undef],
+        SourceNodeCounter: ..NodeCounter::0,
+        TargetNodeCounter: .NodeCounter::0]
+      filter[.Source # 0] 
+      extend[EdgeLine: create_sline(.SourcePos, .TargetPos)]
+      project[Source, Target, SourcePos, TargetPos, EdgeLine, 
+        SourceNodeCounter, TargetNodeCounter]
+      aconsume]
+  Roads feed {r}
+  hashjoin[WayId, WayId_r]
+  projectextend[WayId; Sections: fun(t:TUPLE)
+    attr(t, Sections) afeed 
+    extend[
+      Curve: fun(u: TUPLE)
+      attr(t, NodeList_r) afeed 
+        filter[.NodeCounter_r between[attr(u, SourceNodeCounter),
+          attr(u, TargetNodeCounter)] ]
+        projecttransformstream[Pos_r]
+        collect_sline[TRUE],
+      RoadName: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "name"] extract 
+       [WayTagValue_r],
+      RoadType: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "highway"] extract 
+       [WayTagValue_r],
+      MaxSpeed: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "maxspeed"] extract 
+       [WayTagValue_r]  
+    ]
+    aconsume ]
+  unnest[Sections] remove[EdgeLine]
+  consume
+
+let EdgesDown =
+  Nodes feed nest[WayId; SectionNodes]
+    projectextend[WayId; Sections: .SectionNodes afeed sortby[NodeCounter desc]
+      extend_last[Source: ..NodeRef::0, Target: .NodeRef::0, 
+        SourcePos: ..Pos::[const point value undef], 
+        TargetPos: .Pos::[const point value undef],
+        SourceNodeCounter: ..NodeCounter::0,
+        TargetNodeCounter: .NodeCounter::0]
+      filter[.Source # 0] 
+      extend[EdgeLine: create_sline(.SourcePos, .TargetPos)]
+      project[Source, Target, SourcePos, TargetPos, EdgeLine, 
+        SourceNodeCounter, TargetNodeCounter]
+      aconsume]
+  Roads feed {r}
+  hashjoin[WayId, WayId_r]
+  projectextend[WayId; Sections: fun(t:TUPLE)
+    attr(t, Sections) afeed extend[Curve: fun(u: TUPLE)
+      attr(t, NodeList_r) afeed sortby[NodeCounter_r desc]
+        filter[.NodeCounter_r between[attr(u, TargetNodeCounter),
+          attr(u, SourceNodeCounter)] ]
+        projecttransformstream[Pos_r]
+        collect_sline[TRUE],
+      RoadName: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "name"] extract 
+       [WayTagValue_r],
+      RoadType: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "highway"] extract 
+       [WayTagValue_r],
+      MaxSpeed: attr(t, WayInfo_r) afeed filter[.WayTagKey_r = "maxspeed"] extract 
+       [WayTagValue_r]  
+    ]
+    aconsume ]
+  unnest[Sections] remove[EdgeLine]
+  consume
+
+let Edges = EdgesUp feed EdgesDown feed concat oconsume[Source, Target]
+
+
