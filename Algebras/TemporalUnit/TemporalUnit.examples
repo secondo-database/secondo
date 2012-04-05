@@ -718,5 +718,5 @@ Result   : TRUE
 Operator  : atRect
 Number    : 1
 Signature : upoint x rect -> upoint
-Example   : query deftime(getunit(train7,1) atRect bbox(thecenter)) = deftime(getunit(train7,1) at (bbox(thecenter) rect2region))
-Result    : TRUE
+Example   : query deftime(getunit(train7,55) atRect bbox(thecenter)) 
+Result    : (periods(("2003-11-20-06:22" "2003-11-20-06:22:10.300" TRUE FALSE)))
