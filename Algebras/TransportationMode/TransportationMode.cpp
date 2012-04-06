@@ -14229,6 +14229,74 @@ ListExpr OpTMRefineDataTypeMap ( ListExpr args )
 }
 
 /*
+TypeMap fun for operator filterdisjoint
+
+*/
+
+ListExpr OpTMFilterDisjointTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second ( args );
+  ListExpr param3 = nl->Third( args );
+  ListExpr param4 = nl->Fourth( args );
+
+
+  if(!listutils::isRelDescription(param1) )
+    return listutils::typeError("param1 should be an relation" );
+
+
+    if(!listutils::isRTreeDescription(param2) )
+    return listutils::typeError("param2 should be an rtree" );
+
+    
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(param3);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"line")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type line");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(param4);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname2, attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type int");
+  }
+
+
+  ListExpr result = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->ThreeElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Type"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Geo"),
+                        nl->SymbolAtom("line")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Oid"),
+                        nl->SymbolAtom("int"))
+                    )));
+
+  return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)), result);
+
+}
+
+/*
 TypeMap fun for operator checkroads
 
 */
@@ -20589,6 +20657,62 @@ int OpTMRefineDatamap ( Word* args, Word& result, int message,
 }
 
 /*
+remove disjoint pieces of lines 
+
+*/
+int OpTMFilterDisjointmap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+
+  DataClean* datacl;
+  switch(message){
+      case OPEN:{
+
+        Relation* rel = (Relation*)args[0].addr;
+        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[1].addr; 
+
+        int attr1 = ((CcInt*)args[4].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[5].addr)->GetIntval() - 1;
+        
+        datacl = new DataClean(); 
+        datacl->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        datacl->FilterDisjoint(rel, rtree, attr1, attr2);//Partition.cpp
+        local.setAddr(datacl);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          datacl = (DataClean*)local.addr;
+          if(datacl->count == datacl->l_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(datacl->resulttype);
+          tuple->PutAttribute(0, 
+                             new CcInt(true, datacl->type_list[datacl->count]));
+          tuple->PutAttribute(1,new Line(datacl->l_list[datacl->count]));
+          tuple->PutAttribute(2, 
+                             new CcInt(true, datacl->oid_list[datacl->count]));
+
+          result.setAddr(tuple);
+          datacl->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            datacl = (DataClean*)local.addr;
+            delete datacl;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  
+  return 0;
+}
+
+/*
 check roads lines points, wether there  are overlapping 
 
 */
@@ -21891,6 +22015,14 @@ Operator refinedata(
     OpTMRefineDataTypeMap        // type mapping
 );
 
+Operator filterdisjoint(
+    "filterdisjoint",               // name
+    OpTMFilterDisjointSpec,          // specification
+    OpTMFilterDisjointmap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMFilterDisjointTypeMap        // type mapping
+);
+
 /*
 Operator checkroads(
     "checkroads",
@@ -22260,7 +22392,8 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&checksline);
    AddOperator(&modifyline);
 //   AddOperator(&checkroads);
-   AddOperator(&refinedata);
+   AddOperator(&refinedata);//remove some digit after dot
+   AddOperator(&filterdisjoint);//filter disjoint road segments 
 
    ///////////////////two join operators, using rtree//////////////////////
    AddOperator(&tm_join1);

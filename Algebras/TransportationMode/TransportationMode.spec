@@ -225,6 +225,7 @@ operator navigation1 alias NAVIGATION1 pattern op(_,_,_,_,_,_,_)
 
 operator modifyline alias MODIFYLINE pattern op(_)
 operator refinedata alias REFINEDATA pattern op(_)
+operator filterdisjoint alias FILTERDISJOINT pattern op(_,_,_,_)
 operator tm_join1 alias TM_JOIN1 pattern op(_,_,_)
 
 

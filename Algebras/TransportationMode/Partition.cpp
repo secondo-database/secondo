@@ -6865,6 +6865,139 @@ void DataClean::DFTraverse2(Relation* rel,
 
 }
 
+/*
+remove some pieces of roads that are disjoint with the main part
+
+*/
+void DataClean::FilterDisjoint(Relation* rel, R_Tree<2,TupleId>* rtree, 
+                               int attr1, int attr2)
+{
+//  cout<<rel->GetNoTuples()<<" "<<attr1<<" "<<attr2<<endl;
+  vector<Loc_Id> loc_list;
+
+  for(int i = 1;i <= rel->GetNoTuples();i++){
+    Tuple* tuple = rel->GetTuple(i, false);
+    Line* l = (Line*)tuple->GetAttribute(attr1);
+    int oid = ((CcInt*)tuple->GetAttribute(attr2))->GetIntval();
+
+    vector<int> res_tid_list;
+    DFTraverse3(rel, rtree, rtree->RootRecordId(), l, attr1, i, res_tid_list);
+
+    Points* ps = new Points(0);
+    Point temp(true, oid, oid);
+    *ps += temp;
+
+    if(res_tid_list.size() > 0){
+      for(unsigned int j = 0;j < res_tid_list.size();j++){
+        Tuple* t = rel->GetTuple(res_tid_list[j], false);
+        assert(res_tid_list[j] == 
+              ((CcInt*)t->GetAttribute(attr2))->GetIntval());
+        Point temp(true, res_tid_list[j], res_tid_list[j]);
+        *ps += temp;
+        t->DeleteIfAllowed();
+      }
+    }
+    Loc_Id loc(*ps, oid);
+    loc_list.push_back(loc);
+    delete ps;
+
+//    cout<<"oid "<<oid<<" "<<res_tid_list.size()<<endl;
+
+    ////////////////////////////////////////////////////////////
+    tuple->DeleteIfAllowed();
+  }
+
+
+  vector<bool> flag_list(loc_list.size(), true);
+
+  for(unsigned int i = 0;i < loc_list.size();i++){
+      if(flag_list[i] == false) continue;
+//      cout<<"i "<<i<<" oid "<<loc_list[i].oid<<endl;
+      if(loc_list[i].ps.Size() == 1){ //directly put into the result
+          flag_list[i] = false;
+//          cout<<"oid "<<loc_list[i].oid<<" disjoint "<<endl;
+
+          type_list.push_back(2);//disjoint type
+          Tuple* t = rel->GetTuple(loc_list[i].oid, false);
+          Line* l = (Line*)t->GetAttribute(attr1);
+          l_list.push_back(*l);
+          oid_list.push_back(loc_list[i].oid);
+          t->DeleteIfAllowed();
+
+      }else{//recursively call the function
+          vector<int> neighbor_list;
+          queue<int> Q;
+          Q.push(loc_list[i].oid);
+          neighbor_list.push_back(loc_list[i].oid);
+          flag_list[loc_list[i].oid - 1] = false;
+          while(Q.empty() == false){
+            for(int j = 0;j < loc_list[Q.front() - 1].ps.Size();j++){
+              Point p;
+              loc_list[Q.front() - 1].ps.Get(j, p);
+              int id = (int)p.GetX();
+              if(flag_list[id - 1] && id != Q.front()){
+                Q.push(id);
+                neighbor_list.push_back(id);
+                flag_list[id - 1] = false;
+//                cout<<"id "<<id<<endl;
+              }
+            }
+            Q.pop();
+//            cout<<"Q.size() "<<Q.size()<<endl;
+          }
+//           cout<<"oid "<<loc_list[i].oid
+//               <<" neighbor size "<<neighbor_list.size()<<endl;
+
+          for(unsigned int j = 0;j < neighbor_list.size();j++){
+              if(neighbor_list.size() > rel->GetNoTuples()/2) //main component
+                type_list.push_back(1);//disjoint type
+              else
+                type_list.push_back(2);//disjoint type
+              Tuple* t = rel->GetTuple(neighbor_list[j], false);
+              Line* l = (Line*)t->GetAttribute(attr1);
+              l_list.push_back(*l);
+              oid_list.push_back(neighbor_list[j]);
+              t->DeleteIfAllowed();
+          }
+      }
+  }
+}
+
+/*
+traverse rtree to find whether there exists a line intersecting the parameter
+
+*/
+void DataClean::DFTraverse3(Relation* rel,
+                          R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                          Line* sl, int attr, int tid, 
+                          vector<int>& res_tid_list)
+{
+  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
+                  rtree->MinEntries(0), rtree->MaxEntries(0));
+  for(int j = 0;j < node->EntryCount();j++){
+      if(node->IsLeaf()){
+              R_TreeLeafEntry<2,TupleId> e =
+                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+              Tuple* dg_tuple = rel->GetTuple(e.info, false);
+              Line* line = (Line*)dg_tuple->GetAttribute(attr);
+
+              if(e.info != (unsigned int)tid && sl->Intersects(*line)){
+//                 res_tid = e.info;
+                 res_tid_list.push_back(e.info);
+//                 break;
+              }
+              dg_tuple->DeleteIfAllowed();
+      }else{
+            R_TreeInternalEntry<2> e =
+                (R_TreeInternalEntry<2>&)(*node)[j];
+            if(sl->BoundingBox().Intersects(e.box)){
+               DFTraverse3(rel, rtree, e.pointer, sl, attr, tid, res_tid_list);
+            }
+      }
+  }
+  delete node;
+
+}
 /////////////////////////////////////////////////////////////////////
 ////////a robust method to get the position of a point on a sline///
 /////////////////////////////////////////////////////////////////////

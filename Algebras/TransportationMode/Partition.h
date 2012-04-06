@@ -629,7 +629,8 @@ inline void Modify_Point4(Point& p)
 //      cout<<buffer1[i]<<endl;
       i++;
     }
-    length = i + 3 + 1;
+//    length = i + 3 + 1;
+    length = i + 2 + 1;
 //    cout<<buffer1<<endl;
     char buffer1_new[64];
     strncpy(buffer1_new, buffer1, length);
@@ -645,7 +646,8 @@ inline void Modify_Point4(Point& p)
     while(buffer2[i] != '.'){
       i++;
     }
-    length = i + 3 + 1;
+//    length = i + 3 + 1;
+    length = i + 2 + 1;
 
     char buffer2_new[64];
     strncpy(buffer2_new, buffer2, length);
@@ -1111,6 +1113,20 @@ struct StrRS{
 
 #define TM_MYPI 3.1415927
 
+struct Loc_Id{
+  Points ps;
+  int oid;
+  Loc_Id():ps(0){}
+  Loc_Id(Points& b, int a):ps(b), oid(a){}
+  Loc_Id(const Loc_Id& lid):ps(lid.ps), oid(lid.oid){}
+
+  void Print()
+  {
+    cout<<"oid: "<<oid<<" no: "<<ps.Size()<<endl;
+  }
+
+};
+
 /*
 data clean process 
 
@@ -1123,7 +1139,9 @@ struct DataClean{
   ~DataClean(){if(resulttype != NULL) delete resulttype;}
 
   vector<SimpleLine> sl_list;
-
+  vector<Line> l_list;
+  vector<int> type_list;
+  vector<int> oid_list;
 
   void ModifyLine(SimpleLine* in, SimpleLine* out);
   void RefineData(SimpleLine* in, SimpleLine* out);
@@ -1132,6 +1150,11 @@ struct DataClean{
                           Line* sl, vector<int>& id_list, unsigned int id);
   void DFTraverse2(Relation* rel,R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
                           Line* sl, vector<int>& id_list, unsigned int id);
+  void FilterDisjoint(Relation* rel, R_Tree<2,TupleId>* rtree, int, int);
+  void DFTraverse3(Relation* rel,
+                           R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
+                           Line* sl, int attr, int tid, vector<int>& res_list);
+
 };
 
 

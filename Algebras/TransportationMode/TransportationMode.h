@@ -1307,6 +1307,17 @@ const string OpTMRefineDataSpec  =
     "</text--->"
     ") )";
 
+const string OpTMFilterDisjointSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x rtree x attr x attr -> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>filterdisjoint(rel, rtree, attr, attr)</text--->"
+    "<text>remove disjoint pieces of roads</text--->"
+    "<text>query filterdisjoint(DORoads_New, RTreeRoads, R, OID)"
+    "</text--->"
+    ") )";
+
 const string OpTMCheckRoadsSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "

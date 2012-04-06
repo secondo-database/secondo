@@ -3573,6 +3573,11 @@ void GenMObject::GenerateGPoint2(Network* rn, int mo_no,
      int rid = ((CcInt*)road_tuple->GetAttribute(ROUTE_ID))->GetIntval();
      SimpleLine* sl = (SimpleLine*)road_tuple->GetAttribute(ROUTE_CURVE);
 //     cout<<"rid "<<rid<<" len: "<<sl->Length()<<endl; 
+//     cout<<"m "<<m<<" rid "<<rid<<" "<<sl->IsDefined()<<endl;
+     if(sl->IsDefined() == false || sl->Length() < 2.0){
+        road_tuple->DeleteIfAllowed();
+        continue;
+     }
      double len = sl->Length();
      int pos = GetRandom() % (int)len;
      GPoint gp(true, rn->GetId(), rid, pos);
