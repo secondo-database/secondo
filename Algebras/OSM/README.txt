@@ -3,6 +3,7 @@ For this algebra, installation of library libxml2 is necessary.
 1. For example, on Ubuntu 10.04:
 
 sudo apt-get install libxml2
+sudo apt-get install libxml2-dev
 
 
 Activation of algebra:
@@ -12,6 +13,8 @@ Activation of algebra:
 ALGEBRA_DIRS += OSM
 ALGEBRAS     += OsmAlgebra
 ALGEBRA_DEPS += xml2
+ALGEBRA_INCLUDE_DIRS += /usr/include/libxml2
+
 # on max os X the framework CoreServices must be added
 # uncomment the next line if you use mac os
 #ALGEBRA_LINK_FLAGS += -framework CoreServices
