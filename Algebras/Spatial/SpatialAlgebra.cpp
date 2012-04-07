@@ -21044,6 +21044,10 @@ class SpatialAlgebra : public Algebra
     line.AssociateKind(Kind::SHPEXPORTABLE());
     region.AssociateKind(Kind::SHPEXPORTABLE());
 
+
+    point.AssociateKind(Kind::SQLEXPORTABLE());
+    points.AssociateKind(Kind::SQLEXPORTABLE());
+
     AddTypeConstructor(&geoid_t);
     geoid_t.AssociateKind(Kind::DATA());
 

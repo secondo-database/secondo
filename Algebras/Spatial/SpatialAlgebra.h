@@ -622,6 +622,29 @@ as an attribute.
     }
 
 
+   virtual string getSQLType(){ return "MDSYS.SDO_GEOMETRY"; }
+   virtual string getSQLRepresentation(){ 
+       if(!IsDefined() || IsEmpty()){
+         return "NULL";
+       }
+       return "MDSYS.SDO_GEOMETRY('" + getWKT() + "')";
+   }
+
+   string getWKT() const{
+     stringstream ss;
+     ss << "MULTIPOINT(";
+     for(int i=0;i<Size();i++){
+        if(i>0){
+          ss << ", ";
+        }
+        Point p;
+        Get(i,p);
+        ss << p.GetX() << " " << p.GetY();
+     }
+     ss << ")";
+     return ss.str();
+   }
+
   static const string BasicType(){
     return "points";
   }

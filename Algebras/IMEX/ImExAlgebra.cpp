@@ -5362,7 +5362,11 @@ int sqlExportVM1(Word* args, Word& result,
 
          for(int i=0;i<tuple->GetNoAttributes();i++){
              string name = nl->SymbolValue(nl->First(nl->First(attrList)));
-             if(i>1) { namelist += ", "; }
+             if(i>0) {
+                namelist += ", "; 
+             } else {
+                namelist += " ";
+             }
              namelist += name;
              attrList = nl->Rest(attrList);
              out << name << "  " << tuple->GetAttribute(i)->getSQLType() 
@@ -5374,7 +5378,11 @@ int sqlExportVM1(Word* args, Word& result,
 
       out << "INSERT INTO " << tabname <<"(" << namelist << ") Values (";
       for(int i=0;i<tuple->GetNoAttributes();i++){
-         if(i>0){ out << ", "; }
+         if(i>0){ 
+          out << ", ";
+         } else {
+           out << " ";
+         }
          out << tuple->GetAttribute(i)->getSQLRepresentation(); 
       }
       out << ");" << endl;

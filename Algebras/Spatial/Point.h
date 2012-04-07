@@ -554,6 +554,43 @@ values, otherwise the result is ~true~.
   bool orthodromeExtremeLatitudes(const Point &other, const Geoid &geoid,
                                           double &minLat, double &maxLat) const;
 
+
+
+   virtual string getSQLType(){ return "MDSYS.SDO_GEOMETRY"; }
+
+   virtual string getSQLRepresentation(){ 
+     if(!IsDefined()){
+       return "NULL";
+     }
+     string sdo_gtype = "2001";  // 2 dimensional point
+
+     stringstream sdo_point;
+     sdo_point << "MDSYS.SDO_POINT_TYPE(" 
+               << GetX() << ", " << GetY() << ", NULL)";
+   
+     // use oracle's format
+    /*
+     stringstream ss;
+     ss << "MDSYS.SDO_GEOMETRY(" ; // geometry
+     ss << sdo_gtype << ", "; // type 
+     ss << "NULL" << ",";    // srid: id of spatial reference system
+     ss << sdo_point.str() << ", "; // geometry
+     ss << "NULL, "; // Elem_Info_Array
+     ss << "NULL)"; // ordinate array
+     return ss.str(); 
+    */
+    // use oracle and WKT
+     return  "MDSYS.SDO_GEOMETRY('" + getWKT() + "')";
+   }
+
+   string getWKT(){
+     stringstream ss;
+     ss <<  "POINT(" << GetX() << ", " << GetY() << ")";
+     return ss.str();
+   }
+
+
+
 /*
 4.4 Functions needed to import the the ~point~ data type to tuple
 
