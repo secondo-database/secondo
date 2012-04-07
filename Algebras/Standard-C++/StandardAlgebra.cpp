@@ -5397,6 +5397,11 @@ class CcAlgebra1 : public Algebra
     ccReal.AssociateKind( Kind::CSVIMPORTABLE() );
     ccBool.AssociateKind( Kind::CSVIMPORTABLE() );
     ccString.AssociateKind( Kind::CSVIMPORTABLE() );
+    
+    ccInt.AssociateKind( Kind::SQLEXPORTABLE() );
+    ccReal.AssociateKind( Kind::SQLEXPORTABLE() );
+    ccBool.AssociateKind( Kind::SQLEXPORTABLE() );
+    ccString.AssociateKind( Kind::SQLEXPORTABLE() );
 
     ccInt.AssociateKind( Kind::DELIVERABLE() );
 

@@ -305,6 +305,8 @@ class CcInt : public Attribute
   virtual unsigned char getDB3Type() const { return 'N'; }
   virtual unsigned char getDB3Length() const { return 15; }
   virtual unsigned char getDB3DecimalCount(){ return 0; }
+
+
   virtual string getDB3String() const {
       if(!IsDefined()){
         return "";
@@ -313,6 +315,17 @@ class CcInt : public Attribute
       s << intval;
       return s.str();
   }
+
+  virtual string getSQLType(){ return "NUMERIC(12)";} 
+  virtual string getSQLRepresentation(){
+    if(!IsDefined()){
+      return "NULL";
+    }
+    stringstream ss;
+    ss << intval;
+    return ss.str();
+  }
+
 
   virtual void ReadFromString(string value){
       trimstring(value);
@@ -555,6 +568,17 @@ class CcReal : public Attribute
       return s.str();
   }
 
+  virtual string getSQLType(){ return "DOUBLE";} 
+  virtual string getSQLRepresentation(){
+    if(!IsDefined()){
+      return "NULL";
+    }
+    stringstream ss;
+    ss << realval;
+    return ss.str();
+  }
+
+
   virtual void ReadFromString(string value){
       trimstring(value);
       if(value.size()==0){
@@ -750,6 +774,16 @@ class CcBool : public Attribute
        }
      }
   }
+
+
+  virtual string getSQLType(){ return "BOOLEAN";} 
+  virtual string getSQLRepresentation(){
+    if(!IsDefined()){
+      return "NULL";
+    }
+    return boolval?"T":"F";
+  }
+
 
   virtual bool hasTextRepresentation() const{
      return true;
@@ -973,6 +1007,15 @@ class CcString : public Attribute
 
   virtual bool hasTextRepresentation() const{
     return true;
+  }
+
+
+  virtual string getSQLType(){ return "VARCHAR(48)";} 
+  virtual string getSQLRepresentation(){
+    if(!IsDefined()){
+      return "NULL";
+    }
+    return "'"+ stringutils::replaceAll(string(stringval),"'","\\'") + "'";
   }
 
   virtual string toText() const{
@@ -1241,6 +1284,13 @@ class CcString : public Attribute
     return IsDefined();
   }
 
+  virtual string getSQLType(){ return "VARCHAR(48)";} 
+  virtual string getSQLRepresentation(){
+    if(!IsDefined()){
+      return "NULL";
+    }
+    return "'"+ stringutils::replaceAll(string(stringval),"'","\\'") + "'";
+  }
 
 
   static const string BasicType(){

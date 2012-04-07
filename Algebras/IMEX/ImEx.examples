@@ -326,4 +326,9 @@ Signature: string -> stream(text)
 Example  : query get_lines("ten.csv") count
 Result   : 11
 
+Operator : sqlExport
+Number   : 1
+Signature: stream(tuple) x text x string x bool  -> bool
+Example  : query ten feed sqlExport['ten.sql',"Ten",TRUE]
+Result   : TRUE
 

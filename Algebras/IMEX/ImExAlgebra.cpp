@@ -5248,6 +5248,188 @@ Operator getPageSize( "getPageSize",
                    Operator::SimpleSelect,
                    getPageSizeTM);
 
+
+
+
+/*
+25 Operator SQLExport
+
+This operator takes a tupel stream and writes a SQL script into a file.
+
+
+25.1 TypeMapping
+
+
+The signature is (stream(tuple)) x string x {text,string} [x bool] -> bool
+
+All attributes within the tuple stream must be in KIND SQLexportable
+
+*/
+ListExpr sqlExportTM(ListExpr args){
+ int len = nl->ListLength(args);
+ string err = "stream(tuple) x {text,string} x string  [x bool] expected";
+ if((len!=3) && (len!=4) ){
+   return listutils::typeError(err);
+ }
+ ListExpr stream = nl->First(args);
+ ListExpr fileName = nl->Second(args);
+ ListExpr tabName = nl->Third(args);
+
+ if(!Stream<Tuple>::checkType(stream)){
+   return listutils::typeError(err);
+ }
+ if(!CcString::checkType(fileName) && !FText::checkType(fileName)){
+   return listutils::typeError(err);
+ }
+ if(!CcString::checkType(tabName)){
+   return listutils::typeError(err);
+ } 
+
+ if((len==4)){
+   if(!CcBool::checkType(nl->Fourth(args))){
+     return listutils::typeError(err);
+   }
+ }
+ ListExpr attrList = nl->Second(nl->Second(stream));
+ while(!nl->IsEmpty(attrList)){
+   ListExpr first = nl->First(attrList);
+   attrList = nl->Rest(attrList);
+   ListExpr type = nl->Second(first);
+   if(!listutils::isKind(type,Kind::SQLEXPORTABLE())){
+      string name = nl->SymbolValue(nl->First(first));
+      return listutils::typeError("Attribute " + name + 
+                                  " is not in kind SQLEXPORTABLE");
+   }
+ } 
+ if(len==4){
+     return listutils::basicSymbol<CcBool>();
+ } else {
+    return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                              nl->OneElemList(nl->BoolAtom(false)),
+                              listutils::basicSymbol<CcBool>());
+ }
+}
+
+
+template<class T>
+int sqlExportVM1(Word* args, Word& result,
+               int message, Word& local, Supplier s){
+
+    result = qp->ResultStorage(s);
+    CcBool* res = (CcBool*) result.addr;
+
+    T* FileName  = (T*) args[1].addr;
+    CcString* TabName = (CcString*) args[2].addr;
+    CcBool* Overwrite = (CcBool*) args[3].addr;
+    if(!FileName->IsDefined() || ! Overwrite->IsDefined() ||
+       !TabName->IsDefined()){
+        res->SetDefined(false);
+        return 0;
+    }
+
+    string filename = FileName->GetValue();
+    bool overwrite = Overwrite->GetBoolval();
+
+    if(FileSystem::FileOrFolderExists(filename) && !overwrite){
+      res->Set(true,false);
+      return 0;
+    }
+    fstream out;
+    out.open(filename.c_str(), ios::out);
+    if(!out.good()){
+      res->Set(true,false);
+      return 0;
+    }
+
+    Stream<Tuple> stream(args[0]);
+    stream.open();
+    Tuple* tuple;
+
+    string tabname = TabName->GetValue();
+
+    string namelist="";
+
+    bool first = true;
+    while(out.good() && ( (tuple = stream.request() )!=0)){
+      if(first){ // write the table create command to out
+         out << "CREATE TABLE " 
+             << TabName->GetValue() <<  " ( " << endl;
+
+
+         ListExpr list = qp->GetType(qp->GetSon(s,0));
+         ListExpr attrList = nl->Second(nl->Second(list));
+         assert(nl->ListLength(attrList) == tuple->GetNoAttributes());
+
+         for(int i=0;i<tuple->GetNoAttributes();i++){
+             string name = nl->SymbolValue(nl->First(nl->First(attrList)));
+             if(i>1) { namelist += ", "; }
+             namelist += name;
+             attrList = nl->Rest(attrList);
+             out << name << "  " << tuple->GetAttribute(i)->getSQLType() 
+                 << " ," << endl;
+         }
+         out << ");" << endl;
+        first = false;
+      }
+
+      out << "INSERT INTO " << tabname <<"(" << namelist << ") Values (";
+      for(int i=0;i<tuple->GetNoAttributes();i++){
+         if(i>0){ out << ", "; }
+         out << tuple->GetAttribute(i)->getSQLRepresentation(); 
+      }
+      out << ");" << endl;
+      tuple->DeleteIfAllowed();
+    }
+
+    out.close();
+    stream.close();
+    res->Set(true,tuple==0);
+    return 0;
+}
+
+/*
+Value Mapping Array 
+
+*/
+ValueMapping sqlExportVM[] = {
+    sqlExportVM1<CcString>,
+    sqlExportVM1<FText>
+ };
+
+
+/*
+Selection function
+
+*/
+int sqlExportSelect(ListExpr args){
+  return CcString::checkType(nl->Second(args))?0:1;
+}
+
+/*
+Specification
+
+*/
+OperatorSpec sqlExportSpec(
+  "stream(tuple) x {text,string} x string [ x bool] ", // signature
+  " <stream> sqlExport[ fileName, tabName [, overwriteExisting] ] " , //syntax
+  " writes an sql script fot importing a stream" ,
+  " query ten feed sqlExport[\"ten.sql\",\"ten\",TRUE]"
+);
+
+/*
+Operator Instance
+
+*/
+Operator sqlExport(
+  "sqlExport",
+  sqlExportSpec.getStr(),
+  2,
+  sqlExportVM,
+  sqlExportSelect,
+  sqlExportTM
+);
+
+
 /*
 25 Creating the Algebra
 
@@ -5292,6 +5474,7 @@ public:
     AddOperator( &nmeaimport_line);
     nmeaimport_line.SetUsesArgsInTypeMapping();
     AddOperator( &get_lines);
+    AddOperator( &sqlExport);
   }
   ~ImExAlgebra() {};
 };

@@ -639,6 +639,10 @@ Print the delete reference info to a string (for debugging)
   virtual unsigned char getDB3DecimalCount(){ return 0; }
   virtual string getDB3String() const { return "?"; }
 
+  virtual string getSQLType(){ return ""; }
+  virtual string getSQLRepresentation(){ return "";} 
+
+
 
    virtual void ReadFromString(string value){
        SetDefined(false);

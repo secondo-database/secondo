@@ -53,6 +53,7 @@ class Kind{
     static const std::string BASE()          { return "BASE"; }
     static const std::string CSVEXPORTABLE() { return "CSVEXPORTABLE"; }
     static const std::string CSVIMPORTABLE() { return "CSVIMPORTABLE"; }
+    static const std::string SQLEXPORTABLE() { return "SQLEXPORTABLE"; }
     static const std::string DATA()          { return "DATA"; }
     static const std::string DUALGRAPH()     { return "DUALGRAPH"; }
     static const std::string FILE()          { return "FILE"; }
