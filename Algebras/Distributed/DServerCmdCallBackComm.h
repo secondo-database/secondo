@@ -48,7 +48,7 @@ The class ~DServerCmdCallBackCommunication~ is a helper class for
 the ~DSeverCmd~ class. It derives from the class ~DServerCmdCommunication~ 
 and implements the communication functinonality between a server and a client
 SECONDO system. While class ~DServerCmdWorkerCommunication~ connects
-directly to a running SEOCNDO instance (e.g. it is possible to send commands
+directly to a running SECONDO instance (e.g. it is possible to send commands
 to a remote SECONDO system) this class handles the interprocess communication.
 It allows a running command on a SECONDO system to have a direct socket
 commnication with another command running on a remote SecondoSystem.
