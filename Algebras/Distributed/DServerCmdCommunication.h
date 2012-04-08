@@ -33,11 +33,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-[1] DServerCmdCommunication
 
+[1] Class DServerCmdCommunication definition
+
+\begin{center}
 March 2012 Thomas Achmann
+\end{center}
 
-The class DServerCmdCommunication is a helper class for communication
+[TOC]
+
+0 Description
+
+The class ~DServerCmdCommunication~ is a helper class for communication
 between master and workers. It implements basic communication functinonality
 with another host via an iostream. The socket connection itself
 is performed elsewhere.
@@ -45,32 +52,38 @@ is performed elsewhere.
 
 */
 
-
-#ifndef H_DSERVERCMDCOMMUNICATION_H
-#define H_DSERVERCMDCOMMUNICATION_H
-
-
-
 /*
 
 1 Preliminaries
 
-1.1 Includes
+1.1 Defines
+
+*/
+#ifndef H_DSERVERCMDCOMMUNICATION_H
+#define H_DSERVERCMDCOMMUNICATION_H
+
+/*
+
+1.2 Debug output
+
+uncomment the following line, if debug output should
+be written to stdout
+
+*/
+
+
+// #define DS_CMD_COMM_DEBUG 1
+
+
+/*
+
+1.3 Includes
 
 */
 
 #include <iostream>
 #include <vector>
 
-/*
-
-1.2 debug output
-
-uncomment the following line, if debug output should
-be written to stdout
-
-*/
-// #define DS_CMD_COMM_DEBUG 1
 
 /*
 
@@ -287,6 +300,7 @@ sends a single line to secondo
       }
     return true;
   } 
+
 /*
 
 2.5.5 Method ~bool sendIOS~
@@ -356,6 +370,7 @@ receives a single line from secondo
 
 
 */
+
   bool receiveIOS(std::string& outLine)
   {
     if (m_iostr -> good())
@@ -464,6 +479,7 @@ after receiving a line;  send '[<]ERROR/[>]' token in case of an error
     if (reqAck) sendIOS("<ACK/>", false);
     return true;
   }
+
 /*
 
 2.7 Method ~void SetDebugHeader()~
@@ -477,23 +493,30 @@ sets the output string of debug output
 
 /*
 
-2.8 private methods
+2.8 Private section
+
+2.8.1 Private Methods
 
 */
 private:
   // n/a
+
 /*
 
-2.9 private members
+2.9 Private members
 
 */
-private:
   // the socket stream 
   std::iostream* m_iostr;
 
   // debug message header
   std::string m_debugMSG;
 
+/*
+
+2.10 End of class
+
+*/
 };
 
 #endif // H_DSERVERCMDCOMMUNICATION_H
