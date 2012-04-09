@@ -61,6 +61,8 @@ and also serves as interface class.
 
 */
 
+#if 0 // unused until all is checked in!
+
 #ifndef H_DSERVERCMD_H
 #define H_DSERVERCMD_H
 /*
@@ -342,3 +344,4 @@ private:
 };
 
 #endif // H_DSERVERCMD_H
+#endif // if 0

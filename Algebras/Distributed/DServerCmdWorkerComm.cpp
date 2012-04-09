@@ -56,6 +56,7 @@ Implementation of the class ~DServerCmdWorkerCommunication~
 
 #include "DServerCmd.h"
 
+#if 0 // unused until all is checked in!
 /*
   
 2 Implementation
@@ -77,3 +78,4 @@ DServerCmdWorkerCommunication::checkWorkerAvailable() const
 
   return true;
 }
+#endif // if 0

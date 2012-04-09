@@ -60,6 +60,7 @@ which provides basic functionality.
 
 */
 
+#if 0 // unused until all is checked in!
 
 #ifndef H_DSERVERCMDWORKERCOMM_H
 #define H_DSERVERCMDWORKERCOMM_H
@@ -385,3 +386,4 @@ private:
 };
 
 #endif // H_DSERVERCMDWORKERCOMM_H
+#endif // if 0
