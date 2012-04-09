@@ -63,6 +63,11 @@ The class derives from the DServerCmd command for.
 
 */
 
+
+#if 0 // unused until all is checked in!
+
+
+
 #ifndef H_DSERVERCMDSHUFFLEREC_H
 #define H_DSERVERCMDSHUFFLEREC_H
 
@@ -237,3 +242,5 @@ private:
 };
 
 #endif // H_DSERVERCMDSHUFFLEREC_H
+
+#endif // if 0

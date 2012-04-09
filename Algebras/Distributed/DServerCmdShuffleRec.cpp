@@ -56,6 +56,9 @@ Implementation of the class ~DServerCmdShuffleRec~
 
 */
 
+
+#if 0 // unused until all is checked in!
+
 #include "DServerCmdShuffleRec.h"
 #include "DServerCmdCallBackComm.h"
 
@@ -267,3 +270,5 @@ DServerCmdShuffleRec::run()
 #endif   
 
 } // run()
+
+#endif // if 0
