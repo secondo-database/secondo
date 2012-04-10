@@ -739,6 +739,7 @@ FullOsmImport::FullOsmImport(const string& fileName, const string& prefix) {
   defineRelations();
   node = 0;
   tag = 0;
+  tagged = false;
   way = 0;
   rel = 0;
   fillRelations();
