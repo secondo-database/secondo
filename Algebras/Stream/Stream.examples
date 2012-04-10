@@ -226,8 +226,8 @@ Result   : 666
 Operator : kinds
 Number   : 1
 Signature: string -> stream(string)
-Example  : query "int" kinds count
-Result   : 5
+Example  : query "int" kinds count >= 5
+Result   : TRUE
 
 
 Operator : timeout
