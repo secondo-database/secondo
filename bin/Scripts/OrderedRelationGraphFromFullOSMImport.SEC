@@ -1,23 +1,26 @@
 ###########################################################################
 #
-# Construction of a road network from OpenStreetMap Data in OrderedRelation
+# Construction of a Road Network from OpenStreetMap Data in OrderedRelation
 # Graph Representation
 #
 # Uses NestedRelationAlgebra
+#
+# -> adapt the filename of the osm-file to be imported (line 14 only).
 #
 ###########################################################################
 
 # Database Hombruch
 
-query fullosmimport('Hombruch.osm', "City")
+query fullosmimport('KL_Enkenbach.osm', "City")
 
-let Roads = 
+let Ways =
   CityNodes feed projectextend[NodeId;  Pos: makepoint(.Lon, .Lat)]  
   CityWays feed hashjoin[NodeId, NodeRef] sortby[WayId, NodeCounter] nest[WayId; NodeList] 
     extend[Curve  : .NodeList afeed projecttransformstream[Pos] collect_line[TRUE]] 
   CityWayTags feed nest[WayIdInTag; WayInfo] hashjoin[WayId, WayIdInTag] 
-    filter[.WayInfo afeed filter[.WayTagKey = "highway"] count > 0] 
   consume
+
+let Roads = Ways feed filter[.WayInfo afeed filter[.WayTagKey = "highway"] count > 0] consume
 
 # compute Nodes as the union of start points, end points and intersections of roads
 
@@ -56,8 +59,7 @@ let EdgesUp =
         SourceNodeCounter: ..NodeCounter::0,
         TargetNodeCounter: .NodeCounter::0]
       filter[.Source # 0] 
-      extend[EdgeLine: create_sline(.SourcePos, .TargetPos)]
-      project[Source, Target, SourcePos, TargetPos, EdgeLine, 
+      project[Source, Target, SourcePos, TargetPos, 
         SourceNodeCounter, TargetNodeCounter]
       aconsume]
   Roads feed {r}
@@ -79,7 +81,7 @@ let EdgesUp =
        [WayTagValue_r]  
     ]
     aconsume ]
-  unnest[Sections] remove[EdgeLine]
+  unnest[Sections]
   consume
 
 let EdgesDown =
@@ -91,8 +93,7 @@ let EdgesDown =
         SourceNodeCounter: ..NodeCounter::0,
         TargetNodeCounter: .NodeCounter::0]
       filter[.Source # 0] 
-      extend[EdgeLine: create_sline(.SourcePos, .TargetPos)]
-      project[Source, Target, SourcePos, TargetPos, EdgeLine, 
+      project[Source, Target, SourcePos, TargetPos, 
         SourceNodeCounter, TargetNodeCounter]
       aconsume]
   Roads feed {r}
@@ -112,9 +113,13 @@ let EdgesDown =
        [WayTagValue_r]  
     ]
     aconsume ]
-  unnest[Sections] remove[EdgeLine]
+  unnest[Sections]
   consume
 
-let Edges = EdgesUp feed EdgesDown feed concat oconsume[Source, Target]
+let Edges = EdgesUp feed EdgesDown feed concat 
+  projectextend[Source, Target, SourcePos, TargetPos, SourceNodeCounter, TargetNodeCounter, Curve, RoadName, 
+    RoadType, MaxSpeed; WayId: .WayId] 
+  oconsume[Source, Target]
+
 
 
