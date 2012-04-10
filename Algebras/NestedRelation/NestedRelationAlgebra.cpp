@@ -57,6 +57,7 @@ types and functions implemented by the Relation Algebra module.
 */
 AttributeRelation::AttributeRelation( ListExpr typeInfo, bool nrel,
                                                          int n):
+ Attribute(true),
  tupleIds( n ),
  arelType( typeInfo ),
  partOfNrel( nrel ),
@@ -79,6 +80,7 @@ In this case nrel has added the SmiFileId of the corresponding relation
 
 AttributeRelation::AttributeRelation( const SmiFileId id, const ListExpr
                                       typeInfo, int n) :
+   Attribute(true),
    tupleIds( n ),
    arelType( typeInfo ),
    partOfNrel( true ),
@@ -2388,6 +2390,9 @@ unnestValueMap(Word* args, Word& result, int message,
           }
           info->arel = (AttributeRelation*)(current->GetAttribute(arelIndex));
           tidArray = info->arel->getTupleIds();
+          if(tidArray->Size()==0){ // arel is empty
+             return CANCEL;
+          } 
           tidArray->Get(0, tid);
           rel = Relation::GetRelation(info->arel->getRelId());
           Tuple* arelTuple = rel->GetTuple(tid, false);
@@ -2445,7 +2450,11 @@ unnestValueMap(Word* args, Word& result, int message,
             }
             info->arel = (AttributeRelation*)(current->GetAttribute
                                                        (arelIndex));
+
             tidArray = info->arel->getTupleIds();
+            if(tidArray->Size()==0){ // arel is empty
+              return CANCEL;
+            }
             tidArray->Get(0, tid);
             rel = Relation::GetRelation(info->arel->getRelId());
             Tuple* arelTuple = rel->GetTuple(tid, false);
