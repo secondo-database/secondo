@@ -47,6 +47,7 @@ types and functions implemented by the Relation Algebra module.
 #include "NestedRelationAlgebra.h"
 #include "ListUtils.h"
 #include "Symbols.h"
+#include "Stream.h"
 
 /*
 
@@ -2510,6 +2511,153 @@ unnestValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+
+class UnnestInfo2{
+ public:
+
+
+  // constructor
+  UnnestInfo2(Word _stream, 
+              const int _arelIndex,
+              const int _noAttr,
+              const int _noAttrARel,
+              ListExpr attrList):
+      stream(_stream),
+      arelIndex(_arelIndex),
+      noAttr(_noAttr),
+      noAttrARel(_noAttrARel),
+      tt(0),lastTuple(0),indexARel(0), rel(0),tupleIds(0){
+      tt = new TupleType(attrList);
+      stream.open();
+    }
+
+    // destructor
+    ~UnnestInfo2(){
+       stream.close();
+       tt->DeleteIfAllowed();
+       if(lastTuple){
+         lastTuple->DeleteIfAllowed();
+       }
+    }
+
+    // returns the next result tuple or 0 if no tuple can be produced
+    Tuple* next(){
+       if(!lastTuple){
+          lastTuple = getNextInputTuple();
+       } 
+       if(lastTuple){
+          Tuple* resTuple = new Tuple(tt);
+          copyAttrs(resTuple);
+          extendARelTuple(resTuple);
+          return resTuple;
+       } else {
+          return 0;
+       }
+    } 
+
+
+  
+ private:
+   Stream<Tuple> stream;
+   int arelIndex;
+   int noAttr;
+   int noAttrARel;
+   TupleType* tt;
+   Tuple* lastTuple;
+   int indexARel;
+   Relation* rel;
+   DbArray<TupleId>* tupleIds;
+
+
+   // returns the next input tuple having a non empty arel
+   Tuple* getNextInputTuple(){
+      assert(lastTuple==0);
+      lastTuple = stream.request();
+ 
+      while(lastTuple){
+         AttributeRelation* arel = 
+                 (AttributeRelation*)lastTuple->GetAttribute(arelIndex);
+         tupleIds = arel->getTupleIds(); 
+         if(tupleIds->Size()<1){ // force at least one element
+             lastTuple->DeleteIfAllowed(); 
+             lastTuple = stream.request();
+         } else {
+             rel = arel->getRel();
+             indexARel = 0;
+             return lastTuple;
+         }
+      } 
+      return 0;
+   }
+
+   // copyies all attributes except aRel to unnest from lastTuple
+   // to resTuple
+   void copyAttrs(Tuple* resTuple){
+      assert(lastTuple!=0);
+      for(int i=0;i<noAttr;i++){
+        if(i<arelIndex){
+          resTuple->CopyAttribute(i,lastTuple,i);
+        } else if(i>arelIndex){
+          resTuple->CopyAttribute(i,lastTuple,i-1);
+        }
+      }
+   }
+
+   void extendARelTuple(Tuple* resTuple){
+     TupleId tid;
+     tupleIds->Get(indexARel,tid);
+     Tuple* t = rel->GetTuple(tid,false);
+     for(int i=0;i<t->GetNoAttributes();i++){
+       resTuple->CopyAttribute(i, t, i + noAttr -1);
+     }  
+     t->DeleteIfAllowed();
+     indexARel++;
+     if(indexARel>=tupleIds->Size()){
+        lastTuple->DeleteIfAllowed();
+        lastTuple = 0;
+        tupleIds = 0;
+        rel = 0;
+     } 
+   }
+
+};
+
+int
+unnestValueMap2(Word* args, Word& result, int message,
+        Word& local, Supplier s)
+{
+  UnnestInfo2* li = (UnnestInfo2*) local.addr;
+  switch(message){
+    case OPEN: {
+       if(li){
+          delete li;
+       } 
+       ListExpr resultType = nl->Second(GetTupleResultType( s ));
+       int arelIndex = ((CcInt*) args[2].addr)->GetIntval();
+       int noAttr = ((CcInt*) args[3].addr)->GetIntval();
+       int noAttrArel = ((CcInt*) args[4].addr)->GetIntval();
+       local.addr = new UnnestInfo2(args[0],arelIndex-1, noAttr, 
+                                    noAttrArel,resultType);
+       return 0;
+    } 
+   case REQUEST: {
+     result.addr = li?li->next():0;
+     return result.addr?YIELD:CANCEL;
+   } 
+   case CLOSE:{
+      if(li){
+        delete li;
+        local.addr = 0;
+      }
+   }
+   default: return 0; 
+  }
+
+
+}
+
+
+
 /*
 5.6.3 Specification of operator ~unnest~
 
@@ -2942,7 +3090,7 @@ class NestedRelationAlgebra : public Algebra
       AddOperator (aFeedInfo(), aFeed, aFeedTypeMap);
       AddOperator (&aconsume);
       AddOperator (&nest);
-      AddOperator (unnestOperatorInfo(), unnestValueMap, unnestTypeMap);
+      AddOperator (unnestOperatorInfo(), unnestValueMap2, unnestTypeMap);
       AddOperator (nestedRenameInfo(), nestedRename, nestedRenameTypeMap);
       AddOperator (extractInfo(), extractValueMap, extractTypeMap);
       attributeRelationTC.AssociateKind( Kind::DATA() );
