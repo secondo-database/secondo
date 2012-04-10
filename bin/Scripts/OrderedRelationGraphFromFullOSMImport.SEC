@@ -7,11 +7,24 @@
 #
 # -> adapt the filename of the osm-file to be imported (line 14 only).
 #
+# running times and result sizes refer to arnsberg-regbez.osm, using 
+# GlobalMemory = 2 GB
+#
 ###########################################################################
 
 # Database hombruch
 
-query fullosmimport('Hombruch.osm', "City")
+query fullosmimport('arnsberg-regbez.osm', "City")
+
+# relation CityNodes with 5008465 tuples stored
+# relation CityNodeTags with 389898 tuples stored
+# relation CityWays with 6419349 tuples stored
+# relation CityWayTags with 2193352 tuples stored
+# relation CityRelations with 355347 tuples stored
+# relation CityRelationTags with 52448 tuples stored
+
+
+# 157 secs
 
 let Ways =
   CityNodes feed projectextend[NodeId;  Pos: makepoint(.Lon, .Lat)]  
@@ -20,7 +33,13 @@ let Ways =
   CityWayTags feed nest[WayIdInTag; WayInfo] itHashJoin[WayId, WayIdInTag] 
   consume
 
+# result 750198
+# 692 secs
+
 let Roads = Ways feed filter[.WayInfo afeed filter[.WayTagKey = "highway"] count > 0] consume
+
+# result size 241990
+# 106 secs
 
 # compute Nodes as the union of start points, end points and intersections of roads
 
@@ -49,6 +68,9 @@ Roads feed
   sortby[WayId, NodeCounter]
   rdup
   consume
+
+# result size 721006
+# 292 secs
 
 let EdgesUp =
   Nodes feed nest[WayId; SectionNodes]
@@ -84,6 +106,9 @@ let EdgesUp =
   unnest[Sections]
   consume
 
+# result size 479016
+# 339 secs
+
 let EdgesDown =
   Nodes feed nest[WayId; SectionNodes]
     projectextend[WayId; Sections: .SectionNodes afeed sortby[NodeCounter desc]
@@ -116,10 +141,24 @@ let EdgesDown =
   unnest[Sections]
   consume
 
+# result size 479016
+# 369 secs
+
 let Edges = EdgesUp feed EdgesDown feed concat 
   projectextend[Source, Target, SourcePos, TargetPos, SourceNodeCounter, TargetNodeCounter, Curve, RoadName, 
     RoadType, MaxSpeed; WayId: .WayId] 
   oconsume[Source, Target]
+
+# result size 958032
+# 715 secs
+
+let EdgeIndex = Edges feed projectextend[Source, Target; Box: bbox(.Curve)] sortby[Box] consume
+
+# 229 secs
+
+let EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
+
+# 7.98 secs
 
 
 
