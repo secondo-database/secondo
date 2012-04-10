@@ -2358,6 +2358,7 @@ unnestValueMap(Word* args, Word& result, int message,
     {
       info = new UnnestInfo;
       info->index = -1;
+      info->lastTuple = 0;
       ListExpr resultType = GetTupleResultType( s );
       info->tupleType = new TupleType(nl->Second(resultType));
       local.addr = info;
@@ -2391,6 +2392,13 @@ unnestValueMap(Word* args, Word& result, int message,
           info->arel = (AttributeRelation*)(current->GetAttribute(arelIndex));
           tidArray = info->arel->getTupleIds();
           if(tidArray->Size()==0){ // arel is empty
+              tuple->DeleteIfAllowed();
+              if(info->lastTuple){
+                 info->lastTuple->DeleteIfAllowed();
+                 info->lastTuple = 0;
+              }
+              current->DeleteIfAllowed();
+              result.addr = 0;
              return CANCEL;
           } 
           tidArray->Get(0, tid);
@@ -2453,6 +2461,13 @@ unnestValueMap(Word* args, Word& result, int message,
 
             tidArray = info->arel->getTupleIds();
             if(tidArray->Size()==0){ // arel is empty
+              tuple->DeleteIfAllowed();
+              if(info->lastTuple){
+                 info->lastTuple->DeleteIfAllowed();
+                 info->lastTuple = 0;
+              }
+              current->DeleteIfAllowed();
+              result.addr = 0;
               return CANCEL;
             }
             tidArray->Get(0, tid);
