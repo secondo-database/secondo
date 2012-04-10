@@ -9,15 +9,15 @@
 #
 ###########################################################################
 
-# Database Hombruch
+# Database hombruch
 
-query fullosmimport('KL_Enkenbach.osm', "City")
+query fullosmimport('Hombruch.osm', "City")
 
 let Ways =
   CityNodes feed projectextend[NodeId;  Pos: makepoint(.Lon, .Lat)]  
-  CityWays feed hashjoin[NodeId, NodeRef] sortby[WayId, NodeCounter] nest[WayId; NodeList] 
+  CityWays feed itHashJoin[NodeId, NodeRef] sortby[WayId, NodeCounter] nest[WayId; NodeList] 
     extend[Curve  : .NodeList afeed projecttransformstream[Pos] collect_line[TRUE]] 
-  CityWayTags feed nest[WayIdInTag; WayInfo] hashjoin[WayId, WayIdInTag] 
+  CityWayTags feed nest[WayIdInTag; WayInfo] itHashJoin[WayId, WayIdInTag] 
   consume
 
 let Roads = Ways feed filter[.WayInfo afeed filter[.WayTagKey = "highway"] count > 0] consume
@@ -27,12 +27,12 @@ let Roads = Ways feed filter[.WayInfo afeed filter[.WayTagKey = "highway"] count
 let Nodes = 
   CityWays feed 
   CityWays feed {h2}
-  hashjoin[NodeRef, NodeRef_h2]
+  itHashJoin[NodeRef, NodeRef_h2]
   filter[.WayId # .WayId_h2]
   CityNodes feed projectextend[NodeId;  Pos: makepoint(.Lon, .Lat)]  
-  hashjoin[NodeRef, NodeId]
-  Roads feed {r1} hashjoin[WayId, WayId_r1]
-  Roads feed {r2} hashjoin[WayId_h2, WayId_r2]
+  itHashJoin[NodeRef, NodeId]
+  Roads feed {r1} itHashJoin[WayId, WayId_r1]
+  Roads feed {r2} itHashJoin[WayId_h2, WayId_r2]
   project[WayId, NodeCounter, NodeRef, Pos]
 Roads feed 
   projectextend[WayId; Node: .NodeList afeed filter[.NodeCounter = 0] aconsume]
@@ -63,7 +63,7 @@ let EdgesUp =
         SourceNodeCounter, TargetNodeCounter]
       aconsume]
   Roads feed {r}
-  hashjoin[WayId, WayId_r]
+  itHashJoin[WayId, WayId_r]
   projectextend[WayId; Sections: fun(t:TUPLE)
     attr(t, Sections) afeed 
     extend[
@@ -97,7 +97,7 @@ let EdgesDown =
         SourceNodeCounter, TargetNodeCounter]
       aconsume]
   Roads feed {r}
-  hashjoin[WayId, WayId_r]
+  itHashJoin[WayId, WayId_r]
   projectextend[WayId; Sections: fun(t:TUPLE)
     attr(t, Sections) afeed extend[Curve: fun(u: TUPLE)
       attr(t, NodeList_r) afeed sortby[NodeCounter_r desc]
