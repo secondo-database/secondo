@@ -1678,37 +1678,36 @@ template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
         }
         linfo->sizesInitialized = true;
         linfo->sizesChanged = true;
+      }
+      int l1 = 0;
+      int l2 = 0;
+      if(rk==Range) {
+        l1 = ((CcInt*)args[3].addr)->GetIntval();
+        l2 = ((CcInt*)args[4].addr)->GetIntval();
+      } else {
+        l1 = ((CcInt*)args[2].addr)->GetIntval();
+      }
+      if(rk==LeftRange) {
+        linfo->toKey = orel->GetUpperRangeKey(args[1],l1);
+      } else if(rk==RightRange) {
+        linfo->fromKey = orel->GetLowerRangeKey(args[1],l1);
+      } else if(rk==Range) {
+        linfo->fromKey = orel->GetLowerRangeKey(args[1],l1);
+        linfo->toKey = orel->GetUpperRangeKey(args[2],l2);
+      }
 
-        int l1 = 0;
-        int l2 = 0;
+      SmiKeyRange fromRange, toRange;
+      if(rk==RightRange || Range) {
+        orel->GetTupleFile()->KeyRange(linfo->fromKey.GetSmiKey(),fromRange);
+        linfo->Card = (int)(linfo->total*(1-fromRange.less));
         if(rk==Range) {
-          l1 = ((CcInt*)args[3].addr)->GetIntval();
-          l2 = ((CcInt*)args[4].addr)->GetIntval();
-        } else {
-          l1 = ((CcInt*)args[2].addr)->GetIntval();
-        }
-        if(rk==LeftRange) {
-          linfo->toKey = orel->GetUpperRangeKey(args[1],l1);
-        } else if(rk==RightRange) {
-          linfo->fromKey = orel->GetLowerRangeKey(args[1],l1);
-        } else if(rk==Range) {
-          linfo->fromKey = orel->GetLowerRangeKey(args[1],l1);
-          linfo->toKey = orel->GetUpperRangeKey(args[2],l2);
-        }
-
-        SmiKeyRange fromRange, toRange;
-        if(rk==RightRange || Range) {
-          orel->GetTupleFile()->KeyRange(linfo->fromKey.GetSmiKey(),fromRange);
-          linfo->Card = (int)(linfo->total*(1-fromRange.less));
-          if(rk==Range) {
-            orel->GetTupleFile()->KeyRange(linfo->toKey.GetSmiKey(), toRange);
-            linfo->Card = (int)(linfo->total*(1-toRange.greater -
-                                                fromRange.less));
-          }
-        } else {
           orel->GetTupleFile()->KeyRange(linfo->toKey.GetSmiKey(), toRange);
-          linfo->Card = (int)(linfo->total*(1-toRange.greater));
+          linfo->Card = (int)(linfo->total*(1-toRange.greater -
+                                              fromRange.less));
         }
+      } else {
+        orel->GetTupleFile()->KeyRange(linfo->toKey.GetSmiKey(), toRange);
+        linfo->Card = (int)(linfo->total*(1-toRange.greater));
       }
       if(linfo->iter){
         delete linfo->iter;
