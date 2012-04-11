@@ -2582,7 +2582,8 @@ class UnnestInfo2{
              lastTuple->DeleteIfAllowed(); 
              lastTuple = stream.request();
          } else {
-             rel = arel->getRel();
+             //rel = arel->getRel(); //does not work as expected
+             rel = Relation::GetRelation(arel->getRelId());
              indexARel = 0;
              return lastTuple;
          }
