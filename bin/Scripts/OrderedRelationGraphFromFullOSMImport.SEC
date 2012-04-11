@@ -5,7 +5,7 @@
 #
 # Uses NestedRelationAlgebra
 #
-# -> adapt the filename of the osm-file to be imported (line 14 only).
+# -> adapt the filename of the osm-file to be imported.
 #
 # running times and result sizes refer to arnsberg-regbez.osm, using 
 # GlobalMemory = 2 GB
@@ -152,13 +152,54 @@ let Edges = EdgesUp feed EdgesDown feed concat
 # result size 958032
 # 715 secs
 
-let EdgeIndex = Edges feed projectextend[Source, Target; Box: bbox(.Curve)] sortby[Box] consume
+# rest on slightly different database
 
-# 229 secs
+let EdgeIndex = Edges feed projectextend[Source, Target, Curve; Box: bbox(.Curve)] 
+  filter[isdefined(.Box)] sortby[Box] consume
+
+
+# result size 958500
+# 921 secs
+
 
 let EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
 
-# 7.98 secs
+# 30.33 secs
+
+
+
+# Get edges from a restricted area:
+
+let hombruch = [const rect value (7.419 7.457 51.462 51.484)]
+
+query EdgeIndex_Box_rtree EdgeIndex windowintersects[hombruch] remove[Box] loopjoin[Edges orange[.Source, .Target; .Source, .Target] {e}] consume
+
+# This should work but it fails due to an error in the orange operator!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
