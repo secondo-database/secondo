@@ -68,11 +68,11 @@ public void processMessage(ListExpr message){
   }
 
 
-
   int tmpcurrent = message.first().intValue();
   int tmpmax = message.second().intValue();
   if( (tmpcurrent<0) || (tmpmax<0) || (tmpcurrent>tmpmax)){
      current = -1;
+     highest = -1;
   } else {
      this.current = tmpcurrent;
      this.max = tmpmax;
