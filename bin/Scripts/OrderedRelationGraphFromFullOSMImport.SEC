@@ -14,7 +14,7 @@
 
 # Database hombruch
 
-query fullosmimport('arnsberg-regbez.osm', "City")
+# query fullosmimport('arnsberg-regbez.osm', "City")
 
 # relation CityNodes with 5008465 tuples stored
 # relation CityNodeTags with 389898 tuples stored
@@ -121,7 +121,9 @@ let EdgesDown =
       project[Source, Target, SourcePos, TargetPos, 
         SourceNodeCounter, TargetNodeCounter]
       aconsume]
-  Roads feed {r}
+  Roads feed 
+    filter[.WayInfo afeed filter[.WayTagKey = "oneway"] 
+      filter[(.WayTagValue = "yes")] count = 0] {r}
   itHashJoin[WayId, WayId_r]
   projectextend[WayId; Sections: fun(t:TUPLE)
     attr(t, Sections) afeed extend[Curve: fun(u: TUPLE)
@@ -172,9 +174,10 @@ let EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
 
 let hombruch = [const rect value (7.419 7.457 51.462 51.484)]
 
-query EdgeIndex_Box_rtree EdgeIndex windowintersects[hombruch] remove[Box] loopjoin[Edges orange[.Source, .Target; .Source, .Target] {e}] consume
+query EdgeIndex_Box_rtree EdgeIndex windowintersects[hombruch] remove[Box] 
+  loopsel[Edges orange[.Source, .Target; .Source, .Target]] consume
 
-# This should work but it fails due to an error in the orange operator!
+
 
 
 
