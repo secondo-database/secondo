@@ -4079,8 +4079,8 @@ void Walk_SP::WalkShortestPath_Type(Line* res, BTree* btree_qloc, int type)
   
   while(btree_iter->Next()){
         Tuple* tuple = rel2->GetTuple(btree_iter->GetId(), false);
-        int oid =
-          ((CcInt*)tuple->GetAttribute(VisualGraph::TY_QOID))->GetIntval();
+/*        int oid =
+          ((CcInt*)tuple->GetAttribute(VisualGraph::TY_QOID))->GetIntval();*/
         Point d_loc1 = *((Point*)tuple->GetAttribute(VisualGraph::TY_QLOC1));
         Point d_loc2 = *((Point*)tuple->GetAttribute(VisualGraph::TY_QLOC2));
         int ty =

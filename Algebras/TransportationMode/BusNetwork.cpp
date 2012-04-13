@@ -9009,6 +9009,8 @@ void BN::DecomposeBR(Line* l1, Line* l2)
 
         delete ul;
 
+        type_list.push_back(1);//for the first line
+        
   }
 
   for(unsigned int i = 0;i < seq_halfseg2.size();i++){
@@ -9087,7 +9089,7 @@ void BN::DecomposeBR(Line* l1, Line* l2)
         line_list2.push_back(*ul);
 
         delete ul;
-
+        type_list.push_back(2);//the second line
   }
 
 //  cout<<"list1 size "<<line_list1.size()

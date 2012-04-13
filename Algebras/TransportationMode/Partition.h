@@ -1127,6 +1127,29 @@ struct Loc_Id{
 
 };
 
+
+struct Adj_Data{
+  int adj_id;
+  bool from_to; //false -- from; true -- to
+  bool adj_from_to;//false -- from; true -- to
+  Adj_Data(){}
+  Adj_Data(int ID, bool b1, bool b2):adj_id(ID), from_to(b1), adj_from_to(b2){}
+  Adj_Data(const Adj_Data& d):adj_id(d.adj_id), from_to(d.from_to),
+  adj_from_to(d.adj_from_to){}
+  Adj_Data& operator=(const Adj_Data& d)
+  {
+    adj_id = d.adj_id;
+    from_to = d.from_to;
+    adj_from_to = d.adj_from_to;
+    return *this;
+  }
+  void Print()
+  {
+    cout<<"adj id: "<<adj_id<<" from "<<from_to
+        <<" neighbor "<<adj_from_to<<endl;
+  }
+};
+
 /*
 data clean process 
 
@@ -1143,6 +1166,14 @@ struct DataClean{
   vector<int> type_list;
   vector<int> oid_list;
 
+  vector<Point> bs_loc_list;
+
+  static string RoadLSegs;
+  static string RoadLAdj;
+
+  enum RoadLInfor{L_OID = 0, L_SEG}; 
+  enum RoadLAdjInfo{L_ADJ_OID1, L_ADJ_SEG1, L_ADJ_OID2, L_ADJ_SEG2};
+
   void ModifyLine(SimpleLine* in, SimpleLine* out);
   void RefineData(SimpleLine* in, SimpleLine* out);
   void CheckRoads(Relation* r, R_Tree<2,TupleId>* rtree);
@@ -1154,7 +1185,13 @@ struct DataClean{
   void DFTraverse3(Relation* rel,
                            R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
                            Line* sl, int attr, int tid, vector<int>& res_list);
-
+  void RefineBR(Relation*, int attr1, int attr2);
+  void FindBusRoute(vector<SimpleLine> seg_list, double min_len);
+  void FindThePath(vector<MyHalfSegment> mhs_list, int i, int j, 
+                   vector<vector<Adj_Data> > adj_list, 
+                   vector<SimpleLine>& path_list);
+  void SetBSLoc(Relation* rel1, Relation* rel2);
+  void PutResult(vector<MyHalfSegment> mhs_list, int id, double& len);
 };
 
 

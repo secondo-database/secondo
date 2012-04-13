@@ -1318,6 +1318,25 @@ const string OpTMFilterDisjointSpec  =
     "</text--->"
     ") )";
 
+const string OpTMRefineBRSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x attr x attr -> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>refinebr(rel, attr, attr)</text--->"
+    "<text>discover bus routes from road segments </text--->"
+    "<text>query refinebr(DOBusRoutes, RelId, BRoute) count</text--->"
+    ") )";
+
+const string OpTMSetBSLocSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x rel -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>set_bs_loc(rel, rel)</text--->"
+    "<text>set possible locations for bus stops </text--->"
+    "<text>query set_bs_loc(LSegs, LAdj) count</text--->"
+    ") )";
+
 const string OpTMCheckRoadsSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -1328,8 +1347,6 @@ const string OpTMCheckRoadsSpec  =
     "<text>query checkroads(r,rtree_road)</text--->"
     ") )";
 
-
-    
 const string OpTMTMJoin1Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "

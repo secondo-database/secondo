@@ -38,6 +38,7 @@ partitioning space.
 */
 
 #include "Partition.h"
+#include "PaveGraph.h"
 
 /*
 ~Shift~ Operator for ~ownertype~
@@ -6393,6 +6394,11 @@ void StrRS::GenPoints2(R_Tree<2,TupleId>* rtree, int attr_pos1,
 //////////////////////////////////////////////////////////////////////////////
 ///////////////////data cleaning process/////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
+string DataClean::RoadLSegs = "(rel (tuple ((OID int) (Segment line))))";
+string DataClean::RoadLAdj = "(rel (tuple ((OID_L1 int) (Segment_L1 line)\
+(OID_L2 int) (Segment_L2 line))))";
+
+
 /*
 modify the coordinates of a line value, not so many numbers after dot
 
@@ -6948,8 +6954,8 @@ void DataClean::FilterDisjoint(Relation* rel, R_Tree<2,TupleId>* rtree,
 //           cout<<"oid "<<loc_list[i].oid
 //               <<" neighbor size "<<neighbor_list.size()<<endl;
 
-          for(unsigned int j = 0;j < neighbor_list.size();j++){
-              if(neighbor_list.size() > rel->GetNoTuples()/2) //main component
+        for(unsigned int j = 0;j < neighbor_list.size();j++){
+          if((int)neighbor_list.size() > rel->GetNoTuples()/2) //main component
                 type_list.push_back(1);//disjoint type
               else
                 type_list.push_back(2);//disjoint type
@@ -6958,7 +6964,7 @@ void DataClean::FilterDisjoint(Relation* rel, R_Tree<2,TupleId>* rtree,
               l_list.push_back(*l);
               oid_list.push_back(neighbor_list[j]);
               t->DeleteIfAllowed();
-          }
+        }
       }
   }
 }
@@ -6998,8 +7004,432 @@ void DataClean::DFTraverse3(Relation* rel,
   delete node;
 
 }
+
+/*
+refine bus route from road segments
+
+*/
+void DataClean::RefineBR(Relation* rel, int attr1, int attr2)
+{
+
+  const int min_no = 5;
+  const double min_len = 5000.0;
+  vector<bool> flag_list;
+  vector<SimpleLine> seg_list;
+  int last_rel_id = -1;
+  for(int i = 1;i <= rel->GetNoTuples();i++){
+      Tuple* t = rel->GetTuple(i, false);
+      int rel_id = ((CcInt*)t->GetAttribute(attr1))->GetIntval();
+      if(flag_list.size() == 0){
+        flag_list.push_back(true);
+        SimpleLine* sl = (SimpleLine*)t->GetAttribute(attr2);
+        seg_list.push_back(*sl);
+        last_rel_id = rel_id;
+      }else{
+        if(rel_id == last_rel_id){
+          //keep put into the list
+          flag_list.push_back(true);
+          SimpleLine* sl = (SimpleLine*)t->GetAttribute(attr2);
+          seg_list.push_back(*sl);
+        }else{
+
+          /////////process such a group of lines ///////////
+          if((int)flag_list.size() > min_no){
+              double l = 0.0;
+              for(unsigned int j = 0;j < seg_list.size();j++){
+                l += seg_list[j].Length();
+              }
+//              cout<<"len "<<l<<endl;
+              if(l > min_len){
+/*                cout<<"rel id "<<rel_id<<" size: "
+                  <<flag_list.size()<<" total len: "<<l<<endl;*/
+                FindBusRoute(seg_list, min_len);
+
+              }
+          }
+          /////////     ///////////////////////////////////
+          flag_list.clear();
+          seg_list.clear();
+          i--;
+        }
+
+      }
+      t->DeleteIfAllowed();
+
+  }
+
+}
+
+/*
+discover bus route.
+decompose all lines or slines into a set of segments, then for each segment we
+can find its adjacent ones. the problem becomes finding the longest path in a 
+graph. 2012 4 10
+
+*/
+void DataClean::FindBusRoute(vector<SimpleLine> seg_list, 
+                             double min_len)
+{
+    vector<vector<Adj_Data> > adj_list;
+    vector<MyHalfSegment> mhs_list;
+    for(unsigned int i = 0;i < seg_list.size();i++){
+        for(int j = 0;j < seg_list[i].Size();j++){
+          HalfSegment hs;
+          seg_list[i].Get(j, hs);
+          if(hs.IsLeftDomPoint() == false) continue;
+          MyHalfSegment mhs(true, hs.GetLeftPoint(), hs.GetRightPoint());
+          mhs_list.push_back(mhs);
+          vector<Adj_Data> temp_list;
+          adj_list.push_back(temp_list);
+        }
+
+    }
+//    cout<<"seg size "<<mhs_list.size()<<endl;
+
+    for(unsigned int i = 0;i < mhs_list.size();i++){
+
+        Point p1 = mhs_list[i].from;
+        Point p2 = mhs_list[i].to;
+        for(unsigned int j = 0;j < mhs_list.size();j++){
+          if(i == j) continue;
+
+          Point p3 = mhs_list[j].from;
+          Point p4 = mhs_list[j].to;
+          if(p1.Distance(p3) < EPSDIST ){
+//            cout<<"i: "<<i<<" j: "<<j<<endl;
+            Adj_Data adj_data(j, false, false);
+            adj_list[i].push_back(adj_data);
+          }
+          if(p1.Distance(p4) < EPSDIST ){
+//            cout<<"i: "<<i<<" j: "<<j<<endl;
+            Adj_Data adj_data(j, false, true);
+            adj_list[i].push_back(adj_data);
+          }
+          if(p2.Distance(p3) < EPSDIST ){
+//            cout<<"i: "<<i<<" j: "<<j<<endl;
+            Adj_Data adj_data(j, true, false);
+            adj_list[i].push_back(adj_data);
+          }
+          if(p2.Distance(p4) < EPSDIST ){
+//            cout<<"i: "<<i<<" j: "<<j<<endl;
+            Adj_Data adj_data(j, true, true);
+            adj_list[i].push_back(adj_data);
+          }
+
+        }
+    }
+
+//     for(unsigned int i = 0;i < adj_list.size();i++){
+//       cout<<i<<" adj size "<<adj_list[i].size()<<endl;
+//     }
+
+    vector<SimpleLine> path_list;
+
+    for(unsigned int i = 0;i < adj_list.size();i++){
+        if(adj_list[i].size() > 1) continue;
+        for(unsigned int j = i + 1;j < adj_list.size();j++){
+          if(adj_list[j].size() > 1) continue;
+//          cout<<mhs_list[i].from.Distance(mhs_list[j].from)<<endl;
+          if(mhs_list[i].from.Distance(mhs_list[j].from) > min_len){
+/*            cout<<"i "<<i<<" j "<<j
+                <<" "<<mhs_list[i].from.Distance(mhs_list[j].from)<<endl;*/
+                FindThePath(mhs_list, i, j, 
+                            adj_list, path_list);//search path
+          }
+        }
+    }
+
+    double len = -1.0;
+    int index = -1;
+    for(unsigned int i = 0;i < path_list.size();i++){
+      if(path_list[i].Length() > len){
+        len = path_list[i].Length();
+        index = i;
+      }
+    }
+
+    if(index >= 0){
+//      oid_list.push_back(rel_id);
+      sl_list.push_back(path_list[index]);
+    }
+}
+
+/*
+find a path connecting the two segments from i to j in the list
+
+*/
+void  DataClean::FindThePath(vector<MyHalfSegment> mhs_list, 
+                             int start, int end,
+                             vector<vector<Adj_Data> > adj_list,
+                             vector<SimpleLine>& path_list)
+{
+//    cout<<"rel_id "<<rel_id<<" start "<<start<<" end "<<end<<endl;
+
+    assert(mhs_list.size() == adj_list.size());
+
+    ///////////////////////////////////////////////////
+//     SimpleLine* sl1 = new SimpleLine(0);
+//     sl1->StartBulkLoad();
+//     HalfSegment hs1(true, mhs_list[i].from, mhs_list[i].to);
+//     hs1.attr.edgeno = 0;
+//     *sl1 += hs1;
+//     hs1.SetLeftDomPoint(!hs1.IsLeftDomPoint());
+//     *sl1 += hs1;
+//     sl1->EndBulkLoad();
+//     oid_list.push_back(rel_id);
+//     sl_list.push_back(*sl1);
+//     delete sl1;
+//     ////////////////////////////////////////////////////
+// 
+//     SimpleLine* sl2 = new SimpleLine(0);
+//     sl2->StartBulkLoad();
+//     HalfSegment hs2(true, mhs_list[j].from, mhs_list[j].to);
+//     hs2.attr.edgeno = 0;
+//     *sl2 += hs2;
+//     hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+//     *sl2 += hs2;
+//     sl2->EndBulkLoad();
+//     oid_list.push_back(rel_id);
+//     sl_list.push_back(*sl2);
+//     delete sl2;
+    //////////////////////////////////////////////////////
+
+    vector<bool> flag_list(mhs_list.size(), false);
+
+    priority_queue<SPath_elem> path_queue;
+    vector<SPath_elem> expand_queue;
+
+    flag_list[start] = true;
+    ///////////////initialization///////////////////////////
+    for(unsigned int j = 0;j < adj_list[start].size();j++){
+        int cur_size = expand_queue.size();
+        SPath_elem elem(-1, cur_size, adj_list[start][j].adj_id, 0);
+        path_queue.push(elem);
+        expand_queue.push_back(elem); 
+//        cout<<"adj id "<<adj_list[start][j].adj_id<<endl;
+    }
+
+    ///////////////////////////////////////////////////////
+    bool find = false;
+    SPath_elem dest;//////////destination
+    while(path_queue.empty() == false){
+        SPath_elem top = path_queue.top();
+        path_queue.pop();
+
+        if(flag_list[top.tri_index]) continue;
+  
+        if(top.tri_index == end){
+//            cout<<"find the shortest path"<<endl;
+            find = true;
+            dest = top;
+            break;
+        }
+        int pos_expand_path = top.cur_index;
+        for(unsigned int j = 0;j < adj_list[top.tri_index].size();j++){
+          int cur_size = expand_queue.size();
+          SPath_elem elem(pos_expand_path, cur_size, 
+                          adj_list[top.tri_index][j].adj_id, top.weight + 1);
+          path_queue.push(elem);
+          expand_queue.push_back(elem); 
+        }
+
+        flag_list[top.tri_index] = true;
+
+    }
+
+  //////////////////rebuild the path////////////////////////////
+  if(find){
+    SimpleLine* sl =  new SimpleLine(0);
+    sl->StartBulkLoad();
+    int edgeno = 0;
+    while(dest.prev_index != -1){
+      HalfSegment hs(true, mhs_list[dest.tri_index].from, 
+                           mhs_list[dest.tri_index].to);
+      dest = expand_queue[dest.prev_index];
+
+      /////////////////////////////////////////////////////
+      hs.attr.edgeno = edgeno++;
+      *sl += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      *sl += hs;
+      /////////////////////////////////////////////////////
+    }
+
+    sl->EndBulkLoad();
+//    cout<<"len: "<<sl->Length()<<endl;
+    path_list.push_back(*sl);
+    delete sl;
+  }
+
+}
+
+/*
+set possible locations for bus stops for the whole routes 
+
+*/
+void DataClean::SetBSLoc(Relation* rel1, Relation* rel2)
+{
+
+  vector<vector<Adj_Data> > adj_list;
+  vector<MyHalfSegment> mhs_list;
+  
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+      Tuple* t = rel1->GetTuple(i, false);
+
+      Line* l = (Line*)t->GetAttribute(L_SEG);
+      assert(l->Size() == 2);
+
+      HalfSegment hs;
+      l->Get(0, hs);
+      MyHalfSegment mhs(true, hs.GetLeftPoint(), hs.GetRightPoint());
+      mhs_list.push_back(mhs);
+      vector<Adj_Data> temp_list;
+      adj_list.push_back(temp_list);
+
+      t->DeleteIfAllowed();
+  }
+
+  vector<bool> flag_list(mhs_list.size(), false);
+
+  /////////////////build adjacent list/////////////////////////
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+      Tuple* t = rel2->GetTuple(i, false);
+      int s_id = ((CcInt*)t->GetAttribute(L_ADJ_OID1))->GetIntval();
+      int e_id = ((CcInt*)t->GetAttribute(L_ADJ_OID2))->GetIntval();
+
+      MyHalfSegment mhs_s = mhs_list[s_id - 1];
+      MyHalfSegment mhs_e = mhs_list[e_id - 1];
+
+      if(mhs_s.from.Distance(mhs_e.from) < EPSDIST ){
+            Adj_Data adj_data(e_id, false, false);
+            adj_list[s_id - 1].push_back(adj_data);
+      }
+      if(mhs_s.from.Distance(mhs_e.to) < EPSDIST ){
+            Adj_Data adj_data(e_id, false, true);
+            adj_list[s_id - 1].push_back(adj_data);
+      }
+      if(mhs_s.to.Distance(mhs_e.from) < EPSDIST ){
+            Adj_Data adj_data(e_id, true, false);
+            adj_list[s_id - 1].push_back(adj_data);
+      }
+      if(mhs_s.to.Distance(mhs_e.to) < EPSDIST ){
+            Adj_Data adj_data(e_id, true, true);
+            adj_list[s_id - 1].push_back(adj_data);
+      }
+      t->DeleteIfAllowed();
+  }
+
+   //////////////// initialization ////////////////
+  queue<int> Q;
+  for(unsigned int i = 0;i < adj_list.size();i++){
+
+     if(adj_list[i].size() == 1){
+        Q.push(i);
+        break;
+     }
+  }
+
+//    if(adj_list[i].size() != 1){
+//        continue;
+//    }
+//    Q.push(i);
+  //////////////////////////////////////////////////////
+  const double interval = 200.0; //distance interval for bus stops
+
+  while(Q.empty() == false){
+    int top = Q.front();
+    Q.pop();
+
+    queue<int> Q2;
+    Q2.push(top);
+    double l = 0.0;
+
+    PutResult(mhs_list, top, l);
+    flag_list[top] = true;
+
+    while(Q2.empty() == false){
+      int top2 = Q2.front();
+      Q2.pop();
+
+      vector<int> neighbor_list;
+      unsigned int record = 0;
+      for(unsigned int i = 0;i < adj_list[top2].size();i++){
+        int neighbor_id = adj_list[top2][i].adj_id - 1;
+        if(flag_list[neighbor_id] == false){
+          neighbor_list.push_back(neighbor_id);
+          record = i;
+          flag_list[neighbor_id] = true;
+
+        }
+      } //end for
+//       cout<<"neighbor list size "<<neighbor_list.size()<<endl;
+//       cout<<"l: "<<l<<endl;
+
+      if(neighbor_list.size() == 1){//only one adjacent list
+        HalfSegment hs(true, mhs_list[neighbor_list[0]].from,
+                             mhs_list[neighbor_list[0]].to);
+//        cout<<"hs len: "<<hs.Length()<<endl;
+        if(l + hs.Length() < interval){
+            l += hs.Length();
+        }else{
+          double len2 = l + hs.Length() - interval;
+//          cout<<"len2 "<<len2<<endl;
+          if(adj_list[top2][record].adj_from_to == false){
+            PutResult(mhs_list, neighbor_list[0], len2);
+          }else{
+            PutResult(mhs_list, neighbor_list[0], len2);
+          }
+
+          l = hs.Length() - len2;
+          assert(l > 0.0);
+
+        }
+        Q2.push(neighbor_list[0]);
+      }else{ //more neighbors; not implemented yet 
+
+          for(unsigned int i = 0;i < neighbor_list.size();i++){
+            Q.push(neighbor_list[i]);
+          }
+      }
+      flag_list[top2] = true;
+
+    }//end inner while 
+
+  }
+
+  //////////////////////////////////////////////////
+}
+
+/*
+put the segment and location point into the result 
+
+*/
+void DataClean::PutResult(vector<MyHalfSegment> mhs_list, int id, 
+                          double& len)
+{
+  const double min_len = 20.0;
+
+    HalfSegment hs(true, mhs_list[id].from, mhs_list[id].to);
+    if(hs.Length() < min_len) return;
+    SimpleLine* l = new SimpleLine(0);
+    l->StartBulkLoad();
+    hs.attr.edgeno = 0;
+    *l += hs;
+    hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+    *l += hs;
+    l->EndBulkLoad();
+    sl_list.push_back(*l);
+    delete l;
+
+    Point p = hs.AtPosition(hs.Length()/2);
+    bs_loc_list.push_back(p);
+    oid_list.push_back(id + 1);
+    len = hs.Length()/2;
+
+}
+
 /////////////////////////////////////////////////////////////////////
-////////a robust method to get the position of a point on a sline///
+////////a robust method to get the position of a point on a sline ///
 /////////////////////////////////////////////////////////////////////
 double PointOnSline(SimpleLine* sl, Point* loc, bool b)
 {

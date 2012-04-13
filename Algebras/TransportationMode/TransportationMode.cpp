@@ -11854,13 +11854,16 @@ ListExpr OpTMBRSegmentTypeMap ( ListExpr args )
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                nl->TwoElemList(
+                nl->ThreeElemList(
                     nl->TwoElemList(
                         nl->SymbolAtom("Segment"),
                         nl->SymbolAtom("line")),
                     nl->TwoElemList(
                         nl->SymbolAtom("USegment"),
-                        nl->SymbolAtom("line"))
+                        nl->SymbolAtom("line")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Type"),
+                        nl->SymbolAtom("int"))
                     )));
   return res;
 }
@@ -14293,6 +14296,141 @@ ListExpr OpTMFilterDisjointTypeMap ( ListExpr args )
   return nl->ThreeElemList(
         nl->SymbolAtom("APPEND"),
         nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)), result);
+
+}
+
+
+/*
+TypeMap fun for operator refinebr
+
+*/
+
+ListExpr OpTMRefineBRTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second ( args );
+  ListExpr param3 = nl->Third( args );
+
+
+  if(!listutils::isRelDescription(param1) )
+    return listutils::typeError("param1 should be an relation" );
+
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(param2);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(param3);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname2, attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"sline")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type sline");
+  }
+
+
+  ListExpr result = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->OneElemList(
+/*                    nl->TwoElemList(
+                        nl->SymbolAtom("BR_ID"),
+                        nl->SymbolAtom("int")),*/
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Geo"),
+                        nl->SymbolAtom("sline"))
+                    )));
+
+//                     nl->TwoElemList(
+//                         nl->SymbolAtom("Br_id"),
+//                         nl->SymbolAtom("int")),
+//                     nl->TwoElemList(
+//                         nl->SymbolAtom("Bus_route"),
+//                         nl->SymbolAtom("busroute"))
+
+  return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)), result);
+
+}
+
+/*
+TypeMap fun for operator setbsloc
+
+*/
+
+ListExpr OpTMSetBSLocTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second ( args );
+
+  if ( !IsRelDescription ( param1 ))
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  ListExpr xType1;
+  nl->ReadFromString ( DataClean::RoadLSegs, xType1 );
+  if ( !CompareSchemas ( param1, xType1 ) )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  if ( !IsRelDescription ( param2 ))
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  ListExpr xType2;
+  nl->ReadFromString ( DataClean::RoadLAdj, xType2 );
+  if ( !CompareSchemas ( param2, xType2 ) )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+      ListExpr result = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+//                nl->TwoElemList(
+                nl->ThreeElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("HalfSeg"),
+                        nl->SymbolAtom("sline")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Loc"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Oid"),
+                        nl->SymbolAtom("int"))
+                    )));
+
+//                     nl->TwoElemList(
+//                         nl->SymbolAtom("Br_id"),
+//                         nl->SymbolAtom("int")),
+//                     nl->TwoElemList(
+//                         nl->SymbolAtom("Bus_route"),
+//                         nl->SymbolAtom("busroute"))
+
+    return result;
 
 }
 
@@ -18385,7 +18523,7 @@ int OpTMBRSegmentValueMap ( Word* args, Word& result, int message,
 
           tuple->PutAttribute(0, new Line(b_n->line_list1[b_n->count]));
           tuple->PutAttribute(1, new Line(b_n->line_list2[b_n->count]));
-
+          tuple->PutAttribute(2, new CcInt(true, b_n->type_list[b_n->count]));
           result.setAddr(tuple);
           b_n->count++;
           return YIELD;
@@ -20713,6 +20851,110 @@ int OpTMFilterDisjointmap ( Word* args, Word& result, int message,
 }
 
 /*
+discover the complete bus route from pieces of roads 
+
+*/
+int OpTMRefineBRmap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  DataClean* datacl; //partition dot cpp
+  switch(message){
+      case OPEN:{
+
+        Relation* rel = (Relation*)args[0].addr;
+
+        int attr1 = ((CcInt*)args[3].addr)->GetIntval() - 1;
+        int attr2 = ((CcInt*)args[4].addr)->GetIntval() - 1;
+
+        datacl = new DataClean(); 
+        datacl->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        datacl->RefineBR(rel, attr1, attr2);//Partition.cpp
+        local.setAddr(datacl);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          datacl = (DataClean*)local.addr;
+          if(datacl->count == datacl->sl_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(datacl->resulttype);
+          tuple->PutAttribute(0,new SimpleLine(datacl->sl_list[datacl->count]));
+
+          result.setAddr(tuple);
+          datacl->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            datacl = (DataClean*)local.addr;
+            delete datacl;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  
+  return 0;
+}
+
+
+/*
+set possible locations for bus stops
+
+*/
+int OpTMSetBSLocmap( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  DataClean* datacl; //partition dot cpp
+  switch(message){
+      case OPEN:{
+
+        Relation* rel1 = (Relation*)args[0].addr;
+        Relation* rel2 = (Relation*)args[1].addr;
+
+        datacl = new DataClean(); 
+        datacl->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        datacl->SetBSLoc(rel1, rel2);//Partition.cpp
+        local.setAddr(datacl);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          datacl = (DataClean*)local.addr;
+          if(datacl->count == datacl->sl_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(datacl->resulttype);
+
+          tuple->PutAttribute(0,
+                             new SimpleLine(datacl->sl_list[datacl->count]));
+          tuple->PutAttribute(1,new Point(datacl->bs_loc_list[datacl->count]));
+          tuple->PutAttribute(2, 
+                             new CcInt(true, datacl->oid_list[datacl->count]));
+
+          result.setAddr(tuple);
+          datacl->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            datacl = (DataClean*)local.addr;
+            delete datacl;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  
+  return 0;
+}
+
+/*
 check roads lines points, wether there  are overlapping 
 
 */
@@ -22023,6 +22265,22 @@ Operator filterdisjoint(
     OpTMFilterDisjointTypeMap        // type mapping
 );
 
+Operator refinebr(
+    "refinebr",               // name
+    OpTMRefineBRSpec,          // specification
+    OpTMRefineBRmap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMRefineBRTypeMap        // type mapping
+);
+
+Operator set_bs_loc(
+    "set_bs_loc",               // name
+    OpTMSetBSLocSpec,          // specification
+    OpTMSetBSLocmap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMSetBSLocTypeMap        // type mapping
+);
+
 /*
 Operator checkroads(
     "checkroads",
@@ -22392,8 +22650,11 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&checksline);
    AddOperator(&modifyline);
 //   AddOperator(&checkroads);
+   /////////////build real data for Mini World ////////////////////////
    AddOperator(&refinedata);//remove some digit after dot
    AddOperator(&filterdisjoint);//filter disjoint road segments 
+   AddOperator(&refinebr);// find or discorver the complete bus route
+   AddOperator(&set_bs_loc);//set possible locations for bus stops
 
    ///////////////////two join operators, using rtree//////////////////////
    AddOperator(&tm_join1);
