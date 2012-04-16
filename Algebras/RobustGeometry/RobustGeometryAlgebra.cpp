@@ -118,7 +118,7 @@ static ListExpr intersectionTM(ListExpr args) {
 		arg2 = nl->Second(args);
 		if (SpatialTypeOfSymbolRG(arg1) == stline
 				&& SpatialTypeOfSymbolRG(arg2) == stline)
-			return (nl->SymbolAtom(Points::BasicType()));
+			return (nl->SymbolAtom(Line::BasicType()));
 	}
 	return (nl->SymbolAtom(Symbol::TYPEERROR()));
 }
@@ -331,7 +331,10 @@ class MakeBO {
 
 public:
 	void IntersectionBO(const Line& line1,
-			const Line& line2, Points& result);
+			const Line& line2, Line& result);
+
+	// void Intersection( const Line& l, Line& result,
+	//const Geoid* geoid=0 ) const;
 
 	int intersect(const double l1_x1,
 			const double l1_y1, const double l1_x2,
@@ -357,7 +360,7 @@ public:
 
 	const robustGeometry::BOLine*
 	getBelow(robustGeometry::BOEvent& event);
-	//	  Points* outputPoints;
+
 	void addLineToSweepLine(const robustGeometry::BOLine& line);
 	void addBOEvent(const robustGeometry::BOEvent& event);
 	void doBOCaseA(robustGeometry::BOEvent & event);
@@ -372,16 +375,13 @@ public:
 	set<robustGeometry::BOEvent,
 	robustGeometry::CompBOEventXY>& get_BOEvents() {
 		return boEvents;
-	}
-	;
+	};
 	MakeBO() {
 		//	  outputPoints= new Points();
 
-	}
-	;
+	};
 	~MakeBO() {
-	}
-	;
+	};
 
 private:
 	set<robustGeometry::BOLine,
@@ -390,10 +390,6 @@ private:
 	robustGeometry::CompBOEventXY> initialEvents;
 	set<robustGeometry::BOEvent,
 	robustGeometry::CompBOEventXY> boEvents;
-
-	// Points* outputPoints;
-
-
 };
 
 void MakeBO::doBOCaseA(robustGeometry::BOEvent & event) {
@@ -666,7 +662,6 @@ void MakeBO::checkIS(const robustGeometry::BOLine& line1,
 	nextOwner = line2.getOwner();
 
 	sx1 = line1.getX1();
-	;
 	sy1 = line1.getY1();
 	ex1 = line1.getX2();
 	ey1 = line1.getY2();
@@ -678,7 +673,8 @@ void MakeBO::checkIS(const robustGeometry::BOLine& line1,
 				ey1, sx2, sy2, ex2, ey2, is_x,
 				is_y);
 		if (isIntersected == 0) {
-
+cout << "line 1 X1 : " << line1.getX1() << "line 1 y1" << line1.getY1() << endl;
+cout << "line 2 X1 : " << line2.getX1() << "line 2 y1" << line2.getY1() << endl;
 			robustGeometry::BOEvent intersP =
 			robustGeometry::BOEvent(is_x,
 			is_y, robustGeometry::intersect, line1, line2);
@@ -732,8 +728,12 @@ public:
 	void set_BOEvents(set<robustGeometry::BOEvent,
 			robustGeometry::CompBOEventXY> & events) {
 		events_org = events;
-	}
-	;
+	};
+	set<robustGeometry::BOLine, robustGeometry::CompBOLineXYOwn>
+	& get_BOLine() {
+			return result_line;
+	};
+
 	void event2line(robustGeometry::BOEvent & boEv);
 
 	void splitSegment(robustGeometry::BOEvent & boEv);
@@ -741,6 +741,7 @@ public:
 	void printHOEvents();
 	void printHOResult_events();
 	void printHOResult_lines();
+
 private:
 	set<robustGeometry::ToleranceSquare,
 	robustGeometry::CompToleranceSquareY>
@@ -751,7 +752,6 @@ private:
 	robustGeometry::CompBOEventXY> events_org;
 	set<robustGeometry::BOEvent,
 	robustGeometry::CompBOEventXY> events_r;
-	//vector<robustGeometry::Point> result;
 	set<robustGeometry::BOEvent,
 	robustGeometry::CompBOEventXY> result_e;
 	set<robustGeometry::BOLine,
@@ -1007,11 +1007,16 @@ void MakeHobby::getRoundedPoints
 				== tmpSeg.getLine().getY2())
 				&& (line.getOwner()
 				== tmpSeg.getLine().getOwner())) {
+
 		if (tmpSeg.getPointType() == robustGeometry::start) {
+			cout << "start " ; seg_it1->Print( cout ) ;
+			cout << endl;
 			*bo_s = &*seg_it1;
 		} else if (tmpSeg.getPointType() == robustGeometry::end) {
+			cout << "end " ;  seg_it1->Print( cout ) ; cout << endl;
 			*bo_e = &*seg_it1;
-		}
+		} else
+			cout << "irgendwas " << endl;
 		}
 
 
@@ -1046,22 +1051,18 @@ const robustGeometry::BOEvent * MakeHobby::getRoundedPoint(
 }
 
 void MakeHobby::splitSegment(robustGeometry::BOEvent & boEv) {
-	double is_x = 0.0;
-	double is_y = 0.0;
+	//const double is_x = 0.0;
+	//const double is_y = 0.0;
 
 	const robustGeometry::BOEvent* boEv_sl1 = 0;
 	const robustGeometry::BOEvent* boEv_el1 = 0;
 	const robustGeometry::BOEvent* boEv_sl2 = 0;
 	const robustGeometry::BOEvent* boEv_el2 = 0;
 
-	//veraltet Rückgabe Points
-	//robustGeometry::Point p = robustGeometry::Point(x, y);
-	//result.push_back(p);
-
 	//im Fall von Intersection neues Segment erzeugen
 	if (boEv.getPointType() == robustGeometry::intersect) {
-		is_x = boEv.getX();
-		is_y = boEv.getY();
+		//is_x = boEv.getX();
+		//is_y = boEv.getY();
 
 		//getSNum( &s, sN, 2 );
 		getRoundedPoints(&boEv_sl1, &boEv_el1,
@@ -1069,22 +1070,28 @@ void MakeHobby::splitSegment(robustGeometry::BOEvent & boEv) {
 		getRoundedPoints(&boEv_sl2, &boEv_el2,
 				boEv.getLine2());
 
+		cout << " sl1-X  " << boEv_sl1->getX()
+			<< " sl1-Y  " << boEv_sl1->getY() << endl;
+		cout << " el1-X  " << boEv_el1->getX()
+			<< " el1-Y  " << boEv_el1->getY() << endl;
 		robustGeometry::BOLine boLine_s1o = robustGeometry::BOLine(
-				boEv_sl1->getX(),
-				boEv_sl1->getY(), is_x, is_y,
+				boEv_sl1->getX(),boEv_sl1->getY(),
+				boEv.getX(), boEv.getY(),
 				boEv.getLine1().getOwner());
 		result_line.insert(boLine_s1o);
 		robustGeometry::BOLine boLine_s1u =
-				robustGeometry::BOLine(is_x, is_y,
+				robustGeometry::BOLine(
+				boEv.getX(), boEv.getY(),
 				boEv_el1->getX(), boEv_el1->getY(),
 				boEv.getLine1().getOwner());
 		result_line.insert(boLine_s1u);
 		robustGeometry::BOLine boLine_s2o = robustGeometry::BOLine(
-				boEv_sl2->getX(), boEv_sl2->getY(), is_x, is_y,
+				boEv_sl2->getX(), boEv_sl2->getY(),
+				boEv.getX(), boEv.getY(),
 				boEv.getLine2().getOwner());
 		result_line.insert(boLine_s2o);
 		robustGeometry::BOLine boLine_s2u =
-				robustGeometry::BOLine(is_x, is_y,
+				robustGeometry::BOLine(boEv.getX(), boEv.getY(),
 				boEv_el2->getX(), boEv_el2->getY(),
 				boEv.getLine2().getOwner());
 		result_line.insert(boLine_s2u);
@@ -1258,7 +1265,7 @@ void MakeHobby::computeToleranceSq() {
 ;
 
 void MakeBO::IntersectionBO(const Line& line1, const Line& line2,
-		Points& result) {
+		Line& result) {
 	// Initialisation
 	result.Clear();
 
@@ -1332,15 +1339,25 @@ void MakeBO::IntersectionBO(const Line& line1, const Line& line2,
 	// makeHO->printHOInitialEvents();
 	makeHO->doHO();
 	//	makeHO->printHOEvents();
-	makeHO->printHOResult_events();
+	//makeHO->printHOResult_events();
 	makeHO->printHOResult_lines();
 
-	//	cout <<" outputPoints ";
-	//	MakeBo:: outputPoints->Print(cout);  cout << endl;
-	//
-	//	result = *outputPoints;
-	//	cout << "result = "; result.Print(cout); cout << endl;
-	result.EndBulkLoad(true, false, false);
+	set<robustGeometry::BOLine,robustGeometry::
+	CompBOLineXYOwn >::iterator rs_it;
+	for (rs_it = makeHO->get_BOLine().begin();
+			rs_it != makeHO->get_BOLine().end(); rs_it++)
+	{
+		robustGeometry::BOLine tmpSeg = *rs_it;
+
+		Point p,q;
+		p.Set(rs_it->getX1(), rs_it->getY1());
+		q.Set(rs_it->getX2(), rs_it->getY2());
+		HalfSegment hs1(true,p,q);
+		HalfSegment hs2(false,p,q);
+		result += hs1;
+		result += hs2;
+	}
+	result.EndBulkLoad(true, false);
 }
 
 /*
@@ -1366,7 +1383,7 @@ static int intersectionBO_ll(Word* args, Word& result, int message,
 		if (line1->IsEmpty() || line2->IsEmpty()) {
 			cout << __PRETTY_FUNCTION__ << ": "
 					"lines are empty!" << endl;
-			((Points *) result.addr)->SetDefined(false);
+			((Line *) result.addr)->SetDefined(false);
 			return (0);
 		} else if (line1->BoundingBox().IsDefined()
 				&& line2->BoundingBox().IsDefined()) {
@@ -1377,13 +1394,13 @@ static int intersectionBO_ll(Word* args, Word& result, int message,
 						"BoundingBox Intersects!"
 						<< endl;
 				bo.IntersectionBO(*line1, *line2,
-				*static_cast<Points*> (result.addr));
+				*static_cast<Line*> (result.addr));
 
 				return (0);
 			} else {
 				cout << __PRETTY_FUNCTION__ << ": "
 					"BoundingBox don't intersects!" << endl;
-				((Points *) result.addr)->Clear();
+				((Line *) result.addr)->Clear();
 				return (0);
 			}
 		} else {
@@ -1392,14 +1409,18 @@ static int intersectionBO_ll(Word* args, Word& result, int message,
 					"BoundingBox isn't defined!"
 					<< endl;
 			bo.IntersectionBO(*line1, *line2,
-					*static_cast<Points*> (result.addr));
+					*static_cast<Line*> (result.addr));
 			return (0);
 		}
 	} else {
 		cout << __PRETTY_FUNCTION__ << ": "
 				"lines aren't defined!" << endl;
-		((Points *) result.addr)->Clear();
-		((Points *) result.addr)->SetDefined(false);
+		cout << __PRETTY_FUNCTION__ << ": value mapping "
+				"implemented only for lines."
+		         << endl;
+		((Line *) result.addr)->Clear();
+		((Line *) result.addr)->SetDefined(false);
+		//assert(false); // TODO: Implement IntersectionBOGeneric.
 
 		return (0);
 	}
@@ -1415,7 +1436,7 @@ struct intersectionInfo: OperatorInfo {
 		name = "intersectionBO";
 		signature = Line::BasicType()
 		+ " x " + Line::BasicType() + " -> "
-				+ Points::BasicType();
+				+ Line::BasicType();
 		syntax = "_ intersectionBO _";
 		meaning = "Intersection predicate for two Lines.";
 	}

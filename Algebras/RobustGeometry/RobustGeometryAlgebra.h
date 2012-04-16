@@ -69,24 +69,33 @@ public:
 
 	double getX1() const {
 		return x1;
-	}
-	;
+	};
 	double getX2() const {
 		return x2;
-	}
-	;
+	};
 	double getY1() const {
 		return y1;
-	}
-	;
+	};
 	double getY2() const {
 		return y2;
-	}
-	;
+	};
+
+	double getX1() {
+		return x1;
+	};
+	double getX2() {
+		return x2;
+	};
+	double getY1() {
+		return y1;
+	};
+	double getY2() {
+		return y2;
+	};
+
 	BOOwnerType getOwner() const {
 		return owner;
-	}
-	;
+	};
 	friend bool operator <(const BOLine& l1, const BOLine& l2) {
 		if (l1.getX1() < l2.getX1())
 			return true;
@@ -125,38 +134,30 @@ public:
 	void setLine2(const BOLine& line2);
 	double getX() const {
 		return x;
-	}
-	;
+	};
 	double getY() const {
 		return y;
-	}
-	;
+	};
 
 	BOLine& getLine() {
 		return line;
-	}
-	;
+	};
 	BOLine& getLine1() {
 		return line1;
-	}
-	;
+	};
 	BOLine& getLine2() {
 		return line2;
-	}
-	;
+	};
 	BOPointType getPointType() const {
 		return pointType;
-	}
-	;
+	};
 	void Print(ostream& out) const;
 	BOLine& getLineAbove() {
 		return lineAbove;
-	}
-	;
+	};
 	BOLine& getLineBelow() {
 		return lineBelow;
-	}
-	;
+	};
 
 private:
 	double x;
