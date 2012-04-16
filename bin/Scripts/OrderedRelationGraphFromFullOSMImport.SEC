@@ -50,6 +50,8 @@ let Ways =
 
 let Ways_Curve_rtree = Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
+# query Ways_Curve_rtree windowintersectsS[inHombruch] Ways gettuples remove[NodeList] consume
+
 # query Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
 # query nodes(Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]) consume
