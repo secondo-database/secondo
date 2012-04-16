@@ -1498,34 +1498,43 @@ ListExpr gettuplesTM(ListExpr args){
 
   ListExpr newAttrList;
   ListExpr last;
-  bool first = true;
+  bool firstA = true;
   int pos = 0;
   while(!nl->IsEmpty(attrList)){
-     ListExpr first = nl->First(args);
+     ListExpr first = nl->First(attrList);
      attrList = nl->Rest(attrList);
      pos++;
      if(pos!=index){
-        if(first){
+        if(firstA){
            newAttrList = nl->OneElemList(first);
            last = newAttrList;
-           first = false;
+           firstA = false;
         } else {
            last = nl->Append(last,first);
         }
      }
   }
+
+
+   
+
+
   ListExpr resList;
-  if(first){
+  if(firstA){
     resList = nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
                                nl->Second(nrel));
   } else {
-     ListExpr cattrList = listutils::concat(newAttrList, 
-                                         nl->Second(nl->Second(nrel)));
+
+
+    ListExpr cattrList = listutils::concat(newAttrList, 
+                                           nl->Second(nl->Second(nrel)));
+
      resList = nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
                                 nl->TwoElemList(
                                    listutils::basicSymbol<Tuple>(),
                                    cattrList));
   }
+
 
   return  nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
                              nl->OneElemList(nl->IntAtom(index-1)),
@@ -1582,6 +1591,7 @@ class getTuplesLocal{
      TupleType* tt; 
 
      Tuple* createResTuple(Tuple* stuple, Tuple* rtuple){
+
         Tuple* res = new Tuple(tt);
         // copy attributes from stuple without tuple at index 
         for(int i=0;i<stuple->GetNoAttributes(); i++){
@@ -1593,6 +1603,7 @@ class getTuplesLocal{
         }
         // copy attributes from rtuple
         int offset = stuple->GetNoAttributes()-1;
+
         for(int i=0;i<rtuple->GetNoAttributes();i++){
           res->CopyAttribute(i,rtuple,i+offset);
         }
