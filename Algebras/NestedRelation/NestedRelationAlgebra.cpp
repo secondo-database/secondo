@@ -1462,6 +1462,207 @@ struct feedInfo : OperatorInfo {
   }
 };
 
+
+/*
+5.2 Operator getTuples
+
+5.2.1 Type Mapping
+
+*/
+
+ListExpr gettuplesTM(ListExpr args){
+  string err = "stream(tuple(... (. tid))) x nrel(tuple(...)) expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  ListExpr stream = nl->First(args);
+  ListExpr nrel = nl->Second(args);
+
+  if(!Stream<Tuple>::checkType(stream)){
+    return listutils::typeError(err + " (first arg is not a tuple stream)");
+  }
+
+  if(!NestedRelation::checkType(nrel)){
+    return listutils::typeError(err + " ( second arg is not an nrel)");
+  }
+
+  ListExpr tidType = listutils::basicSymbol<TupleIdentifier>();
+
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  string name;
+  int index = listutils::findType(attrList, tidType, name);
+
+  if(index==0){
+    return listutils::typeError("stream does not contain a tid attribute");
+  }
+
+  ListExpr newAttrList;
+  ListExpr last;
+  bool first = true;
+  int pos = 0;
+  while(!nl->IsEmpty(attrList)){
+     ListExpr first = nl->First(args);
+     attrList = nl->Rest(attrList);
+     pos++;
+     if(pos!=index){
+        if(first){
+           newAttrList = nl->OneElemList(first);
+           last = newAttrList;
+           first = false;
+        } else {
+           last = nl->Append(last,first);
+        }
+     }
+  }
+  ListExpr resList;
+  if(first){
+    resList = nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                               nl->Second(nrel));
+  } else {
+     ListExpr cattrList = listutils::concat(newAttrList, 
+                                         nl->Second(nl->Second(nrel)));
+     resList = nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                                nl->TwoElemList(
+                                   listutils::basicSymbol<Tuple>(),
+                                   cattrList));
+  }
+
+  return  nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
+                             nl->OneElemList(nl->IntAtom(index-1)),
+                             resList);
+}
+
+/*
+5.2.2 Value Mapping
+
+*/
+
+class getTuplesLocal{
+
+  public:
+
+    getTuplesLocal(Word s, NestedRelation* r, const int _index, 
+                  ListExpr tupleType):
+        stream(s), index(_index){
+       rel = r->getPrimary();
+       stream.open();
+       tt = new TupleType(tupleType);
+    }
+ 
+    ~getTuplesLocal(){
+       tt->DeleteIfAllowed();
+       stream.close();
+     }
+
+
+   Tuple* next(){
+      Tuple* stuple;
+      while( (stuple=stream.request()) != 0){
+        TupleId tid = ((TupleIdentifier*) 
+                       stuple->GetAttribute(index))->GetTid();
+        Tuple* rtuple = rel->GetTuple(tid,false);
+        if(!rtuple){
+           stuple->DeleteIfAllowed();
+        } else {
+          Tuple* resTuple = createResTuple(stuple,rtuple);
+          stuple->DeleteIfAllowed();
+          rtuple->DeleteIfAllowed();
+          return resTuple;
+        }
+
+      }
+      return 0;
+   }
+
+
+  private:
+     Stream<Tuple> stream;
+     int index;
+     Relation * rel;  
+     TupleType* tt; 
+
+     Tuple* createResTuple(Tuple* stuple, Tuple* rtuple){
+        Tuple* res = new Tuple(tt);
+        // copy attributes from stuple without tuple at index 
+        for(int i=0;i<stuple->GetNoAttributes(); i++){
+           if(i<index){
+              res->CopyAttribute(i,stuple,i);
+           } else if (i>index){
+              res->CopyAttribute(i,stuple,i-1);
+           }
+        }
+        // copy attributes from rtuple
+        int offset = stuple->GetNoAttributes()-1;
+        for(int i=0;i<rtuple->GetNoAttributes();i++){
+          res->CopyAttribute(i,rtuple,i+offset);
+        }
+        return res;
+     }
+
+};
+
+
+int
+gettuplesVM(Word* args, Word& result, int message,
+        Word& local, Supplier s){
+
+  getTuplesLocal* li = (getTuplesLocal*) local.addr;
+  switch(message){
+    case OPEN: {
+        if(li){
+          delete li;
+        }
+        NestedRelation* nrel = (NestedRelation*) args[1].addr;
+        int index = ((CcInt*) args[2].addr)->GetValue();
+        ListExpr tt = nl->Second(GetTupleResultType(s));
+        local.addr = new getTuplesLocal(args[0], nrel, index,tt);
+        return 0; 
+    }
+    case REQUEST: {
+        result.addr = li?li->next():0;
+        return result.addr?YIELD:CANCEL;
+    }
+    case CLOSE:{
+        if(li){
+          delete li;
+          local.addr = 0;
+        } 
+        return 0;
+    }
+  }
+  return -1;
+}
+
+/*
+5.2.3 Specification
+
+*/
+OperatorSpec gettuplesSpec(
+   "stream(tuple) x nrel(tuple) -> strem(tuple)",
+   "_ _ gettuples",
+   "Appends tuples from a nested relation to a tuple stream."
+   " The first stream must contain an attribute of type tid."
+   " This attribute is removed from the first stream and the "
+   " tuple with the appropriate tuple id from the nested "
+   " relation is appended to the original tuple.",
+   " query authordoc_Name_btree "
+   "exactmatch[\"Alejandro Munoz\"] authordoc gettuples count"
+);
+
+/*
+5.2.4 Operator instance
+
+*/
+Operator nr_gettuples(
+  "gettuples",
+  gettuplesSpec.getStr(),
+  gettuplesVM,
+  Operator::SimpleSelect,
+  gettuplesTM
+);
+
+
+
 /*
 5.2 Operator ~consume~
 
@@ -3095,6 +3296,9 @@ class NestedRelationAlgebra : public Algebra
       AddOperator (nestedRenameInfo(), nestedRename, nestedRenameTypeMap);
       AddOperator (extractInfo(), extractValueMap, extractTypeMap);
       attributeRelationTC.AssociateKind( Kind::DATA() );
+
+      AddOperator(&nr_gettuples);
+
 #ifdef USE_PROGRESS
       nest.EnableProgress();
       aconsume.EnableProgress();

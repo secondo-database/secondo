@@ -48,3 +48,12 @@ Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> rel(x) or nrel(x)
 Example  : query Papers feed extract [Title] feed count
 Result   : 1
+
+
+Operator : gettuples
+Number   : 1
+Signature: stream(tuple (A) ) x nrel(tuple(B) ) -> stream(tuple ( A \ a_tid  B))
+Example  : query authordoc_Name_btree exactmatchS("Alejandro Munoz") authordoc gettuples count
+Result   : 1
+
+
