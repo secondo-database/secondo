@@ -14,7 +14,7 @@
 
 # Database hombruch
 
-# query fullosmimport('arnsberg-regbez.osm', "City")
+query fullosmimport('Hombruch.osm', "City")
 
 # relation CityNodes with 5008465 tuples stored
 # relation CityNodeTags with 389898 tuples stored
@@ -23,20 +23,43 @@
 # relation CityRelations with 355347 tuples stored
 # relation CityRelationTags with 52448 tuples stored
 
+# 
+
+let CityNodesNew = CityNodes feed 
+  extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
+  extend[Box: rectangle2(.Easting, .Easting, .Northing, .Northing)]
+  sortby[Box]
+  projectextend[NodeId;  Pos: makepoint(.Lon, .Lat)] 
+  addcounter[NodeIdNew, 1] 
+  consume
+
+# query nodes(CityNodesNew feed addid bulkloadrtree[Pos]) consume
+
 
 # 157 secs
 
 let Ways =
-  CityNodes feed projectextend[NodeId;  Pos: makepoint(.Lon, .Lat)]  
+  CityNodesNew feed   
   CityWays feed itHashJoin[NodeId, NodeRef] sortby[WayId, NodeCounter] nest[WayId; NodeList] 
     extend[Curve  : .NodeList afeed projecttransformstream[Pos] collect_line[TRUE]] 
-  CityWayTags feed nest[WayIdInTag; WayInfo] itHashJoin[WayId, WayIdInTag] 
+  CityWayTags feed nest[WayIdInTag; WayInfo] itHashJoin[WayId, WayIdInTag]
+  extend[Box: bbox(.Curve scale[1000000.0])]
+  sortby[Box]
+  remove[Box]
   consume
+
+let Ways_Curve_rtree = Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
+
+# query Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
+
+# query nodes(Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]) consume
 
 # result 750198
 # 692 secs
 
 let Roads = Ways feed filter[.WayInfo afeed filter[.WayTagKey = "highway"] count > 0] consume
+
+let Roads_Curve_rtree = Roads feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
 # result size 241990
 # 106 secs
@@ -48,22 +71,22 @@ let Nodes =
   CityWays feed {h2}
   itHashJoin[NodeRef, NodeRef_h2]
   filter[.WayId # .WayId_h2]
-  CityNodes feed projectextend[NodeId;  Pos: makepoint(.Lon, .Lat)]  
+  CityNodesNew feed  
   itHashJoin[NodeRef, NodeId]
   Roads feed {r1} itHashJoin[WayId, WayId_r1]
   Roads feed {r2} itHashJoin[WayId_h2, WayId_r2]
-  project[WayId, NodeCounter, NodeRef, Pos]
+  project[WayId, NodeCounter, NodeIdNew, Pos]
 Roads feed 
   projectextend[WayId; Node: .NodeList afeed filter[.NodeCounter = 0] aconsume]
   unnest[Node]
-  project[WayId, NodeCounter, NodeRef, Pos]
+  project[WayId, NodeCounter, NodeIdNew, Pos]
   concat
 Roads feed 
   extend[HighNodeNo: (.NodeList afeed count) - 1]
   projectextend[WayId; Node:  fun(t: TUPLE) 
     attr(t, NodeList) afeed filter[.NodeCounter = attr(t, HighNodeNo)] aconsume]
   unnest[Node]
-  project[WayId, NodeCounter, NodeRef, Pos]
+  project[WayId, NodeCounter, NodeIdNew, Pos]
   concat
   sortby[WayId, NodeCounter]
   rdup
@@ -75,7 +98,7 @@ Roads feed
 let EdgesUp =
   Nodes feed nest[WayId; SectionNodes]
     projectextend[WayId; Sections: .SectionNodes afeed
-      extend_last[Source: ..NodeRef::0, Target: .NodeRef::0, 
+      extend_last[Source: ..NodeIdNew::0, Target: .NodeIdNew::0, 
         SourcePos: ..Pos::[const point value undef], 
         TargetPos: .Pos::[const point value undef],
         SourceNodeCounter: ..NodeCounter::0,
@@ -112,7 +135,7 @@ let EdgesUp =
 let EdgesDown =
   Nodes feed nest[WayId; SectionNodes]
     projectextend[WayId; Sections: .SectionNodes afeed sortby[NodeCounter desc]
-      extend_last[Source: ..NodeRef::0, Target: .NodeRef::0, 
+      extend_last[Source: ..NodeIdNew::0, Target: .NodeIdNew::0, 
         SourcePos: ..Pos::[const point value undef], 
         TargetPos: .Pos::[const point value undef],
         SourceNodeCounter: ..NodeCounter::0,
@@ -156,9 +179,15 @@ let Edges = EdgesUp feed EdgesDown feed concat
 
 # rest on slightly different database
 
-let EdgeIndex = Edges feed projectextend[Source, Target, Curve; Box: bbox(.Curve)] 
-  filter[isdefined(.Box)] sortby[Box] consume
+let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: bbox(.Curve)] 
+  filter[isdefined(.Box)] 
+  extend[Box2: bbox(.SourcePos scale[1000000.0])]
+  sortby[Box2]
+  project[Source, Target, Curve, Box]
+  consume
 
+
+# query nodes(EdgeIndex feed addid bulkloadrtree[Box]) consume
 
 # result size 958500
 # 921 secs
@@ -172,10 +201,10 @@ let EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
 
 # Get edges from a restricted area:
 
-let hombruch = [const rect value (7.419 7.457 51.462 51.484)]
+# let hombruch = [const rect value (7.419 7.457 51.462 51.484)]
 
-query EdgeIndex_Box_rtree EdgeIndex windowintersects[hombruch] remove[Box] 
-  loopsel[Edges orange[.Source, .Target; .Source, .Target]] consume
+# query EdgeIndex_Box_rtree EdgeIndex windowintersects[hombruch] remove[Box] 
+# loopsel[Edges orange[.Source, .Target; .Source, .Target]] consume
 
 
 
