@@ -11193,6 +11193,18 @@
                         ("Andres Takach") 
                         ("Michael McNamara") 
                         ("Mike Meredith"))))) 
+        (OBJECT SEC_DERIVED_OBJ 
+            () 
+            (rel 
+                (tuple 
+                    (
+                        (Name string) 
+                        (Value text) 
+                        (UsedObjs text)))) 
+            (
+                ("authordoc_Name_btree" 
+                    '(createbtree (addid (feed authordoc)) Name)' 
+                    '( authordoc )'))) 
         (OBJECT authordoc 
             () 
             (nrel 
