@@ -299,12 +299,15 @@ of the rectangle.
       if (thispos > rpos){
         return 1;
       }
+
       // now treat z-order based on positive integer coordinates
       for (unsigned j = 0; j < dim; j++){
         thismin[j] = (unsigned) fabs(min[j]);
         rmin[j] = (unsigned) fabs(r->min[j]);
       }
-      for (int j = 31; j >= 0; j--){
+
+      int bits = sizeof(unsigned)*8-1;
+      for (int j = bits; j >= 0; j--){
         thispos = 0;
         rpos = 0;
         for (unsigned k = 0; k < dim; k++){
@@ -320,6 +323,8 @@ of the rectangle.
           return 1;
         }
       }
+
+
       // if no conclusion on z-order (based on integer coordinates) can be
       // reached, we fall back to the standard comparison
       for( unsigned i = 0; i < dim; i++ ){
