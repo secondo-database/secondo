@@ -3084,7 +3084,6 @@ and high parameters these two last integer numbers.
 
     ListExpr first, rest, newAttrList, lastNewAttrList;
     int tidIndex = 0;
-    string type;
     bool firstcall = true,
     doubleIndex = false;
 
@@ -3096,8 +3095,8 @@ and high parameters these two last integer numbers.
       first = nl->First(rest);
       rest = nl->Rest(rest);
 
-      type = nl->SymbolValue(nl->Second(first));
-      if (type == TupleIdentifier::BasicType())
+      ListExpr type = nl->Second(first);   
+      if (TupleIdentifier::checkType(type))
       {
         if( tidIndex != 0 && (len != 3)){
           return listutils::typeError("Expecting exactly one attribute of type "
@@ -3105,9 +3104,8 @@ and high parameters these two last integer numbers.
         }
         tidIndex = j;
       }
-      else if( j == nAttrs - 1 && type == CcInt::BasicType() &&
-               nl->SymbolValue(
-               nl->Second(nl->First(rest))) == CcInt::BasicType() )
+      else if( j == nAttrs - 1 && CcInt::checkType(type) &&
+               CcInt::checkType( nl->Second(nl->First(rest))) )
       { // the last two attributes are integers
         doubleIndex = true;
       }
@@ -3230,11 +3228,13 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
 //        }
 
 //////////
+      if(box.IsDefined()){
         R_TreeLeafEntry<dim, TupleId>
               e( box,
                  ((TupleIdentifier *)tuple->
                      GetAttribute(tidIndex))->GetTid() );
         rtree->InsertBulkLoad(e);
+       }
     }
     tuple->DeleteIfAllowed();
     qp->Request(args[0].addr, wTuple);
