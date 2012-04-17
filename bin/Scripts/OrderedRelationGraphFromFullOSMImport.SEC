@@ -14,7 +14,9 @@
 
 # Database hombruch
 
-query fullosmimport('Hombruch.osm', "City")
+query fullosmimport('arnsberg-regbez.osm', "City")
+
+# 155 secs
 
 # relation CityNodes with 5008465 tuples stored
 # relation CityNodeTags with 389898 tuples stored
@@ -23,7 +25,6 @@ query fullosmimport('Hombruch.osm', "City")
 # relation CityRelations with 355347 tuples stored
 # relation CityRelationTags with 52448 tuples stored
 
-# 
 
 let CityNodesNew = CityNodes feed 
   extend[Easting: .Lon * 1000000, Northing: .Lat * 1000000]
@@ -33,10 +34,10 @@ let CityNodesNew = CityNodes feed
   addcounter[NodeIdNew, 1] 
   consume
 
+# 213 secs
+
 # query nodes(CityNodesNew feed addid bulkloadrtree[Pos]) consume
 
-
-# 157 secs
 
 let Ways =
   CityNodesNew feed   
@@ -48,7 +49,13 @@ let Ways =
   remove[Box]
   consume
 
+# 3339 secs
+
+
 let Ways_Curve_rtree = Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
+
+# 10 secs
+
 
 # query Ways_Curve_rtree windowintersectsS[inHombruch] Ways gettuples remove[NodeList] consume
 
@@ -56,15 +63,15 @@ let Ways_Curve_rtree = Ways feed addid projectextend[TID; Box: bbox(.Curve)] bul
 
 # query nodes(Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]) consume
 
-# result 750198
-# 692 secs
+
 
 let Roads = Ways feed filter[.WayInfo afeed filter[.WayTagKey = "highway"] count > 0] consume
 
+# 113 secs
+
 let Roads_Curve_rtree = Roads feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
-# result size 241990
-# 106 secs
+# 3.56 secs
 
 # compute Nodes as the union of start points, end points and intersections of roads
 
@@ -94,8 +101,9 @@ Roads feed
   rdup
   consume
 
-# result size 721006
-# 292 secs
+# 269 secs
+
+
 
 let EdgesUp =
   Nodes feed nest[WayId; SectionNodes]
@@ -131,8 +139,9 @@ let EdgesUp =
   unnest[Sections]
   consume
 
-# result size 479016
-# 339 secs
+# 337 secs
+
+
 
 let EdgesDown =
   Nodes feed nest[WayId; SectionNodes]
@@ -168,18 +177,18 @@ let EdgesDown =
   unnest[Sections]
   consume
 
-# result size 479016
-# 369 secs
+# 372 secs
+
+
 
 let Edges = EdgesUp feed EdgesDown feed concat 
   projectextend[Source, Target, SourcePos, TargetPos, SourceNodeCounter, TargetNodeCounter, Curve, RoadName, 
     RoadType, MaxSpeed; WayId: .WayId] 
   oconsume[Source, Target]
 
-# result size 958032
-# 715 secs
+# 169 secs
 
-# rest on slightly different database
+
 
 let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: bbox(.Curve)] 
   filter[isdefined(.Box)] 
@@ -188,16 +197,17 @@ let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: 
   project[Source, Target, Curve, Box]
   consume
 
+# 99 secs
+
 
 # query nodes(EdgeIndex feed addid bulkloadrtree[Box]) consume
 
-# result size 958500
-# 921 secs
+
 
 
 let EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
 
-# 30.33 secs
+# 9 secs
 
 
 
@@ -210,7 +220,8 @@ let EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
 
 
 
-
+# Runtime for Scripts/OrderedRelationGraphFromFullOSMImport.SEC: Times (elapsed / cpu): 
+# 84:56min (5095.72sec) /2510.84sec = 2.02949
 
 
 
