@@ -57,7 +57,6 @@ let Ways_Curve_rtree = Ways feed addid projectextend[TID; Box: bbox(.Curve)] bul
 # 10 secs
 
 
-# query Ways_Curve_rtree windowintersectsS[inHombruch] Ways gettuples remove[NodeList] consume
 
 # query Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
@@ -210,7 +209,8 @@ let EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
 # 9 secs
 
 
-
+# Queries
+#
 # Get edges from a restricted area:
 
 # let hombruch = [const rect value (7.419 7.457 51.462 51.484)]
@@ -218,6 +218,11 @@ let EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
 # query EdgeIndex_Box_rtree EdgeIndex windowintersects[hombruch] remove[Box] 
 # loopsel[Edges orange[.Source, .Target; .Source, .Target]] consume
 
+# 2.17 secs, 3.83, 2.02
+
+# query Ways_Curve_rtree windowintersectsS[hombruch] Ways gettuples remove[NodeList] consume
+
+# 5.08 secs, 4.03, 5.66
 
 
 # Runtime for Scripts/OrderedRelationGraphFromFullOSMImport.SEC: Times (elapsed / cpu): 
