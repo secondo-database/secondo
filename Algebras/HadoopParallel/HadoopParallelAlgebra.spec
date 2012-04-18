@@ -29,4 +29,5 @@ operator spread alias SPREAD pattern _op [list;list;list]
 operator collect alias COLLECT pattern _op[list]
 operator para alias PARA pattern op (_)
 operator hadoopMap alias HADOOPMAP pattern _ op [list;fun] implicit parameter lobject1 type TPARA
+operator hadoopReduce alias HADOOPREDUCE pattern _ op [list;fun] implicit parameter lobject1 type TPARA
 operator createFList alias CREATEFLIST pattern op(_)

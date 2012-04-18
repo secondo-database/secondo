@@ -71,17 +71,15 @@ class fList;
 
 //Uses Function from ArrayAlgebra
 void extractIds(const ListExpr,int&,int&);
-string
-tranStr(const string& s, const string& from, const string& to);
-string
-getLocalFilePath(string path, const string fileName,
+string tranStr(const string& s, const string& from, const string& to);
+string getLocalFilePath(string path, const string fileName,
             string suffix, bool appendFileName = true);
 string addFileIndex(string fileName, int index);
 ListExpr AntiNumericType(ListExpr numericType);
 bool isFListStreamDescription(const NList& typeInfo);
 ListExpr replaceFList(ListExpr createQuery, string listName,
     fList* listObject, vector<string>& DLF_NameList,
-    vector<string>& DLF_fileLocList, bool& ok);
+    vector<string>& DLF_fileLocList, bool& ok, bool isArg = false);
 ListExpr replaceParaOp(
     ListExpr createQuery, vector<string>& flistParaList,
     vector<fList*>& flistObjList, bool& ok);
@@ -773,21 +771,16 @@ public:
   fList(string objectName, NList typeList,
       clusterInfo *ci,NList fileLocList,
       size_t dupTime,
-      size_t maxRNum = 0, size_t maxCNum = 0,
       bool isDistributed = false,
-      fListKind kind = UNDEF );
+      fListKind kind = UNDEF,
+      size_t maxRNum = 0,
+      size_t maxCNum = 0);
   fList(fList& rhg);
   ~fList()
   {
     if (interCluster)
       delete interCluster;
   }
-
-  static Word Backup_In(const ListExpr typeInfo,
-                 const ListExpr instance,
-                 const int errorPos,
-                 ListExpr& errorInfo,
-                 bool& correct);
 
   static Word In(const ListExpr typeInfo,
                  const ListExpr instance,
@@ -891,8 +884,6 @@ private:
 
   bool setLocList(NList fllist);
   bool verifyLocList();
-  static bool verifyLocList(NList fileLocList, size_t clusterScale,
-      int& maxRNum, int& maxCNum);
 
   friend class ConstructorFunctions<fList>;
 };

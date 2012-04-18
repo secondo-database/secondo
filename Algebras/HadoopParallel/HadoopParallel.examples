@@ -109,3 +109,10 @@ Signature: flist(T) x [string] x [text] x [(DLO):DLF] x ( map T T1 ) -> flist(T1
 Example  : query plz feed spread[ ; PLZ, 5, TRUE ; ] hadoopMap[ ; . consume];
 Result   : crashes
 Remark   : There is a lack of parallel processing configurations normally
+
+Operator : hadoopReduce
+Number   : 1
+Signature: flist(T) x partAttr x [string] x [text] x [(DLO):DLF] x ( map T T1 ) -> flist(T1)
+Example  : query plz feed spread[ ; PLZ, 5, TRUE ; ] hadoopMap[ ; . consume] hadoopReduce[ Ort ; . feed consume];
+Result   : crashes
+Remark   : There is a lack of parallel processing configurations normally
