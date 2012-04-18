@@ -4647,6 +4647,23 @@ since all the fileLocation is set by operators.
 But it may still be needed, in case we want to reload
 a fList to another cluster.
 
+Update 18th Apr. 2012
+
+An empty row in the fileLocList is expressed as an empty list directly,
+as there is no slave keep the data of this row. Afterwards,
+a fileLocMatrix containing empty rows looks like:
+
+----(  (1 (1 2 3 4 5) '')
+       (2 (1 2 3 4 5) '')
+       ()
+       (2 (1 2 5)     '\/mnt\/diskb')
+       (1 (1 2 3 4 5) '') )
+----
+
+Here this relation is divided into 5 rows, one row is empty, and the left 4 rows
+are kept in two slaves equally.
+
+
 */
 
 Word fList::In(const ListExpr typeInfo, const ListExpr instance,
@@ -7111,6 +7128,10 @@ int hadoopReduceValueMap(Word* args, Word& result,
 
     return 0;
 }
+
+
+
+
 
 Operator hadoopReduceOP(
     hadoopReduceInfo(), hadoopReduceValueMap, hadoopReduceTypeMap);
