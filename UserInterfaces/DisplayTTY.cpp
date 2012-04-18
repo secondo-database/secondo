@@ -2744,12 +2744,12 @@ struct DisplayCellgrid3D : DisplayFunction {
     } else {
       cout << "[ x0 = " << nl->RealValue(nl->First(value))
            << ", y0 = " << nl->RealValue(nl->Second(value))
-           << ", y0 = " << nl->RealValue(nl->Third(value))
+           << ", z0 = " << nl->RealValue(nl->Third(value))
            << ", wx = " << nl->RealValue(nl->Fourth(value))
            << ", wy = " << nl->RealValue(nl->Fifth(value))
-           << ", wy = " << nl->RealValue(nl->Sixth(value))
+           << ", wz = " << nl->RealValue(nl->Sixth(value))
            << ", nx = " << nl->IntValue(nl->Nth(7, value))
-           << ", nx = " << nl->IntValue(nl->Nth(8, value))
+           << ", ny = " << nl->IntValue(nl->Nth(8, value))
            << "]";
     }
   }
@@ -3315,26 +3315,27 @@ struct DisplayFileList : DisplayFunction {
         {
           ListExpr aRow = nl->First(locList);
 
-          size_t locNode = nl->IntValue(nl->First(aRow));
+          if (!nl->IsEmpty(aRow)){
+            size_t locNode = nl->IntValue(nl->First(aRow));
 
-          ListExpr cfs = nl->Second(aRow);
-          string dataLoc = nl->Text2String(nl->Third(aRow));
+            ListExpr cfs = nl->Second(aRow);
+            string dataLoc = nl->Text2String(nl->Third(aRow));
 
-          cout << rowNum << ".";
-          if (nl->IsEmpty(cfs)){
-            cout << endl;
-          }
-          else{
-            while (!nl->IsEmpty(cfs))
-            {
-              ListExpr aCF = nl->First(cfs);
-              cout << "\t_" << nl->IntValue(aCF)
-                  << "\t" << locNode << ":'" << dataLoc << "'"
-                  << "\t" << dupTimes << endl;
-              cfs = nl->Rest(cfs);
+            cout << rowNum << ".";
+            if (nl->IsEmpty(cfs)){
+              cout << endl;
+            }
+            else{
+              while (!nl->IsEmpty(cfs))
+              {
+                ListExpr aCF = nl->First(cfs);
+                cout << "\t_" << nl->IntValue(aCF)
+                    << "\t" << locNode << ":'" << dataLoc << "'"
+                    << "\t" << dupTimes << endl;
+                cfs = nl->Rest(cfs);
+              }
             }
           }
-
           locList = nl->Rest(locList);
           rowNum++;
         }
