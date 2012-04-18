@@ -5404,6 +5404,7 @@ class CcAlgebra1 : public Algebra
     ccString.AssociateKind( Kind::SQLEXPORTABLE() );
 
     ccInt.AssociateKind( Kind::DELIVERABLE() );
+    ccReal.AssociateKind( Kind::DELIVERABLE() );
 
     AddOperator( &ccplus );
     AddOperator( &ccminus );
