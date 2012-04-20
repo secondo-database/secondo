@@ -191,7 +191,7 @@ double_bs    = \\\\
                          yyline+1));
                 }
 
-<YYINITIAL> -?{digit}*\.({digit}+)?((E|e)[+-]?{digit}+)? {
+<YYINITIAL> -?{digit}*\.?({digit}+)?((E|e)[+-]?{digit}+)? {
                   // The token is a ~realAtom~.
                   // Gets its value.
                   ListExpr value = null;
