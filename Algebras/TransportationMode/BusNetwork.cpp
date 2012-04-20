@@ -62,6 +62,12 @@ string BusRoute::BusStopTemp1TypeInfo =
 string BusRoute::BusNetworkParaInfo = "(rel (tuple ((para real))))";
 
 
+string BusRoute::BusSegs = "(rel (tuple ((Oid int) (RelId int) (Geo sline))))";
+string BusRoute::BusRoadSegs = "(rel (tuple ((Oid int) (OrderId int) \
+(Id int) (SP2 point) (EP2 point))))";
+
+string BusRoute::BusStopsRel = "(rel (tuple ((RelId int) (Pos point))))";
+
 /*
 create route bus route 
 a pair of cells, start cell-end cell.
@@ -3404,6 +3410,266 @@ void BusRoute::GetPosOnSL(SimpleLine* sl, Point loc, double& pos,
 }*/
 
 
+/*
+create bus stops by data types
+
+*/
+void BusRoute::BSStops(Relation* rel1, Relation* rel2, BTree* btree)
+{
+//   cout<<rel1->GetNoTuples()<<" "<<rel2->GetNoTuples()<<endl;
+  
+  const double min_len = 200.0;
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* t = rel1->GetTuple(i, false);
+    int rel_id = ((CcInt*)t->GetAttribute(BS_REL_ID))->GetIntval();
+    SimpleLine* sl = (SimpleLine*)t->GetAttribute(BS_GEO);
+    int oid = ((CcInt*)t->GetAttribute(BS_OID))->GetIntval();
+    cout<<"oid "<<oid<<" rel id "<<rel_id<<" len: "<<sl->Length()<<endl;
+
+    CcInt* search_id = new CcInt(true, rel_id);
+    BTreeIterator* btree_iter = btree->ExactMatch(search_id);
+
+    int count = 0;
+    vector<MyPoint> bstop_list;
+    while(btree_iter->Next()){
+      Tuple* tuple = rel2->GetTuple(btree_iter->GetId(), false);
+      int id = ((CcInt*)tuple->GetAttribute(BS_RELID))->GetIntval();
+      assert(id == rel_id);
+      Point* loc = (Point*)tuple->GetAttribute(BS_POS);
+
+      Point new_loc(*loc);
+      Modify_Point4(new_loc);
+
+      double pos = -1.0; 
+
+//      if(sl->AtPoint(*loc, true, pos)){
+      if(sl->AtPoint(new_loc, true, pos)){
+        count++;
+        MyPoint mp(new_loc, pos);
+        bstop_list.push_back(mp);
+      }
+
+      tuple->DeleteIfAllowed();
+    }
+    delete btree_iter;
+    delete search_id;
+
+//    cout<<"count "<<count<<endl;
+
+
+    sort(bstop_list.begin(), bstop_list.end());/////////get stop value
+    vector<MyPoint> bstop_list_new;
+ 
+    for(unsigned int i = 0;i < bstop_list.size();i++){
+      if(fabs(bstop_list[i].dist - sl->Length()) < EPSDIST ||
+         fabs(bstop_list[i].dist) < EPSDIST){//in the other pram
+         cout<<"should not be here";
+         assert(false);
+      }
+
+      if(i == 0) bstop_list_new.push_back(bstop_list[i]);
+      else{
+        unsigned int cur_size = bstop_list_new.size();
+        if(fabs(bstop_list_new[cur_size - 1].dist - 
+           bstop_list[i].dist) > min_len){
+            bstop_list_new.push_back(bstop_list[i]);
+        }
+      }
+    }
+    ///////////////set bus stops///////////////////////////
+    for(unsigned int i = 0;i < bstop_list_new.size();i++){
+
+      Bus_Stop bs1(true, oid, i + 1, true);
+      bus_stop_list.push_back(bs1);
+      bus_stop_geodata.push_back(bstop_list_new[i].loc);
+
+      Bus_Stop bs2(true, oid, bstop_list_new.size() - i, false);
+      bus_stop_list.push_back(bs2);
+      bus_stop_geodata.push_back(bstop_list_new[i].loc);
+
+      pos_list.push_back(bstop_list_new[i].dist);
+      pos_list.push_back(bstop_list_new[i].dist);
+
+    }
+
+
+    t->DeleteIfAllowed();
+
+//    break;
+  }
+
+}
+
+
+/*
+set bus route speed value, rel3: speed value
+
+*/
+void BusRoute::SetBSSpeed(Relation* rel1, Relation* rel2, Relation* rel3, 
+                          int attr)
+{
+//   cout<<rel1->GetNoTuples()<<" "<<rel2->GetNoTuples()
+//       <<" "<<rel3->GetNoTuples()<<" "<<attr<<endl;
+
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+      vector<MySegDist> seg_list;
+      Tuple* t = rel2->GetTuple(i, false);
+      int oid = ((CcInt*)t->GetAttribute(BRS_OID))->GetIntval();
+      Point* sp = (Point*)t->GetAttribute(BRS_SP2);
+      Point* ep = (Point*)t->GetAttribute(BRS_EP2);
+      int rid = ((CcInt*)t->GetAttribute(BRS_ID))->GetIntval();
+      MySegDist myseg(true, *sp, *ep, rid);//record the road id
+      seg_list.push_back(myseg);
+      int j = i + 1;
+      while(j <= rel2->GetNoTuples()){
+          Tuple* tuple = rel2->GetTuple(j, false);
+          int id = ((CcInt*)tuple->GetAttribute(BRS_OID))->GetIntval();
+          int r_id = ((CcInt*)tuple->GetAttribute(BRS_ID))->GetIntval();
+
+          if(id == oid){
+            Point* p1 = (Point*)tuple->GetAttribute(BRS_SP2);
+            Point* p2 = (Point*)tuple->GetAttribute(BRS_EP2);
+            MySegDist mhs(true, *p1, *p2, r_id);
+            seg_list.push_back(mhs);
+            tuple->DeleteIfAllowed();
+            j++;
+          }else{
+
+            tuple->DeleteIfAllowed();
+            /////////////////
+            ////// process such a route ///
+            i = j - 1;
+//            cout<<"oid "<<oid<<" "<<seg_list.size()<<endl;
+            SetSpeedForBRoute(rel1, oid, rel3, attr, seg_list);
+            break;
+          }
+
+      }
+
+      if(j > rel2->GetNoTuples()){
+//        cout<<"oid "<<oid<<" "<<seg_list.size()<<endl;
+        ////// process such a route ///
+        SetSpeedForBRoute(rel1, oid, rel3, attr, seg_list);
+        break;
+      }
+      t->DeleteIfAllowed();
+
+//      break;//for debuging 
+
+  }
+}
+
+/*
+setting the speed value for each segment
+
+*/
+void BusRoute::SetSpeedForBRoute(Relation* rel1, int oid, Relation* rel3, 
+                                 int attr, vector<MySegDist> seg_list)
+{
+  Tuple* t = rel1->GetTuple(oid, false);
+  SimpleLine* sl = (SimpleLine*)t->GetAttribute(BS_GEO);
+
+  SpacePartition* spar = new SpacePartition();
+  vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
+  spar->ReorderLine(sl, seq_halfseg);
+  delete spar;
+
+  Point start_loc; 
+  assert(sl->AtPosition(0.0, true, start_loc));
+  Point end_loc; 
+  assert(sl->AtPosition(sl->Length(), true, end_loc));
+
+
+  if(start_loc.Distance(seq_halfseg[0].from) > EPSDIST){ //reverse 
+    vector<MyHalfSegment> copy_list;
+    for(int i = seq_halfseg.size() - 1; i >= 0;i--){
+      MyHalfSegment mhs(true, seq_halfseg[i].to, seq_halfseg[i].from);
+      copy_list.push_back(mhs);
+    }
+    seq_halfseg.clear();
+    for(unsigned int i = 0;i < copy_list.size();i++)
+      seq_halfseg.push_back(copy_list[i]);
+  }
+
+  for(unsigned int i = 0;i < seq_halfseg.size();i++){ //////up direction
+
+    Point p1 = seq_halfseg[i].from;
+    Point p2 = seq_halfseg[i].to;
+    bool found = false;
+    int record = -1;
+    double speed = -1.0;
+    for(unsigned int j = 0;j < seg_list.size();j++){
+
+      Point sp = seg_list[j].from;
+      Point ep = seg_list[j].to;
+
+      if(p1.Distance(sp) < EPSDIST && p2.Distance(ep) < EPSDIST){
+//        cout<<"find matching road id "<<(int)seg_list[j].dist<<endl;
+        found = true;
+        record = j;
+        break;
+      }
+
+      if(p1.Distance(ep) < EPSDIST && p2.Distance(sp) < EPSDIST){
+//        cout<<"find matching road id "<<(int)seg_list[j].dist<<endl;
+        found = true;
+        record = j;
+        break;
+      }
+    }
+
+    if(i == 0 || i == seq_halfseg.size() - 1){//the first and last extension 
+      if(found == false){
+         found = true;
+         speed = 10.0;
+         record = -1;
+      }
+    }
+
+    if(found){
+        br_id_list.push_back(oid);
+        direction_flag.push_back(true);
+
+        HalfSegment hs(true, p1, p2);
+        Line* l = new Line(0);
+        l->StartBulkLoad();
+        hs.attr.edgeno = 0;
+        *l += hs;
+        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+        *l += hs;
+        l->EndBulkLoad();
+        bus_lines2.push_back(*l);
+
+        if(record != -1){
+          Tuple* tuple = rel3->GetTuple((int)seg_list[record].dist, false);
+          speed = ((CcReal*)tuple->GetAttribute(attr))->GetRealval();
+          tuple->DeleteIfAllowed();
+        }
+        assert(speed > 0.0);
+
+        pos_list.push_back(speed); //speed value;
+
+        startSmaller.push_back(true);
+        start_gp.push_back(start_loc);
+        sec_id_list.push_back(i + 1);
+
+        //////////////////////////////////////////////////////////
+        br_id_list.push_back(oid);
+        direction_flag.push_back(false);
+        bus_lines2.push_back(*l);
+        pos_list.push_back(speed); //speed value;
+        startSmaller.push_back(true);
+        start_gp.push_back(end_loc);
+        sec_id_list.push_back(i + 1);
+
+        delete l;
+    }
+
+  }
+
+
+  t->DeleteIfAllowed();
+}
 //////////////////////////////////////////////////////////////////////////////
 //      use the road density data to set time schedule for each bus route  ///
 /////////////////////////////////////////////////////////////////////////////
@@ -4637,9 +4903,9 @@ void RoadDenstiy::CreateDown(int br_id, Periods* peri,
       SpacePartition* sp = new SpacePartition();
       vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
 //      cout<<sub_sline_list[i].Length()<<endl; 
-//      cout<<"i "<<i<<"last_seg_id "<<last_seg_id
-//          <<" cur seg id "<<seg_id_list[i]
-//          <<"length "<<sub_sline_list[i].Length()<<endl; 
+//       cout<<"i "<<i<<"last_seg_id "<<last_seg_id
+//           <<" cur seg id "<<seg_id_list[i]
+//           <<"length "<<sub_sline_list[i].Length()<<endl; 
 
       if(!(sub_sline_list[i].Length() > 0.0)){
           delete sp;
@@ -4652,7 +4918,10 @@ void RoadDenstiy::CreateDown(int br_id, Periods* peri,
       Point temp_sp1 = seq_halfseg[0].from; 
       Point temp_sp2 = seq_halfseg[seq_halfseg.size() - 1].to; 
 
-      double real_speed = speed_list[i] * 1000 / 60;// convert to meter minute 
+      double real_speed = speed_list[i] * 1000 / 60;// convert to meter minute
+//        cout<<"start_p "<<start_p
+//            <<" sp "<<temp_sp1<<" ep "<<temp_sp2<<endl;
+
       if(start_p.Distance(temp_sp1) < dist_delta){
         ////////moving bus moves to the bus stop and wait for a while//////
         if(last_seg_id != seg_id_list[i]){
@@ -4660,7 +4929,7 @@ void RoadDenstiy::CreateDown(int br_id, Periods* peri,
 //                <<"last_seg_id "<<last_seg_id
 //                <<"seg_id_list[i] "<<seg_id_list[i]
 //                <<"i "<<i<<endl;
-                
+
             last_seg_id = seg_id_list[i]; 
             Interval<Instant> up_interval; 
             up_interval.start = bus_periods.start;
@@ -8466,10 +8735,18 @@ void BN::BsNeighbors2()
         Tuple* bs_tuple2 = bs_rel->GetTuple(neighbor_tid[j], false); 
         Bus_Stop* bs2 = (Bus_Stop*)bs_tuple2->GetAttribute(BusNetwork::BN_BS);
  //       cout<<"neighbor "<<*bs2<<endl; 
-        
-        bs_list1.push_back(*bs);
+
+
+/*        bs_list1.push_back(*bs);
         bs_list2.push_back(*bs2); 
-        bs_uoid_list.push_back(bs->GetUOid());
+        bs_uoid_list.push_back(bs->GetUOid());*/
+
+        if(bs->GetId() != bs2->GetId()){//different bus route
+          bs_list1.push_back(*bs);
+          bs_list2.push_back(*bs2); 
+          bs_uoid_list.push_back(bs->GetUOid());
+        }
+
         bs_tuple2->DeleteIfAllowed(); 
       }
 
@@ -14107,6 +14384,12 @@ string MetroStruct::MetroTripTypeInfo_Com = "(rel (tuple ((mtrip1 genmo)\
 
 string MetroStruct::MetroParaInfo = "(rel (tuple ((Para real))))";
 
+string MetroStruct::MetroSegs = "(rel (tuple ((RelId int) (Geo sline)\
+(Oid int))))";
+
+string MetroStruct::MetroRoadSeg = "(rel (tuple ((Oid int) (OrderId int)\
+(Loc point) (Type int))))";
+
 /*
 create metro routes 
 
@@ -15224,6 +15507,178 @@ void MetroStruct::DFTraverse(R_Tree<2,TupleId>* rtree, Relation* rel,
   }
   delete node;
 }
+
+/*
+get metro stops
+
+*/
+void MetroStruct::GetStops(Relation* rel1, Relation* rel2)
+{
+
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+    Tuple* t = rel2->GetTuple(i, false);
+    int oid = ((CcInt*)t->GetAttribute(MRS_OID))->GetIntval();
+    int order_id = ((CcInt*)t->GetAttribute(MRS_ORDERID))->GetIntval();
+    int type = ((CcInt*)t->GetAttribute(MRS_TYPE))->GetIntval();
+    Point* loc = (Point*)t->GetAttribute(MRS_LOC);
+    vector<MyPoint_Ext> mp_list;
+    MyPoint_Ext mp(*loc, *loc, order_id, type);
+    mp_list.push_back(mp);
+    int j = i + 1;
+    while(j <= rel2->GetNoTuples()){
+      Tuple* tuple = rel2->GetTuple(j, false);
+      int id = ((CcInt*)tuple->GetAttribute(MRS_OID))->GetIntval();
+      if(id == oid){
+        int order = ((CcInt*)tuple->GetAttribute(MRS_ORDERID))->GetIntval();
+        int _type = ((CcInt*)tuple->GetAttribute(MRS_TYPE))->GetIntval();
+        Point* pos = (Point*)tuple->GetAttribute(MRS_LOC);
+
+        MyPoint_Ext pos_loc(*pos, *pos, order, _type);
+        mp_list.push_back(pos_loc);
+        j++;
+        tuple->DeleteIfAllowed();
+      }else{
+//        cout<<"oid "<<oid<<" "<<mp_list.size()<<endl;
+        MStops(rel1, oid, mp_list);
+        i = j - 1;
+        tuple->DeleteIfAllowed();
+        break;
+      }
+
+    }
+
+    if(j > rel2->GetNoTuples()){
+
+//      cout<<"oid "<<oid<<" "<<mp_list.size()<<endl;
+      MStops(rel1, oid, mp_list);
+      break;
+    }
+
+    t->DeleteIfAllowed();
+  }
+}
+
+/*
+retrieve stops 
+
+*/
+void MetroStruct::MStops(Relation* rel, int oid, vector<MyPoint_Ext> in_list)
+{
+  sort(in_list.begin(), in_list.end());
+
+  vector<MyPoint_Ext> mp_list;
+  const double min_len = 500.0;
+  
+  Tuple* t = rel->GetTuple(oid, false);
+  int id = ((CcInt*)t->GetAttribute(MS_OID))->GetIntval();
+  assert(oid == id);
+  SimpleLine* sl = (SimpleLine*)t->GetAttribute(MS_GEO);
+
+  for(unsigned int i = 0;i < in_list.size();i++){
+      double pos = -1.0;
+      if(sl->AtPoint(in_list[i].loc, true, pos) == false){
+        cout<<"error: not find"<<endl;
+        assert(false);
+      }
+      in_list[i].dist = pos;
+
+      if(mp_list.size() == 0) mp_list.push_back(in_list[i]);
+      else if((int)in_list[i].dist2 == 1){
+          int index = mp_list.size() - 1;
+          if(fabs(mp_list[index].dist - in_list[i].dist) < min_len){
+            mp_list[index] = in_list[i];
+          }else
+            mp_list.push_back(in_list[i]);
+      }else{
+        int index = mp_list.size() - 1;
+        if(fabs(mp_list[index].dist - in_list[i].dist) > min_len){
+            mp_list.push_back(in_list[i]);
+        }
+      }
+  }
+
+  cout<<"oid "<<oid<<" len "<<sl->Length()<<endl;
+
+//   for(unsigned int i = 0;i < mp_list.size();i++){
+//     mp_list[i].Print();
+//   }
+
+
+  for(unsigned int i = 0;i < mp_list.size();i++){
+
+//      cout<<"pos "<<pos<<endl;
+      Bus_Stop bs1(true, oid, i + 1, true);
+      Bus_Stop bs2(true, oid, i + 1, false);
+
+      mstop_list.push_back(bs1);
+      mstop_list.push_back(bs2);
+
+      stop_geo_list.push_back(mp_list[i].loc);
+      stop_geo_list.push_back(mp_list[i].loc);
+
+      id_list.push_back(oid);
+      id_list.push_back(oid);
+  }
+
+  t->DeleteIfAllowed();
+
+}
+
+
+/*
+get metro routes
+
+*/
+void MetroStruct::GetRoutes(Relation* rel1, Relation* rel2)
+{
+//  cout<<"routes"<<endl;
+  SpacePartition* sp = new SpacePartition();
+
+  for(int i = 1; i <= rel1->GetNoTuples();i++){
+    Tuple* t = rel1->GetTuple(i, false);
+    int mr_id = ((CcInt*)t->GetAttribute(MS_OID))->GetIntval();
+    SimpleLine* sl = (SimpleLine*)t->GetAttribute(MS_GEO);
+
+    vector<MyHalfSegment> seq_halfseg;
+    sp->ReorderLine(sl, seq_halfseg);
+
+    cout<<"mr_id "<<mr_id<<" len "<<sl->Length()<<endl;
+
+    Bus_Route* br1 = new Bus_Route(mr_id, true);
+    br1->StartBulkLoad(); 
+    int no_1 = 0;
+    for(unsigned int j = 0; j < seq_halfseg.size();j++){
+        MyHalfSegment mhs = seq_halfseg[j];
+        HalfSegment hs(true, mhs.from, mhs.to);
+        br1->Add2(hs, no_1);
+        no_1++;
+     }
+
+     br1->EndBulkLoad();
+     mroute_list.push_back(*br1);
+     id_list.push_back(mr_id);
+     delete br1;
+    ///////////////////////////////////////////////////////////
+     Bus_Route* br2 = new Bus_Route(mr_id, false);
+     br2->StartBulkLoad(); 
+     int no_2 = 0;
+     for(int j = seq_halfseg.size() - 1;j >= 0;j--){
+        MyHalfSegment mhs = seq_halfseg[j];
+        HalfSegment hs(true, mhs.to, mhs.from);
+        br2->Add2(hs, no_2);
+        no_2++;
+     }
+     br2->EndBulkLoad();
+     mroute_list.push_back(*br2);
+     id_list.push_back(mr_id);
+     delete br2;
+
+     t->DeleteIfAllowed();
+  }
+
+  delete sp;
+}
+
 ///////////////////////////////////////////////////////////////
 //////////////////// metro network/////////////////////////////
 ///////////////////////////////////////////////////////////////

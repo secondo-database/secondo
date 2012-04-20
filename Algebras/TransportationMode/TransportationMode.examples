@@ -1188,10 +1188,30 @@ Example  : query refinebr(DOBusRoutes, RelId, BRoute) count;
 Result   : 1
 
 
-Operator : set_bs_loc
+Operator : bs_stops
 Number   : 1
-Signature: rel x rel -> (stream(((x1 t1) ... (xn tn))))
-Example  : query set_bs_loc(LSegs, LAdj) count;
+Signature: rel x rel x btree  -> (stream(((x1 t1) ... (xn tn))))
+Example  : query bs_stops(BusSegs, DOBusStops, btree_bs) count;
+Result   : 0
+
+
+Operator : set_bs_speed
+Number   : 1
+Signature: rel x rel x rel x attr -> (stream(((x1 t1) ... (xn tn))))
+Example  : query set_bs_speed(BusSegs, BusRoadSegs, streets_speed, Vmax) count;
+Result   : 0
+
+
+Operator : set_stop_loc
+Number   : 1
+Signature: line -> (stream(((x1 t1) ... (xn tn))))
+Example  : query set_stop_loc([const line value ()]) count;
+Result   : 0
+
+Operator : getmetrodata
+Number   : 1
+Signature: rel x rel x string -> (stream(((x1 t1) ... (xn tn))))
+Example  : query getmetrodata(MetroSegs, MetroRoadSegs, "STOP") count;
 Result   : 0
 
 

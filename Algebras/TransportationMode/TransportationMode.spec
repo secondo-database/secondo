@@ -227,7 +227,10 @@ operator modifyline alias MODIFYLINE pattern op(_)
 operator refinedata alias REFINEDATA pattern op(_)
 operator filterdisjoint alias FILTERDISJOINT pattern op(_,_,_,_)
 operator refinebr alias REFINEBR pattern op(_,_,_)
-operator set_bs_loc alias SET_BS_LOC pattern op(_,_)
+operator bs_stops alias BS_STOPS pattern op(_,_,_)
+operator set_bs_speed alias SET_BS_SPEED pattern op(_,_,_,_)
+operator set_stop_loc alias SET_STOP_LOC pattern op(_)
+operator getmetrodata alias GETMETRODATA pattern op(_,_,_)
 operator tm_join1 alias TM_JOIN1 pattern op(_,_,_)
 
 

@@ -1328,14 +1328,45 @@ const string OpTMRefineBRSpec  =
     "<text>query refinebr(DOBusRoutes, RelId, BRoute) count</text--->"
     ") )";
 
-const string OpTMSetBSLocSpec  =
+
+const string OpTMBSStopSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>rel x rel -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>set_bs_loc(rel, rel)</text--->"
-    "<text>set possible locations for bus stops </text--->"
-    "<text>query set_bs_loc(LSegs, LAdj) count</text--->"
-    ") )";
+    "( <text>rel x rel x attr x attr->"
+    " (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>bs_stops(rel, rel, attr, attr)</text--->"
+    "<text>set bus stops by corresponding data types</text--->"
+    "<text>query bs_stops(BusSegs, BSStops_Loc, Geo, Oid_S, "
+    "Loc_L) count</text--->) )";
+
+const string OpTMSetBSSpeedSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x rel x rel x attr->"
+    " (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>set_bs_speed(rel, rel, rel, attr)</text--->"
+    "<text>set the speed value for bus segment</text--->"
+    "<text>query st_bs_speed(BusSegs, streets_speed, BusRoadSegs, Vmax)"
+    "count</text--->) )";
+
+const string OpTMSetStopLocSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>line -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>set_stop_loc(line)</text--->"
+    "<text>set certain positions</text--->"
+    "<text>query st_stop_loc(M_Lines)count</text--->) )";
+
+const string OpTMGetMetroDataSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x rel x string ->"
+    " (stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>getmetrodata(rel, rel, string)</text--->"
+    "<text>get metro stops and routes</text--->"
+    "<text>query getmetrodata(MetroSegs, MetroRoadSegs, "
+    "\"STOP\")count</text--->) )";
+
 
 const string OpTMCheckRoadsSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "

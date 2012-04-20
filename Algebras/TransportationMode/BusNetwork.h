@@ -274,6 +274,7 @@ struct BusRoute{
   vector<Point> bus_stop_geodata; 
   
   vector<Bus_Route> bus_route_list; 
+  vector<double> pos_list;
   ////////////////////////////////////////////////////////////////
   BusRoute(Network* net,Relation* r1,BTree* b):
   n(net),rel1(r1),btree(b)
@@ -293,6 +294,15 @@ struct BusRoute{
   static string FinalBusRoutesTypeInfo;
   static string BusStopTemp1TypeInfo;
   static string BusNetworkParaInfo;
+  
+  
+  static string BusSegs;
+  static string BusRoadSegs;
+  static string BusStopsRel;
+
+  enum BusSegInfo{BS_OID = 0, BS_REL_ID, BS_GEO};
+  enum BusRoadSegInfo{BRS_OID = 0, BRS_ORDERID, BRS_ID, BRS_SP2, BRS_EP2};
+  enum BusStopInfo{BS_RELID = 0, BS_POS};
 
   ////////////rough description of bus routes/////////////////////////////
   void CreateRoute1(int attr2,int attr3,int attr4, Relation* bus_para); 
@@ -375,6 +385,14 @@ struct BusRoute{
 
   void GetPosOnSL(SimpleLine* sl, Point loc, double& pos, 
                   vector<MyHalfSegment>&);
+  //////////////////////////////////////////////////////////////////////
+  /////////////// discover bus stop locations -- OSM////////////////////
+  //////////////////////////////////////////////////////////////////////
+  void BSStops(Relation* rel1, Relation* rel2, BTree* btree);
+  ////////////////set bus route speed //////////////////////////////////
+  void SetBSSpeed(Relation* rel1, Relation* rel2, Relation* rel3, int);
+  void SetSpeedForBRoute(Relation* rel1, int oid, Relation* rel3, 
+                         int attr, vector<MySegDist> seg_list);
 
 };
 
@@ -1452,6 +1470,13 @@ struct MetroStruct{
   enum MetroTripInfoCom{M_GENMO_COM,M_MP_COM,M_R_ID_COM,M_DIR_COM,M_R_OID_COM,
                         M_OID_COM};
 
+  static string MetroSegs;
+  static string MetroRoadSeg;
+  
+  enum MetroSegInfo{MS_RELID = 0, MS_GEO, MS_OID};
+  enum MetroRoadSetInfo{MRS_OID = 0, MRS_ORDERID, MRS_LOC, MRS_TYPE};
+  int type;
+  
   vector<int> id_list;
   vector<bool> dir_list;
   vector<int> mr_oid_list;
@@ -1515,6 +1540,10 @@ struct MetroStruct{
  void DFTraverse(R_Tree<2,TupleId>* rtree, Relation* rel,
                              SmiRecordId adr, Point* loc, 
                              vector<int>& tri_tid_list, double& min_dist);
+ ///////////////////////////////////////////////////////////////////////////
+ void GetStops(Relation* rel1, Relation* rel2);
+ void GetRoutes(Relation* rel1, Relation* rel2);
+ void MStops(Relation* rel, int oid, vector<MyPoint_Ext> mp_list);
 };
 
 

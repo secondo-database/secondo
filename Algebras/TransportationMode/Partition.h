@@ -710,6 +710,7 @@ struct MyHalfSegment{
       from = to;
       to = temp;
   }
+  double Length(){if(def) return from.Distance(to);else return -1.0;}
   bool def;
   Point from,to;
 };
@@ -1171,8 +1172,10 @@ struct DataClean{
   static string RoadLSegs;
   static string RoadLAdj;
 
+
   enum RoadLInfor{L_OID = 0, L_SEG}; 
   enum RoadLAdjInfo{L_ADJ_OID1, L_ADJ_SEG1, L_ADJ_OID2, L_ADJ_SEG2};
+
 
   void ModifyLine(SimpleLine* in, SimpleLine* out);
   void RefineData(SimpleLine* in, SimpleLine* out);
@@ -1186,12 +1189,13 @@ struct DataClean{
                            R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
                            Line* sl, int attr, int tid, vector<int>& res_list);
   void RefineBR(Relation*, int attr1, int attr2);
-  void FindBusRoute(vector<SimpleLine> seg_list, double min_len);
+  void FindBusRoute(int rel_id, vector<SimpleLine> seg_list, double min_len);
   void FindThePath(vector<MyHalfSegment> mhs_list, int i, int j, 
                    vector<vector<Adj_Data> > adj_list, 
                    vector<SimpleLine>& path_list);
-  void SetBSLoc(Relation* rel1, Relation* rel2);
-  void PutResult(vector<MyHalfSegment> mhs_list, int id, double& len);
+
+  void ExtendLine(SimpleLine& sl);
+  void SetStopLoc(Line* l);
 };
 
 

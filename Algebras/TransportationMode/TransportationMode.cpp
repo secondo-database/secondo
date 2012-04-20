@@ -14345,10 +14345,10 @@ ListExpr OpTMRefineBRTypeMap ( ListExpr args )
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
-                nl->OneElemList(
-/*                    nl->TwoElemList(
-                        nl->SymbolAtom("BR_ID"),
-                        nl->SymbolAtom("int")),*/
+                nl->TwoElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("RelId"),
+                        nl->SymbolAtom("int")),
                     nl->TwoElemList(
                         nl->SymbolAtom("Geo"),
                         nl->SymbolAtom("sline"))
@@ -14367,20 +14367,85 @@ ListExpr OpTMRefineBRTypeMap ( ListExpr args )
 
 }
 
+
 /*
-TypeMap fun for operator setbsloc
+set bus stops by data types
 
 */
 
-ListExpr OpTMSetBSLocTypeMap ( ListExpr args )
+ListExpr OpTMBSStopTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 2 )
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second ( args );
+  ListExpr param3 = nl->Third( args );
+
+  if(!listutils::isRelDescription(param1) )
+    return listutils::typeError("param1 should be an relation" );
+
+  ListExpr xType1;
+  nl->ReadFromString ( BusRoute::BusSegs, xType1 );
+  if ( !CompareSchemas ( param1, xType1 ) )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
+  if(!listutils::isRelDescription(param2) )
+    return listutils::typeError("param2 should be an relation" );
+
+  ListExpr xType2;
+  nl->ReadFromString ( BusRoute::BusStopsRel, xType2 );
+  if ( !CompareSchemas ( param2, xType2 ) )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+
+  if(!listutils::isBTreeDescription(param3) )
+    return listutils::typeError("param3 should be a btree" );
+
+  ListExpr result = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+//                nl->TwoElemList(
+                nl->ThreeElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop"),
+                        nl->SymbolAtom("busstop")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Stop_geodata"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Pos"),
+                        nl->SymbolAtom("real"))
+                    )));
+
+  return result;
+
+}
+
+
+
+/*
+set the speed value for bus routes
+
+*/
+
+ListExpr OpTMSetBSSpeedTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
   ListExpr param1 = nl->First ( args );
   ListExpr param2 = nl->Second ( args );
+  ListExpr param3 = nl->Third( args );
+  ListExpr param4 = nl->Fourth( args );
+  
 
   if ( !IsRelDescription ( param1 ))
   {
@@ -14388,7 +14453,139 @@ ListExpr OpTMSetBSLocTypeMap ( ListExpr args )
   }
 
   ListExpr xType1;
-  nl->ReadFromString ( DataClean::RoadLSegs, xType1 );
+  nl->ReadFromString ( BusRoute::BusSegs, xType1 );
+  if ( !CompareSchemas ( param1, xType1 ) )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+
+  if ( !IsRelDescription ( param2 ))
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  ListExpr xType2;
+  nl->ReadFromString ( BusRoute::BusRoadSegs, xType2 );
+  if ( !CompareSchemas ( param2, xType2 ) )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+
+  if ( !IsRelDescription ( param3 ))
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+
+  ListExpr attrType;
+  string aname = nl->SymbolValue(param4);
+  int j = listutils::findAttribute(nl->Second(nl->Second(param3)),
+                      aname, attrType);
+
+  if(j == 0 || !listutils::isSymbol(attrType,"real")){
+      return listutils::typeError("attr name" + aname + "not found"
+                      "or not of type real");
+  }
+
+      ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->Cons(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Br_id"),
+                        nl->SymbolAtom("int")),
+                nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_direction"),
+                        nl->SymbolAtom("bool")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_sub_route"),
+                        nl->SymbolAtom("line")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Speed_limit"),
+                        nl->SymbolAtom("real")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("StartSmaller"),
+                        nl->SymbolAtom("bool")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Start_loc"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Segment_id"),
+                        nl->SymbolAtom("int")))
+                    )));
+
+  return nl->ThreeElemList(
+           nl->SymbolAtom("APPEND"),
+           nl->OneElemList(nl->IntAtom(j)), res);
+}
+
+
+
+/*
+set the possible locations
+
+*/
+
+ListExpr OpTMSetStopLocTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+
+  if (nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+      nl->SymbolValue(param1) == "line" )
+  {
+
+    ListExpr result =
+        nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Seg"),
+                                    nl->SymbolAtom("sline")),
+                        nl->TwoElemList(nl->SymbolAtom("Loc"),
+                                    nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("Type"),
+                                    nl->SymbolAtom("int"))
+                        )
+                )
+          );
+
+    return result;
+  }
+
+  return ( nl->SymbolAtom ( "typeerror" ) );
+
+}
+
+/*
+get metro stops and routes for OSM data
+
+*/
+ListExpr OpTMGetMetroDataTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First(nl->First ( args ));
+  ListExpr param2 = nl->First(nl->Second ( args ));
+  ListExpr param3 = nl->Third ( args );
+
+  if ( !IsRelDescription ( param1 ))
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  ListExpr xType1;
+  nl->ReadFromString ( MetroStruct::MetroSegs, xType1 );
   if ( !CompareSchemas ( param1, xType1 ) )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
@@ -14400,38 +14597,59 @@ ListExpr OpTMSetBSLocTypeMap ( ListExpr args )
   }
 
   ListExpr xType2;
-  nl->ReadFromString ( DataClean::RoadLAdj, xType2 );
+  nl->ReadFromString ( MetroStruct::MetroRoadSeg, xType2 );
   if ( !CompareSchemas ( param2, xType2 ) )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-      ListExpr result = nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
-//                nl->TwoElemList(
-                nl->ThreeElemList(
-                    nl->TwoElemList(
-                        nl->SymbolAtom("HalfSeg"),
-                        nl->SymbolAtom("sline")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("Loc"),
-                        nl->SymbolAtom("point")),
-                    nl->TwoElemList(
-                        nl->SymbolAtom("Oid"),
-                        nl->SymbolAtom("int"))
-                    )));
 
-//                     nl->TwoElemList(
-//                         nl->SymbolAtom("Br_id"),
-//                         nl->SymbolAtom("int")),
-//                     nl->TwoElemList(
-//                         nl->SymbolAtom("Bus_route"),
-//                         nl->SymbolAtom("busroute"))
+  if(nl->IsEqual(nl->First(param3), "string")){
 
-    return result;
+      string type  = nl->StringValue(nl->Second(param3));
+      if(type.compare("ROUTE") == 0){
 
+        ListExpr res = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+             nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                 nl->TwoElemList(
+                     nl->TwoElemList(
+                         nl->SymbolAtom("Mr_id"),
+                         nl->SymbolAtom("int")),
+                     nl->TwoElemList(
+                         nl->SymbolAtom("Mroute"),
+                         nl->SymbolAtom("busroute"))
+                     )));
+
+          return res; 
+      }else if(type.compare("STOP") == 0){
+
+           ListExpr res = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+             nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                 nl->ThreeElemList(
+                     nl->TwoElemList(
+                         nl->SymbolAtom("Ms_stop"),
+                         nl->SymbolAtom("busstop")),
+                     nl->TwoElemList(
+                         nl->SymbolAtom("Stop_geodata"),
+                         nl->SymbolAtom("point")),
+                     nl->TwoElemList(
+                         nl->SymbolAtom("Mr_id"),
+                         nl->SymbolAtom("int"))
+                     )));
+
+          return res;
+
+      }else{
+        return  nl->SymbolAtom ( "typeerror" );
+      }
+  }
+
+   return nl->SymbolAtom ( "typeerror" );
+  
 }
 
 /*
@@ -20878,10 +21096,14 @@ int OpTMRefineBRmap ( Word* args, Word& result, int message,
       case REQUEST:{
           if(local.addr == NULL) return CANCEL;
           datacl = (DataClean*)local.addr;
-          if(datacl->count == datacl->sl_list.size())return CANCEL;
+          if(datacl->count == datacl->oid_list.size())return CANCEL;
 
           Tuple* tuple = new Tuple(datacl->resulttype);
-          tuple->PutAttribute(0,new SimpleLine(datacl->sl_list[datacl->count]));
+
+//        tuple->PutAttribute(0,new SimpleLine(datacl->sl_list[datacl->count]));
+
+         tuple->PutAttribute(0,new CcInt(true,datacl->oid_list[datacl->count]));
+          tuple->PutAttribute(1,new SimpleLine(datacl->sl_list[datacl->count]));
 
           result.setAddr(tuple);
           datacl->count++;
@@ -20902,25 +21124,133 @@ int OpTMRefineBRmap ( Word* args, Word& result, int message,
 
 
 /*
-set possible locations for bus stops
+set bus stops by data types
 
 */
-int OpTMSetBSLocmap( Word* args, Word& result, int message,
+int OpTMBSStopLocmap( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
 
-  DataClean* datacl; //partition dot cpp
+  BusRoute* br; //partition dot cpp
   switch(message){
       case OPEN:{
 
         Relation* rel1 = (Relation*)args[0].addr;
         Relation* rel2 = (Relation*)args[1].addr;
+        BTree* btree = (BTree*)args[2].addr;
 
-        datacl = new DataClean(); 
+        br = new BusRoute();
+        br->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        br->BSStops(rel1, rel2, btree);//BusNetwork.cpp
+        local.setAddr(br);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          br = (BusRoute*)local.addr;
+          if(br->count == br->bus_stop_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(br->resulttype);
+          tuple->PutAttribute(0,
+                              new Bus_Stop(br->bus_stop_list[br->count]));
+          tuple->PutAttribute(1,new Point(br->bus_stop_geodata[br->count]));
+          tuple->PutAttribute(2, new CcReal(true, br->pos_list[br->count]));
+
+          result.setAddr(tuple);
+          br->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            br = (BusRoute*)local.addr;
+            delete br;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  
+  return 0;
+}
+
+/*
+set bus route segment speed value
+
+*/
+int OpTMSetBSSpeedmap( Word* args, Word& result, int message,
+                       Word& local, Supplier in_pSupplier )
+{
+
+  BusRoute* br; 
+  switch(message){
+      case OPEN:{
+
+        Relation* rel1 = (Relation*)args[0].addr;
+        Relation* rel2 = (Relation*)args[1].addr;
+        Relation* rel3 = (Relation*)args[2].addr;
+        int attr = ((CcInt*)args[4].addr)->GetIntval() - 1;
+
+        br = new BusRoute();
+        br->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        br->SetBSSpeed(rel1, rel2, rel3,attr);
+        local.setAddr(br);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          br = (BusRoute*)local.addr;
+          if(br->count == br->br_id_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(br->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, br->br_id_list[br->count]));
+          tuple->PutAttribute(1,
+                              new CcBool(true,br->direction_flag[br->count]));
+          tuple->PutAttribute(2, new Line(br->bus_lines2[br->count]));
+          tuple->PutAttribute(3, new CcReal(true, br->pos_list[br->count]));
+          tuple->PutAttribute(4, new CcBool(true, br->startSmaller[br->count]));
+          tuple->PutAttribute(5, new Point(br->start_gp[br->count]));
+          tuple->PutAttribute(6, new CcInt(true, br->sec_id_list[br->count]));
+
+          result.setAddr(tuple);
+          br->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            br = (BusRoute*)local.addr;
+            delete br;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+
+  return 0;
+}
+
+/*
+set possible locations
+
+*/
+int OpTMSetStopLocmap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  DataClean* datacl;
+  switch(message){
+      case OPEN:{
+
+        Line* l = (Line*)args[0].addr;
+
+        datacl = new DataClean();
         datacl->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        datacl->SetBSLoc(rel1, rel2);//Partition.cpp
+        datacl->SetStopLoc(l);//Partition.cpp
         local.setAddr(datacl);
         return 0;
       }
@@ -20930,13 +21260,10 @@ int OpTMSetBSLocmap( Word* args, Word& result, int message,
           if(datacl->count == datacl->sl_list.size())return CANCEL;
 
           Tuple* tuple = new Tuple(datacl->resulttype);
-
-          tuple->PutAttribute(0,
-                             new SimpleLine(datacl->sl_list[datacl->count]));
-          tuple->PutAttribute(1,new Point(datacl->bs_loc_list[datacl->count]));
+         tuple->PutAttribute(0, new SimpleLine(datacl->sl_list[datacl->count]));
+          tuple->PutAttribute(1, new Point(datacl->bs_loc_list[datacl->count]));
           tuple->PutAttribute(2, 
-                             new CcInt(true, datacl->oid_list[datacl->count]));
-
+                             new CcInt(true, datacl->type_list[datacl->count]));
           result.setAddr(tuple);
           datacl->count++;
           return YIELD;
@@ -20945,6 +21272,83 @@ int OpTMSetBSLocmap( Word* args, Word& result, int message,
           if(local.addr){
             datacl = (DataClean*)local.addr;
             delete datacl;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  
+  return 0;
+}
+
+
+/*
+create metro stops and routes
+
+*/
+int OpTMGetMetroDatamap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  MetroStruct* mstruct;
+  switch(message){
+      case OPEN:{
+
+        Relation* rel1 = (Relation*)args[0].addr;
+        Relation* rel2 = (Relation*)args[1].addr;
+        string type = ((CcString*)args[2].addr)->GetValue();
+
+        mstruct = new MetroStruct();
+        mstruct->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        
+        if(type.compare("STOP") == 0){
+            mstruct->GetStops(rel1, rel2);//Partition.cpp
+            mstruct->type = 1;//stop
+        }else if(type.compare("ROUTE") == 0){
+            mstruct->GetRoutes(rel1, rel2);
+            mstruct->type = 2;//route
+        }else{
+            cout<<"wrong type "<<type<<endl;
+            mstruct->type = 0;
+        }
+        local.setAddr(mstruct);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          mstruct = (MetroStruct*)local.addr;
+          if(mstruct->count == mstruct->id_list.size())return CANCEL;
+
+
+          if(mstruct->type == 1){
+            Tuple* tuple = new Tuple(mstruct->resulttype);
+            tuple->PutAttribute(0, 
+                          new Bus_Stop(mstruct->mstop_list[mstruct->count]));
+            tuple->PutAttribute(1, 
+                          new Point(mstruct->stop_geo_list[mstruct->count]));
+            tuple->PutAttribute(2,
+                          new CcInt(true, mstruct->id_list[mstruct->count]));
+            result.setAddr(tuple);
+            mstruct->count++;
+            return YIELD;
+          }else if(mstruct->type == 2){
+            Tuple* tuple = new Tuple(mstruct->resulttype);
+            tuple->PutAttribute(0,
+                          new CcInt(true, mstruct->id_list[mstruct->count]));
+            tuple->PutAttribute(1,
+                          new Bus_Route(mstruct->mroute_list[mstruct->count]));
+
+            result.setAddr(tuple);
+            mstruct->count++;
+            return YIELD;
+          }
+          return CANCEL;
+      }
+      case CLOSE:{
+          if(local.addr){
+            mstruct = (MetroStruct*)local.addr;
+            delete mstruct;
             local.setAddr(Address(0));
           }
           return 0;
@@ -22273,12 +22677,37 @@ Operator refinebr(
     OpTMRefineBRTypeMap        // type mapping
 );
 
-Operator set_bs_loc(
-    "set_bs_loc",               // name
-    OpTMSetBSLocSpec,          // specification
-    OpTMSetBSLocmap,  // value mapping
+
+Operator bs_stops(
+    "bs_stops",               // name
+    OpTMBSStopSpec,          // specification
+    OpTMBSStopLocmap,  // value mapping
     Operator::SimpleSelect,        // selection function
-    OpTMSetBSLocTypeMap        // type mapping
+    OpTMBSStopTypeMap        // type mapping
+);
+
+Operator set_bs_speed(
+    "set_bs_speed",               // name
+    OpTMSetBSSpeedSpec,          // specification
+    OpTMSetBSSpeedmap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMSetBSSpeedTypeMap        // type mapping
+);
+
+Operator set_stop_loc(
+    "set_stop_loc",               // name
+    OpTMSetStopLocSpec,          // specification
+    OpTMSetStopLocmap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMSetStopLocTypeMap        // type mapping
+);
+
+Operator getmetrodata(
+    "getmetrodata",               // name
+    OpTMGetMetroDataSpec,          // specification
+    OpTMGetMetroDatamap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMGetMetroDataTypeMap        // type mapping
 );
 
 /*
@@ -22654,8 +23083,11 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&refinedata);//remove some digit after dot
    AddOperator(&filterdisjoint);//filter disjoint road segments 
    AddOperator(&refinebr);// find or discorver the complete bus route
-   AddOperator(&set_bs_loc);//set possible locations for bus stops
-
+   AddOperator(&bs_stops);//set data type for bus stops
+   AddOperator(&set_bs_speed);//set speed for bus segment 
+   AddOperator(&set_stop_loc);//set possible locations for stops
+   AddOperator(&getmetrodata);getmetrodata.SetUsesArgsInTypeMapping();
+   //get metro stops and routes
    ///////////////////two join operators, using rtree//////////////////////
    AddOperator(&tm_join1);
    ////////////////////////////////////////////////////////////////////
