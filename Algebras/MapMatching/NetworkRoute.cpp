@@ -42,7 +42,11 @@ This implementation file contains the implementation of the class ~NetworkRoute~
 #include "NetworkRoute.h"
 #include "../Network/NetworkAlgebra.h"
 
-namespace mapmatch {
+
+/*
+3 class NetworkRoute
+
+*/
 
 NetworkRoute::NetworkRoute()
 :m_pTupleRoute(NULL)
@@ -152,4 +156,3 @@ bool NetworkRoute::GetStartsSmaller(void) const
     }
 }
 
-} // end of namespace mapmatch

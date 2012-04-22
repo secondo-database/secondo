@@ -26,57 +26,55 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Header File of the MapMatching Algebra
 
-January-April, 2012. Matthias Roth
+April, 2012. Matthias Roth
 
 [TOC]
 
 1 Overview
 
-This header file contains the convenience-class ~NetworkRoute~
+This header file essentially contains the definition of the class ~MGPointCreator~.
 
 2 Defines and includes
 
 */
-#ifndef __NETWORK_ROUTE_H__
-#define __NETWORK_ROUTE_H__
 
-class Tuple;
-class SimpleLine;
+#ifndef MAPMATCHINGMHTORELCREATOR_H_
+#define MAPMATCHINGMHTORELCREATOR_H_
 
-#include <stdio.h>
+#include "MapMatchingMHT.h"
+#include "MHTRouteCandidate.h"
 
+class TupleBuffer;
+class GenericRelationIterator;
+
+
+namespace mapmatch {
 
 /*
-3 class NetworkRoute
-  accessing the attributes of a Network-Route
+3 class OEdgeTupleStreamCreator
 
 */
-class NetworkRoute
+class OEdgeTupleStreamCreator : public IMapMatchingMHTResultCreator
 {
 public:
-    NetworkRoute();
-    NetworkRoute(Tuple* pTupleRoute, bool bIncReference = true);
-    NetworkRoute(const NetworkRoute& rNetworkRoute);
-    ~NetworkRoute();
+    OEdgeTupleStreamCreator();
+    virtual ~OEdgeTupleStreamCreator();
 
-    const NetworkRoute& operator=(const NetworkRoute& rNetworkRoute);
+    virtual bool CreateResult(const std::vector<MHTRouteCandidate*>&
+                                                           rvecRouteCandidates);
 
-    bool IsDefined(void) const {return m_pTupleRoute != NULL;}
-
-    int GetRouteID(void) const;
-
-    double GetRouteLength(void) const;
-
-    const SimpleLine* GetCurve(void) const;
-
-    bool GetDual(void) const;
-
-    bool GetStartsSmaller(void) const;
+    Tuple* GetNextTuple(void) const;
 
 private:
 
-    Tuple* m_pTupleRoute;
+    TupleBuffer* m_pTupleBuffer;
+    mutable GenericRelationIterator* m_pTupleIterator;
 };
 
 
-#endif /* __NETWORK_ROUTE_H__ */
+
+
+} // end of namespace mapmatch
+
+
+#endif /* MAPMATCHINGMHTORELCREATOR_H_ */

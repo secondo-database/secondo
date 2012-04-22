@@ -44,13 +44,24 @@ This header file contains the definition of the class ~MHTRouteCandidate~.
 #include <deque>
 #include "NetworkSection.h"
 #include "NetworkRoute.h"
-#include "DateTime.h"
+#include "MapMatchingData.h"
+#include <DateTime.h>
+
+#ifdef SECONDO_WIN32
+#include <memory>
+#else
+#include <tr1/memory>
+#endif
+using std::tr1::shared_ptr;
 
 class Point;
-class GPoint;
+class HalfSegment;
 
 
 namespace mapmatch {
+
+class MapMatchingMHT;
+class IMMNetworkSection;
 
 /*
 3 class MHTRouteCandidate
@@ -61,28 +72,25 @@ namespace mapmatch {
 class MHTRouteCandidate
 {
 public:
-    MHTRouteCandidate();
+    MHTRouteCandidate(MapMatchingMHT* pMM);
     MHTRouteCandidate(const MHTRouteCandidate& rCandidate);
     ~MHTRouteCandidate();
 
     MHTRouteCandidate& operator=(const MHTRouteCandidate& rCandidate);
 
-    bool operator==(const MHTRouteCandidate& rCandidate);
+    void AddSection(const shared_ptr<IMMNetworkSection>& pSection);
+    shared_ptr<IMMNetworkSection> GetLastSection(void) const;
 
-    void AddSection(const DirectedNetworkSection& rSection);
-    const DirectedNetworkSection& GetLastSection(void) const;
+    void AddPoint(const Point& rPointProjection,
+                  const HalfSegment& rHSProjection,
+                  const MapMatchData* pMMData,
+                  double dDistance);
 
-    void AddPoint(const Point& rPoint,
-                  const Point& rPointProjection,
-                  const DirectedNetworkSection& rSection,
-                  const double dDistance,
-                  const datetime::DateTime& rDateTime);
-
-    void AddPoint(const Point& rPoint,
-                  const double dDistance,
-                  const datetime::DateTime& rDateTime);
+    void AddPoint(const MapMatchData* pMMData); // No projected point (offroad)
 
     void RemoveLastPoint(void);
+
+    size_t GetCountPoints(void) const {return m_nCountPoints;}
 
     inline double GetScore(void) const
     {
@@ -91,30 +99,28 @@ public:
 
     void AddScore(double dScore);
 
+    void SetFailed(bool bFailed = true) {m_bFailed = bFailed;}
+    bool GetFailed(void) const {return m_bFailed;}
+
     // A empty section is a section without assigned points
     inline unsigned short GetCountLastEmptySections(void) const
     {
         return m_nCountLastEmptySections;
     }
 
-    void MarkAsInvalid(void);
-
-    bool IsInvalid(void) const;
-
     class PointData
     {
     public:
         PointData();
 
-        PointData(const Point& rPointGPS,
+        PointData(const MapMatchData* pMMData,
                   const Point& rPointProjection,
-                  const DirectedNetworkSection& rSection,
-                  const double dDistance,
-                  const datetime::DateTime& rDateTime);
+                  const shared_ptr<IMMNetworkSection>& pSection,
+                  const double dScore);
 
-        // Constructor without GPoint - Offroad-case
-        PointData(const Point& rPoint, const double dDistance,
-                  const datetime::DateTime& rDateTime);
+        // Constructor without projected point - Offroad-case
+        PointData(const MapMatchData* pMMData,
+                  const double dScore);
 
         PointData(const PointData& rPointData);
 
@@ -122,70 +128,137 @@ public:
 
         ~PointData();
 
-        GPoint* GetGPoint(int nNetworkId) const;
-        inline Point* GetPointGPS(void) const {return m_pPointGPS;}
-        inline Point* GetPointProjection(void) const
+        inline const Point GetPointGPS(void) const
+                  {return m_pData != NULL ? m_pData->GetPoint() : Point(false);}
+        inline const Point* GetPointProjection(void) const
                                               {return m_pPointProjection;}
         inline double GetScore(void) const {return m_dScore;}
-        inline datetime::DateTime GetTime(void) const {return m_Time;}
+
+        inline const MapMatchData* GetMMData(void) const {return m_pData;}
+
+        const shared_ptr<IMMNetworkSection>& GetSection(void) const
+                                                            {return m_pSection;}
+
+        inline datetime::DateTime GetTime(void) const
+                                   {return m_pData != NULL ?
+                                           datetime::DateTime(m_pData->m_Time) :
+                                           datetime::DateTime((int64_t)0);}
+
+        void Print(std::ostream& os) const;
 
     private:
         PointData& operator=(const PointData& rPointData);
 
-        mutable GPoint* m_pGPoint;
-        Point* m_pPointGPS;
+        const MapMatchData* m_pData;
         Point* m_pPointProjection;
-        DirectedNetworkSection m_Section;
+        shared_ptr<IMMNetworkSection> m_pSection;
         double m_dScore;
-        datetime::DateTime m_Time;
     };
 
     const PointData* GetLastPoint(void) const;
-
-    inline const std::vector<PointData*>& GetPoints(void) const
-    {
-        return m_Points;
-    }
 
     const std::vector<PointData*>& GetPointsOfLastSection(void) const;
 
     // Return the number of (assigned) points to last section
     // (No "Offroad"-points !!)
-    inline size_t GetCountPointsOfLastSection(void) const
-                                     {return m_Sections.back().m_Points.size();}
+    size_t GetCountPointsOfLastSection(void) const;
 
     inline size_t GetCountLastOffRoadPoints(void) const
                                              {return m_nCountLastOffRoadPoints;}
 
-    bool CorrectUTurn(const DirectedNetworkSection& rNextAdjacent,
-                      class Network& rNetwork, double dNetworkScale);
+    bool CorrectUTurn(void);
 
-    bool IsFirstSection(void) const {return m_Sections.size() == 1;}
+    class RouteSegment;
 
-    // Debugging
-    void Print(std::ostream& os, int nNetworkId) const;
-    void PrintGPoints(std::ostream& os, int nNetworkId) const;
-    void PrintGPointsAsPoints(std::ostream& os, int nNetworkId) const;
-
-private:
-
-    std::vector<PointData*> m_Points; // TODO ggf. DBArray
-
-    struct SectionCandidate
+    class PointDataIterator
     {
-        SectionCandidate(const DirectedNetworkSection& rSection)
-        :m_Section(rSection)
-        {
-        }
+    public:
+        PointDataIterator(const PointDataIterator& rIt);
+        ~PointDataIterator();
 
-        DirectedNetworkSection m_Section;
+        PointDataIterator& operator=(const PointDataIterator& rIt);
+
+        bool operator==(const PointDataIterator& rIt) const;
+        bool operator!=(const PointDataIterator& rIt) const;
+
+        const PointData* operator*() const;
+
+        PointDataIterator& operator++();
+
+    private:
+        PointDataIterator(const MHTRouteCandidate* pCandidate,
+                          bool bBegin, bool bReverse);
+
+        std::vector<RouteSegment*>::const_iterator m_ItRouteSegment;
+        std::vector<PointData*>::const_iterator m_ItPointData;
+        std::vector<RouteSegment*>::const_reverse_iterator m_ItRouteSegment_R;
+        std::vector<PointData*>::const_reverse_iterator m_ItPointData_R;
+        bool m_bReverse;
+        const MHTRouteCandidate* m_pRouteCandidate;
+
+        friend class MHTRouteCandidate;
+    };
+
+
+
+    PointDataIterator PointDataBegin(void) const
+                                  {return PointDataIterator(this, true, false);}
+    PointDataIterator PointDataEnd(void) const
+                                 {return PointDataIterator(this, false, false);}
+
+    PointDataIterator PointDataRBegin(void) const
+                                   {return PointDataIterator(this, true, true);}
+    PointDataIterator PointDataREnd(void) const
+                                  {return PointDataIterator(this, false, true);}
+
+    class RouteSegment
+    {
+    public:
+        RouteSegment(void); // Off-road
+        RouteSegment(const shared_ptr<IMMNetworkSection>& pSection); // On-road
+        RouteSegment(const RouteSegment& rCandidate);
+        ~RouteSegment();
+
+        const shared_ptr<IMMNetworkSection>& GetSection(void) const
+                                                           {return m_pSection;}
+        const std::vector<PointData*>& GetPoints(void) const {return m_Points;}
+        PointData* AddPoint(const MapMatchData* pMMData,
+                            const Point& rPointProjection,
+                            const double dScore);
+        PointData* AddPoint(const MapMatchData* pMMData,
+                            const double dScore);
+        double RemoveLastPoint(void);
+
+        bool IsOffRoad(void) const;
+
+        void Print(std::ostream& os) const;
+
+    private:
+
+        shared_ptr<IMMNetworkSection> m_pSection;
         std::vector<PointData*> m_Points;
     };
 
-    std::deque<SectionCandidate> m_Sections;
+    const std::vector<RouteSegment*>& GetRouteSegments(void) const
+                                                            {return m_Segments;}
+
+    // Debugging
+    void Print(std::ostream& os) const;
+    void PrintProjectedPoints(std::ostream& os) const;
+
+private:
+
+    MHTRouteCandidate():m_pMM(NULL) {}
+
+    void RemoveLastSection(void);
+
+    std::vector<RouteSegment*> m_Segments;
+    MapMatchingMHT* m_pMM;
     double m_dScore;
     unsigned short m_nCountLastEmptySections;
     size_t m_nCountLastOffRoadPoints;
+    size_t m_nCountPoints;
+    bool m_bFailed;
 };
 
 

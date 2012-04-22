@@ -43,8 +43,8 @@ This implementation file contains the implementation of the class ~NetworkSectio
 #include "NetworkRoute.h"
 #include "../Network/NetworkAlgebra.h"
 #include "MapMatchingUtil.h"
+using namespace mapmatch;
 
-namespace mapmatch {
 
 /*
 3 class NetworkSection
@@ -59,7 +59,7 @@ NetworkSection::NetworkSection()
 }
 
 NetworkSection::NetworkSection(Tuple* pTupleSection,
-                               Network* pNetwork,
+                               const Network* pNetwork,
                                bool bIncReference)
 :m_pTupleSection(pTupleSection), m_pNetwork(pNetwork),
  m_pNetworkRoute(NULL), m_dCurveLength(-1.0)
@@ -86,7 +86,8 @@ NetworkSection::~NetworkSection()
         m_pTupleSection->DeleteIfAllowed();
     m_pTupleSection = NULL;
     m_pNetwork = NULL;
-    delete m_pNetworkRoute;
+    if (m_pNetworkRoute != NULL)
+        delete m_pNetworkRoute;
     m_pNetworkRoute = NULL;
 }
 
@@ -107,7 +108,10 @@ const NetworkSection& NetworkSection::operator=(
 
         m_pNetwork = rNetworkSection.m_pNetwork;
 
-        delete m_pNetworkRoute; m_pNetworkRoute = NULL;
+        if (m_pNetworkRoute != NULL)
+            delete m_pNetworkRoute;
+        m_pNetworkRoute = NULL;
+
         if (rNetworkSection.m_pNetworkRoute != NULL)
            m_pNetworkRoute = new NetworkRoute(*rNetworkSection.m_pNetworkRoute);
 
@@ -155,10 +159,6 @@ const NetworkRoute& NetworkSection::GetRoute(void) const
                 m_pNetworkRoute = new NetworkRoute(pRouteTuple, false);
                 return *m_pNetworkRoute;
             }
-
-            /*Tuple* pRouteTuple = m_pNetwork->GetRoute(GetRouteID());
-            m_pNetworkRoute = new NetworkRoute(pRouteTuple, false);
-            return *m_pNetworkRoute;*/
         }
 
         static NetworkRoute Dummy(NULL);
@@ -267,7 +267,7 @@ int NetworkSection::GetSectionID(void) const
     }
     else
     {
-        return NULL;
+        return 0;
     }
 }
 
@@ -313,7 +313,7 @@ DirectedNetworkSection::DirectedNetworkSection()
 }
 
 DirectedNetworkSection::DirectedNetworkSection(Tuple* pTupleSection,
-                                               Network* pNetwork,
+                                               const Network* pNetwork,
                                                bool bIncReference,
                                                const EDirection eDirection)
 :NetworkSection(pTupleSection, pNetwork, bIncReference),
@@ -365,4 +365,32 @@ bool DirectedNetworkSection::operator==
     }
 }
 
-} // end of namespace mapmatch
+
+Point DirectedNetworkSection::GetStartPoint(void) const
+{
+    return NetworkSection::GetStartPoint(); // TODO
+
+    if (GetDirection() == DirectedNetworkSection::DIR_DOWN)
+    {
+        return NetworkSection::GetEndPoint();
+    }
+    else
+    {
+        return NetworkSection::GetStartPoint();
+    }
+}
+
+Point DirectedNetworkSection::GetEndPoint(void) const
+{
+    return NetworkSection::GetEndPoint(); // TODO
+
+    /*if (GetDirection() == DirectedNetworkSection::DIR_DOWN)
+    {
+        return NetworkSection::GetStartPoint();
+    }
+    else
+    {
+        return NetworkSection::GetEndPoint();
+    }*/
+}
+

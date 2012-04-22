@@ -49,7 +49,6 @@ class TupleIdentifier;
 #include <Point.h>
 
 
-namespace mapmatch {
 
 /*
 3 class NetworkSection
@@ -60,7 +59,8 @@ class NetworkSection
 {
 public:
     NetworkSection();
-    NetworkSection(Tuple* pTupleSection, Network* pNetwork,
+    NetworkSection(Tuple* pTupleSection,
+                   const Network* pNetwork,
                    bool bIncReference = true);
     NetworkSection(const NetworkSection& rNetworkSection);
     virtual ~NetworkSection();
@@ -85,20 +85,23 @@ public:
 
     bool GetCurveStartsSmaller(void) const;
 
+    // calculates the length of the curve in meters
     double GetCurveLength(const double dScale) const;
 
     TupleIdentifier* GetRRC(void) const;
 
     int GetSectionID(void) const;
 
-    Point GetStartPoint(void) const;
+    virtual Point GetStartPoint(void) const;
 
-    Point GetEndPoint(void) const;
+    virtual Point GetEndPoint(void) const;
+
+    const Network* GetNetwork(void) const {return m_pNetwork;}
 
 private:
 
     Tuple* m_pTupleSection;
-    Network* m_pNetwork;
+    const Network* m_pNetwork;
     mutable class NetworkRoute* m_pNetworkRoute;
     mutable double m_dCurveLength;
 };
@@ -122,7 +125,8 @@ public:
 
     DirectedNetworkSection();
 
-    DirectedNetworkSection(Tuple* pTupleSection, Network* pNetwork,
+    DirectedNetworkSection(Tuple* pTupleSection,
+                           const Network* pNetwork,
                            bool bIncReference = true,
                            const EDirection eDirection = DIR_NONE);
 
@@ -141,10 +145,13 @@ public:
     inline void SetDirection(const EDirection eDir) {m_eDirection = eDir;}
     inline EDirection GetDirection(void) const {return m_eDirection;}
 
+    virtual Point GetStartPoint(void) const;
+
+    virtual Point GetEndPoint(void) const;
+
 private:
     EDirection m_eDirection;
 };
 
-} // end of namespace mapmatch
 
 #endif /* __NETWORK_SECTION_H__ */

@@ -80,7 +80,7 @@ ONetwork::~ONetwork()
 bool ONetwork::GetEdges(const Rectangle<2>& rBBox,
                         std::vector<ONetworkEdge>& vecEdges) const
 {
-    if (!rBBox.IsDefined() || m_pRTreeEdges == NULL)
+    if (!rBBox.IsDefined() || m_pRTreeEdges == NULL || m_pIndexEdges == NULL)
     {
         assert(false);
         return false;
@@ -136,7 +136,7 @@ bool ONetwork::GetEdges(const Tuple* pTuple,
     Tuple* pTupleEdge = pIt != NULL ? pIt->GetNextTuple() : NULL;
     while (pTupleEdge != NULL)
     {
-        vecEdges.push_back(ONetworkEdge(pTupleEdge, false));
+        vecEdges.push_back(ONetworkEdge(pTupleEdge, this, false));
 
         pTupleEdge = pIt->GetNextTuple();
     }
@@ -177,7 +177,7 @@ bool ONetwork::GetAdjacentEdges(const ONetworkEdge& rEdge,
     Tuple* pTupleEdge = pIt != NULL ? pIt->GetNextTuple() : NULL;
     while (pTupleEdge != NULL)
     {
-        vecEdges.push_back(ONetworkEdge(pTupleEdge, false));
+        vecEdges.push_back(ONetworkEdge(pTupleEdge, this, false));
 
         pTupleEdge = pIt->GetNextTuple();
     }
@@ -186,6 +186,14 @@ bool ONetwork::GetAdjacentEdges(const ONetworkEdge& rEdge,
     pIt = NULL;
 
     return true;
+}
+
+Rectangle<2> ONetwork::GetBoundingBox(void) const
+{
+    if (m_pRTreeEdges != NULL)
+        return m_pRTreeEdges->BoundingBox();
+    else
+        return Rectangle<2>(false);
 }
 
 

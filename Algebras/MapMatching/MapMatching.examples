@@ -15,10 +15,17 @@ Example  : query mapmatchmht(B_NETWORK, [const mpoint value((("2007-01-01-10:02:
 Result   : (mgpoint((("2007-01-01-10:02:01" "2007-01-01-10:02:03" TRUE FALSE)(1 1 1 0.0 84.00595217006948))))
 Tolerance: 0.01%
 
+Operator : omapmatchmht
+Number   : 1
+Signature: orel x rtree x rel x text -> int
+Example  : query omapmatchmht(Edges, EdgeIndex_Box_rtree, EdgeIndex, 'Trk_KL_Enkenbach.gpx');
+Result   : 0
+Tolerance: 0.01%
+
 Operator : gpximport
 Number   : 1
 Signature: string -> stream(tuple(...))
-Example  : query gpximport('Trk_KL_Enkenbach.xml') count;
+Example  : query gpximport('Trk_KL_Enkenbach.gpx') count;
 Result   : 235
 
 

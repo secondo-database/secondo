@@ -44,114 +44,46 @@ For more detailed information see MapMatchingAlgebra.h.
 */
 
 #include "MapMatchingAlgebra.h"
-#include "NestedList.h"
-#include "ListUtils.h"
-#include "NList.h"
-#include "LogMsg.h"
-#include "QueryProcessor.h"
-#include "ConstructorTemplates.h"
-#include "StandardTypes.h"
+#include <NestedList.h>
+#include <ListUtils.h>
+#include <NList.h>
+#include <LogMsg.h>
+#include <QueryProcessor.h>
+#include <ConstructorTemplates.h>
+#include <StandardTypes.h>
 
-#include "NetworkAlgebra.h"
-#include "TemporalNetAlgebra.h"
-#include "FTextAlgebra.h"
+#include <NetworkAlgebra.h>
+#include <TemporalNetAlgebra.h>
+#include <OrderedRelationAlgebra.h>
+#include <FTextAlgebra.h>
+#include "ONetwork.h"
+#include "ONetworkEdge.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
-#include "TypeMapUtils.h"
-#include "Symbols.h"
+#include <TypeMapUtils.h>
+#include <Symbols.h>
 
 #include <string>
 using namespace std;
 
-#include "MapMatchingSimple.h"
 #include "MapMatchingMHT.h"
+#include "MapMatchingData.h"
 #include "GPXImporter.h"
+#include "NetworkAdapter.h"
+#include "ONetworkAdapter.h"
+#include "MapMatchingMHTMGPointCreator.h"
+#include "MapMatchingMHTPointsCreator.h"
+#include "MapMatchingMHTOEdgeTupleStreamCreator.h"
 
 
 namespace mapmatch {
 
 /*
-3 mapmatchsimple-operator
+3 mapmatchmht-operator
 
 3.1 Operator-Info
-
-*/
-struct MapMatchSimpleInfo : OperatorInfo
-{
-    MapMatchSimpleInfo()
-    {
-        name      = "mapmatchsimple";
-        signature = Network::BasicType() + " x " +
-                    MPoint::BasicType() + " -> " +
-                    MGPoint::BasicType();
-        syntax    = "mapmatchsimple ( _ , _ )";
-        meaning   = "The operation tries to map the mpoint to "
-                    "the given network as well as possible.";
-        example   = "mapmatchsimple (TODO, TODO)";
-    }
-};
-
-/*
-3.2 Type-Mapping
-
-*/
-ListExpr OpMapMatchingTypeMap(ListExpr in_xArgs)
-{
-    NList param(in_xArgs);
-
-    if( param.length() != 2)
-        return listutils::typeError("two arguments expected");
-
-    if (!param.first().isSymbol(Network::BasicType()))
-        return listutils::typeError("1st argument must be " +
-                                                          Network::BasicType());
-
-     if (!param.second().isSymbol(MPoint::BasicType()))
-         return listutils::typeError("2nd argument must be " +
-                                                           MPoint::BasicType());
-
-    return nl->SymbolAtom(MGPoint::BasicType());
-}
-
-/*
-3.3 Value-Mapping
-
-*/
-int OpMapMatchingSimpleValueMapping(Word* args,
-                                    Word& result,
-                                    int message,
-                                    Word& local,
-                                    Supplier in_xSupplier)
-{
-    // cout << "OpMapMatching called" << endl;
-
-    // Initialize Result
-    result = qp->ResultStorage(in_xSupplier);
-    MGPoint* res = static_cast<MGPoint*>(result.addr);
-
-    // get Arguments
-    Network *pNetwork = static_cast<Network*>(args[0].addr);
-    MPoint *pMPoint = static_cast<MPoint*>(args[1].addr);
-
-    // Do Map Matching
-
-    MapMatchingSimple MapMatching(pNetwork, pMPoint);
-
-    if (!MapMatching.DoMatch(res))
-    {
-        // Error
-    }
-
-    return 0;
-}
-
-
-/*
-4 mapmatchmht-operator
-
-4.1 Operator-Info
 
 */
 struct MapMatchMHTInfo : OperatorInfo
@@ -185,10 +117,13 @@ struct MapMatchMHTInfo : OperatorInfo
     }
 };
 
+
 /*
-4.2 Type-Mapping
+3.2 Type-Mapping
 
 */
+
+static ListExpr GetMMDataIndexesOfTupleStream(ListExpr TupleStream);
 
 ListExpr OpMapMatchingMHTTypeMap(ListExpr in_xArgs)
 {
@@ -213,169 +148,14 @@ ListExpr OpMapMatchingMHTTypeMap(ListExpr in_xArgs)
 
     if (listutils::isTupleStream(param.second().listExpr()))
     {
-        ListExpr TupleStream = param.second().listExpr();
-        ListExpr attrType;
-        int nAttrLatIndex = listutils::findAttribute(
-                          nl->Second(nl->Second(TupleStream)), "Lat", attrType);
-        if(nAttrLatIndex==0)
-        {
-            return listutils::typeError("'Lat' not found in attr list");
-        }
+        ListExpr Ind = GetMMDataIndexesOfTupleStream(param.second().listExpr());
+
+        if(nl->Equal(Ind,nl->TypeError()))
+            return Ind;
         else
-        {
-            if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-            {
-                return listutils::typeError("'Lat' must be " +
-                                            CcReal::BasicType());
-            }
-        }
-
-        int nAttrLonIndex = listutils::findAttribute(
-                          nl->Second(nl->Second(TupleStream)), "Lon", attrType);
-        if (nAttrLonIndex == 0)
-        {
-            return listutils::typeError("'Lon' not found in attr list");
-        }
-        else
-        {
-            if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-            {
-                return listutils::typeError("'Lon' must be " +
-                                            CcReal::BasicType());
-            }
-        }
-
-        int nAttrTimeIndex = listutils::findAttribute(
-                         nl->Second(nl->Second(TupleStream)), "Time", attrType);
-        if (nAttrTimeIndex == 0)
-        {
-            return listutils::typeError("'Time' not found in attr list");
-        }
-        else
-        {
-            if (!listutils::isSymbol(attrType, datetime::DateTime::BasicType()))
-            {
-                return listutils::typeError("'Time' must be " +
-                                            datetime::DateTime::BasicType());
-            }
-        }
-
-        int nAttrFixIndex = listutils::findAttribute(
-                          nl->Second(nl->Second(TupleStream)), "Fix", attrType);
-        if (nAttrFixIndex != 0)
-        {
-            if (!listutils::isSymbol(attrType, CcInt::BasicType()))
-            {
-                return listutils::typeError("'Fix' must be " +
-                                            CcInt::BasicType());
-            }
-        }
-
-        int nAttrSatIndex = listutils::findAttribute(
-                          nl->Second(nl->Second(TupleStream)), "Sat", attrType);
-        if (nAttrSatIndex != 0)
-        {
-            if (!listutils::isSymbol(attrType, CcInt::BasicType()))
-            {
-                return listutils::typeError("'Sat' must be " +
-                                            CcInt::BasicType());
-            }
-        }
-
-        int nAttrHdopIndex = listutils::findAttribute(
-                         nl->Second(nl->Second(TupleStream)), "Hdop", attrType);
-        if (nAttrHdopIndex != 0)
-        {
-            if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-            {
-                return listutils::typeError("'Hdop' must be " +
-                                            CcReal::BasicType());
-            }
-        }
-
-        int nAttrVdopIndex = listutils::findAttribute(
-                         nl->Second(nl->Second(TupleStream)), "Vdop", attrType);
-        if (nAttrVdopIndex != 0)
-        {
-            if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-            {
-                return listutils::typeError("'Vdop' must be " +
-                                            CcReal::BasicType());
-            }
-        }
-
-        int nAttrPdopIndex = listutils::findAttribute(
-                         nl->Second(nl->Second(TupleStream)), "Pdop", attrType);
-        if (nAttrPdopIndex != 0)
-        {
-            if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-            {
-                return listutils::typeError("'Pdop' must be " +
-                                            CcReal::BasicType());
-            }
-        }
-
-        int nAttrCourseIndex = listutils::findAttribute(
-                       nl->Second(nl->Second(TupleStream)), "Course", attrType);
-        if (nAttrCourseIndex != 0)
-        {
-            if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-            {
-                return listutils::typeError(
-                        "'Course' must be " + CcReal::BasicType());
-            }
-        }
-
-        int nAttrSpeedIndex = listutils::findAttribute(
-                        nl->Second(nl->Second(TupleStream)), "Speed", attrType);
-        if (nAttrSpeedIndex != 0)
-        {
-            if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-            {
-                return listutils::typeError(
-                        "'Speed' must be " + CcReal::BasicType());
-            }
-        }
-
-        int nAttrEleIndex = listutils::findAttribute(
-                          nl->Second(nl->Second(TupleStream)), "Ele", attrType);
-        if (nAttrEleIndex != 0)
-        {
-            if (!listutils::isSymbol(attrType, CcReal::BasicType()))
-            {
-                return listutils::typeError(
-                        "'Ele' must be " + CcReal::BasicType());
-            }
-        }
-
-        --nAttrLatIndex;
-        --nAttrLonIndex;
-        --nAttrTimeIndex;
-        --nAttrFixIndex;
-        --nAttrSatIndex;
-        --nAttrHdopIndex;
-        --nAttrVdopIndex;
-        --nAttrPdopIndex;
-        --nAttrCourseIndex;
-        --nAttrSpeedIndex;
-        --nAttrEleIndex;
-
-        ListExpr Ind = nl->OneElemList(nl->IntAtom(nAttrLatIndex));
-        ListExpr Last = Ind;
-        Last = nl->Append(Last, nl->IntAtom(nAttrLonIndex));
-        Last = nl->Append(Last, nl->IntAtom(nAttrTimeIndex));
-        Last = nl->Append(Last, nl->IntAtom(nAttrFixIndex));
-        Last = nl->Append(Last, nl->IntAtom(nAttrSatIndex));
-        Last = nl->Append(Last, nl->IntAtom(nAttrHdopIndex));
-        Last = nl->Append(Last, nl->IntAtom(nAttrVdopIndex));
-        Last = nl->Append(Last, nl->IntAtom(nAttrPdopIndex));
-        Last = nl->Append(Last, nl->IntAtom(nAttrCourseIndex));
-        Last = nl->Append(Last, nl->IntAtom(nAttrSpeedIndex));
-        Last = nl->Append(Last, nl->IntAtom(nAttrEleIndex));
-
-        return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                                 Ind,
-                                 nl->SymbolAtom(MGPoint::BasicType()));
+            return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                     Ind,
+                                     nl->SymbolAtom(MGPoint::BasicType()));
     }
     else
     {
@@ -383,8 +163,173 @@ ListExpr OpMapMatchingMHTTypeMap(ListExpr in_xArgs)
     }
 }
 
+static ListExpr GetMMDataIndexesOfTupleStream(ListExpr TupleStream)
+{
+    ListExpr attrType;
+    int nAttrLatIndex = listutils::findAttribute(
+                          nl->Second(nl->Second(TupleStream)), "Lat", attrType);
+    if(nAttrLatIndex==0)
+    {
+        return listutils::typeError("'Lat' not found in attr list");
+    }
+    else
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError("'Lat' must be " +
+                                        CcReal::BasicType());
+        }
+    }
+
+    int nAttrLonIndex = listutils::findAttribute(
+                          nl->Second(nl->Second(TupleStream)), "Lon", attrType);
+    if (nAttrLonIndex == 0)
+    {
+        return listutils::typeError("'Lon' not found in attr list");
+    }
+    else
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError("'Lon' must be " +
+                                        CcReal::BasicType());
+        }
+    }
+
+    int nAttrTimeIndex = listutils::findAttribute(
+                         nl->Second(nl->Second(TupleStream)), "Time", attrType);
+    if (nAttrTimeIndex == 0)
+    {
+        return listutils::typeError("'Time' not found in attr list");
+    }
+    else
+    {
+        if (!listutils::isSymbol(attrType, datetime::DateTime::BasicType()))
+        {
+            return listutils::typeError("'Time' must be " +
+                                        datetime::DateTime::BasicType());
+        }
+    }
+
+    int nAttrFixIndex = listutils::findAttribute(
+                          nl->Second(nl->Second(TupleStream)), "Fix", attrType);
+    if (nAttrFixIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcInt::BasicType()))
+        {
+            return listutils::typeError("'Fix' must be " +
+                                        CcInt::BasicType());
+        }
+    }
+
+    int nAttrSatIndex = listutils::findAttribute(
+                          nl->Second(nl->Second(TupleStream)), "Sat", attrType);
+    if (nAttrSatIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcInt::BasicType()))
+        {
+            return listutils::typeError("'Sat' must be " +
+                                        CcInt::BasicType());
+        }
+    }
+
+    int nAttrHdopIndex = listutils::findAttribute(
+                         nl->Second(nl->Second(TupleStream)), "Hdop", attrType);
+    if (nAttrHdopIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError("'Hdop' must be " +
+                                        CcReal::BasicType());
+        }
+    }
+
+    int nAttrVdopIndex = listutils::findAttribute(
+                         nl->Second(nl->Second(TupleStream)), "Vdop", attrType);
+    if (nAttrVdopIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError("'Vdop' must be " +
+                                        CcReal::BasicType());
+        }
+    }
+
+    int nAttrPdopIndex = listutils::findAttribute(
+                         nl->Second(nl->Second(TupleStream)), "Pdop", attrType);
+    if (nAttrPdopIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError("'Pdop' must be " +
+                                        CcReal::BasicType());
+        }
+    }
+
+    int nAttrCourseIndex = listutils::findAttribute(
+                       nl->Second(nl->Second(TupleStream)), "Course", attrType);
+    if (nAttrCourseIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError(
+                    "'Course' must be " + CcReal::BasicType());
+        }
+    }
+
+    int nAttrSpeedIndex = listutils::findAttribute(
+                        nl->Second(nl->Second(TupleStream)), "Speed", attrType);
+    if (nAttrSpeedIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError(
+                    "'Speed' must be " + CcReal::BasicType());
+        }
+    }
+
+    int nAttrEleIndex = listutils::findAttribute(
+                          nl->Second(nl->Second(TupleStream)), "Ele", attrType);
+    if (nAttrEleIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, CcReal::BasicType()))
+        {
+            return listutils::typeError(
+                    "'Ele' must be " + CcReal::BasicType());
+        }
+    }
+
+    --nAttrLatIndex;
+    --nAttrLonIndex;
+    --nAttrTimeIndex;
+    --nAttrFixIndex;
+    --nAttrSatIndex;
+    --nAttrHdopIndex;
+    --nAttrVdopIndex;
+    --nAttrPdopIndex;
+    --nAttrCourseIndex;
+    --nAttrSpeedIndex;
+    --nAttrEleIndex;
+
+    ListExpr Ind = nl->OneElemList(nl->IntAtom(nAttrLatIndex));
+    ListExpr Last = Ind;
+    Last = nl->Append(Last, nl->IntAtom(nAttrLonIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrTimeIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrFixIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrSatIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrHdopIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrVdopIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrPdopIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrCourseIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrSpeedIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrEleIndex));
+
+    return Ind;
+}
+
+
 /*
-4.3 Value-Mapping
+3.3 Value-Mapping
 
 */
 int OpMapMatchingMHTMPointValueMapping(Word* args,
@@ -397,7 +342,7 @@ int OpMapMatchingMHTMPointValueMapping(Word* args,
 
     // Initialize Result
     result = qp->ResultStorage(in_xSupplier);
-    MGPoint* res = static_cast<MGPoint*>(result.addr);
+    MGPoint* pRes = static_cast<MGPoint*>(result.addr);
 
     // get Arguments
     Network *pNetwork = static_cast<Network*>(args[0].addr);
@@ -405,9 +350,12 @@ int OpMapMatchingMHTMPointValueMapping(Word* args,
 
     // Do Map Matching
 
-    MapMatchingMHT MapMatching(pNetwork, pMPoint);
+    NetworkAdapter Network(pNetwork);
+    MapMatchingMHT MapMatching(&Network, pMPoint);
 
-    if (!MapMatching.DoMatch(res))
+    MGPointCreator Creator(pNetwork, pRes);
+
+    if (!MapMatching.DoMatch(&Creator))
     {
         // Error
     }
@@ -425,7 +373,7 @@ int OpMapMatchingMHTGPXValueMapping(Word* args,
 
     // Initialize Result
     result = qp->ResultStorage(in_xSupplier);
-    MGPoint* res = static_cast<MGPoint*>(result.addr);
+    MGPoint* pRes = static_cast<MGPoint*>(result.addr);
 
     // get Arguments
     Network* pNetwork = static_cast<Network*>(args[0].addr);
@@ -435,9 +383,12 @@ int OpMapMatchingMHTGPXValueMapping(Word* args,
 
     // Do Map Matching
 
-    MapMatchingMHT MapMatching(pNetwork, strFileName);
+    NetworkAdapter Network(pNetwork);
+    MapMatchingMHT MapMatching(&Network, strFileName);
 
-    if (!MapMatching.DoMatch(res))
+    MGPointCreator Creator(pNetwork, pRes);
+
+    if (!MapMatching.DoMatch(&Creator))
     {
         // Error
     }
@@ -445,32 +396,25 @@ int OpMapMatchingMHTGPXValueMapping(Word* args,
     return 0;
 }
 
-int OpMapMatchingMHTStreamValueMapping(Word* args,
-                                       Word& result,
-                                       int message,
-                                       Word& local,
-                                       Supplier in_xSupplier)
+static shared_ptr<MapMatchDataContainer>
+                               GetMMDataFromTupleStream(Word* args, int nOffset)
 {
-    // cout << "OpMapMatchingMHTStreamValueMapping called" << endl;
 
-    // Initialize Result
-    result = qp->ResultStorage(in_xSupplier);
-    MGPoint* res = static_cast<MGPoint*>(result.addr);
+    // see also GetMMDataIndexesOfTupleStream
 
-    // get Arguments
-    Network* pNetwork = static_cast<Network*>(args[0].addr);
+    shared_ptr<MapMatchDataContainer> pContData(new MapMatchDataContainer);
 
-    const CcInt* pIdxLat    = static_cast<CcInt*>(args[2].addr);
-    const CcInt* pIdxLon    = static_cast<CcInt*>(args[3].addr);
-    const CcInt* pIdxTime   = static_cast<CcInt*>(args[4].addr);
-    const CcInt* pIdxFix    = static_cast<CcInt*>(args[5].addr);
-    const CcInt* pIdxSat    = static_cast<CcInt*>(args[6].addr);
-    const CcInt* pIdxHdop   = static_cast<CcInt*>(args[7].addr);
-    const CcInt* pIdxVdop   = static_cast<CcInt*>(args[8].addr);
-    const CcInt* pIdxPdop   = static_cast<CcInt*>(args[9].addr);
-    const CcInt* pIdxCourse = static_cast<CcInt*>(args[10].addr);
-    const CcInt* pIdxSpeed  = static_cast<CcInt*>(args[11].addr);
-    //const CcInt* pIdxEle    = static_cast<CcInt*>(args[12].addr);
+    const CcInt* pIdxLat    = static_cast<CcInt*>(args[nOffset + 1].addr);
+    const CcInt* pIdxLon    = static_cast<CcInt*>(args[nOffset + 2].addr);
+    const CcInt* pIdxTime   = static_cast<CcInt*>(args[nOffset + 3].addr);
+    const CcInt* pIdxFix    = static_cast<CcInt*>(args[nOffset + 4].addr);
+    const CcInt* pIdxSat    = static_cast<CcInt*>(args[nOffset + 5].addr);
+    const CcInt* pIdxHdop   = static_cast<CcInt*>(args[nOffset + 6].addr);
+    const CcInt* pIdxVdop   = static_cast<CcInt*>(args[nOffset + 7].addr);
+    const CcInt* pIdxPdop   = static_cast<CcInt*>(args[nOffset + 8].addr);
+    const CcInt* pIdxCourse = static_cast<CcInt*>(args[nOffset + 9].addr);
+    const CcInt* pIdxSpeed  = static_cast<CcInt*>(args[nOffset + 10].addr);
+    //const CcInt* pIdxEle    = static_cast<CcInt*>(args[nOffset + 11].addr);
 
     const int nIdxLat    = pIdxLat->GetValue();
     const int nIdxLon    = pIdxLon->GetValue();
@@ -487,16 +431,13 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
     if (nIdxLat < 0 || nIdxLon < 0 || nIdxTime < 0)
     {
         assert(false);
-        return 0;
+        return pContData;
     }
 
-    DbArrayPtr<DbArray<MapMatchingMHT::MapMatchData> >
-                         pArrData(new DbArray<MapMatchingMHT::MapMatchData>(0));
-
     Word wTuple;
-    qp->Open(args[1].addr);
-    qp->Request(args[1].addr, wTuple);
-    while (qp->Received(args[1].addr))
+    qp->Open(args[nOffset].addr);
+    qp->Request(args[nOffset].addr, wTuple);
+    while (qp->Received(args[nOffset].addr))
     {
         Tuple* pTpl = (Tuple*)wTuple.addr;
 
@@ -540,9 +481,9 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
         if (pLat != NULL && pLon != NULL && pTime != NULL &&
             pLat->IsDefined() && pLon->IsDefined() && pTime->IsDefined())
         {
-            MapMatchingMHT::MapMatchData Data(pLat->GetValue(),
-                                              pLon->GetValue(),
-                                              pTime->millisecondsToNull());
+            MapMatchData Data(pLat->GetValue(),
+                              pLon->GetValue(),
+                              pTime->millisecondsToNull());
 
             if (pFix != NULL && pFix->IsDefined())
                 Data.m_nFix = pFix->GetValue();
@@ -568,24 +509,47 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
             /*
             if (pEle != NULL && pEle->IsDefined())
                 Data.m_dEle = pEle->GetValue();
-             */
+            */
 
-            pArrData->Append(Data);
+            pContData->Append(Data);
         }
 
         pTpl->DeleteIfAllowed();
         pTpl = NULL;
 
-        qp->Request(args[1].addr, wTuple);
+        qp->Request(args[nOffset].addr, wTuple);
     }
-    qp->Close(args[1].addr);
+    qp->Close(args[nOffset].addr);
 
+    return pContData;
+}
+
+int OpMapMatchingMHTStreamValueMapping(Word* args,
+                                       Word& result,
+                                       int message,
+                                       Word& local,
+                                       Supplier in_xSupplier)
+{
+    // cout << "OpMapMatchingMHTStreamValueMapping called" << endl;
+
+    // Initialize Result
+    result = qp->ResultStorage(in_xSupplier);
+    MGPoint* pRes = static_cast<MGPoint*>(result.addr);
+
+    // get Arguments
+    Network* pNetwork = static_cast<Network*>(args[0].addr);
+
+    shared_ptr<MapMatchDataContainer> pContData =
+                                              GetMMDataFromTupleStream(args, 1);
 
     // Matching
 
-    MapMatchingMHT MapMatching(pNetwork, pArrData);
+    NetworkAdapter Network(pNetwork);
+    MapMatchingMHT MapMatching(&Network, pContData);
 
-    if (!MapMatching.DoMatch(res))
+    MGPointCreator Creator(pNetwork, pRes);
+
+    if (!MapMatching.DoMatch(&Creator))
     {
         // Error
     }
@@ -594,10 +558,9 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
 }
 
 /*
- 4.4 Selection Function
+ 3.4 Selection Function
 
 */
-
 int MapMatchMHTSelect(ListExpr args)
 {
     NList type(args);
@@ -626,6 +589,561 @@ int MapMatchMHTSelect(ListExpr args)
         return -1;
     }
 }
+
+
+
+/*
+4 omapmatchmht-operator
+
+4.1 Operator-Info
+    map matching with an ordered relation
+
+*/
+struct OMapMatchMHTInfo : OperatorInfo
+{
+
+    OMapMatchMHTInfo()
+    {
+        name      = "omapmatchmht";
+        signature = OrderedRelation::BasicType() + " x " +
+                    RTree2TID::BasicType() + " x " +
+                    Relation::BasicType() + " x " +
+                    MPoint::BasicType() + " -> " +
+                    Points::BasicType();
+
+        appendSignature(OrderedRelation::BasicType() + " x " +
+                        RTree2TID::BasicType() + " x " +
+                        Relation::BasicType() + " x " +
+                        FText::BasicType()  + " -> " +
+                        Points::BasicType());
+
+        appendSignature(OrderedRelation::BasicType() + " x " +
+                        RTree2TID::BasicType() + " x " +
+                        Relation::BasicType() + " x " +
+                        "(stream (tuple([Lat:real, Lon:real, Time:DateTime "
+                                       "[,Fix:int] [,Sat:int] [,Hdop : real]"
+                                       "[,Vdop:real] [,Pdop:real] "
+                                       "[,Course:real] [,Speed(m/s):real]])))"
+                        + " -> " +
+                        Points::BasicType());
+
+
+        syntax    = "omapmatchmht ( _ , _ , _ , _ )";
+        meaning   = "The operation tries to map the MPoint or "
+                    "the data from a gpx-file or "
+                    "the data of a tuple stream "
+                    "to the given network, which is based on an "
+                    "ordered relation, as well as possible.";
+        example   = "omapmatchmht(Edges, EdgeIndex_Box_rtree, "
+                                  "EdgeIndex, 'Trk_Dortmund.gpx')";
+    }
+};
+
+/*
+4.2 Type-Mapping
+
+*/
+ListExpr OpOMapMatchingMHTTypeMap(ListExpr in_xArgs)
+{
+    NList param(in_xArgs);
+
+    if( param.length() != 4)
+        return listutils::typeError("four arguments expected");
+
+    // Check Network - OrderedRelation, RTree, Relation
+
+    NList ParamORel = param.first();
+    NList ParamRTree = param.second();
+    NList ParamRel = param.third();
+
+    if (!listutils::isOrelDescription(ParamORel.listExpr()))
+    {
+        return listutils::typeError("1st argument must be orel");
+    }
+
+    NList orelTuple = ParamORel.second();
+    if (!listutils::isTupleDescription(orelTuple.listExpr()))
+    {
+        return listutils::typeError("2nd value of orel is not of type tuple");
+    }
+
+    NList orelAttrList(orelTuple.second());
+    if (!listutils::isAttrList(orelAttrList.listExpr()))
+    {
+        return listutils::typeError("Error in orel attrlist");
+    }
+
+    if (orelAttrList.length() >= 3)
+    {
+        /*ListExpr firstAttr = nl->First(orelAttrList);
+
+        if (nl->ListLength(firstAttr) != 2 ||
+            nl->SymbolValue(nl->Second(firstAttr)) != CcInt::BasicType())
+        {
+            return listutils::typeError(
+                             "First attribute of orel should be int");
+        }
+
+        ListExpr secondAttr = nl->Second(orelAttrList);
+        if (nl->ListLength(secondAttr) != 2 ||
+            nl->SymbolValue(nl->Second(secondAttr)) != CcInt::BasicType())
+        {
+            return listutils::typeError(
+                    "Second attribute of orel should be int");
+        }*/
+    }
+    else
+    {
+        return listutils::typeError("orel has less than 3 attributes.");
+    }
+
+    if (!listutils::isRTreeDescription(ParamRTree.listExpr()))
+    {
+        return listutils::typeError("2nd argument must be RTree2TID");
+    }
+
+    const int nRTreeDim = listutils::getRTreeDim(ParamRTree.listExpr());
+    if (nRTreeDim != 2)
+    {
+        return listutils::typeError("rtree with dim==2 expected");
+    }
+
+    if (!ParamRTree.first().isSymbol(RTree2TID::BasicType()))
+    {
+        return listutils::typeError("2nd argument must be RTree2TID");
+    }
+
+    ListExpr rtreeKeyType = listutils::getRTreeType(ParamRTree.listExpr());
+
+    if(!listutils::isSpatialType(rtreeKeyType) &&
+       !listutils::isRectangle(rtreeKeyType))
+    {
+        return listutils::typeError("tree not over a spatial attribute");
+    }
+
+    if(!listutils::isRelDescription(ParamRel.listExpr()))
+    {
+        return listutils::typeError("3rd argument must be relation");
+    }
+
+    if(ParamRTree.second() != ParamRel.second())
+    {
+        return listutils::typeError("type of rtree and relation are different");
+    }
+
+    if (!param.fourth().isSymbol(MPoint::BasicType()) &&
+        !param.fourth().isSymbol(FText::BasicType()) &&
+        !listutils::isTupleStream(param.fourth().listExpr()))
+    {
+        return listutils::typeError("4th argument must be " +
+                                    MPoint::BasicType() + " or " +
+                                    FText::BasicType() + " or " +
+                                    "tuple stream");
+    }
+
+    ListExpr ResultType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                          nl->TwoElemList(
+                                          nl->SymbolAtom(Tuple::BasicType()),
+                                          orelAttrList.listExpr()));
+
+    //ListExpr ResultType = nl->SymbolAtom(Points::BasicType());
+
+    if (listutils::isTupleStream(param.second().listExpr()))
+    {
+        ListExpr Ind = GetMMDataIndexesOfTupleStream(param.second().listExpr());
+
+        if (nl->Equal(Ind, nl->TypeError()))
+            return Ind;
+        else
+            return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                     Ind,
+                                     ResultType);
+    }
+    else
+    {
+        return ResultType;
+    }
+}
+
+/*
+4.3 Value-Mapping
+
+*/
+/*int OpOMapMatchingMHTMPointValueMapping(Word* args,
+                                        Word& result,
+                                        int message,
+                                        Word& local,
+                                        Supplier in_xSupplier)
+{
+    // cout << "OpMapMatchingMHTMPointValueMapping called" << endl;
+
+    // Initialize Result
+    result = qp->ResultStorage(in_xSupplier);
+    Points* pRes = static_cast<Points*>(result.addr); // TODO
+
+    // get Arguments
+    OrderedRelation* pORel = static_cast<OrderedRelation*>(args[0].addr);
+    RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
+    Relation* pRelation = static_cast<Relation*>(args[2].addr);
+
+    ONetwork Network(pORel, pRTree, pRelation);
+
+    MPoint *pMPoint = static_cast<MPoint*>(args[3].addr);
+
+    // Do Map Matching
+
+    ONetworkAdapter NetworkAdapter(&Network);
+    MapMatchingMHT MapMatching(&NetworkAdapter, pMPoint);
+
+    PointsCreator Creator(pRes);
+
+    if (!MapMatching.DoMatch(&Creator))
+    {
+        // Error
+    }
+
+    return 0;
+}*/
+
+int OpOMapMatchingMHTMPointValueMapping(Word* args,
+                                        Word& result,
+                                        int message,
+                                        Word& local,
+                                        Supplier in_xSupplier)
+{
+    // cout << "OpOMapMatchingMHTGPXValueMapping called" << endl;
+
+    OEdgeTupleStreamCreator* pCreator =
+                              static_cast<OEdgeTupleStreamCreator*>(local.addr);
+    switch (message)
+    {
+      case OPEN:
+      {
+          if (pCreator != NULL)
+          {
+              delete pCreator;
+              pCreator = NULL;
+          }
+
+          // get Arguments
+          OrderedRelation* pORel = static_cast<OrderedRelation*>(args[0].addr);
+          RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
+          Relation* pRelation = static_cast<Relation*>(args[2].addr);
+
+          ONetwork Network(pORel, pRTree, pRelation);
+
+          MPoint* pMPoint = static_cast<MPoint*>(args[3].addr);
+
+          // Do Map Matching
+
+          ONetworkAdapter NetworkAdapter(&Network);
+          MapMatchingMHT MapMatching(&NetworkAdapter, pMPoint);
+
+          OEdgeTupleStreamCreator* pCreator = new OEdgeTupleStreamCreator;
+
+          if (!MapMatching.DoMatch(pCreator))
+          {
+              // Error
+              delete pCreator;
+              pCreator = NULL;
+          }
+
+          local.setAddr(pCreator);
+          return 0;
+      }
+      case REQUEST:
+      {
+          if (pCreator == NULL)
+          {
+              return CANCEL;
+          }
+          else
+          {
+              result.addr = pCreator->GetNextTuple();
+              return result.addr ? YIELD : CANCEL;
+          }
+      }
+      case CLOSE:
+      {
+          if (pCreator)
+          {
+              delete pCreator;
+              local.addr = NULL;
+          }
+          return 0;
+      }
+      default:
+      {
+          return 0;
+      }
+    }
+}
+
+/*int OpOMapMatchingMHTGPXValueMapping(Word* args,
+                                     Word& result,
+                                     int message,
+                                     Word& local,
+                                     Supplier in_xSupplier)
+{
+    // cout << "OpOMapMatchingMHTGPXValueMapping called" << endl;
+
+    // Initialize Result
+    result = qp->ResultStorage(in_xSupplier);
+    Points* pRes = static_cast<Points*>(result.addr); // TODO
+
+    // get Arguments
+    OrderedRelation* pORel = static_cast<OrderedRelation*>(args[0].addr);
+    RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
+    Relation* pRelation = static_cast<Relation*>(args[2].addr);
+
+    ONetwork Network(pORel, pRTree, pRelation);
+
+    FText* pFileName = static_cast<FText*>(args[3].addr);
+
+    std::string strFileName = pFileName->Get();
+
+    // Do Map Matching
+
+    ONetworkAdapter NetworkAdapter(&Network);
+    MapMatchingMHT MapMatching(&NetworkAdapter, strFileName);
+
+    PointsCreator Creator(pRes);
+
+    if (!MapMatching.DoMatch(&Creator))
+    {
+        // Error
+    }
+
+    return 0;
+}*/
+
+int OpOMapMatchingMHTGPXValueMapping(Word* args,
+                                     Word& result,
+                                     int message,
+                                     Word& local,
+                                     Supplier in_xSupplier)
+{
+    // cout << "OpOMapMatchingMHTGPXValueMapping called" << endl;
+
+    OEdgeTupleStreamCreator* pCreator =
+                              static_cast<OEdgeTupleStreamCreator*>(local.addr);
+    switch (message)
+    {
+      case OPEN:
+      {
+          if (pCreator != NULL)
+          {
+              delete pCreator;
+              pCreator = NULL;
+          }
+
+          // get Arguments
+          OrderedRelation* pORel = static_cast<OrderedRelation*>(args[0].addr);
+          RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
+          Relation* pRelation = static_cast<Relation*>(args[2].addr);
+
+          ONetwork Network(pORel, pRTree, pRelation);
+
+          FText* pFileName = static_cast<FText*>(args[3].addr);
+
+          std::string strFileName = pFileName->Get();
+
+          // Do Map Matching
+
+          ONetworkAdapter NetworkAdapter(&Network);
+          MapMatchingMHT MapMatching(&NetworkAdapter, strFileName);
+
+          OEdgeTupleStreamCreator* pCreator = new OEdgeTupleStreamCreator;
+
+          if (!MapMatching.DoMatch(pCreator))
+          {
+              // Error
+              delete pCreator;
+              pCreator = NULL;
+          }
+
+          local.setAddr(pCreator);
+          return 0;
+      }
+      case REQUEST:
+      {
+          if (pCreator == NULL)
+          {
+              return CANCEL;
+          }
+          else
+          {
+              result.addr = pCreator->GetNextTuple();
+              return result.addr ? YIELD : CANCEL;
+          }
+      }
+      case CLOSE:
+      {
+          if (pCreator)
+          {
+              delete pCreator;
+              local.addr = NULL;
+          }
+          return 0;
+      }
+      default:
+      {
+          return 0;
+      }
+    }
+}
+
+
+/*int OpOMapMatchingMHTStreamValueMapping(Word* args,
+                                        Word& result,
+                                        int message,
+                                        Word& local,
+                                        Supplier in_xSupplier)
+{
+    // cout << "OpOMapMatchingMHTStreamValueMapping called" << endl;
+
+    // Initialize Result
+    result = qp->ResultStorage(in_xSupplier);
+    Points* pRes = static_cast<Points*>(result.addr); // TODO
+
+    // get Arguments
+    OrderedRelation* pORel = static_cast<OrderedRelation*>(args[0].addr);
+    RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
+    Relation* pRelation = static_cast<Relation*>(args[2].addr);
+
+    ONetwork Network(pORel, pRTree, pRelation);
+
+    shared_ptr<MapMatchDataContainer> pContData =
+                                              GetMMDataFromTupleStream(args, 3);
+
+    // Matching
+
+    ONetworkAdapter NetworkAdapter(&Network);
+    MapMatchingMHT MapMatching(&NetworkAdapter, pContData);
+
+    PointsCreator Creator(pRes);
+
+    if (!MapMatching.DoMatch(&Creator))
+    {
+        // Error
+    }
+
+    return 0;
+}*/
+
+int OpOMapMatchingMHTStreamValueMapping(Word* args,
+                                        Word& result,
+                                        int message,
+                                        Word& local,
+                                        Supplier in_xSupplier)
+{
+    // cout << "OpOMapMatchingMHTGPXValueMapping called" << endl;
+
+    OEdgeTupleStreamCreator* pCreator =
+                              static_cast<OEdgeTupleStreamCreator*>(local.addr);
+    switch (message)
+    {
+      case OPEN:
+      {
+          if (pCreator != NULL)
+          {
+              delete pCreator;
+              pCreator = NULL;
+          }
+
+          // get Arguments
+          OrderedRelation* pORel = static_cast<OrderedRelation*>(args[0].addr);
+          RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
+          Relation* pRelation = static_cast<Relation*>(args[2].addr);
+
+          ONetwork Network(pORel, pRTree, pRelation);
+
+          shared_ptr<MapMatchDataContainer> pContData =
+                                              GetMMDataFromTupleStream(args, 3);
+
+          // Do Map Matching
+
+          ONetworkAdapter NetworkAdapter(&Network);
+          MapMatchingMHT MapMatching(&NetworkAdapter, pContData);
+
+          OEdgeTupleStreamCreator* pCreator = new OEdgeTupleStreamCreator;
+
+          if (!MapMatching.DoMatch(pCreator))
+          {
+              // Error
+              delete pCreator;
+              pCreator = NULL;
+          }
+
+          local.setAddr(pCreator);
+          return 0;
+      }
+      case REQUEST:
+      {
+          if (pCreator == NULL)
+          {
+              return CANCEL;
+          }
+          else
+          {
+              result.addr = pCreator->GetNextTuple();
+              return result.addr ? YIELD : CANCEL;
+          }
+      }
+      case CLOSE:
+      {
+          if (pCreator)
+          {
+              delete pCreator;
+              local.addr = NULL;
+          }
+          return 0;
+      }
+      default:
+      {
+          return 0;
+      }
+    }
+}
+
+
+/*
+4.4 Selection Function
+
+*/
+int OMapMatchMHTSelect(ListExpr args)
+{
+    NList type(args);
+    if (type.length() == 4 &&
+        listutils::isOrelDescription(type.first().listExpr()) &&
+        listutils::isRTreeDescription(type.second().listExpr()) &&
+        listutils::isRelDescription(type.third().listExpr()))
+    {
+        if (type.fourth().isSymbol(MPoint::BasicType()))
+        {
+            return 0;
+        }
+        else if (type.fourth().isSymbol(FText::BasicType()))
+        {
+            return 1;
+        }
+        else if (listutils::isTupleStream(type.fourth().listExpr()))
+        {
+            return 2;
+        }
+        else
+        {
+            return -1;
+        }
+    }
+    else
+    {
+        return -1;
+    }
+
+    return 0;
+}
+
 
 
 /*
@@ -771,7 +1289,7 @@ int OpGPXImportValueMappingWithScale(Word* args,
 }
 
 /*
- 5.4 Selection Function
+5.4 Selection Function
 
 */
 
@@ -814,12 +1332,6 @@ MapMatchingAlgebra::MapMatchingAlgebra()
 
 */
 
-    // MapMatchSimple
-    /* only for testing purposes
-     * AddOperator(MapMatchSimpleInfo(),
-                OpMapMatchingSimpleValueMapping,
-                OpMapMatchingTypeMap);*/
-
     // MapMatchMHT - overloaded
     ValueMapping MapMatchMHTFuns[] = { OpMapMatchingMHTMPointValueMapping,
                                        OpMapMatchingMHTGPXValueMapping,
@@ -830,6 +1342,17 @@ MapMatchingAlgebra::MapMatchingAlgebra()
                 MapMatchMHTFuns,
                 MapMatchMHTSelect,
                 OpMapMatchingMHTTypeMap);
+
+    // OMapMatchMHT - overloaded
+    ValueMapping OMapMatchMHTFuns[] = { OpOMapMatchingMHTMPointValueMapping,
+                                        OpOMapMatchingMHTGPXValueMapping,
+                                        OpOMapMatchingMHTStreamValueMapping,
+                                        0 };
+
+    AddOperator(OMapMatchMHTInfo(),
+                OMapMatchMHTFuns,
+                OMapMatchMHTSelect,
+                OpOMapMatchingMHTTypeMap);
 
 
     // GPXImport - overloaded

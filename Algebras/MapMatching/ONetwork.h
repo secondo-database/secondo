@@ -70,6 +70,8 @@ public:
                           const bool bUpDown,
                           std::vector<ONetworkEdge>& vecEdges) const;
 
+    Rectangle<2> GetBoundingBox(void) const;
+
 private:
 
     bool GetEdges(const Tuple* pTuple,

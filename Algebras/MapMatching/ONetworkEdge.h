@@ -44,6 +44,7 @@ This header file contains the class ~ONetworkEdge~
 class Tuple;
 class SimpleLine;
 class CcInt;
+class ONetwork;
 
 #include <Point.h>
 
@@ -62,6 +63,7 @@ class ONetworkEdge
 public:
     ONetworkEdge();
     ONetworkEdge(Tuple* pTupleEdge,
+                 const ONetwork* pONetwork,
                  bool bIncReference = true);
     ONetworkEdge(const ONetworkEdge& rEdge);
     ~ONetworkEdge();
@@ -90,13 +92,20 @@ public:
 
     std::string GetRoadType(void) const;
 
-    std::string GetMaxSpeed(void) const;
+    double GetMaxSpeed(void) const; // km/h
+
+    double GetCurveLength(const double dScale) const;
 
     void Print(std::ostream& os) const;
+
+    /*const*/ Tuple* GetTuple(void) const {return m_pTupleEdge;}
 
 private:
 
     Tuple* m_pTupleEdge;
+    const ONetwork* m_pONetwork;
+    mutable double m_dCurveLength;
+    mutable double m_dMaxSpeed;
 };
 
 

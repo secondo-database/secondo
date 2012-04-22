@@ -41,7 +41,8 @@ utilities for map matching
 #include "MapMatchingUtil.h"
 #include <SpatialAlgebra.h>
 #include <NetworkAlgebra.h>
-#include "NetworkSection.h"
+#include "NetworkAdapter.h"
+#include "MapMatchingNetworkInterface.h"
 
 #include <stdio.h>
 #include <limits>
@@ -386,7 +387,7 @@ double MMUtil::CalcDistance(const Point& rPt1,
 #endif
 }
 
-double MMUtil::CalcDistance(const std::vector<const Point*>& rvecPoints,
+double MMUtil::CalcDistance(const std::vector<Point>& rvecPoints,
                             const double dScale)
 {
     double dDistance = 0.0;
@@ -394,18 +395,15 @@ double MMUtil::CalcDistance(const std::vector<const Point*>& rvecPoints,
     const size_t nSize = rvecPoints.size();
     if (nSize > 0)
     {
-        const Point* pPrevPoint = rvecPoints[0];
+        Point PtPrev = rvecPoints[0];
 
         for (size_t i = 1; i < nSize; ++i)
         {
-            const Point* pActPoint = rvecPoints[i];
-            if (pActPoint != NULL)
+            const Point& rPtAct = rvecPoints[i];
+            if (rPtAct.IsDefined())
             {
-                if (pActPoint != NULL)
-                    dDistance += MMUtil::CalcDistance(*pPrevPoint,
-                                                      *pActPoint,
-                                                      dScale);
-                pPrevPoint = pActPoint;
+                dDistance += MMUtil::CalcDistance(PtPrev, rPtAct, dScale);
+                PtPrev = rPtAct;
             }
         }
     }
@@ -423,16 +421,18 @@ double MMUtil::CalcLengthCurve(const GLine* pCurve,
 
     double dLen = 0.0;
     RouteInterval rI;
-    for (int i = 0; i < pCurve->NoOfComponents(); ++i)
+    AttributePtr<SimpleLine> pSubline(new SimpleLine(0));
+    const int nNoOfComponents = pCurve->NoOfComponents();
+    for (int i = 0; i < nNoOfComponents; ++i)
     {
-        AttributePtr<SimpleLine> pSubline(new SimpleLine(0));
-
         pCurve->Get(i,rI);
         pNetwork->GetLineValueOfRouteInterval(&rI, pSubline.get());
         if (pSubline->IsDefined())
         {
             dLen += MMUtil::CalcLengthCurve(pSubline.get(), dScale);
         }
+
+        pSubline->Clear();
     }
 
     return dLen;
@@ -505,44 +505,50 @@ double MMUtil::CalcHeading(const Point& rPt1,
     }
 }
 
-double MMUtil::CalcHeading(const DirectedNetworkSection& rSection,
+double MMUtil::CalcHeading(const IMMNetworkSection* pSection,
                            const HalfSegment& rHS,
                            double dScale)
 {
-   Point Pt1 = rHS.GetLeftPoint();
-   Point Pt2 = rHS.GetRightPoint();
-
-   const SimpleLine* pCurve = rSection.GetCurve();
-
-   LRS lrs;
-   pCurve->Get(rHS.attr.edgeno, lrs);
-   HalfSegment HS;
-   pCurve->Get(lrs.hsPos, HS);
-
-   double dPos1 = lrs.lrsPos + Pt1.Distance(HS.GetDomPoint());
-   double dPos2 = lrs.lrsPos + Pt2.Distance(HS.GetDomPoint());
-
-   if (!rSection.GetCurveStartsSmaller())
-   {
-       dPos1 = pCurve->Length() - dPos1;
-       dPos2 = pCurve->Length() - dPos2;
-   }
-
-   if ((rSection.GetDirection() == DirectedNetworkSection::DIR_UP &&
-        dPos1 < dPos2) ||
-        (rSection.GetDirection() == DirectedNetworkSection::DIR_DOWN &&
-        dPos2 < dPos1))
+    if (pSection == NULL)
     {
-       return MMUtil::CalcHeading(Pt1,
-                                  Pt2,
-                                  false /*AtEndPoint*/,
-                                  dScale);
+        assert(false);
+        return 0.0;
+    }
+
+    Point Pt1 = rHS.GetLeftPoint();
+    Point Pt2 = rHS.GetRightPoint();
+
+    const SimpleLine* pCurve = pSection->GetCurve();
+
+    LRS lrs;
+    pCurve->Get(rHS.attr.edgeno, lrs);
+    HalfSegment HS;
+    pCurve->Get(lrs.hsPos, HS);
+
+    double dPos1 = lrs.lrsPos + Pt1.Distance(HS.GetDomPoint());
+    double dPos2 = lrs.lrsPos + Pt2.Distance(HS.GetDomPoint());
+
+    if (!pSection->GetCurveStartsSmaller())
+    {
+        dPos1 = pCurve->Length() - dPos1;
+        dPos2 = pCurve->Length() - dPos2;
+    }
+
+    if ((pSection->GetDirection() == IMMNetworkSection::DIR_UP &&
+         dPos1 < dPos2) ||
+         (pSection->GetDirection() == IMMNetworkSection::DIR_DOWN &&
+         dPos2 < dPos1))
+    {
+        return MMUtil::CalcHeading(Pt1,
+                                   Pt2,
+                                   false /*AtEndPoint*/,
+                                   dScale);
     }
     else
     {
-       return MMUtil::CalcHeading(Pt2,
-                                  Pt1,
-                                  false /*AtEndPoint*/,
+        return MMUtil::CalcHeading(Pt2,
+                                   Pt1,
+                                   false /*AtEndPoint*/,
                                   dScale);
     }
 }

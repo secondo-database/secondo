@@ -43,6 +43,8 @@ This implementation file contains the implementation of the class ~ONetworkEdge~
 #include "RelationAlgebra.h"
 #include "SpatialAlgebra.h"
 #include "FTextAlgebra.h"
+#include "MapMatchingUtil.h"
+using namespace mapmatch;
 
 
 /*
@@ -52,20 +54,30 @@ This implementation file contains the implementation of the class ~ONetworkEdge~
 */
 
 ONetworkEdge::ONetworkEdge()
-:m_pTupleEdge(NULL)
+:m_pTupleEdge(NULL),
+ m_pONetwork(NULL),
+ m_dCurveLength(-1.0),
+ m_dMaxSpeed(-1.0)
 {
 }
 
 ONetworkEdge::ONetworkEdge(Tuple* pTupleEdge,
+                           const ONetwork* pONetwork,
                            bool bIncReference)
-:m_pTupleEdge(pTupleEdge)
+:m_pTupleEdge(pTupleEdge),
+ m_pONetwork(pONetwork),
+ m_dCurveLength(-1.0),
+ m_dMaxSpeed(-1.0)
 {
     if (bIncReference && m_pTupleEdge != NULL)
         m_pTupleEdge->IncReference();
 }
 
 ONetworkEdge::ONetworkEdge(const ONetworkEdge& rEdge)
-:m_pTupleEdge(rEdge.m_pTupleEdge)
+:m_pTupleEdge(rEdge.m_pTupleEdge),
+ m_pONetwork(rEdge.m_pONetwork),
+ m_dCurveLength(rEdge.m_dCurveLength),
+ m_dMaxSpeed(rEdge.m_dMaxSpeed)
 {
     if (m_pTupleEdge != NULL)
         m_pTupleEdge->IncReference();
@@ -76,6 +88,8 @@ ONetworkEdge::~ONetworkEdge()
     if (m_pTupleEdge != NULL)
         m_pTupleEdge->DeleteIfAllowed();
     m_pTupleEdge = NULL;
+
+    m_pONetwork = NULL;
 }
 
 ONetworkEdge& ONetworkEdge::operator=(const ONetworkEdge& rEdge)
@@ -91,6 +105,10 @@ ONetworkEdge& ONetworkEdge::operator=(const ONetworkEdge& rEdge)
         m_pTupleEdge = rEdge.m_pTupleEdge;
         if (m_pTupleEdge != NULL)
             m_pTupleEdge->IncReference();
+
+        m_pONetwork = rEdge.m_pONetwork;
+        m_dCurveLength = rEdge.m_dCurveLength;
+        m_dMaxSpeed = rEdge.m_dMaxSpeed;
     }
 
     return *this;
@@ -101,7 +119,8 @@ bool ONetworkEdge::operator==(const ONetworkEdge& rEdge) const
     if (m_pTupleEdge != NULL && rEdge.m_pTupleEdge != NULL)
     {
         return (m_pTupleEdge->GetTupleId() ==
-                rEdge.m_pTupleEdge->GetTupleId());
+                rEdge.m_pTupleEdge->GetTupleId() &&
+                m_pONetwork == rEdge.m_pONetwork);
     }
     else
     {
@@ -227,23 +246,51 @@ std::string ONetworkEdge::GetRoadType(void) const
     }
 }
 
-std::string ONetworkEdge::GetMaxSpeed(void) const
+static double convStrToDouble (const char* pszStr)
 {
-    // TODO double
+    if (pszStr == NULL)
+        return 0.0;
 
-    if (m_pTupleEdge != NULL)
+    return atof(pszStr);
+}
+
+double ONetworkEdge::GetMaxSpeed(void) const
+{
+    /*
+     * http://wiki.openstreetmap.org/wiki/Key:maxspeed
+     *
+     *  maxspeed=60       -> km/h
+     *  maxspeed=50 mph   -> mph
+     *  maxspeed=10 knots -> knots
+     *
+     */
+
+    if (m_pTupleEdge != NULL && m_dMaxSpeed < 0.0)
     {
         FText* pMaxSpeed = static_cast<FText*>(m_pTupleEdge->GetAttribute(9));
         if (pMaxSpeed != NULL && pMaxSpeed->IsDefined())
-            return pMaxSpeed->GetValue();
+        {
+            m_dMaxSpeed = convStrToDouble(pMaxSpeed->GetValue().c_str());
+
+            // TODO Umrechnung mph, knots
+        }
         else
-            return "";
+            m_dMaxSpeed = 0.0;
     }
-    else
-    {
-        return "";
-    }
+
+    return m_dMaxSpeed;
 }
+
+double ONetworkEdge::GetCurveLength(const double dScale) const
+{
+    if (m_dCurveLength < 0.)
+    {
+        m_dCurveLength = MMUtil::CalcLengthCurve(GetCurve(), dScale);
+    }
+
+    return m_dCurveLength;
+}
+
 
 void ONetworkEdge::Print(std::ostream& os) const
 {

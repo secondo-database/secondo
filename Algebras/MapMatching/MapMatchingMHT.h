@@ -40,77 +40,91 @@ This header file essentially contains the definition of the class ~MapMatchingMH
 #ifndef __MAP_MATCHING_MHT_H__
 #define __MAP_MATCHING_MHT_H__
 
-#include "MapMatchingBase.h"
-#include "NetworkSection.h"
-#include "../Tools/Flob/DbArray.h"
+#include "MapMatchingUtil.h"
+#include "MapMatchingData.h"
 #include <vector>
+#include <string>
+#ifdef SECONDO_WIN32
+#include <memory>
+#else
+#include <tr1/memory>
+#endif
+using std::tr1::shared_ptr;
 
-class Region;
+#include "TemporalAlgebra.h"
+
 class Point;
-class Points;
-class GPoint;
 class MPoint;
-class Geoid;
-class UPoint;
-class Network;
 
-namespace datetime
-{
-  class DateTime;
-}
 
 namespace mapmatch {
 
 class MHTRouteCandidate;
+class IMMNetwork;
+class IMMNetworkSection;
 
 /*
 3 class MapMatchingMHT
   Map matching algorithm based on the Multiple Hypothesis Technique (MHT)
 
 */
-class MapMatchingMHT : public MapMatchingBase
+class MapMatchingMHT
 {
 public:
 /*
 3.1 Constructors and Destructor
 
 */
-    MapMatchingMHT(Network* pNetwork, MPoint* pMPoint);
-    MapMatchingMHT(Network* pNetwork,
+    MapMatchingMHT(IMMNetwork* pNetwork, MPoint* pMPoint);
+    MapMatchingMHT(IMMNetwork* pNetwork,
                    std::string strFileName);
-    MapMatchingMHT(Network* pNetwork,
-                   DbArrayPtr<DbArray<MapMatchData> > pDbaMMData);
+    MapMatchingMHT(IMMNetwork* pNetwork,
+                   shared_ptr<MapMatchDataContainer> pContMMData);
 
     ~MapMatchingMHT();
 
 /*
-3.2 Starts the map matching
-     return true if successfull
+3.2 Starts map matching
+    returns true if successfull
 
 */
-    bool DoMatch(MGPoint* pResMGPoint);
+    bool DoMatch(class IMapMatchingMHTResultCreator* pResCreator);
+
+
+/*
+3.3 accessing network
+
+*/
+    const IMMNetwork* GetNetwork(void) const {return m_pNetwork;}
+    const double GetNetworkScale(void) const {return m_dNetworkScale;}
 
 private:
 
 /*
-3.3 Private methods
+3.4 Private methods
 
 */
-    void TripSegmentation(std::vector<DbArrayPtr<DbArray<MapMatchData> > >&
+    bool InitMapMatching(class IMapMatchingMHTResultCreator* pResCreator);
+
+    void TripSegmentation(std::vector<shared_ptr<MapMatchDataContainer> >&
                                                                  rvecTripParts);
 
-    int GetInitialRouteCandidates(const DbArray<MapMatchData>* pDbaMMData,
+    int GetInitialRouteCandidates(const MapMatchDataContainer* pContMMData,
                     int nIdxFirstComponent,
                     std::vector<class MHTRouteCandidate*>& rvecRouteCandidates);
 
-    int DevelopRoutes(const DbArray<MapMatchData>* pDbaMMData,
-                    int nIndexFirstComponent,
-                    std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
+    void GetInitialRouteCandidates(const Point& rPoint,
+                          std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
 
-    void DevelopRoutes(const MapMatchData& rMMData,
-                       std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
+    int DevelopRoutes(const MapMatchDataContainer* pContMMData,
+                      int nIndexFirstComponent,
+                      std::vector<MHTRouteCandidate*>& rvecRouteCandidates);
 
-    void CheckData(DbArray<MapMatchData>* pDbaMMData);
+    void DevelopRoutes(const MapMatchData* pMMData,
+                       std::vector<MHTRouteCandidate*>& rvecRouteCandidates,
+                       int nMaxLookAhead = 6);
+
+    void CompleteData(MapMatchDataContainer* pContMMData);
 
     bool CheckQualityOfGPSFix(const MapMatchData& rMMData);
 
@@ -122,7 +136,7 @@ private:
         CANDIDATES_UP_DOWN
     };
     bool AssignPoint(MHTRouteCandidate* pCandidate,
-                     const MapMatchData& rMMData,
+                     const MapMatchData* pMMData,
                      /*OUT*/ ENextCandidates& eNextCandidates);
 
     void ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
@@ -143,34 +157,52 @@ private:
     void AddAdjacentSections(const MHTRouteCandidate* pCandidate,
                        bool bUpDown,
                        std::vector<MHTRouteCandidate*>& rvecNewRouteCandidates,
-                       class SectionFilter* pFilter = NULL);
-
-    void GetInitialSectionCandidates(const Point& rPoint,
-                                     std::vector<NetworkSection>& rVecSectRes);
-
-    void GetSectionsOfRoute(const class NetworkRoute& rNetworkRoute,
-                            const Region& rRegion,
-                            std::vector<NetworkSection>& rVecSectRes);
+                       class ISectionFilter* pFilter = NULL);
 
     void TraceRouteCandidates(const std::vector<MHTRouteCandidate*>&
                                                                  rvecCandidates,
                               const char* pszText) const;
 
 /*
-3.4 Private member
+3.5 Private member
 
 */
 
+    IMMNetwork* m_pNetwork;
+    double m_dNetworkScale;
+    shared_ptr<MapMatchDataContainer> m_pContMMData;
+    IMapMatchingMHTResultCreator* m_pResCreator;
 };
 
 
-class SectionFilter
+/*
+4 interface ISectionFilter
+
+*/
+class ISectionFilter
 {
 public:
-    SectionFilter(){}
-    virtual ~SectionFilter(){}
-    virtual bool IsValid(const DirectedNetworkSection& rSection) = 0;
+    ISectionFilter(){}
+    virtual ~ISectionFilter(){}
+    virtual bool IsValid(const IMMNetworkSection* pSection) = 0;
 };
+
+
+
+/*
+5 interface IMapMatchingMHTResultCreator
+
+*/
+class IMapMatchingMHTResultCreator
+{
+public:
+
+    virtual ~IMapMatchingMHTResultCreator() {}
+
+    virtual bool CreateResult(
+                const std::vector<MHTRouteCandidate*>& rvecRouteCandidates) = 0;
+};
+
 
 } // end of namespace mapmatch
 

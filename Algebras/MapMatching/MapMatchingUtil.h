@@ -50,10 +50,9 @@ class HalfSegment;
 class Point;
 class Geoid;
 class Network;
+class DirectedNetworkSection;
 
 namespace mapmatch {
-
-class DirectedNetworkSection;
 
 /*
 3 ~MMUtil~
@@ -91,7 +90,7 @@ public:
                                const Point& rPt2,
                                const double dScale);
 
-    static double CalcDistance(const std::vector<const Point*>& rvecPoints,
+    static double CalcDistance(const std::vector<Point>& rvecPoints,
                                const double dScale);
 
     static double CalcLengthCurve(const GLine* pCurve,
@@ -106,7 +105,7 @@ public:
                               bool bAtPt2 = false,
                               double dScale = 1.0);
 
-    static double CalcHeading(const DirectedNetworkSection& rSection,
+    static double CalcHeading(const class IMMNetworkSection* pSection,
                               const HalfSegment& rHS,
                               double dScale = 1.0);
 
