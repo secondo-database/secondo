@@ -9916,7 +9916,7 @@ bool GPoints::ShortestPathAStar(const GPoints* bgp, GLine* res,
       startSections->Get(i,source);
       dist =  source.GetGP().GetPosition();
       InsertAdjacentSections(source.GetTid(), Up, true, dist, endPoints, 
-		             pNetwork, prioQ, visitedSect, touchedSects);
+                             pNetwork, prioQ, visitedSect, touchedSects);
       dist =  source.GetGP().GetPosition();
       InsertAdjacentSections(source.GetTid(), Down, true, dist, endPoints,
                              pNetwork, prioQ, visitedSect, touchedSects);
