@@ -567,6 +567,7 @@ secondoOp( writeFile,         prefix, 2).
 secondoOp( zero,              prefix , 0).
 secondoOp( theInstant, prefix, 1).
 secondoOp( randomdelay,       prefix, 2).
+secondoOp( speed,       prefix, 1).
 % Section:Start:secondoOp_3_e
 % Section:End:secondoOp_3_e
 
