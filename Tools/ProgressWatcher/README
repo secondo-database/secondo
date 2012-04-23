@@ -1,0 +1,23 @@
+======
+== Tool: SECONDO ProgressWatcher
+======
+
+This application provides a simple gui to watch
+the progress log (secondo/bin/proglogt.csv) of SECONDO.
+
+In addition, the application allows to export the data as 
+.png and .svg images or as .tex tables.
+
+===== For make user ====
+1) Build
+   call "make"
+
+2) Execute
+   call "make run"
+
+===== For ant user ====
+1) Build
+   call "ant"
+
+2) Execute
+   call "ant run"
