@@ -2454,60 +2454,62 @@ void InsertAdjacentSections(const TupleId tid, const Side direction,
                             DbArray<TupleId>* touchedSects)
 {
   Tuple* sourceTuple = pNetwork->GetSection(tid);
-  double sectMeas1 =
-    ((CcReal*) sourceTuple->GetAttribute(SECTION_MEAS1))->GetRealval();
-  double sectMeas2 =
-    ((CcReal*)sourceTuple->GetAttribute(SECTION_MEAS2))->GetRealval();
-  int actRouteId =
-    ((CcInt*)sourceTuple->GetAttribute(SECTION_RID))->GetIntval();
-  Point* sPoint = 0;
-  bool upDown = false;
-  if (direction == Down)
-  {
-    if (init)
-      dist = fabs(dist - sectMeas1);
+  if (sourceTuple != 0){
+    double sectMeas1 =
+      ((CcReal*) sourceTuple->GetAttribute(SECTION_MEAS1))->GetRealval();
+    double sectMeas2 =
+      ((CcReal*)sourceTuple->GetAttribute(SECTION_MEAS2))->GetRealval();
+    int actRouteId =
+      ((CcInt*)sourceTuple->GetAttribute(SECTION_RID))->GetIntval();
+    Point* sPoint = 0;
+    bool upDown = false;
+    if (direction == Down)
+    {
+      if (init)
+        dist = fabs(dist - sectMeas1);
+      else
+        dist += fabs(sectMeas2 - sectMeas1);
+      sPoint = (GPoint( true,
+                        pNetwork->GetId(),
+                        actRouteId,
+                        sectMeas1,
+                        Down)).ToPoint(pNetwork);
+                        upDown = false;
+    }
     else
-      dist += fabs(sectMeas2 - sectMeas1);
-    sPoint = (GPoint( true,
-                      pNetwork->GetId(),
-                      actRouteId,
-                      sectMeas1,
-                      Down)).ToPoint(pNetwork);
-    upDown = false;
-  }
-  else
-  {
-    if (init)
-      dist = fabs(sectMeas2 - dist);
-    else
-      dist += fabs(sectMeas2 - sectMeas1);
-    sPoint = (GPoint( true,
-                      pNetwork->GetId(),
-                      actRouteId,
-                      sectMeas2,
-                      Up)).ToPoint(pNetwork);
-    upDown = true;
-  }
-  double weight = dist + endPoints->Distance(*sPoint);
-  sPoint->DeleteIfAllowed();
-  sPoint = 0;
-  sourceTuple->DeleteIfAllowed();
-  sourceTuple = 0;
-  vector<DirectedSection> adjSectionList;
-  adjSectionList.clear();
-  pNetwork->GetAdjacentSections ( tid, upDown, adjSectionList );
-  for (size_t k = 0;  k < adjSectionList.size(); k++ )
-  {
-    DirectedSection actNextSect = adjSectionList[k];
-    prioQ->Insert(PQEntryA ( actNextSect.GetSectionTid(),
-                             weight,
-                             dist,
-                             actNextSect.GetUpDownFlag(),
-                             tid,
-                             upDown),
+    {
+      if (init)
+        dist = fabs(sectMeas2 - dist);
+      else
+        dist += fabs(sectMeas2 - sectMeas1);
+      sPoint = (GPoint( true,
+                        pNetwork->GetId(),
+                        actRouteId,
+                        sectMeas2,
+                        Up)).ToPoint(pNetwork);
+                        upDown = true;
+    }
+    double weight = dist + endPoints->Distance(*sPoint);
+    sPoint->DeleteIfAllowed();
+    sPoint = 0;
+    sourceTuple->DeleteIfAllowed();
+    sourceTuple = 0;
+    vector<DirectedSection> adjSectionList;
+    adjSectionList.clear();
+    pNetwork->GetAdjacentSections ( tid, upDown, adjSectionList );
+    for (size_t k = 0;  k < adjSectionList.size(); k++ )
+    {
+      DirectedSection actNextSect = adjSectionList[k];
+      prioQ->Insert(PQEntryA ( actNextSect.GetSectionTid(),
+                               weight,
+                               dist,
+                               actNextSect.GetUpDownFlag(),
+                               tid,
+                               upDown),
                     visitedSect, touchedSects ) ;
+    }
+    adjSectionList.clear();
   }
-  adjSectionList.clear();
 }
 
 /*
@@ -3270,6 +3272,7 @@ void Network::FillSections()
     double dCurrentPosOnRoute = 0.0;
     SimpleLine* pRouteCurve =
       ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE);
+    bool cycle = pRouteCurve->IsCycle();
     TupleId iTupleId = pRoute->GetTupleId();
     CcInt* xRouteId = ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID );
     int iRouteId = xRouteId->GetIntval();
@@ -3285,8 +3288,10 @@ void Network::FillSections()
     //
     // Now that we found all relevant junctions we can iterate over them.
     //
-    JunctionTidSortEntry xCurrentEntry(0,false,m_pJunctions);
+    JunctionTidSortEntry xCurrentEntry = xJunctions[0];
+    JunctionTidSortEntry xFirstCycleJunction = xJunctions[0];
     bool curFirst = false;
+    TupleId startCycleSectionTid = iSectionTid+1;
     for ( size_t i = 0; i < xJunctions.size(); i++ )
     {
       // Get next junction
@@ -3310,7 +3315,15 @@ void Network::FillSections()
         {
           xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
         }
-        xAttrs.push_back ( new TupleIdentifier ( true, 0));
+        if (cycle)
+           xAttrs.push_back(new TupleIdentifier(true, startCycleSectionTid));
+        else
+          xAttrs.push_back ( new TupleIdentifier ( true, 0));
+        if (cycle)
+        {
+          xIndices.push_back(JUNCTION_CC);
+          xAttrs.push_back(new CcInt(true,65535));
+        }
         m_pJunctions->UpdateTuple ( actTuple, xIndices, xAttrs );
         xIndices.clear();
         xAttrs.clear();
@@ -3447,10 +3460,11 @@ void Network::FillSections()
         xAttrs.clear();
       } // end if
     } //end junctionsloop
-    // delete Tuples from xJunctions
-    xJunctions.clear();
     if(actTuple) actTuple->DeleteIfAllowed();
     actTuple = 0;
+    // delete Tuples from xJunctions
+    xJunctions.clear();
+
     ////////////////////////////////////////////////////////////////////
     //
     // Fill Up-Pointers of all sections but the last
@@ -9896,16 +9910,19 @@ bool GPoints::ShortestPathAStar(const GPoints* bgp, GLine* res,
       }
     }
   }
-  for (int i = 0; i < startSections->Size(); i++)
-  {
-    startSections->Get(i,source);
-    dist =  source.GetGP().GetPosition();
-    InsertAdjacentSections(source.GetTid(), Up, true, dist, endPoints, pNetwork,
-                           prioQ, visitedSect, touchedSects);
-    dist =  source.GetGP().GetPosition();
-    InsertAdjacentSections(source.GetTid(), Down, true, dist, endPoints,
-                           pNetwork, prioQ, visitedSect, touchedSects);
+  if (startSections->Size()  > 0) {
+    for (int i = 0; i < startSections->Size(); i++)
+    {
+      startSections->Get(i,source);
+      dist =  source.GetGP().GetPosition();
+      InsertAdjacentSections(source.GetTid(), Up, true, dist, endPoints, 
+		             pNetwork, prioQ, visitedSect, touchedSects);
+      dist =  source.GetGP().GetPosition();
+      InsertAdjacentSections(source.GetTid(), Down, true, dist, endPoints,
+                             pNetwork, prioQ, visitedSect, touchedSects);
+    }
   }
+
 /*
 Use priorityQueue to find shortestPath.
 
