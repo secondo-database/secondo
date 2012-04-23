@@ -3252,7 +3252,7 @@ const string STPatternEx2Spec  =
   "     distance(attr(t2, Trip) atperiods p2, mehringdamm) < 10.0, "
   "   IsFast: fun(t3: STREAMELEM, p3: periods) "
   "     speed( attr(t3, Trip) atperiods p3) > 8.0 "
-  "  ;stconstraint(\"InSnow\",\"\IsClose\",vec(\"aabb\")),    "
+  "  ;stconstraint(\"InSnow\",\"IsClose\",vec(\"aabb\")),    "
   "   stconstraint(\"IsClose\",\"IsFast\",vec(\"bbaa\")) "
   "  ;(end(\"IsClose\") - start(\"InSnow\")) < [const duration value (1 0)] ]]"
   " count </text--->"
