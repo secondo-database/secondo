@@ -36,9 +36,11 @@ class FeedLocalInfo: public ProgressLocalInfo
 {
 public:
   FeedLocalInfo() : rit(0) {}
+  
   ~FeedLocalInfo() {
      if (rit) {
-        delete rit; rit = 0;
+        delete rit; 
+        rit = 0;
      }
   }
 
