@@ -7077,8 +7077,7 @@ bool SimpleLine::EndBulkLoad(){
   }
 
   if(!computePolyline()){
-     segments.clean();
-     lrsArray.clean();
+     Clear();
      SetDefined(false);
      return false;
   } else {
@@ -7095,17 +7094,27 @@ Determines the startPoint of this simple line.
 */
 
 Point SimpleLine::StartPoint() const {
-  if( IsEmpty() || !IsDefined() ) return Point( false );
-  int pos = 0;
-  if (!startSmaller) pos = lrsArray.Size()-1;
+  if( !IsDefined() || IsEmpty() ) return Point( false );
   LRS lrs;
-  lrsArray.Get( pos, lrs );
-  // Get half-segment
   HalfSegment hs;
-  segments.Get( lrs.hsPos, &hs );
-  // Return one end of the half-segment depending
-  // on the start.
-  return startSmaller ? hs.GetDomPoint() : hs.GetSecPoint();
+  int pos = 0;
+  if (startSmaller){
+    lrsArray.Get( pos, lrs );
+    // Get half-segment
+    segments.Get( lrs.hsPos, hs );
+    // Return one end of the half-segment depending
+    // on the start.
+    return hs.GetDomPoint();
+  } else {
+    pos = lrsArray.Size()-1;
+    lrsArray.Get( pos, lrs );
+    // Get half-segment
+    segments.Get( lrs.hsPos, hs );
+    // Return one end of the half-segment depending
+    // on the start.
+    return hs.GetSecPoint();
+  }
+
 }
 
 Point SimpleLine::StartPoint( bool startsSmaller ) const {
@@ -7122,17 +7131,26 @@ Returns the endpoint of this simple Line.
 */
 
 Point SimpleLine::EndPoint() const {
-  if( IsEmpty() || !IsDefined() ) return Point( false );
-  int pos = 0;
-  if (startSmaller) pos = lrsArray.Size()-1;
+  if( !IsDefined() || IsEmpty()) return Point( false );
   LRS lrs;
-  lrsArray.Get( pos, lrs );
-  // Get half-segment
   HalfSegment hs;
-  segments.Get( lrs.hsPos, &hs );
-  // Return one end of the half-segment depending
-  // on the start.
-  return startSmaller ? hs.GetSecPoint() : hs.GetDomPoint();
+  int pos = lrsArray.Size()-1;
+  if (startSmaller){
+    lrsArray.Get( pos, lrs );
+    // Get half-segment
+    segments.Get( lrs.hsPos, hs );
+    // Return one end of the half-segment depending
+    // on the start.
+    return hs.GetSecPoint();
+  } else {
+    pos = 0;
+    lrsArray.Get( pos, lrs );
+    // Get half-segment
+    segments.Get( lrs.hsPos, hs );
+    // Return one end of the half-segment depending
+    // on the start.
+    return hs.GetDomPoint();
+  }
 }
 
 Point SimpleLine::EndPoint( bool startsSmaller ) const {
@@ -7386,15 +7404,15 @@ bool SimpleLine::AtPoint( const Point& p,
 
     if (tolerance != 0.0)
     {
-      if( AlmostEqualAbsolute( result, 0.0, tolerance ) ) result = 0;
+      if( AlmostEqualAbsolute( result, 0.0, tolerance ) ) result = 0.0;
       else
         if(AlmostEqualAbsolute( result, length, tolerance)) result = length;
     }
     else
     {
-      if (AlmostEqual(result,0.0)) result = 0.0;
+      if (AlmostEqual(result,0.0) || result < 0.0) result = 0.0;
       else
-        if (AlmostEqual(result, length)) result = length;
+        if (AlmostEqual(result, length) || result > length) result = length;
     }
 
     assert( result >= 0.0 && result <= length );
@@ -16599,8 +16617,8 @@ SpatialAtPoint( Word* args, Word& result, int message,
   SimpleLine *l = (SimpleLine*)args[0].addr;
   Point *p = (Point*)args[1].addr;
   double res;
-  if( !l->IsEmpty() && // subsumes IsDefined()
-      p->IsDefined() && l->AtPoint( *p, res, 0.0 ) )
+  if( l->IsDefined() && !l->IsEmpty() &&
+      p->IsDefined() && l->AtPoint( *p, res ) )
     ((CcReal*)result.addr)->Set( true, res );
   else
     ((CcReal*)result.addr)->SetDefined( false );
@@ -17931,8 +17949,8 @@ int SpatialCollect_slineVMLinestream(Word* args, Word& result, int message,
    }
    bool ignore = ignoreUndefined->GetValue();
    Word elem;
-   Point firstPoint(false, 0.0,0.0);
-   Point lastPoint(false, 0.0,0.0);
+   Point* firstPoint = 0;
+   Point* lastPoint = 0;
    bool first = true;
    L->StartBulkLoad();
    qp->Open(args[0].addr);
@@ -17944,27 +17962,34 @@ int SpatialCollect_slineVMLinestream(Word* args, Word& result, int message,
        qp->Close(args[0].addr);
        L->Clear();
        L->SetDefined(false);
-       if(line){ line->DeleteIfAllowed(); }
+       if(line){
+         line->DeleteIfAllowed();
+         line = 0;}
        return 0;
     }
     if (first && line->IsDefined()) {
-       firstPoint.SetDefined(true);
-       firstPoint = line->StartPoint();
-       lastPoint.SetDefined(true);
-       lastPoint = firstPoint;
+       firstPoint = new Point(line->StartPoint());
+       lastPoint = new Point(line->EndPoint());
        first = false;
+       append(*L, *line);
     }
-    if (line->IsDefined()) {
-      lastPoint = line->EndPoint();
+    if (!first && line->IsDefined()) {
+      lastPoint->DeleteIfAllowed();
+      lastPoint = new Point(line->EndPoint());
+      append(*L, *line);
     }
-    append(*L, *line);
-    line->DeleteIfAllowed(); line = 0;
+    line->DeleteIfAllowed();
+    line = 0;
     qp->Request(args[0].addr, elem); // get next line
   }
-  L->EndBulkLoad(); // sort and realminize
-  if (firstPoint > lastPoint) L->SetStartSmaller(false);
-  else L->SetStartSmaller(true);
   qp->Close(args[0].addr);
+  L->EndBulkLoad(); // sort and realminize
+  if (L->IsDefined()){
+    if (firstPoint > lastPoint) L->SetStartSmaller(false);
+    else L->SetStartSmaller(true);
+  }
+  lastPoint->DeleteIfAllowed();
+  firstPoint->DeleteIfAllowed();
   return 0;
 }
 
@@ -20885,6 +20910,12 @@ private:
             ind = 0;
             done = true;
           }
+          followLength->clear();
+          delete followLength;
+          followPos->clear();
+          delete followPos;
+          followLine->clear();
+          delete followLine;
         } else { // count < 1 ,
           done = true;
         }

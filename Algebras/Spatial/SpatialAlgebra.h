@@ -623,7 +623,7 @@ as an attribute.
 
 
    virtual string getSQLType(){ return "MDSYS.SDO_GEOMETRY"; }
-   virtual string getSQLRepresentation(){ 
+   virtual string getSQLRepresentation(){
        if(!IsDefined() || IsEmpty()){
          return "NULL";
        }
