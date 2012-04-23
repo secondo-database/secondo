@@ -243,15 +243,33 @@ public void ScanValue(ListExpr value){
         return;
      }
 
-     boolean firstLess = isLess(sequence.get(0) ,
-                              sequence.get(sequence.size()-1));
-     if(startSmaller == firstLess){
-       this.p1 = sequence.get(sequence.size()-2);
-       this.p2 = sequence.get(sequence.size()-1);
+     if(isCycle(sequence)){
+       int end = findSmallestIndex(sequence);
+       int start;
+       if(startSmaller){
+          start=end-1;
+          if(start<0){
+            start = sequence.size()-1;
+          }
+       } else {
+          start = end+1;
+          if(start>=sequence.size()){
+             start=0;
+          }
+       }
+       p1 = sequence.get(start);
+       p2 = sequence.get(end);
      } else {
-       this.p1 = sequence.get(1);
-       this.p2 = sequence.get(0);
-     }
+       boolean firstLess = isLess(sequence.get(0) ,
+                              sequence.get(sequence.size()-1));
+       if(startSmaller == firstLess){
+         this.p1 = sequence.get(sequence.size()-2);
+         this.p2 = sequence.get(sequence.size()-1);
+       } else {
+         this.p1 = sequence.get(1);
+         this.p2 = sequence.get(0);
+       }
+    }
   }
 
   GP = new GeneralPath();
@@ -271,6 +289,49 @@ public void ScanValue(ListExpr value){
   err = false;
 }
 
+  private static boolean isCycle(Vector<Point2D.Double> s){
+    if(s.size()<2){
+      return false;
+    }
+    return s.get(0).equals(s.get(s.size()-1));
+  }
+
+  private static int findSmallestIndex(Vector<Point2D.Double> s){
+     int index = 0;
+     Point2D.Double p = s.get(0);
+     for(int i=1;i<s.size();i++){
+       Point2D.Double p2 = s.get(i);
+       if(isLess(p2,p)){
+         index = i;
+         p = p2;
+       }
+     }
+     return index;
+  }
+
+  private static void resort(Vector<Point2D.Double> sequence){
+     if(sequence.size()<2){
+        return;
+     }
+
+     if(! sequence.get(0).equals(sequence.get(sequence.size()-1))){
+        // not a cycle
+        return;
+     }
+
+     // cycle found, sort sequence, that the smallest contained point
+     // is the first one
+     // part 1 search the index of the smallest point
+     int index = findSmallestIndex(sequence);
+
+     // TODO implement this algorithm without copying vectors
+     Vector<Point2D.Double> sequenceCopy = new Vector<Point2D.Double>(sequence);
+     int size = sequence.size();
+     for(int i=0;i<size;i++){
+        System.out.println((i+index)%size + "->" + i);
+        sequence.set(i, sequenceCopy.get((i+index)%size));
+     }
+  }
 
   public Shape getArrow(AffineTransform af, Point2D.Double point1, Point2D.Double point2){
 
