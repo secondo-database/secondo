@@ -3109,6 +3109,59 @@ void RandomShiftDelay( const MPoint* actual, const Instant* threshold,
 Value mapping function for the operator ~ndefunit~
 
 */
+
+void NDefUnit(MBool* arg, CcBool* nval, MBool* res)
+{
+  bool debugme=false;
+  res->Clear();
+  res->StartBulkLoad();
+  UBool uarg;
+  UBool uBool(nval->GetBoolval()), uBool2(nval->GetBoolval());
+  uBool.constValue= *nval;
+  if(!arg->IsDefined()||arg->GetNoComponents() == 0)
+  {
+    res->SetDefined(false);
+    return;
+  }
+  arg->Get(0, uarg);
+  //uarg.Print(cout);
+  uBool2.CopyFrom(&uarg);
+  res->MergeAdd(uBool2);
+  //res->Print(cout);
+  uBool.timeInterval.lc = !uarg.timeInterval.rc;
+  uBool.timeInterval.start = uarg.timeInterval.end;
+  for( int i = 1; i < arg->GetNoComponents(); i++)
+  {
+    arg->Get(i, uarg);
+
+    uBool.timeInterval.rc = !uarg.timeInterval.lc;
+    uBool.timeInterval.end = uarg.timeInterval.start;
+
+    if(uBool.timeInterval.start < uBool.timeInterval.end
+        || (uBool.timeInterval.start == uBool.timeInterval.end
+            && uBool.timeInterval.lc && uBool.timeInterval.rc))
+    {
+      res->MergeAdd(uBool);
+      //res->Print(cout);
+    }
+
+      uBool2.CopyFrom(&uarg);
+      res->MergeAdd(uBool2);
+      //res->Print(cout);
+      uBool.timeInterval.lc = !uarg.timeInterval.rc;
+      uBool.timeInterval.start = uarg.timeInterval.end;
+  }
+  res->EndBulkLoad(false);
+  if(debugme)
+  {
+    cout<<"NDefUnit is called";
+    cout<<"\nInput1:"; arg->Print(cout);
+    cout<<"\nInput2:"; nval->Print(cout);
+    cout<<"\nOutput:"; res->Print(cout);
+    cout.flush();
+  }
+}
+
 int NDefUnitVM( ArgVector args, Word& result,
     int msg, Word& local, Supplier s )
 {
@@ -3202,7 +3255,7 @@ Operator randomshiftdelay (
     RandomShiftDelayVM,                 // value mapping
     Operator::SimpleSelect, // trivial selection function
     RandomShiftDelayTM          // type mapping
-
+);
 /*
 \subsection{The stpattern2 and stpatternex2 Operators}
 
