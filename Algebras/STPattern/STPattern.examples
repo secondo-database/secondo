@@ -121,3 +121,9 @@ Number   : 1
 Signature: tuple(x) X namedFunlist X constraintList -> bool
 Example  : query Trains feed filter[. computeclosure[InSnow: fun(t1: STREAMELEM, p1: periods) (attr(t1, Trip) atperiods p1) inside msnow, IsClose: fun(t2: STREAMELEM, p2: periods) distance(attr(t2, Trip) atperiods p2, mehringdamm)<10.0,    IsFast: fun(t3: STREAMELEM, p3: periods) speed( attr(t3, Trip) atperiods p3) >8.0 ;  stconstraint("InSnow","IsClose",vec("aabb")),    stconstraint("IsClose","IsFast",vec("bbaa"))] = 1 ] count
 Result   : 562
+
+Operator : randomshiftdelay
+Number   : 1
+Signature: mpoint x duration x real x real -> mpoint
+Example  : query randomdelay(train7, create_duration(0, 13000), 20.5, 50.0 ) 
+Result   : file

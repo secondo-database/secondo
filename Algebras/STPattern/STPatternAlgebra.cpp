@@ -3037,6 +3037,157 @@ const string ComputeClosureSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "stconstraint(\"isclose\",\"isfast\",vec(\"bbaa\"))] = 1 ] count"
   "</text--->) )";
 
+
+
+void RandomShiftDelay( const MPoint* actual, const Instant* threshold,
+    double dx, double dy, MPoint& res)
+{
+  bool debugme= false;
+
+  MPoint delayed(actual->GetNoComponents());
+  UPoint first(0), next(0);
+  UPoint *shifted,*temp, *cur;
+  int xshift=0, yshift=0;
+  int64_t rmillisec=0;
+  actual->Get( 0, first );
+  cur=new UPoint(first);
+  for( int i = 1; i < actual->GetNoComponents(); i++ )
+  {
+    actual->Get( i, next );
+
+    if(threshold->millisecondsToNull() > 0)
+      rmillisec= rand()% threshold->GetAllMilliSeconds();
+    DateTime delta(durationtype, rmillisec) ;
+    xshift= rand() % ((int)dx +1);
+    yshift= rand() % ((int)dy +1);
+    shifted= new UPoint(*cur);
+    delete cur;
+    temp= new UPoint(next);
+    if(rmillisec > rand()%24000 )
+    {
+      if((shifted->timeInterval.end + delta) <  next.timeInterval.end )
+      {
+        shifted->timeInterval.end += delta ;
+        temp->timeInterval.start= shifted->timeInterval.end;
+        shifted->p1.Set(shifted->p1.GetX()+xshift, shifted->p1.GetY()+yshift);
+        temp->p0.Set(shifted->p1.GetX(), shifted->p1.GetY());
+      }
+    }
+    else
+    {
+      if((shifted->timeInterval.end - delta) >shifted->timeInterval.start)
+      {
+        shifted->timeInterval.end -= delta ;
+        temp->timeInterval.start= shifted->timeInterval.end;
+        shifted->p1.Set(shifted->p1.GetX()-xshift, shifted->p1.GetY()-yshift);
+        temp->p0.Set(shifted->p1.GetX(), shifted->p1.GetY());
+      }
+    }
+    cur=temp;
+    if(debugme)
+    {
+      cout.flush();
+      cout<<"\n original "; cur->Print(cout);
+      cout<<"\n shifted " ; shifted->Print(cout);
+      cout.flush();
+    }
+    delayed.Add(*shifted);
+    delete shifted;
+  }
+  delayed.Add(*temp);
+  delete temp;
+  res.CopyFrom(&delayed);
+  if(debugme)
+  {
+    res.Print(cout);
+    cout.flush();
+  }
+  return;
+}
+
+/*
+Value mapping function for the operator ~ndefunit~
+
+*/
+int NDefUnitVM( ArgVector args, Word& result,
+    int msg, Word& local, Supplier s )
+{
+  bool debugme=false;
+  MBool *arg = static_cast<MBool*>( args[0].addr );
+  CcBool *ndefval = static_cast<CcBool*>( args[1].addr );
+
+  MBool* tmp=new MBool(0);
+  result= qp->ResultStorage(s);
+  MBool* res= (MBool*) result.addr;
+  NDefUnit(arg, ndefval, res);
+  //res->CopyFrom(tmp);
+  tmp->Destroy();
+  delete tmp;
+  if(debugme)
+  {
+    cout.flush();
+    res->Print(cout);
+    cout.flush();
+  }
+  return 0;
+}
+
+
+
+ListExpr RandomShiftDelayTM( ListExpr typeList )
+{
+  CHECK_COND(nl->ListLength(typeList) == 4 &&
+      nl->IsAtom(nl->First(typeList)) &&
+      (nl->SymbolValue(nl->First(typeList))== "mpoint") &&
+      nl->IsAtom(nl->Second(typeList)) &&
+      (nl->SymbolValue(nl->Second(typeList))== "duration")&&
+      nl->IsAtom(nl->Third(typeList)) &&
+      (nl->SymbolValue(nl->Third(typeList))== "real")&&
+      nl->IsAtom(nl->Fourth(typeList)) &&
+      (nl->SymbolValue(nl->Fourth(typeList))== "real"),
+      "randomshiftdelay operator expects (mpoint duration real real) but got "
+      + nl->ToString(typeList))
+
+      return (nl->SymbolAtom("mpoint"));
+}
+
+int RandomShiftDelayVM(ArgVector args, Word& result,
+    int msg, Word& local, Supplier s )
+{
+  MPoint *pActual = static_cast<MPoint*>( args[0].addr );
+  Instant *threshold = static_cast<Instant*>(args[1].addr );
+  double dx = static_cast<CcReal*>(args[2].addr )->GetRealval();
+  double dy = static_cast<CcReal*>(args[3].addr )->GetRealval();
+
+
+  MPoint* shifted = (MPoint*) qp->ResultStorage(s).addr;
+
+  if(pActual->GetNoComponents()<2 || !pActual->IsDefined())
+    shifted->CopyFrom(pActual);
+    else
+    {
+      RandomShiftDelay(pActual, threshold, dx, dy, *shifted);
+    }
+  result= SetWord(shifted);
+  //This looks redundant but it is really necessary. After 2 hours of
+  //debugging, it seems that the "result" word is not correctly set
+  //by the query processor to point to the results.
+
+  return 0;
+}
+
+
+const string RandomShiftDelaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>mpoint x duration x real x real-> mpoint</text--->"
+  "<text>randomdelay(schedule, delay_threshold, dx, dy)</text--->"
+  "<text>Given an mpoint and a duration value, the operator randomly shift the"
+  "start and end intstants of every unit in the mpoint. This gives the "
+  "effect of having positive and negative delays and spatial shifts in the "
+  "movement. The random shift values are bound by the given threshold."
+  "</text---> <text>query randomdelay(train7)</text--->"
+  ") )";
+
 Operator computeClosure (
     "computeclosure",    //name
     ComputeClosureSpec,     //specification
@@ -3044,6 +3195,13 @@ Operator computeClosure (
     Operator::SimpleSelect, //trivial selection function
     ComputeClosureTM        //type mapping
 );
+
+Operator randomshiftdelay (
+    "randomshiftdelay",               // name
+    RandomShiftDelaySpec,             // specification
+    RandomShiftDelayVM,                 // value mapping
+    Operator::SimpleSelect, // trivial selection function
+    RandomShiftDelayTM          // type mapping
 
 /*
 \subsection{The stpattern2 and stpatternex2 Operators}
@@ -4244,6 +4402,7 @@ arguments is a string literal, the typemap receives a list (string value).
   AddOperator(&passmbool);
   AddOperator(&randomdelay);
   AddOperator(&computeClosure);
+  AddOperator(&randomshiftdelay);
 }
 ~STPatternAlgebra() {};
 };
