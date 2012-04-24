@@ -22,6 +22,8 @@
 # generic makefile for an algebra module 
 #
 ########################################################################
+#
+# Add the compilation of the Hadoop Java job
 
 # inlcude global definitions
 include ../../makefile.env
@@ -32,7 +34,14 @@ CCFLAGS += $(ALG_INC_DIRS)
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
+all: alljava allcpp
+
+.PHONY: alljava
+alljava:
+	make -f makejava all
+
+.PHONY: allcpp
+allcpp: $(OBJECTS) $(LIBOBJ)
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -46,4 +55,5 @@ $(LIBOBJ): $(OBJECTS)
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
+	$(MAKE) -f makejava clean
 	$(clean-algebra)
