@@ -1,12 +1,12 @@
 TarFile="ParallelSecondo.jar"
 SEC_P="../../../Javagui/secondoInterface/SecondoInterface.jar"
-HDC_P="/Users/Jiamin/utils/hadoop-0.20.2/hadoop-0.20.2-core.jar"
-#SEC_P="/Users/Jiamin/betSec/Javagui.jar"
+HDC_P="${HADOOP_HOME}/hadoop-0.20.2-core.jar"
 SRC_P="ParallelSecondo/"
 BIN_P="bin"
 
 
 all:
+	if [ ! -d ${BIN_P} ];then mkdir -p ${BIN_P}/lib; fi
 	javac -classpath ${SEC_P} ${SRC_P}/QuerySecondo.java -d ${BIN_P}
 	javac -classpath ${SEC_P} ${SRC_P}/ExtListExpr.java -d ${BIN_P}
 	javac ${SRC_P}/Constant.java -d ${BIN_P}
@@ -22,6 +22,7 @@ all:
 	javac -classpath ./bin:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2.java -d ${BIN_P}
 	cp ${SEC_P} ${BIN_P}/lib/
 	jar -cf ${TarFile} -C ${BIN_P} .
+	cp ${TarFile} ../../../bin/
 
 run:
 
