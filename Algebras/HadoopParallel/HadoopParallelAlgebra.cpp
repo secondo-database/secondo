@@ -5654,12 +5654,9 @@ bool SpreadLocalInfo::closeAllPartFiles()
     size_t row = mit->first;
     if (row > (lastRow + 1)){
       //Insert empty rows
+      NList emptyRowList = NList();
       for (size_t erow = (lastRow + 1); erow < row; erow++)
       {
-        NList emptyRowList = NList(
-            NList((int)ci->getInterIndex(erow, false, true)),
-            NList(),
-            NList("", true, true));
         resultList->appendFileLocList(emptyRowList);
       }
     }
@@ -6230,7 +6227,7 @@ struct TParaInfo : OperatorInfo
     signature =
         "( flist(ANY) ) -> ANY";
     syntax = "type operator";
-    meaning = "Extract the data type from a flist object";
+    meaning = "Extract the data type from the first flist object";
   }
 };
 
@@ -6238,8 +6235,9 @@ ListExpr TParaTypeMapping( ListExpr args)
 {
   NList l(args);
 
-  if (l.length() < 1)
+  if (l.length() < 1){
     return l.typeError("Expect at least one argument.");
+  }
   NList ffListType = l.first();
 
   if (ffListType.isAtom()){
@@ -6252,6 +6250,42 @@ ListExpr TParaTypeMapping( ListExpr args)
     }
     else{
       return ffListType.listExpr();
+    }
+  }
+
+}
+
+
+struct TPara2Info : OperatorInfo
+{
+  TPara2Info()
+  {
+    name = "TPARA2";
+    signature =
+        "( ANY x flist(ANY) ) -> ANY";
+    syntax = "type operator";
+    meaning = "Extract the data type from the second flist object";
+  }
+};
+
+ListExpr TPara2TypeMapping( ListExpr args)
+{
+  NList l(args);
+
+  if (l.length() < 2)
+    return l.typeError("Expect at least two arguments.");
+  NList sfListType = l.second();
+
+  if (sfListType.isAtom()){
+    return sfListType.listExpr();
+  }
+  else
+  {
+    if (sfListType.first().isSymbol(fList::BasicType())){
+      return sfListType.second().listExpr();
+    }
+    else{
+      return sfListType.listExpr();
     }
   }
 
@@ -6626,21 +6660,30 @@ int hadoopMapValueMap(Word* args, Word& result,
 
       //Create file location list
       ListExpr rest = sidList;
+      int lastRow = 0;
+      NList emptyRow = NList();
       while (!nl->IsEmpty(rest))
       {
         int slaveIdx = nl->IntValue(nl->First(rest));
+        int rowNum = slaveIdx;
 
+        for (lastRow++ ;lastRow < rowNum; lastRow++){
+          if (fileLocList.isEmpty()){
+            fileLocList.makeHead(emptyRow);
+          }
+          else{
+            fileLocList.append(emptyRow);
+          }
+        }
+
+        NList newRow = NList(NList(slaveIdx), NList(1).enclose(),
+            NList(CreateFilePath, true, true));
         if (fileLocList.isEmpty()){
-          fileLocList.makeHead(
-              NList(NList(slaveIdx), NList(1).enclose(),
-                  NList(CreateFilePath, true, true)));
+          fileLocList.makeHead(newRow);
         }
         else{
-          fileLocList.append(
-              NList(NList(slaveIdx), NList(1).enclose(),
-              NList(CreateFilePath, true, true)));
+          fileLocList.append(newRow);
         }
-
         rest = nl->Rest(rest);
       }
 
@@ -6687,7 +6730,7 @@ struct hadoopReduceInfo : OperatorInfo
   {
     name = "hadoopReduce";
     signature =
-        "flist(T) x partAttr x [string] x [text] x [(DLO):DLF] "
+        "flist(T) x partAttr x [string] x [text] x [(DLO):DLF] x [int] "
         "x ( map T T1 ) -> flist(T1)";
     meaning = "Create DLO or DLF kind flist after the reduce step";
   }
@@ -6718,7 +6761,7 @@ The syntax is:
 ----
 flist(T) x partAttribute
   x [objectName: string] x [objectPath: text] x [(DLO):DLF] x [reduceTaskNum: int]
-  x ( interFunc: map ( T -> T1) )
+  x ( interFunc: map ( T \to T1) )
 \to flist(T1)
 
 T is rel(tuple) or stream(tuple)
@@ -6743,12 +6786,12 @@ ListExpr hadoopReduceTypeMap(ListExpr args){
   string typErr = "ERROR! Operator hadoopReduce expects "
       "flist(T) x partAttr x [string] x [text] x [(DLO):DLF] x [int] "
       "x (map T T1))";
-  string ernErr = "ERROR! The reduceTaskNum cannot be larger than the cluster "
-      "scale while producing a DLO flist object.";
   string ifsErr = "ERROR! Operator hadoopReduce expects the input flist "
       "contains either a tuple stream or a tuple relation. ";
   string upaErr = "ERROR! The partition attribute "
       "is not found in the input flist";
+  string ernErr = "ERROR! The reduceTaskNum cannot be larger than the cluster "
+      "scale while producing a DLO flist object.";
   string onmErr = "ERROR! Operator hadoopMap expects the created "
       "object name starts with upper case. ";
   string ifaErr = "ERROR! Infeasible evaluation in TM of attribute:";
@@ -6997,19 +7040,15 @@ int hadoopReduceValueMap(Word* args, Word& result,
       //Replace parameter value according to their flist value
       for (size_t i = 0; i < flistParaList.size(); i++)
       {
-        bool isArg = (i == 0 ? true : false);
+        int argIndex = (i == 0 ? 1 : 0);
         CreateQueryList =
             replaceFList(CreateQueryList,
                 flistParaList[i], flistObjList[i],
-                DLF_NameList, DLF_fileLocList, ok, isArg);
+                DLF_NameList, DLF_fileLocList, ok, argIndex);
         if (!ok)
           break;
       }
     }
-
-    //Parameters required by the Hadoop job are:
-    //Similar as the PS\_HadoopMap,
-    //except the partition attribute in the map step is required
 
     NList dlfNameList, dlfLocList;
     vector<pair<int, pair<int, int> > > hpResult;
@@ -7031,7 +7070,7 @@ int hadoopReduceValueMap(Word* args, Word& result,
       if (inputFList->getKind() == DLO)
         inputRcg = inputFList->getSubName();
       else
-        inputRcg = "<DLFMark:Arg:" + inputFList->getSubName() + "/>";
+        inputRcg = "<DLFMark:Arg1:" + inputFList->getSubName() + "/>";
 
       //Call the Hadoop job
       stringstream queryStr;
@@ -7129,12 +7168,484 @@ int hadoopReduceValueMap(Word* args, Word& result,
     return 0;
 }
 
-
-
-
-
 Operator hadoopReduceOP(
     hadoopReduceInfo(), hadoopReduceValueMap, hadoopReduceTypeMap);
+
+/*
+5 Operator ~hadoopReduce2~
+
+Create at 18th Apr. 2012
+Jiamin
+
+This is also mainly used to process the reduce step of the precast Hadoop job.
+It provides the binary operation, and creates a flist belong to either
+DLO or DLF kind.
+
+
+*/
+struct hadoopReduce2Info : OperatorInfo
+{
+  hadoopReduce2Info()
+  {
+    name = "hadoopReduce2";
+    signature =
+        "flist(T1) x flist(T2) "
+        "x partAttr1 x partAttr2 x [string] x [text] x [(DLO):DLF] x [int] "
+        "x ( map (T1 T2) T3 ) -> flist(T3)";
+    meaning = "Create DLO or DLF kind flist after the binary reduce step";
+  }
+};
+
+/*
+5.1 Type Mapping of ~hadoopReduce2~
+
+For unary operation, the mapping is:
+
+----
+flist(T1) x flist(T2)
+  x partAttr1 x partAttr2
+  x [string] x [text] x [(DLO):DLF] x [int]
+  x ( map (T1 T2) T3 )
+\to flist(T3)
+
+T1 and T2 are either rel(tuple) or stream(tuple)
+
+----
+
+Similar as the above unary hadoopReduce operator, this one expects two input flists,
+also two partition attributes, each one corresponding to one input flist, respectively.
+
+The syntax is:
+
+----
+flist(T1) x flist(T2)
+  x partAttr1 x partAttr2
+  x [objectName: string] x [objectPath: text] x [(DLO):DLF] x [reduceTaskNum: int]
+  x ( interFunc: map ( T1 x T2 \to T1) )
+\to flist(T3)
+
+T is rel(tuple) or stream(tuple)
+
+----
+
+*/
+
+ListExpr hadoopReduce2TypeMap(ListExpr args){
+
+  cerr << "hadoopReduce2TypeMap" << endl;
+
+  NList l(args);
+
+  string lenErr = "ERROR! Operator hadoopReduce expects 4 argument lists. ";
+  string typErr = "ERROR! Operator hadoopReduce expects "
+      "flist(T1) x flist(T2) "
+      "x partAttr1 x partAttr2 x [string] x [text] x [(DLO):DLF] x [int] "
+      "x ( map (T1 T2) T3 ) -> flist(T3)";
+  string ifsErr = "ERROR! Operator hadoopReduce expects the input flist "
+      "contains either a tuple stream or a tuple relation. ";
+  string upaErr = "ERROR! The partition attribute "
+      "is not found in the corresponding input flist";
+  string ifaErr = "ERROR! Infeasible evaluation in TM of attribute:";
+  string nprErr = "ERROR! Operator hadoopReduce expects "
+      "creating a new DLO or DLF kind flist.";
+  string ernErr = "ERROR! The reduceTaskNum cannot be larger than the cluster "
+      "scale while producing a DLO flist object.";
+  string onmErr = "ERROR! Operator hadoopMap expects the created "
+      "object name starts with upper case. ";
+  string uafErr = "ERROR!! The internal function is unavailable.";
+  string expErr = "ERROR! Improper output type for DLF flist";
+  string fwtErr = "ERROR! Failed writing type into file: ";
+  string hnmErr = "ERROR! Exists homonymous flist type file in: ";
+  string udnErr = "ERROR! Long database name is set.";
+
+
+  string objName, filePath, qStr;
+  fListKind kind = DLO;
+  clusterInfo ci;
+  int reduceTaskNum = ci.getSlaveSize();
+
+  int argIndex = 1;
+
+  if (l.length() != 4)
+    return l.typeError(lenErr);
+
+  //The first two flist arguments
+  NList inputType[2];
+  for (; argIndex <= 2; argIndex++){
+    int lc = argIndex - 1;
+    inputType[lc] = l.elem(argIndex).first();
+    if (!inputType[lc].first().isSymbol(fList::BasicType())){
+      return l.typeError(typErr);
+    }
+    if (!listutils::isRelDescription(inputType[lc].second().listExpr()) &&
+        !listutils::isTupleStream(inputType[lc].second().listExpr())){
+      return l.typeError(ifsErr);
+    }
+  }
+
+  //The third argument list
+  NList pType   = l.elem(argIndex).first();
+  NList pValue  = l.elem(argIndex).second();
+  int len = pType.length();
+  if (len < 2 || len > 6)
+    return l.typeError(typErr);
+
+  string    PAName[2] = { pType.first().str(), pType.second().str()};
+  int       PAIndex[2]= {0,0};
+  ListExpr  PAType[2];
+  for (int inc = 0; inc < 2; inc++){
+    ListExpr attrList = inputType[inc].second().second().second().listExpr();
+    PAIndex[inc] = listutils::findAttribute(attrList, PAName[inc], PAType[inc]);
+    if (PAIndex[inc] <= 0)
+      return l.typeError(upaErr);
+  }
+  for (int oac = 3; oac <= len; oac++)
+  {
+    //Check other optional arguments in this list
+    NList pp = pType.elem(oac);
+    NList pv = pValue.elem(oac);
+
+    if (pp.isSymbol(CcString::BasicType()))
+    {
+      //ObjectName defined.
+      NList fnList;
+      if (!QueryProcessor::GetNLArgValueInTM(pv, fnList)){
+        return l.typeError(ifaErr + "objName");
+      }
+      objName = fnList.str();
+    }
+    else if (pp.isSymbol(FText::BasicType()))
+    {
+      //FilePath defined
+      NList fpList;
+      if (!QueryProcessor::GetNLArgValueInTM(pv, fpList)){
+        return l.typeError(ifaErr + "filePath");
+      }
+      filePath = fpList.str();
+    }
+    else if (pp.isSymbol(CcInt::BasicType())){
+      NList rnList;
+      if (!QueryProcessor::GetNLArgValueInTM(pv, rnList)){
+        return l.typeError(ifaErr + "objName");
+      }
+      reduceTaskNum = rnList.intval();
+    }
+    else if (pp.isSymbol("DLF")){
+      kind = DLF;
+    }
+    else if (!pp.isSymbol("DLO")){
+      return l.typeError(nprErr);
+    }
+  }
+  if (kind == DLO && reduceTaskNum > (int)ci.getSlaveSize()){
+    return l.typeError(ernErr);
+  }
+
+  argIndex++;
+  //The fourth inter-query function
+  NList mapType = l.elem(argIndex).first();
+  NList mapValue = l.elem(argIndex).second();
+  if (mapType.length() != 4)
+    return l.typeError(uafErr);
+
+  NList coType = mapType.fourth();             //Create Type
+  NList coQuery = mapValue.fourth();          //Create Query
+  NList coBType;                              //Create Base Type
+  if (coType.isAtom()){
+    coBType = coType;
+  }
+  else{
+    coBType = coType.first();
+  }
+  if (coBType.isEqual("typeerror"))
+    return l.typeError(uafErr);
+  qStr = coQuery.convertToString();
+
+  //Query Parameter
+  string coParaName[2] = {
+      mapValue.second().first().str(),
+      mapValue.third().first().str()};
+
+  //Check the type for output flist
+  //If it is a DLF, then the output type must be a tuple stream
+  if (kind == DLF && !listutils::isTupleStream(coType.listExpr())){
+    return l.typeError(expErr);
+  }
+  NList resultType = NList(NList(fList::BasicType()), NList(coType));
+
+  if (objName.length() == 0)
+    objName = fList::tempName(false);
+  else
+  {
+    char f = objName[0];
+    if (f<'A' || f>'Z'){
+      return l.typeError(onmErr);
+    }
+    //If the name of sub-objects or sub-files are denoted by users,
+    //Then it must be kept in a text type file,
+    //in case of the homonymous problem
+    //also this file must be kept in the default file path.
+
+    string filePath =
+        getLocalFilePath("", (objName + "_type"),"", true);
+    if (FileSystem::FileOrFolderExists(filePath)){
+      ListExpr exeType;
+      bool ok = false;
+      if (nl->ReadFromFile(filePath, exeType)){
+        //TODO Need to be more compatible with file-related operators
+          if (nl->Equal(nl->Second(exeType),
+              resultType.second().second().listExpr())){
+            ok = true;
+          }
+      }
+      if (!ok)
+        return l.typeError(hnmErr + filePath);
+    }
+    else{
+      ListExpr expList = nl->Second(resultType.listExpr());
+      if (nl->IsAtom(expList)){
+        expList = nl->OneElemList(expList);
+      }
+      if (!nl->WriteToFile(filePath, expList)){
+        return l.typeError(fwtErr + filePath);
+      }
+    }
+  }
+
+  //Check the length of the database name
+  string dbName = fList::tempName(true);
+  if (dbName.length() >= 16){
+    //16 is the maximum length that a database name can be
+    return l.typeError(udnErr);
+  }
+
+  return NList(NList(Symbol::APPEND()),
+      NList(NList(qStr, true, true),
+            NList(objName, true, false),
+            NList((int)kind),
+            NList(coParaName[0], true, false),
+            NList(coParaName[1], true, false),
+            NList(dbName, true, false)),
+      resultType).listExpr();
+
+}
+
+
+int hadoopReduce2ValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s){
+  if ( message <= CLOSE )
+  {
+    //Get Arguments
+    //Query string
+    string CreateQuery =
+        ((FText*)args[4].addr)->GetValue();
+    //Get the object name.
+    string CreateObjectName =
+        ((CcString*)args[5].addr)->GetValue();
+    //Get the export file type
+    fListKind kind =
+        (fListKind)((CcInt*)args[6].addr)->GetValue();
+    //Get the object name of the input flist
+    string inParaName[2] = {
+        ((CcString*)args[7].addr)->GetValue(),
+        ((CcString*)args[8].addr)->GetValue()};
+    //Get the database name
+    string dbName =
+        ((CcString*)args[9].addr)->GetValue();
+
+    clusterInfo *ci = new clusterInfo();
+    //Get the partition attribute name, since the partition is done by mappers
+    Supplier oppList = args[2].addr;
+    string PAName[2] = {
+        nl->SymbolValue(qp->GetType(qp->GetSupplierSon(oppList, 0))),
+        nl->SymbolValue(qp->GetType(qp->GetSupplierSon(oppList, 1)))};
+    //Optional parameters
+    string CreateFilePath = "";
+    int reduceTaskNum = ci->getSlaveSize();
+    int opLen = qp->GetNoSons(oppList);
+    for (int i = 2; i < opLen; i++)
+    {
+      //Only the file path need to be get
+      ListExpr pp = qp->GetType(qp->GetSupplierSon(oppList,i));
+      if (nl->IsEqual(pp, FText::BasicType())){
+        CreateFilePath = ((FText*)
+          qp->Request(qp->GetSupplier(oppList,i)).addr)->GetValue();
+      }
+      else if(nl->IsEqual(pp, CcInt::BasicType())){
+        reduceTaskNum = ((CcInt*)
+          qp->Request(qp->GetSupplier(oppList,i)).addr)->GetValue();
+      }
+    }
+
+    ListExpr resultType = qp->GetType(s);
+    fList* resultFList = 0;
+
+    fList* inputFList[2] = {(fList*)args[0].addr, (fList*)args[1].addr};
+    int dupTimes[2] = { inputFList[0]->getDupTimes(),
+                        inputFList[1]->getDupTimes()};
+
+    //Prepare the reduce query
+    ListExpr CreateQueryList;
+    nl->ReadFromString(CreateQuery, CreateQueryList);
+    vector<string> flistParaList;
+    vector<fList*> flistObjList;
+    flistParaList.push_back(inParaName[0]); //The input parameter name
+    flistParaList.push_back(inParaName[1]);
+    flistObjList.push_back(inputFList[0]);  //The input parameter value
+    flistObjList.push_back(inputFList[1]);
+    vector<string> DLF_NameList, DLF_fileLocList;
+
+    bool ok = true;
+    //Process all para operators inside the reduce query
+    CreateQueryList = replaceParaOp(
+        CreateQueryList, flistParaList, flistObjList, ok);
+    if (!ok){
+      cerr << "Replace para operation fails" << endl;
+    }
+    else{
+      //Replace parameter value according to their flist value
+      for (size_t i = 0; i < flistParaList.size(); i++)
+      {
+        //The top two flists are input arguments for the inter-query
+        //they are re-partitioned in the map step.
+        int argIndex = ((i == 0 || i == 1)? (i+1) : 0);
+        CreateQueryList =
+            replaceFList(CreateQueryList,
+                flistParaList[i], flistObjList[i],
+                DLF_NameList, DLF_fileLocList, ok, argIndex);
+        if (!ok)
+          break;
+      }
+    }
+
+    NList dlfNameList, dlfLocList;
+    vector<pair<int, pair<int, int> > > hpResult;
+    if (!ok){
+      cerr << "Reading flist data fails." << endl;
+    }
+    else
+    {
+      for (size_t i = 0; i < DLF_NameList.size(); i++)
+      {
+        dlfNameList.append(NList(DLF_NameList[i], true, false));
+        ListExpr locList;
+        nl->ReadFromString(DLF_fileLocList[i], locList);
+        dlfLocList.append(NList(locList));
+      }
+
+      //The recognition of the function argument
+      string inputRcg[2] = {"", ""};
+      for (int i = 0; i < 2; i++)
+      {
+        if (inputFList[i]->getKind() == DLO)
+          inputRcg[i] = inputFList[i]->getSubName();
+        else
+          inputRcg[i] = "<DLFMark:Arg" + int2string(i+1) + ":"
+            + inputFList[i]->getSubName() + "/>";
+      }
+
+      //Call the Hadoop job
+      stringstream queryStr;
+      queryStr
+        << "hadoop jar ParallelSecondo.jar "
+            "ParallelSecondo.PS_HadoopReduce2 \\\n"
+        << dbName << " " << CreateObjectName << " \\\n"
+        << " \"" << tranStr(nl->ToString(CreateQueryList),
+            "\"", "\\\"") << "\" \\\n"
+        << " \"" << tranStr(dlfNameList.convertToString(),
+            "\"", "\\\"") << "\" \\\n"
+        << " \"" << tranStr(dlfLocList.convertToString(),
+            "\"", "\\\"") << "\" \\\n"
+        << " \"" << CreateFilePath << "\" \\\n"
+        << " \"" << inputRcg[0]
+            << "\" "<< dupTimes[0] << " \"" << PAName[0]<< "\" "
+        << " \"" << inputRcg[1]
+            << "\" "<< dupTimes[1] << " \"" << PAName[1]<< "\" "
+        << reduceTaskNum << " " << kind
+        << endl;
+      int rtn = -1;
+      cout << queryStr.str() << endl;
+      rtn = system(queryStr.str().c_str());
+      ok = (rtn == 0);
+
+      if (ok)
+      {
+        FILE *fs;
+        char buf[MAX_STRINGSIZE];
+        fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
+        if (NULL != fs)
+        {
+          while(fgets(buf, sizeof(buf), fs))
+          {
+            stringstream ss;
+            ss << buf;
+            stringstream iss(ss.str());
+            int rowIndex, columnIndex, slaveIndex;
+            iss >> rowIndex >> columnIndex >> slaveIndex;
+
+            hpResult.push_back(pair<int, pair<int, int> >
+              (rowIndex, pair<int, int>(columnIndex, slaveIndex)));
+          }
+        }
+        else
+          ok = false;
+        pclose(fs);
+      }
+    }
+
+    if (ok)
+    {
+      NList fileLocList;
+      if (kind == DLO)
+         CreateFilePath = dbLoc;
+
+      //Create file location list
+      vector<pair<int, pair<int, int> > >::iterator rit;
+      int exRowIndex = 1;  //expected row number
+      for ( rit = hpResult.begin(); rit != hpResult.end(); rit++)
+      {
+        int rowIndex = rit->first;
+        for (; exRowIndex <= rowIndex; exRowIndex++)
+        {
+          NList newRow = NList();
+          if (rowIndex == exRowIndex){
+            int columnIndex = rit->second.first;
+            int slaveIndex = rit->second.second;
+            newRow = NList(NList(slaveIndex), NList(columnIndex).enclose(),
+                NList(CreateFilePath, true, true));
+          }
+          if (fileLocList.isEmpty()){
+            fileLocList.makeHead(newRow);
+          }
+          else{
+            fileLocList.append(newRow);
+          }
+        }
+      }
+
+      resultFList = new fList(CreateObjectName, NList(resultType),
+          ci, fileLocList,
+          1,         //dup time
+          true,      //is distributed
+          kind);     //kind
+
+    }
+
+    result.setAddr(resultFList);
+  }
+  //TODO add the progress estimation in the future
+  //  else if ( message == REQUESTPROGRESS )
+  //  else if ( message == CLOSEPROGRESS )
+
+    return 0;
+
+}
+
+Operator hadoopReduce2OP(
+    hadoopReduce2Info(), hadoopReduce2ValueMap, hadoopReduce2TypeMap);
+
+
+
 
 
 
@@ -7411,7 +7922,7 @@ this value should be re-distributed and be replaced in the map step.
 */
 ListExpr replaceFList(ListExpr createQuery, string listName,
     fList* listObject, vector<string>& DLF_NameList,
-    vector<string>& DLF_fileLocList, bool& ok, bool isArg/* = false*/)
+    vector<string>& DLF_fileLocList, bool& ok, int argIndex/* = 0*/)
 {
   if (!ok)
   {
@@ -7436,8 +7947,13 @@ ListExpr replaceFList(ListExpr createQuery, string listName,
           }
           case DLF:{
             stringstream ss;
-            ss << "<DLFMark:" << (isArg ? "Arg:" : "") << objectName << "/>";
+            ss << "<DLFMark:";
+            if (argIndex > 0){
+              ss << "Arg" << argIndex << ":";
+            }
+            ss << objectName << "/>";
             DLF_NameList.push_back(ss.str());
+
             DLF_fileLocList.push_back(
                 listObject->getLocList().convertToString());
             return nl->StringAtom(ss.str(),true);
@@ -7459,9 +7975,9 @@ ListExpr replaceFList(ListExpr createQuery, string listName,
   else
   {
     return (nl->Cons(replaceFList(nl->First(createQuery),
-        listName, listObject, DLF_NameList, DLF_fileLocList, ok, isArg),
+        listName, listObject, DLF_NameList, DLF_fileLocList, ok, argIndex),
                      replaceFList(nl->Rest(createQuery),
-        listName, listObject, DLF_NameList, DLF_fileLocList, ok, isArg)));
+        listName, listObject, DLF_NameList, DLF_fileLocList, ok, argIndex)));
   }
 }
 
@@ -7598,12 +8114,16 @@ public:
     AddOperator(&paraOp);
 
     AddOperator(TParaInfo(), 0, TParaTypeMapping);
+    AddOperator(TPara2Info(), 0, TPara2TypeMapping);
 
     AddOperator(&hadoopMapOP);
     hadoopMapOP.SetUsesArgsInTypeMapping();
 
     AddOperator(&hadoopReduceOP);
     hadoopReduceOP.SetUsesArgsInTypeMapping();
+
+    AddOperator(&hadoopReduce2OP);
+    hadoopReduce2OP.SetUsesArgsInTypeMapping();
 
     AddOperator(&cflOp);
     cflOp.SetUsesArgsInTypeMapping();
