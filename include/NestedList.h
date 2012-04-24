@@ -1193,8 +1193,20 @@ template functions
    }
    else if ( !IsAtom( list1 ) && !IsAtom( list2 ) )
    {
-     return (EqualTemp<EXACT>( First( list1 ), First( list2 ), t ) &&
-             EqualTemp<EXACT>( Rest( list1 ), Rest( list2 ), t ));
+     ListExpr rest1 = list1;
+     ListExpr rest2 = list2;
+     while(!IsEmpty(rest1) && !IsEmpty(rest2)){
+         if(!EqualTemp<EXACT>( First( rest1 ), First( rest2 ), t )){
+           return false;
+         }
+         rest1 = Rest(rest1);
+         rest2 = Rest(rest2);
+     }
+     if(!IsEmpty(rest1) || !IsEmpty(rest2)){
+        // different lengths 
+       return false;
+     }
+     return true;
    }
    else
    {
