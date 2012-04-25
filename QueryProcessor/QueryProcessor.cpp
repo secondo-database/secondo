@@ -2232,7 +2232,7 @@ will be processed.
                                        nl->First(first),
                                        nl->Second(first),
                                        nl->IntAtom(alId),
-                                       nl->IntAtom(opId)),
+                                       nl->IntAtom(opFunId)),
                                      nl->Second(nl->First(list))),
                                    nl->Rest(list));
 
@@ -3100,6 +3100,16 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->u.op.theOperator = algebraManager
                                  ->getOperator(node->u.op.algebraId, opId);
       node->u.op.valueMap = node->u.op.theOperator->GetValueMapping(funId);
+      if(!node->u.op.costEstimation){
+              CreateCostEstimation createCE = 
+                      node->u.op.theOperator->getCreateCostEstimation(funId);
+           if(createCE){
+             node->u.op.costEstimation = createCE();
+             node->u.op.costEstimation->setSupplier(node);
+             node->u.op.supportsProgress = true;
+             node->u.op.argsAvailable = false;
+           } 
+      }
 
       //check whether this operator does not use automatic evaluation
       //of arguments, but uses explicit requests instead
