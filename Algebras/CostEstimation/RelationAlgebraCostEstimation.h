@@ -430,7 +430,7 @@ class FeedProjLocalInfo : public FeedLocalInfo
     ~FeedProjLocalInfo()
     {
        if ( tt->DeleteIfAllowed() ) {
-	 tt = 0;
+          tt = 0;
        }
     }
 
@@ -483,8 +483,8 @@ public:
           fli->attrSize = new double[fli->noAttrs];
           fli->attrSizeExt = new double[fli->noAttrs];
 
-	        fli->argTupleSize = rr->GetTotalExtSize()
-		        / (fli->total + 0.001);
+          fli->argTupleSize = rr->GetTotalExtSize()
+              / (fli->total + 0.001);
 
           for( int i = 0; i < fli->noAttrs; i++)
           {
@@ -494,10 +494,10 @@ public:
             index = ((CcInt*) elem.addr)->GetIntval();
             
             fli->attrSize[i] = rr->GetTotalSize(index-1)
-		          / (fli->total + 0.001);
+              / (fli->total + 0.001);
             
             fli->attrSizeExt[i] = rr->GetTotalExtSize(index-1)
-		          / (fli->total + 0.001);
+              / (fli->total + 0.001);
 
             fli->Size += fli->attrSize[i];
             fli->SizeExt += fli->attrSizeExt[i];
@@ -517,15 +517,15 @@ public:
           pRes->CopySizes(fli);  //copy all sizes
 
           pRes->Time = (fli->total + 1) *
-		(uFeedProject
-		+ fli->argTupleSize * vFeedProject
-		+ fli->noAttrs * wFeedProject);
+            (uFeedProject
+            + fli->argTupleSize * vFeedProject
+            + fli->noAttrs * wFeedProject);
 
           //any time value created must be > 0; so we add 1
 
           pRes->Progress = fli->returned * (uFeedProject
-		+ fli->argTupleSize * vFeedProject
-		+ fli->noAttrs * wFeedProject)
+            + fli->argTupleSize * vFeedProject
+            + fli->noAttrs * wFeedProject)
             / pRes->Time;
 
           pRes->BTime = 0.001; //time must not be 0
@@ -542,14 +542,14 @@ public:
           pRes->CopySizes(p1);
 
           pRes->Time = p1.Time + p1.Card * (uFeedProject
-		+ fli->argTupleSize * vFeedProject
-		+ fli->noAttrs * wFeedProject);
+            + fli->argTupleSize * vFeedProject
+            + fli->noAttrs * wFeedProject);
 
           pRes->Progress =
              ((p1.Progress * p1.Time) +
               (fli ? fli->returned : 0) * (uFeedProject
-		+ fli->argTupleSize * vFeedProject
-		+ fli->noAttrs * wFeedProject))
+                + fli->argTupleSize * vFeedProject
+                + fli->noAttrs * wFeedProject))
               / pRes->Time;
 
           pRes->BTime = p1.Time;
