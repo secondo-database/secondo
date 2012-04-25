@@ -905,7 +905,8 @@ public:
       delete liA;
       delete liB;
     }
-
+    tupleTypeA->DeleteIfAllowed();
+    tupleTypeB->DeleteIfAllowed();
     delete grpB;
     resultTupleType->DeleteIfAllowed();
   }
@@ -1352,7 +1353,6 @@ struct SymmOuterJoinLocalInfo
   
   bool nullTuples;
   
-  SmiKeyedFileIterator *smiIter;
   TupleBuffer *rightRel2;
   TupleBuffer *leftRel2;  
   
@@ -1446,7 +1446,6 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
       pli->leftHash = new Hash( INT, true );
       
       pli->nullTuples = false;
-      pli->smiIter = new SmiKeyedFileIterator( true );    
       pli->rightRel2 = new TupleBuffer( MAX_MEMORY / 2 );
       pli->leftRel2 = new TupleBuffer( MAX_MEMORY / 2 );  
 
@@ -1479,18 +1478,18 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
           if ( rightOuterTuple != 0 )
           {
             SmiKeyedFile *file = pli->rightHash->GetFile();
-            SmiRecord* record = new SmiRecord();            
+            SmiRecord record;            
             
             while ( rightOuterTuple != 0 && 
               file->SelectRecord( 
-                SmiKey((long)rightOuterTuple->GetTupleId()), *record ))
+                SmiKey((long)rightOuterTuple->GetTupleId()), record ))
             {
               // if we find the tupleid in the hash file, 
               //the tuple is already matched,
               // so we can ignore it.
               // curiosly, record size is 0 when we find the tuple 
               //id in the hashfile
-              if ( record->Size() == 0 ) {                
+              if ( record.Size() == 0 ) {                
                 rightOuterTuple->DeleteIfAllowed();
                 rightOuterTuple = 0;                  
                 rightOuterTuple = pli->rightIter->GetNextTuple();
@@ -1522,18 +1521,18 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
           if ( leftOuterTuple != 0 )
           {
             SmiKeyedFile *file = pli->leftHash->GetFile();
-            SmiRecord* record = new SmiRecord();
+            SmiRecord record;
             
             while ( leftOuterTuple != 0 && 
               file->SelectRecord( 
-                SmiKey((long)leftOuterTuple->GetTupleId()), *record ))
+                SmiKey((long)leftOuterTuple->GetTupleId()), record ))
             {
               // if we find the tupleid in the hash file, 
               // the tuple is already matched,
               // so we can ignore it.
               // curiosly, record size is 0 when we find 
               // the tuple id in the hashfile            
-              if ( record->Size() == 0 ) {                
+              if ( record.Size() == 0 ) {                
                 leftOuterTuple->DeleteIfAllowed();
                 leftOuterTuple = 0;                  
                 leftOuterTuple = pli->leftIter->GetNextTuple(); 
@@ -1825,6 +1824,20 @@ public:
       undefRight = 0;
       undefLeft = 0;
   }
+
+
+  ~SymmOuterJoinLocalInfo(){
+     if(undefRight){
+        undefRight->DeleteIfAllowed();
+        undefRight=0;
+     }
+     if(undefLeft){
+       undefLeft->DeleteIfAllowed();
+       undefLeft=0;
+     }
+     tupleTypeRight->DeleteIfAllowed();
+     tupleTypeLeft->DeleteIfAllowed();
+  }
   
   Word streamRight;
   Word streamLeft;
@@ -1846,7 +1859,6 @@ public:
   Hash *leftHash;
   bool nullTuples;
   
-  SmiKeyedFileIterator *smiIter;
   TupleBuffer *rightRel2;
   TupleBuffer *leftRel2;  
   
@@ -1946,7 +1958,6 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
       pli->rightHash = new Hash( SmiKey::Integer, true );
       pli->leftHash = new Hash( SmiKey::Integer, true );
       pli->nullTuples = false;
-      pli->smiIter = new SmiKeyedFileIterator( true );    
       pli->rightRel2 = new TupleBuffer( MAX_MEMORY / 2 );
       pli->leftRel2 = new TupleBuffer( MAX_MEMORY / 2 );
 
@@ -1982,11 +1993,11 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
           if ( rightOuterTuple != 0 )
           {
             SmiKeyedFile *file = pli->rightHash->GetFile();
-            SmiRecord* record = new SmiRecord();            
+            SmiRecord record;            
             
             while ( rightOuterTuple != 0 && 
               file->SelectRecord( 
-                SmiKey((long)rightOuterTuple->GetTupleId()), *record ))
+                SmiKey((long)rightOuterTuple->GetTupleId()), record ))
             {
               // if we find the tupleid in the hash file, 
               //the tuple is already matched,
@@ -2001,7 +2012,8 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             if ( rightOuterTuple != 0 )
             {
               Tuple *resultTuple = new Tuple( pli->resultTupleType );
-              Concat( rightOuterTuple, pli->NextUndefinedLeft(), resultTuple );
+              Tuple* nextUndefinedLeft = pli->NextUndefinedLeft();
+              Concat( rightOuterTuple, nextUndefinedLeft, resultTuple );
               rightOuterTuple->DeleteIfAllowed();
               rightOuterTuple = 0;  
               result.setAddr( resultTuple );
@@ -2020,11 +2032,11 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
           if ( leftOuterTuple != 0 )
           {
             SmiKeyedFile *file = pli->leftHash->GetFile();
-            SmiRecord* record = new SmiRecord();
+            SmiRecord record;
             
             while ( leftOuterTuple != 0 && 
               file->SelectRecord( 
-                SmiKey((long)leftOuterTuple->GetTupleId()), *record ))
+                SmiKey((long)leftOuterTuple->GetTupleId()), record ))
             {
               // if we find the tupleid in the hash file, 
               // the tuple is already matched,
@@ -2039,7 +2051,8 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             if ( leftOuterTuple != 0 )
             {
               Tuple *resultTuple = new Tuple( pli->resultTupleType );
-              Concat( pli->NextUndefinedRight(), leftOuterTuple, resultTuple );
+              Tuple* nextUndefinedRight = pli->NextUndefinedRight();
+              Concat( nextUndefinedRight , leftOuterTuple, resultTuple );
               leftOuterTuple->DeleteIfAllowed();
               leftOuterTuple = 0;  
               result.setAddr( resultTuple );
