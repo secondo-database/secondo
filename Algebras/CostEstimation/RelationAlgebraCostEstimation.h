@@ -27,10 +27,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 /*
-3.0 ~class~ FeedLocalInfo
+1.0 ~class~ FeedLocalInfo
 
 */
-
 
 class FeedLocalInfo: public ProgressLocalInfo
 {
@@ -49,7 +48,7 @@ public:
 
 
 /*
-3.0 ~class~ CostEstimation class for operator filter
+1.1 ~class~ CostEstimation class for operator filter
 
 */
 class FeedCostEst : public CostEstimation 
@@ -158,7 +157,7 @@ public:
 
 
 /*
-3.1 init our class
+1.1.1 init our class
 
 */
   virtual void init(Word* args, void* localInfo) 
@@ -170,7 +169,7 @@ private:
 };
 
 /*
-3.1 Progress data for operator consume
+2.0 Progress data for operator consume
 
 */
 struct consumeLocalInfo
@@ -194,7 +193,7 @@ struct consumeLocalInfo
 };
 
 /**
-3.0 ~Class~ ConsumeCostEst
+2.1 ~class~ ConsumeCostEst
 
 */
 class ConsumeCostEst: public CostEstimation
@@ -223,6 +222,10 @@ class ConsumeCostEst: public CostEstimation
         // 0.001338; millisecs per byte in FLOB
 
     consumeLocalInfo* cli = (consumeLocalInfo*) localInfo;
+
+    if(cli == NULL) {
+       return CANCEL;
+    }
 
     if ( cli->stream.requestProgress( &p1) )
     {
@@ -265,12 +268,10 @@ class ConsumeCostEst: public CostEstimation
     } else {
        return CANCEL;      //no progress available
     }
-
-  
   }
   
 /*
-3.1 init our class
+2.1.1 init our class
 
 */
   virtual void init(Word* args, void* localInfo) 
@@ -283,9 +284,8 @@ private:
 };
 
 
-
 /*
-3.1 ~class~ FilterCostEst
+3.0 ~class~ FilterCostEst
 
 */
 class FilterCostEst: public CostEstimation{
@@ -412,4 +412,600 @@ class FilterLocalInfo{
     FilterCostEst* fce;
 };
 
+/*
+4.0 local info for FeedProject
+
+*/
+
+class FeedProjLocalInfo : public FeedLocalInfo
+{
+  public:
+    double argTupleSize;
+
+    FeedProjLocalInfo(TupleType* ptr) :
+      FeedLocalInfo(), argTupleSize(0), tt(ptr)
+    {
+       returned = 0;
+    }
+    ~FeedProjLocalInfo()
+    {
+       if ( tt->DeleteIfAllowed() ) {
+	 tt = 0;
+       }
+    }
+
+  private:
+    TupleType* tt;
+};
+
+
+/*
+4.1 ~class~ CostEstimation for FeedProject
+
+*/
+class FeedProjectCostEstimation: public CostEstimation 
+{
+
+public:
+   FeedProjectCostEstimation()
+   {
+   }
+
+   virtual ~FeedProjectCostEstimation() {};
+
+   virtual int requestProgress(Word* args, ProgressInfo* pRes, 
+      void* localInfo, bool argsAvialable) {
+      
+      GenericRelation* rr;
+      rr = (GenericRelation*)args[0].addr;
+
+      Word elem(Address(0));
+      Supplier sonOfFeed;
+      int index= 0;
+      
+      ProgressInfo p1;
+      const double uFeedProject = 0.002;     //millisecs per tuple
+      const double vFeedProject = 0.000036;  //millisecs per byte input
+      const double wFeedProject = 0.0018;    //millisecs per attr
+
+      FeedProjLocalInfo* fli = (FeedProjLocalInfo*) localInfo;
+      sonOfFeed = qp->GetSupplierSon(supplier, 0);
+
+      if ( fli )
+      {
+        fli->sizesChanged = false;
+
+        if ( !fli->sizesInitialized )
+        {
+          fli->Size = 0;
+          fli->SizeExt = 0;
+          fli->noAttrs = ((CcInt*)args[2].addr)->GetIntval();
+          fli->attrSize = new double[fli->noAttrs];
+          fli->attrSizeExt = new double[fli->noAttrs];
+
+	        fli->argTupleSize = rr->GetTotalExtSize()
+		        / (fli->total + 0.001);
+
+          for( int i = 0; i < fli->noAttrs; i++)
+          {
+            Supplier son = qp->GetSupplier(args[3].addr, i);
+            qp->Request(son, elem);
+            
+            index = ((CcInt*) elem.addr)->GetIntval();
+            
+            fli->attrSize[i] = rr->GetTotalSize(index-1)
+		          / (fli->total + 0.001);
+            
+            fli->attrSizeExt[i] = rr->GetTotalExtSize(index-1)
+		          / (fli->total + 0.001);
+
+            fli->Size += fli->attrSize[i];
+            fli->SizeExt += fli->attrSizeExt[i];
+            fli->sizesInitialized = true;
+            fli->sizesChanged = true;
+          }
+        }
+      }
+
+      if ( qp->IsObjectNode(sonOfFeed) )
+      {
+        if ( !fli ) {
+           return CANCEL;
+        } else  //an object node, fli defined
+        {
+          pRes->Card = (double) fli->total;
+          pRes->CopySizes(fli);  //copy all sizes
+
+          pRes->Time = (fli->total + 1) *
+		(uFeedProject
+		+ fli->argTupleSize * vFeedProject
+		+ fli->noAttrs * wFeedProject);
+
+          //any time value created must be > 0; so we add 1
+
+          pRes->Progress = fli->returned * (uFeedProject
+		+ fli->argTupleSize * vFeedProject
+		+ fli->noAttrs * wFeedProject)
+            / pRes->Time;
+
+          pRes->BTime = 0.001; //time must not be 0
+
+          pRes->BProgress = 1.0;
+
+          return YIELD;
+        }
+      } else { //not an object node
+        if ( qp->RequestProgress(sonOfFeed, &p1) )
+        {
+          pRes->Card = p1.Card;
+
+          pRes->CopySizes(p1);
+
+          pRes->Time = p1.Time + p1.Card * (uFeedProject
+		+ fli->argTupleSize * vFeedProject
+		+ fli->noAttrs * wFeedProject);
+
+          pRes->Progress =
+             ((p1.Progress * p1.Time) +
+              (fli ? fli->returned : 0) * (uFeedProject
+		+ fli->argTupleSize * vFeedProject
+		+ fli->noAttrs * wFeedProject))
+              / pRes->Time;
+
+          pRes->BTime = p1.Time;
+
+          pRes->BProgress = p1.Progress;
+
+          return YIELD;
+        } else {
+          return CANCEL;
+        }
+   }
+}
+
+/*
+4.1.1 init our class
+
+*/
+  virtual void init(Word* args, void* localInfo)
+  {
+    returned = 0;
+  }
+
+private:
+};
+
+/*
+5.0 class ProductLocalInfo
+
+*/
+class ProductLocalInfo: public ProgressLocalInfo
+{
+public:
+
+  ProductLocalInfo() :
+    resultTupleType(0),
+    currentTuple(0),
+    rightRel(0),
+    iter(0)
+  {}
+
+  ~ProductLocalInfo()
+  {
+    if(currentTuple != 0)
+      currentTuple->DeleteIfAllowed();
+    if( iter != 0 )
+      delete iter;
+    resultTupleType->DeleteIfAllowed();
+    if( rightRel )
+    {
+      rightRel->Clear();
+      delete rightRel;
+    }
+  }
+
+  TupleType *resultTupleType;
+  Tuple* currentTuple;
+  TupleBuffer *rightRel;
+  GenericRelationIterator *iter;
+};
+
+/*
+5.1 ~class~ ProductCostEstimation 
+
+*/
+class ProductCostEstimation: public CostEstimation
+{
+public:
+
+// default constructor
+ProductCostEstimation()
+{
+}
+
+// default destructor
+virtual ~ProductCostEstimation() 
+{
+}
+
+virtual int requestProgress(Word* args, ProgressInfo* pRes, 
+         void* localInfo, bool argsAvialable) {
+      
+      ProgressInfo p1, p2;
+      const double uProduct = 0.0003; //millisecs per byte (right input)
+              //if writing to disk
+      const double vProduct = 0.000042; //millisecs per byte (total output)
+          //if reading from disk
+
+      ProductLocalInfo* pli;
+
+      pli = (ProductLocalInfo*)localInfo;
+
+      if (!pli) {
+         return CANCEL;
+      }
+
+      if (qp->RequestProgress(args[0].addr, &p1)
+       && qp->RequestProgress(args[1].addr, &p2))
+      {
+        pli->SetJoinSizes(p1, p2);
+
+        pRes->Card = p1.Card * p2.Card;
+        pRes->CopySizes(pli);
+
+        pRes->Time = p1.Time + p2.Time +
+          p2.Card * p2.Size * uProduct +
+          p1.Card * p2.Card * pRes->Size * vProduct;
+
+        pRes->Progress =
+          (p1.Progress * p1.Time + p2.Progress * p2.Time +
+           pli->readSecond * p2.Size * uProduct +
+           pli->returned * pRes->Size * vProduct)
+          / pRes->Time;
+
+
+        pRes->BTime = p1.BTime + p2.BTime +
+          p2.Card * p2.Size * uProduct;
+
+        pRes->BProgress =
+          (p1.BProgress * p1.BTime + p2.BProgress * p2.BTime +
+           pli->readSecond * p2.Size * uProduct)
+          / pRes->BTime;
+
+        return YIELD;
+      } else {
+        return CANCEL;
+      }
+}
+
+/*
+5.1.1 init our class
+
+*/
+  virtual void init(Word* args, void* localInfo)
+  {
+    returned = 0;
+  }
+
+private:
+
+};
+
+
+/*
+6.0 ~class~ ProjectLocalInfo 
+
+*/
+class ProjectLocalInfo: public ProgressLocalInfo
+{
+public:
+
+  ProjectLocalInfo() {
+    tupleType = 0;
+    read = 0;
+  }
+
+  ~ProjectLocalInfo() {
+    tupleType->DeleteIfAllowed();
+    tupleType = 0;
+  }
+
+  TupleType *tupleType;
+};
+
+
+class ProjectCostEstimation: public CostEstimation
+{
+public:
+
+// default constructor
+ProjectCostEstimation()
+{
+}
+
+// default destructor
+virtual ~ProjectCostEstimation()
+{
+}
+
+virtual int requestProgress(Word* args, ProgressInfo* pRes,
+         void* localInfo, bool argsAvialable) {
+
+      ProgressInfo p1;
+      const double uProject = 0.00073;  //millisecs per tuple
+      const double vProject = 0.0004;  //millisecs per tuple and attribute
+
+      ProjectLocalInfo* pli;
+      pli = (ProjectLocalInfo*) localInfo;
+
+      Supplier son;
+      Word elem2(Address(0));
+      int index= 0;
+      
+      if ( !pli ) {
+         return CANCEL;
+      }
+
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+        pli->sizesChanged = false;
+
+        if ( !pli->sizesInitialized )
+        {
+          pli->noAttrs = ((CcInt*)args[2].addr)->GetIntval();
+          pli->attrSize = new double[pli->noAttrs];
+          pli->attrSizeExt = new double[pli->noAttrs];
+        }
+
+        if ( !pli->sizesInitialized || p1.sizesChanged )
+        {
+          pli->Size = 0;
+          pli->SizeExt = 0;
+
+          for( int i = 0; i < pli->noAttrs; i++)
+          {
+            son = qp->GetSupplier(args[3].addr, i);
+            qp->Request(son, elem2);
+            index = ((CcInt*)elem2.addr)->GetIntval();
+            pli->attrSize[i] = p1.attrSize[index-1];
+            pli->attrSizeExt[i] = p1.attrSizeExt[index-1];
+            pli->Size += pli->attrSize[i];
+            pli->SizeExt += pli->attrSizeExt[i];
+          }
+          pli->sizesInitialized = true;
+          pli->sizesChanged = true;
+        }
+
+        pRes->Card = p1.Card;
+        pRes->CopySizes(pli);
+
+        pRes->Time = p1.Time + p1.Card * (uProject + pli->noAttrs * vProject);
+
+    //only pointers are copied; therefore the tuple sizes do not
+    //matter
+
+        if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
+                                                        //use pipelining
+          pRes->Progress = p1.Progress;
+        else
+          pRes->Progress =
+            (p1.Progress * p1.Time +
+              pli->read * (uProject + pli->noAttrs * vProject))
+            / pRes->Time;
+
+  pRes->CopyBlocking(p1);    //non-blocking operator
+
+        return YIELD;
+      } else {
+        return CANCEL;
+      }
+}
+
+/*
+6.0.1 init our class
+
+*/
+  virtual void init(Word* args, void* localInfo)
+  {
+    returned = 0;
+  }
+
+private:
+
+};
+
+/*
+7.0 ~class~ RenameCostEstimation
+
+*/
+class RenameCostEstimation: public CostEstimation
+{
+public:
+
+// default constructor
+RenameCostEstimation()
+{
+}
+
+// default destructor
+virtual ~RenameCostEstimation()
+{
+}
+
+virtual int requestProgress(Word* args, ProgressInfo* pRes,
+         void* localInfo, bool argsAvialable) {
+ 
+      ProgressInfo p1;
+
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+        pRes->Copy(p1);
+        return YIELD;
+      } else {
+        return CANCEL;
+      }
+}
+
+/*
+7.0.1 init our class
+
+*/
+  virtual void init(Word* args, void* localInfo)
+  {
+    returned = 0;
+  }
+
+private:
+
+};
+
+/*
+8.0 ~class~ BufferCostEst
+
+*/
+const int BUFFERSIZE = 52;
+
+template <class T>
+class BufferLocalInfo
+{
+ public:
+ int state;        //0 = initial, 1 = buffer filled,
+       //2 = buffer empty again
+ int noInBuffer;   //tuples read into buffer;
+ int next;     //index of next tuple to be returned;
+ T* buffer[BUFFERSIZE];
+};
+
+/*
+8.1 ~class~ CostEstimation class for operator buffer
+
+*/
+class BufferCostEst : public CostEstimation 
+{
+
+public:
+    BufferCostEst()
+    {
+    }
+
+  virtual ~BufferCostEst() {};
+
+  virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo,
+    bool argsAvialable) {
+      
+      ProgressInfo p1;
+
+      if ( qp->RequestProgress(args[0].addr, &p1) )
+      {
+        pRes->Copy(p1);
+        return YIELD;
+      } else {
+        return CANCEL;
+      }
+   }
+
+/*
+8.1.1 init our class
+
+*/
+  virtual void init(Word* args, void* localInfo)
+  {
+    returned = 0;
+  }
+
+private:
+};
+
+
+/*
+9.0 ~class~ CostEstimation class for operator count
+
+*/
+class TCountRelCostEst : public CostEstimation 
+{
+
+public:
+    TCountRelCostEst()
+    {   
+    }   
+
+  virtual ~TCountRelCostEst() {}; 
+
+  virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo,
+    bool argsAvialable) {
+    
+    ProgressInfo p1;
+    Supplier sonOfCount;
+    sonOfCount = qp->GetSupplierSon(supplier, 0);
+
+    if ( qp->IsObjectNode(sonOfCount) )
+    {
+      return CANCEL;
+    }
+    else
+    {
+      cout << "Request Progress in TCountRelCostEst called " << endl;
+      if ( qp->RequestProgress(sonOfCount, &p1) )
+      {
+        pRes->Copy(p1);
+        return YIELD;
+      } else {
+        return CANCEL;
+      }
+    }
+  }
+
+/*
+9.0.1 init our class
+
+*/
+  virtual void init(Word* args, void* localInfo)
+  {
+    returned = 0;
+  }
+
+private:
+};
+
+
+/*
+10.0 ~class~ CostEstimation class for operator count
+
+*/
+class TCountStreamCostEst : public CostEstimation 
+{
+
+public:
+    TCountStreamCostEst()
+    {   
+    }   
+
+  virtual ~TCountStreamCostEst() {}; 
+
+  virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo,
+    bool argsAvialable) {
+    
+    ProgressInfo p1;
+    
+    if (args[0].addr != NULL && qp->RequestProgress(args[0].addr, &p1) )
+    {
+      cout << "Request Progress in TCountStreamCostEst called " << endl;
+      pRes->Copy(p1);
+      return YIELD;
+    } else {
+      return CANCEL;
+    }   
+}
+
+/*
+10.0.1 init our class
+
+*/
+  virtual void init(Word* args, void* localInfo)
+  {
+    returned = 0;
+  }
+
+private:
+};
 #endif
