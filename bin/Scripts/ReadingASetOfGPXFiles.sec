@@ -12,11 +12,15 @@ let Raw =  getDirectory('/home/ralf/Tracks') transformstream
     projectextend[Time, Lon, Lat, Ele; TrackId: attr(t, TrackId), Pos: makepoint(.Lon, .Lat)]]
   consume
 
-# create Trip and Altitude for each day
+# create Trip and Altitude for each day. Filter out very long connections of two successive 
+# points from the raw data.
 
 let twohours = [const duration value (0 7200000)]
 
 let DayTrips =  Raw feed 
+  extend_last[Seg: makeline(.Pos, ..Pos)::[const line value undef]] 
+  extend[Length: size(.Seg)] 
+  filter[.Length < 0.001]
   extend[
     I: .Time + twohours, 
     Alt: .Ele] 
@@ -26,20 +30,25 @@ let DayTrips =  Raw feed
     DayAlt: group feed approximate[I, Alt, [const duration value (0 300000)]] ]
   consume
 
-# determine trajectory and speed of a trip
 
-query DayTrips feed filter[.TrackId = 5] extend[Traj: trajectory(.DayTrip), Speed: speed(.DayTrip, create_geoid("WGS1984")) * 3.6]
+# alternative representation: split by trips
+
+let Trips = DayTrips feed 
+  projectextendstream[TrackId
+  ; Trip: .DayTrip sim_trips[ [const duration value (0 300000)]] ]
+  extend[Traj: trajectory(.Trip)]
   consume
 
-# create a nested relation that contains only units with speed less than 200 km/h (data cleaning)
 
-let DayTrips2 = DayTrips feed 
-  projectextend[TrackId; CleanedTrip: units(.DayTrip) 
-    namedtransformstream[UTrip]
-    extend[Speed: val(initial(speed(.UTrip, create_geoid("WGS1984")))) * 3.6]
-    filter[.Speed < 200.0]
-    extend[Traj: trajectory(.UTrip)]
-    aconsume]
+
+# Match all trips
+
+let MatchedTrips = Trips feed addcounter[No, 1] 
+  extend[Matched: omapmatchmht(Edges, EdgeIndex_Box_rtree, EdgeIndex, .Trip) aconsume] 
   consume
 
+# 407 seconds
+# 169 Trips matched with 41294 units
+
+# 2.4 secs per trip with 244 units per trip
 
