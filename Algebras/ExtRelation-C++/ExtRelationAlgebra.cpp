@@ -12249,6 +12249,7 @@ class applyToAllLocalInfo{
           p = positions[p_index];
        }
      }
+     inTuple->DeleteIfAllowed();
      return resTuple;
    }
 
