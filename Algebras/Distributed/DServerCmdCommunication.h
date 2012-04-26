@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2012, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -34,10 +34,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 /*
 
-[1] Class DServerCmdCommunication definition
+[1] Class DServerCmdCommunication Definition
 
 \begin{center}
-March 2012 Thomas Achmann
+April 2012 Thomas Achmann
 \end{center}
 
 [TOC]
@@ -47,8 +47,7 @@ March 2012 Thomas Achmann
 The class ~DServerCmdCommunication~ is a helper class for communication
 between master and workers. It implements basic communication functinonality
 with another host via an iostream. The socket connection itself
-is performed elsewhere.
-
+is established in another class.
 
 */
 
@@ -63,20 +62,16 @@ is performed elsewhere.
 #define H_DSERVERCMDCOMMUNICATION_H
 
 /*
-
 1.2 Debug output
 
 uncomment the following line, if debug output should
 be written to stdout
 
 */
-
-
-// #define DS_CMD_COMM_DEBUG 1
+//#define DS_CMD_COMM_DEBUG 1
 
 
 /*
-
 1.3 Includes
 
 */
@@ -96,7 +91,7 @@ public:
 
 /*
 
-2.1 Default constructor
+2.1 Default Constructor
 
 */
   DServerCmdCommunication()
@@ -106,7 +101,7 @@ public:
 
 2.2 Constructor 
 
-  * string BBGMSG - adds a string infront of any debug msg
+  * const string[&] DBGMSG - adds a string infront of any debug msg
 
 */
   DServerCmdCommunication(const std::string& DBGMSG)
@@ -115,7 +110,7 @@ public:
 
 /*
 
-2.3 Default destructor
+2.3 Destructor
 
 */
   virtual ~DServerCmdCommunication() {}
@@ -124,7 +119,7 @@ public:
 
 2.4 Method ~bool setStream~
 
-  * iostream inStream  - the stream used for communication 
+  * iostream[&] inStream  - the stream used for communication 
 
   * returns true, if stream is usable
 
@@ -493,7 +488,7 @@ sets the output string of debug output
 
 /*
 
-2.8 Private section
+2.8 Private Section
 
 2.8.1 Private Methods
 
@@ -503,7 +498,7 @@ private:
 
 /*
 
-2.9 Private members
+2.9 Private Members
 
 */
   // the socket stream 
@@ -514,7 +509,7 @@ private:
 
 /*
 
-2.10 End of class
+2.10 End of Class
 
 */
 };
