@@ -64,6 +64,7 @@ public:
   virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo, 
     bool argsAvialable) {
       
+return CANCEL;
       GenericRelation* rr;
       rr = (GenericRelation*)args[0].addr;
 
@@ -81,7 +82,6 @@ public:
 
       FeedLocalInfo* fli = (FeedLocalInfo*) localInfo;
       sonOfFeed = qp->GetSupplierSon(supplier, 0);
-
       if ( fli )
       {
         fli->sizesChanged = false;
@@ -938,13 +938,14 @@ public:
     Supplier sonOfCount;
     sonOfCount = qp->GetSupplierSon(supplier, 0);
 
+    //cout << "Request Progress in TCountRelCostEst called " << endl;
+    
     if ( qp->IsObjectNode(sonOfCount) )
     {
       return CANCEL;
     }
     else
     {
-      cout << "Request Progress in TCountRelCostEst called " << endl;
       if ( qp->RequestProgress(sonOfCount, &p1) )
       {
         pRes->Copy(p1);
@@ -987,9 +988,10 @@ public:
     
     ProgressInfo p1;
     
-    if (args[0].addr != NULL && qp->RequestProgress(args[0].addr, &p1) )
+   // cout << "Request Progress in TCountStreamCostEst called " << endl;
+    
+    if (qp->RequestProgress(args[0].addr, &p1) )
     {
-      cout << "Request Progress in TCountStreamCostEst called " << endl;
       pRes->Copy(p1);
       return YIELD;
     } else {
