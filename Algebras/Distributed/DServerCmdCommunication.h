@@ -62,7 +62,7 @@ is established in another class.
 #define H_DSERVERCMDCOMMUNICATION_H
 
 /*
-1.2 Debug output
+1.2 Debug Output
 
 uncomment the following line, if debug output should
 be written to stdout

@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-[1] DServerThreadRunner
+[1] Class DServerThreadRunner Definition
 
 
 \begin{center}

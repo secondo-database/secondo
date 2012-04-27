@@ -36,7 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-[1] DServerParamStorage
+[1] Class DServerParamStorage Implementation
 
 \begin{center}
 April 2012 Thomas Achmann
