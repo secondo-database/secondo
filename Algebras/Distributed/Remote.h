@@ -106,15 +106,30 @@ public:
   int getNumChilds() const { return m_numChilds;}
       
   bool checkServer(bool writeError) const;
-  string getErrorText() { return errorText; }
-  void int2Str(int i, string& ret)
+  string getErrorText() { return m_errorText; }
+  void int2Str(int i, string& ret) const
   {
     std::stringstream out;
     out << i;
     ret = out.str();
   }
 
-  const string& GetHostName() const { return m_host; }
+  const string& getServerHostName() const { return m_host; }
+
+  string getServerPortStr() const 
+  {
+    string ret;
+    int2Str(m_port, ret);
+    return ret;
+  }
+  int getServerPort() const { return m_port; }
+
+
+  void setErrorText(const string& inErrText)
+  { 
+    m_error = true;
+    m_errorText = inErrText; 
+  }
 public:
   class RemoteCommand
   {
@@ -169,6 +184,9 @@ public:
   friend ostream& operator << (ostream&, RemoteCommand&) ;
   void print() const;
 
+
+  Socket *getServer() { return m_server; }
+  const Socket *getServer() const { return m_server; }
 private:
 
   string m_host;
@@ -176,11 +194,11 @@ private:
 
   RemoteCommand* m_cmd;
 
-  int port;
+  int m_port;
   ListExpr m_type;
   string m_typeStr;
 
-  Socket* server;
+  Socket* m_server;
          
   Socket* cbworker;
 
@@ -189,7 +207,8 @@ private:
                   
   bool rel_open;
    
-  string errorText;
+  string m_errorText;
+  bool m_error;
 };
 
 class DServerManager

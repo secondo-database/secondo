@@ -95,13 +95,13 @@ DServer::DServer(string n_host,int n_port,string n_name,
                  ListExpr inType)
 {
    m_host = n_host;
-   port = n_port;
+   m_port = n_port;
    name = n_name;
    m_type = inType;
 
    DBAccess::getInstance() -> NL_ToString(m_type, m_typeStr);
 
-   errorText = "OK";
+   setErrorText("OK");
    
    rel_open = false;
    m_cmd = NULL;
@@ -114,21 +114,21 @@ DServer::connectToWorker()
   //StopWatch watch;
 
   string line;
-  server = Socket::Connect( m_host, toString_d(port), 
-                      Socket::SockGlobalDomain,
-                      5,
-                      1);
+  m_server = Socket::Connect( getServerHostName(), getServerPortStr(), 
+                              Socket::SockGlobalDomain,
+                              5,
+                              1);
       
-  if(server!=0 && server->IsOk())
+  if(getServer()!=0 && getServer()->IsOk())
     {
       DServer::Debug("DS-Conn", "starting ...");
       
-      iostream& iosock = server->GetSocketStream();
+      iostream& iosock = getServer()->GetSocketStream();
       
-      if (!server -> IsOk())
+      if (!getServer() -> IsOk())
       {
         cout << "Error: Faild to establish socket for host " 
-             << m_host << ":" << port << "!" << endl;
+             << getServerHostName() << ":" << getServerPortStr() << "!" << endl;
       }
       
       do
@@ -138,10 +138,12 @@ DServer::connectToWorker()
         DServer::Debug("DSConn-Rec1", line);
       } while (line.empty());
       
-      if (!server -> IsOk())
+      if (!getServer() -> IsOk())
       {
         cout << "Error: Faild to establish socket for connection"
-             << " to host " << m_host << ":" << port << "!" << endl;
+             << " to host " 
+             << getServerHostName() << ":" << getServerPortStr() 
+             << "!" << endl;
       }
       
       if(line=="<SecondoOk/>")
@@ -169,16 +171,15 @@ DServer::connectToWorker()
               
           }
         else 
-          errorText = 
-            "Unexpected response from worker (No <SecondoIntro/>)";
+          setErrorText("Unexpected response from worker (No <SecondoIntro/>)");
       }
       else 
-      errorText = "Unexpected response from worker (No <SecondoOk/>)";
+        setErrorText("Unexpected response from worker (No <SecondoOk/>)");
     }
   else 
-    errorText = "Connection to the worker couldn't be established!";
+    setErrorText("Connection to the worker couldn't be established!");
   
-  if (server == 0)
+  if (getServer() == 0)
     {
       // should never happen
       // Socket::Connect always returns a pointer!
@@ -186,19 +187,19 @@ DServer::connectToWorker()
       return false;
     }
       
-  if (!(server -> IsOk()))
+  if (!(getServer() -> IsOk()))
     { 
       cout << "Cannot Connect to Server:" 
-         << m_host << ":" << toString_d(port) << endl;
-      cout << server -> GetErrorText() << endl;
+           << getServerHostName() << ":" << getServerPortStr() << endl;
+      cout << getServer() -> GetErrorText() << endl;
 
-      delete server;
-      server = 0;
+      delete m_server;
+      m_server = 0;
 
       return false;
     } // if (!(server -> IsOk()))
 
-   iostream& iosock = server->GetSocketStream();
+   iostream& iosock = getServer()->GetSocketStream();
    
    iosock << "<Secondo>" << endl << "1" << endl 
             << "open database distributed" << endl 
@@ -217,8 +218,8 @@ DServer::connectToWorker()
             line.resize(line.size() - 1);*/
          if(line.find("ERROR") != string::npos)
          {
-           errorText = 
-             "Opening of database \"distributed\" on worker failed!";
+           setErrorText(string("Opening of database \"distributed\" ") +
+                        "on worker failed!");
            return false;
          }
                         
@@ -226,10 +227,10 @@ DServer::connectToWorker()
       while(line.find("</SecondoResponse>") == string::npos);
    }
    else 
-      errorText = "Unexpected response from worker (No <SecondoResponse>)";
+     setErrorText("Unexpected response from worker (No <SecondoResponse>)");
         
 
-   HostIP = server->GetSocketAddress();
+   HostIP = getServer()->GetSocketAddress();
    HostIP_ = "h" + stringutils::replaceAll(HostIP,".","_");
    
    //cout << "Connection to Worker on " << host << " established." << endl;
@@ -248,21 +249,21 @@ Breakes the connection to the remote system
 
 void DServer::Terminate()
 {
-   if(server != 0)
+   if(getServer() != 0)
    {
-     if (!(server->IsOk()))
+     if (!(getServer()->IsOk()))
        {
          cout << "Error: Cannot close connection to " << m_host << "!" << endl;
-         cout << server -> GetErrorText() << endl;
+         cout << getServer() -> GetErrorText() << endl;
        }
      else
        {
-         iostream& iosock = server->GetSocketStream();
+         iostream& iosock = getServer()->GetSocketStream();
          iosock << "<Disconnect/>" << endl;
-       server->Close();
+       getServer()->Close();
        }
-     delete server;
-     server=0;
+     delete m_server;
+     m_server=0;
    }
    else
      {
@@ -323,7 +324,7 @@ void DServer::run()
   //cout << "Running:" << (*m_cmd) << " T:" << endl;
   //cout << nl -> ToString(m_type) << endl;
 
-  if ( server == 0 || !(server -> IsOk()))
+  if ( getServer() == 0 || !(getServer() -> IsOk()))
     {
       delete m_cmd;
       m_cmd = NULL;
@@ -347,7 +348,7 @@ void DServer::run()
          arg2 = m_cmd -> getDArrayIndex() ->front();
          m_cmd -> getDArrayIndex() ->pop_front();
         
-         iostream& iosock = server->GetSocketStream();
+         iostream& iosock = getServer()->GetSocketStream();
          string port =toString_d((1800+arg2)); 
          string line;
 
@@ -361,7 +362,7 @@ void DServer::run()
          {
             getline(iosock,line);
             if(line.find("error") != string::npos) 
-               errorText = "Error while deleting element on the worker";
+              setErrorText("Error while deleting element on the worker");
          }
          while(line.find("</SecondoResponse") == string::npos);  
 #endif
@@ -377,8 +378,8 @@ void DServer::run()
 
          if (!(gate -> IsOk()))
            {
-             errorText = "Could not open connection to worker!\n";
-             errorText += gate -> GetErrorText();
+             setErrorText(string("Could not open connection to worker!\n") + 
+                          gate -> GetErrorText());
              return;
            }
 
@@ -386,7 +387,7 @@ void DServer::run()
 
          if (worker == NULL)
            {
-             errorText = "Could not connect to worker!";
+             setErrorText("Could not connect to worker!");
              return;
            }
 
@@ -399,8 +400,8 @@ void DServer::run()
          getline(cbsock1,line);
 
          if(line!="<CLOSE>") 
-            errorText = (string)"Unexpected response from" 
-         + " worker (No <Close> after type transmission)!";
+           setErrorText(string("Unexpected response from") +
+                        " worker (No <Close> after type transmission)!");
          
          //Connection is closed and new connection with value-mapping
          //on the worker is established
@@ -473,8 +474,8 @@ void DServer::run()
          getline(cbsock,line);
 
          if(line!="<FINISH>")
-            errorText = (string)"Unexpected response from worker" 
-                              + " (No <FINISH> after value transmission";
+           setErrorText(string("Unexpected response from worker") +
+                         " (No <FINISH> after value transmission");
                 
 
          worker->Close();delete worker;worker=0;
@@ -483,7 +484,7 @@ void DServer::run()
          {
             getline(iosock,line);
             if(line.find("error") != string::npos) 
-               errorText = "Worker reports an error on storing an element!";
+              setErrorText("Worker reports an error on storing an element!");
             
          }
          while(line.find("</SecondoResponse") == string::npos);
@@ -508,7 +509,7 @@ void DServer::run()
           string master_port =toString_d((1500+arg2));
           
           //The sendD-operator on the worker is started       
-          iostream& iosock = server->GetSocketStream();
+          iostream& iosock = getServer()->GetSocketStream();
           
           DServer::Debug("DSR-READ send iosock",  "<Secondo> 1 query sendD (" + 
                          HostIP_ + ",p" + master_port + ",r" + name +
@@ -584,8 +585,8 @@ void DServer::run()
                   getline(cbsock,line);
                   DServer::Debug("DSR-READ5", line);
                   if(line!="<SIZE>")
-                    errorText = (string)"Unexpected Response from" 
-                      + " worker (<SIZE> expected)!";
+                    setErrorText(string("Unexpected Response from ") +
+                                 "worker (<SIZE> expected)!");
                   
                   //Size of the flob is received
                   getline(cbsock,line);
@@ -595,8 +596,8 @@ void DServer::run()
                   
                   DServer::Debug("DSR-READ7", line);
                   if(line!="</SIZE>")
-                    errorText = (string)"Unexpected Response from " 
-                      + "worker (</SIZE> expected)!";
+                    setErrorText(string("Unexpected Response from ") +
+                                 "worker (</SIZE> expected)!");
                   
                   int n_blocks = si / 1024 + 1;
                   
@@ -621,8 +622,8 @@ void DServer::run()
                   getline(cbsock,line);
                   DServer::Debug("DSR-READ8", line);
                   if(line!="</FLOB>") 
-                    errorText = (string)"Unexpected Response from " 
-                      + "worker (</SIZE> expected)!";
+                    setErrorText(string("Unexpected Response from ") +
+                                 "worker (</SIZE> expected)!");
                   
                   getline(cbsock,line);
                   DServer::Debug("DSR-READ9", line);
@@ -632,8 +633,8 @@ void DServer::run()
               Flob_Mutex.release();
               
               if(line!="<CLOSE>")
-                errorText = (string)"Unexpected Response from " 
-                  + "worker (<CLOSE> expected)!";
+                setErrorText(string("Unexpected Response from ") + 
+                             "worker (<CLOSE> expected)!");
              
               cbsock << "<FINISH>" << endl;
               
@@ -641,14 +642,14 @@ void DServer::run()
                  
             }
           else
-            errorText = "Unexpected response from worker (<SIZE> expected)!";
+            setErrorText("Unexpected response from worker (<SIZE> expected)!");
       
           do
             {
               getline(iosock,line);
               DServer::Debug("DSR-READ10", line);
               if(line.find("error") != string::npos) 
-                errorText = "Worker reports error on sending an element!";
+                setErrorText("Worker reports error on sending an element!");
             }
           while(line.find("</SecondoResponse>") == string::npos);
           
@@ -678,7 +679,7 @@ void DServer::run()
 #endif
           //Element is deleted on the worker
           string line;
-          iostream& iosock = server->GetSocketStream();
+          iostream& iosock = getServer()->GetSocketStream();
           iosock << "<Secondo>" << endl << "1" << endl << "delete r" 
                  << name << toString_d(arg2) << endl << "</Secondo>" 
                  << endl;
@@ -687,7 +688,7 @@ void DServer::run()
             {
               getline(iosock,line);
               if(line.find("error") != string::npos)
-                errorText = "Worker reports error on deleteing element!";
+                setErrorText("Worker reports error on deleteing element!");
             }
           while(line.find("</SecondoResponse>") == string::npos);
 
@@ -699,7 +700,7 @@ void DServer::run()
    {
       if(rel_open) return;
       string line;
-      iostream& iosock = server->GetSocketStream();
+      iostream& iosock = getServer()->GetSocketStream();
 
       string to = ((string*)((*(m_cmd -> getElements()))[0].addr))->data();
                
@@ -719,7 +720,7 @@ void DServer::run()
          {
             getline(iosock,line);
             if(line.find("error") != string::npos)
-               errorText = "Worker reports error on copying element!";
+              setErrorText("Worker reports error on copying element!");
          }
          while(line.find("</SecondoResponse>") == string::npos);
 
@@ -732,7 +733,7 @@ void DServer::run()
       
       if(rel_open) return;
       string line;
-      iostream& iosock = server->GetSocketStream();
+      iostream& iosock = getServer()->GetSocketStream();
 
       string com = ((string*)((*(m_cmd -> getElements()))[0].addr))->data();
       string name = ((string*)((*(m_cmd -> getElements()))[1].addr))->data();
@@ -775,7 +776,7 @@ void DServer::run()
             //cout << "GOT:" << line << endl;
 
             if(line.find("error") != string::npos)
-               errorText = "Worker reports error on executing operation!";
+              setErrorText("Worker reports error on executing operation!");
          }
          while(line.find("</SecondoResponse>") == string::npos);
 
@@ -785,7 +786,7 @@ void DServer::run()
    
    if(m_cmd -> getCmdType() == DS_CMD_OPEN_WRITE_REL)
    {
-     assert(server != 0);
+     assert(getServer() != 0);
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG
      cout << (unsigned long)(this) << " DS_CMD_OPEN_WRITE_REL - start" << endl;
 #endif
@@ -800,7 +801,7 @@ void DServer::run()
       //the d_receive_rel operator is started on the remote worker
              
       string line;
-      iostream& iosock = server->GetSocketStream();
+      iostream& iosock = getServer()->GetSocketStream();
       
       int arg2 = m_cmd -> getDArrayIndex() ->front();
 
@@ -868,7 +869,7 @@ void DServer::run()
         cout << (unsigned long)(this) << " OR Got CB1:" << line << endl;
 #endif
       if(line!="<CLOSE>")
-         errorText = "Unexpected Response from worker (<Close> expected)!";
+        setErrorText("Unexpected Response from worker (<Close> expected)!");
       
       cbworker->Close();
 
@@ -892,7 +893,7 @@ void DServer::run()
         cout << (unsigned long)(this) << " OR Got CB2:" << line << endl;
 #endif
       if(line!="<OK/>")
-         errorText = "Unexpected Response from worker (<Close> expected)!";
+        setErrorText("Unexpected Response from worker (<Close> expected)!");
       
       // sending input tuple type
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
@@ -907,7 +908,7 @@ void DServer::run()
         cout << (unsigned long)(this) << " OR Got CB2:" << line << endl;
 #endif
       if(line!="<OK/>")
-         errorText = "Unexpected Response from worker (<Close> expected)!"; 
+        setErrorText("Unexpected Response from worker (<Close> expected)!"); 
 
       // sending darray index position
 #ifdef DS_CMD_OPEN_WRITE_REL_DEBUG 
@@ -922,7 +923,7 @@ void DServer::run()
         cout << (unsigned long)(this) << " OR Got CB2:" << line << endl;
 #endif
       if(line!="<OK/>")
-         errorText = "Unexpected Response from worker (<Close> expected)!";
+        setErrorText("Unexpected Response from worker (<Close> expected)!");
       
       gate->Close();
       delete gate;
@@ -979,7 +980,7 @@ void DServer::run()
 #endif
       if(line!= "<OK>") 
         {
-          errorText = "Worker unable to receive tuple!";
+          setErrorText("Worker unable to receive tuple!");
 #ifdef DS_CMD_WRITE_REL_DEBUG1
         cout << (unsigned long)(this) 
              << " WR Got CB (EXPETING <OK>!):" << line << endl;
@@ -993,7 +994,7 @@ void DServer::run()
 #endif
       if(atoi(line.data()) != num_blocks) 
         {
-          errorText = "Worker calculated wrong number of blocks!";
+          setErrorText("Worker calculated wrong number of blocks!");
 #ifdef DS_CMD_WRITE_REL_DEBUG1
           cout << (unsigned long)(this) 
                << " WR Got CB (EXPETING INT!):" 
@@ -1006,7 +1007,7 @@ void DServer::run()
 #endif
       if(line!= "</OK>") 
         {
-          errorText = "Worker unable to receive tuple!";
+          setErrorText("Worker unable to receive tuple!");
 #ifdef DS_CMD_WRITE_REL_DEBUG1
           cout << (unsigned long)(this) 
                << " WR Got CB (EXPETING </OK>!):" << line << endl;
@@ -1038,7 +1039,7 @@ void DServer::run()
       string line;
 
       iostream& cbsock = cbworker->GetSocketStream();
-      iostream& iosock = server->GetSocketStream(); 
+      iostream& iosock = getServer()->GetSocketStream(); 
                
       //Sends the close signal and receive <FINISH>
 #ifdef DS_CMD_CLOSE_WRITE_REL_DEBUG
@@ -1053,7 +1054,7 @@ void DServer::run()
 #endif
       if(line != "<FINISH>")
         {
-          errorText = "Unexpected Response from worker! (<FINISH> expected)";
+          setErrorText("Unexpected Response from worker! (<FINISH> expected)");
           delete m_cmd;
           m_cmd = NULL;
           return;
@@ -1068,7 +1069,7 @@ void DServer::run()
 #endif
          if(line.find("errror") != string::npos)
            {
-             errorText = "Worker reports error on closing relation!";
+             setErrorText("Worker reports error on closing relation!");
              delete m_cmd;
              m_cmd = NULL;
              return;
@@ -1100,7 +1101,7 @@ void DServer::run()
            string port =toString_d((1300+arg2));
                 
            //start execution of d_send_rel
-           iostream& iosock = server->GetSocketStream();
+           iostream& iosock = getServer()->GetSocketStream();
            iosock << "<Secondo>" << endl << "1" << endl 
                   << "query d_send_rel (" << HostIP_ << ",p" << port << ",r"
                   << name << toString_d(arg2) << ")" <<  endl 
@@ -1120,7 +1121,7 @@ void DServer::run()
            getline(cbsock,line);
            if (line.empty())
              {
-               errorText = (string)"ERROR: Unknown response from worker!";
+               setErrorText("ERROR: Unknown response from worker!");
                delete m_cmd;
                m_cmd = NULL;
                return;
@@ -1158,8 +1159,8 @@ void DServer::run()
                 
            if(line != "<CLOSE>") 
              {
-               errorText = (string)"Unexpected Response from worker! " 
-                 + "(<CLOSE> or <TUPLE> expected)";
+               setErrorText(string("Unexpected Response from worker! " ) + 
+                            "(<CLOSE> or <TUPLE> expected)");
                
                delete m_cmd;
                m_cmd = NULL;
@@ -1174,7 +1175,7 @@ void DServer::run()
                assert(!line.empty());
                if(line.find("error") != string::npos)
                  {
-                   errorText = "worker reports error on sending relation!";
+                   setErrorText("worker reports error on sending relation!");
                    delete m_cmd;
                    m_cmd = NULL;
                    return;
@@ -1216,7 +1217,7 @@ void DServer::run()
            string port =toString_d((1300+arg2));
                 
            //start execution of d_send_rel
-           iostream& iosock = server->GetSocketStream();
+           iostream& iosock = getServer()->GetSocketStream();
            iosock << "<Secondo>" << endl << "1" << endl 
                   << "query d_send_rel (" << HostIP_ << ",p" << port << ",r"
                   << name << toString_d(arg2) << ")" <<  endl 
@@ -1263,8 +1264,8 @@ void DServer::run()
              }
                 
            if(line != "<CLOSE>") 
-             errorText = (string)"Unexpected Response from worker! " 
-               + "(<CLOSE> or <TUPLE> expected)";
+             setErrorText(string("Unexpected Response from worker! ") +  
+                          "(<CLOSE> or <TUPLE> expected)");
            
            gate->Close(); delete gate; gate=0;
            worker->Close(); delete worker; worker=0;
@@ -1273,7 +1274,7 @@ void DServer::run()
              {
                getline(iosock,line);
                if(line.find("error") != string::npos)
-                 errorText = "worker reports error on sending relation!";
+                 setErrorText("worker reports error on sending relation!");
              }
            while(line.find("</SecondoResponse>") == string::npos);
 
@@ -1316,7 +1317,9 @@ bool DServer::Multiply(int count)
   //  cerr << "DServer::Multiply:" << m_numChilds << endl;
    for(int i = 0;i<m_numChilds;i++)
    {
-     DServer* ds =  new DServer(m_host,port,name,m_type);
+     DServer* ds =  new DServer(getServerHostName(),
+                                getServerPort(),
+                                name,m_type);
      m_childs.push_back( ds );
      try
         {
@@ -1327,7 +1330,7 @@ bool DServer::Multiply(int count)
       catch(const exception &e)
         {
           cout << "Error starting DServer on " 
-               << m_host << ":" << port << endl;
+               << getServerHostName() << ":" << getServerPortStr() << endl;
           return false;
         }
    }
@@ -1370,19 +1373,19 @@ DServer::~DServer()
 bool
 DServer::checkServer(bool writeError) const
 {
-  if (server == 0)
+  if (m_server == 0)
     {
       if (writeError)
         cerr << "ERROR: Not connected to worker on " 
-             << m_host << ":" << port << endl;
+             << getServerHostName() << ":" << getServerPortStr() << endl;
       return false;
     }
 
-  if(!(server->IsOk()))
+  if(!(m_server->IsOk()))
     {
       if (writeError)
         cerr << "ERROR: Could not establish connection to worker on " 
-             << m_host << ":" << port << endl;
+             << getServerHostName() << ":" << getServerPortStr() << endl;
       return false;
     }
 
@@ -1416,7 +1419,7 @@ DServerManager::DServerManager(ListExpr serverlist_n,
   //m_watch.start();
    array_size = sizeofarray;
    name = name_n;
-   errorText = "OK";
+   setErrorText("OK");
    size = nl->ListLength(serverlist_n);
    if(size==-1) 
      size=1;
@@ -1505,8 +1508,8 @@ DServerManager::DServerManager(ListExpr serverlist_n,
  
        catch(ZThread::Synchronization_Exception& e) 
          {
-           errorText = string("Could not create DServers!\nError:") + 
-             string(e.what());
+           setErrorText(string("Could not create DServers!\nError:") + 
+                        e.what());
            cerr << e.what() << endl;
            m_status = false;
            return;
@@ -1516,9 +1519,9 @@ DServerManager::DServerManager(ListExpr serverlist_n,
    
    for(int i = 0; i< size; i++)
      if (m_serverlist[i] != NULL)
-       errorText = m_serverlist[i]->getErrorText();
+       setErrorText(m_serverlist[i]->getErrorText());
      else
-       errorText = "Worker not created!";
+       setErrorText("Worker not created!");
 
    
    for (int id = 0; id < size; ++id)
@@ -1774,5 +1777,5 @@ ostream& operator << (ostream &out, DServer::RemoteCommand& rc)
 void DServer::print() const
 {
   cout << (unsigned long)(this) << " : " << " " 
-       << m_host << " " << port << endl;
+       << getServerHostName() << " " << getServerPortStr() << endl;
 }
