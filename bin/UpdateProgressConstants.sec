@@ -16,7 +16,9 @@ value ()]
 
 # machine factor, needed as long as not all constants are determined in this way.
 
-let MF = 3.35 
+delete MF;
+
+let MF = 3.35;
 
 
 
@@ -45,9 +47,9 @@ delete uExtendStream;
 delete vExtendStream;
 delete wExtendStream;
 
-let fifty = thousand feed filter[.no <= 50] consume
+let fifty = thousand feed filter[.No <= 50] consume
 
-let hundred = thousand feed filter[.no <= 100] consume
+let hundred = thousand feed filter[.No <= 100] consume
 
 let Trains100 = Trains feed hundred feed product extend[N: randint(999999)] sortby[N asc] remove[N] consume
 
@@ -112,7 +114,7 @@ let x3 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
 
 # Version of Trains100 with more attributes:
 
-let Trains100B = Trains100 feed extend[IdB: .Id, LineB: .Line, UpB: .Up, TripB: .Trip, noB: .no] consume
+let Trains100B = Trains100 feed extend[IdB: .Id, LineB: .Line, UpB: .Up, TripB: .Trip, NoB: .No] consume
 
 query Trains100B feed extendstream[UTrip: units(.Trip)] count
 
@@ -185,31 +187,31 @@ let plz50Width10 =
   plz50 feed extend[
     PLZ2: .PLZ,
     Ort2: .Ort,
-     no2: .no,
+     No2: .No,
     PLZ3: .PLZ,
     Ort3: .Ort,
-     no3: .no,
+     No3: .No,
     PLZ4: .PLZ,
     Ort4: .Ort,
-     no4: .no,
+     No4: .No,
     PLZ5: .PLZ,
     Ort5: .Ort,
-     no5: .no,
+     No5: .No,
     PLZ6: .PLZ,
     Ort6: .Ort,
-     no6: .no,
+     No6: .No,
     PLZ7: .PLZ,
     Ort7: .Ort,
-     no7: .no,
+     No7: .No,
     PLZ8: .PLZ,
     Ort8: .Ort,
-     no8: .no,
+     No8: .No,
     PLZ9: .PLZ,
     Ort9: .Ort,
-     no9: .no,
+     No9: .No,
    PLZ10: .PLZ,
    Ort10: .Ort,
-    no10: .no]
+    No10: .No]
   consume
 
 #  plz50 has 3 attributes
@@ -377,6 +379,9 @@ query ProgressConstants inserttuple["Relation-C++", "consume", "uConsume", uCons
 
 ##### wConsume: time per byte in FLOBs
 
+delete x7;
+delete x8;
+
 query Trains100 feed project[Id, Line, Up] consume count;
 query Trains100 feed project[Id, Line, Up] consume count;
 query Trains100 feed project[Id, Line, Up] consume count;
@@ -422,20 +427,6 @@ close database
 
 # query ProgressConstants feed filter[.ConstantName = "vExtendStream"] 
 # ProgressConstants updatedirect[ConstantValue: uExtendStream] consume
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
