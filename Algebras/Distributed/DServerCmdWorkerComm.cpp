@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2012, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -34,10 +34,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-[1] DServerCmdWorkerCommunication
+[1] Class DServerCmdWorkerCommunication Implementation
 
 \begin{center}
-March 2012 Thomas Achmann
+April 2012 Thomas Achmann
 \end{center}
 
 [TOC]
@@ -54,9 +54,8 @@ Implementation of the class ~DServerCmdWorkerCommunication~
 */
 
 
-#include "DServerCmd.h"
+#include "DServerCmdWorkerComm.h"
 
-#if 0 // unused until all is checked in!
 /*
   
 2 Implementation
@@ -78,4 +77,3 @@ DServerCmdWorkerCommunication::checkWorkerAvailable() const
 
   return true;
 }
-#endif // if 0

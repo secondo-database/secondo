@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2012, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -34,10 +34,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-[1] DServerCmdWorkerCommunication
+[1] Class DServerCmdWorkerCommunication Definition
 
 \begin{center}
-March 2012 Thomas Achmann
+April 2012 Thomas Achmann
 \end{center}
 
 [TOC]
@@ -45,28 +45,23 @@ March 2012 Thomas Achmann
 0 Description
 
 The class ~DServerCmdWorkerCommunication~ is a helper class for
-the DSeverCmd class. It implements the communication functinonality
+the ~DSeverCmd~ class. It implements the communication functinonality
 with a SECONDO instance at the worker. 
-It derives from the class DServer Communication,
+This class extends the base class ~DServerCommunication~,
 which provides basic functionality.
 
 */
 
 /*
-
 1 Preliminaries
 
 1.1 Defines
 
 */
-
-#if 0 // unused until all is checked in!
-
 #ifndef H_DSERVERCMDWORKERCOMM_H
 #define H_DSERVERCMDWORKERCOMM_H
 /*
-
-1.2 Debug output
+1.2 Debug Output
 
 uncomment the following line, if debug output should
 be written to stdout
@@ -74,36 +69,37 @@ be written to stdout
 */
 //#define DS_CMD_WORKER_COMM 1
 /*
-
 1.3 Includes
 
 */
+#include "Remote.h"
 #include "DServerCmdCommunication.h"
 
-
 /*
-
 2 Class ~DServerCmdWorkerCommunication~
 
-*/
+The class ~DServerCmdWorkerCommunication~ provides the basic functionality
+to communicate with a remote SECONDO instance at a worker.
 
+  * derives from class ~DServerCmdCommunication~
+
+*/
 
 class DServerCmdWorkerCommunication :
   public DServerCmdCommunication
 {
 /*
 
-2.2 Private default constructor
+2.2 Private Default Constructor
 
   * may not be used!
 
 */
   DServerCmdWorkerCommunication() {}
 /*
-
 2.3 Constructor
 
-  * DServer[ast] inWorker - pointer to the worker socket
+  * DServer[ast] inWorker - pointer to the worker object
 
 */
 public:
@@ -112,14 +108,12 @@ public:
     , m_worker (inWorker)
     , m_workerIoStrOpen(false) {}
 /*
-
 2.4 Destructor
 
 */
-  virtual ~DServerCmdWorkerCommunication() {}
+  virtual ~DServerCmdWorkerCommunication() {} 
 
 /*
-  
 2.5 Worker
 
 2.5.1 Method ~bool checkWorkerAvailable~
@@ -127,28 +121,16 @@ public:
   * returns true, if worker is running
   
 */
-
   bool checkWorkerAvailable() const;
 
 /*
-
-2.5.2 Method ~DServer[ast] getWorker~
-
-returns a pointer to the worker
-
-*/
-  DServer* getWorker() { return m_worker; }
-
-/*
-
-2.6 Opening socket communication
+2.6 Opening Socket Communication
 
 2.6.1 Method ~bool startSocketCommunication~
 
   * returns true - success
 
 */
-
   bool startWorkerStreamCommunication()
   {
     if (m_workerIoStrOpen)
@@ -182,13 +164,13 @@ returns a pointer to the worker
   }
 
 /*
-
-2.7 Closing socket communication
+2.7 Closing Socket communication
 
 2.7.1 Method ~bool closeWorkerSocketCommunication~
 
-*/
+  * returns true - success
 
+*/
   bool closeWorkerStreamCommunication()
   {
     if (!m_workerIoStrOpen)
@@ -210,42 +192,9 @@ returns a pointer to the worker
   }
 
 /*
-
 2.8 Sending
 
-2.8.1 Method ~bool sendTagToWorker~
-
-  * const string[&] inTag - tag to be sent (e.g. ``DONE'')
-
-  * returns true - success
-
-*/
-
-  bool sendTagToWorker(const string& inTag)
-  {
-    return sendIOS("<" + inTag + "/>", true);
-  }
-
-/*
-2.8.2 Method ~bool sendTextToWorker~
-
-  * const string[&] inTag - tag to be sent (e.g. ``NAME'')
-
-  * const string[&] inTag - text message to be sent
-
-  * returns true - success
-
-*/
-  bool sendTextToWorker(const string& inTag,
-                        const string& inText)
-  {
-    return sendIOS("<" + inTag + ">",
-                   inText,
-                   "<" + inTag + "/>");
-  }
-
-/*
-2.8.3 Method ~bool sendSecondoCmdToWorker1~
+2.8.1 Method ~bool sendSecondoCmdToWorker1~
 
 sends a regular command to SECONDO (e.g. ``query 1''
 
@@ -253,20 +202,17 @@ sends a regular command to SECONDO (e.g. ``query 1''
 
   * string[&] outError - message in case of error
 
-  * bool expectingAnswer - true: expecting [<]Secondo[>] ... answer
-
   * returns true - success
 
 */
   bool sendSecondoCmdToWorker1(const string& inCmd,
-                               string& outErr,
-                               bool expectingAnswer = true)
+                               string& outErr)
   {
-    return sendSecondoCmdToWorkerCnt(inCmd, 1, outErr, expectingAnswer);
+    return sendSecondoCmdToWorkerCnt(inCmd, 1, outErr);
   }
 
 /*
-2.8.4 Method ~bool sendSecondoCmdToWorker0~
+2.8.2 Method ~bool sendSecondoCmdToWorker0~
 
 sends a command to SECONDO in nested list format(e.g. ``(query 1)''
 
@@ -274,16 +220,13 @@ sends a command to SECONDO in nested list format(e.g. ``(query 1)''
 
   * string[&] outError - message in case of error
 
-  * bool expectingAnswer - true: expecting [<]Secondo[>] ... answer
-
   * returns true - success
 
 */
   bool sendSecondoCmdToWorker0(const string& inCmd,
-                               string& outErr,
-                               bool expectingAnswer = true)
+                               string& outErr)
   {
-    return sendSecondoCmdToWorkerCnt(inCmd, 0, outErr, expectingAnswer);
+    return sendSecondoCmdToWorkerCnt(inCmd, 0, outErr);
   }
 
 /*
@@ -305,7 +248,7 @@ receives one line of data from the worker
 
 /*
 
-2.10 Private section
+2.10 Private Section
 
 */
 
@@ -313,31 +256,35 @@ private:
 
 /*
 
-2.10.1 Private methods
+2.10.1 Private Methods
 
 */
-  bool sendCmdToSecondo(int inCmdType,
-                        const string& inCmd)
-  {
-    return sendSecondoCmd( inCmdType, inCmd);
-  }
+/*
+Method ~bool sendSecondoCmdToWorkerCnt~
+ 
+  * const string[&] inCmd - command string
 
+  * int inCnt - 0:nested list format, 1:regular fromat
+
+  * string[&] outErr - error message in case of error
+
+  * returns: true - success; false - error
+
+*/
   bool sendSecondoCmdToWorkerCnt(const string& inCmd,
                                  int inCnt,
-                                 string& outErr,
-                                 bool expectingAnswer = true)
+                                 string& outErr)
   {
 #ifdef DS_CMD_WORKER_COMM
     cout << "SecondoCmd:" << inCmd << endl;
 #endif
-    bool ret = sendCmdToSecondo(inCnt, inCmd);
+    bool ret = sendSecondoCmd(inCnt, inCmd);
 
     if (ret)
       {
         outErr = "";
         string line;
-        while (expectingAnswer &&
-               line.find("</SecondoResponse>") == string::npos &&
+        while (line.find("</SecondoResponse>") == string::npos &&
                receiveLineFromWorker(line))
           {
             if (ret && 
@@ -354,15 +301,15 @@ private:
           }
 
       }
-#ifdef DS_CMD_WORKER_COMM
     if (!ret)
       {
+        outErr = "SECONDO command: '" + inCmd + "'\n" + outErr;
+#ifdef DS_CMD_WORKER_COMM
         cout << "--------------------" << endl
              << "GOT ERROR MSG:" << endl << outErr << endl 
              << "--------------------" << endl;
-      }
 #endif
-
+      }
     if (ret)
       outErr = "";
 
@@ -371,7 +318,7 @@ private:
 
 /*
 
-2.10.2 Private members
+2.10.2 Private Members
 
 */
   DServer *m_worker;
@@ -380,10 +327,9 @@ private:
 
 /*
 
-2.11 End of class
+2.11 End of Class
 
 */
 };
 
 #endif // H_DSERVERCMDWORKERCOMM_H
-#endif // if 0
