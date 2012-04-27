@@ -94,6 +94,8 @@ public:
 
     double GetMaxSpeed(void) const; // km/h
 
+    CcInt* GetWayId(void) const;
+
     double GetCurveLength(const double dScale) const;
 
     void Print(std::ostream& os) const;

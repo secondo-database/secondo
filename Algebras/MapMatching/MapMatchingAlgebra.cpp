@@ -396,25 +396,27 @@ int OpMapMatchingMHTGPXValueMapping(Word* args,
     return 0;
 }
 
-static shared_ptr<MapMatchDataContainer>
-                               GetMMDataFromTupleStream(Word* args, int nOffset)
+static shared_ptr<MapMatchDataContainer> GetMMDataFromTupleStream(
+                                                                Supplier Stream,
+                                                                Word* args,
+                                                                int nOffset)
 {
 
     // see also GetMMDataIndexesOfTupleStream
 
     shared_ptr<MapMatchDataContainer> pContData(new MapMatchDataContainer);
 
-    const CcInt* pIdxLat    = static_cast<CcInt*>(args[nOffset + 1].addr);
-    const CcInt* pIdxLon    = static_cast<CcInt*>(args[nOffset + 2].addr);
-    const CcInt* pIdxTime   = static_cast<CcInt*>(args[nOffset + 3].addr);
-    const CcInt* pIdxFix    = static_cast<CcInt*>(args[nOffset + 4].addr);
-    const CcInt* pIdxSat    = static_cast<CcInt*>(args[nOffset + 5].addr);
-    const CcInt* pIdxHdop   = static_cast<CcInt*>(args[nOffset + 6].addr);
-    const CcInt* pIdxVdop   = static_cast<CcInt*>(args[nOffset + 7].addr);
-    const CcInt* pIdxPdop   = static_cast<CcInt*>(args[nOffset + 8].addr);
-    const CcInt* pIdxCourse = static_cast<CcInt*>(args[nOffset + 9].addr);
-    const CcInt* pIdxSpeed  = static_cast<CcInt*>(args[nOffset + 10].addr);
-    //const CcInt* pIdxEle    = static_cast<CcInt*>(args[nOffset + 11].addr);
+    const CcInt* pIdxLat    = static_cast<CcInt*>(args[nOffset + 0].addr);
+    const CcInt* pIdxLon    = static_cast<CcInt*>(args[nOffset + 1].addr);
+    const CcInt* pIdxTime   = static_cast<CcInt*>(args[nOffset + 2].addr);
+    const CcInt* pIdxFix    = static_cast<CcInt*>(args[nOffset + 3].addr);
+    const CcInt* pIdxSat    = static_cast<CcInt*>(args[nOffset + 4].addr);
+    const CcInt* pIdxHdop   = static_cast<CcInt*>(args[nOffset + 5].addr);
+    const CcInt* pIdxVdop   = static_cast<CcInt*>(args[nOffset + 6].addr);
+    const CcInt* pIdxPdop   = static_cast<CcInt*>(args[nOffset + 7].addr);
+    const CcInt* pIdxCourse = static_cast<CcInt*>(args[nOffset + 8].addr);
+    const CcInt* pIdxSpeed  = static_cast<CcInt*>(args[nOffset + 9].addr);
+    //const CcInt* pIdxEle    = static_cast<CcInt*>(args[nOffset + 10].addr);
 
     const int nIdxLat    = pIdxLat->GetValue();
     const int nIdxLon    = pIdxLon->GetValue();
@@ -435,9 +437,9 @@ static shared_ptr<MapMatchDataContainer>
     }
 
     Word wTuple;
-    qp->Open(args[nOffset].addr);
-    qp->Request(args[nOffset].addr, wTuple);
-    while (qp->Received(args[nOffset].addr))
+    qp->Open(Stream);
+    qp->Request(Stream, wTuple);
+    while (qp->Received(Stream))
     {
         Tuple* pTpl = (Tuple*)wTuple.addr;
 
@@ -517,9 +519,9 @@ static shared_ptr<MapMatchDataContainer>
         pTpl->DeleteIfAllowed();
         pTpl = NULL;
 
-        qp->Request(args[nOffset].addr, wTuple);
+        qp->Request(Stream, wTuple);
     }
-    qp->Close(args[nOffset].addr);
+    qp->Close(Stream);
 
     return pContData;
 }
@@ -540,7 +542,7 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
     Network* pNetwork = static_cast<Network*>(args[0].addr);
 
     shared_ptr<MapMatchDataContainer> pContData =
-                                              GetMMDataFromTupleStream(args, 1);
+                                GetMMDataFromTupleStream(args[1].addr, args, 2);
 
     // Matching
 
@@ -643,6 +645,10 @@ struct OMapMatchMHTInfo : OperatorInfo
 4.2 Type-Mapping
 
 */
+
+static ListExpr GetORelNetworkAttrIndexes(ListExpr ORelAttrList);
+static ListExpr AppendLists(ListExpr List1, ListExpr List2);
+
 ListExpr OpOMapMatchingMHTTypeMap(ListExpr in_xArgs)
 {
     NList param(in_xArgs);
@@ -655,6 +661,8 @@ ListExpr OpOMapMatchingMHTTypeMap(ListExpr in_xArgs)
     NList ParamORel = param.first();
     NList ParamRTree = param.second();
     NList ParamRel = param.third();
+
+    // Orel
 
     if (!listutils::isOrelDescription(ParamORel.listExpr()))
     {
@@ -673,29 +681,14 @@ ListExpr OpOMapMatchingMHTTypeMap(ListExpr in_xArgs)
         return listutils::typeError("Error in orel attrlist");
     }
 
-    if (orelAttrList.length() >= 3)
-    {
-        /*ListExpr firstAttr = nl->First(orelAttrList);
+    // Check attributes of ORel
 
-        if (nl->ListLength(firstAttr) != 2 ||
-            nl->SymbolValue(nl->Second(firstAttr)) != CcInt::BasicType())
-        {
-            return listutils::typeError(
-                             "First attribute of orel should be int");
-        }
+    ListExpr IndNetwAttr = GetORelNetworkAttrIndexes(orelAttrList.listExpr());
 
-        ListExpr secondAttr = nl->Second(orelAttrList);
-        if (nl->ListLength(secondAttr) != 2 ||
-            nl->SymbolValue(nl->Second(secondAttr)) != CcInt::BasicType())
-        {
-            return listutils::typeError(
-                    "Second attribute of orel should be int");
-        }*/
-    }
-    else
-    {
-        return listutils::typeError("orel has less than 3 attributes.");
-    }
+    if (nl->Equal(IndNetwAttr, nl->TypeError()))
+        return IndNetwAttr;
+
+    // Rtree
 
     if (!listutils::isRTreeDescription(ParamRTree.listExpr()))
     {
@@ -721,6 +714,8 @@ ListExpr OpOMapMatchingMHTTypeMap(ListExpr in_xArgs)
         return listutils::typeError("tree not over a spatial attribute");
     }
 
+    // Relation
+
     if(!listutils::isRelDescription(ParamRel.listExpr()))
     {
         return listutils::typeError("3rd argument must be relation");
@@ -730,6 +725,8 @@ ListExpr OpOMapMatchingMHTTypeMap(ListExpr in_xArgs)
     {
         return listutils::typeError("type of rtree and relation are different");
     }
+
+    // GPS-Data (MPoint, FileName, TupleStream)
 
     if (!param.fourth().isSymbol(MPoint::BasicType()) &&
         !param.fourth().isSymbol(FText::BasicType()) &&
@@ -748,27 +745,267 @@ ListExpr OpOMapMatchingMHTTypeMap(ListExpr in_xArgs)
 
     //ListExpr ResultType = nl->SymbolAtom(Points::BasicType());
 
-    if (listutils::isTupleStream(param.second().listExpr()))
+    if (listutils::isTupleStream(param.fourth().listExpr()))
     {
-        ListExpr Ind = GetMMDataIndexesOfTupleStream(param.second().listExpr());
+        ListExpr IndMMData =
+                       GetMMDataIndexesOfTupleStream(param.fourth().listExpr());
 
-        if (nl->Equal(Ind, nl->TypeError()))
-            return Ind;
+        if (nl->Equal(IndMMData, nl->TypeError()))
+            return IndMMData;
         else
+        {
             return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                                     Ind,
+                                     AppendLists(IndNetwAttr, IndMMData),
                                      ResultType);
+        }
     }
     else
     {
-        return ResultType;
+        return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                 IndNetwAttr,
+                                 ResultType);
     }
 }
+
+static ListExpr GetORelNetworkAttrIndexes(ListExpr ORelAttrList)
+{
+    ListExpr attrType;
+    int nAttrSourceIndex = listutils::findAttribute(
+                                              ORelAttrList, "Source", attrType);
+    if (nAttrSourceIndex == 0)
+    {
+        return listutils::typeError("'Source' not found in attr list");
+    }
+    else
+    {
+        if (!listutils::isSymbol(attrType, CcInt::BasicType()))
+        {
+            return listutils::typeError(
+                                      "'Source' must be " + CcInt::BasicType());
+        }
+    }
+
+    int nAttrTargetIndex = listutils::findAttribute(
+                                              ORelAttrList, "Target", attrType);
+    if (nAttrTargetIndex == 0)
+    {
+        return listutils::typeError("'Target' not found in attr list");
+    }
+    else
+    {
+        if (!listutils::isSymbol(attrType, CcInt::BasicType()))
+        {
+            return listutils::typeError(
+                                      "'Target' must be " + CcInt::BasicType());
+        }
+    }
+
+    int nAttrSourcePosIndex = listutils::findAttribute(
+                                           ORelAttrList, "SourcePos", attrType);
+    if (nAttrSourcePosIndex == 0)
+    {
+        return listutils::typeError("'SourcePos' not found in attr list");
+    }
+    else
+    {
+        if (!listutils::isSymbol(attrType, Point::BasicType()))
+        {
+            return listutils::typeError(
+                                   "'SourcePos' must be " + Point::BasicType());
+        }
+    }
+
+    int nAttrTargetPosIndex = listutils::findAttribute(
+                                           ORelAttrList, "TargetPos", attrType);
+    if (nAttrTargetPosIndex == 0)
+    {
+        return listutils::typeError("'TargetPos' not found in attr list");
+    }
+    else
+    {
+        if (!listutils::isSymbol(attrType, Point::BasicType()))
+        {
+            return listutils::typeError(
+                                   "'TargetPos' must be " + Point::BasicType());
+        }
+    }
+
+    int nAttrCurveIndex = listutils::findAttribute(
+                                               ORelAttrList, "Curve", attrType);
+    if (nAttrCurveIndex == 0)
+    {
+        return listutils::typeError("'Curve' not found in attr list");
+    }
+    else
+    {
+        if (!listutils::isSymbol(attrType, SimpleLine::BasicType()))
+        {
+            return listutils::typeError(
+                                  "'Curve' must be " + SimpleLine::BasicType());
+        }
+    }
+
+    int nAttrRoadNameIndex = listutils::findAttribute(
+                                            ORelAttrList, "RoadName", attrType);
+    if (nAttrRoadNameIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, FText::BasicType()))
+        {
+            return listutils::typeError(
+                                    "'RoadName' must be " + FText::BasicType());
+        }
+    }
+
+    int nAttrRoadTypeIndex = listutils::findAttribute(
+                                            ORelAttrList, "RoadType", attrType);
+    if (nAttrRoadTypeIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, FText::BasicType()))
+        {
+            return listutils::typeError(
+                                    "'RoadType' must be " + FText::BasicType());
+        }
+    }
+
+    int nAttrMaxSpeedTypeIndex = listutils::findAttribute(
+                                            ORelAttrList, "MaxSpeed", attrType);
+    if (nAttrMaxSpeedTypeIndex != 0)
+    {
+        if (!listutils::isSymbol(attrType, FText::BasicType()))
+        {
+            return listutils::typeError(
+                                    "'MaxSpeed' must be " + FText::BasicType());
+        }
+    }
+
+    int nAttrWayIdTypeIndex = listutils::findAttribute(
+                                               ORelAttrList, "WayId", attrType);
+    if (nAttrWayIdTypeIndex == 0)
+    {
+        return listutils::typeError("'WayId' not found in attr list");
+    }
+    else
+    {
+        if (!listutils::isSymbol(attrType, CcInt::BasicType()))
+        {
+            return listutils::typeError(
+                                       "'WayId' must be " + CcInt::BasicType());
+        }
+    }
+
+    --nAttrSourceIndex;
+    --nAttrTargetIndex;
+    --nAttrSourcePosIndex;
+    --nAttrTargetPosIndex;
+    --nAttrCurveIndex;
+    --nAttrRoadNameIndex;
+    --nAttrRoadTypeIndex;
+    --nAttrMaxSpeedTypeIndex;
+    --nAttrWayIdTypeIndex;
+
+    ListExpr Ind = nl->OneElemList(nl->IntAtom(nAttrSourceIndex));
+    ListExpr Last = Ind;
+    Last = nl->Append(Last, nl->IntAtom(nAttrTargetIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrSourcePosIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrTargetPosIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrCurveIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrRoadNameIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrRoadTypeIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrMaxSpeedTypeIndex));
+    Last = nl->Append(Last, nl->IntAtom(nAttrWayIdTypeIndex));
+
+    return Ind;
+}
+
+static ListExpr AppendLists(ListExpr List1, ListExpr List2)
+{
+    ListExpr ResultList = nl->TheEmptyList();
+    ListExpr last;
+
+    ListExpr Lauf = List1;
+
+    while (!nl->IsEmpty(Lauf))
+    {
+        ListExpr attr = nl->First(Lauf);
+
+        if (nl->IsEmpty(ResultList))
+        {
+            ResultList = nl->OneElemList(attr);
+            last = ResultList;
+        }
+        else
+        {
+            last = nl->Append(last, attr);
+        }
+
+        Lauf = nl->Rest(Lauf);
+    }
+
+    Lauf = List2;
+
+    while (!nl->IsEmpty(Lauf))
+    {
+        ListExpr attr = nl->First(Lauf);
+
+        if (nl->IsEmpty(ResultList))
+        {
+            ResultList = nl->OneElemList(attr);
+            last = ResultList;
+        }
+        else
+        {
+            last = nl->Append(last, attr);
+        }
+
+        Lauf = nl->Rest(Lauf);
+    }
+
+    return ResultList;
+}
+
 
 /*
 4.3 Value-Mapping
 
 */
+
+static ONetwork::OEdgeAttrIndexes GetOEdgeAttrIndexes(Word* args, int nOffset)
+{
+    // s. GetORelNetworkAttrIndexes
+
+    ONetwork::OEdgeAttrIndexes Indexes;
+
+    const CcInt* pIdxSource    = static_cast<CcInt*>(args[nOffset + 0].addr);
+    const CcInt* pIdxTarget    = static_cast<CcInt*>(args[nOffset + 1].addr);
+    const CcInt* pIdxSourcePos = static_cast<CcInt*>(args[nOffset + 2].addr);
+    const CcInt* pIdxTargetPos = static_cast<CcInt*>(args[nOffset + 3].addr);
+    const CcInt* pIdxCurve     = static_cast<CcInt*>(args[nOffset + 4].addr);
+    const CcInt* pIdxRoadName  = static_cast<CcInt*>(args[nOffset + 5].addr);
+    const CcInt* pIdxRoadType  = static_cast<CcInt*>(args[nOffset + 6].addr);
+    const CcInt* pIdxMaxSpeed  = static_cast<CcInt*>(args[nOffset + 7].addr);
+    const CcInt* pIdxWayId     = static_cast<CcInt*>(args[nOffset + 8].addr);
+
+
+    Indexes.m_IdxSource    = pIdxSource->GetValue();
+    Indexes.m_IdxTarget    = pIdxTarget->GetValue();
+    Indexes.m_IdxSourcePos = pIdxSourcePos->GetValue();
+    Indexes.m_IdxTargetPos = pIdxTargetPos->GetValue();
+    Indexes.m_IdxCurve     = pIdxCurve->GetValue();
+    Indexes.m_IdxRoadName  = pIdxRoadName->GetValue();
+    Indexes.m_IdxRoadType  = pIdxRoadType->GetValue();
+    Indexes.m_IdxMaxSpeed  = pIdxMaxSpeed->GetValue();
+    Indexes.m_IdxWayId     = pIdxWayId->GetValue();
+
+    if (Indexes.m_IdxSource < 0 || Indexes.m_IdxTarget < 0 ||
+        Indexes.m_IdxSourcePos < 0 || Indexes.m_IdxTargetPos < 0 ||
+        Indexes.m_IdxCurve < 0 || Indexes.m_IdxWayId < 0)
+    {
+        assert(false);
+    }
+
+    return Indexes;
+}
+
 /*int OpOMapMatchingMHTMPointValueMapping(Word* args,
                                         Word& result,
                                         int message,
@@ -786,7 +1023,9 @@ ListExpr OpOMapMatchingMHTTypeMap(ListExpr in_xArgs)
     RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
     Relation* pRelation = static_cast<Relation*>(args[2].addr);
 
-    ONetwork Network(pORel, pRTree, pRelation);
+    ONetwork::OEdgeAttrIndexes Indexes = GetOEdgeAttrIndexes(args, 4);
+
+    ONetwork Network(pORel, pRTree, pRelation, Indexes);
 
     MPoint *pMPoint = static_cast<MPoint*>(args[3].addr);
 
@@ -830,7 +1069,9 @@ int OpOMapMatchingMHTMPointValueMapping(Word* args,
           RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
           Relation* pRelation = static_cast<Relation*>(args[2].addr);
 
-          ONetwork Network(pORel, pRTree, pRelation);
+          ONetwork::OEdgeAttrIndexes Indexes = GetOEdgeAttrIndexes(args, 4);
+
+          ONetwork Network(pORel, pRTree, pRelation, Indexes);
 
           MPoint* pMPoint = static_cast<MPoint*>(args[3].addr);
 
@@ -896,7 +1137,9 @@ int OpOMapMatchingMHTMPointValueMapping(Word* args,
     RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
     Relation* pRelation = static_cast<Relation*>(args[2].addr);
 
-    ONetwork Network(pORel, pRTree, pRelation);
+    ONetwork::OEdgeAttrIndexes Indexes = GetOEdgeAttrIndexes(args, 4);
+
+    ONetwork Network(pORel, pRTree, pRelation, Indexes);
 
     FText* pFileName = static_cast<FText*>(args[3].addr);
 
@@ -942,7 +1185,9 @@ int OpOMapMatchingMHTGPXValueMapping(Word* args,
           RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
           Relation* pRelation = static_cast<Relation*>(args[2].addr);
 
-          ONetwork Network(pORel, pRTree, pRelation);
+          ONetwork::OEdgeAttrIndexes Indexes = GetOEdgeAttrIndexes(args, 4);
+
+          ONetwork Network(pORel, pRTree, pRelation, Indexes);
 
           FText* pFileName = static_cast<FText*>(args[3].addr);
 
@@ -1011,10 +1256,12 @@ int OpOMapMatchingMHTGPXValueMapping(Word* args,
     RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
     Relation* pRelation = static_cast<Relation*>(args[2].addr);
 
-    ONetwork Network(pORel, pRTree, pRelation);
+    ONetwork::OEdgeAttrIndexes Indexes = GetOEdgeAttrIndexes(args, 4);
 
-    shared_ptr<MapMatchDataContainer> pContData =
-                                              GetMMDataFromTupleStream(args, 3);
+    ONetwork Network(pORel, pRTree, pRelation, Indexes);
+
+    shared_ptr<MapMatchDataContainer> pContData = // 9 OEdge-Attr-Indexes
+                            GetMMDataFromTupleStream(args[3].addr, args, 4 + 9);
 
     // Matching
 
@@ -1056,10 +1303,12 @@ int OpOMapMatchingMHTStreamValueMapping(Word* args,
           RTree2TID* pRTree = static_cast<RTree2TID*>(args[1].addr);
           Relation* pRelation = static_cast<Relation*>(args[2].addr);
 
-          ONetwork Network(pORel, pRTree, pRelation);
+          ONetwork::OEdgeAttrIndexes Indexes = GetOEdgeAttrIndexes(args, 4);
 
-          shared_ptr<MapMatchDataContainer> pContData =
-                                              GetMMDataFromTupleStream(args, 3);
+          ONetwork Network(pORel, pRTree, pRelation, Indexes);
+
+          shared_ptr<MapMatchDataContainer> pContData = // 9 OEdge-Attr-Indexes
+                            GetMMDataFromTupleStream(args[3].addr, args, 4 + 9);
 
           // Do Map Matching
 

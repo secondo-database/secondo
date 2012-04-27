@@ -58,9 +58,37 @@ class Relation;
 class ONetwork
 {
 public:
+
+    struct OEdgeAttrIndexes
+    {
+        OEdgeAttrIndexes(int IdxSource = -1, int IdxTarget = -1,
+                         int IdxSourcePos = -1, int IdxTargetPos = -1,
+                         int IdxCurve = -1, int IdxRoadName = -1,
+                         int IdxRoadType = -1, int IdxMaxSpeed = -1,
+                         int IdxWayId = -1)
+        :m_IdxSource(IdxSource), m_IdxTarget(IdxTarget),
+         m_IdxSourcePos(IdxSourcePos), m_IdxTargetPos(IdxTargetPos),
+         m_IdxCurve(IdxCurve), m_IdxRoadName(IdxRoadName),
+         m_IdxRoadType(IdxRoadType), m_IdxMaxSpeed(IdxMaxSpeed),
+         m_IdxWayId(IdxWayId)
+        {
+        }
+
+        int m_IdxSource;
+        int m_IdxTarget;
+        int m_IdxSourcePos;
+        int m_IdxTargetPos;
+        int m_IdxCurve;
+        int m_IdxRoadName;
+        int m_IdxRoadType;
+        int m_IdxMaxSpeed;
+        int m_IdxWayId;
+    };
+
     ONetwork(OrderedRelation* pOrderedRelation,
              RTree2TID* pRTreeEdges,
-             Relation* pIndexEdges);
+             Relation* pIndexEdges,
+             const OEdgeAttrIndexes& rEdgeAttrIndexes);
     ~ONetwork();
 
     bool GetEdges(const Rectangle<2>& rBBox,
@@ -81,6 +109,9 @@ private:
     RTree2TID* m_pRTreeEdges;
     Relation* m_pIndexEdges;
     bool m_bOwnData;
+
+    OEdgeAttrIndexes m_EdgeAttrIndexes;
+    friend class ONetworkEdge;
 };
 
 

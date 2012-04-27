@@ -55,11 +55,13 @@ using mapmatch::AttributePtr;
 
 ONetwork::ONetwork(OrderedRelation* pOrderedRelation,
                    RTree2TID* pRTreeEdges,
-                   Relation* pIndexEdges)
+                   Relation* pIndexEdges,
+                   const OEdgeAttrIndexes& rEdgeAttrIndexes)
 :m_pOrderedRelation(pOrderedRelation),
  m_pRTreeEdges(pRTreeEdges),
  m_pIndexEdges(pIndexEdges),
- m_bOwnData(false)
+ m_bOwnData(false),
+ m_EdgeAttrIndexes(rEdgeAttrIndexes)
 {
 }
 

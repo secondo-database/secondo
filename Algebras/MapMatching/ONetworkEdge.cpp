@@ -40,6 +40,7 @@ This implementation file contains the implementation of the class ~ONetworkEdge~
 */
 
 #include "ONetworkEdge.h"
+#include "ONetwork.h"
 #include "RelationAlgebra.h"
 #include "SpatialAlgebra.h"
 #include "FTextAlgebra.h"
@@ -128,35 +129,15 @@ bool ONetworkEdge::operator==(const ONetworkEdge& rEdge) const
     }
 }
 
-/*int ONetworkEdge::GetSourceId(void) const
-{
-    if (m_pTupleEdge != NULL)
-    {
-        return static_cast<CcInt*>(m_pTupleEdge->GetAttribute(0))->GetIntval();
-    }
-    else
-    {
-        return 0;
-    }
-}
-
-int ONetworkEdge::GetTargetId(void) const
-{
-    if (m_pTupleEdge != NULL)
-    {
-        return static_cast<CcInt*>(m_pTupleEdge->GetAttribute(1))->GetIntval();
-    }
-    else
-    {
-        return 0;
-    }
-}*/
-
 CcInt* ONetworkEdge::GetSource(void) const
 {
-    if (m_pTupleEdge != NULL)
+    if (m_pTupleEdge != NULL && m_pONetwork != NULL)
     {
-        return static_cast<CcInt*>(m_pTupleEdge->GetAttribute(0));
+        const int nIdx = m_pONetwork->m_EdgeAttrIndexes.m_IdxSource;
+        if (nIdx >= 0)
+            return static_cast<CcInt*>(m_pTupleEdge->GetAttribute(nIdx));
+        else
+            return NULL;
     }
     else
     {
@@ -168,7 +149,11 @@ CcInt* ONetworkEdge::GetTarget(void) const
 {
     if (m_pTupleEdge != NULL)
     {
-        return static_cast<CcInt*>(m_pTupleEdge->GetAttribute(1));
+        const int nIdx = m_pONetwork->m_EdgeAttrIndexes.m_IdxTarget;
+        if (nIdx >= 0)
+            return static_cast<CcInt*>(m_pTupleEdge->GetAttribute(nIdx));
+        else
+            return NULL;
     }
     else
     {
@@ -178,10 +163,17 @@ CcInt* ONetworkEdge::GetTarget(void) const
 
 Point ONetworkEdge::GetSourcePoint(void) const
 {
-    if (m_pTupleEdge != NULL)
+    if (m_pTupleEdge != NULL && m_pONetwork != NULL)
     {
-        Point* pPtSource = static_cast<Point*>(m_pTupleEdge->GetAttribute(2));
-        return pPtSource != NULL ? *pPtSource : Point(false);
+        const int nIdx = m_pONetwork->m_EdgeAttrIndexes.m_IdxSourcePos;
+        if (nIdx >= 0)
+        {
+            Point* pPtSource = static_cast<Point*>(
+                                              m_pTupleEdge->GetAttribute(nIdx));
+            return pPtSource != NULL ? *pPtSource : Point(false);
+        }
+        else
+            return Point(false);
     }
     else
     {
@@ -191,10 +183,19 @@ Point ONetworkEdge::GetSourcePoint(void) const
 
 Point ONetworkEdge::GetTargetPoint(void) const
 {
-    if (m_pTupleEdge != NULL)
+    if (m_pTupleEdge != NULL && m_pONetwork != NULL)
     {
-        Point* pPtTarget = static_cast<Point*>(m_pTupleEdge->GetAttribute(3));
-        return pPtTarget != NULL ? *pPtTarget : Point(false);
+        const int nIdx = m_pONetwork->m_EdgeAttrIndexes.m_IdxTargetPos;
+        if (nIdx >= 0)
+        {
+            Point* pPtTarget = static_cast<Point*>(
+                                              m_pTupleEdge->GetAttribute(nIdx));
+            return pPtTarget != NULL ? *pPtTarget : Point(false);
+        }
+        else
+        {
+            return Point(false);
+        }
     }
     else
     {
@@ -204,9 +205,15 @@ Point ONetworkEdge::GetTargetPoint(void) const
 
 SimpleLine* ONetworkEdge::GetCurve(void) const
 {
-    if (m_pTupleEdge != NULL)
+    if (m_pTupleEdge != NULL && m_pONetwork != NULL)
     {
-        return static_cast<SimpleLine*>(m_pTupleEdge->GetAttribute(6));
+        const int nIdx = m_pONetwork->m_EdgeAttrIndexes.m_IdxCurve;
+        if (nIdx >= 0)
+        {
+            return static_cast<SimpleLine*>(m_pTupleEdge->GetAttribute(nIdx));
+        }
+        else
+            return NULL;
     }
     else
     {
@@ -216,13 +223,22 @@ SimpleLine* ONetworkEdge::GetCurve(void) const
 
 std::string ONetworkEdge::GetRoadName(void) const
 {
-    if (m_pTupleEdge != NULL)
+    if (m_pTupleEdge != NULL && m_pONetwork != NULL)
     {
-        FText* pRoadName = static_cast<FText*>(m_pTupleEdge->GetAttribute(7));
-        if (pRoadName != NULL && pRoadName->IsDefined())
-            return pRoadName->GetValue();
+        const int nIdx = m_pONetwork->m_EdgeAttrIndexes.m_IdxRoadName;
+        if (nIdx >= 0)
+        {
+            FText* pRoadName = static_cast<FText*>(
+                                              m_pTupleEdge->GetAttribute(nIdx));
+            if (pRoadName != NULL && pRoadName->IsDefined())
+                return pRoadName->GetValue();
+            else
+                return "";
+        }
         else
+        {
             return "";
+        }
     }
     else
     {
@@ -232,11 +248,18 @@ std::string ONetworkEdge::GetRoadName(void) const
 
 std::string ONetworkEdge::GetRoadType(void) const
 {
-    if (m_pTupleEdge != NULL)
+    if (m_pTupleEdge != NULL && m_pONetwork != NULL)
     {
-        FText* pRoadType = static_cast<FText*>(m_pTupleEdge->GetAttribute(8));
-        if (pRoadType != NULL && pRoadType->IsDefined())
-            return pRoadType->GetValue();
+        const int nIdx = m_pONetwork->m_EdgeAttrIndexes.m_IdxRoadType;
+        if (nIdx >= 0)
+        {
+            FText* pRoadType = static_cast<FText*>(
+                                              m_pTupleEdge->GetAttribute(nIdx));
+            if (pRoadType != NULL && pRoadType->IsDefined())
+                return pRoadType->GetValue();
+            else
+                return "";
+        }
         else
             return "";
     }
@@ -265,20 +288,42 @@ double ONetworkEdge::GetMaxSpeed(void) const
      *
      */
 
-    if (m_pTupleEdge != NULL && m_dMaxSpeed < 0.0)
+    if (m_pTupleEdge != NULL && m_pONetwork != NULL && m_dMaxSpeed < 0.0)
     {
-        FText* pMaxSpeed = static_cast<FText*>(m_pTupleEdge->GetAttribute(9));
-        if (pMaxSpeed != NULL && pMaxSpeed->IsDefined())
+        const int nIdx = m_pONetwork->m_EdgeAttrIndexes.m_IdxMaxSpeed;
+        if (nIdx >= 0)
         {
-            m_dMaxSpeed = convStrToDouble(pMaxSpeed->GetValue().c_str());
-
-            // TODO Umrechnung mph, knots
+            FText* pMaxSpeed = static_cast<FText*>(
+                                              m_pTupleEdge->GetAttribute(nIdx));
+            if (pMaxSpeed != NULL && pMaxSpeed->IsDefined())
+            {
+                m_dMaxSpeed = convStrToDouble(pMaxSpeed->GetValue().c_str());
+                // TODO Umrechnung mph, knots
+            }
+            else
+                m_dMaxSpeed = 0.0;
         }
         else
             m_dMaxSpeed = 0.0;
     }
 
     return m_dMaxSpeed;
+}
+
+CcInt* ONetworkEdge::GetWayId(void) const
+{
+    if (m_pTupleEdge != NULL && m_pONetwork != NULL)
+    {
+        const int nIdx = m_pONetwork->m_EdgeAttrIndexes.m_IdxWayId;
+        if (nIdx >= 0)
+            return static_cast<CcInt*>(m_pTupleEdge->GetAttribute(nIdx));
+        else
+            return NULL;
+    }
+    else
+    {
+        return NULL;
+    }
 }
 
 double ONetworkEdge::GetCurveLength(const double dScale) const
@@ -312,5 +357,6 @@ void ONetworkEdge::Print(std::ostream& os) const
     os << "RoadName: " << GetRoadName() << endl;
     os << "RoadType: " << GetRoadType() << endl;
     os << "MaxSpeed: " << GetMaxSpeed() << endl;
+    os << "WayId: " << GetWayId() << endl;
 }
 
