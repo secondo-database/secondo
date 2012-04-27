@@ -20,6 +20,35 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
+//paragraph [10] Footnote: [{\footnote{] [}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+//[&] [\&]
+//[x] [\ensuremath{\times}]
+//[->] [\ensuremath{\rightarrow}]
+//[>] [\ensuremath{>}]
+//[<] [\ensuremath{<}]
+//[ast] [\ensuremath{\ast}]
+
+*/
+
+/*
+[1] RelationalAlgebraCostEstimation 
+
+[TOC]
+
+0 Description
+
+This file provides some CostEstimationClasses for the RelationalAlgebra. 
+
+Most of the code is based on the old REQUESTPROGRESS implementation.
+
+*/
+
+/*
+0.1 Defines
+
 */
 
 #ifndef COST_EST_RELATION_ALG_H
@@ -46,25 +75,24 @@ public:
   GenericRelationIterator* rit;
 };
 
-
-/*
-1.1 ~class~ CostEstimation class for operator filter
+/**
+1.1 The class ~FeedCostEstimation~ provides cost estimation
+    capabilities for the operator feed
 
 */
-class FeedCostEst : public CostEstimation 
+class FeedCostEstimation : public CostEstimation 
 {
 
 public:
-    FeedCostEst()
+    FeedCostEstimation()
     {
     }
 
-  virtual ~FeedCostEst() {};
+  virtual ~FeedCostEstimation() {};
 
   virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo, 
     bool argsAvialable) {
       
-return CANCEL;
       GenericRelation* rr;
       rr = (GenericRelation*)args[0].addr;
 
@@ -72,7 +100,6 @@ return CANCEL;
       Supplier sonOfFeed;
 
       // Determination of constants in file bin/UpdateProgressConstants
-
       static const double uFeed = 
         ProgressConstants::getValue("Relation-C++", "feed", "uFeed");
           // 0.00296863;  milliseconds per tuple
@@ -169,7 +196,7 @@ private:
 };
 
 /*
-2.0 Progress data for operator consume
+2.0 Local datastructure for operator consume
 
 */
 struct consumeLocalInfo
@@ -193,18 +220,19 @@ struct consumeLocalInfo
 };
 
 /**
-2.1 ~class~ ConsumeCostEst
+2.1 The class ~ConsumeCostEstimation~ provides cost estimation
+    capabilities for the operator consume
 
 */
-class ConsumeCostEst: public CostEstimation
+class ConsumeCostEstimation: public CostEstimation
 {
     
   public:
-    ConsumeCostEst()
+    ConsumeCostEstimation()
     {
     }
 
-  virtual ~ConsumeCostEst() {};
+  virtual ~ConsumeCostEstimation() {};
 
   virtual int requestProgress(Word* args, ProgressInfo* pRes, 
     void* localInfo, bool argsAvialable) {
@@ -283,20 +311,18 @@ private:
 
 };
 
-
-/*
-3.0 ~class~ FilterCostEst
+/**
+3.1 The class ~FilterCostEstimation~ provides cost estimation
+    capabilities for the operator filter
 
 */
-class FilterCostEst: public CostEstimation{
+class FilterCostEstimation: public CostEstimation{
    public:
-      FilterCostEst() : read(0), done(false), 
+      FilterCostEstimation() : read(0), done(false), 
                         initialized(false), pi_source()
-       {
+       {}
 
-      }
-
-      ~FilterCostEst() {}
+      ~FilterCostEstimation() {}
 
       virtual int requestProgress(Word* args,
                                   ProgressInfo* result,
@@ -371,13 +397,14 @@ class FilterCostEst: public CostEstimation{
 };
 
 /*
-3.1 Progress data for Filter
+3.1 Class ~FilterLocalInfo~ is a local datastructure
+    used by ~FilterCostEst~
 
 */
 class FilterLocalInfo{
 
   public:
-     FilterLocalInfo(Word s, Word _fun, FilterCostEst* _fce):
+     FilterLocalInfo(Word s, Word _fun, FilterCostEstimation* _fce):
          stream(s), fun(_fun), fce(_fce) {
         funargs = qp->Argument(fun.addr);
         stream.open();
@@ -409,14 +436,14 @@ class FilterLocalInfo{
     Stream<Tuple> stream;
     Word fun;
     ArgVectorPointer funargs;
-    FilterCostEst* fce;
+    FilterCostEstimation* fce;
 };
 
 /*
-4.0 local info for FeedProject
+4.0 Class ~FilterCostEst~ is a local datastructure
+    used by ~FeedProjectCostEstimation~
 
 */
-
 class FeedProjLocalInfo : public FeedLocalInfo
 {
   public:
@@ -439,8 +466,9 @@ class FeedProjLocalInfo : public FeedLocalInfo
 };
 
 
-/*
-4.1 ~class~ CostEstimation for FeedProject
+/**
+4.1 The class ~FeedProjectCostEstimation~ provides cost estimation
+    capabilities for the operator feedproject
 
 */
 class FeedProjectCostEstimation: public CostEstimation 
@@ -576,7 +604,8 @@ private:
 };
 
 /*
-5.0 class ProductLocalInfo
+5.0 The class ~FeedProjectCostEstimation~ is an
+    auxiliary class used by ~ProjectCostEstimation~
 
 */
 class ProductLocalInfo: public ProgressLocalInfo
@@ -610,8 +639,9 @@ public:
   GenericRelationIterator *iter;
 };
 
-/*
-5.1 ~class~ ProductCostEstimation 
+/**
+5.1 The class ~ProductCostEstimation~ provides cost estimation
+    capabilities for the operator product
 
 */
 class ProductCostEstimation: public CostEstimation
@@ -693,7 +723,8 @@ private:
 
 
 /*
-6.0 ~class~ ProjectLocalInfo 
+6.0 Class ~ProjectLocalInfo~ is an classauxiliary 
+    datastructure used by operator progress
 
 */
 class ProjectLocalInfo: public ProgressLocalInfo
@@ -814,8 +845,9 @@ private:
 
 };
 
-/*
-7.0 ~class~ RenameCostEstimation
+/**
+7.0 The class ~RenameCostEstimation~ provides cost estimation
+    capabilities for the operator rename
 
 */
 class RenameCostEstimation: public CostEstimation
@@ -860,35 +892,42 @@ private:
 };
 
 /*
-8.0 ~class~ BufferCostEst
+8.0 Define the size of the buffer,
+    used in operator buffer
 
 */
 const int BUFFERSIZE = 52;
 
+/* 
+8.1 the class ~BufferLocalInfo~ is an
+    auxiliary datastrucutre used by operator buffer
+
+*/
 template <class T>
 class BufferLocalInfo
 {
  public:
  int state;        //0 = initial, 1 = buffer filled,
-       //2 = buffer empty again
+                   //2 = buffer empty again
  int noInBuffer;   //tuples read into buffer;
- int next;     //index of next tuple to be returned;
+ int next;         //index of next tuple to be returned;
  T* buffer[BUFFERSIZE];
 };
 
-/*
-8.1 ~class~ CostEstimation class for operator buffer
+/**
+8.2 The class ~BufferCostEstimation~ provides cost estimation
+    capabilities for the operator buffer
 
 */
-class BufferCostEst : public CostEstimation 
+class BufferCostEstimation : public CostEstimation 
 {
 
 public:
-    BufferCostEst()
+    BufferCostEstimation()
     {
     }
 
-  virtual ~BufferCostEst() {};
+  virtual ~BufferCostEstimation() {};
 
   virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo,
     bool argsAvialable) {
@@ -916,20 +955,20 @@ public:
 private:
 };
 
-
-/*
-9.0 ~class~ CostEstimation class for operator count
+/**
+9.0 The class ~TCountRelCostEstimation~ provides cost estimation
+    capabilities for the operator count(relation)
 
 */
-class TCountRelCostEst : public CostEstimation 
+class TCountRelCostEstimation : public CostEstimation 
 {
 
 public:
-    TCountRelCostEst()
+    TCountRelCostEstimation()
     {   
     }   
 
-  virtual ~TCountRelCostEst() {}; 
+  virtual ~TCountRelCostEstimation() {}; 
 
   virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo,
     bool argsAvialable) {
@@ -968,20 +1007,20 @@ public:
 private:
 };
 
-
-/*
-10.0 ~class~ CostEstimation class for operator count
+/**
+10.0 The class ~TCountStreamCostEstimation~ provides cost estimation
+    capabilities for the operator count(stream(tuple))
 
 */
-class TCountStreamCostEst : public CostEstimation 
+class TCountStreamCostEstimation : public CostEstimation 
 {
 
 public:
-    TCountStreamCostEst()
+    TCountStreamCostEstimation()
     {   
     }   
 
-  virtual ~TCountStreamCostEst() {}; 
+  virtual ~TCountStreamCostEstimation() {}; 
 
   virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo,
     bool argsAvialable) {
@@ -1010,4 +1049,5 @@ public:
 
 private:
 };
+
 #endif
