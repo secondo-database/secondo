@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2012, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -34,40 +34,35 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-[1] DServerCmd
+[1] Class DServerCmd Definition
 
 
 \begin{center}
-March 2012 Thomas Achmann
+April 2012 Thomas Achmann
 \end{center}
 
 [TOC]
 
 0 Description
 
-The class ~DServerCmd~ is the base class to run commands on the 
-worker. There exists for each command its own subclass, which
-is responsible for running the command.
-This class holds common datastructures for all subclasses
-and also serves as interface class.
+The class ~DServerCmd~ is a base class for classes, which implement
+commands to be run on each index of a Darray on a worker.
+For this purpose this class provides the communication and the 
+threading functionality. It also stores needed parameters for a command.
 
 */
 
 /*
-
 1 Preliminaries
 
 1.1 Defines
 
 */
 
-#if 0 // unused until all is checked in!
-
 #ifndef H_DSERVERCMD_H
 #define H_DSERVERCMD_H
 /*
-
-1.2 Debug output
+1.2 Debug Output
 
 uncomment the following line, if debug output should
 be written to stdout
@@ -76,54 +71,49 @@ be written to stdout
 //#define DS_CMD_DEBUG 1
 
 /*
-
 1.3 Includes
 
 */
 
-#include "Remote.h"
+#include "DServerThreadRunner.h"
 #include "DServerCmdWorkerComm.h"
 
 /*
-
-1.2 Extern defintions
-
-*/
-
-extern string toString_d(int);
-
-/*
-
 2 Class ~DServerCmd~
 
 Derives from the class ~DServerCmdWorkerCommunication~ to handele
 the communicatoin with the remote SECONDO instance at the worker.
-It is also derived from the class ~ZThread::Runnable~ to be used
-in threads.
+To be used in threads, it also derived from the class ~ZThread::Runnable~.
+
+  * derives from the class ~DServerThreadRunner~
+
+  * derives from the class ~DServerCmdWorkerCommunication~
 
 */
 
 
 class DServerCmd 
-  : public ZThread::Runnable
+  : public DServerThreadRunner
   , public DServerCmdWorkerCommunication
 
 {
-/*
 
-2.2 Private default constructor
+/*
+2.2 Private Default Constructor
 
   * may not be used!
 
 */
 
-  DServerCmd() {}
-
+  DServerCmd()
+    : DServerThreadRunner(NULL, -1)
+    , DServerCmdWorkerCommunication(NULL) {}
 
 
 /* 
+2.3 Public Enumeration 
 
-2.3 Public enumeration 
+each command should be listed here.
 
   *  enum CmdType - distinguish different commands
 
@@ -131,8 +121,8 @@ class DServerCmd
 
 public:
   enum CmdType { DS_CMD_NONE = 0,  // undefined
-                 DS_CMD_WRITE,     // writes an element to the worker
-                 DS_CMD_READ,      // reads an element from the worker
+                 DS_CMD_WRITE,     // writes an atomic element to the worker
+                 DS_CMD_READ,      // reads an atomic element from the worker
                  DS_CMD_DELETE,    // deletes an element on the worker
                  DS_CMD_COPY,      // copies an element on the worker
                  DS_CMD_EXEC,      // exectues a command on each element on
@@ -154,38 +144,34 @@ public:
                  DS_CMD_OPEN_SHUFFLE_SEND,  // opens sockets on the destination
                                         // workers to be ready to receive
                                         // the data for the new DArray
-                 DS_CMD_SHUFFLE_MULTI_CONN,
-                 DS_CMD_SHUFFLE_CLOSE,
                  
   };
 /*
-
 2.2 Constructor
 
   * DServer[ast] inWorker - pointer to the DServer class, 
     representing the worker
 
-  * int inIndex - Darray index of the receiving worker
+  * int inIndex - Darray index to specify the data on the worker
 
 */
 
   DServerCmd (DServer * inWorker, int inIndex) 
-    : DServerCmdWorkerCommunication(inWorker)
-    , m_elements( NULL )
-    , m_cmdType(DS_CMD_NONE)
-    , m_index(inIndex) {}
+    : DServerThreadRunner(inWorker, inIndex)
+    , DServerCmdWorkerCommunication(inWorker)
+    , m_cmdType(DS_CMD_NONE){}
 
 /*
-
 2.3 Destructor
 
 */
 
-  virtual ~DServerCmd() {}
+  virtual ~DServerCmd() { }
 
 /*
+2.4 Setter Methods
 
-2.4 Method ~void setCmdType~
+2.4.1 Method ~void setCmdType~
 
   * CmdType inType - the type of command, which is represented by this object
 
@@ -195,153 +181,38 @@ public:
 
 
 /*
-
-2.5 Method ~void setParams~
-
-  * const list[<]int[>][ast] inIndex - list of darray indices
-
-  * vector[<]Word[>][ast] inElements - list of ``Word'' objects for the commands
-  * vector[<]string[>][ast] inFromNames - list of names
-
-*/
-
-  void setParams(const list<int>* inIndex, 
-                 vector<Word>* inElements = 0,
-                 vector<string>* inFromNames = 0)
-  {
-    m_elements = inElements;
-    
-    if (inIndex != 0)
-      m_darrayIndex = *inIndex;
-
-    if (inFromNames != 0)
-      m_fromNames = *inFromNames;
-  }
-
-/*
-
- 2.6 Method ~void run~
-
-*/
-
-  void run() = 0;
-
-/*
-
-2.7 Getter methods
+2.7 Getter Methods
 
 2.7.1 Method ~CmdType getCmdType~
 
-returns the command type of this object
+   * returns CmdType - the command type of this object
 
 */
   CmdType getCmdType() const { return m_cmdType; }
 
 /*
-2.7.1 Method ~const list[<]int[>][ast] getDArrayIndex~
-
-returns the list of darray indices
-
-*/
-  const list<int>* getDArrayIndex() const { return &m_darrayIndex; }
-  int getDArrayIndexFront() 
-  { 
-    assert (!m_darrayIndex.empty());
-    int retVal = m_darrayIndex.front();
-    m_darrayIndex.pop_front();
-    return retVal;
-  }
-
-/*
-2.7.2 Method ~vector[<]Word[>][ast] getElements~
-
-returns the list of Word objects
-
-*/
-  vector<Word>* getElements() const { return m_elements; }
-
-/*
-2.7.3 Method ~vector[<]string[>][&] getFromNames~
-
-returns the list of from names
-
-*/
-  const vector<string>& getFromNames() const { return m_fromNames; }
-
-/*
-2.7.4 Method ~int getIndex~
-
-returns the Index of this worker
-
-*/
-  int getIndex() const { return m_index; }
-
-/*
-2.7.4 Method ~string getIndexStr~
-
-returns the Index of this worker in string representation
-
-*/
-  string getIndexStr() const { return toString_d(m_index); }
-
-/*
-
-2.8 Error handeluing
-
-2.8.1 Method ~setErrorText~
-
-  * const string[&] inErrTxt - the error msg
-
-*/
-
-  void setErrorText(const string& inErrTxt)
-  {
-    getWorker() -> setErrorText(inErrTxt);
-  }
-
-
-/*
-
-2.9 Protected section
-
-*/
-protected:
-
-/*
-2.9.1 Protected members
-
-*/
-  CmdType m_cmdType;
-  int m_index;
-  
-/*
-
-2.10 Private section
+2.10 Private Section
 
 */
 private:
 /*
-
-2.10.1Private methods
+2.10.1 Private Methods
 
 */
 
 // n/a
 
 /*
-
-2.10.2 Private members
+2.10.2 Private Members
 
 */
-  list<int> m_darrayIndex;
-  vector<Word>* m_elements;
-  vector<string> m_fromNames;
-/*
 
-2.11 End of class
+  CmdType m_cmdType;
+
+/*
+2.11 End of Class
 
 */
 };
 
 #endif // H_DSERVERCMD_H
-#endif // if 0
