@@ -1174,10 +1174,11 @@ Signature: sline -> sline
 Example  : query size(refinedata([const sline value((2.0 1.0 3.0 1.0))]));
 Result   : 1
 
+
 Operator : filterdisjoint
 Number   : 1
-Signature: rel x rtree x attr x attr -> (stream(((x1 t1) ... (xn tn))))
-Example  : query filterdisjoint(DORoads_New, RTreeRoads, R, OID) count;
+Signature: rel x btree -> (stream(((x1 t1) ... (xn tn))))
+Example  : query filterdisjoint(DOPedes_L_Join, btree_l) count;
 Result   : 1
 
 
@@ -1213,6 +1214,13 @@ Number   : 1
 Signature: rel x rel x string -> (stream(((x1 t1) ... (xn tn))))
 Example  : query getmetrodata(MetroSegs, MetroRoadSegs, "STOP") count;
 Result   : 0
+
+
+Operator : sl2reg
+Number   : 1
+Signature: sline -> region
+Example  : query size(sl2reg([const sline value ((2.0 2.0 2.0 3.0)(2.0 3.0 3.0 3.0)(3.0 3.0 2.0 2.0))]));
+Result   : 5.5
 
 
 Operator : tm_join1

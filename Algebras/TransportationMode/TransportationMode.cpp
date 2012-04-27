@@ -14238,43 +14238,26 @@ TypeMap fun for operator filterdisjoint
 
 ListExpr OpTMFilterDisjointTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 4 )
+  if ( nl->ListLength ( args ) != 2 )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
   ListExpr param1 = nl->First ( args );
   ListExpr param2 = nl->Second ( args );
-  ListExpr param3 = nl->Third( args );
-  ListExpr param4 = nl->Fourth( args );
 
 
   if(!listutils::isRelDescription(param1) )
     return listutils::typeError("param1 should be an relation" );
 
-
-    if(!listutils::isRTreeDescription(param2) )
-    return listutils::typeError("param2 should be an rtree" );
-
-    
-  ListExpr attrType1;
-  string aname1 = nl->SymbolValue(param3);
-  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname1,attrType1);
-
-  if(j1 == 0 || !listutils::isSymbol(attrType1,"line")){
-      return listutils::typeError("attr name" + aname1 + "not found"
-                      "or not of type line");
+  ListExpr xType;
+  nl->ReadFromString ( DataClean::PedesLine, xType);
+  if ( !CompareSchemas ( param1, xType ) )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  ListExpr attrType2;
-  string aname2 = nl->SymbolValue(param4);
-  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
-                      aname2, attrType2);
-
-  if(j2 == 0 || !listutils::isSymbol(attrType2,"int")){
-      return listutils::typeError("attr name" + aname2 + "not found"
-                      "or not of type int");
-  }
+  if(!listutils::isBTreeDescription(param2) )
+    return listutils::typeError("param2 should be a btree" );
 
 
   ListExpr result = nl->TwoElemList(
@@ -14293,12 +14276,9 @@ ListExpr OpTMFilterDisjointTypeMap ( ListExpr args )
                         nl->SymbolAtom("int"))
                     )));
 
-  return nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
-        nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)), result);
+  return result;
 
 }
-
 
 /*
 TypeMap fun for operator refinebr
@@ -14648,6 +14628,28 @@ ListExpr OpTMGetMetroDataTypeMap ( ListExpr args )
       }
   }
 
+   return nl->SymbolAtom ( "typeerror" );
+  
+}
+
+/*
+create a region from a sline
+
+*/
+ListExpr OpTMSline2RegTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+
+  if (nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+      nl->SymbolValue(param1) == "sline" )
+  {
+    return nl->SymbolAtom ( "region" );
+  }
+  
    return nl->SymbolAtom ( "typeerror" );
   
 }
@@ -21013,7 +21015,7 @@ int OpTMRefineDatamap ( Word* args, Word& result, int message,
 }
 
 /*
-remove disjoint pieces of lines 
+remove disjoint pieces of lines, get connected components
 
 */
 int OpTMFilterDisjointmap ( Word* args, Word& result, int message,
@@ -21026,23 +21028,21 @@ int OpTMFilterDisjointmap ( Word* args, Word& result, int message,
       case OPEN:{
 
         Relation* rel = (Relation*)args[0].addr;
-        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[1].addr; 
+        BTree* btree = (BTree*)args[1].addr; 
 
-        int attr1 = ((CcInt*)args[4].addr)->GetIntval() - 1;
-        int attr2 = ((CcInt*)args[5].addr)->GetIntval() - 1;
-        
+
         datacl = new DataClean(); 
         datacl->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        datacl->FilterDisjoint(rel, rtree, attr1, attr2);//Partition.cpp
+        datacl->FilterDisjoint(rel, btree);//Partition.cpp
         local.setAddr(datacl);
         return 0;
       }
       case REQUEST:{
           if(local.addr == NULL) return CANCEL;
           datacl = (DataClean*)local.addr;
-          if(datacl->count == datacl->l_list.size())return CANCEL;
+          if(datacl->count == datacl->oid_list.size())return CANCEL;
 
           Tuple* tuple = new Tuple(datacl->resulttype);
           tuple->PutAttribute(0, 
@@ -21354,6 +21354,27 @@ int OpTMGetMetroDatamap ( Word* args, Word& result, int message,
           return 0;
       }
   }
+  
+  return 0;
+}
+
+/*
+create a region from a cycle line
+
+*/
+int OpTMSline2Regionmap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  SimpleLine* l = (SimpleLine*)args[0].addr;
+
+  result = qp->ResultStorage( in_pSupplier );
+  Region *pResult = (Region *)result.addr;
+
+
+  DataClean* datacl = new DataClean(); 
+  datacl->SLine2Region(l, pResult); //Partition.cpp
+  delete datacl;
   
   return 0;
 }
@@ -22661,6 +22682,7 @@ Operator refinedata(
     OpTMRefineDataTypeMap        // type mapping
 );
 
+
 Operator filterdisjoint(
     "filterdisjoint",               // name
     OpTMFilterDisjointSpec,          // specification
@@ -22668,6 +22690,7 @@ Operator filterdisjoint(
     Operator::SimpleSelect,        // selection function
     OpTMFilterDisjointTypeMap        // type mapping
 );
+
 
 Operator refinebr(
     "refinebr",               // name
@@ -22708,6 +22731,14 @@ Operator getmetrodata(
     OpTMGetMetroDatamap,  // value mapping
     Operator::SimpleSelect,        // selection function
     OpTMGetMetroDataTypeMap        // type mapping
+);
+
+Operator sl2reg(
+    "sl2reg",               // name
+    OpTMSLine2RegionSpec,          // specification
+    OpTMSline2Regionmap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMSline2RegTypeMap        // type mapping
 );
 
 /*
@@ -23087,6 +23118,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&set_bs_speed);//set speed for bus segment 
    AddOperator(&set_stop_loc);//set possible locations for stops
    AddOperator(&getmetrodata);getmetrodata.SetUsesArgsInTypeMapping();
+   AddOperator(&sl2reg); //from sline to a region
    //get metro stops and routes
    ///////////////////two join operators, using rtree//////////////////////
    AddOperator(&tm_join1);

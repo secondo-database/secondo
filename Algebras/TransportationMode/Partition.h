@@ -1171,11 +1171,11 @@ struct DataClean{
 
   static string RoadLSegs;
   static string RoadLAdj;
-
+  static string PedesLine;
 
   enum RoadLInfor{L_OID = 0, L_SEG}; 
   enum RoadLAdjInfo{L_ADJ_OID1, L_ADJ_SEG1, L_ADJ_OID2, L_ADJ_SEG2};
-
+  enum PedesLine{RID_L1 = 0, RID_L2, RID_GEO};
 
   void ModifyLine(SimpleLine* in, SimpleLine* out);
   void RefineData(SimpleLine* in, SimpleLine* out);
@@ -1184,10 +1184,7 @@ struct DataClean{
                           Line* sl, vector<int>& id_list, unsigned int id);
   void DFTraverse2(Relation* rel,R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
                           Line* sl, vector<int>& id_list, unsigned int id);
-  void FilterDisjoint(Relation* rel, R_Tree<2,TupleId>* rtree, int, int);
-  void DFTraverse3(Relation* rel,
-                           R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
-                           Line* sl, int attr, int tid, vector<int>& res_list);
+
   void RefineBR(Relation*, int attr1, int attr2);
   void FindBusRoute(int rel_id, vector<SimpleLine> seg_list, double min_len);
   void FindThePath(vector<MyHalfSegment> mhs_list, int i, int j, 
@@ -1196,6 +1193,16 @@ struct DataClean{
 
   void ExtendLine(SimpleLine& sl);
   void SetStopLoc(Line* l);
+  //////////////////////////////////////////////////////////////////////
+  /////////from a sline to  a region/////////////////////////////////
+  void SLine2Region(SimpleLine* sl, Region* reg);
+  ////////////////////////////////////////////////////////////////
+  void FilterDisjoint(Relation*, BTree*);
+  void FindConnectedComponent(queue<int> group_list, Relation* rel, 
+                              BTree* btree, 
+                              vector<bool>& flag_list,int max_rid);
+  void OutPutLine(Relation* rel, BTree* btree, queue<int> res_list, 
+                  int max_rid);
 };
 
 

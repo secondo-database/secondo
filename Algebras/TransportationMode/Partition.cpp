@@ -6398,6 +6398,8 @@ string DataClean::RoadLSegs = "(rel (tuple ((OID int) (Segment line))))";
 string DataClean::RoadLAdj = "(rel (tuple ((OID_L1 int) (Segment_L1 line)\
 (OID_L2 int) (Segment_L2 line))))";
 
+string DataClean::PedesLine = "(rel (tuple ((Rid_L1 int) (Rid_L2 int)\
+(Geo_L1 sline))))";
 
 /*
 modify the coordinates of a line value, not so many numbers after dot
@@ -6864,140 +6866,6 @@ void DataClean::DFTraverse2(Relation* rel,
                 (R_TreeInternalEntry<2>&)(*node)[j];
             if(sl->BoundingBox().Intersects(e.box)){
                 DFTraverse2(rel,rtree, e.pointer, sl, id_list, id);
-            }
-      }
-  }
-  delete node;
-
-}
-
-/*
-remove some pieces of roads that are disjoint with the main part
-
-*/
-void DataClean::FilterDisjoint(Relation* rel, R_Tree<2,TupleId>* rtree, 
-                               int attr1, int attr2)
-{
-//  cout<<rel->GetNoTuples()<<" "<<attr1<<" "<<attr2<<endl;
-  vector<Loc_Id> loc_list;
-
-  for(int i = 1;i <= rel->GetNoTuples();i++){
-    Tuple* tuple = rel->GetTuple(i, false);
-    Line* l = (Line*)tuple->GetAttribute(attr1);
-    int oid = ((CcInt*)tuple->GetAttribute(attr2))->GetIntval();
-
-    vector<int> res_tid_list;
-    DFTraverse3(rel, rtree, rtree->RootRecordId(), l, attr1, i, res_tid_list);
-
-    Points* ps = new Points(0);
-    Point temp(true, oid, oid);
-    *ps += temp;
-
-    if(res_tid_list.size() > 0){
-      for(unsigned int j = 0;j < res_tid_list.size();j++){
-        Tuple* t = rel->GetTuple(res_tid_list[j], false);
-        assert(res_tid_list[j] == 
-              ((CcInt*)t->GetAttribute(attr2))->GetIntval());
-        Point temp(true, res_tid_list[j], res_tid_list[j]);
-        *ps += temp;
-        t->DeleteIfAllowed();
-      }
-    }
-    Loc_Id loc(*ps, oid);
-    loc_list.push_back(loc);
-    delete ps;
-
-//    cout<<"oid "<<oid<<" "<<res_tid_list.size()<<endl;
-
-    ////////////////////////////////////////////////////////////
-    tuple->DeleteIfAllowed();
-  }
-
-
-  vector<bool> flag_list(loc_list.size(), true);
-
-  for(unsigned int i = 0;i < loc_list.size();i++){
-      if(flag_list[i] == false) continue;
-//      cout<<"i "<<i<<" oid "<<loc_list[i].oid<<endl;
-      if(loc_list[i].ps.Size() == 1){ //directly put into the result
-          flag_list[i] = false;
-//          cout<<"oid "<<loc_list[i].oid<<" disjoint "<<endl;
-
-          type_list.push_back(2);//disjoint type
-          Tuple* t = rel->GetTuple(loc_list[i].oid, false);
-          Line* l = (Line*)t->GetAttribute(attr1);
-          l_list.push_back(*l);
-          oid_list.push_back(loc_list[i].oid);
-          t->DeleteIfAllowed();
-
-      }else{//recursively call the function
-          vector<int> neighbor_list;
-          queue<int> Q;
-          Q.push(loc_list[i].oid);
-          neighbor_list.push_back(loc_list[i].oid);
-          flag_list[loc_list[i].oid - 1] = false;
-          while(Q.empty() == false){
-            for(int j = 0;j < loc_list[Q.front() - 1].ps.Size();j++){
-              Point p;
-              loc_list[Q.front() - 1].ps.Get(j, p);
-              int id = (int)p.GetX();
-              if(flag_list[id - 1] && id != Q.front()){
-                Q.push(id);
-                neighbor_list.push_back(id);
-                flag_list[id - 1] = false;
-//                cout<<"id "<<id<<endl;
-              }
-            }
-            Q.pop();
-//            cout<<"Q.size() "<<Q.size()<<endl;
-          }
-//           cout<<"oid "<<loc_list[i].oid
-//               <<" neighbor size "<<neighbor_list.size()<<endl;
-
-        for(unsigned int j = 0;j < neighbor_list.size();j++){
-          if((int)neighbor_list.size() > rel->GetNoTuples()/2) //main component
-                type_list.push_back(1);//disjoint type
-              else
-                type_list.push_back(2);//disjoint type
-              Tuple* t = rel->GetTuple(neighbor_list[j], false);
-              Line* l = (Line*)t->GetAttribute(attr1);
-              l_list.push_back(*l);
-              oid_list.push_back(neighbor_list[j]);
-              t->DeleteIfAllowed();
-        }
-      }
-  }
-}
-
-/*
-traverse rtree to find whether there exists a line intersecting the parameter
-
-*/
-void DataClean::DFTraverse3(Relation* rel,
-                          R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
-                          Line* sl, int attr, int tid, 
-                          vector<int>& res_tid_list)
-{
-  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
-                  rtree->MinEntries(0), rtree->MaxEntries(0));
-  for(int j = 0;j < node->EntryCount();j++){
-      if(node->IsLeaf()){
-              R_TreeLeafEntry<2,TupleId> e =
-                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
-              Tuple* dg_tuple = rel->GetTuple(e.info, false);
-              Line* line = (Line*)dg_tuple->GetAttribute(attr);
-
-              if(e.info != (unsigned int)tid && sl->Intersects(*line)){
-//                 res_tid = e.info;
-                 res_tid_list.push_back(e.info);
-//                 break;
-              }
-              dg_tuple->DeleteIfAllowed();
-      }else{
-            R_TreeInternalEntry<2> e =
-                (R_TreeInternalEntry<2>&)(*node)[j];
-            if(sl->BoundingBox().Intersects(e.box)){
-               DFTraverse3(rel, rtree, e.pointer, sl, attr, tid, res_tid_list);
             }
       }
   }
@@ -7587,6 +7455,202 @@ void DataClean::SetStopLoc(Line* l)
 
 
 }
+
+/*
+build a region from a cycle line
+
+*/
+void DataClean::SLine2Region(SimpleLine* sl, Region* reg)
+{
+//  cout<<sl->Length()<<endl;
+  if(sl->IsCycle() == false){
+    return;
+  }
+  SpacePartition* sp = new SpacePartition();
+  vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
+  sp->ReorderLine(sl, seq_halfseg);
+  
+  
+  int seg_size = seq_halfseg.size() - 1;
+
+//   cout<<seq_halfseg[0].from<<" "
+//       <<seq_halfseg[seq_halfseg.size() - 1].to<<endl;
+  if(seq_halfseg[0].from.Distance(seq_halfseg[seg_size].to) > EPSDIST){
+    cout<<"error "<<endl;
+  }
+  vector<Point> ps_list;
+  for(unsigned int i = 0;i < seq_halfseg.size();i++){
+    ps_list.push_back(seq_halfseg[i].from);
+  }
+
+  vector<Region> reg_list;
+  sp->ComputeRegion(ps_list, reg_list);
+
+  delete sp;
+  if(reg_list.size() > 0) *reg = reg_list[0];
+
+}
+
+/*
+get connnected components for lines, comparing with the method of traversing
+rtrees to find neighbors of each line, this method is much more efficient
+
+*/
+void DataClean::FilterDisjoint(Relation* rel, BTree* btree)
+{
+  int max_rid = 0;
+  int last_rid = -1;
+  for(int i = 1;i <= rel->GetNoTuples();i++){
+    Tuple* t = rel->GetTuple(i, false);
+    int rid = ((CcInt*)t->GetAttribute(RID_L1))->GetIntval();
+    if(last_rid == -1){
+      last_rid = rid;
+      max_rid = rid;
+    }else{
+      if(last_rid != rid){
+        last_rid = rid;
+        max_rid = rid;
+      }
+    }
+    t->DeleteIfAllowed();
+  }
+//  cout<<max_rid<<endl;
+  vector<bool> flag_list(max_rid, false);
+
+  for(int i = 1;i <= rel->GetNoTuples();i++){
+     Tuple* t = rel->GetTuple(i, false);
+     int rid = ((CcInt*)t->GetAttribute(RID_L1))->GetIntval();
+     int neighbor = ((CcInt*)t->GetAttribute(RID_L2))->GetIntval();
+     queue<int> group_list;
+     if(flag_list[rid - 1]) {
+       t->DeleteIfAllowed();
+       continue;
+     }
+
+     group_list.push(rid);
+     group_list.push(neighbor);
+     flag_list[rid - 1] = true;
+//     flag_list[neighbor - 1] = true;
+
+     int j = i + 1;
+     while(j <= rel->GetNoTuples()){
+      Tuple* tuple = rel->GetTuple(j, false);
+      int id = ((CcInt*)tuple->GetAttribute(RID_L1))->GetIntval();
+      if(id == rid){
+        int nei = ((CcInt*)tuple->GetAttribute(RID_L2))->GetIntval();
+        group_list.push(nei);
+//        flag_list[nei - 1] = true;
+      }else{
+        tuple->DeleteIfAllowed();
+        break;
+      }
+      j++;
+      tuple->DeleteIfAllowed();
+     }
+
+      //////process the result in group list 
+     t->DeleteIfAllowed();
+     if(j <= rel->GetNoTuples()){ //process 
+//        cout<<"res1 "<<group_list.size()<<endl;
+        FindConnectedComponent(group_list, rel, btree, flag_list, max_rid);
+     }else{
+       //output the result 
+//       cout<<"res2 "<<group_list.size()<<endl;
+       OutPutLine(rel, btree, group_list, max_rid);
+     }
+
+   }
+
+}
+
+/*
+find the connected component for such a group
+
+*/
+void DataClean::FindConnectedComponent(queue<int> group_list, Relation* rel, 
+                                       BTree* btree, 
+                                       vector<bool>& flag_list, int max_rid)
+{
+  queue<int> res_list;
+  int first_id = group_list.front();
+  res_list.push(first_id);
+  //record the first line, at this moment the id list in the queue is the 
+  // neighbors of the first 
+  group_list.pop();
+
+  while(group_list.empty() == false){
+
+    int top = group_list.front();
+    res_list.push(top);
+    group_list.pop();
+    flag_list[top - 1] = true;
+
+//    cout<<"top "<<top<<endl;
+
+    CcInt* search_id = new CcInt(true, top);
+    BTreeIterator* btree_iter = btree->ExactMatch(search_id);
+
+    while(btree_iter->Next()){
+        Tuple* tuple = rel->GetTuple(btree_iter->GetId(), false);
+        int rid = ((CcInt*)tuple->GetAttribute(RID_L1))->GetIntval();
+        int neighbor = ((CcInt*)tuple->GetAttribute(RID_L2))->GetIntval();
+        assert(rid == top);
+        if(flag_list[neighbor - 1] == false){
+            group_list.push(neighbor);
+            flag_list[neighbor - 1] = true;
+        }
+        tuple->DeleteIfAllowed();
+    }
+    delete btree_iter;
+    delete search_id;
+
+//    cout<<"queue size "<<group_list.size()<<endl;
+  }
+
+//  cout<<"rid "<<first_id<<" "<<res_list.size()<<endl;
+  OutPutLine(rel, btree, res_list, max_rid);
+
+}
+
+void DataClean::OutPutLine(Relation* rel, BTree* btree, 
+                           queue<int> res_list, int max_rid)
+{
+    int res_size = res_list.size();
+
+    while(res_list.empty() == false){
+      int l_id = res_list.front();
+      res_list.pop();
+
+      CcInt* search_id = new CcInt(true, l_id);
+      BTreeIterator* btree_iter = btree->ExactMatch(search_id);
+
+      while(btree_iter->Next()){
+        Tuple* tuple = rel->GetTuple(btree_iter->GetId(), false);
+        int id = ((CcInt*)tuple->GetAttribute(RID_L1))->GetIntval();
+        assert(id == l_id);
+        SimpleLine* sl = (SimpleLine*)tuple->GetAttribute(RID_GEO);
+
+        Line* l = new Line(0);
+        sl->toLine(*l);
+        l_list.push_back(*l);
+        oid_list.push_back(l_id);
+        if(res_size >= max_rid/2)
+          type_list.push_back(1);
+        else
+          type_list.push_back(2);
+        delete l;
+
+        tuple->DeleteIfAllowed();
+        break;
+    }
+    delete btree_iter;
+    delete search_id;
+
+  }
+
+}
+
+
 /////////////////////////////////////////////////////////////////////
 ////////a robust method to get the position of a point on a sline ///
 /////////////////////////////////////////////////////////////////////

@@ -1310,11 +1310,10 @@ const string OpTMRefineDataSpec  =
 const string OpTMFilterDisjointSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>rel x rtree x attr x attr -> "
-    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>filterdisjoint(rel, rtree, attr, attr)</text--->"
+    "( <text>rel x btree ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>filterdisjoint(rel, btree)</text--->"
     "<text>remove disjoint pieces of roads</text--->"
-    "<text>query filterdisjoint(DORoads_New, RTreeRoads, R, OID)"
+    "<text>query filterdisjoint(DOPedes_L_Join, btree_l) count"
     "</text--->"
     ") )";
 
@@ -1367,6 +1366,13 @@ const string OpTMGetMetroDataSpec  =
     "<text>query getmetrodata(MetroSegs, MetroRoadSegs, "
     "\"STOP\")count</text--->) )";
 
+const string OpTMSLine2RegionSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>sline -> region </text--->"
+    "<text>sl2reg(sline)</text--->"
+    "<text>from sline to region</text--->"
+    "<text>query sl2reg(sl1)</text--->) )";
 
 const string OpTMCheckRoadsSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
