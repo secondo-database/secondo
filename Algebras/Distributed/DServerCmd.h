@@ -156,10 +156,10 @@ public:
 
 */
 
-  DServerCmd (DServer * inWorker, int inIndex) 
+  DServerCmd (CmdType inType, DServer * inWorker, int inIndex) 
     : DServerThreadRunner(inWorker, inIndex)
     , DServerCmdWorkerCommunication(inWorker)
-    , m_cmdType(DS_CMD_NONE){}
+    , m_cmdType(inType){}
 
 /*
 2.3 Destructor
@@ -167,18 +167,6 @@ public:
 */
 
   virtual ~DServerCmd() { }
-
-/*
-2.4 Setter Methods
-
-2.4.1 Method ~void setCmdType~
-
-  * CmdType inType - the type of command, which is represented by this object
-
-*/
-
-  void setCmdType(CmdType inType) { m_cmdType = inType; }
-
 
 /*
 2.7 Getter Methods
