@@ -184,6 +184,11 @@ public:
   friend ostream& operator << (ostream&, RemoteCommand&) ;
   void print() const;
 
+  bool isRelOpen() const { return rel_open; }
+  void setRelOpen() { rel_open = true; }
+  void setRelClose() { rel_open = false; }
+
+  const string& getName() const { return name; }
 
   Socket *getServer() { return m_server; }
   const Socket *getServer() const { return m_server; }
