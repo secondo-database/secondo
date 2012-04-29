@@ -93,6 +93,7 @@ void DServer::Debug(const string& tag, const string& out)
 
 DServer::DServer(string n_host,int n_port,string n_name,
                  ListExpr inType)
+  : m_shuffle_open(false)
 {
    m_host = n_host;
    m_port = n_port;

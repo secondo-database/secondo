@@ -187,7 +187,14 @@ public:
   bool isRelOpen() const { return rel_open; }
   void setRelOpen() { rel_open = true; }
   void setRelClose() { rel_open = false; }
+  bool isShuffleOpen() const { return m_shuffle_open; }
+  void setShuffleOpen() { m_shuffle_open = true; }
+  void setShuffleClose() { m_shuffle_open = false; }
 
+
+
+  const string& getMasterHostIP() const;
+  const string& getMasterHostIP_() const;
   const string& getName() const { return name; }
 
   Socket *getServer() { return m_server; }
@@ -211,6 +218,7 @@ private:
   int m_numChilds;
                   
   bool rel_open;
+  bool m_shuffle_open;
    
   string m_errorText;
   bool m_error;
