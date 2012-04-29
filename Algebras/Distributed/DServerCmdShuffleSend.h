@@ -177,13 +177,28 @@ calculated using the send - function.
 
 class DServerCmdShuffleSend : public DServerCmd
 {
-
-public:
 /*
-3.1 Constructor
+
+3.2 Private default Constructor
+
+  * inherited from the class ~DServerCmd~
+
+  * may not be used!
 
 */
 
+/*
+3.3 Constructor
+
+  * DServer[ast] inWorker - pointer to the DServer class, 
+    representing the worker
+
+  * int inIndex - Darray index of the sending worker
+
+*/
+
+
+public:
   DServerCmdShuffleSend(DServer *inWorker,
                         int inSenderIdx)
     : DServerCmd(DServerCmd::DS_CMD_OPEN_SHUFFLE_SEND,
@@ -191,7 +206,7 @@ public:
   {  }
 
 /*
-3.2 Destructor
+3.4 Destructor
 
 */
 
@@ -199,9 +214,9 @@ public:
 
 
 /*
-3.3 Getter Methods
+3.5 Getter Methods
 
-3.3.1 Method ~const string[&] getSendFunc const~
+3.5.1 Method ~const string[&] getSendFunc const~
 
   * returns const string[&] - the send function to calculate the 
 new darray index
@@ -215,7 +230,7 @@ new darray index
   }
 
 /*
-3.3.2 Method ~int getBasePortNr const~
+3.5.2 Method ~int getBasePortNr const~
 
   * returns int - the base port number
 
@@ -228,7 +243,7 @@ new darray index
   }
 
 /*
-3.3.3 Method ~string getInfo const~
+3.5.3 Method ~string getInfo const~
 
   * returns string - an infromation string
 
@@ -246,32 +261,32 @@ new darray index
   }
 
 /*
-3.4 Running
+3.6 Running
 
-3.4.1 Method ~void run~
+3.6.1 Method ~void run~
 
 */
   void run();
 
 /*
-3.5 Private Section
+3.7 Private Section
 
 */
 private:
 
 /*
-3.5.1 Private Methods
+3.7.1 Private Methods
 
 */
 // n/a
 
 /*
-3.5.2 Private Members
+3.7.2 Private Members
 
 */
 // n/a
 /*
-3.6 End of Class
+3.8 End of Class
 
 */
 };

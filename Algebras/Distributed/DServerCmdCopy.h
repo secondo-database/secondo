@@ -89,7 +89,6 @@ class DServerCmdCopyParam
   : public DServerParam
 {
 /*
-
 2.1 Private Default Constructor
 
   * may not be used!
@@ -166,7 +165,7 @@ private:
 };
 
 /* 
-2 Class ~DServerCmdCopy~
+3 Class ~DServerCmdCopy~
 
 The class ~DServerCmdCopy~ provides the functionality of copying data of a
 darray index to an index of another darray. It is also used for the ~put~
@@ -180,7 +179,7 @@ class DServerCmdCopy
   : public DServerCmd
 {
 /*
-2.1 Private Default Constructor
+3.1 Private Default Constructor
 
   * inherited from the class ~DServerCmd~
 
@@ -189,7 +188,7 @@ class DServerCmdCopy
 */
 public:
 /*
-2.1 Constructor
+3.1 Constructor
 
 */
 
@@ -198,7 +197,7 @@ public:
   {}
 
 /*
-2.2 Destructor
+3.2 Destructor
 
 */
 
@@ -206,9 +205,9 @@ public:
 
 
 /*
-2.3 Getter Methods
+3.3 Getter Methods
 
-2.3.1 Method ~const string[&] getNewName const~
+3.3.1 Method ~const string[&] getNewName const~
 
   * returns const string[&] - the new darray name
 
@@ -221,7 +220,7 @@ public:
     return p -> getNewName();
   }
 /*
-2.3.2 Method ~int getReplaceIndex const~
+3.3.2 Method ~int getReplaceIndex const~
 
   * returns int - the index, which will be replaced
 (is -1, if whole darray is copied)
@@ -248,9 +247,9 @@ public:
 
 /*
 
-2.4 Running
+3.4 Running
 
-2.4.1 Method ~void run~
+3.4.1 Method ~void run~
 
 method definition
 
@@ -259,25 +258,25 @@ method definition
   void run();
 
 /*
-2.5 Private Section
+3.5 Private Section
 
 */
 private:
 
 /*
-2.5.1 Private Methods
+3.5.1 Private Methods
 
 */
 // n/a
 
 /*
-2.5.2 Private Members
+3.5.2 Private Members
 
 */
 // n/a
 
 /*
-2.6 End of Class
+3.6 End of Class
 
 */
 
