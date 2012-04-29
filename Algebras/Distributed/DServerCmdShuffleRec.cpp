@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2012, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -34,10 +34,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-[1] DServerCmdShuffleRec
+[1] Class DServerCmdShuffleRec Implementation
 
 \begin{center}
-March 2012 Thomas Achmann
+April 2012 Thomas Achmann
 \end{center}
 
 [TOC]
@@ -49,29 +49,15 @@ Implementation of the class ~DServerCmdShuffleRec~
 */
 
 /*
-
 1 Preliminaries
 
 1.1 Includes
 
 */
-
-
-#if 0 // unused until all is checked in!
-
 #include "DServerCmdShuffleRec.h"
-#include "DServerCmdCallBackComm.h"
 
 /*
-
-1.2 Extern definitions
-
-*/
-extern string toString_d(int);
-
-/*
-
-1.3 Debug output
+1.3 Debug Output
 
 uncomment the following line for debug output
 
@@ -79,7 +65,6 @@ uncomment the following line for debug output
 //#define DS_CMD_OPEN_REC_SHUFFLE_DEBUG 1
 
 /*
-
 2 Implementation
 
 2.1 Method ~void run~
@@ -106,16 +91,14 @@ DServerCmdShuffleRec::run()
 
   //Initializes the writing of a tuple-stream, 
   //the d_receive_shuffle operator is started on the remote worker
-             
-  string line;
+            
   if (!startWorkerStreamCommunication())
     {
       return;
     }
             
-  string port =toString_d((1800+m_index)); 
-  string com = "let r" + getWorker() -> getName() + 
-    toString_d(m_index) + 
+  string port = int2Str((getBasePortNr()+getIndex())); 
+  string com = "let r" + getWorker() -> getName() + getIndexStr() +
     " = " + "d_receive_shuffle(" + 
     getWorker() -> getMasterHostIP_()  + ",p" + port + ")";
                 
@@ -124,151 +107,17 @@ DServerCmdShuffleRec::run()
 
   //The d_receive_rel operator is invoked
   string err;
-  if (!sendSecondoCmdToWorker1(com, err, false)) // no answer from TypeMap!
+  // this command is blocking, until DShuffle is done!
+  if (!sendSecondoCmdToWorker1(com, err)) // no answer from TypeMap!
     {
       err = "Could not start receiver function on worker!\n" + err;
+      cout << "ERROR: " << err << endl;
       setErrorText(err);
       return;
     }
-
-  //The callback connection is opened
-  //to the receiveShuffleTypeMap function
-  DServerCmdCallBackCommunication* callBack =
-    new DServerCmdCallBackCommunication(getWorker() -> 
-                                        getMasterHostIP(), 
-                                        port
-                                        ,toString_d(m_index) + 
-                                        " DSC_SHUFF_REC"
-                                        );
-
-  if (!(callBack -> startSocket()))
-    {
-      setErrorText(callBack -> getErrorText());
-      delete callBack;
-      return;
-    }
-
-  if (!(callBack -> startSocketCommunication()))
-    {
-      setErrorText(callBack -> getErrorText());
-      delete callBack;
-      return;
-    }
-
-  if (!(callBack -> sendTextToCallBack("TYPE",  
-                                       getWorker() -> 
-                                       getTTypeStr() )))
-    {
-      setErrorText(callBack -> getErrorText());
-      delete callBack;
-      return;
-    }
-
-  if (!(callBack -> getTagFromCallBack("CLOSE")))
-    {
-      setErrorText(callBack -> getErrorText());
-      delete callBack;
-      return;
-    }
-      
-  // stop communication w/ d_receive_shuffle TypeMap
-  callBack -> closeSocketCommunication();
-
-
-  //The callback connection from the value-mapping 
-  // is opened and stored
-  if (!(callBack -> startSocketCommunication()))
-    {
-      setErrorText(callBack -> getErrorText());
-      delete callBack;
-      return;
-    }
-
-    // sending size of sourceWorkers
-  if (!(callBack -> sendTextToCallBack("SRCWSIZE",  
-                                       getSourceWorkerSize())))
-    {
-      setErrorText(callBack -> getErrorText());
-      delete callBack;
-      return;
-    }
-
-  for (unsigned long i = 0; i <  getSourceWorkerSize(); i++)
-    {
-      // sending source worker host name
-      if (!(callBack -> sendTextToCallBack("SRCWHOST",  
-                                           getSourceWorkerHost(i))))
-        {
-          setErrorText(callBack -> getErrorText());
-          delete callBack;
-          return;
-        }
-
-      // wait for OK
-      if (!(callBack -> getTagFromCallBack("OK")))
-        {
-          setErrorText(callBack -> getErrorText());
-          delete callBack;
-          return;
-        }
-            
-      // sending NEXT to proceed
-      if (!(callBack -> sendTagToCallBack("NEXT")))
-        {
-          setErrorText(callBack -> getErrorText());
-          delete callBack;
-          return;
-        }
-      
-      // sending source worker to-host
-      if (!(callBack -> sendTextToCallBack("SRCWTPORT",  
-                                           getSourceWorkerHostToPort(i))))
-        {
-          setErrorText(callBack -> getErrorText());
-          delete callBack;
-          return;
-        }
-
-      // wait for OK
-      if (!(callBack -> getTagFromCallBack("OK")))
-        {
-          setErrorText(callBack -> getErrorText());
-          delete callBack;
-          return;
-        }
-
-      // sending NEXT to proceed, if there are more
-      if (i < getSourceWorkerSize() - 1)
-        {
-          if (!(callBack -> sendTagToCallBack("NEXT")))
-            {
-              setErrorText(callBack -> getErrorText());
-              delete callBack;
-              return;
-            }
-        }
-
-    } // for (unsigned long i = 0; i <  getSourceWorkerSize(); i++)
-
-  if (!(callBack -> sendTagToCallBack("DONE")))
-    {
-      setErrorText(callBack -> getErrorText());
-      delete callBack;
-      return;
-    }
-
-  getWorker() -> 
-    saveWorkerCallBackConnection(
-         callBack -> getSocketCommunicationForSaving());
-
-  delete callBack;
-                        
-  getWorker() -> setShuffleOpen();
 
 #ifdef DS_CMD_OPEN_REC_SHUFFLE_DEBUG
   cout << (unsigned long)(this) << " DS_CMD_OPEN_REC_SHUFFLE - done" << endl;
 #endif   
 
 } // run()
-
-#endif // if 0

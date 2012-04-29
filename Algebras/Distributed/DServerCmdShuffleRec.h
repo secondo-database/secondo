@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2012, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -34,10 +34,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-[1] DServerCmdShuffleRec
+[1] Class DServerCmdShuffleRec Definition
 
 \begin{center}
-March 2012 Thomas Achmann
+April 2012 Thomas Achmann
 \end{center}
 
 [TOC]
@@ -51,38 +51,113 @@ SECONDO instance on the worker. It sets up a callback communication
 with the typemapping function of this command, transfers the
 information about host and ports from the shuffle-sender workers.
 
-The class derives from the DServerCmd command for.
-
-*/
-
-/*
+The class ~DServerCmdShuffleRecParam~ holds the necessary parameters
+for this command.
 
 1 Preliminaries
 
 1.1 Defines
 
 */
-
-
-#if 0 // unused until all is checked in!
-
-
-
 #ifndef H_DSERVERCMDSHUFFLEREC_H
 #define H_DSERVERCMDSHUFFLEREC_H
 
 /*
-
 1.2 Includes
 
 */
-
 #include "DServerCmd.h"
 
+/*
+2 Class ~DServerCmdShuffleRecParam~
+
+This class contains the parameters for the class ~DServerCmdShuffleRec~.
+
+  * derived from the class ~DServerParam~
+
+Provided Parameters:
+
+  * int m[_]basePortNr - the base port for sending.
+
+*/
+
+class DServerCmdShuffleRecParam : public DServerParam
+{
+/*
+2.1 Private Default Constructor
+
+  * may not be used!
+
+*/
+  DServerCmdShuffleRecParam()  {}
 
 /*
+2.1 Constructor
 
-2 Class DServerCmdShuffleRec
+  * int inBasePortNr - base port number
+
+*/
+public:
+  DServerCmdShuffleRecParam(int inBasePortNr)
+  : DServerParam() 
+  , m_basePortNr(inBasePortNr)
+  {}
+
+/*
+2.3 Copy - Constructor
+
+*/
+  DServerCmdShuffleRecParam(const DServerCmdShuffleRecParam &inP)
+    : DServerParam(inP)
+    , m_basePortNr(inP.m_basePortNr) {}
+
+/*
+2.4 Destructor
+
+*/
+  virtual ~DServerCmdShuffleRecParam() {}
+/*
+2.5 Getter Methods
+
+2.5.1 Method ~int getBasePortNr const~
+
+  * returns int - the base port
+
+*/
+  int getBasePortNr() const { return m_basePortNr; }
+
+/*
+2.6 Private Section
+
+*/
+private:
+/*
+2.6.1 Private Methods
+
+*/
+// n/a
+
+/*
+2.6.1 Private Members
+
+*/
+  int m_basePortNr;
+/*
+2.7 End of Class
+
+*/
+};
+
+/*
+3 Class DServerCmdShuffleRec
+
+The class ~DServerCmdShuffleRec~ is responsible to create the local
+darray storage on a worker for a specific index. For this it initates
+the d[_]receive[_]shuffle command on the worker, connects to all
+instances of the d[_]send[_]shuffle command with the corresponding
+index, receivs data and stores it in the local database.
+
+Necessary parameters are provide by the class ~DServerCmdShuffleRecParam~.
 
   * derives from the class ~DServerCmd~
 
@@ -93,17 +168,18 @@ class DServerCmdShuffleRec : public DServerCmd
 {
 /*
 
-2.1 Private default Constructor
+3.1 Private default Constructor
 
-may not be used!
+  * inherited from the class ~DServerCmd~
+
+  * may not be used!
 
 */
 
-  DServerCmdShuffleRec() : DServerCmd(NULL, -1) {}
 
 /*
 
-2.1 Constructor
+3.2 Constructor
 
   * DServer[ast] inWorker - pointer to the DServer class, 
     representing the worker
@@ -115,126 +191,78 @@ may not be used!
 public:
   DServerCmdShuffleRec(DServer *inWorker,
                        int inIndex)
-    : DServerCmd(inWorker, inIndex) 
-    , m_srcSize(-1)
-  { 
-    setCmdType(DServerCmd::DS_CMD_OPEN_SHUFFLE_REC);
-  }
+    : DServerCmd(DServerCmd::DS_CMD_OPEN_SHUFFLE_REC,
+                 inWorker, inIndex) { }
 
 /*
 
-2.2 Destructor
+3.2 Destructor
 
 */
 
   virtual ~DServerCmdShuffleRec() {}
 
-
 /*
+3.5 Getter Methods
 
-2.3 Source worker host names and ports
+3.5.1 Method ~int getBasePortNr const~
 
-2.3.1 Method ~void setSourceHostPort~
-    
-Sets the host name and the port of the source workers
-(sender workers)
+  * returns int - the base port number
 
 */
-
-  void setSourceHostPorts(const vector<string>& inHostNames,
-                          const vector<int>& inPortToNrs)
+  int getBasePortNr() const
   {
-    if (inHostNames.size() == inPortToNrs.size())
-      for (unsigned long i = 0; i < inHostNames.size(); ++i)
-        setSourceHostPort(inHostNames[i], inPortToNrs[i]);
+    const DServerCmdShuffleRecParam *p = 
+      DServerCmd::getParam<DServerCmdShuffleRecParam>() ;
+    return p -> getBasePortNr();
   }
 
 /*
+3.5.2 Method ~string getInfo const~
 
-2.3.2 Method ~unsigned long getSourceWorkerSize~
-
-returns the number of host names incl. ports of the senders
-
-*/
-
-  unsigned long getSourceWorkerSize() const { return m_srcSize; }
-
-/*
-
-2.3.2 Method ~unsigned long getSourceWorkerHost~
-
-returns the host name of a specific index
-
-  * unsigned long i - index of the the host name array
+  * returns string - an infromation string
 
 */
-  string getSourceWorkerHost(unsigned long i) const
-  { 
-    string retVal;
-    if (i >= 0 && i < m_srcSize)
-      retVal = m_srcHostNames[i];
-    return retVal;
-  }
-
-/*
-
-2.3.2 Method ~unsigned long getSourceWorkerPort~
-
-returns the port of a specific index
-
-  * unsigned long i - index of the the host name array
-
-*/
-  int getSourceWorkerHostToPort(unsigned long i) const
+  string getInfo() const
   {
-    int retVal = -1;
-    if (i >=0 && i < m_srcSize)
-      retVal = m_srcHostToPorts[i];
-    return retVal;
+    string port = int2Str((getBasePortNr()+getIndex()));
+    return string("Suffle REC: cmd: let r" + getWorker() -> getName() + 
+                  getIndexStr() + 
+    " = " + "d_receive_shuffle(" + 
+    getWorker() -> getMasterHostIP_()  + ",p" + port + ")");
   }
 
 /*
+3.6 Running
 
-2.4 Method ~void run~
-
-run method of the thread
+3.6.1 Method ~void run~
 
 */
-
   void run();
   
 /*
 
-2.5 Private section
+2.5 Private Section
 
 */
 private:
 
 /*
 
-2.5.1 Private methods
+2.5.1 Private Methods
 
 */
-
-  void setSourceHostPort(const string& inHostName,
-                         int inPortToNr)
-  {
-    m_srcHostNames.push_back(inHostName);
-    m_srcHostToPorts.push_back(inPortToNr);
-    m_srcSize = m_srcHostNames.size();
-  }
+// n/a
 
 /*
 
-2.5.2 Private members
+2.5.2 Private Members
 
 */
-  vector<string> m_srcHostNames;
-  vector<int>    m_srcHostToPorts;
-  unsigned long  m_srcSize;
+  // n/a
 /*
 
-2.6 End of class
+2.6 End of Class
 
 */
 
@@ -242,5 +270,3 @@ private:
 };
 
 #endif // H_DSERVERCMDSHUFFLEREC_H
-
-#endif // if 0
