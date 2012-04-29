@@ -9,9 +9,11 @@
 
 
 
-[1] RobustGeometry
+[1]  Implementation of the RobustGeometryAlgebra
 
 [TOC]
+
+1 Overview
 
 This algebra implements the Snap Rounding technique described in Hobby,
 Guibas and Marimont to compute a fully rounded arrangement from a set of linesegments.
@@ -23,9 +25,9 @@ To change the precision adapt the ScaleFactor.
 This algebra provides just the type constructors ~line~
 for the intersection operation.
 There are tree steps
-  * plane-sweep-algorithm to find the intersection points
-  * snap rounding
-  * check intersections
+        1 plane-sweep-algorithm to find the intersection points
+        2 snap rounding
+        3 check intersections
 
 1 Preliminaries
 
@@ -135,7 +137,7 @@ SpatialTypeRG SpatialTypeOfSymbolRG(ListExpr symbol) {
 /*
 10.1.2 Type Mapping for intersection
 
-Signature is line x line -> line
+Signature is line x line [->] line
 
 */
 
@@ -180,7 +182,10 @@ const string intersectionSpec =
 	"<text>query intersectionBO(tiergarten, thecenter) </text--->"
 	") )";
 
+/*
+3.1 Implementation of Class ~BOLine~
 
+*/
 robustGeometry::BOLine::BOLine(const BOLine& line){
 	x1 = line.getX1();
 	x2 = line.getX2();
@@ -242,6 +247,11 @@ void robustGeometry::BOLine::setOwner( const BOOwnerType owner )
 		this->owner = owner;
 	};
 
+
+/*
+3.1 Implementation of Class ~BOEvent~
+
+*/
 robustGeometry::BOEvent::BOEvent(const double x, const double y,
 		const robustGeometry::BOPointType pType,
 		const robustGeometry::BOOwnerType owner)
@@ -338,6 +348,10 @@ void robustGeometry::Point::setY( const double y )
 	this->y = y;
 };
 
+/*
+3.1 Implementation of Class ~HOBatch~
+
+*/
 robustGeometry::HOBatch::HOBatch(const double x, const double y){
 	setX( x );
 	setY( y );
@@ -352,6 +366,10 @@ void robustGeometry::HOBatch::setY( const double y )
 	this->y = y;
 };
 
+/*
+3.1 Implementation of Class ~ToleranceSquare~
+
+*/
 void robustGeometry::ToleranceSquare::setX11( const double x11 )
 {
 	this->x11 = x11;
@@ -398,15 +416,37 @@ void robustGeometry::ToleranceSquare::setBOEvent( const BOEvent & boEv )
 };
 
 /*
-1 Class for plane-sweep-algorithm like [Bentley/Ottmann 1979]
+1 Class ~MakeBO~
+
+Class for plane-sweep-algorithm like [Bentley/Ottmann 1979]
 
 */
 class MakeBO
 {
 
 public:
+
+
+/*
+3.1 Constructors and Destructors
+
+*/
+  MakeBO()
+ { };
+
+ ~MakeBO() {};
+
+/*
+3.2 Operation ~intersection~
+
+*/
 	void IntersectionBO(const Line& line1,
 			const Line& line2, Line& result);
+/*
+10.1 Functions for computing intersection points
+
+*/
+
 /*
 compute the intersection point from two segments
 Returns zero[->]OK, one[->]lines parallel, two[->]no intersection point
@@ -508,12 +548,7 @@ call the case processing
 	  void printBOEvents();
 	  set<robustGeometry::BOEvent, robustGeometry::CompBOEventXY>
 	  & get_BOEvents( ){ return boEvents; };
-    MakeBO()
-   {
 
-
-   };
-   ~MakeBO() {};
 
 private:
 //sweepLine
@@ -833,8 +868,9 @@ void MakeBO::addInitialEvent( const robustGeometry::BOEvent& event )
 	initialEvents.insert( event );
 }
 
+
 /*
-3. class  MakeHobby
+3 Class  ~MakeHobby~
 
 This class implements the snap rounding technique described in
 papers by Hobby, Guibas and Marimont.
@@ -852,6 +888,11 @@ public:
 	};
 	~MakeHobby() {
 	};
+/*
+10.1 Functions for computing a rounded arrangement of line segments
+
+*/
+
 /*
 processing the step for the hobby algorithm
 
@@ -1803,7 +1844,7 @@ Operator test("intersectionBO", intersectionSpec, 1, intersectionVM,
 		RGSetOpSelect, intersectionTM);
 
 /*
- Creating the Algebra
+5 Creating the Algebra
 
 */
 
@@ -1820,7 +1861,19 @@ public:
 };
 
 /*
- Algebra Initialization
+12 Initialization
+
+Each algebra module needs an initialization function. The algebra manager
+has a reference to this function if this algebra is included in the list
+of required algebras, thus forcing the linker to include this module.
+
+The algebra manager invokes this function to get a reference to the instance
+of the algebra class and to provide references to the global nested list
+container (used to store constructor, type, operator and object information)
+and to the query processor.
+
+The function has a C interface to make it possible to load the algebra
+dynamically at runtime.
 
 */
 

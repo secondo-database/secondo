@@ -50,7 +50,7 @@ enum BOOwnerType{first, second, both};
 
 
 /*
-3. class  BOLine
+1 Class  ~BOLine~
 
 This class implements the line object
 
@@ -59,7 +59,7 @@ class BOLine
 {
 public:
 /*
-3.1 Constructors and Destructors
+1.1 Constructors and Destructors
 
 */
 	BOLine(){};
@@ -69,7 +69,7 @@ public:
 			const BOOwnerType owner);
 	~BOLine(void){};
 /*
-3.2 Functions for reading and setting values
+1.2 Functions for reading and setting values
 
 */
 	void setX1( const double x ) const ;
@@ -144,7 +144,7 @@ private:
 };
 
 /*
-3 class BOEvent
+3 Class ~BOEvent~
 
 This class is implementing the priority of events used in the
 plane-sweep-algorithm.
@@ -202,8 +202,14 @@ private :
   BOLine line,line1,line2,lineAbove, lineBelow;
 };
 
+/*
+3.1 Class ~CompBOEventXY~
 
-//for finding and sorting the BOEvents by increasing x and y
+for finding and sorting the BOEvents by increasing x and y
+
+*/
+
+
 class CompBOEventXY{
 public:
 	bool operator()(BOEvent e1, BOEvent e2) {
@@ -267,7 +273,7 @@ public:
 
 
 /*
-3 class HOBatch
+3 Class ~HOBatch~
 
 This class is implementing the batch
 [->]sweep-line for hobby-algorithm.
@@ -296,8 +302,13 @@ private :
   double x;
   double y;
 };
+/*
+3.1 Class  ~CompBatch~
 
-//for sorting the batch by increasing x
+for sorting the batch by increasing x
+
+*/
+
 class CompBatch{
 public:
 	bool operator()(HOBatch e1, HOBatch e2) {
@@ -310,8 +321,13 @@ public:
 			return false;
 	};
 };
+/*
+3.1 Class  ~CompBOLine~
 
-//for finding and sorting the BOLine by increasing x and y
+for finding and sorting the BOLine by increasing x and y
+
+*/
+
 class CompBOLine{
 public:
 	bool operator()(BOLine l1, BOLine l2) {
@@ -345,7 +361,13 @@ public:
 	};
 
 };
-//for finding and sorting the BOLine by increasing x and y and owner
+/*
+3.1 Class  ~CompBOLineXYOwn~
+
+for finding and sorting the BOLine by increasing x and y and owner
+
+*/
+
 class CompBOLineXYOwn{
 public:
 	bool operator()(BOLine l1, BOLine l2) {
@@ -376,7 +398,7 @@ public:
 };
 
 /*
-3.5 class  ToleranceSquare
+3 Class  ~ToleranceSquare~
 
 implements a "tolerance square" as used in the Snap Rounding algorithm.
 a tolerance square contains the boundary of a grid corresponding to the scaleFactor
@@ -387,7 +409,7 @@ class ToleranceSquare
 
 	public:
 /*
-3.1.1 Constructors and Destructors
+3.1 Constructors and Destructors
 
 */
 	ToleranceSquare(){};
@@ -465,7 +487,7 @@ class ToleranceSquare
 	};
 
 /*
-3.5 class  CompToleranceSquareY
+3.5 class  ~CompToleranceSquareY~
 
 implements a "tolerance square" as used in the Snap Rounding algorithm.
 a tolerance square contains the boundary of a grid corresponding to the scaleFactor
