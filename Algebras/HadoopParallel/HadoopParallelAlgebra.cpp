@@ -1535,7 +1535,7 @@ clusterInfo::clusterInfo() :
   {
     bool isMaster = ( (0 == i) ? true : false);
     if ( 0 == i )
-      disks = new vector<diskDesc>();
+      dataServers = new vector<dservDesc>();
 
     char *ev;
     ev = isMaster ?
@@ -1594,17 +1594,17 @@ clusterInfo::clusterInfo() :
 
       //TODO require a light method to remove duplicated records
       bool noRepeat = true;
-      if (disks->size() > 0)
+      if (dataServers->size() > 0)
       {
-        int csn = disks->size();  // Current node series number
-        for (vector<diskDesc>::iterator dit = disks->begin();
-             dit != disks->end(); dit++)
+        int csn = dataServers->size();  // Current node series number
+        for (vector<dservDesc>::iterator dit = dataServers->begin();
+             dit != dataServers->end(); dit++)
         {
           if ( 0 == dit->first.compare(ipAddr) &&
                (dit->second.second == port) &&
                0 == dit->second.first.compare(cfPath))
           {
-            if ( dit == disks->begin())
+            if ( dit == dataServers->begin())
               masterNode = csn;
             else
               noRepeat = false;
@@ -1612,7 +1612,7 @@ clusterInfo::clusterInfo() :
         }
       }
       if (noRepeat){
-        disks->push_back(diskDesc(
+        dataServers->push_back(dservDesc(
             ipAddr, pair<string, int>(cfPath, port)));
       }
       else{
@@ -1627,7 +1627,7 @@ clusterInfo::clusterInfo() :
 // Fully defined means all three elements are correctly indicated.
     if (isMaster)
     {
-      if (disks->size() != 1)
+      if (dataServers->size() != 1)
       {
         cerr << "Master list requires one line" << endl;
         return;
@@ -1635,7 +1635,7 @@ clusterInfo::clusterInfo() :
     }
     else
     {
-      if (disks->size() < 2)
+      if (dataServers->size() < 2)
       {
         cerr << "Slave list should not be empty" << endl;
         return;
@@ -1654,10 +1654,10 @@ clusterInfo::clusterInfo(clusterInfo& rhg):
     localNode(rhg.localNode),
     masterNode(rhg.masterNode)
 {
-  disks = new vector<diskDesc>();
-  vector<diskDesc>::iterator iter = rhg.disks->begin();
-  while (iter != rhg.disks->end()){
-    disks->push_back(diskDesc(iter->first,
+  dataServers = new vector<dservDesc>();
+  vector<dservDesc>::iterator iter = rhg.dataServers->begin();
+  while (iter != rhg.dataServers->end()){
+    dataServers->push_back(dservDesc(iter->first,
       pair<string, int>(iter->second.first, iter->second.second)));
     iter++;
   }
@@ -1683,9 +1683,9 @@ bool clusterInfo::covers(NList& clusterList)
     string filePath = slave.third().str();
     int port        = slave.fourth().intval();
 
-    if ((disks->at(index).first.compare(IPAddr) != 0)
-     || (disks->at(index).second.first.compare(filePath) != 0)
-     || (disks->at(index).second.second != port))
+    if ((dataServers->at(index).first.compare(IPAddr) != 0)
+     || (dataServers->at(index).second.first.compare(filePath) != 0)
+     || (dataServers->at(index).second.second != port))
     {
       cerr << "The import cluster is not "
           "a sub set of the current cluster" << endl;
@@ -1732,8 +1732,8 @@ string clusterInfo::getLocalIP()
     }
     else
     {
-      for(vector<diskDesc>::iterator dit = disks->begin();
-          dit != disks->end(); dit++)
+      for(vector<dservDesc>::iterator dit = dataServers->begin();
+          dit != dataServers->end(); dit++)
       {
         if (dit->first.compare(aIP) == 0)
         {
@@ -1816,7 +1816,7 @@ string clusterInfo::getRemotePath(
   string remotePath = "";
   loc = getInterIndex(loc, includeMaster, round);
 
-  string rfPath = (*disks)[loc].second.first;
+  string rfPath = (*dataServers)[loc].second.first;
   if (appendFileName){
     if (attachProducerIP)
     {
@@ -1827,7 +1827,7 @@ string clusterInfo::getRemotePath(
     FileSystem::AppendItem(rfPath, fileName);
   }
 
-  string IPAddr = (*disks)[loc].first;
+  string IPAddr = (*dataServers)[loc].first;
   remotePath = (appendTargetIP ? (IPAddr + ":") : "") + rfPath;
 
   return remotePath;
@@ -1838,24 +1838,24 @@ string clusterInfo::getIP(size_t loc, bool round /* = false*/)
   if ( 0 == loc)
     loc = masterNode;
   loc = getInterIndex(loc, true, round);
-  return (*disks)[loc].first;
+  return (*dataServers)[loc].first;
 }
 
 size_t clusterInfo::getInterIndex(
     size_t loc, bool includeMaster, bool round){
-  assert(disks->size() > 1);
+  assert(dataServers->size() > 1);
 
   if (!round){
-    assert(loc < disks->size());
+    assert(loc < dataServers->size());
     return loc;
   }
   else{
     if (!includeMaster){
       assert(loc > 0);
-      return ((loc - 1) % (disks->size() - 1) + 1);
+      return ((loc - 1) % (dataServers->size() - 1) + 1);
     }
     else{
-      return (loc % disks->size());
+      return (loc % dataServers->size());
     }
   }
 }
@@ -1869,8 +1869,8 @@ int clusterInfo::searchLocalNode()
   if (localIP.length() != 0 &&
       localPath.length() != 0)
   {
-    vector<diskDesc>::iterator iter;
-    for (iter = disks->begin(); iter != disks->end(); iter++, cnt++)
+    vector<dservDesc>::iterator iter;
+    for (iter = dataServers->begin(); iter != dataServers->end(); iter++, cnt++)
     {
       if ((localIP.compare((*iter).first) == 0) &&
           (localPath.compare((*iter).second.first)) == 0)
@@ -1902,8 +1902,8 @@ void clusterInfo::print()
   {
     int counter = 0;
     cout << "\n---- PARALLEL_SECONDO_SLAVES list ----" << endl;
-    vector<diskDesc>::iterator iter;
-    for (iter = disks->begin(); iter != disks->end();
+    vector<dservDesc>::iterator iter;
+    for (iter = dataServers->begin(); iter != dataServers->end();
         iter++, counter++)
     {
       cout << counter << ":\t" << iter->first
@@ -1919,9 +1919,9 @@ NList clusterInfo::toNestedList()
   if (available)
   {
     NList output;
-    vector<diskDesc>::iterator iter = disks->begin();
+    vector<dservDesc>::iterator iter = dataServers->begin();
     int counter = 0;
-    while (iter != disks->end())
+    while (iter != dataServers->end())
     {
       NList slave(
           NList(counter),
@@ -6392,6 +6392,10 @@ ListExpr hadoopMapTypeMap(ListExpr args){
 
   //The input must be a flist type data.
   NList inputType = l.first().first();
+  if (inputType.isSymbol("typeerror") || inputType.length() != 2 ){
+    return l.typeError(typErr);
+  }
+
   if (!inputType.first().isSymbol(fList::BasicType())){
     return l.typeError(typErr);
   }
@@ -6536,7 +6540,6 @@ int hadoopMapValueMap(Word* args, Word& result,
     //Get the database name
     string dbName =
         ((CcString*)args[7].addr)->GetValue();
-
     //Optional parameters
     string CreateFilePath = "";
     Supplier oppList = args[1].addr;
@@ -6554,7 +6557,6 @@ int hadoopMapValueMap(Word* args, Word& result,
     //Result type
     ListExpr resultType = qp->GetType(s);
     fList* resultFList;
-
     fList* inputFList = (fList*)args[0].addr;
     int dupTimes = inputFList->getDupTimes();
     //Parameters required by the Hadoop job are:
@@ -6813,6 +6815,9 @@ ListExpr hadoopReduceTypeMap(ListExpr args){
 
   //The first flist type data.
   NList inputType = l.first().first();
+  if (inputType.isSymbol("typeerror") || inputType.length() != 2 ){
+    return l.typeError(typErr);
+  }
   if (!inputType.first().isSymbol(fList::BasicType())){
     return l.typeError(typErr);
   }
@@ -7274,6 +7279,9 @@ ListExpr hadoopReduce2TypeMap(ListExpr args){
   for (; argIndex <= 2; argIndex++){
     int lc = argIndex - 1;
     inputType[lc] = l.elem(argIndex).first();
+    if (inputType[lc].isSymbol("typeerror") || inputType[lc].length() != 2 ){
+      return l.typeError(typErr);
+    }
     if (!inputType[lc].first().isSymbol(fList::BasicType())){
       return l.typeError(typErr);
     }
@@ -8031,7 +8039,12 @@ ListExpr replaceParaOp(
         else{
           ListExpr DGOValue =
               SecondoSystem::GetCatalog()->GetObjectValue(paraName);
-          return DGOValue;
+
+          ListExpr DGOType =
+              SecondoSystem::GetCatalog()->GetObjectTypeExpr(paraName);
+          return nl->TwoElemList(DGOType, DGOValue);
+
+//          return DGOValue;
         }
       }
     }

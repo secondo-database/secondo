@@ -399,16 +399,16 @@ then the ~searchLocalNode~ function cannot return a correct result.
 
   inline bool isOK(){  return available; }
   inline size_t getSlaveSize(){
-    if (disks){
-        return (disks->size() - 1);
+    if (dataServers){
+        return (dataServers->size() - 1);
     }
     else
       return 0;
   }
 
   inline size_t getClusterSize(){
-    if (disks){
-      return disks->size();
+    if (dataServers){
+      return dataServers->size();
     }
     else
       return 0;
@@ -423,8 +423,8 @@ then the ~searchLocalNode~ function cannot return a correct result.
 private:
   string ps_master;
   string ps_slaves;
-  typedef pair<string, pair<string, int> > diskDesc;
-  vector<diskDesc> *disks;
+  typedef pair<string, pair<string, int> > dservDesc; //data server description
+  vector<dservDesc> *dataServers;
   bool available;
   int localNode;
   int masterNode;
