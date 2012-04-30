@@ -102,6 +102,12 @@ DServerCmdShuffleRec::run()
     " = " + "d_receive_shuffle(" + 
     getWorker() -> getMasterHostIP_()  + ",p" + port + ")";
                 
+
+#ifdef DS_CMD_OPEN_REC_SHUFFLE_DEBUG
+  cout << (unsigned long)(this) << " DS_CMD_OPEN_REC_SHUFFLE - on" 
+       << getWorker() -> getMasterHostIP_() << ":" << port << ":" << endl
+       << com << endl;
+#endif
   // initiate d_receive_shuffle command on the destination
   // worker
 
