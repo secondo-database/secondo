@@ -160,7 +160,7 @@ public:
 2.5.1 Method ~const string[&] getHost const~
 
 returns for a certain index combination of the original and the new darray the
-corret host name
+correct host name
 
   * int srvIdx - source darray index
 
@@ -176,7 +176,7 @@ corret host name
 2.5.2 Method ~const int getPort const~
 
 returns for a certain index combination of the original and the new darray the
-corret port number
+correct port number
 
   * int srvIdx - source darray index
 
@@ -304,7 +304,6 @@ The parameters are taken from the class ~DServerCmdShuffleMultiConnParam~.
 
 */
 class DServerCmdShuffleMultiConn : public DServerThreadRunner
-{
 {
 /*
 3.1 Private Default Constructor
