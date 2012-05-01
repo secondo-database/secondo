@@ -79,12 +79,6 @@ integer index to denote the darray index.
 #include "DServerParamStorage.h"
 
 /*
-1.3 Extern defintions
-
-*/
-extern string toString_d(int);
-
-/*
 2 Class ~DServerThreadRunner~
 
 This class provides the basic functionality for running as thread. It stores
@@ -156,7 +150,7 @@ public:
   * returns string - the index of the darray as string
 
 */
-  string getIndexStr() const { return toString_d(m_index); }
+  string getIndexStr() const { return int2Str(m_index); }
 
 /*
 2.3.4 Method ~virtual string getInfo const = 0~
