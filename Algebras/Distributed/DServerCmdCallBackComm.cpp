@@ -94,18 +94,16 @@ DServerCmdCallBackCommunication::writeTupleToCallBack(Tuple *inTuple)
           return false;
         }
                
-      if (getTagFromCallBack("NUMBLOCKS", line, false))
+      if (!getTagFromCallBack("NUMBLOCKS", line, false))
         {
           setErrorText("Received unexpected token");
           return false;
         }
-               
       if(atoi(line.data()) != num_blocks) 
         {
           setErrorText("Invalid number of blocks for sending tuples");
           return false;
         }
-
       char* buffer = new char[num_blocks*1024];
       memset(buffer,0,1024*num_blocks);
                
@@ -125,6 +123,7 @@ DServerCmdCallBackCommunication::writeTupleToCallBack(Tuple *inTuple)
         }
       //cout << m_index << ": got " << tb -> GetNoAttributes()  << endl;
     } // if (t != NULL)
+  
   return true;
 }
 
@@ -157,17 +156,20 @@ DServerCmdCallBackCommunication::
 
       int num_blocks = (size / 1024) + 1;
       
-
       char* buffer = new char[1024*num_blocks];
       memset(buffer,0,1024*num_blocks);
 
       // reading tuple data in biary format
       // from server 
 
-      sendTextToCallBack("NUMBLOCKS", num_blocks, false);
+      if (!sendTextToCallBack("NUMBLOCKS", num_blocks, false))
+        {
+          cerr << "REC ERROR SEND NUMBLOCKS" << endl;
+        }
+
       for(int i = 0; i<num_blocks; i++)
         Read(buffer+i*1024,1024);
-     
+
       // instantiating tuple
       DBAccessGuard::getInstance() -> T_ReadFromBin(inTuple, buffer);
       DBAccessGuard::getInstance() -> REL_AppendTuple(inRel, inTuple);
