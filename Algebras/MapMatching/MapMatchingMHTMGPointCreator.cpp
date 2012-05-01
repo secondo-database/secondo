@@ -101,23 +101,26 @@ bool MGPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
 
             // Find first defined point
             const MHTRouteCandidate::PointData* pData1 = NULL;
+            const GPoint* pGP1 = NULL;
             while(itData != itDataEnd &&
                   (pData1 == NULL ||
-                   GetGPoint(pData1, nNetworkkId, dNetworkScale) == NULL))
+                   (pGP1 = GetGPoint(pData1, nNetworkkId, dNetworkScale))
+                                                                       == NULL))
             {
                 pData1 = *itData;
                 ++itData;
             }
 
             // Process next points
-            while (itData != itDataEnd && pData1 != NULL &&
-                   GetGPoint(pData1, nNetworkkId, dNetworkScale) != NULL)
+            while (itData != itDataEnd && pData1 != NULL && pGP1 != NULL)
             {
                 const MHTRouteCandidate::PointData* pData2 = NULL;
+                const GPoint* pGP2 = NULL;
 
                 while (itData != itDataEnd &&
                        (pData2 == NULL ||
-                        GetGPoint(pData2, nNetworkkId, dNetworkScale) == NULL))
+                        (pGP2 = GetGPoint(pData2, nNetworkkId, dNetworkScale))
+                                                                       == NULL))
                 {
                     pData2 = *itData;
                     ++itData;
@@ -149,28 +152,20 @@ bool MGPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
                     bCalcShortestPath = false;
                 }
 
-                if (pData2 != NULL &&
-                    GetGPoint(pData2, nNetworkkId, dNetworkScale) != NULL)
+                if (pData2 != NULL && pGP2 != NULL)
                 {
                     const Interval<Instant> timeInterval(pData1->GetTime(),
                                                          pData2->GetTime(),
                                                          true  /*LC*/,
                                                          false /*RC*/);
 
-                    const GPoint* pGP1 = GetGPoint(pData1,
-                                                   nNetworkkId,
-                                                   dNetworkScale);
-                    const GPoint* pGP2 = GetGPoint(pData2,
-                                                   nNetworkkId,
-                                                   dNetworkScale);
+                    ConnectPoints(*pGP1, *pGP2, timeInterval);
 
-                    if (pGP1 != NULL && pGP2 != NULL)
-                        ConnectPoints(*pGP1, *pGP2, timeInterval);
-
-                   pLastPointOfPrevSection = pData2;
+                    pLastPointOfPrevSection = pData2;
                 }
 
                 pData1 = pData2;
+                pGP1 = pGP2;
             }
         }
     }
@@ -214,8 +209,7 @@ void MGPointCreator::Finalize(void)
     {
         m_pResMGPoint->EndBulkLoad(true);
         //m_pResMGPoint->SetDefined(!m_pRITree->IsEmpty());
-        m_pResMGPoint->SetDefined(true); // always defined,
-                    // because a undefined MGPoint is problematic (asserts, ...)
+        m_pResMGPoint->SetDefined(true); // always defined
         if (!m_pRITree->IsEmpty())
         {
             m_pRITree->TreeToDbArray(&m_pResMGPoint->m_trajectory, 0);
