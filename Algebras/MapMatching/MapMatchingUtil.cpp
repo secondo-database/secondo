@@ -411,6 +411,33 @@ double MMUtil::CalcDistance(const std::vector<Point>& rvecPoints,
     return dDistance;
 }
 
+double MMUtil::CalcDistance(const Point& rPt1,
+                            const Point& rPt2,
+                            const SimpleLine& rCurve,
+                            const double dScale)
+{
+    double dPos1 = -1.0;
+
+    MMUtil::GetPosOnSimpleLine(rCurve,
+                               rPt1,
+                               rCurve.GetStartSmaller(),
+                               0.000001 * dScale,
+                               dPos1);
+
+    double dPos2 = -1.0;
+    MMUtil::GetPosOnSimpleLine(rCurve,
+                               rPt2,
+                               rCurve.GetStartSmaller(),
+                               0.000001 * dScale,
+                               dPos2);
+
+    AttributePtr<SimpleLine> pSubline(new SimpleLine(0));
+    rCurve.SubLine(dPos1, dPos2, *pSubline);
+
+    return MMUtil::CalcLengthCurve(pSubline.get(),
+                                   dScale);
+}
+
 double MMUtil::CalcLengthCurve(const GLine* pCurve,
                                const Network* pNetwork,
                                const double dScale)

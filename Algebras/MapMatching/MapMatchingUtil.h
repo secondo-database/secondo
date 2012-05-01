@@ -93,6 +93,11 @@ public:
     static double CalcDistance(const std::vector<Point>& rvecPoints,
                                const double dScale);
 
+    static double CalcDistance(const Point& rPt1,
+                               const Point& rPt2,
+                               const SimpleLine& rCurve,
+                               const double dScale);
+
     static double CalcLengthCurve(const GLine* pCurve,
                                   const Network* pNetwork,
                                   const double dScale);
