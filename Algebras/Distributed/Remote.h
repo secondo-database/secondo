@@ -199,6 +199,9 @@ public:
 
   Socket *getServer() { return m_server; }
   const Socket *getServer() const { return m_server; }
+
+  ListExpr getTType() const { return m_type; }
+  const string& getTTypeStr() const { return m_typeStr; }
 private:
 
   string m_host;
