@@ -40,7 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 March 2012 Thomas Achmann
 \end{center}
 
-[TOC]
+[TOC] 
 
 0 Description
 
@@ -109,7 +109,7 @@ class GenericRelation;
 
 /*
 
-2 Class~ DServerCmdCallBackCommunication~
+2 Class ~DServerCmdCallBackCommunication~
 
   * derives from class ~DServerCmdCommunication~
 
@@ -137,7 +137,7 @@ class DServerCmdCallBackCommunication :
 
 /*
 
-2.2 Private default constructor
+2.2 Private Default Constructor
 
   * may not be used!
 
@@ -178,7 +178,7 @@ public:
 
 /*
 
-2.5 Error handling
+2.5 Error Handling
 
 2.5.1 Method ~bool hasError~
 
@@ -204,7 +204,7 @@ public:
 
 /*
 
-2.6 Initiating socket communication
+2.6 Initiating Socket Communication
 
 2.6.1 Method ~bool createGlobalSocket~
 
@@ -381,7 +381,7 @@ public:
 
 /*
 
-2.7 Closing socket communication
+2.7 Closing Socket Communication
 
 2.7.1 Method ~closeCallBackCommunication~
 
@@ -856,7 +856,7 @@ returns connection type of this object
   
 /*
 
-2.12 Private section
+2.12 Private Section
 
 */
 
@@ -864,7 +864,7 @@ private:
 
 /*
 
-2.12.1 Private methods
+2.12.1 Private Methods
 
 */
   void setErrorText(const std::string& inErrTxt)
@@ -932,7 +932,7 @@ private:
 
 /*
 
-2.12.2 Private members
+2.12.2 Private Members
 
 */
   std::string m_cbHost;
@@ -948,7 +948,7 @@ private:
   std::string m_errorText;
 /*
 
-2.13 End of class 
+2.13 End of Class 
 
 */
 };
