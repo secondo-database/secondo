@@ -55,6 +55,7 @@ memory than available totally, it is still granted.
 #include "zthread/Thread.h"
 #include "zthread/Guard.h"
 #include "zthread/Mutex.h"
+#include "zthread/Condition.h"
 
 /*
 2 class ~ThreadedMemoryCounter~

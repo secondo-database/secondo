@@ -36,6 +36,7 @@ tuples by an other thread.
 #ifndef _TUPLEFIFOQUEUE_H_
 #define _TUPLEFIFOQUEUE_H_
 
+#include <queue>
 #include "zthread/Thread.h"
 #include "zthread/Guard.h"
 #include "zthread/FastMutex.h"
