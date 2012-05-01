@@ -92,7 +92,7 @@ class DServerCmdShuffleRecParam : public DServerParam
   DServerCmdShuffleRecParam()  {}
 
 /*
-2.1 Constructor
+2.2 Constructor
 
   * int inBasePortNr - base port number
 
@@ -167,17 +167,11 @@ Necessary parameters are provide by the class ~DServerCmdShuffleRecParam~.
 class DServerCmdShuffleRec : public DServerCmd
 {
 /*
-
 3.1 Private default Constructor
 
   * inherited from the class ~DServerCmd~
 
   * may not be used!
-
-*/
-
-
-/*
 
 3.2 Constructor
 
@@ -242,30 +236,29 @@ public:
   
 /*
 
-2.5 Private Section
+3.7 Private Section
 
 */
 private:
 
 /*
 
-2.5.1 Private Methods
+3.7.1 Private Methods
 
 */
 // n/a
 
 /*
 
-2.5.2 Private Members
+3.7.2 Private Members
 
 */
   // n/a
 /*
 
-2.6 End of Class
+3.8 End of Class
 
 */
-
 
 };
 

@@ -46,9 +46,6 @@ April 2012 Thomas Achmann
 
 Implementation of the class ~DServerCmdShuffleRec~
 
-*/
-
-/*
 1 Preliminaries
 
 1.1 Includes
@@ -57,7 +54,7 @@ Implementation of the class ~DServerCmdShuffleRec~
 #include "DServerCmdShuffleRec.h"
 
 /*
-1.3 Debug Output
+1.2 Debug Output
 
 uncomment the following line for debug output
 
