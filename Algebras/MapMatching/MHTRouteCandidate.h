@@ -97,7 +97,7 @@ public:
         return m_dScore;
     }
 
-    void AddScore(double dScore);
+    void SetUTurn(double dAdditionalScore);
 
     void SetFailed(bool bFailed = true) {m_bFailed = bFailed;}
     bool GetFailed(void) const {return m_bFailed;}
@@ -231,16 +231,22 @@ public:
 
         bool IsOffRoad(void) const;
 
+        void SetUTurn(bool bUTurn = true) {m_bUTurn = bUTurn;}
+        bool HasUTurn(void) const {return m_bUTurn;}
+
         void Print(std::ostream& os) const;
 
     private:
 
         shared_ptr<IMMNetworkSection> m_pSection;
         std::vector<PointData*> m_Points;
+        bool m_bUTurn;
     };
 
     const std::vector<RouteSegment*>& GetRouteSegments(void) const
                                                             {return m_Segments;}
+
+    RouteSegment* GetLastOnroadSegment(void) const;
 
     // Debugging
     void Print(std::ostream& os) const;

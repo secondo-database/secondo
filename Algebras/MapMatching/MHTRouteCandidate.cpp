@@ -174,13 +174,14 @@ void MHTRouteCandidate::RemoveLastSection(void)
     }
 }
 
-shared_ptr<IMMNetworkSection> MHTRouteCandidate::GetLastSection(void) const
+MHTRouteCandidate::RouteSegment* MHTRouteCandidate::GetLastOnroadSegment(void)
+                                                                           const
 {
     if (m_Segments.size() > 0)
     {
         RouteSegment* pSegment = m_Segments.back();
         if (pSegment != NULL && !pSegment->IsOffRoad())
-            return pSegment->GetSection();
+            return pSegment;
         else
         {
             std::vector<RouteSegment*>::const_reverse_iterator it =
@@ -195,15 +196,26 @@ shared_ptr<IMMNetworkSection> MHTRouteCandidate::GetLastSection(void) const
             {
                 RouteSegment* pSegment = *it;
                 if (pSegment != NULL && !pSegment->IsOffRoad())
-                    return pSegment->GetSection();
+                    return pSegment;
 
                 ++it;
             }
         }
     }
 
-    static shared_ptr<IMMNetworkSection> pDummy;
-    return pDummy;
+    return NULL;
+}
+
+shared_ptr<IMMNetworkSection> MHTRouteCandidate::GetLastSection(void) const
+{
+    RouteSegment* pSegment = GetLastOnroadSegment();
+    if (pSegment != NULL)
+        return pSegment->GetSection();
+    else
+    {
+        static shared_ptr<IMMNetworkSection> pDummy;
+        return pDummy;
+    }
 }
 
 const MHTRouteCandidate::PointData* MHTRouteCandidate::GetLastPoint(void) const
@@ -688,9 +700,19 @@ void MHTRouteCandidate::RemoveLastPoint(void)
 #endif
 }
 
-void MHTRouteCandidate::AddScore(double dScore)
+void MHTRouteCandidate::SetUTurn(double dAdditionalScore)
 {
-    m_dScore += dScore;
+    RouteSegment* pSegment = GetLastOnroadSegment();
+    if (pSegment != NULL)
+    {
+        pSegment->SetUTurn(true);
+    }
+    else
+    {
+        assert(false);
+    }
+
+    m_dScore += dAdditionalScore;
 }
 
 static HalfSegment CalcHSOfEndPoint(const SimpleLine* pLine,
@@ -1272,19 +1294,22 @@ MHTRouteCandidate::PointDataIterator& MHTRouteCandidate::PointDataIterator::
 */
 
 MHTRouteCandidate::RouteSegment::RouteSegment(void)
-:m_pSection()
+:m_pSection(),
+ m_bUTurn(false)
 {
 }
 
 MHTRouteCandidate::RouteSegment::RouteSegment
                                  (const shared_ptr<IMMNetworkSection>& pSection)
-:m_pSection(pSection)
+:m_pSection(pSection),
+ m_bUTurn(false)
 {
 }
 
 MHTRouteCandidate::RouteSegment::RouteSegment
                                             (const RouteSegment& rCandidate)
-:m_pSection(rCandidate.m_pSection)
+:m_pSection(rCandidate.m_pSection),
+ m_bUTurn(rCandidate.m_bUTurn)
 {
     const std::vector<PointData*>& rvecData = rCandidate.GetPoints();
     const size_t nPoints = rvecData.size();
