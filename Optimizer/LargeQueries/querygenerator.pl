@@ -69,7 +69,7 @@ Implementations for my master thesis
 */
 
 
-:- use_module(library(random)).
+
 :- dynamic queryComponent/1.
 :- dynamic queryPred/1.
 
