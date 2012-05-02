@@ -3,6 +3,8 @@
 */
 
 :- ['./LargeQueries/querygraph.pl'].        % query graph utilities
+:- ['./LargeQueries/libs/pairs.pl'].        % pairs
+:- ['./LargeQueries/libs/random.pl'].       % random
 :- ['./LargeQueries/querygenerator.pl'].    % query graph generator
 
 /*
