@@ -435,6 +435,9 @@ the size of ~U~ and ~m~ is the size of ~V~.
                      const Geoid* geoid=0 ) const;
   void Intersection( const Region& r, Points& result ,
                      const Geoid* geoid=0) const;
+  void Intersection(const SimpleLine&l, Points& result,
+                    const Geoid* geoid=0) const;
+
 /*
 5.4.8 Operation ~minus~
 
@@ -443,6 +446,7 @@ the size of ~U~ and ~m~ is the size of ~V~.
   void Minus( const Points& ps, Points& result, const Geoid* geoid=0 ) const;
   void Minus( const Line& l, Points& result, const Geoid* geoid=0 ) const;
   void Minus( const Region& r, Points& result, const Geoid* geoid=0 ) const;
+  void Minus( const SimpleLine& l, Points& result, const Geoid* geoid=0 ) const;
 
 
 /*
@@ -453,6 +457,8 @@ the size of ~U~ and ~m~ is the size of ~V~.
   void Union(const Points& ps, Points& result, const Geoid* geoid=0 ) const;
   void Union(const Line& line, Line& result, const Geoid* geoid=0 ) const;
   void Union(const Region& region, Region& result, const Geoid* geoid=0 ) const;
+  void Union(const SimpleLine& line, SimpleLine& result,
+             const Geoid* geoid=0 ) const;
 
 
 
@@ -1037,6 +1043,8 @@ bool Intersects( const Region& r, const Geoid* geoid=0 ) const;
   void Intersection( const Line& l, Line& result, const Geoid* geoid=0 ) const;
   void Intersection( const Region& l, Line& result,
                      const Geoid* geoid=0 ) const;
+  void Intersection( const SimpleLine& l, SimpleLine& result,
+                     const Geoid* geoid=0 ) const;
 /*
 6.4.4 Operation ~minus~
 
@@ -1045,6 +1053,7 @@ bool Intersects( const Region& r, const Geoid* geoid=0 ) const;
   void Minus( const Points& l, Line& result, const Geoid* geoid=0 ) const;
   void Minus( const Line& l, Line& result, const Geoid* geoid=0 ) const;
   void Minus( const Region& l, Line& result, const Geoid* geoid=0 ) const;
+  void Minus( const SimpleLine& l, Line& result, const Geoid* geoid=0 ) const;
 
 /*
 6.4.4 Operation ~union~
@@ -1054,6 +1063,7 @@ bool Intersects( const Region& r, const Geoid* geoid=0 ) const;
   void Union( const Points& l, Line& result, const Geoid* geoid=0 ) const;
   void Union( const Line& l, Line& result, const Geoid* geoid=0 ) const;
   void Union( const Region& l, Region& result, const Geoid* geoid=0 ) const;
+  void Union( const SimpleLine& l, Line& result, const Geoid* geoid=0 ) const;
 
 /*
 6.4.5 Operation ~crossings~
@@ -1725,6 +1735,45 @@ Inside
 bool Inside( const SimpleLine& l, const Geoid* geoid=0 ) const;
 
 /*
+6.4.4 Operation ~intersection~
+
+*/
+
+void Intersection(const Point& p, Points& result, const Geoid* geoid=0) const;
+void Intersection(const Points& ps, Points& result,
+                  const Geoid* geoid=0) const;
+void Intersection( const Line& l, SimpleLine& result,
+                   const Geoid* geoid=0 ) const;
+void Intersection( const Region& l, SimpleLine& result,
+                   const Geoid* geoid=0 ) const;
+void Intersection( const SimpleLine& l, SimpleLine& result,
+                   const Geoid* geoid = 0) const;
+
+/*
+6.4.4 Operation ~minus~
+
+*/
+
+void Minus( const Point& l, SimpleLine& result, const Geoid* geoid=0 ) const;
+void Minus( const Points& l, SimpleLine& result, const Geoid* geoid=0 ) const;
+void Minus( const Line& l, SimpleLine& result, const Geoid* geoid=0 ) const;
+void Minus( const Region& l, SimpleLine& result, const Geoid* geoid=0 ) const;
+void Minus( const SimpleLine& l, SimpleLine& result,
+            const Geoid* geoid=0 ) const;
+
+/*
+6.4.4 Operation ~union~
+
+*/
+
+void Union( const Point& l, SimpleLine& result, const Geoid* geoid=0 ) const;
+void Union( const Points& l, SimpleLine& result, const Geoid* geoid=0 ) const;
+void Union( const Line& l, Line& result, const Geoid* geoid=0 ) const;
+void Union( const Region& l, Region& result, const Geoid* geoid=0 ) const;
+void Union( const SimpleLine& l, Line& result, const Geoid* geoid=0 ) const;
+
+
+/*
 ~TrimToSize~
 
 Changes the capacities of the contained arrays to the required size.
@@ -2341,6 +2390,8 @@ Assignement operator redefinition.
   void Intersection(const Line& l, Line& result, const Geoid* geoid=0) const;
   void Intersection(const Region& r, Region& result,
                     const Geoid* geoid=0) const;
+  void Intersection(const SimpleLine& l, SimpleLine& result,
+                    const Geoid* geoid=0) const;
 
 /*
 6.4.4 Operation ~Union~
@@ -2350,6 +2401,7 @@ Assignement operator redefinition.
   void Union(const Points& ps, Region& result, const Geoid* geoid=0) const;
   void Union(const Line& l, Region& result, const Geoid* geoid=0) const;
   void Union(const Region& r, Region& result, const Geoid* geoid=0) const;
+  void Union(const SimpleLine& l, Region& result, const Geoid* geoid=0) const;
 
 
 /*
@@ -2360,6 +2412,7 @@ Assignement operator redefinition.
   void Minus(const Points& ps, Region& result, const Geoid* geoid=0) const;
   void Minus(const Line& l, Region& result, const Geoid* geoid=0) const;
   void Minus(const Region& r, Region& result, const Geoid* geoid=0) const;
+  void Minus(const SimpleLine& l, Region& result, const Geoid* geoid=0) const;
 
 
 /*
@@ -4349,6 +4402,34 @@ void SetOp(const Line& line1, const Line& line2,
 
 void SetOp(const Region& reg1, const Region& reg2,
            Region& result, avlseg::SetOperation op, const Geoid* geoid=0);
+
+void SetOp(const Line& l, const SimpleLine& sl, SimpleLine& result,
+           avlseg::SetOperation op, const Geoid* geoid=0);
+
+void SetOp(const Line& l, const SimpleLine& sl, Line& result,
+           avlseg::SetOperation op, const Geoid* geoid=0);
+
+void SetOp(const SimpleLine& sl, const Line& l, SimpleLine& result,
+           avlseg::SetOperation op, const Geoid* geoid=0);
+
+void SetOp(const SimpleLine& sl, const Line& l, Line& result,
+           avlseg::SetOperation op, const Geoid* geoid=0);
+
+void SetOp(const SimpleLine& sl1, const SimpleLine& sl2, SimpleLine& result,
+           avlseg::SetOperation op, const Geoid* geoid=0);
+
+void SetOp(const SimpleLine& sl1, const SimpleLine& sl2, Line& result,
+           avlseg::SetOperation op, const Geoid* geoid=0);
+
+void SetOp(const Region& r, const SimpleLine& sl, Region& result,
+           avlseg::SetOperation op, const Geoid* geoid=0);
+
+void SetOp(const SimpleLine& sl, const Region& r, SimpleLine& result,
+           avlseg::SetOperation op, const Geoid* geoid=0);
+
+void SetOp(const SimpleLine& sl, const Region& r, Region& result,
+           avlseg::SetOperation op, const Geoid* geoid=0);
+
 /*
 ~Realminize~
 

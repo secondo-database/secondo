@@ -968,6 +968,10 @@ void Point::Intersection(const Region& r, Points& result,
   r.Intersection(*this, result, geoid);
 }
 
+void Point::Intersection(const SimpleLine& l, Points& result,
+                         const Geoid* geoid /*=0*/) const{
+  l.Intersection(*this, result, geoid);
+}
 
 void Point::Minus(const Point& p, Points& result,
                   const Geoid* geoid /*=0*/) const{
@@ -1022,6 +1026,18 @@ void Point::Minus(const Region& r, Points& result,
   }
 }
 
+void Point::Minus(const SimpleLine& l, Points& result,
+                  const Geoid* geoid /*=0*/) const{
+  result.Clear();
+  if(!IsDefined() || !l.IsDefined() || (geoid && !geoid->IsDefined())){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  if(!l.Contains(*this, geoid)){
+    result += *this;
+  }
+}
 
 void Point::Union(const Point& p, Points& result,
                   const Geoid* geoid /*=0*/) const{
@@ -1052,7 +1068,10 @@ void Point::Union(const Region& r, Region& result,
   r.Union(*this, result, geoid);
 }
 
-
+void Point::Union(const SimpleLine& l, SimpleLine& result,
+                  const Geoid* geoid /*=0*/) const{
+  l.Union(*this, result, geoid);
+}
 
 double Point::Distance( const Point& p, const Geoid* geoid /* = 0 */ ) const
 {
@@ -2659,6 +2678,32 @@ void Points::Intersection( const Region& r, Points& result,
   result.EndBulkLoad( false, false );
 }
 
+void Points::Intersection( const SimpleLine& l, Points& result,
+                           const Geoid* geoid /*=0*/ ) const
+{
+  result.Clear();
+  if( !IsDefined() || !l.IsDefined() || (geoid && !geoid->IsDefined()) ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
+
+  if( IsEmpty() || l.IsEmpty() )
+    return;
+
+  Point p;
+  result.StartBulkLoad();
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, p );
+    if( l.Contains( p, geoid ) )
+      result += p;
+  }
+  result.EndBulkLoad( false, false );
+}
+
 void Points::Minus( const Point& p, Points& ps,
                     const Geoid* geoid /*=0*/ ) const
 {
@@ -2765,6 +2810,29 @@ void Points::Minus( const Region& r, Points& result,
   result.EndBulkLoad( false, false );
 }
 
+void Points::Minus( const SimpleLine& l, Points& result,
+                    const Geoid* geoid /*=0*/ ) const
+{
+  result.Clear();
+  if( !IsDefined() || !l.IsDefined() || (geoid && !geoid->IsDefined()) ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
+
+  Point p;
+  result.StartBulkLoad();
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, p );
+    if( !l.Contains( p, geoid ) )
+      result += p;
+  }
+  result.EndBulkLoad( false, false );
+}
+
 void Points::Union( const Point& p, Points& result,
                     const Geoid* geoid /*=0*/ ) const
 {
@@ -2846,7 +2914,10 @@ void Points::Union( const Region& region, Region& result,
    region.Union(*this,result,geoid);
 }
 
-
+void Points::Union(const SimpleLine& line, SimpleLine& result,
+                   const Geoid* geoid /*=0*/) const{
+  line.Union(*this,result, geoid);
+}
 
 double Points::Distance( const Point& p, const Geoid* geoid /* = 0 */ ) const
 {
@@ -5308,6 +5379,12 @@ void Line::Intersection(const Region& r, Line& result,
  r.Intersection(*this,result,geoid);
 }
 
+void Line::Intersection( const SimpleLine& l, SimpleLine& result,
+                         const Geoid* geoid/*=0*/ ) const
+{
+ SetOp(*this,l,result,avlseg::intersection_op, geoid);
+}
+
 void Line::Minus(const Point& p, Line& result,
                  const Geoid* geoid/*=0*/) const {
   result.Clear();
@@ -5338,6 +5415,10 @@ void Line::Minus(const Region& region, Line& result,
  SetOp(*this,region, result,avlseg::difference_op,geoid);
 }
 
+void Line::Minus(const SimpleLine& line, Line& result,
+                 const Geoid* geoid/*=0*/) const{
+  SetOp(*this,line,result,avlseg::difference_op,geoid);
+}
 
 void Line::Union(const Point& p, Line& result, const Geoid* geoid/*=0*/) const{
   result.Clear();
@@ -5368,8 +5449,10 @@ void Line::Union(const Region& region, Region& result,
  region.Union(*this,result,geoid);
 }
 
-
-
+void Line::Union(const SimpleLine& line, Line& result,
+                 const Geoid* geoid/*=0*/) const{
+  SetOp(*this, line, result, avlseg::union_op,geoid);
+}
 
 void Line::Crossings( const Line& l, Points& result,
                       const Geoid* geoid/*=0*/ ) const{
@@ -7224,6 +7307,124 @@ bool SimpleLine::Inside(const SimpleLine& l, const Geoid* geoid) const
   return true;
 }
 
+void SimpleLine::Intersection(const Point& p, Points& result,
+                              const Geoid* geoid/*=0*/)const {
+  result.Clear();
+  if(!IsDefined() || !p.IsDefined() || (geoid&& !geoid->IsDefined()) ){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  if(this->Contains(p, geoid)){
+    result += p;
+  }
+}
+
+void SimpleLine::Intersection(const Points& ps, Points& result,
+                              const Geoid* geoid/*=0*/) const{
+  // naive implementation, should be changed to be faster
+  result.Clear();
+  if(!IsDefined() || !ps.IsDefined() || (geoid&& !geoid->IsDefined())){
+    result.SetDefined(false);
+    return;
+  }
+  Point p;
+  result.StartBulkLoad();
+  for(int i=0;i<ps.Size(); i++){
+    ps.Get(i,p);
+    if(this->Contains(p,geoid)){
+      result += p;
+    }
+  }
+  result.EndBulkLoad(false,false,false);
+}
+
+void SimpleLine::Intersection( const Line& l, SimpleLine& result,
+                               const Geoid* geoid/*=0*/ ) const
+{
+  SetOp(*this,l,result,avlseg::intersection_op, geoid);
+}
+
+void SimpleLine::Intersection( const SimpleLine& l, SimpleLine& result,
+                               const Geoid* geoid/*=0*/ ) const
+{
+  SetOp(*this,l,result,avlseg::intersection_op, geoid);
+}
+
+void SimpleLine::Intersection(const Region& r, SimpleLine& result,
+                              const Geoid* geoid/*=0*/) const{
+  r.Intersection(*this,result,geoid);
+}
+
+void SimpleLine::Minus(const Point& p, SimpleLine& result,
+                       const Geoid* geoid/*=0*/) const {
+  result.Clear();
+  if(!IsDefined() || !p.IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.CopyFrom(this);
+}
+
+void SimpleLine::Minus(const Points& ps, SimpleLine& result,
+                       const Geoid* geoid/*=0*/) const {
+ result.Clear();
+ if(!IsDefined() || !ps.IsDefined() || (geoid&& !geoid->IsDefined()) ){
+   result.SetDefined(false);
+   return;
+ }
+ result.CopyFrom(this);
+}
+
+void SimpleLine::Minus(const Line& line, SimpleLine& result,
+                       const Geoid* geoid/*=0*/) const{
+  SetOp(*this,line,result,avlseg::difference_op,geoid);
+}
+
+void SimpleLine::Minus(const Region& region, SimpleLine& result,
+                       const Geoid* geoid/*=0*/) const{
+  SetOp(*this,region, result,avlseg::difference_op,geoid);
+}
+
+void SimpleLine::Minus(const SimpleLine& line, SimpleLine& result,
+                       const Geoid* geoid/*=0*/) const{
+  SetOp(*this,line,result,avlseg::difference_op,geoid);
+}
+
+void SimpleLine::Union(const Point& p, SimpleLine& result,
+                       const Geoid* geoid/*=0*/) const{
+  result.Clear();
+  if(!IsDefined() || !p.IsDefined() || (geoid&& !geoid->IsDefined()) ){
+    result.SetDefined(false);
+    return;
+  }
+  result.CopyFrom(this);
+}
+
+void SimpleLine::Union(const Points& ps, SimpleLine& result,
+                       const Geoid* geoid/*=0*/) const{
+  result.Clear();
+  if(!IsDefined() || !ps.IsDefined() || (geoid&& !geoid->IsDefined())){
+    result.SetDefined(false);
+    return;
+  }
+  result.CopyFrom(this);
+}
+
+void SimpleLine::Union(const Line& line, Line& result,
+                       const Geoid* geoid/*=0*/) const{
+  SetOp(*this, line, result, avlseg::union_op,geoid);
+}
+
+void SimpleLine::Union(const Region& region, Region& result,
+                       const Geoid* geoid/*=0*/) const{
+  region.Union(*this,result,geoid);
+}
+
+void SimpleLine::Union(const SimpleLine& line, Line& result,
+                       const Geoid* geoid/*=0*/) const{
+  SetOp(*this, line, result, avlseg::union_op,geoid);
+}
 
 double SimpleLine::Distance(const Point& p, const Geoid* geoid /* = 0 */)const {
   assert( !IsEmpty() );
@@ -8825,6 +9026,11 @@ void Region::Intersection(const Region& r, Region& result,
   SetOp(*this,r,result,avlseg::intersection_op, geoid);
 }
 
+void Region::Intersection(const SimpleLine& l, SimpleLine& result,
+                          const Geoid* geoid/*=0*/) const{
+  SetOp(l,*this,result,avlseg::intersection_op, geoid);
+}
+
 void Region::Union(const Point& p, Region& result,
                    const Geoid* geoid/*=0*/) const{
   if(!IsDefined() || !p.IsDefined() || (geoid && !geoid->IsDefined()) ){
@@ -8863,6 +9069,16 @@ void Region::Union(const Region& region, Region& result,
    SetOp(*this,region,result,avlseg::union_op, geoid);
 }
 
+void Region::Union(const SimpleLine& line, Region& result,
+                   const Geoid* geoid/*=0*/) const{
+  if(!IsDefined() || !line.IsDefined() || (geoid && !geoid->IsDefined()) ){
+    result.Clear();
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  result.CopyFrom(this);
+}
 
 void Region::Minus(const Point& p, Region& result,
                    const Geoid* geoid/*=0*/) const{
@@ -8902,7 +9118,16 @@ void Region::Minus(const Region& region, Region& result,
    SetOp(*this,region,result,avlseg::difference_op, geoid);
 }
 
-
+void Region::Minus(const SimpleLine& line, Region& result,
+                   const Geoid* geoid/*=0*/) const{
+  if(!IsDefined() || !line.IsDefined() || (geoid && !geoid->IsDefined()) ){
+    result.Clear();
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined(true);
+  result.CopyFrom(this);
+}
 
 bool Region::Inside( const Region& r, const Geoid* geoid/*=0*/ ) const
 {
@@ -13112,7 +13337,7 @@ SpatialTypeMapBool1( ListExpr args )
 }
 
 ListExpr SpatialIntersectionTypeMap(ListExpr args){
-  string err = "t1 x t2 expected, t_i in {points, points, line, region";
+  string err = "t1 x t2 expected, t_i in {points, points, line, sline, region";
   if(nl->ListLength(args)!=2){
     return listutils::typeError(err + ": wrong number of arguments");
   }
@@ -13128,39 +13353,55 @@ ListExpr SpatialIntersectionTypeMap(ListExpr args){
   string a2 = nl->SymbolValue(arg2);
 
   if(a1==Point::BasicType()){
-    if(a2==Point::BasicType())  return nl->SymbolAtom(Points::BasicType());
-    if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
-    if(a2==Line::BasicType())   return nl->SymbolAtom(Points::BasicType());
-    if(a2==Region::BasicType())  return nl->SymbolAtom(Points::BasicType());
+    if(a2==Point::BasicType() || a2==Points::BasicType() ||
+       a2==Line::BasicType() || a2==Region::BasicType() ||
+       a2==SimpleLine::BasicType())
+      return nl->SymbolAtom(Points::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
   if(a1==Points::BasicType()){
-    if(a2==Point::BasicType())  return nl->SymbolAtom(Points::BasicType());
-    if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
-    if(a2==Line::BasicType())   return nl->SymbolAtom(Points::BasicType());
-    if(a2==Region::BasicType())  return nl->SymbolAtom(Points::BasicType());
+    if(a2==Point::BasicType() || a2==Points::BasicType() ||
+       a2==Line::BasicType() || a2==Region::BasicType() ||
+       a2==SimpleLine::BasicType())
+      return nl->SymbolAtom(Points::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
+
   if(a1==Line::BasicType()){
-    if(a2==Point::BasicType())  return nl->SymbolAtom(Points::BasicType());
-    if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
-    if(a2==Line::BasicType())   return nl->SymbolAtom(Line::BasicType());
-    if(a2==Region::BasicType())  return nl->SymbolAtom(Line::BasicType());
+    if(a2==Point::BasicType() ||a2==Points::BasicType())
+      return nl->SymbolAtom(Points::BasicType());
+    if(a2==Line::BasicType() || a2==Region::BasicType())
+      return nl->SymbolAtom(Line::BasicType());
+    if(a2==SimpleLine::BasicType())
+      return nl->SymbolAtom(SimpleLine::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
+
   if(a1==Region::BasicType()){
-    if(a2==Point::BasicType())  return nl->SymbolAtom(Points::BasicType());
-    if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
+    if(a2==Point::BasicType() || a2==Points::BasicType())
+      return nl->SymbolAtom(Points::BasicType());
     if(a2==Line::BasicType())   return nl->SymbolAtom(Line::BasicType());
     if(a2==Region::BasicType())  return nl->SymbolAtom(Region::BasicType());
+    if(a2==SimpleLine::BasicType())
+      return nl->SymbolAtom(SimpleLine::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
-  return listutils::typeError(err+ ": first arg not a spatial type");
 
+  if(a1==SimpleLine::BasicType()){
+    if(a2==Point::BasicType() ||a2==Points::BasicType())
+      return nl->SymbolAtom(Points::BasicType());
+    if(a2==Line::BasicType() || a2==Region::BasicType())
+      return nl->SymbolAtom(Line::BasicType());
+    if(a2==SimpleLine::BasicType())
+      return nl->SymbolAtom(SimpleLine::BasicType());
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+
+  return listutils::typeError(err+ ": first arg not a spatial type");
 }
 
 ListExpr SpatialMinusTypeMap(ListExpr args){
-  string err = "t1 x t2 expected, t_i in {points, points, line, region";
+  string err = "t1 x t2 expected, t_i in {points, points, line, sline, region";
   if(nl->ListLength(args)!=2){
     return listutils::typeError(err + ": wrong number of arguments");
   }
@@ -13180,35 +13421,53 @@ ListExpr SpatialMinusTypeMap(ListExpr args){
     if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
     if(a2==Line::BasicType())   return nl->SymbolAtom(Points::BasicType());
     if(a2==Region::BasicType()) return nl->SymbolAtom(Points::BasicType());
+    if(a2==SimpleLine::BasicType()) return nl->SymbolAtom(Points::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
+
   if(a1==Points::BasicType()){
     if(a2==Point::BasicType())  return nl->SymbolAtom(Points::BasicType());
     if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
     if(a2==Line::BasicType())   return nl->SymbolAtom(Points::BasicType());
     if(a2==Region::BasicType()) return nl->SymbolAtom(Points::BasicType());
+    if(a2==SimpleLine::BasicType()) return nl->SymbolAtom(Points::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
+
   if(a1==Line::BasicType()){
     if(a2==Point::BasicType())  return nl->SymbolAtom(Line::BasicType());
     if(a2==Points::BasicType()) return nl->SymbolAtom(Line::BasicType());
     if(a2==Line::BasicType())   return nl->SymbolAtom(Line::BasicType());
     if(a2==Region::BasicType()) return nl->SymbolAtom(Line::BasicType());
+    if(a2==SimpleLine::BasicType()) return nl->SymbolAtom(Line::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
+
   if(a1==Region::BasicType()){
     if(a2==Point::BasicType())  return nl->SymbolAtom(Region::BasicType());
     if(a2==Points::BasicType()) return nl->SymbolAtom(Region::BasicType());
     if(a2==Line::BasicType())   return nl->SymbolAtom(Region::BasicType());
     if(a2==Region::BasicType()) return nl->SymbolAtom(Region::BasicType());
+    if(a2==SimpleLine::BasicType()) return nl->SymbolAtom(Region::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
+
+  if(a1==SimpleLine::BasicType()){
+    if(a2==Point::BasicType())  return nl->SymbolAtom(SimpleLine::BasicType());
+    if(a2==Points::BasicType()) return nl->SymbolAtom(SimpleLine::BasicType());
+    if(a2==Line::BasicType())   return nl->SymbolAtom(SimpleLine::BasicType());
+    if(a2==Region::BasicType()) return nl->SymbolAtom(SimpleLine::BasicType());
+    if(a2==SimpleLine::BasicType())
+      return nl->SymbolAtom(SimpleLine::BasicType());
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+
   return listutils::typeError(err+ ": first arg not a spatial type");
 
 }
 
 ListExpr SpatialUnionTypeMap(ListExpr args){
-  string err = "t1 x t2 expected, t_i in {points, points, line, region";
+  string err = "t1 x t2 expected, t_i in {points, points, line, sline, region";
   if(nl->ListLength(args)!=2){
     return listutils::typeError(err + ": wrong number of arguments");
   }
@@ -13228,6 +13487,8 @@ ListExpr SpatialUnionTypeMap(ListExpr args){
     if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
     if(a2==Line::BasicType())   return nl->SymbolAtom(Line::BasicType());
     if(a2==Region::BasicType())  return nl->SymbolAtom(Region::BasicType());
+    if(a2==SimpleLine::BasicType())
+      return nl->SymbolAtom(SimpleLine::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
   if(a1==Points::BasicType()){
@@ -13235,6 +13496,8 @@ ListExpr SpatialUnionTypeMap(ListExpr args){
     if(a2==Points::BasicType()) return nl->SymbolAtom(Points::BasicType());
     if(a2==Line::BasicType())   return nl->SymbolAtom(Line::BasicType());
     if(a2==Region::BasicType())  return nl->SymbolAtom(Region::BasicType());
+    if(a2==SimpleLine::BasicType())
+      return nl->SymbolAtom(SimpleLine::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
   if(a1==Line::BasicType()){
@@ -13242,6 +13505,7 @@ ListExpr SpatialUnionTypeMap(ListExpr args){
     if(a2==Points::BasicType()) return nl->SymbolAtom(Line::BasicType());
     if(a2==Line::BasicType())   return nl->SymbolAtom(Line::BasicType());
     if(a2==Region::BasicType())  return nl->SymbolAtom(Region::BasicType());
+    if(a2==SimpleLine::BasicType()) return nl->SymbolAtom(Line::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
   if(a1==Region::BasicType()){
@@ -13249,6 +13513,15 @@ ListExpr SpatialUnionTypeMap(ListExpr args){
     if(a2==Points::BasicType()) return nl->SymbolAtom(Region::BasicType());
     if(a2==Line::BasicType())   return nl->SymbolAtom(Region::BasicType());
     if(a2==Region::BasicType())  return nl->SymbolAtom(Region::BasicType());
+    if(a2==SimpleLine::BasicType()) return nl->SymbolAtom(Region::BasicType());
+    return listutils::typeError(err+ ": second arg not a spatial type");
+  }
+  if(a1==SimpleLine::BasicType()){
+    if(a2==Point::BasicType())  return nl->SymbolAtom(SimpleLine::BasicType());
+    if(a2==Points::BasicType()) return nl->SymbolAtom(SimpleLine::BasicType());
+    if(a2==Line::BasicType())   return nl->SymbolAtom(Line::BasicType());
+    if(a2==Region::BasicType())  return nl->SymbolAtom(Region::BasicType());
+    if(a2==SimpleLine::BasicType()) return nl->SymbolAtom(Line::BasicType());
     return listutils::typeError(err+ ": second arg not a spatial type");
   }
   return listutils::typeError(err+ ": first arg not a spatial type");
@@ -14844,32 +15117,45 @@ int SpatialSetOpSelect(ListExpr args){
   string a2 = nl->SymbolValue(nl->Second(args));
 
   if(a1==Point::BasicType()){
-    if(a2==Point::BasicType())  return 0;
-    if(a2==Points::BasicType()) return 1;
-    if(a2==Line::BasicType())   return 2;
-    if(a2==Region::BasicType()) return 3;
+    if(a2==Point::BasicType())      return 0;
+    if(a2==Points::BasicType())     return 1;
+    if(a2==Line::BasicType())       return 2;
+    if(a2==Region::BasicType())     return 3;
+    if(a2==SimpleLine::BasicType()) return 4;
     return -1;
   }
   if(a1==Points::BasicType()){
-    if(a2==Point::BasicType())  return 4;
-    if(a2==Points::BasicType()) return 5;
-    if(a2==Line::BasicType())   return 6;
-    if(a2==Region::BasicType()) return 7;
+    if(a2==Point::BasicType())      return 5;
+    if(a2==Points::BasicType())     return 6;
+    if(a2==Line::BasicType())       return 7;
+    if(a2==Region::BasicType())     return 8;
+    if(a2==SimpleLine::BasicType()) return 9;
     return -1;
   }
   if(a1==Line::BasicType()){
-    if(a2==Point::BasicType())  return 8;
-    if(a2==Points::BasicType()) return 9;
-    if(a2==Line::BasicType())   return 10;
-    if(a2==Region::BasicType()) return 11;
+    if(a2==Point::BasicType())      return 10;
+    if(a2==Points::BasicType())     return 11;
+    if(a2==Line::BasicType())       return 12;
+    if(a2==Region::BasicType())     return 13;
+    if(a2==SimpleLine::BasicType()) return 14;
     return -1;
   }
 
   if(a1==Region::BasicType()){
-    if(a2==Point::BasicType())  return 12;
-    if(a2==Points::BasicType()) return 13;
-    if(a2==Line::BasicType())   return 14;
-    if(a2==Region::BasicType()) return 15;
+    if(a2==Point::BasicType())      return 15;
+    if(a2==Points::BasicType())     return 16;
+    if(a2==Line::BasicType())       return 17;
+    if(a2==Region::BasicType())     return 18;
+    if(a2==SimpleLine::BasicType()) return 19;
+    return -1;
+  }
+
+  if (a1 == SimpleLine::BasicType()){
+    if(a2==Point::BasicType())      return 20;
+    if(a2==Points::BasicType())     return 21;
+    if(a2==Line::BasicType())       return 22;
+    if(a2==Region::BasicType())     return 23;
+    if(a2==SimpleLine::BasicType()) return 24;
     return -1;
   }
   return -1;
@@ -15530,7 +15816,7 @@ SpatialInInterior_pr( Word* args, Word& result, int message,
 */
 template<class A1, class A2, class R>
 int SpatialIntersectionGeneric(Word* args, Word& result, int message,
-                    Word& local, Supplier s){
+                               Word& local, Supplier s){
 
   result = qp->ResultStorage( s );
   A1* arg1 = static_cast<A1*>(args[0].addr);
@@ -18124,21 +18410,31 @@ ValueMapping spatialintersectionVM[] = {
   SpatialIntersectionGeneric<Point, Points, Points>,
   SpatialIntersectionGeneric<Point, Line, Points>,
   SpatialIntersectionGeneric<Point, Region, Points>,
+  SpatialIntersectionGeneric<Point, SimpleLine, Points>,
 
   SpatialIntersectionGeneric<Points, Point, Points>,
   SpatialIntersectionGeneric<Points, Points, Points>,
   SpatialIntersectionGeneric<Points, Line, Points>,
   SpatialIntersectionGeneric<Points, Region, Points>,
+  SpatialIntersectionGeneric<Points, SimpleLine, Points>,
 
   SpatialIntersectionGeneric<Line, Point, Points>,
   SpatialIntersectionGeneric<Line, Points, Points>,
   SpatialIntersectionGeneric<Line, Line, Line>,
   SpatialIntersectionGeneric<Line, Region, Line>,
+  SpatialIntersectionGeneric<Line, SimpleLine, SimpleLine>,
 
   SpatialIntersectionGeneric<Region, Point, Points>,
   SpatialIntersectionGeneric<Region, Points, Points>,
   SpatialIntersectionGeneric<Region, Line, Line>,
-  SpatialIntersectionGeneric<Region, Region, Region>
+  SpatialIntersectionGeneric<Region, Region, Region>,
+  SpatialIntersectionGeneric<Region, SimpleLine, SimpleLine>,
+
+  SpatialIntersectionGeneric<SimpleLine, Point, Points>,
+  SpatialIntersectionGeneric<SimpleLine, Points, Points>,
+  SpatialIntersectionGeneric<SimpleLine, Line, SimpleLine>,
+  SpatialIntersectionGeneric<SimpleLine, Region, SimpleLine>,
+  SpatialIntersectionGeneric<SimpleLine, SimpleLine, SimpleLine>
 
 };
 
@@ -18147,21 +18443,31 @@ ValueMapping spatialminusVM[] = {
   SpatialMinusGeneric<Point, Points, Points>,
   SpatialMinusGeneric<Point, Line, Points>,
   SpatialMinusGeneric<Point, Region, Points>,
+  SpatialMinusGeneric<Point, SimpleLine, Points>,
 
   SpatialMinusGeneric<Points, Point, Points>,
   SpatialMinusGeneric<Points, Points, Points>,
   SpatialMinusGeneric<Points, Line, Points>,
   SpatialMinusGeneric<Points, Region, Points>,
+  SpatialMinusGeneric<Points, SimpleLine, Points>,
 
   SpatialMinusGeneric<Line, Point, Line>,
   SpatialMinusGeneric<Line, Points, Line>,
   SpatialMinusGeneric<Line, Line, Line>,
   SpatialMinusGeneric<Line, Region, Line>,
+  SpatialMinusGeneric<Line, SimpleLine, Line>,
 
   SpatialMinusGeneric<Region, Point, Region>,
   SpatialMinusGeneric<Region, Points, Region>,
   SpatialMinusGeneric<Region, Line, Region>,
-  SpatialMinusGeneric<Region, Region, Region>
+  SpatialMinusGeneric<Region, Region, Region>,
+  SpatialMinusGeneric<Region, SimpleLine, Region>,
+
+  SpatialMinusGeneric<SimpleLine, Point, SimpleLine>,
+  SpatialMinusGeneric<SimpleLine, Points, SimpleLine>,
+  SpatialMinusGeneric<SimpleLine, Line, SimpleLine>,
+  SpatialMinusGeneric<SimpleLine, Region, SimpleLine>,
+  SpatialMinusGeneric<SimpleLine, SimpleLine, SimpleLine>
 
 };
 
@@ -18171,21 +18477,31 @@ ValueMapping spatialunionVM[] = {
   SpatialUnionGeneric<Point, Points, Points>,
   SpatialUnionGeneric<Point, Line, Line>,
   SpatialUnionGeneric<Point, Region, Region>,
+  SpatialUnionGeneric<Point, SimpleLine, SimpleLine>,
 
   SpatialUnionGeneric<Points, Point, Points>,
   SpatialUnionGeneric<Points, Points, Points>,
   SpatialUnionGeneric<Points, Line, Line>,
   SpatialUnionGeneric<Points, Region, Region>,
+  SpatialUnionGeneric<Points, SimpleLine, SimpleLine>,
 
   SpatialUnionGeneric<Line, Point, Line>,
   SpatialUnionGeneric<Line, Points, Line>,
   SpatialUnionGeneric<Line, Line, Line>,
   SpatialUnionGeneric<Line, Region, Region>,
+  SpatialUnionGeneric<Line, SimpleLine, Line>,
 
   SpatialUnionGeneric<Region, Point, Region>,
   SpatialUnionGeneric<Region, Points, Region>,
   SpatialUnionGeneric<Region, Line, Region>,
-  SpatialUnionGeneric<Region, Region, Region>
+  SpatialUnionGeneric<Region, Region, Region>,
+  SpatialUnionGeneric<Region, SimpleLine, Region>,
+
+  SpatialUnionGeneric<SimpleLine, Point, SimpleLine>,
+  SpatialUnionGeneric<SimpleLine, Points, SimpleLine>,
+  SpatialUnionGeneric<SimpleLine, Line, Line>,
+  SpatialUnionGeneric<SimpleLine, Region, Region>,
+  SpatialUnionGeneric<SimpleLine, SimpleLine, Line>,
 
 };
 
@@ -18455,8 +18771,8 @@ const string SpatialSpecInInterior  =
 
 const string SpatialIntersectionSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>{point x points, line, region } x"
-  "   {point, points, line, region} -> T, "
+  "( <text>{point x points, line, sline, region } x"
+  "   {point, points, line, sline, region} -> T, "
   " where T = points if any point or point type is one of the "
   " arguments or the argument having the smaller dimension </text--->"
   "<text>intersection(arg1, arg2)</text--->"
@@ -18467,8 +18783,8 @@ const string SpatialIntersectionSpec  =
 
 const string SpatialMinusSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>{point x points, line, region } x"
-  "   {point, points, line, region} -> T "
+  "( <text>{point, points, line, sline, region } x"
+  "   {point, points, line, sline region} -> T "
   " </text--->"
   "<text>arg1 minus arg2</text--->"
   "<text>difference of two spatial objects</text--->"
@@ -18477,8 +18793,8 @@ const string SpatialMinusSpec  =
 
 const string SpatialUnionSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>{point x points, line, region } x"
-  "   {point, points, line, region} -> T "
+  "( <text>{point , points, line, sline, region } x"
+  "   {point, points, line, sline, region} -> T "
   " </text--->"
   "<text>arg1 union arg2</text--->"
   "<text>union of two spatial objects</text--->"
@@ -19112,7 +19428,7 @@ Operator spatialininterior (
 Operator spatialintersection (
   "intersection",
   SpatialIntersectionSpec,
-  16,
+  25,
   spatialintersectionVM,
   SpatialSetOpSelect,
   SpatialIntersectionTypeMap );
@@ -19120,7 +19436,7 @@ Operator spatialintersection (
 Operator spatialminus (
   "minus",
   SpatialMinusSpec,
-  16,
+  25,
   spatialminusVM,
   SpatialSetOpSelect,
   SpatialMinusTypeMap );
@@ -19128,7 +19444,7 @@ Operator spatialminus (
 Operator spatialunion (
   "union",
   SpatialUnionSpec,
-  16,
+  25,
   spatialunionVM,
   SpatialSetOpSelect,
   SpatialUnionTypeMap );

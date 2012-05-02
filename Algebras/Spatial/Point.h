@@ -454,6 +454,8 @@ with a degree of alpha. The result is stored in res.
                     const Geoid* geoid=0) const;
   void Intersection(const Region& r, Points& result,
                     const Geoid* geoid=0) const;
+  void Intersection(const SimpleLine& l, Points& result,
+                    const Geoid* geoid=0) const;
 
 
 /*
@@ -464,6 +466,7 @@ with a degree of alpha. The result is stored in res.
   void Minus(const Points& ps, Points& result, const Geoid* geoid=0) const;
   void Minus(const Line& l, Points& result, const Geoid* geoid=0) const;
   void Minus(const Region& r, Points& result, const Geoid* geoid=0) const;
+  void Minus(const SimpleLine& l, Points& result, const Geoid* geoid=0) const;
 
 
 /*
@@ -474,6 +477,8 @@ with a degree of alpha. The result is stored in res.
   void Union(const Points& ps, Points& result, const Geoid* geoid=0) const;
   void Union(const Line& l, Line& result, const Geoid* geoid=0) const;
   void Union(const Region& r, Region& result, const Geoid* geoid=0) const;
+  void Union(const SimpleLine& l, SimpleLine& result,
+             const Geoid* geoid=0) const;
 
 
 
@@ -558,26 +563,26 @@ values, otherwise the result is ~true~.
 
    virtual string getSQLType(){ return "MDSYS.SDO_GEOMETRY"; }
 
-   virtual string getSQLRepresentation(){ 
+   virtual string getSQLRepresentation(){
      if(!IsDefined()){
        return "NULL";
      }
      string sdo_gtype = "2001";  // 2 dimensional point
 
      stringstream sdo_point;
-     sdo_point << "MDSYS.SDO_POINT_TYPE(" 
+     sdo_point << "MDSYS.SDO_POINT_TYPE("
                << GetX() << ", " << GetY() << ", NULL)";
-   
+
      // use oracle's format
     /*
      stringstream ss;
      ss << "MDSYS.SDO_GEOMETRY(" ; // geometry
-     ss << sdo_gtype << ", "; // type 
+     ss << sdo_gtype << ", "; // type
      ss << "NULL" << ",";    // srid: id of spatial reference system
      ss << sdo_point.str() << ", "; // geometry
      ss << "NULL, "; // Elem_Info_Array
      ss << "NULL)"; // ordinate array
-     return ss.str(); 
+     return ss.str();
     */
     // use oracle and WKT
      return  "MDSYS.SDO_GEOMETRY('" + getWKT() + "')";
