@@ -15,14 +15,506 @@ value ()]
 # ... csvimport['ProgressConstants.csv', 1, ""] consume
 
 # machine factor, needed as long as not all constants are determined in this way.
-
 delete MF;
 
 let MF = 3.35;
 
+# remove old relations
+#delete plzbig;
+#delete plzsmall;
+#delete plzsmallWidth10;
+
+# build some relations
+
+# plzbig has 2000000 tuples
+let plzbig = plz feed head[40000] fifty feed product consume; 
+
+# plzssmall has 1000000 tuples
+let plzsmall = plzbig feed head[1000000] renameattr[PLZ1 : PLZ, Ort1 : Ort, No1 : No] consume;
+
+# plzsmallWidth10 has 30 attributes and 1000000 tuples
+let plzsmallWidth10 = 
+  plzsmall feed extend[
+    PLZ2: .PLZ1,
+    Ort2: .Ort1,
+     No2: .No1,
+    PLZ3: .PLZ1,
+    Ort3: .Ort1,
+     No3: .No1,
+    PLZ4: .PLZ1,
+    Ort4: .Ort1,
+     No4: .No1,
+    PLZ5: .PLZ1,
+    Ort5: .Ort1,
+     No5: .No1,
+    PLZ6: .PLZ1,
+    Ort6: .Ort1,
+     No6: .No1,
+    PLZ7: .PLZ1,
+    Ort7: .Ort1,
+     No7: .No1,
+    PLZ8: .PLZ1,
+    Ort8: .Ort1,
+     No8: .No1,
+    PLZ9: .PLZ1,
+    Ort9: .Ort1,
+     No9: .No1,
+   PLZ10: .PLZ1,
+   Ort10: .Ort1,
+    No10: .No1]
+  consume
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+delete uFeedProject;
+delete vFeedProject;
+delete wFeedProject;
+
+# feedproject #######################################################
+#
+# Cost formula:
+# 
+# pRes->Time = (fli->total + 1) * 
+#   (uFeedProject
+#    + fli->argTupleSize * vFeedProject
+#    + fli->noAttrs * wFeedProject);
+#
+#
+# double uFeedProject = 0.002;     //millisecs per tuple
+# double vFeedProject = 0.000036;  //millisecs per byte input
+# double wFeedProject = 0.0018;    //millisecs per attr
+#
+#####################################################################
+
+##
+# measure time for processing one tuple (uFeedProject)
+##
+
+# measure time for processing 2000000 tuples
+query plzbig feedproject[Ort] count;
+
+query plzbig feedproject[Ort] count;
+
+query plzbig feedproject[Ort] count;
+
+query plzbig feedproject[Ort] count;
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# measure time for processing 1000000 tuples
+query plzsmall feedproject[Ort1] count;
+
+query plzsmall feedproject[Ort1] count;
+
+query plzsmall feedproject[Ort1] count;
+
+query plzsmall feedproject[Ort1] count;
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# x5 is the size of additinal tuples
+let x5 = (plzbig count) - (plzsmall count);
+
+# Calculate time to process one tuple
+# x1 - x2 is the time to process (x5) tuples more
+# multiply by 1000 to get the time in milliseconds
+let uFeedProject = (((x1 - x2) * 1000) / x5) * MF
+
+query ProgressConstants inserttuple["Relation-C++", "feedproject", "uFeedProject", uFeedProject, "msecs per tuple", ""] consume
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
 
 
+##
+# measure time for processing one byte in input (uFeedProject)
+#
+# Create two relations, each with 2.000.000 tuples and 2 attributes
+# The attributes have different sizes. So we can measure the processing 
+# time per byte.
+# 
+#
+##
+delete plzbig1;
+delete plzbig2;
 
+# plzbig has 2000000 tuples
+let plzbig1 = plzbig feedproject[Ort, No] consume;
+let plzbig2 = plzbig feedproject[PLZ, No] consume;
+
+# measure time to process two attributes on 20000000 tuples (PLZ1 and Ort1)
+query plzbig1 feedproject[Ort, No] count;
+
+query plzbig1 feedproject[Ort, No] count;
+
+query plzbig1 feedproject[Ort, No] count;
+
+query plzbig1 feedproject[Ort, No] count;
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime];
+
+
+# measure time to process two attributes on 20000000 tuples (Ort1 and No1)
+query plzbig2 feedproject[PLZ, No] count;
+
+query plzbig2 feedproject[PLZ, No] count;
+
+query plzbig2 feedproject[PLZ, No] count;
+
+query plzbig2 feedproject[PLZ, No] count;
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime];
+
+let x3 = ((plzbig1 tuplesize) - (plzbig2 tuplesize));
+
+let x4 = plzbig2 count;
+
+# calculate the time to process one byte in input
+# (x1 - x2) is the time to process a relation with
+# 2000000 tuples and two attributes with a different 
+# attribute size
+#
+# x3 is the difference in bytes for the attributes in x1 and x2
+# x4 is the number of tuples
+# so (x3 * x4) is the number of additional bytes processed in x1
+# 
+# multiply by 1000 to get the time in milliseconds
+let vFeedProject =  (((x1 - x2) * 1000) / (x3 * x4) ) * MF;
+
+query ProgressConstants inserttuple["Relation-C++", "feedproject", "vFeedProject", vFeedProject, "msecs per byte input", ""] consume
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+
+##
+# measure time for processing one attr (uFeedProject)
+##
+
+# measure time for processing 1000000 tuples with 20 attributes
+query plzsmallWidth10 feedproject[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4, PLZ4, No4, Ort5, PLZ5, No5, Ort6, PLZ6, No6, Ort7, PLZ7] count;
+
+query plzsmallWidth10 feedproject[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4, PLZ4, No4, Ort5, PLZ5, No5, Ort6, PLZ6, No6, Ort7, PLZ7] count;
+
+query plzsmallWidth10 feedproject[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4, PLZ4, No4, Ort5, PLZ5, No5, Ort6, PLZ6, No6, Ort7, PLZ7] count;
+
+query plzsmallWidth10 feedproject[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4, PLZ4, No4, Ort5, PLZ5, No5, Ort6, PLZ6, No6, Ort7, PLZ7] count;
+
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# measure time for processing 1000000 tuples with 10 attributes
+query plzsmallWidth10 feedproject[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4] count;
+
+query plzsmallWidth10 feedproject[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4] count;
+
+query plzsmallWidth10 feedproject[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4] count;
+
+query plzsmallWidth10 feedproject[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4] count;
+
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+let x3 = plzsmallWidth10 count;
+
+# calculate time for processing one attribute
+# (x1 - x2) is the time for processing 10 attributes more on 1000000 tuples
+#
+# x3 is the size of the relation
+# so (10 * x3) is the number of additionally processed attributes
+#
+# multiply by 1000 to get the time in milliseconds
+let wFeedProject = (((x1 - x2) * 1000) / (10 * x3)) * MF;
+
+query ProgressConstants inserttuple["Relation-C++", "feedproject", "wFeedProject", wFeedProject, "msecs per attr", ""] consume
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+# product ###########################################################
+#
+# Cost formula:
+#
+# pRes->Time = p1.Time + p2.Time +
+#   p2.Card * p2.Size * uProduct + 
+#   p1.Card * p2.Card * pRes->Size * vProduct; 
+#
+# Note:
+#
+# Product will write the right tuple stream to disk, 
+# if the size of the stream exceeds the memory limit 
+# of the operator. Otherwise the operator works completely 
+# in memory.
+#
+# // millisecs per byte (right input stream) if data is written to disk
+# double uProduct = 0.0003;
+#
+# //millisecs per byte (output stream) if data is read from disk
+# double vProduct = 0.000042; 
+#
+#####################################################################
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+delete uProduct;
+delete vProduct;
+
+##
+# measure time for processing one byte in right stream (uProduct)
+#
+# we use a small left tuple stream and a big right tuple stream.
+# so the right stream must be written to disk
+##
+
+# measure time to proces 2000000 tuples (= 50 * 40000)
+query fifty feed plz feed head[40000] product count;
+
+query fifty feed plz feed head[40000] product count;
+
+query fifty feed plz feed head[40000] product count;
+
+query fifty feed plz feed head[40000] product count;
+
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# measure time to proces 1000000 tuples (= 50 * 20000)
+query fifty feed plz feed head[20000] product count;
+
+query fifty feed plz feed head[20000] product count;
+
+query fifty feed plz feed head[20000] product count;
+
+query fifty feed plz feed head[20000] product count;
+
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# calculate size (in bytes) of right tuple stream (x1)
+let sizex1 = ((plz tuplesize) * 40000);
+
+# calculate size (in bytes) of right tuple stream (x2)
+let sizex2 = ((plz tuplesize) * 20000);
+
+
+# calculate the time to process one byte in right input stream
+#
+# (x1 - x2) * 1000 is the time (in msec) to process 
+# 20000 tuples more as right input
+#
+# (sizex1 - sizex2) is the amount of bytes for 20000 tuples
+
+let uProduct = (((x1 - x2) * 1000) / (sizex1 - sizex2)) * MF;
+
+query ProgressConstants inserttuple["Relation-C++", "product", "uProduct", uProduct, "msecs per byte (right tuple input stream)", ""] consume
+
+
+# delete variables used before
+delete sizex1;
+delete sizex2;
+
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+##
+# measure time for processing one byte in output stream (vProduct)
+#
+# assume that the right tuple stream is written to disk and 
+# must be read for every tuple in the left stream
+##
+
+# x5 is the size of the left stream
+let x5 = 1000;
+
+# x6 is the size of the right stream
+let x6 = 20000;
+
+# measure time to proces 20000000 tuples (= 1000 * 20000) with 30 attributes
+query plzsmallWidth10 feed head[x5] plz feed head[x6] product count;
+
+query plzsmallWidth10 feed head[x5] plz feed head[x6] product count;
+
+query plzsmallWidth10 feed head[x5] plz feed head[x6] product count;
+
+query plzsmallWidth10 feed head[x5] plz feed head[x6] product count;
+
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# measure time to proces 20000000 tuples (= 1000 * 20000) with 3 attributes
+query plzsmall feed head[x5] plz feed head[x6] product count;
+
+query plzsmall feed head[x5] plz feed head[x6] product count;
+
+query plzsmall feed head[x5] plz feed head[x6] product count;
+
+query plzsmall feed head[x5] plz feed head[x6] product count;
+
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# calculate the time to process one byte in output stream
+# x1 - x2 is the time to process 27 attributes more on 20000000 tuples
+# multiply by 1000 to get the time in milliseconds
+#
+# additionalSize is the difference in bytes for the attributes in x1 and x2
+# for all tuples
+#
+# (x5 * x6) is the amount of tuples
+
+delete additionalSize;
+let additionalSize = ((plzsmallWidth10 tuplesize - plzsmall tuplesize) * (x5 * x6));
+
+let vProduct = (((x1 - x2) * 1000) / (additionalSize)) * MF;
+
+query ProgressConstants inserttuple["Relation-C++", "product", "vProduct", vProduct, "msecs per byte (output stream)", ""] consume
+
+# project ###########################################################
+#
+# Cost formula:
+#
+# pRes->Time = p1.Time + p1.Card * (uProject + pli->noAttrs * vProject);
+#
+#  double uProject = 0.00073;  //millisecs per tuple
+#  double vProject = 0.0004;   //millisecs per tuple and attribute
+#
+#####################################################################
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+delete uProject;
+delete vProject;
+
+##
+# measure time for processing one tuple (uProject)
+##
+
+# measure time for processing 2000000 tuples
+query plzbig feed project[Ort] count;
+
+query plzbig feed project[Ort] count;
+
+query plzbig feed project[Ort] count;
+
+query plzbig feed project[Ort] count;
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# measure time for processing 1000000 tuples
+query plzsmall feed project[Ort1] count;
+
+query plzsmall feed project[Ort1] count;
+
+query plzsmall feed project[Ort1] count;
+
+query plzsmall feed project[Ort1] count;
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# Calculate the time to process one tuple
+# x1 - x2 is the time to process 1000000 tuples
+# multiply by 1000 to get the time in milliseconds
+let uProject = (((x1 - x2) * 1000) / 1000000) * MF
+
+query ProgressConstants inserttuple["Relation-C++", "project", "uProject", uProject, "msecs per tuple", ""] consume
+
+#####
+
+# delete old variables
+delete x1;
+delete x2;
+
+##
+# measure time for processing one attribute (vProject)
+##
+
+# measure time for processing 1000000 tuples with 20 attributes
+query plzsmallWidth10 feed project[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4, PLZ4, No4, Ort5, PLZ5, No5, Ort6, PLZ6, No6, Ort7, PLZ7] count;
+
+query plzsmallWidth10 feed project[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4, PLZ4, No4, Ort5, PLZ5, No5, Ort6, PLZ6, No6, Ort7, PLZ7] count;
+
+query plzsmallWidth10 feed project[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4, PLZ4, No4, Ort5, PLZ5, No5, Ort6, PLZ6, No6, Ort7, PLZ7] count;
+
+query plzsmallWidth10 feed project[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4, PLZ4, No4, Ort5, PLZ5, No5, Ort6, PLZ6, No6, Ort7, PLZ7] count;
+
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# measure time for processing 1000000 tuples with 10 attributes
+query plzsmallWidth10 feed project[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4] count;
+
+query plzsmallWidth10 feed project[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4] count;
+
+query plzsmallWidth10 feed project[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4] count;
+
+query plzsmallWidth10 feed project[Ort1, PLZ1, No1, Ort2, PLZ2, No2, Ort3, PLZ3, No3, Ort4] count;
+
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+let x3 = plzsmallWidth10 count;
+
+# calculate the time for processing one attribute
+# (x1 - x2) is the time for processing 10 attributes more on 1000000 tuples
+#
+# x3 is the size of the relation plzsmallWidth10
+# so (10 * x3) is the number of additionally processed attributes
+#
+# multiply by 1000 to get the time in milliseconds
+let vProject = (((x1 - x2) * 1000) / (10 * x3)) * MF;
+
+query ProgressConstants inserttuple["Relation-C++", "project", "vProject", vProject, "msecs per attribute", ""] consume
+
+###
+# Debug 
+###
+
+#query ProgressConstants;
 
 # delete variables used before
 delete x1;
