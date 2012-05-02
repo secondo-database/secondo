@@ -1,0 +1,67 @@
+#!/bin/bash
+
+bin=`dirname "$0"`
+bin=`cd "$bin"; pwd`
+
+MSIDX=1      # The default slave index
+declare -a MSARR=($(echo $PARALLEL_SECONDO | tr ':' ' '))
+MSNUM=${#MSARR[@]}
+ADPRM=""     # Additional parameters
+
+# Process the parameters
+declare -i numOfArgs=$#
+let numOfArgs++
+
+while [ $# -eq 0 -o $numOfArgs -ne $OPTIND ]; do
+
+  getopts "hs:oa:" optKey
+  if [ "$optKey" == "?" ]; then
+    optKey="h"
+  fi
+
+  case $optKey in
+    h) echo -en "\nUsage of ${0##*/}:\n\n"
+       echo -en "  -h Print this message and exit. \n\n"
+       echo -en "  -s <mini Secondo index> Specify a mini Secondo index within [1 .. $MSNUM] <= $MSIDX \n\n"
+       echo -en "  -o Start a mini Secondo based on Own configuration \n"
+       echo -en "     $HOME/.parasecrc \n\n"
+       echo -en "  -a <additional parameters> transmit additional parameters as a string to SecondoTTYBDB <= null\n\n"
+       exit 0;;
+    s) 
+       PARA=${OPTARG/[0-9]*/}
+       if [ "$PARA" = "" ]; then
+         MSIDX=$OPTARG
+         if [ $MSIDX -gt $MSNUM ]; then
+           echo "The mini Secondo index is out of the range [1 .. $MSNUM]"
+           exit -1;
+         fi
+       else
+         echo "The Secondo index $PARA is not an integer value"
+         exit -1;
+       fi
+       ;;
+    o)
+       if [ ! -f "$HOME/.parasecrc" ]; then
+         echo -e "The local parallel secondo configuration $HOME/.parasecrc doesn't exist."
+         exit -1;
+       else
+         source $HOME/.parasecrc
+       fi
+      ;;
+    a)
+      ADPRM="$OPTARG"
+  esac
+done
+
+let MSIDX--
+PARALLEL_SECONDO_MINISEC=${MSARR[$MSIDX]}/${PARALLEL_SECONDO_DATASERVER_NAME}/${PARALLEL_SECONDO_MINI_NAME}
+
+if [ ! -d ${PARALLEL_SECONDO_MINISEC} ]; then
+  echo "The mini secondo path is not a directory: ${PARALLEL_SECONDO_MINISEC}"
+  exit -1
+fi
+echo "PARALLEL_SECONDO_MINISEC is $PARALLEL_SECONDO_MINISEC"
+SECONDO_CONFIG=$PARALLEL_SECONDO_MINISEC/bin/SecondoConfig.ini
+SECONDO_BUILD_DIR=$PARALLEL_SECONDO_MINISEC
+cd ${SECONDO_BUILD_DIR}/bin
+./SecondoTTYBDB "${ADPRM}"
