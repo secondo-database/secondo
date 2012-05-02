@@ -7,15 +7,15 @@
 # Create and open database                                                   #
 ###############################################################################
 
-create database klDB;
+create database keDB;
 
-open database klDB;
+open database keDB;
 
 ###############################################################################
 # Set import parameter                                                        #
 ###############################################################################
 
-let SOURCEFILE = '/home/jandt/Downloads/OSM-Dateien/KL.osm';
+let SOURCEFILE = '/home/jandt/Downloads/OSM-Dateien/KL_Enkenbach.osm';
 
 ###############################################################################
 # import osm data from file                                                   #
@@ -185,6 +185,10 @@ consume;
 
 let RoadsByRefH1 =
   RoadParts feed
+  filter[not(iscycle(.WayCurve))]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "oneway"]
+    count = 0]
   filter[.WayInfo afeed
     filter[.WayTagKey = "ref"]
     count > 0]
@@ -265,6 +269,10 @@ consume;
 
 let RoadsByNameH1 =
   RoadParts feed
+  filter[not(iscycle(.WayCurve))]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "oneway"]
+    count = 0]
   filter[.WayInfo afeed
     filter[.WayTagKey = "name"]
     count > 0]
@@ -345,6 +353,10 @@ consume;
 
 let RoadLinksH1 =
   RoadParts feed
+  filter[not(iscycle(.WayCurve))]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "oneway"]
+    count = 0]
   filter[.WayInfo afeed
     filter[.WayTagKey = "highway"]
     filter[.WayTagValue contains "link"]
@@ -421,6 +433,10 @@ consume;
 
 let RoadRestH1 =
   RoadParts feed
+  filter[not(iscycle(.WayCurve))]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "oneway"]
+    count = 0]
   filter[.WayInfo afeed
     filter[.WayTagKey contains "ref"]
     count = 0]
@@ -500,29 +516,37 @@ let RoadRest =
   filter [isdefined(.RoadCurve)]
 consume;
 
+let RoadsByOneway =
+  RoadParts feed
+  filter [not(iscycle(.WayCurve))]
+  filter [.WayInfo afeed
+    filter [.WayTagKey = "oneway"]
+    count > 0]
+  projectextend[; Name: num2string(.WayId), Curve: .WayCurve]
+consume;
+  
+let RoadsByCycle =
+  RoadParts feed
+  filter[iscycle(.WayCurve)]
+  projectextend[;Name: num2string(.WayId),
+    Curve: set_startsmaller(.WayCurve, TRUE)]
+consume;
+
 let Roads =
-  ((RoadsByRef feed
-    projectextend[;Name: .Ref,
-        Curve: ifthenelse(iscycle(.RoadCurve),
-                  set_startsmaller(.RoadCurve, TRUE),
-                  .RoadCurve)])
-   (RoadsByName feed
-    projectextend[;Name: .Name,
-        Curve: ifthenelse(iscycle(.RoadCurve),
-          set_startsmaller(.RoadCurve, TRUE),
-          .RoadCurve)])
-   concat)
-  ((RoadLinks feed
-    projectextend[;Name: num2string(.WayId),
-      Curve: ifthenelse(iscycle(.RoadCurve),
-               set_startsmaller(.RoadCurve, TRUE),
-              .RoadCurve)])
-   (RoadRest feed
-    projectextend[;Name: num2string(.WayId),
-      Curve: ifthenelse(iscycle(.RoadCurve),
-               set_startsmaller(.RoadCurve, TRUE),
-               .RoadCurve)])
-   concat)
+  ( ( (RoadsByRef feed
+         projectextend[;Name: .Ref, Curve: .RoadCurve])
+      (RoadsByName feed
+         projectextend[;Name: .Name, Curve: .RoadCurve])
+      concat)
+    ( (RoadLinks feed
+         projectextend[;Name: num2string(.WayId), Curve: .RoadCurve])
+      (RoadRest feed
+         projectextend[;Name: num2string(.WayId), Curve: .RoadCurve])
+      concat)
+    concat)
+  ( (RoadsByCycle feed)
+    (RoadsByOneway feed)
+    concat)
   concat
   filter [isdefined(.Curve)]
   extend[CurvLength: size(.Curve)]
@@ -607,7 +631,7 @@ let JunctionIds =
   addcounter[Jid,1]
 consume;
 
-let JunctionPositionsOnRoads =
+let JunctionPositionsOnRoads1 =
   CrossingsAndRoadPartEndPoints feed
     filter[isdefined(.Point)]{p1}
   JunctionIds feed
@@ -635,6 +659,45 @@ let JunctionPositionsOnRoads =
     WayEndPosOnRoute: atpoint(.Curve_r1, .WayEndPoint)]
   sortby[Jid, Point, WayId, Rid, RMeas, WayStartPosOnRoute, WayEndPosOnRoute]
   rdup
+consume;
+
+
+let JunctionPositionsOnRoads2 =
+  CrossingsAndRoadPartEndPoints feed
+    filter[isdefined(.Point)]{p1}
+  JunctionIds feed
+    filter[isdefined(.Point)]{j}
+  itSpatialJoin[Point_p1,Point_j,4,8]
+  filter [.Point_p1 = .Point_j]
+  projectextend[;Jid: .Jid_j,
+    Point: .Point_j,
+    WayId: .WayId_p1]
+  sortby[Jid, Point, WayId]
+  JunctionPositionsOnRoads1 feed
+  project[Jid, Point, WayId]
+  sortby[Jid, Point, WayId]
+  mergediff
+  RoadParts feed {w}
+  hashjoin[WayId, WayId_w]
+  projectextend[Jid, Point,
+    WayId; WayCurve: .WayCurve_w,
+    WayStartPoint: getstartpoint(.WayCurve_w),
+    WayEndPoint: getendpoint(.WayCurve_w)]
+  Roads feed {r1}
+  itSpatialJoin[Point,Curve_r1,4,8]
+  filter[.Point inside .Curve_r1]
+  projectextend[Jid, Point, WayId; Rid: .Rid_r1,
+    RMeas: atpoint(.Curve_r1,.Point),
+    WayStartPosOnRoute: atpoint(.Curve_r1, getstartpoint(intersection(.WayCurve, .Curve_r1))),
+    WayEndPosOnRoute: atpoint(.Curve_r1, getendpoint(intersection(.WayCurve, .Curve_r1)))]
+  sortby[Jid, Point, WayId, Rid, RMeas, WayStartPosOnRoute, WayEndPosOnRoute]
+  rdup
+consume;
+
+let JunctionPositionsOnRoads =
+  (JunctionPositionsOnRoads1 feed)
+  (JunctionPositionsOnRoads2 feed)
+  concat
 consume;
 
 let JunctionsAtRoadEnds =
@@ -708,7 +771,7 @@ let RoadEndPoints =
     filter[.R1id = .R2id]
     filter[.WayId1 = .WayId2]
     projectextend[Jid, R1id, R1Meas, R2id,
-      R2Meas; NewCC: ifthenelse(.R1Meas = 0, 16, 1)]
+      R2Meas; NewCC: ifthenelse(.R1Meas = 0, 16, 2)]
 consume;
 
 let OneWayCurveIds =
@@ -747,7 +810,7 @@ let OneWayIds =
   rdup
 consume;
 
-let JunctionsOfOnewaysSameRID =
+let JunctionsOfOnewaysSameRID1 =
   JunctionRoadPairs feed
     filter[.R1id = .R2id]
     filter[.WayId1 # .WayId2]
@@ -760,13 +823,28 @@ let JunctionsOfOnewaysSameRID =
                                                                  .CC binand 1285)),
                      ifthenelse(.R1Meas = .Way1EndPosOnRoute,    .CC binand 43690,
                        ifthenelse(.R1Meas = .Way1StartPosOnRoute,.CC binand 61680,
-                                                                 .CC binand 20560)))]
+                                                                 .CC binand 41120)))]
 consume;
 
+let JunctionsOfOnewaysSameRID2 =
+  JunctionRoadPairs feed
+  filter [.R1id = .R2id]
+  filter [.WayId1 # .WayId2]
+  OneWayIds feed
+  hashjoin[WayId2, WayId]
+  projectextend[Jid, R1id, R1Meas, R2id,
+    R2Meas; NewCC: ifthenelse(.Way2StartPosOnRoute < .Way2EndPosOnRoute,
+                     ifthenelse(.R2Meas = .Way2EndPosOnRoute,    .CC binand 21845,
+                      ifthenelse(.R2Meas = .Way2StartPosOnRoute, .CC binand 3855,
+                                                                 .CC binand 1285)),
+                    ifthenelse(.R2Meas = .Way2EndPosOnRoute,     .CC binand 43690,
+                      ifthenelse(.R2Meas = .Way2StartPosOnRoute, .CC binand 61680,
+                                                                 .CC binand 41120)))]
+consume;
 
 let JunctionsWithOneWayOnRouteA =
   JunctionRoadPairs feed
-    filter[.R1id # .R2id]
+    filter[.R1id < .R2id]
     filter[.WayId1 # .WayId2]
   OneWayIds feed
   hashjoin[WayId1, WayId]
@@ -782,7 +860,7 @@ consume;
 
 let JunctionsWithOneWayOnRouteB =
   JunctionRoadPairs feed
-    filter[.R1id # .R2id]
+    filter[.R1id < .R2id]
     filter [.WayId1 # .WayId2]
   OneWayIds feed
   hashjoin[WayId2, WayId]
@@ -1051,24 +1129,26 @@ let RestrictedJunctionsBA =
 consume;
 
 let Junctions =
-  ((((JunctionsWithOneWayOnRouteA feed)
-    (JunctionsWithOneWayOnRouteB feed)
+  ( ( ( (JunctionsWithOneWayOnRouteA feed)
+        (JunctionsWithOneWayOnRouteB feed)
+        concat)
+      ( (RestrictedJunctionsAA1 feed)
+        (RestrictedJunctionsAA2 feed)
+        concat)
+      concat)
+    ( ( (RestrictedJunctionsAB feed)
+        (RestrictedJunctionsBA feed)
+        concat)
+      ( (JunctionsOfOnewaysSameRID1 feed)
+        (JunctionsOfOnewaysSameRID2 feed)
+        concat)
+      concat)
     concat)
-   ((RestrictedJunctionsAA1 feed)
-    (RestrictedJunctionsAA2 feed)
-   concat)
-  concat)
-   (((RestrictedJunctionsAB feed)
-     (RestrictedJunctionsBA feed)
+  ( ( (RoadEndPoints feed)
+      (JunctionsAtRoadEndPairs feed)
+      concat)
+    (JunctionRoadPairs feed projectextend[Jid, R1id, R1Meas, R2id, R2Meas; NewCC: .CC])
     concat)
-   ((JunctionRoadPairs feed projectextend[Jid, R1id, R1Meas, R2id, R2Meas; NewCC: .CC])
-    (JunctionsOfOnewaysSameRID feed)
-    concat)
-   concat)
-  concat)
-  ((RoadEndPoints feed)
-  (JunctionsAtRoadEndPairs feed)
-  concat)
   concat
   project[Jid, R1id, R1Meas, R2id, R2Meas, NewCC]
   sortby[Jid, R1id, R1Meas, R2id, R2Meas]
@@ -1098,11 +1178,22 @@ consume;
 # Build network with all possible restrictions                               #
 ##############################################################################
 
-let KlNetwork = thenetwork(1, 0.0001,
+let KENetwork = thenetwork(1, 0.0001,
     Roads feed projectextend[Rid, CurvLength, Curve; Dual: FALSE, StartS: get_startsmaller(.Curve)] consume,
     Junctions feed project [R1id, R1Meas, R2id, R2Meas, CC] consume);
 
 close database;
+
+##################
+# Just for testing network quality
+######
+
+open database kedb;
+
+let t1 = mapmatchmht(KENetwork, 'Trk_KL_Uni_Enkenbach2.xml');
+
+close database;
+
 quit;
 
 
