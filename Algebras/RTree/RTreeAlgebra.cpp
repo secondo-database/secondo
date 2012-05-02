@@ -6532,6 +6532,7 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
     delete tuple;
     qp->Request(args[0].addr, wTuple);
   }
+  qp->Close(args[0].addr);
   // Insert the last entries into the RTree
   InsertUnits(numCells, splits, splits, rtree);
 
