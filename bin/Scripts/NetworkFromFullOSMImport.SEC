@@ -1184,16 +1184,6 @@ let KENetwork = thenetwork(1, 0.0001,
 
 close database;
 
-##################
-# Just for testing network quality
-######
-
-open database kedb;
-
-let t1 = mapmatchmht(KENetwork, 'Trk_KL_Uni_Enkenbach2.xml');
-
-close database;
-
 quit;
 
 
