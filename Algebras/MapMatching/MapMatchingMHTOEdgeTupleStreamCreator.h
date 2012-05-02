@@ -43,9 +43,17 @@ This header file essentially contains the definition of the class ~MGPointCreato
 
 #include "MapMatchingMHT.h"
 #include "MHTRouteCandidate.h"
+#include <vector>
 
 class TupleBuffer;
+class TupleType;
 class GenericRelationIterator;
+
+namespace datetime
+{
+    class DateTime;
+}
+using datetime::DateTime;
 
 
 namespace mapmatch {
@@ -57,7 +65,8 @@ namespace mapmatch {
 class OEdgeTupleStreamCreator : public IMapMatchingMHTResultCreator
 {
 public:
-    OEdgeTupleStreamCreator();
+    OEdgeTupleStreamCreator(Supplier s,
+                            const class ONetworkAdapter& rNetw);
     virtual ~OEdgeTupleStreamCreator();
 
     virtual bool CreateResult(const std::vector<MHTRouteCandidate*>&
@@ -67,8 +76,27 @@ public:
 
 private:
 
+    const MHTRouteCandidate::PointData* GetFirstPointOfNextSegment(
+              const std::vector<MHTRouteCandidate::RouteSegment*>& rvecSegments,
+              size_t nIdx,
+              double& dDistance);
+
+
+    DateTime ProcessSegment(
+                       const MHTRouteCandidate::RouteSegment& rSegment,
+                       const DateTime& rEndTimePrevSegment,
+                       const MHTRouteCandidate::PointData* pFirstPointofNextSeg,
+                       double dDistance); // Distance to first point
+                                          // of next segment
+
+    void CreateTuple(const MHTRouteCandidate::RouteSegment& rSegment,
+                     const DateTime& rTimeStart,
+                     const DateTime& rTimeEnd);
+
+    TupleType* m_pTupleType;
     TupleBuffer* m_pTupleBuffer;
     mutable GenericRelationIterator* m_pTupleIterator;
+    double m_dNetworkScale;
 };
 
 

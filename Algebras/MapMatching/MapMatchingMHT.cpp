@@ -1499,13 +1499,16 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
     }
     else if (nPointsOfLastSection == 1)
     {
-        return false;
+        // U-Turn and only one assigned point to last section
+
+        //rbCorrectUTurn = true; // TODO ggf. Flag ->
+        return false;            // Löschen, falls kein besserer Kandidat
     }
     else if (nPointsOfLastSection == 2)
     {
-        // U-Turn and only two assigned point/s to last section
+        // U-Turn and only two assigned points to last section
         // -> Remove last points and assign these points to
-        // end point of previous section
+        // endpoint of previous section
 
         rbCorrectUTurn = true;
     }
@@ -1658,8 +1661,9 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
 adds adjacent sections to route candidates
 
 */
-#if 1
-void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
+
+void MapMatchingMHT::AddAdjacentSections(
+                        const MHTRouteCandidate* pCandidate,
                         bool bUpDown,
                         std::vector<MHTRouteCandidate*>& rvecNewRouteCandidates,
                         ISectionFilter* pFilter)
@@ -1678,6 +1682,7 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
     if (pSection == NULL || !pSection->IsDefined())
         return;
 
+    bool bUTurn = false;
     bool bCorrectUTurn = false;
     double dAdditionalUTurnScore = 0.0;
 
@@ -1685,6 +1690,9 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
         (pSection->GetDirection() == IMMNetworkSection::DIR_DOWN && bUpDown))
     {
         // U-Turn
+
+        bUTurn = true;
+
         if (!CheckUTurn(pCandidate, bUpDown,
                         bCorrectUTurn, dAdditionalUTurnScore))
         {
@@ -1692,8 +1700,25 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
         }
     }
 
+#if 0 // TODO führt zu endloser Rekursion
+    if (bCorrectUTurn)
+    {
+        // make copy of current candidate
+        MHTRouteCandidate* pNewCandidate = new MHTRouteCandidate(*pCandidate);
+        if (!pNewCandidate->CorrectUTurn())
+        {
+            delete pNewCandidate;
+        }
+        else
+        {
+            rvecNewRouteCandidates.push_back(pNewCandidate);
+        }
+        // U-Turn - don't add adjacent sections
+        return;
+    }
+#endif
+
     vector<shared_ptr<IMMNetworkSection> > vecAdjSections;
-    //m_pNetwork->GetAdjacentSections(pSection, bUpDown, vecAdjSections);
     pSection->GetAdjacentSections(bUpDown, vecAdjSections);
 
     const size_t nSections = vecAdjSections.size();
@@ -1703,11 +1728,6 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
         if (pAdjSection == NULL)
             continue;
 
-        /*TODO - im Moment wird die gleiche sektion in umgekehrter Richtung
-         *  bereits in GetAdjacentSections
-         * if (pAdjSection->GetSectionID() == pSection->GetSectionID())
-            continue;*/
-
         // Additional filter
         if (pFilter != NULL && !pFilter->IsValid(pAdjSection.get()))
             continue;
@@ -1715,6 +1735,7 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
         // make copy of current candidate
         MHTRouteCandidate* pNewCandidate = new MHTRouteCandidate(*pCandidate);
 
+#if 1
         if (bCorrectUTurn)
         {
             // Assign to end node of previous section
@@ -1725,19 +1746,32 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
                 pNewCandidate = NULL;
                 continue;
             }
-            /* TODO
-             * else if (pNewCandidate->GetLastSection()->GetSectionID() ==
-                     pAdjSection->GetSectionID())
+            else if (
+                  (AlmostEqual(pNewCandidate->GetLastSection()->GetStartPoint(),
+                               pAdjSection->GetStartPoint()) &&
+                   AlmostEqual(pNewCandidate->GetLastSection()->GetEndPoint(),
+                               pAdjSection->GetEndPoint())) ||
+
+                  (AlmostEqual(pNewCandidate->GetLastSection()->GetStartPoint(),
+                               pAdjSection->GetEndPoint()) &&
+                   AlmostEqual(pNewCandidate->GetLastSection()->GetEndPoint(),
+                               pAdjSection->GetStartPoint()))
+
+                     /*pNewCandidate->GetLastSection()->GetSectionID() ==
+                     pAdjSection->GetSectionID()*/)
             {
                 // last section is identical to adjSection
                 rvecNewRouteCandidates.push_back(pNewCandidate);
                 continue;
-            }*/
+            }
         }
         else
+#endif
+        if (bUTurn)
         {
-            // add Score for U-Turn
-            pNewCandidate->AddScore(dAdditionalUTurnScore);
+
+            // Add Score for U-Turn
+            pNewCandidate->SetUTurn(dAdditionalUTurnScore);
         }
 
         // add adjacent section
@@ -1746,105 +1780,6 @@ void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
         rvecNewRouteCandidates.push_back(pNewCandidate);
     }
 }
-#else
-void MapMatchingMHT::AddAdjacentSections(const MHTRouteCandidate* pCandidate,
-                        bool bUpDown,
-                        std::vector<MHTRouteCandidate*>& rvecNewRouteCandidates,
-                        SectionFilter* pFilter)
-{
-    if (m_pNetwork == NULL || pCandidate == NULL)
-        return;
-
-    if (pCandidate->GetRouteSegments().size() <= 1 &&
-        pCandidate->GetCountPointsOfLastSection() == 0)
-    {
-        return;
-    }
-
-    const DirectedNetworkSection& rSection = pCandidate->GetLastSection();
-    if (!rSection.IsDefined())
-        return;
-
-    bool bCorrectUTurn = false;
-    double dAdditionalUTurnScore = 0.0;
-
-    if ((rSection.GetDirection() ==
-                                  DirectedNetworkSection::DIR_UP && !bUpDown) ||
-        (rSection.GetDirection() ==
-                                  DirectedNetworkSection::DIR_DOWN && bUpDown))
-    {
-        // U-Turn
-        if (!CheckUTurn(pCandidate, bUpDown,
-                        bCorrectUTurn, dAdditionalUTurnScore))
-        {
-            return;
-        }
-    }
-
-    vector<DirectedSection> adjSectionList;
-    m_pNetwork->GetAdjacentSections(rSection.GetSectionID(), bUpDown,
-                                    adjSectionList);
-
-    if (adjSectionList.size() > 0)
-    {
-        for (size_t i = 0; i < adjSectionList.size(); i++)
-        {
-            Tuple* pSectionTuple = m_pNetwork->GetSection(
-                                             adjSectionList[i].GetSectionTid());
-            DirectedNetworkSection adjSection(pSectionTuple, m_pNetwork, false);
-
-            if (adjSection.GetSectionID() == rSection.GetSectionID())
-                continue;
-
-            if (adjSectionList[i].GetUpDownFlag())
-                adjSection.SetDirection(DirectedNetworkSection::DIR_UP);
-            else
-                adjSection.SetDirection(DirectedNetworkSection::DIR_DOWN);
-
-            // Additional filter
-            if (pFilter != NULL && !pFilter->IsValid(adjSection))
-                continue;
-
-            // make copy of current candidate
-            MHTRouteCandidate* pNewCandidate =
-                                             new MHTRouteCandidate(*pCandidate);
-
-            if (bCorrectUTurn)
-            {
-                // Assign to end node of previous section
-
-                if (!pNewCandidate->CorrectUTurn())
-                {
-                    delete pNewCandidate;
-                    pNewCandidate = NULL;
-                    continue;
-                }
-                else if (pNewCandidate->GetLastSection().GetSectionID() ==
-                         adjSection.GetSectionID())
-                {
-                    // last section is identical to adjSection
-                    rvecNewRouteCandidates.push_back(pNewCandidate);
-                    continue;
-                }
-            }
-            else
-            {
-                // add Score for U-Turn
-                pNewCandidate->AddScore(dAdditionalUTurnScore);
-            }
-
-            // add adjacent section
-            pNewCandidate->AddSection(adjSection);
-
-            rvecNewRouteCandidates.push_back(pNewCandidate);
-        }
-    }
-    else
-    {
-        // no adjacent sections
-    }
-}
-#endif
 
 /*
 3.13 MapMatchingMHT::DetermineBestRouteCandidate
