@@ -665,6 +665,36 @@ Point MMUtil::CalcDestinationPoint(const Point& rPoint,
 }
 
 
+void MMUtil::SubLine(const SimpleLine* pLine,
+                     const Point& rPoint1,
+                     const Point& rPoint2,
+                     bool bStartsSmaller,
+                     double dScale,
+                     SimpleLine& rSubLine)
+{
+    if (pLine == NULL)
+    {
+        rSubLine.SetDefined(false);
+        return;
+    }
+
+    double dPos1 = -1.0;
+    MMUtil::GetPosOnSimpleLine(*pLine,
+                               rPoint1,
+                               bStartsSmaller,
+                               0.000001 * dScale,
+                               dPos1);
+
+    double dPos2 = -1.0;
+    MMUtil::GetPosOnSimpleLine(*pLine,
+                               rPoint2,
+                               bStartsSmaller,
+                               0.000001 * dScale,
+                               dPos2);
+
+    pLine->SubLine(dPos1, dPos2,bStartsSmaller, rSubLine);
+}
+
 
 
 } // end of namespace mapmatch

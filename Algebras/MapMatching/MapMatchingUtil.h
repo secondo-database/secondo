@@ -114,15 +114,22 @@ public:
                               const HalfSegment& rHS,
                               double dScale = 1.0);
 
-    static bool GetPosOnSimpleLine( const SimpleLine& rLine,
-                                    const Point& p,
-                                    bool startsSmaller,
-                                    double tolerance,
-                                    double& result);
+    static bool GetPosOnSimpleLine(const SimpleLine& rLine,
+                                   const Point& p,
+                                   bool startsSmaller,
+                                   double tolerance,
+                                   double& result);
 
     static Point CalcDestinationPoint(const Point& rPoint,
                                       double dBearing,
                                       double dDistanceKM);
+
+    static void SubLine(const SimpleLine* pLine,
+                        const Point& rPoint1,
+                        const Point& rPoint2,
+                        bool bStartsSmaller,
+                        double dScale,
+                        SimpleLine& rSubLine);
 };
 
 
