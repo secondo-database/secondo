@@ -580,10 +580,7 @@ struct RoadDenstiy{
   ////////////////construct road graph///////////////////////////////////
   ////////////////////////////////////////////////////////////////////////
   void GetRGNodes();
-  void GetRGEdges1(Relation* rel, R_Tree<2,TupleId>* rtree);
-  void DFTraverse(Relation*, R_Tree<2,TupleId>* rtree, SmiRecordId adr, 
-                          Point& loc, vector<int>& _oid_list);
-
+  void GetRGEdges1(Relation* rel);
   void GetRGEdges2(Relation* rel);
 
 };

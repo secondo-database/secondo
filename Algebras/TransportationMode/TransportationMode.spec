@@ -215,8 +215,10 @@ operator generate_bench_5 alias GENERATE_BENCH_5 pattern op(_,_,_,_,_)
 operator generate_car alias GENERATE_CAR pattern op(_,_,_,_)
 
 operator get_rg_nodes alias GET_RG_NODES pattern op(_)
-operator get_rg_edges1 alias GET_RG_EDGES1 pattern op(_,_)
+operator get_rg_edges1 alias GET_RG_EDGES1 pattern op(_)
 operator get_rg_edges2 alias GET_RG_EDGES2 pattern op(_,_)
+operator get_p_edges3 alias GET_P_EDGE3 pattern op(_,_,_,_)
+operator get_p_edges4 alias GET_P_EDGE4 pattern op(_,_)
 operator creatergraph alias CREATERGRAPH pattern op(_,_,_,_)
 operator shortestpath_tm alias SHORTESTPATH_TM pattern op(_,_,_,_)
 

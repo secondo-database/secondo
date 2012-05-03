@@ -1205,5 +1205,34 @@ struct DataClean{
                   int max_rid);
 };
 
+/*
+OSM map 
+
+*/
+struct OSM_Data{
+  
+  unsigned int count;
+  TupleType* resulttype; 
+  
+  OSM_Data(){ count = 0; resulttype = NULL;} 
+  ~OSM_Data(){if(resulttype != NULL) delete resulttype;}
+
+  vector<int> jun_id_list1;
+  vector<int> jun_id_list2;
+  vector<GLine> gl_path_list;
+  vector<SimpleLine> sline_path_list;
+
+  static string OSMPavementNode;
+  static string OSMNodeTmp;
+  static string OSMPavementRegion;
+  
+  enum OSMPaveNodeInfo{OSM_JUN_ID = 0, OSM_JUN_GP, OSM_LOC, OSM_RID, OSM_TYPE};
+  enum OSMNodeTmpInfo{OSM_TMP_JUNID = 0, OSM_REGID, OSM_CROSS};
+  enum OSMPavementRegion{OSM_REG_ID = 0, OSM_ELEM, OSM_BORDER};
+  
+  void GetPaveEdge3(Relation* r, Relation* rel1, BTree* btree, Relation* rel2);
+  void GetPaveEdge4(Relation* rel1, Relation* rel2);
+  void ShortestPath_InRegion_Pairs(Region* reg, vector<MyPoint> mp_list);
+};
 
 #endif

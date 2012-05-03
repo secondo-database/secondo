@@ -1139,14 +1139,26 @@ Result   : 10
 
 Operator : get_rg_edges1
 Number   : 1
-Signature: rel x rtree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query get_rg_edges1(rg_nodes, rtree_nodes) count;
+Signature: rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query get_rg_edges1(rg_nodes) count;
 Result   : 24
 
 Operator : get_rg_edges2
 Number   : 1
 Signature: network x rel -> (stream(((x1 t1) ... (xn tn))))
 Example  : query get_rg_edges2(rn, rg_nodes) count;
+Result   : 24
+
+Operator : get_p_edges3
+Number   : 1
+Signature: rel x rel x btree x rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query get_p_edges3(P_L, P_nodes1, btree_PN1, P_Nodes2) count;
+Result   : 24
+
+Operator : get_p_edges4
+Number   : 1
+Signature: rel x rel -> (stream(((x1 t1) ... (xn tn))))
+Example  : query get_p_edges4(P_Nodes2_tmp, DOPedesRegions) count;
 Result   : 24
 
 Operator : creatergraph

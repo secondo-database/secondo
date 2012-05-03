@@ -39,6 +39,7 @@ partitioning space.
 
 #include "Partition.h"
 #include "PaveGraph.h"
+#include "BusNetwork.h"
 
 /*
 ~Shift~ Operator for ~ownertype~
@@ -7647,6 +7648,439 @@ void DataClean::OutPutLine(Relation* rel, BTree* btree,
     delete search_id;
 
   }
+
+}
+
+//////////////////////////////////////////////////////////////////////
+///////////////// processing OSM data///////////////////////////////
+//////////////////////////////////////////////////////////////////
+string OSM_Data::OSMPavementNode = "(rel (tuple ((Jun_id int) (Jun_gp gpoint)\
+(Jun_p point) (Rid int) (Type int))))";
+
+string OSM_Data::OSMNodeTmp = "(rel (tuple ((Jun_id int) (REG_ID int)\
+(CROSS_POINT point))))";
+
+string OSM_Data::OSMPavementRegion = "(rel (tuple ((REG_ID int) (Elem region)\
+(Border region))))";
+
+
+bool CompareGP_P_Pos(const GP_Point& gp_p1, const GP_Point& gp_p2)
+{
+   if(gp_p1.pos1 < gp_p2.pos1) return true;
+   else return false;
+}
+
+/*
+build the connection between pavement lines and regions
+
+*/
+void OSM_Data::GetPaveEdge3(Relation* road_rel, Relation* rel1, BTree* btree, 
+                            Relation* rel2)
+{
+//  cout<<rel1->GetNoTuples()<<" "<<rel2->GetNoTuples()<<endl;
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+    Tuple* t = rel2->GetTuple(i, false);
+    int rid = ((CcInt*)t->GetAttribute(OSM_RID))->GetIntval();
+    Point* q_loc = (Point*)t->GetAttribute(OSM_LOC);
+    GPoint* q_gp = (GPoint*)t->GetAttribute(OSM_JUN_GP);
+    int jun_id = ((CcInt*)t->GetAttribute(OSM_JUN_ID))->GetIntval();
+    Tuple* road_tuple = road_rel->GetTuple(rid, false);
+    SimpleLine* sl = 
+        (SimpleLine*)road_tuple->GetAttribute(ROUTE_CURVE);
+
+    double pos = -1.0;
+    if(sl->AtPoint(*q_loc, true, pos) == false){
+       road_tuple->DeleteIfAllowed();
+       t->DeleteIfAllowed();
+       cout<<rid<<" not matching"<<endl;
+       continue;
+    }
+
+//    cout<<"len "<<sl->Length()<<" pos "<<pos<<endl;
+
+    ////////find all points belonging to rid in the first relation/////
+
+    vector<GP_Point> gp_p_list;
+
+    CcInt* search_id = new CcInt(true, rid);
+    BTreeIterator* btree_iter = btree->ExactMatch(search_id);
+    while(btree_iter->Next()){
+        Tuple* tuple = rel1->GetTuple(btree_iter->GetId(), false);
+        int r_id = ((CcInt*)tuple->GetAttribute(OSM_RID))->GetIntval();
+        assert(r_id == rid);
+        int j_id = ((CcInt*)tuple->GetAttribute(OSM_JUN_ID))->GetIntval();
+        GPoint* gp = (GPoint*)tuple->GetAttribute(OSM_JUN_GP);
+        Point* loc = (Point*)tuple->GetAttribute(OSM_LOC);
+
+        GP_Point gp_p(r_id, gp->GetPosition(), -1.0, *loc, *loc);
+        gp_p.oid = j_id;
+
+        gp_p_list.push_back(gp_p);
+
+        tuple->DeleteIfAllowed();
+    }
+    delete btree_iter;
+    delete search_id;
+
+//    cout<<"rid "<<rid<<" "<<gp_p_list.size()<<endl;
+    if(gp_p_list.size() == 0){
+      cout<<"should not occur"<<endl;
+      assert(false);
+    }
+
+    /////////////////find the neighbor for the current loc ////////
+
+    sort(gp_p_list.begin(), gp_p_list.end(), CompareGP_P_Pos);
+
+//     for(unsigned int j = 0;j < gp_p_list.size();j++){
+//       gp_p_list[j].Print();
+//     }
+
+    unsigned int j = 0;
+    for(;j < gp_p_list.size();j++){
+      if(fabs(gp_p_list[j].pos1 - pos) < EPSDIST){ //empty connection
+
+        GLine* gl = new GLine(0);
+        SimpleLine* s_l = new SimpleLine(0);
+        s_l->StartBulkLoad();
+
+        jun_id_list1.push_back(jun_id);
+        jun_id_list2.push_back(gp_p_list[j].oid);
+        gl_path_list.push_back(*gl);
+        s_l->EndBulkLoad();
+        sline_path_list.push_back(*s_l);
+        delete gl;
+        delete s_l;
+        break;
+      }
+
+      if(j == 0 && pos < gp_p_list[j].pos1){//one connection
+
+
+        GLine* gl = new GLine(0);
+
+        gl->SetNetworkId(q_gp->GetNetworkId());
+        gl->AddRouteInterval(q_gp->GetRouteId(), pos, gp_p_list[j].pos1);
+        gl->SetDefined(true);
+        gl->SetSorted(false);
+        gl->TrimToSize();
+        gl_path_list.push_back(*gl);
+        delete gl;
+    
+        SimpleLine* s_l = new SimpleLine(0);
+        sl->SubLine(pos, gp_p_list[j].pos1, true, *s_l);
+        sline_path_list.push_back(*s_l);
+        delete s_l;
+
+        jun_id_list1.push_back(jun_id);
+        jun_id_list2.push_back(gp_p_list[j].oid);
+        break;
+      }
+
+      if(j == gp_p_list.size() - 1 && gp_p_list[j].pos1 < pos){//one connection
+
+
+        GLine* gl = new GLine(0);
+
+        gl->SetNetworkId(q_gp->GetNetworkId());
+        gl->AddRouteInterval(q_gp->GetRouteId(), gp_p_list[j].pos1, pos);
+        gl->SetDefined(true);
+        gl->SetSorted(false);
+        gl->TrimToSize();
+        gl_path_list.push_back(*gl);
+        delete gl;
+
+        SimpleLine* s_l = new SimpleLine(0);
+//        cout<<sl->Length()<<" "<<gp_p_list[j].pos1<<" "<<pos<<endl;
+        sl->SubLine(gp_p_list[j].pos1, pos, true, *s_l);
+        sline_path_list.push_back(*s_l);
+        delete s_l;
+
+        jun_id_list1.push_back(jun_id);
+        jun_id_list2.push_back(gp_p_list[j].oid);
+
+        break;
+      }
+      if(j < gp_p_list.size() - 1){
+        if(gp_p_list[j].pos1 < pos && pos < gp_p_list[j + 1].pos1){//two
+
+            GLine* gl1 = new GLine(0);
+
+            gl1->SetNetworkId(q_gp->GetNetworkId());
+            gl1->AddRouteInterval(q_gp->GetRouteId(), gp_p_list[j].pos1, pos);
+            gl1->SetDefined(true);
+            gl1->SetSorted(false);
+            gl1->TrimToSize();
+            gl_path_list.push_back(*gl1);
+            delete gl1;
+
+            SimpleLine* s_l1 = new SimpleLine(0);
+            sl->SubLine(gp_p_list[j].pos1, pos, true, *s_l1);
+            sline_path_list.push_back(*s_l1);
+            delete s_l1;
+
+            jun_id_list1.push_back(jun_id);
+            jun_id_list2.push_back(gp_p_list[j].oid);
+
+            ///////////////////////////////////////////////////////////
+            GLine* gl2 = new GLine(0);
+
+            gl2->SetNetworkId(q_gp->GetNetworkId());
+            gl2->AddRouteInterval(q_gp->GetRouteId(),pos,gp_p_list[j + 1].pos1);
+            gl2->SetDefined(true);
+            gl2->SetSorted(false);
+            gl2->TrimToSize();
+            gl_path_list.push_back(*gl2);
+            delete gl2;
+
+            SimpleLine* s_l2 = new SimpleLine(0);
+            sl->SubLine(pos, gp_p_list[j + 1].pos1, true, *s_l2);
+            sline_path_list.push_back(*s_l2);
+            delete s_l2;
+
+            jun_id_list1.push_back(jun_id);
+            jun_id_list2.push_back(gp_p_list[j + 1].oid);
+
+            break;
+        }
+      }
+    }
+
+    if(j == gp_p_list.size()){
+      cout<<" do not find adj point"<<endl;
+      assert(false);
+    }
+
+    t->DeleteIfAllowed();
+    road_tuple->DeleteIfAllowed();
+
+//    break;
+
+  }
+
+
+}
+
+/*
+build the connection inside one region
+
+*/
+void OSM_Data::GetPaveEdge4(Relation* rel1, Relation* rel2)
+{
+//  cout<<rel1->GetNoTuples()<<" "<<rel2->GetNoTuples()<<endl;
+
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* t = rel1->GetTuple(i, false);
+    int jun_id = ((CcInt*)t->GetAttribute(OSM_TMP_JUNID))->GetIntval();
+    int reg_id = ((CcInt*)t->GetAttribute(OSM_REGID))->GetIntval();
+    Point* loc = (Point*)t->GetAttribute(OSM_CROSS);
+    MyPoint mp(*loc, jun_id);
+
+    vector<MyPoint> mp_list;
+    mp_list.push_back(mp);
+    int j = i + 1;
+    while(j <= rel1->GetNoTuples()){
+      Tuple* tuple = rel1->GetTuple(j, false);
+      int regid = ((CcInt*)tuple->GetAttribute(OSM_REGID))->GetIntval();
+      if(reg_id == regid){
+        Point* q = (Point*)tuple->GetAttribute(OSM_CROSS);
+        int j_id = ((CcInt*)tuple->GetAttribute(OSM_TMP_JUNID))->GetIntval();
+        MyPoint mp_tmp(*q, j_id);
+        mp_list.push_back(mp_tmp);
+      }else{
+        tuple->DeleteIfAllowed();
+        break;
+      }
+
+      tuple->DeleteIfAllowed();
+      j++;
+    }
+
+    i = j - 1;
+
+    if(mp_list.size() > 1){ //internal connections 
+        Tuple* reg_tuple = rel2->GetTuple(reg_id, false);
+        Region* reg = (Region*)reg_tuple->GetAttribute(OSM_ELEM);
+
+        CompTriangle* ct = new CompTriangle(reg);
+        if((ct->ComplexRegion() == 1 || reg->Size() > 70) && 
+            ct->PolygonConvex() == false){
+//       cout<<"reg_id "<<reg_id<<" "<<mp_list.size()<<" "<<reg->Size()<<endl;
+          ShortestPath_InRegion_Pairs(reg, mp_list);
+
+        }else{ //simple region
+//       cout<<"reg_id "<<reg_id<<" "<<mp_list.size()<<" "<<reg->Size()<<endl;
+
+          for(unsigned int k1 = 0;k1 < mp_list.size();k1++){
+              Point loc1 = mp_list[k1].loc;
+              for(unsigned int k2 = k1 + 1;k2 < mp_list.size();k2++){
+                Point loc2 = mp_list[k2].loc;
+                if(loc1.Distance(loc2) < EPSDIST) continue;
+
+                Line* res = new Line(0);
+                ShortestPath_InRegion(reg, &loc1, &loc2, res);
+
+                /////////A-B and B-A/////////////////
+                jun_id_list1.push_back((int)mp_list[k1].dist);
+                jun_id_list2.push_back((int)mp_list[k2].dist);
+
+                jun_id_list1.push_back((int)mp_list[k2].dist);
+                jun_id_list2.push_back((int)mp_list[k1].dist);
+
+
+                GLine* gl = new GLine(0);
+                gl_path_list.push_back(*gl);
+                gl_path_list.push_back(*gl);
+                delete gl;
+
+                SimpleLine* sl = new SimpleLine(0);
+                sl->fromLine(*res);
+                sline_path_list.push_back(*sl);
+                sline_path_list.push_back(*sl);
+                delete sl;
+                delete res;
+
+            }
+          }
+        }
+
+        delete ct;
+        reg_tuple->DeleteIfAllowed();
+
+    }
+
+    t->DeleteIfAllowed();
+  }
+
+}
+
+/*
+for each pair of points, build the connection
+
+*/
+void OSM_Data::ShortestPath_InRegion_Pairs(Region* reg, vector<MyPoint> mp_list)
+{
+
+//  cout<<"complex "<<reg->Size()<<" points "<<mp_list.size()<<endl;
+  if(reg->NoComponents() > 1){
+    cout<<"only one face is allowed"<<endl;
+    return; 
+  }
+
+  vector<string> obj_name; 
+  GetSecondoObj(reg, obj_name); 
+  assert(obj_name.size() == 3);
+  ///////////////////////////////////////////////////////
+  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+  bool dg_def, vg_def, rel_def;
+  Word dg_addr, vg_addr, rel_addr;
+  ctlg->GetObject(obj_name[0], dg_addr, dg_def);
+  ctlg->GetObject(obj_name[1], vg_addr, vg_def);
+  ctlg->GetObject(obj_name[2], rel_addr, rel_def);
+
+  DualGraph* dg = NULL;
+  VisualGraph* vg = NULL;
+  Relation* rel = NULL;
+
+  if(dg_def && vg_def && rel_def){
+    dg = (DualGraph*)dg_addr.addr; 
+    vg = (VisualGraph*)vg_addr.addr; 
+    rel = (Relation*)rel_addr.addr; 
+    assert(dg != NULL);
+    assert(vg != NULL);
+    assert(rel != NULL);
+
+  }else{
+    cout<<"open dual graph or visual graph error"<<endl; 
+    DeleteSecondoObj(obj_name); 
+    return;
+  }
+  
+
+  Walk_SP* wsp = new Walk_SP(dg, vg, NULL, NULL);
+  wsp->rel3 = rel;
+
+  for(unsigned int i = 0;i < mp_list.size();i++){
+    Point loc1 = mp_list[i].loc;
+    if(reg->Contains(loc1) == false){
+      cout<<"region "<<*reg<<"start point "<<loc1<<endl;
+      cout<<"start point should be inside the region"<<endl;
+      continue;
+    }
+
+    for(unsigned int j = i + 1;j < mp_list.size();j++){
+        Point loc2 = mp_list[j].loc;
+        if(loc1.Distance(loc2) < EPSDIST) continue;
+
+        if(reg->Contains(loc2) == false){
+          cout<<"region "<<*reg<<" end point "<<loc2<<endl;
+          cout<<"end point should be inside the region"<<endl;
+          continue;
+        }
+
+        Line* res = new Line(0);
+        /////////Euclidean connection is avaialble//////////////////////
+        if(EuclideanConnection(reg, &loc1, &loc2, res)){//output
+
+//          cout<<"len1 "<<res->Length()<<endl;
+
+            jun_id_list1.push_back((int)mp_list[i].dist);
+            jun_id_list2.push_back((int)mp_list[j].dist);
+
+            jun_id_list1.push_back((int)mp_list[j].dist);
+            jun_id_list2.push_back((int)mp_list[i].dist);
+
+            GLine* gl = new GLine(0);
+            gl_path_list.push_back(*gl);
+            gl_path_list.push_back(*gl);
+            delete gl;
+
+            SimpleLine* sl = new SimpleLine(0);
+            sl->fromLine(*res);
+            sline_path_list.push_back(*sl);
+            sline_path_list.push_back(*sl);
+            delete sl;
+
+            delete res;
+            continue;
+        }
+
+        ////////////////////////////////////////////////////////////////////
+        int oid1 = 0;
+        int oid2 = 0; 
+        FindPointInDG(dg, &loc1, &loc2, oid1, oid2); 
+//        cout<<"oid1 "<<oid1<<" oid2 "<<oid2<<endl;
+        assert(1 <= oid1 && oid1 <= dg->node_rel->GetNoTuples());
+        assert(1 <= oid2 && oid2 <= dg->node_rel->GetNoTuples());
+
+        wsp->WalkShortestPath2(oid1, oid2, loc1, loc2, res);
+
+//        cout<<"len2 "<<res->Length()<<endl;
+
+            jun_id_list1.push_back((int)mp_list[i].dist);
+            jun_id_list2.push_back((int)mp_list[j].dist);
+
+            jun_id_list1.push_back((int)mp_list[j].dist);
+            jun_id_list2.push_back((int)mp_list[i].dist);
+
+            GLine* gl = new GLine(0);
+            gl_path_list.push_back(*gl);
+            gl_path_list.push_back(*gl);
+            delete gl;
+
+            SimpleLine* sl = new SimpleLine(0);
+            sl->fromLine(*res);
+            sline_path_list.push_back(*sl);
+            sline_path_list.push_back(*sl);
+            delete sl;
+
+            delete res;
+    }
+  }
+
+
+   delete wsp; 
+   DeleteSecondoObj(obj_name); 
 
 }
 

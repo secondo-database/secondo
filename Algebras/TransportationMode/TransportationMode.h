@@ -1741,12 +1741,14 @@ const string SpatialSpecGetRGNodesTMList =
 "<text>get road graph nodes </text--->"
 "<text>query get_rg_nodes(rn) count </text---> ) )";
 
+
 const string SpatialSpecGetRGEdges1TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text> rel x rtree -> (stream(((x1 t1) ... (xn tn))) </text--->"
-"<text>get_rg_edges1(rel, rtree) </text--->"
+"( <text> rel -> (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>get_rg_edges1(rel) </text--->"
 "<text>get road graph edges </text--->"
-"<text>query get_rg_edges1(rel, rtree) count </text---> ) )";
+"<text>query get_rg_edges1(rel) count </text---> ) )";
+
 
 const string SpatialSpecGetRGEdges2TMList =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -1754,6 +1756,22 @@ const string SpatialSpecGetRGEdges2TMList =
 "<text>get_rg_edges2(network, rel) </text--->"
 "<text>get road graph edges </text--->"
 "<text>query get_rg_edges2(rn, rel) count </text---> ) )";
+
+const string SpatialSpecGetPaveEdges3TMList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> network x rel x btree x rel ->"
+" (stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>get_p_edges3(network, rel, btree, rel) </text--->"
+"<text>get the connection between pavement regions and lines </text--->"
+"<text>query get_p_edges3(P_N, P_nodes1, btree_PN1, P_Nodes2) "
+"count </text---> ) )";
+
+const string SpatialSpecGetPaveEdges4TMList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> rel x rel ->(stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>get_p_edges4(rel, rel) </text--->"
+"<text>get the connection inside one region </text--->"
+"<text>query get_p_edges4(P_Nodes2_tmp, DOPedesRegions) count </text---> ) )";
 
 const string OpTMCreateRoadGraphSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "

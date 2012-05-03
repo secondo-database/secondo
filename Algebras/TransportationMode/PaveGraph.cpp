@@ -3143,6 +3143,11 @@ BaseGraph::~BaseGraph()
 //    adj_list.clean();
 //    entry_adj_list.clean();
 
+//     if(node_rel != NULL) //2012.5.1
+//       node_rel->Delete();
+// 
+//     if(edge_rel != NULL) //2012.5.1
+//       edge_rel->Delete();
 }
 
 void BaseGraph::Destroy()
@@ -3326,9 +3331,37 @@ void DualGraph::DeleteDualGraph(const ListExpr typeInfo, Word& w)
 {
 //  cout<<"DeleteDualGraph()"<<endl;
   DualGraph* dg = (DualGraph*)w.addr;
-//  dg->Destroy();
+  dg->RemoveDualGraph();
   delete dg;
   w.addr = NULL;
+}
+
+/*
+remove files for relations and indices
+
+*/
+void DualGraph::RemoveDualGraph()
+{
+
+  if(node_rel != NULL){
+      node_rel->Delete();
+      node_rel = NULL;
+  }
+  if(edge_rel != NULL){
+    edge_rel->Delete();
+    edge_rel = NULL;
+  }
+
+  if(node_rel_sort != NULL){
+      node_rel_sort->Delete();
+      node_rel_sort = NULL;
+    } 
+  if(rtree_node != NULL){
+      rtree_node->DeleteFile();
+      delete rtree_node;
+      rtree_node = NULL;
+  }
+
 }
 
 bool DualGraph::CheckDualGraph(ListExpr type, ListExpr& errorInfo)
@@ -3433,6 +3466,10 @@ DualGraph::~DualGraph()
 {
 //  cout<<"~DualGraph()"<<endl;
   if(node_rel_sort != NULL) node_rel_sort->Close();
+//   if(node_rel_sort != NULL) { //2012.5.1
+//       node_rel_sort->Delete();
+//   }
+
   if(rtree_node != NULL) delete rtree_node;
 }
 
@@ -7655,6 +7692,7 @@ void VisualGraph::DeleteVisualGraph(const ListExpr typeInfo, Word& w)
 {
 //  cout<<"DeleteVisualGraph()"<<endl;
   VisualGraph* vg = (VisualGraph*)w.addr;
+  vg->Destroy();
   delete vg;
   w.addr = NULL;
 }
@@ -7836,6 +7874,42 @@ void Hole::GetHole(Region* r)
 //      cout<<"i "<<i<<endl;
       regs[i].SetNoComponents(1);
       regs[i].EndBulkLoad(true, false, false, false);
+  }
+
+}
+
+/*
+get the faces of a region 
+did almost the same thing as operator components, but components does not set 
+the nocomponents value
+
+*/
+void Hole::GetComponents(Region* r)
+{
+
+  if( r->IsEmpty() ) { // subsumes IsDefined()
+    return;
+  }
+
+  for(int i=0;i< r->NoComponents();i++){
+      Region* new_reg = new Region(0);
+      new_reg->StartBulkLoad();
+      new_reg->EndBulkLoad();
+      regs.push_back(*new_reg);
+      delete new_reg;
+      regs[i].StartBulkLoad();
+  }
+
+  for(int i=0;i < r->Size();i++){
+    HalfSegment hs;
+    r->Get(i,hs);
+    int face = hs.attr.faceno;
+    hs.attr.faceno = 0;
+    regs[face] += hs;
+  }
+  for(int i = 0;i< r->NoComponents();i++){
+    regs[i].SetNoComponents(1);
+    regs[i].EndBulkLoad(false,false,false,false);
   }
 
 }

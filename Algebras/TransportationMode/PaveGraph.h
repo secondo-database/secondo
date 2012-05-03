@@ -312,6 +312,7 @@ public:
     static void CloseDualGraph(const ListExpr typeInfo, Word& w);
 
     static void DeleteDualGraph(const ListExpr typeInfo, Word& w);
+    void RemoveDualGraph();
     static bool CheckDualGraph(ListExpr type, ListExpr& errorInfo);
 
     static bool SaveDualGraph(SmiRecord& valueRecord, size_t& offset,
@@ -696,6 +697,7 @@ struct Hole{
   void DiscoverContour(Points* ps, Region* r);
   bool NoSelfIntersects(Region* r);
   void GetHole(Region* r);
+  void GetComponents(Region* r);
 };
 
 /////////////////////////////////////////////////////////////////////////////

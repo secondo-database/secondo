@@ -5624,70 +5624,58 @@ void RoadDenstiy::GetRGNodes()
 
 }
 
-/*
-create one connection for road graph, two junction points having the same
-spatial location 
 
-*/
-void RoadDenstiy::GetRGEdges1(Relation* rel, R_Tree<2,TupleId>* rtree)
+bool CompareGP_P2(const GP_Point& gp_p1, const GP_Point& gp_p2)
 {
-
-    for(int i = 1;i <= rel->GetNoTuples();i++){
-      Tuple* jun_tuple = rel->GetTuple(i, false);
-//      int id = ((CcInt*)jun_tuple->GetAttribute(RG_N_JUN_ID))->GetIntval();
-//      Point* loc = (Point*)jun_tuple->GetAttribute(RG_N_P);
-
-      int id = 
-        ((CcInt*)jun_tuple->GetAttribute(RoadGraph::RG_JUN_ID))->GetIntval();
-      Point* loc = (Point*)jun_tuple->GetAttribute(RoadGraph::RG_JUN_P);
-
-      vector<int> neighbor_list;
-
-      DFTraverse(rel, rtree, rtree->RootRecordId(), *loc, neighbor_list);
-      for(unsigned int i = 0;i < neighbor_list.size();i++){
-        if(neighbor_list[i] == id)continue;
-        jun_id_list1.push_back(id);
-        jun_id_list2.push_back(neighbor_list[i]);
-      }
-      jun_tuple->DeleteIfAllowed();
-    }
-
+   if(gp_p1.loc1 < gp_p2.loc1) return true;
+   else
+     return false;
 }
 
-/*
-traverse rtree to find the points that have the same spatial location as input
 
-*/
-void RoadDenstiy::DFTraverse(Relation* rel,R_Tree<2,TupleId>* rtree, 
-                             SmiRecordId adr, 
-                          Point& loc, vector<int>& oid_list)
+void RoadDenstiy::GetRGEdges1(Relation* rel)
 {
-  const double delta_dist = 0.001;
-  R_TreeNode<2,TupleId>* node = rtree->GetMyNode(adr,false,
-                  rtree->MinEntries(0), rtree->MaxEntries(0));
-  for(int j = 0;j < node->EntryCount();j++){
-      if(node->IsLeaf()){
-              R_TreeLeafEntry<2,TupleId> e =
-                 (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
-              Tuple* dg_tuple = rel->GetTuple(e.info, false);
-//              Point* q = (Point*)dg_tuple->GetAttribute(RG_N_P);
-              Point* q = (Point*)dg_tuple->GetAttribute(RoadGraph::RG_JUN_P);
-              if(q->Distance(loc) < delta_dist){
-                  int id = 
-//                  ((CcInt*)dg_tuple->GetAttribute(RG_N_JUN_ID))->GetIntval();
-           ((CcInt*)dg_tuple->GetAttribute(RoadGraph::RG_JUN_ID))->GetIntval();
-                  oid_list.push_back(id);
-              }
-              dg_tuple->DeleteIfAllowed();
-      }else{
-            R_TreeInternalEntry<2> e =
-                (R_TreeInternalEntry<2>&)(*node)[j];
-            if(loc.Inside(e.box)){
-                DFTraverse(rel, rtree, e.pointer, loc, oid_list);
-            }
+    vector<GP_Point> jun_loc_list;
+    for(int i = 1;i <= rel->GetNoTuples();i++){
+      Tuple* tuple = rel->GetTuple(i, false);
+      int j_id = 
+        ((CcInt*)tuple->GetAttribute(RoadGraph::RG_JUN_ID))->GetIntval();
+      GPoint* gp = (GPoint*)tuple->GetAttribute(RoadGraph::RG_JUN_GP);
+      Point* loc = (Point*)tuple->GetAttribute(RoadGraph::RG_JUN_P);
+      int r_id = 
+          ((CcInt*)tuple->GetAttribute(RoadGraph::RG_ROAD_ID))->GetIntval();
+      assert(r_id == gp->GetRouteId());
+      GP_Point gp_p(r_id, gp->GetPosition(), -1.0, *loc, *loc);/////
+      gp_p.oid = j_id; 
+
+      jun_loc_list.push_back(gp_p);
+      tuple->DeleteIfAllowed();
+    }
+
+    sort(jun_loc_list.begin(), jun_loc_list.end(), CompareGP_P2);
+/*    for(unsigned int i = 0;i < jun_loc_list.size();i++){
+      jun_loc_list[i].Print();
+    }*/
+
+    for(unsigned int i = 0;i < jun_loc_list.size();i++){
+      GP_Point gp_p1 = jun_loc_list[i];
+      unsigned int j = i + 1;
+      while(j < jun_loc_list.size()){
+          GP_Point gp_p2 = jun_loc_list[j];
+          if(gp_p1.loc1.Distance(gp_p2.loc1) < 0.001){
+              jun_id_list1.push_back(gp_p1.oid);
+              jun_id_list2.push_back(gp_p2.oid);
+
+              jun_id_list1.push_back(gp_p2.oid);
+              jun_id_list2.push_back(gp_p1.oid);
+
+              j++;
+          }else{
+            break;
+          }
       }
-  }
-  delete node;
+//      i = j - 1;
+    }
 
 }
 

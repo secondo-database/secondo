@@ -97,7 +97,7 @@ class RoadGraph{
     RoadGraph(SmiRecord&, size_t&, const ListExpr);
 
     ~RoadGraph();
-
+    void RemoveRoadGraph();
     static string RGNodeTypeInfo;
     static string RGBTreeNodeTypeInfo;
     static string RGEdgeTypeInfo1;

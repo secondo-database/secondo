@@ -5098,6 +5098,7 @@ int GetRGNodesValueMap(Word* args, Word& result, int message,
   
 }
 
+
 /*
 get road graph edge relation. two junction points at the same location
 
@@ -5110,13 +5111,12 @@ int GetRGEdges1ValueMap(Word* args, Word& result, int message,
   switch(message){
       case OPEN:{
         Relation* rel = (Relation*) args[0].addr;
-        R_Tree<2,TupleId>* rtree = (R_Tree<2,TupleId>*)args[1].addr;
 
         rd = new RoadDenstiy(NULL, NULL, NULL, NULL);
         rd->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        rd->GetRGEdges1(rel, rtree);
+        rd->GetRGEdges1(rel);
         local.setAddr(rd);
 
         return 0;
@@ -5150,7 +5150,6 @@ int GetRGEdges1ValueMap(Word* args, Word& result, int message,
   return 0;
   
 }
-
 
 /*
 get road graph edge relation. two junction points are connected by glines 
@@ -5205,6 +5204,117 @@ int GetRGEdges2ValueMap(Word* args, Word& result, int message,
   
 }
 
+/*
+build the connection between pavement lines and pavement regions
+
+*/
+int GetPaveEdges3ValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  OSM_Data* osm_data;
+
+  switch(message){
+      case OPEN:{
+        Relation* road_rel = (Relation*)args[0].addr;
+        Relation* rel1 = (Relation*) args[1].addr;
+        BTree* btree = (BTree*)args[2].addr;
+        Relation* rel2 = (Relation*)args[3].addr;
+
+        osm_data = new OSM_Data();
+        osm_data->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        osm_data->GetPaveEdge3(road_rel, rel1, btree, rel2);
+        local.setAddr(osm_data);
+
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          osm_data = (OSM_Data*)local.addr;
+
+          if(osm_data->count == osm_data->jun_id_list1.size()) return CANCEL;
+
+          Tuple* tuple = new Tuple(osm_data->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, 
+                                     osm_data->jun_id_list1[osm_data->count]));
+          tuple->PutAttribute(1, new CcInt(true,
+                                     osm_data->jun_id_list2[osm_data->count]));
+          tuple->PutAttribute(2, 
+                           new GLine(osm_data->gl_path_list[osm_data->count]));
+          tuple->PutAttribute(3, 
+                    new SimpleLine(osm_data->sline_path_list[osm_data->count]));
+          result.setAddr(tuple);
+          osm_data->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            osm_data = (OSM_Data*)local.addr;
+            delete osm_data;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
+
+/*
+build the connection inside one region
+
+*/
+int GetPaveEdges4ValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+  OSM_Data* osm_data;
+
+  switch(message){
+      case OPEN:{
+        Relation* rel1 = (Relation*) args[0].addr;
+        Relation* rel2 = (Relation*)args[1].addr;
+
+        osm_data = new OSM_Data();
+        osm_data->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        osm_data->GetPaveEdge4(rel1,rel2);
+        local.setAddr(osm_data);
+
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          osm_data = (OSM_Data*)local.addr;
+
+          if(osm_data->count == osm_data->jun_id_list1.size()) return CANCEL;
+
+          Tuple* tuple = new Tuple(osm_data->resulttype);
+          tuple->PutAttribute(0, new CcInt(true, 
+                                     osm_data->jun_id_list1[osm_data->count]));
+          tuple->PutAttribute(1, new CcInt(true,
+                                     osm_data->jun_id_list2[osm_data->count]));
+          tuple->PutAttribute(2, 
+                           new GLine(osm_data->gl_path_list[osm_data->count]));
+          tuple->PutAttribute(3, 
+                    new SimpleLine(osm_data->sline_path_list[osm_data->count]));
+          result.setAddr(tuple);
+          osm_data->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            osm_data = (OSM_Data*)local.addr;
+            delete osm_data;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
 
 /*
 check whether the road graph id has been used already 
@@ -6852,7 +6962,7 @@ TypeMap function for operator get rg edges
 */
 ListExpr GetRGEdges1TypeMap(ListExpr args)
 {
-  if(nl->ListLength(args) != 2){
+  if(nl->ListLength(args) != 1){
       string err = "two input parameters expected";
       return listutils::typeError(err);
   }
@@ -6864,11 +6974,6 @@ ListExpr GetRGEdges1TypeMap(ListExpr args)
   ListExpr xType;
   nl->ReadFromString(RoadGraph::RGNodeTypeInfo, xType);
   if(!CompareSchemas(arg1, xType))return nl->SymbolAtom ( "typeerror" );
-
-
-  ListExpr arg2 = nl->Second(args);
-   if(!listutils::isRTreeDescription(arg2))
-    return listutils::typeError("para2 should be a rtree");
 
 
     ListExpr result =
@@ -6939,6 +7044,118 @@ ListExpr GetRGEdges2TypeMap(ListExpr args)
 
 }
 
+
+/*
+TypeMap function for operator get pavement edges
+
+*/
+ListExpr GetPaveEdges3TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 4){
+      string err = "four input parameters expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr xType;
+
+  ListExpr arg1 = nl->First(args);
+  if(!IsRelDescription(arg1))
+    return listutils::typeError("para1 should be a relation");
+
+  nl->ReadFromString(Network::routesTypeInfo, xType);
+  if(!CompareSchemas(arg1, xType))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg2 = nl->Second(args);
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  nl->ReadFromString(OSM_Data::OSMPavementNode, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg3 = nl->Third(args);
+  if(!listutils::isBTreeDescription(arg3))
+    return listutils::typeError("para3 should be a btree");
+
+  
+  ListExpr arg4 = nl->Fourth(args);
+  if(!IsRelDescription(arg4))
+    return listutils::typeError("para4 should be a relation");
+
+  nl->ReadFromString(OSM_Data::OSMPavementNode, xType);
+  if(!CompareSchemas(arg4, xType))return nl->SymbolAtom ( "typeerror" );
+
+  
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Path1"),
+                                      nl->SymbolAtom("gline")),
+                        nl->TwoElemList(nl->SymbolAtom("Path2"),
+                                      nl->SymbolAtom("sline"))
+                  )
+                )
+          );
+
+    return result;
+
+}
+
+/*
+TypeMap function for operator get connections inside a region
+
+*/
+ListExpr GetPaveEdges4TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two input parameters expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr xType;
+
+  ListExpr arg1 = nl->First(args);
+  if(!IsRelDescription(arg1))
+    return listutils::typeError("para1 should be a relation");
+
+  nl->ReadFromString(OSM_Data::OSMNodeTmp, xType);
+  if(!CompareSchemas(arg1, xType))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg2 = nl->Second(args);
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  nl->ReadFromString(OSM_Data::OSMPavementRegion, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Path1"),
+                                      nl->SymbolAtom("gline")),
+                        nl->TwoElemList(nl->SymbolAtom("Path2"),
+                                      nl->SymbolAtom("sline"))
+                  )
+                )
+          );
+
+    return result;
+
+}
 
 /*
 type map for operator creatergraph 
@@ -8147,6 +8364,7 @@ Operator get_rg_edges1("get_rg_edges1",
     GetRGEdges1TypeMap
 );
 
+
 Operator get_rg_edges2("get_rg_edges2",
     SpatialSpecGetRGEdges2TMList,
     GetRGEdges2ValueMap,
@@ -8154,6 +8372,19 @@ Operator get_rg_edges2("get_rg_edges2",
     GetRGEdges2TypeMap
 );
 
+Operator get_p_edges3("get_p_edges3",
+    SpatialSpecGetPaveEdges3TMList,
+    GetPaveEdges3ValueMap,
+    Operator::SimpleSelect,
+    GetPaveEdges3TypeMap
+);
+
+Operator get_p_edges4("get_p_edges4",
+    SpatialSpecGetPaveEdges4TMList,
+    GetPaveEdges4ValueMap,
+    Operator::SimpleSelect,
+    GetPaveEdges4TypeMap
+);
 
 Operator creatergraph(
   "creatergraph", 
@@ -17286,7 +17517,10 @@ int OpTMGetHoleValueMap ( Word* args, Word& result, int message,
         hole = new Hole();
         hole->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-        hole->GetHole(reg);
+        if(reg->NoComponents() == 1)//only one face
+          hole->GetHole(reg);
+        else
+          hole->GetComponents(reg);
         local.setAddr(hole);
         return 0;
       }
@@ -23095,8 +23329,10 @@ class TransportationModeAlgebra : public Algebra
    ///////////////////////////////////////////////////////////////////////
 
    AddOperator(&get_rg_nodes);//get road graph nodes 
-   AddOperator(&get_rg_edges1);//get road graph edges, same location 
+   AddOperator(&get_rg_edges1);//get junctions at the same location
    AddOperator(&get_rg_edges2);//get road graph edges, glines
+   AddOperator(&get_p_edges3);//build the connection between lr points and line
+   AddOperator(&get_p_edges4);//build the connection inside one region
    AddOperator(&creatergraph);//create road network graph
    AddOperator(&shortestpath_tm);//shortest path on road graph
    ///////////////////////////////////////////////////////////////////////
