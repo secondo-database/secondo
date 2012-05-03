@@ -424,6 +424,29 @@ public static ListExpr append (ListExpr lastElement, ListExpr newSon) {
 #endif
 }
 
+/** Concat newSon to the list starting with headElement. 
+  **/
+public static ListExpr concat(ListExpr headElement, ListExpr newSon) {
+    if(DEBUG_MODE){
+       if(newSon==null){
+          Reporter.writeError(" ListExpr.append called with an null argument");
+           if(newSon==null) Reporter.writeError("newSon==null");
+           Reporter.printTrace();
+       }
+    }
+#ifndef PERSISTENT
+    if ((headElement == null) || headElement.isEmpty()){
+      headElement = new ListExpr();
+      headElement.value = newSon;
+      headElement.next = theEmptyList();
+    }
+    else {
+      headElement = cons(headElement, newSon);
+    }
+    return headElement;
+#endif  
+}
+
 
 #ifndef PERSISTENT
 /** For compatibility with the peristent version of nested lists **/
