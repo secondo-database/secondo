@@ -106,6 +106,20 @@ deletes a tuple
 
 3 Tuple Access
 
+3.0 T[_]New
+
+creates a new tuple object
+
+*/
+
+  Tuple* T_New(ListExpr& inTupleType)
+  {
+    ZThread::Guard<MyMutex> g(lock);
+    return new Tuple(inTupleType);
+  }
+
+/*
+
 3.1 T[_]WriteToBin
 
 restores a Tuple from binary representation
@@ -120,6 +134,13 @@ restores a Tuple from binary representation
     t -> WriteToBin(buffer,cS,eS,fS);
   } 
   
+/*
+
+3.2 T[_]WriteToBinAndDel
+
+restores a Tuple from binary representation
+
+*/
   void T_WriteToBinAndDel(Tuple* t, char* buffer,
                           size_t cS,
                           size_t eS,
@@ -131,7 +152,7 @@ restores a Tuple from binary representation
   }
 /*
 
-3.2 T[_]ReadFromBin
+3.3 T[_]ReadFromBin
 
 restores a Tuple from binary representation
 
@@ -143,7 +164,7 @@ restores a Tuple from binary representation
   }
 /*
 
-3.3 T[_]DeleteIfAllowed
+3.4 T[_]DeleteIfAllowed
 
 deletes a tuple
 
@@ -152,6 +173,22 @@ deletes a tuple
   {
     ZThread::Guard<MyMutex> g(lock);
     t-> DeleteIfAllowed();
+  }
+
+/*
+
+3.5 T[_]GetBlockSize
+
+deletes a tuple
+
+*/
+  size_t T_GetBlockSize(Tuple* t,
+                        size_t& outcS,
+                        size_t& outeS,
+                        size_t& outfS)
+  {
+    ZThread::Guard<MyMutex> g(lock);
+    return t -> GetBlockSize(outcS,outeS,outfS);
   }
 
 /*
@@ -215,6 +252,17 @@ Retruns the next tuple of an iterator
   {
     ZThread::Guard<MyMutex> g(lock);
     out = nl -> ToString(l);
+  }
+
+/*
+
+7.2 NL[_]ReadFromString
+
+*/
+  void NL_ReadFromString(const string& inStr, ListExpr &l)
+  {
+    ZThread::Guard<MyMutex> g(lock);
+    nl -> ReadFromString(inStr, l);
   }
 };
 
