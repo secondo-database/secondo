@@ -3167,6 +3167,21 @@ Deletes the tree.
     delete this;
   };
 
+  ostream& Print ( ostream& os ) const
+    {
+      os << "Root: rid: " << m_iRouteId ;
+      os << ", small: " << m_dStart ;
+      os << ", big: " << m_dEnd << endl;
+      os << "left son: ";
+      if (m_left != 0) m_left->Print(os);
+      else os << "not defined" << endl;
+      os << "right son: ";
+      if (m_right != 0) m_right->Print(os);
+      else os << "not defined" << endl;
+      os << endl;
+      return os;
+    }
+
   int m_iRouteId;
   double m_dStart, m_dEnd;
   RITree *m_left, *m_right;
@@ -3305,16 +3320,28 @@ struct RITreeP
 
   ostream& Print(ostream& os) const
   {
-    RouteIntervalEntry rie;
-    for (int i = 0; i < firstFree; i++)
-    {
-      ritreep.Get(i,rie);
-      os << i << ".Entry: ";
-      rie.Print(os);
-      os << endl;
-    }
-    return os;
+    return Print(os, 0);
+
   }
+
+  ostream& Print(ostream&os, int pos) const
+  {
+    if (!IsEmpty() && -1 < pos && pos < firstFree){
+      RouteIntervalEntry rie;
+      ritreep.Get(pos, rie);
+      os << "Root: ";
+      rie.GetEntry().Print(os);
+      os << "left son: ";
+      if (rie.GetLeft() > -1) Print(os, rie.GetLeft());
+      else os << "not defined" << endl;
+      os << "right son: ";
+      if (rie.GetRight() > -1) Print(os, rie.GetRight());
+      else os << "not defined" << endl;
+      os << endl;
+      return os;
+    }
+  }
+
 /*
 Checks if in the ~RITree~ exist son intervals which are covered by the
 previos changed interval of the father.
@@ -3431,7 +3458,7 @@ Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
 */
   void InsertUnit(const int rid, const double pos1, const double pos2)
   {
-    if (pos1 < pos2) Insert(rid, pos1, pos2, 0);
+    if (pos1 <= pos2) Insert(rid, pos1, pos2, 0);
     else Insert(rid, pos2, pos1, 0);
   }
 
@@ -3451,8 +3478,15 @@ Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
     Insert(ri.GetRouteId(), ri.GetStartPos(), ri.GetEndPos());
   }
 
-  void Insert (const int rid, const double pos1, const double pos2, int pos = 0)
+  void Insert (const int rid, const double p1, const double p2, int pos = 0)
   {
+    double pos1 = p1;
+    double pos2 = p2;
+    if (p1 > p2) {
+      pos1 = p2;
+      pos2 = p1;
+    }
+
     if (IsEmpty())
     {
       ritreep.Put(firstFree, RouteIntervalEntry(RouteInterval(rid,pos1,pos2),
@@ -3511,11 +3545,7 @@ Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
                 if (testRI.GetLeft() > -1)
                 {
                   test = CheckTree(testRI, pos, testRI, testRI.GetLeft(),true);
-                  if (testRI.GetEntry().GetStartPos() > test)
-                  {
-                    testRI.SetEntry(1, test);
-                    ritreep.Put(pos,testRI);
-                  }
+                  ritreep.Put(pos,testRI);
                 }
               }
               if (testRI.GetEntry().GetEndPos() < pos2)
@@ -3526,11 +3556,8 @@ Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
                 {
                   test =
                     CheckTree(testRI, pos, testRI, testRI.GetRight(),false);
-                  if (testRI.GetEntry().GetEndPos() < test)
-                  {
-                    testRI.SetEntry(2, test);
-                    ritreep.Put(pos,testRI);
-                  }
+                  ritreep.Put(pos,testRI);
+
                 }
               }
             }

@@ -3315,18 +3315,29 @@ void Network::FillSections()
         {
           xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
         }
-        if (cycle)
-           xAttrs.push_back(new TupleIdentifier(true, startCycleSectionTid));
+        if (cycle &&
+            xCurrentEntry.GetRouteId() == xCurrentEntry.GetOtherRouteId())
+          xAttrs.push_back(new TupleIdentifier(true, startCycleSectionTid));
         else
           xAttrs.push_back ( new TupleIdentifier ( true, 0));
         if (cycle)
         {
           xIndices.push_back(JUNCTION_CC);
-          xAttrs.push_back(new CcInt(true,65535));
+          if (xCurrentEntry.GetRouteId() == xCurrentEntry.GetOtherRouteId()){
+            xAttrs.push_back(new CcInt(true, 1285));
+          } else {
+            if (curFirst){
+              xAttrs.push_back(new CcInt(true, 4365));
+            } else {
+              xAttrs.push_back(new CcInt(true, 1860));
+            }
+          }
         }
         m_pJunctions->UpdateTuple ( actTuple, xIndices, xAttrs );
         xIndices.clear();
         xAttrs.clear();
+        if (actTuple) actTuple->DeleteIfAllowed();
+        actTuple = xCurrentEntry.GetTuple();
       }
       if ( curFirst)
       {
@@ -3460,6 +3471,26 @@ void Network::FillSections()
         xAttrs.clear();
       } // end if
     } //end junctionsloop
+    if (cycle)
+    {
+      xIndices.clear();
+      xAttrs.clear();
+      if(actTuple) actTuple->DeleteIfAllowed();
+      actTuple = xFirstCycleJunction.GetTuple();
+      if (xFirstCycleJunction.GetRouteId() ==
+            xFirstCycleJunction.GetOtherRouteId() &&
+          xFirstCycleJunction.GetRouteMeas() ==
+            xFirstCycleJunction.GetOtherRouteMeas() &&
+          xFirstCycleJunction.GetRouteMeas() == 0.0){
+        xIndices.push_back(JUNCTION_SECTION_BDOWN_RC);
+        xAttrs.push_back(new TupleIdentifier(true, iSectionTid));
+        xIndices.push_back(JUNCTION_SECTION_ADOWN_RC);
+        xAttrs.push_back(new TupleIdentifier(true, iSectionTid));
+      }
+      m_pJunctions->UpdateTuple(actTuple, xIndices, xAttrs);
+      xIndices.clear();
+      xAttrs.clear();
+    }
     if(actTuple) actTuple->DeleteIfAllowed();
     actTuple = 0;
     // delete Tuples from xJunctions
@@ -9915,7 +9946,7 @@ bool GPoints::ShortestPathAStar(const GPoints* bgp, GLine* res,
     {
       startSections->Get(i,source);
       dist =  source.GetGP().GetPosition();
-      InsertAdjacentSections(source.GetTid(), Up, true, dist, endPoints, 
+      InsertAdjacentSections(source.GetTid(), Up, true, dist, endPoints,
                              pNetwork, prioQ, visitedSect, touchedSects);
       dist =  source.GetGP().GetPosition();
       InsertAdjacentSections(source.GetTid(), Down, true, dist, endPoints,
