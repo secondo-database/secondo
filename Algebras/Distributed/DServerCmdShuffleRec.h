@@ -220,7 +220,7 @@ public:
   string getInfo() const
   {
     string port = int2Str((getBasePortNr()+getIndex()));
-    return string("Suffle REC: cmd: let r" + getWorker() -> getName() + 
+    return string("Shuffle REC: cmd: let r" + getWorker() -> getName() + 
                   getIndexStr() + 
     " = " + "d_receive_shuffle(" + 
     getWorker() -> getMasterHostIP_()  + ",p" + port + ")");
