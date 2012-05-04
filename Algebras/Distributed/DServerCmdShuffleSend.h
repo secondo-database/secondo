@@ -254,7 +254,7 @@ new darray index
     string dIndexFunction = 
       stringutils::replaceAll(getSendFunc(), "d_idx", "int " + getIndexStr());
 
-    return string("Suffle Send: cmd: (query (d_send_shuffle (feed r" + 
+    return string("Shuffle Send: cmd: (query (d_send_shuffle (feed r" + 
                   getWorker() -> getName() + getIndexStr() + 
                   ") (fun (tuple1 TUPLE) " + dIndexFunction + ") " +
                   getWorker() -> getMasterHostIP_()  + " p" + port + ") ");
