@@ -17,35 +17,10 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-########################################################################
-#
-# generic makefile for an algebra module 
-#
-########################################################################
-#
-# Add the compilation of the Hadoop Java job
-
-# inlcude global definitions
-include ../../makefile.env
-
-# expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
-
-# create objects and algebra library. The values for the variables
-# OBJECTS and LIBOBJ are computed automatically by makefile.env 
-.PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
-
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES)
-endif
-
-# generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
-	$(create-lib)
-
-# generic rule for cleaning all generated files
-.PHONY: clean
-clean:
-	$(clean-algebra)
+operator spread alias SPREAD pattern _op [list; list; list]
+operator collect alias COLLECT pattern _op[list]
+operator para alias PARA pattern op (_)
+operator hadoopMap alias HADOOPMAP pattern _ op [list; fun] implicit parameter lobject1 type TPARA
+operator hadoopReduce alias HADOOPREDUCE pattern _ op [list; fun] implicit parameter lobject1 type TPARA
+operator hadoopReduce2 alias HADOOPREDUCE2 pattern _ _ op [list; fun] implicit parameters lobject1, lobject2 types TPARA, TPARA2 
+operator createFList alias CREATEFLIST pattern op(_)

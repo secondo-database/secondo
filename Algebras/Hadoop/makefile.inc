@@ -17,35 +17,18 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-########################################################################
+#filename makefile
 #
-# generic makefile for an algebra module 
+# last change: 2003-07-03 Mirco Guenster
 #
-########################################################################
+# this is the include file for makejava
+
+# if you want to use another compiler the change this name
+JAVAC=javac
+
 #
-# Add the compilation of the Hadoop Java job
+JAVADOC = javadoc
 
-# inlcude global definitions
-include ../../makefile.env
 
-# expand compile flags if necessary
-CCFLAGS += $(ALG_INC_DIRS) 
 
-# create objects and algebra library. The values for the variables
-# OBJECTS and LIBOBJ are computed automatically by makefile.env 
-.PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
 
-# include pre-computed dependencies
-ifneq ($(MAKECMDGOALS),clean)
-include $(DEP_FILES)
-endif
-
-# generic rule for creating a library
-$(LIBOBJ): $(OBJECTS)
-	$(create-lib)
-
-# generic rule for cleaning all generated files
-.PHONY: clean
-clean:
-	$(clean-algebra)

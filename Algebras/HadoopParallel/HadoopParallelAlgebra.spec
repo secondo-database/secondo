@@ -25,10 +25,3 @@ operator fconsume alias FCONSUME pattern _ op [list; list; list]
 operator ffeed alias FFEED pattern _ op [list; list; list]
 operator hadoopjoin alias HADOOPJOIN pattern _ _ op [_, _, _, _; list; fun] implicit parameters stream1, stream2 types ANY, ANY2
 operator fdistribute alias FDISTRIBUTE pattern _ op [list; list; list; list]
-operator spread alias SPREAD pattern _op [list; list; list]
-operator collect alias COLLECT pattern _op[list]
-operator para alias PARA pattern op (_)
-operator hadoopMap alias HADOOPMAP pattern _ op [list; fun] implicit parameter lobject1 type TPARA
-operator hadoopReduce alias HADOOPREDUCE pattern _ op [list; fun] implicit parameter lobject1 type TPARA
-operator hadoopReduce2 alias HADOOPREDUCE2 pattern _ _ op [list; fun] implicit parameters lobject1, lobject2 types TPARA, TPARA2 
-operator createFList alias CREATEFLIST pattern op(_)
