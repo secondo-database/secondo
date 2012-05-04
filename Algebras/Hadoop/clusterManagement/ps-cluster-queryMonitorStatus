@@ -1,0 +1,48 @@
+#!/bin/bash
+
+bin=`dirname "$0"`
+bin=`cd "$bin"; pwd`
+source $bin/ps-functions
+
+# Process the parameters
+declare -i numOfArgs=$#
+let numOfArgs++
+
+while [ $numOfArgs -ne $OPTIND ]; do
+
+  getopts "h" optKey
+  if [ "$optKey" == "?" ]; then
+    optKey="h"
+  fi
+  
+  case $optKey in
+    h)
+      echo -e "List all processes involving Secondo inside the cluster.\n"
+      echo -e "  -h Print this message and exit.\n"
+      exit
+      ;;
+  esac
+
+done
+
+IPLIST=$(get_slaveIPs -m)
+declare -i CORCNT=0
+declare -i COUNTR=0
+
+FAILER=""
+for node in $IPLIST; do 
+  echo "$(($COUNTR + 1)): Node: $node" 
+  ssh $node "ps -af" | grep Secondo | grep -v "grep"
+  if [ $? -eq 0 ]; then
+    let CORCNT++
+  else
+    FAILER=$node:$FAILER
+  fi
+  let COUNTR++
+ done
+
+echo "$CORCNT Monitors are started"
+if [ "$FAILER" != "" ]; then
+  echo "Follow monitors are not started correctly."
+  echo "$FAILER"
+fi
