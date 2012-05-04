@@ -105,8 +105,10 @@ DServerCmdShuffleMultiConn::run()
          delete callBack;
          return;
        }
+
      cout << getTypeStr() + "_" + getIndexStr()
           << " start communication" << endl;
+
      if (!(callBack -> startSocketCommunication()))
        {
          setErrorText(callBack -> getErrorText());
@@ -118,6 +120,7 @@ DServerCmdShuffleMultiConn::run()
      // data to the typemapping function
      if (getType() == DServerCmdShuffleMultiConnParam::DSC_SMC_P_RECEIVER)
        {
+
          if (!(callBack -> sendTextToCallBack("TYPE",  
                                               getWorker() -> 
                                               getTTypeStr() )))
@@ -147,7 +150,7 @@ DServerCmdShuffleMultiConn::run()
          //             DServerCmdShuffleMultiConnParam::DSC_SMC_P_RECEIVER)
 
      getWorker() -> setShuffleOpen();
-
+     
      // sending size of sourceWorkers
      if (!(callBack -> sendTagToCallBack("STARTMULTIPLYCONN")))
        {
@@ -175,9 +178,6 @@ DServerCmdShuffleMultiConn::run()
 
   for (long i = 0; i <  (unsigned long) getSize(); i++)
     {
-      cout << getTypeStr() << "_" << getIndexStr() 
-           << ":"  
-           << getPort(i) << "@" << getHost(i) << endl;
       // sending source worker host name
       if (!(callBack -> sendTextToCallBack("SRCWHOST",  
                                            getHost(i), true)))
@@ -240,39 +240,40 @@ DServerCmdShuffleMultiConn::run()
       return;
     }
 
-    //awaiting OK
-    if (!(callBack -> getTagFromCallBack("GO")))
-      {
-        setErrorText("Could not initiate dshuffle");
-        delete callBack;
-        return;
-      } 
+  //awaiting OK
+  if (!(callBack -> getTagFromCallBack("GO")))
+    {
+      setErrorText("Could not initiate dshuffle");
+      delete callBack;
+      return;
+    } 
 
-    bool noErr = true;
-    //awaiting DONE
-    if (!(callBack -> getTagFromCallBackTF("DONE","ERROR", noErr)))
-      {
-        string errMsg;
-        if (!(callBack -> getTagFromCallBack("ERRORDESC", errMsg)))
-          {
-            setErrorText("Could not receive correct error message!");
-            delete callBack;
-            return;
-          }
+  bool noErr = true;
+  //awaiting DONE
+  if (!(callBack -> getTagFromCallBackTF("DONE","ERROR", noErr)))
+    {
+      string errMsg;
+      if (!(callBack -> getTagFromCallBack("ERRORDESC", errMsg)))
+        {
+          setErrorText("Could not receive correct error message!");
+          delete callBack;
+          return;
+        }
 
-        setErrorText(errMsg);
-      }
-    if (!noErr)
-      {
-        setErrorText("Could not multiply connections for dshuffle");
-        delete callBack;
-        return;
-      }
+      setErrorText(errMsg);
+    }
 
-    delete callBack;
+  if (!noErr)
+    {
+      setErrorText("Could not multiply connections for dshuffle");
+      delete callBack;
+      return;
+    }
+
+  delete callBack;
 #ifdef DS_CMD_OPEN_MULTICONN_SHUFFLE_DEBUG
-      cout << (unsigned long)(this) 
-           << " DS_CMD_OPEN_MULTICONN_SHUFFLE - done" << endl;
+  cout << (unsigned long)(this) 
+       << " DS_CMD_OPEN_MULTICONN_SHUFFLE - done" << endl;
 #endif   
 
 } // run()
