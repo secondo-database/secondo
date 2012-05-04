@@ -1773,6 +1773,33 @@ const string SpatialSpecGetPaveEdges4TMList =
 "<text>get the connection inside one region </text--->"
 "<text>query get_p_edges4(P_Nodes2_tmp, DOPedesRegions) count </text---> ) )";
 
+const string SpatialSpecTheOSMPaveTMList =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text> int x rel x rel ->(stream(((x1 t1) ... (xn tn))) </text--->"
+"<text>theosmpave(int, rel, rel) </text--->"
+"<text>create osm pavement environment </text--->"
+"<text>query theosmpave(1, DOPedeslines, DOPedesRegions) count </text---> ) )";
+
+const string OpTMOSMPaveGraphSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>int x rel1 x rel2 -> osmpavegraph</text--->"
+    "<text>creatergraph(int, rel, rel)</text--->"
+    "<text>create a osm pave graph by the input edges and nodes"
+    "relation</text--->"
+    "<text>query createosmgraph(1, node-rel, edge1); </text--->"
+    ") )";
+
+
+const string OpTMOSMLocMapSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 -> osmpavegraph</text--->"
+    "<text>osmlocmap(rel, rel)</text--->"
+    "<text>map osm locations to lines and regions</text--->"
+    "<text>query osmlocmap(POI_L, POI_R); </text--->"
+    ") )";
+
 const string OpTMCreateRoadGraphSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "

@@ -388,7 +388,7 @@ Operator : thepavement
 Number   : 2
 Signature: int x rel -> pavenetwork
 Example  : query ref_id(thepavement(1, dg_node));
-Result   : 2
+Result   : 1
 
 
 Operator : bn_busstops
@@ -1160,6 +1160,25 @@ Number   : 1
 Signature: rel x rel -> (stream(((x1 t1) ... (xn tn))))
 Example  : query get_p_edges4(P_Nodes2_tmp, DOPedesRegions) count;
 Result   : 24
+
+Operator : theosmpave
+Number   : 2
+Signature: int x rel x rel -> osmpavenetwork
+Example  : query ref_id(theosmpave(1, Pave_line, Pave_region));
+Result   : 1
+
+Operator : createosmgraph
+Number   : 2
+Signature: int x rel1 x rel2 -> osmpavegraph
+Example  : query getadjnode(createosmgraph(1, PNodes, P_ADJ), 1) count;
+Result   : 2
+
+Operator : osmlocmap
+Number   : 2
+Signature: rel1 x rel2 -> (stream(((x1 t1) ... (xn tn))))
+Example  : query osmlocmap(POI_L, POI_R) count;
+Result   : 2
+
 
 Operator : creatergraph
 Number   : 2

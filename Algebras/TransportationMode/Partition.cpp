@@ -7654,14 +7654,13 @@ void DataClean::OutPutLine(Relation* rel, BTree* btree,
 //////////////////////////////////////////////////////////////////////
 ///////////////// processing OSM data///////////////////////////////
 //////////////////////////////////////////////////////////////////
-string OSM_Data::OSMPavementNode = "(rel (tuple ((Jun_id int) (Jun_gp gpoint)\
-(Jun_p point) (Rid int) (Type int))))";
 
 string OSM_Data::OSMNodeTmp = "(rel (tuple ((Jun_id int) (REG_ID int)\
 (CROSS_POINT point))))";
 
-string OSM_Data::OSMPavementRegion = "(rel (tuple ((REG_ID int) (Elem region)\
-(Border region))))";
+string OSM_Data::OSMPOILine = "(rel (tuple ((Id int) (Geo line) (Pos point))))";
+string OSM_Data::OSMPOIRegion = "(rel (tuple ((REG_ID int) (Elem region)\
+(Pos point))))";
 
 
 bool CompareGP_P_Pos(const GP_Point& gp_p1, const GP_Point& gp_p2)
@@ -7680,10 +7679,11 @@ void OSM_Data::GetPaveEdge3(Relation* road_rel, Relation* rel1, BTree* btree,
 //  cout<<rel1->GetNoTuples()<<" "<<rel2->GetNoTuples()<<endl;
   for(int i = 1;i <= rel2->GetNoTuples();i++){
     Tuple* t = rel2->GetTuple(i, false);
-    int rid = ((CcInt*)t->GetAttribute(OSM_RID))->GetIntval();
-    Point* q_loc = (Point*)t->GetAttribute(OSM_LOC);
-    GPoint* q_gp = (GPoint*)t->GetAttribute(OSM_JUN_GP);
-    int jun_id = ((CcInt*)t->GetAttribute(OSM_JUN_ID))->GetIntval();
+    int rid = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_RID))->GetIntval();
+    Point* q_loc = (Point*)t->GetAttribute(OSMPaveGraph::OSM_LOC);
+    GPoint* q_gp = (GPoint*)t->GetAttribute(OSMPaveGraph::OSM_JUN_GP);
+    int jun_id = 
+      ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUN_ID))->GetIntval();
     Tuple* road_tuple = road_rel->GetTuple(rid, false);
     SimpleLine* sl = 
         (SimpleLine*)road_tuple->GetAttribute(ROUTE_CURVE);
@@ -7706,11 +7706,13 @@ void OSM_Data::GetPaveEdge3(Relation* road_rel, Relation* rel1, BTree* btree,
     BTreeIterator* btree_iter = btree->ExactMatch(search_id);
     while(btree_iter->Next()){
         Tuple* tuple = rel1->GetTuple(btree_iter->GetId(), false);
-        int r_id = ((CcInt*)tuple->GetAttribute(OSM_RID))->GetIntval();
+        int r_id = 
+          ((CcInt*)tuple->GetAttribute(OSMPaveGraph::OSM_RID))->GetIntval();
         assert(r_id == rid);
-        int j_id = ((CcInt*)tuple->GetAttribute(OSM_JUN_ID))->GetIntval();
-        GPoint* gp = (GPoint*)tuple->GetAttribute(OSM_JUN_GP);
-        Point* loc = (Point*)tuple->GetAttribute(OSM_LOC);
+        int j_id = 
+          ((CcInt*)tuple->GetAttribute(OSMPaveGraph::OSM_JUN_ID))->GetIntval();
+        GPoint* gp = (GPoint*)tuple->GetAttribute(OSMPaveGraph::OSM_JUN_GP);
+        Point* loc = (Point*)tuple->GetAttribute(OSMPaveGraph::OSM_LOC);
 
         GP_Point gp_p(r_id, gp->GetPosition(), -1.0, *loc, *loc);
         gp_p.oid = j_id;
@@ -7744,11 +7746,20 @@ void OSM_Data::GetPaveEdge3(Relation* road_rel, Relation* rel1, BTree* btree,
         SimpleLine* s_l = new SimpleLine(0);
         s_l->StartBulkLoad();
 
-        jun_id_list1.push_back(jun_id);
+        jun_id_list1.push_back(jun_id); ///type1 -- type2
         jun_id_list2.push_back(gp_p_list[j].oid);
         gl_path_list.push_back(*gl);
         s_l->EndBulkLoad();
         sline_path_list.push_back(*s_l);
+        
+        ////////////////////////////////////////////////
+
+        jun_id_list1.push_back(gp_p_list[j].oid);//type2 -- type1
+        jun_id_list2.push_back(jun_id);
+        gl_path_list.push_back(*gl);
+        s_l->EndBulkLoad();
+        sline_path_list.push_back(*s_l);
+
         delete gl;
         delete s_l;
         break;
@@ -7765,15 +7776,22 @@ void OSM_Data::GetPaveEdge3(Relation* road_rel, Relation* rel1, BTree* btree,
         gl->SetSorted(false);
         gl->TrimToSize();
         gl_path_list.push_back(*gl);
+        gl_path_list.push_back(*gl);
         delete gl;
-    
+
         SimpleLine* s_l = new SimpleLine(0);
         sl->SubLine(pos, gp_p_list[j].pos1, true, *s_l);
+        sline_path_list.push_back(*s_l);
         sline_path_list.push_back(*s_l);
         delete s_l;
 
         jun_id_list1.push_back(jun_id);
         jun_id_list2.push_back(gp_p_list[j].oid);
+
+        jun_id_list1.push_back(gp_p_list[j].oid);
+        jun_id_list2.push_back(jun_id);
+
+
         break;
       }
 
@@ -7788,16 +7806,21 @@ void OSM_Data::GetPaveEdge3(Relation* road_rel, Relation* rel1, BTree* btree,
         gl->SetSorted(false);
         gl->TrimToSize();
         gl_path_list.push_back(*gl);
+        gl_path_list.push_back(*gl);
         delete gl;
 
         SimpleLine* s_l = new SimpleLine(0);
 //        cout<<sl->Length()<<" "<<gp_p_list[j].pos1<<" "<<pos<<endl;
         sl->SubLine(gp_p_list[j].pos1, pos, true, *s_l);
         sline_path_list.push_back(*s_l);
+        sline_path_list.push_back(*s_l);
         delete s_l;
 
         jun_id_list1.push_back(jun_id);
         jun_id_list2.push_back(gp_p_list[j].oid);
+
+        jun_id_list1.push_back(gp_p_list[j].oid);
+        jun_id_list2.push_back(jun_id);
 
         break;
       }
@@ -7812,15 +7835,20 @@ void OSM_Data::GetPaveEdge3(Relation* road_rel, Relation* rel1, BTree* btree,
             gl1->SetSorted(false);
             gl1->TrimToSize();
             gl_path_list.push_back(*gl1);
+            gl_path_list.push_back(*gl1);
             delete gl1;
 
             SimpleLine* s_l1 = new SimpleLine(0);
             sl->SubLine(gp_p_list[j].pos1, pos, true, *s_l1);
             sline_path_list.push_back(*s_l1);
+            sline_path_list.push_back(*s_l1);
             delete s_l1;
 
-            jun_id_list1.push_back(jun_id);
+            jun_id_list1.push_back(jun_id);/////type1 -- type2
             jun_id_list2.push_back(gp_p_list[j].oid);
+
+            jun_id_list1.push_back(gp_p_list[j].oid);//type2 -- type1
+            jun_id_list2.push_back(jun_id);
 
             ///////////////////////////////////////////////////////////
             GLine* gl2 = new GLine(0);
@@ -7831,15 +7859,20 @@ void OSM_Data::GetPaveEdge3(Relation* road_rel, Relation* rel1, BTree* btree,
             gl2->SetSorted(false);
             gl2->TrimToSize();
             gl_path_list.push_back(*gl2);
+            gl_path_list.push_back(*gl2);
             delete gl2;
 
             SimpleLine* s_l2 = new SimpleLine(0);
             sl->SubLine(pos, gp_p_list[j + 1].pos1, true, *s_l2);
             sline_path_list.push_back(*s_l2);
+            sline_path_list.push_back(*s_l2);
             delete s_l2;
 
-            jun_id_list1.push_back(jun_id);
+            jun_id_list1.push_back(jun_id);////////type1 - type2
             jun_id_list2.push_back(gp_p_list[j + 1].oid);
+
+            jun_id_list1.push_back(gp_p_list[j + 1].oid);//type2 -- type 1
+            jun_id_list2.push_back(jun_id);
 
             break;
         }
@@ -7900,7 +7933,7 @@ void OSM_Data::GetPaveEdge4(Relation* rel1, Relation* rel2)
 
     if(mp_list.size() > 1){ //internal connections 
         Tuple* reg_tuple = rel2->GetTuple(reg_id, false);
-        Region* reg = (Region*)reg_tuple->GetAttribute(OSM_ELEM);
+        Region* reg = (Region*)reg_tuple->GetAttribute(OSMPavement::OSM_ELEM);
 
         CompTriangle* ct = new CompTriangle(reg);
         if((ct->ComplexRegion() == 1 || reg->Size() > 70) && 
@@ -8084,6 +8117,933 @@ void OSM_Data::ShortestPath_InRegion_Pairs(Region* reg, vector<MyPoint> mp_list)
 
 }
 
+/*
+get the adj list for a given node
+
+*/
+void OSM_Data::GetAdjNodeOSMG(OSMPaveGraph* osm_g, int node_id)
+{
+
+  cout<<"node id "<<node_id<<endl;
+
+  if(node_id < 1 || node_id > osm_g->GetNodeRel()->GetNoTuples()){
+      cout<<"invalid oid "<<node_id<<endl;
+      return;
+  }
+  cout<<"total "<<osm_g->GetNodeRel()->GetNoTuples()<<" nodes "<<endl;
+  cout<<"total "<<osm_g->GetEdgeRel()->GetNoTuples()<<" edges "<<endl;
+
+  vector<int> adj_list;
+  osm_g->FindAdj(node_id, adj_list);
+  for(unsigned int i = 0;i < adj_list.size();i++){
+    Tuple* t = osm_g->GetEdgeRel()->GetTuple(adj_list[i], false);
+    int j_id1 = 
+        ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUNID1))->GetIntval();
+    int j_id2 = 
+        ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUNID2))->GetIntval();
+
+//    cout<<j_id1<<" "<<j_id2<<endl;
+    assert(node_id == j_id1);
+    SimpleLine* sl = (SimpleLine*)t->GetAttribute(OSMPaveGraph::OSM_Path2);
+    int type = 
+      ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_Edge_TYPE))->GetIntval();
+
+    jun_id_list1.push_back(j_id2);
+    sline_path_list.push_back(*sl);
+    type_list.push_back(type);
+
+    t->DeleteIfAllowed();
+  }
+
+}
+
+/*
+map osm data to pavement lines and regions
+
+*/
+void OSM_Data::OSMLocMap(Relation* rel1, Relation* rel2)
+{
+  const double max_dist = 10.0;
+//  cout<<rel1->GetNoTuples()<<" "<<rel2->GetNoTuples()<<endl;
+  SpacePartition* sp = new SpacePartition();
+  
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* t = rel1->GetTuple(i, false);
+    int l_id = ((CcInt*)t->GetAttribute(OSMPOI_L_ID))->GetIntval();
+    Line* l = (Line*)t->GetAttribute(OSMPOI_GEO);
+    Point* q_loc = (Point*)t->GetAttribute(OSMPOI_POS_L);
+
+
+      vector<MyPoint> mp_list;
+      for(int j = 0;j < l->Size();j++){
+        HalfSegment hs;
+        l->Get(j, hs);
+        if(hs.IsLeftDomPoint() == false) continue;
+
+        Point cp;
+        double dist = sp->GetClosestPoint(hs, *q_loc, cp);
+        MyPoint mp(cp, dist);
+        mp_list.push_back(mp);
+      }
+//      cout<<mp_list.size()<<endl;
+      sort(mp_list.begin(), mp_list.end());
+      if(mp_list[0].dist > max_dist){
+        t->DeleteIfAllowed();
+        continue;
+      }
+//      cout<<mp_list[0].dist<<" "<<mp_list[mp_list.size() - 1].dist<<endl;
+      SimpleLine* sl = new SimpleLine(0);
+      sl->fromLine(*l);
+      double pos;
+      if(sl->AtPoint(mp_list[0].loc, true, pos)){
+          Loc loc(pos, -1.0);
+          GenLoc* genloc = new GenLoc(l_id, loc);
+          genloc_list.push_back(*genloc);
+          loc_list.push_back(mp_list[0].loc);
+          type_list.push_back(1);/////////
+          pos_list.push_back(*q_loc);
+          delete genloc;
+      }
+
+      delete sl;
+      t->DeleteIfAllowed();
+  }
+
+  ///////////////////////region///////////////////////////////
+  for(int i = 1;i <= rel2->GetNoTuples();i++){
+    Tuple* t = rel2->GetTuple(i, false);
+    int r_id = ((CcInt*)t->GetAttribute(OSMPOI_REG_ID))->GetIntval();
+    Region* r = (Region*)t->GetAttribute(OSMPOI_ELEM);
+    Point* q_loc = (Point*)t->GetAttribute(OSMPOI_POS_R);
+
+      vector<MyPoint> mp_list;
+      for(int j = 0;j < r->Size();j++){
+        HalfSegment hs;
+        r->Get(j, hs);
+        if(hs.IsLeftDomPoint() == false) continue;
+
+        Point cp;
+        double dist = sp->GetClosestPoint(hs, *q_loc, cp);
+        MyPoint mp(cp, dist);
+        mp_list.push_back(mp);
+      }
+//      cout<<mp_list.size()<<endl;
+      sort(mp_list.begin(), mp_list.end());
+      if(mp_list[0].dist > max_dist){
+          t->DeleteIfAllowed();
+          continue;
+      }
+//      cout<<mp_list[0].dist<<" "<<mp_list[mp_list.size() - 1].dist<<endl;
+      Rectangle<2> bbox = r->BoundingBox();
+
+      Loc loc(mp_list[0].loc.GetX() - bbox.MinD(0),
+              mp_list[0].loc.GetY() - bbox.MinD(1));
+      GenLoc* genloc = new GenLoc(r_id, loc);
+      genloc_list.push_back(*genloc);
+      loc_list.push_back(mp_list[0].loc);
+      type_list.push_back(2);/////////
+      pos_list.push_back(*q_loc);
+      delete genloc;
+      
+      
+      /////////////random location inside a region///////////////////////
+      int xx = (int)(bbox.MaxD(0) - bbox.MinD(0)) + 1;
+      int yy = (int)(bbox.MaxD(1) - bbox.MinD(1)) + 1;
+      
+      Point p1;
+      Point p2;
+      bool inside = false;
+      int counter = 1;
+       while(inside == false && counter <= 100){
+
+       int x = (GetRandom() + 1)% (xx*100);
+       int y = (GetRandom() + 1)% (yy*100);
+
+        double coord_x = x/100.0;
+        double coord_y = y/100.0;
+        if(coord_x < EPSDIST) coord_x = 0.0;
+        if(coord_y < EPSDIST) coord_y = 0.0;
+
+
+        p1.Set(coord_x, coord_y); //set back to relative position
+        //lower the precision
+        Modify_Point_3(p1);
+
+        Coord x_cord = p1.GetX() + bbox.MinD(0);
+        Coord y_cord = p1.GetY() + bbox.MinD(1);
+        p2.Set(x_cord, y_cord); //absolute position 
+
+        inside = p2.Inside(*r);
+        counter++;
+      }
+
+      if(inside){
+          Loc loc(p1.GetX(), p1.GetY());
+          GenLoc genl(r_id, loc);
+          genloc_list.push_back(genl);
+          loc_list.push_back(p2);
+          type_list.push_back(3);/////////random points inside a region
+          pos_list.push_back(p2);
+      }
+      /////////////////////////////////////////////////////
+
+      t->DeleteIfAllowed();
+  }
+
+  delete sp;
+
+}
+
+//////////////////////////////////////////////////////////
+////////// OSM Pavement //////////////////////////////////
+///////////////////////////////////////////////////////////
+string OSMPavement::OSMPaveLine = "(rel (tuple ((Id int) (Geo line))))";
+string OSMPavement::OSMPaveRegion = "(rel (tuple ((REG_ID int) (Elem region)\
+(Border region))))";
+
+/*
+information about osmpavement
+
+*/
+ListExpr OSMPavementProperty()
+{
+  return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                       nl->StringAtom("Example Type List"),
+           nl->StringAtom("List Rep"),
+           nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                       nl->StringAtom("osmpavement"),
+         nl->StringAtom("((def, id))"),
+           nl->StringAtom("((TRUE 1))"))));
+}
+
+/*
+In function. there is not nested list expression here.
+
+*/
+Word InOSMPavement( const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+
+//  cout<<"length "<<nl->ListLength(instance)<<endl;
+
+  if( !nl->IsAtom( instance ) ){
+
+    if(nl->ListLength(instance) != 2){
+      cout<<"length should be 2"<<endl; 
+      correct = false;
+      return SetWord(Address(0));
+    }
+    ListExpr first = nl->First(instance);
+    ListExpr second = nl->Second(instance);
+
+    if(!nl->IsAtom(first) || nl->AtomType(first) != BoolType){
+      cout<< "osmpavenetwork(): definition must be bool type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    bool d = nl->BoolValue(first);
+
+
+    if(!nl->IsAtom(second) || nl->AtomType(second) != IntType){
+      cout<< "osmpavenetwork(): pavement id must be int type"<<endl;
+      correct = false;
+      return SetWord(Address(0));
+    }
+    unsigned int id = nl->IntValue(second);
+
+    OSMPavement* pn = new OSMPavement(d, id); 
+
+   ////////////////very important /////////////////////////////
+    correct = true; 
+  ///////////////////////////////////////////////////////////
+    return SetWord(pn);
+  }
+
+  correct = false;
+  return SetWord(Address(0));
+}
+
+/*
+output the pavement infrastructure 
+
+*/
+ListExpr OutOSMPavement( ListExpr typeInfo, Word value )
+{
+//  cout<<"OutPavement"<<endl; 
+  OSMPavement* pn = (OSMPavement*)(value.addr);
+  if(!pn->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
+  ListExpr list1 = nl->TwoElemList(
+               nl->StringAtom("OSMPavement Id:"), 
+               nl->IntAtom(pn->GetId()));
+  
+  ListExpr list2 = nl->TheEmptyList(); 
+  if(pn->IsOSMGInit()){
+      list2 = nl->TwoElemList(
+               nl->StringAtom("OSM Graph Id:"), 
+               nl->IntAtom(pn->GetOSMGId()));
+  }else
+    list2 = nl->OneElemList( nl->StringAtom("OSM Graph undef"));
+
+
+  ListExpr list3 = nl->TheEmptyList(); 
+  
+  return nl->ThreeElemList(list1, list2, list3);
+}
+
+
+void CloseOSMPavement( const ListExpr typeInfo, Word& w )
+{
+//  cout<<"ClosePavement"<<endl; 
+  delete static_cast<OSMPavement*>(w.addr); 
+  w.addr = 0;
+}
+
+Word CloneOSMPavement( const ListExpr typeInfo, const Word& w )
+{
+//  cout<<"CloneOSMPavement"<<endl; 
+  return SetWord( new Address(0));
+}
+
+int SizeOfOSMPavement()
+{
+//  cout<<"SizeOfOSMPavement"<<endl; 
+  return sizeof(OSMPavement);
+}
+
+bool CheckOSMPavement( ListExpr type, ListExpr& errorInfo )
+{
+//  cout<<"CheckPavement"<<endl; 
+  return (nl->IsEqual( type, "osmpavenetwork" ));
+}
+
+Word CreateOSMPavement(const ListExpr typeInfo)
+{
+// cout<<"createOSMPavement()"<<endl;
+  return SetWord (new OSMPavement());
+}
+
+void DeleteOSMPavement(const ListExpr typeInfo, Word& w)
+{
+// cout<<"DeleteOSMPavement()"<<endl;
+  OSMPavement* osm_pn = (OSMPavement*)w.addr;
+  osm_pn->RemoveOSMPavement();
+  delete osm_pn;
+   w.addr = NULL;
+}
+
+/*
+open and save the object
+
+*/
+bool OpenOSMPavement(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value)
+{
+//  cout<<"OpenOSMPavement "<<endl;
+  value.addr = OSMPavement::Open(valueRecord, offset, typeInfo);
+  return value.addr != NULL; 
+}
+
+bool SaveOSMPavement(SmiRecord& valueRecord, size_t& offset, 
+               const ListExpr typeInfo, Word& value)
+{
+  OSMPavement* pn = (OSMPavement*)value.addr;
+  return pn->Save(valueRecord, offset, typeInfo);
+}
+
+void OSMPavement::RemoveOSMPavement()
+{
+
+    if(osm_pave_l != NULL){
+      osm_pave_l->Delete();
+      osm_pave_l = NULL;
+    }
+    if(osm_pave_r != NULL){
+      osm_pave_r->Delete();
+      osm_pave_r = NULL;
+    }
+}
+
+
+OSMPavement::OSMPavement():def(false), osm_p_id(0), osmg_init(false), 
+osmg_id(0), osm_pave_l(NULL), osm_pave_r(NULL)
+{
+
+
+}
+
+OSMPavement::OSMPavement(bool d, unsigned int i):def(d), osm_p_id(i), 
+osmg_init(false), osmg_id(0), osm_pave_l(NULL), osm_pave_r(NULL)
+{
+
+}
+
+OSMPavement::OSMPavement(SmiRecord& valueRecord, size_t& offset, 
+                         const ListExpr typeInfo):
+def(false), osm_p_id(0), osmg_init(false), osmg_id(0), osm_pave_l(NULL), 
+osm_pave_r(NULL)
+{
+
+
+  valueRecord.Read(&def, sizeof(bool), offset);
+  offset += sizeof(bool);
+
+  valueRecord.Read(&osm_p_id, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
+
+  valueRecord.Read(&osmg_init, sizeof(bool), offset);
+  offset += sizeof(bool);
+
+  valueRecord.Read(&osmg_id, sizeof(unsigned int), offset);
+  offset += sizeof(unsigned int);
+
+  ListExpr xType1;
+  ListExpr xNumericType1;
+
+  nl->ReadFromString(OSMPaveLine, xType1);
+  xNumericType1 = SecondoSystem::GetCatalog()->NumericType(xType1);
+  osm_pave_l = Relation::Open(valueRecord, offset, xNumericType1);
+  if(!osm_pave_l) {
+   return;
+  }
+
+
+  ListExpr xType2;
+  ListExpr xNumericType2;
+
+  nl->ReadFromString(OSMPaveRegion, xType2);
+  xNumericType2 = SecondoSystem::GetCatalog()->NumericType(xType2);
+  osm_pave_r = Relation::Open(valueRecord, offset, xNumericType2);
+  if(!osm_pave_r) {
+   return;
+  }
+  
+
+}
+
+OSMPavement::~OSMPavement()
+{
+  if(osm_pave_l != NULL) osm_pave_l->Close(); 
+  if(osm_pave_r != NULL) osm_pave_r->Close(); 
+
+}
+
+/*
+get the line relation
+
+*/
+Relation* OSMPavement::GetPaveRel_L()
+{
+  if(IsDefined()) return osm_pave_l;
+  else return NULL;
+
+}
+
+/*
+get the region relation
+
+*/
+
+Relation* OSMPavement::GetPaveRel_R()
+{
+  if(IsDefined()) return osm_pave_r;
+  else return NULL;
+
+}
+
+void OSMPavement::SetOSMGraphId(int id)
+{
+  if(id > 0){
+    osmg_id = id;
+    osmg_init = true;
+  }else{
+    cout<<"id should be larger than zero "<<endl;
+    osmg_init = false;
+  }
+
+}
+
+/*
+save the data of osm pavement 
+
+*/
+bool OSMPavement::Save(SmiRecord& valueRecord, size_t& offset, 
+                      const ListExpr typeInfo)
+{
+
+  valueRecord.Write(&def, sizeof(bool), offset); 
+  offset += sizeof(bool); 
+
+  valueRecord.Write(&osm_p_id, sizeof(unsigned int), offset); 
+  offset += sizeof(unsigned int); 
+
+  valueRecord.Write(&osmg_init, sizeof(bool), offset); 
+  offset += sizeof(bool); 
+
+  valueRecord.Write(&osmg_id, sizeof(unsigned int), offset); 
+  offset += sizeof(unsigned int);
+
+  ListExpr xType1;
+  ListExpr xNumericType1;
+
+  ////////////////////line relation/////////////////////////////
+
+  nl->ReadFromString(OSMPaveLine, xType1);
+  xNumericType1 = SecondoSystem::GetCatalog()->NumericType(xType1);
+  if(!osm_pave_l->Save(valueRecord, offset, xNumericType1))
+      return false;
+
+  ListExpr xType2;
+  ListExpr xNumericType2;
+
+  ////////////////////////region relation ////////////////////
+
+  nl->ReadFromString(OSMPaveRegion, xType2);
+  xNumericType2 = SecondoSystem::GetCatalog()->NumericType(xType2);
+  if(!osm_pave_r->Save(valueRecord, offset, xNumericType2))
+      return false;
+
+  return true; 
+}
+
+OSMPavement* OSMPavement::Open(SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo)
+{
+  return new OSMPavement(valueRecord, offset, typeInfo); 
+
+}
+
+void* OSMPavement::Cast(void* addr)
+{
+  return NULL;
+}
+
+/*
+get the osm graph
+
+*/
+// OSMPaveGraph* OSMPavement::GetOSMGraph()
+// {
+//   cout<<"not implemented"<<endl;
+//   return NULL;
+// }
+
+
+/*
+load the line and region relations
+
+*/
+void OSMPavement::Load(unsigned int i, Relation* r1, Relation* r2)
+{
+  cout<<"id "<<i<<" "<<r1->GetNoTuples()<<" "<<r2->GetNoTuples()<<endl;
+
+  if(i < 1){
+    cout<<"invalid id "<<i<<endl; 
+    def = false;
+    return;
+  }
+  osm_p_id = i; 
+
+  def = true; 
+
+  ListExpr ptrList1 = listutils::getPtrList(r1);
+  string strQuery1 = "(consume(feed(" + OSMPaveLine +
+                "(ptr " + nl->ToString(ptrList1) + "))))";
+
+  Word xResult1;
+  int QueryExecuted1 = QueryProcessor::ExecuteQuery(strQuery1, xResult1);
+  assert(QueryExecuted1);
+  osm_pave_l = (Relation*)xResult1.addr;
+
+  
+  ListExpr ptrList2 = listutils::getPtrList(r2);
+  string strQuery2 = "(consume(feed(" + OSMPaveRegion +
+                "(ptr " + nl->ToString(ptrList2) + "))))";
+
+  Word xResult2;
+  int QueryExecuted2 = QueryProcessor::ExecuteQuery(strQuery2, xResult2);
+  assert(QueryExecuted2);
+  osm_pave_r = (Relation*)xResult2.addr;
+
+
+}
+
+//////////////////////////////////////////////////////////////
+/////////////// OSM Pavement Graph ///////////////////////////
+//////////////////////////////////////////////////////////////
+string OSMPaveGraph::OSMGraphPaveNode = "(rel (tuple ((Jun_id int) \
+(Jun_gp gpoint) (Jun_p point) (Rid int) (Type int))))";
+
+string OSMPaveGraph::OSMGraphPaveEdge = "(rel (tuple ((Jun_id1 int) \
+(Jun_id2 int) (Path1 gline) (Path2 sline) (Type int))))";
+
+string OSMPaveGraph::NodeBTreeTypeInfo = "(btree (tuple ((Jun_id int) \
+(Jun_gp gpoint) (Jun_p point) (Rid int) (Type int))) int)";
+
+
+
+bool OSMPaveGraph::CheckOSMPaveGraph(ListExpr type, ListExpr& errorInfo)
+{
+//  cout<<"CheckOSMPaveGraph()"<<endl;
+  return nl->IsEqual(type, "osmpavegraph");
+}
+
+void OSMPaveGraph::CloseOSMPaveGraph(const ListExpr typeInfo, Word& w)
+{
+//  cout<<"CloseVisualGraph()"<<endl;
+  delete static_cast<OSMPaveGraph*> (w.addr);
+  w.addr = NULL;
+}
+
+void OSMPaveGraph::DeleteOSMPaveGraph(const ListExpr typeInfo, Word& w)
+{
+//  cout<<"DeleteOSMPaveGraph()"<<endl;
+  OSMPaveGraph* osm_g = (OSMPaveGraph*)w.addr;
+  osm_g->Destroy();
+  osm_g->RemoveIndex();
+  delete osm_g;
+  w.addr = NULL;
+}
+
+Word OSMPaveGraph::CreateOSMPaveGraph(const ListExpr typeInfo)
+{
+//  cout<<"CreateOSMPaveGraph()"<<endl;
+  return SetWord(new OSMPaveGraph());
+}
+
+bool OSMPaveGraph::SaveOSMPaveGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value)
+{
+//  cout<<"SaveOSMPaveGraph()"<<endl;
+  OSMPaveGraph* osm_g = (OSMPaveGraph*)value.addr;
+  bool result = osm_g->Save(valueRecord, offset, typeInfo);
+
+  return result;
+}
+
+
+bool OSMPaveGraph::Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+              const ListExpr in_xTypeInfo)
+{
+
+//  cout<<"Save()"<<endl;
+  /********************Save graph id ****************************/
+  in_xValueRecord.Write(&g_id,sizeof(int),inout_iOffset);
+  inout_iOffset += sizeof(int);
+
+
+  ListExpr xType;
+  ListExpr xNumericType;
+  /************************save node****************************/
+  nl->ReadFromString(OSMGraphPaveNode, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!node_rel->Save(in_xValueRecord,inout_iOffset,xNumericType))
+      return false;
+
+  /************************save edge****************************/
+  nl->ReadFromString(OSMGraphPaveEdge, xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!edge_rel->Save(in_xValueRecord,inout_iOffset,xNumericType))
+      return false;
+
+
+   SecondoCatalog *ctlg = SecondoSystem::GetCatalog();
+   SmiRecordFile *rf = ctlg->GetFlobFile();
+   adj_list.saveToFile(rf, adj_list);
+   SmiSize offset = 0;
+   size_t bufsize = adj_list.headerSize()+ 2*sizeof(int);
+   char* buf = (char*) malloc(bufsize);
+   adj_list.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   free(buf);
+
+   entry_adj_list.saveToFile(rf, entry_adj_list);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   entry_adj_list.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf,bufsize, inout_iOffset);
+   free(buf);
+   inout_iOffset += bufsize;
+
+   
+   /////////////////////////////save btree on node ////////////////////
+   nl->ReadFromString(NodeBTreeTypeInfo, xType);
+   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType); 
+   if(!btree_node->Save(in_xValueRecord, inout_iOffset, xNumericType))
+     return false; 
+
+  return true;
+
+}
+
+Word OSMPaveGraph::InOSMPaveGraph(ListExpr in_xTypeInfo,
+                            ListExpr in_xValue,
+                            int in_iErrorPos, ListExpr& inout_xErrorInfo,
+                            bool& inout_bCorrect)
+{
+//  cout<<"InOSMPaveGraph()"<<endl;
+  OSMPaveGraph* osm_g = new OSMPaveGraph(in_xValue, in_iErrorPos, 
+                                        inout_xErrorInfo, inout_bCorrect);
+  if(inout_bCorrect) return SetWord(osm_g);
+  else{
+    delete osm_g;
+    return SetWord(Address(0));
+  }
+}
+
+ListExpr OSMPaveGraph::OutOSMPaveGraph(ListExpr typeInfo, Word value)
+{
+//  cout<<"OutOSMPaveGraph()"<<endl;
+  OSMPaveGraph* osm_g = (OSMPaveGraph*)value.addr;
+  return osm_g->Out(typeInfo);
+}
+
+ListExpr OSMPaveGraph::Out(ListExpr typeInfo)
+{
+//  cout<<"Out()"<<endl;
+  ListExpr xNode = nl->TheEmptyList();
+  ListExpr xLast = nl->TheEmptyList();
+  ListExpr xNext = nl->TheEmptyList();
+
+  bool bFirst = true;
+  for(int i = 1;i <= edge_rel->GetNoTuples();i++){
+      Tuple* edge_tuple = edge_rel->GetTuple(i, false);
+      CcInt* oid1 = (CcInt*)edge_tuple->GetAttribute(OSM_JUNID1);
+      CcInt* oid2 = (CcInt*)edge_tuple->GetAttribute(OSM_JUNID2);
+      SimpleLine* connection = 
+                  (SimpleLine*)edge_tuple->GetAttribute(OSM_Path2);
+
+      ListExpr xline = OutLine(nl->TheEmptyList(),SetWord(connection));
+      xNext = nl->FourElemList(nl->IntAtom(g_id),
+                               nl->IntAtom(oid1->GetIntval()),
+                               nl->IntAtom(oid2->GetIntval()),
+                               xline);
+      if(bFirst){
+        xNode = nl->OneElemList(xNext);
+        xLast = xNode;
+        bFirst = false;
+      }else
+          xLast = nl->Append(xLast,xNext);
+      edge_tuple->DeleteIfAllowed();
+  }
+  return nl->TwoElemList(nl->IntAtom(g_id),xNode);
+}
+
+bool OSMPaveGraph::OpenOSMPaveGraph(SmiRecord& valueRecord, size_t& offset,
+                           const ListExpr typeInfo, Word& value)
+{
+//  cout<<"OSMPaveGraph()"<<endl;
+  value.addr = OSMPaveGraph::Open(valueRecord, offset, typeInfo);
+  bool result = (value.addr != NULL);
+
+  return result;
+}
+
+OSMPaveGraph* OSMPaveGraph::Open(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo)
+{
+
+  return new OSMPaveGraph(valueRecord,offset,typeInfo);
+}
+
+OSMPaveGraph::~OSMPaveGraph()
+{
+//  cout<<"~OSMPaveGraph()"<<endl;
+  if(btree_node != NULL) delete btree_node;
+}
+
+OSMPaveGraph::OSMPaveGraph():btree_node(NULL)
+{
+//  cout<<"OSMPaveGraph::OSMPaveGraph()"<<endl;
+}
+
+OSMPaveGraph::OSMPaveGraph(ListExpr in_xValue,int in_iErrorPos,
+                     ListExpr& inout_xErrorInfo,
+                     bool& inout_bCorrect):btree_node(NULL)
+{
+//  cout<<"OSMPaveGraph::OSMPaveGraph(ListExpr)"<<endl;
+}
+
+OSMPaveGraph::OSMPaveGraph(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+const ListExpr in_xTypeInfo)
+{
+//   cout<<"OSMPaveGraph::OSMPaveGraph(SmiRecord)"<<endl;
+   /***********************Read graph id********************************/
+  in_xValueRecord.Read(&g_id,sizeof(int),inout_iOffset);
+  inout_iOffset += sizeof(int);
+
+
+  ListExpr xType;
+  ListExpr xNumericType;
+  /***********************Open relation for node*********************/
+  nl->ReadFromString(OSMGraphPaveNode,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  node_rel = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+  if(!node_rel) {
+    return;
+  }
+  /***********************Open relation for edge*********************/
+  nl->ReadFromString(OSMGraphPaveEdge,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  edge_rel = Relation::Open(in_xValueRecord, inout_iOffset, xNumericType);
+  if(!edge_rel) {
+    node_rel->Delete();
+    return;
+  }
+
+  ////////////////////adjaency list////////////////////////////////
+   size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   SmiSize offset = 0;
+   char* buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   assert(buf != NULL);
+   adj_list.restoreHeader(buf,offset);
+   free(buf);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   assert(buf != NULL);
+   entry_adj_list.restoreHeader(buf,offset);
+   inout_iOffset += bufsize;
+   free(buf);
+
+   
+   ///////////////////////////////////////////////////////////////////
+   /////////////////btree on node/////////////////////////////////////
+   ///////////////////////////////////////////////////////////////////
+
+   nl->ReadFromString(NodeBTreeTypeInfo,xType);
+   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+   btree_node = BTree::Open(in_xValueRecord, inout_iOffset, xNumericType);
+   if(!btree_node) {
+     node_rel->Delete();
+     edge_rel->Delete();
+     return;
+   }
+}
+/*
+create osm pavement graph from input node and edge relations
+
+*/
+void OSMPaveGraph::Load(int id, Relation* r1, Relation* r2)
+{
+//  cout<<"VisualGraph::Load()"<<endl;
+  g_id = id;
+  //////////////////node relation////////////////////
+  ListExpr ptrList1 = listutils::getPtrList(r1);
+
+  string strQuery = "(consume(sort(feed(" + OSMGraphPaveNode +
+                "(ptr " + nl->ToString(ptrList1) + ")))))";
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  node_rel = (Relation*)xResult.addr;
+
+  /////////////////edge relation/////////////////////
+  ListExpr ptrList2 = listutils::getPtrList(r2);
+  
+  strQuery = "(consume(sort(feed(" + OSMGraphPaveEdge +
+                "(ptr " + nl->ToString(ptrList2) + ")))))";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  edge_rel = (Relation*)xResult.addr;
+
+  ////////////adjacency list ////////////////////////////////
+  ListExpr ptrList3 = listutils::getPtrList(edge_rel);
+
+  strQuery = "(createbtree (" + OSMGraphPaveEdge +
+             "(ptr " + nl->ToString(ptrList3) + "))" + "Jun_id1)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  BTree* btree_node_oid1 = (BTree*)xResult.addr;
+
+
+//  cout<<"b-tree on edge is finished....."<<endl;
+  //////////////////////////////////////////////////////////////
+  /////////////record the edge tuple id, very important //////////////////
+  ///////////////////////////////////////////////////////////
+  for(int i = 1;i <= node_rel->GetNoTuples();i++){
+    CcInt* nodeid = new CcInt(true, i);
+    BTreeIterator* btree_iter = btree_node_oid1->ExactMatch(nodeid);
+    int start = adj_list.Size();
+//    cout<<"start "<<start<<endl;
+    while(btree_iter->Next()){
+//      Tuple* edge_tuple = edge_rel->GetTuple(btree_iter->GetId(), false);
+//      int oid = ((CcInt*)edge_tuple->GetAttribute(OSM_JUNID2))->GetIntval();
+//      adj_list.Append(oid);
+//      edge_tuple->DeleteIfAllowed();
+        adj_list.Append(btree_iter->GetId());//edge tuple id
+    }
+    delete btree_iter;
+
+    int end = adj_list.Size();
+    entry_adj_list.Append(ListEntry(start, end));
+//    cout<<"end "<<end<<endl;
+
+    delete nodeid;
+  }
+
+  delete btree_node_oid1;
+  
+  
+  //////////////////////////////////////////////////////////////////////
+  /////////////////////////build a btree on node rel////////////////////
+  //////////////////////////////////////////////////////////////////////
+
+  ListExpr ptrList4 = listutils::getPtrList(node_rel);
+
+  strQuery = "(createbtree (" + OSMGraphPaveNode +
+             "(ptr " + nl->ToString(ptrList4) + "))" + "Rid)";
+
+//  cout<<strQuery<<endl; 
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  btree_node = (BTree*)xResult.addr;
+
+  ////////////////test btree///////////////////////////
+/*  for(int i = 1;i <= node_rel->GetNoTuples();i++){
+    Tuple* t = node_rel->GetTuple(i, false);
+    int rid = ((CcInt*)t->GetAttribute(OSM_RID))->GetIntval();
+
+    CcInt* search_id = new CcInt(true, rid);
+    BTreeIterator* btree_iter = btree_node->ExactMatch(search_id);
+
+    int counter1 = 0;
+    int counter2 = 0;
+    while(btree_iter->Next()){
+      Tuple* tuple = node_rel->GetTuple(btree_iter->GetId(), false);
+      int type = ((CcInt*)tuple->GetAttribute(OSM_TYPE))->GetIntval();
+      tuple->DeleteIfAllowed();
+      if(type == 1)counter1++;
+      else counter2++;
+    }
+    delete btree_iter;
+    delete search_id;
+    cout<<"1 "<<counter1<<" 2 "<<counter2<<endl;
+
+    t->DeleteIfAllowed();
+  }*/
+  /////////////////////////////////////////////////////
+
+}
+
+void OSMPaveGraph::RemoveIndex()
+{
+    if(btree_node != NULL){
+      btree_node->DeleteFile();
+      delete btree_node;
+      btree_node = NULL;
+    }
+
+}
 
 /////////////////////////////////////////////////////////////////////
 ////////a robust method to get the position of a point on a sline ///

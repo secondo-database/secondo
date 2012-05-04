@@ -1205,6 +1205,7 @@ struct DataClean{
                   int max_rid);
 };
 
+class OSMPaveGraph;
 /*
 OSM map 
 
@@ -1221,18 +1222,96 @@ struct OSM_Data{
   vector<int> jun_id_list2;
   vector<GLine> gl_path_list;
   vector<SimpleLine> sline_path_list;
+  vector<int> type_list;
 
-  static string OSMPavementNode;
+  vector<GenLoc> genloc_list;
+  vector<Point> loc_list;
+  vector<Point> pos_list;
+  
   static string OSMNodeTmp;
-  static string OSMPavementRegion;
-  
-  enum OSMPaveNodeInfo{OSM_JUN_ID = 0, OSM_JUN_GP, OSM_LOC, OSM_RID, OSM_TYPE};
+  static string OSMPOILine;
+  static string OSMPOIRegion;
+ 
   enum OSMNodeTmpInfo{OSM_TMP_JUNID = 0, OSM_REGID, OSM_CROSS};
-  enum OSMPavementRegion{OSM_REG_ID = 0, OSM_ELEM, OSM_BORDER};
-  
+  enum OSMPOILineInfo{OSMPOI_L_ID = 0, OSMPOI_GEO, OSMPOI_POS_L};
+  enum OSMPOIRegionInfo{OSMPOI_REG_ID = 0, OSMPOI_ELEM, OSMPOI_POS_R};
+
   void GetPaveEdge3(Relation* r, Relation* rel1, BTree* btree, Relation* rel2);
   void GetPaveEdge4(Relation* rel1, Relation* rel2);
   void ShortestPath_InRegion_Pairs(Region* reg, vector<MyPoint> mp_list);
+  void GetAdjNodeOSMG(OSMPaveGraph*, int);
+  /////////////////////////////////////////////////////////////////////
+  ////////////// map osm data to lines and regions/////////////////////
+  /////////////////////////////////////////////////////////////////////
+  void OSMLocMap(Relation* rel1, Relation* rel2);
+
 };
+
+/*
+for the infrastructure Region Based Outdoor from OSM data
+
+*/
+
+class OSMPavement{
+public:
+  OSMPavement();
+  OSMPavement(bool d, unsigned int i);
+  OSMPavement(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+  
+  static string OSMPaveLine;
+  static string OSMPaveRegion;
+  enum OSMPavementLInfo{OSMP_L_ID = 0, OSMP_L_GEO};
+  enum OSMPavementRInfo{OSM_REG_ID = 0, OSM_ELEM, OSM_BORDER};
+
+  ~OSMPavement();
+
+  bool IsDefined() const { return def;}
+  unsigned int GetId() const {return osm_p_id;}
+  void Load(unsigned int i, Relation* r1, Relation* r2);
+  bool IsOSMGInit(){return osmg_init;}
+
+  unsigned int GetOSMGId(){return osmg_id;}
+
+  Relation* GetPaveRel_L();
+  Relation* GetPaveRel_R();
+  
+  void SetOSMGraphId(int id);
+
+//  OSMPaveGraph* GetOSMGraph();
+//  void CloseOSMGraph(OSMPaveGraph* og);
+
+  bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+  static OSMPavement* Open(SmiRecord& valueRecord, size_t& offset, 
+                     const ListExpr typeInfo);
+
+  static void* Cast(void* addr);
+  void RemoveOSMPavement();
+  
+  private:
+    bool def; 
+    unsigned int osm_p_id;
+    bool osmg_init; 
+    unsigned int osmg_id; 
+
+    Relation* osm_pave_l;
+    Relation* osm_pave_r;
+
+};
+ListExpr OSMPavementProperty();
+ListExpr OutOSMPavement( ListExpr typeInfo, Word value ); 
+Word InOSMPavement( const ListExpr typeInfo, const ListExpr instance,
+        const int errorPos, ListExpr& errorInfo, bool& correct );
+bool OpenOSMPavement(SmiRecord& valueRecord, size_t& offset, 
+                const ListExpr typeInfo, Word& value); 
+bool SaveOSMPavement(SmiRecord& valueRecord, size_t& offset, 
+                const ListExpr typeInfo, Word& value);
+Word CreateOSMPavement(const ListExpr typeInfo);
+void DeleteOSMPavement(const ListExpr typeInfo, Word& w);
+void CloseOSMPavement( const ListExpr typeInfo, Word& w );
+Word CloneOSMPavement( const ListExpr typeInfo, const Word& w ); 
+int SizeOfOSMPavement(); 
+bool CheckOSMPavement( ListExpr type, ListExpr& errorInfo );
+
+
 
 #endif

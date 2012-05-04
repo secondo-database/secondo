@@ -2621,6 +2621,21 @@ TypeConstructor pavenetwork(
      CheckPavement
 );
 
+TypeConstructor osmpavenetwork(
+    "osmpavenetwork",
+     OSMPavementProperty,
+     OutOSMPavement,      InOSMPavement,     //Out and In functions
+     0,              0,            //SaveTo and RestoreFrom List functions
+     CreateOSMPavement,  DeleteOSMPavement, //object creation and deletion
+     OpenOSMPavement,    SaveOSMPavement,   // object open and save
+
+     CloseOSMPavement,    CloneOSMPavement,  //object close and clone
+     OSMPavement::Cast,
+     SizeOfOSMPavement,                 //sizeof function
+     CheckOSMPavement
+);
+
+
 ///////////////////////////////////////////////////////////////////////////
 ////////////////////  general data type  /////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -4313,6 +4328,44 @@ int AddMetroNetworkGraphValueMap(Word* args, Word& result, int message,
 }
 
 /*
+put osm pavement graph
+
+*/
+int AddOSMPaveGraphValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  static int flag = 0;
+  switch(message){
+    case OPEN:
+      return 0;
+    case REQUEST:
+          if(flag == 0){
+            OSMPavement* osm_pave = (OSMPavement*)args[0].addr;
+            OSMPaveGraph* osm_g = (OSMPaveGraph*)args[1].addr; 
+            osm_pave->SetOSMGraphId(osm_g->g_id);
+            Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
+            t->PutAttribute(0, new CcInt(true, osm_pave->GetId()));
+            t->PutAttribute(1, new CcInt(true, osm_g->g_id));
+            result.setAddr(t);
+            flag = 1;
+            return YIELD;
+          }else{
+            flag = 0;
+            return CANCEL;
+          } 
+    case CLOSE:
+
+        qp->SetModified(qp->GetSon(s,0));
+        local.setAddr(Address(0));
+        return 0;
+  }
+  
+  return 0;
+  
+}
+
+
+/*
 create an empty space with an identify
 
 */
@@ -5302,6 +5355,228 @@ int GetPaveEdges4ValueMap(Word* args, Word& result, int message,
           result.setAddr(tuple);
           osm_data->count++;
           return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            osm_data = (OSM_Data*)local.addr;
+            delete osm_data;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+  
+}
+
+/*
+check whether the osm pavement  d has been used already 
+
+*/
+bool ChekOSMPavementId(unsigned int pn_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "osmpavenetwork")
+    {
+      // Get name of the pavement 
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the pavement. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      OSMPavement* pn = (OSMPavement*)xValue.addr;
+
+      if(pn->GetId() == pn_id)
+      {
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("osmpavenetwork"),
+                                         xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("osmpavenetwork"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+/*
+build the osm pavement environment
+
+*/
+int TheOSMPavementValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+
+  OSMPavement* osm_pn = (OSMPavement*)qp->ResultStorage(in_pSupplier).addr;
+  int id = ((CcInt*)args[0].addr)->GetIntval(); 
+  if(ChekOSMPavementId(id)){
+    Relation* pave_l = (Relation*)args[1].addr;
+    Relation* pave_r = (Relation*)args[2].addr;
+    osm_pn->Load(id, pave_l, pave_r);
+    result = SetWord(osm_pn); 
+  }else{
+    cout<<"invalid pavement id "<<id<<endl; 
+    while(ChekOSMPavementId(id) == false || id <= 0){
+      id++;
+    }
+    cout<<"new pavement id "<<id<<endl; 
+    Relation* pave_l = (Relation*)args[1].addr;
+    Relation* pave_r = (Relation*)args[1].addr;
+    osm_pn->Load(id, pave_l, pave_r);
+    result = SetWord(osm_pn); 
+  }
+  return 0;
+}
+
+/*
+check whether the osm pave graph id has been used already 
+
+*/
+bool CheckOSMPaveGraphId(unsigned int osmg_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "osmpavegraph")
+    {
+      // Get name of the network
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the network. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      OSMPaveGraph* osm_g = (OSMPaveGraph*)xValue.addr;
+
+      if(osm_g->g_id == osmg_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("osmpavegraph"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("osmpavegraph"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+/*
+value map for operator createosmgraph
+
+*/
+
+int OpTMOSMPaveGraphValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  OSMPaveGraph* osm_g = (OSMPaveGraph*)qp->ResultStorage(in_pSupplier).addr;
+  int g_id = ((CcInt*)args[0].addr)->GetIntval();
+  
+  if(CheckOSMPaveGraphId(g_id)){
+    Relation* node_rel = (Relation*)args[1].addr;
+    Relation* edge_rel = (Relation*)args[2].addr;
+
+    osm_g->Load(g_id, node_rel, edge_rel);
+    result = SetWord(osm_g);
+  }else{
+    cout<<"invalid road graph id "<<g_id<<endl; 
+    while(CheckOSMPaveGraphId(g_id) == false || g_id <= 0){
+      g_id++;
+    }
+    cout<<"new road graph id "<<g_id<<endl; 
+    Relation* node_rel = (Relation*)args[1].addr;
+    Relation* edge_rel = (Relation*)args[2].addr;
+
+    osm_g->Load(g_id, node_rel, edge_rel);
+    result = SetWord(osm_g);
+  }
+  return 0;
+}
+
+
+/*
+get osm pavement locations
+
+*/
+int OSMLocMapValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+ OSM_Data* osm_data;
+
+  switch(message){
+      case OPEN:{
+
+        Relation* rel1 = (Relation*)args[0].addr;
+        Relation* rel2 = (Relation*)args[1].addr;
+
+        osm_data = new OSM_Data();
+        osm_data->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        osm_data->OSMLocMap(rel1, rel2);
+        local.setAddr(osm_data);
+
+        return 0;
+      }
+      case REQUEST:{
+        if(local.addr == NULL) return CANCEL;
+        osm_data = (OSM_Data*)local.addr;
+        if(osm_data->count == osm_data->genloc_list.size()) return CANCEL;
+        Tuple* tuple = new Tuple(osm_data->resulttype);
+
+        tuple->PutAttribute(0,
+                            new GenLoc(osm_data->genloc_list[osm_data->count]));
+        tuple->PutAttribute(1,
+                            new Point(osm_data->loc_list[osm_data->count]));
+        tuple->PutAttribute(2,
+                         new CcInt(true, osm_data->type_list[osm_data->count]));
+        tuple->PutAttribute(3,
+                         new Point(osm_data->pos_list[osm_data->count]));
+
+        result.setAddr(tuple);
+        osm_data->count++;
+        return YIELD;
       }
       case CLOSE:{
           if(local.addr){
@@ -7069,7 +7344,7 @@ ListExpr GetPaveEdges3TypeMap(ListExpr args)
   if(!IsRelDescription(arg2))
     return listutils::typeError("para2 should be a relation");
 
-  nl->ReadFromString(OSM_Data::OSMPavementNode, xType);
+  nl->ReadFromString(OSMPaveGraph::OSMGraphPaveNode, xType);
   if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
 
   ListExpr arg3 = nl->Third(args);
@@ -7081,7 +7356,7 @@ ListExpr GetPaveEdges3TypeMap(ListExpr args)
   if(!IsRelDescription(arg4))
     return listutils::typeError("para4 should be a relation");
 
-  nl->ReadFromString(OSM_Data::OSMPavementNode, xType);
+  nl->ReadFromString(OSMPaveGraph::OSMGraphPaveNode, xType);
   if(!CompareSchemas(arg4, xType))return nl->SymbolAtom ( "typeerror" );
 
   
@@ -7131,7 +7406,7 @@ ListExpr GetPaveEdges4TypeMap(ListExpr args)
   if(!IsRelDescription(arg2))
     return listutils::typeError("para2 should be a relation");
 
-  nl->ReadFromString(OSM_Data::OSMPavementRegion, xType);
+  nl->ReadFromString(OSMPavement::OSMPaveRegion, xType);
   if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
 
 
@@ -7155,6 +7430,125 @@ ListExpr GetPaveEdges4TypeMap(ListExpr args)
 
     return result;
 
+}
+
+/*
+TypeMap function for operator create osm pavement environment
+
+*/
+ListExpr TheOSMPaveTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "three input parameters expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if((nl->SymbolValue(arg1) == "int") == false){
+    return nl->SymbolAtom("typeerror: param1 should be int");
+  }
+  
+  ListExpr xType;
+
+  ListExpr arg2 = nl->Second(args);
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  nl->ReadFromString(OSMPavement::OSMPaveLine, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg3 = nl->Third(args);
+  if(!IsRelDescription(arg3))
+    return listutils::typeError("para3 should be a relation");
+
+  nl->ReadFromString(OSMPavement::OSMPaveRegion, xType);
+  if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+  return nl->SymbolAtom("osmpavenetwork");
+
+}
+
+/*
+type map for operator createosmgraph 
+
+*/
+ListExpr OpTMOSMPaveGraphTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr xIdDesc = nl->First(args);
+  ListExpr xNodeDesc = nl->Second(args);
+  ListExpr xEdgeDesc = nl->Third(args);
+
+  if(!nl->IsEqual(xIdDesc, "int")) return nl->SymbolAtom ( "typeerror" );
+  if(!IsRelDescription(xNodeDesc))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(OSMPaveGraph::OSMGraphPaveNode, xType1);
+  if(!CompareSchemas(xNodeDesc, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(xEdgeDesc))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(OSMPaveGraph::OSMGraphPaveEdge, xType2);
+  if(!CompareSchemas(xEdgeDesc, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  return nl->SymbolAtom ( "osmpavegraph" );
+}
+
+/*
+type map for operator osmlocmap 
+
+*/
+ListExpr OpTMOSMLocMapTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First(args);
+  ListExpr param2 = nl->Second(args);
+
+
+  if(!IsRelDescription(param1))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(OSM_Data::OSMPOILine, xType1);
+  if(!CompareSchemas(param1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(param2))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(OSM_Data::OSMPOIRegion, xType2);
+  if(!CompareSchemas(param2, xType2))return nl->SymbolAtom ( "typeerror" );
+
+      ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Loc1"),
+                                      nl->SymbolAtom("genloc")),
+                        nl->TwoElemList(nl->SymbolAtom("Loc2"),
+                                      nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("Type"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("OldLoc"),
+                                      nl->SymbolAtom("point"))
+
+                  )
+                )
+          );
+
+    return result;
 }
 
 /*
@@ -7714,7 +8108,8 @@ ValueMapping TMAddInfraGraphValueMapVM[]={
   AddPaveDualGraphValueMap,
   AddPaveVisualGraphValueMap,
   AddIndoorGraphValueMap,
-  AddMetroNetworkGraphValueMap
+  AddMetroNetworkGraphValueMap,
+  AddOSMPaveGraphValueMap
 };
 
 int TMAddInfraGraphOpSelect(ListExpr args)
@@ -7736,6 +8131,10 @@ int TMAddInfraGraphOpSelect(ListExpr args)
   if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "metronetwork") &&
     nl->IsAtom(arg2) && nl->IsEqual(arg2, "metrograph"))
     return 4;
+  if(nl->IsAtom(arg1) && nl->IsEqual(arg1, "osmpavenetwork") &&
+    nl->IsAtom(arg2) && nl->IsEqual(arg2, "osmpavegraph"))
+    return 5;
+
   return -1;
 }
 
@@ -7834,6 +8233,23 @@ ListExpr AddInfraGraphTypeMap(ListExpr args)
     return reslist;
   }
 
+  if(nl->IsEqual(arg1, "osmpavenetwork") && nl->IsEqual(arg2, "osmpavegraph")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("OSMPaveNetworkId"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("OSMPaveGraphId"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+  
   return nl->SymbolAtom("typeerror");
 }
 
@@ -8198,7 +8614,7 @@ ListExpr GetInfraTypeMap(ListExpr args)
 
 Operator addinfragraph("addinfragraph",
     SpatialSpecAddInfraGraph,
-    5,
+    6,
     TMAddInfraGraphValueMapVM,
     TMAddInfraGraphOpSelect,
     AddInfraGraphTypeMap
@@ -8385,6 +8801,32 @@ Operator get_p_edges4("get_p_edges4",
     Operator::SimpleSelect,
     GetPaveEdges4TypeMap
 );
+
+/*
+OSM data for pavements (lines and regions)
+
+*/
+Operator theosmpave("theosmpave",
+    SpatialSpecTheOSMPaveTMList,
+    TheOSMPavementValueMap,
+    Operator::SimpleSelect,
+    TheOSMPaveTypeMap
+);
+
+Operator createosmgraph("createosmgraph",
+    OpTMOSMPaveGraphSpec,
+    OpTMOSMPaveGraphValueMap,
+    Operator::SimpleSelect,
+    OpTMOSMPaveGraphTypeMap
+);
+
+Operator osmlocmap("osmlocmap",
+    OpTMOSMLocMapSpec,
+    OSMLocMapValueMap,
+    Operator::SimpleSelect,
+    OpTMOSMLocMapTypeMap
+);
+
 
 Operator creatergraph(
   "creatergraph", 
@@ -12548,6 +12990,28 @@ ListExpr OpTMGetAdjNodeTypeMap ( ListExpr args )
     return res; 
   }
 
+
+  if(nl->SymbolValue(param1) == "osmpavegraph"){
+
+    if(!(nl->IsEqual(param2, "int"))) return nl->SymbolAtom ( "typeerror" );
+
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->ThreeElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Jun_id"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("sline")),
+                      nl->TwoElemList(nl->SymbolAtom("Type"),
+                                    nl->SymbolAtom("int"))
+                  )
+                )
+          );
+      return result;
+
+  }
   return nl->SymbolAtom ( "typeerror" );
 
 }
@@ -19532,6 +19996,55 @@ int OpTMGetAdjNodeRGValueMap ( Word* args, Word& result, int message,
 }
 
 
+int OpTMGetAdjNodeOSMGValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  OSM_Data* osm_data;
+  switch(message){
+      case OPEN:{
+        OSMPaveGraph* osm_g = (OSMPaveGraph*)args[0].addr;
+        int nodeid = ((CcInt*)args[1].addr)->GetIntval();
+
+        osm_data = new OSM_Data();
+        osm_data->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        osm_data->GetAdjNodeOSMG(osm_g, nodeid);
+
+        local.setAddr(osm_data);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          osm_data = (OSM_Data*)local.addr;
+          if(osm_data->count == osm_data->jun_id_list1.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(osm_data->resulttype);
+
+          tuple->PutAttribute(0, 
+                      new CcInt(true, osm_data->jun_id_list1[osm_data->count]));
+          tuple->PutAttribute(1, 
+                  new SimpleLine(osm_data->sline_path_list[osm_data->count]));
+          tuple->PutAttribute(2, 
+                      new CcInt(true, osm_data->type_list[osm_data->count]));
+
+          result.setAddr(tuple);
+          osm_data->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            osm_data = (OSM_Data*)local.addr;
+            delete osm_data;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+
+}
 
 /*
 navigation system in the bus network. 
@@ -21986,6 +22499,15 @@ TypeConstructor visualgraph("visualgraph", VisualGraph::BaseGraphProp,
       VisualGraph::CheckVisualGraph
 );
 
+TypeConstructor osmpavegraph("osmpavegraph", OSMPaveGraph::BaseGraphProp,
+      OSMPaveGraph::OutOSMPaveGraph, OSMPaveGraph::InOSMPaveGraph,
+      0, 0,
+      OSMPaveGraph::CreateOSMPaveGraph, OSMPaveGraph::DeleteOSMPaveGraph,
+      OSMPaveGraph::OpenOSMPaveGraph, OSMPaveGraph::SaveOSMPaveGraph,
+      OSMPaveGraph::CloseOSMPaveGraph, OSMPaveGraph::CloneBaseGraph,
+      OSMPaveGraph::CastBaseGraph, OSMPaveGraph::SizeOfBaseGraph,
+      OSMPaveGraph::CheckOSMPaveGraph
+);
 
 TypeConstructor indoorgraph("indoorgraph", IndoorGraph::BaseGraphProp,
       IndoorGraph::OutIndoorGraph, IndoorGraph::InIndoorGraph,
@@ -22622,7 +23144,8 @@ ValueMapping OpTMGetAdjNodeVM[]=
   OpTMGetAdjNodeBGBSValueMap,
   OpTMGetAdjNodeIGValueMap,
   OpTMGetAdjNodeMGValueMap,
-  OpTMGetAdjNodeRGValueMap
+  OpTMGetAdjNodeRGValueMap,
+  OpTMGetAdjNodeOSMGValueMap
 };
 
 int GetAdjNodeSelect(ListExpr args)
@@ -22643,13 +23166,15 @@ int GetAdjNodeSelect(ListExpr args)
     return 5;
   if(nl->IsEqual(arg1, "roadgraph") && nl->IsEqual(arg2, "int"))
     return 6;
+  if(nl->IsEqual(arg1, "osmpavegraph") && nl->IsEqual(arg2, "int"))
+    return 7;
   return -1;
 }
 
 Operator getadjnode(
   "getadjnode", 
   OpTMGetAdjNodeSpec,
-  7,
+  8,
   OpTMGetAdjNodeVM,
   GetAdjNodeSelect,
   OpTMGetAdjNodeTypeMap
@@ -23017,8 +23542,11 @@ class TransportationModeAlgebra : public Algebra
     dualgraph.AssociateKind("DUALGRAPH");
     AddTypeConstructor(&visualgraph);
     visualgraph.AssociateKind("VISUALGRAPH");
+    AddTypeConstructor(&osmpavegraph);
+    osmpavegraph.AssociateKind("OSMPAVEGRAPH");
     AddTypeConstructor(&indoorgraph);
     indoorgraph.AssociateKind("INDOORGRAPH");
+
     AddTypeConstructor(&busgraph); 
     AddTypeConstructor(&metrograph);
     AddTypeConstructor(&roadgraph);//road graph 
@@ -23051,6 +23579,7 @@ class TransportationModeAlgebra : public Algebra
     //////////////////////  Pavement //////////////////////////
     ///////////////////////////////////////////////////////////
     AddTypeConstructor( &pavenetwork); 
+    AddTypeConstructor( &osmpavenetwork);
     ///////////////////////////////////////////////////////////
     //////////////////////  Building //////////////////////////
     ///////////////////////////////////////////////////////////
@@ -23331,8 +23860,14 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&get_rg_nodes);//get road graph nodes 
    AddOperator(&get_rg_edges1);//get junctions at the same location
    AddOperator(&get_rg_edges2);//get road graph edges, glines
+   ///////////////for OSM /////////////////////////////////////////////
    AddOperator(&get_p_edges3);//build the connection between lr points and line
    AddOperator(&get_p_edges4);//build the connection inside one region
+   AddOperator(&theosmpave);//build the osm pavement 
+   AddOperator(&createosmgraph);//build the graph on osm pavements
+   AddOperator(&osmlocmap);//map osm locations to lines and regions
+   
+   ////////////////////////////////////////////////////////////////////
    AddOperator(&creatergraph);//create road network graph
    AddOperator(&shortestpath_tm);//shortest path on road graph
    ///////////////////////////////////////////////////////////////////////
@@ -23346,7 +23881,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&checksline);
    AddOperator(&modifyline);
 //   AddOperator(&checkroads);
-   /////////////build real data for Mini World ////////////////////////
+   /////////////build real data (OSM) for Mini World ////////////////////////
    AddOperator(&refinedata);//remove some digit after dot
    AddOperator(&filterdisjoint);//filter disjoint road segments 
    AddOperator(&refinebr);// find or discorver the complete bus route

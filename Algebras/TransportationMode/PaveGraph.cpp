@@ -11641,6 +11641,7 @@ void DeletePavement(const ListExpr typeInfo, Word& w)
 {
 // cout<<"DeletePavement()"<<endl;
   Pavement* pn = (Pavement*)w.addr;
+  pn->RemovePavement();
   delete pn;
    w.addr = NULL;
 }
@@ -11658,6 +11659,13 @@ Word ClonePavement( const ListExpr typeInfo, const Word& w )
   return SetWord( new Address(0));
 }
 
+void Pavement::RemovePavement()
+{
+    if(pave_rel != NULL){
+      pave_rel->Delete();
+      pave_rel = NULL;
+    }
+}
 
 void* Pavement::Cast(void* addr)
 {

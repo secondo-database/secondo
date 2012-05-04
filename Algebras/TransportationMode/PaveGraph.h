@@ -1045,6 +1045,7 @@ public:
                      const ListExpr typeInfo);
 
   static void* Cast(void* addr);
+  void RemovePavement();
   
   private:
     bool def; 
@@ -1078,4 +1079,57 @@ if it is smaller than d, return true; otherwise false
 
 */
 bool SmallerD(Line* l1, Line* l2, float d);
+
+
+/*
+OSM Pavmenet Graph
+Rid value: line id for point on the line -- type 1, 
+           region id for point inside a region -- type 2
+
+*/
+
+class OSMPaveGraph:public BaseGraph{
+
+public:
+   static string OSMGraphPaveNode;
+   static string OSMGraphPaveEdge;
+   static string NodeBTreeTypeInfo;
+     
+  enum OSMPaveNodeInfo{OSM_JUN_ID = 0, OSM_JUN_GP, OSM_LOC, OSM_RID, OSM_TYPE};
+  enum OSMPaveEdgeInfo{OSM_JUNID1 = 0, OSM_JUNID2, OSM_Path1, 
+                       OSM_Path2, OSM_Edge_TYPE};
+
+//   //////////////////////////////////////////////////////////////
+    ~OSMPaveGraph();
+     OSMPaveGraph();
+     OSMPaveGraph(ListExpr in_xValue,int in_iErrorPos,
+                  ListExpr& inout_xErrorInfo,
+                  bool& inout_bCorrect);
+     OSMPaveGraph(SmiRecord&, size_t&, const ListExpr);
+//   //////////////////////////////////////////////////////////////
+   void Load(int, Relation*, Relation*);
+   void RemoveIndex();
+   static ListExpr OutOSMPaveGraph(ListExpr typeInfo, Word value);
+   ListExpr Out(ListExpr typeInfo);
+   static bool CheckOSMPaveGraph(ListExpr type, ListExpr& errorInfo);
+   static void CloseOSMPaveGraph(const ListExpr typeInfo, Word& w);
+   static void DeleteOSMPaveGraph(const ListExpr typeInfo, Word& w);
+   static Word CreateOSMPaveGraph(const ListExpr typeInfo);
+   static Word InOSMPaveGraph(ListExpr in_xTypeInfo,
+                             ListExpr in_xValue,
+                             int in_iErrorPos, ListExpr& inout_xErrorInfo,
+                             bool& inout_bCorrect);
+   static bool OpenOSMPaveGraph(SmiRecord& valueRecord, size_t& offset,
+                            const ListExpr typeInfo, Word& value);
+   static OSMPaveGraph* Open(SmiRecord& valueRecord,size_t& offset,
+                           const ListExpr typeInfo);
+   static bool SaveOSMPaveGraph(SmiRecord& valueRecord, size_t& offset,
+                            const ListExpr typeInfo, Word& value);
+   bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
+               const ListExpr in_xTypeInfo);
+  
+   BTree* btree_node;
+};
+
+
 #endif
