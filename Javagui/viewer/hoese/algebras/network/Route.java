@@ -294,7 +294,7 @@ public class Route
     while(xSegment != null)
     {
       dDistanceOnRoute += xSegment.getLength();
-      if(dDistanceOnRoute >= (in_dDistance-0.0000001))
+      if(dDistanceOnRoute >= (in_dDistance-0.00000001))
       {
         break;
       }
@@ -462,7 +462,7 @@ public class Route
     if(m_xFirstSegment.getFirstPoint().x > m_xLastSegment.getLastPoint().x ||
        (
         m_xFirstSegment.getFirstPoint().x == m_xLastSegment.getLastPoint().x &&
-        m_xFirstSegment.getFirstPoint().y >= m_xLastSegment.getLastPoint().y
+        m_xFirstSegment.getFirstPoint().y > m_xLastSegment.getLastPoint().y
        )
       )
     {
