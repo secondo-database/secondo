@@ -36,7 +36,10 @@ DSSLAVESNAME="slaves"
 DSPSFSNAME="PSFS"
 DSMSECNAME="msec"
 DSMSDBNAME="msec-databases"
+DMHADPNAME="hadoop"
+DMEBINNAME="bin"
 RCFILENAME=".parasecrc"
+MDSBINLIST="ds_scriptList"
 PSCONFILE=$SECONDO_BUILD_DIR/bin/ParallelSecondoConfig.ini
 PSDKLOC=$SECONDO_BUILD_DIR/bin/ps_SDK
 
@@ -194,6 +197,13 @@ javaRun=$javaHome/bin/java
 JVersion=$($javaRun -version 2>&1 | grep "java version" | cut -d' ' -f 3 | tr -d \" | cut -d'.' -f2)
 if [[ "$JVersion" =~ "^[0-9]+$" || $JVersion < 6 ]]; then
   echo "${ERRORINFO}The Java runtime version must be greater than 5."
+  echo "Installation for Parallel Secondo Fails. "
+  exit -1
+fi
+
+# e. Check the availability of $MDSBINLIST
+if [ ! -f ${bin}/$MDSBINLIST ]; then
+  echo "${ERRORINFO}The file listing required data server scripts does not exist."
   echo "Installation for Parallel Secondo Fails. "
   exit -1
 fi
@@ -360,6 +370,7 @@ echo "export PARALLEL_SECONDO_MINI_NAME=\"${DSMSECNAME}\""                     >
 echo "export PARALLEL_SECONDO_MINIDB_NAME=\"${DSMSDBNAME}\""                   >> $PSRCFILE
 echo "export HADOOP_HOME=\$PARALLEL_SECONDO_MAINDS/hadoop"                     >> $PSRCFILE
 echo "export PATH=\$PATH:\$HADOOP_HOME/bin"                                    >> $PSRCFILE
+echo "export PATH=\$PATH:\$PARALLEL_SECONDO_MAINDS/${DMEBINNAME}"              >> $PSRCFILE
 
 
 # 4. Prepare the masters and slaves files required by every node
@@ -477,26 +488,28 @@ MDSFLODER=$PSDKLOC/mdbFolder     #Slave data server folder
 # Prepare everything that a master and slave data server need on current machine
 # Then copy these folders to remote nodes, instead of creating files and folders one by one
 echo "Preparing all needed files and folder for master and slave data servers ..."
-mkdir -p $SDSFLODER/$DSMSECNAME
-mkdir -p $SDSFLODER/$DSMSDBNAME
-mkdir -p $SDSFLODER/$DSPSFSNAME
+mkdir -p $SDSFLODER/$DSMSECNAME   #msec
+mkdir -p $SDSFLODER/$DSMSDBNAME   #msec-databases
+mkdir -p $SDSFLODER/$DSPSFSNAME   #PSFS
 cp -r $SDSFLODER $MDSFLODER
-mkdir -p $MDSFLODER/$DSCONFNAME
-mkdir -p $MDSFLODER/hadoop
+mkdir -p $MDSFLODER/$DSCONFNAME   #conf
+mkdir -p $MDSFLODER/$DMHADPNAME   #hadoop
+mkdir -p $MDSFLODER/$DMEBINNAME   #bin
 # use compression to speed up copying files
 declare -i SLEVEL=$(echo $HADOOPATH | tr '/' '\n' | sed '/^$/d' | wc -l)
 tar -cf - $HADOOPATH | tar -xf - -C $MDSFLODER/hadoop --strip=$SLEVEL 
 cp $PSMFILE $MDSFLODER/$DSCONFNAME/$DSMASTERNAME
 cp $PSSFILE $MDSFLODER/$DSCONFNAME/$DSSLAVESNAME
+cat ${bin}/$MDSBINLIST | xargs -i cp ${bin}/{} $MDSFLODER/$DMEBINNAME
 declare -i SLEVEL=$(echo $MDSFLODER | tr '/' '\n' | sed '/^$/d' | wc -l)
 tar -czf ${MDSFLODER}.tar.gz ${MDSFLODER} &> /dev/null
 tar -czf ${SDSFLODER}.tar.gz ${SDSFLODER} &> /dev/null
 
-echo "---------------------"
-echo "The Data Server List"
-echo "---------------------"
-cat $DSRVFILE
-echo "---------------------"
+#echo "---------------------"
+#echo "The Data Server List"
+#echo "---------------------"
+#cat $DSRVFILE
+#echo "---------------------"
 
 ANODES=($(cat $DSRVFILE | tr '\n' ' '))
 for node in ${ANODES[*]};do
@@ -553,6 +566,11 @@ echo "Copy file $nodeRCFile to $nodeIP:$RCFILENAME"
   done
 
 done
+
+echo -e "\n\n\n************************************************"
+echo "Congratulations! The parallel Secondo has been correctly set up on your cluster."
+cat $DSRVFILE
+echo "************************************************"
 
 
 exit 0
