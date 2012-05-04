@@ -742,7 +742,7 @@ tuple will be stored
   * returns true - success
 
 */
-  bool receiveTupleFromCallBack(ListExpr inTupleType,
+  bool receiveTupleFromCallBack(ListExpr& inTupleType,
                                 GenericRelation *rel);
 
 

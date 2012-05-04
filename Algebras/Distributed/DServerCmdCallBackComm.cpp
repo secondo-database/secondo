@@ -74,6 +74,16 @@ sends a tuple (as binary stream)
   * returns true - success
 
 */
+int str2int(const string& inStr, bool &success)
+{
+  int result = 0;
+  success = true;
+  stringstream str(inStr);
+  if (!(str >> result))
+    success = false;
+  return result;
+}
+
 bool
 DServerCmdCallBackCommunication::writeTupleToCallBack(Tuple *inTuple)
 {
@@ -81,7 +91,9 @@ DServerCmdCallBackCommunication::writeTupleToCallBack(Tuple *inTuple)
     {
       //Get the tuple size
       size_t cS,eS,fS;
-      size_t size = inTuple -> GetBlockSize(cS,eS,fS);
+      size_t size = 
+        DBAccess::getInstance() -> T_GetBlockSize(inTuple,
+                                                  cS, eS, fS);
       string line;
                
       int num_blocks = (size / 1024) + 1;
@@ -99,7 +111,8 @@ DServerCmdCallBackCommunication::writeTupleToCallBack(Tuple *inTuple)
           setErrorText("Received unexpected token");
           return false;
         }
-      if(atoi(line.data()) != num_blocks) 
+      bool succ = true;
+      if(str2int(line.data(), succ) != num_blocks) 
         {
           setErrorText("Invalid number of blocks for sending tuples");
           return false;
@@ -145,14 +158,16 @@ tuple will be stored
 */
 bool
 DServerCmdCallBackCommunication::
-    receiveTupleFromCallBack(ListExpr inTupleType,
+    receiveTupleFromCallBack(ListExpr& inTupleType,
                              GenericRelation *inRel)
 {
-  Tuple *inTuple = new Tuple(inTupleType);
   string line;
   if (getTagFromCallBack("TUPLE", line, false))
     {
-      size_t size = atoi(line.data());
+      Tuple *curTuple = DBAccess::getInstance() -> T_New(inTupleType);
+
+      bool succ = true;
+      size_t size = str2int(line.data(), succ);
 
       int num_blocks = (size / 1024) + 1;
       
@@ -171,9 +186,9 @@ DServerCmdCallBackCommunication::
         Read(buffer+i*1024,1024);
 
       // instantiating tuple
-      DBAccessGuard::getInstance() -> T_ReadFromBin(inTuple, buffer);
-      DBAccessGuard::getInstance() -> REL_AppendTuple(inRel, inTuple);
-      DBAccessGuard::getInstance() -> T_DeleteIfAllowed(inTuple);
+      DBAccessGuard::getInstance() -> T_ReadFromBin(curTuple, buffer);
+      DBAccessGuard::getInstance() -> REL_AppendTuple(inRel,curTuple);
+      DBAccessGuard::getInstance() -> T_DeleteIfAllowed(curTuple);
      
       delete [] buffer;
       
