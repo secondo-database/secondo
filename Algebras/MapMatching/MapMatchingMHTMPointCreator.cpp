@@ -44,6 +44,8 @@ the class ~MPointCreator~.
 #include "NetworkAdapter.h"
 #include <TemporalAlgebra.h>
 
+using datetime::DateTime;
+
 
 namespace mapmatch {
 
@@ -70,19 +72,14 @@ bool MPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
     if (!Init())
         return false;
 
-    const MHTRouteCandidate::PointData* pLastPointOfPrevSection = NULL;
-    bool bPrevCandidateFailed = false; // -> matching failed
-
     const size_t nCandidates = rvecRouteCandidates.size();
     for (size_t i = 0; i < nCandidates; ++i)
     {
-        bool bCalcShortestPath = ((i > 0) && !bPrevCandidateFailed);
-
         MHTRouteCandidate* pCandidate = rvecRouteCandidates[i];
         if (pCandidate == NULL)
             continue;
 
-        bPrevCandidateFailed = pCandidate->GetFailed();
+        std::vector<const SimpleLine*> vecCurvesBetweenPoints;
 
         const std::vector<MHTRouteCandidate::RouteSegment*>&
                               vecRouteSegments = pCandidate->GetRouteSegments();
@@ -101,43 +98,49 @@ bool MPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
             if (pSegment == NULL)
                 continue;
 
-            const SimpleLine* pSectionCurve = NULL;
-            const shared_ptr<IMMNetworkSection>& pSection =
-                                                         pSegment->GetSection();
-            if (pSection != NULL && pSection->IsDefined())
-                pSectionCurve = pSection->GetCurve();
-
             const std::vector<MHTRouteCandidate::PointData*>& vecPoints =
                                                           pSegment->GetPoints();
 
-            std::vector<MHTRouteCandidate::PointData*>::const_iterator
+            if (vecPoints.size() == 0)
+            {
+                const shared_ptr<IMMNetworkSection>& pSection =
+                                                         pSegment->GetSection();
+                if (pSection != NULL && pSection->IsDefined())
+                    vecCurvesBetweenPoints.push_back(pSection->GetCurve());
+            }
+            else
+            {
+                std::vector<MHTRouteCandidate::PointData*>::const_iterator
                                                       itPts = vecPoints.begin();
-            std::vector<MHTRouteCandidate::PointData*>::const_iterator
+                std::vector<MHTRouteCandidate::PointData*>::const_iterator
                                                      itPtsEnd = vecPoints.end();
 
-            while (itPts != itPtsEnd && pData1 == NULL)
-            {
-                pData1 = *itPts;
-                ++itPts;
-            }
-
-            while (itPts != itPtsEnd &&
-                   pData1 != NULL)
-            {
-                MHTRouteCandidate::PointData* pData2 = NULL;
-
-                while (itPts != itPtsEnd && pData2 == NULL)
+                while (itPts != itPtsEnd && pData1 == NULL)
                 {
-                    pData2 = *itPts;
+                    pData1 = *itPts;
                     ++itPts;
                 }
 
-                if (pData2 == NULL)
-                    continue;
+                while (itPts != itPtsEnd &&
+                       pData1 != NULL)
+                {
+                    MHTRouteCandidate::PointData* pData2 = NULL;
 
-                ProcessPoints(*pData1, *pData2);
+                    while (itPts != itPtsEnd && pData2 == NULL)
+                    {
+                        pData2 = *itPts;
+                        ++itPts;
+                    }
 
-                pData1 = pData2;
+                    if (pData2 == NULL)
+                        continue;
+
+                    ProcessPoints(*pData1, *pData2, vecCurvesBetweenPoints);
+
+                    vecCurvesBetweenPoints.clear();
+
+                    pData1 = pData2;
+                }
             }
         }
     }
@@ -170,9 +173,10 @@ void MPointCreator::Finalize(void)
     }
 }
 
-
-void MPointCreator::ProcessPoints(const MHTRouteCandidate::PointData& rData1,
-                                  const MHTRouteCandidate::PointData& rData2)
+void MPointCreator::ProcessPoints(
+                         const MHTRouteCandidate::PointData& rData1,
+                         const MHTRouteCandidate::PointData& rData2,
+                         std::vector<const SimpleLine*>& vecCurvesBetweenPoints)
 {
     Point Pt1(false);
     if (rData1.GetPointProjection() != NULL)
@@ -186,143 +190,296 @@ void MPointCreator::ProcessPoints(const MHTRouteCandidate::PointData& rData1,
     else
         Pt2 = rData2.GetPointGPS();
 
-    if (0)
+
+    if (AlmostEqual(Pt1, Pt2))
     {
         Interval<Instant> TimeInterval(rData1.GetTime(),
                                        rData2.GetTime(),
                                        true, false);
 
-        AttributePtr<UPoint> pUPoint(new UPoint(
-                                     Interval<Instant>(rData1.GetTime(),
-                                                       rData2.GetTime(),
-                                                       true, false),
-                                     Pt1, Pt2));
+        AttributePtr<UPoint> pUPoint(new UPoint(TimeInterval, Pt1, Pt1));
         m_pResMPoint->Add(*pUPoint);
+
+        assert(vecCurvesBetweenPoints.size() == 0);
     }
     else
     {
         const shared_ptr<IMMNetworkSection>& pSection1 = rData1.GetSection();
         const shared_ptr<IMMNetworkSection>& pSection2 = rData2.GetSection();
 
-        if (pSection1 != NULL && pSection1->IsDefined() &&
-            pSection2 != NULL && pSection2->IsDefined() &&
-            pSection1 == pSection2)
+        if (pSection1 == NULL || !pSection1->IsDefined() ||
+            pSection2 == NULL || !pSection2->IsDefined())
         {
-            const SimpleLine* pSectionCurve = pSection1->GetCurve();
-
-            double dPos1 = -1.0;
-            MMUtil::GetPosOnSimpleLine(*pSectionCurve,
-                                       Pt1,
-                                       pSection1->GetCurveStartsSmaller(),
-                                       0.000001 * m_dNetworkScale,
-                                       dPos1);
-
-            double dPos2 = -1.0;
-            MMUtil::GetPosOnSimpleLine(*pSectionCurve,
-                                       Pt2,
-                                       pSection1->GetCurveStartsSmaller(),
-                                       0.000001 * m_dNetworkScale,
-                                       dPos2);
-
-            AttributePtr<SimpleLine> pSubline(new SimpleLine(0));
-            pSectionCurve->SubLine(dPos1,
-                                   dPos2,
-                                   pSection1->GetCurveStartsSmaller(),
-                                   *pSubline);
-
-            if (pSubline->IsDefined())
-            {
-                Interval<Instant> TimeInterval(rData1.GetTime(),
-                                               rData2.GetTime(),
-                                               true, false);
-                ProcessCurve(*pSubline, TimeInterval);
-            }
-        }
-        else
-        {
-            /*const SimpleLine* pSectionCurve1 = pSection1->GetCurve();
-            double dPos1 = -1.0;
-            MMUtil::GetPosOnSimpleLine(*pSectionCurve1,
-                                       pSection1->GetEndPoint(),
-                                       pSection1->GetCurveStartsSmaller(),
-                                       0.000001 * m_dNetworkScale,
-                                       dPos1);
-
-
-            const SimpleLine* pSectionCurve2 = pSection2->GetCurve();
-
-
-
-            pSection2->GetStartPoint();*/
-
+            // at least one point is offroad
 
             Interval<Instant> TimeInterval(rData1.GetTime(),
                                            rData2.GetTime(),
                                            true, false);
 
-            AttributePtr<UPoint> pUPoint(new UPoint(
-                                             Interval<Instant>(rData1.GetTime(),
-                                                               rData2.GetTime(),
-                                                               true, false),
-                                             Pt1, Pt2));
+            AttributePtr<UPoint> pUPoint(new UPoint(TimeInterval, Pt1, Pt2));
             m_pResMPoint->Add(*pUPoint);
+        }
+        else if (pSection1 == pSection2) // Same section
+        {
+            const SimpleLine* pSectionCurve = pSection1->GetCurve();
+
+            AttributePtr<SimpleLine> pSubline(new SimpleLine(0));
+            MMUtil::SubLine(pSectionCurve,
+                            Pt1,
+                            Pt2,
+                            pSection1->GetCurveStartsSmaller(),
+                            m_dNetworkScale,
+                            *pSubline);
+
+            if (pSubline->IsDefined() &&
+                pSubline->StartPoint().IsDefined() &&
+                pSubline->EndPoint().IsDefined())
+            {
+                Interval<Instant> TimeInterval(rData1.GetTime(),
+                                               rData2.GetTime(),
+                                               true, false);
+
+                //assert(AlmostEqual(Pt1, pSubline->StartPoint()));
+
+                ProcessCurve(*pSubline, TimeInterval);
+            }
+        }
+        else // different sections
+        {
+            // Calculate total length of curves
+
+            const SimpleLine* pSection1Curve = pSection1->GetCurve();
+
+            AttributePtr<SimpleLine> pSubline1(new SimpleLine(0));
+            MMUtil::SubLine(pSection1Curve,
+                            Pt1,
+                            pSection1->GetEndPoint(),
+                            pSection1->GetCurveStartsSmaller(),
+                            m_dNetworkScale,
+                            *pSubline1);
+
+            double dLenCurve1 = MMUtil::CalcLengthCurve(pSubline1.get(),
+                                                        m_dNetworkScale);
+
+
+            const SimpleLine* pSection2Curve = pSection2->GetCurve();
+
+            AttributePtr<SimpleLine> pSubline2(new SimpleLine(0));
+            MMUtil::SubLine(pSection2Curve,
+                            pSection2->GetStartPoint(),
+                            Pt2,
+                            pSection2->GetCurveStartsSmaller(),
+                            m_dNetworkScale,
+                            *pSubline2);
+
+            double dLenCurve2 = MMUtil::CalcLengthCurve(pSubline2.get(),
+                                                        m_dNetworkScale);
+
+
+            double dLength = dLenCurve1 + dLenCurve2;
+
+
+            const size_t nCurves = vecCurvesBetweenPoints.size();
+            for (size_t i = 0; i < nCurves; ++i)
+            {
+                dLength += MMUtil::CalcLengthCurve(vecCurvesBetweenPoints[i],
+                                                   m_dNetworkScale);
+            }
+
+            // Total time
+            DateTime Duration = rData2.GetTime() - rData1.GetTime();
+            Duration.Abs();
+
+            // Process first curve
+
+            DateTime TimeEnd(rData1.GetTime());
+
+            if (pSubline1 == NULL ||
+                AlmostEqual(dLenCurve1, 0.0))
+            {
+                Interval<Instant> TimeInterval(rData1.GetTime(),
+                                               TimeEnd,
+                                               true, true);
+                AttributePtr<UPoint> pUPoint(new UPoint(TimeInterval,
+                                                        Pt1, Pt1));
+                m_pResMPoint->Add(*pUPoint);
+            }
+            else
+            {
+                TimeEnd = rData1.GetTime() +
+                           DateTime(datetime::durationtype,
+                                    (uint64_t)(((Duration.millisecondsToNull()
+                                                / dLength) * dLenCurve1) + .5));
+                Interval<Instant> TimeInterval(rData1.GetTime(),
+                                               TimeEnd,
+                                               true, false);
+                ProcessCurve(*pSubline1, TimeInterval, dLenCurve1);
+            }
+
+            // Process curves in between
+
+            for (size_t i = 0; i < nCurves; ++i)
+            {
+                const SimpleLine* pCurve = vecCurvesBetweenPoints[i];
+                if (pCurve == NULL)
+                    continue;
+
+                double dLenCurve = MMUtil::CalcLengthCurve(pCurve,
+                                                           m_dNetworkScale);
+                if (AlmostEqual(dLenCurve, 0.0))
+                    continue;
+
+                DateTime TimeStart = TimeEnd;
+                TimeEnd = TimeStart +
+                          DateTime(datetime::durationtype,
+                                    (uint64_t)(((Duration.millisecondsToNull()
+                                                / dLength) * dLenCurve) + .5));
+
+                Interval<Instant> TimeInterval(TimeStart,
+                                               TimeEnd,
+                                               true, false);
+
+                ProcessCurve(*pCurve, TimeInterval, dLenCurve);
+            }
+
+            // Process last curve
+
+            if (pSubline2 == NULL ||
+                AlmostEqual(dLenCurve2, 0.0))
+            {
+                DateTime TimeStart = TimeEnd;
+                TimeEnd = rData2.GetTime();
+                Interval<Instant> TimeInterval(TimeStart,
+                                               TimeEnd,
+                                               true, true);
+                AttributePtr<UPoint> pUPoint(new UPoint(TimeInterval,
+                                                        Pt2, Pt2));
+                m_pResMPoint->Add(*pUPoint);
+            }
+            else
+            {
+                assert(TimeEnd.millisecondsToNull() <=
+                       rData2.GetTime().millisecondsToNull());
+                DateTime TimeStart = TimeEnd;
+                TimeEnd = rData2.GetTime();
+                Interval<Instant> TimeInterval(TimeStart,
+                                               TimeEnd,
+                                               true, false);
+                ProcessCurve(*pSubline2, TimeInterval, dLenCurve2);
+            }
         }
     }
 }
 
 void MPointCreator::ProcessCurve(const SimpleLine& rCurve,
-                                 const Interval<Instant> TimeInterval)
+                                 const Interval<Instant> TimeInterval,
+                                 double dCurveLength)
 {
-    cout << "*********************************" << endl;
-    cout << "StartPoint Curve:";
-    rCurve.StartPoint().Print(cout);
-    cout << "EndPoint Curve:" << endl;
-    rCurve.EndPoint().Print(cout);
-    cout << "*********************************"  << endl;
-
-    double dLength = MMUtil::CalcLengthCurve(&rCurve, m_dNetworkScale);
+    double dLength = dCurveLength < 0.0 ?
+                           MMUtil::CalcLengthCurve(&rCurve, m_dNetworkScale) :
+                           dCurveLength;
     if (AlmostEqual(dLength, 0.0))
         return;
 
-    const datetime::DateTime Duration = TimeInterval.end - TimeInterval.start;
+    DateTime Duration = TimeInterval.end - TimeInterval.start;
+    Duration.Abs();
 
     const bool bStartsSmaller = rCurve.GetStartSmaller();
 
     Instant TimeStart(TimeInterval.start);
 
     const int nHalfSegments = rCurve.Size();
-    bool bValid = true;
-    for (int i = 0; bValid && i < nHalfSegments; ++i)
+    if (nHalfSegments <= 0)
+        return;
+
+    assert(nHalfSegments % 2 == 0);
+
+    LRS lrs(bStartsSmaller ? 0.0 : rCurve.Length(), 0);
+    int lrsPosAkt = 0;
+    if (!const_cast<SimpleLine&>(rCurve).Get(lrs, lrsPosAkt))
     {
-        HalfSegment hs;
-        if (!bStartsSmaller)
-            rCurve.Get(i, hs);
-        else
-            rCurve.Get(i, hs);
+        assert(false);
+        return;
+    }
 
-        //if (hs.IsLeftDomPoint())
+    LRS lrsAkt;
+    rCurve.Get(lrsPosAkt, lrsAkt);
+    HalfSegment hs;
+    rCurve.Get(lrsAkt.hsPos, hs);
+
+    double dLengthHS = MMUtil::CalcDistance(hs.GetLeftPoint(),
+                                            hs.GetRightPoint(),
+                                            m_dNetworkScale);
+    DateTime TimeEnd = TimeStart +
+                       DateTime(datetime::durationtype,
+                                    (uint64_t)(((Duration.millisecondsToNull()
+                                                 / dLength) * dLengthHS) + .5));
+
+    Interval<Instant> TimeIntervalAkt(TimeStart, TimeEnd, true, false);
+
+    Point Pt1(false);
+    Point Pt2(false);
+
+    if (const_cast<SimpleLine&>(rCurve).StartsSmaller())
+    {
+        Pt1 = hs.GetDomPoint();
+        Pt2 = hs.GetSecPoint();
+    }
+    else
+    {
+        Pt1 = hs.GetSecPoint();
+        Pt2 = hs.GetDomPoint();
+    }
+
+    AttributePtr<UPoint> pUPoint(new UPoint(TimeIntervalAkt, Pt1, Pt2));
+    m_pResMPoint->Add(*pUPoint);
+
+    TimeStart = TimeEnd;
+
+    if (bStartsSmaller)
+        ++lrsPosAkt;
+    else
+        --lrsPosAkt;
+
+    while (lrsPosAkt >= 0 && lrsPosAkt < nHalfSegments / 2)
+    {
+        rCurve.Get(lrsPosAkt, lrsAkt);
+        rCurve.Get(lrsAkt.hsPos, hs);
+
+        double dLengthHS = MMUtil::CalcDistance(hs.GetLeftPoint(),
+                                                hs.GetRightPoint(),
+                                                m_dNetworkScale);
+
+        DateTime TimeEnd = TimeStart +
+                           DateTime(datetime::durationtype,
+                                    (uint64_t)(((Duration.millisecondsToNull()
+                                                 / dLength) * dLengthHS) + .5));
+
+        Interval<Instant> TimeIntervalAkt(TimeStart, TimeEnd, true, false);
+
+        if (AlmostEqual(Pt2, hs.GetDomPoint()))
         {
-            double dLengthHS = MMUtil::CalcDistance(hs.GetLeftPoint(),
-                                                    hs.GetRightPoint(),
-                                                    m_dNetworkScale);
-
-            datetime::DateTime TimeEnd = TimeStart + datetime::DateTime(
-                                                         datetime::durationtype,
-                                       (uint64_t)((Duration.millisecondsToNull()
-                                                   / dLength) * dLengthHS));
-
-            Interval<Instant> TimeInterval(TimeStart,
-                                           TimeEnd,
-                                           true, false);
-
-            Point Pt1 = hs.GetDomPoint();
-            Point Pt2 = hs.GetSecPoint();
-
-            AttributePtr<UPoint> pUPoint(new UPoint(TimeInterval, Pt1, Pt2));
-            m_pResMPoint->Add(*pUPoint);
-
-            TimeStart = TimeEnd;
+            Pt1 = hs.GetDomPoint();
+            Pt2 = hs.GetSecPoint();
         }
+        else
+        {
+            Pt1 = hs.GetSecPoint();
+            Pt2 = hs.GetDomPoint();
+        }
+
+        /*if (AlmostEqual(Pt2, rCurve.EndPoint())) // TODO
+            TimeStart = TimeInterval.end;*/
+
+        AttributePtr<UPoint> pUPoint(new UPoint(TimeIntervalAkt, Pt1, Pt2));
+        m_pResMPoint->Add(*pUPoint);
+
+        TimeStart = TimeEnd;
+
+        if (bStartsSmaller)
+            ++lrsPosAkt;
+        else
+            --lrsPosAkt;
     }
 }
 

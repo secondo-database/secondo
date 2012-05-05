@@ -692,7 +692,21 @@ void MMUtil::SubLine(const SimpleLine* pLine,
                                0.000001 * dScale,
                                dPos2);
 
-    pLine->SubLine(dPos1, dPos2,bStartsSmaller, rSubLine);
+    bool bReverse = false;
+
+    if (dPos1 > dPos2)
+    {
+        double dPosHelp = dPos1;
+        dPos1 = dPos2;
+        dPos2 = dPosHelp;
+
+        bReverse = true;
+    }
+
+    pLine->SubLine(dPos1, dPos2, bStartsSmaller, rSubLine);
+
+    if (bReverse)
+        rSubLine.SetStartSmaller(!rSubLine.StartsSmaller());
 }
 
 

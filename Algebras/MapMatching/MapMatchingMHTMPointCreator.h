@@ -68,10 +68,12 @@ public:
 private:
 
     void ProcessPoints(const MHTRouteCandidate::PointData& rData1,
-                       const MHTRouteCandidate::PointData& pData2);
+                       const MHTRouteCandidate::PointData& pData2,
+                       std::vector<const SimpleLine*>& vecCurvesBetweenPoints);
 
     void ProcessCurve(const SimpleLine& rCurve,
-                      const Interval<Instant> TimeInterval);
+                      const Interval<Instant> TimeInterval,
+                      double dCurveLength = -1.0);
 
     bool Init(void);
     void Finalize(void);
