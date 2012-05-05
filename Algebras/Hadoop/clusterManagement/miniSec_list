@@ -1,4 +1,5 @@
 bin/opt
+bin/berlintest
 bin/tmp
 bin/SecondoListener
 bin/SecondoRegistrar
