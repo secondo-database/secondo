@@ -63,9 +63,9 @@ class DArray
 {
 public:
   //StopWatch m_watch;
-  DArray();
+  DArray(bool isDefined = true);
   DArray(ListExpr, const string& inName,int,ListExpr);
-  ~DArray();
+  virtual ~DArray();
 
   bool initialize(ListExpr, const string& inName,
                   int,ListExpr,const vector<Word>& );
@@ -81,16 +81,19 @@ public:
   int getTypID() const { return typ_id; }
   ListExpr getType() const { return m_type; }
 
-  ListExpr getServerList() const { return serverlist; }
+  ListExpr getServerList() const { return m_serverlist; }
 
   const string& getName() const { return m_name; }
 
-  bool isDefined() const { return defined; }
-  void setUndefined() { defined = false; }
+  bool IsDefined() const { return m_defined; }
+  void SetDefined(bool def) { m_defined = def; }
+  void SetUndefined() { m_defined = false; }
 
   int getSize() const { return size; }
 
-  DServerManager* getServerManager() const {return manager;}
+  DServerManager* getServerManager() const {return m_serverManager;}
+
+  const string& getHostNameByIndex(int inIdx);
 
   //Is needed to provide DServer-objects with a pointer to the elements-array
   const vector<Word>& getElements() const {return m_elements;}
@@ -142,14 +145,28 @@ public:
     return KindCheck(inType, errorInfo);
   }
 
+  bool hasError() const;
+  string getErrorText() const;
 
+  bool destroyAnyChilds();
+  bool multiplyWorkers(vector<DServer*>* outServerList = NULL);
+
+  template <class T, class P>
+  bool runCommand(const P& inParam);
+   
+
+  template <class T, class P>
+  bool runCommandThreaded(ZThread::ThreadedExecutor& inExec,
+                          const P& inParam,
+                          vector<DServer *>* inServerList = NULL,
+                          bool inWaitForThreadToEnd = true);
 private:
 
   //Sends the relation in elements[index] to the respective worker
   void WriteRelation(int index);
 
   //Is the DArray defined (posseses a name, size, serverlist, type?!)
-  bool defined;
+  bool m_defined;
 
   //Is a certain element present on the master?
   // std::vector<bool> is broken!
@@ -162,9 +179,9 @@ private:
   string m_name;
   ListExpr m_type;
 
-  ListExpr serverlist;
+  ListExpr m_serverlist;
 
-  DServerManager* manager;
+  DServerManager* m_serverManager;
 
   vector<Word> m_elements;
 

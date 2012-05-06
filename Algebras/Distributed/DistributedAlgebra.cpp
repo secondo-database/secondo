@@ -17,12 +17,27 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+Foundation, Inc., 59 Temple Place, Suite 330, 
+Boston, MA  02111-1307  USA
 ----
+
+//paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
+//paragraph [10] Footnote: [{\footnote{] [}}]
+//[TOC] [\tableofcontents]
+//[_] [\_]
+//[&] [\&]
+//[x] [\ensuremath{\times}]
+//[->] [\ensuremath{\rightarrow}]
+//[>] [\ensuremath{>}]
+//[<] [\ensuremath{<}]
+//[ast] [\ensuremath{\ast}]
+
 */
 
 /*
 [1] DistributedAlgebra
+
+April 2012 Thomas Achmann
 
 November 2010 Tobias Timmerscheidt
 
@@ -50,7 +65,13 @@ Operations on the darray-elements are carried out on the remote machines.
 #include "RelationAlgebra.h"
 #include "TypeMapUtils.h"
 #include "Remote.h"
-
+#include "DServerCmdShuffleRec.h"
+#include "DServerCmdShuffleSend.h"
+#include "DServerCmdShuffleMultipleConn.h"
+#include "DServerShuffleSender.h"
+#include "DServerShuffleReceiver.h"
+#include "DServerCmdCopy.h"
+#include "DServerCmdCallBackComm.h"
 #include "zthread/ThreadedExecutor.h"
 #include "zthread/PoolExecutor.h"
 #include "zthread/Mutex.h"
@@ -66,7 +87,10 @@ Operations on the darray-elements are carried out on the remote machines.
 
 //#define RECEIVE_REL_MAP_DEBUG 1
 //#define RECEIVE_REL_FUN_DEBUG 1
-
+//#define SEND_SHUFFLE_MAP_DEBUG 1
+//#define SEND_SHUFFLE_FUN_DEBUG 1
+//#define RECEIVE_SHUFFLE_FUN_DEBUG 1
+//#define RECEIVE_SHUFFLE_MAP_DEBUG 1
 
 using namespace std;
 using namespace mappings;
@@ -79,7 +103,7 @@ ZThread::Mutex DArray::ms_rTBlock;
 
 /*
 
-3.0 Auxiliary Functions
+3 Auxiliary Functions
 
 */
 
@@ -87,16 +111,6 @@ ZThread::Mutex DArray::ms_rTBlock;
 void extractIds(const ListExpr,int&,int&);
 
 
-
-//Converts int to string
-string toString_d(int i)
-{
-   std::string s;
-   std::stringstream out;
-   out << i;
-   s = out.str();
-   return s;
-}
 //Converts int to string
 string toString_ul(unsigned long i)
 {
@@ -114,7 +128,7 @@ string getArrayName(int number)
   struct timeb t1;
   ftime(&t1);
   unsigned long tm = (t1.time * 1000) + t1.millitm;
-  string t = toString_ul(tm) + toString_d(number);
+  string t = toString_ul(tm) + int2Str(number);
   return t;
 }
 
@@ -122,9 +136,10 @@ string getArrayName(int number)
 //type name (used by converType)
 ListExpr convertSingleType( ListExpr type)
 {
-   if(nl->ListLength(type) != 2) return nl->SymbolAtom("ERROR");
-      if(!nl->IsAtom(nl->First(type)) || !nl->IsAtom(nl->Second(type)))
-         return nl->SymbolAtom("ERROR");
+   if(nl->ListLength(type) != 2) 
+     return nl->SymbolAtom("ERROR");
+   if(!nl->IsAtom(nl->First(type)) || !nl->IsAtom(nl->Second(type)))
+     return nl->SymbolAtom("ERROR");
 
    int algID, typID;
 
@@ -234,14 +249,6 @@ static bool RunCmdSSH(const string& inHost,
 
 4. Type Constructor ~DArray~
 
-4.1 Data Structure - Class ~DArray~
-
-*/
-
-// moved to file DistributedAlgebra.h
-
-/*
-
 4.2 Implementation of basic functions
 
 */
@@ -250,15 +257,17 @@ static bool RunCmdSSH(const string& inHost,
 int DArray::no = 0;
 
 //Creates an undefined DArray
-DArray::DArray()
+DArray::DArray(bool isDefined)
   : m_name()
 {
-   defined = false;
+   SetDefined(isDefined);
    isRelation = false;
    size=0;
    alg_id=0;
    typ_id=0;
-   no++;
+   no++; 
+   m_serverlist = nl -> TheEmptyList();
+   m_serverManager = NULL;
    //   m_watch.start();
    //cout << "DArray::DArray():" << no << endl;
 }
@@ -267,7 +276,7 @@ DArray::DArray()
 //A DArray is defined by its name, type, size and serverlist
 //It can be defined while all its elements are undefined
 DArray::DArray(ListExpr inType, 
-               const string& inName, int s, ListExpr n_serverlist)
+               const string& inName, int s, ListExpr inServerlist)
   : m_name(inName)
 {
    m_type = inType;
@@ -286,15 +295,16 @@ DArray::DArray(ListExpr inType,
    m_elements = vector<Word>(size);
    m_present = vector<int>(size, 0);
 
-   serverlist = n_serverlist;
-   manager = new DServerManager(serverlist, m_name,m_type,size);
+   m_serverlist = inServerlist;
+   m_serverManager = 
+     new DServerManager(m_serverlist, m_name,m_type,size);
 
    no++;
 
-   if (!(manager -> isOk()))
-     defined = false;
+   if (!(m_serverManager -> isOk()))
+     SetUndefined();
    else
-     defined = true;
+     SetDefined(true);
    //cout << "DArray::DArray(...):" << no << endl;
 }
 
@@ -306,12 +316,13 @@ DArray::~DArray()
   //cout <<"Time:" << m_watch.diffTimes() << endl;
   assert(no > 0);
   no--;
-   if(defined)
+  if(IsDefined())
    {
       for(int i=0;i<size;i++)
       {
          //Elements that are present on the master are deleted
-         //note that this deletes NOT the Secondo-objects on the workers
+         //note that this deletes NOT the Secondo-objects on the 
+         //workers.
          //they need to be deleted seperately which can be done by
          //the remove-function
         if(m_present[i])
@@ -321,7 +332,8 @@ DArray::~DArray()
             (am->DeleteObj(alg_id,typ_id))(m_type,m_elements[i]);
           }
       }
-      delete manager;
+      delete m_serverManager;
+      m_serverManager = NULL;
       m_present.clear();
       m_elements.clear();
    }
@@ -330,21 +342,21 @@ DArray::~DArray()
 void DArray::remove()
 {
   //cout << "DArray::remove()" << endl;
-  if(defined)
+  if(getServerManager() != NULL && IsDefined())
    {
       ZThread::ThreadedExecutor exec;
-      if (!(manager -> checkServers(true)))
+      if (!(getServerManager() -> checkServers(true)))
         {
-          defined = false;
+          SetUndefined();
           return;
         }
-
-      for(int i = 0;i<manager->getNoOfServers();i++)
+      
+      for(int i = 0;i<getServerManager()->getNoOfWorkers();i++)
       {
         //cout << "Deleting server: " << i << endl;
-         DServer* server = manager->getServerbyID(i);
+        DServer* server = getServerManager()->getServerbyID(i);
          server->setCmd(DServer::DS_CMD_DELETE,
-                        &(manager->getIndexList(i)),
+                        &(getServerManager()->getIndexList(i)),
                         &m_elements);
          exec.execute(new DServerExecutor(server));
       }
@@ -354,9 +366,18 @@ void DArray::remove()
    //cout << "DArray::remove() ... done" << endl;
 }
 
+
+const string&  
+DArray::getHostNameByIndex(int inIdx)
+{
+  DServer* server = getServerManager()->getServerByIndex(inIdx);
+  return server -> getServerHostName();
+}
+
+
 void DArray::refresh(int i)
 {
-   DServer* server = manager->getServerByIndex(i);
+   DServer* server = getServerManager()->getServerByIndex(i);
    list<int> l;
    l.push_front(i);
 
@@ -366,7 +387,8 @@ void DArray::refresh(int i)
       if(m_present[i])
          (am->DeleteObj(alg_id,typ_id))(m_type,m_elements[i]);
 
-      m_elements[i].addr = (am->CreateObj(alg_id,typ_id))(m_type).addr;
+      m_elements[i].addr = 
+        (am->CreateObj(alg_id,typ_id))(m_type).addr;
       server->setCmd(DServer::DS_CMD_READ_REL,&l,&m_elements);
       server->run();
    }
@@ -384,9 +406,9 @@ void DArray::refresh()
   //cout << "DArray::refresh S:" << size 
   //<< " (Rel:" << isRelation << ")" << endl;
   
-  if (!(manager -> checkServers(true)))
+  if (!(getServerManager() -> checkServers(true)))
     {
-      setUndefined();
+      SetUndefined();
       return;
     }
 
@@ -405,25 +427,26 @@ void DArray::refresh()
        
        if(isRelation)
          {
-           m_elements[i].addr = (am->CreateObj(alg_id,typ_id))(m_type).addr;
+           m_elements[i].addr = 
+             (am->CreateObj(alg_id,typ_id))(m_type).addr;
          }
        
      }
    
      //elements are read, the DServer run as threads
-   for(int i = 0; i < manager->getNoOfServers(); i++)
+   for(int i = 0; i < getServerManager()->getNoOfWorkers(); i++)
      {
-       DServer* server = manager->getServerbyID(i);
+       DServer* server = getServerManager()->getServerbyID(i);
        if(isRelation)
          {
            server->setCmd(DServer::DS_CMD_READ_REL,
-                          &(manager->getIndexList(i)),
+                          &(getServerManager()->getIndexList(i)),
                           &m_elements);
          }
        else
          {
            server->setCmd(DServer::DS_CMD_READ,
-                          &(manager->getIndexList(i)),
+                          &(getServerManager()->getIndexList(i)),
                           &m_elements);
          }
        exec.execute(new DServerExecutor(server));
@@ -438,9 +461,9 @@ void DArray::refresh()
 
 void DArray::refresh(TFQ tfqOut)
 {
-  if (!(manager -> checkServers(true)))
+  if (!(getServerManager() -> checkServers(true)))
     {
-      setUndefined();
+      SetUndefined();
       return;
     }
 
@@ -455,26 +478,17 @@ void DArray::refresh(TFQ tfqOut)
    word[0] = SetWord(tfqOut);
 
    //elements are read, the DServer run as threads
-   for(int i = 0; i < manager->getNoOfServers(); i++)
+   for(int i = 0; i < getServerManager()->getNoOfWorkers(); i++)
      {
-       DServer* server = manager->getServerbyID(i);
+       DServer* server = getServerManager()->getServerbyID(i);
       
        server->setCmd(DServer::DS_CMD_READ_TB_REL,
-                      &(manager->getIndexList(i)),
+                      &(getServerManager()->getIndexList(i)),
                       &word);
        
-#ifndef SINGLE_THREAD1
        exec.execute(new DServerExecutor(server));
-#else
-       DServerExecutor *dsex = new DServerExecutor(server);
-       dsex -> run();
-       delete dsex;
-#endif
      }
-   
-#ifndef SINGLE_THREAD1
    exec.wait();
-#endif
 
    tbRefreshDone();
    //dummy element to release collector thread
@@ -484,11 +498,12 @@ void DArray::refresh(TFQ tfqOut)
 
 bool DArray::initialize(ListExpr inType,
                         const string& inName, int s,
-                        ListExpr n_serverlist,
+                        ListExpr inServerlist,
                         const vector<Word> &n_elem)
 {
-   //initializes an undefined array, all elements are present on the master
-   defined = true;
+  // initializes an undefined array, all 
+  // elements are present on the master
+  SetDefined(true);
    m_type = inType;
 
    extractIds( m_type , alg_id, typ_id);
@@ -505,74 +520,61 @@ bool DArray::initialize(ListExpr inType,
 
    m_name = inName;
    size = s;
-   serverlist = n_serverlist;
+   m_serverlist = inServerlist;
 
    //create DServerManager, and
    //thereby also the DServer (worker connections)
-   manager = new DServerManager(serverlist, m_name, m_type,size);
+   m_serverManager = 
+     new DServerManager(m_serverlist, m_name, m_type,size);
 
    //Set the elements-array
    m_elements = n_elem;
    m_present = vector<int>(size, 1); // all true
 
-   int max_servers = manager->getNoOfServers();
+   int max_servers = getServerManager()->getNoOfWorkers();
    if (size < max_servers)
      max_servers = size;
 
    //sends the elements to the respective workers
-#ifndef SINGLE_THREAD1
    ZThread::ThreadedExecutor exec;
-#endif
 
    if(!isRelation)
      {
 
        for(int i = 0; i<max_servers;i++)
          {
-           DServer* server = manager->getServerbyID(i);
+           DServer* server = getServerManager()->getServerbyID(i);
            server->setCmd(DServer::DS_CMD_WRITE,
-                          &(manager->getIndexList(i)),
+                          &(getServerManager()->getIndexList(i)),
                           &m_elements);
-#ifndef SINGLE_THREAD1
            exec.execute(new DServerExecutor(server));
-#else
-           DServerExecutor *dsex = new DServerExecutor(server);
-           dsex -> run();
-           delete dsex;
-#endif
          }
      }
    else
      {
        for(int i= 0;i<max_servers;i++)
          {
-#ifndef SINGLE_THREAD1
            exec.execute(
-             new RelationWriter(manager->getServerbyID(i),
+             new RelationWriter(getServerManager()->
+                                  getServerbyID(i),
                                 &m_elements,
-                                &(manager->getIndexList(i))) );
-#else
-          RelationWriter *rw =   
-            new RelationWriter(manager->getServerbyID(i),
-                               &m_elements,
-                               &(manager->getIndexList(i)));
-          rw -> run();
-          delete rw;
-#endif
+                                &(getServerManager()->
+                                  getIndexList(i))) );
          }
      }
-#ifndef SINGLE_THREAD1
    exec.wait();
-#endif
 
    for(int i= 0;i<max_servers;i++)
      {
-       if (manager->getServerbyID(i) -> getErrorText() != "OK")
+       if (getServerManager()->
+             getServerbyID(i) -> 
+               getErrorText() != "OK")
          {
-           manager -> setErrorText(string("Error Server: " +
-                                          toString_d( i ) + ": " +
-                                          manager->getServerbyID(i)
-                                          -> getErrorText()));
+           getServerManager() -> 
+             setErrorText(string("Error Server: " +
+                                 int2Str( i ) + ": " +
+                                 getServerManager()->getServerbyID(i)
+                                 -> getErrorText()));
            return false;
          }
      }
@@ -584,11 +586,16 @@ bool DArray::initialize(ListExpr inType,
 bool DArray::initialize(ListExpr inType, 
                         const string& inName,
                         int s,
-                        ListExpr n_serverlist)
+                        ListExpr inServerlist)
 {
    //initializes an undefined, no elements are given
    //all elements must already exist on the workers
-   defined = true;
+  if (nl -> IsEmpty(inServerlist))
+    {
+      SetDefined(false);
+      return false;
+    }
+   SetDefined(true);
    m_type = inType;
 
    extractIds( m_type , alg_id, typ_id);
@@ -612,8 +619,9 @@ bool DArray::initialize(ListExpr inType,
 
    //creates DServerManager, which creates the
    //DServer-objects for all workers
-   serverlist = n_serverlist;
-   manager = new DServerManager(serverlist, m_name,m_type,size);
+   m_serverlist = inServerlist;
+   m_serverManager = 
+     new DServerManager(m_serverlist, m_name,m_type,size);
    //cout <<"Init2:" << m_watch.diffTimes() << endl;
    return true;
 }
@@ -622,7 +630,7 @@ bool DArray::initialize(ListExpr inType,
 const Word& DArray::get(int i)
 {
    //returns an element of the elements-array
-  if(defined && i >=0 && i < size)
+  if(IsDefined() && i >=0 && i < size)
     {
       if (!m_present[i])
         refresh(i);
@@ -631,20 +639,20 @@ const Word& DArray::get(int i)
 
       return m_elements[i];
     }
-   else
-   {
-     cout << "Error: ";
-     if (!defined)
-       cout << "Array is not defined!!";
-     else if ( i < 0 || i >= size)
-       cout << "Index out of scope!!";
-     else
-       cout << "Element is not present!!";
+  // else:
 
-     cout << " (Index: " << i << ")" << endl;
-
-     return DServer::ms_emptyWord;
-   }
+  cerr << "Error: ";
+  if (!IsDefined())
+    cerr << "Array is not defined!!";
+  else if ( i < 0 || i >= size)
+    cerr << "Index out of scope!!";
+  else
+    cerr << "Element is not present!!";
+  
+  cerr << " (Index: " << i << ")" << endl;
+  
+  return DServer::ms_emptyWord;
+  
 }
 
 void DArray::set(Word n_elem, int i)
@@ -654,13 +662,13 @@ void DArray::set(Word n_elem, int i)
    list<int> l;
    l.push_front(i);
 
-   if(defined)
+   if(IsDefined())
    {
       m_elements[i].addr = n_elem.addr;
 
       if(!isRelation)
       {
-         DServer* server = manager->getServerByIndex(i);
+         DServer* server = getServerManager()->getServerByIndex(i);
          server->setCmd(DServer::DS_CMD_WRITE,
                         &l,&m_elements);
          server->run();
@@ -675,13 +683,14 @@ void DArray::set(Word n_elem, int i)
 
 void DArray::WriteRelation(int index)
 {
-   //writes the relation in elements[index] to the corresponding worker
+  // writes the relation in elements[index] 
+  // to the corresponding worker
 
    //create relation iterator
    GenericRelation* rel = (Relation*)m_elements[index].addr;
    GenericRelationIterator* iter = rel->MakeScan();
 
-   DServer* worker = manager->getServerByIndex(index);
+   DServer* worker = getServerManager()->getServerByIndex(index);
 
 
 
@@ -755,7 +764,8 @@ Word DArray::In( const ListExpr inTypeInfo, const ListExpr instance,
       element = nl->First(listOfElements);
       listOfElements = nl->Rest(listOfElements);
       e = ((am->InObj(algID,typID))
-         (nl->Second(inTypeInfo),element,errorPos,errorInfo,correct));
+         (nl->Second(inTypeInfo),
+          element,errorPos,errorInfo,correct));
 
       a->set(e,i);
       i++;
@@ -767,6 +777,9 @@ Word DArray::In( const ListExpr inTypeInfo, const ListExpr instance,
      //cout << " -> OK" << endl;
       return SetWord(a);
    }
+   a -> remove();
+   delete a;
+
    //cout << "-> Error!" << endl;
    correct=false;
    return SetWord(Address(0));
@@ -779,12 +792,13 @@ ListExpr DArray::Out( ListExpr inTypeInfo, Word value )
   //cout << "DArray::Out" << endl;
    DArray* a = (DArray*)value.addr;
   
-   if(a == NULL || !(a->isDefined()))
+   if(a == NULL || !(a->IsDefined()))
      {
        //cout << " -> ERROR!" << endl;
        return nl->SymbolAtom(Symbol::UNDEFINED());
      }
-   if( !(a -> getServerManager() -> checkServers(true)))
+   if( a -> getServerManager() == NULL ||
+       !(a -> getServerManager() -> checkServers(true)))
      {
        return nl->SymbolAtom(Symbol::UNDEFINED());
      }
@@ -796,7 +810,7 @@ ListExpr DArray::Out( ListExpr inTypeInfo, Word value )
 
    a->refresh();
 
-   if(a->isDefined())
+   if(a->IsDefined())
      {
        for(int i = 0; i<a->getSize();i++)
        {
@@ -825,15 +839,17 @@ Word DArray::Create( const ListExpr inTypeInfo )
 }
 
 
-//Note: The Delete-function deletes the entire DArray, therefore the remote
-//obejcts are delete and thereafter the local data structure. The Close-
-//function only removes the local data structure
+//Note: The Delete-function deletes the 
+//entire DArray, therefore the remote
+//obejcts are delete and thereafter the local 
+//data structure. The Close-function only 
+//removes the local data structure
 
 void DArray::Delete( const ListExpr inTypeInfo, Word& w )
 {
   //cout << "DArray::Delete" << endl;
   DArray *da = (DArray*)w.addr;
-  if (da != 0)
+  if (da != NULL)
     {
       ((DArray*)w.addr)->remove();
       delete (DArray*)w.addr;
@@ -854,9 +870,10 @@ void DArray::Close( const ListExpr inTypeInfo, Word& w )
    //cout << " -> OK" << endl;
 }
 
-//A new DArray is created locally with the same type, size and serverlist
-//It is given a new name and all the elements of the old array are copied
-//on the workers
+//A new DArray is created locally with the 
+//same type, size and serverlist. It is given a 
+//new name and all the elements of the old 
+//array are copied on the workers
 Word DArray::Clone( const ListExpr inTypeInfo, const Word& w )
 {
   //cout << "DArray::Clone" << endl;
@@ -868,24 +885,25 @@ Word DArray::Clone( const ListExpr inTypeInfo, const Word& w )
                 alt->getSize(),
                 alt->getServerList());
 
-   for(int i =0;i<alt->getSize();i++)
-   {
+   DServerCmdCopyParam param (neu -> getName(), -1 );
+   if (alt -> runCommand <DServerCmdCopy, 
+                          DServerCmdCopyParam> (param) )
+     {
+       //cout << " -> OK" << endl;
+       return SetWord(neu);
+     }
+   else
+     {
+       if (alt -> hasError())
+         {
+           cerr << "ERROR:" << alt -> getErrorText() << endl;
+         }
+       else
+         cerr << "ERROR: Cannot copy darray!" << endl;
+     }
 
-      list<int> l;
-      l.push_front(i);
-
-      string to = neu->getName();
-      vector<Word> w(1);
-      w[0].addr = &to;
-
-      alt->getServerManager()->getServerByIndex(i)
-        ->setCmd(DServer::DS_CMD_COPY,&l,&w);
-
-      alt->getServerManager()->getServerByIndex(i)->run();
-   }
-
-   //cout << " -> OK" << endl;
-   return SetWord(neu);
+   return SetWord(new DArray (false) );
+    
 }
 
 
@@ -899,10 +917,38 @@ bool DArray::Open( SmiRecord& valueRecord ,
    string name, type, server;
    int length;
    int size;
+   int da_revision;
+   bool is_defined = true;
 
    //Size of the array is read
-   valueRecord.Read(&size,sizeof(int),offset);
+   valueRecord.Read(&da_revision,sizeof(int),offset);
    offset+=sizeof(int);
+
+   if (da_revision == -1)
+     {
+       //cout << "READING NEW FORMAT!" << endl;
+       // this is new fromat as of March 2012
+       // format March 2012: size: -1
+
+       // reading defined / not defined
+       int tmp = 0;
+       valueRecord.Read(&tmp,sizeof(int),offset);
+       offset+=sizeof(int);
+       
+       if (tmp == 0)
+         is_defined = false;
+
+       //Size of the array is read
+       valueRecord.Read(&size,sizeof(int),offset);
+       offset+=sizeof(int);
+
+     }
+   else
+     { 
+       //cout << "READING OLD FORMAT!" << endl;
+       // old format:
+       size = da_revision;
+     }
 
    //type-expression (string) is read
    valueRecord.Read(&length, sizeof(length), offset);
@@ -934,12 +980,23 @@ bool DArray::Open( SmiRecord& valueRecord ,
    ListExpr typeList;
    nl->ReadFromString( type, typeList);
 
-   ListExpr serverlist;
-   nl->ReadFromString(server,serverlist);
+   ListExpr serverlist = nl -> TheEmptyList();
+   DArray *da = NULL;
+   if (server.length() > 0 && server != "()")
+     {
+       nl->ReadFromString(server,serverlist);
+       da = new DArray(typeList,name,size,serverlist);
+     }
+   else
+     da = new DArray(false);
 
+   if (!is_defined)
+     da -> SetUndefined();
 
-   value.addr = ((Word)new DArray(typeList,name,size,serverlist)).addr;
+   value.addr = ((Word)da).addr;
+
    //cout << " -> OK" << endl;
+
    return true;
 }
 
@@ -948,14 +1005,28 @@ bool DArray::Save( SmiRecord& valueRecord ,
                const ListExpr inTypeInfo ,
                Word& value )
 {
-  //cout << "DArray::Save" << endl;
    int length;
    DArray*  darray = ((DArray*)value.addr);
    assert (darray != NULL);
 
-   int size = darray->getSize();
+   // This is using a new fromat as of March 2012.
+   // Format March 2012: revision = -1
+   // all new formats must have negative numbers!
+   // since zero value and positive values are used 
+   // by the original format
+   int da_revision = -1;
+
+   //current format revision is saved
+   valueRecord.Write(&da_revision, sizeof(int),offset);
+   offset+=sizeof(int);
+
+   //defined / not defined is saved
+   int defined  = darray->IsDefined() ? 1 : 0;
+   valueRecord.Write(&defined, sizeof(int),offset);
+   offset+=sizeof(int);
 
    //Size of the array is saved
+   int size = darray->getSize();
    valueRecord.Write(&size, sizeof(int),offset);
    offset+=sizeof(int);
 
@@ -967,6 +1038,7 @@ bool DArray::Save( SmiRecord& valueRecord ,
    offset += sizeof(length);
    valueRecord.Write ( type.data(), length, offset);
    offset += length;
+
 
    //Workerlist of the array is saved
    string server;
@@ -984,8 +1056,6 @@ bool DArray::Save( SmiRecord& valueRecord ,
    offset += sizeof(length);
    valueRecord.Write ( name.data(), length, offset);
    offset += length;
-
-   //cout << " -> OK" << endl;
 
    return true;
 }
@@ -1023,7 +1093,202 @@ int DArray::SizeOfObj()
    return sizeof(DArray);
 }
 
+bool 
+DArray::hasError() const
+{
+  if (getServerManager() != NULL)
+    {
+      for(int i =0; i < getSize();i++)
+        if (getServerManager()->getServerByIndex(i) -> hasError())
+          return true;
+    }
+  return false;
+}
 
+string 
+DArray::getErrorText() const
+{
+  if (getServerManager() != NULL)
+    {
+      for(int i =0; i < getSize();i++)
+        if (getServerManager()->getServerByIndex(i) -> hasError())
+          return getServerManager()->
+            getServerByIndex(i) -> getErrorText();
+    }
+  return string();
+}
+
+bool DArray::destroyAnyChilds()
+{
+  bool ret_val = true;
+  if (getServerManager() != NULL)
+    for(int k = 0; k < getServerManager() -> getNoOfWorkers(); k++)
+      if (getServerManager() ->getServerbyID(k) != NULL)
+        getServerManager() ->getServerbyID(k)->DestroyChilds();
+
+  return ret_val;
+}
+bool 
+DArray::multiplyWorkers(vector<DServer*>* outServerList)
+{ 
+  bool ret_val = true;
+
+  DServerManager* man = getServerManager();
+  DServer* server = 0;
+
+  if (man == NULL || !(man -> isOk()))
+    {
+      cerr << "Cannot start workers!" << endl;
+      ret_val = false;
+    }
+  else
+    {
+      int server_no = man -> getNoOfMultiWorkers(size);
+      int rel_server = man -> getRelativeNrOfChildsPerWorker(size);
+      int workerWithMoreChilds = 
+        man -> getNrOfWorkersWithMoreChilds(size);
+
+      try
+        {
+
+          ZThread::ThreadedExecutor threadEx;
+          cout << "Multiplying worker connections... " << endl;
+
+       
+          for(int i = 0; i<server_no;i++)
+            {
+              int childCnt = rel_server;
+              if (i < workerWithMoreChilds)
+                childCnt ++;
+              server = man->getServerbyID(i);
+              threadEx.execute(new DServerMultiplyer(server,
+                                                     childCnt));
+            }
+          threadEx.wait();
+        }
+      catch(ZThread::Synchronization_Exception& e)
+        {
+          cerr << "Could not multiply  DServers!" << endl;
+          cerr << e.what() << endl;
+          ret_val = false;
+        }
+
+      for(int i = 0; ret_val && i < getSize(); i++)
+        {
+          server = man->getServerByIndex(i);
+          int child = man->getMultipleServerIndex(i);
+
+          if(child > -1)
+            {
+              assert((unsigned int)child < 
+                     server->getChilds().size());
+              server = (server->getChilds())[child];
+            }
+
+          if (!(server -> checkServer(true)) ||
+              server -> hasError())
+            {
+              cerr << "ERROR: Multiplying darrays" << endl;
+              cerr << server -> getErrorText() << endl;
+              ret_val = false;
+            }
+
+          if (ret_val && outServerList != NULL)
+            (*outServerList)[i] = server;
+        }
+    }
+  
+  if (!ret_val)
+    {
+      // destroy childs of workers, if exist
+      for(int k = 0; k< getSize();k++)
+         man ->getServerbyID(k)->DestroyChilds();
+
+      if (outServerList != NULL)
+        outServerList -> clear();
+    }
+
+  return ret_val;
+}
+
+template <class T, class P>
+bool DArray::runCommand(const P& inParam)
+{
+  bool ret_val = true;
+
+  for(int i =0; ret_val && i< getSize();i++)
+    {
+      DServer* worker = getServerManager()->getServerByIndex(i);
+      DServerCmd *cmd = 
+        new T (worker, i);
+      
+      cmd -> setParam<P>(&inParam);
+
+      cmd -> run();
+      
+      if (worker -> hasError())
+        {
+          ret_val = false;
+        }
+
+      delete cmd;
+   }
+  return ret_val;
+}
+
+template <class T, class P>
+bool DArray::runCommandThreaded(ZThread::ThreadedExecutor& inExec,
+                                const P& inParam,
+                                vector<DServer *>* inServerList,
+                                bool inWaitForThreadToEnd)
+{
+  bool ret_val = true;
+  if (inServerList != NULL &&
+      inServerList -> size() != (unsigned long) getSize())
+    {
+      cerr << "ERROR: ServerList does not match DArray Size!" 
+           << endl;
+      ret_val = false;
+    }
+
+  for(int i =0; ret_val && i< getSize();i++)
+    {
+      DServer* worker = NULL;
+      if (inServerList == NULL)
+        worker = getServerManager()->getServerByIndex(i);
+      else
+        worker = (*inServerList)[i];
+
+      if (worker != NULL)
+        {
+          DServerThreadRunner *cmd = 
+            new T (worker, i);
+
+          cmd -> setParam<P>(&inParam);
+          
+          // cout << "RunningT: " << cmd -> getInfo() << endl;
+          inExec.execute(cmd);
+          
+          if (worker -> hasError())
+            {
+              cerr << "ERROR: Worker has errors!" << endl;
+              cerr << worker ->  getErrorText() << endl;
+              ret_val = false;
+            }
+        }
+      else
+        {
+          cerr << "ERROR: Worker not defined!" << endl;
+          ret_val = false;
+        }
+   }
+  
+  if (inWaitForThreadToEnd)
+    {
+      inExec.wait();
+    }
+  return ret_val;
+}
 /*
 
 4.6 Type Constructor
@@ -1041,7 +1306,7 @@ struct darrayInfo : ConstructorInfo
       typeExample  = "darray int";
       listRep      =  "(a1 a2 a3)";
       valueExample = "(4 12 2 8)";
-      remarks      = "A darray keeps all its element on remote systems";
+      remarks = "A darray keeps all its element on remote systems";
    }
 };
 
@@ -1097,10 +1362,26 @@ static ListExpr makeDarrayTypeMap( ListExpr args )
     return NList::typeError( "Empty input! Expecting \
        ((rel(tuple([Server: string, Port: int]))) t t ... t)" );
 
-   ListExpr slist = nl->First(args);
-   if(nl->ToString(slist) != "(rel (tuple ((Server string) (Port int))))")
-      return nl->SymbolAtom(Symbol::TYPEERROR());
+  NList workers (nl->First(args));
 
+   // check worker rel
+   if (!workers.isList() || 
+       !listutils::isRelDescription(workers.listExpr()) ||
+       !workers.
+         second().
+           second().
+             first().
+                second().isSymbol(CcString::BasicType()) ||
+       !workers.
+          second().
+            second().
+              second().
+                second().isSymbol(CcInt::BasicType()))
+     {
+       return 
+         NList::typeError
+         ("Worker relation not in the correct format (string, int)");
+     }
    //all other types must be the same
    args = nl->Rest(args);
    if (nl -> IsEmpty(args))
@@ -1118,8 +1399,9 @@ static ListExpr makeDarrayTypeMap( ListExpr args )
       rest = nl->Rest(rest);
    }
 
-  //return nl->TwoElemList(nl->SymbolAtom(DArray::BasicType()),nl->First(args));
-   return nl->TwoElemList(nl->SymbolAtom(DArray::BasicType()),nl->First(args));
+   return 
+     nl->TwoElemList(
+          nl->SymbolAtom(DArray::BasicType()),nl->First(args));
 
 }
 
@@ -1144,23 +1426,27 @@ makeDarrayfun( Word* args, Word& result,
 
    //Objects need to be cloned to be persistent after the query ends
    for(int i = 0;i<size;i++)
-   {
-      cloned[i] = (am->CloneObj(algID,typID))(typeOfElement,args[i+1]);
-   }
+     {
+      cloned[i] = 
+        (am->CloneObj(algID,typID))(typeOfElement,args[i+1]);
+     }
 
    //Generate serverlist as ListExpr from Relation
    GenericRelation* r = (GenericRelation*)args[0].addr;
    GenericRelationIterator* rit = r->MakeScan();
    ListExpr reltype;
-   nl->ReadFromString("(rel (tuple ((Server string) (Port int))))",reltype);
+   nl->
+     ReadFromString("(rel (tuple ((Server string) (Port int))))",
+                    reltype);
    ListExpr serverlist = Relation::Out(reltype,rit);
 
    result = qp->ResultStorage(s);
 
-   bool rc = ((DArray*)result.addr)->initialize(typeOfElement,
-                                                getArrayName(DArray::no),
-                                                size,serverlist,
-                                                cloned);
+   bool rc = 
+     ((DArray*)result.addr)->initialize(typeOfElement,
+                                        getArrayName(DArray::no),
+                                        size,serverlist,
+                                        cloned);
    if (!rc)
      {
        return 1;
@@ -1173,7 +1459,8 @@ const string makeDarraySpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
      "( <text>(rel(tuple([Server: string, Port: int])) t t ...)"
        " -> darray t</text---><text>makeDarray ( _, _ )</text--->"
-       "<text>Returns a distributed Array containing x element</text--->"
+       "<text>Returns a distributed Array"
+       " containing x element</text--->"
        "<text>query makeDarray(server_rel,1,2,3)</text---> ))";
 
 Operator makeDarray(
@@ -1224,7 +1511,7 @@ static int getFun( Word* args,
    DArray* array = ((DArray*)args[0].addr);
    bool hasErrors = false;
    if ( array == 0 ||
-        !(array -> isDefined()) ||
+        !(array -> IsDefined()) ||
         !(array -> getServerManager() -> checkServers(false)))
      {
        cerr << "ERROR: DArray is not defined correctly!" << endl;
@@ -1282,7 +1569,8 @@ const string getSpec =
      "( <text>((darray t) int) -> t</text--->"
        "<text>get ( _, _ )</text--->"
        "<text>Returns an element from a distributed Array</text--->"
-       "<text>query get(makeDarray(server_rel,1,2,3),1)</text---> ))";
+       "<text>query get(makeDarray(server_rel,1,2,3),1)"
+       "</text---> ))";
 
 Operator getA(
          "get",
@@ -1296,7 +1584,7 @@ Operator getA(
 
 5.3 Operator put
 
-((darray t)<, t, int) -> (darray t)
+((darray t), t, int) -> (darray t)
 
 */
 
@@ -1308,9 +1596,11 @@ static ListExpr putTypeMap( ListExpr args )
       ListExpr arg2 = nl->Second(args);
       ListExpr arg3 = nl->Third(args);
 
-      //The first argument needs to be a darray, the second one of the
-      //same type as the array-elements and the third one int
-      if(!nl->IsAtom(arg1) && nl->IsEqual(nl->First(arg1),DArray::BasicType())
+      //The first argument needs to be a darray, the second 
+      //one of the same type as the array-elements and the 
+      //third one int
+      if(!nl->IsAtom(arg1) && 
+         nl->IsEqual(nl->First(arg1), DArray::BasicType())
          && nl->Equal(nl->Second(arg1),arg2)
          && nl->IsEqual(arg3,CcInt::BasicType()))
       {
@@ -1330,60 +1620,87 @@ static int putFun( Word* args,
 {
   DArray* array_alt = ((DArray*)args[0].addr);
   Word element = args[1];
-  int i = ((CcInt*)args[2].addr)->GetIntval();
-
-  //new elements needs to be copied
-  Word elem_n = ((am->CloneObj(array_alt->getAlgID(),
-                         array_alt->getTypID()))
-             (array_alt->getType(),element));
+  int idx = ((CcInt*)args[2].addr)->GetIntval();
 
   //new array is initialized
   result = qp->ResultStorage(s);
-  ((DArray*)result.addr)->initialize(array_alt->getType(),
-                                     getArrayName
-                                     (DArray::no),
-                                     array_alt->getSize(),
-                                     array_alt->getServerList());
-
-  //all elements, except the one to be substituted, are copied on the workers
-  for(int j = 0; j<array_alt->getSize();j++)
+  DArray* da = (DArray*)result.addr;
+  
+  if (array_alt == NULL ||
+      !(array_alt -> IsDefined()))
     {
-     vector<Word> w (1);
-      string to = ((DArray*)result.addr)->getName();
-      w[0].addr = &to;
+      cerr << "ERROR: DArray object is not defined!" << endl;
+      delete da;
+      result = SetWord(new DArray(false));
 
-      if(j!=i)
-      {
+      return 0;
+    }
+  
+  //new elements needs to be copied
+  Word elem_n = ((am->CloneObj(array_alt->getAlgID(),
+                               array_alt->getTypID()))
+                 (array_alt->getType(),element));
 
-         list<int> l;
-         l.push_front(j);
+  // check, if valid object
+  if (da != NULL && 
+      // check, if valid index
+      idx >= 0 && idx < array_alt -> getSize())
+    {
+      da->initialize(array_alt->getType(),
+                     getArrayName(DArray::no),
+                     array_alt->getSize(),
+                     array_alt->getServerList());
 
+      DServerCmdCopyParam param (da -> getName(), idx );
+  
+      if (array_alt -> runCommand <DServerCmdCopy,  
+                                   DServerCmdCopyParam> (param) )
+        { 
+          //The substituted element is set
+          da -> set(elem_n, idx);
 
-         array_alt->
-         getServerManager() ->
-         getServerByIndex(j) ->
-           setCmd(DServer::DS_CMD_COPY,&l,&w);
-
-         array_alt->getServerManager()->getServerByIndex(j)->run();
-      }
+          // all is ok
+          return 0;
+        }
       else
-      {
-         //The substituted element is set
-         ((DArray*)result.addr)->set(elem_n,j);
-      }
+        {
+          if (array_alt -> hasError())
+            {
+              cerr << "ERROR:" 
+                   << array_alt -> getErrorText() << endl;
+            }
+          else
+            cerr << "ERROR: Operator put - unknown error!" << endl;
+        }
 
-   }
+    }
+  else
+    {
+      // error msg
+      if (da == NULL || !(da -> IsDefined()))
+        cerr << "Error: undefined darray object!" << endl;
+      else if (idx < 0 || idx >= array_alt -> getSize())
+        cerr << "Error: invalid index: 0 <= "
+             << idx << " < " << array_alt -> getSize() 
+             << " is not a valid index!" << endl;
+      else
+        cerr << "Error in put function!" << endl;
+    }
+  // error: invalidate result
+  da -> remove();
+  delete da;
+  result = SetWord(new DArray(false));
 
-   return 0;
-
+  return 0;
 }
 
 const string putSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
      "( <text>((darray t) t int) -> darray t</text--->"
        "<text>put ( _, _, _ )</text--->"
-"<text>Returns a distributed array where one element is altered</text--->"
-       "<text>query put(makeDarray(server_rel,1,2,3),2,2)</text---> ))";
+       "<text>Returns a distributed array where"
+       "one element is altered</text--->"
+   "<text>query put(makeDarray(server_rel,1,2,3),2,2)</text---> ))";
 
 Operator putA(
          "put",
@@ -1420,8 +1737,10 @@ static int sendFun( Word* args,
                 Supplier s)
 {
    //retrieve Hostname and Port
-   string host = (string)(char*)((CcString*)args[3].addr)->GetStringval();
-   string port = (string)(char*)((CcString*)args[4].addr)->GetStringval();
+   string host = 
+     (string)(char*)((CcString*)args[3].addr)->GetStringval();
+   string port = 
+     (string)(char*)((CcString*)args[4].addr)->GetStringval();
    string line;
 
    host = stringutils::replaceAll(host,"_",".");
@@ -1429,7 +1748,8 @@ static int sendFun( Word* args,
    port = stringutils::replaceAll(port,"p","");
    
    //Connect to master
-   Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+   Socket* master = 
+     Socket::Connect(host,port,Socket::SockGlobalDomain);
 
 
 
@@ -1475,7 +1795,7 @@ static int sendFun( Word* args,
             delete buffer;
 
             TypeConstructor* t = am->GetTC(algID,typID);
-            Attribute* a;
+            Attribute* a = NULL;
             if(t->NumOfFLOBs() > 0 )
                a = static_cast<Attribute*>
                      ((am->Cast(algID,typID))(args[2].addr));
@@ -1510,8 +1830,9 @@ static int sendFun( Word* args,
 
             if( line!="<FINISH>" )
             {
-              cout << "Error: Missing 'Finish' tag from Master!" << endl;
-              cout << " Got:'" << line << "'" << endl;
+              cerr << "Error: Missing 'Finish' tag from Master!" 
+                   << endl;
+              cerr << " Got:'" << line << "'" << endl;
             }
 
             result = qp->ResultStorage(s);
@@ -1565,7 +1886,8 @@ static ListExpr receiveTypeMap( ListExpr args )
    host = stringutils::replaceAll(host,"h","");
    port = stringutils::replaceAll(port,"p","");
 
-   Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+   Socket* master = 
+     Socket::Connect(host,port,Socket::SockGlobalDomain);
 
    if(master==0 || !master->IsOk())
       return nl->SymbolAtom(Symbol::TYPEERROR());
@@ -1590,9 +1912,10 @@ static ListExpr receiveTypeMap( ListExpr args )
 
    return
      nl->ThreeElemList(
-          nl->SymbolAtom(Symbol::APPEND()),
-          nl->TwoElemList(nl->StringAtom(nl->ToString(nl->First(args))),
-                      nl->StringAtom(nl->ToString(nl->Second(args)))),
+        nl->SymbolAtom(Symbol::APPEND()),
+          nl->TwoElemList(
+                nl->StringAtom(nl->ToString(nl->First(args))),
+                nl->StringAtom(nl->ToString(nl->Second(args)))),
           convertType(type));
 
 }
@@ -1603,21 +1926,24 @@ static int receiveFun( Word* args,
                    Word& local,
                    Supplier s)
 {
-   string host = (string)(char*)((CcString*)args[2].addr)->GetStringval();
-   string port = (string)(char*)((CcString*)args[3].addr)->GetStringval();
+   string host = 
+     (string)(char*)((CcString*)args[2].addr)->GetStringval();
+   string port = 
+     (string)(char*)((CcString*)args[3].addr)->GetStringval();
    string line;
 
    host = stringutils::replaceAll(host,"_",".");
    host = stringutils::replaceAll(host,"h","");
    port = stringutils::replaceAll(port,"p","");
 
-   Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+   Socket* master = 
+     Socket::Connect(host,port,Socket::SockGlobalDomain);
 
    if(master!=0 && master->IsOk())
    {
 
       iostream& iosock = master->GetSocketStream();
-      iosock << "LOS" << endl;
+      iosock << "<LOS/>" << endl;
 
       getline(iosock,line);
 
@@ -1674,14 +2000,16 @@ static int receiveFun( Word* args,
                   {
                      getline(iosock,line);
                      if(line!="<SIZE>")
-                        cout << "Error: Unexpected Response from Worker!";
+                        cerr << "Error: Unexpected Response "
+                             << "from Worker!";
 
                      getline(iosock,line);
                      SmiSize si = atoi(line.data());
 
                      getline(iosock,line);
                      if(line!="</SIZE>")
-                        cout << "Error: Unexpected Response from Worker!";
+                        cerr << "Error: Unexpected Response "
+                             << "from Worker!";
 
                      int n_blocks = si / 1024 + 1;
                      char* buf = new char[n_blocks*1024];
@@ -1702,15 +2030,18 @@ static int receiveFun( Word* args,
 
                      getline(iosock,line);
                      if(line!="</FLOB>")
-                        cout << "Error: Unexpected Response from Worker!";
+                        cerr << "Error: Unexpected Response "
+                             << "from Worker!";
 
                      getline(iosock,line);
                      flobs++;
                   }
+
                   Flob::clearCaches();
 
                   if(line!="<CLOSE>")
-                     cout << "Error: Unexpected Response from Worker!";
+                     cerr << "Error: Unexpected Response "
+                          << "from Worker!";
 
                   iosock << "<FINISH>" << endl;
 
@@ -1761,7 +2092,8 @@ static ListExpr receiverelTypeMap( ListExpr args )
    host = stringutils::replaceAll(host,"h","");
    port = stringutils::replaceAll(port,"p","");
 
-   Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+   Socket* master =
+     Socket::Connect(host,port,Socket::SockGlobalDomain);
 
    if(master==0 || !master->IsOk())
       return nl->SymbolAtom(Symbol::TYPEERROR());
@@ -1807,8 +2139,9 @@ static ListExpr receiverelTypeMap( ListExpr args )
    
    return nl->ThreeElemList(
           nl->SymbolAtom(Symbol::APPEND()),
-          nl->TwoElemList(nl->StringAtom(nl->ToString(nl->First(args))),
-                    nl->StringAtom(nl->ToString(nl->Second(args)))),
+          nl->TwoElemList(
+              nl->StringAtom(nl->ToString(nl->First(args))),
+              nl->StringAtom(nl->ToString(nl->Second(args)))),
           convertType(type));
 }
 
@@ -1822,8 +2155,10 @@ static int receiverelFun( Word* args,
 #ifdef RECEIVE_REL_FUN_DEBUG
       cout <<  " receiverelFun - start" << endl;
 #endif
-   string host = (string)(char*)((CcString*)args[2].addr)->GetStringval();
-   string port = (string)(char*)((CcString*)args[3].addr)->GetStringval();
+   string host = 
+     (string)(char*)((CcString*)args[2].addr)->GetStringval();
+   string port = 
+     (string)(char*)((CcString*)args[3].addr)->GetStringval();
 
    ListExpr resultType, sendType;
 
@@ -1833,7 +2168,9 @@ static int receiverelFun( Word* args,
    host = stringutils::replaceAll(host,"h","");
    port = stringutils::replaceAll(port,"p","");
 
-   Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+   // BEGIN connection to OPEN_WRITE_REL
+   Socket* master = 
+     Socket::Connect(host,port,Socket::SockGlobalDomain);
 
    result = qp->ResultStorage(s);
 
@@ -1864,7 +2201,8 @@ static int receiverelFun( Word* args,
       nl->ReadFromString(line,resultType);
       resultType = nl->Second(resultType);
 #ifdef RECEIVE_REL_FUN_DEBUG
-      cout <<  " RRF Got Type:" << nl -> ToString(resultType) << endl;
+      cout <<  " RRF Got Type:" 
+           << nl -> ToString(resultType) << endl;
 #endif
       TupleType* tupleType = new TupleType(resultType);
       // </TYPE>
@@ -1909,7 +2247,8 @@ static int receiverelFun( Word* args,
           nl->ReadFromString(line,sendType);
         }
 #ifdef RECEIVE_REL_FUN_DEBUG
-          cout <<  " RRF Got Type:" << nl -> ToString(sendType) << endl;
+          cout <<  " RRF Got Type:" 
+               << nl -> ToString(sendType) << endl;
 #endif
       TupleType* sendTT = new TupleType(sendType);
       // </INTYPE>
@@ -1936,7 +2275,7 @@ static int receiverelFun( Word* args,
 #endif
       if(line != "<INDEX>")
         {
-          cerr << "ERROR: Expecting <INTYPE> from sever! (Got:" 
+          cerr << "ERROR: Expecting <INDEX> from sever! (Got:" 
                << line << ")" << endl;
           return 1;
         }
@@ -1962,7 +2301,7 @@ static int receiverelFun( Word* args,
 #endif
       if(line != "</INDEX>")
         {
-          cerr << "ERROR: Expecting </INTYPE> from sever! (Got:" 
+          cerr << "ERROR: Expecting </INDEX> from sever! (Got:" 
                << line << ")" << endl;
           return 1;
         }
@@ -1971,6 +2310,9 @@ static int receiverelFun( Word* args,
 #endif
       iosock << "<OK/>" << endl;
 
+      // END connection to OPEN_WRITE_REL
+
+      // BEGIN connection to WRITE_REL
       // first <TUPLE>
       getline(iosock,line);
 
@@ -1992,10 +2334,11 @@ static int receiverelFun( Word* args,
           cout <<  " RRF Got IO6:" << line << endl;
 #endif
 #ifdef RECEIVE_REL_FUN_DEBUG
-          cout <<  " RRF Send IO:"  << "<OK>" << endl << toString_d(num_blocks)
+          cout <<  " RRF Send IO:"  << "<OK>" 
+               << endl << int2Str(num_blocks)
                << endl << "</OK>" << endl;
 #endif
-          iosock << "<OK>" << endl << toString_d(num_blocks)
+          iosock << "<OK>" << endl << int2Str(num_blocks)
                  << endl << "</OK>" << endl;
 
           char* buffer = new char[1024*num_blocks];
@@ -2031,12 +2374,15 @@ static int receiverelFun( Word* args,
           delete buffer;
             
           // expeting next <TUPLE>
+          // or close
             getline(iosock,line);
 #ifdef RECEIVE_REL_FUN_DEBUG
       cout <<  " RRF Got IO7:" << line << endl;
 #endif
-         }
+      // END connection to WRITE_REL
+        }
 
+      // BEGIN connection to CLOSE_WRITE_REL
          delete tupleType;
 
          if(line=="<CLOSE>")
@@ -2056,11 +2402,12 @@ static int receiverelFun( Word* args,
          }
          else
          {
-           cout << "Error: receiverelFun did not finish correctly!" << endl;
+           cout << "Error: receiverelFun did not finish correctly!" 
+                << endl;
            cout << "Line='" << line << "'" << endl;
            return 1;
          }
-
+         // END connection to CLOSE_WRITE_REL
    }
 
    return 1;
@@ -2110,15 +2457,18 @@ static int sendrelFun( Word* args,
                    Supplier s)
 {
 
-   string host = (string)(char*)((CcString*)args[3].addr)->GetStringval();
-   string port = (string)(char*)((CcString*)args[4].addr)->GetStringval();
+   string host =
+     (string)(char*)((CcString*)args[3].addr)->GetStringval();
+   string port =
+     (string)(char*)((CcString*)args[4].addr)->GetStringval();
    string line;
 
    host = stringutils::replaceAll(host,"_",".");
    host = stringutils::replaceAll(host,"h","");
    port = stringutils::replaceAll(port,"p","");
 
-   Socket* master = Socket::Connect(host,port,Socket::SockGlobalDomain);
+   Socket* master =
+     Socket::Connect(host,port,Socket::SockGlobalDomain);
 
    if(master!=0 && master->IsOk())
    {
@@ -2133,7 +2483,7 @@ static int sendrelFun( Word* args,
          size_t cS,eS,fS;
          size_t size = t->GetBlockSize(cS,eS,fS);
 
-         iosock << "<TUPLE>" << endl << toString_d(size)
+         iosock << "<TUPLE>" << endl << int2Str(size)
                   << endl << "</TUPLE>" << endl;
 
          int num_blocks = (size / 1024) + 1;
@@ -2182,6 +2532,617 @@ Operator sendrelA(
          Operator::SimpleSelect,
          sendrelTypeMap);
 
+/*
+
+5.8 Operator d\_receive\_shuffle
+
+*/
+
+static ListExpr receiveShuffleTypeMap( ListExpr args )
+{
+  //NList myAargs (args);
+                  
+#ifdef RECEIVE_SHUFFLE_MAP_DEBUG
+  cout << "HERE: ReceiveShuffleTM:"
+       << myAargs.convertToString() << endl;
+#endif
+   string host = nl->ToString(nl->First(args));
+   string port = nl->ToString(nl->Second(args));
+   string line;
+
+   host = stringutils::replaceAll(host,"_",".");
+   host = stringutils::replaceAll(host,"h","");
+   port = stringutils::replaceAll(port,"p","");
+
+   DServerCmdCallBackCommunication* callBack =
+     new DServerCmdCallBackCommunication(host, 
+                                         port
+#ifdef RECEIVE_SHUFFLE_MAP_DEBUG
+                                         ,"SHUFFLE_REC_TM"
+#endif
+                                         );
+
+   if (!(callBack -> createGlobalSocket()))
+     {
+       ErrorReporter::ReportError("Could not connect to Server!\n" +
+                                  callBack -> getErrorText());
+       delete callBack;
+       return nl->SymbolAtom(Symbol::TYPEERROR());
+     }
+
+   if (!(callBack -> getTagFromCallBack("TYPE", line)))
+     {
+       ErrorReporter::ReportError("Received invalid token!\n" + 
+                                  callBack -> getErrorText());
+       delete callBack;
+       return nl->SymbolAtom(Symbol::TYPEERROR());
+     }
+
+   ListExpr type;
+   DBAccessGuard::getInstance() -> NL_ReadFromString(line,type);
+
+   if (!(callBack -> sendTagToCallBack("CLOSE")))
+     {
+       ErrorReporter::ReportError("Could not send token!\n" + 
+                                  callBack -> getErrorText());
+       delete callBack;
+       return nl->SymbolAtom(Symbol::TYPEERROR());
+     }
+
+   delete callBack;
+
+#ifdef RECEIVE_SHUFFLE_MAP_DEBUG
+   cout <<  "receive shuffle TM - done " << endl;
+#endif
+
+   ListExpr typeLE = convertType(type);
+
+   return nl->ThreeElemList(
+          nl->SymbolAtom(Symbol::APPEND()),
+          nl->TwoElemList(
+                  nl->StringAtom(nl->ToString(nl->First(args))),
+                  nl->StringAtom(nl->ToString(nl->Second(args)))),
+          typeLE);
+}
+
+static int receiveShuffleFun( Word* args,
+                                    Word& result,
+                                    int message,
+                                    Word& local,
+                                    Supplier s)
+{
+#ifdef RECEIVE_SHUFFLE_FUN_DEBUG
+      cout <<  " receiveShuffleFun - start" << endl;
+#endif
+   string host = 
+     (string)(char*)((CcString*)args[2].addr)->GetStringval();
+   string port =
+     (string)(char*)((CcString*)args[3].addr)->GetStringval();
+
+
+   SecondoCatalog* sc = SecondoSystem::GetCatalog();
+   ListExpr resultType = nl->Second(qp->GetType(s));
+   resultType = sc->NumericType(resultType);
+
+   string line;
+
+   host = stringutils::replaceAll(host,"_",".");
+   host = stringutils::replaceAll(host,"h","");
+   port = stringutils::replaceAll(port,"p","");
+
+   // create callBack w/ worker
+   // this is done in DServerCmdShuffleRec
+
+   DServerCmdCallBackCommunication *dscCallBack = 
+     new DServerCmdCallBackCommunication(host, port
+#ifdef RECEIVE_SHUFFLE_FUN_DEBUG
+                                         , "SHUFFLERECVM"
+#endif
+                                         );
+
+   if(dscCallBack -> createGlobalSocket())
+     {
+       // now connected to the DServerCmdShuffleMultipleConn
+       if (!(dscCallBack -> getTagFromCallBack("STARTMULTIPLYCONN")))
+         {
+           cerr << "ERROR:" << dscCallBack -> getErrorText() << endl;
+           delete dscCallBack;
+           return 1;
+         }
+      
+       if (!(dscCallBack -> sendTagToCallBack("OK")))
+         {
+           cerr << "ERROR:" << dscCallBack -> getErrorText() << endl;
+           delete dscCallBack;
+           return 1;
+         }
+
+       // get the number of workers, which will be sending
+       // data
+       if (!(dscCallBack -> getTagFromCallBack("SRCWSIZE", line)))
+         {
+           cerr << "ERROR:" << dscCallBack -> getErrorText() << endl;
+           delete dscCallBack;
+           return 1;
+         }
+      
+       int srcSize = atoi(line.data());
+      
+       vector<string> srcHost(srcSize);
+       vector<int> srcToPort(srcSize);
+       int expectedstate = 0; // 0 - host, 1 - fromPort, 2 - toPort
+       unsigned long srcCnt = 0;
+       bool runIt = true;
+       bool noError = true;
+       string errMsg;
+
+       do{  
+         if (expectedstate == 0)
+           { 
+             if (!(dscCallBack -> 
+                      getTagFromCallBack("SRCWHOST", line)))
+               {
+                 cerr << "ERROR:" 
+                      << dscCallBack -> getErrorText() << endl;
+                 delete dscCallBack;
+                 return 1;
+               }
+             srcHost[srcCnt] = line;
+             expectedstate = 1;
+           }
+         else if (expectedstate == 1)
+           { 
+             if (!(dscCallBack -> 
+                      getTagFromCallBack("SRCWTPORT", line)))
+               {
+                 cerr << "ERROR:" 
+                      << dscCallBack -> getErrorText() << endl;
+                 delete dscCallBack;
+                 return 1;
+               }
+             srcToPort[srcCnt] = atoi(line.data());
+             srcCnt ++;
+             expectedstate = 0;
+           }
+
+         if (!(dscCallBack -> sendTagToCallBack("OK")))
+           {
+             cerr << "ERROR:" 
+                  << dscCallBack -> getErrorText() << endl;
+             delete dscCallBack;
+             return 1;
+           }
+        
+         runIt = 
+           dscCallBack -> getTagFromCallBackTF("NEXT", "DONE", 
+                                               noError);
+        
+         if (!noError)
+           { 
+             cerr << "ERROR:" 
+                  << dscCallBack -> getErrorText() << endl;
+             delete dscCallBack;
+             return 1;
+           }
+
+       } while (runIt);
+
+
+       // setup CommandQueue for each server;
+       vector<DServerShuffleReceiver*> serverCommand(srcSize); 
+      
+       if (!(dscCallBack -> sendTagToCallBack("GO")))
+         {
+           cerr << "ERRORA:" 
+                << dscCallBack -> getErrorText() << endl;
+           delete dscCallBack;
+           return 1;
+         }
+
+       result = qp->ResultStorage(s);
+
+       GenericRelation* rel = (Relation*)result.addr;
+
+       try
+         {
+           //ZThread::PoolExecutor poolEx(2);
+           ZThread::ThreadedExecutor poolEx;
+          
+           for(int i = 0; i < srcSize; i++)
+             {
+               serverCommand[i] = 
+                 new DServerShuffleReceiver(srcHost[i],
+                                            int2Str(srcToPort[i]),
+                                            rel,
+                                            resultType);
+              
+               poolEx.execute(serverCommand[i]);
+             }
+       
+           poolEx.wait();
+         }
+       catch(ZThread::Synchronization_Exception& e)
+         {
+           cerr << "Could not distribute data!" << endl;
+           cerr << e.what() << endl;
+           return 1;
+         }
+
+       if (!noError)
+         { 
+           cout << "RECEIVER on SENDING ERROR!" << endl;
+
+           if (!(dscCallBack -> sendTagToCallBack("ERROR")))
+             {
+               cerr << "ERROR:" 
+                    << dscCallBack -> getErrorText() << endl;
+               delete dscCallBack;
+               return 1;
+             }
+           string errorMsg ="Shuffle: error receiving tuples!";
+           if (!errMsg.empty())
+             errorMsg += "Reason: " + errMsg;
+
+           if (!(dscCallBack -> 
+                    sendTextToCallBack("ERRORDESC", errorMsg)))
+             {
+               cerr << "ERROR:" 
+                    << dscCallBack -> getErrorText() << endl;
+               delete dscCallBack;
+               return 1;
+             }
+         }
+       else
+         {
+           if (!(dscCallBack -> sendTagToCallBack("DONE")))
+             {
+               delete dscCallBack;
+               return 1;
+             }
+         }
+       dscCallBack -> forceCloseSavedCommunication();
+       delete dscCallBack;
+
+     }
+   else //   if(dscCallBack -> createGlobalSocket())
+     {
+       cerr << "ERROR: Could not connect receivers and senders!" 
+            <<endl;
+     }
+
+   return 0;
+
+} //static int receiveShuffleFun(...)
+
+const string receiveShuffleSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>-</text--->"
+       "<text>-</text--->"
+       "<text>Internal Usage by DistributedAlgebra</text--->"
+       "<text>-</text---> ))";
+
+Operator receiveShuffle(
+         "d_receive_shuffle",
+         receiveShuffleSpec,
+         receiveShuffleFun,
+         Operator::SimpleSelect,
+         receiveShuffleTypeMap);
+
+/*
+
+
+5.7 Operator d\_send\_shuffle
+
+Internal Usage for Data Transfer between Master and Worker
+for the shuffle operator
+
+*/
+
+
+static ListExpr sendShuffleTypeMap( ListExpr inArgs )
+{
+  NList args (inArgs);
+                  
+#ifdef SEND_SHUFFLE_MAP_DEBUG
+  cout << "HERE!: SendShuffleTM:" << args.convertToString() 
+       << endl;    
+#endif      
+
+  ListExpr errLE = nl->SymbolAtom(Symbol::TYPEERROR());
+
+  if (args.length() != 4)
+    {
+      ErrorReporter::ReportError
+        ("Wrong number of arguments for d_shuffle_send operator!");
+      return errLE;
+    }
+  NList mapDesc = args.second();
+
+  if (mapDesc.third() != NList(CcInt::BasicType()))
+    {
+      ErrorReporter::ReportError
+        ("Function return type must be of type <int>!!");
+      return errLE;
+    }
+    
+   ListExpr ret = nl->ThreeElemList(
+                  nl->SymbolAtom(Symbol::APPEND()),
+                  nl->TwoElemList(
+                     nl->StringAtom(args.third().convertToString()),
+                     nl->StringAtom(args.fourth().convertToString())
+                                  ),
+                  nl->SymbolAtom(CcInt::BasicType()));
+                  
+#ifdef SEND_SHUFFLE_MAP_DEBUG
+   cout << "SendShuffleTM Done:" 
+        << NList(ret).convertToString() << endl;    
+#endif      
+   return ret;
+
+}
+
+static int sendShuffleFun( Word* args,
+                           Word& result,
+                           int message,
+                           Word& local,
+                           Supplier s)
+{
+
+   string host =
+     (string)(char*)((CcString*)args[4].addr)->GetStringval();
+   string port =
+     (string)(char*)((CcString*)args[5].addr)->GetStringval();
+   string line;
+
+   bool invalidIndex = false;
+   host = stringutils::replaceAll(host,"_",".");
+   host = stringutils::replaceAll(host,"h","");
+   port = stringutils::replaceAll(port,"p","");
+
+ DServerCmdCallBackCommunication *dscCallBack = 
+     new DServerCmdCallBackCommunication(host, port
+#ifdef SEND_SHUFFLE_FUN_DEBUG
+                                         , "SHUFFLESEND"
+#endif
+                                         );
+
+   result = qp->ResultStorage(s);
+
+   // cout << "SENDER " 
+   //<< host << ":" << port << " connecting!" << endl;
+
+   if(dscCallBack -> createGlobalSocket())
+   {
+      // now connected to the DServerCmdShuffleMultipleConn
+      if (!(dscCallBack -> getTagFromCallBack("STARTMULTIPLYCONN")))
+          {
+            cerr << "ERROR1:" 
+                 << dscCallBack -> getErrorText() << endl;
+            delete dscCallBack;
+            return 1;
+          }
+
+      if (!(dscCallBack -> sendTagToCallBack("OK")))
+        {
+          cerr << "ERROR2:" << dscCallBack -> getErrorText() << endl;
+          delete dscCallBack;
+          return 1;
+        }
+        
+      // get the number of workers, which will be receiving
+      // data
+      if (!(dscCallBack -> getTagFromCallBack("SRCWSIZE", line)))
+        {
+          cerr << "ERROR3:" << dscCallBack -> getErrorText() << endl;
+          delete dscCallBack;
+          return 1;
+        }
+      
+      int destSize = atoi(line.data());
+
+      vector<string> destHost(destSize);
+      vector<int> destToPort(destSize);
+      int expectedstate = 0; // 0 - host, 1 - toPort
+      unsigned long destCnt = 0;
+      bool runIt = true;
+      bool noError = true;
+      string errMsg;
+
+      do{  
+        if (expectedstate == 0)
+          { 
+            if (!(dscCallBack -> 
+                    getTagFromCallBack("SRCWHOST", line)))
+              {
+                cerr << "ERROR:" 
+                     << dscCallBack -> getErrorText() << endl;
+                delete dscCallBack;
+                return 1;
+              }
+            destHost[destCnt] = line;
+            expectedstate = 1;
+          }
+        else if (expectedstate == 1)
+          { 
+             if (!(dscCallBack -> 
+                      getTagFromCallBack("SRCWTPORT", line)))
+              {
+                cerr << "ERROR:" 
+                     << dscCallBack -> getErrorText() << endl;
+                delete dscCallBack;
+                return 1;
+              }
+            destToPort[destCnt] = atoi(line.data());
+            destCnt ++;
+            expectedstate = 0;
+          }
+
+        if (!(dscCallBack -> sendTagToCallBack("OK")))
+          {
+            cerr << "ERROR:" 
+                 << dscCallBack -> getErrorText() << endl;
+            delete dscCallBack;
+            return 1;
+          }
+        
+        runIt = 
+          dscCallBack -> 
+              getTagFromCallBackTF("NEXT", "DONE", noError);
+        if (!noError)
+          {
+            cerr << "ERROR:" 
+                 << dscCallBack -> getErrorText() << endl;
+            delete dscCallBack;
+            return 1;
+          }
+
+      } while (runIt);
+
+      // done connected to DServerCmdShuffleSend
+
+       if (!(dscCallBack -> sendTagToCallBack("GO")))
+         {
+           cerr << "ERRORA:" 
+                << dscCallBack -> getErrorText() << endl;
+           delete dscCallBack;
+           return 1;
+         }
+
+      // now sending tuples
+      MemCntr memCntr (qp->GetMemorySize(s) * 1024 * 1024);
+      
+      Word current = SetWord( Address (0) );
+      
+      Stream<Tuple> inTupleStream(args[0]);
+      inTupleStream.open();
+      
+      Tuple* tuple1;
+      // setup CommandQueue for each server;
+      vector<DServerShuffleSender*> serverCommand(destSize); 
+      
+      try
+        {
+          //ZThread::PoolExecutor poolEx(2);
+          ZThread::ThreadedExecutor poolEx;
+                    
+          for(int i = 0; i < destSize; i++)
+            {
+              serverCommand[i] = 
+                new DServerShuffleSender(destHost[i],
+                                         int2Str(destToPort[i]), 
+                                         &memCntr);
+              
+              poolEx.execute(serverCommand[i]);
+            }
+                    
+          Word value;
+          ArgVectorPointer funargs;
+
+          while( !invalidIndex &&
+                 (tuple1 = 
+                  DBAccess::getInstance() -> 
+                         TS_Request(inTupleStream)) != 0)
+            {
+              // ArrayIndex
+              int arrIndex = 0;
+             
+              funargs = qp->Argument(args[1].addr);
+              ((*funargs)[0]).setAddr(tuple1);
+              qp->Request(args[1].addr, value);
+              if ( ((CcInt*)value.addr)->IsDefined())
+                arrIndex = ((CcInt*)value.addr)->GetIntval();
+                               
+              if (arrIndex >= destSize ||
+                  arrIndex < 0)
+                {
+                  errMsg = "INVALID INDEX (" + 
+                    int2Str(arrIndex) + ")";
+                  noError = false;
+                  invalidIndex = true;
+                }
+              else
+                {
+                  memCntr.request(tuple1 -> GetSize());
+                  
+                  serverCommand[arrIndex] -> AppendTuple(tuple1);
+                }
+              //number ++;
+            } // while (...)
+          
+          for(int i = 0; i < destSize; i++)
+            {
+              serverCommand[i] -> done();
+            }
+          
+          poolEx.wait();
+
+          inTupleStream.close();
+          
+        }
+      catch(ZThread::Synchronization_Exception& e)
+        {
+          cerr << "Could not distribute data!" << endl;
+          cerr << e.what() << endl;
+          return 1;
+        }
+      
+      if (!noError)
+        { 
+          if (!(dscCallBack -> sendTagToCallBack("ERROR")))
+            {
+              cerr << "ERROR:" 
+                   << dscCallBack -> getErrorText() << endl;
+              delete dscCallBack;
+              return 1;
+            }
+          string errorMsg ="Shuffle: error sending tuples!";
+          if (!errMsg.empty())
+            errorMsg += "Reason: " + errMsg;
+
+          if (!(dscCallBack -> 
+                  sendTextToCallBack("ERRORDESC", errorMsg)))
+            {
+              cerr << "ERROR:" 
+                   << dscCallBack -> getErrorText() << endl;
+              delete dscCallBack;
+              return 1;
+            }
+        }
+      else
+        {
+          if (!(dscCallBack -> sendTagToCallBack("DONE")))
+            {
+              cerr << "ERROR:"
+                   << dscCallBack -> getErrorText() << endl;
+              delete dscCallBack;
+              return 1;
+            }
+        }
+
+      delete dscCallBack;
+   }
+
+   result = qp->ResultStorage(s);
+
+   ((CcInt*)result.addr)->Set(1);
+
+   return 0;
+
+   }
+
+const string sendShuffleSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+     "( <text>-</text--->"
+       "<text>-</text--->"
+       "<text>Internal Usage by DistributedAlgebra</text--->"
+       "<text>-</text---> ))";
+
+Operator sendShuffle(
+         "d_send_shuffle",
+         sendShuffleSpec,
+         sendShuffleFun,
+         Operator::SimpleSelect,
+         sendShuffleTypeMap);
 
 
 /*
@@ -2222,7 +3183,8 @@ static ListExpr distributeTypeMap( ListExpr inargs )
 (rel(tuple([Server:string, Port:int]))) )");
         }
 
-      if( stream_desc.isList() && stream_desc.first().isSymbol(Symbol::STREAM())
+      if( stream_desc.isList() && 
+          stream_desc.first().isSymbol(Symbol::STREAM())
             && (stream_desc.length() == 2)
             && (nl->AtomType(attr_desc) == SymbolType))
       {
@@ -2244,14 +3206,15 @@ static ListExpr distributeTypeMap( ListExpr inargs )
                if(nl->ListLength(attrL > 1) && attrIndex > 0
                   && nl->IsEqual(attrType,CcInt::BasicType()))
                {
-                  ListExpr attrL2 = nl->TheEmptyList();
-                  ListExpr last;
+                  ListExpr attrL2 = nl -> TheEmptyList();
+                  ListExpr last = nl -> TheEmptyList();
 
                   while(!nl->IsEmpty(attrL))
                   {
                      ListExpr attr = nl->First(attrL);
 
-                     if(nl->SymbolValue(nl->First(attr)) != attr_name)
+                     if(nl->SymbolValue(nl->First(attr)) != 
+                        attr_name)
                      {
                         if(nl->IsEmpty(attrL2))
                         {
@@ -2264,18 +3227,19 @@ static ListExpr distributeTypeMap( ListExpr inargs )
 
                      attrL = nl->Rest(attrL);
                   }
-                  return nl->ThreeElemList(
-                                 nl->SymbolAtom(Symbol::APPEND()),
-                                 nl->TwoElemList(nl->IntAtom(attrIndex),
-                                     NList(NList(tuple_desc).convertToString(),
-                                                       true, true).listExpr()),
-                                 nl->TwoElemList(
-                                    nl->SymbolAtom(DArray::BasicType()),
-                                    nl->TwoElemList(
-                                       nl->SymbolAtom(Relation::BasicType()),
-                                       nl->TwoElemList(
-                                          nl->SymbolAtom(Tuple::BasicType()),
-                                          attrL2))));
+                  return 
+                    nl->ThreeElemList(
+                        nl->SymbolAtom(Symbol::APPEND()),
+                        nl->TwoElemList(nl->IntAtom(attrIndex),
+                          NList(NList(tuple_desc).convertToString(),
+                                true, true).listExpr()),
+                        nl->TwoElemList(
+                          nl->SymbolAtom(DArray::BasicType()),
+                          nl->TwoElemList(
+                              nl->SymbolAtom(Relation::BasicType()),
+                              nl->TwoElemList(
+                                 nl->SymbolAtom(Tuple::BasicType()),
+                                 attrL2))));
                }
             }
          }
@@ -2286,7 +3250,8 @@ static ListExpr distributeTypeMap( ListExpr inargs )
 }
 
 static int
-distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
+distributeFun (Word* args, Word& result, 
+               int message, Word& local, Supplier s)
 {
    int size = ((CcInt*)(args[2].addr))->GetIntval();
 
@@ -2315,111 +3280,44 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
    array->initialize(restype,getArrayName(DArray::no),
                      size, serverlist);
 
-   
-   DServerManager* man = array->getServerManager();
-
-   if (!(man -> isOk()))
-     {
-       array -> setUndefined();
-       result.addr = array;
-       return 1;
-     }
-
-   DServer* server = 0;
-
-   int server_no = man->getNoOfServers();
-   int rel_server = (size / server_no);
-   int workerWithMoreChilds = size - (rel_server * server_no);
-
-   if (server_no > size)
-     {
-       rel_server = 1;
-       server_no = size;
-       workerWithMoreChilds = 0;
-         
-     }
-
-   try
-     {
-
-       ZThread::ThreadedExecutor threadEx;
-       cout << "Multiplying worker connections... " << endl;
-
-       
-       for(int i = 0; i<server_no;i++)
-         {
-           int childCnt = rel_server;
-           if (i < workerWithMoreChilds)
-             childCnt ++;
-           server = man->getServerbyID(i);
-           threadEx.execute(new DServerMultiplyer(server,
-                                                  childCnt));
-         }
-       threadEx.wait();
-     }
-   catch(ZThread::Synchronization_Exception& e)
-     {
-       cerr << "Could not multiply  DServers!" << endl;
-       cerr << e.what() << endl;
-       array -> setUndefined();
-       result.addr = array;
-       return 1;
-     }
-
    vector<DServer*> serverList(size);
    
+   if (!(array -> multiplyWorkers(&serverList)))
+     {
+       delete array;
+       result = SetWord(new DArray(false));
+       return 0;
+     }
+  
    try
      {
-#ifndef SINGLE_THREAD1
        ZThread::ThreadedExecutor poolEx2;
-#endif
-       string attrIndexStr (toString_d(attrIndex));
+       string attrIndexStr (int2Str(attrIndex));
        vector<Word> open_words(2);
        open_words[0].addr = &attrIndexStr;
        open_words[1].addr = &sendTType;
 
        for(int i = 0; i < size; i++)
          {
-           server = man->getServerByIndex(i);
-           int child = man->getMultipleServerIndex(i);
-
-           if(child > -1)
-             {
-               assert((unsigned int)child < server->getChilds().size());
-               server = (server->getChilds())[child];
-             }
-
-           if (!(server -> checkServer(true)))
-             {
-               array -> setUndefined();
-               result.addr = array;
-               return 1;
-             }
-
-           serverList[i] = server;
-
+           DServer* server = serverList[i];
+          
            list<int> l;
            l.push_front(i);
 
-           server->setCmd(DServer::DS_CMD_OPEN_WRITE_REL, &l, &open_words);
-#ifndef SINGLE_THREAD1
+           server->
+             setCmd(DServer::DS_CMD_OPEN_WRITE_REL, &l, &open_words);
            poolEx2.execute( new DServerExecutor(server) );
-#else
-           server->run();
-#endif
          }
-#ifndef SINGLE_THREAD1
        poolEx2.wait();
-#endif
-
      }
    catch(ZThread::Synchronization_Exception& e)
      {
        cerr << "Could not initiate ddistribute command!" << endl;
        cerr << e.what() << endl;
-       array -> setUndefined();
-       result.addr = array;
-       return 1;
+       array -> remove(); // already created worker relations?
+       delete array;
+       result = SetWord(new DArray(false));
+       return 0;
      }
 
    MemCntr memCntr (qp->GetMemorySize(s) * 1024 * 1024);
@@ -2430,14 +3328,11 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
    inTupleStream.open();
    
    Tuple* tuple1;
-#ifndef SINGLE_THREAD1
    // setup CommandQuue for each server;
    vector<DServerMultiCommand*> serverCommand(size); 
 
-#endif
    try
      {
-#ifndef SINGLE_THREAD1
        //ZThread::PoolExecutor poolEx(2);
        ZThread::ThreadedExecutor poolEx;
 
@@ -2448,17 +3343,17 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
            poolEx.execute(serverCommand[i]);
          }
-#endif
 
        cout << "Reading Data ..." << endl;
 
-       int oldIndex = -1;
        while( (tuple1 = 
-               DBAccess::getInstance() -> TS_Request(inTupleStream)) != 0)
+               DBAccess::getInstance() -> 
+                  TS_Request(inTupleStream)) != 0)
          {
            // ArrayIndex
            int arrIndex = 
-             ((CcInt*)(tuple1->GetAttribute(attrIndex)))->GetIntval();
+             ((CcInt*)(tuple1->
+                          GetAttribute(attrIndex)))->GetIntval();
           
            assert (arrIndex >= 0);
 
@@ -2466,25 +3361,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
           
            memCntr.request(tuple1 -> GetSize());
            
-
-#ifndef SINGLE_THREAD1
-
            serverCommand[arrIndex] -> AppendTuple(tuple1);
-#else
-           vector<Word> *w = new vector<Word> (1);
-           (*w)[0] = SetWord(tuple1);
-           tuple1->IncReference();
-           server = serverList[arrIndex];
-           server->setBusy();
-           server->setCmd(DServer::DS_CMD_WRITE_REL,0,w);
-           server -> run();
-           //cout << "Send tuple " << number 
-           //<< " to server " << arrIndex << ":" << endl;
-           //server -> print();
-           //tuple1 -> DeleteIfAllowed();
-#endif
-
-
            //number ++;
          } // while (...)
 
@@ -2503,16 +3380,17 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
      {
        cerr << "Could not distribute data!" << endl;
        cerr << e.what() << endl;
-       array -> setUndefined();
-       result.addr = array;
-       return 1;
+       array -> remove();
+       delete array;
+       result = SetWord(new DArray(false));
+       return 0;
      }
 
    try
      {
        for(int i = 0; i < size; i++)
          {
-           server = serverList[i];
+           DServer* server = serverList[i];
            server->setCmd(DServer::DS_CMD_CLOSE_WRITE_REL,0);
            server->run();
          }
@@ -2522,14 +3400,17 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
      {
        cerr << "Could not finalize ddistribute!" << endl;
        cerr << e.what() << endl;
-       array -> setUndefined();
-       result.addr = array;
-       return 1;
+       array -> remove();
+       delete array;
+       result = SetWord(new DArray(false));
+       return 0;
      }
 
-   for(int i = 0; i<server_no;i++)
+   for(int i = 0; 
+       i < array -> getServerManager() -> 
+                  getNoOfMultiWorkers(size);i++)
    {
-      server = man->getServerbyID(i);
+     DServer* server = array -> getServerManager()->getServerbyID(i);
       server->DestroyChilds();
    }
 
@@ -2544,7 +3425,7 @@ distributeFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
 const string distributeSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text>((stream (tuple ((x1 t1) ... (xn tn)))) xi int (rel(tuple("
+"( <text>((stream (tuple ((x1 t1) ... (xn tn)))) xi int (rel(tuple("
       "[Server:string, Port: int]))) ) -> "
      "(darray (rel (tuple ((x1 t1) ... (xi-1 ti-1)"
      "(xi+1 ti+1) ... (xn tn)))))</text--->"
@@ -2559,6 +3440,500 @@ Operator distributeA (
       distributeFun,
       Operator::SimpleSelect,
       distributeTypeMap );
+
+
+/*
+
+
+5.8 Operator shuffle
+
+*/
+
+template<int dim>
+static ListExpr shuffleTypeMap( ListExpr inargs )
+{
+  ListExpr errRes = nl->SymbolAtom(Symbol::TYPEERROR());
+
+  NList m_args(inargs);
+  NList params;
+
+   if(m_args.length() == dim + 1)
+    {
+
+      NList mapdesc = m_args.elem(2);
+      
+      if (mapdesc.first().length() != 3 )
+        {
+          ErrorReporter::ReportError("Invalid function description");
+          return  errRes;
+        }
+      if (mapdesc.first().first() != NList(Symbol::MAP()))
+        {
+          ErrorReporter::ReportError(
+                     "First argument must be a function!");
+          return  errRes;  
+        }
+      if (mapdesc.first().elem(3) == NList(Symbol::TYPEERROR()))
+        { 
+          ErrorReporter::ReportError("Function contains an error!");
+          return  errRes;
+        }
+      if (mapdesc.first().elem(3) != NList(CcInt::BasicType()))
+        {
+          ErrorReporter::ReportError
+            ("Function return value must be of type <int>!");
+          return  errRes;
+        }
+
+      NList funcExpr = mapdesc.second().third();
+
+      params = NList();
+
+      params.append(NList(NList(NList(funcExpr.
+                                      convertToString(),
+                                      true, true))));
+
+      NList darraydesc = m_args.first().elem(1);
+
+      // check for correct types
+      if (darraydesc.length() != 2)
+        {
+          ErrorReporter::ReportError(
+                  "First object must be of type <darray>!");
+          return  errRes;
+        }
+
+      if(!darraydesc.first().isSymbol(DArray::BasicType()))
+        {
+          
+          ErrorReporter::ReportError(
+                  "First object must be of type <darray>!");
+          return  errRes;
+        }
+
+      if (dim == 3)
+        {
+          NList workers = m_args.fourth().first();
+          
+          // check worker rel
+          if (!workers.isList() || 
+              !listutils::isRelDescription(workers.listExpr()) ||
+              !workers.
+                second().
+                  second().
+                    first().
+                      second().isSymbol(CcString::BasicType()) ||
+              !workers.
+                second().
+                  second().
+                    second().
+                      second().isSymbol(CcInt::BasicType()))
+            {
+              return 
+                m_args.typeError
+                ("workers must be of type\
+                      (rel(tuple([Server:string, Port:int]))) )");
+             }
+        }
+
+      NList res =
+        NList(NList(Symbols::APPEND()),
+              NList(params),
+
+              darraydesc);
+
+      return res.listExpr();
+    }
+   
+   return errRes;
+}
+
+// Arguments (for dim == 3):
+// 0 - source DArray
+// 1 - index function (unused)
+// 2 - destination size (optional)
+// 3 - worker relation (optional)
+// appended args:
+// 4 - index function (string)
+
+template<int dim>
+static int
+shuffleFun (Word* args, Word& result, 
+            int message, Word& local, Supplier s)
+{
+  DArray* sourceArray = (DArray *)(args[0].addr); 
+  DArray* destArray = (DArray*)(qp->ResultStorage(s)).addr;
+
+  // check source DArray
+  if (sourceArray == 0 ||
+      sourceArray -> getServerManager() == 0 ||
+      !(sourceArray -> getServerManager() -> isOk()) )
+    {
+      cerr << "ERROR: DArray not initialized corretly!"  << endl;
+      return 1;
+    }
+
+  if (!(sourceArray -> IsDefined()))
+    {
+      cerr << "Undefined DArray!" << endl;
+      delete destArray;
+      result = SetWord(new DArray(false));
+      return 1;
+    }
+
+  // setup size of source and destination DArray
+  const int srcSize = sourceArray -> getSize();
+  int destSize = -1;
+
+  if (dim > 1)
+    destSize = ((CcInt*)(args[2].addr))->GetIntval();
+  else
+    // destination size was not set
+    destSize = srcSize;
+  
+  if (destSize < 1)
+    {
+      cerr << "Undefined DArray size!" << endl;
+      delete destArray;
+      result = SetWord(new DArray(false));
+      return 1;
+    }
+  
+
+  ListExpr serverlist = nl -> TheEmptyList();
+
+  if (dim == 3) // worker relation is given; read it!
+    {
+      GenericRelation* r = (GenericRelation*)args[3].addr;
+      GenericRelationIterator* rit = r->MakeScan();
+      ListExpr reltype;
+      nl->
+        ReadFromString("(rel (tuple ((Server string) (Port int))))",
+                       reltype);
+      serverlist = Relation::Out(reltype,rit);
+    }
+  else
+    {
+      serverlist = sourceArray -> getServerList();
+    }
+
+  if (nl -> IsEmpty(serverlist))
+    {
+      cerr << "ERROR: No workers defined!" << endl; 
+      delete destArray;
+      result = SetWord(new DArray(false));
+      return 1;
+    }
+
+  string sendFunc = ((FText*)args[dim + 1].addr)->GetValue();
+
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+
+  ListExpr restype = nl->Second(qp->GetType(s));
+  restype = sc->NumericType(restype);
+
+   destArray->initialize(restype,getArrayName(DArray::no),
+                         destSize, serverlist);
+
+   if (!(destArray ->  getServerManager() -> isOk() ))
+    {
+      cerr << "ERROR: DArray not initialized correctly!" << endl;
+      cerr << destArray ->  getServerManager() -> getErrorText() 
+           << endl;
+      delete destArray;
+      result = SetWord(new DArray(false));
+      return 0;
+    }
+
+  if (!(destArray -> IsDefined()))
+    {
+      cerr << "Undefined DArray!" << endl;
+      delete destArray;
+      result = SetWord(new DArray(false));
+      return 0;
+    }
+
+   // mapping for source <--> destination
+   vector<vector<string> > sourceWorker (destSize);
+   vector<vector<int> > sourceToDestWorkerIdx (destSize);
+   vector<vector<int> > sourceToDestFromPort (destSize);
+
+   // mapping for destination <--> source
+   vector<vector<string> >destWorker (srcSize);
+   vector<vector<int> > destToSourceToPort (srcSize);
+
+   int basePort = 1900; 
+   // init vecotrs of inner loop
+   for (unsigned long destWorkerSize = 0; 
+        destWorkerSize < (unsigned long) destSize; ++destWorkerSize)
+     {
+       sourceWorker[destWorkerSize] = vector<string>  (srcSize);
+       sourceToDestFromPort[destWorkerSize] = vector<int> (srcSize);
+     }
+
+   for (unsigned long srcWorkerSize = 0; 
+        srcWorkerSize < (unsigned long) srcSize; ++srcWorkerSize)
+     {
+       destWorker[srcWorkerSize] = 
+         vector<string>(destSize);
+       destToSourceToPort[srcWorkerSize] = 
+         vector<int> (destSize);
+       for (unsigned long destWorkerSize = 0; 
+            destWorkerSize < (unsigned long) destSize;
+            ++destWorkerSize)
+         {
+           string worker = 
+             sourceArray -> getHostNameByIndex(srcWorkerSize);
+           int fromPort = basePort++;
+           
+           // compile information for the destination worker
+           // source -> destination
+           // first index: destination worker idx
+           // second index: source worker idx
+           // source host
+           sourceWorker[destWorkerSize][srcWorkerSize] = worker;
+           // source port
+           sourceToDestFromPort[destWorkerSize][srcWorkerSize] = 
+             fromPort;
+
+           // compile information for the source worker
+           // destination -> source
+           // first index: source worker idx
+           // second index: destination worker idx
+           // destination host
+           destWorker[srcWorkerSize][destWorkerSize] = worker;
+
+           // source port (same as for destination worker
+           destToSourceToPort[srcWorkerSize][destWorkerSize] = 
+             fromPort;
+         }
+     }
+
+   vector<DServer*> serverDestList(destSize);
+   vector<DServer*> serverSourceList(srcSize);
+
+   if (!(destArray -> multiplyWorkers(&serverDestList)))
+     {
+       delete destArray;
+       result = SetWord(new DArray(false));
+       return 0;
+     }
+
+   DServerManager* destMan = destArray->getServerManager();
+   DServerManager* sourceMan = sourceArray->getServerManager();
+   
+   // initiate source workers
+   if (!(sourceMan -> isOk()) ||
+       !(sourceArray -> multiplyWorkers(&serverSourceList)))
+     {
+       //Close additional connections
+       destArray -> destroyAnyChilds();
+       sourceArray -> destroyAnyChilds();
+       delete destArray;
+       result = SetWord(new DArray(false));
+       return 0;
+     }
+  
+   int dest_server_no = destMan -> getNoOfMultiWorkers(destSize);
+   int src_server_no = sourceMan -> getNoOfMultiWorkers(srcSize);
+   const int srcBasePort = 1700;
+   const int destBasePort = 1800;
+
+   bool abort = false;
+   try
+     {
+       ZThread::ThreadedExecutor poolEx2;
+      
+       DServerCmdShuffleRecParam destParams (destBasePort);
+
+       if (!(destArray -> 
+                runCommandThreaded <DServerCmdShuffleRec,
+                                    DServerCmdShuffleRecParam>
+             ( poolEx2, // Executor
+               destParams,  // Parameters
+               &serverDestList, // ServerList
+               false)))  // NOT wait for thread to end
+         {
+           abort = true;
+         }
+
+       if (!abort)
+         {
+           DServerCmdShuffleSendParam sourceParams 
+             (sendFunc, // sender function
+              srcBasePort); // base port number
+
+           if (!(sourceArray -> 
+                 runCommandThreaded <DServerCmdShuffleSend,
+                                     DServerCmdShuffleSendParam>
+                 ( poolEx2, // Executor
+                   sourceParams,  // Parameters
+                   &serverSourceList, // ServerList
+                   false)))  // NOT wait for thread to end
+             {
+               abort = true;
+             }
+         }
+       // create connectoions betweem source and destination servers;
+       // and start shuffleing!
+       if (! abort)
+         {
+           try
+             {
+               ZThread::ThreadedExecutor poolEx4;
+               DServerCmdShuffleMultiConnParam srcMulitParams
+                 (DServerCmdShuffleMultiConnParam::DSC_SMC_P_SENDER, 
+                  srcBasePort, destWorker, destToSourceToPort);
+           
+               if (!(sourceArray -> 
+                     runCommandThreaded<DServerCmdShuffleMultiConn,
+                                    DServerCmdShuffleMultiConnParam>
+                     ( poolEx4, // Executor
+                       srcMulitParams,  // Parameters
+                       &serverSourceList, // ServerList
+                       false)))  // NOT wait for thread to end
+                 {
+                   abort = true;
+                 }
+
+               DServerCmdShuffleMultiConnParam destMulitParams
+              (DServerCmdShuffleMultiConnParam::DSC_SMC_P_RECEIVER,
+                  destBasePort, sourceWorker, sourceToDestFromPort);
+           
+               if (!(destArray -> 
+                     runCommandThreaded <DServerCmdShuffleMultiConn,
+                                   DServerCmdShuffleMultiConnParam>
+                     ( poolEx4, // Executor
+                       destMulitParams,  // Parameters
+                       &serverDestList, // ServerList
+                       false)))  // NOT wait for thread to end
+                 {
+                   abort = true;
+                 }
+
+               poolEx4.wait();
+             }
+           catch(ZThread::Synchronization_Exception& e)
+             {
+               abort = true;
+             }
+         }
+       if (abort)
+         {
+           //Close additional connections
+           destArray -> destroyAnyChilds();
+           sourceArray -> destroyAnyChilds();
+           delete destArray;
+           result = SetWord(new DArray(false));
+           return 0;
+         }
+
+       poolEx2.wait(); // command threads
+     }
+   catch(ZThread::Synchronization_Exception& e)
+     {
+     }
+
+   
+   for(int i = 0; i < srcSize && !abort; i++)
+     {
+       if (serverSourceList[i] -> hasError())
+         {
+           cerr << "ERROR: DShuffle encountered errors:\n"
+                << endl;
+           cerr << serverSourceList[i] -> getErrorText() << endl;
+           abort = true;
+         }
+     }
+
+   for(int i = 0; i < destSize && !abort; i++)
+     {
+       if (serverDestList[i] -> hasError())
+         {
+           cerr << "ERROR: DShuffle encountered errors:\n"
+                << endl;
+           cerr << serverSourceList[i] -> getErrorText() << endl;
+           abort = true;
+         }
+     }
+
+   if (abort)
+     {
+       cout << "ERROR! CLEAN IT UP!" << endl;
+
+       //Close additional connections
+       for(int k = 0; k<dest_server_no;k++)
+         destArray ->getServerManager()->
+           getServerbyID(k)->DestroyChilds();
+   
+       //Close additional connections
+       for(int k = 0; k<src_server_no;k++)
+         sourceMan->getServerbyID(k)->DestroyChilds();
+
+       destArray -> remove();
+       delete destArray;
+       result = SetWord(new DArray(false));
+       return 0;
+     }
+   
+   cout << "DShuffle finished! " << endl;
+
+   //Close additional connections
+   for(int k = 0; k<dest_server_no;k++)
+     destArray -> getServerManager() ->
+       getServerbyID(k)->DestroyChilds();
+   
+   //Close additional connections
+   for(int k = 0; k<src_server_no;k++)
+     sourceMan->getServerbyID(k)->DestroyChilds();
+   
+   result.addr = destArray;
+
+   return 0;
+}
+
+const string shuffleSpec3 =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((darray t) ((map t int)  int (rel(tuple("
+      "[Server:string, Port: int]))) ) -> darray t</text>"
+      "<text>_ dshuffle [fun, _ , _]</text--->"
+      "<text>Redistributes a distirbuted array.</text--->"
+"<text>query darr dschuffle [randint(3), 3,server_rel]</text--->))";
+
+Operator shuffle3 (
+      "dshuffle",
+      shuffleSpec3,
+      shuffleFun<3>,
+      Operator::SimpleSelect,
+      shuffleTypeMap<3> );
+
+const string shuffleSpec2 =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((darray t) ((map t int)  int )) -> darray t</text>"
+      "<text>_ dshuffle2 [fun, _ , _]</text--->"
+      "<text>Redistributes a distirbuted array.</text--->"
+      "<text>query darr dschuffle2 [randint(3), 3]</text--->))";
+
+Operator shuffle2 (
+      "dshuffle2",
+      shuffleSpec2,
+      shuffleFun<2>,
+      Operator::SimpleSelect,
+      shuffleTypeMap<2> );
+
+const string shuffleSpec1 =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>((darray t) ((map t int))) -> darray t</text>"
+      "<text>_ dshuffle1 [fun, _ , _]</text--->"
+      "<text>Redistributes a distirbuted array.</text--->"
+      "<text>query darr dschuffle1 [randint(3)]</text--->))";
+
+Operator shuffle1 (
+      "dshuffle1",
+      shuffleSpec1,
+      shuffleFun<1>,
+      Operator::SimpleSelect,
+      shuffleTypeMap<1> );
 
 /*
 
@@ -2614,14 +3989,16 @@ static ListExpr loopTypeMap(ListExpr args)
             }
 
           //check, if darray and map are equal
-          if (darraydesc.first().second() != mapdesc.first().elem(i + 2))
+          if (darraydesc.first().second() != 
+              mapdesc.first().elem(i + 2))
             {
               return  errRes;
             }
           params.append(NList
                         (NList
                          (mapdesc.second().
-                          elem(i + 2).first().convertToString(), true)));
+                          elem(i + 2).first().
+                             convertToString(), true)));
         }
 
       NList res =
@@ -2642,14 +4019,14 @@ static int loopValueMap
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
    result = qp->ResultStorage(s);
+ 
+   //DArray* destArray = (DArray*)(qp->ResultStorage(s)).addr;
 
    SecondoCatalog* sc = SecondoSystem::GetCatalog();
    ListExpr type = sc->NumericType(nl->Second((qp->GetType(s))));
    string command = ((FText*)args[dim + 2].addr)->GetValue();
 
-#ifndef SINGLE_THREAD1
    ZThread::ThreadedExecutor exec;
-#endif
    DServer* server;
 
    int size = 0;
@@ -2660,6 +4037,15 @@ static int loopValueMap
    for (int i = 0; i < dim; i ++)
      {
        DArray* alt = (DArray*)args[i].addr;
+       if (alt == NULL ||
+           !(alt -> IsDefined()))
+         {
+           cerr << "ERROR: Input DArray is not defined!" << endl;
+           delete (DArray *) result.addr;
+           result = SetWord(new DArray(false));
+           return 1;
+         }
+
        if (size == 0)
          {
            size = alt -> getSize();
@@ -2668,10 +4054,21 @@ static int loopValueMap
        size = min(size, alt -> getSize());
        serverList = alt->getServerList();
 
+       if (nl -> IsEmpty(serverList))
+         {
+           cerr << "ERROR: Input DArray worker list is empty!"
+                << endl;
+           delete (DArray *) result.addr;
+           result = SetWord(new DArray(false));
+           return 1;
+         }
+
+
        from.push_back(alt->getName());
        // TODO: need to compare server lists!
 
-       string elementname = ((CcString*)args[i+ dim + 3].addr) -> GetValue();
+       string elementname = 
+         ((CcString*)args[i+ dim + 3].addr) -> GetValue();
        command = stringutils::replaceAll(command, elementname, rpl);
        rpl += "!";
      }
@@ -2684,76 +4081,37 @@ static int loopValueMap
    w[0].addr = &command;
    w[1].addr = &name;
    
-   ((DArray*)(result.addr))->initialize(type,
-                                        name,
-                                        size,
-                                        serverList);
+   DArray* neu = ((DArray*)(result.addr));
+   neu ->initialize(type,
+                    name,
+                    size,
+                    serverList);
 
-   //DServerManager* man = alt->getServerManager();
-   DServerManager* man = ((DArray*)(result.addr)) -> getServerManager();
+   vector<DServer*> servers(size);
 
-   //Multiply worker connections
-   int server_no = man->getNoOfServers();
-   int rel_server = (size / server_no);
-   int workerWithMoreChilds = size - (rel_server * server_no);
-
-   if (server_no > size)
+   if (!(neu -> multiplyWorkers(&servers)))
      {
-       rel_server = 1;
-       server_no = size;
-       workerWithMoreChilds = 0;
-         
+       delete neu;
+       result = SetWord(new DArray(false));
+       return 0;
      }
 
-   cout << "Multiplying worker connections..." << endl;
-   try
-     {
-       for(int i = 0; i<server_no;i++)
-         {
-           int childCnt = rel_server;
-           if (i < workerWithMoreChilds)
-             childCnt ++;
-
-           server = man->getServerbyID(i);
-           exec.execute(new DServerMultiplyer(server,childCnt));
-         }
-       exec.wait();
-     }
-   catch(ZThread::Synchronization_Exception& e)
-     {
-       cerr << "Could not multiply  DServers!" << endl;
-       cerr << e.what() << endl;
-       return 1;
-     }
-
-   if (!man -> checkServers(false))
-     {
-       cerr << "Check workers failed!" << endl;
-       cerr << man -> getErrorText() << endl;
-       return 1;
-     }
-
+   DServerManager* man =
+     ((DArray*)(result.addr)) -> getServerManager();
+   int server_no = man -> getNoOfMultiWorkers(size);
+  
    try
      {
        for(int i=0; i < size; i++)
          {
-           server = man->getServerByIndex(i);
-           int child = man->getMultipleServerIndex(i);
-           if(child > -1)
-             server = (server->getChilds())[child];
-
+           server = servers[i];
+          
            list<int> l;
            l.push_front(i);
            server->setCmd(DServer::DS_CMD_EXEC, &l, &w, &from);
-#ifndef SINGLE_THREAD1
            exec.execute(new DServerExecutor(server));
-#else
-           server -> run();
-#endif
          }
-#ifndef SINGLE_THREAD1
        exec.wait();
-#endif
      }
 
    catch(ZThread::Synchronization_Exception& e)
@@ -2765,7 +4123,7 @@ static int loopValueMap
 
    //Close additional connections
 
-   for(int i = 0; i<server_no;i++)
+   for(int i = 0; i< server_no;i++)
    {
       server = man->getServerbyID(i);
       server->DestroyChilds();
@@ -2778,8 +4136,9 @@ static int loopValueMap
 const string loopSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>((darray t) (map t u)) -> (darray u)</text--->"
-      "<text>_ dloop [ fun ]</text--->"
-      "<text>Evaluates each element with a function, that needs to be given"
+      "<text>_ dloopa [ fun ]</text--->"
+      "<text>Evaluates each element with a function, "
+      "that needs to be given"
       "as paremeter function </text--->"
       "<text>query plz_a20 dloop[. count]</text--->))";
 struct loopaSpec : OperatorInfo {
@@ -2832,7 +4191,8 @@ const string DELEMENTSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
     "( <text>((array t) ... ) -> t</text--->"
       "<text>type operator</text--->"
-      "<text>Extracts the type of the elements from a darray type given "
+      "<text>Extracts the type of the elements "
+      "from a darray type given "
       "as the first argument.</text--->"
       "<text>not for use with sos-syntax</text---> ))";
 
@@ -2869,7 +4229,8 @@ const string DELEMENT2Spec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
     "( <text>((array t) ... ) -> t</text--->"
       "<text>type operator</text--->"
-      "<text>Extracts the type of the elements from a darray type given "
+      "<text>Extracts the type of the elements "
+      "from a darray type given "
       "as the second argument.</text--->"
       "<text>not for use with sos-syntax</text---> ))";
 
@@ -2879,6 +4240,93 @@ Operator dElementA2 (
       0,
       Operator::SimpleSelect,
       delement2TypeMap );
+
+/*
+
+5.10.2 Type Operator DRELATION
+
+*/
+ListExpr dRelTypeMap( ListExpr inArgs )
+{
+  NList args (inArgs);
+  args = args.first();
+  
+  if(args.length() >= 2)
+    {
+   
+      if (args.first().isSymbol(DArray::BasicType()))
+        {
+          NList second = args.second();
+         
+          if (second.length() == 2 &&
+              second.first().isSymbol(Relation::BasicType()))
+            {
+              NList res = second.second();
+               
+              return res.listExpr();
+            }
+        }
+    }
+
+  ErrorReporter::ReportError(
+            "Only DArrays of type Relation allowed here!");
+   return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+const string DRELSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+    "( <text>DRELATION</text--->"
+      "<text>type operator</text--->"
+      "<text>Internal operator for darray. "
+      "Is replaced by current index</text--->"
+      "<text>not for use with sos-syntax</text---> ))";
+
+Operator drel (
+      "DRELATION",
+      DRELSpec,
+      0,
+      Operator::SimpleSelect,
+      dRelTypeMap );
+/*
+
+5.10.2 Type Operator d[_]idx
+
+*/
+
+ListExpr dindexTypeMap( ListExpr inArgs )
+{
+  NList args (inArgs);
+  if(args.length() == 0)
+   {
+     NList result (CcInt::BasicType());
+     return NList(result).listExpr(); 
+   }
+   return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+
+static int dindexValueMap
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+   result = qp->ResultStorage(s);
+   ((CcInt*)result.addr)->Set(1);
+   return 0;
+}
+
+const string DINDEXSpec =
+   "(( \"Signature\" \"Syntax\" \"Meaning\" \"Remarks\" )"
+    "( <text>d_idx() -> int</text--->"
+      "<text>type operator</text--->"
+      "<text>Internal operator for darray. "
+      "Is replaced by current index</text--->"
+      "<text>not for use with sos-syntax</text---> ))";
+
+Operator dIndex (
+      "d_idx",
+      DINDEXSpec,
+      dindexValueMap,
+      Operator::SimpleSelect,
+      dindexTypeMap );
 
 /*
 5.11 Operator ~dtie~
@@ -2925,7 +4373,8 @@ dtieTypeMap( ListExpr args )
 }
 
 static int
-dtieFun( Word* args, Word& result, int message, Word& local, Supplier s )
+dtieFun( Word* args, Word& result, int message, 
+         Word& local, Supplier s )
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   DArray* array = ((DArray*)args[0].addr);
@@ -2939,7 +4388,7 @@ dtieFun( Word* args, Word& result, int message, Word& local, Supplier s )
   int typeId;
   extractIds(typeOfElement, algebraId, typeId);
 
-  if (!array || !(array -> isDefined()))
+  if (!array || !(array -> IsDefined()))
     {
       result = qp->ResultStorage(s);
       return 1;
@@ -2949,7 +4398,7 @@ dtieFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
   array->refresh();
 
-  if ( !(array -> isDefined()))
+  if ( !(array -> IsDefined()))
     {
       result = qp->ResultStorage(s);
       return 1;
@@ -2957,13 +4406,15 @@ dtieFun( Word* args, Word& result, int message, Word& local, Supplier s )
 
  //copy the element
   Word partResult =
-    (am->CloneObj(algebraId, typeId))(typeOfElement,(Word)array->get(0));
+    (am->CloneObj(algebraId, typeId))(typeOfElement,
+                                      (Word)array->get(0));
 
   for (int i=1; i<n; i++) {
 
     //copy the element
     Word ielem =
-      (am->CloneObj(algebraId, typeId))(typeOfElement,(Word)array->get(i));
+      (am->CloneObj(algebraId, typeId))(typeOfElement,
+                                        (Word)array->get(i));
 
     (*funargs)[0] = partResult;
     (*funargs)[1] = ielem;
@@ -2973,17 +4424,19 @@ dtieFun( Word* args, Word& result, int message, Word& local, Supplier s )
     if (funresult.addr != partResult.addr) {
       if (i>1)
       {
-        (am->DeleteObj(algebraId, typeId))(typeOfElement, partResult);
+        (am->DeleteObj(algebraId, typeId))
+          (typeOfElement, partResult);
       }
 
       partResult =
-      Array::genericClone(algebraId, typeId, typeOfElement, funresult);
+      Array::genericClone(algebraId, typeId, 
+                          typeOfElement, funresult);
     }
     (am->DeleteObj(algebraId, typeId))(typeOfElement,ielem);
   }
-  // In the next statement the (by the Query Processor) provided place for
-  // the result is not used in order to be flexible with regard to the
-  // result type.
+  // In the next statement the (by the Query Processor) 
+  // provided place forthe result is not used in order 
+  // to be flexible with regard to the result type.
 
   result.addr = partResult.addr;
   return 0;
@@ -2993,8 +4446,9 @@ const string dtieSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>((array t) (map t t t)) -> t</text--->"
       "<text>_ tie [ fun ]</text--->"
-      "<text>Calculates the \"value\" of an darray evaluating the elements of "
-      "the darray with a given function from left to right.</text--->"
+      "<text>Calculates the \"value\" of an darray "
+      "evaluating the elements of "
+   "the darray with a given function from left to right.</text--->"
       "<text>query ai tie[fun(i:int,l:int)(i+l)]</text---> ))";
 
 Operator dtie(
@@ -3008,9 +4462,9 @@ Operator dtie(
 /*
 5.12 Operator ~dsummarize~
 
-The operator ~dsummarize~ provides a stream of tuples from a darray of
-relations. For this purpose, the operator scans all relations beginning with
-the first relation of the array.
+The operator ~dsummarize~ provides a stream of tuples from a 
+darray of relations. For this purpose, the operator scans 
+all relations beginning with the first relation of the array.
 
 The formal specification of type mapping is:
 
@@ -3019,11 +4473,12 @@ The formal specification of type mapping is:
      at which t is of the type tuple
 ----
 
-Note that the operator ~dsummarize~ is not exactly inverse to the operator
-~ddistribute~ because the indexy of the relation is not appended to the
-attributes of the outgoing tuples. If the darray has been constructed by the
-operator ~ddistribute~ the order of the resulting stream in most cases does not
-correspond to the order of the input stream of the operator ~ddistribute~.
+Note that the operator ~dsummarize~ is not exactly inverse
+to the operator ~ddistribute~ because the indexy of the relation
+is not appended to the attributes of the outgoing tuples. If the
+darray has been constructed by the operator ~ddistribute~ the 
+order of the resulting stream in most cases does not correspond
+to the order of the input stream of the operator ~ddistribute~.
 
 */
 static ListExpr
@@ -3078,7 +4533,8 @@ public:
         Tuple *t = tfqIn -> get();
         if (t != NULL)
           {
-            DBAccessGuard::getInstance() -> REL_AppendTuple(tbOut, t);
+            DBAccessGuard::getInstance() -> 
+                REL_AppendTuple(tbOut, t);
           }
       }
     //cout << "DAIRT::run done"<< endl;
@@ -3088,7 +4544,8 @@ public:
 };
 
 static int
-dsummarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
+dsummarizeFun( Word* args, Word& result, int message, 
+               Word& local, Supplier s )
 {
   //cout << "dsummarizeFun" << endl;
   struct DArrayIterator
@@ -3110,10 +4567,11 @@ dsummarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
   , m_tbOut(new TupleBuffer(allowed_mem_size))
   , m_tfqIn(new TupleFifoQueue())
     {
+      assert (da != NULL);
       m_error = false;
 
       if ( d == 0 ||
-           !(d -> isDefined()) ||
+           !(d -> IsDefined()) ||
            !(d -> getServerManager() -> checkServers(false)))
 
         {
@@ -3175,6 +4633,8 @@ dsummarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
     case OPEN : {
       //cout << "OPEN" << endl;
       DArray *da = (DArray*)args[0].addr;
+      assert (da != NULL);
+
       dait = 
         new DArrayIterator(da, qp->GetMemorySize(s) * 1024 * 1024);
       local.addr = dait;
@@ -3206,7 +4666,7 @@ dsummarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
       {
         dait = (DArrayIterator*)local.addr;
         delete dait;
-        local = SetWord(Address(0));
+        local.setAddr(0);
       }      
       qp->Close(args[0].addr);
       return 0;
@@ -3222,7 +4682,7 @@ const string dsummarizeSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>((darray (rel t))) -> (stream t)</text--->"
       "<text>_ dsummarize</text--->"
-      "<text>Produces a stream of the tuples from all relations in the "
+ "<text>Produces a stream of the tuples from all relations in the "
       "darray.</text--->"
       "<text>query prel dsummarize consume</text---> ))";
 
@@ -3236,8 +4696,9 @@ Operator dsummarize (
 /*
 5.14 Operator ~checkworkers~
 
-The operator ~ceckworkers~ takes a relation of type host:string, port:int
-and checks, if there exists a running instance of SecondoMonitor at
+The operator ~ceckworkers~ takes a relation of 
+type host:string, port:int and checks, if there 
+exists a running instance of SecondoMonitor at
 the specified host, listening at the specified port
 It also checks, if the database distributed is available.
 
@@ -3295,7 +4756,8 @@ sendCommandToWorker(Socket *inServer,
         {
           if (!iosock.good())
             {
-              outMsg = "(7) Communication is blocked! Restart Worker";
+              outMsg = 
+                "(7) Communication is blocked! Restart Worker";
               return false;
             }
 
@@ -3303,7 +4765,6 @@ sendCommandToWorker(Socket *inServer,
           if (line.find("</SecondoResponse>") == string::npos)
             allLines << line << endl;
 
-          //cout << "GOT(" << inExpectedResponse << "): "<< line << endl;
 
           if(line.find("ERROR") != string::npos ||
              line.find("Error") != string::npos ||
@@ -3399,7 +4860,8 @@ openConnection(Socket *inServer,
             {
               if (!ioSock.good())
                 {
-                  outMsg = "(4) Communication is blocked! Restart Worker";
+                  outMsg =
+                    "(4) Communication is blocked! Restart Worker";
                   return false;
                 }
               getline( ioSock, line);
@@ -3446,7 +4908,7 @@ checkWorkerRunning(const string &host, int port,
   // check worker running
   string line;
 
-  Socket* server = Socket::Connect( host, toString_d(port), 
+  Socket* server = Socket::Connect( host, int2Str(port), 
                                     Socket::SockGlobalDomain,
                                     5,
                                     1);
@@ -3511,30 +4973,41 @@ checkWorkersTypeMap( ListExpr args )
 
       if (tupTypeL.length() >= 2)
         { 
-          if (!tupTypeL.first().second().isSymbol(CcString::BasicType()))
+          if (!tupTypeL.
+                first().
+                  second().
+                    isSymbol(CcString::BasicType()))
             {
               return 
-                NList::typeError("First attribute must be the server name");
+                NList::typeError(
+                       "First attribute must be the server name");
             } 
-          if (!tupTypeL.second().second().isSymbol(CcInt::BasicType()))
+          if (!tupTypeL.
+                second().
+                  second().
+                    isSymbol(CcInt::BasicType()))
             {
               return 
-                NList::typeError("Second attribute must be the port number");
+                NList::typeError(
+                       "Second attribute must be the port number");
             }
           //The return-type of checkWorkers is 
           // a stream of workers each appended w/ a status msg;
           NList app (NList("Status"), NList(CcString::BasicType())); 
 
-          NList tuple = NList(tupTypeL.first(), tupTypeL.second(), app);
+          NList tuple = 
+            NList(tupTypeL.first(), tupTypeL.second(), app);
 
           NList result = NList().tupleStreamOf(tuple);
           return result.listExpr(); 
         }
-      return NList::typeError("Tuple stream has not enough attributes");
+      return 
+        NList::typeError("Tuple stream has not enough attributes");
     }
   
   return 
-    NList::typeError("Expecting a stream of tuples(Server:string, port:int)");
+    NList::typeError(
+       "Expecting a stream of tuples(Server:string, port:int)");
 }
 
 struct CwLocalInfo
@@ -3548,7 +5021,8 @@ struct CwLocalInfo
 };
 
 static int
-checkWorkersFun (Word* args, Word& result, int message, Word& local, Supplier s)
+checkWorkersFun (Word* args, Word& result, 
+                 int message, Word& local, Supplier s)
 {
   CwLocalInfo *localInfo;
   Tuple *curTuple;
@@ -3603,7 +5077,9 @@ checkWorkersFun (Word* args, Word& result, int message, Word& local, Supplier s)
             resTuple->PutAttribute(1, new CcInt(true, port));
             resTuple->PutAttribute(2, new CcString(true, msg));
         
-            localInfo -> hostport.push_back(make_pair<string, int>(host, port));
+            localInfo -> 
+              hostport.push_back(
+                               make_pair<string, int>(host, port));
         
             result.setAddr(resTuple);
             return YIELD;
@@ -3642,7 +5118,8 @@ checkWorkersFun (Word* args, Word& result, int message, Word& local, Supplier s)
 const string checkWorkersSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "(<text>((stream (tuple ((Server string) (Port int))))) ->  "
-    "((stream (tuple ((Server string) (Port int) (Status string)))))</text--->"
+    "((stream (tuple ((Server string) "
+    "(Port int) (Status string)))))</text--->"
       "<text>_ check_workers</text--->"
       "<text>checks workers, if running and database 'distributed'"
       "exists</text--->"
@@ -3672,7 +5149,7 @@ static bool createRemoteDistrDB(string host, int port)
   cout << " -> Creating Remote DB 'distributed' "
        << "on host " << host << " port:" << port << endl;
 
-  Socket* server = Socket::Connect( host, toString_d(port), 
+  Socket* server = Socket::Connect( host, int2Str(port), 
                                     Socket::SockGlobalDomain,
                                     5,
                                     1);
@@ -3735,17 +5212,19 @@ startupTypeMap( ListExpr args )
     {
       if (!myargs.first().isSymbol(CcString::BasicType()))
         {
-          return NList::typeError("First parameter must be the server name");
+          return NList::typeError(
+                    "First parameter must be the server name");
         } 
       if (!myargs.second().isSymbol(CcInt::BasicType()))
         {
-          return NList::typeError("Second parameter must be the port number");
+          return NList::typeError(
+                   "Second parameter must be the port number");
         }
       if (!myargs.third().isSymbol(CcString::BasicType()))
         {
           return 
             NList::typeError
-            ("Third parameter must be the name of the SecondoConfigFile");
+   ("Third parameter must be the name of the SecondoConfigFile");
         }
 
       NList result (CcBool::BasicType());
@@ -3758,7 +5237,8 @@ startupTypeMap( ListExpr args )
 }
 
 static int
-startupFun (Word* args, Word& result, int message, Word& local, Supplier s)
+startupFun (Word* args, Word& result, int message, 
+            Word& local, Supplier s)
 { 
   result = qp->ResultStorage(s); 
   int args_cnt = qp->GetNoSons(s);
@@ -3797,7 +5277,7 @@ startupFun (Word* args, Word& result, int message, Word& local, Supplier s)
            << host << ":" << port
            << " with " << secConf << endl;
 
-      string lckfile = "/tmp/SM_" + toString_d(port) + ".lck";
+      string lckfile = "/tmp/SM_" + int2Str(port) + ".lck";
       string devnull = "< /dev/null > /dev/null 2>&1";
 
       string exportConf = 
@@ -3817,7 +5297,8 @@ startupFun (Word* args, Word& result, int message, Word& local, Supplier s)
       if (!success ||
           retVal.empty() || retVal[0] != '1')
         {
-          cerr << "ERROR: Lock file '" + lckfile + "' exists!" << endl;
+          cerr << "ERROR: Lock file '" + lckfile + "' exists!" 
+               << endl;
           ret_val = false;
         }
       else
@@ -3875,11 +5356,15 @@ shutdownTypeMap( ListExpr args )
     {
       if (!myargs.first().isSymbol(CcString::BasicType()))
         {
-          return NList::typeError("First parameter must be the server name");
+          return 
+            NList::typeError(
+                 "First parameter must be the server name");
         } 
       if (!myargs.second().isSymbol(CcInt::BasicType()))
         {
-          return NList::typeError("Second parameter must be the port number");
+          return 
+            NList::typeError(
+                  "Second parameter must be the port number");
         }
 
       NList result (CcBool::BasicType());
@@ -3891,7 +5376,8 @@ shutdownTypeMap( ListExpr args )
 }
 
 static int
-shutdownFun (Word* args, Word& result, int message, Word& local, Supplier s)
+shutdownFun (Word* args, Word& result, 
+             int message, Word& local, Supplier s)
 {  
   result = qp->ResultStorage(s);
   bool ret_val = true;
@@ -3902,7 +5388,7 @@ shutdownFun (Word* args, Word& result, int message, Word& local, Supplier s)
   // retrieving pid for SecondoMonitor
   // stored in /tmp/SM_<port>.lck on that host
   string killPid; // store pid of SecondoMonitor
-  string lckfile = "/tmp/SM_" + toString_d(port) + ".lck";
+  string lckfile = "/tmp/SM_" + int2Str(port) + ".lck";
   string cat_cmd = "cat " + lckfile;
   bool success = RunCmdSSH(host, cat_cmd, killPid);
 
@@ -3921,7 +5407,8 @@ shutdownFun (Word* args, Word& result, int message, Word& local, Supplier s)
       string kill_cmd = "kill -SIGTERM " + killPid + ";";
       string rm_cmd = " /bin/rm " + lckfile + ";";
       
-      string cmd = "if [ ! -r "+ lckfile + " ]; then echo \\\"0\\\"; else " + 
+      string cmd = "if [ ! -r "+ lckfile + 
+        " ]; then echo \\\"0\\\"; else " + 
         kill_cmd + rm_cmd + " echo \\\"1\\\"; fi";
       
       string retVal;
@@ -3929,8 +5416,9 @@ shutdownFun (Word* args, Word& result, int message, Word& local, Supplier s)
 
       if (!success || retVal.empty() || retVal[0] != '1')
         {
-          cerr << "ERROR: No lock file '" + lckfile + "' found!" << endl;
-              ret_val = false;
+          cerr << "ERROR: No lock file '" + lckfile + 
+            "' found!" << endl;
+          ret_val = false;
         }
       else
         {
@@ -3979,12 +5467,23 @@ class DistributedAlgebra : public Algebra
          AddOperator( &receiveA);
          AddOperator( &receiverelA);
          AddOperator( &sendrelA);
+         AddOperator( &shuffle3); 
+         shuffle3.SetUsesArgsInTypeMapping();
+         AddOperator( &shuffle2); 
+         shuffle2.SetUsesArgsInTypeMapping();
+         AddOperator( &shuffle1);
+         shuffle1.SetUsesArgsInTypeMapping();
+         AddOperator( &receiveShuffle);
+         AddOperator( &sendShuffle);
+         sendShuffle.SetUsesMemory();
          AddOperator( &distributeA);
          distributeA.SetUsesMemory();
          AddOperator( &loopA); loopA.SetUsesArgsInTypeMapping();
          AddOperator( &dloopA); dloopA.SetUsesArgsInTypeMapping();
          AddOperator( &dElementA);
          AddOperator( &dElementA2);
+         AddOperator( &drel);
+         AddOperator( &dIndex);
          AddOperator( &dtie);
          AddOperator( &dsummarize );
          dsummarize.SetUsesMemory();
@@ -4005,7 +5504,8 @@ class DistributedAlgebra : public Algebra
 
 extern "C"
 Algebra*
-InitializeDistributedAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
+InitializeDistributedAlgebra(NestedList *nlRef, 
+                             QueryProcessor *qpRef)
 {
   nl = nlRef;
   qp = qpRef;

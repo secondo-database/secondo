@@ -58,7 +58,11 @@ using namespace std;
 
 class DServer
 {
-  DServer() : m_cmd(NULL) {}
+  DServer() 
+  : m_cmd(NULL)
+  , m_server(NULL)
+  , m_cbworker(NULL)
+  , m_error(false) {}
 public:
 
   enum CmdType { DS_CMD_NONE = 0,  // undefined
@@ -97,7 +101,7 @@ public:
               vector<Word>* inElements = 0,
               vector<string>* inFromNames = 0);
 
-  void run();
+  virtual void run();
                           
   bool Multiply(int count);
   const vector<DServer*> & getChilds() const { return m_childs; }
@@ -106,30 +110,17 @@ public:
   int getNumChilds() const { return m_numChilds;}
       
   bool checkServer(bool writeError) const;
+  bool hasError() const { return m_error; }
   string getErrorText() { return m_errorText; }
-  void int2Str(int i, string& ret) const
-  {
-    std::stringstream out;
-    out << i;
-    ret = out.str();
-  }
 
   const string& getServerHostName() const { return m_host; }
 
   string getServerPortStr() const 
   {
-    string ret;
-    int2Str(m_port, ret);
-    return ret;
+    return int2Str(m_port);
   }
   int getServerPort() const { return m_port; }
 
-
-  void setErrorText(const string& inErrText)
-  { 
-    m_error = true;
-    m_errorText = inErrText; 
-  }
 public:
   class RemoteCommand
   {
@@ -184,24 +175,50 @@ public:
   friend ostream& operator << (ostream&, RemoteCommand&) ;
   void print() const;
 
-  bool isRelOpen() const { return rel_open; }
-  void setRelOpen() { rel_open = true; }
-  void setRelClose() { rel_open = false; }
+  Socket *getServer() { return m_server; }
+
+  ListExpr getTType() const { return m_type; }
+  const string& getTTypeStr() const { return m_typeStr; }
+
+  bool isRelOpen() const { return m_rel_open; }
+  void setRelOpen() { m_rel_open = true; }
+  void setRelClose() { m_rel_open = false; }
   bool isShuffleOpen() const { return m_shuffle_open; }
   void setShuffleOpen() { m_shuffle_open = true; }
   void setShuffleClose() { m_shuffle_open = false; }
-
-
 
   const string& getMasterHostIP() const;
   const string& getMasterHostIP_() const;
   const string& getName() const { return name; }
 
-  Socket *getServer() { return m_server; }
-  const Socket *getServer() const { return m_server; }
+  void setErrorText(const string& inErrText)
+  { 
+    m_error = true;
+    m_errorText = inErrText; 
+  }
 
-  ListExpr getTType() const { return m_type; }
-  const string& getTTypeStr() const { return m_typeStr; }
+  void  saveWorkerCallBackConnection(Socket *inCBWorker)
+  {
+    assert(m_cbworker == NULL);
+    m_cbworker = inCBWorker;
+  }
+
+  Socket* getSavedWorkerCBConnection()
+  { 
+    assert(m_cbworker != NULL);
+    return m_cbworker;
+  }
+
+  void closeSavedWorkerCBConnection()
+  { 
+    if (m_cbworker != NULL)
+      {
+        m_cbworker -> Close();
+        delete m_cbworker;
+      }
+    m_cbworker = NULL;
+  }
+
 private:
 
   string m_host;
@@ -214,13 +231,15 @@ private:
   string m_typeStr;
 
   Socket* m_server;
-         
-  Socket* cbworker;
+
+
+  // saves the connection from one thread into the next one.
+  Socket* m_cbworker; 
 
   vector<DServer*> m_childs;
   int m_numChilds;
-                  
-  bool rel_open;
+                 
+  bool m_rel_open;
   bool m_shuffle_open;
    
   string m_errorText;
@@ -230,13 +249,14 @@ private:
 class DServerManager
 {
    public:
-  DServerManager() : m_status(false) {}
+  DServerManager() : m_error(false), m_status(false) {}
       DServerManager(ListExpr serverlist_n, 
                      string name_n, 
                      ListExpr inType, int sizeofarray);
 
+  virtual ~DServerManager();
+
   bool isOk() const { return m_status; }
-      ~DServerManager();
   
 /*
 
@@ -283,13 +303,48 @@ distributed array, which are controlled by the DServer with the given index
         
 /*
 
-2.5 getNoOfServers
+2.5 getNoOfWorkers
 
 returns the number of DServer-Objects controlled by the DServerManager
 
 */
-     
-  int getNoOfServers() const { return size; }
+  int getNoOfWorkers() const 
+  { 
+    return size; 
+  }
+
+/*
+
+2.5 getNoOfMultiWorkers
+
+returns the number of DServer-Objects controlled by the DServerManager
+it more than one worker is required per server object
+
+*/
+
+  int getNoOfMultiWorkers(int inArraySize) const 
+  { 
+    if (size > inArraySize)
+      return inArraySize;
+
+    return size; 
+  }
+
+  int getRelativeNrOfChildsPerWorker (int inArraySize) const
+  {
+    if (size > inArraySize)
+      return 1;
+
+    return int(inArraySize / size);
+  }
+  
+  int getNrOfWorkersWithMoreChilds (int inArraySize) const
+  {
+    if (size > inArraySize)
+      return 0;
+
+    return inArraySize - (((int)inArraySize / size) * size);
+  }
 
 /*
 2.6 checkServers
@@ -299,8 +354,14 @@ returns false, if server were not created correctly
 */   
   bool checkServers(bool writeError) const;
 
-  const string& getErrorText() const { return errorText; }
-  void  setErrorText( const string& txt) { errorText = txt; }
+  const string& getErrorText() const { return m_errorText; }
+
+  bool  hasError() const { return m_error; }
+  void  setErrorText( const string& txt) 
+  { 
+    m_error = true;
+    m_errorText = txt; 
+  }
      
         
 private:
@@ -313,7 +374,8 @@ private:
   
   map<int, list<int> > m_idIndexMap;
 
-  string errorText;
+  string m_errorText;
+  bool m_error;
   bool m_status;
   
 };
