@@ -49,85 +49,131 @@ Remark   : Internal operator only. Used in the operator get
 
 Operator : d_receive_rel
 Number   : 8
-Signature: ( hostname port) -> t
+Signature: ( hostname port t) -> int
 Example  : query plz feed head [10] extend [N:1] ddistribute [N,1, workers ] dsummarize count;
 Result   : (int 10)
 Remark   : Internal operator only. Used in the operator ddistribute
 
-Operator : dloop
+Operator : d_send_shuffle
 Number   : 9
+Signature: ( hostname port t) -> int
+Example  : query plz_dd2 dshuffle1[randint(2)] dloop [. count] dtie[. + ..]
+Result   : (int 10)
+Remark   : Internal operator only. Used in the operator dshuffle
+
+Operator : d_receive_shuffle
+Number   : 10
+Signature: ( hostname port) -> t
+Example  : query plz_dd2 dshuffle1[randint(2)] dloop [. count] dtie[. + ..]
+Result   : (int 10)
+Remark   : Internal operator only. Used in the operator dshuffle
+
+Operator : d_idx
+Number   : 11
+Signature:  -> instant
+Example  :  query (d_idx())
+Result   : (int 1)
+Remark   : Index operator for use in the index function of the operator dshuffle
+
+Operator : DRELATION
+Number   : 12
+Signature: (darray t) ... ) -> t
+Example  : query plz_dd2 dshuffle1[d_idx()] dloop [. count] dtie[. + ..]
+Result   : (int 10)
+Remark   : Internal operator only.
+
+Operator : dloop
+Number   : 13
 Signature: ((darray t) (map t u)) -> (darray u)
 Example  : query plz_dd dloop[. count]
 Result   : ((darray int) ((("localhost" 3333)) 10))
 
 Operator : dloopa
-Number   : 10
+Number   : 14
 Signature: ((darray t) (darray r) (map t r u)) -> (darray u)
 Example  : query plz_dd plz_dd dloopa[. count + .. count]
 Result   : ((darray int) ((("localhost" 3333)) 20))
 
+Operator : dshuffle
+Number   : 15
+Signature: ((darray t) ((map t int)  int (rel(tuple [Server:string, Port: int]))) ) -> darray t 
+Example  : query plz_dd2 dshuffle [randint(2),2, workers] dloop [. count] dtie[. + ..]
+Result   : (int 10)
+
+Operator : dshuffle2
+Number   : 16
+Signature: ((darray t) ((map t int)  int ) ) -> darray t 
+Example  : query plz_dd2 dshuffle2[randint(2),2] dloop [. count] dtie[. + ..]
+Result   : (int 10)
+
+Operator : dshuffle1
+Number   : 17
+Signature: ((darray t) (map t int) ) -> darray t 
+Example  : query plz_dd2 dshuffle1[randint(2)] dloop [. count] dtie[. + ..]
+Result   : (int 10)
+
 
 Operator : dtie
-Number   : 11
+Number   : 18
 Signature: ((array t) (map t t t)) -> t
 Example  : query makeDarray(workers,1,2,3) dtie[. + ..]
 Result   : ( int 6 )
 
 Operator : get
-Number   : 12
+Number   : 19
 Signature: ((darray t) int) -> t
 Example  : query get(makeDarray(workers,1,2,3),1)
 Result   : (int 2)
 
 Operator : makeDarray
-Number   : 13
+Number   : 20
 Signature: (rel(tuple([Server: string, Port: int])) t t ...) -> darray t
 Example  : query makeDarray(workers,1,2,3)
 Result   : ((darray int) ((("localhost" 3333)) 1 2 3))
 
 Operator : put
-Number   : 14
+Number   : 21
 Signature: ((darray t) t int) -> darray t
 Example  : query put(makeDarray(workers,1,2,3),2,2)
 Result   : ((darray int) ((("localhost" 3333)) 1 2 2))
 
 Operator : receiveD
-Number   : 15
+Number   : 22
 Signature: ( hostname port) -> t
 Example  : query put(makeDarray(workers,1,2,3),2,2)
 Result   : ((darray int) ((("localhost" 3333)) 1 2 2))
 Remark   : Internal operator only. Used in the operator put
 
 Operator : sendD
-Number   : 16
+Number   : 23
 Signature: ( hostname port t ) -> int
 Example  : query get(makeDarray(workers,1,2,3),1)
 Result   : (int 2)
 Remark   : Internal operator only. Used in the operator get
 
 Operator : DELEMENT
-Number   : 17
+Number   : 24
 Signature: ((array t) ... ) -> t
 Example  : delete plz_dd
 Result   : ()
 Remark   : Internal operator only. Used for teardown
 
 Operator : DELEMENT
-Number   : 18
+Number   : 25
 Signature: ((array t) ... ) -> t
 Example  : delete plz_dd2
 Result   : ()
 Remark   : Internal operator only. Used for teardown
 
 Operator : DELEMENT2
-Number   : 19
+Number   : 26
 Signature: ((array t) ... ) -> t
 Example  : delete workers
 Result   : ()
 Remark   : Internal operator only. Used for teardown
 
 Operator : shutdown
-Number   : 20
+Number   : 27
 Signature: shutdown (Server:string, Port:int) ->  bool
 Example  : query shutdown("localhost", 3333)
 Result   : TRUE

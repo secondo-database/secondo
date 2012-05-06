@@ -36,10 +36,24 @@ operator d_receive_rel alias D_RECEIVE_REL pattern op (_, _)
 
 operator d_send_rel alias D_SEND_REL pattern op (_, _, _)
 
+operator d_send_shuffle alias D_SEND_SHUFFLE pattern _ op [fun, _, _] implicit parameter tuple type TUPLE
+
+operator d_receive_shuffle alias D_RECEIVE_shuffle pattern op (_, _)
+
 operator ddistribute alias DDISTRIBUTE pattern _ op [_, _]
 
-operator dloop alias DLOOP pattern _ op [ fun ]
-implicit parameter element type DELEMENT
+operator dshuffle alias DSHUFFLE pattern _ op [fun, _, _] 
+         implicit parameter tuple type DRELATION
+
+operator dshuffle2 alias DSHUFFLE2 pattern _ op [fun, _] 
+         implicit parameter tuple type DRELATION
+
+operator dshuffle1 alias DSHUFFLE1 pattern _ op [fun] 
+         implicit parameter tuple type DRELATION
+
+operator d_idx alias DAINDEX pattern op ()
+
+operator dloop alias DLOOP pattern _ op [ fun ] implicit parameter element type DELEMENT
 
 operator dloopa alias DLOOPA pattern _ _ op [ fun ] 
          implicit parameters first, second types DELEMENT, DELEMENT2
