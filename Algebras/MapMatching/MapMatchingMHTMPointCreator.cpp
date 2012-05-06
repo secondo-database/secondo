@@ -90,6 +90,7 @@ bool MPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
                                                          vecRouteSegments.end();
 
         MHTRouteCandidate::PointData* pData1 = NULL;
+        MHTRouteCandidate::RouteSegment* pSegment1 = NULL;
 
         while (it != itEnd)
         {
@@ -118,6 +119,7 @@ bool MPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
                 while (itPts != itPtsEnd && pData1 == NULL)
                 {
                     pData1 = *itPts;
+                    pSegment1 = pSegment;
                     ++itPts;
                 }
 
@@ -125,21 +127,27 @@ bool MPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
                        pData1 != NULL)
                 {
                     MHTRouteCandidate::PointData* pData2 = NULL;
+                    MHTRouteCandidate::RouteSegment* pSegment2 = NULL;
 
                     while (itPts != itPtsEnd && pData2 == NULL)
                     {
                         pData2 = *itPts;
+                        pSegment2 = pSegment;
                         ++itPts;
                     }
 
                     if (pData2 == NULL)
                         continue;
 
-                    ProcessPoints(*pData1, *pData2, vecCurvesBetweenPoints);
+                    ProcessPoints(*pData1,
+                                  *pSegment1,
+                                  *pData2,
+                                  vecCurvesBetweenPoints);
 
                     vecCurvesBetweenPoints.clear();
 
                     pData1 = pData2;
+                    pSegment1 = pSegment2;
                 }
             }
         }
@@ -175,6 +183,7 @@ void MPointCreator::Finalize(void)
 
 void MPointCreator::ProcessPoints(
                          const MHTRouteCandidate::PointData& rData1,
+                         const MHTRouteCandidate::RouteSegment& rSegment1,
                          const MHTRouteCandidate::PointData& rData2,
                          std::vector<const SimpleLine*>& vecCurvesBetweenPoints)
 {
@@ -189,7 +198,6 @@ void MPointCreator::ProcessPoints(
         Pt2 = *(rData2.GetPointProjection());
     else
         Pt2 = rData2.GetPointGPS();
-
 
     if (AlmostEqual(Pt1, Pt2))
     {
@@ -253,7 +261,8 @@ void MPointCreator::ProcessPoints(
             AttributePtr<SimpleLine> pSubline1(new SimpleLine(0));
             MMUtil::SubLine(pSection1Curve,
                             Pt1,
-                            pSection1->GetEndPoint(),
+                            !rSegment1.HasUTurn() ? pSection1->GetEndPoint() :
+                                                    pSection1->GetStartPoint(),
                             pSection1->GetCurveStartsSmaller(),
                             m_dNetworkScale,
                             *pSubline1);
@@ -379,7 +388,13 @@ void MPointCreator::ProcessCurve(const SimpleLine& rCurve,
                            MMUtil::CalcLengthCurve(&rCurve, m_dNetworkScale) :
                            dCurveLength;
     if (AlmostEqual(dLength, 0.0))
+    {
+        AttributePtr<UPoint> pUPoint(new UPoint(TimeInterval,
+                                                rCurve.StartPoint(),
+                                                rCurve.EndPoint()));
+        m_pResMPoint->Add(*pUPoint);
         return;
+    }
 
     DateTime Duration = TimeInterval.end - TimeInterval.start;
     Duration.Abs();

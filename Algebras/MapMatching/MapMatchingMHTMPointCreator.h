@@ -68,6 +68,7 @@ public:
 private:
 
     void ProcessPoints(const MHTRouteCandidate::PointData& rData1,
+                       const MHTRouteCandidate::RouteSegment& rSegment1,
                        const MHTRouteCandidate::PointData& pData2,
                        std::vector<const SimpleLine*>& vecCurvesBetweenPoints);
 
