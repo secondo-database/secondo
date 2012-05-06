@@ -73,8 +73,13 @@ run method of the thread
 void  DServerShuffleReceiver::run()
 {
 #ifdef SHUFFLE_RECEIVE_DEBUG
-  cout << "Starting Receiver:" <<  m_runit
-       << "for " << m_destHost << ":" << m_toPort << endl;
+  string recType;
+  DBAccessGuard::getInstance() -> NL_ToString(m_recType, recType);
+  cout << "Starting Receiver: " <<  m_runit
+       << " for " << m_destHost << ":" << m_toPort 
+       << " TT:" << recType << endl;
+
+  int dbg_count = 0;
 #endif
   DServerCmdCallBackCommunication *dscCallBack = 
     new DServerCmdCallBackCommunication(m_destHost, m_toPort
@@ -85,7 +90,6 @@ void  DServerShuffleReceiver::run()
 
   if (dscCallBack -> createGlobalSocket())
     {
-      int count = 0;
       bool noError = true;
       while(m_runit)
         {
@@ -96,6 +100,11 @@ void  DServerShuffleReceiver::run()
           if (m_runit)
             {
               dscCallBack -> receiveTupleFromCallBack(m_recType, m_rel);
+#ifdef SHUFFLE_RECEIVE_DEBUG 
+              cout << "Rec:" << m_destHost << ":" << m_toPort 
+                   << " - " << dbg_count << endl;
+              dbg_count ++;
+#endif
             }
           else
             {
