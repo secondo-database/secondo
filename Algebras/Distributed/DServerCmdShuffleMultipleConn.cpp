@@ -106,8 +106,8 @@ DServerCmdShuffleMultiConn::run()
          return;
        }
 
-     cout << getTypeStr() + "_" + getIndexStr()
-          << " start communication" << endl;
+     //cout << getTypeStr() + "_" + getIndexStr()
+     //    << " start communication" << endl;
 
      if (!(callBack -> startSocketCommunication()))
        {
