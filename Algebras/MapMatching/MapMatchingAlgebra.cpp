@@ -109,11 +109,32 @@ struct MapMatchMHTInfo : OperatorInfo
                         + " -> " +
                         MGPoint::BasicType());
 
-        syntax    = "mapmatchmht ( _ , _ )";
+        appendSignature(Network::BasicType() + " x " +
+                        MPoint::BasicType() + " x " +
+                        CcReal::BasicType() + " -> " +
+                        MGPoint::BasicType());
+
+        appendSignature(Network::BasicType() + " x " +
+                        FText::BasicType()  + " x " +
+                        CcReal::BasicType() + " -> " +
+                        MGPoint::BasicType());
+
+        appendSignature(Network::BasicType() + " x " +
+                        CcReal::BasicType() + " x " +
+                        "(stream (tuple([Lat:real, Lon:real, Time:DateTime "
+                                        "[,Fix:int] [,Sat:int] [,Hdop : real]"
+                                        "[,Vdop:real] [,Pdop:real] "
+                                        "[,Course:real] [,Speed(m/s):real]])))"
+                        + CcReal::BasicType() + " -> " +
+                        MGPoint::BasicType());
+
+        syntax    = "mapmatchmht ( _ , _ [, _ ] )";
         meaning   = "The operation tries to map the MPoint or "
-                    "the data from a gpx-file or "
+                    "the data of a gpx-file or "
                     "the data of a tuple stream "
-                    "to the given network as well as possible.";
+                    "to the given network as well as possible."
+                    "With the optional real-parameter the scaling"
+                    "factor of the network can be specified.";
         example   = "mapmatchmht (DortmundNet, 'Trk_Dortmund.gpx')";
     }
 };
@@ -125,13 +146,14 @@ struct MapMatchMHTInfo : OperatorInfo
 */
 
 static ListExpr GetMMDataIndexesOfTupleStream(ListExpr TupleStream);
+static ListExpr AppendLists(ListExpr List1, ListExpr List2);
 
 ListExpr OpMapMatchingMHTTypeMap(ListExpr in_xArgs)
 {
     NList param(in_xArgs);
 
-    if( param.length() != 2)
-        return listutils::typeError("two arguments expected");
+    if(param.length() != 2 && param.length() != 3)
+        return listutils::typeError("two or three arguments expected");
 
     if (!param.first().isSymbol(Network::BasicType()))
         return listutils::typeError("1st argument must be " +
@@ -147,6 +169,13 @@ ListExpr OpMapMatchingMHTTypeMap(ListExpr in_xArgs)
                                     "tuple stream");
     }
 
+    if (param.length() == 3)
+    {
+        if (!param.third().isSymbol(CcReal::BasicType()))
+            return listutils::typeError("3rd argument must be " +
+                                                           CcReal::BasicType());
+    }
+
     if (listutils::isTupleStream(param.second().listExpr()))
     {
         ListExpr Ind = GetMMDataIndexesOfTupleStream(param.second().listExpr());
@@ -154,13 +183,36 @@ ListExpr OpMapMatchingMHTTypeMap(ListExpr in_xArgs)
         if(nl->Equal(Ind,nl->TypeError()))
             return Ind;
         else
-            return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                                     Ind,
-                                     nl->SymbolAtom(MGPoint::BasicType()));
+        {
+            if (param.length() == 2)
+            {
+                // Add scaling (default 1.0) and indexes
+                return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                         AppendLists(
+                                             nl->OneElemList(nl->RealAtom(1.0)),
+                                             Ind),
+                                         nl->SymbolAtom(MGPoint::BasicType()));
+            }
+            else
+            {
+                // Add indexes
+                return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                         Ind,
+                                         nl->SymbolAtom(MGPoint::BasicType()));
+            }
+        }
     }
     else
     {
-        return nl->SymbolAtom(MGPoint::BasicType());
+        if (param.length() == 2)
+        {
+            // Add scaling (default 1.0)
+            return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                     nl->OneElemList(nl->RealAtom(1.0)),
+                                     nl->SymbolAtom(MGPoint::BasicType()));
+        }
+        else
+            return nl->SymbolAtom(MGPoint::BasicType());
     }
 }
 
@@ -348,13 +400,14 @@ int OpMapMatchingMHTMPointValueMapping(Word* args,
     // get Arguments
     Network *pNetwork = static_cast<Network*>(args[0].addr);
     MPoint *pMPoint = static_cast<MPoint*>(args[1].addr);
+    CcReal *pNetworkScale = static_cast<CcReal*>(args[2].addr);
 
     // Do Map Matching
 
-    NetworkAdapter Network(pNetwork);
+    NetworkAdapter Network(pNetwork, pNetworkScale->GetValue());
     MapMatchingMHT MapMatching(&Network, pMPoint);
 
-    MGPointCreator Creator(pNetwork, pRes);
+    MGPointCreator Creator(&Network, pRes);
 
     if (!MapMatching.DoMatch(&Creator))
     {
@@ -380,13 +433,14 @@ int OpMapMatchingMHTGPXValueMapping(Word* args,
     Network* pNetwork = static_cast<Network*>(args[0].addr);
     FText* pFileName = static_cast<FText*>(args[1].addr);
     std::string strFileName = pFileName->Get();
+    CcReal *pNetworkScale = static_cast<CcReal*>(args[2].addr);
 
     // Do Map Matching
 
-    NetworkAdapter Network(pNetwork);
+    NetworkAdapter Network(pNetwork, pNetworkScale->GetValue());
     MapMatchingMHT MapMatching(&Network, strFileName);
 
-    MGPointCreator Creator(pNetwork, pRes);
+    MGPointCreator Creator(&Network, pRes);
 
     if (!MapMatching.DoMatch(&Creator))
     {
@@ -542,14 +596,16 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
     Network* pNetwork = static_cast<Network*>(args[0].addr);
 
     shared_ptr<MapMatchDataContainer> pContData =
-                                GetMMDataFromTupleStream(args[1].addr, args, 2);
+                                GetMMDataFromTupleStream(args[1].addr, args, 3);
+
+    CcReal *pNetworkScale = static_cast<CcReal*>(args[2].addr);
 
     // Matching
 
-    NetworkAdapter Network(pNetwork);
+    NetworkAdapter Network(pNetwork, pNetworkScale->GetValue());
     MapMatchingMHT MapMatching(&Network, pContData);
 
-    MGPointCreator Creator(pNetwork, pRes);
+    MGPointCreator Creator(&Network, pRes);
 
     if (!MapMatching.DoMatch(&Creator))
     {
@@ -566,7 +622,7 @@ int OpMapMatchingMHTStreamValueMapping(Word* args,
 int MapMatchMHTSelect(ListExpr args)
 {
     NList type(args);
-    if (type.length() == 2 &&
+    if ((type.length() == 2 || type.length() == 3) &&
         type.first().isSymbol(Network::BasicType()))
     {
         if (type.second().isSymbol(MPoint::BasicType()))
@@ -599,6 +655,7 @@ int MapMatchMHTSelect(ListExpr args)
 
 4.1 Operator-Info
     map matching with an ordered relation
+    Result: Tuples of matched edges with timestamps
 
 */
 struct OMapMatchMHTInfo : OperatorInfo
@@ -611,13 +668,15 @@ struct OMapMatchMHTInfo : OperatorInfo
                     RTree2TID::BasicType() + " x " +
                     Relation::BasicType() + " x " +
                     MPoint::BasicType() + " -> " +
-                    Points::BasicType();
+                    "stream(tuple([<attributes of tuple of edge>,"
+                                 "StartTime:DateTime, EndTime:DateTime]))";
 
         appendSignature(OrderedRelation::BasicType() + " x " +
                         RTree2TID::BasicType() + " x " +
                         Relation::BasicType() + " x " +
                         FText::BasicType()  + " -> " +
-                        Points::BasicType());
+                        "stream(tuple([<attributes of tuple of edge>,"
+                                     "StartTime:DateTime, EndTime:DateTime]))");
 
         appendSignature(OrderedRelation::BasicType() + " x " +
                         RTree2TID::BasicType() + " x " +
@@ -627,12 +686,13 @@ struct OMapMatchMHTInfo : OperatorInfo
                                        "[,Vdop:real] [,Pdop:real] "
                                        "[,Course:real] [,Speed(m/s):real]])))"
                         + " -> " +
-                        Points::BasicType());
+                        "stream(tuple([<attributes of tuple of edge>,"
+                                     "StartTime:DateTime, EndTime:DateTime]))");
 
 
         syntax    = "omapmatchmht ( _ , _ , _ , _ )";
         meaning   = "The operation tries to map the MPoint or "
-                    "the data from a gpx-file or "
+                    "the data of a gpx-file or "
                     "the data of a tuple stream "
                     "to the given network, which is based on an "
                     "ordered relation, as well as possible.";
@@ -642,7 +702,6 @@ struct OMapMatchMHTInfo : OperatorInfo
 };
 
 static ListExpr GetORelNetworkAttrIndexes(ListExpr ORelAttrList);
-static ListExpr AppendLists(ListExpr List1, ListExpr List2);
 
 /*
 4.2 Type-Mapping
@@ -651,6 +710,7 @@ static ListExpr AppendLists(ListExpr List1, ListExpr List2);
 enum EOMapMatchingMHTResultType
 {
     OMM_RESULT_EDGES,
+    OMM_RESULT_POSITIONS_ON_EDGES,
     OMM_RESULT_MPOINT
 };
 
@@ -757,6 +817,31 @@ ListExpr OpOMapMatchingMHTTypeMap_Common(ListExpr in_xArgs,
                                         nl->SymbolAtom(DateTime::BasicType())),
                         nl->TwoElemList(nl->SymbolAtom("EndTime"),
                                         nl->SymbolAtom(DateTime::BasicType())));
+
+            ListExpr ResAttr = AppendLists(orelAttrList.listExpr(), addAttrs);
+
+            ResultType = nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                         nl->TwoElemList(
+                                             nl->SymbolAtom(Tuple::BasicType()),
+                                             ResAttr));
+        }
+        break;
+
+        case OMM_RESULT_POSITIONS_ON_EDGES:
+        {
+            ListExpr addAttrs = nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("StartTime"),
+                                        nl->SymbolAtom(DateTime::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("EndTime"),
+                                        nl->SymbolAtom(DateTime::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("StartPos"),
+                                        nl->SymbolAtom(Point::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("EndPos"),
+                                        nl->SymbolAtom(Point::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("StartLength"),
+                                        nl->SymbolAtom(CcReal::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("EndLength"),
+                                        nl->SymbolAtom(CcReal::BasicType())));
 
             ListExpr ResAttr = AppendLists(orelAttrList.listExpr(), addAttrs);
 
@@ -1318,9 +1403,129 @@ int OMapMatchMHTSelect(ListExpr args)
 
 
 /*
-5 omapmatchmht\_mpoint-operator
+5 omapmatchmht\_P-operator
 
 5.1 Operator-Info
+    map matching with an ordered relation
+    Result: Tuples of matched points on edges
+
+*/
+struct OMapMatchMHT_PInfo : OperatorInfo
+{
+
+    OMapMatchMHT_PInfo()
+    {
+        name      = "omapmatchmht_p";
+        signature = OrderedRelation::BasicType() + " x " +
+                    RTree2TID::BasicType() + " x " +
+                    Relation::BasicType() + " x " +
+                    MPoint::BasicType() + " -> " +
+                    "stream(tuple([<attributes of tuple of edge>,"
+                                 "StartTime:DateTime, EndTime:DateTime,"
+                                 "StartPos:Point, EndPos:Point,"
+                                 "StartLength:real, EndPos:real]))";
+
+        appendSignature(OrderedRelation::BasicType() + " x " +
+                        RTree2TID::BasicType() + " x " +
+                        Relation::BasicType() + " x " +
+                        FText::BasicType()  + " -> " +
+                        "stream(tuple([<attributes of tuple of edge>,"
+                                     "StartTime:DateTime, EndTime:DateTime,"
+                                     "StartPos:Point, EndPos:Point,"
+                                     "StartLength:real, EndPos:real]))");
+
+        appendSignature(OrderedRelation::BasicType() + " x " +
+                        RTree2TID::BasicType() + " x " +
+                        Relation::BasicType() + " x " +
+                        "(stream (tuple([Lat:real, Lon:real, Time:DateTime "
+                                       "[,Fix:int] [,Sat:int] [,Hdop : real]"
+                                       "[,Vdop:real] [,Pdop:real] "
+                                       "[,Course:real] [,Speed(m/s):real]])))"
+                        + " -> " +
+                        "stream(tuple([<attributes of tuple of edge>,"
+                                     "StartTime:DateTime, EndTime:DateTime,"
+                                     "StartPos:Point, EndPos:Point,"
+                                     "StartLength:real, EndPos:real]))");
+
+
+        syntax    = "omapmatchmht_p ( _ , _ , _ , _ )";
+        meaning   = "The operation tries to map the MPoint or "
+                    "the data of a gpx-file or "
+                    "the data of a tuple stream "
+                    "to the given network, which is based on an "
+                    "ordered relation, as well as possible.";
+        example   = "omapmatchmht_p(Edges, EdgeIndex_Box_rtree, "
+                                    "EdgeIndex, 'Trk_Dortmund.gpx')";
+    }
+};
+
+
+/*
+5.2 Type-Mapping
+
+*/
+
+ListExpr OpOMapMatchingMHT_PTypeMap(ListExpr in_xArgs)
+{
+    return OpOMapMatchingMHTTypeMap_Common(in_xArgs,
+                                           OMM_RESULT_POSITIONS_ON_EDGES);
+}
+
+
+/*
+5.3 Value-Mapping
+
+*/
+
+int OpOMapMatchingMHTMPoint2PositionsValueMapping(Word* args,
+                                                  Word& result,
+                                                  int message,
+                                                  Word& local,
+                                                  Supplier in_xSupplier)
+{
+    // cout << "OpOMapMatchingMHTMPoint2PositionsValueMapping called" << endl;
+
+    return 0;
+}
+
+int OpOMapMatchingMHTGPX2PositionsValueMapping(Word* args,
+                                               Word& result,
+                                               int message,
+                                               Word& local,
+                                               Supplier in_xSupplier)
+{
+    // cout << "OpOMapMatchingMHTGPX2PositionsValueMapping called" << endl;
+
+    return 0;
+}
+
+int OpOMapMatchingMHTStream2PositionsValueMapping(Word* args,
+                                                  Word& result,
+                                                  int message,
+                                                  Word& local,
+                                                  Supplier in_xSupplier)
+{
+    // cout << "OpOMapMatchingMHTStream2PositionsValueMapping called" << endl;
+
+    return 0;
+}
+
+
+/*
+5.4 Selection Function
+
+*/
+int OMapMatchMHT_PSelect(ListExpr args)
+{
+    return OMapMatchMHTSelect(args);
+}
+
+
+
+/*
+6 omapmatchmht\_mpoint-operator
+
+6.1 Operator-Info
     map matching with an ordered relation
     result is a mpoint
 
@@ -1356,7 +1561,7 @@ struct OMapMatchMHT_MPointInfo : OperatorInfo
 
         syntax    = "omapmatchmht_mpoint ( _ , _ , _ , _ )";
         meaning   = "The operation tries to map the MPoint or "
-                    "the data from a gpx-file or "
+                    "the data of a gpx-file or "
                     "the data of a tuple stream "
                     "to the given network, which is based on an "
                     "ordered relation, as well as possible."
@@ -1368,7 +1573,7 @@ struct OMapMatchMHT_MPointInfo : OperatorInfo
 
 
 /*
-5.2 Type-Mapping
+6.2 Type-Mapping
 
 */
 
@@ -1379,7 +1584,7 @@ ListExpr OpOMapMatchingMHT_MPointTypeMap(ListExpr in_xArgs)
 
 
 /*
-5.3 Value-Mapping
+6.3 Value-Mapping
 
 */
 
@@ -1501,7 +1706,7 @@ int OpOMapMatchingMHTStream2MPointValueMapping(Word* args,
 
 
 /*
-5.4 Selection Function
+6.4 Selection Function
 
 */
 int OMapMatchMHT_MPointSelect(ListExpr args)
@@ -1512,9 +1717,9 @@ int OMapMatchMHT_MPointSelect(ListExpr args)
 
 
 /*
-6 gpximport-operator
+7 gpximport-operator
 
-6.1 Operator-Info
+7.1 Operator-Info
 
 */
 struct GPXImportInfo : OperatorInfo
@@ -1544,7 +1749,7 @@ struct GPXImportInfo : OperatorInfo
 };
 
 /*
-6.2 Type-Mapping
+7.2 Type-Mapping
 
 */
 
@@ -1568,7 +1773,7 @@ ListExpr OpGPXImportTypeMap(ListExpr in_xArgs)
 }
 
 /*
-6.3 Value-Mapping
+7.3 Value-Mapping
 
 */
 
@@ -1654,7 +1859,7 @@ int OpGPXImportValueMappingWithScale(Word* args,
 }
 
 /*
-6.4 Selection Function
+7.4 Selection Function
 
 */
 
@@ -1678,7 +1883,7 @@ int GPXImportSelect(ListExpr args)
 
 
 /*
-7 Implementation of the MapMatchingAlgebra Class
+8 Implementation of the MapMatchingAlgebra Class
 
 */
 
@@ -1687,13 +1892,13 @@ MapMatchingAlgebra::MapMatchingAlgebra()
 {
 
 /*
-7.1 Registration of Types
+8.1 Registration of Types
 
 */
 
 
 /*
-7.2 Registration of Operators
+8.2 Registration of Operators
 
 */
 
@@ -1719,6 +1924,18 @@ MapMatchingAlgebra::MapMatchingAlgebra()
                 OMapMatchMHTSelect,
                 OpOMapMatchingMHTTypeMap);
 
+    // OMapMatchMHT_P
+    /*ValueMapping OMapMatchMHT_PFuns[] =
+                                { OpOMapMatchingMHTMPoint2PositionsValueMapping,
+                                  OpOMapMatchingMHTGPX2PositionsValueMapping,
+                                  OpOMapMatchingMHTStream2PositionsValueMapping,
+                                  0 };
+
+    AddOperator(OMapMatchMHT_PInfo(),
+                OMapMatchMHT_PFuns,
+                OMapMatchMHT_PSelect,
+                OpOMapMatchingMHT_PTypeMap);*/
+
     // OMapMatchMHT_MPoint
     ValueMapping OMapMatchMHT_MPointFuns[] =
                                    { OpOMapMatchingMHTMPoint2MPointValueMapping,
@@ -1731,7 +1948,7 @@ MapMatchingAlgebra::MapMatchingAlgebra()
                 OMapMatchMHT_MPointSelect,
                 OpOMapMatchingMHT_MPointTypeMap);
 
-    // GPXImport - overloaded
+    // GPXImport
     ValueMapping GPXImportFuns[] = { OpGPXImportValueMapping,
                                      OpGPXImportValueMappingWithScale,
                                      0 };

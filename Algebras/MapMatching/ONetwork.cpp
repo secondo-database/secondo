@@ -119,12 +119,15 @@ bool ONetwork::GetEdges(const Rectangle<2>& rBBox,
 bool ONetwork::GetEdges(const Tuple* pTuple,
                         std::vector<ONetworkEdge>& vecEdges) const
 {
-    if (pTuple == NULL || m_pOrderedRelation == NULL)
+    if (pTuple == NULL ||
+        m_pOrderedRelation == NULL ||
+        m_EdgeAttrIndexes.m_IdxSource < 0 ||
+        m_EdgeAttrIndexes.m_IdxTarget < 0)
         return false;
 
     vector<void*> vecAttributes(2);
-    vecAttributes[0] = pTuple->GetAttribute(0);
-    vecAttributes[1] = pTuple->GetAttribute(1);
+    vecAttributes[0] = pTuple->GetAttribute(m_EdgeAttrIndexes.m_IdxSource);
+    vecAttributes[1] = pTuple->GetAttribute(m_EdgeAttrIndexes.m_IdxTarget);
 
     vector<SmiKey::KeyDataType> vecAttrTypes(2);
     vecAttrTypes[0] = SmiKey::Integer;

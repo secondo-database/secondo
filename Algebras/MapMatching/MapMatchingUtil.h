@@ -117,7 +117,7 @@ public:
     static bool GetPosOnSimpleLine(const SimpleLine& rLine,
                                    const Point& p,
                                    bool startsSmaller,
-                                   double tolerance,
+                                   double dNetworkScale,
                                    double& result);
 
     static Point CalcDestinationPoint(const Point& rPoint,

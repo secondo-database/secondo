@@ -48,7 +48,7 @@ This header file essentially contains the definition of the class ~MGPointCreato
 namespace mapmatch {
 
 /*
-3 class ORelCreator
+3 class OEdgeTupleStreamCreator
 
 */
 

@@ -60,7 +60,7 @@ namespace mapmatch {
 class NetworkAdapter : public IMMNetwork
 {
 public:
-    NetworkAdapter(Network* pNetwork = NULL);
+    NetworkAdapter(Network* pNetwork = NULL, double dNetworkScale = 1.0);
     NetworkAdapter(const NetworkAdapter& rNetworkAdapter);
 
     virtual ~NetworkAdapter();
@@ -75,6 +75,8 @@ public:
 
     virtual bool IsDefined(void) const;
 
+    const Network* GetNetwork(void) const {return m_pNetwork;}
+
 private:
 
     void GetSectionsOfRoute(
@@ -83,6 +85,7 @@ private:
                 std::vector<shared_ptr<IMMNetworkSection> >& rVecSectRes) const;
 
     Network* m_pNetwork;
+    double m_dNetworkScale;
 };
 
 

@@ -45,7 +45,6 @@ This header file essentially contains the definition of the class ~MGPointCreato
 #include "MHTRouteCandidate.h"
 #include <TemporalAlgebra.h>
 
-class Network;
 class MGPoint;
 struct RITreeP;
 class GPoint;
@@ -59,6 +58,8 @@ namespace datetime
 
 namespace mapmatch {
 
+class NetworkAdapter;
+
 /*
 3 class MGPointCreator
 
@@ -67,7 +68,7 @@ class MGPointCreator : public IMapMatchingMHTResultCreator
 {
 public:
 
-    MGPointCreator(Network* pNetwork, MGPoint* pResMGPoint);
+    MGPointCreator(NetworkAdapter* pNetworkAdapter, MGPoint* pResMGPoint);
     virtual ~MGPointCreator();
 
     virtual bool CreateResult(const std::vector<MHTRouteCandidate*>&
@@ -94,7 +95,8 @@ private:
                        const GPoint& rGPEnd,
                        const Interval<Instant>& rTimeInterval);
 
-    Network* m_pNetwork;
+    const Network* m_pNetwork;
+    double   m_dNetworkScale;
     MGPoint* m_pResMGPoint;
     RITreeP* m_pRITree;
 };

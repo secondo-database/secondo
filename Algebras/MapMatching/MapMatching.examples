@@ -1,31 +1,88 @@
 Database : mapmatchtest
 Restore  : YES
 
-Operator : mapmatchsimple
-Number   : 1
-Signature: network x mpoint -> mgpoint
-Example  : query mapmatchsimple(B_NETWORK, [const mpoint value((("2007-01-01-10:02:01.000" "2007-01-01-10:02:03.000" TRUE FALSE)(8209.0 8769.0 8293.0 8768.0)))]);
-Result   : (mgpoint((("2007-01-01-10:02:01" "2007-01-01-10:02:03" TRUE FALSE)(1 1 1 0.0 84.00595217006948))))
-Tolerance: 0.01%
-
 Operator : mapmatchmht
 Number   : 1
+Signature: network x text -> mgpoint
+Example  : query mapmatchmht(KaiserslauternNet, 'Trk_KL_Enkenbach.gpx');
+Result   : file
+
+Operator : mapmatchmht
+Number   : 2
+Signature: network x stream(tuple(...)) -> mgpoint
+Example  : query mapmatchmht(KaiserslauternNet, gpximport('Trk_KL_Enkenbach.gpx'));
+Result   : file
+
+Operator : mapmatchmht
+Number   : 3
 Signature: network x mpoint -> mgpoint
-Example  : query mapmatchmht(B_NETWORK, [const mpoint value((("2007-01-01-10:02:01.000" "2007-01-01-10:02:03.000" TRUE FALSE)(8209.0 8769.0 8293.0 8768.0)))]);
-Result   : (mgpoint((("2007-01-01-10:02:01" "2007-01-01-10:02:03" TRUE FALSE)(1 1 1 0.0 84.00595217006948))))
-Tolerance: 0.01%
+Example  : query DayTrips feed extend[MatchedTrip: mapmatchmht(KaiserslauternNet, .DayTrip)] consume;
+Result   : file
+
+Operator : mapmatchmht
+Number   : 4
+Signature: network x text x real -> mgpoint
+Example  : query mapmatchmht(KaiserslauternNet, 'Trk_KL_Enkenbach.gpx', 1.0);
+Result   : file
+
+Operator : mapmatchmht
+Number   : 5
+Signature: network x stream(tuple(...)) x real -> mgpoint
+Example  : query mapmatchmht(KaiserslauternNet, gpximport('Trk_KL_Enkenbach.gpx'), 1.0);
+Result   : file
+
+Operator : mapmatchmht
+Number   : 6
+Signature: network x mpoint x real -> mgpoint
+Example  : query DayTrips feed extend[MatchedTrip: mapmatchmht(KaiserslauternNet, .DayTrip, 1.0)] consume;
+Result   : file
 
 Operator : omapmatchmht
 Number   : 1
-Signature: orel x rtree x rel x text -> int
+Signature: orel x rtree x rel x text -> orel
 Example  : query omapmatchmht(Edges, EdgeIndex_Box_rtree, EdgeIndex, 'Trk_KL_Enkenbach.gpx');
-Result   : 0
-Tolerance: 0.01%
+Result   : file
+
+Operator : omapmatchmht
+Number   : 2
+Signature: orel x rtree x rel x stream(tuple(...)) -> orel
+Example  : query omapmatchmht(Edges, EdgeIndex_Box_rtree, EdgeIndex, gpximport('Trk_KL_Enkenbach.gpx'));
+Result   : file
+
+Operator : omapmatchmht
+Number   : 3
+Signature: orel x rtree x rel x mpoint -> orel
+Example  : query DayTrips feed extend[MatchedTrip: omapmatchmht(EdgesR, EdgeIndexR_Box_rtree, EdgeIndexR, .DayTrip) aconsume] consume;
+Result   : file
+
+Operator : omapmatchmht_mpoint
+Number   : 1
+Signature: orel x rtree x rel x text -> mpoint
+Example  : query omapmatchmht_mpoint(Edges, EdgeIndex_Box_rtree, EdgeIndex, 'Trk_KL_Enkenbach.gpx');
+Result   : file
+
+Operator : omapmatchmht_mpoint
+Number   : 2
+Signature: orel x rtree x rel x stream(tuple(...)) -> mpoint
+Example  : query omapmatchmht_mpoint(Edges, EdgeIndex_Box_rtree, EdgeIndex, gpximport('Trk_KL_Enkenbach.gpx'))
+Result   : file
+
+Operator : omapmatchmht_mpoint
+Number   : 3
+Signature: orel x rtree x rel x mpoint -> mpoint
+Example  : query DayTrips feed extend[MatchedTrip: omapmatchmht_mpoint(Edges, EdgeIndex_Box_rtree, EdgeIndex, .DayTrip)] consume;
+Result   : file
 
 Operator : gpximport
 Number   : 1
 Signature: string -> stream(tuple(...))
 Example  : query gpximport('Trk_KL_Enkenbach.gpx') count;
+Result   : 235
+
+Operator : gpximport
+Number   : 2
+Signature: string x real -> stream(tuple(...))
+Example  : query gpximport('Trk_KL_Enkenbach.gpx', 1.0) count;
 Result   : 235
 
 

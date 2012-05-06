@@ -100,7 +100,7 @@ public:
 
     void Print(std::ostream& os) const;
 
-    /*const*/ Tuple* GetTuple(void) const {return m_pTupleEdge;}
+    const Tuple* GetTuple(void) const {return m_pTupleEdge;}
 
 private:
 

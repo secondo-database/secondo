@@ -57,13 +57,15 @@ namespace mapmatch {
 
 */
 
-NetworkAdapter::NetworkAdapter(Network* pNetwork)
-:m_pNetwork(pNetwork)
+NetworkAdapter::NetworkAdapter(Network* pNetwork, double dNetworkScale)
+:m_pNetwork(pNetwork),
+ m_dNetworkScale(dNetworkScale)
 {
 }
 
 NetworkAdapter::NetworkAdapter(const NetworkAdapter& rNetworkAdapter)
-:m_pNetwork(rNetworkAdapter.m_pNetwork)
+:m_pNetwork(rNetworkAdapter.m_pNetwork),
+ m_dNetworkScale(rNetworkAdapter.m_dNetworkScale)
 {
 }
 
@@ -163,12 +165,7 @@ Rectangle<2> NetworkAdapter::GetBoundingBox(void) const
 
 double NetworkAdapter::GetNetworkScale(void) const
 {
-    // TODO
-    return 1000.0;
-    /*if (m_pNetwork != NULL)
-        return m_pNetwork->GetScalefactor();
-    else
-        return 1.0;*/
+    return m_dNetworkScale;
 }
 
 bool NetworkAdapter::IsDefined(void) const

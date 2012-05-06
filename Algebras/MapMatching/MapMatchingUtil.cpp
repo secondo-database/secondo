@@ -421,14 +421,14 @@ double MMUtil::CalcDistance(const Point& rPt1,
     MMUtil::GetPosOnSimpleLine(rCurve,
                                rPt1,
                                rCurve.GetStartSmaller(),
-                               0.000001 * dScale,
+                               dScale,
                                dPos1);
 
     double dPos2 = -1.0;
     MMUtil::GetPosOnSimpleLine(rCurve,
                                rPt2,
                                rCurve.GetStartSmaller(),
-                               0.000001 * dScale,
+                               dScale,
                                dPos2);
 
     AttributePtr<SimpleLine> pSubline(new SimpleLine(0));
@@ -584,7 +584,7 @@ double MMUtil::CalcHeading(const IMMNetworkSection* pSection,
 bool MMUtil::GetPosOnSimpleLine(const SimpleLine& rLine,
                                 const Point& p,
                                 bool startsSmaller,
-                                double tolerance,
+                                double dNetworkScale,
                                 double& result)
 {
     if (rLine.IsEmpty() || !p.IsDefined())
@@ -592,13 +592,15 @@ bool MMUtil::GetPosOnSimpleLine(const SimpleLine& rLine,
         return false;
     }
 
+    const double dTolerance = 0.000001 * dNetworkScale;
+
     bool found = false;
     HalfSegment hs;
     const Rectangle<2> rectBounding(true,
-                                    p.GetX() - tolerance,
-                                    p.GetX() + tolerance,
-                                    p.GetY() - tolerance,
-                                    p.GetY() + tolerance);
+                                    p.GetX() - dTolerance,
+                                    p.GetX() + dTolerance,
+                                    p.GetY() - dTolerance,
+                                    p.GetY() + dTolerance);
 
     for (int nPos = 0; nPos < rLine.Size(); ++nPos)
     {
@@ -682,14 +684,14 @@ void MMUtil::SubLine(const SimpleLine* pLine,
     MMUtil::GetPosOnSimpleLine(*pLine,
                                rPoint1,
                                bStartsSmaller,
-                               0.000001 * dScale,
+                               dScale,
                                dPos1);
 
     double dPos2 = -1.0;
     MMUtil::GetPosOnSimpleLine(*pLine,
                                rPoint2,
                                bStartsSmaller,
-                               0.000001 * dScale,
+                               dScale,
                                dPos2);
 
     bool bReverse = false;

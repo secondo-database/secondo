@@ -17,7 +17,7 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator mapmatchsimple alias MAPMATCHSIMPLE pattern op( _ , _ )
 operator mapmatchmht alias MAPMATCHMHT pattern op( _ , _ )
 operator omapmatchmht alias OMAPMATCHMHT pattern op( _ , _ , _ , _ )
+operator omapmatchmht_mpoint alias OMAPMATCHMHT_MPOINT pattern op( _ , _ , _ , _ )
 operator gpximport alias GPXIMPORT pattern op( _ )

@@ -120,12 +120,14 @@ MHTRouteCandidate& MHTRouteCandidate::operator=
     return *this;
 }
 
+#define SCORE_FOR_SECTION 0.0
+
 void MHTRouteCandidate::AddSection(const shared_ptr<IMMNetworkSection>& pSect)
 {
     m_Segments.push_back(new RouteSegment(pSect));
 
     // Add score for every Section -> prefer candidates with fewer sections
-    m_dScore += 5.0;
+    m_dScore += SCORE_FOR_SECTION;
 
     ++m_nCountLastEmptySections;
 }
@@ -143,7 +145,7 @@ void MHTRouteCandidate::RemoveLastSection(void)
 
             m_Segments.pop_back();
             delete pSegment;
-            //m_dScore -= 5.0; no score for offroad-segment
+            //m_dScore -= SCORE_FOR_SECTION; no score for offroad-segment
 
             if (m_Segments.size() > 0)
                 pSegment = m_Segments.back();
@@ -157,7 +159,7 @@ void MHTRouteCandidate::RemoveLastSection(void)
         {
             m_Segments.pop_back();
             delete pSegment;
-            m_dScore -= 5.0;
+            m_dScore -= SCORE_FOR_SECTION;
             if (m_nCountLastEmptySections > 0)
                 --m_nCountLastEmptySections;
             else
@@ -542,7 +544,7 @@ void MHTRouteCandidate::AddPoint(const MapMatchData* pMMData)
         m_Segments.push_back(new RouteSegment()); // Offroad-Segment
     }
 
-    const double dScore = 40. + (pMMData->m_dCourse >= 0 ? 40 : 0);
+    const double dScore = 40. + (pMMData->m_dCourse >= 0 ? 40. : 0.);
 
     MHTRouteCandidate::PointData* pData = m_Segments.back()->AddPoint(pMMData,
                                                                       dScore);
@@ -987,7 +989,7 @@ const GPoint* MHTRouteCandidate::PointData::GetGPoint(const int& nNetworkId,
         MMUtil::GetPosOnSimpleLine(*pRouteCurve,
                                    *m_pPointProjection,
                                    RouteStartsSmaller,
-                                   0.000001 * dNetworkScale,
+                                   dNetworkScale,
                                    dPos))
        //pRouteCurve->AtPoint(PointProjection, RouteStartsSmaller, dPos))
     {

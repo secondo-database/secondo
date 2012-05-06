@@ -54,9 +54,13 @@ namespace mapmatch {
 
 */
 
-MGPointCreator::MGPointCreator(Network* pNetwork,
+MGPointCreator::MGPointCreator(NetworkAdapter* pNetworkAdapter,
                                MGPoint* pResMGPoint)
-:m_pNetwork(pNetwork), m_pResMGPoint(pResMGPoint), m_pRITree(NULL)
+:m_pNetwork(pNetworkAdapter != NULL ? pNetworkAdapter->GetNetwork() : NULL),
+ m_dNetworkScale(pNetworkAdapter != NULL ?
+                                      pNetworkAdapter->GetNetworkScale() : 1.0),
+ m_pResMGPoint(pResMGPoint),
+ m_pRITree(NULL)
 {
 }
 
@@ -83,7 +87,6 @@ bool MGPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
                                        // -> don't connect by shortest path
 
     const int nNetworkkId = m_pNetwork->GetId();
-    const double dNetworkScale = 1000.0; // TODO m_pNetwork->GetScalefactor();
 
     for (size_t i = 0; i < rvecRouteCandidates.size(); ++i)
     {
@@ -104,7 +107,7 @@ bool MGPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
             const GPoint* pGP1 = NULL;
             while(itData != itDataEnd &&
                   (pData1 == NULL ||
-                   (pGP1 = GetGPoint(pData1, nNetworkkId, dNetworkScale))
+                   (pGP1 = GetGPoint(pData1, nNetworkkId, m_dNetworkScale))
                                                                        == NULL))
             {
                 pData1 = *itData;
@@ -119,7 +122,7 @@ bool MGPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
 
                 while (itData != itDataEnd &&
                        (pData2 == NULL ||
-                        (pGP2 = GetGPoint(pData2, nNetworkkId, dNetworkScale))
+                        (pGP2 = GetGPoint(pData2, nNetworkkId, m_dNetworkScale))
                                                                        == NULL))
                 {
                     pData2 = *itData;
@@ -140,10 +143,10 @@ bool MGPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
                     {
                         CalcShortestPath(GetGPoint(pLastPointOfPrevSection,
                                                    nNetworkkId,
-                                                   dNetworkScale),
+                                                   m_dNetworkScale),
                                          GetGPoint(pData1,
                                                    nNetworkkId,
-                                                   dNetworkScale),
+                                                   m_dNetworkScale),
                                          pLastPointOfPrevSection->GetTime(),
                                          pData1->GetTime(),
                                          true);
@@ -267,7 +270,7 @@ const GPoint* MGPointCreator::GetGPoint(
         MMUtil::GetPosOnSimpleLine(*pRouteCurve,
                                    *pPointProjection,
                                    RouteStartsSmaller,
-                                   0.000001 * dNetworkScale,
+                                   dNetworkScale,
                                    dPos))
        //pRouteCurve->AtPoint(*pPointProjection, RouteStartsSmaller, dPos))
     {
@@ -307,7 +310,6 @@ bool MGPointCreator::CalcShortestPath(const GPoint* pGPStart,
     }
 
     const int nNetworkId = m_pNetwork->GetId();
-    const double dNetworkScale = 1000.0; // TODO m_pNetwork->GetScalefactor();
 
     AttributePtr<GLine> pGlShortestPath(new GLine(false));
     //if (!pGPStart->ShortestPath(pGPEnd, pGlShortestPath.get(), m_pNetwork))
@@ -325,7 +327,7 @@ bool MGPointCreator::CalcShortestPath(const GPoint* pGPStart,
         {
             double dLen = MMUtil::CalcLengthCurve(pGlShortestPath.get(),
                                                   m_pNetwork,
-                                                  dNetworkScale);
+                                                  m_dNetworkScale);
             dLen /= 1000.; // KM
             datetime::DateTime DiffTime = rtimeEnd - rtimeStart;
             double dDuration = DiffTime.millisecondsToNull() /

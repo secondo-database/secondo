@@ -666,7 +666,11 @@ void MapMatchingMHT::GetInitialRouteCandidates(const Point& rPoint,
 
     Point pt(rPoint);
     pt.Scale(1.0 / m_dNetworkScale);
-    assert(pt.checkGeographicCoord());
+    if (!pt.checkGeographicCoord())
+    {
+        cerr << "Invalid geographic coord";
+        return;
+    }
 
     const double dLength = 0.250; // edge length 250 meters
 
@@ -835,11 +839,21 @@ static bool CheckRoadType(const shared_ptr<IMMNetworkSection>& pSection,
     if (rMMData.m_dSpeed > 0.0)
     {
         // m/s -> km/h
-        double dSpeedKMH = rMMData.m_dSpeed * 60. * 60. / 1000.;
+        const double dSpeedKMH = rMMData.m_dSpeed * 60. * 60. / 1000.;
+        const double dMaxSpeed = pSection->GetMaxSpeed();
 
-        if (pSection->GetMaxSpeed() > 0.0)
+        if (dMaxSpeed > 0.0) // Defined
         {
+            /*double dFactor = 1.0;
+            if (dMaxSpeed <= 30.0)
+                dFactor = 2.2;
+            else if (dMaxSpeed <= 50.0)
+                dFactor = 1.8;
+            else
+                dFactor = 1.4;
 
+            if (dSpeedKMH > (dMaxSpeed * dFactor))
+                return false;*/
         }
         else
         {
@@ -1130,12 +1144,12 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
         /*const Point ptStart = pSection->GetStartPoint();
         const Point ptEnd = pSection->GetEndPoint();*/
 
+        bool bIsEndPoint = false;
+
         // Only assign to endpoint if it is orthogonal or distance <= 50 m
         if (!bIsOrthogonal)
         {
             /* TODO */
-
-            bool bIsEndPoint = false;
 
             if (pSection->GetDirection() == IMMNetworkSection::DIR_UP)
             {
@@ -1253,7 +1267,6 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
             {
                 eNext = CANDIDATES_UP_DOWN;
             }
-
         }
 
         pCandidate->AddPoint(PointProjection,
