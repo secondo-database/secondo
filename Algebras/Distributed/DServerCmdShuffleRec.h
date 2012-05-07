@@ -138,7 +138,7 @@ private:
 // n/a
 
 /*
-2.6.1 Private Members
+2.6.2 Private Members
 
 */
   int m_basePortNr;
