@@ -133,12 +133,16 @@ let NestedWayRel =
   OsmWayTagNew feed
   hashjoin [WayId, WayIdInTag]
   project[WayId, WayCurve, WayTagKey, WayTagValue]
+  filter[not(((.WayTagKey = "oneway") and ((.WayTagValue = "no") or
+                                           (.WayTagValue = "false") or
+                                           (.WayTagValue = "0"))))]
   sortby[WayId, WayCurve, WayTagKey, WayTagValue]
   rdup
   nest[WayId, WayCurve; WayInfo]
   projectextend[WayId, WayInfo; WayC: .WayCurve,
     ChangeDirection: ifthenelse(.WayInfo afeed filter [.WayTagKey = "oneway"]
-                                               filter [.WayTagValue = "-1"]
+                                               filter [(.WayTagValue = "-1") or
+                                                       (.WayTagValue = "reverse")]
                                             count > 0,
                                 TRUE, FALSE)]
   projectextend[WayId, WayInfo; WayCurve: ifthenelse(.ChangeDirection,
@@ -778,6 +782,7 @@ let OneWayCurveIds =
   NestedWayRel feed
   filter[.WayInfo afeed
     filter[.WayTagKey = "oneway"]
+    filter[not((.WayTagValue = "no") or (.WayTagValue = "false") or (.WayTagValue = "0"))]
     count > 0]
   project[WayId]
 consume;
@@ -802,9 +807,9 @@ consume;
 
 let OneWayIds =
   ((OneWayCurveIds feed)
+   (RoundaboutWayCurveIds feed)
+   concat)
   (MotorWayCurveIds feed)
-  concat)
-  (RoundaboutWayCurveIds feed)
   concat
   sortby [WayId]
   rdup
@@ -1199,63 +1204,6 @@ let KENetwork = thenetwork(1, 0.0001,
      consume);
 
 close database;
-
-################################################################################
-# Testtrips                                                                    #
-################################################################################
-
-open database kedb;
-
-let t1 = mapmatchmht(KENetwork, '/home/jandt/secondo/bin/Trk_KL_Uni_Enkenbach2.xml');
-
-let gpxt1 =
-  gpximport('/home/jandt/secondo/bin/Trk_KL_Uni_Enkenbach2.xml')
-  projectextend[Time; Pos: makepoint(.Lon, .Lat)]
-consume;
-
-let trajt1 = trajectory(t1);
-
-let t2 = mapmatchmht(KENetwork, '/home/jandt/secondo/bin/Trk_KL_Enkenbach.xml');
-
-let gpxt2 =
-  gpximport('/home/jandt/secondo/bin/Trk_KL_Enkenbach.xml')
-  projectextend[Time; Pos: makepoint(.Lon, .Lat)]
-consume;
-
-let trajt2 = trajectory(t2);
-
-let t3 = mapmatchmht(KENetwork, '/home/jandt/secondo/bin/Trk_Fahrt_Arbeit.gpx');
-
-let gpxt3 =
-  gpximport('/home/jandt/secondo/bin/Trk_Fahrt_Arbeit.gpx')
-  projectextend[Time; Pos: makepoint(.Lon, .Lat)]
-consume;
-
-let trajt3 = trajectory(t3);
-
-let t4 = mapmatchmht(KENetwork, '/home/jandt/secondo/bin/Trk_A63_Enkenbach.xml');
-
-let gpxt4 =
-  gpximport('/home/jandt/secondo/bin/Trk_A63_Enkenbach.xml')
-  projectextend[Time; Pos: makepoint(.Lon, .Lat)]
-consume;
-
-let trajt4 = trajectory(t4);
-
-let t5 = mapmatchmht(KENetwork, '/home/jandt/secondo/bin/Trk_KL_Uni_Enkenbach.xml');
-
-let gpxt5 =
-  gpximport('/home/jandt/secondo/bin/Trk_KL_Uni_Enkenbach.xml')
-  projectextend[Time; Pos: makepoint(.Lon, .Lat)]
-consume;
-
-let trajt5 = trajectory(t5);
-
-close database;
-
-################################################################################
-# End Testtrips                                                                #
-################################################################################
 
 
 quit;
