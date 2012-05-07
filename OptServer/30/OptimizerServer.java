@@ -67,8 +67,9 @@ static {
     }
     //cout.println("registerSecondo successful");
     try{
-      JPL.init();
-      cout.println("initialisation successful");
+
+      String[] plargs = {"-L256M","-G256M"};
+      boolean ok =   JPL.init(plargs);
 
       // VTA - 18.09.2006 
       // I added this piece of code in order to run with newer versions
