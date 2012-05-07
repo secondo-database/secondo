@@ -78,8 +78,6 @@ public:
 
   * Automatically created
 
-*/
-/*
 2.2 Constructor
 
   * const string[&] inDestHost - the host name of the worker, where 
@@ -100,6 +98,11 @@ memory is counted
     , m_toPort(inToPort)
     , m_runit(true)
     , m_memCntr(inMemCntr) {}
+/*
+2.3 Destructor
+
+*/
+virtual ~DServerShuffleSender() {}
 
 /*
 2.5 Modifying Tuplequeue
