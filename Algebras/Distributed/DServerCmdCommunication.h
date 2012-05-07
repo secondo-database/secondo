@@ -324,7 +324,7 @@ sends a single line to secondo
           else
             std::cout << "w/o ACK" << std::endl;
 #endif
-        (*m_iostr) << inLine << std::endl;
+          (*m_iostr) << (int)inLine << std::endl;
       }
 
     if (!(m_iostr -> good()))
