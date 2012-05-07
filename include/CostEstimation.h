@@ -67,6 +67,100 @@ class CostEstimation{
         return returned;
     }
 
+/*
+1 Static Cost Estimation
+
+
+1.1. getCosts
+
+Returns the estimated time in ms for given arguments.
+For more than one tuple stream as input, use the other
+version of this function.
+
+*/
+
+    virtual bool getCosts(size_t NoTuples, size_t sizeOfTuple,
+                          size_t memoryMB, size_t &costs){
+         costs = 0;
+         return false;
+    }
+    
+    virtual bool getCosts(size_t NoTuples1, size_t sizeOfTuple1,
+                          size_t NoTuples2, size_t sizeOfTuple2,
+                          size_t memoryMB, size_t &costs){
+         costs = 0;
+         return false;
+    }
+
+/*
+1.2. getLinearParams
+
+Returns value for sufficient memory, time when sufficent memeory is available and
+time at 16 MB available memory.
+
+*/
+   virtual bool getLinearParams(
+            size_t NoTuples, size_t sizeOfTuple,
+            double& sufficientMemory, double& timeAtSuffMemory,
+            double& timeAt16MB ) { 
+      sufficientMemory=0;
+      timeAtSuffMemory=0;
+      timeAt16MB=0;
+      return false;
+   }
+
+   virtual bool getLinearParams(
+            size_t NoTuples1, size_t sizeOfTuple1,
+            size_t NoTuples2, size_t sizeOfTuple2,
+            double& sufficientMemory, double& timeAtSuffMemory,
+            double& timeAt16MB ) { 
+      sufficientMemory=0;
+      timeAtSuffMemory=0;
+      timeAt16MB=0;
+      return false;
+   }
+
+/*
+1.3 getFunction
+
+This function approximates the costfunction by an parametrizable
+function. Allowed types are:
+
+1: linear function
+2: a / x
+
+*/
+   virtual bool getFunction(
+            size_t NoTuples, size_t sizeOfTuple,
+            int& functionType,
+            double& sufficientMemory, double& timeAtSuffMemory,
+            double& timeAt16MB,
+            double& a, double& b, double& c, double& d){
+       functionType=1;
+       a=0;b=0;c=0;d=0;
+       return getLinearParams(NoTuples, sizeOfTuple,
+                              sufficientMemory, timeAtSuffMemory, 
+                              timeAt16MB);  
+  }  
+            
+   virtual bool getLinearParams(
+            size_t NoTuples1, size_t sizeOfTuple1,
+            size_t NoTuples2, size_t sizeOfTuple2,
+            int& functionType,
+            double& sufficientMemory, double& timeAtSuffMemory,
+            double& timeAt16MB,
+            double& a, double& b, double& c, double& d){
+       functionType=1;
+       a=0;b=0;c=0;d=0;
+       return getLinearParams(NoTuples1, sizeOfTuple1,
+                              NoTuples2, sizeOfTuple2,
+                              sufficientMemory, timeAtSuffMemory, 
+                              timeAt16MB);  
+  }  
+   
+
+
+
   protected:
     Supplier supplier;
     size_t returned;
