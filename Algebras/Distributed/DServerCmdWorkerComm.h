@@ -69,7 +69,7 @@ be written to stdout
 1.3 Includes
 
 */
-#include "DServer.h"
+#include "Remote.h"
 #include "DServerCmdCommunication.h"
 
 /*
