@@ -31,9 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[<] [\ensuremath{<}]
 //[ast] [\ensuremath{\ast}]
 
-*/
-
-/*
 [1] Class DServerCmdWorkerCommunication Implementation
 
 \begin{center}
@@ -55,6 +52,7 @@ Implementation of the class ~DServerCmdWorkerCommunication~
 
 
 #include "DServerCmdWorkerComm.h"
+#include "SocketIO.h"
 
 /*
   
@@ -74,6 +72,74 @@ DServerCmdWorkerCommunication::checkWorkerAvailable() const
     {
       return false;
     }
+
+  return true;
+}
+
+
+/*
+2.2 Method ~bool startSocketCommunication~
+
+  * returns true - success
+
+*/
+bool
+DServerCmdWorkerCommunication::startWorkerStreamCommunication()
+{
+  if (m_workerIoStrOpen)
+    {
+      m_worker -> 
+        setErrorText("Communication to worker already opened!");
+      return false;
+    }
+
+  if (m_worker == NULL)
+    {
+      m_worker -> setErrorText("No worker assigned yet!");
+      return false;
+    }
+
+  if (m_worker -> getServer() == 0)
+    {
+      m_worker -> setErrorText("No server assigned yet!");
+      return false;
+    }
+
+  if (!setStream(m_worker -> getServer() -> GetSocketStream()))
+    { 
+      m_worker -> 
+        setErrorText("Could not initiate communication to worker!");
+      return false;
+    }
+
+  m_workerIoStrOpen = true;
+  return true;
+}
+
+
+/*
+2.3  Method ~bool closeWorkerSocketCommunication~
+
+  * returns true - success
+
+*/
+bool
+DServerCmdWorkerCommunication::closeWorkerStreamCommunication()
+{
+  if (!m_workerIoStrOpen)
+    {
+      cout << "ERROR: CLOSING WORKER connection "
+           << m_worker -> getServerHostName() << ":"
+           << m_worker -> getServerPort()
+           << " : no stream opened!" << endl;
+      return false;
+    }
+#ifdef DS_CMD_WORKER_COMM
+  cout << "CLOSING WORKER connection "
+       << m_worker -> getServerHostName() << ":"
+       << m_worker -> getServerPort() << endl;
+#endif
+  m_worker -> getServer() -> Close();
 
   return true;
 }

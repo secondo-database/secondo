@@ -31,9 +31,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[<] [\ensuremath{<}]
 //[ast] [\ensuremath{\ast}]
 
-*/
-
-/*
 [1] Class DServerCmdWorkerCommunication Definition
 
 \begin{center}
@@ -72,7 +69,7 @@ be written to stdout
 1.3 Includes
 
 */
-#include "Remote.h"
+#include "DServer.h"
 #include "DServerCmdCommunication.h"
 
 /*
@@ -96,7 +93,9 @@ class DServerCmdWorkerCommunication :
 
 */
   DServerCmdWorkerCommunication() {}
+
 /*
+
 2.3 Constructor
 
   * DServer[ast] inWorker - pointer to the worker object
@@ -131,37 +130,7 @@ public:
   * returns true - success
 
 */
-  bool startWorkerStreamCommunication()
-  {
-    if (m_workerIoStrOpen)
-      {
-        m_worker -> 
-          setErrorText("Communication to worker already opened!");
-        return false;
-      }
-
-    if (m_worker == NULL)
-      {
-        m_worker -> setErrorText("No worker assigned yet!");
-        return false;
-      }
-
-    if (m_worker -> getServer() == 0)
-      {
-        m_worker -> setErrorText("No server assigned yet!");
-        return false;
-      }
-
-    if (!setStream(m_worker -> getServer() -> GetSocketStream()))
-      { 
-         m_worker -> 
-           setErrorText("Could not initiate communication to worker!");
-         return false;
-      }
-
-    m_workerIoStrOpen = true;
-    return true;
-  }
+  bool startWorkerStreamCommunication();
 
 /*
 2.7 Closing Socket communication
@@ -171,25 +140,7 @@ public:
   * returns true - success
 
 */
-  bool closeWorkerStreamCommunication()
-  {
-    if (!m_workerIoStrOpen)
-      {
-        cout << "ERROR: CLOSING WORKER connection "
-             << m_worker -> getServerHostName() << ":"
-             << m_worker -> getServerPort()
-             << " : no stream opened!" << endl;
-        return false;
-      }
-#ifdef DS_CMD_WORKER_COMM
-    cout << "CLOSING WORKER connection "
-         << m_worker -> getServerHostName() << ":"
-         << m_worker -> getServerPort() << endl;
-#endif
-    m_worker -> getServer() -> Close();
-
-    return true;
-  }
+  bool closeWorkerStreamCommunication();
 
 /*
 2.8 Sending
