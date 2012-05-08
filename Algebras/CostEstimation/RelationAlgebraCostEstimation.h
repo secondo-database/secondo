@@ -36,6 +36,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
 [1] RelationalAlgebraCostEstimation 
 
+April, 2012. Jan Kristof Nidzwetzki
+
 [TOC]
 
 0 Description
@@ -43,6 +45,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 This file provides some CostEstimationClasses for the RelationalAlgebra. 
 
 Most of the code is based on the old REQUESTPROGRESS implementation.
+
+Apr 2012, JKN, First version of this file
+
+Mai 2012, JKN, Removed fixed constants and using class ProgressConstants 
 
 */
 
@@ -492,9 +498,23 @@ public:
       int index= 0;
       
       ProgressInfo p1;
-      const double uFeedProject = 0.002;     //millisecs per tuple
-      const double vFeedProject = 0.000036;  //millisecs per byte input
-      const double wFeedProject = 0.0018;    //millisecs per attr
+
+      // Determination of constants in file bin/UpdateProgressConstants
+
+      // millisecs per tuple 0.002
+      static const double uFeedProject = 
+         ProgressConstants::getValue
+         ("Relation-C++", "feedproject", "uFeedProject");
+
+      //millisecs per byte input 0.000036
+      static const double vFeedProject = 
+         ProgressConstants::getValue
+         ("Relation-C++", "feedproject", "vFeedProject");
+
+      //millisecs per attr 0.0018
+      static const double wFeedProject = 
+         ProgressConstants::getValue
+         ("Relation-C++", "feedproject", "wFeedProject");
 
       FeedProjLocalInfo* fli = (FeedProjLocalInfo*) localInfo;
       sonOfFeed = qp->GetSupplierSon(supplier, 0);
@@ -660,13 +680,18 @@ virtual ~ProductCostEstimation()
 
 virtual int requestProgress(Word* args, ProgressInfo* pRes, 
          void* localInfo, bool argsAvialable) {
-      
-      ProgressInfo p1, p2;
-      const double uProduct = 0.0003; //millisecs per byte (right input)
-              //if writing to disk
-      const double vProduct = 0.000042; //millisecs per byte (total output)
-          //if reading from disk
 
+      // Determination of constants in file bin/UpdateProgressConstants
+      
+      //millisecs per byte (right input) if writing to disk 0.0003
+      static const double uProduct = 
+         ProgressConstants::getValue("Relation-C++", "product", "uProduct");
+
+      //millisecs per byte (total output) if reading from disk  0.000042
+      static const double vProduct = 
+         ProgressConstants::getValue("Relation-C++", "product", "vProduct");
+     
+      ProgressInfo p1, p2;
       ProductLocalInfo* pli;
 
       pli = (ProductLocalInfo*)localInfo;
@@ -762,10 +787,17 @@ virtual ~ProjectCostEstimation()
 virtual int requestProgress(Word* args, ProgressInfo* pRes,
          void* localInfo, bool argsAvialable) {
 
-      ProgressInfo p1;
-      const double uProject = 0.00073;  //millisecs per tuple
-      const double vProject = 0.0004;  //millisecs per tuple and attribute
+      // Determination of constants in file bin/UpdateProgressConstants
 
+      //millisecs per tuple 0.00073
+      static const double uProject = 
+         ProgressConstants::getValue("Relation-C++", "project", "uProject");
+
+      //millisecs per tuple and attribute 0.0004 
+      static const double vProject = 
+         ProgressConstants::getValue("Relation-C++", "project", "vProject");
+
+      ProgressInfo p1;
       ProjectLocalInfo* pli;
       pli = (ProjectLocalInfo*) localInfo;
 
