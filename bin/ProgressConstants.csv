@@ -1,4 +1,11 @@
 Algebra,Operator,ConstantName,ConstantValue,Meaning,Meaning2
+Relation-C++,feedproject,uFeedProject,0.002,msecs per tuple,
+Relation-C++,feedproject,vFeedProject,0.000036,msecs per byte input,
+Relation-C++,feedproject,wFeedProject,0.0018,msecs per attr,
+Relation-C++,product,uProduct,0.0003,msecs per byte (right tuple input stream),
+Relation-C++,product,vProduct,0.000042,msecs per byte (output stream),
+Relation-C++,project,uProject,0.00073,msecs per tuple,
+Relation-C++,project,vProject,0.0004,msecs per attribute,
 ExtRelation-C++,extendstream,wExtendStream,0.00794403,msecs per input tuple,
 ExtRelation-C++,extendstream,vExtendStream,0.000180313,msecs per attribute,
 ExtRelation-C++,extendstream,uExtendStream,0.00681383,msecs per result tuple,
