@@ -3336,6 +3336,8 @@ class RectangleAlgebra : public Algebra
     rect.AssociateKind(Kind::DATA());
     rect.AssociateKind(Kind::SPATIAL2D());
 
+    rect.AssociateKind(Kind::DELIVERABLE());
+
     AddTypeConstructor( &rect3 );
     rect3.AssociateKind(Kind::DATA());
     rect3.AssociateKind(Kind::SPATIAL3D());
