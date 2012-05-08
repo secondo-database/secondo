@@ -42,14 +42,16 @@ while [ $numOfArgs -ne $OPTIND ]; do
 done
 
 if $SLONLY ; then
-  IPLIST=$(get_slaveIPs)
+  DSLIST=$(get_mainDServs)
 else
-  IPLIST=$(get_slaveIPs -m)
+  DSIST=$(get_mainDServs -m)
 fi
 
-for node in $IPLIST; do
-  echo -n "Switch ON Monitor on $node ... ... "
-  ssh $node "ps-startMonitors ${ADDPAR}" >/dev/null #2>&1
+for node in $DSIST; do
+  IPAddr=${node%:*}
+  DSPath=${node#*:}
+  echo -n "Switch ON Monitor on $IPAddr ... ... "
+  ssh $IPAddr "${DSPath}/bin/ps-startMonitors ${ADDPAR}" >/dev/null #2>&1
   if [ $? -ne 0 ]; then 
     echo -e "\nStart up fail."
   else

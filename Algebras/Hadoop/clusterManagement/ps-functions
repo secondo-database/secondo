@@ -46,6 +46,33 @@ function get_masterIP
   echo ${NODES%:}
 }
 
+
+# Get the main data server of nodes
+# -m including the master, by default it is false
+function get_mainDServs
+{
+  if [ "$1" = "-m" ]; then
+    ANODES=($(cat $PARALLEL_SECONDO_MASTER $PARALLEL_SECONDO_SLAVES | awk '!x[$0]++' ))
+  else
+    ANODES=($(cat $PARALLEL_SECONDO_SLAVES | grep -v $(cat $PARALLEL_SECONDO_MASTER)))
+  fi
+  
+  SERVERS=""
+  IPAddrs=""
+  for Node in ${ANODES[*]}; do
+    IPAddr=$(echo $Node | cut -d':' -f1)
+    DSPath=$(echo $Node | cut -d':' -f2)
+    DSPath=${DSPath%/*}
+    if [ "$(echo $IPAddrs | grep $IPAddr)" = "" ]; then
+      SERVERS="$SERVERS $IPAddr:$DSPath"
+      IPAddrs="$IPAddrs $IPAddr"
+    fi
+  done
+  
+  echo $SERVERS  
+}
+
+
 function get_slaveIPs
 {
   MASTERIP=$(get_masterIP)
@@ -224,4 +251,3 @@ function PSEDOPT
     echo "-i "
   fi
 }
-
