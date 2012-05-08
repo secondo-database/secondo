@@ -2234,6 +2234,7 @@ int hadoopMapValueMap(Word* args, Word& result,
     flistParaList.push_back(inParaName); //The input parameter
     flistObjList.push_back(inputFList);
     vector<string> DLF_NameList, DLF_fileLocList;
+    vector<string> DLO_NameList, DLO_locList;
 
     //Scan para operations in the internal function list
     //If the ~para~ operator contains a DELIEVERABLE object,
@@ -2251,10 +2252,12 @@ int hadoopMapValueMap(Word* args, Word& result,
       //Replace parameter value according to their flist value
       for (size_t i = 0; i < flistParaList.size(); i++)
       {
+        int argIndex = (i == 0 ? 1 : 0);
         CreateQueryList =
-            replaceFList(CreateQueryList,
+            replaceDLOF(CreateQueryList,
                 flistParaList[i], flistObjList[i],
-                DLF_NameList, DLF_fileLocList, ok);
+                DLF_NameList, DLF_fileLocList,
+                DLO_NameList, DLO_locList, ok, argIndex);
         if (!ok){
           cerr << "Replace DLF flist fails" << endl;
           break;
@@ -2263,6 +2266,7 @@ int hadoopMapValueMap(Word* args, Word& result,
     }
 
     NList dlfNameList, dlfLocList;
+    NList dloNameList, dloLocList;
     ListExpr sidList;
     if (!ok){
       cerr << "Preparing Hadoop job parameters fails." << endl;
@@ -2277,6 +2281,14 @@ int hadoopMapValueMap(Word* args, Word& result,
         dlfLocList.append(NList(locList));
       }
 
+      for (size_t i = 0; i < DLO_NameList.size(); i++)
+      {
+        dloNameList.append(NList(DLO_NameList[i], true, false));
+        ListExpr locList;
+        nl->ReadFromString(DLO_locList[i], locList);
+        dloLocList.append(NList(locList));
+      }
+
       //Call the Hadoop job
       stringstream queryStr;
       queryStr
@@ -2288,6 +2300,10 @@ int hadoopMapValueMap(Word* args, Word& result,
         << " \"" << tranStr(dlfNameList.convertToString(),
             "\"", "\\\"") << "\" \\\n"
         << " \"" << tranStr(dlfLocList.convertToString(),
+            "\"", "\\\"") << "\" \\\n"
+        << " \"" << tranStr(dloNameList.convertToString(),
+            "\"", "\\\"") << "\" \\\n"
+        << " \"" << tranStr(dloLocList.convertToString(),
             "\"", "\\\"") << "\" \\\n"
         << dupTimes  << " " << kind << " "
         << " \"" << CreateFilePath << "\"" << endl;
@@ -2688,7 +2704,8 @@ int hadoopReduceValueMap(Word* args, Word& result,
 
     //Result type
     ListExpr resultType = qp->GetType(s);
-    fList* resultFList = 0;
+    fList* resultFList =  new fList(CreateObjectName, NList(resultType),
+        ci, NList(), 1, false, kind);
 
     fList* inputFList = (fList*)args[0].addr;
     int dupTimes = inputFList->getDupTimes();
@@ -2701,6 +2718,9 @@ int hadoopReduceValueMap(Word* args, Word& result,
     flistParaList.push_back(inParaName); //The input parameter
     flistObjList.push_back(inputFList);
     vector<string> DLF_NameList, DLF_fileLocList;
+    vector<string> DLO_NameList, DLO_locList;
+
+    int dloNumber = (inputFList->getKind() == DLO) ? 1 : 0;
 
     bool ok = true;
     CreateQueryList = replaceParaOp(CreateQueryList, flistParaList,
@@ -2714,15 +2734,25 @@ int hadoopReduceValueMap(Word* args, Word& result,
       {
         int argIndex = (i == 0 ? 1 : 0);
         CreateQueryList =
-            replaceFList(CreateQueryList,
+            replaceDLOF(CreateQueryList,
                 flistParaList[i], flistObjList[i],
-                DLF_NameList, DLF_fileLocList, ok, argIndex);
+                DLF_NameList, DLF_fileLocList,
+                DLO_NameList, DLO_locList, ok, argIndex);
         if (!ok)
           break;
+      }
+
+      cerr << "Former Object numbers: " << dloNumber << endl;
+      cerr << "Object numbers: " << DLO_NameList.size() << endl;
+
+      if ((int)DLO_NameList.size() > dloNumber){
+        cerr << "Not allow using DLO flist in reduce queries. " << endl;
+        ok = false;
       }
     }
 
     NList dlfNameList, dlfLocList;
+    NList dloNameList, dloLocList;
     vector<pair<int, pair<int, int> > > hpResult;
     if (!ok){
       cerr << "Reading flist data fails." << endl;
@@ -2735,6 +2765,14 @@ int hadoopReduceValueMap(Word* args, Word& result,
         ListExpr locList;
         nl->ReadFromString(DLF_fileLocList[i], locList);
         dlfLocList.append(NList(locList));
+      }
+
+      for (size_t i = 0; i < DLO_NameList.size(); i++)
+      {
+        dloNameList.append(NList(DLO_NameList[i], true, false));
+        ListExpr locList;
+        nl->ReadFromString(DLO_locList[i], locList);
+        dloLocList.append(NList(locList));
       }
 
       //The recognition of the function argument
@@ -2755,6 +2793,10 @@ int hadoopReduceValueMap(Word* args, Word& result,
         << " \"" << tranStr(dlfNameList.convertToString(),
             "\"", "\\\"") << "\" \\\n"
         << " \"" << tranStr(dlfLocList.convertToString(),
+            "\"", "\\\"") << "\" \\\n"
+        << " \"" << tranStr(dloNameList.convertToString(),
+            "\"", "\\\"") << "\" \\\n"
+        << " \"" << tranStr(dloLocList.convertToString(),
             "\"", "\\\"") << "\" \\\n"
         << dupTimes  << " " << kind << " "
         << " \"" << CreateFilePath << "\" "
@@ -3153,7 +3195,9 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
     }
 
     ListExpr resultType = qp->GetType(s);
-    fList* resultFList = 0;
+    fList* resultFList =  new fList(CreateObjectName, NList(resultType),
+        ci, NList(), 1, false, kind);
+
 
     fList* inputFList[2] = {(fList*)args[0].addr, (fList*)args[1].addr};
     int dupTimes[2] = { inputFList[0]->getDupTimes(),
@@ -3169,6 +3213,11 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
     flistObjList.push_back(inputFList[0]);  //The input parameter value
     flistObjList.push_back(inputFList[1]);
     vector<string> DLF_NameList, DLF_fileLocList;
+    vector<string> DLO_NameList, DLO_locList;
+
+    size_t dloNumber = 0;
+    if (inputFList[0]->getKind() == DLO) dloNumber++;
+    if (inputFList[1]->getKind() == DLO) dloNumber++;
 
     bool ok = true;
     //Process all para operators inside the reduce query
@@ -3185,15 +3234,27 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
         //they are re-partitioned in the map step.
         int argIndex = ((i == 0 || i == 1)? (i+1) : 0);
         CreateQueryList =
-            replaceFList(CreateQueryList,
+            replaceDLOF(CreateQueryList,
                 flistParaList[i], flistObjList[i],
-                DLF_NameList, DLF_fileLocList, ok, argIndex);
+                DLF_NameList, DLF_fileLocList,
+                DLO_NameList, DLO_locList, ok, argIndex);
         if (!ok)
           break;
       }
+
+      cerr << "Former Object numbers: " << dloNumber << endl;
+      cerr << "Object numbers: " << DLO_NameList.size() << endl;
+      if (DLO_NameList.size() > dloNumber){
+        cerr << "Not allow using DLO flist in reduce queries. " << endl;
+        ok = false;
+      }
     }
 
+
+
+
     NList dlfNameList, dlfLocList;
+    NList dloNameList, dloLocList;
     vector<pair<int, pair<int, int> > > hpResult;
     if (!ok){
       cerr << "Reading flist data fails." << endl;
@@ -3207,6 +3268,15 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
         nl->ReadFromString(DLF_fileLocList[i], locList);
         dlfLocList.append(NList(locList));
       }
+
+      for (size_t i = 0; i < DLO_NameList.size(); i++)
+      {
+        dloNameList.append(NList(DLO_NameList[i], true, false));
+        ListExpr locList;
+        nl->ReadFromString(DLO_locList[i], locList);
+        dloLocList.append(NList(locList));
+      }
+
 
       //The recognition of the function argument
       string inputRcg[2] = {"", ""};
@@ -3230,6 +3300,10 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
         << " \"" << tranStr(dlfNameList.convertToString(),
             "\"", "\\\"") << "\" \\\n"
         << " \"" << tranStr(dlfLocList.convertToString(),
+            "\"", "\\\"") << "\" \\\n"
+        << " \"" << tranStr(dloNameList.convertToString(),
+            "\"", "\\\"") << "\" \\\n"
+        << " \"" << tranStr(dloLocList.convertToString(),
             "\"", "\\\"") << "\" \\\n"
         << " \"" << CreateFilePath << "\" \\\n"
         << " \"" << inputRcg[0]
@@ -3529,6 +3603,81 @@ ListExpr replaceFList(ListExpr createQuery, string listName,
   }
 }
 
+ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
+    vector<string>& DLF_NameList, vector<string>& DLF_fileLocList,
+    vector<string>& DLO_NameList, vector<string>& DLO_locList,
+    bool& ok, int argIndex/* = 0*/)
+{ //Replace DLO and DLF
+  if (!ok)
+  {
+    return nl->OneElemList(nl->SymbolAtom("error"));
+  }
+
+  if (nl->IsEmpty(createQuery))
+    return createQuery;
+
+  if (nl->IsAtom(createQuery))
+  {
+    if ((nl->AtomType(createQuery) == SymbolType) &&
+        (nl->SymbolValue(createQuery) == listName))
+    {
+      if (listObject->isAvailable())
+      {
+        string objectName = listObject->getSubName();
+        switch (listObject->getKind())
+        {
+          case DLO:{
+
+            string paraName = objectName;
+            if (argIndex > 0){
+              stringstream ss;
+              ss << "<DLOMark:Arg" << argIndex << ":" << objectName << "/>";
+              paraName = ss.str();
+            }
+
+            DLO_NameList.push_back(paraName);
+            DLO_locList.push_back(listObject->getLocList().convertToString());
+
+            return nl->SymbolAtom(objectName);
+          }
+          case DLF:{
+            stringstream ss;
+            ss << "<DLFMark:";
+            if (argIndex > 0){
+              ss << "Arg" << argIndex << ":";
+            }
+            ss << objectName << "/>";
+            DLF_NameList.push_back(ss.str());
+
+            DLF_fileLocList.push_back(
+                listObject->getLocList().convertToString());
+            return nl->StringAtom(ss.str(),true);
+          }
+          default:{
+            ok = false;
+            return nl->OneElemList(nl->SymbolAtom("error"));
+          }
+        }
+      }
+
+      ok = false;
+      return nl->OneElemList(nl->SymbolAtom("error"));
+    }
+    else
+      return createQuery;
+  }
+  else
+  {
+    return (nl->Cons(replaceDLOF(nl->First(createQuery),
+          listName, listObject, DLF_NameList, DLF_fileLocList,
+          DLO_NameList, DLO_locList, ok, argIndex),
+        replaceDLOF(nl->Rest(createQuery),
+          listName, listObject, DLF_NameList, DLF_fileLocList,
+          DLO_NameList, DLO_locList, ok, argIndex)));
+  }
+}
+
+
 /*
 Find all nested lists of ~para~ operations,
 
@@ -3583,8 +3732,6 @@ ListExpr replaceParaOp(
           ListExpr DGOType =
               SecondoSystem::GetCatalog()->GetObjectTypeExpr(paraName);
           return nl->TwoElemList(DGOType, DGOValue);
-
-//          return DGOValue;
         }
       }
     }

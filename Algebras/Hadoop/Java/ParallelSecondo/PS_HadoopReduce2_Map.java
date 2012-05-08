@@ -53,10 +53,8 @@ public class PS_HadoopReduce2_Map
 		ListExpr fileNameList = new ListExpr(), fileLocList = new ListExpr();
 		fileNameList.readFromString(mapFileNames);
 		fileLocList.readFromString(mapFileLocs);
+		
 		ListExpr reduceQueryList = new ListExpr();
-		//replace the input argument in the reduce query
-		ListExpr newFileNameList = new ListExpr(), newFileLocList = new ListExpr();
-		ListExpr newFileNameList_last = null, newFileLocList_last = null;
 		reduceQueryList.readFromString(reduceQuery);
 
 		String slFile = System.getenv().get("PARALLEL_SECONDO_SLAVES");
@@ -112,162 +110,72 @@ public class PS_HadoopReduce2_Map
 																ListExpr.theEmptyList()), 
 																ListExpr.oneElemList(
 																		ListExpr.symbolAtom("Suffix")))));
-				boolean isInputFile = false;
+
 				ListExpr restNameList = fileNameList;
 				ListExpr restLocList  = fileLocList;
 				ListExpr inputStreamList = null;
 				boolean replaced = true;
-				while(!restNameList.isEmpty())
+				ListExpr pattern = null;
+				boolean isInputFile = false;
+				
+				if (!fileNameList.isEmpty())
 				{
-					String 	 fileName = restNameList.first().stringValue();
-					ListExpr fileLoc  = restLocList.first();
-					
-					if (fileName.compareTo(InputObjectName[side]) == 0)
+					//DLF input
+					restNameList = fileNameList;
+					while(!restNameList.isEmpty())
 					{
-						if (fileLoc.isEmpty()){
-							comMapQuery[side] = ListExpr.theEmptyList();
-							replaced = false;
+						String 	 fileName = restNameList.first().first().stringValue();
+						ListExpr fileLoc  = restLocList.first();
+
+						if (fileName.compareTo(InputObjectName[side]) == 0)
+						{
+							inputStreamList = restNameList.first().first();
+							
+							comMapQuery[side] = ExtListExpr.replace(
+									comMapQuery[side], InterSymbol, inputStreamList);
+							
+							comMapQuery[side] = HPA_AuxFunctions.loc2Ffeed(comMapQuery[side], 
+									ListExpr.oneElemList(inputStreamList), 
+									fileLocList, duplicateTimes[side]);
+							
+							replaced = (!comMapQuery[side].isEmpty());
+							pattern = restNameList.first().first();
+							
+							isInputFile = true;
 							break;
 						}
 						
-						fileName = fileName.substring(
-								fileName.lastIndexOf(':') + 1, fileName.lastIndexOf("/>"));
-						isInputFile = true;
-
-						int rowNum = 0;
-						ListExpr restFileLoc = fileLoc;
-						while (!restFileLoc.isEmpty())
-						{
-							int 			row 			= restFileLoc.first().first().intValue();
-							ListExpr 	columns 	= restFileLoc.first().second();
-							String   	filePath	= restFileLoc.first().third().textValue();
-
-							//Build up a temporal relation of column numbers, 
-							//prepared for the later loopsel operation
-							ListExpr suffixTRel = null, trelLast = null;
-							while (!columns.isEmpty()){
-								int column = columns.first().intValue();
-								
-								if (suffixTRel == null){
-									suffixTRel = ListExpr.oneElemList(
-											ListExpr.oneElemList(ListExpr.intAtom(column)));
-									trelLast = suffixTRel;
-								}
-								else{
-									trelLast = ListExpr.append( trelLast, 
-													ListExpr.oneElemList(ListExpr.intAtom(column)));
-								}
-								columns = columns.rest();
-							}
-							suffixTRel = ListExpr.twoElemList(
-									ListExpr.twoElemList(
-										ListExpr.symbolAtom("trel"), 
-										ListExpr.twoElemList(
-											ListExpr.symbolAtom("tuple"), 
-											ListExpr.oneElemList(
-												ListExpr.twoElemList(
-													ListExpr.symbolAtom(fsName), 
-													ListExpr.symbolAtom("int"))))), 
-										suffixTRel);
-							suffixTRel = ListExpr.twoElemList(
-									ListExpr.symbolAtom("feed"),
-									suffixTRel);
-
-							//Add with append operator
-							String tupleParaName = "XxxTP" + rowNum;
-							ListExpr ffeedOneRow = 
-								ListExpr.oneElemList(ListExpr.symbolAtom("ffeed"));
-							ListExpr ffeed_last = ffeedOneRow;
-							ffeed_last = ListExpr.append(ffeed_last, 
-									ListExpr.stringAtom(fileName));
-							ffeed_last = ListExpr.append(ffeed_last, 
-									ListExpr.threeElemList(ListExpr.textAtom(filePath), 
-											ListExpr.intAtom(row),
-											ListExpr.threeElemList(
-													ListExpr.symbolAtom("attr"), 
-													ListExpr.symbolAtom(tupleParaName), 
-													ListExpr.symbolAtom(fsName))));
-							ffeed_last = ListExpr.append(ffeed_last, ListExpr.theEmptyList()); 
-							//Search type file at local disk
-							ffeed_last = ListExpr.append(ffeed_last, 
-									ListExpr.threeElemList(
-											ListExpr.intAtom(secondoSlaveIdx), 
-											ListExpr.intAtom(secondoSlaveIdx), 
-											ListExpr.intAtom(duplicateTimes[side])));
-							//Search data file at local disk too
-							ffeedOneRow = ListExpr.threeElemList(
-									ListExpr.symbolAtom("loopsel"), 
-									suffixTRel, 
-									ListExpr.threeElemList(
-										ListExpr.symbolAtom("fun"), 
-											ListExpr.twoElemList(
-												ListExpr.symbolAtom(tupleParaName), 
-												ListExpr.symbolAtom("TUPLE")),
-												ffeedOneRow));
-							
-							if (rowNum == 0){
-								inputStreamList = ffeedOneRow;
-							}
-							else{
-								//Concat the former one with the current one.
-								inputStreamList = ListExpr.threeElemList(
-										ListExpr.symbolAtom("concat"), 
-										inputStreamList, ffeedOneRow);
-							}
-							restFileLoc = restFileLoc.rest();
-							rowNum++;
-						}
+						restNameList = restNameList.rest();
+						restLocList  = restLocList.rest();
 					}
-					else
-					{
-						if (newFileNameList.isEmpty()){
-							newFileNameList = ListExpr.oneElemList(restNameList.first());
-							newFileNameList_last = newFileNameList;
-							newFileLocList = ListExpr.oneElemList(fileLocList.first());
-							newFileLocList_last = newFileLocList;
-						}
-						else{
-							newFileNameList_last = 
-								ListExpr.append(newFileNameList_last, restNameList.first());
-							newFileLocList_last = 
-								ListExpr.append(newFileLocList_last, fileLocList.first());
-						}
-					}
-
-					restNameList = restNameList.rest();
-					restLocList  = restLocList.rest();
 				}
 				
-				mapFileNames = newFileNameList.toString().replace("\n", " ");
-				mapFileLocs = newFileLocList.toString().replace("\n", " ");
-
-				ListExpr pattern = null;
-				if (isInputFile){
-					pattern = ListExpr.stringAtom(InputObjectName[side]);
-				}
-				else{
-					pattern = ListExpr.stringAtom(InputObjectName[side]);
-					
-					
-					pattern = ListExpr.twoElemList(
-							ListExpr.symbolAtom("feed"),
-							ListExpr.symbolAtom(InputObjectName[side]));
-					
+				if (!isInputFile)
+				{
+					//DLO input
 					inputStreamList = ListExpr.twoElemList(
 							ListExpr.symbolAtom("feed"),
 							ListExpr.symbolAtom(InputObjectName[side]));
+					comMapQuery[side] = ExtListExpr.replace(
+							comMapQuery[side], InterSymbol, inputStreamList);
+					pattern = inputStreamList;
+					replaced = true;
 				}
+				
 				//Use the intermediate result to replace the input flist 
 				interResultName[side] = "<DLFMark:" + interResultName[side] + "/>";
 				ListExpr interPattern  = ListExpr.stringAtom(interResultName[side]);
 				
-				reduceQueryList = 
-					ExtListExpr.replace(reduceQueryList, pattern, interPattern);
-				reduceQuery = reduceQueryList.toString().replace("\n", " ");
+				if (replaced){
 
-				//Build up the map query
-				comMapQuery[side] = ExtListExpr.replace(comMapQuery[side], InterSymbol, inputStreamList);
-			
+					//In case a same object is used several times inside the query.
+					reduceQueryList = ExtListExpr.replaceFirst( reduceQueryList, pattern, interPattern);
+					reduceQuery = HPA_AuxFunctions.plainStr(reduceQueryList);
+					
+					//Build up the map query
+					comMapQuery[side] = ExtListExpr.replace(comMapQuery[side], InterSymbol, inputStreamList);
+				}
+
 				bothReplaced &= replaced;
 			}
 			
@@ -286,16 +194,23 @@ public class PS_HadoopReduce2_Map
 					}
 
 					if (!bothReplaced) {
-// Empty the reduce query, if not both input been replaced by  inter-result-name
+						// Empty the reduce query, if not both input been replaced by  inter-result-name
 						reduceQuery = "";
 					}
 
 					for (int column : rColumns) {
-						context.write(new IntWritable(column), new Text("" + side + inDim
-								+ secondoSlaveIdx + inDim + interResultName[side] + inDim
-								+ databaseName + inDim + CreateObjectName + inDim
-								+ CreateFilePath + inDim + reduceQuery + inDim + parameters[6]
-								+ inDim + parameters[7] + inDim + outputKind.ordinal()));
+						context.write(new IntWritable(column), 
+								new Text("" + 
+										side 										+inDim+ 
+										secondoSlaveIdx 				+inDim+ 
+										interResultName[side] 	+inDim+ 
+										databaseName 						+inDim+ 
+										CreateObjectName 				+inDim+ 
+										CreateFilePath 					+inDim+ 
+										reduceQuery 						+inDim+ 
+										parameters[6] 					+inDim+ 
+										parameters[7] 					+inDim+ 
+										outputKind.ordinal()));
 					}
 				} else {
 					System.err.println("2: The construction of map query fails");

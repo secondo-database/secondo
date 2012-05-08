@@ -126,12 +126,12 @@ public class QuerySecondo {
   public void query(String queryStr, ListExpr resultList, boolean ignoreError) throws IOException
   {
     long sT = System.currentTimeMillis();
+
+    System.out.println("[" + hostName + "] start execute: " 
+        + queryStr.toString());
     
     SecondoInterface.secondo(queryStr, resultList, 
         errorCode, errorPos, errorMessage);
-
-//    System.out.println("[" + hostName + "] start execute: " 
-//        + queryStr.toString());
     
     if (!ignoreError && errorCode.value != 0) {
       System.err.println(

@@ -1,8 +1,5 @@
 package ParallelSecondo;
 
-
-import java.util.List;
-
 import sj.lang.ListExpr;
 
 public class ExtListExpr extends ListExpr {
@@ -89,7 +86,7 @@ public class ExtListExpr extends ListExpr {
 		else{
 			return ListExpr.theEmptyList();
 		}
-
+		
 		//oldList is not atom ...
 		boolean changed = false;
 		ListExpr first = oldList.first();
@@ -221,7 +218,8 @@ This method replaces a pattern list with a new list
 		
 		if (input.listLength() == pattern.listLength())
 		{
-/*			System.err.println("+++++++++++++++++++++++");
+/*			
+ 			System.err.println("+++++++++++++++++++++++");
 			System.err.println("receive: " + input.toString());
 			System.err.println("pattern: " + pattern.toString());
 			System.err.println("equal? : " + input.equals(pattern));
@@ -238,5 +236,55 @@ This method replaces a pattern list with a new list
 		else{ 
 			return input;
 		}
+	}
+	
+	public static ListExpr replaceFirst(ListExpr input, ListExpr pattern, ListExpr newList)
+	{
+		if (input.isEmpty())
+			return ListExpr.theEmptyList();
+		
+		if (input.listLength() == pattern.listLength()) {
+			if (input.equals(pattern)){
+				return newList;
+			}
+		}
+		
+		if (input.listLength() > 0){
+			ListExpr left = replaceFirst(input.first(), pattern, newList);
+			if (!left.equals(input.first())){
+				return ListExpr.cons(left, input.rest());
+			}
+			else {
+				return ListExpr.cons(left, 
+						replaceFirst(input.rest(), pattern, newList));
+			}
+		}
+		else{ 
+			return input;
+		}
+	}
+	
+	
+	public static ListExpr concat(ListExpr headElement, ListExpr newSon)
+	{
+  	ListExpr result = new ListExpr();
+    if ((headElement == null) || headElement.isEmpty()){
+    		result = ListExpr.oneElemList(newSon);
+    }
+    else {
+    	result = ListExpr.oneElemList(headElement.first());
+    	ListExpr last = result;
+    	
+      ListExpr rest = headElement.rest();
+      while (!rest.isEmpty())
+      {
+      	ListExpr p = rest.first();
+      	last = ListExpr.append(last, p); 
+      	rest = rest.rest();
+      }
+      last = ListExpr.append(last, newSon);
+    }
+    
+    return result;
 	}
 }

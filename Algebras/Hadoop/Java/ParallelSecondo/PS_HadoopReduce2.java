@@ -50,10 +50,11 @@ public class PS_HadoopReduce2 implements Constant{
 
 	public static void main(String[] args) {
 		
-		final int paraLength = 14;
+		final int paraLength = 16;
 		String usage = "Usage HadoopReduce2 " +
 				"<databaseName>  <CreateObjectName> <CreateQuery> " +
 				"<DLF_Name_List> <DLF_fileLoc_List> " +
+				"<DLO_Name_List> <DLO_loc_List> " +
 				"<FilePath> "+
 				"<InputObjectName_1> <duplicateTimes_1> <PartAttributeName_1> " +
 				"<InputObjectName_2> <duplicateTimes_2> <PartAttributeName_2> " +
@@ -69,7 +70,6 @@ public class PS_HadoopReduce2 implements Constant{
 		//Get the master and slave nodes information from the files set by
 		//PARALLEL_SECONDO_MASTER & PARALLEL_SECONDO_SLAVES
 		String slFile = System.getenv().get("PARALLEL_SECONDO_SLAVES");
-		System.out.println("PARALLEL_SECONDO_SLAVES is: " + slFile);
 		if (slFile.length() == 0)
 		{
 			System.err.println(
@@ -97,14 +97,16 @@ public class PS_HadoopReduce2 implements Constant{
 		String CreateQuery	 		= args[2];
 		String DLF_Name_ListStr	= args[3];
 		String DLF_Loc_ListStr	= args[4];
-		String CreateFilePath		= args[5];
+		String DLO_Name_ListStr	= args[5];
+		String DLO_Loc_ListStr	= args[6];
+		String CreateFilePath		= args[7];
 		
-		String[] inObjName 		= {args[6], args[9]};
-		int[] duplicateTimes 	= { Integer.parseInt(args[7]), 
-															Integer.parseInt(args[10])};
-		String[] PAName 			= {args[8], args[11]};
-		int reduceTasksNum 			= Integer.parseInt(args[12]);
-		FListKind outputKind 		= FListKind.values()[Integer.parseInt(args[13])];
+		String[] inObjName 		= {args[8], args[11]};
+		int[] duplicateTimes 	= { Integer.parseInt(args[9]), 
+															Integer.parseInt(args[12])};
+		String[] PAName 			= {args[10], args[13]};
+		int reduceTasksNum 			= Integer.parseInt(args[14]);
+		FListKind outputKind 		= FListKind.values()[Integer.parseInt(args[15])];
 		int mapTasksNum = slaves.size();
 
 		if (outputKind == FListKind.DLO && reduceTasksNum > slaves.size()){
@@ -120,115 +122,21 @@ public class PS_HadoopReduce2 implements Constant{
 
 
 		//Apply each map task with one row of the fileLoc list.
-		ListExpr[] mapFileLoc = new ListExpr[mapTasksNum];       //Head of each list
-		ListExpr[] mapFileLoc_last = new ListExpr[mapTasksNum];  //Tail of each list
-		ListExpr mapFileNameList = new ListExpr(), 
-						 mapFileNameList_last = null;
-		ListExpr reduceFileNameList = new ListExpr(), 
-						 reduceFileNameList_last = null;
-		ListExpr reduceFileLocList = new ListExpr(), 
-		         reduceFileLocList_last = null;
 		
-		ListExpr allLocList = new ListExpr();
-		allLocList.readFromString(DLF_Loc_ListStr);
-		ListExpr allNameList = new ListExpr();
-		allNameList.readFromString(DLF_Name_ListStr);
-		ListExpr locRest = allLocList, nameRest = allNameList;
+		ListExpr allDLFLocList = new ListExpr();
+		allDLFLocList.readFromString(DLF_Loc_ListStr);
+		ListExpr allDLFNameList = new ListExpr();
+		allDLFNameList.readFromString(DLF_Name_ListStr);
+		ListExpr DLFByMappers = HPA_AuxFunctions.flist2Mapper(allDLFNameList, allDLFLocList, mapTasksNum);
+		DLFByMappers = HPA_AuxFunctions.divMRDLO(allDLFNameList, DLFByMappers, mapTasksNum);
 		
-		while (!locRest.isEmpty())
-		{
-			String dlfName = nameRest.first().stringValue();
-			
-			//Check if it is input parameter
-			if (dlfName.matches(INDLFPattern))
-			{
-				//If the two input parameters are DLF flists, 
-				//then distribute their locations to different mappers 
-				if (mapFileNameList.isEmpty()){
-					mapFileNameList = ListExpr.oneElemList(nameRest.first());
-					mapFileNameList_last = mapFileNameList;
-				}
-				else{
-					mapFileNameList_last = 
-						ListExpr.append(mapFileNameList_last, nameRest.first());
-				}
-				
-				ListExpr aFileMatrix = locRest.first();
-				int rowNumber = 1;
-				ListExpr[] aFileLoc = new ListExpr[mapTasksNum];
-				ListExpr[] aFileLoc_last = new ListExpr[mapTasksNum];
-				//Divide each file location to slaves
-				while (!aFileMatrix.isEmpty())
-				{
-					ListExpr aFileRow = aFileMatrix.first();
-					if (!aFileRow.isEmpty())
-					{
-						int flCounter = aFileRow.first().intValue() - 1;
-						if ( aFileLoc[flCounter] == null){
-							aFileLoc[flCounter] = ListExpr.oneElemList(
-									ListExpr.threeElemList(
-											ListExpr.intAtom(rowNumber),
-											aFileRow.second(), 
-											aFileRow.third()));
-							aFileLoc_last[flCounter] = aFileLoc[flCounter];
-						}
-						else
-						{
-							aFileLoc_last[flCounter] =
-								ListExpr.append(aFileLoc_last[flCounter],
-									ListExpr.threeElemList(
-											ListExpr.intAtom(rowNumber),
-											aFileRow.second(), 
-											aFileRow.third()));
-							
-						}
-					}
-					aFileMatrix= aFileMatrix.rest();
-					rowNumber++;
-				}
-				
-				//Merge locations for each slave
-				for (int i = 0; i < mapTasksNum; i++)
-				{
-					if (aFileLoc[i] == null){
-						aFileLoc[i] = ListExpr.theEmptyList();
-					}
-					if (mapFileLoc[i] == null)
-					{
-						mapFileLoc[i] = 
-							ListExpr.oneElemList(aFileLoc[i]);
-						mapFileLoc_last[i] = mapFileLoc[i];
-					}
-					else{
-						mapFileLoc_last[i] = 
-							ListExpr.append(mapFileLoc_last[i], aFileLoc[i]);
-					}
-				}
-			}
-			else
-			{
-//collect non-input DLF kind parameters in the lists prepared for reduce step.
-				if (reduceFileNameList.isEmpty())
-				{
-					reduceFileNameList = ListExpr.oneElemList(nameRest.first());
-					reduceFileLocList = ListExpr.oneElemList(locRest.first());
-					reduceFileNameList_last = reduceFileNameList;
-					reduceFileLocList_last = reduceFileLocList;
-					
-				}
-				else
-				{
-					reduceFileNameList_last = 
-						ListExpr.append(reduceFileNameList_last, nameRest.first());
-					reduceFileLocList_last = 
-						ListExpr.append(reduceFileLocList_last, locRest.first());
-				}
-			}
-			
-			locRest = locRest.rest();
-			nameRest = nameRest.rest();
-		}
-
+		ListExpr allDLOLocList = new ListExpr();
+		allDLOLocList.readFromString(DLO_Loc_ListStr);
+		ListExpr allDLONameList = new ListExpr();
+		allDLONameList.readFromString(DLO_Name_ListStr);
+		ListExpr DLOByMappers = HPA_AuxFunctions.flist2Mapper(allDLONameList, allDLOLocList, mapTasksNum);
+		DLOByMappers = HPA_AuxFunctions.divMRDLO(allDLONameList, DLOByMappers, mapTasksNum);
+		
 		//Prepare the input for mappers
     String inputPath = "INPUT";
     String outputPath = "OUTPUT";
@@ -238,46 +146,98 @@ public class PS_HadoopReduce2 implements Constant{
 			FileSystem.get(conf).delete(new Path(outputPath), true);
 			FileSystem.get(conf).delete(new Path(inputPath), true);
 			
-			String reduceFileNameStr = reduceFileNameList.toString().
-				replaceAll("\n", " ").replaceAll("\t", " ");
-			String reduceFileLocStr = reduceFileLocList.toString().
-				replaceAll("\n", " ").replaceAll("\t", " ");
+			ListExpr allDLOMappers = DLOByMappers.first();  //All DLO list for mappers (include name and loc)
+			ListExpr allDLOReducers = DLOByMappers.second();  //All DLO list for reducers (include name and loc)
+			ListExpr allDLFMappers = DLFByMappers.first();  //All DLF list for mappers (include name and loc)
+			ListExpr allDLFReducers = DLFByMappers.second();  //All DLF list for reducers (include name and loc)
 			
+			ListExpr aomn_rest = allDLOMappers.first();
+			ListExpr aoml_rest = allDLOMappers.second();
+			ListExpr aorn_rest = allDLOReducers.first();
+			ListExpr aorl_rest = allDLOReducers.second();
 			
+			ListExpr afmn_rest = allDLFMappers.first();
+			ListExpr afml_rest = allDLFMappers.second();
+			ListExpr afrn_rest = allDLFReducers.first();
+			ListExpr afrl_rest = allDLFReducers.second();
+
 			for (int slaveIdx = 0; slaveIdx < mapTasksNum; slaveIdx++)
 			{
-				if (mapFileLoc[slaveIdx] == null){
-					mapFileLoc[slaveIdx] = ListExpr.theEmptyList();
+				ListExpr aomLoc, afmLoc, aomName, afmName;
+				aomLoc = afmLoc = aomName = afmName = ListExpr.theEmptyList();
+				if (!aoml_rest.isEmpty()) aomLoc = aoml_rest.first();
+				if (!afml_rest.isEmpty()) afmLoc = afml_rest.first();
+				if (!aomn_rest.isEmpty()) aomName = aomn_rest.first();
+				if (!afmn_rest.isEmpty()) afmName = afmn_rest.first();
+				
+				boolean allDLOexist = true, allDLFexist = true;
+
+				if (!afmName.isEmpty()){
+					allDLFexist = HPA_AuxFunctions.allObjectExist(afmName, afmLoc);
 				}
 				
-				String mapFileLocStr = mapFileLoc[slaveIdx].toString().
-					replaceAll("\n", " ").replaceAll("\t", " ");
-				String mapFileNameStr = mapFileNameList.toString().
-					replaceAll("\n", " ").replaceAll("\t", " ");
-				String fileName = JOBID + "_INPUT_"+ slaveIdx + ".dat";
-				PrintWriter out = new PrintWriter(
-						FileSystem.get(conf).create(
+				if (!aomName.isEmpty()){
+					allDLOexist = HPA_AuxFunctions.allObjectExist(aomName, aomLoc);
+				}
+
+				System.out.println(allDLOexist + ", " + allDLFexist);
+				
+				if (allDLOexist && allDLFexist)
+				{
+					
+					//For mappers
+					String fmnstr = HPA_AuxFunctions.plainStr(afmName);
+					String fmlstr = HPA_AuxFunctions.plainStr(afmLoc);
+				
+					ListExpr aorLoc, afrLoc, aorName, afrName;
+					aorLoc = afrLoc = aorName = afrName = ListExpr.theEmptyList();
+					if (!aorl_rest.isEmpty()) aorLoc 	= aorl_rest.first();
+					if (!afrl_rest.isEmpty()) afrLoc 	= afrl_rest.first();
+					if (!aorn_rest.isEmpty()) aorName = aorn_rest.first();
+					if (!afrn_rest.isEmpty()) afrName = afrn_rest.first();
+
+					//For reducers
+					String frlstr = HPA_AuxFunctions.plainStr(afrLoc);
+					String frnstr = HPA_AuxFunctions.plainStr(afrName);
+					
+					String fileName = JOBID + "_INPUT_"+ slaveIdx + ".dat";
+					PrintWriter out = new PrintWriter(
+							FileSystem.get(conf).create(
 									new Path(inputPath + "/" + fileName)));
-			
-				out.print( "" + 
-						slaveIdx 							+ inDim +
-						databaseName 					+ inDim +
-						CreateObjectName 			+ inDim +
-						CreateQuery 					+ inDim +
-						mapFileNameStr 				+ inDim +
-						mapFileLocStr 				+ inDim +
-						reduceFileNameStr 		+ inDim +
-						reduceFileLocStr 			+ inDim +
-						CreateFilePath				+ inDim +
-						outputKind.ordinal()  + inDim +
-						inObjName[0]					+ inDim +
-						duplicateTimes[0]			+ inDim +
-						PAName[0]							+ inDim +
-						inObjName[1]					+ inDim +
-						duplicateTimes[1]			+ inDim +
-						PAName[1]							
-				);
-				out.close();
+					
+					out.print( "" + 
+							slaveIdx 							+ inDim +
+							databaseName 					+ inDim +
+							CreateObjectName 			+ inDim +
+							CreateQuery 					+ inDim +
+							fmnstr								+ inDim +
+							fmlstr								+ inDim +
+							frnstr								+ inDim +
+							frlstr								+ inDim +
+							CreateFilePath				+ inDim +
+							outputKind.ordinal()  + inDim +
+							inObjName[0]					+ inDim +
+							duplicateTimes[0]			+ inDim +
+							PAName[0]							+ inDim +
+							inObjName[1]					+ inDim +
+							duplicateTimes[1]			+ inDim +
+							PAName[1]							
+					);
+					out.close();
+					
+				}
+				
+				if (!aomn_rest.isEmpty()) aomn_rest = aomn_rest.rest();
+				if (!aoml_rest.isEmpty()) aoml_rest = aoml_rest.rest();
+				if (!aorn_rest.isEmpty()) aorn_rest = aorn_rest.rest();
+				if (!aorl_rest.isEmpty()) aorl_rest = aorl_rest.rest();
+
+				if (!afmn_rest.isEmpty()) afmn_rest = afmn_rest.rest();
+				if (!afml_rest.isEmpty()) afml_rest = afml_rest.rest();
+				if (!afrn_rest.isEmpty()) afrn_rest = afrn_rest.rest();
+				if (!afrl_rest.isEmpty()) afrl_rest = afrl_rest.rest();
+
+				
 			}
 		}
 		catch (IOException e) {
@@ -285,7 +245,7 @@ public class PS_HadoopReduce2 implements Constant{
 			e.printStackTrace();
 			System.exit(-1);
 		}
-
+		
 		//Create the job
 		try {
 			Job job = new Job();

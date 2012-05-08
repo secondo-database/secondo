@@ -11,6 +11,7 @@ all: checkenv
 	javac -classpath ${SEC_P} ${SRC_P}/ExtListExpr.java -d ${BIN_P}
 	javac ${SRC_P}/Constant.java -d ${BIN_P}
 	javac ${SRC_P}/PSNode.java -d ${BIN_P}
+	javac -classpath ./bin:${SEC_P} ${SRC_P}/HPA_AuxFunctions.java -d ${BIN_P}
 	javac -classpath ./bin:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMap_Map.java -d ${BIN_P}
 	javac -classpath ./bin:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMap_Reduce.java -d ${BIN_P}
 	javac -classpath ./bin:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMap.java -d ${BIN_P}

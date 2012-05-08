@@ -36,6 +36,8 @@ public class PS_HadoopMap implements Constant{
 	 * CreateQuery
 	 * DLF_Name_List
 	 * DLF_fileLoc_List
+	 * DLO_Name_List
+	 * DLO_loc_List
 	 * duplicateTimes
 	 * FListKind
 	 * FilePath
@@ -70,11 +72,16 @@ DLF_Type:
 12.Apr. 2012
 Use FListKind enum in Constant class to replace the DLF_Type argument.
 
+30.Apr. 2012
+Add location list for DLO flist too, in case in some slaves, its sub-object
+doesn't exist, and cause the failure of the map task and the whole job.
+
 */
-		final int paraLength = 8;
-		String usage = "Usage Spread2 <databaseName> " +
+		final int paraLength = 10;
+		String usage = "Usage PS_HadoopMap <databaseName> " +
 				"<CreateObjectName> <CreateQuery> " +
 				"<DLF_Name_List> <DLF_fileLoc_List> " +
+				"<DLO_Name_List> <DLO_loc_List> " +
 				"<duplicateTimes> <FListKind> <FilePath>"; 
 		
 		if (args.length != paraLength)
@@ -87,7 +94,6 @@ Use FListKind enum in Constant class to replace the DLF_Type argument.
 		//Get the master and slave nodes information from the files set by
 		//PARALLEL_SECONDO_MASTER & PARALLEL_SECONDO_SLAVES
 		String slFile = System.getenv().get("PARALLEL_SECONDO_SLAVES");
-		System.out.println("PARALLEL_SECONDO_SLAVES is: " + slFile);
 		if (slFile.length() == 0)
 		{
 			System.err.println(
@@ -116,80 +122,29 @@ Use FListKind enum in Constant class to replace the DLF_Type argument.
 		String CreateQuery	 		= args[2];
 		String DLF_Name_List	 	= args[3];
 		String DLF_fileLoc_List	= args[4];
-		int duplicateTimes 			= Integer.parseInt(args[5]);
-		FListKind outputKind 		= FListKind.values()[Integer.parseInt(args[6])];
-		String CreateFilePath	= args[7];
+		String DLO_Name_List	 	= args[5];
+		String DLO_loc_List	= args[6];
+		int duplicateTimes 			= Integer.parseInt(args[7]);
+		FListKind outputKind 		= FListKind.values()[Integer.parseInt(args[8])];
+		String CreateFilePath	= args[9];
 		int MapTasksNum = slaves.size();
 		
 		ListExpr fpList = ListExpr.oneElemList(ListExpr.textAtom(CreateFilePath));
 		CreateFilePath = fpList.toString().replace('\n', ' ');  //In case empty path
 		
 		
-		//Apply each map task with one row of the fileLoc list.
-		ListExpr[] mapFileLoc = new ListExpr[MapTasksNum];       //Head of each list
-		ListExpr[] mapFileLoc_last = new ListExpr[MapTasksNum];  //Tail of each list
-		ListExpr allLocLists = new ListExpr();
-		allLocLists.readFromString(DLF_fileLoc_List);
-		ListExpr rest = allLocLists;
-
-		while (!rest.isEmpty())
-		{
-			ListExpr aFileMatrix = rest.first();
-
-			int rowNumber = 1;
-			ListExpr[] aFileLoc = new ListExpr[MapTasksNum];
-			ListExpr[] aFileLoc_last = new ListExpr[MapTasksNum];
-			//Divide each file location to slaves
-
-			while (!aFileMatrix.isEmpty())
-			{
-				ListExpr aFileRow = aFileMatrix.first();
-				
-				if (!aFileRow.isEmpty())
-				{
-					int flCounter = aFileRow.first().intValue() - 1;
-					if ( aFileLoc[flCounter] == null){
-						aFileLoc[flCounter] = ListExpr.oneElemList(
-								ListExpr.threeElemList(
-										ListExpr.intAtom(rowNumber),
-										aFileRow.second(), 
-										aFileRow.third()));
-						aFileLoc_last[flCounter] = aFileLoc[flCounter];
-					}
-					else
-					{
-						aFileLoc_last[flCounter] = ListExpr.append(aFileLoc_last[flCounter],
-								ListExpr.threeElemList(
-										ListExpr.intAtom(rowNumber),
-										aFileRow.second(), 
-										aFileRow.third()));
-						
-					}
-				}
-				aFileMatrix= aFileMatrix.rest();
-				rowNumber++;
-			}
-			
-			//Merge locations for each slave
-			for (int i = 0; i < MapTasksNum; i++)
-			{
-				if (aFileLoc[i] == null){
-					aFileLoc[i] = ListExpr.theEmptyList();
-				}
-				
-				if (mapFileLoc[i] == null)
-				{
-					mapFileLoc[i] = ListExpr.oneElemList(aFileLoc[i]);
-					mapFileLoc_last[i] = mapFileLoc[i];
-				}
-				else
-				{
-					mapFileLoc_last[i] = ListExpr.append(mapFileLoc_last[i], aFileLoc[i]);
-				}
-			}
-			
-			rest = rest.rest();
-		}
+		ListExpr allDLFNameLists = new ListExpr();
+		allDLFNameLists.readFromString(DLF_Name_List);
+		ListExpr allDLFLocLists = new ListExpr();
+		allDLFLocLists.readFromString(DLF_fileLoc_List);
+		ListExpr allDLFLists = HPA_AuxFunctions.flist2Mapper(
+				allDLFNameLists, allDLFLocLists, MapTasksNum);
+		
+		ListExpr allDLONameLists = new ListExpr();
+		allDLONameLists.readFromString(DLO_Name_List);
+		ListExpr allDLOLocLists = new ListExpr();
+		allDLOLocLists.readFromString(DLO_loc_List);
+		ListExpr allDLOLists = HPA_AuxFunctions.flist2Mapper(allDLONameLists, allDLOLocLists, MapTasksNum);
 		
 		//Prepare the input for mappers
     String inputPath = "INPUT";
@@ -199,33 +154,47 @@ Use FListKind enum in Constant class to replace the DLF_Type argument.
 		{
 			FileSystem.get(conf).delete(new Path(outputPath), true);
 			FileSystem.get(conf).delete(new Path(inputPath), true);
+			ListExpr aMapperDLO_Rest = allDLOLists;
+			ListExpr aMapperDLF_Rest = allDLFLists;
+			
 			for (int slaveIdx = 0; slaveIdx < MapTasksNum; slaveIdx++)
 			{
-				if (mapFileLoc[slaveIdx] == null)
-					mapFileLoc[slaveIdx] = ListExpr.theEmptyList();
+				ListExpr amDLO = aMapperDLO_Rest.first();
+				ListExpr amDLF = aMapperDLF_Rest.first();
 				
-				String locStr = mapFileLoc[slaveIdx].toString().
-					replaceAll("\n", " ").replaceAll("\t", " ").
-					replaceAll(" +", " ");
-
-				String fileName = JOBID + "_INPUT_"+ slaveIdx + ".dat";
-				PrintWriter out = new PrintWriter(
-						FileSystem.get(conf).create(
-									new Path(inputPath + "/" + fileName)));
-			
-				out.print( "" + 
-						slaveIdx 							+ inDim +
-						databaseName 					+ inDim + 
-						CreateObjectName 			+ inDim +
-						CreateQuery 					+ inDim + 
-						DLF_Name_List 				+ inDim +
-						locStr 								+ inDim +
-						duplicateTimes				+ inDim +
-						CreateFilePath				+ inDim + 
-						outputKind.ordinal()  
-				);
+				System.out.println("amDLO: " + amDLO.toString());
+				System.out.println("amDLF: " + amDLF.toString());
+				boolean allDLOexist = HPA_AuxFunctions.allMapperFOExist(amDLO);
+				boolean allDLFexist = HPA_AuxFunctions.allMapperFOExist(amDLF);
+				
+				System.out.println(allDLOexist + ", " + allDLFexist);
+				
+				if (allDLFexist && allDLOexist)
+				{
+					String dlfLocStr = HPA_AuxFunctions.plainStr(amDLF);
 					
-				out.close();
+					String fileName = JOBID + "_INPUT_"+ slaveIdx + ".dat";
+					PrintWriter out = new PrintWriter(
+							FileSystem.get(conf).create(
+									new Path(inputPath + "/" + fileName)));
+					
+					out.print( "" + 
+							slaveIdx 							+ inDim +
+							databaseName 					+ inDim + 
+							CreateObjectName 			+ inDim +
+							CreateQuery 					+ inDim + 
+							DLF_Name_List 				+ inDim +
+							dlfLocStr 						+ inDim +
+							duplicateTimes				+ inDim +
+							CreateFilePath				+ inDim + 
+							outputKind.ordinal()  
+					);
+					
+					out.close();
+				}
+				
+				aMapperDLO_Rest = aMapperDLO_Rest.rest();
+				aMapperDLF_Rest = aMapperDLF_Rest.rest();
 			}
 		}
 		catch (IOException e) {

@@ -28,6 +28,8 @@ public interface Constant {
 	public final static String rdbStr = "<READ DB/>";     //tell the mapper to read data from database
 	public final static String QUERYNLSTR = "QUERYNL";
 	public final static String INDLFPattern = "<DLFMark:Arg[1-2]:[\\w,_]*/>";
+	public final static String INDLOFPattern = "<DL[O,F]?Mark:Arg[1-2]:[\\w,_]*/>";
+	public final static String DLOFPattern = "<DL[O,F]?Mark[:\\w]*:[\\w,_]*/>";
 	
 /*
 The fsName is used to indicate cell files' suffices, 

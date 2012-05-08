@@ -43,6 +43,10 @@ bool isFListStreamDescription(const NList& typeInfo);
 ListExpr replaceFList(ListExpr createQuery, string listName,
     fList* listObject, vector<string>& DLF_NameList,
     vector<string>& DLF_fileLocList, bool& ok, int argIndex = 0);
+ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
+    vector<string>& DLF_NameList, vector<string>& DLF_fileLocList,
+    vector<string>& DLO_NameList, vector<string>& DLO_locList,
+    bool& ok, int argIndex = 0);  //Replace DLO and DLF
 ListExpr replaceParaOp(
     ListExpr createQuery, vector<string>& flistParaList,
     vector<fList*>& flistObjList, bool& ok);
