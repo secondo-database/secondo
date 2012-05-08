@@ -80,6 +80,10 @@ RelationAlgebra.h header file.
 #include "Symbols.h"
 #include "Stream.h"
 
+#ifdef USE_PROGRESS
+#include "../CostEstimation/RelationAlgebraCostEstimation.h"
+#endif
+
 extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager *am;
@@ -957,36 +961,21 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 #else
 
 // version with support for progress queries
-
-
-class FeedLocalInfo: public ProgressLocalInfo
-{
-public:
-  FeedLocalInfo() : rit(0) {}
-  ~FeedLocalInfo() {
-     if (rit) {
-        delete rit; rit = 0;
-     }
-  }
-
-  GenericRelationIterator* rit;
-};
-
-
+CostEstimation* FeedCostEstimationFunc() {
+  return new FeedCostEstimation();
+}
 
 int
 Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   GenericRelation* r=0;
   FeedLocalInfo* fli=0;
-  Supplier sonOfFeed;
-
 
   switch (message)
   {
     case OPEN :{
       r = (GenericRelation*)args[0].addr;
-
+    
       fli = (FeedLocalInfo*) local.addr;
       if ( fli ) delete fli;
 
@@ -1017,120 +1006,10 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
         // needed for handling progress messages.
       fli = static_cast<FeedLocalInfo*>(local.addr);
       if(fli){
-        if(fli->rit){
-          delete fli->rit;
-          fli->rit=0;
-        }
+        delete fli;
+        local.addr = NULL;
       }
       return 0;
-    }
-    case CLOSEPROGRESS:{
-
-      sonOfFeed = qp->GetSupplierSon(s, 0);
-      fli = (FeedLocalInfo*) local.addr;
-      if ( fli )
-      {
-         delete fli;
-         local.setAddr(0);
-      }
-      return 0;
-
-    }
-    case REQUESTPROGRESS :{
-
-      GenericRelation* rr;
-      rr = (GenericRelation*)args[0].addr;
-
-
-      ProgressInfo p1;
-      ProgressInfo *pRes=0;
-
-      // Determination of constants in file bin/UpdateProgressConstants
-
-      static const double uFeed = 
-        ProgressConstants::getValue("Relation-C++", "feed", "uFeed");
-          // 0.00296863;  milliseconds per tuple
-      static const double vFeed = 
-        ProgressConstants::getValue("Relation-C++", "feed", "vFeed");
-          // 0.0010081649; milliseconds per attribute
-
-      pRes = (ProgressInfo*) result.addr;
-      fli = (FeedLocalInfo*) local.addr;
-      sonOfFeed = qp->GetSupplierSon(s, 0);
-
-      if ( fli )
-      {
-        fli->sizesChanged = false;
-
-        if ( !fli->sizesInitialized )
-        {
-          fli->noAttrs = nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
-          fli->attrSize = new double[fli->noAttrs];
-          fli->attrSizeExt = new double[fli->noAttrs];
-
-          fli->Size =  0;
-          fli->SizeExt =  0;
-
-          for ( int i = 0;  i < fli->noAttrs; i++)
-          {
-            fli->attrSize[i] = rr->GetTotalSize(i) / (fli->total + 0.001);
-            fli->attrSizeExt[i] = rr->GetTotalExtSize(i) / (fli->total + 0.001);
-
-            fli->Size += fli->attrSize[i];
-            fli->SizeExt += fli->attrSizeExt[i];
-          }
-          fli->sizesInitialized = true;
-          fli->sizesChanged = true;
-        }
-      }
-
-      if ( qp->IsObjectNode(sonOfFeed) )
-      {
-        if ( !fli ) {
-           return CANCEL;
-        } else  //an object node, fli defined
-        {
-          pRes->Card = (double) fli->total;
-          pRes->CopySizes(fli);  //copy all sizes
-
-          pRes->Time = (fli->total + 1) * (uFeed + fli->noAttrs * vFeed);
-
-          //any time value created must be > 0; so we add 1
-
-          pRes->Progress = fli->returned * (uFeed + fli->noAttrs * vFeed)
-            / pRes->Time;
-
-          pRes->BTime = 0.001; //time must not be 0
-
-          pRes->BProgress = 1.0;
-
-          return YIELD;
-        }
-      }
-      else //not an object node
-      {
-        if ( qp->RequestProgress(sonOfFeed, &p1) )
-        {
-          pRes->Card = p1.Card;
-
-          pRes->CopySizes(p1);
-
-          pRes->Time = p1.Time + p1.Card * (uFeed + p1.noAttrs * vFeed);
-
-          pRes->Progress =
-             ((p1.Progress * p1.Time) +
-              (fli ? fli->returned : 0) * (uFeed + p1.noAttrs * vFeed))
-              / pRes->Time;
-
-          pRes->BTime = p1.Time;
-
-          pRes->BProgress = p1.Progress;
-
-          return YIELD;
-        } else {
-          return CANCEL;
-        }
-      }
     }
   }
   return 0;
@@ -1138,23 +1017,22 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
 
 struct FeedProjectInfo : OperatorInfo {
-
-  FeedProjectInfo() : OperatorInfo()
-  {
-    name =      "feedproject";
-
-    signature = "rel(tuple(a_1 ... a_n)) x (a_i1 ... a_ik)\n"
-                "-> stream(tuple(a_i1 ... a_ik))";
-    syntax =    "_ feedproject[ _ ]";
-    meaning =   "Creates a stream of tuples from a given relation "
-                " and project them to the given list of attributes.";
-    example =   "plz feedproject[PLZ] count";
-
-    supportsProgress = true;
-  }
+ 
+   FeedProjectInfo() : OperatorInfo()
+   {
+     name =      "feedproject";
+ 
+     signature = "rel(tuple(a_1 ... a_n)) x (a_i1 ... a_ik)\n"
+                 "-> stream(tuple(a_i1 ... a_ik))";
+     syntax =    "_ feedproject[ _ ]";
+     meaning =   "Creates a stream of tuples from a given relation "
+                 " and project them to the given list of attributes.";
+     example =   "plz feedproject[PLZ] count";
+ 
+     supportsProgress = true;
+   }
 
 };
-
 
 
 ListExpr feedproject_tm(ListExpr args)
@@ -1216,36 +1094,15 @@ ListExpr feedproject_tm(ListExpr args)
   return outlist.listExpr();
 }
 
-
-
-class FeedProjLocalInfo : public FeedLocalInfo
-{
-  public:
-    double argTupleSize;
-
-    FeedProjLocalInfo(TupleType* ptr) :
-      FeedLocalInfo(), argTupleSize(0), tt(ptr)
-    {
-       returned = 0;
-    }
-    ~FeedProjLocalInfo()
-    {
-       if ( tt->DeleteIfAllowed() ) {
-	 tt = 0;
-       }
-    }
-
-  private:
-    TupleType* tt;
-};
-
+CostEstimation* FeedProjectCostEstimationFunc() {
+  return new FeedProjectCostEstimation();
+}
 
 int
 feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   GenericRelation* r=0;
   FeedProjLocalInfo* fli=0;
-  Supplier sonOfFeed;
   Word elem(Address(0));
   int noOfAttrs= 0;
   int index= 0;
@@ -1283,7 +1140,6 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
           usedAttrs.push_back(index-1);
         }
 
-
       if ((t = fli->rit->GetNextTuple(usedAttrs)) != 0)
       {
         fli->returned++;
@@ -1296,145 +1152,25 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
       }
     }
     case CLOSE :{
-        // Note: object deletion is handled in OPEN and CLOSEPROGRESS
-        // keep the local info structure since it may still be
-        // needed for handling progress messages.
       fli = static_cast<FeedProjLocalInfo*>(local.addr);
+      
       if(fli){
+        
         if(fli->rit){
           delete fli->rit;
           fli->rit=0;
         }
+        
+        delete fli;
+        fli = 0;
+        local.setAddr(0);
       }
       return 0;
-    }
-    case CLOSEPROGRESS:{
-
-      sonOfFeed = qp->GetSupplierSon(s, 0);
-      fli = (FeedProjLocalInfo*) local.addr;
-      if ( fli )
-      {
-         delete fli;
-         local.setAddr(0);
-      }
-      return 0;
-
-    }
-    case REQUESTPROGRESS :{
-
-      GenericRelation* rr;
-      rr = (GenericRelation*)args[0].addr;
-
-
-      ProgressInfo p1;
-      ProgressInfo *pRes=0;
-      const double uFeedProject = 0.002;     //millisecs per tuple
-      const double vFeedProject = 0.000036;  //millisecs per byte input
-      const double wFeedProject = 0.0018;    //millisecs per attr
-
-
-
-      pRes = (ProgressInfo*) result.addr;
-      fli = (FeedProjLocalInfo*) local.addr;
-      sonOfFeed = qp->GetSupplierSon(s, 0);
-
-      if ( fli )
-      {
-        fli->sizesChanged = false;
-
-        if ( !fli->sizesInitialized )
-        {
-          fli->Size = 0;
-          fli->SizeExt = 0;
-          fli->noAttrs = ((CcInt*)args[2].addr)->GetIntval();
-          fli->attrSize = new double[fli->noAttrs];
-          fli->attrSizeExt = new double[fli->noAttrs];
-
-
-	  fli->argTupleSize = rr->GetTotalExtSize()
-		/ (fli->total + 0.001);
-
-          for( int i = 0; i < fli->noAttrs; i++)
-          {
-            son = qp->GetSupplier(args[3].addr, i);
-            qp->Request(son, elem);
-            index = ((CcInt*)elem.addr)->GetIntval();
-            fli->attrSize[i] = rr->GetTotalSize(index-1)
-		/ (fli->total + 0.001);
-            fli->attrSizeExt[i] = rr->GetTotalExtSize(index-1)
-		/ (fli->total + 0.001);
-
-            fli->Size += fli->attrSize[i];
-            fli->SizeExt += fli->attrSizeExt[i];
-            fli->sizesInitialized = true;
-            fli->sizesChanged = true;
-          }
-
-        }
-      }
-
-      if ( qp->IsObjectNode(sonOfFeed) )
-      {
-        if ( !fli ) {
-           return CANCEL;
-        } else  //an object node, fli defined
-        {
-          pRes->Card = (double) fli->total;
-          pRes->CopySizes(fli);  //copy all sizes
-
-          pRes->Time = (fli->total + 1) *
-		(uFeedProject
-		+ fli->argTupleSize * vFeedProject
-		+ fli->noAttrs * wFeedProject);
-
-          //any time value created must be > 0; so we add 1
-
-          pRes->Progress = fli->returned * (uFeedProject
-		+ fli->argTupleSize * vFeedProject
-		+ fli->noAttrs * wFeedProject)
-            / pRes->Time;
-
-          pRes->BTime = 0.001; //time must not be 0
-
-          pRes->BProgress = 1.0;
-
-          return YIELD;
-        }
-      } else { //not an object node
-        if ( qp->RequestProgress(sonOfFeed, &p1) )
-        {
-          pRes->Card = p1.Card;
-
-          pRes->CopySizes(p1);
-
-          pRes->Time = p1.Time + p1.Card * (uFeedProject
-		+ fli->argTupleSize * vFeedProject
-		+ fli->noAttrs * wFeedProject);
-
-          pRes->Progress =
-             ((p1.Progress * p1.Time) +
-              (fli ? fli->returned : 0) * (uFeedProject
-		+ fli->argTupleSize * vFeedProject
-		+ fli->noAttrs * wFeedProject))
-              / pRes->Time;
-
-          pRes->BTime = p1.Time;
-
-          pRes->BProgress = p1.Progress;
-
-          return YIELD;
-        } else {
-          return CANCEL;
-        }
-      }
-    }
-  }
+    } // end case
+  } // end switch
   return 0;
 }
-
-
 #endif
-
 
 
 /*
@@ -1461,13 +1197,25 @@ of class ~Operator~, passing all operator functions as constructor
 arguments.
 
 */
+
+#ifdef USE_PROGRESS
 Operator relalgfeed (
           "feed",                 // name
           FeedSpec,               // specification
           Feed,                   // value mapping
           Operator::SimpleSelect, // trivial selection function
-          FeedTypeMap             // type mapping
+          FeedTypeMap,            // type mapping
+          FeedCostEstimationFunc  // CostEstimation 
 );
+#else
+Operator relalgfeed (
+          "feed",                 // name
+          FeedSpec,               // specification
+          Feed,                   // value mapping
+          Operator::SimpleSelect, // trivial selection function
+          FeedTypeMap            // type mapping
+);
+#endif
 
 /*
 5.6 Operator ~consume~
@@ -1599,30 +1347,11 @@ Consume(Word* args, Word& result, int message,
 }
 
 #else
-
-
 // Version with support for progress queries
 
-struct consumeLocalInfo
-{
-  consumeLocalInfo(Word& w): state(0), current(0), stream(w){}
-
-  int state;      //0 = working, 1 = finished
-  int current;    //current no of tuples read
-  Stream<Tuple> stream;
-
-  ostream& print(ostream& o){
-    o << "Localinfo (" << (void*) this << "), state=" << state << ", current="
-      << current << ", stream=";
-    stream.print(o);
-    o << ".";
-    return o;
-  }
-
-  private:
-    consumeLocalInfo(): state(0), current(0),stream(0) {}
-};
-
+CostEstimation* ConsumeCostEstimationFunc() {
+  return new ConsumeCostEstimation();
+}
 
 int
 Consume(Word* args, Word& result, int message,
@@ -1658,79 +1387,9 @@ Consume(Word* args, Word& result, int message,
 
     cli->stream.close();
     cli->state = 1;
-    return 0;
-  }
-
-  else if ( message == REQUESTPROGRESS )
-  {
-
-    if(local.addr == 0){
-      return CANCEL;
-    }
-    ProgressInfo p1;
-    ProgressInfo* pRes;
-    static const double uConsume = 
-      ProgressConstants::getValue("Relation-C++", "consume", "uConsume");
-        // 0.024; millisecs per tuple
-    static const double vConsume = 
-      ProgressConstants::getValue("Relation-C++", "consume", "vConsume");
-        // 0.0003;  millisecs per byte in root/extension
-    const double wConsume = 
-      ProgressConstants::getValue("Relation-C++", "consume", "wConsume");
-        // 0.001338; millisecs per byte in FLOB
-
-    cli = (consumeLocalInfo*) local.addr;
-    pRes = (ProgressInfo*) result.addr;
-
-    if ( cli->stream.requestProgress( &p1) )
-    {
-      pRes->Card = p1.Card;
-      pRes->CopySizes(p1);
-
-      pRes->Time = p1.Time +
-        p1.Card * (uConsume + p1.SizeExt * vConsume
-          + (p1.Size - p1.SizeExt) * wConsume);
-
-      if ( cli == 0 )    //not yet working
-      {
-        pRes->Progress = (p1.Progress * p1.Time) / pRes->Time;
-      }
-      else
-      {
-        if ( cli->state == 0 )  //working
-        {
-
-          if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
-                                                       //use pipelining
-            pRes->Progress = p1.Progress;
-          else
-            pRes->Progress =
-            (p1.Progress * p1.Time +
-              cli->current *  (uConsume + p1.SizeExt * vConsume
-                  + (p1.Size - p1.SizeExt) * wConsume) )
-                / pRes->Time;
-        }
-        else       //finished
-        {
-          pRes->Progress = 1.0;
-        }
-      }
-
-      pRes->BTime = pRes->Time;    //completely blocking
-      pRes->BProgress = pRes->Progress;
-
-      return YIELD;      //successful
-    } else {
-       return CANCEL;      //no progress available
-    }
-  }
-  else if ( message == CLOSEPROGRESS )
-  {
-    cli = (consumeLocalInfo*) local.addr;
-    if ( cli ){
-       delete cli;
-       local.setAddr(0);
-    }
+       
+    delete cli;
+    local.setAddr(0);
     return 0;
   }
 
@@ -1783,12 +1442,41 @@ const string TConsumeSpec =
 5.6.4 Definition of operator ~consume~
 
 */
+#ifdef USE_PROGRESS
+Operator relalgconsume (
+   "consume",                  // name
+   ConsumeSpec,                // specification
+   Consume,                    // value mapping
+   Operator::SimpleSelect,     // trivial selection function
+   ConsumeTypeMap<false>,      // type mapping
+   ConsumeCostEstimationFunc   // const estimation
+);
+
+Operator relalgoconsume (
+   "oconsume",                 // name
+   OConsumeSpec,               // specification
+   Consume,                    // value mapping
+   Operator::SimpleSelect,     // trivial selection function
+   ConsumeTypeMap<true>,       // type mapping
+   ConsumeCostEstimationFunc   // Const estimation
+);
+
+
+Operator relalgtconsume (
+   "tconsume",               // name
+   TConsumeSpec,             // specification
+   Consume,                  // value mapping
+   Operator::SimpleSelect,   // trivial selection function
+   tconsume_tm,              // type mapping
+   ConsumeCostEstimationFunc // Cost estimation
+);
+#else
 Operator relalgconsume (
    "consume",              // name
    ConsumeSpec,            // specification
    Consume,                // value mapping
    Operator::SimpleSelect, // trivial selection function
-   ConsumeTypeMap<false>   // type mapping
+   ConsumeTypeMap<false>  // type mapping
 );
 
 Operator relalgoconsume (
@@ -1796,7 +1484,7 @@ Operator relalgoconsume (
    OConsumeSpec,           // specification
    Consume,                // value mapping
    Operator::SimpleSelect, // trivial selection function
-   ConsumeTypeMap<true>    // type mapping
+   ConsumeTypeMap<true>   // type mapping
 );
 
 
@@ -1805,8 +1493,9 @@ Operator relalgtconsume (
    TConsumeSpec,            // specification
    Consume,                // value mapping
    Operator::SimpleSelect, // trivial selection function
-   tconsume_tm   // type mapping
+   tconsume_tm            // type mapping
 );
+#endif
 
 /*
 5.7 Operator ~attr~
@@ -2076,132 +1765,9 @@ Filter(Word* args, Word& result, int message,
 }
 
 #else
-
-class FilterCostEst: public CostEstimation{
-   public:
-      FilterCostEst() : read(0), done(false), 
-                        initialized(false), pi_source()
-       {
-
-      }
-
-      ~FilterCostEst() {}
-
-      virtual int requestProgress(Word* args,
-                                  ProgressInfo* result,
-                                  void* localInfo,
-                                  const bool argsAvailable) {
-
-          const double uFilter = 1.0;
-          if(!qp->RequestProgress(args[0].addr,&pi_source)){
-            return CANCEL;
-          } 
-          result->CopySizes(pi_source);
-          if(done){
-            result->Card = returned;
-            result->Progress = 1.0;
-            result->CopyBlocking(pi_source);
-            double predCost = qp->GetPredCost(supplier);
-            result->Time = pi_source.Time + (double)read*predCost * uFilter;
-            return YIELD;
-          }
-
-          double selectivity = 1.0; // will be overwritten
-          result->Progress = pi_source.Progress; // may be overwritten later
-          bool overwriteProgress = !(pi_source.BTime < 0.1 && 
-                                     pipelinedProgress);
-          result->Time = pi_source.Time + pi_source.Card * 
-                                         qp->GetPredCost(supplier) * uFilter;
-
-          if(returned > (size_t)enoughSuccessesSelection ||
-             returned >= pi_source.Card * qp->GetSelectivity(supplier)){
-             // stable state assumed now or more returned than cold estimate
-             selectivity = (double) returned / (double) read;
-             if(overwriteProgress){
-               result->Progress = (pi_source.Progress*pi_source.Time +
-                                   read*qp->GetPredCost(supplier)*uFilter) / 
-                                  result->Time; 
-             }
-          }  else {
-             // cold state
-             selectivity = qp->GetSelectivity(supplier);
-             if(overwriteProgress){
-                result->Progress = (pi_source.Progress * pi_source.Time)/
-                                   result->Time;
-             }
-          }
-          result->Card = pi_source.Card * selectivity;
-          
-          result->CopyBlocking(pi_source);
-          return YIELD; 
-      }
-
-     virtual void init(Word* args, void* localInfo) {
-        read = 0;
-        returned = 0;
-        done = false;
-        initialized = true;
-     }
-
-     void incInput(){
-        read++;
-     }
-
-     void finished(){
-       done = true;
-     }
-
-
-   private:
-     int read;
-     bool done;
-     bool initialized;
-     ProgressInfo pi_source;
-};
-
-CostEstimation* filterCostEstimation(){
-   return new FilterCostEst();
+CostEstimation* FilterCostEstimationFunc(){
+   return new FilterCostEstimation();
 }
-
-
-class FilterLocalInfo{
-
-  public:
-     FilterLocalInfo(Word s, Word _fun, FilterCostEst* _fce):
-         stream(s), fun(_fun), fce(_fce) {
-        funargs = qp->Argument(fun.addr);
-        stream.open();
-        fce->init(0,0);
-     }
-
-     ~FilterLocalInfo(){
-        stream.close();
-     }
-
-     Tuple* next(){
-       Tuple* tuple;
-       Word funres;
-       while( (tuple = stream.request() ) != 0){
-          fce->incInput();
-          (*funargs)[0].addr = tuple;
-          qp->Request(fun.addr,funres);
-          CcBool* res = (CcBool*) funres.addr;
-          if(res->IsDefined() && res->GetBoolval()){
-            return tuple;
-          }
-          tuple->DeleteIfAllowed();
-       }
-       fce->finished();
-       return 0;
-     }
-
-  private:
-    Stream<Tuple> stream;
-    Word fun;
-    ArgVectorPointer funargs;
-    FilterCostEst* fce;
-};
-
 
 int
 Filter(Word* args, Word& result, int message,
@@ -2215,7 +1781,7 @@ Filter(Word* args, Word& result, int message,
         delete li;
       }
       local.addr = new FilterLocalInfo(args[0], args[1],
-                                (FilterCostEst*) qp->getCostEstimation(s));
+                                (FilterCostEstimation*) qp->getCostEstimation(s));
       return 0;
     }
 
@@ -2264,12 +1830,12 @@ const string FilterSpec  =
 
 */
 Operator relalgfilter (
-         "filter",               // name
-         FilterSpec,             // specification
-         Filter,                 // value mapping
-         Operator::SimpleSelect, // trivial selection function
+         "filter",                // name
+         FilterSpec,              // specification
+         Filter,                  // value mapping
+         Operator::SimpleSelect,  // trivial selection function
          FilterTypeMap,           // type mapping
-         filterCostEstimation
+         FilterCostEstimationFunc // cost estimation
 );
 
 
@@ -2649,25 +2215,10 @@ Project(Word* args, Word& result, int message,
 
 // progress version
 
-
-
-class ProjectLocalInfo: public ProgressLocalInfo
+CostEstimation* ProjectCostEstimationFunc()
 {
-public:
-
-  ProjectLocalInfo() {
-    tupleType = 0;
-    read = 0;
-  }
-
-  ~ProjectLocalInfo() {
-    tupleType->DeleteIfAllowed();
-    tupleType = 0;
-  }
-
-  TupleType *tupleType;
-};
-
+  return new ProjectCostEstimation();
+}
 
 int
 Project(Word* args, Word& result, int message,
@@ -2721,91 +2272,19 @@ Project(Word* args, Word& result, int message,
       else return CANCEL;
     }
     case CLOSE: {
-
-      // Note: object deletion is done in repeated OPEN or CLOSEPROGRESS
-      qp->Close(args[0].addr);
-      return 0;
-
-    }
-    case CLOSEPROGRESS:{
+      
       pli = (ProjectLocalInfo*) local.addr;
       if ( pli ){
          delete pli;
          local.setAddr(0);
       }
+
+      qp->Close(args[0].addr);
       return 0;
+
     }
 
-    case REQUESTPROGRESS:{
-
-      ProgressInfo p1;
-      ProgressInfo *pRes;
-      const double uProject = 0.00073;  //millisecs per tuple
-      const double vProject = 0.0004;  //millisecs per tuple and attribute
-
-
-      pRes = (ProgressInfo*) result.addr;
-      pli = (ProjectLocalInfo*) local.addr;
-
-      if ( !pli ) {
-         return CANCEL;
-      }
-
-      if ( qp->RequestProgress(args[0].addr, &p1) )
-      {
-        pli->sizesChanged = false;
-
-        if ( !pli->sizesInitialized )
-        {
-          pli->noAttrs = ((CcInt*)args[2].addr)->GetIntval();
-          pli->attrSize = new double[pli->noAttrs];
-          pli->attrSizeExt = new double[pli->noAttrs];
-        }
-
-        if ( !pli->sizesInitialized || p1.sizesChanged )
-        {
-          pli->Size = 0;
-          pli->SizeExt = 0;
-
-          for( int i = 0; i < pli->noAttrs; i++)
-          {
-            son = qp->GetSupplier(args[3].addr, i);
-            qp->Request(son, elem2);
-            index = ((CcInt*)elem2.addr)->GetIntval();
-            pli->attrSize[i] = p1.attrSize[index-1];
-            pli->attrSizeExt[i] = p1.attrSizeExt[index-1];
-            pli->Size += pli->attrSize[i];
-            pli->SizeExt += pli->attrSizeExt[i];
-          }
-          pli->sizesInitialized = true;
-          pli->sizesChanged = true;
-        }
-
-        pRes->Card = p1.Card;
-        pRes->CopySizes(pli);
-
-        pRes->Time = p1.Time + p1.Card * (uProject + pli->noAttrs * vProject);
-
-    //only pointers are copied; therefore the tuple sizes do not
-    //matter
-
-        if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
-                                                        //use pipelining
-          pRes->Progress = p1.Progress;
-        else
-          pRes->Progress =
-            (p1.Progress * p1.Time +
-              pli->read * (uProject + pli->noAttrs * vProject))
-            / pRes->Time;
-
-  pRes->CopyBlocking(p1);    //non-blocking operator
-
-        return YIELD;
-      } else {
-        return CANCEL;
-      }
-    }
-    default : cerr << "unknown message" << endl;
+    default : 
               return 0;
 
   }
@@ -2837,6 +2316,7 @@ const string ProjectSpec  =
 5.9.4 Definition of operator ~project~
 
 */
+#ifndef USE_PROGRESS
 Operator relalgproject (
          "project",              // name
          ProjectSpec,            // specification
@@ -2844,9 +2324,16 @@ Operator relalgproject (
          Operator::SimpleSelect, // trivial selection function
          ProjectTypeMap          // type mapping
 );
-
-
-
+#else
+Operator relalgproject (
+         "project",                  // name
+         ProjectSpec,                // specification
+         Project,                    // value mapping
+         Operator::SimpleSelect,     // trivial selection function
+         ProjectTypeMap,             // type mapping
+         ProjectCostEstimationFunc   // cost estimation
+);
+#endif
 
 /*
 2.5 Operator ~remove~
@@ -3234,37 +2721,10 @@ Product(Word* args, Word& result, int message,
 
 // progress version
 
-
-class ProductLocalInfo: public ProgressLocalInfo
+CostEstimation* ProductCostEstimatonFunc() 
 {
-public:
-
-  ProductLocalInfo() :
-    resultTupleType(0),
-    currentTuple(0),
-    rightRel(0),
-    iter(0)
-  {}
-
-  ~ProductLocalInfo()
-  {
-    if(currentTuple != 0)
-      currentTuple->DeleteIfAllowed();
-    if( iter != 0 )
-      delete iter;
-    resultTupleType->DeleteIfAllowed();
-    if( rightRel )
-    {
-      rightRel->Clear();
-      delete rightRel;
-    }
-  }
-
-  TupleType *resultTupleType;
-  Tuple* currentTuple;
-  TupleBuffer *rightRel;
-  GenericRelationIterator *iter;
-};
+  return new ProductCostEstimation();
+}
 
 int
 Product(Word* args, Word& result, int message,
@@ -3392,67 +2852,13 @@ Product(Word* args, Word& result, int message,
       // Note: object deletion is done in (repeated) OPEN and CLOSEPROGRESS
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
-
-      return 0;
-    }
-
-
-    case CLOSEPROGRESS:
-    {
+      
       if ( pli ){
          delete pli;
          local.setAddr(0);
       }
+
       return 0;
-    }
-
-
-    case REQUESTPROGRESS:
-    {
-      ProgressInfo p1, p2;
-      ProgressInfo *pRes;
-      const double uProduct = 0.0003; //millisecs per byte (right input)
-              //if writing to disk
-      const double vProduct = 0.000042; //millisecs per byte (total output)
-          //if reading from disk
-
-      pRes = (ProgressInfo*) result.addr;
-
-      if (!pli) {
-         return CANCEL;
-      }
-
-      if (qp->RequestProgress(args[0].addr, &p1)
-       && qp->RequestProgress(args[1].addr, &p2))
-      {
-        pli->SetJoinSizes(p1, p2);
-
-        pRes->Card = p1.Card * p2.Card;
-        pRes->CopySizes(pli);
-
-        pRes->Time = p1.Time + p2.Time +
-          p2.Card * p2.Size * uProduct +
-          p1.Card * p2.Card * pRes->Size * vProduct;
-
-        pRes->Progress =
-          (p1.Progress * p1.Time + p2.Progress * p2.Time +
-           pli->readSecond * p2.Size * uProduct +
-           pli->returned * pRes->Size * vProduct)
-          / pRes->Time;
-
-
-        pRes->BTime = p1.BTime + p2.BTime +
-          p2.Card * p2.Size * uProduct;
-
-        pRes->BProgress =
-          (p1.BProgress * p1.BTime + p2.BProgress * p2.BTime +
-           pli->readSecond * p2.Size * uProduct)
-          / pRes->BTime;
-
-        return YIELD;
-      } else {
-        return CANCEL;
-      }
     }
   }
   return 0;
@@ -3484,14 +2890,26 @@ const string ProductSpec  =
 5.10.4 Definition of operator ~product~
 
 */
+#ifndef USE_PROGRESS
 Operator relalgproduct (
          "product",              // name
          ProductSpec,            // specification
          Product,                // value mapping
          Operator::SimpleSelect, // trivial selection function
-         ProductTypeMap          // type mapping
+         ProductTypeMap         // type mapping
 //         true                  // needs large amounts of memory
 );
+#else
+Operator relalgproduct (
+         "product",                  // name
+         ProductSpec,                // specification
+         Product,                    // value mapping
+         Operator::SimpleSelect,     // trivial selection function
+         ProductTypeMap,             // type mapping
+         ProductCostEstimatonFunc    // cost estimation
+//         true                      // needs large amounts of memory
+);
+#endif
 
 /*
 5.11 Operator ~count~
@@ -3569,138 +2987,62 @@ countboth_tm(ListExpr args)
 
 */
 
-#ifndef USE_PROGRESS
-
-// standard version
-
-int
-TCountStream(Word* args, Word& result, int message,
+int TCountStream(Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   Word elem;
   int count = 0;
 
-  qp->Open(args[0].addr);
-  qp->Request(args[0].addr, elem);
-  while ( qp->Received(args[0].addr) )
-  {
-    ((Tuple*)elem.addr)->DeleteIfAllowed();
-    qp->Request(args[0].addr, elem);
-    count++;
-  }
-  result = qp->ResultStorage(s);
-  ((CcInt*) result.addr)->Set(true, count);
-  qp->Close(args[0].addr);
-  return 0;
-}
-
-int
-TCountRel(Word* args, Word& result, int message,
-          Word& local, Supplier s)
-{
-  GenericRelation* rel = (GenericRelation*)args[0].addr;
-  result = qp->ResultStorage(s);
-  ((CcInt*) result.addr)->Set(true, rel->GetNoTuples());
-  return 0;
-}
-
-#else
-
-// progress version
-
-int
-TCountStream(Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-  Word elem;
-  int count = 0;
-
-
+  //cout << "TCountStream called" << endl;
+  
+  // ignore old progress messages
   if ( message <= CLOSE )
   {
-
     qp->Open(args[0].addr);
     qp->Request(args[0].addr, elem);
     while ( qp->Received(args[0].addr) )
     {
       ((Tuple*)elem.addr)->DeleteIfAllowed();
-      count++;
       qp->Request(args[0].addr, elem);
+      count++;
     }
     result = qp->ResultStorage(s);
     ((CcInt*) result.addr)->Set(true, count);
     qp->Close(args[0].addr);
-    return 0;
-  }
-  else if ( message == REQUESTPROGRESS )
-  {
-    ProgressInfo p1;
-    ProgressInfo* pRes;
-
-    pRes = (ProgressInfo*) result.addr;
-
-    if ( qp->RequestProgress(args[0].addr, &p1) )
-    {
-      pRes->Copy(p1);
-      return YIELD;
-    } else {
-      return CANCEL;
-    }
-  }
-  else if ( message == CLOSEPROGRESS )
-  {
-    return 0;
   }
 
   return 0;
 }
 
-
-
-int
-TCountRel(Word* args, Word& result, int message,
+int TCountRel(Word* args, Word& result, int message,
           Word& local, Supplier s)
 {
-  Supplier sonOfCount;
-  sonOfCount = qp->GetSupplierSon(s, 0);
-
-  if ( message <= CLOSE )     //normal evaluation
+  //cout << "TCountRel called" << endl;
+  
+  // ignore old progress messages
+  if ( message <= CLOSE )
   {
     GenericRelation* rel = (GenericRelation*)args[0].addr;
     result = qp->ResultStorage(s);
     ((CcInt*) result.addr)->Set(true, rel->GetNoTuples());
-    return 0;
   }
 
-  else if ( message == REQUESTPROGRESS )
-  {
-
-    ProgressInfo p1;
-    ProgressInfo* pRes;
-
-    pRes = (ProgressInfo*) result.addr;
-
-    if ( qp->IsObjectNode(sonOfCount) )
-    {
-      return CANCEL;
-    }
-    else
-    {
-      if ( qp->RequestProgress(sonOfCount, &p1) )
-      {
-        pRes->Copy(p1);
-        return YIELD;
-      } else {
-        return CANCEL;
-      }
-    }
-  }
-  else if ( message == CLOSEPROGRESS && !qp->IsObjectNode(sonOfCount) )
-  {
-    return 0;
-  }
   return 0;
 }
+
+#ifdef USE_PROGRESS
+
+// progress version
+CostEstimation* TcountStreamCostEstimationFunc() 
+{
+   return new TCountStreamCostEstimation();
+}
+
+CostEstimation* TcountRelCostEstimationFunc()
+{
+  return new TCountRelCostEstimation();
+}
+
 
 int
 countboth_vm( Word* args, Word& result, int message,
@@ -3841,6 +3183,7 @@ TCountSelect( ListExpr args )
 */
 ValueMapping countmap[] = {TCountStream, TCountRel };
 
+#ifndef USE_PROGRESS
 Operator relalgcount (
          "count",           // name
          TCountSpec,        // specification
@@ -3849,6 +3192,22 @@ Operator relalgcount (
          TCountSelect,      // selection function
          TCountTypeMap      // type mapping
 );
+#else 
+
+CreateCostEstimation createCostEstimationList[] = {
+          TcountStreamCostEstimationFunc, TcountRelCostEstimationFunc};
+
+Operator relalgcount (
+         "count",           // name
+         TCountSpec,        // specification
+         2,                 // number of value mapping functions
+         countmap,          // value mapping functions
+         TCountSelect,      // selection function
+         TCountTypeMap,     // type mapping
+         createCostEstimationList // cost estimation
+);
+
+#endif
 
 
 const string TCountSpec2  =
@@ -5287,6 +4646,10 @@ ListExpr validateAttrTM(ListExpr args){
 }
 
 
+CostEstimation* RenameCostEstimationFunc() 
+{
+   return new RenameCostEstimation();
+}
 
 /*
 
@@ -5321,27 +4684,6 @@ int Rename(Word* args, Word& result, int message,
 
       qp->Close(args[0].addr);
       return 0;
-
-
-    case CLOSEPROGRESS:
-      return 0;
-
-
-    case REQUESTPROGRESS:
-
-      ProgressInfo p1;
-      ProgressInfo *pRes;
-
-      pRes = (ProgressInfo*) result.addr;
-
-      if ( qp->RequestProgress(args[0].addr, &p1) )
-      {
-        pRes->Copy(p1);
-        return YIELD;
-      } else {
-        return CANCEL;
-      }
-
   }
   return 0;
 }
@@ -5404,30 +4746,33 @@ const string validateAttrSpec  =
 
 */
 Operator relalgrename (
-         "rename",               // name
-         RenameSpec,             // specification
-         Rename,                 // value mapping
-         Operator::SimpleSelect, // trivial selection function
-         RenameTypeMap           // type mapping
+         "rename",                  // name
+         RenameSpec,                // specification
+         Rename,                    // value mapping
+         Operator::SimpleSelect,    // trivial selection function
+         RenameTypeMap,             // type mapping
+         RenameCostEstimationFunc   // cost erstimation
 );
 
 
 Operator relalgrenameattr (
-         "renameattr",               // name
-         RenameAttrSpec,             // specification
-         Rename,                 // value mapping
-         Operator::SimpleSelect, // trivial selection function
-         RenameAttrTypeMap           // type mapping
+         "renameattr",             // name
+         RenameAttrSpec,           // specification
+         Rename,                   // value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         RenameAttrTypeMap,        // type mapping
+         RenameCostEstimationFunc  // cost estimation
 );
 
 
 
 Operator relalgvalidateAttr (
-         "validateAttr",               // name
-         validateAttrSpec,             // specification
-         Rename,                 // value mapping
-         Operator::SimpleSelect, // trivial selection function
-         validateAttrTM           // type mapping
+         "validateAttr",           // name
+         validateAttrSpec,         // specification
+         Rename,                   // value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         validateAttrTM,           // type mapping
+         RenameCostEstimationFunc  // cost estimation
 );
 
 
@@ -5494,22 +4839,10 @@ ListExpr BufferTypeMap2(ListExpr args)
 5.12.2 Value mapping function of operator ~buffer~
 
 */
-
-
-
-const int BUFFERSIZE = 52;
-
-template <class T>
-class BufferLocalInfo
+CostEstimation* BufferCostEstimationFunc() 
 {
- public:
- int state;        //0 = initial, 1 = buffer filled,
-       //2 = buffer empty again
- int noInBuffer;   //tuples read into buffer;
- int next;     //index of next tuple to be returned;
- T* buffer[BUFFERSIZE];
-};
-
+  return new BufferCostEstimation();
+}
 
 template<class T>
 int Buffer(Word* args, Word& result, int message,
@@ -5600,37 +4933,15 @@ int Buffer(Word* args, Word& result, int message,
         }
       }
     case CLOSE :
-
-      // Note: object deletion is done in (repeated) OPEN and CLOSEPROGRESS
-      qp->Close(args[0].addr);
-      return 0;
-
-
-    case CLOSEPROGRESS:
-
+      
       if ( bli )
       {
         delete bli;
         local.setAddr(0);
       }
+
+      qp->Close(args[0].addr);
       return 0;
-
-
-    case REQUESTPROGRESS:
-
-      ProgressInfo p1;
-      ProgressInfo *pRes;
-
-      pRes = (ProgressInfo*) result.addr;
-
-      if ( qp->RequestProgress(args[0].addr, &p1) )
-      {
-        pRes->Copy(p1);
-        return YIELD;
-      } else {
-        return CANCEL;
-      }
-
   }
   return 0;
 }
@@ -5704,6 +5015,7 @@ const string BufferSpec2  =
 5.12.5 Definition of operator ~buffer~
 
 */
+#ifndef USE_PROGRESS
 Operator relalgbuffer (
          "!",                 // name
          BufferSpec,             // specification
@@ -5722,8 +5034,31 @@ Operator relalgbuffer2 (
          BufferTypeMap2           // type mapping
 );
 
+#else
 
+CreateCostEstimation bufferCostEstimationList[] 
+  = {BufferCostEstimationFunc, BufferCostEstimationFunc};
 
+Operator relalgbuffer (
+         "!",                     // name
+         BufferSpec,              // specification
+         2,                       // overloaded function
+         BufferVM,                // value mapping
+         BufferSelect,            // trivial selection function
+         BufferTypeMap,           // type mapping
+         bufferCostEstimationList // cost estimation
+);
+
+Operator relalgbuffer2 (
+         "!",                     // name
+         BufferSpec2,             // specification
+         Buffer2,                 // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         BufferTypeMap2,          // type mapping
+         BufferCostEstimationFunc // cost estimation
+);
+
+#endif
 
 
 
@@ -5846,6 +5181,17 @@ Operator relalggetfileinfo (
 
 
 /*
+5.13.5 Definition of operator ~relalgfeedproject~
+
+*/
+Operator relalgfeedproject (  
+        FeedProjectInfo(),             // info 
+        feedproject_vm,                // value mapping
+        feedproject_tm,                // type mapping
+        FeedProjectCostEstimationFunc  // cost estimation
+);
+
+/*
 
 6 Class ~RelationAlgebra~
 
@@ -5920,7 +5266,8 @@ class RelationAlgebra : public Algebra
     AddOperator( DumpStreamInfo(), dumpstream_vm, dumpstream_tm );
     AddOperator( ReduceInfo(), reduce_vm, reduce_tm );
     AddOperator( CountBothInfo(), countboth_vm, countboth_tm );
-    AddOperator( FeedProjectInfo(), feedproject_vm, feedproject_tm );
+    
+    AddOperator(&relalgfeedproject);
 
     cpptuple.AssociateKind( Kind::TUPLE() );
     cpprel.AssociateKind( Kind::REL() );
@@ -5950,6 +5297,7 @@ Register operators which are able to handle progress messages
   }
   ~RelationAlgebra() {};
 };
+
 
 /*
 
