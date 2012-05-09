@@ -180,8 +180,6 @@ public class PS_HadoopReduce2 implements Constant{
 					allDLOexist = HPA_AuxFunctions.allObjectExist(aomName, aomLoc);
 				}
 
-				System.out.println(allDLOexist + ", " + allDLFexist);
-				
 				if (allDLOexist && allDLFexist)
 				{
 					
@@ -245,7 +243,7 @@ public class PS_HadoopReduce2 implements Constant{
 			e.printStackTrace();
 			System.exit(-1);
 		}
-		
+
 		//Create the job
 		try {
 			Job job = new Job();

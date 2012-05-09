@@ -239,8 +239,7 @@ then the other mappers should indicate that as an empty row.
 		
 		while (!nmRest.isEmpty()){
 
-			ListExpr rows = locs.first();
-			
+			ListExpr rows = lcRest.first();
 			while (!rows.isEmpty()){
 				if (!rows.first().isEmpty()){
 					return true;
@@ -275,7 +274,6 @@ then the other mappers should indicate that as an empty row.
 		ListExpr nameRest = nameList;
 		ListExpr loclRest = loclList;
 		int allRowNum = 0;
-		
 		boolean replaced = true;
 		while (!nameRest.isEmpty())
 		{
@@ -288,7 +286,6 @@ then the other mappers should indicate that as an empty row.
 			
 
 			ListExpr fileLoc = loclRest.first();
-			
 			if (fileLoc.isEmpty()){
 				System.out.println("Mission failed, as fileLoc is: " + fileLoc.toString());
 				replaced = false;
@@ -300,12 +297,14 @@ then the other mappers should indicate that as an empty row.
 			if (!fileLoc.isEmpty())
 			{
 				int rowNum = 0; 
+                                int appendRowNum = 0;
 				ListExpr fl_rest = fileLoc;
 				while (!fl_rest.isEmpty())
 				{
 					ListExpr rowInfo = fl_rest.first();
 					if (!rowInfo.isEmpty())
 					{
+						appendRowNum++;
 						int locSlave = rowInfo.first().intValue();
 						ListExpr columns = rowInfo.second();
 						String filePath = rowInfo.third().stringValue();
@@ -393,6 +392,9 @@ then the other mappers should indicate that as an empty row.
 					fl_rest = fl_rest.rest();
 					rowNum++;
 					allRowNum++;
+				}
+				if (appendRowNum == 0){
+					replaced = false; //all rows are empty
 				}
 			}
 			

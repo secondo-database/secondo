@@ -53,7 +53,6 @@ public class PS_HadoopReduce2_Map
 		ListExpr fileNameList = new ListExpr(), fileLocList = new ListExpr();
 		fileNameList.readFromString(mapFileNames);
 		fileLocList.readFromString(mapFileLocs);
-		
 		ListExpr reduceQueryList = new ListExpr();
 		reduceQueryList.readFromString(reduceQuery);
 
@@ -126,17 +125,15 @@ public class PS_HadoopReduce2_Map
 					{
 						String 	 fileName = restNameList.first().first().stringValue();
 						ListExpr fileLoc  = restLocList.first();
-
 						if (fileName.compareTo(InputObjectName[side]) == 0)
 						{
 							inputStreamList = restNameList.first().first();
 							
 							comMapQuery[side] = ExtListExpr.replace(
 									comMapQuery[side], InterSymbol, inputStreamList);
-							
 							comMapQuery[side] = HPA_AuxFunctions.loc2Ffeed(comMapQuery[side], 
 									ListExpr.oneElemList(inputStreamList), 
-									fileLocList, duplicateTimes[side]);
+									ListExpr.oneElemList(fileLoc), duplicateTimes[side]);
 							
 							replaced = (!comMapQuery[side].isEmpty());
 							pattern = restNameList.first().first();

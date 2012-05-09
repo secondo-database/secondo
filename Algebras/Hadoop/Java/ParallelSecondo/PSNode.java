@@ -95,6 +95,8 @@ public class PSNode implements Constant{
 		else {
 			int pCnt = Integer.MAX_VALUE;
 			for (PSNode slave : slaves){
+				if (localAddr.compareTo(slave.getIpAddr()) != 0)
+			          continue;
 				int port = slave.getPortNum();
 				Runtime rt = Runtime.getRuntime();
 				Process proc = rt.exec(new String[]{"lsof", "-i", ":" + port});
