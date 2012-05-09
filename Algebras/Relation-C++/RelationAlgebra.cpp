@@ -1781,7 +1781,7 @@ Filter(Word* args, Word& result, int message,
         delete li;
       }
       local.addr = new FilterLocalInfo(args[0], args[1],
-                                (FilterCostEstimation*) qp->getCostEstimation(s));
+                             (FilterCostEstimation*) qp->getCostEstimation(s));
       return 0;
     }
 
@@ -2504,6 +2504,7 @@ const string RemoveSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 2.5.4 Definition of operator ~remove~
 
 */
+#ifndef USE_PROGRESS
 Operator relalgremove (
          "remove",                // name
          RemoveSpec,              // specification
@@ -2511,7 +2512,16 @@ Operator relalgremove (
          Operator::SimpleSelect,  // trivial selection function
          RemoveTypeMap            // type mapping
 );
-
+#else
+Operator relalgremove (
+         "remove",                  // name
+         RemoveSpec,                // specification
+         Project,                   // value mapping
+         Operator::SimpleSelect,    // trivial selection function
+         RemoveTypeMap,             // type mapping
+         ProjectCostEstimationFunc  // cost estimation
+);
+#endif
 
 
 
