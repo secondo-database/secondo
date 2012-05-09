@@ -1733,6 +1733,7 @@ bool CollectLocalInfo::fetchAllPartFiles()
           if (found)
           {
             partFiles.push_back(localPath);
+cerr << "Found file " << localPath << endl;
             break;
           }
           pit++;
@@ -2745,10 +2746,10 @@ int hadoopReduceValueMap(Word* args, Word& result,
       cerr << "Former Object numbers: " << dloNumber << endl;
       cerr << "Object numbers: " << DLO_NameList.size() << endl;
 
-      if ((int)DLO_NameList.size() > dloNumber){
-        cerr << "Not allow using DLO flist in reduce queries. " << endl;
-        ok = false;
-      }
+//      if ((int)DLO_NameList.size() > dloNumber){
+//        cerr << "Not allow using DLO flist in reduce queries. " << endl;
+//        ok = false;
+//      }
     }
 
     NList dlfNameList, dlfLocList;
@@ -3244,10 +3245,10 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
 
       cerr << "Former Object numbers: " << dloNumber << endl;
       cerr << "Object numbers: " << DLO_NameList.size() << endl;
-      if (DLO_NameList.size() > dloNumber){
-        cerr << "Not allow using DLO flist in reduce queries. " << endl;
-        ok = false;
-      }
+//      if (DLO_NameList.size() > dloNumber){
+//        cerr << "Not allow using DLO flist in reduce queries. " << endl;
+//        ok = false;
+//      }
     }
 
 
