@@ -157,14 +157,30 @@ public abstract class AbstractTableWindow extends AbstractWindow {
 	}
 	
 	/**
+	 * Get Tabledata for export
+	 * @return
+	 */
+	public String getCVSData() {
+		final CSVExport exporter = new CSVExport(tableModell);
+		return exporter.getExportData();
+	}
+	
+	/**
 	 * Show Table, and add listener to receive data updates
 	 * 
 	 */
 	@Override
 	public void show() {
 		updateTableModel();
-		window.getGraph().getSeriesOut().addChangeListener(seriesChangeListener);	
+		installListener();	
 		super.show();
+	}
+
+	/**
+	 * Install change listener
+	 */
+	public void installListener() {
+		window.getGraph().getSeriesOut().addChangeListener(seriesChangeListener);
 	}
 	
 	/**

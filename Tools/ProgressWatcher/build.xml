@@ -68,4 +68,14 @@
 		</java>
 	</target>
 
+	<target name="run-console" depends="dist">
+			<java classname="progresswatcher.DataCollectorMain" fork="yes" >
+				  <classpath>
+				   <fileset dir="${build.dist}/lib">
+				        <include name="**/*.jar"/>
+			       </fileset>
+		         </classpath>
+			</java>
+	</target>
+	
 </project>

@@ -70,6 +70,27 @@ public class Main {
 			System.exit(-1);
 		}
 		
+		final AbstractProgressWindow progressWindow = initGUI();
+		
+		// Watch SECONDO progress log, like "tail -f"
+		final BufferedReader br = new BufferedReader(new FileReader(filename));
+		final FileWatcherWorker worker = new FileWatcherWorker(br);
+		AppCtx.getInstance().setWorker(worker);
+
+		final Thread workerThread = new Thread(worker);
+		workerThread.start();
+		
+		// Show progress window
+		progressWindow.show();
+		
+		// If you like to show other windows on startup 
+		// - like the time window - use the following lines:
+		
+		//timeWindow.show();
+		//cardWindow.show();
+	}
+
+	public static AbstractProgressWindow initGUI() {
 		GuiHelper.configureUI();
 		
 		// Prepare GUI
@@ -101,22 +122,6 @@ public class Main {
 		AppCtx.getInstance().setQueryProgressTableWindow(WindowType.TIME, 
 				timeTable);
 		timeTable.init();
-		
-		// Watch SECONDO progress log, like "tail -f"
-		final BufferedReader br = new BufferedReader(new FileReader(filename));
-		final FileWatcherWorker worker = new FileWatcherWorker(br);
-		AppCtx.getInstance().setWorker(worker);
-
-		final Thread workerThread = new Thread(worker);
-		workerThread.start();
-		
-		// Show progress window
-		progressWindow.show();
-		
-		// If you like to show other windows on startup 
-		// - like the time window - use the following lines:
-		
-		//timeWindow.show();
-		//cardWindow.show();
+		return progressWindow;
 	} 
 }
