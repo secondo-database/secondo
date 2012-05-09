@@ -19,5 +19,6 @@
 
 operator mapmatchmht alias MAPMATCHMHT pattern op( _ , _ )
 operator omapmatchmht alias OMAPMATCHMHT pattern op( _ , _ , _ , _ )
+operator omapmatchmht alias OMAPMATCHMHT_P pattern op( _ , _ , _ , _ )
 operator omapmatchmht_mpoint alias OMAPMATCHMHT_MPOINT pattern op( _ , _ , _ , _ )
 operator gpximport alias GPXIMPORT pattern op( _ )

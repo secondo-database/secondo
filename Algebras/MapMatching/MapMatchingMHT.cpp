@@ -1132,7 +1132,7 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
 
     if (PointProjection.IsDefined())
     {
-        if (dDistance > 350.0) // too far away
+        if (dDistance > 250.0) // too far away
             return false;
 
         // Check if the startpoint or endpoint has been reached.
@@ -1206,46 +1206,66 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
 
         vecPoints.push_back(rPoint);
 
-        // Calculate travelled distance ('length' of GPS-Points)
-        double dDistanceTravelled = MMUtil::CalcDistance(vecPoints,
-                                                         m_dNetworkScale);
+        bool bLookAtAdjacent = bIsEndPoint;
 
-        // Add distance from startpoint to first projected point
-        const Point* pFirstProjectedPoint = &PointProjection;
-        if (nPointsLastSection > 0 && vecPointsLastSection[0] != NULL)
+        if (!bLookAtAdjacent)
         {
-            pFirstProjectedPoint =
+            // Calculate travelled distance ('length' of GPS-Points)
+            double dDistanceTravelled = MMUtil::CalcDistance(vecPoints,
+                                                             m_dNetworkScale);
+
+            // Add distance from startpoint to first projected point
+            const Point* pFirstProjectedPoint = &PointProjection;
+            if (nPointsLastSection > 0 && vecPointsLastSection[0] != NULL)
+            {
+                pFirstProjectedPoint =
                                   vecPointsLastSection[0]->GetPointProjection();
+            }
+
+            /* TODO prüfen */
+            if (pSection->GetDirection() == IMMNetworkSection::DIR_UP &&
+                pFirstProjectedPoint != NULL)
+            {
+                dDistanceTravelled += MMUtil::CalcDistance(
+                                                          ptStart,
+                                                          *pFirstProjectedPoint,
+                                                          m_dNetworkScale);
+            }
+            else if (pSection->GetDirection() == IMMNetworkSection::DIR_DOWN &&
+                     pFirstProjectedPoint != NULL)
+            {
+                dDistanceTravelled += MMUtil::CalcDistance(
+                                                          ptEnd,
+                                                          *pFirstProjectedPoint,
+                                                          m_dNetworkScale);
+            }
+
+            /*if (pFirstProjectedPoint != NULL)
+            {
+                dDistanceTravelled += MMUtil::CalcDistance(
+                                                          ptStart,
+                                                          *pFirstProjectedPoint,
+                                                          m_dNetworkScale);
+            }*/
+
+            const double dLenCurve = pSection->GetCurveLength(m_dNetworkScale);
+
+
+            // If traveled (GPS-)distance ist larger than 80% of curve length
+            // then look at adjacent sections, too
+            bLookAtAdjacent = dDistanceTravelled > (dLenCurve / 100. * 80.);
         }
 
-        /* TODO prüfen */
-        if (pSection->GetDirection() == IMMNetworkSection::DIR_UP &&
-            pFirstProjectedPoint != NULL)
+        /*if (!bLookAtAdjacent && pMMData->m_dCourse >= 0.0)
         {
-            dDistanceTravelled += MMUtil::CalcDistance(ptStart,
-                                                       *pFirstProjectedPoint,
-                                                       m_dNetworkScale);
-        }
-        else if (pSection->GetDirection() == IMMNetworkSection::DIR_DOWN &&
-                 pFirstProjectedPoint != NULL)
-        {
-            dDistanceTravelled += MMUtil::CalcDistance(ptEnd,
-                                                       *pFirstProjectedPoint,
-                                                       m_dNetworkScale);
-        }
+            const double dHeadingSection = MMUtil::CalcHeading(pSection.get(),
+                                                               HSProjection,
+                                                               m_dNetworkScale);
 
-        /*if (pFirstProjectedPoint != NULL)
-        {
-            dDistanceTravelled += MMUtil::CalcDistance(ptStart,
-                                                       *pFirstProjectedPoint,
-                                                       m_dNetworkScale);
+            bLookAtAdjacent = abs(dHeadingSection - pMMData->m_dCourse) > 60.;
         }*/
 
-        const double dLengthCurve = pSection->GetCurveLength(m_dNetworkScale);
-
-        // If traveled (GPS-)distance ist larger than 85% of curve length
-        // then look at adjacent sections, too
-        if (dDistanceTravelled > (dLengthCurve / 100. * 85.))
+        if (bLookAtAdjacent)
         {
             const double dDistanceStart = MMUtil::CalcDistance(rPoint,
                                                                ptStart,

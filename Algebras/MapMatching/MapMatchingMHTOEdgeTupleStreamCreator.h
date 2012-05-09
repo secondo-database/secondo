@@ -45,6 +45,7 @@ This header file essentially contains the definition of the class ~MGPointCreato
 #include "MHTRouteCandidate.h"
 #include <vector>
 
+class Tuple;
 class TupleBuffer;
 class TupleType;
 class GenericRelationIterator;
@@ -65,8 +66,15 @@ namespace mapmatch {
 class OEdgeTupleStreamCreator : public IMapMatchingMHTResultCreator
 {
 public:
+    enum EMode
+    {
+        MODE_EDGES,
+        MODE_EDGES_AND_POSITIONS
+    };
+
     OEdgeTupleStreamCreator(Supplier s,
-                            const class ONetworkAdapter& rNetw);
+                            const class ONetworkAdapter& rNetw,
+                            EMode eMode);
     virtual ~OEdgeTupleStreamCreator();
 
     virtual bool CreateResult(const std::vector<MHTRouteCandidate*>&
@@ -75,6 +83,8 @@ public:
     Tuple* GetNextTuple(void) const;
 
 private:
+
+    void Init(void);
 
     const MHTRouteCandidate::PointData* GetFirstPointOfNextSegment(
               const std::vector<MHTRouteCandidate::RouteSegment*>& rvecSegments,
@@ -89,17 +99,32 @@ private:
                        double dDistance); // Distance to first point
                                           // of next segment
 
+    void ProcessPoints(const MHTRouteCandidate::RouteSegment& rSegment,
+                       const DateTime& rTimeStart,
+                       const DateTime& rTimeEnd,
+                       const Point& rPtStart,
+                       const Point& rPtEnd);
+
+    const Tuple* GetEdgeTuple(const MHTRouteCandidate::RouteSegment& rSegment);
+
     void CreateTuple(const MHTRouteCandidate::RouteSegment& rSegment,
                      const DateTime& rTimeStart,
                      const DateTime& rTimeEnd);
 
+    void CreateTuple(const MHTRouteCandidate::RouteSegment& rSegment,
+                     const DateTime& rTimeStart,
+                     const DateTime& rTimeEnd,
+                     const Point& rPtStart,
+                     const Point& rPtEnd,
+                     const double dPosStart,
+                     const double dPosEnd);
+
+    EMode m_eMode;
     TupleType* m_pTupleType;
     TupleBuffer* m_pTupleBuffer;
     mutable GenericRelationIterator* m_pTupleIterator;
     double m_dNetworkScale;
 };
-
-
 
 
 } // end of namespace mapmatch

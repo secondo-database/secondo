@@ -129,12 +129,13 @@ struct MapMatchMHTInfo : OperatorInfo
                         MGPoint::BasicType());
 
         syntax    = "mapmatchmht ( _ , _ [, _ ] )";
-        meaning   = "The operation tries to map the MPoint or "
+        meaning   = "The operation maps the MPoint or "
                     "the data of a gpx-file or "
                     "the data of a tuple stream "
-                    "to the given network as well as possible."
+                    "to the given network."
                     "With the optional real-parameter the scaling"
-                    "factor of the network can be specified.";
+                    "factor of the network can be specified."
+                    "Result is a MGPoint.";
         example   = "mapmatchmht (DortmundNet, 'Trk_Dortmund.gpx')";
     }
 };
@@ -691,11 +692,13 @@ struct OMapMatchMHTInfo : OperatorInfo
 
 
         syntax    = "omapmatchmht ( _ , _ , _ , _ )";
-        meaning   = "The operation tries to map the MPoint or "
+        meaning   = "The operation maps the MPoint or "
                     "the data of a gpx-file or "
                     "the data of a tuple stream "
                     "to the given network, which is based on an "
-                    "ordered relation, as well as possible.";
+                    "ordered relation."
+                    "Result is a stream of tuples with the matched edges "
+                    "of the network with timestamps.";
         example   = "omapmatchmht(Edges, EdgeIndex_Box_rtree, "
                                   "EdgeIndex, 'Trk_Dortmund.gpx')";
     }
@@ -1126,13 +1129,15 @@ static ONetwork::OEdgeAttrIndexes GetOEdgeAttrIndexes(Word* args, int nOffset)
     return Indexes;
 }
 
-int OpOMapMatchingMHTMPointValueMapping(Word* args,
-                                        Word& result,
-                                        int message,
-                                        Word& local,
-                                        Supplier in_xSupplier)
+int OpOMapMatchingMHTMPoint2OStreamValueMapping(
+                                           Word* args,
+                                           Word& result,
+                                           int message,
+                                           Word& local,
+                                           Supplier in_xSupplier,
+                                           OEdgeTupleStreamCreator::EMode eMode)
 {
-    // cout << "OpOMapMatchingMHTMPointValueMapping called" << endl;
+    // cout << "OpOMapMatchingMHTMPoint2OStreamValueMapping called" << endl;
 
     OEdgeTupleStreamCreator* pCreator =
                               static_cast<OEdgeTupleStreamCreator*>(local.addr);
@@ -1163,8 +1168,9 @@ int OpOMapMatchingMHTMPointValueMapping(Word* args,
           MapMatchingMHT MapMatching(&NetworkAdapter, pMPoint);
 
           OEdgeTupleStreamCreator* pCreator =
-                                    new OEdgeTupleStreamCreator(in_xSupplier,
-                                                                NetworkAdapter);
+                                     new OEdgeTupleStreamCreator(in_xSupplier,
+                                                                 NetworkAdapter,
+                                                                 eMode);
 
           if (!MapMatching.DoMatch(pCreator))
           {
@@ -1204,13 +1210,15 @@ int OpOMapMatchingMHTMPointValueMapping(Word* args,
     }
 }
 
-int OpOMapMatchingMHTGPXValueMapping(Word* args,
-                                     Word& result,
-                                     int message,
-                                     Word& local,
-                                     Supplier in_xSupplier)
+int OpOMapMatchingMHTGPX2OStreamValueMapping(
+                                           Word* args,
+                                           Word& result,
+                                           int message,
+                                           Word& local,
+                                           Supplier in_xSupplier,
+                                           OEdgeTupleStreamCreator::EMode eMode)
 {
-    // cout << "OpOMapMatchingMHTGPXValueMapping called" << endl;
+    // cout << "OpOMapMatchingMHTGPX2OStreamValueMapping called" << endl;
 
     OEdgeTupleStreamCreator* pCreator =
                               static_cast<OEdgeTupleStreamCreator*>(local.addr);
@@ -1242,8 +1250,9 @@ int OpOMapMatchingMHTGPXValueMapping(Word* args,
           MapMatchingMHT MapMatching(&NetworkAdapter, strFileName);
 
           OEdgeTupleStreamCreator* pCreator =
-                                    new OEdgeTupleStreamCreator(in_xSupplier,
-                                                                NetworkAdapter);
+                                     new OEdgeTupleStreamCreator(in_xSupplier,
+                                                                 NetworkAdapter,
+                                                                 eMode);
 
           if (!MapMatching.DoMatch(pCreator))
           {
@@ -1283,13 +1292,15 @@ int OpOMapMatchingMHTGPXValueMapping(Word* args,
     }
 }
 
-int OpOMapMatchingMHTStreamValueMapping(Word* args,
-                                        Word& result,
-                                        int message,
-                                        Word& local,
-                                        Supplier in_xSupplier)
+int OpOMapMatchingMHTStream2OStreamValueMapping(
+                                           Word* args,
+                                           Word& result,
+                                           int message,
+                                           Word& local,
+                                           Supplier in_xSupplier,
+                                           OEdgeTupleStreamCreator::EMode eMode)
 {
-    // cout << "OpOMapMatchingMHTGPXValueMapping called" << endl;
+    // cout << "OpOMapMatchingMHTStream2OStreamValueMapping called" << endl;
 
     OEdgeTupleStreamCreator* pCreator =
                               static_cast<OEdgeTupleStreamCreator*>(local.addr);
@@ -1321,8 +1332,9 @@ int OpOMapMatchingMHTStreamValueMapping(Word* args,
           MapMatchingMHT MapMatching(&NetworkAdapter, pContData);
 
           OEdgeTupleStreamCreator* pCreator =
-                                    new OEdgeTupleStreamCreator(in_xSupplier,
-                                                                NetworkAdapter);
+                                     new OEdgeTupleStreamCreator(in_xSupplier,
+                                                                 NetworkAdapter,
+                                                                 eMode);
 
           if (!MapMatching.DoMatch(pCreator))
           {
@@ -1360,6 +1372,52 @@ int OpOMapMatchingMHTStreamValueMapping(Word* args,
           return 0;
       }
     }
+}
+
+
+int OpOMapMatchingMHTMPoint2EdgesValueMapping(Word* args,
+                                              Word& result,
+                                              int message,
+                                              Word& local,
+                                              Supplier in_xSupplier)
+{
+    return OpOMapMatchingMHTMPoint2OStreamValueMapping(
+                                           args,
+                                           result,
+                                           message,
+                                           local,
+                                           in_xSupplier,
+                                           OEdgeTupleStreamCreator::MODE_EDGES);
+}
+
+int OpOMapMatchingMHTGPX2EdgesValueMapping(Word* args,
+                                           Word& result,
+                                           int message,
+                                           Word& local,
+                                           Supplier in_xSupplier)
+{
+    return OpOMapMatchingMHTGPX2OStreamValueMapping(
+                                           args,
+                                           result,
+                                           message,
+                                           local,
+                                           in_xSupplier,
+                                           OEdgeTupleStreamCreator::MODE_EDGES);
+}
+
+int OpOMapMatchingMHTStream2EdgesValueMapping(Word* args,
+                                              Word& result,
+                                              int message,
+                                              Word& local,
+                                              Supplier in_xSupplier)
+{
+    return OpOMapMatchingMHTStream2OStreamValueMapping(
+                                           args,
+                                           result,
+                                           message,
+                                           local,
+                                           in_xSupplier,
+                                           OEdgeTupleStreamCreator::MODE_EDGES);
 }
 
 
@@ -1449,11 +1507,13 @@ struct OMapMatchMHT_PInfo : OperatorInfo
 
 
         syntax    = "omapmatchmht_p ( _ , _ , _ , _ )";
-        meaning   = "The operation tries to map the MPoint or "
+        meaning   = "The operation maps the MPoint or "
                     "the data of a gpx-file or "
                     "the data of a tuple stream "
                     "to the given network, which is based on an "
-                    "ordered relation, as well as possible.";
+                    "ordered relation."
+                    "Result is a stream of tuples with the matched edges "
+                    "of the network with timestamps, and matched positions.";
         example   = "omapmatchmht_p(Edges, EdgeIndex_Box_rtree, "
                                     "EdgeIndex, 'Trk_Dortmund.gpx')";
     }
@@ -1485,7 +1545,13 @@ int OpOMapMatchingMHTMPoint2PositionsValueMapping(Word* args,
 {
     // cout << "OpOMapMatchingMHTMPoint2PositionsValueMapping called" << endl;
 
-    return 0;
+    return OpOMapMatchingMHTMPoint2OStreamValueMapping(
+                             args,
+                             result,
+                             message,
+                             local,
+                             in_xSupplier,
+                             OEdgeTupleStreamCreator::MODE_EDGES_AND_POSITIONS);
 }
 
 int OpOMapMatchingMHTGPX2PositionsValueMapping(Word* args,
@@ -1496,7 +1562,13 @@ int OpOMapMatchingMHTGPX2PositionsValueMapping(Word* args,
 {
     // cout << "OpOMapMatchingMHTGPX2PositionsValueMapping called" << endl;
 
-    return 0;
+    return OpOMapMatchingMHTGPX2OStreamValueMapping(
+                             args,
+                             result,
+                             message,
+                             local,
+                             in_xSupplier,
+                             OEdgeTupleStreamCreator::MODE_EDGES_AND_POSITIONS);
 }
 
 int OpOMapMatchingMHTStream2PositionsValueMapping(Word* args,
@@ -1507,7 +1579,13 @@ int OpOMapMatchingMHTStream2PositionsValueMapping(Word* args,
 {
     // cout << "OpOMapMatchingMHTStream2PositionsValueMapping called" << endl;
 
-    return 0;
+    return OpOMapMatchingMHTStream2OStreamValueMapping(
+                             args,
+                             result,
+                             message,
+                             local,
+                             in_xSupplier,
+                             OEdgeTupleStreamCreator::MODE_EDGES_AND_POSITIONS);
 }
 
 
@@ -1560,11 +1638,11 @@ struct OMapMatchMHT_MPointInfo : OperatorInfo
 
 
         syntax    = "omapmatchmht_mpoint ( _ , _ , _ , _ )";
-        meaning   = "The operation tries to map the MPoint or "
+        meaning   = "The operation maps the MPoint or "
                     "the data of a gpx-file or "
                     "the data of a tuple stream "
                     "to the given network, which is based on an "
-                    "ordered relation, as well as possible."
+                    "ordered relation."
                     "Result is a MPoint.";
         example   = "omapmatchmht_mpoint(Edges, EdgeIndex_Box_rtree, "
                                          "EdgeIndex, 'Trk_Dortmund.gpx')";
@@ -1744,7 +1822,7 @@ struct GPXImportInfo : OperatorInfo
         meaning   = "Imports the trackpoint data of a gpx file."
                     "With the optional parameter (CcReal) a scaling factor "
                     "for the coordinates (Lat, Lon) can be specified.";
-        example   = "gpximport ('gpx-filename')";
+        example   = "gpximport ('Trk_Dortmund.gpx')";
     }
 };
 
@@ -1914,10 +1992,11 @@ MapMatchingAlgebra::MapMatchingAlgebra()
                 OpMapMatchingMHTTypeMap);
 
     // OMapMatchMHT
-    ValueMapping OMapMatchMHTFuns[] = { OpOMapMatchingMHTMPointValueMapping,
-                                        OpOMapMatchingMHTGPXValueMapping,
-                                        OpOMapMatchingMHTStreamValueMapping,
-                                        0 };
+    ValueMapping OMapMatchMHTFuns[] =
+                                    { OpOMapMatchingMHTMPoint2EdgesValueMapping,
+                                      OpOMapMatchingMHTGPX2EdgesValueMapping,
+                                      OpOMapMatchingMHTStream2EdgesValueMapping,
+                                      0 };
 
     AddOperator(OMapMatchMHTInfo(),
                 OMapMatchMHTFuns,
@@ -1925,7 +2004,7 @@ MapMatchingAlgebra::MapMatchingAlgebra()
                 OpOMapMatchingMHTTypeMap);
 
     // OMapMatchMHT_P
-    /*ValueMapping OMapMatchMHT_PFuns[] =
+    ValueMapping OMapMatchMHT_PFuns[] =
                                 { OpOMapMatchingMHTMPoint2PositionsValueMapping,
                                   OpOMapMatchingMHTGPX2PositionsValueMapping,
                                   OpOMapMatchingMHTStream2PositionsValueMapping,
@@ -1934,7 +2013,7 @@ MapMatchingAlgebra::MapMatchingAlgebra()
     AddOperator(OMapMatchMHT_PInfo(),
                 OMapMatchMHT_PFuns,
                 OMapMatchMHT_PSelect,
-                OpOMapMatchingMHT_PTypeMap);*/
+                OpOMapMatchingMHT_PTypeMap);
 
     // OMapMatchMHT_MPoint
     ValueMapping OMapMatchMHT_MPointFuns[] =

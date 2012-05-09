@@ -53,8 +53,10 @@ namespace mapmatch {
 */
 
 OEdgeTupleStreamCreator::OEdgeTupleStreamCreator(Supplier s,
-                                                 const ONetworkAdapter& rNetw)
-:m_pTupleType(NULL),
+                                                 const ONetworkAdapter& rNetw,
+                                                 EMode eMode)
+:m_eMode(eMode),
+ m_pTupleType(NULL),
  m_pTupleBuffer(NULL),
  m_pTupleIterator(NULL),
  m_dNetworkScale(rNetw.GetNetworkScale())
@@ -79,19 +81,7 @@ OEdgeTupleStreamCreator::~OEdgeTupleStreamCreator()
 bool OEdgeTupleStreamCreator::CreateResult(
                      const std::vector<MHTRouteCandidate*>& rvecRouteCandidates)
 {
-    if (m_pTupleIterator != NULL)
-    {
-        delete m_pTupleIterator;
-        m_pTupleIterator = NULL;
-    }
-
-    if (m_pTupleBuffer != NULL)
-    {
-        delete m_pTupleBuffer;
-        m_pTupleBuffer = NULL;
-    }
-
-    m_pTupleBuffer = new TupleBuffer;
+    Init();
 
     const size_t nCandidates = rvecRouteCandidates.size();
 
@@ -126,6 +116,23 @@ bool OEdgeTupleStreamCreator::CreateResult(
     }
 
     return true;
+}
+
+void OEdgeTupleStreamCreator::Init(void)
+{
+    if (m_pTupleIterator != NULL)
+    {
+        delete m_pTupleIterator;
+        m_pTupleIterator = NULL;
+    }
+
+    if (m_pTupleBuffer != NULL)
+    {
+        delete m_pTupleBuffer;
+        m_pTupleBuffer = NULL;
+    }
+
+    m_pTupleBuffer = new TupleBuffer;
 }
 
 const MHTRouteCandidate::PointData* OEdgeTupleStreamCreator::
@@ -192,7 +199,7 @@ DateTime OEdgeTupleStreamCreator::ProcessSegment(
                const MHTRouteCandidate::PointData* pFirstPointofNextSeg,
                double dDistance) // Distance to first point of next segment
 {
-    if (rSegment.IsOffRoad()) // No edge
+    if (rSegment.IsOffRoad()) // No edge - TODO
         return DateTime((int64_t)0);
     else
     {
@@ -206,110 +213,198 @@ DateTime OEdgeTupleStreamCreator::ProcessSegment(
         DateTime TimeUndef((int64_t)0);
         TimeUndef.SetDefined(false);
 
-        if (rSegment.GetPoints().size() == 0)
+        const std::vector<MHTRouteCandidate::PointData*>& vecPoints =
+                                                           rSegment.GetPoints();
+        const size_t nPoints = vecPoints.size();
+
+        DateTime TimeStart = rEndTimePrevSegment;
+        Point PtStart(false);
+
+        const SimpleLine* pCurve = pSection->GetCurve();
+        bool bStartsSmaller = pSection->GetCurveStartsSmaller();
+
+        if (!TimeStart.IsDefined() || TimeStart.IsZero())
         {
-            // No assigned points
-
-            if (!rEndTimePrevSegment.IsDefined() ||
-                rEndTimePrevSegment.IsZero())
+            // first segment
+            const MHTRouteCandidate::PointData* pData =
+                                                   rSegment.GetPoints().front();
+            if (pData != NULL)
             {
-                CreateTuple(rSegment, TimeUndef, TimeUndef);
-                return TimeUndef;
-            }
+                TimeStart = pData->GetTime();
 
-            if (pFirstPointofNextSeg == NULL ||
-                !pFirstPointofNextSeg->GetTime().IsDefined())
+                if (m_eMode == MODE_EDGES_AND_POSITIONS)
+                {
+                    const Point* pPtProj = pData->GetPointProjection();
+                    if (pPtProj != NULL && pPtProj->IsDefined())
+                        PtStart = *pPtProj;
+                    else
+                        PtStart = pData->GetPointGPS();
+                }
+            }
+            else
             {
-                CreateTuple(rSegment, rEndTimePrevSegment, rEndTimePrevSegment);
-                return rEndTimePrevSegment;
+                assert(false);
             }
-
-            const double dLenCurve = pSection->GetCurveLength(m_dNetworkScale);
-
-            double dDistStartPt2FirstPtOfNextSeg = dLenCurve + dDistance;
-            if (AlmostEqual(dDistStartPt2FirstPtOfNextSeg, 0.0))
-            {
-                CreateTuple(rSegment, rEndTimePrevSegment, rEndTimePrevSegment);
-                return rEndTimePrevSegment;
-            }
-
-            DateTime TimeStart = rEndTimePrevSegment;
-            DateTime Duration = pFirstPointofNextSeg->GetTime() - TimeStart;
-            DateTime TimeEnd = TimeStart +
-                    DateTime(datetime::durationtype,
-                             (uint64_t)((Duration.millisecondsToNull()
-                              / dDistStartPt2FirstPtOfNextSeg) * dLenCurve));
-            CreateTuple(rSegment, TimeStart, TimeEnd);
-            return TimeEnd;
         }
         else
         {
-            // points assigned
+            if (m_eMode == MODE_EDGES_AND_POSITIONS)
+                PtStart = pCurve->StartPoint(bStartsSmaller);
+        }
 
-            DateTime TimeStart = rEndTimePrevSegment;
+        if (m_eMode == MODE_EDGES_AND_POSITIONS)
+        {
+            Point PtEnd(false);
+            DateTime TimeEnd((int64_t)0);
 
-            if (!TimeStart.IsDefined() || TimeStart.IsZero())
+            for (size_t i = 0; i < nPoints; ++i)
             {
-                const MHTRouteCandidate::PointData* pData =
-                                                   rSegment.GetPoints().front();
-                if (pData != NULL)
+                MHTRouteCandidate::PointData* pData = vecPoints[i];
+                if (pData == NULL)
+                    continue;
+
+                TimeEnd = pData->GetTime();
+
+                const Point* pPtProj = pData->GetPointProjection();
+                if (pPtProj != NULL && pPtProj->IsDefined())
                 {
-                    TimeStart = pData->GetTime();
+                    PtEnd = *pPtProj;
                 }
                 else
                 {
-                    assert(false);
+                    PtEnd = pData->GetPointGPS();
+                }
+
+                if (TimeStart == TimeEnd && AlmostEqual(PtStart, PtEnd))
+                    continue;
+
+                ProcessPoints(rSegment, TimeStart, TimeEnd, PtStart, PtEnd);
+
+                PtStart = PtEnd;
+                TimeStart = TimeEnd;
+            }
+        }
+
+
+        if (pFirstPointofNextSeg == NULL ||
+            !pFirstPointofNextSeg->GetTime().IsDefined() ||
+            pFirstPointofNextSeg->GetPointProjection() == NULL ||
+            !pFirstPointofNextSeg->GetPointProjection()->IsDefined())
+        {
+            // this is the last point
+            if (m_eMode == MODE_EDGES_AND_POSITIONS)
+            {
+                return TimeStart;
+            }
+            else if (m_eMode == MODE_EDGES)
+            {
+                const MHTRouteCandidate::PointData* pData =
+                                                    rSegment.GetPoints().back();
+                if (pData != NULL)
+                {
+                    DateTime TimeEnd = pData->GetTime();
+                    ProcessPoints(rSegment, TimeStart, TimeEnd,
+                                  Point(false), Point(false));
+                    return TimeEnd;
                 }
             }
+        }
 
-            const SimpleLine* pCurve = pSection->GetCurve();
-            const MHTRouteCandidate::PointData* pData =
-                                                    rSegment.GetPoints().back();
-            if (pCurve == NULL ||
-                pData == NULL || pData->GetPointProjection() == NULL)
-            {
-                assert(false);
-                CreateTuple(rSegment, TimeStart, TimeStart);
-                return TimeStart;
-            }
+        Point PtEnd = rSegment.HasUTurn() ? pSection->GetStartPoint():
+                                            pSection->GetEndPoint();
 
-            if (pFirstPointofNextSeg == NULL ||
-                !pFirstPointofNextSeg->GetTime().IsDefined())
-            {
-                // this is the last point
-                DateTime TimeEnd = pData->GetTime();
-                CreateTuple(rSegment, TimeStart, TimeEnd);
-                return TimeEnd;
-            }
+        const double dDistLastPt2End = MMUtil::CalcDistance(PtStart,
+                                                            PtEnd,
+                                                            *pCurve,
+                                                            m_dNetworkScale);
 
-            const Point* pPtProjection = pData->GetPointProjection();
+        double dDistLastPt2FirstPtOfNextSeg = dDistLastPt2End + dDistance;
+        if (AlmostEqual(dDistLastPt2FirstPtOfNextSeg, 0.0))
+        {
+            return TimeStart; // TODO
+        }
 
-            const double dDistLastPt2End = MMUtil::CalcDistance(
-                                                    *pPtProjection,
-                                                    rSegment.HasUTurn() ?
-                                                      pSection->GetStartPoint():
-                                                      pSection->GetEndPoint(),
-                                                    *pCurve,
-                                                    m_dNetworkScale);
-
-            double dDistLastPt2FirstPtOfNextSeg = dDistLastPt2End + dDistance;
-            if (AlmostEqual(dDistLastPt2FirstPtOfNextSeg, 0.0))
-            {
-                CreateTuple(rSegment, TimeStart, TimeStart);
-                return TimeStart;
-            }
-
-            DateTime Duration = pFirstPointofNextSeg->GetTime() -
-                                                               pData->GetTime();
-            DateTime TimeEnd = pData->GetTime() +
+        DateTime Duration = pFirstPointofNextSeg->GetTime() - TimeStart;
+        DateTime TimeEnd = TimeStart +
                     DateTime(datetime::durationtype,
                              (uint64_t)((Duration.millisecondsToNull()
                               / dDistLastPt2FirstPtOfNextSeg) *
                                                               dDistLastPt2End));
-            CreateTuple(rSegment, TimeStart, TimeEnd);
-            return TimeEnd;
-        }
+
+        ProcessPoints(rSegment, TimeStart, TimeEnd, PtStart, PtEnd);
+
+        return TimeEnd;
     }
+}
+
+void OEdgeTupleStreamCreator::ProcessPoints(
+                                const MHTRouteCandidate::RouteSegment& rSegment,
+                                const DateTime& rTimeStart,
+                                const DateTime& rTimeEnd,
+                                const Point& rPtStart,
+                                const Point& rPtEnd)
+{
+    if (m_eMode == MODE_EDGES)
+    {
+        CreateTuple(rSegment, rTimeStart, rTimeEnd);
+    }
+    else if (m_eMode == MODE_EDGES_AND_POSITIONS)
+    {
+        double dPosStart = -1.0;
+        double dPosEnd = -1.0;
+
+        const shared_ptr<IMMNetworkSection>& pSection = rSegment.GetSection();
+        if (pSection != NULL && pSection->IsDefined())
+        {
+            const SimpleLine* pCurve = pSection->GetCurve();
+            if (pCurve != NULL && !pCurve->IsEmpty())
+            {
+                bool bStartsSmaller = pSection->GetCurveStartsSmaller();
+
+                if (rPtStart.IsDefined())
+                    pCurve->AtPoint(rPtStart, bStartsSmaller, 0.0, dPosStart);
+
+                if (rPtEnd.IsDefined())
+                    pCurve->AtPoint(rPtEnd, bStartsSmaller, 0.0, dPosEnd);
+            }
+        }
+
+        CreateTuple(rSegment,
+                    rTimeStart, rTimeEnd,
+                    rPtStart, rPtEnd,
+                    dPosStart, dPosEnd);
+    }
+    else
+    {
+        assert(false);
+    }
+}
+
+const Tuple* OEdgeTupleStreamCreator::GetEdgeTuple(
+                                const MHTRouteCandidate::RouteSegment& rSegment)
+{
+    const shared_ptr<IMMNetworkSection> pSection = rSegment.GetSection();
+    if (pSection == NULL)
+    {
+        // Offroad - > TODO Dummy-Edge
+        return NULL;
+    }
+
+    const ONetworkSectionAdapter* pAdapter = pSection->CastToONetworkSection();
+    if (pAdapter == NULL)
+    {
+        assert(false);
+        return NULL;
+    }
+
+    const ONetworkEdge* pEdge = pAdapter->GetNetworkEdge();
+    if (pEdge == NULL)
+    {
+        assert(false);
+        return NULL;
+    }
+
+    return pEdge->GetTuple();
 }
 
 void OEdgeTupleStreamCreator::CreateTuple(
@@ -317,40 +412,19 @@ void OEdgeTupleStreamCreator::CreateTuple(
                                 const DateTime& rTimeStart,
                                 const DateTime& rTimeEnd)
 {
-    const shared_ptr<IMMNetworkSection> pSection = rSegment.GetSection();
-    if (pSection == NULL)
+    const Tuple* pTupleEdge = GetEdgeTuple(rSegment);
+    if (pTupleEdge == NULL)
     {
-        // Offroad
-        return;
-    }
-
-    const ONetworkSectionAdapter* pAdapter = pSection->CastToONetworkSection();
-    if (pAdapter == NULL)
-    {
-        assert(false);
-        return;
-    }
-
-    const ONetworkEdge* pEdge = pAdapter->GetNetworkEdge();
-    if (pEdge == NULL)
-    {
-        assert(false);
-        return;
-    }
-
-    const Tuple* pActTuple = pEdge->GetTuple();
-    if (pActTuple == NULL)
-    {
-        assert(false);
+        //assert(false);
         return;
     }
 
     // Create new Tuple and copy attributes
     Tuple* pResultTuple = new Tuple(m_pTupleType);
     int i = 0;
-    while (i < pActTuple->GetNoAttributes())
+    while (i < pTupleEdge->GetNoAttributes())
     {
-        pResultTuple->CopyAttribute(i, pActTuple, i);
+        pResultTuple->CopyAttribute(i, pTupleEdge, i);
         ++i;
     }
 
@@ -368,6 +442,70 @@ void OEdgeTupleStreamCreator::CreateTuple(
     pResultTuple->DeleteIfAllowed();
 }
 
+void OEdgeTupleStreamCreator::CreateTuple(
+                                const MHTRouteCandidate::RouteSegment& rSegment,
+                                const DateTime& rTimeStart,
+                                const DateTime& rTimeEnd,
+                                const Point& rPtStart,
+                                const Point& rPtEnd,
+                                const double dPosStart,
+                                const double dPosEnd)
+{
+    const Tuple* pTupleEdge = GetEdgeTuple(rSegment);
+    if (pTupleEdge == NULL)
+    {
+        //assert(false);
+        return;
+    }
+
+    // Create new Tuple and copy attributes
+    Tuple* pResultTuple = new Tuple(m_pTupleType);
+    int i = 0;
+    while (i < pTupleEdge->GetNoAttributes())
+    {
+        pResultTuple->CopyAttribute(i, pTupleEdge, i);
+        ++i;
+    }
+
+    // Create new attributes
+    DateTime* pTimeStart = new DateTime(rTimeStart);
+    pResultTuple->PutAttribute(i, pTimeStart);
+    ++i;
+
+    DateTime* pTimeEnd = new DateTime(rTimeEnd);
+    pResultTuple->PutAttribute(i, pTimeEnd);
+    ++i;
+
+    Point* pPtStart = new Point(rPtStart);
+    pResultTuple->PutAttribute(i, pPtStart);
+    ++i;
+
+    Point* pPtEnd = new Point(rPtEnd);
+    pResultTuple->PutAttribute(i, pPtEnd);
+    ++i;
+
+    CcReal* pPosStart = NULL;
+    if (dPosStart < 0.0)
+        pPosStart = new CcReal(false);
+    else
+        pPosStart = new CcReal(true, dPosStart);
+
+    pResultTuple->PutAttribute(i, pPosStart);
+    ++i;
+
+    CcReal* pPosEnd = NULL;
+    if (dPosEnd < 0.0)
+        pPosEnd = new CcReal(false);
+    else
+        pPosEnd = new CcReal(true, dPosEnd);
+
+    pResultTuple->PutAttribute(i, pPosEnd);
+
+    // Add new tuple to buffer
+    m_pTupleBuffer->AppendTuple(pResultTuple);
+
+    pResultTuple->DeleteIfAllowed();
+}
 
 Tuple* OEdgeTupleStreamCreator::GetNextTuple(void) const
 {
@@ -388,7 +526,6 @@ Tuple* OEdgeTupleStreamCreator::GetNextTuple(void) const
         return NULL;
     }
 }
-
 
 
 } // end of namespace mapmatch

@@ -56,7 +56,7 @@ public:
 
     */
     MapMatchingAlgebra();
-    ~MapMatchingAlgebra ();
+    virtual ~MapMatchingAlgebra ();
 };
 
 } // end of namespace mapmatch

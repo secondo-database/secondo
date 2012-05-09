@@ -39,19 +39,37 @@ Result   : file
 
 Operator : omapmatchmht
 Number   : 1
-Signature: orel x rtree x rel x text -> orel
+Signature: orel x rtree x rel x text -> stream(tuple(...))
 Example  : query omapmatchmht(Edges, EdgeIndex_Box_rtree, EdgeIndex, 'Trk_KL_Enkenbach.gpx');
 Result   : file
 
 Operator : omapmatchmht
 Number   : 2
-Signature: orel x rtree x rel x stream(tuple(...)) -> orel
+Signature: orel x rtree x rel x stream(tuple(...)) -> stream(tuple(...))
 Example  : query omapmatchmht(Edges, EdgeIndex_Box_rtree, EdgeIndex, gpximport('Trk_KL_Enkenbach.gpx'));
 Result   : file
 
 Operator : omapmatchmht
 Number   : 3
-Signature: orel x rtree x rel x mpoint -> orel
+Signature: orel x rtree x rel x mpoint -> stream(tuple(...))
+Example  : query DayTrips feed extend[MatchedTrip: omapmatchmht(EdgesR, EdgeIndexR_Box_rtree, EdgeIndexR, .DayTrip) aconsume] consume;
+Result   : file
+
+Operator : omapmatchmht_p
+Number   : 1
+Signature: orel x rtree x rel x text -> stream(tuple(...))
+Example  : query omapmatchmht(Edges, EdgeIndex_Box_rtree, EdgeIndex, 'Trk_KL_Enkenbach.gpx');
+Result   : file
+
+Operator : omapmatchmht_p
+Number   : 2
+Signature: orel x rtree x rel x stream(tuple(...)) -> stream(tuple(...))
+Example  : query omapmatchmht(Edges, EdgeIndex_Box_rtree, EdgeIndex, gpximport('Trk_KL_Enkenbach.gpx'));
+Result   : file
+
+Operator : omapmatchmht_p
+Number   : 3
+Signature: orel x rtree x rel x mpoint -> stream(tuple(...))
 Example  : query DayTrips feed extend[MatchedTrip: omapmatchmht(EdgesR, EdgeIndexR_Box_rtree, EdgeIndexR, .DayTrip) aconsume] consume;
 Result   : file
 

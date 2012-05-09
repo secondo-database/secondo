@@ -120,7 +120,7 @@ MHTRouteCandidate& MHTRouteCandidate::operator=
     return *this;
 }
 
-#define SCORE_FOR_SECTION 0.0
+#define SCORE_FOR_SECTION 5.0
 
 void MHTRouteCandidate::AddSection(const shared_ptr<IMMNetworkSection>& pSect)
 {
