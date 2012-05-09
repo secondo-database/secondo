@@ -1,6 +1,7 @@
 package progresswatcher;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedWriter;
@@ -88,6 +89,19 @@ public abstract class AbstractTableWindow extends AbstractWindow {
 		final JPanel middlePanel = new JPanel();
 		final JPanel southPanel = new JPanel();
 		
+		// CSV Exporter
+		final JButton exportCSVButton = new JButton("Export as .csv");
+		exportCSVButton.addActionListener(new ActionListener() {
+			
+			public void actionPerformed(ActionEvent arg0) {
+				final CSVExport exporter = new CSVExport(tableModell);
+				exporter.run();
+			}
+		});
+		southPanel.add(exportCSVButton);
+		exportCSVButton.setPreferredSize(new Dimension(120, 20));
+		
+		// Latex exporter
 		final JButton exportLatexButton = new JButton("Export as .tex");
 		exportLatexButton.addActionListener(new ActionListener() {
 			
@@ -97,7 +111,8 @@ public abstract class AbstractTableWindow extends AbstractWindow {
 			}
 		});
 		southPanel.add(exportLatexButton);
-		
+		exportLatexButton.setPreferredSize(new Dimension(120, 20));
+
 		final JButton closeButton = new JButton("Close");
 		closeButton.addActionListener(new ActionListener() {
 			
@@ -288,14 +303,14 @@ public abstract class AbstractTableWindow extends AbstractWindow {
 	}
 	
 	/**
-	 * Latex export for our table data
+	 * This class provides some basic methods for our
+	 * exporter
 	 *
 	 */
-	class LatexExporter implements Runnable {
-
+	abstract class AbstractExporter implements Runnable {
 		protected AbstractTableModel model;
 		
-		public LatexExporter(AbstractTableModel model) {
+		public AbstractExporter(final AbstractTableModel model) {
 			this.model = model;
 		}
 
@@ -312,12 +327,12 @@ public abstract class AbstractTableWindow extends AbstractWindow {
 			
 			File selFile = fc.getSelectedFile();	
 			if(selFile != null) {
-				if(! selFile.getName().endsWith(".tex")) {
+				if(! selFile.getName().endsWith(getFileextension())) {
 					JOptionPane.showMessageDialog(mainframe, 
-							"Filename must end with .tex", 
+							"Filename must end with " + getFileextension(), 
 							"Error", JOptionPane.ERROR_MESSAGE);
 				} else {
-					final String sb = getLatexData();
+					final String sb = getExportData();
 					try {
 						final BufferedWriter bw = new BufferedWriter
 							(new FileWriter(new File(selFile.getPath())));
@@ -329,14 +344,30 @@ public abstract class AbstractTableWindow extends AbstractWindow {
 					}
 				}
 			}	
-			
+		}
+		
+		//=======================================
+		// Abstract methods
+		//=======================================
+		protected abstract String getExportData();
+		protected abstract String getFileextension();
+	}
+	
+	/**
+	 * Latex export for our table data
+	 *
+	 */
+	class LatexExporter extends AbstractExporter {
+
+		public LatexExporter(final AbstractTableModel model) {
+			super(model);
 		}
 
 		/**
 		 * Export the table in latex format
 		 * 
 		 */
-		protected String getLatexData() {
+		protected String getExportData() {
 			final StringBuffer sb = new StringBuffer();
 			
 			int columns = model.getColumnCount();
@@ -371,6 +402,47 @@ public abstract class AbstractTableWindow extends AbstractWindow {
 			
 			final String result = sb.toString();
 			return result.replace("(", "$($").replace(")", "$)$");
+		}
+
+		protected String getFileextension() {
+			return ".tex";
+		}
+	}
+	
+	class CSVExport extends AbstractExporter {
+
+		public CSVExport(final AbstractTableModel model) {
+			super(model);
+		}
+
+		@Override
+		protected String getExportData() {
+			final StringBuffer sb = new StringBuffer();			
+			int columns = model.getColumnCount();
+
+			// Table header
+			sb.append("#" + model.getColumnName(0));
+			for(int i = 1; i < columns; i++) {
+				sb.append("," + model.getColumnName(i));
+			}
+			sb.append("\n");
+
+			// Rows
+			int rows = model.getRowCount();
+			for(int row = 0; row < rows; row++) {
+				sb.append(model.getValueAt(row, 0));
+				for(int i = 1; i < columns; i++) {
+					sb.append("," + model.getValueAt(row, i));
+				}
+				sb.append("\n");
+			}
+			
+			return sb.toString();
+		}
+
+		@Override
+		protected String getFileextension() {
+			return ".csv";
 		}
 		
 	}
