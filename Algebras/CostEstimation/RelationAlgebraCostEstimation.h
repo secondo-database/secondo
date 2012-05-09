@@ -446,7 +446,7 @@ class FilterLocalInfo{
 };
 
 /*
-4.0 Class ~FilterCostEst~ is a local datastructure
+4.0 Class ~FeedProjLocalInfo~ is a local datastructure
     used by ~FeedProjectCostEstimation~
 
 */
