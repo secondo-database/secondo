@@ -79,11 +79,15 @@ public class DataCollectorMain {
 		}
 		
 		String line = null;
-		do {		
+		while(true)	{
 			System.out.println("Type EXIT to exit");
 			System.out.println("Press enter to write data: ");
 
 			line = stdin.readLine();
+			
+			if ("EXIT".equals(line)) {
+				break;
+			}
 			
 			// Export progress data
 			for(WindowType w: WindowType.values()) {
@@ -98,7 +102,7 @@ public class DataCollectorMain {
 			}
 			
 			System.out.println("Data written");
-		} while(! "EXIT".equals(line));
+		}
 		
 		System.exit(0);
 	}
