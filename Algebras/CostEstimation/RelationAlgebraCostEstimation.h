@@ -48,7 +48,7 @@ Most of the code is based on the old REQUESTPROGRESS implementation.
 
 Apr 2012, JKN, First version of this file
 
-Mai 2012, JKN, Removed fixed constants and using class ProgressConstants 
+Mai 2012, JKN, Removed progress constants and using class ProgressConstants 
 
 */
 
