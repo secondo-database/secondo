@@ -7,9 +7,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Inet4Address;
 import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class PSNode implements Constant{
@@ -65,13 +69,12 @@ public class PSNode implements Constant{
 	public static PSNode SelectDataServer(int candidate) 
 		throws IOException, InterruptedException
 	{
-		String localAddr = InetAddress.getLocalHost().getHostAddress();
 		String slFile = System.getenv().get("PARALLEL_SECONDO_SLAVES");
-		
+		String localHost = InetAddress.getLocalHost().getHostName();
 		if (slFile.length() == 0)
 		{
 			throw new RuntimeException(
-					"Undefined PARALLEL_SECONDO_SLAVES in " + localAddr);
+					"Undefined PARALLEL_SECONDO_SLAVES in " + localHost);
 		}
 		
 		List<PSNode> slaves = new ArrayList<PSNode>();
@@ -88,6 +91,10 @@ public class PSNode implements Constant{
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+		
+		String localAddr = guessLocalIP(slaves);
+		if (localAddr.length() == 0)
+			return null;
 
 		if ( candidate > 0 ){
 			return slaves.get(candidate -1 );
@@ -119,4 +126,42 @@ public class PSNode implements Constant{
 		}
 	}
 	
+	/**
+	 * Scan all the IP addresses of the current node, 
+	 * and if it is shown in the slave list, 
+	 * then return it as the localIP of the current node. 
+	 * Or else, an empty string is returned. 
+	 * @throws SocketException 
+	 * 
+	 * 
+	 */
+	public static String guessLocalIP(List<PSNode> slaves) 
+		throws SocketException
+	{
+		List<String> allAvailableIP = new ArrayList<String>();
+		
+		for (Enumeration<NetworkInterface> ifaces = 
+					NetworkInterface.getNetworkInterfaces();
+    		ifaces.hasMoreElements(); )
+		{
+			NetworkInterface iface = ifaces.nextElement();
+      for (Enumeration<InetAddress> addresses = 
+      			iface.getInetAddresses(); 
+      		addresses.hasMoreElements(); )
+      {
+      	InetAddress address = addresses.nextElement();
+      	allAvailableIP.add(address.toString().substring(1));
+      }
+		}
+		
+		for (PSNode node : slaves)
+		{
+			if (allAvailableIP.contains(node.getIpAddr())){
+				return node.getIpAddr();
+			}
+		}
+		
+		return "";
+	}
+
 }
