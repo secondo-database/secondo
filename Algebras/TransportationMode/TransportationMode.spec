@@ -222,6 +222,7 @@ operator get_p_edges4 alias GET_P_EDGE4 pattern op(_,_)
 operator theosmpave alias THEOSMPAVE pattern op(_,_,_)
 operator createosmgraph alias CREATEOSMGRAPTH pattern op(_,_,_)
 operator osmlocmap alias OSMLOCMAP pattern op(_,_)
+operator osm_path alias OSM_PATH pattern op(_,_,_)
 operator creatergraph alias CREATERGRAPH pattern op(_,_,_,_)
 operator shortestpath_tm alias SHORTESTPATH_TM pattern op(_,_,_,_)
 

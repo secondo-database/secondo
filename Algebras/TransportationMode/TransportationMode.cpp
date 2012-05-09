@@ -5592,6 +5592,80 @@ int OSMLocMapValueMap(Word* args, Word& result, int message,
 }
 
 /*
+find the path for OSM data (pavement environment)
+
+*/
+int OSMPathValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier in_pSupplier)
+{
+    Relation* r1 = (Relation*)args[0].addr;
+    Relation* r2 = (Relation*)args[1].addr;
+
+    OSMPavement* osm_p = (OSMPavement*)args[2].addr;
+
+    result = qp->ResultStorage(in_pSupplier);
+
+    OSM_Data* osm_data = new OSM_Data();
+
+    Line* res = static_cast<Line*>(result.addr);
+    osm_data->OSMShortestPath(osm_p, r1, r2, res);
+    delete osm_data; 
+
+    return 0;
+}
+
+// int OSMPathValueMap(Word* args, Word& result, int message,
+//                     Word& local, Supplier in_pSupplier)
+// {
+//   
+//   OSM_Data* osm_data;
+// 
+//   switch(message){
+//       case OPEN:{
+// 
+//         Relation* r1 = (Relation*)args[0].addr;
+//         Relation* r2 = (Relation*)args[1].addr;
+//         OSMPavement* osm_p = (OSMPavement*)args[2].addr;
+// 
+//         OSM_Data* osm_data = new OSM_Data();
+//         osm_data->resulttype =
+//             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+// 
+//         Line* res = new Line(0);
+//         osm_data->OSMShortestPath(osm_p, r1, r2, res);
+//         local.setAddr(osm_data);
+//         delete res;
+//         return 0;
+//       }
+//       case REQUEST:{
+//         if(local.addr == NULL) return CANCEL;
+//         osm_data = (OSM_Data*)local.addr;
+//         if(osm_data->count == osm_data->loc_list.size()) return CANCEL;
+//         Tuple* tuple = new Tuple(osm_data->resulttype);
+// 
+//         tuple->PutAttribute(0,
+//                             new Point(osm_data->loc_list[osm_data->count]));
+//         tuple->PutAttribute(1,
+//                        new CcInt(true, osm_data->oid_list[osm_data->count]));
+// 
+//         result.setAddr(tuple);
+//         osm_data->count++;
+//         return YIELD;
+//       }
+//       case CLOSE:{
+//           if(local.addr){
+//             osm_data = (OSM_Data*)local.addr;
+//             delete osm_data;
+//             local.setAddr(Address(0));
+//           }
+//           return 0;
+//       }
+//   }
+//   return 0;
+// 
+// }
+
+/*
 check whether the road graph id has been used already 
 
 */
@@ -7552,6 +7626,56 @@ ListExpr OpTMOSMLocMapTypeMap ( ListExpr args )
 }
 
 /*
+type map for operator osm path
+
+*/
+ListExpr OpTMOSMPathTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First(args);
+  ListExpr param2 = nl->Second(args);
+  ListExpr param3 = nl->Third(args);
+
+  if(!IsRelDescription(param1))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(OSM_Data::OSMPaveQueryLoc, xType1);
+  if(!CompareSchemas(param1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(param2))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(OSM_Data::OSMPaveQueryLoc, xType2);
+  if(!CompareSchemas(param2, xType2))return nl->SymbolAtom ( "typeerror" );
+
+
+  if(nl->IsEqual(param3, "osmpavenetwork")){
+    return nl->SymbolAtom ( "line" );
+
+//       return  nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+//                   nl->SymbolAtom("tuple"),
+//                       nl->TwoElemList(
+//                         nl->TwoElemList(nl->SymbolAtom("Loc"),
+//                                       nl->SymbolAtom("point")),
+//                         nl->TwoElemList(nl->SymbolAtom("Oid"),
+//                                       nl->SymbolAtom("int"))
+//                   )
+//                 )
+//           );
+  }else{
+    return nl->SymbolAtom ( "typeerror" );
+  }
+
+}
+
+/*
 type map for operator creatergraph 
 
 */
@@ -8827,6 +8951,12 @@ Operator osmlocmap("osmlocmap",
     OpTMOSMLocMapTypeMap
 );
 
+Operator osm_path("osm_path",
+    OpTMOSMPathSpec,
+    OSMPathValueMap,
+    Operator::SimpleSelect,
+    OpTMOSMPathTypeMap
+);
 
 Operator creatergraph(
   "creatergraph", 
@@ -23866,7 +23996,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&theosmpave);//build the osm pavement 
    AddOperator(&createosmgraph);//build the graph on osm pavements
    AddOperator(&osmlocmap);//map osm locations to lines and regions
-   
+   AddOperator(&osm_path);//shortest path in OSM pavement
    ////////////////////////////////////////////////////////////////////
    AddOperator(&creatergraph);//create road network graph
    AddOperator(&shortestpath_tm);//shortest path on road graph

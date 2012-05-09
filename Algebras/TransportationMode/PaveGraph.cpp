@@ -4453,8 +4453,8 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
       *res += hs;
       /////////////////////////////////////////////////////
       res->EndBulkLoad(); 
-//    double len = res->Length(); 
-// printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
+    double len = res->Length(); 
+   printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
     return; 
   }
 //     finish = clock();
@@ -4713,12 +4713,12 @@ bool Walk_SP::EuclideanConnect2(int oid1, Point loc1, int oid2, Point loc2)
     *l += hs;
     l->EndBulkLoad(); 
 
-    Tuple* node_tuple = dg->GetNodeRel()->GetTuple(oid1, false);
-    Region* reg = (Region*)node_tuple->GetAttribute(DualGraph::PAVEMENT);
-    Line* res = new Line(0);
-    MyIntersection(*l, *reg, *res);
-    delete res;
-    node_tuple->DeleteIfAllowed();
+//     Tuple* node_tuple = dg->GetNodeRel()->GetTuple(oid1, false);
+//     Region* reg = (Region*)node_tuple->GetAttribute(DualGraph::PAVEMENT);
+//     Line* res = new Line(0);
+//     MyIntersection(*l, *reg, *res);
+//     delete res;
+//     node_tuple->DeleteIfAllowed();
 
     bool flag = true;
 //    oid1 -= dg->min_tri_oid_1;
@@ -4726,7 +4726,7 @@ bool Walk_SP::EuclideanConnect2(int oid1, Point loc1, int oid2, Point loc2)
 
     int start_tri = oid1;
     int last_tri = oid1;
-
+    double total_len = 0.0;
     bool find = false;
     while(flag){
         vector<int> adj_list;
@@ -4749,10 +4749,12 @@ bool Walk_SP::EuclideanConnect2(int oid1, Point loc1, int oid2, Point loc2)
            }
            Line* res = new Line(0);
            MyIntersection(*l, *reg, *res);
+//           cout<<res->Length()<<endl;
            if(res->Length() > 0.0){
 
               last_tri = start_tri;
               start_tri = tri_id;
+              total_len += res->Length();
               delete res;
               tuple->DeleteIfAllowed();
               break;
@@ -4763,10 +4765,15 @@ bool Walk_SP::EuclideanConnect2(int oid1, Point loc1, int oid2, Point loc2)
         if(i == adj_list.size()){
           flag = false;
         }else if(start_tri == oid2){
-          find = true;
+//          find = true;
           flag = false;
         }
    }
+
+   if(fabs(l->Length() - total_len) < EPSDIST){
+      find = true;
+   }else
+     find = false;
 
     delete l;
 

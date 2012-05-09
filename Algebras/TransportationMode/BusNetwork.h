@@ -201,12 +201,13 @@ struct GP_Point{
   Point loc1;
   Point loc2;
   int oid;
+  int type;
   GP_Point(){}
   GP_Point(int r, double p1,double p2, Point q1, Point q2):
   rid(r),pos1(p1),pos2(p2),loc1(q1),loc2(q2), oid(0){}
   GP_Point(const GP_Point& gp_p):
   rid(gp_p.rid),pos1(gp_p.pos1),pos2(gp_p.pos2),
-  loc1(gp_p.loc1),loc2(gp_p.loc2), oid(gp_p.oid){}
+  loc1(gp_p.loc1),loc2(gp_p.loc2), oid(gp_p.oid), type(gp_p.type){}
   GP_Point& operator=(const GP_Point& gp_p)
   {
     rid = gp_p.rid;
@@ -215,6 +216,7 @@ struct GP_Point{
     loc1 = gp_p.loc1;
     loc2 = gp_p.loc2; 
     oid = gp_p.oid;
+    type = gp_p.type;
     return *this;
   }
   void Print()

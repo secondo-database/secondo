@@ -1085,6 +1085,8 @@ bool SmallerD(Line* l1, Line* l2, float d);
 OSM Pavmenet Graph
 Rid value: line id for point on the line -- type 1, 
            region id for point inside a region -- type 2
+type1: same spatial location; type2: adjacent points on the same road
+type3: line and region; type4: inside the same region
 
 */
 
@@ -1128,6 +1130,8 @@ public:
    bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
                const ListExpr in_xTypeInfo);
   
+   void GetNodesOnRid(int rid, vector<int>& tid_list);
+
    BTree* btree_node;
 };
 

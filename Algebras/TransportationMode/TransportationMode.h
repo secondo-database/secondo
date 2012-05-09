@@ -1800,6 +1800,16 @@ const string OpTMOSMLocMapSpec  =
     "<text>query osmlocmap(POI_L, POI_R); </text--->"
     ") )";
 
+    
+const string OpTMOSMPathSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel1 x rel2 x osmpavenetwork -> sline</text--->"
+    "<text>osm_path(rel, rel, osmpavenetwork)</text--->"
+    "<text>shortest path inside OSM pavement</text--->"
+    "<text>query osm_path(loc1, loc2, osm_pave); </text--->"
+    ") )";
+
 const string OpTMCreateRoadGraphSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "

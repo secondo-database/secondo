@@ -1206,6 +1206,63 @@ struct DataClean{
 };
 
 class OSMPaveGraph;
+class OSMPavement;
+
+struct OSM_P_Elem{
+
+  int prev_index;//previous in expansion list
+  int cur_index; //current entry  in expansion list
+  int tri_index; //object id
+  double weight;
+  double real_w;
+  SimpleLine path;
+  Point loc;
+
+  int edge_tid;//tuple tid for this edge in bus graph 
+  int adj_type;
+  OSM_P_Elem():path(0){}
+  OSM_P_Elem(int p, int c, int t, double w1, double w2, 
+             SimpleLine& sl, Point& q):prev_index(p), cur_index(c),
+              tri_index(t), 
+              weight(w1), real_w(w2), path(sl), loc(q), edge_tid(-1)
+              {
+                adj_type = 0;
+              }
+  OSM_P_Elem(const OSM_P_Elem& wp):prev_index(wp.prev_index), 
+            cur_index(wp.cur_index), tri_index(wp.tri_index),
+            weight(wp.weight),real_w(wp.real_w),
+            path(wp.path), loc(wp.loc), edge_tid(wp.edge_tid), 
+            adj_type(wp.adj_type){}
+
+  OSM_P_Elem& operator=(const OSM_P_Elem& wp)
+  {
+    prev_index = wp.prev_index;
+    cur_index = wp.cur_index;
+    tri_index = wp.tri_index;
+    weight = wp.weight;
+    real_w = wp.real_w;
+    path = wp.path;
+    edge_tid = wp.edge_tid;
+    loc = wp.loc;
+    adj_type = wp.adj_type;
+    return *this;
+  }
+
+  bool operator<(const OSM_P_Elem& ip) const
+  {
+    return weight > ip.weight;
+  }
+
+  void Print()
+  {
+    cout<<"prev_index "<<prev_index<<" cur_index "<<cur_index
+        <<" tri_index " <<tri_index
+        <<" realweight "<<real_w
+        <<" weight "<<weight<<endl;
+  }
+};
+struct GP_Point;
+
 /*
 OSM map 
 
@@ -1227,14 +1284,19 @@ struct OSM_Data{
   vector<GenLoc> genloc_list;
   vector<Point> loc_list;
   vector<Point> pos_list;
+  vector<int> oid_list;
   
   static string OSMNodeTmp;
   static string OSMPOILine;
   static string OSMPOIRegion;
- 
+  static string OSMPaveQueryLoc;
+  
   enum OSMNodeTmpInfo{OSM_TMP_JUNID = 0, OSM_REGID, OSM_CROSS};
-  enum OSMPOILineInfo{OSMPOI_L_ID = 0, OSMPOI_GEO, OSMPOI_POS_L};
-  enum OSMPOIRegionInfo{OSMPOI_REG_ID = 0, OSMPOI_ELEM, OSMPOI_POS_R};
+  enum OSMPOILineInfo{OSMPOI_L_ID = 0, OSMPOI_GEO, OSMPOI_POS_L, 
+                      OSMPOI_NODEID_L};
+  enum OSMPOIRegionInfo{OSMPOI_REG_ID = 0, OSMPOI_ELEM, OSMPOI_POS_R,
+                      OSMPOI_NODEID_R};
+  enum OSMPaveQueryInfo{OSM_Q_LOC1 = 0, OSM_Q_LOC2, OSM_Q_TYPE, OSM_OLDLOC};
 
   void GetPaveEdge3(Relation* r, Relation* rel1, BTree* btree, Relation* rel2);
   void GetPaveEdge4(Relation* rel1, Relation* rel2);
@@ -1244,6 +1306,28 @@ struct OSM_Data{
   ////////////// map osm data to lines and regions/////////////////////
   /////////////////////////////////////////////////////////////////////
   void OSMLocMap(Relation* rel1, Relation* rel2);
+  ///////////////////////////////////////////////////////////////////
+  //////////////shortest path for OSM data /////////////////////////
+  ////////////////////////////////////////////////////////////////
+  void OSMShortestPath(OSMPavement*, Relation*, Relation*, Line* res);
+  void OSMPath_L(OSMPavement* osm_pave, OSMPaveGraph* osm_g, 
+                 GenLoc* gloc1, Point* qloc1, GenLoc* gloc2, Point* qloc2, 
+                 Line* res);
+  void OSMPath_R1(OSMPavement* osm_pave, GenLoc* gloc1, Point* qloc1, 
+                  GenLoc* gloc2, Point* qloc2, Line* res);
+  void OSMPath_LR(OSMPavement* osm_pave, OSMPaveGraph* osm_g, 
+                 GenLoc* gloc1, Point* qloc1, GenLoc* gloc2, Point* qloc2, 
+                 Line* res);
+  void ConnectToDest(Region* reg, vector<GP_Point> gp_p_list2, 
+                     Point qloc2, vector<SimpleLine>& path_list);
+  void BuildResPath(OSMPaveGraph* osm_g, vector<OSM_P_Elem>expand_queue,
+                    Line* res, OSM_P_Elem dest);
+  void OSMPath_RL(OSMPavement* osm_pave, OSMPaveGraph* osm_g, 
+                 GenLoc* gloc1, Point* qloc1, GenLoc* gloc2, Point* qloc2, 
+                 Line* res);
+  void OSMPath_RR(OSMPavement* osm_pave, OSMPaveGraph* osm_g, 
+                 GenLoc* gloc1, Point* qloc1, GenLoc* gloc2, Point* qloc2, 
+                 Line* res);
 
 };
 
@@ -1260,7 +1344,7 @@ public:
   
   static string OSMPaveLine;
   static string OSMPaveRegion;
-  enum OSMPavementLInfo{OSMP_L_ID = 0, OSMP_L_GEO};
+  enum OSMPavementLInfo{OSMP_L_ID = 0, OSMP_L_GEO, OSMP_L_CURVE};
   enum OSMPavementRInfo{OSM_REG_ID = 0, OSM_ELEM, OSM_BORDER};
 
   ~OSMPavement();
@@ -1277,8 +1361,8 @@ public:
   
   void SetOSMGraphId(int id);
 
-//  OSMPaveGraph* GetOSMGraph();
-//  void CloseOSMGraph(OSMPaveGraph* og);
+  OSMPaveGraph* GetOSMGraph();
+  void CloseOSMGraph(OSMPaveGraph* og);
 
   bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
   static OSMPavement* Open(SmiRecord& valueRecord, size_t& offset, 

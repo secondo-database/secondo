@@ -1179,6 +1179,11 @@ Signature: rel1 x rel2 -> (stream(((x1 t1) ... (xn tn))))
 Example  : query osmlocmap(POI_L, POI_R) count;
 Result   : 2
 
+Operator : osm_path
+Number   : 2
+Signature: rel1 x rel2 x osmpavenetwork -> sline
+Example  : query size(osm_path(q_loc1, q_loc2, DO_pave));
+Result   : 3.5
 
 Operator : creatergraph
 Number   : 2

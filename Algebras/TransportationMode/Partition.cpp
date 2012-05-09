@@ -7658,10 +7658,13 @@ void DataClean::OutPutLine(Relation* rel, BTree* btree,
 string OSM_Data::OSMNodeTmp = "(rel (tuple ((Jun_id int) (REG_ID int)\
 (CROSS_POINT point))))";
 
-string OSM_Data::OSMPOILine = "(rel (tuple ((Id int) (Geo line) (Pos point))))";
+string OSM_Data::OSMPOILine = "(rel (tuple ((Id int) (Geo line) \
+(Pos point) (NodeId int))))";
 string OSM_Data::OSMPOIRegion = "(rel (tuple ((REG_ID int) (Elem region)\
-(Pos point))))";
+(Pos point) (NodeId int))))";
 
+string OSM_Data::OSMPaveQueryLoc = "(rel (tuple ((Loc1 genloc) (Loc2 point)\
+(Type int) (OldLoc point))))";
 
 bool CompareGP_P_Pos(const GP_Point& gp_p1, const GP_Point& gp_p2)
 {
@@ -8157,6 +8160,12 @@ void OSM_Data::GetAdjNodeOSMG(OSMPaveGraph* osm_g, int node_id)
 
 }
 
+bool CompareGP_P_Loc(const GP_Point& gp_p1, const GP_Point& gp_p2)
+{
+   if(gp_p1.oid < gp_p2.oid) return true;
+   else return false;
+}
+
 /*
 map osm data to pavement lines and regions
 
@@ -8165,6 +8174,9 @@ void OSM_Data::OSMLocMap(Relation* rel1, Relation* rel2)
 {
   const double max_dist = 10.0;
 //  cout<<rel1->GetNoTuples()<<" "<<rel2->GetNoTuples()<<endl;
+
+  vector<GP_Point> res_loc_list;
+
   SpacePartition* sp = new SpacePartition();
   
   for(int i = 1;i <= rel1->GetNoTuples();i++){
@@ -8172,7 +8184,7 @@ void OSM_Data::OSMLocMap(Relation* rel1, Relation* rel2)
     int l_id = ((CcInt*)t->GetAttribute(OSMPOI_L_ID))->GetIntval();
     Line* l = (Line*)t->GetAttribute(OSMPOI_GEO);
     Point* q_loc = (Point*)t->GetAttribute(OSMPOI_POS_L);
-
+    int nodeid = ((CcInt*)t->GetAttribute(OSMPOI_NODEID_L))->GetIntval();
 
       vector<MyPoint> mp_list;
       for(int j = 0;j < l->Size();j++){
@@ -8198,10 +8210,17 @@ void OSM_Data::OSMLocMap(Relation* rel1, Relation* rel2)
       if(sl->AtPoint(mp_list[0].loc, true, pos)){
           Loc loc(pos, -1.0);
           GenLoc* genloc = new GenLoc(l_id, loc);
-          genloc_list.push_back(*genloc);
+/*          genloc_list.push_back(*genloc);
           loc_list.push_back(mp_list[0].loc);
           type_list.push_back(1);/////////
-          pos_list.push_back(*q_loc);
+          pos_list.push_back(*q_loc);*/
+
+          GP_Point gp_p(l_id, pos, -1.0, mp_list[0].loc, *q_loc);
+//          gp_p.oid = 1;
+          gp_p.oid = nodeid;
+          gp_p.type = 1;
+          res_loc_list.push_back(gp_p);
+
           delete genloc;
       }
 
@@ -8215,7 +8234,8 @@ void OSM_Data::OSMLocMap(Relation* rel1, Relation* rel2)
     int r_id = ((CcInt*)t->GetAttribute(OSMPOI_REG_ID))->GetIntval();
     Region* r = (Region*)t->GetAttribute(OSMPOI_ELEM);
     Point* q_loc = (Point*)t->GetAttribute(OSMPOI_POS_R);
-
+    int nodeid = ((CcInt*)t->GetAttribute(OSMPOI_NODEID_R))->GetIntval();
+    
       vector<MyPoint> mp_list;
       for(int j = 0;j < r->Size();j++){
         HalfSegment hs;
@@ -8229,7 +8249,8 @@ void OSM_Data::OSMLocMap(Relation* rel1, Relation* rel2)
       }
 //      cout<<mp_list.size()<<endl;
       sort(mp_list.begin(), mp_list.end());
-      if(mp_list[0].dist > max_dist){
+      bool loc_inside = mp_list[0].loc.Inside(*r);
+      if(mp_list[0].dist > max_dist && loc_inside == false){
           t->DeleteIfAllowed();
           continue;
       }
@@ -8239,17 +8260,29 @@ void OSM_Data::OSMLocMap(Relation* rel1, Relation* rel2)
       Loc loc(mp_list[0].loc.GetX() - bbox.MinD(0),
               mp_list[0].loc.GetY() - bbox.MinD(1));
       GenLoc* genloc = new GenLoc(r_id, loc);
-      genloc_list.push_back(*genloc);
-      loc_list.push_back(mp_list[0].loc);
-      type_list.push_back(2);/////////
-      pos_list.push_back(*q_loc);
+      if(loc_inside){/////////
+/*        genloc_list.push_back(*genloc);
+        loc_list.push_back(mp_list[0].loc);
+        type_list.push_back(2);/////////
+        pos_list.push_back(*q_loc);*/
+
+          GP_Point gp_p(r_id, loc.loc1, loc.loc2, mp_list[0].loc, *q_loc);
+//          gp_p.oid = 2;
+          gp_p.oid = nodeid;
+          gp_p.type = 2;
+          res_loc_list.push_back(gp_p);
+      }
       delete genloc;
       
-      
+      if(q_loc->GetX() < 0.0 || q_loc->GetY() < 0.0){
+        cout<<"coordinates less than zero"<<endl;
+        assert(false);
+      }
+
       /////////////random location inside a region///////////////////////
       int xx = (int)(bbox.MaxD(0) - bbox.MinD(0)) + 1;
       int yy = (int)(bbox.MaxD(1) - bbox.MinD(1)) + 1;
-      
+
       Point p1;
       Point p2;
       bool inside = false;
@@ -8280,10 +8313,16 @@ void OSM_Data::OSMLocMap(Relation* rel1, Relation* rel2)
       if(inside){
           Loc loc(p1.GetX(), p1.GetY());
           GenLoc genl(r_id, loc);
-          genloc_list.push_back(genl);
-          loc_list.push_back(p2);
-          type_list.push_back(3);/////////random points inside a region
-          pos_list.push_back(p2);
+//           genloc_list.push_back(genl);
+//           loc_list.push_back(p2);
+//           type_list.push_back(3);/////////random points inside a region
+//           pos_list.push_back(p2);
+
+          GP_Point gp_p(r_id, loc.loc1, loc.loc2, p2, p2);
+//          gp_p.oid = 3;
+          gp_p.oid = nodeid;
+          gp_p.type = 3;
+          res_loc_list.push_back(gp_p);
       }
       /////////////////////////////////////////////////////
 
@@ -8291,13 +8330,1351 @@ void OSM_Data::OSMLocMap(Relation* rel1, Relation* rel2)
   }
 
   delete sp;
+  
+  sort(res_loc_list.begin(), res_loc_list.end(), CompareGP_P_Loc);
+  ///////////////////////////////////////////
+  for(unsigned int i = 0;i < res_loc_list.size();i++){
+      //res_loc_list[i].Print();
+      vector<GP_Point> tmp_list;
+      tmp_list.push_back(res_loc_list[i]);
+      unsigned int j = i + 1;
+      while(j < res_loc_list.size()){
+        if(res_loc_list[j].oid == res_loc_list[i].oid){
+            tmp_list.push_back(res_loc_list[j]);
+            j++;
+        }else{
+          break;
+        }
+      }
+      i = j - 1;
+
+      if(tmp_list.size() == 1){
+          GP_Point gp_p = tmp_list[0];
+          loc_list.push_back(gp_p.loc1);
+          pos_list.push_back(gp_p.loc2);
+//          type_list.push_back(gp_p.oid);
+          type_list.push_back(gp_p.type);
+          if(gp_p.pos2 < 0.0){
+              Loc loc(gp_p.pos1, -1.0);
+              GenLoc gloc(gp_p.rid, loc);
+              genloc_list.push_back(gloc);
+          }else{
+              Loc loc(gp_p.pos1, gp_p.pos2);
+              GenLoc gloc(gp_p.rid, loc);
+              genloc_list.push_back(gloc);
+          }
+      }else{
+         //region has higher priority//////////////////
+        for(unsigned int k = 0;k < tmp_list.size();k++){
+            if(fabs(tmp_list[k].pos2 - 0.0) < EPSDIST ||
+               tmp_list[k].pos2 > 0.0){
+              loc_list.push_back(tmp_list[k].loc1);
+              pos_list.push_back(tmp_list[k].loc2);
+//              type_list.push_back(tmp_list[k].oid);
+              type_list.push_back(tmp_list[k].type);
+              Loc loc(tmp_list[k].pos1, tmp_list[k].pos2);
+              GenLoc gloc(tmp_list[k].rid, loc);
+              genloc_list.push_back(gloc);
+            }
+        }
+
+      }
+
+  }
+
+  //////////////////////////////////////////
 
 }
 
+/*
+shortest path inside osm pavement area
+
+*/
+void OSM_Data::OSMShortestPath(OSMPavement* osm_pave, Relation* rel1,
+                     Relation* rel2, Line* res)
+{
+  
+  if(rel1->GetNoTuples() != 1){
+    cout<<"one query location expected"<<endl;
+    return;
+  }
+
+  if(rel2->GetNoTuples() != 1){
+    cout<<"one query location expected"<<endl;
+    return;
+  }
+  /////////////////load osm graph/////////////
+  OSMPaveGraph* osm_g = osm_pave->GetOSMGraph();
+  if(osm_g == NULL){
+    cout<<"load osm graph error"<<endl;
+    return;
+  }
+//   cout<<" graph nodes "<<osm_g->node_rel->GetNoTuples()
+//       <<" graph edges "<<osm_g->edge_rel->GetNoTuples()<<endl;
+
+  Tuple* tuple1 = rel1->GetTuple(1, false);
+  GenLoc* gloc1 = (GenLoc*)tuple1->GetAttribute(OSM_Q_LOC1);
+  Point* qloc1 = (Point*)tuple1->GetAttribute(OSM_Q_LOC2);
+  int type1 = ((CcInt*)tuple1->GetAttribute(OSM_Q_TYPE))->GetIntval();
+
+//  cout<<*gloc1<<" "<<*qloc1<<" "<<type1<<endl;
+
+
+  Tuple* tuple2 = rel2->GetTuple(1, false);
+  GenLoc* gloc2 = (GenLoc*)tuple2->GetAttribute(OSM_Q_LOC1);
+  Point* qloc2 = (Point*)tuple2->GetAttribute(OSM_Q_LOC2);
+  int type2 = ((CcInt*)tuple2->GetAttribute(OSM_Q_TYPE))->GetIntval();
+
+//  cout<<*gloc2<<" "<<*qloc2<<" "<<type2<<endl;
+  if(qloc1->Distance(*qloc2) < EPSDIST){/////////equal locations
+    cout<<"equal locations"<<endl;
+    res->StartBulkLoad();
+    res->EndBulkLoad();
+    tuple1->DeleteIfAllowed();
+    tuple2->DeleteIfAllowed();
+    osm_pave->CloseOSMGraph(osm_g);
+    return;
+  }
+  ////////////////////////////////////////////////////////////////
+  //////////// line or region, use the btree to find graph nodes// Rid//
+  ////////////////////////////////////////////////////////////////
+  if(type1 == 1 && type2 == 1){ //both are on lines; line network
+
+//      cout<<"path in a line network"<<endl;
+      OSMPath_L(osm_pave, osm_g, gloc1, qloc1, gloc2, qloc2, res);
+
+  }else if((type1 == 2 || type1 == 3 )&&(type2 == 2||type2 ==3 )){//two regions
+      if(gloc1->GetOid() == gloc2->GetOid()){
+        OSMPath_R1(osm_pave, gloc1, qloc1, gloc2, qloc2, res);
+
+      }else{
+        OSMPath_RR(osm_pave, osm_g, gloc1, qloc1, gloc2, qloc2, res);
+      }
+  }else if(type1 == 1 && (type2 == 2 || type2 == 3)){//a line and a region
+
+      OSMPath_LR(osm_pave, osm_g, gloc1, qloc1, gloc2, qloc2, res);
+
+  }else if((type1 == 2 || type1 == 3 ) && type2 == 1){//a region and a line
+
+      OSMPath_RL(osm_pave, osm_g, gloc1, qloc1, gloc2, qloc2, res);
+
+  }else{
+    cout<<"should not be here"<<endl;
+    assert(false);
+  }
+
+  /////////////////close osm graph/////////////
+  
+  tuple1->DeleteIfAllowed();
+  tuple2->DeleteIfAllowed();
+  osm_pave->CloseOSMGraph(osm_g);
+
+}
+
+/*
+find the shortest path ine pavement line network
+due to the numeric problem, some intersecting points between lines may not be
+found (missing junction point), but in most cases the algorithm is correct. 
+
+*/
+void OSM_Data::OSMPath_L(OSMPavement* osm_pave, OSMPaveGraph* osm_g, 
+                 GenLoc* gloc1, Point* qloc1, GenLoc* gloc2, Point* qloc2, 
+                 Line* res)
+{
+  //build the connection to graph nodes ////
+  int rid1 = gloc1->GetOid();
+  vector<int> tid_list1;
+  osm_g->GetNodesOnRid(rid1, tid_list1);
+//  cout<<"rid1 "<<rid1<<" "<<tid_list1.size()<<endl;
+
+  int rid2 = gloc2->GetOid();
+  vector<int> tid_list2;
+  osm_g->GetNodesOnRid(rid2, tid_list2);//line id and region id have overlap
+//  cout<<"rid2 "<<rid2<<" "<<tid_list2.size()<<endl;
+
+  SimpleLine sl_tmp(0);
+  Line l_tmp(0);
+   if(rid1 == rid2){//the same route
+    Tuple* t = osm_pave->GetPaveRel_L()->GetTuple(rid1, false);
+    SimpleLine* sl = (SimpleLine*)t->GetAttribute(OSMPavement::OSMP_L_CURVE);
+    double pos1 = gloc1->GetLoc().loc1;
+    double pos2 = gloc2->GetLoc().loc1;
+    if(pos1 < pos2)
+      sl->SubLine(pos1, pos2, true, sl_tmp);
+    else
+      sl->SubLine(pos2, pos1, true, sl_tmp);
+
+    t->DeleteIfAllowed();
+    sl_tmp.toLine(l_tmp);
+//    return;
+    /////////direct connection might not be the shortest path/////////////
+   }
+
+    priority_queue<OSM_P_Elem> path_queue;
+    vector<OSM_P_Elem> expand_queue;
+
+   ///only consider type = 1 in the graph nodes //// 
+   //////////////get the road where the start location is//////////////////
+    Tuple* road_tuple1 =
+          osm_pave->GetPaveRel_L()->GetTuple(gloc1->GetOid(), false);
+    SimpleLine* sl1 = 
+        (SimpleLine*)road_tuple1->GetAttribute(OSMPavement::OSMP_L_CURVE);
+    for(unsigned int i = 0;i < tid_list1.size();i++){
+      Tuple* t = osm_g->node_rel->GetTuple(tid_list1[i], false);
+      int type = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_TYPE))->GetIntval();
+      if(type == 2){
+        t->DeleteIfAllowed();
+        continue;
+      }
+
+      int j_id = 
+          ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUN_ID))->GetIntval();
+      Point* loc = (Point*)t->GetAttribute(OSMPaveGraph::OSM_LOC);
+      int rid = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_RID))->GetIntval();
+      GPoint* gloc = (GPoint*)t->GetAttribute(OSMPaveGraph::OSM_JUN_GP);
+      assert(rid1 == rid);
+
+      int cur_size = expand_queue.size();
+      double w = fabs(gloc->GetPosition() - gloc1->GetLoc().loc1);
+      double hw = loc->Distance(*qloc2);
+      SimpleLine subl(0);
+      if(fabs(gloc1->GetLoc().loc1 - gloc->GetPosition()) < EPSDIST){
+
+      }else if(gloc1->GetLoc().loc1 < gloc->GetPosition())
+        sl1->SubLine(gloc1->GetLoc().loc1, gloc->GetPosition(), true, subl);
+      else
+        sl1->SubLine(gloc->GetPosition(), gloc1->GetLoc().loc1, true, subl);
+
+      OSM_P_Elem osm_elem(-1, cur_size, j_id, w + hw, w, subl, *loc);
+      osm_elem.adj_type = 0;
+
+      path_queue.push(osm_elem);
+      expand_queue.push_back(osm_elem);
+
+      t->DeleteIfAllowed();
+
+    }
+    road_tuple1->DeleteIfAllowed();
+
+//     for(unsigned int i = 0;i < gp_p_list1.size();i++)
+//       gp_p_list1[i].Print();
+
+    ///////////////////////////////////////////////////////////////////
+    vector<GP_Point> gp_p_list2;
+    vector<bool> mark_flag(osm_g->node_rel->GetNoTuples(), false);
+    for(unsigned int i = 0;i < tid_list2.size();i++){
+      Tuple* t = osm_g->node_rel->GetTuple(tid_list2[i], false);
+      int type = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_TYPE))->GetIntval();
+      if(type == 2){
+        t->DeleteIfAllowed();
+        continue;
+      }
+
+      int j_id = 
+          ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUN_ID))->GetIntval();
+      Point* loc = (Point*)t->GetAttribute(OSMPaveGraph::OSM_LOC);
+      int rid = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_RID))->GetIntval();
+      GPoint* gloc = (GPoint*)t->GetAttribute(OSMPaveGraph::OSM_JUN_GP);
+      assert(rid2 == rid);
+      GP_Point gp_p(rid, gloc->GetPosition(), -1.0, *loc, *loc);
+      gp_p.oid = j_id;
+      gp_p_list2.push_back(gp_p);
+      t->DeleteIfAllowed();
+      mark_flag[j_id - 1] = true;
+    }
+
+//     for(unsigned int i = 0;i < gp_p_list2.size();i++){
+//        gp_p_list2[i].Print();
+//     }
+
+    vector<bool> visit_flag(osm_g->node_rel->GetNoTuples(), false);
+
+    bool found = false;
+    OSM_P_Elem dest;
+
+/*    clock_t start, finish;
+    start = clock();*/
+
+    while(path_queue.empty() == false){
+      OSM_P_Elem top = path_queue.top();
+      path_queue.pop();
+
+//      top.Print();
+//      cout<<top.loc<<" "<<top.weight<<endl;
+//       loc_list.push_back(top.loc);
+//       oid_list.push_back(top.tri_index); //show points that are accessed
+
+      if(top.tri_index == 0 || qloc2->Distance(top.loc) < EPSDIST){
+        dest = top;
+        found = true;
+//        cout<<"find "<<endl;
+        break;
+      }
+      if(visit_flag[top.tri_index - 1]) continue;
+
+      ///////////////connecting to the destination/////////////////////
+      if(mark_flag[top.tri_index - 1]){//belongs to the adjacent point to dest
+//        cout<<"mark "<<endl;
+        for(unsigned int i = 0;i < gp_p_list2.size();i++){
+//          cout<<top.tri_index<<" "<<gp_p_list2[i].oid<<endl;
+          if(top.tri_index == gp_p_list2[i].oid){
+
+            Tuple* road_tuple2 =
+              osm_pave->GetPaveRel_L()->GetTuple(gloc2->GetOid(), false);
+            SimpleLine* sl2 = 
+            (SimpleLine*)road_tuple2->GetAttribute(OSMPavement::OSMP_L_CURVE);
+
+
+            SimpleLine subl(0);
+            if(gloc2->GetLoc().loc1 < gp_p_list2[i].pos1)
+             sl2->SubLine(gloc2->GetLoc().loc1, gp_p_list2[i].pos1, true, subl);
+            else
+             sl2->SubLine(gp_p_list2[i].pos1, gloc2->GetLoc().loc1, true, subl);
+
+            int cur_size = expand_queue.size();
+            double w = top.real_w + 
+                       fabs(gp_p_list2[i].pos1 - gloc2->GetLoc().loc1);
+            double hw = 0;
+
+            OSM_P_Elem osm_elem(top.cur_index, cur_size, 
+                              0, w + hw, w, subl, *qloc2);
+            osm_elem.adj_type = 0;
+
+            path_queue.push(osm_elem);
+            expand_queue.push_back(osm_elem);
+            road_tuple2->DeleteIfAllowed();
+          }
+        }
+      }
+
+      //////////////////////////////////////////////////////////////////
+
+      vector<int> adj_list;
+      osm_g->FindAdj(top.tri_index, adj_list);
+//      cout<<adj_list.size()<<endl;
+      for(unsigned int i = 0;i < adj_list.size();i++){
+        Tuple* t = osm_g->edge_rel->GetTuple(adj_list[i], false);
+        int id1 = 
+            ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUNID1))->GetIntval();
+        int id2 = 
+            ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUNID2))->GetIntval();
+        if(visit_flag[id2 - 1]){
+            t->DeleteIfAllowed();
+            continue;
+        }
+        int edge_type = 
+          ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_Edge_TYPE))->GetIntval();
+        assert(id1 == top.tri_index);
+       SimpleLine* path = (SimpleLine*)t->GetAttribute(OSMPaveGraph::OSM_Path2);
+
+        Tuple* node_t = osm_g->node_rel->GetTuple(id2, false);
+        Point* adj_loc = (Point*)node_t->GetAttribute(OSMPaveGraph::OSM_LOC);
+
+        //////////////////////////////////////////////////////////////
+
+        int cur_size = expand_queue.size();
+        double w = top.real_w + path->Length();
+        double hw = adj_loc->Distance(*qloc2);
+        SimpleLine subl(0);
+
+        OSM_P_Elem osm_elem(top.cur_index, cur_size, id2, w + hw, w, 
+                            subl, *adj_loc);
+        osm_elem.edge_tid = adj_list[i];
+//         if(osm_elem.tri_index == 23451){
+//           cout<<"23451"<<endl;
+//           top.Print();
+//           osm_elem.Print();
+//           expand_queue[osm_elem.prev_index].Print();
+//         }
+        if(top.adj_type == 1){/////////filter connections by type
+          if(edge_type != 1){
+            osm_elem.adj_type = edge_type;
+            path_queue.push(osm_elem);
+            expand_queue.push_back(osm_elem);
+          }
+        }else if(top.adj_type == 4){
+            if(edge_type != 4){
+              osm_elem.adj_type = edge_type;
+              path_queue.push(osm_elem);
+              expand_queue.push_back(osm_elem);
+            }
+        }else{
+            osm_elem.adj_type = edge_type;
+            path_queue.push(osm_elem);
+            expand_queue.push_back(osm_elem);
+        }
+
+//         path_queue.push(osm_elem);
+//         expand_queue.push_back(osm_elem);
+
+        ///////////////////////////////////////////////////////////////
+
+        node_t->DeleteIfAllowed();
+        t->DeleteIfAllowed();
+      }
+
+      visit_flag[top.tri_index - 1] = true;
+
+    }
+
+//     finish = clock();
+//     printf("Time: %f\n", (double)(finish - start) / CLOCKS_PER_SEC);
+
+
+    if(found){
+      BuildResPath(osm_g, expand_queue, res, dest);
+      if(l_tmp.Size() > 0 && l_tmp.Length() < res->Length())
+        *res = l_tmp;
+    }
+}
+
+/*
+shortest path between two locations inside one region
+
+*/
+void OSM_Data::OSMPath_R1(OSMPavement* osm_pave, GenLoc* gloc1, Point* qloc1, 
+                          GenLoc* gloc2, Point* qloc2,  Line* res)
+{
+
+    int reg_id = gloc1->GetOid();
+    Tuple* reg_tuple = osm_pave->GetPaveRel_R()->GetTuple(reg_id, false);
+    Region* reg = (Region*)reg_tuple->GetAttribute(OSMPavement::OSM_ELEM);
+//    cout<<reg->Area()<<endl;
+
+    CompTriangle* ct = new CompTriangle(reg);
+    if(ct->ComplexRegion() == 0){
+
+      ShortestPath_InRegion(reg, qloc1, qloc2, res);
+    }else if(ct->ComplexRegion() == 1){
+//      cout<<"complex "<<endl;
+      ShortestPath_InRegionNew(reg, qloc1, qloc2, res);
+    }
+    delete ct;
+
+    reg_tuple->DeleteIfAllowed();
+
+
+}
+
+/*
+one location belongs to a line and the other belongs to a region
+
+*/
+void OSM_Data::OSMPath_LR(OSMPavement* osm_pave, OSMPaveGraph* osm_g, 
+                 GenLoc* gloc1, Point* qloc1, GenLoc* gloc2, Point* qloc2, 
+                 Line* res)
+{
+//  cout<<"from line to a region"<<endl;
+  //build the connection to graph nodes ////
+   int rid1 = gloc1->GetOid();
+   vector<int> tid_list1;
+   osm_g->GetNodesOnRid(rid1, tid_list1);
+
+    Tuple* reg_tuple = 
+        osm_pave->GetPaveRel_R()->GetTuple(gloc2->GetOid(), false);
+    Region* reg = (Region*)reg_tuple->GetAttribute(OSMPavement::OSM_ELEM);
+    if(qloc1->Inside(*reg)){//point inside the second region
+       GenLoc gloc = *gloc1;
+       Loc loc = gloc.GetLoc();
+       gloc.SetValue(gloc2->GetOid(), loc);
+       OSMPath_R1(osm_pave, &gloc, qloc1, gloc2, qloc2, res);
+       reg_tuple->DeleteIfAllowed();
+       return;
+    }
+
+
+    priority_queue<OSM_P_Elem> path_queue;
+    vector<OSM_P_Elem> expand_queue;
+
+   ///only consider type = 1 in the graph nodes //// 
+   //////////////get the road where the start location is//////////////////
+    Tuple* road_tuple1 =
+          osm_pave->GetPaveRel_L()->GetTuple(gloc1->GetOid(), false);
+    SimpleLine* sl1 = 
+        (SimpleLine*)road_tuple1->GetAttribute(OSMPavement::OSMP_L_CURVE);
+    for(unsigned int i = 0;i < tid_list1.size();i++){
+      Tuple* t = osm_g->node_rel->GetTuple(tid_list1[i], false);
+      int type = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_TYPE))->GetIntval();
+      if(type == 2){//do not consider region
+          t->DeleteIfAllowed();
+          continue;
+      }
+
+      int j_id = 
+          ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUN_ID))->GetIntval();
+      Point* loc = (Point*)t->GetAttribute(OSMPaveGraph::OSM_LOC);
+      int rid = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_RID))->GetIntval();
+      GPoint* gloc = (GPoint*)t->GetAttribute(OSMPaveGraph::OSM_JUN_GP);
+      assert(rid1 == rid);
+
+      int cur_size = expand_queue.size();
+      double w = fabs(gloc->GetPosition() - gloc1->GetLoc().loc1);
+      double hw = loc->Distance(*qloc2);
+      SimpleLine subl(0);
+      if(fabs(gloc1->GetLoc().loc1 - gloc->GetPosition()) < EPSDIST){
+
+      }else if(gloc1->GetLoc().loc1 < gloc->GetPosition())
+        sl1->SubLine(gloc1->GetLoc().loc1, gloc->GetPosition(), true, subl);
+      else
+        sl1->SubLine(gloc->GetPosition(), gloc1->GetLoc().loc1, true, subl);
+
+      OSM_P_Elem osm_elem(-1, cur_size, j_id, w + hw, w, subl, *loc);
+      osm_elem.adj_type = 0;
+
+      path_queue.push(osm_elem);
+      expand_queue.push_back(osm_elem);
+
+      t->DeleteIfAllowed();
+
+    }
+    road_tuple1->DeleteIfAllowed();
+
+    //connect the destination to graph nodes/////////////
+    vector<int> tid_list2;
+    osm_g->GetNodesOnRid(gloc2->GetOid(), tid_list2);
+//    cout<<"reg id "<<gloc2->GetOid()<<endl;
+    CompTriangle* ct = new CompTriangle(reg);
+
+    vector<GP_Point> gp_p_list2;
+    vector<bool> mark_flag(osm_g->node_rel->GetNoTuples(), false);
+    int complex = ct->ComplexRegion();
+    for(unsigned int i = 0;i < tid_list2.size();i++){
+      Tuple* t = osm_g->node_rel->GetTuple(tid_list2[i], false);
+      int type = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_TYPE))->GetIntval();
+      if(type == 1){//do not consider line
+          t->DeleteIfAllowed();
+          continue;
+      }
+
+      int j_id = 
+          ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUN_ID))->GetIntval();
+      Point* loc = (Point*)t->GetAttribute(OSMPaveGraph::OSM_LOC);
+      int rid = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_RID))->GetIntval();
+//      GPoint* gloc = (GPoint*)t->GetAttribute(OSMPaveGraph::OSM_JUN_GP);
+      assert((int)gloc2->GetOid() == rid);
+
+//      cout<<"jun id "<<j_id<<endl;
+
+      GP_Point gp_p(rid, -1.0, -1.0, *loc, *loc);
+      gp_p.oid = j_id;
+      gp_p_list2.push_back(gp_p);
+      mark_flag[j_id - 1] = true;
+
+      t->DeleteIfAllowed();
+    }
+    delete ct;
+
+//     clock_t start, finish;
+//     start = clock();
+
+    /////////////////calculate the path to destination////////////////////
+    vector<SimpleLine> path_list;
+    if(complex == 0){
+      for(unsigned int i = 0;i < gp_p_list2.size();i++){
+        Line* res = new Line(0);
+        ShortestPath_InRegion(reg, &(gp_p_list2[i].loc1), qloc2, res);
+        SimpleLine sl(0);
+        sl.fromLine(*res);
+        path_list.push_back(sl);
+        delete res;
+      }
+    }else{
+      ConnectToDest(reg, gp_p_list2, *qloc2, path_list);
+    }
+//    ConnectToDest(reg, gp_p_list2, *qloc2, path_list);
+    assert(path_list.size() == gp_p_list2.size());
+
+//     finish = clock();
+//     printf("Time: %f\n", (double)(finish - start) / CLOCKS_PER_SEC);
+    //////////////////////////////////////////////////////////////////////
+    vector<bool> visit_flag(osm_g->node_rel->GetNoTuples(), false);
+
+    bool found = false;
+    OSM_P_Elem dest;
+
+    while(path_queue.empty() == false){
+      OSM_P_Elem top = path_queue.top();
+      path_queue.pop();
+
+//      top.Print();
+//      cout<<top.loc<<" "<<top.weight<<endl;
+//       loc_list.push_back(top.loc);
+//       oid_list.push_back(top.tri_index); //show points that are accessed
+
+      if(top.tri_index == 0 || qloc2->Distance(top.loc) < EPSDIST){
+        dest = top;
+        found = true;
+//        cout<<"find "<<endl;
+        break;
+      }
+      if(visit_flag[top.tri_index - 1]) continue;
+
+      ///////////////connecting to the destination/////////////////////
+      if(mark_flag[top.tri_index - 1]){//belongs to the adjacent point to dest
+//        cout<<"mark "<<endl;
+        for(unsigned int i = 0;i < gp_p_list2.size();i++){
+//          cout<<top.tri_index<<" "<<gp_p_list2[i].oid<<endl;
+          if(top.tri_index == gp_p_list2[i].oid){
+
+              int cur_size = expand_queue.size();
+              double w = top.real_w + qloc2->Distance(top.loc);
+              double hw = 0;
+
+              OSM_P_Elem osm_elem(top.cur_index, cur_size,
+                              0, w + hw, w, path_list[i], *qloc2);
+              osm_elem.adj_type = 0;
+
+              path_queue.push(osm_elem);
+              expand_queue.push_back(osm_elem);
+          }
+        }
+      }
+
+      //////////////////////////////////////////////////////////////////
+
+      vector<int> adj_list;
+      osm_g->FindAdj(top.tri_index, adj_list);
+//      cout<<adj_list.size()<<endl;
+      for(unsigned int i = 0;i < adj_list.size();i++){
+        Tuple* t = osm_g->edge_rel->GetTuple(adj_list[i], false);
+        int id1 = 
+            ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUNID1))->GetIntval();
+        int id2 = 
+            ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUNID2))->GetIntval();
+        if(visit_flag[id2 - 1]){
+            t->DeleteIfAllowed();
+            continue;
+        }
+        int edge_type = 
+          ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_Edge_TYPE))->GetIntval();
+        assert(id1 == top.tri_index);
+       SimpleLine* path = (SimpleLine*)t->GetAttribute(OSMPaveGraph::OSM_Path2);
+
+        Tuple* node_t = osm_g->node_rel->GetTuple(id2, false);
+        Point* adj_loc = (Point*)node_t->GetAttribute(OSMPaveGraph::OSM_LOC);
+
+        //////////////////////////////////////////////////////////////
+
+        int cur_size = expand_queue.size();
+        double w = top.real_w + path->Length();
+        double hw = adj_loc->Distance(*qloc2);
+        SimpleLine subl(0);
+
+        OSM_P_Elem osm_elem(top.cur_index, cur_size, id2, w + hw, w, 
+                            subl, *adj_loc);
+        osm_elem.edge_tid = adj_list[i];
+
+        if(top.adj_type == 1){/////////filter connections by type
+          if(edge_type != 1){
+            osm_elem.adj_type = edge_type;
+            path_queue.push(osm_elem);
+            expand_queue.push_back(osm_elem);
+          }
+        }else if(top.adj_type == 4){
+            if(edge_type != 4){
+              osm_elem.adj_type = edge_type;
+              path_queue.push(osm_elem);
+              expand_queue.push_back(osm_elem);
+            }
+        }else{
+            osm_elem.adj_type = edge_type;
+            path_queue.push(osm_elem);
+            expand_queue.push_back(osm_elem);
+        }
+
+//         path_queue.push(osm_elem);
+//         expand_queue.push_back(osm_elem);
+
+        ///////////////////////////////////////////////////////////////
+
+        node_t->DeleteIfAllowed();
+        t->DeleteIfAllowed();
+      }
+
+      visit_flag[top.tri_index - 1] = true;
+
+    }
+
+//     finish = clock();
+//     printf("Time: %f\n", (double)(finish - start) / CLOCKS_PER_SEC);
+
+
+    if(found){
+      BuildResPath(osm_g, expand_queue, res, dest);
+    }
+
+    reg_tuple->DeleteIfAllowed();
+}
+
+/*
+connect the graph nodes to destination
+
+*/
+void OSM_Data::ConnectToDest(Region* reg, vector<GP_Point> gp_p_list, 
+                     Point loc2, vector<SimpleLine>& path_list)
+{
+
+  if(reg->NoComponents() > 1){
+    cout<<"only one face is allowed"<<endl;
+    return;
+  }
+
+  vector<string> obj_name; 
+  GetSecondoObj(reg, obj_name); 
+  assert(obj_name.size() == 3);
+  ///////////////////////////////////////////////////////
+  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+  bool dg_def, vg_def, rel_def;
+  Word dg_addr, vg_addr, rel_addr;
+  ctlg->GetObject(obj_name[0], dg_addr, dg_def);
+  ctlg->GetObject(obj_name[1], vg_addr, vg_def);
+  ctlg->GetObject(obj_name[2], rel_addr, rel_def);
+
+  DualGraph* dg = NULL;
+  VisualGraph* vg = NULL;
+  Relation* rel = NULL;
+
+  if(dg_def && vg_def && rel_def){
+    dg = (DualGraph*)dg_addr.addr; 
+    vg = (VisualGraph*)vg_addr.addr; 
+    rel = (Relation*)rel_addr.addr; 
+    assert(dg != NULL);
+    assert(vg != NULL);
+    assert(rel != NULL);
+
+  }else{
+    cout<<"open dual graph or visual graph error"<<endl; 
+    DeleteSecondoObj(obj_name); 
+    return;
+  }
+
+  Walk_SP* wsp = new Walk_SP(dg, vg, NULL, NULL);
+  wsp->rel3 = rel;
+
+  for(unsigned int i = 0;i < gp_p_list.size();i++){
+    Point loc1 = gp_p_list[i].loc1;
+    if(reg->Contains(loc1) == false){
+      cout<<"region "<<*reg<<"start point "<<loc1<<endl;
+      cout<<"start point should be inside the region"<<endl;
+
+      continue;
+    }
+
+    if(loc1.Distance(loc2) < EPSDIST){
+      SimpleLine sl(0);
+      path_list.push_back(sl);
+      continue;
+    } 
+
+    if(reg->Contains(loc2) == false){
+        cout<<"region "<<*reg<<" end point "<<loc2<<endl;
+        cout<<"end point should be inside the region"<<endl;
+        continue;
+    }
+
+    Line* res = new Line(0);
+        /////////Euclidean connection is avaialble//////////////////////
+    if(EuclideanConnection(reg, &loc1, &loc2, res)){//output
+
+//          cout<<"len1 "<<res->Length()<<endl;
+            SimpleLine* sl = new SimpleLine(0);
+            sl->fromLine(*res);
+            path_list.push_back(*sl);
+            delete sl;
+            continue;
+    }
+
+    ////////////////////////////////////////////////////////////////////
+        int oid1 = 0;
+        int oid2 = 0; 
+        FindPointInDG(dg, &loc1, &loc2, oid1, oid2); 
+//        cout<<"oid1 "<<oid1<<" oid2 "<<oid2<<endl;
+        assert(1 <= oid1 && oid1 <= dg->node_rel->GetNoTuples());
+        assert(1 <= oid2 && oid2 <= dg->node_rel->GetNoTuples());
+
+        wsp->WalkShortestPath2(oid1, oid2, loc1, loc2, res);
+
+//        cout<<"len2 "<<res->Length()<<endl;
+
+        SimpleLine* sl = new SimpleLine(0);
+        sl->fromLine(*res);
+        path_list.push_back(*sl);
+        delete sl;
+        delete res;
+    }
+
+   delete wsp; 
+   DeleteSecondoObj(obj_name); 
+
+}
+
+/*
+shortest path: start location inside a region, end location on a line
+
+*/
+void OSM_Data::OSMPath_RL(OSMPavement* osm_pave, OSMPaveGraph* osm_g, 
+                 GenLoc* gloc1, Point* qloc1, GenLoc* gloc2, Point* qloc2, 
+                 Line* res)
+{
+//  cout<<"from region to line "<<endl;
+
+   //connect the destination to graph nodes/////////////
+    Tuple* reg_tuple = 
+        osm_pave->GetPaveRel_R()->GetTuple(gloc1->GetOid(), false);
+    Region* reg = (Region*)reg_tuple->GetAttribute(OSMPavement::OSM_ELEM);
+
+
+
+   if(qloc2->Inside(*reg)){//point inside the first region
+       GenLoc gloc = *gloc2;
+       Loc loc = gloc.GetLoc();
+       gloc.SetValue(gloc2->GetOid(), loc);
+       OSMPath_R1(osm_pave, gloc1, qloc1, &gloc, qloc2, res);
+       reg_tuple->DeleteIfAllowed();
+       return;
+    }
+
+    vector<int> tid_list1;
+    osm_g->GetNodesOnRid(gloc1->GetOid(), tid_list1);
+    ////////////connect the start location to graph nodes//////////////////
+    CompTriangle* ct = new CompTriangle(reg);
+    int complex = ct->ComplexRegion();
+    delete ct;
+    vector<GP_Point> gp_p_list1;
+    for(unsigned int i = 0;i < tid_list1.size();i++){
+      Tuple* t = osm_g->node_rel->GetTuple(tid_list1[i], false);
+      int type = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_TYPE))->GetIntval();
+      if(type == 1){//do not consider line
+          t->DeleteIfAllowed();
+          continue;
+      }
+
+      int j_id = 
+          ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUN_ID))->GetIntval();
+      Point* loc = (Point*)t->GetAttribute(OSMPaveGraph::OSM_LOC);
+      int rid = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_RID))->GetIntval();
+//      GPoint* gloc = (GPoint*)t->GetAttribute(OSMPaveGraph::OSM_JUN_GP);
+      assert((int)gloc1->GetOid() == rid);
+
+//      cout<<"jun id "<<j_id<<endl;
+
+      GP_Point gp_p(rid, -1.0, -1.0, *loc, *loc);
+      gp_p.oid = j_id;
+      gp_p_list1.push_back(gp_p);
+      t->DeleteIfAllowed();
+    }
+
+    /////////////////calculate the path to source////////////////////
+    vector<SimpleLine> path_list;
+    if(complex == 0){
+      for(unsigned int i = 0;i < gp_p_list1.size();i++){
+        Line* res = new Line(0);
+        ShortestPath_InRegion(reg, &(gp_p_list1[i].loc1), qloc1, res);
+        SimpleLine sl(0);
+        sl.fromLine(*res);
+        path_list.push_back(sl);
+        delete res;
+      }
+    }else{
+      ConnectToDest(reg, gp_p_list1, *qloc1, path_list);
+    }
+    assert(path_list.size() == gp_p_list1.size());
+
+    priority_queue<OSM_P_Elem> path_queue;
+    vector<OSM_P_Elem> expand_queue;
+
+    for(unsigned int i = 0;i < gp_p_list1.size();i++){
+         int cur_size = expand_queue.size();
+         double w = path_list[i].Length();
+         double hw = gp_p_list1[i].loc1.Distance(*qloc2);
+         OSM_P_Elem osm_elem(-1, cur_size, gp_p_list1[i].oid, w + hw, w, 
+                             path_list[i], gp_p_list1[i].loc1);
+         osm_elem.adj_type = 0;
+
+        path_queue.push(osm_elem);
+        expand_queue.push_back(osm_elem);
+
+    }
+
+
+    ////////////////////////////////////////////////////////////////
+    ///only consider type = 1 in the graph nodes //// 
+   //////////////get the road where the end location is//////////////////
+    //build the connection to graph nodes ////
+    int rid2 = gloc2->GetOid();
+    vector<int> tid_list2;
+    osm_g->GetNodesOnRid(rid2, tid_list2);
+    vector<bool> mark_flag(osm_g->node_rel->GetNoTuples(), false);
+    vector<GP_Point> gp_p_list2;
+     for(unsigned int i = 0;i < tid_list2.size();i++){
+       Tuple* t = osm_g->node_rel->GetTuple(tid_list2[i], false);
+       int type = 
+          ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_TYPE))->GetIntval();
+        if(type == 2){//do not consider region
+           t->DeleteIfAllowed();
+           continue;
+        }
+
+       int j_id = 
+           ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUN_ID))->GetIntval();
+       Point* loc = (Point*)t->GetAttribute(OSMPaveGraph::OSM_LOC);
+       int rid = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_RID))->GetIntval();
+       GPoint* gloc = (GPoint*)t->GetAttribute(OSMPaveGraph::OSM_JUN_GP);
+       assert(rid2 == rid);
+
+
+       GP_Point gp_p(rid, gloc->GetPosition(), -1.0, *loc, *loc);
+       gp_p.oid = j_id;
+       gp_p_list2.push_back(gp_p);
+
+       mark_flag[j_id - 1] = true;
+       t->DeleteIfAllowed();
+
+     }
+
+
+    //////////////////////////////////////////////////////////////////////
+    vector<bool> visit_flag(osm_g->node_rel->GetNoTuples(), false);
+
+    bool found = false;
+    OSM_P_Elem dest;
+    Tuple* road_tuple =
+            osm_pave->GetPaveRel_L()->GetTuple(gloc2->GetOid(), false);
+    SimpleLine* sl2 = 
+            (SimpleLine*)road_tuple->GetAttribute(OSMPavement::OSMP_L_CURVE);
+
+    while(path_queue.empty() == false){
+      OSM_P_Elem top = path_queue.top();
+      path_queue.pop();
+
+      if(top.tri_index == 0 || qloc2->Distance(top.loc) < EPSDIST){
+        dest = top;
+        found = true;
+//        cout<<"find "<<endl;
+        break;
+      }
+      if(visit_flag[top.tri_index - 1]) continue;
+
+      ///////////////connecting to the destination/////////////////////
+      if(mark_flag[top.tri_index - 1]){//belongs to the adjacent point to dest
+
+        for(unsigned int i = 0;i < gp_p_list2.size();i++){
+
+          if(top.tri_index == gp_p_list2[i].oid){
+
+            SimpleLine subl(0);
+            if(gloc2->GetLoc().loc1 < gp_p_list2[i].pos1)
+             sl2->SubLine(gloc2->GetLoc().loc1, gp_p_list2[i].pos1, true, subl);
+            else
+             sl2->SubLine(gp_p_list2[i].pos1, gloc2->GetLoc().loc1, true, subl);
+
+            int cur_size = expand_queue.size();
+            double w = top.real_w + 
+                       fabs(gp_p_list2[i].pos1 - gloc2->GetLoc().loc1);
+            double hw = 0;
+
+            OSM_P_Elem osm_elem(top.cur_index, cur_size, 
+                              0, w + hw, w, subl, *qloc2);
+            osm_elem.adj_type = 0;
+
+            path_queue.push(osm_elem);
+            expand_queue.push_back(osm_elem);
+          }
+        }
+      }
+
+      //////////////////////////////////////////////////////////////////
+
+      vector<int> adj_list;
+      osm_g->FindAdj(top.tri_index, adj_list);
+//      cout<<adj_list.size()<<endl;
+      for(unsigned int i = 0;i < adj_list.size();i++){
+        Tuple* t = osm_g->edge_rel->GetTuple(adj_list[i], false);
+        int id1 = 
+            ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUNID1))->GetIntval();
+        int id2 = 
+            ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUNID2))->GetIntval();
+        if(visit_flag[id2 - 1]){
+            t->DeleteIfAllowed();
+            continue;
+        }
+        int edge_type = 
+          ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_Edge_TYPE))->GetIntval();
+        assert(id1 == top.tri_index);
+       SimpleLine* path = (SimpleLine*)t->GetAttribute(OSMPaveGraph::OSM_Path2);
+
+        Tuple* node_t = osm_g->node_rel->GetTuple(id2, false);
+        Point* adj_loc = (Point*)node_t->GetAttribute(OSMPaveGraph::OSM_LOC);
+
+        //////////////////////////////////////////////////////////////
+
+        int cur_size = expand_queue.size();
+        double w = top.real_w + path->Length();
+        double hw = adj_loc->Distance(*qloc2);
+        SimpleLine subl(0);
+
+        OSM_P_Elem osm_elem(top.cur_index, cur_size, id2, w + hw, w, 
+                            subl, *adj_loc);
+        osm_elem.edge_tid = adj_list[i];
+
+        if(top.adj_type == 1){/////////filter connections by type
+          if(edge_type != 1){
+            osm_elem.adj_type = edge_type;
+            path_queue.push(osm_elem);
+            expand_queue.push_back(osm_elem);
+          }
+        }else if(top.adj_type == 4){
+            if(edge_type != 4){
+              osm_elem.adj_type = edge_type;
+              path_queue.push(osm_elem);
+              expand_queue.push_back(osm_elem);
+            }
+        }else{
+            osm_elem.adj_type = edge_type;
+            path_queue.push(osm_elem);
+            expand_queue.push_back(osm_elem);
+        }
+
+        ///////////////////////////////////////////////////////////////
+
+        node_t->DeleteIfAllowed();
+        t->DeleteIfAllowed();
+      }
+
+      visit_flag[top.tri_index - 1] = true;
+
+    }
+
+    road_tuple->DeleteIfAllowed();
+    reg_tuple->DeleteIfAllowed();
+
+    if(found){
+      BuildResPath(osm_g, expand_queue, res, dest);
+    }
+}
+
+
+void OSM_Data::OSMPath_RR(OSMPavement* osm_pave, OSMPaveGraph* osm_g, 
+                 GenLoc* gloc1, Point* qloc1, GenLoc* gloc2, Point* qloc2, 
+                 Line* res)
+{
+   //  cout<<"from region to line "<<endl;
+
+   //connect the destination to graph nodes/////////////
+    Tuple* reg_tuple1 = 
+        osm_pave->GetPaveRel_R()->GetTuple(gloc1->GetOid(), false);
+    Region* reg1 = (Region*)reg_tuple1->GetAttribute(OSMPavement::OSM_ELEM);
+
+    vector<int> tid_list1;
+    osm_g->GetNodesOnRid(gloc1->GetOid(), tid_list1);
+    ////////////connect the start location to graph nodes//////////////////
+    CompTriangle* ct1 = new CompTriangle(reg1);
+    int complex1 = ct1->ComplexRegion();
+    delete ct1;
+    vector<GP_Point> gp_p_list1;
+    for(unsigned int i = 0;i < tid_list1.size();i++){
+      Tuple* t = osm_g->node_rel->GetTuple(tid_list1[i], false);
+      int type = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_TYPE))->GetIntval();
+      if(type == 1){//do not consider line
+          t->DeleteIfAllowed();
+          continue;
+      }
+
+      int j_id = 
+          ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUN_ID))->GetIntval();
+      Point* loc = (Point*)t->GetAttribute(OSMPaveGraph::OSM_LOC);
+      int rid = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_RID))->GetIntval();
+//      GPoint* gloc = (GPoint*)t->GetAttribute(OSMPaveGraph::OSM_JUN_GP);
+      assert((int)gloc1->GetOid() == rid);
+
+//      cout<<"jun id "<<j_id<<endl;
+
+      GP_Point gp_p(rid, -1.0, -1.0, *loc, *loc);
+      gp_p.oid = j_id;
+      gp_p_list1.push_back(gp_p);
+      t->DeleteIfAllowed();
+    }
+
+    /////////////////calculate the path to source////////////////////
+    vector<SimpleLine> path_list1;
+    if(complex1 == 0){
+      for(unsigned int i = 0;i < gp_p_list1.size();i++){
+        Line* res = new Line(0);
+        ShortestPath_InRegion(reg1, &(gp_p_list1[i].loc1), qloc1, res);
+        SimpleLine sl(0);
+        sl.fromLine(*res);
+        path_list1.push_back(sl);
+        delete res;
+      }
+    }else{
+      ConnectToDest(reg1, gp_p_list1, *qloc1, path_list1);
+    }
+    assert(path_list1.size() == gp_p_list1.size());
+
+    priority_queue<OSM_P_Elem> path_queue;
+    vector<OSM_P_Elem> expand_queue;
+
+    for(unsigned int i = 0;i < gp_p_list1.size();i++){
+         int cur_size = expand_queue.size();
+         double w = path_list1[i].Length();
+         double hw = gp_p_list1[i].loc1.Distance(*qloc2);
+         OSM_P_Elem osm_elem(-1, cur_size, gp_p_list1[i].oid, w + hw, w, 
+                             path_list1[i], gp_p_list1[i].loc1);
+         osm_elem.adj_type = 0;
+
+        path_queue.push(osm_elem);
+        expand_queue.push_back(osm_elem);
+
+    }
+
+
+    /////connect the destination to graph nodes/////////////
+    Tuple* reg_tuple2 = 
+        osm_pave->GetPaveRel_R()->GetTuple(gloc2->GetOid(), false);
+    Region* reg2 = (Region*)reg_tuple2->GetAttribute(OSMPavement::OSM_ELEM);
+
+    vector<int> tid_list2;
+    osm_g->GetNodesOnRid(gloc2->GetOid(), tid_list2);
+//    cout<<"reg id "<<gloc2->GetOid()<<endl;
+    CompTriangle* ct2 = new CompTriangle(reg2);
+    vector<GP_Point> gp_p_list2;
+    vector<bool> mark_flag(osm_g->node_rel->GetNoTuples(), false);
+    int complex2 = ct2->ComplexRegion();
+    delete ct2;
+
+    for(unsigned int i = 0;i < tid_list2.size();i++){
+      Tuple* t = osm_g->node_rel->GetTuple(tid_list2[i], false);
+      int type = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_TYPE))->GetIntval();
+      if(type == 1){//do not consider line
+          t->DeleteIfAllowed();
+          continue;
+      }
+      int j_id = 
+          ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUN_ID))->GetIntval();
+      Point* loc = (Point*)t->GetAttribute(OSMPaveGraph::OSM_LOC);
+      int rid = ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_RID))->GetIntval();
+
+      assert((int)gloc2->GetOid() == rid);
+
+      GP_Point gp_p(rid, -1.0, -1.0, *loc, *loc);
+      gp_p.oid = j_id;
+      gp_p_list2.push_back(gp_p);
+      mark_flag[j_id - 1] = true;
+
+      t->DeleteIfAllowed();
+    }
+
+    /////////////////calculate the path to destination////////////////////
+    vector<SimpleLine> path_list2;
+    if(complex2 == 0){
+      for(unsigned int i = 0;i < gp_p_list2.size();i++){
+        Line* res = new Line(0);
+        ShortestPath_InRegion(reg2, &(gp_p_list2[i].loc1), qloc2, res);
+        SimpleLine sl(0);
+        sl.fromLine(*res);
+        path_list2.push_back(sl);
+        delete res;
+      }
+    }else{
+      ConnectToDest(reg2, gp_p_list2, *qloc2, path_list2);
+    }
+
+    assert(path_list2.size() == gp_p_list2.size());
+
+
+    //////////////////////////////////////////////////////////////////////
+    vector<bool> visit_flag(osm_g->node_rel->GetNoTuples(), false);
+
+    bool found = false;
+    OSM_P_Elem dest;
+
+    while(path_queue.empty() == false){
+      OSM_P_Elem top = path_queue.top();
+      path_queue.pop();
+
+      if(top.tri_index == 0 || qloc2->Distance(top.loc) < EPSDIST){
+        dest = top;
+        found = true;
+//        cout<<"find "<<endl;
+        break;
+      }
+      if(visit_flag[top.tri_index - 1]) continue;
+
+      ///////////////connecting to the destination/////////////////////
+      if(mark_flag[top.tri_index - 1]){//belongs to the adjacent point to dest
+
+        for(unsigned int i = 0;i < gp_p_list2.size();i++){
+
+          if(top.tri_index == gp_p_list2[i].oid){
+              int cur_size = expand_queue.size();
+              double w = top.real_w + qloc2->Distance(top.loc);
+              double hw = 0;
+
+              OSM_P_Elem osm_elem(top.cur_index, cur_size,
+                              0, w + hw, w, path_list2[i], *qloc2);
+              osm_elem.adj_type = 0;
+
+              path_queue.push(osm_elem);
+              expand_queue.push_back(osm_elem);
+          }
+        }
+      }
+
+      //////////////////////////////////////////////////////////////////
+
+      vector<int> adj_list;
+      osm_g->FindAdj(top.tri_index, adj_list);
+//      cout<<adj_list.size()<<endl;
+      for(unsigned int i = 0;i < adj_list.size();i++){
+        Tuple* t = osm_g->edge_rel->GetTuple(adj_list[i], false);
+        int id1 = 
+            ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUNID1))->GetIntval();
+        int id2 = 
+            ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_JUNID2))->GetIntval();
+        if(visit_flag[id2 - 1]){
+            t->DeleteIfAllowed();
+            continue;
+        }
+        int edge_type = 
+          ((CcInt*)t->GetAttribute(OSMPaveGraph::OSM_Edge_TYPE))->GetIntval();
+        assert(id1 == top.tri_index);
+       SimpleLine* path = (SimpleLine*)t->GetAttribute(OSMPaveGraph::OSM_Path2);
+
+        Tuple* node_t = osm_g->node_rel->GetTuple(id2, false);
+        Point* adj_loc = (Point*)node_t->GetAttribute(OSMPaveGraph::OSM_LOC);
+
+        //////////////////////////////////////////////////////////////
+
+        int cur_size = expand_queue.size();
+        double w = top.real_w + path->Length();
+        double hw = adj_loc->Distance(*qloc2);
+        SimpleLine subl(0);
+
+        OSM_P_Elem osm_elem(top.cur_index, cur_size, id2, w + hw, w, 
+                            subl, *adj_loc);
+        osm_elem.edge_tid = adj_list[i];
+
+        if(top.adj_type == 1){/////////filter connections by type
+          if(edge_type != 1){
+            osm_elem.adj_type = edge_type;
+            path_queue.push(osm_elem);
+            expand_queue.push_back(osm_elem);
+          }
+        }else if(top.adj_type == 4){
+            if(edge_type != 4){
+              osm_elem.adj_type = edge_type;
+              path_queue.push(osm_elem);
+              expand_queue.push_back(osm_elem);
+            }
+        }else{
+            osm_elem.adj_type = edge_type;
+            path_queue.push(osm_elem);
+            expand_queue.push_back(osm_elem);
+        }
+
+        ///////////////////////////////////////////////////////////////
+
+        node_t->DeleteIfAllowed();
+        t->DeleteIfAllowed();
+      }
+
+      visit_flag[top.tri_index - 1] = true;
+
+    }
+
+    reg_tuple1->DeleteIfAllowed();
+    reg_tuple2->DeleteIfAllowed();
+
+    if(found){
+      BuildResPath(osm_g, expand_queue, res, dest);
+    }
+}
+
+
+/*
+build the path
+
+*/
+void OSM_Data::BuildResPath(OSMPaveGraph* osm_g, vector<OSM_P_Elem>expand_queue,
+                    Line* res, OSM_P_Elem dest)
+{
+      res->StartBulkLoad();
+      int edgeno = 0;
+      while(dest.prev_index != -1){
+//        dest.Print();
+        if(dest.edge_tid == -1){
+          for(int i = 0;i < dest.path.Size();i++){
+            HalfSegment hs1;
+            dest.path.Get(i, hs1);
+            if(hs1.IsLeftDomPoint() == false)continue;
+            HalfSegment hs2(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
+            hs2.attr.edgeno = edgeno++;
+            *res += hs2;
+            hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+            *res += hs2;
+//          cout<<"LP "<<hs2.GetLeftPoint()<<" rp "<<hs2.GetRightPoint()<<endl;
+//          cout<<dest.tri_index<<endl;
+          }
+        }else{
+          Tuple* edge_tuple = osm_g->edge_rel->GetTuple(dest.edge_tid, false);
+          SimpleLine* sl = 
+              (SimpleLine*)edge_tuple->GetAttribute(OSMPaveGraph::OSM_Path2);
+
+          for(int i = 0;i < sl->Size();i++){
+            HalfSegment hs1;
+            sl->Get(i, hs1);
+            if(hs1.IsLeftDomPoint() == false)continue;
+            HalfSegment hs2(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
+            hs2.attr.edgeno = edgeno++;
+            *res += hs2;
+            hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+            *res += hs2;
+//           cout<<"LP "<<hs2.GetLeftPoint()<<" rp "<<hs2.GetRightPoint()<<endl;
+//            cout<<"edge tid "<<dest.edge_tid<<endl;
+
+          }
+          edge_tuple->DeleteIfAllowed();
+        }
+
+        dest = expand_queue[dest.prev_index];
+
+      }
+      //////put the last connection////////////////
+      if(dest.edge_tid == -1){
+          for(int i = 0;i < dest.path.Size();i++){
+            HalfSegment hs1;
+            dest.path.Get(i, hs1);
+            HalfSegment hs2(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
+            hs2.attr.edgeno = edgeno++;
+            *res += hs2;
+            hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+            *res += hs2;
+          }
+        }else{
+          Tuple* edge_tuple = osm_g->edge_rel->GetTuple(dest.edge_tid, false);
+          SimpleLine* sl = 
+              (SimpleLine*)edge_tuple->GetAttribute(OSMPaveGraph::OSM_Path2);
+          for(int i = 0;i < sl->Size();i++){
+            HalfSegment hs1;
+            sl->Get(i, hs1);
+            HalfSegment hs2(true, hs1.GetLeftPoint(), hs1.GetRightPoint());
+            hs2.attr.edgeno = edgeno++;
+            *res += hs2;
+            hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+            *res += hs2;
+          }
+          edge_tuple->DeleteIfAllowed();
+        }
+      ////////////////////////////////////////////////////////////////////
+
+      res->EndBulkLoad();
+
+}
 //////////////////////////////////////////////////////////
 ////////// OSM Pavement //////////////////////////////////
 ///////////////////////////////////////////////////////////
-string OSMPavement::OSMPaveLine = "(rel (tuple ((Id int) (Geo line))))";
+string OSMPavement::OSMPaveLine = "(rel (tuple ((Id int) (Geo line) \
+(Curve sline))))";
 string OSMPavement::OSMPaveRegion = "(rel (tuple ((REG_ID int) (Elem region)\
 (Border region))))";
 
@@ -8568,6 +9945,68 @@ void OSMPavement::SetOSMGraphId(int id)
 }
 
 /*
+load osm graph
+
+*/
+OSMPaveGraph* OSMPavement::GetOSMGraph()
+{
+
+  if(osmg_init == false) return NULL;
+  
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "osmpavegraph"){
+      // Get name of the dual graph 
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the dual graph. 
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined 
+        continue;
+      }
+      OSMPaveGraph* osm_g = (OSMPaveGraph*)xValue.addr;
+      if(osm_g->g_id == osmg_id){
+        // This is the dual graph we have been looking for
+        return osm_g;
+      }
+    }
+  }
+  return NULL;
+
+}
+
+/*
+close the osm graph
+
+*/
+void OSMPavement::CloseOSMGraph(OSMPaveGraph* og)
+{
+  if(og == NULL) return; 
+  Word xValue;
+  xValue.addr = og;
+  SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom( "osmpavegraph" ),
+                                           xValue);
+
+}
+
+
+/*
 save the data of osm pavement 
 
 */
@@ -8639,16 +10078,16 @@ load the line and region relations
 */
 void OSMPavement::Load(unsigned int i, Relation* r1, Relation* r2)
 {
-  cout<<"id "<<i<<" "<<r1->GetNoTuples()<<" "<<r2->GetNoTuples()<<endl;
+//  cout<<"id "<<i<<" "<<r1->GetNoTuples()<<" "<<r2->GetNoTuples()<<endl;
 
   if(i < 1){
     cout<<"invalid id "<<i<<endl; 
     def = false;
     return;
   }
-  osm_p_id = i; 
+  osm_p_id = i;
 
-  def = true; 
+  def = true;
 
   ListExpr ptrList1 = listutils::getPtrList(r1);
   string strQuery1 = "(consume(feed(" + OSMPaveLine +
@@ -8950,8 +10389,8 @@ void OSMPaveGraph::Load(int id, Relation* r1, Relation* r2)
   /////////////////edge relation/////////////////////
   ListExpr ptrList2 = listutils::getPtrList(r2);
   
-  strQuery = "(consume(sort(feed(" + OSMGraphPaveEdge +
-                "(ptr " + nl->ToString(ptrList2) + ")))))";
+  strQuery = "(consume(feed(" + OSMGraphPaveEdge +
+                "(ptr " + nl->ToString(ptrList2) + "))))";
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
   edge_rel = (Relation*)xResult.addr;
@@ -9045,6 +10484,21 @@ void OSMPaveGraph::RemoveIndex()
 
 }
 
+/*
+find all graph nodes on the given Rid
+
+*/
+void OSMPaveGraph::GetNodesOnRid(int rid, vector<int>& tid_list)
+{
+    CcInt* search_id = new CcInt(true, rid);
+    BTreeIterator* btree_iter = btree_node->ExactMatch(search_id);
+    while(btree_iter->Next()){
+        tid_list.push_back(btree_iter->GetId());
+    }
+    delete btree_iter;
+    delete search_id;
+
+}
 /////////////////////////////////////////////////////////////////////
 ////////a robust method to get the position of a point on a sline ///
 /////////////////////////////////////////////////////////////////////
