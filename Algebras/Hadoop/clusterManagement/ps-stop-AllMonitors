@@ -42,13 +42,16 @@ else
   IPLIST=$(get_slaveIPs -m)
 fi
 
+RT=0
 for node in $IPLIST; do
   echo -n "Switch OFF Monitor on $node ... ... "
   ssh $node "ps-stopMonitors ${ADDPAR}" >/dev/null #2>&1
   if [ $? -ne 0 ]; then
     echo "FAIL."
+    RT=1
   else
     echo "Done!"
   fi 
 done
 
+exit $RT

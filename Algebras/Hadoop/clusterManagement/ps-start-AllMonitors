@@ -51,7 +51,7 @@ for node in $DSIST; do
   IPAddr=${node%:*}
   DSPath=${node#*:}
   echo -n "Switch ON Monitor on $IPAddr ... ... "
-  ssh $IPAddr "${DSPath}/bin/ps-startMonitors ${ADDPAR}" >/dev/null #2>&1
+  ssh $IPAddr "${DSPath}/bin/ps-startMonitors ${ADDPAR}" >/dev/null 2>&1
   if [ $? -ne 0 ]; then 
     echo -e "\nStart up fail."
   else

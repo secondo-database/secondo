@@ -87,7 +87,7 @@ else
   echo "No Hadoop deamons are running on this cluster."
 fi
 
-SMNUM=$(ps-cluster-queryMonitorStatus 2>/dev/null | grep $USER | grep SecondoMonitor | wc -l)
+SMNUM=$(${bin}/ps-cluster-queryMonitorStatus 2>/dev/null | grep $USER | grep SecondoMonitor | wc -l)
 if [ $SMNUM -gt 0 ]; then
   echo "${WARNINFO}$SMNUM Secondo monitors are running now, attempt to turn them off ... ... "
   $bin/ps-stop-AllMonitors
