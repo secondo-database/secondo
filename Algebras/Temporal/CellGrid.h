@@ -401,10 +401,6 @@ inline CellGrid<dim>::CellGrid( const bool defined, ... )
 
   if (!Proper())
   {
-    static MessageCenter* msg = MessageCenter::GetInstance();
-    NList msgList( NList("simple"),
-                   NList("CellGrid built with invalid dimensions!") );
-    msg->Send(msgList);
     this->del.isDefined = false;
   }
 }
@@ -871,18 +867,16 @@ bool CellGrid<dim>::ReadFrom(const ListExpr value,const ListExpr typeInfo){
 
     rest = nl->Rest(rest);
   }
+  this->SetDefined(true);
 
-  bool proper = true;
-  for ( unsigned i = 0; i < dim; i++)
+  if (!Proper())
   {
-    if ((cw[i] < 0) || AlmostEqual(cw[i], 0.0))
-      proper = false;
-    if ( i < (dim - 1)){
-      if ( no_cells[i] <= 0 )
-        proper = false;
-    }
+    static MessageCenter* msg = MessageCenter::GetInstance();
+    NList msgList( NList("simple"),
+                   NList("CellGrid built with invalid dimensions!") );
+    msg->Send(msgList);
+    this->SetDefined(false);
   }
-  this->SetDefined(proper);
 
   return true;
 }
