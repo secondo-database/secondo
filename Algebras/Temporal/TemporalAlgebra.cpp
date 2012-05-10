@@ -18631,7 +18631,9 @@ class TemporalAlgebra : public Algebra
     movingpoint.AssociateKind( Kind::DATA() );
 
     cellgrid2d.AssociateKind( Kind::DATA() );
+    cellgrid2d.AssociateKind( Kind::DELIVERABLE() );
     cellgrid3d.AssociateKind( Kind::DATA() );
+    cellgrid3d.AssociateKind( Kind::DELIVERABLE() );
 
     AddOperator( &temporalisempty );
     AddOperator( &temporalequal );
