@@ -2250,6 +2250,7 @@ int hadoopMapValueMap(Word* args, Word& result,
       cerr << "Replace para operation fails" << endl;
     }
     else{
+      CreateQueryList = replaceSecObj(CreateQueryList);
       //Replace parameter value according to their flist value
       for (size_t i = 0; i < flistParaList.size(); i++)
       {
@@ -2731,6 +2732,7 @@ int hadoopReduceValueMap(Word* args, Word& result,
     }
     else{
       //Replace parameter value according to their flist value
+      CreateQueryList = replaceSecObj(CreateQueryList);
       for (size_t i = 0; i < flistParaList.size(); i++)
       {
         int argIndex = (i == 0 ? 1 : 0);
@@ -3228,6 +3230,7 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
       cerr << "Replace para operation fails" << endl;
     }
     else{
+      CreateQueryList = replaceSecObj(CreateQueryList);
       //Replace parameter value according to their flist value
       for (size_t i = 0; i < flistParaList.size(); i++)
       {
@@ -3541,69 +3544,13 @@ an argument of the query list.
 If it is, then in the operator like ~hadoopReduce~,
 this value should be re-distributed and be replaced in the map step.
 
+Update at 30th Apr. Jiamin
+Rename to replaceDLOF, mark on not only DLF, but also DLO flist,
+and returns location information of both kinds flists.
+Therefore, if a sub-object of a DLO flist doesn't exist on one slave data server,
+no map task is deployed.
 
 */
-ListExpr replaceFList(ListExpr createQuery, string listName,
-    fList* listObject, vector<string>& DLF_NameList,
-    vector<string>& DLF_fileLocList, bool& ok, int argIndex/* = 0*/)
-{
-  if (!ok)
-  {
-    return nl->OneElemList(nl->SymbolAtom("error"));
-  }
-
-  if (nl->IsEmpty(createQuery))
-    return createQuery;
-
-  if (nl->IsAtom(createQuery))
-  {
-    if ((nl->AtomType(createQuery) == SymbolType) &&
-        (nl->SymbolValue(createQuery) == listName))
-    {
-      if (listObject->isAvailable())
-      {
-        string objectName = listObject->getSubName();
-        switch (listObject->getKind())
-        {
-          case DLO:{
-            return nl->SymbolAtom(objectName);
-          }
-          case DLF:{
-            stringstream ss;
-            ss << "<DLFMark:";
-            if (argIndex > 0){
-              ss << "Arg" << argIndex << ":";
-            }
-            ss << objectName << "/>";
-            DLF_NameList.push_back(ss.str());
-
-            DLF_fileLocList.push_back(
-                listObject->getLocList().convertToString());
-            return nl->StringAtom(ss.str(),true);
-            ;
-          }
-          default:{
-            ok = false;
-            return nl->OneElemList(nl->SymbolAtom("error"));
-          }
-        }
-      }
-
-      ok = false;
-      return nl->OneElemList(nl->SymbolAtom("error"));
-    }
-    else
-      return createQuery;
-  }
-  else
-  {
-    return (nl->Cons(replaceFList(nl->First(createQuery),
-        listName, listObject, DLF_NameList, DLF_fileLocList, ok, argIndex),
-                     replaceFList(nl->Rest(createQuery),
-        listName, listObject, DLF_NameList, DLF_fileLocList, ok, argIndex)));
-  }
-}
-
 ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
     vector<string>& DLF_NameList, vector<string>& DLF_fileLocList,
     vector<string>& DLO_NameList, vector<string>& DLO_locList,
@@ -3748,6 +3695,47 @@ ListExpr replaceParaOp(
   else{
     return createQuery;
   }
+}
+
+/*
+Find all DELIEVERABLE Secondo objects, and substitute it with its nested-list
+expression instead of its name.
+With this function, there is no need to add ~para~ operator for these symbol objects,
+which was designed as DGO flist.
+
+*/
+ListExpr replaceSecObj(ListExpr createQuery)
+{
+  if (nl->IsEmpty(createQuery))
+    return createQuery;
+
+  if (nl->IsAtom(createQuery))
+  {
+    string atomName = nl->ToString(createQuery);
+    bool isObject = SecondoSystem::GetCatalog()->IsObjectName(atomName);
+    if (isObject)
+    {
+      ListExpr paraType =
+                SecondoSystem::GetCatalog()->GetObjectTypeExpr(atomName);
+      if (listutils::isKind(paraType, Kind::DELIVERABLE())){
+        ListExpr DGOValue =
+            SecondoSystem::GetCatalog()->GetObjectValue(atomName);
+
+        ListExpr DGOType =
+            SecondoSystem::GetCatalog()->GetObjectTypeExpr(atomName);
+        return nl->TwoElemList(DGOType, DGOValue);
+      }
+    }
+  }
+
+  if (nl->ListLength(createQuery) > 0)
+  {
+    return nl->Cons(
+        replaceSecObj(nl->First(createQuery)),
+        replaceSecObj(nl->Rest(createQuery)));
+  }
+  else
+    return createQuery;
 }
 
 

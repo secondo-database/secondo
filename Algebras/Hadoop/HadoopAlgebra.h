@@ -40,9 +40,6 @@ used in HadoopAlgebra.
 #include "../HadoopParallel/HadoopParallelAlgebra.h"
 
 bool isFListStreamDescription(const NList& typeInfo);
-ListExpr replaceFList(ListExpr createQuery, string listName,
-    fList* listObject, vector<string>& DLF_NameList,
-    vector<string>& DLF_fileLocList, bool& ok, int argIndex = 0);
 ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
     vector<string>& DLF_NameList, vector<string>& DLF_fileLocList,
     vector<string>& DLO_NameList, vector<string>& DLO_locList,
@@ -50,6 +47,7 @@ ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
 ListExpr replaceParaOp(
     ListExpr createQuery, vector<string>& flistParaList,
     vector<fList*>& flistObjList, bool& ok);
+ListExpr replaceSecObj(ListExpr createQuery);
 
 
 /*
