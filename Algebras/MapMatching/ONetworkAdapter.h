@@ -73,6 +73,9 @@ public:
     virtual bool IsDefined(void) const;
 
 
+    // Only used by MapMatchingOEdgeTupleStreamCreator
+    Tuple* GetUndefEdgeTuple(void) const;
+
 private:
 
     ONetwork* m_pNetwork;

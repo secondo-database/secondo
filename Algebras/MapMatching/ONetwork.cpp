@@ -202,3 +202,58 @@ Rectangle<2> ONetwork::GetBoundingBox(void) const
 }
 
 
+// Only used by MapMatchingOEdgeTupleStreamCreator
+Tuple* ONetwork::GetUndefEdgeTuple(void) const
+{
+    Rectangle<2> BBox = GetBoundingBox();
+
+    if (!BBox.IsDefined() || m_pRTreeEdges == NULL || m_pIndexEdges == NULL)
+    {
+        return NULL;
+    }
+
+    R_TreeLeafEntry<2, TupleId> res;
+    if (m_pRTreeEdges->First(BBox, res))
+    {
+        m_pIndexEdges->GetTuple(res.info, false);
+
+        Tuple* pTuple = m_pIndexEdges->GetTuple(res.info, false);
+
+        if (pTuple != NULL)
+        {
+            std::vector<ONetworkEdge> vecEdges;
+            GetEdges(pTuple, vecEdges);
+
+            pTuple->DeleteIfAllowed(); pTuple = NULL;
+
+            if (vecEdges.size() > 0)
+            {
+                const Tuple* pEdgeTuple = vecEdges.front().GetTuple();
+                if (pEdgeTuple != NULL)
+                {
+                    Tuple* pTupleRes = pEdgeTuple->Clone();
+                    if (pTupleRes != NULL)
+                    {
+                        const int nAttributes = pTupleRes->GetNoAttributes();
+                        for (int i = 0; i < nAttributes; ++i)
+                        {
+                            Attribute* pAttr = pTupleRes->GetAttribute(i);
+                            if (pAttr != NULL)
+                                pAttr->SetDefined(false);
+                        }
+                    }
+
+                    return pTupleRes;
+                }
+            }
+        }
+
+        assert(false);
+        return NULL;
+    }
+    else
+    {
+        return NULL;
+    }
+}
+

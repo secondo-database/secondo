@@ -100,6 +100,10 @@ public:
 
     Rectangle<2> GetBoundingBox(void) const;
 
+
+    // Only used by MapMatchingOEdgeTupleStreamCreator
+    Tuple* GetUndefEdgeTuple(void) const;
+
 private:
 
     bool GetEdges(const Tuple* pTuple,

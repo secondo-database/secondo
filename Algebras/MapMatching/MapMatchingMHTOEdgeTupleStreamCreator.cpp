@@ -59,10 +59,13 @@ OEdgeTupleStreamCreator::OEdgeTupleStreamCreator(Supplier s,
  m_pTupleType(NULL),
  m_pTupleBuffer(NULL),
  m_pTupleIterator(NULL),
+ m_pTupleUndefEdge(NULL),
  m_dNetworkScale(rNetw.GetNetworkScale())
 {
     ListExpr tupleType = GetTupleResultType(s);
     m_pTupleType = new TupleType(nl->Second(tupleType));
+
+    m_pTupleUndefEdge = rNetw.GetUndefEdgeTuple();
 }
 
 OEdgeTupleStreamCreator::~OEdgeTupleStreamCreator()
@@ -70,6 +73,10 @@ OEdgeTupleStreamCreator::~OEdgeTupleStreamCreator()
     if (m_pTupleType != NULL)
         m_pTupleType->DeleteIfAllowed();
     m_pTupleType = NULL;
+
+    if (m_pTupleUndefEdge != NULL)
+        m_pTupleUndefEdge->DeleteIfAllowed();
+    m_pTupleUndefEdge = NULL;
 
     delete m_pTupleIterator;
     m_pTupleIterator = NULL;
@@ -92,6 +99,7 @@ bool OEdgeTupleStreamCreator::CreateResult(
             continue;
 
         DateTime EndTimePrev((int64_t)0);
+        const MHTRouteCandidate::PointData* pDataEnd = NULL;
 
         const std::vector<MHTRouteCandidate::RouteSegment*>&
                               vecRouteSegments = pCandidate->GetRouteSegments();
@@ -110,8 +118,14 @@ bool OEdgeTupleStreamCreator::CreateResult(
                                                                dDistance);
             EndTimePrev = ProcessSegment(*pSegment,
                                          EndTimePrev,
+                                         pDataEnd,
                                          pData,
                                          dDistance);
+
+            if (pSegment->GetPoints().size() > 0)
+                pDataEnd = pSegment->GetPoints().back();
+            else
+                pDataEnd = NULL;
         }
     }
 
@@ -196,119 +210,165 @@ const MHTRouteCandidate::PointData* OEdgeTupleStreamCreator::
 DateTime OEdgeTupleStreamCreator::ProcessSegment(
                const MHTRouteCandidate::RouteSegment& rSegment,
                const DateTime& rEndTimePrevSegment,
+               const MHTRouteCandidate::PointData* pPrevPointData,
                const MHTRouteCandidate::PointData* pFirstPointofNextSeg,
                double dDistance) // Distance to first point of next segment
 {
-    if (rSegment.IsOffRoad()) // No edge - TODO
-        return DateTime((int64_t)0);
-    else
-    {
-        const shared_ptr<IMMNetworkSection> pSection = rSegment.GetSection();
-        if (pSection == NULL)
-        {
-            assert(false);
-            return DateTime((int64_t)0);
-        }
+    const shared_ptr<IMMNetworkSection> pSection = rSegment.GetSection();
 
-        DateTime TimeUndef((int64_t)0);
-        TimeUndef.SetDefined(false);
+    DateTime TimeUndef((int64_t)0);
+    TimeUndef.SetDefined(false);
 
-        const std::vector<MHTRouteCandidate::PointData*>& vecPoints =
+    const std::vector<MHTRouteCandidate::PointData*>& vecPoints =
                                                            rSegment.GetPoints();
-        const size_t nPoints = vecPoints.size();
+    const size_t nPoints = vecPoints.size();
 
-        DateTime TimeStart = rEndTimePrevSegment;
-        Point PtStart(false);
+    DateTime TimeStart = rEndTimePrevSegment;
+    Point PtStart(false);
 
-        const SimpleLine* pCurve = pSection->GetCurve();
-        bool bStartsSmaller = pSection->GetCurveStartsSmaller();
+    const SimpleLine* pCurve = pSection != NULL ? pSection->GetCurve() : NULL;
+    bool bStartsSmaller = pSection != NULL ? pSection->GetCurveStartsSmaller() :
+                                             false;
 
-        if (!TimeStart.IsDefined() || TimeStart.IsZero())
+    if (pCurve == NULL && m_eMode == MODE_EDGES) // Offroad
+        return TimeUndef;
+
+    if (!TimeStart.IsDefined() || TimeStart.IsZero())
+    {
+        // first segment
+        const MHTRouteCandidate::PointData* pData = nPoints > 0 ?
+                                                       vecPoints.front() : NULL;
+        if (pData != NULL)
         {
-            // first segment
-            const MHTRouteCandidate::PointData* pData =
-                                                   rSegment.GetPoints().front();
-            if (pData != NULL)
-            {
-                TimeStart = pData->GetTime();
+            TimeStart = pData->GetTime();
 
-                if (m_eMode == MODE_EDGES_AND_POSITIONS)
-                {
-                    const Point* pPtProj = pData->GetPointProjection();
-                    if (pPtProj != NULL && pPtProj->IsDefined())
-                        PtStart = *pPtProj;
-                    else
-                        PtStart = pData->GetPointGPS();
-                }
-            }
-            else
+            if (m_eMode == MODE_EDGES_AND_POSITIONS)
             {
-                assert(false);
+                const Point* pPtProj = pData->GetPointProjection();
+                if (pPtProj != NULL && pPtProj->IsDefined())
+                    PtStart = *pPtProj;
+                else
+                    PtStart = pData->GetPointGPS();
             }
         }
         else
         {
-            if (m_eMode == MODE_EDGES_AND_POSITIONS)
-                PtStart = pCurve->StartPoint(bStartsSmaller);
+            return TimeUndef; // first segment and no point
         }
-
+    }
+    else
+    {
         if (m_eMode == MODE_EDGES_AND_POSITIONS)
         {
-            Point PtEnd(false);
-            DateTime TimeEnd((int64_t)0);
-
-            for (size_t i = 0; i < nPoints; ++i)
+            if (pCurve == NULL)
             {
-                MHTRouteCandidate::PointData* pData = vecPoints[i];
-                if (pData == NULL)
-                    continue;
-
-                TimeEnd = pData->GetTime();
-
-                const Point* pPtProj = pData->GetPointProjection();
-                if (pPtProj != NULL && pPtProj->IsDefined())
+                // this segment is offroad
+                if (pPrevPointData == NULL)
                 {
-                    PtEnd = *pPtProj;
+                    const MHTRouteCandidate::PointData* pData =
+                                         nPoints > 0 ? vecPoints.front() : NULL;
+                    if (pData != NULL)
+                    {
+                        const Point* pPtProj = pData->GetPointProjection();
+                        if (pPtProj != NULL && pPtProj->IsDefined())
+                            PtStart = *pPtProj;
+                        else
+                            PtStart = pData->GetPointGPS();
+                    }
+                    else
+                    {
+                        return TimeUndef;
+                    }
                 }
                 else
                 {
-                    PtEnd = pData->GetPointGPS();
+                    PtStart = *(pPrevPointData->GetPointProjection());
+                    if (!PtStart.IsDefined())
+                        PtStart = pPrevPointData->GetPointGPS();
+
                 }
-
-                if (TimeStart == TimeEnd && AlmostEqual(PtStart, PtEnd))
-                    continue;
-
-                ProcessPoints(rSegment, TimeStart, TimeEnd, PtStart, PtEnd);
-
-                PtStart = PtEnd;
-                TimeStart = TimeEnd;
+                const Point* pPtProj = pPrevPointData->GetPointProjection();
+                if (pPtProj != NULL)
+                    PtStart = *pPtProj;
             }
-        }
-
-
-        if (pFirstPointofNextSeg == NULL ||
-            !pFirstPointofNextSeg->GetTime().IsDefined() ||
-            pFirstPointofNextSeg->GetPointProjection() == NULL ||
-            !pFirstPointofNextSeg->GetPointProjection()->IsDefined())
-        {
-            // this is the last point
-            if (m_eMode == MODE_EDGES_AND_POSITIONS)
+            else
             {
-                return TimeStart;
-            }
-            else if (m_eMode == MODE_EDGES)
-            {
-                const MHTRouteCandidate::PointData* pData =
-                                                    rSegment.GetPoints().back();
-                if (pData != NULL)
+                if (pPrevPointData == NULL ||
+                    pPrevPointData->GetPointProjection() != NULL) // onroad
                 {
-                    DateTime TimeEnd = pData->GetTime();
-                    ProcessPoints(rSegment, TimeStart, TimeEnd,
-                                  Point(false), Point(false));
-                    return TimeEnd;
+                    PtStart = pCurve->StartPoint(bStartsSmaller);
                 }
+                else
+                    PtStart = pPrevPointData->GetPointGPS();
             }
         }
+    }
+
+    // Process all points
+    if (m_eMode == MODE_EDGES_AND_POSITIONS)
+    {
+        Point PtEnd(false);
+        DateTime TimeEnd((int64_t)0);
+
+        for (size_t i = 0; i < nPoints; ++i)
+        {
+            MHTRouteCandidate::PointData* pData = vecPoints[i];
+            if (pData == NULL)
+                continue;
+
+            TimeEnd = pData->GetTime();
+
+            const Point* pPtProj = pData->GetPointProjection();
+            if (pPtProj != NULL && pPtProj->IsDefined())
+            {
+                PtEnd = *pPtProj;
+            }
+            else
+            {
+                PtEnd = pData->GetPointGPS();
+            }
+
+            if (TimeStart == TimeEnd && AlmostEqual(PtStart, PtEnd))
+                continue;
+
+            ProcessPoints(rSegment, TimeStart, TimeEnd, PtStart, PtEnd);
+
+            PtStart = PtEnd;
+            TimeStart = TimeEnd;
+        }
+    }
+
+    // Process endpoint of segment
+
+    if (pFirstPointofNextSeg == NULL ||
+        !pFirstPointofNextSeg->GetTime().IsDefined() ||
+        pFirstPointofNextSeg->GetPointProjection() == NULL ||
+        !pFirstPointofNextSeg->GetPointProjection()->IsDefined())
+    {
+        // this is the last point or the next segment is offroad
+        if (m_eMode == MODE_EDGES_AND_POSITIONS)
+        {
+            return TimeStart;
+        }
+        else if (m_eMode == MODE_EDGES)
+        {
+            const MHTRouteCandidate::PointData* pData = nPoints > 0 ?
+                                                        vecPoints.back() : NULL;
+
+            DateTime TimeEnd = pData != NULL ? pData->GetTime() : TimeStart;
+            ProcessPoints(rSegment, TimeStart, TimeEnd,
+                          Point(false), Point(false));
+            return TimeEnd;
+        }
+        else
+        {
+            assert(false);
+            return TimeUndef;
+        }
+    }
+    else if (pSection != NULL && pCurve != NULL)
+    {
+        // Calculate distance to endpoint of section
 
         Point PtEnd = rSegment.HasUTurn() ? pSection->GetStartPoint():
                                             pSection->GetEndPoint();
@@ -321,7 +381,7 @@ DateTime OEdgeTupleStreamCreator::ProcessSegment(
         double dDistLastPt2FirstPtOfNextSeg = dDistLastPt2End + dDistance;
         if (AlmostEqual(dDistLastPt2FirstPtOfNextSeg, 0.0))
         {
-            return TimeStart; // TODO
+            return TimeStart;
         }
 
         DateTime Duration = pFirstPointofNextSeg->GetTime() - TimeStart;
@@ -334,6 +394,16 @@ DateTime OEdgeTupleStreamCreator::ProcessSegment(
         ProcessPoints(rSegment, TimeStart, TimeEnd, PtStart, PtEnd);
 
         return TimeEnd;
+    }
+    else
+    {
+        const MHTRouteCandidate::PointData* pData = nPoints > 0 ?
+                                                        vecPoints.back() : NULL;
+        if (pData != NULL)
+            return pData->GetTime();
+        else
+            return TimeUndef;
+
     }
 }
 
@@ -386,14 +456,13 @@ const Tuple* OEdgeTupleStreamCreator::GetEdgeTuple(
     const shared_ptr<IMMNetworkSection> pSection = rSegment.GetSection();
     if (pSection == NULL)
     {
-        // Offroad - > TODO Dummy-Edge
-        return NULL;
+        return m_pTupleUndefEdge;
     }
 
     const ONetworkSectionAdapter* pAdapter = pSection->CastToONetworkSection();
     if (pAdapter == NULL)
     {
-        assert(false);
+        assert(false); // only for ONetwork
         return NULL;
     }
 
@@ -415,7 +484,6 @@ void OEdgeTupleStreamCreator::CreateTuple(
     const Tuple* pTupleEdge = GetEdgeTuple(rSegment);
     if (pTupleEdge == NULL)
     {
-        //assert(false);
         return;
     }
 

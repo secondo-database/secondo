@@ -112,6 +112,15 @@ bool ONetworkAdapter::IsDefined(void) const
     return m_pNetwork != NULL;
 }
 
+// Only used by MapMatchingOEdgeTupleStreamCreator
+Tuple* ONetworkAdapter::GetUndefEdgeTuple(void) const
+{
+    if (m_pNetwork != NULL)
+        return m_pNetwork->GetUndefEdgeTuple();
+    else
+        return NULL;
+}
+
 
 
 /*
