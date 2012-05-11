@@ -2745,9 +2745,6 @@ int hadoopReduceValueMap(Word* args, Word& result,
           break;
       }
 
-      cerr << "Former Object numbers: " << dloNumber << endl;
-      cerr << "Object numbers: " << DLO_NameList.size() << endl;
-
 //      if ((int)DLO_NameList.size() > dloNumber){
 //        cerr << "Not allow using DLO flist in reduce queries. " << endl;
 //        ok = false;
@@ -3246,8 +3243,6 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
           break;
       }
 
-      cerr << "Former Object numbers: " << dloNumber << endl;
-      cerr << "Object numbers: " << DLO_NameList.size() << endl;
 //      if (DLO_NameList.size() > dloNumber){
 //        cerr << "Not allow using DLO flist in reduce queries. " << endl;
 //        ok = false;
