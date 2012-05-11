@@ -97,7 +97,13 @@ if [ $DISLC = true ]; then
   while [ ${CNT} -lt ${#MINISECS[*]} ]; do
     MINISEC="${MINISECS[$CNT]}/${PARALLEL_SECONDO_DATASERVER_NAME}/${PARALLEL_SECONDO_MINI_NAME}"
     SECCONF="${MINISECONS[$CNT]}"
-    if [ -d "${MINISEC}" ]; then
+    let CNT++
+
+    if [ -L "${MINISEC}" ]; then
+      echo -e "${MINISEC} is a link pointing to $(readlink ${MINISEC})."
+      echo -e "Hence the MiniSecondo distribution passes over this data server. \n"
+      continue
+    elif [ -d "${MINISEC}" ]; then
       echo "Delete the exist mini secondo: ${MINISEC}"
       if [ -w "${MINISEC}" ]; then 
         rm -rf "${MINISEC}"
@@ -118,7 +124,6 @@ if [ $DISLC = true ]; then
     chmod -R 775 ${MINISEC}/bin
     echo -e "The mini secondo is deployed in local: ${MINISEC}\n"
 
-    let CNT++
   done
   echo "===== End Deploy mini Secondo Local ====="
 
@@ -128,7 +133,7 @@ fi
 # Also the master and slave lists
 if [ $DISCL = true ]; then
   echo "===== Deploy mini Secondo Cluster ====="
-  echo "Distribute the mini secondo to every node inside the cluster, including the master node."
+  echo -e "Distribute the mini secondo to every node inside the cluster, \nincluding the master node. ... \n\n"
   RARVNAME="DTR_secondo.tar.gz"
   IPLIST="$(get_slaveIPs -m)"
 
@@ -139,9 +144,9 @@ if [ $DISCL = true ]; then
 #    RCONF=`ssh $NODE "echo \\\$PARALLEL_SECONDO_CONF"`
 #    scp ${PARALLEL_SECONDO_MASTER} ${PARALLEL_SECONDO_SLAVES} $NODE:$RCONF
 
-    RSEC=$(ssh $NODE "echo \$PARALLEL_SECONDO")  # Remote mini Secondo
+    RSEC=$(ssh $NODE "echo \$PARALLEL_SECONDO" 2>/dev/null)  # Remote mini Secondo
 #    RSECON=$PARALLEL_SECONDO_DBCONFIG
-    RSECON=$(ssh $NODE "echo \\$PARALLEL_SECONDO_DBCONFIG")  # Use nodes' local description
+    RSECON=$(ssh $NODE "echo \\$PARALLEL_SECONDO_DBCONFIG" 2>/dev/null)  # Use nodes' local description
     declare -a RSA=($(echo $RSEC | tr ':' ' '))
     declare -a RSCA=($(echo $RSECON | tr ':' ' '))
 
@@ -154,19 +159,25 @@ if [ $DISCL = true ]; then
     
     while [ $CNT -lt ${#RSA[@]} ]; do
        fLoc="${RSA[$CNT]}/${PARALLEL_SECONDO_DATASERVER_NAME}"
-       echo "Distribute mini Secondo -> $NODE:$fLoc ... "
-       scp "$MSARV" "$NODE:${fLoc}/${RARVNAME}"
        rsLoc="${fLoc}/${PARALLEL_SECONDO_MINI_NAME}"
-       ssh "$NODE"  "rm -rf ${rsLoc}"
-       ssh "$NODE"  "mkdir ${rsLoc}"
-       ssh "$NODE"  "tar -xzf ${fLoc}/${RARVNAME} -C ${rsLoc}"
-       # Changed the access mode after distribute the data
-       ssh "$NODE"  "chmod -R 775 ${rsLoc}/bin"
-#       echo "Changed the access mod of mini Secondo"
-#       ssh "$NODE"  "ls -ld ${rsLoc}/bin"       
-       ssh "$NODE"  "cp ${RSCA[$CNT]} ${rsLoc}/bin/${CONFNAME}"
-       echo -e "Use ${RSCA[$CNT]} to set data server ${NODE}:$(($CNT + 1)) \n"
-
+       echo "Distribute mini Secondo -> $NODE:$fLoc ... "
+       
+       LPos=$(ssh "$NODE" "readlink ${rsLoc}" 2>/dev/null)
+       if [ "$LPos" != "" ]; then
+         echo -e "${NODE}:${rsLoc} is a link pointing to ${LPos}."
+         echo -e "Hence the MiniSecondo distribution passes over this data server. \n"
+       else
+         scp "$MSARV" "$NODE:${fLoc}/${RARVNAME}" 2>/dev/null
+         ssh "$NODE"  "rm -rf ${rsLoc}" 2>/dev/null
+         ssh "$NODE"  "mkdir ${rsLoc}" 2>/dev/null
+         ssh "$NODE"  "tar -xzf ${fLoc}/${RARVNAME} -C ${rsLoc}" 2>/dev/null
+         # Changed the access mode after distribute the data
+         ssh "$NODE"  "chmod -R 775 ${rsLoc}/bin" 2>/dev/null
+ #        echo "Changed the access mod of mini Secondo"
+ #        ssh "$NODE"  "ls -ld ${rsLoc}/bin"       
+         ssh "$NODE"  "cp ${RSCA[$CNT]} ${rsLoc}/bin/${CONFNAME}" 2>/dev/null
+         echo -e "Use ${RSCA[$CNT]} to set data server ${NODE}:$(($CNT + 1)) \n"
+       fi
        let CNT++
     done
 
