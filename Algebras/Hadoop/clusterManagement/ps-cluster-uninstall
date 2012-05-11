@@ -26,6 +26,7 @@ WARNINFO="Warning !! "
 ERRORINFO="ERROR !! "
 
 PSDKLOC=$SECONDO_BUILD_DIR/bin/ps_SDK
+SECCONF=$SECONDO_BUILD_DIR/bin/SecondoConfig.ini
 DSLIST=$PSDKLOC/DSLIST.ui
 IPLIST=$PSDKLOC/IPLIST.ui
 RCFILENAME=".parasecrc"
@@ -117,13 +118,11 @@ for DServ in ${DBSERVERS[*]}; do
   ssh $IPADDR "rm -rf $DSPATH" 2>/dev/null
 done
 
-
-
 # 4. remove .parasecrc file and the "source .parasecrc" line in .bashrc file from all slaves
 cat $DSLIST | cut -d':' -f 1 | awk '!x[$0]++' > $IPLIST
 ANODES=($(cat $IPLIST | tr '\n' ' '))
 for nodeIP in ${ANODES[*]};do
-  ssh $nodeIP "sed $(PSEDOPT) \"s/^source $RCFILENAME//\" \$HOME/.bashrc "
+  ssh $nodeIP "sed $(PSEDOPT) \"s/^source [\\\$A-Z_.\\\/]*$RCFILENAME//\" \$HOME/.bashrc "
   ssh $nodeIP "rm .parasecrc"
   echo "Remove environment setting on node $nodeIP"
 done
@@ -131,11 +130,24 @@ done
 # 5. remvoe ps_SDK folder in $SECONDO_BUILD_DIR
 rm -rf $PSDKLOC
 
+# 6. clean the SecondoConfig.ini file
+# Remove all Parallel Secondo Configurations from $SECCONF
+# Find the start line 
+declare -i ST=$(grep -n "\[ParallelSecondo\]" $SECCONF| cut -d':' -f1)
+if [ $ST -gt 0 ]; then
+  let ST++
+  declare -i ED=$(sed -n "$ST,$ p" $SECCONF | grep -n "^[[]" | head -1 | cut -d':' -f1)
+  let ED=$(( $ST + $ED - 2 ))
+  sed $(PSEDOPT) "${ST},${ED}s/^\([^#]\)*//" $SECCONF
+fi
+
+
+
+
+
 echo -e "\n\n\n************************************************"
 echo "Congratulations! The parallel Secondo has been correctly removed from your cluster."
 echo -e "\n\n"
 echo "************************************************"
 
 exit 0
-
-# 6. clean the SecondoConfig.ini file
