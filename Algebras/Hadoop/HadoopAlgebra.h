@@ -148,11 +148,18 @@ public:
   inline static string tempName(const bool isDB){
     stringstream ss;
     if (isDB){
-      ss << "SubXXXDB_" <<
+// A short prefix allows user to set longer database name on the master.
+      ss << "PS" <<
           SecondoSystem::GetInstance()->GetDatabaseName();
     }
     else{
-      ss << "SubXXXFL_" << clock()
+/*
+Sometimes, it happens that two parallel operators are used in a same query,
+and both get a same name for their sub-objects, if we use clock function to
+set names. Hence I picked up the rand function to substitute it.
+
+*/
+      ss << "SubXXXFL_" << WinUnix::rand()
           << "_" << WinUnix::getpid();
     }
 
