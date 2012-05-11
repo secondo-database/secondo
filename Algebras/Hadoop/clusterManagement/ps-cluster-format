@@ -124,7 +124,30 @@ function readPSConf
 #IFS=$OLDIFS
 # ------ Example of Reading ParallelSecondoConfig.ini File -----
 
+#Set a SecondoConfig parameter
+#If the position line is set, then only add the new parameter after that
+#Or else, remove old setting before inserting the new value.
+function setSecConf
+{
+  DSDBCONF=$1  #Configure File
+  ParaName=$2
+  ParaValue=$3
+  declare -i PPos=$4
 
+  if [ $PPos -eq 0 ]; then
+    DPos=($(grep -n "^[#]*[ ]*$ParaName" $DSDBCONF | cut -d':' -f1))
+    declare -i APos=$(( ${DPos[0]} - 1 ))  # Append position
+    DPos=$( echo ${DPos[*]} | tr ' ' ',' )
+    sed $(PSEDOPT) "${DPos}d" $DSDBCONF  # Delete old parameter
+  else
+    declare -i APos=$PPos
+  fi
+  
+  NewPara="$ParaName=$ParaValue"
+  sed $(PSEDOPT) "${APos}a \\
+  $NewPara
+  " $DSDBCONF
+}
 
 
 
@@ -396,7 +419,7 @@ for IDX in {1..2}; do
   
 done
 
-# 4. Prepare each data server's SecondoConfig.ini file
+# 5. Prepare each data server's SecondoConfig.ini file
 MSECLIST=$PSDKLOC/miniSecList  #List of all data servers
 DBCONFILE="SecondoConfig.ini"
 # Following parameters need to be changed.
@@ -405,6 +428,19 @@ PT_SECPORT="SecondoPort"
 PT_PARASEC="\[ParallelSecondo\]"  #Add parameters instead of change values
 PT_PSFSNME="SecondoFilePath"
 PT_LIPADDR="localIP"
+MDBCONF=$SECONDO_BUILD_DIR/bin/$DBCONFILE
+# 5a. Clean all Parallel Secondo configuration in $MDBCONF
+declare -i PSCST=$(grep -n "$PT_PARASEC" $MDBCONF| cut -d':' -f1)
+if [ $PSCST -gt 0 ]; then
+  let PSCST++
+  declare -i PSCED=$(sed -n "$PSCST,$ p" $MDBCONF | grep -n "^[[]" | head -1 | cut -d':' -f1)
+  let PSCED=$(( $PSCST + $PSCED - 2 ))
+  sed $(PSEDOPT) "${PSCST},${PSCED}s/^\([^#]\)*//" $MDBCONF
+else
+  echo "$PT_PARASEC" | sed 's/\\//g' >> $MDBCONF
+  PSCST=$(grep -n "$PT_PARASEC" $MDBCONF| cut -d':' -f1)
+fi
+
 cat $PSMFILE $PSSFILE | awk '!x[$0]++' > $MSECLIST
 NodeIPAddr=""
 while read dataServ; do
@@ -414,7 +450,7 @@ while read dataServ; do
   PortNum=$(echo $dataServ | cut -d':' -f3)
   
   DSDBCONF=$PSDKLOC/$DBCONFILE.$IPAddre.$PortNum
-  cp $SECONDO_BUILD_DIR/bin/$DBCONFILE $DSDBCONF
+  cp $MDBCONF $DSDBCONF
   
   # Change SecondoHome & SecondoPort
   ChgPName=($PT_SECHOME $PT_SECPORT)
@@ -424,23 +460,14 @@ while read dataServ; do
     ParaName=${ChgPName[$Cnt]}
     ParaVale=${ChgValue[$Cnt]}
 
-    # Remove all configurations about this parameter
-    PPos=($(grep -n "^[#]*[ ]*$ParaName" $DSDBCONF | cut -d':' -f1))
-    Apos=$(( ${PPos[0]} - 1 ))  # Append position
-    PPos=$( echo ${PPos[*]} | tr ' ' ',' )
-    sed $(PSEDOPT) "${PPos}d" $DSDBCONF
-    
-    NewPara="$ParaName=$ParaVale"
-    sed $(PSEDOPT) "${Apos}a \\
-    $NewPara
-    " $DSDBCONF  
+    setSecConf $DSDBCONF $ParaName $ParaVale
     let Cnt++
   done
   
   # In case the parallel Secondo environment is not initialized
-  if [ "$(grep "$PT_PARASEC" $DSDBCONF )" = "" ]; then
-    echo "$PT_PARASEC" | sed 's/\\//g' >> $DSDBCONF
-  fi   
+#  if [ "$(grep "$PT_PARASEC" $DSDBCONF )" = "" ]; then
+#    echo "$PT_PARASEC" | sed 's/\\//g' >> $DSDBCONF
+#  fi   
  
   # Add PSFS & LocalIP to $PT_PARASEC environment
   AddPName=($PT_PSFSNME $PT_LIPADDR)
@@ -450,15 +477,14 @@ while read dataServ; do
     ParaName=${AddPName[$Cnt]}
     ParaVale=${AddValue[$Cnt]}
 
-    PPos=$(grep -n "$PT_PARASEC" $DSDBCONF | tail -1 | cut -d':' -f1)
-    NewPara="$ParaName=$ParaVale"
-    sed $(PSEDOPT) "${PPos}a \\
-    $NewPara
-    " $DSDBCONF  
+#    PPos=$(grep -n "$PT_PARASEC" $DSDBCONF | tail -1 | cut -d':' -f1)
+    setSecConf $DSDBCONF $ParaName $ParaVale $PSCST
     let Cnt++
   done 
   
 done < $MSECLIST
+
+
 
 ANODES=($(cat $DSRVFILE | tr '\n' ' '))
 for Node in ${ANODES[*]}; do
@@ -479,7 +505,7 @@ for Node in ${ANODES[*]}; do
 done
 
 
-# 5. Distribute files and folders  to every cluster node, including: 
+# 6. Distribute files and folders  to every cluster node, including: 
 # # a. $HOME/.parasecrc , and source it in each $HOME/.bashrc
 # # b. msec , msec-databases, PSFS folders
 # # c. conf, hadoop, HDFS (only on the main data server of each node)
@@ -517,19 +543,19 @@ for node in ${ANODES[*]};do
 echo "Distributing on Node: $nodeIP"
   dataServers=($(echo ${node#*:} | tr ':' ' '))
   nodeRCFile=$PSDKLOC/parasecrc_${nodeIP}
-  scp $nodeRCFile $nodeIP:$RCFILENAME
+  scp $nodeRCFile $nodeIP:$RCFILENAME 2>/dev/null
 echo "Copy file $nodeRCFile to $nodeIP:$RCFILENAME"
 
   # Delete exist commands if necessary
-  ssh $nodeIP "sed $(PSEDOPT) \"s/^source $RCFILENAME//\" \$HOME/.bashrc "
+  ssh $nodeIP "sed $(PSEDOPT) \"s/^source [\\\$A-Z_.\\\/]*$RCFILENAME//\" \$HOME/.bashrc "
   #source .parasecrc file in the .bashrc, to set all required environment
   case $SECONDO_PLATFORM in
     linux[0-9]* )
       # Execute the .parasecrc directly after processing .secondorc
-      ssh $nodeIP "sed -i \"s/source [\\\$A-Z_.\\\/]*secondorc/&\nsource $RCFILENAME/\" \$HOME/.bashrc"
+      ssh $nodeIP "sed -i \"s/source [\\\$A-Z_.\\\/]*secondorc/&\nsource \\\$HOME/$RCFILENAME/\" \$HOME/.bashrc"
     ;;
     mac_osx )
-      ssh $nodeIP "echo \"source $RCFILENAME\" >> \$HOME/.bashrc"
+      ssh $nodeIP "echo \"source \\\$HOME/$RCFILENAME\" >> \$HOME/.bashrc"
       echo "${WARNINFO}The $HOME/.bashrc file must be executed in Mac OS X shell prompt" 
       echo "This step has to be done manually by users."
     ;;
@@ -566,6 +592,73 @@ echo "Copy file $nodeRCFile to $nodeIP:$RCFILENAME"
   done
 
 done
+
+# 7. Set up Master Mini Secondo Configuration if NS4Master is set
+OLDIFS=$IFS
+IFS=$'\n'
+NS4Master=($(readPSConf "Options" "NS4Master" "="))
+NS4Master=$(trim ${NS4Master[0]})
+IFS=$OLDIFS
+if [ "$NS4Master" = "true" ]; then
+   
+  # Ensure the current node is the master node
+  LIP=$(trim $(get_localIP))
+  if [ "$LIP" != "$MIP" ]; then
+    echo "${ERRORINFO}The current node is not the master node,
+      cannot set its Secondo as the master mini Secondo."
+    echo "Installation for Parallel Secondo Fails. "
+    exit -1
+  fi
+  
+  #Set up Secondo Configurations
+  
+  # a. Change Secondo Home and Port
+  SHPos=($(grep -n "^[ ]*$PT_SECHOME[ ]*=" $MDBCONF | cut -d':' -f1))
+  SHPos=${SHPos[$(( ${#SHPos[@]} - 1 ))]}
+  SHConf=$(sed -n "${SHPos}p" $MDBCONF)
+  PSHLoc=("$(trim ${SHConf#*=})" "$SECONDO_PARAM_SecondoHome" "$HOME/secondo-databases")
+  for loc in ${PSHLoc[*]}; do
+    if [ -d $loc ]; then
+      MSHLoc=$loc
+      echo "The master Secondo Home is set as $MSHLoc"
+      break
+    fi
+  done
+  if [ "$MSHLoc" = "" ]; then
+    echo "${ERRORINFO}Cannot find the master Secondo Home."
+    echo "Installation for Parallel Secondo Fails. "
+    exit -1
+  fi
+  setSecConf $MDBCONF $PT_SECHOME $MSHLoc
+  
+  MSPtNum=$(echo $MasterDS | cut -d':' -f3)
+  SPtPos=($(grep -n "^[ ]*$PT_SECPORT[ ]*=" $MDBCONF | cut -d':' -f1))
+  SPtPos=${SPtPos[$(( ${#SPtPos[@]} - 1 ))]}
+  CPtConf=$(sed -n "${SPtPos}p" $MDBCONF)
+  CptNum=$(trim ${CPtConf#*=})
+  if [ "$CptNum" != "" ]; then
+    if [ $CptNum -ne $MSPtNum ]; then
+      echo "${WARNINFO}The current Secondo port number $CptNum will be
+        overlapped by the master Secondo port $MSPtNum."
+    fi
+  fi
+  setSecConf $MDBCONF $PT_SECPORT $MSPtNum
+  
+  # b. Add Parallel Secondo Configurations
+  setSecConf $MDBCONF $PT_LIPADDR $LIP $PSCST
+  
+  MPSFSLOC=$(head -1 $PSMFILE | cut -d':' -f2)
+  setSecConf $MDBCONF $PT_PSFSNME $MPSFSLOC $PSCST
+
+  #Replace the msec with a link
+  echo $MPSFSLOC
+  MMSECLOC=${MPSFSLOC%/*}/$DSMSECNAME
+  echo "MMSECLOC is $MMSECLOC"
+  rm -rf $MMSECLOC
+  ln -s $SECONDO_BUILD_DIR $MMSECLOC
+  echo "The $SECONDO_BUILD_DIR is used to be the master mini Secondo of the parallel Secondo."
+fi
+
 
 echo -e "\n\n\n************************************************"
 echo "Congratulations! The parallel Secondo has been correctly set up on your cluster."
