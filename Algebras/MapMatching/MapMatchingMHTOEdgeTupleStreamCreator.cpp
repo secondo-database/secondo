@@ -429,13 +429,42 @@ void OEdgeTupleStreamCreator::ProcessPoints(
             const SimpleLine* pCurve = pSection->GetCurve();
             if (pCurve != NULL && !pCurve->IsEmpty())
             {
-                bool bStartsSmaller = pSection->GetCurveStartsSmaller();
+                const bool bStartsSmaller = pSection->GetCurveStartsSmaller();
 
-                if (rPtStart.IsDefined())
+                const Point& rPtStartCurve = pCurve->StartPoint(bStartsSmaller);
+                const Point& rPtEndCurve = pCurve->EndPoint(bStartsSmaller);
+
+                // calculate PosStart
+                if (AlmostEqual(rPtStart, rPtStartCurve) ||
+                    AlmostEqual(rPtStart, rPtEndCurve))
+                {
                     pCurve->AtPoint(rPtStart, bStartsSmaller, 0.0, dPosStart);
+                }
 
-                if (rPtEnd.IsDefined())
+                if (dPosStart < 0.0)
+                {
+                    MMUtil::GetPosOnSimpleLine(*pCurve,
+                                               rPtStart,
+                                               bStartsSmaller,
+                                               m_dNetworkScale,
+                                               dPosStart);
+                }
+
+                // calculate PosEnd
+                if (AlmostEqual(rPtEnd, rPtStartCurve) ||
+                    AlmostEqual(rPtEnd, rPtEndCurve))
+                {
                     pCurve->AtPoint(rPtEnd, bStartsSmaller, 0.0, dPosEnd);
+                }
+
+                if (dPosEnd < 0.0)
+                {
+                    MMUtil::GetPosOnSimpleLine(*pCurve,
+                                               rPtEnd,
+                                               bStartsSmaller,
+                                               m_dNetworkScale,
+                                               dPosEnd);
+                }
             }
         }
 
