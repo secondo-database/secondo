@@ -135,10 +135,13 @@ rm -rf $PSDKLOC
 # Find the start line 
 declare -i ST=$(grep -n "\[ParallelSecondo\]" $SECCONF| cut -d':' -f1)
 if [ $ST -gt 0 ]; then
-  let ST++
-  declare -i ED=$(sed -n "$ST,$ p" $SECCONF | grep -n "^[[]" | head -1 | cut -d':' -f1)
-  let ED=$(( $ST + $ED - 2 ))
-  sed $(PSEDOPT) "${ST},${ED}s/^\([^#]\)*//" $SECCONF
+  declare -i ED=$(sed -n "$(( $ST + 1 )),$ p" $SECCONF | grep -n "^[[]" | head -1 | cut -d':' -f1)
+  if [ $ED -eq 0 ]; then
+    ED=$(wc -l $SECCONF | cut -d' ' -f1)
+  else
+    ED=$(( $ST + $ED - 1 ))
+  fi
+  sed $(PSEDOPT) "$(( $ST + 1 )),${ED}s/^\([^#]\)*//" $SECCONF
 fi
 
 

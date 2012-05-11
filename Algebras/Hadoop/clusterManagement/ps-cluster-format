@@ -432,10 +432,13 @@ MDBCONF=$SECONDO_BUILD_DIR/bin/$DBCONFILE
 # 5a. Clean all Parallel Secondo configuration in $MDBCONF
 declare -i PSCST=$(grep -n "$PT_PARASEC" $MDBCONF| cut -d':' -f1)
 if [ $PSCST -gt 0 ]; then
-  let PSCST++
-  declare -i PSCED=$(sed -n "$PSCST,$ p" $MDBCONF | grep -n "^[[]" | head -1 | cut -d':' -f1)
-  let PSCED=$(( $PSCST + $PSCED - 2 ))
-  sed $(PSEDOPT) "${PSCST},${PSCED}s/^\([^#]\)*//" $MDBCONF
+  declare -i PSCED=$(sed -n "$(( $PSCST + 1 )),$ p" $MDBCONF | grep -n "^[[]" | head -1 | cut -d':' -f1)
+  if [ $PSCED -eq 0 ]; then
+    PSCED=$(wc -l $MDBCONF | cut -d' ' -f1)
+  else 
+    PSCED=$(( $PSCST + $PSCED - 1 ))
+  fi
+  sed $(PSEDOPT) "$(( $PSCST + 1 )),${PSCED}s/^\([^#]\)*//" $MDBCONF
 else
   echo "$PT_PARASEC" | sed 's/\\//g' >> $MDBCONF
   PSCST=$(grep -n "$PT_PARASEC" $MDBCONF| cut -d':' -f1)
@@ -643,7 +646,7 @@ if [ "$NS4Master" = "true" ]; then
     fi
   fi
   setSecConf $MDBCONF $PT_SECPORT $MSPtNum
-  
+
   # b. Add Parallel Secondo Configurations
   setSecConf $MDBCONF $PT_LIPADDR $LIP $PSCST
   
@@ -651,9 +654,7 @@ if [ "$NS4Master" = "true" ]; then
   setSecConf $MDBCONF $PT_PSFSNME $MPSFSLOC $PSCST
 
   #Replace the msec with a link
-  echo $MPSFSLOC
   MMSECLOC=${MPSFSLOC%/*}/$DSMSECNAME
-  echo "MMSECLOC is $MMSECLOC"
   rm -rf $MMSECLOC
   ln -s $SECONDO_BUILD_DIR $MMSECLOC
   echo "The $SECONDO_BUILD_DIR is used to be the master mini Secondo of the parallel Secondo."
