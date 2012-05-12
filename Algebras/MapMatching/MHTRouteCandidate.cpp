@@ -267,6 +267,9 @@ size_t MHTRouteCandidate::GetCountPointsOfLastSection(void) const
     return GetPointsOfLastSection().size();
 }
 
+
+#define DISTANCE_FACTOR 2.0
+
 static double CalcScore(const Point& rPtProjection,
                         const HalfSegment& rHSProjection,
                         const shared_ptr<IMMNetworkSection>& pSection,
@@ -281,7 +284,7 @@ static double CalcScore(const Point& rPtProjection,
                                          dNetworkScale);
     }
 
-    double dScore = dDistance;
+    double dScore = DISTANCE_FACTOR * dDistance;
 
     if (rMMData.m_dCourse >= 0.)
     {
@@ -544,7 +547,8 @@ void MHTRouteCandidate::AddPoint(const MapMatchData* pMMData)
         m_Segments.push_back(new RouteSegment()); // Offroad-Segment
     }
 
-    const double dScore = 40. + (pMMData->m_dCourse >= 0 ? 40. : 0.);
+    const double dScore = DISTANCE_FACTOR * 40. +
+                                           (pMMData->m_dCourse >= 0 ? 40. : 0.);
 
     MHTRouteCandidate::PointData* pData = m_Segments.back()->AddPoint(pMMData,
                                                                       dScore);
