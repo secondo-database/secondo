@@ -298,7 +298,16 @@ double ONetworkEdge::GetMaxSpeed(void) const
             if (pMaxSpeed != NULL && pMaxSpeed->IsDefined())
             {
                 m_dMaxSpeed = convStrToDouble(pMaxSpeed->GetValue().c_str());
-                // TODO Umrechnung mph, knots
+
+                // convert to km/h
+                if (pMaxSpeed->GetValue().find("mph") != string::npos)
+                {
+                    m_dMaxSpeed *= 1.609344;
+                }
+                else if (pMaxSpeed->GetValue().find("knots") != string::npos)
+                {
+                    m_dMaxSpeed *= 1.852;
+                }
             }
             else
                 m_dMaxSpeed = 0.0;
