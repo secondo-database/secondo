@@ -424,12 +424,16 @@ double MMUtil::CalcDistance(const Point& rPt1,
                                dScale,
                                dPos1);
 
+    //assert(dPos1 >= 0.0);
+
     double dPos2 = -1.0;
     MMUtil::GetPosOnSimpleLine(rCurve,
                                rPt2,
                                rCurve.GetStartSmaller(),
                                dScale,
                                dPos2);
+
+    //assert(dPos2 >= 0.0);
 
     AttributePtr<SimpleLine> pSubline(new SimpleLine(0));
     rCurve.SubLine(dPos1, dPos2, *pSubline);

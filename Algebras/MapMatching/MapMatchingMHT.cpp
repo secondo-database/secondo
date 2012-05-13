@@ -1193,23 +1193,22 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
                 return false;*/
         }
 
-        // Check "length" of GPS-Points
-        const vector<MHTRouteCandidate::PointData*>& vecPointsLastSection =
-                                           pCandidate->GetPointsOfLastSection();
-        const size_t nPointsLastSection = vecPointsLastSection.size();
-
-        vector<Point> vecPoints;
-        for (size_t i = 0; i < nPointsLastSection; ++i)
-        {
-            vecPoints.push_back(vecPointsLastSection[i]->GetPointGPS());
-        }
-
-        vecPoints.push_back(rPoint);
-
         bool bLookAtAdjacent = bIsEndPoint;
 
         if (!bLookAtAdjacent)
         {
+            // Check "length" of GPS-Points
+            const vector<MHTRouteCandidate::PointData*>& vecPointsLastSection =
+                                           pCandidate->GetPointsOfLastSection();
+            const size_t nPointsLastSection = vecPointsLastSection.size();
+
+            vector<Point> vecPoints;
+            for (size_t i = 0; i < nPointsLastSection; ++i)
+            {
+                vecPoints.push_back(vecPointsLastSection[i]->GetPointGPS());
+            }
+            vecPoints.push_back(rPoint);
+
             // Calculate travelled distance ('length' of GPS-Points)
             double dDistanceTravelled = MMUtil::CalcDistance(vecPoints,
                                                              m_dNetworkScale);

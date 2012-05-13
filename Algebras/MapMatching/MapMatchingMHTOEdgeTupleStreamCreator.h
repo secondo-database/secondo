@@ -91,8 +91,23 @@ private:
               size_t nIdx,
               double& dDistance);
 
-
     DateTime ProcessSegment(
+                       const MHTRouteCandidate::RouteSegment& rSegment,
+                       const DateTime& rEndTimePrevSegment,
+                       const MHTRouteCandidate::PointData* pPrevPointData,
+                       const MHTRouteCandidate::PointData* pFirstPointofNextSeg,
+                       double dDistance); // Distance to first point
+                                          // of next segment
+
+    DateTime ProcessSegment_Edges(
+                       const MHTRouteCandidate::RouteSegment& rSegment,
+                       const DateTime& rEndTimePrevSegment,
+                       const MHTRouteCandidate::PointData* pPrevPointData,
+                       const MHTRouteCandidate::PointData* pFirstPointofNextSeg,
+                       double dDistance); // Distance to first point
+                                          // of next segment
+
+    DateTime ProcessSegment_EdgesAndPositions(
                        const MHTRouteCandidate::RouteSegment& rSegment,
                        const DateTime& rEndTimePrevSegment,
                        const MHTRouteCandidate::PointData* pPrevPointData,
