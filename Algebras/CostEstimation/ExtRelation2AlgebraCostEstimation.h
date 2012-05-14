@@ -76,14 +76,50 @@ class ItHashJoinCostEstimation : public CostEstimation
 public:
     ItHashJoinCostEstimation()
     {    
+       pli = new ProgressLocalInfo();
     }    
 
-  virtual ~ItHashJoinCostEstimation() {};
+/*
+1.0 Free local datastructures
+
+*/
+  virtual ~ItHashJoinCostEstimation() {
+     if(pli) {
+        delete pli;
+     }
+  };
 
   virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo, 
     bool argsAvialable) {
 
-     return 0;
+     // no progress info available => cancel
+     if(! argsAvialable) {
+         cout << "No args available, cancel" << endl;
+         return CANCEL;
+     }
+
+     if (qp->RequestProgress(args[0].addr, &p1)
+       && qp->RequestProgress(args[1].addr, &p2)) 
+      {     
+        pli->SetJoinSizes(p1, p2);
+        
+        pRes->Card = p1.Card  * p2.Card;
+        pRes->Progress = p1.Progress;
+
+        pRes->Time = p1.Time + p1.Card * p2.Time;
+        pRes->CopySizes(pli);
+
+        cout << "Send Progress info" << endl;
+        return YIELD;
+      }
+
+     // default: send cancel
+     return CANCEL;
+  }
+
+
+  void setStream1Exhausted(bool exhausted) {
+      stream1Exhausted = exhausted;
   }
 
 /*
@@ -96,6 +132,9 @@ public:
   }
 
 private:
+  ProgressLocalInfo *pli;
+  ProgressInfo p1, p2;
+  bool stream1Exhausted;
 };
 
 
