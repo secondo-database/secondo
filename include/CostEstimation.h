@@ -143,7 +143,7 @@ function. Allowed types are:
                               timeAt16MB);  
   }  
             
-   virtual bool getLinearParams(
+   virtual bool getFunction(
             size_t NoTuples1, size_t sizeOfTuple1,
             size_t NoTuples2, size_t sizeOfTuple2,
             int& functionType,
