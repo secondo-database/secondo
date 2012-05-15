@@ -42,6 +42,7 @@ This class reads the data from a gpx-file.
 
 #include "../TemporalNet/TemporalNetAlgebra.h"
 
+#include <LogMsg.h>
 #include <stdio.h>
 
 #include <libxml/xmlmemory.h>
@@ -99,14 +100,16 @@ bool GPXFileReader::Open(std::string strFileName)
     m_pXMLDoc = xmlParseFile(strFileName.c_str());
     if (m_pXMLDoc == NULL)
     {
-        cout << "Failed to read " << strFileName << endl;
+        cmsg.error() << "Failed to read " << strFileName << endl;
+        cmsg.send();
         return false;
     }
 
     xmlNodePtr pCurNode = xmlDocGetRootElement(m_pXMLDoc);
     if (pCurNode == NULL)
     {
-        cout << "Failed to read " << strFileName << endl;
+        cmsg.error() << "Failed to read " << strFileName << endl;
+        cmsg.send();
         xmlFreeDoc(m_pXMLDoc);
         m_pXMLDoc = NULL;
         return false;
@@ -114,7 +117,8 @@ bool GPXFileReader::Open(std::string strFileName)
 
     if (xmlStrcmp(pCurNode->name, (const xmlChar *) "gpx") != 0)
     {
-        cout << "Not a gpx document " << strFileName << endl;
+        cmsg.error() << "Not a gpx document " << strFileName << endl;
+        cmsg.send();
         xmlFreeDoc(m_pXMLDoc);
         m_pXMLDoc = NULL;
         return false;
