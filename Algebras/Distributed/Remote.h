@@ -23,6 +23,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 /*
 [1] DistributedAlgebra
+April 2012 Thomas Achmann
+
+moved classes DServer and DServerManager into their own files
+
 
 November 2010 Tobias Timmerscheidt
 
@@ -37,348 +41,15 @@ RelationWriter and DServerCreator
 #ifndef H_REMOTE_H
 #define H_REMOTE_H
  
-#include <deque>
 #include "StandardTypes.h"
-#include "SocketIO.h" 
 #include "zthread/Runnable.h"
-#include "zthread/Thread.h"
-#include "zthread/Guard.h"
 #include "zthread/Condition.h"
 #include "zthread/Mutex.h"
 #include "RelationAlgebra.h"
 #include "TupleFifoQueue.h"
-#include "DBAccessGuard.h"
-#include "ThreadedMemoryCntr.h"
-//#include "StopWatch.h"
 
-#define SINGLE_THREAD 1
-
-using namespace std;
-
-
-class DServer
-{
-  DServer() 
-  : m_cmd(NULL)
-  , m_server(NULL)
-  , m_cbworker(NULL)
-  , m_error(false) {}
-public:
-
-  enum CmdType { DS_CMD_NONE = 0,  // undefined
-                 DS_CMD_WRITE,     // writes an element to the worker
-                 DS_CMD_READ,      // reads an element from the worker
-                 DS_CMD_DELETE,    // deletes an element on the worker
-                 DS_CMD_COPY,      // copies an element on the worker
-                 DS_CMD_EXEC,      // exectues a command on each element on
-                                   // the worker
-                 DS_CMD_OPEN_WRITE_REL, // opens a relation on the worker to
-                                        // add elements
-                 DS_CMD_WRITE_REL, // writes a singel tuple to a relation 
-                                   // on the worker
-                 DS_CMD_CLOSE_WRITE_REL, // closes a relation on the worker
-                 DS_CMD_READ_REL,  // reads a tuple from a relation on
-                                   // the worker and puts it into a 
-                                   // relation on the server
-                 DS_CMD_READ_TB_REL,    // reads a tuple from a relation on
-                                        // the worker and puts it into a 
-                                        // tuplebuffer on the server
-                 
-  };
-
-  static Word ms_emptyWord;
-
-  static void Debug(const string&, const string&);
-
-  DServer(string,int,string,ListExpr);
-  virtual ~DServer();
-
-  void Terminate();
-  bool connectToWorker();
-
-  void setCmd(CmdType inCmdType,
-              const list<int>* inIndex, 
-              vector<Word>* inElements = 0,
-              vector<string>* inFromNames = 0);
-
-  virtual void run();
-                          
-  bool Multiply(int count);
-  const vector<DServer*> & getChilds() const { return m_childs; }
-  void DestroyChilds();
-            
-  int getNumChilds() const { return m_numChilds;}
-      
-  bool checkServer(bool writeError) const;
-  bool hasError() const { return m_error; }
-  string getErrorText() { return m_errorText; }
-
-  const string& getServerHostName() const { return m_host; }
-
-  string getServerPortStr() const 
-  {
-    return int2Str(m_port);
-  }
-  int getServerPort() const { return m_port; }
-
-public:
-  class RemoteCommand
-  {
-  public:
-    enum RunType { RC_NONE, RC_PARALEL, RC_SEQUENTIELL };
-   
-    RemoteCommand(CmdType inCmdType,
-                  const list<int>* inDarrayIndex,
-                  vector<Word>* inElements,
-                  vector<string>* inFromNames)
-      : m_cmdType( inCmdType )
-      , m_elements( inElements )
-      , m_runType( RC_NONE) 
-    {
-      if (inDarrayIndex != 0)
-        m_darrayIndex = *inDarrayIndex;
-
-      if (inFromNames != 0)
-        m_fromNames = *inFromNames;
-    }
-
-    virtual ~RemoteCommand()
-    {
-    }
-    CmdType getCmdType() const { return m_cmdType; }
-    list<int>* getDArrayIndex() { return &m_darrayIndex; }
-    vector<Word>* getElements() const { return m_elements; }
-    const vector<string>& getFromNames() const { return m_fromNames; }
-
-  private:
-    RemoteCommand(const RemoteCommand&) {} 
-    RemoteCommand() 
-      : m_cmdType( DS_CMD_NONE )
-      , m_elements( NULL )
-      , m_runType( RC_NONE ) {}
-
-    RunType getRunType() const { return m_runType; }
-
-    // members
-    CmdType m_cmdType;
-    list<int> m_darrayIndex;
-    vector<Word>* m_elements;
-    vector<string> m_fromNames;
-    RunType m_runType;
-    
-  };
-public:
-  
-
-  void setCmd(RemoteCommand* rc) { m_cmd = rc; }
-
-  friend ostream& operator << (ostream&, RemoteCommand&) ;
-  void print() const;
-
-  Socket *getServer() { return m_server; }
-
-  ListExpr getTType() const { return m_type; }
-  const string& getTTypeStr() const { return m_typeStr; }
-
-  bool isRelOpen() const { return m_rel_open; }
-  void setRelOpen() { m_rel_open = true; }
-  void setRelClose() { m_rel_open = false; }
-  bool isShuffleOpen() const { return m_shuffle_open; }
-  void setShuffleOpen() { m_shuffle_open = true; }
-  void setShuffleClose() { m_shuffle_open = false; }
-
-  const string& getMasterHostIP() const;
-  const string& getMasterHostIP_() const;
-  const string& getName() const { return name; }
-
-  void setErrorText(const string& inErrText)
-  { 
-    m_error = true;
-    m_errorText = inErrText; 
-  }
-
-  void  saveWorkerCallBackConnection(Socket *inCBWorker)
-  {
-    assert(m_cbworker == NULL);
-    m_cbworker = inCBWorker;
-  }
-
-  Socket* getSavedWorkerCBConnection()
-  { 
-    assert(m_cbworker != NULL);
-    return m_cbworker;
-  }
-
-  void closeSavedWorkerCBConnection()
-  { 
-    if (m_cbworker != NULL)
-      {
-        m_cbworker -> Close();
-        delete m_cbworker;
-      }
-    m_cbworker = NULL;
-  }
-
-private:
-
-  string m_host;
-  string name;
-
-  RemoteCommand* m_cmd;
-
-  int m_port;
-  ListExpr m_type;
-  string m_typeStr;
-
-  Socket* m_server;
-
-
-  // saves the connection from one thread into the next one.
-  Socket* m_cbworker; 
-
-  vector<DServer*> m_childs;
-  int m_numChilds;
-                 
-  bool m_rel_open;
-  bool m_shuffle_open;
-   
-  string m_errorText;
-  bool m_error;
-};
-
-class DServerManager
-{
-   public:
-  DServerManager() : m_error(false), m_status(false) {}
-      DServerManager(ListExpr serverlist_n, 
-                     string name_n, 
-                     ListExpr inType, int sizeofarray);
-
-  virtual ~DServerManager();
-
-  bool isOk() const { return m_status; }
-  
-/*
-
-2.1 getServerByIndex
-
-returns a pointer to the DServer that holds a certain element of the
-underlying distributed array
-
-*/
-
-  DServer* getServerByIndex(int index) const 
-    { return m_serverlist[index % size]; }
-  
-/*
-
-2.2 getServerbyID
-
-returns the pointer to a DServer
-
-*/
-
-  DServer* getServerbyID(int id) const { return m_serverlist[id]; }
-     
-/*
-
-2.3 getMultipleServerIndex
-
-returns -1, if the parent DServer is the appropriate object for the element
-
-*/
-
-  int getMultipleServerIndex(int index) const {  return (index / size) - 1; }
-                
-/*
-
-2.4 getIndexList
-
-returns a list of indices that correspond to the elements of the underlying
-distributed array, which are controlled by the DServer with the given index
-
-*/
-
-  list<int>& getIndexList(int id) { return m_idIndexMap[id]; }
-        
-/*
-
-2.5 getNoOfWorkers
-
-returns the number of DServer-Objects controlled by the DServerManager
-
-*/
-  int getNoOfWorkers() const 
-  { 
-    return size; 
-  }
-
-/*
-
-2.5 getNoOfMultiWorkers
-
-returns the number of DServer-Objects controlled by the DServerManager
-it more than one worker is required per server object
-
-*/
-
-  int getNoOfMultiWorkers(int inArraySize) const 
-  { 
-    if (size > inArraySize)
-      return inArraySize;
-
-    return size; 
-  }
-
-  int getRelativeNrOfChildsPerWorker (int inArraySize) const
-  {
-    if (size > inArraySize)
-      return 1;
-
-    return int(inArraySize / size);
-  }
-  
-  int getNrOfWorkersWithMoreChilds (int inArraySize) const
-  {
-    if (size > inArraySize)
-      return 0;
-
-    return inArraySize - (((int)inArraySize / size) * size);
-  }
-
-/*
-2.6 checkServers
-
-returns false, if server were not created correctly
-
-*/   
-  bool checkServers(bool writeError) const;
-
-  const string& getErrorText() const { return m_errorText; }
-
-  bool  hasError() const { return m_error; }
-  void  setErrorText( const string& txt) 
-  { 
-    m_error = true;
-    m_errorText = txt; 
-  }
-     
-        
-private:
-  //StopWatch m_watch;
-  vector<DServer*> m_serverlist;
-  
-  int size;
-  int array_size;
-  string name;
-  
-  map<int, list<int> > m_idIndexMap;
-
-  string m_errorText;
-  bool m_error;
-  bool m_status;
-  
-};
+class DServer;
+class ThreadedMemoryCounter;
 
 class DServerExecutor : public ZThread::Runnable
 {
@@ -398,10 +69,10 @@ private:
   ZThread::FastMutex lock;
   ZThread::Condition cond;
   bool m_runit;
-  MemCntr* m_memCntr;
+  ThreadedMemoryCounter* m_memCntr;
 
 public:
-  DServerMultiCommand(int i, DServer* s, MemCntr* inMemCntr) :
+  DServerMultiCommand(int i, DServer* s, ThreadedMemoryCounter* inMemCntr) :
     m_index(i),
     m_server(s),
     cond(lock),
@@ -456,14 +127,7 @@ public:
     server=s; count = c;
   }
    
-  void run()
-  {
-    if (!server->Multiply(count))
-      {
-      cerr << "Error multiplying Servers:" 
-           << server -> getErrorText() << endl;
-      }
-  }
+  void run();
 };
    
    
@@ -484,9 +148,5 @@ class RelationWriter : public ZThread::Runnable
 
   
 };
-     
-                  
-                  
-ostream& operator << (ostream &out, DServer::RemoteCommand& rc);
 
 #endif

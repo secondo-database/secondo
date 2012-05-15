@@ -51,6 +51,7 @@ Implementation of the class ~DServerShuffleSender~
 #include "DServerShuffleSender.h"
 #include "DServerCmdCallBackComm.h"
 #include "RelationAlgebra.h"
+#include "ThreadedMemoryCntr.h" 
 
 /*
 1.2 Debug Output

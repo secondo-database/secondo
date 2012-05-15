@@ -91,6 +91,9 @@ void  DServerShuffleReceiver::run()
   if (dscCallBack -> createGlobalSocket())
     {
       bool noError = true;
+
+      TupleType *tt = DBAccess::getInstance() -> TT_New(m_recType);
+
       while(m_runit)
         {
           m_runit = 
@@ -99,7 +102,7 @@ void  DServerShuffleReceiver::run()
 
           if (m_runit)
             {
-              dscCallBack -> receiveTupleFromCallBack(m_recType, m_rel);
+              dscCallBack -> receiveTupleFromCallBack(tt, m_rel);
 #ifdef SHUFFLE_RECEIVE_DEBUG 
               cout << "Rec:" << m_destHost << ":" << m_toPort 
                    << " - " << dbg_count << endl;
@@ -128,6 +131,7 @@ void  DServerShuffleReceiver::run()
             }
         } // while
     
+      DBAccess::getInstance() -> TT_DeleteIfAllowed(tt);
       dscCallBack -> sendTagToCallBack("CLOSE");
 
     } // dsc

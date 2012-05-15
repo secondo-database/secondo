@@ -50,7 +50,7 @@ Implementation of the class ~DServerCmdWorkerCommunication~
 
 */
 
-
+#include "DServer.h"
 #include "DServerCmdWorkerComm.h"
 #include "SocketIO.h"
 

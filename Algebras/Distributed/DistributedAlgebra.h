@@ -103,7 +103,7 @@ public:
   //refresh must be called before calling get()
   void refresh(int);
   void refresh();
-  void refresh(TFQ tbOut);
+  void refresh(TFQ tbOut, ThreadedMemoryCounter *inMemCntr);
   
   bool refreshTBRunning() 
   { ZThread::Guard<ZThread::Mutex> g(ms_rTBlock); return m_tbRunning; };

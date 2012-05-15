@@ -108,10 +108,11 @@ DServerCmdShuffleRec::run()
   // initiate d_receive_shuffle command on the destination
   // worker
 
-  //The d_receive_rel operator is invoked
   string err;
+
+  //The d_receive_rel operator is invoked
   // this command is blocking, until DShuffle is done!
-  if (!sendSecondoCmdToWorker1(com, err)) // no answer from TypeMap!
+  if (!sendSecondoCmdToWorker1(com, err)) 
     {
       err = "Could not start receiver function on worker!\n" + err;
       cout << "ERROR: " << err << endl;

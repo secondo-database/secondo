@@ -75,8 +75,9 @@ integer index to denote the darray index.
 */
 
 
-#include "Remote.h"
+#include "DServer.h"  
 #include "DServerParamStorage.h"
+#include "zthread/Runnable.h"
 
 /*
 2 Class ~DServerThreadRunner~
@@ -182,7 +183,7 @@ forwards the error message to the worker
 
 */
 
-  void setErrorText(const string& inErrTxt)
+  void setErrorText(string inErrTxt)
   {
     getWorker() -> setErrorText(inErrTxt);
   }

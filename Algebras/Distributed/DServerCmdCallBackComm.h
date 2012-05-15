@@ -106,7 +106,7 @@ be written to stdout
 */
 
 class GenericRelation;
-
+class TupleType;
 /*
 
 2 Class ~DServerCmdCallBackCommunication~
@@ -734,7 +734,7 @@ receives a tuple (binary stream) and inserts it into a relation
 
 (this method is threadsave w/ regards to DB access)
 
-  * ListExpr inTupleType - type of the expected tuple
+  * TupleType[ast] inTupleType - type of the expected tuple
 
   * GenericRelation[ast] inRel - pointer to the relation, where the 
 tuple will be stored
@@ -742,7 +742,7 @@ tuple will be stored
   * returns true - success
 
 */
-  bool receiveTupleFromCallBack(ListExpr& inTupleType,
+  bool receiveTupleFromCallBack(TupleType* inTupleType,
                                 GenericRelation *rel);
 
 

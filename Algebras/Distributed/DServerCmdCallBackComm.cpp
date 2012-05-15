@@ -158,7 +158,7 @@ tuple will be stored
 */
 bool
 DServerCmdCallBackCommunication::
-    receiveTupleFromCallBack(ListExpr& inTupleType,
+    receiveTupleFromCallBack(TupleType* inTupleType,
                              GenericRelation *inRel)
 {
   string line;

@@ -61,8 +61,13 @@ the workers to the workers of the new darray, where it will be received
 
 */
 #include "zthread/Runnable.h"
-#include "ThreadedMemoryCntr.h"
 #include "TupleFifoQueue.h"
+
+/*
+1.4 Forward Declarations
+
+*/
+class ThreadedMemoryCounter;
 
 /*
 2 Class ~DServerThreadRunner~
@@ -92,7 +97,7 @@ memory is counted
 */
   DServerShuffleSender(const std::string& inDestHost,
                        const std::string& inToPort,
-                       MemCntr* inMemCntr) 
+                       ThreadedMemoryCounter* inMemCntr) 
     : ZThread::Runnable()
     , m_destHost(inDestHost)
     , m_toPort(inToPort)
@@ -162,7 +167,7 @@ private:
   std::string m_destHost;
   std::string m_toPort;
   bool m_runit;
-  MemCntr* m_memCntr;
+  ThreadedMemoryCounter* m_memCntr;
 
 /*
 2.9 End of Class 

@@ -178,10 +178,4 @@ private:
   long m_cntAlloc;
 };
 
-/*
-2.7 Typedefs
-
-*/
-typedef ThreadedMemoryCounter MemCntr;
-
 #endif // _THREADEDMEMORYCOUNTER_H_

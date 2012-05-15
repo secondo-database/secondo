@@ -65,6 +65,8 @@ Operations on the darray-elements are carried out on the remote machines.
 #include "RelationAlgebra.h"
 #include "TypeMapUtils.h"
 #include "Remote.h"
+#include "DServer.h"
+#include "DServerManager.h"
 #include "DServerCmdShuffleRec.h"
 #include "DServerCmdShuffleSend.h"
 #include "DServerCmdShuffleMultipleConn.h"
@@ -459,7 +461,7 @@ void DArray::refresh()
     //cout << "DArray::refresh ...done" << endl;
 }
 
-void DArray::refresh(TFQ tfqOut)
+void DArray::refresh(TFQ tfqOut, ThreadedMemoryCounter *inMemCntr)
 {
   if (!(getServerManager() -> checkServers(true)))
     {
@@ -474,8 +476,9 @@ void DArray::refresh(TFQ tfqOut)
    assert(m_elements.size() == (unsigned int)size);
    assert(isRelation);
          
-   vector<Word> word (1);
+   vector<Word> word (2);
    word[0] = SetWord(tfqOut);
+   word[1] = SetWord(inMemCntr);
 
    //elements are read, the DServer run as threads
    for(int i = 0; i < getServerManager()->getNoOfWorkers(); i++)
@@ -1148,6 +1151,11 @@ DArray::multiplyWorkers(vector<DServer*>* outServerList)
       int workerWithMoreChilds = 
         man -> getNrOfWorkersWithMoreChilds(size);
 
+      cout << "SNo: " << server_no << endl;
+      cout << "Rel: " << rel_server << endl;
+      cout << "Chi: " << workerWithMoreChilds << endl;
+
+
       try
         {
 
@@ -1200,9 +1208,7 @@ DArray::multiplyWorkers(vector<DServer*>* outServerList)
   
   if (!ret_val)
     {
-      // destroy childs of workers, if exist
-      for(int k = 0; k< getSize();k++)
-         man ->getServerbyID(k)->DestroyChilds();
+      destroyAnyChilds();
 
       if (outServerList != NULL)
         outServerList -> clear();
@@ -3009,7 +3015,7 @@ static int sendShuffleFun( Word* args,
          }
 
       // now sending tuples
-      MemCntr memCntr (qp->GetMemorySize(s) * 1024 * 1024);
+      ThreadedMemoryCounter memCntr (qp->GetMemorySize(s) * 1024 * 1024);
       
       Word current = SetWord( Address (0) );
       
@@ -3320,7 +3326,7 @@ distributeFun (Word* args, Word& result,
        return 0;
      }
 
-   MemCntr memCntr (qp->GetMemorySize(s) * 1024 * 1024);
+   ThreadedMemoryCounter memCntr (qp->GetMemorySize(s) * 1024 * 1024);
 
    Word current = SetWord( Address (0) );
 
@@ -3570,6 +3576,8 @@ shuffleFun (Word* args, Word& result,
       !(sourceArray -> getServerManager() -> isOk()) )
     {
       cerr << "ERROR: DArray not initialized corretly!"  << endl;
+      delete destArray;
+      result = SetWord(new DArray(false));
       return 1;
     }
 
@@ -4516,28 +4524,24 @@ class DArrayIteratorRefreshThread : public ZThread::Runnable
  
 public:
   DArray *d;
-  TupleBuffer *tbOut;
+  TFQ tfqOut;
   TFQ tfqIn;
-  
+
   DArrayIteratorRefreshThread() 
-  : ZThread::Runnable()
-  , tbOut(NULL) {}
+  : ZThread::Runnable()  {}
 
   void run()
   {
-    assert(tbOut != NULL);
 
-    //cout << "START READING" << endl;
     while (d->refreshTBRunning())
       {
         Tuple *t = tfqIn -> get();
         if (t != NULL)
           {
-            DBAccessGuard::getInstance() -> 
-                REL_AppendTuple(tbOut, t);
+            tfqOut -> put(t);
           }
       }
-    //cout << "DAIRT::run done"<< endl;
+    tfqOut -> put (NULL);
   }
   
   ~DArrayIteratorRefreshThread() { }
@@ -4553,19 +4557,19 @@ dsummarizeFun( Word* args, Word& result, int message,
     private:
     DArray *da;
     int size;
-    TupleBufferIterator* rit;
-    TupleBuffer *m_tbOut;
+    TFQ m_tfqOut;
     TFQ m_tfqIn;
     ZThread::ThreadedExecutor m_exe;
     bool m_error;
+    ThreadedMemoryCounter m_memCntr;
 
     public:
     DArrayIterator(DArray* d, size_t allowed_mem_size) 
   : da(d)
   , size(d->getSize())
-  , rit(0)
-  , m_tbOut(new TupleBuffer(allowed_mem_size))
+  , m_tfqOut(new TupleFifoQueue())
   , m_tfqIn(new TupleFifoQueue())
+  , m_memCntr(allowed_mem_size)
     {
       assert (da != NULL);
       m_error = false;
@@ -4586,18 +4590,18 @@ dsummarizeFun( Word* args, Word& result, int message,
 
           d -> initTBRefresh();
           darrRefresh -> d = d;
-          darrRefresh -> tbOut = m_tbOut;
+          darrRefresh -> tfqOut = m_tfqOut;
           darrRefresh -> tfqIn = m_tfqIn;
           
           //start collector thread
           m_exe.execute(darrRefresh);
 
           //start reading from workers
-          d -> refresh(m_tfqIn);
+          d -> refresh(m_tfqIn, &m_memCntr);
 
           m_exe.wait();
 
-          rit = new TupleBufferIterator(*m_tbOut);
+          // all Done!;        
         }
     }
 
@@ -4608,8 +4612,7 @@ dsummarizeFun( Word* args, Word& result, int message,
           assert(m_tfqIn -> size() == 0);
         }
 
-      delete rit;
-      delete m_tbOut;
+      delete m_tfqOut;
       delete m_tfqIn;
     }
 
@@ -4617,14 +4620,17 @@ dsummarizeFun( Word* args, Word& result, int message,
     {
       if (m_error)
         return 0;
-      // no threads are running, no need for DBAccessGuard
-      Tuple* t = rit -> GetNextTuple();
 
+      // no threads are running, no need for DBAccessGuard
+      Tuple* t = m_tfqOut -> get();
+      if (t != NULL)
+        m_memCntr.put_back(t -> GetSize());
+      
       return t;
     }
     
     bool hasError() const { return m_error; }
-  };
+    };
 
   DArrayIterator* dait = 0;
   dait = (DArrayIterator*)local.addr;
@@ -4654,7 +4660,6 @@ dsummarizeFun( Word* args, Word& result, int message,
       
       if (t != 0) {
         result = SetWord(t);
-        //t -> DeleteIfAllowed();
         return YIELD;
       }
       //cout << " -> send Cancel2" << endl;
