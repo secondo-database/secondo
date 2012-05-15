@@ -57,7 +57,7 @@ public:
   TupleFifoQueue() 
     : m_cond (m_lock) {}
 
-  virtual ~TupleFifoQueue() {}
+  virtual ~TupleFifoQueue() { assert(m_data.empty()); }
 
 /*
 
