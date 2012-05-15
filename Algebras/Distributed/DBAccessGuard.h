@@ -87,7 +87,7 @@ Allocates a new object of TupleType
   TupleType* TT_New(const ListExpr& inTT_Rel)
   {
     ZThread::Guard<MyMutex> g(lock);
-    return new TupleType(nl -> Second(inTT_Rel));
+    return new TupleType(inTT_Rel);
   }
 /*
 
@@ -112,7 +112,7 @@ creates a new tuple object
 
 */
 
-  Tuple* T_New(ListExpr& inTupleType)
+  Tuple* T_New(TupleType* inTupleType)
   {
     ZThread::Guard<MyMutex> g(lock);
     return new Tuple(inTupleType);
@@ -183,12 +183,12 @@ deletes a tuple
 
 */
   size_t T_GetBlockSize(Tuple* t,
-                        size_t& outcS,
-                        size_t& outeS,
-                        size_t& outfS)
+                        size_t& outCs,
+                        size_t& outEs,
+                        size_t& outFs)
   {
     ZThread::Guard<MyMutex> g(lock);
-    return t -> GetBlockSize(outcS,outeS,outfS);
+    return t -> GetBlockSize(outCs,outEs,outFs);
   }
 
 /*
@@ -236,6 +236,14 @@ Retruns the next tuple of an iterator
     rel -> AppendTuple(t);
   }
   
+/*
+
+6 Tuple Stream
+
+6.1 TS[_]Request
+
+*/
+
   Tuple* TS_Request(Stream<Tuple> &is)
   {
     ZThread::Guard<MyMutex> g(lock);
