@@ -7,14 +7,13 @@ package viewer.queryconstruction;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
-import java.lang.Thread;
 import viewer.QueryconstructionViewer;
 
 /**
  *
  * @author lrentergent
  */
-public class ObjectComponent extends JComponent implements MouseListener {
+public class ObjectComponent extends Component {
     
     private String name;
     private int xpos;
@@ -24,11 +23,10 @@ public class ObjectComponent extends JComponent implements MouseListener {
     
     public ObjectComponent(String type, String name){
         
-        this.setPreferredSize(new Dimension(90,50));
+        this.setPreferredSize(new Dimension(120,70));
         this.name = name;
         this.type = type;        
         this.active = false;
-        addMouseListener(this);
         
     }
     
@@ -52,22 +50,22 @@ public class ObjectComponent extends JComponent implements MouseListener {
             }
 
             if (type == "mpoint") {
-                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/images/mpoint.gif"));
+                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/mpoint.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
             if (type == "point") {
-                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/images/point.gif"));
+                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/point.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
             if (type == "region") {
-                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/images/region.gif"));
+                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/region.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
             if (type == "mregion") {
-                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/images/mregion.gif"));
+                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/mregion.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
         }
@@ -76,7 +74,17 @@ public class ObjectComponent extends JComponent implements MouseListener {
             g.setColor(Color.RED);
         }
         
-        g.drawString(name, xpos + 25, ypos + 30);
+        int w = g.getFontMetrics().stringWidth(name);
+        String s = name;
+        if (w > 80) {
+            s = name.substring(0, 8);
+        }
+        
+        g.drawString(s, xpos + 25, ypos + 30);
+    }
+    
+    public String getName() {
+        return this.name;
     }
     
     public boolean isActive() {
@@ -90,16 +98,4 @@ public class ObjectComponent extends JComponent implements MouseListener {
     public void setUnactive() {
         active = false;
     }
-    
-    //Handle mouse events.
-    public void mouseReleased(MouseEvent e) {
-    }
-    public void mouseClicked ( final MouseEvent arg0 ) {
-        if (arg0.getClickCount () == 2) {
-            System.out.println("es wurde doppelgeklickt");
-        }
-    }
-    public void mouseEntered(MouseEvent e){}
-    public void mouseExited(MouseEvent e){}
-    public void mousePressed(MouseEvent e){}
 }

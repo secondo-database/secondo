@@ -5,29 +5,25 @@ package viewer.queryconstruction;
  * a tutorial reader.
  */
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
+import viewer.QueryconstructionViewer;
 
 /* ObjectsPane.java requires no other files. */
-public class ObjectsPane extends JComponent implements MouseListener {
+public class ObjectsPane extends MainPane {
     
-    private Collection<ObjectComponent> elements = new ArrayList<ObjectComponent>();
-    private int count = 3; //Objects counter
+    private ArrayList<ObjectComponent> elements = new ArrayList<ObjectComponent>();
+    private QueryconstructionViewer viewer;
 
-    public ObjectsPane() {
-        
+    public ObjectsPane(QueryconstructionViewer viewer) {
+        this.viewer = viewer;
+        this.addMouseListener(this);
     }
     
     /** paints a Secondo Object into the ObjectsPane */
-    public void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        
-        
-        
+    public void paintComponent(Graphics g) {        
         int x = 0;
         int y = 0;
         
@@ -36,26 +32,25 @@ public class ObjectsPane extends JComponent implements MouseListener {
             object.paintComponent( g, x, y );
             x++;
         }
-        
     }
     
     //    adds an operation or an object to the main panel
     public void addObject(ObjectComponent object){
-        object.addMouseListener(this);
         elements.add(object);
     }
 
-    //Handle mouse events.
-    public void mouseReleased(MouseEvent e) {
-    }
-    public void mouseClicked ( final MouseEvent arg0 ) {
+    //double click adds the selected object to the main panel
+    public void mouseClicked ( MouseEvent arg0 ) {
         if (arg0.getClickCount () == 2) {
-            System.out.println("es wurde doppelgeklickt");
+            int x = 0;
+            if (10 < arg0.getY() && arg0.getY() < 80) {
+                while (arg0.getX() > (10 + x*120)) { x++; }
+                if (arg0.getX() < (10 + x*120)) {
+                    if (x <= elements.size()) {
+                        viewer.addObject(elements.get(x-1));
+                    }
+                }
+            }
         }
     }
-    public void mouseEntered(MouseEvent e){}
-    public void mouseExited(MouseEvent e){}
-    public void mousePressed(MouseEvent e){}
-
-    
 }

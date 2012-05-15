@@ -1,15 +1,26 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
+//This file is part of SECONDO.
+
+//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Database Systems for New Applications.
+
+//SECONDO is free software; you can redistribute it and/or modify
+//it under the terms of the GNU General Public License as published by
+//the Free Software Foundation; either version 2 of the License, or
+//(at your option) any later version.
+
+//SECONDO is distributed in the hope that it will be useful,
+//but WITHOUT ANY WARRANTY; without even the implied warranty of
+//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//GNU General Public License for more details.
+
+//You should have received a copy of the GNU General Public License
+//along with SECONDO; if not, write to the Free Software
+//Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 package viewer;
 
 import javax.swing.*;
-import javax.swing.text.*;
 import java.awt.*;
-import java.awt.event.*;
-import java.util.ArrayList;
-import java.util.Collection;
 import gui.SecondoObject;
 import viewer.queryconstruction.*;
 
@@ -19,8 +30,8 @@ import viewer.queryconstruction.*;
  */
 public class QueryconstructionViewer extends SecondoViewer {
     
-    private ObjectsPane ObjectsPane = new ObjectsPane();
-    private OperationsPane OperationsPane = new OperationsPane();
+    private ObjectsPane ObjectsPane = new ObjectsPane(this);
+    private OperationsPane OperationsPane = new OperationsPane(this);
     private MainPane MainPane;
     
     private MenuVector MV = new MenuVector();
@@ -36,11 +47,20 @@ public class QueryconstructionViewer extends SecondoViewer {
         
         ObjectComponent query = new ObjectComponent("operation", "query");
         MainPane.addObject(query);
-        ObjectComponent neu1 = new ObjectComponent("rel", "train");
-        MainPane.addObject(neu1);
         
-        ObjectComponent neu2 = new ObjectComponent("rel", "train");
-        ObjectsPane.addObject(neu2);
+        ObjectComponent Trains = new ObjectComponent("rel", "Trains");
+        ObjectsPane.addObject(Trains);
+        ObjectComponent strassen = new ObjectComponent("rel", "strassen");
+        ObjectsPane.addObject(strassen);
+        ObjectComponent Kinos = new ObjectComponent("rel", "Kinos");
+        ObjectsPane.addObject(Kinos);
+        
+        ObjectComponent train7 = new ObjectComponent("mpoint", "train7");
+        ObjectsPane.addObject(train7);
+        ObjectComponent mehringdamm = new ObjectComponent("point", "mehringdamm");
+        ObjectsPane.addObject(mehringdamm);
+        ObjectComponent tiergarten = new ObjectComponent("region", "tiergarten");
+        ObjectsPane.addObject(tiergarten);
         
         ObjectComponent neu3 = new ObjectComponent("operation", "feed");
         OperationsPane.addObject(neu3);
@@ -52,6 +72,12 @@ public class QueryconstructionViewer extends SecondoViewer {
         this.add(ScrollPane, BorderLayout.CENTER);
     }
     
+    public void addObject(ObjectComponent object){
+        MainPane.addObject(object);
+        MainPane.repaint();
+        VC.execCommand("query Trains feed consume");
+        VC.getCommandResult("query Trains feed consume");
+    }
     
     public boolean addObject(SecondoObject o){
         return true;

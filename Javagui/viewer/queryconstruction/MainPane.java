@@ -16,14 +16,13 @@ import java.util.*;
  */
 public class MainPane extends JComponent implements MouseListener {
     
-    private Collection<ObjectComponent> elements = new ArrayList<ObjectComponent>();
+    private ArrayList<ObjectComponent> elements = new ArrayList<ObjectComponent>();
     
     public MainPane() {
-        this.addMouseListener(this);
+        //this.addMouseListener(this);
     }
     
     public void paintComponent(Graphics g) {
-        
         int x = 0;
         int y = 0;
         
@@ -39,45 +38,30 @@ public class MainPane extends JComponent implements MouseListener {
         
     }    
     
-//    adds an operation or an object to the main panel
+    //adds an operation or an object to the main panel
     public void addObject(ObjectComponent object){
         elements.add(object);
+        System.out.println(getStrings());
+    }
+    
+    public String getStrings(){
+        String query = new String();
+        
+        for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
+            ObjectComponent object = (ObjectComponent)iter.next();
+            query += object.getName()+" ";
+        }
+        
+        return query;
     }
     
     //Handle mouse events.
     public void mouseReleased(MouseEvent e) {
     }
-    public void mouseClicked ( final MouseEvent arg0 ) {
-        if (arg0.getClickCount () == 2) {
-            System.out.println("es wurde doppelgeklickt");
-        }
+    public void mouseClicked ( MouseEvent arg0 ) {
     }
     public void mouseEntered(MouseEvent e){}
     public void mouseExited(MouseEvent e){}
     public void mousePressed(MouseEvent e) {
-        //System.out.println("es wurde doppelgeklickt");
     }
-    
-//    public void run() {
-//        
-//        while (true) {
-//            ObjectComponent neu2 = new ObjectComponent("operation", "query");
-//            elements.add(neu2);
-//            for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
-//                ObjectComponent object = (ObjectComponent)iter.next();
-//                
-//            }
-//
-//            this.repaint();
-//
-//            try {
-//                runner.sleep(500);
-//            }
-//            catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//
-//        }
-//
-//     }
 }
