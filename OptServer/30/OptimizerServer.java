@@ -208,16 +208,16 @@ static {
             cout.println("analyse command: "+command);
           }
           command = encode(command);
-          Query pl_query = new Query(command);
-          if(pl_query==null){
-             if(trace)
-                cout.println("error in parsing command: "+command);
-             return  false;
-          }
+          try{
+            Query pl_query = new Query(command);
+            if(pl_query==null){
+               if(trace)
+                  cout.println("error in parsing command: "+command);
+               return  false;
+            }
+            boolean res = command(pl_query,Solution);
 
-          boolean res = command(pl_query,Solution);
-
-          if(res & trace & Solution!=null){ // successful
+           if(res & trace & Solution!=null){ // successful
              if(Solution.size()==0)
                 cout.println("Yes");
              else
@@ -225,9 +225,11 @@ static {
                  cout.println("*** Solution "+(i+1)+"  ****");
                  cout.println(Solution.get(i));
                }
-
           }
           return res;
+        } catch(Exception e){
+           return false; 
+        }
      }
 
 
