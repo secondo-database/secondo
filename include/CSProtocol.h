@@ -142,6 +142,128 @@ These contain a list of any structure. The client (in particular the
 ----
 
 
+4 Retrieving operator information
+
+It is possible to ask Secondo for some unique identificators of an operator value
+mapping. The input is the operator's name and a list containing the arguments.
+
+----
+   <startGetOperatorIndexes>
+     opname\n
+     list\n
+   <endGetOperatorIndexes>
+----
+
+The respose to this query are three numbers identifying the value map. and a 
+nested list represening the result type.
+
+----
+   <startGetOperatorIndexesResponse>
+     int\n
+     int\n
+     int\n
+     list\n
+   <endGetOperatorIndexesResponse>
+----
+
+
+5 CostEstimations
+
+5.1 GetCosts
+
+The client may ask for estimating costs for an operator.
+
+----
+  <GETCOSTS>\n
+    nostreams\n
+    algId\n
+    opId\n\
+    funId\n
+   ( noTuples\n
+    sizeOfTuple\n ) ^ nostreams
+    memory\n
+  </GETCOSTS>\n
+----
+
+All values are integer values. The first integer (nostreams) determines
+how many noTuples/sizeOfTuple pairs are sent to the kernel. 
+
+The server will answer by:
+
+----
+  <COSTRESPONSE>\n
+     success\n
+     cost\n
+  </COSTRESPONSE>\n
+----
+
+success and cost are returned as integer values. 
+
+
+6 Get Linear Cost Function
+
+Client's request
+
+----   
+  <GETLINEARCOSTFUN>\n
+     nostreams\n
+     algId\n
+     opId\n
+     funId\n
+    ( notuples\n
+      sizeofTuple\n ) ^ nostreams
+  </GETLINEARCOSTFUN>\n
+----
+
+Server's answer:
+
+----
+   <LINEARCOSTFUNRESPONSE>\n
+       success\n
+       sufficientMemory\n
+       timeAtSuffMemory\n
+       timeAt16MB\n  
+   </LINEARCOSTFUNRESPONSE>\n
+----
+
+All returned values are doubles.
+
+
+
+7 Get detailed cost functions
+
+Client's request
+
+----   
+  <GETCOSTFUN>\n
+     nostreams\n
+     algId\n
+     opId\n
+     funId\n
+    ( notuples\n
+      sizeofTuple\n ) ^ nostreams
+  </GETCOSTFUN>\n
+----
+
+Server's answer:
+
+----
+   <COSTFUNRESPONSE>\n
+       success\n
+       funType\n
+       sufficientMemory\n
+       timeAtSuffMemory\n
+       timeAt16MB\n  
+       a\n
+       b\n
+       c\n
+       d\n
+   </COSTFUNRESPONSE>\n
+----
+
+The funType is an integer values, all other values are doubles.
+
+
 
 4 Catalog Information
 
@@ -344,6 +466,10 @@ struct CSProtocol {
  const string endMessage;
  const string startError;
  const string sendFileError; 
+ const string startRequestOperatorIndexes;
+ const string endRequestOperatorIndexes;
+ const string startOperatorIndexesResponse;
+ const string endOperatorIndexesResponse;
  
  CSProtocol(NestedList* instance, iostream& ios, bool server = false) : 
    iosock(ios), 
@@ -359,7 +485,11 @@ struct CSProtocol {
    startMessage("<Message>"),
    endMessage("</Message>"),
    startError("<Error>"),
-   sendFileError("<SendFileError/>")
+   sendFileError("<SendFileError/>"),
+   startRequestOperatorIndexes("<REQUESTOPERATORINDEXES>"),
+   endRequestOperatorIndexes("</REQUESTOPERATORINDEXES>"),
+   startOperatorIndexesResponse("<OPERATORINDEXESRESPONSE>"),
+   endOperatorIndexesResponse("</OPERATORINDEXESRESPONSE>")
  {
    ignoreMsg = true;
    nl = instance;
@@ -468,11 +598,11 @@ struct CSProtocol {
       {
         restoreFile2.read(buf, bufSize);
         int read = restoreFile2.gcount();
-	read2 += read;
+        read2 += read;
         iosock.write(buf, read);
       }
       cout << "SendFile: transmitted " 
-	   << read2 <<  " bytes to the server." << endl;
+           << read2 <<  " bytes to the server." << endl;
 
       restoreFile2.close();
       
