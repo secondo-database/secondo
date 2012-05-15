@@ -426,6 +426,18 @@ returns the base port number for this function
     return p -> getBasePortNr();
   }
   
+  
+  bool isReceiver() const
+  {
+    return (getType() == DServerCmdShuffleMultiConnParam::DSC_SMC_P_RECEIVER);
+  }
+
+  bool isSender() const
+  {
+    return (getType() == DServerCmdShuffleMultiConnParam::DSC_SMC_P_SENDER);
+  }
+
+  
 /*
 3.4.1 Method ~string getInfo const~
 
