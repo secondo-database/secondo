@@ -1151,11 +1151,6 @@ DArray::multiplyWorkers(vector<DServer*>* outServerList)
       int workerWithMoreChilds = 
         man -> getNrOfWorkersWithMoreChilds(size);
 
-      cout << "SNo: " << server_no << endl;
-      cout << "Rel: " << rel_server << endl;
-      cout << "Chi: " << workerWithMoreChilds << endl;
-
-
       try
         {
 
