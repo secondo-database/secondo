@@ -1036,6 +1036,9 @@ public:
     returned = 0;
   }
 
+
+
+
 private:
 };
 
@@ -1068,7 +1071,38 @@ public:
     } else {
       return CANCEL;
     }   
-}
+  }
+/*
+Test Cost for Optimizer
+
+overriding standard implementations
+
+*/
+
+    virtual bool getCosts(size_t NoTuples, size_t sizeOfTuple,
+                          size_t memoryMB, size_t &costs){
+
+     cout << "getCosts called for operator count" << endl;
+     double factor = 0.00001; // just for testing
+     double c = NoTuples * factor;
+     costs = (size_t) c;
+     if(costs<1){
+       costs = 1;
+     }
+     return true;
+  } 
+
+  virtual bool  getLinearParams( size_t noTuples, size_t sizeOfTuple,
+                  double& sufficientMemory, double& timeAtSuffMemory,
+                                 double& timeAt16MB){
+     cout << "getLinearParams called for operator count" << endl;
+      sufficientMemory = sizeOfTuple / 1024;
+      double factor = 0.00001; // just for testing
+      timeAtSuffMemory = factor * noTuples;
+      timeAt16MB = timeAtSuffMemory; 
+      return true;
+  }
+
 
 /*
 10.0.1 init our class
