@@ -509,8 +509,22 @@ bool AlgebraManager::findOperator(const string& name,
                                   ListExpr& resultList,
                                   int& algId,
                                   int& opId){
+ int funId=0;
+ return findOperator(name,argList, resultList, algId, opId,funId);
+}
+
+
+bool AlgebraManager::findOperator(const string& name,
+                                  const ListExpr argList,
+                                  ListExpr& resultList,
+                                  int& algId,
+                                  int& opId,
+                                  int& funId){
 
    ListExpr typeError = nl->SymbolAtom(Symbol::TYPEERROR());
+
+   NestedList* nl_orig = NList::getNLRef();
+   NList::setNLRef(nl);
 
    for(unsigned int a=0;a<algebra.size();a++){
      Algebra* alg = algebra[a];
@@ -523,7 +537,9 @@ bool AlgebraManager::findOperator(const string& name,
               if(!nl->Equal(res,typeError)){ //  appropriate operator found
                  algId = a;
                  opId = o;
+                 funId = op->Select(argList);
                  resultList = res;
+                 NList::setNLRef(nl_orig);
                  return true;
               }
            } catch (...){
@@ -539,8 +555,174 @@ bool AlgebraManager::findOperator(const string& name,
   algId = 0;
   opId = 0;
   resultList = nl->TheEmptyList();
+  NList::setNLRef(nl_orig);
   return false;
 }
+
+
+/*
+~getCostEstimation~
+
+Returns the costestimation for a specified value mapping.
+If there is no one, null is returned.
+
+*/
+
+CostEstimation* AlgebraManager::getCostEstimation( const int algId,
+                                   const int opId,
+                                   const int funId){
+   Operator* op = getOperator(algId,opId);
+   return op?op->getCostEstimation(funId):0;
+}
+
+/*
+~getCosts~
+
+The next functions return costs for a specified operator when number of tuples
+and size of a single tuple is given. If the operator does not provide a
+cost estimation function or the getCost function is not implemented,
+the return value is false.
+
+*/
+
+bool AlgebraManager::getCosts(const int algId,
+              const int opId,
+              const int funId,
+              const size_t noTuples,
+              const size_t sizeOfTuple,
+              const size_t memoryMB,
+              size_t& costs){
+
+
+   CostEstimation* ce = getCostEstimation(algId,opId,funId);
+   costs = 0;
+
+   return ce?ce->getCosts(noTuples,sizeOfTuple,memoryMB,costs):false;
+}
+
+
+bool AlgebraManager::getCosts(const int algId,
+              const int opId,
+              const int funId,
+              const size_t noTuples1,
+              const size_t sizeOfTuple1,
+              const size_t noTuples2,
+              const size_t sizeOfTuple2,
+              const size_t memoryMB,
+              size_t& costs) {
+   CostEstimation* ce = getCostEstimation(algId,opId,funId);
+   costs = 0;
+   return ce?ce->getCosts(noTuples1,sizeOfTuple1,
+                          noTuples2,sizeOfTuple2,memoryMB,costs)
+            :false;
+}
+
+/*
+~getLinearParams~
+
+Retrieves the parameters for estimating the cost function of an operator
+in a linear way.
+
+*/
+bool AlgebraManager::getLinearParams( const int algId,
+                      const int opId,
+                      const int funId,
+                      const size_t noTuples1,
+                      const size_t sizeOfTuple1,
+                      double& sufficientMemory,
+                      double& timeAtSuffMemory,
+                      double& timeAt16MB) {
+
+   CostEstimation* ce = getCostEstimation(algId,opId,funId);
+   sufficientMemory = 0;
+   timeAtSuffMemory = 0; 
+   timeAt16MB = 0;
+   return ce?ce->getLinearParams(noTuples1,sizeOfTuple1,
+                                 sufficientMemory,timeAtSuffMemory,timeAt16MB)
+            :false;
+}
+
+
+bool AlgebraManager::getLinearParams( const int algId,
+                      const int opId,
+                      const int funId,
+                      const size_t noTuples1,
+                      const size_t sizeOfTuple1,
+                      const size_t noTuples2,
+                      const size_t sizeOfTuple2,
+                      double& sufficientMemory,
+                      double& timeAtSuffMemory,
+                      double& timeAt16MB){
+   CostEstimation* ce = getCostEstimation(algId,opId,funId);
+   sufficientMemory = 0;
+   timeAtSuffMemory = 0; 
+   timeAt16MB = 0;
+   return ce?ce->getLinearParams(noTuples1,sizeOfTuple1,noTuples2,sizeOfTuple2,
+                                 sufficientMemory,timeAtSuffMemory,timeAt16MB)
+            :false;
+}
+
+/*
+~getFunction~
+
+Returns an approximation of the cost function of a specified value mapping as
+a parametrized function.
+
+*/
+bool AlgebraManager::getFunction(
+                 const int algId,
+                 const int opId,
+                 const int funId,
+                 const size_t noTuples,
+                 const size_t sizeOfTuple,
+                 int& funType,
+                 double& sufficientMemory,
+                 double& timeAtSuffMemory,
+                 double& timeAt16MB,
+                 double& a, double& b, double&c, double& d){
+
+   CostEstimation* ce = getCostEstimation(algId,opId,funId);
+   funType = -1;
+   sufficientMemory = 0;
+   timeAtSuffMemory = 0; 
+   timeAt16MB = 0;
+   a = b = c = d = 0;
+   return ce?ce->getFunction(noTuples, sizeOfTuple,
+                             funType, sufficientMemory,
+                             timeAtSuffMemory, timeAt16MB,
+                             a,b,c,d)
+            : false;
+}
+                      
+
+
+bool AlgebraManager::getFunction(const int algId,
+                 const int opId,
+                 const int funId,
+                 const size_t noTuples1,
+                 const size_t sizeOfTuple1,
+                 const size_t noTuples2,
+                 const size_t sizeOfTuple2,
+                 int& funType,
+                 double& sufficientMemory,
+                 double& timeAtSuffMemory,
+                 double& timeAt16MB,
+                 double& a, double& b, double&c, double& d) {
+
+   CostEstimation* ce = getCostEstimation(algId,opId,funId);
+   funType = -1;
+   sufficientMemory = 0;
+   timeAtSuffMemory = 0; 
+   timeAt16MB = 0;
+   a = b = c = d = 0;
+   return ce?ce->getFunction(noTuples1, sizeOfTuple1,
+                             noTuples2, sizeOfTuple2,
+                             funType, sufficientMemory,
+                             timeAtSuffMemory, timeAt16MB,
+                             a,b,c,d)
+            : false;
+}
+
 
 /*
 Return maxAlgebraId

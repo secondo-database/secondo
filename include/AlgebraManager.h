@@ -221,6 +221,7 @@ overloaded, identity (on the numbers) is sufficient.
 #include "AlgebraClassDef.h"
 #include "Operator.h"
 #include "SystemInfoRel.h"
+#include "CostEstimation.h"
 
 /*
 1.6 Class "AlgebraManager"[1]
@@ -480,12 +481,20 @@ the list may contain further information to describe the error.
 
   inline Operator* getOperator(const int algebraId, const int opId) {
 
-  assert( algebraId <= maxAlgebraId + 1);
-  assert( algebra[algebraId] != 0 );
-  assert( opPtrField[algebraId].size() >= (size_t)opId);
-
-  return (opPtrField[algebraId])[opId];
+  if(algebraId<0 || (size_t)algebraId >= algebra.size()){
+    return 0;
   }
+  Algebra* alg = algebra[algebraId];
+  if(alg==0){
+     return 0;
+  }
+  if(opId < 0 || opId >= alg->GetNumOps()){
+    return 0;
+  }
+  return alg->GetOperator(opId);
+ }
+  
+
 
   void UpdateOperatorUsage(SystemInfoRel* table);
 
@@ -531,12 +540,131 @@ bool findOperator(const string& name,    //name of the operator
                   int& algId,            // algebra id
                   int& opId);            // operator id
 
+bool findOperator(const string& name,    //name of the operator
+                  const ListExpr argList,//arguments
+                  ListExpr& resultList,  // result type
+                  int& algId,            // algebra id
+                  int& opId,             // operator id
+                  int& funId);           // value mapping id
+
+/*
+~getCostEstimation~
+
+Returns the costestimation for a specified value mapping.
+If there is no one, null is returned.
+
+*/
+
+CostEstimation* getCostEstimation( const int algId,
+                                   const int opId,
+                                   const int funId);
+
+
+
+
+/*
+~getCosts~
+
+The next functions return costs for a specified operator when number of tuples
+and size of a single tuple is given. If the operator does not provide a
+cost estimation function or the getCost function is not implemented,
+the return value is false.
+
+*/
+
+bool getCosts(const int algId,
+              const int opId,
+              const int funId,
+              const size_t noTuples,
+              const size_t sizeOfTuple,
+              const size_t memoryMB,
+              size_t& costs);
+
+
+bool getCosts(const int algId,
+              const int opId,
+              const int funId,
+              const size_t noTuples1,
+              const size_t sizeOfTuple1,
+              const size_t noTuples2,
+              const size_t sizeOfTuple2,
+              const size_t memoryMB,
+              size_t& costs);
+
+/*
+~getLinearParams~
+
+Retrieves the parameters for estimating the cost function of an operator
+in a linear way.
+
+*/
+bool getLinearParams( const int algId,
+                      const int opId,
+                      const int funId,
+                      const size_t noTuples1,
+                      const size_t sizeOfTuple1,
+                      double& sufficientMemory,
+                      double& timeAtSuffMemory,
+                      double& timeAt16MB);
+
+
+bool getLinearParams( const int algId,
+                      const int opId,
+                      const int funId,
+                      const size_t noTuples1,
+                      const size_t sizeOfTuple1,
+                      const size_t noTuples2,
+                      const size_t sizeOfTuple2,
+                      double& sufficientMemory,
+                      double& timeAtSuffMemory,
+                      double& timeAt16MB);
+
+/*
+~getFunction~
+
+Returns an approximation of the cost function of a specified value mapping as
+a parametrized function.
+
+*/
+bool getFunction(const int algId,
+                 const int opId,
+                 const int funId,
+                 const size_t noTuples,
+                 const size_t sizeOfTuple,
+                 int& funType,
+                 double& sufficientMemory,
+                 double& timeAtSuffMemory,
+                 double& timeAt16MB,
+                 double& a, double& b, double&c, double& d);
+                      
+
+
+bool getFunction(const int algId,
+                 const int opId,
+                 const int funId,
+                 const size_t noTuples1,
+                 const size_t sizeOfTuple1,
+                 const size_t noTuples2,
+                 const size_t sizeOfTuple2,
+                 int& funType,
+                 double& sufficientMemory,
+                 double& timeAtSuffMemory,
+                 double& timeAt16MB,
+                 double& a, double& b, double&c, double& d);
+
 
 /*
 Returns the highest algebra id occuring in the vector of algebras.
 
 */
 int getMaxAlgebraId() const;
+
+
+/*
+Returns the nested list storage used in this component.
+
+*/
+ NestedList* getListStorage(){ return nl; }
 
  private:
   NestedList*              nl;
