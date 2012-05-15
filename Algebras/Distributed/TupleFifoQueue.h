@@ -40,6 +40,8 @@ tuples by an other thread.
 #include "zthread/Thread.h"
 #include "zthread/Guard.h"
 #include "zthread/FastMutex.h"
+#include "zthread/Condition.h"
+#include <queue>
 
 class Tuple;
 
