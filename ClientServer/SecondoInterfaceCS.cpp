@@ -706,3 +706,382 @@ void
 SecondoInterface::SetDebugLevel( const int level )
 {
 }
+
+bool SecondoInterface::getOperatorIndexes(
+            const string name,
+            const ListExpr argList,
+            ListExpr& resList,
+            int& algId,
+            int& opId,
+            int& funId,
+            NestedList* listStorage){
+
+
+
+
+    iostream& iosock = server->GetSocketStream();
+    iosock << "<REQUESTOPERATORINDEXES>" << endl;
+    iosock << name << endl;
+    bool ok = listStorage->WriteBinaryTo(argList, iosock);
+    //iosock << endl;
+    iosock << "</REQUESTOPERATORINDEXES>" << endl;
+    if(!ok){
+       cerr << "problem in sednig binary nested list" << endl;
+       return false;
+    }
+    string line;
+    getline( iosock, line );
+
+    if(line=="<OPERATORINDEXESRESPONSE>"){
+
+       getline(iosock,line);
+       bool res = atoi(line.c_str())>0;
+       getline(iosock,line);
+       algId = atoi(line.c_str());
+       getline(iosock,line);
+       opId = atoi(line.c_str());
+       getline(iosock, line);
+       funId = atoi(line.c_str());
+       ok = listStorage->ReadBinaryFrom(iosock,resList);
+       getline(iosock,line); 
+       while(line!="</OPERATORINDEXESRESPONSE>"){
+          getline(iosock,line);
+       }
+       return res;
+    } else {
+        // Ignore error response
+        do
+        {
+          getline( iosock, line );
+          cerr << line << endl;
+   
+        }
+        while ( ( line != "</SecondoError>" )  && !iosock.fail() );
+        return false;
+    }
+}
+
+/*
+~getCosts~
+
+The next functions return costs for a specified operator when number of tuples
+and size of a single tuple is given. If the operator does not provide a
+cost estimation function or the getCost function is not implemented,
+the return value is false.
+
+*/
+
+bool SecondoInterface::getCosts(const int algId,
+              const int opId,
+              const int funId,
+              const size_t noTuples,
+              const size_t sizeOfTuple,
+              const size_t memoryMB,
+              size_t& costs) {
+    iostream& iosock = server->GetSocketStream();
+    iosock << "<GETCOSTS>" << endl;
+    iosock << "1" << endl;
+    iosock << algId << endl;
+    iosock << opId << endl;
+    iosock << funId << endl;
+    iosock << noTuples << endl;
+    iosock << sizeOfTuple << endl;
+    iosock << memoryMB << endl;
+    iosock << "</GETCOSTS>" << endl;
+
+    string line;
+    getline(iosock,line);
+    if(line == "<COSTRESPONSE>"){
+       getline(iosock,line);
+       bool ok = atoi(line.c_str()) != 0;
+       getline(iosock,line);
+       costs = atoi(line.c_str());
+       do{
+         getline(iosock,line);
+       } while( line != "</COSTRESPONSE>");
+       return ok;
+    } else {
+        do
+        {
+          getline( iosock, line );
+          cerr << line << endl;
+   
+        }
+        while ( ( line != "</SecondoError>" )  && !iosock.fail() );
+        return false;
+    }
+}
+
+
+bool SecondoInterface::getCosts(const int algId,
+              const int opId,
+              const int funId,
+              const size_t noTuples1,
+              const size_t sizeOfTuple1,
+              const size_t noTuples2,
+              const size_t sizeOfTuple2,
+              const size_t memoryMB,
+              size_t& costs){
+    iostream& iosock = server->GetSocketStream();
+    iosock << "<GETCOSTS>" << endl;
+    iosock << "2" << endl;
+    iosock << algId << endl;
+    iosock << opId << endl;
+    iosock << funId << endl;
+    iosock << noTuples1 << endl;
+    iosock << sizeOfTuple1 << endl;
+    iosock << noTuples2 << endl;
+    iosock << sizeOfTuple2 << endl;
+    iosock << memoryMB << endl;
+    iosock << "</GETCOSTS>" << endl;
+    string line;
+    getline(iosock,line);
+    if(line == "<COSTRESPONSE>"){
+       getline(iosock,line);
+       bool ok = atoi(line.c_str()) != 0;
+       getline(iosock,line);
+       costs = atoi(line.c_str());
+       do{
+         getline(iosock,line);
+       } while( line != "</COSTRESPONSE>");
+       return ok;
+    } else {
+        do
+        {
+          getline( iosock, line );
+          cerr << line << endl;
+   
+        }
+        while ( ( line != "</SecondoError>" )  && !iosock.fail() );
+        return false;
+    }
+}
+
+/*
+~getLinearParams~
+
+Retrieves the parameters for estimating the cost function of an operator
+in a linear way.
+
+*/
+bool SecondoInterface::getLinearParams( const int algId,
+                      const int opId,
+                      const int funId,
+                      const size_t noTuples1,
+                      const size_t sizeOfTuple1,
+                      double& sufficientMemory,
+                      double& timeAtSuffMemory,
+                      double& timeAt16MB) {
+
+    iostream& iosock = server->GetSocketStream();
+    iosock << "<GETLINEARCOSTFUN>" << endl;
+    iosock << "1" << endl;
+    iosock << algId << endl;
+    iosock << opId << endl;
+    iosock << funId << endl;
+    iosock << noTuples1 << endl;
+    iosock << sizeOfTuple1 << endl;
+    iosock << "</GETLINEARCOSTFUN>" << endl;
+    string line;
+    getline(iosock,line);
+    if(line == "<LINEARCOSTFUNRESPONSE>"){
+       getline(iosock,line);
+       bool ok = atoi(line.c_str()) != 0;
+       getline(iosock,line);
+       sufficientMemory = atof( line.c_str());
+       getline(iosock,line);
+       timeAtSuffMemory = atof( line.c_str());
+       getline(iosock,line);
+       timeAt16MB = atof(line.c_str()); 
+       do{
+         getline(iosock,line);
+       } while( line != "</LINEARCOSTFUNRESPONSE>");
+       return ok;
+    } else {
+        do
+        {
+          getline( iosock, line );
+          cerr << line << endl;
+   
+        }
+        while ( ( line != "</SecondoError>" )  && !iosock.fail() );
+        return false;
+    }
+}
+
+
+bool SecondoInterface::getLinearParams( const int algId,
+                      const int opId,
+                      const int funId,
+                      const size_t noTuples1,
+                      const size_t sizeOfTuple1,
+                      const size_t noTuples2,
+                      const size_t sizeOfTuple2,
+                      double& sufficientMemory,
+                      double& timeAtSuffMemory,
+                      double& timeAt16MB) {
+    iostream& iosock = server->GetSocketStream();
+    iosock << "<GETLINEARCOSTFUN>" << endl;
+    iosock << "2" << endl;
+    iosock << algId << endl;
+    iosock << opId << endl;
+    iosock << funId << endl;
+    iosock << noTuples1 << endl;
+    iosock << sizeOfTuple1 << endl;
+    iosock << noTuples2 << endl;
+    iosock << sizeOfTuple2 << endl;
+    iosock << "</GETLINEARCOSTFUN>" << endl;
+    string line;
+    getline(iosock,line);
+    if(line == "<LINEARCOSTFUNRESPONSE>"){
+       getline(iosock,line);
+       bool ok = atoi(line.c_str()) != 0;
+       getline(iosock,line);
+       sufficientMemory = atof( line.c_str());
+       getline(iosock,line);
+       timeAtSuffMemory = atof( line.c_str());
+       getline(iosock,line);
+       timeAt16MB = atof(line.c_str()); 
+       do{
+         getline(iosock,line);
+       } while( line != "</LINEARCOSTFUNRESPONSE>");
+       return ok;
+    } else {
+        do
+        {
+          getline( iosock, line );
+          cerr << line << endl;
+   
+        }
+        while ( ( line != "</SecondoError>" )  && !iosock.fail() );
+        return false;
+    }
+}
+
+/*
+~getFunction~
+
+Returns an approximation of the cost function of a specified value mapping as
+a parametrized function.
+
+*/
+bool SecondoInterface::getFunction(const int algId,
+                 const int opId,
+                 const int funId,
+                 const size_t noTuples1,
+                 const size_t sizeOfTuple1,
+                 int& funType,
+                 double& sufficientMemory,
+                 double& timeAtSuffMemory,
+                 double& timeAt16MB,
+                 double& a, double& b, double&c, double& d) {
+    iostream& iosock = server->GetSocketStream();
+    iosock << "<GETCOSTFUN>" << endl;
+    iosock << "1" << endl;
+    iosock << algId << endl;
+    iosock << opId << endl;
+    iosock << funId << endl;
+    iosock << noTuples1 << endl;
+    iosock << sizeOfTuple1 << endl;
+    iosock << "</GETCOSTFUN>" << endl;
+    string line;
+    getline(iosock,line);
+    if(line == "<COSTFUNRESPONSE>"){
+       getline(iosock,line);
+       bool ok = atoi(line.c_str()) != 0;
+       getline(iosock,line);
+       funType = atoi(line.c_str()); 
+       getline(iosock,line);
+       sufficientMemory = atof( line.c_str());
+       getline(iosock,line);
+       timeAtSuffMemory = atof( line.c_str());
+       getline(iosock,line);
+       timeAt16MB = atof(line.c_str()); 
+       getline(iosock,line);
+       a = atof(line.c_str());
+       getline(iosock,line);
+       b = atof(line.c_str());
+       getline(iosock,line);
+       c = atof(line.c_str());
+       getline(iosock,line);
+       d = atof(line.c_str());
+       do{
+         getline(iosock,line);
+       } while( line != "</COSTFUNRESPONSE>");
+       return ok;
+    } else {
+        do
+        {
+          getline( iosock, line );
+          cerr << line << endl;
+   
+        }
+        while ( ( line != "</SecondoError>" )  && !iosock.fail() );
+        return false;
+    }
+}
+
+bool SecondoInterface::getFunction(const int algId,
+                 const int opId,
+                 const int funId,
+                 const size_t noTuples1,
+                 const size_t sizeOfTuple1,
+                 const size_t noTuples2,
+                 const size_t sizeOfTuple2,
+                 int& funType,
+                 double& sufficientMemory,
+                 double& timeAtSuffMemory,
+                 double& timeAt16MB,
+                 double& a, double& b, double&c, double& d) {
+
+    iostream& iosock = server->GetSocketStream();
+    iosock << "<GETCOSTFUN>" << endl;
+    iosock << "2" << endl;
+    iosock << algId << endl;
+    iosock << opId << endl;
+    iosock << funId << endl;
+    iosock << noTuples1 << endl;
+    iosock << sizeOfTuple1 << endl;
+    iosock << noTuples2 << endl;
+    iosock << sizeOfTuple2 << endl;
+    iosock << "</GETCOSTFUN>" << endl;
+    string line;
+    getline(iosock,line);
+    if(line == "<COSTFUNRESPONSE>"){
+       getline(iosock,line);
+       bool ok = atoi(line.c_str()) != 0;
+       getline(iosock,line);
+       funType = atoi(line.c_str()); 
+       getline(iosock,line);
+       sufficientMemory = atof( line.c_str());
+       getline(iosock,line);
+       timeAtSuffMemory = atof( line.c_str());
+       getline(iosock,line);
+       timeAt16MB = atof(line.c_str()); 
+       getline(iosock,line);
+       a = atof(line.c_str());
+       getline(iosock,line);
+       b = atof(line.c_str());
+       getline(iosock,line);
+       c = atof(line.c_str());
+       getline(iosock,line);
+       d = atof(line.c_str());
+       do{
+         getline(iosock,line);
+       } while( line != "</COSTFUNRESPONSE>");
+       return ok;
+    } else {
+        do
+        {
+          getline( iosock, line );
+          cerr << line << endl;
+   
+        }
+        while ( ( line != "</SecondoError>" )  && !iosock.fail() );
+        return false;
+    }
+
+}
+
+
+

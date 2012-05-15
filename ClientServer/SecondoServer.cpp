@@ -93,6 +93,10 @@ class SecondoServer : public Application
                       const string& errorMessage, ListExpr resultList );
   bool ReceiveFile( const string& clientFileName,
                     const string& serverFileName );
+  void CallGetOperatorIndexes();
+  void CallGetCosts();
+  void CallGetLinearCostFun();
+  void CallGetCostFun();
   
  private:
 
@@ -255,6 +259,262 @@ SecondoServer::CallLookUpType()
 }
 
 
+void SecondoServer::CallGetOperatorIndexes(){
+
+   string name;
+   ListExpr args;
+   iostream& iosock = client->GetSocketStream();
+   getline(iosock,name);
+   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+   //NestedList* nl = am->getListStorage();
+   NestedList* nl1 = SecondoSystem::GetNestedList(); 
+
+   nl1->ReadBinaryFrom(iosock, args);
+
+   string cmdEnd;
+   getline(iosock, cmdEnd);
+   if(cmdEnd=="</REQUESTOPERATORINDEXES>"){
+       iosock << "<OPERATORINDEXESRESPONSE>" << endl;
+       int algId;
+       int OpId;
+       int funId;
+       ListExpr resList;
+    
+       NList::setNLRef(nl1); 
+       bool ok = am->findOperator(name,args,resList, algId, OpId,funId);
+       NList::setNLRef(nl);
+      
+       stringstream ss;
+       ss << (ok?"1":"0") << endl;
+       ss << algId << endl << OpId << endl << funId << endl;
+       iosock << ss.str();
+       nl1->WriteBinaryTo(resList, iosock);
+       iosock << endl;
+       iosock << "</OPERATORINDEXESRESPONSE>" << endl;
+   } else {
+     
+    iosock << "<SecondoError>" << endl
+           << "SECONDO-0080 Protocol error: "
+           << "</REQUESTOPERATORINDEXES> expected." << endl
+           << " received '" << cmdEnd << "'" << endl
+           << "</SecondoError>" << endl;
+   }
+}
+
+void SecondoServer::CallGetCosts(){
+
+   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+   iostream& iosock = client->GetSocketStream();
+   int noStreams;
+   int algId;
+   int opId;
+   int funId;
+   int noTuples1;
+   int sizeOfTuple1;
+   int noTuples2;
+   int sizeOfTuple2;
+   int memoryMB;
+   string line;
+   getline(iosock,line);
+
+   noStreams = atoi(line.c_str());
+   if((noStreams!=1) && (noStreams!=2)){
+    iosock << "<SecondoError>" << endl
+           << "SECONDO-0080 Protocol error: getCosts "
+           << "can handle only 2 streams" << endl
+           << "</SecondoError>" << endl;
+     return;
+   }
+   getline(iosock,line);
+   algId = atoi(line.c_str());
+   getline(iosock,line);
+   opId = atoi(line.c_str());
+   getline(iosock,line);
+   funId = atoi(line.c_str());
+   getline(iosock,line);
+   noTuples1 =  atoi(line.c_str());
+   getline(iosock,line);
+   sizeOfTuple1 = atoi(line.c_str());
+   getline(iosock,line);
+   memoryMB = atoi(line.c_str());
+   size_t costs;
+   bool ok;
+   if(noStreams==1){
+      ok = am->getCosts(algId,opId,funId,noTuples1,sizeOfTuple1,memoryMB,costs);
+   } else {
+      getline(iosock,line);
+      noTuples2 = atoi(line.c_str());
+      getline(iosock,line);
+      sizeOfTuple2 = atoi(line.c_str());
+      ok = am->getCosts(algId,opId,funId,noTuples1,sizeOfTuple1,
+                        noTuples2,sizeOfTuple2,memoryMB,costs);
+   }
+ 
+    
+   getline(iosock,line);
+   if(line!="</GETCOSTS>"){
+      iosock << "<SecondoError>" << endl
+             << "SECONDO-0080 Protocol error: </GETCOSTS> "
+             << " expected" << endl
+             << " received '" << line << "'" << endl
+             << "</SecondoError>" << endl;
+      return;
+   }
+   iosock << "<COSTRESPONSE>" << endl;
+   stringstream ss;
+   ss << (ok?"1":"0") << endl;
+   ss << costs << endl;
+   iosock << ss.str();
+   iosock << "</COSTRESPONSE>" << endl;   
+   iosock.flush();
+}
+
+
+void SecondoServer::CallGetLinearCostFun(){
+   
+   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+   iostream& iosock = client->GetSocketStream();
+   int noStreams;
+   int algId;
+   int opId;
+   int funId;
+   int noTuples1;
+   int sizeOfTuple1;
+   int noTuples2;
+   int sizeOfTuple2;
+   string line;
+   getline(iosock,line);
+   noStreams = atoi(line.c_str());
+   if((noStreams!=1) && (noStreams!=2)){
+    iosock << "<SecondoError>" << endl
+           << "SECONDO-0080 Protocol error: getCosts "
+           << "can handle only 2 streams" << endl
+           << "</SecondoError>" << endl;
+     return;
+   }
+   getline(iosock,line);
+   algId = atoi(line.c_str());
+   getline(iosock,line);
+   opId = atoi(line.c_str());
+   getline(iosock,line);
+   funId = atoi(line.c_str());
+   getline(iosock,line);
+   noTuples1 =  atoi(line.c_str());
+   getline(iosock,line);
+   sizeOfTuple1 = atoi(line.c_str());
+   bool ok;
+   double sufficientMemory;
+   double timeAtSuffMemory;
+   double timeAt16MB;
+   if(noStreams==1){
+      ok = am->getLinearParams(algId,opId,funId,noTuples1,sizeOfTuple1,
+                               sufficientMemory,timeAtSuffMemory,timeAt16MB);
+   } else {
+      getline(iosock,line);
+      noTuples2 = atoi(line.c_str());
+      getline(iosock,line);
+      sizeOfTuple2 = atoi(line.c_str());
+      ok = am->getLinearParams(algId,opId,funId,noTuples1,sizeOfTuple1,
+                               noTuples2, sizeOfTuple2,
+                               sufficientMemory,timeAtSuffMemory,timeAt16MB);
+   }
+   getline(iosock,line);
+   if(line!="</GETLINEARCOSTFUN>"){
+      iosock << "<SecondoError>" << endl
+             << "SECONDO-0080 Protocol error: </GETCOSTS> "
+             << " expected" << endl
+             << " received '" << line << "'" << endl
+             << "</SecondoError>" << endl;
+      return;
+   }
+   stringstream ss;
+   ss << "<LINEARCOSTFUNRESPONSE>" << endl;
+   ss << (ok?"1":"0") << endl;
+   ss << sufficientMemory << endl;
+   ss << timeAtSuffMemory << endl;
+   ss << timeAt16MB << endl;
+   ss << "</LINEARCOSTFUNRESPONSE>" << endl;   
+   iosock << ss.str();
+   iosock.flush();
+}
+
+
+void SecondoServer::CallGetCostFun(){
+   
+   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+   iostream& iosock = client->GetSocketStream();
+   int noStreams;
+   int algId;
+   int opId;
+   int funId;
+   int noTuples1;
+   int sizeOfTuple1;
+   int noTuples2;
+   int sizeOfTuple2;
+   string line;
+   getline(iosock,line);
+   noStreams = atoi(line.c_str());
+   if((noStreams!=1) && (noStreams!=2)){
+    iosock << "<SecondoError>" << endl
+           << "SECONDO-0080 Protocol error: getCosts "
+           << "can handle only 2 streams" << endl
+           << "</SecondoError>" << endl;
+     return;
+   }
+   getline(iosock,line);
+   algId = atoi(line.c_str());
+   getline(iosock,line);
+   opId = atoi(line.c_str());
+   getline(iosock,line);
+   funId = atoi(line.c_str());
+   getline(iosock,line);
+   noTuples1 =  atoi(line.c_str());
+   getline(iosock,line);
+   sizeOfTuple1 = atoi(line.c_str());
+   bool ok;
+   int funType;
+   double sufficientMemory;
+   double timeAtSuffMemory;
+   double timeAt16MB;
+   double a;
+   double b;
+   double c;
+   double d;
+   if(noStreams==1){
+      ok = am->getFunction(algId,opId,funId,noTuples1,sizeOfTuple1,
+                           funType,sufficientMemory,timeAtSuffMemory,timeAt16MB,
+                           a,b,c,d);
+   } else {
+      getline(iosock,line);
+      noTuples2 = atoi(line.c_str());
+      getline(iosock,line);
+      sizeOfTuple2 = atoi(line.c_str());
+      ok = am->getFunction(algId,opId,funId,noTuples1,sizeOfTuple1,
+                           noTuples2, sizeOfTuple2,
+                           funType,sufficientMemory,timeAtSuffMemory,timeAt16MB,
+                           a,b,c,d);
+   }
+   getline(iosock,line);
+   if(line!="</GETCOSTFUN>"){
+      iosock << "<SecondoError>" << endl
+             << "SECONDO-0080 Protocol error: </GETCOSTS> "
+             << " expected" << endl
+             << " received '" << line << "'" << endl
+             << "</SecondoError>" << endl;
+      return;
+   }
+   stringstream ss;
+   ss << "<COSTFUNRESPONSE>" << endl;
+   ss << (ok?"1":"0") << endl;
+   ss << funType << endl;
+   ss << sufficientMemory << endl;
+   ss << timeAtSuffMemory << endl;
+   ss << timeAt16MB << endl;
+   ss << a << endl << b << endl << c << endl << d << endl;
+   ss << "</COSTFUNRESPONSE>" << endl;   
+   iosock << ss.str();
+   iosock.flush(); 
+}
 
 string
 SecondoServer::CreateTmpName(const string& prefix)
@@ -449,6 +709,11 @@ SecondoServer::Execute()
   commandTable["<DbRestore>"]   = &SecondoServer::CallDbRestore;
   commandTable["<Connect>"]     = &SecondoServer::Connect;
   commandTable["<Disconnect/>"] = &SecondoServer::Disconnect;
+  commandTable["<REQUESTOPERATORINDEXES>"] = 
+                                    &SecondoServer::CallGetOperatorIndexes;
+  commandTable["<GETCOSTS>"] = &SecondoServer::CallGetCosts;
+  commandTable["<GETLINEARCOSTFUN>"] = &SecondoServer::CallGetLinearCostFun;
+  commandTable["<GETCOSTFUN>"] = &SecondoServer::CallGetCostFun;
 
   string logMsgList = SmiProfile::GetParameter( "Environment", 
                                                 "RTFlags", "", parmFile );

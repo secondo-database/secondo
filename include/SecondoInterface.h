@@ -931,6 +931,105 @@ Sets the debug level of the query processor.
 
 */
 
+ bool getOperatorIndexes(
+         const string OpName,
+         ListExpr argList,
+         ListExpr& resList,
+         int& algId,
+         int& opId,
+         int& funId,
+         NestedList* listStorage);
+
+
+/*
+~getCosts~
+
+The next functions return costs for a specified operator when number of tuples
+and size of a single tuple is given. If the operator does not provide a
+cost estimation function or the getCost function is not implemented,
+the return value is false.
+
+*/
+
+bool getCosts(const int algId,
+              const int opId,
+              const int funId,
+              const size_t noTuples,
+              const size_t sizeOfTuple,
+              const size_t memoryMB,
+              size_t& costs);
+
+
+bool getCosts(const int algId,
+              const int opId,
+              const int funId,
+              const size_t noTuples1,
+              const size_t sizeOfTuple1,
+              const size_t noTuples2,
+              const size_t sizeOfTuple2,
+              const size_t memoryMB,
+              size_t& costs);
+
+/*
+~getLinearParams~
+
+Retrieves the parameters for estimating the cost function of an operator
+in a linear way.
+
+*/
+bool getLinearParams( const int algId,
+                      const int opId,
+                      const int funId,
+                      const size_t noTuples1,
+                      const size_t sizeOfTuple1,
+                      double& sufficientMemory,
+                      double& timeAtSuffMemory,
+                      double& timeAt16MB);
+
+
+bool getLinearParams( const int algId,
+                      const int opId,
+                      const int funId,
+                      const size_t noTuples1,
+                      const size_t sizeOfTuple1,
+                      const size_t noTuples2,
+                      const size_t sizeOfTuple2,
+                      double& sufficientMemory,
+                      double& timeAtSuffMemory,
+                      double& timeAt16MB);
+
+/*
+~getFunction~
+
+Returns an approximation of the cost function of a specified value mapping as
+a parametrized function.
+
+*/
+bool getFunction(const int algId,
+                 const int opId,
+                 const int funId,
+                 const size_t noTuples,
+                 const size_t sizeOfTuple,
+                 int& funType,
+                 double& sufficientMemory,
+                 double& timeAtSuffMemory,
+                 double& timeAt16MB,
+                 double& a, double& b, double&c, double& d);
+                      
+
+
+bool getFunction(const int algId,
+                 const int opId,
+                 const int funId,
+                 const size_t noTuples1,
+                 const size_t sizeOfTuple1,
+                 const size_t noTuples2,
+                 const size_t sizeOfTuple2,
+                 int& funType,
+                 double& sufficientMemory,
+                 double& timeAtSuffMemory,
+                 double& timeAt16MB,
+                 double& a, double& b, double&c, double& d);
 
  protected:
  private:

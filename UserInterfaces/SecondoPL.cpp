@@ -49,12 +49,14 @@ support for calling Secondo from PROLOG.
 using namespace std;
 
 #include "NestedList.h"
-#include "NList.h"
 #include "SecondoInterface.h"
 #include "Profiles.h"
 #include "LogMsg.h"
 #include "License.h"
 #include "TTYParameter.h"
+#include "NList.h"
+
+
 
 
 #include "../OptParser/OptimizerChecker.h"
@@ -599,6 +601,419 @@ pl_call_secondo(term_t command, term_t result)
 }
 
 
+
+static foreign_t getOperatorIndexes(
+      term_t nameP,    // input: name of operator
+      term_t argList,  // input: argumentlist
+      term_t resList,  // output: resultlist
+      term_t algId,    // output: algebra id
+      term_t opId,     // output: operator id
+      term_t funId){   // output: value mapping id
+   // convert operator name into a c++ string
+   char* nameC;
+
+   if(!PL_get_atom_chars(nameP, &nameC)){ // name not given
+     cout << "cannot convert name" << endl;
+     PL_fail;
+   }
+   cout << "name = '" << nameC << "'" << endl;
+   // convert argument list from prolog to C++
+   bool error = false;
+   ListExpr argListC = TermToListExpr(argList, si->GetNestedList(), error);
+   if(error){
+     cout << "cannot convert arglist" << endl;
+     PL_fail;    
+   }
+   cout << "arglist = " << si->GetNestedList()->ToString(argListC) << endl;
+   int algIdC;
+   int opIdC;
+   int funIdC;
+   ListExpr resListC;
+   // ask System for correct values
+   bool ok = si->getOperatorIndexes(nameC, argListC, resListC, 
+                                    algIdC, opIdC, funIdC,si->GetNestedList()); 
+   if(!ok){
+      cout << "OPerator not available for arguments" << endl;
+      PL_fail;
+   }
+   // convert results back to prolog terms
+   PL_unify(resList, ListExprToTerm(resListC, si->GetNestedList()));
+   PL_unify_integer(algId,algIdC);
+   PL_unify_integer(opId,opIdC);
+   PL_unify_integer(funId,funIdC); 
+   // todo: error handling in conversion
+   PL_succeed;
+}
+
+
+/*
+~getCosts~
+
+The next functions return costs for a specified operator when number of tuples
+and size of a single tuple is given. If the operator does not provide a
+cost estimation function or the getCost function is not implemented,
+the return value is false.
+
+*/
+
+static foreign_t  getCosts7(
+              term_t algId,
+              term_t opId,
+              term_t funId,
+              term_t noTuples,
+              term_t sizeOfTuple,
+              term_t memoryMB,
+              term_t costs) {
+   // convert arguments to C
+   int algIdC,opIdC,funIdC,noTuplesC,sizeOfTupleC,memoryMBC;
+   size_t costsC = 0;
+   if(!PL_get_integer(algId, &algIdC)){
+     cerr << "algId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(opId, &opIdC)){
+     cerr << "opId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(funId, &funIdC)){
+     cerr << "funId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(noTuples, &noTuplesC)){
+     cerr << "noTuples is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(sizeOfTuple, &sizeOfTupleC)){
+     cerr << "sizeOfTuple is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(memoryMB, &memoryMBC)){
+     cerr << "sizeOfTuple is not an integer" << endl;
+     PL_fail;
+   }
+   if(!si->getCosts(algIdC,opIdC,funIdC,
+                     (size_t) noTuplesC, (size_t) sizeOfTupleC,
+                     (size_t) memoryMBC, costsC)){
+      PL_fail;
+   }  else {
+      int intCosts = (int) costsC;
+      PL_unify_integer(costs,intCosts);
+      PL_succeed;
+   }
+}
+
+
+static foreign_t getCosts9(
+              term_t algId,
+              term_t opId,
+              term_t funId,
+              term_t noTuples1,
+              term_t sizeOfTuple1,
+              term_t noTuples2,
+              term_t sizeOfTuple2,
+              term_t memoryMB,
+              term_t costs) {
+   // convert arguments to C
+   int algIdC,opIdC,funIdC,noTuples1C,sizeOfTuple1C,
+       noTuples2C,sizeOfTuple2C,memoryMBC;
+   size_t costsC = 0;
+   if(!PL_get_integer(algId, &algIdC)){
+     cerr << "algId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(opId, &opIdC)){
+     cerr << "opId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(funId, &funIdC)){
+     cerr << "funId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(noTuples1, &noTuples1C)){
+     cerr << "noTuples1 is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(sizeOfTuple1, &sizeOfTuple1C)){
+     cerr << "sizeOfTuple1 is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(noTuples2, &noTuples2C)){
+     cerr << "noTuples2 is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(sizeOfTuple2, &sizeOfTuple2C)){
+     cerr << "sizeOfTuple2 is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(memoryMB, &memoryMBC)){
+     cerr << "sizeOfTuple is not an integer" << endl;
+     PL_fail;
+   }
+   if(!si->getCosts(algIdC,opIdC,funIdC,
+                     (size_t) noTuples1C, (size_t) sizeOfTuple1C,
+                     (size_t) noTuples2C, (size_t) sizeOfTuple2C,
+                     (size_t) memoryMBC, costsC)){
+      PL_fail;
+   }  else {
+      int intCosts = (int) costsC;
+      PL_unify_integer(costs,intCosts);
+      PL_succeed;
+   }
+}
+
+/*
+~getLinearParams~
+
+Retrieves the parameters for estimating the cost function of an operator
+in a linear way.
+
+*/
+static foreign_t getLinearParams8( 
+                      term_t algId,
+                      term_t opId,
+                      term_t funId,
+                      term_t noTuples1,
+                      term_t sizeOfTuple1,
+                      term_t sufficientMemory,
+                      term_t timeAtSuffMemory,
+                      term_t timeAt16MB) {
+    
+   int algIdC,opIdC,funIdC,noTuples1C,sizeOfTuple1C;
+   if(!PL_get_integer(algId, &algIdC)){
+     cerr << "algId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(opId, &opIdC)){
+     cerr << "opId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(funId, &funIdC)){
+     cerr << "funId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(noTuples1, &noTuples1C)){
+     cerr << "noTuples1 is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(sizeOfTuple1, &sizeOfTuple1C)){
+     cerr << "sizeOfTuple1 is not an integer" << endl;
+     PL_fail;
+   }
+   double sufficientMemoryC = 0;
+   double timeAtSuffMemoryC = 0;
+   double timeAt16MBC = 0;
+   if(!si->getLinearParams(algIdC,opIdC,funIdC,noTuples1C,sizeOfTuple1C,
+                           sufficientMemoryC,timeAtSuffMemoryC,timeAt16MBC)){
+      PL_fail;
+   } else {
+      PL_unify_float(sufficientMemory,sufficientMemoryC);
+      PL_unify_float(timeAtSuffMemory, timeAtSuffMemoryC);
+      PL_unify_float(timeAt16MB, timeAt16MBC);
+      PL_succeed;
+   }
+}
+
+
+static foreign_t getLinearParams10( 
+          term_t algId,
+          term_t opId,
+          term_t funId,
+          term_t noTuples1,
+          term_t sizeOfTuple1,
+          term_t noTuples2,
+          term_t sizeOfTuple2,
+          term_t sufficientMemory,
+          term_t timeAtSuffMemory,
+          term_t timeAt16MB) {
+
+   int algIdC, opIdC, funIdC, noTuples1C, noTuples2C, 
+       sizeOfTuple2C, sizeOfTuple1C;
+   if(!PL_get_integer(algId, &algIdC)){
+     cerr << "algId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(opId, &opIdC)){
+     cerr << "opId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(funId, &funIdC)){
+     cerr << "funId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(noTuples1, &noTuples1C)){
+     cerr << "noTuples1 is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(sizeOfTuple1, &sizeOfTuple1C)){
+     cerr << "sizeOfTuple1 is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(noTuples2, &noTuples2C)){
+     cerr << "noTuples2 is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(sizeOfTuple2, &sizeOfTuple2C)){
+     cerr << "sizeOfTuple2 is not an integer" << endl;
+     PL_fail;
+   }
+   double sufficientMemoryC = 0;
+   double timeAtSuffMemoryC = 0;
+   double timeAt16MBC = 0;
+   if(!si->getLinearParams(algIdC,opIdC,funIdC,noTuples1C,
+                          sizeOfTuple1C,noTuples2C,sizeOfTuple2C,
+                           sufficientMemoryC,timeAtSuffMemoryC,timeAt16MBC)){
+      PL_fail;
+   } else {
+      PL_unify_float(sufficientMemory,sufficientMemoryC);
+      PL_unify_float(timeAtSuffMemory, timeAtSuffMemoryC);
+      PL_unify_float(timeAt16MB, timeAt16MBC);
+      PL_succeed;
+   }
+}
+
+
+/*
+~getFunction~
+
+Returns an approximation of the cost function of a specified value mapping as
+a parametrized function.
+dlist will be a list containing 7 double values
+(sufficientMemory, timeAtSuffMemory, timeAt16MB, a,b,c,d)
+
+
+*/
+static foreign_t getFunction7(
+                 term_t algId,
+                 term_t opId,
+                 term_t funId,
+                 term_t noTuples1,
+                 term_t sizeOfTuple1,
+                 term_t funType,
+                 term_t dlist) {
+
+   int algIdC,opIdC,funIdC,noTuples1C,sizeOfTuple1C;
+   if(!PL_get_integer(algId, &algIdC)){
+     cerr << "algId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(opId, &opIdC)){
+     cerr << "opId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(funId, &funIdC)){
+     cerr << "funId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(noTuples1, &noTuples1C)){
+     cerr << "noTuples1 is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(sizeOfTuple1, &sizeOfTuple1C)){
+     cerr << "sizeOfTuple1 is not an integer" << endl;
+     PL_fail;
+   }
+   int funTypeC = -1;
+   double sufficientMemoryC = 0;
+   double timeAtSuffMemoryC = 0;
+   double timeAt16MBC = 0;
+   double aC,bC,cC,dC;
+   aC = bC = cC = dC = 0;
+
+   if(!si->getFunction(algIdC,opIdC,funIdC,noTuples1C,sizeOfTuple1C,
+              funTypeC, sufficientMemoryC,timeAtSuffMemoryC,timeAt16MBC,
+              aC,bC,cC,dC)){
+      PL_fail;
+   } else {
+      PL_unify_integer(funType,funTypeC);
+      NestedList* nl = si->GetNestedList();
+      ListExpr clist = nl->OneElemList(nl->RealAtom(sufficientMemoryC));
+      ListExpr last = clist;
+      last = nl->Append(last, nl->RealAtom(timeAtSuffMemoryC));
+      last = nl->Append(last, nl->RealAtom(timeAt16MBC));
+      last = nl->Append(last, nl->RealAtom(aC));
+      last = nl->Append(last, nl->RealAtom(bC));
+      last = nl->Append(last, nl->RealAtom(cC));
+      last = nl->Append(last, nl->RealAtom(dC));
+      PL_unify(dlist, ListExprToTerm(clist, nl));
+      PL_succeed;
+   }
+}
+                      
+
+static foreign_t getFunction9(
+                 term_t algId,
+                 term_t opId,
+                 term_t funId,
+                 term_t noTuples1,
+                 term_t sizeOfTuple1,
+                 term_t noTuples2,
+                 term_t sizeOfTuple2,
+                 term_t funType,
+                 term_t dlist ){
+
+   int algIdC,opIdC,funIdC,noTuples1C,sizeOfTuple1C,noTuples2C,sizeOfTuple2C;
+   if(!PL_get_integer(algId, &algIdC)){
+     cerr << "algId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(opId, &opIdC)){
+     cerr << "opId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(funId, &funIdC)){
+     cerr << "funId is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(noTuples1, &noTuples1C)){
+     cerr << "noTuples1 is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(sizeOfTuple1, &sizeOfTuple1C)){
+     cerr << "sizeOfTuple1 is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(noTuples2, &noTuples2C)){
+     cerr << "noTuples2 is not an integer" << endl;
+     PL_fail;
+   }
+   if(!PL_get_integer(sizeOfTuple2, &sizeOfTuple2C)){
+     cerr << "sizeOfTuple2 is not an integer" << endl;
+     PL_fail;
+   }
+   int funTypeC = -1;
+   double sufficientMemoryC = 0;
+   double timeAtSuffMemoryC = 0;
+   double timeAt16MBC = 0;
+   double aC,bC,cC,dC;
+   aC = bC = cC = dC = 0;
+
+   if(!si->getFunction(algIdC,opIdC,funIdC,noTuples1C,sizeOfTuple1C, 
+              noTuples2C, sizeOfTuple2C,
+              funTypeC, sufficientMemoryC,timeAtSuffMemoryC,timeAt16MBC,
+              aC,bC,cC,dC)){
+      PL_fail;
+   } else {
+      PL_unify_integer(funType,funTypeC);
+      NestedList* nl = si->GetNestedList();
+      ListExpr clist = nl->OneElemList(nl->RealAtom(sufficientMemoryC));
+      ListExpr last = clist;
+      last = nl->Append(last, nl->RealAtom(timeAtSuffMemoryC));
+      last = nl->Append(last, nl->RealAtom(timeAt16MBC));
+      last = nl->Append(last, nl->RealAtom(aC));
+      last = nl->Append(last, nl->RealAtom(bC));
+      last = nl->Append(last, nl->RealAtom(cC));
+      last = nl->Append(last, nl->RealAtom(dC));
+      PL_unify(dlist, ListExprToTerm(clist, nl));
+      PL_succeed;
+   }
+}
+                      
+
+
+
+
+
+
 /*
 This functions check a sql construct (given as an atom)
 to be valid using an external parser. On succeed, the
@@ -752,6 +1167,13 @@ PL_extension predicates[] =
   { "secondo_print_le", 1, (void*)pl_print_term_le, 0 },
   { "check_syntax",2, (void*)pl_check_syntax,0},
   { "set_sql_check_option",2,(void*)pl_set_sql_check_option,0},
+  { "getOpIndexes",6,(void*)getOperatorIndexes,0},
+  { "getCosts",7,(void*)getCosts7,0},
+  { "getCosts",9,(void*)getCosts9,0},
+  { "getLinearCostFun",8,(void*)getLinearParams8,0},
+  { "getLinearCostFun",10,(void*)getLinearParams10,0},
+  { "getCostFun",7,(void*)getFunction7,0},
+  { "getCostFun",9,(void*)getFunction9,0},
 #ifdef SECONDO_USE_ENTROPY
   { "maximize_entropy", 3, (void*)pl_maximize_entropy, 0 },
 #endif

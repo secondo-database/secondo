@@ -2443,3 +2443,157 @@ SecondoInterface::SetDebugLevel( const int level )
 {
   SecondoSystem::GetQueryProcessor()->SetDebugLevel( level );
 }
+
+
+bool SecondoInterface::getOperatorIndexes(
+                        const string opName,
+                        const ListExpr argList,
+                        ListExpr& resList,
+                        int& algId,
+                        int& opId,
+                        int& funId,
+                        NestedList* listStorage){
+
+   ListExpr argList1;
+   NestedList* nl = SecondoSystem::GetNestedList();
+   if(listStorage!=nl){
+      argList1 = listStorage->CopyList(argList, nl);
+   } else {
+      argList1 = argList;
+   }
+
+   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+   ListExpr resList1;
+
+   bool ok = am->findOperator(opName,argList1, resList1, algId,opId,funId);
+   
+
+   if(listStorage !=nl){
+      resList = nl->CopyList(resList1,listStorage);
+   }  else {
+      resList = resList1;
+   }
+   
+   return  ok;
+}
+
+
+/*
+~getCosts~
+
+The next functions return costs for a specified operator when number of tuples
+and size of a single tuple is given. If the operator does not provide a
+cost estimation function or the getCost function is not implemented,
+the return value is false.
+
+*/
+
+bool SecondoInterface::getCosts(const int algId,
+              const int opId,
+              const int funId,
+              const size_t noTuples,
+              const size_t sizeOfTuple,
+              const size_t memoryMB,
+              size_t& costs){
+   return SecondoSystem::GetAlgebraManager()->getCosts(
+                   algId,opId,funId,noTuples,sizeOfTuple,memoryMB,costs);
+}
+
+
+bool SecondoInterface::getCosts(const int algId,
+              const int opId,
+              const int funId,
+              const size_t noTuples1,
+              const size_t sizeOfTuple1,
+              const size_t noTuples2,
+              const size_t sizeOfTuple2,
+              const size_t memoryMB,
+              size_t& costs) {
+   return SecondoSystem::GetAlgebraManager()->getCosts(
+                   algId,opId,funId,noTuples1,sizeOfTuple2,
+                   noTuples2,sizeOfTuple2,memoryMB,costs);
+
+}
+
+/*
+~getLinearParams~
+
+Retrieves the parameters for estimating the cost function of an operator
+in a linear way.
+
+*/
+bool SecondoInterface::getLinearParams( const int algId,
+                      const int opId,
+                      const int funId,
+                      const size_t noTuples1,
+                      const size_t sizeOfTuple1,
+                      double& sufficientMemory,
+                      double& timeAtSuffMemory,
+                      double& timeAt16MB) {
+    return SecondoSystem::GetAlgebraManager()->getLinearParams(
+                algId,opId,funId,noTuples1,sizeOfTuple1,
+                sufficientMemory,timeAtSuffMemory,timeAt16MB);
+}
+
+
+bool SecondoInterface::getLinearParams( const int algId,
+                      const int opId,
+                      const int funId,
+                      const size_t noTuples1,
+                      const size_t sizeOfTuple1,
+                      const size_t noTuples2,
+                      const size_t sizeOfTuple2,
+                      double& sufficientMemory,
+                      double& timeAtSuffMemory,
+                      double& timeAt16MB) {
+    return SecondoSystem::GetAlgebraManager()->getLinearParams(
+                algId,opId,funId,noTuples1,sizeOfTuple1, 
+                noTuples2,sizeOfTuple2,
+                sufficientMemory,timeAtSuffMemory,timeAt16MB);
+}
+
+/*
+~getFunction~
+
+Returns an approximation of the cost function of a specified value mapping as
+a parametrized function.
+
+*/
+bool SecondoInterface::getFunction(const int algId,
+                 const int opId,
+                 const int funId,
+                 const size_t noTuples,
+                 const size_t sizeOfTuple,
+                 int& funType,
+                 double& sufficientMemory,
+                 double& timeAtSuffMemory,
+                 double& timeAt16MB,
+                 double& a, double& b, double&c, double& d) {
+   return SecondoSystem::GetAlgebraManager()->getFunction(
+           algId,opId,funId,noTuples,sizeOfTuple,
+           funType,sufficientMemory,timeAtSuffMemory,timeAt16MB,
+           a,b,c,d);
+
+}
+                      
+
+
+bool SecondoInterface::getFunction(const int algId,
+                 const int opId,
+                 const int funId,
+                 const size_t noTuples1,
+                 const size_t sizeOfTuple1,
+                 const size_t noTuples2,
+                 const size_t sizeOfTuple2,
+                 int& funType,
+                 double& sufficientMemory,
+                 double& timeAtSuffMemory,
+                 double& timeAt16MB,
+                 double& a, double& b, double&c, double& d) {
+
+   return SecondoSystem::GetAlgebraManager()->getFunction(
+           algId,opId,funId,noTuples1,sizeOfTuple1,noTuples2,sizeOfTuple2,
+           funType,sufficientMemory,timeAtSuffMemory,timeAt16MB,
+           a,b,c,d);
+}
+
