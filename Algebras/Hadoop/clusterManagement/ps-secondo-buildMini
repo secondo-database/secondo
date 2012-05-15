@@ -73,7 +73,16 @@ echo -e "\n---- The Mini Secondo contains ----"
 cat "${bin}/miniSec_list"
 echo -e "---- End Mini Secondo File List ---\n"
 
-cat "${bin}/miniSec_list" | xargs tar czf "${MSARV}" -C "$SECPATH"
+#Provides wildcards in mini-secondo list
+while read file; do
+  if [ "$(trim $file)" != "" ]; then
+    echo ${PARALLEL_SECONDO_BUILD_DIR}/$file
+  fi
+done < "${bin}/miniSec_list" | tr ' ' '\n' | xargs tar czf "${MSARV}" -C "$SECPATH" 2>/dev/null
+declare -i SLEVEL=$(echo $SECPATH | tr '/' '\n' | sed '/^$/d' | wc -l)
+
+
+
 echo "The mini secondo archive is built in ${MSARV}"
 
 echo -e "============= End Building Mini Secondo ===========\n"
@@ -119,7 +128,7 @@ if [ $DISLC = true ]; then
     fi
 
     mkdir "$MINISEC"
-    tar -xzf "${MSARV}" -C "${MINISEC}"
+    tar -xzf "${MSARV}" -C "${MINISEC}"  --strip=$SLEVEL
     cp -v "${SECCONF}" "${MINISEC}/bin/${CONFNAME}"
     chmod -R 775 ${MINISEC}/bin
     echo -e "The mini secondo is deployed in local: ${MINISEC}\n"
@@ -170,7 +179,7 @@ if [ $DISCL = true ]; then
          scp "$MSARV" "$NODE:${fLoc}/${RARVNAME}" 2>/dev/null
          ssh "$NODE"  "rm -rf ${rsLoc}" 2>/dev/null
          ssh "$NODE"  "mkdir ${rsLoc}" 2>/dev/null
-         ssh "$NODE"  "tar -xzf ${fLoc}/${RARVNAME} -C ${rsLoc}" 2>/dev/null
+         ssh "$NODE"  "tar -xzf ${fLoc}/${RARVNAME} -C ${rsLoc} --strip=${SLEVEL}" 2>/dev/null
          # Changed the access mode after distribute the data
          ssh "$NODE"  "chmod -R 775 ${rsLoc}/bin" 2>/dev/null
  #        echo "Changed the access mod of mini Secondo"

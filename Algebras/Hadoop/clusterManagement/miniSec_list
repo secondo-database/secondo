@@ -1,6 +1,6 @@
 bin/opt
 bin/berlintest
-bin/tmp
+bin/tmp/*.examples
 bin/SecondoListener
 bin/SecondoRegistrar
 bin/SecondoConfig.example
