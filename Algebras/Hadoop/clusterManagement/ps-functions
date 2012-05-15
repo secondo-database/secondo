@@ -251,3 +251,9 @@ function PSEDOPT
     echo "-i "
   fi
 }
+
+function trim
+{
+  echo $(echo $1 | sed 's/^ *//' | sed 's/ *$//')
+}
+
