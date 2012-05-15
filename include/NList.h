@@ -774,6 +774,12 @@ Use with care! Normally you will not need this.
 
 */
  static void setNLRef(NestedList* ptr) { nlGlobal = ptr; }
+
+
+ static NestedList* getNLRef(){
+   return nlGlobal;
+ }
+
  void showNLRefs() {
     cerr << "nlGlobal:" << nlGlobal << endl;
     cerr << "nl:" << nl << endl;
