@@ -272,6 +272,17 @@ Retruns the next tuple of an iterator
     ZThread::Guard<MyMutex> g(lock);
     nl -> ReadFromString(inStr, l);
   }
+
+/*
+
+7.2 NL[_]Second
+
+*/
+  ListExpr NL_Second(ListExpr &l)
+  {
+    ZThread::Guard<MyMutex> g(lock);
+    return nl -> Second( l);
+  }
 };
 
 typedef DBAccessGuard DBAccess;
