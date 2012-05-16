@@ -334,11 +334,12 @@ DArray::~DArray()
             (am->DeleteObj(alg_id,typ_id))(m_type,m_elements[i]);
           }
       }
-      delete m_serverManager;
-      m_serverManager = NULL;
       m_present.clear();
       m_elements.clear();
    }
+
+  delete m_serverManager;
+  m_serverManager = NULL;
 }
 
 void DArray::remove()
@@ -1504,19 +1505,20 @@ static ListExpr getTypeMap( ListExpr args )
 }
 
 static int getFun( Word* args,
-                              Word& result,
-                              int message,
-                              Word& local,
-                              Supplier s)
+                   Word& result,
+                   int message,
+                   Word& local,
+                   Supplier s)
 {
    DArray* array = ((DArray*)args[0].addr);
-   bool hasErrors = false;
+   result =  qp->ResultStorage(s);
    if ( array == 0 ||
         !(array -> IsDefined()) ||
         !(array -> getServerManager() -> checkServers(false)))
      {
        cerr << "ERROR: DArray is not defined correctly!" << endl;
-       hasErrors = true;
+       ((Attribute *)result.addr) -> SetDefined(false);
+       return 1;
      }
 
    CcInt* index = ((CcInt*)args[1].addr);
@@ -1528,7 +1530,8 @@ static int getFun( Word* args,
    if (i < 0 || i >= n)
      {
        cerr << "ERROR: invalid array index!" << endl;
-       hasErrors = true;
+       ((Attribute *)result.addr) -> SetDefined(false);
+       return 1;
      }
 
    //Determine type
@@ -1537,12 +1540,6 @@ static int getFun( Word* args,
    int algID,typID;
    extractIds(resultType,algID,typID);
 
-   if (hasErrors)
-     {
-       result =  qp->ResultStorage(s);
-       return 1;
-     }
-   
    //retrieve element from worker
    array->refresh(i);
    //copy the element
@@ -1631,10 +1628,8 @@ static int putFun( Word* args,
       !(array_alt -> IsDefined()))
     {
       cerr << "ERROR: DArray object is not defined!" << endl;
-      delete da;
-      result = SetWord(new DArray(false));
-
-      return 0;
+      da -> SetUndefined();
+      return 1;
     }
   
   //new elements needs to be copied
@@ -1688,11 +1683,8 @@ static int putFun( Word* args,
         cerr << "Error in put function!" << endl;
     }
   // error: invalidate result
-  da -> remove();
-  delete da;
-  result = SetWord(new DArray(false));
-
-  return 0;
+  da -> SetUndefined();
+  return 1;
 }
 
 const string putSpec =
@@ -1944,7 +1936,6 @@ static int receiveFun( Word* args,
    {
 
       iostream& iosock = master->GetSocketStream();
-      iosock << "<LOS/>" << endl;
 
       getline(iosock,line);
 
@@ -3285,9 +3276,10 @@ distributeFun (Word* args, Word& result,
    
    if (!(array -> multiplyWorkers(&serverList)))
      {
-       delete array;
-       result = SetWord(new DArray(false));
-       return 0;
+       cerr << "ERROR: Could not multiply workers!" << endl;
+       array -> SetUndefined();
+       result = SetWord(array);
+       return 1;
      }
   
    try
@@ -3315,10 +3307,9 @@ distributeFun (Word* args, Word& result,
      {
        cerr << "Could not initiate ddistribute command!" << endl;
        cerr << e.what() << endl;
-       array -> remove(); // already created worker relations?
-       delete array;
-       result = SetWord(new DArray(false));
-       return 0;
+       array -> SetUndefined();
+       result = SetWord(array);
+       return 1;
      }
 
    ThreadedMemoryCounter memCntr (qp->GetMemorySize(s) * 1024 * 1024);
@@ -3381,10 +3372,9 @@ distributeFun (Word* args, Word& result,
      {
        cerr << "Could not distribute data!" << endl;
        cerr << e.what() << endl;
-       array -> remove();
-       delete array;
-       result = SetWord(new DArray(false));
-       return 0;
+       array -> SetUndefined();
+       result = SetWord(array);
+       return 1;
      }
 
    try
@@ -3401,10 +3391,10 @@ distributeFun (Word* args, Word& result,
      {
        cerr << "Could not finalize ddistribute!" << endl;
        cerr << e.what() << endl;
-       array -> remove();
-       delete array;
-       result = SetWord(new DArray(false));
-       return 0;
+       
+       array -> SetUndefined();
+       result = SetWord(array);
+       return 1;
      }
 
    for(int i = 0; 
@@ -3416,7 +3406,7 @@ distributeFun (Word* args, Word& result,
    }
 
    result.addr = array;
-   return 0;
+   return 1;
 
 }
 
@@ -3571,16 +3561,16 @@ shuffleFun (Word* args, Word& result,
       !(sourceArray -> getServerManager() -> isOk()) )
     {
       cerr << "ERROR: DArray not initialized corretly!"  << endl;
-      delete destArray;
-      result = SetWord(new DArray(false));
+      destArray -> SetDefined(false);
+      result.addr = destArray;
       return 1;
     }
 
   if (!(sourceArray -> IsDefined()))
     {
       cerr << "Undefined DArray!" << endl;
-      delete destArray;
-      result = SetWord(new DArray(false));
+      destArray -> SetDefined(false);
+      result.addr = destArray;
       return 1;
     }
 
@@ -3597,8 +3587,8 @@ shuffleFun (Word* args, Word& result,
   if (destSize < 1)
     {
       cerr << "Undefined DArray size!" << endl;
-      delete destArray;
-      result = SetWord(new DArray(false));
+      destArray -> SetDefined(false);
+      result.addr = destArray;
       return 1;
     }
   
@@ -3622,9 +3612,9 @@ shuffleFun (Word* args, Word& result,
 
   if (nl -> IsEmpty(serverlist))
     {
-      cerr << "ERROR: No workers defined!" << endl; 
-      delete destArray;
-      result = SetWord(new DArray(false));
+      cerr << "ERROR: No workers defined!" << endl;
+      destArray -> SetDefined(false);
+      result.addr = destArray;
       return 1;
     }
 
@@ -3643,17 +3633,17 @@ shuffleFun (Word* args, Word& result,
       cerr << "ERROR: DArray not initialized correctly!" << endl;
       cerr << destArray ->  getServerManager() -> getErrorText() 
            << endl;
-      delete destArray;
-      result = SetWord(new DArray(false));
-      return 0;
+      destArray -> SetDefined(false);
+      result.addr = destArray;
+      return 1;
     }
 
   if (!(destArray -> IsDefined()))
     {
       cerr << "Undefined DArray!" << endl;
-      delete destArray;
-      result = SetWord(new DArray(false));
-      return 0;
+      destArray -> SetDefined(false);
+      result.addr = destArray;
+      return 1;
     }
 
    // mapping for source <--> destination
@@ -3717,9 +3707,10 @@ shuffleFun (Word* args, Word& result,
 
    if (!(destArray -> multiplyWorkers(&serverDestList)))
      {
-       delete destArray;
-       result = SetWord(new DArray(false));
-       return 0;
+       cerr << "ERROR: Could not multiply workers!" << endl;
+      destArray -> SetDefined(false);
+      result.addr = destArray;
+      return 1;
      }
 
    DServerManager* destMan = destArray->getServerManager();
@@ -3732,9 +3723,9 @@ shuffleFun (Word* args, Word& result,
        //Close additional connections
        destArray -> destroyAnyChilds();
        sourceArray -> destroyAnyChilds();
-       delete destArray;
-       result = SetWord(new DArray(false));
-       return 0;
+       destArray -> SetDefined(false);
+       result.addr = destArray;
+       return 1;
      }
   
    int dest_server_no = destMan -> getNoOfMultiWorkers(destSize);
@@ -3826,9 +3817,9 @@ shuffleFun (Word* args, Word& result,
            //Close additional connections
            destArray -> destroyAnyChilds();
            sourceArray -> destroyAnyChilds();
-           delete destArray;
-           result = SetWord(new DArray(false));
-           return 0;
+           destArray -> SetDefined(false);
+           result.addr = destArray;
+           return 1;
          }
 
        poolEx2.wait(); // command threads
@@ -3872,11 +3863,10 @@ shuffleFun (Word* args, Word& result,
        //Close additional connections
        for(int k = 0; k<src_server_no;k++)
          sourceMan->getServerbyID(k)->DestroyChilds();
-
-       destArray -> remove();
-       delete destArray;
-       result = SetWord(new DArray(false));
-       return 0;
+       
+       destArray -> SetDefined(false);
+       result.addr = destArray;
+       return 1;
      }
    
    cout << "DShuffle finished! " << endl;
@@ -4022,8 +4012,6 @@ static int loopValueMap
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
    result = qp->ResultStorage(s);
- 
-   //DArray* destArray = (DArray*)(qp->ResultStorage(s)).addr;
 
    SecondoCatalog* sc = SecondoSystem::GetCatalog();
    ListExpr type = sc->NumericType(nl->Second((qp->GetType(s))));
@@ -4044,8 +4032,7 @@ static int loopValueMap
            !(alt -> IsDefined()))
          {
            cerr << "ERROR: Input DArray is not defined!" << endl;
-           delete (DArray *) result.addr;
-           result = SetWord(new DArray(false));
+           ((DArray *) result.addr) -> SetDefined(false);
            return 1;
          }
 
@@ -4061,8 +4048,7 @@ static int loopValueMap
          {
            cerr << "ERROR: Input DArray worker list is empty!"
                 << endl;
-           delete (DArray *) result.addr;
-           result = SetWord(new DArray(false));
+           ((DArray *) result.addr) -> SetDefined(false);
            return 1;
          }
 
@@ -4094,9 +4080,9 @@ static int loopValueMap
 
    if (!(neu -> multiplyWorkers(&servers)))
      {
-       delete neu;
-       result = SetWord(new DArray(false));
-       return 0;
+       cerr << "ERROR: Could not multiply workers!" << endl;
+       neu -> SetUndefined();
+       return 1;
      }
 
    DServerManager* man =
@@ -4366,6 +4352,7 @@ dtieTypeMap( ListExpr args )
             && nl->Equal(elementDesc, nl->Third(mapDesc))
             && nl->Equal(elementDesc, nl->Fourth(mapDesc)))
         {
+          //cout << "DTie ResultType:" << nl -> ToString(elementDesc) << endl;
           return elementDesc;
         }
       }
@@ -4379,9 +4366,17 @@ static int
 dtieFun( Word* args, Word& result, int message, 
          Word& local, Supplier s )
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  result = qp->ResultStorage(s);
   DArray* array = ((DArray*)args[0].addr);
 
+  if (!array || !(array -> IsDefined()))
+    {
+      cerr << "ERROR: Input DArray is not defined correctly!" << endl;
+      ((Attribute *)result.addr) -> SetDefined(false);
+      return 1;
+    }
+
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
   ArgVectorPointer funargs = qp->Argument(args[1].addr);
   Word funresult;
 
@@ -4391,19 +4386,14 @@ dtieFun( Word* args, Word& result, int message,
   int typeId;
   extractIds(typeOfElement, algebraId, typeId);
 
-  if (!array || !(array -> IsDefined()))
-    {
-      result = qp->ResultStorage(s);
-      return 1;
-    }
-
   int n = array->getSize();
 
   array->refresh();
 
   if ( !(array -> IsDefined()))
     {
-      result = qp->ResultStorage(s);
+      cerr << "ERROR: Could not transfer data of input DArray !" << endl;
+      ((Attribute *)result.addr) -> SetDefined(false);
       return 1;
     }
 

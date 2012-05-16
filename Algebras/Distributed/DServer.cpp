@@ -463,7 +463,7 @@ void DServer::run()
 
          if(line!="<CLOSE>") 
            setErrorText(string("Unexpected response from") +
-                        " worker (No <Close> after type transmission)!");
+                        " worker (No <CLOSE> after type transmission)!");
          
          //Connection is closed and new connection with value-mapping
          //on the worker is established
@@ -536,8 +536,11 @@ void DServer::run()
          getline(cbsock,line);
 
          if(line!="<FINISH>")
-           setErrorText(string("Unexpected response from worker") +
-                         " (No <FINISH> after value transmission");
+           {
+             //cerr << "NO FINISH:" << line << endl;
+             setErrorText(string("Unexpected response from worker") +
+                          " (No <FINISH> tag after value transmission");
+           }
                 
 
          worker->Close();delete worker;worker=0;
@@ -552,8 +555,7 @@ void DServer::run()
          while(line.find("</SecondoResponse") == string::npos);
  
 
-      }
-
+      } // while (!m_cmd -> getDArrayIndex() -> empty())
                 
    }
         
@@ -1044,7 +1046,9 @@ void DServer::run()
 #endif
       if(line != "<FINISH>")
         {
-          setErrorText("Unexpected Response from worker! (<FINISH> expected)");
+          //cerr << "NO FINISH:" << line << endl;
+          setErrorText(string("Unexpected Response from worker!") + 
+                       "(<FINISH> tag expected)");
           delete m_cmd;
           m_cmd = NULL;
           return;
