@@ -46,6 +46,8 @@ the class ~MGPointCreator~.
 #include <NetworkAlgebra.h>
 #include <TemporalNetAlgebra.h>
 
+#include <LogMsg.h>
+
 
 namespace mapmatch {
 
@@ -338,28 +340,26 @@ bool MGPointCreator::CalcShortestPath(const GPoint* pGPStart,
                 if (dSpeed > 250.) // TODO use additional data -
                                    // speed-limits, previous speed, ...
                 {
-                    ofstream StreamBadNetwork(
-                                     "/home/secondo/Traces/BadNetwork.txt",
-                                     ios_base::out|ios_base::ate|ios_base::app);
-                    StreamBadNetwork << "Too fast : " << endl;
-                    StreamBadNetwork << "Speed: " << dSpeed << endl;
-                    StreamBadNetwork << "Distance: " << dLen << endl;
-                    StreamBadNetwork << "Time: ";
-                    rtimeStart.Print(StreamBadNetwork);
-                    StreamBadNetwork << endl;
-                    rtimeEnd.Print(StreamBadNetwork);
-                    StreamBadNetwork << endl;
-                    StreamBadNetwork << "GP1: ";
-                    pGPStart->Print(StreamBadNetwork);
+                    ostream& rStreamBadNetwork = cmsg.file("MMBadNetwork.log");
+                    rStreamBadNetwork << "Too fast : " << endl;
+                    rStreamBadNetwork << "Speed: " << dSpeed << endl;
+                    rStreamBadNetwork << "Distance: " << dLen << endl;
+                    rStreamBadNetwork << "Time: ";
+                    rtimeStart.Print(rStreamBadNetwork);
+                    rStreamBadNetwork << endl;
+                    rtimeEnd.Print(rStreamBadNetwork);
+                    rStreamBadNetwork << endl;
+                    rStreamBadNetwork << "GP1: ";
+                    pGPStart->Print(rStreamBadNetwork);
                     Point pt(false);
                     AttributePtr<Point> pPtStart(pGPStart->ToPoint());
-                    pPtStart->Print(StreamBadNetwork);
-                    StreamBadNetwork << endl;
-                    StreamBadNetwork << "GP2: ";
-                    pGPEnd->Print(StreamBadNetwork);
+                    pPtStart->Print(rStreamBadNetwork);
+                    rStreamBadNetwork << endl;
+                    rStreamBadNetwork << "GP2: ";
+                    pGPEnd->Print(rStreamBadNetwork);
                     AttributePtr<Point> pPtEnd(pGPEnd->ToPoint());
-                    pPtEnd->Print(StreamBadNetwork);
-                    StreamBadNetwork << endl;
+                    pPtEnd->Print(rStreamBadNetwork);
+                    rStreamBadNetwork << endl << flush;
                     return false;
                 }
             }
