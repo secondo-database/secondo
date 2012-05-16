@@ -45,15 +45,14 @@ It is an map matching algorithm based on the Multiple Hypothesis Technique (MHT)
 #include "GPXFileReader.h"
 
 #include <stdio.h>
+#include <LogMsg.h>
 
 #include <TemporalAlgebra.h>
 
 namespace mapmatch {
 
-#define MYTRACE(a) //MyStream << a << '\n'; MyStream.flush()
-#define MYVARTRACE(a) //MyStream << #a << a << '\n'; MyStream.flush()
-
-//static ofstream MyStream("/home/secondo/Traces/Trace.txt");
+#define MMTRACE(a) cmsg.file("MMTrace.txt") << a << '\n' << std::flush;
+#define MMVARTRACE(a) cmsg.file("MMTrace.txt") << #a << a << '\n' << std::flush;
 
 
 /*
@@ -175,7 +174,8 @@ MapMatchingMHT::MapMatchingMHT(IMMNetwork* pNetwork, std::string strFileName)
     }
     catch(...)
     {
-        cerr << "Error reading file " << strFileName;
+        cmsg.error() << "Error reading file " << strFileName;
+        cmsg.send();
     }
 }
 
@@ -405,16 +405,6 @@ void MapMatchingMHT::TripSegmentation(
     if (m_pNetwork == NULL || !m_pNetwork->IsDefined() || m_pContMMData == NULL)
         return;
 
-//#define TRACE_BAD_DATA
-#ifdef TRACE_BAD_DATA
-    ofstream streamBadData("/home/secondo/Traces/BadData.txt");
-#endif
-
-//#define TRACE_GAPS
-#ifdef TRACE_GAPS
-    ofstream streamGaps("/home/secondo/Traces/Gaps.txt");
-#endif
-
     // Detect spatial and temporal gaps in input-data
     // Divide the data if the time gap is longer than 40 seconds or
     // the distance is larger than 500 meters
@@ -455,9 +445,11 @@ void MapMatchingMHT::TripSegmentation(
         if (!CheckQualityOfGPSFix(*pActData))
         {
             // bad quality of GPS fix
+//#define TRACE_BAD_DATA
 #ifdef TRACE_BAD_DATA
-            ActData.Print(streamBadData);
-            streamBadData << endl;
+            std::ostream& rStream = cmsg.file("MMBadData.log");
+            pActData->Print(rStream);
+            rStream << endl << std::flush;
 #endif
             continue; // process next unit
         }
@@ -496,15 +488,17 @@ void MapMatchingMHT::TripSegmentation(
 
             if (bGap)
             {
+//#define TRACE_GAPS
 #ifdef TRACE_GAPS
-                streamGaps << "*****************" << endl;
-                streamGaps << "Gap detected : ";
-                pActData->Print(streamGaps);
-                streamGaps << endl;
-                streamGaps << "TimeDiff: " << (pActData->m_Time - prevEndTime);
-                streamGaps << endl;
-                streamGaps << "Distance: " << dDistance;
-                streamGaps << endl;
+                std::ostream rStreamGaps = cmsg.file("MMGaps.txt");
+                rStreamGaps << "*****************" << endl;
+                rStreamGaps << "Gap detected : ";
+                pActData->Print(rStreamGaps);
+                rStreamGaps << endl;
+                rStreamGaps << "TimeDiff: " << (pActData->m_Time - prevEndTime);
+                rStreamGaps << endl;
+                rStreamGaps << "Distance: " << dDistance;
+                rStreamGaps << endl << std::flush;
 #endif
 
                 // gap detected -> finalize current array
@@ -668,7 +662,8 @@ void MapMatchingMHT::GetInitialRouteCandidates(const Point& rPoint,
     pt.Scale(1.0 / m_dNetworkScale);
     if (!pt.checkGeographicCoord())
     {
-        cerr << "Invalid geographic coord";
+        cmsg.error() << "Invalid geographic coord" << endl;
+        cmsg.send();
         return;
     }
 
@@ -736,7 +731,6 @@ int MapMatchingMHT::DevelopRoutes(const MapMatchDataContainer* pContMMData,
 
     for (size_t i = nIndexFirstComponent; i < nNoComponents; ++i)
     {
-        //TracePoints << i << endl;
         const MapMatchData* pActData = pContMMData->Get(i);
         if (pActData == NULL)
             continue;
@@ -762,11 +756,10 @@ int MapMatchingMHT::DevelopRoutes(const MapMatchDataContainer* pContMMData,
 
         if (!CheckRouteCandidates(rvecRouteCandidates))
         {
-            ofstream StreamBadNetwork("/home/secondo/Traces/BadNetwork.txt",
-            ios_base::out|ios_base::ate|ios_base::app);
-            StreamBadNetwork << "CheckRouteCandidates failed: " << endl;
-            pActData->Print(StreamBadNetwork);
-            StreamBadNetwork << endl;
+            ostream& rStreamBadNetwork = cmsg.file("MMBadNetwork.log");
+            rStreamBadNetwork << "CheckRouteCandidates failed: " << endl;
+            pActData->Print(rStreamBadNetwork);
+            rStreamBadNetwork << endl << std::flush;
 
             // Matching failed - Restart with next component
             return i+1;
@@ -944,14 +937,11 @@ void MapMatchingMHT::DevelopRoutes(const MapMatchData* pMMData,
 
                 if (!rPtStart.IsDefined() || !rPtEnd.IsDefined())
                 {
-                    ofstream StreamBadNetwork(
-                                 "/home/secondo/Traces/BadNetwork.txt",
-                                 ios_base::out | ios_base::ate | ios_base::app);
-
-                    StreamBadNetwork << "Undefined start- or endpoint: ";
-                    StreamBadNetwork << "Section: ";
-                    pSection->PrintIdentifier(StreamBadNetwork);
-                    StreamBadNetwork << endl;
+                    ostream& rStreamBadNetwork = cmsg.file("MMBadNetwork.log");
+                    rStreamBadNetwork << "Undefined start- or endpoint: ";
+                    rStreamBadNetwork << "Section: ";
+                    pSection->PrintIdentifier(rStreamBadNetwork);
+                    rStreamBadNetwork << endl << std::flush;
 
                     *it = NULL;
                     delete pCandidate;
@@ -1000,6 +990,8 @@ void MapMatchingMHT::DevelopRoutes(const MapMatchData* pMMData,
                     // to GPS-Point is smaller
                     EndPtDistanceFilter Filter(rPoint,
                                          std::min(dDistanceStart, dDistanceEnd),
+                                         //bUpDownDriving ? dDistanceEnd :
+                                         //                 dDistanceStart,
                                          m_dNetworkScale);
 
                     AddAdjacentSections(pCandidate, bUpDownDriving,
@@ -1832,10 +1824,10 @@ MHTRouteCandidate* MapMatchingMHT::DetermineBestRouteCandidate(
     for (size_t i = 0; i < rvecRouteCandidates.size(); ++i)
     {
         std::stringstream strFileName;
-        strFileName << "/home/secondo/Traces/GPoints_" << nCall;
-        strFileName << "_" << i << ".txt";
-        ofstream Stream(strFileName.str().c_str());
-        rvecRouteCandidates[i]->Print(Stream);
+        strFileName << "GPoints_" << nCall << "_" << i << ".log";
+        std::ostream& rStream = cmsg.file(strFileName.str());
+        rvecRouteCandidates[i]->Print(rStream);
+        rStream.flush();
     }
     ++nCall;
 #endif
@@ -1877,18 +1869,18 @@ void MapMatchingMHT::TraceRouteCandidates(
 {
 //#define TRACE_ROUTE_CANDIDATES
 #ifdef TRACE_ROUTE_CANDIDATES
-    ofstream Stream("/home/secondo/Traces/RouteCandidates.txt",
-                    ios_base::out|ios_base::ate|ios_base::app);
+    std::ostream& rStream = cmsg.file("RouteCandidates.txt");
 
-    Stream << pszText << endl;
+    rStream << pszText << endl;
 
     for (size_t i = 0; i < rvecCandidates.size(); ++i)
     {
         MHTRouteCandidate* pCandidate = rvecCandidates[i];
         if (pCandidate != NULL)
-            pCandidate->Print(Stream);
-        Stream << endl;
+            pCandidate->Print(rStream);
+        rStream << endl;
     }
+    rStream.flush();
 #endif
 }
 
