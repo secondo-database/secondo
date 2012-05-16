@@ -16,7 +16,8 @@ import java.util.*;
  */
 public class MainPane extends JComponent implements MouseListener {
     
-    private ArrayList<ObjectComponent> elements = new ArrayList<ObjectComponent>();
+    private ArrayList<ObjectView> elements = new ArrayList<ObjectView>();
+    static protected Component lastComponent;
     
     public MainPane() {
         //this.addMouseListener(this);
@@ -27,9 +28,9 @@ public class MainPane extends JComponent implements MouseListener {
         int y = 0;
         
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
-            ObjectComponent object = (ObjectComponent)iter.next();
-            object.paintComponent( g, x, y);
-            if (!iter.hasNext()){
+            ObjectView object = (ObjectView)iter.next();
+            object.paintComponent( g, x, y, Color.black);
+            if (object.equals(lastComponent)){
                 g.setColor(Color.red);
             }
             g.drawLine(10 + x*120 + 90, 10 + y*70 + 25, 10 + x*120 + 120, 10 + y*70 + 25);
@@ -39,16 +40,21 @@ public class MainPane extends JComponent implements MouseListener {
     }    
     
     //adds an operation or an object to the main panel
-    public void addObject(ObjectComponent object){
+    public void addObject(ObjectView object){
         elements.add(object);
+        lastComponent = object;
         System.out.println(getStrings());
+    }
+    
+    public Component getLast () {
+        return lastComponent;
     }
     
     public String getStrings(){
         String query = new String();
         
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
-            ObjectComponent object = (ObjectComponent)iter.next();
+            ObjectView object = (ObjectView)iter.next();
             query += object.getName()+" ";
         }
         
@@ -60,7 +66,9 @@ public class MainPane extends JComponent implements MouseListener {
     }
     public void mouseClicked ( MouseEvent arg0 ) {
     }
-    public void mouseEntered(MouseEvent e){}
+    public void mouseEntered(MouseEvent e){
+        
+    }
     public void mouseExited(MouseEvent e){}
     public void mousePressed(MouseEvent e) {
     }
