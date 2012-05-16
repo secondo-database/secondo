@@ -1081,8 +1081,10 @@ void DServer::run()
 #endif
        //Reads an entire relation from the worker
 
+       ListExpr tt_type = DBAccess::getInstance() -> NL_Second(m_type);
+
        TupleType *tt = 
-         DBAccess::getInstance() -> TT_New(nl -> Second(m_type));
+         DBAccess::getInstance() -> TT_New(tt_type);
 
        while(!m_cmd -> getDArrayIndex() ->empty())
          {
@@ -1203,8 +1205,10 @@ void DServer::run()
        ThreadedMemoryCounter *memCntr = 
          (ThreadedMemoryCounter *)(*(m_cmd -> getElements()))[1].addr;
 
+       ListExpr tt_type = DBAccess::getInstance() -> NL_Second(m_type);
+
        TupleType *tt = 
-         DBAccess::getInstance() -> TT_New(nl -> Second(m_type));
+         DBAccess::getInstance() -> TT_New(tt_type);
 
 #ifdef DS_CMD_READ_TB_REL_DEBUG
        if (m_cmd -> getDArrayIndex() ->empty()) 
