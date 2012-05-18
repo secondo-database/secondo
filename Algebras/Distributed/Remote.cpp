@@ -177,7 +177,6 @@ void DServerCreator::run()
 void 
 DServerMultiplyer::run()
 {
-  cout << "  DServerMultiplyer::run:" << count << endl;
   if (!server->Multiply(count))
     {
       cerr << "Error multiplying Servers:" 
