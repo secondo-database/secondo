@@ -75,7 +75,6 @@ Operations on the darray-elements are carried out on the remote machines.
 #include "DServerCmdCopy.h"
 #include "DServerCmdCallBackComm.h"
 #include "zthread/ThreadedExecutor.h"
-#include "zthread/PoolExecutor.h"
 #include "zthread/Mutex.h"
 #include "../FText/FTextAlgebra.h"
 #include "../Array/ArrayAlgebra.h"
@@ -2183,7 +2182,8 @@ static int receiverelFun( Word* args,
         {
           cerr << "ERROR: Expecting <TYPE> from sever! (Got:" 
                << line << ")" << endl;
-          return 1;
+          ((Attribute*) result.addr) -> SetDefined(false);
+          return 0;
         }
       // tupletype
       getline(iosock,line);
@@ -2207,7 +2207,8 @@ static int receiverelFun( Word* args,
         {
           cerr << "ERROR: Expecting </TYPE> from sever! (Got:" 
                << line << ")" << endl;
-          return 1;
+          ((Attribute*) result.addr) -> SetDefined(false);
+          return 0;
         }
 #ifdef RECEIVE_REL_FUN_DEBUG
       cout << "  RRF SEND: <OK/> " << endl;
@@ -2223,7 +2224,8 @@ static int receiverelFun( Word* args,
         {
           cerr << "ERROR: Expecting <INTYPE> from sever! (Got:" 
                << line << ")" << endl;
-          return 1;
+          ((Attribute*) result.addr) -> SetDefined(false);
+          return 0;
         }
       // tupletype
       getline(iosock,line);
@@ -2253,7 +2255,8 @@ static int receiverelFun( Word* args,
         {
           cerr << "ERROR: Expecting </INTYPE> from sever! (Got:" 
                << line << ")" << endl;
-          return 1;
+          ((Attribute*) result.addr) -> SetDefined(false);
+          return 0;
         }
 #ifdef RECEIVE_REL_FUN_DEBUG
       cout << "  RRF SEND: <OK/> " << endl;
@@ -2269,7 +2272,9 @@ static int receiverelFun( Word* args,
         {
           cerr << "ERROR: Expecting <INDEX> from sever! (Got:" 
                << line << ")" << endl;
-          return 1;
+          
+          ((Attribute*) result.addr) -> SetDefined(false);
+          return 0;
         }
 
       // index
@@ -2295,7 +2300,8 @@ static int receiverelFun( Word* args,
         {
           cerr << "ERROR: Expecting </INDEX> from sever! (Got:" 
                << line << ")" << endl;
-          return 1;
+          ((Attribute*) result.addr) -> SetDefined(false);
+          return 0;
         }
 #ifdef RECEIVE_REL_FUN_DEBUG
       cout << "  RRF SEND: <OK/> " << endl;
@@ -2375,34 +2381,37 @@ static int receiverelFun( Word* args,
         }
 
       // BEGIN connection to CLOSE_WRITE_REL
-         delete tupleType;
+      delete tupleType;
 
-         if(line=="<CLOSE>")
-         {
+      if(line=="<CLOSE>")
+        {
 
 #ifdef RECEIVE_REL_FUN_DEBUG
-      cout <<  " RRF Send IO:"   << "<FINISH>" << endl;
+          cout <<  " RRF Send IO:"   << "<FINISH>" << endl;
 #endif
-               iosock << "<FINISH>" << endl;
-               master->Close();
-               delete master;
-               master=0;
+          iosock << "<FINISH>" << endl;
+          master->Close();
+          delete master;
+          master=0;
 #ifdef RECEIVE_REL_FUN_DEBUG
-      cout <<  " RRF DONE" << endl;
+          cout <<  " RRF DONE" << endl;
 #endif
-               return 0;
-         }
-         else
-         {
-           cout << "Error: receiverelFun did not finish correctly!" 
-                << endl;
-           cout << "Line='" << line << "'" << endl;
-           return 1;
-         }
-         // END connection to CLOSE_WRITE_REL
+          // all done and ok
+          return 0;
+        }
+      else
+        {
+          cout << "Error: receiverelFun did not finish correctly!" 
+               << endl;
+          cout << "Line='" << line << "'" << endl;
+          ((Attribute*) result.addr) -> SetDefined(false);
+          return 0;
+        }
+      // END connection to CLOSE_WRITE_REL
    }
 
-   return 1;
+   ((Attribute*) result.addr) -> SetDefined(false);
+   return 0;
 
 }
 
@@ -2615,6 +2624,8 @@ static int receiveShuffleFun( Word* args,
    SecondoCatalog* sc = SecondoSystem::GetCatalog();
    ListExpr resultType = nl->Second(qp->GetType(s));
    resultType = sc->NumericType(resultType);
+   
+   result = qp->ResultStorage(s);
 
    string line;
 
@@ -2639,14 +2650,16 @@ static int receiveShuffleFun( Word* args,
          {
            cerr << "ERROR:" << dscCallBack -> getErrorText() << endl;
            delete dscCallBack;
-           return 1;
+           ((Attribute*) result.addr) -> SetDefined(false);
+           return 0;
          }
       
        if (!(dscCallBack -> sendTagToCallBack("OK")))
          {
            cerr << "ERROR:" << dscCallBack -> getErrorText() << endl;
            delete dscCallBack;
-           return 1;
+           ((Attribute*) result.addr) -> SetDefined(false);
+           return 0;
          }
 
        // get the number of workers, which will be sending
@@ -2655,7 +2668,8 @@ static int receiveShuffleFun( Word* args,
          {
            cerr << "ERROR:" << dscCallBack -> getErrorText() << endl;
            delete dscCallBack;
-           return 1;
+           ((Attribute*) result.addr) -> SetDefined(false);
+           return 0;
          }
       
        int srcSize = atoi(line.data());
@@ -2677,7 +2691,8 @@ static int receiveShuffleFun( Word* args,
                  cerr << "ERROR:" 
                       << dscCallBack -> getErrorText() << endl;
                  delete dscCallBack;
-                 return 1;
+                 ((Attribute*) result.addr) -> SetDefined(false);
+                 return 0;
                }
              srcHost[srcCnt] = line;
              expectedstate = 1;
@@ -2690,7 +2705,8 @@ static int receiveShuffleFun( Word* args,
                  cerr << "ERROR:" 
                       << dscCallBack -> getErrorText() << endl;
                  delete dscCallBack;
-                 return 1;
+                 ((Attribute*) result.addr) -> SetDefined(false);
+                 return 0;
                }
              srcToPort[srcCnt] = atoi(line.data());
              srcCnt ++;
@@ -2702,7 +2718,8 @@ static int receiveShuffleFun( Word* args,
              cerr << "ERROR:" 
                   << dscCallBack -> getErrorText() << endl;
              delete dscCallBack;
-             return 1;
+             ((Attribute*) result.addr) -> SetDefined(false);
+             return 0;
            }
         
          runIt = 
@@ -2714,7 +2731,8 @@ static int receiveShuffleFun( Word* args,
              cerr << "ERROR:" 
                   << dscCallBack -> getErrorText() << endl;
              delete dscCallBack;
-             return 1;
+             ((Attribute*) result.addr) -> SetDefined(false);
+             return 0;
            }
 
        } while (runIt);
@@ -2725,13 +2743,12 @@ static int receiveShuffleFun( Word* args,
       
        if (!(dscCallBack -> sendTagToCallBack("GO")))
          {
-           cerr << "ERRORA:" 
+           cerr << "ERROR:" 
                 << dscCallBack -> getErrorText() << endl;
            delete dscCallBack;
-           return 1;
+           ((Attribute*) result.addr) -> SetDefined(false);
+           return 0;
          }
-
-       result = qp->ResultStorage(s);
 
        GenericRelation* rel = (Relation*)result.addr;
 
@@ -2757,7 +2774,8 @@ static int receiveShuffleFun( Word* args,
          {
            cerr << "Could not distribute data!" << endl;
            cerr << e.what() << endl;
-           return 1;
+           ((Attribute*) result.addr) -> SetDefined(false);
+           return 0;
          }
 
        if (!noError)
@@ -2769,7 +2787,8 @@ static int receiveShuffleFun( Word* args,
                cerr << "ERROR:" 
                     << dscCallBack -> getErrorText() << endl;
                delete dscCallBack;
-               return 1;
+               ((Attribute*) result.addr) -> SetDefined(false);
+               return 0;
              }
            string errorMsg ="Shuffle: error receiving tuples!";
            if (!errMsg.empty())
@@ -2781,7 +2800,8 @@ static int receiveShuffleFun( Word* args,
                cerr << "ERROR:" 
                     << dscCallBack -> getErrorText() << endl;
                delete dscCallBack;
-               return 1;
+               ((Attribute*) result.addr) -> SetDefined(false);
+               return 0;
              }
          }
        else
@@ -2789,7 +2809,8 @@ static int receiveShuffleFun( Word* args,
            if (!(dscCallBack -> sendTagToCallBack("DONE")))
              {
                delete dscCallBack;
-               return 1;
+               ((Attribute*) result.addr) -> SetDefined(false);
+               return 0;
              }
          }
        dscCallBack -> forceCloseSavedCommunication();
@@ -2879,7 +2900,6 @@ static int sendShuffleFun( Word* args,
                            Word& local,
                            Supplier s)
 {
-
    string host =
      (string)(char*)((CcString*)args[4].addr)->GetStringval();
    string port =
@@ -2908,26 +2928,29 @@ static int sendShuffleFun( Word* args,
       // now connected to the DServerCmdShuffleMultipleConn
       if (!(dscCallBack -> getTagFromCallBack("STARTMULTIPLYCONN")))
           {
-            cerr << "ERROR1:" 
+            cerr << "ERROR:" 
                  << dscCallBack -> getErrorText() << endl;
             delete dscCallBack;
-            return 1;
+            ((Attribute *) result.addr) -> SetDefined(false);
+            return 0;
           }
 
       if (!(dscCallBack -> sendTagToCallBack("OK")))
         {
-          cerr << "ERROR2:" << dscCallBack -> getErrorText() << endl;
+          cerr << "ERROR2" << dscCallBack -> getErrorText() << endl;
           delete dscCallBack;
-          return 1;
+          ((Attribute *) result.addr) -> SetDefined(false);
+          return 0;
         }
         
       // get the number of workers, which will be receiving
       // data
       if (!(dscCallBack -> getTagFromCallBack("SRCWSIZE", line)))
         {
-          cerr << "ERROR3:" << dscCallBack -> getErrorText() << endl;
+          cerr << "ERROR3" << dscCallBack -> getErrorText() << endl;
           delete dscCallBack;
-          return 1;
+          ((Attribute *) result.addr) -> SetDefined(false);
+          return 0;
         }
       
       int destSize = atoi(line.data());
@@ -2949,7 +2972,8 @@ static int sendShuffleFun( Word* args,
                 cerr << "ERROR:" 
                      << dscCallBack -> getErrorText() << endl;
                 delete dscCallBack;
-                return 1;
+                ((Attribute *) result.addr) -> SetDefined(false);
+                return 0;
               }
             destHost[destCnt] = line;
             expectedstate = 1;
@@ -2962,7 +2986,8 @@ static int sendShuffleFun( Word* args,
                 cerr << "ERROR:" 
                      << dscCallBack -> getErrorText() << endl;
                 delete dscCallBack;
-                return 1;
+                ((Attribute *) result.addr) -> SetDefined(false);
+                return 0;
               }
             destToPort[destCnt] = atoi(line.data());
             destCnt ++;
@@ -2974,7 +2999,8 @@ static int sendShuffleFun( Word* args,
             cerr << "ERROR:" 
                  << dscCallBack -> getErrorText() << endl;
             delete dscCallBack;
-            return 1;
+            ((Attribute *) result.addr) -> SetDefined(false);
+            return 0;
           }
         
         runIt = 
@@ -2985,7 +3011,8 @@ static int sendShuffleFun( Word* args,
             cerr << "ERROR:" 
                  << dscCallBack -> getErrorText() << endl;
             delete dscCallBack;
-            return 1;
+            ((Attribute *) result.addr) -> SetDefined(false);
+            return 0;
           }
 
       } while (runIt);
@@ -2997,7 +3024,8 @@ static int sendShuffleFun( Word* args,
            cerr << "ERRORA:" 
                 << dscCallBack -> getErrorText() << endl;
            delete dscCallBack;
-           return 1;
+          ((Attribute *) result.addr) -> SetDefined(false);
+           return 0;
          }
 
       // now sending tuples
@@ -3075,7 +3103,8 @@ static int sendShuffleFun( Word* args,
         {
           cerr << "Could not distribute data!" << endl;
           cerr << e.what() << endl;
-          return 1;
+          ((Attribute *) result.addr) -> SetDefined(false);
+          return 0;
         }
       
       if (!noError)
@@ -3085,7 +3114,8 @@ static int sendShuffleFun( Word* args,
               cerr << "ERROR:" 
                    << dscCallBack -> getErrorText() << endl;
               delete dscCallBack;
-              return 1;
+              ((Attribute *) result.addr) -> SetDefined(false);
+              return 0;
             }
           string errorMsg ="Shuffle: error sending tuples!";
           if (!errMsg.empty())
@@ -3097,7 +3127,8 @@ static int sendShuffleFun( Word* args,
               cerr << "ERROR:" 
                    << dscCallBack -> getErrorText() << endl;
               delete dscCallBack;
-              return 1;
+              ((Attribute *) result.addr) -> SetDefined(false);
+              return 0;
             }
         }
       else
@@ -3107,14 +3138,13 @@ static int sendShuffleFun( Word* args,
               cerr << "ERROR:"
                    << dscCallBack -> getErrorText() << endl;
               delete dscCallBack;
-              return 1;
+              ((Attribute *) result.addr) -> SetDefined(false);
+              return 0;
             }
         }
 
       delete dscCallBack;
    }
-
-   result = qp->ResultStorage(s);
 
    ((CcInt*)result.addr)->Set(1);
 
@@ -3279,7 +3309,7 @@ distributeFun (Word* args, Word& result,
        cerr << "ERROR: Could not multiply workers!" << endl;
        array -> SetUndefined();
        result = SetWord(array);
-       return 1;
+       return 0;
      }
   
    try
@@ -3309,7 +3339,7 @@ distributeFun (Word* args, Word& result,
        cerr << e.what() << endl;
        array -> SetUndefined();
        result = SetWord(array);
-       return 1;
+       return 0;
      }
 
    ThreadedMemoryCounter memCntr (qp->GetMemorySize(s) * 1024 * 1024);
@@ -3374,7 +3404,7 @@ distributeFun (Word* args, Word& result,
        cerr << e.what() << endl;
        array -> SetUndefined();
        result = SetWord(array);
-       return 1;
+       return 0;
      }
 
    try
@@ -3394,7 +3424,7 @@ distributeFun (Word* args, Word& result,
        
        array -> SetUndefined();
        result = SetWord(array);
-       return 1;
+       return 0;
      }
 
    for(int i = 0; 
@@ -3406,7 +3436,7 @@ distributeFun (Word* args, Word& result,
    }
 
    result.addr = array;
-   return 1;
+   return 0;
 
 }
 
@@ -3563,7 +3593,7 @@ shuffleFun (Word* args, Word& result,
       cerr << "ERROR: DArray not initialized corretly!"  << endl;
       destArray -> SetDefined(false);
       result.addr = destArray;
-      return 1;
+      return 0;
     }
 
   if (!(sourceArray -> IsDefined()))
@@ -3571,7 +3601,7 @@ shuffleFun (Word* args, Word& result,
       cerr << "Undefined DArray!" << endl;
       destArray -> SetDefined(false);
       result.addr = destArray;
-      return 1;
+      return 0;
     }
 
   // setup size of source and destination DArray
@@ -3589,7 +3619,7 @@ shuffleFun (Word* args, Word& result,
       cerr << "Undefined DArray size!" << endl;
       destArray -> SetDefined(false);
       result.addr = destArray;
-      return 1;
+      return 0;
     }
   
 
@@ -3615,7 +3645,7 @@ shuffleFun (Word* args, Word& result,
       cerr << "ERROR: No workers defined!" << endl;
       destArray -> SetDefined(false);
       result.addr = destArray;
-      return 1;
+      return 0;
     }
 
   string sendFunc = ((FText*)args[dim + 1].addr)->GetValue();
@@ -3635,7 +3665,7 @@ shuffleFun (Word* args, Word& result,
            << endl;
       destArray -> SetDefined(false);
       result.addr = destArray;
-      return 1;
+      return 0;
     }
 
   if (!(destArray -> IsDefined()))
@@ -3643,7 +3673,7 @@ shuffleFun (Word* args, Word& result,
       cerr << "Undefined DArray!" << endl;
       destArray -> SetDefined(false);
       result.addr = destArray;
-      return 1;
+      return 0;
     }
 
    // mapping for source <--> destination
@@ -3708,9 +3738,9 @@ shuffleFun (Word* args, Word& result,
    if (!(destArray -> multiplyWorkers(&serverDestList)))
      {
        cerr << "ERROR: Could not multiply workers!" << endl;
-      destArray -> SetDefined(false);
-      result.addr = destArray;
-      return 1;
+       destArray -> SetDefined(false);
+       result.addr = destArray;
+       return 0;
      }
 
    DServerManager* destMan = destArray->getServerManager();
@@ -3725,7 +3755,7 @@ shuffleFun (Word* args, Word& result,
        sourceArray -> destroyAnyChilds();
        destArray -> SetDefined(false);
        result.addr = destArray;
-       return 1;
+       return 0;
      }
   
    int dest_server_no = destMan -> getNoOfMultiWorkers(destSize);
@@ -3819,7 +3849,7 @@ shuffleFun (Word* args, Word& result,
            sourceArray -> destroyAnyChilds();
            destArray -> SetDefined(false);
            result.addr = destArray;
-           return 1;
+           return 0;
          }
 
        poolEx2.wait(); // command threads
@@ -3866,7 +3896,7 @@ shuffleFun (Word* args, Word& result,
        
        destArray -> SetDefined(false);
        result.addr = destArray;
-       return 1;
+       return 0;
      }
    
    cout << "DShuffle finished! " << endl;
@@ -4033,7 +4063,7 @@ static int loopValueMap
          {
            cerr << "ERROR: Input DArray is not defined!" << endl;
            ((DArray *) result.addr) -> SetDefined(false);
-           return 1;
+           return 0;
          }
 
        if (size == 0)
@@ -4049,7 +4079,7 @@ static int loopValueMap
            cerr << "ERROR: Input DArray worker list is empty!"
                 << endl;
            ((DArray *) result.addr) -> SetDefined(false);
-           return 1;
+           return 0;
          }
 
 
@@ -4082,7 +4112,7 @@ static int loopValueMap
      {
        cerr << "ERROR: Could not multiply workers!" << endl;
        neu -> SetUndefined();
-       return 1;
+       return 0;
      }
 
    DServerManager* man =
@@ -4107,7 +4137,8 @@ static int loopValueMap
      {
        cerr << "Could not execute command on workers!" << endl;
        cerr << e.what() << endl;
-       return 1;
+       ((DArray*)(result.addr)) -> SetUndefined();
+       return 0;
      }
 
    //Close additional connections
@@ -4373,7 +4404,7 @@ dtieFun( Word* args, Word& result, int message,
     {
       cerr << "ERROR: Input DArray is not defined correctly!" << endl;
       ((Attribute *)result.addr) -> SetDefined(false);
-      return 1;
+      return 0;
     }
 
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
@@ -4386,7 +4417,14 @@ dtieFun( Word* args, Word& result, int message,
   int typeId;
   extractIds(typeOfElement, algebraId, typeId);
 
-  int n = array->getSize();
+  const int n = array->getSize();
+
+  if (n == 0)
+    {
+      cerr << "ERROR: DArray is empty !" << endl;
+      ((Attribute *)result.addr) -> SetDefined(false);
+      return 0;
+    }
 
   array->refresh();
 
@@ -4394,17 +4432,17 @@ dtieFun( Word* args, Word& result, int message,
     {
       cerr << "ERROR: Could not transfer data of input DArray !" << endl;
       ((Attribute *)result.addr) -> SetDefined(false);
-      return 1;
+      return 0;
     }
 
- //copy the element
+  //copy the first element
   Word partResult =
     (am->CloneObj(algebraId, typeId))(typeOfElement,
                                       (Word)array->get(0));
 
   for (int i=1; i<n; i++) {
 
-    //copy the element
+    //copy the next element
     Word ielem =
       (am->CloneObj(algebraId, typeId))(typeOfElement,
                                         (Word)array->get(i));
@@ -4412,19 +4450,23 @@ dtieFun( Word* args, Word& result, int message,
     (*funargs)[0] = partResult;
     (*funargs)[1] = ielem;
 
+    // calculate the intermediate result;
     qp->Request(args[1].addr, funresult);
 
     if (funresult.addr != partResult.addr) {
-      if (i>1)
+      //if (i>1)
       {
+        // delete the previous intermediate result
         (am->DeleteObj(algebraId, typeId))
           (typeOfElement, partResult);
       }
 
+      // assign the next intermediate result
       partResult =
       Array::genericClone(algebraId, typeId, 
                           typeOfElement, funresult);
     }
+    // delete the current element
     (am->DeleteObj(algebraId, typeId))(typeOfElement,ielem);
   }
   // In the next statement the (by the Query Processor) 
@@ -4432,6 +4474,7 @@ dtieFun( Word* args, Word& result, int message,
   // to be flexible with regard to the result type.
 
   result.addr = partResult.addr;
+
   return 0;
 }
 
