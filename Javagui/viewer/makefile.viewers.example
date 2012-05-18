@@ -14,6 +14,7 @@ VIEWER_CLASSES +=   MidiViewer.class
 VIEWER_CLASSES +=   TreeViewer.class
 VIEWER_CLASSES +=   PictureViewer.class
 VIEWER_CLASSES +=   UpdateViewer.class
+VIEWER_CLASSES +=   QueryconstructionViewer.class
 #VIEWER_CLASSES +=   GrappaViewer.class
 #VIEWER_CLASSES +=   SvgViewer.class
 #### RTreeViewer requires Java 1.5:
