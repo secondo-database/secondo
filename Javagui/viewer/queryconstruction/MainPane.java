@@ -20,7 +20,7 @@ public class MainPane extends JComponent implements MouseListener {
     static protected Component lastComponent;
     
     public MainPane() {
-        //this.addMouseListener(this);
+       //this.addMouseListener(this);
     }
     
     public void paintComponent(Graphics g) {
@@ -43,7 +43,6 @@ public class MainPane extends JComponent implements MouseListener {
     public void addObject(ObjectView object){
         elements.add(object);
         lastComponent = object;
-        System.out.println(getStrings());
     }
     
     public Component getLast () {
@@ -64,10 +63,10 @@ public class MainPane extends JComponent implements MouseListener {
     //Handle mouse events.
     public void mouseReleased(MouseEvent e) {
     }
-    public void mouseClicked ( MouseEvent arg0 ) {
+    public void mouseClicked ( MouseEvent e ) {
+        
     }
     public void mouseEntered(MouseEvent e){
-        
     }
     public void mouseExited(MouseEvent e){}
     public void mousePressed(MouseEvent e) {

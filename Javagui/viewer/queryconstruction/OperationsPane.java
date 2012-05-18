@@ -47,16 +47,16 @@ public class OperationsPane extends MainPane {
             ObjectView object = (ObjectView)iter.next();
             object.setUnactive();
             if (lastComponent.getName() == "Trains") {
-                if (object.getName() == "feed") {
+                if (object.getName() == "feed" || object.getName() == "count") {
                     object.setActive();
                 }
             }
             if (lastComponent.getName() == "feed") {
-                if (object.getName() == "head" || object.getName() == "tail") {
+                if (object.getName() == "head[1]" || object.getName() == "tail[4]") {
                     object.setActive();
                 }
             }
-            if (lastComponent.getName() == "feed" || lastComponent.getName() == "head" || lastComponent.getName() == "tail") {
+            if (lastComponent.getName() == "feed" || lastComponent.getName() == "head[1]" || lastComponent.getName() == "tail[4]") {
                 if (object.getName() == "consume") {
                     object.setActive();
                 }

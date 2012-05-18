@@ -21,6 +21,7 @@ package viewer;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.*;
 import gui.SecondoObject;
 import sj.lang.*;
 import tools.Reporter;
@@ -46,15 +47,13 @@ public class QueryconstructionViewer extends SecondoViewer {
     private static final String OBJECTS ="objects";
     
     private MenuVector MV = new MenuVector();
+    private ListExpr result;
     
     public QueryconstructionViewer(){
         this.setLayout(new BorderLayout());
         
         MainPane = new MainPane();
-               
-        ObjectsPane.setPreferredSize(new Dimension (500, 100));
-        OperationsPane.setPreferredSize(new Dimension (110, 500));
-        MainPane.setPreferredSize(new Dimension (600, 400));
+        MainPane.setPreferredSize(new Dimension (500, 400));
         
         ObjectView query = new ObjectView("operation", "query");
         MainPane.addObject(query);
@@ -75,9 +74,11 @@ public class QueryconstructionViewer extends SecondoViewer {
         
         ObjectView feed = new ObjectView("operation", "feed");
         OperationsPane.addObject(feed);
-        ObjectView head = new ObjectView("operation", "head");
+        ObjectView count = new ObjectView("operation", "count");
+        OperationsPane.addObject(count);
+        ObjectView head = new ObjectView("operation", "head[1]");
         OperationsPane.addObject(head);
-        ObjectView tail = new ObjectView("operation", "tail");
+        ObjectView tail = new ObjectView("operation", "tail[4]");
         OperationsPane.addObject(tail);
         ObjectView consume = new ObjectView("operation", "consume");
         OperationsPane.addObject(consume);
@@ -85,20 +86,42 @@ public class QueryconstructionViewer extends SecondoViewer {
         OperationsPane.update();
         ObjectsPane.update();
         
-        JScrollPane ScrollPane = new JScrollPane(MainPane);
-        this.add(ObjectsPane, BorderLayout.NORTH);
-        this.add(OperationsPane, BorderLayout.EAST);
-        this.add(ScrollPane, BorderLayout.CENTER);
+        JScrollPane MainScrollPane = new JScrollPane(MainPane);
+        JScrollPane ObjectsScrollPane = new JScrollPane(ObjectsPane);
+        ObjectsScrollPane.setPreferredSize(new Dimension (500, 80));
+        JScrollPane OperationsMainScrollPane = new JScrollPane(OperationsPane);
+        OperationsMainScrollPane.setPreferredSize(new Dimension (115, 500));
+        this.add(ObjectsScrollPane, BorderLayout.NORTH);
+        this.add(OperationsMainScrollPane, BorderLayout.EAST);
+        this.add(MainScrollPane, BorderLayout.CENTER);
+        
+        JButton run = new JButton("run");
+        this.add(run, BorderLayout.SOUTH);
+        
+        ActionListener al = new ActionListener() {
+            public void actionPerformed( ActionEvent e ) {
+                runQuery();
+            }
+        };
+        run.addActionListener(al);
     }
     
+    //adds an object to the main panel
     public void addObject(ObjectView object){
         MainPane.addObject(object);
         MainPane.repaint();
         OperationsPane.update();
         ObjectsPane.update();
-        
-        if (VC.execUserCommand(MainPane.getStrings())) {
+    }
+    
+    //executes the constructed query
+    public void runQuery() {
+        System.out.println(MainPane.getStrings());
+        if (VC.execCommand(MainPane.getStrings()) == 0) {
             System.out.println(VC.getCommandResult(MainPane.getStrings()));
+
+            result = VC.getCommandResult(MainPane.getStrings());
+            System.out.println(VC.getCommandResult(MainPane.getStrings()).isAtom());
         }
     }
     
@@ -116,7 +139,7 @@ public class QueryconstructionViewer extends SecondoViewer {
     
     /** remove all containing objects */
     public void removeAll(){
-    
+        
     }
     
     /** returns InquiryViewer */

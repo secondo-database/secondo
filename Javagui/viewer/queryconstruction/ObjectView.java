@@ -14,7 +14,7 @@ import viewer.QueryconstructionViewer;
  *
  * @author lrentergent
  */
-public class ObjectView extends Component {
+public class ObjectView extends JComponent {
     
     private String name;
     private int xpos;
