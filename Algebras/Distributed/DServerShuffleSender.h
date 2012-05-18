@@ -107,7 +107,7 @@ memory is counted
 2.3 Destructor
 
 */
-virtual ~DServerShuffleSender() {}
+  virtual ~DServerShuffleSender() { assert(!m_runit && m_tfq.empty()); }
 
 /*
 2.5 Modifying Tuplequeue
