@@ -571,13 +571,15 @@ bool DArray::initialize(ListExpr inType,
      {
        if (getServerManager()->
              getServerbyID(i) -> 
-               getErrorText() != "OK")
+               hasError())
          {
            getServerManager() -> 
-             setErrorText(string("Error Server: " +
+             setErrorText(string("Error Server " +
                                  int2Str( i ) + ": " +
                                  getServerManager()->getServerbyID(i)
                                  -> getErrorText()));
+           cerr << "ERROR: Initialize DArray!" << endl;
+           cerr << getServerManager() -> getErrorText() << endl;
            return false;
          }
      }
@@ -1450,7 +1452,8 @@ makeDarrayfun( Word* args, Word& result,
                                         cloned);
    if (!rc)
      {
-       return 1;
+       cerr << "ERROR: Could not initialize DArray!" << endl;
+       ((DArray*)result.addr)->SetUndefined();
      }
 
    return 0;
@@ -1517,7 +1520,7 @@ static int getFun( Word* args,
      {
        cerr << "ERROR: DArray is not defined correctly!" << endl;
        ((Attribute *)result.addr) -> SetDefined(false);
-       return 1;
+       return 0;
      }
 
    CcInt* index = ((CcInt*)args[1].addr);
@@ -1530,7 +1533,7 @@ static int getFun( Word* args,
      {
        cerr << "ERROR: invalid array index!" << endl;
        ((Attribute *)result.addr) -> SetDefined(false);
-       return 1;
+       return 0;
      }
 
    //Determine type
@@ -1628,7 +1631,7 @@ static int putFun( Word* args,
     {
       cerr << "ERROR: DArray object is not defined!" << endl;
       da -> SetUndefined();
-      return 1;
+      return 0;
     }
   
   //new elements needs to be copied
@@ -1683,7 +1686,7 @@ static int putFun( Word* args,
     }
   // error: invalidate result
   da -> SetUndefined();
-  return 1;
+  return 0;
 }
 
 const string putSpec =
@@ -2621,6 +2624,8 @@ static int receiveShuffleFun( Word* args,
      (string)(char*)((CcString*)args[3].addr)->GetStringval();
 
 
+   //cout << "REC-SHUFFLE on " << host << ":" << port << endl;
+
    SecondoCatalog* sc = SecondoSystem::GetCatalog();
    ListExpr resultType = nl->Second(qp->GetType(s));
    resultType = sc->NumericType(resultType);
@@ -2645,6 +2650,9 @@ static int receiveShuffleFun( Word* args,
 
    if(dscCallBack -> createGlobalSocket())
      {
+
+       //cout << "REC-SHUFFLE on " << host << ":" << port 
+       //   << " - connected" << endl; 
        // now connected to the DServerCmdShuffleMultipleConn
        if (!(dscCallBack -> getTagFromCallBack("STARTMULTIPLYCONN")))
          {
@@ -2737,11 +2745,14 @@ static int receiveShuffleFun( Word* args,
 
        } while (runIt);
 
+       //cout << "REC-SHUFFLE on " << host << ":" << port 
+       //           << " - got hosts: << " << srcCnt 
+       // << " - emit ready" << endl; 
+       //for(int i = 0; i < srcSize; i++)
+       // cout << "REC-SHUFFLE on " << host << ":" << port 
+       //      << " - " << srcHost[i] << ":" << srcToPort[i] << endl;
 
-       // setup CommandQueue for each server;
-       vector<DServerShuffleReceiver*> serverCommand(srcSize); 
-      
-       if (!(dscCallBack -> sendTagToCallBack("GO")))
+       if (!(dscCallBack -> sendTagToCallBack("READY")))
          {
            cerr << "ERROR:" 
                 << dscCallBack -> getErrorText() << endl;
@@ -2749,9 +2760,14 @@ static int receiveShuffleFun( Word* args,
            ((Attribute*) result.addr) -> SetDefined(false);
            return 0;
          }
-
+ 
+       // setup CommandQueue for each server;
+       vector<DServerShuffleReceiver*> serverCommand(srcSize);
+  
        GenericRelation* rel = (Relation*)result.addr;
 
+       //cout << "REC-SHUFFLE on " << host << ":" << port 
+       //           << " - starting receivers" << endl; 
        try
          {
            //ZThread::PoolExecutor poolEx(2);
@@ -2767,7 +2783,9 @@ static int receiveShuffleFun( Word* args,
               
                poolEx.execute(serverCommand[i]);
              }
-       
+
+           //dscCallBack -> sendTagToCallBack("RUNNING");
+         
            poolEx.wait();
          }
        catch(ZThread::Synchronization_Exception& e)
@@ -2777,6 +2795,9 @@ static int receiveShuffleFun( Word* args,
            ((Attribute*) result.addr) -> SetDefined(false);
            return 0;
          }
+
+       //cout << "REC-SHUFFLE on " << host << ":" << port 
+       //           << " - sending DONE" << endl; 
 
        if (!noError)
          { 
@@ -2813,6 +2834,7 @@ static int receiveShuffleFun( Word* args,
                return 0;
              }
          }
+
        dscCallBack -> forceCloseSavedCommunication();
        delete dscCallBack;
 
@@ -2953,10 +2975,10 @@ static int sendShuffleFun( Word* args,
           return 0;
         }
       
-      int destSize = atoi(line.data());
+      int srcSize = atoi(line.data());
 
-      vector<string> destHost(destSize);
-      vector<int> destToPort(destSize);
+      vector<string> destHost(srcSize);
+      vector<int> destToPort(srcSize);
       int expectedstate = 0; // 0 - host, 1 - toPort
       unsigned long destCnt = 0;
       bool runIt = true;
@@ -3017,16 +3039,15 @@ static int sendShuffleFun( Word* args,
 
       } while (runIt);
 
-      // done connected to DServerCmdShuffleSend
-
-       if (!(dscCallBack -> sendTagToCallBack("GO")))
-         {
-           cerr << "ERRORA:" 
-                << dscCallBack -> getErrorText() << endl;
-           delete dscCallBack;
+      
+      if (!(dscCallBack -> sendTagToCallBack("READY")))
+        {
+          cerr << "ERRORA:" 
+               << dscCallBack -> getErrorText() << endl;
+          delete dscCallBack;
           ((Attribute *) result.addr) -> SetDefined(false);
-           return 0;
-         }
+          return 0;
+        }
 
       // now sending tuples
       ThreadedMemoryCounter memCntr (qp->GetMemorySize(s) * 1024 * 1024);
@@ -3038,14 +3059,14 @@ static int sendShuffleFun( Word* args,
       
       Tuple* tuple1;
       // setup CommandQueue for each server;
-      vector<DServerShuffleSender*> serverCommand(destSize); 
+      vector<DServerShuffleSender*> serverCommand(srcSize); 
       
       try
         {
           //ZThread::PoolExecutor poolEx(2);
           ZThread::ThreadedExecutor poolEx;
                     
-          for(int i = 0; i < destSize; i++)
+          for(int i = 0; i < srcSize; i++)
             {
               serverCommand[i] = 
                 new DServerShuffleSender(destHost[i],
@@ -3054,7 +3075,7 @@ static int sendShuffleFun( Word* args,
               
               poolEx.execute(serverCommand[i]);
             }
-                    
+
           Word value;
           ArgVectorPointer funargs;
 
@@ -3071,8 +3092,8 @@ static int sendShuffleFun( Word* args,
               qp->Request(args[1].addr, value);
               if ( ((CcInt*)value.addr)->IsDefined())
                 arrIndex = ((CcInt*)value.addr)->GetIntval();
-                               
-              if (arrIndex >= destSize ||
+
+              if (arrIndex >= srcSize ||
                   arrIndex < 0)
                 {
                   errMsg = "INVALID INDEX (" + 
@@ -3089,8 +3110,9 @@ static int sendShuffleFun( Word* args,
               //number ++;
             } // while (...)
           
-          for(int i = 0; i < destSize; i++)
+          for(int i = 0; i < srcSize; i++)
             {
+              //cout << "DONE: " << i << endl;
               serverCommand[i] -> done();
             }
           
@@ -3623,6 +3645,14 @@ shuffleFun (Word* args, Word& result,
     }
   
 
+  if (destSize  > 36 ||
+      srcSize > 36 )
+    {
+      cerr << "DArray size may not be larger than 36!" << endl;
+      destArray -> SetUndefined();
+      result.addr = destArray;
+      return 0;
+    }
   ListExpr serverlist = nl -> TheEmptyList();
 
   if (dim == 3) // worker relation is given; read it!
@@ -3841,7 +3871,10 @@ shuffleFun (Word* args, Word& result,
              {
                abort = true;
              }
+           
          }
+
+
        if (abort)
          {
            //Close additional connections
@@ -5316,6 +5349,10 @@ startupFun (Word* args, Word& result, int message,
       string exportConf = 
         " export SECONDO_CONFIG=${HOME}/secondo/bin/" + 
         secConf + ";";
+
+      string secondoBinDir = 
+        " export DISTR_SECONDO_BINDIR=/opt/psec/achmann-secondo/bin/;";
+
       string lckfileexist = "if [ -r " + lckfile +
         " ]; then echo \\\"0\\\"; else echo \\\"1\\\"; fi;";
       string cddir = ". .bashrc; cd secondo/bin; ";
@@ -5323,6 +5360,7 @@ startupFun (Word* args, Word& result, int message,
         cddir + 
         lckfileexist + 
         exportConf + 
+        secondoBinDir +
         " ./StartMonitor.remote " + devnull + " & ";
  
       string retVal;

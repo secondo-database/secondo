@@ -80,6 +80,8 @@ DServerCmdShuffleMultiConn::run()
        << " DS_CMD_OPEN_MULTICONN_SHUFFLE - start:"  <<  endl;
      
        
+  assert(isReceiver() || isSender());
+
 #endif
 
       //Initializes the writing of a tuple-stream, 
@@ -107,7 +109,7 @@ DServerCmdShuffleMultiConn::run()
        }
 
      //cout << getTypeStr() + "_" + getIndexStr()
-     //    << " start communication" << endl;
+     //     << " start communication" << endl;
 
      if (!(callBack -> startSocketCommunication()))
        {
@@ -118,7 +120,7 @@ DServerCmdShuffleMultiConn::run()
 
      // for the receiver we first have to send 
      // data to the typemapping function
-     if (getType() == DServerCmdShuffleMultiConnParam::DSC_SMC_P_RECEIVER)
+     if (isReceiver())
        {
 
          if (!(callBack -> sendTextToCallBack("TYPE",  
@@ -150,7 +152,7 @@ DServerCmdShuffleMultiConn::run()
          //             DServerCmdShuffleMultiConnParam::DSC_SMC_P_RECEIVER)
 
      getWorker() -> setShuffleOpen();
-     
+
      // sending size of sourceWorkers
      if (!(callBack -> sendTagToCallBack("STARTMULTIPLYCONN")))
        {
@@ -176,8 +178,16 @@ DServerCmdShuffleMultiConn::run()
       return;
     }
 
-  for (long i = 0; i <  (unsigned long) getSize(); i++)
+  //if (isReceiver())
+  // cout << getTypeStr() + "_" + getIndexStr()
+  //     << " sending size:" << getSize() << endl;
+
+  for (long i = 0; i <  (long) getSize(); i++)
     {
+      //cout << getTypeStr() + "_" + getIndexStr()
+      //   << " sending " << i << ": " 
+      //   << getHost(i) << ":" << getPort(i) << endl;
+
       // sending source worker host name
       if (!(callBack -> sendTextToCallBack("SRCWHOST",  
                                            getHost(i), true)))
@@ -241,14 +251,15 @@ DServerCmdShuffleMultiConn::run()
     }
 
   //awaiting OK
-  if (!(callBack -> getTagFromCallBack("GO")))
+  if (!(callBack -> getTagFromCallBack("READY")))
     {
       setErrorText("Could not initiate dshuffle");
       delete callBack;
       return;
-    } 
+    }
 
   bool noErr = true;
+
   //awaiting DONE
   if (!(callBack -> getTagFromCallBackTF("DONE","ERROR", noErr)))
     {
@@ -262,6 +273,9 @@ DServerCmdShuffleMultiConn::run()
 
       setErrorText(errMsg);
     }
+
+  //cout << getTypeStr() + "_" + getIndexStr()
+  //      << " done communication" << endl;
 
   if (!noErr)
     {
