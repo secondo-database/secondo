@@ -17,6 +17,7 @@ import viewer.QueryconstructionViewer;
 public class ObjectView extends JComponent {
     
     private String name;
+    private String label;
     private int xpos;
     private int ypos;
     private String type;
@@ -27,6 +28,7 @@ public class ObjectView extends JComponent {
     public ObjectView(String type, String name){
         
         this.name = name;
+        this.label = name;
         this.type = type;    
         //this.so = so;
         this.active = false;
@@ -77,10 +79,10 @@ public class ObjectView extends JComponent {
         
         
         
-        int w = g.getFontMetrics().stringWidth(name);
-        String s = name;
+        int w = g.getFontMetrics().stringWidth(label);
+        String s = label;
         if (w > 80) {
-            s = name.substring(0, 8);
+            s = label.substring(0, 8);
         }
         
         g.drawString(s, xpos + 25, ypos + 30);
@@ -88,6 +90,10 @@ public class ObjectView extends JComponent {
     
     public String getName() {
         return this.name;
+    }
+    
+    public void setName(String name) {
+        this.name = name;
     }
     
     public boolean isActive() {

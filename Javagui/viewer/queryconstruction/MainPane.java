@@ -42,7 +42,17 @@ public class MainPane extends JComponent implements MouseListener {
     //adds an operation or an object to the main panel
     public void addObject(ObjectView object){
         elements.add(object);
+        if (object.getName() == "filter"){
+            new FilterDialog(this, new String[]{"ID", "Line", "Up", "Trip"});
+        }
         lastComponent = object;
+    }
+    
+    public void removeLastObject(){
+        if (elements.contains(lastComponent)) {
+            elements.remove(lastComponent);
+        }
+        lastComponent = elements.get(elements.size()-1);
     }
     
     public Component getLast () {
@@ -58,6 +68,20 @@ public class MainPane extends JComponent implements MouseListener {
         }
         
         return query;
+    }
+    
+    public String filter(String[] attributes) {
+        String result = lastComponent.getName();
+        result+="[";
+        
+        for (String att: attributes) {
+            
+            if (att != null)
+                result+=att+", ";
+        }
+        lastComponent.setName(result.substring(0, result.length()-3) +"]");
+        System.out.println(result.substring(0, result.length()-3) +"]");
+        return result;
     }
     
     //Handle mouse events.

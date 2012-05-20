@@ -47,7 +47,7 @@ public class OperationsPane extends MainPane {
             ObjectView object = (ObjectView)iter.next();
             object.setUnactive();
             if (lastComponent.getName() == "Trains") {
-                if (object.getName() == "feed" || object.getName() == "count") {
+                if (object.getName() == "feed" || object.getName() == "count" || object.getName() == "filter") {
                     object.setActive();
                 }
             }

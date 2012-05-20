@@ -74,6 +74,8 @@ public class QueryconstructionViewer extends SecondoViewer {
         
         ObjectView feed = new ObjectView("operation", "feed");
         OperationsPane.addObject(feed);
+        ObjectView filter = new ObjectView("operation", "filter");
+        OperationsPane.addObject(filter);
         ObjectView count = new ObjectView("operation", "count");
         OperationsPane.addObject(count);
         ObjectView head = new ObjectView("operation", "head[1]");
@@ -95,15 +97,27 @@ public class QueryconstructionViewer extends SecondoViewer {
         this.add(OperationsMainScrollPane, BorderLayout.EAST);
         this.add(MainScrollPane, BorderLayout.CENTER);
         
+        JPanel buttonPanel = new JPanel();
         JButton run = new JButton("run");
-        this.add(run, BorderLayout.SOUTH);
+        buttonPanel.add(run);
+        JButton back = new JButton("back");
+        buttonPanel.add(back);
         
-        ActionListener al = new ActionListener() {
+        this.add(buttonPanel, BorderLayout.SOUTH);
+        
+        ActionListener runl = new ActionListener() {
             public void actionPerformed( ActionEvent e ) {
                 runQuery();
             }
         };
-        run.addActionListener(al);
+        run.addActionListener(runl);
+        
+        ActionListener backl = new ActionListener() {
+            public void actionPerformed( ActionEvent e ) {
+                back();
+            }
+        };
+        back.addActionListener(backl);
     }
     
     //adds an object to the main panel
@@ -123,6 +137,13 @@ public class QueryconstructionViewer extends SecondoViewer {
             result = VC.getCommandResult(MainPane.getStrings());
             System.out.println(VC.getCommandResult(MainPane.getStrings()).isAtom());
         }
+    }
+    
+    public void back() {
+        MainPane.removeLastObject();
+        MainPane.repaint();
+        OperationsPane.update();
+        ObjectsPane.update();
     }
     
     public boolean addObject(SecondoObject o){
