@@ -312,7 +312,14 @@ AlgebraManager::GetTC( int algebraId, int typeId )
 Operator*
 AlgebraManager::GetOP( int algebraId, int opId )
 {
-  return (algebra[algebraId]->GetOperator( opId ));
+  if(algebraId < 0 || algebraId >= (int)algebra.size()){
+    return 0;
+  }
+  Algebra* alg = algebra[algebraId];
+  if(!alg){
+    return 0;
+  }
+  return  alg->GetOperator(opId);
 }
 
 
