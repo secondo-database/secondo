@@ -23,11 +23,15 @@ let MF = 3.35;
 #delete plzbig;
 #delete plzsmall;
 #delete plzsmallWidth10;
+#delete plzbig_select0
 
 # build some relations
 
 # plzbig has 2000000 tuples
-let plzbig = plz feed head[40000] fifty feed product consume; 
+let processing one tuple in right stream, partition = 1 (vItHashJoin)plzbig = plz feed head[40000] fifty feed product consume; 
+
+# plzbig_select0 has 2000000 tuples, Selectivity of plzbig and plzbig_select0 is 0
+let plzbig_select0 = plzbig feed extend[PLZ2: .PLZ + 100000] remove[PLZ] renameattr[PLZ : PLZ2] consume;
 
 # plzssmall has 1000000 tuples
 let plzsmall = plzbig feed head[1000000] renameattr[PLZ1 : PLZ, Ort1 : Ort, No1 : No] consume;
@@ -63,6 +67,235 @@ let plzsmallWidth10 =
    Ort10: .Ort1,
     No10: .No1]
   consume
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+delete uItHashJoin; 
+delete vItHashJoin; 
+delete wItHashJoin; 
+delete xItHashJoin; 
+
+# ithashjoin #######################################################
+#
+# Cost formula:
+# 
+#
+# double uItHashJoin = 0.002;      //millisecs per insert in hash table
+# double vItHashJoin = 0.021;      //millisecs for processing a tupe in right stream 
+# double wItHashJoin = 0.004;      //millisecs for writing and reading one byte into/from tuplefile 
+# double xItHashJoin = 0.001;      //millisecs for reading one byte from tuplefile
+#
+#####################################################################
+
+##
+# measure time for one hash table insert (uItHashJoin)
+##
+
+query plzbig feed {r1} plz feed head[0] {r2} itHashJoin[PLZ_r1, PLZ_r2] count;
+
+# measure time for processing 2000000 inserts
+query plzbig feed {r1} plz feed head[0] {r2} itHashJoin[PLZ_r1, PLZ_r2] count;
+
+query plzbig feed {r1} plz feed head[0] {r2} itHashJoin[PLZ_r1, PLZ_r2] count;
+
+query plzbig feed {r1} plz feed head[0] {r2} itHashJoin[PLZ_r1, PLZ_r2] count;
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+query plzsmall feed {r1} plz feed head[0] {r2} itHashJoin[PLZ1_r1, PLZ_r2] count;
+
+query plzsmall feed {r1} plz feed head[0] {r2} itHashJoin[PLZ1_r1, PLZ_r2] count;
+
+query plzsmall feed {r1} plz feed head[0] {r2} itHashJoin[PLZ1_r1, PLZ_r2] count;
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# x5 is the size of additinal tuples
+let x5 = (plzbig count) - (plzsmall count);
+
+# Calculate time to process one hashtable insert
+# x1 - x2 is the time to insert (x5) tuples more
+# multiply by 1000 to get the time in milliseconds
+let uItHashJoin = (((x1 - x2) * 1000) / x5) * MF;
+
+query ProgressConstants inserttuple["ExtRelation2Algebra", "itHashJoin", "uItHashJoin", uItHashJoin, "msecs per hash table insert", ""] consume
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+##
+# measure time for processing one tuple in right stream, partition = 1 (vItHashJoin)
+##
+
+query plzsmall feed {r1} plzbig feed head [40000] {r2} itHashJoin[PLZ1_r1, PLZ_r2] count
+
+# measure time for processing 40000 tuples 
+query plzsmall feed {r1} plzbig feed head [40000] {r2} itHashJoin[PLZ1_r1, PLZ_r2] count
+
+query plzsmall feed {r1} plzbig feed head [40000] {r2} itHashJoin[PLZ1_r1, PLZ_r2] count
+
+query plzsmall feed {r1} plzbig feed head [40000] {r2} itHashJoin[PLZ1_r1, PLZ_r2] count
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# measure time for processing 20000 tuples 
+query plzsmall feed {r1} plzbig feed head [20000] {r2} itHashJoin[PLZ1_r1, PLZ_r2] count
+
+query plzsmall feed {r1} plzbig feed head [20000] {r2} itHashJoin[PLZ1_r1, PLZ_r2] count
+
+query plzsmall feed {r1} plzbig feed head [20000] {r2} itHashJoin[PLZ1_r1, PLZ_r2] count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# Calculate time to process one hashtable insert
+# x1 - x2 is the time to insert (20000) tuples more
+# multiply by 1000 to get the time in milliseconds
+let vItHashJoin = (((x1 - x2) * 1000) / 20000) * MF;
+
+query ProgressConstants inserttuple["ExtRelation2Algebra", "itHashJoin", "vItHashJoin", vItHashJoin, "msecs per tuple in right input stream (part. 1)", ""] consume
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+##
+# measure time for reading and writing one byte into TupleFile (wItHashJoin)
+#
+# Set memory to 128 MB, so itHashJoin runs with 2 partitions and 
+# has to write the tuples into the tuplefile
+#
+#
+# Selectivity of plzsmall and plzbig_select0 is 0
+# So itHashJoin has to write all tuples of stream2 to disk
+##
+
+# we always run 4 times and take the time of the last three, to have consistent
+# warm state
+
+query plzsmall feed {r1} plzbig_select0 feed {r2} itHashJoin[PLZ1_r1, PLZ_r2] count
+
+query plzsmall feed {r1} plzbig_select0 feed {r2} itHashJoin[PLZ1_r1, PLZ_r2] {memory 128} count
+
+query plzsmall feed {r1} plzbig_select0 feed {r2} itHashJoin[PLZ1_r1, PLZ_r2] {memory 128} count
+
+query plzsmall feed {r1} plzbig_select0 feed {r2} itHashJoin[PLZ1_r1, PLZ_r2] {memory 128} count
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+query plzsmall feed {r1} plzbig_select0 feed {r2} itHashJoin[PLZ1_r1, PLZ_r2] count
+
+query plzsmall feed {r1} plzbig_select0 feed {r2} itHashJoin[PLZ1_r1, PLZ_r2] count
+
+query plzsmall feed {r1} plzbig_select0 feed {r2} itHashJoin[PLZ1_r1, PLZ_r2] count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+let x3 = plzbig_select0 count
+
+let x4 = plzbig_select0 tuplesize;
+
+# Amount of bytes written to Disk
+let x5 = x3 * x4;
+
+# Calculate time to read and write one byte to Tuplefile 
+# x1 - x2 is the time to write and read x5 bytes to Tuplefile
+# multiply by 1000 to get the time in milliseconds
+let wItHashJoin = (((x1 - x2) * 1000) / x5) * MF;
+
+query ProgressConstants inserttuple["ExtRelation2Algebra", "itHashJoin", "wItHashJoin", wItHashJoin, "msecs per byte written and read into/from TupleFile", ""] consume
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+
+
+##
+# measure time for reading one byte into TupleFile (xItHashJoin)
+#
+# We run itHashJoin with 2 and 3 partitions
+# the run with 3 partitions has to write the tuples and read them twice (80 MB)
+# the run with 2 partitons write and read the tuples ony one times (128 MB)
+##
+
+# we always run 4 times and take the time of the last three, to have consistent
+# warm state
+
+query plzsmall feed {r1} plzbig_select0 feed {r2} itHashJoin[PLZ1_r1, PLZ_r2] {memory 80} count
+
+query plzsmall feed {r1} plzbig_select0 feed {r2} itHashJoin[PLZ1_r1, PLZ_r2] {memory 80} count
+
+query plzsmall feed {r1} plzbig_select0 feed {r2} itHashJoin[PLZ1_r1, PLZ_r2] {memory 80} count
+
+query plzsmall feed {r1} plzbig_select0 feed {r2} itHashJoin[PLZ1_r1, PLZ_r2] {memory 80} count
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+query plzsmall feed {r1} plzbig_select0 feed {r2} itHashJoin[PLZ1_r1, PLZ_r2] {memory 128} count
+
+query plzsmall feed {r1} plzbig_select0 feed {r2} itHashJoin[PLZ1_r1, PLZ_r2] {memory 128} count
+
+query plzsmall feed {r1} plzbig_select0 feed {r2} itHashJoin[PLZ1_r1, PLZ_r2] {memory 128} count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+let x3 = plzbig_select0 count
+
+let x4 = plzbig_select0 tuplesize;
+
+# Amount of bytes written to Disk
+let x5 = x3 * x4;
+
+# Calculate time to read and write one byte to Tuplefile 
+# x1 - x2 is the time to write and read x5 bytes to Tuplefile
+# multiply by 1000 to get the time in milliseconds
+let xItHashJoin = (((x1 - x2) * 1000) / x5) * MF;
+
+query ProgressConstants inserttuple["ExtRelation2Algebra", "itHashJoin", "xItHashJoin", xItHashJoin, "msecs per byte read from TupleFile", ""] consume
+
+
+query ProgressConstants feed csvexport['ProgressConstants.csv', FALSE, TRUE] count
+
+close database
+
+quit
+
 
 # delete variables used before
 delete x1;

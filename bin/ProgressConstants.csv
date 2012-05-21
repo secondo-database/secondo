@@ -1,4 +1,8 @@
 Algebra,Operator,ConstantName,ConstantValue,Meaning,Meaning2
+ExtRelation2Algebra,itHashJoin,uItHashJoin,0.00836011,msecs per hash table insert,
+ExtRelation2Algebra,itHashJoin,vItHashJoin,1.3739,msecs per tuple in right input stream (part. 1),
+ExtRelation2Algebra,itHashJoin,wItHashJoin,0.000651897,msecs per byte written and read from/into TupleFile,
+ExtRelation2Algebra,itHashJoin,xItHashJoin,0.000157665,msecs per byte read from TupleFile,
 Relation-C++,feedproject,uFeedProject,0.002,msecs per tuple,
 Relation-C++,feedproject,vFeedProject,0.000036,msecs per byte input,
 Relation-C++,feedproject,wFeedProject,0.0018,msecs per attr,
