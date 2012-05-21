@@ -1,6 +1,8 @@
 package ParallelSecondo;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Random;
 
 import sj.lang.ListExpr;
@@ -21,6 +23,9 @@ public class HPA_AuxFunctions extends ListExpr implements Constant{
 /**
  * Prepare the file list for each mapper
  * 
+ * This function deploy each row to a mapper running at the node 
+ * where the data are kept. 
+ * 
  * 
  * @param nameList
  * @param locList
@@ -31,7 +36,7 @@ public class HPA_AuxFunctions extends ListExpr implements Constant{
 	{
 		ListExpr[] mapLoc 			= new ListExpr[mapTasksNum];
 		ListExpr[] mapLoc_last 	= new ListExpr[mapTasksNum];
-		ListExpr mapList;
+//		ListExpr mapList;
 		
 		ListExpr locRest = locList;
 		ListExpr nameRest = nameList;
@@ -116,8 +121,163 @@ then the other mappers should indicate that as an empty row.
 				allMappers_last = ListExpr.append(allMappers_last, oneMapper);
 			}
 		}
+
+		return allMappers;
+	}
+	
+	
+	/**
+	 * Prepare the file list for each mapper. 
+	 * 
+	 * This function deploy rows to mappers evenly, 
+	 * and let each mapper reads data from its local disk as much as possible.
+	 * 
+	 * TODO : The problem is that how can I find a way that distributes rows  
+	 * evenly on mappers, and guarantees each mapper reads the data from its 
+	 * local disk as much as possible ????
+	 * 
+	 * 
+	 * At present, first distribute files to more tasks. 
+	 * 
+	 * 
+	 * @param nameList
+	 * @param locList
+	 * @param mapTasksNum
+	 * @return
+	 */
+	public static ListExpr flist2Mapper2(
+			ListExpr namesList, ListExpr locsList, int mapTasksNum, int slavesNum){
+	
+		ListExpr[] mapLoc = new ListExpr[mapTasksNum];
+		ListExpr nameRest = namesList;
+		ListExpr locRest = locsList;
+		
+		while (!locRest.isEmpty())
+		{
+			ListExpr nameList = nameRest.first();
+			String name = nameList.stringValue();
+			ListExpr matrixList = locRest.first();
+			
+			ListExpr[] oneLoc = new ListExpr[mapTasksNum]; 
+			if (name.matches(INDLOFPattern))
+			{
+				int rowNum = matrixList.listLength();
+				//The lower limit of files in each mapper
+				int avgMRNum = rowNum / mapTasksNum;  
+
+				while (!matrixList.isEmpty())
+				{
+					ListExpr row = matrixList.first();
+					int mapperIdx = -1;
+					if (!row.isEmpty()){
+						int slaveIdx = row.first().intValue() - 1;
+						mapperIdx = slaveIdx;
+						//Decide insert this file to which mapper
+						while (mapperIdx < mapTasksNum)
+						{
+							if (oneLoc[mapperIdx] == null){
+								break;
+							}
+							else if (oneLoc[mapperIdx].listLength() <= avgMRNum){
+								break;
+							}
+							else{
+								int cand = mapperIdx + slavesNum;
+								if (cand < mapTasksNum){
+									mapperIdx = cand;
+									continue;
+								}
+								else
+									break;
+							}
+/*							if (oneLoc[mapperIdx] == null)
+								break;
+							else if (oneLoc[mapperIdx].listLength() <= avgMRNum){
+								if (mapperIdx < slavesNum)
+									break;
+								else if (mapperIdx < mapTasksNum){
+									mapperIdx++;
+									break;
+								}
+							}
+							else if (mapperIdx < slavesNum)
+								mapperIdx = slavesNum;
+							else
+								mapperIdx++;
+*/
+						}
+						
+						//Set this file to the indicated mapper, 
+						//and left an empty row for other mappers
+						for (int mcnt = 0; mcnt < mapTasksNum; mcnt++)
+						{
+							if (mcnt != mapperIdx){
+								oneLoc[mcnt] = ListExpr.concat(oneLoc[mcnt], ListExpr.theEmptyList());
+							}
+							else{
+								oneLoc[mcnt] = ListExpr.concat(oneLoc[mcnt], row);
+							}
+						}
+					}
+					matrixList = matrixList.rest();
+				}
+			}
+
+			//Merge locations for each mapper
+			for (int mcnt = 0; mcnt < mapTasksNum; mcnt++)
+			{
+				ListExpr mapperLocList = matrixList;
+				if (oneLoc[mcnt] != null)
+					mapperLocList = oneLoc[mcnt];
+				
+				mapLoc[mcnt] = ListExpr.concat(mapLoc[mcnt], mapperLocList);
+			}
+
+			nameRest = nameRest.rest();
+			locRest = locRest.rest();
+		}
+
+		ListExpr allMappers = null;
+		for (ListExpr mapper : mapLoc )
+		{
+			if (mapper == null)
+				allMappers = ListExpr.concat(allMappers, ListExpr.theEmptyList());
+			else
+				allMappers = ListExpr.concat(allMappers, mapper);
+				
+		}
 		
 		return allMappers;
+	}
+	
+	/**
+	 * 
+	 * Find the first slave index from the given location list for a mapper. 
+	 * Usually all rows given to a mapper should all inside a same node 
+	 * and we always take the first slave to be the executer of that mapper.
+	 * 
+	 * @param locList
+	 * @return
+	 */
+	public static int findFirstSlave(ListExpr locList)
+	{
+		int slaveIdx = 0;
+		
+		ListExpr objs = locList;
+		while (!objs.isEmpty())
+		{
+			ListExpr rows = objs.first();
+			while (!rows.isEmpty()){
+				if (!rows.first().isEmpty()){
+					slaveIdx = rows.first().first().intValue();
+					break;
+				}
+				rows = rows.rest();
+			}
+			objs = objs.rest();
+		}
+		
+		return slaveIdx;
 	}
 	
 	/**

@@ -2032,6 +2032,19 @@ flist(T) x [string] x [text] x [(DLO):DLF]
   x ( map ( T -> T1) ) -> flist(T1)
 ----
 
+Update at 14th May. 2012 by Jiamin
+
+Adds the optional parameter mapTaskNum, now the operator maps
+
+----
+flist(T) x [string] x [text] x [(DLO):DLF] x [mapTaskNum]
+  x ( map ( T -> T1) ) -> flist(T1)
+----
+
+If the produced flist kind is DLO, then the mapTaskNum must be less than
+the scale of slaves, as each slave database can only keep one sub-object.
+
+
 */
 
 ListExpr hadoopMapTypeMap(ListExpr args){
@@ -2039,9 +2052,12 @@ ListExpr hadoopMapTypeMap(ListExpr args){
 
   string lenErr = "ERROR! Operator hadoopMap expects 3 argument lists. ";
   string typErr = "ERROR! Operator hadoopMap expects "
-      "flist(T) x [string] x [text] x [(DLO):DLF] x (map T T1))";
+      "flist(T) x [string] x [text] x [(DLO):DLF] x [mapTaskNum] x (map T T1))";
 
   string ifaErr = "ERROR! Infeasible evaluation in TM of attribute:";
+  string mtnErr = "ERROR! Expect a positive map task number. ";
+  string umnErr = "ERROR! It is not allowed to produce a DLO kind flist, "
+      "with a row number that is larger than the slave scale.";
   string nprErr = "ERROR! Operator hadoopMap expects "
       "creating a new DLO or DLF kind flist.";
   string onmErr = "ERROR! Operator hadoopMap expects the created "
@@ -2070,6 +2086,8 @@ ListExpr hadoopMapTypeMap(ListExpr args){
 
   //Optional parameters
   int len = l.second().first().length();
+  clusterInfo ci;
+  int mapTaskNum = ci.getSlaveSize();
   if (len > 0)
   {
     if ( len > 3 )
@@ -2098,6 +2116,15 @@ ListExpr hadoopMapTypeMap(ListExpr args){
         }
         filePath = fpList.str();
       }
+      else if (pp.isSymbol(CcInt::BasicType()))
+      {
+        //mapTaskNum
+        NList mtnList;
+        if (!QueryProcessor::GetNLArgValueInTM(pv, mtnList)){
+          return l.typeError(ifaErr + "mapTaskNum");
+        }
+        mapTaskNum = mtnList.intval();
+      }
       else if (pp.isSymbol("DLF")){
         kind = DLF;
       }
@@ -2106,6 +2133,13 @@ ListExpr hadoopMapTypeMap(ListExpr args){
       }
     }
   }
+
+  if (mapTaskNum <= 0){
+    return l.typeError(mtnErr);
+  } else if ((kind == DLO) && (mapTaskNum > ci.getSlaveSize())){
+    return l.typeError(umnErr);
+  }
+
 
   //Encapsulated object type
   NList coType = l.third().first().third();   //Create Type
@@ -2212,13 +2246,17 @@ int hadoopMapValueMap(Word* args, Word& result,
     string CreateFilePath = "";
     Supplier oppList = args[1].addr;
     int opLen = qp->GetNoSons(oppList);
+    int mapTaskNum = -1;
     for (int i = 0; i < opLen; i++)
     {
-      //Only the file path need to be get
       ListExpr pp = qp->GetType(qp->GetSupplierSon(oppList,i));
       if (nl->IsEqual(pp, FText::BasicType())){
         CreateFilePath = ((FText*)
           qp->Request(qp->GetSupplier(oppList,i)).addr)->GetValue();
+      }
+      else if (nl->IsEqual(pp, CcInt::BasicType())){
+        mapTaskNum = ((CcInt*)
+          qp->Request(qp->GetSupplier(oppList, i)).addr)->GetValue();
       }
     }
 
@@ -2270,6 +2308,7 @@ int hadoopMapValueMap(Word* args, Word& result,
     NList dlfNameList, dlfLocList;
     NList dloNameList, dloLocList;
     ListExpr sidList;
+    clusterInfo *ci = new clusterInfo();
     if (!ok){
       cerr << "Preparing Hadoop job parameters fails." << endl;
     }
@@ -2291,6 +2330,9 @@ int hadoopMapValueMap(Word* args, Word& result,
         dloLocList.append(NList(locList));
       }
 
+      if (mapTaskNum < 0)
+        mapTaskNum = ci->getSlaveSize();
+
       //Call the Hadoop job
       stringstream queryStr;
       queryStr
@@ -2308,7 +2350,8 @@ int hadoopMapValueMap(Word* args, Word& result,
         << " \"" << tranStr(dloLocList.convertToString(),
             "\"", "\\\"") << "\" \\\n"
         << dupTimes  << " " << kind << " "
-        << " \"" << CreateFilePath << "\"" << endl;
+        << " \"" << CreateFilePath << "\" "
+        << mapTaskNum << endl;
       int rtn = -1;
       cout << queryStr.str() << endl;
       rtn = system(queryStr.str().c_str());
@@ -2339,7 +2382,6 @@ int hadoopMapValueMap(Word* args, Word& result,
 
     if (ok)
     {
-      clusterInfo *ci = new clusterInfo();
       NList fileLocList;
 
       if (kind == DLO)
@@ -2351,8 +2393,12 @@ int hadoopMapValueMap(Word* args, Word& result,
       NList emptyRow = NList();
       while (!nl->IsEmpty(rest))
       {
-        int slaveIdx = nl->IntValue(nl->First(rest));
-        int rowNum = slaveIdx;
+        ListExpr rowInfo = nl->First(rest);
+        int rowNum = nl->IntValue(nl->First(rowInfo));
+        int slaveIdx = nl->IntValue(nl->Second(rowInfo));
+
+
+//        int rowNum = slaveIdx;
 
         for (lastRow++ ;lastRow < rowNum; lastRow++){
           if (fileLocList.isEmpty()){

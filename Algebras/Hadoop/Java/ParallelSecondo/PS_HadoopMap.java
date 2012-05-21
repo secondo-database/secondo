@@ -77,12 +77,12 @@ Add location list for DLO flist too, in case in some slaves, its sub-object
 doesn't exist, and cause the failure of the map task and the whole job.
 
 */
-		final int paraLength = 10;
+		final int paraLength = 11;
 		String usage = "Usage PS_HadoopMap <databaseName> " +
 				"<CreateObjectName> <CreateQuery> " +
 				"<DLF_Name_List> <DLF_fileLoc_List> " +
 				"<DLO_Name_List> <DLO_loc_List> " +
-				"<duplicateTimes> <FListKind> <FilePath>"; 
+				"<duplicateTimes> <FListKind> <FilePath> <mapTaskNum>"; 
 		
 		if (args.length != paraLength)
 		{
@@ -123,11 +123,11 @@ doesn't exist, and cause the failure of the map task and the whole job.
 		String DLF_Name_List	 	= args[3];
 		String DLF_fileLoc_List	= args[4];
 		String DLO_Name_List	 	= args[5];
-		String DLO_loc_List	= args[6];
+		String DLO_loc_List			= args[6];
 		int duplicateTimes 			= Integer.parseInt(args[7]);
 		FListKind outputKind 		= FListKind.values()[Integer.parseInt(args[8])];
-		String CreateFilePath	= args[9];
-		int MapTasksNum = slaves.size();
+		String CreateFilePath		= args[9];
+		int MapTasksNum 				= Integer.parseInt(args[10]);
 		
 		ListExpr fpList = ListExpr.oneElemList(ListExpr.textAtom(CreateFilePath));
 		CreateFilePath = fpList.toString().replace('\n', ' ');  //In case empty path
@@ -137,14 +137,24 @@ doesn't exist, and cause the failure of the map task and the whole job.
 		allDLFNameLists.readFromString(DLF_Name_List);
 		ListExpr allDLFLocLists = new ListExpr();
 		allDLFLocLists.readFromString(DLF_fileLoc_List);
-		ListExpr allDLFLists = HPA_AuxFunctions.flist2Mapper(
-				allDLFNameLists, allDLFLocLists, MapTasksNum);
+		
+		System.out.println("Input: " + HPA_AuxFunctions.plainStr(allDLFNameLists));
+		System.out.println("Input: " + HPA_AuxFunctions.plainStr(allDLFLocLists));
+//		ListExpr allDLFLists = HPA_AuxFunctions.flist2Mapper(allDLFNameLists, allDLFLocLists, MapTasksNum);
+		ListExpr allDLFLists = HPA_AuxFunctions.flist2Mapper2(allDLFNameLists, allDLFLocLists, MapTasksNum, slaves.size());
+		System.out.println("The allDLFLists is: " + HPA_AuxFunctions.plainStr(allDLFLists));
 		
 		ListExpr allDLONameLists = new ListExpr();
 		allDLONameLists.readFromString(DLO_Name_List);
 		ListExpr allDLOLocLists = new ListExpr();
 		allDLOLocLists.readFromString(DLO_loc_List);
-		ListExpr allDLOLists = HPA_AuxFunctions.flist2Mapper(allDLONameLists, allDLOLocLists, MapTasksNum);
+//		ListExpr allDLOLists = HPA_AuxFunctions.flist2Mapper(allDLONameLists, allDLOLocLists, MapTasksNum);
+		ListExpr allDLOLists = HPA_AuxFunctions.flist2Mapper2(allDLONameLists, allDLOLocLists, MapTasksNum, slaves.size());
+
+//		System.out.println("The mapTaskNumber is: " + MapTasksNum);
+		System.out.println("The allDLOLists is: " + HPA_AuxFunctions.plainStr(allDLOLists));
+		
+//		System.exit(0);
 		
 		//Prepare the input for mappers
     String inputPath = "INPUT";
@@ -157,29 +167,33 @@ doesn't exist, and cause the failure of the map task and the whole job.
 			ListExpr aMapperDLO_Rest = allDLOLists;
 			ListExpr aMapperDLF_Rest = allDLFLists;
 			
-			for (int slaveIdx = 0; slaveIdx < MapTasksNum; slaveIdx++)
+			for (int mapperIdx = 1; mapperIdx <= MapTasksNum; mapperIdx++)
 			{
 				ListExpr amDLO = aMapperDLO_Rest.first();
 				ListExpr amDLF = aMapperDLF_Rest.first();
-				
-				System.out.println("amDLO: " + amDLO.toString());
-				System.out.println("amDLF: " + amDLF.toString());
+	
 				boolean allDLOexist = HPA_AuxFunctions.allMapperFOExist(amDLO);
 				boolean allDLFexist = HPA_AuxFunctions.allMapperFOExist(amDLF);
 				
-				System.out.println(allDLOexist + ", " + allDLFexist);
-				
 				if (allDLFexist && allDLOexist)
 				{
+					System.out.println("The amDLF is: " + HPA_AuxFunctions.plainStr(amDLF));
+
 					String dlfLocStr = HPA_AuxFunctions.plainStr(amDLF);
+					int slaveIdx = HPA_AuxFunctions.findFirstSlave(amDLF);
+					if (slaveIdx == 0){
+						slaveIdx = HPA_AuxFunctions.findFirstSlave(amDLO);
+					}
 					
-					String fileName = JOBID + "_INPUT_"+ slaveIdx + ".dat";
+					
+					String fileName = JOBID + "_INPUT_"+ mapperIdx + ".dat";
 					PrintWriter out = new PrintWriter(
 							FileSystem.get(conf).create(
 									new Path(inputPath + "/" + fileName)));
 					
 					out.print( "" + 
-							slaveIdx 							+ inDim +
+							slaveIdx	 						+ inDim +
+							mapperIdx	 						+ inDim +
 							databaseName 					+ inDim + 
 							CreateObjectName 			+ inDim +
 							CreateQuery 					+ inDim + 
@@ -213,7 +227,7 @@ doesn't exist, and cause the failure of the map task and the whole job.
 			job.setMapperClass(PS_HadoopMap_Map.class);
 			job.setReducerClass(PS_HadoopMap_Reduce.class);
 			
-			job.setMapOutputKeyClass(IntWritable.class);
+			job.setMapOutputKeyClass(Text.class);
 			job.setMapOutputValueClass(BooleanWritable.class);
 			job.setOutputKeyClass(IntWritable.class);
 			job.setOutputValueClass(Text.class);  

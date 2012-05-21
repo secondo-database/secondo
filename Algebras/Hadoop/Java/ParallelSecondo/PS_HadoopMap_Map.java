@@ -17,7 +17,7 @@ import org.apache.hadoop.mapreduce.Mapper;
 import sj.lang.ListExpr;
 
 public class PS_HadoopMap_Map 
-	extends Mapper<LongWritable, Text, IntWritable, BooleanWritable> 
+	extends Mapper<LongWritable, Text, Text, BooleanWritable> 
 	implements Constant
 {
 
@@ -27,21 +27,22 @@ public class PS_HadoopMap_Map
 	
 		String parameters[] = value.toString().split(inDim);
 		int 		slaveIdx					= Integer.parseInt(parameters[0]);							 							
-		String 	databaseName 			= parameters[1];		
-		String 	CreateObjectName 	= parameters[2];		
-		String 	CreateQuery 			= parameters[3];
-		String 	mapFileName 			= parameters[4];
-		String 	mapFileLoc				= parameters[5];
-		int 		duplicateTimes    = Integer.parseInt(parameters[6]);
+		int 		mapperIdx					= Integer.parseInt(parameters[1]);							 							
+		String 	databaseName 			= parameters[2];		
+		String 	CreateObjectName 	= parameters[3];		
+		String 	CreateQuery 			= parameters[4];
+		String 	mapFileName 			= parameters[5];
+		String 	mapFileLoc				= parameters[6];
+		int 		duplicateTimes    = Integer.parseInt(parameters[7]);
 		
-		String  CreateFilePath = parameters[7];
+		String  CreateFilePath = parameters[8];
 		ListExpr fpList = new ListExpr();
 		fpList.readFromString(CreateFilePath);
 		CreateFilePath = fpList.first().textValue();
 		
-		int secondoSlaveIdx  = slaveIdx + 1;
+//		int secondoSlaveIdx  = slaveIdx + 1;
 		
-		FListKind outputKind = FListKind.values()[Integer.parseInt(parameters[8])];
+		FListKind outputKind = FListKind.values()[Integer.parseInt(parameters[9])];
 		
 		ListExpr fileNameList = new ListExpr(), fileLocList = new ListExpr();
 		fileNameList.readFromString(mapFileName);
@@ -67,8 +68,8 @@ public class PS_HadoopMap_Map
 		} catch (FileNotFoundException e1) {
 			e1.printStackTrace();
 		}
-		String mapperIPAddr = slaves.get(slaveIdx).getIpAddr();
-		int mapperPortNum = slaves.get(slaveIdx).getPortNum();
+		String mapperIPAddr = slaves.get(slaveIdx - 1).getIpAddr();
+		int mapperPortNum = slaves.get(slaveIdx - 1).getPortNum();
 		
 		QuerySecondo secEntity = new QuerySecondo();
 	
@@ -101,7 +102,7 @@ public class PS_HadoopMap_Map
 								ListExpr.fourElemList(
 										ListExpr.stringAtom(CreateObjectName), 
 										ListExpr.textAtom(CreateFilePath),
-									ListExpr.intAtom(secondoSlaveIdx),
+									ListExpr.intAtom(mapperIdx),
 									ListExpr.intAtom(1)), 
 							ListExpr.theEmptyList(), 
 							ListExpr.theEmptyList()));
@@ -132,12 +133,14 @@ public class PS_HadoopMap_Map
 				
 				//Create a local object or partition file in this slave
 				context.write(
-						new IntWritable(secondoSlaveIdx), new BooleanWritable(true));
+						new Text(mapperIdx + " " + slaveIdx), new BooleanWritable(true));
+//						new IntWritable(mapperIdx), new BooleanWritable(true));
 			}
 			else{
 				//Nothing is created in this slave
 				context.write(
-						new IntWritable(secondoSlaveIdx), new BooleanWritable(false));
+						new Text(mapperIdx + " " + slaveIdx), new BooleanWritable(false));
+//						new IntWritable(mapperIdx), new BooleanWritable(false));
 			}
 			secEntity.close();
 			

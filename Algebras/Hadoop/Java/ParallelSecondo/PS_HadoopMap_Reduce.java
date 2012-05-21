@@ -10,7 +10,7 @@ import org.apache.hadoop.mapreduce.Reducer;
 import sj.lang.ListExpr;
 
 public class PS_HadoopMap_Reduce 
-	extends Reducer<IntWritable, BooleanWritable, IntWritable, Text> 
+	extends Reducer<Text, BooleanWritable, IntWritable, Text> 
 	implements Constant
 {
 
@@ -20,7 +20,7 @@ public class PS_HadoopMap_Reduce
 	boolean createObj;
 	
 	@Override
-	protected void reduce(IntWritable key, Iterable<BooleanWritable> values,
+	protected void reduce(Text key, Iterable<BooleanWritable> values,
 			Context context) throws IOException,
 			InterruptedException {
 		
@@ -28,13 +28,22 @@ public class PS_HadoopMap_Reduce
 		for (BooleanWritable taskResult : values)
 		{
 			
-			int slaveIdx = key.get();
+			String[] rowInfo = key.toString().split(" ");
+			
+			int rowIdx 		= Integer.parseInt(rowInfo[0]);
+			int slaveIdx 	= Integer.parseInt(rowInfo[1]);
 			createObj = taskResult.get();
 			AgggregateResult &= createObj;
 			
 			if (createObj)
 			{
-				if (cnt == 0)
+				resultList = ListExpr.concat(resultList, 
+						ListExpr.twoElemList(
+								ListExpr.intAtom(rowIdx), 
+								ListExpr.intAtom(slaveIdx)));
+				
+				
+/*				if (cnt == 0)
 				{
 					resultList = ListExpr.oneElemList(ListExpr.intAtom(slaveIdx));
 					last = resultList;
@@ -43,6 +52,7 @@ public class PS_HadoopMap_Reduce
 				{
 					last = ListExpr.append(last, ListExpr.intAtom(slaveIdx));
 				}
+*/				
 				cnt++;
 			}
 		}
@@ -52,7 +62,7 @@ public class PS_HadoopMap_Reduce
 	protected void cleanup(Context context)
 			throws IOException, InterruptedException {
 
-		context.write(new IntWritable(0), 
+		context.write(new IntWritable(cnt), 
 			new Text(resultList.toString().
 					replaceAll("\n", " ").replaceAll("\t", " ")));
 	}
