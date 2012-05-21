@@ -1,41 +1,83 @@
-TarFile="ParallelSecondo.jar"
-SEC_P="../../../Javagui/secondoInterface/SecondoInterface.jar"
-HDC_P="${HADOOP_HOME}/hadoop-0.20.2-core.jar"
-SRC_P="ParallelSecondo/"
-BIN_P="bin"
+JarFile = ParallelSecondo.jar
+SEC_P = ${SECONDO_BUILD_DIR}/Javagui/secondoInterface/SecondoInterface.jar
+HDC_P = ${HADOOP_HOME}/hadoop-0.20.2-core.jar
+PKGNM = ParallelSecondo
+BIN_P = bin
+CLS_P = ${BIN_P}/${PKGNM}
+SRC_P = ./${PKGNM}
 
-
-all: checkenv
+all: checkenv ${CLS_P}/PS_HadoopMap.class ${CLS_P}/PS_HadoopReduce.class ${CLS_P}/PS_HadoopReduce2.class 
 	if [ ! -d ${BIN_P} ];then mkdir -p ${BIN_P}/lib; fi
-	javac -classpath ${SEC_P} ${SRC_P}/QuerySecondo.java -d ${BIN_P}
-	javac -classpath ${SEC_P} ${SRC_P}/ExtListExpr.java -d ${BIN_P}
-	javac ${SRC_P}/Constant.java -d ${BIN_P}
-	javac ${SRC_P}/PSNode.java -d ${BIN_P}
-	javac -classpath ./bin:${SEC_P} ${SRC_P}/HPA_AuxFunctions.java -d ${BIN_P}
-	javac -classpath ./bin:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMap_Map.java -d ${BIN_P}
-	javac -classpath ./bin:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMap_Reduce.java -d ${BIN_P}
-	javac -classpath ./bin:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMap.java -d ${BIN_P}
-	javac -classpath ./bin:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce_Map.java -d ${BIN_P}
-	javac -classpath ./bin:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce_Reduce.java -d ${BIN_P}
-	javac -classpath ./bin:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce.java -d ${BIN_P}
-	javac -classpath ./bin:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2_Map.java -d ${BIN_P}
-	javac -classpath ./bin:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2_Reduce.java -d ${BIN_P}
-	javac -classpath ./bin:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2.java -d ${BIN_P}
 	cp ${SEC_P} ${BIN_P}/lib/
-	jar -cf ${TarFile} -C ${BIN_P} .
-	cp ${TarFile} ../../../bin/
+	jar -cf ${JarFile} -C ${BIN_P} .
+	cp ${JarFile} ../../../bin/
+
+${CLS_P}/PS_HadoopMap.class: ${CLS_P}/PS_HadoopMap_Map.class ${CLS_P}/PS_HadoopMap_Reduce.class \
+${SRC_P}/PS_HadoopMap.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMap.java -d ${BIN_P}
+
+${CLS_P}/PS_HadoopMap_Map.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class \
+${SRC_P}/PS_HadoopMap_Map.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMap_Map.java -d ${BIN_P}	
+
+${CLS_P}/PS_HadoopMap_Reduce.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class \
+${SRC_P}/PS_HadoopMap_Reduce.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMap_Reduce.java -d ${BIN_P}	
+
+${CLS_P}/PS_HadoopReduce.class: ${CLS_P}/PS_HadoopReduce_Map.class ${CLS_P}/PS_HadoopReduce_Reduce.class \
+${SRC_P}/PS_HadoopReduce.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce.java -d ${BIN_P}
+
+${CLS_P}/PS_HadoopReduce_Map.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  \
+${SRC_P}/PS_HadoopReduce_Map.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce_Map.java -d ${BIN_P}	
+
+${CLS_P}/PS_HadoopReduce_Reduce.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  \
+${SRC_P}/PS_HadoopReduce_Reduce.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce_Reduce.java -d ${BIN_P}	
+
+${CLS_P}/PS_HadoopReduce2.class: ${CLS_P}/PS_HadoopReduce2_Map.class ${CLS_P}/PS_HadoopReduce2_Reduce.class \
+${SRC_P}/PS_HadoopReduce2.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2.java -d ${BIN_P}
+
+${CLS_P}/PS_HadoopReduce2_Map.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  \
+${SRC_P}/PS_HadoopReduce2_Map.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2_Map.java -d ${BIN_P}	
+
+${CLS_P}/PS_HadoopReduce2_Reduce.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  \
+${SRC_P}/PS_HadoopReduce2_Reduce.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2_Reduce.java -d ${BIN_P}	
+
+${CLS_P}/HPA_AuxFunctions.class: ${CLS_P}/Constant.class ${SRC_P}/HPA_AuxFunctions.java
+	javac -classpath ${BIN_P}:${SEC_P} ${SRC_P}/HPA_AuxFunctions.java -d ${BIN_P}
+	
+${CLS_P}/Constant.class: ${SRC_P}/Constant.java
+	javac $? -d ${BIN_P}
+
+${CLS_P}/PSNode.class: ${SRC_P}/PSNode.java
+	javac $? -d ${BIN_P}
+
+${CLS_P}/ExtListExpr.class: ${SRC_P}/ExtListExpr.java 
+	javac -classpath ${SEC_P} $? -d ${BIN_P}
+	
+${CLS_P}/QuerySecondo.class: ${SRC_P}/QuerySecondo.java
+	javac -classpath ${SEC_P} $? -d ${BIN_P}
+
 
 run:
 
 clean:
-	rm ParallelSecondo.jar 
+	rm ParallelSecondo.jar
+	rm ${CLS_P}/*.class
 output:
 
 doc:
-	cd src/org/myorg/ && cat MapSec.java MapMixDivider.java ReducePartJoin.java SecExRunnable.java QuerySecondo.java > MSDoc
-	cd src/org/myorg/ && pdview MSDoc
-	cd ~/betSec/Algebras/HadoopParallel/ && cat HadoopParallelAlgebra.cpp HadoopParallelAlgebra.h > MSDoc_2
-	cd ~/betSec/Algebras/HadoopParallel/ && pdview MSDoc_2
 	
 
 checkenv:
