@@ -28,7 +28,7 @@ let MF = 3.35;
 # build some relations
 
 # plzbig has 2000000 tuples
-let processing one tuple in right stream, partition = 1 (vItHashJoin)plzbig = plz feed head[40000] fifty feed product consume; 
+let plzbig = plz feed head[40000] fifty feed product consume; 
 
 # plzbig_select0 has 2000000 tuples, Selectivity of plzbig and plzbig_select0 is 0
 let plzbig_select0 = plzbig feed extend[PLZ2: .PLZ + 100000] remove[PLZ] renameattr[PLZ : PLZ2] consume;
@@ -84,7 +84,7 @@ delete xItHashJoin;
 # ithashjoin #######################################################
 #
 # Cost formula:
-# 
+# pRes->Time = p1.Time + p2.Time + tuplesInTupleFile * wItHashJoin + (partitions - 1) * xItHashJoin;
 #
 # double uItHashJoin = 0.002;      //millisecs per insert in hash table
 # double vItHashJoin = 0.021;      //millisecs for processing a tupe in right stream 
