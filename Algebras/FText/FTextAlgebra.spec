@@ -94,5 +94,8 @@ operator markText alias markText pattern _ op[_,_,_,_,_]
 operator bashModifier alias BASHMODIFIER pattern op(_)
 operator getBashModifiers alias GETBASHMODIFIERS pattern op()
 
+operator getQueryNL alias GETQUERYNL pattern op()
+operator getOpTreeNL alias GETOPTREENL pattern op()
+
 
 

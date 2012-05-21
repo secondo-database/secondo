@@ -1017,3 +1017,24 @@ Number    : 1
 Signature : int x int -> int
 Example   : query pointerTest(3,8)
 Result    : 11
+
+
+Operator  : getQueryNL
+Number    : 1
+Signature : text -> text
+Example   : query getQueryNL('query ten feed count') startsWith('(query')
+Result    : TRUE
+
+
+Operator  : getOpTreeNL
+Number    : 1
+Signature : text -> text
+Example   : query length(getOpTreeNL('query ten feed count')) > 10
+Result    : TRUE
+
+Operator : getOpName
+Number   : 1
+Signature : int x int -> text
+Example   : query getOpName(1,0);
+Result    : "+"
+

@@ -8503,8 +8503,190 @@ Operator pointerTest
   );
 
 
+/*
+5.38 Operator getQueryNL
+
+*/
+ListExpr getQueryNLTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError("1 argument expected");
+  }
+  if(!FText::checkType(nl->First(args))){
+     return listutils::typeError("text expected");
+  }
+  return listutils::basicSymbol<FText>();
+}
+
+int getQueryNLVM( Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+   FText* arg = (FText*) args[0].addr;
+   result = qp->ResultStorage(s);
+   FText* res = (FText*) result.addr;
+   if(!arg->IsDefined()){
+      res->SetDefined(false);
+   } else {
+      SecParser sp;
+      string le;
+      if(sp.Text2List(arg->GetValue(),le)!=0){
+         res->SetDefined(false);
+      } else {
+        res->Set(true,le);
+     }
+   }
+   return 0;
+}
 
 
+
+OperatorSpec getQueryNLSpec(
+           "text -> text",
+           " getQueryNL(_)",
+           " Returns the nested list representation of a query ",
+           " query getQueryNL('query ten feed consume') ");
+
+
+
+Operator getQueryNL
+  (
+  "getQueryNL",             //name
+   getQueryNLSpec.getStr(),         //specification
+   getQueryNLVM,        //value mapping
+   Operator::SimpleSelect,   //trivial selection function
+   getQueryNLTM        //type mapping
+  );
+
+
+/*
+5.39 Operator getOpTreeNL
+
+*/
+ListExpr getOpTreeNLTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError("1 argument expected");
+  }
+  if(!FText::checkType(nl->First(args))){
+     return listutils::typeError("text expected");
+  }
+  return listutils::basicSymbol<FText>();
+}
+
+int getOpTreeNLVM( Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+
+   FText* arg = (FText*) args[0].addr;
+   result = qp->ResultStorage(s);
+   FText* res = (FText*) result.addr;
+   res->SetDefined(false);
+   if(!arg->IsDefined()){
+      return 0;
+   } 
+   SecParser sp;
+   string les;
+   if(sp.Text2List(arg->GetValue(),les)!=0){
+     return 0;
+   }
+   ListExpr qle;
+   if(!nl->ReadFromString(les,qle)){
+     return 0;
+   }
+   bool correct;
+   bool evaluable;
+   bool defined;
+   bool isFunction;
+   OpTree tree=0;
+   ListExpr resType;
+   if(nl->HasLength(qle,2) && listutils::isSymbol(nl->First(qle),"query")){
+      qle = nl->Second(qle);
+   }
+   qp->Construct(qle, correct, evaluable,
+                 defined, isFunction, tree, resType);
+   if(!correct || !evaluable){
+      if(tree){
+        qp->Destroy(tree,true);
+      }
+      return 0;
+   }
+   stringstream ss;
+   ListExpr r = qp->ListOfTree(tree,ss);
+   qp->Destroy(tree,true);
+   res->Set(true,nl->ToString(r));
+   return 0;
+}
+
+
+
+OperatorSpec getOpTreeNLSpec(
+           "text -> text",
+           " getOpTreeNL(_)",
+           " Returns the nested list representation of a query tree",
+           " query getOpTreeNL('query ten feed consume') ");
+
+
+
+Operator getOpTreeNL
+  (
+  "getOpTreeNL",             //name
+   getOpTreeNLSpec.getStr(),         //specification
+   getOpTreeNLVM,        //value mapping
+   Operator::SimpleSelect,   //trivial selection function
+   getOpTreeNLTM        //type mapping
+  );
+
+/*
+5.39 GetOpName
+
+Returns an operator name if algebra id and operator id are given.
+
+*/
+ListExpr getOpNameTM(ListExpr args){
+   string err = "int x int expected";
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+   }
+   if(!CcInt::checkType(nl->First(args)) ||
+      !CcInt::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+   }
+   return listutils::basicSymbol<CcString>();
+}
+
+
+int getOpNameVM( Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+   CcInt* algId = (CcInt*) args[0].addr;
+   CcInt* opId = (CcInt*) args[1].addr;
+   result = qp->ResultStorage(s);
+   CcString* res = (CcString*) result.addr;
+   if(!algId->IsDefined() || !opId->IsDefined()){
+      res->SetDefined(false);
+      return 0; 
+   }
+   string name; 
+   Operator* op= am->GetOP(algId->GetIntval(),opId->GetIntval());
+   if(!op){
+      res->SetDefined(false);
+      return 0; 
+   }
+   res->Set(true,op->GetName());
+   return 0;
+}
+
+OperatorSpec getOpNameSpec(
+           "int x int -> string",
+           " getOpName(algId,opId)",
+           " Returns the name of an operator for given algebra id "
+           "and operator id",
+           " query getOpName('1,10') ");
+
+
+Operator getOpName
+  (
+  "getOpName",             //name
+   getOpNameSpec.getStr(),         //specification
+   getOpNameVM,        //value mapping
+   Operator::SimpleSelect,   //trivial selection function
+   getOpNameTM        //type mapping
+  );
 
 
   /*
@@ -8596,6 +8778,9 @@ Operator pointerTest
       AddOperator(&markText);
       AddOperator(&bashModifierOp);
       AddOperator(&getBashModifiersOp);
+      AddOperator(&getQueryNL);
+      AddOperator(&getOpTreeNL);
+      AddOperator(&getOpName);
       
        AddOperator(&pointerTest);
 
