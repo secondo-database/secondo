@@ -118,7 +118,9 @@ Returns a reference to the type constructor identified by ~index~.
 */
   inline Operator* GetOperator( int index ) 
   { 
-     assert((index >= 0) && (index <= opsNum-1)); 
+     if(index<0 || index >= (int)ops.size()){
+        return 0;
+     }
      return ops[index]; 
   }
 /*
