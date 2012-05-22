@@ -50,7 +50,6 @@ This header file essentially contains the definition of the class ~Pattern~.
 #include "FTextAlgebra.h"
 #include <DateTime.h>
 #include "CharTransform.h"
-#include "SymbolicTrajectoryPattern.h"
 #include "SymbolicTrajectoryTools.h"
 #include "SymbolicTrajectoryDateTime.h"
 #include "Stream.h"
@@ -75,87 +74,5 @@ class ULabel : public UString {
 };
 
 enum Wildcard {NO, ASTERISK, PLUS};
-
-class Pattern {
-  public:
-    Pattern(string const &text);
-    inline Pattern( string const &text , PatParser const &patParser);
-    Pattern( const Pattern& rhs );
-    ~Pattern();
-    inline string GetText() const;
-    void SetText( string const &Text );
-    inline void SetPatParser(PatParser const &patParser);
-    bool TotalMatch(MLabel const &ml);
-    bool SingleMatch();
-    bool SuffixMatch(MLabel const &ml, size_t firstULabel, size_t firstPattern);
-    inline bool isValid();
-    bool hasConstraints();
-    inline string getErrMsg();
-    Pattern* Clone();
-
-   // algebra support functions
-    static Word     In( const ListExpr typeInfo, const ListExpr instance,
-                          const int errorPos, ListExpr& errorInfo,
-                          bool& correct );
-    static ListExpr Out( ListExpr typeInfo, Word value );
-    static Word     Create( const ListExpr typeInfo );
-    static void     Delete( const ListExpr typeInfo, Word& w );
-    static void     Close( const ListExpr typeInfo, Word& w );
-    static Word     Clone( const ListExpr typeInfo, const Word& w );
-    static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
-    static int      SizeOfObj();
-    static ListExpr Property();
-
-    // other functions
-    static const string BasicType();
-    static const bool checkType(const ListExpr type);
-    bool checkStartValues();
-    void setStartEnd();
-    bool checkLabels();
-    bool checkTimeRanges();
-    bool checkDateRanges();
-    bool checkSemanticRanges();
-    bool checkConditions();
-    size_t checkCardinalities(); // returns the first pattern position having
-                                 // a non-matching cardinality condition
-    void setMatching(Wildcard w);
-    void matchingsToString();
-    size_t lastWildcardPosition(size_t skip); // skips ~skip~ many wildcards
-               // and returns the position of the (skip + 1)th last wildcard
-    size_t prepareBacktrack(size_t position);
-    size_t countWildcards();
-    bool endsMatch(MLabel const &ml);
-    bool completeBacktrack(MLabel const &ml);
-
-
-  private:
-    struct Matching {
-      size_t labelPos;
-      size_t patternPos;
-      Wildcard isWildcard;
-      bool hasCardinalityCondition;
-    };
-    
-    Pattern() {};
-    vector<SinglePattern> getPattern();
-    string text;
-    PatParser patParser;
-    vector<SinglePattern> s_pattern;
-    size_t currentULabel, maxULabel, currentPattern, matchesToDelete,
-           nextStartLabel, lastWildcardPos, numberOfWildcards, cardProblem;
-    SinglePattern pattern;
-    ULabel ul;
-    bool wildcard, result, patternResult, endsMustMatch;
-    Interval<Instant> interval;
-    string startTimeRange, endTimeRange, timeRange;
-    PatEquation patEquation;
-    DateTime *dt;
-    DateTime startDate, endDate, duration, startTime, endTime, startDate2,
-             startPatternDateTime, endPatternDateTime;
-    Matching matching, lastWildcard;
-    vector<Matching> matchings;
-    
-};
-
 
 }

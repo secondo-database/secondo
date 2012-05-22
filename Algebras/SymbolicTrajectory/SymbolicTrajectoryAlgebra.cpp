@@ -14,11 +14,11 @@
 #include "FTextAlgebra.h"
 #include "DateTime.h"
 #include "CharTransform.h"
-//#include "SymbolicTrajectoryPattern.h"
 #include "SymbolicTrajectoryTools.h"
-//#include "SymbolicTrajectoryDateTime.h"
 #include "SymbolicTrajectoryAlgebra.h"
 #include "Stream.h"
+#include "SecParser.h"
+#include "Pattern.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -34,7 +34,7 @@ namespace stj {
 class Label
 {
  public:
-  Label() {};   
+  Label() {};
   Label( string text );
   Label( char* Text );  
   Label( const Label& rhs );
@@ -48,33 +48,22 @@ class Label
   
   // algebra support functions
   
-  static Word     In( const ListExpr typeInfo, const ListExpr instance,
-                        const int errorPos, ListExpr& errorInfo,
-                        bool& correct );
-
-  static ListExpr Out( ListExpr typeInfo, Word value );
-
-  static Word     Create( const ListExpr typeInfo );
-
-
-  static void     Delete( const ListExpr typeInfo, Word& w );
-
-  static void     Close( const ListExpr typeInfo, Word& w );
-
-  static Word     Clone( const ListExpr typeInfo, const Word& w );
-
-  static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
-
+  static Word     In(const ListExpr typeInfo, const ListExpr instance,
+                     const int errorPos, ListExpr& errorInfo, bool& correct);
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static Word     Create(const ListExpr typeInfo);
+  static void     Delete(const ListExpr typeInfo, Word& w);
+  static void     Close(const ListExpr typeInfo, Word& w);
+  static Word     Clone(const ListExpr typeInfo, const Word& w);
+  static bool     KindCheck(ListExpr type, ListExpr& errorInfo);
   static int      SizeOfObj();
-
   static ListExpr Property();  
-  
-  
+    
   // name of the type constructor
   
   static const string BasicType() { return "label"; }
 
-  static const bool checkType(const ListExpr type){
+  static const bool checkType(const ListExpr type) {
     return listutils::isSymbol(type, BasicType());
   }
   
@@ -87,128 +76,91 @@ class Label
   char text[MAX_STRINGSIZE+1];
 };  
   
-Label::Label( string Text ) 
-{
+Label::Label(string Text) {
   strncpy(text, Text.c_str(), MAX_STRINGSIZE);
-  text[MAX_STRINGSIZE] = '\0';  
+  text[MAX_STRINGSIZE] = '\0';
 }
 
-Label::Label( char* Text ) 
-{
+Label::Label(char* Text) {
   strncpy(text, Text, MAX_STRINGSIZE);
   text[MAX_STRINGSIZE] = '\0';
 }
  
 
-Label::Label( const Label& rhs ) {
+Label::Label(const Label& rhs) {
   strncpy(text, rhs.text, MAX_STRINGSIZE); 
 }
 
 Label::~Label() {}
 
-string Label::GetText() const 
-{ 
+string Label::GetText() const {
   string str = text;
-  return str;   
+  return str;
 }
 
-void Label::SetText(string &Text) 
-{ 
+void Label::SetText(string &Text) {
   strncpy(text, Text.c_str(), MAX_STRINGSIZE);
   text[MAX_STRINGSIZE] = '\0';    
 }
 
 
-Word
-Label::In( const ListExpr typeInfo, const ListExpr instance,
-            const int errorPos, ListExpr& errorInfo, bool& correct )
-{
+Word Label::In(const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct) {
   Word result = SetWord(Address(0));
   correct = false;
-  
-  NList list(instance);  
-  
-  if ( list.isAtom() )
-  {
-    if ( list.isString() )
-    {
+  NList list(instance);
+  if (list.isAtom()) {
+    if (list.isString()) {
       string text = list.str();
-     
       correct = true;
       result.addr = new Label( text );
     }
-    else
-    { 
+    else {
       correct = false;
       cmsg.inFunError("Expecting a string!");
-    }      
+    }
   }
-  else 
-  { 
+  else {
     correct = false;
     cmsg.inFunError("Expecting one string atom!");
   }
-  
   return result;
 }
 
-
-ListExpr
-Label::Out( ListExpr typeInfo, Word value )
-{
+ListExpr Label::Out(ListExpr typeInfo, Word value) {
   Label* label = static_cast<Label*>( value.addr );
   NList element ( label->GetText(), true );
-
   return element.listExpr();
 }
 
-
-
-Word
-Label::Create( const ListExpr typeInfo )
-{
+Word Label::Create(const ListExpr typeInfo) {
   return (SetWord( new Label( 0 ) ));
 }
- 
- 
-void
-Label::Delete( const ListExpr typeInfo, Word& w )
-{
+
+void Label::Delete(const ListExpr typeInfo, Word& w) {
   delete static_cast<Label*>( w.addr );
   w.addr = 0;
 }
 
-void
-Label::Close( const ListExpr typeInfo, Word& w )
-{
+void Label::Close(const ListExpr typeInfo, Word& w) {
   delete static_cast<Label*>( w.addr );
   w.addr = 0;
 }
 
-Word
-Label::Clone( const ListExpr typeInfo, const Word& w )
-{
+Word Label::Clone(const ListExpr typeInfo, const Word& w) {
   Label* label = static_cast<Label*>( w.addr );
   return SetWord( new Label(*label) );
 }
 
-int
-Label::SizeOfObj()
-{
+int Label::SizeOfObj() {
   return sizeof(Label);
 }
 
-bool
-Label::KindCheck( ListExpr type, ListExpr& errorInfo )
-{
+bool Label::KindCheck(ListExpr type, ListExpr& errorInfo) {
   return (nl->IsEqual( type, Label::BasicType() ));
 }
 
-
-
-ListExpr
-Label::Property()
-{
+ListExpr Label::Property() {
   return (nl->TwoElemList(
       nl->FiveElemList(nl->StringAtom("Signature"),
          nl->StringAtom("Example Type List"),
@@ -235,11 +187,7 @@ TypeConstructor labelTC(
   Label::SizeOfObj,               // sizeof function
   Label::KindCheck );             // kind checking function
 
-
-
-
 //**********************************************************************
-
 
 
 /*
@@ -272,9 +220,7 @@ public:
 4.1 function Describing the Signature of the Type Constructor
 
 */
-ListExpr
-ILabel::IntimeLabelProperty()
-{
+ListExpr ILabel::IntimeLabelProperty() {
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
                              nl->StringAtom("Example Type List"),
@@ -292,12 +238,9 @@ ILabel::IntimeLabelProperty()
 This function checks whether the type constructor is applied correctly.
 
 */
-bool
-ILabel::CheckIntimeLabel( ListExpr type, ListExpr& errorInfo )
-{
-  return (nl->IsEqual( type, Intime<Label>::BasicType() ));
+bool ILabel::CheckIntimeLabel(ListExpr type, ListExpr& errorInfo) {
+  return (nl->IsEqual(type, Intime<Label>::BasicType()));
 }
-
 
 /*
 4.3 Creation of the type constructor ~ilabel~
@@ -346,9 +289,7 @@ For example:
 5.2 function Describing the Signature of the Type Constructor
 
 */
-ListExpr
-ULabel::ULabelProperty()
-{
+ListExpr ULabel::ULabelProperty() {
     return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
                              nl->StringAtom("Example Type List"),
@@ -364,10 +305,8 @@ ULabel::ULabelProperty()
 5.3 Kind Checking Function
 
 */
-bool
-ULabel::CheckULabel( ListExpr type, ListExpr& errorInfo )
-{
-    return (nl->IsEqual( type, ULabel::BasicType() ));  
+bool ULabel::CheckULabel(ListExpr type, ListExpr& errorInfo) {
+    return (nl->IsEqual(type, ULabel::BasicType()));
 }
 
 
@@ -392,9 +331,6 @@ TypeConstructor unitlabel(
         SizeOfConstTemporalUnit<CcString>,  //sizeof function
         ULabel::CheckULabel    //kind checking function
 );
-
-
-
 
 /*
 6 Type Constructor ~mlabel~
@@ -421,9 +357,7 @@ For example:
 6.2 function Describing the Signature of the Type Constructor
 
 */
-ListExpr
-MLabel::MLabelProperty()
-{
+ListExpr MLabel::MLabelProperty() {
     return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
                              nl->StringAtom("Example Type List"),
@@ -442,12 +376,9 @@ MLabel::MLabelProperty()
 This function checks whether the type constructor is applied correctly.
 
 */
-bool
-MLabel::CheckMLabel( ListExpr type, ListExpr& errorInfo )
-{
-    return (nl->IsEqual( type, MLabel::BasicType() ));    
+bool MLabel::CheckMLabel(ListExpr type, ListExpr& errorInfo) {
+    return (nl->IsEqual(type, MLabel::BasicType()));
 }
-
 
 /*
 6.4 Creation of the type constructor ~mlabel~
@@ -473,14 +404,13 @@ TypeConstructor movinglabel(
 );
 
 
-    
 template <class Mapping, class Alpha>
 int MappingAtInstantExt(
     Word* args,
     Word& result,
     int message,
     Word& local,
-    Supplier s )
+    Supplier s)
 {
     result = qp->ResultStorage( s );
     Intime<Alpha>* pResult = (Intime<Alpha>*)result.addr;
@@ -500,48 +430,36 @@ const string TemporalSpecAtInstantExt  =
     "<text>mlabel1 atinstant instant1</text--->"
     ") )";
     
-    
-int
-MovingExtSimpleSelect( ListExpr args )
-{
-    ListExpr arg1 = nl->First( args );
+int MovingExtSimpleSelect(ListExpr args) {
+  ListExpr arg1 = nl->First(args);
+  if(nl->SymbolValue(arg1) == MLabel::BasicType())
+    return 0;
+  return -1; // This point should never be reached
+}
 
-    if( nl->SymbolValue( arg1 ) == MLabel::BasicType() )
-        return 0;
-
-    return -1; // This point should never be reached
-}    
- 
- 
-ListExpr
-MovingInstantExtTypeMapIntime( ListExpr args )
-{
-    if ( nl->ListLength( args ) == 2 )
-    {
-        ListExpr arg1 = nl->First( args ),
-        arg2 = nl->Second( args );
-
-        if( nl->IsEqual( arg2, Instant::BasicType() ) )
-        {
-            if( nl->IsEqual( arg1, MLabel::BasicType() ) )
-                return nl->SymbolAtom( Intime<Label>::BasicType() );
-        }
+ListExpr MovingInstantExtTypeMapIntime(ListExpr args) {
+  if (nl->ListLength(args) == 2) {
+    ListExpr arg1 = nl->First(args),
+    arg2 = nl->Second(args);
+    if(nl->IsEqual(arg2, Instant::BasicType())) {
+      if(nl->IsEqual(arg1, MLabel::BasicType()))
+        return nl->SymbolAtom(Intime<Label>::BasicType());
     }
-    return nl->SymbolAtom( Symbol::TYPEERROR() );
-} 
- 
+  }
+  return nl->SymbolAtom(Symbol::TYPEERROR());
+}
 
 ValueMapping temporalatinstantextmap[] = {
     MappingAtInstantExt<MString, CcString> };
-//    MappingAtInstantExt<MLabel, Label> };    
-  
+//    MappingAtInstantExt<MLabel, Label> };
+
 Operator temporalatinstantext(
     "atinstant",
     TemporalSpecAtInstantExt,
     5,
     temporalatinstantextmap,
     MovingExtSimpleSelect,
-    MovingInstantExtTypeMapIntime );  
+    MovingInstantExtTypeMapIntime);
 
 //**********************************************************************
 
@@ -555,10 +473,7 @@ Operator temporalatinstantext(
 
 enum LabelsState { partial, complete };
 
-
-class Labels : public Attribute
-{
-
+class Labels : public Attribute {
   public:
     Labels( const int n, const Label *Lb = 0 );
     ~Labels();
@@ -631,24 +546,17 @@ class Labels : public Attribute
 2.3.18 Print functions
 
 */
-ostream& operator<<(ostream& os, const Label& lb)
-{
+ostream& operator<<(ostream& os, const Label& lb) {
   os << "(" << lb << ")";
   return os;
 }
 
-
-
-ostream& operator<<(ostream& os, const Labels& lbs)
-{
+ostream& operator<<(ostream& os, const Labels& lbs) {
   os << " State: " << lbs.GetState()
      << "<";
-
   for(int i = 0; i < lbs.GetNoLabels(); i++)
     os << lbs.GetLabel( i ) << " ";
-
   os << ">";
-
   return os;
 }
 
@@ -660,15 +568,12 @@ This first constructor creates a new polygon.
 */
 Labels::Labels( const int n, const Label *lb ) :
   Attribute(true),
-  labels( n ),
-  state( partial )
-{
+  labels(n),
+  state(partial) {
   SetDefined(true);
-  if( n > 0 )
-  {
-    for( int i = 0; i < n; i++ )
-    {
-      Append( lb[i] );
+  if(n > 0) {
+    for(int i = 0; i < n; i++) {
+      Append(lb[i]);
     }
     Complete();
   }
@@ -680,43 +585,35 @@ Labels::Labels( const int n, const Label *lb ) :
 */
 Labels::Labels(const Labels& src):
   Attribute(src.IsDefined()),
-  labels(src.labels.Size()),state(src.state){
+  labels(src.labels.Size()),state(src.state) {
   labels.copyFrom(src.labels);
 }
 
 /*
-
 2.3.2 Destructor.
 
 */
-Labels::~Labels()
-{
-}
+Labels::~Labels() {}
 
-Labels& Labels::operator=(const Labels& src){
+Labels& Labels::operator=(const Labels& src) {
   this->state = src.state;
   labels.copyFrom(src.labels);
   return *this;
 }
 
-
 /*
 2.3.3 NumOfFLOBs.
 
-
 */
-int Labels::NumOfFLOBs() const
-{
+int Labels::NumOfFLOBs() const {
   return 1;
 }
 
 /*
 2.3.4 GetFLOB
 
-
 */
-Flob *Labels::GetFLOB(const int i)
-{
+Flob *Labels::GetFLOB(const int i) {
   assert( i >= 0 && i < NumOfFLOBs() );
   return &labels;
 }
@@ -763,21 +660,20 @@ copy of ~this~.
 */
 Labels *Labels::Clone() const
 {
-  assert( state == complete );
-  Labels *lbs = new Labels( *this );
+  assert(state == complete);
+  Labels *lbs = new Labels(*this);
   return lbs;
 }
 
-void Labels::CopyFrom(const Attribute* right){
-  *this = *( (Labels*) right);
+void Labels::CopyFrom(const Attribute* right) {
+  *this = *((Labels*) right);
 }
 
 /*
 2.3.8 Sizeof
 
 */
-size_t Labels::Sizeof() const
-{
+size_t Labels::Sizeof() const {
   return sizeof( *this );
 }
 
@@ -785,8 +681,7 @@ size_t Labels::Sizeof() const
 2.3.8 Print
 
 */
-ostream& Labels::Print( ostream& os ) const
-{
+ostream& Labels::Print( ostream& os ) const {
   return (os << *this);
 }
 
@@ -798,9 +693,8 @@ Appends a label ~lb~ at the end of the DBArray labels.
 *Precondition* ~state == partial~.
 
 */
-void Labels::Append( const Label& lb )
-{
-  assert( state == partial );
+void Labels::Append(const Label& lb) {
+  assert(state == partial);
   labels.Append( lb );
 }
 
@@ -812,9 +706,8 @@ Turns the element labels into the ~complete~ state.
 *Precondition* ~state == partial~.
 
 */
-void Labels::Complete()
-{
-  assert( state == partial );
+void Labels::Complete() {
+  assert(state == partial);
   state = complete;
 }
 
@@ -824,8 +717,7 @@ void Labels::Complete()
 Not yet implemented.
 
 */
-bool Labels::Correct()
-{
+bool Labels::Correct() {
   return true;
 }
 
@@ -838,13 +730,10 @@ labels DBArray.
 *Precondition* ~state == complete~.
 
 */
-void Labels::Destroy()
-{
+void Labels::Destroy() {
   assert( state == complete );
   labels.destroy();
 }
-
-
 
 /*
 2.3.14 NoLabels
@@ -854,12 +743,9 @@ Returns the number of labels of the DBArray labels.
 *Precondition* ~state == complete~.
 
 */
-int Labels::GetNoLabels() const
-{
+int Labels::GetNoLabels() const {
   return labels.Size();
 }
-
-
 
 /*
 2.3.15 GetLabel
@@ -869,16 +755,13 @@ Returns a label indexed by ~i~.
 *Precondition* ~state == complete \&\& 0 <= i < noLabels~.
 
 */
-Label Labels::GetLabel( int i ) const
-{
-  assert( state == complete );
-  assert( 0 <= i && i < GetNoLabels() );
-
+Label Labels::GetLabel(int i) const {
+  assert(state == complete);
+  assert(0 <= i && i < GetNoLabels());
   Label lb;
-  labels.Get( i, &lb );
+  labels.Get(i, &lb);
   return lb;
 }
-
 
 /*
 2.3.16 GetState
@@ -886,10 +769,8 @@ Label Labels::GetLabel( int i ) const
 Returns the state of the element labels in string format.
 
 */
-string Labels::GetState() const
-{
-  switch( state )
-  {
+string Labels::GetState() const {
+  switch(state) {
     case partial:
       return "partial";
     case complete:
@@ -898,21 +779,15 @@ string Labels::GetState() const
   return "";
 }
 
-
 /*
 2.3.18 IsEmpty
 
 Returns if the labels is empty or not.
 
 */
-const bool Labels::IsEmpty() const
-{
-  assert( state == complete );
-   
-//  int i = GetNoLabels();
-  
-   return GetNoLabels() == 0;
-//  return i == 0;
+const bool Labels::IsEmpty() const {
+  assert(state == complete);
+  return GetNoLabels() == 0;
 }
 
 /*
@@ -928,7 +803,6 @@ The list representation of a labels is
 3.2 ~In~ and ~Out~ Functions
 
 */
-
 
 ListExpr
 Labels::Out( ListExpr typeInfo, Word value )
@@ -1144,28 +1018,78 @@ TypeConstructor labelsTC(
 
 //**********************************************************************
 
-
-
-
 //**********************************************************************
 //~pattern~
 
-inline Pattern::Pattern( string const &text , PatParser const &patParser) {
-  SetText(text); SetPatParser(patParser);
+string Pattern::GetText() const {
+  stringstream text;
+  text << "~~~~~~pattern~~~~~~" << endl;
+  for (unsigned int i = 0; i < patterns->size(); i++) {
+    text << "[" << i << "] " << (*patterns)[i].variable << " | "
+         << (*patterns)[i].interval << " | ";
+    if ((*patterns)[i].labelset.size() > 1) {
+      text << "{";
+    }
+    if (!(*patterns)[i].labelset.empty()) {
+      text << (*patterns)[i].labelset[0];
+    }
+    for (unsigned int j = 1; j < (*patterns)[i].labelset.size(); j++) {
+      text << ", " << (*patterns)[i].labelset[j];
+    }
+    if ((*patterns)[i].labelset.size() > 1) {
+      text << "}";
+    }
+    text << " | " << (*patterns)[i].wildcard << endl;
+  }
+  text << "~~~~~~conditions~~~~~~" << endl;
+  for (unsigned int i = 0; i < conditions->size(); i++) {
+    text << "[" << i << "] " << (*conditions)[i].condition << endl;
+    text << "[subst] " << (*conditions)[i].condsubst << endl;
+    for (unsigned int j = 0; j < (*conditions)[i].variables.size(); j++) {
+      text << "[[" << j << "]] " << (*conditions)[i].variables[j]
+           << "." << (*conditions)[i].keys[j] << endl;
+    }
+  }
+  text << "~~~~~~results~~~~~~" << endl;
+  for (unsigned int i = 0; i < results->size(); i++) {
+    text << "[" << i << "] " << (*results)[i].variable << " | "
+         << (*results)[i].interval << " | ";
+    if ((*results)[i].labelset.size() > 1) {
+        text << "{";
+    }
+    if (!(*results)[i].labelset.empty()) {
+      text << (*results)[i].labelset[0];
+    }
+    for (unsigned int j = 1; j < (*results)[i].labelset.size(); j++) {
+      text << ", " << (*results)[i].labelset[j];
+    }
+    if ((*results)[i].labelset.size() > 1) {
+      text << "}";
+    }
+    text << " | " << (*results)[i].wildcard << endl;
+  }
+  text << "~~~~~~assignments~~~~~~" << endl;
+  for (unsigned int i = 0; i < assignments->size(); i++) {
+    text << "[" << i << "] " << (*assignments)[i].variable << " | "
+         << (*assignments)[i].interval << " | ";
+    if ((*assignments)[i].labelset.size() > 1) {
+        text << "{";
+    }
+    if (!(*assignments)[i].labelset.empty()) {
+      text << (*assignments)[i].labelset[0];
+    }
+    for (unsigned int j = 1; j < (*assignments)[i].labelset.size(); j++) {
+      text << ", " << (*assignments)[i].labelset[j];
+    }
+    if ((*assignments)[i].labelset.size() > 1) {
+      text << "}";
+    }
+    text << " | "  << (*assignments)[i].wildcard << endl;
+  }
+  text << endl;
+  string result = text.str();
+  return result;
 }
-inline string Pattern::GetText() const {
-  return text;
-}
-inline void Pattern::SetPatParser( PatParser const &patParser ) {
-  Pattern::patParser = patParser;
-}
-inline bool Pattern::isValid() {
-  return patParser.isValid();
-}
-inline string Pattern::getErrMsg() {
-  return patParser.getErrMsg();
-}
-
 
 // name of the type constructor
 
@@ -1177,398 +1101,21 @@ const bool Pattern::checkType(const ListExpr type){
   return listutils::isSymbol(type, BasicType());
 }
 
-bool Pattern::checkStartValues() {
-  if ((currentULabel < 0) || (currentULabel >= maxULabel))
-    return false;
-  if ((currentPattern < 0) || (currentPattern >= s_pattern.size()))
-    return false;
-  else
-    return true;
-}
-
-void Pattern::setStartEnd() {
-  startDate = interval.start;
-  if (!interval.lc)
-    startDate.Add(dt);
-  endDate = interval.end;
-  if (!interval.rc)
-    endDate.Minus(dt);
-}
-
-bool Pattern::hasConstraints() {
-  if (pattern.lbs.empty() && pattern.trs.empty() && pattern.dtrs.empty()
-    && pattern.sts.empty() && pattern.conditions.empty())
-    return false;
-  else
-    return true;
-}
-
-bool Pattern::checkLabels() {
-  CcString *label = new CcString(true, pattern.lbs[0]);
-  bool result = ul.Passes(*label) ? true : false;
-  label->DeleteIfAllowed();
-  return result;
-}
-
-bool Pattern::checkTimeRanges() {
-  duration = endDate - startDate;
-  if (duration.GetDay() > 0)
-    return false; // duration > 24 h
-  for (size_t j = 0; j < pattern.trs.size(); ++j) {
-    startTimeRange = getStartTimeFromRange(pattern.trs[j]);
-    endTimeRange = getEndTimeFromRange(pattern.trs[j]);
-    startTime.Set(startDate.GetYear(), startDate.GetMonth(),
-                  startDate.GetGregDay(), getHourFromTime(startTimeRange),
-                  getMinuteFromTime(startTimeRange),
-                  getSecondFromTime(startTimeRange),
-                  getMillisecondFromTime(startTimeRange));
-    startDate2 = startDate;
-    if (!isPositivTimeRange(pattern.trs[j]))
-      startDate2.Add(new DateTime(0, 1, durationtype));
-    endTime.Set(startDate2.GetYear(), startDate2.GetMonth(),
-                startDate2.GetGregDay(), getHourFromTime(endTimeRange),
-                getMinuteFromTime(endTimeRange),
-                getSecondFromTime(endTimeRange),
-                getMillisecondFromTime(endTimeRange) );
-    if ((startDate < startTime) || (endDate > endTime))
-      return false;
-  }
-  return true;
-}
-
-bool Pattern::checkDateRanges() {
-  for (size_t j = 0; j < pattern.dtrs.size(); ++j) {
-    startPatternDateTime.ReadFrom(getSecDateTimeString(
-                         getStartDateTimeFromRange(pattern.dtrs[j])));
-    endPatternDateTime.ReadFrom(getSecDateTimeString(
-                       getEndDateTimeFromRange(pattern.dtrs[j])));
-    if ((startDate < startPatternDateTime) || (endDate > endPatternDateTime))
-      return false;
-  }
-  return true;
-}
-
-      // 3 = weekday
-      // 4 = day-time
-      // 5 = month
-bool Pattern::checkSemanticRanges() {
-  for (size_t j = 0; j < pattern.sts.size(); ++j) {
-    switch (pattern.sts[j].type) {
-      case 3:
-        if ((startDate.ToString()).substr(0,10) !=
-           (endDate.ToString()).substr(0,10))  // not the same day
-          return false;
-        if (startDate.GetWeekday() != pattern.sts[j].value - 1)
-          return false;
-        break;
-      case 4:
-        if ((startDate.ToString()).substr(0,10) !=
-            (endDate.ToString()).substr(0,10))  // not the same day
-          return false;
-        timeRange = getDayTimeRangeString(pattern.sts[j].value);
-        startTimeRange = getStartTimeFromRange(timeRange);
-        endTimeRange = getEndTimeFromRange(timeRange);
-        startTime.Set(startDate.GetYear(), startDate.GetMonth(),
-                      startDate.GetGregDay(),
-                      getHourFromTime(startTimeRange),
-                      getMinuteFromTime(startTimeRange),
-                      getSecondFromTime(startTimeRange),
-                      getMillisecondFromTime(startTimeRange));
-        startDate2 = startDate;
-        if (!isPositivTimeRange(timeRange))
-          startDate2.Add(dt);
-        endTime.Set(startDate2.GetYear(), startDate2.GetMonth(),
-                    startDate2.GetGregDay(),
-                    getHourFromTime(endTimeRange),
-                    getMinuteFromTime(endTimeRange),
-                    getSecondFromTime(endTimeRange),
-                    getMillisecondFromTime(endTimeRange));
-        if ((startDate < startTime) || (endDate > endTime))
-          return false;
-        break;
-      case 5:
-        if ((startDate.ToString()).substr(0,7) !=
-            (endDate.ToString()).substr(0,7)) // not the same month/year
-          return false;
-        if (startDate.GetMonth() != pattern.sts[j].value)
-          return false;
-        break;
-    }
-  }
-  return true;
-}
-
-bool Pattern::checkConditions() {
-  for (size_t j = 0; j < pattern.conditions.size(); ++j) {
-    patEquation = pattern.conditions[j];
-    // key : 1="lb/lbs"; 3="start"; 4="end"; 6="card"
-    // op : 1="="; 2="<"; 4=">"
-    switch (patEquation.key) {
-      case 1:
-        if (patEquation.op & 1) {
-          CcString *valueString = new CcString(true, patEquation.value);
-          if (!ul.Passes(*valueString)) {
-            valueString->DeleteIfAllowed();
-            return false;
-          }
-          valueString->DeleteIfAllowed();
-        }
-        break;
-      case 3:
-        startPatternDateTime.ReadFrom(getSecDateTimeString(getFullDateTime(
-                                      patEquation.value)));
-        if (!(((patEquation.op & 1) && (startDate == startPatternDateTime))
-         || ((patEquation.op & 2) && (startDate < startPatternDateTime))
-         || ((patEquation.op & 4) && (startDate > startPatternDateTime))))
-          return false;
-        break;
-      case 4:
-        endPatternDateTime.ReadFrom(getSecDateTimeString(getFullDateTime(
-                                    patEquation.value)));
-        if (!(((patEquation.op & 1) && (endDate == endPatternDateTime))
-         || ((patEquation.op & 2) && (endDate < endPatternDateTime))
-         || ((patEquation.op & 4) && (endDate > endPatternDateTime))))
-          return false;
-        break;
-      default:
-        return true;
-    }
-  }
-  return true;
-}
-
-size_t Pattern::checkCardinalities() {
-  bool result = false;
-  for (size_t i = 0; i < matchings.size(); i++)
-    if (matchings[i].hasCardinalityCondition)
-      for (size_t j = 0;
-           j < s_pattern[matchings[i].patternPos].conditions.size(); j++) {
-        patEquation = s_pattern[matchings[i].patternPos].conditions[j];
-        size_t equationValue = str2Int(patEquation.value);
-        switch (patEquation.op) {
-          case 1: // "="
-            if (i == 0) // wildcard with card. cond. in the beginning
-              result = (equationValue == matchings[i+1].labelPos);
-            else if (i == matchings.size() - 1) // at the end
-              result = (equationValue == maxULabel - matchings[i].labelPos);
-            else
-              result = (equationValue ==
-                        matchings[i+1].labelPos - matchings[i-1].labelPos - 1);
-            break;
-          case 2: // "<"
-            if (i == 0) // wildcard with card. cond. in the beginning
-              result = (equationValue > matchings[i+1].labelPos);
-            else if (i == matchings.size() - 1) // at the end
-              result = (equationValue > maxULabel - matchings[i].labelPos);
-            else
-              result = (equationValue >
-                        matchings[i+1].labelPos - matchings[i-1].labelPos - 1);
-            break;
-          case 4: // ">"
-            if (i == 0) // wildcard with card. cond. in the beginning
-              result = (equationValue < matchings[i+1].labelPos);
-            else if (i == matchings.size() - 1) // at the end
-              result = (equationValue < maxULabel - matchings[i].labelPos);
-            else
-              result = (equationValue <
-                        matchings[i+1].labelPos - matchings[i-1].labelPos - 1);
-            break;
-          default: // should not occur
-            cout << patEquation.op << " is an illegal operator" << endl;
-            return i;
-        }
-        if (!result) {
-          cout << "cardinality mismatch at position " << i << endl;
-          return i;
-        }
-      }
-  if (result) {
-    cout << "cardinalities ok" << endl;
-    return s_pattern.size();
-  }
-  else
-    return s_pattern.size() + 1; // no cardinality condition
-}
-
-void Pattern::setMatching(Wildcard w) {
-  matching.labelPos = currentULabel;
-  matching.patternPos = currentPattern;
-  matching.isWildcard = w;
-  matching.hasCardinalityCondition = false;
-  if (w && !pattern.conditions.empty())
-    for (size_t i = 0; i < pattern.conditions.size(); i++)
-      if (pattern.conditions[i].key == 6)
-        matching.hasCardinalityCondition = true;
-  matchings.push_back(matching);
-  matchingsToString();
-}
-
-void Pattern::matchingsToString() {
-  if (!matchings.empty())
-    for (size_t i = 0; i < matchings.size(); i++) {
-      string wildcard = " ";
-      switch (matchings[i].isWildcard) {
-        case ASTERISK:
-          wildcard = "    *";
-          break;
-        case PLUS:
-          wildcard = "    +";
-          break;
-        default:
-          break;
-      }
-      cout << (matchings[i].isWildcard ? wildcard : "match") << " at "
-           << matchings[i].labelPos << "  " << matchings[i].patternPos
-           << (matchings[i].hasCardinalityCondition ? " *" : "") << "\n";
-    }
-  else
-    cout << "no matchings" << endl;
-  cout << endl;
-}
-
-size_t Pattern::lastWildcardPosition(size_t skip) {
-  size_t counter = 0;
-  if (!matchings.empty()) {
-    for (size_t i = matchings.size() - 1; i >= 0; i--)
-      if (matchings[i].isWildcard) {
-        counter ++;
-        if (counter > skip)
-          return i;        // if skip equals n, the position of the (n+1)th
-      }                    // last wildcard is returned
-    return matchings.size();
-  }
-  else
-    return 0;
-}
-
-size_t Pattern::prepareBacktrack(size_t position) {
-  cardProblem = checkCardinalities();
-  size_t previousLabel = (matchings.empty() ? 0 : matchings.back().labelPos);
-  size_t result = 0;
-  if (cardProblem < s_pattern.size())
-    matchesToDelete = matchings.size() - cardProblem;
-  else 
-    matchesToDelete = matchings.size() - position;
-  for (size_t j = 0; j < matchesToDelete; j++) { // delete old matchings
-    if (!matchings.back().isWildcard)
-      result = matchings.back().labelPos + 1;
-    else {
-      if (matchings.back().isWildcard == PLUS)
-        result = previousLabel;
-      if (matchings.back().isWildcard == ASTERISK)
-        result = previousLabel + 1;
-      pattern = s_pattern[matchings.back().patternPos];
-      if (pattern.conditions.empty())
-        if (!checkConditions())
-          return maxULabel; // finish if wildcard does not fulfill condition(s)
-    }
-    previousLabel = matchings.back().labelPos;
-    matchings.pop_back();
-  }
-  result = (result > nextStartLabel) ? result : nextStartLabel;
-  /*if (!matchings.empty())
-    if (matchings.back().isWildcard)
-      for (size_t)
-      result ++; */
-  return result;
-}
-
-size_t Pattern::countWildcards() {
-  size_t result = 0;
-  for (size_t i = 0; i < s_pattern.size(); i++)
-    if ((s_pattern[i].wildcard == '*') || (s_pattern[i].wildcard == '+'))
-      result ++;
-  return result;
-}
-
-bool Pattern::endsMatch(MLabel const &ml) {
-  size_t startAt = currentULabel;
-  while (currentULabel < maxULabel) {
-    ml.Get(currentULabel, ul);
-    interval.CopyFrom(ul.timeInterval);
-    setStartEnd();
-    if (!SingleMatch())
-      return false;
-    currentULabel ++;
-  }
-  cout << "last unit pattern matches unit labels from " << startAt << " to "
-       << maxULabel - 1 << endl;
-  return true;
-}
-
-bool Pattern::completeBacktrack(MLabel const &ml) {
-  bool stagnation = false;
-  size_t lastStartLabel = 0;
-  size_t i = 0;
-  size_t nextStartPattern = 0;
-  do {
-    while ((currentULabel < maxULabel) && !stagnation) {
-      lastWildcardPos = lastWildcardPosition(i);
-      lastStartLabel = nextStartLabel;
-      nextStartLabel = prepareBacktrack(lastWildcardPos);
-      if (lastStartLabel == nextStartLabel)
-        stagnation = true;
-      nextStartPattern = (matchings.empty()) ?
-                     0 : matchings.back().patternPos + 1;
-      matchingsToString();
-      if (SuffixMatch(ml, nextStartLabel, nextStartPattern)) {
-        if (!endsMustMatch)
-          return true;
-        else // no unconditioned wildcard at the end
-          if ((currentULabel == maxULabel) || endsMatch(ml))
-            return true;
-      }
-      if (matchings.empty())
-        return false;
-    }
-    i++;
-    stagnation = false;
-    nextStartLabel = 0;
-    nextStartPattern = 0;
-  } while (i < numberOfWildcards);
-  return false;
-}
-
-Pattern::Pattern(string const &Text) {
-  text = Text;
-  PatParser patParser(text);
-  SetPatParser(patParser);
-}
-
-
-Pattern::Pattern(const Pattern& rhs) {
-  text = rhs.text;  
-  PatParser patParser(text);
-  SetPatParser(patParser);
-}
-
-Pattern::~Pattern() {}
-
-
-void Pattern::SetText(string const &Text) { 
-  text = Text;
-  PatParser patParser(text);
-  SetPatParser(patParser); 
-}
-
-
-Word
-Pattern::In( const ListExpr typeInfo, const ListExpr instance,
-            const int errorPos, ListExpr& errorInfo, bool& correct ) {
+Word Pattern::In(const ListExpr typeInfo, const ListExpr instance,
+                 const int errorPos, ListExpr& errorInfo, bool& correct) {
   Word result = SetWord(Address(0));
   correct = false;
-  NList list(instance);  
+  NList list(instance);
   if (list.isAtom()) {
     if (list.isText()) {
       string text = list.str();
-      PatParser patParser(text);
-      if (patParser.isValid()) {
-        correct = true;          
-        result.addr = new Pattern( text, patParser );
+      Pattern *pattern = new Pattern();
+      if (stj::parseString(text.c_str(), &pattern)) {
+        correct = true;
       }
       else {
         correct = false;
-        cmsg.inFunError( patParser.getErrMsg() );
+        cmsg.inFunError("Parsing error.");
       }
     }
     else {
@@ -1583,56 +1130,40 @@ Pattern::In( const ListExpr typeInfo, const ListExpr instance,
   return result;
 }
 
-
-ListExpr
-Pattern::Out( ListExpr typeInfo, Word value )
-{
-  Pattern* pattern = static_cast<Pattern*>( value.addr );
-  NList element ( pattern->GetText(), true, true );
+ListExpr Pattern::Out(ListExpr typeInfo, Word value) {
+  Pattern* pattern = static_cast<Pattern*>(value.addr);
+  NList element(pattern->GetText(), true, true);
   return element.listExpr();
 }
 
-
-
-Word
-Pattern::Create( const ListExpr typeInfo )
-{
-  return (SetWord( new Pattern( "" ) ));
+Word Pattern::Create(const ListExpr typeInfo) {
+  return (SetWord(new Pattern()));
 }
- 
- 
-void
-Pattern::Delete( const ListExpr typeInfo, Word& w ) {
-  delete static_cast<Pattern*>( w.addr );
+
+void Pattern::Delete(const ListExpr typeInfo, Word& w) {
+  delete static_cast<Pattern*>(w.addr);
   w.addr = 0;
 }
 
-void
-Pattern::Close( const ListExpr typeInfo, Word& w ) {
-  delete static_cast<Pattern*>( w.addr );
+void Pattern::Close(const ListExpr typeInfo, Word& w) {
+  delete static_cast<Pattern*>(w.addr);
   w.addr = 0;
 }
 
-Word
-Pattern::Clone( const ListExpr typeInfo, const Word& w ) {
-  Pattern* pattern = static_cast<Pattern*>( w.addr );
-  return SetWord( new Pattern(*pattern) );
+Word Pattern::Clone(const ListExpr typeInfo, const Word& w) {
+  Pattern* pattern = static_cast<Pattern*>(w.addr);
+  return SetWord(new Pattern(*pattern));
 }
 
-int
-Pattern::SizeOfObj() {
+int Pattern::SizeOfObj() {
   return sizeof(Pattern);
 }
 
-bool
-Pattern::KindCheck( ListExpr type, ListExpr& errorInfo ) {
-  return (nl->IsEqual( type, Pattern::BasicType() ));
+bool Pattern::KindCheck(ListExpr type, ListExpr& errorInfo) {
+  return (nl->IsEqual(type, Pattern::BasicType()));
 }
 
-
-ListExpr
-Pattern::Property()
-{
+ListExpr Pattern::Property() {
   return (nl->TwoElemList(
     nl->FiveElemList(nl->StringAtom("Signature"),
        nl->StringAtom("Example Type List"),
@@ -1642,7 +1173,7 @@ Pattern::Property()
     nl->FiveElemList(nl->StringAtom("-> DATA"),
        nl->StringAtom(Pattern::BasicType()),
        nl->StringAtom("<pattern>"),
-       nl->TextAtom("\' (monday at_home) X (_ _) // X.start = 01.01.2011 \'"),
+       nl->TextAtom("\' (monday at_home) X (_ _) // X.start = 2011-01-01 \'"),
        nl->StringAtom("<pattern> must be a text."))));
 }
 
@@ -1660,861 +1191,194 @@ TypeConstructor patternTC(
   Pattern::KindCheck );             // kind checking function
 
 
-vector<SinglePattern> Pattern::getPattern()
-{
-  return patParser.getPattern(); 
+void NFA::buildNFA(Pattern p) {
+  vector<UnitPattern> nfaPatterns = *(p.patterns);
+  for (unsigned int i = 0; i < nfaPatterns.size(); i++) {
+    // erase epsilon-transitions
+    if (!(nfaPatterns[i].wildcard.compare("*"))) {
+      nfaPatterns[i].wildcard.assign("+");
+      transitions[i][i + 1].insert(i + 2);
+    }
+    // state i, read pattern i => new state i+1
+    transitions[i][i].insert(i + 1);
+  }
 }
 
-bool Pattern::SingleMatch() {
-  if (!pattern.lbs.empty())
-    if (!checkLabels())
-      return false;
-  if (!pattern.trs.empty())
-    if (!checkTimeRanges())
-      return false;
-  if (!pattern.dtrs.empty())
-    if (!checkDateRanges())
-      return false;
-  if (!pattern.sts.empty())
-    if (!checkSemanticRanges())
-      return false;
-  if (!pattern.conditions.empty()) {
-    if (!checkConditions())
-      return false;
+int Pattern::checkConditions() {
+  int condSize = conditions->size();
+  SecParser condParser;
+  string queryString;
+  ListExpr queryList;
+  bool condOk = true;
+  int removedConds = 0;
+  bool correct = false;
+  bool evaluable = false;
+  bool defined = false;
+  bool isFunction = false;
+  OpTree tree;
+  ListExpr resultType;
+  for (int i = 0; i < condSize; i++) {
+    cout << "there are still " << condSize << " conditions" << endl;
+    ((*conditions)[i]).condsubst.insert(0, "query ");
+    switch (condParser.Text2List(((*conditions)[i]).condsubst, queryString)) {
+      case 0:
+        if (!nl->ReadFromString(queryString, queryList)) {
+          cout << "ReadFromString error" << endl;
+          condOk = false;
+        }
+        else {
+          if (nl->IsEmpty(nl->Rest(queryList))) {
+            cout << "Rest of list is empty" << endl;
+            condOk = false;
+          }
+          else {
+            cout << nl->ToString(nl->First(nl->Rest(queryList))) << endl;
+            qp->Construct(nl->First(nl->Rest(queryList)), correct, evaluable,
+                          defined, isFunction, tree, resultType);
+            if (!correct) {
+              cout << "type error" << endl;
+              condOk = false;
+            }
+            else if (!evaluable) {
+              cout << "not evaluable" << endl;
+              condOk = false;
+            }
+            else if (nl->ToString(resultType).compare("bool")) {
+              cout << "wrong result type " << nl->ToString(resultType) << endl;
+              condOk = false;
+            }
+            else {
+              condOk = true;
+            }
+          }
+        }
+        break;
+      case 1:
+        cout << "String cannot be converted to list" << endl;
+        condOk = false;
+        break;
+      case 2:
+        cout << "stack overflow" << endl;
+        condOk = false;
+        break;
+      default: // should not occur
+        condOk = false;
+        break;
+    }
+    if (!condOk) {
+      conditions->erase(conditions->begin() + i);
+      cout << "condition deleted" << endl;
+      removedConds++;
+      i--;
+      condSize = conditions->size();
+    }
+    else {
+      cout << "condition ok" << endl;
+    }
   }
+  qp->Destroy(tree, true);
+  return removedConds;
+}
+
+bool Pattern::getPattern(string input, Pattern** p) {
+  input.append("\n");
+  cout << input << endl;
+  const char *patternChar = input.c_str();
+  return parseString(patternChar, p);
+}
+
+bool Pattern::matches(MLabel const &ml) {
+  NFA *nfa = new NFA(patterns->size());
+  nfa->buildNFA(*this);
   return true;
 }
 
-bool Pattern::TotalMatch(MLabel const &ml) {
-  endsMustMatch = false;
-  endDate.SetType(datetime::instanttype);
-  duration.SetType(datetime::durationtype);
-  startTime.SetType(datetime::instanttype);
-  endTime.SetType(datetime::instanttype);
-  startDate2.SetType(datetime::instanttype);
-  startPatternDateTime.SetType(datetime::instanttype);
-  endPatternDateTime.SetType(datetime::instanttype);
-  startDate.SetType(datetime::instanttype);
-  maxULabel = ml.GetNoComponents();
-  wildcard = false;
-  s_pattern = getPattern();
-  bool totalMatch;
-  dt = new DateTime(0, 1, durationtype);
-  bool match = SuffixMatch(ml, 0, 0);
-  for (size_t i = 0; i < s_pattern.size(); i++)
-    cout << s_pattern[i].toString() << endl;
-  numberOfWildcards = countWildcards();
-  if (matchings.empty())
-    return false;
-  if (match) {
-    if (matchings.back().isWildcard) {
-      if (!hasConstraints()) {
-        totalMatch = true; // (_ at_home) (_ at_university) [*|+]
-        cout << "matches because last non-wildcard pattern matches a prefix"
-             << " of the mlabel and is followed just by a"
-             << (matchings.back().isWildcard == PLUS ?
-             " plus" : "n asterisk") << endl;
-      }
-      else {
-        endsMustMatch = true;
-        totalMatch = completeBacktrack(ml);
-      }
-    }
-    else if (currentULabel == maxULabel) {
-      totalMatch = true;
-      cout << "matches because the ends match without wildcard" << endl;
-    }
-    else if (numberOfWildcards > 0) {
-      endsMustMatch = true; // because no wildcard is at the end
-      totalMatch = completeBacktrack(ml);
-      cout << (totalMatch ? "matches after backtracking" : "no match") << endl;
-    }
-    else { // no wildcard
-      totalMatch = false;
-      cout << "too short match without wildcard - no match" << endl;
-    }
-  }
-  else if (numberOfWildcards == 0) {
-    totalMatch = false;
-    cout << "no match, no wildcard - no chance" << endl;
-  }
-  else { // no match && lastWildcardPosition() < matchings.size() - 1
-    endsMustMatch = true;
-    totalMatch = completeBacktrack(ml);
-    cout << (totalMatch ? "matches after backtracking" : "no match") << endl;
-  }
-  if (dt)
-    delete dt;
-  return totalMatch;
-}
-
-bool Pattern::SuffixMatch(MLabel const &ml, size_t firstULabel,
-                          size_t firstPattern) {
-  currentULabel = firstULabel;
-  currentPattern = firstPattern;
-  bool asteriskOccurs = false;
-  if (!checkStartValues())
-    return false;
-  while (currentPattern < s_pattern.size()) {
-    if (currentULabel >= maxULabel)
-      return false;
-    pattern = s_pattern[currentPattern];
-    ml.Get(currentULabel, ul);
-    interval.CopyFrom(ul.timeInterval);
-    setStartEnd();
-    result = true;
-    if (pattern.wildcard == '*') {
-      wildcard = true;
-      asteriskOccurs = true;
-      if (!pattern.conditions.empty())
-        if (!checkConditions())
-          return false;
-      setMatching(ASTERISK);
-    }
-    else if (pattern.wildcard == '+') {
-      wildcard = true;
-      if (!SingleMatch() && !wildcard)
-        return false;
-      if (!pattern.conditions.empty())
-        if (!checkConditions()) {
-          if (!wildcard)
-            return false;
-          else
-            result = false;
-        }
-      if (!SingleMatch())
-        result = false;
-      else
-        setMatching(PLUS);
-      asteriskOccurs = true;
-      if (wildcard && !result)
-        --currentPattern;
-      currentULabel ++;
-    }
-    else {
-      if (!SingleMatch() && !wildcard)
-        return false;
-      if (!SingleMatch())
-        result = false;
-      if (result)
-        setMatching(NO);
-      if (wildcard)
-        if ((wildcard = !result))
-          --currentPattern;
-      currentULabel ++;
-    }
-    currentPattern ++;
-  }
-  cardProblem = checkCardinalities();
-  if (cardProblem < s_pattern.size()) // cardinality mismatch
-    return false;
-  if (!asteriskOccurs && (currentULabel < maxULabel)) // handle ((...))
-    for (size_t i = currentULabel; i < maxULabel; i++) {
-      if (!SingleMatch())
-        return false;
-    }
-    return true;
-  return result;
-}
-
-
-
-//***********************************************************************
-//~rule~
-
-class Rule
-{
- public:
-  Rule() : defined(false) {};   
-  Rule( string const &text );
-  inline Rule(string const &text, RuleParser const &ruleParser) :
-    defined(true) {
-      SetText(text);
-      SetRuleParser(ruleParser);
-      
-  }
-  Rule( const Rule& rhs );
-  ~Rule();
-  
-  inline string GetText() const { return text;}
-  void SetText( string const &Text );
-  inline void SetRuleParser( RuleParser const &ruleParser ) {
-    Rule::ruleParser = ruleParser ;}  
-//  bool Matches(MLabel const &mlabel);
-  inline bool isValid() { return ruleParser.isValid() ;}
-  inline string getErrMsg() { return ruleParser.getErrMsg() ;}
-  inline bool IsDefined() {return defined;}
-  
-  Rule* Clone();
-  
-  
-  // algebra support functions
-  
-  static Word     In( const ListExpr typeInfo, const ListExpr instance,
-                        const int errorPos, ListExpr& errorInfo,
-                        bool& correct );
-
-  static ListExpr Out( ListExpr typeInfo, Word value );
-
-  static Word     Create( const ListExpr typeInfo );
-
-
-  static void     Delete( const ListExpr typeInfo, Word& w );
-
-  static void     Close( const ListExpr typeInfo, Word& w );
-
-  static Word     Clone( const ListExpr typeInfo, const Word& w );
-
-  static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
-
-  static int      SizeOfObj();
-
-  static ListExpr Property();  
-  
-  
-  // name of the type constructor
-  
-  static const string BasicType() { return "rule"; }
-
-  static const bool checkType(const ListExpr type){
-    return listutils::isSymbol(type, BasicType());
-  }
-  
-
- private:
-   
-//  Rule() {};
-//  vector<SinglePattern> getRule();
-  
-  string text;
-  bool defined;
- 
-  RuleParser ruleParser;
-};  
-
-
-Rule::Rule( string const &Text )  : defined(true)
-{
- 
-  text = Text;
-  RuleParser ruleParser(text);
-  SetRuleParser(ruleParser); 
-}
-
-
-Rule::Rule( const Rule& rhs )  : defined(true) {
-  text = rhs.text;  
-  RuleParser ruleParser(text);
-  SetRuleParser(ruleParser);  
-}
-
-Rule::~Rule() {}
-
-
-void Rule::SetText( string const &Text ) 
-{ 
-  text = Text;
- 
-  RuleParser ruleParser(text);
-  SetRuleParser(ruleParser);; 
-}
-
-
-Word
-Rule::In( const ListExpr typeInfo, const ListExpr instance,
-            const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  Word result = SetWord(Address(0));
-  correct = false;
-  
-  NList list(instance);  
-  
-  if ( list.isAtom() )
-  {
-    if ( list.isText() )
-    {
-      string text = list.str();
-      
-      RuleParser ruleParser( text );
-      
-      if ( ruleParser.isValid() ) 
-      {
-        correct = true;          
-        result.addr = new Rule( text, ruleParser );
-      }
-      else
-      {
-        correct = false;
-        cmsg.inFunError( ruleParser.getErrMsg() );
-      }
-
-    }
-    else
-    { 
-      correct = false;
-      cmsg.inFunError("Expecting a text!");
-    }      
-    
-    
-  }
-  else 
-  { 
-    correct = false;
-    cmsg.inFunError("Expecting one text atom!");
-  }
-  
-  return result;
-}
-
-
-ListExpr
-Rule::Out( ListExpr typeInfo, Word value )
-{
-  Rule* rule = static_cast<Rule*>( value.addr );
-  NList element ( rule->GetText(), true, true );
-
-  return element.listExpr();
-}
-
-
-
-Word
-Rule::Create( const ListExpr typeInfo )
-{
-  return (SetWord( new Rule( "" ) ));
-}
- 
- 
-void
-Rule::Delete( const ListExpr typeInfo, Word& w )
-{
-  delete static_cast<Rule*>( w.addr );
-  w.addr = 0;
-}
-
-void
-Rule::Close( const ListExpr typeInfo, Word& w )
-{
-  delete static_cast<Rule*>( w.addr );
-  w.addr = 0;
-}
-
-Word
-Rule::Clone( const ListExpr typeInfo, const Word& w )
-{
-  Rule* rule = static_cast<Rule*>( w.addr );
-  return SetWord( new Rule(*rule) );
-}
-
-int
-Rule::SizeOfObj()
-{
-  return sizeof(Rule);
-}
-
-bool
-Rule::KindCheck( ListExpr type, ListExpr& errorInfo )
-{
-  return (nl->IsEqual( type, Rule::BasicType() ));
-}
-
-
-
-ListExpr
-Rule::Property()
-{
-  return (nl->TwoElemList(
-    nl->FiveElemList(nl->StringAtom("Signature"),
-      nl->StringAtom("Example Type List"),
-      nl->StringAtom("List Rep"),
-      nl->StringAtom("Example List"),
-      nl->StringAtom("Remarks")),
-    nl->FiveElemList(nl->StringAtom("-> DATA"),
-      nl->StringAtom(Rule::BasicType()),
-      nl->StringAtom("<rule>"),
-      nl->TextAtom("\' X (_ a) // X.start = 01.01.2011 => X // X.label = b \'"),
-      nl->StringAtom("<rule> must be a text."))));
-}
-
-
-TypeConstructor ruleTC(
-  Rule::BasicType(),                          // name of the type in SECONDO
-  Rule::Property,                // property function describing signature
-  Rule::Out, Rule::In,         // Out and In functions
-  0, 0,                            // SaveToList, RestoreFromList functions
-  Rule::Create, Rule::Delete,  // object creation and deletion
-  0, 0,                            // object open, save
-  Rule::Close, Rule::Clone,    // close, and clone
-  0,                               // cast function
-  Rule::SizeOfObj,               // sizeof function
-  Rule::KindCheck );             // kind checking function
-
-
-/*
-vector<SinglePattern> Rule::getRule()
-{
-  return patParser.getRule(); 
-}
-
-*/
-
-
-
-//-----------------------------------------------------------------------
-
-ListExpr
-textToPatternMap( ListExpr args )
-{
+ListExpr textToPatternMap(ListExpr args) {
   NList type(args);
-
-  if ( type.first() == NList( FText::BasicType() ) ) {
-     return NList(Pattern::BasicType()).listExpr();     
-  }  
-
+  if (type.first() == NList(FText::BasicType())) {
+    return NList(Pattern::BasicType()).listExpr();
+  }
   return NList::typeError("Expecting a text!");
 }
 
-
-int
-patternFun (Word* args, Word& result, int message,
-              Word& local, Supplier s)
-{
-
-  FText* patternText = static_cast<FText*>( args[0].addr );
-  
+int patternFun(Word* args, Word& result, int message, Word& local, Supplier s){
+  FText* patternText = static_cast<FText*>(args[0].addr);
   result = qp->ResultStorage(s);
-                                //query processor has provided
-                                //a Pattern instance for the result
-  
-  Pattern* p = static_cast<Pattern*>( result.addr );
-  p->SetText( patternText->GetValue() );
-  
+  Pattern* p = static_cast<Pattern*>(result.addr);
+  stj::parseString((patternText->GetValue()).c_str(), &p);
   return 0;
 }
 
-
 struct patternInfo : OperatorInfo {
-
-  patternInfo()
-  {
+  patternInfo() {
     name      = "stjpattern";
     signature = " Text -> " + Pattern::BasicType();
     syntax    = "_ stjpattern";
     meaning   = "Creates a Pattern from a Text.";
   }
-
-};
-
-
-//---------------------------------------------------------------------------
-
-
-ListExpr
-consumeMLabelsTypeMap( ListExpr args )
-{
-  NList type(args);
-
-  if (type.first() == NList(Stream<MLabel>::BasicType(), MLabel::BasicType())){
-     return NList(MLabel::BasicType()).listExpr();     
-  }  
-
-  return NList::typeError("Expecting a stream of mlabels");
-}
-
-
-int
-consumeMLabelsFun (Word* args, Word& result, int message,
-              Word& local, Supplier s)
-{
-  qp->Open(args[0].addr); // open the argument stream
-
-  MLabel* mlabel = new MLabel();  
-  Stream<MLabel> stream(args[0]);
-  stream.open();
-
-  MLabel* next = stream.request();
-  ULabel ul;
-  
-cout << "cons1" << endl;  
-
-    mlabel = new MLabel(*next);
-
-
-  while(next != 0){
-
-cout << "cons2" << endl;    
-    
-
-
-  
-    
-    for (int j = 0; j < next->GetNoComponents(); ++j) {
-      
-cout << "cons3" << endl;      
-      next->Get(j, ul);
-      
-//cout << ul.GetValue() << endl;      
-
-//      mlabel->Add(ul);
-    }  
-
-cout << "cons4" << endl;
-
-    next->DeleteIfAllowed();
-    next = stream.request();
-  }
-  stream.close();
-
-cout << "cons5" << endl;  
-  
-  // Assign a value to the operations result object which is provided
-  // by the query processor
-  result = qp->ResultStorage(s);
-//  static_cast<MLabel*>(result.addr)->Add( mlabel );
-  result.addr = mlabel;
-  
-  return 0;  
-}
-
-
-struct consumeMLabelsInfo : OperatorInfo {
-
-  consumeMLabelsInfo()
-  {
-    name      = "consumemlabelstream";
-    signature = " stream(mlabel) -> " + MLabel::BasicType();
-    syntax    = "_ consumemlabelstream";
-    meaning   = "Creates one MLabel from a stream of MLabel.";
-  }
-
 };
 
 //---------------------------------------------------------------------------
 
-
-ListExpr
-applyTypeMap( ListExpr args )
-{
-  NList type(args);
-  const string errMsg = "Expecting a mlabel and a rule "
-                "or a mlabel and a text";
- 
-  // first alternative: mlabel x rule -> stream(mlabel)
-  if ( type == NList(MLabel::BasicType(), Rule::BasicType()) ) {
-    return NList(Stream<MLabel>::BasicType(), MLabel::BasicType()).listExpr();
-//    return NList(Stream<MLabel>::BasicType()).listExpr();    
-  }
-
-  // second alternative: mlabel x text -> stream(mlabel)
-  if ( type == NList(MLabel::BasicType(), FText::BasicType()) ) {  
-//    return NList(Stream<MLabel>::BasicType()).listExpr();
-    return NList(Stream<MLabel>::BasicType(), MLabel::BasicType()).listExpr();
-  }
-
-  return NList::typeError(errMsg);
-}
-
-
-int
-applySelect( ListExpr args )
-{
-  NList type(args);
-cout << "select" << endl;  
-  
-  if ( type.second().isSymbol( Rule::BasicType() ) ) {
-cout << "select2" << endl;     
-    return 1;
-  }  
-  else {
-cout << "select3" << endl;     
-    return 0;
-  }  
-}
-
-
-int
-applyFun_MP (Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-  
-cout << "apply1" << endl;  
-  
-  struct Container {
-    int pos;
-    MLabel *mlabel;
-    Rule *rule;
-
-    Container(int position, MLabel *mlabel, Rule *rule) {
-
-      // Do a proper initialization even if one of the
-      // arguments has an undefined value
-      if (mlabel->IsDefined() && rule->IsDefined())
-      {
-        pos = 0;
-Container::mlabel = mlabel;
-Container::rule = rule;
-      }
-      else
-      {
-// this initialization will create an empty stream
-        pos = -1;
-      }
-    }
-  };
-
-cout << "apply1b" << endl;  
-  Container* container = static_cast<Container*>(local.addr);
-cout << "apply1c" << endl;
-  
-  switch( message )
-  {
-    case OPEN: { // initialize the local storage
-
-cout << "open1" << endl;
-  
-      MLabel* mlabel = static_cast<MLabel*>( args[0].addr );
-      Rule* rule = static_cast<Rule*>( args[1].addr );      
-      container = new Container(0, mlabel, rule);
-      local.addr = container;
-
-cout << "open2" << endl;       
-      
-      return 0;
-    }
-    case REQUEST: { // return the next stream element
-
-
-cout << "req1" << endl;
-
-      if ( container->pos != -1 )
-      {
-container->pos = -1;
-        MLabel elem(*container->mlabel);
-        result.addr = &elem;
-//        result.addr = &container->mlabel;
-
-cout << "req2" << endl;
-        return YIELD;
-      }
-      else
-      {
-cout << "req3" << endl;
-
-result.addr = 0;
-        return CANCEL;
-      }
-      
-    }
-    case CLOSE: { // free the local storage
-
-cout << "clos1" << endl;
-
-      if (container != 0) {
-        delete container;
-        local.addr = 0;
-      }
-      
-cout << "clos2" << endl;
-
-      return 0;
-    }
-    default: {
-      /* should never happen */
-      return -1;
-    }
-  }   
-}
-
-
-int
-applyFun_MT (Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-  struct Container {
-    int pos;
-    MLabel mlabel;
-    Rule rule;
-
-    Container(int position, MLabel *mlabel, Rule *rule) {
-
-      // Do a proper initialization even if one of the
-      // arguments has an undefined value
-      if (mlabel->IsDefined() && rule->IsDefined())
-      {
-        pos = 0;
-Container::mlabel = *mlabel;
-Container::rule = *rule;
-      }
-      else
-      {
-// this initialization will create an empty stream
-        pos = -1;
-      }
-    }
-  };
-
-  Container* container = static_cast<Container*>(local.addr);
-
-  switch( message )
-  {
-    case OPEN: { // initialize the local storage
-  
-      MLabel* mlabel = static_cast<MLabel*>( args[0].addr );
-      FText* ruleText = static_cast<FText*>( args[1].addr );
-      Rule rule( ruleText->GetValue() );       
-      container = new Container(0, mlabel, &rule);
-      local.addr = container;
-
-      return 0;
-    }
-    case REQUEST: { // return the next stream element
-
-      if ( container->pos != -1 )
-      {
-container->pos = -1;
-        MLabel* elem = &container->mlabel;
-//        MLabel* elem = new MLabel();
-        result.addr = elem;
-        return YIELD;
-      }
-      else
-      {
-        result.addr = 0;
-        return CANCEL;
-      }
-    }
-    case CLOSE: { // free the local storage
-
-      if (container != 0) {
-        delete container;
-        local.addr = 0;
-      }
-
-      return 0;
-    }
-    default: {
-      /* should never happen */
-      return -1;
-    }
-  }   
-}
-
-
-struct applyInfo : OperatorInfo {
-
-  applyInfo()
-  {
-    name      = "apply";
-
-    signature = MLabel::BasicType() + " x " + Rule::BasicType()
-                + " -> stream(mlabel)";
-
-    appendSignature( MLabel::BasicType() + " x Text -> stream(mlabel)" );
-    syntax    = " apply (_, _)";
-    meaning   = "Creates a stream of MLabels values applying the rule.";
-  }
-};
-
-
-//---------------------------------------------------------------------------
-
-ListExpr
-matchesTypeMap( ListExpr args )
-{
+ListExpr matchesTypeMap(ListExpr args) {
   NList type(args);
   const string errMsg = "Expecting a mlabel and a pattern "
                 "or a mlabel and a text";
-
-  // first alternative: mlabel x pattern -> bool
-  if ( type == NList(MLabel::BasicType(), Pattern::BasicType()) ) {
+  if (type == NList(MLabel::BasicType(), Pattern::BasicType())) {
     return NList(CcBool::BasicType()).listExpr();
   }
-
-  // second alternative: mlabel x text -> bool
-  if ( type == NList(MLabel::BasicType(), FText::BasicType()) ) {  
-//  if ( type.first() == NList(MLabel_BasicType()) && type.second().isText() ) {
+  if (type == NList(MLabel::BasicType(), FText::BasicType())) {
     return NList(CcBool::BasicType()).listExpr();
   }
-
   return NList::typeError(errMsg);
 }
 
-
-int
-matchesSelect( ListExpr args )
-{
+int matchesSelect(ListExpr args) {
   NList type(args);
-  if ( type.second().isSymbol( Pattern::BasicType() ) )
-    return 1;
-  else
-    return 0;
+  return (type.second().isSymbol(Pattern::BasicType())) ? 1 : 0;
 }
 
-int
-matchesFun_MP (Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-  MLabel* mlabel = static_cast<MLabel*>( args[0].addr );
-  Pattern* pattern = static_cast<Pattern*>( args[1].addr );
-
-  result = qp->ResultStorage(s);
-                                //query processor has provided
-                                //a CcBool instance for the result
-
-  CcBool* b = static_cast<CcBool*>( result.addr );
-
-  bool res = (pattern->TotalMatch(*mlabel));
-
-  b->Set(true, res); //the first argument says the boolean
-                     //value is defined, the second is the
-                     //real boolean value)
+int matchesFun_MP (Word* args, Word& result, int message,
+                   Word& local, Supplier s) {
+//   MLabel* mlabel = static_cast<MLabel*>(args[0].addr);
+//   Pattern* pattern = static_cast<Pattern*>(args[1].addr);
+//   result = qp->ResultStorage(s);
+//   CcBool* b = static_cast<CcBool*>(result.addr);
+//   bool res = (pattern->TotalMatch(*mlabel));
+//   b->Set(true, res);
   return 0;
 }
 
-int
-matchesFun_MT (Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-  MLabel* mlabel = static_cast<MLabel*>( args[0].addr );
-  FText* patternText = static_cast<FText*>( args[1].addr );
-  Pattern pattern( patternText->GetValue() );
-
-  result = qp->ResultStorage(s);
-                                //query processor has provided
-                                //a CcBool instance for the result
-
-  CcBool* b = static_cast<CcBool*>( result.addr );
-
-  if (!pattern.isValid()) {
+int matchesFun_MT (Word* args, Word& result, int message,
+                   Word& local, Supplier s) {
+  MLabel* mlabel = static_cast<MLabel*>(args[0].addr);
+  FText* patternText = static_cast<FText*>(args[1].addr);
+  Pattern *pattern = new Pattern();
+  result = qp->ResultStorage(s); //query processor has provided
+                                 //a CcBool instance for the result
+  CcBool* b = static_cast<CcBool*>(result.addr);
+  if (!pattern->getPattern(patternText->toText(), &pattern)) {
     b->SetDefined(false);
-    cerr << pattern.getErrMsg() << endl;
+    cout << "invalid pattern" << endl;
     return 0;
   }
-
-  bool res = (pattern.TotalMatch(*mlabel));
-
-  b->Set(true, res); //the first argument says the boolean
-                     //value is defined, the second is the
-                     //real boolean value)
-  
-  if (!pattern.isValid()) {
-    b->SetDefined(false);
-    cerr << pattern.getErrMsg() << endl;
+  int removed = pattern->checkConditions();
+  if (removed) {
+    cout << removed << " invalid condition" << ((removed > 1) ? "s" : "")
+         << " removed" << endl;
   }
-  
+  bool res = pattern->matches(*mlabel);
+  b->Set(true, res); //the first argument says the boolean value is defined,
+                     //the second is the real boolean value
   return 0;
 }
 
 struct matchesInfo : OperatorInfo {
-
-  matchesInfo()
-  {
+  matchesInfo() {
     name      = "matches";
-
     signature = MLabel::BasicType() + " x " + Pattern::BasicType() + " -> "
     + CcBool::BasicType();
-    // since this is an overloaded operator we append
-    // an alternative signature here
+    // overloaded operator => alternative signature appended
     appendSignature(MLabel::BasicType() + " x Text -> " + CcBool::BasicType());
     syntax    = "_ matches _";
     meaning   = "Match predicate.";
@@ -2523,71 +1387,55 @@ struct matchesInfo : OperatorInfo {
 
 //--------------------------------------------------------------------------
 
-ListExpr
-sintstreamType( ListExpr args ) {
+ListExpr sintstreamType( ListExpr args ) {
   string err = "int x int expected";
-  if(!nl->HasLength(args,2)){
+  if(!nl->HasLength(args,2))
     return listutils::typeError(err);
-  }
   if(!listutils::isSymbol(nl->First(args)) ||
-     !listutils::isSymbol(nl->Second(args))){
+     !listutils::isSymbol(nl->Second(args)))
     return listutils::typeError(err);
-  }  
   return nl->TwoElemList(nl->SymbolAtom(Stream<CcInt>::BasicType()),
                          nl->SymbolAtom(CcInt::BasicType()));
 }
 
-
-int
-sintstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
-{
+int sintstreamFun (Word* args, Word& result, int message, Word& local,
+                   Supplier s) {
   // An auxiliary type which keeps the state of this
   // operation during two requests
   struct Range {
     int current;
     int last;
-
     Range(CcInt* i1, CcInt* i2) {
-
       // Do a proper initialization even if one of the
       // arguments has an undefined value
-      if (i1->IsDefined() && i2->IsDefined())
-      {
+      if (i1->IsDefined() && i2->IsDefined()) {
         current = i1->GetIntval();
         last = i2->GetIntval();
       }
-      else
-      {
+      else {
 // this initialization will create an empty stream
         current = 1;
         last = 0;
       }
     }
   };
-
   Range* range = static_cast<Range*>(local.addr);
-
   switch( message )
   {
     case OPEN: { // initialize the local storage
-
       CcInt* i1 = static_cast<CcInt*>( args[0].addr );
       CcInt* i2 = static_cast<CcInt*>( args[1].addr );
       range = new Range(i1, i2);
       local.addr = range;
-
       return 0;
     }
     case REQUEST: { // return the next stream element
-
-      if ( range->current <= range->last )
-      {
+      if (range->current <= range->last ) {
         CcInt* elem = new CcInt(true, range->current++);
         result.addr = elem;
         return YIELD;
       }
-      else
-      {
+      else {
 // you should always set the result to null
 // before you return a CANCEL
         result.addr = 0;
@@ -2595,12 +1443,10 @@ sintstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
       }
     }
     case CLOSE: { // free the local storage
-
       if (range != 0) {
         delete range;
         local.addr = 0;
       }
-
       return 0;
     }
     default: {
@@ -2609,7 +1455,6 @@ sintstreamFun (Word* args, Word& result, int message, Word& local, Supplier s)
     }
   }
 }
-
 
 struct sintstreamInfo : OperatorInfo
 {
@@ -2625,57 +1470,45 @@ struct sintstreamInfo : OperatorInfo
 };
 
 
-
-
-
 //***********************************************************************//
 
-
-
   
-class SymbolicTrajectoryAlgebra : public Algebra
-{
+class SymbolicTrajectoryAlgebra : public Algebra {
   public:
-    SymbolicTrajectoryAlgebra() : Algebra()
-    {
+    SymbolicTrajectoryAlgebra() : Algebra() {
       
-     // 5.2 Registration of Types
+      // 5.2 Registration of Types
+      AddTypeConstructor( &labelTC );
+      AddTypeConstructor( &intimelabel );
+      AddTypeConstructor( &unitlabel );
+      AddTypeConstructor( &movinglabel );
 
-     AddTypeConstructor( &labelTC );
-     AddTypeConstructor( &intimelabel );
-     AddTypeConstructor( &unitlabel );
-     AddTypeConstructor( &movinglabel );    
+      movinglabel.AssociateKind( Kind::TEMPORAL() );
+      movinglabel.AssociateKind( Kind::DATA() );
 
-     movinglabel.AssociateKind( Kind::TEMPORAL() );
-     movinglabel.AssociateKind( Kind::DATA() );
-     
-     AddTypeConstructor( &labelsTC );
+      AddTypeConstructor( &labelsTC );
+      AddTypeConstructor( &patternTC );
+//       AddTypeConstructor( &ruleTC );
 
-     AddTypeConstructor( &patternTC );     
-     AddTypeConstructor( &ruleTC );
-     
-     // 5.3 Registration of Operators
-    AddOperator( &temporalatinstantext );
-     
-    AddOperator( patternInfo(), patternFun, textToPatternMap );     
-    
-    ValueMapping matchesFuns[] = { matchesFun_MT, matchesFun_MP, 0 };    
-    AddOperator( matchesInfo(), matchesFuns, matchesSelect, matchesTypeMap );
-    
-//    AddOperator( consumeMLabelsInfo(), consumeMLabelsFun,
-//      consumeMLabelsTypeMap );     
-    
-//    ValueMapping applyFuns[] = { applyFun_MT, applyFun_MP, 0 }; 
-//    AddOperator( applyInfo(), applyFuns, applySelect, applyTypeMap );
-        
-//    AddOperator( sintstreamInfo(), sintstreamFun, sintstreamType );    
-    
+      // 5.3 Registration of Operators
+      AddOperator(&temporalatinstantext);
+      AddOperator(patternInfo(), patternFun, textToPatternMap);
+
+      ValueMapping matchesFuns[] = {matchesFun_MT, matchesFun_MP, 0};
+      AddOperator(matchesInfo(), matchesFuns, matchesSelect, matchesTypeMap);
+
+      //    AddOperator( consumeMLabelsInfo(), consumeMLabelsFun,
+      //      consumeMLabelsTypeMap );
+
+//       ValueMapping applyFuns[] = {applyFun_MT, applyFun_MP, 0};
+//       AddOperator(applyInfo(), applyFuns, applySelect, applyTypeMap);
+
+      //    AddOperator( sintstreamInfo(), sintstreamFun, sintstreamType );
     }
     ~SymbolicTrajectoryAlgebra() {}
 };
 
 // SymbolicTrajectoryAlgebra SymbolicTrajectoryAlgebra;
-
 
 } // end of namespace ~stj~
 

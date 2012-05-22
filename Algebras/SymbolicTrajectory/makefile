@@ -29,6 +29,10 @@ include ../../makefile.env
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) 
 
+OBJECTS += scan.o parse.o
+
+BASE:=PatternParser
+
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
@@ -43,7 +47,26 @@ endif
 $(LIBOBJ): $(OBJECTS)
 	$(create-lib)
 
+
+scan.o: lex.yy.c
+	        $(CPPC) -c -ggdb -o scan.o lex.pattern.c
+
+lex.yy.c: $(BASE).l parse.o
+	        flex $(BASE).l
+
+parse.o: $(BASE).tab.c
+	        $(CPPC) -c -ggdb -o parse.o $(BASE).tab.c -lstd -I ../../include -I ../../Tools/ListsAndTables -I $(BDB_INCLUDE_DIR) $(ALL_ALGEBRA_DIR_INCLUDE_FLAGS) 
+
+
+$(BASE).tab.c: $(BASE).y
+	        bison -v -d $(BASE).y
+
+
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
 	$(clean-algebra)
+	rm -f $(BASE).tab.c parse.o lex.yy.c scan.o mini $(BASE).tab.h $(BASE).output
+
+
+

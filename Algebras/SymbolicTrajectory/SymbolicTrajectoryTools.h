@@ -1,3 +1,8 @@
+
+/*
+
+*/
+
 #include <cstdio>
 #include <iostream>
 #include <vector>
@@ -19,3 +24,5 @@ vector<string> getElementsFromSet(string const set);
 
 
 
+vector<string> splitLabel(string labelset);
+char* convert(string arg);

@@ -13,6 +13,38 @@
 
 using namespace std;
 
+char* convert(string arg) {
+  return (char*)arg.c_str();
+}
+
+/*
+function ~splitLabel~
+Splits a string {a, b, c, ...} into a vector of strings a, b, c, ...
+
+*/
+vector<string> splitLabel(string labelset) {
+  cout << "splitLabel called" << endl;
+  string labels, label;
+  vector<string> result(0);
+  if (labelset.at(0) == '{')
+    labels.assign(labelset.substr(1, labelset.length() - 2));
+  else {
+    result.push_back(labelset);
+    cout << "label " << labelset << " added" << endl;
+    return result;
+  }
+  size_t pos = 0;
+  while ((pos = labels.find(' ', pos)) != string::npos) {
+    labels.erase(pos, 1); //delete whitespaces
+  }
+  istringstream iss(labels);
+  while (getline(iss, label, ',')) {
+    result.push_back(label);
+    cout << "label " << label << " added" << endl;
+  }
+  return result;
+}
+
 int str2Int(string const &text) {
   int result;
   stringstream ss(text);
