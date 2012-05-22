@@ -791,6 +791,7 @@ class OpTreeNode implements  PNode{
          sws.add(new Integer(k));
          sw  = sw + k + nodeSep;
      }
+     sw-=nodeSep;
      // paint node itself
      int ux;
      int uy;
