@@ -303,7 +303,7 @@ timeAt16MB - Time for the calculation with 16MB Memory
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB ) { 
       
-      sufficientMemory=calculateSufficientMemory();
+      sufficientMemory=calculateSufficientMemory(NoTuples2, sizeOfTuple2);
      /* 
       getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
         sufficientMemory, timeAtSuffMemory);
