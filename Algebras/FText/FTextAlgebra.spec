@@ -96,6 +96,8 @@ operator getBashModifiers alias GETBASHMODIFIERS pattern op()
 
 operator getQueryNL alias GETQUERYNL pattern op()
 operator getOpTreeNL alias GETOPTREENL pattern op()
+operator getOpName alias GETOPNAME pattern op()
+operator annotateQuery alias ANNOTATEQUERY pattern op()
 
 
 
