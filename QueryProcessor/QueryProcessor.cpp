@@ -1164,6 +1164,104 @@ ostream& operator<<(ostream& os, const OpNode& node) {
   return (nl->SymbolAtom( "ERROR" ));
 }
 
+
+ListExpr GetNodeTypeList(NodeType nt){
+  switch(nt){
+    case Pointer  : return nl->SymbolAtom("Pointer");
+    case Object   : return nl->SymbolAtom("Object");
+    case IndirectObject : return nl->SymbolAtom("IndirectObject");
+    case Operator       : return nl->SymbolAtom("Operator");
+    default             : return nl->SymbolAtom("undefined");
+  }
+}
+
+int getNoSons(OpTree tree){
+  return tree->nodetype == Operator?tree->u.op.noSons:0;
+}
+
+OpTree getSon(OpTree tree, int index){
+   assert(tree->nodetype==Operator);
+   assert(index >=0);
+   assert(index < tree->u.op.noSons);
+   return  (OpTree) tree->u.op.sons[index].addr;
+}
+
+
+ListExpr GetSimpleList(OpTree tree);
+
+ListExpr GetSonsList(OpTree tree){
+   int noSons = getNoSons(tree);
+   if(noSons==0){
+     return nl->TheEmptyList();
+   }
+   ListExpr sons = nl->OneElemList(GetSimpleList(getSon(tree,0)));
+   ListExpr last = sons;
+   for(int i=1; i< noSons;i++){
+    last = nl->Append(last, GetSimpleList(getSon(tree,i)));
+   }
+   return sons; 
+}
+
+
+
+ListExpr GetRootList(OpTree tree){
+  ListExpr ntlist = GetNodeTypeList(tree->nodetype);
+  // Build property list
+  ListExpr propList = nl->OneElemList(
+                            nl->TwoElemList(nl->SymbolAtom("typeExpr"),
+                                            tree->typeExpr));
+  ListExpr last = propList;
+  last = nl->Append(last,nl->TwoElemList(nl->SymbolAtom("evaluable"), 
+                                         nl->BoolAtom(tree->evaluable)));  
+
+
+  switch(tree->nodetype){
+     case Object: last = nl->Append(last, nl->TwoElemList(
+                                    nl->SymbolAtom("isConstant"),
+                                    nl->BoolAtom(tree->u.dobj.isConstant)));
+                  last = nl->Append(last, nl->TwoElemList(
+                                    nl->SymbolAtom("symbol"),
+                                    tree->u.symbol));
+                  break;
+     case IndirectObject: break; // ???
+     case Pointer: break;
+     case Operator:
+               last = nl->Append(last, nl->TwoElemList(
+                                    nl->SymbolAtom("algebraId"),
+                                    nl->IntAtom(tree->u.op.algebraId)));
+               last = nl->Append(last, nl->TwoElemList(
+                                    nl->SymbolAtom("opId"),
+                                    nl->IntAtom(tree->u.op.opFunId%65536)));
+               last = nl->Append(last, nl->TwoElemList(
+                                    nl->SymbolAtom("funId"),
+                                    nl->IntAtom(tree->u.op.opFunId/65536)));
+               last = nl->Append(last, nl->TwoElemList(
+                                       nl->SymbolAtom("opName"),
+                                       nl->SymbolAtom(
+                                        tree->u.op.theOperator->GetName())));
+  }
+  return nl->TwoElemList(ntlist, propList);
+}
+
+
+ListExpr GetSimpleList(OpTree tree){
+   cout << "called " << __PRETTY_FUNCTION__ << endl;
+   if(tree==0){
+     return nl->TheEmptyList();
+   } else {
+     return nl->TwoElemList( GetRootList(tree), 
+                             GetSonsList(tree)); 
+   }
+}
+
+
+
+ListExpr QueryProcessor::GetSimpleList(OpTree tree){
+  ListExpr otsym = nl->SymbolAtom("optree"); 
+  return nl->TwoElemList(otsym, ::GetSimpleList(tree));
+}
+
+
 /*
 
 This function is used to test if the query processor tree is composed only

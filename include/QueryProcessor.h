@@ -519,6 +519,9 @@ functions and then call ~subtree~ to do the job.
 */
   ListExpr ListOfTree( void* node, ostream& os );
   void BuildDotDescr( void* node, DotSpec& dot );
+
+  ListExpr GetSimpleList(OpTree tree);
+
 /*
 Represents an operator tree through a list expression. Used for testing.
 Additionally more detailed information will be printed into ~os~.
