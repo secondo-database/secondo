@@ -4,6 +4,8 @@
 
 #include "NestedList.h"
 #include "SymbolicTrajectoryTools.h"
+#include "StandardTypes.h"
+#include "TemporalAlgebra.h"
 #include <string>
 #include <set>
 
@@ -12,7 +14,6 @@
 
 using namespace std;
 
-//class MLabel;
 union Word;
 
 namespace stj {
@@ -20,24 +21,27 @@ namespace stj {
 class Pattern;
 
 enum Key {LABEL, TIME, START, END, CARD, ERROR};
+enum Wildcard {NO, ASTERISK, PLUS};
 
 bool parseString(const char* argument, Pattern** p);
 
 class MLabel : public MString {
   public:
-    static const string BasicType() { return "mlabel"; }
+    static const string BasicType() {
+      return "mlabel";
+    }
     static ListExpr MLabelProperty();
-    static bool CheckMLabel( ListExpr type, ListExpr& errorInfo );
+    static bool CheckMLabel(ListExpr type, ListExpr& errorInfo);
 };
 
 class ULabel : public UString {
   public:
-    static const string BasicType() { return "ulabel"; }
+    static const string BasicType() {
+      return "ulabel";
+    }
     static ListExpr ULabelProperty();
-    static bool CheckULabel( ListExpr type, ListExpr& errorInfo );
+    static bool CheckULabel(ListExpr type, ListExpr& errorInfo);
 };
-
-enum Wildcard {NO, ASTERISK, PLUS};
 
 class ExpressionList {
  public: 
