@@ -730,6 +730,198 @@ class BTreeNode implements PNode{
 }
 
 
+enum NodeType{Pointer, Object, IndirectObject, Operator,Unknown };
+
+
+class OpTreeNode implements  PNode{
+
+
+  public OpTreeNode(){
+    bounds = new Rectangle2D.Double(0,0,100,100);
+    sons = new Vector<OpTreeNode>();
+    label = "--";
+  }
+
+  public void computeBounds(Graphics2D g) {
+     bounds = new Rectangle2D.Double(0,0, getWidth(g), getHeight(g));
+  }
+
+  int getWidth(Graphics2D g){
+     int myWidth = g.getFontMetrics().stringWidth(label) + 20;
+     int sonWidth = 0;
+     for(int i=0;i<sons.size();i++){
+       sonWidth += sons.get(i).getWidth(g) + nodeSep;
+     }
+     return Math.max(myWidth, sonWidth);
+  }
+
+  int getHeight(Graphics2D g){
+     if(sons.size()==0){
+       return nodeHeight;
+     }
+     int sh = 0; 
+     for(int i=0;i<sons.size();i++){
+        sh = Math.max(sh,sons.get(i).getHeight(g));
+     }
+     return sh + vSep + nodeHeight;
+  }  
+
+  public Rectangle2D getBounds(){
+     return bounds;
+  }
+
+
+  public void paint(Graphics2D g) {
+     paint(g,0,0);
+  }
+
+  private int paint(Graphics2D g, int x, int y){
+     int w = g.getFontMetrics().stringWidth(label) + 20;
+     if(sons.size()==0){
+        g.drawRect(x,y,w,nodeHeight);
+        g.drawString(label, x+10, y+nodeHeight-1);
+        return w;
+     }
+     int sw = x;
+     Vector<Integer> sws = new Vector<Integer>();
+     // draw Subtrees
+     for(int i=0; i < sons.size();i++){
+         int k = sons.get(i).paint(g, sw , y + nodeHeight + vSep);
+         sws.add(new Integer(k));
+         sw  = sw + k + nodeSep;
+     }
+     // paint node itself
+     int ux;
+     int uy;
+     int dx = Math.max(0, sw-w);
+
+     g.drawRect(x+dx/2,y,w,nodeHeight);
+     g.drawString(label, x+dx/2+10, y+nodeHeight-1);
+     ux = x + dx/2 + w/2;
+     uy = y + nodeHeight; 
+     // draw connections to sons
+     int sy = y + nodeHeight + vSep;
+     int startX = x;
+     for(int i=0;i<sws.size();i++){
+        int sx = startX + sws.get(i).intValue() / 2;
+        g.drawLine(ux,uy,sx,sy);
+        startX = startX + sws.get(i).intValue() + nodeSep;
+     }
+     return Math.max(sw,w);
+  } 
+
+  public boolean saveAsLatex(File f){
+    return false;
+  }
+
+  public boolean readFromString(String treeString){
+     ListExpr treeList = new ListExpr();
+     if(treeList.readFromString(treeString)!=0){
+         return false;
+     }
+     return readFromList(treeList,true); 
+  }
+
+  private boolean  isSymbol(ListExpr sym, String v){
+     if(sym.atomType()!=ListExpr.SYMBOL_ATOM){
+        return false;
+     } else {
+        return sym.symbolValue().equals(v);
+     }
+  }
+
+  public boolean readFromList(ListExpr treeList, boolean isRoot){
+     ListExpr value;
+     if(isRoot){
+       if(treeList.listLength()!=2){
+         return false;
+       }
+       if(!isSymbol(treeList.first(),"optree")){
+         return false;
+       }
+       value = treeList.second();
+     } else {
+        value = treeList;
+     }
+     if(value.listLength()!=2){
+       return false;
+     }
+     if(!readLabel(value.first())){
+        return false;
+     }
+     ListExpr sons = value.second();
+     while(!sons.isEmpty()){
+         OpTreeNode otn = new OpTreeNode();
+         if(!otn.readFromList(sons.first(),false)){
+           return false;
+         }
+         this.sons.add(otn);
+         sons = sons.rest();
+     }
+     return true;
+  }
+
+
+  private NodeType getNodeType(ListExpr t){
+    if(isSymbol(t,"Pointer")) return NodeType.Pointer;
+    if(isSymbol(t,"Object")) return NodeType.Object;
+    if(isSymbol(t,"IndirectObject")) return NodeType.IndirectObject;
+    if(isSymbol(t,"Operator")) return NodeType.Operator;
+    return NodeType.Unknown;
+  }
+
+  private String getProp(ListExpr props, String name){
+    while(!props.isEmpty()){
+      ListExpr prop = props.first();
+      props = props.rest();
+      if( (prop.listLength()==2) &&
+          (isSymbol(prop.first(),name))){
+         if(prop.second().isEmpty()){
+              return "--";
+         }
+         return ""+prop.second();
+      }
+    }
+    return "?"+name+"?";
+  }
+
+  private boolean readLabel(ListExpr root){
+     if(root.listLength()!=2){
+        return false;
+     }
+     NodeType nodeType = getNodeType(root.first());
+     if(nodeType==NodeType.Unknown){
+       return false;
+     }
+     ListExpr prop = root.second();
+     switch(nodeType){
+        case Pointer: label = "Pointer"; break;
+        case Object: label = getProp(prop,"symbol");
+                     if(label.equals("--")){
+                       label = getProp(prop,"typeExpr");
+                       String isConst = getProp(prop,"isConstant");
+                       if(isConst.trim().equals("TRUE")){
+                         label = "const " + label;
+                       }
+                     } 
+                     break;
+        case IndirectObject: label = "indirectObject"; break;
+        case Operator:  label = getProp(prop,"opName"); break;
+        default : label = "--";
+     }
+     return true;
+  }
+
+
+  private Rectangle2D.Double bounds;
+  private Vector<OpTreeNode> sons;
+  private String label;
+  private static final int nodeSep = 10;
+  private static final int nodeHeight = 20;
+  private static final int vSep = 20;
+}
+
+
 
 
 
@@ -1078,10 +1270,13 @@ public TreeViewer(){
          }
   };
   addKeyListenerRec(KL,this);
-
-
-
 }
+
+
+
+
+
+
 
 
 /** gets the name of this Viewer **/
@@ -1108,6 +1303,13 @@ public boolean addObject(SecondoObject o){
          return false;
        } 
        pN = N;
+    } else if(type.atomType()==ListExpr.SYMBOL_ATOM &&
+             (type.symbolValue().equals("text") )){
+       OpTreeNode op = new OpTreeNode();
+       if(!op.readFromString(LE.textValue())){
+          return false;
+       }
+       pN = op;
     } else { // b-tree
       BTreeNode bN = new BTreeNode();
       if(!bN.readFrom(LE,0)){
@@ -1161,6 +1363,7 @@ public boolean canDisplay(SecondoObject o){
    if(LE.listLength()!=2){ // not an secondo object (type value)
      return false;
    }
+   ListExpr value = LE.second();
    LE = LE.first(); // get the type
 
    // check for typed btree (btree (rel (...)) Attrname )
@@ -1174,8 +1377,11 @@ public boolean canDisplay(SecondoObject o){
    if(LE.atomType()!=ListExpr.SYMBOL_ATOM){
       return false;
    }
-   if(!LE.symbolValue().equals("tree") && !isPMType(LE) && !LE.symbolValue().equals("btree")){
+   if(!LE.symbolValue().equals("tree") && !isPMType(LE) && !LE.symbolValue().equals("btree") && !LE.symbolValue().equals("text")){
       return  false;
+   }
+   if(LE.symbolValue().equals("text")){
+     return value.textValue().startsWith("(optree");
    }
    return true;
 }
