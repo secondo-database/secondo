@@ -743,7 +743,7 @@ class OpTreeNode implements  PNode{
   }
 
   public void computeBounds(Graphics2D g) {
-     bounds = new Rectangle2D.Double(0,0, getWidth(g), getHeight(g));
+     bounds = new Rectangle2D.Double(0,0, getWidth(g)+10, getHeight(g)+10);
   }
 
   int getWidth(Graphics2D g){
@@ -777,27 +777,28 @@ class OpTreeNode implements  PNode{
 
   private int paint(Graphics2D g, int x, int y){
      int w = g.getFontMetrics().stringWidth(label) + 20;
+     int dy = (nodeHeight - g.getFontMetrics().getHeight()) ;
      if(sons.size()==0){
         g.drawRect(x,y,w,nodeHeight);
-        g.drawString(label, x+10, y+nodeHeight-1);
+        g.drawString(label, x+10, y+nodeHeight - dy);
         return w;
      }
-     int sw = x;
+     int sw = 0;
      Vector<Integer> sws = new Vector<Integer>();
      // draw Subtrees
      for(int i=0; i < sons.size();i++){
-         int k = sons.get(i).paint(g, sw , y + nodeHeight + vSep);
+         int k = sons.get(i).paint(g, sw + x , y + nodeHeight + vSep);
          sws.add(new Integer(k));
          sw  = sw + k + nodeSep;
      }
      // paint node itself
      int ux;
      int uy;
-     int dx = Math.max(0, sw-w);
+     int dx = Math.max(0, sw - w)/2;
 
-     g.drawRect(x+dx/2,y,w,nodeHeight);
-     g.drawString(label, x+dx/2+10, y+nodeHeight-1);
-     ux = x + dx/2 + w/2;
+     g.drawRect(x+dx,y,w,nodeHeight);
+     g.drawString(label, x+dx+10, y+nodeHeight-dy);
+     ux = x + dx + w/2;
      uy = y + nodeHeight; 
      // draw connections to sons
      int sy = y + nodeHeight + vSep;
