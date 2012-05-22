@@ -15,7 +15,7 @@
 #include "DateTime.h"
 #include "CharTransform.h"
 #include "SymbolicTrajectoryTools.h"
-#include "SymbolicTrajectoryAlgebra.h"
+//#include "SymbolicTrajectoryAlgebra.h"
 #include "Stream.h"
 #include "SecParser.h"
 #include "Pattern.h"
