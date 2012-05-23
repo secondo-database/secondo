@@ -603,8 +603,14 @@ bool AlgebraManager::getCosts(const int algId,
 
    CostEstimation* ce = getCostEstimation(algId,opId,funId);
    costs = 0;
-
-   return ce?ce->getCosts(noTuples,sizeOfTuple,memoryMB,costs):false;
+   double mem=memoryMB; double co=0;
+   bool res = ce?ce->getCosts(noTuples,sizeOfTuple,mem,co):false;
+   if(co>0 && co <1){
+     costs = 1;
+   } else {
+     costs = (size_t) co;
+   }
+   return res;
 }
 
 
@@ -619,9 +625,17 @@ bool AlgebraManager::getCosts(const int algId,
               size_t& costs) {
    CostEstimation* ce = getCostEstimation(algId,opId,funId);
    costs = 0;
-   return ce?ce->getCosts(noTuples1,sizeOfTuple1,
-                          noTuples2,sizeOfTuple2,memoryMB,costs)
+   double mem = memoryMB;
+   double co=0;
+   bool res = ce?ce->getCosts(noTuples1,sizeOfTuple1,
+                          noTuples2,sizeOfTuple2,mem,co)
             :false;
+   if(co>0 && co <1){
+     costs = 1;
+   } else {
+     costs = (size_t) co;
+   }
+   return  res;
 }
 
 /*

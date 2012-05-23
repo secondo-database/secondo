@@ -1079,8 +1079,8 @@ overriding standard implementations
 
 */
 
-    virtual bool getCosts(size_t NoTuples, size_t sizeOfTuple,
-                          size_t memoryMB, size_t &costs){
+    virtual bool getCosts(const size_t NoTuples, const size_t sizeOfTuple,
+                          const double memoryMB, double &costs) const{
 
      cout << "getCosts called for operator count" << endl;
      double factor = 0.00001; // just for testing
@@ -1092,9 +1092,10 @@ overriding standard implementations
      return true;
   } 
 
-  virtual bool  getLinearParams( size_t noTuples, size_t sizeOfTuple,
+  virtual bool  getLinearParams( const size_t noTuples, 
+                                 const size_t sizeOfTuple,
                   double& sufficientMemory, double& timeAtSuffMemory,
-                                 double& timeAt16MB){
+                                 double& timeAt16MB) const{
      cout << "getLinearParams called for operator count" << endl;
       sufficientMemory = sizeOfTuple / 1024;
       double factor = 0.00001; // just for testing

@@ -79,15 +79,15 @@ version of this function.
 
 */
 
-    virtual bool getCosts(size_t NoTuples, size_t sizeOfTuple,
-                          size_t memoryMB, size_t &costs){
+    virtual bool getCosts(const size_t NoTuples, const size_t sizeOfTuple,
+                          const double memoryMB, double& costs) const{
          costs = 0;
          return false;
     }
     
-    virtual bool getCosts(size_t NoTuples1, size_t sizeOfTuple1,
-                          size_t NoTuples2, size_t sizeOfTuple2,
-                          size_t memoryMB, size_t &costs){
+    virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
+                          const size_t NoTuples2, const size_t sizeOfTuple2,
+                          const double memoryMB, double &costs) const{
          costs = 0;
          return false;
     }
@@ -100,9 +100,9 @@ time at 16 MB available memory.
 
 */
    virtual bool getLinearParams(
-            size_t NoTuples, size_t sizeOfTuple,
+            const size_t NoTuples, const size_t sizeOfTuple,
             double& sufficientMemory, double& timeAtSuffMemory,
-            double& timeAt16MB ) { 
+            double& timeAt16MB ) const { 
       sufficientMemory=0;
       timeAtSuffMemory=0;
       timeAt16MB=0;
@@ -110,10 +110,10 @@ time at 16 MB available memory.
    }
 
    virtual bool getLinearParams(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
+            const size_t NoTuples1, const size_t sizeOfTuple1,
+            const size_t NoTuples2, const size_t sizeOfTuple2,
             double& sufficientMemory, double& timeAtSuffMemory,
-            double& timeAt16MB ) { 
+            double& timeAt16MB ) const{ 
       sufficientMemory=0;
       timeAtSuffMemory=0;
       timeAt16MB=0;
@@ -131,11 +131,11 @@ function. Allowed types are:
 
 */
    virtual bool getFunction(
-            size_t NoTuples, size_t sizeOfTuple,
+            const size_t NoTuples, const size_t sizeOfTuple,
             int& functionType,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB,
-            double& a, double& b, double& c, double& d){
+            double& a, double& b, double& c, double& d) const{
        functionType=1;
        a=0;b=0;c=0;d=0;
        return getLinearParams(NoTuples, sizeOfTuple,
@@ -144,12 +144,12 @@ function. Allowed types are:
   }  
             
    virtual bool getFunction(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
+            const size_t NoTuples1, const size_t sizeOfTuple1,
+            const size_t NoTuples2, const size_t sizeOfTuple2,
             int& functionType,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB,
-            double& a, double& b, double& c, double& d){
+            double& a, double& b, double& c, double& d) const{
        functionType=1;
        a=0;b=0;c=0;d=0;
        return getLinearParams(NoTuples1, sizeOfTuple1,
