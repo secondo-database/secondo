@@ -8600,7 +8600,7 @@ int getOpTreeNLVM( Word* args, Word& result, int message,
    }
    qp->Construct(qle, correct, evaluable,
                  defined, isFunction, tree, resType);
-   if(!correct || !evaluable){
+   if(!correct || !evaluable || tree==0 ){
       if(tree){
         qp->Destroy(tree,true);
       }
