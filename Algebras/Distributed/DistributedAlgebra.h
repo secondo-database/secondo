@@ -138,7 +138,7 @@ public:
 
   bool isRelType() {return isRelation;}
 
-  static const string BasicType() { return "darray"; }
+  static const string BasicType() { return string("darray"); }
 
   static const bool checkType(ListExpr inType){
     ListExpr errorInfo = listutils::emptyErrorInfo();
