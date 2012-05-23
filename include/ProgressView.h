@@ -153,8 +153,8 @@ class ProgressView
 
 
 
-        ofs << (int) progress.Card << ";";
-        ofs << (int) progress.Time << ";";
+        ofs << (size_t) progress.Card << ";";
+        ofs << (size_t) progress.Time << ";";
         // write progress as a,b where b has two digits 
         currentProgress = currentProgress*100.0;
         ofs << (int) currentProgress << ",";
