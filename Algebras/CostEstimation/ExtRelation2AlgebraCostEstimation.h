@@ -134,51 +134,65 @@ public:
         size_t partitions = getNoOfPartitions(p1.Card, p1.Size, maxmem);
 
         if(partitions > 1) {
-           // total tuples
-           size_t totalTuples = p2.Card;
-              
+
+           size_t tuplesPerIteration = p2.Card;
+
            // is the tuplefile written completely? Otherwise we assume
            // that all tuples of p2 are written to tuplefile
-           if(tupleFileWritten == false) {
-              totalTuples = totalTuples + (partitions - 1) * p2.Card;
-           } else {
-              totalTuples = totalTuples + (partitions - 1) * tuplesInTupleFile;
-           }
- 
-           // Processed tuples
-           size_t processedTuples = p2.Progress * p2.Card;
-
-           // Add tuples for completed and current iteration
-           processedTuples = processedTuples + (iteration - 1) 
-             * tuplesInTupleFile + readInIteration;
-
-           // Calculate progress
-           pRes->Progress = (double) processedTuples / (double) totalTuples;
-
-           if(DEBUG) {
-              cout << "DEBUG: processed " << processedTuples 
-                << " of " << totalTuples << endl;
-              
-              cout << "DEBUG: iteration / tuplefile " << iteration 
-                << " / " << tupleFileWritten << endl;
-              
-              cout << "DEBUG: read in iteration " << readInIteration << endl;
-           }
-
+           if(tupleFileWritten) {
+              tuplesPerIteration = tuplesInTupleFile;
+           } 
+           
            // For partition 2: read / write 'tuplesInTupleFile' to tuplefile
            // For partition 2+n: read 'tuplesInTupleFile' from tuplefile
            pRes->Time = p1.Time + p2.Time 
-              + (tuplesInTupleFile * wItHashJoin * p2.Size) 
-              + ((partitions - 1) * xItHashJoin * p2.Size);
+              + (tuplesPerIteration * wItHashJoin * p2.Size) 
+              + ((partitions - 2) * xItHashJoin * p2.Size);
+
+           // Calculate Elapsed time 
+           size_t elapsedTime = p1.Time * p1.Progress 
+              + p2.Time * p2.Progress;
+
+           if(iteration <= 1) {
+              elapsedTime += readInIteration * xItHashJoin * p2.Size;
+           } else {
+                // 1st iteration: Data are read and written from / to tuplefile
+                elapsedTime += tuplesPerIteration  * xItHashJoin * p2.Size;
+                
+                // Time for the completed iterations
+                elapsedTime += (iteration - 2) * tuplesPerIteration 
+                   * xItHashJoin * p2.Size; 
+
+                // Current iteration
+                elapsedTime += readInIteration * wItHashJoin * p2.Size;
+           }
+          
+           // Calculate progress
+           pRes->Progress = (double) elapsedTime / (double) pRes->Time;
+
+             if(DEBUG) {
+               cout << "DEBUG: ellapsed / it " << elapsedTime 
+                << " of " << pRes->Time << " / " << iteration << endl;
+              
+               cout << "DEBUG: iteration / tuplefile " << iteration 
+                << " / " << tupleFileWritten << endl;
+              
+               cout << "DEBUG: read in iteration " << readInIteration << endl;
+             }
            
            } else {
+
+              if(DEBUG) {
+                 cout << p2 << endl;
+              }
+
               pRes->Progress = p2.Progress;
               pRes->Time = p1.Time + p2.Time + p2.Card * vItHashJoin; 
            }
 
           // Calculate selectivity
           if(qp->GetSelectivity(supplier) == 0.1) {
-              pRes->Card = p1.Card * p2.Card;
+              pRes->Card = p1.Card * p2.Card * 0.2;
           } else {
              pRes->Card = qp->GetSelectivity(supplier) * p1.Card * p2.Card;
           }
@@ -198,6 +212,7 @@ public:
              cout << "Time is " << pRes->Time << endl;
              cout << "BProgress is " << pRes->BProgress << endl;
              cout << "BTime is " << pRes->BTime << endl;
+             cout << "Card is: " << pRes->Card << endl;
           }
 
           pRes->CopySizes(pli);
@@ -216,15 +231,12 @@ public:
 Returns the estimated time in ms for given arguments.
 
 */
-virtual bool getCosts(size_t NoTuples1, size_t sizeOfTuple1,
-                  size_t NoTuples2, size_t sizeOfTuple2,
-                  size_t memoryMB, size_t &costs){
-   
+virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
+                      const size_t NoTuples2, const size_t sizeOfTuple2,
+                      const double memoryMB, double &costs) const{
 
  // Init calculation
  size_t maxmem = memoryMB * 1024 * 1024;
- setTuplesInTupleFile(NoTuples2);
-
  // Read variables
  
  // Time for processing one tuple in stream 2 (partitions = 1)
@@ -263,13 +275,13 @@ virtual bool getCosts(size_t NoTuples1, size_t sizeOfTuple1,
 Calculate the sufficent memory for this operator.
 
 */
-double calculateSufficientMemory(size_t NoTuples2, size_t sizeOfTuple2) {
+double calculateSufficientMemory(size_t NoTuples2, size_t sizeOfTuple2) const {
 
         // calculate size for one bucket datastructure
         vector<Tuple*>* bucket = new vector<Tuple*>();
            
-        sizePerBucket = sizePerBucket + sizeof(bucket);
-        sizePerBucket = sizePerBucket + sizeof(void*) * bucket->capacity();
+        size_t sizePerBucket =  sizeof(bucket);
+        sizePerBucket += sizeof(void*) * bucket->capacity();
            
         delete bucket;
         bucket = NULL;
@@ -301,16 +313,16 @@ timeAt16MB - Time for the calculation with 16MB Memory
             size_t NoTuples1, size_t sizeOfTuple1,
             size_t NoTuples2, size_t sizeOfTuple2,
             double& sufficientMemory, double& timeAtSuffMemory,
-            double& timeAt16MB ) { 
+            double& timeAt16MB )  const { 
       
       sufficientMemory=calculateSufficientMemory(NoTuples2, sizeOfTuple2);
-     /* 
+      
       getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
         sufficientMemory, timeAtSuffMemory);
 
       getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
         16, timeAt16MB);
-      */
+      
       return true;
    }
 
@@ -330,7 +342,7 @@ function. Allowed types are:
             int& functionType,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB,
-            double& a, double& b, double& c, double& d){
+            double& a, double& b, double& c, double& d) const {
        functionType=1;
        a=0;b=0;c=0;d=0;
        return getLinearParams(NoTuples1, sizeOfTuple1,
@@ -344,18 +356,14 @@ function. Allowed types are:
 Calculate the numer of partitions for this operator
 
 */
-size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) {
+size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
 
         // calculate size for one bucket datastructure
-        if(sizePerBucket == 0) {
            vector<Tuple*>* bucket = new vector<Tuple*>();
-           
-           sizePerBucket = sizePerBucket + sizeof(bucket);
-           sizePerBucket = sizePerBucket + sizeof(void*) * bucket->capacity();
-           
+           size_t sizePerBucket = sizeof(bucket);
+           sizePerBucket += sizeof(void*) * 10;
            delete bucket;
            bucket = NULL;
-        }
 
         // calculate size of the whole datastructure
         size_t memoryOfDatastruct = sizePerBucket * buckets; 
@@ -370,7 +378,9 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) {
            cout << "DEBUG: Size of datastucture is: " 
               << memoryOfDatastruct << endl;
            
-           cout << "DEBUG: Tuples is memory is: " << tuplesInMemory << endl;
+           cout << "DEBUG: Size per Bucket: " << sizePerBucket << endl;
+           cout << "DEBUG: Tuples is memory are: " << tuplesInMemory << endl;
+           cout << "DEBUG: total Tuples are: " << s1Card << endl;
            cout << "DEBUG: No of partitons is: " << noOfPartitions << endl;
         }
 
@@ -482,7 +492,6 @@ Set tupleFileWritten state
     readInIteration = 0;
     buckets = 999997; // default buckets
     tuplesInTupleFile = 0;
-    sizePerBucket = 0;
   }
 
 private:
@@ -497,7 +506,6 @@ private:
   size_t readInIteration;   // no of tuples read in this iteration
   size_t buckets;           // number of buckets
   size_t tuplesInTupleFile; // number of tuples in tuplefile
-  size_t sizePerBucket;     // size per bucket
 };
 
 
