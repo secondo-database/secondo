@@ -2,6 +2,8 @@ Installation of ZThread Library:
 
 1. Get the patched version of this library, currently from Algebras/Distributed.
 2. Unpack it into some directory of choice.
+   ATTENTION: The directory must be outside of the scondo directory strcuture.
+   (e.g. use ~/tmp/zthread/ )
 3. Within that directory, execute the steps
 	configure
 	make
