@@ -1039,11 +1039,5 @@ Example   : query getOpName(1,0);
 Result    : "+"
 
 
-Operator  : annotateQuery
-Number    : 1
-Signature : text -> text
-Example   : query length(annotateQuery('query ten feed count')) > 10
-Result    : TRUE
-
 
 

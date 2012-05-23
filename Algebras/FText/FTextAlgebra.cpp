@@ -8632,71 +8632,6 @@ Operator getOpTreeNL
    getOpTreeNLTM        //type mapping
   );
 
-/*
-5.40 Operator annotateQuery
-
-Returns the annotated nested list for a query.
-
-*/
-ListExpr annotateQueryTM(ListExpr args){
-  if(!nl->HasLength(args,1)){
-     return listutils::typeError("1 argument expected");
-  }
-  if(!FText::checkType(nl->First(args))){
-     return listutils::typeError("text expected");
-  }
-  return listutils::basicSymbol<FText>();
-}
-
-int annotateQueryVM( Word* args, Word& result, int message,
-                   Word& local, Supplier s ){
-
-   FText* arg = (FText*) args[0].addr;
-   result = qp->ResultStorage(s);
-   FText* res = (FText*) result.addr;
-   res->SetDefined(false);
-   if(!arg->IsDefined()){
-      return 0;
-   } 
-   SecParser sp;
-   string les;
-   if(sp.Text2List(arg->GetValue(),les)!=0){
-     return 0;
-   }
-   ListExpr qle;
-   if(!nl->ReadFromString(les,qle)){
-     return 0;
-   }
-   if(nl->HasLength(qle,2) && listutils::isSymbol(nl->First(qle),"query")){
-      qle = nl->Second(qle);
-   }
-   bool def;
-   ListExpr r = qp->AnnotateX(qle, def);
-   if(!def){
-     return 0;
-   }
-   res->Set(true,nl->ToString(r));
-   return 0;
-}
-
-
-
-OperatorSpec annotateQuerySpec(
-           "text -> text",
-           " annotateQuery(_)",
-           " Returns the annotated nested list of a query",
-           " query annotateQuery('query ten feed consume') ");
-
-
-
-Operator annotateQuery
-  (
-  "annotateQuery",             //name
-   annotateQuerySpec.getStr(),         //specification
-   annotateQueryVM,        //value mapping
-   Operator::SimpleSelect,   //trivial selection function
-   annotateQueryTM        //type mapping
-  );
 
 /*
 5.41 GetOpName
@@ -8847,7 +8782,6 @@ Operator getOpName
       AddOperator(&getQueryNL);
       AddOperator(&getOpTreeNL);
       AddOperator(&getOpName);
-      AddOperator(&annotateQuery);
       
        AddOperator(&pointerTest);
 
