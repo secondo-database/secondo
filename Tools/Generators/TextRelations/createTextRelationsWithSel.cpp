@@ -12,6 +12,7 @@ instead of static text.
 #include <fstream>
 
 #include "math.h"
+#include <stdlib.h>
 #include "RandomText.h"
 
 using namespace std;

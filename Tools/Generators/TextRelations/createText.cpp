@@ -4,6 +4,7 @@ April 2007, M. Spiekermann
 */   
 
 #include <iostream>
+#include <stdlib.h>
 
 using namespace std;
 

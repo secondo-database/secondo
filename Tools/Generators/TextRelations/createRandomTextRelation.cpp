@@ -10,6 +10,7 @@ instead of static text.
 
 #include <iostream>
 #include "math.h"
+#include <stdlib.h>
 #include "RandomText.h"
 
 using namespace std;
