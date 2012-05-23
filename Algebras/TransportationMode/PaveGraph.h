@@ -687,6 +687,10 @@ struct Hole{
   vector<Region> regs1;
   vector<Region> regs2;
   vector<Region> regs;
+  
+  vector<Line> line_list;
+  vector<int> cycle_id_list;
+  
   void GetContour();
   void GetContour(unsigned int no_reg);
   void GetPolygon(int no_ps);//create a polygon
@@ -698,6 +702,8 @@ struct Hole{
   bool NoSelfIntersects(Region* r);
   void GetHole(Region* r);
   void GetComponents(Region* r);
+  
+  void GetSegments(Region* r);
 };
 
 /////////////////////////////////////////////////////////////////////////////

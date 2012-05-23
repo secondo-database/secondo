@@ -1213,8 +1213,8 @@ Result   : 1
 
 Operator : filterdisjoint
 Number   : 1
-Signature: rel x btree -> (stream(((x1 t1) ... (xn tn))))
-Example  : query filterdisjoint(DOPedes_L_Join, btree_l) count;
+Signature: rel x btree x string -> (stream(((x1 t1) ... (xn tn))))
+Example  : query filterdisjoint(DOPedes_L_Join, btree_l, "LINE") count;
 Result   : 1
 
 
@@ -1257,6 +1257,13 @@ Number   : 1
 Signature: sline -> region
 Example  : query size(sl2reg([const sline value ((2.0 2.0 2.0 3.0)(2.0 3.0 3.0 3.0)(3.0 3.0 2.0 2.0))]));
 Result   : 5.5
+
+
+Operator : tm_segs
+Number   : 1
+Signature: region -> (stream(((x1 t1) ... (xn tn))))
+Example  : query tm_segs([const region value ((((1 1)(5 1)(5 5)(1 5))))]) count;
+Result   : 4
 
 
 Operator : tm_join1

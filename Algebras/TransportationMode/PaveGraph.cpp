@@ -2228,11 +2228,16 @@ void CompTriangle::PolygonContourPoint2(unsigned int no_cyc, int no_p_contour[],
 {
   
   vector<SimpleLine*> sl_contour;
+  vector<Line*> l_contour;
 
   for(unsigned int i = 0;i < no_cyc;i++){
       SimpleLine* sl = new SimpleLine(0);
       sl->StartBulkLoad();
       sl_contour.push_back(sl);
+
+      Line* l = new Line(0);
+      l->StartBulkLoad();
+      l_contour.push_back(l);
   }
   vector<int> edgenos(no_cyc, 0);
   for(int j = 0;j < reg->Size();j++){
@@ -2244,16 +2249,25 @@ void CompTriangle::PolygonContourPoint2(unsigned int no_cyc, int no_p_contour[],
 
     hs2.attr.edgeno = edgenos[hs1.attr.cycleno]++;
     *sl_contour[hs1.attr.cycleno] += hs2;
+    *l_contour[hs1.attr.cycleno] += hs2;
     hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
     *sl_contour[hs1.attr.cycleno] += hs2;
+    *l_contour[hs1.attr.cycleno] += hs2;
+
   }
 //  cout<<"get all boundary line"<<endl;
   SpacePartition* sp = new SpacePartition();
 
   for(unsigned int i = 0;i < no_cyc;i++){
       sl_contour[i]->EndBulkLoad();
+      l_contour[i]->EndBulkLoad();
       vector<MyHalfSegment> mhs;
-      sp->ReorderLine(sl_contour[i], mhs);
+      if(sl_contour[i]->Size() > 0)
+        sp->ReorderLine(sl_contour[i], mhs);
+      else{
+        cout<<"computing sline error "<<endl;
+      }
+
       vector<Point> ps;
       for(unsigned int j = 0;j < mhs.size();j++)
          ps.push_back(mhs[j].from);
@@ -2494,10 +2508,14 @@ void CompTriangle::NewTriangulation2()
     ps_reg.push_back(p2);
     ps_reg.push_back(p3);
     vector<Region> reg;
-//    cout<<p1<<" "<<p2<<" "<<p3<<endl;
     spacepart->ComputeRegion(ps_reg, reg);
     if(reg.size() > 0) //2012.3.9 rounding problem
       triangles.push_back(reg[0]);
+    else{
+      cout<<p1<<" "<<p2<<" "<<p3<<endl;
+//      Region r(0);
+//      triangles.push_back(r);////////////2012.5.19
+    }
 
   }
   delete spacepart;
@@ -7031,6 +7049,8 @@ void RegVertex::TriangulationNew2()
             v1_list.push_back(poly.p_id_list[index1]);
             v2_list.push_back(poly.p_id_list[index2]);
             v3_list.push_back(poly.p_id_list[index3]);
+          }else{
+//            cout<<p1<<" "<<p2<<" "<<p3<<endl; //2012.5.19 also output
           }
       }
 
@@ -7917,6 +7937,39 @@ void Hole::GetComponents(Region* r)
   for(int i = 0;i< r->NoComponents();i++){
     regs[i].SetNoComponents(1);
     regs[i].EndBulkLoad(false,false,false,false);
+  }
+
+}
+
+/*
+get the half segments of a region
+
+*/
+
+void Hole::GetSegments(Region* r)
+{
+
+  if( r->IsEmpty() ) { // subsumes IsDefined()
+    return;
+  }
+
+  for(int i=0;i < r->Size();i++){
+    HalfSegment hs;
+    r->Get(i,hs);
+    if(hs.IsLeftDomPoint() == false) continue;
+
+    Line* l = new Line(0);
+    l->StartBulkLoad();
+    HalfSegment hs2(true, hs.GetLeftPoint(), hs.GetRightPoint());
+    hs2.attr.edgeno = 0;
+    *l += hs2;
+    hs2.SetLeftDomPoint(!hs2.IsLeftDomPoint());
+    l->EndBulkLoad();
+
+    cycle_id_list.push_back(hs.attr.cycleno);
+    line_list.push_back(*l);
+    delete l;
+
   }
 
 }

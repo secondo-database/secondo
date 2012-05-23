@@ -1374,6 +1374,15 @@ const string OpTMSLine2RegionSpec  =
     "<text>from sline to region</text--->"
     "<text>query sl2reg(sl1)</text--->) )";
 
+const string OpTMSEGSSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>region -> (stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>tm_segs(region)</text--->"
+    "<text>return segments of a region</text--->"
+    "<text>query tm_segs(r1)</text--->) )";
+
+
 const string OpTMCheckRoadsSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "

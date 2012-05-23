@@ -3084,13 +3084,16 @@ bool SpacePartition::CheckRegionPS(vector<Point>& outer_region)
             j++;
         }
     }
-    
-//    cout<<"mhs size "<<mhs.size()<<endl;
-    for(unsigned int i = 0;i < mhs.size() - 2;i++){
-      unsigned int j = i + 1;
-      unsigned int k = j + 1;
-//      cout<<"i "<<i<<" k "<<k<<endl;
 
+//    cout<<"mhs size "<<mhs.size()<<endl;
+
+    for(int i = 0;i < (int)mhs.size() - 2;i++){
+      int j = i + 1;
+      int k = j + 1;
+//       cout<<"i "<<i<<" k "<<k<<endl;
+// 
+//       cout<<mhs[i].from<<" "<<mhs[i].to<<endl;
+//       cout<<mhs[k].from<<" "<<mhs[k].to<<endl<<endl;
 
       HalfSegment hs1(true, mhs[i].from, mhs[i].to);
       HalfSegment hs2(true, mhs[k].from, mhs[k].to);
@@ -3340,7 +3343,7 @@ void SpacePartition::ExtendRoad(int attr_pos, int w)
     }
 
     for(int i = 1;i <= l->GetNoTuples();i++){
-//      Tuple* t = l->GetTuple(i);
+
       Tuple* t = l->GetTuple(i,false);
       SimpleLine* sline = (SimpleLine*)t->GetAttribute(attr_pos);
       vector<MyHalfSegment> seq_halfseg; //reorder it from start to end
@@ -3496,13 +3499,15 @@ void SpacePartition::FillPave(Network* n, vector<Region>& pavements1,
     bool global_flag = false;
 
     const double delta_dist = 0.1;
+
     for(unsigned int i = 0 ;i < myjuns.size();i++){
         Point loc = myjuns[i].loc;
         int rid1 = myjuns[i].rid1;
         int rid2 = myjuns[i].rid2;
 
-//        cout<<"rid1 "<<rid1<<" rid2 "<<rid2<<endl;
-//      if(!(rid1 == 2397 && rid2 == 2398)) continue;
+/*        cout<<"total "<<myjuns.size()<<" i "<<i
+           <<" rid1 "<<rid1<<" rid2 "<<rid2<<endl;*/
+//      if(!(rid1 == 7882 && rid2 == 7907)) continue;
 
       if((MyAlmostEqual(myjuns[i].len1, 0.0)||
           MyAlmostEqual(myjuns[i].len1, routes_length[rid1 - 1])) &&
@@ -3715,9 +3720,13 @@ void SpacePartition::Getpavement(Network* n, Relation* rel1, int attr_pos,
         newpave2.push_back(*reg);
         delete reg;
       }
+
+//      cout<<pavements1[7881].Size()<<" "<<pavements2[7881].Size()<<endl;
+
       FillPave(n, pavements1, pavements2, routes_length, newpave1, newpave2);
 
       for(unsigned int i = 0;i < pavements1.size();i++){
+//        cout<<"total "<<pavements1.size()<<" i "<<i + 1<<endl;
         Region* reg1 = new Region(0);
         MyUnion(pavements1[i], newpave1[i], *reg1);
         pavements1[i] = *reg1;
@@ -4558,6 +4567,10 @@ bool SpacePartition::SameSide1(Region* reg1, Region* reg2, Line* r1r2,
 {
       vector<MyPoint> mps1;
       vector<MyPoint> mps2;
+//      cout<<reg1->Size()<<" "<<reg2->Size()<<endl;
+//      cout<<*reg1<<" "<<*reg2<<endl;
+      if(reg1->Size() == 0 || reg2->Size() == 0) return false; //2012.5.11
+
       for(int i = 0;i < reg1->Size();i++){
           HalfSegment hs;
           reg1->Get(i,hs);
@@ -6402,6 +6415,11 @@ string DataClean::RoadLAdj = "(rel (tuple ((OID_L1 int) (Segment_L1 line)\
 string DataClean::PedesLine = "(rel (tuple ((Rid_L1 int) (Rid_L2 int)\
 (Geo_L1 sline))))";
 
+string DataClean::PedesRegion = "(rel (tuple ((Oid_R1 int) (Oid_R2 int)\
+(Pavement_R1 region))))";
+
+
+
 /*
 modify the coordinates of a line value, not so many numbers after dot
 
@@ -7532,11 +7550,11 @@ void DataClean::FilterDisjoint(Relation* rel, BTree* btree)
      group_list.push(neighbor);
      flag_list[rid - 1] = true;
 //     flag_list[neighbor - 1] = true;
-
      int j = i + 1;
      while(j <= rel->GetNoTuples()){
       Tuple* tuple = rel->GetTuple(j, false);
       int id = ((CcInt*)tuple->GetAttribute(RID_L1))->GetIntval();
+
       if(id == rid){
         int nei = ((CcInt*)tuple->GetAttribute(RID_L2))->GetIntval();
         group_list.push(nei);
@@ -7551,13 +7569,19 @@ void DataClean::FilterDisjoint(Relation* rel, BTree* btree)
 
       //////process the result in group list 
      t->DeleteIfAllowed();
+     
+
      if(j <= rel->GetNoTuples()){ //process 
 //        cout<<"res1 "<<group_list.size()<<endl;
         FindConnectedComponent(group_list, rel, btree, flag_list, max_rid);
      }else{
        //output the result 
 //       cout<<"res2 "<<group_list.size()<<endl;
-       OutPutLine(rel, btree, group_list, max_rid);
+       if(type.compare("LINE") == 0)
+        OutPutLine(rel, btree, group_list, max_rid);
+       else if(type.compare("REGION") == 0){
+        OutPutRegion(rel, btree, group_list, max_rid);
+       }
      }
 
    }
@@ -7609,7 +7633,11 @@ void DataClean::FindConnectedComponent(queue<int> group_list, Relation* rel,
   }
 
 //  cout<<"rid "<<first_id<<" "<<res_list.size()<<endl;
-  OutPutLine(rel, btree, res_list, max_rid);
+  if(type.compare("LINE") == 0){
+    OutPutLine(rel, btree, res_list, max_rid);
+  }else if(type.compare("REGION") == 0){
+    OutPutRegion(rel, btree, res_list, max_rid);
+  }
 
 }
 
@@ -7650,6 +7678,43 @@ void DataClean::OutPutLine(Relation* rel, BTree* btree,
   }
 
 }
+
+void DataClean::OutPutRegion(Relation* rel, BTree* btree, 
+                           queue<int> res_list, int max_rid)
+{
+    int res_size = res_list.size();
+
+    while(res_list.empty() == false){
+      int l_id = res_list.front();
+      res_list.pop();
+
+      CcInt* search_id = new CcInt(true, l_id);
+      BTreeIterator* btree_iter = btree->ExactMatch(search_id);
+
+      while(btree_iter->Next()){////////get the geographical data
+        Tuple* tuple = rel->GetTuple(btree_iter->GetId(), false);
+        int id = ((CcInt*)tuple->GetAttribute(PAVE_ID1))->GetIntval();
+        assert(id == l_id);
+        Region* reg = (Region*)tuple->GetAttribute(PAVE_REGION);
+
+        reg_list.push_back(*reg);
+        oid_list.push_back(l_id);
+        if(res_size >= max_rid/2)
+          type_list.push_back(1);
+        else
+          type_list.push_back(2);
+
+        tuple->DeleteIfAllowed();
+        break;
+    }
+    delete btree_iter;
+    delete search_id;
+
+  }
+
+}
+
+
 
 //////////////////////////////////////////////////////////////////////
 ///////////////// processing OSM data///////////////////////////////

@@ -15063,29 +15063,39 @@ TypeMap fun for operator filterdisjoint
 
 ListExpr OpTMFilterDisjointTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 2 )
+  if ( nl->ListLength ( args ) != 3 )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  ListExpr param1 = nl->First ( args );
-  ListExpr param2 = nl->Second ( args );
+  ListExpr param1 = nl->First(nl->First ( args ));
+  ListExpr param2 = nl->First(nl->Second ( args ));
 
 
   if(!listutils::isRelDescription(param1) )
     return listutils::typeError("param1 should be an relation" );
 
-  ListExpr xType;
-  nl->ReadFromString ( DataClean::PedesLine, xType);
-  if ( !CompareSchemas ( param1, xType ) )
-  {
-    return ( nl->SymbolAtom ( "typeerror" ) );
-  }
+
 
   if(!listutils::isBTreeDescription(param2) )
     return listutils::typeError("param2 should be a btree" );
 
+  ListExpr param3 = nl->First(nl->Third(args));
+  if(!nl->IsEqual(param3, "string")){
+    string err = "the third paramter should be string";
+    return listutils::typeError(err);
+  }
+  string type = nl->StringValue(nl->Second(nl->Third(args)));
 
-  ListExpr result = nl->TwoElemList(
+  
+  if(type.compare("LINE") == 0){
+        ListExpr xType;
+        nl->ReadFromString ( DataClean::PedesLine, xType);
+        if ( !CompareSchemas ( param1, xType ) )
+        { 
+        return ( nl->SymbolAtom ( "typeerror" ) );
+        }
+
+    return nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
                 nl->SymbolAtom("tuple"),
@@ -15100,8 +15110,26 @@ ListExpr OpTMFilterDisjointTypeMap ( ListExpr args )
                         nl->SymbolAtom("Oid"),
                         nl->SymbolAtom("int"))
                     )));
+  }else if(type.compare("REGION") == 0){
+      return nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->ThreeElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Type"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Geo"),
+                        nl->SymbolAtom("region")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Oid"),
+                        nl->SymbolAtom("int"))
+                    )));
 
-  return result;
+  }else
+    return ( nl->SymbolAtom ( "typeerror" ) );
+
 
 }
 
@@ -15478,6 +15506,40 @@ ListExpr OpTMSline2RegTypeMap ( ListExpr args )
    return nl->SymbolAtom ( "typeerror" );
   
 }
+
+/*
+get the half segments of a region
+
+*/
+ListExpr OpTMSEGSTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+
+  if (nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+      nl->SymbolValue(param1) == "region" )
+  {
+    return nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+             nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                 nl->TwoElemList(
+                     nl->TwoElemList(
+                         nl->SymbolAtom("CycleNo"),
+                         nl->SymbolAtom("int")),
+                     nl->TwoElemList(
+                         nl->SymbolAtom("Segment"),
+                         nl->SymbolAtom("line"))
+                     )));
+  }
+  
+   return nl->SymbolAtom ( "typeerror" );
+  
+}
+
 
 /*
 TypeMap fun for operator checkroads
@@ -21906,12 +21968,17 @@ int OpTMFilterDisjointmap ( Word* args, Word& result, int message,
 
         Relation* rel = (Relation*)args[0].addr;
         BTree* btree = (BTree*)args[1].addr; 
+        string type = ((CcString*)args[2].addr)->GetValue();
 
-
+        if(!(type.compare("LINE") == 0 || type.compare("REGION") == 0)){
+          cout<<"wrong type "<<type<<endl;
+          local.setAddr(NULL);
+          return 0;
+        }
         datacl = new DataClean(); 
         datacl->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-
+        datacl->type = type;
         datacl->FilterDisjoint(rel, btree);//Partition.cpp
         local.setAddr(datacl);
         return 0;
@@ -21924,7 +21991,11 @@ int OpTMFilterDisjointmap ( Word* args, Word& result, int message,
           Tuple* tuple = new Tuple(datacl->resulttype);
           tuple->PutAttribute(0, 
                              new CcInt(true, datacl->type_list[datacl->count]));
-          tuple->PutAttribute(1,new Line(datacl->l_list[datacl->count]));
+          if(datacl->type.compare("LINE") == 0)
+            tuple->PutAttribute(1,new Line(datacl->l_list[datacl->count]));
+          else if(datacl->type.compare("REGION") == 0){
+            tuple->PutAttribute(1,new Region(datacl->reg_list[datacl->count]));
+          }
           tuple->PutAttribute(2, 
                              new CcInt(true, datacl->oid_list[datacl->count]));
 
@@ -22255,6 +22326,54 @@ int OpTMSline2Regionmap ( Word* args, Word& result, int message,
   
   return 0;
 }
+
+/*
+create a region from a cycle line
+
+*/
+int OpTMSegsmap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  Hole* hole;
+  switch(message){
+      case OPEN:{
+        Region* reg = (Region*)args[0].addr;
+        hole = new Hole();
+        hole->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+        if(reg->NoComponents() == 1)//only one face
+          hole->GetSegments(reg);
+
+        local.setAddr(hole);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          hole = (Hole*)local.addr;
+          if(hole->count == hole->cycle_id_list.size())
+                          return CANCEL;
+
+          Tuple* tuple = new Tuple(hole->resulttype);
+          tuple->PutAttribute(0, 
+                  new CcInt(true, hole->cycle_id_list[hole->count]));
+          tuple->PutAttribute(1, new Line(hole->line_list[hole->count]));
+          result.setAddr(tuple);
+          hole->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            hole = (Hole*)local.addr;
+            delete hole;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+  return 0;
+}
+
 
 /*
 check roads lines points, wether there  are overlapping 
@@ -23630,6 +23749,15 @@ Operator sl2reg(
     OpTMSline2RegTypeMap        // type mapping
 );
 
+Operator tm_segs(
+    "tm_segs",               // name
+    OpTMSEGSSpec,          // specification
+    OpTMSegsmap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpTMSEGSTypeMap        // type mapping
+);
+
+
 /*
 Operator checkroads(
     "checkroads",
@@ -24014,12 +24142,15 @@ class TransportationModeAlgebra : public Algebra
    /////////////build real data (OSM) for Mini World ////////////////////////
    AddOperator(&refinedata);//remove some digit after dot
    AddOperator(&filterdisjoint);//filter disjoint road segments 
+   filterdisjoint.SetUsesArgsInTypeMapping();
    AddOperator(&refinebr);// find or discorver the complete bus route
    AddOperator(&bs_stops);//set data type for bus stops
    AddOperator(&set_bs_speed);//set speed for bus segment 
    AddOperator(&set_stop_loc);//set possible locations for stops
    AddOperator(&getmetrodata);getmetrodata.SetUsesArgsInTypeMapping();
    AddOperator(&sl2reg); //from sline to a region
+   AddOperator(&tm_segs);//return segments of a region
+
    //get metro stops and routes
    ///////////////////two join operators, using rtree//////////////////////
    AddOperator(&tm_join1);

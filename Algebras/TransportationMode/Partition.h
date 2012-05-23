@@ -1164,6 +1164,7 @@ struct DataClean{
 
   vector<SimpleLine> sl_list;
   vector<Line> l_list;
+  vector<Region> reg_list;
   vector<int> type_list;
   vector<int> oid_list;
 
@@ -1172,10 +1173,15 @@ struct DataClean{
   static string RoadLSegs;
   static string RoadLAdj;
   static string PedesLine;
+  static string PedesRegion;
+
+  string type;// line,  region
 
   enum RoadLInfor{L_OID = 0, L_SEG}; 
   enum RoadLAdjInfo{L_ADJ_OID1, L_ADJ_SEG1, L_ADJ_OID2, L_ADJ_SEG2};
   enum PedesLine{RID_L1 = 0, RID_L2, RID_GEO};
+  enum PedesRegion{PAVE_ID1 = 0, PAVE_ID2, PAVE_REGION};
+  
 
   void ModifyLine(SimpleLine* in, SimpleLine* out);
   void RefineData(SimpleLine* in, SimpleLine* out);
@@ -1203,6 +1209,10 @@ struct DataClean{
                               vector<bool>& flag_list,int max_rid);
   void OutPutLine(Relation* rel, BTree* btree, queue<int> res_list, 
                   int max_rid);
+  void OutPutRegion(Relation* rel, BTree* btree, queue<int> res_list, 
+                  int max_rid);
+  ////////////////////////////////////////////////////////////////////
+  
 };
 
 class OSMPaveGraph;
