@@ -1,5 +1,8 @@
 
-all: createText createRandomText createRandomTextRelation
+FILES=createText createTextRelationsWithSel  createRandomTextRelation
+
+all: $(FILES)
+
 
 createText: createText.cpp
 	g++ -o $@ $< 
@@ -10,3 +13,8 @@ createRandomTextRelation: createRandomTextRelation.cpp
 createTextRelationsWithSel: createTextRelationsWithSel.cpp
 	g++ -o $@ $< 
 
+
+
+.PHONY:clean
+clean:
+	rm -f $(FILES)
