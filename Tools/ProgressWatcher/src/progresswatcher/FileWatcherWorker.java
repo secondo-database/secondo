@@ -124,7 +124,7 @@ public class FileWatcherWorker implements Runnable {
 
 			// Get Progress valued
 			int time = Integer.parseInt(matcher.group(1));
-			int card = Integer.parseInt(matcher.group(2));
+			double card = Double.parseDouble(matcher.group(2));
 			int estTime = Integer.parseInt(matcher.group(3));
 			
 			NumberFormat format = NumberFormat.getInstance(Locale.GERMAN);
