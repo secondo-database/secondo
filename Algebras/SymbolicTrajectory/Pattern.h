@@ -72,6 +72,7 @@ class Condition {
   vector<ConditionType> types;
   vector<Key> keys;
   vector<string> variables;
+  static int numberOfConditions;
 
   Condition() {
     types.push_back(*(new ConditionType(convert(".label"), convert("\"a\""))));
@@ -102,6 +103,7 @@ class UnitPattern {
   string interval;
   set<string> labelset;
   string wildcard;
+  set<int> relatedConditions;
 
   UnitPattern() {}
 
@@ -161,7 +163,7 @@ class Pattern {
   // other functions
   static const string BasicType();
   static const bool checkType(const ListExpr type);
-  void checkConditions();
+  void verifyConditions();
   bool getPattern(string input, Pattern** p);
   bool matches(MLabel const &ml);
 };
@@ -172,6 +174,7 @@ class NFA {
                           // contents: new state(s).
   set<int> currentStates;
   vector<UnitPattern> nfaPatterns;
+  vector<Condition> nfaConditions;
   int numberOfStates;
   ULabel currentLabel;
 
@@ -189,6 +192,7 @@ class NFA {
   bool match(MLabel const &ml);
   void printCurrentStates();
   void updateStates();
+  bool labelsMatch(int pos);
   string toString();
 };
 

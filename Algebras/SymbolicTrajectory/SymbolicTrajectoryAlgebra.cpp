@@ -66,7 +66,6 @@ class Label
   static const bool checkType(const ListExpr type) {
     return listutils::isSymbol(type, BasicType());
   }
-  
 
  private:
    
@@ -128,8 +127,8 @@ Word Label::In(const ListExpr typeInfo, const ListExpr instance,
 }
 
 ListExpr Label::Out(ListExpr typeInfo, Word value) {
-  Label* label = static_cast<Label*>( value.addr );
-  NList element ( label->GetText(), true );
+  Label* label = static_cast<Label*>(value.addr);
+  NList element (label->GetText(), true);
   return element.listExpr();
 }
 
@@ -306,7 +305,7 @@ ListExpr ULabel::ULabelProperty() {
 
 */
 bool ULabel::CheckULabel(ListExpr type, ListExpr& errorInfo) {
-    return (nl->IsEqual(type, ULabel::BasicType()));
+  return (nl->IsEqual(type, ULabel::BasicType()));
 }
 
 
@@ -377,7 +376,7 @@ This function checks whether the type constructor is applied correctly.
 
 */
 bool MLabel::CheckMLabel(ListExpr type, ListExpr& errorInfo) {
-    return (nl->IsEqual(type, MLabel::BasicType()));
+  return (nl->IsEqual(type, MLabel::BasicType()));
 }
 
 /*
@@ -804,82 +803,53 @@ The list representation of a labels is
 
 */
 
-ListExpr
-Labels::Out( ListExpr typeInfo, Word value )
-{
+ListExpr Labels::Out(ListExpr typeInfo, Word value) {
   Labels* labels = static_cast<Labels*>(value.addr);
-  
-  if( !labels->IsDefined() )
-  {
-//   cout << "out undefined" << endl;    
-    return  (NList( Symbol::UNDEFINED() )).listExpr(); 
+  if (!labels->IsDefined()) {
+    return (NList(Symbol::UNDEFINED())).listExpr();
   }
-  if( labels->IsEmpty() )
-  {
-//   cout << "empty" << endl;    
-    return (NList()).listExpr();       
+  if (labels->IsEmpty()) {
+    return (NList()).listExpr();
   }
-  else
-  {
+  else {
     NList element("", true);
-   
-    for( int i = 0; i < labels->GetNoLabels(); i++ )
-    {
-      element.append( NList( (labels->GetLabel(i)).GetText(), true ) );      
-    }  
-    
+    for (int i = 0; i < labels->GetNoLabels(); i++) {
+      element.append(NList((labels->GetLabel(i)).GetText(), true));
+    }
     return element.listExpr();    
-  } // else
+  }
 }
 
-
-
-Word
-Labels::In( const ListExpr typeInfo, const ListExpr instance,
-           const int errorPos, ListExpr& errorInfo, bool& correct )
-{
+Word Labels::In(const ListExpr typeInfo, const ListExpr instance,
+                const int errorPos, ListExpr& errorInfo, bool& correct) {
   Word result = SetWord(Address(0));
   correct = false;
- 
   NList list(instance); 
-    
-  Labels* labels = new Labels( 0 );
+  Labels* labels = new Labels(0);
   labels->SetDefined(true);
-
-  while( !list.isEmpty() )
-  {
-    
-    if ( !list.isAtom() && list.first().isAtom() && list.first().isString() ) {
-    
-      labels->Append( Label( list.first().str() ) );
-      correct = true;       
+  while (!list.isEmpty()) {
+    if (!list.isAtom() && list.first().isAtom() && list.first().isString()) {
+      labels->Append(Label(list.first().str()));
+      correct = true;
     }
-    else 
-    {     
+    else {
       correct = false;
       cmsg.inFunError("Expecting a list of string atoms!");
       delete labels;
-          
       return SetWord(Address(0));
     }
-    
     list.rest();
   }
-  
   labels->Complete();  
   result.addr = labels;
   return result;
 }
 
-
 /*
 3.3 Function Describing the Signature of the Type Constructor
 
 */
-
-ListExpr
-Labels::Property()
-{
+ListExpr Labels::Property() {
   return (nl->TwoElemList(
          nl->FiveElemList(nl->StringAtom("Signature"),
                           nl->StringAtom("Example Type List"),
@@ -903,10 +873,8 @@ This function checks whether the type constructor is applied correctly. Since
 type constructor ~labels~ does not have arguments, this is trivial.
 
 */
-bool
-Labels::KindCheck( ListExpr type, ListExpr& errorInfo )
-{
-  return (nl->IsEqual( type, Labels::BasicType() ));
+bool Labels::KindCheck(ListExpr type, ListExpr& errorInfo) {
+  return (nl->IsEqual(type, Labels::BasicType()));
 }
 
 /*
@@ -914,20 +882,17 @@ Labels::KindCheck( ListExpr type, ListExpr& errorInfo )
 3.5 ~Create~-function
 
 */
-Word Labels::Create(const ListExpr typeInfo)
-{
-  Labels* labels = new Labels( 0 );
-  return ( SetWord(labels) );
+Word Labels::Create(const ListExpr typeInfo) {
+  Labels* labels = new Labels(0);
+  return (SetWord(labels));
 }
 
 /*
 3.6 ~Delete~-function
 
 */
-void Labels::Delete(const ListExpr typeInfo, Word& w)
-{
+void Labels::Delete(const ListExpr typeInfo, Word& w) {
   Labels* labels = (Labels*)w.addr;
-
   labels->Destroy();
   delete labels;
 }
@@ -936,14 +901,10 @@ void Labels::Delete(const ListExpr typeInfo, Word& w)
 3.6 ~Open~-function
 
 */
-bool
-Labels::Open( SmiRecord& valueRecord,
-             size_t& offset,
-             const ListExpr typeInfo,
-             Word& value )
-{
-  Labels *lbs = (Labels*)Attribute::Open( valueRecord, offset, typeInfo );
-  value.setAddr( lbs );
+bool Labels::Open(SmiRecord& valueRecord, size_t& offset,
+                  const ListExpr typeInfo, Word& value) {
+  Labels *lbs = (Labels*)Attribute::Open(valueRecord, offset, typeInfo);
+  value.setAddr(lbs);
   return true;
 }
 
@@ -951,14 +912,10 @@ Labels::Open( SmiRecord& valueRecord,
 3.7 ~Save~-function
 
 */
-bool
-Labels::Save( SmiRecord& valueRecord,
-             size_t& offset,
-             const ListExpr typeInfo,
-             Word& value )
-{
+bool Labels::Save(SmiRecord& valueRecord, size_t& offset,
+             const ListExpr typeInfo, Word& value) {
   Labels *lbs = (Labels *)value.addr;
-  Attribute::Save( valueRecord, offset, typeInfo, lbs );
+  Attribute::Save(valueRecord, offset, typeInfo, lbs);
   return true;
 }
 
@@ -966,8 +923,7 @@ Labels::Save( SmiRecord& valueRecord,
 3.8 ~Close~-function
 
 */
-void Labels::Close(const ListExpr typeInfo, Word& w)
-{
+void Labels::Close(const ListExpr typeInfo, Word& w) {
   Labels* labels = (Labels*)w.addr;
   delete labels;
 }
@@ -976,17 +932,15 @@ void Labels::Close(const ListExpr typeInfo, Word& w)
 3.9 ~Clone~-function
 
 */
-Word Labels::Clone(const ListExpr typeInfo, const Word& w)
-{
-  return SetWord( ((Labels*)w.addr)->Clone() );
+Word Labels::Clone(const ListExpr typeInfo, const Word& w) {
+  return SetWord(((Labels*)w.addr)->Clone());
 }
 
 /*
 3.9 ~SizeOf~-function
 
 */
-int Labels::SizeOfObj()
-{
+int Labels::SizeOfObj() {
   return sizeof(Labels);
 }
 
@@ -994,9 +948,8 @@ int Labels::SizeOfObj()
 3.10 ~Cast~-function
 
 */
-void* Labels::Cast(void* addr)
-{
-  return (new (addr) Labels);
+void* Labels::Cast(void* addr) {
+  return (new (addr)Labels);
 }
 
 /*
@@ -1017,10 +970,15 @@ TypeConstructor labelsTC(
 
 
 //**********************************************************************
+/*
+4 ~Pattern~
+*/
 
-//**********************************************************************
-//~pattern~
+/*
+4.1 Function ~GetText~
+Writes all pattern information into a string
 
+*/
 string Pattern::GetText() const {
   stringstream text;
   set<string>::iterator j;
@@ -1094,16 +1052,26 @@ string Pattern::GetText() const {
   return text.str();
 }
 
-// name of the type constructor
+/*
+4.2 Function ~BasicType~
 
+*/
 const string Pattern::BasicType() {
   return "pattern";
 }
 
+/*
+4.3 Function ~checkType~
+
+*/
 const bool Pattern::checkType(const ListExpr type){
   return listutils::isSymbol(type, BasicType());
 }
 
+/*
+4.4 Function ~In~
+
+*/
 Word Pattern::In(const ListExpr typeInfo, const ListExpr instance,
                  const int errorPos, ListExpr& errorInfo, bool& correct) {
   Word result = SetWord(Address(0));
@@ -1137,39 +1105,71 @@ Word Pattern::In(const ListExpr typeInfo, const ListExpr instance,
   return result;
 }
 
+/*
+4.5 Function ~Out~
+
+*/
 ListExpr Pattern::Out(ListExpr typeInfo, Word value) {
   Pattern* pattern = static_cast<Pattern*>(value.addr);
   NList element(pattern->GetText(), true, true);
   return element.listExpr();
 }
 
+/*
+4.6 Function ~Create~
+
+*/
 Word Pattern::Create(const ListExpr typeInfo) {
   return (SetWord(new Pattern()));
 }
 
+/*
+4.7 Function ~Delete~
+
+*/
 void Pattern::Delete(const ListExpr typeInfo, Word& w) {
   delete static_cast<Pattern*>(w.addr);
   w.addr = 0;
 }
 
+/*
+4.8 Function ~Close~
+
+*/
 void Pattern::Close(const ListExpr typeInfo, Word& w) {
   delete static_cast<Pattern*>(w.addr);
   w.addr = 0;
 }
 
+/*
+4.9 Function ~Clone~
+
+*/
 Word Pattern::Clone(const ListExpr typeInfo, const Word& w) {
   Pattern* pattern = static_cast<Pattern*>(w.addr);
   return SetWord(new Pattern(*pattern));
 }
 
+/*
+4.10 Function ~SizeOfObj~
+
+*/
 int Pattern::SizeOfObj() {
   return sizeof(Pattern);
 }
 
+/*
+4.11 Function ~KindCheck~
+
+*/
 bool Pattern::KindCheck(ListExpr type, ListExpr& errorInfo) {
   return (nl->IsEqual(type, Pattern::BasicType()));
 }
 
+/*
+4.12 Function Describing the Signature of the Type Constructor
+
+*/
 ListExpr Pattern::Property() {
   return (nl->TwoElemList(
     nl->FiveElemList(nl->StringAtom("Signature"),
@@ -1184,9 +1184,12 @@ ListExpr Pattern::Property() {
        nl->StringAtom("<pattern> must be a text."))));
 }
 
+/*
+4.13 Creation of the Type Constructor Instance
 
+*/
 TypeConstructor patternTC(
-  Pattern::BasicType(),                          // name of the type in SECONDO
+  Pattern::BasicType(),               // name of the type in SECONDO
   Pattern::Property,                // property function describing signature
   Pattern::Out, Pattern::In,         // Out and In functions
   0, 0,                            // SaveToList, RestoreFromList functions
@@ -1197,17 +1200,30 @@ TypeConstructor patternTC(
   Pattern::SizeOfObj,               // sizeof function
   Pattern::KindCheck );             // kind checking function
 
+//**********************************************************************
+/*
+5 ~NFA~
+*/
 
+/*
+5.1 Function ~buildNFA~
+Reads the pattern and generates the state transitions
+
+*/
 void NFA::buildNFA(Pattern p) {
   nfaPatterns = p.patterns;
-  for (int i = 0; i < numberOfStates - 1; i++) {
-    // solve epsilon-transitions
+  if (!p.conditions.empty()) {
+    nfaConditions = p.conditions;
+  }
+  for (int i = 0; i < numberOfStates - 1; i++) { // solve epsilon-transitions
     if (!(nfaPatterns[i].wildcard.compare("*"))) { // reading '*'
       transitions[i - 1][i - 1].insert(i + 1);
       nfaPatterns[i].wildcard.assign("+");
       if (i < numberOfStates - 2) {
         transitions[i][i + 1].insert(i + 2);
         if (nfaPatterns[i + 1].wildcard.compare("*")) { // handle '* (a 1) * *'
+          transitions[i][i + 1].insert(i);
+          transitions[i][i + 1].insert(i + 1);
           int j = i + 2;
           while ((j < numberOfStates - 1)
                   && !(nfaPatterns[j].wildcard.compare("*"))) {
@@ -1236,10 +1252,10 @@ void NFA::buildNFA(Pattern p) {
         j++;
       }
     }
-    if (!(nfaPatterns[i].wildcard.compare("+"))) {
+    if (!(nfaPatterns[i].wildcard.compare("+"))) { // reading '+'
       transitions[i][i].insert(i);
-      transitions[i][i + 1].insert(i);
-      transitions[i][i + 1].insert(i + 1);
+//       transitions[i][i + 1].insert(i);
+//       transitions[i][i + 1].insert(i + 1);
     }
     transitions[i][i].insert(i + 1);// state i, read pattern i => new state i+1
     if (i > 0) {  // remove duplicates for '* *'
@@ -1252,7 +1268,7 @@ void NFA::buildNFA(Pattern p) {
 }
 
 bool NFA::match(MLabel const &ml) {
-  for (size_t i = 0; i < 3/*(size_t)ml.GetNoComponents()*/; i++) {
+  for (size_t i = 0; i < (size_t)ml.GetNoComponents(); i++) {
     ml.Get(i, currentLabel);
     cout << "unit label #" << i << " is processed now" << endl;
     updateStates();
@@ -1277,24 +1293,19 @@ void NFA::printCurrentStates() {
 void NFA::updateStates() {
   bool result = false;
   set<int> newStates;
+  newStates.clear();
   set<int>::iterator i, it;
-  set<string>::iterator k;
   for (i = currentStates.begin(); i != currentStates.end(); i++) {
     cout << "examine state #" << *i << endl;
     for (int j = 0; j < numberOfStates - 1; j++) {
+      result = false;
       if (!transitions[*i][j].empty()) {
         cout << "there are " << transitions[*i][j].size()
-             << " possible transitions" << endl;
-        if (!nfaPatterns[j].labelset.empty()) {
-          for (k = nfaPatterns[j].labelset.begin();
-               k != nfaPatterns[j].labelset.end(); k++) {
-            cout << "checking label " << *k << endl;
-            CcString *label = new CcString(true, *k);
-            if (currentLabel.Passes(*label)) { // look for a matching label
-              cout << "label " << *k << " matches" << endl;
-              result = true;
-            }
-            label->DeleteIfAllowed();
+             << " possible transitions" <<  endl;
+        if (!nfaPatterns[j].labelset.empty()
+         || !nfaPatterns[j].relatedConditions.empty()) {
+          if (labelsMatch(j)) {
+            result = true;
           }
         }
         else { // no label specified in unit pattern
@@ -1303,16 +1314,43 @@ void NFA::updateStates() {
         if (result) { // insert the new states
           for (it = transitions[*i][j].begin();
                it != transitions[*i][j].end(); it++) {
-            cout << "I\'d like to insert " << *it << endl;
             newStates.insert(*it);
-            cout << "there are " << newStates.size() << " current states now"
-                 << endl;
           }
         }
       }
     }
   }
   currentStates = newStates;
+  printCurrentStates();
+}
+
+bool NFA::labelsMatch(int pos) {
+  bool conditionsOk = false;
+  bool patternOk = false;
+  set<string>::iterator k;
+  if (nfaPatterns[pos].labelset.empty()) {
+    patternOk = true;
+  }
+  else {
+    for (k = nfaPatterns[pos].labelset.begin();
+         k != nfaPatterns[pos].labelset.end(); k++) {
+      CcString *label = new CcString(true, *k);
+      if (currentLabel.Passes(*label)) { // look for a matching label
+        patternOk = true;
+      }
+      label->DeleteIfAllowed();
+    }
+  }
+  if (nfaPatterns[pos].relatedConditions.empty()) {
+    cout << "no related condition" << endl;
+  }
+  else {
+    cout << "related condition is "
+         << *(nfaPatterns[pos].relatedConditions.begin()) << endl;
+    // TODO: include condition check
+  }
+  conditionsOk = true;
+  return patternOk & conditionsOk;
 }
 
 string NFA::toString() {
@@ -1339,7 +1377,7 @@ string NFA::toString() {
   return nfa.str();
 }
 
-void Pattern::checkConditions() {
+void Pattern::verifyConditions() {
   int condSize = conditions.size();
   SecParser condParser;
   string queryString;
@@ -1350,7 +1388,7 @@ void Pattern::checkConditions() {
   bool evaluable = false;
   bool defined = false;
   bool isFunction = false;
-  OpTree tree;
+  OpTree tree = 0;
   ListExpr resultType;
   for (int i = 0; i < condSize; i++) {
     cout << "there " << (condSize > 1 ? "are" : "is") << " still " << condSize
@@ -1509,7 +1547,7 @@ int matchesFun_MT (Word* args, Word& result, int message,
     cout << "invalid pattern" << endl;
     return 0;
   }
-  pattern->checkConditions();
+  pattern->verifyConditions();
   bool res = pattern->matches(*mlabel);
   delete pattern;
   b->Set(true, res); //the first argument says the boolean value is defined,

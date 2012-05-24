@@ -23,6 +23,7 @@ void patternerror( const char* s ) {
   parseSuccess = false;
 }
 stj::Pattern* wholepat = 0;
+int Condition::numberOfConditions = 0;
 Condition* cond = new Condition();
 UnitPattern unitpat = *(new UnitPattern());
 ExpressionList* exprList = new ExpressionList();
@@ -128,6 +129,7 @@ condition : expressionlist {
               cout << "store condition " << cond->condition << endl;
               cond->substitute();
               wholepat->conditions.push_back(*cond);
+              Condition::numberOfConditions++;
               exprList->expressions.clear();
               cond->variables.clear();
               cond->keys.clear();
@@ -468,6 +470,8 @@ Key Condition::convertVarKey(const char *varKey) {
         key = ERROR;
       cond->variables.push_back(var);
       cond->keys.push_back(key);
+      cout << varInput << " " << i << endl;
+      (wholepat->patterns)[i].relatedConditions.insert(numberOfConditions);
       return key;
     }
   }
