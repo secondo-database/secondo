@@ -51,17 +51,17 @@ assign \:=
 <condition>\) {return ')';}
 <condition>\[ {return '[';}
 <condition>\] {return ']';}
-<condition>\n {return ZZEND;}
+<condition>\n {BEGIN(INITIAL); return ZZEND;}
 <result>{variable} {patternlval.text = strdup(patterntext); return ZZVARIABLE;}
 <result>\( {return '(';}
 <result>\) {return ')';}
 <result>{contents_result} {patternlval.text = strdup(patterntext); return ZZCONTENTS_RESULT;}
 <result>{doubleslash} {BEGIN(assignment); return ZZDOUBLESLASH;}
-<result>\n {return ZZEND;}
+<result>\n {BEGIN(INITIAL); return ZZEND;}
 <assignment>{vardotlabel} {patternlval.text = strdup(patterntext); return ZZVAR_DOT_LABEL;}
 <assignment>{assign} {return ZZASSIGN;}
 <assignment>{labelset} {patternlval.text = strdup(patterntext); return ZZLABELSET;}
 <assignment>\, {return ',';}
-<assignment>\n {return ZZEND;}
+<assignment>\n {BEGIN(INITIAL); return ZZEND;}
 . {patternlval.text = strdup(patterntext); return ZZERROR;}
 %%

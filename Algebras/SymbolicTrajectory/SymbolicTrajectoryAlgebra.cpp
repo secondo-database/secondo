@@ -1199,7 +1199,6 @@ TypeConstructor patternTC(
 
 
 void NFA::buildNFA(Pattern p) {
-  cout << "start building NFA" << endl;
   nfaPatterns = p.patterns;
   for (int i = 0; i < numberOfStates - 1; i++) {
     // solve epsilon-transitions
@@ -1276,8 +1275,9 @@ void NFA::printCurrentStates() {
 }
 
 void NFA::updateStates() {
-  /*bool result = false;
-  set<int>::iterator i;
+  bool result = false;
+  set<int> newStates;
+  set<int>::iterator i, it;
   set<string>::iterator k;
   for (i = currentStates.begin(); i != currentStates.end(); i++) {
     cout << "examine state #" << *i << endl;
@@ -1291,6 +1291,7 @@ void NFA::updateStates() {
             cout << "checking label " << *k << endl;
             CcString *label = new CcString(true, *k);
             if (currentLabel.Passes(*label)) { // look for a matching label
+              cout << "label " << *k << " matches" << endl;
               result = true;
             }
             label->DeleteIfAllowed();
@@ -1299,21 +1300,19 @@ void NFA::updateStates() {
         else { // no label specified in unit pattern
           result = true;
         }
-      }
-      currentStates.erase(i);
-      cout << "current state erased" << endl;
-      if (result) {
-        // TODO: insert the new states
-                cout << "try to insert" << endl;
-        set<int>::iterator it = transitions[*i][j].begin();
-
-        cout << "I\'d like to insert, e.g. " << *it << endl;
-        cout << "there are " << currentStates.size() << " current states now"
-             << endl;
+        if (result) { // insert the new states
+          for (it = transitions[*i][j].begin();
+               it != transitions[*i][j].end(); it++) {
+            cout << "I\'d like to insert " << *it << endl;
+            newStates.insert(*it);
+            cout << "there are " << newStates.size() << " current states now"
+                 << endl;
+          }
+        }
       }
     }
   }
-  */
+  currentStates = newStates;
 }
 
 string NFA::toString() {
