@@ -101,11 +101,11 @@ class UnitPattern {
  public:
   string variable;
   string interval;
-  vector<string> labelset;
+  set<string> labelset;
   string wildcard;
 
   UnitPattern() {
-    labelset = *(new vector<string>);
+    labelset = *(new set<string>);
   }
 
   ~UnitPattern() {}
@@ -130,27 +130,26 @@ class Pattern {
   vector<Condition>* conditions;
 
   Pattern() {
-    patterns = new vector<UnitPattern>;
-    results = new vector<UnitPattern>;
-    assignments = new vector<UnitPattern>;
-    conditions = new vector<Condition>;
-  }
-
-  Pattern(vector<UnitPattern> *pats) {
-    patterns = pats;
-  }
-
-  Pattern(vector<UnitPattern> *pats, vector<Condition> *conds) {
-    patterns = pats;
-    conditions = conds;
+    patterns = new vector<UnitPattern>();
+    results = new vector<UnitPattern>();
+    assignments = new vector<UnitPattern>();
+    conditions = new vector<Condition>();
   }
 
   Pattern(const Pattern& rhs) {
-    patterns = rhs.patterns;
-    results = rhs.results;
-    assignments = rhs.assignments;
-    conditions = rhs.conditions;
+    *patterns = *rhs.patterns;
+    *results = *rhs.results;
+    *assignments = *rhs.assignments;
+    *conditions = *rhs.conditions;
   }
+
+  Pattern& operator=(const Pattern& rhs){
+    *patterns = *rhs.patterns;
+    *results = *rhs.results;
+    *assignments = *rhs.assignments;
+    *conditions = *rhs.conditions;
+    return (*this);
+  }  
 
   ~Pattern() {
     delete patterns;
@@ -183,18 +182,26 @@ class Pattern {
 class NFA {
  private:
   set<int> **transitions; // 1st coord: old state; 2nd coord: unit pattern id;
-                          // contents: new state.
+                          // contents: new state(s).
   set<int> currentStates;
+  vector<UnitPattern> nfaPatterns;
+  int numberOfStates;
+  ULabel currentLabel;
 
  public:
-  NFA(const int size) {
-    transitions = new set<int>*[size];
-    for (int i = 0; i < size; i++) {
-      transitions[i] = new set<int>[size];
+  NFA(const int s) {
+    numberOfStates = s;
+    transitions = new set<int>*[numberOfStates];
+    for (int i = 0; i < numberOfStates; i++) {
+      transitions[i] = new set<int>[numberOfStates];
     }
+    currentStates.insert(0);
   }
 
   void buildNFA(Pattern p);
+  bool match(MLabel const &ml);
+  void updateStates();
+  string toString();
 };
 
 }

@@ -7,29 +7,31 @@
 #include <iostream>
 #include <vector>
 #include <sstream>
+#include <set>
 #include <map>
 #include "SymbolicTrajectoryTools.h"
 #include "CharTransform.h"
+#include <string.h>
 
 using namespace std;
 
 char* convert(string arg) {
-  return (char*)arg.c_str();
+  return strdup(arg.c_str());
 }
 
 /*
 function ~splitLabel~
-Splits a string {a, b, c, ...} into a vector of strings a, b, c, ...
+Splits a string {a, b, c, ...} into a set of strings a, b, c, ...
 
 */
-vector<string> splitLabel(string labelset) {
+set<string> splitLabel(string labelset) {
   cout << "splitLabel called" << endl;
   string labels, label;
-  vector<string> result(0);
+  set<string> result;
   if (labelset.at(0) == '{')
     labels.assign(labelset.substr(1, labelset.length() - 2));
   else {
-    result.push_back(labelset);
+    result.insert(labelset);
     cout << "label " << labelset << " added" << endl;
     return result;
   }
@@ -39,7 +41,7 @@ vector<string> splitLabel(string labelset) {
   }
   istringstream iss(labels);
   while (getline(iss, label, ',')) {
-    result.push_back(label);
+    result.insert(label);
     cout << "label " << label << " added" << endl;
   }
   return result;

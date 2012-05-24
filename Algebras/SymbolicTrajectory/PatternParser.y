@@ -22,7 +22,7 @@ void patternerror( const char* s ) {
   cerr << endl << s << endl << endl;
   parseSuccess = false;
 }
-stj::Pattern* wholepat = new stj::Pattern();
+stj::Pattern* wholepat = 0;
 Condition* cond = new Condition();
 UnitPattern unitpat = *(new UnitPattern());
 ExpressionList* exprList = new ExpressionList();
@@ -224,14 +224,12 @@ patternsequence : variable unitpattern
                     {$$ = wholepat;
                      unitpat.createUnit($1, $2);
                      wholepat->patterns->push_back(unitpat);
-                     cout << "pattern #" << wholepat->patterns->size() << endl;
-                     free($1); free($2);}
+                     cout << "pattern #" << wholepat->patterns->size() << endl;}
                 | patternsequence variable unitpattern
                     {$$ = wholepat;
                      unitpat.createUnit($2, $3);
                      wholepat->patterns->push_back(unitpat);
-                     cout << "pattern #" << wholepat->patterns->size() << endl;
-                     free($2); free($3);}
+                     cout << "pattern #" << wholepat->patterns->size() << endl;}
                 ;
 
 variable : ZZVARIABLE
@@ -249,9 +247,9 @@ unitpattern : '(' ZZCONTENTS ')'
               | '(' '(' ')' ')'
                   {$$ = convert("");
                    doubleParentheses = true;}
-              | ZZWILDCARD
-              | ZZERROR
-                  {cout << "invalid pattern " << $1 << " ignored" << endl;}
+              | ZZWILDCARD {
+                   $$ = $1;
+                  }
               ;
 
 %%
@@ -261,6 +259,10 @@ This function is the only one called by the algebra.
 
 */
 bool stj::parseString(const char* argument, Pattern** p) {
+  if( wholepat ){
+    // delete wholepat; // TODO: find out why deletion fails
+  }
+  wholepat = new Pattern();
   pattern_scan_string(argument);
   if (patternparse() != 0) {
     cout << "Error found, parsing aborted." << endl;
@@ -339,7 +341,7 @@ void UnitPattern::createUnit(const char *var, const char *pat) {
     patstr.erase(pos, 1);
   }
   if (strcmp(var, convert("")) && strcmp(var, convert("*"))
-                               && strcmp(var, convert("+"))) {
+   && strcmp(var, convert("+")) && varstr.at(0) > 64 && varstr.at(0) < 91) {
     this->variable.assign(varstr);
   }
   else {
@@ -366,6 +368,8 @@ void UnitPattern::createUnit(const char *var, const char *pat) {
   else if ((pattern.size() == 1) && (!pattern[0].compare("*")
                                   || !pattern[0].compare("+"))) {
     this->wildcard.assign(pattern[0]);
+    this->interval.clear();
+    this->labelset.clear();
   }
   else if ((pattern.size() == 0) || ((pattern.size() == 1) &&
      (!pattern[0].compare("*") || !pattern[0].compare("+")))) {

@@ -1023,6 +1023,7 @@ TypeConstructor labelsTC(
 
 string Pattern::GetText() const {
   stringstream text;
+  set<string>::iterator j;
   text << "~~~~~~pattern~~~~~~" << endl;
   for (unsigned int i = 0; i < patterns->size(); i++) {
     text << "[" << i << "] " << (*patterns)[i].variable << " | "
@@ -1031,10 +1032,11 @@ string Pattern::GetText() const {
       text << "{";
     }
     if (!(*patterns)[i].labelset.empty()) {
-      text << (*patterns)[i].labelset[0];
+      text << *((*patterns)[i].labelset.begin());
     }
-    for (unsigned int j = 1; j < (*patterns)[i].labelset.size(); j++) {
-      text << ", " << (*patterns)[i].labelset[j];
+    for (j = (*patterns)[i].labelset.begin();
+         j != (*patterns)[i].labelset.end(); j++) {
+      text << ", " << *j;
     }
     if ((*patterns)[i].labelset.size() > 1) {
       text << "}";
@@ -1058,10 +1060,11 @@ string Pattern::GetText() const {
         text << "{";
     }
     if (!(*results)[i].labelset.empty()) {
-      text << (*results)[i].labelset[0];
+      text << *((*results)[i].labelset.begin());
     }
-    for (unsigned int j = 1; j < (*results)[i].labelset.size(); j++) {
-      text << ", " << (*results)[i].labelset[j];
+    for (j = (*results)[i].labelset.begin();
+         j != (*results)[i].labelset.end(); j++) {
+      text << ", " << *j;
     }
     if ((*results)[i].labelset.size() > 1) {
       text << "}";
@@ -1076,10 +1079,11 @@ string Pattern::GetText() const {
         text << "{";
     }
     if (!(*assignments)[i].labelset.empty()) {
-      text << (*assignments)[i].labelset[0];
+      text << *((*assignments)[i].labelset.begin());
     }
-    for (unsigned int j = 1; j < (*assignments)[i].labelset.size(); j++) {
-      text << ", " << (*assignments)[i].labelset[j];
+    for (j = (*assignments)[i].labelset.begin();
+         j != (*assignments)[i].labelset.end(); j++) {
+      text << ", " << *j;
     }
     if ((*assignments)[i].labelset.size() > 1) {
       text << "}";
@@ -1087,8 +1091,7 @@ string Pattern::GetText() const {
     text << " | "  << (*assignments)[i].wildcard << endl;
   }
   text << endl;
-  string result = text.str();
-  return result;
+  return text.str();
 }
 
 // name of the type constructor
@@ -1110,12 +1113,16 @@ Word Pattern::In(const ListExpr typeInfo, const ListExpr instance,
     if (list.isText()) {
       string text = list.str();
       Pattern *pattern = new Pattern();
+      cout << text << endl;
+      text +="\n";
       if (stj::parseString(text.c_str(), &pattern)) {
         correct = true;
+        result.addr = pattern;
       }
       else {
         correct = false;
         cmsg.inFunError("Parsing error.");
+        delete pattern;
       }
     }
     else {
@@ -1192,16 +1199,135 @@ TypeConstructor patternTC(
 
 
 void NFA::buildNFA(Pattern p) {
-  vector<UnitPattern> nfaPatterns = *(p.patterns);
-  for (unsigned int i = 0; i < nfaPatterns.size(); i++) {
-    // erase epsilon-transitions
-    if (!(nfaPatterns[i].wildcard.compare("*"))) {
+  cout << "start building NFA" << endl;
+  nfaPatterns = *(p.patterns);
+  for (int i = 0; i < numberOfStates - 1; i++) {
+    // solve epsilon-transitions
+    if (!(nfaPatterns[i].wildcard.compare("*"))) { // reading '*'
+      transitions[i - 1][i - 1].insert(i + 1);
       nfaPatterns[i].wildcard.assign("+");
-      transitions[i][i + 1].insert(i + 2);
+      if (i < numberOfStates - 2) {
+        transitions[i][i + 1].insert(i + 2);
+        if (nfaPatterns[i + 1].wildcard.compare("*")) { // handle '* (a 1) * *'
+          int j = i + 2;
+          while ((j < numberOfStates - 1)
+                  && !(nfaPatterns[j].wildcard.compare("*"))) {
+            transitions[i][i + 1].insert(j + 1);
+            j++;
+          }
+        }
+        else { // handle '* * ... *'
+          int j = i + 1;
+          while ((j < numberOfStates - 1)
+                  && !(nfaPatterns[j].wildcard.compare("*"))) {
+            transitions[i][i].insert(j + 1);
+            j++;
+          }
+        }
+      }
+      else {
+        transitions[i][i + 1].insert(numberOfStates - 1);
+      }
     }
-    // state i, read pattern i => new state i+1
-    transitions[i][i].insert(i + 1);
+    else { // not reading '*'
+      int j = i + 1; // handle '(a 1) * * ... *'
+      while ((j < numberOfStates - 1)
+              && !(nfaPatterns[j].wildcard.compare("*"))) {
+        transitions[i][i].insert(j + 1);
+        j++;
+      }
+    }
+    if (!(nfaPatterns[i].wildcard.compare("+"))) {
+      transitions[i][i].insert(i);
+      transitions[i][i + 1].insert(i);
+      transitions[i][i + 1].insert(i + 1);
+    }
+    transitions[i][i].insert(i + 1);// state i, read pattern i => new state i+1
+    if (i > 0) {  // remove duplicates for '* *'
+      if (!(nfaPatterns[i - 1].wildcard.compare("+"))
+       && !(nfaPatterns[i].wildcard.compare("+"))) {
+        transitions[i - 1][i].clear();  
+      }
+    }
   }
+}
+
+bool NFA::match(MLabel const &ml) {
+  for (size_t i = 0; i < 3/*(size_t)ml.GetNoComponents()*/; i++) {
+    ml.Get(i, currentLabel);
+    cout << "unit label #" << i << " is processed now" << endl;
+    updateStates();
+    if (currentStates.empty()) {
+      cout << "no current state" << endl;
+      return false;
+    }
+  }
+  return (currentStates.count(numberOfStates - 1) > 0) ? true : false;
+}
+
+void NFA::updateStates() {
+  /*bool result = false;
+  set<int>::iterator i;
+  set<string>::iterator k;
+  for (i = currentStates.begin(); i != currentStates.end(); i++) {
+    cout << "examine state #" << *i << endl;
+    for (int j = 0; j < numberOfStates - 1; j++) {
+      if (!transitions[*i][j].empty()) {
+        cout << "there are " << transitions[*i][j].size()
+             << " possible transitions" << endl;
+        if (!nfaPatterns[j].labelset.empty()) {
+          for (k = nfaPatterns[j].labelset.begin();
+               k != nfaPatterns[j].labelset.end(); k++) {
+            cout << "checking label " << *k << endl;
+            CcString *label = new CcString(true, *k);
+            if (currentLabel.Passes(*label)) { // look for a matching label
+              result = true;
+            }
+            label->DeleteIfAllowed();
+          }
+        }
+        else { // no label specified in unit pattern
+          result = true;
+        }
+      }
+      currentStates.erase(i);
+      cout << "current state erased" << endl;
+      if (result) {
+        // TODO: insert the new states
+                cout << "try to insert" << endl;
+        set<int>::iterator it = transitions[*i][j].begin();
+
+        cout << "I\'d like to insert, e.g. " << *it << endl;
+        cout << "there are " << currentStates.size() << " current states now"
+             << endl;
+      }
+    }
+  }
+  */
+}
+
+string NFA::toString() {
+  cout << "start output, " << numberOfStates << " states" << endl;
+  stringstream nfa;
+  set<int>::iterator k;
+  for (int i = 0; i < numberOfStates - 1; i++) {
+    for (int j = i; j < numberOfStates - 1; j++) {
+      if (transitions[i][j].size() > 0) {
+        nfa << "state " << i << " | unitpat #" << j << " | new states {";
+        if (transitions[i][j].size() == 1) {
+          nfa << *(transitions[i][j].begin());
+        }
+        else {
+          for (k = transitions[i][j].begin();
+               k != transitions[i][j].end(); k++) {
+            nfa << *k << " ";
+          }
+        }
+        nfa << "}" << endl;
+      }
+    }
+  }
+  return nfa.str();
 }
 
 int Pattern::checkConditions() {
@@ -1276,7 +1402,7 @@ int Pattern::checkConditions() {
       cout << "condition ok" << endl;
     }
   }
-  qp->Destroy(tree, true);
+  // TODO: qp->Destroy(tree, true);
   return removedConds;
 }
 
@@ -1288,9 +1414,11 @@ bool Pattern::getPattern(string input, Pattern** p) {
 }
 
 bool Pattern::matches(MLabel const &ml) {
-  NFA *nfa = new NFA(patterns->size());
+  NFA *nfa = new NFA(patterns->size() + 1);
+  cout << "matches" << endl;
   nfa->buildNFA(*this);
-  return true;
+  cout << nfa->toString() << endl;
+  return nfa->match(ml);
 }
 
 ListExpr textToPatternMap(ListExpr args) {
@@ -1305,7 +1433,20 @@ int patternFun(Word* args, Word& result, int message, Word& local, Supplier s){
   FText* patternText = static_cast<FText*>(args[0].addr);
   result = qp->ResultStorage(s);
   Pattern* p = static_cast<Pattern*>(result.addr);
-  stj::parseString((patternText->GetValue()).c_str(), &p);
+  string pt = patternText->GetValue().c_str();
+  //  stj::parseString((patternText->GetValue()+"\n").c_str(), &p);
+
+  cout << "pare with new pattern" << endl;
+  Pattern* ptest = new Pattern();
+  if(!ptest->getPattern(patternText->toText(), &ptest)){
+    cout << "failed" << endl;
+  }  
+
+  cout << "parse with result storage" << endl;
+  if(!p->getPattern(patternText->toText(), &p)){
+     //p->SetDefined(false);
+  }
+  cout << "done" << endl; 
   return 0;
 }
 
@@ -1357,11 +1498,16 @@ int matchesFun_MT (Word* args, Word& result, int message,
   result = qp->ResultStorage(s); //query processor has provided
                                  //a CcBool instance for the result
   CcBool* b = static_cast<CcBool*>(result.addr);
+
+
+  cout << "matches ******" << endl;
   if (!pattern->getPattern(patternText->toText(), &pattern)) {
     b->SetDefined(false);
     cout << "invalid pattern" << endl;
     return 0;
   }
+  cout << "successful parsed" << endl;
+  
   int removed = pattern->checkConditions();
   if (removed) {
     cout << removed << " invalid condition" << ((removed > 1) ? "s" : "")

@@ -24,5 +24,5 @@ vector<string> getElementsFromSet(string const set);
 
 
 
-vector<string> splitLabel(string labelset);
+set<string> splitLabel(string labelset);
 char* convert(string arg);
