@@ -192,7 +192,12 @@ public:
 
           // Calculate selectivity
           if(qp->GetSelectivity(supplier) == 0.1) {
-              pRes->Card = p1.Card * p2.Card * 0.2;
+              if(returned >= (size_t) enoughSuccessesJoin) {
+                 pRes->Card = p1.Card * p2.Card * (returned / readStream1); 
+              } else {
+                 // Default selectivity 20%
+                 pRes->Card = p1.Card * p2.Card * 0.2;
+              }
           } else {
              pRes->Card = qp->GetSelectivity(supplier) * p1.Card * p2.Card;
           }
