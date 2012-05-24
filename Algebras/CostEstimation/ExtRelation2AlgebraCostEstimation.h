@@ -82,7 +82,7 @@ public:
     }    
 
 /*
-1.0 Free local datastructures
+1.2 Free local datastructures
 
 */
   virtual ~ItHashJoinCostEstimation() {
@@ -231,7 +231,7 @@ public:
 
 
 /*
-1.1. getCosts
+1.3 getCosts
 
 Returns the estimated time in ms for given arguments.
 
@@ -277,7 +277,7 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
 
 
 /*
-Calculate the sufficent memory for this operator.
+1.4 Calculate the sufficent memory for this operator.
 
 */
 double calculateSufficientMemory(size_t NoTuples2, size_t sizeOfTuple2) const {
@@ -300,7 +300,7 @@ double calculateSufficientMemory(size_t NoTuples2, size_t sizeOfTuple2) const {
 }
 
 /*
-Get Linear Params
+1.5 Get Linear Params
 Input: 
 NoTuples1, sizeOfTuple1
 NoTuples2, sizeOfTuple2,
@@ -332,7 +332,7 @@ timeAt16MB - Time for the calculation with 16MB Memory
    }
 
 /*
-1.3 getFunction
+1.6 getFunction
 
 This function approximates the costfunction by an parametrizable
 function. Allowed types are:
@@ -358,7 +358,7 @@ function. Allowed types are:
    
 
 /*
-Calculate the numer of partitions for this operator
+1.7 Calculate the numer of partitions for this operator
 
 */
 size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
@@ -393,7 +393,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
 }
 
 /*
-Setter for stream1Exhausted
+1.8 Setter for stream1Exhausted
 
 */
   void setStream1Exhausted(bool exhausted) {
@@ -401,7 +401,7 @@ Setter for stream1Exhausted
   }
 
 /*
-Setter for stream2Exhausted
+1.9 Setter for stream2Exhausted
 
 */
   void setStream2Exhausted(bool exhausted) {
@@ -410,7 +410,7 @@ Setter for stream2Exhausted
 
 
 /*
-Update processed tuples in stream1
+1.10 Update processed tuples in stream1
 
 */
    void processedTupleInStream1() {
@@ -418,7 +418,7 @@ Update processed tuples in stream1
    }
 
 /*
-Update processed tuples in stream2
+1.11 Update processed tuples in stream2
 
 */
     void processedTupleInStream2() {
@@ -426,7 +426,7 @@ Update processed tuples in stream2
     }
 
 /*
-Setter for iterattion
+1.12 Setter for iterattion
 
 */
     void setIteration(size_t iter) {
@@ -434,7 +434,7 @@ Setter for iterattion
     }
 
 /*
-Setter for Buckets
+1.13 Setter for Buckets
 
 */
     void setBuckets(size_t bucketno) {
@@ -442,7 +442,7 @@ Setter for Buckets
     }
 
 /*
-Setter for readInIteration
+1.14 Setter for readInIteration
 
 */
    void incReadInIteration() {
@@ -450,7 +450,7 @@ Setter for readInIteration
    }
 
 /*
-Reset read in iteration
+1.15 Reset read in iteration
 
 */
    void resetReadInIteration() {
@@ -458,7 +458,7 @@ Reset read in iteration
    }
 
 /*
-Set number of tuples in tuplefile
+1.16 Set number of tuples in tuplefile
 
 */
    void incTuplesInTupleFile() {
@@ -466,7 +466,7 @@ Set number of tuples in tuplefile
    }
 
 /*
-Set number of tuples in tuplefile
+1.17 Set number of tuples in tuplefile
 
 */
    void setTuplesInTupleFile(size_t tuples) {
@@ -474,7 +474,7 @@ Set number of tuples in tuplefile
    }
 
 /*
-Set tupleFileWritten state
+1.18 Set tupleFileWritten state
 
 */
    void setTupleFileWritten(bool state) {
@@ -482,7 +482,7 @@ Set tupleFileWritten state
    }
 
 /*
-1.1.0 init our class
+1.19 init our class
 
 */
   virtual void init(Word* args, void* localInfo)
