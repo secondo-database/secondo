@@ -45,11 +45,9 @@ class ULabel : public UString {
 
 class ExpressionList {
  public: 
-  vector<string>* expressions;
+  vector<string> expressions;
 
-  ExpressionList() {
-    expressions = new vector<string>;
-  }
+  ExpressionList() {}
 
   ~ExpressionList() {}
 
@@ -71,25 +69,26 @@ class Condition {
  public:
   string condition;
   string condsubst; // the condition after substituting as mentioned above
-  vector<ConditionType>* types;
+  vector<ConditionType> types;
   vector<Key> keys;
   vector<string> variables;
 
   Condition() {
-    types = new vector<ConditionType>;
-    types->push_back(*(new ConditionType(convert(".label"), convert("\"a\""))));
-    types->push_back(*(new ConditionType(convert(".time"), convert(
+    types.push_back(*(new ConditionType(convert(".label"), convert("\"a\""))));
+    types.push_back(*(new ConditionType(convert(".time"), convert(
            "[const periods value ((\"2003-11-20-07:01:40\" "
            "\"2003-11-20-07:45\" TRUE TRUE))]"))));
-    types->push_back(*(new ConditionType(convert(".start"), convert(
+    types.push_back(*(new ConditionType(convert(".start"), convert(
            "[const instant value \"1909-12-19\"]"))));
-    types->push_back(*(new ConditionType(convert(".end"), convert(
+    types.push_back(*(new ConditionType(convert(".end"), convert(
            "[const instant value \"2012-05-12\"]"))));
-    types->push_back(*(new ConditionType(convert(".card"), convert("1"))));
-    types->push_back(*(new ConditionType(convert(".ERROR"), convert(""))));
+    types.push_back(*(new ConditionType(convert(".card"), convert("1"))));
+    types.push_back(*(new ConditionType(convert(".ERROR"), convert(""))));
   }
 
-  ~Condition() {}
+  ~Condition() {
+    types.clear();
+  }
   
   void toString();
   Key convertVarKey(const char *varKey);
@@ -104,9 +103,7 @@ class UnitPattern {
   set<string> labelset;
   string wildcard;
 
-  UnitPattern() {
-    labelset = *(new set<string>);
-  }
+  UnitPattern() {}
 
   ~UnitPattern() {}
 
@@ -124,39 +121,29 @@ class UnitPattern {
 
 class Pattern {
  public:
-  vector<UnitPattern>* patterns;
-  vector<UnitPattern>* results;
-  vector<UnitPattern>* assignments;
-  vector<Condition>* conditions;
+  vector<UnitPattern> patterns;
+  vector<UnitPattern> results;
+  vector<UnitPattern> assignments;
+  vector<Condition> conditions;
 
-  Pattern() {
-    patterns = new vector<UnitPattern>();
-    results = new vector<UnitPattern>();
-    assignments = new vector<UnitPattern>();
-    conditions = new vector<Condition>();
-  }
+  Pattern() {}
 
   Pattern(const Pattern& rhs) {
-    *patterns = *rhs.patterns;
-    *results = *rhs.results;
-    *assignments = *rhs.assignments;
-    *conditions = *rhs.conditions;
+    patterns = rhs.patterns;
+    results = rhs.results;
+    assignments = rhs.assignments;
+    conditions = rhs.conditions;
   }
 
   Pattern& operator=(const Pattern& rhs){
-    *patterns = *rhs.patterns;
-    *results = *rhs.results;
-    *assignments = *rhs.assignments;
-    *conditions = *rhs.conditions;
+    patterns = rhs.patterns;
+    results = rhs.results;
+    assignments = rhs.assignments;
+    conditions = rhs.conditions;
     return (*this);
   }  
 
-  ~Pattern() {
-    delete patterns;
-    delete results;
-    delete assignments;
-    delete conditions;
-  }
+  ~Pattern() {}
 
   void toString();
   string GetText() const;
@@ -174,7 +161,7 @@ class Pattern {
   // other functions
   static const string BasicType();
   static const bool checkType(const ListExpr type);
-  int checkConditions();
+  void checkConditions();
   bool getPattern(string input, Pattern** p);
   bool matches(MLabel const &ml);
 };
@@ -200,6 +187,7 @@ class NFA {
 
   void buildNFA(Pattern p);
   bool match(MLabel const &ml);
+  void printCurrentStates();
   void updateStates();
   string toString();
 };

@@ -53,14 +53,18 @@ bool firstAssignment = true;
 %type<el> expressionlist expressionlistcomma expressionlistparentheses
           expressionlistbrackets enclosedlist expressionlistenclosed
 %%
-start : patternsequence ZZDOUBLESLASH conditionsequence ZZEND
-          {cout << wholepat->GetText();}
-      | patternsequence ZZEND
-          {cout << wholepat->GetText();}
-      | patternsequence ZZRIGHTARROW results_assignments ZZEND
-          {cout << wholepat->GetText();}
-      | patternsequence ZZDOUBLESLASH conditionsequence ZZRIGHTARROW results_assignments ZZEND
-          {cout << wholepat->GetText();}
+start : patternsequence ZZDOUBLESLASH conditionsequence ZZEND {
+          cout << wholepat->GetText();
+        }
+      | patternsequence ZZEND {
+          cout << wholepat->GetText();
+        }
+      | patternsequence ZZRIGHTARROW results_assignments ZZEND {
+          cout << wholepat->GetText();
+        }
+      | patternsequence ZZDOUBLESLASH conditionsequence ZZRIGHTARROW results_assignments ZZEND {
+          cout << wholepat->GetText();
+        }
       ;
 
 results_assignments : resultsequence ZZDOUBLESLASH assignmentsequence
@@ -71,186 +75,213 @@ assignmentsequence : assignment
                    | assignmentsequence ',' assignment
                    ;
 
-assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABELSET
-               {string var, labels;
-                labels.assign($3);
-                var.assign($1);
-                var.assign(var.substr(0, var.find('.')));
-                unitpat.getUnit(convert(var), true);
-                unitpat.labelset = splitLabel(labels);
-                unitpat.wildcard.clear();
-                wholepat->assignments->push_back(unitpat);
-                cout << "unit added to assignments" << endl;}
+assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABELSET {
+               string var, labels;
+               labels.assign($3);
+               var.assign($1);
+               var.assign(var.substr(0, var.find('.')));
+               unitpat.getUnit(convert(var), true);
+               unitpat.labelset = splitLabel(labels);
+               unitpat.wildcard.clear();
+               wholepat->assignments.push_back(unitpat);
+               cout << "unit added to assignments" << endl;
+             }
            ;
 
 resultsequence : result
                | resultsequence result
                ;
 
-result : ZZVARIABLE unitpattern_result
-           {unitpat.getUnit($1, false);
-            if (!unitpat.variable.empty()) {
-              unitpat.createUnit($1, $2);
-              unitpat.interval.assign(currentInterval);
-              wholepat->results->push_back(unitpat);
-              cout << "unit " << $2 << " added to results" << endl;}
-            else {
-              cout << $1 << " was not found in the pattern" << endl;
-            }}
-       | ZZVARIABLE
-           {unitpat.getUnit($1, false);
-            if (!unitpat.variable.empty()) {
-              wholepat->results->push_back(unitpat);
-              cout << "unit added to results" << endl;}
-            else {
-              cout << $1 << " was not found in the pattern" << endl;
-            }}
+result : ZZVARIABLE unitpattern_result {
+           unitpat.getUnit($1, false);
+           if (!unitpat.variable.empty()) {
+             unitpat.createUnit($1, $2);
+             unitpat.interval.assign(currentInterval);
+             wholepat->results.push_back(unitpat);
+             cout << "unit " << $2 << " added to results" << endl;}
+           else {
+             cout << $1 << " was not found in the pattern" << endl;
+           }
+         }
+       | ZZVARIABLE {
+           unitpat.getUnit($1, false);
+           if (!unitpat.variable.empty()) {
+             wholepat->results.push_back(unitpat);
+             cout << "unit added to results" << endl;}
+           else {
+             cout << $1 << " was not found in the pattern" << endl;
+           }
+         }
        ;
 
-unitpattern_result : '(' ZZCONTENTS_RESULT ')'
-                       {$$ = $2;}
+unitpattern_result : '(' ZZCONTENTS_RESULT ')' {
+                       $$ = $2;
+                     }
                    ;
 
 conditionsequence : condition
                   | conditionsequence ',' condition
                   ;
 
-condition : expressionlist
-              {cond->condition.assign(exprList->toString());
-               cout << "store condition " << cond->condition << endl;
-               cond->substitute();
-               wholepat->conditions->push_back(*cond);
-               exprList->expressions->clear();
-               cond->variables.clear();
-               cond->keys.clear();}
+condition : expressionlist {
+              cond->condition.assign(exprList->toString());
+              cout << "store condition " << cond->condition << endl;
+              cond->substitute();
+              wholepat->conditions.push_back(*cond);
+              exprList->expressions.clear();
+              cond->variables.clear();
+              cond->keys.clear();
+            }
           ;
 
-expression : ZZVAR_DOT_TYPE
-               {if (cond->convertVarKey($1) == ERROR)
-                  $$ = convert("");}
-           | ZZCONST_OP
-               {$$ = $1;}
-           | expressionlistparentheses
-               {string list;
-                list.append(exprList->expressions->back());
-                $$ = convert(list);
-                exprList->expressions->erase(exprList->expressions->end());
-                cout << "expressionlistparentheses reads " << $$ << endl;}
-           | expressionlistbrackets
-               {string list;
-                list.append(exprList->expressions->back());
-                $$ = convert(list);
-                exprList->expressions->erase(exprList->expressions->end());
-                cout << "expressionlistbrackets reads " << $$ << endl;}
+expression : ZZVAR_DOT_TYPE {
+               if (cond->convertVarKey($1) == ERROR) {
+                 $$ = convert("");
+               }
+             }
+           | ZZCONST_OP {
+               $$ = $1;
+             }
+           | expressionlistparentheses {
+               string list;
+               list.append(exprList->expressions.back());
+               $$ = convert(list);
+               exprList->expressions.erase(exprList->expressions.end());
+               cout << "expressionlistparentheses reads " << $$ << endl;
+             }
+           | expressionlistbrackets {
+               string list;
+               list.append(exprList->expressions.back());
+               $$ = convert(list);
+               exprList->expressions.erase(exprList->expressions.end());
+               cout << "expressionlistbrackets reads " << $$ << endl;
+             }
            ;
 
-expressionlistparentheses : '(' enclosedlist ')'
-                              {int exprSize = exprList->expressions->size();
-                               (*(exprList->expressions))[exprSize - 1].insert(0, "(");
-                               (*(exprList->expressions))[exprSize - 1].append(")");
-                               $$ = exprList;}
+expressionlistparentheses : '(' enclosedlist ')' {
+                              int exprSize = exprList->expressions.size();
+                              (exprList->expressions)[exprSize - 1].insert(0, "(");
+                              (exprList->expressions)[exprSize - 1].append(")");
+                              $$ = exprList;
+                            }
                           ;
 
-expressionlistbrackets : '[' enclosedlist ']'
-                           {int exprSize = exprList->expressions->size();
-                            (*(exprList->expressions))[exprSize - 1].insert(0, "[");
-                            (*(exprList->expressions))[exprSize - 1].append("]");
-                            $$ = exprList;}
+expressionlistbrackets : '[' enclosedlist ']' {
+                           int exprSize = exprList->expressions.size();
+                           (exprList->expressions)[exprSize - 1].insert(0, "[");
+                           (exprList->expressions)[exprSize - 1].append("]");
+                           $$ = exprList;
+                         }
                        ;
 
-enclosedlist : expression expressionlistenclosed
-                 {expr.assign($1);
-                  int exprSize = exprList->expressions->size();
-                  (*(exprList->expressions))[exprSize - 1].insert(0, " ");
-                  (*(exprList->expressions))[exprSize - 1].insert(0, expr);
-                  $$ = exprList;}
-             | expression expressionlistcomma
-                 {expr.assign($1);
-                  int exprSize = exprList->expressions->size();
-                  (*(exprList->expressions))[exprSize - 1].insert(0, " ");
-                  (*(exprList->expressions))[exprSize - 1].insert(0, expr);
-                  $$ = exprList;}
-             | expression
-                 {expr.assign($1);
-                  exprList->expressions->push_back(expr);}
-             | /* empty */
-                 {expr.clear();}
+enclosedlist : expression expressionlistenclosed {
+                 expr.assign($1);
+                 int exprSize = exprList->expressions.size();
+                 (exprList->expressions)[exprSize - 1].insert(0, " ");
+                 (exprList->expressions)[exprSize - 1].insert(0, expr);
+                 $$ = exprList;
+               }
+             | expression expressionlistcomma {
+                 expr.assign($1);
+                 int exprSize = exprList->expressions.size();
+                 (exprList->expressions)[exprSize - 1].insert(0, " ");
+                 (exprList->expressions)[exprSize - 1].insert(0, expr);
+                 $$ = exprList;
+               }
+             | expression {
+                 expr.assign($1);
+                 exprList->expressions.push_back(expr);
+               }
+             | /* empty */ {
+                 expr.clear();
+               }
              ;
 
-expressionlistenclosed : expression
-                           {expr.assign($1);
-                            cout << "one element list = " << $1 << endl;
-                            exprList->expressions->push_back(expr);
-                            $$ = exprList;}
-                       | expressionlistenclosed expression
-                           {expr.assign($2);
-                            int exprSize = exprList->expressions->size();
-                            (*(exprList->expressions))[exprSize - 1].append(" ");
-                            (*(exprList->expressions))[exprSize - 1].append(expr);
-                            $$ = exprList;
-                            cout << "expressionlistenclosed reads \"" << exprList->toString() << "\"" << endl;}
+expressionlistenclosed : expression {
+                           expr.assign($1);
+                           cout << "one element list = " << $1 << endl;
+                           exprList->expressions.push_back(expr);
+                           $$ = exprList;
+                         }
+                       | expressionlistenclosed expression {
+                           expr.assign($2);
+                           int exprSize = exprList->expressions.size();
+                           (exprList->expressions)[exprSize - 1].append(" ");
+                           (exprList->expressions)[exprSize - 1].append(expr);
+                           $$ = exprList;
+                           cout << "expressionlistenclosed reads \"" << exprList->toString() << "\"" << endl;
+                         }
                        ;
 
-expressionlistcomma : ',' expression
-                        {expr.assign($2);
-                         expr.insert(0, ",");
-                         cout << "one elem list = " << expr << endl;
-                         exprList->expressions->push_back(expr);
-                         $$ = exprList;}
-                    | expressionlistcomma ',' expression
-                        {expr.assign($3);
-                         int exprSize = exprList->expressions->size();
-                         (*(exprList->expressions))[exprSize - 1].append(",");
-                         (*(exprList->expressions))[exprSize - 1].append(expr);
-                         $$ = exprList;
-                         cout << "comma list = " << exprList->toString() << endl;}
+expressionlistcomma : ',' expression {
+                        expr.assign($2);
+                        expr.insert(0, ",");
+                        cout << "one elem list = " << expr << endl;
+                        exprList->expressions.push_back(expr);
+                        $$ = exprList;
+                      }
+                    | expressionlistcomma ',' expression {
+                        expr.assign($3);
+                        int exprSize = exprList->expressions.size();
+                        (exprList->expressions)[exprSize - 1].append(",");
+                        (exprList->expressions)[exprSize - 1].append(expr);
+                        $$ = exprList;
+                        cout << "comma list = " << exprList->toString() << endl;
+                      }
                     ;
 
-expressionlist : expression
-                   {expr.assign($1);
-                    cout << "one element list = " << $1 << endl;
-                    exprList->expressions->push_back(expr);
-                    $$ = exprList;}
-               | expressionlist expression
-                   {expr.assign($2);
-                    int exprSize = exprList->expressions->size();
-                    (*(exprList->expressions))[exprSize - 1].append(" ");
-                    (*(exprList->expressions))[exprSize - 1].append(expr);
-                    $$ = exprList;
-                    cout << "condition reads \"" << exprList->toString() << "\"" << endl;}
+expressionlist : expression {
+                   expr.assign($1);
+                   cout << "one element list = " << $1 << endl;
+                   exprList->expressions.push_back(expr);
+                   $$ = exprList;
+                 }
+               | expressionlist expression {
+                   expr.assign($2);
+                   int exprSize = exprList->expressions.size();
+                   (exprList->expressions)[exprSize - 1].append(" ");
+                   (exprList->expressions)[exprSize - 1].append(expr);
+                   $$ = exprList;
+                   cout << "condition reads \"" << exprList->toString() << "\"" << endl;
+                 }
                ;
 
-patternsequence : variable unitpattern
-                    {$$ = wholepat;
-                     unitpat.createUnit($1, $2);
-                     wholepat->patterns->push_back(unitpat);
-                     cout << "pattern #" << wholepat->patterns->size() << endl;}
-                | patternsequence variable unitpattern
-                    {$$ = wholepat;
-                     unitpat.createUnit($2, $3);
-                     wholepat->patterns->push_back(unitpat);
-                     cout << "pattern #" << wholepat->patterns->size() << endl;}
+patternsequence : variable unitpattern {
+                    $$ = wholepat;
+                    unitpat.createUnit($1, $2);
+                    wholepat->patterns.push_back(unitpat);
+                    cout << "pattern #" << wholepat->patterns.size() << endl;
+                  }
+                | patternsequence variable unitpattern {
+                    $$ = wholepat;
+                    unitpat.createUnit($2, $3);
+                    wholepat->patterns.push_back(unitpat);
+                    cout << "pattern #" << wholepat->patterns.size() << endl;
+                  }
                 ;
 
 variable : ZZVARIABLE
-         | /* empty */
-             {$$ = convert("empty");}
+         | /* empty */ {
+             $$ = convert("empty");
+           }
          ;
 
-unitpattern : '(' ZZCONTENTS ')'
-                  {$$ = $2;}
-              | '(' '(' ZZCONTENTS ')' ')'
-                  {$$ = $3;
-                   doubleParentheses = true;}
-              | '(' ')'
-                  {$$ = convert("");}
-              | '(' '(' ')' ')'
-                  {$$ = convert("");
-                   doubleParentheses = true;}
-              | ZZWILDCARD {
-                   $$ = $1;
-                  }
-              ;
+unitpattern : '(' ZZCONTENTS ')' {
+                $$ = $2;
+              }
+            | '(' '(' ZZCONTENTS ')' ')' {
+                $$ = $3;
+                doubleParentheses = true;
+              }
+            | '(' ')' {
+                $$ = convert("");
+              }
+            | '(' '(' ')' ')' {
+                $$ = convert("");
+                doubleParentheses = true;
+              }
+            | ZZWILDCARD
+            ;
 
 %%
 /*
@@ -259,8 +290,8 @@ This function is the only one called by the algebra.
 
 */
 bool stj::parseString(const char* argument, Pattern** p) {
-  if( wholepat ){
-    // delete wholepat; // TODO: find out why deletion fails
+  if (wholepat) {
+    //delete wholepat; // TODO: find out why deletion fails
   }
   wholepat = new Pattern();
   pattern_scan_string(argument);
@@ -273,7 +304,7 @@ bool stj::parseString(const char* argument, Pattern** p) {
     (*p) = wholepat;
   }
   unitpat.labelset.clear();
-  cond->types->clear();
+  cond->types.clear();
   return parseSuccess;
 }
 
@@ -291,20 +322,20 @@ void UnitPattern::getUnit(const char *var, bool assignment) {
   string varStr;
   varStr.assign(var);
   bool found = false;
-  while ((currentPos < wholepat->patterns->size()) && !found) { // look for the variable
-    if (!(*(wholepat->patterns))[currentPos].variable.compare(varStr)) {
-      this->variable.assign((*(wholepat->patterns))[currentPos].variable);
-      this->interval.assign((*(wholepat->patterns))[currentPos].interval);
-      this->labelset = (*(wholepat->patterns))[currentPos].labelset;
-      this->wildcard.assign((*(wholepat->patterns))[currentPos].wildcard);
+  while ((currentPos < wholepat->patterns.size()) && !found) { // look for the variable
+    if (!(wholepat->patterns)[currentPos].variable.compare(varStr)) {
+      variable.assign((wholepat->patterns)[currentPos].variable);
+      interval.assign((wholepat->patterns)[currentPos].interval);
+      labelset = (wholepat->patterns)[currentPos].labelset;
+      wildcard.assign((wholepat->patterns)[currentPos].wildcard);
       found = true;
-      currentInterval.assign(this->interval);
-      cout << "variable " << this->variable << " found in pattern " << currentPos << endl;
+      currentInterval.assign(interval);
+      cout << "variable " << variable << " found in pattern " << currentPos << endl;
     }
     currentPos++;
   }
   if (!found) {
-    this->variable.clear();
+    variable.clear();
     cout << "variable " << varStr << " not found" << endl;
   }
 }
@@ -342,10 +373,10 @@ void UnitPattern::createUnit(const char *var, const char *pat) {
   }
   if (strcmp(var, convert("")) && strcmp(var, convert("*"))
    && strcmp(var, convert("+")) && varstr.at(0) > 64 && varstr.at(0) < 91) {
-    this->variable.assign(varstr);
+    variable.assign(varstr);
   }
   else {
-    this->variable.clear();
+    variable.clear();
   }
   if (!patstr.empty()) {
     istringstream iss(patstr);
@@ -356,28 +387,28 @@ void UnitPattern::createUnit(const char *var, const char *pat) {
     }
   }
   if (doubleParentheses) {
-    this->wildcard.assign("+");
+    wildcard.assign("+");
   }
   if (pattern.size() == 2) {
-    this->interval.assign(pattern[0]);
-    this->labelset = splitLabel(pattern[1]);
+    interval.assign(pattern[0]);
+    labelset = splitLabel(pattern[1]);
     if (!doubleParentheses) {
-      this->wildcard.clear();
+      wildcard.clear();
     }
   }
   else if ((pattern.size() == 1) && (!pattern[0].compare("*")
                                   || !pattern[0].compare("+"))) {
-    this->wildcard.assign(pattern[0]);
-    this->interval.clear();
-    this->labelset.clear();
+    wildcard.assign(pattern[0]);
+    interval.clear();
+    labelset.clear();
   }
   else if ((pattern.size() == 0) || ((pattern.size() == 1) &&
      (!pattern[0].compare("*") || !pattern[0].compare("+")))) {
-    this->interval.clear();
-    this->labelset.clear();
+    interval.clear();
+    labelset.clear();
   }
   if ((pattern.size() == 0) && !doubleParentheses) {
-    this->wildcard.clear();
+    wildcard.clear();
   }
   doubleParentheses = false;
 }
@@ -400,9 +431,9 @@ void Condition::substitute() {
   condsubst.assign(condition);
   while (i < keys.size()) {
     varKey.assign(variables[i]);
-    varKey.append((*types)[keys[i]].type);
+    varKey.append(types[keys[i]].type);
     int pos = condsubst.find(varKey);
-    condsubst.replace(pos, varKey.size(), (*types)[keys[i]].replacement);
+    condsubst.replace(pos, varKey.size(), types[keys[i]].replacement);
     i++;
   }
 }
@@ -420,8 +451,8 @@ Key Condition::convertVarKey(const char *varKey) {
   int dotpos = input.find('.');
   varInput.assign(input.substr(0, dotpos));
   kInput.assign(input.substr(dotpos + 1));
-  for (int i = 0; i < wholepat->patterns->size(); i++) {
-    if (!varInput.compare(convert(((*(wholepat->patterns))[i]).variable))) {
+  for (int i = 0; i < wholepat->patterns.size(); i++) {
+    if (!varInput.compare(convert(((wholepat->patterns)[i]).variable))) {
       var.assign(varInput);
       if (!kInput.compare("label"))
         key = LABEL;
@@ -453,10 +484,10 @@ void Condition::clear() {
 
 string ExpressionList::toString() {
   string result;
-  result.assign((*expressions)[0]);
-  for (int i = 1; i < expressions->size(); i++) {
+  result.assign(expressions[0]);
+  for (int i = 1; i < expressions.size(); i++) {
     result.append(" ");
-    result.append((*expressions)[i]);
+    result.append(expressions[i]);
   }
   return result;
 }

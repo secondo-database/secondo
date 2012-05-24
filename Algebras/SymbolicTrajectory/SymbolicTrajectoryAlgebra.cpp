@@ -1025,70 +1025,70 @@ string Pattern::GetText() const {
   stringstream text;
   set<string>::iterator j;
   text << "~~~~~~pattern~~~~~~" << endl;
-  for (unsigned int i = 0; i < patterns->size(); i++) {
-    text << "[" << i << "] " << (*patterns)[i].variable << " | "
-         << (*patterns)[i].interval << " | ";
-    if ((*patterns)[i].labelset.size() > 1) {
+  for (unsigned int i = 0; i < patterns.size(); i++) {
+    text << "[" << i << "] " << patterns[i].variable << " | "
+         << patterns[i].interval << " | ";
+    if (patterns[i].labelset.size() > 1) {
       text << "{";
     }
-    if (!(*patterns)[i].labelset.empty()) {
-      text << *((*patterns)[i].labelset.begin());
+    for (j = patterns[i].labelset.begin();
+         j != patterns[i].labelset.end(); j++) {
+      if (j != patterns[i].labelset.begin()) {
+        text << ", ";
+      }
+      text << *j;
     }
-    for (j = (*patterns)[i].labelset.begin();
-         j != (*patterns)[i].labelset.end(); j++) {
-      text << ", " << *j;
-    }
-    if ((*patterns)[i].labelset.size() > 1) {
+    if (patterns[i].labelset.size() > 1) {
       text << "}";
     }
-    text << " | " << (*patterns)[i].wildcard << endl;
+    text << " | " << patterns[i].wildcard << endl;
   }
   text << "~~~~~~conditions~~~~~~" << endl;
-  for (unsigned int i = 0; i < conditions->size(); i++) {
-    text << "[" << i << "] " << (*conditions)[i].condition << endl;
-    text << "[subst] " << (*conditions)[i].condsubst << endl;
-    for (unsigned int j = 0; j < (*conditions)[i].variables.size(); j++) {
-      text << "[[" << j << "]] " << (*conditions)[i].variables[j]
-           << "." << (*conditions)[i].keys[j] << endl;
+  for (unsigned int i = 0; i < conditions.size(); i++) {
+    text << "[" << i << "] " << conditions[i].condition << endl;
+    text << "[subst] " << conditions[i].condsubst << endl;
+    for (unsigned int j = 0; j < conditions[i].variables.size(); j++) {
+      text << "[[" << j << "]] " << conditions[i].variables[j]
+           << "." << conditions[i].keys[j] << endl;
     }
   }
   text << "~~~~~~results~~~~~~" << endl;
-  for (unsigned int i = 0; i < results->size(); i++) {
-    text << "[" << i << "] " << (*results)[i].variable << " | "
-         << (*results)[i].interval << " | ";
-    if ((*results)[i].labelset.size() > 1) {
+  for (unsigned int i = 0; i < results.size(); i++) {
+    text << "[" << i << "] " << results[i].variable << " | "
+         << results[i].interval << " | ";
+    if (results[i].labelset.size() > 1) {
         text << "{";
     }
-    if (!(*results)[i].labelset.empty()) {
-      text << *((*results)[i].labelset.begin());
+    if (!results[i].labelset.empty()) {
+      text << *(results[i].labelset.begin());
     }
-    for (j = (*results)[i].labelset.begin();
-         j != (*results)[i].labelset.end(); j++) {
+    for (j = results[i].labelset.begin();
+         j != results[i].labelset.end(); j++) {
       text << ", " << *j;
     }
-    if ((*results)[i].labelset.size() > 1) {
+    if (results[i].labelset.size() > 1) {
       text << "}";
     }
-    text << " | " << (*results)[i].wildcard << endl;
+    text << " | " << results[i].wildcard << endl;
   }
   text << "~~~~~~assignments~~~~~~" << endl;
-  for (unsigned int i = 0; i < assignments->size(); i++) {
-    text << "[" << i << "] " << (*assignments)[i].variable << " | "
-         << (*assignments)[i].interval << " | ";
-    if ((*assignments)[i].labelset.size() > 1) {
+  for (unsigned int i = 0; i < assignments.size(); i++) {
+    text << "[" << i << "] " << assignments[i].variable << " | "
+         << assignments[i].interval << " | ";
+    if (assignments[i].labelset.size() > 1) {
         text << "{";
     }
-    if (!(*assignments)[i].labelset.empty()) {
-      text << *((*assignments)[i].labelset.begin());
+    if (!assignments[i].labelset.empty()) {
+      text << *(assignments[i].labelset.begin());
     }
-    for (j = (*assignments)[i].labelset.begin();
-         j != (*assignments)[i].labelset.end(); j++) {
+    for (j = assignments[i].labelset.begin();
+         j != assignments[i].labelset.end(); j++) {
       text << ", " << *j;
     }
-    if ((*assignments)[i].labelset.size() > 1) {
+    if (assignments[i].labelset.size() > 1) {
       text << "}";
     }
-    text << " | "  << (*assignments)[i].wildcard << endl;
+    text << " | "  << assignments[i].wildcard << endl;
   }
   text << endl;
   return text.str();
@@ -1200,7 +1200,7 @@ TypeConstructor patternTC(
 
 void NFA::buildNFA(Pattern p) {
   cout << "start building NFA" << endl;
-  nfaPatterns = *(p.patterns);
+  nfaPatterns = p.patterns;
   for (int i = 0; i < numberOfStates - 1; i++) {
     // solve epsilon-transitions
     if (!(nfaPatterns[i].wildcard.compare("*"))) { // reading '*'
@@ -1262,7 +1262,17 @@ bool NFA::match(MLabel const &ml) {
       return false;
     }
   }
+  printCurrentStates();
   return (currentStates.count(numberOfStates - 1) > 0) ? true : false;
+}
+
+void NFA::printCurrentStates() {
+  set<int>::iterator i;
+  cout << "the set of active states is {";
+  for (i = currentStates.begin(); i != currentStates.end(); i++) {
+    cout << *i << " ";
+  }
+  cout << "}" << endl;
 }
 
 void NFA::updateStates() {
@@ -1330,8 +1340,8 @@ string NFA::toString() {
   return nfa.str();
 }
 
-int Pattern::checkConditions() {
-  int condSize = conditions->size();
+void Pattern::checkConditions() {
+  int condSize = conditions.size();
   SecParser condParser;
   string queryString;
   ListExpr queryList;
@@ -1344,9 +1354,10 @@ int Pattern::checkConditions() {
   OpTree tree;
   ListExpr resultType;
   for (int i = 0; i < condSize; i++) {
-    cout << "there are still " << condSize << " conditions" << endl;
-    ((*conditions)[i]).condsubst.insert(0, "query ");
-    switch (condParser.Text2List(((*conditions)[i]).condsubst, queryString)) {
+    cout << "there " << (condSize > 1 ? "are" : "is") << " still " << condSize
+         << " condition" << (condSize > 1 ? "s" : "") << endl;
+    conditions[i].condsubst.insert(0, "query ");
+    switch (condParser.Text2List(conditions[i].condsubst, queryString)) {
       case 0:
         if (!nl->ReadFromString(queryString, queryList)) {
           cout << "ReadFromString error" << endl;
@@ -1392,18 +1403,20 @@ int Pattern::checkConditions() {
         break;
     }
     if (!condOk) {
-      conditions->erase(conditions->begin() + i);
+      conditions.erase(conditions.begin() + i);
       cout << "condition deleted" << endl;
       removedConds++;
       i--;
-      condSize = conditions->size();
-    }
-    else {
-      cout << "condition ok" << endl;
+      condSize = conditions.size();
     }
   }
-  // TODO: qp->Destroy(tree, true);
-  return removedConds;
+  if (tree) {
+    qp->Destroy(tree, true);
+  }
+  if (removedConds) {
+    cout << removedConds << " invalid condition"
+         << ((removedConds > 1) ? "s" : "") << " removed" << endl;
+  }
 }
 
 bool Pattern::getPattern(string input, Pattern** p) {
@@ -1414,11 +1427,12 @@ bool Pattern::getPattern(string input, Pattern** p) {
 }
 
 bool Pattern::matches(MLabel const &ml) {
-  NFA *nfa = new NFA(patterns->size() + 1);
-  cout << "matches" << endl;
+  NFA *nfa = new NFA(patterns.size() + 1);
   nfa->buildNFA(*this);
   cout << nfa->toString() << endl;
-  return nfa->match(ml);
+  bool result = nfa->match(ml);
+  delete nfa;
+  return result;
 }
 
 ListExpr textToPatternMap(ListExpr args) {
@@ -1432,19 +1446,12 @@ ListExpr textToPatternMap(ListExpr args) {
 int patternFun(Word* args, Word& result, int message, Word& local, Supplier s){
   FText* patternText = static_cast<FText*>(args[0].addr);
   result = qp->ResultStorage(s);
-  Pattern* p = static_cast<Pattern*>(result.addr);
-  string pt = patternText->GetValue().c_str();
-  //  stj::parseString((patternText->GetValue()+"\n").c_str(), &p);
-
-  cout << "pare with new pattern" << endl;
-  Pattern* ptest = new Pattern();
-  if(!ptest->getPattern(patternText->toText(), &ptest)){
+  //Pattern* ppp = static_cast<Pattern*>(result.addr);
+  //string pt = patternText->GetValue().c_str();
+  cout << "parse with new pattern" << endl;
+  Pattern* p = new Pattern();
+  if (!p->getPattern(patternText->toText(), &p)) {
     cout << "failed" << endl;
-  }  
-
-  cout << "parse with result storage" << endl;
-  if(!p->getPattern(patternText->toText(), &p)){
-     //p->SetDefined(false);
   }
   cout << "done" << endl; 
   return 0;
@@ -1498,22 +1505,14 @@ int matchesFun_MT (Word* args, Word& result, int message,
   result = qp->ResultStorage(s); //query processor has provided
                                  //a CcBool instance for the result
   CcBool* b = static_cast<CcBool*>(result.addr);
-
-
-  cout << "matches ******" << endl;
   if (!pattern->getPattern(patternText->toText(), &pattern)) {
     b->SetDefined(false);
     cout << "invalid pattern" << endl;
     return 0;
   }
-  cout << "successful parsed" << endl;
-  
-  int removed = pattern->checkConditions();
-  if (removed) {
-    cout << removed << " invalid condition" << ((removed > 1) ? "s" : "")
-         << " removed" << endl;
-  }
+  pattern->checkConditions();
   bool res = pattern->matches(*mlabel);
+  delete pattern;
   b->Set(true, res); //the first argument says the boolean value is defined,
                      //the second is the real boolean value
   return 0;
