@@ -192,8 +192,8 @@ public:
 
           // Calculate selectivity
           if(qp->GetSelectivity(supplier) == 0.1) {
-              if(returned >= (size_t) enoughSuccessesJoin) {
-                 pRes->Card = p1.Card * p2.Card * (returned / readStream1); 
+              if(returned >= (size_t) enoughSuccessesJoin && partitions == 1) {
+                 pRes->Card = p1.Card * p2.Card * (returned / readStream2); 
               } else {
                  // Default selectivity 20%
                  pRes->Card = p1.Card * p2.Card * 0.2;
