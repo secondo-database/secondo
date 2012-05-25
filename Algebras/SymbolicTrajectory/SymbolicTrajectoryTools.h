@@ -26,3 +26,4 @@ vector<string> getElementsFromSet(string const set);
 
 set<string> splitLabel(string labelset);
 char* convert(string arg);
+string extendDateString(const string input);

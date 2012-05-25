@@ -111,3 +111,22 @@ vector<string> getElementsFromSet(string const set) {
   return elements;
 }
 
+string extendDateString(const string input) {
+  string result, mask;
+  mask.assign("-01-01-00:00:00.000");
+  result.assign(input);
+  int pos = 1;
+  char nextLimit = '-';
+  // TODO: build a while loop
+  if ((pos = input.find(nextLimit, pos)) == string::npos) {
+    result.append("-01-01-00:00:00.000");
+    return result;
+  }
+  pos++;
+  if ((pos = input.find(nextLimit, pos)) == string::npos) {
+    result.append("-01-00:00:00.000");
+    return result;
+  }
+  pos++;
+  return mask;
+}

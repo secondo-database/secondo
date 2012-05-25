@@ -1433,6 +1433,7 @@ which current state. The set of current states is updated.
 */
 void NFA::updateStates() {
   bool result = false;
+  bool labelResult, timeResult; // TODO: add cardResult
   set<int> newStates;
   newStates.clear();
   set<int>::iterator i, it;
@@ -1443,15 +1444,22 @@ void NFA::updateStates() {
       if (!transitions[*i][j].empty()) {
         cout << "there are " << transitions[*i][j].size()
              << " possible transitions" <<  endl;
-        if (!nfaPatterns[j].labelset.empty()
+        if (!nfaPatterns[j].labelset.empty() // check labels
          || !nfaPatterns[j].relatedConditions.empty()) {
-          if (labelsMatch(j)) {
-            result = true;
-          }
+          labelResult = labelsMatch(j);
         }
-        else { // no label specified in unit pattern
-          result = true;
+        else { // no label specified in unit pattern or conditions
+          labelResult = true;
         }
+        if (!nfaPatterns[j].interval.empty() // check intervals
+         || !nfaPatterns[j].relatedConditions.empty()) {
+           timeResult = timesMatch(j);
+        }
+        else { // no interval specified in unit pattern or conditions
+          timeResult = true;
+        }
+        // TODO: add cardinality check
+        result = labelResult & timeResult;
         if (result) { // insert the new states
           for (it = transitions[*i][j].begin();
                it != transitions[*i][j].end(); it++) {
@@ -1466,15 +1474,65 @@ void NFA::updateStates() {
 }
 
 /*
-5.4 Function ~labelsMatch~
+5.4 Function ~timesMatch~
+Checks whether the current ULabel interval is completely enclosed in the
+interval specified in the pattern or the condition(s).
+
+*/
+bool NFA::timesMatch(int pos) {
+  bool conditionsOk = true;
+  bool patternOk = false;
+  bool foundVarKey = false;
+  int tildePos = -1;
+  set<int>::iterator i;
+  string varKey, currentLabelString, conditionString;
+  DateTime *patternStart = new DateTime(instanttype);
+  DateTime *patternEnd = new DateTime(instanttype);
+  size_t varKeyPos = string::npos;
+  if (nfaPatterns[pos].interval.empty()) {
+    patternOk = true;
+  }
+  else {
+    if ((tildePos = nfaPatterns[pos].interval.find('~')) == string::npos) {
+      // TODO: convert single datetime into interval,
+      // e.g., 2012 -> 2012-01-01-00:00:00.000~2012-12-31-23:59:59.000
+      patternStart->ReadFrom(extendDateString(nfaPatterns[pos].interval));
+      cout << patternStart->ToString() << endl;
+    }
+    else {
+      // TODO: get the interval and extend it,
+      // e.g., 2011-08~2012 -> 2011-08-01-00:00:00.000~2012-12-31-23:59:59.000
+      patternStart->ReadFrom(extendDateString
+                            (nfaPatterns[pos].interval.substr(0, tildePos)));
+      cout << patternStart->ToString() << endl;
+      patternEnd->ReadFrom(nfaPatterns[pos].interval.substr(tildePos + 1));
+      cout << patternEnd->ToString() << endl;
+    }
+    // TODO: patternOk = (nfaPattern[pos].interval contains currentLabelInterval
+    
+  }
+  if (nfaPatterns[pos].relatedConditions.empty()) {
+    cout << "no related condition" << endl;
+    conditionsOk = true;
+  }
+  else {
+    // TODO: handle conditions
+  }
+  return patternOk & conditionsOk;
+}
+
+
+/*
+5.5 Function ~labelsMatch~
 Checks whether the current ULabel label matches the unit pattern label at
 position pos (if specified) and the label of the related condition(s) (if
 specified).
 
 */
 bool NFA::labelsMatch(int pos) {
-  bool conditionsOk = false;
+  bool conditionsOk = true;
   bool patternOk = false;
+  bool foundVarKey = false;
   set<string>::iterator k;
   set<int>::iterator i;
   string varKey, currentLabelString, conditionString;
@@ -1502,19 +1560,24 @@ bool NFA::labelsMatch(int pos) {
       cout << "related condition is " << *i << endl;
       varKey.assign(nfaPatterns[pos].variable);
       varKey.append(".label");
-      varKeyPos = nfaConditions[*i].condition.find(varKey);
-      cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
-      if (varKeyPos != string::npos) {
-        currentLabelString.assign("\"");
-        currentLabelString.append(currentLabel.constValue.GetValue());
-        currentLabelString.append("\"");
-        conditionString.assign(nfaConditions[*i].condition);
+      currentLabelString.assign("\"");
+      currentLabelString.append(currentLabel.constValue.GetValue());
+      currentLabelString.append("\"");
+      conditionString.assign(nfaConditions[*i].condition);
+      varKeyPos = conditionString.find(varKey);
+      while (varKeyPos != string::npos) {
+        cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
+        foundVarKey = true;
         conditionString.replace(varKeyPos, varKey.size(), currentLabelString);
         cout << conditionString << endl;
-        conditionsOk = evaluate(conditionString, true);
+        if (!evaluate(conditionString, true)) {
+          conditionsOk = false;
+        }
+        varKeyPos = conditionString.find(varKey);
       }
-      else {
-        cout << "Problem, " << varKey << " not found" << endl;
+      if (!foundVarKey) {
+        cout << varKey << " not found" << endl;
+        conditionsOk = true;
       }
     }
   }
@@ -1522,7 +1585,7 @@ bool NFA::labelsMatch(int pos) {
 }
 
 /*
-5.5 Function ~toString~
+5.6 Function ~toString~
 Returns a string displaying the information stored in the NFA.
 
 */

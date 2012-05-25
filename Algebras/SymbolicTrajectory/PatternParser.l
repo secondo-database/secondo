@@ -19,7 +19,7 @@ wildcard {star}|{plus}
 date {si}(-{ui}(-{ui}(-{ui}(\:{ui})(\:{ui}(\.{ui})?)?)?)?)?
 interval ({date}(\~{date})?)|([a-z_]+)
 label [a-zA-Z_\-][a-zA-Z0-9_\-]*
-labelset {label}|(\{{label}(\,[ ]*{label})+\})
+labelset {label}|(\{{label}(\,[ ]*{label})*\})
 contents {interval}[\ ]+{labelset}
 contents_result _[ ]+{labelset}
 variable [A-Z]{1,2}[0-9]*

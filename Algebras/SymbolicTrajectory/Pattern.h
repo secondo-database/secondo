@@ -193,6 +193,7 @@ class NFA {
   void printCurrentStates();
   void updateStates();
   bool labelsMatch(int pos);
+  bool timesMatch(int pos);
   string toString();
 };
 

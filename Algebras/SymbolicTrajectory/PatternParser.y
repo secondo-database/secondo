@@ -390,8 +390,18 @@ void UnitPattern::createUnit(const char *var, const char *pat) {
     wildcard.assign("+");
   }
   if (pattern.size() == 2) {
-    interval.assign(pattern[0]);
-    labelset = splitLabel(pattern[1]);
+    if (!pattern[0].compare("_")) {
+      interval.clear();
+    }
+    else {
+      interval.assign(pattern[0]);
+    }
+    if (!pattern[1].compare("_")) {
+      labelset.clear();
+    }
+    else {
+      labelset = splitLabel(pattern[1]);
+    }
     if (!doubleParentheses) {
       wildcard.clear();
     }
