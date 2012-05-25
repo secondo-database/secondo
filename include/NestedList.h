@@ -481,9 +481,9 @@ $d1 - err < d2  or d2 - err < d1$
     double err = value;
     if (!isRelative) {
       if (d1 > d2)
-	return ((d1 - err) < d2);
+        return ((d1 - err) < d2);
       else
-	return ((d2 - err) < d1);
+        return ((d2 - err) < d1);
     }
 
     // test the relative error
@@ -1185,13 +1185,13 @@ template functions
            else
            {
              bool eq = t.approxEqual( r1, r2 );
-	     if (!eq) {
-	       stringstream errMsg;
-	       errMsg << "Tolerance::approxEqual failed: "
-		      << r1 << " <> " << r2;
-               equalErr = errMsg.str();
-	     }
-             return eq;
+            if (!eq) {
+              stringstream errMsg;
+              errMsg << "Tolerance::approxEqual failed: "
+                     << r1 << " <> " << r2;
+                     equalErr = errMsg.str();
+            }
+            return eq;
            }
          }
          case SymbolType:
