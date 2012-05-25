@@ -290,11 +290,11 @@ let xItHashJoin = (((x1 - x2) * 1000) / x5) * MF;
 query ProgressConstants inserttuple["ExtRelation2Algebra", "itHashJoin", "xItHashJoin", xItHashJoin, "msecs per byte read from TupleFile", ""] consume
 
 
-query ProgressConstants feed csvexport['ProgressConstants.csv', FALSE, TRUE] count
+#query ProgressConstants feed csvexport['ProgressConstants.csv', FALSE, TRUE] count
 
-close database
+#close database
 
-quit
+#quit
 
 
 # delete variables used before
