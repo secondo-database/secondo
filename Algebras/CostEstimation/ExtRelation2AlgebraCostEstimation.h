@@ -364,11 +364,17 @@ function. Allowed types are:
 size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
 
         // calculate size for one bucket datastructure
-           vector<Tuple*>* bucket = new vector<Tuple*>();
-           size_t sizePerBucket = sizeof(bucket);
+        vector<Tuple*>* bucket = new vector<Tuple*>();
+        size_t sizePerBucket = sizeof(bucket);
+        delete bucket;
+        bucket = NULL;
+          
+        // Memory for datastruct
+        if(s1Card / buckets > 10) {
+           sizePerBucket += sizeof(void*) * (s1Card / buckets);      
+        } else {
            sizePerBucket += sizeof(void*) * 10;
-           delete bucket;
-           bucket = NULL;
+        }
 
         // calculate size of the whole datastructure
         size_t memoryOfDatastruct = sizePerBucket * buckets; 
