@@ -72,7 +72,6 @@ class Condition {
   vector<ConditionType> types;
   vector<Key> keys;
   vector<string> variables;
-  static int numberOfConditions;
 
   Condition() {
     types.push_back(*(new ConditionType(convert(".label"), convert("\"a\""))));

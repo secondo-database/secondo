@@ -1167,7 +1167,111 @@ bool Pattern::KindCheck(ListExpr type, ListExpr& errorInfo) {
 }
 
 /*
-4.12 Function Describing the Signature of the Type Constructor
+4.12 Function ~verifyConditions~
+Loops through the conditions and checks whether each one is a syntactically
+correct boolean expression. Invalid conditions are removed.
+
+*/
+void Pattern::verifyConditions() {
+  int condSize = conditions.size();
+  SecParser condParser;
+  string queryString;
+  ListExpr queryList;
+  bool condOk = true;
+  int removedConds = 0;
+  bool correct = false;
+  bool evaluable = false;
+  bool defined = false;
+  bool isFunction = false;
+  OpTree tree = 0;
+  ListExpr resultType;
+  for (int i = 0; i < condSize; i++) {
+    condOk = false;
+    cout << "there " << (condSize > 1 ? "are" : "is") << " still " << condSize
+         << " condition" << (condSize > 1 ? "s" : "") << endl;
+    conditions[i].condsubst.insert(0, "query ");
+    switch (condParser.Text2List(conditions[i].condsubst, queryString)) {
+      case 0:
+        if (!nl->ReadFromString(queryString, queryList)) {
+          cout << "ReadFromString error" << endl;
+        }
+        else {
+          if (nl->IsEmpty(nl->Rest(queryList))) {
+            cout << "Rest of list is empty" << endl;
+          }
+          else {
+            cout << nl->ToString(nl->First(nl->Rest(queryList))) << endl;
+            qp->Construct(nl->First(nl->Rest(queryList)), correct, evaluable,
+                          defined, isFunction, tree, resultType);
+            if (!correct) {
+              cout << "type error" << endl;
+            }
+            else if (!evaluable) {
+              cout << "not evaluable" << endl;
+            }
+            else if (nl->ToString(resultType).compare("bool")) {
+              cout << "wrong result type " << nl->ToString(resultType) << endl;
+            }
+            else {
+              condOk = true;
+            }
+          }
+        }
+        break;
+      case 1:
+        cout << "String cannot be converted to list" << endl;
+        break;
+      case 2:
+        cout << "stack overflow" << endl;
+        break;
+      default: // should not occur
+        break;
+    }
+    if (!condOk) {
+      conditions.erase(conditions.begin() + i);
+      cout << "condition deleted" << endl;
+      removedConds++;
+      i--;
+      condSize = conditions.size();
+    }
+  }
+  if (tree) {
+    qp->Destroy(tree, true);
+  }
+  if (removedConds) {
+    cout << removedConds << " invalid condition"
+         << ((removedConds > 1) ? "s" : "") << " removed" << endl;
+  }
+}
+
+/*
+4.13 Function ~getPattern~
+Calls the parser.
+
+*/
+bool Pattern::getPattern(string input, Pattern** p) {
+  input.append("\n");
+  cout << input << endl;
+  const char *patternChar = input.c_str();
+  return parseString(patternChar, p);
+}
+
+/*
+4.14 Function ~matches~
+Invokes the NFA construction and the matching procedure.
+
+*/
+bool Pattern::matches(MLabel const &ml) {
+  NFA *nfa = new NFA(patterns.size() + 1);
+  nfa->buildNFA(*this);
+  cout << nfa->toString() << endl;
+  bool result = nfa->match(ml);
+  delete nfa;
+  return result;
+}
+
+/*
+4.15 Function Describing the Signature of the Type Constructor
 
 */
 ListExpr Pattern::Property() {
@@ -1185,7 +1289,7 @@ ListExpr Pattern::Property() {
 }
 
 /*
-4.13 Creation of the Type Constructor Instance
+4.16 Creation of the Type Constructor Instance
 
 */
 TypeConstructor patternTC(
@@ -1218,7 +1322,7 @@ void NFA::buildNFA(Pattern p) {
   for (int i = 0; i < numberOfStates - 1; i++) { // solve epsilon-transitions
     if (!(nfaPatterns[i].wildcard.compare("*"))) { // reading '*'
       transitions[i - 1][i - 1].insert(i + 1);
-      nfaPatterns[i].wildcard.assign("+");
+      //nfaPatterns[i].wildcard.assign("+");
       if (i < numberOfStates - 2) {
         transitions[i][i + 1].insert(i + 2);
         if (nfaPatterns[i + 1].wildcard.compare("*")) { // handle '* (a 1) * *'
@@ -1254,8 +1358,6 @@ void NFA::buildNFA(Pattern p) {
     }
     if (!(nfaPatterns[i].wildcard.compare("+"))) { // reading '+'
       transitions[i][i].insert(i);
-//       transitions[i][i + 1].insert(i);
-//       transitions[i][i + 1].insert(i + 1);
     }
     transitions[i][i].insert(i + 1);// state i, read pattern i => new state i+1
     if (i > 0) {  // remove duplicates for '* *'
@@ -1267,6 +1369,13 @@ void NFA::buildNFA(Pattern p) {
   }
 }
 
+/*
+5.2 Function ~match~
+Loops through the MLabel calling updateStates() for every ULabel.
+True is returned if and only if the final state is an element of
+currentStates after the loop.
+
+*/
 bool NFA::match(MLabel const &ml) {
   for (size_t i = 0; i < (size_t)ml.GetNoComponents(); i++) {
     ml.Get(i, currentLabel);
@@ -1290,6 +1399,12 @@ void NFA::printCurrentStates() {
   cout << "}" << endl;
 }
 
+/*
+5.3 Function ~updateStates~
+Further functions are invoked to decide which transition can be applied to
+which current state. The set of current states is updated.
+
+*/
 void NFA::updateStates() {
   bool result = false;
   set<int> newStates;
@@ -1324,10 +1439,20 @@ void NFA::updateStates() {
   printCurrentStates();
 }
 
+/*
+5.4 Function ~labelsMatch~
+Checks whether the current ULabel label matches the unit pattern label at
+position pos (if specified) and the label of the related condition(s) (if
+specified).
+
+*/
 bool NFA::labelsMatch(int pos) {
   bool conditionsOk = false;
   bool patternOk = false;
   set<string>::iterator k;
+  set<int>::iterator i;
+  string varKey;
+  size_t varKeyPos = string::npos;
   if (nfaPatterns[pos].labelset.empty()) {
     patternOk = true;
   }
@@ -1345,14 +1470,33 @@ bool NFA::labelsMatch(int pos) {
     cout << "no related condition" << endl;
   }
   else {
-    cout << "related condition is "
-         << *(nfaPatterns[pos].relatedConditions.begin()) << endl;
-    // TODO: include condition check
+    for (i = nfaPatterns[pos].relatedConditions.begin();
+         i != nfaPatterns[pos].relatedConditions.end(); i++) {
+      cout << "related condition is " << *i << endl;
+      varKey.assign(nfaPatterns[pos].variable);
+      varKey.append(".label");
+      varKeyPos = nfaConditions[*i].condition.find(varKey);
+      cout << "var.key found at position " << varKeyPos << endl;
+      if (varKeyPos != string::npos) {
+        nfaConditions[*i].condition.replace
+               (varKeyPos, varKey.size(), currentLabel.constValue.GetValue());
+        cout << nfaConditions[*i].condition << endl;
+        // TODO: build operator tree.
+      }
+      else {
+        cout << "Problem." << endl;
+      }
+    }
   }
   conditionsOk = true;
   return patternOk & conditionsOk;
 }
 
+/*
+5.5 Function ~toString~
+Returns a string displaying the information stored in the NFA.
+
+*/
 string NFA::toString() {
   cout << "start output, " << numberOfStates << " states" << endl;
   stringstream nfa;
@@ -1375,101 +1519,6 @@ string NFA::toString() {
     }
   }
   return nfa.str();
-}
-
-void Pattern::verifyConditions() {
-  int condSize = conditions.size();
-  SecParser condParser;
-  string queryString;
-  ListExpr queryList;
-  bool condOk = true;
-  int removedConds = 0;
-  bool correct = false;
-  bool evaluable = false;
-  bool defined = false;
-  bool isFunction = false;
-  OpTree tree = 0;
-  ListExpr resultType;
-  for (int i = 0; i < condSize; i++) {
-    cout << "there " << (condSize > 1 ? "are" : "is") << " still " << condSize
-         << " condition" << (condSize > 1 ? "s" : "") << endl;
-    conditions[i].condsubst.insert(0, "query ");
-    switch (condParser.Text2List(conditions[i].condsubst, queryString)) {
-      case 0:
-        if (!nl->ReadFromString(queryString, queryList)) {
-          cout << "ReadFromString error" << endl;
-          condOk = false;
-        }
-        else {
-          if (nl->IsEmpty(nl->Rest(queryList))) {
-            cout << "Rest of list is empty" << endl;
-            condOk = false;
-          }
-          else {
-            cout << nl->ToString(nl->First(nl->Rest(queryList))) << endl;
-            qp->Construct(nl->First(nl->Rest(queryList)), correct, evaluable,
-                          defined, isFunction, tree, resultType);
-            if (!correct) {
-              cout << "type error" << endl;
-              condOk = false;
-            }
-            else if (!evaluable) {
-              cout << "not evaluable" << endl;
-              condOk = false;
-            }
-            else if (nl->ToString(resultType).compare("bool")) {
-              cout << "wrong result type " << nl->ToString(resultType) << endl;
-              condOk = false;
-            }
-            else {
-              condOk = true;
-            }
-          }
-        }
-        break;
-      case 1:
-        cout << "String cannot be converted to list" << endl;
-        condOk = false;
-        break;
-      case 2:
-        cout << "stack overflow" << endl;
-        condOk = false;
-        break;
-      default: // should not occur
-        condOk = false;
-        break;
-    }
-    if (!condOk) {
-      conditions.erase(conditions.begin() + i);
-      cout << "condition deleted" << endl;
-      removedConds++;
-      i--;
-      condSize = conditions.size();
-    }
-  }
-  if (tree) {
-    qp->Destroy(tree, true);
-  }
-  if (removedConds) {
-    cout << removedConds << " invalid condition"
-         << ((removedConds > 1) ? "s" : "") << " removed" << endl;
-  }
-}
-
-bool Pattern::getPattern(string input, Pattern** p) {
-  input.append("\n");
-  cout << input << endl;
-  const char *patternChar = input.c_str();
-  return parseString(patternChar, p);
-}
-
-bool Pattern::matches(MLabel const &ml) {
-  NFA *nfa = new NFA(patterns.size() + 1);
-  nfa->buildNFA(*this);
-  cout << nfa->toString() << endl;
-  bool result = nfa->match(ml);
-  delete nfa;
-  return result;
 }
 
 ListExpr textToPatternMap(ListExpr args) {
