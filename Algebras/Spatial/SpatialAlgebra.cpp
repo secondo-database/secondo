@@ -8235,6 +8235,46 @@ double SimpleLine::Length(const Geoid &geoid, bool& valid) const {
   return length;
 }
 
+vector<SimpleLine>* SimpleLine::SplitAtPPoints(Points* pts)
+{
+  Point curPoint;
+  double pos;
+  SimpleLine res(0);
+  vector<SimpleLine>* result = new vector<SimpleLine>();
+  result->clear();
+  vector<double>* splitPositions= new vector<double>();
+  splitPositions->clear();
+  splitPositions->push_back(0.0);
+  splitPositions->push_back(Length());
+  for (int i = 0; i < pts->Size(); i++)
+  {
+    pts->Get(i,curPoint);
+    AtPoint(curPoint, pos);
+    splitPositions->push_back(pos);
+  }
+  stable_sort(splitPositions->begin(), splitPositions->end());
+  double from = 0.0;
+  double to = from;
+  for (size_t j = 0; j < splitPositions->size(); j++)
+  {
+    to = splitPositions->at(j);
+    if (to != from)
+    {
+      SubLine(from, to, res);
+      result->push_back(res);
+      from = to;
+    }
+  }
+  if (from != Length())
+  {
+    SubLine(from, Length(), res);
+    result->push_back(res);
+  }
+  splitPositions->clear();
+  delete splitPositions;
+  return result;
+}
+
 ostream& operator<<(ostream& o, const SimpleLine& cl){
    cl.Print(o);
    return o;
@@ -21356,6 +21396,153 @@ Operator spatiallonglines(
 );
 
 /*
+1.1 Operator ~splitslineatpoints~
+
+The operator gets an ~sline~ value and an ~points~ value defining a set of
+split points. The operator splits the input value at the given points and
+returns the result as an stream of ~sline~ values.
+
+1.1.1 TypeMapping
+
+*/
+
+ListExpr SplitSLineAtPointsTM(ListExpr args){
+  if(!nl->IsEqual(nl->First(args),SimpleLine::BasicType()))
+    return listutils::typeError("First argument must be an " +
+                                  SimpleLine::BasicType());
+
+  if (!nl->IsEqual(nl->Second(args), Points::BasicType()))
+    return listutils::typeError("Second Argument must be an " +
+                                 Points::BasicType());
+
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                         nl->SymbolAtom(SimpleLine::BasicType()));
+}
+
+/*
+1.1.1 Value Mapping
+
+1.1.1.1 class SplitSLineAtPointsLocalInfo
+
+Stores informations of current situation between request calls. And delivers
+result of request using ~GetNextResult~ function.
+
+*/
+
+
+struct SplitSLineAtPointsLocalInfo{
+
+  SplitSLineAtPointsLocalInfo(SimpleLine* li, Points* pts)
+  {
+    assert(li->IsDefined() && !li->IsEmpty() &&
+           pts->IsDefined());
+
+    if (pts->IsEmpty())
+    {
+      intermediate = new vector<SimpleLine> ();
+      intermediate->clear();
+      intermediate->push_back(*li);
+    }
+    else
+    {
+      intermediate = li->SplitAtPPoints(pts);
+    }
+  };
+
+  ~SplitSLineAtPointsLocalInfo(){
+    intermediate->clear();
+    delete intermediate;
+  };
+
+  SimpleLine* GetNextResult(){
+    if (!intermediate->empty())
+    {
+      SimpleLine* res = new SimpleLine(intermediate->back());
+      intermediate->pop_back();
+      return res;
+    } else
+      return 0;
+  };
+
+vector<SimpleLine>* intermediate;
+
+
+};
+
+int SplitSLineAtPointsVM(Word* args, Word& result, int message, Word& local,
+                         Supplier s )
+{
+  switch(message){
+
+    case OPEN:{
+
+      SimpleLine* li = static_cast<SimpleLine*> (args[0].addr);
+      Points* pts = static_cast<Points*> (args[1].addr);
+      if (!li->IsDefined() || li->IsEmpty() || !pts->IsDefined()) {
+        local.setAddr(0);
+      } else {
+        SplitSLineAtPointsLocalInfo* localinfo =
+          new SplitSLineAtPointsLocalInfo(li,pts);
+        local.setAddr(localinfo);
+      }
+      return 0;
+    }
+
+    case REQUEST: {
+      result = qp->ResultStorage(s);
+      if(!local.addr) return CANCEL;
+      SplitSLineAtPointsLocalInfo* localinfo =
+        (SplitSLineAtPointsLocalInfo*) local.addr;
+      SimpleLine* res = localinfo->GetNextResult();
+      if(res == 0 || !res->IsDefined()){
+        result.setAddr(0);
+        return CANCEL;
+      } else {
+        result.setAddr(res);
+        return YIELD;
+      }
+    }
+
+    case CLOSE: {
+      if(local.addr != 0)
+      {
+        SplitSLineAtPointsLocalInfo* localinfo =
+          (SplitSLineAtPointsLocalInfo*) local.addr;
+        delete localinfo;
+        local.setAddr(0);
+      }
+      return 0;
+    }
+
+  }
+
+  return 0;
+}
+
+/*
+1.1.1 Specification
+
+*/
+ const string SplitSLineAtPointsSpec =
+ "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+ "( <text>sline X points -> (stream sline)</text--->"
+ "<text> splitslineatpoints (_, _) </text--->"
+ "<text>Splits the sline value into sublines defined by the points.</text--->"
+ "<text> splitslineatpoints(sline, points) </text---> ) )";
+
+/*
+1.1.1 Operatordefiniton
+
+*/
+
+ Operator spatialsplitslineatpoints(
+   "splitslineatpoints",
+   SplitSLineAtPointsSpec,
+   SplitSLineAtPointsVM,
+   Operator::SimpleSelect,
+   SplitSLineAtPointsTM);
+
+/*
 11 Creating the Algebra
 
 */
@@ -21480,6 +21667,8 @@ class SpatialAlgebra : public Algebra
     AddOperator(&bufferLine);
     AddOperator(&spatialcircle);
     AddOperator(&spatiallonglines);
+    AddOperator(&spatialsplitslineatpoints);
+
   }
   ~SpatialAlgebra() {};
 };

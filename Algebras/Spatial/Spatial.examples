@@ -1073,5 +1073,10 @@ Example  : query circle (mehringdamm,10.0,5)
 Result   : (region((((9399.090169943749 9861.489434837049)(9387.909830056251 9865.122147477075)(9387.909830056251 9876.877852522925)(9399.090169943749 9880.510565162951)(9406.0 9871.0)))))
 Tolerance: 0.0001
 
-
+Operator : splitslineatpoints
+Number   : 1
+Signature: sline x points -> (stream sline)
+Example  : query splitslineatpoints(create_sline(makepoint(10.0,10.0), makepoint(0.0,0.0)), [const points value((5.5 5.5))]) count;
+Result   : 2
+Tolerance: 0.01%
 

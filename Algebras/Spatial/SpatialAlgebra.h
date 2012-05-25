@@ -1652,6 +1652,12 @@ and a Geoid. If any coordinate is invalid, ~valid~ is set to false (true otherwi
      return Length(g, valid);
   }
 
+/*
+Splits the simple line at the given pts into sublines. The set of sublines
+is returned in the result vector
+
+*/
+  vector<SimpleLine>* SplitAtPPoints(Points* pts);
 
 /*
 ~BoundingBox~
