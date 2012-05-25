@@ -643,7 +643,7 @@ may be used to assert a requested length of ~n~, this avoids a long running trav
   bool HasLength( ListExpr list, const int n ) const;
 
 /*
-Checks whether the Listexpr has exactly the length n. 
+Checks whether the Listexpr has exactly the length n.
 
 */
 
@@ -856,6 +856,24 @@ Acessing the first element is a basic operation defined above.
 
   inline ListExpr  Sixth( const ListExpr list )
     { return (NthElement( 6, 6, list )); };
+
+  inline ListExpr Seventh( const ListExpr list)
+    { return (NthElement( 7, 7, list )); };
+
+  inline ListExpr Eigth( const ListExpr list)
+    { return (NthElement( 8, 8, list )); };
+
+  inline ListExpr Ninth( const ListExpr list)
+    { return (NthElement( 9, 9, list )); };
+
+  inline ListExpr Tenth( const ListExpr list)
+    { return (NthElement( 10, 10, list )); };
+
+  inline ListExpr Eleventh( const ListExpr list)
+    { return (NthElement( 11, 11, list )); };
+
+  inline ListExpr Twelfth( const ListExpr list)
+    { return (NthElement( 12, 12, list )); };
 
   inline ListExpr  Nth( int n, const ListExpr list )
     { return (NthElement( n, n, list )); };
@@ -1203,7 +1221,7 @@ template functions
          rest2 = Rest(rest2);
      }
      if(!IsEmpty(rest1) || !IsEmpty(rest2)){
-        // different lengths 
+        // different lengths
        return false;
      }
      return true;
