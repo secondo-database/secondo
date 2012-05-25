@@ -24,6 +24,7 @@ enum Key {LABEL, TIME, START, END, CARD, ERROR};
 enum Wildcard {NO, ASTERISK, PLUS};
 
 bool parseString(const char* argument, Pattern** p);
+bool evaluate(string conditionString, const bool resultNeeded);
 
 class MLabel : public MString {
   public:

@@ -15,7 +15,6 @@
 #include "DateTime.h"
 #include "CharTransform.h"
 #include "SymbolicTrajectoryTools.h"
-//#include "SymbolicTrajectoryAlgebra.h"
 #include "Stream.h"
 #include "SecParser.h"
 #include "Pattern.h"
@@ -1174,33 +1173,68 @@ correct boolean expression. Invalid conditions are removed.
 */
 void Pattern::verifyConditions() {
   int condSize = conditions.size();
+  int removedConds = 0;
+  for (int i = 0; i < condSize; i++) {
+    cout << "there " << (condSize > 1 ? "are" : "is") << " still " << condSize
+         << " condition" << (condSize > 1 ? "s" : "") << endl;
+    if (!evaluate(conditions[i].condsubst, false)) {
+      conditions.erase(conditions.begin() + i);
+      cout << "condition deleted" << endl;
+      removedConds++;
+      i--;
+      condSize = conditions.size();
+    }
+  }
+  if (removedConds) {
+    cout << removedConds << " invalid condition"
+         << ((removedConds > 1) ? "s" : "") << " removed" << endl;
+  }
+}
+
+/*
+Function ~evaluate~
+In case of testing a condition's syntactical correctness, we are only
+interested in the result type. Thus, resultNeeded is false, an operator tree
+is built, and true is returned if and only if the result type is boolean.
+On the other hand, if we ask for the condition result, the function executes
+the appropiate query and returns its result.
+
+*/
+bool evaluate(string conditionString, const bool resultNeeded) {
+  bool isBool = false;
+  bool isTrue = false;
   SecParser condParser;
   string queryString;
-  ListExpr queryList;
-  bool condOk = true;
-  int removedConds = 0;
+  ListExpr queryList, resultType;
+  Word queryResult;
   bool correct = false;
   bool evaluable = false;
   bool defined = false;
   bool isFunction = false;
   OpTree tree = 0;
-  ListExpr resultType;
-  for (int i = 0; i < condSize; i++) {
-    condOk = false;
-    cout << "there " << (condSize > 1 ? "are" : "is") << " still " << condSize
-         << " condition" << (condSize > 1 ? "s" : "") << endl;
-    conditions[i].condsubst.insert(0, "query ");
-    switch (condParser.Text2List(conditions[i].condsubst, queryString)) {
-      case 0:
-        if (!nl->ReadFromString(queryString, queryList)) {
-          cout << "ReadFromString error" << endl;
+  conditionString.insert(0, "query ");
+  switch (condParser.Text2List(conditionString, queryString)) {
+    case 0:
+      if (!nl->ReadFromString(queryString, queryList)) {
+        cout << "ReadFromString error" << endl;
+      }
+      else {
+        if (nl->IsEmpty(nl->Rest(queryList))) {
+          cout << "Rest of list is empty" << endl;
         }
         else {
-          if (nl->IsEmpty(nl->Rest(queryList))) {
-            cout << "Rest of list is empty" << endl;
+          cout << nl->ToString(nl->First(nl->Rest(queryList))) << endl;
+          if (resultNeeded) { // evaluate the condition
+            if (!qp->ExecuteQuery(nl->ToString(nl->First(nl->Rest(queryList))),
+                                  queryResult)) {
+              cout << "execution error" << endl;
+            }
+            else {
+              CcBool *ccResult = static_cast<CcBool*>(queryResult.addr);
+              isTrue = ccResult->GetValue();
+            }
           }
-          else {
-            cout << nl->ToString(nl->First(nl->Rest(queryList))) << endl;
+          else { // get the result type
             qp->Construct(nl->First(nl->Rest(queryList)), correct, evaluable,
                           defined, isFunction, tree, resultType);
             if (!correct) {
@@ -1213,36 +1247,27 @@ void Pattern::verifyConditions() {
               cout << "wrong result type " << nl->ToString(resultType) << endl;
             }
             else {
-              condOk = true;
+              isBool = true;
             }
           }
         }
-        break;
-      case 1:
-        cout << "String cannot be converted to list" << endl;
-        break;
-      case 2:
-        cout << "stack overflow" << endl;
-        break;
-      default: // should not occur
-        break;
-    }
-    if (!condOk) {
-      conditions.erase(conditions.begin() + i);
-      cout << "condition deleted" << endl;
-      removedConds++;
-      i--;
-      condSize = conditions.size();
-    }
+      }
+      break;
+    case 1:
+      cout << "String cannot be converted to list" << endl;
+      break;
+    case 2:
+      cout << "stack overflow" << endl;
+      break;
+    default: // should not occur
+      break;
   }
   if (tree) {
     qp->Destroy(tree, true);
   }
-  if (removedConds) {
-    cout << removedConds << " invalid condition"
-         << ((removedConds > 1) ? "s" : "") << " removed" << endl;
-  }
+  return resultNeeded ? isTrue : isBool;
 }
+
 
 /*
 4.13 Function ~getPattern~
@@ -1322,6 +1347,7 @@ void NFA::buildNFA(Pattern p) {
   for (int i = 0; i < numberOfStates - 1; i++) { // solve epsilon-transitions
     if (!(nfaPatterns[i].wildcard.compare("*"))) { // reading '*'
       transitions[i - 1][i - 1].insert(i + 1);
+      transitions[i][i].insert(i);
       //nfaPatterns[i].wildcard.assign("+");
       if (i < numberOfStates - 2) {
         transitions[i][i + 1].insert(i + 2);
@@ -1451,7 +1477,7 @@ bool NFA::labelsMatch(int pos) {
   bool patternOk = false;
   set<string>::iterator k;
   set<int>::iterator i;
-  string varKey;
+  string varKey, currentLabelString, conditionString;
   size_t varKeyPos = string::npos;
   if (nfaPatterns[pos].labelset.empty()) {
     patternOk = true;
@@ -1468,6 +1494,7 @@ bool NFA::labelsMatch(int pos) {
   }
   if (nfaPatterns[pos].relatedConditions.empty()) {
     cout << "no related condition" << endl;
+    conditionsOk = true;
   }
   else {
     for (i = nfaPatterns[pos].relatedConditions.begin();
@@ -1476,19 +1503,21 @@ bool NFA::labelsMatch(int pos) {
       varKey.assign(nfaPatterns[pos].variable);
       varKey.append(".label");
       varKeyPos = nfaConditions[*i].condition.find(varKey);
-      cout << "var.key found at position " << varKeyPos << endl;
+      cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
       if (varKeyPos != string::npos) {
-        nfaConditions[*i].condition.replace
-               (varKeyPos, varKey.size(), currentLabel.constValue.GetValue());
-        cout << nfaConditions[*i].condition << endl;
-        // TODO: build operator tree.
+        currentLabelString.assign("\"");
+        currentLabelString.append(currentLabel.constValue.GetValue());
+        currentLabelString.append("\"");
+        conditionString.assign(nfaConditions[*i].condition);
+        conditionString.replace(varKeyPos, varKey.size(), currentLabelString);
+        cout << conditionString << endl;
+        conditionsOk = evaluate(conditionString, true);
       }
       else {
-        cout << "Problem." << endl;
+        cout << "Problem, " << varKey << " not found" << endl;
       }
     }
   }
-  conditionsOk = true;
   return patternOk & conditionsOk;
 }
 
