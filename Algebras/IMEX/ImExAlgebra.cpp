@@ -3017,6 +3017,7 @@ ListExpr getDBAttrList(string name, bool& correct, string& errorMessage){
         }
      }
      string name = ns.str();
+     name[0] = toupper((unsigned char) name[0]);
      unsigned char typeCode = buffer[11];
      unsigned char dc = buffer[17];
      unsigned char len = buffer[16];
