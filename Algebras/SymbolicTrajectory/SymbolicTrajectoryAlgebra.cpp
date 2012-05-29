@@ -18,6 +18,7 @@
 #include "Stream.h"
 #include "SecParser.h"
 #include "Pattern.h"
+#include "TemporalUnitAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -1479,37 +1480,65 @@ Checks whether the current ULabel interval is completely enclosed in the
 interval specified in the pattern or the condition(s).
 
 */
-bool NFA::timesMatch(int pos) {
-  bool conditionsOk = true;
+bool NFA::timesMatch(int pos) { // TODO: shorten this
+  bool conditionsOk = false;
   bool patternOk = false;
   bool foundVarKey = false;
+  bool condPartsOk[3] = {true, true, true};
   int tildePos = -1;
   set<int>::iterator i;
   string varKey, currentLabelString, conditionString;
-  DateTime *patternStart = new DateTime(instanttype);
-  DateTime *patternEnd = new DateTime(instanttype);
+  
+  Instant *patternStart = new DateTime(instanttype);
+  Instant *patternEnd = new DateTime(instanttype);
   size_t varKeyPos = string::npos;
-  if (nfaPatterns[pos].interval.empty()) {
+  SecInterval *ulabelInterval = new SecInterval(currentLabel.timeInterval);
+  if (nfaPatterns[pos].interval.empty()) { // no interval specified
     patternOk = true;
   }
-  else {
+  else if ((nfaPatterns[pos].interval[0] > 96) // first case:
+        && (nfaPatterns[pos].interval[0] < 123)) { // semantic date/time
+    patternOk = checkSemanticDate(nfaPatterns[pos].interval,
+                                  ulabelInterval->start, ulabelInterval->end);
+  }
+  else if (nfaPatterns[pos].interval[0] == '~') { // second case: ~2012-05-12
+    patternStart->ToMinimum();
+    patternEnd->ReadFrom(extendDateString(nfaPatterns[pos].interval.substr(1),
+                                          false));
+    SecInterval *patternInterval = new SecInterval(*patternStart, *patternEnd,
+                                                   true, true);
+    patternOk = patternInterval->Contains(*ulabelInterval);
+    delete patternInterval;
+    delete ulabelInterval;
+  }
+  else if (nfaPatterns[pos].interval[nfaPatterns[pos].interval.size() - 1]
+           == '~') {
+    patternStart->ReadFrom(extendDateString(nfaPatterns[pos].interval.substr(
+                           0, nfaPatterns[pos].interval.size() - 1), true));
+    patternEnd->ToMaximum();
+    cout << patternStart->ToString() << " ~ " << patternEnd->ToString() << endl;
+    SecInterval *patternInterval = new SecInterval(*patternStart, *patternEnd,
+                                                   true, true);
+    patternOk = patternInterval->Contains(*ulabelInterval);
+    delete patternInterval;
+    delete ulabelInterval;
+  }
+  else { // third case: 2012-05-12-22:00
     if ((tildePos = nfaPatterns[pos].interval.find('~')) == string::npos) {
-      // TODO: convert single datetime into interval,
-      // e.g., 2012 -> 2012-01-01-00:00:00.000~2012-12-31-23:59:59.000
-      patternStart->ReadFrom(extendDateString(nfaPatterns[pos].interval));
-      cout << patternStart->ToString() << endl;
+      patternStart->ReadFrom(extendDateString(nfaPatterns[pos].interval, true));
+      patternEnd->ReadFrom(extendDateString(nfaPatterns[pos].interval, false));
     }
-    else {
-      // TODO: get the interval and extend it,
-      // e.g., 2011-08~2012 -> 2011-08-01-00:00:00.000~2012-12-31-23:59:59.000
+    else { // fourth case: 2012-05-12-20:00~2012-05-12-22:00
       patternStart->ReadFrom(extendDateString
-                            (nfaPatterns[pos].interval.substr(0, tildePos)));
-      cout << patternStart->ToString() << endl;
-      patternEnd->ReadFrom(nfaPatterns[pos].interval.substr(tildePos + 1));
-      cout << patternEnd->ToString() << endl;
+                    (nfaPatterns[pos].interval.substr(0, tildePos), true));
+      patternEnd->ReadFrom(extendDateString
+                  (nfaPatterns[pos].interval.substr(tildePos + 1), false));
     }
-    // TODO: patternOk = (nfaPattern[pos].interval contains currentLabelInterval
-    
+    SecInterval *patternInterval = new SecInterval(*patternStart, *patternEnd,
+                                                   true, true);
+    patternOk = patternInterval->Contains(*ulabelInterval);
+    delete patternInterval;
+    delete ulabelInterval;
   }
   if (nfaPatterns[pos].relatedConditions.empty()) {
     cout << "no related condition" << endl;
@@ -1517,6 +1546,37 @@ bool NFA::timesMatch(int pos) {
   }
   else {
     // TODO: handle conditions
+    for (i = nfaPatterns[pos].relatedConditions.begin();
+         i != nfaPatterns[pos].relatedConditions.end(); i++) {
+      cout << "related condition is " << *i << endl;
+      string condTypes[3] = {".time", ".start", ".end"};
+      conditionString.assign(nfaConditions[*i].condition);
+      for (int i = 0; i < 3; i++) {
+        foundVarKey = false;
+        varKey.assign(nfaPatterns[pos].variable);
+        varKey.append(condTypes[i]);
+        currentLabelString.assign(ulabelInterval->ToString());
+        varKeyPos = conditionString.find(varKey);
+        while (varKeyPos != string::npos) {
+          cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
+          foundVarKey = true;
+          // TODO: insert quotation marks
+          // TODO: switch between interval and instant
+          currentLabelString.append("]");
+          currentLabelString.insert(0, "[const interval value ");
+          conditionString.replace(varKeyPos, varKey.size(), currentLabelString);
+          cout << conditionString << endl;
+          if (!evaluate(conditionString, true)) {
+            condPartsOk[i] = false;
+          }
+          varKeyPos = conditionString.find(varKey);
+        }
+        if (!foundVarKey) {
+          cout << varKey << " not found" << endl;
+        }
+      }
+    }
+    conditionsOk = condPartsOk[0] & condPartsOk[1] & condPartsOk[2];
   }
   return patternOk & conditionsOk;
 }
@@ -1540,7 +1600,7 @@ bool NFA::labelsMatch(int pos) {
   if (nfaPatterns[pos].labelset.empty()) {
     patternOk = true;
   }
-  else {
+  else { // check labels of the unit pattern
     for (k = nfaPatterns[pos].labelset.begin();
          k != nfaPatterns[pos].labelset.end(); k++) {
       CcString *label = new CcString(true, *k);
@@ -1554,7 +1614,7 @@ bool NFA::labelsMatch(int pos) {
     cout << "no related condition" << endl;
     conditionsOk = true;
   }
-  else {
+  else { // check related conditions
     for (i = nfaPatterns[pos].relatedConditions.begin();
          i != nfaPatterns[pos].relatedConditions.end(); i++) {
       cout << "related condition is " << *i << endl;
@@ -1577,7 +1637,6 @@ bool NFA::labelsMatch(int pos) {
       }
       if (!foundVarKey) {
         cout << varKey << " not found" << endl;
-        conditionsOk = true;
       }
     }
   }

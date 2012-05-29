@@ -17,7 +17,7 @@ star \*
 plus \+
 wildcard {star}|{plus}
 date {si}(-{ui}(-{ui}(-{ui}(\:{ui})(\:{ui}(\.{ui})?)?)?)?)?
-interval ({date}(\~{date})?)|([a-z_]+)
+interval ({date}(\~{date})?)|\~{date}|{date}\~|([a-z_]+)
 label [a-zA-Z_\-][a-zA-Z0-9_\-]*
 labelset {label}|(\{{label}(\,[ ]*{label})*\})
 contents {interval}[\ ]+{labelset}

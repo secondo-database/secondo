@@ -15,38 +15,6 @@
 
 using namespace std;
 
-char* convert(string arg) {
-  return strdup(arg.c_str());
-}
-
-/*
-function ~splitLabel~
-Splits a string {a, b, c, ...} into a set of strings a, b, c, ...
-
-*/
-set<string> splitLabel(string labelset) {
-  cout << "splitLabel called" << endl;
-  string labels, label;
-  set<string> result;
-  if (labelset.at(0) == '{')
-    labels.assign(labelset.substr(1, labelset.length() - 2));
-  else {
-    result.insert(labelset);
-    cout << "label " << labelset << " added" << endl;
-    return result;
-  }
-  size_t pos = 0;
-  while ((pos = labels.find(' ', pos)) != string::npos) {
-    labels.erase(pos, 1); //delete whitespaces
-  }
-  istringstream iss(labels);
-  while (getline(iss, label, ',')) {
-    result.insert(label);
-    cout << "label " << label << " added" << endl;
-  }
-  return result;
-}
-
 int str2Int(string const &text) {
   int result;
   stringstream ss(text);
@@ -111,22 +79,185 @@ vector<string> getElementsFromSet(string const set) {
   return elements;
 }
 
-string extendDateString(const string input) {
+/*
+function ~convert~
+Converts a string into a char[*]
+
+*/
+char* convert(string arg) {
+  return strdup(arg.c_str());
+}
+
+/*
+function ~splitLabel~
+Splits a string {a, b, c, ...} into a set of strings a, b, c, ...
+
+*/
+set<string> splitLabel(string labelset) {
+  cout << "splitLabel called" << endl;
+  string labels, label;
+  set<string> result;
+  if (labelset.at(0) == '{')
+    labels.assign(labelset.substr(1, labelset.length() - 2));
+  else {
+    result.insert(labelset);
+    cout << "label " << labelset << " added" << endl;
+    return result;
+  }
+  size_t pos = 0;
+  while ((pos = labels.find(' ', pos)) != string::npos) {
+    labels.erase(pos, 1); //delete whitespaces
+  }
+  istringstream iss(labels);
+  while (getline(iss, label, ',')) {
+    result.insert(label);
+    cout << "label " << label << " added" << endl;
+  }
+  return result;
+}
+
+/*
+function ~extendDateString~
+Takes a datetime string and extends it to the format YYYY-MM-DD-HH:MM:SS.MMM,
+the variable ~start~ decides on the values.
+
+*/
+string extendDateString(const string input, const bool start) {
   string result, mask;
-  mask.assign("-01-01-00:00:00.000");
+  int month, daysInMonth, year;
+  if (start) {
+    mask.assign("-01-01-00:00:00.000");
+  }
+  else {
+    mask.assign("-12-31-23:59:59.999");
+  }
   result.assign(input);
   int pos = 1;
-  char nextLimit = '-';
-  // TODO: build a while loop
-  if ((pos = input.find(nextLimit, pos)) == string::npos) {
-    result.append("-01-01-00:00:00.000");
+  if ((pos = input.find('-', pos)) == string::npos) {
+    result.append(mask.substr(0));
     return result;
   }
   pos++;
-  if ((pos = input.find(nextLimit, pos)) == string::npos) {
-    result.append("-01-00:00:00.000");
+  if ((pos = input.find('-', pos)) == string::npos) {
+    if (!start) {
+      stringstream yearStream(input.substr(0, input.find('-')));
+      stringstream monthStream(input.substr(input.find('-') + 1));
+      stringstream dayStream;
+      if ((monthStream >> month).fail()) {
+        cout << "month stringstream error" << endl;
+        return input + mask.substr(3);
+      }
+      else {
+        switch (month){
+          case 1:
+          case 3:
+          case 5:
+          case 7:
+          case 8:
+          case 10:
+          case 12:
+            daysInMonth = 31;
+            break;
+          case 4:
+          case 6:
+          case 9:
+          case 11:
+            daysInMonth = 30;
+            break;
+          case 2:
+            if ((yearStream >> year).fail()) {
+              cout << "year stringstream error" << endl;
+              return input + mask.substr(3);
+            }
+            else {
+              if (((year % 4 == 0) && (year % 100 != 0))
+                || (year % 400 == 0)) {
+                daysInMonth = 29;
+              }
+              else {
+                daysInMonth = 28;
+              }
+            }
+            break;
+          default: // should not occur
+            cout << "month " << month << " does not exist" << endl;
+            return input + mask.substr(3);
+        }
+      }
+    dayStream << "-" << daysInMonth;
+    result.append(dayStream.str());
+    result.append(mask.substr(6));
+    return result;
+    }
+  }
+  pos++;
+  if ((pos = input.find('-', pos)) == string::npos) {
+    result.append(mask.substr(6));
     return result;
   }
   pos++;
-  return mask;
+  if ((pos = input.find(':', pos)) == string::npos) {
+    result.append(mask.substr(9));
+    return result;
+  }
+  pos++;
+  if ((pos = input.find(':', pos)) == string::npos) {
+    result.append(mask.substr(12));
+    return result;
+  }
+  pos++;
+  if ((pos = input.find('.', pos)) == string::npos) {
+    result.append(mask.substr(15));
+    return result;
+  }
+  return input;
+}
+
+/*
+function ~checkSemanticDate~
+Checks whether text is a valid semantic date string and contains the time
+interval defined by start and end.
+
+*/
+bool checkSemanticDate(const string text, const Instant start,
+                       const Instant end) {
+  string weekdays[7] = {"monday", "tuesday", "wednesday", "thursday", "friday",
+                        "saturday", "sunday"};
+  string months[12] = {"january", "february", "march", "april", "may", "june",
+                       "july", "august", "september", "october", "november",
+                       "december"};
+  string daytimes[4] = {"morning", "afternoon", "evening", "night"};
+  if ((start.GetYear() == end.GetYear()) // year and month of start end have
+       && (start.GetMonth() == end.GetMonth())) { // to coincode for a match
+    for (int i = 0; i < 12; i++) { // handle months
+      if (!text.compare(months[i])) {
+        return (i == start.GetMonth() - 1);
+      }
+    } // for weekdays and daytimes, start and end day have to coincide
+    if (start.GetGregDay() == end.GetGregDay()) { // 
+      for (int i = 0; i < 7; i++) { // handle weekdays
+        if (!text.compare(weekdays[i])) {
+          return (i == start.GetWeekday());
+        }
+      }
+      for (int i = 0; i < 4; i++) { // handle daytimes
+        if (!text.compare(daytimes[i])) {
+          switch (i) {
+            case 0:
+              return (start.GetHour() >= 0) && (end.GetHour() <= 11);
+            case 1:
+              return (start.GetHour() >= 12) && (end.GetHour() <= 16);
+            case 2:
+              return (start.GetHour() >= 17) && (end.GetHour() <= 20);
+            case 3:
+              return (start.GetHour() >= 21) && (end.GetHour() <= 23);
+            default: // cannot occur
+              cout << "daytime error" << endl;
+              return false;
+          }
+        }
+      }
+    }
+  } // different months => match impossible
+  return false;
 }
