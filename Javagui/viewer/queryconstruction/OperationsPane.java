@@ -9,15 +9,28 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Iterator;
-import viewer.QueryconstructionViewer;
+import viewer.QueryConstructionViewer;
 
 /* RelationsPane.java requires no other files. */
 public class OperationsPane extends MainPane {
     
     private ArrayList<ObjectView> elements = new ArrayList<ObjectView>();
-    private QueryconstructionViewer viewer;
+    private QueryConstructionViewer viewer;
 
-    public OperationsPane(QueryconstructionViewer viewer) {
+    public OperationsPane(QueryConstructionViewer viewer) {
+        ObjectView feed = new ObjectView(OPERATION, "feed");
+        addObject(feed);
+        ObjectView filter = new ObjectView(OPERATION, "project");
+        addObject(filter);
+        ObjectView count = new ObjectView(OPERATION, "count");
+        addObject(count);
+        ObjectView head = new ObjectView(OPERATION, "head[1]");
+        addObject(head);
+        ObjectView tail = new ObjectView(OPERATION, "tail[4]");
+        addObject(tail);
+        ObjectView consume = new ObjectView(OPERATION, "consume");
+        addObject(consume);
+        
         this.viewer = viewer;
         this.addMouseListener(this);
     }
@@ -30,7 +43,7 @@ public class OperationsPane extends MainPane {
         
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
-            object.paintComponent( g, x, y, null );
+            object.paintTable( g, x, y, null );
             y++;
         }
         
@@ -46,13 +59,13 @@ public class OperationsPane extends MainPane {
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
             object.setUnactive();
-            if (lastComponent.getName() == "Trains") {
-                if (object.getName() == "feed" || object.getName() == "count" || object.getName() == "filter") {
+            if (lastComponent.getName().equals("Trains")) {
+                if ("feed".equals(object.getName()) || "count".equals(object.getName())) {
                     object.setActive();
                 }
             }
             if (lastComponent.getName() == "feed") {
-                if (object.getName() == "head[1]" || object.getName() == "tail[4]") {
+                if (object.getName() == "head[1]" || object.getName() == "tail[4]" || object.getName() == "project") {
                     object.setActive();
                 }
             }
@@ -69,16 +82,11 @@ public class OperationsPane extends MainPane {
     public void mouseClicked ( MouseEvent arg0 ) {
         if (arg0.getClickCount () == 2) {
             int y = 0;
-            if (10 < arg0.getX() && arg0.getX() < 130) {
-                while (arg0.getY() > (10 + y*70)) { y++; }
-                if (arg0.getX() < (10 + y*70)) {
-                    if (y <= elements.size()) {
-                        if (elements.get(y-1).isActive())
-                            viewer.addObject(elements.get(y-1));
-                    }
-                }
+            while (arg0.getY() > (y*30)) { y++; }
+            if (y <= elements.size()) {
+                if (elements.get(y-1).isActive())
+                    viewer.addObject(elements.get(y-1));
             }
-            
         }
     }
 }

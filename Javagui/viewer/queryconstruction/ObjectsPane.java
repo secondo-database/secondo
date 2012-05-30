@@ -9,17 +9,34 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Iterator;
-import viewer.QueryconstructionViewer;
+import sj.lang.ListExpr;
+import viewer.QueryConstructionViewer;
 
 /* ObjectsPane.java requires no other files. */
 public class ObjectsPane extends MainPane {
     
     private ArrayList<ObjectView> elements = new ArrayList<ObjectView>();
-    private QueryconstructionViewer viewer;
+    private QueryConstructionViewer viewer;
+    private ListExpr objects;
 
-    public ObjectsPane(QueryconstructionViewer viewer) {
+    public ObjectsPane(QueryConstructionViewer viewer, ListExpr obj) {
+        this.objects = obj;
         this.viewer = viewer;
         this.addMouseListener(this);
+        
+        ObjectView Trains = new ObjectView(RELATION, "Trains");
+        addObject(Trains);
+        ObjectView strassen = new ObjectView(RELATION, "strassen");
+        //addObject(strassen);
+        ObjectView Kinos = new ObjectView(RELATION, "Kinos");
+        //addObject(Kinos);
+        
+        ObjectView train7 = new ObjectView(MPOINT, "train7");
+        //addObject(train7);
+        ObjectView mehringdamm = new ObjectView(POINT, "mehringdamm");
+        //addObject(mehringdamm);
+        ObjectView tiergarten = new ObjectView(REGION, "tiergarten");
+        //addObject(tiergarten);
     }
     
     /** paints a Secondo Object into the ObjectsPane */
@@ -44,10 +61,8 @@ public class ObjectsPane extends MainPane {
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
             object.setUnactive();
-            if (super.getLast().getName() == "query") {
-                if (object.getName() == "Trains") {
-                    object.setActive();
-                }
+            if (object.getName() == "Trains") {
+                object.setActive();
             }
         }
         this.repaint();

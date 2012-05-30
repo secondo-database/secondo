@@ -5,10 +5,9 @@
 package viewer.queryconstruction;
 
 import java.awt.*;
-import java.awt.event.*;
 import javax.swing.*;
 import gui.SecondoObject;
-import viewer.QueryconstructionViewer;
+import viewer.QueryConstructionViewer;
 
 /**
  *
@@ -23,7 +22,6 @@ public class ObjectView extends JComponent {
     private String type;
     private boolean active;
     private Color color = Color.BLACK;
-    private SecondoObject so;
     
     public ObjectView(String type, String name){
         
@@ -45,34 +43,34 @@ public class ObjectView extends JComponent {
             g.setColor(color);
         else g.setColor(this.color);
         
-        if (type == "operation") {
+        if (type == MainPane.OPERATION) {
             g.drawOval(xpos, ypos, 90, 50);
         }
         else {
             g.drawRect(xpos, ypos, 90, 50);
             
-            if (type == "rel") {
-                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/relation.gif"));
+            if (type == MainPane.RELATION) {
+                ImageIcon icon = new ImageIcon(QueryConstructionViewer.class.getResource("queryconstruction/images/relation.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
 
             if (type == "mpoint") {
-                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/mpoint.gif"));
+                ImageIcon icon = new ImageIcon(QueryConstructionViewer.class.getResource("queryconstruction/images/mpoint.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
             if (type == "point") {
-                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/point.gif"));
+                ImageIcon icon = new ImageIcon(QueryConstructionViewer.class.getResource("queryconstruction/images/point.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
             if (type == "region") {
-                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/region.gif"));
+                ImageIcon icon = new ImageIcon(QueryConstructionViewer.class.getResource("queryconstruction/images/region.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
             if (type == "mregion") {
-                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/mregion.gif"));
+                ImageIcon icon = new ImageIcon(QueryConstructionViewer.class.getResource("queryconstruction/images/mregion.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
         }
@@ -88,12 +86,35 @@ public class ObjectView extends JComponent {
         g.drawString(s, xpos + 25, ypos + 30);
     }
     
+    public void paintTable(Graphics g, int x, int y, Color color){
+        this.xpos = 10 + x*120;
+        this.ypos = 10 + y*30;
+        
+        if (color != null)
+            g.setColor(color);
+        else g.setColor(this.color);
+        
+        g.drawLine(xpos - 10, ypos + 20, xpos + 120, ypos + 20);
+        
+        int w = g.getFontMetrics().stringWidth(label);
+        String s = label;
+        if (w > 80) {
+            s = label.substring(0, 10);
+        }
+        
+        g.drawString(s, xpos + 20, ypos + 10);
+    }
+    
     public String getName() {
         return this.name;
     }
     
     public void setName(String name) {
         this.name = name;
+    }
+    
+    public String getType(){
+        return type;
     }
     
     public boolean isActive() {

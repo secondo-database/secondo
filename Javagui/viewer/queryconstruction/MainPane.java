@@ -17,10 +17,18 @@ import java.util.*;
 public class MainPane extends JComponent implements MouseListener {
     
     private ArrayList<ObjectView> elements = new ArrayList<ObjectView>();
-    static protected Component lastComponent;
+    
+    protected static final String RELATION = "rel";
+    protected static final String OPERATION="operation";
+    protected static final String MPOINT = "mpoint";
+    protected static final String POINT = "point";
+    protected static final String REGION = "region";
+    protected static final String MREGION = "mregion";
+    
+    protected static Component lastComponent = new ObjectView(OPERATION, "query");
     
     public MainPane() {
-       //this.addMouseListener(this);
+        
     }
     
     public void paintComponent(Graphics g) {
@@ -42,8 +50,8 @@ public class MainPane extends JComponent implements MouseListener {
     //adds an operation or an object to the main panel
     public void addObject(ObjectView object){
         elements.add(object);
-        if (object.getName() == "filter"){
-            new FilterDialog(this, new String[]{"ID", "Line", "Up", "Trip"});
+        if (object.getName().equals("project")){
+            new OperationsDialog(this, new String[]{"ID", "Line", "Up", "Trip"});
         }
         lastComponent = object;
     }
@@ -51,8 +59,8 @@ public class MainPane extends JComponent implements MouseListener {
     public void removeLastObject(){
         if (elements.contains(lastComponent)) {
             elements.remove(lastComponent);
+            lastComponent = elements.get(elements.size()-1);
         }
-        lastComponent = elements.get(elements.size()-1);
     }
     
     public Component getLast () {
@@ -60,7 +68,7 @@ public class MainPane extends JComponent implements MouseListener {
     }
     
     public String getStrings(){
-        String query = new String();
+        String query = "query ";
         
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
@@ -70,7 +78,7 @@ public class MainPane extends JComponent implements MouseListener {
         return query;
     }
     
-    public String filter(String[] attributes) {
+    public String project(String[] attributes) {
         String result = lastComponent.getName();
         result+="[";
         
@@ -88,7 +96,10 @@ public class MainPane extends JComponent implements MouseListener {
     public void mouseReleased(MouseEvent e) {
     }
     public void mouseClicked ( MouseEvent e ) {
-        
+        //rechts auf das Objekt geklickt
+        if (e.getButton() == 3) {
+            
+        }
     }
     public void mouseEntered(MouseEvent e){
     }
