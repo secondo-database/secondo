@@ -7,7 +7,7 @@ package viewer.queryconstruction;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
-import viewer.QueryConstructionViewer;
+import viewer.QueryconstructionViewer;
 
 /**
  *
@@ -45,27 +45,27 @@ public class ObjectComponent extends Component {
             g.drawRect(xpos, ypos, 90, 50);
             
             if (type == "rel") {
-                ImageIcon icon = new ImageIcon(QueryConstructionViewer.class.getResource("queryconstruction/images/relation.gif"));
+                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/relation.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
 
             if (type == "mpoint") {
-                ImageIcon icon = new ImageIcon(QueryConstructionViewer.class.getResource("queryconstruction/images/mpoint.gif"));
+                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/mpoint.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
             if (type == "point") {
-                ImageIcon icon = new ImageIcon(QueryConstructionViewer.class.getResource("queryconstruction/images/point.gif"));
+                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/point.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
             if (type == "region") {
-                ImageIcon icon = new ImageIcon(QueryConstructionViewer.class.getResource("queryconstruction/images/region.gif"));
+                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/region.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
             if (type == "mregion") {
-                ImageIcon icon = new ImageIcon(QueryConstructionViewer.class.getResource("queryconstruction/images/mregion.gif"));
+                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/mregion.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
         }

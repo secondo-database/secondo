@@ -9,15 +9,15 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Iterator;
-import viewer.QueryConstructionViewer;
+import viewer.QueryconstructionViewer;
 
 /* RelationsPane.java requires no other files. */
 public class OperationsPane extends MainPane {
     
     private ArrayList<ObjectView> elements = new ArrayList<ObjectView>();
-    private QueryConstructionViewer viewer;
+    private QueryconstructionViewer viewer;
 
-    public OperationsPane(QueryConstructionViewer viewer) {
+    public OperationsPane(QueryconstructionViewer viewer) {
         ObjectView feed = new ObjectView(OPERATION, "feed");
         addObject(feed);
         ObjectView filter = new ObjectView(OPERATION, "project");

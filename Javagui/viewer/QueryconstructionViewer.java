@@ -24,7 +24,6 @@ import java.awt.*;
 import java.awt.event.*;
 import gui.SecondoObject;
 import sj.lang.*;
-import tools.Reporter;
 import viewer.queryconstruction.*;
 
 /**
@@ -33,68 +32,42 @@ import viewer.queryconstruction.*;
  */
 public class QueryconstructionViewer extends SecondoViewer {
     
-    private ObjectsPane ObjectsPane = new ObjectsPane(this);
+    private ObjectsPane ObjectsPane;
     private OperationsPane OperationsPane = new OperationsPane(this);
     private MainPane MainPane;
     
-    // define supported subtypes
-    private static final String DATABASES = "databases";
-    private static final String CONSTRUCTORS="constructors";
-    private static final String OPERATORS = "operators";
-    private static final String ALGEBRAS = "algebras";
-    private static final String ALGEBRA = "algebra";
-    private static final String TYPES = "types";
-    private static final String OBJECTS ="objects";
+    // define supported types
+    protected static final String RELATION = "rel";
+    protected static final String OPERATION="operation";
+    protected static final String MPOINT = "mpoint";
+    protected static final String POINT = "point";
+    protected static final String REGION = "region";
+    protected static final String MREGION = "mregion";
     
     private MenuVector MV = new MenuVector();
-    private ListExpr result;
+    private String result;
+    private int streamCounter = 0;
+    private ListExpr objects;
     
     public QueryconstructionViewer(){
         this.setLayout(new BorderLayout());
         
         MainPane = new MainPane();
         MainPane.setPreferredSize(new Dimension (500, 400));
-        
-        ObjectView query = new ObjectView("operation", "query");
-        MainPane.addObject(query);
-        
-        ObjectView Trains = new ObjectView("rel", "Trains");
-        ObjectsPane.addObject(Trains);
-        ObjectView strassen = new ObjectView("rel", "strassen");
-        //ObjectsPane.addObject(strassen);
-        ObjectView Kinos = new ObjectView("rel", "Kinos");
-        //ObjectsPane.addObject(Kinos);
-        
-        ObjectView train7 = new ObjectView("mpoint", "train7");
-        //ObjectsPane.addObject(train7);
-        ObjectView mehringdamm = new ObjectView("point", "mehringdamm");
-        //ObjectsPane.addObject(mehringdamm);
-        ObjectView tiergarten = new ObjectView("region", "tiergarten");
-        //ObjectsPane.addObject(tiergarten);
-        
-        ObjectView feed = new ObjectView("operation", "feed");
-        OperationsPane.addObject(feed);
-        ObjectView filter = new ObjectView("operation", "filter");
-        OperationsPane.addObject(filter);
-        ObjectView count = new ObjectView("operation", "count");
-        OperationsPane.addObject(count);
-        ObjectView head = new ObjectView("operation", "head[1]");
-        OperationsPane.addObject(head);
-        ObjectView tail = new ObjectView("operation", "tail[4]");
-        OperationsPane.addObject(tail);
-        ObjectView consume = new ObjectView("operation", "consume");
-        OperationsPane.addObject(consume);
+        ObjectsPane = new ObjectsPane(this, objects);
+        ObjectsPane.setPreferredSize(new Dimension (600, 80));
+        OperationsPane.setPreferredSize(new Dimension (120, 400));
         
         OperationsPane.update();
         ObjectsPane.update();
         
         JScrollPane MainScrollPane = new JScrollPane(MainPane);
         JScrollPane ObjectsScrollPane = new JScrollPane(ObjectsPane);
-        ObjectsScrollPane.setPreferredSize(new Dimension (500, 80));
-        JScrollPane OperationsMainScrollPane = new JScrollPane(OperationsPane);
-        OperationsMainScrollPane.setPreferredSize(new Dimension (115, 500));
+        JScrollPane OperationsScrollPane = new JScrollPane(OperationsPane);
+        OperationsScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        
         this.add(ObjectsScrollPane, BorderLayout.NORTH);
-        this.add(OperationsMainScrollPane, BorderLayout.EAST);
+        this.add(OperationsScrollPane, BorderLayout.EAST);
         this.add(MainScrollPane, BorderLayout.CENTER);
         
         JPanel buttonPanel = new JPanel();
@@ -118,14 +91,28 @@ public class QueryconstructionViewer extends SecondoViewer {
             }
         };
         back.addActionListener(backl);
+        
+        //VC.execCommand("open database berlintest");
     }
     
     //adds an object to the main panel
     public void addObject(ObjectView object){
+        if (object.getType().equals("rel"))
+            streamCounter++;
         MainPane.addObject(object);
+        MainPane.setToolTipText(getType());
         MainPane.repaint();
         OperationsPane.update();
         ObjectsPane.update();
+    }
+    
+    public String getType () {
+        String getTypeNL = VC.getCommandResult(MainPane.getStrings() + " getTypeNL").second().textValue();
+        if (getTypeNL.startsWith("(stream"))
+            this.result = "stream";
+        else
+            this.result = "relation";
+        return getTypeNL;
     }
     
     //executes the constructed query
@@ -133,9 +120,7 @@ public class QueryconstructionViewer extends SecondoViewer {
         System.out.println(MainPane.getStrings());
         if (VC.execCommand(MainPane.getStrings()) == 0) {
             System.out.println(VC.getCommandResult(MainPane.getStrings()));
-
-            result = VC.getCommandResult(MainPane.getStrings());
-            System.out.println(VC.getCommandResult(MainPane.getStrings()).isAtom());
+            VC.execUserCommand(MainPane.getStrings());
         }
     }
     
@@ -169,25 +154,26 @@ public class QueryconstructionViewer extends SecondoViewer {
     }
     
     public boolean canDisplay(SecondoObject o){
-        ListExpr LE = o.toListExpr(); // get the nested list of o
-        if(LE.listLength()!=2) // the length must be two
-            return false;
-        // the first element must be an symbol atom with content "inquiry"
-        if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM || !LE.first().symbolValue().equals("inquiry"))
-            return false;
-        ListExpr VL = LE.second();
-        // the length of the second element must again be two
-        if(VL.listLength()!=2)
-            return false;
-        ListExpr SubTypeList = VL.first();
-        // the first element of this list must be a symbol atom
-        if(SubTypeList.atomType()!=ListExpr.SYMBOL_ATOM)
-            return false;
-        String SubType = SubTypeList.symbolValue();
-        // check for supported "sub types"
-        // the used constants just contain the appropriate String
-        if(SubType.equals(DATABASES) || SubType.equals(CONSTRUCTORS) || SubType.equals(OPERATORS) || SubType.equals(ALGEBRA) || SubType.equals(ALGEBRAS) || SubType.equals(OBJECTS) || SubType.equals(TYPES))
-            return true;
+//        ListExpr LE = o.toListExpr(); // get the nested list of o
+//        if(LE.listLength()!=2) // the length must be two
+//            return false;
+//        // the first element must be an symbol atom with content "inquiry"
+//        if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM || !LE.first().symbolValue().equals("inquiry"))
+//            return false;
+//        ListExpr VL = LE.second();
+//        // the length of the second element must again be two
+//        if(VL.listLength()!=2)
+//            return false;
+//        ListExpr SubTypeList = VL.first();
+//        // the first element of this list must be a symbol atom
+//        if(SubTypeList.atomType()!=ListExpr.SYMBOL_ATOM)
+//            return false;
+//        String SubType = SubTypeList.symbolValue();
+//        // check for supported "sub types"
+//        // the used constants just contain the appropriate String
+//        if(SubType.equals(DATABASES) || SubType.equals(CONSTRUCTORS) || SubType.equals(OPERATORS) || SubType.equals(ALGEBRA) || SubType.equals(ALGEBRAS) || SubType.equals(OBJECTS) || SubType.equals(TYPES))
+//            return true;
+//        return false;
         return false;
     }
 

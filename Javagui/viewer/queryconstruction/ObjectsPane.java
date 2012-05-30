@@ -10,16 +10,16 @@ import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import sj.lang.ListExpr;
-import viewer.QueryConstructionViewer;
+import viewer.QueryconstructionViewer;
 
 /* ObjectsPane.java requires no other files. */
 public class ObjectsPane extends MainPane {
     
     private ArrayList<ObjectView> elements = new ArrayList<ObjectView>();
-    private QueryConstructionViewer viewer;
+    private QueryconstructionViewer viewer;
     private ListExpr objects;
 
-    public ObjectsPane(QueryConstructionViewer viewer, ListExpr obj) {
+    public ObjectsPane(QueryconstructionViewer viewer, ListExpr obj) {
         this.objects = obj;
         this.viewer = viewer;
         this.addMouseListener(this);
