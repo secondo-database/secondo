@@ -13,6 +13,7 @@ MovingRegion2Algebra.o: MovingRegion2Algebra.cpp \
  /home/secondo/secondo/include/AlgebraTypes.h \
  /home/secondo/secondo/include/Operator.h \
  /home/secondo/secondo/include/NList.h \
+ /home/secondo/secondo/include/CostEstimation.h \
  /home/secondo/secondo/include/TypeConstructor.h \
  /home/secondo/secondo/include/ConstructorTemplates.h \
  /home/secondo/secondo/include/Attribute.h \

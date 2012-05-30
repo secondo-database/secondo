@@ -70,13 +70,13 @@ very verbose and has significant negative input on the algebra's performance.
 Only enable debug output if you know what you are doing!
 
 */
-const bool MR2_DEBUG = true;
+const bool MR2_DEBUG = false;
 
 /*
 ~eps2~ is used for comparison of two double values.
 
 */
-double eps2 = 0.00001;
+double eps2 = 0.000000001;
 
 /*
 ~gmpCharNum~ specifies the number of elements reserved for each coordinate  in the
@@ -800,26 +800,13 @@ static void gmpTypeToTextType
 		{
 			theArray[j] = 0;
 		}
-		if (MR2_DEBUG)
-		{
-			cerr << "Content of array is: (";
-			for (int j = 0; j < n-1; j++)
-			{
-				cerr << theArray[j] << ",";
-			}
-			cerr << theArray[n-1] << ")." << endl;
-		}
+
 
 		string str = string(theArray);
-		if (MR2_DEBUG)
-			cerr << "gmpTypeToTextType(), next string is "
-			<< str << endl;
+
 		nl->AppendText(resultList, str);
 	}
 
-	if (MR2_DEBUG)
-		cerr << "The resulting TextAtom is "
-		<< nl->ToString(resultList) << endl;
 }
 
 /*
@@ -840,8 +827,6 @@ static void textTypeToGmpType
 
 	TextScan theScan = nl->CreateTextScan(inList);
 	stringstream theStream;
-	if (MR2_DEBUG)
-		cerr << "Reading character for character from TextAtom: ";
 
 	char lastChar = '*'; //just a random initialization...
 
@@ -849,8 +834,7 @@ static void textTypeToGmpType
 	{
 	  string str = "";
 	  nl->GetText(theScan, 1, str);
-	  if (MR2_DEBUG)
-		cerr << str[0] << " ";
+
 
 	  //Checking for valid character
 	  if ((int)str[0] < 47 || (int)str[0] > 57
@@ -5326,17 +5310,12 @@ A new group of int values is needed since the one(s) used so far is / are not en
 
 		if (theStream.good())
 		{
-		    if (MR2_DEBUG)
-			cerr << "Putting isx in the array in loop : " 
-			    << i << ", value is " << nextChar << endl;
+
 		    preciseCoordinates->Put(index, (int)nextChar);
 		    index++;
 		}
 		else
 		{
-		    if (MR2_DEBUG)
-			cerr << "Setting isxNumOfChars to " 
-				<< i << endl;
 
 		    isxNumOfChars = i;
 		    for (int j = index; j % gmpCharNum > 0; j++)
@@ -5389,9 +5368,7 @@ A new group of int values is needed since the one(s) used so far is / are not en
 
 		if (theStream.good())
 		{
-		    if (MR2_DEBUG)
-			cerr << "Putting isy in the array in loop : " 
-			<< i << ", value is " << nextChar << endl;
+
 		    preciseCoordinates->Put(index, (int)nextChar);
 		    index++;
 		}
@@ -5444,9 +5421,7 @@ A new group of int values is needed since the one(s) used so far is / are not en
 
 		if (theStream.good())
 		{
-		    if (MR2_DEBUG)
-			cerr << "Putting iex in the array in loop : " 
-			<< i << ", value is " << nextChar << endl;
+
 		    preciseCoordinates->Put(index, (int)nextChar);
 		    index++;
 		}
@@ -5499,9 +5474,7 @@ A new group of int values is needed since the one(s) used so far is / are not en
 
 		if (theStream.good())
 		{
-		    if (MR2_DEBUG)
-			cerr << "Putting iey in the array in loop : " 
-			<< i << ", value is " << nextChar << endl;
+
 		    preciseCoordinates->Put(index, (int)nextChar);
 		    index++;
 		}
@@ -5555,9 +5528,7 @@ A new group of int values is needed since the one(s) used so far is / are not en
 
 		if (theStream.good())
 		{
-		    if (MR2_DEBUG)
-			cerr << "Putting fsx in the array in loop :"
-			<< i << ", value is " << nextChar << endl;
+
 		    preciseCoordinates->Put(index, (int)nextChar);
 		    index++;
 		}
@@ -5612,9 +5583,7 @@ A new group of int values is needed since the one(s) used so far is / are not en
 
 		if (theStream.good())
 		{
-		    if (MR2_DEBUG)
-			cerr << "Putting fsy in the array in loop : " 
-			<< i << ", value is " << nextChar << endl;
+
 		    preciseCoordinates->Put(index, (int)nextChar);
 		    index++;
 		}
@@ -5667,9 +5636,7 @@ A new group of int values is needed since the one(s) used so far is / are not en
 
 		if (theStream.good())
 		{
-		    if (MR2_DEBUG)
-			cerr << "Putting fex in the array in loop : " 
-			<< i << ", value is " << nextChar << endl;
+
 		    preciseCoordinates->Put(index, (int)nextChar);
 		    index++;
 		}
@@ -5722,9 +5689,7 @@ A new group of int values is needed since the one(s) used so far is / are not en
 
 		if (theStream.good())
 		{
-		    if (MR2_DEBUG)
-			cerr << "Putting fey in the array in loop : " 
-				<< i << ", value is " << nextChar << endl;
+
 		    preciseCoordinates->Put(index, (int)nextChar);
 		    index++;
 		}
@@ -5765,9 +5730,6 @@ mpq_class PreciseMSegmentData::GetInitialStartX(const
 	int index = isxStartPos;
 	if (index == -1) return theValue;
 
-	if (MR2_DEBUG)
-		cerr << "Reading int values (chars) from DbArray: ";
-
 	for (int i = 0; i < isxNumOfChars; i++)
 	{
 		if (i > 0 && i % gmpCharNum == gmpCharNum-1)
@@ -5781,21 +5743,12 @@ mpq_class PreciseMSegmentData::GetInitialStartX(const
 		preciseCoordinates->Get(index, nextInt);
 		nextChar = static_cast<char>(nextInt);
 
-		if (MR2_DEBUG)
-			cerr << nextInt << "(" << nextChar << "), ";
 
 		theStream.put(nextChar);
 		index++;
 	}
 
-	if (MR2_DEBUG)
-		cerr << "putting now in gmp return value." << endl;
-
 	theStream >> theValue;
-
-	if (MR2_DEBUG)
-		cerr << "Return value is " << theValue << endl;
-
 	return theValue;
 }
 
@@ -6148,10 +6101,7 @@ A new group of int values is needed since the one(s) used so far is / are not en
 
 		if (theStream.good())
 		{
-		    if (MR2_DEBUG)
-			cerr << "Putting start in the array "
-			<< "in loop : " << i 
-			<< ", value is " << nextChar << endl;
+
 		    preciseInstants->Put(index, (int)nextChar);
 		    index++;
 		}
@@ -6164,11 +6114,7 @@ A new group of int values is needed since the one(s) used so far is / are not en
 			}
 		}
 	}
-	if (MR2_DEBUG)
-		cerr << "Start position for this value is " 
-		<< startStartPos
-		<< ", array size is " << preciseInstants->Size() 
-		<< endl;
+
 }
 
 void PreciseInterval::SetPreciseFinalInstant (mpq_class final, 
@@ -6214,9 +6160,7 @@ A new group of chars is needed since the one(s) used so far is / are not enough 
 
 		if (theStream.good())
 		{
-		    if (MR2_DEBUG)
-			cerr << "Putting end in the array in loop : " 
-				<< i << ", value is " << nextChar << endl;
+
 		    preciseInstants->Put(index, (int)nextChar);
 		    index++;
 		}
@@ -6229,11 +6173,7 @@ A new group of chars is needed since the one(s) used so far is / are not enough 
 			}
 		}
 	}
-	if (MR2_DEBUG)
-		cerr << "Start position for this value is " 
-			<< endStartPos
-			<< ", array size is " << preciseInstants->Size() 
-			<< endl;
+
 }
 
 /*
@@ -6745,6 +6685,8 @@ rounding errors.
 	}
 	mpq_class pDeltaX(num, denom);
 	pDeltaX.canonicalize();
+	if (pDeltaX == 0)
+	  pDeltaX = deltaX;
 
 	if (MR2_DEBUG) cerr << "new deltaX: " << pDeltaX << endl;
 
@@ -6757,6 +6699,8 @@ rounding errors.
 	}
 	mpq_class pDeltaY(num, denom);
 	pDeltaY.canonicalize();
+	if (pDeltaY == 0)
+	  pDeltaY = deltaY;
 	if (MR2_DEBUG) cerr << "new deltaY: " << pDeltaY << endl;
 
 	for (int j = 0; j < this->GetSegmentsNum(); j++)
@@ -6802,18 +6746,17 @@ rounding errors.
 			segment.GetFinalEndY() + pDeltaY;
 
 		if (MR2_DEBUG)
-			cerr << "New coordinates as double values: " 
+			cerr << "New coordinates: "
 			<< endl
-			<< "(" << newInitialStartX.get_d() << ", " 
-			<< newInitialStartY.get_d() << ", " 
-			<< newInitialEndX.get_d()
-			<< ", " << newInitialEndY.get_d() << ", " 
-			<< newFinalStartX.get_d() << ", " 
-			<< newFinalStartY.get_d() << ", "
-			<< newFinalEndX.get_d() << ", " 
-			<< newFinalEndY.get_d() << "): " 
-			<< "Splitting now..." << endl
-			<< "Integer grid (precise rest of) coordinates: (";
+			<< "(" << newInitialStartX << ", "
+			<< newInitialStartY << ", "
+			<< newInitialEndX
+			<< ", " << newInitialEndY << ", "
+			<< newFinalStartX << ", "
+			<< newFinalStartY << ", "
+			<< newFinalEndX << ", "
+			<< newFinalEndY << "): "
+			<< "Splitting now..." << endl;
 
 /*
 Split the absolute precise coordinates in integer part and precise rest and
@@ -6829,20 +6772,12 @@ Also reset the isBasicSegment flag and sets it accoring to new values.
 		if (newInitialStartX - temp != 0) 
 			segment.SetIsBasicSegment(false);
 
-		if (MR2_DEBUG)
-			cerr << temp << "(" 
-			<< newInitialStartX-temp << "), ";
-
 		temp = broughtDown(newInitialStartY.get_d());
 		segment.SetInitialStartY(temp);
 		psegment.SetInitialStartY(
 			newInitialStartY - temp, preciseCoordinates);
 		if (newInitialStartY - temp != 0) 
 			segment.SetIsBasicSegment(false);
-
-		if (MR2_DEBUG)
-			cerr << temp << "(" 
-			<< newInitialStartY-temp << "), ";
 
 		temp = broughtDown(newInitialEndX.get_d());
 		segment.SetInitialEndX(temp);
@@ -6851,9 +6786,6 @@ Also reset the isBasicSegment flag and sets it accoring to new values.
 		if (newInitialEndX - temp != 0) 
 			segment.SetIsBasicSegment(false);
 
-		if (MR2_DEBUG)
-			cerr << temp << "(" 
-			<< newInitialEndX-temp << "), ";
 
 		temp = broughtDown(newInitialEndY.get_d());
 		segment.SetInitialEndY(temp);
@@ -6862,20 +6794,12 @@ Also reset the isBasicSegment flag and sets it accoring to new values.
 		if (newInitialEndY - temp != 0) 
 			segment.SetIsBasicSegment(false);
 
-		if (MR2_DEBUG)
-			cerr << temp << "(" 
-			<< newInitialEndY-temp << "), ";
-
 		temp = broughtDown(newFinalStartX.get_d());
 		segment.SetFinalStartX(temp);
 		psegment.SetFinalStartX(
 			newFinalStartX - temp, preciseCoordinates);
 		if (newFinalStartX - temp != 0) 
 			segment.SetIsBasicSegment(false);
-
-		if (MR2_DEBUG)
-			cerr << temp << "(" 
-			<< newFinalStartX-temp << "), ";
 
 		temp = broughtDown(newFinalStartY.get_d());
 		segment.SetFinalStartY(temp);
@@ -6884,10 +6808,6 @@ Also reset the isBasicSegment flag and sets it accoring to new values.
 		if (newFinalStartY - temp != 0) 
 			segment.SetIsBasicSegment(false);
 
-		if (MR2_DEBUG)
-			cerr << temp << "(" 
-			<< newFinalStartY-temp << "), ";
-
 		temp = broughtDown(newFinalEndX.get_d());
 		segment.SetFinalEndX(temp);
 		psegment.SetFinalEndX(
@@ -6895,9 +6815,6 @@ Also reset the isBasicSegment flag and sets it accoring to new values.
 		if (newFinalEndX - temp != 0) 
 			segment.SetIsBasicSegment(false);
 
-		if (MR2_DEBUG)
-			cerr << temp << "(" 
-			<< newFinalEndX-temp << "), ";
 
 		temp = broughtDown(newFinalEndY.get_d());
 		segment.SetFinalEndY(temp);
@@ -6906,16 +6823,6 @@ Also reset the isBasicSegment flag and sets it accoring to new values.
 		if (newFinalEndY - temp != 0) 
 			segment.SetIsBasicSegment(false);
 
-		if (MR2_DEBUG)
-			cerr << temp << "(" 
-			<< newFinalEndY-temp << ")" << endl
-			<< "New precise coordinates:" 
-			<< endl << "PreciseInitialStartX: "
-			<< psegment.GetInitialStartX(preciseCoordinates) 
-			<< endl
-			<< "PreciseInitialStartY: " 
-			<< psegment.GetInitialStartY(preciseCoordinates) 
-			<< "usw." << endl;
 
 		//Write the segments back
 		this->PutSegment(segments, j, segment, false);
@@ -6949,6 +6856,8 @@ rounding errors.
 	}
 	mpq_class pDeltaX(num, denom);
 	pDeltaX.canonicalize();
+	if (pDeltaX == 0)
+	  pDeltaX = deltaX;
 	if (MR2_DEBUG) cerr << "new deltaX: " << pDeltaX << endl;
 
 	num = 1;
@@ -6960,6 +6869,8 @@ rounding errors.
 	}
 	mpq_class pDeltaY(num, denom);
 	pDeltaY.canonicalize();
+	if (pDeltaY == 0)
+		pDeltaY = deltaY;
 	if (MR2_DEBUG) cerr << "new deltaY: " << pDeltaY << endl;
 
 	for (int j = 0; j < this->GetSegmentsNum(); j++)
@@ -7005,18 +6916,17 @@ rounding errors.
 			segment.GetFinalEndY()) * pDeltaY;
 
 		if (MR2_DEBUG)
-			cerr << "New coordinates as double values: " 
+			cerr << "New coordinates: "
 			<< endl
-			<< "(" << newInitialStartX.get_d() << ", " 
-			<< newInitialStartY.get_d() << ", " 
-			<< newInitialEndX.get_d()
-			<< ", " << newInitialEndY.get_d() << ", " 
-			<< newFinalStartX.get_d() << ", " 
-			<< newFinalStartY.get_d() << ", "
-			<< newFinalEndX.get_d() << ", " 
-			<< newFinalEndY.get_d() << "): " 
-			<< "Splitting now..." << endl
-			<< "Integer grid (precise rest of) coordinates: (";
+			<< "(" << newInitialStartX << ", "
+			<< newInitialStartY << ", "
+			<< newInitialEndX
+			<< ", " << newInitialEndY << ", "
+			<< newFinalStartX << ", "
+			<< newFinalStartY << ", "
+			<< newFinalEndX << ", "
+			<< newFinalEndY << "): "
+			<< "Splitting now..." << endl;
 
 /*
 Split results in integer part and precise rest.
@@ -7032,8 +6942,6 @@ Also reset flag isBasicSegment.
 		if (newInitialStartX - temp != 0) 
 			segment.SetIsBasicSegment(false);
 
-		if (MR2_DEBUG)
-		cerr << temp << "(" << newInitialStartX-temp << "), ";
 
 		temp = broughtDown(newInitialStartY.get_d());
 		segment.SetInitialStartY(temp);
@@ -7042,8 +6950,6 @@ Also reset flag isBasicSegment.
 		if (newInitialStartY - temp != 0) 
 			segment.SetIsBasicSegment(false);
 
-		if (MR2_DEBUG)
-		cerr << temp << "(" << newInitialStartY-temp << "), ";
 
 		temp = broughtDown(newInitialEndX.get_d());
 		segment.SetInitialEndX(temp);
@@ -7052,8 +6958,6 @@ Also reset flag isBasicSegment.
 		if (newInitialEndX - temp != 0) 
 			segment.SetIsBasicSegment(false);
 
-		if (MR2_DEBUG)
-		cerr << temp << "(" << newInitialEndX-temp << "), ";
 
 		temp = broughtDown(newInitialEndY.get_d());
 		segment.SetInitialEndY(temp);
@@ -7062,8 +6966,6 @@ Also reset flag isBasicSegment.
 		if (newInitialEndY - temp != 0) 
 			segment.SetIsBasicSegment(false);
 
-		if (MR2_DEBUG)
-		cerr << temp << "(" << newInitialEndY-temp << "), ";
 
 		temp = broughtDown(newFinalStartX.get_d());
 		segment.SetFinalStartX(temp);
@@ -7072,8 +6974,6 @@ Also reset flag isBasicSegment.
 		if (newFinalStartX - temp != 0) 
 			segment.SetIsBasicSegment(false);
 
-		if (MR2_DEBUG)
-		cerr << temp << "(" << newFinalStartX-temp << "), ";
 
 		temp = broughtDown(newFinalStartY.get_d());
 		segment.SetFinalStartY(temp);
@@ -7082,8 +6982,6 @@ Also reset flag isBasicSegment.
 		if (newFinalStartY - temp != 0) 
 			segment.SetIsBasicSegment(false);
 
-		if (MR2_DEBUG)
-		cerr << temp << "(" << newFinalStartY-temp << "), ";
 
 		temp = broughtDown(newFinalEndX.get_d());
 		segment.SetFinalEndX(temp);
@@ -7092,9 +6990,6 @@ Also reset flag isBasicSegment.
 		if (newFinalEndX - temp != 0) 
 			segment.SetIsBasicSegment(false);
 
-		if (MR2_DEBUG)
-		cerr << temp << "(" << newFinalEndX-temp << "), ";
-
 		temp = broughtDown(newFinalEndY.get_d());
 		segment.SetFinalEndY(temp);
 		psegment.SetFinalEndY(
@@ -7102,33 +6997,10 @@ Also reset flag isBasicSegment.
 		if (newFinalEndY - temp != 0) 
 			segment.SetIsBasicSegment(false);
 
-		if (MR2_DEBUG)
-		cerr << temp << "(" << newFinalEndY-temp << ")" 
-		<< endl
-		<< "New precise coordinates:" << endl 
-		<< "PreciseInitialStartX: "
-		<< psegment.GetInitialStartX(preciseCoordinates) 
-		<< endl
-		<< "PreciseInitialStartY: " 
-		<< psegment.GetInitialStartY(preciseCoordinates) 
-		<< "usw." << endl;
-
-
 
 		//Write the segments back
 		this->PutSegment(segments, j, segment, false);
 		this->PutPreciseSegment(preciseSegments, j, psegment);
-
-		if (MR2_DEBUG)
-		{
-		    PreciseMSegmentData testsegment;
-		    this->GetPreciseSegment(
-		    preciseSegments, j, testsegment);
-		    cerr << "Precise coordinates restored from DbArray: "
-		    << testsegment.GetInitialStartX(preciseCoordinates) 
-		    << " as example, isx" << endl;
-		}
-
 
 	}
 }
@@ -7931,7 +7803,7 @@ Check if we have precise time interval information from the splitting before.
 
 				prestS.canonicalize();
 
-				if (denom == 1000000000)
+				if (denom == 1000000000 || prestS == 0)
 				  preciseTimeInterval.
 					SetPreciseInitialInstant(
 					testrest, preciseInstants);
@@ -7956,7 +7828,7 @@ Check if we have precise time interval information from the splitting before.
 
 			prestE.canonicalize();
 
-			if (denom == 1000000000)
+			if (denom == 1000000000 || prestE == 0)
 				preciseTimeInterval.SetPreciseFinalInstant
 					(testrest, preciseInstants);
 			else
