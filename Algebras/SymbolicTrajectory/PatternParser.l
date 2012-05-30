@@ -5,6 +5,7 @@
 using namespace std;
 %}
 %option prefix="pattern"
+%option nounput
 
 %x condition
 %x result

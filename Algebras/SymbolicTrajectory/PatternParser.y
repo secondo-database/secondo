@@ -29,7 +29,7 @@ ExpressionList* exprList = new ExpressionList();
 ExpressionList* exprListComma = new ExpressionList();
 bool doubleParentheses = false;
 string expr, currentInterval;
-int currentPos = 0;
+unsigned int currentPos = 0;
 bool firstAssignment = true;
 %}
 
@@ -437,7 +437,7 @@ to test-execute the condition as a query.
 */
 void Condition::substitute() {
   string varKey;
-  int i = 0;
+  unsigned int i = 0;
   condsubst.assign(condition);
   while (i < keys.size()) {
     varKey.assign(variables[i]);
@@ -461,7 +461,7 @@ Key Condition::convertVarKey(const char *varKey) {
   int dotpos = input.find('.');
   varInput.assign(input.substr(0, dotpos));
   kInput.assign(input.substr(dotpos + 1));
-  for (int i = 0; i < wholepat->patterns.size(); i++) {
+  for (unsigned int i = 0; i < wholepat->patterns.size(); i++) {
     if (!varInput.compare(convert(((wholepat->patterns)[i]).variable))) {
       var.assign(varInput);
       if (!kInput.compare("label"))
@@ -497,7 +497,7 @@ void Condition::clear() {
 string ExpressionList::toString() {
   string result;
   result.assign(expressions[0]);
-  for (int i = 1; i < expressions.size(); i++) {
+  for (unsigned int i = 1; i < expressions.size(); i++) {
     result.append(" ");
     result.append(expressions[i]);
   }
