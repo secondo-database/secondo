@@ -1,0 +1,95 @@
+#Database creation if it does not already exist...
+create database mr2test;
+open database mr2test;
+create mr2prop : mregion2;
+create ur2prop : uregion2;
+create mrprop : mregion;
+create urprop : uregion;
+
+
+
+update mr2prop := [const mregion2 value (1000 (((0 10 TRUE TRUE ())((((10 35 15 15 ())(20 55 30 45 ())(30 65 35 50 ())(40 65 55 50 ())(40 55 55 45 ())(50 45 75 25 ())(50 25 75 10 ())(40 15 70 5 ())(30 15 25 5 ()))((20 30 30 20 ())(20 40 30 30 ())(30 40 40 30 ())(30 30 40 20 ())))))))]
+
+update ur2prop := [const uregion2 value (10 ((0 10 TRUE TRUE ())((((10 35 15 15 ())(20 55 30 45 ())(30 65 35 50 ())(40 65 55 50 ())(40 55 55 45 ())(50 45 75 25 ())(50 25 75 10 ())(40 15 70 5 ())(30 15 25 5 ()))((20 30 30 20 ())(20 40 30 30 ())(30 40 40 30 ())(30 30 40 20 ()))))))]
+
+update mrprop := [const mregion value (((0.0 10.0 TRUE TRUE)((((1.0 3.5 1.5 1.5)(2.0 5.5 3.0 4.5)(3.0 6.5 3.5 5.0)(4.0 6.5 5.5 5.0)(4.0 5.5 5.5 4.5)(5.0 4.5 7.5 2.5)(5.0 2.5 7.5 1.0)(4.0 1.5 7.0 0.5)(3.0 1.5 2.5 0.5))((2.0 3.0 3.0 2.0)(2.0 4.0 3.0 3.0)(3.0 4.0 4.0 3.0)(3.0 3.0 4.0 2.0))))))]
+
+update urprop := [const uregion value ((0.0 10.0 TRUE TRUE)((((1.0 3.5 1.5 1.5)(2.0 5.5 3.0 4.5)(3.0 6.5 3.5 5.0)(4.0 6.5 5.5 5.0)(4.0 5.5 5.5 4.5)(5.0 4.5 7.5 2.5)(5.0 2.5 7.5 1.0)(4.0 1.5 7.0 0.5)(3.0 1.5 2.5 0.5))((2.0 3.0 3.0 2.0)(2.0 4.0 3.0 3.0)(3.0 4.0 4.0 3.0)(3.0 3.0 4.0 2.0)))))]
+
+
+
+
+create mr2scale1 : mregion2;
+create mr2scale2 : mregion2;
+create mr2scale3 : mregion2;
+create mr2scale4 : mregion2;
+
+update mr2scale1 := mr2prop scale[1.0, 1.0]
+
+update mr2scale2 := mr2prop scale[1000.0, 1000.0]
+
+update mr2scale3 := mr2prop scale[0.5, 0.1]
+
+update mr2scale4 := mr2prop scale[0.0001, 0.0001]
+
+
+
+
+create mr2transform1 : mregion2;
+create mr2transform2 : mregion2;
+create mr2transform3 : mregion2;
+
+update mr2transform1 := mra2transform(mr2prop, 0.0, 5.0)
+
+update mr2transform1 := mra2transform(mr2prop, 0.25, 0.7)
+
+update mr2transform1 := mra2transform(mr2prop, 0.0001, 0.0005)
+
+
+
+
+
+create mr2obj1 : mregion2;
+create mr2obj2 : mregion2;
+create mr2obj3 : mregion2;
+create ur2obj1 : uregion2;
+create ur2obj2 : uregion2;
+create ur2obj3 : uregion2;
+
+update mr2obj1 := mregiontomregion2(mrprop, 100)
+
+update mr2obj2 := mregiontomregion2(mrprop, 1)
+
+update mr2obj3 := mregiontomregion2(mrprop, 57)
+
+update ur2obj1 := uregiontouregion2(urprop, 100000)
+
+update ur2obj2 := uregiontouregion2(urprop, 1)
+
+update ur2obj3 := uregiontouregion2(urprop, 59)
+
+
+
+
+
+
+create initobj : iregion;
+create finobj : iregion;
+
+update initobj := initial(mr2prop)
+
+update finobj := final(mr2prop)
+
+
+
+
+create mrex : mregion;
+update mrex := [const mregion value (((0.0 10.0 TRUE TRUE)((((1.5 1.5 3.5 3.5)(4.0 4.0 6.5 6.5)(7.5 7.5 5.0 5.0))))))]
+
+create mr2ex : mregion2;
+update mr2ex := [const mregion2 value (1 ((("2012-01-13-14:30:00" "2012-01-13-19:15:00" TRUE TRUE ())((((15 15 35 35 ())(40 40 65 65 ())(75 75 50 50 ())))))))]
+
+
+
+
+

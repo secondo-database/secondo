@@ -1,0 +1,16 @@
+To use the MovingRegion2Algebra, the following needs to be done:
+
+
+
+In the file makefile.optimizer the option -lgmpxx has to be added at line 67: -lgmpxx
+
+LD_GMP := -lgmpxx -lgmp
+
+Else the linking of the GMP library does not work for C++ support.
+
+
+
+
+In order to make the examples work that are specified in the file MovingRegion2.examples, just put the file mr2createDB in the bin directory and run it within a secondo environment, e.g. type
+@mr2createDB
+within SecondoTTYBDB.
