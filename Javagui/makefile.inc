@@ -83,7 +83,7 @@ ifdef SECONDO_JAVART
 CLASSPATH := $(CLASSPATH):$(SECONDO_JAVART)
 endif
 
-CLASSPATH := $(CLASSPATH):$(GUIPATH)/secondoInterface/SecondoInterface.jar
+CLASSPATH := $(CLASSPATH):$(GUIPATH)/secondoInterface/SecondoInterface.jar:$(JAVA3DPATH)
 
 
 
