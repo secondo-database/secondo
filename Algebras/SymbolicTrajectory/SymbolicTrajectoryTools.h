@@ -9,6 +9,7 @@
 #include <sstream>
 #include <map>
 #include "TemporalAlgebra.h"
+#include "TemporalUnitAlgebra.h"
 
 using namespace std; 
 
@@ -27,5 +28,7 @@ vector<string> getElementsFromSet(string const set);
 
 set<string> splitLabel(string labelset);
 char* convert(string arg);
-string extendDateString(const string input, const bool start);
-bool checkSemanticDate(const string text, const Instant start, const Instant end);
+string extendDateString(string input, const bool start);
+bool checkSemanticDate(const string text, const Instant start,
+                       const Instant end);
+bool checkDaytime(const string text, const SecInterval ulabelInterval);

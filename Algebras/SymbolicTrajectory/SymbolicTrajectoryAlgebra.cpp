@@ -1485,10 +1485,9 @@ bool NFA::timesMatch(int pos) { // TODO: shorten this
   bool patternOk = false;
   bool foundVarKey = false;
   bool condPartsOk[3] = {true, true, true};
-  int tildePos = -1;
+  unsigned int tildePos;
   set<int>::iterator i;
   string varKey, currentLabelString, conditionString;
-  
   Instant *patternStart = new DateTime(instanttype);
   Instant *patternEnd = new DateTime(instanttype);
   size_t varKeyPos = string::npos;
@@ -1501,7 +1500,17 @@ bool NFA::timesMatch(int pos) { // TODO: shorten this
     patternOk = checkSemanticDate(nfaPatterns[pos].interval,
                                   ulabelInterval->start, ulabelInterval->end);
   }
-  else if (nfaPatterns[pos].interval[0] == '~') { // second case: ~2012-05-12
+  else if ((nfaPatterns[pos].interval.find('-') == string::npos) 
+        && ((nfaPatterns[pos].interval.find(':')   // second case: 19:09~22:00
+            < nfaPatterns[pos].interval.find('~')) // on each side of [~],
+            || (nfaPatterns[pos].interval[0] == '~')) // there has to be
+        && ((nfaPatterns[pos].interval.find(':', // either xx:yy or nothing
+            nfaPatterns[pos].interval.find('~')) != string::npos)
+            || nfaPatterns[pos].interval
+                [nfaPatterns[pos].interval.size() - 1] == '~')) {
+    patternOk = checkDaytime(nfaPatterns[pos].interval, *ulabelInterval);
+  }
+  else if (nfaPatterns[pos].interval[0] == '~') { // third case: ~2012-05-12
     patternStart->ToMinimum();
     patternEnd->ReadFrom(extendDateString(nfaPatterns[pos].interval.substr(1),
                                           false));
@@ -1512,7 +1521,7 @@ bool NFA::timesMatch(int pos) { // TODO: shorten this
     delete ulabelInterval;
   }
   else if (nfaPatterns[pos].interval[nfaPatterns[pos].interval.size() - 1]
-           == '~') {
+           == '~') { // fourth case: 2011-04-02-19:09~
     patternStart->ReadFrom(extendDateString(nfaPatterns[pos].interval.substr(
                            0, nfaPatterns[pos].interval.size() - 1), true));
     patternEnd->ToMaximum();
@@ -1523,12 +1532,12 @@ bool NFA::timesMatch(int pos) { // TODO: shorten this
     delete patternInterval;
     delete ulabelInterval;
   }
-  else { // third case: 2012-05-12-22:00
+  else { // fifth case: 2012-05-12-22:00
     if ((tildePos = nfaPatterns[pos].interval.find('~')) == string::npos) {
       patternStart->ReadFrom(extendDateString(nfaPatterns[pos].interval, true));
       patternEnd->ReadFrom(extendDateString(nfaPatterns[pos].interval, false));
     }
-    else { // fourth case: 2012-05-12-20:00~2012-05-12-22:00
+    else { // sixth case: 2012-05-12-20:00~2012-05-12-22:00
       patternStart->ReadFrom(extendDateString
                     (nfaPatterns[pos].interval.substr(0, tildePos), true));
       patternEnd->ReadFrom(extendDateString
@@ -1539,7 +1548,7 @@ bool NFA::timesMatch(int pos) { // TODO: shorten this
     patternOk = patternInterval->Contains(*ulabelInterval);
     delete patternInterval;
     delete ulabelInterval;
-  }
+  } // pattern intervals finished
   if (nfaPatterns[pos].relatedConditions.empty()) {
     cout << "no related condition" << endl;
     conditionsOk = true;

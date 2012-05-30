@@ -122,7 +122,7 @@ Takes a datetime string and extends it to the format YYYY-MM-DD-HH:MM:SS.MMM,
 the variable ~start~ decides on the values.
 
 */
-string extendDateString(const string input, const bool start) {
+string extendDateString(string input, const bool start) {
   string result, mask;
   int month, daysInMonth, year;
   if (start) {
@@ -130,6 +130,9 @@ string extendDateString(const string input, const bool start) {
   }
   else {
     mask.assign("-12-31-23:59:59.999");
+  }
+  if (input[input.size() - 1] == '-') { // handle case 2011-04-02-
+    input.resize(input.size() - 1);
   }
   result.assign(input);
   int pos = 1;
@@ -227,14 +230,14 @@ bool checkSemanticDate(const string text, const Instant start,
                        "july", "august", "september", "october", "november",
                        "december"};
   string daytimes[4] = {"morning", "afternoon", "evening", "night"};
-  if ((start.GetYear() == end.GetYear()) // year and month of start end have
-       && (start.GetMonth() == end.GetMonth())) { // to coincode for a match
+  if ((start.GetYear() == end.GetYear()) // year and month of start and end
+       && (start.GetMonth() == end.GetMonth())) { // must coincode for a match
     for (int i = 0; i < 12; i++) { // handle months
       if (!text.compare(months[i])) {
         return (i == start.GetMonth() - 1);
       }
     } // for weekdays and daytimes, start and end day have to coincide
-    if (start.GetGregDay() == end.GetGregDay()) { // 
+    if (start.GetGregDay() == end.GetGregDay()) {
       for (int i = 0; i < 7; i++) { // handle weekdays
         if (!text.compare(weekdays[i])) {
           return (i == start.GetWeekday());
@@ -259,5 +262,46 @@ bool checkSemanticDate(const string text, const Instant start,
       }
     }
   } // different months => match impossible
+  return false;
+}
+
+/*
+function ~checkDaytime~
+Checks whether the daytime interval resulting from text (e.g., 0:00[~]8:00)
+contains the one from the unit label.
+
+*/
+bool checkDaytime(const string text, const SecInterval ulabelInterval) {
+  if ((ulabelInterval.start.GetYear() == ulabelInterval.end.GetYear())
+       && (ulabelInterval.start.GetMonth() == ulabelInterval.end.GetMonth())
+       && (ulabelInterval.start.GetGregDay() // year, month and day of start
+           == ulabelInterval.end.GetGregDay())) { // and end have to coincide
+    string startString, endString; // for a match
+    stringstream startStringstream;
+    startStringstream << ulabelInterval.start.GetYear() << "-"
+      << ulabelInterval.start.GetMonth() << "-"
+      << ulabelInterval.start.GetGregDay() << "-";
+    startString.assign(startStringstream.str());
+    endString.assign(startString);
+    startString.append(text.substr(0, text.find('~')));
+    endString.append(text.substr(text.find('~') + 1));
+    Instant *patternStart = new DateTime(instanttype);
+    Instant *patternEnd = new DateTime(instanttype);
+    if (!patternStart->ReadFrom(extendDateString(startString, true))) {
+      cout << "error: ReadFrom " << extendDateString(startString, true) << endl;
+      return false;
+    }
+    if (!patternEnd->ReadFrom(extendDateString(endString, false))) {
+      cout << "error: ReadFrom " << extendDateString(endString, false) << endl;
+      return false;
+    }
+    SecInterval *patternInterval = new SecInterval(*patternStart, *patternEnd,
+                                                   true, true);
+    bool result = patternInterval->Contains(ulabelInterval);
+    delete patternInterval;
+    delete patternStart;
+    delete patternEnd;
+    return result;
+  } // no match possible in case of different days
   return false;
 }
