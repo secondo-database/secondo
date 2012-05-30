@@ -136,8 +136,16 @@ class ProgressView
        if(currentProgress>1){
          currentProgress= 1;
        }
+       double bProgress = progress.BProgress;
+       bProgress = min(1.0,max(0.0,bProgress));
+
+       double allProgress = (progress.Time * progress.Progress +
+                             progress.BTime * progress.BProgress)
+                          / (progress.Time + progress.BTime);
+       allProgress = min(1.0,max(0.0,allProgress));
+
        msgList = NList( NList("progress"),
-              NList( NList((int) (currentProgress*PROGRESS_NORM)), 
+              NList( NList((int) (allProgress*PROGRESS_NORM)), 
                      NList(PROGRESS_NORM)));
        msg->Send(msgList);
               
@@ -156,17 +164,29 @@ class ProgressView
         ofs << (size_t) progress.Card << ";";
         ofs << (size_t) progress.Time << ";";
         // write progress as a,b where b has two digits 
-        currentProgress = currentProgress*100.0;
-        ofs << (int) currentProgress << ",";
-        int afterComma = (int) (currentProgress*100.0 + 0.5) % 100;
-        if(afterComma<10){
-          ofs << "0";
-        }
-        ofs << afterComma << ";";
+        ofs << getProgStr(currentProgress*100.0) << ";";
+        // write bTime
+        ofs << (size_t) progress.BTime << ";";
+        // write BProgress 
+        ofs << getProgStr(bProgress*100) << ";";
+        // write allProgress
+        ofs << getProgStr(allProgress*100) << ";";
         ofs << endl;
       }
     }
   }
+
+  string getProgStr(const double v, const char sep=',') const{
+      stringstream ss;
+      ss << (int) v << sep;
+      int aftercomma = (int) (v*100.0+0.5) % 100;
+      if(aftercomma < 10){
+         ss << "0";
+      }
+      ss << aftercomma;
+      return ss.str();
+  }
+
 
   void
   FinishProgressView()
