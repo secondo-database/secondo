@@ -26,9 +26,10 @@ vector<string> getElementsFromSet(string const set);
 
 
 
-set<string> splitLabel(string labelset);
+set<string> stringToSet(string input);
+string setToString(set<string> input);
+vector<string> splitPattern(string input);
 char* convert(string arg);
-string extendDateString(string input, const bool start);
-bool checkSemanticDate(const string text, const Instant start,
-                       const Instant end);
-bool checkDaytime(const string text, const SecInterval ulabelInterval);
+string extendDate(string input, const bool start);
+bool checkSemanticDate(const string text, const SecInterval uInterval);
+bool checkDaytime(const string text, const SecInterval uInterval);

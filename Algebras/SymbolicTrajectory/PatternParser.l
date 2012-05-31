@@ -18,10 +18,12 @@ star \*
 plus \+
 wildcard {star}|{plus}
 date {si}(-{ui}(-{ui}(-{ui}(\:{ui})(\:{ui}(\.{ui})?)?)?)?)?
-interval ({date}(\~{date})?)|\~{date}|{date}\~|([a-z_]+)
+time {ui}\:{ui}(\:{ui}(\.{ui})?)?
+interval ({date}(\~{date})?)|\~{date}|{date}\~|([a-z_]+)|\~{time}|{time}\~|{time}\~{time}
+intervalset {interval}|(\{{interval}(\,[ ]*{interval})*\})
 label [a-zA-Z_\-][a-zA-Z0-9_\-]*
 labelset {label}|(\{{label}(\,[ ]*{label})*\})
-contents {interval}[\ ]+{labelset}
+contents {intervalset}[\ ]+{labelset}
 contents_result _[ ]+{labelset}
 variable [A-Z]{1,2}[0-9]*
 doubleslash \/{2}

@@ -89,40 +89,96 @@ char* convert(string arg) {
 }
 
 /*
-function ~splitLabel~
+function ~stringToSet~
 Splits a string {a, b, c, ...} into a set of strings a, b, c, ...
 
 */
-set<string> splitLabel(string labelset) {
-  cout << "splitLabel called" << endl;
-  string labels, label;
+set<string> stringToSet(string input) {
+  cout << "stringToSet called with string " << input << endl;
+  string element, contents;
   set<string> result;
-  if (labelset.at(0) == '{')
-    labels.assign(labelset.substr(1, labelset.length() - 2));
+  if (input.at(0) == '{')
+    contents.assign(input.substr(1, input.length() - 2));
   else {
-    result.insert(labelset);
-    cout << "label " << labelset << " added" << endl;
+    result.insert(input);
+    cout << "element " << input << " added to set" << endl;
     return result;
   }
-  size_t pos = 0;
-  while ((pos = labels.find(' ', pos)) != string::npos) {
-    labels.erase(pos, 1); //delete whitespaces
-  }
-  istringstream iss(labels);
-  while (getline(iss, label, ',')) {
-    result.insert(label);
-    cout << "label " << label << " added" << endl;
+  deleteSpaces(contents);
+  istringstream iss(contents);
+  while (getline(iss, element, ',')) {
+    result.insert(element);
+    cout << "element " << element << " added" << endl;
   }
   return result;
 }
 
 /*
-function ~extendDateString~
+function ~setToString~
+
+*/
+string setToString(set<string> input) {
+  set<string>::iterator i;
+  stringstream result;
+  if (input.size() == 1) {
+    result << *(input.begin());
+  }
+  else { // input.size() > 1
+    result << "{";
+    for (i = input.begin(); i != input.end(); i++) {
+      if (i != input.begin()) {
+        result << ", ";
+      }
+      result << *i;
+    }
+    result << "}";
+  }
+  return result.str();
+}
+
+vector<string> splitPattern(string input) {
+  cout << "splitPattern called with string " << input << endl;
+  vector<string> result;
+  size_t pos = input.find('{');
+  if (pos == 0) { // ({2012, 2013}, ...)
+    cout << "{ in the beginning" << endl;
+    result.push_back(input.substr(0, input.find('}') + 1));
+    if (input.find('{', 1) != string::npos) { // ({2012, 2013}, {a, b, c})
+      result.push_back(input.substr(input.find('{', 1)));
+    }
+    else { // ({2012, 2013} a)
+      result.push_back(input.substr(input.find('}') + 1));
+    }
+  }
+  else if (pos == string::npos) { // no set
+    cout << "no { found" << endl;
+    if (input.find(' ') == string::npos) { // * or +
+      result.push_back(input);
+    }
+    else { // (2012 a)
+      result.push_back(input.substr(0, input.find(' ')));
+      result.push_back(input.substr(input.find(' ')));
+    }
+  }
+  else { // (2012 {a, b, c})
+    result.push_back(input.substr(0, input.find(' ')));
+    result.push_back(input.substr(input.find(' ')));
+  }
+  for (unsigned int i = 0; i < result.size(); i++) {
+    deleteSpaces(result[i]);
+    cout << "|" << result[i] << "|";
+  }
+  cout << endl;
+  return result;
+}
+
+/*
+function ~extendDate~
 Takes a datetime string and extends it to the format YYYY-MM-DD-HH:MM:SS.MMM,
 the variable ~start~ decides on the values.
 
 */
-string extendDateString(string input, const bool start) {
+string extendDate(string input, const bool start) {
   string result, mask;
   int month, daysInMonth, year;
   if (start) {
@@ -222,38 +278,39 @@ Checks whether text is a valid semantic date string and contains the time
 interval defined by start and end.
 
 */
-bool checkSemanticDate(const string text, const Instant start,
-                       const Instant end) {
+bool checkSemanticDate(const string text, const SecInterval uInterval) {
   string weekdays[7] = {"monday", "tuesday", "wednesday", "thursday", "friday",
                         "saturday", "sunday"};
   string months[12] = {"january", "february", "march", "april", "may", "june",
                        "july", "august", "september", "october", "november",
                        "december"};
   string daytimes[4] = {"morning", "afternoon", "evening", "night"};
-  if ((start.GetYear() == end.GetYear()) // year and month of start and end
-       && (start.GetMonth() == end.GetMonth())) { // must coincode for a match
+  Instant uStart = uInterval.start;
+  Instant uEnd = uInterval.end;
+  if ((uStart.GetYear() == uEnd.GetYear()) // year and month of start and end
+       && (uStart.GetMonth() == uEnd.GetMonth())) { //must coincode for a match
     for (int i = 0; i < 12; i++) { // handle months
       if (!text.compare(months[i])) {
-        return (i == start.GetMonth() - 1);
+        return (i == uStart.GetMonth() - 1);
       }
     } // for weekdays and daytimes, start and end day have to coincide
-    if (start.GetGregDay() == end.GetGregDay()) {
+    if (uStart.GetGregDay() == uEnd.GetGregDay()) {
       for (int i = 0; i < 7; i++) { // handle weekdays
         if (!text.compare(weekdays[i])) {
-          return (i == start.GetWeekday());
+          return (i == uStart.GetWeekday());
         }
       }
       for (int i = 0; i < 4; i++) { // handle daytimes
         if (!text.compare(daytimes[i])) {
           switch (i) {
             case 0:
-              return (start.GetHour() >= 0) && (end.GetHour() <= 11);
+              return (uStart.GetHour() >= 0) && (uEnd.GetHour() <= 11);
             case 1:
-              return (start.GetHour() >= 12) && (end.GetHour() <= 16);
+              return (uStart.GetHour() >= 12) && (uEnd.GetHour() <= 16);
             case 2:
-              return (start.GetHour() >= 17) && (end.GetHour() <= 20);
+              return (uStart.GetHour() >= 17) && (uEnd.GetHour() <= 20);
             case 3:
-              return (start.GetHour() >= 21) && (end.GetHour() <= 23);
+              return (uStart.GetHour() >= 21) && (uEnd.GetHour() <= 23);
             default: // cannot occur
               cout << "daytime error" << endl;
               return false;
@@ -271,36 +328,34 @@ Checks whether the daytime interval resulting from text (e.g., 0:00[~]8:00)
 contains the one from the unit label.
 
 */
-bool checkDaytime(const string text, const SecInterval ulabelInterval) {
-  if ((ulabelInterval.start.GetYear() == ulabelInterval.end.GetYear())
-       && (ulabelInterval.start.GetMonth() == ulabelInterval.end.GetMonth())
-       && (ulabelInterval.start.GetGregDay() // year, month and day of start
-           == ulabelInterval.end.GetGregDay())) { // and end have to coincide
-    string startString, endString; // for a match
+bool checkDaytime(const string text, const SecInterval uInterval) {
+  if ((uInterval.start.GetYear() == uInterval.end.GetYear())
+       && (uInterval.start.GetMonth() == uInterval.end.GetMonth())
+       && (uInterval.start.GetGregDay() == uInterval.end.GetGregDay())) {
+    string startString, endString;
     stringstream startStringstream;
-    startStringstream << ulabelInterval.start.GetYear() << "-"
-      << ulabelInterval.start.GetMonth() << "-"
-      << ulabelInterval.start.GetGregDay() << "-";
+    startStringstream << uInterval.start.GetYear() << "-"
+      << uInterval.start.GetMonth() << "-"
+      << uInterval.start.GetGregDay() << "-";
     startString.assign(startStringstream.str());
     endString.assign(startString);
     startString.append(text.substr(0, text.find('~')));
     endString.append(text.substr(text.find('~') + 1));
-    Instant *patternStart = new DateTime(instanttype);
-    Instant *patternEnd = new DateTime(instanttype);
-    if (!patternStart->ReadFrom(extendDateString(startString, true))) {
-      cout << "error: ReadFrom " << extendDateString(startString, true) << endl;
+    Instant *pStart = new DateTime(instanttype);
+    Instant *pEnd = new DateTime(instanttype);
+    if (!pStart->ReadFrom(extendDate(startString, true))) {
+      cout << "error: ReadFrom " << extendDate(startString, true) << endl;
       return false;
     }
-    if (!patternEnd->ReadFrom(extendDateString(endString, false))) {
-      cout << "error: ReadFrom " << extendDateString(endString, false) << endl;
+    if (!pEnd->ReadFrom(extendDate(endString, false))) {
+      cout << "error: ReadFrom " << extendDate(endString, false) << endl;
       return false;
     }
-    SecInterval *patternInterval = new SecInterval(*patternStart, *patternEnd,
-                                                   true, true);
-    bool result = patternInterval->Contains(ulabelInterval);
-    delete patternInterval;
-    delete patternStart;
-    delete patternEnd;
+    SecInterval *pInterval = new SecInterval(*pStart, *pEnd, true, true);
+    bool result = pInterval->Contains(uInterval);
+    delete pInterval;
+    delete pStart;
+    delete pEnd;
     return result;
   } // no match possible in case of different days
   return false;

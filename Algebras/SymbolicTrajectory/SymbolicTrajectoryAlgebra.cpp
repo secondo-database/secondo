@@ -981,24 +981,12 @@ Writes all pattern information into a string
 */
 string Pattern::GetText() const {
   stringstream text;
-  set<string>::iterator j;
   text << "~~~~~~pattern~~~~~~" << endl;
   for (unsigned int i = 0; i < patterns.size(); i++) {
-    text << "[" << i << "] " << patterns[i].variable << " | "
-         << patterns[i].interval << " | ";
-    if (patterns[i].labelset.size() > 1) {
-      text << "{";
-    }
-    for (j = patterns[i].labelset.begin();
-         j != patterns[i].labelset.end(); j++) {
-      if (j != patterns[i].labelset.begin()) {
-        text << ", ";
-      }
-      text << *j;
-    }
-    if (patterns[i].labelset.size() > 1) {
-      text << "}";
-    }
+    text << "[" << i << "] " << patterns[i].variable << " | ";
+    text << setToString(patterns[i].intervalset);
+    text << " | ";
+    text << setToString(patterns[i].labelset);
     text << " | " << patterns[i].wildcard << endl;
   }
   text << "~~~~~~conditions~~~~~~" << endl;
@@ -1012,40 +1000,18 @@ string Pattern::GetText() const {
   }
   text << "~~~~~~results~~~~~~" << endl;
   for (unsigned int i = 0; i < results.size(); i++) {
-    text << "[" << i << "] " << results[i].variable << " | "
-         << results[i].interval << " | ";
-    if (results[i].labelset.size() > 1) {
-        text << "{";
-    }
-    if (!results[i].labelset.empty()) {
-      text << *(results[i].labelset.begin());
-    }
-    for (j = results[i].labelset.begin();
-         j != results[i].labelset.end(); j++) {
-      text << ", " << *j;
-    }
-    if (results[i].labelset.size() > 1) {
-      text << "}";
-    }
+    text << "[" << i << "] " << results[i].variable << " | ";
+    text << setToString(results[i].intervalset);
+    text << " | ";
+    text << setToString(results[i].labelset);
     text << " | " << results[i].wildcard << endl;
   }
   text << "~~~~~~assignments~~~~~~" << endl;
   for (unsigned int i = 0; i < assignments.size(); i++) {
-    text << "[" << i << "] " << assignments[i].variable << " | "
-         << assignments[i].interval << " | ";
-    if (assignments[i].labelset.size() > 1) {
-        text << "{";
-    }
-    if (!assignments[i].labelset.empty()) {
-      text << *(assignments[i].labelset.begin());
-    }
-    for (j = assignments[i].labelset.begin();
-         j != assignments[i].labelset.end(); j++) {
-      text << ", " << *j;
-    }
-    if (assignments[i].labelset.size() > 1) {
-      text << "}";
-    }
+    text << "[" << i << "] " << assignments[i].variable << " | ";
+    text << setToString(assignments[i].intervalset);
+    text << " | ";
+    text << setToString(assignments[i].labelset);
     text << " | "  << assignments[i].wildcard << endl;
   }
   text << endl;
@@ -1406,6 +1372,7 @@ currentStates after the loop.
 bool NFA::match(MLabel const &ml) {
   for (size_t i = 0; i < (size_t)ml.GetNoComponents(); i++) {
     ml.Get(i, currentLabel);
+    currentLabelId = i;
     cout << "unit label #" << i << " is processed now" << endl;
     updateStates();
     if (currentStates.empty()) {
@@ -1413,7 +1380,7 @@ bool NFA::match(MLabel const &ml) {
       return false;
     }
   }
-  printCurrentStates();
+  // TODO: add cardinality check
   return (currentStates.count(numberOfStates - 1) > 0) ? true : false;
 }
 
@@ -1452,16 +1419,16 @@ void NFA::updateStates() {
         else { // no label specified in unit pattern or conditions
           labelResult = true;
         }
-        if (!nfaPatterns[j].interval.empty() // check intervals
+        if (!nfaPatterns[j].intervalset.empty() // check intervals
          || !nfaPatterns[j].relatedConditions.empty()) {
            timeResult = timesMatch(j);
         }
         else { // no interval specified in unit pattern or conditions
           timeResult = true;
         }
-        // TODO: add cardinality check
         result = labelResult & timeResult;
         if (result) { // insert the new states
+          storeMatch(j);
           for (it = transitions[*i][j].begin();
                it != transitions[*i][j].end(); it++) {
             newStates.insert(*it);
@@ -1475,79 +1442,71 @@ void NFA::updateStates() {
 }
 
 /*
+5.4 Function ~storeMatch~
+
+*/
+void NFA::storeMatch(int state) {
+  
+}
+
+/*
 5.4 Function ~timesMatch~
 Checks whether the current ULabel interval is completely enclosed in the
 interval specified in the pattern or the condition(s).
 
 */
 bool NFA::timesMatch(int pos) { // TODO: shorten this
-  bool conditionsOk = false;
-  bool patternOk = false;
+  bool conditionsOk(false), patternOk(false), elementOk(false);
   bool foundVarKey = false;
   bool condPartsOk[3] = {true, true, true};
-  unsigned int tildePos;
   set<int>::iterator i;
+  set<string>::iterator j;
   string varKey, currentLabelString, conditionString;
-  Instant *patternStart = new DateTime(instanttype);
-  Instant *patternEnd = new DateTime(instanttype);
+  Instant *pStart = new DateTime(instanttype);
+  Instant *pEnd = new DateTime(instanttype);
   size_t varKeyPos = string::npos;
-  SecInterval *ulabelInterval = new SecInterval(currentLabel.timeInterval);
-  if (nfaPatterns[pos].interval.empty()) { // no interval specified
+  SecInterval *pInterval = new SecInterval();
+  SecInterval *uInterval = new SecInterval(currentLabel.timeInterval);
+  if (nfaPatterns[pos].intervalset.empty()) { // no interval specified
     patternOk = true;
   }
-  else if ((nfaPatterns[pos].interval[0] > 96) // first case:
-        && (nfaPatterns[pos].interval[0] < 123)) { // semantic date/time
-    patternOk = checkSemanticDate(nfaPatterns[pos].interval,
-                                  ulabelInterval->start, ulabelInterval->end);
-  }
-  else if ((nfaPatterns[pos].interval.find('-') == string::npos) 
-        && ((nfaPatterns[pos].interval.find(':')   // second case: 19:09~22:00
-            < nfaPatterns[pos].interval.find('~')) // on each side of [~],
-            || (nfaPatterns[pos].interval[0] == '~')) // there has to be
-        && ((nfaPatterns[pos].interval.find(':', // either xx:yy or nothing
-            nfaPatterns[pos].interval.find('~')) != string::npos)
-            || nfaPatterns[pos].interval
-                [nfaPatterns[pos].interval.size() - 1] == '~')) {
-    patternOk = checkDaytime(nfaPatterns[pos].interval, *ulabelInterval);
-  }
-  else if (nfaPatterns[pos].interval[0] == '~') { // third case: ~2012-05-12
-    patternStart->ToMinimum();
-    patternEnd->ReadFrom(extendDateString(nfaPatterns[pos].interval.substr(1),
-                                          false));
-    SecInterval *patternInterval = new SecInterval(*patternStart, *patternEnd,
-                                                   true, true);
-    patternOk = patternInterval->Contains(*ulabelInterval);
-    delete patternInterval;
-    delete ulabelInterval;
-  }
-  else if (nfaPatterns[pos].interval[nfaPatterns[pos].interval.size() - 1]
-           == '~') { // fourth case: 2011-04-02-19:09~
-    patternStart->ReadFrom(extendDateString(nfaPatterns[pos].interval.substr(
-                           0, nfaPatterns[pos].interval.size() - 1), true));
-    patternEnd->ToMaximum();
-    cout << patternStart->ToString() << " ~ " << patternEnd->ToString() << endl;
-    SecInterval *patternInterval = new SecInterval(*patternStart, *patternEnd,
-                                                   true, true);
-    patternOk = patternInterval->Contains(*ulabelInterval);
-    delete patternInterval;
-    delete ulabelInterval;
-  }
-  else { // fifth case: 2012-05-12-22:00
-    if ((tildePos = nfaPatterns[pos].interval.find('~')) == string::npos) {
-      patternStart->ReadFrom(extendDateString(nfaPatterns[pos].interval, true));
-      patternEnd->ReadFrom(extendDateString(nfaPatterns[pos].interval, false));
+  else {
+    for (j = nfaPatterns[pos].intervalset.begin();
+         j != nfaPatterns[pos].intervalset.end(); j++) {
+      if (((*j)[0] > 96) && ((*j)[0] < 123)) { // 1st case: semantic date/time
+        elementOk = checkSemanticDate(*j, *uInterval);
+      }
+      else if (((*j).find('-') == string::npos) // 2nd case: 19:09~22:00
+            && (((*j).find(':') < (*j).find('~')) // on each side of [~],
+                || ((*j)[0] == '~')) // there has to be either xx:yy or nothing
+            && (((*j).find(':', (*j).find('~')) != string::npos)
+                || (*j)[(*j).size() - 1] == '~')) {
+        elementOk = checkDaytime(*j, *uInterval);
+      }
+      else {
+        if ((*j)[0] == '~') { // 3rd case: ~2012-05-12
+          pStart->ToMinimum();
+          pEnd->ReadFrom(extendDate((*j).substr(1), false));
+        }
+        else if ((*j)[(*j).size() - 1] == '~') { // 4th case: 2011-04-02-19:09~
+          pStart->ReadFrom(extendDate((*j).substr(0, (*j).size() - 1), true));
+          pEnd->ToMaximum();
+        }
+        else if (((*j).find('~')) == string::npos) { // 5th case: no [~] found
+          pStart->ReadFrom(extendDate(*j, true));
+          pEnd->ReadFrom(extendDate(*j, false));
+        }
+        else { // sixth case: 2012-05-12-20:00~2012-05-12-22:00
+          pStart->ReadFrom(extendDate((*j).substr(0, (*j).find('~')), true));
+          pEnd->ReadFrom(extendDate((*j).substr((*j).find('~') + 1), false));
+        }
+        pInterval->Set(*pStart, *pEnd, true, true);
+        elementOk = pInterval->Contains(*uInterval);
+      }
+      if (elementOk) { // one matching interval is sufficient
+        patternOk = true;
+      }
     }
-    else { // sixth case: 2012-05-12-20:00~2012-05-12-22:00
-      patternStart->ReadFrom(extendDateString
-                    (nfaPatterns[pos].interval.substr(0, tildePos), true));
-      patternEnd->ReadFrom(extendDateString
-                  (nfaPatterns[pos].interval.substr(tildePos + 1), false));
-    }
-    SecInterval *patternInterval = new SecInterval(*patternStart, *patternEnd,
-                                                   true, true);
-    patternOk = patternInterval->Contains(*ulabelInterval);
-    delete patternInterval;
-    delete ulabelInterval;
   } // pattern intervals finished
   if (nfaPatterns[pos].relatedConditions.empty()) {
     cout << "no related condition" << endl;
@@ -1564,7 +1523,7 @@ bool NFA::timesMatch(int pos) { // TODO: shorten this
         foundVarKey = false;
         varKey.assign(nfaPatterns[pos].variable);
         varKey.append(condTypes[i]);
-        currentLabelString.assign(ulabelInterval->ToString());
+        currentLabelString.assign(uInterval->ToString());
         varKeyPos = conditionString.find(varKey);
         while (varKeyPos != string::npos) {
           cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
@@ -1587,6 +1546,10 @@ bool NFA::timesMatch(int pos) { // TODO: shorten this
     }
     conditionsOk = condPartsOk[0] & condPartsOk[1] & condPartsOk[2];
   }
+  uInterval->DeleteIfAllowed();
+  pInterval->DeleteIfAllowed();
+  pStart->DeleteIfAllowed();
+  pEnd->DeleteIfAllowed();
   return patternOk & conditionsOk;
 }
 
@@ -1748,12 +1711,12 @@ int matchesFun_MT (Word* args, Word& result, int message,
   MLabel* mlabel = static_cast<MLabel*>(args[0].addr);
   FText* patternText = static_cast<FText*>(args[1].addr);
   Pattern *pattern = new Pattern();
-  result = qp->ResultStorage(s); //query processor has provided
-                                 //a CcBool instance for the result
-  CcBool* b = static_cast<CcBool*>(result.addr);
+  result = qp->ResultStorage(s); //query processor has provided a CcBool
+  CcBool* b = static_cast<CcBool*>(result.addr); // instance for the result
   if (!pattern->getPattern(patternText->toText(), &pattern)) {
     b->SetDefined(false);
     cout << "invalid pattern" << endl;
+    delete pattern;
     return 0;
   }
   pattern->verifyConditions();

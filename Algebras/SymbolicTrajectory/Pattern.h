@@ -100,7 +100,7 @@ class Condition {
 class UnitPattern {
  public:
   string variable;
-  string interval;
+  set<string> intervalset;
   set<string> labelset;
   string wildcard;
   set<int> relatedConditions;
@@ -111,8 +111,8 @@ class UnitPattern {
 
   UnitPattern(const string v, const string i, const string l, const string w) {
     variable = v;
-    interval = i;
-    labelset = splitLabel(l);
+    intervalset = stringToSet(i);
+    labelset = stringToSet(l);
     wildcard = w;
   }
 
@@ -177,6 +177,8 @@ class NFA {
   vector<Condition> nfaConditions;
   int numberOfStates;
   ULabel currentLabel;
+  size_t currentLabelId;
+  set<size_t> *matchings;
 
  public:
   NFA(const int s) {
@@ -186,12 +188,22 @@ class NFA {
       transitions[i] = new set<int>[numberOfStates];
     }
     currentStates.insert(0);
+    matchings = new set<size_t>[numberOfStates - 1];
+  }
+
+  ~NFA() {
+    for (int i = 0; i < numberOfStates; i++) {
+      delete[] transitions[i];
+    }
+    delete[] transitions;
+    delete[] matchings;
   }
 
   void buildNFA(Pattern p);
   bool match(MLabel const &ml);
   void printCurrentStates();
   void updateStates();
+  void storeMatch(int state);
   bool labelsMatch(int pos);
   bool timesMatch(int pos);
   string toString();

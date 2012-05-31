@@ -28,7 +28,8 @@ UnitPattern unitpat = *(new UnitPattern());
 ExpressionList* exprList = new ExpressionList();
 ExpressionList* exprListComma = new ExpressionList();
 bool doubleParentheses = false;
-string expr, currentInterval;
+string expr;
+set<string> currentIntervals;
 unsigned int currentPos = 0;
 bool firstAssignment = true;
 %}
@@ -81,7 +82,7 @@ assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABELSET {
                var.assign($1);
                var.assign(var.substr(0, var.find('.')));
                unitpat.getUnit(convert(var), true);
-               unitpat.labelset = splitLabel(labels);
+               unitpat.labelset = stringToSet(labels);
                unitpat.wildcard.clear();
                wholepat->assignments.push_back(unitpat);
                cout << "unit added to assignments" << endl;
@@ -96,7 +97,7 @@ result : ZZVARIABLE unitpattern_result {
            unitpat.getUnit($1, false);
            if (!unitpat.variable.empty()) {
              unitpat.createUnit($1, $2);
-             unitpat.interval.assign(currentInterval);
+             unitpat.intervalset = currentIntervals;
              wholepat->results.push_back(unitpat);
              cout << "unit " << $2 << " added to results" << endl;}
            else {
@@ -325,11 +326,11 @@ void UnitPattern::getUnit(const char *var, bool assignment) {
   while ((currentPos < wholepat->patterns.size()) && !found) { // look for the variable
     if (!(wholepat->patterns)[currentPos].variable.compare(varStr)) {
       variable.assign((wholepat->patterns)[currentPos].variable);
-      interval.assign((wholepat->patterns)[currentPos].interval);
+      intervalset = (wholepat->patterns)[currentPos].intervalset;
       labelset = (wholepat->patterns)[currentPos].labelset;
       wildcard.assign((wholepat->patterns)[currentPos].wildcard);
       found = true;
-      currentInterval.assign(interval);
+      currentIntervals = intervalset;
       cout << "variable " << variable << " found in pattern " << currentPos << endl;
     }
     currentPos++;
@@ -342,11 +343,12 @@ void UnitPattern::getUnit(const char *var, bool assignment) {
 
 void UnitPattern::setUnit(const char *v, const char *i,
                           const char *l, const char *w) {
-  string lstr;
+  string lstr, istr;
   lstr.assign(l);
+  istr.assign(i);
   variable.assign(v);
-  interval.assign(i);
-  labelset = splitLabel(lstr);
+  intervalset = stringToSet(istr);
+  labelset = stringToSet(lstr);
   wildcard.assign(w);
 }
 
@@ -362,15 +364,14 @@ void UnitPattern::createUnit(const char *var, const char *pat) {
   if (strlen(var) > 0) {
     varstr.assign(var);
   }
-  vector<string> pattern;
   int pos = 0;
   while ((pos = varstr.find(' ', pos)) != string::npos) {
     varstr.erase(pos, 1);
   }
-  pos = patstr.find('{');
+  /*pos = patstr.find('{');
   while ((pos = patstr.find(' ', pos)) != string::npos) {
     patstr.erase(pos, 1);
-  }
+  }*/
   if (strcmp(var, convert("")) && strcmp(var, convert("*"))
    && strcmp(var, convert("+")) && varstr.at(0) > 64 && varstr.at(0) < 91) {
     variable.assign(varstr);
@@ -378,29 +379,23 @@ void UnitPattern::createUnit(const char *var, const char *pat) {
   else {
     variable.clear();
   }
-  if (!patstr.empty()) {
-    istringstream iss(patstr);
-    while (getline(iss, token, ' ')) {
-      if (!token.empty()) {
-        pattern.push_back(token);
-      }
-    }
-  }
+  vector<string> pattern = splitPattern(patstr);
   if (doubleParentheses) {
     wildcard.assign("+");
   }
   if (pattern.size() == 2) {
-    if (!pattern[0].compare("_")) {
-      interval.clear();
+    if (!pattern[0].compare("_")) { // (_ a)
+      intervalset.clear();
     }
     else {
-      interval.assign(pattern[0]);
+      intervalset = stringToSet(pattern[0]);
+      cout << "intervalset = " << setToString(intervalset) << endl;
     }
     if (!pattern[1].compare("_")) {
       labelset.clear();
     }
     else {
-      labelset = splitLabel(pattern[1]);
+      labelset = stringToSet(pattern[1]);
     }
     if (!doubleParentheses) {
       wildcard.clear();
@@ -409,12 +404,12 @@ void UnitPattern::createUnit(const char *var, const char *pat) {
   else if ((pattern.size() == 1) && (!pattern[0].compare("*")
                                   || !pattern[0].compare("+"))) {
     wildcard.assign(pattern[0]);
-    interval.clear();
+    intervalset.clear();
     labelset.clear();
   }
   else if ((pattern.size() == 0) || ((pattern.size() == 1) &&
      (!pattern[0].compare("*") || !pattern[0].compare("+")))) {
-    interval.clear();
+    intervalset.clear();
     labelset.clear();
   }
   if ((pattern.size() == 0) && !doubleParentheses) {
