@@ -5,7 +5,7 @@ fi
 
 FEF="-Dfile.encoding=UTF-8"
 
-CP="lib/java_cup_v10k_runtime.jar"$S"lib/jl0.4.jar"$S"."$S"lib/14_os_jpedal.jar""$S"lib/je.jar$S"lib/grappa1_2.jar"$S"lib/batik.jar"$S"secondoInterface/SecondoInterface.jar"
+CP="lib/java_cup_v10k_runtime.jar"$S"lib/jl0.4.jar"$S"."$S"lib/14_os_jpedal.jar""$S"lib/je.jar$S"lib/grappa1_2.jar"$S"lib/batik.jar"$S"secondoInterface/SecondoInterface.jar$S$JAVA3DPATH"
 
 if [ -n "$SECONDO_JAVA" ]; then
   JAVA=$SECONDO_JAVA
@@ -18,5 +18,8 @@ fi
 echo classpath= $CP
 
 
-$JAVA  -Xmx1024M -Djava.library.path=lib $FEF -classpath $CP gui.MainWindow $* 
+LIBPATH=lib$S$JAVA3DLIB
+
+
+$JAVA  -Xmx1024M -Djava.library.path=$LIBPATH  $FEF -classpath $CP gui.MainWindow $* 
 
