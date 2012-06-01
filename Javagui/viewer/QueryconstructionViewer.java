@@ -150,7 +150,7 @@ public class QueryconstructionViewer extends SecondoViewer {
     
     /** returns InquiryViewer */
     public String getName(){
-        return "QueryconstructionViewer";
+        return "QueryConstructionViewer";
     }
     
     public boolean canDisplay(SecondoObject o){
