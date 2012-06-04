@@ -123,7 +123,7 @@ string setToString(set<string> input) {
   if (input.size() == 1) {
     result << *(input.begin());
   }
-  else { // input.size() > 1
+  else if (input.size() > 1) {
     result << "{";
     for (i = input.begin(); i != input.end(); i++) {
       if (i != input.begin()) {

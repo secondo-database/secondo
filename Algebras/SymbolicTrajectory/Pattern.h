@@ -178,7 +178,10 @@ class NFA {
   int numberOfStates;
   ULabel currentLabel;
   size_t currentLabelId;
+  size_t maxLabelId;
   set<size_t> *matchings;
+  set<size_t> *cardsets;
+  set<int> *dependencies;
 
  public:
   NFA(const int s) {
@@ -189,6 +192,8 @@ class NFA {
     }
     currentStates.insert(0);
     matchings = new set<size_t>[numberOfStates - 1];
+    cardsets = new set<size_t>[numberOfStates - 1];
+    dependencies = new set<int>[numberOfStates - 1];
   }
 
   ~NFA() {

@@ -1313,11 +1313,20 @@ void NFA::buildNFA(Pattern p) {
   }
   for (int i = 0; i < numberOfStates - 1; i++) { // solve epsilon-transitions
     if (!(nfaPatterns[i].wildcard.compare("*"))) { // reading '*'
-      transitions[i - 1][i - 1].insert(i + 1);
+      if (i > 0) {
+        transitions[i - 1][i - 1].insert(i + 1);
+      }
       transitions[i][i].insert(i);
       //nfaPatterns[i].wildcard.assign("+");
       if (i < numberOfStates - 2) {
         transitions[i][i + 1].insert(i + 2);
+        int j = i + 1;
+        while ((j < numberOfStates - 1)  // handle '* * ... *'
+                && !(nfaPatterns[j].wildcard.compare("*"))) {
+          transitions[i][i].insert(j + 1);
+          transitions[i][j + 1].insert(j + 2);
+          j++;
+        }
         if (nfaPatterns[i + 1].wildcard.compare("*")) { // handle '* (a 1) * *'
           transitions[i][i + 1].insert(i);
           transitions[i][i + 1].insert(i + 1);
@@ -1325,14 +1334,6 @@ void NFA::buildNFA(Pattern p) {
           while ((j < numberOfStates - 1)
                   && !(nfaPatterns[j].wildcard.compare("*"))) {
             transitions[i][i + 1].insert(j + 1);
-            j++;
-          }
-        }
-        else { // handle '* * ... *'
-          int j = i + 1;
-          while ((j < numberOfStates - 1)
-                  && !(nfaPatterns[j].wildcard.compare("*"))) {
-            transitions[i][i].insert(j + 1);
             j++;
           }
         }
@@ -1370,7 +1371,8 @@ currentStates after the loop.
 
 */
 bool NFA::match(MLabel const &ml) {
-  for (size_t i = 0; i < (size_t)ml.GetNoComponents(); i++) {
+  maxLabelId = (size_t)ml.GetNoComponents() - 1;
+  for (size_t i = 0; i <= maxLabelId; i++) {
     ml.Get(i, currentLabel);
     currentLabelId = i;
     cout << "unit label #" << i << " is processed now" << endl;
@@ -1380,8 +1382,34 @@ bool NFA::match(MLabel const &ml) {
       return false;
     }
   }
+  if (!currentStates.count(numberOfStates - 1)) { // is the final state active?
+    return false;
+  }
+
+  
+  set<size_t>::iterator it;
+  for (int j = 0; j < numberOfStates - 1; j++) {
+    cout << "state " << j << " matches ulabels ";
+    for (it = matchings[j].begin(); it != matchings[j].end(); it++) {
+      cout << *it << ", ";
+    }
+    cout << endl;
+  }
+
+  set<int>::iterator j;
+  for (int i = 0; i < numberOfStates - 1; i++) {
+    cout << i << " | ";
+    for (it = cardsets[i].begin(); it != cardsets[i].end(); it++) {
+      cout << *it << ",";
+    }
+    cout << " | ";
+    for (j = dependencies[i].begin(); j != dependencies[i].end(); j++) {
+      cout << *j << ",";
+    }
+    cout << endl;
+  }
   // TODO: add cardinality check
-  return (currentStates.count(numberOfStates - 1) > 0) ? true : false;
+  return true;
 }
 
 void NFA::printCurrentStates() {
@@ -1406,12 +1434,10 @@ void NFA::updateStates() {
   newStates.clear();
   set<int>::iterator i, it;
   for (i = currentStates.begin(); i != currentStates.end(); i++) {
-    cout << "examine state #" << *i << endl;
+    // cout << "examine state #" << *i << endl;
     for (int j = 0; j < numberOfStates - 1; j++) {
       result = false;
       if (!transitions[*i][j].empty()) {
-        cout << "there are " << transitions[*i][j].size()
-             << " possible transitions" <<  endl;
         if (!nfaPatterns[j].labelset.empty() // check labels
          || !nfaPatterns[j].relatedConditions.empty()) {
           labelResult = labelsMatch(j);
@@ -1445,8 +1471,98 @@ void NFA::updateStates() {
 5.4 Function ~storeMatch~
 
 */
-void NFA::storeMatch(int state) {
-  
+void NFA::storeMatch(int state) { // TODO: care about conditions
+  size_t fromLabel, toLabel;
+  int fromState, toState;
+  set<size_t>::iterator it;
+  if (nfaPatterns[state].wildcard.empty()) {
+    cout << currentLabelId << " matches at " << state << endl;
+    matchings[state].insert(currentLabelId);
+    cardsets[state].insert(1); // cardinality is 1 without wildcard
+    if ((state > 0) && !nfaPatterns[state - 1].wildcard.empty()) {
+      if (state == 1) { // wildcard at 0, match(es) at 1
+        cardsets[0].insert(*(matchings[1].rbegin()));
+      }
+      else {
+        int j = state - 2; // search previous matching position
+        if (matchings[j].empty()) {
+          dependencies[j].insert(state - 1);
+          dependencies[state - 1].insert(j);
+          j--;
+          while ((j >= 0) && matchings[j].empty()) {
+            for (int k = j + 1; k <= state - 1; k++) {
+              dependencies[k].insert(j); // mutual dependency
+              dependencies[j].insert(k);
+            }
+            j--;
+          }
+          if (matchings[state + 1].empty()) { // last matchings stays empty
+            toLabel = currentLabelId;
+          }
+          else {
+            toLabel = *(matchings[state + 1].begin());
+          }          toState = state;
+          if (j < 0) { // no matching before state
+            fromLabel = 0;
+            fromState = 0;
+          }
+          else {
+            fromLabel = *(matchings[j].begin());
+            fromState = j + 1;
+          }
+          toState = state - 1;
+          for (int k = fromState; k <= toState; k++) {
+            for (size_t i = fromLabel; i <= toLabel; i++) {
+              cardsets[k].insert(i);
+            }
+          }
+        }
+        else { // matching at state - 2
+          it = matchings[state - 2].begin();
+          while ((*it < currentLabelId) && (it != matchings[state - 2].end())) {
+            cardsets[state - 1].insert(currentLabelId - *it - 1);
+            it++;
+          }
+        }
+      }
+    }
+  }
+  else if ((state == numberOfStates - 2) // last state
+        && !nfaPatterns[state].wildcard.empty()) {
+    int j = state - 1; // search previous matching position
+    if (matchings[j].empty()) {
+      dependencies[j].insert(state - 1);
+      dependencies[state - 1].insert(j);
+      j--;
+      while ((j >= 0) && matchings[j].empty()) {
+        for (int k = j + 1; k <= state - 1; k++) {
+          dependencies[k].insert(j); // mutual dependency
+          dependencies[j].insert(k);
+        }
+        j--;
+      }
+      if (j < 0) {
+        fromLabel = 0;
+        fromState = 0;
+      }
+      else {
+        fromLabel = *(matchings[j].begin());
+        fromState = j + 1;
+      }
+      for (int k = fromState; k <= state; k++) {
+        for (size_t i = fromLabel; i <= maxLabelId; i++) {
+          cardsets[k].insert(i);
+        }
+      }
+    }
+    else { // matching at state - 2
+      it = matchings[state - 2].begin();
+      while ((*it < currentLabelId) && (it != matchings[state - 2].end())) {
+        cardsets[state - 1].insert(currentLabelId - *it);
+        it++;
+      }
+    }
+  }
 }
 
 /*
@@ -1509,7 +1625,6 @@ bool NFA::timesMatch(int pos) { // TODO: shorten this
     }
   } // pattern intervals finished
   if (nfaPatterns[pos].relatedConditions.empty()) {
-    cout << "no related condition" << endl;
     conditionsOk = true;
   }
   else {

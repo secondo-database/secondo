@@ -389,7 +389,6 @@ void UnitPattern::createUnit(const char *var, const char *pat) {
     }
     else {
       intervalset = stringToSet(pattern[0]);
-      cout << "intervalset = " << setToString(intervalset) << endl;
     }
     if (!pattern[1].compare("_")) {
       labelset.clear();
@@ -406,6 +405,9 @@ void UnitPattern::createUnit(const char *var, const char *pat) {
     wildcard.assign(pattern[0]);
     intervalset.clear();
     labelset.clear();
+  }
+  else if ((pattern.size() == 1) && pattern[0].empty()) {
+    wildcard.clear();
   }
   else if ((pattern.size() == 0) || ((pattern.size() == 1) &&
      (!pattern[0].compare("*") || !pattern[0].compare("+")))) {
