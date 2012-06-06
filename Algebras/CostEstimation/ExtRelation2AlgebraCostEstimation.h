@@ -147,7 +147,7 @@ public:
            // For partition 2+n: read 'tuplesInTupleFile' from tuplefile
            pRes->Time = p1.Time + p2.Time 
               + (tuplesPerIteration * wItHashJoin * p2.Size) 
-              + ((partitions - 2) * xItHashJoin * p2.Size);
+              + ((partitions - 2) * tuplesPerIteration * xItHashJoin * p2.Size);
 
            // Calculate Elapsed time 
            size_t elapsedTime = p1.Time * p1.Progress 
@@ -280,7 +280,7 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
 1.4 Calculate the sufficent memory for this operator.
 
 */
-double calculateSufficientMemory(size_t NoTuples2, size_t sizeOfTuple2) const {
+double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
 
         // calculate size for one bucket datastructure
         vector<Tuple*>* bucket = new vector<Tuple*>();
@@ -294,7 +294,7 @@ double calculateSufficientMemory(size_t NoTuples2, size_t sizeOfTuple2) const {
         // calculate size of the whole datastructure
         size_t memoryOfDatastruct = sizePerBucket * buckets; 
 
-        size_t memory = memoryOfDatastruct + (NoTuples2 * sizeOfTuple2);
+        size_t memory = memoryOfDatastruct + (NoTuples1 * sizeOfTuple1);
 
         return ceil(memory / (1024 * 1024));
 }
