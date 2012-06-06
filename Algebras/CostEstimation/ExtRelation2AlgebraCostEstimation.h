@@ -154,17 +154,17 @@ public:
               + p2.Time * p2.Progress;
 
            if(iteration <= 1) {
-              elapsedTime += readInIteration * xItHashJoin * p2.Size;
+              elapsedTime += readInIteration * wItHashJoin * p2.Size;
            } else {
                 // 1st iteration: Data are read and written from / to tuplefile
-                elapsedTime += tuplesPerIteration  * xItHashJoin * p2.Size;
+                elapsedTime += tuplesPerIteration  * wItHashJoin * p2.Size;
                 
                 // Time for the completed iterations
                 elapsedTime += (iteration - 2) * tuplesPerIteration 
                    * xItHashJoin * p2.Size; 
 
                 // Current iteration
-                elapsedTime += readInIteration * wItHashJoin * p2.Size;
+                elapsedTime += readInIteration * xItHashJoin * p2.Size;
            }
           
            // Calculate progress
@@ -506,8 +506,8 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
   }
 
 private:
-  ProgressLocalInfo *pli;
-  ProgressInfo p1, p2;
+  ProgressLocalInfo *pli;   // Local Progress info
+  ProgressInfo p1, p2;      // Progress info for stream 1 / 2
   bool stream1Exhausted;    // is stream 1 exhaused?
   bool stream2Exhausted;    // is stream 2 exhaused?
   bool tupleFileWritten;    // is the tuplefile completely written?
