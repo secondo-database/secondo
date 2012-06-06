@@ -143,11 +143,11 @@ public:
               tuplesPerIteration = tuplesInTupleFile;
            } 
            
-           // For partition 2: read / write 'tuplesInTupleFile' to tuplefile
-           // For partition 2+n: read 'tuplesInTupleFile' from tuplefile
+           // For partition 1: read / write 'tuplesInTupleFile' to tuplefile
+           // For partition 1+n: read 'tuplesInTupleFile' from tuplefile
            pRes->Time = p1.Time + p2.Time 
               + (tuplesPerIteration * wItHashJoin * p2.Size) 
-              + ((partitions - 2) * tuplesPerIteration * xItHashJoin * p2.Size);
+              + ((partitions - 1) * tuplesPerIteration * xItHashJoin * p2.Size);
 
            // Calculate Elapsed time 
            size_t elapsedTime = p1.Time * p1.Progress 
