@@ -165,7 +165,7 @@ query plzsmall feed {r1} plzbig feed head [20000] {r2} itHashJoin[PLZ1_r1, PLZ_r
 let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
 
 
-# Calculate time to process one hashtable insert
+# Calculate time to process one tuple of the right input
 # x1 - x2 is the time to insert (20000) tuples more
 # multiply by 1000 to get the time in milliseconds
 let vItHashJoin = (((x1 - x2) * 1000) / 20000) * MF;
