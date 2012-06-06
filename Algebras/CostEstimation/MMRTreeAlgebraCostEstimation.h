@@ -56,13 +56,15 @@ Mai 2012, JKN, First version of this file
 #ifndef COST_EST_MMR_ALG_H
 #define COST_EST_MMR_ALG_H
 
+#define DEBUG true
+
 /*
 1.0 Prototyping
 
 Local info for operator
 
 */
-
+template<int dim>
 class ItSpatialJoinInfo;
 
 /*
@@ -74,25 +76,159 @@ class ItSpatialJoinCostEstimation : public CostEstimation
 {
 
 public:
-    ItSpatialJoinCostEstimation()
-    {    
+    ItSpatialJoinCostEstimation() {
+       pli = new ProgressLocalInfo();    
     }    
 
-  virtual ~ItSpatialJoinCostEstimation() {};
+  virtual ~ItSpatialJoinCostEstimation() {
+       if(pli) {
+          delete pli;
+       }
+  }
 
   virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo, 
     bool argsAvialable) {
 
-     return 0;
-  }
+     // no progress info available => cancel
+     if(! argsAvialable) {
+         return CANCEL;
+     }   
 
-/*
-1.1.0 init our class
+     // Determination of constants in file bin/UpdateProgressConstants
 
-*/
-  virtual void init(Word* args, void* localInfo)
-  {
-    returned = 0;
+     // Time for processing one tuple in stream 1
+     static const double uItSpatialJoin =
+        ProgressConstants::getValue("ExtRelation2Algebra",
+        "itHashJoin", "uItHashJoin");
+
+     // Time for processing one tuple in stream 2 (partitions = 1)
+     static const double vItSpatialJoin = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "itHashJoin", "vItHashJoin");
+
+     // msecs per byte written and read from/to TupleFile 
+     static const double wItSpatialJoin = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "itHashJoin", "wItHashJoin");
+
+     // msecs per byte read from TupleFile 
+     static const double xItSpatialJoin = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "itHashJoin", "xItHashJoin");
+
+     if (qp->RequestProgress(args[0].addr, &p1)
+       && qp->RequestProgress(args[1].addr, &p2)) {
+        
+         pli->SetJoinSizes(p1, p2);
+
+        // Read memory for operator in bytes
+        size_t maxmem = qp->GetMemorySize(supplier) * 1024 * 1024;
+
+        // Tuplesize from Progress
+        size_t sizeOfTuple = p1.Size;
+
+        // we got a correct tuple size? So we use that size!
+        if(sizeOfTupleSt1 > 0) {
+            sizeOfTuple = sizeOfTupleSt1;
+        }
+  
+        // Calculate number of partitions
+        size_t partitions = getNoOfPartitions(p1.Card, sizeOfTuple, maxmem);
+
+        if(partitions > 1) {
+           size_t tuplesPerIteration = p2.Card;
+ 
+           // is the tuplefile written completely? Otherwise we assume
+           // that all tuples of p2 are written to tuplefile
+           if(tupleFileWritten) {
+              tuplesPerIteration = tuplesInTupleFile;
+           }   
+
+           // For partition 2: read / write 'tuplesInTupleFile' to tuplefile
+           // For partition 2+n: read 'tuplesInTupleFile' from tuplefile
+           pRes->Time = p1.Time + p2.Time 
+             + (tuplesPerIteration * wItSpatialJoin * p2.Size) 
+             + ((partitions - 2) * xItSpatialJoin * p2.Size);
+  
+           // Calculate Elapsed time 
+           size_t elapsedTime = p1.Time * p1.Progress 
+             + p2.Time * p2.Progress;
+
+           if(iteration <= 1) {
+              elapsedTime += readInIteration * wItSpatialJoin * p2.Size;
+           } else {
+                // 1st iteration: Data are read and written from / to tuplefile
+                elapsedTime += tuplesPerIteration  * wItSpatialJoin * p2.Size;
+
+                // Time for the completed iterations
+                elapsedTime += (iteration - 2) * tuplesPerIteration
+                   * xItSpatialJoin * p2.Size;
+
+                // Current iteration
+                elapsedTime += readInIteration * xItSpatialJoin * p2.Size;
+           }
+
+           // Calculate progress
+           pRes->Progress = (double) elapsedTime / (double) pRes->Time;
+
+             if(DEBUG) {
+               cout << "DEBUG: ellapsed / it " << elapsedTime
+                << " of " << pRes->Time << " / " << iteration << endl;
+
+               cout << "DEBUG: iteration / tuplefile " << iteration
+                << " / " << tupleFileWritten << endl;
+
+               cout << "DEBUG: read in iteration " << readInIteration << endl;
+             }
+
+        } else {
+           if(DEBUG) {
+             cout << p2 << endl;
+           }
+
+           pRes->Progress = p2.Progress;
+           pRes->Time = p1.Time + p2.Time + p2.Card * vItSpatialJoin;
+        }
+
+        // Calculate selectivity
+        if(qp->GetSelectivity(supplier) == 0.1) {
+         
+             if(returned >= (size_t) enoughSuccessesJoin && partitions == 1) {
+                pRes->Card = p1.Card * p2.Card * (returned / readStream2);
+             } else {
+                // Default selectivity 20%
+                pRes->Card = p1.Card * p2.Card * 0.2;
+             }
+         } else {
+            pRes->Card = qp->GetSelectivity(supplier) * p1.Card * p2.Card;
+         }
+
+         pRes->BProgress = p1.Progress;
+         pRes->BTime = p1.Card * uItSpatialJoin + p1.BTime + p2.BTime;
+
+          // is computation done?
+          if(stream1Exhausted && stream2Exhausted) {
+             pRes->Progress = 1.0;
+             pRes->BProgress = 1.0;
+             pRes->Card = returned;
+          }
+
+          if(DEBUG) {
+             cout << "Progress is " << pRes->Progress << endl;
+             cout << "Time is " << pRes->Time << endl;
+             cout << "BProgress is " << pRes->BProgress << endl;
+             cout << "BTime is " << pRes->BTime << endl;
+             cout << "Card is: " << pRes->Card << endl;
+          }
+
+         pRes->CopySizes(pli);
+
+         return YIELD;
+     }
+
+
+   // default: send cancel
+   return CANCEL;
   }
 
 /*
@@ -171,7 +307,170 @@ function. Allowed types are:
 
  }
 
+/*
+1.7 Calculate the numer of partitions for this operator
+
+*/
+size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
+
+        // calculate size for one bucket datastructure
+        // code taken from MMRTreeAlgebra.cpp 
+        size_t sizePerTuple = s1Size + sizeof(void*) + 100;
+      
+        // calculate max number of tuples in hashtable
+        size_t tuplesInMemory = maxmem / sizePerTuple; 
+    
+        // calculate number of partitions
+        size_t noOfPartitions = ceil((double) s1Card / (double) tuplesInMemory);
+
+        if(DEBUG) {
+           cout << "DEBUG: Size per Tuple: " << sizePerTuple << endl;
+           cout << "DEBUG: Tuples is memory are: " << tuplesInMemory << endl;
+           cout << "DEBUG: total Tuples are: " << s1Card << endl;
+           cout << "DEBUG: No of partitons is: " << noOfPartitions << endl;
+        }   
+
+        return noOfPartitions;
+}
+
+
+/*
+1.8 Setter for stream1Exhausted
+
+*/
+  void setStream1Exhausted(bool exhausted) {
+      stream1Exhausted = exhausted;
+  }
+
+/*
+1.9 Setter for stream2Exhausted
+
+*/
+  void setStream2Exhausted(bool exhausted) {
+      stream2Exhausted = exhausted;
+  }
+
+
+/*
+1.10 Update processed tuples in stream1
+
+*/
+   void processedTupleInStream1() {
+      readStream1++;
+   }
+
+/*
+1.11 Update processed tuples in stream2
+
+*/
+    void processedTupleInStream2() {
+       readStream2++;
+    }
+
+/*
+1.12 Setter for iterattion
+
+*/
+    void setIteration(size_t iter) {
+       iteration = iter;
+    }
+
+/*
+1.14 Setter for readInIteration
+
+*/
+   void incReadInIteration() {
+       readInIteration++;
+   }
+
+/*
+1.15 Reset read in iteration
+
+*/
+   void resetReadInIteration() {
+      readInIteration = 0;
+   }
+
+/*
+1.16 Set number of tuples in tuplefile
+
+*/
+   void incTuplesInTupleFile() {
+      tuplesInTupleFile++;
+   }
+
+/*
+1.17 Set number of tuples in tuplefile
+
+*/
+   void setTuplesInTupleFile(size_t tuples) {
+      tuplesInTupleFile = tuples;
+   }
+
+/*
+1.18 Set tupleFileWritten state
+
+*/
+   void setTupleFileWritten(bool state) {
+     tupleFileWritten = state;
+   }   
+
+/*
+1.19 Setter for Min RTree
+
+*/
+   void setMinRtree(size_t value) {
+      minRtree = value;
+   }
+
+/*
+1.20 Setter for Max RTree
+
+*/
+  void setMaxRtree(size_t value) {
+     maxRtree = value;
+  }
+
+/*
+1.21 Setter for sizeOfTupleSt1
+
+*/
+  void setSizeOfTupleSt1(size_t size) {
+     sizeOfTupleSt1 = size;
+  }
+
+/*
+1.1.0 init our class
+
+*/
+  virtual void init(Word* args, void* localInfo)
+  {
+    returned = 0;
+    stream1Exhausted = false;
+    stream2Exhausted = false;
+    tupleFileWritten = false;
+    readStream1 = 0;
+    readStream2 = 0;
+    iteration = 0;
+    readInIteration = 0;
+    tuplesInTupleFile = 0;
+    sizeOfTupleSt1 = 0;
+  }
+
 private:
+  ProgressLocalInfo *pli;   // Progress local info
+  ProgressInfo p1, p2;      // Progress info for stream 1 / 2
+  bool stream1Exhausted;    // is stream 1 exhaused?
+  bool stream2Exhausted;    // is stream 2 exhaused?
+  bool tupleFileWritten;    // is the tuplefile completely written?
+  size_t readStream1;       // processed tuple in stream1
+  size_t readStream2;       // processes tuple in stream2
+  size_t iteration;         // number of iteration in operator
+  size_t readInIteration;   // no of tuples read in this iteration
+  size_t tuplesInTupleFile; // number of tuples in tuplefile
+  size_t sizeOfTupleSt1;    // size of a tuple in stream 1 (RootSize);
+  size_t minRtree;          // min rtree
+  size_t maxRtree;          // max rtree
 };
 
 
