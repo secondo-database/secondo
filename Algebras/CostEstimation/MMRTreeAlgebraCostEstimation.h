@@ -56,7 +56,7 @@ Mai 2012, JKN, First version of this file
 #ifndef COST_EST_MMR_ALG_H
 #define COST_EST_MMR_ALG_H
 
-#define DEBUG true
+#define DEBUG false 
 
 /*
 1.0 Prototyping
@@ -98,23 +98,23 @@ public:
 
      // Time for processing one tuple in stream 1
      static const double uItSpatialJoin =
-        ProgressConstants::getValue("ExtRelation2Algebra",
-        "itHashJoin", "uItHashJoin");
+        ProgressConstants::getValue("MMRTreeAlgebra",
+        "itSpatialJoin", "uItSpatialJoin");
 
      // Time for processing one tuple in stream 2 (partitions = 1)
      static const double vItSpatialJoin = 
-        ProgressConstants::getValue("ExtRelation2Algebra", 
-        "itHashJoin", "vItHashJoin");
+        ProgressConstants::getValue("MMRTreeAlgebra", 
+        "itSpatialJoin", "vitSpatialJoin");
 
      // msecs per byte written and read from/to TupleFile 
      static const double wItSpatialJoin = 
-        ProgressConstants::getValue("ExtRelation2Algebra", 
-        "itHashJoin", "wItHashJoin");
+        ProgressConstants::getValue("MMRTreeAlgebra", 
+        "itSpatialJoin", "witSpatialJoin");
 
      // msecs per byte read from TupleFile 
      static const double xItSpatialJoin = 
-        ProgressConstants::getValue("ExtRelation2Algebra", 
-        "itHashJoin", "xItHashJoin");
+        ProgressConstants::getValue("MMRTreeAlgebra", 
+        "itSpatialJoin", "xitSpatialJoin");
 
      if (qp->RequestProgress(args[0].addr, &p1)
        && qp->RequestProgress(args[1].addr, &p2)) {
@@ -144,11 +144,12 @@ public:
               tuplesPerIteration = tuplesInTupleFile;
            }   
 
-           // For partition 2: read / write 'tuplesInTupleFile' to tuplefile
-           // For partition 2+n: read 'tuplesInTupleFile' from tuplefile
+           // For partition 1: read / write 'tuplesInTupleFile' to tuplefile
+           // For partition 1+n: read 'tuplesInTupleFile' from tuplefile
            pRes->Time = p1.Time + p2.Time 
              + (tuplesPerIteration * wItSpatialJoin * p2.Size) 
-             + ((partitions - 2) * xItSpatialJoin * p2.Size);
+             + ((partitions - 1) * tuplesPerIteration 
+                 * xItSpatialJoin * p2.Size);
   
            // Calculate Elapsed time 
            size_t elapsedTime = p1.Time * p1.Progress 
@@ -172,13 +173,17 @@ public:
            pRes->Progress = (double) elapsedTime / (double) pRes->Time;
 
              if(DEBUG) {
-               cout << "DEBUG: ellapsed / it " << elapsedTime
-                << " of " << pRes->Time << " / " << iteration << endl;
+               cout << "DEBUG: ellapsed time " << elapsedTime
+                << " of " << pRes->Time << endl;
 
                cout << "DEBUG: iteration / tuplefile " << iteration
                 << " / " << tupleFileWritten << endl;
 
                cout << "DEBUG: read in iteration " << readInIteration << endl;
+               cout << "DEBUG: tuples in tuplefile " << tuplesPerIteration 
+                    << endl;
+               cout << "DEBUG: tuplesize1 (est) " << p1.Size << " / (real) " 
+                   << sizeOfTupleSt1 << endl;
              }
 
         } else {
@@ -240,7 +245,39 @@ Returns the estimated time in ms for given arguments.
 virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
                       const double memoryMB, double &costs) const{
-   return false;
+     
+      // Init calculation
+     size_t maxmem = memoryMB * 1024 * 1024;
+
+     // Time for processing one tuple in stream 2 (partitions = 1)
+     static const double vItSpatialJoin = 
+        ProgressConstants::getValue("MMRTreeAlgebra", 
+        "itSpatialJoin", "vitSpatialJoin");
+
+     // msecs per byte written and read from/to TupleFile 
+     static const double wItSpatialJoin = 
+        ProgressConstants::getValue("MMRTreeAlgebra", 
+        "itSpatialJoin", "witSpatialJoin");
+
+     // msecs per byte read from TupleFile 
+     static const double xItSpatialJoin = 
+        ProgressConstants::getValue("MMRTreeAlgebra", 
+        "itSpatialJoin", "xitSpatialJoin");
+
+ //Calculate number of partitions
+ size_t partitions = getNoOfPartitions(NoTuples1, sizeOfTuple1, maxmem);
+
+ if(partitions > 1) {
+      // For partition 2: read / write 'tuplesInTupleFile' to tuplefile
+      // For partition 2+n: read 'tuplesInTupleFile' from tuplefile
+      costs =
+           + (NoTuples2 * wItSpatialJoin * sizeOfTuple2)
+           + ((partitions - 1) * xItSpatialJoin * sizeOfTuple2);
+  } else {
+      costs = NoTuples2 * vItSpatialJoin;
+  }
+
+   return true;
 }
 
 
@@ -248,8 +285,14 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
 1.4 Calculate the sufficent memory for this operator.
 
 */
-double calculateSufficientMemory(size_t NoTuples2, size_t sizeOfTuple2) const {
-   return false;
+double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
+   
+   // size per tuple
+   size_t sizePerTupleReal = sizeOfTuple1 + sizeof(void*) + 100;
+   
+   size_t memory = NoTuples1 * sizePerTupleReal;
+
+   return ceil(memory / (1024 * 1024));
 }
 
 
@@ -303,8 +346,12 @@ function. Allowed types are:
             double& timeAt16MB,
             double& a, double& b, double& c, double& d) const {
 
-   return false;
-
+       functionType=1;
+       a=0;b=0;c=0;d=0;
+       return getLinearParams(NoTuples1, sizeOfTuple1,
+                              NoTuples2, sizeOfTuple2,
+                              sufficientMemory, timeAtSuffMemory, 
+                              timeAt16MB);  
  }
 
 /*
@@ -319,13 +366,18 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
       
         // calculate max number of tuples in hashtable
         size_t tuplesInMemory = maxmem / sizePerTuple; 
-    
+   
+        // use a minimum of 10 tuples
+        if(tuplesInMemory < 10) {
+           tuplesInMemory = 10;
+        }
+
         // calculate number of partitions
         size_t noOfPartitions = ceil((double) s1Card / (double) tuplesInMemory);
 
         if(DEBUG) {
            cout << "DEBUG: Size per Tuple: " << sizePerTuple << endl;
-           cout << "DEBUG: Tuples is memory are: " << tuplesInMemory << endl;
+           cout << "DEBUG: Tuples in memory are: " << tuplesInMemory << endl;
            cout << "DEBUG: total Tuples are: " << s1Card << endl;
            cout << "DEBUG: No of partitons is: " << noOfPartitions << endl;
         }   
@@ -451,7 +503,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
     tupleFileWritten = false;
     readStream1 = 0;
     readStream2 = 0;
-    iteration = 0;
+    iteration = 1;
     readInIteration = 0;
     tuplesInTupleFile = 0;
     sizeOfTupleSt1 = 0;
