@@ -104,17 +104,17 @@ public:
      // Time for processing one tuple in stream 2 (partitions = 1)
      static const double vItSpatialJoin = 
         ProgressConstants::getValue("MMRTreeAlgebra", 
-        "itSpatialJoin", "vitSpatialJoin");
+        "itSpatialJoin", "vItSpatialJoin");
 
      // msecs per byte written and read from/to TupleFile 
      static const double wItSpatialJoin = 
         ProgressConstants::getValue("MMRTreeAlgebra", 
-        "itSpatialJoin", "witSpatialJoin");
+        "itSpatialJoin", "wItSpatialJoin");
 
      // msecs per byte read from TupleFile 
      static const double xItSpatialJoin = 
         ProgressConstants::getValue("MMRTreeAlgebra", 
-        "itSpatialJoin", "xitSpatialJoin");
+        "itSpatialJoin", "xItSpatialJoin");
 
      if (qp->RequestProgress(args[0].addr, &p1)
        && qp->RequestProgress(args[1].addr, &p2)) {
@@ -252,17 +252,17 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
      // Time for processing one tuple in stream 2 (partitions = 1)
      static const double vItSpatialJoin = 
         ProgressConstants::getValue("MMRTreeAlgebra", 
-        "itSpatialJoin", "vitSpatialJoin");
+        "itSpatialJoin", "vItSpatialJoin");
 
      // msecs per byte written and read from/to TupleFile 
      static const double wItSpatialJoin = 
         ProgressConstants::getValue("MMRTreeAlgebra", 
-        "itSpatialJoin", "witSpatialJoin");
+        "itSpatialJoin", "wItSpatialJoin");
 
      // msecs per byte read from TupleFile 
      static const double xItSpatialJoin = 
         ProgressConstants::getValue("MMRTreeAlgebra", 
-        "itSpatialJoin", "xitSpatialJoin");
+        "itSpatialJoin", "xItSpatialJoin");
 
  //Calculate number of partitions
  size_t partitions = getNoOfPartitions(NoTuples1, sizeOfTuple1, maxmem);
@@ -373,7 +373,8 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
         }
 
         // calculate number of partitions
-        size_t noOfPartitions = ceil((double) s1Card / (double) tuplesInMemory);
+        size_t noOfPartitions = 
+          floor(((double) s1Card / (double) tuplesInMemory) + 0.8);
 
         if(DEBUG) {
            cout << "DEBUG: Size per Tuple: " << sizePerTuple << endl;
@@ -381,7 +382,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
            cout << "DEBUG: total Tuples are: " << s1Card << endl;
            cout << "DEBUG: No of partitons is: " << noOfPartitions << endl;
         }   
-
+        
         return noOfPartitions;
 }
 
@@ -428,7 +429,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
     }
 
 /*
-1.14 Setter for readInIteration
+1.13 Setter for readInIteration
 
 */
    void incReadInIteration() {
@@ -436,7 +437,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
    }
 
 /*
-1.15 Reset read in iteration
+1.14 Reset read in iteration
 
 */
    void resetReadInIteration() {
@@ -444,7 +445,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
    }
 
 /*
-1.16 Set number of tuples in tuplefile
+1.15 Set number of tuples in tuplefile
 
 */
    void incTuplesInTupleFile() {
@@ -452,7 +453,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
    }
 
 /*
-1.17 Set number of tuples in tuplefile
+1.16 Set number of tuples in tuplefile
 
 */
    void setTuplesInTupleFile(size_t tuples) {
@@ -460,7 +461,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
    }
 
 /*
-1.18 Set tupleFileWritten state
+1.17 Set tupleFileWritten state
 
 */
    void setTupleFileWritten(bool state) {
@@ -468,7 +469,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
    }   
 
 /*
-1.19 Setter for Min RTree
+1.18 Setter for Min RTree
 
 */
    void setMinRtree(size_t value) {
@@ -476,7 +477,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
    }
 
 /*
-1.20 Setter for Max RTree
+1.19 Setter for Max RTree
 
 */
   void setMaxRtree(size_t value) {
@@ -484,7 +485,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
   }
 
 /*
-1.21 Setter for sizeOfTupleSt1
+1.20 Setter for sizeOfTupleSt1
 
 */
   void setSizeOfTupleSt1(size_t size) {
@@ -492,7 +493,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
   }
 
 /*
-1.1.0 init our class
+1.21 init our class
 
 */
   virtual void init(Word* args, void* localInfo)
