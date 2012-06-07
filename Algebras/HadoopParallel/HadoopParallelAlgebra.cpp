@@ -3112,8 +3112,8 @@ if the target machine is not the producer.
         string cStr = scpCommand + rFilePath +
             " " + lFilePath;
         while (!fileFound && copyTimes-- > 0){
-//          if (0 == system(cStr.c_str())){
-          if (0 == copyFile(rFilePath, lFilePath, true)){
+          if (0 == system(cStr.c_str())){
+//          if (0 == copyFile(rFilePath, lFilePath, true)){
               break;
           }
         }
