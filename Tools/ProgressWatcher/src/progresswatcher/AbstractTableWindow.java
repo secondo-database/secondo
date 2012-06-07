@@ -46,6 +46,8 @@ public abstract class AbstractTableWindow extends AbstractWindow {
 	protected final AbstractProgressWindow window;
 	
 	protected final ObservableDouble observableMaxDiff = new ObservableDouble();
+	protected final ObservableDouble observableIntDiff = new ObservableDouble();
+
 	
 	// A simple data container class for our dataList
 	class DataEntry {
@@ -123,12 +125,17 @@ public abstract class AbstractTableWindow extends AbstractWindow {
 		southPanel.add(closeButton);
 		
 		// Center panel
-		middlePanel.add(new JLabel("Max diff:"));
-		final JTextField maxDiffText = new JTextField("-------");
+		middlePanel.add(new JLabel("Error Max:"));
+		final JTextField maxDiffText = new JTextField(10);
 		middlePanel.add(maxDiffText);
 	
-		addObserverToMaxDiff(maxDiffText);
+		middlePanel.add(new JLabel("Error Int:"));
+		final JTextField intDiffText = new JTextField(10);
+		middlePanel.add(intDiffText);
 		
+		addObserverToTextField(maxDiffText, observableMaxDiff);
+		addObserverToTextField(intDiffText, observableIntDiff);
+
 	    mainframe.add(new JScrollPane(table), BorderLayout.NORTH);
 	    mainframe.add(middlePanel, BorderLayout.CENTER);
 	    mainframe.add(southPanel, BorderLayout.SOUTH);	    
@@ -137,9 +144,9 @@ public abstract class AbstractTableWindow extends AbstractWindow {
 	/**
 	 * Register an observer on max diff change events
 	 */
-	protected void addObserverToMaxDiff(final JTextField maxDiffText) {
+	protected void addObserverToTextField(final JTextField maxDiffText, final ObservableDouble observable) {
 		// Register on max diff value changes
-		observableMaxDiff.addObserver(new Observer() {
+		observable.addObserver(new Observer() {
 			
 			public void update(final Observable arg0, final Object arg1) {
 				if(arg0 instanceof ObservableDouble) {
@@ -147,7 +154,7 @@ public abstract class AbstractTableWindow extends AbstractWindow {
 						= (ObservableDouble) arg0;
 					
 					if(obDouble.getData() > 0) {
-						maxDiffText.setText(obDouble.getData().toString());
+						maxDiffText.setText(Long.toString(Math.round(obDouble.getData())));
 					} else {
 						maxDiffText.setText("-------");
 					}
@@ -155,6 +162,7 @@ public abstract class AbstractTableWindow extends AbstractWindow {
 			}
 		});
 	}
+	
 	
 	/**
 	 * Get Tabledata for export
@@ -212,12 +220,13 @@ public abstract class AbstractTableWindow extends AbstractWindow {
 			
 			// Make timestamps relative
 			long baseItemTime = baseItem.getPeriod().getMiddleMillisecond();
-			
 			long endItemTime = endItem.getPeriod().getMiddleMillisecond();
 			
 			long totalTime = endItemTime - baseItemTime;
 			
 			double maxDiff = 0;
+			double intError = 0;
+			long lastTimestamp = 0;
 			
 			for(int i = 0; i < items; i++) {
 				
@@ -242,11 +251,20 @@ public abstract class AbstractTableWindow extends AbstractWindow {
 				
 				if(maxDiff < diff) {
 					maxDiff = diff;
+					
+					// Update max diff
+					observableMaxDiff.setData(maxDiff);
 				}
+				
+				// calculate int error
+				if(lastTimestamp > 0) {
+					double diffInt = diff * (timestamp - lastTimestamp);
+					intError = intError + diffInt;
+					observableIntDiff.setData(intError);
+				}
+				
+				lastTimestamp = timestamp;
 			}
-			
-			// Update max diff
-			observableMaxDiff.setData(maxDiff);
 		}
 		
 		tableModell.fireTableDataChanged();
