@@ -1,4 +1,8 @@
 Algebra,Operator,ConstantName,ConstantValue,Meaning,Meaning2
+MMRTreeAlgebra,itSpatialJoin,uItSpatialJoin,0.0596237,msecs per rtree insert,
+MMRTreeAlgebra,itSpatialJoin,vItSpatialJoin,0.125445,msecs per tuple in right input stream (part. 1),
+MMRTreeAlgebra,itSpatialJoin,wItSpatialJoin,0.00602206,msecs per byte written and read into/from Relati,
+MMRTreeAlgebra,itSpatialJoin,xItSpatialJoin,0.00103744,msecs per byte read from Relation,
 ExtRelation2Algebra,itHashJoin,uItHashJoin,0.00836011,msecs per hash table insert,
 ExtRelation2Algebra,itHashJoin,vItHashJoin,1.3739,msecs per tuple in right input stream (part. 1),
 ExtRelation2Algebra,itHashJoin,wItHashJoin,0.000651897,msecs per byte written and read from/into TupleFile,
