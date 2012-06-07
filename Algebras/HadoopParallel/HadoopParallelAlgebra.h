@@ -76,6 +76,7 @@ string getLocalFilePath(string path, const string fileName,
             string suffix, bool appendFileName = true);
 string addFileIndex(string fileName, int index);
 ListExpr AntiNumericType(ListExpr numericType);
+int copyFile(string source, string dest, bool cfn = false);
 
 //Set up the remote copy command options uniformly.
 const string scpCommand = "scp -q ";

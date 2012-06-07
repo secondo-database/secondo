@@ -2498,8 +2498,7 @@ the target IP is appended, for using the scp command.
                 i, true, true, true, true, relName, true);
             cerr << "Copy " << filePath
                 << "\n->\t" << rPath << endl;
-            if ( 0 != ( system(
-                (scpCommand + filePath + " " + rPath).c_str())))
+            if (0 != copyFile(filePath, rPath, true))
             {
               cerr << "Copy remote file fail." << endl;
               ((CcBool*)(result.addr))->Set(true, false);
@@ -3113,7 +3112,8 @@ if the target machine is not the producer.
         string cStr = scpCommand + rFilePath +
             " " + lFilePath;
         while (!fileFound && copyTimes-- > 0){
-          if (0 == system(cStr.c_str())){
+//          if (0 == system(cStr.c_str())){
+          if (0 == copyFile(rFilePath, lFilePath, true)){
               break;
           }
         }
@@ -4355,8 +4355,7 @@ bool FDistributeLocalInfo::duplicateOneFile(fileInfo* fi)
           int copyTimes = MAX_COPYTIMES;
           while(copyTimes-- > 0)
           {
-            if ( 0 == system(
-                (scpCommand + filePath + " " + rPath).c_str())){
+            if ( 0 == copyFile(filePath, rPath, true)){
               break;
             }else{
             cerr << "Warning! Duplicate file "
@@ -4524,6 +4523,42 @@ ListExpr AntiNumericType(ListExpr type)
     return (nl->Cons(AntiNumericType(nl->First(type)),
                      AntiNumericType(nl->Rest(type))));
   }
+}
+
+/*
+Copy a file through the network
+~cfn~ means: change (destination) file name
+
+*/
+int copyFile(string source, string dest, bool cfn/* = false*/)
+{
+  string destNode = dest.substr(0, dest.find_first_of(":"));
+  dest = dest.substr(dest.find_first_of(":") + 1);
+  string sourceFileName = source.substr(source.find_last_of("/") + 1);
+  string destFileName= "";
+  if (cfn)
+  {
+    destFileName = dest.substr(dest.find_last_of("/") + 1);
+    dest = dest.substr(0, dest.find_last_of("/") + 1);
+  }
+
+  int sourceDepth = 0;
+  size_t pos = 0;
+  while ((pos = source.find("/", pos)) != string::npos){
+    sourceDepth++ ;
+    pos++;
+  }
+  sourceDepth = sourceDepth > 0 ? (sourceDepth - 1) : 0;
+
+  stringstream command;
+  command << "tar -czf - " << source << " | ssh -oCompression=no " << destNode
+      << " \"tar -zxf - -C " << dest << " --strip=" << sourceDepth;
+  if (cfn){
+    command << "; mv " << dest << sourceFileName << " " << dest << destFileName;
+  }
+  command << "\"";
+
+  return system(command.str().c_str());
 }
 
 
