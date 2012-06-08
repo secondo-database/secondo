@@ -1496,32 +1496,26 @@ void NFA::storeMatch(int state) { // TODO: care about conditions
             }
             j--;
           }
-          if (matchings[state + 1].empty()) { // last matchings stays empty
-            toLabel = currentLabelId;
-          }
-          else {
-            toLabel = *(matchings[state + 1].begin());
-          }          toState = state;
-          if (j < 0) { // no matching before state
-            fromLabel = 0;
-            fromState = 0;
-          }
-          else {
-            fromLabel = *(matchings[j].begin());
-            fromState = j + 1;
-          }
+          toLabel = *(matchings[state].rbegin()) - *(matchings[j].begin()) - 1;
+          fromLabel = 0;
+          fromState = j + 1;
           toState = state - 1;
           for (int k = fromState; k <= toState; k++) {
             for (size_t i = fromLabel; i <= toLabel; i++) {
-              cardsets[k].insert(i);
+              if ((i > 0) || !nfaPatterns[k].wildcard.compare("*")) {
+                cardsets[k].insert(i); // do not insert 0 when wildcard is +
+              }
             }
           }
         }
-        else { // matching at state - 2
+        else { // matching in state - 2
           it = matchings[state - 2].begin();
           while ((*it < currentLabelId) && (it != matchings[state - 2].end())) {
-            cardsets[state - 1].insert(currentLabelId - *it - 1);
-            it++;
+            if ((currentLabelId - *it - 1 > 0) // card != 0 for wildcard +
+              || !nfaPatterns[state - 1].wildcard.compare("*")) {
+              cardsets[state - 1].insert(currentLabelId - *it - 1);
+              it++;
+          }
           }
         }
       }
@@ -1531,8 +1525,8 @@ void NFA::storeMatch(int state) { // TODO: care about conditions
         && !nfaPatterns[state].wildcard.empty()) {
     int j = state - 1; // search previous matching position
     if (matchings[j].empty()) {
-      dependencies[j].insert(state - 1);
-      dependencies[state - 1].insert(j);
+      dependencies[j].insert(state);
+      dependencies[state].insert(j);
       j--;
       while ((j >= 0) && matchings[j].empty()) {
         for (int k = j + 1; k <= state - 1; k++) {
@@ -1541,25 +1535,27 @@ void NFA::storeMatch(int state) { // TODO: care about conditions
         }
         j--;
       }
-      if (j < 0) {
+      if ((j < 0) || (j < state - 1)) {
         fromLabel = 0;
-        fromState = 0;
-      }
-      else {
-        fromLabel = *(matchings[j].begin());
-        fromState = j + 1;
-      }
-      for (int k = fromState; k <= state; k++) {
-        for (size_t i = fromLabel; i <= maxLabelId; i++) {
-          cardsets[k].insert(i);
+        if (j < 0) {
+          toLabel = maxLabelId;
+        }
+        else {
+          toLabel = maxLabelId - *(matchings[j].begin());
+        }
+        fromState = j + 1; // 0 iff no match exists
+        for (int k = fromState; k <= state; k++) {
+          for (size_t i = fromLabel; i <= toLabel; i++) {
+            if ((i > 0) || !nfaPatterns[k].wildcard.compare("*")) {
+              cardsets[k].insert(i);
+            }
+          }
         }
       }
     }
-    else { // matching at state - 2
-      it = matchings[state - 2].begin();
-      while ((*it < currentLabelId) && (it != matchings[state - 2].end())) {
-        cardsets[state - 1].insert(currentLabelId - *it);
-        it++;
+    else { // matching in state - 1
+      for (it = matchings[j].begin(); it != matchings[j].end(); it++) {
+        cardsets[state].insert(maxLabelId - *it);
       }
     }
   }
