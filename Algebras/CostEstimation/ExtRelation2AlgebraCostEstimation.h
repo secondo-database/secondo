@@ -362,6 +362,12 @@ function. Allowed types are:
 
 */
 size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
+        
+        // if the first stream is exhausted, we are in the last
+        // partition / iteration
+        if(stream1Exhausted) {
+           return iteration;
+        }
 
         // calculate size for one bucket datastructure
         vector<Tuple*>* bucket = new vector<Tuple*>();
@@ -500,7 +506,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
     readStream1 = 0;
     readStream2 = 0;
     iteration = 0;
-    readInIteration = 0;
+    readInIteration = 1;
     buckets = 999997; // default buckets
     tuplesInTupleFile = 0;
   }

@@ -360,6 +360,12 @@ function. Allowed types are:
 */
 size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
 
+        // if the first stream is exhausted, we are in the last
+        // partition / iteration
+        if(stream1Exhausted) {
+           return iteration;
+        }
+
         // calculate size for one bucket datastructure
         // code taken from MMRTreeAlgebra.cpp 
         size_t sizePerTuple = s1Size + sizeof(void*) + 100;
