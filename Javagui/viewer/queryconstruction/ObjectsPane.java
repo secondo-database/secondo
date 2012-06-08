@@ -10,6 +10,8 @@ import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import sj.lang.ListExpr;
+import gui.ViewerControl;
+import javax.swing.JButton;
 import viewer.QueryconstructionViewer;
 
 /* ObjectsPane.java requires no other files. */
@@ -18,10 +20,11 @@ public class ObjectsPane extends MainPane {
     private ArrayList<ObjectView> elements = new ArrayList<ObjectView>();
     private QueryconstructionViewer viewer;
     private ListExpr objects;
+    private ViewerControl VC;
 
-    public ObjectsPane(QueryconstructionViewer viewer, ListExpr obj) {
-        this.objects = obj;
+    public ObjectsPane(QueryconstructionViewer viewer, ViewerControl VC) {
         this.viewer = viewer;
+        this.VC = VC;
         this.addMouseListener(this);
         
         ObjectView Trains = new ObjectView(RELATION, "Trains");
@@ -51,6 +54,14 @@ public class ObjectsPane extends MainPane {
         }
     }
     
+    public void getObjects(){
+        if (VC != null) {
+            VC.execCommand("open database berlintest");
+            objects = VC.getCommandResult("list objects");
+            System.out.println(objects);
+        }
+    }
+    
     //    adds an operation or an object to the main panel
     public void addObject(ObjectView object){
         elements.add(object);
@@ -68,7 +79,7 @@ public class ObjectsPane extends MainPane {
         this.repaint();
     }
 
-    //double click adds the selected object to the main panel
+    //double click adds a copy of the selected object to the main panel
     public void mouseClicked ( MouseEvent arg0 ) {
         if (arg0.getClickCount () == 2) {
             int x = 0;
@@ -77,7 +88,7 @@ public class ObjectsPane extends MainPane {
                 if (arg0.getX() < (10 + x*120)) {
                     if (x <= elements.size()) {
                         if (elements.get(x-1).isActive())
-                            viewer.addObject(elements.get(x-1));
+                            viewer.addObject(new ObjectView(elements.get(x-1).getType(), elements.get(x-1).getName()));
                     }
                 }
             }

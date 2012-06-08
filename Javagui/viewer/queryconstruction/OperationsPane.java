@@ -24,9 +24,9 @@ public class OperationsPane extends MainPane {
         addObject(filter);
         ObjectView count = new ObjectView(OPERATION, "count");
         addObject(count);
-        ObjectView head = new ObjectView(OPERATION, "head[1]");
+        ObjectView head = new ObjectView(OPERATION, "head");
         addObject(head);
-        ObjectView tail = new ObjectView(OPERATION, "tail[4]");
+        ObjectView tail = new ObjectView(OPERATION, "tail");
         addObject(tail);
         ObjectView consume = new ObjectView(OPERATION, "consume");
         addObject(consume);
@@ -64,28 +64,26 @@ public class OperationsPane extends MainPane {
                     object.setActive();
                 }
             }
-            if (lastComponent.getName() == "feed") {
-                if (object.getName() == "head[1]" || object.getName() == "tail[4]" || object.getName() == "project") {
+            if (lastComponent.getName().equals("feed")) {
+                if (object.getName().startsWith("head") || object.getName().startsWith("tail") || object.getName().startsWith("project")) {
                     object.setActive();
                 }
             }
-            if (lastComponent.getName() == "feed" || lastComponent.getName() == "head[1]" || lastComponent.getName() == "tail[4]") {
-                if (object.getName() == "consume") {
-                    object.setActive();
-                }
+            if (object.getName().equals("consume")) {
+                object.setActive();
             }
         }
         this.repaint();
     }
 
-    //double click adds the selected operation to the main panel
+    //double click adds a copy of the selected operation to the main panel
     public void mouseClicked ( MouseEvent arg0 ) {
         if (arg0.getClickCount () == 2) {
             int y = 0;
             while (arg0.getY() > (y*30)) { y++; }
             if (y <= elements.size()) {
                 if (elements.get(y-1).isActive())
-                    viewer.addObject(elements.get(y-1));
+                    viewer.addObject(new ObjectView(elements.get(y-1).getType(), elements.get(y-1).getName()));
             }
         }
     }

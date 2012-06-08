@@ -19,7 +19,7 @@ public class MainPane extends JComponent implements MouseListener {
     private ArrayList<ObjectView> elements = new ArrayList<ObjectView>();
     
     protected static final String RELATION = "rel";
-    protected static final String OPERATION="operation";
+    protected static final String OPERATION = "operation";
     protected static final String MPOINT = "mpoint";
     protected static final String POINT = "point";
     protected static final String REGION = "region";
@@ -50,8 +50,12 @@ public class MainPane extends JComponent implements MouseListener {
     //adds an operation or an object to the main panel
     public void addObject(ObjectView object){
         elements.add(object);
-        if (object.getName().equals("project")){
-            new OperationsDialog(this, new String[]{"ID", "Line", "Up", "Trip"});
+        OperationsDialog dialog = new OperationsDialog(this, new String[]{"ID", "Line", "Up", "Trip"});
+        if (object.getName().startsWith("project")){
+            dialog.project();
+        }
+        if (object.getName().startsWith("head")){
+            dialog.integer();
         }
         lastComponent = object;
     }
@@ -78,7 +82,8 @@ public class MainPane extends JComponent implements MouseListener {
         return query;
     }
     
-    public String project(String[] attributes) {
+    //adds an array of strings to the active operation
+    public void addArray(String[] attributes) {
         String result = lastComponent.getName();
         result+="[";
         
@@ -87,9 +92,17 @@ public class MainPane extends JComponent implements MouseListener {
             if (att != null)
                 result+=att+", ";
         }
-        lastComponent.setName(result.substring(0, result.length()-3) +"]");
-        System.out.println(result.substring(0, result.length()-3) +"]");
-        return result;
+        lastComponent.setName(result.substring(0, result.length()-2) +"]");
+        System.out.println(result.substring(0, result.length()-2) +"]");
+        repaint();
+    }
+    
+    public void addString(String s) {
+        String result = lastComponent.getName();
+        result+="[" + s + "]";
+        lastComponent.setName(result);
+        System.out.println(result);
+        repaint();
     }
     
     //Handle mouse events.

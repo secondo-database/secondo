@@ -47,14 +47,14 @@ public class QueryconstructionViewer extends SecondoViewer {
     private MenuVector MV = new MenuVector();
     private String result;
     private int streamCounter = 0;
-    private ListExpr objects;
+    private static ListExpr objects;
     
     public QueryconstructionViewer(){
         this.setLayout(new BorderLayout());
         
         MainPane = new MainPane();
         MainPane.setPreferredSize(new Dimension (500, 400));
-        ObjectsPane = new ObjectsPane(this, objects);
+        ObjectsPane = new ObjectsPane(this, VC);
         ObjectsPane.setPreferredSize(new Dimension (600, 80));
         OperationsPane.setPreferredSize(new Dimension (120, 400));
         
@@ -92,7 +92,15 @@ public class QueryconstructionViewer extends SecondoViewer {
         };
         back.addActionListener(backl);
         
-        //VC.execCommand("open database berlintest");
+        JButton all = new JButton("all");
+        MainPane.add(all);
+        
+        ActionListener listener1 = new ActionListener() {
+            public void actionPerformed( ActionEvent e ) {
+                getObjects();
+            }
+        };
+        all.addActionListener(listener1);
     }
     
     //adds an object to the main panel
@@ -107,11 +115,20 @@ public class QueryconstructionViewer extends SecondoViewer {
     }
     
     public String getType () {
-        String getTypeNL = VC.getCommandResult(MainPane.getStrings() + " getTypeNL").second().textValue();
-        if (getTypeNL.startsWith("(stream"))
-            this.result = "stream";
-        else
-            this.result = "relation";
+        String getTypeNL = "no result";
+        if (VC != null) { 
+            if (VC.execCommand(MainPane.getStrings() + " getTypeNL") == 0) {
+                getTypeNL = VC.getCommandResult(MainPane.getStrings() + " getTypeNL").toString();
+                System.out.println(getTypeNL);
+                if (getTypeNL.startsWith("(stream")) {
+                    this.result = "stream";
+                }
+                else {
+                    this.result = "relation";
+                }
+            }
+        }
+        
         return getTypeNL;
     }
     
@@ -122,6 +139,9 @@ public class QueryconstructionViewer extends SecondoViewer {
             System.out.println(VC.getCommandResult(MainPane.getStrings()));
             VC.execUserCommand(MainPane.getStrings());
         }
+        else {
+            System.out.println("Fehler!");
+        }
     }
     
     public void back() {
@@ -129,6 +149,14 @@ public class QueryconstructionViewer extends SecondoViewer {
         MainPane.repaint();
         OperationsPane.update();
         ObjectsPane.update();
+    }
+    
+    public void getObjects(){
+        if (VC != null) {
+            VC.execCommand("open database berlintest");
+            objects = VC.getCommandResult("list objects");
+            System.out.println(objects);
+        }
     }
     
     public boolean addObject(SecondoObject o){
@@ -150,7 +178,7 @@ public class QueryconstructionViewer extends SecondoViewer {
     
     /** returns InquiryViewer */
     public String getName(){
-        return "QueryConstructionViewer";
+        return "QueryconstructionViewer";
     }
     
     public boolean canDisplay(SecondoObject o){

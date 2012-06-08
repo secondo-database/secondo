@@ -6,7 +6,6 @@ package viewer.queryconstruction;
 
 import java.awt.*;
 import javax.swing.*;
-import gui.SecondoObject;
 import viewer.QueryconstructionViewer;
 
 /**
@@ -49,27 +48,27 @@ public class ObjectView extends JComponent {
         else {
             g.drawRect(xpos, ypos, 90, 50);
             
-            if (type == MainPane.RELATION) {
+            if (type.equals(MainPane.RELATION)) {
                 ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/relation.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
 
-            if (type == "mpoint") {
+            if (type.equals(MainPane.MPOINT)) {
                 ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/mpoint.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
-            if (type == "point") {
+            if (type.equals(MainPane.POINT)) {
                 ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/point.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
-            if (type == "region") {
+            if (type.equals(MainPane.REGION)) {
                 ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/region.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
-            if (type == "mregion") {
+            if (type.equals(MainPane.MREGION)) {
                 ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/mregion.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
@@ -80,10 +79,10 @@ public class ObjectView extends JComponent {
         int w = g.getFontMetrics().stringWidth(label);
         String s = label;
         if (w > 80) {
-            s = label.substring(0, 8);
+            s = label.substring(0, 10);
         }
         
-        g.drawString(s, xpos + 25, ypos + 30);
+        g.drawString(s, xpos + 45 - w/2, ypos + 30);
     }
     
     public void paintTable(Graphics g, int x, int y, Color color){
@@ -99,10 +98,10 @@ public class ObjectView extends JComponent {
         int w = g.getFontMetrics().stringWidth(label);
         String s = label;
         if (w > 80) {
-            s = label.substring(0, 10);
+            s = label.substring(0, 12);
         }
         
-        g.drawString(s, xpos + 20, ypos + 10);
+        g.drawString(s, xpos + 10, ypos + 10);
     }
     
     public String getName() {
@@ -111,6 +110,9 @@ public class ObjectView extends JComponent {
     
     public void setName(String name) {
         this.name = name;
+        if (name.length() < 12) {
+            label = name;
+        }
     }
     
     public String getType(){

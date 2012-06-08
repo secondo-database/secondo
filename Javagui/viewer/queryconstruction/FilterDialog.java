@@ -58,7 +58,6 @@ public class FilterDialog extends JDialog {
             }
             i++;
         }
-        main.project(attributes);
         this.setVisible(false);
     }
 }
