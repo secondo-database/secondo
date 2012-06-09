@@ -861,8 +861,8 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
       }
    }
 
-//   cout<<"exist_jun1 "<<exist_jun1<<" exist_jun2 "<<exist_jun2<<endl;
-//   cout<<gp_p_list1.size()<<" "<<gp_p_list2.size()<<endl;
+//    cout<<"exist_jun1 "<<exist_jun1<<" exist_jun2 "<<exist_jun2<<endl;
+//    cout<<gp_p_list1.size()<<" "<<gp_p_list2.size()<<endl;
 
    priority_queue<RNPath_elem> path_queue;
    vector<RNPath_elem> expand_queue;
@@ -909,7 +909,7 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
      }else{
         for(unsigned int i = 0;i < gp_p_list1.size();i++){
 //          cout<<"i "<<i<<" "<<gp_p_list1[i].pos1<<endl;
-//          if(i == 0 && gp1->GetPosition() < gp_p_list1[i].pos1){//first jun
+
           if(i == 0){
             if(gp1->GetPosition() < gp_p_list1[i].pos1){
               RouteInterval ri(gp1->GetRouteId(), gp1->GetPosition(), 
@@ -926,9 +926,8 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
               break;
             }
-//           }else if(i == gp_p_list1.size() - 1 && 
-//                    gp1->GetPosition() > gp_p_list1[i].pos1){
-          }else if(i == gp_p_list1.size() - 1){
+          }
+          if(i == gp_p_list1.size() - 1){
 
             if(gp1->GetPosition() > gp_p_list1[i].pos1){
                 RouteInterval ri(gp1->GetRouteId(), gp1->GetPosition(), 
@@ -945,7 +944,9 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
                 break;
             }
-          }else if(gp1->GetPosition() > gp_p_list1[i - 1].pos1&& 
+          }
+
+          if(i > 0 && gp1->GetPosition() > gp_p_list1[i - 1].pos1&& 
                    gp1->GetPosition() < gp_p_list1[i].pos1){ //two junctions
 
             ///////////////first element//////////////////////
@@ -1041,20 +1042,22 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
             end_jun_list.push_back(gp_p_list2[1]);
       }else{
          for(unsigned int i = 0;i < gp_p_list2.size();i++){
-//            if(i == 0 && gp2->GetPosition() < gp_p_list2[i].pos1){//first jun
+
             if(i == 0){//first jun
               if(gp2->GetPosition() < gp_p_list2[i].pos1){
                 end_jun_list.push_back(gp_p_list2[i]);
                 break;
               }
-/*          }else if(i == gp_p_list2.size() - 1 && 
-                   gp2->GetPosition() > gp_p_list2[i].pos1){*/
-          }else if(i == gp_p_list2.size() - 1){
+            }
+
+           if(i == gp_p_list2.size() - 1){
             if(gp2->GetPosition() > gp_p_list2[i].pos1){
                 end_jun_list.push_back(gp_p_list2[i]);
                 break;
             }
-          }else if(gp2->GetPosition() > gp_p_list2[i - 1].pos1 && 
+          }
+
+          if(i > 0 && gp2->GetPosition() > gp_p_list2[i - 1].pos1 && 
                    gp2->GetPosition() < gp_p_list2[i].pos1){
 
             end_jun_list.push_back(gp_p_list2[i - 1]);
@@ -1065,7 +1068,6 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
       }
 
    }
-
 
    //////////////////////////////start searching//////////////////////////
 
@@ -1081,6 +1083,7 @@ void RoadNav::ShortestPathSub(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
       path_queue.pop();
 
 //      top.Print();
+//      cout<<top.to_loc.Distance(loc_end)<<endl;
 
      if(top.tri_index == 0 || top.to_loc.Distance(loc_end) < delta_d){
         dest = top;
@@ -1460,7 +1463,7 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
      }else{
         for(unsigned int i = 0;i < gp_p_list1.size();i++){
-//          if(i == 0 && gp1->GetPosition() < gp_p_list1[i].pos1){//first jun
+
             if(i == 0){//first jun)
                 if(gp1->GetPosition() < gp_p_list1[i].pos1){
                   RouteInterval ri(gp1->GetRouteId(), gp1->GetPosition(), 
@@ -1477,10 +1480,9 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
                   break;
                 }
-//          }else if(i == gp_p_list1.size() - 1 && 
-//                   gp1->GetPosition() > gp_p_list1[i].pos1){
+            }
 
-          }else if(i == gp_p_list1.size() - 1){
+          if(i == gp_p_list1.size() - 1){
 
             if(gp1->GetPosition() > gp_p_list1[i].pos1){
                 RouteInterval ri(gp1->GetRouteId(), gp1->GetPosition(), 
@@ -1497,7 +1499,9 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
                 break;
             }
-          }else if(gp1->GetPosition() > gp_p_list1[i - 1].pos1&& 
+          }
+
+          if(i > 0 && gp1->GetPosition() > gp_p_list1[i - 1].pos1&& 
                    gp1->GetPosition() < gp_p_list1[i].pos1){///two juns
 
             ///////////////first element//////////////////////
@@ -1592,26 +1596,28 @@ void RoadNav::ShortestPathSub2(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
           end_jun_list.push_back(gp_p_list2[1]);
       }else{
          for(unsigned int i = 0;i < gp_p_list2.size();i++){
-//           if(i == 0 && gp2->GetPosition() < gp_p_list2[i].pos1){//first jun
+
            if(i == 0){//first jun
               if(gp2->GetPosition() < gp_p_list2[i].pos1){
                 end_jun_list.push_back(gp_p_list2[i]);
                 break;
               }
-/*          }else if(i == gp_p_list2.size() - 1 && 
-                   gp2->GetPosition() > gp_p_list2[i].pos1){*/
-          }else if(i == gp_p_list2.size() - 1){
-            if(gp2->GetPosition() > gp_p_list2[i].pos1){
+           }
+
+           if(i == gp_p_list2.size() - 1){
+              if(gp2->GetPosition() > gp_p_list2[i].pos1){
                 end_jun_list.push_back(gp_p_list2[i]);
                 break;
-            }
-          }else if(gp2->GetPosition() > gp_p_list2[i - 1].pos1 && 
+              }
+           }
+
+           if(i > 0 && gp2->GetPosition() > gp_p_list2[i - 1].pos1 &&
                    gp2->GetPosition() < gp_p_list2[i].pos1){
 
-            end_jun_list.push_back(gp_p_list2[i - 1]);
-            end_jun_list.push_back(gp_p_list2[i]);
-            break;
-          }
+              end_jun_list.push_back(gp_p_list2[i - 1]);
+              end_jun_list.push_back(gp_p_list2[i]);
+              break;
+           }
          }
       }
 
@@ -1961,7 +1967,7 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
          }
      }else{
         for(unsigned int i = 0;i < gp_p_list1.size();i++){
-//         if(i == 0 && gp1->GetPosition() < gp_p_list1[i].pos1){//first jun
+
            if(i == 0){//first jun
              if(gp1->GetPosition() < gp_p_list1[i].pos1){
                 RouteInterval ri(gp1->GetRouteId(), gp1->GetPosition(), 
@@ -1978,12 +1984,11 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
 
                 break;
              }
-//           }else if(i == gp_p_list1.size() - 1 && 
-//                    gp1->GetPosition() > gp_p_list1[i].pos1){
 
-            }else if(i == gp_p_list1.size() - 1){
+            }
+            if(i == gp_p_list1.size() - 1){
 
-            if(gp1->GetPosition() > gp_p_list1[i].pos1){
+              if(gp1->GetPosition() > gp_p_list1[i].pos1){
                 RouteInterval ri(gp1->GetRouteId(), gp1->GetPosition(), 
                            gp_p_list1[i].pos1);
                 double w = fabs(gp1->GetPosition() - gp_p_list1[i].pos1);
@@ -1997,8 +2002,10 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
                 expand_queue.push_back(rn_elem);
 
                 break;
+              }
             }
-          }else if(gp1->GetPosition() > gp_p_list1[i - 1].pos1&& 
+
+            if(i > 0 && gp1->GetPosition() > gp_p_list1[i - 1].pos1&& 
                    gp1->GetPosition() < gp_p_list1[i].pos1){///two juns
 
             ///////////////first element//////////////////////
@@ -2093,20 +2100,22 @@ void RoadNav::ShortestPathSub3(GPoint* gp1, GPoint* gp2, RoadGraph* rg,
           end_jun_list.push_back(gp_p_list2[1]);
       }else{
          for(unsigned int i = 0;i < gp_p_list2.size();i++){
-//            if(i == 0 && gp2->GetPosition() < gp_p_list2[i].pos1){//first jun
-            if(i == 0){//first jun
+
+           if(i == 0){//first jun
               if(gp2->GetPosition() < gp_p_list2[i].pos1){
                   end_jun_list.push_back(gp_p_list2[i]);
                   break;
               }
-/*          }else if(i == gp_p_list2.size() - 1 && 
-                   gp2->GetPosition() > gp_p_list2[i].pos1){*/
-          }else if(i == gp_p_list2.size() - 1){
+           }
+
+          if(i == gp_p_list2.size() - 1){
             if(gp2->GetPosition() > gp_p_list2[i].pos1){
                 end_jun_list.push_back(gp_p_list2[i]);
                 break;
             }
-          }else if(gp2->GetPosition() > gp_p_list2[i - 1].pos1 && 
+          }
+
+          if(i > 0 && gp2->GetPosition() > gp_p_list2[i - 1].pos1 && 
                    gp2->GetPosition() < gp_p_list2[i].pos1){
 
             end_jun_list.push_back(gp_p_list2[i - 1]);

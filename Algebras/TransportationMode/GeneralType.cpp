@@ -2811,10 +2811,18 @@ void GenMObject::GenerateCar(Space* sp, Periods* peri, int mo_no,
     assert(sl->AtPosition(gp1.GetPosition(), true, *start_loc));
     road_tuple->DeleteIfAllowed();
 
-//    cout<<gp1<<" "<<gp2<<endl;
+    //cout<<gp1<<" "<<gp2<<endl;
 
     GLine* gl = new GLine(0);
     road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
+
+    if(gl->Size() == 0){
+//      cout<<gp1<<" "<<gp2<<endl;
+      delete gl;
+      delete start_loc;
+      continue;
+    }
+
     GenerateCarMO(rn, count, peri, gl, rel, *start_loc);
     delete gl;
 
@@ -4920,6 +4928,7 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
                                     Instant& start_time, 
                                     DualGraph* dg, Line* res_path)
 {
+
     GenMO* genmo = new GenMO(0);
     genmo->StartBulkLoad();
 
@@ -4965,17 +4974,29 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
       double t = bn_nav->time_cost_list[i];
       int tm = GetTM(bn_nav->tm_list[i]);
       /////////////////////////////////////////////////////////////
-//       cout<<bs1<<" "<<bs2<<" "<<bn_nav->tm_list[i]<<" "
-//           <<sl->Size()<<" cost: "<<t<<" "<<"st "<<start_time<<endl;
+//        cout<<bs1<<" "<<bs2<<" "<<bn_nav->tm_list[i]<<" "
+//            <<sl->Size()<<" cost: "<<t<<" "<<"st "<<start_time<<endl;
 
       Point* start_loc = new Point(true, 0, 0);
       bn_nav->bn->GetBusStopGeoData(&bs1, start_loc);
       Point* end_loc = new Point(true, 0, 0);
       bn_nav->bn->GetBusStopGeoData(&bs2, end_loc);
 
+//       Point temp_p(true, 12228.01481098753, 11207.32175065416);
+//       if(start_loc->Distance(temp_p) < EPSDIST ||
+//          end_loc->Distance(temp_p) < EPSDIST){
+//           cout<<"time "<<start_time<<endl;
+//           cout<<" len "<<sl->Length()<<" "
+//               <<" mode "<<bn_nav->tm_list[i]<<endl;
+//           cout<<"i "<<i<<*start_loc<<" "<<*end_loc<<endl;
+//           cout<<bs1<<" "<<bs2<<" "<<" cost "<<t<<endl;
+//       }
+
 //      cout<<*start_loc<<" "<<*end_loc<<endl;
       /////filter the first part and transfer without movement ////////
-      if(sl->Size() == 0 && AlmostEqual(t, 0.0)) continue;
+//      if(sl->Size() == 0 && AlmostEqual(t, 0.0)) continue;
+
+      if(sl->Size() == 0 && fabs(t) < EPSDIST) continue; //2012.6.5, < 0.01sec
 
 /*        cout<<sl->Length()<<" bs1 "<<bs1<<" bs2 "<<bs2
             <<" time "<<t<<" tm "<<bn_nav->tm_list[i]<<endl;
@@ -4986,7 +5007,6 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
       Instant temp_start_time = start_time; 
 
       if(tm == TM_WALK){
-
 
         Line* l1 = new Line(0);
         ///////////////////////////////////////////////////////////////////
@@ -5009,8 +5029,8 @@ int GenMObject::ConnectTwoBusStops(BNNav* bn_nav, Point sp, Point ep,
           if(!hs1.IsLeftDomPoint()) continue;
           Point lp = hs1.GetLeftPoint();
           Point rp = hs1.GetRightPoint();
-/*          cout<<start_loc->Distance(lp)<<" "<<start_loc->Distance(rp)<<" "
-              <<end_loc->Distance(lp)<<" "<<end_loc->Distance(rp)<<endl;*/
+//          cout<<start_loc->Distance(lp)<<" "<<start_loc->Distance(rp)<<" "
+//              <<end_loc->Distance(lp)<<" "<<end_loc->Distance(rp)<<endl;
 //          if(start_loc->Distance(lp) < delta_dist){
           if(start_loc->Distance(lp) < EPSDIST){
             new_start_loc = rp;
@@ -6378,12 +6398,16 @@ void GenMObject::GenerateIndoorMovementFromExit(IndoorInfra* i_infra,
 
         UPoint3D unit1;
         mp3d->Get(mp3d->GetNoComponents() - 1, unit1);
+
+        unit1.p0 = unit1.p1;////////2012.6.7, at the last location
         up_interval.start = t2;
         unit1.timeInterval = up_interval;
         mp3d->Add(unit1);
 
         UGenLoc unit2;
         genmo->Get(genmo->GetNoComponents() - 1, unit2);
+
+        unit2.gloc1 = unit2.gloc2; /////////////2012.6.7. at the last location
         unit2.timeInterval = up_interval;
         genmo->Add(unit2);
 
@@ -6417,12 +6441,14 @@ void GenMObject::GenerateIndoorMovementFromExit(IndoorInfra* i_infra,
 
         UPoint3D unit1;
         mp3d->Get(mp3d->GetNoComponents() - 1, unit1);
+        unit1.p0 = unit1.p1; //2012.6.7. at the last location
         up_interval.start = t2;
         unit1.timeInterval = up_interval;
         mp3d->Add(unit1);
 
         UGenLoc unit2;
         genmo->Get(genmo->GetNoComponents() - 1, unit2);
+        unit2.gloc1 = unit2.gloc2;//2012.6.7 at the last location
         unit2.timeInterval = up_interval;
         genmo->Add(unit2);
 
@@ -6780,6 +6806,17 @@ void GenMObject::GenerateGenMO_IWCTB(Space* sp, MaxRect* maxrect,
     ////////////////////////////////////////////////////////////////////
     GLine* gl = new GLine(0);
     road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
+//    cout<<"len "<<gl->Size()<<endl;
+    if(gl->Size() == 0){ /////////////2012.6.7
+      delete mo;
+      delete genmo;
+      delete gl;
+      count++;
+      path_tuple1->DeleteIfAllowed();
+      path_tuple2->DeleteIfAllowed();
+      continue;
+    }
+
     ConnectGP1GP2(rn, start_loc, gl, mo, genmo, start_time, speed_rel ,mode);
     delete gl;
     /////////////////////////////////////////////////////////////////////
@@ -9047,7 +9084,7 @@ void GenMObject::GenerateGenMOBench1(Space* sp, Periods* peri, int mo_no,
 
           CreateBuildingPair5(build_id1_list, build_id2_list,
                               build_list1, build_list2, 
-                              genmo_no * obj_scale_min, false);//no station
+                              genmo_no * obj_scale_min, false);//no trainstation
 
           GenerateGenMO_IWCTB(sp, maxrect, i_infra, 
                               pm, rn, rg, peri, genmo_no, mode,
@@ -9061,7 +9098,7 @@ void GenMObject::GenerateGenMOBench1(Space* sp, Periods* peri, int mo_no,
 
           CreateBuildingPair5(build_id1_list, build_id2_list,
                               build_list1, build_list2,
-                              genmo_no * obj_scale_min, true);//has station
+                              genmo_no * obj_scale_min, true);//has trainstation
 
           GenerateGenMO_IWCTB(sp, maxrect, i_infra, pm, rn, rg,
                               peri, genmo_no, mode,
@@ -9311,7 +9348,7 @@ void GenMObject::GenMOBenchRBO(Space* sp, Periods* peri, int mo_no,
 
     Line* path = new Line(0);
     wsp->WalkShortestPath2(oid1, oid2, sp2, ep2, path);
-//    cout<<path->Length()<<endl;
+
     MPoint* mo = new MPoint(0);
     GenMO* genmo = new GenMO(0);
     mo->StartBulkLoad();
@@ -10815,6 +10852,8 @@ void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra,
     /////////////////////////////////////////////////////////////////
     //////2.2. get the path in bus network////////////////////////////
     /////////////////////////////////////////////////////////////////
+//    cout<<bs1<<" "<<bs2<<" "<<start_time<<endl;
+
     BNNav* bn_nav = new BNNav(bn);
 
      if(count % 2 != 0) 
@@ -10851,7 +10890,7 @@ void GenMObject::GenerateBench4_Bus(Space* sp, IndoorInfra* i_infra,
             count++;
             continue;
         }
-
+     
      /////////////////////////////////////////////////////////////////////
      int last_walk_id = ConnectTwoBusStops(bn_nav, ps_list1[1], ps_list2[1],
                            genmo, mo, start_time, dg, res_path);
@@ -11480,6 +11519,13 @@ bool GenMObject::SubTrip_C1(Space* sp, IndoorInfra* i_infra, MaxRect* maxrect,
     ////////////////////////////////////////////////////////////////////
     GLine* gl = new GLine(0);
     road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
+    if(gl->Size() == 0){
+      delete gl;
+      path_tuple1->DeleteIfAllowed();
+      path_tuple2->DeleteIfAllowed();
+      return false;
+    }
+
     ConnectGP1GP2(rn, start_loc, gl, mo, genmo, start_time, speed_rel, "Car");
     delete gl;
     /////////////////////////////////////////////////////////////////////
@@ -11676,6 +11722,12 @@ bool GenMObject::SubTrip_C2(Space* sp, IndoorInfra* i_infra, MaxRect* maxrect,
     ////////////////////////////////////////////////////////////////////
     GLine* gl = new GLine(0);
     road_nav->ShortestPathSub(&gp1, &gp2, rg, rn, gl);
+    if(gl->Size() == 0){
+      delete gl;
+      path_tuple1->DeleteIfAllowed();
+      path_tuple2->DeleteIfAllowed();
+      return false;
+    }
     ConnectGP1GP2(rn, start_loc, gl, mo, genmo, start_time, speed_rel, "Car");
     delete gl;
     /////////////////////////////////////////////////////////////////////

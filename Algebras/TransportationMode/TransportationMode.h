@@ -411,16 +411,15 @@ const string OpTMWalkSPSpec  =
     "</text--->"
     ") )";
 
-const string OpTMWalkSPTypeSpec  =
+const string OpTMWalkSPDebugSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>pavement x rel1 x rel2 x rel3 x btree x int-> line</text--->"
-    "<text>walk_sp_type(pn, rel, rel, rel, btree, int)</text--->"
+    "( <text>pavement x rel1 x rel2 x rel3-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>walk_sp_debug(pn, rel, rel, rel)</text--->"
     "<text>get the shortest path for pedestrian</text--->"
-    "<text>query walk_sp_type(pn, query_loc1, query_loc2, "
-    "tri_reg_new, btree_qloc, 2);"
-    "</text--->"
-    ") )";
+    "<text>query walk_sp_debug(pn, query_loc1, query_loc2, tri_reg_new);"
+    "</text--->) )";
 
 const string OpTMTestWalkSPSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -1237,6 +1236,15 @@ const string OpTMNearStopBuildingSpec  =
     "<text>query nearstops_building(space, Bus)</text--->"
     ") )";
 
+const string OpTMDecomposeGenmoSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x int ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>decomposegenmo(rel, int)</text--->"
+    "<text>reorganize the units in genmo </text--->"
+    "<text>query decomposegenmo(all_genmo, 0)</text--->"
+    ") )";
+
 const string OpTMInstant2DaySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -2034,6 +2042,14 @@ const string SpatialSpecLowRes =
 "<text>lowres (genmo) </text--->"
 "<text>return the low resolution of generic moving object</text--->"
 "<text>query lowres(genmo1)</text---> ) )";
+
+const string SpatialSpecGenmoTranslate =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>genmo x duration -> genmo</text--->"
+"<text>genmo tm_translate duration </text--->"
+"<text>translate the time period of a genmo</text--->"
+"<text>query genmo1 tm_translate [const duration value (1 0)]</text---> ) )";
+
 
 const string SpatialSpecTMTrajectory =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "

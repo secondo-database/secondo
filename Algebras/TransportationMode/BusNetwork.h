@@ -959,6 +959,7 @@ struct BN{
   void BsNeighbors3(Relation*, Relation*, BTree*);
   void ConnectionOneRoute(Relation* table_rel, vector<int> tid_list, 
                             Relation* mo_rel, BTree* btree_mo); 
+  void TrajectoryToSline(MPoint* mo, SimpleLine& sl);
   ///////////////////decompuse a bus route///////////////////////////////
   void DecomposeBR(Line* l1, Line* l2);
  
@@ -1532,6 +1533,7 @@ struct MetroStruct{
  void ConnectionOneRoute(UBahn_Stop* ms_stop, Relation* timetable, 
                          BTree* btree1, Relation* metrotrip, 
                          BTree* btree2, int Neighbor_tid, Point* Neighbor_loc);
+
  //////////////////////////////////////////////////////////////////////////
  ////////////map metro stops to pavement areas/////////////////////////////
  /////////////////////////////////////////////////////////////////////////

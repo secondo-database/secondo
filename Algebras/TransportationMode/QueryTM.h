@@ -80,10 +80,19 @@ struct QueryTM{
   vector<Line> line_list1;
   vector<Line3D> line3d_list; 
 
+  static string GenmoRelInfo;
+  enum GenmoRel{GENMO_OID = 0, GENMO_TRIP1, GENMO_TRIP2};
+
   QueryTM(){ count = 0; resulttype = NULL;} 
   ~QueryTM(){if(resulttype != NULL) delete resulttype;}
- 
- 
+
+  vector<int> oid_list;
+  vector<Periods> time_list;
+  vector<Rectangle<2> > box_list;
+  vector<int> tm_list;
+  vector<Point> index_list1;
+  vector<Point> index_list2;
+
   ////////////////////////////////////////////////////////////////////////////
   //////////get 2D line in space or 3D line in a building///////////////////
   ////////////////////////////////////////////////////////////////////////////
@@ -94,7 +103,19 @@ struct QueryTM{
   void GetLineInFreeSpace(Line* l);
   void GetLineInBusNetwork(int, Line* l, BusNetwork* bn);
   void GetLineInGRoom(int, Line* l, Space* sp);
+  ////////////////////////////////////////////////////////////////////////////
+  ///////////////// range queries on generic moving objects /////////////////
+  ///////////////////////////////////////////////////////////////////////////
+  void DecomposeGenmo_0(Relation*, double);
+  void CreateMTuple_0(int oid, GenMO* mo1, MPoint* mo2, double);
+  void CollectBusMetro(int& i, int oid, int m, GenMO* mo1, MPoint* mo2);
+  void CollectIndoorFree(int& i, int oid, int m, GenMO* mo1, MPoint* mo2);
+  void CollectWalk(int& i, int oid, GenMO* mo1, MPoint* mo2, double);
+  void CollectCBT(int&i, int oid, int m, GenMO* mo1, MPoint* mo2);
+  void DecomposeGenmo_1(Relation*);
+
 };
 
+#define TEN_METER 10.0
 
 #endif

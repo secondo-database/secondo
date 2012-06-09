@@ -4069,15 +4069,16 @@ void Walk_SP::WalkShortestPath(Line* res)
 }
 
 /*
-trip planning for pedestrians in obstacles space considering the type of points
+trip planning for pedestrians in obstacles space, debuging
+showing all points that are visited
 
 */
 
-void Walk_SP::WalkShortestPath_Type(Line* res, BTree* btree_qloc, int type)
+void Walk_SP::WalkShortestPath_Debug()
 {
-  cout<<"WalkShortestPath_Type"<<endl;
 
-  if(rel1->GetNoTuples() != 1){
+//  cout<<"WalkShortestPath"<<endl;
+  if(rel1->GetNoTuples() != 1 || rel2->GetNoTuples() != 1){
     cout<<"input query relation is not correct"<<endl;
     return;
   }
@@ -4086,19 +4087,31 @@ void Walk_SP::WalkShortestPath_Type(Line* res, BTree* btree_qloc, int type)
   Point* p1 = (Point*)t1->GetAttribute(VisualGraph::QLOC2);
   Point loc1(*p1);
   t1->DeleteIfAllowed(); 
-
+  
+  Tuple* t2 = rel2->GetTuple(1, false);
+  int oid2 = ((CcInt*)t2->GetAttribute(VisualGraph::QOID))->GetIntval();
+  Point* p2 = (Point*)t2->GetAttribute(VisualGraph::QLOC2);
+  Point loc2(*p2);
+  t2->DeleteIfAllowed(); 
 
 //  cout<<"tri_id1 "<<oid1<<" tri_id2 "<<oid2<<endl;
 //  cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
   oid1 -= dg->min_tri_oid_1;
-
+  oid2 -= dg->min_tri_oid_1; 
 
   int no_node_graph = dg->No_Of_Node();
   if(oid1 < 1 || oid1 > no_node_graph){
     cout<<"loc1 does not exist"<<endl;
     return;
   }
-
+  if(oid2 < 1 || oid2 > no_node_graph){
+    cout<<"loc2 does not exist"<<endl;
+    return;
+  }
+  if(AlmostEqual(loc1,loc2)){
+    cout<<"start location equals to end location"<<endl;
+    return;
+  }
   Tuple* tuple1 = dg->GetNodeRel()->GetTuple(oid1, false);
   Region* reg1 = (Region*)tuple1->GetAttribute(DualGraph::PAVEMENT);
   
@@ -4111,8 +4124,22 @@ void Walk_SP::WalkShortestPath_Type(Line* res, BTree* btree_qloc, int type)
     cout<<"point1 is not inside the polygon"<<endl;
     return;
   }
-  tuple1->DeleteIfAllowed();
+  Tuple* tuple2 = dg->GetNodeRel()->GetTuple(oid2, false);
+  Region* reg2 = (Region*)tuple2->GetAttribute(DualGraph::PAVEMENT);
 
+  CompTriangle* ct2 = new CompTriangle(reg2);
+  assert(ct2->PolygonConvex()); 
+  delete ct2; 
+  
+  if(loc2.Inside(*reg2) == false){
+    tuple1->DeleteIfAllowed();
+    tuple2->DeleteIfAllowed();
+    cout<<"point2 is not inside the polygon"<<endl;
+    return;
+  }
+  tuple1->DeleteIfAllowed();
+  tuple2->DeleteIfAllowed();
+  
   ////////////////////////////////////////////////////
   ////////debuging euclidean connection//////////////
 //   oid1 = 34450 - dg->min_tri_oid_1;
@@ -4122,34 +4149,180 @@ void Walk_SP::WalkShortestPath_Type(Line* res, BTree* btree_qloc, int type)
 
   //////////////////////////////////////////////////
   
-//  WalkShortestPath2(oid1, oid2, loc1, loc2, res);
+  WalkShortestPath3(oid1, oid2, loc1, loc2);
+}
 
- ///without the following lines 0.383s
- //with 0.49s
+/*
+record the set of points that are visisted
 
-  CcInt* search_id = new CcInt(true, type);
-  BTreeIterator* btree_iter = btree_qloc->ExactMatch(search_id);
+*/
+void Walk_SP::WalkShortestPath3(int oid1, int oid2, Point loc1, Point loc2)
+{
+//  cout<<"WalkShortestPath2"<<endl;
+//  cout<<"tri_id1 "<<oid1<<" tri_id2 "<<oid2<<endl;
+//  cout<<"loc1 "<<loc1<<" loc2 "<<loc2<<endl;
 
-  vector<double> dist_list;
-  
-  while(btree_iter->Next()){
-        Tuple* tuple = rel2->GetTuple(btree_iter->GetId(), false);
-/*        int oid =
-          ((CcInt*)tuple->GetAttribute(VisualGraph::TY_QOID))->GetIntval();*/
-        Point d_loc1 = *((Point*)tuple->GetAttribute(VisualGraph::TY_QLOC1));
-        Point d_loc2 = *((Point*)tuple->GetAttribute(VisualGraph::TY_QLOC2));
-        int ty =
-          ((CcInt*)tuple->GetAttribute(VisualGraph::TY_VAL))->GetIntval();
-        assert(ty == type);
-        tuple->DeleteIfAllowed();
-        dist_list.push_back(d_loc2.Distance(loc1));
+  if(oid1 == oid2){/////////////start and end point are located on the same tri
+    p_list.push_back(loc1);
+    return; 
   }
-  delete btree_iter;
-  delete search_id;
+  ///////////////////////////////////////////////////////////////////////
+  ///////////////////check Eudlidean Connection//////////////////////////
+  ///////////////////////////////////////////////////////////////////////
+//   clock_t start, finish;
+//   start = clock();
+
+  if(EuclideanConnect2(oid1, loc1, oid2, loc2)){
+
+    p_list.push_back(loc1);
+    p_list.push_back(loc2);
+    return; 
+  }
+//     finish = clock();
+//     printf("Time: %f\n",(double)(finish - start) / CLOCKS_PER_SEC);
+
+  ///////////////////////////////////////////////////////////////////////
+  priority_queue<WPath_elem> path_queue;
+  vector<WPath_elem> expand_path;
+  ////////////////find all visibility nodes to start node/////////
+  ///////connect them to the visibility graph/////////////////////
+  VGraph* vg1 = new VGraph(dg, NULL, rel3, vg->GetNodeRel());
+
+  vg1->GetVisibilityNode(oid1, loc1);
+
+  assert(vg1->oids1.size() == vg1->p_list.size());
+
+  if(vg1->oids1.size() == 1){//start point equasl to triangle vertex
+    double w = loc1.Distance(loc2);
+    path_queue.push(WPath_elem(-1, 0, vg1->oids1[0], w, loc1, 0.0));
+    expand_path.push_back(WPath_elem(-1, 0, vg1->oids1[0], w, loc1, 0.0));
+
+  }else{
+    double w = loc1.Distance(loc2);
+    path_queue.push(WPath_elem(-1, 0, -1, w,  loc1,0.0));//start location
+    expand_path.push_back(WPath_elem(-1, 0, -1, w, loc1,0.0));//start location
+    int prev_index = 0;
+//    cout<<"vnode id ";
+    for(unsigned int i = 0;i < vg1->oids1.size();i++){
+//      cout<<vg1->oids1[i]<<" ";
+      int expand_path_size = expand_path.size();
+      double d = loc1.Distance(vg1->p_list[i]);
+      w = d + vg1->p_list[i].Distance(loc2);
+      path_queue.push(WPath_elem(prev_index, expand_path_size,
+                      vg1->oids1[i], w, vg1->p_list[i], d));
+      expand_path.push_back(WPath_elem(prev_index, expand_path_size,
+                      vg1->oids1[i], w, vg1->p_list[i], d));
+    }
+  }
+
+  delete vg1;
+  ////////////////find all visibility nodes to the end node/////////
+  VGraph* vg2 = new VGraph(dg, NULL, rel3, vg->GetNodeRel());
+
+  vg2->GetVisibilityNode(oid2, loc2);
+
+  assert(vg2->oids1.size() == vg2->p_list.size());
+  //if the end node equals to triangle vertex.
+  //it can be connected by adjacency list
+  //we don't conenct it to the visibility graph
+  if(vg2->oids1.size() == 1){
+//      cout<<"end point id "<<vg2->oids1[0]<<endl;
+  }
+  Points* neighbor_end = new Points(0);
+  neighbor_end->StartBulkLoad();
+  if(vg2->oids1.size() > 1){
+    for(unsigned int i = 0;i < vg2->oids1.size();i++){
+        Tuple* loc_tuple = vg->GetNodeRel()->GetTuple(vg2->oids1[i], false);
+        Point* loc = (Point*)loc_tuple->GetAttribute(VisualGraph::LOC);
+        *neighbor_end += *loc;
+        loc_tuple->DeleteIfAllowed();
+    }
+    neighbor_end->EndBulkLoad();
+  }
+
+  /////////////////////searching path///////////////////////////////////
+  bool find = false;
+
+  vector<bool> mark_flag;
+  for(int i = 1;i <= vg->GetNodeRel()->GetNoTuples();i++)
+    mark_flag.push_back(false);
+
+//   clock_t start, finish;
+//   start = clock();
+
+  WPath_elem dest;
+  while(path_queue.empty() == false){
+        WPath_elem top = path_queue.top();
+        path_queue.pop();
+
+        p_list.push_back(top.loc);////////record the visited locations
+
+        if(AlmostEqual(top.loc, loc2)){
+//          cout<<"find the path"<<endl;
+          find = true;
+          dest = top;
+          break;
+        }
+        //do not consider the start point
+        //if it does not equal to the triangle vertex
+        //its adjacent nodes have been found already and put into the queue
+        if(top.tri_index > 0 && mark_flag[top.tri_index - 1] == false){
+          vector<int> adj_list;
+          vg->FindAdj(top.tri_index, adj_list);
+          int pos_expand_path = top.cur_index;
+          for(unsigned int i = 0;i < adj_list.size();i++){
+            if(mark_flag[adj_list[i] - 1]) continue;
+            int expand_path_size = expand_path.size();
+
+            Tuple* loc_tuple = vg->GetNodeRel()->GetTuple(adj_list[i], false);
+            Point* loc = (Point*)loc_tuple->GetAttribute(VisualGraph::LOC);
+
+            double w1 = top.real_w + top.loc.Distance(*loc);
+            double w2 = w1 + loc->Distance(loc2);
+            path_queue.push(WPath_elem(pos_expand_path, expand_path_size,
+                                adj_list[i], w2 ,*loc, w1));
+            expand_path.push_back(WPath_elem(pos_expand_path, expand_path_size,
+                            adj_list[i], w2, *loc, w1));
+
+            loc_tuple->DeleteIfAllowed();
+
+            mark_flag[top.tri_index - 1] = true;
+//             cout<<"neighbor "<<endl; 
+//             expand_path[expand_path.size() - 1].Print(); 
+          }
+        }
+
+        ////////////check visibility points to the end point////////////
+        if(neighbor_end->Size() > 0){
+            const double delta_dist = 0.1;//in theory, it should be 0.0
+            if(top.loc.Distance(neighbor_end->BoundingBox()) < delta_dist){
+              for(unsigned int i = 0;i < vg2->oids1.size();i++){
+                if(top.tri_index == vg2->oids1[i]){
+                  int pos_expand_path = top.cur_index;
+                  int expand_path_size = expand_path.size();
+
+                  double w1 = top.real_w + top.loc.Distance(loc2);
+                  double w2 = w1;
+                  path_queue.push(WPath_elem(pos_expand_path, expand_path_size,
+                                -1, w2 ,loc2, w1));
+                  expand_path.push_back(WPath_elem(pos_expand_path,
+                            expand_path_size,
+                            -1, w2, loc2, w1));
+                  break;
+                }
+              }
+            }
+        }
+        ///////////////////////////////////////////////////////////////
+  }
 
 
-  sort(dist_list.begin(), dist_list.end());
-  
+//     finish = clock();
+//     printf("Time: %f\n",(double)(finish - start) / CLOCKS_PER_SEC);
+
+  delete neighbor_end;
+  delete vg2;
+
 }
 
 /*
@@ -7539,9 +7712,6 @@ string VisualGraph::EdgeTypeInfo =
   "(rel(tuple((Oid1 int)(Oid2 int)(Connection line))))";
 string VisualGraph::QueryTypeInfo =
   "(rel(tuple((Oid int)(Loc1 point)(Loc2 point))))";
-
-string VisualGraph::Query2TypeInfo =
-  "(rel(tuple((Oid int)(Loc1 point)(Loc2 point)(Type int))))";
 
 
 VisualGraph::~VisualGraph()

@@ -7917,7 +7917,7 @@ line and pavements.
 void BN::MapToPavment(Bus_Stop& bs1, Bus_Stop& bs2, R_Tree<2,TupleId>* rtree, 
                     Relation* pave_rel, int w)
 {
-//  w = 2*w;
+  w = 2*w; //////////////2012.6.1 some places need long line to intersect pave
 //   if(type == "Berlin") w = 2*w;
 //   else if(type == "Houston") w = 4*w;
 //   else{
@@ -9025,6 +9025,10 @@ void BN::ConnectionOneRoute(Relation* table_rel, vector<int> tid_list,
     int bs_uoid = 
         ((CcInt*)table_tuple->GetAttribute(BN_T_BUS_UOID))->GetIntval();
 
+//     if(bs_uoid != 60060){
+//       table_tuple->DeleteIfAllowed();
+//       continue;
+//     }
 
     /////////////////find the bus trip./////////////////////////////////
     /////////////////get the path to the next bus stop if exists////////////
@@ -9103,10 +9107,13 @@ void BN::ConnectionOneRoute(Relation* table_rel, vector<int> tid_list,
               Line traj(0);
               sub_move.Trajectory(traj); 
               SimpleLine sl_traj(0); 
-              sl_traj.fromLine(traj); 
+//              sl_traj.fromLine(traj); 
+              TrajectoryToSline(&sub_move, sl_traj);
+
               path_sl_list.push_back(sl_traj); 
               delete neighbor_bs;
               time_cost_list.push_back(time_move); 
+
             }else{
               Bus_Stop* neighbor_bs =
               new Bus_Stop(true, bs->GetId(), bs->GetStopId() - 1, bs->GetUp());
@@ -9123,7 +9130,9 @@ void BN::ConnectionOneRoute(Relation* table_rel, vector<int> tid_list,
               Line traj(0);
               sub_move.Trajectory(traj); 
               SimpleLine sl_traj(0); 
-              sl_traj.fromLine(traj); 
+//              sl_traj.fromLine(traj); 
+              TrajectoryToSline(&sub_move, sl_traj);
+
               path_sl_list.push_back(sl_traj); 
               delete neighbor_bs; 
               time_cost_list.push_back(time_move); 
@@ -9149,6 +9158,52 @@ void BN::ConnectionOneRoute(Relation* table_rel, vector<int> tid_list,
 
   }
 }
+
+/*
+build a sline from mpoint trajectory
+
+*/
+void BN::TrajectoryToSline(MPoint* mo, SimpleLine& sl)
+{
+    sl.StartBulkLoad();
+    int edgeno = 0;
+    Point p0, p1;
+    for(int i = 0;i < mo->GetNoComponents();i++){
+        UPoint u;
+        mo->Get(i, u);
+        if(i == 0){
+          p0 = u.p0;
+          p1 = u.p1;
+
+          HalfSegment hs(true, p0, p1);
+          hs.attr.edgeno = edgeno++;
+          sl += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          sl += hs;
+        }else{
+          Point lp = u.p0;
+          Point rp = u.p1;
+          if(!AlmostEqual(p1, u.p0)){
+/*              cout<<"should not occur"<<endl;
+              cout<<p1.Distance(u.p0)<<endl;*/
+              lp = p1;
+          }
+
+          p0 = u.p0;
+          p1 = u.p1;
+
+          HalfSegment hs(true, lp, rp);
+          hs.attr.edgeno = edgeno++;
+          sl += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          sl += hs;
+
+        }
+        ///////////create a segment and put into sl //////////////
+    }
+    sl.EndBulkLoad();
+}
+
 /*
 decompose a bus route into a set of segments. the result is a stream of values
 (1) a segment; (2) the union of two segments each of which is from its bus route
@@ -13156,6 +13211,10 @@ void BNNav::ShortestPath_TransferNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
 
 
       path_list.push_back(elem.path);
+      if(elem.path.IsDefined() == false){
+        cout<<"undefined "<<" edge tuple id "<<elem.edge_tid<<endl;
+
+      }
 
       if(elem.tm == TM_WALK){
           tm_list.push_back(str_tm[elem.tm]); 
@@ -13259,6 +13318,7 @@ void BNNav::ShortestPath_TransferNew(Bus_Stop* bs1, Bus_Stop* bs2, Instant* qt)
           sl->StartBulkLoad();
           sl->EndBulkLoad();
           path_list[path_list.size() - 1] = *sl;
+
           delete sl; 
 
           tm_list[tm_list.size() - 1] = "none"; //waiting is no tm 

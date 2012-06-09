@@ -1529,6 +1529,7 @@ ListExpr OutSpace( ListExpr typeInfo, Word value );
 #define obj_scale_min 1.2 
 #define UNDEFVAL -1.0 
 #define EPSDIST 0.01 //a small distance deviation 
+#define ONEDAY_MSEC 86400000.0
 
 /////// the distance from pavements or buildings to bus and metro stops ////
 #define NEARBUSSTOP 500.0  //make it larger 800.0 

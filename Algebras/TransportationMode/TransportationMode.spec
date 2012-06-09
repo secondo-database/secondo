@@ -35,7 +35,7 @@ operator createdualgraph alias CREATEDUALGRAPH pattern op(_,_,_)
 
 operator walk_sp_old alias WALK_SP_OLD pattern op(_,_,_,_,_)
 operator walk_sp alias WALK_SP pattern op(_,_,_,_)
-operator walk_sp_type alias WALK_SP_TYPE pattern op(_,_,_,_,_,_)
+operator walk_sp_debug alias WALK_SP_DEBUG pattern op(_,_,_,_)
 operator test_walk_sp alias TEST_WALK_SP pattern op(_,_,_,_,_)
 operator setpave_rid alias SETPAVE_RID pattern op(_,_,_)
 operator pave_loc_togp alias PAVE_LOC_TOGP pattern op(_,_,_,_)
@@ -183,6 +183,7 @@ operator genmoindex alias GENMOINDEX pattern op(_)
 
 operator setref_id alias SETREF_ID pattern op(_)
 operator deftime alias DEFTIME pattern op(_)
+operator tm_translate alias TM_TRANSLATE pattern  _ infixop _
 operator no_components alias NO_COMPONENTS pattern op (_)
 operator lowres alias LOWRES pattern op(_)
 operator trajectory alias TRAJECTORY pattern op(_)
@@ -242,6 +243,6 @@ operator tm_segs alias TM_SEGS pattern op(_)
 
 operator tm_join1 alias TM_JOIN1 pattern op(_,_,_)
 
-
-
 operator nearstops_building alias NEARSTOPS_PAVE pattern op(_,_)
+
+operator decomposegenmo alias DECOMPOSEGENMO pattern op(_,_,_)

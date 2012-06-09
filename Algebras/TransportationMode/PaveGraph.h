@@ -349,11 +349,11 @@ public:
   static string NodeTypeInfo;
   static string EdgeTypeInfo;
   static string QueryTypeInfo;
-  static string Query2TypeInfo;
+
   enum VGNodeTypeInfo{OID = 0, LOC};
   enum VGEdgeTypeInfo{OIDFIRST = 0,OIDSECOND, CONNECTION};
   enum VGQueryTypeInfo{QOID = 0, QLOC1, QLOC2}; //relative, absolute position
-  enum VGQuery2TypeInfo{TY_QOID = 0, TY_QLOC1, TY_QLOC2, TY_VAL}; //type value
+
   //////////////////////////////////////////////////////////////
   ~VisualGraph();
   VisualGraph();
@@ -417,7 +417,8 @@ struct Walk_SP{
   void WalkShortestPath(Line* res);
   void WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
                                 Line* res);
-  void WalkShortestPath_Type(Line* res, BTree* btree, int type);
+  void WalkShortestPath_Debug();
+  void WalkShortestPath3(int oid1, int oid2, Point loc1, Point loc2);
   
   bool EuclideanConnect(Point loc1, Point loc2);
   void DFTraverse2(R_Tree<2,TupleId>* rtree, SmiRecordId adr, Line* line, 
