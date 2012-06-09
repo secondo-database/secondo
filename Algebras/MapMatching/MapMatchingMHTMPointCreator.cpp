@@ -203,7 +203,8 @@ void MPointCreator::ProcessPoints(
     {
         Interval<Instant> TimeInterval(rData1.GetTime(),
                                        rData2.GetTime(),
-                                       true, false);
+                                       true,
+                                       rData1.GetTime() == rData2.GetTime());
 
         AttributePtr<UPoint> pUPoint(new UPoint(TimeInterval, Pt1, Pt1));
         m_pResMPoint->Add(*pUPoint);
@@ -220,9 +221,11 @@ void MPointCreator::ProcessPoints(
         {
             // at least one point is offroad
 
-            Interval<Instant> TimeInterval(rData1.GetTime(),
-                                           rData2.GetTime(),
-                                           true, false);
+            Interval<Instant> TimeInterval(
+                                          rData1.GetTime(),
+                                          rData2.GetTime(),
+                                          true,
+                                          rData1.GetTime() == rData2.GetTime());
 
             AttributePtr<UPoint> pUPoint(new UPoint(TimeInterval, Pt1, Pt2));
             m_pResMPoint->Add(*pUPoint);
@@ -243,9 +246,11 @@ void MPointCreator::ProcessPoints(
                 pSubline->StartPoint().IsDefined() &&
                 pSubline->EndPoint().IsDefined())
             {
-                Interval<Instant> TimeInterval(rData1.GetTime(),
-                                               rData2.GetTime(),
-                                               true, false);
+                Interval<Instant> TimeInterval(
+                                          rData1.GetTime(),
+                                          rData2.GetTime(),
+                                          true,
+                                          rData1.GetTime() == rData2.GetTime());
 
                 //assert(AlmostEqual(Pt1, pSubline->StartPoint()));
 
@@ -321,7 +326,8 @@ void MPointCreator::ProcessPoints(
                                                 / dLength) * dLenCurve1) + .5));
                 Interval<Instant> TimeInterval(rData1.GetTime(),
                                                TimeEnd,
-                                               true, false);
+                                               true,
+                                               rData1.GetTime() == TimeEnd);
                 ProcessCurve(*pSubline1, TimeInterval, dLenCurve1);
             }
 
@@ -430,7 +436,8 @@ void MPointCreator::ProcessCurve(const SimpleLine& rCurve,
                                     (uint64_t)(((Duration.millisecondsToNull()
                                                  / dLength) * dLengthHS) + .5));
 
-    Interval<Instant> TimeIntervalAkt(TimeStart, TimeEnd, true, false);
+    Interval<Instant> TimeIntervalAkt(TimeStart, TimeEnd,
+                                      true, TimeStart == TimeEnd);
 
     Point Pt1(false);
     Point Pt2(false);
@@ -470,7 +477,8 @@ void MPointCreator::ProcessCurve(const SimpleLine& rCurve,
                                     (uint64_t)(((Duration.millisecondsToNull()
                                                  / dLength) * dLengthHS) + .5));
 
-        Interval<Instant> TimeIntervalAkt(TimeStart, TimeEnd, true, false);
+        Interval<Instant> TimeIntervalAkt(TimeStart, TimeEnd,
+                                          true, TimeStart == TimeEnd);
 
         if (AlmostEqual(Pt2, hs.GetDomPoint()))
         {
@@ -483,7 +491,7 @@ void MPointCreator::ProcessCurve(const SimpleLine& rCurve,
             Pt2 = hs.GetDomPoint();
         }
 
-        /*if (AlmostEqual(Pt2, rCurve.EndPoint())) // TODO
+        /*if (AlmostEqual(Pt2, rCurve.EndPoint()))
             TimeStart = TimeInterval.end;*/
 
         AttributePtr<UPoint> pUPoint(new UPoint(TimeIntervalAkt, Pt1, Pt2));
