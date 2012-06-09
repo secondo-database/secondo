@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 August, 2009 Jianqiu Xu
 March, 2010 Jianqiu xu
+June, 2012 Jianqiu Xu
 
 [TOC]
 
@@ -58,6 +59,10 @@ March, 2010 Jianqiu xu
 #include <fstream>
 #include "GeneralType.h"
 #include "Indoor.h"
+#include "BusNetwork.h"
+#include "PaveGraph.h"
+#include "RoadNetwork.h"
+
 
 double TM_DiffTimeb(struct timeb* t1, struct timeb* t2);
 
@@ -2269,6 +2274,713 @@ TypeConstructor indoorinfra(
      SizeOfIndoorInfra,                 //sizeof function
      CheckIndoorInfra
 );
+
+
+/*
+public transportaton network: bus stop, bus route and bus network 
+
+*/
+TypeConstructor busstop(
+    "busstop",
+     BusStopProperty,
+     OutBusStop,      InBusStop,     //Out and In functions
+     0,              0,            //SaveTo and RestoreFrom List functions
+     CreateBusStop,  DeleteBusStop, //object creation and deletion
+     OpenBusStop,    SaveBusStop,   // object open and save
+
+     CloseBusStop,    CloneBusStop,  //object close and clone
+     Bus_Stop::Cast,
+     SizeOfBusStop,                 //sizeof function
+     CheckBusStop
+);
+
+TypeConstructor busroute(
+    "busroute",
+     BusRouteProperty,
+     OutBusRoute,      InBusRoute,     //Out and In functions
+     0,              0,            //SaveTo and RestoreFrom List functions
+     CreateBusRoute,  DeleteBusRoute, //object creation and deletion
+     OpenBusRoute,    SaveBusRoute,   // object open and save
+
+     CloseBusRoute,    CloneBusRoute,  //object close and clone
+     Bus_Route::Cast,
+     SizeOfBusRoute,                 //sizeof function
+     CheckBusRoute
+);
+
+TypeConstructor busnetwork(
+    "busnetwork",
+     BusNetworkProperty,
+     OutBusNetwork,      InBusNetwork,     //Out and In functions
+     0,              0,            //SaveTo and RestoreFrom List functions
+     CreateBusNetwork,  DeleteBusNetwork, //object creation and deletion
+     OpenBusNetwork,    SaveBusNetwork,   // object open and save
+
+     CloseBusNetwork,    CloneBusNetwork,  //object close and clone
+     BusNetwork::Cast,
+     SizeOfBusNetwork,                 //sizeof function
+     CheckBusNetwork
+);
+
+
+TypeConstructor metronetwork(
+    "metronetwork",
+     MetroNetworkProperty,
+     OutMetroNetwork,      InMetroNetwork,     //Out and In functions
+     0,              0,            //SaveTo and RestoreFrom List functions
+     CreateMetroNetwork,  DeleteMetroNetwork, //object creation and deletion
+     OpenMetroNetwork,    SaveMetroNetwork,   // object open and save
+
+     CloseMetroNetwork,    CloneMetroNetwork,  //object close and clone
+     MetroNetwork::Cast,
+     SizeOfMetroNetwork,                 //sizeof function
+     CheckMetroNetwork
+);
+
+/*
+for the infrastructure region based outdoor 
+
+*/
+
+TypeConstructor pavenetwork(
+    "pavenetwork",
+     PavementProperty,
+     OutPavement,      InPavement,     //Out and In functions
+     0,              0,            //SaveTo and RestoreFrom List functions
+     CreatePavement,  DeletePavement, //object creation and deletion
+     OpenPavement,    SavePavement,   // object open and save
+
+     ClosePavement,    ClonePavement,  //object close and clone
+     Pavement::Cast,
+     SizeOfPavement,                 //sizeof function
+     CheckPavement
+);
+
+TypeConstructor osmpavenetwork(
+    "osmpavenetwork",
+     OSMPavementProperty,
+     OutOSMPavement,      InOSMPavement,     //Out and In functions
+     0,              0,            //SaveTo and RestoreFrom List functions
+     CreateOSMPavement,  DeleteOSMPavement, //object creation and deletion
+     OpenOSMPavement,    SaveOSMPavement,   // object open and save
+
+     CloseOSMPavement,    CloneOSMPavement,  //object close and clone
+     OSMPavement::Cast,
+     SizeOfOSMPavement,                 //sizeof function
+     CheckOSMPavement
+);
+
+
+///////////////////////////////////////////////////////////////////////////
+////////////////////  general data type  /////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+TypeConstructor ioref(
+        "ioref",                     //name
+        IORefProperty,              //property function describing signature
+        OutIORef,      InIORef,     //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateIORef,   DeleteIORef, //object creation and deletion
+        OpenGenLoc,     SaveGenLoc,   // object open and save
+
+        CloseIORef,    CloneIORef,  //object close and clone
+        IORef::Cast,
+        SizeOfIORef,                 //sizeof function
+        CheckIORef ); 
+
+
+TypeConstructor genloc(
+        "genloc",                     //name
+        GenLocProperty,              //property function describing signature
+        OutGenLoc,      InGenLoc,     //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateGenLoc,   DeleteGenLoc, //object creation and deletion
+        OpenGenLoc,     SaveGenLoc,   // object open and save
+
+        CloseGenLoc,    CloneGenLoc,  //object close and clone
+        GenLoc::Cast,
+        SizeOfGenLoc,                 //sizeof function
+        CheckGenLoc ); 
+
+
+TypeConstructor genrange(
+        "genrange",                     //name
+        GenRangeProperty,              //property function describing signature
+        OutGenRange,      InGenRange,     //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateGenRange,   DeleteGenRange, //object creation and deletion
+        OpenGenRange,     SaveGenRange,   // object open and save
+//      OpenAttribute<GenRange>, SaveAttribute<GenRange>,//object open and save
+
+        CloseGenRange,    CloneGenRange,  //object close and clone
+        GenRange::Cast,
+        SizeOfGenRange,                 //sizeof function
+        CheckGenRange ); 
+
+TypeConstructor ugenloc(
+        "ugenloc",                     //name
+        UGenLocProperty,              //property function describing signature
+        OutUGenLoc,      InUGenLoc,     //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateUGenLoc,   DeleteUGenLoc, //object creation and deletion
+        OpenUGenLoc,     SaveUGenLoc,   // object open and save
+
+        CloseUGenLoc,    CloneUGenLoc,  //object close and clone
+        UGenLoc::Cast,
+        SizeOfUGenLoc,                 //sizeof function
+        CheckUGenLoc ); 
+
+TypeConstructor genmo(
+        "genmo",                     //name
+        GenMOProperty,            //property function describing signature
+        OutMapping<GenMO, UGenLoc,OutUGenLoc>, //Out functions 
+        InMapping<GenMO, UGenLoc, InUGenLoc>,  //In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateMapping<GenMO>, //object creation 
+        DeleteMapping<GenMO>, //object deletion
+        OpenAttribute<GenMO>,  //object open 
+        SaveAttribute<GenMO>,   // object save
+        CloseMapping<GenMO>,CloneMapping<GenMO>,//object close and clone
+        CastMapping<GenMO>,
+        SizeOfMapping<GenMO>,              //sizeof function
+        CheckGenMO); 
+
+TypeConstructor space(
+        "space",                     //name
+        SpaceProperty,            //property function describing signature
+        OutSpace, //Out functions 
+        InSpace,  //In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateSpace, //object creation 
+        DeleteSpace, //object deletion
+//        OpenAttribute<Space>,//        OpenSpace,  //object open 
+//        SaveAttribute<Space>,//        SaveSpace,   // object save
+        Space::OpenSpace, 
+        Space::SaveSpace,
+        CloseSpace, CloneSpace,//object close and clone
+        Space::Cast,
+        SizeOfSpace,              //sizeof function
+        CheckSpace); 
+
+TypeConstructor intimegenloc(
+        IGenLoc::BasicType(),
+        IntimeGenLocProperty, 
+        OutIntime<GenLoc, OutGenLoc>,
+        InIntime<GenLoc, InGenLoc>,
+        0, 0, 
+        CreateIntime<GenLoc>,
+        DeleteIntime<GenLoc>,
+        OpenAttribute<Intime<GenLoc> >,
+        SaveAttribute<Intime<GenLoc> >,
+        CloseIntime<GenLoc>,
+        CloneIntime<GenLoc>,
+        CastIntime<GenLoc>,
+        SizeOfIntime<GenLoc>,
+        CheckIntimeGenLoc
+);
+
+TypeConstructor dualgraph("dualgraph", DualGraph::BaseGraphProp,
+      DualGraph::OutDualGraph, DualGraph::InDualGraph,
+      0, 0,
+      DualGraph::CreateDualGraph, DualGraph::DeleteDualGraph,
+      DualGraph::OpenDualGraph, DualGraph::SaveDualGraph,
+      DualGraph::CloseDualGraph, DualGraph::CloneBaseGraph,
+      DualGraph::CastBaseGraph, DualGraph::SizeOfBaseGraph,
+      DualGraph::CheckDualGraph
+);
+
+TypeConstructor visualgraph("visualgraph", VisualGraph::BaseGraphProp,
+      VisualGraph::OutVisualGraph, VisualGraph::InVisualGraph,
+      0, 0,
+      VisualGraph::CreateVisualGraph, VisualGraph::DeleteVisualGraph,
+      VisualGraph::OpenVisualGraph, VisualGraph::SaveVisualGraph,
+      VisualGraph::CloseVisualGraph, VisualGraph::CloneBaseGraph,
+      VisualGraph::CastBaseGraph, VisualGraph::SizeOfBaseGraph,
+      VisualGraph::CheckVisualGraph
+);
+
+TypeConstructor osmpavegraph("osmpavegraph", OSMPaveGraph::BaseGraphProp,
+      OSMPaveGraph::OutOSMPaveGraph, OSMPaveGraph::InOSMPaveGraph,
+      0, 0,
+      OSMPaveGraph::CreateOSMPaveGraph, OSMPaveGraph::DeleteOSMPaveGraph,
+      OSMPaveGraph::OpenOSMPaveGraph, OSMPaveGraph::SaveOSMPaveGraph,
+      OSMPaveGraph::CloseOSMPaveGraph, OSMPaveGraph::CloneBaseGraph,
+      OSMPaveGraph::CastBaseGraph, OSMPaveGraph::SizeOfBaseGraph,
+      OSMPaveGraph::CheckOSMPaveGraph
+);
+
+TypeConstructor indoorgraph("indoorgraph", IndoorGraph::BaseGraphProp,
+      IndoorGraph::OutIndoorGraph, IndoorGraph::InIndoorGraph,
+      0, 0,
+      IndoorGraph::CreateIndoorGraph, IndoorGraph::DeleteIndoorGraph,
+      IndoorGraph::OpenIndoorGraph, IndoorGraph::SaveIndoorGraph,
+      IndoorGraph::CloseIndoorGraph, IndoorGraph::CloneBaseGraph,
+      IndoorGraph::CastBaseGraph, IndoorGraph::SizeOfBaseGraph,
+      IndoorGraph::CheckIndoorGraph
+);
+
+/*
+bus graph built on bus network and pavements 
+connects from one bus stop to another by bus and walk 
+
+*/
+TypeConstructor busgraph("busgraph", BusGraph::BusGraphProp,
+      BusGraph::OutBusGraph, BusGraph::InBusGraph,
+      0, 0,
+      BusGraph::CreateBusGraph, BusGraph::DeleteBusGraph,
+      BusGraph::OpenBusGraph, BusGraph::SaveBusGraph,
+      BusGraph::CloseBusGraph, BusGraph::CloneBusGraph,
+      BusGraph::CastBusGraph, BusGraph::SizeOfBusGraph,
+      BusGraph::CheckBusGraph
+);
+
+TypeConstructor metrograph("metrograph", MetroGraph::MetroGraphProp,
+      MetroGraph::OutMetroGraph, MetroGraph::InMetroGraph,
+      0, 0,
+      MetroGraph::CreateMetroGraph, MetroGraph::DeleteMetroGraph,
+      MetroGraph::OpenMetroGraph, MetroGraph::SaveMetroGraph,
+      MetroGraph::CloseMetroGraph, MetroGraph::CloneMetroGraph,
+      MetroGraph::CastMetroGraph, MetroGraph::SizeOfMetroGraph,
+      MetroGraph::CheckMetroGraph
+);
+
+
+
+TypeConstructor roadgraph("roadgraph", RoadGraph::RoadGraphProp,
+      RoadGraph::OutRoadGraph, RoadGraph::InRoadGraph,
+      0, 0,
+      RoadGraph::CreateRoadGraph, RoadGraph::DeleteRoadGraph,
+      RoadGraph::OpenRoadGraph, RoadGraph::SaveRoadGraph,
+      RoadGraph::CloseRoadGraph, RoadGraph::CloneRoadGraph,
+      RoadGraph::CastRoadGraph, RoadGraph::SizeOfRoadGraph,
+      RoadGraph::CheckRoadGraph
+);
+
+////////////////////////////////////////////////////////////////////////////
+///////////////// check id /////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+/*
+check whether the road graph id has been used already 
+
+*/
+bool CheckRoadGraphId(unsigned int rg_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "roadgraph")
+    {
+      // Get name of the network
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the network. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      RoadGraph* rg = (RoadGraph*)xValue.addr;
+
+      if(rg->GetRG_ID() == rg_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("roadgraph"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("roadgraph"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+
+/*
+check whether the metro graph id has been used already 
+
+*/
+bool CheckMetroGraphId(unsigned int mg_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "metrograph")
+    {
+      // Get name of the network
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the network. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      MetroGraph* mg = (MetroGraph*)xValue.addr;
+
+      if(mg->GetG_ID() == mg_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("metrograph"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("metrograph"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+/*
+check whether the osm pavement  d has been used already 
+
+*/
+bool ChekOSMPavementId(unsigned int pn_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "osmpavenetwork")
+    {
+      // Get name of the pavement 
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the pavement. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      OSMPavement* pn = (OSMPavement*)xValue.addr;
+
+      if(pn->GetId() == pn_id)
+      {
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("osmpavenetwork"),
+                                         xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("osmpavenetwork"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+/*
+check whether the osm pave graph id has been used already 
+
+*/
+bool CheckOSMPaveGraphId(unsigned int osmg_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "osmpavegraph")
+    {
+      // Get name of the network
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the network. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      OSMPaveGraph* osm_g = (OSMPaveGraph*)xValue.addr;
+
+      if(osm_g->g_id == osmg_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("osmpavegraph"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("osmpavegraph"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+
+/*
+check whether the bus network id has been used already 
+
+*/
+bool ChekPavementId(unsigned int pn_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "pavenetwork")
+    {
+      // Get name of the pavement 
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the pavement. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      Pavement* pn = (Pavement*)xValue.addr;
+
+      if(pn->GetId() == pn_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("pavenetwork"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("pavenetwork"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+/*
+check whether the bus network id has been used already 
+
+*/
+bool ChekBusNetworkId(unsigned int bn_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "busnetwork")
+    {
+      // Get name of the network
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the network. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      BusNetwork* bn = (BusNetwork*)xValue.addr;
+
+      if(bn->GetId() == bn_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("busnetwork"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("busnetwork"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+/*
+check whether the bus graph id has been used already 
+
+*/
+bool ChekBusGraphId(unsigned int bg_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "busgraph")
+    {
+      // Get name of the network
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the network. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      BusGraph* bg = (BusGraph*)xValue.addr;
+
+      if(bg->bg_id == bg_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("busgraph"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("busgraph"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+/*
+check whether the metro network id has been used already 
+
+*/
+bool ChekMetroNetworkId(unsigned int mn_id)
+{
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "metronetwork")
+    {
+      // Get name of the network
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      // Load object to find out the id of the network. Normally their
+      // won't be to much networks in one database giving us a good
+      // chance to load only the wanted network.
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                                        xValue,
+                                                        bDefined);
+      if(!bDefined || !bOk)
+      {
+        // Undefined network
+        continue;
+      }
+      MetroNetwork* mn = (MetroNetwork*)xValue.addr;
+
+      if(mn->GetId() == mn_id)
+      {
+        SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("metronetwork"),
+                                               xValue);
+        return false;
+      }
+
+      SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("metronetwork"),
+                                               xValue);
+    }
+  }
+  return true; 
+}
+
+///////////////////////////////////////////////////////////////////////////
+///////////// Type Map functions for operators ////////////////////////////
+//////////////////////////////////////////////////////////////////////////
 
 #endif
 
