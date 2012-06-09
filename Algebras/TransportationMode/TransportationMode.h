@@ -2148,6 +2148,9 @@ const string SpatialSpecAddInfraGraph =
 /////////////////////// Type Constructor///////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 
+////////////////////////   Indoor data Type//////////////////////////////////
+///////////// point3d line3d floor3d door3d groom ///////////////////
+//////////////////// functions are in Indoor.h  /////////////////////////////
 
 
 TypeConstructor point3d(
@@ -2163,6 +2166,109 @@ TypeConstructor point3d(
      CheckPoint3D
 );
 
+TypeConstructor line3d(
+        "line3d",                     //name
+        Line3DProperty,               //property function describing signature
+        OutLine3D,      InLine3D,     //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateLine3D,   DeleteLine3D, //object creation and deletion
+        OpenLine3D,     SaveLine3D,   // object open and save
+        CloseLine3D,    CloneLine3D,  //object close and clone
+        Line3D::Cast,                   //cast function
+        SizeOfLine3D,                 //sizeof function
+        CheckLine3D );
+
+TypeConstructor door3d(
+        "door3d",                     //name
+        Door3DProperty,               //property function describing signature
+        OutDoor3D,   InDoor3D,     //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateDoor3D,   DeleteDoor3D, //object creation and deletion
+        OpenDoor3D,     SaveDoor3D,   // object open and save
+        CloseDoor3D,    CloneDoor3D,  //object close and clone
+        CastDoor3D,                   //cast function
+        SizeOfDoor3D,                 //sizeof function
+        CheckDoor3D ); 
+
+TypeConstructor groom(
+        "groom",                     //name
+        GRoomProperty,         //property function describing signature
+        OutGRoom,   InGRoom,  //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateGRoom,   DeleteGRoom, //object creation and deletion
+        OpenGRoom,     SaveGRoom,   // object open and save
+        CloseGRoom, CloneGRoom,  //object close and clone
+        CastGRoomD,              //cast function
+        SizeOfGRoom,            //sizeof function
+        CheckGRoom ); 
+
+TypeConstructor floor3d(
+    "floor3d", Floor3DProperty,
+     OutFloor3D, InFloor3D,
+     0, 0,
+     CreateFloor3D, DeleteFloor3D,
+     OpenFloor3D, SaveFloor3D,
+     CloseFloor3D, CloneFloor3D,
+     Floor3D::Cast,
+     SizeOfFloor3D,
+     CheckFloor3D
+);
+
+TypeConstructor upoint3d(
+        "upoint3d",                     //name
+        UPoint3DProperty,              //property function describing signature
+        OutUPoint3D,      InUPoint3D,     //Out and In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateUPoint3D,   DeleteUPoint3D, //object creation and deletion
+        OpenUPoint3D,    SaveUPoint3D,   // object open and save
+
+        CloseUPoint3D,    CloneUPoint3D,  //object close and clone
+        UPoint3D::Cast,
+        SizeOfUPoint3D,                 //sizeof function
+        CheckUPoint3D );
+
+TypeConstructor mpoint3d(
+        "mpoint3d",                     //name
+        MPoint3DProperty,            //property function describing signature
+        OutMapping<MPoint3D, UPoint3D,OutUPoint3D>, //Out functions 
+        InMapping<MPoint3D, UPoint3D, InUPoint3D>,  //In functions
+        0,              0,            //SaveTo and RestoreFrom List functions
+        CreateMapping<MPoint3D>, //object creation 
+        DeleteMapping<MPoint3D>, //object deletion
+        OpenAttribute<MPoint3D>,  //object open 
+        SaveAttribute<MPoint3D>,   // object save
+        CloseMapping<MPoint3D>,CloneMapping<MPoint3D>,//object close and clone
+        CastMapping<MPoint3D>,
+        SizeOfMapping<MPoint3D>,              //sizeof function
+        CheckMPoint3D); 
+
+TypeConstructor building(
+    "building",
+     BuildingProperty,
+     OutBuilding,      InBuilding,     //Out and In functions
+     0,              0,            //SaveTo and RestoreFrom List functions
+     CreateBuilding,  DeleteBuilding, //object creation and deletion
+     OpenBuilding,    SaveBuilding,   // object open and save
+
+     CloseBuilding,    CloneBuilding,  //object close and clone
+     Building::Cast,
+     SizeOfBuilding,                 //sizeof function
+     CheckBuilding
+);
+
+TypeConstructor indoorinfra(
+    "indoorinfra",
+     IndoorInfraProperty,
+     OutIndoorInfra,      InIndoorInfra,     //Out and In functions
+     0,              0,            //SaveTo and RestoreFrom List functions
+     CreateIndoorInfra,  DeleteIndoorInfra, //object creation and deletion
+     OpenIndoorInfra,    SaveIndoorInfra,   // object open and save
+
+     CloseIndoorInfra,    CloneIndoorInfra,  //object close and clone
+     IndoorInfra::Cast,
+     SizeOfIndoorInfra,                 //sizeof function
+     CheckIndoorInfra
+);
 
 #endif
 

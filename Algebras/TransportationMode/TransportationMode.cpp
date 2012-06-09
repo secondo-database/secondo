@@ -70,126 +70,6 @@ double TM_DiffTimeb(struct timeb* t1, struct timeb* t2)
 }
 
 namespace TransportationMode{
-////////////////////////   Indoor data Type//////////////////////////////////
-///////////// point3d line3d floor3d door3d groom ///////////////////
-//////////////////// functions are in Indoor.h  /////////////////////////////
-
-TypeConstructor point3d(
-    "point3d", Point3DProperty,
-     OutPoint3D, InPoint3D,
-     0, 0,
-     CreatePoint3D, DeletePoint3D,
-//     OpenPoint3D, SavePoint3D,
-     OpenAttribute<Point3D>, SaveAttribute<Point3D>,
-     ClosePoint3D, ClonePoint3D,
-     CastPoint3D,
-     SizeOfPoint3D,
-     CheckPoint3D
-);
-
-TypeConstructor line3d(
-        "line3d",                     //name
-        Line3DProperty,               //property function describing signature
-        OutLine3D,      InLine3D,     //Out and In functions
-        0,              0,            //SaveTo and RestoreFrom List functions
-        CreateLine3D,   DeleteLine3D, //object creation and deletion
-        OpenLine3D,     SaveLine3D,   // object open and save
-        CloseLine3D,    CloneLine3D,  //object close and clone
-        Line3D::Cast,                   //cast function
-        SizeOfLine3D,                 //sizeof function
-        CheckLine3D );
-
-TypeConstructor door3d(
-        "door3d",                     //name
-        Door3DProperty,               //property function describing signature
-        OutDoor3D,   InDoor3D,     //Out and In functions
-        0,              0,            //SaveTo and RestoreFrom List functions
-        CreateDoor3D,   DeleteDoor3D, //object creation and deletion
-        OpenDoor3D,     SaveDoor3D,   // object open and save
-        CloseDoor3D,    CloneDoor3D,  //object close and clone
-        CastDoor3D,                   //cast function
-        SizeOfDoor3D,                 //sizeof function
-        CheckDoor3D ); 
-
-TypeConstructor groom(
-        "groom",                     //name
-        GRoomProperty,         //property function describing signature
-        OutGRoom,   InGRoom,  //Out and In functions
-        0,              0,            //SaveTo and RestoreFrom List functions
-        CreateGRoom,   DeleteGRoom, //object creation and deletion
-        OpenGRoom,     SaveGRoom,   // object open and save
-        CloseGRoom, CloneGRoom,  //object close and clone
-        CastGRoomD,              //cast function
-        SizeOfGRoom,            //sizeof function
-        CheckGRoom ); 
-
-TypeConstructor floor3d(
-    "floor3d", Floor3DProperty,
-     OutFloor3D, InFloor3D,
-     0, 0,
-     CreateFloor3D, DeleteFloor3D,
-     OpenFloor3D, SaveFloor3D,
-     CloseFloor3D, CloneFloor3D,
-     Floor3D::Cast,
-     SizeOfFloor3D,
-     CheckFloor3D
-);
-
-TypeConstructor upoint3d(
-        "upoint3d",                     //name
-        UPoint3DProperty,              //property function describing signature
-        OutUPoint3D,      InUPoint3D,     //Out and In functions
-        0,              0,            //SaveTo and RestoreFrom List functions
-        CreateUPoint3D,   DeleteUPoint3D, //object creation and deletion
-        OpenUPoint3D,    SaveUPoint3D,   // object open and save
-
-        CloseUPoint3D,    CloneUPoint3D,  //object close and clone
-        UPoint3D::Cast,
-        SizeOfUPoint3D,                 //sizeof function
-        CheckUPoint3D );
-
-TypeConstructor mpoint3d(
-        "mpoint3d",                     //name
-        MPoint3DProperty,            //property function describing signature
-        OutMapping<MPoint3D, UPoint3D,OutUPoint3D>, //Out functions 
-        InMapping<MPoint3D, UPoint3D, InUPoint3D>,  //In functions
-        0,              0,            //SaveTo and RestoreFrom List functions
-        CreateMapping<MPoint3D>, //object creation 
-        DeleteMapping<MPoint3D>, //object deletion
-        OpenAttribute<MPoint3D>,  //object open 
-        SaveAttribute<MPoint3D>,   // object save
-        CloseMapping<MPoint3D>,CloneMapping<MPoint3D>,//object close and clone
-        CastMapping<MPoint3D>,
-        SizeOfMapping<MPoint3D>,              //sizeof function
-        CheckMPoint3D); 
-
-TypeConstructor building(
-    "building",
-     BuildingProperty,
-     OutBuilding,      InBuilding,     //Out and In functions
-     0,              0,            //SaveTo and RestoreFrom List functions
-     CreateBuilding,  DeleteBuilding, //object creation and deletion
-     OpenBuilding,    SaveBuilding,   // object open and save
-
-     CloseBuilding,    CloneBuilding,  //object close and clone
-     Building::Cast,
-     SizeOfBuilding,                 //sizeof function
-     CheckBuilding
-);
-
-TypeConstructor indoorinfra(
-    "indoorinfra",
-     IndoorInfraProperty,
-     OutIndoorInfra,      InIndoorInfra,     //Out and In functions
-     0,              0,            //SaveTo and RestoreFrom List functions
-     CreateIndoorInfra,  DeleteIndoorInfra, //object creation and deletion
-     OpenIndoorInfra,    SaveIndoorInfra,   // object open and save
-
-     CloseIndoorInfra,    CloneIndoorInfra,  //object close and clone
-     IndoorInfra::Cast,
-     SizeOfIndoorInfra,                 //sizeof function
-     CheckIndoorInfra
-);
 
 /*
 TypeMap function for operator thefloor
@@ -3802,6 +3682,46 @@ int LowResGenMOValueMap(Word* args, Word& result, int message,
 
 
 /*
+translate the time period of a generic moving object
+
+*/
+int GenMOTranslateValueMap( Word* args, Word& result, int message, Word&
+ local, Supplier s )
+{
+
+  result = qp->ResultStorage( s );
+
+  GenMO* mp= (GenMO*)args[0].addr;
+  GenMO* mpResult = (GenMO*)result.addr;
+  mpResult->Clear();
+
+  DateTime* dd = (DateTime *)args[1].addr;
+
+  if( dd->IsDefined() && mp->IsDefined()){
+
+    mpResult->SetDefined( true );
+    mpResult->StartBulkLoad();
+    for( int i = 0; i < mp->GetNoComponents(); i++ ){
+      UGenLoc uPoint;
+      mp->Get( i, uPoint );
+      UGenLoc aux( uPoint );
+
+      aux.timeInterval.start.Add(dd);
+      aux.timeInterval.end.Add(dd);
+      mpResult->Add(aux);
+    }
+    mpResult->EndBulkLoad();
+    return 0;
+  }
+  else
+  {
+    mpResult->SetDefined( false );
+    return 0;
+  }
+}
+
+
+/*
 get the trajectory for a generic moving object
 
 */
@@ -6544,6 +6464,27 @@ ListExpr LowResTypeMap(ListExpr args)
   return nl->SymbolAtom("typeerror");
 }
 
+/*
+TypeMap function for operator genmotranslate  
+
+*/
+ListExpr GenmoTranslateTypeMap(ListExpr args)
+{
+
+  if(nl->ListLength(args) != 2){
+      string err = "genmo x duration expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2, "duration"))
+  return nl->SymbolAtom("genmo");
+
+  return nl->SymbolAtom("typeerror");
+}
+
 
 /*
 TypeMap function for operator getmode
@@ -8071,6 +8012,12 @@ Operator lowres("lowres",
     LowResTypeMap //type mapping 
 );
 
+Operator tm_translate("tm_translate",
+    SpatialSpecGenmoTranslate, //specification
+    GenMOTranslateValueMap,  //value mapping 
+    Operator::SimpleSelect,
+    GenmoTranslateTypeMap //type mapping 
+);
 
 /*
 TypeMap function for operator trajectory
@@ -9896,14 +9843,13 @@ ListExpr OpTMWalkSPTypeMap ( ListExpr args )
 }
 
 /*
-TypeMap fun for operator walksp with pavement infrastructure considering the 
-type of points
+TypeMap fun for operator walksp with pavement infrastructure for debuging
 
 */
 
-ListExpr OpTMWalkSPTYTypeMap ( ListExpr args )
+ListExpr OpTMWalkSPDebugTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 6 )
+  if ( nl->ListLength ( args ) != 4 )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
@@ -9912,15 +9858,12 @@ ListExpr OpTMWalkSPTYTypeMap ( ListExpr args )
   ListExpr arg2 = nl->Second(args);
   ListExpr arg3 = nl->Third(args);
   ListExpr arg4 = nl->Fourth(args);
-  ListExpr arg5 = nl->Fifth(args);
-  ListExpr arg6 = nl->Sixth(args);
-
 
   if(!IsRelDescription(arg2))
     return listutils::typeError("para2 should be a relation");
 
   ListExpr xType;
-  nl->ReadFromString(VisualGraph::Query2TypeInfo, xType);
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType);
   if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
 
   if(!IsRelDescription(arg3))
@@ -9935,15 +9878,24 @@ ListExpr OpTMWalkSPTYTypeMap ( ListExpr args )
   nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
   if(!CompareSchemas(arg4, xType2))return nl->SymbolAtom ( "typeerror" );
 
-  if(!listutils::isBTreeDescription(arg5))
-    return listutils::typeError("para5 should be a btree");
 
   if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
-     nl->SymbolValue(arg1) == "pavenetwork" && 
-     nl->SymbolValue(arg6) == "int"){
-    return nl->SymbolAtom("line");
+     nl->SymbolValue(arg1) == "pavenetwork"){
+           ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Loc"),
+                                    nl->SymbolAtom("point"))
+                  )
+                )
+          );
+    return result;
   }
-
 
   return nl->SymbolAtom ( "typeerror" );
 }
@@ -15745,6 +15697,63 @@ int GetContourSelect(ListExpr args)
     if(nl->IsEqual(nl->First(args),"real")) return 1;
     return -1;
 }
+
+
+/*
+TypeMap fun for operator nearest stop pave
+
+*/
+ListExpr DecomposeGenmoTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  ListExpr arg1 = nl->First(args);
+
+  ListExpr xType;
+  nl->ReadFromString(QueryTM::GenmoRelInfo, xType); 
+
+  if ( !(listutils::isRelDescription(arg1) && CompareSchemas(arg1, xType)))
+      return nl->SymbolAtom("typeerror");
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "int")){
+      string err = "the second parameter should be int";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+  if(!nl->IsEqual(arg3, "real")){
+      string err = "the third parameter should be real";
+      return listutils::typeError(err);
+  }
+
+  ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Traj_id"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Time"),
+                                      nl->SymbolAtom("periods")),
+                        nl->TwoElemList(nl->SymbolAtom("Box2d"),
+                                      nl->SymbolAtom("rect")),
+                        nl->TwoElemList(nl->SymbolAtom("Mode"),
+                                      nl->SymbolAtom("string")),
+                        nl->TwoElemList(nl->SymbolAtom("Index1"),
+                                      nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("Index2"),
+                                      nl->SymbolAtom("point"))
+                  )
+                )
+          );
+        return result; 
+
+}
 //////////////////////////////////////////////////////////////////////////
 
 /*
@@ -16757,43 +16766,58 @@ trip planning in obstacle space with considering the type of points
 
 */
 
-int OpTMWalkSPTypeValueMap ( Word* args, Word& result, int message,
+int OpTMWalkSPDebugValueMap ( Word* args, Word& result, int message,
                          Word& local, Supplier in_pSupplier )
 {
-      Pavement* pn = (Pavement*)args[0].addr;
+   Walk_SP* wsp;
+   switch(message){
+      case OPEN:{
 
-      Relation* r1 = (Relation*)args[1].addr;
-      Relation* r2 = (Relation*)args[2].addr;
-      Relation* r3 = (Relation*)args[3].addr;
-      result = qp->ResultStorage(in_pSupplier);
-      if(pn->IsDGInit() == false){
-        cout<<"dual graph is not initialized"<<endl;
+        Pavement* pn = (Pavement*)args[0].addr;
+
+        Relation* r1 = (Relation*)args[1].addr;
+        Relation* r2 = (Relation*)args[2].addr;
+        Relation* r3 = (Relation*)args[3].addr;
+        result = qp->ResultStorage(in_pSupplier);
+        DualGraph* dg = pn->GetDualGraph();
+        VisualGraph* vg = pn->GetVisualGraph();
+
+        Walk_SP* wsp = new Walk_SP(dg, vg, r1, r2);
+        wsp->rel3 = r3;
+
+        wsp->resulttype =
+           new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        wsp->WalkShortestPath_Debug();
+        pn->CloseDualGraph(dg);
+        pn->CloseVisualGraph(vg); 
+        local.setAddr(wsp);
         return 0;
       }
-      if(pn->IsVGInit() == false){
-        cout<<"visual graph is not initialized"<<endl;
-        return 0;
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          wsp = (Walk_SP*)local.addr;
+          if(wsp->count == wsp->oids1.size()) return CANCEL;
+
+          Tuple* tuple = new Tuple(wsp->resulttype);
+          tuple->PutAttribute(0, new CcInt(true,wsp->oids1[wsp->count]));
+          tuple->PutAttribute(1, new Point(wsp->p_list[wsp->count]));
+          result.setAddr(tuple);
+          wsp->count++;
+          return YIELD;
       }
-      DualGraph* dg = pn->GetDualGraph();
-      VisualGraph* vg = pn->GetVisualGraph();
-      if(dg == NULL || vg == NULL){
-        cout<<"graph invalid"<<endl;
-        return 0; 
+      case CLOSE:{
+
+          if(local.addr){
+            wsp = (Walk_SP*)local.addr;
+            delete wsp;
+            local.setAddr(Address(0));
+          }
+          return 0;
       }
+  }
+  return 0;
 
-      BTree* btree = (BTree*)args[4].addr;
-      int type = ((CcInt*)args[5].addr)->GetIntval();
-
-      Walk_SP* wsp = new Walk_SP(dg, vg, r1, r2);
-      wsp->rel3 = r3;
-
-      Line* res = static_cast<Line*>(result.addr);
-      wsp->WalkShortestPath_Type(res, btree, type);
-      
-      delete wsp; 
-      pn->CloseDualGraph(dg);
-      pn->CloseVisualGraph(vg); 
-      return 0;
 }
 
 
@@ -22598,6 +22622,69 @@ int OpNearStopBuildingMap ( Word* args, Word& result, int message,
   return 0;
 }
 
+
+/*
+reorganize the units of genmo
+
+*/
+int OpDecomposeGenmoValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  QueryTM* query_tm;
+  switch(message){
+      case OPEN:{
+
+        Relation* rel = (Relation*)args[0].addr;
+        int type = ((CcInt*)args[1].addr)->GetIntval();
+        double l = ((CcReal*)args[2].addr)->GetRealval();
+
+        query_tm = new QueryTM(); 
+        query_tm->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        if(type == 0)
+          query_tm->DecomposeGenmo_0(rel, l);
+        else if(type == 1)
+          query_tm->DecomposeGenmo_1(rel);
+        local.setAddr(query_tm);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          query_tm = (QueryTM*)local.addr;
+          if(query_tm->count == query_tm->oid_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(query_tm->resulttype);
+          tuple->PutAttribute(0, 
+                         new CcInt(true, query_tm->oid_list[query_tm->count]));
+          tuple->PutAttribute(1, 
+                             new Periods(query_tm->time_list[query_tm->count]));
+          tuple->PutAttribute(2, new Rectangle<2>(
+                           query_tm->box_list[query_tm->count]));
+          tuple->PutAttribute(3,
+             new CcString(true, GetTMStr(query_tm->tm_list[query_tm->count])));
+          tuple->PutAttribute(4,
+                      new Point(query_tm->index_list1[query_tm->count]));
+          tuple->PutAttribute(5,
+                      new Point(query_tm->index_list2[query_tm->count]));
+
+          result.setAddr(tuple);
+          query_tm->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            query_tm = (QueryTM*)local.addr;
+            delete query_tm;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+
+  return 0;
+}
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -22839,12 +22926,12 @@ Operator walk_sp(
     OpTMWalkSPTypeMap
 );
 
-Operator walk_sp_type(
-    "walk_sp_type",
-    OpTMWalkSPTypeSpec,
-    OpTMWalkSPTypeValueMap,
+Operator walk_sp_debug(
+    "walk_sp_debug",
+    OpTMWalkSPDebugSpec,
+    OpTMWalkSPDebugValueMap,
     Operator::SimpleSelect,
-    OpTMWalkSPTYTypeMap
+    OpTMWalkSPDebugTypeMap
 );
 
 
@@ -23785,6 +23872,16 @@ Operator nearstops_building(
   OpNearStopBuildingTypeMap
 );
 
+
+Operator decomposegenmo(
+  "decomposegenmo",
+  OpTMDecomposeGenmoSpec,
+  OpDecomposeGenmoValueMap,
+  Operator::SimpleSelect,
+  DecomposeGenmoTypeMap
+);
+
+
 /*
 Main Class for Transportation Mode
 data types and operators 
@@ -23896,7 +23993,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&walk_sp_old);//trip planning for pedestrian 
     AddOperator(&test_walk_sp); //test the algorithm of trip planning 
     AddOperator(&walk_sp);//trip planning for pedestrian 
-    AddOperator(&walk_sp_type);//trip planning for pedestrian considering type
+    AddOperator(&walk_sp_debug);//trip planning for pedestrian considering type
     AddOperator(&setpave_rid);//set rid value for each pavement 
     AddOperator(&pave_loc_togp);//map pavements locations to gpoints 
     ////////////////////////////////////////////////////////////////
@@ -24063,13 +24160,14 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&tm_genloc);// int x real x real to a genloc 
     AddOperator(&modeval);//get an integer for a genmo denoting modes 
     AddOperator(&genmoindex);// build an index on units 
-    
-  
+
     ///////////////////////////////////////////////////////////////////////
     /////////temporal operators for generic data types////////////////////
     //////////////////////////////////////////////////////////////////////
     AddOperator(&setref_id);//genmo, genrange, a set of ref ids 
     AddOperator(&genmodeftime); //get the define time of generic moving objects
+    AddOperator(&tm_translate); //translate the time of generic moving objects
+
     AddOperator(&genmonocomponents); //get number of components
     AddOperator(&lowres);  //low resolution representation 
     AddOperator(&tmtrajectory);  //trajectory 
@@ -24171,6 +24269,10 @@ class TransportationModeAlgebra : public Algebra
    //    AddOperator(&getpaveedge2);  ///comment it out for debuging
    /////////////////  others  /////////////////////////////////////////
    //    AddOperator(&instant2day); 
+   ///////////////////////////////////////////////////////////////////
+   ////////////////range query on generic moving objects/////////////
+   //////////////////////////////////////////////////////////////////
+   AddOperator(&decomposegenmo);//reorganize units in gemo
 
   }
   ~TransportationModeAlgebra() {};
