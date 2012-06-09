@@ -2144,6 +2144,25 @@ const string SpatialSpecAddInfraGraph =
 "<text>add navigation graph to the corresponding infrastructure</text--->"
 "<text>query addinfragraph(bn1,bg1)</text---> ) )";
 
+/////////////////////////////////////////////////////////////////////////////
+/////////////////////// Type Constructor///////////////////////////////////
+//////////////////////////////////////////////////////////////////////////
+
+
+
+TypeConstructor point3d(
+    "point3d", Point3DProperty,
+     OutPoint3D, InPoint3D,
+     0, 0,
+     CreatePoint3D, DeletePoint3D,
+//     OpenPoint3D, SavePoint3D,
+     OpenAttribute<Point3D>, SaveAttribute<Point3D>,
+     ClosePoint3D, ClonePoint3D,
+     CastPoint3D,
+     SizeOfPoint3D,
+     CheckPoint3D
+);
+
 
 #endif
 
