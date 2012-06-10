@@ -3112,8 +3112,7 @@ if the target machine is not the producer.
         string cStr = scpCommand + rFilePath +
             " " + lFilePath;
         while (!fileFound && copyTimes-- > 0){
-          if (0 == system(cStr.c_str())){
-//          if (0 == copyFile(rFilePath, lFilePath, true)){
+          if (0 == copyFile(rFilePath, lFilePath, true)){
               break;
           }
         }
@@ -3145,6 +3144,7 @@ if the target machine is not the producer.
     return false;
   }
 
+cerr << "Get target file : " << targetFilePath << endl;
   //Catch the file, and read the description list
   u_int32_t descSize;
   size_t fileLength;
@@ -3196,11 +3196,17 @@ Tuple* FFeedLocalInfo::getNextTuple(){
 
   Tuple* t = 0;
   u_int32_t blockSize;
-
+  if (!tupleBlockFile->good()){
+   cerr << "Stream error: " << tupleBlockFile->rdstate() << endl;
+   cerr << "eof: " << tupleBlockFile->eof() << endl;
+   cerr << "fail: " << tupleBlockFile->fail() << endl;
+   cerr << "bad: " << tupleBlockFile->bad() << endl;
+}
   assert(tupleBlockFile->good());
   tupleBlockFile->read(
       reinterpret_cast<char*>(&blockSize),
       sizeof(blockSize));
+//  cerr << "block Size: " << blockSize << endl;
   if (!tupleBlockFile->eof() && (blockSize > 0))
   {
     blockSize -= sizeof(blockSize);
@@ -3210,6 +3216,7 @@ Tuple* FFeedLocalInfo::getNextTuple(){
 
     t = new Tuple(tupleType);
     t->ReadFromBin(tupleBlock, blockSize);
+//    t->Print(cout);
 //    t->SetTupleId(tid);
     delete[] tupleBlock;
   }
@@ -4532,33 +4539,74 @@ Copy a file through the network
 */
 int copyFile(string source, string dest, bool cfn/* = false*/)
 {
-  string destNode = dest.substr(0, dest.find_first_of(":"));
-  dest = dest.substr(dest.find_first_of(":") + 1);
-  string sourceFileName = source.substr(source.find_last_of("/") + 1);
-  string destFileName= "";
-  if (cfn)
-  {
-    destFileName = dest.substr(dest.find_last_of("/") + 1);
-    dest = dest.substr(0, dest.find_last_of("/") + 1);
-  }
+  bool sRmt = source.find(":") != string::npos ? true : false;
+  bool dRmt = dest.find(":") != string::npos ? true : false;
 
-  int sourceDepth = 0;
-  size_t pos = 0;
-  while ((pos = source.find("/", pos)) != string::npos){
-    sourceDepth++ ;
-    pos++;
+  if (!(sRmt^dRmt)){
+    //both sides are remote machines
+    //or both sides are local machines.
+    return -1;
   }
-  sourceDepth = sourceDepth > 0 ? (sourceDepth - 1) : 0;
+  
+  if (dRmt)
+  {  
+    string destNode = dest.substr(0, dest.find_first_of(":"));
+    dest = dest.substr(dest.find_first_of(":") + 1);
+    string sourceFileName = source.substr(source.find_last_of("/") + 1);
+    string destFileName= "";
+    if (cfn)
+    {
+      destFileName = dest.substr(dest.find_last_of("/") + 1);
+      dest = dest.substr(0, dest.find_last_of("/") + 1);
+    }
 
-  stringstream command;
-  command << "tar -czf - " << source << " | ssh -oCompression=no " << destNode
+    int sourceDepth = 0;
+    size_t pos = 0;
+    while ((pos = source.find("/", pos)) != string::npos){
+      sourceDepth++ ;
+      pos++;
+    }
+    sourceDepth = sourceDepth > 0 ? (sourceDepth - 1) : 0;
+
+    stringstream command;
+    command << "tar -czf - " << source << " | ssh -oCompression=no " << destNode
       << " \"tar -zxf - -C " << dest << " --strip=" << sourceDepth;
-  if (cfn){
-    command << "; mv " << dest << sourceFileName << " " << dest << destFileName;
+    if (cfn){
+      command << "; mv " << dest << sourceFileName 
+      << " " << dest << destFileName;
+    }
+    command << "\"";
+    return system(command.str().c_str());
   }
-  command << "\"";
+  else
+  {
+   string srcNode = source.substr(0, source.find_first_of(":"));
+   source = source.substr(source.find_first_of(":") + 1);
+   string srcName = source.substr(source.find_last_of("/") + 1);
+   string destName = "";
+   if (cfn) {
+     destName = dest.substr(dest.find_last_of("/") + 1);
+   }
+   string destPath = dest.substr(0, dest.find_last_of("/") + 1);
 
-  return system(command.str().c_str());
+   int sourceDepth = 0;
+   size_t pos = 0;
+    while ((pos = source.find("/", pos)) != string::npos){
+      sourceDepth++ ;
+      pos++;
+    }
+    sourceDepth = sourceDepth > 0 ? (sourceDepth - 1) : 0;
+
+    stringstream command;
+    command << "ssh -oCompression=no " << srcNode 
+      << " \"tar -czf - " << source << " \" | tar -xzf - -C "
+      << destPath << " --strip=" << sourceDepth;
+    if (cfn){
+      command << "; mv " << destPath << srcName << " " << destPath << destName;
+    }
+
+    return system(command.str().c_str());
+  }
 }
 
 
