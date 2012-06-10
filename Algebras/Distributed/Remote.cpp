@@ -62,17 +62,14 @@ can run as a thread of its own
         
 void RelationWriter::run()
 {
-   int index;
+  int index;
      
-   while(!arg->empty())
-   { 
+  while(!arg.empty())
+    { 
 
-      index = arg->front();
-      arg->pop_front();
+      index = arg.back();
+      arg.pop_back();
         
-      list<int>* l = new list<int>;
-      l->push_front(index);
-     
       //create relation iterator
 
       GenericRelation* rel = (Relation*)(*m_elements)[index].addr;
@@ -80,37 +77,43 @@ void RelationWriter::run()
       
       Tuple* t;
      
+      string attrIndex("EMPTY"), rec_type("EMPTY");
+      //open tuple stream to worker
+      vector<int> l;
+      l.push_back(index);
+      vector<Word> open_words(2);
+      open_words[0].addr = &attrIndex;
+      open_words[1].addr = &rec_type;
+     
+      //open tuple stream to the worker
+      worker->setCmd(DServer::DS_CMD_OPEN_WRITE_REL,&l,&open_words);
+      worker->run();
      
       vector<Word> word(1);
 
       t = iter->GetNextTuple();
-     
-      //open tuple stream to the worker
-      word[0].addr = t;
-      worker->setCmd(DServer::DS_CMD_OPEN_WRITE_REL,l,&word);
-      worker->run();
-     
-     //send tuples
-     while(t != 0)
-     {
+
+      unsigned long cnt = 0;
+      //send tuples
+      while(t != 0)
+        {
+          word[0].addr = t;
+          t->IncReference();
+          worker->setCmd(DServer::DS_CMD_WRITE_REL,0,&word);
           
-         word[0].addr = t;
-         t->IncReference();
-         worker->setCmd(DServer::DS_CMD_WRITE_REL,0,&word);
-          
-         worker->run();
-         t->DeleteIfAllowed();
-         t = iter->GetNextTuple();
+          worker->run();
+          t->DeleteIfAllowed();
+          t = iter->GetNextTuple();
      
-      }
+        }
      
       //close tuple stream
-     worker->setCmd(DServer::DS_CMD_CLOSE_WRITE_REL,0);
+      worker->setCmd(DServer::DS_CMD_CLOSE_WRITE_REL,0);
       worker->run();
      
      
       delete iter;
-   }
+    }
      
 }
 

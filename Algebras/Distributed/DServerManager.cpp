@@ -199,9 +199,9 @@ DServerManager::DServerManager(ListExpr serverlist_n,
 
    for (int id = 0; id < size; ++id)
      {
-       list<int> insertList;
+       vector<int> insertList;
        for(int i = id; i<array_size; i+=size)
-         insertList.push_front(i);
+         insertList.push_back(i);
        m_idIndexMap[id] = insertList;
      }
 

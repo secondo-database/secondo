@@ -108,11 +108,7 @@ public:
 
   enum CmdType { DS_CMD_NONE = 0,  // undefined
                  DS_CMD_WRITE,     // writes an element to the worker
-                 DS_CMD_READ,      // reads an element from the worker
                  DS_CMD_DELETE,    // deletes an element on the worker
-                 DS_CMD_COPY,      // copies an element on the worker
-                 DS_CMD_EXEC,      // exectues a command on each element on
-                                   // the worker
                  DS_CMD_OPEN_WRITE_REL, // opens a relation on the worker to
                                         // add elements
                  DS_CMD_WRITE_REL, // writes a singel tuple to a relation 
@@ -180,7 +176,7 @@ public:
 
 
     RemoteCommand(CmdType inCmdType,
-                  const list<int>* inDarrayIndex,
+                  const vector<int>* inDarrayIndex,
                   vector<Word>* inElements,
                   vector<string>* inFromNames)
 
@@ -204,7 +200,7 @@ public:
 
 */
     CmdType getCmdType() const { return m_cmdType; }
-    list<int>* getDArrayIndex() { return &m_darrayIndex; }
+    vector<int>* getDArrayIndex() { return &m_darrayIndex; }
     vector<Word>* getElements() const { return m_elements; }
     const vector<string>& getFromNames() const { return m_fromNames; }
 
@@ -221,7 +217,7 @@ public:
 
     // members
     CmdType m_cmdType;
-    list<int> m_darrayIndex;
+    vector<int> m_darrayIndex;
     vector<Word>* m_elements;
     vector<string> m_fromNames;
 /*
@@ -307,7 +303,7 @@ for a specific command
 
 */
   void setCmd(CmdType inCmdType,
-              const list<int>* inIndex, 
+              const vector<int>* inIndex, 
               vector<Word>* inElements = 0,
               vector<string>* inFromNames = 0);
 

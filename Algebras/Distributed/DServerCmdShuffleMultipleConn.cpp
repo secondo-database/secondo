@@ -264,7 +264,7 @@ DServerCmdShuffleMultiConn::run()
   if (!(callBack -> getTagFromCallBackTF("DONE","ERROR", noErr)))
     {
       string errMsg;
-      if (!(callBack -> getTagFromCallBack("ERRORDESC", errMsg)))
+      if (!(callBack -> getTextFromCallBack("ERRORDESC", errMsg)))
         {
           setErrorText("Could not receive correct error message!");
           delete callBack;

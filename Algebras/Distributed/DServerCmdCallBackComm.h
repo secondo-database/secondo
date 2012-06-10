@@ -165,7 +165,8 @@ public:
     , m_cbConnection(DSC_CB_NONE)
     , m_cbGate(NULL)
     , m_cbSock(NULL)
-    , m_callbackIoStrOpen(false) {} 
+    , m_callbackIoStrOpen(false)
+    , m_error(false) {} 
 /*
 
 2.4 Destructor
@@ -457,7 +458,10 @@ Client: close a communication channel completly
     m_cbConnIsSaved = false;
     if (isRestoredConnection())
       setServerConnection();
-    receiveLineFromCallBack(line);
+    receiveLineFromCallBack(line); // ????
+    
+    // TA: WHY?
+    cout << "FORCE CLOSE; Got Line:" <<  line << endl;
 
 #ifdef DS_CMD_CB_DEBUG
      std::cout << "FORCE CLOSE COMMUNICATION " 
@@ -599,6 +603,18 @@ sends text enclosed in open/closing tag
                    "</" + inTag + ">",
                    reqAck);
   }
+  bool    Write( void const* buf, size_t size )
+  {
+    if (!(m_cbSock -> IsOk()))
+      {
+        std::cerr << "ERROR WRITING binary data to call back" << std::endl; 
+        return false;
+      }
+    bool ret = m_cbSock -> Write(buf, size); 
+    return ret;
+  }
+
+
 /*
 
 2.7.4  Method ~bool writeTupleToCallBack~
@@ -650,9 +666,9 @@ receives a tag with content
   * returns true - success
 
 */
-  bool getTagFromCallBack(const std::string& inTag,
-                          std::string &outLine,
-                          bool reqAck  = true)
+  bool getTextFromCallBack(const std::string& inTag,
+                           std::string &outLine,
+                           bool reqAck  = true)
   {
     return receiveIOS(inTag, 
                       outLine,
@@ -687,7 +703,7 @@ If first tag was received, method will return true
 
 If second tag was received, method will retrun false;
 
-If an error occurred the ~outErrorFlag~ is set to false;
+If an error occurred the ~outNoErrorFlag~ is set to false;
 
 (always acknowledges receiving of tag)
 
@@ -697,7 +713,7 @@ If an error occurred the ~outErrorFlag~ is set to false;
   * const string[&] inRetFalseTag - tag, if method should return false 
   (e.g. ``ERROR'')
 
-  * bool[&] outErrorFlag - false: an error occurred
+  * bool[&] outNoErrorFlag - false: an error occurred
 
   * returns true - ~inRetTrueTag~ was received
 
@@ -706,12 +722,12 @@ If an error occurred the ~outErrorFlag~ is set to false;
 */
   bool getTagFromCallBackTF(const std::string &inRetTrueTag,
                             const std::string &inRetFalseTag,
-                            bool &outErrorFlag)
+                            bool &outNoErrorFlag)
   {
     std::string line;
     bool retVal = false;
     bool receive = true;
-    outErrorFlag = receiveIOS(line);
+    outNoErrorFlag = receiveIOS(line);
     if (line.find("<" + inRetTrueTag + "/>") != std::string::npos)
       retVal = true;
     else if (line.find("<" + inRetFalseTag + "/>") != std::string::npos)
@@ -726,9 +742,22 @@ If an error occurred the ~outErrorFlag~ is set to false;
 
     return retVal;
   }
+
+  bool Read( void* buf, size_t size )
+  {
+    if (!(m_cbSock -> IsOk()))
+      {
+        std::cerr << "ERROR READING binary data from call back" << std::endl; 
+        return false;
+      }
+
+    bool ret = m_cbSock -> Read(buf, size);
+
+    return ret;
+  }
 /*
 
-2.8.5 Method ~bool receiveTupleFromCallBack~
+2.8.5 Method ~bool readTupleFromCallBack~
 
 receives a tuple (binary stream) and inserts it into a relation
 
@@ -742,7 +771,7 @@ tuple will be stored
   * returns true - success
 
 */
-  bool receiveTupleFromCallBack(TupleType* inTupleType,
+  bool readTupleFromCallBack(TupleType* inTupleType,
                                 GenericRelation *rel);
 
 
@@ -904,30 +933,6 @@ private:
     m_cbConnIsSaved = false;
     m_callbackIoStrOpen = true;
     return true;
-  }
-
-  bool    Write( void const* buf, size_t size )
-  {
-    if (!(m_cbSock -> IsOk()))
-      {
-        std::cerr << "ERROR WRITING binary data to call back" << std::endl; 
-        return false;
-      }
-    bool ret = m_cbSock -> Write(buf, size); 
-    return ret;
-  }
-
-  bool Read( void* buf, size_t size )
-  {
-    if (!(m_cbSock -> IsOk()))
-      {
-        std::cerr << "ERROR READING binary data from call back" << std::endl; 
-        return false;
-      }
-
-    bool ret = m_cbSock -> Read(buf, size);
-
-    return ret;
   }
 
 /*

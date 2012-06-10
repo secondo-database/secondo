@@ -127,7 +127,7 @@ distributed array, which are controlled by the DServer with the given index
 
 */
 
-  list<int>& getIndexList(int id) { return m_idIndexMap[id]; }
+  vector<int>& getIndexList(int id) { return m_idIndexMap[id]; }
         
 /*
 
@@ -200,7 +200,7 @@ private:
   int array_size;
   string name;
   
-  map<int, list<int> > m_idIndexMap;
+  map<int, vector<int> > m_idIndexMap;
 
   string m_errorText;
   bool m_error;

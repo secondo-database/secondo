@@ -108,14 +108,15 @@ DServerCmdShuffleRec::run()
   // initiate d_receive_shuffle command on the destination
   // worker
 
-  string err;
-
   //The d_receive_rel operator is invoked
   // this command is blocking, until DShuffle is done!
-  if (!sendSecondoCmdToWorker1(com, err)) 
+  if (!sendSecondoCmdToWorkerSOS(com)) 
     {
-      err = "Could not start receiver function on worker!\n" + err;
-      cout << "ERROR: " << err << endl;
+      string err;
+      if (hasCmdError())
+        err = getCmdErrorText();
+      else
+        err = "Could not start receiver function on worker!";
       setErrorText(err);
       return;
     }

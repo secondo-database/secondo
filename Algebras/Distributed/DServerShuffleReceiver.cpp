@@ -102,7 +102,7 @@ void  DServerShuffleReceiver::run()
 
           if (m_runit)
             {
-              dscCallBack -> receiveTupleFromCallBack(tt, m_rel);
+              dscCallBack -> readTupleFromCallBack(tt, m_rel);
 #ifdef SHUFFLE_RECEIVE_DEBUG 
               cout << "Rec:" << m_destHost << ":" << m_toPort 
                    << " - " << dbg_count << endl;

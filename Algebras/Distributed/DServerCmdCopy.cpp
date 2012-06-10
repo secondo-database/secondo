@@ -104,10 +104,13 @@ DServerCmdCopy::run()
   string cmd = "let r" + getNewName() + getIndexStr() + " = r" 
     + getWorker() -> getName() + getIndexStr(); 
 
-  string err;
-  if (!sendSecondoCmdToWorker1(cmd, err))
+  if (!sendSecondoCmdToWorkerSOS(cmd))
     { 
-      err = "Could not start copy function on worker!\n" + err;
+      string err;
+      if (hasCmdError())
+        err = getCmdErrorText();
+      else
+        err = "Could not start copy function on worker!";
       setErrorText(err);
       return;
     }

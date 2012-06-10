@@ -88,27 +88,25 @@ DServerCmdWorkerCommunication::startWorkerStreamCommunication()
 {
   if (m_workerIoStrOpen)
     {
-      m_worker -> 
-        setErrorText("Communication to worker already opened!");
+      setCmdErrorText("Communication to worker already opened!");
       return false;
     }
 
   if (m_worker == NULL)
     {
-      m_worker -> setErrorText("No worker assigned yet!");
+      setCmdErrorText("No worker assigned yet!");
       return false;
     }
 
   if (m_worker -> getServer() == 0)
     {
-      m_worker -> setErrorText("No server assigned yet!");
+      setCmdErrorText("No server assigned yet!");
       return false;
     }
 
   if (!setStream(m_worker -> getServer() -> GetSocketStream()))
     { 
-      m_worker -> 
-        setErrorText("Could not initiate communication to worker!");
+      setCmdErrorText("Could not initiate communication to worker!");
       return false;
     }
 
@@ -128,18 +126,97 @@ DServerCmdWorkerCommunication::closeWorkerStreamCommunication()
 {
   if (!m_workerIoStrOpen)
     {
-      cout << "ERROR: CLOSING WORKER connection "
-           << m_worker -> getServerHostName() << ":"
-           << m_worker -> getServerPort()
-           << " : no stream opened!" << endl;
+      const string errMsg = 
+        "Cannot close worker cmd - connection " + 
+        m_worker -> getServerHostName() +  ":" +
+        int2Str(m_worker -> getServerPort()) + 
+        " : no stream opened!";
+      setCmdErrorText(errMsg);
       return false;
     }
+
 #ifdef DS_CMD_WORKER_COMM
   cout << "CLOSING WORKER connection "
        << m_worker -> getServerHostName() << ":"
        << m_worker -> getServerPort() << endl;
 #endif
+
   m_worker -> getServer() -> Close();
 
   return true;
+}
+
+/*
+Private method ~bool sendSecondoCmdToWorkerThreaded~
+sends the command to
+ 
+  * const string[&] inCmd - command string
+
+  * int inFlag - 0:nested list format, 1:regular SOS fromat
+  
+  * bool useThreads - true: command is started in a separate thread
+
+  * returns: true - success; false - error
+
+*/
+bool 
+DServerCmdWorkerCommunication::
+       sendSecondoCmdToWorkerThreaded(const string& inCmd,
+                                      int inFlag,
+                                      bool useThreads)
+{
+#ifdef DS_CMD_WORKER_COMM
+  cout << (unsigned long)this << "SecondoCmd:"  
+       << inFlag << " - "<< inCmd << " as " << endl;
+  if (useThreads)
+    cout << " Thread";
+  else
+    cout << " NO Thread";
+  cout << endl;
+#endif
+  
+  bool ret = true;
+  if (useThreads)
+      {
+        DServerCmdWorkerCommunicationThreaded* commThread =
+          new DServerCmdWorkerCommunicationThreaded(this, 
+                                                    inCmd, 
+                                                    inFlag);
+        assert (m_exec == NULL);
+        m_exec = new ZThread::ThreadedExecutor();
+        m_exec -> execute(commThread);
+      }
+  else
+    {
+      assert (m_exec == NULL);
+
+      ret = sendSecondoCmd(inFlag, inCmd);
+      if (!ret)
+        setCmdErrorText("Unable to send the following Secondo Command:\n" + 
+                        inCmd);
+    }
+  
+  return ret;
+}
+
+/*
+3.3 Method ~void run~
+
+*/
+void
+DServerCmdWorkerCommunicationThreaded::run()
+{
+  restoreStream(m_caller -> rentStream());
+  setStreamOpen();
+                  
+  bool ret = 
+    sendSecondoCmd(m_flag, m_cmd);
+
+  if (ret)
+    ret = waitForSecondoResult(m_cmd);
+
+  if (!ret || hasCmdError())
+    m_caller -> setCmdErrorText(getCmdErrorText());
+
+  m_caller -> setCmdResult(getCmdResult());
 }

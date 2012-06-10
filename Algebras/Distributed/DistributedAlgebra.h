@@ -89,7 +89,7 @@ public:
   void SetDefined(bool def) { m_defined = def; }
   void SetUndefined() { m_defined = false; }
 
-  int getSize() const { return size; }
+  int getSize() const { return m_size; }
 
   DServerManager* getServerManager() const {return m_serverManager;}
 
@@ -103,14 +103,14 @@ public:
   //refresh must be called before calling get()
   void refresh(int);
   void refresh();
-  void refresh(TFQ tbOut, ThreadedMemoryCounter *inMemCntr);
+  void refresh(TFQ tfqOut, ThreadedMemoryCounter *inMemCntr);
   
-  bool refreshTBRunning() 
-  { ZThread::Guard<ZThread::Mutex> g(ms_rTBlock); return m_tbRunning; };
-  void initTBRefresh() 
-  {  ZThread::Guard<ZThread::Mutex> g(ms_rTBlock); m_tbRunning = true; }
-  void tbRefreshDone() 
-  {  ZThread::Guard<ZThread::Mutex> g(ms_rTBlock); m_tbRunning = false; }
+  bool refreshTFQRunning() 
+  { ZThread::Guard<ZThread::Mutex> g(ms_rTFQlock); return m_tfqRunning; };
+  void initTFQRefresh() 
+  {  ZThread::Guard<ZThread::Mutex> g(ms_rTFQlock); m_tfqRunning = true; }
+  void tfqRefreshDone() 
+  {  ZThread::Guard<ZThread::Mutex> g(ms_rTFQlock); m_tfqRunning = false; }
   
   //Deletes all the remote elements on the workers
   void remove();
@@ -136,7 +136,9 @@ public:
   //Static no of existing DArray-Instances, used for naming
   static int no;
 
-  bool isRelType() {return isRelation;}
+  bool isRelType() const {return m_isRelation;}
+  void setRelType() { m_isRelation = true; }
+  void setNoRelType() { m_isRelation = false; }
 
   static const string BasicType() { return string("darray"); }
 
@@ -150,9 +152,9 @@ public:
 
   bool destroyAnyChilds();
   bool multiplyWorkers(vector<DServer*>* outServerList = NULL);
-
   template <class T, class P>
-  bool runCommand(const P& inParam);
+  bool runCommand(const P& inParam,
+                  int inServerIndex = -1);
    
 
   template <class T, class P>
@@ -171,9 +173,9 @@ private:
   //Is a certain element present on the master?
   // std::vector<bool> is broken!
   // using 1: present; 0: not present
-  vector<int> m_present;
-  bool isRelation;
-  int size;
+  vector<bool> m_present;
+  bool m_isRelation;
+  int m_size;
   int alg_id;
   int typ_id;
   string m_name;
@@ -185,8 +187,8 @@ private:
 
   vector<Word> m_elements;
 
-  bool m_tbRunning;
-  static ZThread::Mutex ms_rTBlock;
+  bool m_tfqRunning;
+  static ZThread::Mutex ms_rTFQlock;
 };
 
 #endif // _DISTRIBUTEDALGEBRA_H_

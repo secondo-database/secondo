@@ -136,10 +136,10 @@ class RelationWriter : public ZThread::Runnable
 {
    DServer* worker;
   vector<Word>* m_elements;
-   list<int>* arg;
+   vector<int> arg;
    
    public:
-  RelationWriter(DServer* s, vector<Word>* e, list<int>* a) 
+  RelationWriter(DServer* s, vector<Word>* e, const vector<int>& a) 
     : worker(s)
     , m_elements(e)
     , arg(a) {}

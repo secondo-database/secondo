@@ -78,6 +78,7 @@ be written to stdout
 
 #include <iostream>
 #include <vector>
+#include <assert.h>
 
 
 /*
@@ -154,19 +155,33 @@ sends a secondo command to the worker.
 
 */
   bool sendSecondoCmd(int inCmdType,
-                      const std::string& inCmd)
+                      const std::string& inCmd,
+                      bool inDebugFlag = false)
 
   // secondo does not acknowledge tokens!
   {
-    
+    assert(inCmdType == 1 || inCmdType == 0);
+
+    if (inDebugFlag)
+      std::cout << "SECONDO SEND:<Secondo>" << std::endl;
+
     if (! sendIOS("<Secondo>", false))
       return false;
     
+    if (inDebugFlag)
+      std::cout << "SECONDO SEND:" << inCmdType << std::endl;
+
     if (!sendIOS(inCmdType, false) )
       return false;
         
+    if (inDebugFlag)
+      std::cout << "SECONDO SEND:" << inCmd << std::endl;
+
     if (!sendIOS(inCmd, false) )
       return false;
+
+    if (inDebugFlag)
+      std::cout << "SECONDO SEND:</Secondo>" << std::endl;
 
     if (! sendIOS("</Secondo>", false))
       return false;
@@ -386,8 +401,9 @@ receives a single line from secondo
 #endif
             return false;
           }
+        return true;
       }
-    return true;
+    return false;
   } 
 
 /*
@@ -485,6 +501,14 @@ sets the output string of debug output
 
 */
   void SetDebugHeader(const std::string& inStr) { m_debugMSG = inStr; }
+
+
+  std::iostream* rentStream()
+  {
+    return m_iostr;
+  }
+
+  void restoreStream(std::iostream* inStr) { m_iostr = inStr; }
 
 /*
 

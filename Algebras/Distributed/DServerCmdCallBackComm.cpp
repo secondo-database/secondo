@@ -106,7 +106,7 @@ DServerCmdCallBackCommunication::writeTupleToCallBack(Tuple *inTuple)
           return false;
         }
                
-      if (!getTagFromCallBack("NUMBLOCKS", line, false))
+      if (!getTextFromCallBack("NUMBLOCKS", line, false))
         {
           setErrorText("Received unexpected token");
           return false;
@@ -142,7 +142,7 @@ DServerCmdCallBackCommunication::writeTupleToCallBack(Tuple *inTuple)
 
 /*
 
-2.3 Method ~bool receiveTupleFromCallBack~
+2.3 Method ~bool readTupleFromCallBack~
 
 receives a tuple (binary stream) and inserts it into a relation
 
@@ -158,11 +158,11 @@ tuple will be stored
 */
 bool
 DServerCmdCallBackCommunication::
-    receiveTupleFromCallBack(TupleType* inTupleType,
-                             GenericRelation *inRel)
+    readTupleFromCallBack(TupleType* inTupleType,
+                          GenericRelation *inRel)
 {
   string line;
-  if (getTagFromCallBack("TUPLE", line, false))
+  if (getTextFromCallBack("TUPLE", line, false))
     {
       Tuple *curTuple = DBAccess::getInstance() -> T_New(inTupleType);
 

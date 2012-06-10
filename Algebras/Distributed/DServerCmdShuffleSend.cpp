@@ -117,12 +117,15 @@ DServerCmdShuffleSend::run()
   // worker
 
   //The d_send_rel operator is invoked
-  string err;
      
   // this command is blocking, until DShuffle is done!
-  if (!sendSecondoCmdToWorker0(com, err))
+  if (!sendSecondoCmdToWorkerNL(com))
     {
-      err = "Could not start sender function on worker!\n" + err;
+      string err;
+      if (hasCmdError())
+        err = getCmdErrorText();
+      else
+        err = "Could not start shuffle - sender function on worker!";
       getWorker() -> setErrorText(err);
       return;
     }
