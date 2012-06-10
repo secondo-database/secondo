@@ -3144,7 +3144,6 @@ if the target machine is not the producer.
     return false;
   }
 
-cerr << "Get target file : " << targetFilePath << endl;
   //Catch the file, and read the description list
   u_int32_t descSize;
   size_t fileLength;
@@ -3196,17 +3195,11 @@ Tuple* FFeedLocalInfo::getNextTuple(){
 
   Tuple* t = 0;
   u_int32_t blockSize;
-  if (!tupleBlockFile->good()){
-   cerr << "Stream error: " << tupleBlockFile->rdstate() << endl;
-   cerr << "eof: " << tupleBlockFile->eof() << endl;
-   cerr << "fail: " << tupleBlockFile->fail() << endl;
-   cerr << "bad: " << tupleBlockFile->bad() << endl;
-}
+
   assert(tupleBlockFile->good());
   tupleBlockFile->read(
       reinterpret_cast<char*>(&blockSize),
       sizeof(blockSize));
-//  cerr << "block Size: " << blockSize << endl;
   if (!tupleBlockFile->eof() && (blockSize > 0))
   {
     blockSize -= sizeof(blockSize);
@@ -3216,7 +3209,6 @@ Tuple* FFeedLocalInfo::getNextTuple(){
 
     t = new Tuple(tupleType);
     t->ReadFromBin(tupleBlock, blockSize);
-//    t->Print(cout);
 //    t->SetTupleId(tid);
     delete[] tupleBlock;
   }
