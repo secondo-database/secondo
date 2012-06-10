@@ -241,7 +241,8 @@ static bool RunCmdSSH(const string& inHost,
   if (inHost != "localhost" &&
       inHost != "127.0.0.")
     {
-      cmd = "ssh " + inHost + " \"bash -c '" + inCmd + "'\"";  
+      string tmpCmd = stringutils::replaceAll(inCmd,"$","\\$");
+      cmd = "ssh " + inHost + " \"bash -c '" + tmpCmd + "'\"";  
     }
   else
     {
