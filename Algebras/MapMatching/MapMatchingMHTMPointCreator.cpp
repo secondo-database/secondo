@@ -89,7 +89,7 @@ bool MPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
         std::vector<MHTRouteCandidate::RouteSegment*>::const_iterator itEnd =
                                                          vecRouteSegments.end();
 
-        MHTRouteCandidate::PointData* pData1 = NULL;
+        const MHTRouteCandidate::PointData* pData1 = NULL;
         MHTRouteCandidate::RouteSegment* pSegment1 = NULL;
 
         while (it != itEnd)
@@ -99,7 +99,7 @@ bool MPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
             if (pSegment == NULL)
                 continue;
 
-            const std::vector<MHTRouteCandidate::PointData*>& vecPoints =
+            const std::vector<const MHTRouteCandidate::PointData*>& vecPoints =
                                                           pSegment->GetPoints();
 
             if (vecPoints.size() == 0)
@@ -111,9 +111,9 @@ bool MPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
             }
             else
             {
-                std::vector<MHTRouteCandidate::PointData*>::const_iterator
+                std::vector<const MHTRouteCandidate::PointData*>::const_iterator
                                                       itPts = vecPoints.begin();
-                std::vector<MHTRouteCandidate::PointData*>::const_iterator
+                std::vector<const MHTRouteCandidate::PointData*>::const_iterator
                                                      itPtsEnd = vecPoints.end();
 
                 while (itPts != itPtsEnd && pData1 == NULL)
@@ -126,7 +126,7 @@ bool MPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
                 while (itPts != itPtsEnd &&
                        pData1 != NULL)
                 {
-                    MHTRouteCandidate::PointData* pData2 = NULL;
+                    const MHTRouteCandidate::PointData* pData2 = NULL;
                     MHTRouteCandidate::RouteSegment* pSegment2 = NULL;
 
                     while (itPts != itPtsEnd && pData2 == NULL)

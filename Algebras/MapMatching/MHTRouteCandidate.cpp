@@ -251,7 +251,7 @@ const MHTRouteCandidate::PointData* MHTRouteCandidate::GetLastPoint(void) const
     return NULL;
 }
 
-const std::vector<MHTRouteCandidate::PointData*>& MHTRouteCandidate::
+const std::vector<const MHTRouteCandidate::PointData*>& MHTRouteCandidate::
                                               GetPointsOfLastSection(void) const
 {
     std::vector<RouteSegment*>::const_reverse_iterator it = m_Segments.rbegin();
@@ -268,7 +268,7 @@ const std::vector<MHTRouteCandidate::PointData*>& MHTRouteCandidate::
     }
 
     assert(false);
-    static std::vector<PointData*> vecDummy;
+    static std::vector<const PointData*> vecDummy;
     return vecDummy;
 }
 
@@ -383,7 +383,7 @@ void MHTRouteCandidate::AddPoint(const Point& rPointProjection,
                                     dDistance,
                                     m_pMM->GetNetworkScale());
 
-    MHTRouteCandidate::PointData* pData =
+    const MHTRouteCandidate::PointData* pData =
                               m_Segments.back()->AddPoint(pMMData,
                                                           rPointProjection,
                                                           dDistance,
@@ -561,8 +561,8 @@ void MHTRouteCandidate::AddPoint(const MapMatchData* pMMData)
     const double dScore = DISTANCE_FACTOR * 40. +
                                            (pMMData->m_dCourse >= 0 ? 40. : 0.);
 
-    MHTRouteCandidate::PointData* pData = m_Segments.back()->AddPoint(pMMData,
-                                                                      dScore);
+    const MHTRouteCandidate::PointData* pData =
+                                   m_Segments.back()->AddPoint(pMMData, dScore);
     if (pData != NULL)
     {
         m_dScore += dScore;
@@ -1223,7 +1223,7 @@ MHTRouteCandidate::PointDataIterator& MHTRouteCandidate::PointDataIterator::
             else
             {
                 m_ItPointData_R =
-                              std::vector<PointData*>::const_reverse_iterator();
+                        std::vector<const PointData*>::const_reverse_iterator();
             }
         }
     }
@@ -1258,7 +1258,7 @@ MHTRouteCandidate::PointDataIterator& MHTRouteCandidate::PointDataIterator::
             }
             else
             {
-                m_ItPointData = std::vector<PointData*>::const_iterator();
+                m_ItPointData = std::vector<const PointData*>::const_iterator();
             }
         }
     }
@@ -1290,7 +1290,7 @@ MHTRouteCandidate::RouteSegment::RouteSegment
 :m_pSection(rCandidate.m_pSection),
  m_bUTurn(rCandidate.m_bUTurn)
 {
-    const std::vector<PointData*>& rvecData = rCandidate.GetPoints();
+    const std::vector<const PointData*>& rvecData = rCandidate.GetPoints();
     const size_t nPoints = rvecData.size();
     for (size_t i = 0; i < nPoints; ++i)
     {
@@ -1305,14 +1305,14 @@ MHTRouteCandidate::RouteSegment::~RouteSegment()
     const size_t nPoints = m_Points.size();
     for (size_t i = 0; i < nPoints; ++i)
     {
-        PointData* pData = m_Points[i];
+        const PointData* pData = m_Points[i];
         delete pData;
     }
 
     m_Points.clear();
 }
 
-MHTRouteCandidate::PointData* MHTRouteCandidate::RouteSegment::AddPoint(
+const MHTRouteCandidate::PointData* MHTRouteCandidate::RouteSegment::AddPoint(
                                                   const MapMatchData* pMMData,
                                                   const Point& rPointProjection,
                                                   const double dDistance,
@@ -1328,7 +1328,7 @@ MHTRouteCandidate::PointData* MHTRouteCandidate::RouteSegment::AddPoint(
     return pData;
 }
 
-MHTRouteCandidate::PointData* MHTRouteCandidate::RouteSegment::AddPoint(
+const MHTRouteCandidate::PointData* MHTRouteCandidate::RouteSegment::AddPoint(
                                                   const MapMatchData* pMMData,
                                                   const double dScore)
 {
@@ -1349,7 +1349,7 @@ double MHTRouteCandidate::RouteSegment::RemoveLastPoint(void)
 {
     if (m_Points.size() > 0)
     {
-        PointData* pData = m_Points.back();
+        const PointData* pData = m_Points.back();
         m_Points.pop_back();
         double dScore = 0.0;
         if (pData != NULL)
@@ -1386,11 +1386,11 @@ void MHTRouteCandidate::RouteSegment::Print(std::ostream& os) const
 
     if (m_Points.size() > 0)
     {
-        std::vector<PointData*>::const_iterator it = m_Points.begin();
+        std::vector<const PointData*>::const_iterator it = m_Points.begin();
         while (it != m_Points.end())
         {
             os << "PointData : " << endl;
-            PointData* pData = *it;
+            const PointData* pData = *it;
             if (pData != NULL)
             {
                 pData->Print(os);

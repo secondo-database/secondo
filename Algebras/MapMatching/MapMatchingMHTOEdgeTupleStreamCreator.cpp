@@ -240,18 +240,18 @@ DateTime OEdgeTupleStreamCreator::ProcessSegment(
 }
 
 static Point GetLastProjectedPoint(
-                      const std::vector<MHTRouteCandidate::PointData*>& rvecPts,
-                      DateTime& rTimeLastPt)
+                const std::vector<const MHTRouteCandidate::PointData*>& rvecPts,
+                DateTime& rTimeLastPt)
 {
-    std::vector<MHTRouteCandidate::PointData*>::const_reverse_iterator itEnd =
-                                                                 rvecPts.rend();
-    std::vector<MHTRouteCandidate::PointData*>::const_reverse_iterator it;
+    std::vector<const MHTRouteCandidate::PointData*>::const_reverse_iterator
+                                                         itEnd = rvecPts.rend();
+    std::vector<const MHTRouteCandidate::PointData*>::const_reverse_iterator it;
 
     Point PtRes(false);
 
     for (it = rvecPts.rbegin(); it != itEnd && !PtRes.IsDefined(); ++it)
     {
-        MHTRouteCandidate::PointData* pData = *it;
+        const MHTRouteCandidate::PointData* pData = *it;
         if (pData != NULL)
         {
             const Point* pPtProj = pData->GetPointProjection();
@@ -277,7 +277,7 @@ DateTime OEdgeTupleStreamCreator::ProcessSegment_Edges(
     if (pSection == NULL)
         return DateTime((int64_t)0);
 
-    const std::vector<MHTRouteCandidate::PointData*>& vecPoints =
+    const std::vector<const MHTRouteCandidate::PointData*>& vecPoints =
                                                            rSegment.GetPoints();
     const size_t nPoints = vecPoints.size();
 
@@ -394,7 +394,7 @@ DateTime OEdgeTupleStreamCreator::ProcessSegment_EdgesAndPositions(
                     double dDistance) // Distance to first point of next segment
 {
     const shared_ptr<IMMNetworkSection> pSection = rSegment.GetSection();
-    const std::vector<MHTRouteCandidate::PointData*>& vecPoints =
+    const std::vector<const MHTRouteCandidate::PointData*>& vecPoints =
                                                            rSegment.GetPoints();
     const size_t nPoints = vecPoints.size();
 
@@ -476,7 +476,7 @@ DateTime OEdgeTupleStreamCreator::ProcessSegment_EdgesAndPositions(
 
     for (size_t i = 0; i < nPoints; ++i)
     {
-        MHTRouteCandidate::PointData* pData = vecPoints[i];
+        const MHTRouteCandidate::PointData* pData = vecPoints[i];
         if (pData == NULL)
             continue;
 

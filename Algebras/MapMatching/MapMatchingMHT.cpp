@@ -1168,8 +1168,8 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
         if (!bLookAtAdjacent)
         {
             // Check distance travelled by GPS-Points
-            const vector<MHTRouteCandidate::PointData*>& vecPointsLastSection =
-                                           pCandidate->GetPointsOfLastSection();
+            const vector<const MHTRouteCandidate::PointData*>&
+                    vecPointsLastSection = pCandidate->GetPointsOfLastSection();
             const size_t nPointsLastSection = vecPointsLastSection.size();
 
             vector<Point> vecPoints;
@@ -1505,7 +1505,7 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
         // more than 2 points ->
         // check distance between projected points
 
-        const std::vector<MHTRouteCandidate::PointData*>& rvecPoints =
+        const std::vector<const MHTRouteCandidate::PointData*>& rvecPoints =
                                            pCandidate->GetPointsOfLastSection();
 
         const double dMaxAllowedDistance = 15.0; // 15 m
@@ -1518,7 +1518,7 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
              i < nPointsOfLastSection - 1 && dMaxDistance < dMaxAllowedDistance;
              ++i)
         {
-            MHTRouteCandidate::PointData* pData1 = rvecPoints[i];
+            const MHTRouteCandidate::PointData* pData1 = rvecPoints[i];
             const Point* pPt1 = ((pData1 != NULL) ?
                                            pData1->GetPointProjection() : NULL);
 
@@ -1529,7 +1529,7 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
                  j < nPointsOfLastSection && dMaxDistance < dMaxAllowedDistance;
                  ++j)
             {
-                MHTRouteCandidate::PointData* pData2 = rvecPoints[j];
+                const MHTRouteCandidate::PointData* pData2 = rvecPoints[j];
                 const Point* pPt2 = ((pData2 != NULL) ?
                                            pData2->GetPointProjection() : NULL);
 
@@ -1557,14 +1557,14 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
             double dMaxDistanceGPS = 0.0;
             for (size_t i = 0; i < nPointsOfLastSection - 1; ++i)
             {
-                MHTRouteCandidate::PointData* pData1 = rvecPoints[i];
+                const MHTRouteCandidate::PointData* pData1 = rvecPoints[i];
 
                 const Point& rPt1 = pData1 != NULL ?
                                            pData1->GetPointGPS() : Point(false);
 
                 for (size_t j = i + 1; j < nPointsOfLastSection; ++j)
                 {
-                    MHTRouteCandidate::PointData* pData2 = rvecPoints[j];
+                    const MHTRouteCandidate::PointData* pData2 = rvecPoints[j];
                     const Point& rPt2 = pData2 != NULL ?
                                            pData2->GetPointGPS() : Point(false);
 
@@ -1618,8 +1618,8 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
     {
         const Point& rPtRef = pSection->GetStartPoint(); // TODO prüfen
 
-        const vector<MHTRouteCandidate::PointData*>& vecPointsLastSection =
-                                           pCandidate->GetPointsOfLastSection();
+        const vector<const MHTRouteCandidate::PointData*>&
+                    vecPointsLastSection = pCandidate->GetPointsOfLastSection();
 
         // Calculate maximum distance of points of last
         // section to End-/StartPoint

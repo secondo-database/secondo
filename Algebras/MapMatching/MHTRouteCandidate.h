@@ -160,7 +160,7 @@ public:
 
     const PointData* GetLastPoint(void) const;
 
-    const std::vector<PointData*>& GetPointsOfLastSection(void) const;
+    const std::vector<const PointData*>& GetPointsOfLastSection(void) const;
 
     // Return the number of (assigned) points to last section
     // (No "Offroad"-points !!)
@@ -193,9 +193,9 @@ public:
                           bool bBegin, bool bReverse);
 
         std::vector<RouteSegment*>::const_iterator m_ItRouteSegment;
-        std::vector<PointData*>::const_iterator m_ItPointData;
+        std::vector<const PointData*>::const_iterator m_ItPointData;
         std::vector<RouteSegment*>::const_reverse_iterator m_ItRouteSegment_R;
-        std::vector<PointData*>::const_reverse_iterator m_ItPointData_R;
+        std::vector<const PointData*>::const_reverse_iterator m_ItPointData_R;
         bool m_bReverse;
         const MHTRouteCandidate* m_pRouteCandidate;
 
@@ -224,13 +224,14 @@ public:
 
         const shared_ptr<IMMNetworkSection>& GetSection(void) const
                                                            {return m_pSection;}
-        const std::vector<PointData*>& GetPoints(void) const {return m_Points;}
-        PointData* AddPoint(const MapMatchData* pMMData,
-                            const Point& rPointProjection,
-                            const double dDistance,
-                            const double dScore);
-        PointData* AddPoint(const MapMatchData* pMMData,
-                            const double dScore);
+        const std::vector<const PointData*>& GetPoints(void) const
+                                                           {return m_Points;}
+        const PointData* AddPoint(const MapMatchData* pMMData,
+                                  const Point& rPointProjection,
+                                  const double dDistance,
+                                  const double dScore);
+        const PointData* AddPoint(const MapMatchData* pMMData,
+                                  const double dScore);
         double RemoveLastPoint(void);
 
         bool IsOffRoad(void) const;
@@ -243,7 +244,7 @@ public:
     private:
 
         shared_ptr<IMMNetworkSection> m_pSection;
-        std::vector<PointData*> m_Points;
+        std::vector<const PointData*> m_Points;
         bool m_bUTurn;
     };
 
