@@ -168,6 +168,8 @@ public:
     virtual double GetNetworkScale(void) const {return 1.0;}
 
     virtual bool IsDefined(void) const = 0;
+
+    virtual bool CanGetRoadType(void) const = 0;
 };
 
 

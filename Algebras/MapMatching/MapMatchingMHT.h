@@ -126,6 +126,9 @@ private:
 
     void CompleteData(MapMatchDataContainer* pContMMData);
 
+    bool CheckRoadType(const shared_ptr<IMMNetworkSection>& pSection,
+                       const MapMatchData& rMMData);
+
     bool CheckQualityOfGPSFix(const MapMatchData& rMMData);
 
     enum ENextCandidates
@@ -157,7 +160,8 @@ private:
     void AddAdjacentSections(const MHTRouteCandidate* pCandidate,
                        bool bUpDown,
                        std::vector<MHTRouteCandidate*>& rvecNewRouteCandidates,
-                       class ISectionFilter* pFilter = NULL);
+                       class ISectionFilter* pFilter = NULL,
+                       bool bRemoveLastPoint = false);
 
     void TraceRouteCandidates(const std::vector<MHTRouteCandidate*>&
                                                                  rvecCandidates,

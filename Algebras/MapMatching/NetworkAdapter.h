@@ -75,6 +75,8 @@ public:
 
     virtual bool IsDefined(void) const;
 
+    virtual bool CanGetRoadType(void) const;
+
     const Network* GetNetwork(void) const {return m_pNetwork;}
 
 private:

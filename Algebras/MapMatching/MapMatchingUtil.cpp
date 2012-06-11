@@ -53,29 +53,15 @@ namespace mapmatch {
 
 bool MMUtil::Intersects(const Region& rRegion, const SimpleLine& rSLine)
 {
-#if 0
-    Line LineFromSLine(0);
-    rSLine.toLine(LineFromSLine);
-#if 1
-    Line Result(0);
-    rRegion.Intersection(LineFromSLine, Result);
-    return Result.IsDefined() && !Result.IsEmpty();
-#else
-    return AlmostEqual(rRegion.Distance(LineFromSLine), 0.0);
-#endif
-#else
-
     int nSize = rSLine.Size();
     for (int i = 0; i< nSize; ++i)
     {
-        HalfSegment hs; // TODO falscher Konstruktor
+        HalfSegment hs;
         rSLine.Get(i, hs);
         if(hs.IsLeftDomPoint() && rRegion.Intersects(hs))
             return true;
     }
     return false;
-
-#endif
 }
 
 double MMUtil::CalcOrthogonalProjection(const HalfSegment& rHalfSegment,
@@ -279,19 +265,44 @@ Point MMUtil::CalcProjection(const SimpleLine& rLine,
     return ResPoint;
 }
 
-static double CalcDistanceSimple(const Point& rPoint1, const Point& rPoint2)
+// Spherical earth
+static double CalcDistanceSphere(const Point& rPoint1, const Point& rPoint2)
 {
-    // TODO http://www.movable-type.co.uk/scripts/latlong.html
+    // http://www.movable-type.co.uk/scripts/latlong.html
+    // http://www.movable-type.co.uk/scripts/gis-faq-5.1.html
+    // http://en.wikipedia.org/wiki/Law_of_haversines
 
-    const double dRadiusEarth = 6371.00; // km
+    static const double dRadiusEarth = 6371.00; // km
 
+#if 0
+
+    // Spherical law of cosines
     Point Point1Rad(true, degToRad(rPoint1.GetX()), degToRad(rPoint1.GetY()));
     Point Point2Rad(true, degToRad(rPoint2.GetX()), degToRad(rPoint2.GetY()));
 
     // Distance in meters
-    return 1000 * acos(sin(Point1Rad.GetY()) * sin(Point2Rad.GetY()) +
-                       cos(Point1Rad.GetY()) * cos(Point2Rad.GetY()) *
-                       cos(Point1Rad.GetX() - Point2Rad.GetX())) * dRadiusEarth;
+    return 1000. *
+            acos(sin(Point1Rad.GetY()) * sin(Point2Rad.GetY()) +
+                 cos(Point1Rad.GetY()) * cos(Point2Rad.GetY()) *
+                 cos(Point1Rad.GetX() - Point2Rad.GetX())) * dRadiusEarth;
+
+#else
+
+    // Haversine Formula
+    const double dDeltaLat = degToRad(rPoint2.GetY() - rPoint1.GetY());
+    const double dDeltaLon = degToRad(rPoint2.GetX() - rPoint1.GetX());
+    const double dLat1Rad = degToRad(rPoint1.GetY());
+    const double dLat2Rad = degToRad(rPoint2.GetY());
+
+    const double da = sin(dDeltaLat / 2.) * sin(dDeltaLat / 2.) +
+                      sin(dDeltaLon / 2.) * sin(dDeltaLon / 2.) *
+                      cos(dLat1Rad) * cos(dLat2Rad);
+    //const double dc = 2. * atan2(sqrt(da), sqrt(1-da));
+    const double dc = 2. * asin(min(1., sqrt(da)));
+
+    return 1000. * dc * dRadiusEarth; // Distance in meters
+
+#endif
 }
 
 double MMUtil::CalcDistance(const Point& rPt1,
@@ -300,7 +311,7 @@ double MMUtil::CalcDistance(const Point& rPt1,
 {
 //#define USE_GEOID
 //#define USE_GEOID_PRECISE
-#define USE_SIMPLE_DISTANCE
+#define USE_SPHERE
 
 #ifdef USE_GEOID
 
@@ -364,11 +375,11 @@ double MMUtil::CalcDistance(const Point& rPt1,
         return dDistance;
     }
 
-#elif defined USE_SIMPLE_DISTANCE
+#elif defined USE_SPHERE
 
     if (AlmostEqual(dScale, 1.0))
     {
-        return CalcDistanceSimple(rPt1, rPt2);
+        return CalcDistanceSphere(rPt1, rPt2);
     }
     else
     {
@@ -377,7 +388,7 @@ double MMUtil::CalcDistance(const Point& rPt1,
         Point Point2(rPt2);
         Point2.Scale(1.0 / dScale);
 
-        return CalcDistanceSimple(Point1, Point2);
+        return CalcDistanceSphere(Point1, Point2);
     }
 
 #else
@@ -517,6 +528,8 @@ double MMUtil::CalcHeading(const Point& rPt1,
                            bool bAtPt2,
                            double dScale)
 {
+#if 0
+
     static Geoid s_Geoid(Geoid::WGS1984);
 
     if (AlmostEqual(dScale, 1.0))
@@ -534,6 +547,45 @@ double MMUtil::CalcHeading(const Point& rPt1,
         return Point1.Direction(Point2, true, /*ReturnHeading*/
                                 &s_Geoid, bAtPt2);
     }
+
+#else
+
+    // http://www.movable-type.co.uk/scripts/latlong.html
+
+    if (!bAtPt2)
+    {
+        double dLat1 = degToRad(rPt1.GetY() / dScale);
+        double dLat2 = degToRad(rPt2.GetY() / dScale);
+        double dLon = degToRad((rPt2.GetX() / dScale) - (rPt1.GetX() / dScale));
+
+        double y = sin(dLon) * cos(dLat2);
+        double x = cos(dLat1) * sin(dLat2) -
+                   sin(dLat1) * cos(dLat2) * cos(dLon);
+        double dBrng = radToDeg(atan2(y, x)) + 360.;
+
+        if (dBrng > 360.0)
+            dBrng = fmod(dBrng, 360.0);
+
+        return dBrng;
+    }
+    else
+    {
+        double dLat1 = degToRad(rPt2.GetY() / dScale);
+        double dLat2 = degToRad(rPt1.GetY() / dScale);
+        double dLon = degToRad((rPt1.GetX() / dScale) - (rPt2.GetX() / dScale));
+
+        double y = sin(dLon) * cos(dLat2);
+        double x = cos(dLat1) * sin(dLat2) -
+                   sin(dLat1) * cos(dLat2) * cos(dLon);
+        double dBrng = radToDeg(atan2(y, x)) + 180.;
+
+        if (dBrng > 360.0)
+            dBrng = fmod(dBrng, 360.0);
+
+        return dBrng;
+    }
+
+#endif
 }
 
 double MMUtil::CalcHeading(const IMMNetworkSection* pSection,
@@ -653,19 +705,20 @@ Point MMUtil::CalcDestinationPoint(const Point& rPoint,
                                    double dBearing,
                                    double dDistanceKM)
 {
-    const double dRadiusEarth = 6378.137;
+    static const double dRadiusEarth = 6371.00;
 
-    double dDistance = dDistanceKM / dRadiusEarth;  // angular distance
+    const double dDistance = dDistanceKM / dRadiusEarth;  // angular distance
     dBearing = degToRad(dBearing);
 
-    double dLat1 = degToRad(rPoint.GetY());
-    double dLon1 = degToRad(rPoint.GetX());
+    const double dLat1 = degToRad(rPoint.GetY());
+    const double dLon1 = degToRad(rPoint.GetX());
 
-    double dLat2 = asin(sin(dLat1) * cos(dDistance) +
-                        cos(dLat1) * sin(dDistance) * cos(dBearing));
+    const double dLat2 = asin(sin(dLat1) * cos(dDistance) +
+                              cos(dLat1) * sin(dDistance) * cos(dBearing));
 
-    double dLon2 = dLon1 + atan2(sin(dBearing) * sin(dDistance) * cos(dLat1),
-                                 cos(dDistance) - sin(dLat1) * sin(dLat2));
+    const double dLon2 = dLon1 +
+                             atan2(sin(dBearing) * sin(dDistance) * cos(dLat1),
+                                   cos(dDistance) - sin(dLat1) * sin(dLat2));
 
     return Point(true, radToDeg(dLon2), radToDeg(dLat2));
 }
@@ -715,6 +768,94 @@ void MMUtil::SubLine(const SimpleLine* pLine,
         rSubLine.SetStartSmaller(!rSubLine.StartsSmaller());
 }
 
+bool MMUtil::CheckSpeed(double dDistM,
+                        const datetime::DateTime& rTimeStart,
+                        const datetime::DateTime& rTimeEnd,
+                        const Point& rPtStart,
+                        const Point& rPtEnd,
+                        IMMNetworkSection::ERoadType eRoadType,
+                        double dSpeedLimit)
+{
+    double dDistKM = dDistM / 1000.; // KM
+
+    datetime::DateTime DiffTime = rTimeStart - rTimeEnd;
+    double dDuration = DiffTime.millisecondsToNull()
+                                     / (1000. * 60. * 60.); // hours
+    if (!AlmostEqual(dDuration, 0.0))
+    {
+        const double dSpeed = dDistKM / dDuration; // km/h
+        double dMaxSpeed = 250.;
+
+        switch (eRoadType)
+        {
+        case IMMNetworkSection::RT_MOTORWAY:
+        case IMMNetworkSection::RT_TRUNK:
+            dMaxSpeed = 250.;
+            break;
+
+        case IMMNetworkSection::RT_PRIMARY:
+        case IMMNetworkSection::RT_SECONDARY:
+            dMaxSpeed = 200.;
+            break;
+
+        case IMMNetworkSection::RT_TERTIARY:
+            dMaxSpeed = 150.;
+            break;
+
+        case IMMNetworkSection::RT_LIVING_STREET:
+        case IMMNetworkSection::RT_RESIDENTIAL:
+            dMaxSpeed = 90.;
+            break;
+
+        case IMMNetworkSection::RT_PEDESTRIAN:
+        case IMMNetworkSection::RT_PATH:
+        case IMMNetworkSection::RT_FOOTWAY:
+        case IMMNetworkSection::RT_CYCLEWAY:
+        case IMMNetworkSection::RT_BRIDLEWAY:
+        case IMMNetworkSection::RT_STEPS:
+            dMaxSpeed = 60.;
+            break;
+
+        case IMMNetworkSection::RT_UNKNOWN:
+        case IMMNetworkSection::RT_OTHER:
+        default:
+            dMaxSpeed = 250.;
+            break;
+        }
+
+        if (dSpeedLimit > 0.0)
+        {
+            if (dSpeedLimit <= 30.0)
+                dMaxSpeed = dSpeedLimit * 2.2;
+            else if (dMaxSpeed <= 50.0)
+                dMaxSpeed = dSpeedLimit * 1.8;
+            else
+                dMaxSpeed = dSpeedLimit * 1.5;
+        }
+
+        if (dSpeed > dMaxSpeed)
+        {
+            ostream& rStreamBadNetwork = cmsg.file("MMBadNetwork.log");
+            rStreamBadNetwork << "Too fast : " << endl;
+            rStreamBadNetwork << "Speed: " << dSpeed << endl;
+            rStreamBadNetwork << "Distance: " << dDistKM << endl;
+            rStreamBadNetwork << "Time: ";
+            rTimeStart.Print(rStreamBadNetwork);
+            rStreamBadNetwork << endl;
+            rTimeEnd.Print(rStreamBadNetwork);
+            rStreamBadNetwork << endl;
+            rStreamBadNetwork << "P1: ";
+            rPtStart.Print(rStreamBadNetwork);
+            rStreamBadNetwork << endl;
+            rStreamBadNetwork << "P2: ";
+            rPtEnd.Print(rStreamBadNetwork);
+            rStreamBadNetwork << endl << flush;
+            return false;
+        }
+    }
+
+    return true;
+}
 
 
 } // end of namespace mapmatch

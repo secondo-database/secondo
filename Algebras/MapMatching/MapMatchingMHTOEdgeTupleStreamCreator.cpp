@@ -372,6 +372,12 @@ DateTime OEdgeTupleStreamCreator::ProcessSegment_Edges(
             TimeEnd += DateTime(datetime::durationtype,
                              (uint64_t)((Duration.millisecondsToNull()
                                         / dDist2FirstPtOfNextSeg) * dDist2End));
+
+            if (!MMUtil::CheckSpeed(dDist2FirstPtOfNextSeg,
+                                    TimeStart, TimeEnd, PtStart, PtEnd))
+            {
+                return TimeEnd;
+            }
         }
 
         ProcessPoints(rSegment, TimeStart, TimeEnd, PtStart, PtEnd);
@@ -532,7 +538,15 @@ DateTime OEdgeTupleStreamCreator::ProcessSegment_EdgesAndPositions(
 
         if (TimeStart != TimeEnd && !AlmostEqual(PtStart, PtEndSegment))
         {
-            ProcessPoints(rSegment, TimeStart, TimeEnd, PtStart, PtEndSegment);
+            if (MMUtil::CheckSpeed(dDistLastPt2End, TimeStart, TimeEnd,
+                                   PtStart, PtEnd,
+                                   rSegment.GetSection()->GetRoadType(),
+                                   rSegment.GetSection()->GetMaxSpeed()))
+            {
+                ProcessPoints(rSegment,
+                              TimeStart, TimeEnd,
+                              PtStart, PtEndSegment);
+            }
         }
 
         return TimeEnd;

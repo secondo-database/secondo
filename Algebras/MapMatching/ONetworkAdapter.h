@@ -72,6 +72,7 @@ public:
 
     virtual bool IsDefined(void) const;
 
+    virtual bool CanGetRoadType(void) const;
 
     // Only used by MapMatchingOEdgeTupleStreamCreator
     Tuple* GetUndefEdgeTuple(void) const;

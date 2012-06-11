@@ -43,6 +43,8 @@ This header file contains utilities for map matching
 #include <stdio.h>
 #include <vector>
 
+#include "MapMatchingNetworkInterface.h"
+
 class Region;
 class SimpleLine;
 class GLine;
@@ -51,6 +53,11 @@ class Point;
 class Geoid;
 class Network;
 class DirectedNetworkSection;
+
+namespace datetime
+{
+    class DateTime;
+}
 
 namespace mapmatch {
 
@@ -63,11 +70,13 @@ class MMUtil
 public:
     static bool Intersects(const Region& rRegion, const SimpleLine& rSLine);
 
+    // Calculate the orthogonal projection of the point on the HalfSegment
     static double CalcOrthogonalProjection(const HalfSegment& rHalfSegment,
                                            const Point& rPt,
                                            /*OUT*/ Point& rPtRes,
                                            const double dScale);
 
+    // Calculate the orthogonal projection of the point on the SimpleLine
     static Point CalcOrthogonalProjection(const SimpleLine& rLine,
                                           const Point& rPt,
                                           /*OUT*/ double& rdDistanceRes,
@@ -86,6 +95,7 @@ public:
                                 /*IN*/  const double dScale,
                                 /*OUT*/ HalfSegment* pResHS = NULL);
 
+    // Calculates the distance between 2 points in meters
     static double CalcDistance(const Point& rPt1,
                                const Point& rPt2,
                                const double dScale);
@@ -93,15 +103,18 @@ public:
     static double CalcDistance(const std::vector<Point>& rvecPoints,
                                const double dScale);
 
+    // Calculates the 'network-distance' between 2 points in meters
     static double CalcDistance(const Point& rPt1,
                                const Point& rPt2,
                                const SimpleLine& rCurve,
                                const double dScale);
 
+    // Calculates the length of the GLine in meters
     static double CalcLengthCurve(const GLine* pCurve,
                                   const Network* pNetwork,
                                   const double dScale);
 
+    // Calculates the length of the SimpleLine in meters
     static double CalcLengthCurve(const SimpleLine* pCurve,
                                   const double dScale);
 
@@ -120,6 +133,7 @@ public:
                                    double dNetworkScale,
                                    double& result);
 
+    // Calculate destination point given distance and bearing from start point
     static Point CalcDestinationPoint(const Point& rPoint,
                                       double dBearing,
                                       double dDistanceKM);
@@ -130,6 +144,16 @@ public:
                         bool bStartsSmaller,
                         double dScale,
                         SimpleLine& rSubLine);
+
+    // plausibility check
+    static bool CheckSpeed(double dDistM,
+                           const datetime::DateTime& rTimeStart,
+                           const datetime::DateTime& rTimeEnd,
+                           const Point& rPtStart,
+                           const Point& rPtEnd,
+                           IMMNetworkSection::ERoadType eRoadType =
+                                                  IMMNetworkSection::RT_UNKNOWN,
+                           double dSpeedLimit = -1.0);
 };
 
 

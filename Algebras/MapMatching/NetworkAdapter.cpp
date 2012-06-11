@@ -173,6 +173,10 @@ bool NetworkAdapter::IsDefined(void) const
     return m_pNetwork != NULL && m_pNetwork->IsDefined();
 }
 
+bool NetworkAdapter::CanGetRoadType(void) const
+{
+    return false;
+}
 
 
 /*

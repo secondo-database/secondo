@@ -116,6 +116,7 @@ public:
         PointData(const MapMatchData* pMMData,
                   const Point& rPointProjection,
                   const shared_ptr<IMMNetworkSection>& pSection,
+                  const double dDistance,
                   const double dScore);
 
         // Constructor without projected point - Offroad-case
@@ -132,6 +133,7 @@ public:
                   {return m_pData != NULL ? m_pData->GetPoint() : Point(false);}
         inline const Point* GetPointProjection(void) const
                                               {return m_pPointProjection;}
+        inline double GetDistance(void) const {return m_dDistance;}
         inline double GetScore(void) const {return m_dScore;}
 
         inline const MapMatchData* GetMMData(void) const {return m_pData;}
@@ -152,6 +154,7 @@ public:
         const MapMatchData* m_pData;
         Point* m_pPointProjection;
         shared_ptr<IMMNetworkSection> m_pSection;
+        double m_dDistance;
         double m_dScore;
     };
 
@@ -224,6 +227,7 @@ public:
         const std::vector<PointData*>& GetPoints(void) const {return m_Points;}
         PointData* AddPoint(const MapMatchData* pMMData,
                             const Point& rPointProjection,
+                            const double dDistance,
                             const double dScore);
         PointData* AddPoint(const MapMatchData* pMMData,
                             const double dScore);

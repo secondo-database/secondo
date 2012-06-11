@@ -33,6 +33,7 @@ April, 2012. Matthias Roth
 1 Overview
 
 This header file contains the class ~ONetwork~
+ONetwork represents a network based on an ordered relation
 
 2 Defines and includes
 

@@ -106,13 +106,23 @@ MHTRouteCandidate& MHTRouteCandidate::operator=
         m_nCountLastOffRoadPoints = rCandidate.m_nCountLastOffRoadPoints;
         m_nCountPoints = rCandidate.m_nCountPoints;
 
-        const size_t nSegments = m_Segments.size();
+        size_t nSegments = m_Segments.size();
         for (size_t i = 0; i < nSegments; ++i)
         {
             RouteSegment* pSegment = m_Segments[i];
             delete pSegment;
         }
         m_Segments.clear();
+
+        nSegments = rCandidate.m_Segments.size();
+        for (size_t i = 0; i < nSegments; ++i)
+        {
+            RouteSegment* pSegment = rCandidate.m_Segments[i];
+            if (pSegment != NULL)
+            {
+                m_Segments.push_back(new RouteSegment(*pSegment));
+            }
+        }
 
         m_bFailed = rCandidate.m_bFailed;
     }
@@ -376,6 +386,7 @@ void MHTRouteCandidate::AddPoint(const Point& rPointProjection,
     MHTRouteCandidate::PointData* pData =
                               m_Segments.back()->AddPoint(pMMData,
                                                           rPointProjection,
+                                                          dDistance,
                                                           dScore);
     if (pData != NULL)
     {
@@ -880,6 +891,7 @@ MHTRouteCandidate::PointData::PointData()
 :m_pData(NULL),
  m_pPointProjection(NULL),
  m_pSection(),
+ m_dDistance(0.0),
  m_dScore(0.0)
 {
 }
@@ -888,10 +900,12 @@ MHTRouteCandidate::PointData::PointData(
                                   const MapMatchData* pMMData,
                                   const Point& rPointProjection,
                                   const shared_ptr<IMMNetworkSection>& pSection,
+                                  const double dDistance,
                                   const double dScore)
 :m_pData(pMMData),
  m_pPointProjection(new Point(rPointProjection)),
  m_pSection(pSection),
+ m_dDistance(dDistance),
  m_dScore(dScore)
 {
 }
@@ -910,6 +924,7 @@ MHTRouteCandidate::PointData::PointData(const PointData& rPointData)
  m_pPointProjection(rPointData.m_pPointProjection != NULL ?
              new Point(*rPointData.m_pPointProjection) : NULL),
  m_pSection(rPointData.m_pSection),
+ m_dDistance(rPointData.m_dDistance),
  m_dScore(rPointData.m_dScore)
 {
 }
@@ -929,6 +944,8 @@ MHTRouteCandidate::PointData& MHTRouteCandidate::PointData::operator=(
             m_pPointProjection = new Point(*rPointData.m_pPointProjection);
 
         m_pSection = rPointData.m_pSection;
+
+        m_dDistance = rPointData.m_dDistance;
 
         m_dScore = rPointData.m_dScore;
     }
@@ -965,50 +982,6 @@ MHTRouteCandidate::PointData::~PointData()
 
     //m_pSection = NULL;
 }
-
-#if 0
-const GPoint* MHTRouteCandidate::PointData::GetGPoint(const int& nNetworkId,
-                                              const double& dNetworkScale) const
-{
-    if (m_pGPoint != NULL)
-        return m_pGPoint;
-
-    if (m_pPointProjection == NULL || !m_pPointProjection->IsDefined() ||
-        !m_Section.IsDefined())
-    {
-        return NULL;
-    }
-
-    const NetworkRoute& rRoute = m_Section.GetRoute();
-    if (!rRoute.IsDefined())
-    {
-        return NULL;
-    }
-
-    const bool RouteStartsSmaller = rRoute.GetStartsSmaller();
-    const SimpleLine* pRouteCurve = rRoute.GetCurve();
-
-    double dPos = 0.0;
-    if (pRouteCurve != NULL &&
-        MMUtil::GetPosOnSimpleLine(*pRouteCurve,
-                                   *m_pPointProjection,
-                                   RouteStartsSmaller,
-                                   dNetworkScale,
-                                   dPos))
-       //pRouteCurve->AtPoint(PointProjection, RouteStartsSmaller, dPos))
-    {
-        m_pGPoint = new GPoint(true, nNetworkId, rRoute.GetRouteID(),
-                               dPos, None);
-        return m_pGPoint;
-    }
-    else
-    {
-        // Projected point could not be matched onto route
-        assert(false);
-        return NULL;
-    }
-}
-#endif
 
 void MHTRouteCandidate::PointData::Print(std::ostream& os) const
 {
@@ -1342,11 +1315,13 @@ MHTRouteCandidate::RouteSegment::~RouteSegment()
 MHTRouteCandidate::PointData* MHTRouteCandidate::RouteSegment::AddPoint(
                                                   const MapMatchData* pMMData,
                                                   const Point& rPointProjection,
+                                                  const double dDistance,
                                                   const double dScore)
 {
     PointData* pData = new PointData(pMMData,
                                      rPointProjection,
                                      GetSection(),
+                                     dDistance,
                                      dScore);
     m_Points.push_back(pData);
 

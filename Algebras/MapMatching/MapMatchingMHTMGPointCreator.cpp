@@ -330,38 +330,11 @@ bool MGPointCreator::CalcShortestPath(const GPoint* pGPStart,
             double dLen = MMUtil::CalcLengthCurve(pGlShortestPath.get(),
                                                   m_pNetwork,
                                                   m_dNetworkScale);
-            dLen /= 1000.; // KM
-            datetime::DateTime DiffTime = rtimeEnd - rtimeStart;
-            double dDuration = DiffTime.millisecondsToNull() /
-                                                    (1000. * 60. *60.); // hours
-            if (!AlmostEqual(dDuration, 0.0))
+
+            if (!MMUtil::CheckSpeed(dLen, rtimeStart,
+                                    rtimeEnd,Point(false), Point(false)))
             {
-                double dSpeed = dLen / dDuration; // km/h
-                if (dSpeed > 250.) // TODO use additional data -
-                                   // speed-limits, previous speed, ...
-                {
-                    ostream& rStreamBadNetwork = cmsg.file("MMBadNetwork.log");
-                    rStreamBadNetwork << "Too fast : " << endl;
-                    rStreamBadNetwork << "Speed: " << dSpeed << endl;
-                    rStreamBadNetwork << "Distance: " << dLen << endl;
-                    rStreamBadNetwork << "Time: ";
-                    rtimeStart.Print(rStreamBadNetwork);
-                    rStreamBadNetwork << endl;
-                    rtimeEnd.Print(rStreamBadNetwork);
-                    rStreamBadNetwork << endl;
-                    rStreamBadNetwork << "GP1: ";
-                    pGPStart->Print(rStreamBadNetwork);
-                    Point pt(false);
-                    AttributePtr<Point> pPtStart(pGPStart->ToPoint());
-                    pPtStart->Print(rStreamBadNetwork);
-                    rStreamBadNetwork << endl;
-                    rStreamBadNetwork << "GP2: ";
-                    pGPEnd->Print(rStreamBadNetwork);
-                    AttributePtr<Point> pPtEnd(pGPEnd->ToPoint());
-                    pPtEnd->Print(rStreamBadNetwork);
-                    rStreamBadNetwork << endl << flush;
-                    return false;
-                }
+                return false;
             }
         }
 
@@ -463,97 +436,11 @@ bool MGPointCreator::ConnectPoints(const GPoint& rGPStart,
         else
         {
             // Different routes
-
-#if 0
-            // funktioniert so nicht, da der kürzeste Weg
-            // nicht unbedingt über die direkte Verbindung
-            // der beiden Routen führen muss
-
-            CcInt Route1Id(GPoint1.GetRouteId());
-            CcInt Route2Id(GPoint2.GetRouteId());
-            double dRoute1Measure = numeric_limits<double>::max();
-            double dRoute2Measure = numeric_limits<double>::max();
-
-            m_pNetwork->GetJunctionMeasForRoutes(&Route1Id, &Route2Id,
-                    dRoute1Measure, dRoute2Measure);
-            if (dRoute1Measure < numeric_limits<double>::max()
-                    && dRoute2Measure < numeric_limits<double>::max())
-            {
-                NetworkRoute Route1(m_pNetwork->GetRoute(GPoint1.GetRouteId()));
-                NetworkRoute Route2(m_pNetwork->GetRoute(GPoint2.GetRouteId()));
-
-                GPoint GPoint1_2(true, m_pNetwork->GetId(), GPoint1.GetRouteId()
-                                 ,dRoute1Measure, GPoint1.GetSide());
-                GPoint GPoint2_1(true, m_pNetwork->GetId(), GPoint2.GetRouteId()
-                                 ,dRoute2Measure, GPoint2.GetSide());
-
-                if (GPoint1.GetPosition() < GPoint1_2.GetPosition())
-                {
-                    GPoint1.SetSide(Route1.GetStartsSmaller() ? Up : Down);
-                    GPoint1_2.SetSide(Route1.GetStartsSmaller() ? Up : Down);
-                }
-                else
-                {
-                    GPoint1.SetSide(Route1.GetStartsSmaller() ? Down : Up);
-                    GPoint1_2.SetSide(Route1.GetStartsSmaller() ? Down : Up);
-                }
-
-                if (GPoint2_1.GetPosition() < GPoint2.GetPosition())
-                {
-                    GPoint2_1.SetSide(Route2.GetStartsSmaller() ? Up : Down);
-                    GPoint2.SetSide(Route2.GetStartsSmaller() ? Up : Down);
-                }
-                else
-                {
-                    GPoint2_1.SetSide(Route2.GetStartsSmaller() ? Down : Up);
-                    GPoint2.SetSide(Route2.GetStartsSmaller() ? Down : Up);
-                }
-
-                double dDistance1 = fabs(
-                               GPoint1.GetPosition() - GPoint1_2.GetPosition());
-                double dDistance2 = fabs(
-                               GPoint2.GetPosition() - GPoint2_1.GetPosition());
-
-                double dDistance = dDistance1 + dDistance2;
-
-                Instant Mid = (rTimeInterval.end - rTimeInterval.start) *
-                                                       (dDistance1 / dDistance);
-
-                UGPoint UGPoint1(Interval<Instant>(rTimeInterval.start,
-                                                   rTimeInterval.start + Mid,
-                                                   rTimeInterval.lc, false),
-                                                   GPoint1, GPoint1_2);
-                this->AddUGPoint(UGPoint1);
-
-                UGPoint UGPoint2(Interval<Instant>(rTimeInterval.start + Mid,
-                                                   rTimeInterval.end,
-                                                   true, rTimeInterval.rc),
-                                                   GPoint2_1, GPoint2);
-
-                this->AddUGPoint(UGPoint2);
-
-                return true;
-            }
-            else
-            {
-                // No direct connection between Routes -> Shortest Path
-
-                return CalcShortestPath(&GPoint1,
-                                        &GPoint2,
-                                        rTimeInterval.start,
-                                        rTimeInterval.end);
-            }
-#else
             return CalcShortestPath(&GPoint1,
                                     &GPoint2,
                                     rTimeInterval.start,
                                     rTimeInterval.end,
                                     true);
-
-            return false;
-#endif
-
-
         }
     }
     else

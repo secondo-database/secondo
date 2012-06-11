@@ -112,6 +112,11 @@ bool ONetworkAdapter::IsDefined(void) const
     return m_pNetwork != NULL;
 }
 
+bool ONetworkAdapter::CanGetRoadType(void) const
+{
+    return true;
+}
+
 // Only used by MapMatchingOEdgeTupleStreamCreator
 Tuple* ONetworkAdapter::GetUndefEdgeTuple(void) const
 {
