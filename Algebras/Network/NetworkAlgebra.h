@@ -3545,6 +3545,7 @@ Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
                 if (testRI.GetLeft() > -1)
                 {
                   test = CheckTree(testRI, pos, testRI, testRI.GetLeft(),true);
+                  testRI.SetEntry(1,test);
                   ritreep.Put(pos,testRI);
                 }
               }
@@ -3556,6 +3557,7 @@ Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
                 {
                   test =
                     CheckTree(testRI, pos, testRI, testRI.GetRight(),false);
+                  testRI.SetEntry(2,test);
                   ritreep.Put(pos,testRI);
 
                 }
