@@ -1413,12 +1413,12 @@ struct DisplayDArray : DisplayFunction {
 
       int No = 0;
       bool skipFirst = true;
-      cout << "*************** BEGIN DARRAY ***************" << endl; 
+      cout << "*************** BEGIN DARRAY ***************" << endl;
       if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
         nl->SymbolValue( value ) == Symbol::UNDEFINED() )
         {
           cout << Symbol::UNDEFINED() << endl;
-          
+
         }
       else
         {
@@ -2772,23 +2772,24 @@ struct DisplayJDirection : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
     NList in_inst(value);
-    cout << "Direction: " << in_inst.first().str() << endl;
+    cout << in_inst.first().str() << " direction";
   }
 };
 
 struct DisplayRouteLocation : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    cout << "RouteLocation: ";
-    NList in_inst(value);
-    if (in_inst.hasStringValue())
+    cout << "route location ";
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      cout<< "rid: " << in_inst.first().intval()
-          << ", pos: " << in_inst.second().realval()
-          << ", side: " << in_inst.third().first().str()
-          << endl;
+      ListExpr subtype = nl->TheEmptyList();
+      nl->ReadFromString("jdirection", subtype);
+      cout<< "on road with id " << nl->IntValue(nl->First(value))
+          << " at pos " << nl->RealValue(nl->Second(value))
+          << " driving ";
+      DisplayTTY::GetInstance().DisplayResult(subtype, nl->Third(value));
     }
   }
 };
@@ -2796,25 +2797,26 @@ struct DisplayRouteLocation : DisplayFunction {
 struct DisplayJRouteInterval : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    cout << "Routeinterval: ";
-    NList in_inst(value);
-    if (in_inst.hasStringValue())
+    cout << "route interval ";
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      cout<< "rid: " << in_inst.first().intval()
-      << ", from: " << in_inst.second().realval()
-      << ", to: " << in_inst.third().realval()
-      << ", side: " << in_inst.fourth().first().str()
-      << endl;
+      ListExpr subtype = nl->TheEmptyList();
+      nl->ReadFromString("jdirection", subtype);
+      cout<< "on road id " << nl->IntValue(nl->First(value))
+      << " from " << nl->RealValue(nl->Second(value))
+      << " to " << nl->RealValue(nl->Third(value))
+      << " at ";
+      DisplayTTY::GetInstance().DisplayResult(subtype, nl->Fourth(value));
     }
   }
 };
 
-struct DisplayJListTID : DisplayFunction {
+struct DisplayJListInt : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    cout << "List of Tuple Ids: ";
+    cout << "List of int: ";
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
@@ -2826,165 +2828,62 @@ struct DisplayJListTID : DisplayFunction {
       {
         first = nl->First( rest );
         rest = nl->Rest( rest );
-        cout << "TupleId: ";
         if (nl->IntAtom(first))
-          cout << nl->IntValue(first) << endl;
+          cout << nl->IntValue(first) << " ";
         else
           cout << Symbol::UNDEFINED() << endl;
       }
-      cout << "End of list." << endl;
-    }
-  }
-};
-
-struct DisplayPairTIDRLoc : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
-  {
-
-    cout << "Pair: ";
-    if (nl->IsEqual(value, Symbol::UNDEFINED()))
-      cout << Symbol::UNDEFINED() << endl;
-    else
-    {
-      ListExpr tid = nl->First(value);
-      cout << "TupleId: ";
-      if (nl->IntAtom(tid))
-        cout << nl->IntValue(tid);
-      else
-        cout << Symbol::UNDEFINED() << endl;
-      cout << ", RouteLocation: ";
-      NList rloc( nl->Second(value));
-      if (rloc.hasStringValue())
-        cout << Symbol::UNDEFINED() << endl;
-      else
-      {
-        cout << "rid: " << rloc.first().intval()
-             << ", pos: " << rloc.second().realval()
-             << ", side: " << rloc.third().first().str()
-             << endl;
-      }
-    }
-  }
-};
-
-struct DisplayListPTIDRLoc : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
-  {
-    cout << "List of Tuple Id and RouteLocation: ";
-    if (nl->IsEqual(value, Symbol::UNDEFINED()))
-      cout << Symbol::UNDEFINED() << endl;
-    else
-    {
       cout << endl;
-      while( !nl->IsEmpty(value))
+      cout << "End of list." << endl;
+    }
+  }
+};
+
+
+struct DisplayJListRLoc : DisplayFunction {
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    cout << "List of route locations: ";
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      ListExpr subtype = nl->TheEmptyList();
+      nl->ReadFromString("rloc", subtype);
+      ListExpr rest = value;
+      while( !nl->IsEmpty(rest))
       {
-        NList elem(nl->First(value));
-        if (elem.length() == 2)
-        {
-          NList tid(elem.first());
-          cout << "TupleId: ";
-          if (tid.isInt())
-            cout << tid.intval();
-          else
-            cout << Symbol::UNDEFINED();
-          NList rloc(elem.second());
-          cout << " RouteLocation: ";
-          if (rloc.hasStringValue())
-            cout << Symbol::UNDEFINED() << endl;
-          else
-          {
-            cout << "rid: " << rloc.first().intval()
-            << ", pos: " << rloc.second().realval()
-            << ", side: " << rloc.third().first().str()
-            << endl;
-          }
-        }
-        else
-        {
-          cout << Symbol::UNDEFINED() << endl;
-        }
-        value = nl->Rest(value);
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->First(rest));
+        rest = nl->Rest(rest);
       }
       cout << "End of list." << endl;
     }
   }
 };
 
-struct DisplayPairTIDRInt : DisplayFunction {
-  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
-  {
-    cout << "Pair: ";
-    if (nl->IsEqual(value, Symbol::UNDEFINED()))
-      cout << Symbol::UNDEFINED() << endl;
-    else
-    {
-      NList tid(nl->First(value));
-      cout << "TupleId: ";
-      if (tid.isInt())
-        cout << tid.intval();
-      else
-        cout << Symbol::UNDEFINED() << endl;
-      cout << ", RouteInterval: ";
-      NList rint( nl->Second(value));
-      if (rint.hasStringValue())
-        cout << Symbol::UNDEFINED() << endl;
-      else
-      {
-        cout << "rid: " << rint.first().intval()
-        << ", from: " << rint.second().realval()
-        << ", to: " << rint.third().realval()
-        << ", side: " << rint.fourth().first().str()
-        << endl;
-      }
-    }
-  }
-};
 
-struct DisplayListPTIDRInt : DisplayFunction {
+struct DisplayJListRInt : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    cout << "List of Tuple Ids and RouteIntervals: ";
+    cout << "List of route intervals: ";
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      cout << endl;
-      while( !nl->IsEmpty(value))
+      ListExpr subtype = nl->TheEmptyList();
+      nl->ReadFromString("jrint", subtype);
+      ListExpr rest = value;
+      while( !nl->IsEmpty(rest))
       {
-        NList elem(nl->First(value));
-        if (elem.length() == 2)
-        {
-          NList tid(elem.first());
-          cout << "TupleId: ";
-          if (tid.isInt())
-            cout << tid.intval();
-          else
-            cout << Symbol::UNDEFINED();
-          NList rint(elem.second());
-          cout << ", RouteInterval: ";
-          if (rint.hasStringValue())
-            cout << Symbol::UNDEFINED() << endl;
-          else
-          {
-            cout << " rid: " << rint.first().intval()
-            << ", from: " << rint.second().realval()
-            << ", to: " << rint.third().realval()
-            << ", side: " << rint.fourth().first().str()
-            << endl;
-          }
-        }
-        else
-        {
-          cout << Symbol::UNDEFINED() << endl;
-        }
-        value = nl->Rest(value);
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->First(rest));
+        rest = nl->Rest(rest);
       }
       cout << "End of list." << endl;
     }
   }
 };
 
-struct DisplayNetDistanceGroup : DisplayFunction {
+struct DisplayNDG : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
     cout << "NetDistanceGroup: ";
@@ -2992,19 +2891,17 @@ struct DisplayNetDistanceGroup : DisplayFunction {
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      NList target(nl->First(value));
-      NList nextSect(nl->Second(value));
-      NList nextJunct(nl->Third(value));
-      NList distance(nl->Fourth(value));
-      cout << "target: " << target.intval()
-           << ", next sect: " << nextSect.intval()
-           << ", next junction: " << nextJunct.intval()
-           << ", dist: " << distance.realval() << endl;
+      cout << "From junction  " << nl->IntValue(nl->First(value))
+           << " to junction " << nl->IntValue(nl->Second(value))
+           << " via section " << nl->IntValue(nl->Fourth(value))
+           << " over junction " << nl->IntValue(nl->Third(value))
+           << " network distance " << nl->RealValue(nl->Fifth(value))
+           << endl;
     }
   }
 };
 
-struct DisplayListNDG : DisplayFunction {
+struct DisplayJListNDG : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
     cout << "List of NetDistanceGroups: ";
@@ -3013,25 +2910,13 @@ struct DisplayListNDG : DisplayFunction {
     else
     {
       cout << endl;
-      while( !nl->IsEmpty(value))
+      ListExpr subtype = nl->TheEmptyList();
+      nl->ReadFromString("ndg", subtype);
+      ListExpr rest = value;
+      while( !nl->IsEmpty(rest))
       {
-        NList elem(nl->First(value));
-        if (elem.length() == 4)
-        {
-          NList target(elem.first());
-          NList nextSect(elem.second());
-          NList nextJunct(elem.third());
-          NList distance(elem.fourth());
-          cout << "target: " << target.intval()
-          << ", next sect: " << nextSect.intval()
-          << ", next junction: " << nextJunct.intval()
-          << ", dist: " << distance.realval() << endl;
-        }
-        else
-        {
-          cout << Symbol::UNDEFINED() << endl;
-        }
-        value = nl->Rest(value);
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->First(rest));
+        rest = nl->Rest(rest);
       }
       cout << "End of list." << endl;
     }
@@ -3041,19 +2926,18 @@ struct DisplayListNDG : DisplayFunction {
 struct DisplayJPoint : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    cout << "JPoint: ";
-    NList in_inst(value);
-    if (in_inst.length() ==  1 && in_inst.hasStringValue())
+    cout << "JPoint ";
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      NList net(in_inst.first());
-      cout << "Network: " << net.str();
-      NList rloc(in_inst.second());
-      cout<< " rid: " << rloc.first().intval()
-      << ", pos: " << rloc.second().realval()
-      << ", side: " << rloc.third().first().str()
-      << endl;
+      NList nid(nl->First(value));
+      cout << "in network " << nid.str();
+      cout << " at ";
+
+      ListExpr subtype = nl->TheEmptyList();
+      nl->ReadFromString("rloc", subtype);
+      DisplayTTY::GetInstance().DisplayResult(subtype, nl->Second(value));
     }
   }
 };
@@ -3062,26 +2946,22 @@ struct DisplayJLine : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
     cout << "JLine: ";
-    NList inlist(value);
-
-    if (inlist.length() ==  1 && inlist.hasStringValue())
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      NList id(inlist.first());
-      cout << " NetworkId: " << id.str() << endl;
+      NList nid(nl->First(value));
+      cout << "In network " << nid.str()
+           << " route parts: " << endl;
 
-      NList rints(inlist.second());
-      while (!rints.isEmpty())
+      ListExpr subtype = nl->TheEmptyList();
+      nl->ReadFromString("jrint", subtype);
+
+      ListExpr rest = nl->Second(value);
+      while (!nl->IsEmpty(rest))
       {
-        NList actRint(rints.first());
-        rints.rest();
-
-        cout << "rid: " << actRint.first().intval()
-        << ", from: " << actRint.second().realval()
-        << ", to: " << actRint.third().realval()
-        << ", side: " << actRint.fourth().first().str()
-        << endl;
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->First(rest));
+        rest = nl->Rest(rest);
       }
     }
   }
@@ -3090,192 +2970,121 @@ struct DisplayJLine : DisplayFunction {
 struct DisplayJNetwork : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    cout << "Network: ";
-    NList in_inst(value);
+    ListExpr subtype = nl->TheEmptyList();
+    cout << "JNetwork: ";
 
-    if (in_inst.length() ==  1 && in_inst.hasStringValue())
+    if (nl->ListLength(value) == 1 && nl->IsAtom(value))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      NList id(in_inst.first());
-      cout << id.str() << endl;
+      NList nid(nl->First(value));
+      cout << nid.str() << endl;
 
-      NList junct(in_inst.second());
       cout << "Junctions: " << endl;
-      while (!junct.isEmpty())
+      ListExpr rest = nl->Second(value);
+      ListExpr first = nl->TheEmptyList();
+
+      while (!nl->IsEmpty(rest))
       {
-        NList actJunct(junct.first());
-        junct.rest();
-        cout << "id: " << actJunct.first() << endl;
-        cout << "pos: " << actJunct.second() << endl;
+        first = nl->First(rest);
+        rest = nl->Rest(rest);
+        cout << "junction with id " << nl->IntValue(nl->First(first))
+             << " at position: " ;
+        nl->ReadFromString("point", subtype);
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->Second(first));
 
-        cout << "route positions of junction: " << endl;
-        NList junctRoutePos(actJunct.third());
-        while (!junctRoutePos.isEmpty())
-        {
-          NList actRoutePos(junctRoutePos.first());
-          junctRoutePos.rest();
-          cout << "TupleId: " << actRoutePos.first()
-               << ", rid: " << actRoutePos.second().first().intval()
-               << ", pos: " << actRoutePos.second().second().realval()
-               << ", side: " << actRoutePos.second().third().first().str()
-               << endl;
-        }
+        nl->ReadFromString("listrloc", subtype);
+        cout << "route positions of this junction: " << endl;
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->Third(first));
 
-        cout << "in sections of junction: " << endl;
-        NList inSections(actJunct.fourth());
-        while (!inSections.isEmpty())
-        {
-          NList actSect(inSections.first());
-          inSections.rest();
-          cout << "TupleId: " << actSect.intval() << endl;
-        }
+        nl->ReadFromString("listint", subtype);
+        cout << "Incoming sections of this junction: " << endl;
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->Fourth(first));
 
-        cout << "out sections of junction: " << endl;
-        NList outSections(actJunct.fifth());
-        while (!outSections.isEmpty())
-        {
-          NList actSect(outSections.first());
-          outSections.rest();
-          cout << "TupleId: " << actSect.intval() << endl;
-        }
-
-        cout << "Netdistances from junction: " << endl;
-        NList ndgList(actJunct.sixth());
-        while (!ndgList.isEmpty())
-        {
-          NList actNDG(ndgList.first());
-          ndgList.rest();
-          cout << "target: " << actNDG.first().intval()
-               << ", next section: " << actNDG.second().intval()
-               << ", next junction: " << actNDG.third().intval()
-               << ", distance: " << actNDG.fourth().realval() << endl;
-        }
-        cout << endl;
-      }
-      cout << endl;
-
-      NList routes(in_inst.fourth());
-      cout << "Routes: " << endl;
-      while (!routes.isEmpty())
-      {
-        NList actRoute(routes.first());
-        routes.rest();
-        cout << "id: " << actRoute.first().intval() << endl;
-        cout << "length: " << actRoute.fourth().realval() << endl;
-
-        cout << "Junctions of Route: " << endl;
-        NList junc(actRoute.second());
-        while (!junc.isEmpty())
-        {
-          NList actJunct(junc.first());
-          junc.rest();
-          cout << "TupleId: " << actJunct.first()
-          << ", rid: " << actJunct.second().first().intval()
-          << ", pos: " << actJunct.second().second().realval()
-          << ", side: " << actJunct.second().third().first().str()
-          << endl;
-        }
-
-        cout << "Sections of Route: " << endl;
-        NList sect(actRoute.third());
-        while (!sect.isEmpty())
-        {
-          NList actSect(sect.first());
-          sect.rest();
-          cout << "TupleId: " << actSect.first()
-          << ", rid: " << actSect.second().first().intval()
-          << ", from: " << actSect.second().second().realval()
-          << ", to: " << actSect.second().third().realval()
-          << ", side: " << actSect.second().fourth().first().str()
-          << endl;
-        }
-        cout << endl;
+        nl->ReadFromString("listint", subtype);
+        cout << "Outgoing sections from this junction: " << endl;
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->Fifth(first));
       }
       cout << endl;
 
       cout << "Sections: " << endl;
-      NList sections(in_inst.third());
-      while (!sections.isEmpty())
+      rest = nl->Third(value);
+      first = nl->TheEmptyList();
+      while (!nl->IsEmpty(rest))
       {
-        NList actSection(sections.first());
-        sections.rest();
+        first = nl->First(rest);
+        rest = nl->Rest(rest);
 
-        cout << "Id: " << actSection.first().intval() << endl;
-        cout << "Length: " << actSection.tenth().realval() << endl;
-        cout << "Speedlimit: " << actSection.eleventh().realval() << endl;
-        cout << "Direction: " << actSection.twelfth().first().str() << endl;
-        cout << "Startjunction: " << actSection.third().intval() << endl;
-        cout << "Targetjunction: " << actSection.fourth().intval() << endl;
-        cout << "Curve: startsSmaller: ";
-        if (actSection.second().second().boolval()) cout << "TRUE" << endl;
-        else cout << "FALSE" << endl;
-
-        NList curve(actSection.second().first());
-        while(!curve.isEmpty())
-        {
-          NList segment(curve.first());
-          curve.rest();
-
-          cout << "(" << segment.first() << ", " << segment.second() << ")"
-            << "-> (" << segment.third() << ", " << segment.fourth() << ")"
-            << endl;
-        }
-
+        cout << "Id: " << nl->IntValue(nl->First(first));
+        cout << "Length: " << nl->RealValue(nl->Seventh(first));
+        cout << "Speedlimit: " << nl->RealValue(nl->Sixth(first));
+        NList dir(nl->Fifth(first));
+        cout << "Direction: " << dir.first().str() << endl;
+        cout << "Startjunction: " << nl->IntValue(nl->Third(first)) << endl;
+        cout << "Targetjunction: " << nl->IntValue(nl->Fourth(first)) << endl;
         cout << "Represented route parts: " << endl;
-        NList routePart(actSection.fifth());
-        while (!routePart.isEmpty())
-        {
-          NList actPart(routePart.first());
-          routePart.rest();
-          cout << "TupleId: " << actPart.first()
-              << ", rid: " << actPart.second().first().intval()
-              << ", from: " << actPart.second().second().realval()
-              << ", to: " << actPart.second().third().realval()
-              << ", side: " << actPart.second().fourth().first().str()
-              << endl;
-        }
 
+        nl->ReadFromString("listjrint", subtype);
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->Eigth(first));
+
+        nl->ReadFromString("listint", subtype);
         cout << "Adjacent Sections Up: " << endl;
-        NList adjUp(actSection.sixth());
-        while (!adjUp.isEmpty())
-        {
-          NList up(adjUp.first());
-          adjUp.rest();
-          cout << "Tupleid: " << up.intval() << endl;
-        }
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->Ninth(first));
 
         cout << "Adjacent Sections Down: " << endl;
-        NList adjDown(actSection.seventh());
-        while (!adjDown.isEmpty())
-        {
-          NList down(adjDown.first());
-          adjDown.rest();
-          cout << "Tupleid: " << down.intval() << endl;
-        }
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->Tenth(first));
 
         cout << "Reverse adjacent sections Up: " << endl;
-        NList revadjUp(actSection.eigth());
-        while (!revadjUp.isEmpty())
-        {
-          NList revup(revadjUp.first());
-          revadjUp.rest();
-          cout << "Tupleid: " << revup.intval() << endl;
-        }
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->Eleventh(first));
 
         cout << "Reverse adjacent Sections Down: " << endl;
-        NList revadjDown(actSection.nineth());
-        while (!revadjDown.isEmpty())
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->Twelfth(first));
+
+        cout << "Curve starts at ";
+        if (nl->BoolValue(nl->Second(nl->Second(first))))
+          cout << "smaller ";
+        else
+          cout << "bigger";
+        cout << "endpoint." << endl;
+
+        ListExpr restElem = nl->First(nl->Second(first));
+        ListExpr firstElem = nl->TheEmptyList();
+        while(!nl->IsEmpty(restElem))
         {
-          NList revdown(revadjDown.first());
-          revadjDown.rest();
-          cout << "Tupleid: " << revdown.intval() << endl;
+          firstElem = nl->First(restElem);
+          restElem = nl->Rest(restElem);
+
+          cout << "(" << nl->RealValue(nl->First(firstElem)) << ", "
+               << nl->RealValue(nl->Second(firstElem)) << ")"
+               << "-> (" << nl->RealValue(nl->Third(firstElem)) << ", "
+               << nl->RealValue(nl->Fourth(firstElem)) << ")"
+               << endl;
         }
         cout << endl;
       }
+      cout << endl;
+
+      cout << "Routes: " << endl;
+      rest = nl->Fourth(value);
+      first = nl->TheEmptyList();
+      while (!nl->IsEmpty(rest))
+      {
+        first = nl->First(rest);
+        rest = nl->Rest(rest);
+        cout << "id: " << nl->IntValue(nl->First(first)) << endl;
+        cout << "length: " << nl->RealValue(nl->Fourth(first)) << endl;
+        nl->ReadFromString("listint", subtype);
+        cout << "Junctions on Route: " << endl;
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->Second(first));
+
+        cout << "Sections on Route: " << endl;
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->Third(first));
+      }
+      cout << endl;
     }
   }
 };
+
 /*
 Display Hadoop file list
 
@@ -3442,15 +3251,13 @@ DisplayTTY::Initialize()
   d.Insert( "jdirection", new DisplayJDirection() );
   d.Insert( "rloc", new DisplayRouteLocation());
   d.Insert( "jrint", new DisplayJRouteInterval());
-  d.Insert( "listtid", new DisplayJListTID());
-  d.Insert( "pairtidrloc", new DisplayPairTIDRLoc());
-  d.Insert( "listpairtidrloc", new DisplayListPTIDRLoc());
-  d.Insert( "pairtidjrint", new DisplayPairTIDRInt());
-  d.Insert( "listpairtidjrint", new DisplayListPTIDRInt());
-  d.Insert( "netdistgrp", new DisplayNetDistanceGroup());
-  d.Insert( "listnetdistgrp", new DisplayListNDG());
+  d.Insert( "ndg", new DisplayNDG());
+  d.Insert( "listint", new DisplayJListInt());
+  d.Insert( "listrloc", new DisplayJListRLoc());
+  d.Insert( "listjrint", new DisplayJListRInt());
+  d.Insert( "listndg", new DisplayJListNDG());
+  d.Insert( "jnet", new DisplayJNetwork());
   d.Insert( "jpoint", new DisplayJPoint());
-  d.Insert( "jnetwork", new DisplayJNetwork());
   d.Insert( "jline", new DisplayJLine());
 }
 
