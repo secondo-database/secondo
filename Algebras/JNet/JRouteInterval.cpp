@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2011, April Simone Jandt
+2012, May Simone Jandt
 
 1 Includes
 
@@ -32,7 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 
 /*
-1 ~class JRouteInterval~
+1 Implementation of ~class JRouteInterval~
 
 1.1 Constructors and Deconstructor
 
@@ -40,38 +40,51 @@ The default constructor should never been used, except in the Cast-Function.
 
 */
 
-JRouteInterval::JRouteInterval(): Attribute()
+JRouteInterval::JRouteInterval() :
+    Attribute()
 {}
 
-JRouteInterval::JRouteInterval(const JRouteInterval& other):
-  Attribute(other.IsDefined()),
-  rid(other.GetRouteId()),
-  startpos(other.GetStartPosition()),
-  endpos(other.GetEndPosition()),
-  side(other.GetSide())
-{}
+JRouteInterval::JRouteInterval(const JRouteInterval& other) :
+    Attribute(other.IsDefined()), rid(0), startpos(0.0), endpos(0.0), side(Both)
+{
+  if (other.IsDefined()){
+    rid = other.GetRouteId();
+    startpos = other.GetStartPosition();
+    endpos = other.GetEndPosition();
+    side = other.GetSide();
+  }
+}
+
 
 JRouteInterval::JRouteInterval(const int routeid, const double from,
-                               const double to, const Direction sideofroad)
-  : Attribute(true),
-    rid(routeid),
-    startpos(min(from,to)),
-    endpos(max(from,to)),
+                               const double to, const Direction sideofroad) :
+    Attribute(true), rid(routeid), startpos(min(from,to)), endpos(max(from,to)),
     side(sideofroad)
-{}
+{
+  assert(rid >= 0 && startpos >= 0.0 && endpos >= 0.0);
+}
 
-JRouteInterval::JRouteInterval(const bool defined) : Attribute(defined)
+JRouteInterval::JRouteInterval(const int routeid, const double from,
+                               const double to, const JSide sideofroad) :
+    Attribute(true), rid(routeid), startpos(min(from,to)), endpos(max(from,to)),
+    side(sideofroad)
+{
+  assert(rid >= 0 && startpos >= 0.0 && endpos >= 0.0);
+}
+
+JRouteInterval::JRouteInterval(const bool defined) :
+    Attribute(defined), rid(0), startpos(0.0), endpos(0.0), side(Both)
 {}
 
 JRouteInterval::JRouteInterval(const RouteLocation& from,
-                               const RouteLocation& to): Attribute(true)
+                               const RouteLocation& to) :
+  Attribute(false), rid(0), startpos(0.0), endpos(0.0), side(Both)
 {
-  if (!from.IsDefined() || !to.IsDefined() ||
-       from.GetRouteId() != to.GetRouteId() ||
-      !from.SameSide(to))
-      SetDefined(false);
-  else
+  if (from.IsDefined() && to.IsDefined() &&
+      from.GetRouteId() == to.GetRouteId() &&
+      from.SameSide(to, false))
   {
+    SetDefined(true);
     rid = from.GetRouteId();
     startpos = min(from.GetPosition(),to.GetPosition());
     endpos = max(from.GetPosition(),to.GetPosition());
@@ -83,7 +96,7 @@ JRouteInterval::~JRouteInterval()
 {}
 
 /*
-1.2 Getter and Setter for private Attributes
+1.1 Getter and Setter for private Attributes
 
 */
 
@@ -109,17 +122,32 @@ JRouteInterval::~JRouteInterval()
 
   void JRouteInterval::SetRouteId(const int routeid)
 {
+  assert (routeid >= 0);
   rid = routeid;
 }
 
-  void JRouteInterval::SetStartPosition(const int position)
+  void JRouteInterval::SetStartPosition(const double position)
 {
-  startpos = position;
+  assert (position >= 0.0);
+  if (position > endpos)
+  {
+    startpos = endpos;
+    endpos = position;
+  }
+  else
+    startpos = position;
 }
 
-  void JRouteInterval::SetEndPosition(const int position)
+  void JRouteInterval::SetEndPosition(const double position)
 {
-  endpos = position;
+  assert(position >= 0.0);
+  if (position > startpos)
+    endpos = position;
+  else
+  {
+    endpos = startpos;
+    startpos = position;
+  }
 }
 
   void JRouteInterval::SetSide(const Direction sideofroad)
@@ -128,7 +156,7 @@ JRouteInterval::~JRouteInterval()
 }
 
 /*
-1.3 Override Methods from Attribute
+1.1 Overwrite Methods from Attribute
 
 */
 
@@ -164,8 +192,9 @@ bool JRouteInterval::Adjacent(const Attribute* attrib) const
 {
   JRouteInterval* in = (JRouteInterval*) attrib;
   if ( rid == in->GetRouteId() &&
-      (startpos == in->GetEndPosition() || endpos == in->GetStartPosition()) &&
-       side.SameSide(in->GetSide(),true))
+       (AlmostEqual(startpos, in->GetEndPosition()) ||
+        AlmostEqual(endpos, in->GetStartPosition())) &&
+       side.SameSide(in->GetSide(),false))
     return true;
   else
     return false;
@@ -173,15 +202,23 @@ bool JRouteInterval::Adjacent(const Attribute* attrib) const
 
 int JRouteInterval::Compare(const Attribute* rhs) const
 {
-  JRouteInterval* in = (JRouteInterval*) rhs;
-  return Compare(*in);
+  JRouteInterval in ( *(JRouteInterval*) rhs);
+  return Compare(in);
 }
+
+int JRouteInterval::Compare(const void* ls, const void* rs) const
+{
+  JRouteInterval lhs( *(JRouteInterval*) ls);
+  JRouteInterval rhs( *(JRouteInterval*) rs);
+  return lhs.Compare(rhs);
+}
+
 
 int JRouteInterval::Compare(const JRouteInterval& in) const
 {
   if (!IsDefined() && !in.IsDefined()) return 0;
-  if (in.IsDefined() && !IsDefined()) return -1;
-  if (!in.IsDefined() && IsDefined()) return 1;
+  if (!IsDefined() && in.IsDefined()) return -1;
+  if (IsDefined() && !in.IsDefined()) return 1;
   if (rid < in.GetRouteId()) return -1;
   if (rid > in.GetRouteId()) return 1;
   if (startpos < in.GetStartPosition()) return -1;
@@ -245,6 +282,31 @@ bool JRouteInterval::operator==(const JRouteInterval& other) const
   return (Compare(&other) == 0);
 }
 
+bool JRouteInterval::operator!=(const JRouteInterval& other) const
+{
+  return (Compare(&other) != 0);
+}
+
+bool JRouteInterval::operator<(const JRouteInterval& other) const
+{
+  return (Compare(&other) < 0);
+}
+
+bool JRouteInterval::operator<=(const JRouteInterval& other) const
+{
+  return (Compare(&other) < 1);
+}
+
+bool JRouteInterval::operator>(const JRouteInterval& other) const
+{
+  return (Compare(&other) > 0);
+}
+
+bool JRouteInterval::operator>=(const JRouteInterval& other) const
+{
+  return (Compare(&other) > -1);
+}
+
 /*
 1.5 Operators for Secondo Integration
 
@@ -293,28 +355,28 @@ Word JRouteInterval::In(const ListExpr typeInfo, const ListExpr instance,
       int routeId = 0;
       double spos = 0.0;
       double epos = 0.0;
-      if (routeIdList.isInt())
+      if (routeIdList.isInt() && routeIdList.intval() >= 0)
           routeId = routeIdList.intval();
       else
       {
         correct = false;
-        cmsg.inFunError("First should be " + CcInt::BasicType());
+        cmsg.inFunError("1.Element should be " + CcInt::BasicType() + " >= 0.");
         return SetWord(Address(0));
       }
-      if (startPosList.isReal())
+      if (startPosList.isReal() && startPosList.realval() >= 0.0)
         spos = startPosList.realval();
       else
       {
         correct = false;
-        cmsg.inFunError("Second should be " + CcReal::BasicType());
+        cmsg.inFunError("2.Element should be " + CcReal::BasicType() +" >= 0.");
         return SetWord(Address(0));
       }
-      if (endPosList.isReal())
+      if (endPosList.isReal() && endPosList.realval() >= 0.0)
         epos = endPosList.realval();
       else
       {
         correct = false;
-        cmsg.inFunError("Third should be " + CcReal::BasicType());
+        cmsg.inFunError("3.Element should be " + CcReal::BasicType() +" >= 0.");
         return SetWord(Address(0));
       }
       correct = true;
@@ -336,14 +398,15 @@ Word JRouteInterval::In(const ListExpr typeInfo, const ListExpr instance,
         cmsg.inFunError("Third should be jdirection");
         return SetWord(Address(0));
       }
-      Direction* sideofroad = (Direction*) sideaddr.addr;
-      JRouteInterval* res = new JRouteInterval(routeId, spos, epos,*sideofroad);
-      sideofroad->DeleteIfAllowed();
+      Direction* psideofroad = (Direction*) sideaddr.addr;
+      JRouteInterval* res = new JRouteInterval(routeId, spos, epos,
+                                               psideofroad->GetDirection());
+      psideofroad->DeleteIfAllowed();
       return SetWord(res);
     }
   }
   correct = false;
-  cmsg.inFunError("length should be one or four");
+  cmsg.inFunError("List length should be one or four");
   return SetWord(Address(0));
 }
 
@@ -384,67 +447,6 @@ int JRouteInterval::SizeOf()
   return sizeof(JRouteInterval);
 }
 
-bool JRouteInterval::Save(SmiRecord& valueRecord, size_t& offset,
-                          const ListExpr typeInfo, Word& value )
-{
-  JRouteInterval* toSave = (JRouteInterval*) value.addr;
-  if (toSave->IsDefined())
-  {
-    int routeid = toSave->GetRouteId();
-    valueRecord.Write(&routeid, sizeof(int), offset);
-    offset += sizeof(int);
-    double spos = toSave->GetStartPosition();
-    valueRecord.Write(&spos, sizeof(double), offset);
-    offset += sizeof(double);
-    double epos = toSave->GetEndPosition();
-    valueRecord.Write(&epos, sizeof(double), offset);
-    offset += sizeof(double);
-    Word wside;
-    Direction* tdir = new Direction(toSave->GetSide());
-    wside = SetWord(tdir);
-    bool ok = Direction::Save(valueRecord, offset,
-                              nl->TheEmptyList(),
-                              wside);
-    tdir->DeleteIfAllowed();
-    return ok;
-  }
-  else
-  {
-    int i = -1;
-    valueRecord.Write(&i, sizeof(int),offset);
-    offset += sizeof(int);
-    return true;
-  }
-}
-
-bool JRouteInterval::Open(SmiRecord& valueRecord, size_t& offset,
-                          const ListExpr typeInfo, Word& value )
-{
-  int routeid = -1;
-  valueRecord.Read(&routeid, sizeof(int), offset);
-  offset += sizeof(int);
-  if (routeid == -1)
-  {
-    value = SetWord(new RouteLocation(false));
-    return true;
-  }
-  double spos;
-  valueRecord.Read(&spos, sizeof(double), offset);
-  offset += sizeof(double);
-  double epos;
-  valueRecord.Read(&epos, sizeof(double), offset);
-  offset += sizeof(double);
-  Word wside;
-  if (Direction::Open(valueRecord, offset, nl->TheEmptyList(),
-                      wside))
-  {
-    Direction direct = (*(Direction*) wside.addr);
-    value = SetWord(new JRouteInterval(routeid, spos, epos, direct));
-    return true;
-  }
-  return false;
-}
-
 ListExpr JRouteInterval::Property()
 {
   return nl->TwoElemList(
@@ -466,7 +468,7 @@ ListExpr JRouteInterval::Property()
 
 
 /*
-1.6 Helpful Operators
+1.1 Helpful Operators
 
 */
 
@@ -476,7 +478,7 @@ string JRouteInterval::Example()
 }
 
 /*
-1.1 ~SameSide~
+1.1.1 ~SameSide~
 
 Returns true if the ~route intervals~ have identic ~side~ values or at least one
 of them is both.
@@ -486,49 +488,42 @@ of them is both.
 bool JRouteInterval::SameSide(const JRouteInterval& other,
                               const bool strict /*true*/) const
 {
-  if (!IsDefined() && !other.IsDefined())
-    return true;
-  else
-  {
-    if (!IsDefined() || !other.IsDefined())
-      return false;
+  if (IsDefined() && other.IsDefined())
+    return (side.SameSide(other.GetSide()), strict);
+  else {
+    if (!IsDefined() && !other.IsDefined())
+      return true;
     else
-      return side.SameSide(other.GetSide(), strict);
+      return false;
   }
 }
 
 /*
-1.1 Contains
-
-Returns true if the ~routelocation~ is covered by the ~jrouteinterval~.
+1.1 ~Overlaps~
 
 */
 
-bool JRouteInterval::Contains(const RouteLocation& rloc) const
+bool JRouteInterval::Overlaps(const JRouteInterval& other) const
 {
-  if (!IsDefined() || !rloc.IsDefined()) return false;
-  else
+  if (rid == other.GetRouteId() && SameSide(other,true))
   {
-    if (rid == rloc.GetRouteId() &&
-        startpos <= rloc.GetPosition() && endpos >= rloc.GetPosition() &&
-        side.SameSide(rloc.GetSide(),false))
+    if (startpos <= other.GetEndPosition() ||
+        endpos <= other.GetStartPosition())
       return true;
     else
       return false;
   }
+  else
+    return false;
 }
 
-bool JRouteInterval::Contains(const JRouteInterval& other) const
+/*
+1 Overwrite output operator
+
+*/
+
+ostream& operator<<(ostream& os, const JRouteInterval& jir)
 {
-  if (!IsDefined() || !other.IsDefined()) return false;
-  else
-  {
-    if (rid == other.GetRouteId() &&
-        startpos <= other.GetStartPosition() &&
-        endpos >= other.GetEndPosition() &&
-        side.SameSide(other.GetSide(),true))
-      return true;
-    else
-      return false;
-  }
+  jir.Print(os);
+  return os;
 }

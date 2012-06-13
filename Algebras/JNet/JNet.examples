@@ -1,236 +1,517 @@
 Database: jnettest
 Restore : yes
 
-Operator : createnetdistgroup
+Operator : createjnet
 Number   : 1
-Signature: tid x tid x tid x real -> netdistgrp
-Example  : query createnetdistgroup(int2tid(17), int2tid(1), int2tid(507), 235.1);
-Result   : (netdistgrp(17 1 507 235.1))
-Tolerance: 0.01%
+Signature: int x rel x rel x rel -> bool
+Example  : query createjnet("testnet", junctest, secttest, routtest);
+Result   : TRUE
+Tolerance: 0.01%Seco
 
-Operator : createroutelocation
+Operator : createrloc
 Number   : 1
 Signature: int x real x jdirection -> rloc
-Example  : query createroutelocation(5, 17.5, [const jdirection value(Down)]);
-Result   : (rloc(5 17.5 (Down)))
+Example  : query createrloc(1, 234.4, [const jdirection value(Down)]);
+Result   : (rloc(1 234.4 (Down)))
 Tolerance: 0.01%
 
-Operator : createrouteinterval
+Operator : createrint
 Number   : 1
 Signature: int x real x real x jdirection -> jrint
-Example  : query createrouteinterval(5, 17.5, 65.3, [const jdirection value(Up)]);
-Result   : (jrint(5 17.5 65.3 (Up)))
+Example  : query createrint(4, 234.4, 3467.5, [const jdirection value(Up)]);
+Result   : (jrint(4 234.4 3467.5 (Up)))
 Tolerance: 0.01%
 
-Operator : createpair
+Operator : createndg
 Number   : 1
-Signature: tid x rloc -> pairtidrloc
-Example  : query createpair(int2tid(17),[const rloc value(4 234.5 Up)]);
-Result   : (pairtidrloc(17(4 234.5 (Up))))
-Tolerance: 0.01%
+Signature: int x int x int x int x real -> ndg
+Example  : query createndg(4, 56, 234, 5, 74399.9);
+Result   : (ndg(4 56 234 5 74399.9))
 
-Operator : createpair
-Number   : 2
-Signature: tid x rint -> pairtidjrint
-Example  : query createpair(int2tid(17),[const jrint value(4 234.5 4655.5 Down)]);
-Result   : (pairtidjrint(17 (4 234.5 4655.5 (Down))))
-Tolerance: 0.01%
-
-Operator : createlistj
+Operator : createlist
 Number   : 1
-Signature: stream(tid) -> listtid
-Example  : query createstreamj(List1tid) createlistj;
-Result   : (listtid(1 2 3 4 5))
-Tolerance: 0.01%
-
-Operator : createlistj
-Number   : 2
-Signature: stream(pairtidrloc) -> listpairtidrloc
-Example  : query createstreamj(List1pairtidrloc) createlistj;
-Result   : (listpairtidrloc((1 (1 34.5 (Up)))(3 (2 23.8 (Both)))(4 (4 34.2 (Up)))(2 (4 423.2 (Down)))(5 (9 54.1 (Down)))))
-Tolerance: 0.01%
-
-Operator : createlistj
-Number   : 3
-Signature: stream(pairtidjrint) -> listpairtidjrint
-Example  : query createstreamj(List1pairtidrint) createlistj;
-Result   : (listpairtidjrint((1 (1 34.5 54.3 (Up)))(3 (2 23.8 132.5 (Both)))(4 (4  15.5 34.2 (Up)))(2 (4 423.2 545.5 (Down)))(5 (9 54.1 546.6 (Down)))))
-Tolerance: 0.01%
-
-Operator : createlistj
-Number   : 4
-Signature: stream(netdistgrp) -> listnetdistgrp
-Example  : query createstreamj(List1ndg) createlistj;
-Result   : (listnetdistgrp((1 1 34 54.3)(2 4 423 545.5)(3 2 23 132.5)(4 4 34 15.5)(5 9 54 546.6)))
-Tolerance: 0.01%
-
-Operator : createlistj
-Number   : 5
 Signature: stream(int) -> listint
-Example  : query createstreamj(List1int) createlistj;
-Result   : (listint(5 6 15))
+Example  : query createstream(testlistint) createlist;
+Result   : (listint(1 8 9 535))
 Tolerance: 0.01%
 
-Operator : createstreamj
-Number   : 1
-Signature: listtid -> stream(tid)
-Example  : query createstreamj(List1tid) createlistj;
-Result   : (listtid(1 2 3 4 5))
-Tolerance: 0.01%
-
-Operator : createstreamj
+Operator : createlist
 Number   : 2
-Signature: listpairtidrloc -> stream(pairtidrloc)
-Example  : query createstreamj(List1pairtidrloc) createlistj;
-Result   : (listpairtidrloc((1 (1 34.5 (Up)))(3 (2 23.8 (Both)))(4 (4 34.2 (Up)))(2 (4 423.2 (Down)))(5 (9 54.1 (Down)))))
+Signature: stream(rloc) -> listrloc
+Example  : query createstream(testlistrloc) createlist;
+Result   : (listrloc((1 34.5 (Up))(2 23.8 (Both)) (4 34.2 (Up))(4 423.2 (Down))(9 54.1 (Down))))
 Tolerance: 0.01%
 
-Operator : createstreamj
+Operator : createlist
 Number   : 3
-Signature: listpairtidjrint -> stream(pairtidjrint)
-Example  : query createstreamj(List1pairtidrint) createlistj;
-Result   : (listpairtidjrint((1 (1 34.5 54.3 (Up)))(3 (2 23.8 132.5 (Both)))(4 (4 15.5 34.2 (Up)))(2 (4 423.2 545.5 (Down)))(5 (9 54.1 546.6 (Down)))))
+Signature: stream(jrint) -> listjrint
+Example  : query createstream(testlistrint) createlist;
+Result   : (listjrint((1 34.5 54.3 (Up))(2 23.8 132.5 (Both))(4  15.5 34.2 (Up))(4 423.2 545.5 (Down))(9 54.1 546.6 (Down))))
 Tolerance: 0.01%
 
-Operator : createstreamj
+Operator : createlist
 Number   : 4
-Signature: listnetdistgrp -> stream(netdistgrp)
-Example  : query createstreamj(List1ndg) createlistj;
-Result   : (listnetdistgrp((1 1 34 54.3)(2 4 423 545.5)(3 2 23 132.5)(4 4 34 15.5)(5 9 54 546.6)))
+Signature: stream(ndg) -> listndg
+Example  : query createstream(testlistndg) createlist;
+Result   : (listndg((1 23 1 34 54.3)(2 3 4 423 545.5)(3 34 2 23 132.5)(4 24 4 34 15.5)(5 42 9 54 546.6)))
 Tolerance: 0.01%
 
-Operator : createstreamj
-Number   : 5
+Operator : createstream
+Number   : 1
 Signature: listint -> stream(int)
-Example  : query createstreamj(List1int) createlistj;
-Result   : (listint(5 6 15))
+Example  : query createstream(testlistint) createlist;
+Result   : (listint(1 8 9 535))
 Tolerance: 0.01%
 
-Operator : createjnetwork
-Number   : 1
-Signature: string x rel x rel -> jnetwork
-Example  : query createjnetwork("Testnet1", Reljunctions, Relroutes);
-Result   : file
-
-Operator : junctions
-Number   : 1
-Signature: jnetwork -> rel(tuple( (Id int) (Pos point)(Listjuncpos listpairtidrloc)(Listinsections listtid)(Listoutsections listtid) (Listdistances listnetdistgrp)))
-Example  : query junctions(Testnet);
-Result   : file
-
-Operator : sections
-Number   : 1
-Signature: jnetwork -> rel ( tuple ( (Id int) (Curve sline)(Startjunc tid) (Endjunc tid) (Listsectrint listpairtidjrint)(Listadjsectup listtid) (Listadjsectdown listtid)(Listrevadjsectup listtid) (Listrevadjsectdown listtid)(lenth real) (vmax real) (sectdir jdirection)))
-Example  : query sections(Testnet);
-Result   : file
-
-Operator : routes
-Number   : 1
-Signature: jnetwork -> rel(tuple((Id int)(Listjunctions Listpairtidrloc)(listsections Listpairtidjrint)(Lenth real)))
-Example  : query routes(Testnet);
-Result   : file
-
-Operator : collectlistj
-Number   : 1
-Signature: stream(listtid) -> listtid
-Example  : query createstreamj(List1tid) createlistj feed collectlistj;
-Result   : (listtid(1 2 3 4 5))
-Tolerance: 0.01%
-
-Operator : collectlistj
+Operator : createstream
 Number   : 2
-Signature: stream(listpairtidrloc) -> listpairtidrloc
-Example  : query createstreamj(List1pairtidrloc) createlistj feed collectlistj;
-Result   : (listpairtidrloc((1 (1 34.5 (Up)))(3 (2 23.8 (Both)))(4 (4 34.2 (Up)))(2 (4 423.2 (Down)))(5 (9 54.1 (Down)))))
+Signature: listrloc -> stream(rloc)
+Example  : query createstream(testlistrloc) createlist;
+Result   : (listrloc((1 34.5 (Up))(2 23.8 (Both)) (4 34.2 (Up))(4 423.2 (Down))(9 54.1 (Down))))
 Tolerance: 0.01%
 
-Operator : collectlistj
+Operator : createstream
 Number   : 3
-Signature: stream(listpairtidjrint) -> listpairtidjrint
-Example  : query createstreamj(List1pairtidrint) createlistj feed collectlistj;
-Result   : (listpairtidjrint((1 (1 34.5 54.3 (Up)))(3 (2 23.8 132.5 (Both)))(4 (4  15.5 34.2 (Up)))(2 (4 423.2 545.5 (Down)))(5 (9 54.1 546.6 (Down)))))
+Signature: listjrint -> stream(jrint)
+Example  : query createstream(testlistrint) createlist;
+Result   : (listjrint((1 34.5 54.3 (Up))(2 23.8 132.5 (Both))(4  15.5 34.2 (Up))(4 423.2 545.5 (Down))(9 54.1 546.6 (Down))))
 Tolerance: 0.01%
 
-Operator : collectlistj
+Operator : createstream
 Number   : 4
-Signature: stream(listnetdistgrp) -> listnetdistgrp
-Example  : query createstreamj(List1ndg) createlistj feed collectlistj;
-Result   : (listnetdistgrp((1 1 34 54.3)(2 4 423 545.5)(3 2 23 132.5)(4 4 34 15.5)(5 9 54 546.6)))
+Signature: listndg -> stream(ndg)
+Example  : query createstream(testlistndg) createlist;
+Result   : (listndg((1 23 1 34 54.3)(2 3 4 423 545.5)(3 34 2 23 132.5)(4 24 4 34 15.5)(5 42 9 54 546.6)))
 Tolerance: 0.01%
 
-Operator : collectlistj
-Number   : 5
-Signature: stream(listint) -> listint
-Example  : query createstreamj(List1int) createlistj feed collectlistj;
-Result   : (listint(5 6 15))
-Tolerance: 0.01%
-
-Operator : getfirstelem
+Operator : =
 Number   : 1
-Signature: listtid -> tid
-Example  : query getfirstelem(List1tid);
-Result   : (tid 1)
-Tolerance: 0.01%
+Signature: jdirection x jdirection -> bool
+Example  : query [const jdirection value(Up)] = [const jdirection value(Up)];
+Result   : TRUE
 
-Operator : getfirstelem
+Operator : =
 Number   : 2
-Signature: listpairtidrloc -> pairtidrloc
-Example  : query getfirstelem(List1pairtidrloc);
-Result   : (pairtidrloc (1 (1 34.5 (Up))))
-Tolerance: 0.01%
+Signature: jdirection x jdirection -> bool
+Example  : query [const jdirection value(Down)] = [const jdirection value(Up)];
+Result   : FALSE
 
-Operator : getfirstelem
+Operator : =
 Number   : 3
-Signature: listpairtidjrint -> pairtidjrint
-Example  : query getfirstelem(List1pairtidrint);
-Result   : (pairtidjrint (1 (1 34.5 54.3 (Up))))
-Tolerance: 0.01%
+Signature: rloc x rloc -> bool
+Example  : query createrloc(4, 234.4,[const jdirection value(Up)]) = createrloc(4, 234.4,[const jdirection value(Up)]);
+Result   : TRUE
 
-Operator : getfirstelem
+Operator : =
 Number   : 4
-Signature: listnetdistgrp -> netdistgrp
-Example  : query getfirstelem(List1ndg);
-Result   : (netdistgrp (1 1 34 54.3))
-Tolerance: 0.01%
+Signature: rloc x rloc -> bool
+Example  : query createrloc(4, 234.4,[const jdirection value(Up)]) = createrloc(6, 234.4,[const jdirection value(Up)]);
+Result   : FALSE
 
-Operator : getfirstelem
+Operator : =
 Number   : 5
-Signature: listint -> int
-Example  : query getfirstelem(List1int);
-Result   : (int 5)
-Tolerance: 0.01%
+Signature: jrint x jrint -> bool
+Example  : query createrint(4, 234.4, 2355.5, [const jdirection value(Up)]) = createrint(4, 234.4, 2355.5, [const jdirection value(Up)]);
+Result   : TRUE
 
-Operator : getlastelem
+Operator : =
+Number   : 6
+Signature: jrint x jrint -> bool
+Example  : query createrint(4, 234.4, 2355.5, [const jdirection value(Up)]) = createrint(6, 234.4, 2355.5, [const jdirection value(Up)]);
+Result   : FALSE
+
+Operator : =
+Number   : 7
+Signature: ndg x ndg -> bool
+Example  : query createndg(4, 234, 23, 55, 25.5) = createndg(4, 234, 23, 55, 25.5);
+Result   : TRUE
+
+Operator : =
+Number   : 8
+Signature: ndg x ndg -> bool
+Example  : query createndg(4, 234, 23, 55, 25.5) = createndg(4, 234, 23, 55, 27.5);
+Result   : FALSE
+
+Operator : =
+Number   : 9
+Signature: listint x listint -> bool
+Example  : query testlistint = testlistint;
+Result   : TRUE
+
+Operator : =
+Number   : 10
+Signature: listrloc x listrloc -> bool
+Example  : query testlistrloc = testlistrloc;
+Result   : TRUE
+
+Operator : =
+Number   : 11
+Signature: listjrint x listjrint -> bool
+Example  : query testlistrint = testlistrint;
+Result   : TRUE
+
+Operator : =
+Number   : 12
+Signature: listndg x listndg -> bool
+Example  : query testlistndg = testlistndg;
+Result   : TRUE
+
+Operator : #
 Number   : 1
-Signature: listtid -> tid
-Example  : query getlastelem(List1tid);
-Result   : (tid 5)
-Tolerance: 0.01%
+Signature: jdirection x jdirection -> bool
+Example  : query [const jdirection value(Up)] # [const jdirection value(Up)];
+Result   : FALSE
 
-Operator : getlastelem
+Operator : #
 Number   : 2
-Signature: listpairtidrloc -> pairtidrloc
-Example  : query getlastelem(List1pairtidrloc);
-Result   : (pairtidrloc (5 (9 54.1 (Down))))
-Tolerance: 0.01%
+Signature: jdirection x jdirection -> bool
+Example  : query [const jdirection value(Down)] # [const jdirection value(Up)];
+Result   : TRUE
 
-Operator : getlastelem
+Operator : #
 Number   : 3
-Signature: listpairtidjrint -> pairtidjrint
-Example  : query getlastelem(List1pairtidrint);
-Result   : (pairtidjrint (5 (9 54.1 546.6 (Down))))
-Tolerance: 0.01%
+Signature: rloc x rloc -> bool
+Example  : query createrloc(4, 234.4,[const jdirection value(Up)]) # createrloc(4, 234.4,[const jdirection value(Up)]);
+Result   : FALSE
 
-Operator : getlastelem
+Operator : #
 Number   : 4
-Signature: listnetdistgrp -> netdistgrp
-Example  : query getlastelem(List1ndg);
-Result   : (netdistgrp (5 9 54 546.6))
-Tolerance: 0.01%
+Signature: rloc x rloc -> bool
+Example  : query createrloc(4, 234.4,[const jdirection value(Up)]) # createrloc(6, 234.4,[const jdirection value(Up)]);
+Result   : TRUE
 
-Operator : getlastelem
+Operator : #
 Number   : 5
-Signature: listint -> int
-Example  : query getlastelem(List1int);
-Result   : (int 15)
-Tolerance: 0.01%
+Signature: jrint x jrint -> bool
+Example  : query createrint(4, 234.4, 2355.5, [const jdirection value(Up)]) # createrint(4, 234.4, 2355.5, [const jdirection value(Up)]);
+Result   : FALSE
+
+Operator : #
+Number   : 6
+Signature: jrint x jrint -> bool
+Example  : query createrint(4, 234.4, 2355.5, [const jdirection value(Up)]) # createrint(6, 234.4, 2355.5, [const jdirection value(Up)]);
+Result   : TRUE
+
+Operator : #
+Number   : 7
+Signature: ndg x ndg -> bool
+Example  : query createndg(4, 234, 23, 55, 25.5) # createndg(4, 234, 23, 55, 25.5);
+Result   : FALSE
+
+Operator : #
+Number   : 8
+Signature: ndg x ndg -> bool
+Example  : query createndg(4, 234, 23, 55, 25.5) # createndg(4, 234, 23, 55, 27.5);
+Result   : TRUE
+
+Operator : #
+Number   : 9
+Signature: listint x listint -> bool
+Example  : query testlistint # testlistint;
+Result   : FALSE
+
+Operator : #
+Number   : 10
+Signature: listrloc x listrloc -> bool
+Example  : query testlistrloc # testlistrloc;
+Result   : FALSE
+
+Operator : #
+Number   : 11
+Signature: listjrint x listjrint -> bool
+Example  : query testlistrint # testlistrint;
+Result   : FALSE
+
+Operator : #
+Number   : 12
+Signature: listndg x listndg -> bool
+Example  : query testlistndg # testlistndg;
+Result   : FALSE
+
+Operator : <
+Number   : 1
+Signature: jdirection x jdirection -> bool
+Example  : query [const jdirection value(Up)] < [const jdirection value(Up)];
+Result   : FALSE
+
+Operator : <
+Number   : 2
+Signature: jdirection x jdirection -> bool
+Example  : query [const jdirection value(Down)] < [const jdirection value(Up)];
+Result   : FALSE
+
+Operator : <
+Number   : 3
+Signature: rloc x rloc -> bool
+Example  : query createrloc(4, 234.4,[const jdirection value(Up)]) < createrloc(4, 234.4,[const jdirection value(Up)]);
+Result   : FALSE
+
+Operator : <
+Number   : 4
+Signature: rloc x rloc -> bool
+Example  : query createrloc(4, 234.4,[const jdirection value(Up)]) < createrloc(6, 234.4,[const jdirection value(Up)]);
+Result   : TRUE
+
+Operator : <
+Number   : 5
+Signature: jrint x jrint -> bool
+Example  : query createrint(4, 234.4, 2355.5, [const jdirection value(Up)]) < createrint(4, 234.4, 2355.5, [const jdirection value(Up)]);
+Result   : FALSE
+
+Operator : <
+Number   : 6
+Signature: jrint x jrint -> bool
+Example  : query createrint(4, 234.4, 2355.5, [const jdirection value(Up)]) < createrint(6, 234.4, 2355.5, [const jdirection value(Up)]);
+Result   : TRUE
+
+Operator : <
+Number   : 7
+Signature: ndg x ndg -> bool
+Example  : query createndg(4, 234, 23, 55, 25.5) < createndg(4, 234, 23, 55, 25.5);
+Result   : FALSE
+
+Operator : <
+Number   : 8
+Signature: ndg x ndg -> bool
+Example  : query createndg(4, 234, 23, 55, 25.5) < createndg(4, 234, 23, 55, 27.5);
+Result   : TRUE
+
+Operator : <
+Number   : 9
+Signature: listint x listint -> bool
+Example  : query testlistint < testlistint;
+Result   : FALSE
+
+Operator : <
+Number   : 10
+Signature: listrloc x listrloc -> bool
+Example  : query testlistrloc < testlistrloc;
+Result   : FALSE
+
+Operator : <
+Number   : 11
+Signature: listjrint x listjrint -> bool
+Example  : query testlistrint < testlistrint;
+Result   : FALSE
+
+Operator : <
+Number   : 12
+Signature: listndg x listndg -> bool
+Example  : query testlistndg < testlistndg;
+Result   : FALSE
+
+Operator : <=
+Number   : 1
+Signature: jdirection x jdirection -> bool
+Example  : query [const jdirection value(Up)] <= [const jdirection value(Up)];
+Result   : TRUE
+
+Operator : <=
+Number   : 2
+Signature: jdirection x jdirection -> bool
+Example  : query [const jdirection value(Down)] <= [const jdirection value(Up)];
+Result   : FALSE
+
+Operator : <=
+Number   : 3
+Signature: rloc x rloc -> bool
+Example  : query createrloc(4, 234.4,[const jdirection value(Up)]) <= createrloc(4, 234.4,[const jdirection value(Up)]);
+Result   : TRUE
+
+Operator : <=
+Number   : 4
+Signature: rloc x rloc -> bool
+Example  : query createrloc(4, 234.4,[const jdirection value(Up)]) <= createrloc(6, 234.4,[const jdirection value(Up)]);
+Result   : TRUE
+
+Operator : <=
+Number   : 5
+Signature: jrint x jrint -> bool
+Example  : query createrint(4, 234.4, 2355.5, [const jdirection value(Up)]) <= createrint(4, 234.4, 2355.5, [const jdirection value(Up)]);
+Result   : TRUE
+
+Operator : <=
+Number   : 6
+Signature: jrint x jrint -> bool
+Example  : query createrint(4, 234.4, 2355.5, [const jdirection value(Up)]) <= createrint(6, 234.4, 2355.5, [const jdirection value(Up)]);
+Result   : TRUE
+
+Operator : <=
+Number   : 7
+Signature: ndg x ndg -> bool
+Example  : query createndg(4, 234, 23, 55, 25.5) <= createndg(4, 234, 23, 55, 25.5);
+Result   : TRUE
+
+Operator : <=
+Number   : 8
+Signature: ndg x ndg -> bool
+Example  : query createndg(4, 234, 23, 55, 25.5) <= createndg(4, 234, 23, 55, 27.5);
+Result   : TRUE
+
+Operator : <=
+Number   : 9
+Signature: listint x listint -> bool
+Example  : query testlistint <= testlistint;
+Result   : TRUE
+
+Operator : <=
+Number   : 10
+Signature: listrloc x listrloc -> bool
+Example  : query testlistrloc <= testlistrloc;
+Result   : TRUE
+
+Operator : <=
+Number   : 11
+Signature: listjrint x listjrint -> bool
+Example  : query testlistrint <= testlistrint;
+Result   : TRUE
+
+Operator : <=
+Number   : 12
+Signature: listndg x listndg -> bool
+Example  : query testlistndg <= testlistndg;
+Result   : TRUE
+
+Operator : >=
+Number   : 1
+Signature: jdirection x jdirection -> bool
+Example  : query [const jdirection value(Up)] >= [const jdirection value(Up)];
+Result   : TRUE
+
+Operator : >=
+Number   : 2
+Signature: jdirection x jdirection -> bool
+Example  : query [const jdirection value(Down)] >= [const jdirection value(Up)];
+Result   : TRUE
+
+Operator : >=
+Number   : 3
+Signature: rloc x rloc -> bool
+Example  : query createrloc(4, 234.4,[const jdirection value(Up)]) >= createrloc(4, 234.4,[const jdirection value(Up)]);
+Result   : TRUE
+
+Operator : >=
+Number   : 4
+Signature: rloc x rloc -> bool
+Example  : query createrloc(4, 234.4,[const jdirection value(Up)]) >= createrloc(6, 234.4,[const jdirection value(Up)]);
+Result   : FALSE
+
+Operator : >=
+Number   : 5
+Signature: jrint x jrint -> bool
+Example  : query createrint(4, 234.4, 2355.5, [const jdirection value(Up)]) >= createrint(4, 234.4, 2355.5, [const jdirection value(Up)]);
+Result   : TRUE
+
+Operator : >=
+Number   : 6
+Signature: jrint x jrint -> bool
+Example  : query createrint(4, 234.4, 2355.5, [const jdirection value(Up)]) >= createrint(6, 234.4, 2355.5, [const jdirection value(Up)]);
+Result   : FALSE
+
+Operator : >=
+Number   : 7
+Signature: ndg x ndg -> bool
+Example  : query createndg(4, 234, 23, 55, 25.5) >= createndg(4, 234, 23, 55, 25.5);
+Result   : TRUE
+
+Operator : >=
+Number   : 8
+Signature: ndg x ndg -> bool
+Example  : query createndg(4, 234, 23, 55, 25.5) >= createndg(4, 234, 23, 55, 27.5);
+Result   : FALSE
+
+Operator : >=
+Number   : 9
+Signature: listint x listint -> bool
+Example  : query testlistint >= testlistint;
+Result   : TRUE
+
+Operator : >=
+Number   : 10
+Signature: listrloc x listrloc -> bool
+Example  : query testlistrloc >= testlistrloc;
+Result   : TRUE
+
+Operator : >=
+Number   : 11
+Signature: listjrint x listjrint -> bool
+Example  : query testlistrint >= testlistrint;
+Result   : TRUE
+
+Operator : >=
+Number   : 12
+Signature: listndg x listndg -> bool
+Example  : query testlistndg >= testlistndg;
+Result   : TRUE
+
+Operator : >
+Number   : 1
+Signature: jdirection x jdirection -> bool
+Example  : query [const jdirection value(Up)] > [const jdirection value(Up)];
+Result   : FALSE
+
+Operator : >
+Number   : 2
+Signature: jdirection x jdirection -> bool
+Example  : query [const jdirection value(Down)] > [const jdirection value(Up)];
+Result   : TRUE
+
+Operator : >
+Number   : 3
+Signature: rloc x rloc -> bool
+Example  : query createrloc(4, 234.4,[const jdirection value(Up)]) > createrloc(4, 234.4,[const jdirection value(Up)]);
+Result   : FALSE
+
+Operator : >
+Number   : 4
+Signature: rloc x rloc -> bool
+Example  : query createrloc(4, 234.4,[const jdirection value(Up)]) > createrloc(6, 234.4,[const jdirection value(Up)]);
+Result   : FALSE
+
+Operator : >
+Number   : 5
+Signature: jrint x jrint -> bool
+Example  : query createrint(4, 234.4, 2355.5, [const jdirection value(Up)]) > createrint(4, 234.4, 2355.5, [const jdirection value(Up)]);
+Result   : FALSE
+
+Operator : >
+Number   : 6
+Signature: jrint x jrint -> bool
+Example  : query createrint(4, 234.4, 2355.5, [const jdirection value(Up)]) > createrint(6, 234.4, 2355.5, [const jdirection value(Up)]);
+Result   : FALSE
+
+Operator : >
+Number   : 7
+Signature: ndg x ndg -> bool
+Example  : query createndg(4, 234, 23, 55, 25.5) > createndg(4, 234, 23, 55, 25.5);
+Result   : FALSE
+
+Operator : >
+Number   : 8
+Signature: ndg x ndg -> bool
+Example  : query createndg(4, 234, 23, 55, 25.5) > createndg(4, 234, 23, 55, 27.5);
+Result   : FALSE
+
+Operator : >
+Number   : 9
+Signature: listint x listint -> bool
+Example  : query testlistint > testlistint;
+Result   : FALSE
+
+Operator : >
+Number   : 10
+Signature: listrloc x listrloc -> bool
+Example  : query testlistrloc > testlistrloc;
+Result   : FALSE
+
+Operator : >
+Number   : 11
+Signature: listjrint x listjrint -> bool
+Example  : query testlistrint > testlistrint;
+Result   : FALSE
+
+Operator : >
+Number   : 12
+Signature: listndg x listndg -> bool
+Example  : query testlistndg > testlistndg;
+Result   : FALSE

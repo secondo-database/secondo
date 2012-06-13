@@ -18,7 +18,9 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2011, April 14 Simone Jandt
+2012, May Simone Jandt
+
+1. Includes
 
 */
 
@@ -41,31 +43,39 @@ defining sections. Therefore it implements the secondo interface for
 class Direction : public Attribute
 {
 
+/*
+1.1 public Methods of class ~Direction~
+
+*/
 public:
 
 /*
-1.1 Constructors and Deconstructors
+1.1.1 Constructors and Deconstructors
 
-The default Constructor should only be used in the cast-Function.
+The default Constructor should only be used in the cast-Function. Because
+direction is used in other classes as member it the default constructor cannot
+be defined to be private.
 
 */
 
   Direction();
-  Direction(const bool defined);
+  explicit Direction(const bool defined);
   Direction(const Direction& other);
-  Direction(const JSide inside);
+  explicit Direction(const JSide inside);
+
   ~Direction();
 
 /*
-1.2 Getter and Setter for private attributes
+1.1.1 Getter and Setter for private attributes
 
 */
 
   JSide GetDirection() const;
-  void SetDirection(const JSide inside);
+  void SetSide(const JSide side);
+  void SetDirection(const Direction& inside);
 
 /*
-1.3 Override Methods from Attribute
+1.1.1 Override Methods from Attribute
 
 */
   void CopyFrom(const Attribute* right);
@@ -73,26 +83,31 @@ The default Constructor should only be used in the cast-Function.
   size_t HashValue() const;
   Attribute* Clone() const;
   bool Adjacent(const Attribute* attrib) const;
+  int Compare(const void* ls, const void* rhs) const;
   int Compare(const Attribute* rhs) const;
   int Compare(const Direction& indir) const;
+  int Compare(const JSide& ls, const JSide& rs)const ;
   size_t Sizeof() const;
   ostream& Print(ostream& os) const;
   static const string BasicType();
   static const bool checkType(const ListExpr type);
 
 /*
-1.4 Standard Operators
+1.1.1 Standard Operators
 
 */
 
   Direction& operator=(const Direction& other);
+
   bool operator==(const Direction& other) const;
-  bool operator==(const JSide& other) const;
   bool operator<(const Direction& other) const;
-  bool operator<(const JSide& other) const;
+  bool operator<=(const Direction& other) const;
+  bool operator>(const Direction& other) const;
+  bool operator>=(const Direction& other) const;
+  bool operator!=(const Direction& other) const;
 
 /*
-1.5 Operators for Secondo Integration
+1.1.1 Operators for Secondo Integration
 
 */
   static ListExpr Out(ListExpr typeInfo, Word value);
@@ -105,16 +120,12 @@ The default Constructor should only be used in the cast-Function.
   static void* Cast( void* addr );
   static bool KindCheck ( ListExpr type, ListExpr& errorInfo );
   static int SizeOf();
-  static bool Save(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value );
-  static bool Open(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value );
   static ListExpr Property();
 
 /*
-1.6 Helpful Operations
+1.1.1 Helpful Operations
 
-1.1.1 Example
+1.1.1.1 Example
 
 Provides example string for list representation can be used by external
 property definitions for part of Direction representation.
@@ -124,7 +135,7 @@ property definitions for part of Direction representation.
 static string Example();
 
 /*
-1.6.1 SameSide
+1.1.1.1.1 SameSide
 
 Returns true if the both direction values are equal or one of them is ~Both~.
 
@@ -132,22 +143,26 @@ Returns true if the both direction values are equal or one of them is ~Both~.
 
   bool SameSide(const Direction& dir, const bool strict = true) const;
 
+/*
+1.1 Private definitions of class ~Direction~
+
+*/
 private:
 
 /*
-1.1 Private Attributes
+1.1.1 Attributes of class ~Direction~
 
 */
 
   JSide side;
 
+};
+
 /*
-1.1 Private helper functions
+1 Overload output operator
 
 */
 
-int Compare(const JSide& a, const JSide& b) const;
-
-};
+ostream& operator<<(ostream& os, const Direction& dir);
 
 #endif // DIRECTION_H

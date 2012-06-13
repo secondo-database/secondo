@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2011, May Simone Jandt
+2012, May Simone Jandt
 
 1 Includes
 
@@ -32,14 +32,105 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "NList.h"
 #include "StandardTypes.h"
-#include "../Relation-C++/RelationAlgebra.h"
-#include "../BTree/BTreeAlgebra.h"
-#include "../RTree/RTreeAlgebra.h"
-#include "../Spatial/SpatialAlgebra.h"
+#include "RelationAlgebra.h"
+#include "OrderedRelationAlgebra.h"
+#include "BTreeAlgebra.h"
+#include "RTreeAlgebra.h"
+#include "SpatialAlgebra.h"
 #include "JList.h"
 
 /*
 1 Class ~JNetwork~
+
+Hybrid representation for street networks.
+
+The representation consists of an defined flag (bool), an network id (string),
+three relations, one ordered relation, and some BTree and RTree indices on this
+relations providing faster access to the data stored in the network.
+
+The defined flag tells if the network data is well defined. The network id
+corresponds to the objectname of the network in the secondo database.
+
+The first relation stores the network informations about street crossings, and
+dead ends of streets. The relation is called junctions. The attributes of this
+relation and their meanings are:
+
+Attributname | Datatype | Meaning
+==============================================================================
+Id           | int      | unifique identifier of the street crossing
+Position     | point    | spatial position of the crossing
+ListRoutePos | listrloc | list of network (route) positions of the crossing
+ListSectIn   | listint  | list of section identifiers for sections incoming to
+             |          | this crossing
+ListSectOut  | listint  | list of section identifiers for sections outgoing from
+             |          | this crossing
+
+The attribut Id is indexed by an BTree (junctionBTree) and the attribut
+Position by an RTree (junctionRTree).
+
+The second relation stores the network informations about the sections of the
+street network. A section is the street part between two crossings resp. the
+street part between a crossing and the end of a street.
+
+Attributname      | Datatype  | Meaning
+==============================================================================
+Id                | int       | unifique identifier of the street section
+Curve             | SimpleLine| spatial representation of the section
+StartJuncId       | int       | identifier of the crossing at the start of the
+                  |           | section
+EndJuncId         | int       | identifier of the crossing at the end of the
+                  |           | section
+Side              | jdirection| tells if the section can be used upwards,
+                  |           | downwards or in both directions
+VMax              | real      | maximum allowed speed on this section in km/h
+Length            | real      | length of the section in meter
+ListRoadInter     | listjrint | list of road intervals represented by this
+                  |           | section (sections may belong to more than one
+                  |           | road, for example parts of main roads have often
+                  |           | additional street names inside of towns)
+ListAdjSectUp     | listint   | list of the identifiers of adjacent sections at
+                  |           | the end of the section
+ListAdjSectDow    | listint   | list of the identifiers of adjacent sections at
+                  |           | the end of the section
+ListRevAdjSectUp  | listint   | list of the identifiers of adjacent sections at
+                  |           | the end of the section
+ListRevAdjSectDown| listint   | list of the identifiers of adjacent sections at
+                  |           | the end of the section
+
+The attribut Id is again indexed by an BTree (sectionBTree) and the attribut
+Curve by an RTree(sectionRTree).
+
+In fact the complete network data is given in this two relations but men are
+used into roads and positions on roads not in sections and junctions therefore
+we maintain a third relation, called routes, which connects the junction and
+section information to the road definition we normal use.
+
+Attributname      | Datatype  | Meaning
+===============================================================================
+Id                | int       | unifique identifier of the road
+Length            | real      | length of the road in meter
+ListJunctions     | listint   | list of junction identifiers for the crossings
+                  |           | of this road
+ListSections      | listint   | list of section identifiers for the sections
+                  |           | belonging to this road
+
+The attribut Id is indexed by BTree routeBTree.
+
+Last we define an ordered relation to be part of jnetwork which is stores the
+netdistance values for already computed paths. The attributes are:
+
+Attributename     | Datatype  | Meaning
+===============================================================================
+Source            | int       | identifier of source junction
+Target            | int       | identifier of junction at the end of the path
+NextJunction      | int       | identifier of next junction on the path
+NextSection       | int       | identifier of section, which leads to the next
+                  |           | junction on the path
+NetworkDistance   | real      | network distance from source to target
+
+The composite key is defined by source and target identifier.
+At the start the relation is empty it is filled step by step at each network
+distance computation.
 
 */
 
@@ -47,44 +138,95 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 class JNetwork
 {
 
+/*
+1.1. Public Declarations
+
+*/
 public:
 
 /*
-1.1 Constructors and Deconstructors
+1.1.1 Constructors and Deconstructors
 
-The default constructor should only be used in the cast function.
+The first constructor expects the Relations in internal representation. It just
+copies the given relations into the internal data structure and builds the
+network indexes over the copied relations.
 
 */
-  JNetwork();
-  JNetwork(const bool def);
-  JNetwork(const JNetwork& net);
-  JNetwork(const string nid, Relation* injunctions, Relation* insections,
-           Relation* inroutes);
-  JNetwork(SmiRecord& valueRecord, size_t& offset,
-           const ListExpr typeInfo);
-  JNetwork(const ListExpr instance, const int errorPos,
-           ListExpr& errorInfo, bool& correct);
+
+  explicit JNetwork(const bool def);
+  JNetwork(const string nid, const Relation* inJuncRel,
+           const Relation* inSectRel, const Relation* inRoutesRel);
+  JNetwork(const string nid, const Relation* inJuncRel,
+           const Relation* inSectRel, const Relation* inRoutesRel,
+           const OrderedRelation* inNetDistRel);
+  JNetwork(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+
   ~JNetwork();
 
 /*
-1.2 Getter and Setter for private Attributes
+1.1.1. ~Destroy~
+
+Destroy all network data from database
+
+*/
+
+ void Destroy();
+
+/*
+1.1.1 Get and Set Network Data
+
+1.1.1.1 ~IsDefined~
+
+Returns defined flag.
 
 */
 
   bool IsDefined() const;
+
+/*
+1.1.1.1 ~GetId~
+
+Returns the network id.
+
+*/
+
   string GetId() const;
+
+/*
+1.1.1.1 Get Relation Type Infos
+
+*/
+
+ static string GetJunctionsRelationType();
+ static string GetSectionsRelationType();
+ static string GetRoutesRelationType();
+ static string GetNetdistancesRelationType();
+
+/*
+1.1.1.1 ~SetDefined~
+
+Sets the defined flag.
+
+*/
+
+void SetDefined(const bool def);
+
+/*
+1.1.1.1 GetRelationCopy
+
+Returns a pointer to a copy of the original network data relation. The pointer
+to the origin is not given to the outside to preserve internal network data from
+beeing damaged.
+
+*/
+
   Relation* GetJunctionsCopy() const;
   Relation* GetRoutesCopy() const;
   Relation* GetSectionsCopy() const;
-  static const string GetRoutesTypeInfo();
-  static const string GetJunctionsTypeInfo();
-  static const string GetSectionsTypeInfo();
-
-  void SetDefined(const bool def);
-  void SetId(const string nid);
+  OrderedRelation* GetNedistancesRelationCopy() const;
 
 /*
-1.3 Secondo Integration
+1.1.1 Secondo Integration
 
 */
   static ListExpr Out(ListExpr typeInfo, Word value);
@@ -99,95 +241,70 @@ The default constructor should only be used in the cast function.
   static int SizeOf();
   static bool Save(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value );
+  bool Save(SmiRecord& valueRecord, size_t& offset,
+       const ListExpr  typeInfo);
   static bool Open(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value );
   static ListExpr Property();
 
 /*
-1.4 StandardOperations
+1.1.1 Standard Operations
 
 */
 
-  JNetwork& operator=(const JNetwork& net) ;
-  bool operator==(const JNetwork& net) const;
-  int Compare(const JNetwork& net) const;
   ostream& Print(ostream& os) const;
   static const string BasicType();
   static const bool checkType(const ListExpr type);
 
 /*
-1.5 Network Operations
-
-1.5.1 CreateNetwork
-
-Creates a network object from an string and two input relations.
-
-The string value should be the name of the network object in the database.
-
-The first relation defines the nodes of the network by four values of type
-~int~, ~point~, ~int~, ~real~, whereas the meaning is JUNC\_ID, JUNC\_POS,
-the id of the road the junctions belongs to and the position of the junction on
-that road, it should be sorted by the jid and rid.
-
-The second relation defines the roads of the network by six value of type
-~int~, ~int~, ~point~, ~real~, ~real~, ~sline~, whereas the meaning is
-ROUTE\_ID, junction id, position of junction on that road, the maximum allowed
-speed on the road and the route curve.
+1.1 Private declarations
 
 */
-
-  void CreateNetwork(const string netid, const Relation* juncRel,
-                     const Relation* routesRel);
-
-/*
-1.5.2 Save
-
-Saves the Network Object to Secondo
-
-*/
-
-  bool Save(SmiRecord& valueRecord, size_t& offset, const ListExpr  typeInfo);
-
-/*
-1.1.1 Open
-
-Opens the Network Object in Secondo
-
-*/
-
-  static JNetwork* Open(SmiRecord& valueRecord, size_t& offset,
-                      const ListExpr typeInfo);
 
 private:
 
 /*
-1.6 Private Attributes of Network Object
+1.1.1 Attributes of Network Object
 
 */
-  bool nDef;           //defined Flag
+  bool defined;           //defined Flag
   string id;              //network identifier
   Relation* junctions;    //data of street crossings and death ends
   Relation* sections;     //data of connections between junctions
   Relation* routes;       //semantic connection of sections and junctions for
                           //street networks
-  BTree* sectionsBTree;   //supports fast access to sections by sections id
-  R_Tree<2,TupleId>* sectionsRTree;   //supports fast access to sections by
-                                      //spatial input
+  OrderedRelation* netdistances; //stores the network distances between the
+                          //junctions
   BTree* junctionsBTree;  //supports fast access to junctions by junction id
   R_Tree<2,TupleId>* junctionsRTree;  //supports fast access to junction by
+                                      //spatial input
+  BTree* sectionsBTree;   //supports fast access to sections by sections id
+  R_Tree<2,TupleId>* sectionsRTree;   //supports fast access to sections by
                                       //spatial input
   BTree* routesBTree;     //supports fast access to routes by route id
 
 /*
-1.1 Relation Descriptors
+1.1.1 Default Constructor
+
+The default constructor should only be used in the cast function and is
+therefore declared to be private.
+
+*/
+
+JNetwork();
+
+/*
+1.1.1 Descriptors of tuples, relations and indexes
 
 */
 static string sectionsTupleTypeInfo;
 static string junctionsTupleTypeInfo;
 static string routesTupleTypeInfo;
+static string netdistancesTupleTypeInfo;
 static string sectionsRelationTypeInfo;
 static string junctionsRelationTypeInfo;
 static string routesRelationTypeInfo;
+static string netdistancesRelationTypeInfo;
 static string sectionsBTreeTypeInfo;
 static string sectionsRTreeTypeInfo;
 static string junctionsBTreeTypeInfo;
@@ -195,7 +312,7 @@ static string junctionsRTreeTypeInfo;
 static string routesBTreeTypeInfo;
 
 /*
-1.7.1 Enumerations of coloumns of internal relations
+1.1.1 Enumerations of coloumns of internal relations
 
 */
   enum PositionsJunctionsRelation {
@@ -203,23 +320,22 @@ static string routesBTreeTypeInfo;
     JUNC_POS,
     JUNC_LIST_ROUTEPOSITIONS,
     JUNC_LIST_INSECTIONS,
-    JUNC_LIST_OUTSECTIONS,
-    JUNC_LIST_NETDISTANCES
+    JUNC_LIST_OUTSECTIONS
   };
 
   enum PositionsSectionsRelation {
     SEC_ID = 0,
     SEC_CURVE,
-    SEC_TID_STARTNODE,
-    SEC_TID_ENDNODE,
-    SEC_LIST_ROUTEINTERVALS,
-    SEC_LIST_ADJSECTIONS_UP,
-    SEC_LIST_ADJSECTIONS_DOWN,
-    SEC_LIST_REV_ADJSECTIONS_UP,
-    SEC_LIST_REV_ADJSECTIONS_DOWN,
-    SEC_LENGTH,
+    SEC_STARTNODE_ID,
+    SEC_ENDNODE_ID,
+    SEC_DIRECTION,
     SEC_VMAX,
-    SEC_DIRECTION
+    SEC_LENGTH,
+    SEC_LIST_ROUTEINTERVALS,
+    SEC_LIST_ADJ_SECTIONS_UP,
+    SEC_LIST_ADJ_SECTIONS_DOWN,
+    SEC_LIST_REV_ADJ_SECTIONS_UP,
+    SEC_LIST_REV_ADJ_SECTIONS_DOWN
   };
 
   enum PositionsRoutesRelation {
@@ -229,185 +345,37 @@ static string routesBTreeTypeInfo;
     ROUTE_LENGTH
   };
 
+  enum PositionsNetdistancesRelation {
+    SOURCE_JID = 0,
+    TARGET_JID,
+    NEXT_JUNCTION_JID,
+    NEXT_SECTIION_JID,
+    NETWORKDISTANCE
+  };
+
 /*
-1.8 ListRepresentation of internal relations
+1.1.1 ListRepresentation of internal relations
 
 */
 
   ListExpr JunctionsToList() const;
   ListExpr SectionsToList() const;
   ListExpr RoutesToList() const;
+  ListExpr NetdistancesToList() const;
 
 /*
-1.2 Access to private relations for copy constructors
-
-*/
-
-  Relation* GetJunctions() const;
-  Relation* GetSections() const;
-  Relation* GetRoutes() const;
-  BTree* GetSectionsBTree() const;
-  BTree* GetJunctionsBTree() const;
-  BTree* GetRoutesBTree() const;
-  R_Tree<2, TupleId>* GetSectionsRTree() const;
-  R_Tree<2, TupleId>* GetJunctionsRTree() const;
-
-/*
-1.1 Create Network Relations
-
-1.3.1 Initialize relations
-
-*/
-
-  void InitJunctions(const Relation* inJuncRel);
-  void InitRoutesAndSections(const Relation* inRoutesRel);
-
-/*
-1.3.2 Update relations
-
-*/
-
-  void UpdateJunctions();
-  void UpdateSections();
-
-/*
-1.8.4 Create Relations from type string
-
-*/
-
-  Relation* CreateRelation(const string descriptor, ListExpr& numType);
-
-/*
-1.8.5 Create Internal Trees
+1.1.1 Create Internal Trees
 
 */
 
   void CreateTrees();
 
-/*
-1.8.5.1 Creates BTree
-
-Creates the BTree over the route ids of the given relation.
-
-*/
-
-  BTree* CreateBTree(const Relation* rel, const string descriptor,
-                     const string attr);
-
-/*
-1.8.5.1 Create RTree
-
-Creates the RTree over the spatial attribute of the given relation.
-
-*/
-
-  R_Tree<2,TupleId>* CreateRTree(const Relation* rel, const string descriptor,
-                                 const string attr);
-
-
-/*
-1.1 OpenTrees and Relations
-
-*/
-
-  Relation* OpenRelation(const string descriptor, SmiRecord& valueRecord,
-                       size_t& offset);
-  BTree* OpenBTree(const string descriptor, SmiRecord& valueRecord,
-                 size_t& offset);
-
-/*
-1.1 Return TupleId for id
-
-*/
-
-  TupleId GetTupleId( BTree* tree, const int id) const;
-  TupleId GetJunctionTupleId(const int jid) const;
-  TupleId GetRoutesTupleId(const int rid) const;
-  TupleId GetSectionsTupleId(const int sid) const;
-
-/*
-1.1 Write Tuples to Relations
-
-*/
-
-  void WriteJunctionTuple(const int jid, Point* pos,
-                        ListPairTIDRLoc* listRLoc,
-                        JListTID* listinsect,
-                        JListTID* listoutsect,
-                        ListNetDistGrp* listdist,
-                        const ListExpr& juncNumType);
-
-  void WriteRoutesTuple(const int rid,
-                      const double length,
-                      ListPairTIDRLoc* listjunc,
-                      ListPairTIDRInt* listsect,
-                      const ListExpr routesNumType);
-
-  void WriteSectionTuple(const int sectId,
-                       SimpleLine* curve,
-                       const TupleId& curJunTID,
-                       const TupleId& actJunTID,
-                       const int actRouteId,
-                       const double curJuncPosOnRoute,
-                       const double actJuncPosOnRoute,
-                       const JSide dir,
-                       const double curMaxSpeed,
-                       const ListExpr& sectionsNumType);
-
-/*
-1.1 StartBulkload for lists in Tuples
-
-*/
-void StartJunctionTupleLists(ListPairTIDRLoc* listRLoc,
-                             JListTID* listinsect,
-                             JListTID* listoutsect,
-                             ListNetDistGrp* listdist);
-
-void StartRoutesTupleLists(ListPairTIDRLoc* listjunc,
-                           ListPairTIDRInt* listsect);
-
-void StartSectionTupleLists(ListPairTIDRInt* listRouteIntervals,
-                            JListTID* listAdjSectionsUp,
-                            JListTID* listAdjSectionsDown,
-                            JListTID* listRevAdjSectionsUp,
-                            JListTID* listRevAdjSectionsDown);
-
-/*
-1.1 EndBulkload for lists in Tuples
-
-*/
-void EndJunctionTupleLists(ListPairTIDRLoc* listRLoc,
-                             JListTID* listinsect,
-                             JListTID* listoutsect,
-                             ListNetDistGrp* listdist);
-
-void EndRoutesTupleLists(ListPairTIDRLoc* listjunc,
-                           ListPairTIDRInt* listsect);
-
-void EndSectionTupleLists(ListPairTIDRInt* listRouteIntervals,
-                            JListTID* listAdjSectionsUp,
-                            JListTID* listAdjSectionsDown,
-                            JListTID* listRevAdjSectionsUp,
-                            JListTID* listRevAdjSectionsDown);
-
-/*
-1 Access to internal relations
-
-Some helpful tools for access  to internal relations.
-
-1.1. Copy
-
-*/
-
-  Relation* GetRelationCopy(const string relTypeInfo,
-                            Relation* relPointer) const;
-
-/*
-1.1 ToList
-
-*/
-
-ListExpr RelationToList(Relation* rel, const string relTypeInfo) const;
-
 };
+/*
+1 Overwrite output operator
+
+*/
+
+ostream& operator<< (ostream& os, const JNetwork& n);
+
 #endif // JNETWORK_H

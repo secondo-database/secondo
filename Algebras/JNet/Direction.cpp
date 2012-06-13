@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2011, April 14 Simone Jandt
+2012, May Simone Jandt
 
 1 Includes
 
@@ -34,7 +34,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 extern NestedList* nl;
 
 /*
-1 Constructors and Deconstructors
+1 Implementation of class ~Direction~
+
+1.1 Constructors and Deconstructors
 
 The default constructor should only be used in the Cast-Function.
 
@@ -43,7 +45,7 @@ The default constructor should only be used in the Cast-Function.
 Direction::Direction():Attribute()
 {}
 
-Direction::Direction(const bool defined): Attribute(defined)
+Direction::Direction(const bool defined): Attribute(defined), side(Both)
 {}
 
 Direction::Direction(const Direction& other):Attribute(other.IsDefined())
@@ -51,7 +53,7 @@ Direction::Direction(const Direction& other):Attribute(other.IsDefined())
   if (other.IsDefined()) side = other.GetDirection();
 }
 
-Direction::Direction(const JSide inside):Attribute(true)
+Direction::Direction(const JSide inside) : Attribute(true)
 {
   side = inside;
 }
@@ -60,7 +62,7 @@ Direction::~Direction()
 {}
 
 /*
-1 Getter and Setter
+1.1 Getter and Setter
 
 */
 
@@ -69,13 +71,18 @@ JSide Direction::GetDirection() const
   return side;
 }
 
-void Direction::SetDirection(const JSide inside)
+void Direction::SetSide(const JSide inside)
 {
   side = inside;
 }
 
+void Direction::SetDirection(const Direction& indir)
+{
+  side = indir.GetDirection();
+}
+
 /*
-1 Override Methods from Attribute
+1.1 Override Methods from Attribute
 
 */
 
@@ -108,16 +115,24 @@ bool Direction::Adjacent(const Attribute* attrib) const
   return false;
 }
 
+int Direction::Compare(const void* ls, const void* rs) const
+{
+  Direction pl(*(Direction*) ls);
+  Direction pr(*(Direction*) rs);
+  return pl.Compare(pr);
+}
+
 int Direction::Compare(const Attribute* rhs) const
 {
-  Direction* in = (Direction*) rhs;
-  return Compare(*in);
+  Direction in(*(Direction*) rhs);
+  return Compare(in);
 }
 
 int Direction::Compare(const Direction& indir) const
 {
-  if (indir.IsDefined() && !IsDefined()) return -1;
-  if (!indir.IsDefined() && IsDefined()) return 1;
+  if (!IsDefined() && !indir.IsDefined()) return 0;
+  if (!IsDefined() && indir.IsDefined()) return -1;
+  if (IsDefined() && !indir.IsDefined()) return 1;
   return Compare(side, indir.GetDirection());
 }
 
@@ -174,7 +189,7 @@ const bool Direction::checkType(const ListExpr type)
 }
 
 /*
-1 Standard Operators
+1.1 Standard Operators
 
 */
 
@@ -187,32 +202,39 @@ Direction& Direction::operator=(const Direction& other)
 
 bool Direction::operator==(const Direction& other) const
 {
-  if (Compare(&other) == 0) return true;
-  else return false;
-}
-
-bool Direction::operator==(const JSide& other) const
-{
-  if (IsDefined() && Compare(side, other) == 0) return true;
-  else return false;
+  return (Compare(&other) == 0);
 }
 
 bool Direction::operator<(const Direction& other) const
 {
-  if (Compare(&other) < 0) return true;
-  else return false;
+  return (Compare(&other) < 0);
 }
 
-bool Direction::operator<(const JSide& other) const
+bool Direction::operator<=(const Direction& other) const
 {
-  if (IsDefined() && Compare(side, other) < 0) return true;
-  else return false;
+  return (Compare(&other) < 1);
 }
+
+bool Direction::operator>(const Direction& other) const
+{
+  return (Compare(&other) > 0 );
+}
+
+bool Direction::operator>=(const Direction& other) const
+{
+  return (Compare(&other) > -1);
+}
+
+bool Direction::operator!=(const Direction& other) const
+{
+  return (Compare(&other) != 0);
+}
+
 
 /*
-1 Operators for Secondo Integration
+1.1 Operators for Secondo Integration
 
-1.1 Converts the direction into a nested list.
+1.1.1 Converts the direction into a nested list.
 
 */
 
@@ -251,7 +273,7 @@ ListExpr Direction::Out(ListExpr typeInfo, Word value)
 }
 
 /*
-1.2 Constructs a Direction object from a nested list.
+1.1.1 Constructs a Direction object from a nested list.
 
 */
 
@@ -328,84 +350,6 @@ int Direction::SizeOf()
   return sizeof(Direction);
 }
 
-bool Direction::Save(SmiRecord& valueRecord, size_t& offset,
-                     const ListExpr typeInfo, Word& value)
-{
-  int i = -1;
-  Direction* toSave = (Direction*) value.addr;
-  if (toSave->IsDefined())
-  {
-    switch(toSave->GetDirection())
-    {
-      case Up:
-      {
-        i = 0;
-        break;
-      }
-
-      case Down:
-      {
-        i = 1;
-        break;
-      }
-
-      case Both:
-      {
-        i = 2;
-        break;
-      }
-    }
-  }
-  valueRecord.Write(&i, sizeof(int), offset);
-  offset += sizeof(int);
-  return true;
-}
-
-bool Direction::Open(SmiRecord& valueRecord, size_t& offset,
-                     const ListExpr typeInfo, Word& value )
-{
-  int i = -1;
-  valueRecord.Read(&i, sizeof(int), offset);
-  offset += sizeof(int);
-  switch (i)
-  {
-    case 0:
-    {
-      value = SetWord(new Direction((JSide)Up));
-      return true;
-      break;
-    }
-
-    case 1:
-    {
-      value = SetWord(new Direction((JSide)Down));
-      return true;
-      break;
-    }
-
-    case 2:
-    {
-      value = SetWord(new Direction((JSide)Both));
-      return true;
-      break;
-    }
-
-    case -1:
-    {
-      value = SetWord(new Direction(false));
-      return true;
-      break;
-    }
-
-    default: // should never happen
-    {
-      value = SetWord(Address(0));
-      return false;
-      break;
-    }
-  }
-}
-
 ListExpr Direction::Property()
 {
   return nl->TwoElemList(
@@ -441,24 +385,34 @@ Returns true if the both direction values are equal or one of them is ~Both~.
 
 bool Direction::SameSide(const Direction& dir, const bool strict /*true*/)const
 {
-  if (!IsDefined() && !dir.IsDefined())
+  if (Compare(&dir) == 0)
     return true;
   else
   {
-    if (!IsDefined() || !dir.IsDefined())
+    if (strict)
       return false;
     else
     {
-      if (strict)
-        return side == dir.GetDirection();
+      if (!IsDefined() || !dir.IsDefined())
+        return false;
       else
       {
-        if (side == dir.GetDirection() ||
-            side == Both || dir.GetDirection() == Both)
+        if (side == Both || dir.GetDirection() == Both)
           return true;
         else
           return false;
       }
     }
   }
+}
+
+/*
+1 Implementation of overloaded output operator
+
+*/
+
+ostream& operator<<(ostream& os, const Direction& dir)
+{
+  dir.Print(os);
+  return os;
 }

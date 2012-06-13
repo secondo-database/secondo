@@ -18,16 +18,19 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2011, May Simone Jandt
+2012, May Simone Jandt
+
+1 Includes
 
 */
 
-#include "NetDistanceGroup.h"
 #include "ListUtils.h"
 #include "Symbols.h"
+#include <limits>
+#include "NetDistanceGroup.h"
 
 /*
-1. Implementation of ~NetDistanceGroup~
+1 Implementation of ~NetDistanceGroup~
 
 1.1 Constructors and Deconstructor
 
@@ -38,42 +41,55 @@ The default Constructor should not been used outside the cast-Function.
 NetDistanceGroup::NetDistanceGroup():Attribute()
 {}
 
-NetDistanceGroup::NetDistanceGroup(const bool def) : Attribute(def)
+NetDistanceGroup::NetDistanceGroup(const bool def) :
+  Attribute(def), source(0), target(0), nextJunction(0), nextSection(0),
+  netdistance(numeric_limits<double>::max())
 {}
 
 NetDistanceGroup::NetDistanceGroup ( const NetDistanceGroup& other ) :
-  Attribute(other.IsDefined())
+  Attribute(other.IsDefined()), source(0), target(0), nextJunction(0),
+  nextSection(0), netdistance(numeric_limits<double>::max())
 {
   if (other.IsDefined())
   {
-    targetTID = other.GetTargetTID();
-    nextSectionTID = other.GetNextSectionTID();
-    nextJunctionTID = other.GetNextJunctionTID();
+    source = other.GetSource();
+    target = other.GetTarget();
+    nextJunction = other.GetNextJunction();
+    nextSection = other.GetNextSection();
     netdistance = other.GetNetdistance();
   }
+  assert(source >= 0 && target >= 0 && nextJunction >= 0 && nextSection >= 0 &&
+         netdistance >= 0.0);
 }
 
-NetDistanceGroup::NetDistanceGroup(const TupleIdentifier target,
-                                   const TupleIdentifier nextSect,
-                                   const TupleIdentifier nextJunc,
+NetDistanceGroup::NetDistanceGroup(const int sourc,
+                                   const int targe,
+                                   const int nextJunct,
+                                   const int nextSect,
                                    const double netdist) :
-  Attribute(true), targetTID(target), nextSectionTID(nextSect),
-  nextJunctionTID(nextJunc), netdistance(netdist)
+  Attribute(true), source(sourc), target(targe), nextJunction(nextJunct),
+  nextSection(nextSect), netdistance(netdist)
 {
-  if (netdist < 0.0) SetDefined(false);
+  assert(source >= 0 && target >= 0 && nextJunction >= 0 && nextSection >= 0 &&
+         netdistance >= 0.0);
 }
 
 NetDistanceGroup::~NetDistanceGroup()
 {}
 
 /*
-1.2 Getter and Setter for private Attributes
+1.1.1 Getter and Setter for private Attributes
 
 */
 
-TupleIdentifier NetDistanceGroup::GetTargetTID() const
+int NetDistanceGroup::GetSource() const
 {
-  return targetTID;
+  return source;
+}
+
+int NetDistanceGroup::GetTarget() const
+{
+  return target;
 }
 
 double NetDistanceGroup::GetNetdistance() const
@@ -81,38 +97,49 @@ double NetDistanceGroup::GetNetdistance() const
   return netdistance;
 }
 
-TupleIdentifier NetDistanceGroup::GetNextSectionTID() const
+int NetDistanceGroup::GetNextSection() const
 {
-  return nextSectionTID;
+  return nextSection;
 }
 
-TupleIdentifier NetDistanceGroup::GetNextJunctionTID() const
+int NetDistanceGroup::GetNextJunction() const
 {
-  return nextJunctionTID;
+  return nextJunction;
 }
 
-void NetDistanceGroup::SetTargetTID(const TupleIdentifier t)
+void NetDistanceGroup::SetSource(const int t)
 {
-  targetTID = t;
+  assert(t >= 0);
+  source = t;
+}
+
+
+void NetDistanceGroup::SetTarget(const int t)
+{
+  assert(t >= 0);
+  target = t;
 }
 
 void NetDistanceGroup::SetNetdistance(const double dist)
 {
+  assert(dist >= 0.0);
   netdistance = dist;
 }
 
-void NetDistanceGroup::SetNextSectionTID(const TupleIdentifier t)
+void NetDistanceGroup::SetNextSection(const int t)
 {
-  nextSectionTID = t;
+  assert(t >= 0);
+  nextSection = t;
 }
 
-void NetDistanceGroup::SetNextJunctionTID(const TupleIdentifier t)
+void NetDistanceGroup::SetNextJunction(const int t)
 {
-  nextJunctionTID = t;
+  assert(t >= 0);
+  nextJunction = t;
 }
 
 /*
-1.3 Overriden Methods of Attribute
+1.1.1 Overwrite Methods of Attribute
 
 */
 
@@ -122,9 +149,10 @@ void NetDistanceGroup::CopyFrom ( const Attribute* right )
   if (right->IsDefined())
   {
     NetDistanceGroup* in = (NetDistanceGroup*) right;
-    targetTID = in->GetTargetTID();
-    nextSectionTID = in->GetNextSectionTID();
-    nextJunctionTID = in->GetNextJunctionTID();
+    source = in->GetSource();
+    target = in->GetTarget();
+    nextJunction = in->GetNextJunction();
+    nextSection = in->GetNextSection();
     netdistance = in->GetNetdistance();
   }
 }
@@ -136,8 +164,8 @@ Attribute::StorageType NetDistanceGroup::GetStorageType() const
 
 size_t NetDistanceGroup::HashValue() const
 {
-  return targetTID.HashValue() + nextSectionTID.HashValue() +
-         nextJunctionTID.HashValue() + (size_t) netdistance;
+  return (size_t) (source + target + nextJunction + nextSection) +
+         (size_t) netdistance;
 }
 
 Attribute* NetDistanceGroup::Clone() const
@@ -150,10 +178,17 @@ bool NetDistanceGroup::Adjacent ( const Attribute* attrib ) const
   return false;
 }
 
+int NetDistanceGroup::Compare(const void* ls, const void* rs) const
+{
+  NetDistanceGroup lhs(*((NetDistanceGroup*) ls));
+  NetDistanceGroup rhs(*((NetDistanceGroup*) rs));
+  return lhs.Compare(rhs);
+}
+
 int NetDistanceGroup::Compare ( const Attribute* rhs ) const
 {
-  NetDistanceGroup* in = (NetDistanceGroup*) rhs;
-  return Compare(*in);
+  NetDistanceGroup in(*(NetDistanceGroup*) rhs);
+  return Compare(in);
 }
 
 int NetDistanceGroup::Compare (const NetDistanceGroup& rhs) const
@@ -161,13 +196,17 @@ int NetDistanceGroup::Compare (const NetDistanceGroup& rhs) const
   if (!IsDefined() && !rhs.IsDefined()) return 0;
   if (!IsDefined() && rhs.IsDefined()) return -1;
   if (IsDefined() && !rhs.IsDefined()) return 1;
-  int res = targetTID.Compare(rhs.GetTargetTID());
-  if (res != 0) return res;
+  if (source < rhs.GetSource()) return -1;
+  if (source > rhs.GetSource()) return 1;
+  if (target < rhs.GetTarget()) return -1;
+  if (target > rhs.GetTarget()) return 1;
   if (netdistance < rhs.GetNetdistance()) return -1;
   if (netdistance > rhs.GetNetdistance()) return 1;
-  res = nextSectionTID.Compare(rhs.GetNextSectionTID());
-  if (res != 0) return res;
-  return nextJunctionTID.Compare(rhs.GetNextJunctionTID());
+  if (nextJunction < rhs.GetNextJunction()) return -1;
+  if (nextJunction > rhs.GetNextJunction()) return 1;
+  if (nextSection < rhs.GetNextSection()) return -1;
+  if (nextSection > rhs.GetNextSection()) return 1;
+  return 0;
 }
 
 size_t NetDistanceGroup::Sizeof() const
@@ -180,13 +219,11 @@ ostream& NetDistanceGroup::Print ( ostream& os ) const
   os << "NetDistanceGroup: " << endl;
   if (IsDefined())
   {
-    os << "targetTID: ";
-    targetTID.Print(os);
-    os << ", next section on path tid: ";
-    nextSectionTID.Print(os);
-    os << ", next junction on path tid: ";
-    nextJunctionTID.Print(os);
+    os << "source:" << source;
+    os << "target: " << target;
     os << ", netdistance: " << netdistance;
+    os << ", path over section: " << nextSection;
+    os << ", to junction: " << nextJunction;
   }
   else
     os << Symbol::UNDEFINED();
@@ -196,7 +233,7 @@ ostream& NetDistanceGroup::Print ( ostream& os ) const
 
 const string NetDistanceGroup::BasicType()
 {
-  return "netdistgrp";
+  return "ndg";
 }
 
 const bool NetDistanceGroup::checkType(const ListExpr type)
@@ -205,7 +242,7 @@ const bool NetDistanceGroup::checkType(const ListExpr type)
 }
 
 /*
-1.4 Standard Operators
+1.1.1 Standard Operators
 
 */
 
@@ -214,9 +251,10 @@ NetDistanceGroup& NetDistanceGroup::operator= ( const NetDistanceGroup& other )
   SetDefined(other.IsDefined());
   if (other.IsDefined())
   {
-    targetTID = other.GetTargetTID();
-    nextSectionTID = other.GetNextSectionTID();
-    nextJunctionTID = other.GetNextJunctionTID();
+    source = other.GetSource();
+    target = other.GetTarget();
+    nextJunction = other.GetNextJunction();
+    nextSection = other.GetNextSection();
     netdistance = other.GetNetdistance();
   }
   return *this;
@@ -256,7 +294,7 @@ bool NetDistanceGroup::operator> ( const NetDistanceGroup& other ) const
 
 
 /*
-1.5 SecondoIntegration
+1.1.1 SecondoIntegration
 
 */
 
@@ -265,18 +303,17 @@ ListExpr NetDistanceGroup::Out(ListExpr typeInfo, Word value)
   NetDistanceGroup* obj = (NetDistanceGroup*) value.addr;
   if (obj->IsDefined())
   {
-    TupleIdentifier t = obj->GetTargetTID();
-    Word wt = SetWord(&t);
-    ListExpr target = TupleIdentifier::Out(nl->TheEmptyList(), wt);
-    t = obj->GetNextSectionTID();
-    wt = SetWord(&t);
-    ListExpr nextSect = TupleIdentifier::Out(nl->TheEmptyList(), wt);
-    t = obj->GetNextJunctionTID();
-    wt = SetWord(&t);
-    ListExpr nextJunction = TupleIdentifier::Out(nl->TheEmptyList(), wt);
-    double distance = obj->GetNetdistance();
-    ListExpr dist = nl->RealAtom(distance);
-    return nl->FourElemList(target, nextSect, nextJunction, dist );
+    int so = obj->GetSource();
+    ListExpr leso = nl->IntAtom(so);
+    int t = obj->GetTarget();
+    ListExpr let = nl->IntAtom(t);
+    int j = obj->GetNextJunction();
+    ListExpr lej = nl->IntAtom(j);
+    int s = obj->GetNextSection();
+    ListExpr les = nl->IntAtom(s);
+    double d = obj->GetNetdistance();
+    ListExpr led = nl->RealAtom(d);
+    return nl->FiveElemList(leso, let, lej, les, led);
   }
   else
   {
@@ -288,91 +325,92 @@ Word NetDistanceGroup::In(const ListExpr typeInfo, const ListExpr instance,
                           const int errorPos, ListExpr& errorInfo,
                           bool& correct)
 {
-  if (nl->ListLength(instance) == 1 && nl->IsAtom(instance) &&
-      nl->SymbolValue(instance) == Symbol::UNDEFINED())
+
+  if (nl->ListLength(instance) == 1)
   {
     correct = true;
     return SetWord(new NetDistanceGroup(false));
   }
   else
   {
-    if(nl->ListLength(instance) == 4)
+    if(nl->ListLength(instance) == 5)
     {
-      correct = true;
-      ListExpr target = nl->First(instance);
-      Word wTarget = TupleIdentifier::In(nl->TheEmptyList(),
-                                         target, errorPos, errorInfo, correct);
-      if (correct)
+      ListExpr leso = nl->First(instance);
+      ListExpr let = nl->Second(instance);
+      ListExpr lej = nl->Third(instance);
+      ListExpr les = nl->Fourth(instance);
+      ListExpr led = nl->Fifth(instance);
+      int so, t, j, s;
+      double d;
+
+      if (nl->IsAtom(leso) && nl->AtomType(leso) == IntType &&
+          nl->IntValue(leso) >= 0)
       {
-        TupleIdentifier* targ = (TupleIdentifier*) wTarget.addr;
-        ListExpr nextSect = nl->Second(instance);
-        Word wNextSect = TupleIdentifier::In(nl->TheEmptyList(),
-                                             nextSect, errorPos, errorInfo,
-                                             correct);
-        if (correct)
+        so = nl->IntValue(leso);
+
+        if (nl->IsAtom(let) && nl->AtomType(let) == IntType &&
+            nl->IntValue(let) >= 0)
         {
-          TupleIdentifier* tNextSect = (TupleIdentifier*) wNextSect.addr;
-          ListExpr nextJunction = nl->Third(instance);
-          Word wNextJunction =
-                      TupleIdentifier::In(nl->TheEmptyList(),
-                                          nextJunction, errorPos,
-                                          errorInfo, correct);
-          if (correct)
+          t = nl->IntValue(let);
+          if (nl->IsAtom(lej) && nl->AtomType(lej) == IntType &&
+              nl->IntValue(lej) >= 0)
           {
-            TupleIdentifier* tNextJunc =
-                            (TupleIdentifier*) wNextJunction.addr;
-            ListExpr distance = nl->Fourth(instance);
-            if (nl->IsAtom(distance) && nl->AtomType(distance) == RealType)
+            j = nl->IntValue(lej);
+            if (nl->IsAtom(les) && nl->AtomType(les) == IntType &&
+                nl->IntValue(les) >= 0)
             {
-              double ndis = nl->RealValue(distance);
-              NetDistanceGroup* res = new NetDistanceGroup(*targ, *tNextSect,
-                                                       *tNextJunc, ndis);
-              targ->DeleteIfAllowed();
-              tNextSect->DeleteIfAllowed();
-              tNextJunc->DeleteIfAllowed();
-              return SetWord(res);
+              s = nl->IntValue(les);
+              if (nl->IsAtom(led) && nl->AtomType(led) == RealType &&
+                  nl->RealValue(led) >= 0.0)
+              {
+                d = nl->RealValue(led);
+                NetDistanceGroup* res = new NetDistanceGroup(so, t, j, s, d);
+                correct = true;
+                return SetWord(res);
+              }
+              else
+              {
+                correct = false;
+                cmsg.inFunError("5.Element must be " + CcReal::BasicType() +
+                                " >= 0.");
+                return SetWord(Address(0));
+              }
             }
             else
             {
-              targ->DeleteIfAllowed();
-              tNextSect->DeleteIfAllowed();
-              tNextJunc->DeleteIfAllowed();
-              cmsg.inFunError("Fourth element must be " + CcReal::BasicType());
+              correct = false;
+              cmsg.inFunError("4.Element must be " + CcInt::BasicType()+
+                              " >= 0.");
               return SetWord(Address(0));
             }
           }
           else
           {
-            targ->DeleteIfAllowed();
-            tNextSect->DeleteIfAllowed();
-            cmsg.inFunError("Third element must be " +
-              TupleIdentifier::BasicType());
+            correct = false;
+            cmsg.inFunError("3.Element must be " + CcInt::BasicType()+
+                            " >= 0.");
             return SetWord(Address(0));
           }
         }
         else
         {
-          targ->DeleteIfAllowed();
-          cmsg.inFunError("Second element must be "  +
-                        TupleIdentifier::BasicType());
+          correct = false;
+          cmsg.inFunError("2.Element must be " + CcInt::BasicType()+
+                          " >= 0.");
           return SetWord(Address(0));
         }
       }
       else
       {
-        cmsg.inFunError("First element must be "  +
-          TupleIdentifier::BasicType());
+        correct = false;
+        cmsg.inFunError("1.Element must be " + CcInt::BasicType() +
+                        " >= 0.");
         return SetWord(Address(0));
       }
     }
-    else
-    {
-      correct = false;
-      cmsg.inFunError("Expected list (" + TupleIdentifier::BasicType()  +
-            TupleIdentifier::BasicType()  + TupleIdentifier::BasicType() +
-            CcReal::BasicType()+")");
-      return SetWord(Address(0));
-    }
+    correct = false;
+    cmsg.inFunError("List of length 5 or 1 expected.");
+    return SetWord(Address(0));
   }
 }
 
@@ -412,60 +450,6 @@ int NetDistanceGroup::SizeOf()
   return sizeof(NetDistanceGroup);
 }
 
-bool NetDistanceGroup::Save(SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value )
-{
-  NetDistanceGroup* toSave = (NetDistanceGroup*) value.addr;
-  TupleIdentifier t = toSave->GetTargetTID();;
-  Word wt = SetWord(&t);
-  if (!TupleIdentifier::Save(valueRecord, offset,
-                             nl->TheEmptyList(), wt))
-    return false;
-  t = toSave->GetNextSectionTID();
-  wt = SetWord (&t);
-  if (!TupleIdentifier::Save(valueRecord, offset,
-                             nl->TheEmptyList(), wt))
-    return false;
-  t = toSave->GetNextJunctionTID();
-  wt = SetWord (&t);
-  if (!TupleIdentifier::Save(valueRecord, offset,
-                             nl->TheEmptyList(), wt))
-    return false;
-  double dist = toSave->GetNetdistance();
-  valueRecord.Write(&dist, sizeof(double), offset);
-  offset += sizeof(double);
-  return true;
-}
-
-bool NetDistanceGroup::Open(SmiRecord& valueRecord, size_t& offset,
-                            const ListExpr typeInfo, Word& value )
-{
-  Word wt;
-  if (TupleIdentifier::Open(valueRecord, offset,
-                            nl->TheEmptyList(), wt))
-  {
-    TupleIdentifier* target = (TupleIdentifier*) wt.addr;
-    if (TupleIdentifier::Open(valueRecord, offset,
-                              nl->TheEmptyList(), wt))
-    {
-      TupleIdentifier* nextSect = (TupleIdentifier*) wt.addr;
-      if (TupleIdentifier::Open(valueRecord, offset,
-                                nl->TheEmptyList(), wt))
-      {
-        TupleIdentifier* nextJunct = (TupleIdentifier*) wt.addr;
-        double dist = -1.0;
-        valueRecord.Read(&dist, sizeof(double), offset);
-        offset += sizeof(double);
-        value = SetWord(new NetDistanceGroup(*target, *nextSect, *nextJunct,
-                                             dist));
-        return true;
-      }
-    }
-  }
-  value = SetWord(Address(0));
-  return false;
-}
-
 ListExpr NetDistanceGroup::Property()
 {
   return nl->TwoElemList(
@@ -477,20 +461,31 @@ ListExpr NetDistanceGroup::Property()
     nl->FourElemList(
       nl->StringAtom("-> " + Kind::DATA()),
       nl->StringAtom(BasicType()),
-      nl->TextAtom("("+ TupleIdentifier::BasicType() + " " +
-            TupleIdentifier::BasicType() + " " + TupleIdentifier::BasicType() +
-            " " + CcReal::BasicType()+ "), identifying target junction, " +
-            "next junction and next section on the way to target and network " +
-            "distance to target node."),
+      nl->TextAtom("("+ CcInt::BasicType() + CcInt::BasicType() + " " +
+            CcInt::BasicType() + " " +  CcInt::BasicType() + " " +
+            CcReal::BasicType() + "), identifying source junction, target "+
+            " junction, next junction and next section on the way to target " +
+            "and network distance from source to target junction."),
       nl->TextAtom(Example())));
 }
 
 /*
-1.6 Helpful Operators
+1.1.1 Helpful Operators
 
 */
 
 string NetDistanceGroup::Example()
 {
   return "(34 25 64 18.5)";
+}
+
+/*
+1 Overwrite output operator
+
+*/
+
+ostream& operator<< (ostream& os, const NetDistanceGroup& ndg)
+{
+  ndg.Print(os);
+  return os;
 }

@@ -18,7 +18,9 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2011, August Simone Jandt
+2012, August Simone Jandt
+
+1 Includes
 
 */
 
@@ -34,17 +36,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1.1 Constructors and Deconstructors
 
-The default constructor should only be used in the Cast-Function.
-
 */
 
-JPoint::JPoint():Attribute()
+JPoint::JPoint(): Attribute()
 {}
 
-JPoint::JPoint(const bool def):Attribute(def),nid(""),npos(false)
+JPoint::JPoint(const bool def) :
+    Attribute(def), nid(""), npos(false)
 {}
 
-JPoint::JPoint(const JPoint& other):Attribute(other.IsDefined())
+JPoint::JPoint(const JPoint& other) :
+    Attribute(other.IsDefined()), nid(""), npos(false)
 {
   if (other.IsDefined())
   {
@@ -95,9 +97,9 @@ void JPoint::CopyFrom(const Attribute* right)
   SetDefined(right->IsDefined());
   if (right->IsDefined())
   {
-    JPoint* in = (JPoint*) right;
-    nid = in->GetNetId();
-    npos = in->GetPosition();
+    JPoint in(*(JPoint*) right);
+    nid = in.GetNetId();
+    npos = in.GetPosition();
   }
 }
 
@@ -120,10 +122,10 @@ bool JPoint::Adjacent(const Attribute* attrib) const
 {
   if (attrib->IsDefined())
   {
-    JPoint* in = (JPoint*) attrib;
-    if (IsDefined() && (nid == in->GetNetId()))
+    JPoint in(*(JPoint*) attrib);
+    if (IsDefined() && (nid == in.GetNetId()))
     {
-      return npos.Adjacent(in->GetPosition());
+      return npos.Adjacent(in.GetPosition());
     }
   }
   return false;
@@ -131,8 +133,8 @@ bool JPoint::Adjacent(const Attribute* attrib) const
 
 int JPoint::Compare(const Attribute* rhs) const
 {
-  JPoint* in = (JPoint*) rhs;
-  return Compare(*in);
+  JPoint in(*(JPoint*) rhs);
+  return Compare(in);
 }
 
 int JPoint::Compare(const JPoint& rhs) const
@@ -187,7 +189,32 @@ JPoint& JPoint::operator=(const JPoint& other)
 
 bool JPoint::operator==(const JPoint& other) const
 {
-  return Compare(other) == 0;
+  return (Compare(other) == 0);
+}
+
+bool JPoint::operator!=(const JPoint& other) const
+{
+  return (Compare(other) != 0);
+}
+
+bool JPoint::operator<(const JPoint& other) const
+{
+  return (Compare(other) < 0);
+}
+
+bool JPoint::operator<=(const JPoint& other) const
+{
+  return (Compare(other) < 1);
+}
+
+bool JPoint::operator>(const JPoint& other) const
+{
+  return (Compare(other) > 0);
+}
+
+bool JPoint::operator>=(const JPoint& other) const
+{
+  return (Compare(other) > -1);
 }
 
 /*
@@ -217,8 +244,7 @@ Word JPoint::In(const ListExpr typeInfo, const ListExpr instance,
 {
   NList inlist(instance);
 
-  if (inlist.length() == 1 && inlist.isAtom() &&
-      inlist.isEqual(Symbol::UNDEFINED()))
+  if (inlist.length() == 1 )
   {
     correct = true;
     return (new JPoint (false) );
@@ -248,9 +274,8 @@ Word JPoint::In(const ListExpr typeInfo, const ListExpr instance,
         cmsg.inFunError("Second Element must be RouteLocation");
         return SetWord(Address(0));
       }
-      RouteLocation* rloc =(RouteLocation*) w.addr;
-      JPoint* res = new JPoint(netId, *rloc);
-      rloc->DeleteIfAllowed();
+      RouteLocation rloc(*(RouteLocation*) w.addr);
+      JPoint* res = new JPoint(netId, rloc);
       return SetWord(res);
     }
   }
@@ -296,64 +321,6 @@ int JPoint::SizeOf()
   return sizeof(JPoint);
 }
 
-bool JPoint::Save(SmiRecord& valueRecord, size_t& offset,
-                  const ListExpr typeInfo, Word& value )
-{
-  JPoint* toSave = (JPoint*) value.addr;
-  if (toSave->IsDefined())
-  {
-    Word w;
-    w = SetWord(new CcString(true, toSave->GetNetId()));
-    ListExpr idLE;
-    nl->ReadFromString(CcString::BasicType(), idLE);
-    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    bool ok = SaveAttribute<CcString>(valueRecord, offset, numId, w);
-
-    RouteLocation* rloc = new RouteLocation(toSave->GetPosition());
-    w = SetWord(rloc);
-    ok = ok && RouteLocation::Save(valueRecord, offset, nl->TheEmptyList(), w);
-    rloc->DeleteIfAllowed();
-    return ok;
-  }
-  else
-  {
-    Word w;
-    w.setAddr(new CcString(true,Symbol::UNDEFINED()));
-    ListExpr idLE;
-    nl->ReadFromString(CcString::BasicType(), idLE);
-    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    if (!SaveAttribute<CcString>(valueRecord, offset, numId, w))
-      return false;
-    else
-      return true;
-  }
-}
-
-bool JPoint::Open(SmiRecord& valueRecord, size_t& offset,
-                  const ListExpr typeInfo, Word& value )
-{
-  Word w;
-  ListExpr idLE;
-  nl->ReadFromString(CcString::BasicType(), idLE);
-  ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-  if (!OpenAttribute<CcString>(valueRecord, offset, numId, w))
-    return false;
-  string netId = ((CcString*)w.addr)->GetValue();
-  if (netId == Symbol::UNDEFINED())
-  {
-    value = SetWord(new JPoint(false));
-    return true;
-  }
-
-  if (RouteLocation::Open(valueRecord, offset, nl->TheEmptyList(), w))
-  {
-    RouteLocation rloc  = (*(RouteLocation*) w.addr);
-    value = SetWord(new JPoint(netId, rloc));
-    return true;
-  }
-  return false;
-}
-
 ListExpr JPoint::Property()
 {
   return nl->TwoElemList(
@@ -381,3 +348,15 @@ string JPoint::Example()
 {
   return "(netname " + RouteLocation::Example() + ")";
 }
+
+/*
+1 Overwrite output operator
+
+*/
+
+ostream& operator<<(ostream& os, const JPoint& jp)
+{
+  jp.Print(os);
+  return os;
+}
+

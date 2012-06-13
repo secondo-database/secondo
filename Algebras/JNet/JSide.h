@@ -18,17 +18,18 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2011, April Simone Jandt
+2012, May Simone Jandt
 
 */
 
 #ifndef JSIDE_H
 #define JSIDE_H
+
 /*
 1. ~Side~
 
-In a network positions may be reachable only from one side of the road or from
-both sides of the road. Therefore we introduce the ~enum Side~ with values
+In a network positions may be reachable only from one side of the route or from
+both sides of the route. Therefore we introduce the ~enum JSide~ with values
 up, down and both as flag for the direction of the movement, respectively the
 side a network location is reachable from, resp. the side a section is usable.
 

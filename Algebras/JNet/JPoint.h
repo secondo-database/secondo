@@ -18,7 +18,9 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2011, August Simone Jandt
+2012, May Simone Jandt
+
+1 Defines and Includes
 
 */
 
@@ -34,31 +36,33 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
 1 class ~JPoint~
 
-A JPoint is a position in a given Network. It consits of the network identifier
-and a RouteLocation within this network.
+A ~JPoint~ is a position in a given ~JNetwork~. It consits of the network
+identifier and a RouteLocation within this network.
 
 */
 
 class JPoint : public Attribute
 {
+
+/*
+1.1 Public Declarations
+
+*/
 public:
 
 /*
-1.1 Constructors and Deconstructors
-
-The default constructor should only be used in the Cast-Function.
+1.1.1 Constructors and Deconstructors
 
 */
 
-  JPoint();
-  JPoint(const bool def);
+  explicit JPoint(const bool def);
   JPoint(const JPoint& other);
   JPoint(const string& netId, const RouteLocation& rloc);
 
   ~JPoint();
 
 /*
-1.1 Getter and Setter for private Attributes
+1.1.1 Getter and Setter for private Attributes
 
 */
 
@@ -69,7 +73,7 @@ The default constructor should only be used in the Cast-Function.
   void SetPosition(const RouteLocation& rloc);
 
 /*
-1.1 Override Methods from Attribute
+1.1.1 Override Methods from Attribute
 
 */
 
@@ -78,6 +82,7 @@ The default constructor should only be used in the Cast-Function.
   size_t HashValue() const;
   Attribute* Clone() const;
   bool Adjacent(const Attribute* attrib) const;
+  int Compare(const void* ls, const void* rs) const;
   int Compare(const Attribute* rhs) const;
   int Compare(const JPoint& rhs) const;
   size_t Sizeof() const;
@@ -86,15 +91,21 @@ The default constructor should only be used in the Cast-Function.
   static const bool checkType(const ListExpr type);
 
 /*
-1.1 Standard Operators
+1.1.1 Standard Operators
 
 */
 
   JPoint& operator=(const JPoint& other);
+
   bool operator==(const JPoint& other) const;
+  bool operator!=(const JPoint& other) const;
+  bool operator<(const JPoint& other) const;
+  bool operator<=(const JPoint& other) const;
+  bool operator>(const JPoint& other) const;
+  bool operator>=(const JPoint& other) const;
 
 /*
-1.1 Operators for Secondo Integration
+1.1.1 Operators for Secondo Integration
 
 */
 
@@ -104,26 +115,52 @@ The default constructor should only be used in the Cast-Function.
   static Word Create(const ListExpr typeInfo);
   static void Delete( const ListExpr typeInfo, Word& w );
   static void Close( const ListExpr typeInfo, Word& w );
+/*  static bool Save(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static bool Open (SmiRecord& valueRecord, size_t& offset,
+                    const ListExpr typeInfo, Word& value);*/
   static Word Clone( const ListExpr typeInfo, const Word& w );
   static void* Cast( void* addr );
   static bool KindCheck ( ListExpr type, ListExpr& errorInfo );
   static int SizeOf();
-  static bool Save(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value );
-  static bool Open(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value );
   static ListExpr Property();
 
 /*
-1.1 Other Operations
+1.1.1 Other Operations
 
 */
   static string Example();
 
+/*
+1.1 Private declarations
+
+*/
+
 private:
 
-  string nid;
-  RouteLocation npos;
+/*
+1.1.1 Attributes
+
+*/
+
+  string nid;         // network id of the network the point belongs to.
+  RouteLocation npos; //position in this network.
+
+/*
+1.1.1 Standard Constructor
+
+The standard constructor should only be used in cast-Function and is therefore
+declared to be private.
+
+*/
+
+  JPoint();
 };
 
+/*
+1 Overwrite output operator
+
+*/
+
+ostream& operator<< (const ostream& os, const JPoint& jp);
 #endif // JPOINT_H

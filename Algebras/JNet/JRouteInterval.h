@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2011, April Simone Jandt
+2012, May Simone Jandt
 
 1 Includes
 
@@ -35,37 +35,48 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
 1 ~class JRouteInterval~
 
-A ~RouteInterval~ describes a part of a route. It consists of the route
-identfier of the route it belongs to, the start and the end position of the
-interval on the route, the side value telling if the ~routeinterval~
-covers the upside, the downside or both sides of the route.
+A ~JRouteInterval~ describes a part of a route. It consists of the route
+identfier the interval belongs to, the distances of the start and
+the end position of the interval on the route, the side value telling if
+the ~JRouteInterval~ covers the Up, Down or Both sides of the road.
 
 Because we can see the direction from the side parameter the start position is
 always smaller or equal the end position.
 
 */
+
 class JRouteInterval : public Attribute
 {
 
+/*
+1.1 public deklarations
+
+*/
 public:
 
 /*
-1.1 Constructors and Deconstructor
+1.1.1 Constructors and Deconstructor
 
-The default constructor should never been used, except in the Cast-Function.
+The default constructor may only be used in the Cast-Function. It can not be
+set to be private because JRouteInterval is used as DbArrayElement in other
+classes.
 
 */
 
   JRouteInterval();
+  explicit JRouteInterval(const bool defined);
   JRouteInterval(const JRouteInterval& other);
   JRouteInterval(const int routeid, const double from, const double to,
                  const Direction sideofroad);
-  JRouteInterval(const bool defined);
+  JRouteInterval(const int routeid, const double from, const double to,
+                 const JSide sideofroad);
+
   JRouteInterval(const RouteLocation& from, const RouteLocation& to);
+
   ~JRouteInterval();
 
 /*
-1.2 Getter and Setter for private Attributes
+1.1.1 Getter and Setter for private Attributes
 
 */
 
@@ -75,12 +86,12 @@ The default constructor should never been used, except in the Cast-Function.
     Direction GetSide() const;
 
     void SetRouteId(const int routeid);
-    void SetStartPosition(const int position);
-    void SetEndPosition(const int position);
+    void SetStartPosition(const double position);
+    void SetEndPosition(const double position);
     void SetSide(const Direction sideofroad);
 
 /*
-1.3 Override Methods from Attribute
+1.1.1 Override Methods from Attribute
 
 */
 
@@ -89,6 +100,7 @@ The default constructor should never been used, except in the Cast-Function.
   size_t HashValue() const;
   Attribute* Clone() const;
   bool Adjacent(const Attribute* attrib) const;
+  int Compare(const void* ls, const void* rs) const;
   int Compare(const Attribute* rhs) const;
   int Compare(const JRouteInterval& rhs) const;
   size_t Sizeof() const;
@@ -97,15 +109,21 @@ The default constructor should never been used, except in the Cast-Function.
   static const bool checkType(const ListExpr type);
 
 /*
-1.4 Standard Operators
+1.1.1 Standard Operators
 
 */
 
   JRouteInterval& operator=(const JRouteInterval& other);
+
   bool operator==(const JRouteInterval& other) const;
+  bool operator!=(const JRouteInterval& other) const;
+  bool operator<(const JRouteInterval& other) const;
+  bool operator<=(const JRouteInterval& other) const;
+  bool operator>(const JRouteInterval& other) const;
+  bool operator>=(const JRouteInterval& other) const;
 
 /*
-1.5 Operators for Secondo Integration
+1.1.1 Operators for Secondo Integration
 
 */
 
@@ -119,55 +137,64 @@ The default constructor should never been used, except in the Cast-Function.
   static void* Cast( void* addr );
   static bool KindCheck ( ListExpr type, ListExpr& errorInfo );
   static int SizeOf();
-  static bool Save(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value );
-  static bool Open(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value );
   static ListExpr Property();
 
 /*
-1.6 Helpful Operators
+1.1.1 Helpful Operators
 
-1.1.1 Example
+1.1.1.1 ~Example~
 
 Provides example string for list representation can be used by external
-property definitions for part of route interval representation.
+property definitions for part of ~JRouteInterval~ representation.
 
 */
 
 static string Example();
 
 /*
-1.1.1 SameSide
+1.1.1.1 SameSide
 
-Returns true if the ~route intervals~ have identic side value or at least one
-of them is both.
+Returns true if the both ~JRouteIntervals~ have identic side values or,
+if strict is set to false, at least one of the side values is both.
 
 */
 
   bool SameSide(const JRouteInterval& other, const bool strict = true) const;
 
 /*
-1.1.1 contains
+1.1.1.1 Overlaps
 
-Returns true if the ~routelocation~, respectively the ~route interval~ is
-covered by the ~routeinterval~.
+Returns true if the two JRouteIntervals are on the same road at the same side
+and their intervals overlap at atleast one point.
 
 */
 
-  bool Contains(const RouteLocation& rloc) const;
-  bool Contains(const JRouteInterval& rint) const;
+  bool Overlaps(const JRouteInterval& other) const;
+
+/*
+1.1 private deklarations
+
+*/
 
 private:
 
 /*
-1.1 Private Attributes of ~routeinterval~
+1.1.1 Private Attributes of ~JRouteInterval~
 
 */
 
   int rid; //route identifier
-  double startpos, endpos; //start and end position on route
+  double startpos, endpos; //start respectively end position on route
   Direction side; //covered side(s) of the road
+
 };
+
+/*
+1 Overwrite output operator
+
+*/
+
+ostream& operator<<(ostream& os, const JRouteInterval& jir);
+
 
 #endif // JROUTEINTERVAL_H

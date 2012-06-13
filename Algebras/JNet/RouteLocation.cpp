@@ -18,52 +18,65 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2011, April Simone Jandt
+2012, May Simone Jandt
+
+1 Includes
 
 */
 
-#include "RouteLocation.h"
 #include "ListUtils.h"
 #include "NestedList.h"
 #include "NList.h"
 #include "Symbols.h"
 #include "LogMsg.h"
 #include "StandardTypes.h"
+#include "RouteLocation.h"
 
 
 /*
 
-1. ~class RouteLocation ~
+1 Implementation of ~class RouteLocation ~
+
 1.1 Constructors and Deconstructors
 
 */
 
-RouteLocation::RouteLocation():Attribute()
+RouteLocation::RouteLocation(): Attribute()
 {}
 
 RouteLocation::RouteLocation(const RouteLocation& other) :
-  Attribute(other.IsDefined()),
-  rid(other.GetRouteId()),
-  pos(other.GetPosition()),
-  side(other.GetSide())
-{}
+  Attribute(other.IsDefined()), rid(0), pos(0.0), side(Both)
+{
+  if (other.IsDefined()){
+    rid = other.GetRouteId();
+    pos = other.GetPosition();
+    side = other.GetSide();
+  }
+}
 
-RouteLocation::RouteLocation(const bool defined):Attribute(defined)
+RouteLocation::RouteLocation(const bool defined) :
+  Attribute(defined), rid(0), pos(0.0), side(Both)
 {}
 
 RouteLocation::RouteLocation(const int routeId, const double position,
                              const Direction sideofroad) :
-    Attribute(true),
-    rid(routeId),
-    pos(position),
-    side(sideofroad)
-{}
+  Attribute(true), rid(routeId),  pos(position),  side(sideofroad)
+{
+  assert(rid >= 0 && pos >= 0.0);
+}
+
+RouteLocation::RouteLocation(const int routeId, const double position,
+                             const JSide sideofroad) :
+  Attribute(true), rid(routeId), pos(position), side(Direction(sideofroad))
+{
+  assert(rid >= 0 && pos >= 0.0);
+}
 
 RouteLocation::~RouteLocation()
 {}
 
 /*
- 1 .2 Getter and Setter for private Attributes
+1.1 Getter and Setter for private Attributes
 
 */
 
@@ -84,11 +97,13 @@ double RouteLocation::GetPosition() const
 
 void RouteLocation::SetRouteId(const int routeid)
 {
+  assert(routeid >= 0);
   rid = routeid;
 }
 
 void RouteLocation::SetPosition(const double position)
 {
+  assert (position >= 0.0);
   pos = position;
 }
 
@@ -98,7 +113,7 @@ void RouteLocation::SetSide(const Direction sideofroad)
 }
 
 /*
-1.3 Override Methods from Attribute
+1.1 Override Methods from Attribute
 
 */
 
@@ -144,16 +159,24 @@ bool RouteLocation::Adjacent(const Attribute* attrib) const
   return Adjacent(*((RouteLocation*) attrib));
 }
 
+int RouteLocation::Compare(const void* rs, const void* ls) const
+{
+  RouteLocation rhs(*(RouteLocation*)(rs));
+  RouteLocation lhs(*(RouteLocation*)(ls));
+  return rhs.Compare(lhs);
+}
+
 int RouteLocation::Compare(const Attribute* rhs) const
 {
-  RouteLocation* in = (RouteLocation*) rhs;
-  return Compare(*in);
+  RouteLocation in(*(RouteLocation*) rhs);
+  return Compare(in);
 }
 
 int RouteLocation::Compare(const RouteLocation& in) const
 {
-  if (in.IsDefined() && !IsDefined()) return -1;
-  if (!in.IsDefined() && IsDefined()) return 1;
+  if (!IsDefined() && !in.IsDefined()) return 0;
+  if (!IsDefined() && in.IsDefined()) return -1;
+  if (IsDefined() && !in.IsDefined()) return 1;
   if (rid < in.GetRouteId()) return -1;
   if (rid > in.GetRouteId()) return 1;
   if (pos < in.GetPosition()) return -1;
@@ -192,7 +215,7 @@ const bool RouteLocation::checkType(const ListExpr type)
 }
 
 /*
-1.4 Standard Operators
+1.1 Standard Operators
 
 */
 
@@ -213,8 +236,33 @@ bool RouteLocation::operator==(const RouteLocation& other) const
   return (Compare(&other) == 0);
 }
 
+bool RouteLocation::operator!=(const RouteLocation& other) const
+{
+  return (Compare(&other) != 0);
+}
+
+bool RouteLocation::operator<(const RouteLocation& other) const
+{
+  return (Compare(&other) < 0);
+}
+
+bool RouteLocation::operator<=(const RouteLocation& other) const
+{
+  return (Compare(&other) < 1);
+}
+
+bool RouteLocation::operator>(const RouteLocation& other) const
+{
+  return (Compare(&other) > 0);
+}
+
+bool RouteLocation::operator>=(const RouteLocation& other) const
+{
+  return (Compare(&other) > -1);
+}
+
 /*
-1.5 Operators for Secondo Integration
+1.1 Operators for Secondo Integration
 
 */
 
@@ -258,20 +306,20 @@ Word RouteLocation::In(const ListExpr typeInfo, const ListExpr instance,
       NList sideList(in_list.third());
       int routeId = 0;
       double position = 0.0;
-      if (routeIdList.isInt())
+      if (routeIdList.isInt() && routeIdList.intval() >= 0)
         routeId = routeIdList.intval();
       else
       {
         correct = false;
-        cmsg.inFunError("First Element must be " + CcInt::BasicType());
+        cmsg.inFunError("1.Element must be " + CcInt::BasicType() + " >= 0.");
         return SetWord(Address(0));
       }
-      if (posList.isReal())
+      if (posList.isReal() && posList.realval() >= 0.0)
         position = posList.realval();
       else
       {
         correct = false;
-        cmsg.inFunError("Second Element must be " + CcReal::BasicType());
+        cmsg.inFunError("2.Element must be " + CcReal::BasicType() + " >= 0.0");
         return SetWord(Address(0));
       }
       correct = true;
@@ -290,7 +338,7 @@ Word RouteLocation::In(const ListExpr typeInfo, const ListExpr instance,
                                  correct);
       if (!correct)
       {
-        cmsg.inFunError("Third element must be " + Direction::BasicType());
+        cmsg.inFunError("3.Element must be " + Direction::BasicType());
         return SetWord(Address(0));
       }
       Direction* sideofroad =(Direction*)sideaddr.addr;
@@ -300,7 +348,7 @@ Word RouteLocation::In(const ListExpr typeInfo, const ListExpr instance,
     }
   }
   correct = false;
-  cmsg.inFunError("list length should be one or three");;
+  cmsg.inFunError("List length should be one or three");;
   return SetWord(Address(0));
 }
 
@@ -341,58 +389,6 @@ int RouteLocation::SizeOf()
   return sizeof(RouteLocation);
 }
 
-bool RouteLocation::Save(SmiRecord& valueRecord, size_t& offset,
-                                const ListExpr typeInfo, Word& value )
-{
-  RouteLocation* toSave = (RouteLocation*) value.addr;
-  if (toSave->IsDefined())
-  {
-    int routeid = toSave->GetRouteId();
-    valueRecord.Write(&routeid, sizeof(int), offset);
-    offset += sizeof(int);
-    double position = toSave->GetPosition();
-    valueRecord.Write(&position, sizeof(double),offset);
-    offset += sizeof(double);
-    Word wside;
-    Direction* tdir = new Direction(toSave->GetSide());
-    wside = SetWord(tdir);
-    bool ok = Direction::Save(valueRecord, offset, nl->TheEmptyList(), wside);
-    tdir->DeleteIfAllowed();
-    return ok;
-  }
-  else
-  {
-    int i = -1;
-    valueRecord.Write(&i, sizeof(int),offset);
-    offset += sizeof(int);
-    return true;
-  }
-}
-
-bool RouteLocation::Open(SmiRecord& valueRecord, size_t& offset,
-                                const ListExpr typeInfo, Word& value )
-{
-  int routeid = -1;
-  valueRecord.Read(&routeid, sizeof(int), offset);
-  offset += sizeof(int);
-  if (routeid == -1)
-  {
-    value = SetWord(new RouteLocation(false));
-    return true;
-  }
-  double position;
-  valueRecord.Read(&position, sizeof(double), offset);
-  offset += sizeof(double);
-  Word wside;
-  if (Direction::Open(valueRecord, offset, nl->TheEmptyList(),wside))
-  {
-    Direction direct = (*(Direction*) wside.addr);
-    value = SetWord(new RouteLocation(routeid, position, direct));
-    return true;
-  }
-  return false;
-}
-
 ListExpr RouteLocation::Property()
 {
   return nl->TwoElemList(
@@ -412,7 +408,9 @@ ListExpr RouteLocation::Property()
 }
 
 /*
-1.6 Helpful operations
+1.1 Helpful operations
+
+1.1.1 ~Example~
 
 Returns true if the side values are identic or at least one of them is ~Both~.
 
@@ -423,10 +421,33 @@ string RouteLocation::Example()
   return "(1 2.0 " + Direction::Example() +")";
 }
 
+/*
+1.1.1 ~SameSide~
+
+Returns true if the both RouteLocations are on the same Side or, if
+strict is set to false, if side of one of the both routelocations is Both.
+
+*/
+
 bool RouteLocation::SameSide(const RouteLocation& rloc,
                              const bool strict /*true*/) const
 {
-  if (!IsDefined() && !IsDefined()) return true;
-  if (!IsDefined() || !rloc.IsDefined()) return false;
-  else return side.SameSide(rloc.GetSide(), strict);
+  if (IsDefined() && rloc.IsDefined())
+    return side.SameSide(rloc.GetSide(), strict);
+  else
+    if (!IsDefined() && !rloc.IsDefined())
+      return true;
+    else
+      return false;
+}
+
+/*
+1 Implementation of overloaded output operator
+
+*/
+
+ostream& operator<<(ostream& os, const RouteLocation& dir)
+{
+  dir.Print(os);
+  return os;
 }

@@ -18,7 +18,9 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2011, October Simone Jandt
+2012, May Simone Jandt
+
+1 Defines and includes
 
 */
 
@@ -35,50 +37,55 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 /*
 1 class JLine
 
-Consists of a network id and a set of RouteIntervals describing an part of a
-network.
+Consists of a network id and a set of ~JRouteIntervals~ describing an part of a
+~jnetwork~. The ~JRouteIntervals~ are stored sorted by the route identifiers
+and start and end positions and are compressed as far as possible.
 
 */
 
 class JLine : public Attribute
 {
 
-public:
-
 /*
-1.1 Constructors and Deconstructor
-
-The default Constructor  should not be used outside the cast function.
+1.1 public declarations
 
 */
 
-  JLine();
-  JLine(const bool defined);
+public:
+
+/*
+1.1.1 Constructors and Deconstructor
+
+*/
+
+  explicit JLine(const bool defined);
+  JLine(const string netId, const DbArray<JRouteInterval>& rintList);
   JLine(const JLine& other);
 
   ~JLine();
 
 /*
-1.1 Getter and Setter for private attributes
+1.1.1 Getter and Setter for private attributes
 
 */
 
   string GetNetworkId() const;
-  DbArray<JRouteInterval>* GetRouteIntervals() const;
+  const DbArray<JRouteInterval>& GetRouteIntervals() const;
 
   void SetNetworkId(string& nid);
-  void SetRouteIntervals(DbArray<JRouteInterval>* setri);
+  void SetRouteIntervals(DbArray<JRouteInterval>& setri);
 
 /*
-1.1 Override Methods from Attribute
+1.1.1 Override Methods from Attribute
 
 */
   void CopyFrom(const Attribute* right);
   size_t HashValue() const;
   Attribute* Clone() const;
   bool Adjacent(const Attribute* attrib) const;
+  int Compare(const void* ls, const void* rs) const;
   int Compare(const Attribute* rhs) const;
-  int Compare(const JLine* rhs) const;
+  int Compare(const JLine& rhs) const;
   size_t Sizeof() const;
   int NumOfFLOBs() const;
   Flob* GetFLOB(const int i);
@@ -89,15 +96,21 @@ The default Constructor  should not be used outside the cast function.
   static const bool checkType(const ListExpr type);
 
 /*
-1.1 Standard Operators
+1.1.1 Standard Operators
 
 */
 
   JLine& operator=(const JLine& other);
+
   bool operator==(const JLine& other) const;
+  bool operator!=(const JLine& other) const;
+  bool operator<(const JLine& other) const;
+  bool operator<=(const JLine& other) const;
+  bool operator>(const JLine& other) const;
+  bool operator>=(const JLine& other) const;
 
 /*
-1.1 Operators for Secondo Integration
+1.1.1 Operators for Secondo Integration
 
 */
 
@@ -107,6 +120,11 @@ The default Constructor  should not be used outside the cast function.
   static Word Create(const ListExpr typeInfo);
   static void Delete( const ListExpr typeInfo, Word& w );
   static void Close( const ListExpr typeInfo, Word& w );
+  /*
+  static bool Save(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value);
+  static bool Open (SmiRecord& valueRecord, size_t& offset,
+                    const ListExpr typeInfo, Word& value);*/
   static Word Clone( const ListExpr typeInfo, const Word& w );
   static void* Cast( void* addr );
   static bool KindCheck ( ListExpr type, ListExpr& errorInfo );
@@ -114,13 +132,18 @@ The default Constructor  should not be used outside the cast function.
   static ListExpr Property();
 
 /*
-1.1 Other helpful operators
+1.1.1 Other helpful operators
+
+1.1.1.1 ~Example~
+
+Returns an example of the data type.
 
 */
 
   static string Example();
+
 /*
-1.1.1 GetNoComponents
+1.1.1.1 GetNoComponents
 
 Returns the number of routeintervals of the jline.
 
@@ -129,7 +152,16 @@ Returns the number of routeintervals of the jline.
   int GetNoComponents() const;
 
 /*
-1.1.1 Get
+1.1.1.1 IsEmpty
+
+Returns true if the JLine is defined and has no routeintervals.
+
+*/
+
+  bool IsEmpty() const;
+
+/*
+1.1.1.1 Get
 
 Returns the routeinterval at the given position
 
@@ -137,15 +169,65 @@ Returns the routeinterval at the given position
 
   void Get(const int i, JRouteInterval& ri) const;
 
+/*
+
+1.1 private Deklaration part
+
+*/
+
 private:
 
 /*
-1.1 Private Attributes
+1.1.1 Attributes
 
 */
-  STRING_T netId;
-  DbArray<JRouteInterval> routeintervals;
+  string nid; //network identifier
+  DbArray<JRouteInterval> routeintervals; //sorted set of JRouteIntervals
+  bool sorted; //true if routeintervals are sorted and compressed
+
+/*
+
+1.1.1 Default Constructor
+
+The default constructor may only be used in the cast-function therefore we
+declare it to be private.
+
+*/
+
+ JLine();
+
+/*
+1.1.1 Methods
+
+1.1.1.1 Management of RouteIntervals
+
+1.1.1.1.1 IsSorted
+
+Checks if the given set of JRouteIntervals is sorted.
+
+*/
+
+  bool IsSorted() const;
+
+/*
+1.1.1.1.1 Sort
+
+Sorts the given set of RouteIntervals ascending by route Identifier,
+StartPosition and EndPosition and reduces the number of route intervals if
+possible.
+
+*/
+
+  void Sort();
+
+
 
 };
 
+/*
+1 Overwrite output operator
+
+*/
+
+ostream& operator<<(ostream& os, const JLine l);
 #endif // JLINE_H
