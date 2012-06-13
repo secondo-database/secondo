@@ -7692,12 +7692,12 @@ void SimpleLine::SubLine( double pos1, double pos2, SimpleLine& l ) const {
     }
   }
   l.EndBulkLoad();
-  if (!this->startSmaller)
-  {
-    double aux = pos1;
-    pos1 = pos2;
-    pos2 = aux;
-  }
+//   if (!this->startSmaller)
+//   {
+//     double aux = pos1;
+//     pos1 = pos2;
+//     pos2 = aux;
+//   }
   Point pStartPoint ( true );
   AtPosition ( pos1, startSmaller, pStartPoint );
   Point pEndPoint ( true );
