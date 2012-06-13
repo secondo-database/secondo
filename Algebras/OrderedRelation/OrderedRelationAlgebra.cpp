@@ -1469,6 +1469,18 @@ cout << "Konstruktor_Orel" << endl;
 #endif
 }
 
+ostream& OrderedRelation::Print(ostream& os) const
+{
+  GenericRelationIterator* itORel = MakeScan();
+  Tuple* actTuple = itORel->GetNextTuple();
+  while (actTuple != 0)
+  {
+    actTuple->Print(os);
+    actTuple->DeleteIfAllowed();
+    actTuple = itORel->GetNextTuple();
+  }
+  return os;
+}
 /*
 4 Operators
 

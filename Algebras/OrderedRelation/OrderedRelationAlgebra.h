@@ -207,7 +207,7 @@ class OrderedRelation : public GenericRelation {
       return listutils::isRelDescription2(list, BasicType());
      }
 
-
+    ostream& Print(ostream& os) const;
   private:
     OrderedRelation();
     SmiBtreeFile* tupleFile;
