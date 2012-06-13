@@ -1,0 +1,1189 @@
+###############################################################################
+# Creates a jnetwork from data imported by fullosmimport from open street map #
+# osm-File.                                                                   #
+###############################################################################
+
+##############################################################################
+# TODO:                                                                      #
+# - relation of relations of way relations to build long routes              #
+# - highway = motorway implies oneway yes                                    #
+# - junction = roundabout implies oneway yes                                 #
+# - respect turn restrictions                                                #
+##############################################################################
+
+###############################################################################
+# Create and open database                                                    #
+###############################################################################
+
+create database osmdb;
+
+open database osmdb;
+
+###############################################################################
+# Set import parameter                                                        #
+###############################################################################
+
+let SOURCEFILE = '/home/jandt/Downloads/OSM-Dateien/jnettest.osm';
+
+###############################################################################
+# import osm data from file                                                   #
+###############################################################################
+
+query fullosmimport(SOURCEFILE, "Osm");
+
+################################################################################
+# Extend taginformation with default values for needed but not yet set tags    #
+################################################################################
+# layertag needed by crossing computation                                      #
+################################################################################
+
+let WayIdsWithoutTags =
+  OsmWays feed
+  project [WayId]
+  sortby[WayId]
+  OsmWayTags feed
+  projectextend[;WayId: .WayIdInTag]
+  sortby [WayId]
+  rdup
+  mergediff
+consume;
+
+let OsmWayTagsLayerExtended =
+  OsmWayTags feed
+  sortby [WayIdInTag]
+  groupby [WayIdInTag; C: group feed
+                            filter [.WayTagKey = "layer"]
+                          count]
+  filter [.C = 0]
+  projectextend [WayIdInTag; WayTagKey: 'layer',
+                  WayTagValue: '0']
+consume;
+
+let LayerTagForWayIdsWithoutTag =
+  WayIdsWithoutTags feed
+  projectextend[; WayIdInTag: .WayId,
+    WayTagKey: 'layer',
+    WayTagValue: '0']
+consume;
+
+let OsmWayTagNew1 =
+  ((OsmWayTags feed)
+  (OsmWayTagsLayerExtended feed)
+  concat)
+  (LayerTagForWayIdsWithoutTag feed)
+  concat
+consume;
+
+###############################################################################
+# vmax speed needed for jnetwork creation to support fastest path computation #
+###############################################################################
+
+let OsmWayTagsVMaxExtended =
+  OsmWayTags feed
+  sortby [WayIdInTag]
+  groupby [WayIdInTag; C: group feed
+                            filter [.WayTagKey = "maxspeed"]
+                          count]
+  filter [.C = 0]
+  projectextend [WayIdInTag; WayTagKey: 'maxspeed',
+                  WayTagValue: '0.0']
+consume;
+
+let VMaxForWayIdsWithoutTag =
+  WayIdsWithoutTags feed
+  projectextend[; WayIdInTag: .WayId,
+     WayTagKey: 'maxspeed',
+     WayTagValue: '0.0']
+consume;
+
+let OsmWayTagNew =
+  ((OsmWayTagNew1 feed)
+  (OsmWayTagsVMaxExtended feed)
+  concat)
+  (VMaxForWayIdsWithoutTag feed)
+  concat
+consume;
+
+###############################################################################
+# Connect Spatial Information for nodes and ways                              #
+###############################################################################
+
+let SpatialPosOfNodes =
+   OsmNodes feed
+   projectextend [NodeId; NodePos: makepoint(.Lon,.Lat)]
+consume;
+
+let SpatialWayCurveSimple =
+  OsmWays feed
+  SpatialPosOfNodes feed
+  hashjoin[NodeRef, NodeId, 99997]
+  project[WayId, NodeCounter, NodePos]
+  sortby [WayId, NodeCounter]
+  groupby[WayId; WayCurve: group feed projecttransformstream[NodePos] collect_sline[TRUE]]
+consume;
+
+let SpatialWayCurveComplex =
+  OsmWays feed
+  SpatialWayCurveSimple feed
+    filter[not(isdefined(.WayCurve))] {s}
+  hashjoin[WayId, WayId_s]
+  project[WayId, NodeCounter, NodeRef]
+  SpatialPosOfNodes feed
+  hashjoin[NodeRef, NodeId, 99997]
+  project[WayId, NodeCounter, NodePos]
+  sortby [WayId, NodeCounter]
+  groupby[WayId; WayCurve: group feed projecttransformstream[NodePos] collect_line[TRUE],
+                 StartPointCurve: group feed head[1] extract[NodePos]]
+  projectextendstream[WayId, StartPointCurve; WayC: .WayCurve longlines]
+  addcounter[PartNo,1]
+  projectextend[WayId, PartNo, StartPointCurve,
+    WayC; StartPoint: getstartpoint(.WayC),
+      EndPoint: getendpoint(.WayC)]
+  sortby[WayId, PartNo]
+  extend_last[PrevEndPoint: ..EndPoint :: [const point value(0.0 0.0)]]
+  sortby[WayId, PartNo]
+  projectextend[WayId; WayCurve: ifthenelse(.StartPointCurve = .StartPoint, .WayC,
+                                 ifthenelse(.StartPoint = .PrevEndPoint, .WayC,
+                                     set_startsmaller(.WayC, not(get_startsmaller(.WayC)))))]
+consume;
+
+let SpatialWayCurve =
+  (SpatialWayCurveSimple feed filter [isdefined(.WayCurve)])
+  (SpatialWayCurveComplex feed)
+  concat
+  filter [isdefined(.WayCurve)]
+consume;
+
+################################################################################
+# Collect tag information by identfier                                         #
+################################################################################
+
+let NestedNodeRel =
+  SpatialPosOfNodes feed
+  OsmNodeTags feed
+  hashjoin[NodeId,NodeIdInTag]
+  project[NodeId, NodePos, NodeTagKey, NodeTagValue]
+  sortby[NodeId, NodePos, NodeTagKey, NodeTagValue]
+  rdup
+  nest [NodeId, NodePos; NodeInfo]
+consume;
+
+let NestedWayRel =
+  SpatialWayCurve feed
+  OsmWayTagNew feed
+  hashjoin [WayId, WayIdInTag]
+  project[WayId, WayCurve, WayTagKey, WayTagValue]
+  filter[not(((.WayTagKey = "oneway") and ((.WayTagValue = "no") or
+                                           (.WayTagValue = "false") or
+                                           (.WayTagValue = "0"))))]
+  sortby[WayId, WayCurve, WayTagKey, WayTagValue]
+  rdup
+  nest[WayId, WayCurve; WayInfo]
+  projectextend[WayId, WayInfo; WayC: .WayCurve,
+    ChangeDirection: ifthenelse(.WayInfo afeed filter [.WayTagKey = "oneway"]
+                                               filter [(.WayTagValue = "-1") or
+                                                       (.WayTagValue = "reverse")]
+                                            count > 0,
+                                TRUE, FALSE)]
+  projectextend[WayId, WayInfo; WayCurve: ifthenelse(.ChangeDirection,
+                        set_startsmaller(.WayC, not(get_startsmaller(.WayC))),
+                        .WayC)]
+consume;
+
+let NestedRelationRel =
+  OsmRelations feed
+  OsmRelationTags feed
+  hashjoin[RelId, RelIdInTag]
+  project[RelId, RefCounter, MemberRef, MemberType, MemberRole, RelTagKey, RelTagValue]
+  sortby[RelId, RefCounter,  MemberRef, MemberType, MemberRole, RelTagKey, RelTagValue]
+  rdup
+  nest [RelId, RefCounter, MemberRef, MemberType, MemberRole; RefInfo]
+  nest [RelId; RelInfo]
+consume;
+
+################################################################################
+# Select interesting WayCurves for street network                              #
+################################################################################
+
+let RoadParts =
+  NestedWayRel feed
+  filter [.WayInfo afeed
+    filter[.WayTagKey = "highway"]
+    filter[(.WayTagValue contains "living") or
+           (.WayTagValue contains "motorway") or
+           (.WayTagValue contains "path") or
+           (.WayTagValue contains "primary") or
+           (.WayTagValue contains "residential") or
+           (.WayTagValue contains "road") or
+           (.WayTagValue contains "secondary") or
+           (.WayTagValue contains "service") or
+           (.WayTagValue contains "tertiary") or
+           (.WayTagValue contains "trunk") or
+           (.WayTagValue contains "track") or
+           (.WayTagValue contains "unclassified") or
+           (.WayTagValue contains "pedestrian")]
+    count > 0]
+  filter [isdefined(.WayCurve)]
+  filter [not(isempty(.WayCurve))]
+consume;
+
+###############################################################################
+# Build Junctions                                                             #
+###############################################################################
+
+let ExtendedRoadParts =
+  RoadParts feed
+  unnest[WayInfo]
+  filter[.WayTagKey = "layer"]
+  projectextend[WayId; StartPoint: getstartpoint(.WayCurve),
+     EndPoint: getendpoint(.WayCurve)]
+consume;
+
+let WayEndPoints =
+  (ExtendedRoadParts feed projectextend[WayId; Point: .StartPoint])
+  (ExtendedRoadParts feed projectextend[WayId; Point: .EndPoint])
+  concat
+consume;
+
+let CrossingPtsTmpH1 =
+   RoadParts feed
+   unnest[WayInfo]
+   filter[.WayTagKey = "layer"]
+   projectextend[WayId, WayCurve; Layer: .WayTagValue]
+consume;
+
+let CrossingPtsTmp =
+   CrossingPtsTmpH1 feed {s1}
+   CrossingPtsTmpH1 feed {s2}
+   itSpatialJoin [WayCurve_s1, WayCurve_s2, 4 ,8]
+   filter[(.Layer_s1 = .Layer_s2)]
+   filter[.WayId_s1 < .WayId_s2]
+   filter[.WayCurve_s1 intersects .WayCurve_s2]
+   projectextendstream[WayId_s1,
+      WayId_s2; Pt: components(crossings(.WayCurve_s1, .WayCurve_s2))]
+   filter[isdefined(.Pt)]
+   projectextend[Pt; WayId1: .WayId_s1,
+    WayId2: .WayId_s2]
+consume;
+
+let CrossingPts =
+  (CrossingPtsTmp feed projectextend[; WayId: .WayId1, Point: .Pt])
+  (CrossingPtsTmp feed projectextend[; WayId: .WayId2, Point: .Pt])
+  concat
+  sortby [WayId, Point]
+  rdup
+consume;
+  
+let CrossingsAndRoadPartEndPoints =
+  (WayEndPoints feed)
+  (CrossingPts feed)
+  concat
+  sortby[WayId, Point]
+  krduph[WayId, Point]
+consume;
+
+let DeadEndCrossings =
+  CrossingsAndRoadPartEndPoints feed
+  sortby[WayId, Point]
+  rdup
+  CrossingPts feed
+  sortby[WayId, Point]
+  rdup
+  mergediff
+  projectextend[;Pt: .Point, WayId1: .WayId, WayId2: .WayId]
+consume;
+
+let AllCrossings =
+  (CrossingPtsTmp feed)
+  (DeadEndCrossings feed)
+  concat
+  sortby[Pt, WayId1, WayId2]
+  rdup
+consume;
+
+ 
+let JunctionIds =
+  CrossingsAndRoadPartEndPoints feed project[Point]
+  sortby [Point]
+  rdup
+  filter [isdefined(.Point)]
+  addcounter[Jid,1]
+consume;
+
+###############################################################################
+# Split osm ways into network sections at junction points                     #
+###############################################################################
+
+let RoadPartSectionsTmp1 =
+  RoadParts feed
+  JunctionIds feed
+  itSpatialJoin[WayCurve, Point,4,8]
+  filter [.Point inside .WayCurve]
+  project[WayId, WayCurve, Point]
+  sortby [WayId, WayCurve, Point]
+  groupby[WayId, WayCurve; Splitpoints: group feed projecttransformstream[Point] collect_points[TRUE]]
+  projectextendstream[WayId; SectCurve: splitslineatpoints(.WayCurve, .Splitpoints)]
+   extend[StartPoint: getstartpoint(.SectCurve),
+         EndPoint: getendpoint(.SectCurve),
+         Lenth: size(.SectCurve)]
+  RoadParts feed {r1}
+  hashjoin[WayId, WayId_r1]
+  projectextend[WayId, SectCurve, StartPoint, EndPoint, 
+    Lenth; WayCurve: .WayCurve_r1,
+      Oneway: ifthenelse(.WayInfo_r1 afeed
+                                 filter[.WayTagKey_r1 = "oneway"]
+                                 count > 0,TRUE,FALSE),
+      RoadType: .WayInfo_r1 afeed filter[.WayTagKey_r1 = "highway"] extract [WayTagValue_r1],
+      Speed:  str2real(.WayInfo_r1 afeed filter[.WayTagKey_r1 = "maxspeed"] extract [WayTagValue_r1])]
+  extend[VMax: ifthenelse(.Speed > 0.0, .Speed,
+        ifthenelse(.RoadType contains "living", 10.0,
+        ifthenelse(.RoadType contains "motorway", 200.0,
+        ifthenelse(.RoadType contains "path", 5.0,
+        ifthenelse(.RoadType contains "primary", 100.0,
+        ifthenelse(.RoadType contains "residential", 30.0,
+        ifthenelse(.RoadType contains "road", 50.0,
+        ifthenelse(.RoadType contains "secondary", 70.0,
+        ifthenelse(.RoadType contains "service", 30.0,
+        ifthenelse(.RoadType contains "tertiary", 50.0,
+        ifthenelse(.RoadType contains "trunk", 130.0,
+        ifthenelse(.RoadType contains "track", 10.0,
+        ifthenelse(.RoadType contains "unclassified", 50.0,
+        ifthenelse(.RoadType contains "pedestrian",5.0,30.0)))))))))))))),
+    Side: ifthenelse(.Oneway,[const jdirection value(Up)],[const jdirection value(Both)])]
+  JunctionIds feed {j1}
+  itSpatialJoin[StartPoint, Point_j1,4,8]
+  filter [.StartPoint = .Point_j1]
+  projectextend[WayId, SectCurve, StartPoint, EndPoint, Lenth, Side, VMax, 
+    WayCurve; StartJid: .Jid_j1]
+  JunctionIds feed {j2}
+  itSpatialJoin[EndPoint, Point_j2,4,8]
+  filter [.EndPoint = .Point_j2]
+  projectextend[WayId, SectCurve, StartPoint, EndPoint, WayCurve, Lenth, Side,
+    VMax, StartJid; EndJid: .Jid_j2]
+  addcounter[Sid, 1]
+consume;
+
+###############################################################################
+# junctions                                                                   #
+###############################################################################
+
+let JunctionsAndWayCrossings =
+  AllCrossings feed filter[isdefined(.Pt)]
+  JunctionIds feed
+  itSpatialJoin[Pt, Point,4,8]
+  filter[.Pt = .Point]
+  project[WayId1, WayId2, Point, Jid]
+  RoadPartSectionsTmp1 feed {r1}
+  hashjoin[WayId1, WayId_r1]
+  filter[(.Jid = .StartJid_r1) or (.Jid = .EndJid_r1)]
+  projectextend[WayId1, WayId2, Point, Jid; Sid1: .Sid_r1,
+    S1SectCurve: .SectCurve_r1,
+    S1StartPoint: .StartPoint_r1,
+    S1EndPoint: .EndPoint_r1,
+    S1StartJid: .StartJid_r1,
+    S1EndJid: .EndJid_r1,
+    S1Lenth: .Lenth_r1,
+    Side1: .Side_r1,
+    S1JuncAtStart: ifthenelse(.StartJid_r1 = .Jid, TRUE, FALSE)]
+  extend[S1Side: ifthenelse(.Side1 = [const jdirection value(Both)],
+                    .Side1,
+                    ifthenelse(.S1JuncAtStart,[const jdirection value(Up)],
+                                              [const jdirection value(Down)]))]
+  RoadPartSectionsTmp1 feed {r2}
+  hashjoin[WayId2, WayId_r2]
+  filter[(.Jid = .StartJid_r2) or (.Jid = .EndJid_r2)]
+  projectextend[WayId1, WayId2, Point, Jid, Sid1, S1SectCurve,
+    S1StartPoint, S1EndPoint, S1StartJid, S1EndJid, S1Lenth,
+    S1JuncAtStart, S1Side; Sid2: .Sid_r2,
+    S2SectCurve: .SectCurve_r2,
+    S2StartPoint: .StartPoint_r2,
+    S2EndPoint: .EndPoint_r2,
+    S2StartJid: .StartJid_r2,
+    S2EndJid: .EndJid_r2,
+    S2Lenth: .Lenth_r2,
+    Side2: .Side_r2,
+    S2JuncAtStart: ifthenelse(.StartJid_r2 = .Jid, TRUE, FALSE)]
+  extend[S2Side: ifthenelse(.Side2 = [const jdirection value(Both)],
+                    .Side2,
+                    ifthenelse(.S2JuncAtStart,[const jdirection value(Up)],
+                                              [const jdirection value(Down)]))]
+  project[WayId1, WayId2, Point, Jid, Sid1, S1SectCurve,
+    S1StartPoint, S1EndPoint, S1StartJid, S1EndJid, S1Lenth,
+    S1JuncAtStart, S1Side, Sid2, S2SectCurve, S2StartPoint, S2EndPoint, S2StartJid,
+    S2EndJid, S2Lenth, S2JuncAtStart, S2Side]
+consume;
+
+
+###############################################################################
+# build roads                                                                 #
+###############################################################################
+
+
+let RoadsByRefH1 =
+  RoadParts feed
+  filter[not(iscycle(.WayCurve))]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "oneway"]
+    count = 0]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "ref"]
+    count > 0]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "highway"]
+    filter[not(.WayTagValue contains "link")]
+    count > 0]
+  unnest[WayInfo]
+  filter[.WayTagKey = "ref"]
+  projectextendstream[WayId, WayCurve; RefToken: tokenize(' '+.WayTagValue,";/")]
+  projectextend[WayId, WayCurve; Ref: trim(toObject('"'+.RefToken +'"',"a"))]
+  sortby[Ref, WayCurve]
+consume;
+
+let RoadsByRefSimpleH1 =
+  RoadsByRefH1 feed
+  sortby[Ref, WayCurve]
+  groupby[Ref; C: group feed count]
+consume;
+
+let RoadsByRefSimpleH2 =
+  RoadsByRefSimpleH1 feed
+  filter [.C = 1] {r1}
+  RoadsByRefH1 feed {r2}
+  hashjoin[Ref_r1, Ref_r2]
+  projectextend[; Ref: .Ref_r1,
+    RoadCurve: .WayCurve_r2]
+consume;
+
+let RoadsByRefSimpleH3 =
+  RoadsByRefSimpleH1 feed
+  filter [.C > 1] {r1}
+  RoadsByRefH1 feed {r2}
+  hashjoin[Ref_r1, Ref_r2]
+  projectextend[; Ref: .Ref_r2,
+    WayCurve: .WayCurve_r2]
+  sortby[Ref, WayCurve]
+  groupby[Ref; RoadC: group feed projecttransformstream[WayCurve] collect_sline[TRUE]]
+  projectextend[Ref; RoadCurve: .RoadC]
+consume;
+
+let RoadsByRefSimple =
+  (RoadsByRefSimpleH2 feed)
+  (RoadsByRefSimpleH3 feed)
+  concat
+  sortby[Ref, RoadCurve]
+consume;
+
+let RoadsByRefComplex =
+  RoadsByRefH1 feed
+  sortby[Ref, WayCurve]
+  RoadsByRefSimple feed
+    filter[not(isdefined(.RoadCurve))] {s}
+  hashjoin[Ref, Ref_s]
+  projectextend[Ref, WayCurve; StartPoint: getstartpoint(.WayCurve)]
+  sortby[Ref, WayCurve, StartPoint]
+  groupby[Ref; RoadC: group feed projecttransformstream[WayCurve] collect_line[TRUE],
+               StartPointCurve: group feed head[1] extract[StartPoint]]
+  projectextendstream[Ref, StartPointCurve; RoadCur: .RoadC longlines]
+  addcounter[PartNo,1]
+  projectextend[Ref, PartNo, StartPointCurve,
+    RoadCur; StartPoint: getstartpoint(.RoadCur),
+      EndPoint: getendpoint(.RoadCur)]
+  sortby[Ref, PartNo]
+  extend_last[PrevEndPoint: ..EndPoint :: [const point value(0.0 0.0)]]
+  sortby[Ref, PartNo]
+  projectextend[Ref; RoadCurve: ifthenelse(.StartPointCurve = .StartPoint, .RoadCur,
+                               ifthenelse(.StartPoint = .PrevEndPoint, .RoadCur,
+                                     set_startsmaller(.RoadCur, not(get_startsmaller(.RoadCur)))))]
+consume;
+
+let RoadsByRef =
+  (RoadsByRefSimple feed filter [isdefined(.RoadCurve)])
+  (RoadsByRefComplex feed)
+  concat
+  filter [isdefined(.RoadCurve)]
+consume;
+
+let RoadsByNameH1 =
+  RoadParts feed
+  filter[not(iscycle(.WayCurve))]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "oneway"]
+    count = 0]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "name"]
+    count > 0]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "highway"]
+    filter[not(.WayTagValue contains "link")]
+    count > 0]
+  unnest[WayInfo]
+  filter[.WayTagKey = "name"]
+  projectextend[WayId, WayCurve; Name: trim(toObject('"'+.WayTagValue +'"',"a"))]
+  sortby[Name, WayCurve]
+consume;
+
+let RoadsByNameSimpleH1 =
+  RoadsByNameH1 feed
+  sortby[Name, WayCurve]
+  groupby[Name; C: group feed count]
+consume;
+
+let RoadsByNameSimpleH2 =
+  RoadsByNameSimpleH1 feed
+  filter [.C = 1] {r1}
+  RoadsByNameH1 feed {r2}
+  hashjoin[Name_r1, Name_r2]
+  projectextend[;Name: .Name_r1,
+    RoadCurve: .WayCurve_r2]
+consume;
+
+let RoadsByNameSimpleH3 =
+  RoadsByNameSimpleH1 feed
+  filter [.C > 1] {r1}
+  RoadsByNameH1 feed {r2}
+  hashjoin[Name_r1, Name_r2]
+  projectextend[; Name: .Name_r1, WayCurve: .WayCurve_r2]
+  sortby[Name, WayCurve]
+  groupby[Name; RoadC: group feed projecttransformstream[WayCurve] collect_sline[TRUE]]
+  projectextend[Name; RoadCurve: .RoadC]
+consume;
+
+let RoadsByNameSimple =
+  (RoadsByNameSimpleH2 feed)
+  (RoadsByNameSimpleH3 feed)
+   concat
+   sortby[Name, RoadCurve]
+consume;
+
+let RoadsByNameComplex =
+  RoadsByNameH1 feed
+  RoadsByNameSimple feed
+    filter[not(isdefined(.RoadCurve))] {s}
+  hashjoin[Name, Name_s]
+  projectextend[Name, WayCurve; StartPoint: getstartpoint(.WayCurve)]
+  sortby[Name, WayCurve, StartPoint]
+  groupby[Name; RoadC: group feed projecttransformstream[WayCurve] collect_line[TRUE],
+               StartPointCurve: group feed head[1] extract[StartPoint]]
+  projectextendstream[Name, StartPointCurve; RoadCur: .RoadC longlines]
+  addcounter[PartNo,1]
+  projectextend[Name, PartNo, StartPointCurve,
+    RoadCur; StartPoint: getstartpoint(.RoadCur),
+      EndPoint: getendpoint(.RoadCur)]
+  sortby[Name, PartNo]
+  extend_last[PrevEndPoint: ..EndPoint :: [const point value(0.0 0.0)]]
+  sortby[Name, PartNo]
+  projectextend[Name; RoadCurve: ifthenelse(.StartPointCurve = .StartPoint, .RoadCur,
+                                   ifthenelse(.StartPoint = .PrevEndPoint, .RoadCur,
+                                     set_startsmaller(.RoadCur, not(get_startsmaller(.RoadCur)))))]
+consume;
+
+let RoadsByName =
+  (RoadsByNameSimple feed filter [isdefined(.RoadCurve)])
+  (RoadsByNameComplex feed)
+  concat
+  filter [isdefined(.RoadCurve)]
+consume;
+
+let RoadLinksH1 =
+  RoadParts feed
+  filter[not(iscycle(.WayCurve))]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "oneway"]
+    count = 0]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "highway"]
+    filter[.WayTagValue contains "link"]
+    count > 0]
+  unnest[WayInfo]
+  filter[.WayTagKey = "highway"]
+  filter[.WayTagValue contains "link"]
+  project[WayId, WayCurve]
+  sortby[WayId, WayCurve]
+consume;
+
+let RoadLinksSimpleH1 =
+  RoadLinksH1 feed
+  sortby[WayId, WayCurve]
+  groupby[WayId; C: group feed count]
+consume;
+
+let RoadLinksSimpleH2  =
+  RoadLinksSimpleH1 feed
+  filter [.C = 1] {r1}
+  RoadLinksH1 feed {r2}
+  hashjoin [WayId_r1, WayId_r2]
+  projectextend[; WayId: .WayId_r1,
+    RoadCurve: .WayCurve_r2]
+consume;
+
+let RoadLinksSimpleH3 =
+  RoadLinksSimpleH1 feed
+  filter [.C > 1] {r1}
+  RoadLinksH1 feed {r2}
+  hashjoin [WayId_r1, WayId_r2]
+  projectextend[;  WayId: .WayId_r1,
+    WayCurve: .WayCurve_r2]
+  sortby[WayId, WayCurve]
+  groupby[WayId; RoadC: group feed projecttransformstream[WayCurve] collect_sline[TRUE]]
+  projectextend[WayId; RoadCurve: .RoadC]
+consume;
+
+let RoadLinksSimple =
+  (RoadLinksSimpleH2 feed)
+  (RoadLinksSimpleH3 feed)
+  concat
+  sortby[WayId, RoadCurve]
+consume;
+
+let RoadLinksComplex =
+  RoadLinksH1 feed
+  RoadLinksSimple feed
+    filter[not(isdefined(.RoadCurve))] {s}
+  hashjoin[WayId, WayId_s]
+  projectextend[WayId, WayCurve; StartPoint: getstartpoint(.WayCurve)]
+  sortby[WayId, WayCurve, StartPoint]
+  groupby[WayId; RoadC: group feed projecttransformstream[WayCurve] collect_line[TRUE],
+               StartPointCurve: group feed head[1] extract[StartPoint]]
+  projectextendstream[WayId, StartPointCurve; RoadCur: .RoadC longlines]
+  addcounter[PartNo,1]
+  projectextend[WayId, PartNo, StartPointCurve,
+    RoadCur; StartPoint: getstartpoint(.RoadCur),
+      EndPoint: getendpoint(.RoadCur)]
+  sortby[WayId, PartNo]
+  extend_last[PrevEndPoint: ..EndPoint :: [const point value(0.0 0.0)]]
+  sortby[WayId, PartNo]
+  projectextend[WayId; RoadCurve: ifthenelse(.StartPointCurve = .StartPoint, .RoadCur,
+                                    ifthenelse(.StartPoint = .PrevEndPoint, .RoadCur,
+                                       set_startsmaller(.RoadCur, not(get_startsmaller(.RoadCur)))))]
+consume;
+
+let RoadLinks =
+  (RoadLinksSimple feed filter [isdefined(.RoadCurve)])
+  (RoadLinksComplex feed)
+  concat
+  filter [isdefined(.RoadCurve)]
+consume;
+
+let RoadRestH1 =
+  RoadParts feed
+  filter[not(iscycle(.WayCurve))]
+  filter[.WayInfo afeed
+    filter[.WayTagKey = "oneway"]
+    count = 0]
+  filter [.WayInfo afeed
+    filter[.WayTagKey = "highway"]
+    filter[.WayTagValue contains "link"]
+    count = 0]
+  unnest[WayInfo]
+  filter[.WayTagKey = "highway"]
+  project[WayId, WayCurve]
+  sortby[WayId, WayCurve]
+consume;
+
+let RoadRestSimpleH1 =
+  RoadRestH1 feed
+  sortby[WayId, WayCurve]
+  groupby[WayId; C: group feed count]
+consume;
+
+let RoadRestSimpleH2 =
+  RoadRestSimpleH1 feed
+  filter [.C = 1] {r1}
+  RoadRestH1 feed {r2}
+  hashjoin[WayId_r1, WayId_r2]
+  projectextend[; WayId: .WayId_r1,
+    RoadCurve: .WayCurve_r2]
+consume;
+
+let RoadRestSimpleH3 =
+  RoadRestSimpleH1 feed
+  filter [.C > 1] {r1}
+  RoadRestH1 feed {r2}
+  hashjoin[WayId_r1, WayId_r2]
+  projectextend[; WayId: .WayId_r1,
+    WayCurve: .WayCurve_r2]
+  sortby[WayId, WayCurve]
+  groupby[WayId; RoadC: group feed projecttransformstream[WayCurve] collect_sline[TRUE]]
+  projectextend[WayId; RoadCurve: .RoadC]
+consume;
+
+let RoadRestSimple =
+  (RoadRestSimpleH2 feed)
+  (RoadRestSimpleH3 feed)
+  concat
+  sortby[WayId, RoadCurve]
+consume;
+
+let RoadRestComplex =
+  RoadRestH1 feed
+  RoadRestSimple feed
+    filter[not(isdefined(.RoadCurve))] {s}
+  hashjoin[WayId, WayId_s]
+  projectextend[WayId, WayCurve; StartPoint: getstartpoint(.WayCurve)]
+  sortby[WayId, WayCurve, StartPoint]
+  groupby[WayId; RoadC: group feed projecttransformstream[WayCurve] collect_line[TRUE],
+               StartPointCurve: group feed head[1] extract[StartPoint]]
+  projectextendstream[WayId, StartPointCurve; RoadCur: .RoadC longlines]
+  addcounter[PartNo,1]
+  projectextend[WayId, PartNo, StartPointCurve,
+    RoadCur; StartPoint: getstartpoint(.RoadCur),
+      EndPoint: getendpoint(.RoadCur)]
+  sortby[WayId, PartNo]
+  extend_last[PrevEndPoint: ..EndPoint :: [const point value(0.0 0.0)]]
+  sortby[WayId, PartNo]
+  projectextend[WayId; RoadCurve: ifthenelse(.StartPointCurve = .StartPoint, .RoadCur,
+                               ifthenelse(.StartPoint = .PrevEndPoint, .RoadCur,
+                                     set_startsmaller(.RoadCur, not(get_startsmaller(.RoadCur)))))]
+consume;
+
+let RoadRest =
+  (RoadRestSimple feed filter [isdefined(.RoadCurve)])
+  (RoadRestComplex feed)
+  concat
+  filter [isdefined(.RoadCurve)]
+consume;
+
+let RoadsByOneway =
+  RoadParts feed
+  filter [not(iscycle(.WayCurve))]
+  filter [.WayInfo afeed
+    filter [.WayTagKey = "oneway"]
+    count > 0]
+  projectextend[; Name: num2string(.WayId), Curve: .WayCurve]
+consume;
+
+let RoadsByCycle =
+  RoadParts feed
+  filter[iscycle(.WayCurve)]
+  projectextend[;Name: num2string(.WayId),
+    Curve: set_startsmaller(.WayCurve, TRUE)]
+consume;
+
+let RoadsByRelationH1 =
+  NestedRelationRel feed
+  filter [.RelInfo afeed
+    filter [.RefInfo afeed
+       filter[.RelTagKey = "route"]
+       filter[.RelTagValue = "road"]
+       count > 0]
+     count > 0]
+  unnest[RelInfo]
+  project[RelId, RefCounter, MemberRef, MemberType, MemberRole, RefInfo]
+consume;
+
+let RoadsByRelationWaysH1 =
+  RoadsByRelationH1 feed
+  filter[.MemberType = "way"]
+  NestedWayRel feed 
+  hashjoin[MemberRef, WayId]
+  project[RelId, MemberRole, RefCounter, WayCurve]
+consume;
+
+let RoadsByRelationWaysSimple =
+  RoadsByRelationWaysH1 feed
+  sortby[RelId, MemberRole, RefCounter, WayCurve]
+  groupby[RelId, MemberRole; RoadCurve: group feed projecttransformstream[WayCurve] collect_sline[TRUE]]
+consume;
+
+let RoadsByRelationWaysComplex =
+  RoadsByRelationWaysH1 feed
+  RoadsByRelationWaysSimple feed
+    filter[not(isdefined(.RoadCurve))] {t}
+  hashjoin[RelId, RelId_t]
+  sortby[RelId, MemberRole, RefCounter, WayCurve]
+  groupby[RelId, MemberRole; RoadC: group feed projecttransformstream[WayCurve] collect_line[TRUE]]
+  projectextendstream[RelId, MemberRole; RoadCurve: .RoadC longlines]
+consume;
+
+let RoadsByRelationWaysH2 =
+  (RoadsByRelationWaysSimple feed)
+  (RoadsByRelationWaysComplex feed)
+  concat
+  NestedRelationRel feed  {h}
+  hashjoin[RelId, RelId_h]
+  projectextend[RelId, RoadCurve; RelInfo: .RelInfo_h]
+  unnest[RelInfo]
+  unnest[RefInfo_h]
+  projectextend[RelId, RoadCurve; RelTagKey: .RelTagKey_h,
+     RelTagValue: .RelTagValue_h]
+  filter [(.RelTagKey = "ref") or (.RelTagKey = "name")]
+consume;
+
+let RoadsByRelationWaysH3 =
+  RoadsByRelationWaysH2 feed
+  filter[.RelTagKey = "ref"]
+  projectextend[RelId, RoadCurve; Name: .RelTagValue]
+consume;
+
+let RoadsByRelationWaysH4 =
+  RoadsByRelationWaysH2 feed
+  RoadsByRelationWaysH3 feed
+   projectextend[RelId, RoadCurve; RelTagKey: 'A', RelTagValue: 'A']
+  mergediff
+  filter[.RelTagKey = "name"]
+  projectextend[RelId, RoadCurve; Name: .RelTagValue]
+consume;
+
+let RoadsByRelationWays =
+  (RoadsByRelationWaysH3 feed)
+  (RoadsByRelationWaysH4 feed)
+  concat
+consume;
+
+let Roads =
+  ( ( (RoadsByRef feed
+         projectextend[;Name: .Ref, Curve: .RoadCurve])
+      (RoadsByName feed
+         projectextend[;Name: .Name, Curve: .RoadCurve])
+      concat)
+    ( (RoadLinks feed
+         projectextend[;Name: num2string(.WayId), Curve: .RoadCurve])
+      (RoadRest feed
+         projectextend[;Name: num2string(.WayId), Curve: .RoadCurve])
+      concat)
+    concat)
+  ( ( (RoadsByCycle feed)
+      (RoadsByOneway feed)
+      concat)
+    (RoadsByRelationWays feed
+      projectextend[; Name: tostring(.Name), Curve: .RoadCurve])
+    concat)
+  concat
+  filter [isdefined(.Curve)]
+  extend[CurvLength: size(.Curve)]
+  sortby [CurvLength desc, Name, Curve]
+  rdup
+  addcounter[Rid,1]
+consume;
+
+###############################################################################
+# Connect roads, junctions and sections                                       #
+###############################################################################
+
+let ConnectRoadsAndJunctions =
+  JunctionsAndWayCrossings feed
+    project [Jid, Point]
+  Roads feed
+    project[Rid, Curve]
+  itSpatialJoin[Point,Curve,4,8]
+  filter[.Point inside .Curve]
+  projectextend[Jid, Rid; PosOnRoad: atpoint(.Curve, .Point)]
+consume;
+
+let RoadsJunctionsLists =
+  ConnectRoadsAndJunctions feed
+  sortby [Rid, PosOnRoad, Jid]
+  groupby[Rid; JuncList: group feed projecttransformstream[Jid] createlist]
+consume;
+
+let JunctionsPositionsOnRoads =
+  ConnectRoadsAndJunctions feed
+  projectextend[Jid; RouteLoc: createrloc(.Rid, .PosOnRoad, [const jdirection value(Both)])]
+  sortby[Jid, RouteLoc]
+  groupby[Jid; LocationList: group feed projecttransformstream[RouteLoc] createlist]
+consume;
+
+let ConnectSectionsAndRoads =
+  RoadPartSectionsTmp1 feed
+    project[Sid, SectCurve, StartPoint, EndPoint, Side]
+  Roads feed
+    project [Rid, Curve]
+  itSpatialJoin[SectCurve, Curve, 4, 8]
+  filter[.StartPoint inside .Curve]
+  filter[.EndPoint inside .Curve]
+  filter[.SectCurve inside .Curve]
+  projectextend[Rid, Sid, Side; StartPos: atpoint(.Curve, .StartPoint),
+    EndPos: atpoint(.Curve,.EndPoint)]
+  projectextend[Rid, Sid; RoutePart: createrint(.Rid, .StartPos, .EndPos, .Side)]
+consume;
+
+let SectionsAtRoads =
+  ConnectSectionsAndRoads feed
+  sortby[Rid, RoutePart, Sid]
+  groupby[Rid; ListSids: group feed projecttransformstream[Sid] createlist]
+consume;
+
+let SectionRouteIntervals =
+  ConnectSectionsAndRoads feed
+    project[Sid, RoutePart]
+  sortby[Sid, RoutePart]
+  groupby[Sid; IntervalList: group feed projecttransformstream[RoutePart] createlist]
+consume;
+
+let JunctionsAndWayCrossings2 =
+  JunctionsAndWayCrossings feed
+  JunctionsPositionsOnRoads feed {j1}
+  hashjoin[Jid, Jid_j1]
+  projectextend[Jid, Point, WayId1, WayId2, Sid1, S1SectCurve,
+    S1StartPoint, S1EndPoint, S1StartJid, S1EndJid, S1Lenth,
+    S1JuncAtStart, S1Side, Sid2, S2SectCurve, S2StartPoint, S2EndPoint, S2StartJid,
+    S2EndJid, S2Lenth, S2JuncAtStart, S2Side;RoutePositions: .LocationList_j1]
+consume;
+
+let JunctionsInAndOutComingSectionsH1 =
+  JunctionsAndWayCrossings2 feed
+  projectextend[Jid, Sid1,
+    Sid2; S1InSect: ifthenelse(.S1Side = [const jdirection value(Both)],TRUE,
+                      ifthenelse((.S1Side = [const jdirection value(Up)]) and
+                                  not(.S1JuncAtStart),TRUE,
+                        ifthenelse((.S1Side = [const jdirection value(Down)]) and
+                                  .S1JuncAtStart,TRUE,FALSE))),
+          S1OutSect: ifthenelse(.S1Side = [const jdirection value(Both)],TRUE,
+                      ifthenelse((.S1Side = [const jdirection value(Up)]) and
+                                  .S1JuncAtStart,TRUE,
+                        ifthenelse((.S1Side = [const jdirection value(Down)]) and
+                                  not(.S1JuncAtStart),TRUE,FALSE))),
+          S2InSect: ifthenelse(.S2Side = [const jdirection value(Both)],TRUE,
+                      ifthenelse((.S2Side = [const jdirection value(Up)]) and
+                                  not(.S2JuncAtStart),TRUE,
+                        ifthenelse((.S2Side = [const jdirection value(Down)]) and
+                                  .S2JuncAtStart,TRUE,FALSE))),
+          S2OutSect: ifthenelse(.S2Side = [const jdirection value(Both)],TRUE,
+                      ifthenelse((.S2Side = [const jdirection value(Up)]) and
+                                  .S2JuncAtStart,TRUE,
+                        ifthenelse((.S2Side = [const jdirection value(Down)]) and
+                                  not(.S2JuncAtStart),TRUE,FALSE)))]
+consume;
+
+let JunctionsInComingSectionsH1 =
+  JunctionsInAndOutComingSectionsH1 feed
+  filter [.S1InSect]
+  projectextend[Jid; Sid: .Sid1]
+consume;
+
+let JunctionsInComingSectionsH2 =
+  JunctionsInAndOutComingSectionsH1 feed
+  filter [.S2InSect]
+  projectextend[Jid; Sid: .Sid2]
+consume;
+
+let JunctionsInComingSections =
+  (JunctionsInComingSectionsH1 feed)
+  (JunctionsInComingSectionsH2 feed)
+  concat
+  sortby [Jid, Sid]
+  groupby[Jid; ListInSections: group feed projecttransformstream[Sid] createlist]
+consume;
+
+let JunctionsOutgoingSectionsH1 =
+  JunctionsInAndOutComingSectionsH1 feed
+  filter [.S1OutSect]
+  projectextend[Jid; Sid: .Sid1]
+consume;
+
+let JunctionsOutgoingSectionsH2 =
+  JunctionsInAndOutComingSectionsH1 feed
+  filter [.S2OutSect]
+  projectextend[Jid; Sid: .Sid2]
+consume;
+
+let JunctionsOutgoingSections =
+  (JunctionsOutgoingSectionsH1 feed)
+  (JunctionsOutgoingSectionsH2 feed)
+  concat
+  sortby [Jid, Sid]
+  groupby[Jid; ListOutSections: group feed projecttransformstream[Sid] createlist]
+consume;
+
+###############################################################################
+# Create Inputfiles for Routes and Junctions for JNetwork                     #
+###############################################################################
+
+let InRoutes =
+   Roads feed {r1}
+   RoadsJunctionsLists feed {j1}
+   hashjoin[Rid_r1, Rid_j1]
+   projectextend[;Rid: .Rid_r1,
+     Lenth: .CurvLength_r1,
+     JuncList: .JuncList_j1]
+   SectionsAtRoads feed {s1}
+   hashjoin[Rid, Rid_s1]
+   projectextend[Rid, JuncList, Lenth; SectList: .ListSids_s1]
+   project[Rid, JuncList, SectList, Lenth]
+   sortby [Rid]
+consume;
+
+let InJunctions =
+   JunctionsAndWayCrossings2 feed
+   project[Jid, Point, RoutePositions]
+   JunctionsInComingSections feed {s1}
+   hashjoin[Jid, Jid_s1]
+   projectextend[Jid, Point, RoutePositions; InSects: .ListInSections_s1]
+   JunctionsOutgoingSections feed {s2}
+   hashjoin[Jid, Jid_s2]
+   projectextend[Jid, Point, RoutePositions, InSects; OutSects: .ListOutSections_s2]
+consume;
+
+##############################################################################
+# Compute Adjacency lists for sections                                       #
+##############################################################################
+
+let AdjacentSectionsUp =
+  RoadPartSectionsTmp1 feed
+  InJunctions feed
+  hashjoin[EndJid, Jid]
+  project[Sid, OutSects]
+  sortby [Sid, OutSects]
+  groupby [Sid; AdjSectUp: group feed projecttransformstream[OutSects] createlist]
+consume;
+
+let AdjacentSectionsDown =
+  RoadPartSectionsTmp1 feed
+  InJunctions feed
+  hashjoin[StartJid, Jid]
+  project[Sid, OutSects]
+  sortby [Sid, OutSects]
+  groupby [Sid; AdjSectDown: group feed projecttransformstream[OutSects] createlist]
+consume;
+
+let ReverseAdjacentSectionsUp =
+  RoadPartSectionsTmp1 feed
+  InJunctions feed
+  hashjoin[StartJid, Jid]
+  project[Sid, InSects]
+  sortby [Sid, InSects]
+  groupby [Sid; RevAdjSectUp: group feed projecttransformstream[InSects] createlist]
+consume;
+
+let ReverseAdjacentSectionsDown =
+  RoadPartSectionsTmp1 feed
+  InJunctions feed
+  hashjoin[EndJid, Jid]
+  project[Sid, InSects]
+  sortby [Sid, InSects]
+  groupby [Sid; RevAdjSectDown: group feed projecttransformstream[InSects] createlist]
+consume;
+
+###############################################################################
+# Sections relation for jnet creation                                         #
+###############################################################################
+
+let InSections =
+  RoadPartSectionsTmp1 feed
+  project[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth]
+  SectionRouteIntervals feed {r1}
+  hashjoin[Sid, Sid_r1]
+  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax,
+    Lenth; RouteInter: .IntervalList_r1]
+  AdjacentSectionsUp feed {a1}
+  hashjoin[Sid, Sid_a1]
+  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth,
+    RouteInter; AdjSectUp: .AdjSectUp_a1]
+  AdjacentSectionsDown feed {a2}
+  hashjoin[Sid, Sid_a2]
+  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth, RouteInter,
+    AdjSectUp; AdjSectDown: .AdjSectDown_a2]
+  ReverseAdjacentSectionsUp feed {a3}
+  hashjoin[Sid, Sid_a3]
+  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth, RouteInter,
+    AdjSectUp, AdjSectDown; RevAdjSectUp: .RevAdjSectUp_a3]
+  ReverseAdjacentSectionsDown feed {a4}
+  hashjoin[Sid, Sid_a4]
+  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth, RouteInter,
+    AdjSectUp, AdjSectDown, RevAdjSectUp; RevAdjSectDown: .RevAdjSectDown_a4]
+consume;
+
+query createjnet("testjnet", InJunctions, InSections, InRoutes);
+
+quit;
+
+
+##############################################################################
+# Filter Node Restrictions from NestedRelationRel                            #
+##############################################################################
+
+let ViaNodesRel =
+  NestedRelationRel feed
+  filter [.RelInfo afeed
+    filter [.RefInfo afeed
+      filter [.RelTagKey contains "restriction"]
+      count > 0]
+    count > 0]
+  unnest [RelInfo]
+  filter[.MemberRole = "via"]
+  filter [.MemberType = "node"]
+  SpatialPosOfNodes feed
+  hashjoin[MemberRef,NodeId]
+  projectextend[RelId, NodeId,
+    NodePos; RelTagVal: .RefInfo afeed extract [RelTagValue]]
+consume;
+
+let ViaWaysRel =
+  NestedRelationRel feed
+  filter [.RelInfo afeed
+    filter [.RefInfo afeed
+      filter [.RelTagKey contains "restriction"]
+      count > 0]
+    count > 0]
+  unnest [RelInfo]
+  filter [.MemberRole = "via"]
+  filter [.MemberType = "way"]
+  SpatialWayCurve feed
+  hashjoin[MemberRef, WayId]
+  projectextend[RelId, WayId,
+    WayCurve; RelTagVal: .RefInfo afeed extract [RelTagValue]]
+consume;
+
+let FromWaysRel =
+  NestedRelationRel feed
+  filter [.RelInfo afeed
+    filter [.RefInfo afeed
+      filter [.RelTagKey contains "restriction"]
+      count > 0]
+    count > 0]
+  unnest [RelInfo]
+  filter [.MemberRole = "from"]
+  SpatialWayCurve feed
+  hashjoin[MemberRef, WayId]
+  project[RelId, WayId, WayCurve]
+consume;
+
+let ToWaysRel =
+  NestedRelationRel feed
+  filter [.RelInfo afeed
+    filter [.RefInfo afeed
+      filter [.RelTagKey contains "restriction"]
+      count > 0]
+    count > 0]
+  unnest [RelInfo]
+  filter [.MemberRole = "to"]
+  SpatialWayCurve feed
+  hashjoin[MemberRef, WayId]
+  project[RelId, WayId, WayCurve]
+consume;
+
+let NodeRestrictions =
+  ViaNodesRel feed {v}
+  FromWaysRel feed {f}
+  hashjoin[RelId_v, RelId_f]
+  project [RelId_v, NodeId_v, NodePos_v, RelTagVal_v, WayId_f]
+  ToWaysRel feed {t}
+  hashjoin[RelId_v, RelId_t]
+  project[NodeId_v, NodePos_v, RelTagVal_v, WayId_f, WayId_t]
+  sortby [NodeId_v, NodePos_v, WayId_f, WayId_t, RelTagVal_v]
+  rdup
+consume;
+
+
+###############################################################################
+# Way Restrictions can not be encoded now in the network data format now      #
+# Because we have no information from where the car comes before in the       #
+# network data model                                                          #
+###############################################################################
+
+let WayRestrictions =
+  ViaWaysRel feed {v}
+  FromWaysRel feed {f}
+  hashjoin[RelId_v, RelId_f]
+  project [RelId_v, WayId_v, WayCurve_v, RelTagVal_v, WayId_f, WayCurve_f]
+  ToWaysRel feed {t}
+  hashjoin[RelId_v, RelId_t]
+  project[WayId_v, WayCurve_v, RelTagVal_v, WayId_f, WayCurve_f, WayId_t, WayCurve_t]
+  sortby[WayId_v, WayId_f, WayId_t, RelTagVal_v, WayCurve_v, WayCurve_f, WayCurve_t]
+  rdup
+consume;
+
+close database;
+
+quit;
+
