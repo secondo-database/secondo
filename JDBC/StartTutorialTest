@@ -1,0 +1,12 @@
+if [ "$SECONDO_PLATFORM" = "win32" ]
+    then S=";"
+    else S=":"
+fi    
+
+CP="."$S"../Javagui/secondoInterface/SecondoInterface.jar"$S"../Javagui/secondoInterface/jdbc.jar"$S"../Javagui"
+#CP="."$S"../Javagui/secondoInterface/SecondoInterface.jar"
+
+echo classpath= $CP
+
+java -classpath $CP TutorialTest
+#java testJDBC
