@@ -184,6 +184,7 @@ operator genmoindex alias GENMOINDEX pattern op(_)
 operator setref_id alias SETREF_ID pattern op(_)
 operator deftime alias DEFTIME pattern op(_)
 operator tm_translate alias TM_TRANSLATE pattern  _ infixop _
+operator tm_translate2 alias TM_TRNASLATE2 pattern _ infixop _
 operator no_components alias NO_COMPONENTS pattern op (_)
 operator lowres alias LOWRES pattern op(_)
 operator trajectory alias TRAJECTORY pattern op(_)
@@ -246,3 +247,7 @@ operator tm_join1 alias TM_JOIN1 pattern op(_,_,_)
 operator nearstops_building alias NEARSTOPS_PAVE pattern op(_,_)
 
 operator decomposegenmo alias DECOMPOSEGENMO pattern op(_,_,_)
+operator bulkloadtmrtree alias BULKLOADTMRTREE pattern _ op [_,_,_]
+operator tm_nodes alias TM_NODES pattern op(_,_,_)
+
+

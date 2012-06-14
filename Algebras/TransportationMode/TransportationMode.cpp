@@ -3516,7 +3516,44 @@ int GenMOTranslateValueMap( Word* args, Word& result, int message, Word&
   }
 }
 
+/*
+translate the time period 
 
+*/
+int TMTranslate2ValueMap( Word* args, Word& result, int message, Word&
+ local, Supplier s )
+{
+
+  result = qp->ResultStorage( s );
+
+  Periods* peri = (Periods*)args[0].addr;
+  Periods* mpResult = (Periods*)result.addr;
+  mpResult->Clear();
+
+  DateTime* dd = (DateTime *)args[1].addr;
+
+  if( dd->IsDefined() && peri->IsDefined()){
+
+    mpResult->SetDefined( true );
+    mpResult->StartBulkLoad();
+    for( int i = 0; i < peri->GetNoComponents(); i++ ){
+      Interval<Instant> time_span;
+      peri->Get( i, time_span);
+
+      time_span.start.Add(dd);
+      time_span.end.Add(dd);
+
+      mpResult->Add(time_span);
+    }
+    mpResult->EndBulkLoad();
+    return 0;
+  }
+  else
+  {
+    mpResult->SetDefined( false );
+    return 0;
+  }
+}
 /*
 get the trajectory for a generic moving object
 
@@ -6125,6 +6162,26 @@ ListExpr GenmoTranslateTypeMap(ListExpr args)
   return nl->SymbolAtom("typeerror");
 }
 
+/*
+TypeMap function for operator tmtranslate2  
+
+*/
+ListExpr TMTranslate2TypeMap(ListExpr args)
+{
+
+  if(nl->ListLength(args) != 2){
+      string err = "periods x duration expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->IsEqual(arg1, "periods") && nl->IsEqual(arg2, "duration"))
+  return nl->SymbolAtom("periods");
+
+  return nl->SymbolAtom("typeerror");
+}
 
 /*
 TypeMap function for operator getmode
@@ -7657,6 +7714,13 @@ Operator tm_translate("tm_translate",
     GenMOTranslateValueMap,  //value mapping 
     Operator::SimpleSelect,
     GenmoTranslateTypeMap //type mapping 
+);
+
+Operator tm_translate2("tm_translate2",
+    SpatialSpecGenmoTranslate2, //specification
+    TMTranslate2ValueMap,  //value mapping 
+    Operator::SimpleSelect,
+    TMTranslate2TypeMap //type mapping 
 );
 
 /*
@@ -15375,15 +15439,19 @@ ListExpr DecomposeGenmoTypeMap ( ListExpr args )
               nl->SymbolAtom("stream"),
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
-                      nl->SixElemList(
+                      nl->FiveElemList(
                         nl->TwoElemList(nl->SymbolAtom("Traj_id"),
                                     nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("Time"),
-                                      nl->SymbolAtom("periods")),
-                        nl->TwoElemList(nl->SymbolAtom("Box2d"),
-                                      nl->SymbolAtom("rect")),
+                        nl->TwoElemList(nl->SymbolAtom("MT_box"),
+                                       nl->SymbolAtom("rect3")),
+//                         nl->TwoElemList(nl->SymbolAtom("Time"),
+//                                       nl->SymbolAtom("periods")),
+//                         nl->TwoElemList(nl->SymbolAtom("Box2d"),
+//                                       nl->SymbolAtom("rect")),
+/*                        nl->TwoElemList(nl->SymbolAtom("Mode"),
+                                      nl->SymbolAtom("string")),*/
                         nl->TwoElemList(nl->SymbolAtom("Mode"),
-                                      nl->SymbolAtom("string")),
+                                      nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("Index1"),
                                       nl->SymbolAtom("point")),
                         nl->TwoElemList(nl->SymbolAtom("Index2"),
@@ -15394,6 +15462,200 @@ ListExpr DecomposeGenmoTypeMap ( ListExpr args )
         return result; 
 
 }
+
+/*
+TypeMap fun for operator tm bulkloadrtree
+
+*/
+ListExpr BulkLoadTMRtreeTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return listutils::typeError("expecting four arguments");
+  }
+  
+    // split to parameters
+  ListExpr tupleStream = nl->First(args);
+  ListExpr attrName1 = nl->Second(args);
+  ListExpr attrName2 = nl->Third(args);
+  ListExpr attrName3 = nl->Fourth(args);
+  
+  // check stream
+  if(!listutils::isTupleStream(tupleStream)){
+    return listutils::typeError("Expecting a tuplestream as 1st argument.");
+  }
+
+  // check key attribute name
+  if(!listutils::isSymbol(attrName1)){
+    return listutils::typeError("Expecting an attribute name as 2nd argument.");
+  }
+  
+  if(!listutils::isSymbol(attrName2)){
+    return listutils::typeError("Expecting an attribute name as 3nd argument.");
+  }
+  
+  if(!listutils::isSymbol(attrName3)){
+    return listutils::typeError("Expecting an attribute name as 4nd argument.");
+  }
+
+
+  string attrname1 = nl->SymbolValue(attrName1);
+  // check if key attribute is from stream
+  ListExpr attrList = nl->Second(nl->Second(tupleStream));
+  ListExpr attrType1;
+  int attrIndex1 = listutils::findAttribute(attrList, attrname1, attrType1);
+  if(attrIndex1 <= 0){
+    return listutils::typeError("Expecting the attribute (2nd argument) being "
+                                "part of the tuplestream (1st argument).");
+  }
+
+  string attrname2 = nl->SymbolValue(attrName2);
+  // check if key attribute is from stream
+  ListExpr attrType;
+  int attrIndex2 = listutils::findAttribute(attrList, attrname2, attrType);
+  if(attrIndex2 <= 0){
+    return listutils::typeError("Expecting the attribute (3nd argument) being "
+                                "part of the tuplestream (1st argument).");
+  }
+
+
+  string attrname3 = nl->SymbolValue(attrName3);
+  // check if key attribute is from stream
+
+  ListExpr attrType3;
+  int attrIndex3 = listutils::findAttribute(attrList, attrname3, attrType3);
+  if(attrIndex3 <= 0){
+    return listutils::typeError("Expecting the attribute (4nd argument) being "
+                                "part of the tuplestream (1st argument).");
+  }
+
+  string tmrtreetype = TM_RTree<3,TupleId>::BasicType();
+
+  ListExpr first, rest, newAttrList, lastNewAttrList;
+  int tidIndex = 0;
+  bool firstcall = true,
+  doubleIndex = false;
+
+    int nAttrs = nl->ListLength( attrList );
+    rest = attrList;
+    int j = 1;
+    while (!nl->IsEmpty(rest))
+    {
+      first = nl->First(rest);
+      rest = nl->Rest(rest);
+
+      ListExpr type = nl->Second(first);   
+      if (TupleIdentifier::checkType(type))
+      {
+        if( tidIndex != 0){
+          return listutils::typeError("Expecting exactly one attribute of type "
+                                      "'tid' in the 1st argument.");
+        }
+        tidIndex = j;
+      }
+      else if( j == nAttrs - 1 && CcInt::checkType(type) &&
+               CcInt::checkType( nl->Second(nl->First(rest))) )
+      { // the last two attributes are integers
+        doubleIndex = true;
+      }
+      else
+      {
+        if (firstcall)
+        {
+          firstcall = false;
+          newAttrList = nl->OneElemList(first);
+          lastNewAttrList = newAttrList;
+        }
+        else
+        {
+          lastNewAttrList = nl->Append(lastNewAttrList, first);
+        }
+      }
+      j++;
+    }
+      ListExpr res = 
+        nl->ThreeElemList(
+          nl->SymbolAtom(Symbol::APPEND()),
+          nl->ThreeElemList(
+             nl->IntAtom(attrIndex1),
+             nl->IntAtom(attrIndex2),
+             nl->IntAtom(attrIndex3)),
+          nl->FourElemList(
+            nl->SymbolAtom(tmrtreetype),
+            nl->TwoElemList(
+              nl->SymbolAtom(Tuple::BasicType()),
+              newAttrList),
+              attrType,
+            nl->BoolAtom(doubleIndex)));
+    return res;
+}
+
+
+/*
+TypeMap fun for operator tm bulkloadrtree
+
+*/
+ListExpr TMRtreeNodesTypeMap ( ListExpr args )
+{
+  string err = "rtree(tuple(...) rect3 BOOL) expected";
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return listutils::typeError("expecting one argument");
+  }
+  
+  ListExpr arg = nl->First(args);
+  ListExpr param2 = nl->Second(args);
+
+  
+  ListExpr rtree = nl->First(arg);
+  ListExpr tuple = nl->Second(arg);
+  
+  if(!nl->IsEqual(rtree, RTree3TID::BasicType())){
+    ErrorReporter::ReportError(err + "3");
+    return nl->TypeError();
+  }
+  
+  if(!nl->IsEqual(nl->First(tuple), Tuple::BasicType())){
+    ErrorReporter::ReportError(err + "7");
+    return nl->TypeError();
+  }
+
+
+  ListExpr xType;
+  nl->ReadFromString(QueryTM::GenmoUnitsInfo, xType); 
+  
+  if(!(listutils::isRelDescription(param2) && CompareSchemas(param2, xType)))
+      return listutils::typeError("second argument should be a relation");
+
+  
+  ListExpr attrType;
+  ListExpr attrName = nl->Third(args);
+  string aname = nl->SymbolValue(attrName);
+  int j = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                                  aname, attrType);
+  if(j == 0 || !listutils::isSymbol(attrType, "int")){
+    return listutils::typeError("attr name" + aname + "not found");
+  }
+
+     ListExpr res =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("NodeId"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Mode"),
+                                       nl->SymbolAtom("int"))
+                  )
+                )
+          );
+    return nl->ThreeElemList(
+        nl->SymbolAtom(Symbol::APPEND()), 
+        nl->OneElemList(nl->IntAtom(j)), res);
+
+}
+
 //////////////////////////////////////////////////////////////////////////
 
 /*
@@ -22039,15 +22301,21 @@ int OpDecomposeGenmoValueMap ( Word* args, Word& result, int message,
           Tuple* tuple = new Tuple(query_tm->resulttype);
           tuple->PutAttribute(0, 
                          new CcInt(true, query_tm->oid_list[query_tm->count]));
-          tuple->PutAttribute(1, 
+/*          tuple->PutAttribute(1, 
                              new Periods(query_tm->time_list[query_tm->count]));
           tuple->PutAttribute(2, new Rectangle<2>(
+                           query_tm->box_list[query_tm->count]));*/
+/*        tuple->PutAttribute(3,
+           new CcString(true, GetTMStr(query_tm->tm_list[query_tm->count])));*/
+//          cout<<query_tm->box_list[query_tm->count]<<endl;
+          tuple->PutAttribute(1, new Rectangle<3>(
                            query_tm->box_list[query_tm->count]));
+          tuple->PutAttribute(2,
+             new CcInt(true, query_tm->tm_list[query_tm->count]));
+
           tuple->PutAttribute(3,
-             new CcString(true, GetTMStr(query_tm->tm_list[query_tm->count])));
-          tuple->PutAttribute(4,
                       new Point(query_tm->index_list1[query_tm->count]));
-          tuple->PutAttribute(5,
+          tuple->PutAttribute(4,
                       new Point(query_tm->index_list2[query_tm->count]));
 
           result.setAddr(tuple);
@@ -22066,6 +22334,139 @@ int OpDecomposeGenmoValueMap ( Word* args, Word& result, int message,
 
   return 0;
 }
+
+/*
+tm bulkload tmrtree on genmo units
+
+*/
+int BulkLoadTMRtreeValueMap( Word* args, Word& result, int message,
+                            Word& local, Supplier s )
+{
+//   cout<<"long "<<sizeof(long)<<" int "<<sizeof(int)
+//       <<" unsigned long "<<sizeof(unsigned long)<<endl;
+
+  Word wTuple;
+  TM_RTree<3, TupleId>* tmrtree = 
+                    (TM_RTree<3, TupleId>*)qp->ResultStorage(s).addr;
+  result.setAddr( tmrtree );
+
+  int tidIndex = ((CcInt*)args[4].addr)->GetIntval() - 1;
+  
+  int attrIndex1 = ((CcInt*)args[5].addr)->GetIntval() - 1;
+  int attrIndex2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+
+//  cout<<tidIndex<<" "<<attrIndex1<<" "<<attrIndex2<<endl;
+  
+  // Get a reference to the message center
+  static MessageCenter* msg = MessageCenter::GetInstance();
+  int count = 0; // counter for progress indicator
+
+  bool BulkLoadInitialized = tmrtree->InitializeBulkLoad();
+  assert(BulkLoadInitialized);
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, wTuple);
+  int last_m = -1;
+  while (qp->Received(args[0].addr))
+  {
+    if ((count++ % 10000) == 0)
+    {
+      // build a two elem list (simple count)
+      NList msgList( NList("simple"), NList(count) );
+      // send the message, the message center will call
+      // the registered handlers. Normally the client applications
+      // will register them.
+      msg->Send(msgList);
+    }
+    Tuple* tuple = (Tuple*)wTuple.addr;
+
+
+    Rectangle<3>* box = (Rectangle<3>*)tuple->GetAttribute(attrIndex1);
+    int m = ((CcInt*)tuple->GetAttribute(attrIndex2))->GetIntval();
+//    cout<<*box<<" "<<m<<endl;
+    if(last_m < 0) last_m = m;
+
+    if(box->IsDefined()){
+        R_TreeLeafEntry<3, TupleId>
+              e(*box,
+                 ((TupleIdentifier *)tuple->
+                     GetAttribute(tidIndex))->GetTid() );
+
+      tmrtree->BulkLoad(e, m, last_m);
+/*   cout<<"tid "<<
+      ((TupleIdentifier *)tuple-> GetAttribute(tidIndex))->GetTid()<<endl;*/
+      last_m = m;
+    }
+    tuple->DeleteIfAllowed();
+    qp->Request(args[0].addr, wTuple);
+  }
+  qp->Close(args[0].addr);
+  int FinalizedBulkLoad = tmrtree->FinalizeBulkLoad();
+  assert( FinalizedBulkLoad );
+
+  // build a two elem list (simple count)
+  NList msgList( NList("simple"), NList(count) );
+      // send the message, the message center will call
+      // the registered handlers. Normally the client applications
+      // will register them.
+  msg->Send(msgList);
+
+  return 0;
+}
+
+/*
+get nodes and transportation mode for TM-Rtree 
+
+*/
+int TMRtreeNodesValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  QueryTM* query_tm;
+  switch(message){
+      case OPEN:{
+
+        R_Tree<3, TupleId>* rtree = (R_Tree<3, TupleId>*)args[0].addr;
+        Relation* rel = (Relation*)args[1].addr;
+        int attr_pos = ((CcInt*)args[3].addr)->GetIntval() - 1;
+
+        query_tm = new QueryTM(); 
+        query_tm->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        query_tm->TMRtreeNodes(rtree, rel, attr_pos);
+        local.setAddr(query_tm);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          query_tm = (QueryTM*)local.addr;
+          if(query_tm->count == query_tm->oid_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(query_tm->resulttype);
+          tuple->PutAttribute(0, 
+                         new CcInt(true, query_tm->oid_list[query_tm->count]));
+          tuple->PutAttribute(1,
+             new CcInt(true, query_tm->mode_list[query_tm->count]));
+
+          result.setAddr(tuple);
+          query_tm->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            query_tm = (QueryTM*)local.addr;
+            delete query_tm;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+
+  return 0;
+}
+
+
 ////////////////Operator Constructor///////////////////////////////////////
 Operator checksline(
     "checksline",               // name
@@ -23184,6 +23585,21 @@ Operator decomposegenmo(
   DecomposeGenmoTypeMap
 );
 
+Operator bulkloadtmrtree(
+  "bulkloadtmrtree",
+  OpTMBulkLoadTMRtreeSpec,
+  BulkLoadTMRtreeValueMap,
+  Operator::SimpleSelect,
+  BulkLoadTMRtreeTypeMap
+);
+
+Operator tm_nodes(
+  "tm_nodes",
+  OpTMNodesSpec,
+  TMRtreeNodesValueMap,
+  Operator::SimpleSelect,
+  TMRtreeNodesTypeMap
+);
 
 /*
 Main Class for Transportation Mode
@@ -23263,6 +23679,11 @@ class TransportationModeAlgebra : public Algebra
     AddTypeConstructor(&intimegenloc);
     intimegenloc.AssociateKind(Kind::TEMPORAL());
     intimegenloc.AssociateKind(Kind::DATA());
+    /////////////////////////////////////////////////////////////
+    /////////////// tm-rtree:index on genmo units///////////////
+    ////////////////////////////////////////////////////////////
+    AddTypeConstructor( &tmrtree );
+    
     /////////////////////////////////////////////////////////////
     ////operators for partition regions//////////////////////////
     /////////////////////////////////////////////////////////////
@@ -23470,6 +23891,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&setref_id);//genmo, genrange, a set of ref ids 
     AddOperator(&genmodeftime); //get the define time of generic moving objects
     AddOperator(&tm_translate); //translate the time of generic moving objects
+    AddOperator(&tm_translate2);//change time
 
     AddOperator(&genmonocomponents); //get number of components
     AddOperator(&lowres);  //low resolution representation 
@@ -23576,6 +23998,8 @@ class TransportationModeAlgebra : public Algebra
    ////////////////range query on generic moving objects/////////////
    //////////////////////////////////////////////////////////////////
    AddOperator(&decomposegenmo);//reorganize units in gemo
+   AddOperator(&bulkloadtmrtree);//bulkload rtree considering tm
+   AddOperator(&tm_nodes);//a relation storing tm values for tm-rtree nodes
 
   }
   ~TransportationModeAlgebra() {};

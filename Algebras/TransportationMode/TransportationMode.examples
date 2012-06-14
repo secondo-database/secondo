@@ -959,6 +959,13 @@ Example  : query deftime([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:
 Result   : (periods (("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE)))
 
 
+Operator : tm_translate2
+Number   : 1
+Signature: periods x duration -> periods
+Example  : query theRange(theInstant(2011,11,6,8,0,0,0), theInstant(2011,11,7,22,0,0,0), TRUE, FALSE) tm_translate2 [const duration value (1 0)]
+Result   : (periods (("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE)))
+
+
 Operator : no_components 
 Number   : 1
 Signature: genmo -> int 
@@ -1290,4 +1297,18 @@ Operator : decomposegenmo
 Number   : 1
 Signature: rel x int x real -> (stream(((x1 t1) ... (xn tn))))
 Example  : query decomposegenmo(all_genmo, 0, 200.0) count;
+Result   : 1
+
+
+Operator : bulkloadtmrtree
+Number   : 1
+Signature: stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj) x attr1 x attr2 x attr3 -> (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false)
+Example  : query genmo_units feed addid bulkloadtmrtree[Time, Box2d, Mode]
+Result   : file_platform
+
+
+Operator : tm_nodes
+Number   : 1
+Signature: (rtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x attr -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
+Example  : query nodes(TM_Rtree, genmo_units, Mode) filter[.Level = 0] count
 Result   : 1

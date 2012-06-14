@@ -70,6 +70,7 @@ March, 2011 Jianqiu xu
 #include "Indoor.h"
 #include "GeneralType.h"
 
+
 /*
 query processing on generic moving objects and data types 
 
@@ -82,16 +83,19 @@ struct QueryTM{
 
   static string GenmoRelInfo;
   enum GenmoRel{GENMO_OID = 0, GENMO_TRIP1, GENMO_TRIP2};
+  static string GenmoUnitsInfo;
 
   QueryTM(){ count = 0; resulttype = NULL;} 
   ~QueryTM(){if(resulttype != NULL) delete resulttype;}
 
   vector<int> oid_list;
   vector<Periods> time_list;
-  vector<Rectangle<2> > box_list;
+  vector<Rectangle<3> > box_list;
+  
   vector<int> tm_list;
   vector<Point> index_list1;
   vector<Point> index_list2;
+  vector<unsigned long> mode_list;
 
   ////////////////////////////////////////////////////////////////////////////
   //////////get 2D line in space or 3D line in a building///////////////////
@@ -108,11 +112,17 @@ struct QueryTM{
   ///////////////////////////////////////////////////////////////////////////
   void DecomposeGenmo_0(Relation*, double);
   void CreateMTuple_0(int oid, GenMO* mo1, MPoint* mo2, double);
-  void CollectBusMetro(int& i, int oid, int m, GenMO* mo1, MPoint* mo2);
-  void CollectIndoorFree(int& i, int oid, int m, GenMO* mo1, MPoint* mo2);
-  void CollectWalk(int& i, int oid, GenMO* mo1, MPoint* mo2, double);
-  void CollectCBT(int&i, int oid, int m, GenMO* mo1, MPoint* mo2);
+  void CollectBusMetro(int& i, int oid, int m, GenMO* mo1, MPoint* mo2, 
+                       int& pos);
+  void CollectIndoorFree(int& i, int oid, int m, GenMO* mo1, 
+                         MPoint* mo2, int& pos);
+  void CollectWalk(int& i, int oid, GenMO* mo1, MPoint* mo2, double, int &pos);
+  void CollectCBT(int&i, int oid, int m, GenMO* mo1, MPoint* mo2, int& pos);
   void DecomposeGenmo_1(Relation*);
+  ////////////////////get tm values for TM-Rtree nodes /////////////////////
+  void TMRtreeNodes(R_Tree<3, TupleId>*, Relation*, int);
+  unsigned long Node_TM(R_Tree<3, TupleId>* tmrtree, Relation* rel, 
+              SmiRecordId nodeid, int attr_pos);
 
 };
 

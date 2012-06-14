@@ -62,7 +62,7 @@ June, 2012 Jianqiu Xu
 #include "BusNetwork.h"
 #include "PaveGraph.h"
 #include "RoadNetwork.h"
-
+#include "TMRTree.h"
 
 double TM_DiffTimeb(struct timeb* t1, struct timeb* t2);
 
@@ -1250,6 +1250,27 @@ const string OpTMDecomposeGenmoSpec  =
     "<text>query decomposegenmo(all_genmo, 0)</text--->"
     ") )";
 
+const string OpTMBulkLoadTMRtreeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) x attr1 x attr2 "
+    " x attr3 -> tmrtree</text--->"
+    "<text>bulkloadtmrtree[_,_,_]</text--->"
+    "<text>build an TM-Rtree on genmo units </text--->"
+    "<text>query genmo_units feed addid bulkloadtmrtree[Time, Box2d, "
+    " Mode]</text--->"
+    ") )";
+
+const string OpTMNodesSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rtree x rel x attr ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>tm_nodes(rtree, rel, attr)</text--->"
+    "<text>build a relation storing tm values for TM-Rtree nodes </text--->"
+    "<text>query tm_nodes(TM-Rtree, genmo_units, Mode) count</text--->"
+    ") )";
+
 const string OpTMInstant2DaySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -2055,6 +2076,12 @@ const string SpatialSpecGenmoTranslate =
 "<text>translate the time period of a genmo</text--->"
 "<text>query genmo1 tm_translate [const duration value (1 0)]</text---> ) )";
 
+const string SpatialSpecGenmoTranslate2 =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>periods x duration -> periods</text--->"
+"<text>periods tm_translate2 duration </text--->"
+"<text>translate the time period</text--->"
+"<text>query peri1 tm_translate2 [const duration value (1 0)]</text---> ) )";
 
 const string SpatialSpecTMTrajectory =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -2981,6 +3008,32 @@ bool ChekMetroNetworkId(unsigned int mn_id)
 ///////////////////////////////////////////////////////////////////////////
 ///////////// Type Map functions for operators ////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////
+////////////// index on generic moving objects/////////////////////
+////////////////////////////////////////////////////////////////////
+
+/*
+Type Constructor object for type constructor tmrtree
+
+*/
+TypeConstructor tmrtree(TM_RTree<3, TupleId>::BasicType(),
+                        TMRTreeProp,
+                        OutTMRTree<3>,
+                        InTMRTree<3>,
+                        0,
+                        0,
+                        CreateTMRTree<3>,
+                        DeleteTMRTree<3>,
+                        OpenTMRTree<3>,
+                        SaveTMRTree<3>,
+                        CloseTMRTree<3>,
+                        CloneTMRTree<3>,
+                        CastTMRTree<3>,
+                        SizeOfTMRTree<3>,
+                        CheckTMRTree );
+
 
 #endif
 
