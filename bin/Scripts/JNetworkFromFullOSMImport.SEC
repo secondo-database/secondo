@@ -3,13 +3,10 @@
 # osm-File.                                                                   #
 ###############################################################################
 
-##############################################################################
-# TODO:                                                                      #
-# - relation of relations of way relations to build long routes              #
-# - highway = motorway implies oneway yes                                    #
-# - junction = roundabout implies oneway yes                                 #
-# - respect turn restrictions                                                #
-##############################################################################
+################################################################################
+# TODO:                                                                        #
+# - relation of relations of way relations to build long routes                #
+################################################################################
 
 ###############################################################################
 # Create and open database                                                    #
@@ -23,7 +20,7 @@ open database osmdb;
 # Set import parameter                                                        #
 ###############################################################################
 
-let SOURCEFILE = '/home/jandt/Downloads/OSM-Dateien/jnettest.osm';
+let SOURCEFILE = '/home/jandt/Downloads/OSM-Dateien/HerdeckeTeil.osm';
 
 ###############################################################################
 # import osm data from file                                                   #
@@ -33,6 +30,45 @@ query fullosmimport(SOURCEFILE, "Osm");
 
 ################################################################################
 # Extend taginformation with default values for needed but not yet set tags    #
+################################################################################
+# Set Oneway-Tag for motorways and roundabouts because motorway and roundabout #
+# implies oneway                                                               #
+################################################################################
+
+let AddMissingOnewayHighway =
+  OsmWayTags feed
+  sortby[WayIdInTag]
+  groupby[WayIdInTag; Motorway: group feed filter [.WayTagKey = "highway"]
+                                    filter [.WayTagValue = "motorway"]
+                                    count,
+                      Oneway: group feed filter[.WayTagKey = "oneway"]
+                                         count]
+  filter [.Motorway > 0]
+  filter [.Oneway = 0]
+  projectextend[WayIdInTag; WayTagKey: 'oneway', WayTagValue: 'yes']
+consume;
+
+let AddMissingOnewayRoundabout =
+  OsmWayTags feed
+  sortby[WayIdInTag]
+  groupby[WayIdInTag; Roundabout: group feed filter [.WayTagKey = "junction"]
+                                    filter [.WayTagValue = "roundabout"]
+                                    count,
+                      Oneway: group feed filter[.WayTagKey = "oneway"]
+                                         count]
+  filter [.Roundabout > 0]
+  filter [.Oneway = 0]
+  projectextend[WayIdInTag; WayTagKey: 'oneway', WayTagValue: 'yes']
+consume;
+
+let OsmWayTagNew2 =
+  ((AddMissingOnewayRoundabout feed)
+   (AddMissingOnewayHighway feed)
+   concat)
+  (OsmWayTags feed)
+  concat
+consume;
+
 ################################################################################
 # layertag needed by crossing computation                                      #
 ################################################################################
@@ -67,7 +103,7 @@ let LayerTagForWayIdsWithoutTag =
 consume;
 
 let OsmWayTagNew1 =
-  ((OsmWayTags feed)
+  ((OsmWayTagNew2 feed)
   (OsmWayTagsLayerExtended feed)
   concat)
   (LayerTagForWayIdsWithoutTag feed)
@@ -1018,7 +1054,7 @@ consume;
 # Compute Adjacency lists for sections                                       #
 ##############################################################################
 
-let AdjacentSectionsUp =
+let AdjacentSectionsUpH1 =
   RoadPartSectionsTmp1 feed
   InJunctions feed
   hashjoin[EndJid, Jid]
@@ -1027,7 +1063,7 @@ let AdjacentSectionsUp =
   groupby [Sid; AdjSectUp: group feed projecttransformstream[OutSects] createlist]
 consume;
 
-let AdjacentSectionsDown =
+let AdjacentSectionsDownH1 =
   RoadPartSectionsTmp1 feed
   InJunctions feed
   hashjoin[StartJid, Jid]
@@ -1036,7 +1072,7 @@ let AdjacentSectionsDown =
   groupby [Sid; AdjSectDown: group feed projecttransformstream[OutSects] createlist]
 consume;
 
-let ReverseAdjacentSectionsUp =
+let ReverseAdjacentSectionsUpH1 =
   RoadPartSectionsTmp1 feed
   InJunctions feed
   hashjoin[StartJid, Jid]
@@ -1045,7 +1081,7 @@ let ReverseAdjacentSectionsUp =
   groupby [Sid; RevAdjSectUp: group feed projecttransformstream[InSects] createlist]
 consume;
 
-let ReverseAdjacentSectionsDown =
+let ReverseAdjacentSectionsDownH1 =
   RoadPartSectionsTmp1 feed
   InJunctions feed
   hashjoin[EndJid, Jid]
@@ -1055,42 +1091,8 @@ let ReverseAdjacentSectionsDown =
 consume;
 
 ###############################################################################
-# Sections relation for jnet creation                                         #
+# Restrictions for section connections by nodes                               #
 ###############################################################################
-
-let InSections =
-  RoadPartSectionsTmp1 feed
-  project[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth]
-  SectionRouteIntervals feed {r1}
-  hashjoin[Sid, Sid_r1]
-  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax,
-    Lenth; RouteInter: .IntervalList_r1]
-  AdjacentSectionsUp feed {a1}
-  hashjoin[Sid, Sid_a1]
-  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth,
-    RouteInter; AdjSectUp: .AdjSectUp_a1]
-  AdjacentSectionsDown feed {a2}
-  hashjoin[Sid, Sid_a2]
-  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth, RouteInter,
-    AdjSectUp; AdjSectDown: .AdjSectDown_a2]
-  ReverseAdjacentSectionsUp feed {a3}
-  hashjoin[Sid, Sid_a3]
-  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth, RouteInter,
-    AdjSectUp, AdjSectDown; RevAdjSectUp: .RevAdjSectUp_a3]
-  ReverseAdjacentSectionsDown feed {a4}
-  hashjoin[Sid, Sid_a4]
-  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth, RouteInter,
-    AdjSectUp, AdjSectDown, RevAdjSectUp; RevAdjSectDown: .RevAdjSectDown_a4]
-consume;
-
-query createjnet("testjnet", InJunctions, InSections, InRoutes);
-
-quit;
-
-
-##############################################################################
-# Filter Node Restrictions from NestedRelationRel                            #
-##############################################################################
 
 let ViaNodesRel =
   NestedRelationRel feed
@@ -1106,22 +1108,6 @@ let ViaNodesRel =
   hashjoin[MemberRef,NodeId]
   projectextend[RelId, NodeId,
     NodePos; RelTagVal: .RefInfo afeed extract [RelTagValue]]
-consume;
-
-let ViaWaysRel =
-  NestedRelationRel feed
-  filter [.RelInfo afeed
-    filter [.RefInfo afeed
-      filter [.RelTagKey contains "restriction"]
-      count > 0]
-    count > 0]
-  unnest [RelInfo]
-  filter [.MemberRole = "via"]
-  filter [.MemberType = "way"]
-  SpatialWayCurve feed
-  hashjoin[MemberRef, WayId]
-  projectextend[RelId, WayId,
-    WayCurve; RelTagVal: .RefInfo afeed extract [RelTagValue]]
 consume;
 
 let FromWaysRel =
@@ -1164,12 +1150,312 @@ let NodeRestrictions =
   rdup
 consume;
 
+let ConnectRestrictionsWithJunctions =
+  JunctionsAndWayCrossings feed
+  NodeRestrictions feed
+  itSpatialJoin[Point, NodePos_v,4,8]
+  filter[.Point = .NodePos_v]
+  filter[((.WayId_f = .WayId1) and (.WayId_t = .WayId2)) or
+         ((.WayId_f = .WayId2) and (.WayId_t = .WayId1))]
+  projectextend[RelTagVal_v; Sid_f: ifthenelse(.WayId_f = .WayId1, .Sid1, .Sid2),
+                             Sid_t: ifthenelse(.WayId_t = .WayId1, .Sid1, .Sid2)]
+consume;
 
 ###############################################################################
-# Way Restrictions can not be encoded now in the network data format now      #
-# Because we have no information from where the car comes before in the       #
-# network data model                                                          #
+# remove not connected sections from adjacency lists                          #
 ###############################################################################
+let NoRestrictions =
+  ConnectRestrictionsWithJunctions feed
+  filter [.RelTagVal_v contains "no"]
+consume;
+
+let AdjacentSectionsUpH2 =
+  AdjacentSectionsUpH1 feed 
+  NoRestrictions feed 
+  hashjoin[Sid, Sid_f]
+  projectextend[Sid; AdjSectU: .AdjSectUp - .Sid_t]
+consume;
+
+let AdjacentSectionsUpH3 =
+  AdjacentSectionsUpH1 feed project[Sid]
+    sortby[Sid]
+  AdjacentSectionsUpH2 feed project[Sid]
+    sortby[Sid]
+  mergediff
+  AdjacentSectionsUpH1 feed {s1}
+  hashjoin[Sid, Sid_s1]
+  projectextend[;Sid: .Sid_s1,
+    AdjSectU: .AdjSectUp_s1]
+consume;
+
+let AdjacentSectionsUpH4 =
+  (AdjacentSectionsUpH2 feed)
+  (AdjacentSectionsUpH3 feed)
+  concat
+  projectextend[Sid; AdjSectUp: .AdjSectU]
+consume;
+  
+let AdjacentSectionsDownH2 =
+  AdjacentSectionsDownH1 feed
+  NoRestrictions feed
+  hashjoin[Sid, Sid_f]
+  projectextend[Sid; AdjSectD: .AdjSectDown - .Sid_t]
+consume;
+
+let AdjacentSectionsDownH3 =
+  AdjacentSectionsDownH1 feed project[Sid]
+    sortby[Sid]
+  AdjacentSectionsDownH2 feed project[Sid]
+    sortby[Sid]
+  mergediff
+  AdjacentSectionsDownH1 feed {s1}
+  hashjoin[Sid, Sid_s1]
+  projectextend[;Sid: .Sid_s1,
+    AdjSectD: .AdjSectDown_s1]
+consume;
+
+let AdjacentSectionsDownH4 =
+  (AdjacentSectionsDownH2 feed)
+  (AdjacentSectionsDownH3 feed)
+  concat
+  projectextend[Sid; AdjSectDown: .AdjSectD]
+consume;
+
+let ReverseAdjacentSectionsUpH2 =
+  ReverseAdjacentSectionsUpH1 feed
+  NoRestrictions feed
+  hashjoin[Sid, Sid_t]
+  projectextend[Sid; RevAdjSectU: .RevAdjSectUp - .Sid_f]
+consume;
+
+let ReverseAdjacentSectionsUpH3 =
+  ReverseAdjacentSectionsUpH1 feed project[Sid]
+    sortby[Sid]
+  ReverseAdjacentSectionsUpH2 feed project[Sid]
+    sortby[Sid]
+  mergediff
+  ReverseAdjacentSectionsUpH1 feed {s1}
+  hashjoin[Sid, Sid_s1]
+  projectextend[;Sid: .Sid_s1,
+    RevAdjSectU: .RevAdjSectUp_s1]
+consume;
+
+let ReverseAdjacentSectionsUpH4 =
+  (ReverseAdjacentSectionsUpH2 feed)
+  (ReverseAdjacentSectionsUpH3 feed)
+  concat
+  projectextend[Sid; RevAdjSectUp: .RevAdjSectU]
+consume;
+
+let ReverseAdjacentSectionsDownH2 =
+  ReverseAdjacentSectionsDownH1 feed
+  NoRestrictions feed
+  hashjoin[Sid, Sid_t]
+  projectextend[Sid; RevAdjSectD: .RevAdjSectDown - .Sid_f]
+consume;
+
+let ReverseAdjacentSectionsDownH3 =
+  ReverseAdjacentSectionsDownH1 feed project[Sid]
+    sortby[Sid]
+  ReverseAdjacentSectionsDownH2 feed project[Sid]
+    sortby[Sid]
+  mergediff
+  ReverseAdjacentSectionsDownH1 feed {s1}
+  hashjoin[Sid, Sid_s1]
+  projectextend[;Sid: .Sid_s1,
+    RevAdjSectD: .RevAdjSectDown_s1]
+consume;
+
+let ReverseAdjacentSectionsDownH4 =
+  (ReverseAdjacentSectionsDownH2 feed)
+  (ReverseAdjacentSectionsDownH3 feed)
+  concat
+  projectextend[Sid; RevAdjSectDown: .RevAdjSectD]
+consume;
+
+
+###############################################################################
+# leave only existing connections in adjacency lists                          #
+###############################################################################
+
+let OnlyRestrictions =
+  ConnectRestrictionsWithJunctions feed
+  filter [.RelTagVal_v contains "only"]
+consume;
+
+let AdjacentSectionsUpH5 =
+  AdjacentSectionsUpH4 feed
+  OnlyRestrictions feed
+  hashjoin[Sid, Sid_f]
+  projectextend[Sid; AdjSectU: restrict(.AdjSectUp, .Sid_t)]
+consume;
+
+let AdjacentSectionsUpH6 =
+  AdjacentSectionsUpH4 feed project[Sid]
+    sortby[Sid]
+  AdjacentSectionsUpH5 feed project[Sid]
+    sortby[Sid]
+  mergediff
+  AdjacentSectionsUpH4 feed {s1}
+  hashjoin[Sid, Sid_s1]
+  projectextend[;Sid: .Sid_s1,
+    AdjSectU: .AdjSectUp_s1]
+consume;
+
+let AdjacentSectionsUp =
+  (AdjacentSectionsUpH5 feed)
+  (AdjacentSectionsUpH6 feed)
+  concat
+  projectextend[Sid; AdjSectUp: .AdjSectU]
+consume;
+  
+let AdjacentSectionsDownH5 =
+  AdjacentSectionsDownH4 feed
+  OnlyRestrictions feed
+  hashjoin[Sid, Sid_f]
+  projectextend[Sid; AdjSectD: restrict (.AdjSectDown, .Sid_t)]
+consume;
+
+let AdjacentSectionsDownH6 =
+  AdjacentSectionsDownH4 feed project[Sid]
+    sortby[Sid]
+  AdjacentSectionsDownH5 feed project[Sid]
+    sortby[Sid]
+  mergediff
+  AdjacentSectionsDownH4 feed {s1}
+  hashjoin[Sid, Sid_s1]
+  projectextend[;Sid: .Sid_s1,
+    AdjSectD: .AdjSectDown_s1]
+consume;
+
+let AdjacentSectionsDown =
+  (AdjacentSectionsDownH5 feed)
+  (AdjacentSectionsDownH6 feed)
+  concat
+  projectextend[Sid; AdjSectDown: .AdjSectD]
+consume;
+
+let NotLongerAdjacentSections =
+   (AdjacentSectionsUpH5 feed projectextend[Sid; AdjSect: .AdjSectU])
+   (AdjacentSectionsDownH5 feed projectextend[Sid; AdjSect: .AdjSectD])
+   concat
+   OnlyRestrictions feed
+   hashjoin[Sid, Sid_f]
+   projectextend[Sid; NotLongerAdj: .AdjSect - .Sid_t]
+   projectextendstream[Sid; AdjSect: createstream(.NotLongerAdj)]
+   sortby [AdjSect, Sid]
+   rdup
+   groupby[AdjSect; Sids: group feed projecttransformstream [Sid] createlist]
+consume;
+
+let ReverseAdjacentSectionsUpH5 =
+   ReverseAdjacentSectionsUpH4 feed
+   NotLongerAdjacentSections feed {s1}
+   hashjoin[Sid, AdjSect_s1]
+   projectextend[Sid; RevAdjSectU: .RevAdjSectUp - .Sids_s1]
+consume;
+
+let ReverseAdjacentSectionsUpH6 =
+  ReverseAdjacentSectionsUpH4 feed project[Sid]
+    sortby[Sid]
+  ReverseAdjacentSectionsUpH5 feed project[Sid]
+    sortby[Sid]
+  mergediff
+  ReverseAdjacentSectionsUpH4 feed {s1}
+  hashjoin[Sid, Sid_s1]
+  projectextend[;Sid: .Sid_s1,
+    RevAdjSectU: .RevAdjSectUp_s1]
+consume;
+
+let ReverseAdjacentSectionsUp =
+  (ReverseAdjacentSectionsUpH5 feed)
+  (ReverseAdjacentSectionsUpH6 feed)
+  concat
+  projectextend[Sid; RevAdjSectUp: .RevAdjSectU]
+consume;
+  
+let ReverseAdjacentSectionsDownH5 =
+   ReverseAdjacentSectionsDownH4 feed
+   NotLongerAdjacentSections feed {s1}
+   hashjoin[Sid, AdjSect_s1]
+   projectextend[Sid; RevAdjSectD: .RevAdjSectDown - .Sids_s1]
+consume;
+
+let ReverseAdjacentSectionsDownH6 =
+  ReverseAdjacentSectionsDownH4 feed project[Sid]
+    sortby[Sid]
+  ReverseAdjacentSectionsDownH5 feed project[Sid]
+    sortby[Sid]
+  mergediff
+  ReverseAdjacentSectionsDownH4 feed {s1}
+  hashjoin[Sid, Sid_s1]
+  projectextend[;Sid: .Sid_s1,
+    RevAdjSectD: .RevAdjSectDown_s1]
+consume;
+
+let ReverseAdjacentSectionsDown =
+  (ReverseAdjacentSectionsDownH5 feed)
+  (ReverseAdjacentSectionsDownH6 feed)
+  concat
+  projectextend[Sid; RevAdjSectDown: .RevAdjSectD]
+consume;
+  
+
+###############################################################################
+# Sections relation for jnet creation                                         #
+###############################################################################
+
+let InSections =
+  RoadPartSectionsTmp1 feed
+  project[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth]
+  SectionRouteIntervals feed {r1}
+  hashjoin[Sid, Sid_r1]
+  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax,
+    Lenth; RouteInter: .IntervalList_r1]
+  AdjacentSectionsUp feed {a1}
+  hashjoin[Sid, Sid_a1]
+  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth,
+    RouteInter; AdjSectUp: .AdjSectUp_a1]
+  AdjacentSectionsDown feed {a2}
+  hashjoin[Sid, Sid_a2]
+  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth, RouteInter,
+    AdjSectUp; AdjSectDown: .AdjSectDown_a2]
+  ReverseAdjacentSectionsUp feed {a3}
+  hashjoin[Sid, Sid_a3]
+  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth, RouteInter,
+    AdjSectUp, AdjSectDown; RevAdjSectUp: .RevAdjSectUp_a3]
+  ReverseAdjacentSectionsDown feed {a4}
+  hashjoin[Sid, Sid_a4]
+  projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth, RouteInter,
+    AdjSectUp, AdjSectDown, RevAdjSectUp; RevAdjSectDown: .RevAdjSectDown_a4]
+consume;
+
+query createjnet("testjnet", InJunctions, InSections, InRoutes);
+
+close database;
+
+quit;
+
+###############################################################################
+# The following queries are omitted, because up to now we can not encode way  #
+# via way restrictions in our data model                                      #
+###############################################################################
+
+let ViaWaysRel =
+  NestedRelationRel feed
+  filter [.RelInfo afeed
+    filter [.RefInfo afeed
+      filter [.RelTagKey contains "restriction"]
+      count > 0]
+    count > 0]
+  unnest [RelInfo]
+  filter [.MemberRole = "via"]
+  filter [.MemberType = "way"]
+  SpatialWayCurve feed
+  hashjoin[MemberRef, WayId]
+  projectextend[RelId, WayId,
+    WayCurve; RelTagVal: .RefInfo afeed extract [RelTagValue]]
+consume;
 
 let WayRestrictions =
   ViaWaysRel feed {v}
