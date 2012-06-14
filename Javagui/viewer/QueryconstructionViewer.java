@@ -23,6 +23,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import gui.SecondoObject;
+import gui.ViewerControl;
 import sj.lang.*;
 import viewer.queryconstruction.*;
 
@@ -32,17 +33,9 @@ import viewer.queryconstruction.*;
  */
 public class QueryconstructionViewer extends SecondoViewer {
     
-    private ObjectsPane ObjectsPane;
+    private ObjectPane ObjectPane = new ObjectPane(this);
     private OperationsPane OperationsPane = new OperationsPane(this);
     private MainPane MainPane;
-    
-    // define supported types
-    protected static final String RELATION = "rel";
-    protected static final String OPERATION="operation";
-    protected static final String MPOINT = "mpoint";
-    protected static final String POINT = "point";
-    protected static final String REGION = "region";
-    protected static final String MREGION = "mregion";
     
     private MenuVector MV = new MenuVector();
     private String result;
@@ -54,15 +47,14 @@ public class QueryconstructionViewer extends SecondoViewer {
         
         MainPane = new MainPane();
         MainPane.setPreferredSize(new Dimension (500, 400));
-        ObjectsPane = new ObjectsPane(this, VC);
-        ObjectsPane.setPreferredSize(new Dimension (600, 80));
-        OperationsPane.setPreferredSize(new Dimension (120, 400));
         
+        ObjectPane.setPreferredSize(new Dimension (600, 80));
+        OperationsPane.setPreferredSize(new Dimension (120, 400));
         OperationsPane.update();
-        ObjectsPane.update();
         
         JScrollPane MainScrollPane = new JScrollPane(MainPane);
-        JScrollPane ObjectsScrollPane = new JScrollPane(ObjectsPane);
+        JScrollPane ObjectsScrollPane = new JScrollPane(ObjectPane);
+        ObjectsScrollPane.createHorizontalScrollBar();
         JScrollPane OperationsScrollPane = new JScrollPane(OperationsPane);
         OperationsScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         
@@ -91,16 +83,6 @@ public class QueryconstructionViewer extends SecondoViewer {
             }
         };
         back.addActionListener(backl);
-        
-        JButton all = new JButton("all");
-        MainPane.add(all);
-        
-        ActionListener listener1 = new ActionListener() {
-            public void actionPerformed( ActionEvent e ) {
-                getObjects();
-            }
-        };
-        all.addActionListener(listener1);
     }
     
     //adds an object to the main panel
@@ -108,18 +90,15 @@ public class QueryconstructionViewer extends SecondoViewer {
         if (object.getType().equals("rel"))
             streamCounter++;
         MainPane.addObject(object);
-        MainPane.setToolTipText(getType());
-        MainPane.repaint();
-        OperationsPane.update();
-        ObjectsPane.update();
+        update();
     }
     
-    public String getType () {
+    public String getType() {
         String getTypeNL = "no result";
         if (VC != null) { 
+            
             if (VC.execCommand(MainPane.getStrings() + " getTypeNL") == 0) {
-                getTypeNL = VC.getCommandResult(MainPane.getStrings() + " getTypeNL").toString();
-                System.out.println(getTypeNL);
+                getTypeNL = VC.getCommandResult(MainPane.getStrings() + " getTypeNL").second().textValue();
                 if (getTypeNL.startsWith("(stream")) {
                     this.result = "stream";
                 }
@@ -130,6 +109,10 @@ public class QueryconstructionViewer extends SecondoViewer {
         }
         
         return getTypeNL;
+    }
+    
+    public int getState() {
+        return MainPane.getState();
     }
     
     //executes the constructed query
@@ -144,18 +127,26 @@ public class QueryconstructionViewer extends SecondoViewer {
         }
     }
     
-    public void back() {
-        MainPane.removeLastObject();
+    //sets the panels up to date and repaints them
+    public void update() {
+        MainPane.setToolTipText(getType());
         MainPane.repaint();
         OperationsPane.update();
-        ObjectsPane.update();
+        ObjectPane.update();
     }
     
-    public void getObjects(){
+    public void back() {
+        MainPane.removeLastObject();
+        update();
+    }
+    
+    public void setViewerControl(ViewerControl VC){
+        //super.setViewerControl(VC);
         if (VC != null) {
+            this.VC = VC;
             VC.execCommand("open database berlintest");
             objects = VC.getCommandResult("list objects");
-            System.out.println(objects);
+            ObjectPane.addObjects(objects);
         }
     }
     

@@ -6,6 +6,7 @@ package viewer.queryconstruction;
 
 import java.awt.*;
 import javax.swing.*;
+import sj.lang.ListExpr;
 import viewer.QueryconstructionViewer;
 
 /**
@@ -18,6 +19,7 @@ public class ObjectView extends JComponent {
     private String label;
     private int xpos;
     private int ypos;
+    private ObjectType otype;
     private String type;
     private boolean active;
     private Color color = Color.BLACK;
@@ -25,9 +27,9 @@ public class ObjectView extends JComponent {
     public ObjectView(String type, String name){
         
         this.name = name;
-        this.label = name;
-        this.type = type;    
-        //this.so = so;
+        this.type = type;
+        
+        this.label = this.name;
         this.active = false;
         
     }
@@ -42,39 +44,37 @@ public class ObjectView extends JComponent {
             g.setColor(color);
         else g.setColor(this.color);
         
-        if (type == MainPane.OPERATION) {
+        if (type == ObjectType.OPERATION) {
             g.drawOval(xpos, ypos, 90, 50);
         }
         else {
             g.drawRect(xpos, ypos, 90, 50);
             
-            if (type.equals(MainPane.RELATION)) {
+            if (type.equals(ObjectType.RELATION)) {
                 ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/relation.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
 
-            if (type.equals(MainPane.MPOINT)) {
+            if (type.equals(ObjectType.MPOINT)) {
                 ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/mpoint.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
-            if (type.equals(MainPane.POINT)) {
+            if (type.equals(ObjectType.POINT)) {
                 ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/point.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
-            if (type.equals(MainPane.REGION)) {
+            if (type.equals(ObjectType.REGION)) {
                 ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/region.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
             
-            if (type.equals(MainPane.MREGION)) {
+            if (type.equals(ObjectType.MREGION)) {
                 ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/mregion.gif"));
                 g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
             }
         }
-        
-        
         
         int w = g.getFontMetrics().stringWidth(label);
         String s = label;
@@ -102,6 +102,21 @@ public class ObjectView extends JComponent {
         }
         
         g.drawString(s, xpos + 10, ypos + 10);
+    }
+    
+    public ObjectType getOType() {
+        return otype;
+    }
+    
+    public void setOType(ObjectType otype) {
+        this.otype = otype;
+    }
+    
+    public String[] getAttributes() {
+        for (String s : otype.getAttributes()) {
+            System.out.println(s);
+        }
+        return otype.getAttributes();
     }
     
     public String getName() {

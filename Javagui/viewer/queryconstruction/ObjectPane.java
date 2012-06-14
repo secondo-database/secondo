@@ -10,36 +10,21 @@ import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import sj.lang.ListExpr;
-import gui.ViewerControl;
-import javax.swing.JButton;
 import viewer.QueryconstructionViewer;
 
 /* ObjectsPane.java requires no other files. */
-public class ObjectsPane extends MainPane {
+public class ObjectPane extends MainPane {
     
     private ArrayList<ObjectView> elements = new ArrayList<ObjectView>();
     private QueryconstructionViewer viewer;
     private ListExpr objects;
-    private ViewerControl VC;
 
-    public ObjectsPane(QueryconstructionViewer viewer, ViewerControl VC) {
+    public ObjectPane(QueryconstructionViewer viewer) {
         this.viewer = viewer;
-        this.VC = VC;
-        this.addMouseListener(this);
+        addMouseListener(this);
         
-        ObjectView Trains = new ObjectView(RELATION, "Trains");
-        addObject(Trains);
-        ObjectView strassen = new ObjectView(RELATION, "strassen");
-        //addObject(strassen);
-        ObjectView Kinos = new ObjectView(RELATION, "Kinos");
-        //addObject(Kinos);
-        
-        ObjectView train7 = new ObjectView(MPOINT, "train7");
-        //addObject(train7);
-        ObjectView mehringdamm = new ObjectView(POINT, "mehringdamm");
-        //addObject(mehringdamm);
-        ObjectView tiergarten = new ObjectView(REGION, "tiergarten");
-        //addObject(tiergarten);
+//        ObjectView Trains = new ObjectView(RELATION, "Trains");
+//        addObject(Trains);
     }
     
     /** paints a Secondo Object into the ObjectsPane */
@@ -54,12 +39,22 @@ public class ObjectsPane extends MainPane {
         }
     }
     
-    public void getObjects(){
-        if (VC != null) {
-            VC.execCommand("open database berlintest");
-            objects = VC.getCommandResult("list objects");
-            System.out.println(objects);
+    public void addObjects(ListExpr list){
+        // the length must be two and the object element must be an symbol atom with content "inquiry"
+        if(list.listLength()==2 && list.first().symbolValue().equals("inquiry")) { 
+            objects = list.second().second();
+            
+            while (!objects.endOfList()) {
+                ListExpr object = objects.second();
+                ObjectType new_object = new ObjectType(object);
+                ObjectView object_view = new ObjectView(new_object.getType(), new_object.getName());
+                object_view.setOType(new_object);
+                
+                addObject(object_view);
+                objects = objects.rest();
+            }
         }
+        this.update();
     }
     
     //    adds an operation or an object to the main panel
@@ -72,7 +67,7 @@ public class ObjectsPane extends MainPane {
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
             object.setUnactive();
-            if (object.getName() == "Trains") {
+            if (object.getType().equals("rel") || object.getType().equals("trel")) {
                 object.setActive();
             }
         }
@@ -87,8 +82,12 @@ public class ObjectsPane extends MainPane {
                 while (arg0.getX() > (10 + x*120)) { x++; }
                 if (arg0.getX() < (10 + x*120)) {
                     if (x <= elements.size()) {
-                        if (elements.get(x-1).isActive())
-                            viewer.addObject(new ObjectView(elements.get(x-1).getType(), elements.get(x-1).getName()));
+                        if (elements.get(x-1).isActive()) {
+                            ObjectView element = elements.get(x-1);
+                            ObjectView new_object = new ObjectView(element.getType(), element.getName());
+                            new_object.setOType(element.getOType());
+                            viewer.addObject(new_object);
+                        }
                     }
                 }
             }

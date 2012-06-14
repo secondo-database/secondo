@@ -17,18 +17,17 @@ import java.util.*;
 public class MainPane extends JComponent implements MouseListener {
     
     private ArrayList<ObjectView> elements = new ArrayList<ObjectView>();
+    private ObjectType relation;
     
-    protected static final String RELATION = "rel";
-    protected static final String OPERATION = "operation";
-    protected static final String MPOINT = "mpoint";
-    protected static final String POINT = "point";
-    protected static final String REGION = "region";
-    protected static final String MREGION = "mregion";
+    protected static ObjectView lastComponent = new ObjectView(ObjectType.OPERATION, "query");
+    protected static int state;
     
-    protected static Component lastComponent = new ObjectView(OPERATION, "query");
+    protected static final int TUPEL = 0;
+    protected static final int STREAM = 1;
+    protected static final int TWOSTREAMS = 2;
     
     public MainPane() {
-        
+        state = TUPEL;
     }
     
     public void paintComponent(Graphics g) {
@@ -50,12 +49,23 @@ public class MainPane extends JComponent implements MouseListener {
     //adds an operation or an object to the main panel
     public void addObject(ObjectView object){
         elements.add(object);
-        OperationsDialog dialog = new OperationsDialog(this, new String[]{"ID", "Line", "Up", "Trip"});
-        if (object.getName().startsWith("project")){
-            dialog.project();
+        
+        //speichert die letzte Tabelle, die dem Hauptbereich hinzugefügt wurde in der Variable relation
+        if (object.getType().equals(ObjectType.RELATION) || object.getType().equals(ObjectType.TRELATION)) {
+            relation = object.getOType();
         }
-        if (object.getName().startsWith("head")){
-            dialog.integer();
+        //wenn eine Tabelle existiert, werden ihre Attribute für die Dialoge ausgewählt
+        if (relation != null) {
+            OperationsDialog dialog = new OperationsDialog(this, relation.getAttributes());
+            if (object.getName().startsWith("project")){
+                dialog.project();
+            }
+            if (object.getName().startsWith("head")){
+                dialog.integer();
+            }
+        }
+        if (object.getName().equals("feed")) {
+            state = STREAM;
         }
         lastComponent = object;
     }
@@ -69,6 +79,10 @@ public class MainPane extends JComponent implements MouseListener {
     
     public Component getLast () {
         return lastComponent;
+    }
+    
+    public int getState() {
+        return state;
     }
     
     public String getStrings(){

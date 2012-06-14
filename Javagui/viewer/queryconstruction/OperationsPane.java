@@ -18,17 +18,17 @@ public class OperationsPane extends MainPane {
     private QueryconstructionViewer viewer;
 
     public OperationsPane(QueryconstructionViewer viewer) {
-        ObjectView feed = new ObjectView(OPERATION, "feed");
+        ObjectView feed = new ObjectView(ObjectType.OPERATION, "feed");
         addObject(feed);
-        ObjectView filter = new ObjectView(OPERATION, "project");
+        ObjectView filter = new ObjectView(ObjectType.OPERATION, "project");
         addObject(filter);
-        ObjectView count = new ObjectView(OPERATION, "count");
+        ObjectView count = new ObjectView(ObjectType.OPERATION, "count");
         addObject(count);
-        ObjectView head = new ObjectView(OPERATION, "head");
+        ObjectView head = new ObjectView(ObjectType.OPERATION, "head");
         addObject(head);
-        ObjectView tail = new ObjectView(OPERATION, "tail");
+        ObjectView tail = new ObjectView(ObjectType.OPERATION, "tail");
         addObject(tail);
-        ObjectView consume = new ObjectView(OPERATION, "consume");
+        ObjectView consume = new ObjectView(ObjectType.OPERATION, "consume");
         addObject(consume);
         
         this.viewer = viewer;
@@ -59,7 +59,7 @@ public class OperationsPane extends MainPane {
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
             object.setUnactive();
-            if (lastComponent.getName().equals("Trains")) {
+            if (lastComponent.getType().equals(ObjectType.RELATION) || lastComponent.getType().equals(ObjectType.TRELATION)) {
                 if ("feed".equals(object.getName()) || "count".equals(object.getName())) {
                     object.setActive();
                 }
@@ -69,7 +69,7 @@ public class OperationsPane extends MainPane {
                     object.setActive();
                 }
             }
-            if (object.getName().equals("consume")) {
+            if (object.getName().equals("consume") && (viewer.getState() == MainPane.STREAM || viewer.getState() == MainPane.TWOSTREAMS)) {
                 object.setActive();
             }
         }
