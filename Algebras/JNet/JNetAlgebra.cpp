@@ -1447,6 +1447,181 @@ Operator neOp(
 );
 
 /*
+1.1 Manipulation of DataTypes
+
+1.1.1 Update List DataTypes
+
+The TypeMap and Select Functions are equal for the updateOperators for lists.
+
+*/
+
+const string maps_updateLists[8][3] =
+{
+  {JListInt::BasicType(), CcInt::BasicType(), JListInt::BasicType()},
+  {JListRLoc::BasicType(), RouteLocation::BasicType(), JListRLoc::BasicType()},
+  {JListRInt::BasicType(), JRouteInterval::BasicType(), JListRInt::BasicType()},
+  {JListNDG::BasicType(), NetDistanceGroup::BasicType(), JListNDG::BasicType()},
+  {JListInt::BasicType(), JListInt::BasicType(), JListInt::BasicType()},
+  {JListRLoc::BasicType(), JListRLoc::BasicType(), JListRLoc::BasicType()},
+  {JListRInt::BasicType(), JListRInt::BasicType(), JListRInt::BasicType()},
+  {JListNDG::BasicType(), JListNDG::BasicType(), JListNDG::BasicType()}
+};
+
+ListExpr updateListsTM (ListExpr args)
+{
+  return SimpleMaps<8,3>(maps_updateLists, args);
+}
+
+int updateListsSelect(ListExpr args)
+{
+  return SimpleSelect<8,3>(maps_updateLists, args);
+}
+
+/*
+1.1.1.1 ~minus~
+
+The operator ~minus~ removes the given element, respectively list of elements,
+from the list if it is contained.
+
+*/
+
+template<class List, class Elem>
+int minusVM( Word* args, Word& result, int message, Word& local,
+             Supplier s)
+{
+  result = qp->ResultStorage(s);
+  List* res = static_cast<List*> (result.addr);
+
+  List* list = (List*) args[0].addr;
+  Elem* elem = (Elem*) args[1].addr;
+
+  if (list != 0 && list->IsDefined() &&
+      elem != 0 && elem->IsDefined())
+  {
+    *res = *list;
+    res->operator-=(*elem);
+  }
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping minusMap[] =
+{
+  minusVM<JListInt, CcInt>,
+  minusVM<JListRLoc, RouteLocation>,
+  minusVM<JListRInt, JRouteInterval>,
+  minusVM<JListNDG, NetDistanceGroup>,
+  minusVM<JListInt, JListInt>,
+  minusVM<JListRLoc, JListRLoc>,
+  minusVM<JListRInt, JListRInt>,
+  minusVM<JListNDG, JListNDG>
+};
+
+const string minusSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + JListInt::BasicType() + " x " + CcInt::BasicType() +
+  " -> " + JListInt::BasicType() +", " +
+  JListRLoc::BasicType() + " x " + RouteLocation::BasicType() + " -> " +
+  JListRLoc::BasicType() + ", " +
+  JListRInt::BasicType() + " x " + JRouteInterval::BasicType() + " -> " +
+  JListRInt::BasicType() + ", " +
+  JListNDG::BasicType() + " x " + NetDistanceGroup::BasicType() +" -> "+
+  JListNDG::BasicType() + ", " +
+  JListInt::BasicType() +" x "+ JListInt::BasicType() + " -> " +
+  JListInt::BasicType() + ", " +
+  JListRLoc::BasicType() + " x " + JListRLoc::BasicType() + " -> " +
+  JListRLoc::BasicType() + ", " +
+  JListRInt::BasicType() + "x " + JListRInt::BasicType() + " -> " +
+  JListRInt::BasicType() +", " +
+  JListNDG::BasicType() + " x " + JListNDG::BasicType() + " -> " +
+  JListNDG::BasicType() + "</text--->"
+  "<text>x - y </text--->"
+  "<text>Returns x without y.</text--->"
+  "<text>query x - y</text--->))";
+
+Operator minusOp(
+  "-",
+  minusSpec,
+  8,
+  minusMap,
+  updateListsSelect,
+  updateListsTM
+);
+
+/*
+1.1.1.1 ~restrict~
+
+The operator ~restrict~ restricts the list to contain only the given elements,
+respectively list of elements, if they have been inside before.
+
+*/
+
+template<class List, class Elem>
+int restrictVM( Word* args, Word& result, int message, Word& local,
+                Supplier s)
+{
+  result = qp->ResultStorage(s);
+  List* res = static_cast<List*> (result.addr);
+
+  List* list = (List*) args[0].addr;
+  Elem* elem = (Elem*) args[1].addr;
+
+  if (list != 0 && list->IsDefined() &&
+    elem != 0 && elem->IsDefined())
+  {
+    *res = *list;
+    res->Restrict(*elem);
+  }
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping restrictMap[] =
+{
+  restrictVM<JListInt, CcInt>,
+  restrictVM<JListRLoc, RouteLocation>,
+  restrictVM<JListRInt, JRouteInterval>,
+  restrictVM<JListNDG, NetDistanceGroup>,
+  restrictVM<JListInt, JListInt>,
+  restrictVM<JListRLoc, JListRLoc>,
+  restrictVM<JListRInt, JListRInt>,
+  restrictVM<JListNDG, JListNDG>
+};
+
+const string restrictSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + JListInt::BasicType() + " x " + CcInt::BasicType() +
+  " -> " + JListInt::BasicType() +", " +
+  JListRLoc::BasicType() + " x " + RouteLocation::BasicType() + " -> " +
+  JListRLoc::BasicType() + ", " +
+  JListRInt::BasicType() + " x " + JRouteInterval::BasicType() + " -> " +
+  JListRInt::BasicType() + ", " +
+  JListNDG::BasicType() + " x " + NetDistanceGroup::BasicType() +" -> "+
+  JListNDG::BasicType() + ", " +
+  JListInt::BasicType() +" x "+ JListInt::BasicType() + " -> " +
+  JListInt::BasicType() + ", " +
+  JListRLoc::BasicType() + " x " + JListRLoc::BasicType() + " -> " +
+  JListRLoc::BasicType() + ", " +
+  JListRInt::BasicType() + "x " + JListRInt::BasicType() + " -> " +
+  JListRInt::BasicType() +", " +
+  JListNDG::BasicType() + " x " + JListNDG::BasicType() + " -> " +
+  JListNDG::BasicType() + "</text--->"
+  "<text>restrict(x,y) </text--->"
+  "<text>Returns only the elements of x which are also in y.</text--->"
+  "<text>query restrict (x,y)</text--->))";
+
+Operator restrictOp(
+  "restrict",
+  restrictSpec,
+  8,
+  restrictMap,
+  updateListsSelect,
+  updateListsTM
+);
+
+/*
 1 Implementation of ~class JNetAlgebra~
 
 1.1 Constructor
@@ -1548,6 +1723,15 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddOperator(&leOp);
   AddOperator(&geOp);
   AddOperator(&neOp);
+
+/*
+1.1.1 Manipulate DataTypes
+
+*/
+
+  AddOperator(&minusOp);
+  AddOperator(&restrictOp);
+
 }
 
 /*

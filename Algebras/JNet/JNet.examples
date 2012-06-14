@@ -515,3 +515,143 @@ Number   : 12
 Signature: listndg x listndg -> bool
 Example  : query testlistndg > testlistndg;
 Result   : FALSE
+
+Operator : -
+Number   : 1
+Signature: listint x int -> listint
+Example  : query testlistint - 2;
+Result   : (listint(1 8 9 535))
+Tolerance: 0.01%
+
+Operator : -
+Number   : 2
+Signature: listint x int -> listint
+Example  : query testlistint - 8;
+Result   : (listint(1 9 535))
+Tolerance: 0.01%
+
+Operator : -
+Number   : 3
+Signature: listint x listint -> listint
+Example  : query testlistint - testlistint;
+Result   : (listint())
+Tolerance: 0.01%
+
+Operator : -
+Number   : 4
+Signature: listrloc x rloc -> listrloc
+Example  : query testlistrloc - createrloc(4, 234.4,[const jdirection value(Up)]);
+Result   : (listrloc((1 34.5 (Up))(2 23.8 (Both)) (4 34.2 (Up))(4 423.2 (Down))(9 54.1 (Down))))
+Tolerance: 0.01%
+
+Operator : -
+Number   : 5
+Signature: listrloc x rloc -> listrloc
+Example  : query testlistrloc - createrloc(2, 23.8, [const jdirection value(Both)]);
+Result   : (listrloc((1 34.5 (Up))(4 34.2 (Up))(4 423.2 (Down))(9 54.1 (Down))))
+Tolerance: 0.01%
+
+Operator : -
+Number   : 6
+Signature: listrloc x listrloc -> listrloc
+Example  : query testlistrloc - testlistrloc;
+Result   : (listrloc())
+Tolerance: 0.01%
+
+Operator : -
+Number   : 7
+Signature: listjrint x jrint -> listjrint
+Example  : query testlistrint - createrint(4, 234.4, 346.7, [const jdirection value(Up)]);
+Result   : (listjrint((1 34.5 54.3 (Up))(2 23.8 132.5 (Both))(4  15.5 34.2 (Up))(4 423.2 545.5 (Down))(9 54.1 546.6 (Down))))
+Tolerance: 0.01%
+
+Operator : -
+Number   : 8
+Signature: listrloc x rloc -> listrloc
+Example  : query testlistrint - createrint(2, 23.8, 132.5, [const jdirection value(Both)]);
+Result   : (listjrint((1 34.5 54.3 (Up))(4  15.5 34.2 (Up))(4 423.2 545.5 (Down))(9 54.1 546.6 (Down))))
+Tolerance: 0.01%
+
+Operator : -
+Number   : 9
+Signature: listjrint x listjrint -> listjrint
+Example  : query testlistrint - testlistrint;
+Result   : (listjrint())
+Tolerance: 0.01%
+
+Operator : -
+Number   : 10
+Signature: listndg x ndg -> listndg
+Example  : query testlistndg - createndg(4, 23, 4 , 56, 452.2);
+Result   : (listndg((1 23 1 34 54.3)(2 3 4 423 545.5)(3 34 2 23 132.5)(4 24 4 34 15.5)(5 42 9 54 546.6)))
+Tolerance: 0.01%
+
+Operator : -
+Number   : 11
+Signature: listndg x ndg -> listndg
+Example  : query testlistndg - createndg(2, 3, 4, 423, 545.5);
+Result   : (listndg((1 23 1 34 54.3)(3 34 2 23 132.5)(4 24 4 34 15.5)(5 42 9 54 546.6)))
+Tolerance: 0.01%
+
+Operator : -
+Number   : 12
+Signature: listndg x listndg -> listndg
+Example  : query testlistndg - testlistndg;
+Result   : (listndg())
+Tolerance: 0.01%
+
+Operator : restrict
+Number   : 1
+Signature: listint x int -> listint
+Example  : query restrict(testlistint, 9);
+Result   : (listint(9))
+Tolerance: 0.01%
+
+Operator : restrict
+Number   : 2
+Signature: listint x int -> listint
+Example  : query restrict(testlistint, testlistint);
+Result   : (listint(1 8 9 535))
+Tolerance: 0.01%
+
+Operator : restrict
+Number   : 3
+Signature: listrloc x rloc -> listrloc
+Example  : query restrict(testlistrloc, createrloc(2, 23.8, [const jdirection value(Both)]));
+Result   : (listrloc((2 23.8 (Both))))
+Tolerance: 0.01%
+
+Operator : restrict
+Number   : 4
+Signature: listrloc x listrloc -> listrloc
+Example  : query restrict(testlistrloc,testlistrloc);
+Result   : (listrloc((1 34.5 (Up))(2 23.8 (Both)) (4 34.2 (Up))(4 423.2 (Down))(9 54.1 (Down))))
+Tolerance: 0.01%
+
+Operator : restrict
+Number   : 5
+Signature: listjrint x jrint -> listjrint
+Example  : query restrict(testlistrint, createrint(2, 23.8, 132.5, [const jdirection value(Both)]));
+Result   : (listjrint((2 23.8 132.5 (Both))))
+Tolerance: 0.01%
+
+Operator : restrict
+Number   : 6
+Signature: listjrint x listjrint -> listjrint
+Example  : query restrict(testlistrint, testlistrint);
+Result   : (listjrint((1 34.5 54.3 (Up))(2 23.8 132.5 (Both))(4  15.5 34.2 (Up))(4 423.2 545.5 (Down))(9 54.1 546.6 (Down))))
+Tolerance: 0.01%
+
+Operator : restrict
+Number   : 7
+Signature: listndg x ndg -> listndg
+Example  : query restrict(testlistndg, createndg(2, 3, 4, 423, 545.5));
+Result   : (listndg((2 3 4 423 545.5)))
+Tolerance: 0.01%
+
+Operator : restrict
+Number   : 8
+Signature: listndg x listndg -> listndg
+Example  : query restrict(testlistndg, testlistndg);
+Result   : (listndg((1 23 1 34 54.3)(2 3 4 423 545.5)(3 34 2 23 132.5)(4 24 4 34 15.5)(5 42 9 54 546.6)))
+Tolerance: 0.01%

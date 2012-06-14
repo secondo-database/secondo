@@ -10,3 +10,5 @@ operator > alias GT pattern _ infixop _
 operator < alias LT pattern _ infixop _
 operator >= alias GE pattern _ infixop _
 operator <= alias LE pattern _ infixop _
+operator - alias MINUS pattern _ infixop _
+operator restrict alias RESTRICT pattern op( _ , _ )
