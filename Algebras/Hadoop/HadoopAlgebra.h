@@ -38,6 +38,7 @@ used in HadoopAlgebra.
 #define HADOOPALGEBRA_H_
 
 #include "../HadoopParallel/HadoopParallelAlgebra.h"
+#include <pthread.h>
 
 bool isFListStreamDescription(const NList& typeInfo);
 ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
@@ -49,6 +50,7 @@ ListExpr replaceParaOp(
     vector<fList*>& flistObjList, bool& ok);
 ListExpr replaceSecObj(ListExpr createQuery);
 
+pthread_mutex_t CLI_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*
 1.7 fList class
@@ -282,10 +284,10 @@ public:
   }
 
   bool fetchAllPartFiles();
+  bool fetchAllPartFiles2();
+  //Copy files in pipeline
 
   Tuple* getNextTuple();
-
-
 
 private:
   fList* fileList;
@@ -295,7 +297,24 @@ private:
   vector<string> partFiles;
   ifstream *inputFile;
 
+  static const int PipeWidth = 10;
+  pthread_t threadID[PipeWidth];
+  bool tokenPass[PipeWidth];
+  bool *fileStatus;
+
   bool partFileOpened();
+  static void* copyFile(void* ptr);
+};
+
+class CLI_Thread
+{
+public:
+  CLI_Thread(CollectLocalInfo* _ci, int _r, int _t)
+    : cli(_ci), row(_r), token(_t){}
+
+  CollectLocalInfo* cli;
+  int row;
+  int token;
 };
 
 

@@ -1091,7 +1091,7 @@ int SpreadValueMap(Word* args, Word& result,
         filePath = ((FText*)qp->Request(
             qp->GetSupplierSon(bspList, i)).addr)->GetValue();
       }
-      else if (nl->IsEqual(pp, FText::BasicType())){
+      else if (nl->IsEqual(pp, CcInt::BasicType())){
         //duplicate time is set
         dupTimes = ((CcInt*)qp->Request(
             qp->GetSupplier(bspList,i)).addr)->GetValue();
@@ -1583,8 +1583,7 @@ int CollectValueMap(Word* args, Word& result,
         cli = 0;
       }
       cli = new CollectLocalInfo(partitionFileList, row, column);
-
-      if (cli->fetchAllPartFiles()){
+      if (cli->fetchAllPartFiles2()){
         local.setAddr(cli);
       }
       else{
@@ -1733,7 +1732,6 @@ bool CollectLocalInfo::fetchAllPartFiles()
           if (found)
           {
             partFiles.push_back(localPath);
-cerr << "Found file " << localPath << endl;
             break;
           }
           pit++;
@@ -1743,6 +1741,199 @@ cerr << "Found file " << localPath << endl;
     }
   }
   return true;
+}
+
+/*
+Prepare to replace the fetchAllPartFiles function,
+using pipeline to copy files in parallel, instead of sequentially.
+
+
+*/
+bool CollectLocalInfo::fetchAllPartFiles2()
+{
+
+  size_t rBegin = ( row == 0 ) ? 1 : row,
+         rEnd   = ( row == 0 ) ? fileList->getMtxRowNum() : row;
+
+  fileStatus = new bool[(rEnd - rBegin + 1)];
+  memset(tokenPass, false, PipeWidth);
+  pthread_mutex_init(&CLI_mutex,NULL);
+
+  for (size_t ri = rBegin; ri <= rEnd;)
+  {
+    //For each row, start an independent thread to copy it from remote computer,
+    //if it does not exist in the present one.
+    for (int token = 0; token < PipeWidth; token++)
+    {
+      //All rows are visited
+      if ( ri > rEnd)
+        break;
+
+      if (!tokenPass[token] || pthread_kill(threadID[token], 0))
+      {
+        tokenPass[token] = true;
+        CLI_Thread* ct = new CLI_Thread(this, ri, token);
+        pthread_create(&threadID[token], NULL, copyFile, ct);
+        ri++;
+      }
+    }
+  }
+
+  for (int token = 0; token < PipeWidth; token++)
+  {
+    //Wait until all copy threads finishes
+    if (tokenPass[token]){
+      pthread_join(threadID[token], NULL);
+    }
+  }
+
+  for (size_t ri = 0; ri <(rEnd - rBegin + 1); ri++){
+    if (!fileStatus[ri]){
+      cerr << "Row " << (rBegin + ri) << " is not prepared" << endl;
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void* CollectLocalInfo::copyFile(void* ptr)
+{
+  //Copy thread function
+
+  CLI_Thread *ct = (CLI_Thread*)ptr;
+  int token = ct->token;
+  CollectLocalInfo* li = ct->cli;
+  vector<string> remotePaths;
+  int ri = ct->row;
+  fList* fileList = li->fileList;
+  string localIP = clusterInfo().getLocalIP();
+
+  int cand;
+  NList columnList;
+  string subName;
+  vector<int> allColumns;
+  pthread_mutex_lock(&CLI_mutex);
+  {
+    cand = fileList->getPartitionFileLoc(ri, remotePaths);
+    ListExpr cpl = nl->CopyList(fileList->getColumnList(ri).listExpr(), nl);
+    columnList = NList(cpl);
+
+    NList rest = columnList;
+    while (!rest.isEmpty())
+    {
+      allColumns.push_back(rest.first().intval());
+      rest.rest();
+    }
+
+    subName = fileList->getSubName();
+  }
+  pthread_mutex_unlock(&CLI_mutex);
+
+  if ( cand > 0)
+  {
+    if (li->column > 0)
+    {
+      NList rest = columnList;
+      bool findColumn = false;
+      while (!rest.isEmpty())
+      {
+        int elem = rest.first().intval();
+        if ((int)(li->column) == elem){
+          findColumn = true;
+          break;
+        }
+        rest.rest();
+      }
+      if (findColumn){
+        columnList = NList((int)li->column).enclose();
+      }
+      else{
+        pthread_mutex_lock(&CLI_mutex);
+        cerr << "The partition file (" << ri << "," << li->column << ") "
+            "is unavailable. " << endl;
+        li->fileStatus[ri - 1] = false;
+        li->tokenPass[token] = false;
+        pthread_mutex_unlock(&CLI_mutex);
+        return NULL;
+      }
+    }
+
+    //Copy files of the current row, either copy one column or the whole row
+    string fileName = subName + "_" + int2string(ri)
+        + "_" + (li->column > 0 ? int2string(li->column) : "*");
+    //Get only the file path, without attaching any file name after it.
+    string localPath = getLocalFilePath("", "", "", false);
+    vector<string>::iterator pit = remotePaths.begin();
+    while (pit != remotePaths.end())
+    {
+      string rPath = *pit;
+      string remoteIP, remoteLocalPath;
+      istringstream iss(rPath);
+      getline(iss, remoteIP, ':');
+      getline(iss, remoteLocalPath, ':');
+
+      bool getFile = false;
+      if (remoteIP.compare(localIP) == 0)
+      {
+        localPath = remoteLocalPath;
+        getFile = true;
+      }
+      else
+      {
+        FileSystem::AppendItem(rPath, fileName);
+
+        //Copy from remote
+        int copyTime = MAX_COPYTIMES;
+        while (copyTime-- > 0){
+          if (0 == system((scpCommand + rPath + " " + localPath).c_str())){
+            getFile = true;
+            break;
+          }
+        }
+
+        if (!getFile){
+          pthread_mutex_lock(&CLI_mutex);
+          cerr << "ERROR! Copy remote file from " << rPath << " fail." << endl;
+          pthread_mutex_unlock(&CLI_mutex);
+        }
+      }
+
+      //Check all file is there
+      bool findFile = true;
+      if (getFile)
+      {
+        for (vector<int>::iterator ci = allColumns.begin();
+            ci != allColumns.end(); ci++)
+        {
+          fileName = subName + "_" + int2string(ri)
+              + "_" + int2string(*ci);
+          string file = localPath;
+          FileSystem::AppendItem(file, fileName);
+
+          if (!FileSystem::FileOrFolderExists(file)){
+            findFile = false;
+            break;
+          }
+          else{
+            pthread_mutex_lock(&CLI_mutex);
+            li->partFiles.push_back(file);
+            pthread_mutex_unlock(&CLI_mutex);
+          }
+        }
+      }
+      if (findFile){
+        pthread_mutex_lock(&CLI_mutex);
+        li->fileStatus[ri - 1] = true;
+        li->tokenPass[token] = false;
+        pthread_mutex_unlock(&CLI_mutex);
+        break;
+      }
+      pit++;
+    }
+  }
+
+  return NULL;
 }
 
 bool CollectLocalInfo::partFileOpened()
@@ -2087,7 +2278,7 @@ ListExpr hadoopMapTypeMap(ListExpr args){
   //Optional parameters
   int len = l.second().first().length();
   clusterInfo ci;
-  int mapTaskNum = ci.getSlaveSize();
+  size_t mapTaskNum = ci.getSlaveSize();
   if (len > 0)
   {
     if ( len > 3 )
@@ -2768,7 +2959,7 @@ int hadoopReduceValueMap(Word* args, Word& result,
     vector<string> DLF_NameList, DLF_fileLocList;
     vector<string> DLO_NameList, DLO_locList;
 
-    int dloNumber = (inputFList->getKind() == DLO) ? 1 : 0;
+//    int dloNumber = (inputFList->getKind() == DLO) ? 1 : 0;
 
     bool ok = true;
     CreateQueryList = replaceParaOp(CreateQueryList, flistParaList,
