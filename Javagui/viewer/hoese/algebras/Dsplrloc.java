@@ -28,7 +28,7 @@ import viewer.hoese.algebras.jnet.*;
 
 
 /**
- * A displayclass for the string-type, alphanumeric only
+ * A displayclass for the RouteLocation rloc, alphanumeric only
  */
 public class Dsplrloc extends DsplGeneric implements LabelAttribute{
 

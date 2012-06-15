@@ -29,7 +29,8 @@ import viewer.hoese.*;
 
 /**
  * RouteLocation
- * Describes a single position on a route.
+ * Describes a single position on a route by route id, distance from start and
+ * side of the route the position is reachable from.
  */
 public class RouteLocation{
 

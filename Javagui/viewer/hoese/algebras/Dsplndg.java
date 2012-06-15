@@ -19,29 +19,37 @@
 
 //2012, June Simone Jandt
 
-package  viewer.hoese.algebras.jnet;
+package  viewer.hoese.algebras;
 
 import  sj.lang.ListExpr;
 import  viewer.*;
 import viewer.hoese.*;
+import viewer.hoese.algebras.jnet.*;
 
 
 /**
- * JDirection
- * Tells if the direction of driving respectively the side of
- * a route location or route interval or is up, down or both.
+ * A displayclass for NetDistanceGroup ndg, alphanumeric only
  */
-public class JDirection{
+public class Dsplndg extends DsplGeneric implements LabelAttribute{
 
-  String dir;
+   String label;
+   NetDistanceGroup ndg;
 
-  public JDirection(ListExpr value){
-    dir = value.first().stringValue();
+  public void init (String name, int nameWidth, int indent, ListExpr type,
+                    ListExpr value, QueryResult qr)  {
+     String T = name;
+     ndg = new NetDistanceGroup(value);
+     String V = ndg.toString();
+     label = V;
+     T=extendString(T,nameWidth, indent);
+     qr.addEntry(T + " : " + V);
+     return;
   }
 
-  public String toString()  {
-    return dir;
+  public String getLabel(double time){
+     return label;
   }
+
 
 }
 

@@ -26,7 +26,8 @@ import  viewer.*;
 import viewer.hoese.*;
 /**
  * JRouteInterval
- * Describes a part of an route.
+ * Describes a part of an route by the route identifier, start pos, end pos and
+ * side of the route.
  */
 public class JRouteInterval{
 

@@ -28,7 +28,7 @@ import viewer.hoese.algebras.jnet.*;
 
 
 /**
- * A displayclass for the string-type, alphanumeric only
+ * A displayclass for jdirection, alphanumeric only
  */
 public class Dspljdirection extends DsplGeneric implements LabelAttribute{
 
