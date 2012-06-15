@@ -248,6 +248,7 @@ operator nearstops_building alias NEARSTOPS_PAVE pattern op(_,_)
 
 operator decomposegenmo alias DECOMPOSEGENMO pattern op(_,_,_)
 operator bulkloadtmrtree alias BULKLOADTMRTREE pattern _ op [_,_,_]
-operator tm_nodes alias TM_NODES pattern op(_,_,_)
+operator tmrtreemode alias TMRTREEMODE pattern op(_,_,_)
+operator tm_nodes alias TM_NODES pattern op(_)
 
 

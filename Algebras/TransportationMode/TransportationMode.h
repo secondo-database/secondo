@@ -1261,14 +1261,23 @@ const string OpTMBulkLoadTMRtreeSpec  =
     " Mode]</text--->"
     ") )";
 
+const string OpTMRtreeModeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>tmrtree x rel x attr-> "
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>tmrtreemode(tmrtree, rel, attr)</text--->"
+    "<text>calculate the mode value for each TM-Rtree node </text--->"
+    "<text>query tmrtreemode(TM_RTree, genmo_units, Mode) </text--->"
+    ") )";
+
 const string OpTMNodesSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>rtree x rel x attr ->"
-    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
-    "<text>tm_nodes(rtree, rel, attr)</text--->"
-    "<text>build a relation storing tm values for TM-Rtree nodes </text--->"
-    "<text>query tm_nodes(TM-Rtree, genmo_units, Mode) count</text--->"
+    "( <text>tmrtree ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>tm_nodes(tmrtree)</text--->"
+    "<text>return nodes of tmrtree </text--->"
+    "<text>query tm_nodes(TM-Rtree) count</text--->"
     ") )";
 
 const string OpTMInstant2DaySpec  =
@@ -3008,11 +3017,7189 @@ bool ChekMetroNetworkId(unsigned int mn_id)
 ///////////////////////////////////////////////////////////////////////////
 ///////////// Type Map functions for operators ////////////////////////////
 //////////////////////////////////////////////////////////////////////////
+/*
+TypeMap function for operator thefloor
 
+*/
+ListExpr TheFloorTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "float x region expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(arg1, "real") && nl->IsEqual(arg2, "region"))
+      return nl->SymbolAtom("floor3d");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator getheight
+
+*/
+ListExpr GetHeightTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "floor3d expected";
+      return listutils::typeError(err);
+  }
+
+  if(nl->IsEqual(nl->First(args), "floor3d") || 
+     nl->IsEqual(nl->First(args), "groom"))
+      return nl->SymbolAtom("real");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator getregion
+
+*/
+ListExpr GetRegionTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "floor3d expected";
+      return listutils::typeError(err);
+  }
+
+  if(nl->IsEqual(nl->First(args), "floor3d") || 
+     nl->IsEqual(nl->First(args), "groom"))
+      return nl->SymbolAtom("region");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator thedoor
+
+*/
+ListExpr TheDoorTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 6){
+      string err = "int x line x int x line x mbool x bool expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+  ListExpr arg6 = nl->Sixth(args);
+  if(nl->IsEqual(arg1, "int") && nl->IsEqual(arg2, "line") &&
+     nl->IsEqual(arg3, "int") && nl->IsEqual(arg4, "line") && 
+     nl->IsEqual(arg5, "mbool") && nl->IsEqual(arg6, "bool"))
+      return nl->SymbolAtom("door3d"); 
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator type of door
+
+*/
+ListExpr TypeOfDoorTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "door3d";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "door3d"))
+      return nl->SymbolAtom("bool");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator loc of door
+
+*/
+ListExpr LocOfDoorTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "door3d x int";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(arg1, "door3d") && nl->IsEqual(arg2, "int"))
+      return nl->SymbolAtom("line");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator state of door
+
+*/
+ListExpr StateOfDoorTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "door3d";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "door3d"))
+      return nl->SymbolAtom("mbool");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator get floor 
+
+*/
+ListExpr GetFloorTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "groom x int expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(arg1, "groom") && nl->IsEqual(arg2, "int"))
+      return nl->SymbolAtom("floor3d");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator add height groom
+
+*/
+ListExpr AddHeightGroomTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "groom x real expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(arg1, "groom") && nl->IsEqual(arg2, "real"))
+      return nl->SymbolAtom("groom");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator translate groom
+
+*/
+ListExpr TranslateGroomTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "groom x [] expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(arg1, "groom") && 
+     nl->IsEqual(nl->First(arg2), "real") && 
+     nl->IsEqual(nl->Second(arg2), "real"))
+      return nl->SymbolAtom("groom");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator length l3d 
+
+*/
+ListExpr LengthTMTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "line3d expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "line3d") || 
+     nl->IsEqual(arg1, "genrange") || nl->IsEqual(arg1, "busroute"))
+      return nl->SymbolAtom("real");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator bbox3d 
+
+*/
+ListExpr BBox3DTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "line3d expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "line3d") || nl->IsEqual(arg1, "groom"))
+      return nl->SymbolAtom("rect3");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator thebuilding
+
+*/
+ListExpr TheBuildingTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 4){
+      string err = "int x string x rel x rel";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "int")){
+     string err = "int expected";
+     return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!(listutils::isSymbol(arg2, CcString::BasicType()))){
+     string err = "string expected";
+     return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr xType1;
+  nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType1); 
+  ListExpr xType2;
+  nl->ReadFromString(Building::Indoor_GRoom_Door_Extend, xType2); 
+  
+  if (listutils::isRelDescription(arg3) && listutils::isRelDescription(arg4)
+      && CompareSchemas(arg3, xType1) && CompareSchemas(arg4, xType2))
+      return nl->SymbolAtom("building");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator theindoor 
+
+*/
+ListExpr TheIndoorTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "int x rel x rel";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "int")){
+     string err = "int expected";
+     return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr xType1;
+  nl->ReadFromString(IndoorInfra::BuildingPath_Info, xType1); 
+  ListExpr xType2;
+  nl->ReadFromString(IndoorInfra::BuildingType_Info, xType2); 
+  
+  if (listutils::isRelDescription(arg2) && listutils::isRelDescription(arg3)
+      && CompareSchemas(arg2, xType1) && CompareSchemas(arg3, xType2))
+      return nl->SymbolAtom("indoorinfra");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator createdoor3d
+
+*/
+ListExpr CreateDoor3DTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "rel";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+
+  ListExpr xType;
+  nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType); 
+  if (listutils::isRelDescription(arg1)){
+      if(CompareSchemas(arg1, xType)){
+          ListExpr result =
+            nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Door"),
+                                      nl->SymbolAtom("line3d"))
+                  )
+                )
+          );
+          return result; 
+      }else{
+      string err = 
+      "rel:(oid:int,name:string,type:string,room:groom,door:line) expected";
+      return listutils::typeError(err);
+      } 
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator createdoorbox
+
+*/
+ListExpr CreateDoorBoxTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "rel";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+
+  ListExpr xType;
+  nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType); 
+  if (listutils::isRelDescription(arg1)){
+      if(CompareSchemas(arg1, xType)){
+          ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_tid"),
+                                    nl->SymbolAtom("int")), 
+                        nl->TwoElemList(nl->SymbolAtom("Box3d"),
+                                      nl->SymbolAtom("rect3"))
+                  )
+                )
+          );
+        return result; 
+      }else
+        return nl->SymbolAtom("schema error"); 
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator createdoor1
+
+*/
+ListExpr CreateDoor1TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 6){
+      string err = "rel x rel x rtree x attr x attr x attr";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if (!listutils::isRelDescription(arg1) || 
+      !listutils::isRelDescription(arg2)){
+    return listutils::typeError("param1 and param2 should be a relation" );
+  }
+
+  ListExpr arg3 = nl->Third(args);
+  if(!listutils::isRTreeDescription(arg3) )
+    return listutils::typeError("param3 should be an rtree" );
+
+
+  ListExpr attrName1 = nl->Fourth(args);
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+                      aname1, attrType1);
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+
+  ListExpr attrName2 = nl->Fifth(args);
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+                      aname2, attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type int");
+  }
+
+  ListExpr attrName3 = nl->Sixth(args);
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+                      aname3, attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"rect3")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type rect3");
+  }
+
+      ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+//                      nl->FiveElemList(
+                      nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Door"),
+                                    nl->SymbolAtom("door3d")), 
+                        nl->TwoElemList(nl->SymbolAtom("Door_loc"),
+                                      nl->SymbolAtom("line")),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Door_loc3d"),
+                                      nl->SymbolAtom("line3d")), 
+                        nl->TwoElemList(nl->SymbolAtom("Doorheight"),
+                                      nl->SymbolAtom("real"))
+                  )
+                )
+          );
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                   nl->ThreeElemList(nl->IntAtom(j1),
+                                     nl->IntAtom(j2),
+                                     nl->IntAtom(j3)),result);
+
+}
+
+
+/*
+TypeMap function for operator createdoor2
+
+*/
+ListExpr CreateDoor2TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "rel";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  
+  if (!listutils::isRelDescription(arg1)){
+    return listutils::typeError("param1 should be a relation" );
+  }
+
+      ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Door"),
+                                    nl->SymbolAtom("door3d")), 
+                        nl->TwoElemList(nl->SymbolAtom("Door_loc"),
+                                      nl->SymbolAtom("line")),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Door_loc3d"),
+                                      nl->SymbolAtom("line3d")), 
+                        nl->TwoElemList(nl->SymbolAtom("Doorheight"),
+                                      nl->SymbolAtom("real"))
+                  )
+                )
+          );
+    return result;
+
+}
+
+/*
+TypeMap function for operator createadjdoor1
+
+*/
+ListExpr CreateAdjDoor1TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 7){
+      string err = "rel x rel x btree x attr x attr x attr x attr";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if (!listutils::isRelDescription(arg1) || 
+      !listutils::isRelDescription(arg2)){
+    return listutils::typeError("param1 and param2 should be a relation" );
+  }
+
+  ListExpr arg3 = nl->Third(args);
+  if(!listutils::isBTreeDescription(arg3) )
+    return listutils::typeError("param3 should be a btree" );
+
+
+  ListExpr attrName1 = nl->Fourth(args);
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+                      aname1, attrType1);
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"door3d")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type door3d");
+  }
+
+  ListExpr attrName2 = nl->Fifth(args);
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+                      aname2, attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"line")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type line");
+  }
+
+  ListExpr attrName3 = nl->Sixth(args);
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+                      aname3, attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"int")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type int");
+  }
+
+  ListExpr attrName4 = nl->Nth(7, args);
+  ListExpr attrType4;
+  string aname4 = nl->SymbolValue(attrName4);
+  int j4 = listutils::findAttribute(nl->Second(nl->Second(arg2)),
+                      aname4, attrType4);
+  if(j4 == 0 || !listutils::isSymbol(attrType4,"real")){
+      return listutils::typeError("attr name" + aname4 + "not found"
+                      "or not of type real");
+  }
+  
+      ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid"),
+                                    nl->SymbolAtom("int")), 
+                        nl->TwoElemList(nl->SymbolAtom("Door_tid1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Door_tid2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                      nl->SymbolAtom("line3d"))
+                  )
+                )
+          );
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                   nl->FourElemList(nl->IntAtom(j1),
+                                     nl->IntAtom(j2),
+                                     nl->IntAtom(j3),
+                                     nl->IntAtom(j4)), result);
+
+}
+
+
+/*
+TypeMap function for operator createadjdoor2
+
+*/
+ListExpr CreateAdjDoor2TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "rel x rtree ";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if (!listutils::isRelDescription(arg1)){
+    return listutils::typeError("param1 should be a relation" );
+  }
+  
+  
+  ListExpr xType;
+  nl->ReadFromString(IndoorGraph::NodeTypeInfo, xType);
+  if(!CompareSchemas(arg1, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(!listutils::isRTreeDescription(arg2) )
+    return listutils::typeError("param2 should be an rtree" );
+
+
+      ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+//                      nl->FiveElemList(
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid"),
+                                    nl->SymbolAtom("int")), 
+                        nl->TwoElemList(nl->SymbolAtom("Door_tid1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Door_tid2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                      nl->SymbolAtom("line3d"))
+                  )
+                )
+          );
+    return  result;
+
+}
+
+
+/*
+TypeMap function for operator path in region 
+
+*/
+ListExpr PathInRegionTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "region x point x point";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+
+  if(nl->IsEqual(arg1, "region") && nl->IsEqual(arg2, "point") && 
+     nl->IsEqual(arg3, "point"))
+      return nl->SymbolAtom("line");
+
+    return listutils::typeError("region x point x point expected" );
+}
+
+
+/*
+TypeMap fun for operator createigraph
+
+*/
+
+ListExpr OpTMCreateIGTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr xIdDesc = nl->First(args);
+  ListExpr xNodeDesc = nl->Second(args);
+  ListExpr xEdgeDesc = nl->Third(args);
+  ListExpr graph_type = nl->Fourth(args);
+  if(!nl->IsEqual(xIdDesc, "int")) return nl->SymbolAtom ( "typeerror" );
+  if(!IsRelDescription(xEdgeDesc) || !IsRelDescription(xNodeDesc))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType;
+  nl->ReadFromString(IndoorGraph::NodeTypeInfo, xType);
+  if(!CompareSchemas(xNodeDesc, xType))return nl->SymbolAtom ( "typeerror" );
+
+  nl->ReadFromString(IndoorGraph::EdgeTypeInfo, xType);
+  if(!CompareSchemas(xEdgeDesc, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(!(nl->IsAtom(graph_type) && nl->AtomType(graph_type) == SymbolType &&
+     nl->SymbolValue(graph_type) == "string"))
+    return nl->SymbolAtom ("typeerror");
+
+  return nl->SymbolAtom ( "indoorgraph" );
+}
+
+
+/*
+TypeMap function for operator generate ip1
+
+*/
+ListExpr GenerateIP1TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "rel x int";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+
+  ListExpr xType;
+  nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType); 
+  if (listutils::isRelDescription(arg1)){
+      if(CompareSchemas(arg1, xType) && 
+        nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+        nl->SymbolValue(arg2) == "int" && nl->IsAtom(arg3) && 
+        nl->AtomType(arg3) == SymbolType &&
+        nl->SymbolValue(arg3) == "bool"){
+
+          ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Loc1"),
+                                    nl->SymbolAtom("genloc")), 
+                        nl->TwoElemList(nl->SymbolAtom("Loc2"),
+                                      nl->SymbolAtom("point3d"))
+                  )
+                )
+          );
+        return result; 
+      }else
+        return nl->SymbolAtom("schema error"); 
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator indoornavigation
+
+*/
+ListExpr IndoorNavigationTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 6){
+      string err = "indoorgraph x genloc x genloc x rel x btree x int";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+  ListExpr arg6 = nl->Sixth(args);
+  
+  if(!(nl->IsAtom(nl->First(arg1)) && 
+       nl->AtomType(nl->First(arg1)) == SymbolType &&
+       nl->SymbolValue(nl->First(arg1)) == "indoorgraph")){
+      string err = "param1 should be indoorgraph";
+      return listutils::typeError(err);
+  }
+   if(!(nl->IsAtom(nl->First(arg2)) && 
+        nl->AtomType(nl->First(arg2)) == SymbolType &&
+        nl->SymbolValue(nl->First(arg2)) == "genloc" && 
+        nl->IsAtom(nl->First(arg3)) && 
+        nl->AtomType(nl->First(arg3)) == SymbolType &&
+        nl->SymbolValue(nl->First(arg3)) == "genloc" )){
+      string err = "param2 and param3 should be genloc";
+      return listutils::typeError(err);
+  } 
+
+  if(!listutils::isRelDescription(nl->First(arg4))){
+      string err = "param4 should be a relation";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr xType;
+  nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType); 
+  if (!CompareSchemas(nl->First(arg4), xType)){
+     string err = "rel schema error";
+     return listutils::typeError(err);
+  }
+
+  if(!listutils::isBTreeDescription(nl->First(arg5))){
+      string err = "param5 should be a btree";
+      return listutils::typeError(err);
+  }
+  
+  if(!(nl->IsAtom(nl->First(arg6)) && 
+       nl->AtomType(nl->First(arg6)) == SymbolType &&
+       nl->SymbolValue(nl->First(arg6)) == "int" )){
+      string err = "param6 should be int";
+      return listutils::typeError(err);
+  }
+  
+  int n = nl->IntValue(nl->Second(arg6));
+  ListExpr result; 
+   switch(n){
+    case 0: 
+          result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->OneElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("line3d"))
+                  )
+                )
+          );
+        break;
+    case 1: 
+          result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Groom_oid"),
+                                    nl->SymbolAtom("int")), 
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("groom"))
+                  )
+                )
+          );
+        break; 
+    case 2: 
+          result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("line3d")),
+                        nl->TwoElemList(nl->SymbolAtom("TimeCost"),
+                                    nl->SymbolAtom("real"))
+                  )
+                )
+          );
+        break;
+    default:
+      string err = "the value of fifth parameter([0,2]) is not correct";
+      return listutils::typeError(err);
+  }
+
+  return result; 
+}
+
+
+/*
+TypeMap function for operator generate mo1
+
+*/
+ListExpr GenerateMO1TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 6){
+      string err = "indoorgraph x rel x btree x rtree x int x periods";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args); 
+  ListExpr arg5 = nl->Fifth(args);
+  ListExpr arg6 = nl->Sixth(args);
+
+  ListExpr xType;
+  nl->ReadFromString(IndoorNav::Indoor_GRoom_Door, xType); 
+  if (nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+      nl->SymbolValue(arg1) == "indoorgraph" &&
+      listutils::isRelDescription(arg2) && 
+      listutils::isBTreeDescription(arg3) && 
+      listutils::isRTreeDescription(arg4)){
+      if(CompareSchemas(arg2, xType) && 
+        nl->IsAtom(arg5) && nl->AtomType(arg5) == SymbolType &&
+        nl->SymbolValue(arg6) == "periods"){
+//        ListExpr result; 
+        if(nl->SymbolValue(arg5) == "int"){
+            ListExpr result =
+              nl->TwoElemList(
+                nl->SymbolAtom("stream"),
+                  nl->TwoElemList(
+                    nl->SymbolAtom("tuple"),
+                      nl->OneElemList(
+                        nl->TwoElemList(nl->SymbolAtom("IndoorTrip"),
+                                      nl->SymbolAtom("mpoint3d"))
+                  )
+                )
+              );
+          return result;
+        }else if(nl->SymbolValue(arg5) == "real"){
+            ListExpr result =
+              nl->TwoElemList(
+                nl->SymbolAtom("stream"),
+                  nl->TwoElemList(
+                    nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("IndoorTrip"),
+                                      nl->SymbolAtom("mpoint3d")),
+                        nl->TwoElemList(nl->SymbolAtom("GenTrip"),
+                                      nl->SymbolAtom("genmo"))
+                  )
+                )
+              );
+            return result;
+        }
+
+      }else
+        return nl->SymbolAtom("schema error"); 
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator getindoorpaths
+
+*/
+ListExpr GetIndoorPathTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "string x int ";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->SymbolValue(arg1) == "string" && nl->SymbolValue(arg2) == "int")
+    return nl->SymbolAtom("line3d");
+  else
+    return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator ref id  
+
+*/
+ListExpr RefIdTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "one parameter expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genloc") || nl->IsEqual(arg1, "space") ||
+     nl->IsEqual(arg1, "ioref") || 
+     nl->IsEqual(arg1, "busstop") || 
+     nl->IsEqual(arg1, "busroute") || 
+     nl->IsEqual(arg1, "busnetwork") || nl->IsEqual(arg1, "metronetwork") ||
+     nl->IsEqual(arg1, "pavenetwork") || 
+     nl->IsEqual(arg1, "network") || 
+     nl->IsEqual(arg1, "building") || 
+     nl->IsEqual(arg1, "indoorinfra") || nl->IsEqual(arg1, "ugenloc"))
+    return nl->SymbolAtom("int");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator setref id  
+
+*/
+ListExpr SetRefIdTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo  expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo") || 
+    nl->IsEqual(arg1, "genrange") || nl->IsEqual(arg1, "door3d"))
+    return nl->TwoElemList(nl->SymbolAtom("stream"),nl->SymbolAtom("int"));
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator at  
+
+*/
+ListExpr TMATTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->IsEqual(arg1, "genmo") && 
+    (IsRelDescription(arg2) || nl->SymbolValue(arg2) == "string" ||
+     nl->IsEqual(arg2, "genloc"))){
+    return nl->SymbolAtom("genmo");
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator tmat2  
+
+*/
+ListExpr TMAT2TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "three parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2, "mreal") &&
+     (nl->SymbolValue(arg3) == "string" || nl->SymbolValue(arg3) == "genloc"))
+    return nl->SymbolAtom("genmo");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator tmat3  
+
+*/
+ListExpr TMAT3TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 4){
+      string err = "four parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2, "mreal") &&
+     nl->SymbolValue(arg3) == "genloc" && nl->IsEqual(arg4,"string"))
+    return nl->SymbolAtom("genmo");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator val  
+
+*/
+ListExpr TMValTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "one parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsEqual(arg1, "igenloc"))
+    return nl->SymbolAtom("genloc");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator inst
+
+*/
+ListExpr TMInstTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "one parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsEqual(arg1, "igenloc"))
+    return nl->SymbolAtom("instant");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator contain 
+
+*/
+ListExpr TMContainTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->SymbolValue(arg2) == "string")
+    return nl->SymbolAtom("bool");
+
+  if(nl->IsEqual(arg1, "genmo") && nl->SymbolValue(arg2) == "int")
+    return nl->SymbolAtom("bool");
+
+  if(nl->IsEqual(arg1, "int") && nl->SymbolValue(arg2) == "string")
+    return nl->SymbolAtom("bool");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator contain2 
+
+*/
+ListExpr TMContain2TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 4){
+      string err = "four parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->SymbolValue(arg2) == "mreal" && 
+     nl->IsEqual(arg3, "int") && nl->IsEqual(arg4,"string"))
+    return nl->SymbolAtom("bool");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator tm minute 
+
+*/
+ListExpr TMDurationTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameter expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->IsEqual(arg1, "periods") && nl->IsEqual(arg2, "string"))
+    return nl->SymbolAtom("real");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator tm initial 
+
+*/
+ListExpr TMInitialTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "one parameter expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsEqual(arg1, "genmo"))
+    return nl->SymbolAtom("igenloc");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator tm build id 
+
+*/
+ListExpr TMBuildIdTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->IsEqual(arg1, "int") && nl->IsEqual(arg2, "space"))
+    return nl->SymbolAtom("int");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator bcontains
+
+*/
+ListExpr TMBContainsTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2,"int"))
+    return nl->SymbolAtom("bool");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+ListExpr TMBContains2TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "three parameters expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2,"mreal") && 
+     nl->IsEqual(arg3,"int"))
+    return nl->SymbolAtom("bool");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator tm room id 
+
+*/
+ListExpr TMRoomIdTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->IsEqual(arg1, "int") && nl->IsEqual(arg2, "space"))
+    return nl->SymbolAtom("int");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator tm plus id 
+
+*/
+ListExpr TMPlusIdTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->IsEqual(arg1, "int") && nl->IsEqual(arg2, "int"))
+    return nl->SymbolAtom("int");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator tm pass
+
+*/
+ListExpr TMPassTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "three parameters expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2, "region") && 
+     nl->IsEqual(arg3, "space"))
+    return nl->SymbolAtom("bool");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator tm distance
+
+*/
+ListExpr TMDistanceTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "three parameters expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+
+  if(nl->IsEqual(arg1, "genloc") &&  nl->IsEqual(arg3, "space")){
+    if(nl->IsEqual(arg2, "point") || nl->IsEqual(arg2, "line"))
+    return nl->SymbolAtom("real");
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator tm genloc
+
+*/
+ListExpr TMGenLocTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "three parameters expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+
+  if(nl->IsEqual(arg1, "int") &&  nl->IsEqual(arg2, "real") && 
+     nl->IsEqual(arg3, "real")){
+    return nl->SymbolAtom("genloc");
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator modeval
+
+*/
+ListExpr ModeValTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "one parameter expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsEqual(arg1, "genmo") || nl->IsEqual(arg1, "mreal")){
+    return nl->SymbolAtom("int");
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator genmoindex
+
+*/
+ListExpr GenMOIndexTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "one parameter expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsEqual(arg1, "genmo")){
+    return nl->SymbolAtom("mreal");
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator deftime 
+
+*/
+ListExpr GenMODeftimeTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo") || nl->IsEqual(arg1, "mpoint3d"))
+    return nl->SymbolAtom("periods");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator no components  
+
+*/
+ListExpr GenMONoComponentsTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo") || 
+     nl->IsEqual(arg1, "mpoint3d") ||
+     nl->IsEqual(arg1, "genrange") || 
+     nl->IsEqual(arg1, "groom") || nl->IsEqual(arg1, "busroute"))
+    return nl->SymbolAtom("int");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator lowres  
+
+*/
+ListExpr LowResTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo"))
+    return nl->SymbolAtom("genmo");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator genmotranslate  
+
+*/
+ListExpr GenmoTranslateTypeMap(ListExpr args)
+{
+
+  if(nl->ListLength(args) != 2){
+      string err = "genmo x duration expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2, "duration"))
+  return nl->SymbolAtom("genmo");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator tmtranslate2  
+
+*/
+ListExpr TMTranslate2TypeMap(ListExpr args)
+{
+
+  if(nl->ListLength(args) != 2){
+      string err = "periods x duration expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if(nl->IsEqual(arg1, "periods") && nl->IsEqual(arg2, "duration"))
+  return nl->SymbolAtom("periods");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator getmode
+
+*/
+ListExpr GetModeTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo")){
+      ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->OneElemList(
+                        nl->TwoElemList(nl->SymbolAtom("TM"),
+                                    nl->SymbolAtom("string"))
+                  )
+                )
+          );
+    return result;
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator getref
+
+*/
+ListExpr GetRefTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo")){
+      ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("RefId"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Label"),
+                                    nl->SymbolAtom("string"))
+                  )
+                )
+          );
+    return result;
+  }  
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator atinstant
+
+*/
+ListExpr AtInstantTypeMap(ListExpr args)
+{
+  if ( nl->ListLength( args ) == 2 ){
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg2, Instant::BasicType() ) )
+    {
+
+      if( nl->IsEqual( arg1, GenMO::BasicType() ) )
+        return nl->SymbolAtom( IGenLoc::BasicType() );
+    }
+  }
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
+}
+
+/*
+TypeMap function for operator atperiods
+
+*/
+ListExpr AtPeriodsTypeMap(ListExpr args)
+{
+  if ( nl->ListLength( args ) == 2 ){
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg2, Periods::BasicType() ) )
+    {
+
+      if( nl->IsEqual( arg1, GenMO::BasicType() ) )
+        return nl->SymbolAtom( GenMO::BasicType() );
+    }
+  }
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
+}
+
+
+
+/*
+TypeMap function for operator mapgenmo
+
+*/
+ListExpr MapGenMOTypeMap(ListExpr args)
+{
+  if ( nl->ListLength( args ) == 2 ){
+    ListExpr arg1 = nl->First( args ),
+             arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg2, MPoint::BasicType() ) )
+    {
+
+      if( nl->IsEqual( arg1, GenMO::BasicType() ) )
+        return nl->SymbolAtom( MPoint::BasicType() );
+    }
+  }
+  return nl->SymbolAtom( Symbol::TYPEERROR() );
+}
+
+
+/*
+TypeMap function for operator tmunits  
+
+*/
+ListExpr TMUnitsTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "genmo  expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "genmo"))
+    return nl->TwoElemList(nl->SymbolAtom("stream"),nl->SymbolAtom("ugenloc"));
+
+  return nl->SymbolAtom("typeerror");
+}
+
+ListExpr GetLocTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "genmo  x bool expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(arg1, "ugenloc") && nl->IsEqual(arg2, "bool"))
+    return nl->SymbolAtom( Point::BasicType() );
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+get the traffic value from generic moving objects
+
+*/
+ListExpr TMTrafficTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 4){
+      string err = "rel x periods x rel  x bool expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  
+
+  if (!(listutils::isRelDescription(arg1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(GenMObject::GenMOTrip, xType1);
+
+  if(!(CompareSchemas(arg1, xType1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+  
+  if (!(listutils::isRelDescription(arg3)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(GenMObject::RoadSegment, xType2);
+
+  if(!(CompareSchemas(arg3, xType2)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  if(!nl->IsEqual(arg4, "bool")){
+      string err = "the fourth parameter should be bool";
+      return listutils::typeError(err);
+  }
+  
+      ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("SID"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Res"),
+                                    nl->SymbolAtom("int"))
+                  )
+                )
+          );
+    return result;
+}
+
+/*
+TypeMap function for operator the space
+
+*/
+ListExpr TheSpaceTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "int expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "int")){
+    return nl->SymbolAtom("space");
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator genmo tm list
+
+*/
+ListExpr GenMOTMListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "one input parameter expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  if(nl->IsEqual(arg1, "bool")){
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("Type"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("TM"),
+                                    nl->SymbolAtom("string"))
+                  )
+                )
+          );
+    return result;
+  }else
+    return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator generate genmo
+
+*/
+ListExpr GenerateGMOListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 4){
+      string err = "four input parameter expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(!(nl->IsEqual(arg3, "real") && nl->IsEqual(arg4, "int"))){
+      string err = "the 3 paramenter should be real and 4 should be int";
+      return listutils::typeError(err);
+  }
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                    nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                    nl->SymbolAtom("mpoint"))
+                  )
+                )
+          );
+
+    return result;
+}
+
+
+/*
+TypeMap function for operator generate car
+
+*/
+ListExpr GenerateCarListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 4){
+      string err = "four input parameter expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+  
+
+  if(!(nl->IsEqual(arg3, "real") )){
+      string err = "the 3 paramenter should be real";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg4 = nl->Fourth(args);
+  if (!(listutils::isRelDescription(arg4)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(GenMObject::StreetSpeedInfo, xType1);
+
+  if(!(CompareSchemas(arg4, xType1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                    nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                     nl->SymbolAtom("mpoint")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                     nl->SymbolAtom("mgpoint"))
+                  )
+                )
+          );
+
+    return result;
+}
+
+
+/*
+TypeMap function for operator generate genmo benchmark 
+
+*/
+ListExpr GenerateGMOBench1ListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 6){
+      string err = "six input parameter expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+
+  if(!(nl->IsEqual(arg3, "real"))){
+      string err = "the 3 paramenter should be real ";
+      return listutils::typeError(err);
+  }
+ 
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(!IsRelDescription(arg4))
+    return listutils::typeError("para4 should be a relation");
+
+  ListExpr xType;
+  nl->ReadFromString(GenMObject::BenchModeDISTR, xType);
+  if(!CompareSchemas(arg4, xType))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg5 = nl->Fifth(args);
+  if(!IsRelDescription(arg5))
+    return listutils::typeError("para5 should be a relation");
+
+  ListExpr arg6 = nl->Sixth(args);
+  if(!IsRelDescription(arg6))
+    return listutils::typeError("para6 should be a relation");
+  
+  
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                    nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                    nl->SymbolAtom("mpoint"))
+                  )
+                )
+          );
+
+    return result;
+}
+
+
+/*
+TypeMap function for operator generate genmo benchmark 
+
+*/
+ListExpr GenerateGMOBench2ListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 5){
+      string err = "five input parameter expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+
+  if(!(nl->IsEqual(arg3, "real"))){
+      string err = "the 3 paramenter should be real ";
+      return listutils::typeError(err);
+  }
+ 
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(!IsRelDescription(arg4))
+    return listutils::typeError("para4 should be a relation");
+
+  ListExpr arg5 = nl->Fifth(args);
+  if(!nl->IsEqual(arg5, "string")){
+      string err = "the fifth parameter should be string";
+      return listutils::typeError(err);
+  }
+
+  
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                    nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                    nl->SymbolAtom("mpoint"))
+                  )
+                )
+          );
+
+    return result;
+}
+
+
+/*
+TypeMap function for operator generate genmo benchmark 
+
+*/
+ListExpr GenerateGMOBench3ListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 5){
+      string err = "five input parameter expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+
+  if(!(nl->IsEqual(arg3, "real"))){
+      string err = "the 3 paramenter should be real ";
+      return listutils::typeError(err);
+  }
+ 
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(!IsRelDescription(arg4))
+    return listutils::typeError("para4 should be a relation");
+
+  ListExpr xType;
+  nl->ReadFromString(GenMObject::NNBuilding, xType);
+  if(!CompareSchemas(arg4, xType))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg5 = nl->Fifth(args);
+
+  if(!listutils::isRTreeDescription(arg5))
+    return listutils::typeError("para5 should be an rtree");
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                    nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                    nl->SymbolAtom("mpoint"))
+                  )
+                )
+          );
+
+    return result;
+}
+
+
+/*
+TypeMap function for operator generate genmo benchmark 
+
+*/
+ListExpr GenerateGMOBench4ListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 6){
+      string err = "six input parameter expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+
+  if(!(nl->IsEqual(arg3, "real"))){
+      string err = "the 3 paramenter should be real ";
+      return listutils::typeError(err);
+  }
+ 
+ 
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(!IsRelDescription(arg4))
+    return listutils::typeError("para4 should be a relation");
+
+  ListExpr xType1;
+  nl->ReadFromString(GenMObject::BenchModeDISTR, xType1);
+  if(!CompareSchemas(arg4, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  
+  ListExpr arg5 = nl->Fifth(args);
+
+  if(!IsRelDescription(arg5))
+    return listutils::typeError("para5 should be a relation");
+
+  ListExpr xType2;
+  nl->ReadFromString(GenMObject::NNBuilding, xType2);
+  if(!CompareSchemas(arg5, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg6 = nl->Sixth(args);
+
+  if(!listutils::isRTreeDescription(arg6))
+    return listutils::typeError("para6 should be an rtree");
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                    nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                    nl->SymbolAtom("mpoint"))
+                  )
+                )
+          );
+
+//     ListExpr result =
+//           nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+// 
+//                   nl->SymbolAtom("tuple"),
+//                       nl->ThreeElemList(
+//                       nl->TwoElemList(nl->SymbolAtom("Trip1"),
+//                                     nl->SymbolAtom("genmo")),
+//                         nl->TwoElemList(nl->SymbolAtom("Trip2"),
+//                                     nl->SymbolAtom("mpoint")),
+//                         nl->TwoElemList(nl->SymbolAtom("IndoorTrip"),
+//                                     nl->SymbolAtom("mpoint3d"))
+// 
+//                   )
+//                 )
+//           );
+
+    return result;
+}
+
+
+/*
+TypeMap function for operator generate genmo benchmark 
+
+*/
+ListExpr GenerateGMOBench5ListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 5){
+      string err = "five input parameter expected";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2, "periods")){
+      string err = "the second parameter should be periods";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg3 = nl->Third(args);
+
+  if(!(nl->IsEqual(arg3, "real"))){
+      string err = "the 3 paramenter should be real ";
+      return listutils::typeError(err);
+  }
+ 
+  ListExpr arg4 = nl->Fourth(args);
+  if(!IsRelDescription(arg4))
+    return listutils::typeError("para5 should be a relation");
+
+  ListExpr arg5 = nl->Fifth(args);
+  if(!IsRelDescription(arg5))
+    return listutils::typeError("para6 should be a relation");
+  
+  
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                    nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                    nl->SymbolAtom("mpoint"))
+                  )
+                )
+          );
+
+
+    return result;
+}
+
+/*
+TypeMap function for operator get rg ndoes
+
+*/
+ListExpr GetRGNodesTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "one input parameter expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "network")){
+      string err = "the first parameter should be network";
+      return listutils::typeError(err);
+  }
+ 
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_gp"),
+                                      nl->SymbolAtom("gpoint")),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_p"),
+                                      nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("Rid"),
+                                      nl->SymbolAtom("int"))
+                  )
+                )
+          );
+
+    return result;
+
+}
+
+
+/*
+TypeMap function for operator get rg edges
+
+*/
+ListExpr GetRGEdges1TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "two input parameters expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!IsRelDescription(arg1))
+    return listutils::typeError("para1 should be a relation");
+
+  ListExpr xType;
+  nl->ReadFromString(RoadGraph::RGNodeTypeInfo, xType);
+  if(!CompareSchemas(arg1, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id2"),
+                                      nl->SymbolAtom("int"))
+                  )
+                )
+          );
+
+    return result;
+
+}
+
+
+/*
+TypeMap function for operator get rg edges
+
+*/
+ListExpr GetRGEdges2TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two input parameters expected";
+      return listutils::typeError(err);
+  }
+
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "network")){
+      string err = "the first parameter should be network";
+      return listutils::typeError(err);
+  }
+  
+  ListExpr arg2 = nl->Second(args);
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  ListExpr xType;
+  nl->ReadFromString(RoadGraph::RGNodeTypeInfo, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Path1"),
+                                      nl->SymbolAtom("gline")),
+                        nl->TwoElemList(nl->SymbolAtom("Path2"),
+                                      nl->SymbolAtom("sline"))
+                  )
+                )
+          );
+
+    return result;
+
+}
+
+
+/*
+TypeMap function for operator get pavement edges
+
+*/
+ListExpr GetPaveEdges3TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 4){
+      string err = "four input parameters expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr xType;
+
+  ListExpr arg1 = nl->First(args);
+  if(!IsRelDescription(arg1))
+    return listutils::typeError("para1 should be a relation");
+
+  nl->ReadFromString(Network::routesTypeInfo, xType);
+  if(!CompareSchemas(arg1, xType))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg2 = nl->Second(args);
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  nl->ReadFromString(OSMPaveGraph::OSMGraphPaveNode, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg3 = nl->Third(args);
+  if(!listutils::isBTreeDescription(arg3))
+    return listutils::typeError("para3 should be a btree");
+
+  
+  ListExpr arg4 = nl->Fourth(args);
+  if(!IsRelDescription(arg4))
+    return listutils::typeError("para4 should be a relation");
+
+  nl->ReadFromString(OSMPaveGraph::OSMGraphPaveNode, xType);
+  if(!CompareSchemas(arg4, xType))return nl->SymbolAtom ( "typeerror" );
+
+  
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Path1"),
+                                      nl->SymbolAtom("gline")),
+                        nl->TwoElemList(nl->SymbolAtom("Path2"),
+                                      nl->SymbolAtom("sline"))
+                  )
+                )
+          );
+
+    return result;
+
+}
+
+/*
+TypeMap function for operator get connections inside a region
+
+*/
+ListExpr GetPaveEdges4TypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two input parameters expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr xType;
+
+  ListExpr arg1 = nl->First(args);
+  if(!IsRelDescription(arg1))
+    return listutils::typeError("para1 should be a relation");
+
+  nl->ReadFromString(OSM_Data::OSMNodeTmp, xType);
+  if(!CompareSchemas(arg1, xType))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg2 = nl->Second(args);
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  nl->ReadFromString(OSMPavement::OSMPaveRegion, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id1"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Jun_id2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Path1"),
+                                      nl->SymbolAtom("gline")),
+                        nl->TwoElemList(nl->SymbolAtom("Path2"),
+                                      nl->SymbolAtom("sline"))
+                  )
+                )
+          );
+
+    return result;
+
+}
+
+/*
+TypeMap function for operator create osm pavement environment
+
+*/
+ListExpr TheOSMPaveTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 3){
+      string err = "three input parameters expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if((nl->SymbolValue(arg1) == "int") == false){
+    return nl->SymbolAtom("typeerror: param1 should be int");
+  }
+  
+  ListExpr xType;
+
+  ListExpr arg2 = nl->Second(args);
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  nl->ReadFromString(OSMPavement::OSMPaveLine, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg3 = nl->Third(args);
+  if(!IsRelDescription(arg3))
+    return listutils::typeError("para3 should be a relation");
+
+  nl->ReadFromString(OSMPavement::OSMPaveRegion, xType);
+  if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+  return nl->SymbolAtom("osmpavenetwork");
+
+}
+
+/*
+type map for operator createosmgraph 
+
+*/
+ListExpr OpTMOSMPaveGraphTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr xIdDesc = nl->First(args);
+  ListExpr xNodeDesc = nl->Second(args);
+  ListExpr xEdgeDesc = nl->Third(args);
+
+  if(!nl->IsEqual(xIdDesc, "int")) return nl->SymbolAtom ( "typeerror" );
+  if(!IsRelDescription(xNodeDesc))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(OSMPaveGraph::OSMGraphPaveNode, xType1);
+  if(!CompareSchemas(xNodeDesc, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(xEdgeDesc))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(OSMPaveGraph::OSMGraphPaveEdge, xType2);
+  if(!CompareSchemas(xEdgeDesc, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  return nl->SymbolAtom ( "osmpavegraph" );
+}
+
+/*
+type map for operator osmlocmap 
+
+*/
+ListExpr OpTMOSMLocMapTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First(args);
+  ListExpr param2 = nl->Second(args);
+
+
+  if(!IsRelDescription(param1))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(OSM_Data::OSMPOILine, xType1);
+  if(!CompareSchemas(param1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(param2))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(OSM_Data::OSMPOIRegion, xType2);
+  if(!CompareSchemas(param2, xType2))return nl->SymbolAtom ( "typeerror" );
+
+      ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Loc1"),
+                                      nl->SymbolAtom("genloc")),
+                        nl->TwoElemList(nl->SymbolAtom("Loc2"),
+                                      nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("Type"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("OldLoc"),
+                                      nl->SymbolAtom("point"))
+
+                  )
+                )
+          );
+
+    return result;
+}
+
+/*
+type map for operator osm path
+
+*/
+ListExpr OpTMOSMPathTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First(args);
+  ListExpr param2 = nl->Second(args);
+  ListExpr param3 = nl->Third(args);
+
+  if(!IsRelDescription(param1))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(OSM_Data::OSMPaveQueryLoc, xType1);
+  if(!CompareSchemas(param1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(param2))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(OSM_Data::OSMPaveQueryLoc, xType2);
+  if(!CompareSchemas(param2, xType2))return nl->SymbolAtom ( "typeerror" );
+
+
+  if(nl->IsEqual(param3, "osmpavenetwork")){
+    return nl->SymbolAtom ( "line" );
+
+//       return  nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+//                   nl->SymbolAtom("tuple"),
+//                       nl->TwoElemList(
+//                         nl->TwoElemList(nl->SymbolAtom("Loc"),
+//                                       nl->SymbolAtom("point")),
+//                         nl->TwoElemList(nl->SymbolAtom("Oid"),
+//                                       nl->SymbolAtom("int"))
+//                   )
+//                 )
+//           );
+  }else{
+    return nl->SymbolAtom ( "typeerror" );
+  }
+
+}
+
+/*
+type map for operator creatergraph 
+
+*/
+ListExpr OpTMCreateRoadGraphTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr xIdDesc = nl->First(args);
+  ListExpr xNodeDesc = nl->Second(args);
+  ListExpr xEdgeDesc1 = nl->Third(args);
+  ListExpr xEdgeDesc2 = nl->Fourth(args); 
+
+
+  if(!nl->IsEqual(xIdDesc, "int")) return nl->SymbolAtom ( "typeerror" );
+  if(!IsRelDescription(xNodeDesc))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(RoadGraph::RGNodeTypeInfo, xType1);
+  if(!CompareSchemas(xNodeDesc, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(xEdgeDesc1))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(RoadGraph::RGEdgeTypeInfo1, xType2);
+  if(!CompareSchemas(xEdgeDesc1, xType2))return nl->SymbolAtom ( "typeerror" );
+
+
+  if(!IsRelDescription(xEdgeDesc2))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType3;
+  nl->ReadFromString(RoadGraph::RGEdgeTypeInfo2, xType3);
+  if(!CompareSchemas(xEdgeDesc2, xType3))return nl->SymbolAtom ( "typeerror" );
+
+
+  return nl->SymbolAtom ( "roadgraph" );
+}
+
+
+/*
+type map for operator shortest path tm
+
+*/
+ListExpr OpTMShortestPathTMTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First(args);
+  ListExpr param2 = nl->Second(args);
+  ListExpr param3 = nl->Third(args);
+  ListExpr param4 = nl->Fourth(args);
+
+
+  if(!nl->IsEqual(param1, "gpoint")) return nl->SymbolAtom ( "typeerror" );
+  if(!nl->IsEqual(param2, "gpoint")) return nl->SymbolAtom ( "typeerror" );
+  if(!nl->IsEqual(param3, "roadgraph")) return nl->SymbolAtom ( "typeerror" );
+  if(!nl->IsEqual(param4, "network")) return nl->SymbolAtom ( "typeerror" );
+
+   return nl->SymbolAtom ( "gline" );;
+}
+
+/*
+TypeMap function for operator navigation1
+
+*/
+ListExpr Navigation1ListTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 7){
+      string err = "seven input parameter expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(!nl->IsEqual(arg1, "space")){
+      string err = "the first parameter should be space";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg2 = nl->Second(args);
+
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  ListExpr xType;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+  ListExpr arg3 = nl->Third(args);
+  if(!IsRelDescription(arg3))
+    return listutils::typeError("para3 should be a relation");
+
+  if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+  ListExpr arg4 = nl->Fourth(args);
+  if(!(nl->IsAtom(arg4) && nl->AtomType(arg4) == SymbolType &&
+       nl->SymbolValue(arg4) == "instant")){
+      string err = "param4 should be instant";
+      return listutils::typeError(err);
+  }
+
+  
+  ListExpr arg5 = nl->Fifth(args);
+  if (!(listutils::isRelDescription(arg5)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
+
+  if(!(CompareSchemas(arg5, xType2)))
+    return nl->SymbolAtom ( "typeerror" );
+
+
+  
+  ListExpr arg6 = nl->Sixth(args);
+  if (!(listutils::isRelDescription(arg6)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(BN::BusStopsPaveTypeInfo, xType1);
+
+  if(!(CompareSchemas(arg6, xType1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr arg7 = nl->Nth(7, args);
+  if(!listutils::isRTreeDescription(arg7))
+    return listutils::typeError("para7 should be a rtree");
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Loc1"),
+                                    nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("Loc2"),
+                                    nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip1"),
+                                    nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("Trip2"),
+                                    nl->SymbolAtom("mpoint"))
+                  )
+                )
+          );
+
+    return result;
+}
+
+/*
+TypeMap function for operator trajectory
+
+*/
+ListExpr TMTrajectoryTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "mpoint3d expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsEqual(arg1, "mpoint3d"))
+    return nl->SymbolAtom("line3d");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator trajectory
+
+*/
+ListExpr GenTrajectoryTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "genmo x space expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  
+  if(nl->IsEqual(arg1, "genmo") && nl->IsEqual(arg2, "space"))
+    return nl->SymbolAtom("genrange");
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator genrangevisible 
+
+*/
+ListExpr GenRangeVisibleTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "genrange x space expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  
+  if(nl->IsEqual(arg1, "genrange") && nl->IsEqual(arg2, "space")){
+
+      ListExpr res = 
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->OneElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Path"),
+                                    nl->SymbolAtom("line")))
+                )
+          );
+
+      return res;
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator addinfragraph
+
+*/
+ListExpr AddInfraGraphTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(arg1, "busnetwork") && nl->IsEqual(arg2, "busgraph")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("BusNetworkId"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("BusGraphId"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+  if(nl->IsEqual(arg1, "pavenetwork") && nl->IsEqual(arg2, "dualgraph")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("PavementId"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("DualGraphId"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+  if(nl->IsEqual(arg1, "pavenetwork") && nl->IsEqual(arg2, "visualgraph")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("PavementId"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("VisibilityGraphId"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+  
+  if(nl->IsEqual(arg1, "building") && nl->IsEqual(arg2, "indoorgraph")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("BuildingId"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("IndoorGraphId"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+
+  if(nl->IsEqual(arg1, "metronetwork") && nl->IsEqual(arg2, "metrograph")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("MetroNetworkId"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("MetroGraphId"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+
+  if(nl->IsEqual(arg1, "osmpavenetwork") && nl->IsEqual(arg2, "osmpavegraph")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("OSMPaveNetworkId"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("OSMPaveGraphId"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+  
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator putinfra
+
+*/
+ListExpr PutInfraTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(arg1, "space") && nl->IsEqual(arg2, "network")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("SpaceId"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("RoadNetworkId"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+  if(nl->IsEqual(arg1, "space") && nl->IsEqual(arg2, "pavenetwork")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("SpaceId"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("PavementId"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+  if(nl->IsEqual(arg1, "space") && nl->IsEqual(arg2, "busnetwork")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("SpaceId"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("BusNetworkId"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+  
+  if(nl->IsEqual(arg1, "space") && nl->IsEqual(arg2, "metronetwork")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("SpaceId"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("MetroNetworkId"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+  
+  if(nl->IsEqual(arg1, "space") && nl->IsEqual(arg2, "indoorinfra")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("SpaceId"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("IndoorInfraId"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+
+  if(nl->IsEqual(arg1, "space") && nl->IsEqual(arg2, "roadgraph")){
+
+      ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("SpaceId"),
+                            nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("RoadGraphId"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
+  }
+
+
+  return nl->SymbolAtom("typeerror");
+}
+
+
+/*
+TypeMap function for operator putrel
+
+*/
+ListExpr PutRelTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsEqual(arg1, "space")){
+
+     ListExpr arg2 = nl->Second(args);
+     if(!IsRelDescription(arg2)) return nl->SymbolAtom ( "typeerror" );
+
+     ListExpr xType;
+     //////////////////street speed ////////////////////////
+     nl->ReadFromString(GenMObject::StreetSpeedInfo, xType);
+     if(CompareSchemas(arg2, xType)){
+        ListExpr reslist = nl->TwoElemList(
+          nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+              nl->SymbolAtom("tuple"),
+            nl->TwoElemList(
+              nl->TwoElemList(nl->SymbolAtom("SpaceId"),
+                            nl->SymbolAtom("int")),
+              nl->TwoElemList(nl->SymbolAtom("SpeedRelNo"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+
+//        return reslist;
+      return nl->ThreeElemList(
+                nl->SymbolAtom(Symbol::APPEND()),
+                nl->OneElemList(nl->IntAtom(Space::SPEED_REL)),
+                reslist);
+     }
+     
+     /////////////////tri new relation  /////////////////////
+     nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType);
+     if(CompareSchemas(arg2, xType)){
+        ListExpr reslist = nl->TwoElemList(
+          nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+              nl->SymbolAtom("tuple"),
+            nl->TwoElemList(
+              nl->TwoElemList(nl->SymbolAtom("SpaceId"),
+                            nl->SymbolAtom("int")),
+              nl->TwoElemList(nl->SymbolAtom("TriangleRelNo"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+      return nl->ThreeElemList(
+                nl->SymbolAtom(Symbol::APPEND()),
+                nl->OneElemList(nl->IntAtom(Space::TRINEW_REL)),
+                reslist);
+     }
+
+     /////////////////dual graph node + route id /////////////////////
+     nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
+     if(CompareSchemas(arg2, xType)){
+        ListExpr reslist = nl->TwoElemList(
+          nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+              nl->SymbolAtom("tuple"),
+            nl->TwoElemList(
+              nl->TwoElemList(nl->SymbolAtom("SpaceId"),
+                            nl->SymbolAtom("int")),
+              nl->TwoElemList(nl->SymbolAtom("DGNodeRelNo"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+      return nl->ThreeElemList(
+                nl->SymbolAtom(Symbol::APPEND()),
+                nl->OneElemList(nl->IntAtom(Space::DGNODE_REL)),
+                reslist);
+     }
+
+    /////////////////bus stops and pavement /////////////////////
+     nl->ReadFromString(BN::BusStopsPaveTypeInfo, xType);
+     if(CompareSchemas(arg2, xType)){
+        ListExpr reslist = nl->TwoElemList(
+          nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+              nl->SymbolAtom("tuple"),
+            nl->TwoElemList(
+              nl->TwoElemList(nl->SymbolAtom("SpaceId"),
+                            nl->SymbolAtom("int")),
+              nl->TwoElemList(nl->SymbolAtom("BSPaveRelNo"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+      return nl->ThreeElemList(
+                nl->SymbolAtom(Symbol::APPEND()),
+                nl->OneElemList(nl->IntAtom(Space::BSPAVESORT_REL)),
+                reslist);
+     }
+      ////////////////metro stops and pavement/////////////////
+     nl->ReadFromString(MetroNetwork::MetroPaveTypeInfo, xType);
+     if(CompareSchemas(arg2, xType)){
+        ListExpr reslist = nl->TwoElemList(
+          nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+              nl->SymbolAtom("tuple"),
+            nl->TwoElemList(
+              nl->TwoElemList(nl->SymbolAtom("SpaceId"),
+                            nl->SymbolAtom("int")),
+              nl->TwoElemList(nl->SymbolAtom("MSPaveRelNo"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+      return nl->ThreeElemList(
+                nl->SymbolAtom(Symbol::APPEND()),
+                nl->OneElemList(nl->IntAtom(Space::MSPAVE_REL)),
+                reslist);
+     }
+
+     ////////////////bus stops and buildings/////////////////
+     nl->ReadFromString(GenMObject::BuildingInfoB, xType);
+     if(CompareSchemas(arg2, xType)){
+        ListExpr reslist = nl->TwoElemList(
+          nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+              nl->SymbolAtom("tuple"),
+            nl->TwoElemList(
+              nl->TwoElemList(nl->SymbolAtom("SpaceId"),
+                            nl->SymbolAtom("int")),
+              nl->TwoElemList(nl->SymbolAtom("BSBuildRelNo"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+      return nl->ThreeElemList(
+                nl->SymbolAtom(Symbol::APPEND()),
+                nl->OneElemList(nl->IntAtom(Space::BSBUILD_REL)),
+                reslist);
+     }
+     ////////////////metro stops and buildings/////////////////
+     nl->ReadFromString(GenMObject::BuildingInfoM, xType);
+     if(CompareSchemas(arg2, xType)){
+        ListExpr reslist = nl->TwoElemList(
+          nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+              nl->SymbolAtom("tuple"),
+            nl->TwoElemList(
+              nl->TwoElemList(nl->SymbolAtom("SpaceId"),
+                            nl->SymbolAtom("int")),
+              nl->TwoElemList(nl->SymbolAtom("MSBuildRelNo"),
+                            nl->SymbolAtom("int"))
+          )
+        )
+      );
+      return nl->ThreeElemList(
+                nl->SymbolAtom(Symbol::APPEND()),
+                nl->OneElemList(nl->IntAtom(Space::MSBUILD_REL)),
+                reslist);
+     }
+
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator gettinfra
+
+*/
+ListExpr GetInfraTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 2){
+      string err = "two parameters expected";
+      return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(nl->IsEqual(nl->First(arg1), "space") && 
+    listutils::isSymbol(nl->First(arg2), CcString::BasicType())){
+    string type  = nl->StringValue(nl->Second(arg2));
+    if(GetSymbol(type) == IF_LINE){//////////road network 
+      ListExpr xType;
+      nl->ReadFromString(Network::routesTypeInfo, xType);
+      return xType; 
+    }else if(GetSymbol(type) == IF_FREESPACE){ ///////free space 
+      ListExpr xType;
+      nl->ReadFromString(Space::FreeSpaceTypeInfo, xType);
+      return xType; 
+    }else if(GetSymbol(type) == IF_REGION){///////pavement infrastructure 
+      ListExpr xType;
+//      nl->ReadFromString(Pavement::PaveTypeInfo, xType);
+      nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
+      return xType; 
+    }else if(GetSymbol(type) == IF_BUSSTOP){//////////bus stops 
+      ListExpr xType;
+      nl->ReadFromString(BusNetwork::BusStopsInternalTypeInfo, xType);
+      return xType; 
+    }else if(GetSymbol(type) == IF_BUSROUTE){ ////bus routes 
+      ListExpr xType;
+      nl->ReadFromString(BusNetwork::BusRoutesTypeInfo, xType);
+      return xType; 
+    }else if(GetSymbol(type) == IF_BUS){ ///////////////bus trips 
+      ListExpr xType;
+      nl->ReadFromString(BusNetwork::BusTripsTypeInfo, xType);
+      return xType; 
+    }else if(GetSymbol(type) == IF_METROSTOP){ //// metro stops
+      ListExpr xType;
+      nl->ReadFromString(MetroNetwork::MetroStopsTypeInfo, xType);
+      return xType;
+    }else if(GetSymbol(type) == IF_METROROUTE){ ///metro routes 
+      ListExpr xType;
+      nl->ReadFromString(MetroNetwork::MetroRoutesTypeInfo, xType);
+      return xType;
+    }else if(GetSymbol(type) == IF_METRO){ //metro trips 
+      ListExpr xType;
+      nl->ReadFromString(MetroNetwork::MetroTripTypeInfo, xType);
+      return xType;
+    }else if(GetSymbol(type) == IF_INDOOR){//indoor, outdoor area for buildings
+      ListExpr xType;
+      nl->ReadFromString(IndoorInfra::BuildingType_Info, xType);
+      return xType;
+
+    }else if(GetSymbol(type) == IF_INDOORPATH){//building path to pavement 
+
+      ListExpr xType;
+      nl->ReadFromString(IndoorInfra::BuildingPath_Info, xType);
+      return xType;
+
+    }else{
+      string err = "infrastructure type error";
+      return listutils::typeError(err);
+    }
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap fun for operator checksline
+
+*/
+
+ListExpr OpTMCheckSlineTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First( args );
+  ListExpr param2 = nl->Second( args );
+
+  if(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+      nl->SymbolValue(param1) == "sline" &&
+      nl->IsAtom(param2) && nl->AtomType(param2) == SymbolType &&
+      nl->SymbolValue(param2) == "int")
+
+  {
+    return nl->SymbolAtom ( "sline" );
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator boundaryregion
+
+*/
+
+ListExpr OpTMModifyBoundaryTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second ( args );
+
+
+  if (nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+      nl->SymbolValue(param1) == "rect" &&
+      nl->IsAtom(param2) && nl->AtomType(param2) == SymbolType &&
+      nl->SymbolValue(param2) == "int")
+  {
+    return nl->SymbolAtom ( "region" );
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator segment2region
+
+*/
+
+ListExpr OpTMSegment2RegionTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr attrName = nl->Second(args);
+  ListExpr param3 = nl->Third(args);
+  ListExpr attrType;
+  string aname = nl->SymbolValue(attrName);
+  int j = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname,attrType);
+
+  if(j == 0 || !listutils::isSymbol(attrType,"sline")){
+      return listutils::typeError("attr name" + aname + "not found"
+                      "or not of type sline");
+  }
+
+    if (listutils::isRelDescription(param1) &&
+        nl->IsAtom(param3) && nl->AtomType(param3) == SymbolType &&
+        nl->SymbolValue(param3) == "int"){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                    nl->Cons(
+                      nl->TwoElemList(nl->SymbolAtom("Oid"),
+                                    nl->SymbolAtom("int")),
+                      nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Road1"),
+                                    nl->SymbolAtom("region")),
+                        nl->TwoElemList(nl->SymbolAtom("Road2"),
+                                      nl->SymbolAtom("region")),
+                        nl->TwoElemList(nl->SymbolAtom("Inborder"),
+                                    nl->SymbolAtom("region")),
+                        nl->TwoElemList(nl->SymbolAtom("Paveroad1"),
+                                    nl->SymbolAtom("region")),
+                        nl->TwoElemList(nl->SymbolAtom("Paveroad2"),
+                                    nl->SymbolAtom("region")),
+                        nl->TwoElemList(nl->SymbolAtom("Outborder"),
+                                    nl->SymbolAtom("region"))
+
+                  )
+                 )
+                )
+          );
+
+//    return result;
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                             nl->OneElemList(nl->IntAtom(j)),result);
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator paveregion
+
+*/
+
+ListExpr OpTMPaveRegionTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 7 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second(args);
+  ListExpr attrName = nl->Third(args);
+  ListExpr param4 = nl->Fourth(args);
+  ListExpr attrName1 = nl->Fifth(args);
+  ListExpr attrName2 = nl->Sixth(args);
+  ListExpr param7 = nl->Nth(7, args);
+
+  ListExpr attrType;
+  string aname = nl->SymbolValue(attrName);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname,attrType);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType,"region")){
+      return listutils::typeError("attr name" + aname + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname1,attrType1);
+
+
+  if(j2 == 0 || !listutils::isSymbol(attrType1,"region")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname2,attrType2);
+
+
+  if(j3 == 0 || !listutils::isSymbol(attrType2,"region")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+    if (listutils::isRelDescription(param2) &&
+        listutils::isRelDescription(param4) &&
+        nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "network" &&
+        nl->IsAtom(param7) && nl->AtomType(param7) == SymbolType &&
+        nl->SymbolValue(param7) == "int"){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Rid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Pavement1"),
+                                      nl->SymbolAtom("region")),
+                        nl->TwoElemList(nl->SymbolAtom("Pavement2"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+//                         nl->OneElemList(nl->IntAtom(j1)),result);
+     nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),result);
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator junregion
+get the pavement at each junction area
+
+*/
+
+ListExpr OpTMJunRegionTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 7 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second(args);
+  ListExpr attrName1 = nl->Third(args);
+  ListExpr attrName2 = nl->Fourth(args);
+  ListExpr param5 = nl->Fifth(args);
+  ListExpr param6 = nl->Sixth(args);
+  ListExpr attrName3 = nl->Nth(7, args);
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"region")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"region")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param6)),
+                      aname3,attrType3);
+
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"region")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+  }
+
+    if (listutils::isRelDescription(param2) &&
+        listutils::isRelDescription(param6) &&
+        nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "network" &&
+        nl->IsAtom(param5) && nl->AtomType(param5) == SymbolType &&
+        nl->SymbolValue(param5) == "int"){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Rid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Crossreg"),
+                                      nl->SymbolAtom("region"))
+
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+
+//     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+     nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),result);
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator decomposeregion,
+decompose the faces of the input region
+
+*/
+
+ListExpr OpTMDecomposeRegionTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+
+    if (nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "region"){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Id"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Covarea"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+
+    return result;
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator fillpavement
+
+*/
+
+ListExpr OpTMFillPavementTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second(args);
+  ListExpr attrName1 = nl->Third(args);
+  ListExpr attrName2 = nl->Fourth(args);
+  ListExpr param5 = nl->Fifth(args);
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"region")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"region")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+    if (listutils::isRelDescription(param2) &&
+        nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "network" &&
+        nl->IsAtom(param5) && nl->AtomType(param5) == SymbolType &&
+        nl->SymbolValue(param5) == "int"){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+//                      nl->ThreeElemList(
+//                      nl->FiveElemList(
+                      nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("rid1"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("rid2"),
+                                      nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("junscurve"),
+                                      nl->SymbolAtom("line")),
+                        nl->TwoElemList(nl->SymbolAtom("junsregion1"),
+                                      nl->SymbolAtom("region")),
+                        nl->TwoElemList(nl->SymbolAtom("junsregion2"),
+                                      nl->SymbolAtom("region")),
+                        nl->TwoElemList(nl->SymbolAtom("junsregion"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+//                         nl->OneElemList(nl->IntAtom(j1)),result);
+     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+
+/*
+TypeMap fun for operator getpave1
+decompose the pavement of one road into a set of subregions
+
+*/
+
+ListExpr OpTMGetPaveNode1TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second(args);
+  ListExpr attrName1 = nl->Third(args);
+  ListExpr attrName2 = nl->Fourth(args);
+  ListExpr attrName3 = nl->Fifth(args);
+
+  if(!(listutils::isRelDescription(param2) &&
+        nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "network")){
+      return nl->SymbolAtom ( "typeerror" );
+  }
+  
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"region")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3,attrType3);
+
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"region")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+  }
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Rid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Pavement"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+//     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+    nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),result);
+
+}
+
+/*
+TypeMap fun for operator getpavenode1
+get the common area(line) of two pavements
+
+*/
+
+ListExpr OpTMGetPaveEdge1TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 6 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second(args);
+  ListExpr param3 = nl->Third(args);
+  ListExpr attrName1 = nl->Fourth(args);
+  ListExpr attrName2 = nl->Fifth(args);
+  ListExpr attrName3 = nl->Sixth(args);
+
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3,attrType3);
+
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"region")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+  }
+
+
+    if (listutils::isRelDescription(param2) &&
+        nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "network" &&
+        listutils::isBTreeDescription(param3)){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Oid1"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Oid2"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Commarea"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+//     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+    nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),result);
+
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+/*
+TypeMap fun for operator getpavenode2
+decompose the zebra crossing into a set of subregions
+
+*/
+
+ListExpr OpTMGetPaveNode2TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second(args);
+  ListExpr attrName1 = nl->Third(args);
+  ListExpr attrName2 = nl->Fourth(args);
+
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"region")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+
+    if (listutils::isRelDescription(param2) &&
+        nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+        nl->SymbolValue(param1) == "int"){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Rid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Pavement"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator getpavenode2
+get the common area(line) of two pavements
+
+*/
+
+ListExpr OpTMGetPaveEdge2TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 6 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+//  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->First(args);
+  ListExpr param3 = nl->Second(args);
+  ListExpr param4 = nl->Third(args);
+  ListExpr attrName1 = nl->Fourth(args);
+  ListExpr attrName2 = nl->Fifth(args);
+  ListExpr attrName3 = nl->Sixth(args);
+
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3,attrType3);
+
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"region")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+  }
+
+
+
+    if (listutils::isRelDescription(param2) &&
+        listutils::isRelDescription(param3) &&
+        listutils::isBTreeDescription(param4)){
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Oid1"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Oid2"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Commarea"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+//     nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+    nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),result);
+
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator triangulate
+decomplse a polygon into a set of triangles
+
+*/
+
+ListExpr OpTMTriangulateTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  if (nl->IsEqual(nl->First(args), "region")){
+    return nl->TwoElemList(nl->SymbolAtom("stream"),
+                           nl->SymbolAtom("region"));
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator convex
+detect whether a polygon is convex or concave
+
+*/
+
+ListExpr OpTMConvexTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  if (nl->IsEqual(nl->First(args), "region")){
+    return nl->SymbolAtom("bool");
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+
+/*
+TypeMap fun for operator geospath
+return the geometric shortest path for two points
+
+*/
+
+ListExpr OpTMGeospathTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  if (nl->IsEqual(nl->First(args), "point") &&
+//      nl->IsEqual(nl->Second(args), "point") &&
+      (nl->IsEqual(nl->Second(args), "point")||
+       nl->IsEqual(nl->Second(args), "line") )&&
+      nl->IsEqual(nl->Third(args), "region")){
+
+
+    ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Spath"),
+                                    nl->SymbolAtom("line")),
+                        nl->TwoElemList(nl->SymbolAtom("Channel"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+    return result;
+  }
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+
+/*
+TypeMap fun for operator createdualgraph
+
+*/
+
+ListExpr OpTMCreateDGTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr xIdDesc = nl->First(args);
+
+  ListExpr xNodeDesc = nl->Second(args);
+  ListExpr xEdgeDesc = nl->Third(args);
+
+  if(!nl->IsEqual(xIdDesc, "int")) return nl->SymbolAtom ( "typeerror" );
+  if(!IsRelDescription(xEdgeDesc) || !IsRelDescription(xNodeDesc))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
+  if(!CompareSchemas(xNodeDesc, xType))return nl->SymbolAtom ( "typeerror" );
+
+  nl->ReadFromString(DualGraph::EdgeTypeInfo, xType);
+  if(!CompareSchemas(xEdgeDesc, xType))return nl->SymbolAtom ( "typeerror" );
+
+  return nl->SymbolAtom ( "dualgraph" );
+}
+
+
+/*
+TypeMap fun for operator walkspold with dual graph and visual graph 
+
+*/
+
+ListExpr OpTMWalkSPOldTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr arg0 = nl->First(args);
+  ListExpr arg1 = nl->Second(args);
+  ListExpr arg2 = nl->Third(args);
+  ListExpr arg3 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+  
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+    
+  ListExpr xType;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(arg3))
+  return listutils::typeError("para3 should be a relation");
+  
+  if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+  if(!IsRelDescription(arg5))
+  return listutils::typeError("para5 should be a relation");
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
+  if(!CompareSchemas(arg5, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  if(nl->IsAtom(arg0) && nl->AtomType(arg0) == SymbolType &&
+     nl->SymbolValue(arg0) == "dualgraph"&&
+     nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "visualgraph" ){
+
+
+    return nl->SymbolAtom("line");
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator walksp with pavement infrastructure 
+
+*/
+
+ListExpr OpTMWalkSPTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+    
+  ListExpr xType;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(arg3))
+  return listutils::typeError("para3 should be a relation");
+  
+  if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+  if(!IsRelDescription(arg4))
+  return listutils::typeError("para4 should be a relation");
+  
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
+  if(!CompareSchemas(arg4, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "pavenetwork"){
+    return nl->SymbolAtom("line");
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator walksp with pavement infrastructure for debuging
+
+*/
+
+ListExpr OpTMWalkSPDebugTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  ListExpr xType;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(arg3))
+  return listutils::typeError("para3 should be a relation");
+
+  if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(arg4))
+  return listutils::typeError("para4 should be a relation");
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
+  if(!CompareSchemas(arg4, xType2))return nl->SymbolAtom ( "typeerror" );
+
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "pavenetwork"){
+           ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Loc"),
+                                    nl->SymbolAtom("point"))
+                  )
+                )
+          );
+    return result;
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+
+/*
+TypeMap fun for operator testwalksp
+
+*/
+
+ListExpr OpTMTestWalkSPTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr arg0 = nl->First(args);
+  ListExpr arg1 = nl->Second(args);
+  ListExpr arg2 = nl->Third(args);
+  ListExpr arg3 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+  
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para3 should be a relation");
+  
+  ListExpr xType;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType);
+  if(!CompareSchemas(arg2, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(!IsRelDescription(arg3))
+    return listutils::typeError("para4 should be a relation");
+  
+  if(!CompareSchemas(arg3, xType))return nl->SymbolAtom ( "typeerror" );
+
+
+  if(!IsRelDescription(arg5))
+    return listutils::typeError("para5 should be a relation");
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
+  if(!CompareSchemas(arg5, xType2))return nl->SymbolAtom ( "typeerror" );
+
+
+
+  if(nl->IsAtom(arg0) && nl->AtomType(arg0) == SymbolType &&
+     nl->SymbolValue(arg0) == "dualgraph"&&
+     nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "visualgraph" ){
+
+       ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("oid1"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("oid2"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("connection"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+    return result;
+
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator pave loc togp
+
+*/
+
+ListExpr OpTMPaveLocToGPTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+ 
+  if(!IsRelDescription(arg1))
+    return listutils::typeError("para1 should be a relation");
+
+  ListExpr xType1;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType1);
+  if(!CompareSchemas(arg1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType2);
+  if(!CompareSchemas(arg2, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  if(!listutils::isBTreeDescription(arg3))
+    return listutils::typeError("para3 should be a btree");
+
+  if(nl->IsAtom(arg4) && nl->AtomType(arg4) == SymbolType &&
+     nl->SymbolValue(arg4) == "network"){
+
+       ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("FS_loc"),
+                                    nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("RN_loc"),
+                                    nl->SymbolAtom("gpoint"))
+
+                  )
+                )
+          );
+    return result;
+
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator setpave rid 
+
+*/
+
+ListExpr OpTMSetPaveRidTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+ 
+  if(!IsRelDescription(arg1))
+    return listutils::typeError("para1 should be a relation");
+
+  ListExpr xType1;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType1);
+  if(!CompareSchemas(arg1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+
+  if(!IsRelDescription(arg2))
+    return listutils::typeError("para2 should be a relation");
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType2);
+  if(!CompareSchemas(arg2, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  if(!listutils::isRTreeDescription(arg3))
+    return listutils::typeError("para3 should be a rtree");
+
+        ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Rid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Pavement"),
+                                      nl->SymbolAtom("region"))
+                  )
+                )
+          );
+      return result;
+}
+
+/*
+TypeMap fun for operator generatewp
+
+*/
+
+ListExpr OpTMGenerateWPTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+
+  if(!IsRelDescription(arg1))
+    return listutils::typeError("para1 should be a relation");
+
+  ListExpr xType;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType);
+  if(!CompareSchemas(arg1, xType))return nl->SymbolAtom ( "typeerror" );
+
+  if(nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+     nl->SymbolValue(arg2) == "int" ){
+
+       ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Oid"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Loc1"),
+                                    nl->SymbolAtom("point")),
+                        nl->TwoElemList(nl->SymbolAtom("Loc2"),
+                                    nl->SymbolAtom("point"))
+                  )
+                )
+          );
+    return result;
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator zval
+
+*/
+
+ListExpr OpTMZvalTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "point"){
+      return  nl->SymbolAtom ( "int" );
+  }
+
+  return nl->SymbolAtom ( "typeerror" );
+}
+
+
+/*
+TypeMap fun for operator zcurve
+
+*/
+
+ListExpr OpTMZcurveTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr attrName1 = nl->Second(args);
+
+  if (!(listutils::isRelDescription(arg1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(arg1)),
+                      aname1, attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"point")){
+      return listutils::typeError("attr name " + aname1 + " not found "
+                      "or not of type point");
+  }
+
+  ListExpr result =   nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->OneElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Curve"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+             nl->OneElemList(nl->IntAtom(j1)),result);
+
+}
+
+/*
+TypeMap fun for operator regvertex
+
+*/
+
+ListExpr OpTMRegVertexTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "region"){
+      ListExpr result =   nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Cycleno"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Vertex"),
+                                    nl->SymbolAtom("point"))
+                  )
+                )
+          );
+      return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+
+}
+
+/*
+TypeMap fun for operator triangulationnew
+
+*/
+
+ListExpr OpTMTriangulationNewTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "region"){
+      ListExpr result =   nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("V1"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("V2"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("V3"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Centroid"),
+                                    nl->SymbolAtom("point"))
+                  )
+                )
+          );
+      return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+
+}
+
+/*
+TypeMap fun for operator triangulationext
+
+*/
+
+ListExpr OpTMTriangulationExtTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "region"){
+      ListExpr result =   nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FourElemList(
+                        nl->TwoElemList(nl->SymbolAtom("V1"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("V2"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("V3"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("Triangle"),
+                                    nl->SymbolAtom("region"))
+                  )
+                )
+          );
+      return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+
+}
+
+/*
+TypeMap fun for operator getdgedge
+
+*/
+
+ListExpr OpTMGetDgEdgeTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if (!(listutils::isRelDescription(arg1)))
+    return nl->SymbolAtom ( "typeerror" );
+  if (!(listutils::isRelDescription(arg2)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo1, xType1);
+  if(!CompareSchemas(arg1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo2, xType2);
+  if(!CompareSchemas(arg2, xType2))return nl->SymbolAtom ( "typeerror" );
+
+
+  ListExpr result =   nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->ThreeElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Oid1"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("Oid2"),
+                                    nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("Commarea"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+  return result;
+}
+
+/*
+TypeMap fun for operator smcdgte
+
+*/
+
+ListExpr OpTMSMCDGTETypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+  if (!(listutils::isRelDescription(arg1)))
+    return nl->SymbolAtom ( "typeerror" );
+  if (!(listutils::isRTreeDescription(arg2)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType1;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType1);
+  if(!CompareSchemas(arg1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+
+  ListExpr result =   nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->ThreeElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Oid1"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("Oid2"),
+                                    nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("Commarea"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+  return result;
+}
+
+/*
+TypeMap fun for operator getvnode
+
+*/
+
+ListExpr OpTMGetVNodeTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 6 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+  ListExpr arg6 = nl->Sixth(args);
+
+  ListExpr xType1;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType1);
+  if(!CompareSchemas(arg2, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
+  if(!CompareSchemas(arg3, xType2))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType3;
+  nl->ReadFromString(VisualGraph::NodeTypeInfo, xType3);
+  if(!CompareSchemas(arg4, xType3))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType4;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo4, xType4);
+  if(!CompareSchemas(arg5, xType4))return nl->SymbolAtom ( "typeerror" );
+
+  if(!listutils::isBTreeDescription(arg6))
+    return nl->SymbolAtom("typeerror");
+
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "dualgraph"){
+
+    ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->ThreeElemList(
+                       nl->TwoElemList(nl->SymbolAtom("oid"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("loc"),
+                                    nl->SymbolAtom("point")),
+                       nl->TwoElemList(nl->SymbolAtom("connection"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+    return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator getvgedge: get the edge relation for visibility graph
+
+*/
+
+ListExpr OpTMGetVGEdgeTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+
+  ListExpr xType1;
+  nl->ReadFromString(VisualGraph::NodeTypeInfo, xType1);
+  if(!CompareSchemas(arg2, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType2);
+  if(!CompareSchemas(arg3, xType2))return nl->SymbolAtom ( "typeerror" );
+
+
+  ListExpr xType4;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo4, xType4);
+  if(!CompareSchemas(arg4, xType4))return nl->SymbolAtom ( "typeerror" );
+
+  if(!listutils::isBTreeDescription(arg5))
+    return nl->SymbolAtom("typeerror");
+
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "dualgraph"){
+
+    ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->ThreeElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Oid1"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("Oid2"),
+                                    nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("Connection"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+    return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator myinside
+
+*/
+
+ListExpr OpTMMyInsideTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "line" &&
+     nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+     nl->SymbolValue(arg2) == "region"){
+    return  nl->SymbolAtom ( "bool" );
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
+
+/*
+TypeMap fun for operator atpoint
+
+*/
+
+ListExpr OpTMAtPointTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "sline" &&
+     nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+     nl->SymbolValue(arg2) == "point" && 
+     nl->IsAtom(arg3) && nl->AtomType(arg3) == SymbolType &&
+     nl->SymbolValue(arg3) == "bool"){
+    return  nl->SymbolAtom ( "real" );
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator decomposetri
+
+*/
+
+ListExpr OpTMDecomposeTriTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+
+  ListExpr xType;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo1, xType);
+  if(!CompareSchemas(arg1, xType))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr result = nl->TwoElemList(
+           nl->SymbolAtom("stream"),
+              nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                    nl->TwoElemList(
+                      nl->TwoElemList(nl->SymbolAtom("Vid"),
+                                  nl->SymbolAtom("int")),
+                      nl->TwoElemList(nl->SymbolAtom("Triid"),
+                                  nl->SymbolAtom("int"))
+                  )
+                )
+          );
+  return result;
+}
+
+
+/*
+TypeMap fun for operator createvgraph
+
+*/
+
+ListExpr OpTMCreateVGTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  ListExpr xIdDesc = nl->First(args);
+  ListExpr xNodeDesc = nl->Second(args);
+  ListExpr xEdgeDesc = nl->Third(args);
+  if(!nl->IsEqual(xIdDesc, "int")) return nl->SymbolAtom ( "typeerror" );
+  if(!IsRelDescription(xEdgeDesc) || !IsRelDescription(xNodeDesc))
+      return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType;
+  nl->ReadFromString(VisualGraph::NodeTypeInfo, xType);
+  if(!CompareSchemas(xNodeDesc, xType))return nl->SymbolAtom ( "typeerror" );
+
+  nl->ReadFromString(VisualGraph::EdgeTypeInfo, xType);
+  if(!CompareSchemas(xEdgeDesc, xType))return nl->SymbolAtom ( "typeerror" );
+
+  return nl->SymbolAtom ( "visualgraph" );
+}
+
+
+/*
+TypeMap fun for operator getcontour
+
+*/
+
+ListExpr OpTMGetContourTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  if(nl->IsEqual(nl->First(args),"text") ||
+     nl->IsEqual(nl->First(args),"int") ||
+     nl->IsEqual(nl->First(args),"real")){
+
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->TwoElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Oid"),
+                                   nl->SymbolAtom("int")),
+                      nl->TwoElemList(nl->SymbolAtom("Hole"),
+                                    nl->SymbolAtom("region"))
+                  )
+                )
+          );
+    return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator getpolygon
+
+*/
+
+ListExpr OpTMGetPolygonTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr attrName1 = nl->Second(args);
+
+  if (!(listutils::isRelDescription(arg1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(arg1)),
+                      aname1, attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"region")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type point");
+  }
+  ListExpr result = nl->SymbolAtom ( "region" );
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+             nl->OneElemList(nl->IntAtom(j1)),result);
+
+}
+
+/*
+TypeMap fun for operator getallpoints
+
+*/
+
+ListExpr OpTMGetAllPointsTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+
+
+  if(nl->IsEqual(arg1, "region")){
+    ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->FourElemList(
+                       nl->TwoElemList(nl->SymbolAtom("V"),
+                                   nl->SymbolAtom("point")),
+                      nl->TwoElemList(nl->SymbolAtom("Neighbor1"),
+                                    nl->SymbolAtom("point")),
+                      nl->TwoElemList(nl->SymbolAtom("Neighbor2"),
+                                    nl->SymbolAtom("point")),
+                      nl->TwoElemList(nl->SymbolAtom("Regid"),
+                                    nl->SymbolAtom("int"))
+                  )
+                )
+          );
+    return result;
+  }else
+    return nl->SymbolAtom ( "typeerror" );
+
+}
+
+
+/*
+TypeMap fun for operator rotationsweep
+
+*/
+
+ListExpr OpTMRotationSweepTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  ListExpr arg3 = nl->Third(args);
+  ListExpr arg4 = nl->Fourth(args);
+  ListExpr arg5 = nl->Fifth(args);
+
+  ListExpr xType1;
+  nl->ReadFromString(VisualGraph::QueryTypeInfo, xType1);
+  if(!CompareSchemas(arg1, xType1))return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr xType2;
+  nl->ReadFromString(CompTriangle::AllPointsInfo, xType2);
+  if(!CompareSchemas(arg2, xType2))return nl->SymbolAtom ( "typeerror" );
+
+
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(arg5);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(arg4)),
+                      aname1, attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"region")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type point");
+  }
+
+
+  if(nl->IsEqual(arg3, "rect")){
+    ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->TwoElemList(
+                       nl->TwoElemList(nl->SymbolAtom("loc"),
+                                    nl->SymbolAtom("point")),
+                       nl->TwoElemList(nl->SymbolAtom("connection"),
+                                    nl->SymbolAtom("line"))
+//                        nl->TwoElemList(nl->SymbolAtom("angle"),
+//                                    nl->SymbolAtom("real"))
+                  )
+                )
+          );
+//    return result;
+
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+             nl->OneElemList(nl->IntAtom(j1)),result);
+
+  }else
+    return nl->SymbolAtom ( "typeerror" );
+
+}
+
+/*
+TypeMap fun for operator gethole
+
+*/
+
+ListExpr OpTMGetHoleTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  if(nl->IsEqual(nl->First(args),"region")){
+
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->TwoElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Oid"),
+                                   nl->SymbolAtom("int")),
+                      nl->TwoElemList(nl->SymbolAtom("Hole"),
+                                    nl->SymbolAtom("region"))
+                  )
+                )
+          );
+    return result;
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator getsections
+it get a set of sections from each route where interesting points can locate
+
+*/
+
+ListExpr OpTMGetSectionsTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 6 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+ 
+  ListExpr param1 = nl->Second ( args );
+  ListExpr param2 = nl->Third(args);
+  ListExpr attrName1 = nl->Fourth(args);
+  ListExpr attrName2 = nl->Fifth(args);
+  ListExpr attrName3 = nl->Sixth(args);
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"sline")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3,attrType3);
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"region")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+  }
+
+
+    if (!(listutils::isRelDescription(param1)))
+        return nl->SymbolAtom ( "typeerror" );
+
+    if (!(listutils::isRelDescription(param2)))
+        return nl->SymbolAtom ( "typeerror" );
+
+    if(nl->IsEqual(nl->First(args),"network")){ 
+
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->TwoElemList(
+                       nl->TwoElemList(nl->SymbolAtom("rid"),
+                                   nl->SymbolAtom("int")),
+                      nl->TwoElemList(nl->SymbolAtom("sec"),
+                                    nl->SymbolAtom("line"))
+                  )
+                )
+          );
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+            nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),
+            nl->IntAtom(j3)),result);
+  }
+  return  nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator getinterestp1
+generate interesting points locate on pavement 
+
+*/
+
+ListExpr OpTMGetInterestP1TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 7 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second ( args );
+  ListExpr attrName1 = nl->Third(args);
+  ListExpr attrName2 = nl->Fourth(args);
+  ListExpr attrName3 = nl->Fifth(args);
+  ListExpr attrName4 = nl->Sixth(args);
+  ListExpr param3 = nl->Nth(7, args);
+
+
+ if (!(listutils::isRelDescription(param1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+ if (!(listutils::isRelDescription(param2)))
+    return nl->SymbolAtom ( "typeerror" );
+  
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1, "int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname2,attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2, "line")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3,attrType3);
+
+  if(j3 == 0 || !listutils::isSymbol(attrType3, "region")){
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType4;
+  string aname4 = nl->SymbolValue(attrName4);
+  int j4 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname4, attrType4);
+
+  if(j4 == 0 || !listutils::isSymbol(attrType4, "region")){
+      return listutils::typeError("attr name" + aname4 + "not found"
+                      "or not of type region");
+  }
+
+    if(nl->IsEqual(param3,"int")){
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->FourElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Rid"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("Loc1"),
+                                    nl->SymbolAtom("point")),
+                       nl->TwoElemList(nl->SymbolAtom("Loc2"),
+                                    nl->SymbolAtom("point")),
+                       nl->TwoElemList(nl->SymbolAtom("Ptype"),
+                                    nl->SymbolAtom("bool"))
+                  )
+                )
+          );
+
+     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+            nl->FourElemList(nl->IntAtom(j1),nl->IntAtom(j2),
+                              nl->IntAtom(j3), nl->IntAtom(j4)),result);
+    }
+    return  nl->SymbolAtom ( "typeerror" );
+}
+
+/*
+TypeMap fun for operator getinterestp2
+map each point into a triangle 
+
+*/
+
+ListExpr OpTMGetInterestP2TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 6 )
+  {
+    return  nl->SymbolAtom ( "typeerror" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second ( args );
+  ListExpr param3 = nl->Third( args);
+  ListExpr attrName1 = nl->Fourth(args);
+  ListExpr attrName2 = nl->Fifth(args);
+  ListExpr param6 = nl->Sixth(args);  
+  
+
+ if (!(listutils::isRelDescription(param1)))
+    return nl->SymbolAtom ( "typeerror" );
+
+ if (!(listutils::isRelDescription(param2)))
+    return nl->SymbolAtom ( "typeerror" );
+  
+ if (!(listutils::isRTreeDescription(param3)))
+    return nl->SymbolAtom ( "typeerror" );
+
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1, "point")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type region");
+  }
+
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+
+  if(j2 == 0 || !listutils::isSymbol(attrType2, "region")){
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type region");
+  }
+
+   if(nl->IsEqual(param6,"int")){
+      ListExpr result = nl->TwoElemList(
+             nl->SymbolAtom("stream"),
+               nl->TwoElemList(
+                 nl->SymbolAtom("tuple"),
+                     nl->ThreeElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Oid"),
+                                   nl->SymbolAtom("int")),
+                       nl->TwoElemList(nl->SymbolAtom("Loc1"),
+                                    nl->SymbolAtom("point")),
+                       nl->TwoElemList(nl->SymbolAtom("Loc2"),
+                                    nl->SymbolAtom("point"))
+                  )
+                )
+          );
+
+     return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+            nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),result);
+    }
+
+    return  nl->SymbolAtom ( "typeerror" );
+}
+
+
+/*
+TypeMap fun for operator cellbox 
+partition the whole box into a set of cells 
+
+*/
+
+ListExpr OpTMCellBoxTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "list length should be 2" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second ( args );
+  ListExpr MBR_ATOM;
+  if(nl->IsEqual(param1,"rect") && nl->IsEqual(param2,"int")){
+    MBR_ATOM = nl->SymbolAtom("rect");
+     return nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                /*nl->TwoElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("cellid"),
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("cover_area"),
+                        nl->SymbolAtom("region")
+                    ))));*/
+                nl->FourElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Cellid"),
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Cover_area"),
+                        nl->SymbolAtom("region")
+                    ),    
+                    nl->TwoElemList(
+                        nl->SymbolAtom("X_id"),
+                        nl->SymbolAtom("int")
+                    ),    
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Y_id"),
+                        nl->SymbolAtom("int")
+                    ))));
+
+  } 
+
+    return  nl->SymbolAtom ( "typeerror" );
+}
+
+
+/*
+TypeMap fun for operator createbusroute1
+create rough bus routes 
+
+*/
+
+ListExpr OpTMCreateBusRouteTypeMap1 ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 7 )
+  {
+    return  nl->SymbolAtom ( "list length should be 7" );
+  }
+
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
+     nl->SymbolValue(param1) == "network")){
+      return nl->SymbolAtom ( "typeerror: param1 should be network" );
+  }
+
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be relation" );
+
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::StreetSectionCellTypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel2 scheam should be" + 
+                                BusRoute::StreetSectionCellTypeInfo);
+  }
+
+  ListExpr attrName1 = nl->Third ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+
+
+  ListExpr attrName2 = nl->Fourth ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type int");
+
+  ListExpr attrName3 = nl->Fifth ( args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3, attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"region"))
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type region");
+                 
+  ListExpr index = nl->Sixth(args);
+  if(!listutils::isBTreeDescription(index))
+      return  nl->SymbolAtom ( "parameter 6 should be btree" );
+
+
+  ListExpr param7 = nl->Nth (7, args );
+  if(!IsRelDescription(param7))
+    return nl->SymbolAtom ( "typeerror: param7 should be relation" );
+
+  ListExpr xType2;
+  nl->ReadFromString(BusRoute::BusNetworkParaInfo, xType2); 
+  if(!CompareSchemas(param7, xType2)){
+    return listutils::typeError("rel scheam should be" + 
+                                BusRoute::BusNetworkParaInfo);
+  }
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->FiveElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Start_cell_id"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Start_cell"),
+                        nl->SymbolAtom("rect")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("End_cell_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("End_cell"),
+                        nl->SymbolAtom("rect")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Route_type"),
+                        nl->SymbolAtom("int"))
+                    )));
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),
+                         nl->IntAtom(j3)),res);
+}
+
+
+/*
+TypeMap fun for operator createbusroute2
+create bus routes 
+
+*/
+
+ListExpr OpTMCreateBusRouteTypeMap2 ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 8 )
+  {
+    return  nl->SymbolAtom ( "list length should be 8" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
+     nl->SymbolValue(param1) == "space")){
+      return nl->SymbolAtom ( "typeerror: param1 should be space" );
+  }
+  
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be relation" );
+
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::StreetSectionCellTypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel2 scheam should be" + 
+                                BusRoute::StreetSectionCellTypeInfo);
+  }
+
+  ListExpr attrName = nl->Third ( args );
+  ListExpr attrType;
+  string aname = nl->SymbolValue(attrName);
+  int j = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname,attrType);
+
+  if(j == 0 || !listutils::isSymbol(attrType,"int")){
+      return listutils::typeError("attr name" + aname + "not found"
+                      "or not of type int");
+  }
+  
+  ListExpr index = nl->Fourth(args);
+  if(!listutils::isBTreeDescription(index))
+      return  nl->SymbolAtom ( "parameter 4 should be btree" );
+
+  ListExpr param5 = nl->Fifth ( args );
+  if(!IsRelDescription(param5))
+    return nl->SymbolAtom ( "typeerror: param5 should be relation" );
+
+
+  ListExpr attrName1 = nl->Sixth ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param5)),
+                      aname1,attrType1);
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int"))
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+
+
+  ListExpr attrName2 = nl->Nth (7, args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param5)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type int");
+  
+  ListExpr attrName3 = nl->Nth (8, args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param5)),
+                      aname3,attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType2,"int"))
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type int");
+ 
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+
+                nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Br_id"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_route1"),
+                        nl->SymbolAtom("gline")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_route2"),
+                        nl->SymbolAtom("line")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Start_loc"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("End_loc"),
+                        nl->SymbolAtom("point")),
+
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Route_type"),
+                        nl->SymbolAtom("int"))
+
+                    )));
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->FourElemList(nl->IntAtom(j),nl->IntAtom(j1),
+                         nl->IntAtom(j2),nl->IntAtom(j3)),res);
+}
+
+
+/*
+TypeMap fun for operator refine bus route 
+
+*/
+
+ListExpr OpTMRefineBusRouteTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 8 )
+  {
+    return  nl->SymbolAtom ( "list length should be 8" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
+     nl->SymbolValue(param1) == "network")){
+      return nl->SymbolAtom ( "typeerror: param1 should be network" );
+  }
+
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be relation" );
+
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::BusRoutesTmpTypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel2 scheam should be" + 
+                                BusRoute::BusRoutesTmpTypeInfo);
+  }
+
+  ListExpr attrName1 = nl->Third ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name " + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  ListExpr attrName2 = nl->Fourth ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"gline")){
+      return listutils::typeError("attr name " + aname2 + "not found"
+                      "or not of type gline");
+  }
+  
+  
+  ListExpr attrName3 = nl->Fifth ( args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3,attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"line")){
+      return listutils::typeError("attr name " + aname3 + "not found"
+                      "or not of type line");
+  }
+  
+  ListExpr attrName4 = nl->Sixth ( args );
+  ListExpr attrType4;
+  string aname4 = nl->SymbolValue(attrName4);
+  int j4 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname4,attrType4);
+  if(j4 == 0 || !listutils::isSymbol(attrType4,"point")){
+      return listutils::typeError("attr name " + aname4 + "not found"
+                      "or not of type point");
+  }
+  
+  ListExpr attrName5 = nl->Nth (7, args );
+  ListExpr attrType5;
+  string aname5 = nl->SymbolValue(attrName5);
+  int j5 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname5,attrType5);
+  if(j5 == 0 || !listutils::isSymbol(attrType5,"point")){
+      return listutils::typeError("attr name " + aname5 + "not found"
+                      "or not of type point");
+  }
+  
+  ListExpr attrName6 = nl->Nth (8, args );
+  ListExpr attrType6;
+  string aname6 = nl->SymbolValue(attrName6);
+  int j6 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname6,attrType6);
+  if(j6 == 0 || !listutils::isSymbol(attrType6,"int")){
+      return listutils::typeError("attr name " + aname6 + "not found"
+                      "or not of type int");
+  }
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                                        
+                nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Br_id"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_route1"),
+                        nl->SymbolAtom("gline")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_route2"),
+                        nl->SymbolAtom("line")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Start_loc"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("End_loc"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Route_type"),
+                        nl->SymbolAtom("int"))
+
+                    )));
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->SixElemList(nl->IntAtom(j1),nl->IntAtom(j2),
+                        nl->IntAtom(j3),nl->IntAtom(j4),
+                        nl->IntAtom(j5),nl->IntAtom(j6)),res);
+}
+
+
+/*
+TypeMap fun for operator createbusroute3
+translate bus routes 
+
+*/
+
+ListExpr OpTMCreateBusRouteTypeMap3 ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return  nl->SymbolAtom ( "list length should be 5" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be relation" );
+
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::BusRoutesTmpTypeInfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusRoute::BusRoutesTmpTypeInfo);
+  }
+
+  ListExpr attrName1 = nl->Second ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+                      
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  
+  ListExpr attrName2 = nl->Third ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"line"))
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type line");
+
+  ListExpr attrName3 = nl->Fourth ( args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname3,attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"int"))
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type int");
+
+  ListExpr param5 = nl->Fifth ( args );
+  if(!(nl->IsAtom(param5) && nl->AtomType(param5) == SymbolType &&  
+     nl->SymbolValue(param5) == "real")){
+      return nl->SymbolAtom ( "typeerror: param5 should be real" );
+  }
+  
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                                        
+                nl->FiveElemList(
+//                nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Br_id"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_route1"),
+                        nl->SymbolAtom("line")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_route2"),
+                        nl->SymbolAtom("line")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Route_type"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Br_uid"),
+                        nl->SymbolAtom("int"))
+                    )));
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)),res);
+}
+
+/*
+TypeMap fun for operator createbusroute4
+set the up and down bus route
+
+*/
+
+ListExpr OpTMCreateBusRouteTypeMap4 ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 8 )
+  {
+    return  nl->SymbolAtom ( "list length should be 8" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be relation" );
+  
+  
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::NewBusRoutesTmpTypeInfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusRoute::NewBusRoutesTmpTypeInfo);
+  }
+  
+  ListExpr attrName1 = nl->Second ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname1,attrType1);
+                      
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name " + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  
+  ListExpr attrName2 = nl->Third ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"line"))
+      return listutils::typeError("attr name " + aname2 + "not found"
+                      "or not of type line");
+
+  ListExpr attrName3 = nl->Fourth ( args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname3,attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"int"))
+      return listutils::typeError("attr name " + aname3 + "not found"
+                      "or not of type int");
+
+  ListExpr attrName4 = nl->Fifth ( args );
+  ListExpr attrType4;
+  string aname4 = nl->SymbolValue(attrName4);
+  int j4 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname4,attrType4);
+  if(j4 == 0 || !listutils::isSymbol(attrType4,"int"))
+      return listutils::typeError("attr name " + aname4 + "not found"
+                      "or not of type int");
+  
+                      
+   ListExpr param6 = nl->Sixth ( args );
+   if(!IsRelDescription(param6))
+    return nl->SymbolAtom ( "typeerror: param6 should be a relation" );
+
+  ListExpr attrName_a = nl->Nth (7, args );
+  ListExpr attrType_a;
+  string aname_a = nl->SymbolValue(attrName_a);
+  int j_a = listutils::findAttribute(nl->Second(nl->Second(param6)),
+                      aname_a,attrType_a);
+                      
+  if(j_a == 0 || !listutils::isSymbol(attrType_a,"int")){
+      return listutils::typeError("attr name " + aname_a + "not found"
+                      "or not of type int");
+  }
+  
+  ListExpr attrName_b = nl->Nth (8, args );
+  ListExpr attrType_b;
+  string aname_b = nl->SymbolValue(attrName_b);
+  int j_b = listutils::findAttribute(nl->Second(nl->Second(param6)),
+                      aname_b,attrType_b);
+  if(j_b == 0 || !listutils::isSymbol(attrType_b,"bool"))
+      return listutils::typeError("attr name " + aname_b + "not found"
+                      "or not of type bool");
+
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+
+                nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Br_id"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_route"),
+                        nl->SymbolAtom("line")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Route_type"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Br_uid"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_direction"),
+                        nl->SymbolAtom("bool")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("StartSmaller"),
+                        nl->SymbolAtom("bool"))
+                    )));
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->SixElemList(nl->IntAtom(j1), nl->IntAtom(j2),
+                        nl->IntAtom(j3), nl->IntAtom(j4),
+                        nl->IntAtom(j_a),nl->IntAtom(j_b)),res);
+}
+
+/*
+TypeMap fun for operator createbusstops1
+create bus stop
+
+*/
+
+ListExpr OpTMCreateBusStopTypeMap1 ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 9 )
+  {
+    return  nl->SymbolAtom ( "list length should be 6" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
+     nl->SymbolValue(param1) == "network")){
+      return nl->SymbolAtom ( "typeerror: param1 should be network" );
+  }
+
+
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be relation" );
+  
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::BusRoutesTmpTypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusRoute::BusRoutesTmpTypeInfo);
+  }
+
+  ListExpr attrName1 = nl->Third ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  ListExpr attrName2 = nl->Fourth ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"gline"))
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type gline");
+  
+  ListExpr attrName3 = nl->Fifth ( args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3,attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"line"))
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type line");
+
+  ListExpr attrName4 = nl->Sixth ( args );
+  ListExpr attrType4;
+  string aname4 = nl->SymbolValue(attrName4);
+  int j4 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname4,attrType4);
+  if(j4 == 0 || !listutils::isSymbol(attrType4,"int"))
+      return listutils::typeError("attr name" + aname4 + "not found"
+                      "or not of type int");
+
+
+  ListExpr param7 = nl->Nth (7, args );
+  if(!IsRelDescription(param7))
+    return nl->SymbolAtom ( "typeerror: param7 should be relation" );
+  ListExpr xType;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType); 
+  if(!CompareSchemas(param7, xType)){
+    return listutils::typeError("rel2 scheam should be" + 
+                                DualGraph::NodeTypeInfo);
+  }
+
+  ListExpr param8 = nl->Nth (8, args );
+  if(!listutils::isBTreeDescription(param8))
+    return nl->SymbolAtom ( "typeerror: param8 should be a btree" );
+
+  ListExpr param9 = nl->Nth (9, args );
+  if(!IsRelDescription(param9))
+    return nl->SymbolAtom ( "typeerror: param9 should be relation" );
+
+  ListExpr xType2;
+  nl->ReadFromString(BusRoute::BusNetworkParaInfo, xType2); 
+  if(!CompareSchemas(param9, xType2)){
+    return listutils::typeError("rel scheam should be" + 
+                                BusRoute::BusNetworkParaInfo);
+  }
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                                        
+                nl->FourElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Br_id"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop1"),
+                        nl->SymbolAtom("gpoint")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop2"),
+                        nl->SymbolAtom("point"))
+                    )));
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->FourElemList(nl->IntAtom(j1),nl->IntAtom(j2),
+                          nl->IntAtom(j3),nl->IntAtom(j4)),res);
+}
+
+/*
+TypeMap fun for operator createbusstops2
+merge bus stop
+
+*/
+
+ListExpr OpTMCreateBusStopTypeMap2 ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return  nl->SymbolAtom ( "list length should be 5" );
+  }
+
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
+     nl->SymbolValue(param1) == "network")){
+      return nl->SymbolAtom ( "typeerror: param1 should be network" );
+  }
+
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be relation" );
+
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::BusStopTemp1TypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusRoute::BusStopTemp1TypeInfo);
+  }
+
+  ListExpr attrName1 = nl->Third ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name " + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  ListExpr attrName2 = nl->Fourth ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
+      return listutils::typeError("attr name " + aname2 + "not found"
+                      "or not of type int");
+  
+  ListExpr attrName3 = nl->Fifth ( args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname3,attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"gpoint"))
+      return listutils::typeError("attr name " + aname3 + "not found"
+                      "or not of type gpoint");
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+
+                nl->FiveElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Br_id"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop1"),
+                        nl->SymbolAtom("gpoint")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop2"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Sec_id"),
+                        nl->SymbolAtom("int"))
+                    )));
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->ThreeElemList(nl->IntAtom(j1),nl->IntAtom(j2),nl->IntAtom(j3)
+                          ),res);
+}
+
+
+/*
+TypeMap fun for operator createbusstops3
+merge bus stop
+
+*/
+
+ListExpr OpTMCreateBusStopTypeMap3 ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 8 )
+  {
+    return  nl->SymbolAtom ( "list length should be 8" );
+  }
+  
+ 
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
+     nl->SymbolValue(param1) == "network")){
+      return nl->SymbolAtom ( "typeerror: param1 should be network" );
+  }
+
+  ListExpr param2 = nl->Second ( args );
+  if(!IsRelDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param1 should be relation" );
+
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::BusRoutesTmpTypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusRoute::BusRoutesTmpTypeInfo);
+  }
+
+  ListExpr attrName = nl->Third ( args );
+  ListExpr attrType;
+  string aname = nl->SymbolValue(attrName);
+  int j = listutils::findAttribute(nl->Second(nl->Second(param2)),
+                      aname,attrType);
+
+  if(j == 0 || !listutils::isSymbol(attrType,"gline")){
+      return listutils::typeError("attr name" + aname + "not found"
+                      "or not of type gline");
+  }
+  
+  
+  ListExpr param4 = nl->Fourth ( args );
+  if(!IsRelDescription(param4))
+    return nl->SymbolAtom ( "typeerror: param4 should be a relation" );
+  
+  
+  ListExpr attrName1 = nl->Fifth ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname1,attrType1);
+
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  ListExpr attrName2 = nl->Sixth ( args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type int");
+  
+  ListExpr attrName3 = nl->Nth (7, args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname3,attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"gpoint"))
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type gpoint");
+
+  ListExpr param8 = nl->Nth (8, args );
+  if(!listutils::isBTreeDescription(param8)) 
+    return nl->SymbolAtom ( "typeerror: param7 should be btree" );
+  
+  
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+
+//                nl->FourElemList(
+                nl->FiveElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Br_id"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop1"),
+                        nl->SymbolAtom("gpoint")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop2"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("StartSmaller"),
+                        nl->SymbolAtom("bool"))
+                    )));
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->FourElemList(nl->IntAtom(j),nl->IntAtom(j1),nl->IntAtom(j2),
+                         nl->IntAtom(j3)),res);
+}
+
+
+/*
+TypeMap fun for operator createbusstops4
+new position for bus stops (id,pos) after translate bus route: down and up 
+and get the pos value for each kind of bus stop 
+
+*/
+
+ListExpr OpTMCreateBusStopTypeMap4 ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 8 )
+  {
+    return  nl->SymbolAtom ( "list length should be 8" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::NewBusRoutesTmpTypeInfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusRoute::NewBusRoutesTmpTypeInfo);
+  }
+
+  ListExpr attrName_a = nl->Second ( args );
+  ListExpr attrType_a;
+  string aname_a = nl->SymbolValue(attrName_a);
+  int j_1 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname_a,attrType_a);
+
+  if(j_1 == 0 || !listutils::isSymbol(attrType_a,"line")){
+      return listutils::typeError("attr name " + aname_a + "not found"
+                      "or not of type line");
+  }
+  
+  
+  ListExpr attrName_b = nl->Third ( args );
+  ListExpr attrType_b;
+  string aname_b = nl->SymbolValue(attrName_b);
+  int j_2 = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname_b,attrType_b);
+                      
+  if(j_2 == 0 || !listutils::isSymbol(attrType_b,"line")){
+      return listutils::typeError("attr name " + aname_b + "not found"
+                      "or not of type line");
+  }
+  
+  
+  ListExpr param4 = nl->Fourth ( args );
+  if(!IsRelDescription(param4))
+    return nl->SymbolAtom ( "typeerror: param4 should be a relation" );
+  
+  
+  ListExpr attrName1 = nl->Fifth ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname1,attrType1);
+                      
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name " + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  ListExpr attrName2 = nl->Sixth (args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
+      return listutils::typeError("attr name " + aname2 + "not found"
+                      "or not of type int");
+  
+  ListExpr attrName3 = nl->Nth (7, args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname3,attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"point"))
+      return listutils::typeError("attr name " + aname3 + "not found"
+                      "or not of type point");
+
+                      
+  ListExpr attrName4 = nl->Nth (8, args );
+  ListExpr attrType4;
+  string aname4 = nl->SymbolValue(attrName4);
+  int j4 = listutils::findAttribute(nl->Second(nl->Second(param4)),
+                      aname4, attrType4);
+  if(j4 == 0 || !listutils::isSymbol(attrType4,"bool"))
+      return listutils::typeError("attr name " + aname4 + "not found"
+                      "or not of type bool");
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                  nl->Cons(
+                   nl->TwoElemList(
+                        nl->SymbolAtom("Br_id"),
+                        nl->SymbolAtom("int")),
+                   nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Br_uid"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop1"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop2"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_pos"),
+                        nl->SymbolAtom("real")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Stop_loc_id"),
+                        nl->SymbolAtom("int"))
+                    ))));
+
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->SixElemList(nl->IntAtom(j_1),nl->IntAtom(j_2),nl->IntAtom(j1),
+                         nl->IntAtom(j2),nl->IntAtom(j3),
+                         nl->IntAtom(j4)),res);
+
+}
+
+
+/*
+TypeMap fun for operator createbusstops5
+set up and down value for each bus stop 
+
+*/
+
+ListExpr OpTMCreateBusStopTypeMap5 ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 8 )
+  {
+    return  nl->SymbolAtom ( "list length should be 8" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+  
+  ListExpr xType1;
+  nl->ReadFromString(BusRoute::FinalBusRoutesTypeInfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusRoute::FinalBusRoutesTypeInfo);
+  }
+  
+  ListExpr attrName = nl->Second ( args );
+  ListExpr attrType;
+  string aname = nl->SymbolValue(attrName);
+  int j = listutils::findAttribute(nl->Second(nl->Second(param1)),
+                      aname,attrType);
+                      
+  if(j == 0 || !listutils::isSymbol(attrType,"bool")){
+      return listutils::typeError("attr name" + aname + "not found"
+                      "or not of type bool");
+  }
+  
+    
+  ListExpr param3 = nl->Third ( args );
+  if(!IsRelDescription(param3))
+    return nl->SymbolAtom ( "typeerror: param3 should be a relation" );
+  
+  
+  ListExpr attrName1 = nl->Fourth ( args );
+  ListExpr attrType1;
+  string aname1 = nl->SymbolValue(attrName1);
+  int j1 = listutils::findAttribute(nl->Second(nl->Second(param3)),
+                      aname1,attrType1);
+                      
+  if(j1 == 0 || !listutils::isSymbol(attrType1,"int")){
+      return listutils::typeError("attr name" + aname1 + "not found"
+                      "or not of type int");
+  }
+  
+  ListExpr attrName2 = nl->Fifth (args );
+  ListExpr attrType2;
+  string aname2 = nl->SymbolValue(attrName2);
+  int j2 = listutils::findAttribute(nl->Second(nl->Second(param3)),
+                      aname2,attrType2);
+  if(j2 == 0 || !listutils::isSymbol(attrType2,"int"))
+      return listutils::typeError("attr name" + aname2 + "not found"
+                      "or not of type int");
+  
+  ListExpr attrName3 = nl->Sixth ( args );
+  ListExpr attrType3;
+  string aname3 = nl->SymbolValue(attrName3);
+  int j3 = listutils::findAttribute(nl->Second(nl->Second(param3)),
+                      aname3,attrType3);
+  if(j3 == 0 || !listutils::isSymbol(attrType3,"int"))
+      return listutils::typeError("attr name" + aname3 + "not found"
+                      "or not of type int");
+
+                      
+  ListExpr attrName4 = nl->Nth (7, args );
+  ListExpr attrType4;
+  string aname4 = nl->SymbolValue(attrName4);
+  int j4 = listutils::findAttribute(nl->Second(nl->Second(param3)),
+                      aname4, attrType4);
+  if(j4 == 0 || !listutils::isSymbol(attrType4,"point"))
+      return listutils::typeError("attr name" + aname4 + "not found"
+                      "or not of type point");
+                      
+  ListExpr attrName5 = nl->Nth (8, args );
+  ListExpr attrType5;
+  string aname5 = nl->SymbolValue(attrName5);
+  int j5 = listutils::findAttribute(nl->Second(nl->Second(param3)),
+                      aname5, attrType5);
+  if(j5 == 0 || !listutils::isSymbol(attrType5,"real"))
+      return listutils::typeError("attr name" + aname5 + "not found"
+                      "or not of type real");
+                      
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+
+                nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Br_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Br_uid"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop"),
+                        nl->SymbolAtom("point")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_pos"),
+                        nl->SymbolAtom("real")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Stop_direction"),
+                        nl->SymbolAtom("bool"))
+                    )));
+
+
+      return nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+        nl->SixElemList(nl->IntAtom(j),nl->IntAtom(j1),nl->IntAtom(j2),
+                         nl->IntAtom(j3),nl->IntAtom(j4),
+                         nl->IntAtom(j5)),res);
+
+}
+
+
+/*
+TypeMap fun for operator getbusstops
+
+*/
+
+ListExpr OpTMGetBusStopsTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+
+  ListExpr xType1;
+  nl->ReadFromString(RoadDenstiy::bus_stop_typeinfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+    return listutils::typeError("rel11 scheam should be" + 
+                                RoadDenstiy::bus_stop_typeinfo);
+  }
+
+  ListExpr param2 = nl->Second ( args );
+  if(!listutils::isBTreeDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be a btree" );
+
+
+  ListExpr param3 = nl->Third ( args );
+  if(!IsRelDescription(param3))
+    return nl->SymbolAtom ( "typeerror: param3 should be a relation" );
+
+  ListExpr xType2;
+  nl->ReadFromString(RoadDenstiy::bus_route_typeinfo, xType2); 
+  if(!CompareSchemas(param3, xType2)){
+    return listutils::typeError("rel3 scheam should be" + 
+                                RoadDenstiy::bus_route_typeinfo);
+  }
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+//                nl->OneElemList(
+                nl->TwoElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop"),
+                        nl->SymbolAtom("busstop")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Stop_geodata"),
+                        nl->SymbolAtom("point"))
+                    )));
+      return res;
+}
+
+/*
+TypeMap fun for operator getbusroutes
+
+*/
+
+ListExpr OpTMGetBusRoutesTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 3 )
+  {
+    return  nl->SymbolAtom ( "list length should be 3" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!IsRelDescription(param1))
+    return nl->SymbolAtom ( "typeerror: param1 should be a relation" );
+
+  ListExpr xType1;
+  nl->ReadFromString(RoadDenstiy::bus_stop_typeinfo, xType1); 
+  if(!CompareSchemas(param1, xType1)){
+    return listutils::typeError("rel11 scheam should be" + 
+                                RoadDenstiy::bus_stop_typeinfo);
+  }
+
+  ListExpr param2 = nl->Second ( args );
+  if(!listutils::isBTreeDescription(param2))
+    return nl->SymbolAtom ( "typeerror: param2 should be a btree" );
+
+
+  ListExpr param3 = nl->Third ( args );
+  if(!IsRelDescription(param3))
+    return nl->SymbolAtom ( "typeerror: param3 should be a relation" );
+
+  ListExpr xType2;
+  nl->ReadFromString(RoadDenstiy::bus_route_typeinfo, xType2); 
+  if(!CompareSchemas(param3, xType2)){
+    return listutils::typeError("rel3 scheam should be" + 
+                                RoadDenstiy::bus_route_typeinfo);
+  }
+
+     ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->TwoElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Br_id"),
+                        nl->SymbolAtom("int")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_route"),
+                        nl->SymbolAtom("busroute"))
+                    )));
+      return res;
+}
+
+
+/*
+TypeMap fun for operator brgeodata 
+
+*/
+
+ListExpr OpTMBRGeoDataTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "list length should be 1" );
+  }
+  ListExpr param1 = nl->First(args); 
+  
+ if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+     nl->SymbolValue(param1) == "busroute")){
+      return nl->SymbolAtom ( "typeerror: param should be busroute" );
+  }
+  return nl->SymbolAtom ( "sline" );
+
+}
+
+
+/*
+TypeMap fun for operator bsgeodata 
+
+*/
+
+ListExpr OpTMBSGeoDataTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "list length should be 2" );
+  }
+  ListExpr param1 = nl->First(args); 
+  ListExpr param2 = nl->Second(args); 
+  
+ if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+     nl->SymbolValue(param1) == "busstop" && nl->IsAtom(param2) && 
+     nl->AtomType(param2) == SymbolType &&
+     (nl->SymbolValue(param2) == "busroute"||
+      nl->SymbolValue(param2) == "busnetwork"))){
+      return nl->SymbolAtom ( "typeerror: busstop x busroute expected" );
+  }
+  return nl->SymbolAtom ( "point" );
+}
+
+/*
+TypeMap fun for operator getstopid
+
+*/
+
+ListExpr OpTMGetStopIdTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "list length should be 1" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
+     nl->SymbolValue(param1) == "busstop")){
+      return nl->SymbolAtom ( "typeerror: param should be busstop" );
+  }
+  return nl->SymbolAtom ( "int" );
+}
+
+/*
+TypeMap fun for operator up down
+
+*/
+
+ListExpr OpTMUpDownTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "list length should be 1" );
+  }
+
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->SymbolValue(param1) == "busstop" ||
+       nl->SymbolValue(param1) == "busroute")){
+      return nl->SymbolAtom ( "typeerror: param should be busstop" );
+  }
+  return nl->SymbolAtom ( "bool" );
+}
+
+/*
+TypeMap fun for operator thepavement 
+
+*/
+ListExpr OpTMThePavementTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "list length should be 2" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
+     nl->SymbolValue(param1) == "int")){
+      return nl->SymbolAtom ( "typeerror: param1 should be int" );
+  }
+  
+  ListExpr param2 = nl->Second ( args );
+  
+  ListExpr xType1;
+//  nl->ReadFromString(Pavement::PaveTypeInfo, xType1);
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+/*    return listutils::typeError("rel1 scheam should be" + 
+                                Pavement::PaveTypeInfo);*/
+    return listutils::typeError("rel1 scheam should be" + 
+                                DualGraph::NodeTypeInfo);
+
+  }
+  
+  return nl->SymbolAtom ( "pavenetwork" );
+}
+
+
+/*
+TypeMap fun for operator thebusnetwork
+
+*/
+ListExpr OpTMTheBusNetworkTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 4 )
+  {
+    return  nl->SymbolAtom ( "list length should be 4" );
+  }
+  
+  ListExpr param1 = nl->First ( args );
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&  
+     nl->SymbolValue(param1) == "int")){
+      return nl->SymbolAtom ( "typeerror: param1 should be int" );
+  }
+  
+  ListExpr param2 = nl->Second ( args );
+  
+  ListExpr xType1;
+  nl->ReadFromString(BusNetwork::BusStopsTypeInfo, xType1); 
+  if(!CompareSchemas(param2, xType1)){
+    return listutils::typeError("rel1 scheam should be" + 
+                                BusNetwork::BusStopsTypeInfo);
+  }
+  
+ 
+  ListExpr param3 = nl->Third ( args );
+  ListExpr xType2;
+  nl->ReadFromString(BusNetwork::BusRoutesTypeInfo, xType2); 
+  if(!CompareSchemas(param3, xType2)){
+    return listutils::typeError("rel2 scheam should be" + 
+                                BusNetwork::BusRoutesTypeInfo);
+  }
+ 
+  ListExpr param4 = nl->Fourth ( args );
+  ListExpr xType3;
+  nl->ReadFromString(BusNetwork::BusTripsTypeInfo, xType3); 
+  if(!CompareSchemas(param4, xType3)){
+    return listutils::typeError("rel3 scheam should be" + 
+                                BusNetwork::BusTripsTypeInfo);
+  }
+  
+  return nl->SymbolAtom ( "busnetwork" );
+}
+
+
+
+/*
+TypeMap fun for operator busstops
+
+*/
+ListExpr OpTMBusStopsTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "list length should be 1" );
+  }
+  
+  ListExpr param1 = nl->First(args);
+  if(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+     nl->SymbolValue(param1) == "busnetwork"){
+  
+         ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->OneElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop"),
+                        nl->SymbolAtom("busstop"))
+                    )));
+      return res;
+  }
+  return nl->SymbolAtom("typeerror"); 
+
+}
+
+
+/*
+TypeMap fun for operator busroutes
+
+*/
+ListExpr OpTMBusRoutesTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "list length should be 1" );
+  }
+  
+  ListExpr param1 = nl->First(args);
+  if(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+     nl->SymbolValue(param1) == "busnetwork"){
+  
+         ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->OneElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_route"),
+                        nl->SymbolAtom("busroute"))
+                    )));
+      return res;
+  }
+  return nl->SymbolAtom("typeerror"); 
+
+}
+
+/*
+TypeMap fun for operator brsegments
+
+*/
+ListExpr OpTMBRSegmentTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return  nl->SymbolAtom ( "list length should be 2" );
+  }
+
+  ListExpr param1 = nl->First(args);
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+     nl->SymbolValue(param1) == "line"))
+      return nl->SymbolAtom("typeerror");
+
+  ListExpr param2 = nl->Second(args); 
+  if(!(nl->IsAtom(param2) && nl->AtomType(param2) == SymbolType &&
+     nl->SymbolValue(param2) == "line"))
+      return nl->SymbolAtom("typeerror");
+
+  ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->ThreeElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Segment"),
+                        nl->SymbolAtom("line")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("USegment"),
+                        nl->SymbolAtom("line")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Type"),
+                        nl->SymbolAtom("int"))
+                    )));
+  return res;
+}
+
+/*
+TypeMap fun for operator mapbstopave
+
+*/
+ListExpr OpTMMapBsToPaveTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return  nl->SymbolAtom ( "list length should be 5" );
+  }
+
+  ListExpr param1 = nl->First(args);
+  if(!(nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
+     nl->SymbolValue(param1) == "busnetwork"))
+      return nl->SymbolAtom("typeerror");
+
+  ListExpr param2 = nl->Second(args); 
+  if(!listutils::isRTreeDescription(param2))
+      return nl->SymbolAtom("typeerror");
+
+  ListExpr param3 = nl->Third(args); 
+  ListExpr xType;
+  nl->ReadFromString(DualGraph::NodeTypeInfo, xType); 
+  if(!listutils::isRelDescription(param3) || !CompareSchemas(param3, xType))
+      return nl->SymbolAtom("typeerror");
+
+
+  ListExpr param4 = nl->Fourth(args);
+  if(!(nl->IsAtom(param4) && nl->AtomType(param4) == SymbolType &&
+      nl->SymbolValue(param4) == "int"))
+      return nl->SymbolAtom("typeerror");
+
+ ListExpr param5 = nl->Fifth(args);
+  if(!(nl->IsAtom(param5) && nl->AtomType(param5) == SymbolType &&
+      nl->SymbolValue(param5) == "real"))
+      return nl->SymbolAtom("typeerror");
+  
+  ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->ThreeElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop"),
+                        nl->SymbolAtom("busstop")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Pave_loc1"),
+                        nl->SymbolAtom("genloc")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Pave_loc2"),
+                        nl->SymbolAtom("point"))
+                    )));
+  return res;
+}
+
+/*
+TypeMap fun for operator bsneighbors1 
+
+*/
+ListExpr OpTMBsNeighbors1TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return  nl->SymbolAtom ( "list length should be 5" );
+  }
+
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+
+
+  if(!(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "dualgraph"))
+    return nl->SymbolAtom ( "typeerror: param1 should be dual graph");
+
+  if(!(nl->IsAtom(arg2) && nl->AtomType(arg2) == SymbolType &&
+     nl->SymbolValue(arg2) == "visualgraph" ))
+    return nl->SymbolAtom ( "typeerror: param2 should be visibility graph");
+
+  ListExpr arg3 = nl->Third ( args );
+  if(!IsRelDescription(arg3))
+  return listutils::typeError("param3 should be a relation");
+  
+  ListExpr xType1;
+  nl->ReadFromString(DualGraph::TriangleTypeInfo3, xType1);
+  if(!CompareSchemas(arg3, xType1))
+    return nl->SymbolAtom ( "rel1 scheam should be" + 
+                                DualGraph::TriangleTypeInfo3 );
+  
+  
+  ListExpr arg4 = nl->Fourth ( args );
+  if(!listutils::isRelDescription(arg4))
+      return nl->SymbolAtom("typeerror:param4 should be a relation");
+
+  ListExpr xType2;
+  nl->ReadFromString(BN::BusStopsPaveTypeInfo, xType2); 
+  if(!CompareSchemas(arg4, xType2)){
+    return listutils::typeError("rel2 scheam should be" + 
+                                BN::BusStopsPaveTypeInfo);
+  }
+
+  ListExpr arg5 = nl->Fifth ( args );
+  if(!listutils::isRTreeDescription(arg5))
+      return nl->SymbolAtom("typeerror:param5 should be an rtree");
+
+
+    ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->Cons(
+                  nl->TwoElemList(
+                        nl->SymbolAtom("Bus_uoid"),
+                        nl->SymbolAtom("int")), 
+                  nl->SixElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop1"),
+                        nl->SymbolAtom("busstop")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop2"),
+                        nl->SymbolAtom("busstop")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Path"),
+                        nl->SymbolAtom("sline")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("SubPath1"),
+                        nl->SymbolAtom("sline")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("SubPath2"),
+                        nl->SymbolAtom("sline")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Path2"),
+                        nl->SymbolAtom("sline")))
+                    )));
+  return res;
+
+}
+
+/*
+TypeMap fun for operator bsneighbors2 
+
+*/
+ListExpr OpTMBsNeighbors2TypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return  nl->SymbolAtom ( "list length should be 1" );
+  }
+
+  ListExpr arg1 = nl->First(args);
+
+  if(!(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "busnetwork"))
+    return nl->SymbolAtom ( "typeerror: param1 should be busnetwork");
+
+    ListExpr res = nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->ThreeElemList(
+                nl->TwoElemList(
+                        nl->SymbolAtom("Bus_uoid"),
+                        nl->SymbolAtom("int")), 
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop1"),
+                        nl->SymbolAtom("busstop")),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Bus_stop2"),
+                        nl->SymbolAtom("busstop"))
+                    )));
+  return res;
+
+}
 
 /////////////////////////////////////////////////////////////////////
 ////////////// index on generic moving objects/////////////////////
 ////////////////////////////////////////////////////////////////////
+ListExpr TMRTreeProp()
+{
+  ListExpr examplelist = nl->TextAtom();
+  nl->AppendText(examplelist,
+    "<relation> createtmrtree [<attrname>]"
+    " where <attrname> is the key of type rect3");
+
+  return
+    (nl->TwoElemList(
+         nl->TwoElemList(nl->StringAtom("Creation"),
+                         nl->StringAtom("Example Creation")),
+         nl->TwoElemList(examplelist,
+                         nl->StringAtom("(let tmrtree = genmounits"
+                         " creatrtree [Box])"))));
+}
+
+
+bool CheckTMRTree(ListExpr type, ListExpr& errorInfo)
+{
+  return  nl->IsEqual( type, TM_RTree<3,TupleId>::BasicType());
+}
 
 /*
 Type Constructor object for type constructor tmrtree

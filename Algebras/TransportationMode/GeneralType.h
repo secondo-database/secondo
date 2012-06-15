@@ -59,7 +59,7 @@ Jan, 2011 Jianqiu xu
 #include "GSLAlgebra.h"
 #include "Indoor2.h"
 #include "ArrayAlgebra.h"
-
+#include <bitset>
 
 
 /*
@@ -103,6 +103,25 @@ inline string GetTMStr(int tm)
   assert(0 <= tm && tm < tm_size);
   return str_tm[tm];
 }
+
+inline string GetModeString(long tm)
+{
+  bitset<ARR_SIZE(str_tm)> mode(tm);
+  string str;
+  for(unsigned int i = 0;i < ARR_SIZE(str_tm);i++){
+    if(mode.test(ARR_SIZE(str_tm) - 1 - i)){
+      if(str.size() == 0) str = str_tm[i];
+      else{
+        str +=";";
+        str += str_tm[i];
+      }
+    }
+  
+  }
+  return str;
+}
+
+
 ///////////////////////////////////////////////////////////////////////////
 ///////////////////// symbol reference data type  //////////////////////////
 ///////////////////////////////////////////////////////////////////////////

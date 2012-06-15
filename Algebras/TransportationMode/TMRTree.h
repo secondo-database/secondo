@@ -58,9 +58,13 @@ extern QueryProcessor* qp;
 #define BBox Rectangle
 #define BBoxSet RectangleSet
 
+
 /*
 4 Class TMTreeNode
 This is a node in the TMR-Tree.
+we can not simply derive this tmrtreenode from rtreenode class because 
+of the following two functions: read() and write(). we have to store the tm
+value after count and leaf. 
 
 */
 template<unsigned dim, class LeafInfo>
@@ -73,7 +77,8 @@ class TM_RTreeNode
     ~TM_RTreeNode();
 
     static int SizeOfEmptyNode() {
-      return sizeof( bool ) + sizeof( int ); 
+//      return sizeof( bool ) + sizeof( int ); 
+        return sizeof(bool) + sizeof(int) + sizeof(long);// plus tm
     };
 
     int Size() const;
@@ -189,6 +194,8 @@ Converts a leaf node to an internal one. The node must be empty.
     void SetModified(){modified = true;}
 //////////////////////////////////////////////////////
 
+    long GetTMValue(){return tm;}
+    void SetTMValue(long m){tm = m; modified = true;}
 
   private:
     bool leaf;
@@ -254,11 +261,13 @@ two groups with bounding boxes ~b1~ and ~b2~, respectively.
 
 */
 
+    long tm; ///////////transportation mode
 };
 
 
 /*
 The constructors for TMRtree node
+minentries:  24 maxentries: 62
 
 */
 template<unsigned dim, class LeafInfo>
@@ -270,11 +279,12 @@ TM_RTreeNode<dim, LeafInfo>::TM_RTreeNode( const bool leaf,
   maxEntries( max ),
   count( 0 ),
   entries( new R_TreeEntry<dim>*[ max + 1 ] ),
-  modified( true )
+  modified( true ), tm(-1)
 {
   for( int i = 0; i <= maxEntries; i++ ){
     entries[ i ] = 0;
   }
+//  cout<<MinEntries()<<" "<<MaxEntries()<<endl;
 }
 
 template<unsigned dim, class LeafInfo>
@@ -285,7 +295,7 @@ TM_RTreeNode(const TM_RTreeNode<dim, LeafInfo>& node):
   maxEntries( node.maxEntries ),
   count( node.count ),
   entries( new R_TreeEntry<dim>*[ node.maxEntries + 1 ] ),
-  modified( true )
+  modified( true ), tm(node.tm)
 {
   int i;
   for( i = 0; i < node.EntryCount(); i++ )
@@ -364,8 +374,8 @@ TM_RTreeNode<dim, LeafInfo>& TM_RTreeNode<dim, LeafInfo>::operator=
           ( (R_TreeInternalEntry<dim>&)*node.entries[ i ] );
     }
   }
-
-
+  
+  tm = node.tm;
   return *this;
 }
 
@@ -886,6 +896,11 @@ void TM_RTreeNode<dim, LeafInfo>::Read( SmiRecord& record )
   memcpy( &count, buffer + offset, sizeof( count ) );
   offset += sizeof( count );
 
+  ///////////////read tm ///////////////////
+  memcpy( &tm, buffer + offset, sizeof( tm ) );
+  offset += sizeof( tm );
+
+
   assert( count <= maxEntries );
 
   // Now read the entry array.
@@ -901,6 +916,8 @@ void TM_RTreeNode<dim, LeafInfo>::Read( SmiRecord& record )
 
   assert(offset<=(int)readed); // otherwise some entries will be uninitialized
   modified = false;
+  
+  
 }
 
 template<unsigned dim, class LeafInfo>
@@ -932,6 +949,10 @@ void TM_RTreeNode<dim, LeafInfo>::Write( SmiRecord& record )
     offset += sizeof( leaf );
     memcpy( buffer + offset, &count, sizeof( count ) );
     offset += sizeof( count );
+
+    //////////////////////write tm ////////////////////////
+    memcpy( buffer + offset, &tm, sizeof( tm ) );
+    offset += sizeof( tm );
 
     //cout << "TM_RTreeNode<dim, LeafInfo>::Write(): count/maxEntries = "
     //     << count << "/" << maxEntries << "." << endl;
@@ -1297,11 +1318,10 @@ ID of the next tuple if there is a next tuple else it returns false
 
   bool getFileStats( SmiStatResultType &result );
 
-////////////
-
   bool InitializeBLI(const bool& leafSkipping=BULKLOAD_LEAF_SKIPPING);
 
-
+  bool CalculateTM(Relation* rel, int);
+  long CalculateNodeTM(SmiRecordId nodeid, Relation* rel, int attr_pos);
 ///////////
   private:
     bool fileOwner;
@@ -2951,6 +2971,7 @@ void TM_RTree<dim, LeafInfo>::InsertBulkLoad(TM_RTreeNode<dim, LeafInfo> *node,
                                      header.minInternalEntries,
                                      header.maxInternalEntries);
   }
+
   bli->nodeCount++;
 
   // finally, insert the original entry passed as argument
@@ -3312,28 +3333,6 @@ ListExpr OutTMRTree(ListExpr typeInfo, Word value)
 
 }
 
-ListExpr TMRTreeProp()
-{
-  ListExpr examplelist = nl->TextAtom();
-  nl->AppendText(examplelist,
-    "<relation> createtmrtree [<attrname>]"
-    " where <attrname> is the key of type rect3");
-
-  return
-    (nl->TwoElemList(
-         nl->TwoElemList(nl->StringAtom("Creation"),
-                         nl->StringAtom("Example Creation")),
-         nl->TwoElemList(examplelist,
-                         nl->StringAtom("(let tmrtree = genmounits"
-                         " creatrtree [Box])"))));
-}
-
-bool CheckTMRTree(ListExpr type, ListExpr& errorInfo)
-{
-  cout<<"CheckTMRTree "<<nl->ListLength(type)<<endl;
-  return  nl->IsEqual( type, TM_RTree<3,TupleId>::BasicType());
-}
-
 /*
 6.2 ~In~-function
 
@@ -3551,6 +3550,102 @@ bool TM_RTree<dim,LeafInfo>::InitializeBLI(const bool& leafSkipping)
     bulkMode = true;
     bli = new TM_BulkLoadInfo<dim,LeafInfo>(leafSkipping);
     return true;
+}
+
+/*
+calculate the transportation mode for each node
+from bottom to up
+
+*/
+template <unsigned dim, class LeafInfo>
+bool TM_RTree<dim,LeafInfo>::CalculateTM(Relation* rel, int attr_pos)
+{
+
+  SmiRecordId node_id = RootRecordId();
+  long tm = CalculateNodeTM(node_id, rel, attr_pos);
+
+  TM_RTreeNode<3, TupleId>* node = 
+                     GetMyNode(node_id,false, MinEntries(0), MaxEntries(0));
+
+  ////////////write the value ///////////////
+  node->SetTMValue(tm);
+  node->Write(file, node_id);
+
+  delete node;
+
+  return true;
+}
+
+/*
+recursively calling the son node 
+
+*/
+template <unsigned dim, class LeafInfo>
+long TM_RTree<dim,LeafInfo>::CalculateNodeTM(SmiRecordId nodeid, 
+                                             Relation* rel, int attr_pos)
+{
+   TM_RTreeNode<3, TupleId>* node = GetMyNode(nodeid,false,
+                                    MinEntries(0), MaxEntries(0));
+
+   if(node->IsLeaf()){
+
+       int pos = -1;
+//     //////////////for testing////////////////
+      for(int j = 0;j < node->EntryCount();j++){
+
+       R_TreeLeafEntry<3, TupleId> e =
+                 (R_TreeLeafEntry<3, TupleId>&)(*node)[j];
+       Tuple* tuple = rel->GetTuple(e.info, false);
+       int m = ((CcInt*)tuple->GetAttribute(attr_pos))->GetIntval();//bit index
+       tuple->DeleteIfAllowed();
+// //      cout<<"j "<<j<<" tm "<<GetTMStr(m)<<endl;
+ //      pos = (int)ARR_SIZE(str_tm) - 1 - m;
+       if(pos < 0) pos = (int)(ARR_SIZE(str_tm) - 1 - m);
+       else assert(pos == (int)(ARR_SIZE(str_tm) - 1 - m));
+      }
+      /////////checking for leaf node, mode should be the same///////////////
+
+      bitset<ARR_SIZE(str_tm)> modebits;
+      modebits.reset();
+      modebits.set(pos, 1);
+      long tm = modebits.to_ulong();
+//       cout<<"leaf node "<<nodeid<<endl;
+//       cout<<tm<<" "<<modebits.to_string()<<" "<<GetModeString(tm)<<endl;
+
+      node->SetTMValue(tm);
+      node->Write(file, nodeid);
+      delete node;
+
+      return tm;
+
+   }else{
+      bitset<ARR_SIZE(str_tm)> modebits;
+      modebits.reset();
+        for(int j = 0;j < node->EntryCount();j++){
+
+          R_TreeInternalEntry<3> e =
+                (R_TreeInternalEntry<3>&)(*node)[j];
+         int son_tm = CalculateNodeTM(e.pointer, rel, attr_pos);
+
+         bitset<ARR_SIZE(str_tm)> m_bit(son_tm);
+//         ///////////// union value of each son tm to tm//////////////
+// /*        cout<<"new one "<<m_bit.to_string()
+//             <<" before "<<modebits.to_string()<<endl;*/
+         modebits = modebits | m_bit;
+// //        cout<<"after"<<modebits.to_string()<<endl;
+// 
+       }
+
+       long tm = modebits.to_ulong();
+//     cout<<"non leaf node "<<nodeid<<endl;
+//       cout<<modebits.to_ulong()<<" "<<modebits.to_string()
+//            <<" "<<GetModeString(tm)<<endl;
+       node->SetTMValue(tm);
+       node->Write(file, nodeid);
+       delete node;
+       return tm;
+   }
+
 }
 
 /*

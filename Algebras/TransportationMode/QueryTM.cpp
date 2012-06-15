@@ -1247,22 +1247,13 @@ void QueryTM::CollectIndoorFree(int& i, int oid, int m,
   i = j - 1;
 }
 
+/*
+decompose the genmo considering a sequence of modes
+
+*/
 void QueryTM::DecomposeGenmo_1(Relation* genmo_rel)
 {
   cout<<genmo_rel->GetNoTuples()<<endl;
-
-}
-
-/*
-calculate the transportation mode value for each TMRtree node
-
-*/
-void QueryTM::TMRtreeNodes(R_Tree<3, TupleId>* tmrtree, Relation* rel, 
-                           int attr_pos)
-{
-
-  SmiRecordId node_id = tmrtree->RootRecordId();
-  Node_TM(tmrtree, rel, node_id, attr_pos);
 
 }
 
@@ -1278,7 +1269,6 @@ unsigned long QueryTM::Node_TM(R_Tree<3, TupleId>* tmrtree, Relation* rel,
   R_TreeNode<3, TupleId>* node = tmrtree->GetMyNode(nodeid,false,
                   tmrtree->MinEntries(0), tmrtree->MaxEntries(0));
 
-
   if(node->IsLeaf()){
     cout<<"leaf node "<<nodeid<<endl;
     int pos = -1;
@@ -1292,8 +1282,8 @@ unsigned long QueryTM::Node_TM(R_Tree<3, TupleId>* tmrtree, Relation* rel,
       tuple->DeleteIfAllowed();
 //      cout<<"j "<<j<<" tm "<<GetTMStr(m)<<endl;
 //      pos = (int)ARR_SIZE(str_tm) - 1 - m;
-      if(pos < 0) pos = (int)ARR_SIZE(str_tm) - 1 - m;
-      else assert(pos == (int)ARR_SIZE(str_tm) - 1 - m);
+      if(pos < 0) pos = (int)(ARR_SIZE(str_tm) - 1 - m);
+      else assert(pos == (int)(ARR_SIZE(str_tm) - 1 - m));
     }
 
 
@@ -1344,4 +1334,69 @@ unsigned long QueryTM::Node_TM(R_Tree<3, TupleId>* tmrtree, Relation* rel,
 
 }
 
+/*
+get nodes of TM-RTree
 
+*/
+void QueryTM::TM_RTreeNodes(TM_RTree<3,TupleId>* tmrtree)
+{
+
+  SmiRecordId node_id = tmrtree->RootRecordId();
+  int level = 0;
+  GetNodes(tmrtree, node_id, level);
+}
+
+/*
+get nodes information 
+
+*/
+void QueryTM::GetNodes(TM_RTree<3, TupleId>* tmrtree, SmiRecordId nodeid, 
+                       int level)
+{
+
+  TM_RTreeNode<3, TupleId>* node = tmrtree->GetMyNode(nodeid,false,
+                  tmrtree->MinEntries(0), tmrtree->MaxEntries(0));
+
+  if(node->IsLeaf()){
+    long m = node->GetTMValue();
+//    cout<<"leaf node "<<nodeid<<" m "<<m<<" "<<GetModeString(m)<<endl;
+    bitset<ARR_SIZE(str_tm)> mode_bit(m);
+    assert(mode_bit.count() == 1);//one mode in a leaf node
+
+    ///////////////output result///////////////////////////////
+    oid_list.push_back(nodeid);
+    level_list.push_back(level);
+    b_list.push_back(true);
+    str_list.push_back(GetModeString(m));
+    mode_list.push_back(m);
+    box_list.push_back(node->BoundingBox());
+    entry_list.push_back(node->EntryCount());
+
+    delete node;
+
+  }else{
+
+     for(int j = 0;j < node->EntryCount();j++){
+
+        R_TreeInternalEntry<3> e =
+               (R_TreeInternalEntry<3>&)(*node)[j];
+        GetNodes(tmrtree, e.pointer, level + 1);
+      }
+      long m = node->GetTMValue();
+//      cout<<"non leaf node "<<nodeid<<" m "<<m<<endl;
+
+      oid_list.push_back(nodeid);
+      level_list.push_back(level);
+      b_list.push_back(false);
+      str_list.push_back(GetModeString(m));
+      mode_list.push_back(m);
+      box_list.push_back(node->BoundingBox());
+      entry_list.push_back(node->EntryCount());
+
+      delete node;
+
+      //////////////////////////////////////////////////////
+
+  }
+
+}

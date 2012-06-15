@@ -69,6 +69,7 @@ March, 2011 Jianqiu xu
 #include "PaveGraph.h"
 #include "Indoor.h"
 #include "GeneralType.h"
+#include "TMRTree.h"
 
 
 /*
@@ -84,6 +85,7 @@ struct QueryTM{
   static string GenmoRelInfo;
   enum GenmoRel{GENMO_OID = 0, GENMO_TRIP1, GENMO_TRIP2};
   static string GenmoUnitsInfo;
+  enum GenmoUnits{GM_TRAJ_ID = 0, GM_BOX, GM_MODE, GM_INDEX1, GM_INDEX2, GM_ID};
 
   QueryTM(){ count = 0; resulttype = NULL;} 
   ~QueryTM(){if(resulttype != NULL) delete resulttype;}
@@ -96,6 +98,11 @@ struct QueryTM{
   vector<Point> index_list1;
   vector<Point> index_list2;
   vector<unsigned long> mode_list;
+  
+  vector<bool> b_list;
+  vector<string> str_list;
+  vector<int> entry_list;
+  vector<int> level_list;
 
   ////////////////////////////////////////////////////////////////////////////
   //////////get 2D line in space or 3D line in a building///////////////////
@@ -120,10 +127,12 @@ struct QueryTM{
   void CollectCBT(int&i, int oid, int m, GenMO* mo1, MPoint* mo2, int& pos);
   void DecomposeGenmo_1(Relation*);
   ////////////////////get tm values for TM-Rtree nodes /////////////////////
-  void TMRtreeNodes(R_Tree<3, TupleId>*, Relation*, int);
+
   unsigned long Node_TM(R_Tree<3, TupleId>* tmrtree, Relation* rel, 
               SmiRecordId nodeid, int attr_pos);
-
+  ////////////////////////////////////////////////////////////////////////
+  void TM_RTreeNodes(TM_RTree<3,TupleId>*);
+  void GetNodes(TM_RTree<3, TupleId>* tmrtree, SmiRecordId nodeid, int level);
 };
 
 #define TEN_METER 10.0

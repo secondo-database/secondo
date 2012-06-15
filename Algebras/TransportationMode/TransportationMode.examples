@@ -1306,9 +1306,15 @@ Signature: stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj) x attr1 x attr2 x a
 Example  : query genmo_units feed addid bulkloadtmrtree[Time, Box2d, Mode]
 Result   : file_platform
 
+Operator : tmrtreemode
+Number   : 1
+Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x attr -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
+Example  : query tmrtreemode(TM_RTree, genmo_units, Mode) count
+Result   : 0
+
 
 Operator : tm_nodes
 Number   : 1
-Signature: (rtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x attr -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
-Example  : query nodes(TM_Rtree, genmo_units, Mode) filter[.Level = 0] count
+Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
+Example  : query nodes(TM_RTree) filter[.Level = 0] count
 Result   : 1
