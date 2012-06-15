@@ -53,8 +53,8 @@ Mai 2012, JKN, First version of this file
 
 */
 
-#ifndef COST_EST_EXT_RELATION_ALG_H
-#define COST_EST_EXT_RELATION_ALG_H
+#ifndef COST_EST_EXT2_RELATION_ALG_H
+#define COST_EST_EXT2_RELATION_ALG_H
 
 #define DEBUG false 
 
@@ -156,7 +156,7 @@ public:
            if(iteration <= 1) {
               elapsedTime += readInIteration * wItHashJoin * p2.Size;
            } else {
-                // 1st iteration: Data are read and written from / to tuplefile
+                // 1st iteration: Data are read and written to tuplefile
                 elapsedTime += tuplesPerIteration  * wItHashJoin * p2.Size;
                 
                 // Time for the completed iterations
