@@ -208,7 +208,8 @@ public:
             pRes->Card = qp->GetSelectivity(supplier) * p1.Card * p2.Card;
          }
 
-         pRes->BProgress = p1.Progress;
+         pRes->BProgress = (p1.Progress * uItSpatialJoin) 
+              + (p1.BProgress / p1.BTime) + (p2.BProgress / p2.BTime);
          pRes->BTime = p1.Card * uItSpatialJoin + p1.BTime + p2.BTime;
 
           // is computation done?
