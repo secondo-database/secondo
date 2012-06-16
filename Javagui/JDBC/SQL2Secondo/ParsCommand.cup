@@ -1,0 +1,1222 @@
+package SQL2Secondo;
+
+import java_cup10.runtime.*;
+import SecExceptions.*;
+import Ext_Tools.*;
+import java.sql.SQLWarning;
+import Utilities.WarningContainer;
+//import Verbindungstest.TestReporter;  //needs to be chucked out
+
+parser code
+{:
+	public void report_error(String message, Object info) {
+	}
+	
+	public void unrecovered_syntax_error(Symbol cur_token) throws Exception {
+		done_parsing();
+		throw new SyntaxException((String) cur_token.value);
+	}
+		
+:}
+
+action code
+{:
+	boolean inSquareBrackets = false;
+	boolean FromError = false;
+	boolean SelectListError = false;
+	boolean useAsExpr = false;
+	boolean SecondoSubQuery = false;    // turns true if a subquery is used which is supported in secondo
+	boolean SubqueryInUse = false;		// turns true and stays true if a subquery is in use. SecondoSubQuery
+										// is turned into false again once it is recognized as a true SecondoSubquery
+	boolean QualifierInUse = false;		// used to detect whether a qualifier has been used
+	boolean RVCListInUse = false;		// Secondo only allows RowValueConstructor-Lists inside insert-clauses
+	boolean insertError = false;		// is set to true, in case an insert-construct is not allowed in Secondo
+	
+	SQLWarning warning;					// to transport SQL-Warnings to the driverset
+	
+	String PreResult;
+	
+	QueryClause PreQuery;				// variable is used to pepare the Query before it is assigned to the NON-Terminal 	
+	
+	public void raise_Error(String message) throws Exception {		// Error if syntax correct but not supported in Secondo
+		throw new NotSuppException(message);
+	}
+	
+	public void raise_GeneralError(String message) throws Exception { // Error if incorrect syntax is not recognized by parser
+		throw new SecServerException(message);
+	}
+	
+	private void setNextWarning(String message) {
+		if (this.warning == null)
+			this.warning = WarningContainer.getInstance();
+		this.warning.setNextWarning(new SQLWarning(message));
+	}
+	
+	String getUniqueName() {
+		return "myatt"+ErrorCodes.UNumber++;
+	}
+:}
+
+terminal			CREATE, TABLE, INDEX, INSERT_INTO, DELETE_FROM,SELECT, DISTINCT, AS, INDEXTYPE;
+terminal			DROP_TABLE, UPDATE, SET, CASCADE, RESTRICT, BTREE, RTREE, HASH;
+terminal			FROM, TO, WHERE, GROUP_BY, HAVING, ORDER_BY, COLLATE;
+terminal			COUNT, MIN, MAX, SUM, AVG, ALL, SOME, ANY;
+terminal			CONCAT_OP;
+terminal			CASE, WHEN, THEN, ELSE, NULLIF, COALESCE, CAST;
+terminal			VALUES;
+terminal			POSITION, CHAR_LENGTH, CHARACTER_LENGTH, BIT_LENGTH, OCTET_LENGTH, EXTRACT;
+terminal			SUBSTRING, UPPER, LOWER, FOR, CONVERT, TRANSLATE, TRIM, LEADING, TRAILING, BOTH;
+terminal			EQUAL, NOT_EQUAL, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL;
+terminal			OR, AND, IS, NOT, BETWEEN, IN, LIKE, ESCAPE, EXISTS, TRUE, FALSE, UNKNOWN;
+terminal			EXCEPT, CORRESPONDING, BY, INTERSECT;
+terminal			MATCH, OVERLAPS, UNIQUE, PARTIAL; 
+terminal			CROSS, JOIN, FULL, UNION,/*INNER, LEFT, RIGHT, OUTER, NATURAL,*/ ON, USING;
+terminal			INT, REAL, BOOL, STRING, CHAR, CHARACTER, DATE, ASC, DESC;
+terminal			LPARENT, RPARENT, COMMA, DOT, QUESTIONMARK, ASTERISK, PLUS, MINUS, SOLIDUS;
+terminal			CURRENT_DATE, CURRENT_TIME, CURRENT_TIMESTAMP, AT, TIME_ZONE, LOCAL;
+terminal			YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, TIMEZONE_HOUR, TIMEZONE_MINUTE;
+terminal			USER, CURRENT_USER, SESSION_USER, SYSTEM_USER, VALUE, INDICATOR; //Not supported
+terminal			FIRST;
+
+// NOT SUPPORTED TERMINALS
+
+terminal			WHERE_CURRENT_OF, DEFAULT, NULL, REFERENCES, CHECK, PRIM_KEY, CONSTRAINT;
+terminal			FOREIGN_KEY, DROP, ADD, ALTER, COLUMN, FULLTEXT, SPATIAL;
+terminal String		DATE_VALUE;
+
+non terminal String	CHECK_CONSTR_DEF, UNIQUE_SPEC, REF_SPEC, REF_TAB_COL, COL_CONSTR_DEF;
+non terminal String	CONSTR_NAME_DEF, COL_CONSTR, UNI_CONSTR_DEF, REF_CONSTR_DEF, TAB_CONSTR;
+non terminal String TAB_CONSTR_DEF, DROP_TAB_CONSTR_DEF, ADD_TAB_CONSTR_DEF, DROP_COL_DEF;
+non terminal String	DEFAULT_OPTION, DEFAULT_CLAUSE, COL_CONSTR_EXPR_2, ALTER_COL_ACTION;
+non terminal String ALTER_COL_DEF, ADD_COL_DEF, ALTER_TABLE, ALTER_TAB_ACTION;
+non terminal GeneralList COL_CONSTR_EXPR, TAB_CONSTR_EXPR;
+
+terminal String		ID, ENL, ANL, PAR_VAR_NAME, TYPE_NAME, UNSIGNED_INT, JOIN_TYPE, A_STRING;
+
+// TYPE_NAME is "CHARACTER STRING TYPE", "NATIONAL CHARACTER STRING TYPE", "BIT STRING TYPE",
+//              "NUMERIC TYPE", "DATETIME TYPE" or "INTERVAL TYPE".
+
+
+non terminal		SOLUTION, SYSTEM_INFO;
+
+//for Options []
+non terminal String	ESC_EXPR, UNIQUE_EXPR, PAR_FULL_EXPR, UNION_EXCEPT_EXPR, ALL_EXPR;
+non terminal String	CORR_BY_EXPR, CORR_SPEC_EXPR, FOR_EXPR, COLLATE_CLAUSE, UP_LOW_EXPR; 
+non terminal String	TIME_PRECISION_EXPR, INTERVAL_QUAL_EXPR, CHAR_L_EXPR, NOT_EXPR, COLUMN_EXPR;
+non terminal String	CIOPTIONS, COL_EXPR, CITYPE_EXPR;  
+
+//for repetitions like X [{comma X}...]
+non terminal		VALUE_EXPR_LIST;
+
+//not supported in Secondo
+
+non terminal		CASE_EXPR, CASE_ABBR, CASE_SPEC;
+non terminal		SIM_WHEN_CLAUSE, ELSE_CLAUSE, RESULT_EXPR;	// RESULT IS RESERVED
+non terminal 		CAST_SPEC, CAST_OP, CAST_TARGET;
+non terminal		NUMERIC_VALUE_FUN, POS_EXPR, EXTRACT_EXPR, EXTRACT_FIELD, EXTRACT_SOURCE;
+non terminal		DATETIME_FIELD, TIMEZONE_FIELD, LENGTH_EXPR;
+non terminal 		STRING_VALUE_EXPR, CHAR_VALUE_EXPR, BIT_VALUE_EXPR, STRING_VALUE_FUN, CHAR_VALUE_FUN;
+non terminal 		BIT_VALUE_FUN, CHAR_PRIM, CHAR_FACTOR, CONCAT, BIT_CONCAT, BIT_FACTOR, BIT_PRIM;
+non terminal 		CHAR_SUBSTR_FUN, FOLD, F_O_U_CONV, CHAR_TRANSL, TRIM_FUN, TRIM_OP, TRIM_SPEC, TRIM_CHAR;
+non terminal		DROP_BEHAVIOUR;
+
+
+non terminal String CREATE_QUERY, INSERT_CLAUSE, DELETE_CLAUSE, DROP_CLAUSE, UPDATE_CLAUSE; 
+non terminal String	QUALNAME, DATATYPE, COLUMN_DEF, DOMAINNAME, COLUMN_NAME_LIST;
+non terminal String	SET_CLAUSE, UPDATE_SOURCE, DISTINCT_CLAUSE, UNSIGNED_LITERAL, GEN_VALUE_SPEC;
+non terminal String	BOOLEAN_VALUE_EXPR;
+non terminal String	PARAM_SPEC, UNSIGNED_NUM_LITERAL, GENERAL_LITERAL, SIGNED_NUM_LITERAL, LITERAL;
+non terminal String COLUMN_REF, TABLE_ELEM, TABLE_ELEM_LIST;
+non terminal String	SORT_KEY, ORDER_SPEC;
+non terminal String INS_COL_AND_SOU, INS_COL_LIST;	
+non terminal String UNSIGNED_VALUE_SPEC, SET_FUN_SPEC, SET_FUN_TYPE;
+non terminal String	JOINED_TABLE, JOIN_SPEC;
+non terminal String	DERIVED_COLUMN_LIST, CORR_SPEC;
+non terminal String	TRUTH_VALUE;
+non terminal String IN_VALUE_LIST;
+non terminal String COMP_OP, QUANTIFIER, SIGN;
+non terminal String CORRESPONDING_SPEC;
+non terminal String TABLE_CON_LIST;
+non terminal String TABLE_EXPR, AS_CLAUSE, HAVING_CLAUSE;
+non terminal String DATETIME_VALUE_EXPR, DATETIME_PRIM, DATETIME_FACTOR, TIMEZONE, TIMEZONE_SPEC; 
+non terminal String DATETIME_TERM, DATETIME_VALUE_FUN, TIME_PRECISION;
+non terminal String INTERVAL_VALUE_EXPR, INTERVAL_TERM, INTERVAL_FACTOR, INTERVAL_PRIM, INTERVAL_QUAL;
+non terminal String SINGLE_DT_FIELD, NON_SECOND_DT_FIELD, END_FIELD; 
+
+non terminal GeneralList	SET_CLAUSE_LIST;
+
+non terminal SimpleValue	VALUE_EXPR_PRIMARY, NUMERIC_PRIMARY, FACTOR;
+non terminal ValueList		TERM;
+non terminal ValueExpr		VALUE_EXPR, NUMERIC_VALUE_EXPR, ROW_VALUE_CON_ELEM;
+
+non terminal ValueExprList	ROW_VALUE_CON_LIST, ROW_VALUE_CON ;
+
+non terminal SelectElement	SELECT_SUBLIST;
+non terminal SelectList		SELECT_SLIST_EXPR;
+non terminal SelectClause	SELECT_LIST;
+
+non terminal TableElement	TABLE_REF;
+non terminal TableClause	FROM_CLAUSE, TABLE_REF_EXPR;
+
+non terminal WhereElement	PREDICATE, BOOL_PRIM, BOOL_FACTOR, BOOL_TEST;
+non terminal WhereList		BOOL_TERM;
+non terminal WhereClause	SEARCH_COND, WHERE_CLAUSE;
+
+non terminal QueryClause 	QUERY_SPEC, SUBQUERY, IN_PRED_VALUE;	//QUERY_SPEC stands for select_query
+
+non terminal GroupElement	GROUP_COL_REF;
+non terminal GroupClause	GROUP_BY_CLAUSE, GROUP_COL_REF_LIST;
+
+non terminal OrderElement	SORT_SPEC;
+non terminal OrderClause	ORDER_BY_CLAUSE, SORT_SPEC_LIST;
+
+non terminal InsertElement	SIMPLE_TABLE, QUERY_EXPR, NON_JOIN_QT, QUERY_TERM, QUERY_PRIM, NON_JOIN_QE, NON_JOIN_QP;
+
+
+/* PRECEDENCE */
+precedence left JOIN_TYPE;
+precedence left ON, USING;
+precedence left CROSS, JOIN, UNION/*NATURAL, INNER, LEFT, OUTER, RIGHT, FULL*/;
+//precedence left EQUAL, NOT_EQUAL, LESS, LESS_EQUAL, GREATER, GREATER_EQUAL, NOT, BETWEEN, IN, MATCH, OVERLAPS;
+precedence left LPARENT, RPARENT;
+precedence left NOT, COMMA;
+precedence left PLUS, MINUS;
+precedence right WHERE;
+
+/* GRAMMAR */
+
+
+SOLUTION		::= CREATE_QUERY:cq
+				{: Translator.TrOutput = new completeAnswer(cq, false); :}
+				| QUERY_SPEC:qc
+				{: PreResult = qc.getQueryExpression(); if (PreResult.equals("-1"))
+					raise_Error("There is an error with the qualifiers. This usage of a Select-Clause ");
+					Translator.TrOutput = new completeAnswer(qc.getShadowList(),PreResult,SubqueryInUse); :}
+				| INSERT_CLAUSE:ic
+				{: Translator.TrOutput = new completeAnswer(ic, SubqueryInUse); :}
+				| DELETE_CLAUSE:dc
+				{: Translator.TrOutput = new completeAnswer(dc, false); :}
+				| DROP_CLAUSE:drc
+				{: Translator.TrOutput = new completeAnswer(drc, false); :}
+				| UPDATE_CLAUSE:uc
+				{: Translator.TrOutput = new completeAnswer(uc, false); :}
+				| ALTER_TABLE:at
+				{: Translator.TrOutput = new completeAnswer(at, false); :}
+				//{: raise_Error("Alter-Table-statements "); :}
+				;
+					
+CREATE_QUERY	::= CREATE TABLE QUALNAME:TabName LPARENT TABLE_ELEM_LIST:CoLi RPARENT
+				{: String PreResult = CoLi; if (inSquareBrackets) {inSquareBrackets = false; 
+				  PreResult = "[" + PreResult + "]";} 
+				  RESULT = "create table "+TabName+" columns " + PreResult; :}
+				| CREATE CIOPTIONS INDEX ID:indexname CITYPE_EXPR:indextype ON ID:tablename LPARENT COL_EXPR:col RPARENT
+				{: setNextWarning("The name of the index is automatically changed into 'tablename_columnname_indextype!"); 
+				   RESULT = "create index on " + tablename + " columns " + col + indextype; :};
+			
+TABLE_ELEM_LIST	::= TABLE_ELEM:te
+				{: RESULT = te; :}
+				| TABLE_ELEM:te COMMA TABLE_ELEM_LIST:tel
+				{: inSquareBrackets = true; RESULT = te + ", " + tel; :};
+				
+TABLE_ELEM		::= COLUMN_DEF:co
+				{: RESULT = co; :}
+				| TAB_CONSTR_DEF:tcd
+				{: raise_Error("Constraints in a table definition "); :};
+
+COLUMN_DEF		::= ID:SpName DATATYPE:DaName DEFAULT_CLAUSE:dc COL_CONSTR_EXPR_2:cce
+				{: if (dc != "") raise_Error("A default_clause in a column definition ");
+				   if (cce != "") raise_Error("Constraints in a column definition ");
+				   RESULT = SpName + ":" + DaName + cce; :}
+				| ID:SpName DOMAINNAME:DName
+				{: raise_Error("The column definition: " + SpName + " " + DName); :}
+				;
+				
+COLUMN_NAME_LIST	::= ID:co
+					{: RESULT = co; :}
+					| ID:co COMMA COLUMN_NAME_LIST:cnl
+					{: RESULT = co + ", " + cnl; :};
+
+
+DATATYPE		::= INT
+				{: RESULT = "int"; :}
+				|
+				REAL
+				{: RESULT = "real"; :}
+				|
+				BOOL
+				{: RESULT = "bool"; :}
+				|
+				STRING
+				{: RESULT = "string"; :}
+				|
+				DATE
+				{: raise_Error("The datatype date "); :};
+
+DOMAINNAME		::= ID:id
+				{: RESULT = id; :}
+				|ID:id1 DOT ID:id2
+				{: RESULT = id1+"."+id2; :};
+				
+				
+CIOPTIONS		::= UNIQUE
+				{: raise_GeneralError("create index is not supported by SQL92. Secondo partly adapts the version of mySQL but unique is not supported!"); :}
+				| FULLTEXT
+				{: raise_GeneralError("create index is not supported by SQL92. Secondo partly adapts the version of mySQL but fulltext is not supported!"); :}
+				| SPATIAL
+				{: raise_GeneralError("create index is not supported by SQL92. Secondo partly adapts the version of mySQL but spatial is not supported!"); :}
+				|;
+				
+CITYPE_EXPR		::= USING BTREE
+				{: RESULT = " indextype btree "; :}
+				| USING RTREE
+				{: RESULT = " indextype rtree "; :}
+				| USING HASH
+				{: RESULT = " indextype hash "; :}
+				| {: RESULT = ""; :};
+				
+COL_EXPR		::= ID:columnname
+				{: RESULT = columnname; :}
+				| ID COMMA COL_EXPR
+				{: raise_GeneralError("create index is not supported by SQL92. Secondo partly adapts the version of mySQL but creating an index on more than one column is not supported!"); :};
+				
+// Definition of VALUE_EXPRESSION
+
+VALUE_EXPR		::= NUMERIC_VALUE_EXPR:nve
+				{: RESULT = nve; :}
+				| STRING_VALUE_EXPR
+				{: raise_Error("This string_value_expression "); :}
+				| DATETIME_VALUE_EXPR:dve
+				//{: RESULT = new ValueExpr(new ValueList(new SimpleValue(dve))); :}
+				{: raise_Error("This datetime_value_expression "); :}
+				| INTERVAL_VALUE_EXPR
+				{: raise_Error("This interval_value_expression "); :}
+				| BOOLEAN_VALUE_EXPR:bve
+				{: RESULT = new ValueExpr(new ValueList(new SimpleValue(bve))); :};
+
+NUMERIC_VALUE_EXPR	::= TERM:te
+					{: RESULT = new ValueExpr(te); :}
+					| NUMERIC_VALUE_EXPR:nve PLUS TERM:te
+					{: useAsExpr = true; if (nve.containsSub()|| nve.containsSetFunc()) raise_GeneralError("Syntax Error: subquery/Set_Function + operator!");
+						RESULT = nve.addElement(te, "+"); :}
+					| NUMERIC_VALUE_EXPR:nve MINUS TERM:te
+					{: useAsExpr = true; if (nve.containsSub() || nve.containsSetFunc()) raise_GeneralError("Syntax Error: subquery/Set_Function + operator!");
+						RESULT = nve.addElement(te, "-"); :};
+
+TERM			::= FACTOR:fa
+				{: RESULT = new ValueList(fa); :}
+				| TERM:te ASTERISK FACTOR:fa
+				{: useAsExpr = true; if (te.containsSub() || te.containsSetFunc()) raise_GeneralError("Syntax Error: subquery/Set_Function + operator!");
+					RESULT = te.addElement(fa, "*"); :}
+				| TERM:te SOLIDUS FACTOR:fa
+				{: useAsExpr = true; if (te.containsSub() || te.containsSetFunc()) raise_GeneralError("Syntax Error: subquery/Set_Function + operator!");
+					RESULT = te.addElement(fa, "/"); :};
+
+FACTOR			::= SIGN:si NUMERIC_PRIMARY:np
+				{: useAsExpr = true; if (np.containsSub() || np.containsSetFunc()) raise_GeneralError("Syntax Error: sign + subquery/Set_Function!");
+					RESULT = np.setSign(si); :}
+				| NUMERIC_PRIMARY: np
+				{: RESULT = np; :};
+
+NUMERIC_PRIMARY	::= VALUE_EXPR_PRIMARY:vep
+				{: RESULT = vep; :}
+				/*| NUMERIC_VALUE_FUN
+				{: raise_Error("The usage of numeric value functions like position (String...), extrac (String...) or char_length (String ...)  "); :}*/;
+
+VALUE_EXPR_PRIMARY	::= UNSIGNED_VALUE_SPEC:uvs
+					{: useAsExpr = true; RESULT = new SimpleValue(uvs); :}
+					| COLUMN_REF:cr
+					{: RESULT = new SimpleValue(cr); :}
+					| SUBQUERY:su
+					{: RESULT = new SimpleValue(su); :} // if subqueries in Values are needed Value_Expr needs to become its own type
+					| SET_FUN_SPEC:sfs
+					{: SimpleValue PreResult = new SimpleValue(sfs);
+						PreResult.setSetFunc(); RESULT = PreResult; :} 
+					/*| CASE_EXPR
+					{: raise_Error("The usage of case-expressions "); :}*/
+					| CAST_SPEC
+					{: raise_Error("The usage of cast-specifications "); :};
+					
+UNSIGNED_VALUE_SPEC ::= UNSIGNED_LITERAL:ul
+					{: RESULT = ul; :}
+					| GEN_VALUE_SPEC;
+					
+UNSIGNED_LITERAL	::= UNSIGNED_NUM_LITERAL:unl
+					{: RESULT = unl; :}
+					| GENERAL_LITERAL:gl
+					{: RESULT = gl; :};
+
+UNSIGNED_NUM_LITERAL	::= ENL:enl
+						{: RESULT = enl;:}
+						| ANL:anl
+						{: RESULT = anl;:};
+						
+GENERAL_LITERAL		::= A_STRING:a_st
+					{: SelectListError = true; RESULT = "\""+a_st+"\""; :};
+					
+GEN_VALUE_SPEC	::= PARAM_SPEC:param
+				{: raise_Error("The usage of parameters or variables: " +param); :}
+				| QUESTIONMARK
+				{: raise_Error("The usage of dynamic parameters "); :}
+				| SYSTEM_INFO
+				{: raise_Error("The usage of System-information like USER or VALUE "); :};
+				
+
+PARAM_SPEC		::= PAR_VAR_NAME:pvn
+				{: RESULT = pvn; :}
+				/*| PAR_VAR_NAME:pvn1 PAR_VAR_NAME:pvn2
+				{: RESULT = pvn1+" "+pvn2; :}*/
+				| PAR_VAR_NAME:pvn1 INDICATOR PAR_VAR_NAME:pvn2
+				{: RESULT = pvn1+" indicator "+pvn2; :};
+			
+SYSTEM_INFO		::= USER
+				| CURRENT_USER
+				| SESSION_USER
+				| SYSTEM_USER
+				| VALUE;
+
+COLUMN_REF		::= ID:ColumnName
+				{: RESULT = ColumnName; :}
+				|ID:TableName DOT ID:CoName
+				{: QualifierInUse = true; RESULT = TableName + ":" + CoName; :}
+				|ID:schema DOT ID:TableName DOT ID:CoName
+				{: raise_Error("The usage of Tablenames to specify columnnames like "+schema+"."+TableName+"."+CoName); :}
+				|ID:catalog DOT ID:schema DOT ID:TableName DOT ID:CoName
+				{: raise_Error("The usage of Tablenames to specify columnnames like "+catalog+"."+schema+"."+TableName+"."+CoName); :};
+				/*Eigentlich muss hier nicht ID:TableName sondern QUALNAME:TableName stehen. Produziert aber einen Fehler*/	
+
+SET_FUN_SPEC	::= COUNT LPARENT ASTERISK RPARENT
+				{: RESULT = "count(*)"; :}
+				| COUNT LPARENT DISTINCT_CLAUSE:dist VALUE_EXPR:ve RPARENT
+				{: if (ve.containsSub()) raise_Error("A subquery as part of a set_function_type ");
+					RESULT = "count(" + dist + ve.getStrValueExpr() + ")"; :}
+				| SET_FUN_TYPE:fun LPARENT DISTINCT_CLAUSE:dist VALUE_EXPR:ve RPARENT
+				{: if (ve.containsSub()) raise_Error("A subquery as part of a set_function_type ");
+					RESULT = fun + "(" + dist + ve.getStrValueExpr() + ")"; :};
+				
+SET_FUN_TYPE	::= MIN {: RESULT = "min"; :}
+				| MAX {: RESULT = "max"; :}
+				| AVG {: RESULT = "avg"; :}
+				| SUM {: RESULT = "sum"; :};
+				
+CASE_EXPR		::= CASE_ABBR
+				| CASE_SPEC;
+				
+CASE_ABBR		::= NULLIF LPARENT VALUE_EXPR COMMA VALUE_EXPR RPARENT
+				| COALESCE LPARENT VALUE_EXPR_LIST RPARENT;
+				
+CASE_SPEC		::= CASE VALUE_EXPR SIM_WHEN_CLAUSE
+				| WHEN SEARCH_COND THEN RESULT_EXPR;
+
+SIM_WHEN_CLAUSE	::= WHEN VALUE_EXPR THEN RESULT_EXPR
+				|WHEN VALUE_EXPR THEN RESULT_EXPR SIM_WHEN_CLAUSE;
+
+ELSE_CLAUSE		::= ELSE RESULT_EXPR
+				|;
+
+RESULT_EXPR		::= VALUE_EXPR
+				| NULL;
+				
+CAST_SPEC		::= CAST LPARENT CAST_OP AS CAST_TARGET RPARENT;
+
+CAST_OP			::= VALUE_EXPR
+				| NULL;
+				
+CAST_TARGET		::= DOMAINNAME
+				| TYPE_NAME;
+				
+NUMERIC_VALUE_FUN	::= POS_EXPR
+					| EXTRACT_EXPR
+					| LENGTH_EXPR;
+					
+POS_EXPR		::= POSITION LPARENT CHAR_VALUE_EXPR IN CHAR_VALUE_EXPR RPARENT;
+
+EXTRACT_EXPR	::= EXTRACT LPARENT EXTRACT_FIELD FROM EXTRACT_SOURCE RPARENT;
+
+EXTRACT_FIELD	::= DATETIME_FIELD
+				|TIMEZONE_FIELD;
+
+EXTRACT_SOURCE	::= DATETIME_VALUE_EXPR
+				INTERVAL_VALUE_EXPR;
+
+DATETIME_FIELD	::= NON_SECOND_DT_FIELD
+				|SECOND;
+
+TIMEZONE_FIELD	::= TIMEZONE_HOUR
+				| TIMEZONE_MINUTE;
+
+LENGTH_EXPR		::= CHAR_L_EXPR LPARENT STRING_VALUE_EXPR RPARENT
+				| OCTET_LENGTH LPARENT STRING_VALUE_EXPR RPARENT
+				| BIT_LENGTH LPARENT STRING_VALUE_EXPR RPARENT;
+				
+
+
+STRING_VALUE_EXPR	::= CHAR_VALUE_EXPR
+					| BIT_VALUE_EXPR;
+					
+CHAR_VALUE_EXPR	::= CONCAT
+				| CHAR_FACTOR;
+
+CONCAT			::= CHAR_VALUE_EXPR CONCAT_OP CHAR_FACTOR
+				| CHAR_VALUE_EXPR CONCAT_OP VALUE_EXPR_PRIMARY
+				| VALUE_EXPR_PRIMARY CONCAT_OP VALUE_EXPR_PRIMARY
+				| VALUE_EXPR_PRIMARY CONCAT_OP CHAR_FACTOR;
+
+CHAR_FACTOR		::= CHAR_PRIM COLLATE_CLAUSE
+				| VALUE_EXPR_PRIMARY COLLATE QUALNAME; 
+
+CHAR_PRIM		::= STRING_VALUE_FUN;
+
+STRING_VALUE_FUN	::= CHAR_VALUE_FUN
+					| BIT_VALUE_FUN;
+
+CHAR_VALUE_FUN	::= CHAR_SUBSTR_FUN
+				| FOLD
+				| F_O_U_CONV
+				| CHAR_TRANSL
+				| TRIM_FUN;
+
+CHAR_SUBSTR_FUN	::= SUBSTRING LPARENT CHAR_VALUE_EXPR FROM NUMERIC_VALUE_EXPR FOR_EXPR RPARENT;
+
+FOLD			::= UP_LOW_EXPR LPARENT CHAR_VALUE_EXPR RPARENT;
+
+F_O_U_CONV		::= CONVERT LPARENT CHAR_VALUE_EXPR USING QUALNAME RPARENT;
+
+CHAR_TRANSL		::= TRANSLATE LPARENT CHAR_VALUE_EXPR USING QUALNAME RPARENT;
+
+TRIM_FUN		::= TRIM LPARENT TRIM_OP RPARENT;
+
+TRIM_OP			::= TRIM_SPEC TRIM_CHAR FROM CHAR_VALUE_EXPR
+				| TRIM_CHAR FROM CHAR_VALUE_EXPR
+				| CHAR_VALUE_EXPR;
+
+
+TRIM_SPEC		::= LEADING | TRAILING | BOTH;
+
+TRIM_CHAR		::= CHAR_VALUE_EXPR
+				|;
+
+BIT_VALUE_EXPR	::=BIT_CONCAT
+				BIT_FACTOR;
+
+BIT_CONCAT		::= BIT_VALUE_EXPR CONCAT_OP BIT_FACTOR;
+
+BIT_FACTOR		::= BIT_PRIM;
+
+BIT_PRIM		::= VALUE_EXPR_PRIMARY
+				| STRING_VALUE_FUN;
+
+BIT_VALUE_FUN	::= SUBSTRING LPARENT BIT_VALUE_EXPR FROM NUMERIC_VALUE_EXPR FOR_EXPR RPARENT;
+			
+
+DATETIME_VALUE_EXPR	::= DATETIME_TERM:dt
+					{: RESULT = dt; :}
+					| INTERVAL_VALUE_EXPR PLUS DATETIME_TERM
+					| DATETIME_VALUE_EXPR PLUS INTERVAL_TERM
+					| DATETIME_VALUE_EXPR MINUS INTERVAL_TERM;
+
+DATETIME_TERM	::= DATETIME_FACTOR:df
+				{: RESULT = df; :};
+
+DATETIME_FACTOR	::= DATETIME_PRIM:dp TIMEZONE
+				{: RESULT = dp; :};
+
+DATETIME_PRIM	::= /*VALUE_EXPR_PRIMARY |*/
+				DATE_VALUE:dv
+				{: RESULT = dv; :}
+				| DATETIME_VALUE_FUN;
+
+DATETIME_VALUE_FUN	::= CURRENT_DATE
+					|CURRENT_TIME TIME_PRECISION
+					|CURRENT_TIMESTAMP TIME_PRECISION;
+
+TIME_PRECISION	::= LPARENT UNSIGNED_INT RPARENT
+				|;
+				
+TIMEZONE		::=	AT TIMEZONE_SPEC
+				|;
+
+TIMEZONE_SPEC	::= LOCAL
+				| TIME_ZONE INTERVAL_VALUE_EXPR;
+				
+				
+INTERVAL_VALUE_EXPR	::= INTERVAL_TERM
+					| INTERVAL_VALUE_EXPR PLUS INTERVAL_TERM
+					| INTERVAL_VALUE_EXPR MINUS INTERVAL_TERM
+					| LPARENT DATETIME_VALUE_EXPR MINUS DATETIME_TERM RPARENT INTERVAL_QUAL;
+
+INTERVAL_TERM	::= INTERVAL_FACTOR
+				| INTERVAL_TERM ASTERISK FACTOR
+				| INTERVAL_TERM SOLIDUS FACTOR
+				| TERM ASTERISK INTERVAL_FACTOR; 
+
+INTERVAL_FACTOR	::= SIGN INTERVAL_PRIM
+				| INTERVAL_PRIM;
+
+INTERVAL_PRIM	::= VALUE_EXPR_PRIMARY INTERVAL_QUAL_EXPR;
+
+INTERVAL_QUAL	::= NON_SECOND_DT_FIELD TIME_PRECISION TO END_FIELD
+				| SINGLE_DT_FIELD;
+
+END_FIELD		::= NON_SECOND_DT_FIELD
+				| SECOND TIME_PRECISION;
+
+SINGLE_DT_FIELD	::= NON_SECOND_DT_FIELD TIME_PRECISION
+				| SECOND TIME_PRECISION_EXPR;
+
+NON_SECOND_DT_FIELD	::= YEAR | MONTH | DAY | HOUR | MINUTE;
+
+
+BOOLEAN_VALUE_EXPR	::= TRUTH_VALUE:tv
+					{: RESULT = tv; :};
+
+// Definition of VALUE_EXPRESSION ends here
+
+
+QUALNAME		::= ID:id
+				{: RESULT = id; :}
+				|ID:schema DOT ID:id
+				{: raise_Error("Secondo does not work with schemas. The qualified name "+schema+"."+id); :}
+				|ID:catalog DOT ID:schema DOT ID:id
+				{: raise_Error("Secondo does not work with catalogs. The qualified name "+catalog+"."+schema+"."+id); :};
+				// !!! MODULE. has not been taken into account yet !!!			
+
+QUERY_EXPR		::= NON_JOIN_QE:njq
+				{: RESULT = njq; :}
+				| JOINED_TABLE
+				{: insertError = true; :};
+				
+// Definition of NON_JOIN_QUERY_EXPRESSION
+
+NON_JOIN_QE		::= NON_JOIN_QT:njq
+				{: RESULT = njq; :}
+				| QUERY_EXPR UNION_EXCEPT_EXPR ALL_EXPR CORRESPONDING_SPEC NON_JOIN_QT
+				{: SecondoSubQuery = false; insertError = true; :}
+				| QUERY_EXPR UNION_EXCEPT_EXPR ALL_EXPR CORRESPONDING_SPEC JOINED_TABLE
+				{: SecondoSubQuery = false; insertError = true; :};
+				
+QUERY_TERM		::= NON_JOIN_QT:njq
+				{: RESULT = njq; :}
+				| JOINED_TABLE
+				{: insertError = true; :};
+				
+NON_JOIN_QT		::= NON_JOIN_QP:njq
+				{: RESULT = njq; :}
+				| NON_JOIN_QT INTERSECT ALL_EXPR CORRESPONDING_SPEC QUERY_PRIM
+				{: SecondoSubQuery = false; insertError = true; :}
+				| JOINED_TABLE INTERSECT ALL_EXPR CORRESPONDING_SPEC QUERY_PRIM
+				{: SecondoSubQuery = false; insertError = true; :};
+				
+QUERY_PRIM		::= NON_JOIN_QP:njq
+				{: RESULT = njq; :}
+				| JOINED_TABLE
+				{: insertError = true; :};
+
+NON_JOIN_QP		::= SIMPLE_TABLE:st
+				{: RESULT = st; :}
+				| LPARENT NON_JOIN_QE RPARENT
+				{: insertError = true; :};
+				
+SIMPLE_TABLE	::= TABLE QUALNAME
+				| VALUES TABLE_CON_LIST:tcl
+				{: RESULT = new InsertElement(tcl); :}
+				| QUERY_SPEC:qs
+				{: SecondoSubQuery = true; RESULT = new InsertElement(qs); :};
+				
+
+CORRESPONDING_SPEC	::= CORRESPONDING CORR_BY_EXPR |;
+
+// Definition of NON_JOIN_QUERY_EXPRESSION ends here
+
+
+// Definition of JOINED TABLE
+
+JOINED_TABLE	::= TABLE_REF CROSS JOIN TABLE_REF
+				|TABLE_REF JOIN_TYPE TABLE_REF JOIN_SPEC;
+
+				
+JOIN_SPEC		::= 
+				| ON SEARCH_COND
+				| USING LPARENT COLUMN_NAME_LIST RPARENT;
+
+				
+
+TABLE_REF		::= QUALNAME:rel CORR_SPEC_EXPR:cse
+				{: RESULT = new TableElement(rel, cse); :}
+				|SUBQUERY:su CORR_SPEC
+				{: FromError = true; /*RESULT = su;*/ :}
+				|JOINED_TABLE:jt
+				{: FromError = true; /*RESULT = jt;*/ :};
+				
+CORR_SPEC		::= AS ID:id DERIVED_COLUMN_LIST:dcl
+				{: if (dcl!="") {FromError = true; dcl = " "+dcl;} RESULT = id + dcl; :}
+				/* a derived column list is not allowed in a from clause. In other occasions it might be ok */ 
+				| ID:id DERIVED_COLUMN_LIST:dcl
+				{: if (dcl!="") {FromError = true; dcl = " "+dcl;} RESULT = id + dcl; :};
+
+
+
+DERIVED_COLUMN_LIST	::= LPARENT COLUMN_NAME_LIST:cnl RPARENT
+					{: RESULT = "(" + cnl + ")"; :}
+					|
+					{: RESULT = ""; :};
+
+// Definition of JOINED_TABLE ends here
+
+
+SUBQUERY		::= LPARENT QUERY_EXPR:qe RPARENT
+				{: if (!SecondoSubQuery) raise_Error("This kind of subquery "); 
+					else {SecondoSubQuery = false; 
+					 SubqueryInUse = true; RESULT = qe.getQuery();} :};
+
+// Definition of SEARCH_COND
+
+SEARCH_COND		::= BOOL_TERM:bt
+				{: RESULT = new WhereClause(bt); :}
+				|SEARCH_COND:sc OR BOOL_TERM:bt
+				{: RESULT = sc.addElement(bt); :};
+				
+BOOL_TERM		::= BOOL_FACTOR:bf
+				{: RESULT = new WhereList(bf); :}
+				| BOOL_TERM:bt AND BOOL_FACTOR:bf
+				{: RESULT = bt.addElement(bf); :};
+				
+BOOL_FACTOR		::= NOT BOOL_TEST:bt
+				{: bt.SetNotExpr(); RESULT = bt; :}
+				| BOOL_TEST: bt
+				{: RESULT = bt; :};
+				
+BOOL_TEST		::= BOOL_PRIM:bp
+				{: RESULT = bp; :}
+				| BOOL_PRIM IS NOT_EXPR TRUTH_VALUE
+				{: raise_Error("expressions like is true or is false within a search condition "); :};
+				
+TRUTH_VALUE		::= TRUE
+				{: RESULT = "true"; :}
+				| FALSE 
+				{: RESULT = "false"; :}
+				| UNKNOWN
+				{: RESULT = ""; :};
+
+BOOL_PRIM		::= PREDICATE:pr
+				{: RESULT = pr; :}
+				| LPARENT SEARCH_COND:sc RPARENT
+				{: if (sc.containsSubs())
+						raise_Error("(search conditions containing Subqueries) within a search condition "); 
+					else RESULT = new WhereElement(sc);	:};
+				
+PREDICATE		::= ROW_VALUE_CON:rvc1 COMP_OP:co ROW_VALUE_CON:rvc2
+				{: if (rvc1.containsSub() || rvc2.containsSub()) 
+					raise_Error("Using Subqueries in row value constructors "); 
+					else if(rvc1.moreThanOne() || rvc2.moreThanOne()) 
+						raise_Error("Row value constructors building a row by a list of values outside insert clauses ");
+					else RESULT = new WhereElement(rvc1.getValueExpr().getStrValueExpr(), rvc2.getValueExpr().getStrValueExpr(), co); :}
+				| ROW_VALUE_CON:rvc NOT_EXPR:ne IN IN_PRED_VALUE:ipv
+				{: if (rvc.containsSub()) raise_Error("Using Subqueries in row value constructors ");
+					else if(rvc.moreThanOne()) raise_Error("Row value constructors building a row by a list of values outside insert clauses ");
+					else RESULT = new WhereElement(rvc.getValueExpr().getStrValueExpr(), ne, "in", ipv); :}					
+				| ROW_VALUE_CON:rvc COMP_OP:co QUANTIFIER:qu SUBQUERY:su
+				{: if (rvc.containsSub()) raise_Error("Using Subqueries in row value constructors ");
+					else if(rvc.moreThanOne()) raise_Error("Row value constructors building a row by a list of values outside insert clauses ");
+					else RESULT = new WhereElement(rvc.getValueExpr().getStrValueExpr(), co, qu, su); :}	
+				| EXISTS SUBQUERY: su
+				{: RESULT = new WhereElement("", "exists", "", su); :}	// exists subqueries should work in secondo but the do not
+				
+				/*| ROW_VALUE_CON NOT_EXPR BETWEEN ROW_VALUE_CON AND ROW_VALUE_CON
+				{: raise_Error("The expression between "); :}*/
+				| CHAR_VALUE_EXPR NOT_EXPR LIKE CHAR_VALUE_EXPR ESC_EXPR
+				{: raise_Error("the expression like "); :}
+				| VALUE_EXPR_PRIMARY NOT_EXPR LIKE VALUE_EXPR_PRIMARY
+				{: raise_Error("the expression like "); :}
+				| CHAR_VALUE_EXPR NOT_EXPR LIKE VALUE_EXPR_PRIMARY
+				{: raise_Error("the expression like "); :}
+				| VALUE_EXPR_PRIMARY NOT_EXPR LIKE CHAR_VALUE_EXPR
+				{: raise_Error("the expression like "); :}
+				| ROW_VALUE_CON IS NOT_EXPR NULL
+				{: raise_Error("checking whether an expression is null "); :}
+				| ROW_VALUE_CON MATCH UNIQUE_EXPR PAR_FULL_EXPR SUBQUERY
+				{: raise_Error("the expression match "); :}
+				| ROW_VALUE_CON OVERLAPS ROW_VALUE_CON
+				{: raise_Error("the expression overlaps "); :};
+				
+IN_PRED_VALUE	::= SUBQUERY:su
+				{: RESULT = su; :}
+				| LPARENT IN_VALUE_LIST RPARENT
+				{: raise_Error("value lists "); :};
+				
+IN_VALUE_LIST	::= VALUE_EXPR
+				| VALUE_EXPR COMMA IN_VALUE_LIST;
+				
+ROW_VALUE_CON	::= ROW_VALUE_CON_ELEM:rvce
+				{: RESULT = new ValueExprList(rvce); :}
+				| LPARENT ROW_VALUE_CON_LIST:rvcl RPARENT
+				{: RESULT = rvcl; :}
+				
+				/*| SUBQUERY
+				   The BNF grammar describes here a table row built by a subquery. BNF does not
+				   differentiate between a row and a value built by a subquery. Cup would raise a
+				   reduce/reduce error. Since a subquery entry is already interpreted by 
+				   value_expr. It does not need to and it must not be included here.*/
+				; 
+				
+ROW_VALUE_CON_ELEM	::= VALUE_EXPR:ve
+					{: useAsExpr = false;
+						RESULT = ve; :}
+					| NULL
+					{: raise_Error("Null"); :}
+					| DEFAULT
+					{: raise_Error("default"); :}
+					;
+					
+ROW_VALUE_CON_LIST	::= ROW_VALUE_CON_ELEM:rvce
+					{: RESULT = new ValueExprList(rvce); :}
+					| ROW_VALUE_CON_LIST:rvcl COMMA ROW_VALUE_CON_ELEM:rvce
+					{: RESULT = rvcl.addElement(rvce); :};
+					
+TABLE_CON_LIST	::= ROW_VALUE_CON:rvc
+				{: RESULT = rvc.getValueExprList(); :}
+				| ROW_VALUE_CON COMMA TABLE_CON_LIST
+				{: raise_Error("Table constructor lists build by more than one Row value constructor lists ");:}; 
+				
+
+
+QUANTIFIER		::= ALL
+				{: RESULT = " all "; :}
+				| SOME
+				{: RESULT = " some "; :}
+				| ANY
+				{: RESULT = " any "; :};			
+
+
+COMP_OP			::= EQUAL
+				{: RESULT = " = "; :}
+				| NOT_EQUAL
+				{: RESULT = " # "; :}
+				| LESS
+				{: RESULT = " < "; :}
+				| LESS_EQUAL
+				{: RESULT = " <= "; :}
+				| GREATER
+				{: RESULT = " > "; :}
+				| GREATER_EQUAL
+				{: RESULT = " >= "; :};
+				
+// Definition of SEARCH_COND ends here		
+
+
+
+// Definition of QUERY_SPEC
+
+QUERY_SPEC		::= SELECT DISTINCT_CLAUSE: DiCl SELECT_LIST:sl FROM_CLAUSE:fc WHERE_CLAUSE:wc GROUP_BY_CLAUSE:gbc ORDER_BY_CLAUSE:oc HAVING_CLAUSE
+				{: sl.setDistinctClause(DiCl); PreQuery = new QueryClause(); PreQuery.addSClause(sl); 
+					PreQuery.addTClause(fc); PreQuery.addWClause(wc); PreQuery.addGClause(gbc); PreQuery.addOClause(oc); 
+					RESULT = PreQuery; :};
+
+
+SELECT_LIST		::= ASTERISK
+				{: RESULT = new SelectClause("*"); :}
+				| SELECT_SLIST_EXPR:sse
+				{: RESULT = new SelectClause(sse); :}
+				/*| SET_FUN_SPEC:sfs
+				{: RESULT = new SelectClause(sfs); :}*/;
+				
+SELECT_SUBLIST	::= VALUE_EXPR:ve AS_CLAUSE:ac
+				{: if (SelectListError) {SelectListError = false; 
+					raise_Error("The usage of strings as select-element ");} 
+					else if (ve.containsSub()) raise_Error("The usage of Subqueries in select-elements ");
+					else RESULT = new SelectElement(ve.getStrValueExpr(), ac, ve.containsSetFunc()); :}
+				| ID DOT ASTERISK
+				{: raise_Error("The usage of qualified_name.* "); :}
+				| ID DOT ID DOT ASTERISK     // schema and Name
+				{: raise_Error("The usage of qualified_name.* "); :}
+				| ID DOT ID DOT ID DOT ASTERISK    // catalog and schema and Name
+				{: raise_Error("The usage of qualified_name.* "); :};
+				
+				
+				
+TABLE_EXPR		::= FROM_CLAUSE WHERE_CLAUSE GROUP_BY_CLAUSE HAVING_CLAUSE;
+
+FROM_CLAUSE		::= FROM TABLE_REF_EXPR:tre
+				{: if (FromError) raise_Error("The FROM-clause in secondo just supports a"+
+				 " relationname as Table-Reference. This usage of a FROM-clause "); 
+				 else RESULT = tre; :};
+
+WHERE_CLAUSE	::= WHERE SEARCH_COND:sc
+				{: RESULT = sc;:}
+				|
+				{: RESULT = new WhereClause("");:};
+
+GROUP_BY_CLAUSE	::= GROUP_BY GROUP_COL_REF_LIST:gcrl
+				{: RESULT = gcrl; :}
+				|{: RESULT = new GroupClause("");:};
+				
+HAVING_CLAUSE	::= HAVING SEARCH_COND
+				{: raise_Error("having ..."); :}
+				|;
+
+GROUP_COL_REF	::= COLUMN_REF:cr COLLATE_CLAUSE:cc
+				{: if (cc != "") raise_Error("The usage of collate ");
+					RESULT = new GroupElement(cr); :};
+					
+
+ORDER_BY_CLAUSE	::= ORDER_BY SORT_SPEC_LIST:ssl
+				{: RESULT = ssl; :}
+				|{: RESULT = new OrderClause("");:};
+
+				
+SORT_SPEC		::= SORT_KEY:sk COLLATE_CLAUSE:cc ORDER_SPEC:os
+				{: if (cc != "") raise_Error("The usage of collate ");
+					RESULT = new OrderElement(sk+os); :};
+
+SORT_KEY		::= ID:id
+				{: RESULT = id; :} 
+				| ENL:enl
+				{: 	if (enl.indexOf(".") != -1) raise_GeneralError("Just integers are allowed at that position!");
+					raise_Error("The usage of numbers as sort_key within an order-by statement"); :};
+
+ORDER_SPEC		::= ASC
+				{: RESULT = " asc"; :}
+				| DESC
+				{: RESULT = " desc"; :}
+				|{: RESULT = ""; :};
+
+
+
+// Definition of QUERY_SPEC ends here		
+
+
+
+// Definition of INSERT starts here
+
+INSERT_CLAUSE	::= INSERT_INTO QUALNAME:qn INS_COL_AND_SOU:icas
+				{: RESULT = "insert into " + qn + " " + icas; :};
+
+INS_COL_AND_SOU	::= INS_COL_LIST QUERY_EXPR:qe
+					{: RESULT = qe.getInsertElement(); :}; 
+					
+INS_COL_LIST	::= LPARENT COLUMN_NAME_LIST RPARENT
+				{: raise_Error("An Insert_Column_List "); :}
+				|
+				{: RESULT = ""; :};
+
+// Definition of INSERT ends here
+
+
+// Definition of DELETE starts here
+
+DELETE_CLAUSE	::= DELETE_FROM QUALNAME:qn WHERE_CLAUSE:wc
+				{: if (wc.containsSubs()) raise_Error("The usage of subqueries in delete-statements ");
+					RESULT = "delete from "+ qn + wc.getWhereClause(); :}
+				| DELETE_FROM QUALNAME WHERE_CURRENT_OF ID
+				{: raise_Error("The usage of positioned delete statement "); :}
+				;
+
+// Definition of DELETE ends here
+
+
+
+// Definition of DROP starts here
+
+DROP_CLAUSE		::= DROP_TABLE QUALNAME:qn DROP_BEHAVIOUR:db
+				{: if (db != "") raise_Error("this drop behaviour ");
+				   RESULT = "drop table " + qn; :}
+				| DROP INDEX ID:indexname ON ID:tablename
+				{: RESULT = "drop index " + indexname; :}
+				| DROP INDEX ON ID:tablename ID:colname
+				{: RESULT = "drop index " + tablename + "_" + colname + "_btree"; :}
+				/*| DROP INDEX ON ID:tablename ID:colname INDEXTYPE ID:intype
+				{: RESULT = "drop index " + tablename + "_" + colname + "_" + intype; :}*/
+				;
+				
+DROP_BEHAVIOUR	::= CASCADE
+				{: RESULT = "cascade"; :}
+				| RESTRICT
+				{: RESULT = "restrict"; :}
+				|
+				{: RESULT = ""; :}
+				;
+
+// Definition of DROP ends here
+
+
+
+// Definition of Update starts here
+
+UPDATE_CLAUSE	::= UPDATE QUALNAME:qn SET SET_CLAUSE_LIST:scl WHERE_CLAUSE:wc
+				{: if (wc.containsSubs()) raise_Error("subqueries whithin an update_clause ");
+					RESULT = "update " + qn + " set " + scl.getGList() + wc.getWhereClause(); :};
+
+SET_CLAUSE_LIST	::= SET_CLAUSE:sc
+				{: RESULT = new GeneralList(sc); :}
+				| SET_CLAUSE:sc COMMA SET_CLAUSE_LIST:scl
+				{: RESULT = scl.addElement(sc); :};
+				
+SET_CLAUSE		::= ID:co EQUAL UPDATE_SOURCE:us
+				{: RESULT = co + "=" + us; :}; 
+				
+UPDATE_SOURCE	::= VALUE_EXPR:ve
+				{: if (ve.containsSub()) raise_Error("Subqueries within a Set_Clause "); 
+				RESULT = ve.getStrValueExpr(); :}
+				| DEFAULT
+				{: raise_Error("default within a Set_Clause "); :}
+				| NULL
+				{: raise_Error("NULL within a Set_Clause "); :};
+				
+
+
+// Definition of Update ends here
+
+
+
+SIGN			::= PLUS
+				{: RESULT = "+"; :}
+				| MINUS
+				{: RESULT = "-"; :};
+				
+// Options like []
+
+ESC_EXPR		::= ESCAPE CHAR_VALUE_EXPR |;
+UNIQUE_EXPR		::= UNIQUE |;
+PAR_FULL_EXPR	::= PARTIAL 
+				{: RESULT = " partial "; :}
+				| FULL 
+				{: RESULT = " full "; :}
+				|
+				{: RESULT = ""; :};
+UNION_EXCEPT_EXPR	::= UNION | EXCEPT;
+
+NOT_EXPR		::= NOT 
+				{: RESULT = "not "; :}
+				|
+				{: RESULT = ""; :};
+				
+ALL_EXPR		::= ALL |;
+CORR_BY_EXPR	::= BY LPARENT COLUMN_NAME_LIST RPARENT|;
+				
+AS_CLAUSE		::= 
+				{: if (useAsExpr) PreResult = getUniqueName(); else PreResult =""; 
+				   useAsExpr = false; RESULT = PreResult; :}
+				| AS ID:id 
+				{: RESULT = id; :}
+				| ID:id
+				{: RESULT = id; :};
+				
+CORR_SPEC_EXPR	::= CORR_SPEC:cs 
+				{: RESULT = " "+cs; :}
+				|
+				{: RESULT = ""; :};
+FOR_EXPR		::= FOR NUMERIC_VALUE_EXPR |;
+UP_LOW_EXPR		::= UPPER | LOWER;
+INTERVAL_QUAL_EXPR	::= INTERVAL_QUAL /*|*/;
+CHAR_L_EXPR		::= CHAR_LENGTH | CHARACTER_LENGTH;
+
+
+TIME_PRECISION_EXPR	::= LPARENT UNSIGNED_INT RPARENT
+					| LPARENT UNSIGNED_INT COMMA LPARENT UNSIGNED_INT RPARENT RPARENT
+					|;
+
+COLLATE_CLAUSE	::= COLLATE QUALNAME:qn
+				{: RESULT = "collate " + qn; :}
+				|{: RESULT = ""; :};
+
+
+DISTINCT_CLAUSE	::= ALL 
+				{: RESULT = "all ";:}
+				| DISTINCT 
+				{: RESULT = "distinct ";:}
+				|
+				{: RESULT = "";:};
+				
+COLUMN_EXPR		::= COLUMN
+				{: RESULT = "column ";:}
+				|
+				{: RESULT = "";:};
+
+				
+//Repetitions like X [{comma X}...]
+
+TABLE_REF_EXPR	::= TABLE_REF:tr
+				{: RESULT = new TableClause(tr);:}
+				| TABLE_REF:tr COMMA TABLE_REF_EXPR:tre
+				{: RESULT = tre.addElement(tr); :};
+				
+SELECT_SLIST_EXPR	::= SELECT_SUBLIST:ss
+					{: RESULT = new SelectList(ss);:}
+					| SELECT_SUBLIST:ss COMMA SELECT_SLIST_EXPR:sse
+					{: RESULT = sse.addElement(ss);:};
+					
+GROUP_COL_REF_LIST	::= GROUP_COL_REF:gcr
+					{: RESULT = new GroupClause(gcr);:}
+					| GROUP_COL_REF:gcr COMMA GROUP_COL_REF_LIST:gcrl
+					{: RESULT = gcrl.addElement(gcr); :};
+					
+SORT_SPEC_LIST	::= SORT_SPEC:ssp
+				{: RESULT = new OrderClause(ssp);:}
+				| SORT_SPEC_LIST:ssl COMMA SORT_SPEC:ssp
+				{: RESULT = ssl.addElement(ssp); :};
+					
+VALUE_EXPR_LIST	::= VALUE_EXPR
+					| VALUE_EXPR COMMA VALUE_EXPR_LIST;
+
+					
+				
+/*    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!    !!!!!!!!! PARTS WHICH ARE NOT YET SUPPORTED  !!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+*/
+
+//    !!!!! DEFINITION DEFAULT_CLAUSE !!!!!!
+
+DEFAULT_CLAUSE	::= DEFAULT DEFAULT_OPTION:deo
+				{: RESULT = "default " + deo;:}
+				|
+				{: RESULT = "";:};
+
+DEFAULT_OPTION	::= LITERAL:li
+				{: RESULT = li;:}
+				| DATETIME_VALUE_FUN
+				{: RESULT = "not supported";:}
+				| USER
+				{: RESULT = "user";:}
+				| CURRENT_USER
+				{: RESULT = "current_user";:}
+				| SESSION_USER
+				{: RESULT = "session_user";:}
+				| SYSTEM_USER
+				{: RESULT = "system_user";:}
+				| NULL
+				{: RESULT = "null";:};
+				
+
+LITERAL			::= SIGNED_NUM_LITERAL:snl
+				{: RESULT = snl;:}
+				|GENERAL_LITERAL:gl
+				{: RESULT = gl;:};
+				
+SIGNED_NUM_LITERAL	::= SIGN:si UNSIGNED_NUM_LITERAL:unl
+					{: RESULT = si+unl;:}
+					| UNSIGNED_NUM_LITERAL:unl
+					{: RESULT = unl;:};
+				
+//    !!!!! DEFINITION DEFAULT_CLAUSE ENDS HERE !!!!!!
+
+
+
+
+//	  !!!!! DEFINITION OF CONSTRAINTS  !!!!!!!
+
+TAB_CONSTR_DEF	::= CONSTR_NAME_DEF:cnd TAB_CONSTR:tc
+				{: RESULT = cnd + " " + tc; :}
+				| TAB_CONSTR:tc
+				{: RESULT = tc; :};
+
+TAB_CONSTR		::= UNI_CONSTR_DEF:ucd
+				{: RESULT = ucd; :}
+				| REF_CONSTR_DEF:rcd
+				{: RESULT = rcd; :}
+				| CHECK_CONSTR_DEF:ccd
+				{: RESULT = ccd; :};
+
+CONSTR_NAME_DEF	::= CONSTRAINT QUALNAME:qn
+				{: RESULT = " constraint " + qn; :};
+
+UNI_CONSTR_DEF	::= UNIQUE_SPEC:us LPARENT COLUMN_NAME_LIST:cl RPARENT
+				{: RESULT = us + "(" + cl + ")"; :};
+
+REF_CONSTR_DEF	::= FOREIGN_KEY LPARENT COLUMN_NAME_LIST:cl RPARENT REF_SPEC:rs
+				{: RESULT = "foreign key (" + cl + ")" + rs; :};
+				
+CHECK_CONSTR_DEF	::= CHECK LPARENT SEARCH_COND:sd RPARENT
+					{: RESULT = "check (" + sd.getWhereClause() + ")"; :};
+
+COL_CONSTR_EXPR_2	::= COL_CONSTR_EXPR:cce
+					{: RESULT = cce.getGListWithoutComma(); :}
+					|
+					{: RESULT = ""; :};
+
+COL_CONSTR_EXPR	::= COL_CONSTR_DEF:ccd
+				{: RESULT = new GeneralList(ccd); :}
+				| COL_CONSTR_DEF:ccd COL_CONSTR_EXPR: cce
+				{: RESULT = cce.addElement(ccd); :};
+
+COL_CONSTR_DEF	::= CONSTR_NAME_DEF:cnd COL_CONSTR:cc
+				{: RESULT = cnd + " " + cc; :}
+				| COL_CONSTR:cc
+				{: RESULT = cc; :};
+				
+COL_CONSTR		::= NOT NULL
+				{: RESULT = "not null"; :}
+				| UNIQUE_SPEC:us
+				{: RESULT = us; :}
+				| REF_SPEC:rs
+				{: RESULT = rs; :}
+				| CHECK_CONSTR_DEF:ccd
+				{: RESULT = ccd; :};
+				
+UNIQUE_SPEC		::= UNIQUE
+				{: RESULT = " unique "; :}
+				| PRIM_KEY
+				{: RESULT = " primary key "; :};
+				
+REF_SPEC		::= REFERENCES REF_TAB_COL:rtc PAR_FULL_EXPR:pfe
+				{: RESULT = " references " + rtc + pfe; :};
+
+REF_TAB_COL		::= QUALNAME:qn LPARENT COLUMN_NAME_LIST:cl RPARENT
+				{: RESULT = qn + "(" + cl + ")"; :}
+				| QUALNAME:qn
+				{: RESULT = qn; :};
+
+//	  !!!!! DEFINITION OF CONSTRAINTS ENDS HERE !!!!!!!
+
+
+//	  !!!!! DEFINITION OF ALTER TABLE !!!!!!!
+
+ALTER_TABLE		::= ALTER TABLE QUALNAME:qn ALTER_TAB_ACTION:atb
+				{: RESULT = "altertable;" + qn + atb; :};
+				//{: RESULT = "alter table " + qn + " " + atb; :};
+
+ALTER_TAB_ACTION	::= ADD_COL_DEF:acd
+					{: RESULT = acd; :}
+					| ALTER_COL_DEF:alcd
+					{: RESULT = alcd; :}
+					| DROP_COL_DEF:dcd
+					{: RESULT = dcd; :}
+					| ADD_TAB_CONSTR_DEF:atcd
+					{: RESULT = atcd; :}
+					| DROP_TAB_CONSTR_DEF:dtcd
+					{: RESULT = dtcd; :};
+
+
+ADD_COL_DEF		::= ADD COLUMN_EXPR:ce COLUMN_DEF:co
+				{: int PosColon = co.indexOf(":");
+				   String CoName = co.substring(0,PosColon); 
+				   String CoDatatype = co.substring(PosColon+1);
+				   RESULT = ";add;"+CoName+";"+CoDatatype; :};
+				   //RESULT = "extend[" + CoName + " : [const " + CoDatatype + " value undef]] consume"; :};
+				//{: RESULT = "add " + ce + " " + co; :};
+
+ALTER_COL_DEF	::= ALTER COLUMN_EXPR:ce ID:id ALTER_COL_ACTION:aca
+				{: raise_Error("alter table alter column "); :};
+				//{: RESULT = "alter " + ce + id + " " + aca; :};
+				
+ALTER_COL_ACTION	::= SET DEFAULT_CLAUSE:dc
+					{: RESULT = "set " + dc; :}
+					| DROP DEFAULT
+					{: RESULT = "drop default "; :};
+
+DROP_COL_DEF	::= DROP COLUMN_EXPR:ce ID:id DROP_BEHAVIOUR:db
+				{: if (db != "") raise_Error("this drop behaviour ");
+				   RESULT = ";drop;" + id; :};
+				/*{: if (db != "") raise_Error("this drop behaviour ");
+				   RESULT = "drop " + ce + id; :};*/
+
+ADD_TAB_CONSTR_DEF	::= ADD TAB_CONSTR_DEF:tcd
+					{: raise_Error("alter table add contraint "); :};
+					//{: RESULT = "add " + tcd; :};
+
+DROP_TAB_CONSTR_DEF	::= DROP CONSTR_NAME_DEF:cnd DROP_BEHAVIOUR:db
+					{: raise_Error("alter table drop constraint "); :};
+					//{: RESULT = "drop " + cnd + " " + db; :};
+
+
+//	  !!!!! DEFINITION OF ALTER TABLE ENDS HERE !!!!!!!				
+
