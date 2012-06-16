@@ -56,7 +56,7 @@ Mai 2012, JKN, First version of this file
 #ifndef COST_EST_MMR_ALG_H
 #define COST_EST_MMR_ALG_H
 
-#define DEBUG false 
+#define DEBUG false
 
 /*
 1.0 Prototyping
@@ -146,14 +146,13 @@ public:
 
            // For partition 1: read / write 'tuplesInTupleFile' to tuplefile
            // For partition 1+n: read 'tuplesInTupleFile' from tuplefile
-           pRes->Time = p1.Time + p2.Time 
+           pRes->Time = p2.Time 
              + (tuplesPerIteration * wItSpatialJoin * p2.Size) 
              + ((partitions - 1) * tuplesPerIteration 
                  * xItSpatialJoin * p2.Size);
   
            // Calculate Elapsed time 
-           size_t elapsedTime = p1.Time * p1.Progress 
-             + p2.Time * p2.Progress;
+           size_t elapsedTime = p2.Time * p2.Progress;
 
            if(iteration <= 1) {
               elapsedTime += readInIteration * wItSpatialJoin * p2.Size;
@@ -176,7 +175,7 @@ public:
                cout << "DEBUG: ellapsed time " << elapsedTime
                 << " of " << pRes->Time << endl;
 
-               cout << "DEBUG: iteration / tuplefile " << iteration
+               cout << "DEBUG: iteration / tuplefileWritten " << iteration
                 << " / " << tupleFileWritten << endl;
 
                cout << "DEBUG: read in iteration " << readInIteration << endl;
@@ -192,7 +191,7 @@ public:
            }
 
            pRes->Progress = p2.Progress;
-           pRes->Time = p1.Time + p2.Time + p2.Card * vItSpatialJoin;
+           pRes->Time = p2.Time + p2.Card * vItSpatialJoin;
         }
 
         // Calculate selectivity
@@ -208,10 +207,11 @@ public:
             pRes->Card = qp->GetSelectivity(supplier) * p1.Card * p2.Card;
          }
 
-         pRes->BProgress = (p1.Progress * uItSpatialJoin) 
-              + (p1.BProgress / p1.BTime) + (p2.BProgress / p2.BTime);
-         pRes->BTime = p1.Card * uItSpatialJoin + p1.BTime + p2.BTime;
-
+         pRes->BTime = p1.Card * uItSpatialJoin + p1.Time + p1.BTime + p2.BTime;
+         pRes->BProgress = ((p1.Progress * p1.Card * uItSpatialJoin) 
+              + (p1.Progress * p1.Time) + (p1.BProgress * p1.BTime) 
+              + (p2.BProgress * p2.BTime)) / pRes->BTime;
+   
           // is computation done?
           if(stream1Exhausted && stream2Exhausted) {
              pRes->Progress = 1.0;
@@ -225,6 +225,7 @@ public:
              cout << "BProgress is " << pRes->BProgress << endl;
              cout << "BTime is " << pRes->BTime << endl;
              cout << "Card is: " << pRes->Card << endl;
+             cout << "Paritions: " << partitions << endl;
           }
 
          pRes->CopySizes(pli);
@@ -367,6 +368,13 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
            return iteration;
         }
 
+        // if we have a partition size
+        // use them
+        if(partitionSize > 0) {
+           return ceil(s1Card / partitionSize) + 1;
+        }
+
+        // otherwise we must estimate
         // calculate size for one bucket datastructure
         // code taken from MMRTreeAlgebra.cpp 
         size_t sizePerTuple = s1Size + sizeof(void*) + 100;
@@ -499,8 +507,20 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
      sizeOfTupleSt1 = size;
   }
 
+
 /*
-1.21 init our class
+1.21 Set readPartitionDone state
+
+*/
+   void readPartitionDone() {
+      if(partitionSize == 0) {
+         partitionSize = readStream1;
+      }
+   }
+
+
+/*
+1.22 init our class
 
 */
   virtual void init(Word* args, void* localInfo)
@@ -515,6 +535,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
     readInIteration = 0;
     tuplesInTupleFile = 0;
     sizeOfTupleSt1 = 0;
+    partitionSize = 0;
   }
 
 private:
@@ -531,6 +552,7 @@ private:
   size_t sizeOfTupleSt1;    // size of a tuple in stream 1 (RootSize);
   size_t minRtree;          // min rtree
   size_t maxRtree;          // max rtree
+  size_t partitionSize;     // size of a partition
 };
 
 
