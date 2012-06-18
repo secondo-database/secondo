@@ -123,7 +123,7 @@ MapMatchingMHT::MapMatchingMHT(IMMNetwork* pNetwork, std::string strFileName)
         GPXFileReader Reader;
         if (Reader.Open(strFileName))
         {
-            CTrkPointIterator* pIt = Reader.GetTrkPointIterator();
+            TrkPointIteratorPtr pIt = Reader.GetTrkPointIterator();
             if (pIt != NULL)
             {
                 GPXFileReader::SGPXTrkPointData TrkPtData;
@@ -163,8 +163,6 @@ MapMatchingMHT::MapMatchingMHT(IMMNetwork* pNetwork, std::string strFileName)
 
                     pIt->Next();
                 }
-
-                Reader.FreeTrkPointIterator(pIt);
             }
         }
         else

@@ -50,6 +50,13 @@ class MReal;
 #include <StandardTypes.h>
 #include <TemporalAlgebra.h>
 
+#ifdef SECONDO_WIN32
+#include <memory>
+#else
+#include <tr1/memory>
+#endif
+using std::tr1::shared_ptr;
+
 typedef struct _xmlDoc xmlDoc;
 typedef xmlDoc *xmlDocPtr;
 typedef struct _xmlNode xmlNode;
@@ -57,6 +64,8 @@ typedef xmlNode *xmlNodePtr;
 
 
 namespace mapmatch {
+
+typedef shared_ptr<class CTrkPointIterator> TrkPointIteratorPtr;
 
 /*
 3 class GPXFileReader
@@ -109,9 +118,7 @@ public:
     The file must be opened before - GPXFileReader::Open(std::string)
 
 */
-    class CTrkPointIterator* GetTrkPointIterator(void);
-
-    void FreeTrkPointIterator(class CTrkPointIterator*& rpIterator);
+    TrkPointIteratorPtr GetTrkPointIterator(void);
 
 private:
 
@@ -148,13 +155,14 @@ Iterator for Trk-points
 class CTrkPointIterator
 {
 public:
+    ~CTrkPointIterator();
+
     bool GetCurrent(GPXFileReader::SGPXTrkPointData& rData);
     void Next(void);
 
 private:
+    CTrkPointIterator();
     CTrkPointIterator(GPXFileReader* pReader);
-
-    ~CTrkPointIterator();
 
     GPXFileReader* m_pReader;
     xmlNodePtr m_pCurrentTrk;

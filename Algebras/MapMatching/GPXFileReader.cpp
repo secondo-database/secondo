@@ -539,20 +539,12 @@ void GPXFileReader::NewData(const SGPXTrkPointData& /*rData*/)
 #endif
 }
 
-CTrkPointIterator* GPXFileReader::GetTrkPointIterator(void)
+TrkPointIteratorPtr GPXFileReader::GetTrkPointIterator(void)
 {
     if (m_pXMLDoc == NULL)
-        return NULL;
+        return TrkPointIteratorPtr();
 
-    return new CTrkPointIterator(this);
-}
-
-void GPXFileReader::FreeTrkPointIterator(CTrkPointIterator*& rpIterator)
-{
-    if (rpIterator != NULL)
-        delete rpIterator;
-
-    rpIterator = NULL;
+    return TrkPointIteratorPtr(new CTrkPointIterator(this));
 }
 
 
@@ -604,6 +596,14 @@ GPXFileReader::SGPXTrkPointData& GPXFileReader::SGPXTrkPointData::operator=(
 Iterator for Trk-points
 
 */
+
+CTrkPointIterator::CTrkPointIterator()
+:m_pReader(NULL),
+ m_pCurrentTrk(NULL),
+ m_pCurrentTrkSeg(NULL),
+ m_pCurrentTrkPt(NULL)
+{
+}
 
 CTrkPointIterator::CTrkPointIterator(GPXFileReader* pReader)
 :m_pReader(pReader),

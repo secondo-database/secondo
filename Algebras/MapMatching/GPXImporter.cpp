@@ -57,7 +57,7 @@ creates tuple streams of GPX-data
 GPXImporter::GPXImporter(const std::string strFileName,
                          double dScale)
 :m_pReader(new GPXFileReader), m_pTupleTypeTrkPt(NULL),
- m_bOk(false), m_pTrkPointIterator(NULL), m_dScale(dScale)
+ m_bOk(false), m_pTrkPointIterator(), m_dScale(dScale)
 {
     m_bOk = m_pReader->Open(strFileName);
 
@@ -71,18 +71,6 @@ GPXImporter::GPXImporter(const std::string strFileName,
 
 GPXImporter::~GPXImporter()
 {
-    if (m_pTrkPointIterator != NULL)
-    {
-        if (m_pReader != NULL)
-        {
-            m_pReader->FreeTrkPointIterator(m_pTrkPointIterator);
-        }
-        else
-        {
-            assert(false);
-        }
-    }
-
     delete m_pReader;
     m_pReader = NULL;
 }

@@ -43,6 +43,7 @@ This header file essentially contains the definition of the class ~GPXImporter~.
 #include <Point.h>
 #include <DateTime.h>
 #include <StandardTypes.h>
+#include <GPXFileReader.h>
 
 class TupleType;
 
@@ -92,7 +93,7 @@ private:
     class GPXFileReader* m_pReader;
     TupleType* m_pTupleTypeTrkPt;
     bool m_bOk;
-    class CTrkPointIterator* m_pTrkPointIterator;
+    TrkPointIteratorPtr m_pTrkPointIterator;
     double m_dScale; // Scale for coordinates (lat, lon)
 };
 
