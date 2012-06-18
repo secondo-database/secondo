@@ -139,13 +139,8 @@ class ProgressView
        double bProgress = progress.BProgress;
        bProgress = min(1.0,max(0.0,bProgress));
 
-       double allProgress = (progress.Time * progress.Progress +
-                             progress.BTime * progress.BProgress)
-                          / (progress.Time + progress.BTime);
-       allProgress = min(1.0,max(0.0,allProgress));
-
        msgList = NList( NList("progress"),
-              NList( NList((int) (allProgress*PROGRESS_NORM)), 
+              NList( NList((int) (currentProgress*PROGRESS_NORM)), 
                      NList(PROGRESS_NORM)));
        msg->Send(msgList);
               
@@ -169,8 +164,6 @@ class ProgressView
         ofs << (size_t) progress.BTime << ";";
         // write BProgress 
         ofs << getProgStr(bProgress*100) << ";";
-        // write allProgress
-        ofs << getProgStr(allProgress*100) << ";";
         ofs << endl;
       }
     }
