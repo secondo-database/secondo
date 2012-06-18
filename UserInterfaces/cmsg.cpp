@@ -238,11 +238,11 @@ ProgMesHandler::handleMsg(NList msgList)
      ActValue = TotalValue;
   }
 
-  if(ActValue <= highest){
+  //if((ActValue <= highest)){
     // don't go back in progress
-    return true;
-  }
-  highest = ActValue;
+  //  return true;
+ // }
+  //highest = ActValue;
   
   double pr = (double)ActValue / (double)TotalValue;
 
