@@ -622,9 +622,6 @@ NList fList::getColumnList(size_t row)
     if (!fileLocList.elem(row).isEmpty()){
       return fileLocList.elem(row).second();
     }
-    else{
-      cerr << "Row " << row << " is empty" << endl;
-    }
   }
   return NList();
 }
