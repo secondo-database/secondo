@@ -14,7 +14,7 @@
 using namespace std; 
 
  
-//string intToString(int i);
+string int2String(int i);
 int str2Int(string const &text);
 vector<string> split2(string const& text, const char delemiter);
 vector<string> split(string const& text, const char delemiter);

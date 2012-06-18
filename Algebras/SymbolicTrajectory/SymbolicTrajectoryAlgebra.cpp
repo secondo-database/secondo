@@ -28,20 +28,18 @@ extern QueryProcessor *qp;
 
 using namespace std;
 
-
 namespace stj {
 
-class Label
-{
+class Label {
  public:
   Label() {};
-  Label( string text );
-  Label( char* Text );  
-  Label( const Label& rhs );
+  Label(string text);
+  Label(char* Text);
+  Label(const Label& rhs);
   ~Label();
   
   string GetText() const;
-  void SetText( string &text );
+  void SetText(string &text);
    
   Label* Clone();
   
@@ -995,7 +993,8 @@ string Pattern::GetText() const {
     text << "[subst] " << conditions[i].condsubst << endl;
     for (unsigned int j = 0; j < conditions[i].variables.size(); j++) {
       text << "[[" << j << "]] " << conditions[i].variables[j]
-           << "." << conditions[i].keys[j] << endl;
+           << "." << conditions[i].keys[j] << " in #"
+           << conditions[i].uPatterns[j] << endl;
     }
   }
   text << "~~~~~~results~~~~~~" << endl;
@@ -1159,7 +1158,7 @@ void Pattern::verifyConditions() {
 }
 
 /*
-Function ~evaluate~
+4.13 Function ~evaluate~
 In case of testing a condition's syntactical correctness, we are only
 interested in the result type. Thus, resultNeeded is false, an operator tree
 is built, and true is returned if and only if the result type is boolean.
@@ -1237,7 +1236,7 @@ bool evaluate(string conditionString, const bool resultNeeded) {
 
 
 /*
-4.13 Function ~getPattern~
+4.14 Function ~getPattern~
 Calls the parser.
 
 */
@@ -1249,7 +1248,7 @@ bool Pattern::getPattern(string input, Pattern** p) {
 }
 
 /*
-4.14 Function ~matches~
+4.15 Function ~matches~
 Invokes the NFA construction and the matching procedure.
 
 */
@@ -1263,7 +1262,7 @@ bool Pattern::matches(MLabel const &ml) {
 }
 
 /*
-4.15 Function Describing the Signature of the Type Constructor
+4.16 Function Describing the Signature of the Type Constructor
 
 */
 ListExpr Pattern::Property() {
@@ -1281,7 +1280,7 @@ ListExpr Pattern::Property() {
 }
 
 /*
-4.16 Creation of the Type Constructor Instance
+4.17 Creation of the Type Constructor Instance
 
 */
 TypeConstructor patternTC(
@@ -1385,8 +1384,25 @@ bool NFA::match(MLabel const &ml) {
   if (!currentStates.count(numberOfStates - 1)) { // is the final state active?
     return false;
   }
+  printCards();
+  buildSequences();
+  printSequences(50);
+  if (!conditionsMatch()) {
+    return false;
+  }
+  return true;
+}
 
-  
+void NFA::printCurrentStates() {
+  set<int>::iterator i;
+  cout << "the set of active states is {";
+  for (i = currentStates.begin(); i != currentStates.end(); i++) {
+    cout << *i << " ";
+  }
+  cout << "}" << endl;
+}
+
+void NFA::printCards() {
   set<size_t>::iterator it;
   for (int j = 0; j < numberOfStates - 1; j++) {
     cout << "state " << j << " matches ulabels ";
@@ -1395,7 +1411,6 @@ bool NFA::match(MLabel const &ml) {
     }
     cout << endl;
   }
-
   set<int>::iterator j;
   for (int i = 0; i < numberOfStates - 1; i++) {
     cout << i << " | ";
@@ -1408,17 +1423,22 @@ bool NFA::match(MLabel const &ml) {
     }
     cout << endl;
   }
-  // TODO: add cardinality check
-  return true;
 }
 
-void NFA::printCurrentStates() {
-  set<int>::iterator i;
-  cout << "the set of active states is {";
-  for (i = currentStates.begin(); i != currentStates.end(); i++) {
-    cout << *i << " ";
+void NFA::printSequences(size_t max) {
+  set<vector<size_t> >::iterator it;
+  unsigned int seqCount = 0;
+  it = sequences.begin();
+  while ((seqCount < max) && (it != sequences.end())) {
+    cout << "seq_" << (seqCount < 9 ? "0" : "") << seqCount  + 1 << " | ";
+    for (unsigned int i = 0; i < (*it).size(); i++) {
+      cout << (*it)[i] << ", ";
+    }
+    cout << endl;
+    it++;
+    seqCount++;
   }
-  cout << "}" << endl;
+  cout << "there are " << sequences.size() << " possible sequences" << endl;
 }
 
 /*
@@ -1434,7 +1454,6 @@ void NFA::updateStates() {
   newStates.clear();
   set<int>::iterator i, it;
   for (i = currentStates.begin(); i != currentStates.end(); i++) {
-    // cout << "examine state #" << *i << endl;
     for (int j = 0; j < numberOfStates - 1; j++) {
       result = false;
       if (!transitions[*i][j].empty()) {
@@ -1471,12 +1490,11 @@ void NFA::updateStates() {
 5.4 Function ~storeMatch~
 
 */
-void NFA::storeMatch(int state) { // TODO: care about conditions
+void NFA::storeMatch(int state) { // TODO: shorten this
   size_t fromLabel, toLabel;
   int fromState, toState;
   set<size_t>::iterator it;
   if (nfaPatterns[state].wildcard.empty()) {
-    cout << currentLabelId << " matches at " << state << endl;
     matchings[state].insert(currentLabelId);
     cardsets[state].insert(1); // cardinality is 1 without wildcard
     if ((state > 0) && !nfaPatterns[state - 1].wildcard.empty()) {
@@ -1514,8 +1532,8 @@ void NFA::storeMatch(int state) { // TODO: care about conditions
             if ((currentLabelId - *it - 1 > 0) // card != 0 for wildcard +
               || !nfaPatterns[state - 1].wildcard.compare("*")) {
               cardsets[state - 1].insert(currentLabelId - *it - 1);
-              it++;
-          }
+            }
+            it++;
           }
         }
       }
@@ -1524,7 +1542,7 @@ void NFA::storeMatch(int state) { // TODO: care about conditions
   else if ((state == numberOfStates - 2) // last state
         && !nfaPatterns[state].wildcard.empty()) {
     int j = state - 1; // search previous matching position
-    if (matchings[j].empty()) {
+    if ((j >= 0) && matchings[j].empty()) {
       dependencies[j].insert(state);
       dependencies[state].insert(j);
       j--;
@@ -1553,10 +1571,13 @@ void NFA::storeMatch(int state) { // TODO: care about conditions
         }
       }
     }
-    else { // matching in state - 1
+    else if (j >= 0) { // matching in state - 1
       for (it = matchings[j].begin(); it != matchings[j].end(); it++) {
         cardsets[state].insert(maxLabelId - *it);
       }
+    }
+    else { // pattern consists of one unit which is a wildcard
+      cardsets[state].insert(maxLabelId + 1);
     }
   }
 }
@@ -1564,23 +1585,20 @@ void NFA::storeMatch(int state) { // TODO: care about conditions
 /*
 5.4 Function ~timesMatch~
 Checks whether the current ULabel interval is completely enclosed in the
-interval specified in the pattern or the condition(s).
+interval specified in the pattern.
 
 */
-bool NFA::timesMatch(int pos) { // TODO: shorten this
-  bool conditionsOk(false), patternOk(false), elementOk(false);
-  bool foundVarKey = false;
-  bool condPartsOk[3] = {true, true, true};
+bool NFA::timesMatch(int pos) {
+  bool result(false), elementOk(false);
   set<int>::iterator i;
   set<string>::iterator j;
-  string varKey, currentLabelString, conditionString;
+  string varKey, currentLabelString;
   Instant *pStart = new DateTime(instanttype);
   Instant *pEnd = new DateTime(instanttype);
-  size_t varKeyPos = string::npos;
-  SecInterval *pInterval = new SecInterval();
+  SecInterval *pInterval = new SecInterval(0);
   SecInterval *uInterval = new SecInterval(currentLabel.timeInterval);
   if (nfaPatterns[pos].intervalset.empty()) { // no interval specified
-    patternOk = true;
+    result = true;
   }
   else {
     for (j = nfaPatterns[pos].intervalset.begin();
@@ -1616,118 +1634,187 @@ bool NFA::timesMatch(int pos) { // TODO: shorten this
         elementOk = pInterval->Contains(*uInterval);
       }
       if (elementOk) { // one matching interval is sufficient
-        patternOk = true;
+        result = true;
       }
     }
   } // pattern intervals finished
-  if (nfaPatterns[pos].relatedConditions.empty()) {
-    conditionsOk = true;
-  }
-  else {
-    // TODO: handle conditions
-    for (i = nfaPatterns[pos].relatedConditions.begin();
-         i != nfaPatterns[pos].relatedConditions.end(); i++) {
-      cout << "related condition is " << *i << endl;
-      string condTypes[3] = {".time", ".start", ".end"};
-      conditionString.assign(nfaConditions[*i].condition);
-      for (int i = 0; i < 3; i++) {
-        foundVarKey = false;
-        varKey.assign(nfaPatterns[pos].variable);
-        varKey.append(condTypes[i]);
-        currentLabelString.assign(uInterval->ToString());
-        varKeyPos = conditionString.find(varKey);
-        while (varKeyPos != string::npos) {
-          cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
-          foundVarKey = true;
-          // TODO: insert quotation marks
-          // TODO: switch between interval and instant
-          currentLabelString.append("]");
-          currentLabelString.insert(0, "[const interval value ");
-          conditionString.replace(varKeyPos, varKey.size(), currentLabelString);
-          cout << conditionString << endl;
-          if (!evaluate(conditionString, true)) {
-            condPartsOk[i] = false;
-          }
-          varKeyPos = conditionString.find(varKey);
-        }
-        if (!foundVarKey) {
-          cout << varKey << " not found" << endl;
-        }
-      }
-    }
-    conditionsOk = condPartsOk[0] & condPartsOk[1] & condPartsOk[2];
-  }
   uInterval->DeleteIfAllowed();
   pInterval->DeleteIfAllowed();
   pStart->DeleteIfAllowed();
   pEnd->DeleteIfAllowed();
-  return patternOk & conditionsOk;
+  return result;
 }
 
 
 /*
 5.5 Function ~labelsMatch~
-Checks whether the current ULabel label matches the unit pattern label at
-position pos (if specified) and the label of the related condition(s) (if
-specified).
+Checks whether the current ULabel label matches the unit pattern labelset at
+position pos (if specified).
 
 */
 bool NFA::labelsMatch(int pos) {
-  bool conditionsOk = true;
-  bool patternOk = false;
-  bool foundVarKey = false;
+  bool result = false;
   set<string>::iterator k;
   set<int>::iterator i;
-  string varKey, currentLabelString, conditionString;
-  size_t varKeyPos = string::npos;
+  string currentLabelString;
   if (nfaPatterns[pos].labelset.empty()) {
-    patternOk = true;
+    result = true;
   }
   else { // check labels of the unit pattern
     for (k = nfaPatterns[pos].labelset.begin();
          k != nfaPatterns[pos].labelset.end(); k++) {
       CcString *label = new CcString(true, *k);
       if (currentLabel.Passes(*label)) { // look for a matching label
-        patternOk = true;
+        result = true;
       }
       label->DeleteIfAllowed();
     }
   }
-  if (nfaPatterns[pos].relatedConditions.empty()) {
-    cout << "no related condition" << endl;
-    conditionsOk = true;
-  }
-  else { // check related conditions
-    for (i = nfaPatterns[pos].relatedConditions.begin();
-         i != nfaPatterns[pos].relatedConditions.end(); i++) {
-      cout << "related condition is " << *i << endl;
-      varKey.assign(nfaPatterns[pos].variable);
-      varKey.append(".label");
-      currentLabelString.assign("\"");
-      currentLabelString.append(currentLabel.constValue.GetValue());
-      currentLabelString.append("\"");
-      conditionString.assign(nfaConditions[*i].condition);
-      varKeyPos = conditionString.find(varKey);
-      while (varKeyPos != string::npos) {
-        cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
-        foundVarKey = true;
-        conditionString.replace(varKeyPos, varKey.size(), currentLabelString);
-        cout << conditionString << endl;
-        if (!evaluate(conditionString, true)) {
-          conditionsOk = false;
-        }
-        varKeyPos = conditionString.find(varKey);
-      }
-      if (!foundVarKey) {
-        cout << varKey << " not found" << endl;
-      }
-    }
-  }
-  return patternOk & conditionsOk;
+  return result;
 }
 
 /*
-5.6 Function ~toString~
+5.6 Function ~buildSequences~
+Derives all possible ulabel sequences from the cardinality candidates. Only
+sequences with length maxLabelId + 1 are accepted.
+
+*/
+void NFA::buildSequences() {
+  vector<size_t> sequence;
+  set<size_t>::iterator it;
+  size_t totalSize = 1;
+  for (int i = 0; i < numberOfStates - 1; i++) {
+    totalSize *= cardsets[i].size();
+  }
+  for (size_t j = 0; j < totalSize; j++) {
+    size_t k = j;
+    sequence.clear();
+    sequence.push_back(0);
+    size_t sequenceSum = 0;
+    for (int state = 0; state < numberOfStates - 1; state++) {
+      it = cardsets[state].begin();
+      advance(it, k % cardsets[state].size());
+      if (state < numberOfStates - 2) {
+        sequence.push_back(*it + *sequence.rbegin());
+      }
+      k /= cardsets[state].size();
+      sequenceSum += *it;
+      if (sequenceSum > maxLabelId + 1) { // stop if sum exceeds maximum
+        state = numberOfStates;
+      }
+    }
+    if (sequenceSum == maxLabelId + 1) {
+      sequences.insert(sequence);
+    }
+  }
+}
+
+/*
+5.7 Function ~conditionsMatch~
+Checks whether the specified conditions are fulfilled.
+
+*/
+bool NFA::conditionsMatch() { // TODO: a lot
+  bool result = false;
+  bool proceed;
+  set<vector<size_t> >::iterator it;
+  if (nfaConditions.empty()) {
+    return true;
+  }
+  for (unsigned int i = 0; i < nfaConditions.size(); i++) {
+    it = sequences.begin();
+    proceed = false;
+    while ((it != sequences.end()) && !proceed) {
+      proceed = false;
+      // replace and evaluate condition/sequence
+      if (!replaceEvaluate(i, *it)) {
+        sequences.erase(it);
+        it++;
+        i = 0;
+      }
+      else {
+        proceed = true;
+      }
+    }
+    if (!proceed) { // no matching sequence found
+      cout << "mismatch in condition " << i << endl;
+      return false;
+    }
+    cout << sequences.size() << " sequences remain after cond #" << i << endl;
+  }
+  cout << "Matching ok, " << sequences.size() << " remaining." << endl;
+  return !sequences.empty();
+}
+
+/*
+5.8 Function ~replaceEvaluate~
+
+*/
+bool NFA::replaceEvaluate(unsigned int cond, vector<size_t> sequence) {
+  bool finish(false);
+  string varKey, condStr, subst;
+  size_t varKeyPos = string::npos;
+  condStr.assign(nfaConditions[cond].condition);
+  while (!finish) {
+    for (unsigned int j = 0; j < nfaConditions[cond].keys.size(); j++) {
+      cout << "consider condition #" << cond << "; variable "
+           << nfaConditions[cond].variables[j] << endl;
+      switch (nfaConditions[cond].keys[j]) {
+        case 0: // label
+          if (!nfaPatterns[nfaConditions[cond].uPatterns[j]].labelset.empty()) {
+
+
+          }
+          break;
+        case 1: // time
+        case 2: // start
+        case 3: // end
+          if (!nfaPatterns[
+               nfaConditions[cond].uPatterns[j]].intervalset.empty()) {
+
+
+          }
+          break;
+        case 4: // card
+          if (nfaConditions[cond].uPatterns[j] == numberOfStates - 2) {
+            subst.assign(int2Str(maxLabelId
+                         - sequence[nfaConditions[cond].uPatterns[j]] + 1));
+          }
+          else {
+            subst.assign(int2Str(sequence[nfaConditions[cond].uPatterns[j] + 1]
+                         - sequence[nfaConditions[cond].uPatterns[j]]));
+          }
+          break;
+        default:
+          break;
+      }
+      varKey.assign(nfaConditions[cond].variables[j]);
+      varKey.append(nfaConditions[cond].types
+                    [nfaConditions[cond].keys[j]].type);
+      varKeyPos = condStr.find(varKey);
+      if (varKeyPos != string::npos) {
+        cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
+        condStr.replace(varKeyPos, varKey.size(), subst);
+      }
+      else {
+        cout << "var.key " << varKey << " not found" << endl;
+        return false;
+      }
+    }
+    cout << "evaluate !!!:::... " << condStr << " ...:::!!!" << endl;
+    if (!evaluate(condStr, true)) {
+      cout << "negative" << endl;
+      finish = true;
+    }
+    else {
+      return true;
+    }
+  }
+  return false;
+}
+
+/*
+5.9 Function ~toString~
 Returns a string displaying the information stored in the NFA.
 
 */

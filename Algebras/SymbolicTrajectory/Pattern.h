@@ -73,6 +73,7 @@ class Condition {
   vector<ConditionType> types;
   vector<Key> keys;
   vector<string> variables;
+  vector<int> uPatterns;
 
   Condition() {
     types.push_back(*(new ConditionType(convert(".label"), convert("\"a\""))));
@@ -182,6 +183,7 @@ class NFA {
   set<size_t> *matchings;
   set<size_t> *cardsets;
   set<int> *dependencies;
+  set<vector<size_t> > sequences; // all possible matching sequences
 
  public:
   NFA(const int s) {
@@ -207,10 +209,15 @@ class NFA {
   void buildNFA(Pattern p);
   bool match(MLabel const &ml);
   void printCurrentStates();
+  void printCards();
   void updateStates();
   void storeMatch(int state);
   bool labelsMatch(int pos);
   bool timesMatch(int pos);
+  void buildSequences();
+  void printSequences(size_t max);
+  bool conditionsMatch();
+  bool replaceEvaluate(unsigned int cond, vector<size_t> sequence);
   string toString();
 };
 

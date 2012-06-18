@@ -132,6 +132,7 @@ condition : expressionlist {
               exprList->expressions.clear();
               cond->variables.clear();
               cond->keys.clear();
+              cond->uPatterns.clear();
             }
           ;
 
@@ -305,7 +306,6 @@ bool stj::parseString(const char* argument, Pattern** p) {
     (*p) = wholepat;
   }
   unitpat.labelset.clear();
-  cond->types.clear();
   return parseSuccess;
 }
 
@@ -475,6 +475,7 @@ Key Condition::convertVarKey(const char *varKey) {
         key = ERROR;
       cond->variables.push_back(var);
       cond->keys.push_back(key);
+      cond->uPatterns.push_back(i);
       cout << varInput << " | pat #" << i << " | cond #" << wholepat->conditions.size() << endl;
       (wholepat->patterns)[i].relatedConditions.insert(wholepat->conditions.size());
       return key;
@@ -489,6 +490,7 @@ void Condition::clear() {
   condsubst.clear();
   keys.clear();
   variables.clear();
+  uPatterns.clear();
 }
 
 string ExpressionList::toString() {

@@ -15,6 +15,12 @@
 
 using namespace std;
 
+string int2String(int i) {
+  stringstream result;
+  result << i;
+  return result.str();
+}
+
 int str2Int(string const &text) {
   int result;
   stringstream ss(text);
