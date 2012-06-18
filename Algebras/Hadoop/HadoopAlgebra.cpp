@@ -618,12 +618,15 @@ size_t fList::getPartitionFileLoc(
 
 NList fList::getColumnList(size_t row)
 {
-  if (!isAvailable() || row > mrNum){
-    return NList();
+  if ( isAvailable() && row <= mrNum){
+    if (!fileLocList.elem(row).isEmpty()){
+      return fileLocList.elem(row).second();
+    }
+    else{
+      cerr << "Row " << row << " is empty" << endl;
+    }
   }
-  else{
-    return fileLocList.elem(row).second();
-  }
+  return NList();
 }
 
 
@@ -1789,8 +1792,9 @@ bool CollectLocalInfo::fetchAllPartFiles2()
 
   for (size_t ri = 0; ri <(rEnd - rBegin + 1); ri++){
     if (!fileStatus[ri]){
-      cerr << "Row " << (rBegin + ri) << " is not prepared" << endl;
-      return false;
+      //It is possible that some rows are empty,
+      //hence only the warning message instead of error message is given.
+      cerr << "Warning! Row " << (rBegin + ri) << " is not prepared" << endl;
     }
   }
 
