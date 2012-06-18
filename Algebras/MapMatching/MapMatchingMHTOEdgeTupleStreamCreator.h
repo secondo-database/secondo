@@ -86,33 +86,33 @@ private:
 
     void Init(void);
 
-    const MHTRouteCandidate::PointData* GetFirstPointOfNextSegment(
-              const std::vector<MHTRouteCandidate::RouteSegment*>& rvecSegments,
-              size_t nIdx,
-              double& dDistance);
+    const MHTRouteCandidate::PointDataPtr GetFirstPointOfNextSegment(
+            MHTRouteCandidate::RouteSegmentIterator itSegments,
+            MHTRouteCandidate::RouteSegmentIterator itSegmentsEnd,
+            double& dDistance);
 
     DateTime ProcessSegment(
-                       const MHTRouteCandidate::RouteSegment& rSegment,
-                       const DateTime& rEndTimePrevSegment,
-                       const MHTRouteCandidate::PointData* pPrevPointData,
-                       const MHTRouteCandidate::PointData* pFirstPointofNextSeg,
-                       double dDistance); // Distance to first point
+                    const MHTRouteCandidate::RouteSegment& rSegment,
+                    const DateTime& rEndTimePrevSegment,
+                    const MHTRouteCandidate::PointDataPtr& pPrevPointData,
+                    const MHTRouteCandidate::PointDataPtr& pFirstPointofNextSeg,
+                    double dDistance); // Distance to first point
                                           // of next segment
 
     DateTime ProcessSegment_Edges(
-                       const MHTRouteCandidate::RouteSegment& rSegment,
-                       const DateTime& rEndTimePrevSegment,
-                       const MHTRouteCandidate::PointData* pPrevPointData,
-                       const MHTRouteCandidate::PointData* pFirstPointofNextSeg,
-                       double dDistance); // Distance to first point
-                                          // of next segment
+                    const MHTRouteCandidate::RouteSegment& rSegment,
+                    const DateTime& rEndTimePrevSegment,
+                    const MHTRouteCandidate::PointDataPtr& pPrevPointData,
+                    const MHTRouteCandidate::PointDataPtr& pFirstPointofNextSeg,
+                    double dDistance); // Distance to first point
+                                        // of next segment
 
     DateTime ProcessSegment_EdgesAndPositions(
-                       const MHTRouteCandidate::RouteSegment& rSegment,
-                       const DateTime& rEndTimePrevSegment,
-                       const MHTRouteCandidate::PointData* pPrevPointData,
-                       const MHTRouteCandidate::PointData* pFirstPointofNextSeg,
-                       double dDistance); // Distance to first point
+                    const MHTRouteCandidate::RouteSegment& rSegment,
+                    const DateTime& rEndTimePrevSegment,
+                    const MHTRouteCandidate::PointDataPtr& pPrevPointData,
+                    const MHTRouteCandidate::PointDataPtr& pFirstPointofNextSeg,
+                    double dDistance); // Distance to first point
                                           // of next segment
 
     void ProcessPoints(const MHTRouteCandidate::RouteSegment& rSegment,

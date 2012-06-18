@@ -74,12 +74,15 @@ MHTRouteCandidate::MHTRouteCandidate(const MHTRouteCandidate& rCandidate)
     const size_t nSegments = rCandidate.m_Segments.size();
     for (size_t i = 0; i < nSegments; ++i)
     {
-        RouteSegment* pSegment = rCandidate.m_Segments[i];
+        RouteSegmentPtr pSegment = rCandidate.m_Segments[i];
         if (pSegment != NULL)
         {
-            m_Segments.push_back(new RouteSegment(*pSegment));
+            m_Segments.push_back(pSegment);
+            pSegment->IncRef();
         }
     }
+
+    m_SegmentsOutsourced = rCandidate.m_SegmentsOutsourced;
 }
 
 MHTRouteCandidate::~MHTRouteCandidate()
@@ -89,10 +92,11 @@ MHTRouteCandidate::~MHTRouteCandidate()
     const size_t nSegments = m_Segments.size();
     for (size_t i = 0; i < nSegments; ++i)
     {
-        RouteSegment* pSegment = m_Segments[i];
-        delete pSegment;
+        RouteSegmentPtr& pSegment = m_Segments[i];
+        pSegment->DecRef();
     }
     m_Segments.clear();
+    m_SegmentsOutsourced.clear();
 }
 
 MHTRouteCandidate& MHTRouteCandidate::operator=
@@ -100,30 +104,34 @@ MHTRouteCandidate& MHTRouteCandidate::operator=
 {
     if (this != &rCandidate)
     {
-        m_pMM = rCandidate.m_pMM;
-        m_dScore = rCandidate.m_dScore;
-        m_nCountLastEmptySections = rCandidate.m_nCountLastEmptySections;
-        m_nCountLastOffRoadPoints = rCandidate.m_nCountLastOffRoadPoints;
-        m_nCountPoints = rCandidate.m_nCountPoints;
-
         size_t nSegments = m_Segments.size();
         for (size_t i = 0; i < nSegments; ++i)
         {
-            RouteSegment* pSegment = m_Segments[i];
-            delete pSegment;
+            RouteSegmentPtr& pSegment = m_Segments[i];
+            if (pSegment != NULL)
+                pSegment->DecRef();
         }
         m_Segments.clear();
 
         nSegments = rCandidate.m_Segments.size();
         for (size_t i = 0; i < nSegments; ++i)
         {
-            RouteSegment* pSegment = rCandidate.m_Segments[i];
+            RouteSegmentPtr pSegment = rCandidate.m_Segments[i];
             if (pSegment != NULL)
             {
-                m_Segments.push_back(new RouteSegment(*pSegment));
+                m_Segments.push_back(pSegment);
+                pSegment->IncRef();
             }
         }
 
+        m_SegmentsOutsourced.clear();
+        m_SegmentsOutsourced = rCandidate.m_SegmentsOutsourced;
+
+        m_pMM = rCandidate.m_pMM;
+        m_dScore = rCandidate.m_dScore;
+        m_nCountLastEmptySections = rCandidate.m_nCountLastEmptySections;
+        m_nCountLastOffRoadPoints = rCandidate.m_nCountLastOffRoadPoints;
+        m_nCountPoints = rCandidate.m_nCountPoints;
         m_bFailed = rCandidate.m_bFailed;
     }
 
@@ -134,41 +142,60 @@ MHTRouteCandidate& MHTRouteCandidate::operator=
 
 void MHTRouteCandidate::AddSection(const shared_ptr<IMMNetworkSection>& pSect)
 {
-    m_Segments.push_back(new RouteSegment(pSect));
+    m_Segments.push_back(RouteSegmentPtr(new RouteSegment(pSect)));
 
     // Add score for every Section -> prefer candidates with fewer sections
     m_dScore += SCORE_FOR_SECTION;
 
     ++m_nCountLastEmptySections;
+
+    if (m_Segments.size() >= 20)
+    {
+        // outsource first segments
+
+        RouteSegmentContPtr pVecSegments(new std::deque<RouteSegmentPtr>());
+        m_SegmentsOutsourced.push_back(pVecSegments);
+
+        for (int i = 0; i < 10; ++i)
+        {
+            RouteSegmentPtr pRouteSegment = m_Segments.front();
+            if (pRouteSegment != NULL)
+            {
+                pRouteSegment->DecRef();
+                pVecSegments->push_back(pRouteSegment);
+            }
+            m_Segments.pop_front();
+        }
+    }
 }
 
 void MHTRouteCandidate::RemoveLastSection(void)
 {
     if (m_Segments.size() > 0)
     {
-        RouteSegment* pSegment = m_Segments.back();
+        RouteSegmentPtr pSegment = m_Segments.back();
 
         if (pSegment != NULL &&
             pSegment->IsOffRoad())
         {
             assert(pSegment->GetPoints().size() == 0);
 
+            pSegment->DecRef();
             m_Segments.pop_back();
-            delete pSegment;
             //m_dScore -= SCORE_FOR_SECTION; no score for offroad-segment
 
             if (m_Segments.size() > 0)
                 pSegment = m_Segments.back();
             else
-                pSegment = NULL;
+                pSegment = RouteSegmentPtr();
         }
 
         if (pSegment != NULL &&
             pSegment->GetPoints().size() == 0 /*only delete empty segments*/ &&
             !pSegment->IsOffRoad())
         {
+            pSegment->DecRef();
             m_Segments.pop_back();
-            delete pSegment;
             m_dScore -= SCORE_FOR_SECTION;
             if (m_nCountLastEmptySections > 0)
                 --m_nCountLastEmptySections;
@@ -186,19 +213,29 @@ void MHTRouteCandidate::RemoveLastSection(void)
     }
 }
 
-MHTRouteCandidate::RouteSegment* MHTRouteCandidate::GetLastOnroadSegment(void)
-                                                                           const
+MHTRouteCandidate::RouteSegmentPtr MHTRouteCandidate::GetLastOnroadSegment(
+                         std::deque<RouteSegmentPtr>::reverse_iterator* pItRet)
 {
     if (m_Segments.size() > 0)
     {
-        RouteSegment* pSegment = m_Segments.back();
+        if (pItRet != NULL)
+            *pItRet = m_Segments.rend();
+
+        RouteSegmentPtr pSegment = m_Segments.back();
         if (pSegment != NULL && !pSegment->IsOffRoad())
+        {
+            if (pItRet != NULL)
+            {
+                *pItRet = m_Segments.rbegin();
+            }
+
             return pSegment;
+        }
         else
         {
-            std::vector<RouteSegment*>::const_reverse_iterator it =
+            std::deque<RouteSegmentPtr>::reverse_iterator it =
                                                             m_Segments.rbegin();
-            std::vector<RouteSegment*>::const_reverse_iterator itEnd =
+            std::deque<RouteSegmentPtr>::reverse_iterator itEnd =
                                                             m_Segments.rend();
 
             if (it != itEnd)
@@ -206,21 +243,27 @@ MHTRouteCandidate::RouteSegment* MHTRouteCandidate::GetLastOnroadSegment(void)
 
             while (it != itEnd)
             {
-                RouteSegment* pSegment = *it;
+                RouteSegmentPtr pSegment = *it;
                 if (pSegment != NULL && !pSegment->IsOffRoad())
+                {
+                    if (pItRet != NULL)
+                        *pItRet = it;
+
                     return pSegment;
+                }
 
                 ++it;
             }
         }
     }
 
-    return NULL;
+    return MHTRouteCandidate::RouteSegmentPtr();
 }
 
 shared_ptr<IMMNetworkSection> MHTRouteCandidate::GetLastSection(void) const
 {
-    RouteSegment* pSegment = GetLastOnroadSegment();
+    const RouteSegmentPtr& pSegment = const_cast<MHTRouteCandidate*>(this)->
+                                                     GetLastOnroadSegment(NULL);
     if (pSegment != NULL)
         return pSegment->GetSection();
     else
@@ -230,15 +273,17 @@ shared_ptr<IMMNetworkSection> MHTRouteCandidate::GetLastSection(void) const
     }
 }
 
-const MHTRouteCandidate::PointData* MHTRouteCandidate::GetLastPoint(void) const
+const MHTRouteCandidate::PointDataPtr
+                                     MHTRouteCandidate::GetLastPoint(void) const
 {
-    std::vector<RouteSegment*>::const_reverse_iterator it = m_Segments.rbegin();
-    std::vector<RouteSegment*>::const_reverse_iterator itEnd =
+    std::deque<RouteSegmentPtr>::const_reverse_iterator it =
+                                                            m_Segments.rbegin();
+    std::deque<RouteSegmentPtr>::const_reverse_iterator itEnd =
                                                               m_Segments.rend();
 
     while (it != itEnd)
     {
-        RouteSegment* pSegment = *it;
+        const RouteSegmentPtr& pSegment = *it;
         if (pSegment != NULL)
         {
             if (pSegment->GetPoints().size() > 0)
@@ -248,19 +293,19 @@ const MHTRouteCandidate::PointData* MHTRouteCandidate::GetLastPoint(void) const
         ++it;
     }
 
-    return NULL;
+    return MHTRouteCandidate::PointDataPtr();
 }
 
-const std::vector<const MHTRouteCandidate::PointData*>& MHTRouteCandidate::
+const std::vector<MHTRouteCandidate::PointDataPtr>& MHTRouteCandidate::
                                               GetPointsOfLastSection(void) const
 {
-    std::vector<RouteSegment*>::const_reverse_iterator it = m_Segments.rbegin();
-    std::vector<RouteSegment*>::const_reverse_iterator itEnd =
+    std::deque<RouteSegmentPtr>::const_reverse_iterator it =
+                                                            m_Segments.rbegin();
+    std::deque<RouteSegmentPtr>::const_reverse_iterator itEnd =
                                                               m_Segments.rend();
-
     while (it != itEnd)
     {
-        RouteSegment* pSegment = *it;
+        const RouteSegmentPtr& pSegment = *it;
         if (pSegment != NULL && !pSegment->IsOffRoad())
             return pSegment->GetPoints();
 
@@ -268,7 +313,7 @@ const std::vector<const MHTRouteCandidate::PointData*>& MHTRouteCandidate::
     }
 
     assert(false);
-    static std::vector<const PointData*> vecDummy;
+    static std::vector<PointDataPtr> vecDummy;
     return vecDummy;
 }
 
@@ -338,7 +383,7 @@ void MHTRouteCandidate::AddPoint(const Point& rPointProjection,
         return;
     }
 
-    RouteSegment* pSegment = m_Segments.back();
+    RouteSegmentPtr pSegment = m_Segments.back();
     if (pSegment == NULL)
     {
         assert(false);
@@ -347,11 +392,10 @@ void MHTRouteCandidate::AddPoint(const Point& rPointProjection,
 
     if (pSegment->IsOffRoad())
     {
-        std::vector<RouteSegment*>::const_reverse_iterator it =
+        std::deque<RouteSegmentPtr>::const_reverse_iterator it =
                                                             m_Segments.rbegin();
-        std::vector<RouteSegment*>::const_reverse_iterator itEnd =
+        std::deque<RouteSegmentPtr>::const_reverse_iterator itEnd =
                                                             m_Segments.rend();
-
         if (it != itEnd)
             ++it;
 
@@ -367,13 +411,25 @@ void MHTRouteCandidate::AddPoint(const Point& rPointProjection,
 
             ++it;
         }
-    }
 
-    pSegment = m_Segments.back();
-    if (pSegment == NULL || pSegment->IsOffRoad())
+        pSegment = m_Segments.back();
+        if (pSegment == NULL || pSegment->IsOffRoad())
+        {
+            assert(false);
+            return;
+        }
+
+        assert(pSegment->GetRefCount() == 1);
+    }
+    else
     {
-        assert(false);
-        return;
+        if (pSegment->GetRefCount() != 1) // not unique
+        {
+            pSegment->DecRef();
+            pSegment = RouteSegmentPtr(new RouteSegment(*pSegment));
+            m_Segments.pop_back();
+            m_Segments.push_back(pSegment);
+        }
     }
 
     const double dScore = CalcScore(rPointProjection,
@@ -383,11 +439,10 @@ void MHTRouteCandidate::AddPoint(const Point& rPointProjection,
                                     dDistance,
                                     m_pMM->GetNetworkScale());
 
-    const MHTRouteCandidate::PointData* pData =
-                              m_Segments.back()->AddPoint(pMMData,
-                                                          rPointProjection,
-                                                          dDistance,
-                                                          dScore);
+    const PointDataPtr pData = pSegment->AddPoint(pMMData,
+                                                  rPointProjection,
+                                                  dDistance,
+                                                  dScore);
     if (pData != NULL)
     {
         m_dScore += dScore;
@@ -555,14 +610,23 @@ void MHTRouteCandidate::AddPoint(const MapMatchData* pMMData)
         m_Segments.back() == NULL ||
         !m_Segments.back()->IsOffRoad())
     {
-        m_Segments.push_back(new RouteSegment()); // Offroad-Segment
+        // add Offroad-Segment
+        m_Segments.push_back(RouteSegmentPtr(new RouteSegment()));
     }
 
     const double dScore = DISTANCE_FACTOR * 40. +
                                            (pMMData->m_dCourse >= 0 ? 40. : 0.);
 
-    const MHTRouteCandidate::PointData* pData =
-                                   m_Segments.back()->AddPoint(pMMData, dScore);
+    RouteSegmentPtr pSegment = m_Segments.back();
+    if (pSegment->GetRefCount() != 1 /* not unique */)
+    {
+        pSegment->DecRef();
+        pSegment = RouteSegmentPtr(new RouteSegment(*pSegment));
+        m_Segments.pop_back();
+        m_Segments.push_back(pSegment);
+    }
+
+    const PointDataPtr pData = pSegment->AddPoint(pMMData, dScore);
     if (pData != NULL)
     {
         m_dScore += dScore;
@@ -576,14 +640,21 @@ void MHTRouteCandidate::RemoveLastPoint(void)
 {
     if (m_Segments.size() > 0)
     {
-        std::vector<RouteSegment*>::reverse_iterator it = m_Segments.rbegin();
-        std::vector<RouteSegment*>::reverse_iterator itEnd = m_Segments.rend();
+        std::deque<RouteSegmentPtr>::reverse_iterator it = m_Segments.rbegin();
+        std::deque<RouteSegmentPtr>::reverse_iterator itEnd =m_Segments.rend();
 
         while (it != itEnd)
         {
-            RouteSegment* pSegment = *it;
+            RouteSegmentPtr pSegment = *it;
             if (pSegment != NULL && pSegment->GetPoints().size() > 0)
             {
+                if (pSegment->GetRefCount() != 1) // not unique
+                {
+                    pSegment->DecRef();
+                    pSegment = RouteSegmentPtr(new RouteSegment(*pSegment));
+                    *it = pSegment;
+                }
+
                 double dScoreOfLastPoint = pSegment->RemoveLastPoint();
                 if (dScoreOfLastPoint > 0.0 ||
                     AlmostEqual(dScoreOfLastPoint, 0.0))
@@ -602,7 +673,7 @@ void MHTRouteCandidate::RemoveLastPoint(void)
         it = m_Segments.rbegin();
         while(it != itEnd)
         {
-            RouteSegment* pSegment = *it;
+            RouteSegmentPtr pSegment = *it;
             if (pSegment != NULL && !pSegment->IsOffRoad())
             {
                 if (pSegment->GetPoints().size() == 0)
@@ -619,7 +690,7 @@ void MHTRouteCandidate::RemoveLastPoint(void)
         it = m_Segments.rbegin();
         while (it != itEnd)
         {
-            RouteSegment* pSegment = *it;
+            RouteSegmentPtr pSegment = *it;
             if (pSegment != NULL && pSegment->IsOffRoad())
             {
                 m_nCountLastOffRoadPoints = pSegment->GetPoints().size();
@@ -634,94 +705,34 @@ void MHTRouteCandidate::RemoveLastPoint(void)
             ++it;
         }
     }
-#if 0
-    if (m_Points.size() > 0)
-    {
-        PointData* pData = m_Points.back();
-        m_Points.pop_back();
-
-        bool bOffroadPoint = false;
-
-        if (pData != NULL)
-        {
-            bOffroadPoint = (pData->GetPointProjection() == NULL);
-            m_dScore -= pData->GetScore();
-
-            delete pData;
-            pData = NULL;
-        }
-        else
-        {
-            assert(false);
-            return;
-        }
-
-        if (!bOffroadPoint && m_Sections.size() > 0)
-        {
-            // Remove point from section
-            bool bFound = false;
-
-            std::deque<SectionCandidate*>::reverse_iterator it
-                                                          = m_Sections.rbegin();
-            while(it != m_Sections.rend() && !bFound)
-            {
-                SectionCandidate* pCandidate = *it;
-                if (pCandidate != NULL && pCandidate->GetPoints().size() > 0)
-                {
-                    pCandidate->RemoveLastPoint();
-                    bFound = true;
-                }
-
-                ++it;
-            }
-            assert(bFound);
-
-            // recalculate EmptySections
-            m_nCountLastEmptySections = 0;
-            it = m_Sections.rbegin();
-            while(it != m_Sections.rend())
-            {
-                SectionCandidate* pCandidate = *it;
-                if (pCandidate != NULL && pCandidate->GetPoints().size() == 0)
-                {
-                    ++m_nCountLastEmptySections;
-                }
-                else
-                {
-                    break;
-                }
-
-                ++it;
-            }
-
-            // recalculate Offroad-Points
-            m_nCountLastOffRoadPoints = 0;
-            std::vector<PointData*>::reverse_iterator itPts = m_Points.rbegin();
-            while (itPts != m_Points.rend())
-            {
-                PointData* pData = *itPts;
-                if (pData == NULL || pData->GetPointProjection() == NULL)
-                    ++m_nCountLastOffRoadPoints;
-                else
-                    break;
-
-                ++itPts;
-            }
-        }
-        else
-        {
-            assert(m_nCountLastOffRoadPoints > 0);
-            --m_nCountLastOffRoadPoints;
-        }
-    }
-#endif
 }
 
 void MHTRouteCandidate::SetUTurn(double dAdditionalScore)
 {
-    RouteSegment* pSegment = GetLastOnroadSegment();
+    std::deque<RouteSegmentPtr>::reverse_iterator it;
+    RouteSegmentPtr pSegment = GetLastOnroadSegment(&it);
     if (pSegment != NULL)
     {
+        if (pSegment->GetRefCount() != 1)
+        {
+            // not unique
+            pSegment->DecRef();
+            RouteSegmentPtr pSegmentNew =
+                                   RouteSegmentPtr(new RouteSegment(*pSegment));
+
+            if (m_Segments.rend() != it)
+            {
+                *it = pSegmentNew;
+                pSegment = pSegmentNew;
+            }
+            else
+            {
+                pSegment->IncRef();
+                pSegmentNew->DecRef();
+                assert(false);
+            }
+        }
+
         pSegment->SetUTurn(true);
     }
     else
@@ -785,15 +796,11 @@ bool MHTRouteCandidate::CorrectUTurn(void)
 
     // Move all points of last segment to endpoint of second last segment
 
-    std::stack<MHTRouteCandidate::PointData> stackPointData;
+    std::stack<MHTRouteCandidate::PointDataPtr> stackPointData;
     int nPoints = 0;
     while ((nPoints = GetCountPointsOfLastSection()) > 0)
     {
-        const PointData* pPointData = GetLastPoint();
-
-        stackPointData.push(MHTRouteCandidate::PointData(
-                                    pPointData != NULL ? *pPointData :
-                                           MHTRouteCandidate::PointData()));
+        stackPointData.push(GetLastPoint());
         RemoveLastPoint();
     }
 
@@ -804,7 +811,6 @@ bool MHTRouteCandidate::CorrectUTurn(void)
     if (pNewSection == NULL)
         return false;
 
-    // TODO so nicht
     Point PointNewProjection = (pNewSection->GetDirection() ==
                                 IMMNetworkSection::DIR_UP ?
                                         pNewSection->GetEndPoint() :
@@ -815,8 +821,8 @@ bool MHTRouteCandidate::CorrectUTurn(void)
 
     while (!stackPointData.empty())
     {
-        MHTRouteCandidate::PointData& rData = stackPointData.top();
-        const MapMatchData* pMMData = rData.GetMMData();
+        MHTRouteCandidate::PointDataPtr pData = stackPointData.top();
+        const MapMatchData* pMMData = pData != NULL ? pData->GetMMData() : NULL;
         if (pMMData != NULL)
         {
             AddPoint(PointNewProjection,
@@ -843,14 +849,17 @@ void MHTRouteCandidate::Print(std::ostream& os) const
     os << "Projected Points:" << endl;
     PrintProjectedPoints(os);
 
+    RouteSegmentIterator it = RouteSegmentBegin();
+    RouteSegmentIterator itEnd = RouteSegmentEnd();
+
     os << endl << "Segments:" << endl;
-    for (size_t j = 0; j < m_Segments.size(); ++j)
+    for (/*empty*/; it != itEnd; ++it)
     {
-        if (m_Segments[j]->IsOffRoad())
+        if ((*it)->IsOffRoad())
             os << "Offroad" << endl;
         else
         {
-            m_Segments[j]->GetSection()->PrintIdentifier(os);
+            (*it)->GetSection()->PrintIdentifier(os);
             os << endl;
         }
     }
@@ -865,7 +874,7 @@ void MHTRouteCandidate::PrintProjectedPoints(std::ostream& os) const
 
     while (it != itEnd)
     {
-        const PointData* pData = *it;
+        const PointDataPtr& pData = *it;
         if (pData != NULL)
         {
             const Point* pPoint = pData->GetPointProjection();
@@ -1055,22 +1064,23 @@ MHTRouteCandidate::PointDataIterator::PointDataIterator(
     {
         if (bReverse)
         {
-            m_ItRouteSegment_R = pCandidate->m_Segments.rbegin();
-            if (m_ItRouteSegment_R != pCandidate->m_Segments.rend())
+            m_ItRouteSegment_R = pCandidate->RouteSegmentRBegin();
+            if (m_ItRouteSegment_R != pCandidate->RouteSegmentREnd())
             {
-                const RouteSegment* pSegment = *m_ItRouteSegment_R;
+                RouteSegmentPtr pSegment = *m_ItRouteSegment_R;
                 if (pSegment != NULL)
                 {
                     m_ItPointData_R = pSegment->GetPoints().rbegin();
                     while (pSegment != NULL &&
                            m_ItPointData_R == pSegment->GetPoints().rend() &&
-                           m_ItRouteSegment_R != pCandidate->m_Segments.rend())
+                           m_ItRouteSegment_R != pCandidate->RouteSegmentREnd())
                     {
                         this->operator ++();
-                        if (m_ItRouteSegment_R != pCandidate->m_Segments.rend())
+                        if (m_ItRouteSegment_R !=
+                                                 pCandidate->RouteSegmentREnd())
                             pSegment = *m_ItRouteSegment_R;
                         else
-                            pSegment = NULL;
+                            pSegment = RouteSegmentPtr();
                     }
                 }
                 else
@@ -1081,22 +1091,22 @@ MHTRouteCandidate::PointDataIterator::PointDataIterator(
         }
         else
         {
-            m_ItRouteSegment = pCandidate->m_Segments.begin();
-            if (m_ItRouteSegment != pCandidate->m_Segments.end())
+            m_ItRouteSegment = pCandidate->RouteSegmentBegin();
+            if (m_ItRouteSegment != pCandidate->RouteSegmentEnd())
             {
-                const RouteSegment* pSegment = *m_ItRouteSegment;
+                RouteSegmentPtr pSegment = *m_ItRouteSegment;
                 if (pSegment != NULL)
                 {
                     m_ItPointData = pSegment->GetPoints().begin();
                     while (pSegment != NULL &&
                            m_ItPointData == pSegment->GetPoints().end() &&
-                           m_ItRouteSegment != pCandidate->m_Segments.end())
+                           m_ItRouteSegment != pCandidate->RouteSegmentEnd())
                     {
                         this->operator ++();
-                        if (m_ItRouteSegment != pCandidate->m_Segments.end())
+                        if (m_ItRouteSegment != pCandidate->RouteSegmentEnd())
                             pSegment = *m_ItRouteSegment;
                         else
-                            pSegment = NULL;
+                            pSegment = RouteSegmentPtr();
                     }
                 }
                 else
@@ -1111,11 +1121,11 @@ MHTRouteCandidate::PointDataIterator::PointDataIterator(
         // end
         if (bReverse)
         {
-            m_ItRouteSegment_R = pCandidate->m_Segments.rend();
+            m_ItRouteSegment_R = pCandidate->RouteSegmentREnd();
         }
         else
         {
-            m_ItRouteSegment = pCandidate->m_Segments.end();
+            m_ItRouteSegment = pCandidate->RouteSegmentEnd();
         }
     }
 }
@@ -1169,7 +1179,7 @@ bool MHTRouteCandidate::PointDataIterator::operator!=(
     }
 }
 
-const MHTRouteCandidate::PointData* MHTRouteCandidate::PointDataIterator::
+const MHTRouteCandidate::PointDataPtr MHTRouteCandidate::PointDataIterator::
                                                                operator*() const
 {
     if (m_bReverse)
@@ -1193,7 +1203,7 @@ MHTRouteCandidate::PointDataIterator& MHTRouteCandidate::PointDataIterator::
 
     if (m_bReverse)
     {
-        RouteSegment* pSegment = *m_ItRouteSegment_R;
+        RouteSegmentPtr pSegment = *m_ItRouteSegment_R;
 
         if (pSegment != NULL && m_ItPointData_R != pSegment->GetPoints().rend())
         {
@@ -1206,9 +1216,9 @@ MHTRouteCandidate::PointDataIterator& MHTRouteCandidate::PointDataIterator::
         else
         {
             ++m_ItRouteSegment_R;
-            if (m_ItRouteSegment_R != m_pRouteCandidate->m_Segments.rend())
+            if (m_ItRouteSegment_R != m_pRouteCandidate->RouteSegmentREnd())
             {
-                RouteSegment* pSegment = *m_ItRouteSegment_R;
+                RouteSegmentPtr pSegment = *m_ItRouteSegment_R;
                 if (pSegment != NULL)
                 {
                     m_ItPointData_R = pSegment->GetPoints().rbegin();
@@ -1223,13 +1233,13 @@ MHTRouteCandidate::PointDataIterator& MHTRouteCandidate::PointDataIterator::
             else
             {
                 m_ItPointData_R =
-                        std::vector<const PointData*>::const_reverse_iterator();
+                            std::vector<PointDataPtr>::const_reverse_iterator();
             }
         }
     }
     else
     {
-        RouteSegment* pSegment = *m_ItRouteSegment;
+        RouteSegmentPtr pSegment = *m_ItRouteSegment;
 
         if (pSegment != NULL && m_ItPointData != pSegment->GetPoints().end())
         {
@@ -1242,9 +1252,9 @@ MHTRouteCandidate::PointDataIterator& MHTRouteCandidate::PointDataIterator::
         else
         {
             ++m_ItRouteSegment;
-            if (m_ItRouteSegment != m_pRouteCandidate->m_Segments.end())
+            if (m_ItRouteSegment != m_pRouteCandidate->RouteSegmentEnd())
             {
-                RouteSegment* pSegment = *m_ItRouteSegment;
+                RouteSegmentPtr pSegment = *m_ItRouteSegment;
                 if (pSegment != NULL)
                 {
                     m_ItPointData = pSegment->GetPoints().begin();
@@ -1258,7 +1268,7 @@ MHTRouteCandidate::PointDataIterator& MHTRouteCandidate::PointDataIterator::
             }
             else
             {
-                m_ItPointData = std::vector<const PointData*>::const_iterator();
+                m_ItPointData = std::vector<PointDataPtr>::const_iterator();
             }
         }
     }
@@ -1274,72 +1284,62 @@ MHTRouteCandidate::PointDataIterator& MHTRouteCandidate::PointDataIterator::
 
 MHTRouteCandidate::RouteSegment::RouteSegment(void)
 :m_pSection(),
- m_bUTurn(false)
+ m_bUTurn(false),
+ m_nRefCount(1)
 {
 }
 
 MHTRouteCandidate::RouteSegment::RouteSegment
                                  (const shared_ptr<IMMNetworkSection>& pSection)
 :m_pSection(pSection),
- m_bUTurn(false)
+ m_bUTurn(false),
+ m_nRefCount(1)
 {
 }
 
 MHTRouteCandidate::RouteSegment::RouteSegment
                                             (const RouteSegment& rCandidate)
 :m_pSection(rCandidate.m_pSection),
- m_bUTurn(rCandidate.m_bUTurn)
+ m_bUTurn(rCandidate.m_bUTurn),
+ m_nRefCount(1)
 {
-    const std::vector<const PointData*>& rvecData = rCandidate.GetPoints();
-    const size_t nPoints = rvecData.size();
-    for (size_t i = 0; i < nPoints; ++i)
-    {
-        const PointData* pData = rvecData[i];
-        if (pData != NULL)
-            m_Points.push_back(new PointData(*pData));
-    }
+    m_Points = rCandidate.GetPoints();
 }
 
 MHTRouteCandidate::RouteSegment::~RouteSegment()
 {
-    const size_t nPoints = m_Points.size();
-    for (size_t i = 0; i < nPoints; ++i)
-    {
-        const PointData* pData = m_Points[i];
-        delete pData;
-    }
-
     m_Points.clear();
+    assert(m_nRefCount == 0);
 }
 
-const MHTRouteCandidate::PointData* MHTRouteCandidate::RouteSegment::AddPoint(
+const MHTRouteCandidate::PointDataPtr MHTRouteCandidate::RouteSegment::AddPoint(
                                                   const MapMatchData* pMMData,
                                                   const Point& rPointProjection,
                                                   const double dDistance,
                                                   const double dScore)
 {
-    PointData* pData = new PointData(pMMData,
-                                     rPointProjection,
-                                     GetSection(),
-                                     dDistance,
-                                     dScore);
+    PointDataPtr pData = PointDataPtr(new PointData(pMMData,
+                                                    rPointProjection,
+                                                    GetSection(),
+                                                    dDistance,
+                                                    dScore));
     m_Points.push_back(pData);
 
     return pData;
 }
 
-const MHTRouteCandidate::PointData* MHTRouteCandidate::RouteSegment::AddPoint(
+const MHTRouteCandidate::PointDataPtr MHTRouteCandidate::RouteSegment::AddPoint(
                                                   const MapMatchData* pMMData,
                                                   const double dScore)
 {
     if (!IsOffRoad())
     {
         assert(false);
-        return NULL;
+        return MHTRouteCandidate::PointDataPtr();
     }
 
-    PointData* pData = new PointData(pMMData,
-                                     dScore);
+    PointDataPtr pData = PointDataPtr(new PointData(pMMData,
+                                                    dScore));
     m_Points.push_back(pData);
 
     return pData;
@@ -1349,14 +1349,13 @@ double MHTRouteCandidate::RouteSegment::RemoveLastPoint(void)
 {
     if (m_Points.size() > 0)
     {
-        const PointData* pData = m_Points.back();
-        m_Points.pop_back();
+        const PointDataPtr& pData = m_Points.back();
         double dScore = 0.0;
         if (pData != NULL)
         {
             dScore = pData->GetScore();
-            delete pData;
         }
+        m_Points.pop_back();
 
         return dScore;
     }
@@ -1386,11 +1385,11 @@ void MHTRouteCandidate::RouteSegment::Print(std::ostream& os) const
 
     if (m_Points.size() > 0)
     {
-        std::vector<const PointData*>::const_iterator it = m_Points.begin();
+        std::vector<PointDataPtr>::const_iterator it = m_Points.begin();
         while (it != m_Points.end())
         {
             os << "PointData : " << endl;
-            const PointData* pData = *it;
+            const PointDataPtr& pData = *it;
             if (pData != NULL)
             {
                 pData->Print(os);
@@ -1410,6 +1409,259 @@ void MHTRouteCandidate::RouteSegment::Print(std::ostream& os) const
         os << "no points" << endl;
     }
 }
+
+
+/*
+7 class MHTRouteCandidate::RouteSegmentIterator
+
+*/
+
+MHTRouteCandidate::RouteSegmentIterator::RouteSegmentIterator(
+                                                const RouteSegmentIterator& rIt)
+:m_ItRouteSegment(rIt.m_ItRouteSegment),
+ m_ItRouteSegment_R(rIt.m_ItRouteSegment_R),
+ m_nIdxContainer(rIt.m_nIdxContainer),
+ m_bReverse(rIt.m_bReverse),
+ m_pRouteCandidate(rIt.m_pRouteCandidate)
+{
+}
+
+MHTRouteCandidate::RouteSegmentIterator::RouteSegmentIterator(
+                                            const MHTRouteCandidate* pCandidate,
+                                            bool bBegin, bool bReverse)
+:m_ItRouteSegment(),
+ m_ItRouteSegment_R(),
+ m_nIdxContainer(-1),
+ m_bReverse(bReverse),
+ m_pRouteCandidate(pCandidate)
+{
+    if (pCandidate == NULL)
+        return;
+
+    if (bBegin)
+    {
+        if (bReverse)
+        {
+            m_nIdxContainer = -1; // -1 => pCandidate->m_Segments
+            m_ItRouteSegment_R = pCandidate->m_Segments.rbegin();
+
+            if (m_ItRouteSegment_R == pCandidate->m_Segments.rend())
+            {
+                m_nIdxContainer = -2; // end
+                assert(pCandidate->m_SegmentsOutsourced.size() == 0);
+            }
+        }
+        else
+        {
+            if (pCandidate->m_SegmentsOutsourced.size() > 0)
+            {
+                m_nIdxContainer = 0;
+                while (m_nIdxContainer <
+                                 (int)pCandidate->m_SegmentsOutsourced.size() &&
+                   (pCandidate->m_SegmentsOutsourced[m_nIdxContainer] == NULL ||
+                    pCandidate->m_SegmentsOutsourced[m_nIdxContainer]->size()
+                                                                          == 0))
+                {
+                    ++m_nIdxContainer;
+                }
+
+                if (m_nIdxContainer <
+                                   (int)pCandidate->m_SegmentsOutsourced.size())
+                {
+                    m_ItRouteSegment =
+                     pCandidate->m_SegmentsOutsourced[m_nIdxContainer]->begin();
+                }
+                else
+                {
+                    m_nIdxContainer = -1; // -1 => pCandidate->m_Segments
+                    m_ItRouteSegment = pCandidate->m_Segments.begin();
+
+                    if (m_ItRouteSegment == pCandidate->m_Segments.end())
+                    {
+                        m_nIdxContainer = -2; // end
+                    }
+                }
+            }
+            else
+            {
+                m_nIdxContainer = -1; // -1 => pCandidate->m_Segments
+                m_ItRouteSegment = pCandidate->m_Segments.begin();
+
+                if (m_ItRouteSegment == pCandidate->m_Segments.end())
+                {
+                    m_nIdxContainer = -2; // end
+                }
+            }
+        }
+    }
+    else
+    {
+        // end
+        m_nIdxContainer = -2; // -2 => end
+    }
+}
+
+MHTRouteCandidate::RouteSegmentIterator::~RouteSegmentIterator()
+{
+    m_pRouteCandidate = NULL;
+}
+
+MHTRouteCandidate::RouteSegmentIterator&
+                  MHTRouteCandidate::RouteSegmentIterator::
+                                      operator=(const RouteSegmentIterator& rIt)
+{
+    m_ItRouteSegment = rIt.m_ItRouteSegment;
+    m_ItRouteSegment_R = rIt.m_ItRouteSegment_R;
+    m_nIdxContainer = rIt.m_nIdxContainer;
+    m_bReverse = rIt.m_bReverse;
+    m_pRouteCandidate = rIt.m_pRouteCandidate;
+
+    return *this;
+}
+
+bool MHTRouteCandidate::RouteSegmentIterator::operator==(
+                                          const RouteSegmentIterator& rIt) const
+{
+    if (m_nIdxContainer == -2 || rIt.m_nIdxContainer == -2) // end
+        return m_nIdxContainer == rIt.m_nIdxContainer;
+    else
+    {
+        if (m_bReverse)
+        {
+            return (m_nIdxContainer == rIt.m_nIdxContainer &&
+                    rIt.m_ItRouteSegment_R == m_ItRouteSegment_R);
+        }
+        else
+        {
+            return (m_nIdxContainer == rIt.m_nIdxContainer &&
+                    rIt.m_ItRouteSegment == m_ItRouteSegment);
+        }
+    }
+}
+
+bool MHTRouteCandidate::RouteSegmentIterator::operator!=(
+                                          const RouteSegmentIterator& rIt) const
+{
+   return !(this->operator ==(rIt));
+}
+
+const MHTRouteCandidate::RouteSegmentPtr
+                      MHTRouteCandidate::RouteSegmentIterator::operator*() const
+{
+    if (m_bReverse)
+    {
+        return *m_ItRouteSegment_R;
+    }
+    else
+    {
+        return *m_ItRouteSegment;
+    }
+}
+
+MHTRouteCandidate::RouteSegmentIterator&
+                           MHTRouteCandidate::RouteSegmentIterator::operator++()
+{
+    if (m_pRouteCandidate == NULL || m_nIdxContainer == -2 /*end*/)
+    {
+        assert(false);
+        return *this;
+    }
+
+    if (m_bReverse)
+    {
+        const std::deque<RouteSegmentPtr>& rCont = (m_nIdxContainer == -1) ?
+                    m_pRouteCandidate->m_Segments :
+                    *(m_pRouteCandidate->m_SegmentsOutsourced[m_nIdxContainer]);
+
+        if (m_ItRouteSegment_R != rCont.rend())
+        {
+            ++m_ItRouteSegment_R;
+            if (m_ItRouteSegment_R == rCont.rend())
+            {
+                return this->operator ++();
+            }
+        }
+        else
+        {
+            if (m_nIdxContainer == -1)
+            {
+                // process last outsourced container
+                m_nIdxContainer =
+                       (int) m_pRouteCandidate->m_SegmentsOutsourced.size() - 1;
+            }
+            else
+            {
+                --m_nIdxContainer;
+            }
+
+            if (m_nIdxContainer < 0 ||
+                m_nIdxContainer >=
+                           (int) m_pRouteCandidate->m_SegmentsOutsourced.size())
+            {
+                m_nIdxContainer = -2; // end
+            }
+            else
+            {
+                const std::deque<RouteSegmentPtr>& rContNew =
+                    *(m_pRouteCandidate->m_SegmentsOutsourced[m_nIdxContainer]);
+                m_ItRouteSegment_R = rContNew.rbegin();
+                if (m_ItRouteSegment_R == rContNew.rend())
+                {
+                    return this->operator ++();
+                }
+            }
+        }
+    }
+    else
+    {
+        const std::deque<RouteSegmentPtr>& rCont = (m_nIdxContainer == -1) ?
+                    m_pRouteCandidate->m_Segments :
+                    *(m_pRouteCandidate->m_SegmentsOutsourced[m_nIdxContainer]);
+
+        if (m_ItRouteSegment != rCont.end())
+        {
+            ++m_ItRouteSegment;
+            if (m_ItRouteSegment == rCont.end())
+            {
+                return this->operator ++();
+            }
+        }
+        else
+        {
+            if (m_nIdxContainer == -1)
+            {
+                m_nIdxContainer = -2; // end
+            }
+            else
+            {
+                ++m_nIdxContainer;
+                if (m_nIdxContainer >=
+                           (int) m_pRouteCandidate->m_SegmentsOutsourced.size())
+                {
+                    m_nIdxContainer = -1; // m_pRouteCandidate->m_Segments
+                    m_ItRouteSegment = m_pRouteCandidate->m_Segments.begin();
+                    if (m_ItRouteSegment == m_pRouteCandidate->m_Segments.end())
+                    {
+                        return this->operator ++();
+                    }
+                }
+                else
+                {
+                    const std::deque<RouteSegmentPtr>& rContNew =
+                    *(m_pRouteCandidate->m_SegmentsOutsourced[m_nIdxContainer]);
+                    m_ItRouteSegment = rContNew.begin();
+                    if (m_ItRouteSegment == rContNew.end())
+                    {
+                        return this->operator ++();
+                    }
+                }
+            }
+        }
+    }
+
+    return *this;
+}
+
 
 } // end of namespace mapmatch
 

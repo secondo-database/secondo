@@ -84,7 +84,7 @@ bool MGPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
     if (!Init() || m_pNetwork == NULL)
         return false;
 
-    const MHTRouteCandidate::PointData* pLastPointOfPrevSection = NULL;
+    MHTRouteCandidate::PointDataPtr pLastPointOfPrevSection;
     bool bPrevCandidateFailed = false; // -> matching failed
                                        // -> don't connect by shortest path
 
@@ -105,7 +105,7 @@ bool MGPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
                                                      pCandidate->PointDataEnd();
 
             // Find first defined point
-            const MHTRouteCandidate::PointData* pData1 = NULL;
+            MHTRouteCandidate::PointDataPtr pData1;
             const GPoint* pGP1 = NULL;
             while(itData != itDataEnd &&
                   (pData1 == NULL ||
@@ -119,7 +119,7 @@ bool MGPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
             // Process next points
             while (itData != itDataEnd && pData1 != NULL && pGP1 != NULL)
             {
-                const MHTRouteCandidate::PointData* pData2 = NULL;
+                MHTRouteCandidate::PointDataPtr pData2;
                 const GPoint* pGP2 = NULL;
 
                 while (itData != itDataEnd &&
@@ -234,9 +234,9 @@ void MGPointCreator::Finalize(void)
 }
 
 const GPoint* MGPointCreator::GetGPoint(
-                                      const MHTRouteCandidate::PointData* pData,
-                                      const int& nNetworkId,
-                                      const double& dNetworkScale) const
+                                   const MHTRouteCandidate::PointDataPtr& pData,
+                                   const int& nNetworkId,
+                                   const double& dNetworkScale) const
 {
     if (pData == NULL)
         return NULL;

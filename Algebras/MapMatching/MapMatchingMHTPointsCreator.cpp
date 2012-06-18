@@ -79,7 +79,8 @@ bool PointsCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
                                                      pCandidate->PointDataEnd();
 
             // Find first defined point
-            const MHTRouteCandidate::PointData* pData = NULL;
+            MHTRouteCandidate::PointDataPtr pData =
+                                              MHTRouteCandidate::PointDataPtr();
             while(itData != itDataEnd)
             {
                 pData = *itData;

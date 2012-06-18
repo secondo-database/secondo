@@ -79,7 +79,7 @@ private:
     bool Init(void);
     void Finalize(void);
 
-    const GPoint* GetGPoint(const MHTRouteCandidate::PointData* pData,
+    const GPoint* GetGPoint(const MHTRouteCandidate::PointDataPtr& pData,
                             const int& nNetworkId,
                             const double& dNetworkScale) const;
 

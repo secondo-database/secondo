@@ -108,6 +108,11 @@ public:
         return m_nCountLastEmptySections;
     }
 
+/*
+3.1 class PointData
+    Representation of matched data
+
+*/
     class PointData
     {
     public:
@@ -158,9 +163,11 @@ public:
         double m_dScore;
     };
 
-    const PointData* GetLastPoint(void) const;
+    typedef shared_ptr<const PointData> PointDataPtr;
 
-    const std::vector<const PointData*>& GetPointsOfLastSection(void) const;
+    const PointDataPtr GetLastPoint(void) const;
+
+    const std::vector<PointDataPtr>& GetPointsOfLastSection(void) const;
 
     // Return the number of (assigned) points to last section
     // (No "Offroad"-points !!)
@@ -171,8 +178,124 @@ public:
 
     bool CorrectUTurn(void);
 
-    class RouteSegment;
+/*
+3.2 class RouteSegment
+    Represents one route segment (Network-section, Offroad-section)
 
+*/
+    class RouteSegment
+    {
+    public:
+        RouteSegment(void); // Off-road
+        RouteSegment(const shared_ptr<IMMNetworkSection>& pSection); // On-road
+        RouteSegment(const RouteSegment& rCandidate);
+        ~RouteSegment();
+
+        const shared_ptr<IMMNetworkSection>& GetSection(void) const
+        {
+            return m_pSection;
+        }
+        const std::vector<PointDataPtr>& GetPoints(void) const
+        {
+            return m_Points;
+        }
+        const PointDataPtr AddPoint(const MapMatchData* pMMData,
+                const Point& rPointProjection, const double dDistance,
+                const double dScore);
+        const PointDataPtr AddPoint(const MapMatchData* pMMData,
+                const double dScore);
+        double RemoveLastPoint(void);
+
+        bool IsOffRoad(void) const;
+
+        void SetUTurn(bool bUTurn = true)
+        {
+            m_bUTurn = bUTurn;
+        }
+        bool HasUTurn(void) const
+        {
+            return m_bUTurn;
+        }
+
+        void Print(std::ostream& os) const;
+
+    private:
+
+        shared_ptr<IMMNetworkSection> m_pSection;
+        std::vector<PointDataPtr> m_Points;
+        bool m_bUTurn;
+
+        // RefCounter for RouteCandidates
+        void IncRef(void) {++m_nRefCount;}
+        void DecRef(void) {assert(m_nRefCount > 0); --m_nRefCount;}
+        int GetRefCount(void) {return m_nRefCount;}
+
+        int m_nRefCount;
+        friend class MHTRouteCandidate;
+    };
+
+    typedef shared_ptr<RouteSegment> RouteSegmentPtr;
+
+
+/*
+3.4 class RouteSegmentIterator
+    Iterator for route segments
+
+*/
+    class RouteSegmentIterator
+    {
+    public:
+        RouteSegmentIterator(const RouteSegmentIterator& rIt);
+        ~RouteSegmentIterator();
+
+        RouteSegmentIterator& operator=(const RouteSegmentIterator& rIt);
+
+        bool operator==(const RouteSegmentIterator& rIt) const;
+        bool operator!=(const RouteSegmentIterator& rIt) const;
+
+        const RouteSegmentPtr operator*() const;
+
+        RouteSegmentIterator& operator++();
+
+    private:
+        RouteSegmentIterator(const MHTRouteCandidate* pCandidate = NULL,
+                             bool bBegin = true, bool bReverse = false);
+
+        std::deque<RouteSegmentPtr>::const_iterator m_ItRouteSegment;
+        std::deque<RouteSegmentPtr>::const_reverse_iterator m_ItRouteSegment_R;
+        int m_nIdxContainer;
+        bool m_bReverse;
+        const MHTRouteCandidate* m_pRouteCandidate;
+
+        friend class MHTRouteCandidate;
+    };
+
+    RouteSegmentIterator RouteSegmentBegin(void) const
+    {
+        return RouteSegmentIterator(this, true, false);
+    }
+    RouteSegmentIterator RouteSegmentEnd(void) const
+    {
+        return RouteSegmentIterator(this, false, false);
+    }
+
+    RouteSegmentIterator RouteSegmentRBegin(void) const
+    {
+        return RouteSegmentIterator(this, true, true);
+    }
+    RouteSegmentIterator RouteSegmentREnd(void) const
+    {
+        return RouteSegmentIterator(this, false, true);
+    }
+
+    size_t GetCountRouteSegments(void) const {return m_Segments.size();}
+
+
+/*
+3.3 class PointDataIterator
+    Iterator for matched data
+
+*/
     class PointDataIterator
     {
     public:
@@ -184,7 +307,7 @@ public:
         bool operator==(const PointDataIterator& rIt) const;
         bool operator!=(const PointDataIterator& rIt) const;
 
-        const PointData* operator*() const;
+        const PointDataPtr operator*() const;
 
         PointDataIterator& operator++();
 
@@ -192,10 +315,10 @@ public:
         PointDataIterator(const MHTRouteCandidate* pCandidate,
                           bool bBegin, bool bReverse);
 
-        std::vector<RouteSegment*>::const_iterator m_ItRouteSegment;
-        std::vector<const PointData*>::const_iterator m_ItPointData;
-        std::vector<RouteSegment*>::const_reverse_iterator m_ItRouteSegment_R;
-        std::vector<const PointData*>::const_reverse_iterator m_ItPointData_R;
+        RouteSegmentIterator m_ItRouteSegment;
+        std::vector<PointDataPtr>::const_iterator m_ItPointData;
+        RouteSegmentIterator m_ItRouteSegment_R;
+        std::vector<PointDataPtr>::const_reverse_iterator m_ItPointData_R;
         bool m_bReverse;
         const MHTRouteCandidate* m_pRouteCandidate;
 
@@ -203,55 +326,24 @@ public:
     };
 
 
-
     PointDataIterator PointDataBegin(void) const
-                                  {return PointDataIterator(this, true, false);}
+    {
+        return PointDataIterator(this, true, false);
+    }
     PointDataIterator PointDataEnd(void) const
-                                 {return PointDataIterator(this, false, false);}
+    {
+        return PointDataIterator(this, false, false);
+    }
 
     PointDataIterator PointDataRBegin(void) const
-                                   {return PointDataIterator(this, true, true);}
-    PointDataIterator PointDataREnd(void) const
-                                  {return PointDataIterator(this, false, true);}
-
-    class RouteSegment
     {
-    public:
-        RouteSegment(void); // Off-road
-        RouteSegment(const shared_ptr<IMMNetworkSection>& pSection); // On-road
-        RouteSegment(const RouteSegment& rCandidate);
-        ~RouteSegment();
+        return PointDataIterator(this, true, true);
+    }
+    PointDataIterator PointDataREnd(void) const
+    {
+        return PointDataIterator(this, false, true);
+    }
 
-        const shared_ptr<IMMNetworkSection>& GetSection(void) const
-                                                           {return m_pSection;}
-        const std::vector<const PointData*>& GetPoints(void) const
-                                                           {return m_Points;}
-        const PointData* AddPoint(const MapMatchData* pMMData,
-                                  const Point& rPointProjection,
-                                  const double dDistance,
-                                  const double dScore);
-        const PointData* AddPoint(const MapMatchData* pMMData,
-                                  const double dScore);
-        double RemoveLastPoint(void);
-
-        bool IsOffRoad(void) const;
-
-        void SetUTurn(bool bUTurn = true) {m_bUTurn = bUTurn;}
-        bool HasUTurn(void) const {return m_bUTurn;}
-
-        void Print(std::ostream& os) const;
-
-    private:
-
-        shared_ptr<IMMNetworkSection> m_pSection;
-        std::vector<const PointData*> m_Points;
-        bool m_bUTurn;
-    };
-
-    const std::vector<RouteSegment*>& GetRouteSegments(void) const
-                                                            {return m_Segments;}
-
-    RouteSegment* GetLastOnroadSegment(void) const;
 
     // Debugging
     void Print(std::ostream& os) const;
@@ -261,9 +353,16 @@ private:
 
     MHTRouteCandidate():m_pMM(NULL) {}
 
+    RouteSegmentPtr GetLastOnroadSegment(
+                        std::deque<RouteSegmentPtr>::reverse_iterator* pItRet);
+
     void RemoveLastSection(void);
 
-    std::vector<RouteSegment*> m_Segments;
+    std::deque<RouteSegmentPtr> m_Segments;
+
+    typedef shared_ptr<std::deque<RouteSegmentPtr> > RouteSegmentContPtr;
+    std::vector<RouteSegmentContPtr> m_SegmentsOutsourced;
+
     MapMatchingMHT* m_pMM;
     double m_dScore;
     unsigned short m_nCountLastEmptySections;
