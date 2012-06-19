@@ -73,7 +73,7 @@ class Condition {
   vector<ConditionType> types;
   vector<Key> keys;
   vector<string> variables;
-  vector<int> uPatterns;
+  vector<int> patternIds;
 
   Condition() {
     types.push_back(*(new ConditionType(convert(".label"), convert("\"a\""))));
@@ -176,48 +176,52 @@ class NFA {
   set<int> currentStates;
   vector<UnitPattern> nfaPatterns;
   vector<Condition> nfaConditions;
-  int numberOfStates;
-  ULabel currentLabel;
-  size_t currentLabelId;
+  int numOfStates;
+  ULabel curULabel;
+  size_t curULabelId;
   size_t maxLabelId;
   set<size_t> *matchings;
   set<size_t> *cardsets;
-  set<int> *dependencies;
   set<vector<size_t> > sequences; // all possible matching sequences
+  set<vector<size_t> > condMatchings; // for condition evaluation
 
  public:
-  NFA(const int s) {
-    numberOfStates = s;
-    transitions = new set<int>*[numberOfStates];
-    for (int i = 0; i < numberOfStates; i++) {
-      transitions[i] = new set<int>[numberOfStates];
+  NFA(const int size) {
+    numOfStates = size;
+    transitions = new set<int>*[numOfStates];
+    for (int i = 0; i < numOfStates; i++) {
+      transitions[i] = new set<int>[numOfStates];
     }
     currentStates.insert(0);
-    matchings = new set<size_t>[numberOfStates - 1];
-    cardsets = new set<size_t>[numberOfStates - 1];
-    dependencies = new set<int>[numberOfStates - 1];
+    matchings = new set<size_t>[numOfStates - 1];
+    cardsets = new set<size_t>[numOfStates - 1];
   }
 
   ~NFA() {
-    for (int i = 0; i < numberOfStates; i++) {
+    for (int i = 0; i < numOfStates; i++) {
       delete[] transitions[i];
     }
     delete[] transitions;
     delete[] matchings;
+    delete[] cardsets;
   }
 
   void buildNFA(Pattern p);
   bool match(MLabel const &ml);
   void printCurrentStates();
   void printCards();
+  void printSequences(size_t max);
+  void printCondMatchings(size_t max);
   void updateStates();
   void storeMatch(int state);
   bool labelsMatch(int pos);
   bool timesMatch(int pos);
   void buildSequences();
-  void printSequences(size_t max);
-  bool conditionsMatch();
-  bool replaceEvaluate(unsigned int cond, vector<size_t> sequence);
+  bool conditionsMatch(MLabel const &ml);
+  void buildCondMatchings(unsigned int condId, vector<size_t> sequence);
+  bool evaluateCond(MLabel const &ml, unsigned int condId,
+                    vector<size_t> sequence);
+  string getNextSubst(MLabel const &ml, Key key, unsigned int pos);
   string toString();
 };
 

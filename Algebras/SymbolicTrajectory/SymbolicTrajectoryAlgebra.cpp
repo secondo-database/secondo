@@ -994,7 +994,7 @@ string Pattern::GetText() const {
     for (unsigned int j = 0; j < conditions[i].variables.size(); j++) {
       text << "[[" << j << "]] " << conditions[i].variables[j]
            << "." << conditions[i].keys[j] << " in #"
-           << conditions[i].uPatterns[j] << endl;
+           << conditions[i].patternIds[j] << endl;
     }
   }
   text << "~~~~~~results~~~~~~" << endl;
@@ -1310,17 +1310,17 @@ void NFA::buildNFA(Pattern p) {
   if (!p.conditions.empty()) {
     nfaConditions = p.conditions;
   }
-  for (int i = 0; i < numberOfStates - 1; i++) { // solve epsilon-transitions
+  for (int i = 0; i < numOfStates - 1; i++) { // solve epsilon-transitions
     if (!(nfaPatterns[i].wildcard.compare("*"))) { // reading '*'
       if (i > 0) {
         transitions[i - 1][i - 1].insert(i + 1);
       }
       transitions[i][i].insert(i);
       //nfaPatterns[i].wildcard.assign("+");
-      if (i < numberOfStates - 2) {
+      if (i < numOfStates - 2) {
         transitions[i][i + 1].insert(i + 2);
         int j = i + 1;
-        while ((j < numberOfStates - 1)  // handle '* * ... *'
+        while ((j < numOfStates - 1)  // handle '* * ... *'
                 && !(nfaPatterns[j].wildcard.compare("*"))) {
           transitions[i][i].insert(j + 1);
           transitions[i][j + 1].insert(j + 2);
@@ -1330,7 +1330,7 @@ void NFA::buildNFA(Pattern p) {
           transitions[i][i + 1].insert(i);
           transitions[i][i + 1].insert(i + 1);
           int j = i + 2;
-          while ((j < numberOfStates - 1)
+          while ((j < numOfStates - 1)
                   && !(nfaPatterns[j].wildcard.compare("*"))) {
             transitions[i][i + 1].insert(j + 1);
             j++;
@@ -1338,12 +1338,12 @@ void NFA::buildNFA(Pattern p) {
         }
       }
       else {
-        transitions[i][i + 1].insert(numberOfStates - 1);
+        transitions[i][i + 1].insert(numOfStates - 1);
       }
     }
     else { // not reading '*'
       int j = i + 1; // handle '(a 1) * * ... *'
-      while ((j < numberOfStates - 1)
+      while ((j < numOfStates - 1)
               && !(nfaPatterns[j].wildcard.compare("*"))) {
         transitions[i][i].insert(j + 1);
         j++;
@@ -1372,8 +1372,8 @@ currentStates after the loop.
 bool NFA::match(MLabel const &ml) {
   maxLabelId = (size_t)ml.GetNoComponents() - 1;
   for (size_t i = 0; i <= maxLabelId; i++) {
-    ml.Get(i, currentLabel);
-    currentLabelId = i;
+    ml.Get(i, curULabel);
+    curULabelId = i;
     cout << "unit label #" << i << " is processed now" << endl;
     updateStates();
     if (currentStates.empty()) {
@@ -1381,18 +1381,52 @@ bool NFA::match(MLabel const &ml) {
       return false;
     }
   }
-  if (!currentStates.count(numberOfStates - 1)) { // is the final state active?
+  if (!currentStates.count(numOfStates - 1)) { // is the final state active?
     return false;
   }
   printCards();
   buildSequences();
   printSequences(50);
-  if (!conditionsMatch()) {
+  if (!conditionsMatch(ml)) {
     return false;
   }
   return true;
 }
 
+/*
+5.3 Function ~toString~
+Returns a string displaying the information stored in the NFA.
+
+*/
+string NFA::toString() {
+  cout << "start output, " << numOfStates << " states" << endl;
+  stringstream nfa;
+  set<int>::iterator k;
+  for (int i = 0; i < numOfStates - 1; i++) {
+    for (int j = i; j < numOfStates - 1; j++) {
+      if (transitions[i][j].size() > 0) {
+        nfa << "state " << i << " | unitpat #" << j << " | new states {";
+        if (transitions[i][j].size() == 1) {
+          nfa << *(transitions[i][j].begin());
+        }
+        else {
+          for (k = transitions[i][j].begin();
+               k != transitions[i][j].end(); k++) {
+            nfa << *k << " ";
+          }
+        }
+        nfa << "}" << endl;
+      }
+    }
+  }
+  return nfa.str();
+}
+
+/*
+5.4 Function ~printCurrentStates~
+Prints the set of currently active states.
+
+*/
 void NFA::printCurrentStates() {
   set<int>::iterator i;
   cout << "the set of active states is {";
@@ -1402,29 +1436,37 @@ void NFA::printCurrentStates() {
   cout << "}" << endl;
 }
 
+/*
+5.5 Function ~printCards~
+Prints the ulabels matched by every unit pattern. Subsequently, the possible
+cardinalities for every unit pattern are displayed.
+
+*/
 void NFA::printCards() {
   set<size_t>::iterator it;
-  for (int j = 0; j < numberOfStates - 1; j++) {
-    cout << "state " << j << " matches ulabels ";
+  for (int j = 0; j < numOfStates - 1; j++) {
+    cout << "unit pattern " << j << " matches ulabels ";
     for (it = matchings[j].begin(); it != matchings[j].end(); it++) {
       cout << *it << ", ";
     }
     cout << endl;
   }
   set<int>::iterator j;
-  for (int i = 0; i < numberOfStates - 1; i++) {
+  for (int i = 0; i < numOfStates - 1; i++) {
     cout << i << " | ";
     for (it = cardsets[i].begin(); it != cardsets[i].end(); it++) {
       cout << *it << ",";
-    }
-    cout << " | ";
-    for (j = dependencies[i].begin(); j != dependencies[i].end(); j++) {
-      cout << *j << ",";
     }
     cout << endl;
   }
 }
 
+/*
+5.6 Function ~printSequences~
+Displays the possible cardinality sequences. As the number of sequences may
+be very high, only the first ~max~ sequences are printed.
+
+*/
 void NFA::printSequences(size_t max) {
   set<vector<size_t> >::iterator it;
   unsigned int seqCount = 0;
@@ -1442,7 +1484,29 @@ void NFA::printSequences(size_t max) {
 }
 
 /*
-5.3 Function ~updateStates~
+5.7 Function ~printCondMatchings~
+Displays the possible condition matching sequences. As the number of sequences
+may be very high, only the first ~max~ sequences are printed.
+
+*/
+void NFA::printCondMatchings(size_t max) {
+  set<vector<size_t> >::iterator it;
+  unsigned int count = 0;
+  it = condMatchings.begin();
+  while ((count < max) && (it != condMatchings.end())) {
+    cout << "cm_" << (count < 9 ? "0" : "") << count  + 1 << " | ";
+    for (unsigned int i = 0; i < (*it).size(); i++) {
+      cout << (*it)[i] << ", ";
+    }
+    cout << endl;
+    it++;
+    count++;
+  }
+  cout << condMatchings.size() << " possible condition matchings." << endl;
+}
+
+/*
+5.8 Function ~updateStates~
 Further functions are invoked to decide which transition can be applied to
 which current state. The set of current states is updated.
 
@@ -1454,7 +1518,7 @@ void NFA::updateStates() {
   newStates.clear();
   set<int>::iterator i, it;
   for (i = currentStates.begin(); i != currentStates.end(); i++) {
-    for (int j = 0; j < numberOfStates - 1; j++) {
+    for (int j = 0; j < numOfStates - 1; j++) {
       result = false;
       if (!transitions[*i][j].empty()) {
         if (!nfaPatterns[j].labelset.empty() // check labels
@@ -1487,7 +1551,7 @@ void NFA::updateStates() {
 }
 
 /*
-5.4 Function ~storeMatch~
+5.9 Function ~storeMatch~
 
 */
 void NFA::storeMatch(int state) { // TODO: shorten this
@@ -1495,7 +1559,7 @@ void NFA::storeMatch(int state) { // TODO: shorten this
   int fromState, toState;
   set<size_t>::iterator it;
   if (nfaPatterns[state].wildcard.empty()) {
-    matchings[state].insert(currentLabelId);
+    matchings[state].insert(curULabelId);
     cardsets[state].insert(1); // cardinality is 1 without wildcard
     if ((state > 0) && !nfaPatterns[state - 1].wildcard.empty()) {
       if (state == 1) { // wildcard at 0, match(es) at 1
@@ -1504,14 +1568,8 @@ void NFA::storeMatch(int state) { // TODO: shorten this
       else {
         int j = state - 2; // search previous matching position
         if (matchings[j].empty()) {
-          dependencies[j].insert(state - 1);
-          dependencies[state - 1].insert(j);
           j--;
           while ((j >= 0) && matchings[j].empty()) {
-            for (int k = j + 1; k <= state - 1; k++) {
-              dependencies[k].insert(j); // mutual dependency
-              dependencies[j].insert(k);
-            }
             j--;
           }
           toLabel = *(matchings[state].rbegin()) - *(matchings[j].begin()) - 1;
@@ -1528,10 +1586,10 @@ void NFA::storeMatch(int state) { // TODO: shorten this
         }
         else { // matching in state - 2
           it = matchings[state - 2].begin();
-          while ((*it < currentLabelId) && (it != matchings[state - 2].end())) {
-            if ((currentLabelId - *it - 1 > 0) // card != 0 for wildcard +
+          while ((*it < curULabelId) && (it != matchings[state - 2].end())) {
+            if ((curULabelId - *it - 1 > 0) // card != 0 for wildcard +
               || !nfaPatterns[state - 1].wildcard.compare("*")) {
-              cardsets[state - 1].insert(currentLabelId - *it - 1);
+              cardsets[state - 1].insert(curULabelId - *it - 1);
             }
             it++;
           }
@@ -1539,18 +1597,12 @@ void NFA::storeMatch(int state) { // TODO: shorten this
       }
     }
   }
-  else if ((state == numberOfStates - 2) // last state
+  else if ((state == numOfStates - 2) // last state
         && !nfaPatterns[state].wildcard.empty()) {
     int j = state - 1; // search previous matching position
     if ((j >= 0) && matchings[j].empty()) {
-      dependencies[j].insert(state);
-      dependencies[state].insert(j);
       j--;
       while ((j >= 0) && matchings[j].empty()) {
-        for (int k = j + 1; k <= state - 1; k++) {
-          dependencies[k].insert(j); // mutual dependency
-          dependencies[j].insert(k);
-        }
         j--;
       }
       if ((j < 0) || (j < state - 1)) {
@@ -1583,7 +1635,7 @@ void NFA::storeMatch(int state) { // TODO: shorten this
 }
 
 /*
-5.4 Function ~timesMatch~
+5.10 Function ~timesMatch~
 Checks whether the current ULabel interval is completely enclosed in the
 interval specified in the pattern.
 
@@ -1596,7 +1648,7 @@ bool NFA::timesMatch(int pos) {
   Instant *pStart = new DateTime(instanttype);
   Instant *pEnd = new DateTime(instanttype);
   SecInterval *pInterval = new SecInterval(0);
-  SecInterval *uInterval = new SecInterval(currentLabel.timeInterval);
+  SecInterval *uInterval = new SecInterval(curULabel.timeInterval);
   if (nfaPatterns[pos].intervalset.empty()) { // no interval specified
     result = true;
   }
@@ -1647,7 +1699,7 @@ bool NFA::timesMatch(int pos) {
 
 
 /*
-5.5 Function ~labelsMatch~
+5.11 Function ~labelsMatch~
 Checks whether the current ULabel label matches the unit pattern labelset at
 position pos (if specified).
 
@@ -1664,7 +1716,7 @@ bool NFA::labelsMatch(int pos) {
     for (k = nfaPatterns[pos].labelset.begin();
          k != nfaPatterns[pos].labelset.end(); k++) {
       CcString *label = new CcString(true, *k);
-      if (currentLabel.Passes(*label)) { // look for a matching label
+      if (curULabel.Passes(*label)) { // look for a matching label
         result = true;
       }
       label->DeleteIfAllowed();
@@ -1674,7 +1726,7 @@ bool NFA::labelsMatch(int pos) {
 }
 
 /*
-5.6 Function ~buildSequences~
+5.12 Function ~buildSequences~
 Derives all possible ulabel sequences from the cardinality candidates. Only
 sequences with length maxLabelId + 1 are accepted.
 
@@ -1683,7 +1735,7 @@ void NFA::buildSequences() {
   vector<size_t> sequence;
   set<size_t>::iterator it;
   size_t totalSize = 1;
-  for (int i = 0; i < numberOfStates - 1; i++) {
+  for (int i = 0; i < numOfStates - 1; i++) {
     totalSize *= cardsets[i].size();
   }
   for (size_t j = 0; j < totalSize; j++) {
@@ -1691,16 +1743,16 @@ void NFA::buildSequences() {
     sequence.clear();
     sequence.push_back(0);
     size_t sequenceSum = 0;
-    for (int state = 0; state < numberOfStates - 1; state++) {
+    for (int state = 0; state < numOfStates - 1; state++) {
       it = cardsets[state].begin();
       advance(it, k % cardsets[state].size());
-      if (state < numberOfStates - 2) {
+      if (state < numOfStates - 2) {
         sequence.push_back(*it + *sequence.rbegin());
       }
       k /= cardsets[state].size();
       sequenceSum += *it;
       if (sequenceSum > maxLabelId + 1) { // stop if sum exceeds maximum
-        state = numberOfStates;
+        state = numOfStates;
       }
     }
     if (sequenceSum == maxLabelId + 1) {
@@ -1710,33 +1762,36 @@ void NFA::buildSequences() {
 }
 
 /*
-5.7 Function ~conditionsMatch~
-Checks whether the specified conditions are fulfilled.
+5.13 Function ~conditionsMatch~
+Checks whether the specified conditions are fulfilled. The result is true, if
+and only if there is (at least) one cardinality sequence that matches every
+condition.
 
 */
-bool NFA::conditionsMatch() { // TODO: a lot
-  bool result = false;
-  bool proceed;
+bool NFA::conditionsMatch(MLabel const &ml) {
+  bool goToNextCond(false);
   set<vector<size_t> >::iterator it;
   if (nfaConditions.empty()) {
     return true;
   }
   for (unsigned int i = 0; i < nfaConditions.size(); i++) {
     it = sequences.begin();
-    proceed = false;
-    while ((it != sequences.end()) && !proceed) {
-      proceed = false;
-      // replace and evaluate condition/sequence
-      if (!replaceEvaluate(i, *it)) {
+    goToNextCond = false;
+    while ((it != sequences.end()) && !goToNextCond) {
+      goToNextCond = false;
+      if (!nfaConditions[i].keys.empty()) {
+        buildCondMatchings(i, *it);
+      }
+      if (!evaluateCond(ml, i, *it)) {
         sequences.erase(it);
-        it++;
-        i = 0;
+        it = sequences.begin();
+        i = 0; // in case of a mismatch, go back to the first condition
       }
       else {
-        proceed = true;
+        goToNextCond = true;
       }
     }
-    if (!proceed) { // no matching sequence found
+    if (!goToNextCond) { // no matching sequence found
       cout << "mismatch in condition " << i << endl;
       return false;
     }
@@ -1747,50 +1802,100 @@ bool NFA::conditionsMatch() { // TODO: a lot
 }
 
 /*
-5.8 Function ~replaceEvaluate~
+5.14 Function ~buildCondMatchings~
 
 */
-bool NFA::replaceEvaluate(unsigned int cond, vector<size_t> sequence) {
-  bool finish(false);
+void NFA::buildCondMatchings(unsigned int condId, vector<size_t> sequence) {
+  bool necessary(false);
+  condMatchings.clear();
+  int patternId;
+  size_t totalSize = 1;
+  vector<size_t> condMatching;
+  set<int> consideredIds;
+  set<int>::iterator it;
+  size_t size;
+  sequence.push_back(maxLabelId + 1); // easier for last pattern
+  for (unsigned int i = 0; i < nfaConditions[condId].keys.size(); i++) {
+    patternId = nfaConditions[condId].patternIds[i];
+    if ((nfaConditions[condId].keys[i] < 4) // only for label, time, start, end
+      && !consideredIds.count(patternId)) { // no doubles
+      totalSize *= sequence[patternId + 1] - sequence[patternId];
+      consideredIds.insert(patternId);
+      necessary = true;
+    }
+  }
+  if (!necessary) {
+    totalSize = 0;
+  }
+  for (size_t j = 0; j < totalSize; j++) {
+    size_t k = j;
+    condMatching.clear();
+    for (it = consideredIds.begin(); it != consideredIds.end(); it++) {
+      size = sequence[*it + 1] - sequence[*it];
+      condMatching.push_back(sequence[*it] + k % size);
+      k /= size;
+    }
+    condMatchings.insert(condMatching);
+  }
+  if (totalSize) {
+    printCondMatchings(50);
+  }
+}
+
+/*
+5.15 Function ~evaluateCond~
+This function is invoked by ~conditionsMatch~ and checks whether a sequence of
+cardinalities matches a certain condition.
+
+*/
+bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
+                       vector<size_t> sequence) {
+  bool success(false);
   string varKey, condStr, subst;
   size_t varKeyPos = string::npos;
-  condStr.assign(nfaConditions[cond].condition);
-  while (!finish) {
-    for (unsigned int j = 0; j < nfaConditions[cond].keys.size(); j++) {
-      cout << "consider condition #" << cond << "; variable "
-           << nfaConditions[cond].variables[j] << endl;
-      switch (nfaConditions[cond].keys[j]) {
-        case 0: // label
-          if (!nfaPatterns[nfaConditions[cond].uPatterns[j]].labelset.empty()) {
-
-
-          }
-          break;
-        case 1: // time
-        case 2: // start
-        case 3: // end
-          if (!nfaPatterns[
-               nfaConditions[cond].uPatterns[j]].intervalset.empty()) {
-
-
-          }
-          break;
-        case 4: // card
-          if (nfaConditions[cond].uPatterns[j] == numberOfStates - 2) {
-            subst.assign(int2Str(maxLabelId
-                         - sequence[nfaConditions[cond].uPatterns[j]] + 1));
-          }
-          else {
-            subst.assign(int2Str(sequence[nfaConditions[cond].uPatterns[j] + 1]
-                         - sequence[nfaConditions[cond].uPatterns[j]]));
-          }
-          break;
-        default:
-          break;
+  condStr.assign(nfaConditions[condId].condition);
+  for (unsigned int j = 0; j < nfaConditions[condId].keys.size(); j++) {
+    if (nfaConditions[condId].keys[j] == 4) { // card
+      int patternId = nfaConditions[condId].patternIds[j];
+      if (patternId == numOfStates - 2) {
+        subst.assign(int2Str(maxLabelId - sequence[patternId] + 1));
       }
-      varKey.assign(nfaConditions[cond].variables[j]);
-      varKey.append(nfaConditions[cond].types
-                    [nfaConditions[cond].keys[j]].type);
+      else {
+        subst.assign(int2Str(sequence[patternId + 1] - sequence[patternId]));
+      }
+      varKey.assign(nfaConditions[condId].variables[j]);
+      varKey.append(nfaConditions[condId].types
+                    [nfaConditions[condId].keys[j]].type);
+      varKeyPos = condStr.find(varKey);
+      if (varKeyPos != string::npos) {
+        cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
+        condStr.replace(varKeyPos, varKey.size(), subst);
+      }
+      else {
+        cout << "var.key " << varKey << " not found" << endl;
+        return false;
+      }
+    }
+  }
+  if (condMatchings.empty()) {
+    if (!evaluate(condStr, true)) {
+      cout << "no cardinality match" << endl;
+      return false;
+    }
+    else {
+      return true;
+    }
+  }
+  while (!condMatchings.empty()) {
+    for (unsigned int j = 0; j < nfaConditions[condId].keys.size(); j++) {
+      cout << "consider condition #" << condId << "; variable "
+           << nfaConditions[condId].variables[j] << endl;
+      if (nfaConditions[condId].keys[j] < 4) { // label, time, start, end
+        subst.assign(getNextSubst(ml, nfaConditions[condId].keys[j], j));
+      }
+      varKey.assign(nfaConditions[condId].variables[j]);
+      varKey.append(nfaConditions[condId].types
+                    [nfaConditions[condId].keys[j]].type);
       varKeyPos = condStr.find(varKey);
       if (varKeyPos != string::npos) {
         cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
@@ -1804,42 +1909,38 @@ bool NFA::replaceEvaluate(unsigned int cond, vector<size_t> sequence) {
     cout << "evaluate !!!:::... " << condStr << " ...:::!!!" << endl;
     if (!evaluate(condStr, true)) {
       cout << "negative" << endl;
-      finish = true;
+      return false; // one false evaluation is enough to yield ~false~
     }
     else {
-      return true;
+      success = true;
     }
   }
-  return false;
+  return success;
 }
 
 /*
-5.9 Function ~toString~
-Returns a string displaying the information stored in the NFA.
+5.16 Function ~getNextSubst~
 
 */
-string NFA::toString() {
-  cout << "start output, " << numberOfStates << " states" << endl;
-  stringstream nfa;
-  set<int>::iterator k;
-  for (int i = 0; i < numberOfStates - 1; i++) {
-    for (int j = i; j < numberOfStates - 1; j++) {
-      if (transitions[i][j].size() > 0) {
-        nfa << "state " << i << " | unitpat #" << j << " | new states {";
-        if (transitions[i][j].size() == 1) {
-          nfa << *(transitions[i][j].begin());
-        }
-        else {
-          for (k = transitions[i][j].begin();
-               k != transitions[i][j].end(); k++) {
-            nfa << *k << " ";
-          }
-        }
-        nfa << "}" << endl;
-      }
-    }
+string NFA::getNextSubst(MLabel const &ml, Key key, unsigned int pos) {
+  string result;
+  set<vector<size_t> >::iterator it = condMatchings.begin();
+  vector<size_t> positions = *it;
+  condMatchings.erase(it);
+  if ((positions)[pos] > maxLabelId) {
+    cout << "PROBLEM: " << (positions)[pos] << endl;
   }
-  return nfa.str();
+  ml.Get(positions[pos], curULabel);
+  switch (key) {
+    case 0: // label
+      result.assign("\"");
+      result.append(curULabel.constValue.GetValue());
+      result.append("\"");
+      break;
+    default:
+      break;
+  }
+  return result;
 }
 
 ListExpr textToPatternMap(ListExpr args) {
