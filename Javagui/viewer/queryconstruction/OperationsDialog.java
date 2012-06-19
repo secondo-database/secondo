@@ -4,11 +4,13 @@
  */
 package viewer.queryconstruction;
 
-import java.awt.*;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javax.swing.*;
-import java.util.ArrayList;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JDialog;
+import javax.swing.JTextField;
 
 /**
  *
@@ -71,26 +73,26 @@ public class OperationsDialog extends JDialog {
         }
     }
     
-    public void integer(){
+    //opens a popup window with a textfield
+    public void text(){
         final JTextField textfield = new JTextField(20);
-        add(textfield);
-        
         JButton ok = new JButton("ok");
         ActionListener al = new ActionListener() {
             public void actionPerformed( ActionEvent e ) {
-                sendInteger(e, textfield);
+                sendText(e, textfield);
             }
         };
+        
+        add(textfield);
         ok.addActionListener(al);
         add(ok);
-        
         pack();
         setVisible(true);
     }
     
-    public void sendInteger(ActionEvent e, JTextField integer){
-        System.out.println(e.paramString());
-        main.addString(integer.getText());
-        this.setVisible(false);
+    public void sendText(ActionEvent e, JTextField text){
+        main.addString(text.getText());
+        setVisible(false);
     }
+    
 }

@@ -21,16 +21,24 @@ public class ObjectView extends JComponent {
     private int ypos;
     private ObjectType otype;
     private String type;
-    private boolean active;
+    private boolean active = false;
     private Color color = Color.BLACK;
     
     public ObjectView(String type, String name){
         
         this.name = name;
+        this.label = name;
         this.type = type;
         
+    }
+    
+    public ObjectView(ListExpr list){
+        //generate an instance of ObjectType
+        otype = new ObjectType(list);
+        
+        this.name = otype.getName();
+        this.type = otype.getType();
         this.label = this.name;
-        this.active = false;
         
     }
     
@@ -38,7 +46,7 @@ public class ObjectView extends JComponent {
      height 80, width 50*/
     public void paintComponent(Graphics g, int x, int y, Color color){
         this.xpos = 10 + x*120;
-        this.ypos = 10 + y*70;
+        this.ypos = 10 + y*40;
         
         if (color != null)
             g.setColor(color);
@@ -78,8 +86,9 @@ public class ObjectView extends JComponent {
         
         int w = g.getFontMetrics().stringWidth(label);
         String s = label;
-        if (w > 80) {
+        if (w > 90) {
             s = label.substring(0, 10);
+            w = g.getFontMetrics().stringWidth(s);
         }
         
         g.drawString(s, xpos + 45 - w/2, ypos + 30);

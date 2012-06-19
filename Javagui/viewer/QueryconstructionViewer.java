@@ -19,17 +19,29 @@
 
 package viewer;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
 import gui.SecondoObject;
 import gui.ViewerControl;
-import sj.lang.*;
-import viewer.queryconstruction.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.JButton;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
+import sj.lang.ListExpr;
+import viewer.queryconstruction.MainPane;
+import viewer.queryconstruction.ObjectPane;
+import viewer.queryconstruction.ObjectView;
+import viewer.queryconstruction.OperationsPane;
 
 /**
- *
- * @author lrentergent
+ * this viewer class admits the construction of a query
+ * 
+ * @author Lisa Rentergent
+ * @since 01.06.2012
+ * @version 1.0
+ * 
  */
 public class QueryconstructionViewer extends SecondoViewer {
     
@@ -48,13 +60,10 @@ public class QueryconstructionViewer extends SecondoViewer {
         MainPane = new MainPane();
         MainPane.setPreferredSize(new Dimension (500, 400));
         
-        ObjectPane.setPreferredSize(new Dimension (600, 80));
-        OperationsPane.setPreferredSize(new Dimension (120, 400));
         OperationsPane.update();
         
         JScrollPane MainScrollPane = new JScrollPane(MainPane);
         JScrollPane ObjectsScrollPane = new JScrollPane(ObjectPane);
-        ObjectsScrollPane.createHorizontalScrollBar();
         JScrollPane OperationsScrollPane = new JScrollPane(OperationsPane);
         OperationsScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         
@@ -106,6 +115,9 @@ public class QueryconstructionViewer extends SecondoViewer {
                     this.result = "relation";
                 }
             }
+            else {
+                getTypeNL += MainPane.getState();
+            }
         }
         
         return getTypeNL;
@@ -140,6 +152,7 @@ public class QueryconstructionViewer extends SecondoViewer {
         update();
     }
     
+    @Override
     public void setViewerControl(ViewerControl VC){
         //super.setViewerControl(VC);
         if (VC != null) {
@@ -173,26 +186,6 @@ public class QueryconstructionViewer extends SecondoViewer {
     }
     
     public boolean canDisplay(SecondoObject o){
-//        ListExpr LE = o.toListExpr(); // get the nested list of o
-//        if(LE.listLength()!=2) // the length must be two
-//            return false;
-//        // the first element must be an symbol atom with content "inquiry"
-//        if(LE.first().atomType()!=ListExpr.SYMBOL_ATOM || !LE.first().symbolValue().equals("inquiry"))
-//            return false;
-//        ListExpr VL = LE.second();
-//        // the length of the second element must again be two
-//        if(VL.listLength()!=2)
-//            return false;
-//        ListExpr SubTypeList = VL.first();
-//        // the first element of this list must be a symbol atom
-//        if(SubTypeList.atomType()!=ListExpr.SYMBOL_ATOM)
-//            return false;
-//        String SubType = SubTypeList.symbolValue();
-//        // check for supported "sub types"
-//        // the used constants just contain the appropriate String
-//        if(SubType.equals(DATABASES) || SubType.equals(CONSTRUCTORS) || SubType.equals(OPERATORS) || SubType.equals(ALGEBRA) || SubType.equals(ALGEBRAS) || SubType.equals(OBJECTS) || SubType.equals(TYPES))
-//            return true;
-//        return false;
         return false;
     }
 

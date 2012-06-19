@@ -5,8 +5,9 @@ package viewer.queryconstruction;
  * a tutorial reader.
  */
 
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
 import sj.lang.ListExpr;
@@ -22,12 +23,10 @@ public class ObjectPane extends MainPane {
     public ObjectPane(QueryconstructionViewer viewer) {
         this.viewer = viewer;
         addMouseListener(this);
-        
-//        ObjectView Trains = new ObjectView(RELATION, "Trains");
-//        addObject(Trains);
     }
     
     /** paints a Secondo Object into the ObjectsPane */
+    @Override
     public void paintComponent(Graphics g) {        
         int x = 0;
         int y = 0;
@@ -39,16 +38,15 @@ public class ObjectPane extends MainPane {
         }
     }
     
+    //add all relations and objects of berlintest database to the viewer
     public void addObjects(ListExpr list){
         // the length must be two and the object element must be an symbol atom with content "inquiry"
         if(list.listLength()==2 && list.first().symbolValue().equals("inquiry")) { 
             objects = list.second().second();
-            
-            while (!objects.endOfList()) {
+            setPreferredSize(new Dimension (objects.listLength()*120 - 120, 80));
+            while (objects.listLength() > 1) {
                 ListExpr object = objects.second();
-                ObjectType new_object = new ObjectType(object);
-                ObjectView object_view = new ObjectView(new_object.getType(), new_object.getName());
-                object_view.setOType(new_object);
+                ObjectView object_view = new ObjectView(object);
                 
                 addObject(object_view);
                 objects = objects.rest();
@@ -58,6 +56,7 @@ public class ObjectPane extends MainPane {
     }
     
     //    adds an operation or an object to the main panel
+    @Override
     public void addObject(ObjectView object){
         elements.add(object);
     }
@@ -75,6 +74,7 @@ public class ObjectPane extends MainPane {
     }
 
     //double click adds a copy of the selected object to the main panel
+    @Override
     public void mouseClicked ( MouseEvent arg0 ) {
         if (arg0.getClickCount () == 2) {
             int x = 0;

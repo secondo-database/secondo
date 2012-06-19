@@ -20,6 +20,8 @@ public class OperationsPane extends MainPane {
     public OperationsPane(QueryconstructionViewer viewer) {
         ObjectView feed = new ObjectView(ObjectType.OPERATION, "feed");
         addObject(feed);
+        ObjectView rename = new ObjectView(ObjectType.OPERATION, "rename");
+        addObject(rename);
         ObjectView filter = new ObjectView(ObjectType.OPERATION, "project");
         addObject(filter);
         ObjectView count = new ObjectView(ObjectType.OPERATION, "count");
@@ -30,12 +32,15 @@ public class OperationsPane extends MainPane {
         addObject(tail);
         ObjectView consume = new ObjectView(ObjectType.OPERATION, "consume");
         addObject(consume);
+        ObjectView symmjoin = new ObjectView(ObjectType.OPERATION, "symmjoin");
+        addObject(symmjoin);
         
+        setPreferredSize(new Dimension (120, elements.size()*30));
         this.viewer = viewer;
         this.addMouseListener(this);
     }
     
-    /** paints a Secondo Object into the RelationsPane */
+    /** paints a Secondo Object into the relations panel */
     public void paintComponent(Graphics g) {
         
         int x = 0;
@@ -49,12 +54,12 @@ public class OperationsPane extends MainPane {
         
     }
     
-    //    adds an operation or an object to the operations panel
+    //adds an operation or an object to the operations panel
     public void addObject(ObjectView object){
         elements.add(object);
     }
     
-    // updates the operations panel, only allowed operations shoul be viewed black
+    //updates the operations panel, only allowed operations should be painted black
     public void update() {
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
@@ -65,19 +70,23 @@ public class OperationsPane extends MainPane {
                 }
             }
             if (lastComponent.getName().equals("feed")) {
-                if (object.getName().startsWith("head") || object.getName().startsWith("tail") || object.getName().startsWith("project")) {
+                if (object.getName().startsWith("rename") || object.getName().startsWith("head") || object.getName().startsWith("tail") || object.getName().startsWith("project")) {
                     object.setActive();
                 }
             }
             if (object.getName().equals("consume") && (viewer.getState() == MainPane.STREAM || viewer.getState() == MainPane.TWOSTREAMS)) {
                 object.setActive();
             }
+            if (object.getName().endsWith("join") && (viewer.getState() == MainPane.TWOSTREAMS)) {
+                object.setActive();
+            }
         }
         this.repaint();
     }
-
-    //double click adds a copy of the selected operation to the main panel
+    
+    @Override
     public void mouseClicked ( MouseEvent arg0 ) {
+        //double click adds a copy of the selected operation to the main panel
         if (arg0.getClickCount () == 2) {
             int y = 0;
             while (arg0.getY() > (y*30)) { y++; }
