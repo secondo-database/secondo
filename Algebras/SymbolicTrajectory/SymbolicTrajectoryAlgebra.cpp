@@ -1372,8 +1372,8 @@ currentStates after the loop.
 bool NFA::match(MLabel const &ml) {
   maxLabelId = (size_t)ml.GetNoComponents() - 1;
   for (size_t i = 0; i <= maxLabelId; i++) {
-    ml.Get(i, curULabel);
-    curULabelId = i;
+    ml.Get(i, ul);
+    ulId = i;
     cout << "unit label #" << i << " is processed now" << endl;
     updateStates();
     if (currentStates.empty()) {
@@ -1559,7 +1559,7 @@ void NFA::storeMatch(int state) { // TODO: shorten this
   int fromState, toState;
   set<size_t>::iterator it;
   if (nfaPatterns[state].wildcard.empty()) {
-    matchings[state].insert(curULabelId);
+    matchings[state].insert(ulId);
     cardsets[state].insert(1); // cardinality is 1 without wildcard
     if ((state > 0) && !nfaPatterns[state - 1].wildcard.empty()) {
       if (state == 1) { // wildcard at 0, match(es) at 1
@@ -1586,10 +1586,10 @@ void NFA::storeMatch(int state) { // TODO: shorten this
         }
         else { // matching in state - 2
           it = matchings[state - 2].begin();
-          while ((*it < curULabelId) && (it != matchings[state - 2].end())) {
-            if ((curULabelId - *it - 1 > 0) // card != 0 for wildcard +
+          while ((*it < ulId) && (it != matchings[state - 2].end())) {
+            if ((ulId - *it - 1 > 0) // card != 0 for wildcard +
               || !nfaPatterns[state - 1].wildcard.compare("*")) {
-              cardsets[state - 1].insert(curULabelId - *it - 1);
+              cardsets[state - 1].insert(ulId - *it - 1);
             }
             it++;
           }
@@ -1647,8 +1647,8 @@ bool NFA::timesMatch(int pos) {
   string varKey, currentLabelString;
   Instant *pStart = new DateTime(instanttype);
   Instant *pEnd = new DateTime(instanttype);
-  SecInterval *pInterval = new SecInterval(0);
-  SecInterval *uInterval = new SecInterval(curULabel.timeInterval);
+  SecInterval *pIv = new SecInterval(0);
+  SecInterval *uIv = new SecInterval(ul.timeInterval);
   if (nfaPatterns[pos].intervalset.empty()) { // no interval specified
     result = true;
   }
@@ -1656,14 +1656,14 @@ bool NFA::timesMatch(int pos) {
     for (j = nfaPatterns[pos].intervalset.begin();
          j != nfaPatterns[pos].intervalset.end(); j++) {
       if (((*j)[0] > 96) && ((*j)[0] < 123)) { // 1st case: semantic date/time
-        elementOk = checkSemanticDate(*j, *uInterval);
+        elementOk = checkSemanticDate(*j, *uIv);
       }
       else if (((*j).find('-') == string::npos) // 2nd case: 19:09~22:00
             && (((*j).find(':') < (*j).find('~')) // on each side of [~],
                 || ((*j)[0] == '~')) // there has to be either xx:yy or nothing
             && (((*j).find(':', (*j).find('~')) != string::npos)
                 || (*j)[(*j).size() - 1] == '~')) {
-        elementOk = checkDaytime(*j, *uInterval);
+        elementOk = checkDaytime(*j, *uIv);
       }
       else {
         if ((*j)[0] == '~') { // 3rd case: ~2012-05-12
@@ -1682,16 +1682,16 @@ bool NFA::timesMatch(int pos) {
           pStart->ReadFrom(extendDate((*j).substr(0, (*j).find('~')), true));
           pEnd->ReadFrom(extendDate((*j).substr((*j).find('~') + 1), false));
         }
-        pInterval->Set(*pStart, *pEnd, true, true);
-        elementOk = pInterval->Contains(*uInterval);
+        pIv->Set(*pStart, *pEnd, true, true);
+        elementOk = pIv->Contains(*uIv);
       }
       if (elementOk) { // one matching interval is sufficient
         result = true;
       }
     }
   } // pattern intervals finished
-  uInterval->DeleteIfAllowed();
-  pInterval->DeleteIfAllowed();
+  uIv->DeleteIfAllowed();
+  pIv->DeleteIfAllowed();
   pStart->DeleteIfAllowed();
   pEnd->DeleteIfAllowed();
   return result;
@@ -1716,7 +1716,7 @@ bool NFA::labelsMatch(int pos) {
     for (k = nfaPatterns[pos].labelset.begin();
          k != nfaPatterns[pos].labelset.end(); k++) {
       CcString *label = new CcString(true, *k);
-      if (curULabel.Passes(*label)) { // look for a matching label
+      if (ul.Passes(*label)) { // look for a matching label
         result = true;
       }
       label->DeleteIfAllowed();
@@ -1850,8 +1850,8 @@ cardinalities matches a certain condition.
 */
 bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
                        vector<size_t> sequence) {
-  bool success(false);
-  string varKey, condStr, subst;
+  bool success(false), replaced(false);
+  string varKey, condStr, condStrCard, subst;
   size_t varKeyPos = string::npos;
   condStr.assign(nfaConditions[condId].condition);
   for (unsigned int j = 0; j < nfaConditions[condId].keys.size(); j++) {
@@ -1870,6 +1870,7 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
       if (varKeyPos != string::npos) {
         cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
         condStr.replace(varKeyPos, varKey.size(), subst);
+        replaced = true;
       }
       else {
         cout << "var.key " << varKey << " not found" << endl;
@@ -1877,7 +1878,8 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
       }
     }
   }
-  if (condMatchings.empty()) {
+  condStrCard.assign(condStr); // save status after cardinality substitution
+  if (condMatchings.empty() && replaced) {
     if (!evaluate(condStr, true)) {
       cout << "no cardinality match" << endl;
       return false;
@@ -1887,6 +1889,7 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
     }
   }
   while (!condMatchings.empty()) {
+    condStr.assign(condStrCard);
     for (unsigned int j = 0; j < nfaConditions[condId].keys.size(); j++) {
       cout << "consider condition #" << condId << "; variable "
            << nfaConditions[condId].variables[j] << endl;
@@ -1902,7 +1905,7 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
         condStr.replace(varKeyPos, varKey.size(), subst);
       }
       else {
-        cout << "var.key " << varKey << " not found" << endl;
+        cout << "var.key " << varKey << " not found in " << condStr << endl;
         return false;
       }
     }
@@ -1923,24 +1926,36 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
 
 */
 string NFA::getNextSubst(MLabel const &ml, Key key, unsigned int pos) {
-  string result;
+  stringstream result;
   set<vector<size_t> >::iterator it = condMatchings.begin();
   vector<size_t> positions = *it;
+  ml.Get(positions[pos], ul);
+  SecInterval *uIv = new SecInterval(ul.timeInterval);
   condMatchings.erase(it);
   if ((positions)[pos] > maxLabelId) {
     cout << "PROBLEM: " << (positions)[pos] << endl;
   }
-  ml.Get(positions[pos], curULabel);
   switch (key) {
     case 0: // label
-      result.assign("\"");
-      result.append(curULabel.constValue.GetValue());
-      result.append("\"");
+      result << "\"" << ul.constValue.GetValue() << "\"";
+      break;
+    case 1: // time
+      result << "[const interval value(\"" << uIv->start.ToString() << "\" \""
+             << uIv->end.ToString() << "\" " << (uIv->lc ? "TRUE " : "FALSE ")
+             << (uIv->rc ? "TRUE" : "FALSE") << ")]";
+      break;
+    case 2:
+      result << "[const instant value \"" << uIv->start.ToString() << "\"]";
+      break;
+    case 3:
+      result << "[const instant value \"" << uIv->end.ToString() << "\"]";
       break;
     default:
+      cout << "Error: " << key << " is not a valid key." << endl;
       break;
   }
-  return result;
+  uIv->DeleteIfAllowed();
+  return result.str();
 }
 
 ListExpr textToPatternMap(ListExpr args) {

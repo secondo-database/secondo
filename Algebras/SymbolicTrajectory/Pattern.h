@@ -177,8 +177,8 @@ class NFA {
   vector<UnitPattern> nfaPatterns;
   vector<Condition> nfaConditions;
   int numOfStates;
-  ULabel curULabel;
-  size_t curULabelId;
+  ULabel ul;
+  size_t ulId;
   size_t maxLabelId;
   set<size_t> *matchings;
   set<size_t> *cardsets;
