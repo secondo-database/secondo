@@ -41,11 +41,11 @@ public class RouteLocation{
   public RouteLocation(ListExpr value)
   {
     if (value.listLength() == 3){
-      if(value.first().atomType()==ListExpr.INT_ATOM)
+      if(value.first().atomType()== ListExpr.INT_ATOM)
         rid = value.first().intValue();
       else
         rid = -1;
-      if (value.second().atomType()==ListExpr.REAL_ATOM)
+      if (value.second().atomType()== ListExpr.REAL_ATOM)
         pos = value.second().realValue();
       else
         pos = -1.0;

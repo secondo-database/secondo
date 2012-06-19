@@ -36,7 +36,10 @@ public class JDirection{
   String dir;
 
   public JDirection(ListExpr value){
-    dir = value.first().stringValue();
+    if (value.listLength() == 1)
+      dir = value.first().stringValue();
+    else
+      dir = "undefined";
   }
 
   public String toString()  {
