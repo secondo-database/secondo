@@ -424,7 +424,7 @@ public static ListExpr append (ListExpr lastElement, ListExpr newSon) {
 #endif
 }
 
-/** Concat newSon to the list starting with headElement. 
+/** Concat newSon to the list starting with headElement.
   **/
 public static ListExpr concat(ListExpr headElement, ListExpr newSon) {
     if(DEBUG_MODE){
@@ -446,7 +446,7 @@ public static ListExpr concat(ListExpr headElement, ListExpr newSon) {
       result.value = headElement.first();
       result.next = theEmptyList();
       ListExpr last = result;
-      
+
       ListExpr rest = headElement.rest();
       while (!rest.isEmpty())
       {
@@ -457,7 +457,7 @@ public static ListExpr concat(ListExpr headElement, ListExpr newSon) {
       last = append(last, newSon);
     }
     return result;
-#endif  
+#endif
 }
 
 
@@ -708,6 +708,21 @@ public ListExpr fifth(){
 /** Returns the sixth element of a list **/
 public ListExpr sixth(){
    return nThElement(6);
+}
+
+/** Returns the seventh element of a list **/
+public ListExpr seventh(){
+  return nThElement(7);
+}
+
+/** Returns the eighth element of a list **/
+public ListExpr eighth(){
+  return nThElement(8);
+}
+
+/** Returns the nineth element of a list **/
+public ListExpr nineth(){
+  return nThElement(9);
 }
 
 /** Returns the tenth element of a list **/
