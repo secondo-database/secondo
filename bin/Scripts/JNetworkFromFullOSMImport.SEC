@@ -1054,7 +1054,7 @@ consume;
 # Compute Adjacency lists for sections                                       #
 ##############################################################################
 
-let AdjacentSectionsUpH1 =
+let AdjacentSectionsUpHa =
   RoadPartSectionsTmp1 feed
   InJunctions feed
   hashjoin[EndJid, Jid]
@@ -1063,7 +1063,26 @@ let AdjacentSectionsUpH1 =
   groupby [Sid; AdjSectUp: group feed projecttransformstream[OutSects] createlist]
 consume;
 
-let AdjacentSectionsDownH1 =
+let AddAdjacentSectionsUpMissing =
+  RoadPartSectionsTmp1 feed project[Sid]
+    sortby[Sid]
+  AdjacentSectionsUpHa feed project[Sid]
+    sortby[Sid]
+  mergediff
+  project[Sid] {s1}
+  RoadPartSectionsTmp1 feed {s2}
+  hashjoin[Sid_s1, Sid_s2]
+  projectextend[;Sid: .Sid_s1,
+    AdjSectUp: [const listint value(undefined)]]
+consume;
+  
+let AdjacentSectionsUpH1 =
+  (AdjacentSectionsUpHa feed)
+  (AddAdjacentSectionsUpMissing feed)
+  concat
+consume;
+
+let AdjacentSectionsDownHa =
   RoadPartSectionsTmp1 feed
   InJunctions feed
   hashjoin[StartJid, Jid]
@@ -1072,7 +1091,27 @@ let AdjacentSectionsDownH1 =
   groupby [Sid; AdjSectDown: group feed projecttransformstream[OutSects] createlist]
 consume;
 
-let ReverseAdjacentSectionsUpH1 =
+let AddAdjacentSectionsDownMissing =
+  RoadPartSectionsTmp1 feed project[Sid]
+    sortby[Sid]
+  AdjacentSectionsDownHa feed project[Sid]
+    sortby[Sid]
+  mergediff
+  project[Sid] {s1}
+  RoadPartSectionsTmp1 feed {s2}
+  hashjoin[Sid_s1, Sid_s2]
+  projectextend[;Sid: .Sid_s1,
+    AdjSectDown: [const listint value(undefined)]]
+consume;
+
+let AdjacentSectionsDownH1 =
+  (AdjacentSectionsDownHa feed)
+  (AddAdjacentSectionsDownMissing feed)
+  concat
+consume;
+
+
+let ReverseAdjacentSectionsUpHa =
   RoadPartSectionsTmp1 feed
   InJunctions feed
   hashjoin[StartJid, Jid]
@@ -1081,13 +1120,51 @@ let ReverseAdjacentSectionsUpH1 =
   groupby [Sid; RevAdjSectUp: group feed projecttransformstream[InSects] createlist]
 consume;
 
-let ReverseAdjacentSectionsDownH1 =
+let AddReverseAdjacentSectionsUpMissing =
+  RoadPartSectionsTmp1 feed project[Sid]
+    sortby[Sid]
+  ReverseAdjacentSectionsUpHa feed project[Sid]
+    sortby[Sid]
+  mergediff
+  project[Sid] {s1}
+  RoadPartSectionsTmp1 feed {s2}
+  hashjoin[Sid_s1, Sid_s2]
+  projectextend[;Sid: .Sid_s1,
+    RevAdjSectUp: [const listint value(undefined)]]
+consume;
+
+let ReverseAdjacentSectionsUpH1 =
+  (ReverseAdjacentSectionsUpHa feed)
+  (AddReverseAdjacentSectionsUpMissing feed)
+  concat
+consume;
+
+let ReverseAdjacentSectionsDownHa =
   RoadPartSectionsTmp1 feed
   InJunctions feed
   hashjoin[EndJid, Jid]
   project[Sid, InSects]
   sortby [Sid, InSects]
   groupby [Sid; RevAdjSectDown: group feed projecttransformstream[InSects] createlist]
+consume;
+
+let AddReverseAdjacentSectionsDownMissing =
+  RoadPartSectionsTmp1 feed project[Sid]
+    sortby[Sid]
+  ReverseAdjacentSectionsDownHa feed project[Sid]
+    sortby[Sid]
+  mergediff
+  project[Sid] {s1}
+  RoadPartSectionsTmp1 feed {s2}
+  hashjoin[Sid_s1, Sid_s2]
+  projectextend[;Sid: .Sid_s1,
+    RevAdjSectDown: [const listint value(undefined)]]
+consume;
+
+let ReverseAdjacentSectionsDownH1 =
+  (ReverseAdjacentSectionsDownHa feed)
+  (AddReverseAdjacentSectionsDownMissing feed)
+  concat
 consume;
 
 ###############################################################################
