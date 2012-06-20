@@ -23,7 +23,7 @@ class Pattern;
 enum Key {LABEL, TIME, START, END, CARD, ERROR};
 enum Wildcard {NO, ASTERISK, PLUS};
 
-bool parseString(const char* argument, Pattern** p);
+Pattern* parseString(const char* argument);
 bool evaluate(string conditionString, const bool resultNeeded);
 
 class MLabel : public MString {
@@ -55,42 +55,33 @@ class ExpressionList {
   string toString();
 };
 
-class ConditionType {
- public:
-  string type;
-  string replacement; // e.g., we replace X.card by 1 to check whether the
-          // condition is executable by Secondo and yields a boolean value
-  ConditionType(const char *t, const char *r) {
-    type.assign(t);
-    replacement.assign(r);
-  }
-};
-
 class Condition {
  public:
   string condition;
   string condsubst; // the condition after substituting as mentioned above
-  vector<ConditionType> types;
+  map<int, string> types;
+  map<int, string> subst;
   vector<Key> keys;
   vector<string> variables;
   vector<int> patternIds;
 
   Condition() {
-    types.push_back(*(new ConditionType(convert(".label"), convert("\"a\""))));
-    types.push_back(*(new ConditionType(convert(".time"), convert(
-           "[const periods value ((\"2003-11-20-07:01:40\" "
-           "\"2003-11-20-07:45\" TRUE TRUE))]"))));
-    types.push_back(*(new ConditionType(convert(".start"), convert(
-           "[const instant value \"1909-12-19\"]"))));
-    types.push_back(*(new ConditionType(convert(".end"), convert(
-           "[const instant value \"2012-05-12\"]"))));
-    types.push_back(*(new ConditionType(convert(".card"), convert("1"))));
-    types.push_back(*(new ConditionType(convert(".ERROR"), convert(""))));
+    types[0] = ".label";
+    types[1] = ".time";
+    types[2] = ".start";
+    types[3] = ".end";
+    types[4] = ".card";
+    types[5] = ".ERROR";
+    subst[0] = "\"a\"";
+    subst[1] = "const periods value ((\"2003-11-20-07:01:40\" "
+               "\"2003-11-20-07:45\" TRUE TRUE))]";
+    subst[2] = "[const instant value \"1909-12-19\"]";
+    subst[3] = "[const instant value \"2012-05-12\"]";
+    subst[4] = "1";
+    subst[5] = "";
   }
 
-  ~Condition() {
-    types.clear();
-  }
+  ~Condition() {}
   
   void toString();
   Key convertVarKey(const char *varKey);
@@ -128,6 +119,7 @@ class Pattern {
   vector<UnitPattern> results;
   vector<UnitPattern> assignments;
   vector<Condition> conditions;
+  string text;
 
   Pattern() {}
 
@@ -148,7 +140,7 @@ class Pattern {
 
   ~Pattern() {}
 
-  void toString();
+  string toString() const;
   string GetText() const;
    // algebra support functions
   static Word     In(const ListExpr typeInfo, const ListExpr instance,
@@ -165,7 +157,7 @@ class Pattern {
   static const string BasicType();
   static const bool checkType(const ListExpr type);
   void verifyConditions();
-  bool getPattern(string input, Pattern** p);
+  static Pattern* getPattern(string input);
   bool matches(MLabel const &ml);
 };
 

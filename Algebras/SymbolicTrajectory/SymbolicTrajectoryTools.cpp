@@ -1,5 +1,31 @@
 /*
+----
+This file is part of SECONDO.
 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+
+[1] Auxiliary functions of the Symbolic Trajectory Algebra
+
+Started March 2012, Fabio Vald\'{e}s
 
 */
 
@@ -29,65 +55,16 @@ int str2Int(string const &text) {
   return result;
 }
 
-
-
-vector<string> split(string const& text, const char delemiter) {
-  vector<string> result(0);
-  string token;
-  istringstream iss(text);
-  while (getline(iss, token, delemiter))
-    result.push_back(token);
-  return result;
-}
-
-   // ignores zero tokens
-vector<string> msplit(string const& text, const char delemiter) {
-  vector<string> result;
-  result.clear();
-  string token;
-  istringstream iss(text);
-  if (text.empty())
-    return result;
-  while (getline(iss, token, delemiter))
-    if (!token.empty())
-      result.push_back(token);
-  return result;
-}
-
-
-vector<string> split(string const& text, const string delemiter) {
-  vector<string> result(0);
-  size_t last_position(0);
-  size_t position(0);
-  position = text.find(delemiter, last_position);
-  while (position != string::npos) {
-    result.push_back(text.substr(last_position, position - last_position));
-    last_position = position + delemiter.length();
-    position = text.find(delemiter, last_position);
-  }
-  result.push_back(text.substr(last_position));
-  return result;
-}
-
-
 void deleteSpaces(string &text) {
   size_t pos = 0;
   while ((pos = text.find(' ', pos)) != string::npos)
     text.erase(pos, 1);
 }
 
-
-vector<string> getElementsFromSet(string const set) {
-  vector<string> elements;
-  elements = msplit(set, ',');
-  for (size_t i = 0; i < elements.size(); ++i)
-    elements[i] = trim(elements[i]);
-  return elements;
-}
-
 /*
-function ~convert~
-Converts a string into a char[*]
+\subsection{Function ~convert~}
+
+Converts a string into a char[*].
 
 */
 char* convert(string arg) {
@@ -95,7 +72,8 @@ char* convert(string arg) {
 }
 
 /*
-function ~stringToSet~
+\subsection{Function ~stringToSet~}
+
 Splits a string {a, b, c, ...} into a set of strings a, b, c, ...
 
 */

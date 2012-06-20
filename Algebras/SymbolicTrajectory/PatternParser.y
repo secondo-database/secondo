@@ -23,10 +23,9 @@ void patternerror( const char* s ) {
   parseSuccess = false;
 }
 stj::Pattern* wholepat = 0;
-Condition* cond = new Condition();
-UnitPattern unitpat = *(new UnitPattern());
-ExpressionList* exprList = new ExpressionList();
-ExpressionList* exprListComma = new ExpressionList();
+Condition cond;
+UnitPattern unitpat;
+ExpressionList exprList;
 bool doubleParentheses = false;
 string expr;
 set<string> currentIntervals;
@@ -52,19 +51,19 @@ bool firstAssignment = true;
             results_assignments assignmentsequence
 %type<p> patternsequence
 %type<el> expressionlist expressionlistcomma expressionlistparentheses
-          expressionlistbrackets enclosedlist expressionlistenclosed
+          expressionlistbrackets  expressionlistenclosed
 %%
 start : patternsequence ZZDOUBLESLASH conditionsequence ZZEND {
-          cout << wholepat->GetText();
+          cout << wholepat->toString();
         }
       | patternsequence ZZEND {
-          cout << wholepat->GetText();
+          cout << wholepat->toString();
         }
       | patternsequence ZZRIGHTARROW results_assignments ZZEND {
-          cout << wholepat->GetText();
+          cout << wholepat->toString();
         }
       | patternsequence ZZDOUBLESLASH conditionsequence ZZRIGHTARROW results_assignments ZZEND {
-          cout << wholepat->GetText();
+          cout << wholepat->toString();
         }
       ;
 
@@ -125,20 +124,23 @@ conditionsequence : condition
                   ;
 
 condition : expressionlist {
-              cond->condition.assign(exprList->toString());
-              cout << "store condition " << cond->condition << endl;
-              cond->substitute();
-              wholepat->conditions.push_back(*cond);
-              exprList->expressions.clear();
-              cond->variables.clear();
-              cond->keys.clear();
-              cond->uPatterns.clear();
+              cond.condition.assign(exprList.toString());
+              cout << "store condition " << cond.condition << endl;
+              cond.substitute();
+              wholepat->conditions.push_back(cond);
+              exprList.expressions.clear();
+              cond.variables.clear();
+              cond.keys.clear();
+              cond.patternIds.clear();
             }
           ;
 
 expression : ZZVAR_DOT_TYPE {
-               if (cond->convertVarKey($1) == ERROR) {
+               if (cond.convertVarKey($1) == ERROR) {
                  $$ = convert("");
+                 free($1);
+               } else {
+                 $$ = $1;
                }
              }
            | ZZCONST_OP {
@@ -146,53 +148,54 @@ expression : ZZVAR_DOT_TYPE {
              }
            | expressionlistparentheses {
                string list;
-               list.append(exprList->expressions.back());
+               list.append(exprList.expressions.back());
                $$ = convert(list);
-               exprList->expressions.erase(exprList->expressions.end());
+               exprList.expressions.erase(exprList.expressions.end());
                cout << "expressionlistparentheses reads " << $$ << endl;
              }
            | expressionlistbrackets {
                string list;
-               list.append(exprList->expressions.back());
+               list.append(exprList.expressions.back());
                $$ = convert(list);
-               exprList->expressions.erase(exprList->expressions.end());
+               exprList.expressions.erase(exprList.expressions.end());
                cout << "expressionlistbrackets reads " << $$ << endl;
              }
            ;
 
 expressionlistparentheses : '(' enclosedlist ')' {
-                              int exprSize = exprList->expressions.size();
-                              (exprList->expressions)[exprSize - 1].insert(0, "(");
-                              (exprList->expressions)[exprSize - 1].append(")");
-                              $$ = exprList;
+                              int exprSize = exprList.expressions.size();
+                              exprList.expressions[exprSize - 1].insert(0, "(");
+                              exprList.expressions[exprSize - 1].append(")");
+                              $$ = &exprList;
                             }
                           ;
 
 expressionlistbrackets : '[' enclosedlist ']' {
-                           int exprSize = exprList->expressions.size();
-                           (exprList->expressions)[exprSize - 1].insert(0, "[");
-                           (exprList->expressions)[exprSize - 1].append("]");
-                           $$ = exprList;
+                           int exprSize = exprList.expressions.size();
+                           exprList.expressions[exprSize - 1].insert(0, "[");
+                           exprList.expressions[exprSize - 1].append("]");
+                           $$ = &exprList;
                          }
                        ;
 
 enclosedlist : expression expressionlistenclosed {
                  expr.assign($1);
-                 int exprSize = exprList->expressions.size();
-                 (exprList->expressions)[exprSize - 1].insert(0, " ");
-                 (exprList->expressions)[exprSize - 1].insert(0, expr);
-                 $$ = exprList;
+                 int exprSize = exprList.expressions.size();
+                 exprList.expressions[exprSize - 1].insert(0, " ");
+                 exprList.expressions[exprSize - 1].insert(0, expr);
+                 free($1);
                }
              | expression expressionlistcomma {
                  expr.assign($1);
-                 int exprSize = exprList->expressions.size();
-                 (exprList->expressions)[exprSize - 1].insert(0, " ");
-                 (exprList->expressions)[exprSize - 1].insert(0, expr);
-                 $$ = exprList;
-               }
+                 int exprSize = exprList.expressions.size();
+                 exprList.expressions[exprSize - 1].insert(0, " ");
+                 exprList.expressions[exprSize - 1].insert(0, expr);
+                 free($1);
+              }
              | expression {
                  expr.assign($1);
-                 exprList->expressions.push_back(expr);
+                 exprList.expressions.push_back(expr);
+                free($1);
                }
              | /* empty */ {
                  expr.clear();
@@ -200,18 +203,21 @@ enclosedlist : expression expressionlistenclosed {
              ;
 
 expressionlistenclosed : expression {
-                           expr.assign($1);
+                           expr = $1;
+                           //expr.assign($1);
                            cout << "one element list = " << $1 << endl;
-                           exprList->expressions.push_back(expr);
-                           $$ = exprList;
+                           free($1);
+                           exprList.expressions.push_back(expr);
+                           $$ = &exprList;
                          }
                        | expressionlistenclosed expression {
                            expr.assign($2);
-                           int exprSize = exprList->expressions.size();
-                           (exprList->expressions)[exprSize - 1].append(" ");
-                           (exprList->expressions)[exprSize - 1].append(expr);
-                           $$ = exprList;
-                           cout << "expressionlistenclosed reads \"" << exprList->toString() << "\"" << endl;
+                           int exprSize = exprList.expressions.size();
+                           exprList.expressions[exprSize - 1].append(" ");
+                           exprList.expressions[exprSize - 1].append(expr);
+                           free($2);
+                           $$ = &exprList;
+                           cout << "expressionlistenclosed reads \"" << exprList.toString() << "\"" << endl;
                          }
                        ;
 
@@ -219,32 +225,36 @@ expressionlistcomma : ',' expression {
                         expr.assign($2);
                         expr.insert(0, ",");
                         cout << "one elem list = " << expr << endl;
-                        exprList->expressions.push_back(expr);
-                        $$ = exprList;
+                        exprList.expressions.push_back(expr);
+                        free($2);
+                        $$ = &exprList;
                       }
                     | expressionlistcomma ',' expression {
                         expr.assign($3);
-                        int exprSize = exprList->expressions.size();
-                        (exprList->expressions)[exprSize - 1].append(",");
-                        (exprList->expressions)[exprSize - 1].append(expr);
-                        $$ = exprList;
-                        cout << "comma list = " << exprList->toString() << endl;
+                        int exprSize = exprList.expressions.size();
+                        exprList.expressions[exprSize - 1].append(",");
+                        exprList.expressions[exprSize - 1].append(expr);
+                        free($3);
+                        $$ = &exprList;
+                        cout << "comma list = " << exprList.toString() << endl;
                       }
                     ;
 
 expressionlist : expression {
                    expr.assign($1);
                    cout << "one element list = " << $1 << endl;
-                   exprList->expressions.push_back(expr);
-                   $$ = exprList;
+                   exprList.expressions.push_back(expr);
+                   free($1);
+                   $$ = &exprList;
                  }
                | expressionlist expression {
                    expr.assign($2);
-                   int exprSize = exprList->expressions.size();
-                   (exprList->expressions)[exprSize - 1].append(" ");
-                   (exprList->expressions)[exprSize - 1].append(expr);
-                   $$ = exprList;
-                   cout << "condition reads \"" << exprList->toString() << "\"" << endl;
+                   int exprSize = exprList.expressions.size();
+                   exprList.expressions[exprSize - 1].append(" ");
+                   exprList.expressions[exprSize - 1].append(expr);
+                   free($2);
+                   $$ = &exprList;
+                   cout << "condition reads \"" << exprList.toString() << "\"" << endl;
                  }
                ;
 
@@ -252,12 +262,16 @@ patternsequence : variable unitpattern {
                     $$ = wholepat;
                     unitpat.createUnit($1, $2);
                     wholepat->patterns.push_back(unitpat);
+                   free($1);
+                   free($2);
                     cout << "pattern #" << wholepat->patterns.size() << endl;
                   }
                 | patternsequence variable unitpattern {
                     $$ = wholepat;
                     unitpat.createUnit($2, $3);
                     wholepat->patterns.push_back(unitpat);
+                   free($2);
+                   free($3);
                     cout << "pattern #" << wholepat->patterns.size() << endl;
                   }
                 ;
@@ -291,22 +305,24 @@ function ~parseString~
 This function is the only one called by the algebra.
 
 */
-bool stj::parseString(const char* argument, Pattern** p) {
-  if (wholepat) {
-    //delete wholepat; // TODO: find out why deletion fails
-  }
+Pattern* stj::parseString(const char* argument) {
   wholepat = new Pattern();
   pattern_scan_string(argument);
+  Pattern* result = 0;
   if (patternparse() != 0) {
     cout << "Error found, parsing aborted." << endl;
     parseSuccess = false;
+    delete wholepat;
+    wholepat = 0;
   }
   else {
     parseSuccess = true;
-    (*p) = wholepat;
+    result = wholepat;
+    result->text.assign(argument);
+    wholepat = 0;
   }
   unitpat.labelset.clear();
-  return parseSuccess;
+  return result;
 }
 
 /*
@@ -372,8 +388,8 @@ void UnitPattern::createUnit(const char *var, const char *pat) {
   while ((pos = patstr.find(' ', pos)) != string::npos) {
     patstr.erase(pos, 1);
   }*/
-  if (strcmp(var, convert("")) && strcmp(var, convert("*"))
-   && strcmp(var, convert("+")) && varstr.at(0) > 64 && varstr.at(0) < 91) {
+  if (strcmp(var, "") && strcmp(var, "*") && strcmp(var, "+")
+   && (varstr.at(0) > 64) && (varstr.at(0) < 91)) {
     variable.assign(varstr);
   }
   else {
@@ -438,9 +454,9 @@ void Condition::substitute() {
   condsubst.assign(condition);
   while (i < keys.size()) {
     varKey.assign(variables[i]);
-    varKey.append(types[keys[i]].type);
+    varKey.append(types[keys[i]]);
     int pos = condsubst.find(varKey);
-    condsubst.replace(pos, varKey.size(), types[keys[i]].replacement);
+    condsubst.replace(pos, varKey.size(), subst[keys[i]]);
     i++;
   }
 }
@@ -459,7 +475,7 @@ Key Condition::convertVarKey(const char *varKey) {
   varInput.assign(input.substr(0, dotpos));
   kInput.assign(input.substr(dotpos + 1));
   for (unsigned int i = 0; i < wholepat->patterns.size(); i++) {
-    if (!varInput.compare(convert(((wholepat->patterns)[i]).variable))) {
+    if (!varInput.compare(((wholepat->patterns)[i]).variable)) {
       var.assign(varInput);
       if (!kInput.compare("label"))
         key = LABEL;
@@ -473,9 +489,9 @@ Key Condition::convertVarKey(const char *varKey) {
         key = CARD;
       else
         key = ERROR;
-      cond->variables.push_back(var);
-      cond->keys.push_back(key);
-      cond->uPatterns.push_back(i);
+      cond.variables.push_back(var);
+      cond.keys.push_back(key);
+      cond.patternIds.push_back(i);
       cout << varInput << " | pat #" << i << " | cond #" << wholepat->conditions.size() << endl;
       (wholepat->patterns)[i].relatedConditions.insert(wholepat->conditions.size());
       return key;
@@ -490,7 +506,7 @@ void Condition::clear() {
   condsubst.clear();
   keys.clear();
   variables.clear();
-  uPatterns.clear();
+  patternIds.clear();
 }
 
 string ExpressionList::toString() {

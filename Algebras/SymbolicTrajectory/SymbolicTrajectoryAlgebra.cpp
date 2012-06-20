@@ -1,7 +1,42 @@
 /*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+
+[1] Source File of the Symbolic Trajectory Algebra
+
+Started March 2012, Fabio Vald\'{e}s
+
+Some basic implementations were done by Frank Panse.
+
+[TOC]
+
+\section{Overview}
+This algebra includes the operators ~matches~ and ~apply~.
+
+\section{Defines and Includes}
 
 */
-
 #include "Algebra.h"
 #include "NestedList.h"
 #include "ListUtils.h"
@@ -279,8 +314,6 @@ For example:
 ----
 
 */
-
-
 
 /*
 5.2 function Describing the Signature of the Type Constructor
@@ -969,15 +1002,15 @@ TypeConstructor labelsTC(
 
 //**********************************************************************
 /*
-4 ~Pattern~
+\section{Pattern}
 */
 
 /*
-4.1 Function ~GetText~
-Writes all pattern information into a string
+\subsection{Function ~toString~}
+Writes all pattern information into a string.
 
 */
-string Pattern::GetText() const {
+string Pattern::toString() const {
   stringstream text;
   text << "~~~~~~pattern~~~~~~" << endl;
   for (unsigned int i = 0; i < patterns.size(); i++) {
@@ -1018,6 +1051,16 @@ string Pattern::GetText() const {
 }
 
 /*
+\subsection{Function ~GetText()~}
+
+Returns the pattern text as specified by the user.
+
+*/
+string Pattern::GetText() const {
+  return text;
+}
+
+/*
 4.2 Function ~BasicType~
 
 */
@@ -1045,17 +1088,16 @@ Word Pattern::In(const ListExpr typeInfo, const ListExpr instance,
   if (list.isAtom()) {
     if (list.isText()) {
       string text = list.str();
-      Pattern *pattern = new Pattern();
-      cout << text << endl;
-      text +="\n";
-      if (stj::parseString(text.c_str(), &pattern)) {
+      Pattern *pattern = 0;
+      text += "\n";
+      pattern = stj::parseString(text.c_str());
+      if (pattern) {
         correct = true;
         result.addr = pattern;
       }
       else {
         correct = false;
         cmsg.inFunError("Parsing error.");
-        delete pattern;
       }
     }
     else {
@@ -1132,7 +1174,8 @@ bool Pattern::KindCheck(ListExpr type, ListExpr& errorInfo) {
 }
 
 /*
-4.12 Function ~verifyConditions~
+\subsection{Function ~verifyConditions~}
+
 Loops through the conditions and checks whether each one is a syntactically
 correct boolean expression. Invalid conditions are removed.
 
@@ -1158,7 +1201,8 @@ void Pattern::verifyConditions() {
 }
 
 /*
-4.13 Function ~evaluate~
+\subsection{Function ~evaluate~}
+
 In case of testing a condition's syntactical correctness, we are only
 interested in the result type. Thus, resultNeeded is false, an operator tree
 is built, and true is returned if and only if the result type is boolean.
@@ -1198,6 +1242,7 @@ bool evaluate(string conditionString, const bool resultNeeded) {
             else {
               CcBool *ccResult = static_cast<CcBool*>(queryResult.addr);
               isTrue = ccResult->GetValue();
+              ccResult->DeleteIfAllowed();
             }
           }
           else { // get the result type
@@ -1236,19 +1281,21 @@ bool evaluate(string conditionString, const bool resultNeeded) {
 
 
 /*
-4.14 Function ~getPattern~
+\subsection{Function ~getPattern~}
+
 Calls the parser.
 
 */
-bool Pattern::getPattern(string input, Pattern** p) {
+Pattern* Pattern::getPattern(string input) {
   input.append("\n");
   cout << input << endl;
   const char *patternChar = input.c_str();
-  return parseString(patternChar, p);
+  return parseString(patternChar);
 }
 
 /*
-4.15 Function ~matches~
+\subsection{Function ~matches~}
+
 Invokes the NFA construction and the matching procedure.
 
 */
@@ -1262,7 +1309,9 @@ bool Pattern::matches(MLabel const &ml) {
 }
 
 /*
-4.16 Function Describing the Signature of the Type Constructor
+\subsection{Function ~Property~}
+
+Describes the signature of the type constructor.
 
 */
 ListExpr Pattern::Property() {
@@ -1280,7 +1329,7 @@ ListExpr Pattern::Property() {
 }
 
 /*
-4.17 Creation of the Type Constructor Instance
+\subsection{Creation of the Type Constructor Instance}
 
 */
 TypeConstructor patternTC(
@@ -1297,12 +1346,13 @@ TypeConstructor patternTC(
 
 //**********************************************************************
 /*
-5 ~NFA~
+\section{NFA}
 */
 
 /*
-5.1 Function ~buildNFA~
-Reads the pattern and generates the state transitions
+\subsection{Function ~buildNFA~}
+
+Reads the pattern and generates the state transitions.
 
 */
 void NFA::buildNFA(Pattern p) {
@@ -1363,10 +1413,11 @@ void NFA::buildNFA(Pattern p) {
 }
 
 /*
-5.2 Function ~match~
-Loops through the MLabel calling updateStates() for every ULabel.
-True is returned if and only if the final state is an element of
-currentStates after the loop.
+\subsection{Function ~match~}
+
+Loops through the MLabel calling updateStates() for every ULabel. True is
+returned if and only if the final state is an element of currentStates after
+the loop.
 
 */
 bool NFA::match(MLabel const &ml) {
@@ -1394,7 +1445,8 @@ bool NFA::match(MLabel const &ml) {
 }
 
 /*
-5.3 Function ~toString~
+\subsection{Function ~toString~}
+
 Returns a string displaying the information stored in the NFA.
 
 */
@@ -1423,7 +1475,8 @@ string NFA::toString() {
 }
 
 /*
-5.4 Function ~printCurrentStates~
+\subsection{Function ~printCurrentStates~}
+
 Prints the set of currently active states.
 
 */
@@ -1437,7 +1490,8 @@ void NFA::printCurrentStates() {
 }
 
 /*
-5.5 Function ~printCards~
+\subsection{Function ~printCards~}
+
 Prints the ulabels matched by every unit pattern. Subsequently, the possible
 cardinalities for every unit pattern are displayed.
 
@@ -1462,7 +1516,8 @@ void NFA::printCards() {
 }
 
 /*
-5.6 Function ~printSequences~
+\subsection{Function ~printSequences~}
+
 Displays the possible cardinality sequences. As the number of sequences may
 be very high, only the first ~max~ sequences are printed.
 
@@ -1484,7 +1539,8 @@ void NFA::printSequences(size_t max) {
 }
 
 /*
-5.7 Function ~printCondMatchings~
+\subsection{Function ~printCondMatchings~}
+
 Displays the possible condition matching sequences. As the number of sequences
 may be very high, only the first ~max~ sequences are printed.
 
@@ -1506,7 +1562,8 @@ void NFA::printCondMatchings(size_t max) {
 }
 
 /*
-5.8 Function ~updateStates~
+\subsection{Function ~updateStates~}
+
 Further functions are invoked to decide which transition can be applied to
 which current state. The set of current states is updated.
 
@@ -1551,7 +1608,10 @@ void NFA::updateStates() {
 }
 
 /*
-5.9 Function ~storeMatch~
+\subsection{Function ~storeMatch~}
+
+Stores the matching positions (unit pattern and unit label, respectively) into
+an array of sets.
 
 */
 void NFA::storeMatch(int state) { // TODO: shorten this
@@ -1635,13 +1695,15 @@ void NFA::storeMatch(int state) { // TODO: shorten this
 }
 
 /*
-5.10 Function ~timesMatch~
-Checks whether the current ULabel interval is completely enclosed in the
-interval specified in the pattern.
+\subsection{Function ~timesMatch~}
+
+Checks whether the time interval of the current unit label is completely
+enclosed by one of the intervals specified in the pattern. If no pattern
+interval is specified, the result is true.
 
 */
 bool NFA::timesMatch(int pos) {
-  bool result(false), elementOk(false);
+  bool result(true), elementOk(false);
   set<int>::iterator i;
   set<string>::iterator j;
   string varKey, currentLabelString;
@@ -1649,10 +1711,7 @@ bool NFA::timesMatch(int pos) {
   Instant *pEnd = new DateTime(instanttype);
   SecInterval *pIv = new SecInterval(0);
   SecInterval *uIv = new SecInterval(ul.timeInterval);
-  if (nfaPatterns[pos].intervalset.empty()) { // no interval specified
-    result = true;
-  }
-  else {
+  if (!nfaPatterns[pos].intervalset.empty()) { // no interval specified
     for (j = nfaPatterns[pos].intervalset.begin();
          j != nfaPatterns[pos].intervalset.end(); j++) {
       if (((*j)[0] > 96) && ((*j)[0] < 123)) { // 1st case: semantic date/time
@@ -1685,11 +1744,11 @@ bool NFA::timesMatch(int pos) {
         pIv->Set(*pStart, *pEnd, true, true);
         elementOk = pIv->Contains(*uIv);
       }
-      if (elementOk) { // one matching interval is sufficient
-        result = true;
+      if (!elementOk) { // all intervals have to match
+        result = false;
       }
     }
-  } // pattern intervals finished
+  }
   uIv->DeleteIfAllowed();
   pIv->DeleteIfAllowed();
   pStart->DeleteIfAllowed();
@@ -1699,9 +1758,11 @@ bool NFA::timesMatch(int pos) {
 
 
 /*
-5.11 Function ~labelsMatch~
-Checks whether the current ULabel label matches the unit pattern labelset at
-position pos (if specified).
+\subsection{Function ~labelsMatch~}
+
+Checks whether the label of the current ULabel matches one of the unit pattern
+labels at position pos. If no label is specified in the pattern, ~true~ is
+returned.
 
 */
 bool NFA::labelsMatch(int pos) {
@@ -1712,7 +1773,7 @@ bool NFA::labelsMatch(int pos) {
   if (nfaPatterns[pos].labelset.empty()) {
     result = true;
   }
-  else { // check labels of the unit pattern
+  else {
     for (k = nfaPatterns[pos].labelset.begin();
          k != nfaPatterns[pos].labelset.end(); k++) {
       CcString *label = new CcString(true, *k);
@@ -1726,8 +1787,9 @@ bool NFA::labelsMatch(int pos) {
 }
 
 /*
-5.12 Function ~buildSequences~
-Derives all possible ulabel sequences from the cardinality candidates. Only
+\subsection{Function ~buildSequences~}
+
+Derives all possible ULabel sequences from the cardinality candidates. Only
 sequences with length maxLabelId + 1 are accepted.
 
 */
@@ -1762,8 +1824,9 @@ void NFA::buildSequences() {
 }
 
 /*
-5.13 Function ~conditionsMatch~
-Checks whether the specified conditions are fulfilled. The result is true, if
+\subsection{Function ~conditionsMatch~}
+
+Checks whether the specified conditions are fulfilled. The result is true if
 and only if there is (at least) one cardinality sequence that matches every
 condition.
 
@@ -1802,7 +1865,10 @@ bool NFA::conditionsMatch(MLabel const &ml) {
 }
 
 /*
-5.14 Function ~buildCondMatchings~
+\subsection{Function ~buildCondMatchings~}
+
+For one condition and one cardinality sequence, a set of possible matching
+sequences is built.
 
 */
 void NFA::buildCondMatchings(unsigned int condId, vector<size_t> sequence) {
@@ -1843,13 +1909,14 @@ void NFA::buildCondMatchings(unsigned int condId, vector<size_t> sequence) {
 }
 
 /*
-5.15 Function ~evaluateCond~
+\subsection{Function ~evaluateCond~}
+
 This function is invoked by ~conditionsMatch~ and checks whether a sequence of
 cardinalities matches a certain condition.
 
 */
 bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
-                       vector<size_t> sequence) {
+                       vector<size_t> sequence) { // TODO shorten this
   bool success(false), replaced(false);
   string varKey, condStr, condStrCard, subst;
   size_t varKeyPos = string::npos;
@@ -1864,8 +1931,7 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
         subst.assign(int2Str(sequence[patternId + 1] - sequence[patternId]));
       }
       varKey.assign(nfaConditions[condId].variables[j]);
-      varKey.append(nfaConditions[condId].types
-                    [nfaConditions[condId].keys[j]].type);
+      varKey.append(nfaConditions[condId].types[nfaConditions[condId].keys[j]]);
       varKeyPos = condStr.find(varKey);
       if (varKeyPos != string::npos) {
         cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
@@ -1891,14 +1957,11 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
   while (!condMatchings.empty()) {
     condStr.assign(condStrCard);
     for (unsigned int j = 0; j < nfaConditions[condId].keys.size(); j++) {
-      cout << "consider condition #" << condId << "; variable "
-           << nfaConditions[condId].variables[j] << endl;
       if (nfaConditions[condId].keys[j] < 4) { // label, time, start, end
         subst.assign(getNextSubst(ml, nfaConditions[condId].keys[j], j));
       }
       varKey.assign(nfaConditions[condId].variables[j]);
-      varKey.append(nfaConditions[condId].types
-                    [nfaConditions[condId].keys[j]].type);
+      varKey.append(nfaConditions[condId].types[nfaConditions[condId].keys[j]]);
       varKeyPos = condStr.find(varKey);
       if (varKeyPos != string::npos) {
         cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
@@ -1922,18 +1985,22 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
 }
 
 /*
-5.16 Function ~getNextSubst~
+\subsection{Function ~getNextSubst~}
+
+According to the parameter ~key~ and the moving label, the correct substitution
+is found and returned.
 
 */
 string NFA::getNextSubst(MLabel const &ml, Key key, unsigned int pos) {
   stringstream result;
   set<vector<size_t> >::iterator it = condMatchings.begin();
-  vector<size_t> positions = *it;
-  ml.Get(positions[pos], ul);
+  ml.Get((*it)[pos], ul);
   SecInterval *uIv = new SecInterval(ul.timeInterval);
-  condMatchings.erase(it);
-  if ((positions)[pos] > maxLabelId) {
-    cout << "PROBLEM: " << (positions)[pos] << endl;
+  if ((*it)[pos] > maxLabelId) {
+    cout << "PROBLEM: " << (*it)[pos] << endl;
+  }
+  if (pos == (*it).size() - 1) {
+    condMatchings.erase(it);
   }
   switch (key) {
     case 0: // label
@@ -1966,17 +2033,24 @@ ListExpr textToPatternMap(ListExpr args) {
   return NList::typeError("Expecting a text!");
 }
 
-int patternFun(Word* args, Word& result, int message, Word& local, Supplier s){
+int patternFun(Word* args, Word& result, int message, Word& local, Supplier s) {
   FText* patternText = static_cast<FText*>(args[0].addr);
   result = qp->ResultStorage(s);
-  //Pattern* ppp = static_cast<Pattern*>(result.addr);
-  //string pt = patternText->GetValue().c_str();
+  Pattern* pattern = static_cast<Pattern*>(result.addr);
   cout << "parse with new pattern" << endl;
-  Pattern* p = new Pattern();
-  if (!p->getPattern(patternText->toText(), &p)) {
+  Pattern* p = 0;
+  if (patternText->IsDefined()) {
+    p = Pattern::getPattern(patternText->toText());
+  }
+  if (p) {
+    (*pattern) = (*p);
+    delete p;
+    // TODO store pattern into database
+  }
+  else {
+    //ppp->SetDefined(false);
     cout << "failed" << endl;
   }
-  cout << "done" << endl; 
   return 0;
 }
 
@@ -2024,20 +2098,21 @@ int matchesFun_MT (Word* args, Word& result, int message,
                    Word& local, Supplier s) {
   MLabel* mlabel = static_cast<MLabel*>(args[0].addr);
   FText* patternText = static_cast<FText*>(args[1].addr);
-  Pattern *pattern = new Pattern();
-  result = qp->ResultStorage(s); //query processor has provided a CcBool
-  CcBool* b = static_cast<CcBool*>(result.addr); // instance for the result
-  if (!pattern->getPattern(patternText->toText(), &pattern)) {
-    b->SetDefined(false);
-    cout << "invalid pattern" << endl;
-    delete pattern;
-    return 0;
+  result = qp->ResultStorage(s);
+  CcBool* b = static_cast<CcBool*>(result.addr);
+  Pattern *pattern = 0;
+  if (patternText->IsDefined()) {
+    pattern = Pattern::getPattern(patternText->toText());
   }
-  pattern->verifyConditions();
-  bool res = pattern->matches(*mlabel);
-  delete pattern;
-  b->Set(true, res); //the first argument says the boolean value is defined,
-                     //the second is the real boolean value
+  if (!pattern) {
+    b->SetDefined(false);
+  }
+  else {
+    pattern->verifyConditions();
+    bool res = pattern->matches(*mlabel);
+    delete pattern;
+    b->Set(true, res); //the first argument says the boolean value is defined,
+  }                    //the second is the real boolean value
   return 0;
 }
 
@@ -2146,16 +2221,16 @@ class SymbolicTrajectoryAlgebra : public Algebra {
     SymbolicTrajectoryAlgebra() : Algebra() {
       
       // 5.2 Registration of Types
-      AddTypeConstructor( &labelTC );
-      AddTypeConstructor( &intimelabel );
-      AddTypeConstructor( &unitlabel );
-      AddTypeConstructor( &movinglabel );
+      AddTypeConstructor(&labelTC);
+      AddTypeConstructor(&intimelabel);
+      AddTypeConstructor(&unitlabel);
+      AddTypeConstructor(&movinglabel);
 
-      movinglabel.AssociateKind( Kind::TEMPORAL() );
-      movinglabel.AssociateKind( Kind::DATA() );
+      movinglabel.AssociateKind(Kind::TEMPORAL());
+      movinglabel.AssociateKind(Kind::DATA());
 
-      AddTypeConstructor( &labelsTC );
-      AddTypeConstructor( &patternTC );
+      AddTypeConstructor(&labelsTC);
+      AddTypeConstructor(&patternTC);
 //       AddTypeConstructor( &ruleTC );
 
       // 5.3 Registration of Operators
@@ -2181,9 +2256,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 } // end of namespace ~stj~
 
 extern "C"
-Algebra*
-InitializeSymbolicTrajectoryAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
-{
+Algebra* InitializeSymbolicTrajectoryAlgebra(NestedList *nlRef,
+                                             QueryProcessor *qpRef) {
   return new stj::SymbolicTrajectoryAlgebra;
 }
 
