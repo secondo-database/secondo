@@ -8248,7 +8248,7 @@ TypeMap fun for operator nearest stop pave
 */
 ListExpr DecomposeGenmoTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 3 )
+  if ( nl->ListLength ( args ) != 2 )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
@@ -8262,14 +8262,8 @@ ListExpr DecomposeGenmoTypeMap ( ListExpr args )
       return nl->SymbolAtom("typeerror");
 
   ListExpr arg2 = nl->Second(args);
-  if(!nl->IsEqual(arg2, "int")){
-      string err = "the second parameter should be int";
-      return listutils::typeError(err);
-  }
-
-  ListExpr arg3 = nl->Third(args);
-  if(!nl->IsEqual(arg3, "real")){
-      string err = "the third parameter should be real";
+  if(!nl->IsEqual(arg2, "real")){
+      string err = "the second parameter should be real";
       return listutils::typeError(err);
   }
 
@@ -8308,7 +8302,7 @@ TypeMap fun for operator tm bulkloadrtree
 */
 ListExpr BulkLoadTMRtreeTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 4 )
+  if ( nl->ListLength ( args ) != 5 )
   {
     return listutils::typeError("expecting four arguments");
   }
@@ -8318,6 +8312,13 @@ ListExpr BulkLoadTMRtreeTypeMap ( ListExpr args )
   ListExpr attrName1 = nl->Second(args);
   ListExpr attrName2 = nl->Third(args);
   ListExpr attrName3 = nl->Fourth(args);
+  ListExpr treetype = nl->Fifth(args);
+  
+  
+  if(!nl->IsEqual(treetype, "int")){
+      string err = "the fifth parameter should be int";
+      return listutils::typeError(err);
+  }
   
   // check stream
   if(!listutils::isTupleStream(tupleStream)){
@@ -8496,7 +8497,7 @@ ListExpr TMRtreeModeTypeMap ( ListExpr args )
 }
 
 /*
-TypeMap fun for operator tm bulkloadrtree
+TypeMap fun for operator  get tmrtree nodes
 
 */
 ListExpr TMRtreeNodesTypeMap ( ListExpr args )
@@ -8510,7 +8511,6 @@ ListExpr TMRtreeNodesTypeMap ( ListExpr args )
   ListExpr arg = nl->First(args);
 
 
-  
   ListExpr rtree = nl->First(arg);
   ListExpr tuple = nl->Second(arg);
   
@@ -8554,6 +8554,81 @@ ListExpr TMRtreeNodesTypeMap ( ListExpr args )
     return res;
 
 }
+
+
+/*
+TypeMap fun for operator range tmrtree
+
+*/
+ListExpr TMRangeTMRTreeTypeMap ( ListExpr args )
+{
+  string err = "tmrtree(tuple(...) rect3 BOOL) expected";
+  if ( nl->ListLength ( args ) != 5 )
+  {
+    return listutils::typeError("expecting three arguments");
+  }
+
+  ListExpr rtree = nl->First(nl->First(args));
+
+  if(!nl->IsEqual(rtree, TM_RTree<3,TupleId>::BasicType())){
+    ErrorReporter::ReportError(err + "3");
+    return nl->TypeError();
+  }
+
+  ListExpr rel_param = nl->Second(args);
+
+  ListExpr xType;
+  nl->ReadFromString(QueryTM::GenmoUnitsInfo, xType); 
+
+  if ( !(listutils::isRelDescription(rel_param) && 
+    CompareSchemas(rel_param, xType)))
+      return nl->SymbolAtom("typeerror");
+
+   ListExpr genmo_rel = nl->Third(args);
+
+   ListExpr xType2;
+   nl->ReadFromString(QueryTM::GenmoRelInfo, xType2);
+
+   if(!(listutils::isRelDescription(genmo_rel) && 
+          CompareSchemas(genmo_rel, xType2)))
+        return nl->SymbolAtom("typeerror");
+
+  ListExpr query_param = nl->Third(args);
+
+  ListExpr xType3;
+  nl->ReadFromString(QueryTM::GenmoRangeQuery, xType3);
+
+  if ( !(listutils::isRelDescription(query_param) && 
+    CompareSchemas(query_param, xType2)))
+      return nl->SymbolAtom("typeerror");
+
+  ListExpr treetype = nl->Fifth(args);
+
+  if(!nl->IsEqual(treetype, "int")){
+      string err = "the fifth parameter should be int";
+      return listutils::typeError(err);
+  }
+  
+     ListExpr res =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Traj_id"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("SubTrip1"),
+                                    nl->SymbolAtom("genmo")),
+                        nl->TwoElemList(nl->SymbolAtom("SubTrip2"),
+                                    nl->SymbolAtom("mpoint"))
+                  )
+                )
+          );
+
+    return res;
+
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -15178,17 +15253,14 @@ int OpDecomposeGenmoValueMap ( Word* args, Word& result, int message,
       case OPEN:{
 
         Relation* rel = (Relation*)args[0].addr;
-        int type = ((CcInt*)args[1].addr)->GetIntval();
-        double l = ((CcReal*)args[2].addr)->GetRealval();
+        double l = ((CcReal*)args[1].addr)->GetRealval();
 
         query_tm = new QueryTM(); 
         query_tm->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        if(type == 0)
-          query_tm->DecomposeGenmo_0(rel, l);
-        else if(type == 1)
-          query_tm->DecomposeGenmo_1(rel);
+        query_tm->DecomposeGenmo(rel, l);
+
         local.setAddr(query_tm);
         return 0;
       }
@@ -15249,10 +15321,13 @@ int BulkLoadTMRtreeValueMap( Word* args, Word& result, int message,
                     (TM_RTree<3, TupleId>*)qp->ResultStorage(s).addr;
   result.setAddr( tmrtree );
 
-  int tidIndex = ((CcInt*)args[4].addr)->GetIntval() - 1;
+  int treetype = ((CcInt*)args[4].addr)->GetIntval();
+//  cout<<"tree type "<<treetype<<endl;
   
-  int attrIndex1 = ((CcInt*)args[5].addr)->GetIntval() - 1;
-  int attrIndex2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+  int tidIndex = ((CcInt*)args[5].addr)->GetIntval() - 1;
+  
+  int attrIndex1 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+  int attrIndex2 = ((CcInt*)args[7].addr)->GetIntval() - 1;
 
 //  cout<<tidIndex<<" "<<attrIndex1<<" "<<attrIndex2<<endl;
   
@@ -15291,7 +15366,12 @@ int BulkLoadTMRtreeValueMap( Word* args, Word& result, int message,
                  ((TupleIdentifier *)tuple->
                      GetAttribute(tidIndex))->GetTid() );
 
-      tmrtree->BulkLoad(e, m, last_m);
+      if(treetype == 1)//TMRtree
+        tmrtree->TM_BulkLoad(e, m, last_m);
+      else{
+        tmrtree->BulkLoad(e);
+      }
+
 /*   cout<<"tid "<<
       ((TupleIdentifier *)tuple-> GetAttribute(tidIndex))->GetTid()<<endl;*/
       last_m = m;
@@ -15358,6 +15438,62 @@ int TMRtreeNodesValueMap ( Word* args, Word& result, int message,
              new Rectangle<3>(query_tm->box_list[query_tm->count]));
           tuple->PutAttribute(6,
              new CcInt(true, query_tm->entry_list[query_tm->count]));
+
+          result.setAddr(tuple);
+          query_tm->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            query_tm = (QueryTM*)local.addr;
+            delete query_tm;
+            local.setAddr(Address(0));
+          }
+          return 0;
+      }
+  }
+
+  return 0;
+}
+
+/*
+get sub trips satisfying query transportation modes
+
+*/
+int TMRangeTMRTreeValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  QueryTM* query_tm;
+  switch(message){
+      case OPEN:{
+
+        TM_RTree<3, TupleId>* rtree = (TM_RTree<3, TupleId>*)args[0].addr;
+        Relation* rel1 = (Relation*)args[1].addr;
+        Relation* rel2 = (Relation*)args[2].addr;
+        Relation* rel3 = (Relation*)args[3].addr;
+        int treetype = ((CcInt*)args[4].addr)->GetIntval();
+
+        query_tm = new QueryTM(); 
+        query_tm->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        query_tm->RangeTMRTree(rtree, rel1, rel2, rel3, treetype);
+        local.setAddr(query_tm);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          query_tm = (QueryTM*)local.addr;
+          if(query_tm->count == query_tm->oid_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(query_tm->resulttype);
+          tuple->PutAttribute(0, 
+                         new CcInt(true, query_tm->oid_list[query_tm->count]));
+          tuple->PutAttribute(1, 
+                       new GenMO(query_tm->genmo_list[query_tm->count]));
+          tuple->PutAttribute(2, 
+                      new MPoint(query_tm->mp_list[query_tm->count]));
 
           result.setAddr(tuple);
           query_tm->count++;
@@ -16556,6 +16692,15 @@ Operator tm_nodes(
   TMRtreeNodesTypeMap
 );
 
+Operator range_tmrtree(
+  "range_tmrtree",
+  OpTMRangeTMRTreeSpec,
+  TMRangeTMRTreeValueMap,
+  Operator::SimpleSelect,
+  TMRangeTMRTreeTypeMap
+);
+
+
 /*
 Main Class for Transportation Mode
 data types and operators 
@@ -16956,6 +17101,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&bulkloadtmrtree);//bulkload rtree considering tm
    AddOperator(&tmrtreemode);//set the mode value
    AddOperator(&tm_nodes);//a relation storing tm values for tm-rtree nodes
+   AddOperator(&range_tmrtree);//using tmrtree to do range query
 
   }
   ~TransportationModeAlgebra() {};

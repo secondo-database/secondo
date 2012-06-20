@@ -86,7 +86,9 @@ struct QueryTM{
   enum GenmoRel{GENMO_OID = 0, GENMO_TRIP1, GENMO_TRIP2};
   static string GenmoUnitsInfo;
   enum GenmoUnits{GM_TRAJ_ID = 0, GM_BOX, GM_MODE, GM_INDEX1, GM_INDEX2, GM_ID};
-
+  static string GenmoRangeQuery;
+  enum GMORangeQuery{GM_TIME = 0, GM_SPATIAL, GM_Q_MODE};
+  
   QueryTM(){ count = 0; resulttype = NULL;} 
   ~QueryTM(){if(resulttype != NULL) delete resulttype;}
 
@@ -104,6 +106,9 @@ struct QueryTM{
   vector<int> entry_list;
   vector<int> level_list;
 
+  vector<GenMO> genmo_list;
+  vector<MPoint> mp_list;
+
   ////////////////////////////////////////////////////////////////////////////
   //////////get 2D line in space or 3D line in a building///////////////////
   ////////////////////////////////////////////////////////////////////////////
@@ -117,7 +122,7 @@ struct QueryTM{
   ////////////////////////////////////////////////////////////////////////////
   ///////////////// range queries on generic moving objects /////////////////
   ///////////////////////////////////////////////////////////////////////////
-  void DecomposeGenmo_0(Relation*, double);
+  void DecomposeGenmo(Relation*, double);
   void CreateMTuple_0(int oid, GenMO* mo1, MPoint* mo2, double);
   void CollectBusMetro(int& i, int oid, int m, GenMO* mo1, MPoint* mo2, 
                        int& pos);
@@ -125,7 +130,6 @@ struct QueryTM{
                          MPoint* mo2, int& pos);
   void CollectWalk(int& i, int oid, GenMO* mo1, MPoint* mo2, double, int &pos);
   void CollectCBT(int&i, int oid, int m, GenMO* mo1, MPoint* mo2, int& pos);
-  void DecomposeGenmo_1(Relation*);
   ////////////////////get tm values for TM-Rtree nodes /////////////////////
 
   unsigned long Node_TM(R_Tree<3, TupleId>* tmrtree, Relation* rel, 
@@ -133,8 +137,22 @@ struct QueryTM{
   ////////////////////////////////////////////////////////////////////////
   void TM_RTreeNodes(TM_RTree<3,TupleId>*);
   void GetNodes(TM_RTree<3, TupleId>* tmrtree, SmiRecordId nodeid, int level);
+  ////////////////range query using tmrtree//////////////////////////////////
+  void RangeTMRTree(TM_RTree<3,TupleId>*, Relation*, Relation*, 
+                    Relation*, int );
+  void SinMode_Filter1(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
+                      int bit_pos, vector<int>& unit_tid_list);
+  void SinMode_Filter2(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
+                      int bit_pos, vector<int>& unit_tid_list, Relation*);
+  void SinMode_Refinement(Rectangle<3> query_box, int bit_pos,
+                          vector<int> unit_tid_list, 
+                          Relation* units_rel, Relation* genmo_rel);
+  int ModeType(string mode, vector<long>& seq_tm);
 };
 
 #define TEN_METER 10.0
+#define SINMODE 1
+#define MULMODE 2
+#define SEQMODE 3
 
 #endif

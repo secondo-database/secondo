@@ -77,6 +77,15 @@ ListExpr OutHalfSegment(ListExpr typeInfo, Word value);
 /*
 for data type transportation mode. to make it more readable, I use string 
 instead of int, real, or enum 
+0: Bus
+1: Walk
+2: Indoor
+3: Car
+4: Metro
+5: Train
+6: Bike
+7: Taxi
+8: Free
 
 */
 

@@ -1244,21 +1244,21 @@ const string OpTMNearStopBuildingSpec  =
 const string OpTMDecomposeGenmoSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>rel x int ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
-    "<text>decomposegenmo(rel, int)</text--->"
+    "( <text>rel x real ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>decomposegenmo(rel, real)</text--->"
     "<text>reorganize the units in genmo </text--->"
-    "<text>query decomposegenmo(all_genmo, 0)</text--->"
+    "<text>query decomposegenmo(all_genmo, cellsize)</text--->"
     ") )";
 
 const string OpTMBulkLoadTMRtreeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
     "( <text>(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) x attr1 x attr2 "
-    " x attr3 -> tmrtree</text--->"
-    "<text>bulkloadtmrtree[_,_,_]</text--->"
+    " x attr3 x int-> tmrtree</text--->"
+    "<text>bulkloadtmrtree[_,_,_,_]</text--->"
     "<text>build an TM-Rtree on genmo units </text--->"
     "<text>query genmo_units feed addid bulkloadtmrtree[Time, Box2d, "
-    " Mode]</text--->"
+    " Mode, 1]</text--->"
     ") )";
 
 const string OpTMRtreeModeSpec  =
@@ -1280,6 +1280,16 @@ const string OpTMNodesSpec  =
     "<text>query tm_nodes(TM-Rtree) count</text--->"
     ") )";
 
+const string OpTMRangeTMRTreeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>tmrtree x rel x rel x rel x int -> "
+     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>range_tmrtree(tmrtree, rel, rel, rel)</text--->"
+    "<text>range query on genmo using tmrtree </text--->"
+    "<text>query range_tmrtree(TM-Rtree, genmo_rel, genmo_rel, "
+    "query_rel, 1) count</text--->) )";
+    
 const string OpTMInstant2DaySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "

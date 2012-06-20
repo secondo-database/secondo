@@ -1295,15 +1295,15 @@ Result   : 0
 
 Operator : decomposegenmo
 Number   : 1
-Signature: rel x int x real -> (stream(((x1 t1) ... (xn tn))))
-Example  : query decomposegenmo(all_genmo, 0, 200.0) count;
+Signature: rel x real -> (stream(((x1 t1) ... (xn tn))))
+Example  : query decomposegenmo(all_genmo, 200.0) count;
 Result   : 1
 
 
 Operator : bulkloadtmrtree
 Number   : 1
-Signature: stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj) x attr1 x attr2 x attr3 -> (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false)
-Example  : query genmo_units feed addid bulkloadtmrtree[Time, Box2d, Mode]
+Signature: stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj) x attr1 x attr2 x attr3 x int-> (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false)
+Example  : query genmo_units feed addid bulkloadtmrtree[Time, Box2d, Mode, 1]
 Result   : file_platform
 
 Operator : tmrtreemode
@@ -1312,9 +1312,15 @@ Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x attr -> str
 Example  : query tmrtreemode(TM_RTree, genmo_units, Mode) count
 Result   : 0
 
-
 Operator : tm_nodes
 Number   : 1
 Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
 Example  : query nodes(TM_RTree) filter[.Level = 0] count
 Result   : 1
+
+
+Operator : range_tmrtree
+Number   : 1
+Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x rel x rel x int -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
+Example  : query range_tmrtree(TM_RTree, genmo_units, genmo_union, query_rel, 1)  count
+Result   : 0

@@ -1255,7 +1255,8 @@ Data structures used during bulk loading will be initialized.
 build the r-tree in a way for genmo units
 
 */
-    void BulkLoad(const R_TreeEntry<dim>& entry, int , int);
+    void TM_BulkLoad(const R_TreeEntry<dim>& entry, int , int);
+    void BulkLoad(const R_TreeEntry<dim>& entry);
 /*
 Insert an entry in the bulk loading mode. The R-tree will be
 constructed bottom up.
@@ -2859,7 +2860,7 @@ bool TM_RTree<dim, LeafInfo>::InitializeBulkLoad(const bool &leafSkipping)
 };
 
 template <unsigned dim, class LeafInfo>
-void TM_RTree<dim, LeafInfo>::BulkLoad(const R_TreeEntry<dim>& entry, int m,
+void TM_RTree<dim, LeafInfo>::TM_BulkLoad(const R_TreeEntry<dim>& entry, int m,
                                         int last_m)
 {
   if( bli->node[0] != NULL ) {
@@ -2874,6 +2875,25 @@ void TM_RTree<dim, LeafInfo>::BulkLoad(const R_TreeEntry<dim>& entry, int m,
   }
 
   TM_InsertBulkLoad(bli->node[0], entry, m, last_m);
+  bli->entryCount++;
+  return;
+}
+
+template <unsigned dim, class LeafInfo>
+void TM_RTree<dim, LeafInfo>::BulkLoad(const R_TreeEntry<dim>& entry)
+{
+  if( bli->node[0] != NULL ) {
+    assert(bulkMode == true);
+  }
+  bli->currentLevel = 0;
+  if( bli->node[0] == NULL ) { // create a fresh leaf node
+    bli->node[0] = new TM_RTreeNode<dim,LeafInfo>(true,
+                                                header.minLeafEntries,
+                                                header.maxLeafEntries);
+    bli->nodeCount++;
+  }
+
+  InsertBulkLoad(bli->node[0], entry);
   bli->entryCount++;
   return;
 }
@@ -3590,7 +3610,9 @@ long TM_RTree<dim,LeafInfo>::CalculateNodeTM(SmiRecordId nodeid,
    if(node->IsLeaf()){
 
        int pos = -1;
-//     //////////////for testing////////////////
+       bitset<ARR_SIZE(str_tm)> modebits;
+       modebits.reset();
+
       for(int j = 0;j < node->EntryCount();j++){
 
        R_TreeLeafEntry<3, TupleId> e =
@@ -3599,15 +3621,18 @@ long TM_RTree<dim,LeafInfo>::CalculateNodeTM(SmiRecordId nodeid,
        int m = ((CcInt*)tuple->GetAttribute(attr_pos))->GetIntval();//bit index
        tuple->DeleteIfAllowed();
 // //      cout<<"j "<<j<<" tm "<<GetTMStr(m)<<endl;
- //      pos = (int)ARR_SIZE(str_tm) - 1 - m;
-       if(pos < 0) pos = (int)(ARR_SIZE(str_tm) - 1 - m);
-       else assert(pos == (int)(ARR_SIZE(str_tm) - 1 - m));
+       pos = (int)ARR_SIZE(str_tm) - 1 - m;
+//        if(pos < 0) pos = (int)(ARR_SIZE(str_tm) - 1 - m);
+//        else assert(pos == (int)(ARR_SIZE(str_tm) - 1 - m));
+       assert(0 <= pos && pos <= (int)(ARR_SIZE(str_tm) - 1 - m));
+
+       modebits.set(pos, 1);//set the value for each entry:general method
       }
       /////////checking for leaf node, mode should be the same///////////////
 
-      bitset<ARR_SIZE(str_tm)> modebits;
+/*      bitset<ARR_SIZE(str_tm)> modebits;
       modebits.reset();
-      modebits.set(pos, 1);
+      modebits.set(pos, 1);*/
       long tm = modebits.to_ulong();
 //       cout<<"leaf node "<<nodeid<<endl;
 //       cout<<tm<<" "<<modebits.to_string()<<" "<<GetModeString(tm)<<endl;
