@@ -4644,9 +4644,10 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
       *res += hs;
       /////////////////////////////////////////////////////
       res->EndBulkLoad(); 
-    double len = res->Length(); 
-   printf("Euclidean length: %.4f Walk length: %.4f\n",loc1.Distance(loc2),len);
-    return; 
+      double len = res->Length(); 
+//   printf("Euclidean length: %.4f Walk length: %.4f\n",
+//   loc1.Distance(loc2),len);
+      return; 
   }
 //     finish = clock();
 //     printf("Time: %f\n",(double)(finish - start) / CLOCKS_PER_SEC);

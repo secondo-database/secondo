@@ -1467,8 +1467,8 @@ void QueryTM::RangeTMRTree(TM_RTree<3,TupleId>* tmrtree, Relation* units_rel,
         assert(false);
       }
       //////////////refinement //////////////////////////////
-      SinMode_Refinement(query_box, bit_pos, unit_tid_list, 
-                         units_rel, genmo_rel);
+       SinMode_Refinement(query_box, bit_pos, unit_tid_list,
+                          units_rel, genmo_rel);
 
 
     }
@@ -1587,7 +1587,7 @@ void QueryTM::SinMode_Filter1(TM_RTree<3,TupleId>* tmrtree,
     query_list.push(tmrtree->RootRecordId());
 
 //    cout<<"bit pos "<<bit_pos<<endl;
-
+    int node_count = 0;
     while(query_list.empty() == false){
        SmiRecordId nodeid = query_list.front();
        query_list.pop();
@@ -1620,11 +1620,14 @@ void QueryTM::SinMode_Filter1(TM_RTree<3,TupleId>* tmrtree,
                 }
             }
           }
+          node_count++;
        }
 
        delete node;
     }
 
+    cout<<node_count<<" nodes accessed "
+        <<unit_tid_list.size()<<" candidates "<<endl;
 }
 
 
@@ -1644,7 +1647,7 @@ void QueryTM::SinMode_Filter2(TM_RTree<3,TupleId>* tmrtree,
 
 //    cout<<"bit pos "<<bit_pos<<endl;
     int total_size = ARR_SIZE(str_tm) - 1;
-    
+    int node_count = 0;
     while(query_list.empty() == false){
        SmiRecordId nodeid = query_list.front();
        query_list.pop();
@@ -1684,10 +1687,13 @@ void QueryTM::SinMode_Filter2(TM_RTree<3,TupleId>* tmrtree,
                 }
             }
           }
+          node_count++;
        }
 
        delete node;
     }
+    cout<<node_count<<" nodes accessed "
+        <<unit_tid_list.size()<<" candidates "<<endl;
 
 }
 
@@ -1722,16 +1728,16 @@ void QueryTM::SinMode_Refinement(Rectangle<3> query_box, int bit_pos,
   Rectangle<2> spatial_box(true, min, max);
   Region query_reg(spatial_box);
 
-  Periods* query_time = new Periods(0);
-  query_time->StartBulkLoad();
-  query_time->MergeAdd(time_span);
-  query_time->EndBulkLoad();
-
-//  cout<<"query time "<<*query_time<<endl;
+  set<int> res_id;//store trajectory id;
 
   for(unsigned int i = 0;i < unit_tid_list.size();i++){
       Tuple* mtuple = units_rel->GetTuple(unit_tid_list[i], false);
       int traj_id = ((CcInt*)mtuple->GetAttribute(GM_TRAJ_ID))->GetIntval();
+
+      if(res_id.find(traj_id) != res_id.end()){
+          mtuple->DeleteIfAllowed();
+          continue;
+      }
 
       int m = ((CcInt*)mtuple->GetAttribute(GM_MODE))->GetIntval();
 //      Rectangle<3>* mt_box = (Rectangle<3>*)mtuple->GetAttribute(GM_BOX);
@@ -1755,43 +1761,60 @@ void QueryTM::SinMode_Refinement(Rectangle<3> query_box, int bit_pos,
       sub_mp->StartBulkLoad();
       int start = (int)(index2->GetX());
       int end = (int)(index2->GetY());
+
+      bool query_res = false;
       for(;start <= end; start++){
         UPoint up;
         mo2->Get(start, up);
         sub_mp->Add(up);
+        ///////////////precise value checking/////////////////
+        if(query_res == false && time_span.Intersects(up.timeInterval)){
+          UPoint up2;
+          up.AtInterval(time_span, up2);
+          Line l(0);
+          l.StartBulkLoad();
+          if(!AlmostEqual(up.p0, up.p1)){
+            HalfSegment hs(true, up.p0, up.p1);
+            hs.attr.edgeno = 0;
+            l += hs;
+            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+            l += hs;
+            l.EndBulkLoad();
+            if(l.Intersects(query_reg)) query_res = true;
+          }else{
+            if(up.p0.Inside(query_reg)) query_res = true;
+          }
+        }
       }
       sub_mp->EndBulkLoad();
 
-      GenMO* sub_genmo = new GenMO(0);
-      sub_genmo->StartBulkLoad();
-      start = (int)(index1->GetX());
-      end = (int)(index1->GetY());
-      for(;start <= end; start++){
-        UGenLoc u;
-        mo1->Get(start, u);
-        sub_genmo->Add(u);
-      }
-      sub_genmo->EndBulkLoad();
-      ///////////////////sub trip at periods/////////////////////////////
-      MPoint* sub_mo = new MPoint(0);
-      sub_mp->AtPeriods(*query_time, *sub_mo);
-      Line l(0);
-      sub_mo->Trajectory(l);
-//      cout<<"len "<<l.Length()<<endl;
-      if(l.Intersects(query_reg)){//////return sub trips
-         oid_list.push_back(oid);
-         genmo_list.push_back(*sub_genmo);
-         mp_list.push_back(*sub_mp);
+      if(query_res){//////return sub trips
+          oid_list.push_back(oid);
+          res_id.insert(oid);
+
+//           GenMO* sub_genmo = new GenMO(0);
+//           sub_genmo->StartBulkLoad();
+//           start = (int)(index1->GetX());
+//           end = (int)(index1->GetY());
+//           for(;start <= end; start++){
+//             UGenLoc u;
+//             mo1->Get(start, u);
+//             sub_genmo->Add(u);
+//           }
+//           sub_genmo->EndBulkLoad();
+
+//           genmo_list.push_back(*sub_genmo);
+//           mp_list.push_back(*sub_mp);
+
+
+//          delete sub_genmo;
       }
 
-      delete sub_mo;
       //////////////////////////////////////////////////////////////////
-      delete sub_genmo;
       delete sub_mp;
       mo_tuple->DeleteIfAllowed();
       ///////////////////////////////////////////////////////////
       mtuple->DeleteIfAllowed();
   }
 
-  delete query_time;
 }

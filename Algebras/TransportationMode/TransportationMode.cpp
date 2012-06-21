@@ -8608,23 +8608,34 @@ ListExpr TMRangeTMRTreeTypeMap ( ListExpr args )
       string err = "the fifth parameter should be int";
       return listutils::typeError(err);
   }
+
+//      ListExpr res =
+//           nl->TwoElemList(
+//               nl->SymbolAtom("stream"),
+//                 nl->TwoElemList(
+//                   nl->SymbolAtom("tuple"),
+//                       nl->ThreeElemList(
+//                         nl->TwoElemList(nl->SymbolAtom("Traj_id"),
+//                                     nl->SymbolAtom("int")),
+//                         nl->TwoElemList(nl->SymbolAtom("SubTrip1"),
+//                                     nl->SymbolAtom("genmo")),
+//                         nl->TwoElemList(nl->SymbolAtom("SubTrip2"),
+//                                     nl->SymbolAtom("mpoint"))
+//                   )
+//                 )
+//           );
   
      ListExpr res =
           nl->TwoElemList(
               nl->SymbolAtom("stream"),
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
-                      nl->ThreeElemList(
+                      nl->OneElemList(
                         nl->TwoElemList(nl->SymbolAtom("Traj_id"),
-                                    nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("SubTrip1"),
-                                    nl->SymbolAtom("genmo")),
-                        nl->TwoElemList(nl->SymbolAtom("SubTrip2"),
-                                    nl->SymbolAtom("mpoint"))
+                                    nl->SymbolAtom("int"))
                   )
                 )
           );
-
     return res;
 
 }
@@ -15490,10 +15501,10 @@ int TMRangeTMRTreeValueMap ( Word* args, Word& result, int message,
           Tuple* tuple = new Tuple(query_tm->resulttype);
           tuple->PutAttribute(0, 
                          new CcInt(true, query_tm->oid_list[query_tm->count]));
-          tuple->PutAttribute(1, 
-                       new GenMO(query_tm->genmo_list[query_tm->count]));
-          tuple->PutAttribute(2, 
-                      new MPoint(query_tm->mp_list[query_tm->count]));
+//           tuple->PutAttribute(1, 
+//                        new GenMO(query_tm->genmo_list[query_tm->count]));
+//           tuple->PutAttribute(2, 
+//                       new MPoint(query_tm->mp_list[query_tm->count]));
 
           result.setAddr(tuple);
           query_tm->count++;
