@@ -23,8 +23,8 @@ class Pattern;
 enum Key {LABEL, TIME, START, END, CARD, ERROR};
 enum Wildcard {NO, ASTERISK, PLUS};
 
-Pattern* parseString(const char* argument);
-bool evaluate(string conditionString, const bool resultNeeded);
+Pattern* parseString(const char* input);
+bool evaluate(string condStr, const bool eval);
 
 class MLabel : public MString {
   public:
@@ -44,26 +44,26 @@ class ULabel : public UString {
     static bool CheckULabel(ListExpr type, ListExpr& errorInfo);
 };
 
-class ExpressionList {
+class ExprList {
  public: 
-  vector<string> expressions;
+  vector<string> exprs;
 
-  ExpressionList() {}
+  ExprList() {}
 
-  ~ExpressionList() {}
+  ~ExprList() {}
 
   string toString();
 };
 
 class Condition {
  public:
-  string condition;
-  string condsubst; // the condition after substituting as mentioned above
+  string text;
+  string textSubst; // the condition after replacing, see maps below
   map<int, string> types;
   map<int, string> subst;
   vector<Key> keys;
-  vector<string> variables;
-  vector<int> patternIds;
+  vector<string> vars;
+  vector<int> pIds;
 
   Condition() {
     types[0] = ".label";
@@ -91,34 +91,33 @@ class Condition {
 
 class UnitPattern {
  public:
-  string variable;
-  set<string> intervalset;
-  set<string> labelset;
-  string wildcard;
-  set<int> relatedConditions;
+  string var;
+  set<string> ivs;
+  set<string> lbs;
+  string wc;
 
   UnitPattern() {}
 
   ~UnitPattern() {}
 
   UnitPattern(const string v, const string i, const string l, const string w) {
-    variable = v;
-    intervalset = stringToSet(i);
-    labelset = stringToSet(l);
-    wildcard = w;
+    var = v;
+    ivs = stringToSet(i);
+    lbs = stringToSet(l);
+    wc = w;
   }
 
   void setUnit(const char *v, const char *i, const char *l, const char *w);
-  void getUnit(const char *var, bool assignment);
-  void createUnit(const char *var, const char *pat);
+  void getUnit(const char *v, bool assignment);
+  void createUnit(const char *v, const char *pat);
 };
 
 class Pattern {
  public:
   vector<UnitPattern> patterns;
   vector<UnitPattern> results;
-  vector<UnitPattern> assignments;
-  vector<Condition> conditions;
+  vector<UnitPattern> assigns;
+  vector<Condition> conds;
   string text;
 
   Pattern() {}
@@ -126,15 +125,15 @@ class Pattern {
   Pattern(const Pattern& rhs) {
     patterns = rhs.patterns;
     results = rhs.results;
-    assignments = rhs.assignments;
-    conditions = rhs.conditions;
+    assigns = rhs.assigns;
+    conds = rhs.conds;
   }
 
   Pattern& operator=(const Pattern& rhs){
     patterns = rhs.patterns;
     results = rhs.results;
-    assignments = rhs.assignments;
-    conditions = rhs.conditions;
+    assigns = rhs.assigns;
+    conds = rhs.conds;
     return (*this);
   }  
 
@@ -159,6 +158,7 @@ class Pattern {
   void verifyConditions();
   static Pattern* getPattern(string input);
   bool matches(MLabel const &ml);
+  bool verifyIntervals();
 };
 
 class NFA {
@@ -166,12 +166,11 @@ class NFA {
   set<int> **transitions; // 1st coord: old state; 2nd coord: unit pattern id;
                           // contents: new state(s).
   set<int> currentStates;
-  vector<UnitPattern> nfaPatterns;
-  vector<Condition> nfaConditions;
+  vector<UnitPattern> patterns;
+  vector<Condition> conds;
   int numOfStates;
   ULabel ul;
-  size_t ulId;
-  size_t maxLabelId;
+  size_t ulId, maxLabelId;
   set<size_t> *matchings;
   set<size_t> *cardsets;
   set<vector<size_t> > sequences; // all possible matching sequences
@@ -213,6 +212,7 @@ class NFA {
   void buildCondMatchings(unsigned int condId, vector<size_t> sequence);
   bool evaluateCond(MLabel const &ml, unsigned int condId,
                     vector<size_t> sequence);
+  string substituteCond(unsigned int condId, unsigned int pos, string subst);
   string getNextSubst(MLabel const &ml, Key key, unsigned int pos);
   string toString();
 };

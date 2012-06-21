@@ -21,5 +21,6 @@ string setToString(set<string> input);
 vector<string> splitPattern(string input);
 char* convert(string arg);
 string extendDate(string input, const bool start);
-bool checkSemanticDate(const string text, const SecInterval uInterval);
-bool checkDaytime(const string text, const SecInterval uInterval);
+bool checkSemanticDate(const string text, const SecInterval uIv,
+                       const bool resultNeeded);
+bool checkDaytime(const string text, const SecInterval uIv);

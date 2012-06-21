@@ -38,6 +38,8 @@ Started March 2012, Fabio Vald\'{e}s
 #include "SymbolicTrajectoryTools.h"
 #include "CharTransform.h"
 #include <string.h>
+#include "NestedList.h"
+#include "SecondoCatalog.h"
 
 using namespace std;
 
@@ -258,70 +260,116 @@ string extendDate(string input, const bool start) {
 
 /*
 function ~checkSemanticDate~
-Checks whether text is a valid semantic date string and contains the time
-interval defined by start and end.
+Checks whether ~text~ is a valid semantic date string or a valid database object
+of type ~Periods~ and contains the time interval defined by ~uIv~. If the
+parameter ~resultNeeded~ is ~false~, the function will only check the validity
+of ~text~.
 
 */
-bool checkSemanticDate(const string text, const SecInterval uInterval) {
+bool checkSemanticDate(const string text, const SecInterval uIv,
+                       const bool eval) {
   string weekdays[7] = {"monday", "tuesday", "wednesday", "thursday", "friday",
                         "saturday", "sunday"};
   string months[12] = {"january", "february", "march", "april", "may", "june",
                        "july", "august", "september", "october", "november",
                        "december"};
   string daytimes[4] = {"morning", "afternoon", "evening", "night"};
-  Instant uStart = uInterval.start;
-  Instant uEnd = uInterval.end;
-  if ((uStart.GetYear() == uEnd.GetYear()) // year and month of start and end
-       && (uStart.GetMonth() == uEnd.GetMonth())) { //must coincode for a match
-    for (int i = 0; i < 12; i++) { // handle months
-      if (!text.compare(months[i])) {
-        return (i == uStart.GetMonth() - 1);
+  Instant uStart = uIv.start;
+  Instant uEnd = uIv.end;
+  bool isSemanticDate = false;
+  for (int i = 0; i < 12; i++) {
+    if (!text.compare(months[i])) {
+      isSemanticDate = true;
+    }
+    else if (i < 7) {
+      if (!text.compare(weekdays[i])) {
+        isSemanticDate = true;
       }
-    } // for weekdays and daytimes, start and end day have to coincide
-    if (uStart.GetGregDay() == uEnd.GetGregDay()) {
-      for (int i = 0; i < 7; i++) { // handle weekdays
-        if (!text.compare(weekdays[i])) {
-          return (i == uStart.GetWeekday());
-        }
-      }
-      for (int i = 0; i < 4; i++) { // handle daytimes
+      else if (i < 4) {
         if (!text.compare(daytimes[i])) {
-          switch (i) {
-            case 0:
-              return (uStart.GetHour() >= 0) && (uEnd.GetHour() <= 11);
-            case 1:
-              return (uStart.GetHour() >= 12) && (uEnd.GetHour() <= 16);
-            case 2:
-              return (uStart.GetHour() >= 17) && (uEnd.GetHour() <= 20);
-            case 3:
-              return (uStart.GetHour() >= 21) && (uEnd.GetHour() <= 23);
-            default: // cannot occur
-              cout << "daytime error" << endl;
-              return false;
-          }
+          isSemanticDate = true;
         }
       }
     }
-  } // different months => match impossible
+  }
+  if (isSemanticDate && !eval) {
+    return true;
+  }
+  else if (isSemanticDate && eval) {
+    if ((uStart.GetYear() == uEnd.GetYear()) // year and month of start and end
+         && (uStart.GetMonth() == uEnd.GetMonth())) { //must coincode for match
+      for (int i = 0; i < 12; i++) { // handle months
+        if (!text.compare(months[i])) {
+          return (i == uStart.GetMonth() - 1);
+        }
+      } // for weekdays and daytimes, start and end day have to coincide
+      if (uStart.GetGregDay() == uEnd.GetGregDay()) {
+        for (int i = 0; i < 7; i++) { // handle weekdays
+          if (!text.compare(weekdays[i])) {
+            return (i == uStart.GetWeekday());
+          }
+        }
+        for (int i = 0; i < 4; i++) { // handle daytimes
+          if (!text.compare(daytimes[i])) {
+            switch (i) {
+              case 0:
+                return (uStart.GetHour() >= 0) && (uEnd.GetHour() <= 11);
+              case 1:
+                return (uStart.GetHour() >= 12) && (uEnd.GetHour() <= 16);
+              case 2:
+                return (uStart.GetHour() >= 17) && (uEnd.GetHour() <= 20);
+              case 3:
+                return (uStart.GetHour() >= 21) && (uEnd.GetHour() <= 23);
+              default: // cannot occur
+                cout << "daytime error" << endl;
+                return false;
+            }
+          }
+        }
+      }
+    } // different months => match impossible
+  }
+  else {
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    if (!Periods::checkType(sc->GetObjectTypeExpr(text))) {
+      cout << text << " is not a periods object." << endl;
+      return false;
+    }
+    else {
+      const int errPos = 0;
+      ListExpr errInfo;
+      bool ok;
+      Word pWord = sc->InObject(sc->GetObjectTypeExpr(text),
+                                sc->GetObjectValue(text), errPos, errInfo, ok);
+      if (!ok) {
+        cout << "Error: InObject failed." << endl;
+        return false;
+      }
+      else {
+        Periods* period = static_cast<Periods*>(pWord.addr);
+        return (eval ? period->Contains(uIv) : true);
+      }
+    }
+  }
   return false;
 }
 
 /*
 function ~checkDaytime~
+
 Checks whether the daytime interval resulting from text (e.g., 0:00[~]8:00)
 contains the one from the unit label.
 
 */
-bool checkDaytime(const string text, const SecInterval uInterval) {
-  if ((uInterval.start.GetYear() == uInterval.end.GetYear())
-       && (uInterval.start.GetMonth() == uInterval.end.GetMonth())
-       && (uInterval.start.GetGregDay() == uInterval.end.GetGregDay())) {
+bool checkDaytime(const string text, const SecInterval uIv) {
+  if ((uIv.start.GetYear() == uIv.end.GetYear())
+       && (uIv.start.GetMonth() == uIv.end.GetMonth())
+       && (uIv.start.GetGregDay() == uIv.end.GetGregDay())) {
     string startString, endString;
-    stringstream startStringstream;
-    startStringstream << uInterval.start.GetYear() << "-"
-      << uInterval.start.GetMonth() << "-"
-      << uInterval.start.GetGregDay() << "-";
-    startString.assign(startStringstream.str());
+    stringstream startStream;
+    startStream << uIv.start.GetYear() << "-" << uIv.start.GetMonth() << "-"
+                << uIv.start.GetGregDay() << "-";
+    startString.assign(startStream.str());
     endString.assign(startString);
     startString.append(text.substr(0, text.find('~')));
     endString.append(text.substr(text.find('~') + 1));
@@ -336,7 +384,7 @@ bool checkDaytime(const string text, const SecInterval uInterval) {
       return false;
     }
     SecInterval *pInterval = new SecInterval(*pStart, *pEnd, true, true);
-    bool result = pInterval->Contains(uInterval);
+    bool result = pInterval->Contains(uIv);
     delete pInterval;
     delete pStart;
     delete pEnd;
