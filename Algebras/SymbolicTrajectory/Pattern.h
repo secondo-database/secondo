@@ -55,7 +55,7 @@ class Pattern;
 
 enum Key {LABEL, TIME, START, END, CARD, ERROR};
 enum Wildcard {NO, STAR, PLUS};
-enum Operations {EQUALS, IN, CONTAINS};
+//enum Operations {EQUALS, IN, CONTAINS};
 
 Pattern* parseString(const char* input);
 
@@ -97,7 +97,8 @@ class Condition {
   vector<Key> keys;
   vector<string> vars;
   vector<int> pIds;
-  // TODO: add evaluation result matrix
+  set<string> falseExprs; // strings whose evaluation yields a negative/positive
+  set<string> trueExprs; // result are stored in these sets
 
   Condition() {
     types[0] = ".label";
@@ -190,7 +191,7 @@ class Pattern {
   // other functions
   static const string BasicType();
   static const bool checkType(const ListExpr type);
-  void verifyConditions();
+  bool verifyConditions();
   static Pattern* getPattern(string input);
   bool matches(MLabel const &ml);
   bool verifyIntervals();

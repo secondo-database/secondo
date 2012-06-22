@@ -422,6 +422,7 @@ void UnitPattern::setUnit(const char *v, const char *i,
 
 /*
 function ~createUnit~
+
 Modifies the unit pattern according to the parameters.
 */
 void UnitPattern::createUnit(const char *varP, const char *pat) {

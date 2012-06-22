@@ -30,6 +30,8 @@ Started March 2012, Fabio Vald\'{e}s
 */
 #include "SymbolicTrajectoryTools.h"
 
+extern QueryProcessor *qp;
+
 using namespace std;
 
 string int2String(int i) {

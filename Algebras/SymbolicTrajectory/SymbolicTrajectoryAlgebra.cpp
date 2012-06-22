@@ -441,7 +441,7 @@ int MappingAtInstantExt(
     Word& local,
     Supplier s)
 {
-    result = qp->ResultStorage( s );
+    result = qp->ResultStorage(s);
     Intime<Alpha>* pResult = (Intime<Alpha>*)result.addr;
 
     ((Mapping*)args[0].addr)->AtInstant( *((Instant*)args[1].addr), *pResult );
@@ -997,38 +997,38 @@ Writes all pattern information into a string.
 
 */
 string Pattern::toString() const {
-  stringstream text;
-  text << "~~~~~~pattern~~~~~~" << endl;
+  stringstream str;
+  str << "~~~~~~pattern~~~~~~" << endl;
   for (unsigned int i = 0; i < patterns.size(); i++) {
-    text << "[" << i << "] " << patterns[i].var << " | "
-         << setToString(patterns[i].ivs) << " | "
-         << setToString(patterns[i].lbs) << " | "
-         << (patterns[i].wc ? (patterns[i].wc == STAR ? "*" : "+") :"") << endl;
+    str << "[" << i << "] " << patterns[i].var << " | "
+        << setToString(patterns[i].ivs) << " | "
+        << setToString(patterns[i].lbs) << " | "
+        << (patterns[i].wc ? (patterns[i].wc == STAR ? "*" : "+") :"") << endl;
   }
-  text << "~~~~~~conditions~~~~~~" << endl;
+  str << "~~~~~~conditions~~~~~~" << endl;
   for (unsigned int i = 0; i < conds.size(); i++) {
-    text << "[" << i << "] " << conds[i].text << endl;
+    str << "[" << i << "] " << conds[i].text << endl;
     for (unsigned int j = 0; j < conds[i].vars.size(); j++) {
-      text << "  [[" << j << "]] " << conds[i].vars[j] << "."
-           << conds[i].keys[j] << " in #" << conds[i].pIds[j] << endl;
+      str << "  [[" << j << "]] " << conds[i].vars[j] << "."
+          << conds[i].keys[j] << " in #" << conds[i].pIds[j] << endl;
     }
   }
-  text << "~~~~~~results~~~~~~" << endl;
+  str << "~~~~~~results~~~~~~" << endl;
   for (unsigned int i = 0; i < results.size(); i++) {
-    text << "[" << i << "] " << results[i].var << " | "
-         << setToString(results[i].ivs) << " | " << setToString(results[i].lbs)
-         << " | " << (results[i].wc ? (results[i].wc == STAR ? "*" : "+") : "")
-         << endl;
+    str << "[" << i << "] " << results[i].var << " | "
+        << setToString(results[i].ivs) << " | " << setToString(results[i].lbs)
+        << " | " << (results[i].wc ? (results[i].wc == STAR ? "*" : "+") : "")
+        << endl;
   }
-  text << "~~~~~~assignments~~~~~~" << endl;
+  str << "~~~~~~assignments~~~~~~" << endl;
   for (unsigned int i = 0; i < assigns.size(); i++) {
-    text << "[" << i << "] " << assigns[i].var << " | ";
-    text << setToString(assigns[i].ivs) << " | "
-         << setToString(assigns[i].lbs) << " | "
-         << (assigns[i].wc ? (assigns[i].wc == STAR ? "*" : "+") : "") << endl;
+    str << "[" << i << "] " << assigns[i].var << " | ";
+    str << setToString(assigns[i].ivs) << " | "
+        << setToString(assigns[i].lbs) << " | "
+        << (assigns[i].wc ? (assigns[i].wc == STAR ? "*" : "+") : "") << endl;
   }
-  text << endl;
-  return text.str();
+  str << endl;
+  return str.str();
 }
 
 /*
@@ -1178,27 +1178,29 @@ bool Pattern::verifyIntervals() {
 \subsection{Function ~verifyConditions~}
 
 Loops through the conditions and checks whether each one is a syntactically
-correct boolean expression. Invalid conditions are removed.
+correct boolean expression. If there is an invalid condition, the user input
+is rejected.
 
 */
-void Pattern::verifyConditions() {
-  int numOfConds = conds.size();
-  int removed = 0;
-  for (int i = 0; i < numOfConds; i++) {
-    cout << "there " << (numOfConds > 1 ? "are" : "is") << " still "
-         << numOfConds << " condition" << (numOfConds > 1 ? "s" : "") << endl;
+bool Pattern::verifyConditions() {
+  //int numOfConds = conds.size();
+  //int removed = 0;
+  for (unsigned int i = 0; i < conds.size(); i++) {
     if (!evaluate(conds[i].textSubst, false)) {
-      conds.erase(conds.begin() + i);
-      cout << "condition deleted" << endl;
-      removed++;
-      i--;
-      numOfConds = conds.size();
+      cout << "condition \'" << conds[i].textSubst << "\' is invalid." << endl;
+      return false;
+      //conds.erase(conds.begin() + i);
+      //cout << "condition deleted" << endl;
+      //removed++;
+      //i--;
+      //numOfConds = conds.size();
     }
   }
-  if (removed) {
-    cout << removed << " invalid condition" << ((removed > 1) ? "s" : "")
-         << " removed" << endl;
-  }
+  return true;
+//   if (removed) {
+//     cout << removed << " invalid condition" << ((removed > 1) ? "s" : "")
+//          << " removed" << endl;
+//   }
 }
 
 /*
@@ -1224,7 +1226,9 @@ bool Pattern::matches(MLabel const &ml) {
   if (!verifyIntervals()) {
     return false;
   }
-  verifyConditions();
+  if (!verifyConditions()) {
+    return false;
+  }
   NFA *nfa = new NFA(patterns.size() + 1);
   nfa->buildNFA(*this);
   cout << nfa->toString() << endl;
@@ -1354,10 +1358,12 @@ bool NFA::match(MLabel const &ml) {
     return false;
   }
   printCards();
-  buildSequences();
-  printSequences(50);
-  if (!conditionsMatch(ml)) {
-    return false;
+  if (conds.size()) {
+    buildSequences();
+    printSequences(50);
+    if (!conditionsMatch(ml)) {
+      return false;
+    }
   }
   return true;
 }
@@ -1521,7 +1527,8 @@ void NFA::storeMatch(int state) { // TODO: shorten this
   size_t fromLabel, toLabel;
   int fromState, toState;
   set<size_t>::iterator it;
-  if (!patterns[state].wc) {
+  if (!patterns[state].wc || !patterns[state].ivs.empty()
+   || !patterns[state].lbs.empty()) { // (1 a) or ((1 a))
     matchings[state].insert(ulId);
     cardsets[state].insert(1); // cardinality is 1 without wildcard
     if ((state > 0) && patterns[state - 1].wc) {
@@ -1578,7 +1585,7 @@ void NFA::storeMatch(int state) { // TODO: shorten this
         for (int k = fromState; k <= state; k++) {
           for (size_t i = fromLabel; i <= toLabel; i++) {
             if ((i > 0) || (patterns[k].wc == STAR)) {
-              cardsets[k].insert(i);
+              cardsets[k].insert(i); // do not insert 0 when wildcard is +
             }
           }
         }
@@ -1689,7 +1696,7 @@ Derives all possible ULabel sequences from the cardinality candidates. Only
 sequences with length maxLabelId + 1 are accepted.
 
 */
-void NFA::buildSequences() {
+void NFA::buildSequences() { // TODO: this is far too slow!
   vector<size_t> sequence;
   set<size_t>::iterator it;
   size_t totalSize = 1;
@@ -1812,7 +1819,7 @@ cardinalities matches a certain condition.
 
 */
 bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
-                       vector<size_t> sequence) { // TODO store evaluations
+                       vector<size_t> sequence) {
   conds[condId].textSubst.assign(conds[condId].text); // reset textSubst
   bool success(false), replaced(false);
   string condStrCard, subst;
@@ -1836,12 +1843,22 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
   }
   condStrCard.assign(conds[condId].textSubst); // save status after card subst
   if (condMatchings.empty() && replaced) {
-    if (!evaluate(condStrCard, true)) {
-      cout << "cardinality evaluation negative" << endl;
-      return false;
+    if (conds[condId].falseExprs.count(condStrCard)) {
+      return false; // if condStrCard was already
+    }
+    else if (conds[condId].trueExprs.count(condStrCard)) {
+      return true;
     }
     else {
-      return true;
+      if (!evaluate(condStrCard, true)) {
+        cout << "cardinality evaluation negative" << endl;
+        conds[condId].falseExprs.insert(condStrCard);
+        return false;
+      }
+      else {
+        conds[condId].trueExprs.insert(condStrCard);
+        return true;
+      }
     }
   }
   while (!condMatchings.empty()) {
@@ -1860,12 +1877,22 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
         pos++;
       }
     }
-    if (!evaluate(conds[condId].textSubst, true)) {
-      cout << "evaluation negative" << endl;
-      return false; // one false evaluation is enough to yield ~false~
+    if (conds[condId].falseExprs.count(conds[condId].textSubst)) {
+      return false;
+    }
+    else if (conds[condId].trueExprs.count(conds[condId].textSubst)) {
+      return true;
     }
     else {
-      success = true;
+      if (!evaluate(conds[condId].textSubst, true)) {
+        cout << "evaluation negative" << endl;
+        conds[condId].falseExprs.insert(conds[condId].textSubst);
+        return false; // one false evaluation is enough to yield ~false~
+      }
+      else {
+        conds[condId].trueExprs.insert(conds[condId].textSubst);
+        success = true;
+      }
     }
   }
   return success;
