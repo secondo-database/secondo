@@ -1,3 +1,39 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+
+Started March 2012, Fabio Vald\'{e}s
+
+[TOC]
+
+\section{Overview}
+This is the bison file that parses the user input for the Symbolic Trajectory
+Algebra.
+
+\section{Defines and Includes}
+
+*/
 %{
 #include <iostream>
 #include <string>
@@ -79,7 +115,7 @@ assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABELSET {
                var.assign(var.substr(0, var.find('.')));
                uPat.getUnit(convert(var), true);
                uPat.lbs = stringToSet(labels);
-               uPat.wc.clear();
+               uPat.wc = NO;
                wholepat->assigns.push_back(uPat);
                cout << "unit added to assignments" << endl;
              }
@@ -353,7 +389,7 @@ void UnitPattern::getUnit(const char *varP, bool assign) {
       var.assign((wholepat->patterns)[pos].var);
       ivs = (wholepat->patterns)[pos].ivs;
       lbs = (wholepat->patterns)[pos].lbs;
-      wc.assign((wholepat->patterns)[pos].wc);
+      wc = (wholepat->patterns)[pos].wc;
       found = true;
       curIvs = ivs;
       cout << "variable " << var << " found in pattern " << pos << endl;
@@ -372,7 +408,16 @@ void UnitPattern::setUnit(const char *v, const char *i,
   var.assign(v);
   ivs = stringToSet(istr);
   lbs = stringToSet(lstr);
-  wc.assign(w);
+  string wcstr(w);
+  if (!wcstr.compare("*")) {
+    wc = STAR;
+  }
+  else if (!wcstr.compare("+")) {
+    wc = PLUS;
+  }
+  else {
+    wc = NO;
+  }
 }
 
 /*
@@ -394,7 +439,7 @@ void UnitPattern::createUnit(const char *varP, const char *pat) {
   }
   vector<string> pattern = splitPattern(patstr);
   if (doublePars) {
-    wc.assign("+");
+    wc = PLUS;
   }
   if (pattern.size() == 2) {
     if (!pattern[0].compare("_")) { // (_ a)
@@ -410,17 +455,17 @@ void UnitPattern::createUnit(const char *varP, const char *pat) {
       lbs = stringToSet(pattern[1]);
     }
     if (!doublePars) {
-      wc.clear();
+      wc = NO;
     }
   }
   else if ((pattern.size() == 1) && (!pattern[0].compare("*")
                                   || !pattern[0].compare("+"))) {
-    wc.assign(pattern[0]);
+    wc = (pattern[0].compare("*") ? PLUS : STAR);
     ivs.clear();
     lbs.clear();
   }
-  else if ((pattern.size() == 1) && pattern[0].empty()) {
-    wc.clear();
+  else if ((pattern.size() == 1) && pattern[0].empty() && !doublePars) {
+    wc = NO;
   }
   else if ((pattern.size() == 0) || ((pattern.size() == 1)
        && (!pattern[0].compare("*") || !pattern[0].compare("+")))) {
@@ -428,8 +473,9 @@ void UnitPattern::createUnit(const char *varP, const char *pat) {
     lbs.clear();
   }
   if ((pattern.size() == 0) && !doublePars) {
-    wc.clear();
+    wc = NO;
   }
+  cout << wc << endl;
   doublePars = false;
 }
 

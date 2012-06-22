@@ -28,18 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 Started March 2012, Fabio Vald\'{e}s
 
 */
-
-#include <cstdio>
-#include <iostream>
-#include <vector>
-#include <sstream>
-#include <set>
-#include <map>
 #include "SymbolicTrajectoryTools.h"
-#include "CharTransform.h"
-#include <string.h>
-#include "NestedList.h"
-#include "SecondoCatalog.h"
 
 using namespace std;
 
@@ -391,4 +380,79 @@ bool checkDaytime(const string text, const SecInterval uIv) {
     return result;
   } // no match possible in case of different days
   return false;
+}
+
+/*
+\subsection{Function ~evaluate~}
+
+In case of testing a condition's syntactical correctness, we are only
+interested in the result type. Thus, ~eval~ is ~false~, an operator tree
+is built, and ~true~ is returned if and only if the result type is ~boolean~.
+On the other hand, if we ask for the condition result, the function executes
+the appropiate query and returns its result.
+
+*/
+bool evaluate(string input, const bool eval) {
+  bool isBool(false), isTrue(false);
+  SecParser condParser;
+  string queryStr;
+  ListExpr queryList, resultType;
+  Word queryResult;
+  bool correct(false), evaluable(false), defined(false), isFunction(false);
+  OpTree tree = 0;
+  input.insert(0, "query ");
+  switch (condParser.Text2List(input, queryStr)) {
+    case 0:
+      if (!nl->ReadFromString(queryStr, queryList)) {
+        cout << "ReadFromString error" << endl;
+      }
+      else {
+        if (nl->IsEmpty(nl->Rest(queryList))) {
+          cout << "Rest of list is empty" << endl;
+        }
+        else {
+          cout << nl->ToString(nl->First(nl->Rest(queryList))) << endl;
+          if (eval) { // evaluate the condition
+            if (!qp->ExecuteQuery(nl->ToString(nl->First(nl->Rest(queryList))),
+                                  queryResult)) {
+              cout << "execution error" << endl;
+            }
+            else {
+              CcBool *ccResult = static_cast<CcBool*>(queryResult.addr);
+              isTrue = ccResult->GetValue();
+              ccResult->DeleteIfAllowed();
+            }
+          }
+          else { // check the result type
+            qp->Construct(nl->First(nl->Rest(queryList)), correct, evaluable,
+                          defined, isFunction, tree, resultType);
+            if (!correct) {
+              cout << "type error" << endl;
+            }
+            else if (!evaluable) {
+              cout << "not evaluable" << endl;
+            }
+            else if (nl->ToString(resultType).compare("bool")) {
+              cout << "wrong result type " << nl->ToString(resultType) << endl;
+            }
+            else {
+              isBool = true;
+            }
+          }
+        }
+      }
+      break;
+    case 1:
+      cout << "String cannot be converted to list" << endl;
+      break;
+    case 2:
+      cout << "stack overflow" << endl;
+      break;
+    default: // should not occur
+      break;
+  }
+  if (tree) {
+    qp->Destroy(tree, true);
+  }
+  return eval ? isTrue : isBool;
 }

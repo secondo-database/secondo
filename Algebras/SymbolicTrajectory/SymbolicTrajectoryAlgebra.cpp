@@ -78,7 +78,6 @@ class Label {
    
   Label* Clone();
   
-  
   // algebra support functions
   
   static Word     In(const ListExpr typeInfo, const ListExpr instance,
@@ -501,11 +500,11 @@ Operator temporalatinstantext(
 
 //**********************************************************************
 
-enum LabelsState { partial, complete };
+enum LabelsState {partial, complete};
 
 class Labels : public Attribute {
   public:
-    Labels( const int n, const Label *Lb = 0 );
+    Labels(const int n, const Label *Lb = 0);
     ~Labels();
 
     Labels(const Labels& src);
@@ -517,14 +516,14 @@ class Labels : public Attribute {
     bool Adjacent(const Attribute*) const;
     Labels *Clone() const;
     size_t Sizeof() const;
-    ostream& Print( ostream& os ) const;
+    ostream& Print(ostream& os) const;
 
     void Append( const Label &lb );
     void Complete();
     bool Correct();
     void Destroy();
     int GetNoLabels() const;
-    Label GetLabel( int i ) const;
+    Label GetLabel(int i) const;
     string GetState() const;
     const bool IsEmpty() const;
     void CopyFrom(const Attribute* right);
@@ -532,37 +531,25 @@ class Labels : public Attribute {
 
     friend ostream& operator <<( ostream& os, const Labels& p );
 
-    static Word     In( const ListExpr typeInfo, const ListExpr instance,
-                        const int errorPos, ListExpr& errorInfo,
-                        bool& correct );
-
-    static ListExpr Out( ListExpr typeInfo, Word value );
-
-    static Word     Create( const ListExpr typeInfo );
-
-    static void     Delete( const ListExpr typeInfo, Word& w );
-
-    static void     Close( const ListExpr typeInfo, Word& w );
-
-    static bool     Save( SmiRecord& valueRecord, size_t& offset,
-                          const ListExpr typeInfo, Word& value    );
-
-    static bool     Open( SmiRecord& valueRecord, size_t& offset,
-                          const ListExpr typeInfo, Word& value    );
-
-    static Word     Clone( const ListExpr typeInfo, const Word& w );
-
-
-    static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
-
+    static Word     In(const ListExpr typeInfo, const ListExpr instance,
+                      const int errorPos, ListExpr& errorInfo, bool& correct);
+    static ListExpr Out(ListExpr typeInfo, Word value);
+    static Word     Create(const ListExpr typeInfo);
+    static void     Delete(const ListExpr typeInfo, Word& w);
+    static void     Close(const ListExpr typeInfo, Word& w);
+    static bool     Save(SmiRecord& valueRecord, size_t& offset,
+                         const ListExpr typeInfo, Word& value);
+    static bool     Open(SmiRecord& valueRecord, size_t& offset,
+                         const ListExpr typeInfo, Word& value);
+    static Word     Clone(const ListExpr typeInfo, const Word& w);
+    static bool     KindCheck(ListExpr type, ListExpr& errorInfo);
     static int      SizeOfObj();
-
     static ListExpr Property();
-
-    static void* Cast(void* addr);
-
-    static const string BasicType() { return "labels"; }
-    static const bool checkType(const ListExpr type){
+    static void*    Cast(void* addr);
+    static const    string BasicType() {
+      return "labels";
+    }
+    static const    bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
 
@@ -585,7 +572,7 @@ ostream& operator<<(ostream& os, const Labels& lbs) {
   os << " State: " << lbs.GetState()
      << "<";
   for(int i = 0; i < lbs.GetNoLabels(); i++)
-    os << lbs.GetLabel( i ) << " ";
+    os << lbs.GetLabel(i) << " ";
   os << ">";
   return os;
 }
@@ -596,7 +583,7 @@ ostream& operator<<(ostream& os, const Labels& lbs) {
 This first constructor creates a new polygon.
 
 */
-Labels::Labels( const int n, const Label *lb ) :
+Labels::Labels(const int n, const Label *lb) :
   Attribute(true),
   labels(n),
   state(partial) {
@@ -668,7 +655,6 @@ Because Compare returns alway 0, we can only return a constant hash value.
 size_t Labels::HashValue() const{
   return  1;
 }
-
 
 /*
 2.3.5 Adjacent
@@ -1016,7 +1002,8 @@ string Pattern::toString() const {
   for (unsigned int i = 0; i < patterns.size(); i++) {
     text << "[" << i << "] " << patterns[i].var << " | "
          << setToString(patterns[i].ivs) << " | "
-         << setToString(patterns[i].lbs) << " | " << patterns[i].wc << endl;
+         << setToString(patterns[i].lbs) << " | "
+         << (patterns[i].wc ? (patterns[i].wc == STAR ? "*" : "+") :"") << endl;
   }
   text << "~~~~~~conditions~~~~~~" << endl;
   for (unsigned int i = 0; i < conds.size(); i++) {
@@ -1030,13 +1017,15 @@ string Pattern::toString() const {
   for (unsigned int i = 0; i < results.size(); i++) {
     text << "[" << i << "] " << results[i].var << " | "
          << setToString(results[i].ivs) << " | " << setToString(results[i].lbs)
-         << " | " << results[i].wc << endl;
+         << " | " << (results[i].wc ? (results[i].wc == STAR ? "*" : "+") : "")
+         << endl;
   }
   text << "~~~~~~assignments~~~~~~" << endl;
   for (unsigned int i = 0; i < assigns.size(); i++) {
     text << "[" << i << "] " << assigns[i].var << " | ";
     text << setToString(assigns[i].ivs) << " | "
-         << setToString(assigns[i].lbs) << " | " << assigns[i].wc << endl;
+         << setToString(assigns[i].lbs) << " | "
+         << (assigns[i].wc ? (assigns[i].wc == STAR ? "*" : "+") : "") << endl;
   }
   text << endl;
   return text.str();
@@ -1213,82 +1202,6 @@ void Pattern::verifyConditions() {
 }
 
 /*
-\subsection{Function ~evaluate~}
-
-In case of testing a condition's syntactical correctness, we are only
-interested in the result type. Thus, ~eval~ is ~false~, an operator tree
-is built, and ~true~ is returned if and only if the result type is ~boolean~.
-On the other hand, if we ask for the condition result, the function executes
-the appropiate query and returns its result.
-
-*/
-bool evaluate(string condStr, const bool eval) {
-  bool isBool(false), isTrue(false);
-  SecParser condParser;
-  string queryStr;
-  ListExpr queryList, resultType;
-  Word queryResult;
-  bool correct(false), evaluable(false), defined(false), isFunction(false);
-  OpTree tree = 0;
-  condStr.insert(0, "query ");
-  switch (condParser.Text2List(condStr, queryStr)) {
-    case 0:
-      if (!nl->ReadFromString(queryStr, queryList)) {
-        cout << "ReadFromString error" << endl;
-      }
-      else {
-        if (nl->IsEmpty(nl->Rest(queryList))) {
-          cout << "Rest of list is empty" << endl;
-        }
-        else {
-          cout << nl->ToString(nl->First(nl->Rest(queryList))) << endl;
-          if (eval) { // evaluate the condition
-            if (!qp->ExecuteQuery(nl->ToString(nl->First(nl->Rest(queryList))),
-                                  queryResult)) {
-              cout << "execution error" << endl;
-            }
-            else {
-              CcBool *ccResult = static_cast<CcBool*>(queryResult.addr);
-              isTrue = ccResult->GetValue();
-              ccResult->DeleteIfAllowed();
-            }
-          }
-          else { // check the result type
-            qp->Construct(nl->First(nl->Rest(queryList)), correct, evaluable,
-                          defined, isFunction, tree, resultType);
-            if (!correct) {
-              cout << "type error" << endl;
-            }
-            else if (!evaluable) {
-              cout << "not evaluable" << endl;
-            }
-            else if (nl->ToString(resultType).compare("bool")) {
-              cout << "wrong result type " << nl->ToString(resultType) << endl;
-            }
-            else {
-              isBool = true;
-            }
-          }
-        }
-      }
-      break;
-    case 1:
-      cout << "String cannot be converted to list" << endl;
-      break;
-    case 2:
-      cout << "stack overflow" << endl;
-      break;
-    default: // should not occur
-      break;
-  }
-  if (tree) {
-    qp->Destroy(tree, true);
-  }
-  return eval ? isTrue : isBool;
-}
-
-
-/*
 \subsection{Function ~getPattern~}
 
 Calls the parser.
@@ -1311,6 +1224,7 @@ bool Pattern::matches(MLabel const &ml) {
   if (!verifyIntervals()) {
     return false;
   }
+  verifyConditions();
   NFA *nfa = new NFA(patterns.size() + 1);
   nfa->buildNFA(*this);
   cout << nfa->toString() << endl;
@@ -1370,25 +1284,24 @@ void NFA::buildNFA(Pattern p) {
   patterns = p.patterns;
   conds = p.conds;
   for (int i = 0; i < numOfStates - 1; i++) { // solve epsilon-transitions
-    if (!(patterns[i].wc.compare("*"))) { // reading '*'
+    if (patterns[i].wc == STAR) { // reading '*'
       if (i > 0) {
         transitions[i - 1][i - 1].insert(i + 1);
       }
       transitions[i][i].insert(i);
-      //patterns[i].wc.assign("+");
       if (i < numOfStates - 2) {
         transitions[i][i + 1].insert(i + 2);
         int j = i + 1;
-        while ((j < numOfStates - 1) && !(patterns[j].wc.compare("*"))) {
+        while ((j < numOfStates - 1) && (patterns[j].wc == STAR)) {
           transitions[i][i].insert(j + 1); // handle '* * ... *'
           transitions[i][j + 1].insert(j + 2);
           j++;
         }
-        if (patterns[i + 1].wc.compare("*")) { // handle '* (1909 bvb) * *'
+        if (patterns[i + 1].wc != STAR) { // handle '* (1909 bvb) * *'
           transitions[i][i + 1].insert(i);
           transitions[i][i + 1].insert(i + 1);
           int j = i + 2;
-          while ((j < numOfStates - 1) && !(patterns[j].wc.compare("*"))) {
+          while ((j < numOfStates - 1) && (patterns[j].wc = STAR)) {
             transitions[i][i + 1].insert(j + 1);
             j++;
           }
@@ -1400,17 +1313,17 @@ void NFA::buildNFA(Pattern p) {
     }
     else { // not reading '*'
       int j = i + 1; // handle '(a 1) * * ... *'
-      while ((j < numOfStates - 1) && !(patterns[j].wc.compare("*"))) {
+      while ((j < numOfStates - 1) && (patterns[j].wc == STAR)) {
         transitions[i][i].insert(j + 1);
         j++;
       }
     }
-    if (!(patterns[i].wc.compare("+"))) { // reading '+'
+    if (patterns[i].wc == PLUS) { // reading '+'
       transitions[i][i].insert(i);
     }
     transitions[i][i].insert(i + 1);// state i, read pattern i => new state i+1
     if (i > 0) {  // remove duplicates for '* *'
-      if (!(patterns[i - 1].wc.compare("+")) && !(patterns[i].wc.compare("+"))){
+      if ((patterns[i - 1].wc == PLUS) && (patterns[i].wc == PLUS)){
         transitions[i - 1][i].clear();  
       }
     }
@@ -1608,10 +1521,10 @@ void NFA::storeMatch(int state) { // TODO: shorten this
   size_t fromLabel, toLabel;
   int fromState, toState;
   set<size_t>::iterator it;
-  if (patterns[state].wc.empty()) {
+  if (!patterns[state].wc) {
     matchings[state].insert(ulId);
     cardsets[state].insert(1); // cardinality is 1 without wildcard
-    if ((state > 0) && !patterns[state - 1].wc.empty()) {
+    if ((state > 0) && patterns[state - 1].wc) {
       if (state == 1) { // wildcard at 0, match(es) at 1
         cardsets[0].insert(*(matchings[1].rbegin()));
       }
@@ -1628,7 +1541,7 @@ void NFA::storeMatch(int state) { // TODO: shorten this
           toState = state - 1;
           for (int k = fromState; k <= toState; k++) {
             for (size_t i = fromLabel; i <= toLabel; i++) {
-              if ((i > 0) || !patterns[k].wc.compare("*")) {
+              if ((i > 0) || (patterns[k].wc == STAR)) {
                 cardsets[k].insert(i); // do not insert 0 when wildcard is +
               }
             }
@@ -1637,7 +1550,7 @@ void NFA::storeMatch(int state) { // TODO: shorten this
         else { // matching in state - 2
           it = matchings[state - 2].begin();
           while ((*it < ulId) && (it != matchings[state - 2].end())) {
-            if ((ulId - *it - 1 > 0) || !patterns[state - 1].wc.compare("*")) {
+            if ((ulId - *it - 1 > 0) || (patterns[state - 1].wc == STAR)) {
               cardsets[state - 1].insert(ulId - *it - 1); // card != 0 for wc +
             }
             it++;
@@ -1646,8 +1559,7 @@ void NFA::storeMatch(int state) { // TODO: shorten this
       }
     }
   }
-  else if ((state == numOfStates - 2) // last state
-        && !patterns[state].wc.empty()) {
+  else if ((state == numOfStates - 2) && patterns[state].wc) {  // last state
     int j = state - 1; // search previous matching position
     if ((j >= 0) && matchings[j].empty()) {
       j--;
@@ -1665,7 +1577,7 @@ void NFA::storeMatch(int state) { // TODO: shorten this
         fromState = j + 1; // 0 iff no match exists
         for (int k = fromState; k <= state; k++) {
           for (size_t i = fromLabel; i <= toLabel; i++) {
-            if ((i > 0) || !patterns[k].wc.compare("*")) {
+            if ((i > 0) || (patterns[k].wc == STAR)) {
               cardsets[k].insert(i);
             }
           }
@@ -1900,10 +1812,10 @@ cardinalities matches a certain condition.
 
 */
 bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
-                       vector<size_t> sequence) { // TODO shorten this
+                       vector<size_t> sequence) { // TODO store evaluations
+  conds[condId].textSubst.assign(conds[condId].text); // reset textSubst
   bool success(false), replaced(false);
-  string condStr(conds[condId].text), condStrCard, subst;
-  int pos = 0;
+  string condStrCard, subst;
   for (unsigned int j = 0; j < conds[condId].keys.size(); j++) {
     if (conds[condId].keys[j] == 4) { // card
       int pId = conds[condId].pIds[j];
@@ -1913,8 +1825,8 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
       else {
         subst.assign(int2Str(sequence[pId + 1] - sequence[pId]));
       }
-      condStr.assign(substituteCond(condId, j, subst));
-      if (condStr.compare("error")) {
+      conds[condId].substitute(j, subst);
+      if (conds[condId].textSubst.compare("error")) {
         replaced = true;
       }
       else {
@@ -1922,9 +1834,9 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
       }
     }
   }
-  condStrCard.assign(condStr); // save status after cardinality substitution
+  condStrCard.assign(conds[condId].textSubst); // save status after card subst
   if (condMatchings.empty() && replaced) {
-    if (!evaluate(condStr, true)) {
+    if (!evaluate(condStrCard, true)) {
       cout << "cardinality evaluation negative" << endl;
       return false;
     }
@@ -1933,12 +1845,13 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
     }
   }
   while (!condMatchings.empty()) {
-    condStr.assign(condStrCard);
+    conds[condId].textSubst.assign(condStrCard);
+    int pos = 0;
     for (unsigned int j = 0; j < conds[condId].keys.size(); j++) {
       if (conds[condId].keys[j] < 4) { // label, time, start, end
         subst.assign(getNextSubst(ml, conds[condId].keys[j], pos));
-        condStr.assign(substituteCond(condId, j, subst));
-        if (condStr.compare("error")) {
+        conds[condId].substitute(j, subst);
+        if (conds[condId].textSubst.compare("error")) {
           replaced = true;
         }
         else {
@@ -1947,7 +1860,7 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
         pos++;
       }
     }
-    if (!evaluate(condStr, true)) {
+    if (!evaluate(conds[condId].textSubst, true)) {
       cout << "evaluation negative" << endl;
       return false; // one false evaluation is enough to yield ~false~
     }
@@ -1959,21 +1872,23 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
 }
 
 /*
-\subsection{Function ~substituteCond~}
+\subsection{Function ~substitute~}
+
+Searches a string like ~X.label~ in the ~textSubst~ of a condition and replaces
+it by the parameter ~subst~.
 
 */
-string NFA::substituteCond(unsigned int cId, unsigned int pos, string subst){
-  string varKey(conds[cId].vars[pos]), result(conds[cId].text);
-  varKey.append(conds[cId].types[conds[cId].keys[pos]]);
-  size_t varKeyPos = result.find(varKey);
+void Condition::substitute(unsigned int pos, string subst){
+  string varKey(vars[pos]);
+  varKey.append(types[keys[pos]]);
+  size_t varKeyPos = textSubst.find(varKey);
   if (varKeyPos == string::npos) {
-    cout << "var.key " << varKey << " not found in " << result << endl;
-    result = "error";
+    cout << "var.key " << varKey << " not found in " << textSubst << endl;
+    textSubst.assign("error");
   }
   else {
-    result.replace(varKeyPos, varKey.size(), subst);
+    textSubst.replace(varKeyPos, varKey.size(), subst);
   }
-  return result;
 }
 
 /*
@@ -2003,13 +1918,13 @@ string NFA::getNextSubst(MLabel const &ml, Key key, unsigned int pos) {
              << uIv->end.ToString() << "\" " << (uIv->lc ? "TRUE " : "FALSE ")
              << (uIv->rc ? "TRUE" : "FALSE") << ")]";
       break;
-    case 2:
+    case 2: // start
       result << "[const instant value \"" << uIv->start.ToString() << "\"]";
       break;
-    case 3:
+    case 3: // end
       result << "[const instant value \"" << uIv->end.ToString() << "\"]";
       break;
-    default:
+    default: // should not occur
       cout << "Error: " << key << " is not a valid key." << endl;
       break;
   }
@@ -2025,6 +1940,10 @@ ListExpr textToPatternMap(ListExpr args) {
   return NList::typeError("Expecting a text!");
 }
 
+/*
+\subsection{Value Mapping for operator ~stjpattern~}
+
+*/
 int patternFun(Word* args, Word& result, int message, Word& local, Supplier s) {
   FText* patternText = static_cast<FText*>(args[0].addr);
   result = qp->ResultStorage(s);
@@ -2100,11 +2019,10 @@ int matchesFun_MT (Word* args, Word& result, int message,
     b->SetDefined(false);
   }
   else {
-    pattern->verifyConditions();
     bool res = pattern->matches(*mlabel);
     delete pattern;
-    b->Set(true, res); //the first argument says the boolean value is defined,
-  }                    //the second is the real boolean value
+    b->Set(true, res);
+  }
   return 0;
 }
 
@@ -2122,6 +2040,10 @@ struct matchesInfo : OperatorInfo {
 
 //--------------------------------------------------------------------------
 
+/*
+\subsection{Type Mapping for operator ~apply~}
+
+*/
 ListExpr sintstreamType( ListExpr args ) {
   string err = "int x int expected";
   if(!nl->HasLength(args,2))
@@ -2133,6 +2055,10 @@ ListExpr sintstreamType( ListExpr args ) {
                          nl->SymbolAtom(CcInt::BasicType()));
 }
 
+/*
+\subsection{Value Mapping for operator ~apply~}
+
+*/
 int sintstreamFun (Word* args, Word& result, int message, Word& local,
                    Supplier s) {
   // An auxiliary type which keeps the state of this
@@ -2148,7 +2074,6 @@ int sintstreamFun (Word* args, Word& result, int message, Word& local,
         last = i2->GetIntval();
       }
       else {
-// this initialization will create an empty stream
         current = 1;
         last = 0;
       }
@@ -2191,6 +2116,10 @@ int sintstreamFun (Word* args, Word& result, int message, Word& local,
   }
 }
 
+/*
+\subsection{Operator Info for operator ~apply~}
+
+*/
 struct sintstreamInfo : OperatorInfo
 {
   sintstreamInfo() : OperatorInfo()
@@ -2223,7 +2152,6 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
       AddTypeConstructor(&labelsTC);
       AddTypeConstructor(&patternTC);
-//       AddTypeConstructor( &ruleTC );
 
       // 5.3 Registration of Operators
       AddOperator(&temporalatinstantext);
@@ -2232,13 +2160,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       ValueMapping matchesFuns[] = {matchesFun_MT, matchesFun_MP, 0};
       AddOperator(matchesInfo(), matchesFuns, matchesSelect, matchesTypeMap);
 
-      //    AddOperator( consumeMLabelsInfo(), consumeMLabelsFun,
-      //      consumeMLabelsTypeMap );
-
 //       ValueMapping applyFuns[] = {applyFun_MT, applyFun_MP, 0};
 //       AddOperator(applyInfo(), applyFuns, applySelect, applyTypeMap);
 
-      //    AddOperator( sintstreamInfo(), sintstreamFun, sintstreamType );
     }
     ~SymbolicTrajectoryAlgebra() {}
 };
@@ -2252,5 +2176,3 @@ Algebra* InitializeSymbolicTrajectoryAlgebra(NestedList *nlRef,
                                              QueryProcessor *qpRef) {
   return new stj::SymbolicTrajectoryAlgebra;
 }
-
-
