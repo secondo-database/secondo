@@ -2779,16 +2779,15 @@ struct DisplayJDirection : DisplayFunction {
 struct DisplayRouteLocation : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    cout << "route location ";
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
       ListExpr subtype = nl->TheEmptyList();
       nl->ReadFromString("jdirection", subtype);
-      cout<< "on road with id " << nl->IntValue(nl->First(value))
-          << " at pos " << nl->RealValue(nl->Second(value))
-          << " driving ";
+      cout<< "road " << nl->IntValue(nl->First(value))
+          << " position " << nl->RealValue(nl->Second(value))
+          << " reachable from ";
       DisplayTTY::GetInstance().DisplayResult(subtype, nl->Third(value));
     }
   }
@@ -2797,17 +2796,16 @@ struct DisplayRouteLocation : DisplayFunction {
 struct DisplayJRouteInterval : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    cout << "route interval ";
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
       ListExpr subtype = nl->TheEmptyList();
       nl->ReadFromString("jdirection", subtype);
-      cout<< "on road id " << nl->IntValue(nl->First(value))
+      cout<< "road " << nl->IntValue(nl->First(value))
       << " from " << nl->RealValue(nl->Second(value))
       << " to " << nl->RealValue(nl->Third(value))
-      << " at ";
+      << " direction ";
       DisplayTTY::GetInstance().DisplayResult(subtype, nl->Fourth(value));
     }
   }
@@ -2848,6 +2846,7 @@ struct DisplayJListRLoc : DisplayFunction {
       cout << Symbol::UNDEFINED() << endl;
     else
     {
+      cout << endl;
       ListExpr subtype = nl->TheEmptyList();
       nl->ReadFromString("rloc", subtype);
       ListExpr rest = value;
@@ -2870,6 +2869,7 @@ struct DisplayJListRInt : DisplayFunction {
       cout << Symbol::UNDEFINED() << endl;
     else
     {
+      cout << endl;
       ListExpr subtype = nl->TheEmptyList();
       nl->ReadFromString("jrint", subtype);
       ListExpr rest = value;
@@ -2886,7 +2886,6 @@ struct DisplayJListRInt : DisplayFunction {
 struct DisplayNDG : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    cout << "NetDistanceGroup: ";
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
@@ -2894,7 +2893,7 @@ struct DisplayNDG : DisplayFunction {
       cout << "From junction  " << nl->IntValue(nl->First(value))
            << " to junction " << nl->IntValue(nl->Second(value))
            << " via section " << nl->IntValue(nl->Fourth(value))
-           << " over junction " << nl->IntValue(nl->Third(value))
+           << " via junction " << nl->IntValue(nl->Third(value))
            << " network distance " << nl->RealValue(nl->Fifth(value))
            << endl;
     }
@@ -2926,13 +2925,12 @@ struct DisplayJListNDG : DisplayFunction {
 struct DisplayJPoint : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    cout << "JPoint ";
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
       NList nid(nl->First(value));
-      cout << "in network " << nid.str();
+      cout << "In network " << nid.str();
       cout << " at ";
 
       ListExpr subtype = nl->TheEmptyList();
@@ -2945,14 +2943,13 @@ struct DisplayJPoint : DisplayFunction {
 struct DisplayJLine : DisplayFunction {
   virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
   {
-    cout << "JLine: ";
     if (nl->IsEqual(value, Symbol::UNDEFINED()))
       cout << Symbol::UNDEFINED() << endl;
     else
     {
       NList nid(nl->First(value));
       cout << "In network " << nid.str()
-           << " route parts: " << endl;
+           << " at: " << endl;
 
       ListExpr subtype = nl->TheEmptyList();
       nl->ReadFromString("jrint", subtype);
