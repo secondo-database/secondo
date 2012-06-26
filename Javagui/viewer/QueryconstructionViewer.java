@@ -25,10 +25,10 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
-import javax.swing.ScrollPaneConstants;
 import sj.lang.ListExpr;
 import viewer.queryconstruction.MainPane;
 import viewer.queryconstruction.ObjectPane;
@@ -49,23 +49,25 @@ public class QueryconstructionViewer extends SecondoViewer {
     private OperationsPane OperationsPane = new OperationsPane(this);
     private MainPane MainPane;
     
+    private ArrayList<ObjectView> objectList = new ArrayList<ObjectView>();
+    private ArrayList<ObjectView> operationList = new ArrayList<ObjectView>();
+    
     private MenuVector MV = new MenuVector();
-    private String result;
     private int streamCounter = 0;
     private static ListExpr objects;
     
     public QueryconstructionViewer(){
         this.setLayout(new BorderLayout());
         
-        MainPane = new MainPane();
+        MainPane = new MainPane(this);
         MainPane.setPreferredSize(new Dimension (500, 400));
-        
         OperationsPane.update();
         
         JScrollPane MainScrollPane = new JScrollPane(MainPane);
         JScrollPane ObjectsScrollPane = new JScrollPane(ObjectPane);
+        ObjectsScrollPane.setPreferredSize(new Dimension (600, 90));
         JScrollPane OperationsScrollPane = new JScrollPane(OperationsPane);
-        OperationsScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        OperationsScrollPane.setPreferredSize(new Dimension (120, 400));
         
         this.add(ObjectsScrollPane, BorderLayout.NORTH);
         this.add(OperationsScrollPane, BorderLayout.EAST);
@@ -102,22 +104,10 @@ public class QueryconstructionViewer extends SecondoViewer {
         update();
     }
     
-    public String getType() {
-        String getTypeNL = "no result";
-        if (VC != null) { 
-            
-            if (VC.execCommand(MainPane.getStrings() + " getTypeNL") == 0) {
-                getTypeNL = VC.getCommandResult(MainPane.getStrings() + " getTypeNL").second().textValue();
-                if (getTypeNL.startsWith("(stream")) {
-                    this.result = "stream";
-                }
-                else {
-                    this.result = "relation";
-                }
-            }
-            else {
-                getTypeNL += MainPane.getState();
-            }
+    public ListExpr getType(String query) {
+        ListExpr getTypeNL = null;
+        if ((VC != null) && (VC.execCommand(query + " getTypeNL") == 0)) {
+            getTypeNL = VC.getCommandResult(query + " getTypeNL");
         }
         
         return getTypeNL;
@@ -141,8 +131,7 @@ public class QueryconstructionViewer extends SecondoViewer {
     
     //sets the panels up to date and repaints them
     public void update() {
-        MainPane.setToolTipText(getType());
-        MainPane.repaint();
+        MainPane.update(getType(MainPane.getStrings()));
         OperationsPane.update();
         ObjectPane.update();
     }
@@ -159,8 +148,12 @@ public class QueryconstructionViewer extends SecondoViewer {
             this.VC = VC;
             VC.execCommand("open database berlintest");
             objects = VC.getCommandResult("list objects");
-            ObjectPane.addObjects(objects);
+            objectList = ObjectPane.addObjects(objects);
         }
+    }
+    
+    public ArrayList<ObjectView> getObjects(){
+        return objectList;
     }
     
     public boolean addObject(SecondoObject o){

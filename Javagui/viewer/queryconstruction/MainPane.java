@@ -4,11 +4,16 @@
  */
 package viewer.queryconstruction;
 
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import javax.swing.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import javax.swing.JComponent;
+import sj.lang.ListExpr;
+import viewer.QueryconstructionViewer;
 
 /**
  *
@@ -20,9 +25,13 @@ public class MainPane extends JComponent implements MouseListener {
     private ArrayList<ObjectView> firstStream = new ArrayList<ObjectView>();
     private ArrayList<ObjectView> secondStream = new ArrayList<ObjectView>();
     private ArrayList<ObjectView> joinStream = new ArrayList<ObjectView>();
-    private ObjectType relation;
+    private ObjectView relation;
     
+    private QueryconstructionViewer viewer;
+    private OperationsDialog dialog;
     protected static ObjectView lastComponent = new ObjectView(ObjectType.OPERATION, "query");
+    private ObjectType relation1;
+    private ObjectType relation2;
     
     private static int state;
     protected static final int EMPTY = 0;
@@ -30,9 +39,11 @@ public class MainPane extends JComponent implements MouseListener {
     protected static final int STREAM = 2;
     protected static final int TWOSTREAMS = 3;
     
-    public MainPane() {
+    public MainPane(QueryconstructionViewer viewer) {
+        this.viewer = viewer;
         state = EMPTY;
         activeStream = firstStream;
+        this.addMouseListener(this);
     }
     
     @Override
@@ -86,28 +97,32 @@ public class MainPane extends JComponent implements MouseListener {
         
         //speichert die letzte Tabelle, die dem Hauptbereich hinzugefügt wurde in der Variable relation
         if (object.getType().equals(ObjectType.RELATION) || object.getType().equals(ObjectType.TRELATION)) {
-            relation = object.getOType();
             if (state > TUPEL) {
                 activeStream = secondStream;
             }
             else {
                 state = TUPEL;
+                
             }
         }
+        relation = this.getRelation(activeStream);
+        dialog = new OperationsDialog(this);
         if (object.getName().endsWith("join")) {
             activeStream = joinStream;
+            dialog.joinAttributes(relation1, relation2);
+        }
+        if (object.getName().startsWith("units")){
+            //opens a list of all objects of the type mpoint
+            dialog.getObjects("mpoint", viewer.getObjects());
         }
         activeStream.add(object);
-        //wenn eine Tabelle existiert, werden ihre Attribute für die Dialoge ausgewählt
-        if (relation != null) {
-            OperationsDialog dialog = new OperationsDialog(this, relation.getAttributes());
             if (object.getName().startsWith("project")){
-                dialog.project();
+                dialog.project(relation.getAttributes());
             }
-            if (object.getName().startsWith("head") || object.getName().startsWith("rename") || object.getName().startsWith("symmjoin")){
+            if (object.getName().startsWith("head") || object.getName().startsWith("rename") || object.getName().endsWith("join")){
                 dialog.text();
             }
-        }
+        
         if (object.getName().equals("feed")) {
             if (state == STREAM) {
                 state = TWOSTREAMS;
@@ -117,26 +132,63 @@ public class MainPane extends JComponent implements MouseListener {
             }
         }
         lastComponent = object;
+        this.setPreferredSize(new Dimension(firstStream.size()*120 + joinStream.size()*120, 400));
+        this.revalidate();
+    }
+    
+    public void update(ListExpr type) {
+        if (type != null) {
+            this.setToolTipText(type.second().textValue());
+            setRelation(type);
+        }
+        else {
+            this.setToolTipText(getStrings());
+        }
+        
+        this.repaint();
     }
     
     //removes the last object of the query and sets the object before to the last and active component
     public void removeLastObject(){
         if (activeStream.contains(lastComponent)) {
             activeStream.remove(lastComponent);
-            if (activeStream.size() > 1) {
+            if (activeStream.size() > 0) {
                 lastComponent = activeStream.get(activeStream.size()-1);
             }
             else if (activeStream.equals(joinStream)) {
-                lastComponent = secondStream.get(activeStream.size()-1);
+                activeStream = secondStream;
             }
             else if (activeStream.equals(secondStream)) {
-                lastComponent = firstStream.get(activeStream.size()-1);
+                activeStream = firstStream;
+            }
+            if (activeStream.size() > 0) {
+                lastComponent = activeStream.get(activeStream.size()-1);
             }
         }
     }
     
     public int getState() {
         return state;
+    }
+    
+    public ObjectView getRelation(ArrayList<ObjectView> active) {
+        ObjectView rel = null;
+        for ( Iterator iter = active.iterator(); iter.hasNext(); ) {
+            ObjectView object = (ObjectView)iter.next();
+            if (object.getType().equals("rel")) {
+                rel = object;
+            }
+        }
+        return rel;
+    }
+    
+    public void setRelation(ListExpr type) {
+        if (activeStream.equals(firstStream)) {
+            relation1 = new ObjectType(getRelation(activeStream).getName(), type);
+        }
+        if (activeStream.equals(secondStream)) {
+            relation2 = new ObjectType(getRelation(activeStream).getName(), type);
+        }
     }
     
     public String getStrings(){
@@ -169,29 +221,69 @@ public class MainPane extends JComponent implements MouseListener {
                 result+=att+", ";
         }
         lastComponent.setName(result.substring(0, result.length()-2) +"]");
-        repaint();
+        viewer.update();
     }
     
     public void addString(String s) {
         String result = lastComponent.getName();
-        if (lastComponent.getName().startsWith("head") || lastComponent.getName().startsWith("symmjoin")) {
-            result+="[" + s + "]";
-            lastComponent.setName(result);
-            
+        if (lastComponent.getName().startsWith("head") || lastComponent.getName().endsWith("join")) {
+            result += "[" + s + "]";
         }
         if (lastComponent.getName().startsWith("rename")) {
-            lastComponent.setName("{" + s + "}");
+            result = "{" + s + "}";
         }
-        repaint();
+        if (lastComponent.getName().startsWith("units")) {
+            result += "(" + s + ")";
+        }
+        lastComponent.setName(result);
+        viewer.update();
     }
     
     //Handle mouse events.
     public void mouseReleased(MouseEvent e) {
     }
     public void mouseClicked ( MouseEvent e ) {
-        //rechts auf das Objekt geklickt
+        
+        //get the position of the click
+        int y = 0;
+        while (e.getY() > (10 + y*40)) { y++; }
+        int x = 0;
+        while (e.getX() > (10 + x*120)) { x++; }
+        
+        //right click on an object shows more information about it
         if (e.getButton() == 3) {
-            System.out.println(e.getX());
+            y--;
+            if (y == 0) {
+                if (firstStream.get(x-1) != null) {
+                    System.out.println(firstStream.get(x-1).getName());
+                    firstStream.get(x-1).getInfo();
+                }
+            }
+            if (y == 1) {
+                if (joinStream.get(x - 1 - firstStream.size()) != null) {
+                    System.out.println(joinStream.get(x - 1 - firstStream.size()).getName());
+                    joinStream.get(x-1).getInfo();
+                }
+            }
+            if (y == 2) {
+                if (secondStream.get(x-1) != null) {
+                    System.out.println(secondStream.get(x-1).getName());
+                    secondStream.get(x-1).getInfo();
+                }
+            }
+        }
+        
+        //double click sets the last object of the selected stream active
+        if ((e.getClickCount () == 2) && (!activeStream.equals(joinStream))) {
+            switch (y-1) {
+                case 0: activeStream = firstStream;
+                    lastComponent = firstStream.get(firstStream.size()-1);
+                    break;
+                case 2: activeStream = secondStream;
+                    lastComponent = secondStream.get(secondStream.size()-1);
+                    break;
+            }
+            viewer.update();
         }
     }
     public void mouseEntered(MouseEvent e){

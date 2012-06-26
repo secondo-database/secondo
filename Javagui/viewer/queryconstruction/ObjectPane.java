@@ -20,9 +20,9 @@ public class ObjectPane extends MainPane {
     private QueryconstructionViewer viewer;
     private ListExpr objects;
 
-    public ObjectPane(QueryconstructionViewer viewer) {
+    public ObjectPane (QueryconstructionViewer viewer) {
+        super(viewer);
         this.viewer = viewer;
-        addMouseListener(this);
     }
     
     /** paints a Secondo Object into the ObjectsPane */
@@ -39,11 +39,11 @@ public class ObjectPane extends MainPane {
     }
     
     //add all relations and objects of berlintest database to the viewer
-    public void addObjects(ListExpr list){
+    public ArrayList<ObjectView> addObjects(ListExpr list){
         // the length must be two and the object element must be an symbol atom with content "inquiry"
         if(list.listLength()==2 && list.first().symbolValue().equals("inquiry")) { 
             objects = list.second().second();
-            setPreferredSize(new Dimension (objects.listLength()*120 - 120, 80));
+            setPreferredSize(new Dimension (objects.listLength()*120 - 120, 70));
             while (objects.listLength() > 1) {
                 ListExpr object = objects.second();
                 ObjectView object_view = new ObjectView(object);
@@ -53,6 +53,7 @@ public class ObjectPane extends MainPane {
             }
         }
         this.update();
+        return elements;
     }
     
     //    adds an operation or an object to the main panel
@@ -66,7 +67,7 @@ public class ObjectPane extends MainPane {
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
             object.setUnactive();
-            if (object.getType().equals("rel") || object.getType().equals("trel")) {
+            if ((object.getType().equals("rel") || object.getType().equals("trel")) && super.getState() < MainPane.TWOSTREAMS) {
                 object.setActive();
             }
         }

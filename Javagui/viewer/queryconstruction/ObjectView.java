@@ -4,8 +4,10 @@
  */
 package viewer.queryconstruction;
 
-import java.awt.*;
-import javax.swing.*;
+import java.awt.Color;
+import java.awt.Graphics;
+import javax.swing.ImageIcon;
+import javax.swing.JComponent;
 import sj.lang.ListExpr;
 import viewer.QueryconstructionViewer;
 
@@ -48,9 +50,7 @@ public class ObjectView extends JComponent {
         this.xpos = 10 + x*120;
         this.ypos = 10 + y*40;
         
-        if (color != null)
-            g.setColor(color);
-        else g.setColor(this.color);
+        g.setColor(this.color);
         
         if (type == ObjectType.OPERATION) {
             g.drawOval(xpos, ypos, 90, 50);
@@ -94,13 +94,11 @@ public class ObjectView extends JComponent {
         g.drawString(s, xpos + 45 - w/2, ypos + 30);
     }
     
-    public void paintTable(Graphics g, int x, int y, Color color){
+    public void paintTable(Graphics g, int x, int y){
         this.xpos = 10 + x*120;
         this.ypos = 10 + y*30;
         
-        if (color != null)
-            g.setColor(color);
-        else g.setColor(this.color);
+        g.setColor(this.color);
         
         g.drawLine(xpos - 10, ypos + 20, xpos + 120, ypos + 20);
         
@@ -113,12 +111,11 @@ public class ObjectView extends JComponent {
         g.drawString(s, xpos + 10, ypos + 10);
     }
     
-    public ObjectType getOType() {
-        return otype;
-    }
-    
-    public void setOType(ObjectType otype) {
-        this.otype = otype;
+    public void getInfo() {
+        if (otype != null) {
+            InfoDialog dialog = new InfoDialog(otype);
+            dialog.view();
+        }
     }
     
     public String[] getAttributes() {
@@ -141,6 +138,14 @@ public class ObjectView extends JComponent {
     
     public String getType(){
         return type;
+    }
+    
+    public ObjectType getOType() {
+        return otype;
+    }
+    
+    public void setOType(ObjectType otype) {
+        this.otype = otype;
     }
     
     public boolean isActive() {

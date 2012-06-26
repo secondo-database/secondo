@@ -18,6 +18,7 @@ public class OperationsPane extends MainPane {
     private QueryconstructionViewer viewer;
 
     public OperationsPane(QueryconstructionViewer viewer) {
+        super(viewer);
         ObjectView feed = new ObjectView(ObjectType.OPERATION, "feed");
         addObject(feed);
         ObjectView rename = new ObjectView(ObjectType.OPERATION, "rename");
@@ -30,14 +31,21 @@ public class OperationsPane extends MainPane {
         addObject(head);
         ObjectView tail = new ObjectView(ObjectType.OPERATION, "tail");
         addObject(tail);
+        ObjectView units = new ObjectView(ObjectType.OPERATION, "units");
+        addObject(units);
         ObjectView consume = new ObjectView(ObjectType.OPERATION, "consume");
         addObject(consume);
         ObjectView symmjoin = new ObjectView(ObjectType.OPERATION, "symmjoin");
         addObject(symmjoin);
+        ObjectView sortmergejoin = new ObjectView(ObjectType.OPERATION, "sortmergejoin");
+        addObject(sortmergejoin);
+        ObjectView mergejoin = new ObjectView(ObjectType.OPERATION, "mergejoin");
+        addObject(mergejoin);
+        ObjectView hashjoin = new ObjectView(ObjectType.OPERATION, "hashjoin");
+        addObject(hashjoin);
         
-        setPreferredSize(new Dimension (120, elements.size()*30));
+        setPreferredSize(new Dimension (100, elements.size()*30));
         this.viewer = viewer;
-        this.addMouseListener(this);
     }
     
     /** paints a Secondo Object into the relations panel */
@@ -48,7 +56,7 @@ public class OperationsPane extends MainPane {
         
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
-            object.paintTable( g, x, y, null );
+            object.paintTable( g, x, y );
             y++;
         }
         
@@ -78,6 +86,9 @@ public class OperationsPane extends MainPane {
                 object.setActive();
             }
             if (object.getName().endsWith("join") && (viewer.getState() == MainPane.TWOSTREAMS)) {
+                object.setActive();
+            }
+            if (object.getName().startsWith("units") && lastComponent.getName().equals("query")) {
                 object.setActive();
             }
         }
