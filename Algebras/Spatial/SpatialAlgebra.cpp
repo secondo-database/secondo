@@ -7648,14 +7648,15 @@ void SimpleLine::SubLine( double pos1, double pos2, SimpleLine& l ) const {
     return;
   }
 
+  double start = pos1;
+  double end = pos2;
   if(!this->startSmaller ) {
-    double aux = length - pos1;
-    pos1 = length - pos2;
-    pos2 = aux;
+    start = length - pos2;
+    end = length - pos1;
   }
 
   // First search for the first half segment
-  LRS lrs( pos1, 0 );
+  LRS lrs( start, 0 );
   int lrsPos = 0;
   Find( lrs, lrsPos );
 
@@ -7670,7 +7671,7 @@ void SimpleLine::SubLine( double pos1, double pos2, SimpleLine& l ) const {
   int edgeno = 0;
 
   HalfSegment auxHs;
-  if( hs.SubHalfSegment( pos1 - lrs2.lrsPos, pos2 - lrs2.lrsPos, auxHs ) ) {
+  if( hs.SubHalfSegment( start - lrs2.lrsPos, end - lrs2.lrsPos, auxHs ) ) {
     auxHs.attr.edgeno = ++edgeno;
     l += auxHs;
     auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
@@ -7678,13 +7679,13 @@ void SimpleLine::SubLine( double pos1, double pos2, SimpleLine& l ) const {
   }
 
   while( lrsPos < lrsArray.Size() - 1 &&
-       (lrs2.lrsPos + hs.Length() < pos2 ||
-        AlmostEqual( lrs2.lrsPos + hs.Length(), pos2 ) ) ) {
+       (lrs2.lrsPos + hs.Length() < end ||
+        AlmostEqual( lrs2.lrsPos + hs.Length(), end ) ) ) {
     // Get the next half segment in the sequence
     lrsArray.Get( ++lrsPos, lrs2 );
     segments.Get( lrs2.hsPos, hs );
 
-    if( hs.SubHalfSegment( pos1 - lrs2.lrsPos, pos2 - lrs2.lrsPos, auxHs)){
+    if( hs.SubHalfSegment( start - lrs2.lrsPos, end - lrs2.lrsPos, auxHs)){
       auxHs.attr.edgeno = ++edgeno;
       l += auxHs;
       auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
@@ -7692,12 +7693,6 @@ void SimpleLine::SubLine( double pos1, double pos2, SimpleLine& l ) const {
     }
   }
   l.EndBulkLoad();
-//   if (!this->startSmaller)
-//   {
-//     double aux = pos1;
-//     pos1 = pos2;
-//     pos2 = aux;
-//   }
   Point pStartPoint ( true );
   AtPosition ( pos1, startSmaller, pStartPoint );
   Point pEndPoint ( true );
@@ -7740,14 +7735,15 @@ void SimpleLine::SubLine( double pos1, double pos2,
     return;
   }
 
+  double start = pos1;
+  double end = pos2;
   if( !startsSmaller) {
-    double aux = length - pos1;
-    pos1 = length - pos2;
-    pos2 = aux;
+    start = length - pos2;
+    end = length - pos1;
   }
 
   // First search for the first half segment
-  LRS lrs( pos1, 0 );
+  LRS lrs( start, 0 );
   int lrsPos = 0;
   Find( lrs, lrsPos );
 
@@ -7762,7 +7758,7 @@ void SimpleLine::SubLine( double pos1, double pos2,
   int edgeno = 0;
 
   HalfSegment auxHs;
-  if( hs.SubHalfSegment( pos1 - lrs2.lrsPos, pos2 - lrs2.lrsPos, auxHs ) ) {
+  if( hs.SubHalfSegment( start - lrs2.lrsPos, end - lrs2.lrsPos, auxHs ) ) {
      auxHs.attr.edgeno = ++edgeno;
      l += auxHs;
      auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
@@ -7770,13 +7766,13 @@ void SimpleLine::SubLine( double pos1, double pos2,
    }
 
    while( lrsPos < lrsArray.Size() - 1 &&
-          ( lrs2.lrsPos + hs.Length() < pos2 ||
-            AlmostEqual( lrs2.lrsPos + hs.Length(), pos2 ) ) ) {
+          ( lrs2.lrsPos + hs.Length() < end||
+            AlmostEqual( lrs2.lrsPos + hs.Length(), end ) ) ) {
      // Get the next half segment in the sequence
      lrsArray.Get( ++lrsPos, lrs2 );
      segments.Get( lrs2.hsPos, hs );
 
-     if( hs.SubHalfSegment( pos1 - lrs2.lrsPos, pos2 - lrs2.lrsPos, auxHs)){
+     if( hs.SubHalfSegment( start - lrs2.lrsPos, end - lrs2.lrsPos, auxHs)){
        auxHs.attr.edgeno = ++edgeno;
        l += auxHs;
        auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
@@ -7785,18 +7781,12 @@ void SimpleLine::SubLine( double pos1, double pos2,
    }
 
    l.EndBulkLoad();
-   if (!startsSmaller)
-   {
-     double aux = length - pos1;
-     pos1 = length - pos2;
-     pos2 = aux;
-   }
    Point pStartPoint ( true );
    AtPosition ( pos1, startsSmaller, pStartPoint );
    Point pEndPoint ( true );
    AtPosition ( pos2, startsSmaller, pEndPoint );
    if ( pStartPoint.GetX() < pEndPoint.GetX() ||
-     ( pStartPoint.GetX() == pEndPoint.GetX() &&
+      ( pStartPoint.GetX() == pEndPoint.GetX() &&
             pStartPoint.GetY() < pEndPoint.GetY()))
    {
      l.SetStartSmaller(true);
