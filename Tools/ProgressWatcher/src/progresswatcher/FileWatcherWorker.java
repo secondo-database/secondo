@@ -55,7 +55,7 @@ public class FileWatcherWorker implements Runnable {
 
 	public FileWatcherWorker(final BufferedReader br) {
 		this.br = br;
-		pattern = Pattern.compile("(\\d+);(\\d+);(\\d+);\\s*(.+);\\s*(.+);\\s*(.+);\\s*(.+);");
+		pattern = Pattern.compile("(\\d+);(\\d+);(\\d+);\\s*(.+);\\s*(.+);\\s*(.+);");
 	}
 
 	/**
@@ -130,7 +130,7 @@ public class FileWatcherWorker implements Runnable {
 			NumberFormat format = NumberFormat.getInstance(Locale.GERMAN);
 
 			try {
-				Number number = format.parse(matcher.group(7));
+				Number number = format.parse(matcher.group(6));
 				double progress = number.doubleValue();
 				
 				// Add the data to the time series
