@@ -12,15 +12,15 @@
 # Create and open database                                                    #
 ###############################################################################
 
-create database osmdb;
+create database testdb;
 
-open database osmdb;
+open database testdb;
 
 ###############################################################################
 # Set import parameter                                                        #
 ###############################################################################
 
-let SOURCEFILE = '/home/jandt/Downloads/OSM-Dateien/HerdeckeTeil.osm';
+let SOURCEFILE = '/home/jandt/Downloads/OSM-Dateien/jnettest.osm';
 
 ###############################################################################
 # import osm data from file                                                   #
@@ -1037,6 +1037,7 @@ let InRoutes =
    projectextend[Rid, JuncList, Lenth; SectList: .ListSids_s1]
    project[Rid, JuncList, SectList, Lenth]
    sortby [Rid]
+   rdup
 consume;
 
 let InJunctions =
@@ -1048,6 +1049,8 @@ let InJunctions =
    JunctionsOutgoingSections feed {s2}
    hashjoin[Jid, Jid_s2]
    projectextend[Jid, Point, RoutePositions, InSects; OutSects: .ListOutSections_s2]
+   sortby[Jid]
+   rdup
 consume;
 
 ##############################################################################
@@ -1505,6 +1508,8 @@ let InSections =
   hashjoin[Sid, Sid_a4]
   projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth, RouteInter,
     AdjSectUp, AdjSectDown, RevAdjSectUp; RevAdjSectDown: .RevAdjSectDown_a4]
+  sortby[Sid]
+  rdup
 consume;
 
 query createjnet("testjnet", InJunctions, InSections, InRoutes);
