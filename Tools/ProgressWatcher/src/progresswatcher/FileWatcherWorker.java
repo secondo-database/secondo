@@ -130,7 +130,7 @@ public class FileWatcherWorker implements Runnable {
 			NumberFormat format = NumberFormat.getInstance(Locale.GERMAN);
 
 			try {
-				Number number = format.parse(matcher.group(6));
+				Number number = format.parse(matcher.group(4));
 				double progress = number.doubleValue();
 				
 				// Add the data to the time series
