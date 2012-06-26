@@ -6,7 +6,21 @@ Number   : 1
 Signature: int x rel x rel x rel -> bool
 Example  : query createjnet("testnet", junctest, secttest, routtest);
 Result   : TRUE
-Tolerance: 0.01%Seco
+Tolerance: 0.01%
+
+Operator : createjpoint
+Number   : 1
+Signature: jnet x rloc -> jpoint
+Example  : query createjpoint(testjnet, createrloc(1, 0.0, [const jdirection value("Both")]));
+Result   : (jpoint ("testjnet" (1 0.0 (Both))))
+Tolerance: 0.01%
+
+Operator : createjline
+Number   : 1
+Signature: jnet x listjrint -> jline
+Example  : query createjline(testjnet, testlistrint2);
+Result   : (jline ("testjnet" ((1 0.0 0.002 (Both)) (2 0.0 0.002 (Both)) (10 0.0 0.0001 (Up)) (11 0.0 0.0001 (Up)))))
+Tolerance: 0.01%
 
 Operator : createrloc
 Number   : 1

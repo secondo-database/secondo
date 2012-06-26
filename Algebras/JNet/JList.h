@@ -706,22 +706,23 @@ JList<ListElem>& JList<ListElem>::operator+=(const JList<ListElem>& l)
 template<class ListElem>
 JList<ListElem>& JList<ListElem>::operator-=(const ListElem& e)
 {
-  if (IsDefined() && e.IsDefined())
+  if (IsDefined() && e.IsDefined() && !IsEmpty())
   {
     int pos;
-    elemlist.Find(&e, ListElemCompare<ListElem>, pos);
-    ListElem actElem;
-    elemlist.Get(pos,actElem);
-    if (actElem == e)
-    {
-      pos++;
-      while(pos < elemlist.Size())
+    if (elemlist.Find(&e, ListElemCompare<ListElem>, pos)){
+      ListElem actElem;
+      elemlist.Get(pos, actElem);
+      if (actElem == e)
       {
-        elemlist.Get(pos, actElem);
-        elemlist.Put(pos-1, actElem);
         pos++;
+        while(pos < elemlist.Size())
+        {
+          elemlist.Get(pos, actElem);
+          elemlist.Put(pos-1, actElem);
+          pos++;
+        }
+        elemlist.resize(elemlist.Size()-1);
       }
-      elemlist.resize(elemlist.Size()-1);
     }
   }
   return *this;
@@ -730,7 +731,7 @@ JList<ListElem>& JList<ListElem>::operator-=(const ListElem& e)
 template<class ListElem>
 JList<ListElem>& JList<ListElem>::operator-=(const JList<ListElem>& l)
 {
-  if (IsDefined() && l.IsDefined())
+  if (IsDefined() && l.IsDefined() && !IsEmpty() && !l.IsEmpty())
   {
     int i = 0;
     int j = 0;
@@ -839,8 +840,6 @@ Word JList<ListElem>::In(const ListExpr typeInfo, const ListExpr instance,
   ListExpr first = nl->TheEmptyList();
   correct = true;
   JList<ListElem>* in = new JList<ListElem>(true);
-  bool firstElem = true;
-  ListElem lastElem;
   in->StartBulkload();
   while( !nl->IsEmpty( rest ) )
   {
@@ -851,8 +850,7 @@ Word JList<ListElem>::In(const ListExpr typeInfo, const ListExpr instance,
     if (correct)
     {
       ListElem* e = (ListElem*) w.addr;
-      if (firstElem) lastElem = *e;
-       in->operator+=(*e);
+      in->operator+=(*e);
       e->DeleteIfAllowed();
       e = 0;
     }
@@ -1043,7 +1041,7 @@ void JList<ListElem>::TrimToSize()
 template<class ListElem>
 JList<ListElem>& JList<ListElem>::Restrict(const ListElem& sub)
 {
-  if (IsDefined() && sub.IsDefined())
+  if (IsDefined() && sub.IsDefined() && !IsEmpty())
   {
     int pos = 0;
     if (Contains(sub,pos))
@@ -1061,7 +1059,7 @@ JList<ListElem>& JList<ListElem>::Restrict(const ListElem& sub)
 template<class ListElem>
 JList<ListElem>& JList<ListElem>::Restrict(const JList<ListElem>& sub)
 {
-  if (IsDefined() && sub.IsDefined())
+  if (IsDefined() && sub.IsDefined() && !IsEmpty())
   {
     int i = 0;
     int j = 0;

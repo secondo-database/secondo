@@ -48,9 +48,10 @@ Direction::Direction():Attribute()
 Direction::Direction(const bool defined): Attribute(defined), side(Both)
 {}
 
-Direction::Direction(const Direction& other):Attribute(other.IsDefined())
+Direction::Direction(const Direction& other) : Attribute(other.IsDefined())
 {
-  if (other.IsDefined()) side = other.GetDirection();
+  if (other.IsDefined())
+    side = other.GetDirection();
 }
 
 Direction::Direction(const JSide inside) : Attribute(true)
@@ -315,7 +316,7 @@ Word Direction::In(const ListExpr typeInfo, const ListExpr instance,
 
 Word Direction::Create(const ListExpr typeInfo)
 {
-  return SetWord(new Direction(false));
+  return SetWord(new Direction(true));
 }
 
 void Direction::Delete( const ListExpr typeInfo, Word& w )

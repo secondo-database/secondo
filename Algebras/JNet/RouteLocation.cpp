@@ -45,31 +45,35 @@ RouteLocation::RouteLocation(): Attribute()
 {}
 
 RouteLocation::RouteLocation(const RouteLocation& other) :
-  Attribute(other.IsDefined()), rid(0), pos(0.0), side(Both)
+  Attribute(other.IsDefined())
 {
   if (other.IsDefined()){
     rid = other.GetRouteId();
     pos = other.GetPosition();
     side = other.GetSide();
+  } else {
+    rid = 0;
+    pos = 0.0;
+    side = (Direction) Both;
   }
 }
 
 RouteLocation::RouteLocation(const bool defined) :
-  Attribute(defined), rid(0), pos(0.0), side(Both)
+  Attribute(defined), rid(0), pos(0.0), side(defined)
 {}
 
 RouteLocation::RouteLocation(const int routeId, const double position,
                              const Direction sideofroad) :
   Attribute(true), rid(routeId),  pos(position),  side(sideofroad)
 {
-  assert(rid >= 0 && pos >= 0.0);
+  if(!(rid >= 0 && pos >= 0.0)) SetDefined(false);
 }
 
 RouteLocation::RouteLocation(const int routeId, const double position,
                              const JSide sideofroad) :
   Attribute(true), rid(routeId), pos(position), side(Direction(sideofroad))
 {
-  assert(rid >= 0 && pos >= 0.0);
+  if(!(rid >= 0 && pos >= 0.0)) SetDefined(false);
 }
 
 RouteLocation::~RouteLocation()
@@ -97,14 +101,16 @@ double RouteLocation::GetPosition() const
 
 void RouteLocation::SetRouteId(const int routeid)
 {
-  assert(routeid >= 0);
-  rid = routeid;
+  if(routeid >= 0) {
+    rid = routeid;
+  }
+
 }
 
 void RouteLocation::SetPosition(const double position)
 {
-  assert (position >= 0.0);
-  pos = position;
+  if (position >= 0.0)
+    pos = position;
 }
 
 void RouteLocation::SetSide(const Direction sideofroad)
@@ -354,7 +360,7 @@ Word RouteLocation::In(const ListExpr typeInfo, const ListExpr instance,
 
 Word RouteLocation::Create(const ListExpr typeInfo)
 {
-  return SetWord(new RouteLocation(false));
+  return SetWord(new RouteLocation(true));
 }
 
 void RouteLocation::Delete( const ListExpr typeInfo, Word& w )

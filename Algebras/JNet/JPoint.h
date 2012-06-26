@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Attribute.h"
 #include "StandardTypes.h"
 #include "RouteLocation.h"
+#include "JNetwork.h"
 
 /*
 1 class ~JPoint~
@@ -58,6 +59,7 @@ public:
   explicit JPoint(const bool def);
   JPoint(const JPoint& other);
   JPoint(const string& netId, const RouteLocation& rloc);
+  JPoint(const JNetwork* jnet, const RouteLocation* rloc);
 
   ~JPoint();
 
@@ -66,7 +68,7 @@ public:
 
 */
 
-  string GetNetId() const;
+  string GetNetworkId() const;
   RouteLocation GetPosition() const;
 
   void SetNetId(const string& netId);
@@ -115,10 +117,10 @@ public:
   static Word Create(const ListExpr typeInfo);
   static void Delete( const ListExpr typeInfo, Word& w );
   static void Close( const ListExpr typeInfo, Word& w );
-/*  static bool Save(SmiRecord& valueRecord, size_t& offset,
+  static bool Save(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value);
   static bool Open (SmiRecord& valueRecord, size_t& offset,
-                    const ListExpr typeInfo, Word& value);*/
+                    const ListExpr typeInfo, Word& value);
   static Word Clone( const ListExpr typeInfo, const Word& w );
   static void* Cast( void* addr );
   static bool KindCheck ( ListExpr type, ListExpr& errorInfo );

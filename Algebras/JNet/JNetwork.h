@@ -257,6 +257,18 @@ beeing damaged.
   static const bool checkType(const ListExpr type);
 
 /*
+1.1.1 Operations for other network data types
+
+1.1.1.1 ~Contains~
+Returns true if the given position(s) exist in the network.
+
+*/
+
+  bool Contains(const RouteLocation* rloc) const;
+  bool Contains(const JRouteInterval* rint) const;
+
+
+/*
 1.1 Private declarations
 
 */
@@ -354,7 +366,9 @@ static string routesBTreeTypeInfo;
   };
 
 /*
-1.1.1 ListRepresentation of internal relations
+1.1.1 Private Helper Functions
+
+1.1.1.1 ListRepresentation of internal relations
 
 */
 
@@ -364,11 +378,36 @@ static string routesBTreeTypeInfo;
   ListExpr NetdistancesToList() const;
 
 /*
-1.1.1 Create Internal Trees
+1.1.1.1 Create Internal Trees
 
 */
 
   void CreateTrees();
+
+/*
+1.1.1.1 Initialize ordered relation of netdistances by section length between
+        junctions
+
+*/
+
+  void InitNetdistances();
+
+/*
+1.1.1.1 Tuple Access by Identifier
+
+The returned tuple must be deleted by the caller.
+
+*/
+
+  Tuple* GetRouteTupleWithId(const int rid) const;
+
+/*
+1.1.1.1 Access to (tuple) attributes for identifiers
+
+*/
+
+  double GetRouteLength(const int rid) const;
+
 
 };
 /*

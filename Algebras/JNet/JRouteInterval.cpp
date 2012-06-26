@@ -45,13 +45,18 @@ JRouteInterval::JRouteInterval() :
 {}
 
 JRouteInterval::JRouteInterval(const JRouteInterval& other) :
-    Attribute(other.IsDefined()), rid(0), startpos(0.0), endpos(0.0), side(Both)
+    Attribute(other.IsDefined())
 {
   if (other.IsDefined()){
     rid = other.GetRouteId();
     startpos = other.GetStartPosition();
     endpos = other.GetEndPosition();
     side = other.GetSide();
+  } else {
+    rid = 0;
+    startpos = 0.0;
+    endpos = 0.0;
+    side = (Direction) Both;
   }
 }
 
@@ -61,7 +66,8 @@ JRouteInterval::JRouteInterval(const int routeid, const double from,
     Attribute(true), rid(routeid), startpos(min(from,to)), endpos(max(from,to)),
     side(sideofroad)
 {
-  assert(rid >= 0 && startpos >= 0.0 && endpos >= 0.0);
+  if(!(rid >= 0 && startpos >= 0.0 && startpos <= endpos && endpos >= 0.0))
+    SetDefined(false);
 }
 
 JRouteInterval::JRouteInterval(const int routeid, const double from,
@@ -69,16 +75,17 @@ JRouteInterval::JRouteInterval(const int routeid, const double from,
     Attribute(true), rid(routeid), startpos(min(from,to)), endpos(max(from,to)),
     side(sideofroad)
 {
-  assert(rid >= 0 && startpos >= 0.0 && endpos >= 0.0);
+  if(!(rid >= 0 && startpos >= 0.0 && startpos <= endpos && endpos >= 0.0))
+    SetDefined(false);
 }
 
 JRouteInterval::JRouteInterval(const bool defined) :
-    Attribute(defined), rid(0), startpos(0.0), endpos(0.0), side(Both)
+    Attribute(defined), rid(0), startpos(0.0), endpos(0.0), side(defined)
 {}
 
 JRouteInterval::JRouteInterval(const RouteLocation& from,
                                const RouteLocation& to) :
-  Attribute(false), rid(0), startpos(0.0), endpos(0.0), side(Both)
+  Attribute(true)
 {
   if (from.IsDefined() && to.IsDefined() &&
       from.GetRouteId() == to.GetRouteId() &&
@@ -89,6 +96,12 @@ JRouteInterval::JRouteInterval(const RouteLocation& from,
     startpos = min(from.GetPosition(),to.GetPosition());
     endpos = max(from.GetPosition(),to.GetPosition());
     side = min(from.GetSide(), to.GetSide());
+  } else {
+    SetDefined(false);
+    rid = 0;
+    startpos = 0.0;
+    endpos = 0.0;
+    side = (Direction) Both;
   }
 }
 
@@ -122,31 +135,34 @@ JRouteInterval::~JRouteInterval()
 
   void JRouteInterval::SetRouteId(const int routeid)
 {
-  assert (routeid >= 0);
-  rid = routeid;
+  if (routeid >= 0)
+    rid = routeid;
 }
 
   void JRouteInterval::SetStartPosition(const double position)
 {
-  assert (position >= 0.0);
-  if (position > endpos)
-  {
-    startpos = endpos;
-    endpos = position;
+  if (position >= 0.0){
+    if (position > endpos)
+    {
+      startpos = endpos;
+      endpos = position;
+    }
+    else
+      startpos = position;
   }
-  else
-    startpos = position;
+
 }
 
   void JRouteInterval::SetEndPosition(const double position)
 {
-  assert(position >= 0.0);
-  if (position > startpos)
-    endpos = position;
-  else
-  {
-    endpos = startpos;
-    startpos = position;
+  if(position >= 0.0) {
+    if (position > startpos)
+      endpos = position;
+    else
+    {
+      endpos = startpos;
+      startpos = position;
+    }
   }
 }
 
@@ -363,8 +379,10 @@ Word JRouteInterval::In(const ListExpr typeInfo, const ListExpr instance,
         cmsg.inFunError("1.Element should be " + CcInt::BasicType() + " >= 0.");
         return SetWord(Address(0));
       }
-      if (startPosList.isReal() && startPosList.realval() >= 0.0)
+      if (startPosList.isReal() && startPosList.realval() >= 0)
+      {
         spos = startPosList.realval();
+      }
       else
       {
         correct = false;
@@ -412,7 +430,7 @@ Word JRouteInterval::In(const ListExpr typeInfo, const ListExpr instance,
 
 Word JRouteInterval::Create(const ListExpr typeInfo)
 {
-  return SetWord(new JRouteInterval(false));
+  return SetWord(new JRouteInterval(true));
 }
 
 void JRouteInterval::Delete( const ListExpr typeInfo, Word& w )

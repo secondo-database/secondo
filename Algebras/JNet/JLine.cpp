@@ -28,6 +28,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Symbols.h"
 #include "StandardTypes.h"
 #include "JRITree.h"
+/*
+1 Implentation of helpful functions
+
+1.1 ~RouteIntervalCompare~
+Calls JRouteInterval::Compare for the given arguments
+
+*/
+
+ int RouteIntervalCompare(const void* a, const void* b)
+ {
+   JRouteInterval arint = (JRouteInterval) a;
+   JRouteInterval brint = (JRouteInterval) b;
+   return arint.Compare(brint);
+ }
 
 /*
 1 Implementation of class JLine
@@ -40,23 +54,102 @@ JLine::JLine() : Attribute()
 {}
 
 JLine::JLine(const bool def) :
-    Attribute(def), nid(""), routeintervals(0), sorted(false)
+    Attribute(def), nid(""), routeintervals(0), sorted(false),
+    activBulkload(false)
 {}
 
 JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList) :
     Attribute(true), nid(netId), routeintervals(rintList)
 {
-  Sort();
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  Word value;
+  bool valDefined = false;
+  if (sc->IsObjectName(netId) &&
+      sc->GetObject(netId, value, valDefined) &&
+      valDefined)
+  {
+    JNetwork* jnet = (JNetwork*) value.addr;
+    JRouteInterval actInt;
+    StartBulkload();
+    nid = jnet->GetId();
+    for (int i = 0; i < rintList.Size(); i++){
+      rintList.Get(i,actInt);
+      if (jnet->Contains(&actInt))
+      {
+        Add(actInt);
+      }
+    }
+    EndBulkload();
+    sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), value);
+  }
+}
+
+JLine::JLine(const JNetwork* jnet, const JListRInt* rintList) :
+    Attribute(true),routeintervals(rintList->GetNoOfComponents())
+{
+  if (!rintList->IsDefined() || !jnet->IsDefined())
+  {
+    SetDefined(false);
+  }
+  else
+  {
+    nid = jnet->GetId();
+    JRouteInterval actInt;
+    StartBulkload();
+    int i = 0;
+    while (i < rintList->GetNoOfComponents())
+    {
+      rintList->Get(i++,actInt);
+      if (jnet->Contains(&actInt))
+        Add(actInt);
+    }
+    EndBulkload();
+  }
 }
 
 JLine::JLine(const JLine& other) :
-  Attribute(other.IsDefined()), nid(""), routeintervals(0), sorted(false)
+  Attribute(other.IsDefined())
 {
   if (other.IsDefined())
   {
     nid = other.GetNetworkId();
     routeintervals.copyFrom(other.routeintervals);
     sorted = other.IsSorted();
+    activBulkload = false;
+  }
+}
+
+JLine::JLine(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo) :
+  Attribute(true), routeintervals(0)
+{
+  activBulkload = false;
+  Word w;
+  ListExpr idLE;
+  nl->ReadFromString(CcString::BasicType(), idLE);
+  ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
+  if (OpenAttribute<CcString>(valueRecord, offset, numId, w))
+  {
+    nid = ((CcString*)w.addr)->GetValue();
+
+    if (nid != "undefined")
+    {
+      size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+      SmiSize addoffset = 0;
+      char* buf = (char*) malloc(bufsize);
+      valueRecord.Read(buf, bufsize, offset);
+      offset += bufsize;
+      assert(buf != NULL);
+      routeintervals.restoreHeader(buf,addoffset);
+      free(buf);
+    }
+    else
+    {
+      SetDefined(false);
+    }
+  }
+  else
+  {
+    SetDefined(false);
   }
 }
 
@@ -285,7 +378,7 @@ ListExpr JLine::Out(ListExpr typeInfo, Word value)
     return nl->SymbolAtom(Symbol::UNDEFINED());
   else
   {
-    NList nid(out->GetNetworkId());
+    NList nid(out->GetNetworkId(),true, false);
 
     NList rintList(nl->TheEmptyList());
     JRouteInterval ri(false);
@@ -311,7 +404,6 @@ ListExpr JLine::Out(ListExpr typeInfo, Word value)
 Word JLine::In(const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct)
 {
-
   if(nl->ListLength(instance) == 1 && nl->IsEqual(instance,Symbol::UNDEFINED()))
   {
     correct = true;
@@ -321,52 +413,47 @@ Word JLine::In(const ListExpr typeInfo, const ListExpr instance,
   {
     if (nl->ListLength(instance) == 2)
     {
-      ListExpr netList = nl->First(instance);
-      if (!(nl->IsAtom(netList) && nl->AtomType(netList) == StringType))
-      {
-        correct = false;
-        cmsg.inFunError("First element should be network name.");
-            return SetWord(Address(0));
-      }
-      string nid = nl->StringValue(netList);
-
+      ListExpr netId = nl->First(instance);
+      string nid = nl->StringValue(netId);
+      JLine* res = new JLine(true);
+      res->SetNetworkId(nid);
+      res->StartBulkload();
       ListExpr rintList = nl->Second(instance);
-      DbArray<JRouteInterval>* setri = new DbArray<JRouteInterval> (0);
-      ListExpr actRint = nl->TheEmptyList();
-      while( !nl->IsEmpty( rintList ) )
+       ListExpr actRint = nl->TheEmptyList();
+      correct = true;
+      while( !nl->IsEmpty( rintList ) && correct)
       {
         actRint = nl->First( rintList );
-        rintList = nl->Rest( rintList );
-        Word w = JRouteInterval::In(nl->TheEmptyList(), actRint, errorPos,
+         Word w = JRouteInterval::In(nl->TheEmptyList(), actRint, errorPos,
                                     errorInfo, correct);
         if (correct)
         {
           JRouteInterval* actInt = (JRouteInterval*) w.addr;
-          setri->Append(*actInt);
+          res->Add(*actInt);
           actInt->DeleteIfAllowed();
           actInt = 0;
         }
         else
         {
-          setri->Destroy();
-          delete setri;
-          setri = 0;
-          cmsg.inFunError("Error in list of " + JRouteInterval::BasicType());
-          return SetWord(Address(0));
+          cmsg.inFunError("Error in list of " + JRouteInterval::BasicType() +
+            " at " + nl->ToString(actRint));
         }
+        rintList = nl->Rest( rintList );
       }
-      JLine* result = new JLine(nid, *setri);
-      setri->Destroy();
-      delete setri;
-      correct = true;
-      return SetWord(result);
+      res->EndBulkload();
+      if (correct)
+      {
+        return SetWord(res);
+      }
+      else
+      {
+        return SetWord(Address(0));
+      }
     }
   }
-
   correct = false;
   cmsg.inFunError("Expected List of length 1 or 2.");
   return SetWord(Address(0));
-
 }
 
 Word JLine::Create(const ListExpr typeInfo)
@@ -385,6 +472,57 @@ void JLine::Close( const ListExpr typeInfo, Word& w )
 {
   delete ((JLine*)w.addr);
   w.addr = 0;
+}
+
+bool JLine::Save(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo, Word& value)
+{
+  JLine* source = (JLine*) value.addr;
+  if (source->IsDefined())
+  {
+    Word w;
+    w.setAddr(new CcString(true, source->GetNetworkId()));
+    ListExpr idLE;
+    nl->ReadFromString(CcString::BasicType(), idLE);
+    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
+    if (SaveAttribute<CcString>(valueRecord, offset, numId, w))
+    {
+      SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+      SmiRecordFile* rf = ctlg->GetFlobFile();
+      Flob* tmpFlob = source->GetFLOB(0);
+      tmpFlob->saveToFile(rf, *tmpFlob );
+      SmiSize addoffset = 0;
+      size_t bufsize = tmpFlob->headerSize()+ 2*sizeof(int);
+      char* buf = (char*) malloc(bufsize);
+      tmpFlob->serializeHeader(buf,addoffset);
+      assert(addoffset==bufsize);
+      valueRecord.Write(buf, bufsize, offset);
+      offset += bufsize;
+      free(buf);
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+  }
+  else
+  {
+    Word w;
+    w.setAddr(new CcString(true,Symbol::UNDEFINED()));
+    ListExpr idLE;
+    nl->ReadFromString(CcString::BasicType(), idLE);
+    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
+    return SaveAttribute<CcString>(valueRecord, offset, numId, w);
+  }
+}
+
+bool JLine::Open (SmiRecord& valueRecord, size_t& offset,
+                  const ListExpr typeInfo, Word& value)
+{
+  JLine *res = new JLine(valueRecord, offset, typeInfo);
+  value.setAddr(res);
+  return true;
 }
 
 Word JLine::Clone( const ListExpr typeInfo, const Word& w )
@@ -456,6 +594,56 @@ void JLine::Get(const int i, JRouteInterval& ri) const
 }
 
 /*
+1.1 Managing bulkload of routeintervals
+
+*/
+
+void JLine::StartBulkload()
+{
+  SetDefined(true);
+  activBulkload = true;
+  routeintervals.clean();
+  routeintervals.TrimToSize();
+}
+
+void JLine::EndBulkload()
+{
+  activBulkload = false;
+  Sort();
+}
+
+JLine& JLine::Add(const JRouteInterval& rint)
+{
+  if (IsDefined() && rint.IsDefined())
+  {
+    if(activBulkload)
+      routeintervals.Append(rint);
+    else
+    {
+      int pos = 0;
+      routeintervals.Find(&rint, RouteIntervalCompare, pos);
+      JRouteInterval actElem, nextElem;
+      routeintervals.Get(pos,actElem);
+      if (actElem.Compare(rint) != 0)
+      {
+        nextElem = actElem;
+        routeintervals.Put(pos, rint);
+        pos++;
+        while(pos < routeintervals.Size())
+        {
+          routeintervals.Get(pos, actElem);
+          routeintervals.Put(pos, nextElem);
+          nextElem = actElem;
+          pos++;
+        }
+        routeintervals.Append(nextElem);
+      }
+    }
+  }
+  return *this;
+}
+
+/*
 1.1 Management of RouteIntervals
 
 */
@@ -467,6 +655,7 @@ void JLine::Sort()
     if (!IsEmpty())
     {
       JRITree* sorted = new JRITree(&routeintervals);
+      routeintervals.clean();
       sorted->TreeToDbArray(&routeintervals);
       sorted->Destroy();
       delete sorted;

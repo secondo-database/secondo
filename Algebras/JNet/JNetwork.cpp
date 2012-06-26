@@ -49,9 +49,9 @@ Returns a pointer to the copy of the relation of relPointer.
 
 */
 
-template<class RelType>
-RelType* getRelationCopy(const string relTypeInfo,
-                         const RelType* relPointer)
+
+Relation* getRelationCopy(const string relTypeInfo,
+                         const Relation* relPointer)
 {
   ListExpr strPtr = listutils::getPtrList(relPointer);
   string querystring = "(consume (feed (" + relTypeInfo +
@@ -59,8 +59,21 @@ RelType* getRelationCopy(const string relTypeInfo,
   Word resultWord;
   int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
   assert ( QueryExecuted );
-  return ( RelType * ) resultWord.addr;
+  return ( Relation * ) resultWord.addr;
 }
+
+OrderedRelation* getRelationCopy(const string relTypeInfo,
+                                 const OrderedRelation* relPointer)
+{
+  ListExpr relType;
+  nl->ReadFromString ( relTypeInfo, relType );
+  ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType(relType);
+  Word wrel;
+  wrel.setAddr(const_cast<OrderedRelation*> (relPointer));
+  Word res = OrderedRelation::Clone(relNumType, wrel);
+  return (OrderedRelation*) res.addr;
+}
+
 
 /*
 1.1 ~relationToList~
@@ -104,7 +117,9 @@ Relation* relationFromList(const ListExpr nlRel, const string descriptor,
 {
   ListExpr relType;
   nl->ReadFromString(descriptor, relType);
-  return (Relation*) Relation::In(relType, nlRel, errorPos, errorInfo, correct);
+  ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType ( relType );
+  return (Relation*) Relation::In(relNumType, nlRel, errorPos, errorInfo,
+                                  correct);
 }
 
 OrderedRelation* ordRelationFromList(const ListExpr nlRel,
@@ -114,7 +129,9 @@ OrderedRelation* ordRelationFromList(const ListExpr nlRel,
 {
   ListExpr relType;
   nl->ReadFromString(descriptor, relType);
-  Word wRel = OrderedRelation::In(relType, nlRel, errorPos, errorInfo, correct);
+  ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType ( relType );
+  Word wRel = OrderedRelation::In(relNumType, nlRel, errorPos, errorInfo,
+                                  correct);
   return (OrderedRelation*) wRel.addr;
 }
 
@@ -172,8 +189,8 @@ bool openRelation(Relation*& rel, const string descriptor,
 {
   ListExpr relType;
   nl->ReadFromString ( descriptor, relType );
-  ListExpr relNumericType = SecondoSystem::GetCatalog()->NumericType(relType);
-  rel = Relation::Open(valueRecord,offset,relNumericType);
+  ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType(relType);
+  rel = Relation::Open(valueRecord,offset,relNumType);
   return (rel != 0);
 }
 
@@ -182,9 +199,9 @@ bool openRelation(OrderedRelation*& rel, const string descriptor,
 {
   ListExpr relType;
   nl->ReadFromString ( descriptor, relType );
-  ListExpr relNumericType = SecondoSystem::GetCatalog()->NumericType(relType);
+  ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType(relType);
   Word wrel;
-  bool ok = OrderedRelation::Open(valueRecord,offset,relNumericType, wrel);
+  bool ok = OrderedRelation::Open(valueRecord, offset, relNumType, wrel);
   if (ok)
     rel = (OrderedRelation*) wrel.addr;
   return ok;
@@ -218,9 +235,8 @@ bool saveRelation(const string descriptor, Relation* rel,
 {
   ListExpr relType;
   nl->ReadFromString ( descriptor, relType );
-  ListExpr relNumericType =
-    SecondoSystem::GetCatalog()->NumericType ( relType );
-  return rel->Save(valueRecord, offset, relNumericType);
+  ListExpr relNumType =  SecondoSystem::GetCatalog()->NumericType ( relType );
+  return rel->Save(valueRecord, offset, relNumType);
 }
 
 bool saveRelation(const string descriptor, OrderedRelation* rel,
@@ -228,11 +244,10 @@ bool saveRelation(const string descriptor, OrderedRelation* rel,
 {
   ListExpr relType;
   nl->ReadFromString ( descriptor, relType );
-  ListExpr relNumericType =
-      SecondoSystem::GetCatalog()->NumericType ( relType );
+  ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType ( relType );
   Word wrel;
   wrel.setAddr(rel);
-  bool ok = OrderedRelation::Save(valueRecord, offset, relNumericType, wrel);
+  bool ok = OrderedRelation::Save(valueRecord, offset, relNumType, wrel);
   return ok;
 }
 
@@ -271,17 +286,13 @@ JNetwork::JNetwork(const bool def) :
 JNetwork::JNetwork(const string nid, const Relation* injunctions,
                    const Relation* insections, const Relation* inroutes) :
   defined(true), id(nid),
-  junctions(getRelationCopy<Relation>(junctionsRelationTypeInfo, injunctions)),
-  sections(getRelationCopy<Relation>(sectionsRelationTypeInfo, insections)),
-  routes(getRelationCopy<Relation>(routesRelationTypeInfo, inroutes)),
+  junctions(getRelationCopy(junctionsRelationTypeInfo, injunctions)),
+  sections(getRelationCopy(sectionsRelationTypeInfo, insections)),
+  routes(getRelationCopy(routesRelationTypeInfo, inroutes)),
   netdistances(0), junctionsBTree(0), junctionsRTree(0), sectionsBTree(0),
   sectionsRTree(0), routesBTree(0)
 {
-  ListExpr relType;
-  nl->ReadFromString(netdistancesRelationTypeInfo, relType);
-  ListExpr relNumericType =
-        SecondoSystem::GetCatalog()->NumericType ( relType );
-  netdistances = new OrderedRelation(relNumericType);
+  InitNetdistances();
   CreateTrees();
 }
 
@@ -289,11 +300,10 @@ JNetwork::JNetwork(const string nid, const Relation* injunctions,
                    const Relation* insections, const Relation* inroutes,
                    const OrderedRelation* inDist) :
   defined(true), id(nid),
-  junctions(getRelationCopy<Relation>(junctionsRelationTypeInfo, injunctions)),
-  sections(getRelationCopy<Relation>(sectionsRelationTypeInfo, insections)),
-  routes(getRelationCopy<Relation>(routesRelationTypeInfo, inroutes)),
-  netdistances(getRelationCopy<OrderedRelation>(netdistancesRelationTypeInfo,
-                                                inDist)),
+  junctions(getRelationCopy(junctionsRelationTypeInfo, injunctions)),
+  sections(getRelationCopy(sectionsRelationTypeInfo, insections)),
+  routes(getRelationCopy(routesRelationTypeInfo, inroutes)),
+  netdistances(getRelationCopy(netdistancesRelationTypeInfo, inDist)),
   junctionsBTree(0), junctionsRTree(0), sectionsBTree(0), sectionsRTree(0),
   routesBTree(0)
 {
@@ -479,18 +489,18 @@ Relation* JNetwork::GetJunctionsCopy() const
 
 Relation* JNetwork::GetRoutesCopy() const
 {
-  return getRelationCopy<Relation>(routesRelationTypeInfo, routes);
+  return getRelationCopy(routesRelationTypeInfo, routes);
 }
 
 Relation* JNetwork::GetSectionsCopy() const
 {
-  return getRelationCopy<Relation>(sectionsRelationTypeInfo, sections);
+  return getRelationCopy(sectionsRelationTypeInfo, sections);
 }
 
 OrderedRelation* JNetwork::GetNedistancesRelationCopy() const
 {
-  return getRelationCopy<OrderedRelation>(netdistancesRelationTypeInfo,
-                                          netdistances);
+  return getRelationCopy(netdistancesRelationTypeInfo,
+                         netdistances);
 }
 
 void JNetwork::SetDefined(const bool def)
@@ -525,6 +535,7 @@ ListExpr JNetwork::Out(ListExpr typeInfo, Word value)
 Word JNetwork::In(const ListExpr typeInfo, const ListExpr instance,
                   const int errorPos, ListExpr& errorInfo, bool& correct)
 {
+  correct = true;
   if(nl->ListLength(instance) == 1)
   {
     if (nl->IsAtom(instance) &&
@@ -540,27 +551,17 @@ Word JNetwork::In(const ListExpr typeInfo, const ListExpr instance,
     if (nl->ListLength(instance) == 5)
     {
       ListExpr netId = nl->First(instance);
-      string nid ="";
-      if (nl->ListLength(netId) == 1  && nl->IsAtom(netId))
-        string nid = nl->StringValue(netId);
-      else
-      {
-        correct = false;
-        return SetWord(Address(0));
-      }
+      string nid = nl->StringValue(netId);
 
       Relation* juncRel = relationFromList(nl->Second(instance),
                                            junctionsRelationTypeInfo,
                                            errorPos, errorInfo, correct);
-
       Relation* sectRel = relationFromList(nl->Third(instance),
                                            sectionsRelationTypeInfo,
                                            errorPos, errorInfo, correct);
-
       Relation* routeRel = relationFromList(nl->Fourth(instance),
                                             routesRelationTypeInfo,
                                             errorPos, errorInfo, correct);
-
       OrderedRelation* distRel =
         ordRelationFromList(nl->Fifth(instance), netdistancesRelationTypeInfo,
                             errorPos, errorInfo, correct);
@@ -622,7 +623,7 @@ void* JNetwork::Cast( void* addr )
 
 bool JNetwork::KindCheck ( ListExpr type, ListExpr& errorInfo )
 {
-  return checkType(type);
+  return nl->IsEqual(type, BasicType());
 }
 
 int JNetwork::SizeOf()
@@ -664,7 +665,7 @@ bool JNetwork::Save(SmiRecord& valueRecord, size_t& offset,
                       offset);
 
   if (ok)
-    ok =  saveRelation(sectionsRelationTypeInfo, sections, valueRecord, offset);
+    ok = saveRelation(sectionsRelationTypeInfo, sections, valueRecord, offset);
 
   if (ok)
     ok = saveRelation(routesRelationTypeInfo, routes, valueRecord, offset);
@@ -734,15 +735,20 @@ ostream& JNetwork::Print(ostream& os) const
 
     os << "Junctions: " << endl;
     if (junctions !=  0)junctions->Print(os);
+    else os << "not defined" << endl;
 
     os << "Sections: " << endl;
     if (sections != 0) sections->Print(os);
+    else os << "not defined" << endl;
 
     os << "Routes: " << endl;
     if (routes != 0) routes->Print(os);
+    else os << "not defined" << endl;
 
     os << "Network Distances:" << endl;
     if (netdistances != 0) netdistances->Print(os);
+    else os << "not defined" << endl;
+
   }
   os << endl;
   return os;
@@ -756,6 +762,28 @@ const string JNetwork::BasicType()
 const bool JNetwork::checkType(const ListExpr type)
 {
   return listutils::isSymbol(type, BasicType());
+}
+
+/*
+1.1 Operations for other network data types
+1.1.1 ~Contains~
+Checks if the given position(s) exist in the network.
+
+*/
+
+bool JNetwork::Contains(const RouteLocation* rloc) const {
+  if (rloc->GetPosition() <= GetRouteLength(rloc->GetRouteId()))
+    return true;
+  else
+    return false;
+}
+
+bool JNetwork::Contains(const JRouteInterval* rint) const{
+  if (rint->GetStartPosition() >= 0 &&
+      rint->GetEndPosition()<= GetRouteLength(rint->GetRouteId()))
+    return true;
+  else
+    return false;
 }
 
 /*
@@ -784,11 +812,6 @@ string JNetwork::routesTupleTypeInfo = Tuple::BasicType() + "((Id " +
   ") (ListSections " + JListInt::BasicType() + ") (Lenth " +
   CcReal::BasicType() + "))";
 
-string JNetwork::netdistancesTupleTypeInfo = Tuple::BasicType() +
-  "((Source " + CcInt::BasicType() + ")(Target " + CcInt::BasicType() +
-  ")(NextJunct " + CcInt::BasicType() + ")(ViaSect " + CcInt::BasicType() +
-  ")(NetDist " + CcReal::BasicType() + "))";
-
 string JNetwork::junctionsRelationTypeInfo = "("+ Relation::BasicType() + "(" +
   junctionsTupleTypeInfo + "))";
 
@@ -799,8 +822,10 @@ string JNetwork::routesRelationTypeInfo = "("+ Relation::BasicType() + "(" +
   routesTupleTypeInfo + "))";
 
 string JNetwork::netdistancesRelationTypeInfo = "("+
-  OrderedRelation::BasicType() + "("+ netdistancesTupleTypeInfo +") " +
-  "(Source Target))";
+  OrderedRelation::BasicType() + "("+ Tuple::BasicType() +
+  "((Source " + CcInt::BasicType() + ")(Target " + CcInt::BasicType() +
+  ")(NextJunct " + CcInt::BasicType() + ")(ViaSect " + CcInt::BasicType() +
+  ")(NetDist " + CcReal::BasicType() + "))) (Source Target))";
 
 string JNetwork::junctionsBTreeTypeInfo = "("+ BTree::BasicType() + "(" +
   junctionsTupleTypeInfo + ")" + CcInt::BasicType() + ")";
@@ -858,6 +883,69 @@ void JNetwork::CreateTrees()
   sectionsBTree = createBTree(sections, sectionsRelationTypeInfo, "Id");
   sectionsRTree = createRTree(sections, sectionsRelationTypeInfo, "Curve");
   routesBTree = createBTree(routes, routesRelationTypeInfo,"Id");
+}
+
+/*
+1.1 Initialize netdistance ordered relation
+
+*/
+
+void JNetwork::InitNetdistances()
+{
+  ListExpr relType;
+  nl->ReadFromString(netdistancesRelationTypeInfo, relType);
+  ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType ( relType );
+  netdistances = new OrderedRelation(relNumType);
+  GenericRelationIterator* it = sections->MakeScan();
+  Tuple* sectTuple = 0;
+  Tuple* insertTuple = 0;
+  while ((sectTuple = it->GetNextTuple())){
+    insertTuple = new Tuple(nl->Second(relNumType));
+    insertTuple->CopyAttribute(SEC_STARTNODE_ID, sectTuple, 0);
+    insertTuple->CopyAttribute(SEC_ENDNODE_ID, sectTuple, 1);
+    insertTuple->CopyAttribute(SEC_ENDNODE_ID, sectTuple, 2);
+    insertTuple->CopyAttribute(SEC_ID, sectTuple, 3);
+    insertTuple->CopyAttribute(SEC_LENGTH, sectTuple, 4);
+    netdistances->AppendTuple(insertTuple);
+    sectTuple->DeleteIfAllowed();
+    sectTuple = 0;
+    insertTuple->DeleteIfAllowed();
+    insertTuple = 0;
+  }
+  delete it;
+}
+
+/*
+1.1 Get Tuples by identifier
+
+*/
+
+Tuple* JNetwork::GetRouteTupleWithId(const int rid) const
+{
+  CcInt* crid = new CcInt(true, rid);
+  Tuple* res = 0;
+  BTreeIterator* it = routesBTree->ExactMatch(crid);
+  crid->DeleteIfAllowed();
+  if (it->Next() != 0)
+    res = routes->GetTuple ( it->GetId(), false );
+  return res;
+}
+
+/*
+1.1 Access to (tuple) attributes for identifier
+
+*/
+
+double JNetwork::GetRouteLength(const int rid) const
+{
+  double res = -1.0;
+  Tuple* routeTup = GetRouteTupleWithId(rid);
+  if (routeTup != 0){
+    res = ((CcReal*)routeTup->GetAttribute(ROUTE_LENGTH))->GetRealval();
+    routeTup->DeleteIfAllowed();
+    routeTup = 0;
+  }
+  return res;
 }
 
 /*

@@ -33,6 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JRouteInterval.h"
 #include "StandardTypes.h"
 #include "../Tools/Flob/DbArray.h"
+#include "JList.h"
+#include "JNetwork.h"
 
 /*
 1 class JLine
@@ -60,7 +62,9 @@ public:
 
   explicit JLine(const bool defined);
   JLine(const string netId, const DbArray<JRouteInterval>& rintList);
+  JLine(const JNetwork* jnet, const JListRInt* rintList);
   JLine(const JLine& other);
+  JLine(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
 
   ~JLine();
 
@@ -120,11 +124,10 @@ public:
   static Word Create(const ListExpr typeInfo);
   static void Delete( const ListExpr typeInfo, Word& w );
   static void Close( const ListExpr typeInfo, Word& w );
-  /*
   static bool Save(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo, Word& value);
   static bool Open (SmiRecord& valueRecord, size_t& offset,
-                    const ListExpr typeInfo, Word& value);*/
+                    const ListExpr typeInfo, Word& value);
   static Word Clone( const ListExpr typeInfo, const Word& w );
   static void* Cast( void* addr );
   static bool KindCheck ( ListExpr type, ListExpr& errorInfo );
@@ -170,6 +173,31 @@ Returns the routeinterval at the given position
   void Get(const int i, JRouteInterval& ri) const;
 
 /*
+1.1.1.1 Managing bulkload of routeintervals
+
+1.1.1.1.1 ~StartBulkload~
+
+*/
+
+  void StartBulkload();
+
+/*
+1.1.1.1.1 ~EndBulkload~
+
+*/
+
+  void EndBulkload();
+
+/*
+1.1.1.1.1 ~Add~
+
+Adds the given JRouteInterval to the set of routeintervals.
+
+*/
+
+ JLine& Add(const JRouteInterval& rint);
+
+/*
 
 1.1 private Deklaration part
 
@@ -184,6 +212,7 @@ private:
   string nid; //network identifier
   DbArray<JRouteInterval> routeintervals; //sorted set of JRouteIntervals
   bool sorted; //true if routeintervals are sorted and compressed
+  bool activBulkload; //only true while bulkload of routeintervals runs
 
 /*
 
@@ -219,8 +248,6 @@ possible.
 */
 
   void Sort();
-
-
 
 };
 

@@ -263,8 +263,8 @@ TypeConstructor jpointTC(
   JPoint::Out, JPoint::In,
   0, 0,
   JPoint::Create, JPoint::Delete,
-  OpenAttribute<JPoint>,
-  SaveAttribute<JPoint>,
+  JPoint::Open,
+  JPoint::Save,
   JPoint::Close, JPoint::Clone,
   JPoint::Cast,
   JPoint::SizeOf,
@@ -285,8 +285,8 @@ TypeConstructor jlineTC(
   JLine::Out, JLine::In,
   0, 0,
   JLine::Create, JLine::Delete,
-  OpenAttribute<JLine>,
-  SaveAttribute<JLine>,
+  JLine::Open,
+  JLine::Save,
   JLine::Close, JLine::Clone,
   JLine::Cast,
   JLine::SizeOf,
@@ -960,6 +960,148 @@ Operator createndgOp(
   createndgSelect,
   createndgTM
 );
+
+/*
+1.1 Createion of data types connected to an existing jnet
+
+1.1.1 ~createjpoint~
+Creates an ~jpoint~ from an existing ~jnet~ and an ~rloc~ value.
+The ~rloc~ must exist in the ~jnet~ otherwise the created ~jpoint~ is undefined.
+
+*/
+
+const string maps_createjpoint[1][3] =
+{
+  {JNetwork::BasicType(), RouteLocation::BasicType(), JPoint::BasicType()}
+};
+
+ListExpr createjpointTM (ListExpr args)
+{
+  return SimpleMaps<1,3>(maps_createjpoint, args);
+}
+
+int createjpointSelect(ListExpr args)
+{
+  return SimpleSelect<1,3>(maps_createjpoint, args);
+}
+
+int createjpointVM( Word* args, Word& result, int message, Word& local,
+                    Supplier s)
+{
+  result = qp->ResultStorage(s);
+  JPoint* res = static_cast<JPoint*> (result.addr);
+
+  JNetwork* jnet = (JNetwork*) args[0].addr;
+  RouteLocation* rloc = (RouteLocation*) args[1].addr;
+
+  if (jnet != 0 && jnet->IsDefined() &&
+      rloc != 0 && rloc->IsDefined())
+  {
+    JPoint* jp = new JPoint(jnet, rloc);
+    *res = *jp;
+    jp->DeleteIfAllowed();
+  }
+  else
+    res->SetDefined(false);
+
+  return 0;
+}
+
+ValueMapping createjpointMap[] =
+{
+  createjpointVM
+};
+
+const string createjpointSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + JNetwork::BasicType() + " x " + RouteLocation::BasicType() +
+  " -> " + JPoint::BasicType() + "</text--->"
+  "<text>createjpoint( <jnet>, <rloc>) </text--->"
+  "<text>Creates an " + JPoint::BasicType() + " at " +
+   RouteLocation::BasicType() + " in the " + JNetwork::BasicType() + "if the" +
+  " position exists in the given network, otherwise the result is " +
+  " undefined.</text--->"
+  "<text>query createjpoint(testjnet, createrloc(1, 0.0, [const jdirection " +
+  " value(\"Both\")]) </text--->))";
+
+  Operator createjpointOp(
+    "createjpoint",
+    createjpointSpec,
+    1,
+    createjpointMap,
+    createjpointSelect,
+    createjpointTM
+  );
+
+/*
+1.1.1 ~createjline~
+Creates an ~jline~ from an existing ~jnet~ and an ~listjrint~ value.
+The ~jrint~ in the list of jrint must all exist in the ~jnet~ otherwise the
+created ~jline~ will be undefined.
+
+*/
+
+const string maps_createjline[1][3] =
+{
+  {JNetwork::BasicType(), JListRInt::BasicType(), JLine::BasicType()}
+};
+
+ListExpr createjlineTM (ListExpr args)
+{
+  return SimpleMaps<1,3>(maps_createjline, args);
+}
+
+int createjlineSelect(ListExpr args)
+{
+  return SimpleSelect<1,3>(maps_createjline, args);
+}
+
+int createjlineVM( Word* args, Word& result, int message, Word& local,
+                    Supplier s)
+{
+  result = qp->ResultStorage(s);
+  JLine* res = static_cast<JLine*> (result.addr);
+
+  JNetwork* jnet = (JNetwork*) args[0].addr;
+  JListRInt* lrint = (JListRInt*) args[1].addr;
+
+  if (jnet != 0 && jnet->IsDefined() &&
+      lrint != 0 && lrint->IsDefined())
+  {
+    JLine* jl = new JLine(jnet, lrint);
+    *res = *jl;
+    jl->DeleteIfAllowed();
+  }
+    else
+      res->SetDefined(false);
+
+    return 0;
+}
+
+ValueMapping createjlineMap[] =
+{
+  createjlineVM
+};
+
+const string createjlineSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + JNetwork::BasicType() + " x " + JListRInt::BasicType() +
+  " -> " + JLine::BasicType() + "</text--->"
+  "<text>createjline( <jnet>, <listjrint>) </text--->"
+  "<text>Creates an " + JLine::BasicType() + " covering the parts of the " +
+  JNetwork::BasicType() + " described by " + JListRInt::BasicType() + "if" +
+  "the route intervals exist in the jnet. Otherwise the result is undefined." +
+  "</text--->"
+  "<text>query createjline(testjnet, testlistjrint) </text--->))";
+
+  Operator createjlineOp(
+    "createjline",
+    createjlineSpec,
+    1,
+    createjlineMap,
+    createjlineSelect,
+    createjlineTM
+  );
 
 /*
 1.1 Comparision of Data Types
@@ -1703,6 +1845,14 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddOperator(&createrlocOp);
   AddOperator(&createrintOp);
   AddOperator(&createndgOp);
+
+/*
+1.1.1.1 Datatypes belonging to a network
+
+*/
+
+  AddOperator(&createjpointOp);
+  AddOperator(&createjlineOp);
 
 /*
 1.1.1.1 Lists and streams of Data Types
