@@ -19,49 +19,32 @@
 
 //2012, June Simone Jandt
 
-package  viewer.hoese.algebras.jnet;
-
-import  sj.lang.ListExpr;
-import  viewer.*;
-import viewer.hoese.*;
-
+package viewer.hoese.algebras.jnet;
 
 /**
- * JDirection
- * Tells if the direction of driving respectively the side of
- * a route location or route interval or is up, down or both.
+ * Exception that is thrown when a jnetwork is not available
  */
-public class JDirection{
 
-  String dir;
+public class JNetworkNotAvailableException extends Exception
+{
+  /**
+   * Id of the missing network
+   */
+  private String netId;
 
-  public JDirection(ListExpr value){
-    if (value.listLength() == 1)
-      dir = value.first().stringValue();
-    else
-      dir = "undefined";
+  /**
+   * Constuctor
+   */
+  public JNetworkNotAvailableException(String id)
+  {
+    netId = id;
   }
 
-  public String toString()  {
-    return dir;
-  }
-
-  public int compareTo(String indir, boolean strict){
-    if (dir.toString().compareTo(indir) != 0) {
-      if (strict){
-        return -1;
-      } else {
-        if (dir.toString().compareTo("Both") == 0 ||
-            indir.compareTo("Both") == 0)
-          return 0;
-        else
-          return -1;
-      }
-    } else {
-      return 0;
-    }
+  /**
+   * Get-Message of class exception.
+   */
+  public String getMessage()
+  {
+    return "jnet with id " + netId + " has not been loaded.";
   }
 }
-
-
-

@@ -55,7 +55,6 @@ public class RouteLocation{
       rid = -1;
       pos = -1.0;
     }
-
   }
 
   public String toString(){
@@ -64,6 +63,18 @@ public class RouteLocation{
              " side " + dir.toString();
     else
       return "undefined";
+  }
+
+  public Integer getRid(){
+    return rid;
+  }
+
+  public Double getPos(){
+    return pos;
+  }
+
+  public String getDir(){
+    return dir.toString();
   }
 
 }

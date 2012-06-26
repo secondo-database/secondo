@@ -47,6 +47,7 @@ public class JNetwork{
       name = value.first().stringValue();
       fillJunctions(value.second());
       fillSections(value.third());
+      JNetworkManager.getInstance().addNetwork(this);
     }
     else {
       name = "undefined";
@@ -58,11 +59,11 @@ public class JNetwork{
   }
 
   public boolean isPointType(int no) {
-    return (no < junctions.size());
+    return ((no < junctions.size()) || isArrowType(no));
   }
 
   public boolean isLineType(int no) {
-    return (no >= junctions.size() && no < numOfShapes());
+    return (no >= junctions.size() && no < (junctions.size() + sections.size()));
   }
 
   public String toString(){
@@ -93,17 +94,26 @@ public class JNetwork{
 
   public Shape getRenderObject(int no, AffineTransform af, double pointSize,
                                boolean asRect){
-    if (isPointType(no)){
+    if (isPointType(no) && !isArrowType(no)){
       return ((JJunction)junctions.get(no)).getRenderObject(af, pointSize, asRect);
     }
     if (isLineType(no)){
-      if (no < (junctions.size() + sections.size())) {
-        return ((JSection)sections.get(no - junctions.size())).getRenderObject(0,af,pointSize);
-      } else if (no < numOfShapes() && no > (junctions.size() + sections.size())){
+      return ((JSection)sections.get(no - junctions.size())).getRenderObject(0,af,pointSize);
+    }
+    if (isArrowType(no)){
         return ((JSection)sections.get(no-(junctions.size()+sections.size()))).getRenderObject(1, af, pointSize);
-      }
     }
     return null;
+  }
+
+  public Point2D.Double getPosition(RouteLocation rloc){
+    for (int i = 0; i < sections.size(); i++) {
+      JSection curSect = (JSection)sections.get(i);
+      int pos = curSect.contains(rloc);
+      if (pos > -1)
+        return curSect.getPosition(rloc, pos);
+    }
+    return new Point2D.Double(0.0,0.0);
   }
 
   private void fillJunctions(ListExpr juncList){
@@ -122,6 +132,9 @@ public class JNetwork{
     }
   }
 
+  private boolean isArrowType(int no){
+    return (no >= (junctions.size() + sections.size()) && no < numOfShapes());
+  }
 }
 
 

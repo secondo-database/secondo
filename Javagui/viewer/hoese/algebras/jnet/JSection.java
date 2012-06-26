@@ -44,7 +44,9 @@ public class JSection{
    private Vector<JRouteInterval> routeIntervals = new Vector<JRouteInterval>();
    private JDirection dir;
    private boolean startSmaller;
+   private double lenth;
    private GeneralPath curve;
+   private GeneralPath curveRendered;
    private Rectangle2D.Double bounds = new Rectangle2D.Double(0.0,0.0,0.0,0.0);
 
 
@@ -64,7 +66,7 @@ public class JSection{
 
   public Shape getRenderObject(int i, AffineTransform af, double pointSize){
     if (i == 0){
-      return curve;
+      return curveRendered;
     } else if (isArrow){
       if (dir.toString().compareTo("Up") == 0){
         return getArrow(af, p1, p2, pointSize);
@@ -78,6 +80,22 @@ public class JSection{
 
   public Rectangle2D.Double getBounds(){
     return bounds;
+  }
+
+  public Point2D.Double getPosition(RouteLocation rloc, int pos){
+    JRouteInterval curInt = routeIntervals.get(pos);
+    double distFromStartOfSection = rloc.getPos() - curInt.getStartPos();
+    return getPoint(distFromStartOfSection);
+  }
+
+  public int contains(RouteLocation rloc){
+    for (int i = 0; i < routeIntervals.size(); i++){
+      JRouteInterval curInt = routeIntervals.get(i);
+      if (curInt.contains(rloc)){
+        return i;
+      }
+    }
+    return -1;
   }
 
   private void readCurve (ListExpr value){
@@ -137,6 +155,7 @@ public class JSection{
         }
       }
       curve = new GeneralPath();
+      curveRendered = new GeneralPath();
       Point2D.Double rendRes = new Point2D.Double(0.0,0.0);
       Iterator<Vector<Point2D.Double>> it = pointSequences.iterator();
       while(it.hasNext()){
@@ -145,20 +164,24 @@ public class JSection{
           Point2D.Double p = sequence.get(i);
           if(ProjectionManager.project(p.x,p.y,rendRes)){
             if(i == 0){
-              curve.moveTo((float)rendRes.x, (float)rendRes.y);
+              curve.moveTo((float) p.x, (float) p.y);
+              curveRendered.moveTo((float)rendRes.x, (float)rendRes.y);
             } else {
-              curve.lineTo((float)rendRes.x,(float)rendRes.y);
+              curve.lineTo((float)p.x, (float)p.y);
+              curveRendered.lineTo((float)rendRes.x,(float)rendRes.y);
             }
           } else {
             if(i == 0){
               curve.moveTo((float)p.x, (float)p.y);
+              curveRendered.moveTo((float)p.x, (float)p.y);
             } else {
               curve.lineTo((float)p.x,(float)p.y);
+              curveRendered.lineTo((float)p.x,(float)p.y);
             }
           }
         }
       }
-      bounds.setRect(curve.getBounds2D());
+      bounds.setRect(curveRendered.getBounds2D());
     }
   }
 
@@ -335,10 +358,47 @@ private static void reverse(Vector<Point2D.Double >  v){
   }
 
   private void readRouteIntervals(ListExpr value){
+    boolean isFirst = true;
     while (!value.isEmpty()){
-      routeIntervals.add(new JRouteInterval(value.first()));
+      JRouteInterval curInt = new JRouteInterval(value.first());
+      if (isFirst) {
+        lenth = curInt.getLength();
+      }
+      routeIntervals.add(curInt);
       value = value.rest();
     }
+  }
+
+  private Point2D.Double getPoint(double pos){
+    if (!startSmaller){
+      pos = lenth - pos;
+    }
+    PathIterator pi = curve.getPathIterator(null, 0.0);
+    double[] coordsFrom = new double[6];
+    double[] coordsTo = new double[6];
+    pi.currentSegment(coordsFrom);
+    double dDistOnSection = 0.0;
+    double lSeg = 0.0;
+    double dDistNew = 0.0;
+    boolean found = false;
+    // Look for segment
+    while(!pi.isDone()){
+      pi.next();
+      pi.currentSegment(coordsTo);
+      lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
+                       Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
+      dDistNew = dDistOnSection + lSeg;
+      if (dDistOnSection <= pos && pos <= dDistNew){
+        double x = coordsFrom[0] + (pos - dDistOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
+        double y = coordsFrom[1] + (pos - dDistOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
+        return new Point2D.Double(x,y);
+      } else {
+        coordsFrom[0] = coordsTo[0];
+        coordsFrom[1] = coordsTo[1];
+        dDistOnSection = dDistNew;
+      }
+    }
+    return new Point2D.Double(0.0,0.0); //should never been reached.
   }
 }
 

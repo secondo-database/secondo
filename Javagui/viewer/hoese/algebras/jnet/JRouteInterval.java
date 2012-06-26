@@ -69,6 +69,34 @@ public class JRouteInterval{
       return "undefined";
   }
 
+  public boolean contains(RouteLocation rloc){
+    if (rid.compareTo(rloc.getRid()) == 0 &&
+        spos <= rloc.getPos() && rloc.getPos() <= epos &&
+        dir.compareTo(rloc.getDir(), false) == 0)
+      return true;
+    else
+      return false;
+  }
+
+  public Integer getRid(){
+    return rid;
+  }
+
+  public Double getStartPos(){
+    return spos;
+  }
+
+  public Double getEndPos(){
+    return epos;
+  }
+
+  public String getDir(){
+    return dir.toString();
+  }
+
+  public double getLength(){
+    return Math.abs(epos - spos);
+  }
 }
 
 
