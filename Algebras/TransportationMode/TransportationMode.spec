@@ -250,5 +250,5 @@ operator decomposegenmo alias DECOMPOSEGENMO pattern op(_,_)
 operator bulkloadtmrtree alias BULKLOADTMRTREE pattern _ op [_,_,_,_]
 operator tmrtreemode alias TMRTREEMODE pattern op(_,_,_)
 operator tm_nodes alias TM_NODES pattern op(_)
-operator range_tmrtree alias RANGE_TMRTREE pattern op(_,_,_,_,_)
-
+operator range_tmrtree alias RANGE_TMRTREE pattern op(_,_,_,_)
+operator mode2str alias MODE2STR pattern op(_,_)

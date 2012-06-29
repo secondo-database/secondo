@@ -72,6 +72,7 @@ March, 2011 Jianqiu xu
 #include "TMRTree.h"
 
 
+
 /*
 query processing on generic moving objects and data types 
 
@@ -85,7 +86,7 @@ struct QueryTM{
   static string GenmoRelInfo;
   enum GenmoRel{GENMO_OID = 0, GENMO_TRIP1, GENMO_TRIP2};
   static string GenmoUnitsInfo;
-  enum GenmoUnits{GM_TRAJ_ID = 0, GM_BOX, GM_MODE, GM_INDEX1, GM_INDEX2, GM_ID};
+  enum GenmoUnits{GM_TRAJ_ID = 0, GM_BOX, GM_MODE, GM_SUBTRIP, GM_DIV, GM_ID};
   static string GenmoRangeQuery;
   enum GMORangeQuery{GM_TIME = 0, GM_SPATIAL, GM_Q_MODE};
   
@@ -108,7 +109,17 @@ struct QueryTM{
 
   vector<GenMO> genmo_list;
   vector<MPoint> mp_list;
+  vector<int> unit_tid_list;//store movement tuple id from filter step
 
+  set<int> res_traj_id;//store trajectory id;
+
+  ////////////extension to the previous method//////////////////
+  vector<int> Oid_list;
+  vector<Rectangle<3> > Box_list;
+  vector<int> Tm_list;
+  vector<MPoint> Mp_list;
+  vector<int> div_list;
+   
   ////////////////////////////////////////////////////////////////////////////
   //////////get 2D line in space or 3D line in a building///////////////////
   ////////////////////////////////////////////////////////////////////////////
@@ -124,12 +135,15 @@ struct QueryTM{
   ///////////////////////////////////////////////////////////////////////////
   void DecomposeGenmo(Relation*, double);
   void CreateMTuple_0(int oid, GenMO* mo1, MPoint* mo2, double);
+  void CreateMTuple_1(int oid, GenMO* mo1, MPoint* mo2, double);
+
   void CollectBusMetro(int& i, int oid, int m, GenMO* mo1, MPoint* mo2, 
                        int& pos);
-  void CollectIndoorFree(int& i, int oid, int m, GenMO* mo1, 
-                         MPoint* mo2, int& pos);
+  void CollectIndoor(int& i, int oid, int m, GenMO* mo1, MPoint* mo2, int& pos);
+  void CollectFree(int& i, int oid, int m, GenMO* mo1, MPoint* mo2, int& pos);
   void CollectWalk(int& i, int oid, GenMO* mo1, MPoint* mo2, double, int &pos);
-  void CollectCBT(int&i, int oid, int m, GenMO* mo1, MPoint* mo2, int& pos);
+  void CollectCBT(int&i, int oid, int m, GenMO* mo1, MPoint* mo2, 
+                  int& pos, double len);
   ////////////////////get tm values for TM-Rtree nodes /////////////////////
 
   unsigned long Node_TM(R_Tree<3, TupleId>* tmrtree, Relation* rel, 
@@ -138,15 +152,23 @@ struct QueryTM{
   void TM_RTreeNodes(TM_RTree<3,TupleId>*);
   void GetNodes(TM_RTree<3, TupleId>* tmrtree, SmiRecordId nodeid, int level);
   ////////////////range query using tmrtree//////////////////////////////////
-  void RangeTMRTree(TM_RTree<3,TupleId>*, Relation*, Relation*, 
-                    Relation*, int );
+  void RangeTMRTree(TM_RTree<3,TupleId>*, Relation*, Relation*, int );
   void SinMode_Filter1(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
-                      int bit_pos, vector<int>& unit_tid_list);
+                      int bit_pos, Relation* units_rel);
   void SinMode_Filter2(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
-                      int bit_pos, vector<int>& unit_tid_list, Relation*);
+                      int bit_pos, Relation*);
+  void SinMode_Filter3(TM_RTree<3, TupleId>* tmrtree, Rectangle<3> box, 
+                       int bit_pos, Relation*);
+
   void SinMode_Refinement(Rectangle<3> query_box, int bit_pos,
-                          vector<int> unit_tid_list, 
-                          Relation* units_rel, Relation* genmo_rel);
+                          Relation* units_rel);
+  /////////////////////////////////////////////////////////////////////////
+  ///////////////////// multile modes ////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////
+  void MulMode_Filter1(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
+                      vector<bool> bit_pos, Relation* units_rel);
+  void MulMode_Refinement(Rectangle<3> query_box, vector<bool> bit_pos,
+                          Relation* units_rel);
   int ModeType(string mode, vector<long>& seq_tm);
 };
 
@@ -155,4 +177,7 @@ struct QueryTM{
 #define MULMODE 2
 #define SEQMODE 3
 
+#define TMRTREE 1
+#define ADRTREE 2
+#define RTREE3D 3
 #endif

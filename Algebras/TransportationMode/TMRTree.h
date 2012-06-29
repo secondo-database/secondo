@@ -3598,6 +3598,9 @@ bool TM_RTree<dim,LeafInfo>::CalculateTM(Relation* rel, int attr_pos)
 
 /*
 recursively calling the son node 
+very, very, very important!!!. 
+from original genmo, pos = max - m;
+but here, we direct use the enum value of mode as bit index
 
 */
 template <unsigned dim, class LeafInfo>
@@ -3610,7 +3613,8 @@ long TM_RTree<dim,LeafInfo>::CalculateNodeTM(SmiRecordId nodeid,
    if(node->IsLeaf()){
 
        int pos = -1;
-       bitset<ARR_SIZE(str_tm)> modebits;
+//       bitset<ARR_SIZE(str_tm)> modebits;
+       bitset<TM_SUM_NO> modebits;//extension to a pair of modes
        modebits.reset();
 
       for(int j = 0;j < node->EntryCount();j++){
@@ -3621,10 +3625,9 @@ long TM_RTree<dim,LeafInfo>::CalculateNodeTM(SmiRecordId nodeid,
        int m = ((CcInt*)tuple->GetAttribute(attr_pos))->GetIntval();//bit index
        tuple->DeleteIfAllowed();
 // //      cout<<"j "<<j<<" tm "<<GetTMStr(m)<<endl;
-       pos = (int)ARR_SIZE(str_tm) - 1 - m;
-//        if(pos < 0) pos = (int)(ARR_SIZE(str_tm) - 1 - m);
-//        else assert(pos == (int)(ARR_SIZE(str_tm) - 1 - m));
-       assert(0 <= pos && pos <= (int)(ARR_SIZE(str_tm) - 1 - m));
+
+       pos = m;
+       assert(0 <= pos && pos <= (int)(TM_SUM_NO - 1));
 
        modebits.set(pos, 1);//set the value for each entry:general method
       }
@@ -3633,9 +3636,9 @@ long TM_RTree<dim,LeafInfo>::CalculateNodeTM(SmiRecordId nodeid,
 /*      bitset<ARR_SIZE(str_tm)> modebits;
       modebits.reset();
       modebits.set(pos, 1);*/
-      long tm = modebits.to_ulong();
+      long tm = modebits.to_ulong();////////bit value to an integer
 //       cout<<"leaf node "<<nodeid<<endl;
-//       cout<<tm<<" "<<modebits.to_string()<<" "<<GetModeString(tm)<<endl;
+//       cout<<tm<<" "<<modebits.to_string()<<" "<<GetModeStringExt(tm)<<endl;
 
       node->SetTMValue(tm);
       node->Write(file, nodeid);
@@ -3644,7 +3647,8 @@ long TM_RTree<dim,LeafInfo>::CalculateNodeTM(SmiRecordId nodeid,
       return tm;
 
    }else{
-      bitset<ARR_SIZE(str_tm)> modebits;
+//      bitset<ARR_SIZE(str_tm)> modebits;
+      bitset<TM_SUM_NO> modebits; //extension to a pair of modes
       modebits.reset();
         for(int j = 0;j < node->EntryCount();j++){
 
@@ -3652,7 +3656,9 @@ long TM_RTree<dim,LeafInfo>::CalculateNodeTM(SmiRecordId nodeid,
                 (R_TreeInternalEntry<3>&)(*node)[j];
          int son_tm = CalculateNodeTM(e.pointer, rel, attr_pos);
 
-         bitset<ARR_SIZE(str_tm)> m_bit(son_tm);
+//         bitset<ARR_SIZE(str_tm)> m_bit(son_tm);
+           bitset<TM_SUM_NO> m_bit(son_tm);
+
 //         ///////////// union value of each son tm to tm//////////////
 // /*        cout<<"new one "<<m_bit.to_string()
 //             <<" before "<<modebits.to_string()<<endl;*/

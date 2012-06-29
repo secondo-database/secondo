@@ -503,6 +503,8 @@ struct VGraph{
   vector<Line> line;
   vector<Region> regs;
   VisualGraph* vg;
+  
+  int tri_access;
 
   VGraph();
   ~VGraph();

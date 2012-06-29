@@ -4644,7 +4644,7 @@ void Walk_SP::WalkShortestPath2(int oid1, int oid2, Point loc1, Point loc2,
       *res += hs;
       /////////////////////////////////////////////////////
       res->EndBulkLoad(); 
-      double len = res->Length(); 
+//      double len = res->Length(); 
 //   printf("Euclidean length: %.4f Walk length: %.4f\n",
 //   loc1.Distance(loc2),len);
       return; 
@@ -6092,9 +6092,11 @@ void VGraph::DFTraverse(int tri_id, Clamp& clamp, int pre_id, int type1)
     Triangle tri1(v1, v2, v3);
 //    cout<<"v1 "<<v1<<"v2 "<<v2<<" v3 "<<v3<<endl; 
 //    cout<<"adj_list size "<<adj_list.size()<<endl;
+
     for(unsigned int i = 0;i < adj_list.size();i++){
 //      cout<<" adj_list DF "<<adj_list[i]<<" i "<<i<<endl;
       if(adj_list[i] == pre_id) continue;
+      tri_access++;
       tri_tuple = rel2->GetTuple(adj_list[i], false);
       int ver1 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V1))->GetIntval();
       int ver2 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V2))->GetIntval();
@@ -6304,6 +6306,7 @@ void VGraph::FindTriContainVertex(int vid, int tri_id, Point* query_p)
         ///////////////////////////////////////////////////////////////////////
 
 //        cout<<"v1 "<<v1<<" v2 "<<v2<<" v3 "<<v3<<endl;
+        tri_access++;
 
         vector<int> vid_list;
         if(v1 == vid){
@@ -6397,6 +6400,7 @@ void VGraph::GetVisibleNode2(int tri_id, Point* query_p, int type)
   vector<int> adj_list;
   dg->FindAdj(tri_id, adj_list);
 
+
   Tuple* tri_tuple1 = rel2->GetTuple(tri_id, false);
   int v1 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V1))->GetIntval();
   int v2 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V2))->GetIntval();
@@ -6404,8 +6408,10 @@ void VGraph::GetVisibleNode2(int tri_id, Point* query_p, int type)
   tri_tuple1->DeleteIfAllowed();
   Triangle tri1(v1, v2, v3);
 //  cout<<"v1 "<<v1<<" v2 "<<v2<<" v3 "<<v3<<endl; 
+
   ///////////////////////////////////////////////////////////////////////
   for(unsigned int i = 0;i < adj_list.size();i++){
+    tri_access++;
 //    cout<<"adj_list GVN "<<adj_list[i] + dg->min_tri_oid_1<<endl;
     Tuple* tri_tuple = rel2->GetTuple(adj_list[i], false);
     int ver1 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V1))->GetIntval();
@@ -6660,6 +6666,7 @@ void VGraph::GetVisibleNode1(int tri_id, Point* query_p)
   ///////////////////////////////////////////////////////////////////////
   for(unsigned int i = 0;i < adj_list.size();i++){
 //    cout<<"adj_list GVN "<<adj_list[i]<<endl;
+    tri_access++;
     Tuple* tri_tuple = rel2->GetTuple(adj_list[i], false);
     int ver1 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V1))->GetIntval();
     int ver2 =((CcInt*)tri_tuple->GetAttribute(DualGraph::V2))->GetIntval();
@@ -6890,7 +6897,7 @@ void VGraph::GetVNode()
   int v2 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V2))->GetIntval();
   int v3 =((CcInt*)tri_tuple1->GetAttribute(DualGraph::V3))->GetIntval();
   tri_tuple1->DeleteIfAllowed();
-
+  tri_access++;
   ///if the query_p equals to one of the triangle vertices ///
   if(GetVNode_QV(query_oid, query_p,v1,v2,v3)){
   }else{

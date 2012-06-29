@@ -1321,6 +1321,14 @@ Result   : 1
 
 Operator : range_tmrtree
 Number   : 1
-Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel x rel x rel x int -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
-Example  : query range_tmrtree(TM_RTree, genmo_units, genmo_union, query_rel, 1)  count
+Signature: (tmrtree<3> (tuple ((x1 t1)...(xn tn))) ti false) x rel  x rel x int -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
+Example  : query range_tmrtree(TM_RTree, genmo_units, query_rel, 1)  count
 Result   : 0
+
+
+
+Operator : mode2str
+Number   : 1
+Signature: int -> string
+Example  : query mode2str(0, FALSE);
+Result   : "Bus"

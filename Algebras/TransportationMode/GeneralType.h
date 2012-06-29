@@ -89,12 +89,30 @@ instead of int, real, or enum
 
 */
 
-
 enum tm_value{TM_BUS = 0, TM_WALK, TM_INDOOR, TM_CAR, TM_METRO,
-TM_TRAIN, TM_BIKE, TM_TAXI, TM_FREE};
+ TM_TRAIN, TM_BIKE, TM_TAXI, TM_FREE};
 
 const string str_tm[] = {"Bus", "Walk", "Indoor", "Car", "Metro", 
-                         "Train", "Bike", "Taxi", "Free"};
+                          "Train", "Bike", "Taxi", "Free"};
+
+/*
+a pair of modes, basically combine walk and another
+
+*/
+
+enum tm_value_ext{TM_BUSWALK = 0, TM_WALKWALK1, TM_INDOORWALK, TM_CARWALK,
+TM_METROWALK, TM_TRAINWALK, TM_BIKEWALK, TM_TAXIWALK, TM_FREEWALK,
+TM_WALKBUS, TM_WALKWALK2, TM_WALKINDOOR, TM_WALKCAR, 
+TM_WALKMETRO, TM_WALKTRAIN, TM_WALKBIKE, TM_WALKTAXI, TM_WALKFREE};
+
+const string str_tm_ext[] = {"Bus;Walk", "Walk;Walk", "Indoor;Walk", "Car;Walk",
+"Metro;Walk", "Train;Walk", "Bike;Walk", "Taxi;Walk", "Free;Walk",
+"Walk;Bus", "Walk;Walk", "Walk;Indoor", "Walk;Car",
+"Walk;Metro", "Walk;Train", "Walk;Bike", "Walk;Taxi", "Walk;Free"};
+
+#define TM_SUM_NO ARR_SIZE(str_tm) + ARR_SIZE(str_tm_ext)
+
+
 inline int GetTM(string s)
 {
 //  int tm_size = sizeof(str_tm)/sizeof(str_tm[0]);
@@ -105,6 +123,7 @@ inline int GetTM(string s)
   }
   return -1;
 }
+
 inline string GetTMStr(int tm)
 {
 //  int tm_size = sizeof(str_tm)/sizeof(str_tm[0]);
@@ -112,6 +131,22 @@ inline string GetTMStr(int tm)
   assert(0 <= tm && tm < tm_size);
   return str_tm[tm];
 }
+
+inline string GetTMStrExt(int tm)
+{
+//  int tm_size = sizeof(str_tm)/sizeof(str_tm[0]);
+  int tm_size1 = ARR_SIZE(str_tm); 
+  int tm_size2 = ARR_SIZE(str_tm_ext); 
+  
+  if(0 <= tm && tm < tm_size1){
+     return str_tm[tm];
+  }else if(tm >= tm_size1 && 
+           tm < tm_size1 + tm_size2){
+     return str_tm_ext[tm - tm_size1];
+  }else assert(false);
+
+}
+
 
 inline string GetModeString(long tm)
 {
@@ -121,7 +156,7 @@ inline string GetModeString(long tm)
     if(mode.test(ARR_SIZE(str_tm) - 1 - i)){
       if(str.size() == 0) str = str_tm[i];
       else{
-        str +=";";
+        str +=",";
         str += str_tm[i];
       }
     }
@@ -130,6 +165,31 @@ inline string GetModeString(long tm)
   return str;
 }
 
+inline string GetModeStringExt(long tm)
+{
+  bitset<TM_SUM_NO> mode(tm);
+  
+  string str;
+  for(unsigned int i = 0;i < TM_SUM_NO;i++){
+    if(mode.test(i)){
+      if(str.size() == 0) {
+        if(i < ARR_SIZE(str_tm))
+            str = str_tm[i];
+        else
+            str = str_tm_ext[i - ARR_SIZE(str_tm)];
+      }
+      else{
+        str +=",";
+        if(i < ARR_SIZE(str_tm))
+          str += str_tm[i];
+        else
+          str += str_tm_ext[i - ARR_SIZE(str_tm)];
+      }
+    }
+
+  }
+  return str;
+}
 
 ///////////////////////////////////////////////////////////////////////////
 ///////////////////// symbol reference data type  //////////////////////////

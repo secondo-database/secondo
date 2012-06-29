@@ -8267,7 +8267,33 @@ ListExpr DecomposeGenmoTypeMap ( ListExpr args )
       return listutils::typeError(err);
   }
 
-  ListExpr result =
+/*  ListExpr result =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->FiveElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Traj_id"),
+                                    nl->SymbolAtom("int")),
+                        nl->TwoElemList(nl->SymbolAtom("MT_box"),
+                                       nl->SymbolAtom("rect3")),*/
+//                         nl->TwoElemList(nl->SymbolAtom("Time"),
+//                                       nl->SymbolAtom("periods")),
+//                         nl->TwoElemList(nl->SymbolAtom("Box2d"),
+//                                       nl->SymbolAtom("rect")),
+//                        nl->TwoElemList(nl->SymbolAtom("Mode"),
+//                                      nl->SymbolAtom("string")),
+//                         nl->TwoElemList(nl->SymbolAtom("Mode"),
+//                                       nl->SymbolAtom("int")),
+//                         nl->TwoElemList(nl->SymbolAtom("Index1"),
+//                                       nl->SymbolAtom("point")),
+//                         nl->TwoElemList(nl->SymbolAtom("Index2"),
+//                                       nl->SymbolAtom("point"))
+//                   )
+//                 )
+//           );
+
+    ListExpr result =
           nl->TwoElemList(
               nl->SymbolAtom("stream"),
                 nl->TwoElemList(
@@ -8277,21 +8303,17 @@ ListExpr DecomposeGenmoTypeMap ( ListExpr args )
                                     nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("MT_box"),
                                        nl->SymbolAtom("rect3")),
-//                         nl->TwoElemList(nl->SymbolAtom("Time"),
-//                                       nl->SymbolAtom("periods")),
-//                         nl->TwoElemList(nl->SymbolAtom("Box2d"),
-//                                       nl->SymbolAtom("rect")),
-/*                        nl->TwoElemList(nl->SymbolAtom("Mode"),
-                                      nl->SymbolAtom("string")),*/
-                        nl->TwoElemList(nl->SymbolAtom("Mode"),
-                                      nl->SymbolAtom("int")),
-                        nl->TwoElemList(nl->SymbolAtom("Index1"),
-                                      nl->SymbolAtom("point")),
-                        nl->TwoElemList(nl->SymbolAtom("Index2"),
-                                      nl->SymbolAtom("point"))
-                  )
-                )
-          );
+                         nl->TwoElemList(nl->SymbolAtom("Mode"),
+                                       nl->SymbolAtom("int")),
+                         nl->TwoElemList(nl->SymbolAtom("SubTrip"),
+                                       nl->SymbolAtom("mpoint")),
+                         nl->TwoElemList(nl->SymbolAtom("DivPos"),
+                                       nl->SymbolAtom("int"))
+
+                   )
+                 )
+           );
+
         return result; 
 
 }
@@ -8530,18 +8552,14 @@ ListExpr TMRtreeNodesTypeMap ( ListExpr args )
               nl->SymbolAtom("stream"),
                 nl->TwoElemList(
                   nl->SymbolAtom("tuple"),
-                     nl->Cons(
-                      nl->TwoElemList(nl->SymbolAtom("NodeId"),
-                                    nl->SymbolAtom("int")),
                       nl->SixElemList(
+                        nl->TwoElemList(nl->SymbolAtom("NodeId"),
+                                        nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("Level"),
                                         nl->SymbolAtom("int")),
-
                         nl->TwoElemList(nl->SymbolAtom("Leaf"),
                                        nl->SymbolAtom("bool")),
-                        nl->TwoElemList(nl->SymbolAtom("Mode1"),
-                                       nl->SymbolAtom("string")),
-                        nl->TwoElemList(nl->SymbolAtom("Mode2"),
+                        nl->TwoElemList(nl->SymbolAtom("Mode"),
                                        nl->SymbolAtom("int")),
                         nl->TwoElemList(nl->SymbolAtom("Box"),
                                        nl->SymbolAtom("rect3")),
@@ -8549,7 +8567,6 @@ ListExpr TMRtreeNodesTypeMap ( ListExpr args )
                                        nl->SymbolAtom("int"))
                         )
                      )
-                )
           );
     return res;
 
@@ -8563,7 +8580,7 @@ TypeMap fun for operator range tmrtree
 ListExpr TMRangeTMRTreeTypeMap ( ListExpr args )
 {
   string err = "tmrtree(tuple(...) rect3 BOOL) expected";
-  if ( nl->ListLength ( args ) != 5 )
+  if ( nl->ListLength ( args ) != 4 )
   {
     return listutils::typeError("expecting three arguments");
   }
@@ -8584,28 +8601,20 @@ ListExpr TMRangeTMRTreeTypeMap ( ListExpr args )
     CompareSchemas(rel_param, xType)))
       return nl->SymbolAtom("typeerror");
 
-   ListExpr genmo_rel = nl->Third(args);
-
-   ListExpr xType2;
-   nl->ReadFromString(QueryTM::GenmoRelInfo, xType2);
-
-   if(!(listutils::isRelDescription(genmo_rel) && 
-          CompareSchemas(genmo_rel, xType2)))
-        return nl->SymbolAtom("typeerror");
 
   ListExpr query_param = nl->Third(args);
 
   ListExpr xType3;
   nl->ReadFromString(QueryTM::GenmoRangeQuery, xType3);
 
-  if ( !(listutils::isRelDescription(query_param) && 
-    CompareSchemas(query_param, xType2)))
+  if ( !(listutils::isRelDescription(query_param) &&
+       CompareSchemas(query_param, xType3)))
       return nl->SymbolAtom("typeerror");
 
-  ListExpr treetype = nl->Fifth(args);
+  ListExpr treetype = nl->Fourth(args);
 
   if(!nl->IsEqual(treetype, "int")){
-      string err = "the fifth parameter should be int";
+      string err = "the fourth parameter should be int";
       return listutils::typeError(err);
   }
 
@@ -8640,6 +8649,28 @@ ListExpr TMRangeTMRTreeTypeMap ( ListExpr args )
 
 }
 
+/*
+TypeMap fun for operator mode2str
+
+*/
+ListExpr TMMode2StrTypeMap ( ListExpr args )
+{
+
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return listutils::typeError("expecting two arguments");
+  }
+
+  ListExpr mode = nl->First(args);
+  ListExpr type = nl->Second(args);
+  if(nl->IsEqual(mode, "int") && nl->IsEqual(type, "bool"))
+//    return nl->SymbolAtom("string");
+    return NList(FText::BasicType()).listExpr();
+ 
+
+  return nl->SymbolAtom("typeerror");
+
+}
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -10491,8 +10522,10 @@ int OpTMGetVNodeValueMap ( Word* args, Word& result, int message,
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
         vg->rel4 = (Relation*)args[4].addr;
         vg->btree = (BTree*)args[5].addr;
+        vg->tri_access = 0;
 
         vg->GetVNode();
+//        cout<<vg->tri_access<<" triangles visited "<<endl;
         local.setAddr(vg);
         return 0;
       }
@@ -10506,6 +10539,7 @@ int OpTMGetVNodeValueMap ( Word* args, Word& result, int message,
           tuple->PutAttribute(0, new CcInt(true, vg->oids1[vg->count]));
           tuple->PutAttribute(1, new Point(vg->p_list[vg->count]));
           tuple->PutAttribute(2, new Line(vg->line[vg->count]));
+          tuple->PutAttribute(3, new CcInt(true, vg->tri_access));
           result.setAddr(tuple);
           vg->count++;
           return YIELD;
@@ -15278,27 +15312,31 @@ int OpDecomposeGenmoValueMap ( Word* args, Word& result, int message,
       case REQUEST:{
           if(local.addr == NULL) return CANCEL;
           query_tm = (QueryTM*)local.addr;
-          if(query_tm->count == query_tm->oid_list.size())return CANCEL;
+          if(query_tm->count == query_tm->Oid_list.size())return CANCEL;
 
           Tuple* tuple = new Tuple(query_tm->resulttype);
-          tuple->PutAttribute(0, 
-                         new CcInt(true, query_tm->oid_list[query_tm->count]));
-/*          tuple->PutAttribute(1, 
-                             new Periods(query_tm->time_list[query_tm->count]));
-          tuple->PutAttribute(2, new Rectangle<2>(
-                           query_tm->box_list[query_tm->count]));*/
-/*        tuple->PutAttribute(3,
-           new CcString(true, GetTMStr(query_tm->tm_list[query_tm->count])));*/
-//          cout<<query_tm->box_list[query_tm->count]<<endl;
-          tuple->PutAttribute(1, new Rectangle<3>(
-                           query_tm->box_list[query_tm->count]));
-          tuple->PutAttribute(2,
-             new CcInt(true, query_tm->tm_list[query_tm->count]));
 
-          tuple->PutAttribute(3,
-                      new Point(query_tm->index_list1[query_tm->count]));
-          tuple->PutAttribute(4,
-                      new Point(query_tm->index_list2[query_tm->count]));
+//           tuple->PutAttribute(0, 
+//                       new CcInt(true, query_tm->oid_list[query_tm->count]));
+//           tuple->PutAttribute(1, new Rectangle<3>(
+//                            query_tm->box_list[query_tm->count]));
+//           tuple->PutAttribute(2,
+//              new CcInt(true, query_tm->tm_list[query_tm->count]));
+//           tuple->PutAttribute(3,
+//              new MPoint(query_tm->mp_list[query_tm->count]));
+
+
+           tuple->PutAttribute(0, 
+                       new CcInt(true, query_tm->Oid_list[query_tm->count]));
+           tuple->PutAttribute(1, new Rectangle<3>(
+                               query_tm->Box_list[query_tm->count]));
+           tuple->PutAttribute(2,
+              new CcInt(true, query_tm->Tm_list[query_tm->count]));
+           tuple->PutAttribute(3,
+              new MPoint(query_tm->Mp_list[query_tm->count]));
+           tuple->PutAttribute(4, 
+                       new CcInt(true, query_tm->div_list[query_tm->count]));
+
 
           result.setAddr(tuple);
           query_tm->count++;
@@ -15379,7 +15417,7 @@ int BulkLoadTMRtreeValueMap( Word* args, Word& result, int message,
 
       if(treetype == 1)//TMRtree
         tmrtree->TM_BulkLoad(e, m, last_m);
-      else{
+      else if (treetype == 2){//ADRtree
         tmrtree->BulkLoad(e);
       }
 
@@ -15419,8 +15457,6 @@ int TMRtreeNodesValueMap ( Word* args, Word& result, int message,
       case OPEN:{
 
         TM_RTree<3, TupleId>* rtree = (TM_RTree<3, TupleId>*)args[0].addr;
-
-
         query_tm = new QueryTM(); 
         query_tm->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
@@ -15441,13 +15477,11 @@ int TMRtreeNodesValueMap ( Word* args, Word& result, int message,
                        new CcInt(true, query_tm->level_list[query_tm->count]));
           tuple->PutAttribute(2, 
                       new CcBool(true, query_tm->b_list[query_tm->count]));
-          tuple->PutAttribute(3, 
-                      new CcString(true, query_tm->str_list[query_tm->count]));
-          tuple->PutAttribute(4,
+          tuple->PutAttribute(3,
              new CcInt(true, query_tm->mode_list[query_tm->count]));
-          tuple->PutAttribute(5,
+          tuple->PutAttribute(4,
              new Rectangle<3>(query_tm->box_list[query_tm->count]));
-          tuple->PutAttribute(6,
+          tuple->PutAttribute(5,
              new CcInt(true, query_tm->entry_list[query_tm->count]));
 
           result.setAddr(tuple);
@@ -15482,14 +15516,13 @@ int TMRangeTMRTreeValueMap ( Word* args, Word& result, int message,
         TM_RTree<3, TupleId>* rtree = (TM_RTree<3, TupleId>*)args[0].addr;
         Relation* rel1 = (Relation*)args[1].addr;
         Relation* rel2 = (Relation*)args[2].addr;
-        Relation* rel3 = (Relation*)args[3].addr;
-        int treetype = ((CcInt*)args[4].addr)->GetIntval();
+        int treetype = ((CcInt*)args[3].addr)->GetIntval();
 
         query_tm = new QueryTM(); 
         query_tm->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
 
-        query_tm->RangeTMRTree(rtree, rel1, rel2, rel3, treetype);
+        query_tm->RangeTMRTree(rtree, rel1, rel2, treetype);
         local.setAddr(query_tm);
         return 0;
       }
@@ -15520,6 +15553,31 @@ int TMRangeTMRTreeValueMap ( Word* args, Word& result, int message,
       }
   }
 
+  return 0;
+}
+
+/*
+convert from an integer to a text, ccstring has length limitation
+
+*/
+int OpTMMode2StrValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  unsigned int mode = ((CcInt*)args[0].addr)->GetIntval();
+  bool type = ((CcBool*)args[1].addr)->GetBoolval();
+
+  result = qp->ResultStorage( in_pSupplier );
+  FText *pResult = (FText *)result.addr;
+
+  if(type == false){
+    if(0 <= mode && mode < ARR_SIZE(str_tm) + ARR_SIZE(str_tm_ext))
+      pResult->Set(true, GetTMStrExt(mode));
+    else
+      pResult->Set(false, "error");
+  }else{
+      pResult->Set(true, GetModeStringExt(mode));
+  }
   return 0;
 }
 
@@ -16712,6 +16770,14 @@ Operator range_tmrtree(
 );
 
 
+Operator mode2str(
+  "mode2str",
+  OpTMMode2StringSpec,
+  OpTMMode2StrValueMap,
+  Operator::SimpleSelect,
+  TMMode2StrTypeMap
+);
+
 /*
 Main Class for Transportation Mode
 data types and operators 
@@ -17113,6 +17179,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&tmrtreemode);//set the mode value
    AddOperator(&tm_nodes);//a relation storing tm values for tm-rtree nodes
    AddOperator(&range_tmrtree);//using tmrtree to do range query
+   AddOperator(&mode2str);//mode 2 string
 
   }
   ~TransportationModeAlgebra() {};

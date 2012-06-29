@@ -1283,13 +1283,21 @@ const string OpTMNodesSpec  =
 const string OpTMRangeTMRTreeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>tmrtree x rel x rel x rel x int -> "
+    "( <text>tmrtree x rel x rel x int -> "
      "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
     "<text>range_tmrtree(tmrtree, rel, rel, rel)</text--->"
     "<text>range query on genmo using tmrtree </text--->"
-    "<text>query range_tmrtree(TM-Rtree, genmo_rel, genmo_rel, "
+    "<text>query range_tmrtree(TM-Rtree, genmo_rel, "
     "query_rel, 1) count</text--->) )";
-    
+
+const string OpTMMode2StringSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>int x bool -> text </text--->"
+    "<text>mode2str(int, bool)</text--->"
+    "<text>convert an integer to a text </text--->"
+    "<text>query mode2str(0, FALSE) </text--->) )";
+
 const string OpTMInstant2DaySpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
@@ -7818,13 +7826,15 @@ ListExpr OpTMGetVNodeTypeMap ( ListExpr args )
              nl->SymbolAtom("stream"),
                nl->TwoElemList(
                  nl->SymbolAtom("tuple"),
-                     nl->ThreeElemList(
-                       nl->TwoElemList(nl->SymbolAtom("oid"),
+                     nl->FourElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Oid"),
                                    nl->SymbolAtom("int")),
-                       nl->TwoElemList(nl->SymbolAtom("loc"),
+                       nl->TwoElemList(nl->SymbolAtom("Loc"),
                                     nl->SymbolAtom("point")),
-                       nl->TwoElemList(nl->SymbolAtom("connection"),
-                                    nl->SymbolAtom("line"))
+                       nl->TwoElemList(nl->SymbolAtom("Connection"),
+                                    nl->SymbolAtom("line")),
+                       nl->TwoElemList(nl->SymbolAtom("TriNo"),
+                                    nl->SymbolAtom("int"))
                   )
                 )
           );
