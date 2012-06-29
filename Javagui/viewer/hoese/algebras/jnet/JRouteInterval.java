@@ -70,12 +70,21 @@ public class JRouteInterval{
   }
 
   public boolean contains(RouteLocation rloc){
-    if (rid.compareTo(rloc.getRid()) == 0 &&
-        spos <= rloc.getPos() && rloc.getPos() <= epos &&
-        dir.compareTo(rloc.getDir(), false) == 0)
-      return true;
-    else
-      return false;
+    return (rid.compareTo(rloc.getRid()) == 0 &&
+            spos <= rloc.getPos() && rloc.getPos() <= epos &&
+            dir.compareTo(rloc.getDir(), false) == 0);
+  }
+
+  public boolean contains(JRouteInterval rint){
+    return (rid.compareTo(rint.getRid()) == 0 &&
+            spos <= rint.getStartPos() && rint.getEndPos() <= epos &&
+            dir.compareTo(rint.getDir().toString(), false) == 0);
+  }
+
+  public boolean completelyInside(JRouteInterval rint){
+    return (rid.compareTo(rint.getRid()) == 0 &&
+            rint.getStartPos() <= spos && epos <= rint.getEndPos() &&
+            dir.compareTo(rint.getDir().toString(), false) == 0);
   }
 
   public Integer getRid(){
@@ -90,13 +99,22 @@ public class JRouteInterval{
     return epos;
   }
 
-  public String getDir(){
-    return dir.toString();
+  public JDirection getDir(){
+    return dir;
   }
 
   public double getLength(){
     return Math.abs(epos - spos);
   }
+
+  public RouteLocation getStartRLoc(){
+    return new RouteLocation(rid, spos, dir);
+  }
+
+  public RouteLocation getEndRLoc(){
+    return new RouteLocation(rid, epos, dir);
+  }
+
 }
 
 

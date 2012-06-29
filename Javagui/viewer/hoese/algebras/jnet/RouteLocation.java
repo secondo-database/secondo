@@ -57,6 +57,12 @@ public class RouteLocation{
     }
   }
 
+  public RouteLocation(Integer r, Double p, JDirection d){
+    rid = r;
+    pos = p;
+    dir = d;
+  }
+
   public String toString(){
     if (rid > -1 && pos > -1.0)
       return "rid " + rid.toString() + " pos " + pos.toString() +

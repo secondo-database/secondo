@@ -19,52 +19,46 @@
 
 //2012, June Simone Jandt
 
-package  viewer.hoese.algebras.jnet;
+package viewer.hoese.algebras.jnet;
 
-import  sj.lang.ListExpr;
-import  viewer.*;
+import java.util.*;
+import sj.lang.ListExpr;
+import viewer.*;
 import viewer.hoese.*;
 
 
+
 /**
- * JDirection
- * Tells if the direction of driving respectively the side of
- * a route location or route interval or is up, down or both.
+ * JRoute
+ * List of section ids belonging to the route with id.
  */
-public class JDirection{
+public class JRoute{
 
-  String dir;
+   private Integer rid;
+   private Vector<Integer> sids= new Vector<Integer>();
 
-  public JDirection(ListExpr value){
-    if (value.listLength() == 1)
-      dir = value.first().stringValue();
-    else
-      dir = "undefined";
-  }
 
-  public JDirection(String in){
-    dir = in;
-  }
-
-  public String toString()  {
-    return dir;
-  }
-
-  public int compareTo(String indir, boolean strict){
-    if (dir.toString().compareTo(indir) != 0) {
-      if (strict){
-        return -1;
-      } else {
-        if (dir.toString().compareTo("Both") == 0 ||
-            indir.compareTo("Both") == 0)
-          return 0;
-        else
-          return -1;
+  public JRoute(ListExpr value){
+    if (value.listLength() == 4){
+      if(value.first().atomType()==ListExpr.INT_ATOM)
+        rid = value.first().intValue();
+      ListExpr sectList = value.third();
+      while (!sectList.isEmpty()){
+        sids.add(sectList.first().intValue());
+        sectList = sectList.rest();
       }
-    } else {
-      return 0;
     }
   }
+
+  public Vector<Integer> getSids(){
+    return sids;
+  }
+
+  public int getRid(){
+    return rid;
+  }
+
+
 }
 
 

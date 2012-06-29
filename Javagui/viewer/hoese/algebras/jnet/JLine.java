@@ -28,25 +28,28 @@ import sj.lang.ListExpr;
 import viewer.*;
 import viewer.hoese.*;
 
+
+
 /**
- * JPoint
+ * JLine
  * Describes a single position in the jnet network.
  */
-public class JPoint{
+public class JLine{
 
    private String netId;
-   private RouteLocation rloc;
-   private Point2D.Double pos;
+   private Rectangle2D.Double bounds = null;
+   private Vector<JSection> parts = new Vector<JSection> ();
 
-  public JPoint(ListExpr value) throws JNetworkNotAvailableException {
+
+  public JLine(ListExpr value) throws JNetworkNotAvailableException {
     if (value.listLength() == 2){
       netId = value.first().stringValue();
-      rloc = new RouteLocation(value.second());
       JNetwork jnet = JNetworkManager.getInstance().getNetwork(netId);
-      pos = jnet.getPosition(rloc);
-      Point2D.Double rendPos = new Point2D.Double(0.0,0.0);
-      if (ProjectionManager.project(pos.x, pos.y, rendPos)){
-        pos = rendPos;
+      ListExpr rintList = value.second();
+      while (!rintList.isEmpty()){
+        JRouteInterval actInt = new JRouteInterval(rintList.first());
+        parts.add(jnet.getSection(actInt));
+        rintList = rintList.rest();
       }
     } else {
       netId = "undefined";
@@ -55,32 +58,49 @@ public class JPoint{
 
   public String toString(){
     if (netId.compareTo("undefined") != 0)
-      return rloc.toString();
+      return "jline";
     else
       return "undefined";
   }
 
   public Rectangle2D.Double getBounds(){
-    return new Rectangle2D.Double(pos.getX(), pos.getY(),0.0,0.0);
+    if (parts.size()>0){
+      Rectangle2D.Double res = ((JSection)parts.get(0)).getBounds();
+      for (int i = 1; i < parts.size(); i++){
+        Rectangle2D.Double next = ((JSection)parts.get(i)).getBounds();
+        if (next != null)
+          res.add(next);
+      }
+      return res;
+    }
+    return null;
+  }
+
+  public int numOfShapes(){
+    return (2*parts.size());
+  }
+
+  public boolean isPointType(int no){
+    return isArrowType(no);
+  }
+
+  public boolean isLineType(int no){
+    return (no < parts.size());
   }
 
   public Shape getRenderObject(int no, AffineTransform af, double pointSize,
                                boolean asRect){
-    double pointSizeX = Math.abs(pointSize/af.getScaleX());
-    double pointSizeY = Math.abs(pointSize/af.getScaleY());
-    Shape shape;
-    if (asRect) {
-      shape = new Rectangle2D.Double(pos.getX()- pointSizeX/2,
-                                     pos.getY()- pointSizeY/2,
-                                     pointSizeX,
-                                     pointSizeY);
-    } else {
-      shape = new Ellipse2D.Double(pos.getX()- pointSizeX/2,
-                                   pos.getY() - pointSizeY/2,
-                                   pointSizeX,
-                                   pointSizeY);
+    if (isLineType(no)){
+      return ((JSection)parts.get(no)).getRenderObject(0,af,pointSize);
     }
-    return  shape;
+    if (isArrowType(no)){
+      return ((JSection)parts.get(no-parts.size())).getRenderObject(1, af, pointSize);
+    }
+    return null;
+  }
+
+  private boolean isArrowType(int no){
+    return (parts.size() <= no && no < 2*parts.size());
   }
 
 }

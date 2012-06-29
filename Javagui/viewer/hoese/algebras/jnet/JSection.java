@@ -45,14 +45,15 @@ public class JSection{
    private JDirection dir;
    private boolean startSmaller;
    private double lenth;
+   private int sid;
    private GeneralPath curve;
    private GeneralPath curveRendered;
    private Rectangle2D.Double bounds = new Rectangle2D.Double(0.0,0.0,0.0,0.0);
 
 
-  public JSection(ListExpr value)
-  {
+  public JSection(ListExpr value){
     if (value.listLength() == 12){
+      sid = value.first().intValue();
       dir = new JDirection(value.fifth());
       if (dir.toString().compareTo("Both") != 0){
         isArrow = true;
@@ -62,6 +63,24 @@ public class JSection{
       readCurve(value.second());
       readRouteIntervals(value.eighth());
     }
+  }
+
+  public JSection(JRouteInterval rint,
+                  Point2D.Double pt1, Point2D.Double pt2,
+                  GeneralPath gp, boolean hasArrow,
+                  Rectangle2D.Double box){
+    p1 = new Point2D.Double(pt1.x,pt1.y);
+    p2 = new Point2D.Double(pt2.x,pt2.y);
+    dir = rint.getDir();
+    this.isArrow = hasArrow;
+    this.routeIntervals.add(rint);
+    this.lenth = rint.getLength();
+    this.curveRendered = gp;
+    bounds.setRect(box);
+  }
+
+  public Integer getId(){
+    return sid;
   }
 
   public Shape getRenderObject(int i, AffineTransform af, double pointSize){
@@ -96,6 +115,49 @@ public class JSection{
       }
     }
     return -1;
+  }
+
+  public int contains(JRouteInterval rint){
+    for (int i = 0; i < routeIntervals.size(); i++){
+      JRouteInterval curInt = routeIntervals.get(i);
+      if (curInt.contains(rint)){
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  public int isCompletelyInside(JRouteInterval rint){
+    for (int i = 0; i < routeIntervals.size(); i++){
+      JRouteInterval curInt = routeIntervals.get(i);
+      if (curInt.completelyInside(rint)){
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  public GeneralPath getRenderedCurve(){
+    return curveRendered;
+  }
+
+  public GeneralPath getRenderedCurve(JRouteInterval rint, int pos){
+    JRouteInterval curInt = routeIntervals.get(pos);
+    double startpos = rint.getStartPos()-curInt.getStartPos();
+    double endpos = rint.getEndPos() - curInt.getStartPos();
+    return getCurve(startpos, endpos);
+  }
+
+  public GeneralPath getRenderedCurveFrom(RouteLocation rloc, int pos){
+    JRouteInterval curInt = routeIntervals.get(pos);
+    double distFromStartOfSection = rloc.getPos() - curInt.getStartPos();
+    return getCurveFrom(distFromStartOfSection);
+  }
+
+  public GeneralPath getRenderedCurveTo(RouteLocation rloc, int pos){
+    JRouteInterval curInt = routeIntervals.get(pos);
+    double distFromStartOfSection = rloc.getPos() - curInt.getStartPos();
+    return getCurveTo(distFromStartOfSection);
   }
 
   private void readCurve (ListExpr value){
@@ -307,7 +369,6 @@ private static void reverse(Vector<Point2D.Double >  v){
      Vector<Point2D.Double> sequenceCopy = new Vector<Point2D.Double>(sequence);
      int size = sequence.size();
      for(int i=0;i<size;i++){
-        System.out.println((i+index)%size + "->" + i);
         sequence.set(i, sequenceCopy.get((i+index)%size));
      }
   }
@@ -377,29 +438,212 @@ private static void reverse(Vector<Point2D.Double >  v){
     double[] coordsFrom = new double[6];
     double[] coordsTo = new double[6];
     pi.currentSegment(coordsFrom);
-    double dDistOnSection = 0.0;
+    double distOnSection = 0.0;
     double lSeg = 0.0;
-    double dDistNew = 0.0;
-    boolean found = false;
+    double distNew = 0.0;
     // Look for segment
-    while(!pi.isDone()){
+    while(!pi.isDone() && distOnSection < lenth){
       pi.next();
       pi.currentSegment(coordsTo);
       lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
                        Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
-      dDistNew = dDistOnSection + lSeg;
-      if (dDistOnSection <= pos && pos <= dDistNew){
-        double x = coordsFrom[0] + (pos - dDistOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
-        double y = coordsFrom[1] + (pos - dDistOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
+      distNew = distOnSection + lSeg;
+      if (distOnSection <= pos && pos <= distNew){
+        double x = coordsFrom[0] + (pos - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
+        double y = coordsFrom[1] + (pos - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
         return new Point2D.Double(x,y);
       } else {
         coordsFrom[0] = coordsTo[0];
         coordsFrom[1] = coordsTo[1];
-        dDistOnSection = dDistNew;
+        distOnSection = distNew;
       }
     }
     return new Point2D.Double(0.0,0.0); //should never been reached.
   }
+
+  private GeneralPath getCurveFrom(double pos){
+    GeneralPath gp = new GeneralPath();
+    Point2D.Double rendRes = new Point2D.Double(0.0,0.0);
+    if (!startSmaller){
+      pos = lenth - pos;
+    }
+    PathIterator pi = curve.getPathIterator(null, 0.0);
+    double[] coordsFrom = new double[6];
+    double[] coordsTo = new double[6];
+    pi.currentSegment(coordsFrom);
+    double distOnSection = 0.0;
+    double lSeg = 0.0;
+    double distNew = 0.0;
+    boolean startfound = false;
+    pi.next();
+    while (!pi.isDone() && !startfound && distOnSection < lenth){
+      pi.currentSegment(coordsTo);
+      lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
+                       Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
+      distNew = distOnSection + lSeg;
+      if (distOnSection <= pos && pos <= distNew){
+        startfound = true;
+        double x = coordsFrom[0] + (pos - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
+        double y = coordsFrom[1] + (pos - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
+        if (ProjectionManager.project(x,y,rendRes))
+          gp.moveTo(rendRes.x, rendRes.y);
+        else
+          gp.moveTo(x,y);
+        if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
+          gp.lineTo(rendRes.x, rendRes.y);
+        else
+          gp.lineTo(coordsTo[0],coordsTo[1]);
+      }
+      coordsFrom[0] = coordsTo[0];
+      coordsFrom[1] = coordsTo[1];
+      distOnSection = distNew;
+      pi.next();
+    }
+    if (startfound){
+      while(!pi.isDone() && distOnSection < lenth){
+        pi.currentSegment(coordsTo);
+        lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
+                         Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
+        distOnSection = distOnSection + lSeg;
+        if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
+          gp.lineTo(rendRes.x, rendRes.y);
+        else
+          gp.lineTo(coordsTo[0],coordsTo[1]);
+        coordsFrom[0] = coordsTo[0];
+        coordsFrom[1] = coordsTo[1];
+        pi.next();
+      }
+    }
+    return gp;
+  }
+
+  private GeneralPath getCurveTo(double pos){
+    GeneralPath gp = new GeneralPath();
+    Point2D.Double rendRes = new Point2D.Double(0.0,0.0);
+    if (!startSmaller){
+      pos = lenth - pos;
+    }
+    PathIterator pi = curve.getPathIterator(null, 0.0);
+    double[] coordsFrom = new double[6];
+    double[] coordsTo = new double[6];
+    pi.currentSegment(coordsFrom);
+    double distOnSection = 0.0;
+    double lSeg = 0.0;
+    double distNew = 0.0;
+    boolean endfound = false;
+    if (ProjectionManager.project(coordsFrom[0],coordsFrom[1],rendRes))
+      gp.moveTo(rendRes.x, rendRes.y);
+    else
+      gp.moveTo(coordsFrom[0],coordsFrom[1]);
+    pi.next();
+    while (!pi.isDone() && !endfound && distOnSection < lenth){
+      pi.currentSegment(coordsTo);
+      lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
+                       Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
+      distNew = distOnSection + lSeg;
+      if (distNew <= pos){
+        if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
+          gp.lineTo(rendRes.x, rendRes.y);
+        else
+          gp.lineTo(coordsTo[0],coordsTo[1]);
+      } else {
+        endfound = true;
+        double x = coordsFrom[0] + (pos - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
+        double y = coordsFrom[1] + (pos - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
+        if (ProjectionManager.project(x,y,rendRes))
+          gp.lineTo(rendRes.x, rendRes.y);
+        else
+          gp.lineTo(coordsTo[0],coordsTo[1]);
+      }
+      coordsFrom[0] = coordsTo[0];
+      coordsFrom[1] = coordsTo[1];
+      distOnSection = distNew;
+      pi.next();
+    }
+    return gp;
+  }
+
+  private GeneralPath getCurve(double from , double to) {
+    GeneralPath gp = new GeneralPath();
+    Point2D.Double rendRes = new Point2D.Double(0.0,0.0);
+    if (!startSmaller){
+      from = lenth - from;
+      to = lenth - to;
+    }
+    PathIterator pi = curve.getPathIterator(null, 0.0);
+    double[] coordsFrom = new double[6];
+    double[] coordsTo = new double[6];
+    pi.currentSegment(coordsFrom);
+    double distOnSection = 0.0;
+    double lSeg = 0.0;
+    double distNew = 0.0;
+    boolean startfound = false;
+    boolean endfound = false;
+    pi.next();
+    while (!pi.isDone() && !startfound && distOnSection < lenth){
+      pi.currentSegment(coordsTo);
+      lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
+                       Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
+      distNew = distOnSection + lSeg;
+      if (distOnSection <= from && from <= distNew){
+        startfound = true;
+        double x = coordsFrom[0] + (from - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
+        double y = coordsFrom[1] + (from - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
+        if (ProjectionManager.project(x,y,rendRes))
+          gp.moveTo(rendRes.x, rendRes.y);
+        else
+          gp.moveTo(x,y);
+        if (to >= distNew) {
+          if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
+            gp.lineTo(rendRes.x, rendRes.y);
+          else
+            gp.lineTo(coordsTo[0],coordsTo[1]);
+        } else {
+          endfound = true;
+          x = coordsFrom[0] + (to - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
+          y = coordsFrom[1] + (to - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
+          if (ProjectionManager.project(x,y,rendRes))
+            gp.lineTo(rendRes.x, rendRes.y);
+          else
+            gp.lineTo(x,y);
+        }
+      }
+      coordsFrom[0] = coordsTo[0];
+      coordsFrom[1] = coordsTo[1];
+      distOnSection = distNew;
+      pi.next();
+    }
+    if (startfound){
+      if (!endfound) {
+         while (!pi.isDone() && !endfound && distOnSection < lenth){
+          pi.currentSegment(coordsTo);
+          lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
+                           Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
+          distNew = distOnSection + lSeg;
+          if (distNew <= to){
+            if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
+              gp.lineTo(rendRes.x, rendRes.y);
+            else
+              gp.lineTo(coordsTo[0],coordsTo[1]);
+          } else {
+            endfound = true;
+            double x = coordsFrom[0] + (to - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
+            double y = coordsFrom[1] + (to - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
+            if (ProjectionManager.project(x,y,rendRes))
+              gp.lineTo(rendRes.x, rendRes.y);
+            else
+              gp.lineTo(coordsTo[0],coordsTo[1]);
+          }
+          coordsFrom[0] = coordsTo[0];
+          coordsFrom[1] = coordsTo[1];
+          distOnSection = distNew;
+          pi.next();
+        }
+      }
+    }
+    return gp;
+  }
+
 }
 
 
