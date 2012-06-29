@@ -486,13 +486,13 @@ private static void reverse(Vector<Point2D.Double >  v){
         double x = coordsFrom[0] + (pos - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
         double y = coordsFrom[1] + (pos - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
         if (ProjectionManager.project(x,y,rendRes))
-          gp.moveTo(rendRes.x, rendRes.y);
+          gp.moveTo((float)rendRes.x, (float)rendRes.y);
         else
-          gp.moveTo(x,y);
+          gp.moveTo((float)x,(float)y);
         if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
-          gp.lineTo(rendRes.x, rendRes.y);
+          gp.lineTo((float)rendRes.x,(float) rendRes.y);
         else
-          gp.lineTo(coordsTo[0],coordsTo[1]);
+          gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
       }
       coordsFrom[0] = coordsTo[0];
       coordsFrom[1] = coordsTo[1];
@@ -506,9 +506,9 @@ private static void reverse(Vector<Point2D.Double >  v){
                          Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
         distOnSection = distOnSection + lSeg;
         if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
-          gp.lineTo(rendRes.x, rendRes.y);
+          gp.lineTo((float)rendRes.x,(float) rendRes.y);
         else
-          gp.lineTo(coordsTo[0],coordsTo[1]);
+          gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
         coordsFrom[0] = coordsTo[0];
         coordsFrom[1] = coordsTo[1];
         pi.next();
@@ -532,9 +532,9 @@ private static void reverse(Vector<Point2D.Double >  v){
     double distNew = 0.0;
     boolean endfound = false;
     if (ProjectionManager.project(coordsFrom[0],coordsFrom[1],rendRes))
-      gp.moveTo(rendRes.x, rendRes.y);
+      gp.moveTo((float)rendRes.x, (float)rendRes.y);
     else
-      gp.moveTo(coordsFrom[0],coordsFrom[1]);
+      gp.moveTo((float)coordsFrom[0],(float)coordsFrom[1]);
     pi.next();
     while (!pi.isDone() && !endfound && distOnSection < lenth){
       pi.currentSegment(coordsTo);
@@ -542,18 +542,18 @@ private static void reverse(Vector<Point2D.Double >  v){
                        Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
       distNew = distOnSection + lSeg;
       if (distNew <= pos){
-        if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
-          gp.lineTo(rendRes.x, rendRes.y);
+        if (ProjectionManager.project((float)coordsTo[0],(float)coordsTo[1],rendRes))
+          gp.lineTo((float)rendRes.x, (float)rendRes.y);
         else
-          gp.lineTo(coordsTo[0],coordsTo[1]);
+          gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
       } else {
         endfound = true;
         double x = coordsFrom[0] + (pos - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
         double y = coordsFrom[1] + (pos - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
         if (ProjectionManager.project(x,y,rendRes))
-          gp.lineTo(rendRes.x, rendRes.y);
+          gp.lineTo((float)rendRes.x,(float) rendRes.y);
         else
-          gp.lineTo(coordsTo[0],coordsTo[1]);
+          gp.lineTo((float)x,(float)y);
       }
       coordsFrom[0] = coordsTo[0];
       coordsFrom[1] = coordsTo[1];
@@ -590,22 +590,22 @@ private static void reverse(Vector<Point2D.Double >  v){
         double x = coordsFrom[0] + (from - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
         double y = coordsFrom[1] + (from - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
         if (ProjectionManager.project(x,y,rendRes))
-          gp.moveTo(rendRes.x, rendRes.y);
+          gp.moveTo((float)rendRes.x, (float)rendRes.y);
         else
-          gp.moveTo(x,y);
+          gp.moveTo((float)x,(float)y);
         if (to >= distNew) {
           if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
-            gp.lineTo(rendRes.x, rendRes.y);
+            gp.lineTo((float)rendRes.x, (float)rendRes.y);
           else
-            gp.lineTo(coordsTo[0],coordsTo[1]);
+            gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
         } else {
           endfound = true;
           x = coordsFrom[0] + (to - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
           y = coordsFrom[1] + (to - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
           if (ProjectionManager.project(x,y,rendRes))
-            gp.lineTo(rendRes.x, rendRes.y);
+            gp.lineTo((float)rendRes.x, (float)rendRes.y);
           else
-            gp.lineTo(x,y);
+            gp.lineTo((float)x,(float)y);
         }
       }
       coordsFrom[0] = coordsTo[0];
@@ -622,17 +622,17 @@ private static void reverse(Vector<Point2D.Double >  v){
           distNew = distOnSection + lSeg;
           if (distNew <= to){
             if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
-              gp.lineTo(rendRes.x, rendRes.y);
+              gp.lineTo((float)rendRes.x, (float)rendRes.y);
             else
-              gp.lineTo(coordsTo[0],coordsTo[1]);
+              gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
           } else {
             endfound = true;
             double x = coordsFrom[0] + (to - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
             double y = coordsFrom[1] + (to - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
             if (ProjectionManager.project(x,y,rendRes))
-              gp.lineTo(rendRes.x, rendRes.y);
+              gp.lineTo((float)rendRes.x, (float)rendRes.y);
             else
-              gp.lineTo(coordsTo[0],coordsTo[1]);
+              gp.lineTo((float)x,(float)y);
           }
           coordsFrom[0] = coordsTo[0];
           coordsFrom[1] = coordsTo[1];
