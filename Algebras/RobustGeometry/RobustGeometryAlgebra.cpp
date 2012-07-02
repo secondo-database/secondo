@@ -24,10 +24,9 @@ appears to be fully robust using an adjustable precision model.
 To change the precision adapt the ScaleFactor.
 This algebra provides just the type constructors ~line~
 for the intersection operation.
-There are tree steps
-        1 plane-sweep-algorithm to find the intersection points
-        2 snap rounding
-        3 check intersections
+There are tree steps to provide a robust operation in SECONDO.
+First Step is a plane-sweep-algorithm to find the intersection points, then
+snap rounding and finally a operation specific check.
 
 1 Preliminaries
 
@@ -82,25 +81,18 @@ extern QueryProcessor* qp;
 
 /*
  Algebra Implementation
- Type Mapping Functions
- These functions check whether the correct argument types are supplied for an
+ Type Mapping Functions check whether the correct argument types are supplied for an
  operator; if so, returns a list expression for the result type, otherwise the
- symbol ~typeerror~. ->see SpatialAlgebra
+ symbol ~typeerror~. This implementation uses the implementation
+of the classes ~line~ and ~region~ from SpatialAlgebra.
+So see SpatialAlgebra for Type Mapping Functions
 
 */
 
 /*
  An algebra module must provide for each type functions which take a nested
  list and create an instance of the class representing the type and vice versa.
- These functions are called In- and Out-functions. ->see SpatialAlgebra In/Out
-
-*/
-
-/*
- This means that for a type constructor the functions create, delete,
- close, and clone must be implemented. The remaining two functions open
- and save may be implemented. If they are not implemented,
- the default persistent storage mechanism is used. ->see SpatialAlgebra
+ These functions are called In- and Out-functions. [->] see SpatialAlgebra
 
 */
 
@@ -110,13 +102,6 @@ enum SpatialTypeRG {
 };
 
 
-/*
-~SpatialTypeRG~
-
-This function checks whether the type given as a ListExpr is one of
-~point~, ~points~, ~line~, or ~region~.
-
-*/
 SpatialTypeRG SpatialTypeOfSymbolRG(ListExpr symbol) {
 	if (nl->AtomType(symbol) == SymbolType) {
 		string s = nl->SymbolValue(symbol);
@@ -183,7 +168,12 @@ const string intersectionSpec =
 	") )";
 
 /*
-3.1 Implementation of Class ~BOLine~
+3 Implementation of Class ~BOLine~
+
+*/
+
+/*
+documentation see RobustGeometryAlgebra.h
 
 */
 robustGeometry::BOLine::BOLine(const BOLine& line){
@@ -249,7 +239,7 @@ void robustGeometry::BOLine::setOwner( const BOOwnerType owner )
 
 
 /*
-3.1 Implementation of Class ~BOEvent~
+3 Implementation of Class ~BOEvent~
 
 */
 robustGeometry::BOEvent::BOEvent(const double x, const double y,
@@ -349,7 +339,7 @@ void robustGeometry::Point::setY( const double y )
 };
 
 /*
-3.1 Implementation of Class ~HOBatch~
+3 Implementation of Class ~HOBatch~
 
 */
 robustGeometry::HOBatch::HOBatch(const double x, const double y){
@@ -367,7 +357,7 @@ void robustGeometry::HOBatch::setY( const double y )
 };
 
 /*
-3.1 Implementation of Class ~ToleranceSquare~
+3 Implementation of Class ~ToleranceSquare~
 
 */
 void robustGeometry::ToleranceSquare::setX11( const double x11 )
@@ -416,7 +406,7 @@ void robustGeometry::ToleranceSquare::setBOEvent( const BOEvent & boEv )
 };
 
 /*
-1 Class ~MakeBO~
+1 Implementation of Class ~MakeBO~
 
 Class for plane-sweep-algorithm like [Bentley/Ottmann 1979]
 
@@ -551,11 +541,20 @@ call the case processing
 
 
 private:
-//sweepLine
+/*
+sweepLine
+
+*/
   set<robustGeometry::BOLine, robustGeometry::CompBOLine > sL;
-//input event queue
+/*
+input event queue
+
+*/
   set<robustGeometry::BOEvent, robustGeometry::CompBOEventXY> initialEvents;
-//event queue
+/*
+event queue
+
+*/
   set<robustGeometry::BOEvent, robustGeometry::CompBOEventXY> boEvents;
 };
 
@@ -870,7 +869,7 @@ void MakeBO::addInitialEvent( const robustGeometry::BOEvent& event )
 
 
 /*
-3 Class  ~MakeHobby~
+1 Implementation of Class ~MakeHobby~
 
 This class implements the snap rounding technique described in
 papers by Hobby, Guibas and Marimont.
@@ -1606,10 +1605,6 @@ void MakeBO::IntersectionBO(const Line& line1, const Line& line2,
 	avlseg::ExtendedHalfSegment nextExtHs;
 	int src = 0;
 
-	//const avlseg::AVLSegment* member=0;
-	//const avlseg::AVLSegment* leftN = 0;
-	//const avlseg::AVLSegment* rightN = 0;
-
 	avlseg::AVLSegment left1, right1, common1,
 	left2, right2;
 	avlseg::AVLSegment tmpL, tmpR;
@@ -1654,13 +1649,19 @@ void MakeBO::IntersectionBO(const Line& line1, const Line& line2,
 
 	};
 
+	//printInitialEvents();
+
 	doBOCases();
 
-
+    printBOEvents();
 	makeHO->set_BOEvents( get_BOEvents());
+	makeHO->printHOInitialEvents();
 
     makeHO->doHO( );
 
+    makeHO->printHOEvents();
+   	makeHO->printHOResult_events();
+   	makeHO->printHOResult_lines();
     makeHO->sortRoundedSegments();
 
 	vector<robustGeometry::BOLine> segments = makeHO->get_result_segments();
@@ -1685,18 +1686,18 @@ void MakeBO::IntersectionBO(const Line& line1, const Line& line2,
 			result += hs2;
 
 
-//cout << " Intersected Line 1 Owner " <<  boL.getOwner() <<
-//" Original X1 " <<	boL.getX1() << " Y1 " << boL.getY1() <<
-//" x2 " << boL.getX2() << " y2 " << boL.getY2() <<
-//" Roundedl X1 " <<	boL.getX1_round() << " Y1 " <<
-//boL.getY1_round() << " x2 " << boL.getX2_round() <<
-//" y2 " << boL.getY2_round() << endl;
-//cout << "             Line 2 Owner " <<  it->getOwner() <<
-//" Original X1 " <<	it->getX1() << " Y1 " << it->getY1() <<
-//" x2 " << it->getX2() << " y2 " << it->getY2() <<
-//" Roundedl X1 " <<	it->getX1_round() << " Y1 " <<
-//it->getY1_round() << " x2 " << it->getX2_round()
-//<< " y2 " << it->getY2_round() << endl;
+cout << " Intersected Line 1 Owner " <<  boL.getOwner() <<
+" Original X1 " <<	boL.getX1() << " Y1 " << boL.getY1() <<
+" x2 " << boL.getX2() << " y2 " << boL.getY2() <<
+" Roundedl X1 " <<	boL.getX1_round() << " Y1 " <<
+boL.getY1_round() << " x2 " << boL.getX2_round() <<
+" y2 " << boL.getY2_round() << endl;
+cout << "             Line 2 Owner " <<  it->getOwner() <<
+" Original X1 " <<	it->getX1() << " Y1 " << it->getY1() <<
+" x2 " << it->getX2() << " y2 " << it->getY2() <<
+" Roundedl X1 " <<	it->getX1_round() << " Y1 " <<
+it->getY1_round() << " x2 " << it->getX2_round()
+<< " y2 " << it->getY2_round() << endl;
 
 
 		}
@@ -1704,8 +1705,8 @@ void MakeBO::IntersectionBO(const Line& line1, const Line& line2,
 		boL = *it;
 
 	}
-
-	result.EndBulkLoad(true, false);
+//	result.EndBulkLoad(true, false);
+	result.EndBulkLoad(true, true);
 }
 
 /*

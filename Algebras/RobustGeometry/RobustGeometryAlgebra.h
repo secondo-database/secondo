@@ -1,33 +1,31 @@
 /*
- ----
 
- This file is part of SECONDO.
-
- Copyright (C) 2004, University in Hagen, Department of Computer Science,
- Database Systems for New Applications.
-
- SECONDO is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation; either version 2 of the License, or
- (at your option) any later version.
-
- SECONDO is distributed in the hope that it will be useful,
- but WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- GNU General Public License for more details.
-
- You should have received a copy of the GNU General Public License
- along with SECONDO; if not, write to the Free Software
- Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- ----
- [1] Header File of the RobustGeometry Algebra
+//[_] [\_]
+//[TOC] [\tableofcontents]
+//[Title] [ \title{RobustGeometry} \author{Katja Koch} \maketitle]
+//[times] [\ensuremath{\times}]
+//[->] [\ensuremath{\rightarrow}]
 
 
- [TOC]
- 1 Overview
- 2 Defines and includes
+
+[1]  Header File of the RobustGeometryAlgebra
+
+[TOC]
+
+1 Overview
+
+This header file essentially contains the definition of the classes ~BOLine~ and
+~BOEvent~ used for Bentley-Ottmann algorithm and for Hobby algorithm.
+~HOBatch~ and ~ToleranceSquare~ used for Hobby algorithm.
+
+
+1 Preliminaries
+
+1.1 Includes and global declarations
 
 */
+
+
 #ifndef __ROBUSTGEOMETRY_ALGEBRA_H__
 #define __ROBUSTGEOMETRY_ALGEBRA_H__
 #include "HalfSegment.h"
@@ -39,13 +37,30 @@ using std::ostream;
 
 namespace robustGeometry {
 
-//stay away of this infinitesimal value to on side of the border
+/*
+stay away of this infinitesimal value to on side of the border,
+used to build and ask the borders of ToleranceSquare
+
+*/
+
 double const Epsilon = 0.000001;
-//ScaleFactor used for variable grid size
+
+/*
+ScaleFactor used for variable grid size
+
+*/
 double const ScaleFactor = 0.5;
-//valid values for BOEvents
+
+/*
+valid values for BOEvents
+
+*/
 enum BOPointType{start, end, intersect};
-//valid values for BOOwner
+
+/*
+valid values for BOOwner
+
+*/
 enum BOOwnerType{first, second, both};
 
 
@@ -140,6 +155,82 @@ private:
 	double y1_r;
 	double x2_r;
 	double y2_r;
+
+};
+
+/*
+3.1 Class  ~CompBOLine~
+
+for finding and sorting the BOLine by increasing x and y
+
+*/
+
+class CompBOLine{
+public:
+	bool operator()(BOLine l1, BOLine l2) {
+		if ( l1.getX1() < l2.getX1() )
+			return true;
+		else if ( (l1.getX1() == l2.getX1() ) &&
+				  (l1.getY1() <  l2.getY1() ) )
+			return true;
+		else if ( (l1.getX1() == l2.getX1() ) &&
+				  (l1.getY1() == l2.getY1() ) &&
+				  (l1.getX2() < l2.getX2() ) )
+			return true;
+		else if ( (l1.getX1() == l2.getX1() ) &&
+				  (l1.getY1() == l2.getY1() ) &&
+				  (l1.getX2() == l2.getX2() ) &&
+				  (l1.getY2() <  l2.getY2() ) )
+			return true;
+		else
+
+			return false;
+	};
+	friend bool operator == (const BOLine l1, const BOLine l2) {
+		if ( (l1.getX1() == l2.getX1() ) &&
+			 (l1.getY1() == l2.getY1() ) &&
+			 (l1.getX2() == l2.getX2() ) &&
+			 (l1.getY2() == l2.getY2() ) &&
+			 (l1.getOwner() == l2.getOwner()))
+			return true;
+		else
+			return false;
+	};
+
+};
+/*
+3.1 Class  ~CompBOLineXYOwn~
+
+for finding and sorting the BOLine by increasing x and y and owner
+
+*/
+
+class CompBOLineXYOwn{
+public:
+	bool operator()(BOLine l1, BOLine l2) {
+		if ( l1.getX1() < l2.getX1() )
+			return true;
+		else if ( (l1.getX1() == l2.getX1() ) &&
+				  (l1.getY1() <  l2.getY1() ) )
+			return true;
+		else if ( (l1.getX1() == l2.getX1() ) &&
+				  (l1.getY1() == l2.getY1() ) &&
+			      (l1.getOwner() < l2.getOwner() ) )
+			return true;
+		else if ( (l1.getX1() == l2.getX1() ) &&
+				  (l1.getY1() == l2.getY1() ) &&
+				  (l1.getOwner() == l2.getOwner() ) &&
+				  (l1.getX2() < l2.getX2() ) )
+			return true;
+		else if ( (l1.getX1() == l2.getX1() ) &&
+				  (l1.getY1() == l2.getY1() ) &&
+				  (l1.getOwner() == l2.getOwner() ) &&
+				  (l1.getX2() == l2.getX2() ) &&
+				  (l1.getY2() <  l2.getY2() ) )
+			return true;
+		else
+			return false;
+	};
 
 };
 
@@ -254,16 +345,9 @@ public:
 			 (e1.getY() == e2.getY() ) &&
 			 (e1.getPointType() == e2.getPointType()) &&
 			 (e1.getOwner() == e2.getOwner()) ){
-//			if ( e1.getPointType() == intersect ){
-//				if ( ( e1.getLine1() < e2.getLine1()) &&
-//					 ( e1.getLine2() == e2.getLine2()))
-//					return true;
-//				else return false;
-//			}
-//			else if ( e1.getLine() == e2.getLine() )
+
 				return true;
-//			else
-//			  return false;
+
 		}
 		else
 			return false;
@@ -314,88 +398,11 @@ public:
 	bool operator()(HOBatch e1, HOBatch e2) {
 		if ( e1.getX() < e2.getX() )
 			return true;
-	//else if ( (e1.getX() == e2.getX() ) &&
-	//			  (e1.getY() <  e2.getY() ) )
-	//		return true;
 		else
 			return false;
 	};
 };
-/*
-3.1 Class  ~CompBOLine~
 
-for finding and sorting the BOLine by increasing x and y
-
-*/
-
-class CompBOLine{
-public:
-	bool operator()(BOLine l1, BOLine l2) {
-		if ( l1.getX1() < l2.getX1() )
-			return true;
-		else if ( (l1.getX1() == l2.getX1() ) &&
-				  (l1.getY1() <  l2.getY1() ) )
-			return true;
-		else if ( (l1.getX1() == l2.getX1() ) &&
-				  (l1.getY1() == l2.getY1() ) &&
-				  (l1.getX2() < l2.getX2() ) )
-			return true;
-		else if ( (l1.getX1() == l2.getX1() ) &&
-				  (l1.getY1() == l2.getY1() ) &&
-				  (l1.getX2() == l2.getX2() ) &&
-				  (l1.getY2() <  l2.getY2() ) )
-			return true;
-		else
-
-			return false;
-	};
-	friend bool operator == (const BOLine l1, const BOLine l2) {
-		if ( (l1.getX1() == l2.getX1() ) &&
-			 (l1.getY1() == l2.getY1() ) &&
-			 (l1.getX2() == l2.getX2() ) &&
-			 (l1.getY2() == l2.getY2() ) &&
-			 (l1.getOwner() == l2.getOwner()))
-			return true;
-		else
-			return false;
-	};
-
-};
-/*
-3.1 Class  ~CompBOLineXYOwn~
-
-for finding and sorting the BOLine by increasing x and y and owner
-
-*/
-
-class CompBOLineXYOwn{
-public:
-	bool operator()(BOLine l1, BOLine l2) {
-		if ( l1.getX1() < l2.getX1() )
-			return true;
-		else if ( (l1.getX1() == l2.getX1() ) &&
-				  (l1.getY1() <  l2.getY1() ) )
-			return true;
-		else if ( (l1.getX1() == l2.getX1() ) &&
-				  (l1.getY1() == l2.getY1() ) &&
-			      (l1.getOwner() < l2.getOwner() ) )
-			return true;
-		else if ( (l1.getX1() == l2.getX1() ) &&
-				  (l1.getY1() == l2.getY1() ) &&
-				  (l1.getOwner() == l2.getOwner() ) &&
-				  (l1.getX2() < l2.getX2() ) )
-			return true;
-		else if ( (l1.getX1() == l2.getX1() ) &&
-				  (l1.getY1() == l2.getY1() ) &&
-				  (l1.getOwner() == l2.getOwner() ) &&
-				  (l1.getX2() == l2.getX2() ) &&
-				  (l1.getY2() <  l2.getY2() ) )
-			return true;
-		else
-			return false;
-	};
-
-};
 
 /*
 3 Class  ~ToleranceSquare~
@@ -481,13 +488,13 @@ class ToleranceSquare
 	  BOEvent boEv;
 	  double scale(double value)
 	  {
-		return (double) (value * ScaleFactor);  //todo runden?
+		return (double) (value * ScaleFactor);
 	  };
 
 	};
 
 /*
-3.5 class  ~CompToleranceSquareY~
+3.5 Class  ~CompToleranceSquareY~
 
 implements a "tolerance square" as used in the Snap Rounding algorithm.
 a tolerance square contains the boundary of a grid corresponding to the scaleFactor
