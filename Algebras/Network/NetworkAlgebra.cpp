@@ -3587,13 +3587,12 @@ void Network::FillSections()
           actTuple = 0;
         }
       }
-      pRoute->DeleteIfAllowed();
     }
     // delete Tuples from xJunctions
     xJunctions.clear();
     if (actTuple) actTuple->DeleteIfAllowed();
     actTuple = 0;
-
+    pRoute->DeleteIfAllowed();
   } // End while Routes
   delete pRoutesIt;
   // Create B-Tree for the sections
