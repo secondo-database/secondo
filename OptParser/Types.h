@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] title: [{\Large \bf ]	[}]
+//paragraph [1] title: [{\Large \bf ] [}]
 //[ae] [\"{a}]
 //[ue] [\"{u}]
 
@@ -29,13 +29,190 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <set>
+#include <list>
+#include <map>
+#include <stack>
 #include <string>
+#include <iostream>
+#include <utility>
+#include "OptSecUtils.h"
+#include "SWI-Prolog.h"
 
-struct M{
-     std::set<std::string> name;
-    };
-    
-    
+/*
+Use the prolog nested list plnl.
 
+*/
+extern NestedList* plnl;
+
+const static string OPSTACKSEPARATOR = "---";
+
+/*
+Class which represents a multipurpose structure which passes information from the parser leafs up to the root of the parser. It also includes the needed checks.
+
+*/
+
+class OptParseStruct {
+  std::string errorMessages;
+  std::set<std::string> newNames;
+  std::set<std::string> usedAliases;
+  // attributename, alias (empty String if no alias)
+  std::multimap<std::string, std::string> myAttributes;
+  // relationname, alias
+  std::multimap<std::string, std::string> myRelations;
+
+  // stores operators and parameters in a stack of strings
+  std::stack<std::string> myOperators;
+public:
+  OptParseStruct();
+  ~OptParseStruct();
+
+  void mergeStruct(OptParseStruct *optstruct);
+
+/*
+~addErrorMessage~
+
+Adds an errormessage to OptParseStruct, which indicates that something is wrong with the optimizer statement.
+This message is being collected by start production sqlclause. This is done this way, so the user can be
+informend about multiple issues of the query.
+
+*/
+
+  void addErrorMessage(std::string errormessage) {
+    if (errormessage.size() > 0) {
+      //debug
+      cout << "ErrorMessage : " << errormessage << endl;
+      errorMessages = errorMessages + errormessage;
+    }
+  }
+
+/*
+~addNewName~
+
+Adds a new name to the OptParseStruct which can be an alias or a new object name
+
+*/
+  void addNewName(std::string newname);
+
+/*
+~addAttribute~
+
+Adds the name and the alias of an attribute to the OptParseStruct. A empty string must be given for alias if there is no alias
+
+*/
+  void addAttribute(std::string attributename, std::string attributealias);
+
+  void addAttribute(std::string attributename);
+
+/*
+~addRelation~
+
+Adds the name and of a Relation to the OptParseStruct.
+
+*/
+  void addRelation(std::string relationname);
+  void addRelation(std::string relationname, std::string relationalias);
+
+  void addOperator(std::string operatorname,
+      std::list<std::string> parameters);
+
+/*
+~addUsedAlias~
+
+This methods adds aliases to the usedAlias set and generates an error if the alias was already used.
+
+*/
+
+  void addUsedAlias(string aliasname);
+
+/*
+~addOperator~
+Takes a string and checks if it is an operator an adds it to  myOperators, if op does exist.
+
+*/
+  void addToOpStack(string operatorname);
+
+/*
+~checkAttributes~
+
+check if attributes in myAttributes do exist in the given Relations
+
+*/
+  void checkAttributes();
+
+/*
+~appendToOperators~
+
+This method takes a stack<string> and appends it to the bottom of the local Operators stack.
+
+*/
+  void appendToOpStack(stack<string> append);
+  void addOperatorSeparator();
+
+/*
+~reverseOpStack~
+
+Basic method to reverse a string stack.
+
+*/
+  stack<string> reverseOpStack(stack<string> opstack);
+
+/*
+~checkOpStack~
+
+A recursive Function which takes a string stack and tries to return
+
+*/
+
+  string checkOpStack(stack<string> operators);
+
+/*
+~getAttributeType~
+
+This method tries to determine the type of the attribute by checking the given relations.
+
+*/
+
+  string getAttributeType(string attribute);
+
+/*
+~checkOperators~
+
+This method is being called to check the myOperators stack if it does return one valid type. Calls the recursive ~checkOpStack~
+method to check for nested Operators. Is being called in the Optparser.y when given relations are available.
+
+*/
+  void checkOperators();
+
+  void dumpAllInfo();
+
+  void subqueriesAllowed();
+
+  bool optimizerOption(std::string name);
+
+  /* getter and setter below */
+  std::string getErrorMessages() const {
+    return errorMessages;
+  }
+
+  std::multimap<std::string, std::string> getMyAttributes() const {
+    return myAttributes;
+  }
+
+  std::multimap<std::string, std::string> getMyRelations() const {
+    return myRelations;
+  }
+
+  std::stack<std::string> getMyOperators() const {
+    return myOperators;
+  }
+
+  std::set<std::string> getNewNames() const {
+    return newNames;
+  }
+
+  std::set<std::string> getUsedAliases() const {
+    return newNames;
+  }
+};
 #endif
+

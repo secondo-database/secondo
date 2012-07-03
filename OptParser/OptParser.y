@@ -1,47 +1,62 @@
+/*
+ ----
+ This file is part of SECONDO.
+
+ Copyright (C) 2011, University in Hagen, Department of Computer Science,
+ Database Systems for New Applications.
+
+ SECONDO is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+
+ SECONDO is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with SECONDO; if not, write to the Free Software
+ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ ----
+
+ //paragraph [1] title: [{\Large \bf ]	[}]
+ //[ae] [\"{a}]
+ //[ue] [\"{u}]
+  1 Overview
+  This is the document describes the implementation of the OptParser.
+  1.1 OptParser Bison Definition 
+  The Bison Parser definition is described in this document.
+ */
 
 %{
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <set>
-
+#include <typeinfo>
 #include "OptSecUtils.h"
 #include "Types.h"
+
 
 #define YYDEBUG 1
 #define YYERROR_VERBOSE 1
 
 
-/*#ifdef __cplusplus
-extern "C"{
- int optlex(); 
- int opterror (const char *error);
- void opt_scan_string(const char* argument);
- int optparse();
-}
-#else 
-*/
- int optlex(); 
- int opterror (const char *error);
- void opt_scan_string(const char* argument);
- int optparse();
-//#endif
+int optlex(); 
+int opterror (const char *error);
+void opt_scan_string(const char* argument);
+int optparse();
 
-
-
-
-/*
-Use the prolog nested list plnl.
-
-*/
-extern NestedList* plnl;
 
 /*
 Variables for return value and error message.
 
 */
+
+// error message which is passed back to the optimizer
 char* err_message;
+
+// if set false, checkOptimizerQuery() Method reports failure of the query
 bool success;
 
 /*
@@ -50,26 +65,6 @@ some variables corresponding the the options.
 */
 bool subqueries = false;
 // insert further options here
-
-
-// define some global variables
-std::set<string> usedNames;
-
-bool isCorrect( std::set<std::string>& usedNames , std::set<std::string>& name )
-    {
-        set<string> :: iterator it;
-        for(it=usedNames.begin(); it!=usedNames.end(); it++){
-           if( name.find(*it) == name.end()){
-              string err = "The name " + (*it) + "is used but not available";
-              opterror(err.c_str());
-              return false; 
-           }
-        }
-        return true;
- }
-
-
-
 
 %}
 
@@ -84,13 +79,10 @@ For further checks, we have to extend this definition.
 %locations
 
 
-
-
-%union {
+%union 
+{
  char* strval;
- int numval;
- char* str;
- M* attrset;
+ OptParseStruct* attrset;
 }
 
 
@@ -102,1149 +94,678 @@ For further checks, we have to extend this definition.
 Define simple token and token holding a value.
 
 */
+%token TOKEN_SELECT "keyword select" TOKEN_FROM "keyword from" TOKEN_ERROR TOKEN_LET "keyword let" TOKEN_OPEN_BRACKET "symbol (" TOKEN_COMMA "symbol ," TOKEN_SQL "keyword sql" TOKEN_SQOPEN_BRACKET "symbol [" TOKEN_SQCLOSE_BRACKET "symbol ]" TOKEN_CLOSE_BRACKET "symbol )" TOKEN_DOT "symbol ." TOKEN_PUNCT "symbol '"  TOKEN_INDEX_TYPE "keyword indextype" TOKEN_INSERT "keyword insert" TOKEN_INTO "keyword into" TOKEN_VALUES "keyword values" TOKEN_DELETE "keyword delete" TOKEN_UPDATE "keyword update" TOKEN_SET "keyword set" TOKEN_TABLE "keyword table" TOKEN_CREATE "keyword create" TOKEN_COLUMNS "keyword columns" TOKEN_ON "keyword on" TOKEN_DROP "keyword drop" TOKEN_INDEX "keyword index" TOKEN_NULL "keyword null" TOKEN_NON_EMPTY "keyword nonempty" TOKEN_WHERE "keyword where" TOKEN_ORDER_BY "keyword orderby" TOKEN_FIRST "keyword first" TOKEN_LAST "keyword last" TOKEN_GROUP_BY "keyword groupby" TOKEN_AS "keyword as" TOKEN_COUNT "keyword count" TOKEN_AGGREGATE "keyword aggregate" TOKEN_ASC "keyword asc" TOKEN_DESC "keyword desc" TOKEN_COLON "symbol :"  TOKEN_ANY "keyword any" TOKEN_CUR_OPEN_BRACKET "symbol {"  TOKEN_CUR_CLOSE_BRACKET "symbol }"  TOKEN_FALSE "keyword false" TOKEN_TRUE "keyword true" TOKEN_SOME "keyword some" TOKEN_ROWID "keyword rowid" TOKEN_VALUE "keyword value" TOKEN_INTERSECTION "keyword intersection" TOKEN_UNION "keyword union" TOKEN_DISTANCE "keyword distance" TOKEN_NOT "keyword not" TOKEN_EXISTS "keyword exists"   TOKEN_IN "keyword in" TOKEN_LINE "keyword line" TOKEN_POINTS "keyword points" TOKEN_MPOINT "keyword mpoint" TOKEN_UREGION "keyword uregion" TOKEN_RTREE "keyword rtree" TOKEN_BTREE "keyword btree" TOKEN_HASH1 "keyword hash" TOKEN_OR "keyword or" TOKEN_AND "keyword and" TOKEN_BOOL "boolean value"  TOKEN_ALL "keyword all" TOKEN_DISTINCT "distinct"
 
-%token TOKEN_SELECT TOKEN_FROM TOKEN_STAR TOKEN_ERROR TOKEN_LET TOKEN_OPEN_BRACKET TOKEN_COMMA TOKEN_SQL TOKEN_SQOPEN_BRACKET
-       TOKEN_SQCLOSE_BRACKET TOKEN_CLOSE_BRACKET TOKEN_DOT TOKEN_PUNCT TOKEN_SMALL_THAN TOKEN_GREATER_THAN TOKEN_INDEX_TYPE
-       TOKEN_INSERT TOKEN_INTO  TOKEN_VALUES TOKEN_DELETE TOKEN_UPDATE TOKEN_SET TOKEN_TABLE TOKEN_CREATE TOKEN_COLUMNS
-       TOKEN_ON TOKEN_DROP TOKEN_INDEX  TOKEN_NULL TOKEN_NON_EMPTY TOKEN_WHERE TOKEN_ORDER_BY TOKEN_FIRST
-       TOKEN_LAST TOKEN_GROUP_BY  TOKEN_AS TOKEN_COUNT TOKEN_AGGREGATE TOKEN_ASC TOKEN_DESC TOKEN_COLON TOKEN_EQUAL TOKEN_ANY
-       TOKEN_CUR_OPEN_BRACKET TOKEN_PLUS TOKEN_CUR_CLOSE_BRACKET  TOKEN_DASH TOKEN_FALSE TOKEN_TRUE TOKEN_SOME TOKEN_ROWID
-       TOKEN_VALUE  TOKEN_SMALL_THAN_EQUAL TOKEN_GREATER_THAN_EQUAL  TOKEN_HASH TOKEN_DOUBLE_BRACKET
-        TOKEN_NUMBER TOKEN_CONST TOKEN_AGGR
-       TOKEN_INTERSECTION TOKEN_UNION TOKEN_DISTANCE TOKEN_NOT TOKEN_EXISTS TOKEN_INT TOKEN_BOOL TOKEN_STRING TOKEN_REAL TOKEN_IN  
-        TOKEN_LINE TOKEN_POINTS TOKEN_MPOINT TOKEN_UREGION TOKEN_RTREE TOKEN_BTREE TOKEN_HASH1 TOKEN_OR TOKEN_AND
+%token<strval> TOKEN_ID "identifier" TOKEN_VARIABLE "variable" TOKEN_DIGIT "digit" TOKEN_smallLetter "small letter" TOKEN_LETTER "letter" TOKEN_SYMBOL "symbol" TOKEN_TEXT "text" TOKEN_CONST "keyword const" TOKEN_STAR "symbol *" TOKEN_PLUS "symbol +" TOKEN_MINUS "symbol -" TOKEN_SMALL_THAN "symbol <" TOKEN_SMALL_THAN_EQUAL "symbol <=" TOKEN_EQUAL "symbol =" TOKEN_GREATER_THAN_EQUAL "symbol >=" TOKEN_GREATER_THAN "symbol >" TOKEN_HASH "symbol #" TOKEN_DOUBLE_BRACKET "symbol <>" TOKEN_INT "integer value" TOKEN_STRING "string value" TOKEN_REAL "real value"
 
-%token<strval> TOKEN_ID TOKEN_VARIABLE TOKEN_DIGIT TOKEN_smallLetter TOKEN_LETTER TOKEN_SYMBOL TOKEN_TEXT  TOKEN_DISTINCT TOKEN_AGGROP
  
-%type<attrset> attrname newname  query sel_clause rel_clause where_clause groupby_clause orderby_clause first_clause relname value_list
-               value transform_clause column_list column index_clause query_list aggr_clause rel_list rel pred_list pred orderattr_list orderattr
-               aggr_list aggr groupattr_list ident attr index transform_list transform indextype indexname result_list result attr_bool_expr
-               subquerypred attr_expr compop ident2 update_expression table_subquery quant ext_attr_expr attr_type aggrfun const_expr
-               const nested_list intlist generic_const intlist2 op attr_expr_list nlist symbol insert_query delete_query update_query create_query
-               drop_query  sel_clause2 sql_clause
+%type<attrset> attribute attributeboolexpr attributeexpr attributeexprlist attributename compareoperator const firstclause groupbyattributelist groupbyclause insertquery integer mquery orderbyclause orderbyattribute orderbyattributelist predicate predicatelist quant query relation relclause relationlist result resultlist selclause sqlclause subquerypred transform transformclause transformlist whereclause operator updatequery value valuelist updateexpression
+%type<strval> identifier relationname newname  
+%start start
 
+%% 
 
-%%
-
-sql_clause :  TOKEN_LET newname mquery  
-                { $$ = $2; }    
-           |  TOKEN_LET TOKEN_OPEN_BRACKET newname TOKEN_COMMA mquery TOKEN_COMMA TOKEN_TEXT TOKEN_CLOSE_BRACKET 
-               { $$ = $3; }
-           |  TOKEN_SQL mquery 
-                { $$ = new M(); }
-           |  TOKEN_SQL TOKEN_OPEN_BRACKET mquery TOKEN_COMMA TOKEN_TEXT  TOKEN_CLOSE_BRACKET
-                { $$ = new M(); } 
+start : sqlclause
+         {
+              string errormessages = $1->getErrorMessages();
+              if (errormessages.size() > 0)
+              {
+                   opterror(errormessages.c_str());
+              }
+              $1->dumpAllInfo();
+         }
 ;
 
-ident : TOKEN_ID 
-        { $$ = new M();
-          $$->name.insert($1) ;
+
+attribute : attributename
+            {
+               $$ = $1;
+            }
+          | TOKEN_ROWID
+            { 
+             opterror("rowid feature not yet implemented in Secondo optimizer");
+            }            
+;
+
+//TODO fix insert into OptParseStruct
+
+// TODO predicate may not compare 2 constants catch that
+attributeboolexpr : attribute compareoperator attributeexpr 
+                    {
+                         $1->mergeStruct($2);
+                         $1->mergeStruct($3);
+                         $1->mergeStruct($3);
+                         $$ = $1;
+                         
+                         
+                    }
+                  | attribute compareoperator attributeexpr 
+                    {
+                         //TODO merge and pass up
+                         $$ = new OptParseStruct();
+                    }  
+                  | attributeboolexpr TOKEN_AND attributeboolexpr 
+                    { 
+                         $$ = new OptParseStruct();
+                    }
+                  | attributeboolexpr TOKEN_OR attributeboolexpr 
+                    { 
+                          $$ = new OptParseStruct();
+                    }
+                  | TOKEN_NOT attributeboolexpr 
+                    { 
+                          $$ = new OptParseStruct();
+                    }
+;
+
+//TODO on this level operator checks should be done
+attributeexpr : attribute
+                {
+                    $$ = $1;
+                }
+              | const
+                {
+                    $$ = $1;
+                }
+              | TOKEN_OPEN_BRACKET attributeexpr TOKEN_CLOSE_BRACKET
+                {
+                   $$ = $2;
+                }
+              // infix operator
+              | attributeexpr operator attributeexpr
+                {   
+                    // pass Attributes to operator
+                    $2->mergeStruct($1);
+                    $2->mergeStruct($3);
+                    $$ = $2;
+                }
+              // prefix operator
+              | attributeexpr operator 
+                {                    
+                    $2->mergeStruct($1);
+                    $$ = $2;
+                }
+              | operator TOKEN_OPEN_BRACKET attributeexprlist TOKEN_CLOSE_BRACKET
+                {
+                    $1->mergeStruct($3);
+                    $$ = $1;
+                    
+                }
+              // operator without parameter      
+              | operator TOKEN_OPEN_BRACKET TOKEN_CLOSE_BRACKET
+                {
+                    $$ = $1;                    
+                }
+                | attributeexpr compareoperator attributeexpr
+                  {
+                  
+                       $2->mergeStruct($1);
+                       $2->mergeStruct($3);
+                       $$ = $2;
+                  }            
+;
+
+attributeexprlist : attributeexpr
+                    {
+                         $$ = $1;     
+                    }
+                  | attributeexprlist TOKEN_COMMA attributeexpr
+                    {
+                         $1->mergeStruct($3);
+                         $$ = $1;     
+                    }
+;
+
+attributename : identifier
+                {                
+                 $$ = new OptParseStruct();
+                 // "" empty parameter means no alias              
+                 $$->addAttribute($1);
+                }
+              | newname TOKEN_COLON identifier
+                {
+                 $$ = new OptParseStruct();
+                 $$->addAttribute($3,$1);
+                }
+;
+
+compareoperator : TOKEN_SMALL_THAN
+                  {     
+                       $$ = new OptParseStruct();
+                       $$->addToOpStack($1);
+                  }
+                | TOKEN_SMALL_THAN_EQUAL
+                  { 
+                       $$ = new OptParseStruct();
+                       $$->addToOpStack($1);
+                  }
+                | TOKEN_EQUAL
+                  { 
+                       $$ = new OptParseStruct();
+                       $$->addToOpStack($1);
+                  }
+                | TOKEN_GREATER_THAN_EQUAL           
+                  { 
+                       $$ = new OptParseStruct();
+                       $$->addToOpStack($1);
+                  }
+                | TOKEN_GREATER_THAN
+                  { 
+                       $$ = new OptParseStruct();
+                       $$->addToOpStack($1);
+                  }
+                | TOKEN_HASH
+                  { 
+                       $$ = new OptParseStruct();
+                       $$->addToOpStack($1);
+                  }
+                | TOKEN_DOUBLE_BRACKET
+                  { 
+                       $$ = new OptParseStruct();
+                       $$->addToOpStack($1);
+                  }
+;
+
+
+//TODO Werte einfügen und hochreichen
+const : TOKEN_BOOL
+        { 
+          $$ = new OptParseStruct();
+          $$->addToOpStack("bool");
         }
-      | TOKEN_AND {$$->name.insert("and"); }
-      | TOKEN_OR {$$->name.insert("or"); }
-      | TOKEN_IN {$$->name.insert("in"); }
-      | TOKEN_INTERSECTION {$$->name.insert("intersection"); }
-      | TOKEN_AS {$$->name.insert("as"); }
-      | TOKEN_UNION {$$->name.insert("union"); }
-      | TOKEN_DISTANCE {$$->name.insert("distance"); }
-      | TOKEN_NOT {$$->name.insert("not"); }
-      | TOKEN_EXISTS {$$->name.insert("exists"); }
-      | TOKEN_ANY {$$->name.insert("any"); }
-      | TOKEN_SOME {$$->name.insert("some"); }
-      | TOKEN_AGGROP {$$->name.insert("aggrop"); }
-     
+      | integer
+        { 
+          $$ = $1;
+        }
+      | TOKEN_REAL
+        { 
+          // debug
+          cout << "Realwert : "<< $1 << endl;
+          // debug end
+          $$ = new OptParseStruct(); 
+          $$->addToOpStack("real");
+        }
+      | TOKEN_STRING
+        { 
+        // debug
+          cout << "String : " << $1 << endl;
+          // debug end
+          $$ = new OptParseStruct(); 
+          $$->addToOpStack("string");
+        }
+      | TOKEN_TEXT
+        {
+          // debug
+          cout << "Text : " << $1 << endl;
+          // debug end
+          $$ = new OptParseStruct();
+          $$->addToOpStack("text");
+        }
+;
+
+distinct : TOKEN_DISTINCT
+         | TOKEN_ALL
+         | /* epsilon */
+;
+
+firstclause : TOKEN_LAST TOKEN_INT
+              {
+                    // debug
+                    cout << "firstclause : TOKEN_LAST TOKEN_INT" << endl; 
+                    $$ = new OptParseStruct();
+              }
+            | TOKEN_FIRST TOKEN_INT
+              {
+                    // debug
+                    cout << "firstclause : TOKEN_FIRST TOKEN_INT" << endl; 
+                    $$ = new OptParseStruct();
+              }
+            | /* epsilon */
+              {
+                    // debug
+                    cout << "firstclause : /* epsilon */" << endl; 
+                    $$ = new OptParseStruct();
+              }
+;
+
+groupbyattributelist: attribute
+                      {
+                         $$=$1
+                      }
+                    | groupbyattributelist TOKEN_COMMA attribute
+                      {
+                         //TODO merge structures
+                         $$=$1
+                      }
+                    
+groupbyclause : TOKEN_GROUP_BY TOKEN_SQOPEN_BRACKET groupbyattributelist TOKEN_SQCLOSE_BRACKET
+                { 
+                    // debug
+                    cout << "groupbyclause : TOKEN_GROUP_BY TOKEN_SQOPEN_BRACKET groupbyattributelist TOKEN_SQCLOSE_BRACKET" << endl;                   
+                    $$ = $3 ; 
+                }
+              | TOKEN_GROUP_BY attribute 
+                { 
+                    // debug
+                    cout << "groupbyclause : TOKEN_GROUP_BY attribute" << endl;                  
+                    $$ = $2;
+                }
+              | /* epsilon */
+                { 
+                    // debug
+                    cout << "groupbyclause : /* epsilon */" << endl;                    
+                    $$ = new OptParseStruct(); 
+                }
+;
+
+identifier : TOKEN_ID
+             { 
+               //check if it is a valid id
+               if (optutils::isValidID($1))
+               {
+                    cout << "--- " << $1 << " is a valid ID" << endl;
+               }
+               else
+               {
+                    cout << "--- " << $1 << " is not an valid ID" << endl;
+               }
+               $$ = $1;
+             }
+;
+
+insertquery : TOKEN_INSERT TOKEN_INTO relation TOKEN_VALUES valuelist
+              {
+               $$ = $3;
+              }
+            | TOKEN_INSERT TOKEN_INTO relation query
+              {
+               $$ = $3;
+              }
+;
+
+integer : TOKEN_INT
+          {              
+              $$ = new OptParseStruct();
+              // debug
+	          cout << "Integer : " << $1 << endl;
+	          // debug end
+              $$->addToOpStack("int");
+          }
+        | TOKEN_MINUS TOKEN_INT
+          {
+              // debug
+	          cout << "Integer : -" << $1 << endl;
+	          // debug end
+              $$ = new OptParseStruct();
+              $$->addToOpStack("int");
+          }
+        | TOKEN_PLUS TOKEN_INT
+          {
+              // debug
+	          cout << "Integer : +" << $1 << endl;
+	          // debug end
+              $$ = new OptParseStruct();
+              $$->addToOpStack("int");
+          }      
 ;
 
 mquery : query
-       | insert_query
+         {
+          $$ = $1;
+         }
+       | insertquery
+         {
+          $$ = $1;
+         } 
+       | updatequery 
+         {
+          $$ = $1;
+         }
+       /*TODO
        | delete_query
-       | update_query 
+
        | create_query
        | drop_query
        | TOKEN_UNION TOKEN_SQOPEN_BRACKET query_list TOKEN_SQCLOSE_BRACKET
        | TOKEN_INTERSECTION TOKEN_SQOPEN_BRACKET query_list TOKEN_SQCLOSE_BRACKET
-          
+       */
 ;
 
-
-query : TOKEN_SELECT TOKEN_DISTINCT sel_clause TOKEN_FROM rel_clause where_clause groupby_clause orderby_clause first_clause
-       {   
-            cerr << "DEBUG: query 1st rule" << endl; cerr.flush();
-            $$ = $3;
-
-            if(!isCorrect($3->name, $5->name)) {
-                return false;
-            }
-
-            {
-            set<string>  a = $5->name ;
-            set<string> :: iterator it ;
-            for( it = a.begin() ; it != a.end() ; it ++)
-               { 
-                 $$->name.insert( *it);
-               }
-            
-           delete( $5 );
-          }
-            if(!isCorrect($6->name, $5->name)) {
-                return false;
-            }
-        { 
-           set<string>  a = $6->name ;
-            set<string>:: iterator it ;
-            for( it = a.begin() ; it != a.end() ; it ++)
-               { 
-                 $$->name.insert( *it);
-               }
-           delete( $6 );
-          }
-         if(!isCorrect($7->name, $5->name)) {
-                return false;
-            }
-        {
-          set<string>  a = $7->name ;
-            set<string> :: iterator it ;
-            for( it = a.begin() ; it != a.end() ; it ++)
-               { 
-                 $$->name.insert( *it);
-               }
-           delete( $7 );
-          }
-         if(!isCorrect($8->name, $5->name)) {
-                return false;
-            }
-        { 
-           set<string>  a = $8->name ;
-            set<string> :: iterator it ;
-            for( it = a.begin() ; it != a.end() ; it ++)
-               { 
-                 $$->name.insert( *it);
-               }
-           delete( $8 );
-          }
-
-        if(!isCorrect($9->name, $5->name)) {
-                return false;
-            }
-        {
-          set<string>  a = $9->name ;
-            set<string> :: iterator it ;
-            for( it = a.begin() ; it != a.end() ; it ++)
-               { 
-                 $$->name.insert( *it);
-               }
-           delete( $9 );
-          }
-      
-       
-        
-
-              
-    }
-       
-        | TOKEN_SELECT  sel_clause TOKEN_FROM rel_clause where_clause groupby_clause orderby_clause first_clause
-          { $$ = $2 ;
-               if(!isCorrect($2->name, $4->name)) {
-                return false;
-            }
-            {
-                     set<string> a = $4->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $4 );       
-                }   if(!isCorrect($5->name, $4->name)) {
-                     return false;
-                     }
-               {
-                     set<string> a = $5->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $5 );       
-                }  
-                   if(!isCorrect($6->name, $4->name)) {
-                   return false;
-                   }
-               {
-                     set<string> a = $6->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $6 );       
-                }
-                   if(!isCorrect($7->name, $4->name)) {
-                    return false;
-                   }
-              {
-                     set<string>  a = $7->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $7 );       
-                }
-                      if(!isCorrect($8->name, $4->name)) {
-                      return false;
-                     }
-              {
-                     set<string>  a = $8->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $8 );       
-                } }
-       ;
-
-insert_query : TOKEN_INSERT TOKEN_INTO relname TOKEN_VALUES value_list
-               { $$ = $3; 
-                  set<string>  a = $5->name ;
-                  set<string> :: iterator it ;
-                  for( it = a.begin() ; it != a.end() ; it ++)
-                    { 
-                       $$->name.insert( *it);
-                    }
-                 delete( $5 );
-          }
-              | TOKEN_INSERT TOKEN_INTO rel query
-                { $$ = $3; }
-;
-
-delete_query : TOKEN_DELETE TOKEN_FROM relname where_clause
-               { $$ = $3;
-                 {
-                     set<string>  a = $4->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $4 );       
-                } }
-;
-
-update_query : TOKEN_UPDATE relname TOKEN_SET transform_clause where_clause
-                { $$ = $2;
-                 {
-                     set<string> a = $4->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $4 );       
-                } 
-                   {
-                     set<string>  a = $5->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $5 );       
-                }}
-;
-
-create_query : TOKEN_CREATE TOKEN_TABLE newname TOKEN_COLUMNS TOKEN_SQOPEN_BRACKET column_list TOKEN_SQCLOSE_BRACKET
-                 { $$ = $3;
-                   { 
-                     set<string> a = $6->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $6 );
-           
-           } }
-             | TOKEN_CREATE TOKEN_INDEX TOKEN_ON relname TOKEN_COLUMNS index_clause
-               { $$ = $4; 
-
-               {
-                     set<string>  a = $6->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $6 );       
-                }
- }
-;
-
-drop_query : TOKEN_DROP TOKEN_TABLE relname
-                { $$ = $3; }
-           | TOKEN_DROP TOKEN_INDEX indexname
-                { $$ = $3;}
-           | TOKEN_DROP TOKEN_INDEX TOKEN_ON relname index_clause
-              { $$ = $4;}
-;
-
-query_list : query
-           |query TOKEN_COMMA query_list
-;
-
-
-
-sel_clause : sel_clause2
-            { $$ = $1 ;}
-           | TOKEN_NON_EMPTY sel_clause2
-            { $$ = $2 ; }
-           | aggr_clause
-             { $$ = $1 ; }
-
-;
-
-rel_clause : rel
-              { $$ = $1; }
-           |TOKEN_SQOPEN_BRACKET rel_list TOKEN_SQCLOSE_BRACKET
-             { $$ = $2; }
-;
-
-where_clause : TOKEN_WHERE TOKEN_SQOPEN_BRACKET pred_list TOKEN_SQCLOSE_BRACKET
-               { $$ = $3;
-                cerr << "DEBUG: query 4th rule" << endl }
-             | TOKEN_WHERE pred
-             { $$ = $2; 
-               cerr << "DEBUG: query 3rd rule" << endl       }
-             |  { $$ = new M(); }
-;
-
-orderby_clause : TOKEN_ORDER_BY TOKEN_SQOPEN_BRACKET orderattr_list TOKEN_SQCLOSE_BRACKET
-                 { $$ = $3 ; }
-               | TOKEN_ORDER_BY orderattr
-                 { $$ = $2 ; }
-               | { $$ = new M(); }
-;
-
-first_clause : TOKEN_FIRST TOKEN_INT
-               { $$ = new M() ; }
-             | TOKEN_LAST TOKEN_INT
-               { $$ = new M() ; } 
-             | { $$ = new M(); }
-;
-
-aggr_clause : aggr 
-              { $$ = $1 ; }
-            | TOKEN_SQOPEN_BRACKET aggr TOKEN_COMMA aggr_list TOKEN_SQCLOSE_BRACKET
-              { $$ = $2 ;
-                {
-                     set<string> a = $4->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $4 );       
-                } }
-;
-
-groupby_clause : TOKEN_GROUP_BY TOKEN_SQOPEN_BRACKET groupattr_list TOKEN_SQCLOSE_BRACKET
-                 { $$ = $3 ; }
-               | TOKEN_GROUP_BY attr 
-                  { $$ = $2;
-                }
-               | { $$ = new M(); }
-;
-
-
-attrname : ident {
-            $$ = $1;
-          }
-
-
-;
-
-indextype :index
-           { $$ = $1 ; }
-; 
-
-index: TOKEN_BTREE 
-         { $$ = new M() ; }
-
-     | TOKEN_RTREE
-         { $$ = new M() ; }
-     | TOKEN_HASH1
-         { $$ = new M() ; }
-;
-
-rel : relname
-     {$$ = $1;}
-    | relname TOKEN_AS newname
-      { $$ = $1;
-        {
-                     set<string> a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                } }
-
-;
-
-value_list : value
-            { $$ = $1 ; }
-           | value TOKEN_COMMA value_list
-              { $$ = $1 ;
-                 {
-                     set<string> a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                }}
-;
-
-relname : TOKEN_ID
-          { string dbname;
-
-  
-     string errorMsg ="No database open";
-     if(!optutils::isDatabaseOpen(dbname,errorMsg)){
-        opterror(errorMsg.c_str());
-        return false;
-      } 
-
-     
-
-
-      char* relname = $1; 
-      ListExpr type = plnl->TheEmptyList();
-      string realname;
-      if(!optutils::isObject(relname, realname, type)){
-         string err = "Object " + string(relname) + " not known in the database " + dbname;
-         opterror(err.c_str());
-         return false;
-      } 
-
-      if(!optutils::isRelDescription(type)){
-         string err = "The object " + realname + " is not a relation.";
-         opterror(err.c_str());
-         return false;
-       }
-  
-
-      $$ = new M();
-      $$->name.insert($1);
-
-    }
-
-; 																			 
-
-transform_clause : transform
-                  { $$ = $1 ; }
-                 | TOKEN_SQOPEN_BRACKET transform_list TOKEN_SQCLOSE_BRACKET
-                   { $$ = $2 ;}
-;
-
-
-column_list : column
-              { $$ = $1 ; }
-            | column TOKEN_COMMA column_list
-              { $$ = $1 ;
-               {
-                     set<string> a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                } }
-;
-
-index_clause : attrname
-              { $$ = $1 ;}
-             | attrname TOKEN_INDEX_TYPE indextype
-               { $$ = $1;
-                {
-                     set<string>  a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                }
-                }
-;
-
-indexname : TOKEN_ID
-{
-    $$ = new M();
-    $$->name.insert( $1 );
-}
-      
-;
-
-sel_clause2 : TOKEN_STAR
-              { $$ = new M() ; }
-            | result
-              { $$ = $1 ; }
-            | TOKEN_SQOPEN_BRACKET result_list TOKEN_SQCLOSE_BRACKET
-             { $$ = $2 ; }
-           
-;
-
-rel_list : rel
-           { $$ = $1; }
-         | rel TOKEN_COMMA rel_list
-           { $$ = $1; 
-             {
-                     set<string> a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                }}
-;
-
-pred_list : pred {
-             $$ = $1;
-             cout << "pred_list: rule 1 matched." << endl;}
-          | pred TOKEN_COMMA pred_list {
-             $$ = $1;
-           cout << "pred_list: rule 2 matched." << endl;
-              {
-                     set<string> a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                }}
-;
-
-pred : attr_bool_expr {
-          $$ = $1;
-       cout << "pred: rule 1 matched." << endl;}
-     | subquerypred {
-       cout << "pred: rule 2 matched." << endl;
-          $$ = $1 ; }
-
-;
-
-attr_bool_expr: TOKEN_BOOL { cout << "attr_bool_expr: rule 1 matched." << endl; }
-              | attr_expr compop attr_expr { 
-                $$ = $1 ;
-                cout << "attr_bool_expr: rule 2 matched." << endl;
-                 {
-                     set<string>  a = $2->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $2 );       
-                }
-                   { 
-                     set<string> a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );
- } }
-              | attr_expr { 
-                $$ = $1 ;
-                cout << "attr_bool_expr: rule 3 matched." << endl; }
-              | attr_bool_expr TOKEN_AND attr_bool_expr { 
-                  $$ = $1;
-                 cout << "attr_bool_expr: rule 4 matched." << endl;
-                  { 
-                     set<string>  a = $3->name ;
-                     set<string>::iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );}
- }
-              | attr_bool_expr TOKEN_OR attr_bool_expr { 
-                   $$ = $1;
-                       
-                  cout << "attr_bool_expr: rule 5 matched." << endl;
-                 {
-                     set<string>  a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                } }
-              | TOKEN_NOT attr_bool_expr { 
-                 $$ = $2;
-                cout << "attr_bool_expr: rule 6 matched." << endl; }
-              ;
-
-orderattr : ident
-            { $$ = $1 ; }
-          | attr TOKEN_ASC {
-                $$ = $1;
-                }
-            
-          | attr TOKEN_DESC
-             { $$ = $1;
-             }
-          | TOKEN_DISTANCE TOKEN_OPEN_BRACKET ident2  TOKEN_COMMA ident2 TOKEN_CLOSE_BRACKET
-             { $$ = $3 ;
-               {
-                     set<string>  a = $5->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $5 );       
-                }}
-         
-           
-;
-
-ident2: ident
-        { $$ = $1 ; }
-      | ident TOKEN_COLON ident 
-        { $$ = $1;
+newname : TOKEN_ID
           {
-                     set<string> a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                }}     
+               $$ = $1;
+          }
 ;
-orderattr_list : orderattr
-                  { $$ = $1;}
-               | orderattr TOKEN_COMMA orderattr_list
-                  { $$ = $1 ; 
+
+operator : TOKEN_ID
+           {
+               $$ = new OptParseStruct();               
+               $$->addToOpStack($1);
+           }
+         | TOKEN_SYMBOL // to suffice math symbols like = or +
+           {
+               $$ = new OptParseStruct();
+               $$->addToOpStack($1);
+           }           
+         | TOKEN_STAR /* exeception for Operator symbol, which is already used as special character */
+           {
+               $$ = new OptParseStruct();
+               $$->addToOpStack($1);
+           }          
+         | TOKEN_PLUS /* exeception for Operator symbol, which is already used as special character sign integer*/
+           {
+               $$ = new OptParseStruct();
+               $$->addToOpStack($1);
+           }
+         | TOKEN_MINUS /* exeception for Operator symbol, which is already used as special character */
+           {
+               $$ = new OptParseStruct();
+               $$->addToOpStack($1);
+           }
+;
+
+orderbyattribute: attribute
                   {
-                     set<string> a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                }}
+                    //TODO check if it is a forbidden operator
+                    $$=$1;
+                  }
+;
+
+orderbyattributelist : orderbyattribute
+                       {
+                          $$=$1;
+                       }
+                     | orderbyattributelist TOKEN_COMMA orderbyattribute
+                       {
+                         //TODO merge $1 and $3
+                          $$=$1;
+                       }
+;
+
+orderbyclause : TOKEN_ORDER_BY TOKEN_SQOPEN_BRACKET orderbyattributelist TOKEN_SQCLOSE_BRACKET
+                { 
+                    // debug
+                    cout << "orderbyclause : TOKEN_ORDER_BY TOKEN_SQOPEN_BRACKET orderbyattributelist TOKEN_SQCLOSE_BRACKET" << endl;                  
+                    $$ = $3 ;
+                }
+              | TOKEN_ORDER_BY orderbyattribute
+                { 
+                    // debug
+                    cout << "orderbyclause : TOKEN_ORDER_BY orderbyattribute" << endl;                  
+                    $$ = $2 ;
+                }
+              | /* epislon */
+                { 
+                    // debug
+                    cout << "orderbyclause : /* epislon */" << endl;                                  
+                    $$ = new OptParseStruct(); 
+                }
 ;
 
 
-aggr_list : aggr
-            { $$ = $1 ; }
-          | aggr TOKEN_COMMA aggr_list
-            { $$ = $1 ;
-              {
-                     set<string> a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                }}
-          | result
-            { $$ = $1; }
-          | result TOKEN_COMMA aggr_list
-           { $$ = $1; 
-              {
-                     set<string> a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                }}
+predicate : attributeboolexpr 
+            {
+               $$ = $1;
+            }
+          | subquerypred 
+            {
+               $$ = $1; 
+            }
+;
+
+predicatelist : predicate
+                {
+                    $$ = $1;
+                }
+              | predicatelist TOKEN_COMMA predicate
+                {
+                    $$ = $1
+                    // TODO merge structures
+                }
+;
+
+query : TOKEN_SELECT distinct selclause TOKEN_FROM relclause whereclause groupbyclause orderbyclause firstclause
+            { /* TODO 
+               - if groupby is used, alias maybe used for attribute, otherwise not
+            */
+               // merge all OptParseStructs
+               $7->mergeStruct($8);
+               $6->mergeStruct($7);
+               $3->mergeStruct($6);
+               $5->mergeStruct($3);
+               $5->checkAttributes();
+               $5->checkOperators();
+               $$ = $5;
+            }
+;
+quant : TOKEN_ANY
+        {
+            $$ = new OptParseStruct();
+        }
+      | TOKEN_SOME
+        {
+          $$ = new OptParseStruct();
+        }
+      | TOKEN_DISTINCT 
+        {
+          $$ = new OptParseStruct();
+        }
+;    
+
+relation : relationname
+           { 
+               $$ = new OptParseStruct();
+               
+               $$->addRelation(($1));
+           }
+         | relationname TOKEN_AS newname 
+           { 
+               $$ = new OptParseStruct();
+               $$->addRelation($1,$3);
+               $$->addUsedAlias($3);
+           }
+;
+
+relclause : relation
+            {             
+               // debug
+               cout << "relclause : relation" << endl;             
+               $$ = $1;
+            }
+           | TOKEN_SQOPEN_BRACKET relationlist TOKEN_SQCLOSE_BRACKET
+             {
+               // debug
+               cout << "relclause : TOKEN_SQOPEN_BRACKET relationlist TOKEN_SQCLOSE_BRACKET" << endl;                         
+               $$ = $2;
+             }
+;
+
+relationlist : relation
+               { 
+                    $$ = $1;
+               }
+             | relationlist TOKEN_COMMA relation
+               {
+                    $1->mergeStruct($3);
+                    $$ = $1;
+               }
+;
+
+relationname : TOKEN_ID
+          { 
+               $$=$1;
+          }          
+;
+
+result : attribute 
+         {
+          $$ = $1;
+         }
+             
+       | attributeexpr TOKEN_AS newname
+         {
+             $$ = $1;
+             $$->addUsedAlias($3);           
+             $1->dumpAllInfo();
+         }
+;
+
+resultlist : result
+             {
+               $$ = $1;
+               $1->dumpAllInfo();
+             }
+           | resultlist TOKEN_COMMA result
+             {
+               //TODO $1->addOperator( addseparator if both have operatoras)
+               $1->addOperatorSeparator();
+               $1->mergeStruct($3);
+               $$ = $1;
+               
+             }
+;
+
+selclause : TOKEN_STAR 
+            {
+               // debug
+               cout << "selclause: TOKEN_STAR " << endl;
+               $$ = new OptParseStruct();
+            }
+           | result
+             {
+               // debug
+               cout << "selclause: result" << endl;
+               $$ = $1;
+             }
+             
+           | TOKEN_SQOPEN_BRACKET resultlist TOKEN_SQCLOSE_BRACKET
+             {
+               // debug
+               cout << "selclause: TOKEN_SQOPEN_BRACKET resultlist TOKEN_SQCLOSE_BRACKET" << endl;
+               $$ = $2;
+             }            
+;
+
+
+sqlclause :  TOKEN_LET newname mquery
+             {
+               $$ = $3;
+             }
+          |  TOKEN_LET TOKEN_OPEN_BRACKET newname TOKEN_COMMA mquery TOKEN_COMMA TOKEN_TEXT TOKEN_CLOSE_BRACKET
+             {
+               $5->addNewName($3);
+               $$ = $5;
+             }
+          
+          |  TOKEN_SQL mquery
+             {
+               $$ = $2;
+             }
+          | TOKEN_SQL TOKEN_OPEN_BRACKET mquery TOKEN_COMMA TOKEN_TEXT  TOKEN_CLOSE_BRACKET
+            {
+               $$ = $3;
+            }
+;
+
+//TODO check if return type is needed
+subquerypred : attributeexpr TOKEN_IN TOKEN_OPEN_BRACKET query TOKEN_CLOSE_BRACKET
+               {
+                    $$=$4
+               } //TODO compare number of returned attributes
+             | attributeexpr TOKEN_NOT TOKEN_IN TOKEN_OPEN_BRACKET query TOKEN_CLOSE_BRACKET
+               {
+                   $$=$1
+               }             
+             | TOKEN_EXISTS TOKEN_OPEN_BRACKET query TOKEN_CLOSE_BRACKET
+               {
+                    $$=$3;
+               }
+             | TOKEN_NOT TOKEN_EXISTS TOKEN_OPEN_BRACKET query TOKEN_CLOSE_BRACKET
+               {
+                    $$=$4;
+               }
+             | attributeexpr compareoperator quant TOKEN_OPEN_BRACKET query TOKEN_CLOSE_BRACKET 
+               {
+                    $$=$1;
+               }
+;
+
+transformclause : transform
+                  { $$ = $1 ; }
+                | TOKEN_SQOPEN_BRACKET transformlist TOKEN_SQCLOSE_BRACKET
+                  { $$ = $2 ; }
+;
+
+transformlist : transform
+                {
+                 $$ = $1;
+                }
+              | transformlist TOKEN_COMMA transform
+                { 
+                 $$ = $3;
+                }
+;
+
+transform : TOKEN_ID TOKEN_EQUAL updateexpression
+            { 
+             $$ = $3 ;
+            }
+;
+
+
+valuelist : value
+          | valuelist TOKEN_COMMA value
 ;
 
 value : TOKEN_INT
-          { $$ = new M() ; }
+        {
+          $$ = new OptParseStruct();
+        }
       | TOKEN_BOOL
-          { $$ = new M() ; }
+        {
+          $$ = new OptParseStruct();
+        }
       | TOKEN_STRING
-          { $$ = new M() ; }
-;
-
-groupattr_list : attr {
-                $$ = $1;
-                }
-               | attr TOKEN_COMMA groupattr_list {
-                $$ = $3;
-               {
-                     set<string>  a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                }
-                }
-               | { $$ = new M(); }
-;
-
-
-
-
-
-
-transform : TOKEN_ID TOKEN_EQUAL update_expression
-             { $$ = $3 ;}
- ;
-
-transform_list : transform 
-                 { $$ = $1 ; }
-               | transform TOKEN_COMMA transform_list
-                 { $$ = $1 ; 
-                  {
-                     set<string> a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                }
-}
-;
-
-column : TOKEN_ID TOKEN_COLON datatype
-           {  $$ = new M();
-              $$->name.insert( $1 );
-           }
-;
-
-result : attr {
-                $$ = $1;
-                }
-       | attr_expr TOKEN_AS newname{
-                $$ = $1;
-                }
-       | aggr
-         { $$ = $1; }
-;
-
-result_list :  result
-               { $$ = $1; }
-             | result TOKEN_COMMA result_list
-              { $$ = $1; }
-;
-ext_attr_expr : TOKEN_DISTINCT attr_expr{
-                $$ = $2;
-                }
-              | TOKEN_DISTINCT TOKEN_STAR
-                { $$ = new M() ; }
-              | attr_expr{
-                $$ = $1;
-                }
-;
-
-
-
-aggrfun : TOKEN_OPEN_BRACKET TOKEN_STAR TOKEN_CLOSE_BRACKET
-           { $$ = new M() ; }
-        | TOKEN_OPEN_BRACKET TOKEN_PLUS TOKEN_CLOSE_BRACKET
-           { $$ = new M() ; }
-        | ident {
-            string str = *($1->name.begin()); 
-            if( (strcmp( str.c_str() ,"union_new" ) !=0 ) ||
-             ( strcmp( str.c_str() ,"intersection_new" ) !=0 )) { 
-               string err = "The object " +  str  + " is not  valid .";
-               opterror(err.c_str());
-               return false;
-            } 
-            $$ = $1;    
-        }
-    
-;
-
-
-
-
-subquerypred : attr_expr TOKEN_IN TOKEN_OPEN_BRACKET table_subquery TOKEN_CLOSE_BRACKET {
-                $$ = $1;
-                }
-             | attr_expr TOKEN_NOT TOKEN_IN TOKEN_OPEN_BRACKET table_subquery TOKEN_CLOSE_BRACKET {
-                $$ = $1;
-                }
-             | TOKEN_EXISTS  TOKEN_OPEN_BRACKET query TOKEN_CLOSE_BRACKET
-               { $$ = new M() ; }
-             | TOKEN_NOT TOKEN_EXISTS  TOKEN_OPEN_BRACKET query TOKEN_CLOSE_BRACKET
-                { $$ = new M() ; }
-             | attr_expr compop quant TOKEN_OPEN_BRACKET table_subquery TOKEN_CLOSE_BRACKET {
-                $$ = $1;
-
-                  {
-                     set<string> a = $2->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $2 );
-                  }
-               {
-                     set<string>  a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                }
-
-                }
-             
-;
-
-quant : TOKEN_ANY
-         { $$ = new M() ; }
-      | TOKEN_SOME
-           { $$ = new M() ; }
-      | TOKEN_DISTINCT { if (strcmp($1,"all")!=0) {
-                            opterror("all, some,or any expected, bzut got distinct");
-                            return false;
-                         }
+        {
+          $$ = new OptParseStruct();
         }
 ;
 
-aggr : TOKEN_COUNT  TOKEN_OPEN_BRACKET TOKEN_DISTINCT TOKEN_STAR TOKEN_CLOSE_BRACKET 
-           { $$ = new M (); }
-      | TOKEN_COUNT  TOKEN_OPEN_BRACKET TOKEN_STAR TOKEN_CLOSE_BRACKET 
-             { $$ = new M (); }
-      | TOKEN_COUNT TOKEN_OPEN_BRACKET TOKEN_DISTINCT TOKEN_ID TOKEN_CLOSE_BRACKET 
-           { $$ = new M (); }
-      | TOKEN_COUNT TOKEN_OPEN_BRACKET TOKEN_ID TOKEN_CLOSE_BRACKET   
-           { $$ = new M();
-             $$->name.insert( $3 );
-             
-           }
-      | TOKEN_AGGROP  TOKEN_OPEN_BRACKET ext_attr_expr TOKEN_CLOSE_BRACKET 
-             { $$ = $3 ;
+whereclause : TOKEN_WHERE predicate
+             { 
+               // debug
+               cout << "whereclause : TOKEN_WHERE predicate" << endl;
+               $$ = $2; 
+             }
+             | TOKEN_WHERE TOKEN_SQOPEN_BRACKET predicatelist TOKEN_SQCLOSE_BRACKET
+               { 
+                    $3->subqueriesAllowed();
+                    cout << "whereclause : TOKEN_WHERE TOKEN_SQOPEN_BRACKET predicatelist TOKEN_SQCLOSE_BRACKET" << endl;               
+                    $$ = $3;
                }
-      | TOKEN_AGGREGATE TOKEN_OPEN_BRACKET ext_attr_expr TOKEN_COMMA aggrfun TOKEN_COMMA attr_type TOKEN_COMMA const TOKEN_CLOSE_BRACKET 
-           { $$ = $3 ; 
-           {
-                     set<string> a = $5->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $5 );       
-                }
-               {
-                     set<string>  a = $7->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $7 );       
-                }
-           {
-                     set<string>  a = $9->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $9 );}
-                 }
-              ;
-                     
-                
- newname :  TOKEN_ID
-           {  $$ = new M();
-              $$->name.insert($1);
-       
-           
-          ListExpr type = plnl->TheEmptyList();
-          string realname;
-          if(optutils::isObject($1, realname, type)){
-	  string err = "Object " + string($1) + " name already exists.Enter a new name.\n";
-	  opterror(err.c_str());
-	  return false;
-	}     
-
-        if(!optutils::isValidID($1)){  
-	  string err = "Object " + string($1) + " name already exists.Enter a new name.\n";
-	  opterror(err.c_str());
-	  return false;
-        }
-	if(usedNames.find($1) !=usedNames.end()){ 
-	  string err = "Object " + string($1) + " name already exists.Enter a new name.\n";
-	  opterror(err.c_str());
-	  return false;
-	}
-      
-    }
+             | /* epsilon */
+              { 
+               $$ = new OptParseStruct(); 
+              }
 ;
 
-         
-attr : attrname
-   {  cerr << "DEBUG: query 8th rule" << endl;
-       $$ = $1;
-
- }
-     | TOKEN_ID TOKEN_COLON attrname 
-        { $$ = $3;
-          $$->name.insert($1);
-         }
-     | TOKEN_ROWID
-         { $$ = new M() ; }
+updateexpression : const
+                   { 
+                    $$ = new OptParseStruct(); 
+                   }
 ;
 
-
-
-update_expression : const
-                   { $$ = $1 ; }
-                  |const_expr
-                    { $$ = $1 ; }
-;
-
-
-
-generic_const : TOKEN_SQOPEN_BRACKET TOKEN_CONST TOKEN_COMMA attr_type TOKEN_COMMA TOKEN_VALUE nested_list TOKEN_SQCLOSE_BRACKET 
-                { $$ = $4 ;
-                  {
-                     set<string> a = $7->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $7 );       
-                }}
-;
-
-table_subquery : query
-;
-
-compop: TOKEN_SMALL_THAN
-          { $$ = new M() ; }
-      | TOKEN_SMALL_THAN_EQUAL
-        { $$ = new M() ; }
-      |  TOKEN_EQUAL
-          { $$ = new M() ; }
-      |  TOKEN_GREATER_THAN_EQUAL
-          { $$ = new M() ; }
-      |  TOKEN_GREATER_THAN
-          { $$ = new M() ; }
-      |  TOKEN_HASH
-          { $$ = new M() ; }
-      |  TOKEN_DOUBLE_BRACKET
-          { $$ = new M() ; }
-;
-
-attr_type : nested_list
-          { $$ = $1 ;   }
-;
-
-const_expr : nested_list
-             { $$ = $1 ; }
-;
-
-const : TOKEN_BOOL
-         { $$ = new M() ; }
-      | TOKEN_INT
-        { $$ = new M() ; }
-      | TOKEN_REAL
-        { $$ = new M() ; }
-      | TOKEN_STRING
-         { $$ = new M() ; }
-      | TOKEN_TEXT
-         { $$ = new M() ; }
-      | TOKEN_SQOPEN_BRACKET intlist TOKEN_SQCLOSE_BRACKET
-          { $$ = $2 ; }
-      | generic_const
-        { $$ = $1 ; }
-      ;
-
-intlist: intlist2
-         { $$ = $1 ; }
-       | { $$ = new M(); }
-       ;
-
-intlist2 : TOKEN_INT
-           { $$ = new M() ; }
-         | TOKEN_INT TOKEN_COMMA intlist2
-           { $$ = $3 ; }
-         ;
-
-attr_expr : attr { 
-            $$ = $1 ; 
-            cout << "attr_expr: rule 1 matched: attr." << endl; }
-          | const{ cout << "attr_expr: rule 2 matched: const" << endl;
-             $$ = $1 ; }
-          | TOKEN_OPEN_BRACKET attr_expr TOKEN_CLOSE_BRACKET { 
-            $$ = $2;
-            cout << "attr_expr: rule 3 matched." << endl; }
-          | attr_expr op attr_expr {
-             $$ = $1;
-             cout << "attr_expr: rule 4 matched." << endl;
-               {
-                     set<string> a = $2->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $2 );       
-                }
-                {
-                     set<string>  a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                }}
-          | attr_expr op 
-           { $$ = $1;
-            cout << "attr_expr: rule 6 matched." << endl;
+updatequery : TOKEN_UPDATE relation TOKEN_SET transformclause whereclause
               {
-                     set<string> a = $2->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $2 );       
-                } }
-          | op TOKEN_OPEN_BRACKET attr_expr_list TOKEN_CLOSE_BRACKET { 
-             $$ = $1;
-             cout << "attr_expr: rule 7 matched." << endl;
-
-                  {
-                     set<string>  a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                } }
-          | op TOKEN_OPEN_BRACKET TOKEN_CLOSE_BRACKET { cout << "attr_expr: rule 8 matched." << endl; }
-             { $$ = $1 ; }
-          ;
-
-
-
-
-op          : TOKEN_SYMBOL
-             {  cerr << "DEBUG: query 5th rule" << endl }
-            | TOKEN_ID
-             {  cerr << "DEBUG: query 9th rule" << endl }
-            | compop
-               { $$ = $1 ; }
-            | TOKEN_PLUS
-              { $$ = new M() ; }
-            | TOKEN_STAR
-               { $$ = new M() ; }
-            | TOKEN_INT
-            {  cerr << "DEBUG: query 7th rule" << endl }
-            
-            ;
-
-attr_expr_list : attr_expr
-                { $$ = $1 ; }
-               | attr_expr TOKEN_COMMA attr_expr_list
-                 { $$ = $1 ;
-                  {
-                     set<string> a = $3->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $3 );       
-                }}
-              ;
-          
-nested_list : TOKEN_OPEN_BRACKET nlist TOKEN_CLOSE_BRACKET
-               { $$ = $2 ; }
-            | TOKEN_OPEN_BRACKET TOKEN_CLOSE_BRACKET
-              { $$ = new M() ; }
-            | TOKEN_BOOL
-              { $$ = new M() ; }
-            | TOKEN_INT
-               { $$ = new M() ; }
-            | TOKEN_STRING
-               { $$ = new M() ; }
-            | TOKEN_TEXT
-              { $$ = new M() ; }
-            | TOKEN_REAL
-                { $$ = new M() ; }
-            | symbol
-               { $$ = $1 ; }
-            ;
-symbol      : TOKEN_SYMBOL
-               { $$ = new M() ; }
-            | TOKEN_STAR
-              { $$ = new M() ; }
-            ;
-
-
-nlist : nested_list 
-        { $$ = $1 ; }
-     | nested_list nlist
-         { $$ = $1 ; 
-     {
-                     set<string> a = $2->name ;
-                     set<string> :: iterator it ;
-                     for( it = a.begin() ; it != a.end() ; it ++)
-                        { 
-                         $$->name.insert( *it);
-                         }
-                    delete( $2 );       
-                }
-}
-          
-     
+               $$ = $4;
+              }
 ;
-
-datatype : TOKEN_INT
-         | TOKEN_REAL
-         | TOKEN_BOOL
-         | TOKEN_STRING
-         | TOKEN_LINE
-         | TOKEN_POINTS
-         | TOKEN_MPOINT
-         | TOKEN_UREGION
-         ;;
-
-
-
-
-
-
-
 %%
 
 /*
-error handling
+~opterror~
+
+Bison error handling method which does set the global variable err_message in case of an error while parsing.
 
 */
 int opterror (const char *error)
@@ -1265,62 +786,73 @@ extern "C"{void optlexDestroy();}
 
 
 /*
+~checkOptimizerQuery~
 
-Main function. Checks a sql query against the requierements of the 
-secondo's optimizer.
+Main function of the OptParser. Checks a sql query against the requirements of the 
+secondo's optimizer. Does return false if the query was unsuccessful and fills errmsg with error. The variable
+success is being set false within the ~opterror~ method to indicate if an error has occured.
 
 */
 
-bool checkOptimizerQuery(const char* argument, char*& errmsg){
-
-   usedNames.clear();
-
-   optdebug=0;
-
-   try{
-
-    success = true;
-    optlexDestroy();
- 
-    opt_scan_string(argument);
-
-    optparse();
-    if(success){
-       errmsg=0;
-       if(err_message){
-          free(err_message);
-          err_message = 0;
-       }
-       return true;
-    }
-    if(err_message == 0){
-       cerr << "There is an error, but no message" << endl;
-    }
-    errmsg = err_message;
-    err_message= 0;
-    return false; 
-  } catch(...){
-      opterror("internal error during parsing");
-      errmsg = strdup("internal error");
-      return false;
-  }
+bool checkOptimizerQuery(const char* argument, char*& errmsg) {
+	optdebug = 1;
+     try 
+     {
+          string dbname;
+          string errorMsg ="No database open";
+          // only continue if database is open
+          if(!optutils::isDatabaseOpen(dbname,errorMsg))
+          {	
+               success = false;
+               err_message = (char*)malloc(strlen(errorMsg.c_str())+1);
+               strcpy(err_message, errorMsg.c_str());
+          }
+          else
+          {
+               success = true;
+		     optlexDestroy();
+		     opt_scan_string(argument);
+		     optparse();
+		}
+		if (success) 
+		{
+			     errmsg = 0;
+			     if (err_message) 
+			     {
+				     free( err_message);
+				     err_message = 0;
+			     }
+			cout << "Query was accepted" << endl;
+			return true;
+		}
+		if (err_message == 0) 
+		{
+			cerr << "There is an error, but no message" << endl;
+		}
+		errmsg = err_message;
+		err_message = 0;
+		cout << "Query was not accepted" << endl;
+		return false;	} 
+	catch (...) 
+	{
+		opterror("internal error during parsing");
+		errmsg = strdup("internal error");
+		return false;
+	}
 
 }
-
 /*
-Sets an compilerOption. If the option is not found, the ersult will be false. 
+Sets an compilerOption. If the option is not found, the result will be false. 
 
 */
-bool setSqlParserOption(const string& optionName, const bool enable){
-   if(optionName == "subqueries") {
-       subqueries = enable;
-       return true;
-   }
-   // insert further options here
-   return false;
+bool setSqlParserOption(const string& optionName, const bool enable) {
+	if (optionName == "subqueries") {
+		subqueries = enable;
+		return true;
+	}
+	// insert further options here
+	return false;
 }
-
-
 
 
 

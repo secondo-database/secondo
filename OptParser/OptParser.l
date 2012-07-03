@@ -1,9 +1,15 @@
+/*************************************************************************
+
+This is the flex Defintion of the OptParser.
+
+****************************************************************************/
+
+
+
 %{
-
 #include "Types.h"
-
 #include "parser.h"
-
+#include <iostream> 
 
 /*
 Some versions of flex have a memeory leak when scanning a 
@@ -31,53 +37,51 @@ smallLetter [a-z]
 capital [A-Z]
 letter [a-zA-Z]
 digit [0-9]
-int [+-]?(([1-9][0-9]*)|0)
+int (([1-9][0-9]*)|0)
 id {smallLetter}({letter}|{digit})*
 variable {capital}({letter}|{digit})*
 star \*
-num1 [-+]?{digit}+\.?([eE][-+]?{digit}+)?
-num2 [-+]?{digit}*\.{digit}+([eE][-+]?{digit}+)?
-number	{num1}|{num2}
+num1 {digit}+\.?([eE][-+]?{digit}+)?
 ident   {letter}({letter}|{digit}|_)*
 math    {otherChar}({otherChar}|{star})*
 symbol  {math}|{ident}
 otherChar [^\(\)\[\]\"\'A-Za-z0-9_\* \a\b\f\n\r\t\v]
 text '[^']'
-distinct "all"|"distinct"
-aggrop "min"|"max"|"sum"|"avg"|"extract"|"count"
-  
-
-
 
 %option yylineno
 %option noyywrap
 
 
-
 %%
 [ \a\b\f\t\v\n\r]+ { // ignore space
                    }
-{star}   {return TOKEN_STAR; }
+{star}   {optlval.strval = strdup(yytext); return TOKEN_STAR; }
 "as"     { return TOKEN_AS; }
+"all"    { return TOKEN_ALL; }
 "select" { return TOKEN_SELECT; }
-"from" { return TOKEN_FROM; }
-"let"   { return TOKEN_LET;}
-"("     {return TOKEN_OPEN_BRACKET; }
-"sql"   { return TOKEN_SQL; }
-")"     { return TOKEN_CLOSE_BRACKET; }
-"."     { return TOKEN_DOT; }
-","     { return TOKEN_COMMA; }
-"count" { return TOKEN_COUNT; }
-"aggregate" { return TOKEN_AGGREGATE; }
-"["     { return TOKEN_SQOPEN_BRACKET; }
-"]"     { return TOKEN_SQCLOSE_BRACKET; }
-"+"     { return TOKEN_PLUS; }
-"rowid" { return TOKEN_ROWID; }
+"from"   { return TOKEN_FROM; }
+"let"    { return TOKEN_LET;}
+"("      { return TOKEN_OPEN_BRACKET; }
+"sql"    { return TOKEN_SQL; }
+")"      { return TOKEN_CLOSE_BRACKET; }
+"."      { return TOKEN_DOT; }
+","      { return TOKEN_COMMA; }
+"["      { return TOKEN_SQOPEN_BRACKET; }
+"]"      { return TOKEN_SQCLOSE_BRACKET; }
+"-"      {optlval.strval = strdup(yytext); return TOKEN_MINUS; }
+"+"      {optlval.strval = strdup(yytext); return TOKEN_PLUS; }
+"<"      {optlval.strval = strdup(yytext); return TOKEN_SMALL_THAN; }
+"<="     {optlval.strval = strdup(yytext); return TOKEN_SMALL_THAN_EQUAL; }
+"="      {optlval.strval = strdup(yytext); return TOKEN_EQUAL; }
+">="     {optlval.strval = strdup(yytext); return TOKEN_GREATER_THAN_EQUAL; }
+">"      {optlval.strval = strdup(yytext); return TOKEN_GREATER_THAN; }
+"#"      { return TOKEN_HASH; }
+"<>"     { return TOKEN_DOUBLE_BRACKET; }
+"rowid"  { return TOKEN_ROWID; }
 "create" { return TOKEN_CREATE; }
 "columns" { return TOKEN_COLUMNS; }
 "delete" { return TOKEN_DELETE; }
-{distinct} { optlval.strval = yytext; return TOKEN_DISTINCT; }
-{aggrop} { optlval.strval = yytext; return TOKEN_AGGROP; }
+"distinct" { return TOKEN_DISTINCT; }
 "null"   { return TOKEN_NULL; }
 "table"  { return TOKEN_TABLE; }
 "drop"   { return TOKEN_DROP; }
@@ -96,7 +100,6 @@ aggrop "min"|"max"|"sum"|"avg"|"extract"|"count"
 "asc"    { return TOKEN_ASC; }
 "desc"   { return TOKEN_DESC; }
 "orderby" { return TOKEN_ORDER_BY; }
-"-"      { return TOKEN_DASH; }
 "{"      { return TOKEN_CUR_OPEN_BRACKET; }
 "}"      { return TOKEN_CUR_CLOSE_BRACKET; }
 "nonempty" { return TOKEN_NON_EMPTY; }
@@ -105,13 +108,6 @@ aggrop "min"|"max"|"sum"|"avg"|"extract"|"count"
 "update" { return TOKEN_UPDATE; }
 "set"    { return TOKEN_SET; }
 "where"  { return TOKEN_WHERE; }
-"<"      { return TOKEN_SMALL_THAN; }
-"<="     { return TOKEN_SMALL_THAN_EQUAL; }
-"="      { return TOKEN_EQUAL; }
-">="     { return TOKEN_GREATER_THAN_EQUAL; }
-">"      { return TOKEN_GREATER_THAN; }
-"#"      { return TOKEN_HASH; }
-"<>"     { return TOKEN_DOUBLE_BRACKET; }
 "'"     { return TOKEN_PUNCT; }
 "in"      { return TOKEN_IN; }
 "intersection"      { return TOKEN_INTERSECTION; }
@@ -119,12 +115,12 @@ aggrop "min"|"max"|"sum"|"avg"|"extract"|"count"
 "distance"      { return TOKEN_DISTANCE; }
 "not"      { return TOKEN_NOT; }
 "exists"      { return TOKEN_EXISTS; }
-{int}      { return TOKEN_INT; }
 "or"      { return TOKEN_OR; }
 "and"      { return TOKEN_AND; }
-"true"|"false" { return TOKEN_BOOL; }
-\"[^\"]\"       { return TOKEN_STRING; }
-{num1}      { return TOKEN_REAL; }
+"true"|"false" {optlval.strval = strdup(yytext);  return TOKEN_BOOL; }
+
+{int}      { return TOKEN_INT; }
+{num1}      { optlval.strval = strdup(yytext); return TOKEN_REAL; }
 "line"      { return TOKEN_LINE;}
 "points"      { return  TOKEN_POINTS;}
 "mpoint"      { return  TOKEN_MPOINT;}
@@ -132,10 +128,14 @@ aggrop "min"|"max"|"sum"|"avg"|"extract"|"count"
 "btree"      { return TOKEN_BTREE; }
 "rtree"      { return TOKEN_RTREE; }
 "hash"      { return TOKEN_HASH1; }
-  /* "#"      { return TOKEN;_ } */
-{id}   {  optlval.strval = yytext; return TOKEN_ID; }
-{variable} { optlval.strval = yytext; return TOKEN_VARIABLE;}
-{symbol} { optlval.strval = yytext; return TOKEN_SYMBOL;}
-{text} { optlval.strval = yytext; return TOKEN_TEXT;}
+\"[^\"]\"       { optlval.strval = strdup(yytext); return TOKEN_STRING; }
+{text} { optlval.strval = strdup(yytext); return TOKEN_TEXT;}
+{id}   {// we have to copy because we can't rely on yytext not changing underneath us:
+        optlval.strval = strdup(yytext);
+        return TOKEN_ID; 
+       }
+{variable} { optlval.strval = strdup(yytext); return TOKEN_VARIABLE;}
+{symbol} { optlval.strval = strdup(yytext); return TOKEN_SYMBOL;}
+
 . { return TOKEN_ERROR; }
 %%
