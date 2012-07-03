@@ -166,6 +166,13 @@ bool JPoint::Adjacent(const Attribute* attrib) const
   return false;
 }
 
+int JPoint::Compare(const void* l, const void* r)
+{
+  JPoint lp(*(JPoint*) l);
+  JPoint rp(*(JPoint*) r);
+  return lp.Compare(rp);
+
+}
 int JPoint::Compare(const Attribute* rhs) const
 {
   JPoint in(*(JPoint*) rhs);

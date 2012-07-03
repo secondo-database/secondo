@@ -322,8 +322,14 @@ JNetwork::JNetwork(SmiRecord& valueRecord, size_t& offset,
   nl->ReadFromString(CcString::BasicType(), idLE);
   ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
   bool ok = OpenAttribute<CcString>(valueRecord, offset, numId, w);
+
   if (ok)
-    id = ((CcString*)w.addr)->GetValue();
+  {
+    CcString* stn = (CcString*)w.addr;
+    id = stn->GetValue();
+    stn->DeleteIfAllowed();
+  }
+
 
   if (ok && id == Symbol::UNDEFINED())
   {
@@ -569,7 +575,10 @@ Word JNetwork::In(const ListExpr typeInfo, const ListExpr instance,
         if (juncRel != 0) juncRel->Delete();
         if (sectRel != 0) sectRel->Delete();
         if (routeRel != 0) routeRel->Delete();
-        if (distRel != 0) distRel->Clear();
+        if (distRel != 0) {
+          distRel->Clear();
+          delete distRel;
+        }
         return SetWord(Address(0));
       }
 
@@ -579,7 +588,7 @@ Word JNetwork::In(const ListExpr typeInfo, const ListExpr instance,
       sectRel->Delete();
       routeRel->Delete();
       distRel->Clear();
-
+      delete distRel;
       return SetWord(n);
     }
   }
@@ -654,11 +663,13 @@ bool JNetwork::Save(SmiRecord& valueRecord, size_t& offset,
                     const ListExpr  typeInfo)
 {
   Word w;
-  w.setAddr(new CcString(true, id));
+  CcString* stn = new CcString(true, id);
+  w.setAddr(stn);
   ListExpr idLE;
   nl->ReadFromString(CcString::BasicType(), idLE);
   ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
   bool ok = SaveAttribute<CcString>(valueRecord, offset, numId, w);
+  stn->DeleteIfAllowed();
 
   if (ok)
     ok = saveRelation(junctionsRelationTypeInfo, junctions, valueRecord,
@@ -779,8 +790,8 @@ bool JNetwork::Contains(const RouteLocation* rloc) const {
 }
 
 bool JNetwork::Contains(const JRouteInterval* rint) const{
-  if (rint->GetStartPosition() >= 0 &&
-      rint->GetEndPosition()<= GetRouteLength(rint->GetRouteId()))
+  if (rint->GetFirstPosition() >= 0 &&
+      rint->GetLastPosition()<= GetRouteLength(rint->GetRouteId()))
     return true;
   else
     return false;
@@ -928,6 +939,7 @@ Tuple* JNetwork::GetRouteTupleWithId(const int rid) const
   crid->DeleteIfAllowed();
   if (it->Next() != 0)
     res = routes->GetTuple ( it->GetId(), false );
+  delete it;
   return res;
 }
 

@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NList.h"
 #include "Symbols.h"
 #include "StandardTypes.h"
+#include "JPoint.h"
 
 /*
 1 Implementation of ~class JRouteInterval~
@@ -49,8 +50,8 @@ JRouteInterval::JRouteInterval(const JRouteInterval& other) :
 {
   if (other.IsDefined()){
     rid = other.GetRouteId();
-    startpos = other.GetStartPosition();
-    endpos = other.GetEndPosition();
+    startpos = other.GetFirstPosition();
+    endpos = other.GetLastPosition();
     side = other.GetSide();
   } else {
     rid = 0;
@@ -118,15 +119,32 @@ JRouteInterval::~JRouteInterval()
   return rid;
 }
 
-  double JRouteInterval::GetStartPosition()const
+  double JRouteInterval::GetFirstPosition()const
 {
   return startpos;
 }
 
-  double JRouteInterval::GetEndPosition()const
+  double JRouteInterval::GetLastPosition()const
 {
   return endpos;
 }
+
+double JRouteInterval::GetStartPosition() const
+{
+  if (side.Compare((Direction) "Down") == 0)
+    return endpos;
+  else
+    return startpos;
+}
+
+double JRouteInterval::GetEndPosition() const
+{
+  if (side.Compare((Direction) "Down") == 0)
+    return startpos;
+  else
+    return endpos;
+}
+
 
   Direction JRouteInterval::GetSide() const
 {
@@ -183,8 +201,8 @@ void JRouteInterval::CopyFrom(const Attribute* right)
   if (source->IsDefined())
   {
     rid = source->GetRouteId();
-    startpos = source->GetStartPosition();
-    endpos = source->GetEndPosition();
+    startpos = source->GetFirstPosition();
+    endpos = source->GetLastPosition();
     side = source->GetSide();
   }
 }
@@ -208,8 +226,8 @@ bool JRouteInterval::Adjacent(const Attribute* attrib) const
 {
   JRouteInterval* in = (JRouteInterval*) attrib;
   if ( rid == in->GetRouteId() &&
-       (AlmostEqual(startpos, in->GetEndPosition()) ||
-        AlmostEqual(endpos, in->GetStartPosition())) &&
+       (AlmostEqual(startpos, in->GetLastPosition()) ||
+        AlmostEqual(endpos, in->GetFirstPosition())) &&
        side.SameSide(in->GetSide(),false))
     return true;
   else
@@ -222,7 +240,7 @@ int JRouteInterval::Compare(const Attribute* rhs) const
   return Compare(in);
 }
 
-int JRouteInterval::Compare(const void* ls, const void* rs) const
+int JRouteInterval::Compare(const void* ls, const void* rs)
 {
   JRouteInterval lhs( *(JRouteInterval*) ls);
   JRouteInterval rhs( *(JRouteInterval*) rs);
@@ -237,10 +255,10 @@ int JRouteInterval::Compare(const JRouteInterval& in) const
   if (IsDefined() && !in.IsDefined()) return 1;
   if (rid < in.GetRouteId()) return -1;
   if (rid > in.GetRouteId()) return 1;
-  if (startpos < in.GetStartPosition()) return -1;
-  if (startpos > in.GetStartPosition()) return 1;
-  if (endpos < in.GetEndPosition()) return -1;
-  if (endpos > in.GetEndPosition()) return 1;
+  if (startpos < in.GetFirstPosition()) return -1;
+  if (startpos > in.GetFirstPosition()) return 1;
+  if (endpos < in.GetLastPosition()) return -1;
+  if (endpos > in.GetLastPosition()) return 1;
   return side.Compare(in.GetSide());
 }
 
@@ -286,8 +304,8 @@ JRouteInterval& JRouteInterval::operator=(const JRouteInterval& other)
   if (other.IsDefined())
   {
     rid = other.GetRouteId();
-    startpos = other.GetStartPosition();
-    endpos = other.GetEndPosition();
+    startpos = other.GetFirstPosition();
+    endpos = other.GetLastPosition();
     side = other.GetSide();
   }
   return *this;
@@ -337,8 +355,8 @@ ListExpr JRouteInterval::Out(ListExpr typeInfo, Word value)
   {
     Direction actDir(actValue->GetSide());
     return nl->FourElemList(nl->IntAtom(actValue->GetRouteId()),
-                            nl->RealAtom(actValue->GetStartPosition()),
-                            nl->RealAtom(actValue->GetEndPosition()),
+                            nl->RealAtom(actValue->GetFirstPosition()),
+                            nl->RealAtom(actValue->GetLastPosition()),
                             Direction::Out(nl->TheEmptyList(),
                                            SetWord((void*) &actDir)));
   }
@@ -525,8 +543,8 @@ bool JRouteInterval::Overlaps(const JRouteInterval& other) const
 {
   if (rid == other.GetRouteId() && SameSide(other,true))
   {
-    if (startpos <= other.GetEndPosition() ||
-        endpos <= other.GetStartPosition())
+    if (startpos <= other.GetLastPosition() ||
+        endpos <= other.GetFirstPosition())
       return true;
     else
       return false;

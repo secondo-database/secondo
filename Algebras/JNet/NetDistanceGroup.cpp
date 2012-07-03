@@ -178,7 +178,7 @@ bool NetDistanceGroup::Adjacent ( const Attribute* attrib ) const
   return false;
 }
 
-int NetDistanceGroup::Compare(const void* ls, const void* rs) const
+int NetDistanceGroup::Compare(const void* ls, const void* rs)
 {
   NetDistanceGroup lhs(*((NetDistanceGroup*) ls));
   NetDistanceGroup rhs(*((NetDistanceGroup*) rs));

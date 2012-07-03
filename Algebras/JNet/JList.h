@@ -38,6 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RouteLocation.h"
 #include "NetDistanceGroup.h"
 
+
 /*
 1 class ~List~
 
@@ -87,7 +88,7 @@ StorageType GetStorageType() const;
 size_t HashValue() const;
 Attribute* Clone() const;
 bool Adjacent(const Attribute* attrib) const;
-int Compare(const void* ls, const void* rs) const;
+static int Compare(const void* ls, const void* rs);
 int Compare(const Attribute* rhs) const;
 int Compare(const JList<ListElem>& in) const;
 int NumOfFLOBs () const;
@@ -280,18 +281,6 @@ typedef JList<JRouteInterval> JListRInt;
 typedef JList<RouteLocation> JListRLoc;
 typedef JList<NetDistanceGroup> JListNDG;
 
-/*
-1 Helpful function
-
-*/
-
-template<class ListElem>
-int ListElemCompare(const void* a, const void* b)
-{
-  const ListElem iA = (*(ListElem*) a);
-  const ListElem iB = (*(ListElem*) b);
-  return iA.Compare(iB);
-}
 
 /*
 1 Implementation of class ~JList~
@@ -428,7 +417,7 @@ bool JList<ListElem>::Adjacent(const Attribute* attrib) const
 }
 
 template<class ListElem>
-int JList<ListElem>::Compare(const void* ls, const void* rs) const
+int JList<ListElem>::Compare(const void* ls, const void* rs)
 {
   JList<ListElem> lhs(*(JList<ListElem>*) ls);
   JList<ListElem> rhs(*(JList<ListElem>*) rs);
@@ -609,7 +598,7 @@ JList<ListElem>& JList<ListElem>::operator+=(const ListElem& e)
     else
     {
       int pos = 0;
-      elemlist.Find(&e, ListElemCompare<ListElem>, pos);
+      elemlist.Find(&e, ListElem::Compare, pos);
       ListElem actElem, nextElem;
       elemlist.Get(pos,actElem);
       if (actElem.Compare(e) != 0)
@@ -709,7 +698,7 @@ JList<ListElem>& JList<ListElem>::operator-=(const ListElem& e)
   if (IsDefined() && e.IsDefined() && !IsEmpty())
   {
     int pos;
-    if (elemlist.Find(&e, ListElemCompare<ListElem>, pos)){
+    if (elemlist.Find(&e, ListElem::Compare, pos)){
       ListElem actElem;
       elemlist.Get(pos, actElem);
       if (actElem == e)
@@ -982,7 +971,7 @@ template<class ListElem>
 bool JList<ListElem>::Contains(const ListElem& e, int& pos)
 {
   if(!IsDefined()) return false;
-  else return elemlist.Find(&e,ListElemCompare<ListElem>, pos);
+  else return elemlist.Find(&e,ListElem::Compare, pos);
 }
 
 template<class ListElem>
@@ -997,7 +986,7 @@ bool JList<ListElem>::IsEmpty() const
 template<class ListElem>
 void JList<ListElem>::Sort()
 {
-  activBulkload = !elemlist.Sort(ListElemCompare<ListElem>);
+  activBulkload = !elemlist.Sort(ListElem::Compare);
 }
 
 template<class ListElem>

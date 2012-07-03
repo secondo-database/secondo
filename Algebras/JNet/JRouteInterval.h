@@ -81,14 +81,60 @@ classes.
 */
 
     int GetRouteId() const;
+
+/*
+1.1.1.1 GetFirstPosition
+
+Returns always the smaller distance from the start of the route.
+
+*/
+
+    double GetFirstPosition()const;
+
+/*
+1.1.1.1 GetLastPosition
+
+Returns always the bigger distance from the start of the route.
+
+*/
+
+    double GetLastPosition()const;
+
+/*
+1.1.1.1 GetStartPosition
+
+Returns the first point of the routeinterval respecting the direction of the
+route interval on the road.
+
+*/
+
     double GetStartPosition()const;
+
+/*
+1.1.1.1 GetStartPosition
+
+Returns the last point of the routeinterval respecting the direction of the
+route interval on the road.
+
+*/
+
     double GetEndPosition()const;
+
     Direction GetSide() const;
 
     void SetRouteId(const int routeid);
+    void SetSide(const Direction sideofroad);
+
+/*
+1.1.1.1 SetStartPosition and SetAndPosition
+
+Use carefully. They may not work as expected by their name, because they are
+only introduced for connecting overlapping route intervals while sorting and
+compressing the JRouteInterval sets in the JLine data type. Using JRITree.
+
+*/
     void SetStartPosition(const double position);
     void SetEndPosition(const double position);
-    void SetSide(const Direction sideofroad);
 
 /*
 1.1.1 Override Methods from Attribute
@@ -100,7 +146,7 @@ classes.
   size_t HashValue() const;
   Attribute* Clone() const;
   bool Adjacent(const Attribute* attrib) const;
-  int Compare(const void* ls, const void* rs) const;
+  static int Compare(const void* ls, const void* rs);
   int Compare(const Attribute* rhs) const;
   int Compare(const JRouteInterval& rhs) const;
   size_t Sizeof() const;

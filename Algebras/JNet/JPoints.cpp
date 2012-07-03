@@ -18,34 +18,34 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2012, May Simone Jandt
+2012, July Simone Jandt
 
 1 Includes and defines
 
 */
 
-#include "JLine.h"
+#include "JPoints.h"
 #include "Symbols.h"
 #include "StandardTypes.h"
-#include "JRITree.h"
+#include "JRLTree.h"
 
 /*
-1 Implementation of class JLine
+1 Implementation of class JPoints
 
 1.1 Constructors and Deconstructor
 
 */
 
-JLine::JLine() : Attribute()
+JPoints::JPoints() : Attribute()
 {}
 
-JLine::JLine(const bool def) :
-    Attribute(def), nid(""), routeintervals(0), sorted(false),
+JPoints::JPoints(const bool def) :
+    Attribute(def), nid(""), routelocations(0), sorted(false),
     activBulkload(false)
 {}
 
-JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList) :
-    Attribute(true), nid(netId), routeintervals(rintList)
+JPoints::JPoints(const string netId, const DbArray<RouteLocation>& rlocList) :
+    Attribute(true), nid(netId), routelocations(rlocList)
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   Word value;
@@ -55,11 +55,11 @@ JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList) :
       valDefined)
   {
     JNetwork* jnet = (JNetwork*) value.addr;
-    JRouteInterval actInt;
+    RouteLocation actInt;
     StartBulkload();
     nid = jnet->GetId();
-    for (int i = 0; i < rintList.Size(); i++){
-      rintList.Get(i,actInt);
+    for (int i = 0; i < rlocList.Size(); i++){
+      rlocList.Get(i,actInt);
       if (jnet->Contains(&actInt))
       {
         Add(actInt);
@@ -70,22 +70,22 @@ JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList) :
   }
 }
 
-JLine::JLine(const JNetwork* jnet, const JListRInt* rintList) :
-    Attribute(true),routeintervals(rintList->GetNoOfComponents())
+JPoints::JPoints(const JNetwork* jnet, const JListRLoc* rlocList) :
+    Attribute(true),routelocations(rlocList->GetNoOfComponents())
 {
-  if (!rintList->IsDefined() || !jnet->IsDefined())
+  if (!rlocList->IsDefined() || !jnet->IsDefined())
   {
     SetDefined(false);
   }
   else
   {
     nid = jnet->GetId();
-    JRouteInterval actInt;
+    RouteLocation actInt;
     StartBulkload();
     int i = 0;
-    while (i < rintList->GetNoOfComponents())
+    while (i < rlocList->GetNoOfComponents())
     {
-      rintList->Get(i++,actInt);
+      rlocList->Get(i++,actInt);
       if (jnet->Contains(&actInt))
         Add(actInt);
     }
@@ -93,23 +93,23 @@ JLine::JLine(const JNetwork* jnet, const JListRInt* rintList) :
   }
 }
 
-JLine::JLine(const JLine& other) :
+JPoints::JPoints(const JPoints& other) :
   Attribute(other.IsDefined())
 {
   if (other.IsDefined())
   {
     nid = other.GetNetworkId();
-    routeintervals.copyFrom(other.routeintervals);
+    routelocations.copyFrom(other.routelocations);
     sorted = other.IsSorted();
     activBulkload = false;
   }
 }
 
-JLine::JLine(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo) :
-  Attribute(true), routeintervals(0)
+JPoints::JPoints(SmiRecord& valueRecord, size_t& offset,
+                 const ListExpr typeInfo) :
+  Attribute(true), routelocations(0)
 {
   activBulkload = false;
-  sorted = true;
   Word w;
   ListExpr idLE;
   nl->ReadFromString(CcString::BasicType(), idLE);
@@ -126,7 +126,7 @@ JLine::JLine(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo) :
       valueRecord.Read(buf, bufsize, offset);
       offset += bufsize;
       assert(buf != NULL);
-      routeintervals.restoreHeader(buf,addoffset);
+      routelocations.restoreHeader(buf,addoffset);
       free(buf);
     }
     else
@@ -140,7 +140,7 @@ JLine::JLine(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo) :
   }
 }
 
-JLine::~JLine()
+JPoints::~JPoints()
 {}
 
 /*
@@ -148,25 +148,25 @@ JLine::~JLine()
 
 */
 
-string JLine::GetNetworkId() const
+string JPoints::GetNetworkId() const
 {
   return nid;
 }
 
-const DbArray<JRouteInterval>& JLine::GetRouteIntervals() const
+const DbArray<RouteLocation>& JPoints::GetRouteLocations() const
 {
-  return routeintervals;
+  return routelocations;
 }
 
-void JLine::SetNetworkId(string& id)
+void JPoints::SetNetworkId(string& id)
 {
   nid = id;
 }
 
-void JLine::SetRouteIntervals(DbArray<JRouteInterval>& setri)
+void JPoints::SetRouteIntervals(DbArray<RouteLocation>& setri)
 {
   assert(setri != 0);
-  routeintervals.copyFrom(setri);
+  routelocations.copyFrom(setri);
   sorted = false;
   Sort();
 }
@@ -176,28 +176,28 @@ void JLine::SetRouteIntervals(DbArray<JRouteInterval>& setri)
 
 */
 
-void JLine::CopyFrom(const Attribute* right)
+void JPoints::CopyFrom(const Attribute* right)
 {
   SetDefined(right->IsDefined());
   if (right->IsDefined())
   {
-    JLine in(*(JLine*) right);
+    JPoints in(*(JPoints*) right);
     nid = in.GetNetworkId();
-    routeintervals.copyFrom(in.GetRouteIntervals());
+    routelocations.copyFrom(in.GetRouteLocations());
     sorted = in.IsSorted();
   }
   else
     SetDefined(false);
 }
 
-size_t JLine::HashValue() const
+size_t JPoints::HashValue() const
 {
   size_t res = 0;
   if (IsDefined())
   {
     res += (size_t) nid.length();
-    JRouteInterval ri(false);
-    for (int i = 0; i < routeintervals.Size(); i++)
+    RouteLocation ri(false);
+    for (int i = 0; i < routelocations.Size(); i++)
     {
       Get(i,ri);
       res += ri.HashValue();
@@ -206,43 +206,43 @@ size_t JLine::HashValue() const
   return res;
 }
 
-Attribute* JLine::Clone() const
+Attribute* JPoints::Clone() const
 {
-  return new JLine(*this);
+  return new JPoints(*this);
 }
 
-bool JLine::Adjacent(const Attribute* attrib) const
+bool JPoints::Adjacent(const Attribute* attrib) const
 {
   return false;
 }
 
-int JLine::Compare(const void* ls, const void* rs)
+int JPoints::Compare(const void* ls, const void* rs)
 {
-  JLine lhs(*((JLine*) ls));
-  JLine rhs(*((JLine*) rs));
+  JPoints lhs(*((JPoints*) ls));
+  JPoints rhs(*((JPoints*) rs));
   return lhs.Compare(rhs);
 }
 
-int JLine::Compare(const Attribute* rhs) const
+int JPoints::Compare(const Attribute* rhs) const
 {
-  JLine in(*((JLine*) rhs));
+  JPoints in(*((JPoints*) rhs));
   return Compare(in);
 }
 
-int JLine::Compare(const JLine& rhs) const
+int JPoints::Compare(const JPoints& rhs) const
 {
   if (!IsDefined() && !rhs.IsDefined()) return 0;
   if (!IsDefined() && rhs.IsDefined()) return -1;
   if (IsDefined() && !rhs.IsDefined()) return 1;
   int aux = nid.compare(rhs.GetNetworkId());
   if (aux != 0) return aux;
-  if (routeintervals.Size() < rhs.GetNoComponents()) return -1;
-  if (routeintervals.Size() > rhs.GetNoComponents()) return 1;
-  JRouteInterval lri(false);
-  JRouteInterval rri(false);
-  for (int i = 0; i < routeintervals.Size(); i++)
+  if (routelocations.Size() < rhs.GetNoComponents()) return -1;
+  if (routelocations.Size() > rhs.GetNoComponents()) return 1;
+  RouteLocation lri(false);
+  RouteLocation rri(false);
+  for (int i = 0; i < routelocations.Size(); i++)
   {
-    routeintervals.Get(i, lri);
+    routelocations.Get(i, lri);
     rhs.Get(i, rri);
     aux = lri.Compare(&rri);
     if (aux != 0) return aux;
@@ -250,32 +250,32 @@ int JLine::Compare(const JLine& rhs) const
   return 0;
 }
 
-size_t JLine::Sizeof() const
+size_t JPoints::Sizeof() const
 {
-  return sizeof(JLine);
+  return sizeof(JPoints);
 }
 
-int JLine::NumOfFLOBs() const
+int JPoints::NumOfFLOBs() const
 {
   return 1;
 }
 
-Flob* JLine::GetFLOB(const int i)
+Flob* JPoints::GetFLOB(const int i)
 {
-  if (i == 0) return &routeintervals;
+  if (i == 0) return &routelocations;
   return 0;
 }
 
-ostream& JLine::Print(ostream& os) const
+ostream& JPoints::Print(ostream& os) const
 {
-  os << "JLine: ";
+  os << "JPoints: ";
   if(IsDefined())
   {
     os << " NetworkId: " << nid << endl;
-    JRouteInterval ri(false);
-    for (int i = 0; i < routeintervals.Size(); i++)
+    RouteLocation ri(false);
+    for (int i = 0; i < routelocations.Size(); i++)
     {
-      routeintervals.Get(i,ri);
+      routelocations.Get(i,ri);
       ri.Print(os);
     }
   }
@@ -285,22 +285,22 @@ ostream& JLine::Print(ostream& os) const
   return os;
 }
 
-void JLine::Destroy()
+void JPoints::Destroy()
 {
-  routeintervals.Destroy();
+  routelocations.Destroy();
 }
 
-Attribute::StorageType JLine::GetStorageType() const
+Attribute::StorageType JPoints::GetStorageType() const
 {
   return Default;
 }
 
-const std::string JLine::BasicType()
+const std::string JPoints::BasicType()
 {
-  return "jline";
+  return "jpoints";
 }
 
-const bool JLine::checkType(const ListExpr type)
+const bool JPoints::checkType(const ListExpr type)
 {
   return listutils::isSymbol(type, BasicType());
 }
@@ -310,44 +310,44 @@ const bool JLine::checkType(const ListExpr type)
 
 */
 
-JLine& JLine::operator=(const JLine& other)
+JPoints& JPoints::operator=(const JPoints& other)
 {
   SetDefined(other.IsDefined());
   if (other.IsDefined())
   {
     nid = other.GetNetworkId();
-    routeintervals.copyFrom(other.GetRouteIntervals());
+    routelocations.copyFrom(other.GetRouteLocations());
     sorted = other.IsSorted();
   }
   return *this;
 }
 
-bool JLine::operator==(const JLine& other) const
+bool JPoints::operator==(const JPoints& other) const
 {
   return Compare(&other) == 0;
 }
 
-bool JLine::operator!=(const JLine& other) const
+bool JPoints::operator!=(const JPoints& other) const
 {
   return Compare(&other) != 0;
 }
 
-bool JLine::operator<(const JLine& other) const
+bool JPoints::operator<(const JPoints& other) const
 {
   return Compare(&other) < 0;
 }
 
-bool JLine::operator<=(const JLine& other) const
+bool JPoints::operator<=(const JPoints& other) const
 {
   return Compare(&other) < 1;
 }
 
-bool JLine::operator>(const JLine& other) const
+bool JPoints::operator>(const JPoints& other) const
 {
   return Compare(&other) > 0;
 }
 
-bool JLine::operator>=(const JLine& other) const
+bool JPoints::operator>=(const JPoints& other) const
 {
   return Compare(&other) >= 0;
 }
@@ -357,9 +357,9 @@ bool JLine::operator>=(const JLine& other) const
 
 */
 
-ListExpr JLine::Out(ListExpr typeInfo, Word value)
+ListExpr JPoints::Out(ListExpr typeInfo, Word value)
 {
-  JLine* out =  (JLine*) value.addr;
+  JPoints* out =  (JPoints*) value.addr;
 
   if (!out->IsDefined())
     return nl->SymbolAtom(Symbol::UNDEFINED());
@@ -367,34 +367,34 @@ ListExpr JLine::Out(ListExpr typeInfo, Word value)
   {
     NList nid(out->GetNetworkId(),true, false);
 
-    NList rintList(nl->TheEmptyList());
-    JRouteInterval ri(false);
+    NList rlocList(nl->TheEmptyList());
+    RouteLocation rl(false);
     bool first = true;
     for (int i = 0; i < out->GetNoComponents(); i++)
     {
-      out->Get(i,ri);
-      NList actRIntList(JRouteInterval::Out(nl->TheEmptyList(),
-                                            SetWord((void*) &ri)));
+      out->Get(i,rl);
+      NList actRLocList(RouteLocation::Out(nl->TheEmptyList(),
+                                           SetWord((void*) &rl)));
       if (first)
       {
         first = false;
-        rintList = actRIntList.enclose();
+        rlocList = actRLocList.enclose();
       }
       else
-        rintList.append(actRIntList);
+        rlocList.append(actRLocList);
     }
-    ListExpr test = nl->TwoElemList(nid.listExpr(), rintList.listExpr());
+    ListExpr test = nl->TwoElemList(nid.listExpr(), rlocList.listExpr());
     return test;
   }
 }
 
-Word JLine::In(const ListExpr typeInfo, const ListExpr instance,
+Word JPoints::In(const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct)
 {
   if(nl->ListLength(instance) == 1 && nl->IsEqual(instance,Symbol::UNDEFINED()))
   {
     correct = true;
-    return SetWord(new JLine(false));
+    return SetWord(new JPoints(false));
   }
   else
   {
@@ -402,30 +402,30 @@ Word JLine::In(const ListExpr typeInfo, const ListExpr instance,
     {
       ListExpr netId = nl->First(instance);
       string nid = nl->StringValue(netId);
-      JLine* res = new JLine(true);
+      JPoints* res = new JPoints(true);
       res->SetNetworkId(nid);
       res->StartBulkload();
-      ListExpr rintList = nl->Second(instance);
-       ListExpr actRint = nl->TheEmptyList();
+      ListExpr rlocList = nl->Second(instance);
+       ListExpr actRLoc = nl->TheEmptyList();
       correct = true;
-      while( !nl->IsEmpty( rintList ) && correct)
+      while( !nl->IsEmpty( rlocList ) && correct)
       {
-        actRint = nl->First( rintList );
-         Word w = JRouteInterval::In(nl->TheEmptyList(), actRint, errorPos,
+        actRLoc = nl->First( rlocList );
+         Word w = RouteLocation::In(nl->TheEmptyList(), actRLoc, errorPos,
                                     errorInfo, correct);
         if (correct)
         {
-          JRouteInterval* actInt = (JRouteInterval*) w.addr;
+          RouteLocation* actInt = (RouteLocation*) w.addr;
           res->Add(*actInt);
           actInt->DeleteIfAllowed();
           actInt = 0;
         }
         else
         {
-          cmsg.inFunError("Error in list of " + JRouteInterval::BasicType() +
-            " at " + nl->ToString(actRint));
+          cmsg.inFunError("Error in list of " + RouteLocation::BasicType() +
+            " at " + nl->ToString(actRLoc));
         }
-        rintList = nl->Rest( rintList );
+        rlocList = nl->Rest( rlocList );
       }
       res->EndBulkload();
       if (correct)
@@ -443,28 +443,28 @@ Word JLine::In(const ListExpr typeInfo, const ListExpr instance,
   return SetWord(Address(0));
 }
 
-Word JLine::Create(const ListExpr typeInfo)
+Word JPoints::Create(const ListExpr typeInfo)
 {
-  return SetWord(new JLine(false));
+  return SetWord(new JPoints(false));
 }
 
-void JLine::Delete( const ListExpr typeInfo, Word& w )
+void JPoints::Delete( const ListExpr typeInfo, Word& w )
 {
-  ((JLine*) w.addr)->Destroy();
-  delete ((JLine*)w.addr);
+  ((JPoints*) w.addr)->Destroy();
+  delete ((JPoints*)w.addr);
   w.addr = 0;
 }
 
-void JLine::Close( const ListExpr typeInfo, Word& w )
+void JPoints::Close( const ListExpr typeInfo, Word& w )
 {
-  delete ((JLine*)w.addr);
+  delete ((JPoints*)w.addr);
   w.addr = 0;
 }
 
-bool JLine::Save(SmiRecord& valueRecord, size_t& offset,
+bool JPoints::Save(SmiRecord& valueRecord, size_t& offset,
                  const ListExpr typeInfo, Word& value)
 {
-  JLine* source = (JLine*) value.addr;
+  JPoints* source = (JPoints*) value.addr;
   if (source->IsDefined())
   {
     Word w;
@@ -504,35 +504,35 @@ bool JLine::Save(SmiRecord& valueRecord, size_t& offset,
   }
 }
 
-bool JLine::Open (SmiRecord& valueRecord, size_t& offset,
+bool JPoints::Open (SmiRecord& valueRecord, size_t& offset,
                   const ListExpr typeInfo, Word& value)
 {
-  JLine *res = new JLine(valueRecord, offset, typeInfo);
+  JPoints *res = new JPoints(valueRecord, offset, typeInfo);
   value.setAddr(res);
   return true;
 }
 
-Word JLine::Clone( const ListExpr typeInfo, const Word& w )
+Word JPoints::Clone( const ListExpr typeInfo, const Word& w )
 {
-  return (new JLine(*((JLine*) w.addr)));
+  return (new JPoints(*((JPoints*) w.addr)));
 }
 
-void* JLine::Cast( void* addr )
+void* JPoints::Cast( void* addr )
 {
-  return (new (addr) JLine);
+  return (new (addr) JPoints);
 }
 
-bool JLine::KindCheck ( ListExpr type, ListExpr& errorInfo )
+bool JPoints::KindCheck ( ListExpr type, ListExpr& errorInfo )
 {
   return checkType(type);
 }
 
-int JLine::SizeOf()
+int JPoints::SizeOf()
 {
-  return sizeof(JLine);
+  return sizeof(JPoints);
 }
 
-ListExpr JLine::Property()
+ListExpr JPoints::Property()
 {
   return nl->TwoElemList(
     nl->FourElemList(
@@ -544,9 +544,9 @@ ListExpr JLine::Property()
       nl->StringAtom("-> " + Kind::DATA()),
       nl->StringAtom(BasicType()),
       nl->TextAtom("("+ CcString::BasicType() + " ((" +
-      JRouteInterval::BasicType() + ") ...("+ JRouteInterval::BasicType() +
-      "))), describes a part of the jnetwork, named by string, by a sorted"+
-      "list of "+ JRouteInterval::BasicType() +"s."),
+      RouteLocation::BasicType() + ") ...("+ RouteLocation::BasicType() +
+      "))), describes a set of single network positons in an jnetwork, named" +
+      " by string, by a sorted list of "+ RouteLocation::BasicType() +"s."),
       nl->TextAtom(Example())));
 }
 
@@ -556,73 +556,74 @@ ListExpr JLine::Property()
 
 */
 
-string JLine::Example()
+string JPoints::Example()
 {
-  return "(netname ("+ JRouteInterval::Example() + "))";
+  return "(netname ("+ RouteLocation::Example() + "))";
 }
 
 
-int JLine::GetNoComponents() const
+int JPoints::GetNoComponents() const
 {
-  return routeintervals.Size();
+  return routelocations.Size();
 }
 
-bool JLine::IsEmpty() const {
-  return (IsDefined() && GetNoComponents() == 0);
+bool JPoints::IsEmpty() const {
+  if (IsDefined() && GetNoComponents() == 0)
+    return true;
+  else
+    return false;
 }
 
-void JLine::Get(const int i, JRouteInterval& ri) const
+void JPoints::Get(const int i, RouteLocation& ri) const
 {
-  assert (IsDefined() && 0 <= i && i < routeintervals.Size());
-  routeintervals.Get(i, ri);
+  assert (IsDefined() && 0 <= i && i < routelocations.Size());
+  routelocations.Get(i, ri);
 }
 
 /*
-1.1 Managing bulkload of routeintervals
+1.1 Managing bulkload of routelocations
 
 */
 
-void JLine::StartBulkload()
+void JPoints::StartBulkload()
 {
   SetDefined(true);
   activBulkload = true;
-  sorted = false;
-  routeintervals.clean();
-  routeintervals.TrimToSize();
+  routelocations.clean();
+  routelocations.TrimToSize();
 }
 
-void JLine::EndBulkload()
+void JPoints::EndBulkload()
 {
   activBulkload = false;
   Sort();
-  routeintervals.TrimToSize();
 }
 
-JLine& JLine::Add(const JRouteInterval& rint)
+JPoints& JPoints::Add(const RouteLocation& rloc)
 {
-  if (IsDefined() && rint.IsDefined())
+  if (IsDefined() && rloc.IsDefined())
   {
     if(activBulkload)
-      routeintervals.Append(rint);
+      routelocations.Append(rloc);
     else
     {
       int pos = 0;
-      routeintervals.Find(&rint, JRouteInterval::Compare, pos);
-      JRouteInterval actElem, nextElem;
-      routeintervals.Get(pos,actElem);
-      if (actElem.Compare(rint) != 0)
+      routelocations.Find(&rloc, RouteLocation::Compare, pos);
+      RouteLocation actElem, nextElem;
+      routelocations.Get(pos,actElem);
+      if (actElem.Compare(rloc) != 0)
       {
         nextElem = actElem;
-        routeintervals.Put(pos, rint);
+        routelocations.Put(pos, rloc);
         pos++;
-        while(pos < routeintervals.Size())
+        while(pos < routelocations.Size())
         {
-          routeintervals.Get(pos, actElem);
-          routeintervals.Put(pos, nextElem);
+          routelocations.Get(pos, actElem);
+          routelocations.Put(pos, nextElem);
           nextElem = actElem;
           pos++;
         }
-        routeintervals.Append(nextElem);
+        routelocations.Append(nextElem);
       }
     }
   }
@@ -634,15 +635,15 @@ JLine& JLine::Add(const JRouteInterval& rint)
 
 */
 
-void JLine::Sort()
+void JPoints::Sort()
 {
   if (IsDefined() && !IsSorted())
   {
     if (!IsEmpty())
     {
-      JRITree* sorted = new JRITree(&routeintervals);
-      routeintervals.clean();
-      sorted->TreeToDbArray(&routeintervals);
+      JRLTree* sorted = new JRLTree(&routelocations);
+      routelocations.clean();
+      sorted->TreeToDbArray(&routelocations);
       sorted->Destroy();
       delete sorted;
     }
@@ -650,7 +651,7 @@ void JLine::Sort()
   }
 }
 
-bool JLine::IsSorted() const
+bool JPoints::IsSorted() const
 {
   if (IsDefined())
     return sorted;
@@ -664,7 +665,7 @@ bool JLine::IsSorted() const
 
 */
 
-ostream& operator<<(ostream& os, const JLine& line)
+ostream& operator<<(ostream& os, const JPoints& line)
 {
   line.Print(os);
   return os;

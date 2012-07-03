@@ -108,11 +108,11 @@ section information to the road definition we normal use.
 Attributname      | Datatype  | Meaning
 ===============================================================================
 Id                | int       | unifique identifier of the road
-Length            | real      | length of the road in meter
 ListJunctions     | listint   | list of junction identifiers for the crossings
                   |           | of this road
 ListSections      | listint   | list of section identifiers for the sections
                   |           | belonging to this road
+Length            | real      | length of the road in meter
 
 The attribut Id is indexed by BTree routeBTree.
 

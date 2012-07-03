@@ -116,7 +116,7 @@ bool Direction::Adjacent(const Attribute* attrib) const
   return false;
 }
 
-int Direction::Compare(const void* ls, const void* rs) const
+int Direction::Compare(const void* ls, const void* rs)
 {
   Direction pl(*(Direction*) ls);
   Direction pr(*(Direction*) rs);

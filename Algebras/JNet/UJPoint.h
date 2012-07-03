@@ -18,31 +18,34 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2012, May Simone Jandt
+2012, July Simone Jandt
 
 1 Defines and Includes
 
 */
 
-#ifndef JPOINT_H
-#define JPOINT_H
+#ifndef UJPOINT_H
+#define UJPOINT_H
 
 #include <ostream>
 #include <string>
 #include "Attribute.h"
 #include "StandardTypes.h"
-#include "RouteLocation.h"
-#include "JNetwork.h"
+#include "DateTime.h"
+#include "TemporalAlgebra.h"
+#include "JRouteInterval.h"
+#include "JPoint.h"
 
 /*
-1 class ~JPoint~
+1 class ~UJPoint~
 
-A ~JPoint~ is a position in a given ~JNetwork~. It consits of the network
-identifier and a RouteLocation within this network.
+A ~UJPoint~ consist of an network id, an ~JRouteInterval~, and an time
+intervall. It represents the positions of the ~MJPoint~ in the ~JNetwork~ in
+this time intervall.
 
 */
 
-class JPoint : public Attribute
+class UJPoint : public Attribute
 {
 
 /*
@@ -54,29 +57,33 @@ public:
 /*
 1.1.1 Constructors and Deconstructors
 
-The standard constructor should only be used in Cast-Function. It can not be
-declared to be private because ~jpoint~ is used as attribute by other datatypes.
+The Standard Constructor should not be used without inside the cast function.
+It can not be private because UJPoint is used as part of MJPoint.
 
 */
 
-  JPoint();
-  explicit JPoint(const bool def);
-  JPoint(const JPoint& other);
-  JPoint(const string& netId, const RouteLocation& rloc);
-  JPoint(const JNetwork* jnet, const RouteLocation* rloc);
+  UJPoint();
+  explicit UJPoint(const bool def);
+  UJPoint(const UJPoint& other);
+  UJPoint(const string id, const Interval<Instant>& inst,
+          const JRouteInterval& rint);
 
-  ~JPoint();
+  ~UJPoint();
 
 /*
 1.1.1 Getter and Setter for private Attributes
 
 */
 
+  Interval<Instant> GetTimeInterval() const;
   string GetNetworkId() const;
-  RouteLocation GetPosition() const;
+  JRouteInterval GetRouteInterval() const;
+  JPoint* GetStartPoint() const;
+  JPoint* GetEndPoint() const;
 
-  void SetNetId(const string& netId);
-  void SetPosition(const RouteLocation& rloc);
+  void SetTimeInterval(const Interval<Instant>& inst);
+  void SetNetworkId(const string id);
+  void SetRouteInterval(const JRouteInterval& ri);
 
 /*
 1.1.1 Override Methods from Attribute
@@ -90,7 +97,7 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
   bool Adjacent(const Attribute* attrib) const;
   static int Compare(const void* ls, const void* rs);
   int Compare(const Attribute* rhs) const;
-  int Compare(const JPoint& rhs) const;
+  int Compare(const UJPoint& rhs) const;
   size_t Sizeof() const;
   ostream& Print(ostream& os) const;
   static const string BasicType();
@@ -101,14 +108,14 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
 
 */
 
-  JPoint& operator=(const JPoint& other);
+  UJPoint& operator=(const UJPoint& other);
 
-  bool operator==(const JPoint& other) const;
-  bool operator!=(const JPoint& other) const;
-  bool operator<(const JPoint& other) const;
-  bool operator<=(const JPoint& other) const;
-  bool operator>(const JPoint& other) const;
-  bool operator>=(const JPoint& other) const;
+  bool operator==(const UJPoint& other) const;
+  bool operator!=(const UJPoint& other) const;
+  bool operator<(const UJPoint& other) const;
+  bool operator<=(const UJPoint& other) const;
+  bool operator>(const UJPoint& other) const;
+  bool operator>=(const UJPoint& other) const;
 
 /*
 1.1.1 Operators for Secondo Integration
@@ -149,8 +156,11 @@ private:
 
 */
 
-  string nid;         // network id of the network the point belongs to.
-  RouteLocation npos; //position in this network.
+  string nid;             //network identifier
+  Interval<Instant> time; //time interval the mjpoint needs to move from start
+                          //to end
+  JRouteInterval rint;    //network positions the mjpoint passes in the time
+                          //interval
 
 };
 
@@ -159,5 +169,5 @@ private:
 
 */
 
-ostream& operator<< (const ostream& os, const JPoint& jp);
-#endif // JPOINT_H
+ostream& operator<< (const ostream& os, const UJPoint& jp);
+#endif // UJPOINT_H

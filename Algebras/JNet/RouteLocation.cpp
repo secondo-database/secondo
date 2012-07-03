@@ -165,7 +165,7 @@ bool RouteLocation::Adjacent(const Attribute* attrib) const
   return Adjacent(*((RouteLocation*) attrib));
 }
 
-int RouteLocation::Compare(const void* rs, const void* ls) const
+int RouteLocation::Compare(const void* rs, const void* ls)
 {
   RouteLocation rhs(*(RouteLocation*)(rs));
   RouteLocation lhs(*(RouteLocation*)(ls));

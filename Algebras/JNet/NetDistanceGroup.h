@@ -105,7 +105,7 @@ same source and target id. In all other cases the result is not really useful.
 
 */
 
-int Compare(const void* ls, const void* rs) const;
+static int Compare(const void* ls, const void* rs);
 int Compare ( const Attribute* rhs ) const;
 int Compare (const NetDistanceGroup& rhs) const;
 size_t Sizeof() const;

@@ -18,34 +18,34 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2012, May Simone Jandt
+2012, July Simone Jandt
 
 1 Defines and includes
 
 */
 
-#ifndef JLINE_H
-#define JLINE_H
+#ifndef JPOINTS_H
+#define JPOINTS_H
 
 #include <ostream>
 #include <string>
 #include "Attribute.h"
-#include "JRouteInterval.h"
+#include "RouteLocation.h"
 #include "StandardTypes.h"
 #include "../Tools/Flob/DbArray.h"
 #include "JList.h"
 #include "JNetwork.h"
 
 /*
-1 class JLine
+1 class JPoints
 
-Consists of a network id and a set of ~JRouteIntervals~ describing an part of a
-~jnetwork~. The ~JRouteIntervals~ are stored sorted by the route identifiers
-and start and end positions and are compressed as far as possible.
+Consists of a network id and a set of ~RouteLocations~ describing an set of
+single positions in an ~jnetwork~. The ~RouteLocations~ are stored sorted by
+their route identifiers and positions.
 
 */
 
-class JLine : public Attribute
+class JPoints : public Attribute
 {
 
 /*
@@ -60,13 +60,13 @@ public:
 
 */
 
-  explicit JLine(const bool defined);
-  JLine(const string netId, const DbArray<JRouteInterval>& rintList);
-  JLine(const JNetwork* jnet, const JListRInt* rintList);
-  JLine(const JLine& other);
-  JLine(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+  explicit JPoints(const bool defined);
+  JPoints(const string netId, const DbArray<RouteLocation>& rlocList);
+  JPoints(const JNetwork* jnet, const JListRLoc* rlocList);
+  JPoints(const JPoints& other);
+  JPoints(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
 
-  ~JLine();
+  ~JPoints();
 
 /*
 1.1.1 Getter and Setter for private attributes
@@ -74,10 +74,10 @@ public:
 */
 
   string GetNetworkId() const;
-  const DbArray<JRouteInterval>& GetRouteIntervals() const;
+  const DbArray<RouteLocation>& GetRouteLocations() const;
 
   void SetNetworkId(string& nid);
-  void SetRouteIntervals(DbArray<JRouteInterval>& setri);
+  void SetRouteIntervals(DbArray<RouteLocation>& setrlocs);
 
 /*
 1.1.1 Override Methods from Attribute
@@ -89,7 +89,7 @@ public:
   bool Adjacent(const Attribute* attrib) const;
   static int Compare(const void* ls, const void* rs);
   int Compare(const Attribute* rhs) const;
-  int Compare(const JLine& rhs) const;
+  int Compare(const JPoints& rhs) const;
   size_t Sizeof() const;
   int NumOfFLOBs() const;
   Flob* GetFLOB(const int i);
@@ -104,14 +104,14 @@ public:
 
 */
 
-  JLine& operator=(const JLine& other);
+  JPoints& operator=(const JPoints& other);
 
-  bool operator==(const JLine& other) const;
-  bool operator!=(const JLine& other) const;
-  bool operator<(const JLine& other) const;
-  bool operator<=(const JLine& other) const;
-  bool operator>(const JLine& other) const;
-  bool operator>=(const JLine& other) const;
+  bool operator==(const JPoints& other) const;
+  bool operator!=(const JPoints& other) const;
+  bool operator<(const JPoints& other) const;
+  bool operator<=(const JPoints& other) const;
+  bool operator>(const JPoints& other) const;
+  bool operator>=(const JPoints& other) const;
 
 /*
 1.1.1 Operators for Secondo Integration
@@ -157,7 +157,7 @@ Returns the number of routeintervals of the jline.
 /*
 1.1.1.1 IsEmpty
 
-Returns true if the JLine is defined and has no routeintervals.
+Returns true if the JPoints is defined and has no routeintervals.
 
 */
 
@@ -170,7 +170,7 @@ Returns the routeinterval at the given position
 
 */
 
-  void Get(const int i, JRouteInterval& ri) const;
+  void Get(const int i, RouteLocation& ri) const;
 
 /*
 1.1.1.1 Managing bulkload of routeintervals
@@ -191,11 +191,11 @@ Returns the routeinterval at the given position
 /*
 1.1.1.1.1 ~Add~
 
-Adds the given JRouteInterval to the set of routeintervals.
+Adds the given RouteLocation to the set of routeintervals.
 
 */
 
- JLine& Add(const JRouteInterval& rint);
+ JPoints& Add(const RouteLocation& rint);
 
 /*
 
@@ -210,9 +210,9 @@ private:
 
 */
   string nid; //network identifier
-  DbArray<JRouteInterval> routeintervals; //sorted set of JRouteIntervals
-  bool sorted; //true if routeintervals are sorted and compressed
-  bool activBulkload; //only true while bulkload of routeintervals runs
+  DbArray<RouteLocation> routelocations; //sorted set of RouteLocations
+  bool sorted; //true if routelocations are sorted
+  bool activBulkload; //only true while bulkload of routelocations runs
 
 /*
 
@@ -223,16 +223,16 @@ declare it to be private.
 
 */
 
- JLine();
+ JPoints();
 
 /*
 1.1.1 Methods
 
-1.1.1.1 Management of RouteIntervals
+1.1.1.1 Management of RouteLocations
 
 1.1.1.1.1 IsSorted
 
-Checks if the given set of JRouteIntervals is sorted.
+Checks if the given set of RouteLocations is sorted.
 
 */
 
@@ -241,9 +241,8 @@ Checks if the given set of JRouteIntervals is sorted.
 /*
 1.1.1.1.1 Sort
 
-Sorts the given set of RouteIntervals ascending by route Identifier,
-StartPosition and EndPosition and reduces the number of route intervals if
-possible.
+Sorts the given set of RouteLocations ascending by route Identifier and
+Position.
 
 */
 
@@ -256,5 +255,5 @@ possible.
 
 */
 
-ostream& operator<<(ostream& os, const JLine l);
-#endif // JLINE_H
+ostream& operator<<(ostream& os, const JPoints l);
+#endif // JPOINTS_H

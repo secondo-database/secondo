@@ -44,7 +44,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JList.h"
 #include "JNetwork.h"
 #include "JPoint.h"
+#include "JPoints.h"
 #include "JLine.h"
+#include "IJPoint.h"
+#include "UJPoint.h"
+#include "MJPoint.h"
 #include "RelationAlgebra.h"
 
 using namespace std;
@@ -271,6 +275,28 @@ TypeConstructor jpointTC(
   JPoint::KindCheck);
 
 /*
+1.1 ~jpoints~
+
+Describes a set of positions in the network. Consists of an ~string~ as network
+identifier and an set of ~rloc~s describing the network positions.
+
+*/
+
+TypeConstructor jpointsTC(
+  JPoints::BasicType(),
+  JPoints::Property,
+  JPoints::Out, JPoints::In,
+  0, 0,
+  JPoints::Create, JPoints::Delete,
+  JPoints::Open,
+  JPoints::Save,
+  JPoints::Close, JPoints::Clone,
+  JPoints::Cast,
+  JPoints::SizeOf,
+  JPoints::KindCheck);
+
+
+/*
 1.1 ~jline~
 
 Describes a region in the network. Consists of an ~string~ as network
@@ -291,6 +317,70 @@ TypeConstructor jlineTC(
   JLine::Cast,
   JLine::SizeOf,
   JLine::KindCheck);
+
+/*
+1.1 ~ijpoint~
+
+Describes the position of an ~mjpoint~ in an ~jnet~ at the time ~instant~.
+Consist of an time ~instant~ and an ~jpoint~ value.
+
+*/
+
+TypeConstructor ijpointTC(
+  IJPoint::BasicType(),
+  IJPoint::Property,
+  IJPoint::Out, IJPoint::In,
+  0, 0,
+  IJPoint::Create, IJPoint::Delete,
+  OpenAttribute<IJPoint>,
+  SaveAttribute<IJPoint>,
+  IJPoint::Close, IJPoint::Clone,
+  IJPoint::Cast,
+  IJPoint::SizeOf,
+  IJPoint::KindCheck);
+
+/*
+1.1 ~ujpoint~
+
+Describes the positions of an ~mjpoint~ in an ~jnet~ within the time interval.
+Consist of an network identifier, an time interval and an ~jrint~ value.
+
+*/
+
+TypeConstructor ujpointTC(
+  UJPoint::BasicType(),
+  UJPoint::Property,
+  UJPoint::Out, UJPoint::In,
+  0, 0,
+  UJPoint::Create, UJPoint::Delete,
+  UJPoint::Open,
+  UJPoint::Save,
+  UJPoint::Close, UJPoint::Clone,
+  UJPoint::Cast,
+  UJPoint::SizeOf,
+  UJPoint::KindCheck);
+
+/*
+1.1 ~mjpoint~
+
+Describes the positions of an ~mjpoint~ in an ~jnet~.
+Consist of an network identifier, and an set of ~ujpoint~.
+
+*/
+
+TypeConstructor mjpointTC(
+  MJPoint::BasicType(),
+  MJPoint::Property,
+  MJPoint::Out, MJPoint::In,
+  0, 0,
+  MJPoint::Create, MJPoint::Delete,
+  MJPoint::Open,
+  MJPoint::Save,
+  MJPoint::Close, MJPoint::Clone,
+  MJPoint::Cast,
+  MJPoint::SizeOf,
+  MJPoint::KindCheck);
+
 
 /*
 1 Secondo Operators
@@ -1813,19 +1903,54 @@ JNetAlgebra::JNetAlgebra():Algebra()
   jlistndgTC.AssociateKind(Kind::DATA());
 
 /*
-1.1.1 Network Data Types
+1.1.1 The Central JNetwork Datatype
 
 */
 
   AddTypeConstructor (&jnetworkTC);
   jnetworkTC.AssociateKind(Kind::JNETWORK());
 
+/*
+1.1.1 Datatypes Depending on Existing Networks
+
+1.1.1.1 Time Independent Network Datatypes
+
+1.1.1.1.1 Single Network Positions
+
+*/
+
   AddTypeConstructor (&jpointTC);
   jpointTC.AssociateKind(Kind::DATA());
+
+  AddTypeConstructor(&jpointsTC);
+  jpointsTC.AssociateKind(Kind::DATA());
+
+/*
+1.1.1.1.1 Part of Network
+
+*/
 
   AddTypeConstructor (&jlineTC);
   jlineTC.AssociateKind(Kind::DATA());
 
+/*
+1.1.1.1 Time Dependent Network Datatypes
+
+1.1.1.1.1 Single Network Positions
+
+*/
+
+  AddTypeConstructor(&ijpointTC);
+  ijpointTC.AssociateKind(Kind::DATA());
+  ijpointTC.AssociateKind(Kind::TEMPORAL());
+
+  AddTypeConstructor(&ujpointTC);
+  ujpointTC.AssociateKind(Kind::DATA());
+  ujpointTC.AssociateKind(Kind::TEMPORAL());
+
+  AddTypeConstructor(&mjpointTC);
+  mjpointTC.AssociateKind(Kind::DATA());
+  mjpointTC.AssociateKind(Kind::TEMPORAL());
 
 /*
 1.1 Integration of Operators

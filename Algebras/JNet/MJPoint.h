@@ -18,54 +18,53 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2012, May Simone Jandt
+2012, July Simone Jandt
 
 1 Defines and Includes
 
 */
 
-#ifndef JPOINT_H
-#define JPOINT_H
+#ifndef MJPOINT_H
+#define MJPOINT_H
 
 #include <ostream>
 #include <string>
 #include "Attribute.h"
 #include "StandardTypes.h"
-#include "RouteLocation.h"
-#include "JNetwork.h"
+#include "DateTime.h"
+#include "TemporalAlgebra.h"
+#include "UJPoint.h"
 
 /*
-1 class ~JPoint~
+1 class ~MJPoint~
 
-A ~JPoint~ is a position in a given ~JNetwork~. It consits of the network
-identifier and a RouteLocation within this network.
+A ~MJPoint~ describes the way of an JPoint through the JNetwork. It consist of
+an network id, and a set of defined ~UJPoint~ values. Sorted by their time
+intervals.
 
 */
 
-class JPoint : public Attribute
+class MJPoint : public Attribute
 {
 
 /*
 1.1 Public Declarations
 
 */
+
 public:
 
 /*
 1.1.1 Constructors and Deconstructors
 
-The standard constructor should only be used in Cast-Function. It can not be
-declared to be private because ~jpoint~ is used as attribute by other datatypes.
-
 */
 
-  JPoint();
-  explicit JPoint(const bool def);
-  JPoint(const JPoint& other);
-  JPoint(const string& netId, const RouteLocation& rloc);
-  JPoint(const JNetwork* jnet, const RouteLocation* rloc);
+  explicit MJPoint(const bool def);
+  MJPoint(const MJPoint& other);
+  MJPoint(const DbArray<UJPoint>& upoints);
+  MJPoint(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
 
-  ~JPoint();
+  ~MJPoint();
 
 /*
 1.1.1 Getter and Setter for private Attributes
@@ -73,10 +72,10 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
 */
 
   string GetNetworkId() const;
-  RouteLocation GetPosition() const;
+  const DbArray<UJPoint>& GetUnits() const;
 
-  void SetNetId(const string& netId);
-  void SetPosition(const RouteLocation& rloc);
+  void SetNetworkId(const string id);
+  void SetUnits(const DbArray<UJPoint>& upoints);
 
 /*
 1.1.1 Override Methods from Attribute
@@ -90,8 +89,11 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
   bool Adjacent(const Attribute* attrib) const;
   static int Compare(const void* ls, const void* rs);
   int Compare(const Attribute* rhs) const;
-  int Compare(const JPoint& rhs) const;
+  int Compare(const MJPoint& rhs) const;
   size_t Sizeof() const;
+  int NumOfFLOBs() const;
+  Flob* GetFLOB(const int i);
+  void Destroy();
   ostream& Print(ostream& os) const;
   static const string BasicType();
   static const bool checkType(const ListExpr type);
@@ -101,14 +103,14 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
 
 */
 
-  JPoint& operator=(const JPoint& other);
+  MJPoint& operator=(const MJPoint& other);
 
-  bool operator==(const JPoint& other) const;
-  bool operator!=(const JPoint& other) const;
-  bool operator<(const JPoint& other) const;
-  bool operator<=(const JPoint& other) const;
-  bool operator>(const JPoint& other) const;
-  bool operator>=(const JPoint& other) const;
+  bool operator==(const MJPoint& other) const;
+  bool operator!=(const MJPoint& other) const;
+  bool operator<(const MJPoint& other) const;
+  bool operator<=(const MJPoint& other) const;
+  bool operator>(const MJPoint& other) const;
+  bool operator>=(const MJPoint& other) const;
 
 /*
 1.1.1 Operators for Secondo Integration
@@ -136,6 +138,18 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
 
 */
   static string Example();
+  int GetNoComponents() const;
+  bool IsEmpty() const;
+  void Get(const int i, UJPoint& up) const;
+
+/*
+1.1.1 Manage Bullkload
+
+*/
+
+  void StartBulkload();
+  void EndBulkload();
+  MJPoint& Add(const UJPoint& up);
 
 /*
 1.1 Private declarations
@@ -149,15 +163,34 @@ private:
 
 */
 
-  string nid;         // network id of the network the point belongs to.
-  RouteLocation npos; //position in this network.
+  string nid;             //network identifier
+  DbArray<UJPoint> units; //set of UJPoint describing the way of the mjpoint
+  bool activBulkload; //only true while bulkload of ujpoints runs
+
+/*
+1.1.1 Standard Constructor
+
+The standard constructor should only be used in cast-Function and is therefore
+declared to be private.
+
+*/
+
+  MJPoint();
+
+/*
+1.1.1 ~CheckSorted~
+
+Checks if the units are well sorted. Used if complete Arrays are inserted.
+
+*/
+
+bool CheckSorted() const;
 
 };
-
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<< (const ostream& os, const JPoint& jp);
-#endif // JPOINT_H
+ostream& operator<< (const ostream& os, const MJPoint& jp);
+#endif // MJPOINT_H

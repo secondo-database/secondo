@@ -18,33 +18,36 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-2012, May Simone Jandt
+2012, July Simone Jandt
 
-1. Includes
+1 Defines and Includes
 
 */
 
-#ifndef DIRECTION_H
-#define DIRECTION_H
+#ifndef IJPOINT_H
+#define IJPOINT_H
 
 #include <ostream>
+#include <string>
 #include "Attribute.h"
-#include "JSide.h"
+#include "StandardTypes.h"
+#include "DateTime.h"
+#include "JPoint.h"
 
 /*
-1 class ~Direction~
+1 class ~IJPoint~
 
-The class ~Direction~ makes the enum ~JSide~ usable as Attribute in relations
-defining sections. Therefore it implements the secondo interface for
-~Attributes~.
+A ~IJPoint~ is a ~JPoint~ combined with an time instant.
+It represents the position of an ~MJPoint~ in the ~JNetwork~ at this time
+instant.
 
 */
 
-class Direction : public Attribute
+class IJPoint : public Attribute
 {
 
 /*
-1.1 public Methods of class ~Direction~
+1.1 Public Declarations
 
 */
 public:
@@ -52,41 +55,38 @@ public:
 /*
 1.1.1 Constructors and Deconstructors
 
-The default Constructor should only be used in the cast-Function. Because
-direction is used in other classes as member it the default constructor cannot
-be defined to be private.
-
 */
 
-  Direction();
-  explicit Direction(const bool defined);
-  Direction(const Direction& other);
-  explicit Direction(const JSide inside);
+  explicit IJPoint(const bool def);
+  IJPoint(const IJPoint& other);
+  IJPoint(const Instant& inst, const JPoint& jp);
 
-  ~Direction();
+  ~IJPoint();
 
 /*
-1.1.1 Getter and Setter for private attributes
+1.1.1 Getter and Setter for private Attributes
 
 */
 
-  JSide GetDirection() const;
-  void SetSide(const JSide side);
-  void SetDirection(const Direction& inside);
+  Instant GetInstant() const;
+  JPoint GetPoint() const;
+
+  void SetInstant(const Instant& inst);
+  void SetPoint(const JPoint& jp);
 
 /*
 1.1.1 Override Methods from Attribute
 
 */
+
   void CopyFrom(const Attribute* right);
-  Attribute::StorageType GetStorageType() const;
+  StorageType GetStorageType() const;
   size_t HashValue() const;
   Attribute* Clone() const;
   bool Adjacent(const Attribute* attrib) const;
-  static int Compare(const void* ls, const void* rhs);
+  static int Compare(const void* ls, const void* rs);
   int Compare(const Attribute* rhs) const;
-  int Compare(const Direction& indir) const;
-  int Compare(const JSide& ls, const JSide& rs)const ;
+  int Compare(const IJPoint& rhs) const;
   size_t Sizeof() const;
   ostream& Print(ostream& os) const;
   static const string BasicType();
@@ -97,19 +97,20 @@ be defined to be private.
 
 */
 
-  Direction& operator=(const Direction& other);
+  IJPoint& operator=(const IJPoint& other);
 
-  bool operator==(const Direction& other) const;
-  bool operator<(const Direction& other) const;
-  bool operator<=(const Direction& other) const;
-  bool operator>(const Direction& other) const;
-  bool operator>=(const Direction& other) const;
-  bool operator!=(const Direction& other) const;
+  bool operator==(const IJPoint& other) const;
+  bool operator!=(const IJPoint& other) const;
+  bool operator<(const IJPoint& other) const;
+  bool operator<=(const IJPoint& other) const;
+  bool operator>(const IJPoint& other) const;
+  bool operator>=(const IJPoint& other) const;
 
 /*
 1.1.1 Operators for Secondo Integration
 
 */
+
   static ListExpr Out(ListExpr typeInfo, Word value);
   static Word In(const ListExpr typeInfo, const ListExpr instance,
                  const int errorPos, ListExpr& errorInfo, bool& correct);
@@ -123,46 +124,41 @@ be defined to be private.
   static ListExpr Property();
 
 /*
-1.1.1 Helpful Operations
-
-1.1.1.1 Example
-
-Provides example string for list representation can be used by external
-property definitions for part of Direction representation.
+1.1.1 Other Operations
 
 */
-
-static string Example();
+  static string Example();
 
 /*
-1.1.1.1.1 SameSide
-
-Returns true if the both direction values are equal or one of them is ~Both~.
+1.1 Private declarations
 
 */
 
-  bool SameSide(const Direction& dir, const bool strict = true) const;
-
-/*
-1.1 Private definitions of class ~Direction~
-
-*/
 private:
 
 /*
-1.1.1 Attributes of class ~Direction~
+1.1.1 Attributes
 
 */
 
-  JSide side;
+  Instant time; //timeinstant the jpoint exists
+  JPoint point; //position in the jnetwork at this time.
 
+/*
+1.1.1 Standard Constructor
+
+The standard constructor should only be used in cast-Function and is therefore
+declared to be private.
+
+*/
+
+  IJPoint();
 };
 
 /*
-1 Overload output operator
+1 Overwrite output operator
 
 */
 
-ostream& operator<<(ostream& os, const Direction& dir);
-
-#endif // DIRECTION_H
+ostream& operator<< (const ostream& os, const IJPoint& jp);
+#endif // IJPOINT_H
