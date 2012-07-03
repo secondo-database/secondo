@@ -246,9 +246,10 @@ operator tm_join1 alias TM_JOIN1 pattern op(_,_,_)
 
 operator nearstops_building alias NEARSTOPS_PAVE pattern op(_,_)
 
-operator decomposegenmo alias DECOMPOSEGENMO pattern op(_,_)
+operator decomposegenmo alias DECOMPOSEGENMO pattern op(_,_,_)
 operator bulkloadtmrtree alias BULKLOADTMRTREE pattern _ op [_,_,_,_]
 operator tmrtreemode alias TMRTREEMODE pattern op(_,_,_)
 operator tm_nodes alias TM_NODES pattern op(_)
 operator range_tmrtree alias RANGE_TMRTREE pattern op(_,_,_,_)
 operator mode2str alias MODE2STR pattern op(_,_)
+operator range_query alias RANGE_QUERY pattern op(_,_)

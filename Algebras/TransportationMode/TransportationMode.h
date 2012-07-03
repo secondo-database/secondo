@@ -1244,10 +1244,11 @@ const string OpTMNearStopBuildingSpec  =
 const string OpTMDecomposeGenmoSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
     "\"Example\" ) "
-    "( <text>rel x real ->(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
-    "<text>decomposegenmo(rel, real)</text--->"
+    "( <text>rel x real x bool ->"
+    "(stream (tuple( (x1 t1)(x2 t2)...(xn tn))) </text--->"
+    "<text>decomposegenmo(rel, real, bool)</text--->"
     "<text>reorganize the units in genmo </text--->"
-    "<text>query decomposegenmo(all_genmo, cellsize)</text--->"
+    "<text>query decomposegenmo(all_genmo, cellsize, TRUE)</text--->"
     ") )";
 
 const string OpTMBulkLoadTMRtreeSpec  =
@@ -1289,6 +1290,15 @@ const string OpTMRangeTMRTreeSpec  =
     "<text>range query on genmo using tmrtree </text--->"
     "<text>query range_tmrtree(TM-Rtree, genmo_rel, "
     "query_rel, 1) count</text--->) )";
+
+const string OpTMRangeQuerySpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>rel x rel -> "
+     "(stream (tuple( (x1 t1)(x2 t2)...(xn tn)))</text--->"
+    "<text>range_query(rel, rel)</text--->"
+    "<text>range query on genmo singme method</text--->"
+    "<text>query range_query(genmo_rel, query_rel) count</text--->) )";
 
 const string OpTMMode2StringSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "

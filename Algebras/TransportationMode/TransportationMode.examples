@@ -1295,8 +1295,8 @@ Result   : 0
 
 Operator : decomposegenmo
 Number   : 1
-Signature: rel x real -> (stream(((x1 t1) ... (xn tn))))
-Example  : query decomposegenmo(all_genmo, 200.0) count;
+Signature: rel x real x bool -> (stream(((x1 t1) ... (xn tn))))
+Example  : query decomposegenmo(all_genmo, 200.0, TRUE) count;
 Result   : 1
 
 
@@ -1326,9 +1326,15 @@ Example  : query range_tmrtree(TM_RTree, genmo_units, query_rel, 1)  count
 Result   : 0
 
 
-
 Operator : mode2str
 Number   : 1
 Signature: int -> string
 Example  : query mode2str(0, FALSE);
 Result   : "Bus"
+
+
+Operator : range_query
+Number   : 1
+Signature: rel x rel -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
+Example  : query range_query(genmo_union, query_rel) count;
+Result   : 0

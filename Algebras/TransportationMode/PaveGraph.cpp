@@ -5470,6 +5470,7 @@ void VGraph::GetAdjNodeDG(int oid)
     }
 
     cout<<"total "<< dg->GetNodeRel()->GetNoTuples()<<" nodes "<<endl;
+    cout<<"total "<<dg->GetEdgeRel()->GetNoTuples()<<" edges "<<endl;
 
     vector<int> adj_list;
     assert(dg->min_tri_oid_1 >= 0); 

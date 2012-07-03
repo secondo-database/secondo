@@ -3654,7 +3654,7 @@ long TM_RTree<dim,LeafInfo>::CalculateNodeTM(SmiRecordId nodeid,
 
           R_TreeInternalEntry<3> e =
                 (R_TreeInternalEntry<3>&)(*node)[j];
-         int son_tm = CalculateNodeTM(e.pointer, rel, attr_pos);
+         long son_tm = CalculateNodeTM(e.pointer, rel, attr_pos);
 
 //         bitset<ARR_SIZE(str_tm)> m_bit(son_tm);
            bitset<TM_SUM_NO> m_bit(son_tm);

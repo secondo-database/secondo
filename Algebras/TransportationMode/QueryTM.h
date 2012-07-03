@@ -71,6 +71,26 @@ March, 2011 Jianqiu xu
 #include "GeneralType.h"
 #include "TMRTree.h"
 
+struct Traj_Mode{
+
+  bitset<ARR_SIZE(str_tm)> modebits;
+
+  Traj_Mode(){}
+  Traj_Mode(bitset<ARR_SIZE(str_tm)> in):modebits(in){
+
+  }
+  Traj_Mode(const Traj_Mode& tm):modebits(tm.modebits){}
+  Traj_Mode& operator=(const Traj_Mode& tm)
+  {
+    modebits = tm.modebits;
+    return *this;
+  }
+  inline int Mode_Count(){return modebits.count();}
+  void Print()
+  {
+    cout<<GetModeStringExt(modebits.to_ulong())<<endl;
+  }
+};
 
 
 /*
@@ -119,7 +139,7 @@ struct QueryTM{
   vector<int> Tm_list;
   vector<MPoint> Mp_list;
   vector<int> div_list;
-   
+  bool mt_type;
   ////////////////////////////////////////////////////////////////////////////
   //////////get 2D line in space or 3D line in a building///////////////////
   ////////////////////////////////////////////////////////////////////////////
@@ -168,8 +188,18 @@ struct QueryTM{
   void MulMode_Filter1(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
                       vector<bool> bit_pos, Relation* units_rel);
   void MulMode_Refinement(Rectangle<3> query_box, vector<bool> bit_pos,
-                          Relation* units_rel);
+                          Relation* units_rel, int mode_count);
   int ModeType(string mode, vector<long>& seq_tm);
+  inline bool CheckMPoint(MPoint* mp, int start, int end, 
+                          Interval<Instant>& time_span, Region* query_reg);
+  /////////////////////////////////////////////////////////////////////////
+  //////////////// simple method for testing correctness//////////////////
+  ////////////////////////////////////////////////////////////////////////
+  void RangeQuery(Relation* rel1, Relation* rel2);
+  void Sin_RangeQuery(Relation* rel1, Periods* peri, Rectangle<2>* q_box,
+                             int m);
+  bool ContainMode1(MReal* mode_index, int m);
+  bool ContainMode2(MReal* mode_index, Interval<Instant>& t, int m);
 };
 
 #define TEN_METER 10.0
@@ -180,4 +210,5 @@ struct QueryTM{
 #define TMRTREE 1
 #define ADRTREE 2
 #define RTREE3D 3
+#define TMRTREETEST 4
 #endif

@@ -8248,7 +8248,7 @@ TypeMap fun for operator nearest stop pave
 */
 ListExpr DecomposeGenmoTypeMap ( ListExpr args )
 {
-  if ( nl->ListLength ( args ) != 2 )
+  if ( nl->ListLength ( args ) != 3 )
   {
     return ( nl->SymbolAtom ( "typeerror" ) );
   }
@@ -8267,6 +8267,12 @@ ListExpr DecomposeGenmoTypeMap ( ListExpr args )
       return listutils::typeError(err);
   }
 
+  ListExpr arg3 = nl->Third(args);
+  if(!nl->IsEqual(arg3, "bool")){
+      string err = "the third parameter should be bool";
+      return listutils::typeError(err);
+  }
+  
 /*  ListExpr result =
           nl->TwoElemList(
               nl->SymbolAtom("stream"),
@@ -8672,6 +8678,51 @@ ListExpr TMMode2StrTypeMap ( ListExpr args )
 
 }
 
+
+/*
+TypeMap fun for operator rangequery simple method
+
+*/
+ListExpr TMRangeQueryTypeMap ( ListExpr args )
+{
+  string err = "tmrtree(tuple(...) rect3 BOOL) expected";
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return listutils::typeError("expecting three arguments");
+  }
+
+  ListExpr rel_param = nl->First(args);
+
+  ListExpr xType;
+  nl->ReadFromString(QueryTM::GenmoRelInfo, xType); 
+
+  if ( !(listutils::isRelDescription(rel_param) && 
+    CompareSchemas(rel_param, xType)))
+      return nl->SymbolAtom("typeerror");
+
+  ListExpr query_param = nl->Second(args);
+
+  ListExpr xType3;
+  nl->ReadFromString(QueryTM::GenmoRangeQuery, xType3);
+
+  if ( !(listutils::isRelDescription(query_param) &&
+       CompareSchemas(query_param, xType3)))
+      return nl->SymbolAtom("typeerror");
+
+     ListExpr res =
+          nl->TwoElemList(
+              nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                  nl->SymbolAtom("tuple"),
+                      nl->OneElemList(
+                        nl->TwoElemList(nl->SymbolAtom("Traj_id"),
+                                    nl->SymbolAtom("int"))
+                  )
+                )
+          );
+    return res;
+
+}
 //////////////////////////////////////////////////////////////////////////
 
 /*
@@ -15299,11 +15350,12 @@ int OpDecomposeGenmoValueMap ( Word* args, Word& result, int message,
 
         Relation* rel = (Relation*)args[0].addr;
         double l = ((CcReal*)args[1].addr)->GetRealval();
+        bool type = ((CcBool*)args[2].addr)->GetBoolval();
 
         query_tm = new QueryTM(); 
         query_tm->resulttype =
             new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
-
+        query_tm->mt_type = type;
         query_tm->DecomposeGenmo(rel, l);
 
         local.setAddr(query_tm);
@@ -15312,7 +15364,10 @@ int OpDecomposeGenmoValueMap ( Word* args, Word& result, int message,
       case REQUEST:{
           if(local.addr == NULL) return CANCEL;
           query_tm = (QueryTM*)local.addr;
-          if(query_tm->count == query_tm->Oid_list.size())return CANCEL;
+          if(query_tm->mt_type){
+            if(query_tm->count == query_tm->Oid_list.size())return CANCEL;
+          }else
+            if(query_tm->count == query_tm->oid_list.size())return CANCEL;
 
           Tuple* tuple = new Tuple(query_tm->resulttype);
 
@@ -15325,17 +15380,30 @@ int OpDecomposeGenmoValueMap ( Word* args, Word& result, int message,
 //           tuple->PutAttribute(3,
 //              new MPoint(query_tm->mp_list[query_tm->count]));
 
-
-           tuple->PutAttribute(0, 
+           if(query_tm->mt_type){
+              tuple->PutAttribute(0, 
                        new CcInt(true, query_tm->Oid_list[query_tm->count]));
-           tuple->PutAttribute(1, new Rectangle<3>(
+              tuple->PutAttribute(1, new Rectangle<3>(
                                query_tm->Box_list[query_tm->count]));
-           tuple->PutAttribute(2,
-              new CcInt(true, query_tm->Tm_list[query_tm->count]));
-           tuple->PutAttribute(3,
-              new MPoint(query_tm->Mp_list[query_tm->count]));
-           tuple->PutAttribute(4, 
+              tuple->PutAttribute(2,
+                      new CcInt(true, query_tm->Tm_list[query_tm->count]));
+              tuple->PutAttribute(3,
+                      new MPoint(query_tm->Mp_list[query_tm->count]));
+              tuple->PutAttribute(4, 
                        new CcInt(true, query_tm->div_list[query_tm->count]));
+           }else{
+//                 cout<<query_tm->count
+//                     <<" "<<query_tm->box_list[query_tm->count]<<endl;
+                tuple->PutAttribute(0, 
+                       new CcInt(true, query_tm->oid_list[query_tm->count]));
+                tuple->PutAttribute(1, new Rectangle<3>(
+                           query_tm->box_list[query_tm->count]));
+                tuple->PutAttribute(2,
+                    new CcInt(true, query_tm->tm_list[query_tm->count]));
+                tuple->PutAttribute(3,
+                    new MPoint(query_tm->mp_list[query_tm->count]));
+               tuple->PutAttribute(4, new CcInt(true, -1));
+           }
 
 
           result.setAddr(tuple);
@@ -15570,12 +15638,12 @@ int OpTMMode2StrValueMap ( Word* args, Word& result, int message,
   result = qp->ResultStorage( in_pSupplier );
   FText *pResult = (FText *)result.addr;
 
-  if(type == false){
+  if(type == false){////////////bit index to string
     if(0 <= mode && mode < ARR_SIZE(str_tm) + ARR_SIZE(str_tm_ext))
       pResult->Set(true, GetTMStrExt(mode));
     else
       pResult->Set(false, "error");
-  }else{
+  }else{//////////integer (after converting) to string
       pResult->Set(true, GetModeStringExt(mode));
   }
   return 0;
@@ -15613,6 +15681,56 @@ int TMRtreeModeValueMap ( Word* args, Word& result, int message,
       case CLOSE:{
           qp->SetModified(qp->GetSon(s, 0));
           local.setAddr(Address(0));
+          return 0;
+      }
+  }
+
+  return 0;
+}
+
+
+/*
+get sub trips satisfying query transportation modes
+
+*/
+int TMRangeQueryValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  QueryTM* query_tm;
+  switch(message){
+      case OPEN:{
+
+        Relation* rel1 = (Relation*)args[0].addr;
+        Relation* rel2 = (Relation*)args[1].addr;
+
+        query_tm = new QueryTM(); 
+        query_tm->resulttype =
+            new TupleType(nl->Second(GetTupleResultType(in_pSupplier)));
+
+        query_tm->RangeQuery(rel1, rel2);
+        local.setAddr(query_tm);
+        return 0;
+      }
+      case REQUEST:{
+          if(local.addr == NULL) return CANCEL;
+          query_tm = (QueryTM*)local.addr;
+          if(query_tm->count == query_tm->oid_list.size())return CANCEL;
+
+          Tuple* tuple = new Tuple(query_tm->resulttype);
+          tuple->PutAttribute(0, 
+                         new CcInt(true, query_tm->oid_list[query_tm->count]));
+
+          result.setAddr(tuple);
+          query_tm->count++;
+          return YIELD;
+      }
+      case CLOSE:{
+          if(local.addr){
+            query_tm = (QueryTM*)local.addr;
+            delete query_tm;
+            local.setAddr(Address(0));
+          }
           return 0;
       }
   }
@@ -16778,6 +16896,14 @@ Operator mode2str(
   TMMode2StrTypeMap
 );
 
+Operator range_query(
+  "range_query",
+  OpTMRangeQuerySpec,
+  TMRangeQueryValueMap,
+  Operator::SimpleSelect,
+  TMRangeQueryTypeMap
+);
+
 /*
 Main Class for Transportation Mode
 data types and operators 
@@ -17180,6 +17306,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&tm_nodes);//a relation storing tm values for tm-rtree nodes
    AddOperator(&range_tmrtree);//using tmrtree to do range query
    AddOperator(&mode2str);//mode 2 string
+   AddOperator(&range_query);//single method to test range query
 
   }
   ~TransportationModeAlgebra() {};
