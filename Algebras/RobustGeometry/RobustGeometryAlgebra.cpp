@@ -1669,6 +1669,8 @@ void MakeBO::IntersectionBO(const Line& line1, const Line& line2,
 	vector<robustGeometry::BOLine>::iterator it = segments.begin();
 	robustGeometry::BOLine boL = *it;
 	it++;
+  int edgeno = 0;
+
 	for (; it != segments.end(); ++it ){
 		if ( ( boL.getOwner() != it->getOwner() ) &&
 			 ( boL.getX1_round() == it->getX1_round() ) &&
@@ -1682,6 +1684,9 @@ void MakeBO::IntersectionBO(const Line& line1, const Line& line2,
 			q.Set(it->getX2(), it->getY2());
 			HalfSegment hs1(true,p,q);
 			HalfSegment hs2(false,p,q);
+      hs1.attr.edgeno = edgeno;
+      hs2.attr.edgeno = edgeno;
+      edgeno++;
 			result += hs1;
 			result += hs2;
 
