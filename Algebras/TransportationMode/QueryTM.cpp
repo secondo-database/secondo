@@ -1515,13 +1515,12 @@ void QueryTM::RangeTMRTree(TM_RTree<3,TupleId>* tmrtree, Relation* units_rel,
 
       if(treetype == TMRTREE){//TMRTree filter multiple modes
        MulMode_Filter1(tmrtree, query_box, bit_pos, units_rel);
-      }else if(treetype == ADRTREE) {//ADRTREE
-
+      }else if(treetype == ADRTREE) {//ADRTREE, simply stores the value
+       MulMode_Filter2(tmrtree, query_box, bit_pos, units_rel);
       }else if(treetype == RTREE3D){//3DRTree
-
+       MulMode_Filter3(tmrtree, query_box, bit_pos, units_rel);
       }else if(treetype == TMRTREETEST){//TMRTree only single mode
-
-
+        MulMode_Filter1(tmrtree, query_box, bit_pos, units_rel);
       }else{
         cout<<"wrong tree type "<<endl;
         assert(false);
@@ -1594,7 +1593,7 @@ int QueryTM::ModeType(string mode, vector<long>& seq_tm)
   }
 
 //  cout<<pos_list1.size()<<" "<<pos_list2.size()<<endl;
-  if(pos_list1.size() > 0 && pos_list2.size() > 0){
+  if(pos_list1.size() > 0 && pos_list2.size() > 0){//do not mix mul and seq
     return -1;
   }
   if(pos_list1.size() > 0){
@@ -1605,6 +1604,8 @@ int QueryTM::ModeType(string mode, vector<long>& seq_tm)
 //       cout<<"i "<<ARR_SIZE(str_tm)<<" "
 //           <<pos_list1[i]<<" "
 //           <<ARR_SIZE(str_tm) - 1 - pos_list1[i]<<endl;
+//      cout<<pos_list1[i]<<endl;
+      if(pos_list1[i] < 0) return -1;
       assert(pos_list1[i] >= 0);
 
       modebits.set((int)(pos_list1[i]), 1);
@@ -1771,8 +1772,7 @@ void QueryTM::SinMode_Filter2(TM_RTree<3,TupleId>* tmrtree,
 //                    unit_tid_list.push_back(e.info);
 //                 }
                 if(bit_pos == TM_WALK){
-                    if(bit_pos == mode || 
-                       (int)pow(2, mode) >= (int)pow(2, sin_mode_no)){
+                    if(bit_pos == mode || mode >= sin_mode_no){
                           if(e.box.Intersects(query_box)){
                             unit_tid_list.push_back(e.info);
                           }
@@ -1851,8 +1851,7 @@ void QueryTM::SinMode_Filter3(TM_RTree<3,TupleId>* tmrtree,
 //                 }
 
                 if(bit_pos == TM_WALK){
-                    if(bit_pos == mode || 
-                       (int)pow(2, mode) >= (int)pow(2, sin_mode_no)){
+                    if(bit_pos == mode || mode >= sin_mode_no){
                           if(e.box.Intersects(query_box)){
                             unit_tid_list.push_back(e.info);
                           }
@@ -1944,7 +1943,7 @@ void QueryTM::SinMode_Refinement(Rectangle<3> query_box, int bit_pos,
 //     cout<<GetTMStrExt(m)<<" bit_pos "<<bit_pos<<"m "<<m<<endl;
 
       if(bit_pos == TM_WALK){
-        assert(m == bit_pos || (int)pow(2, m) >= (int)pow(2, sin_mode_no));
+        assert(m == bit_pos || m >= sin_mode_no);
       }else{
         assert(m == bit_pos || m  == (bit_pos + sin_mode_no) ||
                m == (bit_pos + 2*sin_mode_no));
@@ -2102,6 +2101,188 @@ void QueryTM::MulMode_Filter1(TM_RTree<3,TupleId>* tmrtree,
 }
 
 
+/*
+traverse ADRTree to find units that intersect the query box
+query mode is multiple modes
+
+*/
+void QueryTM::MulMode_Filter2(TM_RTree<3,TupleId>* tmrtree,
+                              Rectangle<3> query_box, vector<bool> bit_pos,
+                              Relation* units_rel)
+{
+  //    cout<<"SinModefilter 3DRtree query box "<<query_box<<endl;
+    queue<SmiRecordId> query_list;
+    query_list.push(tmrtree->RootRecordId());
+
+    int sin_mode_no = (int)ARR_SIZE(str_tm);
+    int node_count = 0;
+    while(query_list.empty() == false){
+       SmiRecordId nodeid = query_list.front();
+       query_list.pop();
+
+       TM_RTreeNode<3, TupleId>* node = tmrtree->GetMyNode(nodeid,false,
+                          tmrtree->MinEntries(0), tmrtree->MaxEntries(0));
+       bitset<TM_SUM_NO> node_bit(node->GetTMValue());
+
+       bool node_mode = false;
+       for(unsigned int i = 0;i < bit_pos.size();i++){//check existence
+         if(bit_pos[i] == false || i == TM_WALK) continue;
+          ////for other modes, connected to m + walk///////////
+          if(node_bit.test(i) || node_bit.test(i + sin_mode_no) ||
+              node_bit.test(i + 2*sin_mode_no)){
+              node_mode = true;
+              break;
+          }
+       }
+       /////////////////more than two modes////////////////////////
+       //////////////can not be only walk/////////////////////////
+       if(bit_pos[TM_WALK]){//////////including walking
+            if(node_bit.test(TM_WALK) || 
+               node_bit.test(sin_mode_no + TM_INDOORWALK) ||
+               node_bit.test(sin_mode_no + TM_WALKINDOOR)){
+              node_mode = true;
+            }
+       }
+       if(node_mode){
+
+           if(node->IsLeaf()){
+             for(int j = 0;j < node->EntryCount();j++){
+                 R_TreeLeafEntry<3, TupleId> e =
+                  (R_TreeLeafEntry<3, TupleId>&)(*node)[j];
+                  Tuple* mtuple = units_rel->GetTuple(e.info, false);
+                  int mode = 
+                   ((CcInt*)mtuple->GetAttribute(GM_MODE))->GetIntval();
+                   if(e.box.Intersects(query_box)){
+//                        cout<<GetTMStrExt(mode)<<endl;
+                        bool res = false;
+                        if(mode < sin_mode_no){
+                          if(bit_pos[mode]) res = true;
+                        }else if(sin_mode_no <= mode && mode < 2*sin_mode_no){
+                          int m1 = mode - sin_mode_no;
+                          int m2= TM_WALK;
+                          if(bit_pos[m1] || bit_pos[m2]) res = true;
+                        }else if(2*sin_mode_no <= mode && mode < 3*sin_mode_no){
+                          int m1 = TM_WALK;
+                          int m2 = mode - 2*sin_mode_no;
+                          if(bit_pos[m1] || bit_pos[m2]) res = true;
+                        }else{
+                          assert(false);
+                        }
+                        if(res){
+                            unit_tid_list.push_back(e.info);
+                        }
+                   }
+
+//                  for(int i = 0;i < (int)bit_pos.size();i++){
+//                   if(bit_pos[i] == false) continue;
+//                   if(bit_pos[i] == TM_WALK){
+//                     if(mode >= sin_mode_no && e.box.Intersects(query_box)){
+//                         unit_tid_list.push_back(e.info);
+//                     }
+//                   }else{
+//                     if( ((i == sin_mode_no) || (i + sin_mode_no) == mode ||
+//                         (i + 2*sin_mode_no) == mode) &&
+//                      e.box.Intersects(query_box)){//query window, mode check
+//                         unit_tid_list.push_back(e.info);
+//                     }
+//                   }
+// 
+//                  }
+                 mtuple->DeleteIfAllowed();
+             }
+
+           }else{
+
+              for(int j = 0;j < node->EntryCount();j++){//finish
+                R_TreeInternalEntry<3> e =
+                  (R_TreeInternalEntry<3>&)(*node)[j];
+                if(e.box.Intersects(query_box)){ //query window
+                    query_list.push(e.pointer);
+                }
+              }
+           }
+
+          node_count++;
+       }
+
+       delete node;
+    }
+    cout<<node_count<<" nodes accessed "
+        <<unit_tid_list.size()<<" candidates "<<endl;
+
+}
+
+/*
+3DRtree for multiple modes, there are no modes information in the node
+
+*/
+void QueryTM::MulMode_Filter3(TM_RTree<3,TupleId>* tmrtree,
+                              Rectangle<3> query_box, vector<bool> bit_pos,
+                              Relation* units_rel)
+{
+  //    cout<<"SinModefilter 3DRtree query box "<<query_box<<endl;
+    queue<SmiRecordId> query_list;
+    query_list.push(tmrtree->RootRecordId());
+
+    int sin_mode_no = (int)ARR_SIZE(str_tm);
+    int node_count = 0;
+    while(query_list.empty() == false){
+       SmiRecordId nodeid = query_list.front();
+       query_list.pop();
+
+       TM_RTreeNode<3, TupleId>* node = tmrtree->GetMyNode(nodeid,false,
+                          tmrtree->MinEntries(0), tmrtree->MaxEntries(0));
+
+        if(node->IsLeaf()){
+             for(int j = 0;j < node->EntryCount();j++){
+                 R_TreeLeafEntry<3, TupleId> e =
+                  (R_TreeLeafEntry<3, TupleId>&)(*node)[j];
+                  Tuple* mtuple = units_rel->GetTuple(e.info, false);
+                  int mode = 
+                   ((CcInt*)mtuple->GetAttribute(GM_MODE))->GetIntval();
+                   if(e.box.Intersects(query_box)){
+//                        cout<<GetTMStrExt(mode)<<endl;
+                        bool res = false;
+                        if(mode < sin_mode_no){
+                          if(bit_pos[mode]) res = true;
+                        }else if(sin_mode_no <= mode && mode < 2*sin_mode_no){
+                          int m1 = mode - sin_mode_no;
+                          int m2= TM_WALK;
+                          if(bit_pos[m1] || bit_pos[m2]) res = true;
+                        }else if(2*sin_mode_no <= mode && mode < 3*sin_mode_no){
+                          int m1 = TM_WALK;
+                          int m2 = mode - 2*sin_mode_no;
+                          if(bit_pos[m1] || bit_pos[m2]) res = true;
+                        }else{
+                          assert(false);
+                        }
+                        if(res){
+                            unit_tid_list.push_back(e.info);
+                        }
+                   }
+
+                 mtuple->DeleteIfAllowed();
+             }
+
+      }else{
+
+              for(int j = 0;j < node->EntryCount();j++){//finish
+                R_TreeInternalEntry<3> e =
+                  (R_TreeInternalEntry<3>&)(*node)[j];
+                if(e.box.Intersects(query_box)){ //query window
+                    query_list.push(e.pointer);
+                }
+              }
+      }
+
+       node_count++;
+       delete node;
+    }
+    cout<<node_count<<" nodes accessed "
+        <<unit_tid_list.size()<<" candidates "<<endl;
+
+}
+
 
 /*
 from the result by traversing TMRtree, check the precise value
@@ -2142,10 +2323,13 @@ void QueryTM::MulMode_Refinement(Rectangle<3> query_box, vector<bool> bit_pos,
       int traj_id = ((CcInt*)mtuple->GetAttribute(GM_TRAJ_ID))->GetIntval();
 
       int m = ((CcInt*)mtuple->GetAttribute(GM_MODE))->GetIntval();
-//      cout<<"traj_id "<<traj_id<<" "<<GetTMStrExt(m)<<endl;
+
       MPoint* mp = (MPoint*)mtuple->GetAttribute(GM_SUBTRIP);
       int div_pos = ((CcInt*)mtuple->GetAttribute(GM_DIV))->GetIntval();
       map<int, Traj_Mode>::iterator iter = res_traj.find(traj_id);
+
+//      cout<<"traj_id "<<traj_id<<" "<<GetTMStrExt(m)<<endl;
+//      cout<<*mp<<endl;
       if(iter == res_traj.end()){//not exist, insert into the tree
 //          cout<<"new tuple "<<endl;
           int start = -1;
@@ -2161,23 +2345,46 @@ void QueryTM::MulMode_Refinement(Rectangle<3> query_box, vector<bool> bit_pos,
                 continue;
               }
               m_bit.set(m);
+              if(CheckMPoint(mp, start, end, time_span, &query_reg)){
+                 Traj_Mode traj_mode(m_bit);
+                 res_traj.insert(pair<int, Traj_Mode>(traj_id, traj_mode));
+              }
           }else if(sin_mode_no <= m && m < 2*sin_mode_no){ ///9-17
             int m1 = m - sin_mode_no;
             int m2 = TM_WALK;
             if(bit_pos[m1] && bit_pos[m2]){///both exist
-              start = 0;
+/*              start = 0;
               end = mp->GetNoComponents();
               m_bit.set(m1);
-              m_bit.set(m2);
-            }
-            else if(bit_pos[m1] && bit_pos[m2] == false){
+              m_bit.set(m2);*/
+                start = 0;
+                end = div_pos;
+                bool res1 = CheckMPoint(mp, start, end, time_span, &query_reg);
+                if(res1) m_bit.set(m1);
+                start = div_pos;
+                end = mp->GetNoComponents();
+                bool res2 = CheckMPoint(mp, start, end, time_span, &query_reg);
+                if(res2) m_bit.set(m2);
+                if(res1 || res2){
+                    Traj_Mode traj_mode(m_bit);
+                    res_traj.insert(pair<int, Traj_Mode>(traj_id, traj_mode));
+                }
+            }else if(bit_pos[m1] && bit_pos[m2] == false){
               start = 0;
               end = div_pos;
               m_bit.set(m1);
+              if(CheckMPoint(mp, start, end, time_span, &query_reg)){
+                Traj_Mode traj_mode(m_bit);
+                res_traj.insert(pair<int, Traj_Mode>(traj_id, traj_mode));
+              }
             }else if(bit_pos[m1] == false && bit_pos[m2]){
               start = div_pos;
               end = mp->GetNoComponents();
               m_bit.set(m2);
+              if(CheckMPoint(mp, start, end, time_span, &query_reg)){
+                Traj_Mode traj_mode(m_bit);
+                res_traj.insert(pair<int, Traj_Mode>(traj_id, traj_mode));
+              }
             }else{
               assert(false);
             }
@@ -2185,18 +2392,38 @@ void QueryTM::MulMode_Refinement(Rectangle<3> query_box, vector<bool> bit_pos,
             int m1 = TM_WALK;
             int m2 = m - 2*sin_mode_no;
             if(bit_pos[m1] && bit_pos[m2]){
-              start = 0;
-              end = mp->GetNoComponents();
-              m_bit.set(m1);
-              m_bit.set(m2);
+//               start = 0;
+//               end = mp->GetNoComponents();
+//               m_bit.set(m1);
+//               m_bit.set(m2);
+                start = 0;
+                end = div_pos;
+                bool res1 = CheckMPoint(mp, start, end, time_span, &query_reg);
+                if(res1) m_bit.set(m1);
+                start = div_pos;
+                end = mp->GetNoComponents();
+                bool res2 = CheckMPoint(mp, start, end, time_span, &query_reg);
+                if(res2) m_bit.set(m2);
+                if(res1 || res2){
+                    Traj_Mode traj_mode(m_bit);
+                    res_traj.insert(pair<int, Traj_Mode>(traj_id, traj_mode));
+                }
             }else if(bit_pos[m1] && bit_pos[m2] == false){
                 start = 0;
                 end = div_pos;
                 m_bit.set(m1);
+                if(CheckMPoint(mp, start, end, time_span, &query_reg)){
+                  Traj_Mode traj_mode(m_bit);
+                  res_traj.insert(pair<int, Traj_Mode>(traj_id, traj_mode));
+                }
             }else if(bit_pos[m1] == false && bit_pos[m2]){
                 start = div_pos;
                 end = mp->GetNoComponents();
                 m_bit.set(m2);
+                if(CheckMPoint(mp, start, end, time_span, &query_reg)){
+                  Traj_Mode traj_mode(m_bit);
+                  res_traj.insert(pair<int, Traj_Mode>(traj_id, traj_mode));
+                }
             }else{
               assert(false);
             }
@@ -2204,10 +2431,10 @@ void QueryTM::MulMode_Refinement(Rectangle<3> query_box, vector<bool> bit_pos,
             assert(false);
           }
           //////temporal and spatial condition////////////////
-          if(CheckMPoint(mp, start, end, time_span, &query_reg)){
-                Traj_Mode traj_mode(m_bit);
-                res_traj.insert(pair<int, Traj_Mode>(traj_id, traj_mode));
-          }
+//             if(CheckMPoint(mp, start, end, time_span, &query_reg)){
+//                 Traj_Mode traj_mode(m_bit);
+//                 res_traj.insert(pair<int, Traj_Mode>(traj_id, traj_mode));
+//             }
       }else{
 //        iter->second.Print();
         if(iter->second.Mode_Count() == mode_count){//find the trajectory
@@ -2291,7 +2518,7 @@ void QueryTM::MulMode_Refinement(Rectangle<3> query_box, vector<bool> bit_pos,
   map<int, Traj_Mode>::iterator iter;
   for(iter = res_traj.begin(); iter != res_traj.end();iter++){
     if(iter->second.Mode_Count() == mode_count){
-//      cout<<iter->first<<endl;
+//        iter->second.Print();
         oid_list.push_back(iter->first);
     }
   }
@@ -2306,6 +2533,7 @@ check the spatial and temporal condition of a sub trip
 bool QueryTM::CheckMPoint(MPoint* mp, int start, int end, 
                           Interval<Instant>& time_span, Region* query_reg)
 {
+//     cout<<"CheckMPoint "<<endl;
      for(;start < end; start++){
          UPoint up;
          mp->Get(start, up);
@@ -2354,12 +2582,15 @@ void QueryTM::RangeQuery(Relation* rel1, Relation* rel2)
       int m = GetTM(mode);
       Sin_RangeQuery(rel1, peri, q_box, m);
   }
+  if(type == MULMODE){
+      Mul_RangeQuery(rel1, peri, q_box, seq_tm[0]);
+  }
 
   q_tuple->DeleteIfAllowed();
 }
 
 /*
-a single mode
+a single mode: baseline method
 
 */
 void QueryTM::Sin_RangeQuery(Relation* rel1, Periods* peri, Rectangle<2>* q_box,
@@ -2406,7 +2637,7 @@ void QueryTM::Sin_RangeQuery(Relation* rel1, Periods* peri, Rectangle<2>* q_box,
 //    cout<<*mode_index<<endl;
     delete mode_index_tmp;
 
-    if(ContainMode1(mode_index, m) == false){
+    if(ContainMode1_Sin(mode_index, m) == false){
       delete sub_mo;
       delete mode_index;
       tuple->DeleteIfAllowed();
@@ -2423,14 +2654,14 @@ void QueryTM::Sin_RangeQuery(Relation* rel1, Periods* peri, Rectangle<2>* q_box,
            if(!AlmostEqual(up2.p0, up2.p1)){
              HalfSegment hs(true, up2.p0, up2.p1);
              if(query_reg.Intersects(hs)){//find the result, terminate
-               if(ContainMode2(mode_index, up2.timeInterval, m)){
+               if(ContainMode2_Sin(mode_index, up2.timeInterval, m)){
                   query_res = true;
                   break;
                }
              }
            }else{
              if(up2.p0.Inside(query_reg)){//find the result, terminate
-               if(ContainMode2(mode_index, up2.timeInterval, m)){
+               if(ContainMode2_Sin(mode_index, up2.timeInterval, m)){
                   query_res = true;
                   break;
                }
@@ -2452,10 +2683,116 @@ void QueryTM::Sin_RangeQuery(Relation* rel1, Periods* peri, Rectangle<2>* q_box,
 }
 
 /*
+baseline method: multiple modes
+
+*/
+void QueryTM::Mul_RangeQuery(Relation* rel1, Periods* peri, Rectangle<2>* q_box,
+                             int m)
+{
+  Interval<Instant> time_span;
+  peri->Get(0, time_span);
+  Region query_reg(*q_box);
+  
+  // the first nine 
+  bitset<ARR_SIZE(str_tm)> modebits(m);//integer from bit index
+  cout<<"baseline method multiple mode "<<GetModeStringExt(m)
+      <<" "<<modebits.to_string()<<endl;
+  assert(modebits.count() >= 2);
+
+  vector<bool> bit_pos(ARR_SIZE(str_tm), false);// first part enough
+  int mode_count = 0;
+  for(unsigned int i = 0;i < modebits.size();i++){
+     if(modebits.test(i)){
+        bit_pos[i] = true;
+        mode_count++;
+     }
+  }
+
+ map<int, Traj_Mode> res_traj;//binary search tree
+  
+ for(int i = 1;i <= rel1->GetNoTuples();i++){
+    Tuple* tuple = rel1->GetTuple(i, false);
+    int traj_id = ((CcInt*)tuple->GetAttribute(GENMO_OID))->GetIntval();
+    GenMO* mo1 = (GenMO*)tuple->GetAttribute(GENMO_TRIP1);
+
+    Periods* mo_t = new Periods(0);
+    mo1->DefTime(*mo_t);
+    if(mo_t->Intersects(*peri) == false){
+      delete mo_t;
+      tuple->DeleteIfAllowed();
+      continue;
+    }
+    delete mo_t;
+
+    MPoint* mo2 = (MPoint*)tuple->GetAttribute(GENMO_TRIP2);
+    MPoint* sub_mo = new MPoint(0);
+    mo2->AtPeriods(*peri, *sub_mo);
+    if(sub_mo->BoundingBoxSpatial().Intersects(*q_box) == false){
+      delete sub_mo;
+      tuple->DeleteIfAllowed();
+      continue;
+    }
+    ///////////////////////////////////////////////////////////////
+    MReal* mode_index_tmp = new MReal(0);
+    mo1->IndexOnUnits(mode_index_tmp);
+
+    MReal* mode_index = new MReal(0);
+    mode_index_tmp->AtPeriods(*peri, *mode_index);
+//    cout<<*mode_index<<endl;
+    delete mode_index_tmp;
+
+    if(ContainMode1_Mul(mode_index, bit_pos, mode_count) == false){
+      delete sub_mo;
+      delete mode_index;
+      tuple->DeleteIfAllowed();
+      continue;
+    }
+    ///////////////spatial and temporal checking//////////////////////////
+    for(int j = 0;j < sub_mo->GetNoComponents();j++){
+      UPoint up;
+      sub_mo->Get(j, up);
+      if(time_span.Intersects(up.timeInterval)){
+           UPoint up2;
+           up.AtInterval(time_span, up2);///////////time interval
+           if(!AlmostEqual(up2.p0, up2.p1)){
+             HalfSegment hs(true, up2.p0, up2.p1);
+             if(query_reg.Intersects(hs)){//find the result, terminate
+              ContainMode2_Mul(res_traj, mode_index, up2.timeInterval,
+                            bit_pos, traj_id, mode_count);
+             }
+           }else{
+             if(up2.p0.Inside(query_reg)){//find the result, terminate
+              ContainMode2_Mul(res_traj, mode_index, up2.timeInterval,
+                             bit_pos, traj_id, mode_count);
+
+             }
+           }
+      }
+    }
+
+    delete sub_mo;
+    delete mode_index;
+
+    tuple->DeleteIfAllowed();
+
+ }
+ 
+  /////////////////////collect the result///////////////////////////
+  map<int, Traj_Mode>::iterator iter;
+  for(iter = res_traj.begin(); iter != res_traj.end();iter++){
+    if(iter->second.Mode_Count() == mode_count){
+        oid_list.push_back(iter->first);
+    }
+  }
+
+}
+
+
+/*
 check whether a mode is included 
 
 */
-bool QueryTM::ContainMode1(MReal* mode_index, int m)
+bool QueryTM::ContainMode1_Sin(MReal* mode_index, int m)
 {
     for(int i = 0;i < mode_index->GetNoComponents();i++){
       UReal ur;
@@ -2468,10 +2805,36 @@ bool QueryTM::ContainMode1(MReal* mode_index, int m)
 }
 
 /*
+check several modes are included
+all of modes have to be considered
+
+*/
+bool QueryTM::ContainMode1_Mul(MReal* mode_index, vector<bool> bit_pos,
+                               int m_count)
+{
+     int m_no = 0;
+
+     vector<bool> input_mode(ARR_SIZE(str_tm), false);
+     for(int i = 0;i < mode_index->GetNoComponents();i++){
+          UReal ur;
+          mode_index->Get(i, ur);
+          int m = (int)ur.a;
+          input_mode[m] = true;
+     }
+
+     for(unsigned int i = 0;i < bit_pos.size();i++){
+      if(input_mode[i] && bit_pos[i]) m_no++;
+     }
+     if(m_no == m_count) return true;
+
+      return false;
+}
+
+/*
 from mreal, get a sub unit, check the transportation mode
 
 */
-bool QueryTM::ContainMode2(MReal* mode_index, Interval<Instant>& t, int m)
+bool QueryTM::ContainMode2_Sin(MReal* mode_index, Interval<Instant>& t, int m)
 {
     for(int j = 0;j < mode_index->GetNoComponents();j++){
       UReal ur;
@@ -2484,4 +2847,47 @@ bool QueryTM::ContainMode2(MReal* mode_index, Interval<Instant>& t, int m)
       }
     }
     return false;
+}
+
+/*
+from mreal, get a sub unit, check the transportation mode
+only mark bit (modes) that are asked by the query
+
+*/
+void QueryTM::ContainMode2_Mul(map<int, Traj_Mode>& res_traj, MReal* mode_index,
+                              Interval<Instant>& t, 
+                              vector<bool> bit_pos, int traj_id, int mode_count)
+{
+    bool res = false;
+    int m = -1;
+    for(int j = 0;j < mode_index->GetNoComponents();j++){
+      UReal ur;
+      mode_index->Get(j, ur);
+      if(t.Intersects(ur.timeInterval)){
+           UReal ur2;
+           ur.AtInterval(t, ur2);///////////time interval
+           m = (int)(ur2.a);
+           if(bit_pos[m]){ 
+             res = true;
+             break;
+           }
+      }
+    }
+    if(res == false) return;
+    map<int, Traj_Mode>::iterator iter = res_traj.find(traj_id);
+    if(iter == res_traj.end()){/////////a new one, insert
+        bitset<ARR_SIZE(str_tm)> m_bit;
+        m_bit.reset();
+        m_bit.set(m);
+        Traj_Mode traj_mode(m_bit);
+        res_traj.insert(pair<int, Traj_Mode>(traj_id, traj_mode));
+    }else{
+        if(iter->second.Mode_Count() == mode_count)return;
+        bitset<ARR_SIZE(str_tm)> m_bit;/////mark the new bit mode
+        m_bit.reset();
+        m_bit.set(m);
+
+        iter->second.modebits = iter->second.modebits | m_bit;
+    }
+
 }

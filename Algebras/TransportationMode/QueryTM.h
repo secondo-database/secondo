@@ -187,19 +187,30 @@ struct QueryTM{
   /////////////////////////////////////////////////////////////////////////
   void MulMode_Filter1(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
                       vector<bool> bit_pos, Relation* units_rel);
+  void MulMode_Filter2(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
+                      vector<bool> bit_pos, Relation* units_rel);
+  void MulMode_Filter3(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
+                      vector<bool> bit_pos, Relation* units_rel);
   void MulMode_Refinement(Rectangle<3> query_box, vector<bool> bit_pos,
                           Relation* units_rel, int mode_count);
   int ModeType(string mode, vector<long>& seq_tm);
   inline bool CheckMPoint(MPoint* mp, int start, int end, 
                           Interval<Instant>& time_span, Region* query_reg);
   /////////////////////////////////////////////////////////////////////////
-  //////////////// simple method for testing correctness//////////////////
+  //////////////// simple(baseline) method for testing correctness/////////
   ////////////////////////////////////////////////////////////////////////
   void RangeQuery(Relation* rel1, Relation* rel2);
   void Sin_RangeQuery(Relation* rel1, Periods* peri, Rectangle<2>* q_box,
                              int m);
-  bool ContainMode1(MReal* mode_index, int m);
-  bool ContainMode2(MReal* mode_index, Interval<Instant>& t, int m);
+  void Mul_RangeQuery(Relation* rel1, Periods* peri, Rectangle<2>* q_box,
+                             int m);
+
+  bool ContainMode1_Sin(MReal* mode_index, int m);
+  bool ContainMode1_Mul(MReal* mode_index, vector<bool> bit_pos, int);
+  
+  bool ContainMode2_Sin(MReal* mode_index, Interval<Instant>& t, int m);
+  void ContainMode2_Mul(map<int, Traj_Mode>& res_traj, MReal* mode_index, 
+                        Interval<Instant>& t, vector<bool> bit_pos, int, int);
 };
 
 #define TEN_METER 10.0
