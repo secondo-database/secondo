@@ -178,6 +178,12 @@ class CcInt : public Attribute
     intval = r->intval;
   }
 
+  static int Compare(const void* a, const void* b){
+    CcInt* ap = (CcInt*) a;
+    Attribute* bp = (Attribute*) b;
+    return ap->Compare(bp);
+  }
+
   inline int Compare(const Attribute* arg) const
   {
     const CcInt* rhs = dynamic_cast<const CcInt*>( arg );
@@ -316,7 +322,7 @@ class CcInt : public Attribute
       return s.str();
   }
 
-  virtual string getSQLType(){ return "NUMERIC(12)";} 
+  virtual string getSQLType(){ return "NUMERIC(12)";}
   virtual string getSQLRepresentation(){
     if(!IsDefined()){
       return "NULL";
@@ -409,14 +415,14 @@ class CcReal : public Attribute
      realsCreated++;
   }
 
-  explicit inline CcReal( bool d, SEC_STD_REAL v = 0.0 ) : 
+  explicit inline CcReal( bool d, SEC_STD_REAL v = 0.0 ) :
       Attribute(d),realval(v)
   {
     SetDefined(d);
     realsCreated++;
   }
 
-  explicit inline CcReal( SEC_STD_REAL v, bool d=true ) : 
+  explicit inline CcReal( SEC_STD_REAL v, bool d=true ) :
       Attribute(d),realval(v)
   {
     SetDefined(d);
@@ -568,7 +574,7 @@ class CcReal : public Attribute
       return s.str();
   }
 
-  virtual string getSQLType(){ return "DOUBLE";} 
+  virtual string getSQLType(){ return "DOUBLE";}
   virtual string getSQLRepresentation(){
     if(!IsDefined()){
       return "NULL";
@@ -776,7 +782,7 @@ class CcBool : public Attribute
   }
 
 
-  virtual string getSQLType(){ return "BOOLEAN";} 
+  virtual string getSQLType(){ return "BOOLEAN";}
   virtual string getSQLRepresentation(){
     if(!IsDefined()){
       return "NULL";
@@ -1010,7 +1016,7 @@ class CcString : public Attribute
   }
 
 
-  virtual string getSQLType(){ return "VARCHAR(48)";} 
+  virtual string getSQLType(){ return "VARCHAR(48)";}
   virtual string getSQLRepresentation(){
     if(!IsDefined()){
       return "NULL";
@@ -1284,7 +1290,7 @@ class CcString : public Attribute
     return IsDefined();
   }
 
-  virtual string getSQLType(){ return "VARCHAR(48)";} 
+  virtual string getSQLType(){ return "VARCHAR(48)";}
   virtual string getSQLRepresentation(){
     if(!IsDefined()){
       return "NULL";

@@ -3082,6 +3082,66 @@ struct DisplayJNetwork : DisplayFunction {
   }
 };
 
+struct DisplayIJPoint : DisplayFunction{
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      ListExpr subtype = nl->TheEmptyList();
+      nl->ReadFromString("instant", subtype);
+      DisplayTTY::GetInstance().DisplayResult(subtype, nl->First(value));
+      nl->ReadFromString("jpoint", subtype);
+      DisplayTTY::GetInstance().DisplayResult(subtype, nl->Second(value));
+    }
+  }
+};
+
+struct DisplayUJPoint : DisplayFunction{
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      NList netL(nl->First(value));
+      cout << "Network: " << netL.str() << " " << endl;
+      ListExpr instL = nl->Second(value);
+      ListExpr subtype = nl->TheEmptyList();
+      nl->ReadFromString("instant", subtype);
+      DisplayTTY::GetInstance().DisplayResult(subtype, nl->First(instL));
+      DisplayTTY::GetInstance().DisplayResult(subtype, nl->Second(instL));
+      nl->ReadFromString("bool", subtype);
+      DisplayTTY::GetInstance().DisplayResult(subtype, nl->Third(instL));
+      DisplayTTY::GetInstance().DisplayResult(subtype, nl->Fourth(instL));
+      nl->ReadFromString("jrint", subtype);
+      DisplayTTY::GetInstance().DisplayResult(subtype, nl->Third(value));
+    }
+  }
+};
+
+struct DisplayMJPoint : DisplayFunction{
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      NList netL(nl->First(value));
+      cout << "Network: " << netL.str() << " " << endl;
+      ListExpr subtype = nl->TheEmptyList();
+      nl->ReadFromString("ujpoint", subtype);
+      ListExpr unitList = nl->Second(value);
+      while (!nl->IsEmpty(unitList))
+      {
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->First(unitList));
+        unitList = nl->Rest(unitList);
+      }
+    }
+  }
+};
+
 /*
 Display Hadoop file list
 
@@ -3256,6 +3316,9 @@ DisplayTTY::Initialize()
   d.Insert( "jnet", new DisplayJNetwork());
   d.Insert( "jpoint", new DisplayJPoint());
   d.Insert( "jline", new DisplayJLine());
+  d.Insert( "ijpoint", new DisplayIJPoint());
+  d.Insert( "ujpoint", new DisplayUJPoint());
+  d.Insert( "mjpoint", new DisplayMJPoint());
 }
 
 /*
