@@ -67,7 +67,7 @@ MJPoint::MJPoint(const MJPoint& other) :
 {
   if (other.IsDefined())
   {
-    nid = other.GetNetworkId();
+    strcpy(nid, *other.GetNetworkId());
     units.copyFrom(other.GetUnits());
     activBulkload = false;
   }
@@ -84,7 +84,7 @@ MJPoint::MJPoint(const DbArray<UJPoint>& upoints) :
     upoints.Get(i,u);
     if (first)
     {
-      nid = u.GetNetworkId();
+      strcpy(nid, *u.GetNetworkId());
       lastUP = u;
       units.Append(u);
       first = false;
@@ -96,41 +96,17 @@ MJPoint::MJPoint(const DbArray<UJPoint>& upoints) :
         lastUP = u;
         units.Append(u);
       }
-      else
-      {
-        cerr << "Units not well sorted." << endl;
-      }
     }
   }
 }
 
-MJPoint::MJPoint(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo) :
-  Attribute(true), units(0)
+MJPoint::MJPoint(const UJPoint* u) :
+  Attribute(true), units(0), activBulkload(false)
 {
-  activBulkload = false;
-  Word w;
-  ListExpr idLE;
-  nl->ReadFromString(CcString::BasicType(), idLE);
-  ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-  if (OpenAttribute<CcString>(valueRecord, offset, numId, w))
+  if (u->IsDefined())
   {
-    nid = ((CcString*)w.addr)->GetValue();
-    if (nid != "undefined")
-    {
-      size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
-      SmiSize addoffset = 0;
-      char* buf = (char*) malloc(bufsize);
-      valueRecord.Read(buf, bufsize, offset);
-      offset += bufsize;
-      assert(buf != NULL);
-      units.restoreHeader(buf,addoffset);
-      free(buf);
-    }
-    else
-    {
-      SetDefined(false);
-    }
+    strcpy(nid, *u->GetNetworkId());
+    units.Append(*u);
   }
   else
   {
@@ -146,9 +122,9 @@ MJPoint::~MJPoint()
 
 */
 
-string MJPoint::GetNetworkId() const
+const STRING_T* MJPoint::GetNetworkId() const
 {
-  return nid;
+  return &nid;
 }
 
 const DbArray<UJPoint>& MJPoint::GetUnits() const
@@ -168,9 +144,9 @@ void MJPoint::SetUnits(const DbArray<UJPoint>& upoints)
   }
 }
 
-void MJPoint::SetNetworkId(const std::string id)
+void MJPoint::SetNetworkId(const STRING_T& id)
 {
-  nid = id;
+  strcpy(nid, id);
 }
 
 /*
@@ -184,7 +160,7 @@ void MJPoint::CopyFrom(const Attribute* right)
   if (right->IsDefined())
   {
     MJPoint in(*(MJPoint*) right);
-    nid = in.GetNetworkId();
+    strcpy(nid, *in.GetNetworkId());
     units.copyFrom(in.GetUnits());
     activBulkload = false;
   }
@@ -197,7 +173,7 @@ Attribute::StorageType MJPoint::GetStorageType() const
 
 size_t MJPoint::HashValue() const
 {
-  size_t res =  (size_t) nid.length();
+  size_t res = strlen(nid);
   UJPoint u;
   for (int i = 0 ; i < units.Size(); i++)
   {
@@ -234,7 +210,7 @@ int MJPoint::Compare(const MJPoint& rhs) const
   if (!IsDefined() && !rhs.IsDefined()) return 0;
   if (IsDefined() && !rhs.IsDefined()) return 1;
   if (!IsDefined() && rhs.IsDefined()) return -1;
-  int test = nid.compare(rhs.GetNetworkId());
+  int test = strcmp(nid, *rhs.GetNetworkId());
   if (test != 0) return test;
   if (units.Size() < rhs.GetNoComponents()) return -1;
   if (units.Size() > rhs.GetNoComponents()) return 1;
@@ -311,7 +287,7 @@ MJPoint& MJPoint::operator=(const MJPoint& other)
   SetDefined(other.IsDefined());
   if (other.IsDefined())
   {
-    nid = other.GetNetworkId();
+    strcpy(nid, *other.GetNetworkId());
     units.copyFrom(other.GetUnits());
     activBulkload = false;
   }
@@ -362,7 +338,7 @@ ListExpr MJPoint::Out(ListExpr typeInfo, Word value)
   }
   else
   {
-    NList netList(in->GetNetworkId(),true,false);
+    NList netList(*in->GetNetworkId(),true,false);
     ListExpr uList = nl->TheEmptyList();
     ListExpr lastElem = nl->TheEmptyList();
     UJPoint u;
@@ -407,7 +383,8 @@ Word MJPoint::In(const ListExpr typeInfo, const ListExpr instance,
     ListExpr netList = nl->First(instance);
     ListExpr uList = nl->Second(instance);
 
-    string netId = nl->StringValue(netList);
+    STRING_T netId;
+    strcpy(netId, nl->StringValue(netList).c_str());
     MJPoint* res = new MJPoint(true);
     res->SetNetworkId(netId);
     res->StartBulkload();
@@ -460,57 +437,6 @@ void MJPoint::Close( const ListExpr typeInfo, Word& w )
 {
   ((MJPoint*) w.addr)->DeleteIfAllowed();
   w.addr = 0;
-}
-
-bool MJPoint::Save(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value)
-{
-  MJPoint* source = (MJPoint*) value.addr;
-  if (source->IsDefined())
-  {
-    Word w;
-    w.setAddr(new CcString(true, source->GetNetworkId()));
-    ListExpr idLE;
-    nl->ReadFromString(CcString::BasicType(), idLE);
-    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    if (SaveAttribute<CcString>(valueRecord, offset, numId, w))
-    {
-      SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
-      SmiRecordFile* rf = ctlg->GetFlobFile();
-      Flob* tmpFlob = source->GetFLOB(0);
-      tmpFlob->saveToFile(rf, *tmpFlob );
-      SmiSize addoffset = 0;
-      size_t bufsize = tmpFlob->headerSize()+ 2*sizeof(int);
-      char* buf = (char*) malloc(bufsize);
-      tmpFlob->serializeHeader(buf,addoffset);
-      assert(addoffset==bufsize);
-      valueRecord.Write(buf, bufsize, offset);
-      offset += bufsize;
-      free(buf);
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-  else
-  {
-    Word w;
-    w.setAddr(new CcString(true,Symbol::UNDEFINED()));
-    ListExpr idLE;
-    nl->ReadFromString(CcString::BasicType(), idLE);
-    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    return SaveAttribute<CcString>(valueRecord, offset, numId, w);
-  }
-}
-
-bool MJPoint::Open(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value)
-{
-  MJPoint *res = new MJPoint(valueRecord, offset, typeInfo);
-  value.setAddr(res);
-  return true;
 }
 
 Word MJPoint::Clone( const ListExpr typeInfo, const Word& w )

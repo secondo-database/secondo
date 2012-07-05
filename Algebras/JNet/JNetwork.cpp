@@ -278,20 +278,21 @@ JNetwork::JNetwork()
 {}
 
 JNetwork::JNetwork(const bool def) :
-  defined(def), id(""), junctions(0), sections(0), routes(0), netdistances(0),
+  defined(def), junctions(0), sections(0), routes(0), netdistances(0),
   junctionsBTree(0), junctionsRTree(0), sectionsBTree(0),sectionsRTree(0),
   routesBTree(0)
 {}
 
 JNetwork::JNetwork(const string nid, const Relation* injunctions,
                    const Relation* insections, const Relation* inroutes) :
-  defined(true), id(nid),
+  defined(true),
   junctions(getRelationCopy(junctionsRelationTypeInfo, injunctions)),
   sections(getRelationCopy(sectionsRelationTypeInfo, insections)),
-  routes(getRelationCopy(routesRelationTypeInfo, inroutes)),
-  netdistances(0), junctionsBTree(0), junctionsRTree(0), sectionsBTree(0),
-  sectionsRTree(0), routesBTree(0)
+  routes(getRelationCopy(routesRelationTypeInfo, inroutes)), netdistances(0),
+  junctionsBTree(0), junctionsRTree(0), sectionsBTree(0), sectionsRTree(0),
+  routesBTree(0)
 {
+  strcpy(id, nid.c_str());
   InitNetdistances();
   CreateTrees();
 }
@@ -299,21 +300,22 @@ JNetwork::JNetwork(const string nid, const Relation* injunctions,
 JNetwork::JNetwork(const string nid, const Relation* injunctions,
                    const Relation* insections, const Relation* inroutes,
                    const OrderedRelation* inDist) :
-  defined(true), id(nid),
+  defined(true),
   junctions(getRelationCopy(junctionsRelationTypeInfo, injunctions)),
   sections(getRelationCopy(sectionsRelationTypeInfo, insections)),
   routes(getRelationCopy(routesRelationTypeInfo, inroutes)),
   netdistances(getRelationCopy(netdistancesRelationTypeInfo, inDist)),
-  junctionsBTree(0), junctionsRTree(0), sectionsBTree(0), sectionsRTree(0),
-  routesBTree(0)
+  junctionsBTree(0), junctionsRTree(0), sectionsBTree(0),
+  sectionsRTree(0), routesBTree(0)
 {
- CreateTrees();
+  strcpy(id, nid.c_str());
+  CreateTrees();
 }
 
 
 JNetwork::JNetwork(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo) :
-  defined(false), id(""), junctions(0), sections(0), routes(0), netdistances(0),
+  defined(false), junctions(0), sections(0), routes(0), netdistances(0),
   junctionsBTree(0), junctionsRTree(0), sectionsBTree(0),sectionsRTree(0),
   routesBTree(0)
 {
@@ -326,14 +328,13 @@ JNetwork::JNetwork(SmiRecord& valueRecord, size_t& offset,
   if (ok)
   {
     CcString* stn = (CcString*)w.addr;
-    id = stn->GetValue();
+    strcpy(id, stn->GetValue().c_str());
     stn->DeleteIfAllowed();
   }
 
 
   if (ok && id == Symbol::UNDEFINED())
   {
-    id = "";
     ok = false;
   }
 
@@ -464,9 +465,9 @@ bool JNetwork::IsDefined() const
   return defined;
 }
 
-string JNetwork::GetId() const
+const STRING_T* JNetwork::GetId() const
 {
-  return id;
+  return &id;
 }
 
 string JNetwork::GetJunctionsRelationType()
@@ -529,7 +530,7 @@ ListExpr JNetwork::Out(ListExpr typeInfo, Word value)
   }
   else
   {
-    ListExpr netId = nl->StringAtom(source->GetId());
+    ListExpr netId = nl->StringAtom(*source->GetId());
     ListExpr junclist = source->JunctionsToList();
     ListExpr sectlist = source->SectionsToList();
     ListExpr routelist = source->RoutesToList();
@@ -617,7 +618,7 @@ void JNetwork::Close( const ListExpr typeInfo, Word& w )
 Word JNetwork::Clone( const ListExpr typeInfo, const Word& w )
 {
   JNetwork* source = (JNetwork*) w.addr;
-  JNetwork* clone = new JNetwork(source->GetId()+"clone",
+  JNetwork* clone = new JNetwork(*source->GetId(),
                                  source->junctions,
                                  source->sections,
                                  source->routes,
@@ -783,18 +784,12 @@ Checks if the given position(s) exist in the network.
 */
 
 bool JNetwork::Contains(const RouteLocation* rloc) const {
-  if (rloc->GetPosition() <= GetRouteLength(rloc->GetRouteId()))
-    return true;
-  else
-    return false;
+  return (rloc->GetPosition() <= GetRouteLength(rloc->GetRouteId()));
 }
 
 bool JNetwork::Contains(const JRouteInterval* rint) const{
-  if (rint->GetFirstPosition() >= 0 &&
-      rint->GetLastPosition()<= GetRouteLength(rint->GetRouteId()))
-    return true;
-  else
-    return false;
+  return (rint->GetFirstPosition() >= 0 &&
+          rint->GetLastPosition()<= GetRouteLength(rint->GetRouteId()));
 }
 
 /*

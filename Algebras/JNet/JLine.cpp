@@ -40,13 +40,14 @@ JLine::JLine() : Attribute()
 {}
 
 JLine::JLine(const bool def) :
-    Attribute(def), nid(""), routeintervals(0), sorted(false),
+    Attribute(def), routeintervals(0), sorted(false),
     activBulkload(false)
 {}
 
 JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList) :
-    Attribute(true), nid(netId), routeintervals(rintList)
+    Attribute(true)
 {
+
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   Word value;
   bool valDefined = false;
@@ -57,7 +58,7 @@ JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList) :
     JNetwork* jnet = (JNetwork*) value.addr;
     JRouteInterval actInt;
     StartBulkload();
-    nid = jnet->GetId();
+    strcpy(nid, netId.c_str());
     for (int i = 0; i < rintList.Size(); i++){
       rintList.Get(i,actInt);
       if (jnet->Contains(&actInt))
@@ -79,7 +80,7 @@ JLine::JLine(const JNetwork* jnet, const JListRInt* rintList) :
   }
   else
   {
-    nid = jnet->GetId();
+    strcpy(nid, *jnet->GetId());
     JRouteInterval actInt;
     StartBulkload();
     int i = 0;
@@ -98,45 +99,10 @@ JLine::JLine(const JLine& other) :
 {
   if (other.IsDefined())
   {
-    nid = other.GetNetworkId();
+    strcpy(nid, *other.GetNetworkId());
     routeintervals.copyFrom(other.routeintervals);
     sorted = other.IsSorted();
     activBulkload = false;
-  }
-}
-
-JLine::JLine(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo) :
-  Attribute(true), routeintervals(0)
-{
-  activBulkload = false;
-  sorted = true;
-  Word w;
-  ListExpr idLE;
-  nl->ReadFromString(CcString::BasicType(), idLE);
-  ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-  if (OpenAttribute<CcString>(valueRecord, offset, numId, w))
-  {
-    nid = ((CcString*)w.addr)->GetValue();
-
-    if (nid != "undefined")
-    {
-      size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
-      SmiSize addoffset = 0;
-      char* buf = (char*) malloc(bufsize);
-      valueRecord.Read(buf, bufsize, offset);
-      offset += bufsize;
-      assert(buf != NULL);
-      routeintervals.restoreHeader(buf,addoffset);
-      free(buf);
-    }
-    else
-    {
-      SetDefined(false);
-    }
-  }
-  else
-  {
-    SetDefined(false);
   }
 }
 
@@ -148,9 +114,9 @@ JLine::~JLine()
 
 */
 
-string JLine::GetNetworkId() const
+const STRING_T* JLine::GetNetworkId() const
 {
-  return nid;
+  return &nid;
 }
 
 const DbArray<JRouteInterval>& JLine::GetRouteIntervals() const
@@ -158,9 +124,9 @@ const DbArray<JRouteInterval>& JLine::GetRouteIntervals() const
   return routeintervals;
 }
 
-void JLine::SetNetworkId(string& id)
+void JLine::SetNetworkId(const STRING_T& id)
 {
-  nid = id;
+  strcpy(nid, id);
 }
 
 void JLine::SetRouteIntervals(DbArray<JRouteInterval>& setri)
@@ -182,7 +148,7 @@ void JLine::CopyFrom(const Attribute* right)
   if (right->IsDefined())
   {
     JLine in(*(JLine*) right);
-    nid = in.GetNetworkId();
+    strcpy(nid, *in.GetNetworkId());
     routeintervals.copyFrom(in.GetRouteIntervals());
     sorted = in.IsSorted();
   }
@@ -195,7 +161,7 @@ size_t JLine::HashValue() const
   size_t res = 0;
   if (IsDefined())
   {
-    res += (size_t) nid.length();
+    res += strlen(nid);
     JRouteInterval ri(false);
     for (int i = 0; i < routeintervals.Size(); i++)
     {
@@ -234,7 +200,7 @@ int JLine::Compare(const JLine& rhs) const
   if (!IsDefined() && !rhs.IsDefined()) return 0;
   if (!IsDefined() && rhs.IsDefined()) return -1;
   if (IsDefined() && !rhs.IsDefined()) return 1;
-  int aux = nid.compare(rhs.GetNetworkId());
+  int aux = strcmp(nid,*rhs.GetNetworkId());
   if (aux != 0) return aux;
   if (routeintervals.Size() < rhs.GetNoComponents()) return -1;
   if (routeintervals.Size() > rhs.GetNoComponents()) return 1;
@@ -295,7 +261,7 @@ Attribute::StorageType JLine::GetStorageType() const
   return Default;
 }
 
-const std::string JLine::BasicType()
+const string JLine::BasicType()
 {
   return "jline";
 }
@@ -315,7 +281,7 @@ JLine& JLine::operator=(const JLine& other)
   SetDefined(other.IsDefined());
   if (other.IsDefined())
   {
-    nid = other.GetNetworkId();
+    strcpy(nid, *other.GetNetworkId());
     routeintervals.copyFrom(other.GetRouteIntervals());
     sorted = other.IsSorted();
   }
@@ -365,7 +331,7 @@ ListExpr JLine::Out(ListExpr typeInfo, Word value)
     return nl->SymbolAtom(Symbol::UNDEFINED());
   else
   {
-    NList nid(out->GetNetworkId(),true, false);
+    NList nList(*out->GetNetworkId(),true, false);
 
     NList rintList(nl->TheEmptyList());
     JRouteInterval ri(false);
@@ -383,7 +349,7 @@ ListExpr JLine::Out(ListExpr typeInfo, Word value)
       else
         rintList.append(actRIntList);
     }
-    ListExpr test = nl->TwoElemList(nid.listExpr(), rintList.listExpr());
+    ListExpr test = nl->TwoElemList(nList.listExpr(), rintList.listExpr());
     return test;
   }
 }
@@ -401,7 +367,8 @@ Word JLine::In(const ListExpr typeInfo, const ListExpr instance,
     if (nl->ListLength(instance) == 2)
     {
       ListExpr netId = nl->First(instance);
-      string nid = nl->StringValue(netId);
+      STRING_T nid;
+      strcpy(nid, nl->StringValue(netId).c_str());
       JLine* res = new JLine(true);
       res->SetNetworkId(nid);
       res->StartBulkload();
@@ -459,57 +426,6 @@ void JLine::Close( const ListExpr typeInfo, Word& w )
 {
   delete ((JLine*)w.addr);
   w.addr = 0;
-}
-
-bool JLine::Save(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value)
-{
-  JLine* source = (JLine*) value.addr;
-  if (source->IsDefined())
-  {
-    Word w;
-    w.setAddr(new CcString(true, source->GetNetworkId()));
-    ListExpr idLE;
-    nl->ReadFromString(CcString::BasicType(), idLE);
-    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    if (SaveAttribute<CcString>(valueRecord, offset, numId, w))
-    {
-      SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
-      SmiRecordFile* rf = ctlg->GetFlobFile();
-      Flob* tmpFlob = source->GetFLOB(0);
-      tmpFlob->saveToFile(rf, *tmpFlob );
-      SmiSize addoffset = 0;
-      size_t bufsize = tmpFlob->headerSize()+ 2*sizeof(int);
-      char* buf = (char*) malloc(bufsize);
-      tmpFlob->serializeHeader(buf,addoffset);
-      assert(addoffset==bufsize);
-      valueRecord.Write(buf, bufsize, offset);
-      offset += bufsize;
-      free(buf);
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-  else
-  {
-    Word w;
-    w.setAddr(new CcString(true,Symbol::UNDEFINED()));
-    ListExpr idLE;
-    nl->ReadFromString(CcString::BasicType(), idLE);
-    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    return SaveAttribute<CcString>(valueRecord, offset, numId, w);
-  }
-}
-
-bool JLine::Open (SmiRecord& valueRecord, size_t& offset,
-                  const ListExpr typeInfo, Word& value)
-{
-  JLine *res = new JLine(valueRecord, offset, typeInfo);
-  value.setAddr(res);
-  return true;
 }
 
 Word JLine::Clone( const ListExpr typeInfo, const Word& w )

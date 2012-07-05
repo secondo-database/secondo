@@ -60,9 +60,9 @@ public:
 */
 
   explicit MJPoint(const bool def);
-  MJPoint(const MJPoint& other);
-  MJPoint(const DbArray<UJPoint>& upoints);
-  MJPoint(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+  explicit MJPoint(const MJPoint& other);
+  explicit MJPoint(const DbArray<UJPoint>& upoints);
+  explicit MJPoint(const UJPoint* u);
 
   ~MJPoint();
 
@@ -71,10 +71,10 @@ public:
 
 */
 
-  string GetNetworkId() const;
+  const STRING_T* GetNetworkId() const;
   const DbArray<UJPoint>& GetUnits() const;
 
-  void SetNetworkId(const string id);
+  void SetNetworkId(const STRING_T& id);
   void SetUnits(const DbArray<UJPoint>& upoints);
 
 /*
@@ -123,10 +123,6 @@ public:
   static Word Create(const ListExpr typeInfo);
   static void Delete( const ListExpr typeInfo, Word& w );
   static void Close( const ListExpr typeInfo, Word& w );
-  static bool Save(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value);
-  static bool Open (SmiRecord& valueRecord, size_t& offset,
-                    const ListExpr typeInfo, Word& value);
   static Word Clone( const ListExpr typeInfo, const Word& w );
   static void* Cast( void* addr );
   static bool KindCheck ( ListExpr type, ListExpr& errorInfo );
@@ -163,7 +159,7 @@ private:
 
 */
 
-  string nid;             //network identifier
+  STRING_T nid;             //network identifier
   DbArray<UJPoint> units; //set of UJPoint describing the way of the mjpoint
   bool activBulkload; //only true while bulkload of ujpoints runs
 

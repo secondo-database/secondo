@@ -40,12 +40,12 @@ JPoints::JPoints() : Attribute()
 {}
 
 JPoints::JPoints(const bool def) :
-    Attribute(def), nid(""), routelocations(0), sorted(false),
+    Attribute(def), routelocations(0), sorted(false),
     activBulkload(false)
 {}
 
 JPoints::JPoints(const string netId, const DbArray<RouteLocation>& rlocList) :
-    Attribute(true), nid(netId), routelocations(rlocList)
+    Attribute(true), routelocations(rlocList)
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   Word value;
@@ -57,7 +57,7 @@ JPoints::JPoints(const string netId, const DbArray<RouteLocation>& rlocList) :
     JNetwork* jnet = (JNetwork*) value.addr;
     RouteLocation actInt;
     StartBulkload();
-    nid = jnet->GetId();
+    strcpy(nid, *jnet->GetId());
     for (int i = 0; i < rlocList.Size(); i++){
       rlocList.Get(i,actInt);
       if (jnet->Contains(&actInt))
@@ -79,7 +79,7 @@ JPoints::JPoints(const JNetwork* jnet, const JListRLoc* rlocList) :
   }
   else
   {
-    nid = jnet->GetId();
+    strcpy(nid, *jnet->GetId());
     RouteLocation actInt;
     StartBulkload();
     int i = 0;
@@ -98,45 +98,10 @@ JPoints::JPoints(const JPoints& other) :
 {
   if (other.IsDefined())
   {
-    nid = other.GetNetworkId();
+    strcpy(nid, *other.GetNetworkId());
     routelocations.copyFrom(other.routelocations);
     sorted = other.IsSorted();
     activBulkload = false;
-  }
-}
-
-JPoints::JPoints(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo) :
-  Attribute(true), routelocations(0)
-{
-  activBulkload = false;
-  Word w;
-  ListExpr idLE;
-  nl->ReadFromString(CcString::BasicType(), idLE);
-  ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-  if (OpenAttribute<CcString>(valueRecord, offset, numId, w))
-  {
-    nid = ((CcString*)w.addr)->GetValue();
-
-    if (nid != "undefined")
-    {
-      size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
-      SmiSize addoffset = 0;
-      char* buf = (char*) malloc(bufsize);
-      valueRecord.Read(buf, bufsize, offset);
-      offset += bufsize;
-      assert(buf != NULL);
-      routelocations.restoreHeader(buf,addoffset);
-      free(buf);
-    }
-    else
-    {
-      SetDefined(false);
-    }
-  }
-  else
-  {
-    SetDefined(false);
   }
 }
 
@@ -148,9 +113,9 @@ JPoints::~JPoints()
 
 */
 
-string JPoints::GetNetworkId() const
+const STRING_T* JPoints::GetNetworkId() const
 {
-  return nid;
+  return &nid;
 }
 
 const DbArray<RouteLocation>& JPoints::GetRouteLocations() const
@@ -158,9 +123,9 @@ const DbArray<RouteLocation>& JPoints::GetRouteLocations() const
   return routelocations;
 }
 
-void JPoints::SetNetworkId(string& id)
+void JPoints::SetNetworkId(STRING_T& id)
 {
-  nid = id;
+  strcpy(nid, id);
 }
 
 void JPoints::SetRouteIntervals(DbArray<RouteLocation>& setri)
@@ -182,7 +147,7 @@ void JPoints::CopyFrom(const Attribute* right)
   if (right->IsDefined())
   {
     JPoints in(*(JPoints*) right);
-    nid = in.GetNetworkId();
+    strcpy(nid, *in.GetNetworkId());
     routelocations.copyFrom(in.GetRouteLocations());
     sorted = in.IsSorted();
   }
@@ -195,7 +160,7 @@ size_t JPoints::HashValue() const
   size_t res = 0;
   if (IsDefined())
   {
-    res += (size_t) nid.length();
+    res += strlen(nid);
     RouteLocation ri(false);
     for (int i = 0; i < routelocations.Size(); i++)
     {
@@ -234,7 +199,7 @@ int JPoints::Compare(const JPoints& rhs) const
   if (!IsDefined() && !rhs.IsDefined()) return 0;
   if (!IsDefined() && rhs.IsDefined()) return -1;
   if (IsDefined() && !rhs.IsDefined()) return 1;
-  int aux = nid.compare(rhs.GetNetworkId());
+  int aux = strcmp(nid, *rhs.GetNetworkId());
   if (aux != 0) return aux;
   if (routelocations.Size() < rhs.GetNoComponents()) return -1;
   if (routelocations.Size() > rhs.GetNoComponents()) return 1;
@@ -281,7 +246,6 @@ ostream& JPoints::Print(ostream& os) const
   }
   else
     os << Symbol::UNDEFINED() << endl;
-  os << endl;
   return os;
 }
 
@@ -295,7 +259,7 @@ Attribute::StorageType JPoints::GetStorageType() const
   return Default;
 }
 
-const std::string JPoints::BasicType()
+const string JPoints::BasicType()
 {
   return "jpoints";
 }
@@ -315,7 +279,7 @@ JPoints& JPoints::operator=(const JPoints& other)
   SetDefined(other.IsDefined());
   if (other.IsDefined())
   {
-    nid = other.GetNetworkId();
+    strcpy(nid, *other.GetNetworkId());
     routelocations.copyFrom(other.GetRouteLocations());
     sorted = other.IsSorted();
   }
@@ -365,7 +329,7 @@ ListExpr JPoints::Out(ListExpr typeInfo, Word value)
     return nl->SymbolAtom(Symbol::UNDEFINED());
   else
   {
-    NList nid(out->GetNetworkId(),true, false);
+    NList nList(*out->GetNetworkId(),true, false);
 
     NList rlocList(nl->TheEmptyList());
     RouteLocation rl(false);
@@ -383,7 +347,7 @@ ListExpr JPoints::Out(ListExpr typeInfo, Word value)
       else
         rlocList.append(actRLocList);
     }
-    ListExpr test = nl->TwoElemList(nid.listExpr(), rlocList.listExpr());
+    ListExpr test = nl->TwoElemList(nList.listExpr(), rlocList.listExpr());
     return test;
   }
 }
@@ -401,12 +365,13 @@ Word JPoints::In(const ListExpr typeInfo, const ListExpr instance,
     if (nl->ListLength(instance) == 2)
     {
       ListExpr netId = nl->First(instance);
-      string nid = nl->StringValue(netId);
+      STRING_T nids;
+      strcpy(nids, nl->StringValue(netId).c_str());
       JPoints* res = new JPoints(true);
-      res->SetNetworkId(nid);
+      res->SetNetworkId(nids);
       res->StartBulkload();
       ListExpr rlocList = nl->Second(instance);
-       ListExpr actRLoc = nl->TheEmptyList();
+      ListExpr actRLoc = nl->TheEmptyList();
       correct = true;
       while( !nl->IsEmpty( rlocList ) && correct)
       {
@@ -459,57 +424,6 @@ void JPoints::Close( const ListExpr typeInfo, Word& w )
 {
   delete ((JPoints*)w.addr);
   w.addr = 0;
-}
-
-bool JPoints::Save(SmiRecord& valueRecord, size_t& offset,
-                 const ListExpr typeInfo, Word& value)
-{
-  JPoints* source = (JPoints*) value.addr;
-  if (source->IsDefined())
-  {
-    Word w;
-    w.setAddr(new CcString(true, source->GetNetworkId()));
-    ListExpr idLE;
-    nl->ReadFromString(CcString::BasicType(), idLE);
-    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    if (SaveAttribute<CcString>(valueRecord, offset, numId, w))
-    {
-      SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
-      SmiRecordFile* rf = ctlg->GetFlobFile();
-      Flob* tmpFlob = source->GetFLOB(0);
-      tmpFlob->saveToFile(rf, *tmpFlob );
-      SmiSize addoffset = 0;
-      size_t bufsize = tmpFlob->headerSize()+ 2*sizeof(int);
-      char* buf = (char*) malloc(bufsize);
-      tmpFlob->serializeHeader(buf,addoffset);
-      assert(addoffset==bufsize);
-      valueRecord.Write(buf, bufsize, offset);
-      offset += bufsize;
-      free(buf);
-      return true;
-    }
-    else
-    {
-      return false;
-    }
-  }
-  else
-  {
-    Word w;
-    w.setAddr(new CcString(true,Symbol::UNDEFINED()));
-    ListExpr idLE;
-    nl->ReadFromString(CcString::BasicType(), idLE);
-    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    return SaveAttribute<CcString>(valueRecord, offset, numId, w);
-  }
-}
-
-bool JPoints::Open (SmiRecord& valueRecord, size_t& offset,
-                  const ListExpr typeInfo, Word& value)
-{
-  JPoints *res = new JPoints(valueRecord, offset, typeInfo);
-  value.setAddr(res);
-  return true;
 }
 
 Word JPoints::Clone( const ListExpr typeInfo, const Word& w )
@@ -568,10 +482,7 @@ int JPoints::GetNoComponents() const
 }
 
 bool JPoints::IsEmpty() const {
-  if (IsDefined() && GetNoComponents() == 0)
-    return true;
-  else
-    return false;
+  return (IsDefined() && GetNoComponents() == 0);
 }
 
 void JPoints::Get(const int i, RouteLocation& ri) const
@@ -653,10 +564,7 @@ void JPoints::Sort()
 
 bool JPoints::IsSorted() const
 {
-  if (IsDefined())
-    return sorted;
-  else
-    return false;
+  return (IsDefined() && sorted);
 }
 
 

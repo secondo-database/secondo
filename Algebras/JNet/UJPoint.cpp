@@ -53,7 +53,7 @@ UJPoint::UJPoint(const UJPoint& other) :
 {
   if (other.IsDefined())
   {
-    nid = other.GetNetworkId();
+    strcpy(nid, *other.GetNetworkId());
     time = other.GetTimeInterval();
     rint = other.GetRouteInterval();
   }
@@ -77,7 +77,7 @@ UJPoint::UJPoint(const string id, const Interval<Instant>& inst,
       JNetwork* jnet = (JNetwork*) value.addr;
       if (jnet->Contains(&r))
       {
-        nid = id;
+        strcpy(nid, id.c_str());
         rint = r;
       }
       else
@@ -90,6 +90,26 @@ UJPoint::UJPoint(const string id, const Interval<Instant>& inst,
     {
       SetDefined(false);
     }
+  }
+  else
+  {
+    SetDefined(false);
+  }
+}
+
+UJPoint::UJPoint(const JNetwork* jnet, const JRouteInterval* jrint,
+                 const Instant* starttime, const Instant* endtime,
+                 const bool lc, const bool rc) :
+  Attribute(true)
+{
+  if (jnet->IsDefined() && jrint->IsDefined() && jnet->Contains(jrint) &&
+      starttime->IsDefined() && endtime->IsDefined())
+  {
+    strcpy(nid, *jnet->GetId());
+    rint = *jrint;
+    Interval<Instant>* i = new Interval<Instant> (*starttime, *endtime, lc, rc);
+    time = *i;
+    delete i;
   }
   else
   {
@@ -110,9 +130,9 @@ Interval<Instant> UJPoint::GetTimeInterval() const
   return time;
 }
 
-string UJPoint::GetNetworkId() const
+const STRING_T* UJPoint::GetNetworkId() const
 {
-  return nid;
+  return &nid;
 }
 
 
@@ -141,9 +161,9 @@ void UJPoint::SetTimeInterval(const Interval<Instant>& t)
   time = t;
 }
 
-void UJPoint::SetNetworkId(const std::string id)
+void UJPoint::SetNetworkId(const STRING_T& id)
 {
-  nid = id;
+  strcpy(nid, id);
 }
 
 
@@ -163,7 +183,7 @@ void UJPoint::CopyFrom(const Attribute* right)
   if (right->IsDefined())
   {
     UJPoint in(*(UJPoint*) right);
-    nid = in.GetNetworkId();
+    strcpy(nid, *in.GetNetworkId());
     time = in.GetTimeInterval();
     rint = in.GetRouteInterval();
   }
@@ -176,8 +196,8 @@ Attribute::StorageType UJPoint::GetStorageType() const
 
 size_t UJPoint::HashValue() const
 {
-  return (size_t) nid.length() + time.getTimeInterval().start.HashValue() +
-         time.getTimeInterval().end.HashValue() + rint.HashValue();
+  return strlen(nid) + time.start.HashValue() + time.end.HashValue() +
+         rint.HashValue();
 }
 
 Attribute* UJPoint::Clone() const
@@ -207,7 +227,7 @@ int UJPoint::Compare(const UJPoint& rhs) const
   if (!IsDefined() && !rhs.IsDefined()) return 0;
   if (IsDefined() && !rhs.IsDefined()) return 1;
   if (!IsDefined() && rhs.IsDefined()) return -1;
-  int test = nid.compare(rhs.GetNetworkId());
+  int test = strcmp(nid, *rhs.GetNetworkId());
   if (test != 0) return test;
   test = time.CompareTo(rhs.GetTimeInterval());
   if (test != 0) return test;
@@ -221,10 +241,19 @@ size_t UJPoint::Sizeof() const
 
 ostream& UJPoint::Print(ostream& os) const
 {
-  os << "UJPoint in " << nid << " in ";
-  time.Print(os);
-  os << ", at ";
-  rint.Print(os);
+  os << "UJPoint ";
+  if (IsDefined())
+  {
+    os << "in " << nid << " at ";
+    time.Print(os);
+    os << ", at ";
+    rint.Print(os);
+  }
+  else
+  {
+    os << " : " << Symbol::UNDEFINED() << endl;
+  }
+
   return os;
 }
 
@@ -248,7 +277,7 @@ UJPoint& UJPoint::operator=(const UJPoint& other)
   SetDefined(other.IsDefined());
   if (other.IsDefined())
   {
-    nid = other.GetNetworkId();
+    strcpy(nid, *other.GetNetworkId());
     time = other.GetTimeInterval();
     rint = other.GetRouteInterval();
   }
@@ -299,7 +328,7 @@ ListExpr UJPoint::Out(ListExpr typeInfo, Word value)
   }
   else
   {
-    NList netList(in->GetNetworkId(),true,false);
+    NList netList(*in->GetNetworkId(),true,false);
     Interval<Instant> netTime(in->GetTimeInterval());
     Instant* start = (Instant*)&netTime.start;
     Instant* end = (Instant*)&netTime.end;
@@ -337,7 +366,8 @@ Word UJPoint::In(const ListExpr typeInfo, const ListExpr instance,
     ListExpr intervalList = nl->Second(instance);
     ListExpr rintList = nl->Third(instance);
 
-    string netId = nl->StringValue(netList);
+    STRING_T netId;
+    strcpy (netId, nl->StringValue(netList).c_str());
 
     if (nl->ListLength(intervalList) != 4 ||
         !nl->IsAtom(nl->First(intervalList)) ||
@@ -419,175 +449,6 @@ void UJPoint::Close( const ListExpr typeInfo, Word& w )
 {
   ((UJPoint*) w.addr)->DeleteIfAllowed();
   w.addr = 0;
-}
-
-bool UJPoint::Save(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value)
-{
-  UJPoint* source = (UJPoint*) value.addr;
-  if (source->IsDefined())
-  {
-    Word w;
-    w.setAddr(new CcString(true, source->GetNetworkId()));
-    ListExpr idLE;
-    nl->ReadFromString(CcString::BasicType(), idLE);
-    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    if (!SaveAttribute<CcString>(valueRecord, offset, numId, w)){
-      return false;
-    }
-
-    Interval<Instant> interval = source->GetTimeInterval();
-    nl->ReadFromString(Instant::BasicType(), idLE);
-    numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    w.setAddr(&interval.start);
-    if (!SaveAttribute<Instant>( valueRecord,offset,numId, w))
-    {
-      return false;
-    }
-    w.setAddr(&interval.end);
-    if (!SaveAttribute<Instant>( valueRecord,offset,numId, w))
-    {
-      return false;
-    }
-    nl->ReadFromString(CcBool::BasicType(), idLE);
-    numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    w.setAddr(new CcBool(true,interval.lc));
-    if (!SaveAttribute<CcBool>(valueRecord, offset, numId, w))
-    {
-      return false;
-    }
-    w.setAddr(new CcBool(true,interval.rc));
-    if (!SaveAttribute<CcBool>(valueRecord, offset, numId, w))
-    {
-      return false;
-    }
-
-    JRouteInterval rint = source->GetRouteInterval();
-    w.setAddr(&rint);
-    nl->ReadFromString(JRouteInterval::BasicType(), idLE);
-    numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    if (!SaveAttribute<JRouteInterval>(valueRecord, offset, numId, w));
-    {
-      return false;
-    }
-    return true;
-  }
-  else
-  {
-    Word w;
-    w.setAddr(new CcString(true,Symbol::UNDEFINED()));
-    ListExpr idLE;
-    nl->ReadFromString(CcString::BasicType(), idLE);
-    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    return SaveAttribute<CcString>(valueRecord, offset, numId, w);
-  }
-}
-
-bool UJPoint::Open(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value)
-{
-  Word w;
-  ListExpr idLE;
-  nl->ReadFromString(CcString::BasicType(), idLE);
-  ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-  if (OpenAttribute<CcString>(valueRecord, offset, numId, w))
-  {
-    string netId = ((CcString*)w.addr)->GetValue();
-    if (netId.compare(Symbol::UNDEFINED()))
-    {
-      value.addr = new UJPoint(false);
-      return true;
-    }
-    nl->ReadFromString(Instant::BasicType(), idLE);
-    numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    if (OpenAttribute<Instant>(valueRecord, offset, numId, w))
-    {
-      Instant* start = (Instant*) w.addr;
-      if (OpenAttribute<Instant>(valueRecord, offset, numId, w))
-      {
-        Instant* end = (Instant*) w.addr;
-        nl->ReadFromString(CcBool::BasicType(), idLE);
-        numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-        if (OpenAttribute<CcBool>(valueRecord, offset, numId, w))
-        {
-          CcBool* left = (CcBool*)w.addr;
-          if (left != 0 && left->IsDefined())
-          {
-            if (OpenAttribute<CcBool>(valueRecord, offset, numId, w))
-            {
-              CcBool* right = (CcBool*)w.addr;
-              if (right != 0 && right->IsDefined())
-              {
-                Interval<Instant> interval(*start, *end, left->GetBoolval(),
-                                        right->GetBoolval());
-                delete start;
-                delete end;
-                right->DeleteIfAllowed();
-                left->DeleteIfAllowed();
-                if (interval.IsValid())
-                {
-                  nl->ReadFromString(JRouteInterval::BasicType(),idLE);
-                  numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-                  if(OpenAttribute<JRouteInterval>(valueRecord, offset, numId,
-                      w))
-                  {
-                    JRouteInterval* rint = (JRouteInterval*) w.addr;
-                    value.addr = new UJPoint(netId, interval, *rint);
-                    delete rint;
-                    return true;
-                  }
-                  else
-                  {
-                    start->DeleteIfAllowed();
-                    end->DeleteIfAllowed();
-                    left->DeleteIfAllowed();
-                    right->DeleteIfAllowed();
-                  }
-                }
-                else
-                {
-                  start->DeleteIfAllowed();
-                  end->DeleteIfAllowed();
-                  left->DeleteIfAllowed();
-                  right->DeleteIfAllowed();
-                }
-              }
-              else
-              {
-                start->DeleteIfAllowed();
-                end->DeleteIfAllowed();
-                left->DeleteIfAllowed();
-                if (right != 0) right->DeleteIfAllowed();
-              }
-            }
-            else
-            {
-              start->DeleteIfAllowed();
-              end->DeleteIfAllowed();
-              left->DeleteIfAllowed();
-            }
-          }
-          else
-          {
-            start->DeleteIfAllowed();
-            end->DeleteIfAllowed();
-            if (left != 0) left->DeleteIfAllowed();
-          }
-        }
-        else
-        {
-          start->DeleteIfAllowed();
-          end->DeleteIfAllowed();
-        }
-      }
-      else
-      {
-        start->DeleteIfAllowed();
-      }
-    }
-  }
-  value.setAddr(0);
-  return false;
 }
 
 Word UJPoint::Clone( const ListExpr typeInfo, const Word& w )

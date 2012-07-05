@@ -73,10 +73,10 @@ public:
 
 */
 
-  string GetNetworkId() const;
+  const STRING_T* GetNetworkId() const;
   const DbArray<JRouteInterval>& GetRouteIntervals() const;
 
-  void SetNetworkId(string& nid);
+  void SetNetworkId(const STRING_T& nid);
   void SetRouteIntervals(DbArray<JRouteInterval>& setri);
 
 /*
@@ -124,10 +124,6 @@ public:
   static Word Create(const ListExpr typeInfo);
   static void Delete( const ListExpr typeInfo, Word& w );
   static void Close( const ListExpr typeInfo, Word& w );
-  static bool Save(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value);
-  static bool Open (SmiRecord& valueRecord, size_t& offset,
-                    const ListExpr typeInfo, Word& value);
   static Word Clone( const ListExpr typeInfo, const Word& w );
   static void* Cast( void* addr );
   static bool KindCheck ( ListExpr type, ListExpr& errorInfo );
@@ -209,7 +205,7 @@ private:
 1.1.1 Attributes
 
 */
-  string nid; //network identifier
+  STRING_T nid; //network identifier
   DbArray<JRouteInterval> routeintervals; //sorted set of JRouteIntervals
   bool sorted; //true if routeintervals are sorted and compressed
   bool activBulkload; //only true while bulkload of routeintervals runs

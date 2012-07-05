@@ -68,8 +68,6 @@ IJPoint::IJPoint(const Instant& inst, const JPoint& jp) :
     point = jp;
   } else {
     SetDefined(false);
-    time.SetDefined(false);
-    point.SetDefined(false);
   }
 }
 
@@ -256,9 +254,8 @@ Word IJPoint::In(const ListExpr typeInfo, const ListExpr instance,
 {
   if ( listutils::isSymbolUndefined( instance ) )
   {
-    IJPoint* p = new IJPoint(false);
     correct = true;
-    return SetWord( p );
+    return (new IJPoint(false));
   }
   else
   {

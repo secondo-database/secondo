@@ -15,11 +15,39 @@ Example  : query createjpoint(testjnet, createrloc(1, 0.0, [const jdirection val
 Result   : (jpoint ("testjnet" (1 0.0 (Both))))
 Tolerance: 0.01%
 
+Operator : createjpoints
+Number   : 1
+Signature: jnet x listrloc -> jpoints
+Example  : query createjpoints(testjnet, testlistrloc2)
+Result   : (jpoints ("testjnet" ((1 0.01 (Up))(2 0.001 (Both)) (4 0.0001 (Down)))))
+Tolerance: 0.01%
+
 Operator : createjline
 Number   : 1
 Signature: jnet x listjrint -> jline
 Example  : query createjline(testjnet, testlistrint2);
 Result   : (jline ("testjnet" ((1 0.0 0.002 (Both)) (2 0.0 0.002 (Both)) (10 0.0 0.0001 (Up)) (11 0.0 0.0001 (Up)))))
+Tolerance: 0.01%
+
+Operator : createijpoint
+Number   : 1
+Signature: jpoint x instant -> ijpoint
+Example  : query createijpoint(createjpoint(testjnet, createrloc(1, 0.0, [const jdirection value("Both")])), create_instant(0.5));
+Result   : (ijpoint ("2000-01-03-12:00" ("testjnet" (1 0.0 (Both)))))
+Tolerance: 0.01%
+
+Operator : createujpoint
+Number   : 1
+Signature: jnet x jrint x instant x instant x bool x bool -> ujpoint
+Example  : query createujpoint(testjnet, createrint(1, 0.001, 0.01, [const jdirection value(Up)]), create_instant(0.4), create_instant(0.45), TRUE, FALSE);
+Result   : (ujpoint ("testjnet" ("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) (1 0.001 0.01 (Up))))
+Tolerance: 0.01%
+
+Operator : createmjpoint
+Number   : 1
+Signature: ujpoint -> mjpoint
+Example  : query createmjpoint(createujpoint(testjnet, createrint(1, 0.001, 0.01, [const jdirection value(Up)]), create_instant(0.4), create_instant(0.45), TRUE, FALSE));
+Result   : (mjpoint ("testjnet" (("testjnet" ("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) (1 0.001 0.01 (Up))))))
 Tolerance: 0.01%
 
 Operator : createrloc

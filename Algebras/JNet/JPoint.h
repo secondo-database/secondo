@@ -62,7 +62,7 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
   JPoint();
   explicit JPoint(const bool def);
   JPoint(const JPoint& other);
-  JPoint(const string& netId, const RouteLocation& rloc);
+  JPoint(const string netId, const RouteLocation& rloc);
   JPoint(const JNetwork* jnet, const RouteLocation* rloc);
 
   ~JPoint();
@@ -72,10 +72,10 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
 
 */
 
-  string GetNetworkId() const;
+  const STRING_T* GetNetworkId() const;
   RouteLocation GetPosition() const;
 
-  void SetNetId(const string& netId);
+  void SetNetId(const STRING_T& netId);
   void SetPosition(const RouteLocation& rloc);
 
 /*
@@ -121,10 +121,6 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
   static Word Create(const ListExpr typeInfo);
   static void Delete( const ListExpr typeInfo, Word& w );
   static void Close( const ListExpr typeInfo, Word& w );
-  static bool Save(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value);
-  static bool Open (SmiRecord& valueRecord, size_t& offset,
-                    const ListExpr typeInfo, Word& value);
   static Word Clone( const ListExpr typeInfo, const Word& w );
   static void* Cast( void* addr );
   static bool KindCheck ( ListExpr type, ListExpr& errorInfo );
@@ -149,7 +145,7 @@ private:
 
 */
 
-  string nid;         // network id of the network the point belongs to.
+  STRING_T nid;         // network id of the network the point belongs to.
   RouteLocation npos; //position in this network.
 
 };

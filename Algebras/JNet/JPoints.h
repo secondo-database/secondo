@@ -64,7 +64,6 @@ public:
   JPoints(const string netId, const DbArray<RouteLocation>& rlocList);
   JPoints(const JNetwork* jnet, const JListRLoc* rlocList);
   JPoints(const JPoints& other);
-  JPoints(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
 
   ~JPoints();
 
@@ -73,10 +72,10 @@ public:
 
 */
 
-  string GetNetworkId() const;
+  const STRING_T* GetNetworkId() const;
   const DbArray<RouteLocation>& GetRouteLocations() const;
 
-  void SetNetworkId(string& nid);
+  void SetNetworkId(STRING_T& nid);
   void SetRouteIntervals(DbArray<RouteLocation>& setrlocs);
 
 /*
@@ -124,10 +123,6 @@ public:
   static Word Create(const ListExpr typeInfo);
   static void Delete( const ListExpr typeInfo, Word& w );
   static void Close( const ListExpr typeInfo, Word& w );
-  static bool Save(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value);
-  static bool Open (SmiRecord& valueRecord, size_t& offset,
-                    const ListExpr typeInfo, Word& value);
   static Word Clone( const ListExpr typeInfo, const Word& w );
   static void* Cast( void* addr );
   static bool KindCheck ( ListExpr type, ListExpr& errorInfo );
@@ -209,7 +204,7 @@ private:
 1.1.1 Attributes
 
 */
-  string nid; //network identifier
+  STRING_T nid; //network identifier
   DbArray<RouteLocation> routelocations; //sorted set of RouteLocations
   bool sorted; //true if routelocations are sorted
   bool activBulkload; //only true while bulkload of routelocations runs

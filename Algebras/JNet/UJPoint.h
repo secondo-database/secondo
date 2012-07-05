@@ -67,6 +67,9 @@ It can not be private because UJPoint is used as part of MJPoint.
   UJPoint(const UJPoint& other);
   UJPoint(const string id, const Interval<Instant>& inst,
           const JRouteInterval& rint);
+  UJPoint(const JNetwork* jnet, const JRouteInterval* jrint,
+          const Instant* starttime, const Instant* endtime,
+          const bool lc, const bool rc);
 
   ~UJPoint();
 
@@ -76,13 +79,13 @@ It can not be private because UJPoint is used as part of MJPoint.
 */
 
   Interval<Instant> GetTimeInterval() const;
-  string GetNetworkId() const;
+  const STRING_T* GetNetworkId() const;
   JRouteInterval GetRouteInterval() const;
   JPoint* GetStartPoint() const;
   JPoint* GetEndPoint() const;
 
   void SetTimeInterval(const Interval<Instant>& inst);
-  void SetNetworkId(const string id);
+  void SetNetworkId(const STRING_T& id);
   void SetRouteInterval(const JRouteInterval& ri);
 
 /*
@@ -128,10 +131,6 @@ It can not be private because UJPoint is used as part of MJPoint.
   static Word Create(const ListExpr typeInfo);
   static void Delete( const ListExpr typeInfo, Word& w );
   static void Close( const ListExpr typeInfo, Word& w );
-  static bool Save(SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value);
-  static bool Open (SmiRecord& valueRecord, size_t& offset,
-                    const ListExpr typeInfo, Word& value);
   static Word Clone( const ListExpr typeInfo, const Word& w );
   static void* Cast( void* addr );
   static bool KindCheck ( ListExpr type, ListExpr& errorInfo );
@@ -156,7 +155,7 @@ private:
 
 */
 
-  string nid;             //network identifier
+  STRING_T nid;             //network identifier
   Interval<Instant> time; //time interval the mjpoint needs to move from start
                           //to end
   JRouteInterval rint;    //network positions the mjpoint passes in the time

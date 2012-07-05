@@ -190,7 +190,7 @@ Returns the network id.
 
 */
 
-  string GetId() const;
+  const STRING_T* GetId() const;
 
 /*
 1.1.1.1 Get Relation Type Infos
@@ -280,7 +280,7 @@ private:
 
 */
   bool defined;           //defined Flag
-  string id;              //network identifier
+  STRING_T id;              //network identifier
   Relation* junctions;    //data of street crossings and death ends
   Relation* sections;     //data of connections between junctions
   Relation* routes;       //semantic connection of sections and junctions for

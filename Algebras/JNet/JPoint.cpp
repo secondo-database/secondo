@@ -42,7 +42,7 @@ JPoint::JPoint(): Attribute()
 {}
 
 JPoint::JPoint(const bool def) :
-    Attribute(def), nid(""), npos(def)
+    Attribute(def), npos(def)
 {}
 
 JPoint::JPoint(const JPoint& other) :
@@ -50,17 +50,12 @@ JPoint::JPoint(const JPoint& other) :
 {
   if (other.IsDefined())
   {
-    nid = other.GetNetworkId();
+    strcpy(nid, *other.GetNetworkId());
     npos = other.GetPosition();
-  }
-  else
-  {
-    nid = "";
-    npos.SetDefined(false);
   }
 }
 
-JPoint::JPoint(const string& netId, const RouteLocation& rloc) :
+JPoint::JPoint(const string netId, const RouteLocation& rloc) :
   Attribute(true)
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
@@ -71,7 +66,7 @@ JPoint::JPoint(const string& netId, const RouteLocation& rloc) :
       valDefined)
   {
     JNetwork* jnet = (JNetwork*) value.addr;
-    nid = jnet->GetId();
+    strcpy(nid, *jnet->GetId());
     npos = rloc;
     SetDefined(jnet->Contains(&rloc));
     sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), value);
@@ -89,7 +84,7 @@ JPoint::JPoint(const JNetwork* jnet, const RouteLocation* rloc) :
     SetDefined(false);
   else
   {
-    nid = jnet->GetId();
+    strcpy(nid, *jnet->GetId());
     npos = *rloc;
   }
 }
@@ -102,9 +97,9 @@ JPoint::~JPoint()
 
 */
 
-string JPoint::GetNetworkId() const
+const STRING_T* JPoint::GetNetworkId() const
 {
-  return nid;
+  return &nid;
 }
 
 RouteLocation JPoint::GetPosition() const
@@ -112,9 +107,9 @@ RouteLocation JPoint::GetPosition() const
   return npos;
 }
 
-void JPoint::SetNetId(const string& netId)
+void JPoint::SetNetId(const STRING_T& netId)
 {
-  nid = netId;
+  strcpy(nid, netId);
 }
 
 void JPoint::SetPosition(const RouteLocation& rloc)
@@ -133,7 +128,7 @@ void JPoint::CopyFrom(const Attribute* right)
   if (right->IsDefined())
   {
     JPoint in(*(JPoint*) right);
-    nid = in.GetNetworkId();
+    strcpy(nid, *in.GetNetworkId());
     npos = in.GetPosition();
   }
 }
@@ -145,7 +140,7 @@ Attribute::StorageType JPoint::GetStorageType() const
 
 size_t JPoint::HashValue() const
 {
-  return (size_t) nid.length() + npos.HashValue();
+  return strlen(nid) + npos.HashValue();
 }
 
 Attribute* JPoint::Clone() const
@@ -158,7 +153,7 @@ bool JPoint::Adjacent(const Attribute* attrib) const
   if (attrib->IsDefined())
   {
     JPoint in(*(JPoint*) attrib);
-    if (IsDefined() && (nid == in.GetNetworkId()))
+    if (IsDefined() && strcmp(nid, *in.GetNetworkId()) == 0)
     {
       return npos.Adjacent(in.GetPosition());
     }
@@ -184,7 +179,7 @@ int JPoint::Compare(const JPoint& rhs) const
   if (!IsDefined() && !rhs.IsDefined()) return 0;
   if (IsDefined() && !rhs.IsDefined()) return 1;
   if (!IsDefined() && rhs.IsDefined()) return -1;
-  int test = nid.compare(rhs.GetNetworkId());
+  int test = strcmp(nid, *rhs.GetNetworkId());
   if (test != 0) return test;
   return npos.Compare(rhs.GetPosition());
 }
@@ -196,10 +191,18 @@ size_t JPoint::Sizeof() const
 
 ostream& JPoint::Print(ostream& os) const
 {
-  os << "JPoint in Network: " << nid
-     << " at: ";
-  npos.Print(os);
-  os << endl;
+  os << "JPoint ";
+  if (IsDefined())
+  {
+    os << "in Network: " << nid
+       << " at: ";
+    npos.Print(os);
+    os << endl;
+  }
+  else
+  {
+    os << Symbol::UNDEFINED() << endl;
+  }
   return os;
 }
 
@@ -223,7 +226,7 @@ JPoint& JPoint::operator=(const JPoint& other)
   SetDefined(other.IsDefined());
   if (other.IsDefined())
   {
-    nid = other.GetNetworkId();
+    strcpy(nid, *other.GetNetworkId());
     npos = other.GetPosition();
   }
   return *this;
@@ -273,7 +276,7 @@ ListExpr JPoint::Out(ListExpr typeInfo, Word value)
   }
   else
   {
-    NList netList(in->GetNetworkId(),true,false);
+    NList netList(*in->GetNetworkId(),true,false);
     RouteLocation netPos(in->GetPosition());
     return nl->TwoElemList(netList.listExpr(),
                            RouteLocation::Out(nl->TheEmptyList(),
@@ -286,7 +289,7 @@ Word JPoint::In(const ListExpr typeInfo, const ListExpr instance,
 {
   NList inlist(instance);
 
-  if (inlist.length() == 1 )
+  if (listutils::isSymbolUndefined( instance ))
   {
     correct = true;
     return (new JPoint (false) );
@@ -332,58 +335,6 @@ void JPoint::Close( const ListExpr typeInfo, Word& w )
 {
   ((JPoint*) w.addr)->DeleteIfAllowed();
   w.addr = 0;
-}
-
-bool JPoint::Save(SmiRecord& valueRecord, size_t& offset,
-                  const ListExpr typeInfo, Word& value)
-{
-  JPoint* source = (JPoint*) value.addr;
-  if (source->IsDefined())
-  {
-    Word w;
-    w.setAddr(new CcString(true, source->GetNetworkId()));
-    ListExpr idLE;
-    nl->ReadFromString(CcString::BasicType(), idLE);
-    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    bool ok = SaveAttribute<CcString>(valueRecord, offset, numId, w);
-    RouteLocation rloc = source->GetPosition();
-    w.setAddr(&rloc);
-    nl->ReadFromString(RouteLocation::BasicType(), idLE);
-    numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    return ok && SaveAttribute<RouteLocation>(valueRecord, offset, numId, w);
-  }
-  else
-  {
-    Word w;
-    w.setAddr(new CcString(true,Symbol::UNDEFINED()));
-    ListExpr idLE;
-    nl->ReadFromString(CcString::BasicType(), idLE);
-    ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    return SaveAttribute<CcString>(valueRecord, offset, numId, w);
-  }
-}
-
-bool JPoint::Open (SmiRecord& valueRecord, size_t& offset,
-                   const ListExpr typeInfo, Word& value)
-{
-  Word w;
-  string nid = "";
-  ListExpr idLE;
-  nl->ReadFromString(CcString::BasicType(), idLE);
-  ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-  if (OpenAttribute<CcString>(valueRecord, offset, numId, w))
-  {
-    nid = ((CcString*)w.addr)->GetValue();
-    nl->ReadFromString(RouteLocation::BasicType(),idLE);
-    numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    if (OpenAttribute<RouteLocation>(valueRecord, offset, numId, w))
-    {
-      RouteLocation* rloc = (RouteLocation*) w.addr;
-      value.addr = new JPoint(nid, *rloc);
-      return true;
-    }
-  }
-  return false;
 }
 
 Word JPoint::Clone( const ListExpr typeInfo, const Word& w )

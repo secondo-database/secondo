@@ -267,8 +267,8 @@ TypeConstructor jpointTC(
   JPoint::Out, JPoint::In,
   0, 0,
   JPoint::Create, JPoint::Delete,
-  JPoint::Open,
-  JPoint::Save,
+  OpenAttribute<JPoint>,
+  SaveAttribute<JPoint>,
   JPoint::Close, JPoint::Clone,
   JPoint::Cast,
   JPoint::SizeOf,
@@ -288,8 +288,8 @@ TypeConstructor jpointsTC(
   JPoints::Out, JPoints::In,
   0, 0,
   JPoints::Create, JPoints::Delete,
-  JPoints::Open,
-  JPoints::Save,
+  OpenAttribute<JPoints>,
+  SaveAttribute<JPoints>,
   JPoints::Close, JPoints::Clone,
   JPoints::Cast,
   JPoints::SizeOf,
@@ -311,8 +311,8 @@ TypeConstructor jlineTC(
   JLine::Out, JLine::In,
   0, 0,
   JLine::Create, JLine::Delete,
-  JLine::Open,
-  JLine::Save,
+  OpenAttribute<JLine>,
+  SaveAttribute<JLine>,
   JLine::Close, JLine::Clone,
   JLine::Cast,
   JLine::SizeOf,
@@ -353,8 +353,8 @@ TypeConstructor ujpointTC(
   UJPoint::Out, UJPoint::In,
   0, 0,
   UJPoint::Create, UJPoint::Delete,
-  UJPoint::Open,
-  UJPoint::Save,
+  OpenAttribute<UJPoint>,
+  SaveAttribute<UJPoint>,
   UJPoint::Close, UJPoint::Clone,
   UJPoint::Cast,
   UJPoint::SizeOf,
@@ -374,8 +374,8 @@ TypeConstructor mjpointTC(
   MJPoint::Out, MJPoint::In,
   0, 0,
   MJPoint::Create, MJPoint::Delete,
-  MJPoint::Open,
-  MJPoint::Save,
+  OpenAttribute<MJPoint>,
+  SaveAttribute<MJPoint>,
   MJPoint::Close, MJPoint::Clone,
   MJPoint::Cast,
   MJPoint::SizeOf,
@@ -1184,14 +1184,301 @@ const string createjlineSpec =
   "</text--->"
   "<text>query createjline(testjnet, testlistjrint) </text--->))";
 
-  Operator createjlineOp(
-    "createjline",
-    createjlineSpec,
+Operator createjlineOp(
+  "createjline",
+  createjlineSpec,
+  1,
+  createjlineMap,
+  createjlineSelect,
+  createjlineTM
+);
+
+/*
+1.1.1 ~createjpoints~
+
+Creates an ~jpoints~ object from an ~jnet~ and an ~listjrloc~ value.
+The ~rloc~ in the list of rloc must all exist in the ~jnet~ otherwise the
+created ~jpoints~ will be undefined.
+
+*/
+
+const string maps_createjpoints[1][3] =
+{
+  {JNetwork::BasicType(), JListRLoc::BasicType(), JPoints::BasicType()}
+};
+
+ListExpr createjpointsTM (ListExpr args)
+{
+  return SimpleMaps<1,3>(maps_createjpoints, args);
+}
+
+int createjpointsSelect(ListExpr args)
+{
+  return SimpleSelect<1,3>(maps_createjpoints, args);
+}
+
+int createjpointsVM( Word* args, Word& result, int message, Word& local,
+                   Supplier s)
+{
+  result = qp->ResultStorage(s);
+  JPoints* res = static_cast<JPoints*> (result.addr);
+
+  JNetwork* jnet = (JNetwork*) args[0].addr;
+  JListRLoc* lrloc = (JListRLoc*) args[1].addr;
+
+  if (jnet != 0 && jnet->IsDefined() &&
+      lrloc != 0 && lrloc->IsDefined())
+  {
+    JPoints* jps = new JPoints(jnet, lrloc);
+    *res = *jps;
+    jps->DeleteIfAllowed();
+  }
+  else
+    res->SetDefined(false);
+
+  return 0;
+}
+
+ValueMapping createjpointsMap[] =
+{
+  createjpointsVM
+};
+
+const string createjpointsSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + JNetwork::BasicType() + " x " + JListRLoc::BasicType() +
+  " -> " + JPoints::BasicType() + "</text--->"
+  "<text>createjpoints( <jnet>, <listrloc>) </text--->"
+  "<text>Creates an " + JPoints::BasicType() + " containing a set of " +
+  JNetwork::BasicType() + " positions described by " + JListRLoc::BasicType() +
+  "if the route locations exist in the jnet. Otherwise the result is " +
+  "undefined." +"</text--->"
+  "<text>query createjpoints(testjnet, testlistrloc) </text--->))";
+
+Operator createjpointsOp(
+  "createjpoints",
+  createjpointsSpec,
+  1,
+  createjpointsMap,
+  createjpointsSelect,
+  createjpointsTM
+);
+
+/*
+1.1.1 ~createijpoint~
+Creates an ~ijpoint~ from an existing ~jpoint~ and an ~instant~ value.
+
+*/
+
+const string maps_createijpoint[1][3] =
+{
+  {JPoint::BasicType(), Instant::BasicType(), IJPoint::BasicType()}
+};
+
+ListExpr createijpointTM (ListExpr args)
+{
+  return SimpleMaps<1,3>(maps_createijpoint, args);
+}
+
+int createijpointSelect(ListExpr args)
+{
+  return SimpleSelect<1,3>(maps_createijpoint, args);
+}
+
+int createijpointVM( Word* args, Word& result, int message, Word& local,
+                     Supplier s)
+{
+  result = qp->ResultStorage(s);
+  IJPoint* res = static_cast<IJPoint*> (result.addr);
+
+  JPoint* jp = (JPoint*) args[0].addr;
+  Instant* time = (Instant*) args[1].addr;
+
+  if (jp != 0 && jp->IsDefined() &&
+      time != 0 && time->IsDefined())
+  {
+    IJPoint* ijp = new IJPoint(*time, *jp);
+    *res = *ijp;
+    ijp->DeleteIfAllowed();
+  }
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping createijpointMap[] =
+{
+  createijpointVM
+};
+
+const string createijpointSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + JPoint::BasicType() + " x " + Instant::BasicType() +
+  " -> " + IJPoint::BasicType() + "</text--->"
+  "<text>createijpoint( <jpoint>, <instant>) </text--->"
+  "<text>Creates an " + IJPoint::BasicType() + " fromt an " +
+  JPoint::BasicType() + " and an  " + Instant::BasicType() + ".</text--->"
+  "<text>query createijpoint(createjpoint(testjnet, createrloc(1, 0.0, " +
+  "[const jdirection value(\"Both\")])), createinstant(0.5)) </text--->))";
+
+Operator createijpointOp(
+  "createijpoint",
+  createijpointSpec,
+  1,
+  createijpointMap,
+  createijpointSelect,
+  createijpointTM
+);
+
+/*
+1.1.1 ~createujpoint~
+Creates an ~ujpoint~ from an ~jnet~, an ~jrint~, two ~instant~ and two
+~bool~ values.
+
+*/
+
+const string maps_createujpoint[1][7] =
+{
+  {JNetwork::BasicType(), JRouteInterval::BasicType(), Instant::BasicType(),
+   Instant::BasicType(), CcBool::BasicType(), CcBool::BasicType(),
+   UJPoint::BasicType()}
+};
+
+ListExpr createujpointTM (ListExpr args)
+{
+  return SimpleMaps<1,7>(maps_createujpoint, args);
+}
+
+int createujpointSelect(ListExpr args)
+{
+  return SimpleSelect<1,7>(maps_createujpoint, args);
+}
+
+int createujpointVM( Word* args, Word& result, int message, Word& local,
+                     Supplier s)
+{
+  result = qp->ResultStorage(s);
+  UJPoint* res = static_cast<UJPoint*> (result.addr);
+
+  JNetwork* jnet = (JNetwork*) args[0].addr;
+  JRouteInterval* rint = (JRouteInterval*) args[1].addr;
+  Instant* starttime = (Instant*) args[2].addr;
+  Instant* endtime = (Instant*) args[3].addr;
+  CcBool* lc = (CcBool*) args[4].addr;
+  CcBool* rc = (CcBool*) args[5].addr;
+
+  if (jnet != 0 && jnet->IsDefined() &&
+      rint != 0 && rint->IsDefined() &&
+      starttime != 0 && starttime->IsDefined() &&
+      endtime != 0 && endtime->IsDefined() &&
+      lc != 0 && lc->IsDefined() &&
+      rc != 0 && rc->IsDefined())
+  {
+    UJPoint* ujp = new UJPoint(jnet, rint, starttime, endtime, lc->GetBoolval(),
+                               rc->GetBoolval());
+    *res = *ujp;
+    ujp->DeleteIfAllowed();
+  }
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping createujpointMap[] =
+{
+  createujpointVM
+};
+
+const string createujpointSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + JNetwork::BasicType() + " x " + JRouteInterval::BasicType() +
+  " x " + Instant::BasicType() + " x " + Instant::BasicType() + " x " +
+  CcBool::BasicType() + " x " + CcBool::BasicType() +
+  " -> " + UJPoint::BasicType() + "</text--->"
+  "<text>createujpoint( <jnet>, <jrint>, <instant>, <instant>, <bool>, " +
+  "<bool>) </text--->"
+  "<text>Creates an " + UJPoint::BasicType() + " in the " +
+  JNetwork::BasicType() + " which moves on the given " +
+  JRouteInterval::BasicType() + " within the time interval given by the " +
+  "two " + Instant::BasicType() + " and the two " + CcBool::BasicType() +
+  " values.</text--->"
+  "<text>query createujpoint(netname, createjrint(2, 0.0, 35.4, " +
+  "[const jdirection value(Up)]), createinstant(0.5), createinstant(0.6)," +
+  " TRUE, FALSE) </text--->))";
+
+Operator createujpointOp(
+    "createujpoint",
+    createujpointSpec,
     1,
-    createjlineMap,
-    createjlineSelect,
-    createjlineTM
-  );
+    createujpointMap,
+    createujpointSelect,
+    createujpointTM
+);
+
+/*
+1.1.1 ~createmjpoint~
+Creates an ~mjpoint~ from an ~ujpoint~.
+
+*/
+
+const string maps_createmjpoint[1][2] =
+{
+  {UJPoint::BasicType(), MJPoint::BasicType()}
+};
+
+ListExpr createmjpointTM (ListExpr args)
+{
+  return SimpleMaps<1,2>(maps_createmjpoint, args);
+}
+
+int createmjpointSelect(ListExpr args)
+{
+  return SimpleSelect<1,2>(maps_createmjpoint, args);
+}
+
+int createmjpointVM( Word* args, Word& result, int message, Word& local,
+                     Supplier s)
+{
+  result = qp->ResultStorage(s);
+  MJPoint* res = static_cast<MJPoint*> (result.addr);
+
+  UJPoint* u = (UJPoint*) args[0].addr;
+  if (u != 0 && u->IsDefined())
+  {
+    MJPoint* m = new MJPoint(u);
+    *res = *m;
+    m->DeleteIfAllowed();
+  }
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping createmjpointMap[] =
+{
+  createmjpointVM
+};
+
+const string createmjpointSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + UJPoint::BasicType() + " -> " + MJPoint::BasicType() +
+  "</text--->"
+  "<text>createmjpoint( <ujpoint>) </text--->"
+  "<text>Creates an " + MJPoint::BasicType() + " consisting of an single " +
+  UJPoint::BasicType() + " defined by the input value.</text--->"
+  "<text>query createmjpoint(createujpoint(netname, createjrint(2, 0.0, 35.4," +
+  " [const jdirection value(Up)]), createinstant(0.5), createinstant(0.6)," +
+  " TRUE, FALSE)) </text--->))";
+
+Operator createmjpointOp(
+  "createmjpoint",
+  createmjpointSpec,
+  1,
+  createmjpointMap,
+  createmjpointSelect,
+  createmjpointTM
+);
+
 
 /*
 1.1 Comparision of Data Types
@@ -1974,10 +2261,22 @@ JNetAlgebra::JNetAlgebra():Algebra()
 /*
 1.1.1.1 Datatypes belonging to a network
 
+1.1.1.1.1 Time independent
+
 */
 
   AddOperator(&createjpointOp);
   AddOperator(&createjlineOp);
+  AddOperator(&createjpointsOp);
+
+/*
+1.1.1.1.1 Time dependent
+
+*/
+
+  AddOperator(&createijpointOp);
+  AddOperator(&createujpointOp);
+  AddOperator(&createmjpointOp);
 
 /*
 1.1.1.1 Lists and streams of Data Types
