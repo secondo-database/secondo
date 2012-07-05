@@ -2929,8 +2929,7 @@ struct DisplayJPoint : DisplayFunction {
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      NList nid(nl->First(value));
-      cout << "In network " << nid.str();
+      cout << "In network " << nl->StringValue(nl->First(value));
       cout << " at ";
 
       ListExpr subtype = nl->TheEmptyList();
@@ -2947,13 +2946,35 @@ struct DisplayJLine : DisplayFunction {
       cout << Symbol::UNDEFINED() << endl;
     else
     {
-      NList nid(nl->First(value));
-      cout << "In network " << nid.str()
+      cout << "In network " << nl->StringValue(nl->First(value))
            << " at: " << endl;
 
       ListExpr subtype = nl->TheEmptyList();
       nl->ReadFromString("jrint", subtype);
 
+      ListExpr rest = nl->Second(value);
+      while (!nl->IsEmpty(rest))
+      {
+        DisplayTTY::GetInstance().DisplayResult(subtype, nl->First(rest));
+        rest = nl->Rest(rest);
+      }
+    }
+  }
+};
+
+struct DisplayJPoints : DisplayFunction{
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      NList nid (nl->First(value));
+      cout << "Positions in network " << nid.str()
+           << ": " << endl;
+
+      ListExpr subtype = nl->TheEmptyList();
+      nl->ReadFromString("rloc", subtype);
       ListExpr rest = nl->Second(value);
       while (!nl->IsEmpty(rest))
       {
@@ -3316,6 +3337,7 @@ DisplayTTY::Initialize()
   d.Insert( "jnet", new DisplayJNetwork());
   d.Insert( "jpoint", new DisplayJPoint());
   d.Insert( "jline", new DisplayJLine());
+  d.Insert( "jpoints", new DisplayJPoints());
   d.Insert( "ijpoint", new DisplayIJPoint());
   d.Insert( "ujpoint", new DisplayUJPoint());
   d.Insert( "mjpoint", new DisplayMJPoint());
