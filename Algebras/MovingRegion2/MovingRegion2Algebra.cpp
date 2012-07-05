@@ -51,7 +51,6 @@ of these classes too.
 #include <gmp.h>
 #include <gmpxx.h>
 
-#include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
