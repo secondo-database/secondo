@@ -32,7 +32,8 @@ April, 2012. Matthias Roth
 
 1 Overview
 
-This header file essentially contains the definition of the class ~PointsCreator~.
+This header file essentially contains the definition of the class
+~PointsCreator~.
 
 2 Defines and includes
 

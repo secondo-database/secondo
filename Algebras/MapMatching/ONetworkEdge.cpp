@@ -32,7 +32,8 @@ April, 2012. Matthias Roth
 
 1 Overview
 
-This implementation file contains the implementation of the class ~ONetworkEdge~.
+This implementation file contains the implementation of the class
+~ONetworkEdge~.
 
 
 2 Defines and includes

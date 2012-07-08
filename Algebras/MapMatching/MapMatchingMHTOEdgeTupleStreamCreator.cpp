@@ -32,7 +32,8 @@ April, 2012. Matthias Roth
 
 1 Overview
 
-This header file essentially contains the definition of the class ~MGPointCreator~.
+This header file essentially contains the definition of the class
+~OEdgeTupleStreamCreator~.
 
 2 Defines and includes
 

@@ -32,8 +32,10 @@ January-April, 2012. Matthias Roth
 
 1 Overview
 
-This implementation file contains the implementation of the class ~MapMatchingMHT~.
-It is an map matching algorithm based on the Multiple Hypothesis Technique (MHT)
+This implementation file contains the implementation of the class
+~MapMatchingMHT~.
+It is an map matching algorithm based on the
+Multiple Hypothesis Technique (MHT)
 
 2 Defines and includes
 
@@ -222,10 +224,12 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
     }
 
     // Step 1 - Subdividing trip
+    // Detect spatial and temporal gaps in input-data
+    // Check quality of input-data
     vector<shared_ptr<MapMatchDataContainer> > vecTripSegments;
     TripSegmentation(vecTripSegments);
 
-    // Steps 2-4
+    // Steps 2-5
     std::vector<MHTRouteCandidate*> vecRouteSegments;
 
     for (vector<shared_ptr<MapMatchDataContainer> >::iterator
@@ -237,6 +241,7 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
         if (pContMMData == NULL)
             continue;
 
+        // Step 2 - calculate missing attributes (heading, speed)
         CompleteData(pContMMData.get());
 
         size_t nIdxFirstComponent = 0;
@@ -244,18 +249,18 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
         while(nIdxFirstComponent >= 0 &&
               nIdxFirstComponent < pContMMData->Size())
         {
-            // Step 2 - Determination of initial route/segment candidates
+            // Step 3 - Determination of initial route/segment candidates
             std::vector<MHTRouteCandidate*> vecRouteCandidates;
             nIdxFirstComponent = GetInitialRouteCandidates(pContMMData.get(),
                                                            nIdxFirstComponent,
                                                            vecRouteCandidates);
 
-            // Step 3 - Route developement
+            // Step 4 - Route developement
             nIdxFirstComponent = DevelopRoutes(pContMMData.get(),
                                                nIdxFirstComponent,
                                                vecRouteCandidates);
 
-            // Step 4 - Selection of most likely candidate
+            // Step 5 - Selection of most likely candidate
             MHTRouteCandidate* pBestCandidate = DetermineBestRouteCandidate(
                                                             vecRouteCandidates);
             if (pBestCandidate != NULL)
@@ -291,7 +296,7 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
         }
     }
 
-    // Step 5 - Treatment of gaps between trip segments
+    // Step 6 - Treatment of gaps between trip segments
     //          Create result
     CreateCompleteRoute(vecRouteSegments);
 
@@ -308,7 +313,7 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
 
 /*
 3.3 MapMatchingMHT::CompleteData
-    calculate missing attributes (heading)
+    calculate missing attributes (heading, speed)
 
 */
 
@@ -869,6 +874,7 @@ void MapMatchingMHT::DevelopRoutes(const MapMatchData* pMMData,
             continue;
         }
 
+        // Check Road
         if (bCheckRoadType &&
             !CheckRoadType(pCandidate->GetLastSection(), *pMMData))
         {
@@ -878,6 +884,7 @@ void MapMatchingMHT::DevelopRoutes(const MapMatchData* pMMData,
             continue;
         }
 
+        // Projection
         ENextCandidates eNextCandidates = CANDIDATES_NONE;
         if (!AssignPoint(pCandidate, pMMData, eNextCandidates))
         {

@@ -32,7 +32,8 @@ January-April, 2012. Matthias Roth
 
 1 Overview
 
-This implementation file contains the implementation of the class ~NetworkRoute~.
+This implementation file contains the implementation of the class
+~NetworkRoute~.
 
 
 2 Defines and includes

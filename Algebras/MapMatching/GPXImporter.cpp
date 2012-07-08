@@ -62,7 +62,7 @@ GPXImporter::GPXImporter(const std::string strFileName,
     m_bOk = m_pReader->Open(strFileName);
 
     if (m_bOk)
-    m_pTrkPointIterator = m_pReader->GetTrkPointIterator();
+        m_pTrkPointIterator = m_pReader->GetTrkPointIterator();
 
     ListExpr typeInfo = SecondoSystem::GetCatalog()->
                                        NumericType(GetTupleTypeTrkPtListExpr());

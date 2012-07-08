@@ -32,7 +32,8 @@ January-April, 2012. Matthias Roth
 
 1 Overview
 
-This header file essentially contains the definition of the class ~GPXFileReader~.
+This header file essentially contains the definition of the class
+~GPXFileReader~.
 
 2 Defines and includes
 

@@ -32,7 +32,8 @@ January-April, 2012. Matthias Roth
 
 1 Overview
 
-This implementation file contains the implementation of the class ~GPXFileReader~.
+This implementation file contains the implementation of the class
+~GPXFileReader~.
 This class reads the data from a gpx-file.
 
 2 Defines and includes
@@ -87,7 +88,7 @@ void GPXFileReader::Init(void)
 
 /*
 3.2 GPXFileReader::Open
-    Opens the file and checks, if it it a valid GPX file
+    Opens the file and checks, if it is a valid GPX file
 
 */
 

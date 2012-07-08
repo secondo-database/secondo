@@ -405,18 +405,6 @@ bool MGPointCreator::ConnectPoints(const GPoint& rGPStart,
         {
             NetworkRoute Route(m_pNetwork->GetRoute(GPoint1.GetRouteId()));
 
-            /*bool bDual = pNetwork->GetDual(ri->GetRouteId());
-             bool bMovingUp = true;
-             if (ri->GetStartPos() > ri->GetEndPos())
-             bMovingUp = false;
-             Side side = None;
-             if (bDual && bMovingUp)
-             side = Up;
-             else if (bDual && !bMovingUp)
-             side = Down;
-             else
-             side = None;*/
-
             if (GPoint1.GetPosition() < GPoint2.GetPosition())
             {
                 GPoint1.SetSide(Route.GetStartsSmaller() ? Up : Down);
