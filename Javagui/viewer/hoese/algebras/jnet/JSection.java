@@ -67,15 +67,17 @@ public class JSection{
 
   public JSection(JRouteInterval rint,
                   Point2D.Double pt1, Point2D.Double pt2,
-                  GeneralPath gp, boolean hasArrow,
-                  Rectangle2D.Double box){
+                  GeneralPath cur, GeneralPath curRend, boolean hasArrow,
+                  Rectangle2D.Double box, boolean smaller){
     p1 = new Point2D.Double(pt1.x,pt1.y);
     p2 = new Point2D.Double(pt2.x,pt2.y);
     dir = rint.getDir();
     this.isArrow = hasArrow;
     this.routeIntervals.add(rint);
     this.lenth = rint.getLength();
-    this.curveRendered = gp;
+    this.curveRendered = curRend;
+    this.curve = cur;
+    this.startSmaller = smaller;
     bounds.setRect(box);
   }
 
@@ -107,6 +109,13 @@ public class JSection{
     return getPoint(distFromStartOfSection);
   }
 
+  public Point2D.Double getPosition(double pos){
+    JRouteInterval curInt = routeIntervals.get(0);
+    double distFromStartOfSection = pos - curInt.getStartPos();
+    return getPoint(distFromStartOfSection);
+  }
+
+
   public int contains(RouteLocation rloc){
     for (int i = 0; i < routeIntervals.size(); i++){
       JRouteInterval curInt = routeIntervals.get(i);
@@ -137,27 +146,35 @@ public class JSection{
     return -1;
   }
 
-  public GeneralPath getRenderedCurve(){
-    return curveRendered;
+  public GeneralPath getCurve(boolean rendered){
+    if (rendered)
+      return curveRendered;
+    else
+      return curve;
   }
 
-  public GeneralPath getRenderedCurve(JRouteInterval rint, int pos){
+  public GeneralPath getCurve(JRouteInterval rint, int pos, boolean rendered){
     JRouteInterval curInt = routeIntervals.get(pos);
-    double startpos = rint.getStartPos()-curInt.getStartPos();
+    double startpos = rint.getStartPos()- curInt.getStartPos();
     double endpos = rint.getEndPos() - curInt.getStartPos();
-    return getCurve(startpos, endpos);
+    return getCurve(startpos, endpos, rendered);
   }
 
-  public GeneralPath getRenderedCurveFrom(RouteLocation rloc, int pos){
+  public GeneralPath getCurveFrom(RouteLocation rloc, int pos,
+                                  boolean rendered){
     JRouteInterval curInt = routeIntervals.get(pos);
     double distFromStartOfSection = rloc.getPos() - curInt.getStartPos();
-    return getCurveFrom(distFromStartOfSection);
+    return getCurveFrom(distFromStartOfSection, rendered);
   }
 
-  public GeneralPath getRenderedCurveTo(RouteLocation rloc, int pos){
+  public GeneralPath getCurveTo(RouteLocation rloc, int pos, boolean rendered){
     JRouteInterval curInt = routeIntervals.get(pos);
     double distFromStartOfSection = rloc.getPos() - curInt.getStartPos();
-    return getCurveTo(distFromStartOfSection);
+    return getCurveTo(distFromStartOfSection, rendered);
+  }
+
+  public boolean getStartSmaller(){
+    return startSmaller;
   }
 
   private void readCurve (ListExpr value){
@@ -442,8 +459,8 @@ private static void reverse(Vector<Point2D.Double >  v){
     double lSeg = 0.0;
     double distNew = 0.0;
     // Look for segment
-    while(!pi.isDone() && distOnSection < lenth){
-      pi.next();
+    pi.next();
+    while(!pi.isDone() && distOnSection <= lenth){
       pi.currentSegment(coordsTo);
       lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
                        Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
@@ -457,11 +474,12 @@ private static void reverse(Vector<Point2D.Double >  v){
         coordsFrom[1] = coordsTo[1];
         distOnSection = distNew;
       }
+      pi.next();
     }
     return new Point2D.Double(0.0,0.0); //should never been reached.
   }
 
-  private GeneralPath getCurveFrom(double pos){
+  private GeneralPath getCurveFrom(double pos, boolean rendered){
     GeneralPath gp = new GeneralPath();
     Point2D.Double rendRes = new Point2D.Double(0.0,0.0);
     if (!startSmaller){
@@ -485,14 +503,20 @@ private static void reverse(Vector<Point2D.Double >  v){
         startfound = true;
         double x = coordsFrom[0] + (pos - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
         double y = coordsFrom[1] + (pos - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
-        if (ProjectionManager.project(x,y,rendRes))
-          gp.moveTo((float)rendRes.x, (float)rendRes.y);
-        else
+        if (rendered){
+          if (ProjectionManager.project(x,y,rendRes))
+            gp.moveTo((float)rendRes.x, (float)rendRes.y);
+          else
+            gp.moveTo((float)x,(float)y);
+          if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
+            gp.lineTo((float)rendRes.x,(float) rendRes.y);
+          else
+            gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
+        } else {
           gp.moveTo((float)x,(float)y);
-        if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
-          gp.lineTo((float)rendRes.x,(float) rendRes.y);
-        else
           gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
+        }
+
       }
       coordsFrom[0] = coordsTo[0];
       coordsFrom[1] = coordsTo[1];
@@ -505,10 +529,15 @@ private static void reverse(Vector<Point2D.Double >  v){
         lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
                          Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
         distOnSection = distOnSection + lSeg;
-        if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
-          gp.lineTo((float)rendRes.x,(float) rendRes.y);
-        else
+        if (rendered){
+          if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
+            gp.lineTo((float)rendRes.x,(float) rendRes.y);
+          else
+            gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
+        } else {
           gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
+        }
+
         coordsFrom[0] = coordsTo[0];
         coordsFrom[1] = coordsTo[1];
         pi.next();
@@ -517,7 +546,7 @@ private static void reverse(Vector<Point2D.Double >  v){
     return gp;
   }
 
-  private GeneralPath getCurveTo(double pos){
+  private GeneralPath getCurveTo(double pos, boolean rendered){
     GeneralPath gp = new GeneralPath();
     Point2D.Double rendRes = new Point2D.Double(0.0,0.0);
     if (!startSmaller){
@@ -531,10 +560,15 @@ private static void reverse(Vector<Point2D.Double >  v){
     double lSeg = 0.0;
     double distNew = 0.0;
     boolean endfound = false;
-    if (ProjectionManager.project(coordsFrom[0],coordsFrom[1],rendRes))
-      gp.moveTo((float)rendRes.x, (float)rendRes.y);
-    else
+    if (rendered){
+      if (ProjectionManager.project(coordsFrom[0],coordsFrom[1],rendRes))
+        gp.moveTo((float)rendRes.x, (float)rendRes.y);
+      else
+        gp.moveTo((float)coordsFrom[0],(float)coordsFrom[1]);
+    } else {
       gp.moveTo((float)coordsFrom[0],(float)coordsFrom[1]);
+    }
+
     pi.next();
     while (!pi.isDone() && !endfound && distOnSection < lenth){
       pi.currentSegment(coordsTo);
@@ -542,18 +576,26 @@ private static void reverse(Vector<Point2D.Double >  v){
                        Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
       distNew = distOnSection + lSeg;
       if (distNew <= pos){
-        if (ProjectionManager.project((float)coordsTo[0],(float)coordsTo[1],rendRes))
-          gp.lineTo((float)rendRes.x, (float)rendRes.y);
-        else
+        if (rendered){
+          if (ProjectionManager.project((float)coordsTo[0],(float)coordsTo[1],rendRes))
+            gp.lineTo((float)rendRes.x, (float)rendRes.y);
+          else
+            gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
+        } else {
           gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
+        }
       } else {
         endfound = true;
         double x = coordsFrom[0] + (pos - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
         double y = coordsFrom[1] + (pos - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
-        if (ProjectionManager.project(x,y,rendRes))
-          gp.lineTo((float)rendRes.x,(float) rendRes.y);
-        else
+        if (rendered){
+          if (ProjectionManager.project(x,y,rendRes))
+            gp.lineTo((float)rendRes.x,(float) rendRes.y);
+          else
+            gp.lineTo((float)x,(float)y);
+        } else {
           gp.lineTo((float)x,(float)y);
+        }
       }
       coordsFrom[0] = coordsTo[0];
       coordsFrom[1] = coordsTo[1];
@@ -563,7 +605,7 @@ private static void reverse(Vector<Point2D.Double >  v){
     return gp;
   }
 
-  private GeneralPath getCurve(double from , double to) {
+  private GeneralPath getCurve(double from , double to, boolean rendered) {
     GeneralPath gp = new GeneralPath();
     Point2D.Double rendRes = new Point2D.Double(0.0,0.0);
     if (!startSmaller){
@@ -589,23 +631,35 @@ private static void reverse(Vector<Point2D.Double >  v){
         startfound = true;
         double x = coordsFrom[0] + (from - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
         double y = coordsFrom[1] + (from - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
-        if (ProjectionManager.project(x,y,rendRes))
-          gp.moveTo((float)rendRes.x, (float)rendRes.y);
-        else
-          gp.moveTo((float)x,(float)y);
-        if (to >= distNew) {
-          if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
-            gp.lineTo((float)rendRes.x, (float)rendRes.y);
+        if (rendered){
+          if (ProjectionManager.project(x,y,rendRes))
+            gp.moveTo((float)rendRes.x, (float)rendRes.y);
           else
+            gp.moveTo((float)x,(float)y);
+        } else {
+          gp.moveTo((float)x,(float)y);
+        }
+        if (to >= distNew) {
+          if (rendered){
+            if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
+              gp.lineTo((float)rendRes.x, (float)rendRes.y);
+            else
+              gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
+          }else {
             gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
+          }
         } else {
           endfound = true;
           x = coordsFrom[0] + (to - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
           y = coordsFrom[1] + (to - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
-          if (ProjectionManager.project(x,y,rendRes))
-            gp.lineTo((float)rendRes.x, (float)rendRes.y);
-          else
+          if (rendered){
+            if (ProjectionManager.project(x,y,rendRes))
+              gp.lineTo((float)rendRes.x, (float)rendRes.y);
+            else
+              gp.lineTo((float)x,(float)y);
+          } else {
             gp.lineTo((float)x,(float)y);
+          }
         }
       }
       coordsFrom[0] = coordsTo[0];
@@ -621,18 +675,26 @@ private static void reverse(Vector<Point2D.Double >  v){
                            Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
           distNew = distOnSection + lSeg;
           if (distNew <= to){
-            if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
-              gp.lineTo((float)rendRes.x, (float)rendRes.y);
-            else
+            if (rendered){
+              if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
+                gp.lineTo((float)rendRes.x, (float)rendRes.y);
+              else
+                gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
+            } else {
               gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
+            }
           } else {
             endfound = true;
             double x = coordsFrom[0] + (to - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
             double y = coordsFrom[1] + (to - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
-            if (ProjectionManager.project(x,y,rendRes))
-              gp.lineTo((float)rendRes.x, (float)rendRes.y);
-            else
+            if (rendered){
+              if (ProjectionManager.project(x,y,rendRes))
+                gp.lineTo((float)rendRes.x, (float)rendRes.y);
+              else
+                gp.lineTo((float)x,(float)y);
+            } else {
               gp.lineTo((float)x,(float)y);
+            }
           }
           coordsFrom[0] = coordsTo[0];
           coordsFrom[1] = coordsTo[1];

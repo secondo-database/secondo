@@ -126,11 +126,15 @@ public class JNetwork{
 
   public JSection getSection(JRouteInterval rint){
     Vector<Integer> secIds = getSids(rint.getRid());
+    GeneralPath curSectRenderedPath = null;
     GeneralPath curSectPath = null;
     GeneralPath curveRendered = new GeneralPath();
+    GeneralPath curve = new GeneralPath();
     Rectangle2D.Double bounds = null;
     Point2D.Double p1 = new Point2D.Double(0.0,0.0);
     Point2D.Double p2 = new Point2D.Double(0.0,0.0);
+    Point2D.Double startpoint = new Point2D.Double(0.0,0.0);
+    Point2D.Double endpoint =  new Point2D.Double(0.0,0.0);
     boolean hasArrow = (rint.getDir().toString().compareTo("Both") != 0);
     boolean drawArrow = false;
     boolean up = (rint.getDir().toString().compareTo("Up") == 0);
@@ -143,34 +147,46 @@ public class JNetwork{
         boolean addResult = false;
         int pos = curSect.isCompletelyInside(rint);
         if (pos > -1){
-          curSectPath = curSect.getRenderedCurve();
+          curSectRenderedPath = curSect.getCurve(true);
+          curSectPath = curSect.getCurve(false);
           addResult = true;
         } else {
           pos = curSect.contains(rint);
           if (pos > -1){
-            curSectPath = curSect.getRenderedCurve(rint, pos);
+            curSectRenderedPath = curSect.getCurve(rint, pos, true);
+            curSectPath = curSect.getCurve(rint, pos, false);
             addResult = true;
+            startpoint = curSect.getPosition(rint.getStartRLoc(), pos);
+            endpoint = curSect.getPosition(rint.getEndRLoc(), pos);
             if (hasArrow) drawArrow = true;
           } else {
             pos = curSect.contains(rint.getStartRLoc());
             if (pos > -1) {
-              curSectPath = curSect.getRenderedCurveFrom(rint.getStartRLoc(), pos);
+              curSectRenderedPath = curSect.getCurveFrom(rint.getStartRLoc(),
+                                                         pos,
+                                                         true);
+              curSectPath = curSect.getCurveFrom(rint.getStartRLoc(), pos,
+                                                 false);
               addResult = true;
+              startpoint = curSect.getPosition(rint.getStartRLoc(), pos);
               if (hasArrow && !up) drawArrow = true;
             } else {
               pos = curSect.contains(rint.getEndRLoc());
               if (pos > -1) {
-                curSectPath = curSect.getRenderedCurveTo(rint.getEndRLoc(), pos);
+                curSectRenderedPath = curSect.getCurveTo(rint.getEndRLoc(), pos,
+                                                         true);
+                curSectPath = curSect.getCurveTo(rint.getEndRLoc(),pos, false);
                 addResult = true;
+                endpoint = curSect.getPosition(rint.getEndRLoc(), pos);
                 if (hasArrow && up) drawArrow = true;
               }
             }
           }
         }
-        if (drawArrow && curSectPath != null){
+        if (drawArrow && curSectRenderedPath != null){
           double[] coords1 = new double[6];
           double[] coords2 = new double[6];
-          PathIterator it = curSectPath.getPathIterator(null);
+          PathIterator it = curSectRenderedPath.getPathIterator(null);
           it.currentSegment(coords1);
           it.next();
           it.currentSegment(coords2);
@@ -187,20 +203,25 @@ public class JNetwork{
           p2 = new Point2D.Double(coords2[0], coords2[1]);
           drawArrow = false;
         }
-        if (addResult && curSectPath != null){
-          curveRendered.append(curSectPath,false);
+        if (addResult && curSectRenderedPath != null){
+          curveRendered.append(curSectRenderedPath,false);
+          curve.append(curSectPath, false);
           if (!first)
-            bounds.add(curSectPath.getBounds2D());
+            bounds.add(curSectRenderedPath.getBounds2D());
           else{
             first = false;
             bounds = new Rectangle2D.Double(0.0,0.0,0.0,0.0);
-            bounds.setRect(curSectPath.getBounds2D());
+            bounds.setRect(curSectRenderedPath.getBounds2D());
           }
+          curSectRenderedPath = null;
           curSectPath = null;
           addResult = false;
         }
       }
-      return new JSection(rint, p1, p2, curveRendered, hasArrow, bounds);
+      boolean startSmaller = (startpoint.x < endpoint.x ||
+          (startpoint.x == endpoint.x && startpoint.y <= endpoint.y));
+      return new JSection(rint, p1, p2, curve, curveRendered, hasArrow, bounds,
+                          startSmaller);
     }
     return null;
   }
