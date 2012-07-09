@@ -113,6 +113,7 @@ public class QueryconstructionViewer extends SecondoViewer {
         return getTypeNL;
     }
     
+    //returns the state of the actual query
     public int getState() {
         return MainPane.getState();
     }
@@ -131,7 +132,7 @@ public class QueryconstructionViewer extends SecondoViewer {
     
     //sets the panels up to date and repaints them
     public void update() {
-        MainPane.update(getType(MainPane.getStrings()));
+        MainPane.update();
         OperationsPane.update();
         ObjectPane.update();
     }

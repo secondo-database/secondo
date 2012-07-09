@@ -8,6 +8,7 @@ import sj.lang.ListExpr;
 import java.util.ArrayList;
 import java.util.Iterator;
 import viewer.QueryconstructionViewer;
+import viewer.queryconstruction.StreamView;
 
 /**
  *
@@ -69,7 +70,7 @@ public class ObjectType {
     }
     
     public String[] getAttributes() {
-        if (type.equals(RELATION)) {
+        if (type.equals(RELATION) || type.equals(TRELATION)) {
             ListExpr attlist = list.second().second();
             String attarray[] = new String[attlist.listLength()];
             int i = 0;
@@ -85,7 +86,7 @@ public class ObjectType {
     }
     
     public String[] getAttrTypes() {
-        if (type.equals(RELATION)) {
+        if (type.equals(RELATION) || type.equals(TRELATION)) {
             ListExpr attlist = list.second().second();
             String attarray[] = new String[attlist.listLength()];
             int i = 0;

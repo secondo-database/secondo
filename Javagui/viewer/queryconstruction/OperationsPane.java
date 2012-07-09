@@ -69,26 +69,30 @@ public class OperationsPane extends MainPane {
     
     //updates the operations panel, only allowed operations should be painted black
     public void update() {
+        int state = viewer.getState();
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
             object.setUnactive();
-            if (lastComponent.getType().equals(ObjectType.RELATION) || lastComponent.getType().equals(ObjectType.TRELATION)) {
-                if ("feed".equals(object.getName()) || "count".equals(object.getName())) {
+            String name = object.getName();
+            
+            if (state == StreamView.TUPEL && name.equals("count")) {
+                object.setActive();
+            }
+            if ((state == StreamView.TUPEL || state == StreamView.TWORELATIONS) && name.startsWith("feed")) {
+                object.setActive();
+            }
+            if ((state == StreamView.STREAM || state == StreamView.TWOSTREAMS)) {
+                if (name.startsWith("rename") || name.startsWith("head") || name.startsWith("tail") || name.startsWith("project")) {
                     object.setActive();
                 }
             }
-            if (lastComponent.getName().equals("feed")) {
-                if (object.getName().startsWith("rename") || object.getName().startsWith("head") || object.getName().startsWith("tail") || object.getName().startsWith("project")) {
-                    object.setActive();
-                }
-            }
-            if (object.getName().equals("consume") && (viewer.getState() == MainPane.STREAM || viewer.getState() == MainPane.TWOSTREAMS)) {
+            if (name.equals("consume") && (state == StreamView.STREAM || state == StreamView.TWOSTREAMS)) {
                 object.setActive();
             }
-            if (object.getName().endsWith("join") && (viewer.getState() == MainPane.TWOSTREAMS)) {
+            if (name.endsWith("join") && (state == StreamView.TWOSTREAMS)) {
                 object.setActive();
             }
-            if (object.getName().startsWith("units") && lastComponent.getName().equals("query")) {
+            if (name.startsWith("units") && (state == StreamView.EMPTY)) {
                 object.setActive();
             }
         }

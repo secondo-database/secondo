@@ -8,6 +8,7 @@ import java.awt.Color;
 import java.awt.Graphics;
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import sj.lang.ListExpr;
 import viewer.QueryconstructionViewer;
 
@@ -52,7 +53,7 @@ public class ObjectView extends JComponent {
         
         g.setColor(this.color);
         
-        if (type == ObjectType.OPERATION) {
+        if (type.equals(ObjectType.OPERATION)) {
             g.drawOval(xpos, ypos, 90, 50);
         }
         else {
@@ -111,18 +112,22 @@ public class ObjectView extends JComponent {
         g.drawString(s, xpos + 10, ypos + 10);
     }
     
-    public void getInfo() {
-        if (otype != null) {
-            InfoDialog dialog = new InfoDialog(otype);
-            dialog.view();
+    public void viewInfo(InfoDialog dialog) {
+        //dialog.add(this);
+        JLabel name = new JLabel( otype.getName(), JLabel.LEADING );
+        JLabel type = new JLabel( otype.getType(), JLabel.LEADING );
+        String[] attributes = otype.getAttributes();
+        String[] attrtypes = otype.getAttrTypes();
+        int i = 0;
+        for (String att: attributes) {
+            JLabel label = new JLabel( att, JLabel.LEADING );
+            dialog.add(label);
+            
+            dialog.add(new JLabel( attrtypes[i] ));
+            i++;
         }
-    }
-    
-    public String[] getAttributes() {
-        for (String s : otype.getAttributes()) {
-            System.out.println(s);
-        }
-        return otype.getAttributes();
+        
+        dialog.view();
     }
     
     public String getName() {

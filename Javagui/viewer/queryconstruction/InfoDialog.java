@@ -4,40 +4,37 @@
  */
 package viewer.queryconstruction;
 
+import java.awt.Dimension;
 import java.awt.GridLayout;
 import javax.swing.JDialog;
-import javax.swing.JTable;
-import javax.swing.JLabel;
+import javax.swing.*;
 
 /**
  *
  * @author lrentergent
  */
 public class InfoDialog extends JDialog {
-    
-    private ObjectType object;
-    private String[] attributes;
-    private String[] attrtypes;
-    
-    public InfoDialog(ObjectType object) {
-        this.object = object;
-        this.attributes = object.getAttributes();
-        this.attrtypes = object.getAttrTypes();
-        //setPreferredSize( new Dimension(150, 150) );
+        
+    public InfoDialog(StreamView stream) {
+        
         setLocation(100, 100);
-        setLayout(new GridLayout(0,2));
+        setLayout(new GridLayout(0, 2));
+        setPreferredSize(new Dimension(600, (stream.getHeight()+1)*50));
+        stream.view(this);
+        
+        view();
+    }
+    
+    public InfoDialog(ObjectView object) {
+        object.viewInfo(this);
+    }
+    
+    public void addStream(StreamView stream) {
+        stream.view(this);
     }
     
     public void view() {
-        JLabel title = new JLabel( object.getName() );
-        for (String att: attributes) {
-            JLabel label = new JLabel( att );
-            add(label);
-        }
-        for (String type: attrtypes) {
-            JLabel label = new JLabel( type );
-            add(label);
-        }
+        this.setAlwaysOnTop(true);
         pack();
         setVisible(true);
     }

@@ -9,12 +9,7 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.ButtonGroup;
-import javax.swing.JRadioButton;
-import javax.swing.JDialog;
-import javax.swing.JTextField;
+import javax.swing.*;
 
 /**
  *
@@ -28,20 +23,8 @@ public class OperationsDialog extends JDialog {
     private JCheckBox[] cbs;
     private JRadioButton[] rbs;
     private ButtonGroup radiogroup = new ButtonGroup();
-    
-    public OperationsDialog(MainPane main, String[] atts) {
-        this.main = main;
-        this.attributes = atts;
-        this.cbs = new JCheckBox[atts.length];
-        setLayout(new FlowLayout(FlowLayout.LEADING));
-    }
-    
-    public OperationsDialog(MainPane main, ArrayList<ObjectView> objects) {
-        this.main = main;
-        this.objects = objects;
-        this.rbs = new JRadioButton[objects.size()];
-        setLayout(new GridLayout(0,1));
-    }
+    private ButtonGroup radiogroupRelation1 = new ButtonGroup();
+    private ButtonGroup radiogroupRelation2 = new ButtonGroup();
     
     public OperationsDialog(MainPane main) {
         this.main = main;
@@ -58,13 +41,34 @@ public class OperationsDialog extends JDialog {
         setVisible(true);
     }
     
-    public void project(String[] atts) {
+    public void addCheckboxes(String[] atts) {
+        this.attributes = atts;
+        this.cbs = new JCheckBox[attributes.length];
         int i = 0;
-        for (String att: atts) {
+        for (String att: attributes) {
             cbs[i] = new JCheckBox( att, false );
             add(cbs[i]);
             i++;
         }
+    }
+    
+    public ButtonGroup addRadiobuttons(String[] atts) {
+        this.attributes = atts;
+        ButtonGroup rGroup = new ButtonGroup();
+        this.rbs = new JRadioButton[attributes.length];
+        int i = 0;
+        for (String att: attributes) {
+            rbs[i] = new JRadioButton( att );
+            rbs[i].setActionCommand(att);
+            this.add(rbs[i]);
+            rGroup.add(rbs[i]);
+            i++;
+        }
+        return rGroup;
+    }
+    
+    public void project(String[] atts) {
+        addCheckboxes(atts);
         
         ActionListener al = new ActionListener() {
             public void actionPerformed( ActionEvent e ) {
@@ -86,8 +90,10 @@ public class OperationsDialog extends JDialog {
         this.setVisible(false);
     }
     
-    public void filter(){
+    public void filter(String[] atts){
         int i = 0;
+        this.attributes = atts;
+        this.cbs = new JCheckBox[attributes.length];
         for (JCheckBox cb: this.cbs) {
             if (!cb.isSelected()) {
                 attributes[i] = cb.getName();
@@ -96,20 +102,22 @@ public class OperationsDialog extends JDialog {
         }
     }
     
-    public void joinAttributes(ObjectType r1, ObjectType r2){
+    public void joinAttributes(StreamView r1, StreamView r2){
         setLayout(new GridLayout(0,1));
-        this.attributes = r1.getAttributes();
-        this.cbs = new JCheckBox[attributes.length];
-        int i = 0;
-        for (JCheckBox cb: this.cbs) {
-            attributes[i] = cb.getName();
-            i++;
-        }
+        this.radiogroupRelation1 = addRadiobuttons(r1.getAttributes());
+        this.radiogroupRelation2 = addRadiobuttons(r2.getAttributes());
+        ActionListener al = new ActionListener() {
+            public void actionPerformed( ActionEvent e ) {
+                sendObject(e);
+            }
+        };
+        show(al);
     }
     
     //shows a radiobutton list of objects of the type "type"
     public void getObjects(String type, ArrayList<ObjectView> objects) {
         int i = 0;
+        this.rbs = new JRadioButton[objects.size()];
         for (ObjectView o: objects) {
             if (o.getType().equals(type)) {
                 rbs[i] = new JRadioButton(o.getName());
@@ -129,7 +137,11 @@ public class OperationsDialog extends JDialog {
     
     //adds the name of the object to the operation
     public void sendObject(ActionEvent e) {
-        main.addString(radiogroup.getSelection().getActionCommand());
+        if (this.radiogroupRelation1.getButtonCount() > 0) {
+            main.addString(radiogroupRelation1.getSelection().getActionCommand()+ ", " + radiogroupRelation2.getSelection().getActionCommand());
+        } else {
+            main.addString(radiogroup.getSelection().getActionCommand());
+        }
         this.setVisible(false);
     }
     
@@ -146,6 +158,7 @@ public class OperationsDialog extends JDialog {
         show(al);
     }
     
+    //adds the text to the operation name
     public void sendText(ActionEvent e, JTextField text){
         main.addString(text.getText());
         setVisible(false);

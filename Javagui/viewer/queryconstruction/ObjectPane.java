@@ -67,7 +67,7 @@ public class ObjectPane extends MainPane {
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
             object.setUnactive();
-            if ((object.getType().equals("rel") || object.getType().equals("trel")) && super.getState() < MainPane.TWOSTREAMS) {
+            if ((object.getType().equals("rel") || object.getType().equals("trel")) && viewer.getState() < StreamView.TWOSTREAMS) {
                 object.setActive();
             }
         }
@@ -88,6 +88,21 @@ public class ObjectPane extends MainPane {
                             ObjectView new_object = new ObjectView(element.getType(), element.getName());
                             new_object.setOType(element.getOType());
                             viewer.addObject(new_object);
+                        }
+                    }
+                }
+            }
+        }
+        
+        if (arg0.getButton() == 3) {
+            int x = 0;
+            if (10 < arg0.getY() && arg0.getY() < 80) {
+                while (arg0.getX() > (10 + x*120)) { x++; }
+                if (arg0.getX() < (10 + x*120)) {
+                    if (x <= elements.size()) {
+                        if (elements.get(x-1).isActive()) {
+                            ObjectView element = elements.get(x-1);
+                            new InfoDialog(element);
                         }
                     }
                 }
