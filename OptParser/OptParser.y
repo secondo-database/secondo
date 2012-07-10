@@ -98,9 +98,9 @@ Define simple token and token holding a value.
 
 %token<strval> TOKEN_ID "identifier" TOKEN_VARIABLE "variable" TOKEN_DIGIT "digit" TOKEN_smallLetter "small letter" TOKEN_LETTER "letter" TOKEN_SYMBOL "symbol" TOKEN_TEXT "text" TOKEN_CONST "keyword const" TOKEN_STAR "symbol *" TOKEN_PLUS "symbol +" TOKEN_MINUS "symbol -" TOKEN_SMALL_THAN "symbol <" TOKEN_SMALL_THAN_EQUAL "symbol <=" TOKEN_EQUAL "symbol =" TOKEN_GREATER_THAN_EQUAL "symbol >=" TOKEN_GREATER_THAN "symbol >" TOKEN_HASH "symbol #" TOKEN_DOUBLE_BRACKET "symbol <>" TOKEN_INT "integer value" TOKEN_STRING "string value" TOKEN_REAL "real value"
 
- 
-%type<attrset> attribute attributeboolexpr attributeexpr attributeexprlist attributename compareoperator const firstclause groupbyattributelist groupbyclause insertquery integer mquery orderbyclause orderbyattribute orderbyattributelist predicate predicatelist quant query relation relclause relationlist result resultlist selclause sqlclause subquerypred transform transformclause transformlist whereclause operator updatequery value valuelist updateexpression
+%type<attrset> attribute attributeboolexpr attributeexpr attributeexprlist attributename compareoperator const firstclause groupbyattributelist groupbyclause insertquery integer mquery orderbyclause orderbyattribute orderbyattributelist predicate predicatelist quant query relation relclause relationlist result resultlist selclause sqlclause subquerypred transform transformclause transformlist whereclause operator updatequery value valuelist updateexpression deletequery createquery
 %type<strval> identifier relationname newname  
+
 %start start
 
 %% 
@@ -127,17 +127,13 @@ attribute : attributename
             }            
 ;
 
-//TODO fix insert into OptParseStruct
-
 // TODO predicate may not compare 2 constants catch that
 attributeboolexpr : attribute compareoperator attributeexpr 
                     {
                          $1->mergeStruct($2);
                          $1->mergeStruct($3);
                          $1->mergeStruct($3);
-                         $$ = $1;
-                         
-                         
+                         $$ = $1;     
                     }
                   | attribute compareoperator attributeexpr 
                     {
@@ -191,18 +187,23 @@ attributeexpr : attribute
                     $$ = $1;
                     
                 }
-              // operator without parameter      
+              // postfixbrackets without parameter      
               | operator TOKEN_OPEN_BRACKET TOKEN_CLOSE_BRACKET
                 {
                     $$ = $1;                    
                 }
-                | attributeexpr compareoperator attributeexpr
-                  {
+              // postfixbrackets with parameter      
+              | operator TOKEN_OPEN_BRACKET TOKEN_STAR TOKEN_CLOSE_BRACKET
+                {
+                    $$ = $1;           
+                }  
+              | attributeexpr compareoperator attributeexpr
+                {
                   
                        $2->mergeStruct($1);
                        $2->mergeStruct($3);
                        $$ = $2;
-                  }            
+                }            
 ;
 
 attributeexprlist : attributeexpr
@@ -228,6 +229,13 @@ attributename : identifier
                  $$->addAttribute($3,$1);
                 }
 ;
+
+column : newname TOKEN_COLON datatype
+;
+
+columnlist : column
+           | columnlist TOKEN_COMMA column
+;           
 
 compareoperator : TOKEN_SMALL_THAN
                   {     
@@ -303,9 +311,36 @@ const : TOKEN_BOOL
         }
 ;
 
+createquery : TOKEN_CREATE TOKEN_TABLE newname TOKEN_COLUMNS TOKEN_SQOPEN_BRACKET columnlist TOKEN_SQCLOSE_BRACKET
+            | TOKEN_CREATE TOKEN_INDEX TOKEN_ON relationname TOKEN_COLUMNS indexclause
+          
+;
+
+datatype : TOKEN_INT
+         | TOKEN_REAL
+         | TOKEN_BOOL
+         | TOKEN_STRING
+         | TOKEN_LINE
+         | TOKEN_POINTS
+         | TOKEN_MPOINT
+         | TOKEN_UREGION
+;
+
+deletequery : TOKEN_DELETE TOKEN_FROM relationname whereclause
+            {
+               $$ = new OptParseStruct();
+               $$->addRelation($3)
+            }
+;
+
 distinct : TOKEN_DISTINCT
          | TOKEN_ALL
          | /* epsilon */
+;
+
+dropquery : TOKEN_DROP TOKEN_TABLE relationname
+          | TOKEN_DROP TOKEN_INDEX indexname
+          | TOKEN_DROP TOKEN_INDEX TOKEN_ON relationname indexclause
 ;
 
 firstclause : TOKEN_LAST TOKEN_INT
@@ -337,6 +372,7 @@ groupbyattributelist: attribute
                          //TODO merge structures
                          $$=$1
                       }
+;
                     
 groupbyclause : TOKEN_GROUP_BY TOKEN_SQOPEN_BRACKET groupbyattributelist TOKEN_SQCLOSE_BRACKET
                 { 
@@ -360,7 +396,6 @@ groupbyclause : TOKEN_GROUP_BY TOKEN_SQOPEN_BRACKET groupbyattributelist TOKEN_S
 
 identifier : TOKEN_ID
              { 
-               //check if it is a valid id
                if (optutils::isValidID($1))
                {
                     cout << "--- " << $1 << " is a valid ID" << endl;
@@ -371,6 +406,21 @@ identifier : TOKEN_ID
                }
                $$ = $1;
              }
+;
+
+indexclause : attributename
+            | attributename TOKEN_INDEX_TYPE indextype
+;
+
+indextype : TOKEN_BTREE 
+          | TOKEN_RTREE
+          | TOKEN_HASH1
+;
+
+indexname : TOKEN_ID
+            {
+               //TODO check for index existence
+            }
 ;
 
 insertquery : TOKEN_INSERT TOKEN_INTO relation TOKEN_VALUES valuelist
@@ -414,21 +464,28 @@ mquery : query
           $$ = $1;
          }
        | insertquery
-         {
-          $$ = $1;
-         } 
        | updatequery 
-         {
-          $$ = $1;
-         }
-       /*TODO
-       | delete_query
+       | deletequery
+       | createquery
+       | dropquery
+       | TOKEN_UNION TOKEN_SQOPEN_BRACKET querylist TOKEN_SQCLOSE_BRACKET
+       | TOKEN_INTERSECTION TOKEN_SQOPEN_BRACKET querylist TOKEN_SQCLOSE_BRACKET
+;
 
-       | create_query
-       | drop_query
-       | TOKEN_UNION TOKEN_SQOPEN_BRACKET query_list TOKEN_SQCLOSE_BRACKET
-       | TOKEN_INTERSECTION TOKEN_SQOPEN_BRACKET query_list TOKEN_SQCLOSE_BRACKET
-       */
+nestedlist : TOKEN_OPEN_BRACKET nestedlistelementlist TOKEN_CLOSE_BRACKET
+           | TOKEN_OPEN_BRACKET TOKEN_CLOSE_BRACKET
+;
+
+nestedlistelementlist : nestedlistelement                        
+                      | nestedlistelementlist nestedlistelement
+;
+
+nestedlistelement: nestedlist             
+                 | TOKEN_BOOL              
+                 | TOKEN_INT
+                 | TOKEN_STRING
+                 | TOKEN_TEXT
+                 | TOKEN_REAL
 ;
 
 newname : TOKEN_ID
@@ -502,7 +559,6 @@ orderbyclause : TOKEN_ORDER_BY TOKEN_SQOPEN_BRACKET orderbyattributelist TOKEN_S
                 }
 ;
 
-
 predicate : attributeboolexpr 
             {
                $$ = $1;
@@ -510,6 +566,7 @@ predicate : attributeboolexpr
           | subquerypred 
             {
                $$ = $1; 
+               $$->subqueriesAllowed();               
             }
 ;
 
@@ -538,6 +595,11 @@ query : TOKEN_SELECT distinct selclause TOKEN_FROM relclause whereclause groupby
                $$ = $5;
             }
 ;
+
+querylist : query
+          | querylist TOKEN_COMMA query
+;          
+
 quant : TOKEN_ANY
         {
             $$ = new OptParseStruct();
@@ -657,10 +719,14 @@ sqlclause :  TOKEN_LET newname mquery
                $$ = $5;
              }
           
-          |  TOKEN_SQL mquery
+          | TOKEN_SQL mquery
              {
                $$ = $2;
              }
+          | mquery
+             {
+               $$ = $1;
+             }             
           | TOKEN_SQL TOKEN_OPEN_BRACKET mquery TOKEN_COMMA TOKEN_TEXT  TOKEN_CLOSE_BRACKET
             {
                $$ = $3;
@@ -712,7 +778,6 @@ transform : TOKEN_ID TOKEN_EQUAL updateexpression
             }
 ;
 
-
 valuelist : value
           | valuelist TOKEN_COMMA value
 ;
@@ -739,7 +804,6 @@ whereclause : TOKEN_WHERE predicate
              }
              | TOKEN_WHERE TOKEN_SQOPEN_BRACKET predicatelist TOKEN_SQCLOSE_BRACKET
                { 
-                    $3->subqueriesAllowed();
                     cout << "whereclause : TOKEN_WHERE TOKEN_SQOPEN_BRACKET predicatelist TOKEN_SQCLOSE_BRACKET" << endl;               
                     $$ = $3;
                }
@@ -750,9 +814,7 @@ whereclause : TOKEN_WHERE predicate
 ;
 
 updateexpression : const
-                   { 
-                    $$ = new OptParseStruct(); 
-                   }
+                 | nestedlist
 ;
 
 updatequery : TOKEN_UPDATE relation TOKEN_SET transformclause whereclause
