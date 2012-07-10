@@ -901,7 +901,7 @@ class GPointList
           pCurrJunction = xJunctions[i];
           if (AlmostEqualAbsolute( pCurrJunction.GetRouteMeas(),
                                    gp->GetPosition(),
-                                   pNetwork->GetScalefactor()*0-01))
+                                   pNetwork->GetScalefactor()*0.01))
           {
             found = true;
             aliasGP.Append ( GPoint( true, gp->GetNetworkId(),
@@ -11796,12 +11796,17 @@ int OpRouteIntervalsValueMapping ( Word* args,
   RectangleList* localinfo;
   Rectangle<2> res;
   result = qp->ResultStorage ( in_xSupplier );
+  GLine* source = (GLine*) args[0].addr;
   switch ( message )
   {
     case OPEN:
-      local = SetWord ( new RectangleList ( ( GLine* ) args[0].addr ) );
+      if (source->IsDefined())
+        local = SetWord ( new RectangleList (source));
+      else
+        local = SetWord (Address(0));
       return 0;
     case REQUEST:
+      if (local.addr == 0) return CANCEL;
       localinfo = ( RectangleList* ) local.addr;
       res = localinfo->NextRectangle();
       if ( !res.IsDefined() ) return CANCEL;

@@ -1736,46 +1736,48 @@ void MGPoint::SetTrajectory(GLine src){
 }
 
 void MGPoint::Trajectory(GLine* res) {
-  if (m_traj_Defined) {
-    if (m_trajectory.Size() > 0) {
-      res->SetNetworkId(GetNetworkId());
-      RouteInterval ri;
-      for (int i = 0; i < m_trajectory.Size(); i++){
-        m_trajectory.Get(i,ri);
-        res->AddRouteInterval(ri.GetRouteId(), ri.GetStartPos(),
-                              ri.GetEndPos());
-      }
-      res->SetSorted(true);
-      res->SetDefined(true);
-    } else res->SetDefined(false);
-  } else {
-    if (GetNoComponents() > 0) {
-      UGPoint pCurrentUnit;
-      Get(0, pCurrentUnit);
-      res->SetNetworkId(GetNetworkId());
-      res->SetDefined(true);
-      int aktRouteId = pCurrentUnit.p0.GetRouteId();
-      double aktStartPos = pCurrentUnit.p0.GetPosition();
-      double aktEndPos = pCurrentUnit.p1.GetPosition();
-      chkStartEnd(aktStartPos, aktEndPos);
-      RITree *tree;
-      tree = new RITree(aktRouteId, aktStartPos, aktEndPos,0,0);
-      int curRoute;
-      double curStartPos, curEndPos;
-      for (int i = 1; i < GetNoComponents(); i++)
-      {
-        // Get start and end of current unit
-        Get(i, pCurrentUnit);
-        curRoute = pCurrentUnit.p0.GetRouteId();
-        curStartPos = pCurrentUnit.p0.GetPosition();
-        curEndPos = pCurrentUnit.p1.GetPosition();
-        chkStartEnd(curStartPos, curEndPos);
-        if (curRoute != aktRouteId) {
-          tree->Insert(aktRouteId, aktStartPos, aktEndPos);
-          aktRouteId = curRoute;
-          aktStartPos = curStartPos;
-          aktEndPos = curEndPos;
-        } else { // curRoute == aktRouteId concat pieces if possible
+  if (IsDefined())
+  {
+    if (m_traj_Defined) {
+      if (m_trajectory.Size() > 0) {
+        res->SetNetworkId(GetNetworkId());
+        RouteInterval ri;
+        for (int i = 0; i < m_trajectory.Size(); i++){
+          m_trajectory.Get(i,ri);
+          res->AddRouteInterval(ri.GetRouteId(), ri.GetStartPos(),
+                                ri.GetEndPos());
+        }
+              res->SetSorted(true);
+              res->SetDefined(true);
+      } else res->SetDefined(false);
+    } else {
+      if (GetNoComponents() > 0) {
+        UGPoint pCurrentUnit;
+        Get(0, pCurrentUnit);
+        res->SetNetworkId(GetNetworkId());
+        res->SetDefined(true);
+        int aktRouteId = pCurrentUnit.p0.GetRouteId();
+        double aktStartPos = pCurrentUnit.p0.GetPosition();
+        double aktEndPos = pCurrentUnit.p1.GetPosition();
+        chkStartEnd(aktStartPos, aktEndPos);
+        RITree *tree;
+        tree = new RITree(aktRouteId, aktStartPos, aktEndPos,0,0);
+        int curRoute;
+        double curStartPos, curEndPos;
+        for (int i = 1; i < GetNoComponents(); i++)
+        {
+          // Get start and end of current unit
+                  Get(i, pCurrentUnit);
+                  curRoute = pCurrentUnit.p0.GetRouteId();
+                  curStartPos = pCurrentUnit.p0.GetPosition();
+                  curEndPos = pCurrentUnit.p1.GetPosition();
+                  chkStartEnd(curStartPos, curEndPos);
+                  if (curRoute != aktRouteId) {
+                    tree->Insert(aktRouteId, aktStartPos, aktEndPos);
+                    aktRouteId = curRoute;
+                    aktStartPos = curStartPos;
+                    aktEndPos = curEndPos;
+                  } else { // curRoute == aktRouteId concat pieces if possible
           if (curEndPos >= aktStartPos && curStartPos < aktStartPos)
             aktStartPos = curStartPos;
           else {
@@ -1788,18 +1790,23 @@ void MGPoint::Trajectory(GLine* res) {
               aktEndPos = curEndPos;
             }
           }
+                  }
         }
-      }
-      tree->Insert(aktRouteId, aktStartPos, aktEndPos);
-      tree->TreeToGLine(res);
-      tree->TreeToDbArray(&(this->m_trajectory));
-      tree->RemoveTree();
-      res->SetSorted(true);
-      res->SetDefined(true);
-      SetTrajectoryDefined(true);
-    } else res->SetDefined(false);
+              tree->Insert(aktRouteId, aktStartPos, aktEndPos);
+              tree->TreeToGLine(res);
+              tree->TreeToDbArray(&(this->m_trajectory));
+              tree->RemoveTree();
+              res->SetSorted(true);
+              res->SetDefined(true);
+              SetTrajectoryDefined(true);
+      } else res->SetDefined(false);
+    }
+    res->TrimToSize();
   }
-  res->TrimToSize();
+  else
+  {
+    res->SetDefined(false);
+  }
 }
 
 void MGPoint::Deftime(Periods &res) const{
@@ -8626,8 +8633,8 @@ int OpPasses(Word* args,
   result = SetWord( pPasses);
   // Get input values
   MGPoint* pMGPoint = (MGPoint*)args[0].addr;
-  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
-      !pMGPoint->IsDefined()) {
+  if(pMGPoint == NULL || !pMGPoint->IsDefined() ||
+     pMGPoint->GetNoComponents() < 1 ) {
     pPasses->Set(false, false);
     return 0;
   }
@@ -8710,11 +8717,10 @@ int OpSimplifyValueMapping(Word* args,
   MGPoint* pMGPointSimplified = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;
   result = SetWord( pMGPointSimplified );
 
-  if(pMGPoint->GetNoComponents() == 0)
+  if(pMGPoint == NULL || !pMGPoint->IsDefined() ||
+     pMGPoint->GetNoComponents() == 0)
   {
-    string strMessage = "MGPoint is Empty.";
-    cerr << endl << strMessage << endl << endl;
-    pMGPoint->SetDefined(false);
+    pMGPointSimplified->SetDefined(false);
     return 0;
   }
   pMGPoint->Simplify(dEpsilon, pMGPointSimplified);
@@ -8769,8 +8775,8 @@ int OpAt(Word* args,
   pResult->Clear();
   // Get input values
   MGPoint* pMGPoint = (MGPoint*)args[0].addr;
-  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
-      !pMGPoint->IsDefined()) {
+  if(pMGPoint == NULL || !pMGPoint->IsDefined() ||
+     pMGPoint->GetNoComponents() < 1 ) {
     pResult->SetDefined(false);
     return 1;
   }
@@ -8968,7 +8974,7 @@ int OpDeftime(Word* args, Word& result, int message, Word& local,
   Periods* res = (Periods*) qp->ResultStorage(in_xSupplier).addr;
   result = SetWord(res);
   Arg* pArg = (Arg*) args[0].addr;
-  if (!pArg->IsDefined()) {
+  if (pArg == NULL || !pArg->IsDefined()) {
     res->Clear();
     res->SetDefined(false);
     return 1;
@@ -9090,8 +9096,8 @@ int OpInsideValueMapping(Word* args,
   pResult->Clear();
   // Get input values
   MGPoint* pMGPoint = (MGPoint*)args[0].addr;
-  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
-      !pMGPoint->IsDefined()) {
+  if(pMGPoint == NULL || !pMGPoint->IsDefined()||
+     pMGPoint->GetNoComponents() < 1 ) {
     cerr << "MGPoint does not exist." << endl;
     pResult->SetDefined(false);
     return 0;
@@ -9455,7 +9461,7 @@ int OpPresent(Word* args,
   // Get input values
   Arg1* pMGPoint = (Arg1*) args[0].addr;
   Arg2* pTime = (Arg2*) args[1].addr;
-  if (pMGPoint == NULL || pTime == 0 || !pMGPoint->IsDefined() ||
+  if (pMGPoint == NULL || pTime == NULL || !pMGPoint->IsDefined() ||
       !pTime->IsDefined()){
     pPresent->Set(false, false);
     return 1;
@@ -9563,8 +9569,8 @@ int OpTrajectoryValueMapping(Word* args,
   result = SetWord( pGLine);
   // Get input values
   MGPoint* pMGPoint = (MGPoint*)args[0].addr;
-  if(pMGPoint == NULL || pMGPoint->GetNoComponents() < 1 ||
-      !pMGPoint->IsDefined()) {
+  if(pMGPoint == NULL || !pMGPoint->IsDefined() ||
+     pMGPoint->GetNoComponents() < 1) {
     cerr << "MGPoint does not exist." << endl;
     pGLine->SetDefined(false);
     return 0;
@@ -9821,7 +9827,7 @@ int OpUnitBoxValueMapping( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   Rectangle<3>* box = static_cast<Rectangle<3>* >(result.addr);
   UGPoint* arg = static_cast<UGPoint*>(args[0].addr);
-  if(!arg->IsDefined()) box->SetDefined(false);
+  if(arg == NULL || !arg->IsDefined()) box->SetDefined(false);
   else (*box) = arg->NetBoundingBox3d();
   return 0;
 }
@@ -9864,7 +9870,7 @@ int OpUnitBox2ValueMapping( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   Rectangle<2>* box = static_cast<Rectangle<2>* >(result.addr);
   UGPoint* arg = static_cast<UGPoint*>(args[0].addr);
-  if(!arg->IsDefined()){
+  if(arg == NULL || !arg->IsDefined()){
     box->SetDefined(false);
   } else {
     (*box) = arg->NetBoundingBox2d();
@@ -9909,7 +9915,7 @@ int OpUnitBoundingBoxValueMapping( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   Rectangle<3>* box = static_cast<Rectangle<3>* >(result.addr);
   UGPoint* arg = static_cast<UGPoint*>(args[0].addr);
-  if(!arg->IsDefined()){
+  if(arg == NULL || !arg->IsDefined()){
     box->SetDefined(false);
   } else {
     (*box) = arg->BoundingBox();
@@ -9952,7 +9958,7 @@ int OpMGPointBoundingBoxValueMapping( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   Rectangle<3>* box = static_cast<Rectangle<3>* >(result.addr);
   MGPoint* arg = static_cast<MGPoint*>(args[0].addr);
-  if(!arg->IsDefined() || arg->GetNoComponents()<1){
+  if(arg == NULL || !arg->IsDefined() || arg->GetNoComponents()<1){
     box->SetDefined(false);
   } else {
     *box = arg->BoundingBox();
@@ -10054,15 +10060,15 @@ int OpDistanceValueMapping(Word* args,
 //   pResult->SetDefined(true);
   // Get input values
   MGPoint* pMGPoint1 = (MGPoint*)args[0].addr;
-  if(pMGPoint1 == NULL || pMGPoint1->GetNoComponents() < 1 ||
-      !pMGPoint1->IsDefined()) {
+  if(pMGPoint1 == NULL || !pMGPoint1->IsDefined() ||
+     pMGPoint1->GetNoComponents() < 1) {
     cerr << "First mgpoint does not exist." << endl;
     pResult->SetDefined(false);
     return 0;
   }
   MGPoint* pMGPoint2 = (MGPoint*)args[1].addr;
-  if(pMGPoint2 == NULL || pMGPoint2->GetNoComponents() < 1 ||
-      !pMGPoint2->IsDefined()) {
+  if(pMGPoint2 == NULL ||  !pMGPoint2->IsDefined() ||
+     pMGPoint2->GetNoComponents() < 1 ) {
     sendMessages("Second mgpoint does not exist.");
     pResult->SetDefined(false);
     return 0;
@@ -10361,18 +10367,20 @@ int OpMgpsu2tupleValueMap(Word* args, Word& result, int message,
       if (qp->Received(args[0].addr))
       {
         MGPSecUnit *m = (MGPSecUnit*) curAddr.addr;
-        Tuple *newTuple = new Tuple( resultTupleType );
-        newTuple->PutAttribute(0, new CcInt(true, m->GetSecId()));
-        newTuple->PutAttribute(1, new CcInt(true, m->GetPart()));
-        newTuple->PutAttribute(2, new CcInt(true, m->GetDirect()));
-        newTuple->PutAttribute(3, new CcReal(true, m->GetSpeed()));
-        newTuple->PutAttribute(4, new Instant(m->GetTimeInterval().start));
-        newTuple->PutAttribute(5, new Instant(m->GetTimeInterval().end));
-        newTuple->PutAttribute(6, new CcBool(true,m->GetTimeInterval().lc));
-        newTuple->PutAttribute(7, new CcBool(true,m->GetTimeInterval().rc));
-        result.setAddr(newTuple);
-        m->DeleteIfAllowed();
-        return YIELD;
+        if (m != NULL && m->IsDefined()){
+          Tuple *newTuple = new Tuple( resultTupleType );
+          newTuple->PutAttribute(0, new CcInt(true, m->GetSecId()));
+          newTuple->PutAttribute(1, new CcInt(true, m->GetPart()));
+          newTuple->PutAttribute(2, new CcInt(true, m->GetDirect()));
+          newTuple->PutAttribute(3, new CcReal(true, m->GetSpeed()));
+          newTuple->PutAttribute(4, new Instant(m->GetTimeInterval().start));
+          newTuple->PutAttribute(5, new Instant(m->GetTimeInterval().end));
+          newTuple->PutAttribute(6, new CcBool(true,m->GetTimeInterval().lc));
+          newTuple->PutAttribute(7, new CcBool(true,m->GetTimeInterval().rc));
+          result.setAddr(newTuple);
+          m->DeleteIfAllowed();
+          return YIELD;
+        }
       }
       else return CANCEL;
     }
