@@ -12,15 +12,16 @@
 # Create and open database                                                    #
 ###############################################################################
 
-create database testdb;
+create database dodb;
 
-open database testdb;
+open database dodb;
 
 ###############################################################################
 # Set import parameter                                                        #
 ###############################################################################
 
-let SOURCEFILE = '/home/jandt/Downloads/OSM-Dateien/jnettest.osm';
+let SOURCEFILE = '/home/jandt/Downloads/OSM-Dateien/Dortmund.osm';
+
 
 ###############################################################################
 # import osm data from file                                                   #
@@ -152,7 +153,8 @@ consume;
 let SpatialWayCurveSimple =
   OsmWays feed
   SpatialPosOfNodes feed
-  hashjoin[NodeRef, NodeId, 99997]
+  hashjoin[NodeRef, NodeId]
+  filter[.NodeRef = .NodeId]
   project[WayId, NodeCounter, NodePos]
   sortby [WayId, NodeCounter]
   groupby[WayId; WayCurve: group feed projecttransformstream[NodePos] collect_sline[TRUE]]
@@ -163,9 +165,11 @@ let SpatialWayCurveComplex =
   SpatialWayCurveSimple feed
     filter[not(isdefined(.WayCurve))] {s}
   hashjoin[WayId, WayId_s]
+  filter[.WayId = .WayId_s]
   project[WayId, NodeCounter, NodeRef]
   SpatialPosOfNodes feed
-  hashjoin[NodeRef, NodeId, 99997]
+  hashjoin[NodeRef, NodeId]
+  filter[.NodeRef = .NodeId]
   project[WayId, NodeCounter, NodePos]
   sortby [WayId, NodeCounter]
   groupby[WayId; WayCurve: group feed projecttransformstream[NodePos] collect_line[TRUE],
@@ -198,6 +202,7 @@ let NestedNodeRel =
   SpatialPosOfNodes feed
   OsmNodeTags feed
   hashjoin[NodeId,NodeIdInTag]
+  filter[.NodeId = .NodeIdInTag]
   project[NodeId, NodePos, NodeTagKey, NodeTagValue]
   sortby[NodeId, NodePos, NodeTagKey, NodeTagValue]
   rdup
@@ -208,6 +213,7 @@ let NestedWayRel =
   SpatialWayCurve feed
   OsmWayTagNew feed
   hashjoin [WayId, WayIdInTag]
+  filter[.WayId = .WayIdInTag]
   project[WayId, WayCurve, WayTagKey, WayTagValue]
   filter[not(((.WayTagKey = "oneway") and ((.WayTagValue = "no") or
                                            (.WayTagValue = "false") or
@@ -230,6 +236,7 @@ let NestedRelationRel =
   OsmRelations feed
   OsmRelationTags feed
   hashjoin[RelId, RelIdInTag]
+  filter[.RelId = .RelIdInTag]
   project[RelId, RefCounter, MemberRef, MemberType, MemberRole, RelTagKey, RelTagValue]
   sortby[RelId, RefCounter,  MemberRef, MemberType, MemberRole, RelTagKey, RelTagValue]
   rdup
@@ -364,6 +371,7 @@ let RoadPartSectionsTmp1 =
          Lenth: size(.SectCurve)]
   RoadParts feed {r1}
   hashjoin[WayId, WayId_r1]
+  filter[.WayId = .WayId_r1]
   projectextend[WayId, SectCurve, StartPoint, EndPoint, 
     Lenth; WayCurve: .WayCurve_r1,
       Oneway: ifthenelse(.WayInfo_r1 afeed
@@ -411,6 +419,7 @@ let JunctionsAndWayCrossings =
   project[WayId1, WayId2, Point, Jid]
   RoadPartSectionsTmp1 feed {r1}
   hashjoin[WayId1, WayId_r1]
+  filter[.WayId1 = .WayId_r1]
   filter[(.Jid = .StartJid_r1) or (.Jid = .EndJid_r1)]
   projectextend[WayId1, WayId2, Point, Jid; Sid1: .Sid_r1,
     S1SectCurve: .SectCurve_r1,
@@ -427,6 +436,7 @@ let JunctionsAndWayCrossings =
                                               [const jdirection value(Down)]))]
   RoadPartSectionsTmp1 feed {r2}
   hashjoin[WayId2, WayId_r2]
+  filter[.WayId2 = .WayId_r2]
   filter[(.Jid = .StartJid_r2) or (.Jid = .EndJid_r2)]
   projectextend[WayId1, WayId2, Point, Jid, Sid1, S1SectCurve,
     S1StartPoint, S1EndPoint, S1StartJid, S1EndJid, S1Lenth,
@@ -486,6 +496,7 @@ let RoadsByRefSimpleH2 =
   filter [.C = 1] {r1}
   RoadsByRefH1 feed {r2}
   hashjoin[Ref_r1, Ref_r2]
+  filter[.Ref_r1 = .Ref_r2]
   projectextend[; Ref: .Ref_r1,
     RoadCurve: .WayCurve_r2]
 consume;
@@ -495,6 +506,7 @@ let RoadsByRefSimpleH3 =
   filter [.C > 1] {r1}
   RoadsByRefH1 feed {r2}
   hashjoin[Ref_r1, Ref_r2]
+  filter[.Ref_r1 = .Ref_r2]
   projectextend[; Ref: .Ref_r2,
     WayCurve: .WayCurve_r2]
   sortby[Ref, WayCurve]
@@ -515,6 +527,7 @@ let RoadsByRefComplex =
   RoadsByRefSimple feed
     filter[not(isdefined(.RoadCurve))] {s}
   hashjoin[Ref, Ref_s]
+  filter[.Ref = .Ref_s]
   projectextend[Ref, WayCurve; StartPoint: getstartpoint(.WayCurve)]
   sortby[Ref, WayCurve, StartPoint]
   groupby[Ref; RoadC: group feed projecttransformstream[WayCurve] collect_line[TRUE],
@@ -569,6 +582,7 @@ let RoadsByNameSimpleH2 =
   filter [.C = 1] {r1}
   RoadsByNameH1 feed {r2}
   hashjoin[Name_r1, Name_r2]
+  filter[.Name_r1 = .Name_r2]
   projectextend[;Name: .Name_r1,
     RoadCurve: .WayCurve_r2]
 consume;
@@ -578,6 +592,7 @@ let RoadsByNameSimpleH3 =
   filter [.C > 1] {r1}
   RoadsByNameH1 feed {r2}
   hashjoin[Name_r1, Name_r2]
+  filter[.Name_r2 = .Name_r2]
   projectextend[; Name: .Name_r1, WayCurve: .WayCurve_r2]
   sortby[Name, WayCurve]
   groupby[Name; RoadC: group feed projecttransformstream[WayCurve] collect_sline[TRUE]]
@@ -596,6 +611,7 @@ let RoadsByNameComplex =
   RoadsByNameSimple feed
     filter[not(isdefined(.RoadCurve))] {s}
   hashjoin[Name, Name_s]
+  filter[.Name = .Name_s]
   projectextend[Name, WayCurve; StartPoint: getstartpoint(.WayCurve)]
   sortby[Name, WayCurve, StartPoint]
   groupby[Name; RoadC: group feed projecttransformstream[WayCurve] collect_line[TRUE],
@@ -648,6 +664,7 @@ let RoadLinksSimpleH2  =
   filter [.C = 1] {r1}
   RoadLinksH1 feed {r2}
   hashjoin [WayId_r1, WayId_r2]
+  filter[.WayId_r1 = .WayId_r2]
   projectextend[; WayId: .WayId_r1,
     RoadCurve: .WayCurve_r2]
 consume;
@@ -657,6 +674,7 @@ let RoadLinksSimpleH3 =
   filter [.C > 1] {r1}
   RoadLinksH1 feed {r2}
   hashjoin [WayId_r1, WayId_r2]
+  filter[.WayId_r1 = .WayId_r2]
   projectextend[;  WayId: .WayId_r1,
     WayCurve: .WayCurve_r2]
   sortby[WayId, WayCurve]
@@ -676,6 +694,7 @@ let RoadLinksComplex =
   RoadLinksSimple feed
     filter[not(isdefined(.RoadCurve))] {s}
   hashjoin[WayId, WayId_s]
+  filter[.WayId = .WayId_s]
   projectextend[WayId, WayCurve; StartPoint: getstartpoint(.WayCurve)]
   sortby[WayId, WayCurve, StartPoint]
   groupby[WayId; RoadC: group feed projecttransformstream[WayCurve] collect_line[TRUE],
@@ -727,6 +746,7 @@ let RoadRestSimpleH2 =
   filter [.C = 1] {r1}
   RoadRestH1 feed {r2}
   hashjoin[WayId_r1, WayId_r2]
+  filter [.WayId_r1 = .WayId_r2]
   projectextend[; WayId: .WayId_r1,
     RoadCurve: .WayCurve_r2]
 consume;
@@ -736,6 +756,7 @@ let RoadRestSimpleH3 =
   filter [.C > 1] {r1}
   RoadRestH1 feed {r2}
   hashjoin[WayId_r1, WayId_r2]
+  filter[.WayId_r1 = .WayId_r2]
   projectextend[; WayId: .WayId_r1,
     WayCurve: .WayCurve_r2]
   sortby[WayId, WayCurve]
@@ -755,6 +776,7 @@ let RoadRestComplex =
   RoadRestSimple feed
     filter[not(isdefined(.RoadCurve))] {s}
   hashjoin[WayId, WayId_s]
+  filter[.WayId = .WayId_s]
   projectextend[WayId, WayCurve; StartPoint: getstartpoint(.WayCurve)]
   sortby[WayId, WayCurve, StartPoint]
   groupby[WayId; RoadC: group feed projecttransformstream[WayCurve] collect_line[TRUE],
@@ -812,6 +834,7 @@ let RoadsByRelationWaysH1 =
   filter[.MemberType = "way"]
   NestedWayRel feed 
   hashjoin[MemberRef, WayId]
+  filter[.MemberRef = .WayId]
   project[RelId, MemberRole, RefCounter, WayCurve]
 consume;
 
@@ -826,6 +849,7 @@ let RoadsByRelationWaysComplex =
   RoadsByRelationWaysSimple feed
     filter[not(isdefined(.RoadCurve))] {t}
   hashjoin[RelId, RelId_t]
+  filter[.RelId = .RelId_t]
   sortby[RelId, MemberRole, RefCounter, WayCurve]
   groupby[RelId, MemberRole; RoadC: group feed projecttransformstream[WayCurve] collect_line[TRUE]]
   projectextendstream[RelId, MemberRole; RoadCurve: .RoadC longlines]
@@ -837,6 +861,7 @@ let RoadsByRelationWaysH2 =
   concat
   NestedRelationRel feed  {h}
   hashjoin[RelId, RelId_h]
+  filter[.RelId = .RelId_h]
   projectextend[RelId, RoadCurve; RelInfo: .RelInfo_h]
   unnest[RelInfo]
   unnest[RefInfo_h]
@@ -950,6 +975,7 @@ let JunctionsAndWayCrossings2 =
   JunctionsAndWayCrossings feed
   JunctionsPositionsOnRoads feed {j1}
   hashjoin[Jid, Jid_j1]
+  filter[.Jid = .Jid_j1]
   projectextend[Jid, Point, WayId1, WayId2, Sid1, S1SectCurve,
     S1StartPoint, S1EndPoint, S1StartJid, S1EndJid, S1Lenth,
     S1JuncAtStart, S1Side, Sid2, S2SectCurve, S2StartPoint, S2EndPoint, S2StartJid,
@@ -1029,11 +1055,13 @@ let InRoutes =
    Roads feed {r1}
    RoadsJunctionsLists feed {j1}
    hashjoin[Rid_r1, Rid_j1]
+   filter[.Rid_r1 = .Rid_j1]
    projectextend[;Rid: .Rid_r1,
      Lenth: .CurvLength_r1,
      JuncList: .JuncList_j1]
    SectionsAtRoads feed {s1}
    hashjoin[Rid, Rid_s1]
+   filter[.Rid = .Rid_s1]
    projectextend[Rid, JuncList, Lenth; SectList: .ListSids_s1]
    project[Rid, JuncList, SectList, Lenth]
    sortby [Rid]
@@ -1045,9 +1073,11 @@ let InJunctions =
    project[Jid, Point, RoutePositions]
    JunctionsInComingSections feed {s1}
    hashjoin[Jid, Jid_s1]
+   filter[.Jid = .Jid_s1]
    projectextend[Jid, Point, RoutePositions; InSects: .ListInSections_s1]
    JunctionsOutgoingSections feed {s2}
    hashjoin[Jid, Jid_s2]
+   filter[.Jid = .Jid_s2]
    projectextend[Jid, Point, RoutePositions, InSects; OutSects: .ListOutSections_s2]
    sortby[Jid]
    rdup
@@ -1061,6 +1091,7 @@ let AdjacentSectionsUpHa =
   RoadPartSectionsTmp1 feed
   InJunctions feed
   hashjoin[EndJid, Jid]
+  filter[.EndJid = .Jid]
   project[Sid, OutSects]
   sortby [Sid, OutSects]
   groupby [Sid; AdjSectUp: group feed projecttransformstream[OutSects] createlist]
@@ -1075,6 +1106,7 @@ let AddAdjacentSectionsUpMissing =
   project[Sid] {s1}
   RoadPartSectionsTmp1 feed {s2}
   hashjoin[Sid_s1, Sid_s2]
+  filter[.Sid_s1 = .Sid_s2]
   projectextend[;Sid: .Sid_s1,
     AdjSectUp: [const listint value(undefined)]]
 consume;
@@ -1089,6 +1121,7 @@ let AdjacentSectionsDownHa =
   RoadPartSectionsTmp1 feed
   InJunctions feed
   hashjoin[StartJid, Jid]
+  filter[.StartJid = .Jid]
   project[Sid, OutSects]
   sortby [Sid, OutSects]
   groupby [Sid; AdjSectDown: group feed projecttransformstream[OutSects] createlist]
@@ -1103,6 +1136,7 @@ let AddAdjacentSectionsDownMissing =
   project[Sid] {s1}
   RoadPartSectionsTmp1 feed {s2}
   hashjoin[Sid_s1, Sid_s2]
+  filter[.Sid_s1 = .Sid_s2]
   projectextend[;Sid: .Sid_s1,
     AdjSectDown: [const listint value(undefined)]]
 consume;
@@ -1118,6 +1152,7 @@ let ReverseAdjacentSectionsUpHa =
   RoadPartSectionsTmp1 feed
   InJunctions feed
   hashjoin[StartJid, Jid]
+  filter[.StartJid = .Jid]
   project[Sid, InSects]
   sortby [Sid, InSects]
   groupby [Sid; RevAdjSectUp: group feed projecttransformstream[InSects] createlist]
@@ -1132,6 +1167,7 @@ let AddReverseAdjacentSectionsUpMissing =
   project[Sid] {s1}
   RoadPartSectionsTmp1 feed {s2}
   hashjoin[Sid_s1, Sid_s2]
+  filter[.Sid_s1 = .Sid_s2]
   projectextend[;Sid: .Sid_s1,
     RevAdjSectUp: [const listint value(undefined)]]
 consume;
@@ -1146,6 +1182,7 @@ let ReverseAdjacentSectionsDownHa =
   RoadPartSectionsTmp1 feed
   InJunctions feed
   hashjoin[EndJid, Jid]
+  filter [.EndJid = .Jid]
   project[Sid, InSects]
   sortby [Sid, InSects]
   groupby [Sid; RevAdjSectDown: group feed projecttransformstream[InSects] createlist]
@@ -1160,6 +1197,7 @@ let AddReverseAdjacentSectionsDownMissing =
   project[Sid] {s1}
   RoadPartSectionsTmp1 feed {s2}
   hashjoin[Sid_s1, Sid_s2]
+  filter[.Sid_s1 = .Sid_s2]
   projectextend[;Sid: .Sid_s1,
     RevAdjSectDown: [const listint value(undefined)]]
 consume;
@@ -1186,6 +1224,7 @@ let ViaNodesRel =
   filter [.MemberType = "node"]
   SpatialPosOfNodes feed
   hashjoin[MemberRef,NodeId]
+  filter[.MemberRef = .NodeId]
   projectextend[RelId, NodeId,
     NodePos; RelTagVal: .RefInfo afeed extract [RelTagValue]]
 consume;
@@ -1201,6 +1240,7 @@ let FromWaysRel =
   filter [.MemberRole = "from"]
   SpatialWayCurve feed
   hashjoin[MemberRef, WayId]
+  filter[.MemberRef = .WayId]
   project[RelId, WayId, WayCurve]
 consume;
 
@@ -1215,6 +1255,7 @@ let ToWaysRel =
   filter [.MemberRole = "to"]
   SpatialWayCurve feed
   hashjoin[MemberRef, WayId]
+  filter[.MemberRef = .WayId]
   project[RelId, WayId, WayCurve]
 consume;
 
@@ -1222,9 +1263,11 @@ let NodeRestrictions =
   ViaNodesRel feed {v}
   FromWaysRel feed {f}
   hashjoin[RelId_v, RelId_f]
+  filter[.RelId_v = .RelId_f]
   project [RelId_v, NodeId_v, NodePos_v, RelTagVal_v, WayId_f]
   ToWaysRel feed {t}
   hashjoin[RelId_v, RelId_t]
+  filter[.RelId_v = .RelId_t]
   project[NodeId_v, NodePos_v, RelTagVal_v, WayId_f, WayId_t]
   sortby [NodeId_v, NodePos_v, WayId_f, WayId_t, RelTagVal_v]
   rdup
@@ -1253,6 +1296,7 @@ let AdjacentSectionsUpH2 =
   AdjacentSectionsUpH1 feed 
   NoRestrictions feed 
   hashjoin[Sid, Sid_f]
+  filter[.Sid = .Sid_f]
   projectextend[Sid; AdjSectU: .AdjSectUp - .Sid_t]
 consume;
 
@@ -1264,6 +1308,7 @@ let AdjacentSectionsUpH3 =
   mergediff
   AdjacentSectionsUpH1 feed {s1}
   hashjoin[Sid, Sid_s1]
+  filter[.Sid = .Sid_s1]
   projectextend[;Sid: .Sid_s1,
     AdjSectU: .AdjSectUp_s1]
 consume;
@@ -1279,6 +1324,7 @@ let AdjacentSectionsDownH2 =
   AdjacentSectionsDownH1 feed
   NoRestrictions feed
   hashjoin[Sid, Sid_f]
+  filter[.Sid = .Sid_f]
   projectextend[Sid; AdjSectD: .AdjSectDown - .Sid_t]
 consume;
 
@@ -1290,6 +1336,7 @@ let AdjacentSectionsDownH3 =
   mergediff
   AdjacentSectionsDownH1 feed {s1}
   hashjoin[Sid, Sid_s1]
+  filter[.Sid = .Sid_s1]
   projectextend[;Sid: .Sid_s1,
     AdjSectD: .AdjSectDown_s1]
 consume;
@@ -1305,6 +1352,7 @@ let ReverseAdjacentSectionsUpH2 =
   ReverseAdjacentSectionsUpH1 feed
   NoRestrictions feed
   hashjoin[Sid, Sid_t]
+  filter [.Sid = .Sid_t]
   projectextend[Sid; RevAdjSectU: .RevAdjSectUp - .Sid_f]
 consume;
 
@@ -1316,6 +1364,7 @@ let ReverseAdjacentSectionsUpH3 =
   mergediff
   ReverseAdjacentSectionsUpH1 feed {s1}
   hashjoin[Sid, Sid_s1]
+  filter[.Sid = .Sid_s1]
   projectextend[;Sid: .Sid_s1,
     RevAdjSectU: .RevAdjSectUp_s1]
 consume;
@@ -1331,6 +1380,7 @@ let ReverseAdjacentSectionsDownH2 =
   ReverseAdjacentSectionsDownH1 feed
   NoRestrictions feed
   hashjoin[Sid, Sid_t]
+  filter[.Sid = .Sid_t]
   projectextend[Sid; RevAdjSectD: .RevAdjSectDown - .Sid_f]
 consume;
 
@@ -1342,6 +1392,7 @@ let ReverseAdjacentSectionsDownH3 =
   mergediff
   ReverseAdjacentSectionsDownH1 feed {s1}
   hashjoin[Sid, Sid_s1]
+  filter[.Sid = .Sid_s1]
   projectextend[;Sid: .Sid_s1,
     RevAdjSectD: .RevAdjSectDown_s1]
 consume;
@@ -1367,6 +1418,7 @@ let AdjacentSectionsUpH5 =
   AdjacentSectionsUpH4 feed
   OnlyRestrictions feed
   hashjoin[Sid, Sid_f]
+  filter[.Sid = .Sid_f]
   projectextend[Sid; AdjSectU: restrict(.AdjSectUp, .Sid_t)]
 consume;
 
@@ -1378,6 +1430,7 @@ let AdjacentSectionsUpH6 =
   mergediff
   AdjacentSectionsUpH4 feed {s1}
   hashjoin[Sid, Sid_s1]
+  filter[.Sid = .Sid_s1]
   projectextend[;Sid: .Sid_s1,
     AdjSectU: .AdjSectUp_s1]
 consume;
@@ -1393,6 +1446,7 @@ let AdjacentSectionsDownH5 =
   AdjacentSectionsDownH4 feed
   OnlyRestrictions feed
   hashjoin[Sid, Sid_f]
+  filter[.Sid = .Sid_f]
   projectextend[Sid; AdjSectD: restrict (.AdjSectDown, .Sid_t)]
 consume;
 
@@ -1404,6 +1458,7 @@ let AdjacentSectionsDownH6 =
   mergediff
   AdjacentSectionsDownH4 feed {s1}
   hashjoin[Sid, Sid_s1]
+  filter[.Sid = .Sid_s1]
   projectextend[;Sid: .Sid_s1,
     AdjSectD: .AdjSectDown_s1]
 consume;
@@ -1421,6 +1476,7 @@ let NotLongerAdjacentSections =
    concat
    OnlyRestrictions feed
    hashjoin[Sid, Sid_f]
+   filter[.Sid = .Sid_f]
    projectextend[Sid; NotLongerAdj: .AdjSect - .Sid_t]
    projectextendstream[Sid; AdjSect: createstream(.NotLongerAdj)]
    sortby [AdjSect, Sid]
@@ -1432,6 +1488,7 @@ let ReverseAdjacentSectionsUpH5 =
    ReverseAdjacentSectionsUpH4 feed
    NotLongerAdjacentSections feed {s1}
    hashjoin[Sid, AdjSect_s1]
+   filter[.Sid = .AdjSect_s1]
    projectextend[Sid; RevAdjSectU: .RevAdjSectUp - .Sids_s1]
 consume;
 
@@ -1443,6 +1500,7 @@ let ReverseAdjacentSectionsUpH6 =
   mergediff
   ReverseAdjacentSectionsUpH4 feed {s1}
   hashjoin[Sid, Sid_s1]
+  filter[.Sid = .Sid_s1]
   projectextend[;Sid: .Sid_s1,
     RevAdjSectU: .RevAdjSectUp_s1]
 consume;
@@ -1458,6 +1516,7 @@ let ReverseAdjacentSectionsDownH5 =
    ReverseAdjacentSectionsDownH4 feed
    NotLongerAdjacentSections feed {s1}
    hashjoin[Sid, AdjSect_s1]
+   filter[.Sid = .AdjSect_s1]
    projectextend[Sid; RevAdjSectD: .RevAdjSectDown - .Sids_s1]
 consume;
 
@@ -1469,6 +1528,7 @@ let ReverseAdjacentSectionsDownH6 =
   mergediff
   ReverseAdjacentSectionsDownH4 feed {s1}
   hashjoin[Sid, Sid_s1]
+  filter[.Sid = .Sid_s1]
   projectextend[;Sid: .Sid_s1,
     RevAdjSectD: .RevAdjSectDown_s1]
 consume;
@@ -1490,29 +1550,34 @@ let InSections =
   project[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth]
   SectionRouteIntervals feed {r1}
   hashjoin[Sid, Sid_r1]
+  filter[.Sid = .Sid_r1]
   projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax,
     Lenth; RouteInter: .IntervalList_r1]
   AdjacentSectionsUp feed {a1}
   hashjoin[Sid, Sid_a1]
+  filter[.Sid = .Sid_a1]
   projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth,
     RouteInter; AdjSectUp: .AdjSectUp_a1]
   AdjacentSectionsDown feed {a2}
   hashjoin[Sid, Sid_a2]
+  filter[.Sid = .Sid_a2]
   projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth, RouteInter,
     AdjSectUp; AdjSectDown: .AdjSectDown_a2]
   ReverseAdjacentSectionsUp feed {a3}
   hashjoin[Sid, Sid_a3]
+  filter[.Sid = .Sid_a3]
   projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth, RouteInter,
     AdjSectUp, AdjSectDown; RevAdjSectUp: .RevAdjSectUp_a3]
   ReverseAdjacentSectionsDown feed {a4}
   hashjoin[Sid, Sid_a4]
+  filter[.Sid = .Sid_a4]
   projectextend[Sid, SectCurve, StartJid, EndJid, Side, VMax, Lenth, RouteInter,
     AdjSectUp, AdjSectDown, RevAdjSectUp; RevAdjSectDown: .RevAdjSectDown_a4]
   sortby[Sid]
   rdup
 consume;
 
-query createjnet("testjnet", InJunctions, InSections, InRoutes);
+query createjnet("DO", InJunctions, InSections, InRoutes);
 
 close database;
 
@@ -1535,6 +1600,7 @@ let ViaWaysRel =
   filter [.MemberType = "way"]
   SpatialWayCurve feed
   hashjoin[MemberRef, WayId]
+  filter[.MemberRef = .WayId]
   projectextend[RelId, WayId,
     WayCurve; RelTagVal: .RefInfo afeed extract [RelTagValue]]
 consume;
@@ -1543,9 +1609,11 @@ let WayRestrictions =
   ViaWaysRel feed {v}
   FromWaysRel feed {f}
   hashjoin[RelId_v, RelId_f]
+  filter[.RelId_v = .RelId_f]
   project [RelId_v, WayId_v, WayCurve_v, RelTagVal_v, WayId_f, WayCurve_f]
   ToWaysRel feed {t}
   hashjoin[RelId_v, RelId_t]
+  filter[.RelId_v = .RelId_t]
   project[WayId_v, WayCurve_v, RelTagVal_v, WayId_f, WayCurve_f, WayId_t, WayCurve_t]
   sortby[WayId_v, WayId_f, WayId_t, RelTagVal_v, WayCurve_v, WayCurve_f, WayCurve_t]
   rdup
