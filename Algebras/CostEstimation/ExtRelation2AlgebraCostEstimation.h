@@ -133,17 +133,18 @@ public:
         // Calculate number of partitions
         size_t partitions = getNoOfPartitions(p1.Card, p1.Size, maxmem);
 
+        // Number of tuples per iteration
+        size_t tuplesPerIteration = p2.Card;
+
+        // is the tuplefile written completely? Otherwise we assume
+        // that all tuples of p2 are written to tuplefile
+        if(tupleFileWritten) {
+            tuplesPerIteration = tuplesInTupleFile;
+        } 
+
         if(partitions > 1) {
 
-           size_t tuplesPerIteration = p2.Card;
-
-           // is the tuplefile written completely? Otherwise we assume
-           // that all tuples of p2 are written to tuplefile
-           if(tupleFileWritten) {
-              tuplesPerIteration = tuplesInTupleFile;
-           } 
-           
-           // For partition 1: read / write 'tuplesInTupleFile' to tuplefile
+           // For partition 1: write 'tuplesInTupleFile' to tuplefile
            // For partition 1+n: read 'tuplesInTupleFile' from tuplefile
            pRes->Time = p2.Time + (tuplesPerIteration * wItHashJoin * p2.Size) 
               + ((partitions - 1) * tuplesPerIteration * xItHashJoin * p2.Size);
@@ -154,7 +155,7 @@ public:
            if(iteration <= 1) {
               elapsedTime += readInIteration * wItHashJoin * p2.Size;
            } else {
-                // 1st iteration: Data are read and written to tuplefile
+                // 1st iteration: Tuples are written to tuplefile
                 elapsedTime += tuplesPerIteration  * wItHashJoin * p2.Size;
                 
                 // Time for the completed iterations
@@ -187,24 +188,29 @@ public:
               pRes->Progress = p2.Progress;
               pRes->Time = p2.Time + p2.Card * vItHashJoin; 
            }
-
-          // Calculate selectivity
-          if(qp->GetSelectivity(supplier) == 0.1) {
-              if(returned >= (size_t) enoughSuccessesJoin && partitions == 1) {
-                 pRes->Card = p1.Card * p2.Card * (returned / readStream2); 
-              } else {
-                 // Default selectivity 20%
-                 pRes->Card = p1.Card * p2.Card * 0.2;
-              }
-          } else {
-             pRes->Card = qp->GetSelectivity(supplier) * p1.Card * p2.Card;
-          }
-
+    
+          // Blocking time is: adding p1.Card tuples to hashtable
+          // and the blocking time of our predecessors
           pRes->BTime = p1.Card * uItHashJoin + p1.Time + p1.BTime + p2.BTime;
           pRes->BProgress = ((p1.Progress * p1.Card * uItHashJoin) 
             + (p1.Progress * p1.Time) + (p1.BProgress * p1.BTime) 
             + (p2.BProgress * p2.BTime)) / pRes->BTime;
 
+          // Add Blocking time to normal time
+          // and merge progress values
+          pRes->Time += pRes->BTime;
+          pRes->Progress = (pRes->Time * pRes->Progress 
+               + pRes->BTime * pRes->BProgress) 
+               / (pRes->Time + pRes->BTime);
+
+          // Calculate cardinality
+          // Warm state or cold state?
+          if(qp->GetSelectivity(supplier) == 0.1 
+             && returned >= (size_t) enoughSuccessesJoin) {
+             pRes->Card = returned / pRes->Progress;
+          } else {
+             pRes->Card = qp->GetSelectivity(supplier) * p1.Card * p2.Card;
+          }
 
           // is computation done?
           if(stream1Exhausted && stream2Exhausted) {
@@ -265,7 +271,7 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
  size_t partitions = getNoOfPartitions(NoTuples1, sizeOfTuple1, maxmem);
 
  if(partitions > 1) { 
-      // For partition 2: read / write 'tuplesInTupleFile' to tuplefile
+      // For partition 1: write 'tuplesInTupleFile' to tuplefile
       // For partition 2+n: read 'tuplesInTupleFile' from tuplefile
       costs = 
            + (NoTuples2 * wItHashJoin * sizeOfTuple2) 

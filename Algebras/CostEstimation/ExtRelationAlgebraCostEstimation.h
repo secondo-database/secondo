@@ -71,6 +71,11 @@ Local info for operator
     capabilities for the operator itHashJoin
 
 */
+
+// Operation mode: join or select
+// this class are used in loopjoin
+// and loopsel 
+template<bool join>
 class LoopJoinCostEstimation : public CostEstimation 
 {
 
@@ -98,17 +103,41 @@ public:
          return CANCEL;
      }
 
-
      if (qp->RequestProgress(args[0].addr, &p1)
        && qp->RequestProgress(args[1].addr, &p2)) 
       {     
-        pli->SetJoinSizes(p1, p2);
+        if(join) {
+           pli->SetJoinSizes(p1, p2);
+           pRes->CopySizes(pli);
+        } else {
+           // tuples are axtracted from fun relation
+           // for each tuplex, all matching tupley will be collected,
+           // therefore the time for the query for tupley is multiplied 
+           pRes->CopySizes(p2);
+        }
 
-        // Read memory for operator in bytes
-        size_t maxmem = qp->GetMemorySize(supplier) * 1024 * 1024;
-        
+         if (returned > (size_t) enoughSuccessesJoin) {     
+           pRes->Card = p1.Card  *
+            ((double) (returned) /
+              (double) (readStream1));
+          } else {
+            pRes->Card = p1.Card  * p2.Card;
+          } 
 
-          pRes->CopySizes(pli);
+          pRes->Time = p1.Time + p1.Card * p2.Time;
+
+          if (stream1Exhausted) {
+             pRes->Progress = 1.0;
+          } else if ( p1.BTime < 0.1 && pipelinedProgress ) { 
+             pRes->Progress = p1.Progress;
+          } else {
+             pRes->Progress =
+              (p1.Progress * p1.Time + (double) readStream1 * p2.Time)
+               / pRes->Time;
+
+             pRes->CopyBlocking(p1);  //non-blocking operator;
+                                      //second argument assumed not to block
+          }
 
           return YIELD;
        }
@@ -128,7 +157,9 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
                       const double memoryMB, double &costs) const{
 
-         
+     // TODO: FIXME!
+     costs = NoTuples1 * NoTuples2 * 0.0002;        
+ 
      return true;
 }
 
@@ -138,7 +169,9 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
 
 */
 double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
-
+    
+    // this operator does not need memory
+    return 16;
 }
 
 /*
@@ -208,16 +241,7 @@ function. Allowed types are:
   }
 
 /*
-1.9 Setter for stream2Exhausted
-
-*/
-  void setStream2Exhausted(bool exhausted) {
-      stream2Exhausted = exhausted;
-  }
-
-
-/*
-1.10 Update processed tuples in stream1
+1.9 Update processed tuples in stream1
 
 */
    void processedTupleInStream1() {
@@ -225,33 +249,21 @@ function. Allowed types are:
    }
 
 /*
-1.11 Update processed tuples in stream2
-
-*/
-    void processedTupleInStream2() {
-       readStream2++;
-    }
-
-/*
-1.19 init our class
+1.10 init our class
 
 */
   virtual void init(Word* args, void* localInfo)
   {
     returned = 0;
     stream1Exhausted = false;
-    stream2Exhausted = false;
     readStream1 = 0;
-    readStream2 = 0;
   }
 
 private:
   ProgressLocalInfo *pli;   // Local Progress info
   ProgressInfo p1, p2;      // Progress info for stream 1 / 2
   bool stream1Exhausted;    // is stream 1 exhaused?
-  bool stream2Exhausted;    // is stream 2 exhaused?
   size_t readStream1;       // processed tuple in stream1
-  size_t readStream2;       // processes tuple in stream2
 };
 
 
