@@ -13,7 +13,7 @@ import static SQL2Secondo.ParsCommandSym.*;
 
 %unicode
 %line
-%column
+// %column
 
 // %public
 %final
