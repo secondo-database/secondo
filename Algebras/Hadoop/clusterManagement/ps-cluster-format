@@ -552,8 +552,9 @@ echo "Copy file $nodeRCFile to $nodeIP:$RCFILENAME"
   # Delete exist commands if necessary
   ssh $nodeIP "sed $(PSEDOPT) \"s/^source [\\\$A-Z_.\\\/]*$RCFILENAME//\" \$HOME/.bashrc "
   #source .parasecrc file in the .bashrc, to set all required environment
-  case $SECONDO_PLATFORM in
-    linux[0-9]* )
+  case $(echo $SECONDO_PLATFORM | sed 's/[0-9]*$//') in
+  # Process linux and linux64 with same statements
+    linux )
       # Execute the .parasecrc directly after processing .secondorc
       ssh $nodeIP "sed -i \"s/source [\\\$A-Z_.\\\/]*secondorc/&\nsource \\\$HOME\/$RCFILENAME/\" \$HOME/.bashrc"
     ;;
@@ -563,7 +564,9 @@ echo "Copy file $nodeRCFile to $nodeIP:$RCFILENAME"
       echo "This step has to be done manually by users."
     ;;
     * )
-      echo "Unknown" ;;
+      echo "${ERRORINFO}Unknown Platform, Check your \$SECONDO_PLATFORM definition."
+      echo "Installation for Parallel Secondo Fails. "
+      exit -1;;
   esac
 
   declare -i sidx=0
