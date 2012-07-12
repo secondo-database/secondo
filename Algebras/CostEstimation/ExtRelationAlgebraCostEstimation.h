@@ -267,4 +267,228 @@ private:
 };
 
 
+
+/*
+1.1 The class ~symmjoinCostEstimation~ provides cost estimation
+    capabilities for the operator symmjoin
+
+*/
+class SymmjoinCostEstimation : public CostEstimation 
+{
+
+public:
+    SymmjoinCostEstimation()
+    {    
+       pli = new ProgressLocalInfo();
+    }    
+
+/*
+1.2 Free local datastructures
+
+*/
+  virtual ~SymmjoinCostEstimation() {
+     if(pli) {
+        delete pli;
+     }
+  };
+
+  virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo, 
+    bool argsAvialable) {
+
+     // no progress info available => cancel
+     if(! argsAvialable) {
+         return CANCEL;
+     }
+
+
+     if (qp->RequestProgress(args[0].addr, &p1)
+       && qp->RequestProgress(args[1].addr, &p2)) 
+      {     
+        pli->SetJoinSizes(p1, p2);
+
+        const double uSymmJoin = 0.2;  //millisecs per tuple pair
+
+        if (!pli){
+            return CANCEL;
+        }
+
+        pRes->CopySizes(pli);
+
+        double predCost =
+          (qp->GetPredCost(supplier) == 0.1 ? 0.004 
+          : qp->GetPredCost(supplier));
+
+        //the default value of 0.1 is only suitable for selections
+
+        pRes->Time = p1.Time + p2.Time +
+          p1.Card * p2.Card * predCost * uSymmJoin;
+
+        if(stream1Exhausted && stream2Exhausted) {
+           pRes->Progress = 1.0;
+        } else {
+          pRes->Progress =
+            (p1.Progress * p1.Time + p2.Progress * p2.Time +
+            readStream1 * readStream2 *
+            predCost * uSymmJoin)
+            / pRes->Time;
+        }
+
+        if (pli->returned > enoughSuccessesJoin ) {   
+          // stable state assumed now
+          pRes->Card = p1.Card * p2.Card *
+            ((double) pli->returned /
+              (double) (pli->readFirst * pli->readSecond));
+        } else {
+          pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(supplier);
+        }
+
+        pRes->CopyBlocking(p1, p2);  //non-blocking oprator
+
+        return YIELD;
+     }
+
+   // default: send cancel
+   return CANCEL;
+}
+
+
+/*
+1.3 getCosts
+
+Returns the estimated time in ms for given arguments.
+
+*/
+virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
+                      const size_t NoTuples2, const size_t sizeOfTuple2,
+                      const double memoryMB, double &costs) const{
+
+         
+     return true;
+}
+
+
+/*
+1.4 Calculate the sufficent memory for this operator.
+
+*/
+double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
+   //TODO: FIXME
+   return 16;
+}
+
+/*
+1.5 Get Linear Params
+Input: 
+NoTuples1, sizeOfTuple1
+NoTuples2, sizeOfTuple2,
+
+Output:
+sufficientMemory = sufficientMemory for this operator with the given 
+                   input
+
+timeAtSuffMemory = Time for the calculation with sufficientMemory
+
+timeAt16MB - Time for the calculation with 16MB Memory
+
+*/
+   virtual bool getLinearParams(
+            size_t NoTuples1, size_t sizeOfTuple1,
+            size_t NoTuples2, size_t sizeOfTuple2,
+            double& sufficientMemory, double& timeAtSuffMemory,
+            double& timeAt16MB )  const { 
+      
+      sufficientMemory=calculateSufficientMemory(NoTuples2, sizeOfTuple2);
+      
+      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
+        sufficientMemory, timeAtSuffMemory);
+
+      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
+        16, timeAt16MB);
+      
+      return true;
+   }
+
+/*
+1.6 getFunction
+
+This function approximates the costfunction by an parametrizable
+function. Allowed types are:
+
+1: linear function
+2: a / x
+
+*/
+   virtual bool getLinearParams(
+            size_t NoTuples1, size_t sizeOfTuple1,
+            size_t NoTuples2, size_t sizeOfTuple2,
+            int& functionType,
+            double& sufficientMemory, double& timeAtSuffMemory,
+            double& timeAt16MB,
+            double& a, double& b, double& c, double& d) const {
+       functionType=1;
+       a=0;b=0;c=0;d=0;
+       return getLinearParams(NoTuples1, sizeOfTuple1,
+                              NoTuples2, sizeOfTuple2,
+                              sufficientMemory, timeAtSuffMemory, 
+                              timeAt16MB);  
+  }  
+   
+
+/*
+1.8 Setter for stream1Exhausted
+
+*/
+  void setStream1Exhausted(bool exhausted) {
+      stream1Exhausted = exhausted;
+  }
+
+/*
+1.9 Setter for stream2Exhausted
+
+*/
+  void setStream2Exhausted(bool exhausted) {
+      stream2Exhausted = exhausted;
+  }
+
+
+/*
+1.10 Update processed tuples in stream1
+
+*/
+   void processedTupleInStream1() {
+      readStream1++;
+   }
+
+/*
+1.11 Update processed tuples in stream2
+
+*/
+    void processedTupleInStream2() {
+       readStream2++;
+    }
+
+/*
+1.12 init our class
+
+*/
+  virtual void init(Word* args, void* localInfo)
+  {
+    returned = 0;
+    stream1Exhausted = false;
+    stream2Exhausted = false;
+    readStream1 = 0;
+    readStream2 = 0;
+  }
+
+private:
+  ProgressLocalInfo *pli;   // Local Progress info
+  ProgressInfo p1, p2;      // Progress info for stream 1 / 2
+  bool stream1Exhausted;    // is stream 1 exhaused?
+  bool stream2Exhausted;    // is stream 2 exhaused?
+  size_t readStream1;       // processed tuple in stream1
+  size_t readStream2;       // processes tuple in stream2
+};
+
+
 #endif
+
