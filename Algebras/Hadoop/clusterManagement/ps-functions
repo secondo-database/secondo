@@ -2,8 +2,9 @@
 
 function get_localIP
 {
-  if [ "$SECONDO_PLATFORM" = "linux32" -o "$SECONDO_PLATFORM" = "linux64" ]; then 
-    localAddr=$(ifconfig eth0 | grep "inet addr" | awk -F" " '{print $2}')
+  if [ "$SECONDO_PLATFORM" = "linux" -o "$SECONDO_PLATFORM" = "linux64" ]; then 
+#    localAddr=$(ifconfig eth0 | grep "inet addr" | awk -F" " '{print $2}')
+    localAddr=$(ifconfig | grep 'inet' | grep -v 'inet6' | grep -v '127.0.0.1' | awk -F" " '{print $2}')
     localAddr=${localAddr#*:}
   elif [ "$SECONDO_PLATFORM" = "mac_osx" ]; then
     localAddr=$(ifconfig en0 | grep inet | grep broadcast | cut -d' ' -f 2)
