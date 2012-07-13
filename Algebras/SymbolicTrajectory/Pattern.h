@@ -108,7 +108,7 @@ class Condition {
     types[4] = ".card";
     types[5] = ".ERROR";
     subst[0] = "\"a\"";
-    subst[1] = "const periods value ((\"2003-11-20-07:01:40\" "
+    subst[1] = "[const periods value ((\"2003-11-20-07:01:40\" "
                "\"2003-11-20-07:45\" TRUE TRUE))]";
     subst[2] = "[const instant value \"1909-12-19\"]";
     subst[3] = "[const instant value \"2012-05-12\"]";
@@ -194,7 +194,7 @@ class Pattern {
   bool verifyConditions();
   static Pattern* getPattern(string input);
   bool matches(MLabel const &ml);
-  bool verifyIntervals();
+  bool verifyPattern();
 };
 
 class NFA {
@@ -206,6 +206,7 @@ class NFA {
   vector<Condition> conds;
   int numOfStates;
   ULabel ul;
+  // TODO Periods timesML;
   size_t ulId, maxLabelId;
   set<size_t> *matchings;
   set<size_t> *cardsets;
@@ -248,7 +249,8 @@ class NFA {
   void buildCondMatchings(unsigned int condId, vector<size_t> sequence);
   bool evaluateCond(MLabel const &ml, unsigned int condId,
                     vector<size_t> sequence);
-  string getNextSubst(MLabel const &ml, Key key, unsigned int pos);
+  string getLabelSubst(MLabel const &ml, unsigned int pos);
+  string getTimeSubst(MLabel const &ml, Key key, size_t from, size_t to);
   string toString();
 };
 

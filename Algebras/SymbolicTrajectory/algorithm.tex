@@ -1,0 +1,171 @@
+\IncMargin{3mm}
+\LinesNumbered
+
+\section{Algorithms for Pattern Matching}
+In the following, we will present the algorithms leading to the solution. The lexical analysis and the parsing of the user input are omitted.
+
+\subsection{Initialization and Basic Checks}
+The algorithm \ic{matches} checks the pattern time specifications and the syntax of the conditions and invokes the NFA construction and the matching procedure. In case of an error, the input is rejected, and the program terminates.
+
+\begin{algorithm}
+  \caption{\label{alg:matches}\ic{matches$(p,$ ml$)$}}
+    \KwIn{\ic{p} - a pattern\; 
+      \hspace{1.24cm}\ic{ml} - a moving label.}
+    \KwOut{\ic{result} - a boolean value that is true iff \ic{p} matches \ic{ml}.}
+    \If{verifyPattern$() =$ false $\mathbf{or}$ verifyConditions$() =$ false}{
+      \Return false\;
+    }
+    \ic{NFA nfa $=$ new NFA$($patterns.size$() +1)$}\;
+    \ic{buildNFA$($nfa$, p)$}\;
+    \Return \ic{match$($nfa$,$ ml$)$}\;
+\end{algorithm}
+
+The algorithm \ic{verifyPattern} returns true if and only if the patterns' time specifications are syntactically correct (i.e., either a semantic time, or the name of a periods database object, or a time which can be read by \secondo) and all variables are unique.
+
+\begin{algorithm}
+  \caption{\label{alg:verifyPattern}\ic{verifyPattern$(p)$}}
+    \KwIn{\ic{p} - a pattern.}
+    \KwOut{\ic{result} - the result of the validation.}
+    let \ic{vars} be an empty set of strings\;
+    \ForEach{unit pattern up of p}{
+      \ForEach{iv $\in$ up.ivs}{
+	\lIf{checkSemanticDate$($iv$) =$ false}{\Return \ic{false}\;}
+      }
+      \If{up.var $\neq\emptyset$}{
+	\lIf(\tcp*[f]{\scriptsize{variable not unique}}){up.var $\in$ vars}{\Return \ic{false}}
+	\lElse(\tcp*[f]{\scriptsize{add variable to set}}){\ic{vars.insert$($up.var$)$}}
+      }
+    }
+    \Return \ic{true}\;
+\end{algorithm}
+
+The algorithm \ic{verifyConditions} returns true if and only if every specified condition is an evaluable boolean expression with suitable keys (e.g., $X$.card $=4$ is correct while $X$.card $=$ ``at\_home'' cannot be evaluated).
+
+\begin{algorithm}
+  \caption{\label{alg:verifyConditions}\ic{verifyConditions$(p)$}}
+    \KwIn{\ic{p} - a pattern.}
+    \KwOut{\ic{result} - the result of the validation.}
+    \ForEach{condition c of p}{
+      \lIf{evaluate$($c.textSubst$,$ false$) =$ false}{\Return false}
+    }
+    \Return \ic{true}\;
+\end{algorithm}
+
+\subsection{Building the NFA}
+The algorithm \ic{buildNFA} converts the pattern information into a nondeterministic finite automaton. The only difficult case is the occurrence of asterisks, increasing the number of transitions significantly.
+
+\begin{algorithm}
+  \caption{\label{alg:buildNFA}\ic{buildNFA$($nfa$, p)$}}
+    \KwIn{\ic{nfa} - an empty NFA\;
+      \hspace{1.24cm}\ic{p} - a pattern.}
+    \KwOut{none}
+    \ic{nfa.patterns $=$ p.patterns}\;
+    \ic{nfa.conds $=$ p.conds}\;
+    \For{$i=0$ \KwTo numOfStates$-2$}{
+      \ic{transitions$[i][i]$.insert$(i+1)$}\;
+      \uIf{patterns$[i]$.wc $=\ast$}{
+	\lIf{$i>0$}{\ic{transitions$[i-1][i-1]$.insert$(i+1)$}}\;
+	\ic{transitions$[i][i]$.insert$(i)$}\;
+	\uIf{$i<$ numOfStates $-2$}{
+          \ic{transitions$[i][i+1]$.insert$(i+2)$}\;
+	  $j=i+1$\;
+	  \While{$j<$ numOfStates $-1$ $\mathbf{and}$ patterns$[j]$.wc $=\ast$}{
+            \ic{transitions$[i][i]$.insert$(j+1)$}\;
+	    \ic{transitions$[i][j+1]$.insert$(j+2)$}\;
+            $j=j+1$\;
+          }
+          \If{patterns$[i+1]$.wc $\neq\ast$}{
+            \ic{transitions$[i][i+1]$.insert$(i)$}\;
+            \ic{transitions$[i][i+1]$.insert$(i+1)$}\;
+            $j=i+2$\;
+            \While{$j<$ numOfStates $-1$ $\mathbf{and}$ patterns$[j]$.wc $=\ast$}{
+              \ic{transitions$[i][i+1]$.insert$(j+1)$}\;
+              $j=j+1$\;
+            }
+          }
+        }
+        \lElse(\tcp*[f]{\scriptsize{processing last transition}}){\ic{transitions$[i][i+1]$.insert$($numOfStates$-1)$}}
+      }
+      \Else(\tcp*[f]{\scriptsize{not reading a '$\ast$'}}){
+        $j=j+1$\;
+	\While{$j<$ numOfStates$-1$ $\mathbf{and}$ patterns$[j]$.wc $=\ast$}{
+          \ic{transitions$[i][i]$.insert$(j+1)$}\;
+          $j=j+1$\;
+        }
+      }
+      \lIf{patterns$[i]$.wc $=+$}{\ic{transitions$[i][i]$.insert$(i)$}\;}
+    }
+\end{algorithm}
+
+\subsection{Working with the NFA}
+The algorithm \ic{match} is executed by \ic{matches} after the NFA transitions are determined.
+
+\begin{algorithm}[H]
+  \caption{\label{alg:match}\ic{match$($nfa$,p)$}}
+    \KwIn{\ic{nfa} - a NFA\;
+      \hspace{1.24cm}$p$ - a pattern.}
+    \KwOut{\ic{result} - a boolean.}
+    \ForEach{ULabel ul of ml}{
+      \ic{updateStates$()$}\;
+      \lIf(\tcp*[f]{\scriptsize{abort if there is no active state}}){currentStates $=\emptyset$}{\Return \ic{false}}
+    }
+    \lIf(\tcp*[f]{\scriptsize{abort if final state is inactive}}){numOfStates $-1\not\in$ currentStates}{\Return \ic{false}}
+    \If{conds $\neq\emptyset$}{
+      \ic{buildSequences$()$}\;
+      \lIf{conditionsMatch$($ml$) =$ false}{\Return \ic{false}\;}
+    }
+    \Return \ic{true}\;
+\end{algorithm}
+
+The algorithm \ic{updateStates} is invoked by \ic{match} once for every ULabel. It applies the NFA transitions and updates the set of currently active states. If a single matching occurs, \ic{storeMatch} is called and the states of the corresponding transition set become active.
+
+\begin{algorithm}
+  \caption{\label{alg:updateStates}\ic{updateStates(nfa)}}
+    \KwIn{\ic{nfa} - a NFA.}
+    \KwOut{none}
+    let \ic{newStates} be an empty set of integers\;
+    \ForEach{$i\in$ currentStates}{
+      \For{$j=i$ \KwTo numOfStates $-2$}{
+        \If{transitions$[i][j]\neq\emptyset$}{
+          \If(\tcp*[f]{\scriptsize{matching}}){labelsMatch$(j)$ $\mathbf{and}$ timesMatch$(j)$}{
+            \ic{storeMatch$()$}\;
+            \ic{newStates.insert$($transitions$[i][j])$}\;
+          }
+        }
+      }
+    }
+    \ic{currentStates $=$ newStates}\;
+\end{algorithm}
+
+The above algorithm invokes \ic{storeMatch} in case of a single match (i.e., when a unit pattern matches a unit label). The respective matching positions and the resulting cardinality candidates are stored into arrays of sets.
+
+\begin{algorithm}
+  \caption{\label{alg:storeMatch}\ic{storeMatch$($nfa, $s)$}}
+    \KwIn{\ic{nfa} - a NFA\;
+      \hspace{1.24cm}$s$ - an integer representing the state in which this algorithm is executed.}
+    \KwOut{none}
+    \uIf{patterns$[s]$.wc $\neq\emptyset$ $\mathbf{or}$ patterns$[s]$.ivs $\neq\emptyset$ $\mathbf{or}$ patterns$[s]$.lbs $\neq\emptyset$}{
+      \ic{matchings$[s]$.insert$($ulId$)$}\;
+      \ic{cardsets$[s]$.insert$(1)$}\;
+      \If(\tcp*[f]{\scriptsize{wildcard in previous unit pattern}}){$s>0$ $\mathbf{and}$ patterns$[s-1]$.wc $\neq\emptyset$}{
+        \lIf(\tcp*[f]{\scriptsize{wildcard at 0, match at 1}}){$s=1$}{\ic{cardsets$[0]$.insert$($matchings$[1]$.max$)$}}
+        \Else(\tcp*[f]{\scriptsize{search previous matching position}}){
+          $j=s-2$\;
+          \If{matchings$[j]=\emptyset$}{
+            $j=j-1$\;
+            \lWhile{$j\geq0$ $\mathbf{and}$ matchings$[j]=\emptyset$}{$j=j-1$\;}
+            \For(\tcp*[f]{\scriptsize{loop over states}}){$k=j+1$ \KwTo $s-1$}{
+              \For{$i=0$ \KwTo matchings$[s]$.max $-$ matchings$[j]$.min $-1$}{
+                \lIf{$i>0$ $\mathbf{or}$ patterns$[k]$.wc $=\ast$}{\ic{cardsets$[k]$.insert$(i)$}\;}
+              }
+            }
+          }
+          \Else(\tcp*[f]{\scriptsize{matching at s - 2}}){
+            \ForEach{$m\in$ matchings$[s-2]$}{
+              \lIf{$ulId-m-1>0$ $\mathbf{or}$ patterns$[s-1]$.wc $=\ast$}{\ic{cardsets$[s-1]$.insert$(ulId-m-1)$}\;}
+            }
+          }
+        }
+      }
+    }
+\end{algorithm}

@@ -1,5 +1,79 @@
-/*
-----
+\documentclass[11pt,a4paper]{article}
+
+\catcode`ä=\active
+\catcode`Ä=\active
+\catcode`ö=\active
+\catcode`Ö=\active
+\catcode`ü=\active
+\catcode`Ü=\active
+\catcode`ß=\active
+
+\defä{\"{a}}
+\defÄ{\"{A}}
+\defö{\"{o}}
+\defÖ{\"{O}}
+\defü{\"{u}}
+\defÜ{\"{U}}
+\defß{\ss}
+
+\usepackage{epsfig, a4wide, xspace,color, listings, alltt}
+\lstloadlanguages{C++}
+\parindent0em
+\parskip0.8ex plus0.4ex minus 0.4ex
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{3}
+\fussy
+\definecolor{darkblue}{rgb}{0.0,0.0,0.5}
+\definecolor{darkred}{rgb}{0.5,0.0,0.0}
+\definecolor{red}{rgb}{1,0.0,0.0}
+\definecolor{lightyellow}{rgb}{1,1.0,0.9}
+\definecolor{lightblue}{rgb}{0.6,0.6,1.0}
+%\renewenvironment{quote}{\footnotesize \begin{list}{}{\leftmargin3mm \rightmargin0cm}\item\color{darkred}}
+%                        {\color{darkblue}\end{list}\normalsize}
+\oddsidemargin0mm
+\evensidemargin0mm
+\textwidth16cm
+\newenvironment{pdprogram}{\color{darkred}}
+                        {\color{darkblue}}
+
+\newenvironment{pdverbatim}{\begin{alltt}\hspace{0.9cm}\rule[1.0eX]{2in}{0.1pt}\nopagebreak\small}
+                       {\hspace{0.9cm}\rule[2.0eX]{2in}{0.1pt}\nopagebreak\end{alltt}}
+
+\newcommand{\textred}[1]{\color{red}#1\color{darkred}}
+\newcommand{\textcomment}[1]{\textit{\color{lightblue}#1}}
+
+\lstdefinelanguage{mybash} {
+     morekeywords={export, source, mkdir, cd}, sensitive=false, morecomment=[l]{\#}, morestring=[b]" }
+
+
+\newcommand{\lstsetSH}{\lstset{language=mybash,basicstyle=\ttfamily\footnotesize,stringstyle=\textred,
+			backgroundcolor=\color{lightyellow},
+			showstringspaces=false,
+			commentstyle=\textcomment,
+                        keywordstyle=\color{black},
+                        emph={$HOME, $SECONDO_SDK, $USER, $PATH,
+$LD_LIBRARY_PATH, $SECONDO_INSTALL, $platform}, 
+                        emphstyle=\color{blue},
+			extendedchars=true}}
+
+
+
+
+
+\hfuzz=0.5cm
+\hbadness=3000
+
+
+\begin{document}
+\lstset{language=C++,basicstyle=\ttfamily\footnotesize,stringstyle=\textred,
+        backgroundcolor=\color{lightyellow},
+        showstringspaces=false,
+        commentstyle=\textcomment,
+        extendedchars=true}
+\color{darkblue}
+
+\begin{pdverbatim}
+    
 This file is part of SECONDO.
 
 Copyright (C) 2004, University in Hagen, Department of Computer Science,
@@ -18,25 +92,25 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-----
 
-//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
-//[TOC] [\tableofcontents]
+\end{pdverbatim}
 
-[1] Source File of the Symbolic Trajectory Algebra
+
+{\Large \bf \begin {center} Source File of the Spatiotemporal Pattern Algebra\end {center}} 
 
 Started March 2012, Fabio Vald\'{e}s
 
 Some basic implementations were done by Frank Panse.
 
-[TOC]
+\tableofcontents
 
 \section{Overview}
-This algebra includes the operators ~matches~ and ~apply~.
+This algebra includes the operators {\em matches\/} and {\em apply\/}.
 
 \section{Defines and Includes}
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 #include "Algebra.h"
 #include "NestedList.h"
 #include "ListUtils.h"
@@ -77,6 +151,7 @@ class Label {
   void SetText(string &text);
    
   Label* Clone();
+  
   
   // algebra support functions
   
@@ -218,39 +293,39 @@ TypeConstructor labelTC(
   Label::SizeOfObj,               // sizeof function
   Label::KindCheck );             // kind checking function
 
-//**********************************************************************
+//**********************************************************************\end{lstlisting}\end{pdprogram}
+\section {Type Constructor {\em ilabel\/}}
 
+Type {\em ilabel\/} represents an (instant, value)-pair of labels.
 
-/*
+The list representation of an {\em ilabel\/} is
 
-4 Type Constructor ~ilabel~
+\begin{pdverbatim}
+        ( t string-value )
 
-Type ~ilabel~ represents an (instant, value)-pair of labels.
+\end{pdverbatim}
 
-The list representation of an ~ilabel~ is
-
-----    ( t string-value )
-----
 
 For example:
 
-----    ( (instant 1.0) "My Label" )
-----
+\begin{pdverbatim}
+        ( (instant 1.0) "My Label" )
 
-*/
+\end{pdverbatim}
 
+
+
+\begin{pdprogram}\begin{lstlisting}
 class ILabel : public IString {
 public:  
   static const string BasicType() { return "ilabel"; }
   static ListExpr IntimeLabelProperty();  
   static bool CheckIntimeLabel( ListExpr type, ListExpr& errorInfo );  
-};
+};\end{lstlisting}\end{pdprogram}
+\subsection {function Describing the Signature of the Type Constructor}
 
 
-/*
-4.1 function Describing the Signature of the Type Constructor
-
-*/
+\begin{pdprogram}\begin{lstlisting}
 ListExpr ILabel::IntimeLabelProperty() {
   return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
@@ -261,22 +336,20 @@ ListExpr ILabel::IntimeLabelProperty() {
                              nl->StringAtom("(ilabel) "),
                              nl->StringAtom("(instant string-value)"),
                              nl->StringAtom("((instant 0.5) \"at home\")"))));
-}
-
-/*
-4.2 Kind Checking Function
+}\end{lstlisting}\end{pdprogram}
+\subsection {Kind Checking Function}
 
 This function checks whether the type constructor is applied correctly.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 bool ILabel::CheckIntimeLabel(ListExpr type, ListExpr& errorInfo) {
   return (nl->IsEqual(type, Intime<Label>::BasicType()));
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Creation of the type constructor {\em ilabel\/}}
 
-/*
-4.3 Creation of the type constructor ~ilabel~
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 TypeConstructor intimelabel(
         ILabel::BasicType(),  //name
         ILabel::IntimeLabelProperty,   //property function describing signature
@@ -293,31 +366,33 @@ TypeConstructor intimelabel(
         CastIntime<CcString>,   //cast function
         SizeOfIntime<CcString>, //sizeof function
         ILabel::CheckIntimeLabel       //kind checking function
-);
+);\end{lstlisting}\end{pdprogram}
+\section {Type Constructor {\em ulabel\/}}
 
-/*
-5 Type Constructor ~ulabel~
+Type {\em ulabel\/} represents an (tinterval, stringvalue)-pair.
 
-Type ~ulabel~ represents an (tinterval, stringvalue)-pair.
+\subsection {List Representation}
 
-5.1 List Representation
+The list representation of an {\em ulabel\/} is
 
-The list representation of an ~ulabel~ is
+\begin{pdverbatim}
+        ( timeinterval string-value )
 
-----    ( timeinterval string-value )
-----
+\end{pdverbatim}
+
 
 For example:
 
-----    ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   ["]My Label["] )
-----
+\begin{pdverbatim}
+        ( ( (instant 6.37)  (instant 9.9)   TRUE FALSE)   ["]My Label["] )
 
-*/
+\end{pdverbatim}
 
-/*
-5.2 function Describing the Signature of the Type Constructor
 
-*/
+\subsection {function Describing the Signature of the Type Constructor}
+
+
+\begin{pdprogram}\begin{lstlisting}
 ListExpr ULabel::ULabelProperty() {
     return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
@@ -328,21 +403,18 @@ ListExpr ULabel::ULabelProperty() {
                      nl->StringAtom("(ulabel) "),
                      nl->StringAtom("(timeInterval string) "),
                      nl->StringAtom("((i1 i2 FALSE FALSE) \"at home\")"))));
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Kind Checking Function}
 
-/*
-5.3 Kind Checking Function
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 bool ULabel::CheckULabel(ListExpr type, ListExpr& errorInfo) {
   return (nl->IsEqual(type, ULabel::BasicType()));
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Creation of the type constructor {\em ulabel\/}}
 
 
-/*
-5.4 Creation of the type constructor ~ulabel~
-
-*/
+\begin{pdprogram}\begin{lstlisting}
 TypeConstructor unitlabel(
         ULabel::BasicType(), // ULabel::BasicType(),  //name
         ULabel::ULabelProperty,    //property function describing signature
@@ -359,33 +431,38 @@ TypeConstructor unitlabel(
         CastConstTemporalUnit<CcString>,    //cast function
         SizeOfConstTemporalUnit<CcString>,  //sizeof function
         ULabel::CheckULabel    //kind checking function
-);
+);\end{lstlisting}\end{pdprogram}
+\section {Type Constructor {\em mlabel\/}}
 
-/*
-6 Type Constructor ~mlabel~
+Type {\em mlabel\/} represents a moving string.
 
-Type ~mlabel~ represents a moving string.
+\subsection {List Representation}
 
-6.1 List Representation
+The list representation of a {\em mlabel\/} is
 
-The list representation of a ~mlabel~ is
+\begin{pdverbatim}
+        ( u1 ... un )
 
-----    ( u1 ... un )
-----
+\end{pdverbatim}
 
-,where u1, ..., un are units of type ~ulabel~.
+
+,where u1, ..., un are units of type {\em ulabel\/}.
 
 For example:
 
-----    (
+\begin{pdverbatim}
+        (
           ( (instant 6.37)  (instant 9.9)   TRUE FALSE) ["]Label 1["] )
           ( (instant 11.4)  (instant 13.9)  FALSE FALSE) ["]Label 2["] )
         )
-----
 
-6.2 function Describing the Signature of the Type Constructor
+\end{pdverbatim}
 
-*/
+
+\subsection {function Describing the Signature of the Type Constructor}
+
+
+\begin{pdprogram}\begin{lstlisting}
 ListExpr MLabel::MLabelProperty() {
     return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
@@ -396,23 +473,20 @@ ListExpr MLabel::MLabelProperty() {
                      nl->StringAtom("(mlabel) "),
                      nl->StringAtom("( u1 ... un)"),
                      nl->StringAtom("(((i1 i2 TRUE TRUE) \"at home\") ...)"))));
-}
-
-
-/*
-6.3 Kind Checking Function
+}\end{lstlisting}\end{pdprogram}
+\subsection {Kind Checking Function}
 
 This function checks whether the type constructor is applied correctly.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 bool MLabel::CheckMLabel(ListExpr type, ListExpr& errorInfo) {
   return (nl->IsEqual(type, MLabel::BasicType()));
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Creation of the type constructor {\em mlabel\/}}
 
-/*
-6.4 Creation of the type constructor ~mlabel~
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 TypeConstructor movinglabel(
     MLabel::BasicType(), // name
     MLabel::MLabelProperty,    //property function describing signature
@@ -441,7 +515,7 @@ int MappingAtInstantExt(
     Word& local,
     Supplier s)
 {
-    result = qp->ResultStorage(s);
+    result = qp->ResultStorage( s );
     Intime<Alpha>* pResult = (Intime<Alpha>*)result.addr;
 
     ((Mapping*)args[0].addr)->AtInstant( *((Instant*)args[1].addr), *pResult );
@@ -500,11 +574,11 @@ Operator temporalatinstantext(
 
 //**********************************************************************
 
-enum LabelsState {partial, complete};
+enum LabelsState { partial, complete };
 
 class Labels : public Attribute {
   public:
-    Labels(const int n, const Label *Lb = 0);
+    Labels( const int n, const Label *Lb = 0 );
     ~Labels();
 
     Labels(const Labels& src);
@@ -516,14 +590,14 @@ class Labels : public Attribute {
     bool Adjacent(const Attribute*) const;
     Labels *Clone() const;
     size_t Sizeof() const;
-    ostream& Print(ostream& os) const;
+    ostream& Print( ostream& os ) const;
 
     void Append( const Label &lb );
     void Complete();
     bool Correct();
     void Destroy();
     int GetNoLabels() const;
-    Label GetLabel(int i) const;
+    Label GetLabel( int i ) const;
     string GetState() const;
     const bool IsEmpty() const;
     void CopyFrom(const Attribute* right);
@@ -531,25 +605,37 @@ class Labels : public Attribute {
 
     friend ostream& operator <<( ostream& os, const Labels& p );
 
-    static Word     In(const ListExpr typeInfo, const ListExpr instance,
-                      const int errorPos, ListExpr& errorInfo, bool& correct);
-    static ListExpr Out(ListExpr typeInfo, Word value);
-    static Word     Create(const ListExpr typeInfo);
-    static void     Delete(const ListExpr typeInfo, Word& w);
-    static void     Close(const ListExpr typeInfo, Word& w);
-    static bool     Save(SmiRecord& valueRecord, size_t& offset,
-                         const ListExpr typeInfo, Word& value);
-    static bool     Open(SmiRecord& valueRecord, size_t& offset,
-                         const ListExpr typeInfo, Word& value);
-    static Word     Clone(const ListExpr typeInfo, const Word& w);
-    static bool     KindCheck(ListExpr type, ListExpr& errorInfo);
+    static Word     In( const ListExpr typeInfo, const ListExpr instance,
+                        const int errorPos, ListExpr& errorInfo,
+                        bool& correct );
+
+    static ListExpr Out( ListExpr typeInfo, Word value );
+
+    static Word     Create( const ListExpr typeInfo );
+
+    static void     Delete( const ListExpr typeInfo, Word& w );
+
+    static void     Close( const ListExpr typeInfo, Word& w );
+
+    static bool     Save( SmiRecord& valueRecord, size_t& offset,
+                          const ListExpr typeInfo, Word& value    );
+
+    static bool     Open( SmiRecord& valueRecord, size_t& offset,
+                          const ListExpr typeInfo, Word& value    );
+
+    static Word     Clone( const ListExpr typeInfo, const Word& w );
+
+
+    static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
+
     static int      SizeOfObj();
+
     static ListExpr Property();
-    static void*    Cast(void* addr);
-    static const    string BasicType() {
-      return "labels";
-    }
-    static const    bool checkType(const ListExpr type){
+
+    static void* Cast(void* addr);
+
+    static const string BasicType() { return "labels"; }
+    static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
 
@@ -557,12 +643,11 @@ class Labels : public Attribute {
     Labels() {} // this constructor is reserved for the cast function.
     DbArray<Label> labels;
     LabelsState state;
-};
+};\end{lstlisting}\end{pdprogram}
+\subsubsection {Print functions}
 
-/*
-2.3.18 Print functions
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 ostream& operator<<(ostream& os, const Label& lb) {
   os << "(" << lb << ")";
   return os;
@@ -572,18 +657,17 @@ ostream& operator<<(ostream& os, const Labels& lbs) {
   os << " State: " << lbs.GetState()
      << "<";
   for(int i = 0; i < lbs.GetNoLabels(); i++)
-    os << lbs.GetLabel(i) << " ";
+    os << lbs.GetLabel( i ) << " ";
   os << ">";
   return os;
-}
-
-/*
-2.3.1 Constructors.
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {Constructors.}
 
 This first constructor creates a new polygon.
 
-*/
-Labels::Labels(const int n, const Label *lb) :
+
+\begin{pdprogram}\begin{lstlisting}
+Labels::Labels( const int n, const Label *lb ) :
   Attribute(true),
   labels(n),
   state(partial) {
@@ -594,86 +678,78 @@ Labels::Labels(const int n, const Label *lb) :
     }
     Complete();
   }
-}
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {Copy Constructor}
 
-/*
-2.3.2 Copy Constructor
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 Labels::Labels(const Labels& src):
   Attribute(src.IsDefined()),
   labels(src.labels.Size()),state(src.state) {
   labels.copyFrom(src.labels);
-}
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {Destructor.}
 
-/*
-2.3.2 Destructor.
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 Labels::~Labels() {}
 
 Labels& Labels::operator=(const Labels& src) {
   this->state = src.state;
   labels.copyFrom(src.labels);
   return *this;
-}
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {NumOfFLOBs.}
 
-/*
-2.3.3 NumOfFLOBs.
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 int Labels::NumOfFLOBs() const {
   return 1;
-}
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {GetFLOB}
 
-/*
-2.3.4 GetFLOB
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 Flob *Labels::GetFLOB(const int i) {
   assert( i >= 0 && i < NumOfFLOBs() );
   return &labels;
-}
-
-/*
-2.3.5 Compare
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {Compare}
 
 Not yet implemented. 
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 int Labels::Compare(const Attribute*) const
 {
   return 0;
-}
-
-/*
-2.3.6 HashValue
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {HashValue}
 
 Because Compare returns alway 0, we can only return a constant hash value.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 size_t Labels::HashValue() const{
   return  1;
-}
-
-/*
-2.3.5 Adjacent
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {Adjacent}
 
 Not yet implemented. 
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 bool Labels::Adjacent(const Attribute*) const
 {
   return 0;
-}
-
-/*
-2.3.7 Clone
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {Clone}
 
 Returns a new created element labels (clone) which is a
-copy of ~this~.
+copy of {\em this\/}.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 Labels *Labels::Clone() const
 {
   assert(state == complete);
@@ -683,108 +759,99 @@ Labels *Labels::Clone() const
 
 void Labels::CopyFrom(const Attribute* right) {
   *this = *((Labels*) right);
-}
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {Sizeof}
 
-/*
-2.3.8 Sizeof
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 size_t Labels::Sizeof() const {
   return sizeof( *this );
-}
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {Print}
 
-/*
-2.3.8 Print
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 ostream& Labels::Print( ostream& os ) const {
   return (os << *this);
-}
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {Append}
 
-/*
-2.3.9 Append
+Appends a label {\em lb\/} at the end of the DBArray labels.
 
-Appends a label ~lb~ at the end of the DBArray labels.
+{\bf Precondition} {\em state == partial\/}.
 
-*Precondition* ~state == partial~.
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 void Labels::Append(const Label& lb) {
   assert(state == partial);
   labels.Append( lb );
-}
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {Complete}
 
-/*
-2.3.10 Complete
+Turns the element labels into the {\em complete\/} state.
 
-Turns the element labels into the ~complete~ state.
+{\bf Precondition} {\em state == partial\/}.
 
-*Precondition* ~state == partial~.
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 void Labels::Complete() {
   assert(state == partial);
   state = complete;
-}
-
-/*
-2.3.11 Correct
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {Correct}
 
 Not yet implemented.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 bool Labels::Correct() {
   return true;
-}
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {Destroy}
 
-/*
-2.3.13 Destroy
-
-Turns the element labels into the ~closed~ state destroying the
+Turns the element labels into the {\em closed\/} state destroying the
 labels DBArray.
 
-*Precondition* ~state == complete~.
+{\bf Precondition} {\em state == complete\/}.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 void Labels::Destroy() {
   assert( state == complete );
   labels.destroy();
-}
-
-/*
-2.3.14 NoLabels
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {NoLabels}
 
 Returns the number of labels of the DBArray labels.
 
-*Precondition* ~state == complete~.
+{\bf Precondition} {\em state == complete\/}.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 int Labels::GetNoLabels() const {
   return labels.Size();
-}
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {GetLabel}
 
-/*
-2.3.15 GetLabel
+Returns a label indexed by {\em i\/}.
 
-Returns a label indexed by ~i~.
+{\bf Precondition} {\em state == complete \&\& 0 <= i < noLabels\/}.
 
-*Precondition* ~state == complete \&\& 0 <= i < noLabels~.
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 Label Labels::GetLabel(int i) const {
   assert(state == complete);
   assert(0 <= i && i < GetNoLabels());
   Label lb;
   labels.Get(i, &lb);
   return lb;
-}
-
-/*
-2.3.16 GetState
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {GetState}
 
 Returns the state of the element labels in string format.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 string Labels::GetState() const {
   switch(state) {
     case partial:
@@ -793,33 +860,33 @@ string Labels::GetState() const {
       return "complete";
   }
   return "";
-}
-
-/*
-2.3.18 IsEmpty
+}\end{lstlisting}\end{pdprogram}
+\subsubsection {IsEmpty}
 
 Returns if the labels is empty or not.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 const bool Labels::IsEmpty() const {
   assert(state == complete);
   return GetNoLabels() == 0;
-}
+}\end{lstlisting}\end{pdprogram}
+\section {Labels Algebra.}
 
-/*
-3 Labels Algebra.
-
-3.1 List Representation
+\subsection {List Representation}
 
 The list representation of a labels is
 
-----    ( (<recordId>) label_1 label_2 ... label_n )
-----
+\begin{pdverbatim}
+        ( (<recordId>) label_1 label_2 ... label_n )
 
-3.2 ~In~ and ~Out~ Functions
+\end{pdverbatim}
 
-*/
 
+\subsection {{\em In\/} and {\em Out\/} Functions}
+
+
+\begin{pdprogram}\begin{lstlisting}
 ListExpr Labels::Out(ListExpr typeInfo, Word value) {
   Labels* labels = static_cast<Labels*>(value.addr);
   if (!labels->IsDefined()) {
@@ -860,12 +927,11 @@ Word Labels::In(const ListExpr typeInfo, const ListExpr instance,
   labels->Complete();  
   result.addr = labels;
   return result;
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Function Describing the Signature of the Type Constructor}
 
-/*
-3.3 Function Describing the Signature of the Type Constructor
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 ListExpr Labels::Property() {
   return (nl->TwoElemList(
          nl->FiveElemList(nl->StringAtom("Signature"),
@@ -881,98 +947,87 @@ ListExpr Labels::Property() {
                           "\"at home\" )"),
                           nl->StringAtom("Each label must be of "
                           "type string."))));
-}
-
-/*
-3.4 Kind Checking Function
+}\end{lstlisting}\end{pdprogram}
+\subsection {Kind Checking Function}
 
 This function checks whether the type constructor is applied correctly. Since
-type constructor ~labels~ does not have arguments, this is trivial.
+type constructor {\em labels\/} does not have arguments, this is trivial.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 bool Labels::KindCheck(ListExpr type, ListExpr& errorInfo) {
   return (nl->IsEqual(type, Labels::BasicType()));
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {{\em Create\/}-function}
 
-/*
 
-3.5 ~Create~-function
-
-*/
+\begin{pdprogram}\begin{lstlisting}
 Word Labels::Create(const ListExpr typeInfo) {
   Labels* labels = new Labels(0);
   return (SetWord(labels));
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {{\em Delete\/}-function}
 
-/*
-3.6 ~Delete~-function
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 void Labels::Delete(const ListExpr typeInfo, Word& w) {
   Labels* labels = (Labels*)w.addr;
   labels->Destroy();
   delete labels;
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {{\em Open\/}-function}
 
-/*
-3.6 ~Open~-function
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 bool Labels::Open(SmiRecord& valueRecord, size_t& offset,
                   const ListExpr typeInfo, Word& value) {
   Labels *lbs = (Labels*)Attribute::Open(valueRecord, offset, typeInfo);
   value.setAddr(lbs);
   return true;
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {{\em Save\/}-function}
 
-/*
-3.7 ~Save~-function
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 bool Labels::Save(SmiRecord& valueRecord, size_t& offset,
              const ListExpr typeInfo, Word& value) {
   Labels *lbs = (Labels *)value.addr;
   Attribute::Save(valueRecord, offset, typeInfo, lbs);
   return true;
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {{\em Close\/}-function}
 
-/*
-3.8 ~Close~-function
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 void Labels::Close(const ListExpr typeInfo, Word& w) {
   Labels* labels = (Labels*)w.addr;
   delete labels;
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {{\em Clone\/}-function}
 
-/*
-3.9 ~Clone~-function
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 Word Labels::Clone(const ListExpr typeInfo, const Word& w) {
   return SetWord(((Labels*)w.addr)->Clone());
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {{\em SizeOf\/}-function}
 
-/*
-3.9 ~SizeOf~-function
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 int Labels::SizeOfObj() {
   return sizeof(Labels);
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {{\em Cast\/}-function}
 
-/*
-3.10 ~Cast~-function
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 void* Labels::Cast(void* addr) {
   return (new (addr)Labels);
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Creation of the Type Constructor Instance}
 
-/*
-3.11 Creation of the Type Constructor Instance
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 TypeConstructor labelsTC(
         Labels::BasicType(),               //name
         Labels::Property,                  //property function
@@ -986,81 +1041,70 @@ TypeConstructor labelsTC(
         Labels::KindCheck );               //kind checking function
 
 
-//**********************************************************************
-/*
+//**********************************************************************\end{lstlisting}\end{pdprogram}
 \section{Pattern}
-*/
+\subsection{Function {\em GetText\/}}
+Writes all pattern information into a string
 
-/*
-\subsection{Function ~toString~}
-Writes all pattern information into a string.
 
-*/
-string Pattern::toString() const {
-  stringstream str;
-  str << "~~~~~~pattern~~~~~~" << endl;
+\begin{pdprogram}\begin{lstlisting}
+string Pattern::GetText() const {
+  stringstream text;
+  text << "~~~~~~pattern~~~~~~" << endl;
   for (unsigned int i = 0; i < patterns.size(); i++) {
-    str << "[" << i << "] " << patterns[i].var << " | "
-        << setToString(patterns[i].ivs) << " | "
-        << setToString(patterns[i].lbs) << " | "
-        << (patterns[i].wc ? (patterns[i].wc == STAR ? "*" : "+") :"") << endl;
+    text << "[" << i << "] " << patterns[i].variable << " | ";
+    text << setToString(patterns[i].intervalset);
+    text << " | ";
+    text << setToString(patterns[i].labelset);
+    text << " | " << patterns[i].wildcard << endl;
   }
-  str << "~~~~~~conditions~~~~~~" << endl;
-  for (unsigned int i = 0; i < conds.size(); i++) {
-    str << "[" << i << "] " << conds[i].text << endl;
-    for (unsigned int j = 0; j < conds[i].vars.size(); j++) {
-      str << "  [[" << j << "]] " << conds[i].vars[j] << "."
-          << conds[i].keys[j] << " in #" << conds[i].pIds[j] << endl;
+  text << "~~~~~~conditions~~~~~~" << endl;
+  for (unsigned int i = 0; i < conditions.size(); i++) {
+    text << "[" << i << "] " << conditions[i].condition << endl;
+    text << "[subst] " << conditions[i].condsubst << endl;
+    for (unsigned int j = 0; j < conditions[i].variables.size(); j++) {
+      text << "[[" << j << "]] " << conditions[i].variables[j]
+           << "." << conditions[i].keys[j] << " in #"
+           << conditions[i].patternIds[j] << endl;
     }
   }
-  str << "~~~~~~results~~~~~~" << endl;
+  text << "~~~~~~results~~~~~~" << endl;
   for (unsigned int i = 0; i < results.size(); i++) {
-    str << "[" << i << "] " << results[i].var << " | "
-        << setToString(results[i].ivs) << " | " << setToString(results[i].lbs)
-        << " | " << (results[i].wc ? (results[i].wc == STAR ? "*" : "+") : "")
-        << endl;
+    text << "[" << i << "] " << results[i].variable << " | ";
+    text << setToString(results[i].intervalset);
+    text << " | ";
+    text << setToString(results[i].labelset);
+    text << " | " << results[i].wildcard << endl;
   }
-  str << "~~~~~~assignments~~~~~~" << endl;
-  for (unsigned int i = 0; i < assigns.size(); i++) {
-    str << "[" << i << "] " << assigns[i].var << " | ";
-    str << setToString(assigns[i].ivs) << " | "
-        << setToString(assigns[i].lbs) << " | "
-        << (assigns[i].wc ? (assigns[i].wc == STAR ? "*" : "+") : "") << endl;
+  text << "~~~~~~assignments~~~~~~" << endl;
+  for (unsigned int i = 0; i < assignments.size(); i++) {
+    text << "[" << i << "] " << assignments[i].variable << " | ";
+    text << setToString(assignments[i].intervalset);
+    text << " | ";
+    text << setToString(assignments[i].labelset);
+    text << " | "  << assignments[i].wildcard << endl;
   }
-  str << endl;
-  return str.str();
-}
+  text << endl;
+  return text.str();
+}\end{lstlisting}\end{pdprogram}
+\subsection {Function {\em BasicType\/}}
 
-/*
-\subsection{Function ~GetText()~}
 
-Returns the pattern text as specified by the user.
-
-*/
-string Pattern::GetText() const {
-  return text;
-}
-
-/*
-4.2 Function ~BasicType~
-
-*/
+\begin{pdprogram}\begin{lstlisting}
 const string Pattern::BasicType() {
   return "pattern";
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Function {\em checkType\/}}
 
-/*
-4.3 Function ~checkType~
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 const bool Pattern::checkType(const ListExpr type){
   return listutils::isSymbol(type, BasicType());
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Function {\em In\/}}
 
-/*
-4.4 Function ~In~
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 Word Pattern::In(const ListExpr typeInfo, const ListExpr instance,
                  const int errorPos, ListExpr& errorInfo, bool& correct) {
   Word result = SetWord(Address(0));
@@ -1069,16 +1113,17 @@ Word Pattern::In(const ListExpr typeInfo, const ListExpr instance,
   if (list.isAtom()) {
     if (list.isText()) {
       string text = list.str();
-      Pattern *pattern = 0;
-      text += "\n";
-      pattern = stj::parseString(text.c_str());
-      if (pattern) {
+      Pattern *pattern = new Pattern();
+      cout << text << endl;
+      text +="\n";
+      if (stj::parseString(text.c_str(), &pattern)) {
         correct = true;
         result.addr = pattern;
       }
       else {
         correct = false;
         cmsg.inFunError("Parsing error.");
+        delete pattern;
       }
     }
     else {
@@ -1091,166 +1136,196 @@ Word Pattern::In(const ListExpr typeInfo, const ListExpr instance,
     cmsg.inFunError("Expecting one text atom!");
   }
   return result;
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Function {\em Out\/}}
 
-/*
-4.5 Function ~Out~
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 ListExpr Pattern::Out(ListExpr typeInfo, Word value) {
   Pattern* pattern = static_cast<Pattern*>(value.addr);
   NList element(pattern->GetText(), true, true);
   return element.listExpr();
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Function {\em Create\/}}
 
-/*
-4.6 Function ~Create~
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 Word Pattern::Create(const ListExpr typeInfo) {
   return (SetWord(new Pattern()));
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Function {\em Delete\/}}
 
-/*
-4.7 Function ~Delete~
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 void Pattern::Delete(const ListExpr typeInfo, Word& w) {
   delete static_cast<Pattern*>(w.addr);
   w.addr = 0;
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Function {\em Close\/}}
 
-/*
-4.8 Function ~Close~
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 void Pattern::Close(const ListExpr typeInfo, Word& w) {
   delete static_cast<Pattern*>(w.addr);
   w.addr = 0;
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Function {\em Clone\/}}
 
-/*
-4.9 Function ~Clone~
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 Word Pattern::Clone(const ListExpr typeInfo, const Word& w) {
   Pattern* pattern = static_cast<Pattern*>(w.addr);
   return SetWord(new Pattern(*pattern));
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Function {\em SizeOfObj\/}}
 
-/*
-4.10 Function ~SizeOfObj~
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 int Pattern::SizeOfObj() {
   return sizeof(Pattern);
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection {Function {\em KindCheck\/}}
 
-/*
-4.11 Function ~KindCheck~
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 bool Pattern::KindCheck(ListExpr type, ListExpr& errorInfo) {
   return (nl->IsEqual(type, Pattern::BasicType()));
-}
-
-/*
-\subsection{Function ~verifyPattern~}
-
-Loops through the unit patterns and checks whether every specified interval
-is valid and whether the variables are unique.
-
-*/
-bool Pattern::verifyPattern() {
-  set<string>::iterator it;
-  SecInterval iv;
-  set<string> vars;
-  for (unsigned int i = 0; i < patterns.size(); i++) {
-    for (it = patterns[i].ivs.begin(); it != patterns[i].ivs.end(); it++) {
-      if (!checkSemanticDate(*it, iv, false)) {
-        return false;
-      }
-    }
-    if (!patterns[i].var.empty()) {
-      if (vars.count(patterns[i].var)) {
-        cout << "Error: variables in the pattern must be unique." << endl;
-        return false;
-      }
-      else {
-        vars.insert(patterns[i].var);
-      }
-    }
-  }
-  return true;
-}
-
-/*
-\subsection{Function ~verifyConditions~}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em verifyConditions\/}}
 
 Loops through the conditions and checks whether each one is a syntactically
-correct boolean expression. If there is an invalid condition, the user input
-is rejected.
+correct boolean expression. Invalid conditions are removed.
 
-*/
-bool Pattern::verifyConditions() {
-  //int numOfConds = conds.size();
-  //int removed = 0;
-  for (unsigned int i = 0; i < conds.size(); i++) {
-    if (!evaluate(conds[i].textSubst, false)) {
-      cout << "condition \'" << conds[i].textSubst << "\' is invalid." << endl;
-      return false;
-      //conds.erase(conds.begin() + i);
-      //cout << "condition deleted" << endl;
-      //removed++;
-      //i--;
-      //numOfConds = conds.size();
+
+\begin{pdprogram}\begin{lstlisting}
+void Pattern::verifyConditions() {
+  int condSize = conditions.size();
+  int removedConds = 0;
+  for (int i = 0; i < condSize; i++) {
+    cout << "there " << (condSize > 1 ? "are" : "is") << " still " << condSize
+         << " condition" << (condSize > 1 ? "s" : "") << endl;
+    if (!evaluate(conditions[i].condsubst, false)) {
+      conditions.erase(conditions.begin() + i);
+      cout << "condition deleted" << endl;
+      removedConds++;
+      i--;
+      condSize = conditions.size();
     }
   }
-  return true;
-//   if (removed) {
-//     cout << removed << " invalid condition" << ((removed > 1) ? "s" : "")
-//          << " removed" << endl;
-//   }
-}
+  if (removedConds) {
+    cout << removedConds << " invalid condition"
+         << ((removedConds > 1) ? "s" : "") << " removed" << endl;
+  }
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em evaluate\/}}
 
-/*
-\subsection{Function ~getPattern~}
+In case of testing a condition's syntactical correctness, we are only
+interested in the result type. Thus, resultNeeded is false, an operator tree
+is built, and true is returned if and only if the result type is boolean.
+On the other hand, if we ask for the condition result, the function executes
+the appropiate query and returns its result.
+
+
+\begin{pdprogram}\begin{lstlisting}
+bool evaluate(string conditionString, const bool resultNeeded) {
+  bool isBool = false;
+  bool isTrue = false;
+  SecParser condParser;
+  string queryString;
+  ListExpr queryList, resultType;
+  Word queryResult;
+  bool correct = false;
+  bool evaluable = false;
+  bool defined = false;
+  bool isFunction = false;
+  OpTree tree = 0;
+  conditionString.insert(0, "query ");
+  switch (condParser.Text2List(conditionString, queryString)) {
+    case 0:
+      if (!nl->ReadFromString(queryString, queryList)) {
+        cout << "ReadFromString error" << endl;
+      }
+      else {
+        if (nl->IsEmpty(nl->Rest(queryList))) {
+          cout << "Rest of list is empty" << endl;
+        }
+        else {
+          cout << nl->ToString(nl->First(nl->Rest(queryList))) << endl;
+          if (resultNeeded) { // evaluate the condition
+            if (!qp->ExecuteQuery(nl->ToString(nl->First(nl->Rest(queryList))),
+                                  queryResult)) {
+              cout << "execution error" << endl;
+            }
+            else {
+              CcBool *ccResult = static_cast<CcBool*>(queryResult.addr);
+              isTrue = ccResult->GetValue();
+            }
+          }
+          else { // get the result type
+            qp->Construct(nl->First(nl->Rest(queryList)), correct, evaluable,
+                          defined, isFunction, tree, resultType);
+            if (!correct) {
+              cout << "type error" << endl;
+            }
+            else if (!evaluable) {
+              cout << "not evaluable" << endl;
+            }
+            else if (nl->ToString(resultType).compare("bool")) {
+              cout << "wrong result type " << nl->ToString(resultType) << endl;
+            }
+            else {
+              isBool = true;
+            }
+          }
+        }
+      }
+      break;
+    case 1:
+      cout << "String cannot be converted to list" << endl;
+      break;
+    case 2:
+      cout << "stack overflow" << endl;
+      break;
+    default: // should not occur
+      break;
+  }
+  if (tree) {
+    qp->Destroy(tree, true);
+  }
+  return resultNeeded ? isTrue : isBool;
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em getPattern\/}}
 
 Calls the parser.
 
-*/
-Pattern* Pattern::getPattern(string input) {
+
+\begin{pdprogram}\begin{lstlisting}
+bool Pattern::getPattern(string input, Pattern** p) {
   input.append("\n");
   cout << input << endl;
   const char *patternChar = input.c_str();
-  return parseString(patternChar);
-}
+  return parseString(patternChar, p);
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em matches\/}}
 
-/*
-\subsection{Function ~matches~}
+Invokes the NFA construction and the matching procedure.
 
-Checks the pattern and the condition and (if no problem occurs) invokes the NFA
-construction and the matching procedure.
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 bool Pattern::matches(MLabel const &ml) {
-  if (!verifyPattern() || !verifyConditions()) {
-    return false;
-  }
   NFA *nfa = new NFA(patterns.size() + 1);
   nfa->buildNFA(*this);
   cout << nfa->toString() << endl;
   bool result = nfa->match(ml);
   delete nfa;
   return result;
-}
-
-/*
-\subsection{Function ~Property~}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em Property\/}}
 
 Describes the signature of the type constructor.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 ListExpr Pattern::Property() {
   return (nl->TwoElemList(
     nl->FiveElemList(nl->StringAtom("Signature"),
@@ -1263,12 +1338,11 @@ ListExpr Pattern::Property() {
        nl->StringAtom("<pattern>"),
        nl->TextAtom("\' (monday at_home) X (_ _) // X.start = 2011-01-01 \'"),
        nl->StringAtom("<pattern> must be a text."))));
-}
-
-/*
+}\end{lstlisting}\end{pdprogram}
 \subsection{Creation of the Type Constructor Instance}
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 TypeConstructor patternTC(
   Pattern::BasicType(),               // name of the type in SECONDO
   Pattern::Property,                // property function describing signature
@@ -1281,40 +1355,41 @@ TypeConstructor patternTC(
   Pattern::SizeOfObj,               // sizeof function
   Pattern::KindCheck );             // kind checking function
 
-//**********************************************************************
-/*
+//**********************************************************************\end{lstlisting}\end{pdprogram}
 \section{NFA}
-*/
-
-/*
-\subsection{Function ~buildNFA~}
+\subsection{Function {\em buildNFA\/}}
 
 Reads the pattern and generates the state transitions.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 void NFA::buildNFA(Pattern p) {
-  patterns = p.patterns;
-  conds = p.conds;
+  nfaPatterns = p.patterns;
+  if (!p.conditions.empty()) {
+    nfaConditions = p.conditions;
+  }
   for (int i = 0; i < numOfStates - 1; i++) { // solve epsilon-transitions
-    transitions[i][i].insert(i + 1);// state i, read pattern i => new state i+1
-    if (patterns[i].wc == STAR) { // reading '*'
+    if (!(nfaPatterns[i].wildcard.compare("*"))) { // reading '*'
       if (i > 0) {
         transitions[i - 1][i - 1].insert(i + 1);
       }
       transitions[i][i].insert(i);
+      //nfaPatterns[i].wildcard.assign("+");
       if (i < numOfStates - 2) {
         transitions[i][i + 1].insert(i + 2);
         int j = i + 1;
-        while ((j < numOfStates - 1) && (patterns[j].wc == STAR)) {
-          transitions[i][i].insert(j + 1); // handle '* * ... *'
-          transitions[i][j + 1].insert(j + 2); // handle '* * * (1 a) ...'
+        while ((j < numOfStates - 1)  // handle '* * ... *'
+                && !(nfaPatterns[j].wildcard.compare("*"))) {
+          transitions[i][i].insert(j + 1);
+          transitions[i][j + 1].insert(j + 2);
           j++;
         }
-        if (patterns[i + 1].wc != STAR) { // handle '* (1909 bvb) * * ... *'
+        if (nfaPatterns[i + 1].wildcard.compare("*")) { // handle '* (a 1) * *'
           transitions[i][i + 1].insert(i);
           transitions[i][i + 1].insert(i + 1);
           int j = i + 2;
-          while ((j < numOfStates - 1) && (patterns[j].wc == STAR)) {
+          while ((j < numOfStates - 1)
+                  && !(nfaPatterns[j].wildcard.compare("*"))) {
             transitions[i][i + 1].insert(j + 1);
             j++;
           }
@@ -1326,30 +1401,32 @@ void NFA::buildNFA(Pattern p) {
     }
     else { // not reading '*'
       int j = i + 1; // handle '(a 1) * * ... *'
-      while ((j < numOfStates - 1) && (patterns[j].wc == STAR)) {
+      while ((j < numOfStates - 1)
+              && !(nfaPatterns[j].wildcard.compare("*"))) {
         transitions[i][i].insert(j + 1);
         j++;
       }
     }
-    if (patterns[i].wc == PLUS) { // reading '+'
+    if (!(nfaPatterns[i].wildcard.compare("+"))) { // reading '+'
       transitions[i][i].insert(i);
     }
-//     if (i > 0) {  // remove duplicates for '* *'
-//       if ((patterns[i - 1].wc == PLUS) && (patterns[i].wc == PLUS)){
-//         transitions[i - 1][i].clear();  
-//       }
-//     }
+    transitions[i][i].insert(i + 1);// state i, read pattern i => new state i+1
+    if (i > 0) {  // remove duplicates for '* *'
+      if (!(nfaPatterns[i - 1].wildcard.compare("+"))
+       && !(nfaPatterns[i].wildcard.compare("+"))) {
+        transitions[i - 1][i].clear();  
+      }
+    }
   }
-}
-
-/*
-\subsection{Function ~match~}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em match\/}}
 
 Loops through the MLabel calling updateStates() for every ULabel. True is
 returned if and only if the final state is an element of currentStates after
 the loop.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 bool NFA::match(MLabel const &ml) {
   maxLabelId = (size_t)ml.GetNoComponents() - 1;
   for (size_t i = 0; i <= maxLabelId; i++) {
@@ -1366,22 +1443,19 @@ bool NFA::match(MLabel const &ml) {
     return false;
   }
   printCards();
-  if (conds.size()) {
-    buildSequences();
-    printSequences(50);
-    if (!conditionsMatch(ml)) {
-      return false;
-    }
+  buildSequences();
+  printSequences(50);
+  if (!conditionsMatch(ml)) {
+    return false;
   }
   return true;
-}
-
-/*
-\subsection{Function ~toString~}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em toString\/}}
 
 Returns a string displaying the information stored in the NFA.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 string NFA::toString() {
   cout << "start output, " << numOfStates << " states" << endl;
   stringstream nfa;
@@ -1404,14 +1478,13 @@ string NFA::toString() {
     }
   }
   return nfa.str();
-}
-
-/*
-\subsection{Function ~printCurrentStates~}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em printCurrentStates\/}}
 
 Prints the set of currently active states.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 void NFA::printCurrentStates() {
   set<int>::iterator i;
   cout << "the set of active states is {";
@@ -1419,15 +1492,14 @@ void NFA::printCurrentStates() {
     cout << *i << " ";
   }
   cout << "}" << endl;
-}
-
-/*
-\subsection{Function ~printCards~}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em printCards\/}}
 
 Prints the ulabels matched by every unit pattern. Subsequently, the possible
 cardinalities for every unit pattern are displayed.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 void NFA::printCards() {
   set<size_t>::iterator it;
   for (int j = 0; j < numOfStates - 1; j++) {
@@ -1445,15 +1517,14 @@ void NFA::printCards() {
     }
     cout << endl;
   }
-}
-
-/*
-\subsection{Function ~printSequences~}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em printSequences\/}}
 
 Displays the possible cardinality sequences. As the number of sequences may
-be very high, only the first ~max~ sequences are printed.
+be very high, only the first {\em max\/} sequences are printed.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 void NFA::printSequences(size_t max) {
   set<vector<size_t> >::iterator it;
   unsigned int seqCount = 0;
@@ -1468,15 +1539,14 @@ void NFA::printSequences(size_t max) {
     seqCount++;
   }
   cout << "there are " << sequences.size() << " possible sequences" << endl;
-}
-
-/*
-\subsection{Function ~printCondMatchings~}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em printCondMatchings\/}}
 
 Displays the possible condition matching sequences. As the number of sequences
-may be very high, only the first ~max~ sequences are printed.
+may be very high, only the first {\em max\/} sequences are printed.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 void NFA::printCondMatchings(size_t max) {
   set<vector<size_t> >::iterator it;
   unsigned int count = 0;
@@ -1491,23 +1561,40 @@ void NFA::printCondMatchings(size_t max) {
     count++;
   }
   cout << condMatchings.size() << " possible condition matchings." << endl;
-}
-
-/*
-\subsection{Function ~updateStates~}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em updateStates\/}}
 
 Further functions are invoked to decide which transition can be applied to
 which current state. The set of current states is updated.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 void NFA::updateStates() {
+  bool result = false;
+  bool labelResult, timeResult; // TODO: add cardResult
   set<int> newStates;
   newStates.clear();
   set<int>::iterator i, it;
   for (i = currentStates.begin(); i != currentStates.end(); i++) {
-    for (int j = *i; j < numOfStates - 1; j++) {
+    for (int j = 0; j < numOfStates - 1; j++) {
+      result = false;
       if (!transitions[*i][j].empty()) {
-        if (labelsMatch(j) && timesMatch(j)) { // insert the new states
+        if (!nfaPatterns[j].labelset.empty() // check labels
+         || !nfaPatterns[j].relatedConditions.empty()) {
+          labelResult = labelsMatch(j);
+        }
+        else { // no label specified in unit pattern or conditions
+          labelResult = true;
+        }
+        if (!nfaPatterns[j].intervalset.empty() // check intervals
+         || !nfaPatterns[j].relatedConditions.empty()) {
+           timeResult = timesMatch(j);
+        }
+        else { // no interval specified in unit pattern or conditions
+          timeResult = true;
+        }
+        result = labelResult & timeResult;
+        if (result) { // insert the new states
           storeMatch(j);
           for (it = transitions[*i][j].begin();
                it != transitions[*i][j].end(); it++) {
@@ -1519,30 +1606,29 @@ void NFA::updateStates() {
   }
   currentStates = newStates;
   printCurrentStates();
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em storeMatch\/}}
 
-/*
-\subsection{Function ~storeMatch~}
+Stores the matching positions (unit pattern and unit label, respectively) into
+an array of sets.
 
-Stores the matching positions (unit pattern and unit label, respectively) and
-the possible cardinalities into arrays of sets.
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 void NFA::storeMatch(int state) { // TODO: shorten this
   size_t fromLabel, toLabel;
   int fromState, toState;
   set<size_t>::iterator it;
-  if (!patterns[state].wc || !patterns[state].ivs.empty()
-   || !patterns[state].lbs.empty()) { // (1 a) or ((1 a)) or ()
+  if (nfaPatterns[state].wildcard.empty()) {
     matchings[state].insert(ulId);
-    cardsets[state].insert(1); // cardinality is 1 for a single match
-    if ((state > 0) && patterns[state - 1].wc) {
+    cardsets[state].insert(1); // cardinality is 1 without wildcard
+    if ((state > 0) && !nfaPatterns[state - 1].wildcard.empty()) {
       if (state == 1) { // wildcard at 0, match(es) at 1
         cardsets[0].insert(*(matchings[1].rbegin()));
       }
       else {
-        if (matchings[state - 2].empty()) {
-          int j = state - 3; // search previous matching position
+        int j = state - 2; // search previous matching position
+        if (matchings[j].empty()) {
+          j--;
           while ((j >= 0) && matchings[j].empty()) {
             j--;
           }
@@ -1552,7 +1638,7 @@ void NFA::storeMatch(int state) { // TODO: shorten this
           toState = state - 1;
           for (int k = fromState; k <= toState; k++) {
             for (size_t i = fromLabel; i <= toLabel; i++) {
-              if ((i > 0) || (patterns[k].wc == STAR)) {
+              if ((i > 0) || !nfaPatterns[k].wildcard.compare("*")) {
                 cardsets[k].insert(i); // do not insert 0 when wildcard is +
               }
             }
@@ -1561,8 +1647,9 @@ void NFA::storeMatch(int state) { // TODO: shorten this
         else { // matching in state - 2
           it = matchings[state - 2].begin();
           while ((*it < ulId) && (it != matchings[state - 2].end())) {
-            if ((ulId - *it - 1 > 0) || (patterns[state - 1].wc == STAR)) {
-              cardsets[state - 1].insert(ulId - *it - 1); // card != 0 for wc +
+            if ((ulId - *it - 1 > 0) // card != 0 for wildcard +
+              || !nfaPatterns[state - 1].wildcard.compare("*")) {
+              cardsets[state - 1].insert(ulId - *it - 1);
             }
             it++;
           }
@@ -1570,7 +1657,8 @@ void NFA::storeMatch(int state) { // TODO: shorten this
       }
     }
   }
-  else if ((state == numOfStates - 2) && patterns[state].wc) {  // last state
+  else if ((state == numOfStates - 2) // last state
+        && !nfaPatterns[state].wildcard.empty()) {
     int j = state - 1; // search previous matching position
     if ((j >= 0) && matchings[j].empty()) {
       j--;
@@ -1588,8 +1676,8 @@ void NFA::storeMatch(int state) { // TODO: shorten this
         fromState = j + 1; // 0 iff no match exists
         for (int k = fromState; k <= state; k++) {
           for (size_t i = fromLabel; i <= toLabel; i++) {
-            if ((i > 0) || (patterns[k].wc == STAR)) {
-              cardsets[k].insert(i); // do not insert 0 when wildcard is +
+            if ((i > 0) || !nfaPatterns[k].wildcard.compare("*")) {
+              cardsets[k].insert(i);
             }
           }
         }
@@ -1604,18 +1692,17 @@ void NFA::storeMatch(int state) { // TODO: shorten this
       cardsets[state].insert(maxLabelId + 1);
     }
   }
-}
-
-/*
-\subsection{Function ~timesMatch~}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em timesMatch\/}}
 
 Checks whether the time interval of the current unit label is completely
-enclosed by every interval of the unit pattern at position pos. If no pattern
+enclosed by one of the intervals specified in the pattern. If no pattern
 interval is specified, the result is true.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 bool NFA::timesMatch(int pos) {
-  bool result(true), elementOk(false);
+  bool result(false), elementOk(false);
   set<int>::iterator i;
   set<string>::iterator j;
   string varKey, currentLabelString;
@@ -1623,10 +1710,14 @@ bool NFA::timesMatch(int pos) {
   Instant *pEnd = new DateTime(instanttype);
   SecInterval *pIv = new SecInterval(0);
   SecInterval *uIv = new SecInterval(ul.timeInterval);
-  if (!patterns[pos].ivs.empty()) {
-    for (j = patterns[pos].ivs.begin(); j != patterns[pos].ivs.end(); j++) {
+  if (nfaPatterns[pos].intervalset.empty()) { // no interval specified
+    result = true;
+  }
+  else {
+    for (j = nfaPatterns[pos].intervalset.begin();
+         j != nfaPatterns[pos].intervalset.end(); j++) {
       if (((*j)[0] > 96) && ((*j)[0] < 123)) { // 1st case: semantic date/time
-        elementOk = checkSemanticDate(*j, *uIv, true);
+        elementOk = checkSemanticDate(*j, *uIv);
       }
       else if (((*j).find('-') == string::npos) // 2nd case: 19:09~22:00
             && (((*j).find(':') < (*j).find('~')) // on each side of [~],
@@ -1655,8 +1746,8 @@ bool NFA::timesMatch(int pos) {
         pIv->Set(*pStart, *pEnd, true, true);
         elementOk = pIv->Contains(*uIv);
       }
-      if (!elementOk) { // all intervals have to match
-        result = false;
+      if (elementOk) { // one matching interval is sufficient
+        result = true;
       }
     }
   }
@@ -1665,24 +1756,26 @@ bool NFA::timesMatch(int pos) {
   pStart->DeleteIfAllowed();
   pEnd->DeleteIfAllowed();
   return result;
-}
-
-/*
-\subsection{Function ~labelsMatch~}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em labelsMatch\/}}
 
 Checks whether the label of the current ULabel matches one of the unit pattern
-labels at position pos. If no label is specified in the pattern, ~true~ is
+labels at position pos. If no label is specified in the pattern, {\em true\/} is
 returned.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 bool NFA::labelsMatch(int pos) {
-  bool result = true;
+  bool result = false;
   set<string>::iterator k;
   set<int>::iterator i;
   string currentLabelString;
-  if (!patterns[pos].lbs.empty()) {
-    result = false;
-    for (k = patterns[pos].lbs.begin(); k != patterns[pos].lbs.end(); k++) {
+  if (nfaPatterns[pos].labelset.empty()) {
+    result = true;
+  }
+  else {
+    for (k = nfaPatterns[pos].labelset.begin();
+         k != nfaPatterns[pos].labelset.end(); k++) {
       CcString *label = new CcString(true, *k);
       if (ul.Passes(*label)) { // look for a matching label
         result = true;
@@ -1691,16 +1784,15 @@ bool NFA::labelsMatch(int pos) {
     }
   }
   return result;
-}
-
-/*
-\subsection{Function ~buildSequences~}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em buildSequences\/}}
 
 Derives all possible ULabel sequences from the cardinality candidates. Only
 sequences with length maxLabelId + 1 are accepted.
 
-*/
-void NFA::buildSequences() { // TODO: only for states with a variable
+
+\begin{pdprogram}\begin{lstlisting}
+void NFA::buildSequences() {
   vector<size_t> sequence;
   set<size_t>::iterator it;
   size_t totalSize = 1;
@@ -1728,28 +1820,27 @@ void NFA::buildSequences() { // TODO: only for states with a variable
       sequences.insert(sequence);
     }
   }
-}
-
-/*
-\subsection{Function ~conditionsMatch~}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em conditionsMatch\/}}
 
 Checks whether the specified conditions are fulfilled. The result is true if
 and only if there is (at least) one cardinality sequence that matches every
 condition.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 bool NFA::conditionsMatch(MLabel const &ml) {
   bool goToNextCond(false);
   set<vector<size_t> >::iterator it;
-  if (conds.empty()) {
+  if (nfaConditions.empty()) {
     return true;
   }
-  for (unsigned int i = 0; i < conds.size(); i++) {
+  for (unsigned int i = 0; i < nfaConditions.size(); i++) {
     it = sequences.begin();
     goToNextCond = false;
     while ((it != sequences.end()) && !goToNextCond) {
       goToNextCond = false;
-      if (!conds[i].keys.empty()) {
+      if (!nfaConditions[i].keys.empty()) {
         buildCondMatchings(i, *it);
       }
       if (!evaluateCond(ml, i, *it)) {
@@ -1769,30 +1860,30 @@ bool NFA::conditionsMatch(MLabel const &ml) {
   }
   cout << "Matching ok, " << sequences.size() << " remaining." << endl;
   return !sequences.empty();
-}
-
-/*
-\subsection{Function ~buildCondMatchings~}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em buildCondMatchings\/}}
 
 For one condition and one cardinality sequence, a set of possible matching
-sequences is built if necessary (that is, if the condition contains a label).
+sequences is built.
 
-*/
+
+\begin{pdprogram}\begin{lstlisting}
 void NFA::buildCondMatchings(unsigned int condId, vector<size_t> sequence) {
   bool necessary(false);
   condMatchings.clear();
-  int pId;
+  int patternId;
   size_t totalSize = 1;
   vector<size_t> condMatching;
   set<int> consideredIds;
   set<int>::iterator it;
   size_t size;
   sequence.push_back(maxLabelId + 1); // easier for last pattern
-  for (unsigned int i = 0; i < conds[condId].keys.size(); i++) {
-    pId = conds[condId].pIds[i];
-    if (!conds[condId].keys[i] && !consideredIds.count(pId)) { // no doubles
-      totalSize *= sequence[pId + 1] - sequence[pId];
-      consideredIds.insert(pId);
+  for (unsigned int i = 0; i < nfaConditions[condId].keys.size(); i++) {
+    patternId = nfaConditions[condId].patternIds[i];
+    if ((nfaConditions[condId].keys[i] < 4) // only for label, time, start, end
+      && !consideredIds.count(patternId)) { // no doubles
+      totalSize *= sequence[patternId + 1] - sequence[patternId];
+      consideredIds.insert(patternId);
       necessary = true;
     }
   }
@@ -1812,193 +1903,126 @@ void NFA::buildCondMatchings(unsigned int condId, vector<size_t> sequence) {
   if (totalSize) {
     printCondMatchings(50);
   }
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em evaluateCond\/}}
 
-/*
-\subsection{Function ~evaluateCond~}
+This function is invoked by {\em conditionsMatch\/} and checks whether a sequence of
+cardinalities matches a certain condition.
 
-This function is invoked by ~conditionsMatch~ and checks whether a sequence of
-possible cardinalities matches a certain condition.
 
-*/
+\begin{pdprogram}\begin{lstlisting}
 bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
-                       vector<size_t> sequence) {
-  conds[condId].textSubst.assign(conds[condId].text); // reset textSubst
+                       vector<size_t> sequence) { // TODO shorten this
   bool success(false), replaced(false);
-  string condStrCardTime, subst;
-  for (unsigned int j = 0; j < conds[condId].keys.size(); j++) {
-    int pId = conds[condId].pIds[j];
-    if (conds[condId].keys[j] == 4) { // card
-      if (pId == numOfStates - 2) {
-        subst.assign(int2Str(maxLabelId - sequence[pId] + 1));
+  string varKey, condStr, condStrCard, subst;
+  size_t varKeyPos = string::npos;
+  condStr.assign(nfaConditions[condId].condition);
+  for (unsigned int j = 0; j < nfaConditions[condId].keys.size(); j++) {
+    if (nfaConditions[condId].keys[j] == 4) { // card
+      int patternId = nfaConditions[condId].patternIds[j];
+      if (patternId == numOfStates - 2) {
+        subst.assign(int2Str(maxLabelId - sequence[patternId] + 1));
       }
       else {
-        subst.assign(int2Str(sequence[pId + 1] - sequence[pId]));
+        subst.assign(int2Str(sequence[patternId + 1] - sequence[patternId]));
       }
-    }
-    else if (conds[condId].keys[j] > 0) { // time, start, end
-      size_t from = sequence[pId];
-      size_t to = (pId == numOfStates - 2 ? maxLabelId : sequence[pId + 1]);
-      subst.assign(getTimeSubst(ml, conds[condId].keys[j], from, to));
-    }
-    conds[condId].substitute(j, subst);
-    if (conds[condId].textSubst.compare("error")) {
-      replaced = true;
-    }
-    else {
-      return false;
-    }
-  } // cardinality and time substitutions completed
-  condStrCardTime.assign(conds[condId].textSubst); // save status
-  if (condMatchings.empty() && replaced) {
-    if (conds[condId].falseExprs.count(condStrCardTime)) {
-      return false; // if condStrCardTime is already known as false
-    }
-    else if (conds[condId].trueExprs.count(condStrCardTime)) {
-      return true;
-    }
-    else {
-      if (!evaluate(condStrCardTime, true)) {
-        cout << "cardinality & time evaluation negative" << endl;
-        conds[condId].falseExprs.insert(condStrCardTime);
+      varKey.assign(nfaConditions[condId].variables[j]);
+      varKey.append(nfaConditions[condId].types
+                    [nfaConditions[condId].keys[j]].type);
+      varKeyPos = condStr.find(varKey);
+      if (varKeyPos != string::npos) {
+        cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
+        condStr.replace(varKeyPos, varKey.size(), subst);
+        replaced = true;
+      }
+      else {
+        cout << "var.key " << varKey << " not found" << endl;
         return false;
       }
-      else {
-        conds[condId].trueExprs.insert(condStrCardTime);
-        return true;
-      }
+    }
+  }
+  condStrCard.assign(condStr); // save status after cardinality substitution
+  if (condMatchings.empty() && replaced) {
+    if (!evaluate(condStr, true)) {
+      cout << "no cardinality match" << endl;
+      return false;
+    }
+    else {
+      return true;
     }
   }
   while (!condMatchings.empty()) {
-    conds[condId].textSubst.assign(condStrCardTime);
-    int pos = 0;
-    for (unsigned int j = 0; j < conds[condId].keys.size(); j++) {
-      if (!conds[condId].keys[j]) { // label
-        subst.assign(getLabelSubst(ml, pos));
-        conds[condId].substitute(j, subst);
-        if (conds[condId].textSubst.compare("error")) {
-          replaced = true;
-        }
-        else {
-          return false;
-        }
-        pos++;
+    condStr.assign(condStrCard);
+    for (unsigned int j = 0; j < nfaConditions[condId].keys.size(); j++) {
+      cout << "consider condition #" << condId << "; variable "
+           << nfaConditions[condId].variables[j] << endl;
+      if (nfaConditions[condId].keys[j] < 4) { // label, time, start, end
+        subst.assign(getNextSubst(ml, nfaConditions[condId].keys[j], j));
       }
-    }
-    if (conds[condId].falseExprs.count(conds[condId].textSubst)) {
-      return false;
-    }
-    else if (conds[condId].trueExprs.count(conds[condId].textSubst)) {
-      return true;
-    }
-    else {
-      if (!evaluate(conds[condId].textSubst, true)) {
-        cout << "evaluation negative" << endl;
-        conds[condId].falseExprs.insert(conds[condId].textSubst);
-        return false; // one false evaluation is enough to yield ~false~
+      varKey.assign(nfaConditions[condId].variables[j]);
+      varKey.append(nfaConditions[condId].types
+                    [nfaConditions[condId].keys[j]].type);
+      varKeyPos = condStr.find(varKey);
+      if (varKeyPos != string::npos) {
+        cout << "var.key " << varKey << " found at pos " << varKeyPos << endl;
+        condStr.replace(varKeyPos, varKey.size(), subst);
       }
       else {
-        conds[condId].trueExprs.insert(conds[condId].textSubst);
-        success = true;
+        cout << "var.key " << varKey << " not found in " << condStr << endl;
+        return false;
       }
+    }
+    cout << "evaluate !!!:::... " << condStr << " ...:::!!!" << endl;
+    if (!evaluate(condStr, true)) {
+      cout << "negative" << endl;
+      return false; // one false evaluation is enough to yield ~false~
+    }
+    else {
+      success = true;
     }
   }
   return success;
-}
+}\end{lstlisting}\end{pdprogram}
+\subsection{Function {\em getNextSubst\/}}
 
-/*
-\subsection{Function ~substitute~}
+According to the parameter {\em key\/} and the moving label, the correct substitution
+is found and returned.
 
-Searches a string like ~X.label~ in the ~textSubst~ of a condition and replaces
-it by the parameter ~subst~.
 
-*/
-void Condition::substitute(unsigned int pos, string subst){
-  string varKey(vars[pos]);
-  varKey.append(types[keys[pos]]);
-  size_t varKeyPos = textSubst.find(varKey);
-  if (varKeyPos == string::npos) {
-    cout << "var.key " << varKey << " not found in " << textSubst << endl;
-    textSubst.assign("error");
-  }
-  else {
-    textSubst.replace(varKeyPos, varKey.size(), subst);
-  }
-}
-
-/*
-\subsection{Function ~getTimeSubst~}
-
-Depending on the key (~time~, ~start~, or ~end~ are possible here) and on the
-limits ~from~ and ~to~, the respective time information is retrieved from the
-MLabel and returned as a string.
-
-*/
-string NFA::getTimeSubst(MLabel const &ml, Key key, size_t from, size_t to) {
-  stringstream result;  
-  if ((from < 0) || (to > maxLabelId)) {
-    cout << "ULabel #" << (from < 0 ? from : to) << " does not exist." << endl;
-    return "error";
-  }
-  Periods timesML(0); // TODO store this in the class
-  SecInterval uIv;
-  switch (key) {
-    case 1: // time
-      for (size_t i = from; i <= to; i++) { // build periods
-        ml.Get(i, ul);
-        timesML.Add(ul.timeInterval);
-      }
-      result << "[const periods value("; // build string
-      for (size_t j = 0; j < (size_t)timesML.GetNoComponents(); j++) {
-        timesML.Get(j, uIv);
-        result << "(\"" << uIv.start.ToString() << "\" \"" << uIv.end.ToString()
-               << "\" " << (uIv.lc ? "TRUE " : "FALSE ")
-               << (uIv.rc ? "TRUE" : "FALSE") << ")"
-               << (j == (size_t)timesML.GetNoComponents() - 1 ? "" : " ");
-      }
-      result << ")]";
-      break;
-    case 2: // start
-      ml.Get(from, ul);
-      uIv = ul.timeInterval;
-      result << "[const instant value \"" << uIv.start.ToString() << "\"]";
-      break;
-    case 3: // end
-      ml.Get(to, ul);
-      uIv = ul.timeInterval;
-      result << "[const instant value \"" << uIv.end.ToString() << "\"]";
-      break;
-    default: // should not occur
-      result << "error";
-  }
-  return result.str();
-}
-
-/*
-\subsection{Function ~getLabelSubst~}
-
-The label substitution is found and returned.
-
-*/
-string NFA::getLabelSubst(MLabel const &ml, unsigned int pos) {
+\begin{pdprogram}\begin{lstlisting}
+string NFA::getNextSubst(MLabel const &ml, Key key, unsigned int pos) {
   stringstream result;
   set<vector<size_t> >::iterator it = condMatchings.begin();
-  ml.Get((*it)[pos], ul);
-  if ((*it)[pos] > maxLabelId) {
-    cout << "PROBLEM: " << (*it)[pos] << " > " << maxLabelId << endl;
-    return "error";
+  vector<size_t> positions = *it;
+  ml.Get(positions[pos], ul);
+  SecInterval *uIv = new SecInterval(ul.timeInterval);
+  condMatchings.erase(it);
+  if ((positions)[pos] > maxLabelId) {
+    cout << "PROBLEM: " << (positions)[pos] << endl;
   }
-  if (pos == (*it).size() - 1) {
-    condMatchings.erase(it);
+  switch (key) {
+    case 0: // label
+      result << "\"" << ul.constValue.GetValue() << "\"";
+      break;
+    case 1: // time
+      result << "[const interval value(\"" << uIv->start.ToString() << "\" \""
+             << uIv->end.ToString() << "\" " << (uIv->lc ? "TRUE " : "FALSE ")
+             << (uIv->rc ? "TRUE" : "FALSE") << ")]";
+      break;
+    case 2:
+      result << "[const instant value \"" << uIv->start.ToString() << "\"]";
+      break;
+    case 3:
+      result << "[const instant value \"" << uIv->end.ToString() << "\"]";
+      break;
+    default:
+      cout << "Error: " << key << " is not a valid key." << endl;
+      break;
   }
-  result << "\"" << ul.constValue.GetValue() << "\"";
+  uIv->DeleteIfAllowed();
   return result.str();
 }
 
-/*
-\subsection{Type Mapping for operator ~stjpattern~}
-
-*/
 ListExpr textToPatternMap(ListExpr args) {
   NList type(args);
   if (type.first() == NList(FText::BasicType())) {
@@ -2007,28 +2031,17 @@ ListExpr textToPatternMap(ListExpr args) {
   return NList::typeError("Expecting a text!");
 }
 
-/*
-\subsection{Value Mapping for operator ~stjpattern~}
-
-*/
-int patternFun(Word* args, Word& result, int message, Word& local, Supplier s) {
+int patternFun(Word* args, Word& result, int message, Word& local, Supplier s){
   FText* patternText = static_cast<FText*>(args[0].addr);
   result = qp->ResultStorage(s);
-  Pattern* pattern = static_cast<Pattern*>(result.addr);
+  //Pattern* ppp = static_cast<Pattern*>(result.addr);
+  //string pt = patternText->GetValue().c_str();
   cout << "parse with new pattern" << endl;
-  Pattern* p = 0;
-  if (patternText->IsDefined()) {
-    p = Pattern::getPattern(patternText->toText());
-  }
-  if (p) {
-    (*pattern) = (*p);
-    delete p;
-    // TODO store pattern into database
-  }
-  else {
-    //ppp->SetDefined(false);
+  Pattern* p = new Pattern();
+  if (!p->getPattern(patternText->toText(), &p)) {
     cout << "failed" << endl;
   }
+  cout << "done" << endl; 
   return 0;
 }
 
@@ -2076,20 +2089,20 @@ int matchesFun_MT (Word* args, Word& result, int message,
                    Word& local, Supplier s) {
   MLabel* mlabel = static_cast<MLabel*>(args[0].addr);
   FText* patternText = static_cast<FText*>(args[1].addr);
-  result = qp->ResultStorage(s);
-  CcBool* b = static_cast<CcBool*>(result.addr);
-  Pattern *pattern = 0;
-  if (patternText->IsDefined()) {
-    pattern = Pattern::getPattern(patternText->toText());
-  }
-  if (!pattern) {
+  Pattern *pattern = new Pattern();
+  result = qp->ResultStorage(s); //query processor has provided a CcBool
+  CcBool* b = static_cast<CcBool*>(result.addr); // instance for the result
+  if (!pattern->getPattern(patternText->toText(), &pattern)) {
     b->SetDefined(false);
-  }
-  else {
-    bool res = pattern->matches(*mlabel);
+    cout << "invalid pattern" << endl;
     delete pattern;
-    b->Set(true, res);
+    return 0;
   }
+  pattern->verifyConditions();
+  bool res = pattern->matches(*mlabel);
+  delete pattern;
+  b->Set(true, res); //the first argument says the boolean value is defined,
+                     //the second is the real boolean value
   return 0;
 }
 
@@ -2107,10 +2120,6 @@ struct matchesInfo : OperatorInfo {
 
 //--------------------------------------------------------------------------
 
-/*
-\subsection{Type Mapping for operator ~apply~}
-
-*/
 ListExpr sintstreamType( ListExpr args ) {
   string err = "int x int expected";
   if(!nl->HasLength(args,2))
@@ -2122,10 +2131,6 @@ ListExpr sintstreamType( ListExpr args ) {
                          nl->SymbolAtom(CcInt::BasicType()));
 }
 
-/*
-\subsection{Value Mapping for operator ~apply~}
-
-*/
 int sintstreamFun (Word* args, Word& result, int message, Word& local,
                    Supplier s) {
   // An auxiliary type which keeps the state of this
@@ -2141,6 +2146,7 @@ int sintstreamFun (Word* args, Word& result, int message, Word& local,
         last = i2->GetIntval();
       }
       else {
+// this initialization will create an empty stream
         current = 1;
         last = 0;
       }
@@ -2183,10 +2189,6 @@ int sintstreamFun (Word* args, Word& result, int message, Word& local,
   }
 }
 
-/*
-\subsection{Operator Info for operator ~apply~}
-
-*/
 struct sintstreamInfo : OperatorInfo
 {
   sintstreamInfo() : OperatorInfo()
@@ -2219,6 +2221,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
       AddTypeConstructor(&labelsTC);
       AddTypeConstructor(&patternTC);
+//       AddTypeConstructor( &ruleTC );
 
       // 5.3 Registration of Operators
       AddOperator(&temporalatinstantext);
@@ -2227,9 +2230,13 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       ValueMapping matchesFuns[] = {matchesFun_MT, matchesFun_MP, 0};
       AddOperator(matchesInfo(), matchesFuns, matchesSelect, matchesTypeMap);
 
+      //    AddOperator( consumeMLabelsInfo(), consumeMLabelsFun,
+      //      consumeMLabelsTypeMap );
+
 //       ValueMapping applyFuns[] = {applyFun_MT, applyFun_MP, 0};
 //       AddOperator(applyInfo(), applyFuns, applySelect, applyTypeMap);
 
+      //    AddOperator( sintstreamInfo(), sintstreamFun, sintstreamType );
     }
     ~SymbolicTrajectoryAlgebra() {}
 };
@@ -2243,3 +2250,7 @@ Algebra* InitializeSymbolicTrajectoryAlgebra(NestedList *nlRef,
                                              QueryProcessor *qpRef) {
   return new stj::SymbolicTrajectoryAlgebra;
 }
+
+
+\end{lstlisting}\end{pdprogram}
+\end{document}
