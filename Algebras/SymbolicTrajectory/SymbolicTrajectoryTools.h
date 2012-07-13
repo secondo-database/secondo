@@ -34,6 +34,7 @@ Started March 2012, Fabio Vald\'{e}s
 #include <vector>
 #include <sstream>
 #include <map>
+#include <string>
 #include "TemporalAlgebra.h"
 #include "TemporalUnitAlgebra.h"
 #include "SecParser.h"

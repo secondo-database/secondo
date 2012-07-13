@@ -55,7 +55,7 @@ date {si}(-{ui}(-{ui}(-{ui}(\:{ui})(\:{ui}(\.{ui})?)?)?)?)?
 time {ui}\:{ui}(\:{ui}(\.{ui})?)?
 interval ({date}(\~{date})?)|\~{date}|{date}\~|([a-zA-Z_][a-zA-Z0-9_]*)|\~{time}|{time}\~|{time}\~{time}
 intervalset {interval}|(\{{interval}(\,[ ]*{interval})*\})
-label [a-zA-Z_\-][a-zA-Z0-9_\-]*
+label ([a-zA-Z_\-][a-zA-Z0-9_\-]*)|\"[a-zA-Z0-9 \ß\/\(\)]+\"
 labelset {label}|(\{{label}(\,[ ]*{label})*\})
 contents {intervalset}[\ ]+{labelset}
 contents_result _[ ]+{labelset}

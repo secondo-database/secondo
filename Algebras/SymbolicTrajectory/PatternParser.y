@@ -476,7 +476,6 @@ void UnitPattern::createUnit(const char *varP, const char *pat) {
   if ((pattern.size() == 0) && !doublePars) {
     wc = NO;
   }
-  cout << wc << endl;
   doublePars = false;
 }
 

@@ -72,18 +72,26 @@ Splits a string {a, b, c, ...} into a set of strings a, b, c, ...
 */
 set<string> stringToSet(string input) {
   cout << "stringToSet called with string " << input << endl;
-  string element, contents;
+  string element, contents(input);
+  int limitpos;
   set<string> result;
-  if (input.at(0) == '{')
-    contents.assign(input.substr(1, input.length() - 2));
-  else {
-    result.insert(input);
-    cout << "element " << input << " added to set" << endl;
-    return result;
+  contents.erase(0, input.find_first_not_of(" "));
+  if (input.at(0) == '{') {
+    contents.assign(contents.substr(1, input.length() - 2));
   }
-  deleteSpaces(contents);
-  istringstream iss(contents);
-  while (getline(iss, element, ',')) {
+  while (!contents.empty()) {
+    contents.erase(0, contents.find_first_not_of(", "));
+    cout << "contents=" << contents << endl;
+    if (contents.at(0) == '\"') {
+      limitpos = contents.find('\"', 1);
+      element = contents.substr(1, limitpos - 1);
+      contents.erase(0, limitpos + 1);
+    }
+    else {
+      limitpos = contents.find_first_of(",");
+      element = contents.substr(0, limitpos);
+      contents.erase(0, limitpos);
+    }
     result.insert(element);
     cout << "element " << element << " added" << endl;
   }
@@ -142,7 +150,6 @@ vector<string> splitPattern(string input) {
     result.push_back(input.substr(input.find(' ')));
   }
   for (unsigned int i = 0; i < result.size(); i++) {
-    deleteSpaces(result[i]);
     cout << "|" << result[i] << "|";
   }
   cout << endl;

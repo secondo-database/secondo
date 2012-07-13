@@ -1571,9 +1571,9 @@ void NFA::storeMatch(int state) { // TODO: shorten this
     }
   }
   else if ((state == numOfStates - 2) && patterns[state].wc) {  // last state
-    int j = state - 1; // search previous matching position
-    if ((j >= 0) && matchings[j].empty()) {
-      j--;
+    int j = state - 1;
+    if ((j >= 0) && matchings[state - 1].empty()) {
+      j--; // search previous matching position
       while ((j >= 0) && matchings[j].empty()) {
         j--;
       }
@@ -2045,12 +2045,18 @@ struct patternInfo : OperatorInfo {
 
 ListExpr matchesTypeMap(ListExpr args) {
   NList type(args);
-  const string errMsg = "Expecting a mlabel and a pattern "
-                "or a mlabel and a text";
+  const string errMsg = "Expecting a mlabel and a text "
+                "or a mstring and a text";
   if (type == NList(MLabel::BasicType(), Pattern::BasicType())) {
     return NList(CcBool::BasicType()).listExpr();
   }
   if (type == NList(MLabel::BasicType(), FText::BasicType())) {
+    return NList(CcBool::BasicType()).listExpr();
+  }
+  if (type == NList(MString::BasicType(), Pattern::BasicType())) {
+    return NList(CcBool::BasicType()).listExpr();
+  }
+  if (type == NList(MString::BasicType(), FText::BasicType())) {
     return NList(CcBool::BasicType()).listExpr();
   }
   return NList::typeError(errMsg);
