@@ -3,6 +3,12 @@ package Ext_Tools;
 import java.util.Vector;
 import java.util.Iterator;
 
+
+/**
+ * 
+ * <b> Task of this class </b> <br/>
+ * can receive a lists of elements and outputs it comma separated or space separated
+ */
 public class GeneralList {
 	
 	private Vector<String> gList;

@@ -2,11 +2,14 @@ package LocalTest;
 
 import SQL2Secondo.Translator;
 
+/**
+ * 
+ * <b> Task of this class </b> <br/>
+ * class to execute checker
+ */
 public class ParserTest {
 
-	/**
-	 * @param args
-	 */
+	
 	public static void main(String[] args) {
 		
 		Translator tr = new Translator();

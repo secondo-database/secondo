@@ -6,8 +6,7 @@ import SecExceptions.*;
 /**
  * 
  * <b>Task of this class: </b> <br/>
- * It represents a Query Specification. In secondo all Query Expressions are always just 
- * Query Specifications. So this class also includes subqueries. 
+ * It represents a Query Specification. So this class also includes subqueries. 
  */
 public class QueryClause {
 	

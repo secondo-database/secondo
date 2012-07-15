@@ -6,11 +6,14 @@ import tools.Reporter;
 
 public class Starten {
 
+	
 	/**
+	 *
+	 * <b> Task of this method </b> <br/>
+	 * checks whether a connection can be established to the database
 	 * @param args
+	 * @throws Exception
 	 */
-	
-	
 	public static void main(String[] args) throws Exception{
 		// TODO Auto-generated method stub
 		

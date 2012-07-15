@@ -52,13 +52,5 @@ public class completeAnswer {
 	public boolean hasShadowList() {
 		return this.ShadowListExists;
 	}
-	
-	/*public SQLWarning getWarnings() {
-		return this.warning;
-	}
-	
-	public void clearWarnings() {
-		this.warning = null;
-	}*/
 
 }

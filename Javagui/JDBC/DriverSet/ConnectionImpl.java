@@ -22,6 +22,13 @@ import Ext_Tools.completeAnswer;
 
 import communication.CommunicationInterface;
 
+
+/**
+ * 
+ * <b> Task of this class </b> <br/>
+ * Implements the interface Connection and is the object that represents the connection
+ * to the database
+ */
 public class ConnectionImpl implements java.sql.Connection {
 
 	private CommunicationInterface ComInt;
@@ -65,6 +72,7 @@ public class ConnectionImpl implements java.sql.Connection {
 	/**
 	 *  Task of this method:
 	 *  All changes will be permanently stored in the database
+	 *  Used for transactions
 	 */
 	public void commit() throws SQLException {
 		this.ComInt.executeSecSettings("commit transaction");
@@ -103,6 +111,7 @@ public class ConnectionImpl implements java.sql.Connection {
 	/**
 	 * <b> Task of this function: </b> <br/>
 	 * creates a statement by passing an instance of CommunicationInterface
+	 * The other createStatement()-methods (with parameters) are not supported
 	 * @return a statement
 	 */
 	
@@ -205,6 +214,9 @@ public class ConnectionImpl implements java.sql.Connection {
 		return false;
 	}
 
+	/**
+	 * Translates in to Secondo SQL
+	 */
 	public String nativeSQL(String command) throws SQLException {
 		
 		this.Trans = new Translator();
@@ -213,7 +225,9 @@ public class ConnectionImpl implements java.sql.Connection {
 				
 		return this.Answer.getOutput();
 	}
-
+	
+	
+	// Callable and Prepared Statements are not supported
 	@Override
 	public CallableStatement prepareCall(String arg0) throws SQLException {
 		// TODO Auto-generated method stub
@@ -281,6 +295,9 @@ public class ConnectionImpl implements java.sql.Connection {
 
 	}
 
+	/**
+	 * To cancel changes. It is used for transactions
+	 */
 	public void rollback() throws SQLException {
 		if (!AutoCommit)
 			this.ComInt.executeSecSettings("abort transaction");

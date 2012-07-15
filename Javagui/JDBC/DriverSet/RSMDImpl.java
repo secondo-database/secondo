@@ -11,6 +11,7 @@ import java.sql.SQLWarning;
  * 
  * <b> Task of this class </b> <br/>
  * Implementation of the interface ResultSetMetaData
+ * It provides metadata of the current resultset 
  */
 public class RSMDImpl implements ResultSetMetaData {
 

@@ -1,5 +1,11 @@
 package LocalTest;
 
+
+/**
+ * 
+ * <b> Task of this class </b> <br/>
+ * It contains the tests according to the tutorials
+ */
 public class CheckerII {
 	private final int NoTut1 = 12;
 	private final int NoTut2 = 24;

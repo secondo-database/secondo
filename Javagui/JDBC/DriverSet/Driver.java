@@ -8,13 +8,13 @@ import java.util.Properties;
 import communication.CommunicationInterface;
 
 
-
-public class Driver implements java.sql.Driver {
 /**
  * <b> Task of this class </b> <br/>
  * Driver class to establish Connection to Secondo
  */
-	// Register ourselves with the DriverManager
+public class Driver implements java.sql.Driver {
+
+	// This nameless method it to register the driver with the DriverManager
 	//
 	static {
 		try {
@@ -27,7 +27,7 @@ public class Driver implements java.sql.Driver {
 
 	/**
 	 * <b>Task of this variable</b> <br/>
-	 * The connection to the communikation packet is made here.
+	 * The connection to the communication packet is made here.
 	 */
 	private CommunicationInterface connWithDatabase;
 	private String URL;
@@ -47,7 +47,6 @@ public class Driver implements java.sql.Driver {
 		return LowURL.startsWith("jdbc:secondo:");
 	}
 
-	@Override
 	public Connection connect(String url, Properties info) throws SQLException {
 		/**
 		 * <b>Task of this method</b><br/>
@@ -79,7 +78,7 @@ public class Driver implements java.sql.Driver {
 		connWithDatabase = new CommunicationInterface();
 		connWithDatabase.initialize(Host, SPort, OPort);
 		if (!connWithDatabase.connectToDB(DBName))
-			throw new RuntimeException("Verbindung zur Datenquelle kann nicht hergestellt werden!");
+			throw new RuntimeException("Connection to datasource cannot be established!");
 		
 		con = new ConnectionImpl(connWithDatabase);
 				

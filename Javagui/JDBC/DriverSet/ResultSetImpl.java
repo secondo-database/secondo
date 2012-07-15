@@ -30,11 +30,16 @@ import Utilities.WarningContainer;
 import java.util.Vector;
 import java.util.Iterator;
 
+/**
+ * 
+ * <b> Task of this class </b> <br/>
+ * Implements the interface ResultSet. It represents the database output of an sql-query
+ */
 public class ResultSetImpl implements ResultSet {
 
 	protected ListExpr PassedAnswer;
 	protected ListExpr DSPointer; // points on the current dataset
-	private ColHead[] ResultHead;
+	private ColHead[] ResultHead; // contains the names and types of all colums in the resultset
 	protected int DScounter; //counts according to next which dataset the cursor is pointing to
 	private Object[] DSContainer; // contains all data of the current dataset
 	private Vector<ShadowQualifier> ShList; // contains the Qualifiers
@@ -42,44 +47,6 @@ public class ResultSetImpl implements ResultSet {
 	private boolean lastResultNull;
 	private SQLWarning Warning;
 	
-	/**
-	 * <b> Task of this inner Class </b> <br/>
-	 * It represents a field in the table of the query result
-	 * 
-	 */
-	
-	/*class Spalte {
-		private String Name;
-		private int NumType;
-		private String NamType;
-		
-		Spalte(String name, String typ) {
-			Name = name;
-			NamType = typ;
-			if (typ.equals("int"))
-				this.NumType = 4;
-			else if (typ.equals("real"))
-				this.NumType = 8;
-			else if (typ.equals("string"))
-				this.NumType = 12;
-			else if (typ.equals("bool"))
-				this.NumType = -7;
-			else
-				Reporter.reportInfo(typ, true);
-				
-		}
-		
-		String getName() {
-			return this.Name;
-		}
-		int getNumType()  {
-			return this.NumType;
-		}
-		
-		String getNamType() {
-			return this.NamType;
-		}
-	}*/
 	
 	// for MetaDataRSImpl an empty constructor is needed
 	public ResultSetImpl() {
@@ -334,7 +301,6 @@ public class ResultSetImpl implements ResultSet {
 		return null;
 	}
 
-	@Override
 	public boolean getBoolean(int arg0) throws SQLException {
 		Boolean BooErgebnis;
 		int i = arg0-1;
@@ -802,7 +768,9 @@ public class ResultSetImpl implements ResultSet {
 
 	}
 
-	//TODO funtioniert, aber noch mit anderen Datentypen wie double und boolean checken
+	/**
+	 * reads the next line of a database output.
+	 */
 	public boolean next() throws SQLException {
 		
 		boolean boolResult = false;
@@ -1450,6 +1418,13 @@ public class ResultSetImpl implements ResultSet {
 		}
 	}
 	
+	/**
+	 * 
+	 * <b> Task of this method </b> <br/>
+	 * recursive method to fill ResultHead with the column-types of the answer
+	 * @param Ant
+	 * @param i
+	 */
 	private void fillArr(ListExpr Ant, int i) {
 		if( Ant.isEmpty()) 
 			this.ResultHead = new ColHead[i];

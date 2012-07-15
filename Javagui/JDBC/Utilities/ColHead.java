@@ -5,7 +5,7 @@ import tools.Reporter;
 /**
  * 
  * <b> Task of this class </b> <br/>
- * It represents a field in the table of the query result
+ * It represents a column in the table of the query result
  */
 public class ColHead {
 	

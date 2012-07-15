@@ -252,6 +252,12 @@ public class CommunicationInterface {
 		
 	}
 	
+	/**
+	 * 
+	 * <b> Task of this method </b> <br/>
+	 * has been implemented for DatabaseMetaDataImpl
+	 * @return connection parameter for the current database connection
+	 */
 	public String getUrl() {
 		String result;
 		

@@ -18,9 +18,10 @@ import SecExceptions.NotCompSQL92Exception;
 
 /**
  * <b> Task of this class </b> <br/>
- * Implements the SQL Interface Statement <br/>
+ * Implements the SQL Interface Statement. 
+ * This class contains the methods execute...() which transfers SQL querys to the database<br/>
  * The connection device CommunicationInterface is not directly transfered <br/>
- * to this class. It can only be used by the connection-class which is <br/>
+ * to this class. It can only be used over the connection-class which is <br/>
  * a parameter of the constructor.
  */
 

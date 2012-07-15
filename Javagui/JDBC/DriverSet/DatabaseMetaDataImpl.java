@@ -9,6 +9,11 @@ import SecExceptions.NotCompSQL92Exception;
 import SecExceptions.NotSuppMetaDBaseException;
 import communication.CommunicationInterface;
 
+/**
+ * 
+ * <b> Task of this class </b> <br/>
+ * Implements the interface DatabaseMetaDataImpl. It provides metainformation about Secondo
+ */
 public class DatabaseMetaDataImpl implements DatabaseMetaData {
 
 	private CommunicationInterface ComInt;

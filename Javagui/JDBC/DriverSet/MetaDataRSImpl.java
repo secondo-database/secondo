@@ -9,7 +9,7 @@ import tools.Reporter;
  * 
  * <b> Task of this class </b> <br/>
  * The ResultSet for DatabaseMetaData needs to be built in another way than the one for queries. This
- * class takes this into account.
+ * class takes that into account.
  */
 public class MetaDataRSImpl extends ResultSetImpl {
 	

@@ -6,6 +6,11 @@ import java.io.InputStreamReader;
 
 import SQL2Secondo.Translator;
 
+/**
+ * 
+ * <b> Task of this class </b> <br/>
+ * class to execute newChecker
+ */
 public class newParserTest {
 
 	private static void generateOutput(newChecker ch, Translator tr, String OutputType) {
@@ -15,6 +20,23 @@ public class newParserTest {
 		while (!Output.endsWith("|ENDE|")) {
 			TestReporter.writeInFile(Output);
 			TestReporter.writeInFile(tr.translate(Output).getOutput());
+			TestReporter.lnforward();
+			Output=ch.Output(OutputType);
+		}
+	}
+	
+	private static void generateErrorOutput(newChecker ch, Translator tr, String OutputType) {
+		String Output, Err;
+		
+		Output=ch.Output(OutputType);
+		while (!Output.endsWith("|ENDE|")) {
+			TestReporter.writeInFile(Output);
+			try{
+				tr.translate(Output).getOutput();
+			}
+			catch (Exception e) {
+				TestReporter.writeInFile(e.toString());
+			}
 			TestReporter.lnforward();
 			Output=ch.Output(OutputType);
 		}
@@ -86,7 +108,7 @@ public class newParserTest {
 			TestReporter.writeInFile("****** UNSUPPORTED TESTS ******");
 			TestReporter.lnforward();
 			TestReporter.lnforward();
-			generateOutput(ch, tr, "unsupported");
+			generateErrorOutput(ch, tr, "unsupported");
 		}
 		
 		TestReporter.endFileWriting();

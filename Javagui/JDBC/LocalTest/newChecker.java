@@ -1,5 +1,11 @@
 package LocalTest;
 
+
+/**
+ * 
+ * <b> Task of this class </b> <br/>
+ * provides a general test with common queries 
+ */
 public class newChecker {
 	
 	final private int NoCreate = 9;

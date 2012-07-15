@@ -8,11 +8,11 @@ import java_cup10.runtime.*;
 
 public class Translator {
 	/** <b> Task of this class: </b> <br/>
-	/* It translates queries and updates given in sql into the Secondo <br/>
+	/* It translates queries and updates given in SQL92 into the Secondo <br/>
 	 * Optimizer syntax
 	*/
 	
-	private String Eingang;
+	private String incSQL;
 	private boolean Testmode = false;    // needs to be deleted
 	public static completeAnswer TrOutput;
 	
@@ -20,30 +20,36 @@ public class Translator {
 		this.Testmode = TM;
 	}
 	
-	public completeAnswer translate(String Ein) {
-		Reader StreamEingabe; // the sql string needs to be converted into a stream to be processed by the lexer
-		ScanCommand MyLexer; // Lexer created by JFLex
+	/**
+	 * 
+	 * <b> Task of this method </b> <br/>
+	 * It invokes the scanner and the parser to have the SQL92 stream translated 
+	 * @param inSql The incoming SQL92 order
+	 * @return the answer of the parser
+	 */
+	public completeAnswer translate(String inSql) {
+		Reader StreamEingabe; // the sql string needs to be converted into a stream to be processed by the scanner
+		ScanCommand MyLexer; // Scanner created by JFLex
 		ParsCommand MyParser; // Parser created by Cup
 		Object Result = null; // The parser returns an instance of type object
 		
-		this.Eingang = Ein;
+		this.incSQL = inSql;
 		if (this.Testmode)
-			TrOutput = new completeAnswer(null, this.Eingang, false);
+			TrOutput = new completeAnswer(null, this.incSQL, false);
 		else {
-			StreamEingabe = new StringReader(Eingang);
+			StreamEingabe = new StringReader(incSQL);
 			MyLexer = new ScanCommand(StreamEingabe);
 			MyParser = new ParsCommand(MyLexer);
 		
 			try {
 				Result = MyParser.parse().value;
-				//Reporter.reportInfo("Parserlauf fertig, Eingabe korrekt!", true); 
 			}
 			catch(Exception e) {
 				ErrorCodes.reportException(e.toString());
 				TrOutput = null;
 			}
 		
-		//Ausgang needs to be set by the parser. That's why it is static
+		//TrOutput needs to be set by the parser. That's why it is static
 		}
 		return TrOutput;
 	}

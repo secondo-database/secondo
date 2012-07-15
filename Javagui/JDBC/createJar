@@ -1,0 +1,42 @@
+if [ "$SECONDO_PLATFORM" = "win32" ]
+    then S=";"
+    else S=":"
+fi    
+
+CP="."$S"../secondoInterface/lib/"$S"../secondoInterface/SecondoInterface.jar"$S".."
+
+echo classpath= $CP
+
+java -classpath $CP java_cup10.Main -parser ParsCommand -symbols ParsCommandSym -package ./SQL2Secondo < ./SQL2Secondo/ParsCommand.cup
+mv ParsCommandSym.java SQL2Secondo/ParsCommandSym.java
+mv ParsCommand.java SQL2Secondo/ParsCommand.java
+
+java -classpath $CP JLex.Main SQL2Secondo/ScanCommand.lex
+mv SQL2Secondo/ScanCommand.lex.java SQL2Secondo/ScanCommand.java
+
+javac -classpath $CP ./SQL2Secondo/Translator.java
+javac -classpath $CP ./DriverSet/*.java
+javac -classpath $CP ./LocalTest/*.java
+
+cd ..
+jar -cvf jdbc.jar -C JDBC /
+mv jdbc.jar secondoInterface/jdbc.jar
+
+cd JDBC
+cd LocalTest
+rm *.class
+cd ../Utilities
+rm *.class
+cd ../SecExceptions
+rm *.class
+cd ../DriverSet
+rm *.class
+cd ../communication
+rm *.class
+cd ../SQL2Secondo
+rm *.class
+rm ParsCommand.java
+rm ParsCommandSym.java
+rm ScanCommand.java
+cd ../Ext_Tools
+rm *.class
