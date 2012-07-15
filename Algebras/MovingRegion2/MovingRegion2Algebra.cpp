@@ -69,7 +69,7 @@ very verbose and has significant negative input on the algebra's performance.
 Only enable debug output if you know what you are doing!
 
 */
-const bool MR2_DEBUG = false;
+const bool MR2_DEBUG = true;
 
 /*
 ~eps2~ is used for comparison of two double values.
@@ -760,8 +760,68 @@ to $0$ during the substraction.
 
 
 /*
-1.1.1 Type conversions for the external format of GMP types
+1.1.1 Type conversions for GMP types
 
+1.1.1.1 Function ~fromDouble()~
+
+Reads from the doulbe value inValue and returns its representation as mpq\_class.
+
+*/
+
+static mpq_class fromDouble(double inValue) {
+	/*
+	We first convert inValue to string, then count the number of digits
+	after the point. That tells us which will be our denominator...
+	Note: A special hack for positive values is needed: We add 0.5 to
+	the numerator in order to have it correctly rounded.
+
+	*/
+	std::stringstream stringvalue;
+	stringvalue << inValue;
+	string s = stringvalue.str();
+
+	if (MR2_DEBUG)
+	{
+		cerr << "function fromDouble, value = " << s << endl;
+	}
+
+	int index = s.find('.');
+	if (index == -1)
+	{
+		//inValue is an integer
+		int intinValue = inValue + 0.5;
+		if (MR2_DEBUG)
+			cerr << "int number, value " << intinValue << endl;
+		mpq_class result(intinValue, 1);
+		return result;
+	}
+
+	string subs = s.substr(s.find('.') + 1, s.size() - (s.find('.') + 1));
+	int digits = subs.size();
+
+	int denom = 1;
+	for (int i = 0; i < digits; i++)
+	{
+		denom *= 10;
+	}
+
+	int num;
+	if (inValue > 0)
+	{
+		num = (inValue * denom) + 0.5; //correct rounding
+	}
+	else
+	{
+		num = inValue * denom;
+	}
+
+	mpq_class result(num, denom);
+	result.canonicalize();
+	return result;
+}
+
+
+/*
 1.1.1.1 Function ~gmpTypeToTextType()~
 
 Reads from inValue and stores its representation as TextType in resultList.
@@ -776,7 +836,7 @@ static void gmpTypeToTextType
 				<< inValue << "." << endl;
 	}
 
-	int n = 50;
+	int n = 1000000;
 	stringstream theStream;
 	theStream << inValue;
 	resultList = nl->TextAtom();
@@ -785,7 +845,7 @@ static void gmpTypeToTextType
 	{
 		int i = 0;
 		char* theArray = new char[n];
-		while (theStream.good() && i < n-1)
+		while (theStream.good() && i < n)
 		{
 			char c;
 			theStream.get(c);
@@ -6467,51 +6527,36 @@ URegionEmb2::URegionEmb2(DbArray<MSegmentData2>* segments,
 			<< "Successfully retrieved coarse segment number " 
 			<< i << endl;
 
-		PreciseMSegmentData preciseSegment(-1);
-		MSegmentData2* auxDms;
+		if (MR2_DEBUG)
+			cerr << "orig coordinates: " << endl << "isx: " << segment.GetInitialStartX()
+			<< "isy: " << segment.GetInitialStartY() << "..." << endl;
 
-		int isx = broughtDown(segment.GetInitialStartX() 
-			* scaleFactor);
-		double isxRest = segment.GetInitialStartX() 
-			* scaleFactor - isx;
-		int isy = broughtDown(segment.GetInitialStartY() 
-			* scaleFactor);
-		double isyRest = segment.GetInitialStartY() 
-			* scaleFactor - isy;
-		int iex = broughtDown(segment.GetInitialEndX() 
-			* scaleFactor);
-		double iexRest = segment.GetInitialEndX() 
-			* scaleFactor - iex;
-		int iey = broughtDown(segment.GetInitialEndY() 
-			* scaleFactor);
-		double ieyRest = segment.GetInitialEndY() 
-			* scaleFactor - iey;
-		int fsx = broughtDown(segment.GetFinalStartX() 
-			* scaleFactor);
-		double fsxRest = segment.GetFinalStartX() 
-			* scaleFactor - fsx;
-		int fsy = broughtDown(segment.GetFinalStartY() 
-			* scaleFactor);
-		double fsyRest = segment.GetFinalStartY() 
-			* scaleFactor - fsy;
-		int fex = broughtDown(segment.GetFinalEndX() 
-			* scaleFactor);
-		double fexRest = segment.GetFinalEndX() 
-			* scaleFactor - fex;
-		int fey = broughtDown(segment.GetFinalEndY() 
-			* scaleFactor);
-		double feyRest = segment.GetFinalEndY() 
-			* scaleFactor - fey;
+		//calculate new coordinates...
+		int isx = broughtDown(segment.GetInitialStartX() * scaleFactor);
+		double restisx = segment.GetInitialStartX() * scaleFactor - isx;
+		mpq_class pisx(restisx);
+
+		int isy = broughtDown(segment.GetInitialStartY() * scaleFactor);
+		int iex = broughtDown(segment.GetInitialEndX() * scaleFactor);
+		int iey = broughtDown(segment.GetInitialEndY() * scaleFactor);
+		int fsx = broughtDown(segment.GetFinalStartX() * scaleFactor);
+		int fsy = broughtDown(segment.GetFinalStartY() * scaleFactor);
+		int fex = broughtDown(segment.GetFinalEndX() * scaleFactor);
+		int fey = broughtDown(segment.GetFinalEndY() * scaleFactor);
+
+		mpq_class pisy(segment.GetInitialStartY() * scaleFactor - isy);
+		mpq_class piex(segment.GetInitialEndX() * scaleFactor - iex);
+		mpq_class piey(segment.GetInitialEndY() * scaleFactor - iey);
+		mpq_class pfsx(segment.GetFinalStartX() * scaleFactor - fsx);
+		mpq_class pfsy(segment.GetFinalStartY() * scaleFactor - fsy);
+		mpq_class pfex(segment.GetFinalEndX() * scaleFactor - fex);
+		mpq_class pfey(segment.GetFinalEndY() * scaleFactor - fey);
 
 		bool isBasic = true;
-		if (!nearlyEqual(isxRest, 0) 
-			|| !nearlyEqual(isyRest, 0) 
-			|| !nearlyEqual(iexRest, 0) 
-			|| !nearlyEqual(ieyRest, 0)
-			|| !nearlyEqual(fsxRest, 0) 
-			|| !nearlyEqual(fsyRest, 0) 
-			|| !nearlyEqual(fexRest, 0) 
-			|| !nearlyEqual(feyRest, 0))
+
+		if (pfey != 0 || pfex != 0 || pfsx != 0 || pfsy != 0
+				|| piey != 0 || piex != 0
+				|| pisy != 0 || pisx != 0)
 		{
 			isBasic = false;
 		}
@@ -6524,43 +6569,43 @@ URegionEmb2::URegionEmb2(DbArray<MSegmentData2>* segments,
 			<< "orig isx: " << segment.GetInitialStartX() 
 			<< ", to integer grid: " << isx
 			<< ", rest for precise representation: " 
-			<< isxRest << ", scaleFactor was: " 
+			<< pisx << ", scaleFactor was: "
 			<< scaleFactor
 			<< endl
 			<< "orig isy: " << segment.GetInitialStartY() 
 			<< ", to integer grid: " << isy
 			<< ", rest for precise representation: " 
-			<< isyRest << ", scaleFactor was: " << scaleFactor
+			<< pisy << ", scaleFactor was: " << scaleFactor
 			<< endl
 			<< "orig iex: " << segment.GetInitialEndX() 
 			<< ", to integer grid: " << iex
 			<< ", rest for precise representation: " 
-			<< iexRest << ", scaleFactor was: " << scaleFactor
+			<< piex << ", scaleFactor was: " << scaleFactor
 			<< endl
 			<< "orig iey: " << segment.GetInitialEndY() 
 			<< ", to integer grid: " << iey
 			<< ", rest for precise representation: " 
-			<< ieyRest << ", scaleFactor was: " << scaleFactor
+			<< piey << ", scaleFactor was: " << scaleFactor
 			<< endl
 			<< "orig fsx: " << segment.GetFinalStartX() 
 			<< ", to integer grid: " << fsx
 			<< ", rest for precise representation: " 
-			<< fsxRest << ", scaleFactor was: " << scaleFactor
+			<< pfsx << ", scaleFactor was: " << scaleFactor
 			<< endl
 			<< "orig fsy: " << segment.GetFinalStartY() 
 			<< ", to integer grid: " << fsy
 			<< ", rest for precise representation: " 
-			<< fsyRest << ", scaleFactor was: " << scaleFactor
+			<< pfsy << ", scaleFactor was: " << scaleFactor
 			<< endl
 			<< "orig fex: " << segment.GetFinalEndX() 
 			<< ", to integer grid: " << fex
 			<< ", rest for precise representation: " 
-			<< fexRest << ", scaleFactor was: " << scaleFactor
+			<< pfex << ", scaleFactor was: " << scaleFactor
 			<< endl
 			<< "orig fey: " << segment.GetFinalEndY() 
 			<< ", to integer grid: " << fey
 			<< ", rest for precise representation: " 
-			<< feyRest << ", scaleFactor was: " << scaleFactor
+			<< pfey << ", scaleFactor was: " << scaleFactor
 			<< endl;
 		}
 
@@ -6568,71 +6613,202 @@ URegionEmb2::URegionEmb2(DbArray<MSegmentData2>* segments,
 In the precise segment, only the difference between the absolute precise value and the grid cell edge is stored
 
 */
-		mpq_class pisx(isxRest);
-		mpq_class pisy(isyRest);
-		mpq_class piex(iexRest);
-		mpq_class piey(ieyRest);
-		mpq_class pfsx(fsxRest);
-		mpq_class pfsy(fsyRest);
-		mpq_class pfex(fexRest);
-		mpq_class pfey(feyRest);
-
-		preciseSegment.SetInitialStartX(pisx, preciseCoordinates);
-		preciseSegment.SetInitialStartY(pisy, preciseCoordinates);
-		preciseSegment.SetInitialEndX(piex, preciseCoordinates);
-		preciseSegment.SetInitialEndY(piey, preciseCoordinates);
-		preciseSegment.SetFinalStartX(pfsx, preciseCoordinates);
-		preciseSegment.SetFinalStartY(pfsy, preciseCoordinates);
-		preciseSegment.SetFinalEndX(pfex, preciseCoordinates);
-		preciseSegment.SetFinalEndY(pfey, preciseCoordinates);
-
-		if (isBasic)
+		try
 		{
-			auxDms = new MSegmentData2(
-					segment.GetFaceNo(),
-					segment.GetCycleNo(),
-					segment.GetSegmentNo(),
-					segment.GetInsideAbove(),
-					isx,
-					isy,
-					iex,
-					iey,
-					fsx,
-					fsy,
-					fex,
-					fey);
+			PreciseMSegmentData preciseSegment(-1);
+			MSegmentData2* auxDms;
+
+			preciseSegment.SetInitialStartX(pisx, preciseCoordinates);
+			preciseSegment.SetInitialStartY(pisy, preciseCoordinates);
+			preciseSegment.SetInitialEndX(piex, preciseCoordinates);
+			preciseSegment.SetInitialEndY(piey, preciseCoordinates);
+			preciseSegment.SetFinalStartX(pfsx, preciseCoordinates);
+			preciseSegment.SetFinalStartY(pfsy, preciseCoordinates);
+			preciseSegment.SetFinalEndX(pfex, preciseCoordinates);
+			preciseSegment.SetFinalEndY(pfey, preciseCoordinates);
+
+			if (isBasic)
+			{
+				auxDms = new MSegmentData2(
+						segment.GetFaceNo(),
+						segment.GetCycleNo(),
+						segment.GetSegmentNo(),
+						segment.GetInsideAbove(),
+						isx,
+						isy,
+						iex,
+						iey,
+						fsx,
+						fsy,
+						fex,
+						fey);
+			}
+			else
+			{
+				auxDms = new MSegmentData2(
+						segment.GetFaceNo(),
+						segment.GetCycleNo(),
+						segment.GetSegmentNo(),
+						segment.GetInsideAbove(),
+						isx,
+						isy,
+						iex,
+						iey,
+						fsx,
+						fsy,
+						fex,
+						fey,
+						preciseSegment,
+						preciseCoordinates);
+			}
+
+			MSegmentData2 dms(auxDms);
+			delete auxDms;
+
+			dms.SetDegeneratedInitial(DGM_NONE);
+			dms.SetDegeneratedFinal(DGM_NONE);
+
+			//Store the segments in the DbArrays
+			segments->Put(segmentsStartPos+segmentsNum, dms);
+			preciseSegments->Put(
+				segmentsStartPos+segmentsNum, preciseSegment);
+
+			segmentsNum++;
 		}
-		else
+		catch (...)
 		{
-			auxDms = new MSegmentData2(
-					segment.GetFaceNo(),
-					segment.GetCycleNo(),
-					segment.GetSegmentNo(),
-					segment.GetInsideAbove(),
-					isx,
-					isy,
-					iex,
-					iey,
-					fsx,
-					fsy,
-					fex,
-					fey,
-					preciseSegment,
-					preciseCoordinates);
+			//We need to make two segments out of one, were not collinear...
+			//First segment...
+			try
+			{
+			PreciseMSegmentData preciseSegment_1(-1);
+			MSegmentData2* auxDms_1;
+
+			preciseSegment_1.SetInitialStartX(pisx, preciseCoordinates);
+			preciseSegment_1.SetInitialStartY(pisy, preciseCoordinates);
+			preciseSegment_1.SetInitialEndX(piex, preciseCoordinates);
+			preciseSegment_1.SetInitialEndY(piey, preciseCoordinates);
+			preciseSegment_1.SetFinalStartX(pfsx, preciseCoordinates);
+			preciseSegment_1.SetFinalStartY(pfsy, preciseCoordinates);
+			preciseSegment_1.SetFinalEndX(pfsx, preciseCoordinates);
+			preciseSegment_1.SetFinalEndY(pfsy, preciseCoordinates);
+
+			if (isBasic)
+			{
+				auxDms_1 = new MSegmentData2(
+						segment.GetFaceNo(),
+						segment.GetCycleNo(),
+						segment.GetSegmentNo(),
+						segment.GetInsideAbove(),
+						isx,
+						isy,
+						iex,
+						iey,
+						fsx,
+						fsy,
+						fsx,
+						fsy);
+			}
+			else
+			{
+				auxDms_1 = new MSegmentData2(
+						segment.GetFaceNo(),
+						segment.GetCycleNo(),
+						segment.GetSegmentNo(),
+						segment.GetInsideAbove(),
+						isx,
+						isy,
+						iex,
+						iey,
+						fsx,
+						fsy,
+						fsx,
+						fsy,
+						preciseSegment_1,
+						preciseCoordinates);
+			}
+
+			MSegmentData2 dms_1(auxDms_1);
+			delete auxDms_1;
+
+			dms_1.SetDegeneratedInitial(DGM_NONE);
+			dms_1.SetDegeneratedFinal(DGM_NONE);
+
+			//Store the segments in the DbArrays
+			segments->Put(segmentsStartPos+segmentsNum, dms_1);
+			preciseSegments->Put(
+				segmentsStartPos+segmentsNum, preciseSegment_1);
+
+			segmentsNum++;
+			}
+			catch (...)
+			{}
+			try
+			{
+//Second segment...
+			PreciseMSegmentData preciseSegment_2(-1);
+			MSegmentData2* auxDms_2;
+
+			preciseSegment_2.SetInitialStartX(piex, preciseCoordinates);
+			preciseSegment_2.SetInitialStartY(piey, preciseCoordinates);
+			preciseSegment_2.SetInitialEndX(piex, preciseCoordinates);
+			preciseSegment_2.SetInitialEndY(piey, preciseCoordinates);
+			preciseSegment_2.SetFinalStartX(pfsx, preciseCoordinates);
+			preciseSegment_2.SetFinalStartY(pfsy, preciseCoordinates);
+			preciseSegment_2.SetFinalEndX(pfsx, preciseCoordinates);
+			preciseSegment_2.SetFinalEndY(pfsy, preciseCoordinates);
+
+			if (isBasic)
+			{
+				auxDms_2 = new MSegmentData2(
+						segment.GetFaceNo(),
+						segment.GetCycleNo(),
+						segment.GetSegmentNo() + 1,
+						segment.GetInsideAbove(),
+						iex,
+						iey,
+						iex,
+						iey,
+						fsx,
+						fsy,
+						fsx,
+						fsy);
+			}
+			else
+			{
+				auxDms_2 = new MSegmentData2(
+						segment.GetFaceNo(),
+						segment.GetCycleNo(),
+						segment.GetSegmentNo() + 1,
+						segment.GetInsideAbove(),
+						iex,
+						iey,
+						iex,
+						iey,
+						fsx,
+						fsy,
+						fsx,
+						fsy,
+						preciseSegment_2,
+						preciseCoordinates);
+			}
+
+			MSegmentData2 dms_2(auxDms_2);
+			delete auxDms_2;
+
+			dms_2.SetDegeneratedInitial(DGM_NONE);
+			dms_2.SetDegeneratedFinal(DGM_NONE);
+
+			//Store the segments in the DbArrays
+			segments->Put(segmentsStartPos+segmentsNum, dms_2);
+			preciseSegments->Put(
+				segmentsStartPos+segmentsNum, preciseSegment_2);
+
+			segmentsNum++;
+			}
+			catch (...)
+			{}
 		}
-
-		MSegmentData2 dms(auxDms);
-		delete auxDms;
-
-		dms.SetDegeneratedInitial(DGM_NONE);
-		dms.SetDegeneratedFinal(DGM_NONE);
-
-		//Store the segments in the DbArrays
-		segments->Put(segmentsStartPos+segmentsNum, dms);
-		preciseSegments->Put(
-			segmentsStartPos+segmentsNum, preciseSegment);
-
-		segmentsNum++;
 	}
 /*
 The bbox is calculated on the integer grid, using the down left corner
