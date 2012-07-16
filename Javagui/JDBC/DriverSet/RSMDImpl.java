@@ -2,6 +2,8 @@ package DriverSet;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+
+import SecExceptions.NotSuppDriverException;
 import Utilities.ColHead;
 import Utilities.WarningContainer;
 
@@ -21,90 +23,64 @@ public class RSMDImpl implements ResultSetMetaData {
 		this.Head = hd;
 	}
 	
-	@Override
 	public <T> T unwrap(Class<T> iface) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The ResultSetMetaData-method unwrap()");
 	}
 
-	@Override
 	public boolean isWrapperFor(Class<?> iface) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The ResultSetMetaData-method isWrapperFor()");
 	}
 
 	public int getColumnCount() throws SQLException {
 		return this.Head.length;
 	}
 
-	@Override
 	public boolean isAutoIncrement(int column) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The ResultSetMetaData-method isAutoIncrement()");
 	}
 
-	@Override
 	public boolean isCaseSensitive(int column) throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean isSearchable(int column) throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean isCurrency(int column) throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public int isNullable(int column) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		return ResultSetMetaData.columnNoNulls;
 	}
 
-	@Override
 	public boolean isSigned(int column) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The ResultSetMetaData-method isSigned()");
 	}
 
-	@Override
 	public int getColumnDisplaySize(int column) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		throw new NotSuppDriverException("The ResultSetMetaData-method getColumnDisplaySize()");
 	}
 
-	@Override
 	public String getColumnLabel(int column) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The ResultSetMetaData-method getColumnLabel()");
 	}
 
 	public String getColumnName(int column) throws SQLException {
 		return this.Head[column-1].getName();
 	}
 
-	@Override
 	public String getSchemaName(int column) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The ResultSetMetaData-method getSchemaName()");
 	}
 
-	@Override
 	public int getPrecision(int column) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		throw new NotSuppDriverException("The ResultSetMetaData-method getPrecision()");
 	}
 
-	@Override
 	public int getScale(int column) throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		throw new NotSuppDriverException("The ResultSetMetaData-method getScale()");
 	}
 
 	public String getTableName(int column) throws SQLException {
@@ -120,10 +96,8 @@ public class RSMDImpl implements ResultSetMetaData {
 		return result;
 	}
 
-	@Override
 	public String getCatalogName(int column) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The ResultSetMetaData-method getCatalogName()");
 	}
 
 	public int getColumnType(int column) throws SQLException {
@@ -134,28 +108,20 @@ public class RSMDImpl implements ResultSetMetaData {
 		return this.Head[column-1].getNamType();
 	}
 
-	@Override
 	public boolean isReadOnly(int column) throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean isWritable(int column) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean isDefinitelyWritable(int column) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public String getColumnClassName(int column) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The ResultSetMetaData-method getColumnClassName()");
 	}
 
 }

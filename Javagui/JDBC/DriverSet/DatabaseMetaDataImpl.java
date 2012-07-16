@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 import SecExceptions.NotCompSQL92Exception;
+import SecExceptions.NotSuppDriverException;
 import SecExceptions.NotSuppMetaDBaseException;
 import communication.CommunicationInterface;
 
@@ -23,16 +24,12 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		this.ComInt = CI;
 	}
 	
-	@Override
 	public <T> T unwrap(Class<T> iface) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The DatabaseMetaData-method unwrap()");
 	}
 
-	@Override
 	public boolean isWrapperFor(Class<?> iface) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method isWrapper()");
 	}
 
 	public boolean allProceduresAreCallable() throws SQLException {
@@ -47,40 +44,28 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		return this.ComInt.getUrl();		
 	}
 
-	@Override
 	public String getUserName() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getUserName()");
 	}
 
-	@Override
 	public boolean isReadOnly() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean nullsAreSortedHigh() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method nullsAreSortedHigh()");
 	}
 
-	@Override
 	public boolean nullsAreSortedLow() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method nullsAreSortedLow()");
 	}
 
-	@Override
 	public boolean nullsAreSortedAtStart() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method nullsAreSortedAtStart()");
 	}
 
-	@Override
 	public boolean nullsAreSortedAtEnd() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method nullsAreSortedAtEnt()");
 	}
 
 	public String getDatabaseProductName() throws SQLException {
@@ -107,64 +92,44 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		return 0;
 	}
 
-	@Override
 	public boolean usesLocalFiles() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method usesLocalFiles()");
 	}
 
-	@Override
 	public boolean usesLocalFilePerTable() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method usesLocalFilePerTable()");
 	}
 
-	@Override
 	public boolean supportsMixedCaseIdentifiers() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method supportsMixedCaseIdentifiers()");
 	}
 
-	@Override
 	public boolean storesUpperCaseIdentifiers() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method storesUpperCaseIdentifiers()");
 	}
 
-	@Override
 	public boolean storesLowerCaseIdentifiers() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method storesLowerCaseIdentifiers()");
 	}
 
-	@Override
 	public boolean storesMixedCaseIdentifiers() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method storesMixedCaseIdentifiers()");
 	}
 
-	@Override
 	public boolean supportsMixedCaseQuotedIdentifiers() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method supportsMixedCaseQuoteIdentifiers()");
 	}
 
-	@Override
 	public boolean storesUpperCaseQuotedIdentifiers() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method storesUpperCaseQuoteIdentifiers()");
 	}
 
-	@Override
 	public boolean storesLowerCaseQuotedIdentifiers() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method storesLowerCaseQuoteIdentifiers()");
 	}
 
-	@Override
 	public boolean storesMixedCaseQuotedIdentifiers() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method storesMixedCaseQuoteIdentifiers()");
 	}
 
 	// Quoted identifiers are not supported by secondo
@@ -172,10 +137,8 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		return " ";
 	}
 
-	@Override
 	public String getSQLKeywords() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getSQLKeywords()");
 	}
 
 	public String getNumericFunctions() throws SQLException {
@@ -188,188 +151,128 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		return "";
 	}
 
-	@Override
 	public String getSystemFunctions() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getSystemFunctions()");
 	}
 
-	@Override
 	public String getTimeDateFunctions() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getTimeDateFunctions()");
 	}
 
-	@Override
 	public String getSearchStringEscape() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getSearchStringExcape()");
 	}
 
 	public String getExtraNameCharacters() throws SQLException {
 		return "";
 	}
 
-	@Override
 	public boolean supportsAlterTableWithAddColumn() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsAlterTableWithDropColumn() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsColumnAliasing() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean nullPlusNonNullIsNull() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsConvert() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsConvert(int fromType, int toType)
 			throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsTableCorrelationNames() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsDifferentTableCorrelationNames() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsExpressionsInOrderBy() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsOrderByUnrelated() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsGroupBy() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsGroupByUnrelated() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsGroupByBeyondSelect() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsLikeEscapeClause() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsMultipleResultSets() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsMultipleTransactions() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsNonNullableColumns() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsMinimumSQLGrammar() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsCoreSQLGrammar() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsExtendedSQLGrammar() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsANSI92EntryLevelSQL() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsANSI92IntermediateSQL() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsANSI92FullSQL() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsIntegrityEnhancementFacility() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsOuterJoins() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsFullOuterJoins() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsLimitedOuterJoins() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
@@ -377,84 +280,59 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		throw new NotSuppMetaDBaseException("Catalogs and Schemas are not supported in secondo. Therefore getSchemaTerm() ");
 	}
 
-	@Override
 	public String getProcedureTerm() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getProcedureTerm()");
 	}
 
-	@Override
 	public String getCatalogTerm() throws SQLException {
 		throw new NotSuppMetaDBaseException("Catalogs and Schemas are not supported in secondo. Therefore getCatalogTerm() ");
 	}
 
-	@Override
 	public boolean isCatalogAtStart() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotSuppDriverException("The DatabaseMetaData-method isCatalogAtStart()");
 	}
 
 	public String getCatalogSeparator() throws SQLException {
 		throw new NotSuppMetaDBaseException("Catalogs and Schemas are not supported in secondo. Therefore getCatalogSeparator() ");
 	}
 
-	@Override
 	public boolean supportsSchemasInDataManipulation() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsSchemasInProcedureCalls() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsSchemasInTableDefinitions() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsSchemasInIndexDefinitions() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsSchemasInPrivilegeDefinitions() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsCatalogsInDataManipulation() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsCatalogsInProcedureCalls() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsCatalogsInTableDefinitions() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsCatalogsInIndexDefinitions() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsCatalogsInPrivilegeDefinitions() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
@@ -469,81 +347,55 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		return false;
 	}
 
-	@Override
 	public boolean supportsSelectForUpdate() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsStoredProcedures() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsSubqueriesInComparisons() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsSubqueriesInExists() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsSubqueriesInIns() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsSubqueriesInQuantifieds() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsCorrelatedSubqueries() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsUnion() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsUnionAll() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsOpenCursorsAcrossCommit() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsOpenCursorsAcrossRollback() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsOpenStatementsAcrossCommit() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsOpenStatementsAcrossRollback() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
@@ -591,10 +443,8 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		return 100;
 	}
 
-	@Override
 	public int getMaxCursorNameLength() throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getMaxCursorNameLength()");
 	}
 
 	public int getMaxIndexLength() throws SQLException {
@@ -625,10 +475,8 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		throw new NotSuppMetaDBaseException("doesMaxRowSizeIncludeBlobs() ");
 	}
 
-	@Override
 	public int getMaxStatementLength() throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getMaxStatementLength()");
 	}
 
 	// one statement per connection is allowed
@@ -654,30 +502,22 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		return Connection.TRANSACTION_NONE;
 	}
 
-	@Override
 	public boolean supportsTransactions() throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsTransactionIsolationLevel(int level)
 			throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsDataDefinitionAndDataManipulationTransactions()
 			throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsDataManipulationTransactionsOnly()
 			throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
@@ -691,20 +531,15 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		return false;
 	}
 
-	@Override
 	public ResultSet getProcedures(String catalog, String schemaPattern,
 			String procedureNamePattern) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getProcedures()");
 	}
 
-	@Override
-	// Wie werden Prozeduren realisiert?
 	public ResultSet getProcedureColumns(String catalog, String schemaPattern,
 			String procedureNamePattern, String columnNamePattern)
 			throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getProcedureColumns()");
 	}
 
 	/**
@@ -742,10 +577,8 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		throw new NotSuppMetaDBaseException("Catalogs and Schemas are not supported in secondo. Therefore getCatalogs() ");
 	}
 
-	@Override
 	public ResultSet getTableTypes() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getTableTypes()");
 	}
 
 	/**
@@ -789,7 +622,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		this.ComInt.executeSecSettings("query getcatalog() filter[ .ObjectName = '"+ tableNamePattern +"'] project[TypeExpr] consume");
 		//this.ComInt.executeSecSettings("list objects");
 		this.RSAnswer = new MetaDataRSImpl(this.ComInt.getResult(), tableStructure, tableNamePattern);
-		// TODO Auto-generated method stub
+		
 		return this.RSAnswer;
 		//throw new NotSuppMetaDBaseException("getColumns() ");
 	}
@@ -809,11 +642,9 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		throw new NotSuppMetaDBaseException("getBestRowIdentifier() ");
 	}
 
-	@Override
 	public ResultSet getVersionColumns(String catalog, String schema,
 			String table) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getVersionColumns()");
 	}
 
 	public ResultSet getPrimaryKeys(String catalog, String schema, String table)
@@ -838,127 +669,89 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		throw new NotSuppMetaDBaseException("getCrossReference() ");
 	}
 
-	@Override
 	public ResultSet getTypeInfo() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getTypeInfo()");
 	}
 
-	@Override
 	public ResultSet getIndexInfo(String catalog, String schema, String table,
 			boolean unique, boolean approximate) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getIndexInfo()");
 	}
 
-	@Override
 	public boolean supportsResultSetType(int type) throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsResultSetConcurrency(int type, int concurrency)
 			throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean ownUpdatesAreVisible(int type) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean ownDeletesAreVisible(int type) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean ownInsertsAreVisible(int type) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean othersUpdatesAreVisible(int type) throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean othersDeletesAreVisible(int type) throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean othersInsertsAreVisible(int type) throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean updatesAreDetected(int type) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
 	public boolean deletesAreDetected(int type) throws SQLException {
-		
-		throw new NotCompSQL92Exception("deletesAreDetected()");
+		return true;
 	}
 
-	@Override
 	public boolean insertsAreDetected(int type) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
-	@Override
 	public boolean supportsBatchUpdates() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public ResultSet getUDTs(String catalog, String schemaPattern,
 			String typeNamePattern, int[] types) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The DatabaseMetaData-method getUDTs()");
 	}
 
 	public Connection getConnection() throws SQLException {
 		throw new NotCompSQL92Exception("getConnection()");
 	}
 
-	@Override
 	public boolean supportsSavepoints() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsNamedParameters() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsMultipleOpenResults() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsGetGeneratedKeys() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public ResultSet getSuperTypes(String catalog, String schemaPattern,
 			String typeNamePattern) throws SQLException {
 		throw new NotCompSQL92Exception("getSuperTypes()");
@@ -975,10 +768,8 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		throw new NotCompSQL92Exception("getAttributes()");
 	}
 
-	@Override
 	public boolean supportsResultSetHoldability(int holdability)
 			throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
@@ -1006,15 +797,11 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		throw new NotCompSQL92Exception("getSQLStateType()");
 	}
 
-	@Override
 	public boolean locatorsUpdateCopy() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
-	@Override
 	public boolean supportsStatementPooling() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 
@@ -1027,9 +814,7 @@ public class DatabaseMetaDataImpl implements DatabaseMetaData {
 		throw new NotSuppMetaDBaseException("Catalogs and Schemas are not supported in secondo. Therefore getSchemas() ");
 	}
 
-	@Override
 	public boolean supportsStoredFunctionsUsingCallSyntax() throws SQLException {
-		// TODO Auto-generated method stub
 		return false;
 	}
 

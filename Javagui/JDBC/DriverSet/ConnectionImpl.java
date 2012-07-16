@@ -17,6 +17,8 @@ import java.sql.Struct;
 import java.util.Map;
 import java.util.Properties;
 import SQL2Secondo.Translator;
+import SecExceptions.NotCompSQL92Exception;
+import SecExceptions.NotSuppDriverException;
 import Utilities.WarningContainer;
 import Ext_Tools.completeAnswer;
 
@@ -44,16 +46,12 @@ public class ConnectionImpl implements java.sql.Connection {
 		this.Warning = WarningContainer.getInstance();
 	}
 	
-	@Override
 	public boolean isWrapperFor(Class<?> arg0) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotCompSQL92Exception("The connection-method isWrapperFor()");
 	}
 
-	@Override
 	public <T> T unwrap(Class<T> arg0) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotCompSQL92Exception("The connection-method unwrap()");
 	}
 
 	/**
@@ -78,34 +76,24 @@ public class ConnectionImpl implements java.sql.Connection {
 		this.ComInt.executeSecSettings("commit transaction");
 	}
 
-	@Override
 	public Array createArrayOf(String arg0, Object[] arg1) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotCompSQL92Exception("The connection-method createArrayOf()");
 	}
 
-	@Override
 	public Blob createBlob() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotCompSQL92Exception("The connection-method createBlob()");
 	}
 
-	@Override
 	public Clob createClob() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotCompSQL92Exception("The connection-method createClob()");
 	}
 
-	@Override
 	public NClob createNClob() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotCompSQL92Exception("The connection-method createNClob()");
 	}
 
-	@Override
 	public SQLXML createSQLXML() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotCompSQL92Exception("The connection-method createNClob()");
 	}
 
 	/**
@@ -120,23 +108,17 @@ public class ConnectionImpl implements java.sql.Connection {
 		return new StatementImpl(this.ComInt); 
 	}
 
-	@Override
 	public Statement createStatement(int arg0, int arg1) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotCompSQL92Exception("The connection-method createStatement(int, int)");
 	}
 
-	@Override
 	public Statement createStatement(int arg0, int arg1, int arg2)
 			throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotCompSQL92Exception("The connection-method createStatement(int, int, int)");
 	}
 
-	@Override
 	public Struct createStruct(String arg0, Object[] arg1) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotCompSQL92Exception("The connection-method createStruct()");
 	}
 
 		public boolean getAutoCommit() throws SQLException {
@@ -148,22 +130,16 @@ public class ConnectionImpl implements java.sql.Connection {
 		return null;
 	}
 
-	@Override
 	public Properties getClientInfo() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotCompSQL92Exception("The connection-method getClientInfo()");
 	}
 
-	@Override
 	public String getClientInfo(String arg0) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotCompSQL92Exception("The connection-method getClientInfo()");
 	}
 
-	@Override
 	public int getHoldability() throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		throw new NotCompSQL92Exception("The connection-method getHoldability()");
 	}
 
 	public DatabaseMetaData getMetaData() throws SQLException {
@@ -181,10 +157,8 @@ public class ConnectionImpl implements java.sql.Connection {
 		return result;
 	}
 
-	@Override
 	public Map<String, Class<?>> getTypeMap() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotCompSQL92Exception("The connection-method getTypeMap()");
 	}
 
 	public SQLWarning getWarnings() throws SQLException {
@@ -208,10 +182,8 @@ public class ConnectionImpl implements java.sql.Connection {
 		return false;
 	}
 
-	@Override
 	public boolean isValid(int arg0) throws SQLException {
-		// TODO Auto-generated method stub
-		return false;
+		throw new NotCompSQL92Exception("The connection-method isValid()");
 	}
 
 	/**
@@ -228,71 +200,51 @@ public class ConnectionImpl implements java.sql.Connection {
 	
 	
 	// Callable and Prepared Statements are not supported
-	@Override
 	public CallableStatement prepareCall(String arg0) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The connection-method prepareCall()");
 	}
 
-	@Override
 	public CallableStatement prepareCall(String arg0, int arg1, int arg2)
 			throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The connection-method prepareCall()");
 	}
 
-	@Override
 	public CallableStatement prepareCall(String arg0, int arg1, int arg2,
 			int arg3) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The connection-method prepareCall()");
 	}
 
-	@Override
 	public PreparedStatement prepareStatement(String arg0) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The connection-method prepareStatement()");
 	}
 
-	@Override
 	public PreparedStatement prepareStatement(String arg0, int arg1)
 			throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The connection-method prepareStatement()");
 	}
 
-	@Override
 	public PreparedStatement prepareStatement(String arg0, int[] arg1)
 			throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The connection-method prepareStatement()");
 	}
 
-	@Override
 	public PreparedStatement prepareStatement(String arg0, String[] arg1)
 			throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The connection-method prepareStatement()");
 	}
 
-	@Override
 	public PreparedStatement prepareStatement(String arg0, int arg1, int arg2)
 			throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The connection-method prepareStatement()");
 	}
 
-	@Override
 	public PreparedStatement prepareStatement(String arg0, int arg1, int arg2,
 			int arg3) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotSuppDriverException("The connection-method prepareStatement()");
 	}
 
-	@Override
 	public void releaseSavepoint(Savepoint arg0) throws SQLException {
-		// TODO Auto-generated method stub
-
+		throw new NotCompSQL92Exception("The connection-method getClientInfo()");
 	}
 
 	/**
@@ -303,10 +255,8 @@ public class ConnectionImpl implements java.sql.Connection {
 			this.ComInt.executeSecSettings("abort transaction");
 	}
 
-	@Override
 	public void rollback(Savepoint arg0) throws SQLException {
-		// TODO Auto-generated method stub
-
+		throw new NotCompSQL92Exception("The connection-method rollback(Savepoint)");
 	}
 
 	/**
@@ -323,23 +273,17 @@ public class ConnectionImpl implements java.sql.Connection {
 		this.Warning.setNextWarning(Warn);
 	}
 
-	@Override
 	public void setClientInfo(Properties arg0) throws SQLClientInfoException {
-		// TODO Auto-generated method stub
-
+		throw new SQLClientInfoException();
 	}
 
-	@Override
 	public void setClientInfo(String arg0, String arg1)
 			throws SQLClientInfoException {
-		// TODO Auto-generated method stub
-
+		throw new SQLClientInfoException();
 	}
 
-	@Override
 	public void setHoldability(int arg0) throws SQLException {
-		// TODO Auto-generated method stub
-
+		throw new NotCompSQL92Exception("The connection-method getClientInfo()");
 	}
 
 	public void setReadOnly(boolean arg0) throws SQLException {
@@ -356,16 +300,12 @@ public class ConnectionImpl implements java.sql.Connection {
 			this.Warning.setNextWarning(Warn);
 	}*/
 
-	@Override
 	public Savepoint setSavepoint() throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotCompSQL92Exception("The connection-method setSavepoint()");
 	}
 
-	@Override
 	public Savepoint setSavepoint(String arg0) throws SQLException {
-		// TODO Auto-generated method stub
-		return null;
+		throw new NotCompSQL92Exception("The connection-method setSavepoint()");
 	}
 
 	public void setTransactionIsolation(int arg0) throws SQLException {
@@ -375,10 +315,8 @@ public class ConnectionImpl implements java.sql.Connection {
 			this.setAutoCommit(false);
 	}
 
-	@Override
 	public void setTypeMap(Map<String, Class<?>> arg0) throws SQLException {
-		// TODO Auto-generated method stub
-
+		throw new NotCompSQL92Exception("The connection-method setSavepoint()");
 	}
 
 }

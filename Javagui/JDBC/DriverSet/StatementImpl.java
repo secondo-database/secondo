@@ -196,16 +196,12 @@ public class StatementImpl implements java.sql.Statement {
 		throw new NotCompSQL92Exception("The statement-method getGeneratedKeys()");
 	}
 
-	@Override
 	public int getMaxFieldSize() throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		throw new NotSuppDriverException("The Statement-method getMaxFieldSize()");
 	}
 
-	@Override
 	public int getMaxRows() throws SQLException {
-		// TODO Auto-generated method stub
-		return 0;
+		throw new NotSuppDriverException("The Statement-method getMaxRows()");
 	}
 
 	public boolean getMoreResults() throws SQLException {
