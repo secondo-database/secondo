@@ -79,7 +79,7 @@ unsigned int pos = 0;
 %token ZZEND
 %token<text> ZZVARIABLE ZZCONTENTS ZZWILDCARD ZZDOUBLESLASH ZZVAR_DOT_TYPE
              ZZRIGHTARROW ZZCONST_OP ZZCONTENTS_RESULT ZZVAR_DOT_LABEL ZZASSIGN
-             ZZLABELSET ZZERROR
+             ZZLABEL ZZERROR
 %type<text> variable unitpattern conditionsequence condition expression
             resultsequence result assignment unitpattern_result
             results_assignments assignmentsequence
@@ -109,7 +109,7 @@ assignmentsequence : assignment
                    | assignmentsequence ',' assignment
                    ;
 
-assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABELSET {
+assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABEL {
                string var($1);
                string labels($3);
                var.assign(var.substr(0, var.find('.')));
@@ -378,6 +378,9 @@ result pattern. In case of success, the unit pattern gets the suitable values.
 
 */
 void UnitPattern::getUnit(const char *varP, bool assign) {
+  if (firstAssign) {
+    pos = 0;
+  }
   if (assign && firstAssign) {
     pos = 0; // reset counter for first assignment
     firstAssign = false;
@@ -394,6 +397,7 @@ void UnitPattern::getUnit(const char *varP, bool assign) {
       curIvs = ivs;
       cout << "variable " << var << " found in pattern " << pos << endl;
     }
+    cout << pos << " " << (wholepat->patterns)[pos].var << endl;
     pos++;
   }
   if (!found) {

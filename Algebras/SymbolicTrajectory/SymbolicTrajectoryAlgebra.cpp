@@ -32,7 +32,7 @@ Some basic implementations were done by Frank Panse.
 [TOC]
 
 \section{Overview}
-This algebra includes the operators ~matches~ and ~apply~.
+This algebra includes the operators ~matches~ and ~rewrite~.
 
 \section{Defines and Includes}
 
@@ -75,7 +75,6 @@ class Label {
   
   string GetText() const;
   void SetText(string &text);
-   
   Label* Clone();
   
   // algebra support functions
@@ -90,23 +89,19 @@ class Label {
   static bool     KindCheck(ListExpr type, ListExpr& errorInfo);
   static int      SizeOfObj();
   static ListExpr Property();  
-    
-  // name of the type constructor
-  
-  static const string BasicType() { return "label"; }
-
+  static const string BasicType() {
+    return "label";
+  }
   static const bool checkType(const ListExpr type) {
     return listutils::isSymbol(type, BasicType());
   }
 
  private:
-   
 //  Label() {}
-  
-//  string text;
+
   char text[MAX_STRINGSIZE+1];
-};  
-  
+};
+
 Label::Label(string Text) {
   strncpy(text, Text.c_str(), MAX_STRINGSIZE);
   text[MAX_STRINGSIZE] = '\0';
@@ -116,7 +111,6 @@ Label::Label(char* Text) {
   strncpy(text, Text, MAX_STRINGSIZE);
   text[MAX_STRINGSIZE] = '\0';
 }
- 
 
 Label::Label(const Label& rhs) {
   strncpy(text, rhs.text, MAX_STRINGSIZE); 
@@ -134,7 +128,6 @@ void Label::SetText(string &Text) {
   text[MAX_STRINGSIZE] = '\0';    
 }
 
-
 Word Label::In(const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct) {
   Word result = SetWord(Address(0));
@@ -144,7 +137,7 @@ Word Label::In(const ListExpr typeInfo, const ListExpr instance,
     if (list.isString()) {
       string text = list.str();
       correct = true;
-      result.addr = new Label( text );
+      result.addr = new Label(text);
     }
     else {
       correct = false;
@@ -217,8 +210,6 @@ TypeConstructor labelTC(
   0,                               // cast function
   Label::SizeOfObj,               // sizeof function
   Label::KindCheck );             // kind checking function
-
-//**********************************************************************
 
 
 /*
@@ -362,11 +353,11 @@ TypeConstructor unitlabel(
 );
 
 /*
-6 Type Constructor ~mlabel~
+\subsection{Type Constructor ~mlabel~}
 
 Type ~mlabel~ represents a moving string.
 
-6.1 List Representation
+\subsubsection{List Representation}
 
 The list representation of a ~mlabel~ is
 
@@ -383,7 +374,7 @@ For example:
         )
 ----
 
-6.2 function Describing the Signature of the Type Constructor
+\subsubsection{function Describing the Signature of the Type Constructor}
 
 */
 ListExpr MLabel::MLabelProperty() {
@@ -398,9 +389,8 @@ ListExpr MLabel::MLabelProperty() {
                      nl->StringAtom("(((i1 i2 TRUE TRUE) \"at home\") ...)"))));
 }
 
-
 /*
-6.3 Kind Checking Function
+\subsubsection{Kind Checking Function}
 
 This function checks whether the type constructor is applied correctly.
 
@@ -410,7 +400,25 @@ bool MLabel::CheckMLabel(ListExpr type, ListExpr& errorInfo) {
 }
 
 /*
-6.4 Creation of the type constructor ~mlabel~
+\subsubsection{Function ~compress~}
+
+If there are subsequent ULabels with the same Label, this function squeezes
+them to one ULabel.
+
+*/
+void MLabel::compress() {
+  MLabel* newML = new MLabel(1);
+  ULabel ul(1);
+  for (size_t i = 0; i < (size_t)this->GetNoComponents(); i++) {
+    this->Get(i, ul);
+    newML->MergeAdd(ul);
+  }
+  *this = *newML;
+  delete newML;
+}
+
+/*
+\subsubsection{Creation of the type constructor ~mlabel~}
 
 */
 TypeConstructor movinglabel(
@@ -434,21 +442,13 @@ TypeConstructor movinglabel(
 
 
 template <class Mapping, class Alpha>
-int MappingAtInstantExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s)
-{
+int MappingAtInstantExt(Word* args, Word& result, int message, Word& local,
+                        Supplier s) {
     result = qp->ResultStorage(s);
     Intime<Alpha>* pResult = (Intime<Alpha>*)result.addr;
-
-    ((Mapping*)args[0].addr)->AtInstant( *((Instant*)args[1].addr), *pResult );
-
+    ((Mapping*)args[0].addr)->AtInstant(*((Instant*)args[1].addr), *pResult);
     return 0;
-}    
-
+}
 
 const string TemporalSpecAtInstantExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -461,8 +461,9 @@ const string TemporalSpecAtInstantExt  =
     
 int MovingExtSimpleSelect(ListExpr args) {
   ListExpr arg1 = nl->First(args);
-  if(nl->SymbolValue(arg1) == MLabel::BasicType())
+  if (nl->SymbolValue(arg1) == MLabel::BasicType()) {
     return 0;
+  }
   return -1; // This point should never be reached
 }
 
@@ -1167,7 +1168,8 @@ bool Pattern::verifyPattern() {
   set<string> vars;
   for (unsigned int i = 0; i < patterns.size(); i++) {
     for (it = patterns[i].ivs.begin(); it != patterns[i].ivs.end(); it++) {
-      if (!checkSemanticDate(*it, iv, false)) {
+      if ((*it).at(0) >= 65 && (*it).at(0) <= 122
+        && !checkSemanticDate(*it, iv, false)) {
         return false;
       }
     }
@@ -1193,24 +1195,24 @@ is rejected.
 
 */
 bool Pattern::verifyConditions() {
-  //int numOfConds = conds.size();
-  //int removed = 0;
   for (unsigned int i = 0; i < conds.size(); i++) {
     if (!evaluate(conds[i].textSubst, false)) {
       cout << "condition \'" << conds[i].textSubst << "\' is invalid." << endl;
       return false;
-      //conds.erase(conds.begin() + i);
-      //cout << "condition deleted" << endl;
-      //removed++;
-      //i--;
-      //numOfConds = conds.size();
     }
   }
   return true;
-//   if (removed) {
-//     cout << removed << " invalid condition" << ((removed > 1) ? "s" : "")
-//          << " removed" << endl;
-//   }
+}
+
+/*
+\subsection{Function ~hasResults~}
+
+Returns ~true~ iff the pattern results vector is not empty. This is necessary
+for the operator ~rewrite~.
+
+*/
+bool Pattern::hasResults() {
+  return !results.empty();
 }
 
 /*
@@ -1240,9 +1242,111 @@ bool Pattern::matches(MLabel const &ml) {
   NFA *nfa = new NFA(patterns.size() + 1);
   nfa->buildNFA(*this);
   cout << nfa->toString() << endl;
-  bool result = nfa->match(ml);
+  bool result = nfa->match(ml, false);
   delete nfa;
   return result;
+}
+
+/*
+\subsection{Function ~getRewriteSequences~}
+
+Performs a match and returns the set of matching sequences for the operator
+~rewrite~.
+
+*/
+set<vector<size_t> > Pattern::getRewriteSequences(MLabel const &ml) {
+  set<vector<size_t> > result;
+  if (!verifyPattern() || !verifyConditions() || !hasResults()) {
+    cout << "Error: Invalid pattern." << endl;
+    return result;
+  }
+  NFA *nfa = new NFA(patterns.size() + 1);
+  nfa->buildNFA(*this);
+  cout << nfa->toString() << endl;
+  if (!nfa->match(ml, true)) {
+    cout << "Error: Mismatch" << endl;
+    return result;
+  }
+  nfa->computeResultVars(this->results);
+  nfa->buildSequences();
+  nfa->printSequences(25);
+  nfa->filterSequences(ml);
+  nfa->printRewriteSequences(25);
+  return nfa->getRewriteSequences();
+}
+
+/*
+\subsection{Function ~getRelevantSequences~}
+
+*/
+set<vector<size_t> > NFA::getRewriteSequences() {
+  return rewriteSeqs;
+}
+
+/*
+\subsection{Function ~buildResultVars~}
+
+*/
+void NFA::computeResultVars(vector<UnitPattern> results) {
+  bool found = false;
+  for (unsigned int i = 0; i < results.size(); i++) {
+    found = false;
+    int j = 0;
+    while (!found) {
+      if (!results[i].var.compare(patterns[j].var)) {
+        resultVars.push_back(j);
+        j = 0;
+        found = true;
+      }
+      else {
+        j++;
+      }
+    }
+  }
+  for (unsigned int i = 0; i < resultVars.size(); i++) {
+    cout << " " << resultVars[i];
+  }
+  cout << endl;
+}
+
+/*
+\subsection{Function ~filterSequences~}
+
+Searches for sequences which fulfill all conditions and stores parts of them for
+rewriting.
+
+*/
+void NFA::filterSequences(MLabel const &ml) {
+  set<vector<size_t> >::iterator it;
+  vector<size_t> rewriteSeq;
+  if (!conds.empty()) {
+    for (it = sequences.begin(); it != sequences.end(); it++) {
+      for (unsigned int i = 0; i < conds.size(); i++) {
+        cout << "processing cond #" << i << endl;
+        if (!conds[i].keys.empty()) {
+          buildCondMatchings(i, *it);
+        }
+        cout << "matchings built for cond #" << i << endl;
+        if (!evaluateCond(ml, i, *it)) {
+          cout << "mismatch at #" << i << endl;
+          i = conds.size(); // continue with next sequence
+        }
+        else if (i == conds.size() - 1) { // all conditions are fulfilled
+          for (unsigned int j = 0; j < resultVars.size(); j++) {
+            rewriteSeq.push_back((*it)[resultVars[j]]); // begin
+            if (resultVars[j] < numOfStates - 2) {
+              rewriteSeq.push_back((*it)[resultVars[j] + 1] - 1); // end
+            }
+            else { // last state
+              rewriteSeq.push_back(maxLabelId);
+            }
+          }
+          rewriteSeqs.insert(rewriteSeq);
+          rewriteSeq.clear();
+        }
+      }
+    }
+  }
 }
 
 /*
@@ -1347,10 +1451,11 @@ void NFA::buildNFA(Pattern p) {
 
 Loops through the MLabel calling updateStates() for every ULabel. True is
 returned if and only if the final state is an element of currentStates after
-the loop.
+the loop. If ~rewrite~ is true (which happens in case of the operator ~rewrite~)
+the matching procedure ends after the unit pattern test.
 
 */
-bool NFA::match(MLabel const &ml) {
+bool NFA::match(MLabel const &ml, bool rewrite) {
   maxLabelId = (size_t)ml.GetNoComponents() - 1;
   for (size_t i = 0; i <= maxLabelId; i++) {
     ml.Get(i, ul);
@@ -1364,6 +1469,9 @@ bool NFA::match(MLabel const &ml) {
   }
   if (!currentStates.count(numOfStates - 1)) { // is the final state active?
     return false;
+  }
+  if (rewrite) {
+    return true;
   }
   printCards();
   if (conds.size()) {
@@ -1468,6 +1576,29 @@ void NFA::printSequences(size_t max) {
     seqCount++;
   }
   cout << "there are " << sequences.size() << " possible sequences" << endl;
+}
+
+/*
+\subsection{Function ~printRewriteSequences~}
+
+Displays the sequences for rewriting. As the number of sequences may be very
+high, only the first ~max~ sequences are printed.
+
+*/
+void NFA::printRewriteSequences(size_t max) {
+  set<vector<size_t> >::iterator it;
+  unsigned int seqCount = 0;
+  it = rewriteSeqs.begin();
+  while ((seqCount < max) && (it != rewriteSeqs.end())) {
+    cout << "rseq_" << (seqCount < 9 ? "0" : "") << seqCount  + 1 << " | ";
+    for (unsigned int i = 0; i < (*it).size(); i++) {
+      cout << (*it)[i] << ", ";
+    }
+    cout << endl;
+    it++;
+    seqCount++;
+  }
+  cout << "there are " << rewriteSeqs.size() << " possible sequences" << endl;
 }
 
 /*
@@ -1677,13 +1808,12 @@ returned.
 */
 bool NFA::labelsMatch(int pos) {
   bool result = true;
-  set<string>::iterator k;
-  set<int>::iterator i;
+  set<string>::iterator i;
   string currentLabelString;
   if (!patterns[pos].lbs.empty()) {
     result = false;
-    for (k = patterns[pos].lbs.begin(); k != patterns[pos].lbs.end(); k++) {
-      CcString *label = new CcString(true, *k);
+    for (i = patterns[pos].lbs.begin(); i != patterns[pos].lbs.end(); i++) {
+      CcString *label = new CcString(true, *i);
       if (ul.Passes(*label)) { // look for a matching label
         result = true;
       }
@@ -1700,7 +1830,7 @@ Derives all possible ULabel sequences from the cardinality candidates. Only
 sequences with length maxLabelId + 1 are accepted.
 
 */
-void NFA::buildSequences() { // TODO: only for states with a variable
+void NFA::buildSequences() {
   vector<size_t> sequence;
   set<size_t>::iterator it;
   size_t totalSize = 1;
@@ -1841,12 +1971,14 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
       size_t to = (pId == numOfStates - 2 ? maxLabelId : sequence[pId + 1]);
       subst.assign(getTimeSubst(ml, conds[condId].keys[j], from, to));
     }
-    conds[condId].substitute(j, subst);
-    if (conds[condId].textSubst.compare("error")) {
-      replaced = true;
-    }
-    else {
-      return false;
+    if (conds[condId].keys[j] > 0) { // time, start, end, card
+      conds[condId].substitute(j, subst);
+      if (conds[condId].textSubst.compare("error")) {
+        replaced = true;
+      }
+      else {
+        return false;
+      }
     }
   } // cardinality and time substitutions completed
   condStrCardTime.assign(conds[condId].textSubst); // save status
@@ -1940,7 +2072,7 @@ string NFA::getTimeSubst(MLabel const &ml, Key key, size_t from, size_t to) {
     cout << "ULabel #" << (from < 0 ? from : to) << " does not exist." << endl;
     return "error";
   }
-  Periods timesML(0); // TODO store this in the class
+  Periods timesML(0); // TODO store this in the class?
   SecInterval uIv;
   switch (key) {
     case 1: // time
@@ -2041,32 +2173,35 @@ struct patternInfo : OperatorInfo {
   }
 };
 
-//---------------------------------------------------------------------------
+/*
+\subsection{Type Mapping for operator ~matches~}
 
+*/
 ListExpr matchesTypeMap(ListExpr args) {
   NList type(args);
-  const string errMsg = "Expecting a mlabel and a text "
-                "or a mstring and a text";
-  if (type == NList(MLabel::BasicType(), Pattern::BasicType())) {
-    return NList(CcBool::BasicType()).listExpr();
-  }
-  if (type == NList(MLabel::BasicType(), FText::BasicType())) {
-    return NList(CcBool::BasicType()).listExpr();
-  }
-  if (type == NList(MString::BasicType(), Pattern::BasicType())) {
-    return NList(CcBool::BasicType()).listExpr();
-  }
-  if (type == NList(MString::BasicType(), FText::BasicType())) {
+  const string errMsg = "Expecting a mlabel and a text or a mstring and a text";
+  if ((type == NList(MLabel::BasicType(), Pattern::BasicType()))
+   || (type == NList(MLabel::BasicType(), FText::BasicType()))
+   || (type == NList(MString::BasicType(), Pattern::BasicType()))
+   || (type == NList(MString::BasicType(), FText::BasicType()))) {
     return NList(CcBool::BasicType()).listExpr();
   }
   return NList::typeError(errMsg);
 }
 
+/*
+\subsection{Selection Function for operator ~rewrite~}
+
+*/
 int matchesSelect(ListExpr args) {
   NList type(args);
   return (type.second().isSymbol(Pattern::BasicType())) ? 1 : 0;
 }
 
+/*
+\subsection{Value Mapping for operator ~matches~}
+
+*/
 int matchesFun_MP (Word* args, Word& result, int message,
                    Word& local, Supplier s) {
 //   MLabel* mlabel = static_cast<MLabel*>(args[0].addr);
@@ -2078,6 +2213,10 @@ int matchesFun_MP (Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+\subsection{Value Mapping for operator ~matches~}
+
+*/
 int matchesFun_MT (Word* args, Word& result, int message,
                    Word& local, Supplier s) {
   MLabel* mlabel = static_cast<MLabel*>(args[0].addr);
@@ -2099,110 +2238,135 @@ int matchesFun_MT (Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+\subsection{Operator Info for operator ~matches~}
+
+*/
 struct matchesInfo : OperatorInfo {
   matchesInfo() {
     name      = "matches";
     signature = MLabel::BasicType() + " x " + Pattern::BasicType() + " -> "
-    + CcBool::BasicType();
+                                    + CcBool::BasicType();
     // overloaded operator => alternative signature appended
     appendSignature(MLabel::BasicType() + " x Text -> " + CcBool::BasicType());
+    appendSignature(MString::BasicType() +" x " + Pattern::BasicType() + " -> "
+                                         + CcBool::BasicType());
+    appendSignature(MString::BasicType() + " x Text -> " + CcBool::BasicType());
     syntax    = "_ matches _";
     meaning   = "Match predicate.";
   }
 };
 
-//--------------------------------------------------------------------------
-
 /*
-\subsection{Type Mapping for operator ~apply~}
+\subsection{Type Mapping for operator ~rewrite~}
 
 */
-ListExpr sintstreamType( ListExpr args ) {
-  string err = "int x int expected";
-  if(!nl->HasLength(args,2))
-    return listutils::typeError(err);
-  if(!listutils::isSymbol(nl->First(args)) ||
-     !listutils::isSymbol(nl->Second(args)))
-    return listutils::typeError(err);
-  return nl->TwoElemList(nl->SymbolAtom(Stream<CcInt>::BasicType()),
-                         nl->SymbolAtom(CcInt::BasicType()));
+ListExpr rewriteTypeMap(ListExpr args) {
+  NList type(args);
+  const string errMsg = "Expecting a mlabel and a text or a mstring and a text";
+  if ((type == NList(MLabel::BasicType(), Pattern::BasicType()))
+   || (type == NList(MLabel::BasicType(), FText::BasicType()))
+   || (type == NList(MString::BasicType(), Pattern::BasicType()))
+   || (type == NList(MString::BasicType(), FText::BasicType()))) {
+    return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
+                           nl->SymbolAtom(MLabel::BasicType()));
+  }
+  return NList::typeError(errMsg);
 }
 
 /*
-\subsection{Value Mapping for operator ~apply~}
+\subsection{Selection Function for operator ~rewrite~}
 
 */
-int sintstreamFun (Word* args, Word& result, int message, Word& local,
-                   Supplier s) {
-  // An auxiliary type which keeps the state of this
-  // operation during two requests
-  struct Range {
-    int current;
-    int last;
-    Range(CcInt* i1, CcInt* i2) {
-      // Do a proper initialization even if one of the
-      // arguments has an undefined value
-      if (i1->IsDefined() && i2->IsDefined()) {
-        current = i1->GetIntval();
-        last = i2->GetIntval();
+int rewriteSelect(ListExpr args) {
+  NList type(args);
+  return type.second().isSymbol(Pattern::BasicType()) ? 1 : 0;
+}
+
+/*
+\subsection{Value Mapping for operator ~rewrite~, type ~text~}
+
+*/
+int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
+                  Supplier s) {
+  MLabel* mlabel = 0;
+  MLabel* ml = 0;
+  FText* patternText = 0;
+  Pattern *pattern = 0;
+  RewriteResult *rr = 0;
+  switch (message) {
+    case OPEN: // initialize the local storage
+      mlabel = static_cast<MLabel*>(args[0].addr);
+      patternText = static_cast<FText*>(args[1].addr);
+      if (!patternText->IsDefined()) {
+        cout << "Error: pattern cannot be read." << endl;
+        return 0;
       }
-      else {
-        current = 1;
-        last = 0;
+      pattern = Pattern::getPattern(patternText->toText());
+      cout << ".................::::::::::::::!!!!!!!!!!!!! input read" << endl;
+      if (!mlabel->IsDefined()) {
+        cout << "Error: undefined MLabel." << endl;
       }
-    }
-  };
-  Range* range = static_cast<Range*>(local.addr);
-  switch( message )
-  {
-    case OPEN: { // initialize the local storage
-      CcInt* i1 = static_cast<CcInt*>( args[0].addr );
-      CcInt* i2 = static_cast<CcInt*>( args[1].addr );
-      range = new Range(i1, i2);
-      local.addr = range;
+      mlabel->compress();
+      cout << "mlabel compressed" << endl;
+      rr = new RewriteResult();
+      // TODO: match, assign set of all matching sequences to rr->sequences
+      rr->sequences = pattern->getRewriteSequences(*mlabel);
+      rr->it = rr->sequences.begin();
+      local.addr = rr;
       return 0;
-    }
-    case REQUEST: { // return the next stream element
-      if (range->current <= range->last ) {
-        CcInt* elem = new CcInt(true, range->current++);
-        result.addr = elem;
-        return YIELD;
-      }
-      else {
-// you should always set the result to null
-// before you return a CANCEL
+    case REQUEST: // return the next stream element
+      if (!local.addr) {
         result.addr = 0;
         return CANCEL;
       }
-    }
-    case CLOSE: { // free the local storage
-      if (range != 0) {
-        delete range;
-        local.addr = 0;
+      rr = ((RewriteResult*)local.addr);
+      if (rr->it == rr->sequences.end()) {
+        result.addr = 0;
+        cout << "all sequences processed" << endl;
+        return CANCEL;
+      }
+      // TODO: ml <- build moving label from sequence
+      // TODO: move iterator to next sequence. If finished, return CANCEL
+      ml = new MLabel(1);
+      result.addr = ml;
+      rr->it++; 
+      return YIELD;
+    case CLOSE: // free the local storage
+      if (local.addr) {
+        rr = ((RewriteResult*)local.addr);
+        delete rr;
       }
       return 0;
-    }
-    default: {
-      /* should never happen */
+    default: // should never happen
       return -1;
-    }
   }
 }
 
 /*
-\subsection{Operator Info for operator ~apply~}
+\subsection{Value Mapping for operator ~rewrite~, type ~text~}
 
 */
-struct sintstreamInfo : OperatorInfo
-{
-  sintstreamInfo() : OperatorInfo()
-  {
-    name      = "sintstream";
-    signature = CcInt::BasicType() + " x " + CcInt::BasicType()
-                + " -> stream(int)";
-    syntax    = "_ sintstream _";
-    meaning   = "Creates a stream of integers containing the numbers "
-                "between the first and the second argument.";
+int rewriteFun_MP(Word* args, Word& result, int message, Word& local,
+                  Supplier s) {
+  return 0;
+}
+/*
+\subsection{Operator Info for operator ~rewrite~}
+
+*/
+struct rewriteInfo : OperatorInfo {
+  rewriteInfo() {
+    name      = "rewrite";
+    signature = MLabel::BasicType() + " x " + Pattern::BasicType() + " -> "
+                                    + CcBool::BasicType();
+    // overloaded operator => alternative signature appended
+    appendSignature(MLabel::BasicType() + " x Text -> " + CcBool::BasicType());
+    appendSignature(MString::BasicType() +" x " + Pattern::BasicType() + " -> "
+                                         + CcBool::BasicType());
+    appendSignature(MString::BasicType() + " x Text -> " + CcBool::BasicType());
+    syntax    = "_ rewrite _";
+    meaning   = "Rewrite a mlabel.";
   }
 };
 
@@ -2213,8 +2377,7 @@ struct sintstreamInfo : OperatorInfo
 class SymbolicTrajectoryAlgebra : public Algebra {
   public:
     SymbolicTrajectoryAlgebra() : Algebra() {
-      
-      // 5.2 Registration of Types
+
       AddTypeConstructor(&labelTC);
       AddTypeConstructor(&intimelabel);
       AddTypeConstructor(&unitlabel);
@@ -2226,15 +2389,13 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddTypeConstructor(&labelsTC);
       AddTypeConstructor(&patternTC);
 
-      // 5.3 Registration of Operators
       AddOperator(&temporalatinstantext);
       AddOperator(patternInfo(), patternFun, textToPatternMap);
 
       ValueMapping matchesFuns[] = {matchesFun_MT, matchesFun_MP, 0};
       AddOperator(matchesInfo(), matchesFuns, matchesSelect, matchesTypeMap);
-
-//       ValueMapping applyFuns[] = {applyFun_MT, applyFun_MP, 0};
-//       AddOperator(applyInfo(), applyFuns, applySelect, applyTypeMap);
+      ValueMapping rewriteFuns[] = {rewriteFun_MT, rewriteFun_MP, 0};
+      AddOperator(rewriteInfo(), rewriteFuns, rewriteSelect, rewriteTypeMap);
 
     }
     ~SymbolicTrajectoryAlgebra() {}

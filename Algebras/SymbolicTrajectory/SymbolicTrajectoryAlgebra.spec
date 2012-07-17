@@ -1,7 +1,3 @@
 
 operator matches alias MATCHES pattern _ infixop _
-
-operator stjpattern alias STJPATTERN pattern  _ op 
-
-
-
+operator rewrite alias REWRITE pattern _ infixop _

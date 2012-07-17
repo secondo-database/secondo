@@ -61,15 +61,20 @@ Pattern* parseString(const char* input);
 
 class MLabel : public MString {
   public:
+    MLabel() {}
+    MLabel(int i): MString(i) {}
     static const string BasicType() {
       return "mlabel";
     }
     static ListExpr MLabelProperty();
     static bool CheckMLabel(ListExpr type, ListExpr& errorInfo);
+    void compress();
 };
 
 class ULabel : public UString {
   public:
+    ULabel() {}
+    ULabel(int i): UString(i){}
     static const string BasicType() {
       return "ulabel";
     }
@@ -195,6 +200,8 @@ class Pattern {
   static Pattern* getPattern(string input);
   bool matches(MLabel const &ml);
   bool verifyPattern();
+  bool hasResults();
+  set<vector<size_t> > getRewriteSequences(MLabel const &ml);
 };
 
 class NFA {
@@ -204,22 +211,28 @@ class NFA {
   set<int> currentStates;
   vector<UnitPattern> patterns;
   vector<Condition> conds;
+  //bool *relevantPos; // stores the positions of unit patterns with a var
   int numOfStates;
   ULabel ul;
-  // TODO Periods timesML;
   size_t ulId, maxLabelId;
   set<size_t> *matchings;
   set<size_t> *cardsets;
   set<vector<size_t> > sequences; // all possible matching sequences
   set<vector<size_t> > condMatchings; // for condition evaluation
+  set<vector<size_t> > rewriteSeqs; // matching sequences for rewriting
+  vector<int> resultVars; // [3, 1] means: 1st result var is the one from the
+                          // 3rd up, 2nd result var is the one from the 1st up
 
  public:
   NFA(const int size) {
     numOfStates = size;
     transitions = new set<int>*[numOfStates];
-    for (int i = 0; i < numOfStates; i++) {
+    //relevantPos = new bool[numOfStates - 1];
+    for (int i = 0; i < numOfStates - 1; i++) {
       transitions[i] = new set<int>[numOfStates];
+      //relevantPos[i] = false;
     }
+    transitions[numOfStates - 1] = new set<int>[numOfStates];
     currentStates.insert(0);
     matchings = new set<size_t>[numOfStates - 1];
     cardsets = new set<size_t>[numOfStates - 1];
@@ -232,19 +245,24 @@ class NFA {
     delete[] transitions;
     delete[] matchings;
     delete[] cardsets;
+    //delete[] relevantPos;
   }
 
   void buildNFA(Pattern p);
-  bool match(MLabel const &ml);
+  bool match(MLabel const &ml, bool rewrite);
   void printCurrentStates();
   void printCards();
   void printSequences(size_t max);
+  void printRewriteSequences(size_t max);
   void printCondMatchings(size_t max);
   void updateStates();
   void storeMatch(int state);
   bool labelsMatch(int pos);
   bool timesMatch(int pos);
   void buildSequences();
+  void filterSequences(MLabel const &ml);
+  void computeResultVars(vector<UnitPattern> results);
+  set<vector<size_t> > getRewriteSequences();
   bool conditionsMatch(MLabel const &ml);
   void buildCondMatchings(unsigned int condId, vector<size_t> sequence);
   bool evaluateCond(MLabel const &ml, unsigned int condId,
@@ -252,6 +270,13 @@ class NFA {
   string getLabelSubst(MLabel const &ml, unsigned int pos);
   string getTimeSubst(MLabel const &ml, Key key, size_t from, size_t to);
   string toString();
+};
+
+class RewriteResult {
+ public:
+  set<vector<size_t> > sequences; // all matching sequences
+  set<vector<size_t> >::iterator it;
+  MLabel ml;
 };
 
 }

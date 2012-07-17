@@ -3,21 +3,24 @@ Restore : No
 
 Operator : matches
 Number   : 1
-Signature: mlabel x pattern -> bool
-Example  : query [const mlabel value (( ("2000-01-01" "2000-01-02" TRUE FALSE) "at_home" ))] matches pattern('()')
+Signature: mlabel x text -> bool
+Example  : query [const mlabel value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))] matches '()'
 Result   : TRUE
 
 Operator : matches
 Number   : 2
-Signature: mlabel x text -> bool
-Example  : query [const mlabel value (( ("2000-01-01" "2000-01-02" TRUE FALSE) "at_home" ))] matches '()'
+Signature: mstring x text -> bool
+Example  : query [const mstring value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))] matches '()'
 Result   : TRUE
 
-Operator : stjpattern
-Number   : 3
-Signature: text -> pattern
-Example  : query '(_ _)' stjpattern
-Result   : (pattern <text>(_ _)</text--->)
+Operator : rewrite
+Number   : 1
+Signature: mlabel x text -> stream(mlabel)
+Example  : query [const mlabel value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))] rewrite 'X () => X // X.label := "at_work"' count
+Result   : 1
 
-
-
+Operator : rewrite
+Number   : 2
+Signature: mstring x text -> stream(mlabel)
+Example  : query [const mstring value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))] rewrite 'X () => X // X.label := "at_work"' count
+Result   : 1

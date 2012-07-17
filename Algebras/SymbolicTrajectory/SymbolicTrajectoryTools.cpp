@@ -126,7 +126,6 @@ vector<string> splitPattern(string input) {
   vector<string> result;
   size_t pos = input.find('{');
   if (pos == 0) { // ({2012, 2013}, ...)
-    cout << "{ in the beginning" << endl;
     result.push_back(input.substr(0, input.find('}') + 1));
     if (input.find('{', 1) != string::npos) { // ({2012, 2013}, {a, b, c})
       result.push_back(input.substr(input.find('{', 1)));
@@ -136,7 +135,6 @@ vector<string> splitPattern(string input) {
     }
   }
   else if (pos == string::npos) { // no set
-    cout << "no { found" << endl;
     if (input.find(' ') == string::npos) { // * or +
       result.push_back(input);
     }

@@ -55,7 +55,7 @@ date {si}(-{ui}(-{ui}(-{ui}(\:{ui})(\:{ui}(\.{ui})?)?)?)?)?
 time {ui}\:{ui}(\:{ui}(\.{ui})?)?
 interval ({date}(\~{date})?)|\~{date}|{date}\~|([a-zA-Z_][a-zA-Z0-9_]*)|\~{time}|{time}\~|{time}\~{time}
 intervalset {interval}|(\{{interval}(\,[ ]*{interval})*\})
-label ([a-zA-Z_\-][a-zA-Z0-9_\-]*)|\"[a-zA-Z0-9 \ß\/\(\)]+\"
+label ([a-zA-Z_\-][a-zA-Z0-9_\-]*)|\"[a-zA-Z0-9 \ß\/\(\)\[\]\{\}]+\"
 labelset {label}|(\{{label}(\,[ ]*{label})*\})
 contents {intervalset}[\ ]+{labelset}
 contents_result _[ ]+{labelset}
@@ -97,7 +97,7 @@ assign \:=
 <result>\n {BEGIN(INITIAL); return ZZEND;}
 <assignment>{vardotlabel} {patternlval.text = strdup(patterntext); return ZZVAR_DOT_LABEL;}
 <assignment>{assign} {return ZZASSIGN;}
-<assignment>{labelset} {patternlval.text = strdup(patterntext); return ZZLABELSET;}
+<assignment>{label} {patternlval.text = strdup(patterntext); return ZZLABEL;}
 <assignment>\, {return ',';}
 <assignment>\n {BEGIN(INITIAL); return ZZEND;}
 . {patternlval.text = strdup(patterntext); return ZZERROR;}
