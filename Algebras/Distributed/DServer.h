@@ -107,7 +107,6 @@ denotes the type of command
 public:
 
   enum CmdType { DS_CMD_NONE = 0,  // undefined
-                 DS_CMD_WRITE,     // writes an element to the worker
                  DS_CMD_DELETE,    // deletes an element on the worker
                  DS_CMD_OPEN_WRITE_REL, // opens a relation on the worker to
                                         // add elements

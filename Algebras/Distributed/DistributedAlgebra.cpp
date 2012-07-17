@@ -71,6 +71,7 @@ Operations on the darray-elements are carried out on the remote machines.
 #include "DServerCmdCopy.h"
 #include "DServerCmdExecute.h"
 #include "DServerCmdRead.h"
+#include "DServerCmdWrite.h"
 #include "DServerCmdShuffleRec.h"
 #include "DServerCmdShuffleSend.h"
 #include "DServerCmdShuffleMultipleConn.h"
@@ -90,7 +91,7 @@ Operations on the darray-elements are carried out on the remote machines.
 #include <sys/timeb.h>
 
 //#define RECEIVE_REL_MAP_DEBUG 1
-#define RECEIVE_REL_FUN_DEBUG 1
+//#define RECEIVE_REL_FUN_DEBUG 1
 //#define SEND_SHUFFLE_MAP_DEBUG 1
 //#define SEND_SHUFFLE_FUN_DEBUG 1
 //#define RECEIVE_SHUFFLE_FUN_DEBUG 1
@@ -578,18 +579,25 @@ bool DArray::initialize(ListExpr inType,
    // the elements to the respective workers
    ZThread::ThreadedExecutor exec;
 
+   bool success = true;
+
    if(!isRelType())
      {
-
-       for(int i = 0; i<max_servers;i++)
+       vector<DServer *> serverList (max_servers);
+       vector<vector< int > >  serverIndexList(max_servers);
+       for(int i = 0; i < max_servers; i++)
          {
-           
-           DServer* server = getServerManager()->getServerbyID(i);
-           server->setCmd(DServer::DS_CMD_WRITE,
-                          &(getServerManager()->getIndexList(i)),
-                          &m_elements);
-           exec.execute(new DServerExecutor(server));
+           serverList[i] = getServerManager()->getServerbyID(i);
+           serverIndexList[i]= getServerManager()->getIndexList(i);
          }
+
+       DServerCmdWriteParam writeParam(serverIndexList, 
+                                       &m_elements);
+
+       success = runCommandThreaded<DServerCmdWrite, 
+                                    DServerCmdWriteParam>(exec, 
+                                                          writeParam, 
+                                                          &serverList);
      }
    else
      {
@@ -718,10 +726,22 @@ void DArray::set(Word n_elem, int i)
 
       if(!isRelType())
       {
-         DServer* server = getServerManager()->getServerByIndex(i);
-         server->setCmd(DServer::DS_CMD_WRITE,
-                        &l,&m_elements);
-         server->run();
+        DServerCmdWriteParam writeParam(i, 
+                                        &m_elements);
+
+        bool success = runCommand<DServerCmdWrite, 
+                                  DServerCmdWriteParam>(writeParam, i);
+
+        if (!success)
+          {
+            cerr << "ERROR: Could not send data to Worker:" << endl;
+            cerr << getServerManager()->getServerByIndex(i) -> getErrorText() 
+                 << endl;
+            m_present[i] = false;
+            SetUndefined();
+            return;
+          }
+
       }
       else
          WriteRelation(i);
@@ -2007,30 +2027,38 @@ static ListExpr receiveTypeMap( ListExpr args )
    host = stringutils::replaceAll(host,"_",".");
    host = stringutils::replaceAll(host,"h","");
    port = stringutils::replaceAll(port,"p","");
+ 
+   DServerCmdCallBackCommunication* callBack = 
+     new DServerCmdCallBackCommunication (host, port);
 
-   Socket* master = 
-     Socket::Connect(host,port,Socket::SockGlobalDomain);
+   if (!(callBack -> createGlobalSocket()))
+     {
+       ErrorReporter::ReportError("Could not connect to Server!\n" +
+                                  callBack -> getErrorText());
+       delete callBack;
+       return nl->SymbolAtom(Symbol::TYPEERROR());
+     }
 
-   if(master==0 || !master->IsOk())
-      return nl->SymbolAtom(Symbol::TYPEERROR());
+   if (!(callBack -> getTextFromCallBack("TYPE", line)))
+     {
+       ErrorReporter::ReportError("Received invalid token!\n" + 
+                                  callBack -> getErrorText());
+       delete callBack;
+       return nl->SymbolAtom(Symbol::TYPEERROR());
+     }
 
-   iostream& iosock = master->GetSocketStream();
-
-   getline(iosock,line);
-   if(line!= "<TYPE>")
-      return nl->SymbolAtom(Symbol::TYPEERROR());
-
-   getline(iosock,line);
    ListExpr type;
-   nl->ReadFromString(line,type);
+   DBAccessGuard::getInstance() -> NL_ReadFromString(line,type);
 
-   getline(iosock,line);
-   if(line!= "</TYPE>")
-      return nl->SymbolAtom(Symbol::TYPEERROR());
+   if (!(callBack -> sendTagToCallBack("CLOSE")))
+     {
+       ErrorReporter::ReportError("Could not send token!\n" + 
+                                  callBack -> getErrorText());
+       delete callBack;
+       return nl->SymbolAtom(Symbol::TYPEERROR());
+     }
 
-   iosock << "<CLOSE>" << endl;
-
-   master->Close(); delete master; master=0;
+   delete callBack;
 
    return
      nl->ThreeElemList(
@@ -2058,128 +2086,148 @@ static int receiveFun( Word* args,
    host = stringutils::replaceAll(host,"h","");
    port = stringutils::replaceAll(port,"p","");
 
-   Socket* master = 
-     Socket::Connect(host,port,Socket::SockGlobalDomain);
+   result = qp->ResultStorage(s);
 
-   if(master!=0 && master->IsOk())
-   {
-
-      iostream& iosock = master->GetSocketStream();
-
-      getline(iosock,line);
-
-      if(line=="<TYPE>")
-      {
-         getline(iosock,line);
-         ListExpr type;
-         nl->ReadFromString(line,type);
-
-         getline(iosock,line);
-         if(line=="</TYPE>")
+   DServerCmdCallBackCommunication *recCallBack = 
+     new DServerCmdCallBackCommunication(host, port
+#ifdef RECEIVE__FUN_DEBUG
+                                         , "REC_VM"
+#endif
+                                         );
+   if(!(recCallBack -> createGlobalSocket()))
+     {
+       delete recCallBack;
+       ((Attribute*) result.addr) -> SetDefined(false);
+       return 0;
+     }
+   
+   if (!(recCallBack -> getTextFromCallBack("TYPE", line)))
+     {
+       delete recCallBack;
+       ((Attribute*) result.addr) -> SetDefined(false);
+       return 0;
+     }
+   
+   ListExpr type;
+   size_t size =0;
+   int algID,typID;
+   DBAccessGuard::getInstance() -> NL_ReadFromString(line,type);
+   
+   extractIds(type,algID,typID);
+   
+   if (!(recCallBack -> sendTagToCallBack("GOTTYPE")))
+     {
+       delete recCallBack;
+       ((Attribute*) result.addr) -> SetDefined(false);
+       return 0;
+     }
+   
+   if (!(recCallBack -> getTextFromCallBack("SIZE", line)))
+     {
+       delete recCallBack;
+       ((Attribute*) result.addr) -> SetDefined(false);
+       return 0;
+     }
+   
+   size = atoi(line.data());
+   
+   
+   char* buffer = new char[size];
+   
+   if (!(recCallBack ->Read(buffer,size)))
+     {
+       
+       delete recCallBack;
+       ((Attribute*) result.addr) -> SetDefined(false);
+       return 0;
+     }
+     
+   SmiRecordFile recF(false,0);
+   SmiRecord rec;
+   SmiRecordId recID;
+     
+   recF.Open("receiveop");
+   recF.AppendRecord(recID,rec);
+   size_t s0 = 0;
+     
+   rec.Write(buffer,size,0);
+   Word w;
+   am->OpenObj(algID,typID,rec,s0,type,w);
+     
+   result.addr = w.addr;
+   rec.Truncate(3);
+   recF.DeleteRecord(recID);
+   recF.Close();
+     
+   bool noFlobError = true;
+   int flobs = 0;
+     
+   while (noFlobError &&
+          recCallBack -> getTagFromCallBackTF("FLOB", "CLOSE", noFlobError))
+     {
+         
+       if (!(recCallBack -> getTextFromCallBack("FLOBSIZE", line)))
          {
-            int algID,typID;
-            extractIds(type,algID,typID);
-            size_t size =0;
-
-            getline(iosock,line);
-
-            if(line=="<SIZE>")
-            {
-               getline(iosock,line);
-
-               size = atoi(line.data());
-
-               getline(iosock,line);
-               if(line=="</SIZE>")
-               {
-                  char* buffer = new char[size];
-                  iosock.read(buffer,size);
-
-                  SmiRecordFile recF(false,0);
-                  SmiRecord rec;
-                  SmiRecordId recID;
-
-                  recF.Open("receiveop");
-                  recF.AppendRecord(recID,rec);
-                  size_t s0 = 0;
-
-                  rec.Write(buffer,size,0);
-                  Word w;
-                  result = qp->ResultStorage(s);
-                  am->OpenObj(algID,typID,rec,s0,type,w);
-
-                  result.addr = w.addr;
-                  rec.Truncate(3);
-                  recF.DeleteRecord(recID);
-                  recF.Close();
-                  getline(iosock,line);
-
-                  delete buffer;
-
-                  int flobs = 0;
-                  while(line=="<FLOB>")
-                  {
-                     getline(iosock,line);
-                     if(line!="<SIZE>")
-                        cerr << "Error: Unexpected Response "
-                             << "from Worker!";
-
-                     getline(iosock,line);
-                     SmiSize si = atoi(line.data());
-
-                     getline(iosock,line);
-                     if(line!="</SIZE>")
-                        cerr << "Error: Unexpected Response "
-                             << "from Worker!";
-
-                     int n_blocks = si / 1024 + 1;
-                     char* buf = new char[n_blocks*1024];
-                     memset(buf,0,1024*n_blocks);
-
-                     for(int i = 0; i< n_blocks; i++)
-                        iosock.read(buf+1024*i,1024);
-
-
-                     Attribute* a = static_cast<Attribute*>
-                        ((am->Cast(algID,typID))(result.addr));
-
-
-                     Flob*  f = a->GetFLOB(flobs);
-                     f->write(buf,si,0);
-
-                     delete buf;
-
-                     getline(iosock,line);
-                     if(line!="</FLOB>")
-                        cerr << "Error: Unexpected Response "
-                             << "from Worker!";
-
-                     getline(iosock,line);
-                     flobs++;
-                  }
-
-                  Flob::clearCaches();
-
-                  if(line!="<CLOSE>")
-                     cerr << "Error: Unexpected Response "
-                          << "from Worker!";
-
-                  iosock << "<FINISH>" << endl;
-
-
-               }
-            }
-
+           delete recCallBack;
+           ((Attribute*) result.addr) -> SetDefined(false);
+           return 0;
          }
-
-         master->Close();delete master;master=0;
-         return 0;
-      }
-
-   }
-
+         
+       if (noFlobError)
+         {
+           SmiSize si = atoi(line.data());
+             
+           int n_blocks = si / 1024 + 1;
+           char* buf = new char[n_blocks*1024];
+           memset(buf,0,1024*n_blocks);
+             
+             
+           for(int i = 0; i< n_blocks; i++)
+             if (!(recCallBack -> Read(buf+1024*i,1024)))
+               noFlobError = false;
+             
+           if (noFlobError)
+             {
+               Attribute* a = static_cast<Attribute*>
+                 ((am->Cast(algID,typID))(result.addr));
+                 
+                 
+               Flob*  f = a->GetFLOB(flobs);
+               f->write(buf,si,0);
+                 
+               delete buf;
+                 
+               if (!(recCallBack -> sendTagToCallBack("GOTFLOB")))
+                 {
+                   delete recCallBack;
+                   ((Attribute*) result.addr) -> SetDefined(false);
+                   return 0;
+                 }
+             }
+           else
+             {
+               delete buf;
+             }
+         } // if (noFlobError)
+         
+       if (!noFlobError)
+         {
+           recCallBack -> sendTagToCallBack("ERROR");
+         }
+       flobs ++;
+     } // while "FLOB" ...
+                  
+   Flob::clearCaches();
+     
+   if (!(recCallBack -> sendTagToCallBack("FINISH")))
+     {
+       ((Attribute*) result.addr) -> SetDefined(false);
+     }
+     
+    
+   delete recCallBack;
    return 0;
-
+     
 }
 
 const string receiveSpec =
@@ -2674,9 +2722,10 @@ static ListExpr receiveShuffleTypeMap( ListExpr args )
   //NList myAargs (args);
                   
 #ifdef RECEIVE_SHUFFLE_MAP_DEBUG
-  cout << "HERE: ReceiveShuffleTM:"
+  cout << "ReceiveShuffleTM:"
        << myAargs.convertToString() << endl;
 #endif
+
    string host = nl->ToString(nl->First(args));
    string port = nl->ToString(nl->Second(args));
    string line;
@@ -2728,12 +2777,15 @@ static ListExpr receiveShuffleTypeMap( ListExpr args )
 
    ListExpr typeLE = convertType(type);
 
-   return nl->ThreeElemList(
-          nl->SymbolAtom(Symbol::APPEND()),
-          nl->TwoElemList(
-                  nl->StringAtom(nl->ToString(nl->First(args))),
-                  nl->StringAtom(nl->ToString(nl->Second(args)))),
-          typeLE);
+   ListExpr res =  nl->ThreeElemList(
+                nl->SymbolAtom(Symbol::APPEND()),
+                  nl->TwoElemList(
+                   nl->StringAtom(nl->ToString(nl->First(args))),
+                   nl->StringAtom(nl->ToString(nl->Second(args)))),
+                typeLE);
+
+   //cout << nl -> ToString(res) << endl;
+   return res;
 }
 
 static int receiveShuffleFun( Word* args,
@@ -3004,7 +3056,7 @@ for the shuffle operator
 static ListExpr sendShuffleTypeMap( ListExpr inArgs )
 {
   NList args (inArgs);
-                  
+  
 #ifdef SEND_SHUFFLE_MAP_DEBUG
   cout << "HERE!: SendShuffleTM:" << args.convertToString() 
        << endl;    
@@ -4126,6 +4178,8 @@ Operator shuffle1 (
 template< int dim>
 static ListExpr loopTypeMap(ListExpr args)
 {
+  
+  //cout << "LoopTM " << dim << " :" << nl -> ToString(args) << " -> ";
   ListExpr errRes = nl->SymbolAtom(Symbol::TYPEERROR());
 
   NList m_args(args);
@@ -4191,6 +4245,7 @@ static ListExpr loopTypeMap(ListExpr args)
               NList(NList(DArray::BasicType()),
                     mapdesc.first().elem(dim + 2)));
 
+      //cout << res.convertToString() << endl;
       return res.listExpr();
     }
 
@@ -4371,6 +4426,7 @@ Operator dloopA (loopaSpec(),
 
 ListExpr delementTypeMap( ListExpr args )
 {
+  //cout << "DelTM:" << nl -> ToString(args) << " -> ";
    if(nl->ListLength(args) >= 1)
    {
       ListExpr first = nl->First(args);
@@ -4378,7 +4434,9 @@ ListExpr delementTypeMap( ListExpr args )
       {
          if (nl->IsEqual(nl->First(first), DArray::BasicType()))
          {
-            return nl->Second(first);
+            ListExpr res =  nl->Second(first);
+            //cout << nl -> ToString(res) << endl;
+            return res;
          }
       }
    }
@@ -4409,6 +4467,7 @@ Operator dElementA (
 
 ListExpr delement2TypeMap( ListExpr args )
 {
+  cout << "Del2TM:" << nl -> ToString(args) << " -> ";
    if(nl->ListLength(args) >= 2)
    {
       ListExpr second = nl->Second(args);
@@ -4416,7 +4475,9 @@ ListExpr delement2TypeMap( ListExpr args )
       {
          if (nl->IsEqual(nl->First(second), DArray::BasicType()))
          {
-            return nl->Second(second);
+            ListExpr res = nl->Second(second);
+            cout << nl -> ToString(res) << endl;
+            return res;
          }
       }
    }
@@ -4447,6 +4508,7 @@ Operator dElementA2 (
 ListExpr dRelTypeMap( ListExpr inArgs )
 {
   NList args (inArgs);
+  //cout << "DRELTM:" << args.convertToString() << " -> ";
   args = args.first();
   
   if(args.length() >= 2)
@@ -4460,7 +4522,7 @@ ListExpr dRelTypeMap( ListExpr inArgs )
               second.first().isSymbol(Relation::BasicType()))
             {
               NList res = second.second();
-               
+              //cout << res.convertToString() << endl;
               return res.listExpr();
             }
         }
@@ -4494,10 +4556,12 @@ Operator drel (
 ListExpr dindexTypeMap( ListExpr inArgs )
 {
   NList args (inArgs);
+  //cout << "dindex:" << args.convertToString() << " -> ";
   if(args.length() == 0)
    {
-     NList result (CcInt::BasicType());
-     return NList(result).listExpr(); 
+     NList result = NList(NList(CcInt::BasicType()));
+     //cout << result.convertToString() << endl;
+     return result.listExpr(); 
    }
    return nl->SymbolAtom(Symbol::TYPEERROR());
 }
@@ -4544,6 +4608,7 @@ The formal specification of type mapping is:
 static ListExpr
 dtieTypeMap( ListExpr args )
 {
+  //cout << "DTieTM:" <<  nl -> ToString(args) << " -> ";
   if (nl->ListLength(args) == 2)
   {
     ListExpr arrayDesc = nl->First(args);
@@ -4561,7 +4626,8 @@ dtieTypeMap( ListExpr args )
             && nl->Equal(elementDesc, nl->Third(mapDesc))
             && nl->Equal(elementDesc, nl->Fourth(mapDesc)))
         {
-          //cout << "DTie ResultType:" << nl -> ToString(elementDesc) << endl;
+          //cout<< "DTie ResultType:"
+          // << nl -> ToString(elementDesc) << endl;
           return elementDesc;
         }
       }
@@ -4576,6 +4642,7 @@ dtieFun( Word* args, Word& result, int message,
          Word& local, Supplier s )
 {
   result = qp->ResultStorage(s);
+
   DArray* array = ((DArray*)args[0].addr);
 
   if (!array || !(array -> IsDefined()))
@@ -4657,12 +4724,10 @@ dtieFun( Word* args, Word& result, int message,
     qp->Request(args[1].addr, funresult);
 
     if (funresult.addr != partResult.addr) {
-      //if (i>1)
-      {
-        // delete the previous intermediate result
-        (am->DeleteObj(algebraId, typeId))
-          (typeOfElement, partResult);
-      }
+
+      // delete the previous intermediate result
+      (am->DeleteObj(algebraId, typeId))
+        (typeOfElement, partResult);
 
       // assign the next intermediate result
       partResult =
@@ -4683,7 +4748,7 @@ dtieFun( Word* args, Word& result, int message,
 
 const string dtieSpec =
    "(( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-    "( <text>((array t) (map t t t)) -> t</text--->"
+    "( <text>((darray t) (map t t u)) -> u</text--->"
       "<text>_ tie [ fun ]</text--->"
       "<text>Calculates the \"value\" of an darray "
       "evaluating the elements of "
@@ -4723,6 +4788,7 @@ to the order of the input stream of the operator ~ddistribute~.
 static ListExpr
 dsummarizeTypeMap( ListExpr args )
 {
+  cout << "dsummarizeTM:" << nl -> ToString(args) << endl;
   if (nl->ListLength(args) == 1)
   {
     ListExpr arrayDesc = nl->First(args);
@@ -4738,8 +4804,10 @@ dsummarizeTypeMap( ListExpr args )
         ListExpr tupleDesc = nl->Second(relDesc);
         if (nl->IsEqual(nl->First(tupleDesc), Tuple::BasicType()))
         {
-          return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                                 nl->Second(relDesc));
+          ListExpr ret =  nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                                          nl->Second(relDesc));
+          cout << nl -> ToString(ret) << endl;
+          return ret;
         }
       }
     }
@@ -5201,6 +5269,7 @@ checkWorkerRunning(const string &host, int port,
 static ListExpr
 checkWorkersTypeMap( ListExpr args )
 {
+  //cout << "CheckWorkersTM" << nl -> ToString(args) << " -> ";
   NList myargs = NList(args).first();
 
   if (myargs.hasLength(2) && myargs.first().isSymbol(sym.STREAM()))
@@ -5235,6 +5304,7 @@ checkWorkersTypeMap( ListExpr args )
             NList(tupTypeL.first(), tupTypeL.second(), app);
 
           NList result = NList().tupleStreamOf(tuple);
+          //cout << result.convertToString() << endl;
           return result.listExpr(); 
         }
       return 
@@ -5432,6 +5502,7 @@ static ListExpr
 startupTypeMap( ListExpr args )
 {
   NList myargs (args);
+  //cout << "StartupTM:" << myargs.convertToString() << " -> ";
   if (myargs.length() >= 2  && myargs.length() <= 7)
     {
       if (!myargs.first().isSymbol(CcString::BasicType()))
@@ -5451,13 +5522,14 @@ startupTypeMap( ListExpr args )
    ("Third parameter must be the name of the SecondoConfigFile");
         }
 
-      NList result (CcBool::BasicType());
-      return NList(result).listExpr(); 
+      NList result = NList(NList(CcBool::BasicType()));
+      //cout << result.convertToString() << endl;
+      return result.listExpr(); 
     }
   
   return 
     NList::typeError
-    ("Sexpecting at least server name, port and configuration file");
+    ("Expecting at least server name, port and configuration file");
 }
 
 static int
@@ -5611,6 +5683,7 @@ static ListExpr
 shutdownTypeMap( ListExpr args )
 {
   NList myargs (args);
+  //cout << "ShutdownTM:" <<  myargs.convertToString() << " -> ";
   if (myargs.length() >= 2 )
     {
       if (!myargs.first().isSymbol(CcString::BasicType()))
@@ -5626,8 +5699,9 @@ shutdownTypeMap( ListExpr args )
                   "Second parameter must be the port number");
         }
 
-      NList result (CcBool::BasicType());
-      return NList(result).listExpr(); 
+      NList result = NList(NList(CcBool::BasicType()));
+      //cout << result.convertToString() << endl;
+      return result.listExpr(); 
     }
   
   return 

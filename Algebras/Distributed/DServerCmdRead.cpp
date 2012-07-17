@@ -44,7 +44,7 @@ April 2012 Thomas Achmann
 
 0 Description
 
-Implementation of the class ~DServerCmdExecute~
+Implementation of the class ~DServerCmdRead~
 
 1 Preliminaries
 
@@ -53,7 +53,7 @@ Implementation of the class ~DServerCmdExecute~
 uncomment the following line
 
 */
-//#define DS_CMD_COPY_DEBUG 1
+//#define DS_CMD_READ_DEBUG 1
 
 /*
 1.2 Includes
@@ -77,15 +77,15 @@ extern ZThread::Mutex Flob_Mutex;
 
 2.1 Method ~void run~
 
-implements the actual copy functionality of data from one darray index
-to an index of another darray on the same worker.
+implements the actual read functionality of data from the workers
+to the master
  
 */
 
 void
 DServerCmdRead::run()
 { 
-#if DS_CMD_COPY_DEBUG
+#if DS_CMD_READ_DEBUG
   cout << "DServerCmdRead::run" << getIndexStr() << endl;
 #endif
 
@@ -261,7 +261,7 @@ DServerCmdRead::run()
         }
     } // while(!m_cmd -> getDArrayIndex() -> empty())
 
-#if DS_CMD_COPY_DEBUG
+#if DS_CMD_READ_DEBUG
   cout << "DServerCmdRead::run DONE" << endl;
 #endif
 } // run()

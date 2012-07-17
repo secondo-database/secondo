@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-[1] Class DServerCmdRead Definition
+[1] Class DServerCmdWrite Definition
 
 \begin{center}
 April 2012 Thomas Achmann
@@ -44,11 +44,11 @@ April 2012 Thomas Achmann
 
 0 Description
 
-The class ~DServerCmdRead~ reads the data of an DArray of atomic values
-and stores it on the master for further processing (e.g. display function).
+The class ~DServerCmdWrite~ writes the data of an DArray of atomic values
+and stores it on the workres.
 
-The class ~DServerCmdReadParam~ is a data class for the parameters used 
-during the execution of a ~DServerCmdRead~ object.
+The class ~DServerCmdWriteParam~ is a data class for the parameters used 
+during the execution of a ~DServerCmdWrite~ object.
 
 */
 
@@ -58,8 +58,8 @@ during the execution of a ~DServerCmdRead~ object.
 1.1 Defines
 
 */
-#ifndef H_DSERVERCMDREAD_H
-#define H_DSERVERCMDREAD_H
+#ifndef H_DSERVERCMDWRITE_H
+#define H_DSERVERCMDWRITE_H
 
 /*
 1.2 Includes
@@ -68,10 +68,10 @@ during the execution of a ~DServerCmdRead~ object.
 #include "DServerCmd.h"
 
 /*
-2 Class ~DServerCmdReadParam~
+2 Class ~DServerCmdWriteParam~
 
-The class ~DServerCmdReadParam~ contains the parameters used in
-the ~run~ - method of the class ~DServerCmdRead~.
+The class ~DServerCmdWriteParam~ contains the parameters used in
+the ~run~ - method of the class ~DServerCmdWrite~.
 
   * derives from class ~DServerParam~
 
@@ -86,10 +86,10 @@ container, indicating if a element is present at the master
   * vector[<]vector[<]int[>] [>] m[_]indexList - list of indexes to be 
 transferred
 
-This data structure maps the index of the DServerCmdRead Object to the
+This data structure maps the index of the DServerCmdWrite Object to the
 indexes, which shall be transferred within the ~run~ methode. This is 
 necessary, because for a DArray of atomic values these indexes differ.
-One DServerCmdRead object can handle multiple DArray indexes, if
+One DServerCmdWrite object can handle multiple DArray indexes, if
 data consists of atomic values.
 
 Thus, if the atomic data of only one index is transferred, it 
@@ -98,7 +98,7 @@ is stored directly in the following variable.
   * int m[_]singleIndex - single DArray to avoid complex data structure
 
 */
-class DServerCmdReadParam 
+class DServerCmdWriteParam 
   : public DServerParam
 {
 /*
@@ -107,7 +107,7 @@ class DServerCmdReadParam
   * may not be used!
 
 */
-  DServerCmdReadParam() {}
+  DServerCmdWriteParam() {}
 /*
 2.2 Constructor
 used, if multiple indexes are transferred
@@ -118,84 +118,64 @@ transferred
   * vector[<]Word[>][ast] outElements - pointer to the global 
 storage container for the elements of this darray
 
-  * vector[<]bool[>][ast] outIsPresent - pointer of the global
-container, indicating if a element is present at the master
-
 
 */
 public:
-  DServerCmdReadParam(const vector<vector<int> >& inIndexList,
-                      vector<Word>* outElements,
-                      vector<bool>* outIsPresent)
+  DServerCmdWriteParam(const vector<vector<int> >& inIndexList,
+                       vector<Word>* inElements)
     : DServerParam()  
-    , m_outElements(outElements)
-    , m_outIsPresent(outIsPresent)
+    , m_inElements(inElements)
     , m_indexList(inIndexList)
     , m_singleIndex(-1) {}  
-  
-
 /*
 2.3 Constructor
-used, if only one index is transferred
+used, if single index is transferred
 
   * int inIndex - DArray index
 
   * vector[<]Word[>][ast] outElements - pointer to the global 
 storage container for the elements of this darray
 
-  * vector[<]bool[>][ast] outIsPresent - pointer of the global
-container, indicating if a element is present at the master
-
 
 */
-  DServerCmdReadParam(int inIndex,
-                      vector<Word>* outElements,
-                      vector<bool>* outIsPresent)
+  DServerCmdWriteParam(int inIndex,
+                       vector<Word>* inElements)
     : DServerParam()  
-    , m_outElements(outElements)
-    , m_outIsPresent(outIsPresent)
-    , m_singleIndex(inIndex){}
+    , m_inElements(inElements)
+    , m_singleIndex(inIndex) {} 
   
 /*
 2.4 Copy - Constructor
 
 */
-  DServerCmdReadParam(const DServerCmdReadParam & inP)
+  DServerCmdWriteParam(const DServerCmdWriteParam & inP)
     : DServerParam(inP)
-    , m_outElements(inP.m_outElements)
-    , m_outIsPresent(inP.m_outIsPresent)
+    , m_inElements(inP.m_inElements)
     , m_indexList(inP.m_indexList)
-    , m_singleIndex(inP.m_singleIndex){}
+    , m_singleIndex(inP.m_singleIndex) {}
 
 /*
 2.5 Destructor
 
 */
-  virtual ~DServerCmdReadParam() {}
+  virtual ~DServerCmdWriteParam() {}
 
 /*
 2.6 Getter Methods
 
-2.6.1 Method ~vector[<]Word[>][ast] getOutElements const~
+2.6.1 Method ~vector[<]Word[>][ast] getinElements const~
 
   * returns vector[<]Word[>][ast] - pointer to the global storage array
 
 */
-  vector<Word>* getOutElements() const { return m_outElements; }
-/*
-2.6.2 Method ~vector[<]bool[>][ast] getOutIsPresent const~
+  vector<Word>* getInElements() const { return m_inElements; }
 
-  * returns vector[<]bool[>][ast] - pointer to the global storage array,
-indicating if the data is present on the master
-
-*/
-  vector<bool>* getOutIsPresent() const { return m_outIsPresent; }
 
 /*
 2.6.3 Method ~int getIndexAt const~
 automatically falls back to the single index, if available
 
-  * unsigned long j - the index of this DServerCmdRead object
+  * unsigned long j - the index of this DServerCmdWrite object
 
   * unisigned long i - the position of the container, which is transferred
 
@@ -209,13 +189,13 @@ automatically falls back to the single index, if available
 2.6.4 Method ~unsigned long getIndexListSize const~
 automatically falls back to 1, if onlye one index is set
 
-  * unsigned long j - the index of this DServerCmdRead object
+  * unsigned long j - the index of this DServerCmdWrite object
 
   * returns unsigned long - the size of indexes, which are transferred
 
 */
   unsigned long getIndexListSize(unsigned long i) const 
-  { 
+  {
     if (hasSingleIndex()) return 1;
     return m_indexList[i].size(); 
   }
@@ -230,6 +210,7 @@ private:
 2.6.1 Private Methods
 
 */
+
   bool hasSingleIndex() const { return m_singleIndex > -1; }
 
   int getSingleIndex() const { return m_singleIndex; }
@@ -238,8 +219,7 @@ private:
 2.6.1 Private Members
 
 */
-  vector<Word>* m_outElements;
-  vector<bool>* m_outIsPresent;
+  vector<Word>* m_inElements;
   vector< vector<int> > m_indexList;
   int m_singleIndex;
 
@@ -250,15 +230,15 @@ private:
 };
 
 /* 
-3 Class ~DServerCmdRead~
+3 Class ~DServerCmdWrite~
 
-The class ~DServerCmdRead~ provides the functionality of reading
-data of atomic darray element(s) from the workers
+The class ~DServerCmdWrite~ provides the functionality of writing data of
+atomic DArray elements to the workers
 
   * derives from the class ~DServerCmd~
 
 */
-class DServerCmdRead 
+class DServerCmdWrite 
   : public DServerCmd
 {
 /*
@@ -275,8 +255,8 @@ public:
 
 */
 
-  DServerCmdRead(DServer *inWorker, int inIndex)
-    : DServerCmd(DServerCmd::DS_CMD_READ, inWorker, inIndex)
+  DServerCmdWrite(DServer *inWorker, int inIndex)
+    : DServerCmd(DServerCmd::DS_CMD_WRITE, inWorker, inIndex)
   {}
 
 /*
@@ -284,7 +264,7 @@ public:
 
 */
 
-  virtual ~DServerCmdRead() {}
+  virtual ~DServerCmdWrite() {}
 
 
 /*
@@ -296,25 +276,11 @@ public:
 
 */
   
-  vector<Word>* getOutElements() const 
+  vector<Word>* getInElements() const 
   {
-    const DServerCmdReadParam *p = 
-      DServerCmd::getParam<DServerCmdReadParam>() ;
-    return p -> getOutElements();
-  }
-
-/*
-3.3..2 Method ~vector[<]bool[>][ast] getOutIsPresent const~
-
-  * returns vector[<]bool[>][ast] - pointer to the global storage array,
-indicating if the data is present on the master
-
-*/
-  vector<bool>* getOutIsPresent() const 
-  {
-    const DServerCmdReadParam *p = 
-      DServerCmd::getParam<DServerCmdReadParam>() ;
-    return p -> getOutIsPresent();
+    const DServerCmdWriteParam *p = 
+      DServerCmd::getParam<DServerCmdWriteParam>() ;
+    return p -> getInElements();
   }
 
 /*
@@ -328,8 +294,8 @@ automatically falls back to the single index, if available
 */
 const int getIndexAt(unsigned long i) const 
   { 
-    const DServerCmdReadParam *p = 
-      DServerCmd::getParam<DServerCmdReadParam>() ;
+    const DServerCmdWriteParam *p = 
+      DServerCmd::getParam<DServerCmdWriteParam>() ;
     return p -> getIndexAt(getIndex(), i); 
   }
 
@@ -343,8 +309,8 @@ automatically falls back to 1, if onlye one index is set
 */
 unsigned long getIndexListSize() const 
   { 
-    const DServerCmdReadParam *p = 
-      DServerCmd::getParam<DServerCmdReadParam>() ;
+    const DServerCmdWriteParam *p = 
+      DServerCmd::getParam<DServerCmdWriteParam>() ;
     return p -> getIndexListSize(getIndex()); 
   }
 
@@ -356,7 +322,7 @@ unsigned long getIndexListSize() const
 */
   string getInfo() const 
   {
-    return string("CMD-Read from:"  + getWorker() -> getName() + 
+    return string("CMD-Write to:"  + getWorker() -> getName() + 
                   getIndexStr());
   }
 
@@ -397,4 +363,4 @@ private:
 
 };
 
-#endif // H_DSERVERCMDREAD_H
+#endif // H_DSERVERCMDWRITE_H
