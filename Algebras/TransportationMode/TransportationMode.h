@@ -2081,6 +2081,14 @@ const string SpatialSpecGenMOIndex =
 "<text>create an index on genmo units </text--->"
 "<text>query genmoindex(genmo1)</text---> ) )";
 
+const string SpatialSpecMReal2MString =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>mreal -> mstring</text--->"
+"<text>tm_mr2ms(mreal) </text--->"
+"<text>convert a moving real to a moving string </text--->"
+"<text>query tm_mr2ms(genmo_index1)</text---> ) )";
+
+
 const string SpatialSpecGenMODeftime =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
 "( <text>genmo -> periods</text--->"
@@ -4406,6 +4414,26 @@ ListExpr GenMOIndexTypeMap(ListExpr args)
 
   if(nl->IsEqual(arg1, "genmo")){
     return nl->SymbolAtom("mreal");
+  }
+
+  return nl->SymbolAtom("typeerror");
+}
+
+/*
+TypeMap function for operator genmoindex
+
+*/
+ListExpr TM_MReal2MStringTypeMap(ListExpr args)
+{
+  if(nl->ListLength(args) != 1){
+      string err = "one parameter expected";
+      return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+
+  if(nl->IsEqual(arg1, "mreal")){
+    return nl->SymbolAtom("mstring");
   }
 
   return nl->SymbolAtom("typeerror");

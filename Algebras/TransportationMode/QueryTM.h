@@ -92,6 +92,34 @@ struct Traj_Mode{
   }
 };
 
+struct Seq_Mode{
+  MInt seq_tm;
+  bool status;
+  Seq_Mode():seq_tm(0), status(false){}
+  Seq_Mode(MInt& in):seq_tm(in), status(false){}
+  Seq_Mode(const Seq_Mode& sm):seq_tm(sm.seq_tm), status(sm.status){}
+
+  Seq_Mode& operator=(const Seq_Mode& sm)
+  {
+    seq_tm.Clear();
+    seq_tm.SetDefined(sm.seq_tm.IsDefined());
+    for(int i = 0;i < sm.seq_tm.GetNoComponents();i++){
+      UInt u;
+      sm.seq_tm.Get(i, u);
+      seq_tm.Add(u);
+    }
+    status = sm.status;
+    return *this;
+  }
+  bool Status(){return status;}
+  inline void Update(double st, double et, int m);
+  inline void CheckStatus(vector<long> seq_tm);
+  void Print()
+  {
+      cout<<seq_tm;
+  }
+
+};
 
 /*
 query processing on generic moving objects and data types 
@@ -160,8 +188,13 @@ struct QueryTM{
   void CollectBusMetro(int& i, int oid, int m, GenMO* mo1, MPoint* mo2, 
                        int& pos);
   void CollectIndoor(int& i, int oid, int m, GenMO* mo1, MPoint* mo2, int& pos);
-  void CollectFree(int& i, int oid, int m, GenMO* mo1, MPoint* mo2, int& pos);
-  void CollectWalk(int& i, int oid, GenMO* mo1, MPoint* mo2, double, int &pos);
+  void CollectFree_0(int& i, int oid, int m, GenMO* mo1, MPoint* mo2, int& pos);
+ void CollectWalk_0(int& i, int oid, GenMO* mo1, MPoint* mo2, double, int &pos);
+
+  void CollectFree_1(int& i, int oid, int m, GenMO* mo1, MPoint* mo2, int& pos);
+ void CollectWalk_1(int& i, int oid, GenMO* mo1, MPoint* mo2, double, int &pos);
+
+ 
   void CollectCBT(int&i, int oid, int m, GenMO* mo1, MPoint* mo2, 
                   int& pos, double len);
   ////////////////////get tm values for TM-Rtree nodes /////////////////////
@@ -196,6 +229,21 @@ struct QueryTM{
   int ModeType(string mode, vector<long>& seq_tm);
   inline bool CheckMPoint(MPoint* mp, int start, int end, 
                           Interval<Instant>& time_span, Region* query_reg);
+  ///////////////////////////////////////////////////////////////////////////
+  /////////////////a sequence of modes /////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
+  void SeqMode_Filter1(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
+                       vector<bool> m_bit_list);
+  void SeqMode_Filter2(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
+                       Relation* units_rel, vector<bool> m_bit_list);
+  void SeqMode_Filter3(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box,
+                       Relation* units_rel, vector<bool> m_bit_list);
+  void SeqMode_Filter4(TM_RTree<3,TupleId>* tmrtree, Rectangle<3> box, 
+                      vector<bool> bit_pos, Relation* units_rel);
+  void SeqMode_Refinement(Rectangle<3> query_box, vector<bool> bit_pos, 
+                          Relation* units_rel, vector<long> seq_tm,
+                          vector<bool> m_bit_list);
+  inline void MakeTMUnit(MInt& mp_tm, double st, double et, int m);
   /////////////////////////////////////////////////////////////////////////
   //////////////// simple(baseline) method for testing correctness/////////
   ////////////////////////////////////////////////////////////////////////
@@ -204,6 +252,8 @@ struct QueryTM{
                              int m);
   void Mul_RangeQuery(Relation* rel1, Periods* peri, Rectangle<2>* q_box,
                              int m);
+  void Seq_RangeQuery(Relation* rel1, Periods* peri, Rectangle<2>* q_box, 
+                      vector<long> seq_tm);
 
   bool ContainMode1_Sin(MReal* mode_index, int m);
   bool ContainMode1_Mul(MReal* mode_index, vector<bool> bit_pos, int);
@@ -211,6 +261,10 @@ struct QueryTM{
   bool ContainMode2_Sin(MReal* mode_index, Interval<Instant>& t, int m);
   void ContainMode2_Mul(map<int, Traj_Mode>& res_traj, MReal* mode_index, 
                         Interval<Instant>& t, vector<bool> bit_pos, int, int);
+
+  void ContainMode3_Seq(map<int, Seq_Mode>& res_traj, MReal* mode_index,
+                        vector<bool> bit_pos, Interval<Instant>& t, 
+                        int, vector<long>);
 };
 
 #define TEN_METER 10.0

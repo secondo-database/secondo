@@ -2409,6 +2409,71 @@ void GenMO::IndexOnUnits(MReal* res)
 }
 
 /*
+consider free as walk (range query)
+
+*/
+void GenMO::IndexOnUnits2(MReal* res)
+{
+  res->Clear();
+
+  if(IsDefined() && GetNoComponents() > 0){
+    res->SetDefined(true);
+    res->StartBulkLoad();
+    for(int i = 0 ;i < GetNoComponents();i++){
+      UGenLoc unit1;
+      Get( i, unit1);
+      int j = i + 1;
+      Instant s = unit1.timeInterval.start;
+      bool l = unit1.timeInterval.lc;
+      Instant e = unit1.timeInterval.end;
+      bool r = unit1.timeInterval.rc;
+
+      if(j < GetNoComponents()){
+        UGenLoc unit2;
+        Get( j, unit2);
+        while(unit1.tm == unit2.tm && j < GetNoComponents()){
+          j++;
+          e = unit2.timeInterval.end;
+          r = unit2.timeInterval.rc;
+          if(j < GetNoComponents())
+            Get( j, unit2);
+        }
+        j--;
+
+        Interval<Instant> t;
+        t.start = s;
+        t.lc = l;
+        t.end = e;
+        t.rc = r;
+//        UReal ur(t, (double)unit1.tm, (double)i, (double)j, true);
+        int unit_tm = unit1.tm;
+        if(unit_tm == TM_FREE) unit_tm = TM_WALK;
+        UReal ur(t, (double)unit_tm, (double)i, (double)j, true);
+        res->MergeAdd(ur);
+
+        i = j;
+      }else{
+        Interval<Instant> t;
+        t.start = s;
+        t.lc = l;
+        t.end = e;
+        t.rc = r;
+//        UReal ur(t, (double)unit1.tm, (double)i, (double)i, true);
+        int unit_tm = unit1.tm;
+        if(unit_tm == TM_FREE) unit_tm = TM_WALK;
+        UReal ur(t, (double)unit_tm, (double)i, (double)j, true);
+        res->MergeAdd(ur);
+      }
+
+    }
+
+    res->EndBulkLoad(false, false);
+
+  }else
+    res->SetDefined(false);
+
+}
+/*
 check whether a building is visited 
 
 */

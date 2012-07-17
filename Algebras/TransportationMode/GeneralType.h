@@ -848,6 +848,7 @@ class GenMO:public Mapping<UGenLoc,GenLoc>
     int ModeVal();
     static int ModeVal(MReal* mr);
     void IndexOnUnits(MReal* res);
+    void IndexOnUnits2(MReal* res);
     bool BContains(int);
     bool BContains(MReal* UIndex, int);
 

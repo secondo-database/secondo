@@ -179,7 +179,7 @@ operator tm_distance alias TM_DISTANCE pattern op(_,_,_)
 operator tm_genloc alias TM_GENLOC pattern op(_,_,_)
 operator modeval alias MODEVAL pattern op(_)
 operator genmoindex alias GENMOINDEX pattern op(_)
-
+operator tm_mr2ms alias TM_MR2MS pattern op(_)
 
 operator setref_id alias SETREF_ID pattern op(_)
 operator deftime alias DEFTIME pattern op(_)

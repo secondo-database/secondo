@@ -284,10 +284,10 @@ void QueryTM::DecomposeGenmo(Relation* genmo_rel, double len)
 
 //    CreateMTuple_0(oid, mo1, mo2, len);
 //    cout<<"oid "<<oid<<endl;
-//     if(oid != 4299) {
-//       tuple->DeleteIfAllowed();
-//       continue;
-//     }
+//      if(oid != 1234) {
+//        tuple->DeleteIfAllowed();
+//        continue;
+//      }
 
     if(mt_type)
       CreateMTuple_1(oid, mo1, mo2, len);//single mode + a pair of modes
@@ -325,7 +325,7 @@ void QueryTM::CreateMTuple_0(int oid, GenMO* mo1, MPoint* mo2, double len)
            CollectBusMetro(i, oid, TM_BUS, mo1, mo2, up_pos);
             break;
       case TM_WALK:
-           CollectWalk(i, oid, mo1, mo2, len, up_pos);
+           CollectWalk_0(i, oid, mo1, mo2, len, up_pos);
            break;
 
       case TM_INDOOR:
@@ -353,7 +353,7 @@ void QueryTM::CreateMTuple_0(int oid, GenMO* mo1, MPoint* mo2, double len)
 
       case TM_FREE:
 
-           CollectFree(i, oid, TM_FREE, mo1, mo2, up_pos);
+           CollectFree_0(i, oid, TM_FREE, mo1, mo2, up_pos);
            break;
 
       default:
@@ -384,7 +384,7 @@ void QueryTM::CreateMTuple_1(int oid, GenMO* mo1, MPoint* mo2, double len)
            CollectBusMetro(j, oid, TM_BUS, mo1, mo2, up_pos);
             break;
       case TM_WALK:
-           CollectWalk(j, oid, mo1, mo2, len, up_pos);
+           CollectWalk_1(j, oid, mo1, mo2, len, up_pos);//two mtuples
            break;
 
       case TM_INDOOR:
@@ -412,7 +412,8 @@ void QueryTM::CreateMTuple_1(int oid, GenMO* mo1, MPoint* mo2, double len)
 
       case TM_FREE:
 
-           CollectFree(j, oid, TM_FREE, mo1, mo2, up_pos);
+           CollectFree_1(j, oid, TM_FREE, mo1, mo2, up_pos);//two mtuples
+
            break;
 
       default:
@@ -420,107 +421,102 @@ void QueryTM::CreateMTuple_1(int oid, GenMO* mo1, MPoint* mo2, double len)
         break; 
     }
   }
+  ////////////////////////////////////////////////////////////////////////
 
-   ///////store only only a single mode but also a pair of modes//////////////
+  ////////////////////////////////////////////////////////////////////////
+
+   ///////store not only a single mode but also a pair of modes//////////////
 //    cout<<"oid size "<<oid_list.size()<<endl;
 //   cout<<Oid_list.size()<<" "<<Box_list.size()
 //       <<" "<<Tm_list.size()<<" "<<Mp_list.size()<<endl;
 
+      ///////////////// output information ///////////////////
+//     for(unsigned int i = 0;i < oid_list.size();i++){
+//       Periods* peri = new Periods(0);
+//       mp_list[i].DefTime(*peri);
+//       cout<<GetTMStrExt(tm_list[i])<<" "<<*peri<<endl;
+//       delete peri;
+//     }
 
-    int last_pos = -1;
-    for(int i = 0; i < (int)oid_list.size(); i++){
-//      cout<<i<<" "<<GetTMStr(tm_list[i])<<endl;
-      if(last_pos < 0){
-        last_pos = i;
-        if(i == (int) oid_list.size() - 1){
-            Oid_list.push_back(oid_list[last_pos]);
-            Box_list.push_back(box_list[last_pos]);
-            Tm_list.push_back(tm_list[last_pos]);
-            Mp_list.push_back(mp_list[last_pos]);
+    if(oid_list.size() == 1){//////indoor trips, as one movement tuple
+         Oid_list.push_back(oid_list[0]);
+         Tm_list.push_back(tm_list[0]);
+         Box_list.push_back(box_list[0]);
+         Mp_list.push_back(mp_list[0]);
+         div_list.push_back(-1);//one mode
+    }else{
+
+        for(unsigned int i = 0;i < oid_list.size() - 1;i++){
+          int j = i + 1;
+
+          if(tm_list[i] == tm_list[j]){
+            Oid_list.push_back(oid_list[i]);
+            Tm_list.push_back(tm_list[i]);
+            Box_list.push_back(box_list[i]);
+            Mp_list.push_back(mp_list[i]);
             div_list.push_back(-1);//one mode
-        }
-        continue;
-      }
 
-      if(tm_list[last_pos] == tm_list[i]){//output last pos
-       Oid_list.push_back(oid_list[last_pos]);
-       Box_list.push_back(box_list[last_pos]);
-       Tm_list.push_back(tm_list[last_pos]);
-       Mp_list.push_back(mp_list[last_pos]);
-       div_list.push_back(-1);//one mode
-
-//        cout<<i<<" "<<GetTMStr(tm_list[i])<<endl;
-        last_pos = i;
-        if(i == (int)oid_list.size() - 1){////output the last mtuple
-            Oid_list.push_back(oid_list[last_pos]);
-            Box_list.push_back(box_list[last_pos]);
-            Tm_list.push_back(tm_list[last_pos]);
-            Mp_list.push_back(mp_list[last_pos]);
-            div_list.push_back(-1);//one mode
-        }
-      }else{ ////////merge two movement tuples: walk + another
-//        cout<<last_pos<<" "<<i<<endl;
-//        cout<<GetTMStr(tm_list[last_pos])<<" "<<GetTMStr(tm_list[i])<<endl;
-        assert((int)(fabs(last_pos - i)) == 1);
-
-        Rectangle<3> box1 = box_list[last_pos];
-        Rectangle<3> box2 = box_list[i];
-        Rectangle<3> box = box1.Union(box2);
-
-        int m1 = tm_list[last_pos];
-        int m2 = tm_list[i];
-
-        if(m1 == TM_WALK || m2 == TM_WALK) {
-            int m = -1;
-            if(m1 == TM_WALK){
-              m = m2 + 2*ARR_SIZE(str_tm);
-            }else{
-              m = m1 + ARR_SIZE(str_tm);
+            if(i == oid_list.size() - 2){
+                Oid_list.push_back(oid_list[j]);
+                Tm_list.push_back(tm_list[j]);
+                Box_list.push_back(box_list[j]);
+                Mp_list.push_back(mp_list[j]);
+                div_list.push_back(-1);//one mode
             }
-//        cout<<"m1 "<<m1<<" m2 "<<m2<<" "<<m<<endl;
-//        cout<<"new mode "<<GetTMStrExt(m)<<endl;
 
-          MPoint* mp1 = &mp_list[last_pos];
-          MPoint* mp2 = &mp_list[i];
-          MPoint* mp = new MPoint(0);
-          mp->StartBulkLoad();
-          for(int j = 0;j < mp1->GetNoComponents();j++){
-            UPoint u;
-            mp1->Get(j, u);
-            mp->Add(u);
+          }else{
+
+            Rectangle<3> box1 = box_list[i];
+            Rectangle<3> box2 = box_list[j];
+            Rectangle<3> box = box1.Union(box2);
+            int m1 = tm_list[i];
+            int m2 = tm_list[j];
+            if(m1 == TM_WALK || m2 == TM_WALK){
+              int m = -1;
+              if(m1 == TM_WALK){
+                m = m2 + 2*ARR_SIZE(str_tm);
+              }else{
+                m = m1 + ARR_SIZE(str_tm);
+              }
+
+              MPoint* mp1 = &mp_list[i];
+              MPoint* mp2 = &mp_list[j];
+              MPoint* mp = new MPoint(0);
+              mp->StartBulkLoad();
+              for(int k = 0;k < mp1->GetNoComponents();k++){
+                UPoint u;
+                mp1->Get(k, u);
+                mp->Add(u);
+              }
+              for(int k = 0;k < mp2->GetNoComponents();k++){
+                UPoint u;
+                mp2->Get(k, u);
+                mp->Add(u);
+              }
+              mp->EndBulkLoad();
+
+              Oid_list.push_back(oid_list[i]);
+              Tm_list.push_back(m); //bit index
+              Box_list.push_back(box);
+              Mp_list.push_back(*mp);
+              div_list.push_back(mp1->GetNoComponents());//two modes, record pos
+
+              delete mp;
+
+              if(i < oid_list.size() - 2){
+                int next_elem = j + 1;
+                if(tm_list[j] == tm_list[next_elem]){
+                  i++;
+                }
+
+              }
+            }else{
+              cout<<"should not be here"<<endl;
+              assert(false);
+            }
+
           }
-          for(int j = 0;j < mp2->GetNoComponents();j++){
-            UPoint u;
-            mp2->Get(j, u);
-            mp->Add(u);
-          }
-          mp->EndBulkLoad();
-
-          Oid_list.push_back(oid_list[i]);
-          Tm_list.push_back(m); //bit index
-          Box_list.push_back(box);
-          Mp_list.push_back(*mp);
-          div_list.push_back(mp1->GetNoComponents());//two modes, record pos
-
-          delete mp;
-        }else{ //two separate units, connected by free
-
-          Oid_list.push_back(oid_list[i]);
-          Tm_list.push_back(tm_list[i]);
-          Box_list.push_back(box_list[i]);
-          Mp_list.push_back(mp_list[i]);
-          div_list.push_back(-1);//one mode
-
-          Oid_list.push_back(oid_list[last_pos]);
-          Tm_list.push_back(tm_list[last_pos]);
-          Box_list.push_back(box_list[last_pos]);
-          Mp_list.push_back(mp_list[last_pos]);
-          div_list.push_back(-1);//one mode
-
-        }
-        last_pos = -1;
-      }
-
+        } 
     }
 
     oid_list.clear();
@@ -703,7 +699,7 @@ the units in mp
 use start and end time instants 
 
 */
-void QueryTM::CollectWalk(int& i, int oid, GenMO* mo1, MPoint* mo2, 
+void QueryTM::CollectWalk_0(int& i, int oid, GenMO* mo1, MPoint* mo2, 
                           double len, int& up_pos)
 {
 //  cout<<"CollectWalk"<<endl;
@@ -898,6 +894,237 @@ void QueryTM::CollectWalk(int& i, int oid, GenMO* mo1, MPoint* mo2,
     ///////////////////////////////////////////////////////////////////
 
     i = j - 1;
+}
+
+/*
+almost the same as collectwalk 0, but be sure that there are at least two
+mtules
+
+*/
+void QueryTM::CollectWalk_1(int& i, int oid, GenMO* mo1, MPoint* mo2, 
+                          double len, int& up_pos)
+{
+//  cout<<"CollectWalk"<<endl;
+    int mtuple = 0;
+
+    int index1 = i;
+    int j = i;
+
+    double l = 0.0;
+    int64_t start_time = -1;
+    int64_t end_time = -1;
+    while(j < mo1->GetNoComponents()){
+      UGenLoc unit;
+      mo1->Get(j, unit);
+
+      if(unit.GetTM() == TM_WALK){
+        if(start_time < 0)
+          start_time = unit.timeInterval.start.ToDouble()*ONEDAY_MSEC;
+
+        end_time = unit.timeInterval.end.ToDouble()*ONEDAY_MSEC;
+
+
+        Point p1(true, unit.gloc1.GetLoc().loc1, unit.gloc1.GetLoc().loc2);
+        Point p2(true, unit.gloc2.GetLoc().loc1, unit.gloc2.GetLoc().loc2);
+        l += p1.Distance(p2);
+        if(l > len){
+
+          MPoint* mp = new MPoint(0);
+          mp->StartBulkLoad();
+
+          int pos1 = up_pos;
+          int pos2 = -1;
+          for(int index = up_pos; index < mo2->GetNoComponents();index++){
+            UPoint u;
+            mo2->Get(index, u);
+            mp->Add(u);
+            int64_t cur_t = u.timeInterval.end.ToDouble()*ONEDAY_MSEC;
+            if(cur_t == end_time){
+              up_pos = index + 1;
+              pos2 = index;
+              break;
+            }
+          }
+          mp->EndBulkLoad();
+          mp_list.push_back(*mp);
+
+         /////////////////////////////////////////////////////////
+
+          oid_list.push_back(oid);
+//          time_list.push_back(*peri);
+/*          time_list.push_back(*peri_t);
+          box_list.push_back(mp->BoundingBoxSpatial());*/
+          Rectangle<3> tm_box(true,
+                              start_time/ONEDAY_MSEC,
+                              end_time/ONEDAY_MSEC,
+                              mp->BoundingBoxSpatial().MinD(0),
+                              mp->BoundingBoxSpatial().MaxD(0),
+                              mp->BoundingBoxSpatial().MinD(1),
+                              mp->BoundingBoxSpatial().MaxD(1)
+                             );
+
+          box_list.push_back(tm_box);
+          tm_list.push_back(TM_WALK);
+          mtuple++;
+
+          Point p1(true, index1, j);
+          assert(pos1 >= 0 && pos2 >= pos1);
+          Point p2(true, pos1, pos2);//index in mpoint
+//          index_list1.push_back(p1); //genmo index
+//          index_list2.push_back(p2); //mpoint index
+
+          index1 = j;
+
+//          delete peri;
+          delete mp;
+
+//          delete peri_t;
+
+          start_time = -1;
+          end_time = -1;
+
+          l = 0.0;
+        }
+        j++;
+      }else{
+        break;
+      }
+    }
+
+    int index2 = j - 1;
+
+    if(start_time > 0 && start_time < end_time){
+
+      MPoint* mp = new MPoint(0);
+      mp->StartBulkLoad();
+
+      int pos1 = up_pos;
+      int pos2 = -1;
+      for(int index = up_pos;index < mo2->GetNoComponents();index++){
+        UPoint u;
+        mo2->Get(index, u);
+        mp->Add(u);
+        if(index == up_pos) 
+          start_time = u.timeInterval.start.ToDouble()*ONEDAY_MSEC;
+
+        int64_t cur_t = u.timeInterval.end.ToDouble()*ONEDAY_MSEC;
+        if(cur_t == end_time){
+          up_pos = index + 1;
+          pos2 = index;
+          break;
+        }
+
+      }
+      mp->EndBulkLoad();
+      mp_list.push_back(*mp);//store a sub trip
+      /////////////////////////////////////////////////////
+      oid_list.push_back(oid);
+      mtuple++;
+//      time_list.push_back(*peri);
+/*      time_list.push_back(*peri_t);
+      box_list.push_back(mp->BoundingBoxSpatial());*/
+
+      Rectangle<3> tm_box(true,
+                          start_time/ONEDAY_MSEC,
+                          end_time/ONEDAY_MSEC,
+                          mp->BoundingBoxSpatial().MinD(0),
+                          mp->BoundingBoxSpatial().MaxD(0),
+                          mp->BoundingBoxSpatial().MinD(1),
+                          mp->BoundingBoxSpatial().MaxD(1)
+                         );
+
+      box_list.push_back(tm_box);
+      tm_list.push_back(TM_WALK);
+
+      Point p1(true, index1, index2);
+      assert(pos1 >=0 && pos2 >= pos1);
+      Point p2(true, pos1, pos2);//index in mpoint
+//      index_list1.push_back(p1); //genmo index
+//      index_list2.push_back(p2); //mpoint index
+
+
+//      delete peri;
+      delete mp;
+
+//      delete peri_t;
+    }
+    ///////////////////////////////////////////////////////////////////
+
+    i = j - 1;
+
+
+    if(mtuple == 1){//decompose into two movements
+      MPoint* mp = &(mp_list[mp_list.size() - 1]);
+
+      if(mp->GetNoComponents() == 1){///////////only one unit, one mtuples
+        /////doing nothing
+      }else if(tm_list.size() > 1 && 
+               tm_list[tm_list.size() - 2] == TM_WALK){ //two already
+        //if the last movement is also walking, do not split
+      }else{///////////two mtuples
+//          cout<<"mp "<<*mp<<" "<<mp->GetNoComponents()<<endl;
+          int div_pos = (int)(mp->GetNoComponents()/2.0);
+//          cout<<"div_pos "<<div_pos<<endl;
+          MPoint* mp1 = new MPoint(0);
+          mp1->StartBulkLoad();
+          double st1, et1;
+          for(int k = 0;k < div_pos;k++){
+            UPoint u;
+            mp->Get(k, u);
+            mp1->Add(u);
+            if(k == 0) st1 = u.timeInterval.start.ToDouble();
+            if(k == div_pos - 1)et1 = u.timeInterval.end.ToDouble();
+          }
+
+         mp1->EndBulkLoad();
+
+//          mp_list[mp_list.size() - 1] = *mp1;//update the one in the list
+
+
+         Rectangle<3> tm_box1(true, st1, et1,
+                          mp1->BoundingBoxSpatial().MinD(0),
+                          mp1->BoundingBoxSpatial().MaxD(0),
+                          mp1->BoundingBoxSpatial().MinD(1),
+                          mp1->BoundingBoxSpatial().MaxD(1)
+                        );
+//        box_list[box_list.size() - 1] = tm_box1;//update the one in the list
+//        delete mp1;
+
+        MPoint* mp2 = new MPoint(0);
+        mp2->StartBulkLoad();
+        double st2, et2;
+//        cout<<" div_pos "<<div_pos<<" "<<mp->GetNoComponents()<<endl;
+        for(int k = div_pos; k < mp->GetNoComponents();k++){
+          UPoint u;
+          mp->Get(k, u);
+          mp2->Add(u);
+          if(k == div_pos) st2 = u.timeInterval.start.ToDouble();
+          if(k == mp->GetNoComponents() - 1) 
+            et2 = u.timeInterval.end.ToDouble();
+
+        }
+        mp2->EndBulkLoad();
+
+        box_list[box_list.size() - 1] = tm_box1;//update the one in the list
+        mp_list[mp_list.size() - 1] = *mp1;//update the one in the list
+
+        mp_list.push_back(*mp2);
+        oid_list.push_back(oid);
+
+        Rectangle<3> tm_box2(true, st2, et2,
+                          mp2->BoundingBoxSpatial().MinD(0),
+                          mp2->BoundingBoxSpatial().MaxD(0),
+                          mp2->BoundingBoxSpatial().MinD(1),
+                          mp2->BoundingBoxSpatial().MaxD(1)
+                        );
+        box_list.push_back(tm_box2);
+        tm_list.push_back(TM_WALK);//use walk insead of free
+
+        delete mp1;
+        delete mp2;
+      }
+    }
+
 }
 
 /*
@@ -1192,7 +1419,7 @@ ignore such a small piece of movement to compute movement tuples
 
 */
 
-void QueryTM::CollectFree(int& i, int oid, int m,
+void QueryTM::CollectFree_0(int& i, int oid, int m,
                                 GenMO* mo1, MPoint* mo2, int& up_pos)
 {
 //  cout<<"CollectIndoorFree"<<endl;
@@ -1238,10 +1465,7 @@ void QueryTM::CollectFree(int& i, int oid, int m,
   }
   mp->EndBulkLoad();
 
-//  mp_list.push_back(*mp);//store a sub trip
-
   ////////////////////////////////////////////////////////////////////
-//  oid_list.push_back(oid);
 
   Rectangle<3> tm_box(true,
                       start_time/ONEDAY_MSEC,
@@ -1251,8 +1475,12 @@ void QueryTM::CollectFree(int& i, int oid, int m,
                       mp->BoundingBoxSpatial().MinD(1),
                       mp->BoundingBoxSpatial().MaxD(1)
                      );
-//  box_list.push_back(tm_box);
+
+  mp_list.push_back(*mp);//store a sub trip
+  oid_list.push_back(oid);
+  box_list.push_back(tm_box);
 //  tm_list.push_back(m);
+  tm_list.push_back(TM_WALK);//here, we use walk instead of free
 
   Point p1(true, index1, index2);
 
@@ -1262,6 +1490,155 @@ void QueryTM::CollectFree(int& i, int oid, int m,
   ///////////////////////////////////////////////////////////////////
 //  delete peri_t;
 //  delete peri;
+  delete mp;
+
+  i = j - 1;
+}
+
+/*
+almost the same as collectfree 0 but here we get two movement tuples if the 
+trip contains more than one units, this is to combine walk and m in the future
+
+*/
+void QueryTM::CollectFree_1(int& i, int oid, int m,
+                                GenMO* mo1, MPoint* mo2, int& up_pos)
+{
+//  cout<<"CollectIndoorFree"<<endl;
+
+  int index1 = i;
+  int j = i;
+  int64_t start_time = -1;
+  int64_t end_time = -1;
+
+  while(j < mo1->GetNoComponents()){
+    UGenLoc unit;
+    mo1->Get(j, unit);
+
+    if(unit.GetTM() == m){
+      if(start_time < 0)
+        start_time = unit.timeInterval.start.ToDouble()*ONEDAY_MSEC;
+
+      end_time = unit.timeInterval.end.ToDouble()*ONEDAY_MSEC;
+      j++;
+    }else{
+      break;
+    }
+  }
+  int index2 = j - 1;
+
+//  cout<<start_time<<" "<<end_time<<endl;
+  MPoint* mp = new MPoint(0);
+  mp->StartBulkLoad();
+  int pos1 = up_pos;
+  int pos2 = -1;
+  for(int index = up_pos; index < mo2->GetNoComponents(); index++){
+    UPoint u;
+    mo2->Get(index, u);
+    mp->Add(u);
+    int64_t cur_t = u.timeInterval.end.ToDouble()*ONEDAY_MSEC;
+    if(cur_t == end_time){
+//      cout<<"find end time "<<endl;
+      up_pos = index + 1;
+      pos2 = index;
+      break;
+    }
+
+  }
+  mp->EndBulkLoad();
+
+  ////////////////////////////////////////////////////////////////////
+
+  Rectangle<3> tm_box(true,
+                      start_time/ONEDAY_MSEC,
+                      end_time/ONEDAY_MSEC,
+                      mp->BoundingBoxSpatial().MinD(0),
+                      mp->BoundingBoxSpatial().MaxD(0),
+                      mp->BoundingBoxSpatial().MinD(1),
+                      mp->BoundingBoxSpatial().MaxD(1)
+                     );
+
+//  mp_list.push_back(*mp);//store a sub trip
+//  oid_list.push_back(oid);
+//  box_list.push_back(tm_box);
+//  tm_list.push_back(TM_WALK);//be careful, use walk instead of free
+//  cout<<tm_box<<endl;
+
+
+    if(mp->GetNoComponents() == 1){///////////only one unit, one mtuples
+      mp_list.push_back(*mp);//store a sub trip
+      oid_list.push_back(oid);
+      box_list.push_back(tm_box);
+      tm_list.push_back(TM_WALK);//be careful, use walk instead of free
+
+    }else if(tm_list.size() > 0 && 
+             tm_list[tm_list.size() - 1] == TM_WALK){//do not split
+      mp_list.push_back(*mp);//store a sub trip
+      oid_list.push_back(oid);
+      box_list.push_back(tm_box);
+      tm_list.push_back(TM_WALK);//be careful, use walk instead of free
+
+    }else{////////two mtuples
+        int div_pos = (int)(mp->GetNoComponents()/2.0);
+        MPoint* mp1 = new MPoint(0);
+        mp1->StartBulkLoad();
+        double st1, et1;
+        for(int i = 0;i < div_pos;i++){
+          UPoint u;
+          mp->Get(i, u);
+          mp1->Add(u);
+          if(i == 0) st1 = u.timeInterval.start.ToDouble();
+          if(i == div_pos - 1)et1 = u.timeInterval.end.ToDouble();
+        }
+
+        mp1->EndBulkLoad();
+
+        mp_list.push_back(*mp1);
+        oid_list.push_back(oid);
+
+        Rectangle<3> tm_box1(true, st1, et1,
+                          mp1->BoundingBoxSpatial().MinD(0),
+                          mp1->BoundingBoxSpatial().MaxD(0),
+                          mp1->BoundingBoxSpatial().MinD(1),
+                          mp1->BoundingBoxSpatial().MaxD(1)
+                        );
+        box_list.push_back(tm_box1);
+//    cout<<"sub box1 "<<tm_box1<<endl;
+        tm_list.push_back(TM_WALK);//use walk instead of free
+        delete mp1;
+
+        MPoint* mp2 = new MPoint(0);
+        mp2->StartBulkLoad();
+        double st2, et2;
+        for(int i = div_pos; i < mp->GetNoComponents();i++){
+          UPoint u;
+          mp->Get(i, u);
+          mp2->Add(u);
+          if(i == div_pos) st2 = u.timeInterval.start.ToDouble();
+          if(i == mp->GetNoComponents() - 1) 
+            et2 = u.timeInterval.end.ToDouble();
+        }
+        mp2->EndBulkLoad();
+
+        mp_list.push_back(*mp2);
+        oid_list.push_back(oid);
+
+        Rectangle<3> tm_box2(true, st2, et2,
+                          mp2->BoundingBoxSpatial().MinD(0),
+                          mp2->BoundingBoxSpatial().MaxD(0),
+                          mp2->BoundingBoxSpatial().MinD(1),
+                          mp2->BoundingBoxSpatial().MaxD(1)
+                        );
+        box_list.push_back(tm_box2);
+//    cout<<"sub box2 "<<tm_box2<<endl;
+
+        tm_list.push_back(TM_WALK);//use walk insead of free
+        delete mp2;
+    }////////end for if else
+
+  Point p1(true, index1, index2);
+
+  assert(pos1 >= 0 && pos2 >= pos1);
+  Point p2(true, pos1, pos2);//index in mpoint
   delete mp;
 
   i = j - 1;
@@ -1532,8 +1909,52 @@ void QueryTM::RangeTMRTree(TM_RTree<3,TupleId>* tmrtree, Relation* units_rel,
     //////////////////////////////////////////////////////////////////
     if(type == SEQMODE){//a sequence of modes
       cout<<"a sequence of modes "<<endl;
-      cout<<"not implemented"<<endl;
+      vector<bool> bit_pos(ARR_SIZE(str_tm), false);//mark the index
+      bitset<ARR_SIZE(str_tm)> modebits;
+      modebits.reset();
+      for(unsigned int i = 0;i < seq_tm.size();i++){
+         cout<<GetTMStrExt(seq_tm[i])<<" ";
+          bit_pos[seq_tm[i]] = true;
+          modebits.set(seq_tm[i]);
+      }
+      cout<<endl;
+      cout<<modebits.to_string()<<" "
+          <<GetModeStringExt(modebits.to_ulong())<<endl;;
 
+      ///////////split the mode value by walk + m///////////////
+      assert(seq_tm.size() > 1);
+      int sin_mode_no = ARR_SIZE(str_tm);
+      vector<bool> m_bit_list(3*sin_mode_no, false);
+      for(unsigned int i = 0;i < seq_tm.size();i++){
+    //      cout<<GetTMStrExt(seq_tm[i])<<" ";
+        if(i < seq_tm.size() - 1){
+              unsigned int j = i + 1;
+              int m1 = seq_tm[i];
+              int m2 = seq_tm[j];
+              assert(m1 != m2);
+              if(m1 == TM_WALK){
+                  m_bit_list[m2 + 2*sin_mode_no] = true;
+              }else if(m2 == TM_WALK){
+                  m_bit_list[m1 + sin_mode_no] = true;
+              }else{
+                  assert(false);
+              }
+        }
+      }
+      ///////////1 include these modes; 2 with a certain order/////////////
+      if(treetype == TMRTREE){
+          SeqMode_Filter1(tmrtree, query_box, m_bit_list);
+      }else if(treetype == ADRTREE){
+          SeqMode_Filter2(tmrtree, query_box, units_rel, m_bit_list);
+      }else if(treetype == RTREE3D){
+          SeqMode_Filter3(tmrtree, query_box, units_rel, m_bit_list);
+      }else if(treetype == TMRTREETEST){//get all mtuples contain these modes
+          SeqMode_Filter4(tmrtree, query_box, bit_pos, units_rel);
+      }else{
+        cout<<"wrong tree type "<<endl;
+        assert(false);
+      }
+         SeqMode_Refinement(query_box, bit_pos, units_rel, seq_tm, m_bit_list);
     }
 
     tuple->DeleteIfAllowed();
@@ -1619,10 +2040,12 @@ int QueryTM::ModeType(string mode, vector<long>& seq_tm)
       return MULMODE;
   }
   
-  if(pos_list2.size() > 0){
+  if(pos_list2.size() > 0){/////modes with a certain order
     // set the value in seqtm list//
-    // not implemented yet ///
-    cout<<"not implemented "<<endl;
+    for(unsigned int i = 0;i < pos_list2.size();i++){
+//      cout<<GetTMStrExt(pos_list2[i])<<" ";
+        seq_tm.push_back(pos_list2[i]);//store the mode bit index
+    }
 
     return SEQMODE;//a sequence of values
   }
@@ -2150,10 +2573,12 @@ void QueryTM::MulMode_Filter2(TM_RTree<3,TupleId>* tmrtree,
                  R_TreeLeafEntry<3, TupleId> e =
                   (R_TreeLeafEntry<3, TupleId>&)(*node)[j];
                   Tuple* mtuple = units_rel->GetTuple(e.info, false);
-                  int mode = 
-                   ((CcInt*)mtuple->GetAttribute(GM_MODE))->GetIntval();
+//                   int mode = 
+//                    ((CcInt*)mtuple->GetAttribute(GM_MODE))->GetIntval();
                    if(e.box.Intersects(query_box)){
 //                        cout<<GetTMStrExt(mode)<<endl;
+                        int mode = 
+                        ((CcInt*)mtuple->GetAttribute(GM_MODE))->GetIntval();
                         bool res = false;
                         if(mode < sin_mode_no){
                           if(bit_pos[mode]) res = true;
@@ -2341,7 +2766,9 @@ void QueryTM::MulMode_Refinement(Rectangle<3> query_box, vector<bool> bit_pos,
                   start = 0;
                   end = mp->GetNoComponents();
               }else{//ignore if does not exist
+                cout<<"should not occur"<<endl;
                 mtuple->DeleteIfAllowed();
+                assert(false);
                 continue;
               }
               m_bit.set(m);
@@ -2585,6 +3012,10 @@ void QueryTM::RangeQuery(Relation* rel1, Relation* rel2)
   if(type == MULMODE){
       Mul_RangeQuery(rel1, peri, q_box, seq_tm[0]);
   }
+  if(type == SEQMODE){
+      Seq_RangeQuery(rel1, peri, q_box, seq_tm);
+  }
+
 
   q_tuple->DeleteIfAllowed();
 }
@@ -2630,7 +3061,8 @@ void QueryTM::Sin_RangeQuery(Relation* rel1, Periods* peri, Rectangle<2>* q_box,
     }
 
     MReal* mode_index_tmp = new MReal(0);
-    mo1->IndexOnUnits(mode_index_tmp);
+//    mo1->IndexOnUnits(mode_index_tmp);
+    mo1->IndexOnUnits2(mode_index_tmp);
 
     MReal* mode_index = new MReal(0);
     mode_index_tmp->AtPeriods(*peri, *mode_index);
@@ -2889,5 +3321,822 @@ void QueryTM::ContainMode2_Mul(map<int, Traj_Mode>& res_traj, MReal* mode_index,
 
         iter->second.modebits = iter->second.modebits | m_bit;
     }
+
+}
+
+/*
+baseline method to check a sequence of modes
+
+*/
+void QueryTM::Seq_RangeQuery(Relation* rel1, Periods* peri, 
+                             Rectangle<2>* q_box, vector<long> seq_tm)
+{
+  for(unsigned int i = 0;i < seq_tm.size();i++){
+    cout<<GetTMStrExt(seq_tm[i])<<" ";
+  }
+
+  Interval<Instant> time_span;
+  peri->Get(0, time_span);
+  Region query_reg(*q_box);
+
+  vector<bool> bit_pos(ARR_SIZE(str_tm), false);// first part enough
+  bitset<ARR_SIZE(str_tm)> modebits;//different multiple modes
+  modebits.reset();//indoor;walk;bus;walk, the result is 3 instead of 4
+  for(unsigned int i = 0;i < seq_tm.size();i++){
+      bit_pos[seq_tm[i]] = true;
+      modebits.set(seq_tm[i], 1);
+  }
+
+  int mode_count =  modebits.count(); //some modes appear more then once
+
+  map<int, Seq_Mode> res_traj;//binary search tree
+  for(int i = 1;i <= rel1->GetNoTuples();i++){
+     Tuple* tuple = rel1->GetTuple(i, false);
+     int traj_id = ((CcInt*)tuple->GetAttribute(GENMO_OID))->GetIntval();
+     GenMO* mo1 = (GenMO*)tuple->GetAttribute(GENMO_TRIP1);
+      Periods* mo_t = new Periods(0);
+      mo1->DefTime(*mo_t);
+      if(mo_t->Intersects(*peri) == false){
+        delete mo_t;
+        tuple->DeleteIfAllowed();
+        continue;
+      }
+      delete mo_t;
+      MPoint* mo2 = (MPoint*)tuple->GetAttribute(GENMO_TRIP2);
+      MPoint* sub_mo = new MPoint(0);
+      mo2->AtPeriods(*peri, *sub_mo);
+      if(sub_mo->BoundingBoxSpatial().Intersects(*q_box) == false){
+       delete sub_mo;
+       tuple->DeleteIfAllowed();
+       continue;
+     }
+
+      ///////////////////////////////////////////////////////////////
+      MReal* mode_index_tmp = new MReal(0);
+      mo1->IndexOnUnits(mode_index_tmp);
+
+      MReal* mode_index = new MReal(0);
+      mode_index_tmp->AtPeriods(*peri, *mode_index);
+    //    cout<<*mode_index<<endl;
+      delete mode_index_tmp;
+      //such a sub trip, all modes are included////////////
+     if(ContainMode1_Mul(mode_index, bit_pos, mode_count) == false){
+        delete sub_mo;
+        delete mode_index;
+        tuple->DeleteIfAllowed();
+        continue;
+     }
+
+    ///////////////spatial and temporal checking//////////////////////////
+     for(int j = 0;j < sub_mo->GetNoComponents();j++){
+      UPoint up;
+      sub_mo->Get(j, up);
+
+      if(time_span.Intersects(up.timeInterval)){
+           UPoint up2;
+           up.AtInterval(time_span, up2);///////////time interval
+           if(!AlmostEqual(up2.p0, up2.p1)){
+              HalfSegment hs(true, up2.p0, up2.p1);
+              if(query_reg.Intersects(hs)){//
+                ContainMode3_Seq(res_traj, mode_index, bit_pos, 
+                                 up2.timeInterval, traj_id, 
+                                 seq_tm);
+
+              }
+           }else{
+              if(up2.p0.Inside(query_reg)){//
+                ContainMode3_Seq(res_traj, mode_index, bit_pos,
+                                 up2.timeInterval, traj_id, 
+                                 seq_tm);
+              }
+           }
+      }
+    }
+
+
+      delete sub_mo;
+      delete mode_index;
+      tuple->DeleteIfAllowed();
+  }
+
+  /////////////////////collect the result///////////////////////////
+  map<int, Seq_Mode>::iterator iter;
+  for(iter = res_traj.begin(); iter != res_traj.end();iter++){
+    if(iter->second.Status()){
+        oid_list.push_back(iter->first);
+    }
+  }
+
+}
+
+/*
+simple method: check a sequence of modes
+
+*/
+void QueryTM::ContainMode3_Seq(map<int, Seq_Mode>& res_traj, MReal* mode_index,
+                                  vector<bool> bit_pos,
+                                  Interval<Instant>& t, 
+                                  int traj_id, vector<long> seq_tm)
+{
+    bool res = false;
+    int m = -1;
+    for(int j = 0;j < mode_index->GetNoComponents();j++){//check mode
+      UReal ur;
+      mode_index->Get(j, ur);
+      if(t.Intersects(ur.timeInterval)){
+           UReal ur2;
+           ur.AtInterval(t, ur2);///////////time interval
+           m = (int)(ur2.a);
+           if(bit_pos[m]){ 
+             res = true;
+             break;
+           }
+      }
+    }
+    if(res == false) return;
+    assert(0 <= m && m < (int)(ARR_SIZE(str_tm)));
+    map<int, Seq_Mode>::iterator iter = res_traj.find(traj_id);
+    if(iter == res_traj.end()){//a new one, insert
+        double st = t.start.ToDouble();
+        double et = t.end.ToDouble();
+        MInt mp_tm(0);
+        MakeTMUnit(mp_tm, st, et, m);
+        Seq_Mode seq_m(mp_tm);
+        res_traj.insert(pair<int, Seq_Mode>(traj_id, seq_m));
+    }else{
+      if(iter->second.Status()){//doing nothing, find the result already
+
+      }else{
+          double st = t.start.ToDouble();
+          double et = t.end.ToDouble();
+          iter->second.Update(st, et, m);
+          iter->second.CheckStatus(seq_tm);
+      }
+
+    }
+
+}
+
+/*
+TMRTree, filter step: a sequence of modes
+
+*/
+void QueryTM::SeqMode_Filter1(TM_RTree<3,TupleId>* tmrtree,
+                              Rectangle<3> query_box, vector<bool> m_bit_list)
+{
+
+//     for(unsigned int i = 0;i < m_bit_list.size();i++){
+//       cout<<" i "<<i<<" "<<m_bit_list[i]<<endl;
+//       if(m_bit_list[i])cout<<GetTMStrExt(i)<<endl;
+//     }
+  /////////////////////////////////////////////////////////
+    Interval<Instant> time_span;
+    Instant st(instanttype); 
+    Instant et(instanttype);
+    st.ReadFrom(query_box.MinD(0));
+    time_span.start = st; 
+    time_span.lc = true;
+    et.ReadFrom(query_box.MaxD(0));
+    time_span.end = et;
+    time_span.rc = false;
+
+    double min[2], max[2];
+    min[0] = query_box.MinD(1);
+    min[1] = query_box.MinD(2);
+    max[0] = query_box.MaxD(1);
+    max[1] = query_box.MaxD(2);
+    Rectangle<2> spatial_box(true, min, max);
+    Region query_reg(spatial_box);
+
+  /////////////////////////////////////////////////////////
+    queue<SmiRecordId> query_list;
+    query_list.push(tmrtree->RootRecordId());
+    int node_count = 0;
+    while(query_list.empty() == false){
+       SmiRecordId nodeid = query_list.front();
+       query_list.pop();
+
+       TM_RTreeNode<3, TupleId>* node = tmrtree->GetMyNode(nodeid,false,
+                          tmrtree->MinEntries(0), tmrtree->MaxEntries(0));
+       bitset<TM_SUM_NO> node_bit(node->GetTMValue());
+//       cout<<nodeid<<" "<<node_bit.to_string()<<endl;
+       bool node_mode = false;
+       for(unsigned int i = 0;i < node_bit.size();i++){
+//          if(node_bit.test(i))cout<<"i "<<i<<endl;
+          if(node_bit.test(i) && m_bit_list[i]){
+            node_mode = true;
+            break;
+          }
+       }
+
+//       cout<<GetModeStringExt(node->GetTMValue())<<" "<<node_mode<<endl;
+
+       if(node_mode){
+          if(node->IsLeaf()){
+              for(int j = 0;j < node->EntryCount();j++){
+                R_TreeLeafEntry<3, TupleId> e =
+                 (R_TreeLeafEntry<3, TupleId>&)(*node)[j];
+
+                if(e.box.Intersects(query_box)){ //query window
+                    unit_tid_list.push_back(e.info);
+                }
+              }
+          }else{
+            for(int j = 0;j < node->EntryCount();j++){
+                R_TreeInternalEntry<3> e =
+                  (R_TreeInternalEntry<3>&)(*node)[j];
+                if(e.box.Intersects(query_box)){ //query window
+                    query_list.push(e.pointer);
+                }
+            }
+          }
+
+          node_count++;
+       }
+
+    }
+
+    cout<<node_count<<" nodes accessed "
+        <<unit_tid_list.size()<<" candidates "<<endl;
+
+}
+
+/*
+filter step for a sequence of modes, ADRTree
+
+*/
+void QueryTM::SeqMode_Filter2(TM_RTree<3,TupleId>* tmrtree,
+                              Rectangle<3> query_box,
+                              Relation* units_rel, vector<bool> m_bit_list)
+{
+
+//     for(unsigned int i = 0;i < m_bit_list.size();i++){
+//       cout<<" i "<<i<<" "<<m_bit_list[i]<<endl;
+//       if(m_bit_list[i])cout<<GetTMStrExt(i)<<endl;
+//     }
+  /////////////////////////////////////////////////////////
+    Interval<Instant> time_span;
+    Instant st(instanttype); 
+    Instant et(instanttype);
+    st.ReadFrom(query_box.MinD(0));
+    time_span.start = st; 
+    time_span.lc = true;
+    et.ReadFrom(query_box.MaxD(0));
+    time_span.end = et;
+    time_span.rc = false;
+
+    double min[2], max[2];
+    min[0] = query_box.MinD(1);
+    min[1] = query_box.MinD(2);
+    max[0] = query_box.MaxD(1);
+    max[1] = query_box.MaxD(2);
+    Rectangle<2> spatial_box(true, min, max);
+    Region query_reg(spatial_box);
+
+  /////////////////////////////////////////////////////////
+    queue<SmiRecordId> query_list;
+    query_list.push(tmrtree->RootRecordId());
+    int node_count = 0;
+    while(query_list.empty() == false){
+       SmiRecordId nodeid = query_list.front();
+       query_list.pop();
+
+       TM_RTreeNode<3, TupleId>* node = tmrtree->GetMyNode(nodeid,false,
+                          tmrtree->MinEntries(0), tmrtree->MaxEntries(0));
+       bitset<TM_SUM_NO> node_bit(node->GetTMValue());
+//       cout<<nodeid<<" "<<node_bit.to_string()<<endl;
+       bool node_mode = false;
+       for(unsigned int i = 0;i < node_bit.size();i++){
+//          if(node_bit.test(i))cout<<"i "<<i<<endl;
+          if(node_bit.test(i) && m_bit_list[i]){
+            node_mode = true;
+            break;
+          }
+       }
+
+//       cout<<GetModeStringExt(node->GetTMValue())<<" "<<node_mode<<endl;
+
+       if(node_mode){
+          if(node->IsLeaf()){
+              for(int j = 0;j < node->EntryCount();j++){
+                R_TreeLeafEntry<3, TupleId> e =
+                 (R_TreeLeafEntry<3, TupleId>&)(*node)[j];
+                Tuple* mtuple = units_rel->GetTuple(e.info, false);
+
+                if(e.box.Intersects(query_box)){ //query window
+                   int mode = 
+                   ((CcInt*)mtuple->GetAttribute(GM_MODE))->GetIntval();
+                    if(m_bit_list[mode])
+                      unit_tid_list.push_back(e.info);
+                }
+
+                mtuple->DeleteIfAllowed();
+              }
+          }else{
+            for(int j = 0;j < node->EntryCount();j++){
+                R_TreeInternalEntry<3> e =
+                  (R_TreeInternalEntry<3>&)(*node)[j];
+                if(e.box.Intersects(query_box)){ //query window
+                    query_list.push(e.pointer);
+                }
+            }
+          }
+
+          node_count++;
+       }
+
+    }
+
+    cout<<node_count<<" nodes accessed "
+        <<unit_tid_list.size()<<" candidates "<<endl;
+
+}
+
+/*
+filter step: a sequence of modes 3DRtree
+
+*/
+void QueryTM::SeqMode_Filter3(TM_RTree<3,TupleId>* tmrtree,
+                              Rectangle<3> query_box,
+                              Relation* units_rel, vector<bool> m_bit_list)
+{
+
+//     for(unsigned int i = 0;i < m_bit_list.size();i++){
+//       cout<<" i "<<i<<" "<<m_bit_list[i]<<endl;
+//       if(m_bit_list[i])cout<<GetTMStrExt(i)<<endl;
+//     }
+  /////////////////////////////////////////////////////////
+    Interval<Instant> time_span;
+    Instant st(instanttype); 
+    Instant et(instanttype);
+    st.ReadFrom(query_box.MinD(0));
+    time_span.start = st; 
+    time_span.lc = true;
+    et.ReadFrom(query_box.MaxD(0));
+    time_span.end = et;
+    time_span.rc = false;
+
+    double min[2], max[2];
+    min[0] = query_box.MinD(1);
+    min[1] = query_box.MinD(2);
+    max[0] = query_box.MaxD(1);
+    max[1] = query_box.MaxD(2);
+    Rectangle<2> spatial_box(true, min, max);
+    Region query_reg(spatial_box);
+
+  /////////////////////////////////////////////////////////
+    queue<SmiRecordId> query_list;
+    query_list.push(tmrtree->RootRecordId());
+    int node_count = 0;
+    while(query_list.empty() == false){
+       SmiRecordId nodeid = query_list.front();
+       query_list.pop();
+
+       TM_RTreeNode<3, TupleId>* node = tmrtree->GetMyNode(nodeid,false,
+                          tmrtree->MinEntries(0), tmrtree->MaxEntries(0));
+
+//       cout<<GetModeStringExt(node->GetTMValue())<<" "<<node_mode<<endl;
+
+          if(node->IsLeaf()){
+              for(int j = 0;j < node->EntryCount();j++){
+                R_TreeLeafEntry<3, TupleId> e =
+                 (R_TreeLeafEntry<3, TupleId>&)(*node)[j];
+                Tuple* mtuple = units_rel->GetTuple(e.info, false);
+
+                if(e.box.Intersects(query_box)){ //query window
+                   int mode = 
+                   ((CcInt*)mtuple->GetAttribute(GM_MODE))->GetIntval();
+                    if(m_bit_list[mode])
+                      unit_tid_list.push_back(e.info);
+                }
+
+                mtuple->DeleteIfAllowed();
+              }
+          }else{
+            for(int j = 0;j < node->EntryCount();j++){
+                R_TreeInternalEntry<3> e =
+                  (R_TreeInternalEntry<3>&)(*node)[j];
+                if(e.box.Intersects(query_box)){ //query window
+                    query_list.push(e.pointer);
+                }
+            }
+          }
+
+          node_count++;
+
+    }
+
+    cout<<node_count<<" nodes accessed "
+        <<unit_tid_list.size()<<" candidates "<<endl;
+
+}
+
+
+/*
+a sequence of transportation modes
+
+*/
+
+void QueryTM::SeqMode_Filter4(TM_RTree<3,TupleId>* tmrtree,
+                              Rectangle<3> query_box, vector<bool> bit_pos,
+                              Relation* units_rel)
+{
+
+    MulMode_Filter1(tmrtree, query_box, bit_pos, units_rel);
+}
+
+inline double GetStartTimeValue(MPoint* mp, int pos)
+{
+  assert(0 <= pos && pos < mp->GetNoComponents());
+  UPoint u;
+  mp->Get(pos, u);
+  return u.timeInterval.start.ToDouble();
+}
+
+inline double GetEndTimeValue(MPoint* mp, int pos)
+{
+  assert(0 <= pos && pos < mp->GetNoComponents());
+  UPoint u;
+  mp->Get(pos, u);
+  return u.timeInterval.end.ToDouble();
+}
+
+/*
+refinement step for a sequence of modes
+
+*/
+void QueryTM::SeqMode_Refinement(Rectangle<3> query_box, vector<bool> bit_pos, 
+                          Relation* units_rel, vector<long> seq_tm,
+                                 vector<bool> m_bit_list)
+{
+  Interval<Instant> time_span;
+  Instant st(instanttype); 
+  Instant et(instanttype);
+  st.ReadFrom(query_box.MinD(0));
+  time_span.start = st; 
+  time_span.lc = true;
+  et.ReadFrom(query_box.MaxD(0));
+  time_span.end = et;
+  time_span.rc = false;
+
+  double min[2], max[2];
+  min[0] = query_box.MinD(1);
+  min[1] = query_box.MinD(2);
+  max[0] = query_box.MaxD(1);
+  max[1] = query_box.MaxD(2);
+  Rectangle<2> spatial_box(true, min, max);
+  Region query_reg(spatial_box);
+
+  map<int, Seq_Mode> res_traj;//binary search tree
+  int sin_mode_no = ARR_SIZE(str_tm);
+
+  for(unsigned int i = 0;i < unit_tid_list.size();i++){
+      Tuple* mtuple = units_rel->GetTuple(unit_tid_list[i], false);
+      int traj_id = ((CcInt*)mtuple->GetAttribute(GM_TRAJ_ID))->GetIntval();
+      int m = ((CcInt*)mtuple->GetAttribute(GM_MODE))->GetIntval();
+      int div_pos = ((CcInt*)mtuple->GetAttribute(GM_DIV))->GetIntval();
+
+//        if(traj_id != 3594){
+//            mtuple->DeleteIfAllowed();
+//            continue;
+//        }
+
+      MPoint* mp = (MPoint*)mtuple->GetAttribute(GM_SUBTRIP);
+//      cout<<"mtuple mode "<<GetTMStrExt(m)<<" "<<*mp<<endl;
+
+//      cout<<"traj_id "<<traj_id<<" div_pos "<<div_pos<<endl;
+      ///////////////////////////////////////////////////////////
+      map<int, Seq_Mode>::iterator iter = res_traj.find(traj_id);
+      if(iter == res_traj.end()){//a new mtuple or trajectory
+
+        if(m < sin_mode_no){/////mode value 0-8
+            assert(div_pos == -1);
+            if(bit_pos[m] == false){//this should be done by filter step
+              mtuple->DeleteIfAllowed();
+              assert(false);
+              continue;
+            }
+            int start = 0;
+            int end = mp->GetNoComponents();
+            ////temporal and spatial checking/////
+            bool res = CheckMPoint(mp, start, end, time_span, &query_reg);
+            if(res == false){
+              mtuple->DeleteIfAllowed();
+              continue;
+            }
+
+            double st = GetStartTimeValue(mp, start);
+            double et = GetEndTimeValue(mp, end - 1);
+//            cout<<st<<" "<<et<<endl;
+            MInt mp_tm(0);
+            MakeTMUnit(mp_tm, st, et, m);
+//            cout<<mp_tm<<endl;
+            Seq_Mode seq_m(mp_tm);
+            res_traj.insert(pair<int, Seq_Mode>(traj_id, seq_m));
+
+        }else if(sin_mode_no <= m && m < 2*sin_mode_no){
+
+          if(m_bit_list[m] == false){//this should be done by filter step
+             mtuple->DeleteIfAllowed();
+             assert(false);
+             continue;
+          }
+          int start = 0;
+          int end = div_pos;
+          bool res1 = CheckMPoint(mp, start, end, time_span, &query_reg);
+          if(res1 == false){
+              mtuple->DeleteIfAllowed();
+              continue;
+          }
+          ///////////////////////////////////////////////////////////////////
+          //////we split the two modes, store them separately in the tree////
+          ///////////////////////////////////////////////////////////////////
+          double st1 = GetStartTimeValue(mp, start);
+          double et1 = GetEndTimeValue(mp, div_pos - 1);
+          MInt mp_tm(0);
+          MakeTMUnit(mp_tm, st1, et1, m - sin_mode_no);
+
+          Seq_Mode seq_m(mp_tm);
+          res_traj.insert(pair<int, Seq_Mode>(traj_id, seq_m));
+
+          /////////////////////second part//////////////////////////
+          start = div_pos;
+          end = mp->GetNoComponents();
+          bool res2 = CheckMPoint(mp, start, end, time_span, &query_reg);
+          if(res2 == false){
+              mtuple->DeleteIfAllowed();
+              continue;
+          }
+
+          iter = res_traj.find(traj_id);
+
+          double st2 = GetStartTimeValue(mp, div_pos);
+          double et2 = GetEndTimeValue(mp,  mp->GetNoComponents() - 1);
+          iter->second.Update(st2, et2, TM_WALK);
+
+
+        }else if(2*sin_mode_no <= m && m < 3*sin_mode_no){
+
+          if(m_bit_list[m] == false){//this should be done by filter step
+             mtuple->DeleteIfAllowed();
+             assert(false);
+             continue;
+          }
+          int start = 0;
+          int end = div_pos;
+          bool res1 = CheckMPoint(mp, start, end, time_span, &query_reg);
+          if(res1 == false){
+              mtuple->DeleteIfAllowed();
+              continue;
+          }
+          ///////////////////////////////////////////////////////////////////
+          //////we split the two modes, store them separately in the tree////
+          ///////////////////////////////////////////////////////////////////
+          double st1 = GetStartTimeValue(mp, start);
+          double et1 = GetEndTimeValue(mp, div_pos - 1);
+          MInt mp_tm(0);
+          MakeTMUnit(mp_tm, st1, et1, TM_WALK);
+
+          Seq_Mode seq_m(mp_tm);
+          res_traj.insert(pair<int, Seq_Mode>(traj_id, seq_m));
+          //////////////////second part//////////////////////////////////
+          start = div_pos;
+          end = mp->GetNoComponents();
+          bool res2 = CheckMPoint(mp, start, end, time_span, &query_reg);
+          if(res2 == false){
+              mtuple->DeleteIfAllowed();
+              continue;
+          }
+
+          iter = res_traj.find(traj_id);
+
+          double st2 = GetStartTimeValue(mp, div_pos);
+          double et2 = GetEndTimeValue(mp,  mp->GetNoComponents() - 1);
+          iter->second.Update(st2, et2, m - 2*sin_mode_no);
+
+        }else{
+          assert(false);
+        }
+
+      }else{
+        if(iter->second.Status()){//as a result already
+          ///doing nothing
+        }else{/////need to update the value
+
+          if(m < sin_mode_no){
+//             cout<<"update the mode"<<endl;
+            if(bit_pos[m] == false){//this should be done by filter step
+              mtuple->DeleteIfAllowed();
+              assert(false);
+              continue;
+            }
+            int start = 0;
+            int end = mp->GetNoComponents();
+            ////temporal and spatial checking/////
+            bool res = CheckMPoint(mp, start, end, time_span, &query_reg);
+            if(res == false){
+              mtuple->DeleteIfAllowed();
+              continue;
+            }
+            double st = GetStartTimeValue(mp, start);
+            double et = GetEndTimeValue(mp, end - 1);
+            iter->second.Update(st, et, m);
+            iter->second.CheckStatus(seq_tm);
+
+
+          }else if(sin_mode_no <= m && m < 2*sin_mode_no){
+            if(m_bit_list[m] == false){//this should be done by filter step
+             mtuple->DeleteIfAllowed();
+             assert(false);
+             continue;
+            }
+            int start = 0;
+            int end = div_pos;
+            ////temporal and spatial checking/////
+            bool res1 = CheckMPoint(mp, start, end, time_span, &query_reg);
+            if(res1 == false){
+              mtuple->DeleteIfAllowed();
+              continue;
+            }
+            ///////////////////////////////////////////////////////////////////
+            //////we split the two modes, store them separately in the tree////
+            ///////////////////////////////////////////////////////////////////
+
+            double st1 = GetStartTimeValue(mp, start);
+            double et1 = GetEndTimeValue(mp, div_pos - 1);
+            iter->second.Update(st1, et1, m - sin_mode_no);
+
+            /////////////////////second part///////////////////
+            start = div_pos;
+            end = mp->GetNoComponents();
+            ////temporal and spatial checking/////
+            bool res2 = CheckMPoint(mp, start, end, time_span, &query_reg);
+            if(res2 == false){
+              mtuple->DeleteIfAllowed();
+              iter->second.CheckStatus(seq_tm);
+              continue;
+            }
+
+            double st2 = GetStartTimeValue(mp, div_pos);
+            double et2 = GetEndTimeValue(mp, end - 1);
+            iter->second.Update(st2, et2, TM_WALK);
+
+            iter->second.CheckStatus(seq_tm);
+
+
+          }else if(2*sin_mode_no <= m && m < 3*sin_mode_no){
+            if(m_bit_list[m] == false){//this should be done by filter step
+              mtuple->DeleteIfAllowed();
+              assert(false);
+              continue;
+            }
+            ///////////////////////////////////////////////////////////////////
+            //////we split the two modes, store them separately in the tree////
+            ///////////////////////////////////////////////////////////////////
+            int start = 0;
+            int end = div_pos;
+            ////temporal and spatial checking/////
+            bool res1 = CheckMPoint(mp, start, end, time_span, &query_reg);
+            if(res1 == false){
+              mtuple->DeleteIfAllowed();
+              continue;
+            }
+            double st1 = GetStartTimeValue(mp, start);
+            double et1 = GetEndTimeValue(mp, div_pos - 1);
+            iter->second.Update(st1, et1, TM_WALK);
+
+            //////////////////second part///////////////////////////
+            start = div_pos;
+            end = mp->GetNoComponents();
+            bool res2 = CheckMPoint(mp, start, end, time_span, &query_reg);
+            if(res2 == false){
+              mtuple->DeleteIfAllowed();
+              iter->second.CheckStatus(seq_tm);
+              continue;
+            }
+
+            double st2 = GetStartTimeValue(mp, div_pos);
+            double et2 = GetEndTimeValue(mp, end - 1);
+            iter->second.Update(st2, et2, m - 2*sin_mode_no);
+            iter->second.CheckStatus(seq_tm);
+
+          }else{
+            assert(false);
+          }
+
+        }
+
+      }
+
+      mtuple->DeleteIfAllowed();
+  }
+
+  /////////////////////output the result////////////////////
+  map<int, Seq_Mode>::iterator iter;
+//  cout<<"res count "<<res_traj.size()<<endl;
+  for(iter = res_traj.begin(); iter != res_traj.end();iter++){
+//      iter->second.Print();
+       if(iter->second.Status()){
+         oid_list.push_back(iter->first);
+       }
+  }
+
+}
+
+/*
+update the moving integer: simply insert
+1: simply insert and check the status later
+2: insert, merge and the procedure of checking might be easy
+
+*/
+void Seq_Mode::Update(double st, double et, int m)
+{
+    //////////simply insert, there might be gaps////////////////
+    UInt u;
+    Instant start(instanttype);
+    Instant end(instanttype);
+    start.ReadFrom(st);
+    end.ReadFrom(et);
+    u.timeInterval.start = start;
+    u.timeInterval.end = end;
+    u.timeInterval.lc = true;
+    u.timeInterval.rc = false;
+    u.constValue.Set(m);
+    u.SetDefined(true);
+    seq_tm.Add(u);
+
+//    seq_tm.SortbyUnitTime();
+}
+
+/*
+check whether the sequence of mode is satisfied
+the current mode is set found only when its previous has been found
+
+*/
+void Seq_Mode::CheckStatus(vector<long> m_list)
+{
+//  cout<<"check status "<<endl;
+ if(seq_tm.GetNoComponents() < (int)m_list.size()) return;//impossible be true
+
+//   vector<bool> flag(m_list.size(), false);
+//   for(int i = 0;i < seq_tm.GetNoComponents();i++){
+//     UInt u;
+//     seq_tm.Get(i, u);
+//     int index = tm_index[u.constValue.GetValue()];
+//     assert(index >= 0 && index < (int)m_list.size());
+//     if(index == 0)flag[index] = true;
+//     else{
+//       int prev = index - 1;
+//       if(flag[prev]){//only when its previous has been found
+//         flag[index] = true;
+//         if(index == (int)m_list.size() - 1){//find the result
+//           status = true;
+//           break;
+//         }
+//       }
+//     }
+//   }
+  seq_tm.SortbyUnitTime();
+  ///////////this checking is or will be consistent with the mtuples////
+  ////where the filter step only considers mtules with a pair of modes/////
+  vector<int> tmp_res;
+  for(int i = 0;i < seq_tm.GetNoComponents();i++){
+    UInt u;
+    seq_tm.Get(i, u);
+    int m = u.constValue.GetValue();
+    if(tmp_res.size() == 0){
+      if(m == m_list[0]){//put the start value
+        tmp_res.push_back(m);
+      }
+    }else{
+        if(m == m_list[tmp_res.size()]){
+          tmp_res.push_back(m);
+          if(tmp_res.size() == m_list.size()){
+            status = true;
+            break;
+          }
+        }
+    }
+  }
+
+}
+/*
+create a new moving integer, only one unit
+
+*/
+void QueryTM::MakeTMUnit(MInt& mp_tm, double st, double et, int m)
+{
+    UInt u;
+    Instant start(instanttype);
+    Instant end(instanttype);
+    start.ReadFrom(st);
+    end.ReadFrom(et);
+    u.timeInterval.start = start;
+    u.timeInterval.end = end;
+    u.timeInterval.lc = true;
+    u.timeInterval.rc = false;
+    u.constValue.Set(m);
+    u.SetDefined(true);
+    mp_tm.Add(u); //simply insert
 
 }

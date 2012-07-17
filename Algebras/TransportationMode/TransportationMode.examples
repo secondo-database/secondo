@@ -938,6 +938,11 @@ Signature: genmo -> mreal
 Example  : query no_components(genmoindex([const genmo value ((("2010-12-7-8:03:25" "2010-12-7-8:04:10" TRUE FALSE) (0 (2.0 3.0)) (0 (3.0 3.0)) "Free"))]));
 Result   : 1
 
+Operator : tm_mr2ms
+Number   : 1
+Signature: mreal -> mstring
+Example  : query deftime(tm_mr2ms([const mreal value ((("2011-11-10-09:02" "2011-11-10-09:03:01.142" TRUE FALSE)  (2.0 0.0 20.0 TRUE)))]))
+Result   : ("2011-11-10-09:02" "2011-11-10-09:03:01.142" TRUE FALSE)
 
 Operator : setref_id
 Number   : 1

@@ -2416,6 +2416,38 @@ int GenMOIndexValueMap(Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+convert a moving real to moving string (transportation modes)
+
+*/
+int TM_MReal2MStringValueMap(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  MReal* mr = (MReal*)args[0].addr;
+
+  result = qp->ResultStorage(s);
+  MString* res = (MString*)result.addr; 
+//  genmo->IndexOnUnits(res);
+  res->Clear();
+  if(mr->IsDefined() && mr->GetNoComponents() > 0){
+    res->SetDefined(true);
+    res->StartBulkLoad();
+    for(int i = 0;i < mr->GetNoComponents();i++){
+      UReal u1;
+      mr->Get(i, u1);
+
+//      cout<<u1.a<<endl;
+//      CcString str(true, "test");
+      CcString str(true, GetTMStrExt((int)u1.a));
+      UString u2(u1.timeInterval, str);
+
+      res->Add(u2);
+    }
+    res->EndBulkLoad();
+  }
+
+  return 0;
+}
 
 /*
 get the deftime time periods for a generic moving object 
@@ -4889,6 +4921,12 @@ Operator genmoindex("genmoindex",
     GenMOIndexTypeMap
 );
 
+Operator tm_mr2ms("tm_mr2ms",
+    SpatialSpecMReal2MString,
+    TM_MReal2MStringValueMap,
+    Operator::SimpleSelect,
+    TM_MReal2MStringTypeMap
+);
 
 int TMDeftimeOpSelect(ListExpr args)
 {
@@ -17187,6 +17225,7 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&tm_genloc);// int x real x real to a genloc 
     AddOperator(&modeval);//get an integer for a genmo denoting modes 
     AddOperator(&genmoindex);// build an index on units 
+    AddOperator(&tm_mr2ms);//convert mreal to mstring, transportation modes
 
     ///////////////////////////////////////////////////////////////////////
     /////////temporal operators for generic data types////////////////////
