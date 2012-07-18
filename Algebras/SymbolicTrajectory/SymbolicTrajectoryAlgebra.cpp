@@ -413,6 +413,8 @@ void MLabel::compress() {
     this->Get(i, ul);
     newML->MergeAdd(ul);
   }
+  cout << "MLabel was compressed from " << this->GetNoComponents() << " to "
+       << newML->GetNoComponents() << " components." << endl;
   *this = *newML;
   delete newML;
 }
@@ -423,16 +425,20 @@ void MLabel::compress() {
 Builds a moving label from another moving label and a vector.
 
 */
-void MLabel::build(MLabel const &ml, vector<size_t> sequence) {
+void MLabel::rewrite(MLabel const &ml, vector<size_t> seq,
+                     vector<UPat> assigns) {
   ULabel ul(1);
-  for (unsigned int i = 0; i < sequence.size(); i++) {
-    if ((sequence[i] < 0) || (sequence[i] > (size_t)ml.GetNoComponents())
-     || (sequence[i] > sequence[i + 1])) {
-       cout << "Error: " << sequence[i] << ", " << sequence[i + 1] << endl;
+  for (unsigned int i = 0; i < seq.size(); i++) {
+    if ((seq[i] < 0) || (seq[i] > (size_t)ml.GetNoComponents())
+     || (seq[i] > seq[i + 1])) {
+       cout << "Error: " << seq[i] << ", " << seq[i + 1] << endl;
     }
     else {
-      for (size_t j = sequence[i]; j < sequence[i + 1]; j++) {
+      for (size_t j = seq[i]; j < seq[i + 1]; j++) {
         ml.Get(j, ul);
+        if (!assigns[i / 2].lbs.empty()) {
+          ul.constValue.Set(true, (*(assigns[i / 2].lbs.begin())));
+        }
         this->Add(ul);
       }
     }
@@ -1044,13 +1050,6 @@ string Pattern::toString() const {
         << " | " << (results[i].wc ? (results[i].wc == STAR ? "*" : "+") : "")
         << endl;
   }
-  str << "~~~~~~assignments~~~~~~" << endl;
-  for (unsigned int i = 0; i < assigns.size(); i++) {
-    str << "[" << i << "] " << assigns[i].var << " | ";
-    str << setToString(assigns[i].ivs) << " | "
-        << setToString(assigns[i].lbs) << " | "
-        << (assigns[i].wc ? (assigns[i].wc == STAR ? "*" : "+") : "") << endl;
-  }
   str << endl;
   return str.str();
 }
@@ -1288,6 +1287,7 @@ set<vector<size_t> > Pattern::getRewriteSequences(MLabel const &ml) {
   cout << nfa->toString() << endl;
   if (!nfa->match(ml, true)) {
     cout << "Error: Mismatch" << endl;
+    delete nfa;
     return result;
   }
   nfa->computeResultVars(this->results);
@@ -1295,7 +1295,9 @@ set<vector<size_t> > Pattern::getRewriteSequences(MLabel const &ml) {
   nfa->printSequences(30);
   nfa->filterSequences(ml);
   nfa->printRewriteSequences(50);
-  return nfa->getRewriteSequences();
+  result = nfa->getRewriteSequences();
+  delete nfa;
+  return result;
 }
 
 /*
@@ -1313,7 +1315,7 @@ Computes a vector containing the positions of the unit patterns which the
 result variables belong to.
 
 */
-void NFA::computeResultVars(vector<UnitPattern> results) {
+void NFA::computeResultVars(vector<UPat> results) {
   bool found = false;
   for (unsigned int i = 0; i < results.size(); i++) {
     found = false;
@@ -2345,7 +2347,8 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
         cout << "Error: undefined MLabel." << endl;
       }
       mlabel->compress();
-      rr = new RewriteResult(pattern->getRewriteSequences(*mlabel), *mlabel);
+      rr = new RewriteResult(pattern->getRewriteSequences(*mlabel), mlabel,
+                             pattern->results);
       local.addr = rr;
       return 0;
     case REQUEST:
@@ -2359,7 +2362,7 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
         return CANCEL;
       }
       ml = new MLabel(1);
-      ml->build(rr->getML(), rr->getCurrentSeq());
+      ml->rewrite(rr->getML(), rr->getCurrentSeq(), rr->getAssignments());
       result.addr = ml;
       rr->next(); 
       return YIELD;

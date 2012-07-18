@@ -52,6 +52,7 @@ union Word;
 namespace stj {
 
 class Pattern;
+class UPat;
 
 enum Key {LABEL, TIME, START, END, CARD, ERROR};
 enum Wildcard {NO, STAR, PLUS};
@@ -69,7 +70,7 @@ class MLabel : public MString {
     static ListExpr MLabelProperty();
     static bool CheckMLabel(ListExpr type, ListExpr& errorInfo);
     void compress();
-    void build(MLabel const &ml, vector<size_t> sequence);
+    void rewrite(MLabel const &ml, vector<size_t> seq, vector<UPat> assigns);
 };
 
 class ULabel : public UString {
@@ -131,18 +132,18 @@ class Condition {
   void substitute(unsigned int pos, string subst);
 };
 
-class UnitPattern {
+class UPat {
  public:
   string var;
   set<string> ivs;
   set<string> lbs;
   Wildcard wc;
 
-  UnitPattern() {}
+  UPat() {}
 
-  ~UnitPattern() {}
+  ~UPat() {}
 
-  UnitPattern(const string v, const string i, const string l, const Wildcard w){
+  UPat(const string v, const string i, const string l, const Wildcard w){
     var = v;
     ivs = stringToSet(i);
     lbs = stringToSet(l);
@@ -156,9 +157,8 @@ class UnitPattern {
 
 class Pattern {
  public:
-  vector<UnitPattern> patterns;
-  vector<UnitPattern> results;
-  vector<UnitPattern> assigns;
+  vector<UPat> patterns;
+  vector<UPat> results;
   vector<Condition> conds;
   string text;
 
@@ -167,14 +167,12 @@ class Pattern {
   Pattern(const Pattern& rhs) {
     patterns = rhs.patterns;
     results = rhs.results;
-    assigns = rhs.assigns;
     conds = rhs.conds;
   }
 
   Pattern& operator=(const Pattern& rhs){
     patterns = rhs.patterns;
     results = rhs.results;
-    assigns = rhs.assigns;
     conds = rhs.conds;
     return (*this);
   }  
@@ -210,7 +208,7 @@ class NFA {
   set<int> **transitions; // 1st coord: old state; 2nd coord: unit pattern id;
                           // contents: new state(s).
   set<int> currentStates;
-  vector<UnitPattern> patterns;
+  vector<UPat> patterns;
   vector<Condition> conds;
   //bool *relevantPos; // stores the positions of unit patterns with a var
   int numOfStates;
@@ -263,7 +261,7 @@ class NFA {
   void buildSequences();
   void filterSequences(MLabel const &ml);
   void buildRewriteSequence(vector<size_t> sequence);
-  void computeResultVars(vector<UnitPattern> results);
+  void computeResultVars(vector<UPat> results);
   set<vector<size_t> > getRewriteSequences();
   bool conditionsMatch(MLabel const &ml);
   void buildCondMatchings(unsigned int condId, vector<size_t> sequence);
@@ -278,27 +276,33 @@ class RewriteResult {
  private:
   set<vector<size_t> > sequences; // all matching sequences
   set<vector<size_t> >::iterator it;
-  MLabel inputML;
-
- public:
-  RewriteResult() {}
+  MLabel *inputML;
+  vector<UPat> assigns;
   
-  RewriteResult(set<vector<size_t> > seqs, MLabel const &ml) {
+ public:
+  RewriteResult(set<vector<size_t> > seqs, MLabel *ml, vector<UPat> assigns){
     sequences = seqs;
     it = sequences.begin();
     inputML = ml;
+    this->assigns = assigns;
   }
+
+  ~RewriteResult() {}
 
   bool finished() {
     return (it == sequences.end());
   }
 
   MLabel getML() {
-    return inputML;
+    return *inputML;
   }
 
   vector<size_t> getCurrentSeq() {
     return *it;
+  }
+
+  vector<UPat> getAssignments() {
+    return assigns;
   }
 
   void next() {

@@ -59,7 +59,7 @@ void patternerror(const char* s) {
 }
 stj::Pattern* wholepat = 0;
 Condition cond;
-UnitPattern uPat;
+UPat uPat;
 ExprList exprList;
 bool doublePars(false), firstAssign(true);
 string expr;
@@ -69,7 +69,7 @@ unsigned int pos = 0;
 
 %union{
   char* text;
-  class UnitPattern* up;
+  class UPat* up;
   class Pattern* p;
   class ExprList* el;
 }
@@ -111,13 +111,29 @@ assignmentsequence : assignment
 
 assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABEL {
                string var($1);
-               string labels($3);
+               string label($3);
+               if (label.at(0) == '\"') {
+                 label.assign(label.substr(1, label.size() - 2));
+               }
                var.assign(var.substr(0, var.find('.')));
                uPat.getUnit(convert(var), true);
-               uPat.lbs = stringToSet(labels);
-               uPat.wc = NO;
-               wholepat->assigns.push_back(uPat);
-               cout << "unit added to assignments" << endl;
+               if (!uPat.var.empty()) {
+                 bool foundInRes(false);
+                 unsigned int i = 0;
+                 while (!foundInRes && (i < wholepat->results.size())) {
+                   if (!wholepat->results[i].var.compare(var)) {
+                     foundInRes = true;
+                   }
+                   else {
+                     i++;
+                   }
+                 }
+                 if (foundInRes) {
+                   wholepat->results[i].lbs.clear();
+                   wholepat->results[i].lbs.insert(label);
+                 }
+                 cout << "unit added to assignments" << endl;
+               }
              }
            ;
 
@@ -129,7 +145,7 @@ result : ZZVARIABLE unitpattern_result {
            uPat.getUnit($1, false);
            if (!uPat.var.empty()) {
              uPat.createUnit($1, $2);
-             uPat.ivs = curIvs;
+             uPat.wc = NO;
              wholepat->results.push_back(uPat);
              cout << "unit " << $2 << " added to results" << endl;}
            else {
@@ -139,6 +155,7 @@ result : ZZVARIABLE unitpattern_result {
        | ZZVARIABLE {
            uPat.getUnit($1, false);
            if (!uPat.var.empty()) {
+             uPat.lbs.clear();
              wholepat->results.push_back(uPat);
              cout << "unit added to results" << endl;}
            else {
@@ -355,6 +372,7 @@ Pattern* stj::parseString(const char* input) {
   wholepat = new Pattern();
   pattern_scan_string(input);
   Pattern* result = 0;
+  firstAssign = true;
   if (patternparse() != 0) {
     cout << "Error found, parsing aborted." << endl;
     parseSuccess = false;
@@ -377,7 +395,7 @@ Searches var in the pattern and verifies the correct order of variables in the
 result pattern. In case of success, the unit pattern gets the suitable values.
 
 */
-void UnitPattern::getUnit(const char *varP, bool assign) {
+void UPat::getUnit(const char *varP, bool assign) {
   if (firstAssign) {
     pos = 0;
   }
@@ -406,8 +424,7 @@ void UnitPattern::getUnit(const char *varP, bool assign) {
   }
 }
 
-void UnitPattern::setUnit(const char *v, const char *i,
-                          const char *l, const char *w) {
+void UPat::setUnit(const char *v, const char *i, const char *l, const char *w) {
   string lstr(l), istr(i);
   var.assign(v);
   ivs = stringToSet(istr);
@@ -429,7 +446,7 @@ function ~createUnit~
 
 Modifies the unit pattern according to the parameters.
 */
-void UnitPattern::createUnit(const char *varP, const char *pat) {
+void UPat::createUnit(const char *varP, const char *pat) {
   string patstr(pat), varstr(varP), token;
   int pos = 0;
   while ((pos = varstr.find(' ', pos)) != string::npos) {
