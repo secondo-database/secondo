@@ -2056,8 +2056,8 @@ class InfoGrepSpatialJoinInfo{
       tuples2 = 0;
       treeIt = 0;
       bufferIt = 0;
-      currentTuple2 =0; 	
-
+      currentTuple2 =0; 
+      
       // process the first Tuple
       if(t1){
          count=1; 
@@ -2078,12 +2078,12 @@ class InfoGrepSpatialJoinInfo{
         
         if (paramMinMax){
         dimMaxX=box.MaxD(0);
-	dimMinX=box.MinD(0);
+        dimMinX=box.MinD(0);
         dimMaxY=box.MaxD(1);
-	dimMinY=box.MinD(1);   
+        dimMinY=box.MinD(1);   
         if (dim==3){
            dimMaxZ=box.MaxD(2);
-	   dimMinZ=box.MinD(2); 
+           dimMinZ=box.MinD(2); 
         }
         }
         if (paramHistLog){
