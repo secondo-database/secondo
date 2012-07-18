@@ -2585,13 +2585,13 @@ class InfoGrepSpatialJoinInfo{
         bool off=false;
 
         for(int j=1; j < 11; j++){
-	off=false;
-        while (off==false) {
-           balkenSTneu = HistGIntvStartX+(j-1)*balkenbreiteHistXG;
-           balkenNDneu = HistGIntvStartX+j*balkenbreiteHistXG;
+            off=false;
+            while (off==false) {
+                balkenSTneu = HistGIntvStartX+(j-1)*balkenbreiteHistXG;
+                balkenNDneu = HistGIntvStartX+j*balkenbreiteHistXG;
            if (i<12){
-	     balkenSTalt = altst+(i-1)*balkenbreiteHistXGalt;
-             balkenNDalt = altst+i*balkenbreiteHistXGalt;
+               balkenSTalt = altst+(i-1)*balkenbreiteHistXGalt;
+               balkenNDalt = altst+i*balkenbreiteHistXGalt;
            }
            else {
                balkenSTalt = 0;
@@ -2686,36 +2686,35 @@ class InfoGrepSpatialJoinInfo{
     }
     
     void setDataHistogramYdimG (double wert){
-	int hx = (int)(abs(wert-HistGIntvStartY)/balkenbreiteHistYG)+1;
-	HistogrammYdimG[hx]=HistogrammYdimG[hx]+1;
-     }
+        int hx = (int)(abs(wert-HistGIntvStartY)/balkenbreiteHistYG)+1;
+        HistogrammYdimG[hx]=HistogrammYdimG[hx]+1;
+    }
      
-     void setintvALLY (double wert){
-        int altST=HistGIntvStartYalt;
-	int altND=HistGIntvEndYalt;
-	if (wert>HistGIntvEndYalt){
-                umgewichtenHistYG(altST,altND,true);
-	}
+    void setintvALLY (double wert){
+         int altST=HistGIntvStartYalt;
+        int altND=HistGIntvEndYalt;
+        if (wert>HistGIntvEndYalt){
+            umgewichtenHistYG(altST,altND,true);
+        }
 	if (wert<HistGIntvStartYalt){
-                umgewichtenHistYG(altST,altND,false);
+            umgewichtenHistYG(altST,altND,false);
 	}
-	setDataHistogramYdimG(wert);
+        setDataHistogramYdimG(wert);
     }
       
     void umgewichtenHistYG(int altst, int altnd, bool flag){
-	vector<double> tmpH;
+        vector<double> tmpH;
         tmpH.resize(11);
-	double balkenSTalt, balkenSTneu, balkenNDalt, balkenNDneu;
-	double gewichtneu=0;
-	int i=1;
-	tmpH[0]=0;
-	bool off=false;
-	for(int j=1; j < 11; j++){
-		off=false;
-                while (off==false) {
-                   
+        double balkenSTalt, balkenSTneu, balkenNDalt, balkenNDneu;
+        double gewichtneu=0;
+        int i=1;
+        tmpH[0]=0;
+        bool off=false;
+        for(int j=1; j < 11; j++){
+            off=false;
+            while (off==false) {
                 balkenSTneu = HistGIntvStartY+(j-1)*balkenbreiteHistYG;
-		balkenNDneu = HistGIntvStartY+j*balkenbreiteHistYG;
+                balkenNDneu = HistGIntvStartY+j*balkenbreiteHistYG;
                 if (i<12){
 		balkenSTalt = altst+(i-1)*balkenbreiteHistYGalt;
 		balkenNDalt = altst+i*balkenbreiteHistYGalt;
@@ -2726,13 +2725,12 @@ class InfoGrepSpatialJoinInfo{
                 }
                 if (flag==false) { 
                     //Intervall wird nach unten hin erweitert
-
                     if (balkenNDneu<balkenSTalt) { 
-                    //d.h. der Balken j im neuen Interval erhält Gewicht o,
-                    //denn er schneidet i im alten Interval nicht
-                    gewichtneu=0;
-                    tmpH[j] = gewichtneu;
-                    off=true; //neuer j-Schleifendurchlauf soll ja starten!
+                        //d.h. der Balken j im neuen Interval erhält Gewicht o,
+                        //denn er schneidet i im alten Interval nicht
+                        gewichtneu=0;
+                        tmpH[j] = gewichtneu;
+                        off=true; //neuer j-Schleifendurchlauf soll ja starten!
                     // j muss weitergezählt werden, also weiterer Durchlauf 
                     //der for-Schleife, keine weitere Aktio n nötig
                     }
