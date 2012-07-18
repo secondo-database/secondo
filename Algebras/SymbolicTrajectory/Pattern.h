@@ -69,6 +69,7 @@ class MLabel : public MString {
     static ListExpr MLabelProperty();
     static bool CheckMLabel(ListExpr type, ListExpr& errorInfo);
     void compress();
+    void build(MLabel const &ml, vector<size_t> sequence);
 };
 
 class ULabel : public UString {
@@ -261,6 +262,7 @@ class NFA {
   bool timesMatch(int pos);
   void buildSequences();
   void filterSequences(MLabel const &ml);
+  void buildRewriteSequence(vector<size_t> sequence);
   void computeResultVars(vector<UnitPattern> results);
   set<vector<size_t> > getRewriteSequences();
   bool conditionsMatch(MLabel const &ml);
@@ -273,10 +275,35 @@ class NFA {
 };
 
 class RewriteResult {
- public:
+ private:
   set<vector<size_t> > sequences; // all matching sequences
   set<vector<size_t> >::iterator it;
-  MLabel ml;
+  MLabel inputML;
+
+ public:
+  RewriteResult() {}
+  
+  RewriteResult(set<vector<size_t> > seqs, MLabel const &ml) {
+    sequences = seqs;
+    it = sequences.begin();
+    inputML = ml;
+  }
+
+  bool finished() {
+    return (it == sequences.end());
+  }
+
+  MLabel getML() {
+    return inputML;
+  }
+
+  vector<size_t> getCurrentSeq() {
+    return *it;
+  }
+
+  void next() {
+    it++;
+  }
 };
 
 }

@@ -418,6 +418,29 @@ void MLabel::compress() {
 }
 
 /*
+\subsubsection{Function ~build~}
+
+Builds a moving label from another moving label and a vector.
+
+*/
+void MLabel::build(MLabel const &ml, vector<size_t> sequence) {
+  ULabel ul(1);
+  for (unsigned int i = 0; i < sequence.size(); i++) {
+    if ((sequence[i] < 0) || (sequence[i] > (size_t)ml.GetNoComponents())
+     || (sequence[i] > sequence[i + 1])) {
+       cout << "Error: " << sequence[i] << ", " << sequence[i + 1] << endl;
+    }
+    else {
+      for (size_t j = sequence[i]; j < sequence[i + 1]; j++) {
+        ml.Get(j, ul);
+        this->Add(ul);
+      }
+    }
+    i++;
+  }
+}
+
+/*
 \subsubsection{Creation of the type constructor ~mlabel~}
 
 */
@@ -1269,9 +1292,9 @@ set<vector<size_t> > Pattern::getRewriteSequences(MLabel const &ml) {
   }
   nfa->computeResultVars(this->results);
   nfa->buildSequences();
-  nfa->printSequences(25);
+  nfa->printSequences(30);
   nfa->filterSequences(ml);
-  nfa->printRewriteSequences(25);
+  nfa->printRewriteSequences(50);
   return nfa->getRewriteSequences();
 }
 
@@ -1285,6 +1308,9 @@ set<vector<size_t> > NFA::getRewriteSequences() {
 
 /*
 \subsection{Function ~buildResultVars~}
+
+Computes a vector containing the positions of the unit patterns which the
+result variables belong to.
 
 */
 void NFA::computeResultVars(vector<UnitPattern> results) {
@@ -1303,10 +1329,6 @@ void NFA::computeResultVars(vector<UnitPattern> results) {
       }
     }
   }
-  for (unsigned int i = 0; i < resultVars.size(); i++) {
-    cout << " " << resultVars[i];
-  }
-  cout << endl;
 }
 
 /*
@@ -1318,35 +1340,38 @@ rewriting.
 */
 void NFA::filterSequences(MLabel const &ml) {
   set<vector<size_t> >::iterator it;
-  vector<size_t> rewriteSeq;
-  if (!conds.empty()) {
-    for (it = sequences.begin(); it != sequences.end(); it++) {
-      for (unsigned int i = 0; i < conds.size(); i++) {
-        cout << "processing cond #" << i << endl;
-        if (!conds[i].keys.empty()) {
-          buildCondMatchings(i, *it);
-        }
-        cout << "matchings built for cond #" << i << endl;
-        if (!evaluateCond(ml, i, *it)) {
-          cout << "mismatch at #" << i << endl;
-          i = conds.size(); // continue with next sequence
-        }
-        else if (i == conds.size() - 1) { // all conditions are fulfilled
-          for (unsigned int j = 0; j < resultVars.size(); j++) {
-            rewriteSeq.push_back((*it)[resultVars[j]]); // begin
-            if (resultVars[j] < numOfStates - 2) {
-              rewriteSeq.push_back((*it)[resultVars[j] + 1] - 1); // end
-            }
-            else { // last state
-              rewriteSeq.push_back(maxLabelId);
-            }
-          }
-          rewriteSeqs.insert(rewriteSeq);
-          rewriteSeq.clear();
-        }
+  for (it = sequences.begin(); it != sequences.end(); it++) {
+    for (unsigned int i = 0; i < conds.size(); i++) {
+      cout << "processing cond #" << i << endl;
+      if (!conds[i].keys.empty()) {
+        buildCondMatchings(i, *it);
+      }
+      if (!evaluateCond(ml, i, *it)) {
+        cout << "mismatch at #" << i << endl;
+        i = conds.size(); // continue with next sequence
+      }
+      else if (i == conds.size() - 1) { // all conditions are fulfilled
+        buildRewriteSequence(*it);
       }
     }
+    if (conds.empty()) {
+      buildRewriteSequence(*it);
+    }
   }
+}
+
+void NFA::buildRewriteSequence(vector<size_t> sequence) {
+  vector<size_t> rewriteSeq;
+  for (unsigned int j = 0; j < resultVars.size(); j++) {
+    rewriteSeq.push_back(sequence[resultVars[j]]); // begin
+    if (resultVars[j] < numOfStates - 2) {
+      rewriteSeq.push_back(sequence[resultVars[j] + 1]); // end
+    }
+    else { // last state
+      rewriteSeq.push_back(maxLabelId + 1);
+    }
+  }
+  rewriteSeqs.insert(rewriteSeq);
 }
 
 /*
@@ -1396,7 +1421,7 @@ TypeConstructor patternTC(
 Reads the pattern and generates the state transitions.
 
 */
-void NFA::buildNFA(Pattern p) {
+void NFA::buildNFA(Pattern p) { // TODO save information to avoid inner loops
   patterns = p.patterns;
   conds = p.conds;
   for (int i = 0; i < numOfStates - 1; i++) { // solve epsilon-transitions
@@ -1413,6 +1438,11 @@ void NFA::buildNFA(Pattern p) {
           transitions[i][i].insert(j + 1); // handle '* * ... *'
           transitions[i][j + 1].insert(j + 2); // handle '* * * (1 a) ...'
           j++;
+        }
+        int k = j + 1;
+        while ((k < numOfStates - 1) && (patterns[k].wc == STAR)) {
+          transitions[i][j].insert(k + 1); // handle '* ... * (1 a) * ... *
+          k++;
         }
         if (patterns[i + 1].wc != STAR) { // handle '* (1909 bvb) * * ... *'
           transitions[i][i + 1].insert(i);
@@ -1460,7 +1490,6 @@ bool NFA::match(MLabel const &ml, bool rewrite) {
   for (size_t i = 0; i <= maxLabelId; i++) {
     ml.Get(i, ul);
     ulId = i;
-    cout << "unit label #" << i << " is processed now" << endl;
     updateStates();
     if (currentStates.empty()) {
       cout << "no current state" << endl;
@@ -1470,10 +1499,10 @@ bool NFA::match(MLabel const &ml, bool rewrite) {
   if (!currentStates.count(numOfStates - 1)) { // is the final state active?
     return false;
   }
+  printCards();
   if (rewrite) {
     return true;
   }
-  printCards();
   if (conds.size()) {
     buildSequences();
     printSequences(50);
@@ -1491,13 +1520,12 @@ Returns a string displaying the information stored in the NFA.
 
 */
 string NFA::toString() {
-  cout << "start output, " << numOfStates << " states" << endl;
   stringstream nfa;
   set<int>::iterator k;
   for (int i = 0; i < numOfStates - 1; i++) {
     for (int j = i; j < numOfStates - 1; j++) {
       if (transitions[i][j].size() > 0) {
-        nfa << "state " << i << " | unitpat #" << j << " | new states {";
+        nfa << "state " << i << " | upat #" << j << " | new states {";
         if (transitions[i][j].size() == 1) {
           nfa << *(transitions[i][j].begin());
         }
@@ -1521,10 +1549,12 @@ Prints the set of currently active states.
 
 */
 void NFA::printCurrentStates() {
-  set<int>::iterator i;
-  cout << "the set of active states is {";
-  for (i = currentStates.begin(); i != currentStates.end(); i++) {
-    cout << *i << " ";
+  set<int>::iterator it = currentStates.begin();
+  cout << "after ULabel # " << ulId << ", active states are {" << *it;
+  it++;
+  while (it != currentStates.end()) {
+    cout << ", " << *it;
+    it++;
   }
   cout << "}" << endl;
 }
@@ -1539,7 +1569,7 @@ cardinalities for every unit pattern are displayed.
 void NFA::printCards() {
   set<size_t>::iterator it;
   for (int j = 0; j < numOfStates - 1; j++) {
-    cout << "unit pattern " << j << " matches ulabels ";
+    cout << "upat " << j << " matches ulabels ";
     for (it = matchings[j].begin(); it != matchings[j].end(); it++) {
       cout << *it << ", ";
     }
@@ -1590,7 +1620,7 @@ void NFA::printRewriteSequences(size_t max) {
   unsigned int seqCount = 0;
   it = rewriteSeqs.begin();
   while ((seqCount < max) && (it != rewriteSeqs.end())) {
-    cout << "rseq_" << (seqCount < 9 ? "0" : "") << seqCount  + 1 << " | ";
+    cout << "result_" << (seqCount < 9 ? "0" : "") << seqCount  + 1 << " | ";
     for (unsigned int i = 0; i < (*it).size(); i++) {
       cout << (*it)[i] << ", ";
     }
@@ -1598,7 +1628,7 @@ void NFA::printRewriteSequences(size_t max) {
     it++;
     seqCount++;
   }
-  cout << "there are " << rewriteSeqs.size() << " possible sequences" << endl;
+  cout << "there are " << rewriteSeqs.size() << " result sequences" << endl;
 }
 
 /*
@@ -1677,10 +1707,18 @@ void NFA::storeMatch(int state) { // TODO: shorten this
           while ((j >= 0) && matchings[j].empty()) {
             j--;
           }
-          toLabel = *(matchings[state].rbegin()) - *(matchings[j].begin()) - 1;
-          fromLabel = 0;
-          fromState = j + 1;
-          toState = state - 1;
+          if (j >= 0) {
+            toLabel = *(matchings[state].rbegin()) - *(matchings[j].begin())-1;
+            fromLabel = 0;
+            fromState = j + 1;
+            toState = state - 1;
+          }
+          else { // no previous match
+            toLabel = ulId;
+            fromLabel = 0;
+            fromState = 0;
+            toState = state - 1;
+          }
           for (int k = fromState; k <= toState; k++) {
             for (size_t i = fromLabel; i <= toLabel; i++) {
               if ((i > 0) || (patterns[k].wc == STAR)) {
@@ -1854,7 +1892,8 @@ void NFA::buildSequences() {
         state = numOfStates;
       }
     }
-    if (sequenceSum == maxLabelId + 1) {
+    if ((sequenceSum == maxLabelId + 1)
+    && (*sequence.rbegin() < maxLabelId + 2)) {
       sequences.insert(sequence);
     }
   }
@@ -2117,7 +2156,7 @@ string NFA::getLabelSubst(MLabel const &ml, unsigned int pos) {
   set<vector<size_t> >::iterator it = condMatchings.begin();
   ml.Get((*it)[pos], ul);
   if ((*it)[pos] > maxLabelId) {
-    cout << "PROBLEM: " << (*it)[pos] << " > " << maxLabelId << endl;
+    cout << "Error: " << (*it)[pos] << " > " << maxLabelId << endl;
     return "error";
   }
   if (pos == (*it).size() - 1) {
@@ -2158,7 +2197,6 @@ int patternFun(Word* args, Word& result, int message, Word& local, Supplier s) {
     // TODO store pattern into database
   }
   else {
-    //ppp->SetDefined(false);
     cout << "failed" << endl;
   }
   return 0;
@@ -2295,50 +2333,43 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
   Pattern *pattern = 0;
   RewriteResult *rr = 0;
   switch (message) {
-    case OPEN: // initialize the local storage
+    case OPEN:
       mlabel = static_cast<MLabel*>(args[0].addr);
       patternText = static_cast<FText*>(args[1].addr);
       if (!patternText->IsDefined()) {
-        cout << "Error: pattern cannot be read." << endl;
+        cout << "Error: undefined pattern." << endl;
         return 0;
       }
       pattern = Pattern::getPattern(patternText->toText());
-      cout << ".................::::::::::::::!!!!!!!!!!!!! input read" << endl;
       if (!mlabel->IsDefined()) {
         cout << "Error: undefined MLabel." << endl;
       }
       mlabel->compress();
-      cout << "mlabel compressed" << endl;
-      rr = new RewriteResult();
-      // TODO: match, assign set of all matching sequences to rr->sequences
-      rr->sequences = pattern->getRewriteSequences(*mlabel);
-      rr->it = rr->sequences.begin();
+      rr = new RewriteResult(pattern->getRewriteSequences(*mlabel), *mlabel);
       local.addr = rr;
       return 0;
-    case REQUEST: // return the next stream element
+    case REQUEST:
       if (!local.addr) {
         result.addr = 0;
         return CANCEL;
       }
       rr = ((RewriteResult*)local.addr);
-      if (rr->it == rr->sequences.end()) {
+      if (rr->finished()) {
         result.addr = 0;
-        cout << "all sequences processed" << endl;
         return CANCEL;
       }
-      // TODO: ml <- build moving label from sequence
-      // TODO: move iterator to next sequence. If finished, return CANCEL
       ml = new MLabel(1);
+      ml->build(rr->getML(), rr->getCurrentSeq());
       result.addr = ml;
-      rr->it++; 
+      rr->next(); 
       return YIELD;
-    case CLOSE: // free the local storage
+    case CLOSE:
       if (local.addr) {
         rr = ((RewriteResult*)local.addr);
         delete rr;
       }
       return 0;
-    default: // should never happen
+    default:
       return -1;
   }
 }
