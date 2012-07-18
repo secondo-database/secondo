@@ -2698,7 +2698,7 @@ class InfoGrepSpatialJoinInfo{
         }
         if (wert<HistGIntvStartYalt){
             umgewichtenHistYG(altST,altND,false);
-	}
+        }
         setDataHistogramYdimG(wert);
     }
       
@@ -2716,12 +2716,12 @@ class InfoGrepSpatialJoinInfo{
                 balkenSTneu = HistGIntvStartY+(j-1)*balkenbreiteHistYG;
                 balkenNDneu = HistGIntvStartY+j*balkenbreiteHistYG;
                 if (i<12){
-		balkenSTalt = altst+(i-1)*balkenbreiteHistYGalt;
-		balkenNDalt = altst+i*balkenbreiteHistYGalt;
+                    balkenSTalt = altst+(i-1)*balkenbreiteHistYGalt;
+                    balkenNDalt = altst+i*balkenbreiteHistYGalt;
                 }
                 else {
-                balkenSTalt = 0;
-		balkenNDalt = 0;
+                    balkenSTalt = 0;
+                    balkenNDalt = 0;
                 }
                 if (flag==false) { 
                     //Intervall wird nach unten hin erweitert
@@ -2809,121 +2809,116 @@ class InfoGrepSpatialJoinInfo{
                 }
               }        
              for (int j=1; j < 11; j++){
-		HistogrammYdimG[j]=tmpH[j];
-	     }
-	   
+                 HistogrammYdimG[j]=tmpH[j];
+             }
     }
     
     
     void setDataHistogramZdimG (double wert){
-	int hx = (int)(abs(wert-HistGIntvStartZ)/balkenbreiteHistZG)+1;
-	HistogrammZdimG[hx]=HistogrammZdimG[hx]+1;
+        int hx = (int)(abs(wert-HistGIntvStartZ)/balkenbreiteHistZG)+1;
+        HistogrammZdimG[hx]=HistogrammZdimG[hx]+1;
      }
      
      void setintvALLZ (double wert){
-        int altST=HistGIntvStartZalt;
-	int altND=HistGIntvEndZalt;
-	if (wert>HistGIntvEndZalt){
-                umgewichtenHistZG(altST, altND,true);
-	}
-	if (wert<HistGIntvStartZalt){
-                umgewichtenHistZG(altST, altND,false);
-	}
-	setDataHistogramZdimG(wert);
-    }
+         int altST=HistGIntvStartZalt;
+         int altND=HistGIntvEndZalt;
+         if (wert>HistGIntvEndZalt){
+             umgewichtenHistZG(altST, altND,true);
+         }
+         if (wert<HistGIntvStartZalt){
+             umgewichtenHistZG(altST, altND,false);
+         }
+         setDataHistogramZdimG(wert);
+     }
       
     void umgewichtenHistZG(int altst, int altnd, bool flag){
-	vector<double> tmpH;
+        vector<double> tmpH;
         tmpH.resize(11);
-	double balkenSTalt, balkenSTneu, balkenNDalt, balkenNDneu;
-	double gewichtneu;
-	int i=1;
-	tmpH[0]=0;
-	bool off=false;
-	for(int j=1; j < 11; j++){
-		off=false;
-                while (off==false) {   
+        double balkenSTalt, balkenSTneu, balkenNDalt, balkenNDneu;
+        double gewichtneu;
+        int i=1;
+        tmpH[0]=0;
+        bool off=false;
+        for(int j=1; j < 11; j++){
+            off=false;
+            while (off==false) {
                 balkenSTneu = HistGIntvStartZ+(j-1)*balkenbreiteHistZG;
-		balkenNDneu = HistGIntvStartZ+j*balkenbreiteHistZG;
+                balkenNDneu = HistGIntvStartZ+j*balkenbreiteHistZG;
                 if (i<12){
-		balkenSTalt = altst+(i-1)*balkenbreiteHistZGalt;
-		balkenNDalt = altst+i*balkenbreiteHistZGalt;
+                    balkenSTalt = altst+(i-1)*balkenbreiteHistZGalt;
+                    balkenNDalt = altst+i*balkenbreiteHistZGalt;
                 }
                 else {
-                balkenSTalt = 0;
-		balkenNDalt = 0;
+                    balkenSTalt = 0;
+                    balkenNDalt = 0;
                 }
                 if (flag==false) {  
                     //Intervall wird nach unten hin erweitert
-
                     if (balkenNDneu<balkenSTalt) { 
-                    //d.h. der Balken j im neuen Interval erhält Gewicht o,
-                    //denn er schneidet i im alten Interval nicht
-                    gewichtneu=0;
-                    tmpH[j] = gewichtneu;
-                    off=true; //neuer j-Schleifendurchlauf soll ja starten!
-                    // j muss weitergezählt werden, also weiterer Durchlauf 
-                    //der for-Schleife, keine weitere Aktio n nötig
+                        //d.h. der Balken j im neuen Interval erhält Gewicht o,
+                        //denn er schneidet i im alten Interval nicht
+                        gewichtneu=0;
+                        tmpH[j] = gewichtneu;
+                        off=true; //neuer j-Schleifendurchlauf soll ja starten!
+                        // j muss weitergezählt werden, also weiterer Durchlauf
+                        //der for-Schleife, keine weitere Aktio n nötig
                     }
                     else if (balkenNDneu<=balkenNDalt && i<11) {
                         //d.h. Balken j des neuen Intervalls ragt in i des Alten
                         //Intervalls hinein, j bekommt Anteil von i
-                       double bchoose;
-                       if (balkenNDneu<altnd){bchoose=balkenNDneu;}
-                       else {bchoose=altnd;}
-                      
-                       gewichtneu=gewichtneu+((bchoose- 
-                               balkenSTalt)/balkenbreiteHistZGalt )*
-                               HistogrammZdimG[i];
-                       tmpH[j] = gewichtneu;
-                       gewichtneu=0; 
-                       //kann gesetzt werden, da ja da Ende des Balken j im 
-                       //neuen Intervall erreicht wird Weiteres Gewicht aus 
-                       //i muss in nächsten Balken j
-                       off=true; //neuer j-Schleifendurchlauf soll ja starten!;
+                        double bchoose;
+                        if (balkenNDneu<altnd){bchoose=balkenNDneu;}
+                        else {bchoose=altnd;}
+                        gewichtneu=gewichtneu+((bchoose- 
+                                balkenSTalt)/balkenbreiteHistZGalt )*
+                                HistogrammZdimG[i];
+                        tmpH[j] = gewichtneu;
+                        gewichtneu=0; 
+                        //kann gesetzt werden, da ja da Ende des Balken j im 
+                        //neuen Intervall erreicht wird Weiteres Gewicht aus 
+                        //i muss in nächsten Balken j
+                        off=true; //neuer j-Schleifendurchlauf soll ja starten!;
                     }
                     else if (balkenNDneu>=balkenNDalt && i<11){
-                       double bchoose;
-                       if (balkenSTalt>balkenSTneu){bchoose=balkenSTalt;}
-                       else {bchoose=balkenSTneu;}
-                       
+                        double bchoose;
+                        if (balkenSTalt>balkenSTneu){bchoose=balkenSTalt;}
+                        else {bchoose=balkenSTneu;}
                         gewichtneu=gewichtneu+((balkenNDalt-bchoose)/
                                balkenbreiteHistZGalt)*HistogrammZdimG[i];
-                       i++; 
-                       //j überspannt den Balken aus i vollständig. Aus dem 
-                       //nächsten Balken aus i muss weiteres Gewicht addiert 
-                       //werden, also muss i um 1 erhöht wrden.
+                        i++; 
+                        //j überspannt den Balken aus i vollständig. Aus dem 
+                        //nächsten Balken aus i muss weiteres Gewicht addiert 
+                        //werden, also muss i um 1 erhöht wrden.
                     }
                     else if (i>=11){
                         tmpH[j] = gewichtneu;
                         gewichtneu=0;
                         off=true; //neuer j-Schleifendurchlauf soll ja starten!
                     }
-
                 }
                 else if (flag) {  
                     //Intervall wird nach oben verlängert
                     if (balkenNDneu<=balkenNDalt && i<11) {
                         //d.h. Balken j des neuen Intervalls ragt in i des 
                         //Alten Intervalls hinein, j bekommt Anteil von i
-                       double bchoose;
-                       if (balkenNDneu<altnd){bchoose=balkenNDneu;}
-                       else {bchoose=altnd;} 
-                       gewichtneu=gewichtneu+((bchoose
-                               -balkenSTalt)/balkenbreiteHistZGalt )
-                               *HistogrammZdimG[i];
-                       tmpH[j] = gewichtneu;
-                       gewichtneu=0; //kann gesetzt werden, da ja da Ende des
-                       //Balken j im neuen Intervall erreicht wird Weiteres 
-                       //Gewicht aus i muss in nächsten Balken j
-                       off=true; 
-                       //neuer j-Schleifendurchlauf soll ja starten!
+                        double bchoose;
+                        if (balkenNDneu<altnd){bchoose=balkenNDneu;}
+                        else {bchoose=altnd;} 
+                        gewichtneu=gewichtneu+((bchoose
+                                -balkenSTalt)/balkenbreiteHistZGalt )
+                                *HistogrammZdimG[i];
+                        tmpH[j] = gewichtneu;
+                        gewichtneu=0; //kann gesetzt werden, da ja da Ende des
+                        //Balken j im neuen Intervall erreicht wird Weiteres 
+                        //Gewicht aus i muss in nächsten Balken j
+                        off=true; 
+                        //neuer j-Schleifendurchlauf soll ja starten!
                     }
                     else if (balkenNDneu>=balkenNDalt && i<11){
                        double bchoose;
                        if (balkenSTalt>balkenSTneu){bchoose=balkenSTalt;}
                        else {bchoose=balkenSTneu;}
-                        gewichtneu=gewichtneu+((balkenNDalt
+                       gewichtneu=gewichtneu+((balkenNDalt
                                -bchoose)/balkenbreiteHistZGalt)
                                 *HistogrammZdimG[i];
                        i++; 
@@ -2940,7 +2935,7 @@ class InfoGrepSpatialJoinInfo{
                 }
               }        
              for (int j=1; j < 11; j++){
-		HistogrammZdimG[j]=tmpH[j];
+                 HistogrammZdimG[j]=tmpH[j];
 	     }
 	   
     }
