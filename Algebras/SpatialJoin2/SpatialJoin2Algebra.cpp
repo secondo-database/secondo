@@ -2696,7 +2696,7 @@ class InfoGrepSpatialJoinInfo{
         if (wert>HistGIntvEndYalt){
             umgewichtenHistYG(altST,altND,true);
         }
-	if (wert<HistGIntvStartYalt){
+        if (wert<HistGIntvStartYalt){
             umgewichtenHistYG(altST,altND,false);
 	}
         setDataHistogramYdimG(wert);
