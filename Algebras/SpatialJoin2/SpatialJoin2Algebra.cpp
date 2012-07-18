@@ -2145,23 +2145,23 @@ class InfoGrepSpatialJoinInfo{
                          t1->GetAttribute(a1))->BoundingBox();
         
         if (paramMinMax){
-	if (box.MaxD(0)>dimMaxX){dimMaxX=box.MaxD(0);}			 
-	if (box.MinD(0)<dimMinX){dimMinX=box.MinD(0);}
-        if (box.MaxD(1)>dimMaxY){dimMaxY=box.MaxD(1);}			 
-	if (box.MinD(1)<dimMinY){dimMinY=box.MinD(1);}
-        if (dim==3){
-           if (box.MaxD(2)>dimMaxZ){dimMaxZ=box.MaxD(2);}
-	   if (box.MinD(2)<dimMinZ){dimMinZ=box.MinD(2);} 
+            if (box.MaxD(0)>dimMaxX){dimMaxX=box.MaxD(0);}
+            if (box.MinD(0)<dimMinX){dimMinX=box.MinD(0);}
+            if (box.MaxD(1)>dimMaxY){dimMaxY=box.MaxD(1);}
+            if (box.MinD(1)<dimMinY){dimMinY=box.MinD(1);}
+            if (dim==3){
+                if (box.MaxD(2)>dimMaxZ){dimMaxZ=box.MaxD(2);}
+                if (box.MinD(2)<dimMinZ){dimMinZ=box.MinD(2);} 
         }
         }
         
         if(paramHistLog){
         if (dim==2){
-           putDataToHistX(box.MaxD(0)*1000-box.MinD(0)*1000);
-           putDataToHistY(box.MaxD(1)*1000-box.MinD(1)*1000);         
+            putDataToHistX(box.MaxD(0)*1000-box.MinD(0)*1000);
+            putDataToHistY(box.MaxD(1)*1000-box.MinD(1)*1000);         
         }
         else if (dim==3){
-           putDataToHistZ(box.MaxD(2)*1000-box.MinD(2)*1000);
+            putDataToHistZ(box.MaxD(2)*1000-box.MinD(2)*1000);
         } 
         }
         
