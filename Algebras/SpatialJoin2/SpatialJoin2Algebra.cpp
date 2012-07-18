@@ -2936,8 +2936,7 @@ class InfoGrepSpatialJoinInfo{
               }        
              for (int j=1; j < 11; j++){
                  HistogrammZdimG[j]=tmpH[j];
-	     }
-	   
+             }   
     }
       
     void analyseHistXLog(){

@@ -7,7 +7,6 @@
 #it under the terms of the GNU General Public License as published by
 #the Free Software Foundation; either version 2 of the License, or
 #(at your option) any later version.
-
 #SECONDO is distributed in the hope that it will be useful,
 #but WITHOUT ANY WARRANTY; without even the implied warranty of
 #MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
@@ -24,16 +23,15 @@
 ########################################################################
 
 
-CURRENT_ALGEBRA := SpatialJoinAlgebra
+#CURRENT_ALGEBRA := SpatialJoin2Algebra
 
-ALGEBRA_DEPENDENCIES := StandardAlgebra
-ALGEBRA_DEPENDENCIES += RelationAlgebra
-ALGEBRA_DEPENDENCIES += FunctionAlgebra
-ALGEBRA_DEPENDENCIES += SpatialAlgebra
-ALGEBRA_DEPENDENCIES += RectangleAlgebra
-ALGEBRA_DEPENDENCIES += ExtRelationAlgebra
-ALGEBRA_DEPENDENCIES += MMRTreeAlgebra
-
+#ALGEBRA_DEPENDENCIES := StandardAlgebra
+#ALGEBRA_DEPENDENCIES += RelationAlgebra
+#ALGEBRA_DEPENDENCIES += FunctionAlgebra
+#ALGEBRA_DEPENDENCIES += SpatialAlgebra
+#ALGEBRA_DEPENDENCIES += RectangleAlgebra
+#ALGEBRA_DEPENDENCIES += ExtRelationAlgebra
+#ALGEBRA_DEPENDENCIES += MMRTreeAlgebra
 
 
 
