@@ -134,6 +134,8 @@ assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABEL {
                  }
                  cout << "unit added to assignments" << endl;
                }
+               free($1);
+               free($3);
              }
            ;
 
@@ -151,6 +153,8 @@ result : ZZVARIABLE unitpattern_result {
            else {
              cout << $1 << " was not found in the pattern" << endl;
            }
+           free($1);
+           free($2);
          }
        | ZZVARIABLE {
            uPat.getUnit($1, false);
@@ -161,6 +165,7 @@ result : ZZVARIABLE unitpattern_result {
            else {
              cout << $1 << " was not found in the pattern" << endl;
            }
+           free($1);
          }
        ;
 
@@ -376,7 +381,6 @@ Pattern* stj::parseString(const char* input) {
   if (patternparse() != 0) {
     cout << "Error found, parsing aborted." << endl;
     parseSuccess = false;
-    delete wholepat;
     wholepat = 0;
   }
   else {

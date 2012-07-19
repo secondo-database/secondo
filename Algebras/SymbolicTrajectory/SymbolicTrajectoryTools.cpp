@@ -76,6 +76,9 @@ set<string> stringToSet(string input) {
   int limitpos;
   set<string> result;
   contents.erase(0, input.find_first_not_of(" "));
+  if (!contents.compare("_")) {
+    return result;
+  }
   if (input.at(0) == '{') {
     contents.assign(contents.substr(1, input.length() - 2));
   }
@@ -122,8 +125,11 @@ string setToString(set<string> input) {
 }
 
 vector<string> splitPattern(string input) {
-  cout << "splitPattern called with string " << input << endl;
+  cout << "splitPattern called with string \"" << input << "\"" << endl;
   vector<string> result;
+  if (!input.size()) {
+    return result;
+  }
   size_t pos = input.find('{');
   if (pos == 0) { // ({2012, 2013}, ...)
     result.push_back(input.substr(0, input.find('}') + 1));

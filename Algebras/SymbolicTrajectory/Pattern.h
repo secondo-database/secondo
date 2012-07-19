@@ -177,7 +177,8 @@ class Pattern {
     return (*this);
   }  
 
-  ~Pattern() {}
+  ~Pattern() {
+  }
 
   string toString() const;
   string GetText() const;
@@ -255,9 +256,9 @@ class NFA {
   void printRewriteSequences(size_t max);
   void printCondMatchings(size_t max);
   void updateStates();
-  void storeMatch(int state);
   bool labelsMatch(int pos);
   bool timesMatch(int pos);
+  void computeCardsets();
   void buildSequences();
   void filterSequences(MLabel const &ml);
   void buildRewriteSequence(vector<size_t> sequence);

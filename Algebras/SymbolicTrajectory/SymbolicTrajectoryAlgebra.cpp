@@ -1423,59 +1423,61 @@ TypeConstructor patternTC(
 Reads the pattern and generates the state transitions.
 
 */
-void NFA::buildNFA(Pattern p) { // TODO save information to avoid inner loops
+void NFA::buildNFA(Pattern p) {
   patterns = p.patterns;
   conds = p.conds;
-  for (int i = 0; i < numOfStates - 1; i++) { // solve epsilon-transitions
-    transitions[i][i].insert(i + 1);// state i, read pattern i => new state i+1
-    if (patterns[i].wc == STAR) { // reading '*'
-      if (i > 0) {
-        transitions[i - 1][i - 1].insert(i + 1);
-      }
-      transitions[i][i].insert(i);
-      if (i < numOfStates - 2) {
-        transitions[i][i + 1].insert(i + 2);
-        int j = i + 1;
-        while ((j < numOfStates - 1) && (patterns[j].wc == STAR)) {
-          transitions[i][i].insert(j + 1); // handle '* * ... *'
-          transitions[i][j + 1].insert(j + 2); // handle '* * * (1 a) ...'
-          j++;
+  int prev[3] = {-1, -1, -1}; // prevStar, prevNotStar, secondPrevNotStar
+  for (int i = 0; i < numOfStates - 1; i++) {
+    transitions[i][i].insert(i + 1); // state i, read pattern i => new state i+1
+    if ((patterns[i].wc != STAR) || (i == numOfStates - 2)) { // no star or end
+      if ((prev[0] == i - 1) || (i == numOfStates - 2)) { // '...* #...'
+        for (int j = prev[1] + 1; j < i; j++) {
+          transitions[j][i].insert(i + 1); // '* * * #(1 a ) ...'
+          for (int k = j; k <= i; k++) {
+            transitions[j][k].insert(j);
+            for (int m = j; m <= i; m++) {
+              transitions[j][k].insert(m); // step 1
+            }
+            if ((patterns[i].wc == STAR) && (i == numOfStates - 2)) { // end
+              transitions[j][k].insert(numOfStates - 1);
+            }
+          }
         }
-        int k = j + 1;
-        while ((k < numOfStates - 1) && (patterns[k].wc == STAR)) {
-          transitions[i][j].insert(k + 1); // handle '* ... * (1 a) * ... *
-          k++;
+        if (prev[1] > -1) { // match before current pattern
+          for (int j = prev[1]; j <= i; j++) {
+            transitions[prev[1]][prev[1]].insert(j); // step 2
+          }
+          if ((patterns[i].wc == STAR) && (i == numOfStates - 2)) { // end
+            transitions[prev[1]][prev[1]].insert(numOfStates - 1);
+          }
         }
-        if (patterns[i + 1].wc != STAR) { // handle '* (1909 bvb) * * ... *'
-          transitions[i][i + 1].insert(i);
-          transitions[i][i + 1].insert(i + 1);
-          int j = i + 2;
-          while ((j < numOfStates - 1) && (patterns[j].wc == STAR)) {
-            transitions[i][i + 1].insert(j + 1);
-            j++;
+        if (prev[2] < prev[1] - 1) { // '* ... * (1 a) * ... * #(2 b) ...'
+          for (int j = (prev[2] > -1 ? prev[2] + 1 : 0); j < prev[1]; j++){
+            for (int k = prev[1] + 1; k <= i; k++) {
+              transitions[j][prev[1]].insert(k); // step 3
+            }
+            if ((patterns[i].wc == STAR) && (i == numOfStates - 2)) { // end
+              transitions[j][prev[1]].insert(numOfStates - 1);
+            }
           }
         }
       }
-      else {
-        transitions[i][i + 1].insert(numOfStates - 1);
-      }
+      prev[2] = prev[1];
+      prev[1] = i;
     }
-    else { // not reading '*'
-      int j = i + 1; // handle '(a 1) * * ... *'
-      while ((j < numOfStates - 1) && (patterns[j].wc == STAR)) {
-        transitions[i][i].insert(j + 1);
-        j++;
-      }
+    else if (patterns[i].wc == STAR) { // reading '*'
+      prev[0] = i;
     }
-    if (patterns[i].wc == PLUS) { // reading '+'
+    else if (patterns[i].wc == PLUS) { // reading '+' or '((...))'
       transitions[i][i].insert(i);
+      prev[2] = prev[1];
+      prev[1] = i;
     }
-//     if (i > 0) {  // remove duplicates for '* *'
-//       if ((patterns[i - 1].wc == PLUS) && (patterns[i].wc == PLUS)){
-//         transitions[i - 1][i].clear();  
-//       }
-//     }
   }
+  if (patterns[numOfStates - 2].wc) { // '... #*' or '... #+'
+    transitions[numOfStates - 2][numOfStates - 2].insert(numOfStates - 2);
+  }
+  
 }
 
 /*
@@ -1501,11 +1503,14 @@ bool NFA::match(MLabel const &ml, bool rewrite) {
   if (!currentStates.count(numOfStates - 1)) { // is the final state active?
     return false;
   }
-  printCards();
+
   if (rewrite) {
+    computeCardsets();
+    printCards();
     return true;
   }
   if (conds.size()) {
+    computeCardsets();
     buildSequences();
     printSequences(50);
     if (!conditionsMatch(ml)) {
@@ -1551,14 +1556,19 @@ Prints the set of currently active states.
 
 */
 void NFA::printCurrentStates() {
-  set<int>::iterator it = currentStates.begin();
-  cout << "after ULabel # " << ulId << ", active states are {" << *it;
-  it++;
-  while (it != currentStates.end()) {
-    cout << ", " << *it;
+  if (!currentStates.empty()) {
+    set<int>::iterator it = currentStates.begin();
+    cout << "after ULabel # " << ulId << ", active states are {" << *it;
     it++;
+    while (it != currentStates.end()) {
+      cout << ", " << *it;
+      it++;
+    }
+    cout << "}" << endl;
   }
-  cout << "}" << endl;
+  else {
+    cout << "after ULabel # " << ulId << ", there is no active state" << endl;
+  }
 }
 
 /*
@@ -1670,8 +1680,11 @@ void NFA::updateStates() {
   for (i = currentStates.begin(); i != currentStates.end(); i++) {
     for (int j = *i; j < numOfStates - 1; j++) {
       if (!transitions[*i][j].empty()) {
-        if (labelsMatch(j) && timesMatch(j)) { // insert the new states
-          storeMatch(j);
+        if (labelsMatch(j) && timesMatch(j)) {
+          if (!patterns[j].wc || !patterns[j].ivs.empty()
+           || !patterns[j].lbs.empty()) { // (1 a) or ((1 a)) or ()
+            matchings[j].insert(ulId);
+          }
           for (it = transitions[*i][j].begin();
                it != transitions[*i][j].end(); it++) {
             newStates.insert(*it);
@@ -1685,94 +1698,77 @@ void NFA::updateStates() {
 }
 
 /*
-\subsection{Function ~storeMatch~}
+\subsection{Function ~computeCardsets~}
 
-Stores the matching positions (unit pattern and unit label, respectively) and
-the possible cardinalities into arrays of sets.
+Computes the set of possible cardinalities for every state.
 
 */
-void NFA::storeMatch(int state) { // TODO: shorten this
-  size_t fromLabel, toLabel;
-  int fromState, toState;
-  set<size_t>::iterator it;
-  if (!patterns[state].wc || !patterns[state].ivs.empty()
-   || !patterns[state].lbs.empty()) { // (1 a) or ((1 a)) or ()
-    matchings[state].insert(ulId);
-    cardsets[state].insert(1); // cardinality is 1 for a single match
-    if ((state > 0) && patterns[state - 1].wc) {
-      if (state == 1) { // wildcard at 0, match(es) at 1
-        cardsets[0].insert(*(matchings[1].rbegin()));
-      }
-      else {
-        if (matchings[state - 2].empty()) {
-          int j = state - 3; // search previous matching position
-          while ((j >= 0) && matchings[j].empty()) {
-            j--;
-          }
-          if (j >= 0) {
-            toLabel = *(matchings[state].rbegin()) - *(matchings[j].begin())-1;
-            fromLabel = 0;
-            fromState = j + 1;
-            toState = state - 1;
-          }
-          else { // no previous match
-            toLabel = ulId;
-            fromLabel = 0;
-            fromState = 0;
-            toState = state - 1;
-          }
-          for (int k = fromState; k <= toState; k++) {
-            for (size_t i = fromLabel; i <= toLabel; i++) {
-              if ((i > 0) || (patterns[k].wc == STAR)) {
-                cardsets[k].insert(i); // do not insert 0 when wildcard is +
+void NFA::computeCardsets() {
+  set<size_t>::iterator j, k;
+  int prev = -1; // previousla matching position
+  for (int i = 0; i < numOfStates - 1; i++) {
+    if (matchings[i].size()) {
+      cardsets[i].insert(1);
+      if (prev == i - 2) { // '(1 a) * #(2 b)' or '* #(1 a)'
+        if (prev > -1) {
+          for (j = matchings[i - 2].begin(); j != matchings[i - 2].end(); j++) {
+            for (k = matchings[i].begin(); k != matchings[i].end(); k++) {
+              if (*k > *j) {
+                cardsets[i - 1].insert(*k - *j - 1);
               }
             }
           }
         }
-        else { // matching in state - 2
-          it = matchings[state - 2].begin();
-          while ((*it < ulId) && (it != matchings[state - 2].end())) {
-            if ((ulId - *it - 1 > 0) || (patterns[state - 1].wc == STAR)) {
-              cardsets[state - 1].insert(ulId - *it - 1); // card != 0 for wc +
-            }
-            it++;
+        else { // first match
+          for (k = matchings[i].begin(); k != matchings[i].end(); k++) {
+            cardsets[0].insert(*k);
           }
         }
       }
-    }
-  }
-  else if ((state == numOfStates - 2) && patterns[state].wc) {  // last state
-    int j = state - 1;
-    if ((j >= 0) && matchings[state - 1].empty()) {
-      j--; // search previous matching position
-      while ((j >= 0) && matchings[j].empty()) {
-        j--;
-      }
-      if ((j < 0) || (j < state - 1)) {
-        fromLabel = 0;
-        if (j < 0) {
-          toLabel = maxLabelId;
+      else if (prev < i - 2) {//'(1 a) *|+ .. *|+ #(2 b)' or '*|+ .. *|+ #(1 a)'
+        if (prev > -1) {
+          for (int j = prev + 1; j < i; j++) {
+            for (size_t k = 1; k < *(matchings[i].rbegin())
+                                   - *(matchings[prev].begin()); k++) {
+              cardsets[j].insert(k);
+            }
+            if (patterns[j].wc == STAR) {
+              cardsets[j].insert(0);
+            }
+          } 
         }
-        else {
-          toLabel = maxLabelId - *(matchings[j].begin());
-        }
-        fromState = j + 1; // 0 iff no match exists
-        for (int k = fromState; k <= state; k++) {
-          for (size_t i = fromLabel; i <= toLabel; i++) {
-            if ((i > 0) || (patterns[k].wc == STAR)) {
-              cardsets[k].insert(i); // do not insert 0 when wildcard is +
+        else { // '* ... * #(1 a)'
+          for (int j = 0; j < i; j++) {
+            for (size_t k = 1; k <= *(matchings[i].rbegin()); k++) {
+              cardsets[j].insert(k);
+            }
+            if (patterns[j].wc == STAR) {
+              cardsets[j].insert(0);
             }
           }
         }
       }
+      prev = i;
     }
-    else if (j >= 0) { // matching in state - 1
-      for (it = matchings[j].begin(); it != matchings[j].end(); it++) {
-        cardsets[state].insert(maxLabelId - *it);
+    else if (i == numOfStates - 2) { // no matching at the end
+      if (prev == i - 1) {
+        for (j = matchings[i - 1].begin(); j != matchings[i - 1].end(); j++) {
+          cardsets[i].insert(maxLabelId - *j);
+        }
+        if (patterns[i].wc != STAR) {
+          cardsets[i].erase(0);
+        }
       }
-    }
-    else { // pattern consists of one unit which is a wildcard
-      cardsets[state].insert(maxLabelId + 1);
+      else { // '... (1 a) * ... *' or '* ... *'
+        for (int j = prev + 1; j <= i; j++) {
+          for (size_t k = 1; k <= maxLabelId - *(matchings[prev].begin()); k++){
+            cardsets[j].insert(k);
+          }
+          if (patterns[i].wc == STAR) {
+            cardsets[j].insert(0);
+          }
+        }
+      }
     }
   }
 }
@@ -1853,11 +1849,9 @@ bool NFA::labelsMatch(int pos) {
   if (!patterns[pos].lbs.empty()) {
     result = false;
     for (i = patterns[pos].lbs.begin(); i != patterns[pos].lbs.end(); i++) {
-      CcString *label = new CcString(true, *i);
-      if (ul.Passes(*label)) { // look for a matching label
+      if (!ul.constValue.GetValue().compare(*i)) { // look for a matching label
         result = true;
       }
-      label->DeleteIfAllowed();
     }
   }
   return result;
@@ -1877,6 +1871,7 @@ void NFA::buildSequences() {
   for (int i = 0; i < numOfStates - 1; i++) {
     totalSize *= cardsets[i].size();
   }
+  cout << "totalSize = " << totalSize << endl;
   for (size_t j = 0; j < totalSize; j++) {
     size_t k = j;
     sequence.clear();
