@@ -52,7 +52,7 @@ let Ways =
 # 3339 secs
 
 
-let Ways_Curve_rtree = Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
+derive Ways_Curve_rtree = Ways feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
 # 10 secs
 
@@ -68,7 +68,7 @@ let Roads = Ways feed filter[.WayInfo afeed filter[.WayTagKey = "highway"] count
 
 # 113 secs
 
-let Roads_Curve_rtree = Roads feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
+derive Roads_Curve_rtree = Roads feed addid projectextend[TID; Box: bbox(.Curve)] bulkloadrtree[Box]
 
 # 3.56 secs
 
@@ -204,7 +204,7 @@ let EdgeIndex = Edges feed projectextend[Source, Target, Curve, SourcePos; Box: 
 
 
 
-let EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
+derive EdgeIndex_Box_rtree = EdgeIndex feed addid bulkloadrtree[Box]
 
 # 9 secs
 
