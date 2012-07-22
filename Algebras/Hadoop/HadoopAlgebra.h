@@ -303,7 +303,7 @@ private:
   bool *fileStatus;
 
   bool partFileOpened();
-  static void* copyFile(void* ptr);
+  static void* tCopyFile(void* ptr);
 };
 
 class CLI_Thread
@@ -317,5 +317,71 @@ public:
   int token;
 };
 
+
+class PFFeedLocalInfo{
+public:
+
+  PFFeedLocalInfo(Supplier s, Word inputStream,
+      int rp, int cp, int dp,
+      string fileName, string filePath,
+      int attTimes);
+  ~PFFeedLocalInfo(){
+
+  }
+
+  static void* fetchAllFiles(void* ptr);
+  //Thread to copy all files
+  Tuple* getNextTuple();
+
+  string getFilePrefixName(){return fileName;}
+  string getLocalFilePath(){return localFilePath;}
+  int getAttemptTimes(){return attTimes;}
+private:
+  string fileName, localFilePath;
+  TupleType* resultType;
+  clusterInfo *interCluster;
+  vector<string> partFiles;
+  ifstream *inputFile;
+  pthread_t faf_TID;
+  int attTimes;
+
+  static const int PipeWidth = 10;
+  bool tokenPass[PipeWidth];
+  static void* tCopyFile(void* ptr);
+  //Thread to copy one involved file
+
+  size_t fIdx;
+  string curFileName;
+  ifstream *curFilePt;
+};
+
+
+class PLI_FAF_Thread
+{
+public:
+  PLI_FAF_Thread(PFFeedLocalInfo* _pi, Word _is,
+      int _rp, int _cp, int _dp)
+  : pli(_pi), inputStream(_is)
+  {
+    attrPos[0] = _rp;
+    attrPos[1] = _cp;
+    attrPos[2] = _dp;
+  }
+
+  PFFeedLocalInfo* pli;
+  Word inputStream;
+  int attrPos[3];  //Row, Column, Dest
+};
+
+class PLI_CF_Thread
+{
+public:
+  PLI_CF_Thread(PFFeedLocalInfo* _pi, int _r, int _c,
+      int _d, int _t)
+    : pli(_pi), row(_r), column(_c), dest(_d), token(_t){}
+
+  PFFeedLocalInfo* pli;
+  int row, column, dest, token;
+};
 
 #endif /* HADOOPALGEBRA_H_ */

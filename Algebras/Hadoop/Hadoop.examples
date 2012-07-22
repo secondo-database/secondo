@@ -63,3 +63,10 @@ Signature: flist(T1) x flist(T2) x partAttr1 x partAttr2 x [string] x [text] x [
 Example  : let SubFileRel = plz feed spread[;PLZ,5,TRUE;]; query SubFileRel SubFileRel hadoopReduce2[ PLZ, PLZ, DLF, 5; . .. {n} hashjoin[PLZ, PLZ_n] ] collect[] count;
 Result   : crashes
 Remark   : There is a lack of parallel processing configurations normally
+
+Operator : pffeed
+Number   : 1
+Signature: stream(tuple(aR:int, aC:int, aD:int, ...)) x aR x aC x aD x fileName x [filePath] x [attemptTimes] x [T1] x [T2] -> stream(tuple())
+Example  : query [const rel(tuple([Row:int, Column:int, Dest:int])) value ((1 1 1)(2 1 2)(3 1 1)(4 1 2)(5 1 1))] feed pffeed[Row, Column, Dest, "plz",1;] count
+Result   : crashes
+Remark   : Collect the first column of the flist created in the example of spread operator. Doesn't work since there is a lack of parallel processing configurations normally.
