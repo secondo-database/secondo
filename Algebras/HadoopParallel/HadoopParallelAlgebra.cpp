@@ -4601,7 +4601,38 @@ int copyFile(string source, string dest, bool cfn/* = false*/)
   }
 }
 
+/*
+Read one tuple from the given data file.
 
+*/
+Tuple* readTupleFromFile(ifstream* file, TupleType* type)
+{
+  Tuple* t = 0;
+  u_int32_t blockSize;
+
+  assert(file->good());
+  file->read(reinterpret_cast<char*>(&blockSize), sizeof(blockSize));
+  if (!file->eof() && (blockSize > 0))
+  {
+    blockSize -= sizeof(blockSize);
+    char *tupleBlock = new char[blockSize];
+    file->read(tupleBlock, blockSize);
+
+    t = new Tuple(type);
+    t->ReadFromBin(tupleBlock, blockSize);
+    delete[] tupleBlock;
+    return t;
+  }
+  return 0;
+}
+
+int getRoundRobinIndex(int row, int clusterSize)
+{
+  int result = row%clusterSize;
+  if ( 0 == result)
+    result = clusterSize;
+  return result;
+}
 
 /*
 3 Class ~HadoopParallelAlgebra~

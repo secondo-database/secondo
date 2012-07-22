@@ -77,6 +77,9 @@ string getLocalFilePath(string path, const string fileName,
 string addFileIndex(string fileName, int index);
 ListExpr AntiNumericType(ListExpr numericType);
 int copyFile(string source, string dest, bool cfn = false);
+Tuple* readTupleFromFile(ifstream* file, TupleType* type);
+int getRoundRobinIndex(int row, int clusterSize);
+
 
 //Set up the remote copy command options uniformly.
 const string scpCommand = "scp -q ";
