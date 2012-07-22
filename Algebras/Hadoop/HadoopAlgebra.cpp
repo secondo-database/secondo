@@ -1529,7 +1529,6 @@ ListExpr CollectTypeMap(ListExpr args)
   return streamType.listExpr();
 }
 
-
 /*
 
 5.2 Value Mapping
@@ -1773,7 +1772,7 @@ bool CollectLocalInfo::fetchAllPartFiles2()
       {
         tokenPass[token] = true;
         CLI_Thread* ct = new CLI_Thread(this, ri, token);
-        pthread_create(&threadID[token], NULL, copyFile, ct);
+        pthread_create(&threadID[token], NULL, tCopyFile, ct);
         ri++;
       }
     }
@@ -1798,7 +1797,7 @@ bool CollectLocalInfo::fetchAllPartFiles2()
   return true;
 }
 
-void* CollectLocalInfo::copyFile(void* ptr)
+void* CollectLocalInfo::tCopyFile(void* ptr)
 {
   //Copy thread function
 
@@ -1820,13 +1819,6 @@ void* CollectLocalInfo::copyFile(void* ptr)
     ListExpr cpl = nl->CopyList(fileList->getColumnList(ri).listExpr(), nl);
     columnList = NList(cpl);
 
-    NList rest = columnList;
-    while (!rest.isEmpty())
-    {
-      allColumns.push_back(rest.first().intval());
-      rest.rest();
-    }
-
     subName = fileList->getSubName();
   }
   pthread_mutex_unlock(&CLI_mutex);
@@ -1835,6 +1827,7 @@ void* CollectLocalInfo::copyFile(void* ptr)
   {
     if (li->column > 0)
     {
+      //Read one column only
       NList rest = columnList;
       bool findColumn = false;
       while (!rest.isEmpty())
@@ -1847,7 +1840,7 @@ void* CollectLocalInfo::copyFile(void* ptr)
         rest.rest();
       }
       if (findColumn){
-        columnList = NList((int)li->column).enclose();
+        allColumns.push_back((int)li->column);
       }
       else{
         pthread_mutex_lock(&CLI_mutex);
@@ -1857,6 +1850,16 @@ void* CollectLocalInfo::copyFile(void* ptr)
         li->tokenPass[token] = false;
         pthread_mutex_unlock(&CLI_mutex);
         return NULL;
+      }
+    }
+    else
+    {
+      //Read all columns
+      NList rest = columnList;
+      while (!rest.isEmpty())
+      {
+        allColumns.push_back(rest.first().intval());
+        rest.rest();
       }
     }
 
@@ -2150,6 +2153,510 @@ ListExpr TPara2TypeMapping( ListExpr args)
   }
 
 }
+
+/*
+3 Operator ~pffeed~
+
+Created on 14th Jul, 2012
+Jiamin Lu
+
+This operator reads a set of data files from the cluster,
+and returns the tuples from them. Files are copied to the current
+node by pipeline. It maps
+
+----
+stream(tuple(aR:int, aC:int, aD:int, ...))
+x aR x aC x aD
+x fileName x [filePath] x [attemptTimes]
+x [T1] x [T2]
+\to stream(tuple())
+----
+
+The input tuple stream contains at least 3 attributes:
+
+  * aR: The files must be contained inside a file-matrix,
+and this attribute tells their row numbers.
+
+  * aC: It tells the files' column numbers.
+
+  * aD: It tells the files' first destination data server ID in the DS-catalog.
+
+The following 3 symbols tells the names of above 3 attributes.
+Also the fileName of the data files are given as the fourth parameter,
+following with the optional file path.
+All files must start with an identical fileName, and kept in the same
+file path if the filePath parameter is set.
+By default, they are kept in the pathes described in the DS-catalog.
+All files can be copied from attemptTimes data servers,
+if the copy fails in its first destination. The default value of the
+attemptTimes is 1.
+
+If the type file is not found in the current node, it can be fetched
+from T1 or T2 nodes, if these two optional parameters are set.
+
+
+*/
+
+struct pffeedInfo : OperatorInfo
+{
+  pffeedInfo()
+  {
+    name = "pffeed";
+    signature =
+        "stream(tuple(aR:int, aC:int, aD:int, ...)) "
+        "x aR x aC x aD x string x [text] x [int] "
+        "x [int] x [int] -> stream(tuple())";
+    meaning = "Reads a set of data files from the cluster,"
+        "and returns the tuples from them.";
+  }
+};
+
+ListExpr pffeedTypeMap(ListExpr args)
+{
+  NList l(args);
+
+  string lenErr = "ERROR! Operator pffeed expects 3 argument lists. ";
+  string inSTErr = "ERROR! Operator pffeed expects a "
+      "stream(tuple()) as input";
+  string firstPLErr = "ERROR! Operator pffeed expects first list as "
+      "aR x aC x aD x fileName x [filePath] x [attemptTimes]";
+  string rcdErr = "ERROR! aR, aC and aD do not exist or "
+      "are not int attributes.";
+  string secondPLErr = "ERROR! Operator pffeed expects second list as"
+      " [int] x [int]";
+  string atrErr = "ERROR! Required attribute is not found in the "
+      "given tuple stream";
+  string tpeErr = "ERROR! The type file is not found.";
+  string ifeErr = "ERROR! Parameter cannot be evaluated: ";
+  string ntfErr = "ERROR! No exist type file: ";
+  string ntrErr = "ERROR! A tuple relation type list is "
+        "NOT contained in file: ";
+  string nslErr = "ERROR! The slave list file does not exist."
+      "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
+  string norErr = "ERROR! Remote node for type file is out of range.";
+  string ctfErr = "ERROR! Copy remote type file fail.";
+  string iatErr = "ERROR! Infeasible attempt times.";
+
+  string fileName, filePath;
+  NList pType, pValue;
+  int attTimes = 1;
+
+  if (l.length() != 3)
+    return l.typeError(lenErr);
+
+  //1th stream(tuple())
+  pType = l.first().first();
+  NList attrsList;
+  if (!pType.checkStreamTuple(attrsList))
+    return l.typeError(inSTErr);
+
+  //2th aR x aC x aD x fileName x [filePath] x [attemptTimes]
+  pType = l.second().first();
+  pValue = l.second().second();
+  string attrNam[3];
+  int attrPos[3];
+  for (int i = 1; i <= 3; i++)
+  {
+    if (!pType.elem(i).isSymbol())
+      return l.typeError(firstPLErr);
+    attrNam[(i-1)] = pType.elem(i).convertToString();
+    ListExpr attrType;
+    attrPos[(i-1)] = listutils::findAttribute(attrsList.listExpr(),
+        attrNam[(i-1)], attrType);
+    if (attrPos[(i-1)] < 1)
+      return l.typeError(rcdErr);
+    if (!NList(attrType).isSymbol(CcInt::BasicType()))
+      return l.typeError(rcdErr);
+  }
+  if (!pType.fourth().isSymbol(CcString::BasicType()))
+    return l.typeError(firstPLErr);
+  NList fnList;
+  if (!QueryProcessor::GetNLArgValueInTM(pValue.fourth(), fnList))
+    return l.typeError(ifeErr + "fileName");
+  fileName = fnList.str();
+  // text, int, or text x int
+  Cardinal opIdx = 5;
+  while (opIdx <= pType.length())
+  {
+    if (pType.elem(opIdx).isSymbol(FText::BasicType()))
+    {
+      NList fpList;
+      if (!QueryProcessor::GetNLArgValueInTM(
+            pValue.elem(opIdx), fpList))
+        return l.typeError(ifeErr + "filePath");
+      filePath = fpList.str();
+    }
+    else if (pType.elem(opIdx).isSymbol(CcInt::BasicType()))
+    {
+      NList atList;
+      if (!QueryProcessor::GetNLArgValueInTM(
+            pValue.elem(opIdx), atList))
+        return l.typeError(ifeErr + "attemptTimes");
+      attTimes = atList.intval();
+      if (attTimes < 1)
+        return l.typeError(iatErr);
+    }
+    else
+      return l.typeError(firstPLErr);
+    opIdx++;
+  }
+  filePath = getLocalFilePath(filePath, fileName, "_type");
+
+  //3th [int] x [int]
+  pType = l.third().first();
+  pValue = l.third().second();
+  int typeNode[2] = { -1, -1};
+  Cardinal pIdx = 0;
+  while ( pIdx < pType.length())
+  {
+    if (!pType.elem(pIdx + 1).isSymbol(CcInt::BasicType()))
+      return l.typeError(secondPLErr);
+    NList tnList;
+    if (!QueryProcessor::GetNLArgValueInTM(pValue.elem(pIdx + 1),
+        tnList))
+      return l.typeError(ifeErr + "type node");
+    typeNode[pIdx] = tnList.intval();
+    pIdx++;
+  }
+
+  for (int i = 0; i < 2; i++)
+  {
+    if (typeNode[i] >= 0)
+    {
+      clusterInfo *ci = new clusterInfo();
+      if (!ci->isOK())
+        return l.typeError(nslErr);
+      if (typeNode[i] > (int)ci->getClusterSize())
+      {
+        ci->print();
+        return l.typeError(norErr);
+      }
+
+      string rPath = ci->getRemotePath(typeNode[i], true, false, true,
+          true, (fileName + "_type"));
+      filePath = FileSystem::MakeTemp(filePath);
+      cerr << "Copy the type file " << filePath
+          << " from <-" << "\t" << rPath << endl;
+      if (0 != system((scpCommand + rPath + " " + filePath).c_str()))
+        return l.typeError(ctfErr);
+      else
+        break;
+    }
+  }
+
+  ListExpr relType;
+  if (!nl->ReadFromFile(filePath, relType))
+    return l.typeError(ntfErr + filePath);
+  if (!(listutils::isRelDescription(relType)
+      || listutils::isTupleStream(relType)))
+      return l.typeError(ntrErr + filePath);
+
+  NList streamType =
+        NList(NList(Symbol::STREAM()),
+        NList(NList(relType).second()));
+
+  //Remove the type file name
+  filePath = filePath.substr(0, filePath.find_last_of("/"));
+
+  return NList(NList(Symbol::APPEND()),
+          NList(NList(attrPos[0]),
+            NList(attrPos[1]),
+            NList(attrPos[2]),
+            NList(filePath, true, true),
+            NList(attTimes)),
+          streamType).listExpr();
+}
+
+int pffeedValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+
+  PFFeedLocalInfo* pli = 0;
+
+  switch(message)
+  {
+    case OPEN: {
+      //Initialize the local info,
+      //start the thread to copy the files
+      int rp, cp, dp;
+      rp = ((CcInt*)args[3].addr)->GetValue() -1;
+      cp = ((CcInt*)args[4].addr)->GetValue() -1;
+      dp = ((CcInt*)args[5].addr)->GetValue() -1;
+
+      string fileName, filePath;
+      fileName = ((CcString*)qp->Request(
+          qp->GetSupplierSon(args[1].addr, 3)).addr)->GetValue();
+      filePath = ((FText*)args[6].addr)->GetValue();
+      int attTimes = ((CcInt*)args[7].addr)->GetValue();
+
+      pli = (PFFeedLocalInfo*)local.addr;
+      if (pli) delete pli;
+
+      pli = new PFFeedLocalInfo(s, args[0],
+          rp, cp, dp, fileName, filePath, attTimes);
+      local.setAddr(pli);
+
+      return 0;
+    }
+    case REQUEST: {
+      pli = static_cast<PFFeedLocalInfo*>(local.addr);
+      if (!pli)
+        return CANCEL;
+
+      Tuple* tuple = pli->getNextTuple();
+      if (tuple)
+      {
+        result.setAddr(tuple);
+        return YIELD;
+      }
+      return CANCEL;
+    }
+    case CLOSE: {
+      pli = static_cast<PFFeedLocalInfo*>(local.addr);
+      if (pli)
+        delete pli;
+      local.setAddr(0);
+      return 0;
+    }
+  }
+  return 0;
+}
+
+Operator pffeedOp(pffeedInfo(), pffeedValueMap, pffeedTypeMap);
+
+PFFeedLocalInfo::PFFeedLocalInfo(Supplier s, Word inputStream,
+    int rp, int cp, int dp, string _fn, string _fp, int _at)
+  : fileName(_fn), localFilePath(_fp), attTimes(_at)
+{
+  ListExpr streamTypeList = qp->GetType(s);
+  resultType = new TupleType(SecondoSystem::GetCatalog()
+    ->NumericType(nl->Second(streamTypeList)));
+  interCluster = new clusterInfo();
+
+  PLI_FAF_Thread* ft = new PLI_FAF_Thread(
+      this, inputStream, rp, cp, dp);
+  pthread_create(&faf_TID, NULL, fetchAllFiles, ft);
+
+  fIdx = 0;
+  curFileName = "";
+  curFilePt = 0;
+}
+
+void* PFFeedLocalInfo::fetchAllFiles(void* ptr)
+{
+  PLI_FAF_Thread* pft = (PLI_FAF_Thread*)ptr;
+  PFFeedLocalInfo* pli = pft->pli;
+  Word inputStream = pft->inputStream;
+  int rp = pft->attrPos[0],
+      cp = pft->attrPos[1],
+      dp = pft->attrPos[2];
+
+  pthread_t threadID[PipeWidth];
+  memset(pli->tokenPass, false, PipeWidth);
+  pthread_mutex_init(&CLI_mutex, NULL);
+
+  Word tupleWord;
+  qp->Open(inputStream.addr);
+  qp->Request(inputStream.addr, tupleWord);
+  while(qp->Received(inputStream.addr))
+  {
+    Tuple * nextTuple = (Tuple*)tupleWord.addr;
+    int row = ((CcInt*)nextTuple->GetAttribute(rp))->GetValue(),
+        column = ((CcInt*)nextTuple->GetAttribute(cp))->GetValue(),
+        dest = ((CcInt*)nextTuple->GetAttribute(dp))->GetValue();
+
+    //Copy files over the cluster
+    for (int token = 0; token < PipeWidth; token++)
+    {
+      if (!pli->tokenPass[token] || pthread_kill(threadID[token],0))
+      {
+        pli->tokenPass[token] = true;
+        PLI_CF_Thread* ct =
+            new PLI_CF_Thread(pli, row, column, dest,token);
+        pthread_create(&threadID[token], NULL, tCopyFile, ct);
+
+        nextTuple->DeleteIfAllowed();
+        qp->Request(inputStream.addr, tupleWord);
+        break;
+      }
+    }
+  }
+  qp->Close(inputStream.addr);
+
+  for (int token = 0; token < PipeWidth; token++)
+  {
+    if (pli->tokenPass[token]){
+      pthread_join(threadID[token], NULL);
+    }
+  }
+
+  return NULL;
+}
+
+void* PFFeedLocalInfo::tCopyFile(void* ptr)
+{
+  PLI_CF_Thread* ct = (PLI_CF_Thread*)ptr;
+  PFFeedLocalInfo* pli = (PFFeedLocalInfo*)ct->pli;
+  int row   = ct->row,  column  = ct->column,
+      dest  = ct->dest, token   = ct->token;
+
+  int localNodeID = pli->interCluster->getLocalNode();
+  string localIP = pli->interCluster->getLocalIP();
+  int cand = pli->getAttemptTimes();
+  string fileName = pli->getFilePrefixName() + "_" + int2string(row)
+      + "_" + int2string(column);
+  string filePath = pli->getLocalFilePath();
+  bool fileFound = false;
+
+  if ( (row < 0) || (column < 0) || (dest < 0))
+  {
+    pthread_mutex_lock(&CLI_mutex);
+    cerr << "Cannot get partition file with triple: "
+        << "(" << row << "," << column << "," << dest << ")" << endl;
+    pthread_mutex_unlock(&CLI_mutex);
+  }
+
+  string lPath = filePath;
+  for (int att = 0; att < cand; att++)
+  {
+    //Copy the file from one node,
+    //traverse the next one if the copy fails
+    int nodeID = dest + att;
+    bool api = (nodeID !=
+        getRoundRobinIndex(row, pli->interCluster->getSlaveSize()))
+        ? true : false;
+
+    //Attach Producer IP
+    string producerIP = pli->interCluster->getIP(row, true);
+    string targetIP = pli->interCluster->getIP(nodeID, true);
+    //remote and local file path
+    string rPath = pli->interCluster->getRemotePath(
+        nodeID, true, true, true, true,
+        fileName, api, producerIP);
+    FileSystem::AppendItem(lPath, fileName);
+
+    if (localIP.compare(targetIP) == 0){
+      if ( localNodeID != nodeID )
+        lPath = rPath.substr(rPath.find(":") + 1);
+    }
+    else{
+      //Copy file from the remote node
+      int copyTimes = MAX_COPYTIMES;
+      pthread_mutex_lock(&CLI_mutex);
+      cerr << "WANT file " << lPath << " from " << rPath << endl;
+      pthread_mutex_unlock(&CLI_mutex);
+      while (copyTimes-- > 0){
+        if (0 == copyFile(rPath, lPath, true))
+          break;
+      }
+    }
+
+    if (FileSystem::FileOrFolderExists(lPath)){
+      fileFound = !FileSystem::IsDirectory(lPath);
+    }
+
+    if (fileFound){
+      break;
+    }
+    else{
+      pthread_mutex_lock(&CLI_mutex);
+      cerr << "Warning! Cannot fetch file at : "
+          << lPath  << " from " << rPath << endl;
+      pthread_mutex_unlock(&CLI_mutex);
+    }
+  }
+
+  pthread_mutex_lock(&CLI_mutex);
+  if (!fileFound){
+    cerr << "ERROR! Get file " << fileName << " from node " << dest
+        << " in thread " << token << " fails! " << endl;
+  }
+  else{
+    pli->partFiles.push_back(lPath);
+    pli->tokenPass[token] = false;
+  }
+  pthread_mutex_unlock(&CLI_mutex);
+
+  return NULL;
+}
+
+Tuple* PFFeedLocalInfo::getNextTuple()
+{
+  Tuple* t = 0;
+
+  if (curFilePt != 0)
+  {
+    t = readTupleFromFile(curFilePt, resultType);
+    if (t == 0){
+      //Read the next file
+      curFilePt->close();
+      delete curFilePt;
+      curFilePt = 0;
+      curFileName = "";
+    }
+    else
+      return t;
+  }
+
+  while (true)
+  {
+    if (curFileName.length() != 0){
+      curFilePt = new ifstream(curFileName.c_str(), ios::binary);
+      if (!curFilePt->good()){
+        cerr << "ERROR! Read file " << curFileName << " fail.\n\n";
+        curFilePt = 0;
+        return 0;
+      }
+
+      //Read the description list
+      u_int32_t descSize;
+      size_t fileLength;
+      curFilePt->seekg(0, ios::end);
+      fileLength = curFilePt->tellg();
+      curFilePt->seekg((fileLength - sizeof(descSize)), ios::beg);
+      curFilePt->read((char*)&descSize, sizeof(descSize));
+
+      char descStr[descSize];
+      curFilePt->seekg((fileLength - (descSize + sizeof(descSize))),
+          ios::beg);
+      curFilePt->read(descStr, descSize);
+      curFilePt->seekg(0, ios::beg);
+      NList descList = NList(binDecode(string(descStr)));
+      if (descList.isEmpty()){
+        cerr << "ERROR! Format error with fetched file "
+            << curFileName << endl;
+        curFilePt->close();
+        delete curFilePt;
+        curFilePt = 0;
+        return 0;
+      }
+
+      t = readTupleFromFile(curFilePt, resultType);
+      if ( t == 0 ){
+        cerr << "Waring! File " << curFileName
+            << " is empty! " << endl;
+        curFilePt->close();
+        delete curFilePt;
+        curFilePt = 0;
+        return 0;
+      }
+      return t;
+    }
+    else if (partFiles.size() > 0 && fIdx < partFiles.size()){
+      curFileName = partFiles[fIdx];
+      fIdx++;
+    }
+
+    if (pthread_kill(faf_TID, 0)
+        && (fIdx >= partFiles.size())
+        && curFileName.length() == 0){
+      break;
+    }
+  }
+
+  return 0;
+}
+
 
 /*
 4 Operator ~hadoopMap~
@@ -4017,6 +4524,9 @@ public:
 
     AddOperator(&cflOp);
     cflOp.SetUsesArgsInTypeMapping();
+
+    AddOperator(&pffeedOp);
+    pffeedOp.SetUsesArgsInTypeMapping();
 
   }
   ~HadoopAlgebra()
