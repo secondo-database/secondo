@@ -2635,7 +2635,7 @@ void Relation::DeleteAndTruncate()
 
 
 
-Relation *Relation::Clone()
+Relation *Relation::Clone() const
 {
   Relation *r = new Relation( relDesc.tupleType );
 

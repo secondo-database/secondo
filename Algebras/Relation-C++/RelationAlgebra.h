@@ -2595,7 +2595,7 @@ To get the type name of a temporary relation, use TempRelation::BasicType().
 
 */
     inline static const string BasicType() { return "rel"; }
-    
+
     static const bool checkType(const ListExpr type){
       return listutils::isRelDescription(type);
     }
@@ -2678,7 +2678,7 @@ Deletes a relation and truncates the corresponding record files.
 This releases used disk memory.
 
 */
-    Relation *Clone();
+    Relation *Clone() const;
 /*
 Clones a relation.
 Corresponds to the ~Clone~-function of type constructor ~rel~.
