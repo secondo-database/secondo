@@ -24,3 +24,15 @@ Number   : 2
 Signature: mstring x text -> stream(mlabel)
 Example  : query [const mstring value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))] rewrite 'X () => X // X.label := "at_work"' count
 Result   : 1
+
+Operator : compress
+Number   : 1
+Signature: mlabel -> mlabel
+Example  : query compress([const mlabel value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))])
+Result   : 1
+
+Operator : compress
+Number   : 2
+Signature: mstring -> mlabel
+Example  : query compress([const mlabel value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))])
+Result   : 1

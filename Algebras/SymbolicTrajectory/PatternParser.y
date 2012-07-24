@@ -183,6 +183,7 @@ condition : expressionlist {
               cout << "store condition " << cond.text << endl;
               cond.substitute();
               wholepat->conds.push_back(cond);
+              cout << "condition stored" << endl;
               exprList.exprs.clear();
               cond.vars.clear();
               cond.keys.clear();

@@ -1366,7 +1366,7 @@ void NFA::buildRewriteSequence(vector<size_t> sequence) {
   vector<size_t> rewriteSeq;
   for (unsigned int j = 0; j < resultVars.size(); j++) {
     rewriteSeq.push_back(sequence[resultVars[j]]); // begin
-    if (resultVars[j] < numOfStates - 2) {
+    if (resultVars[j] < f - 1) {
       rewriteSeq.push_back(sequence[resultVars[j] + 1]); // end
     }
     else { // last state
@@ -1420,44 +1420,44 @@ TypeConstructor patternTC(
 /*
 \subsection{Function ~buildNFA~}
 
-Reads the pattern and generates the state transitions.
+Reads the pattern and generates the delta function.
 
 */
 void NFA::buildNFA(Pattern p) {
   patterns = p.patterns;
   conds = p.conds;
   int prev[3] = {-1, -1, -1}; // prevStar, prevNotStar, secondPrevNotStar
-  for (int i = 0; i < numOfStates - 1; i++) {
-    transitions[i][i].insert(i + 1); // state i, read pattern i => new state i+1
-    if ((patterns[i].wc != STAR) || (i == numOfStates - 2)) { // no star or end
-      if ((prev[0] == i - 1) || (i == numOfStates - 2)) { // '...* #...'
+  for (int i = 0; i < f; i++) {
+    delta[i][i].insert(i + 1); // state i, read pattern i => new state i+1
+    if ((patterns[i].wc != STAR) || (i == f - 1)) { // no star or end
+      if ((prev[0] == i - 1) || (i == f - 1)) { // '...* #(1 a)...'
         for (int j = prev[1] + 1; j < i; j++) {
-          transitions[j][i].insert(i + 1); // '* * * #(1 a ) ...'
+          delta[j][i].insert(i + 1); // '* * * #(1 a ) ...'
           for (int k = j; k <= i; k++) {
-            transitions[j][k].insert(j);
+            delta[j][k].insert(j);
             for (int m = j; m <= i; m++) {
-              transitions[j][k].insert(m); // step 1
+              delta[j][k].insert(m); // step 1
             }
-            if ((patterns[i].wc == STAR) && (i == numOfStates - 2)) { // end
-              transitions[j][k].insert(numOfStates - 1);
+            if ((patterns[i].wc == STAR) && (i == f - 1)) { // end
+              delta[j][k].insert(f);
             }
           }
-        }
+        } 
         if (prev[1] > -1) { // match before current pattern
-          for (int j = prev[1]; j <= i; j++) {
-            transitions[prev[1]][prev[1]].insert(j); // step 2
+          for (int j = prev[1] + 1; j <= i; j++) {
+            delta[prev[1]][prev[1]].insert(j); // step 2
           }
-          if ((patterns[i].wc == STAR) && (i == numOfStates - 2)) { // end
-            transitions[prev[1]][prev[1]].insert(numOfStates - 1);
+          if ((patterns[i].wc == STAR) && (i == f - 1)) { // end
+            delta[prev[1]][prev[1]].insert(f);
           }
         }
         if (prev[2] < prev[1] - 1) { // '* ... * (1 a) * ... * #(2 b) ...'
-          for (int j = (prev[2] > -1 ? prev[2] + 1 : 0); j < prev[1]; j++){
+          for (int j = prev[2] + 1; j < prev[1]; j++){
             for (int k = prev[1] + 1; k <= i; k++) {
-              transitions[j][prev[1]].insert(k); // step 3
+              delta[j][prev[1]].insert(k); // step 3
             }
-            if ((patterns[i].wc == STAR) && (i == numOfStates - 2)) { // end
-              transitions[j][prev[1]].insert(numOfStates - 1);
+            if ((patterns[i].wc == STAR) && (i == f - 1)) { // end
+              delta[j][prev[1]].insert(f);
             }
           }
         }
@@ -1469,15 +1469,14 @@ void NFA::buildNFA(Pattern p) {
       prev[0] = i;
     }
     else if (patterns[i].wc == PLUS) { // reading '+' or '((...))'
-      transitions[i][i].insert(i);
+      delta[i][i].insert(i);
       prev[2] = prev[1];
       prev[1] = i;
     }
   }
-  if (patterns[numOfStates - 2].wc) { // '... #*' or '... #+'
-    transitions[numOfStates - 2][numOfStates - 2].insert(numOfStates - 2);
+  if (patterns[f - 1].wc) { // '... #*' or '... #+'
+    delta[f - 1][f - 1].insert(f - 1);
   }
-  
 }
 
 /*
@@ -1500,7 +1499,7 @@ bool NFA::match(MLabel const &ml, bool rewrite) {
       return false;
     }
   }
-  if (!currentStates.count(numOfStates - 1)) { // is the final state active?
+  if (!currentStates.count(f)) { // is the final state active?
     return false;
   }
 
@@ -1529,16 +1528,16 @@ Returns a string displaying the information stored in the NFA.
 string NFA::toString() {
   stringstream nfa;
   set<int>::iterator k;
-  for (int i = 0; i < numOfStates - 1; i++) {
-    for (int j = i; j < numOfStates - 1; j++) {
-      if (transitions[i][j].size() > 0) {
+  for (int i = 0; i < f; i++) {
+    for (int j = i; j < f; j++) {
+      if (delta[i][j].size() > 0) {
         nfa << "state " << i << " | upat #" << j << " | new states {";
-        if (transitions[i][j].size() == 1) {
-          nfa << *(transitions[i][j].begin());
+        if (delta[i][j].size() == 1) {
+          nfa << *(delta[i][j].begin());
         }
         else {
-          for (k = transitions[i][j].begin();
-               k != transitions[i][j].end(); k++) {
+          for (k = delta[i][j].begin();
+               k != delta[i][j].end(); k++) {
             nfa << *k << " ";
           }
         }
@@ -1580,7 +1579,7 @@ cardinalities for every unit pattern are displayed.
 */
 void NFA::printCards() {
   set<size_t>::iterator it;
-  for (int j = 0; j < numOfStates - 1; j++) {
+  for (int j = 0; j < f; j++) {
     cout << "upat " << j << " matches ulabels ";
     for (it = matchings[j].begin(); it != matchings[j].end(); it++) {
       cout << *it << ", ";
@@ -1588,7 +1587,7 @@ void NFA::printCards() {
     cout << endl;
   }
   set<int>::iterator j;
-  for (int i = 0; i < numOfStates - 1; i++) {
+  for (int i = 0; i < f; i++) {
     cout << i << " | ";
     for (it = cardsets[i].begin(); it != cardsets[i].end(); it++) {
       cout << *it << ",";
@@ -1678,15 +1677,15 @@ void NFA::updateStates() {
   newStates.clear();
   set<int>::iterator i, it;
   for (i = currentStates.begin(); i != currentStates.end(); i++) {
-    for (int j = *i; j < numOfStates - 1; j++) {
-      if (!transitions[*i][j].empty()) {
+    for (int j = *i; j < f; j++) {
+      if (!delta[*i][j].empty()) {
         if (labelsMatch(j) && timesMatch(j)) {
           if (!patterns[j].wc || !patterns[j].ivs.empty()
-           || !patterns[j].lbs.empty()) { // (1 a) or ((1 a)) or ()
+           || !patterns[j].lbs.empty()) { // (_ a) or ((1 _)) or () or similar
             matchings[j].insert(ulId);
           }
-          for (it = transitions[*i][j].begin();
-               it != transitions[*i][j].end(); it++) {
+          for (it = delta[*i][j].begin();
+               it != delta[*i][j].end(); it++) {
             newStates.insert(*it);
           }
         }
@@ -1705,8 +1704,8 @@ Computes the set of possible cardinalities for every state.
 */
 void NFA::computeCardsets() {
   set<size_t>::iterator j, k;
-  int prev = -1; // previousla matching position
-  for (int i = 0; i < numOfStates - 1; i++) {
+  int prev = -1; // previous matching position
+  for (int i = 0; i < f; i++) {
     if (matchings[i].size()) {
       cardsets[i].insert(1);
       if (prev == i - 2) { // '(1 a) * #(2 b)' or '* #(1 a)'
@@ -1750,7 +1749,7 @@ void NFA::computeCardsets() {
       }
       prev = i;
     }
-    else if (i == numOfStates - 2) { // no matching at the end
+    else if (i == f - 1) { // no matching at the end
       if (prev == i - 1) {
         for (j = matchings[i - 1].begin(); j != matchings[i - 1].end(); j++) {
           cardsets[i].insert(maxLabelId - *j);
@@ -1785,7 +1784,6 @@ bool NFA::timesMatch(int pos) {
   bool result(true), elementOk(false);
   set<int>::iterator i;
   set<string>::iterator j;
-  string varKey, currentLabelString;
   Instant *pStart = new DateTime(instanttype);
   Instant *pEnd = new DateTime(instanttype);
   SecInterval *pIv = new SecInterval(0);
@@ -1845,7 +1843,6 @@ returned.
 bool NFA::labelsMatch(int pos) {
   bool result = true;
   set<string>::iterator i;
-  string currentLabelString;
   if (!patterns[pos].lbs.empty()) {
     result = false;
     for (i = patterns[pos].lbs.begin(); i != patterns[pos].lbs.end(); i++) {
@@ -1865,33 +1862,33 @@ sequences with length maxLabelId + 1 are accepted.
 
 */
 void NFA::buildSequences() {
-  vector<size_t> sequence;
+  vector<size_t> seq;
   set<size_t>::iterator it;
   size_t totalSize = 1;
-  for (int i = 0; i < numOfStates - 1; i++) {
+  for (int i = 0; i < f; i++) {
     totalSize *= cardsets[i].size();
   }
   cout << "totalSize = " << totalSize << endl;
   for (size_t j = 0; j < totalSize; j++) {
     size_t k = j;
-    sequence.clear();
-    sequence.push_back(0);
+    seq.clear();
+    seq.push_back(0);
     size_t sequenceSum = 0;
-    for (int state = 0; state < numOfStates - 1; state++) {
+    for (int state = 0; state < f; state++) {
       it = cardsets[state].begin();
       advance(it, k % cardsets[state].size());
-      if (state < numOfStates - 2) {
-        sequence.push_back(*it + *sequence.rbegin());
+      if (state < f - 1) {
+        seq.push_back(*it + *seq.rbegin());
       }
       k /= cardsets[state].size();
       sequenceSum += *it;
       if (sequenceSum > maxLabelId + 1) { // stop if sum exceeds maximum
-        state = numOfStates;
+        state = f + 1;
       }
     }
     if ((sequenceSum == maxLabelId + 1)
-    && (*sequence.rbegin() < maxLabelId + 2)) {
-      sequences.insert(sequence);
+    && (*seq.rbegin() < maxLabelId + 2)) {
+      sequences.insert(seq);
     }
   }
 }
@@ -1921,7 +1918,7 @@ bool NFA::conditionsMatch(MLabel const &ml) {
       if (!evaluateCond(ml, i, *it)) {
         sequences.erase(it);
         it = sequences.begin();
-        i = 0; // in case of a mismatch, go back to the first condition
+        i = 0; // in case of a mismatch, return to the first condition
       }
       else {
         goToNextCond = true;
@@ -1976,7 +1973,7 @@ void NFA::buildCondMatchings(unsigned int condId, vector<size_t> sequence) {
     condMatchings.insert(condMatching);
   }
   if (totalSize) {
-    printCondMatchings(50);
+    printCondMatchings(5);
   }
 }
 
@@ -1995,7 +1992,7 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
   for (unsigned int j = 0; j < conds[condId].keys.size(); j++) {
     int pId = conds[condId].pIds[j];
     if (conds[condId].keys[j] == 4) { // card
-      if (pId == numOfStates - 2) {
+      if (pId == f - 1) {
         subst.assign(int2Str(maxLabelId - sequence[pId] + 1));
       }
       else {
@@ -2004,7 +2001,7 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
     }
     else if (conds[condId].keys[j] > 0) { // time, start, end
       size_t from = sequence[pId];
-      size_t to = (pId == numOfStates - 2 ? maxLabelId : sequence[pId + 1]);
+      size_t to = (pId == f - 1 ? maxLabelId : sequence[pId + 1]);
       subst.assign(getTimeSubst(ml, conds[condId].keys[j], from, to));
     }
     if (conds[condId].keys[j] > 0) { // time, start, end, card
@@ -2054,10 +2051,12 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
       }
     }
     if (conds[condId].falseExprs.count(conds[condId].textSubst)) {
+      cout << conds[condId].textSubst << "----> is known as FALSE" << endl;
       return false;
     }
     else if (conds[condId].trueExprs.count(conds[condId].textSubst)) {
-      return true;
+      cout << conds[condId].textSubst << "----> is known as TRUE" << endl;
+      success = true;
     }
     else {
       if (!evaluate(conds[condId].textSubst, true)) {
@@ -2399,6 +2398,48 @@ struct rewriteInfo : OperatorInfo {
   }
 };
 
+/*
+\subsection{Type Mapping for operator ~compress~}
+
+*/
+ListExpr compressTypeMap(ListExpr args) {
+  const string errMsg = "Expecting a mlabel or a mstring.";
+  if (listutils::isSymbol(nl->First(args), MLabel::BasicType())
+   || listutils::isSymbol(nl->First(args), MString::BasicType())) {
+    return nl->SymbolAtom(MLabel::BasicType());
+  }
+  return NList::typeError(errMsg);
+}
+
+/*
+\subsection{Value Mapping for operator ~compress~}
+
+*/
+int compressFun(Word* args, Word& result, int message, Word& local, Supplier s){
+  MLabel* mlabel = static_cast<MLabel*>(args[0].addr);
+  if (mlabel->IsDefined()) {
+    mlabel->compress();
+  }
+  else {
+    cout << "Error: undefined MLabel." << endl;
+    mlabel->SetDefined(false);
+  }
+  result.addr = mlabel;
+  return 0;
+}
+
+/*
+\subsection{Operator Info for operator ~compress~}
+
+*/
+struct compressInfo : OperatorInfo {
+  compressInfo() {
+    name      = "compress";
+    signature = MLabel::BasicType() + " -> " + MLabel::BasicType();
+    syntax    = "_ compress";
+    meaning   = "Unites subsequent units.";
+  }
+};
 
 //***********************************************************************//
 
@@ -2423,8 +2464,11 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
       ValueMapping matchesFuns[] = {matchesFun_MT, matchesFun_MP, 0};
       AddOperator(matchesInfo(), matchesFuns, matchesSelect, matchesTypeMap);
+      
       ValueMapping rewriteFuns[] = {rewriteFun_MT, rewriteFun_MP, 0};
       AddOperator(rewriteInfo(), rewriteFuns, rewriteSelect, rewriteTypeMap);
+
+      AddOperator(compressInfo(), compressFun, compressTypeMap);
 
     }
     ~SymbolicTrajectoryAlgebra() {}

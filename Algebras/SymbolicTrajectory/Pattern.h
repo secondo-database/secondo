@@ -206,13 +206,13 @@ class Pattern {
 
 class NFA {
  private:
-  set<int> **transitions; // 1st coord: old state; 2nd coord: unit pattern id;
-                          // contents: new state(s).
+  set<int> **delta; // 1st coord: old state; 2nd coord: unit pattern id;
+                    // set contents: new state(s).
   set<int> currentStates;
   vector<UPat> patterns;
   vector<Condition> conds;
   //bool *relevantPos; // stores the positions of unit patterns with a var
-  int numOfStates;
+  int f; // number of the final state
   ULabel ul;
   size_t ulId, maxLabelId;
   set<size_t> *matchings;
@@ -225,24 +225,24 @@ class NFA {
 
  public:
   NFA(const int size) {
-    numOfStates = size;
-    transitions = new set<int>*[numOfStates];
-    //relevantPos = new bool[numOfStates - 1];
-    for (int i = 0; i < numOfStates - 1; i++) {
-      transitions[i] = new set<int>[numOfStates];
+    f = size - 1;
+    delta = new set<int>*[f + 1];
+    //relevantPos = new bool[f];
+    for (int i = 0; i < f; i++) {
+      delta[i] = new set<int>[f + 1];
       //relevantPos[i] = false;
     }
-    transitions[numOfStates - 1] = new set<int>[numOfStates];
+    delta[f] = new set<int>[f + 1];
     currentStates.insert(0);
-    matchings = new set<size_t>[numOfStates - 1];
-    cardsets = new set<size_t>[numOfStates - 1];
+    matchings = new set<size_t>[f];
+    cardsets = new set<size_t>[f];
   }
 
   ~NFA() {
-    for (int i = 0; i < numOfStates; i++) {
-      delete[] transitions[i];
+    for (int i = 0; i <= f; i++) {
+      delete[] delta[i];
     }
-    delete[] transitions;
+    delete[] delta;
     delete[] matchings;
     delete[] cardsets;
     //delete[] relevantPos;
