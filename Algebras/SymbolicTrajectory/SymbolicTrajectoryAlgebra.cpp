@@ -413,8 +413,14 @@ void MLabel::compress() {
     this->Get(i, ul);
     newML->MergeAdd(ul);
   }
-  cout << "MLabel was compressed from " << this->GetNoComponents() << " to "
-       << newML->GetNoComponents() << " components." << endl;
+  if (newML->GetNoComponents() < this->GetNoComponents()) {
+    cout << "MLabel was compressed from " << this->GetNoComponents() << " to "
+         << newML->GetNoComponents() << " components." << endl;
+  }
+  else {
+    cout << "MLabel could not be compressed, still has "
+         << newML->GetNoComponents() << " components." << endl;
+  }
   *this = *newML;
   delete newML;
 }
@@ -1727,9 +1733,9 @@ void NFA::computeCardsets() {
       else if (prev < i - 2) {//'(1 a) *|+ .. *|+ #(2 b)' or '*|+ .. *|+ #(1 a)'
         if (prev > -1) {
           for (int j = prev + 1; j < i; j++) {
-            for (size_t k = 1; k < *(matchings[i].rbegin())
+            for (size_t m = 1; m < *(matchings[i].rbegin())
                                    - *(matchings[prev].begin()); k++) {
-              cardsets[j].insert(k);
+              cardsets[j].insert(m);
             }
             if (patterns[j].wc == STAR) {
               cardsets[j].insert(0);
@@ -1738,8 +1744,8 @@ void NFA::computeCardsets() {
         }
         else { // '* ... * #(1 a)'
           for (int j = 0; j < i; j++) {
-            for (size_t k = 1; k <= *(matchings[i].rbegin()); k++) {
-              cardsets[j].insert(k);
+            for (size_t m = 1; m <= *(matchings[i].rbegin()); m++) {
+              cardsets[j].insert(m);
             }
             if (patterns[j].wc == STAR) {
               cardsets[j].insert(0);
@@ -1750,7 +1756,17 @@ void NFA::computeCardsets() {
       prev = i;
     }
     else if (i == f - 1) { // no matching at the end
-      if (prev == i - 1) {
+      if (prev == -1) { // no matching at all
+        for (int m = 0; m <= i; m++) {
+          for (size_t n = 1; n <= maxLabelId + 1; n++) {
+            cardsets[m].insert(n);
+          }
+          if (patterns[m].wc == STAR) {
+            cardsets[m].insert(0);
+          }
+        }
+      }
+      else if (prev == i - 1) {
         for (j = matchings[i - 1].begin(); j != matchings[i - 1].end(); j++) {
           cardsets[i].insert(maxLabelId - *j);
         }
@@ -1758,7 +1774,7 @@ void NFA::computeCardsets() {
           cardsets[i].erase(0);
         }
       }
-      else { // '... (1 a) * ... *' or '* ... *'
+      else { // '... (1 a) * ... #*' or '* ... #*'
         for (int j = prev + 1; j <= i; j++) {
           for (size_t k = 1; k <= maxLabelId - *(matchings[prev].begin()); k++){
             cardsets[j].insert(k);
@@ -2386,13 +2402,8 @@ int rewriteFun_MP(Word* args, Word& result, int message, Word& local,
 struct rewriteInfo : OperatorInfo {
   rewriteInfo() {
     name      = "rewrite";
-    signature = MLabel::BasicType() + " x " + Pattern::BasicType() + " -> "
-                                    + CcBool::BasicType();
-    // overloaded operator => alternative signature appended
-    appendSignature(MLabel::BasicType() + " x Text -> " + CcBool::BasicType());
-    appendSignature(MString::BasicType() +" x " + Pattern::BasicType() + " -> "
-                                         + CcBool::BasicType());
-    appendSignature(MString::BasicType() + " x Text -> " + CcBool::BasicType());
+    signature = "MLabel x Text -> stream(MLabel)";
+    appendSignature("MString x Text -> + stream(MLabel)");
     syntax    = "_ rewrite _";
     meaning   = "Rewrite a mlabel.";
   }
@@ -2403,19 +2414,37 @@ struct rewriteInfo : OperatorInfo {
 
 */
 ListExpr compressTypeMap(ListExpr args) {
-  const string errMsg = "Expecting a mlabel or a mstring.";
+  const string errMsg
+          = "Expecting mlabel or mstring or stream(mlabel) or stream(mstring).";
   if (listutils::isSymbol(nl->First(args), MLabel::BasicType())
    || listutils::isSymbol(nl->First(args), MString::BasicType())) {
     return nl->SymbolAtom(MLabel::BasicType());
+  }
+  if (listutils::isSymbol(nl->First(nl->First(args)),
+                                     Stream<Tuple>::BasicType())
+   && (listutils::isSymbol(nl->Second(nl->First(args)), MLabel::BasicType())
+    || listutils::isSymbol(nl->Second(nl->First(args)), MString::BasicType()))){
+    return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
+                           nl->SymbolAtom(MLabel::BasicType()));
   }
   return NList::typeError(errMsg);
 }
 
 /*
-\subsection{Value Mapping for operator ~compress~}
+\subsection{Selection Function for operator ~compress~}
 
 */
-int compressFun(Word* args, Word& result, int message, Word& local, Supplier s){
+int compressSelect(ListExpr args) {
+  return ((listutils::isSymbol(nl->First(args), MLabel::BasicType())
+   || listutils::isSymbol(nl->First(args), MString::BasicType())) ? 0 : 1);
+}
+
+/*
+\subsection{Value Mapping for operator ~compress~ (for a single MLabel)}
+
+*/
+int compressFun_1(Word* args, Word& result, int message, Word& local,
+                  Supplier s){
   MLabel* mlabel = static_cast<MLabel*>(args[0].addr);
   if (mlabel->IsDefined()) {
     mlabel->compress();
@@ -2429,14 +2458,52 @@ int compressFun(Word* args, Word& result, int message, Word& local, Supplier s){
 }
 
 /*
+\subsection{Value Mapping for operator ~compress~ (for a stream of MLabels)}
+
+*/
+int compressFun_Str(Word* args, Word& result, int message, Word& local,
+                  Supplier s){
+  Stream<MLabel> stream(args[0]);
+  MLabel* mlabel = 0;
+  switch (message) {
+    case OPEN:
+      stream.open();
+      mlabel = new MLabel(1);
+      local.addr = mlabel;
+      return 0;
+    case REQUEST:
+      if (!local.addr) {
+        return CANCEL;
+      }
+      mlabel = stream.request();
+      if (mlabel) {
+        mlabel->compress();
+      }
+      else {
+        result.addr = 0;
+        return CANCEL;
+      }
+      result.addr = mlabel;
+      return result.addr ? YIELD : CANCEL;
+    case CLOSE:
+      local.addr = 0;
+      return 0;
+  }
+  return 0;
+}
+
+/*
 \subsection{Operator Info for operator ~compress~}
 
 */
 struct compressInfo : OperatorInfo {
   compressInfo() {
     name      = "compress";
-    signature = MLabel::BasicType() + " -> " + MLabel::BasicType();
-    syntax    = "_ compress";
+    signature = "MLabel -> MLabel";
+    appendSignature("MString -> MLabel");
+    appendSignature("stream(MLabel) -> stream(MLabel)");
+    appendSignature("stream(MString) -> stream(MLabel)");
+    syntax    = "compress(_)";
     meaning   = "Unites subsequent units.";
   }
 };
@@ -2468,7 +2535,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       ValueMapping rewriteFuns[] = {rewriteFun_MT, rewriteFun_MP, 0};
       AddOperator(rewriteInfo(), rewriteFuns, rewriteSelect, rewriteTypeMap);
 
-      AddOperator(compressInfo(), compressFun, compressTypeMap);
+      ValueMapping compressFuns[] = {compressFun_1, compressFun_Str, 0};
+      AddOperator(compressInfo(), compressFuns, compressSelect,compressTypeMap);
 
     }
     ~SymbolicTrajectoryAlgebra() {}
