@@ -25,20 +25,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 //[_] [\_]
 
-[1] Implementation of the DBScan Algorithm.
+[1] Implementation of the Cluster Algebra
 
-2012, Implementation of operator dbscan.
+June, 2006.
+Basic functionality, one operator with default values and one
+with maximal distance and minimal number of points as values.
+Only the type 'points' has been implemented so far.
 
 [TOC]
 
 1 Overview
 
 This implementation file essentially contains the implementation of the
-class ~DBscanC~.
+classes ~ClusterAlgebra~ and ~DBscan~ which contains the actual
+cluster algorithm.
 
 2 Defines and Includes
 
-Eps is used for the DBScan Algorithm as the maximal distance, the
+Eps is used for the clusteralgorithm as the maximal distance, the
 minimum points (MinPts) may be apart. If there are further points
 in the Eps-range to one of the points in the cluster, this point
 (and further points from this on) belong to the same cluster.
@@ -51,9 +55,13 @@ in the Eps-range to one of the points in the cluster, this point
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
 #include "LogMsg.h"
+#include "Stream.h"
 #include "TupleIdentifier.h"
 
 #include "MMRTree.h"
+#include "MMRTreeAlgebra.h"
+#include "RelationAlgebra.h"
+//#include "FTextAlgebra.h"
 
 #include <iostream>
 #include <string>
@@ -64,72 +72,79 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 
-namespace dbsalg{
+namespace cl2{
 
 #define MINIMUMPTS_DEF 4        // default min points   - MinPts
 #define EPS_DEF 400             // default max distance - Eps
 
 class DBscanC;
 
-class DBscanC
-{
-public:
-  DBscanC();
-  DBscanC(Word*, Word&, int, Word&, Supplier, double**);
-
-  int Parameter_Standard(double**,int);
-  int Parameter_UserDefined(double**, int, int, int);//MinPts(int), Eps(int)
-  void CopyToResult(Word*, Word&, int, Word&, Supplier, double**);
-
-private:
-  int MinPts;//minimum number of points to be a cluster
-  int Eps;//max distance for MinPts and further points in cluster
-  int FindClusters(double**, int); // main method
-  bool ExpandCluster(double**, int,int);
-  void Search(double**, int,int, int*);
-};	
-
 /*
-
-3.1 Type Mapping for operator dbscan
+3.1 Type Mapping function for operator dbscan
 
 */
 
 static ListExpr dbscan_TM(ListExpr args){
-  cout << "DBScan: ";
-  string test;
-  nl->WriteToString(test, args);
-  cout << test;
-  cout << endl;
 
-if(nl->ListLength(args)!=3){
-   ErrorReporter::ReportError("stream x int x real expected");
-   return nl->TypeError();
+string err = "stream(tuple(A)) x int x real expected";
+
+if(nl->ListLength(args)!=4){
+   return listutils::typeError(err);
 }
 
-if(!nl->IsEqual(nl->Second(args),CcInt::BasicType()) &&
-   !nl->IsEqual(nl->Third(args),CcReal::BasicType())){
-   ErrorReporter::ReportError("int x real expected");
-   return nl->TypeError();
+if(!Stream<Tuple>::checkType(nl->First(args)) || 
+   !CcInt::checkType(nl->Third(args)) ||
+   !CcReal::checkType(nl->Fourth(args)) ){
+   return listutils::typeError(err);
 }
 
-if(!listutils::isTupleStream(nl->First(args))){
-   ErrorReporter::ReportError("first argument is not a tuple stream");
-   return nl->TypeError();
+//TypeExpression is not finished yet
+//to do: include the clusterID computed in algorithm
+ListExpr attrList = nl->Second(nl->Second(nl->First(args)));
+string name = "geoData";
+ListExpr type;
+
+int index = listutils::findAttribute(attrList, name, type);
+if (index == 0) {
+	return listutils::typeError("Attribute " + name + 
+				    "not present in stream");
 }
 
-return nl->First(args);
+if(!listutils::isKind(type,Kind::SPATIAL2D()) &&
+   !listutils::isKind(type,Kind::SPATIAL3D()) ){
+	string t = " (type is " + nl->ToString(type) + ")";
+	return listutils::typeError("Attribute " + name + "is not "
+			            "in Kind Spatial2D or Spatial 3D" +t);
 }
 
+int id = 1;
+
+ListExpr appendList = nl->TwoElemList(nl->StringAtom("ClusterID"),id);
+
+return nl->ThreeElemList(
+		nl->SymbolAtom(Symbols::APPEND()),
+		appendList,
+		nl->First(args)
+	);
+
+
+}
 
 /*
-
 3.2 Value Mapping function for operator dbscan
 
 */
 
 class dbscan_LocalInfo{
+
+/*
+~Members~
+
+*/
+
 public:
+  mmrtree::Rtree<2>* tree;  	
+  Points* pts;			
 
 /*
 ~Constructor~
@@ -138,34 +153,20 @@ Creates a new local info from the value coming from the value mapping.
 
 */
 
-  dbscan_LocalInfo(Points* pts, CcInt* minPts, CcReal* eps){
-     if(!pts->IsDefined() || !minPts->IsDefined() || !eps->IsDefined()){
+
+  dbscan_LocalInfo(CcInt* minPts, CcReal* eps){
+     if(!minPts->IsDefined() || !eps->IsDefined()){
          defined = false;
          return;
      }
-     this->pts = pts;
      this->minPts = max(0,minPts->GetIntval());
      this->eps =  eps->GetRealval();
      this->eps2 = this->eps*this->eps;
      defined = true;
-     size = pts->Size();
-     no = new int[size];
-     env1 = new set<int>*[size];
-     pos = 0;
-     
-     // set all points to be  UNCLASSIFIED
-     // and clean all sets
-     for(int i=0;i<size;i++){
-       no[i] = UNCLASSIFIED;
-       env1[i] = new set<int>();
-     }
-     computeEnv();
-     pos = 0;
-     clusterId = 1;
+
   }
 
 /*
-
 ~Destructor~
 
 */
@@ -205,60 +206,32 @@ Returns the next cluster as points value.
        }
     }
     return 0;
- }
-
-
-private:
+} 
 
 /*
-~Members~
+~filter(long)~
+
+Compute environments using filter
 
 */
-
-  Points* pts;         // source points value
-  unsigned int minPts; // minimum size for core points
-  double eps;          // epsilon
-  double eps2;         // epsilon * epsilon
-  bool  defined;
-  int* no;             // cluster number
-  set<int>** env1;     // environments;
-  int size;            // number of points
-  int pos;             // current position
-  int clusterId;       // current cluster id
-
-  static const int UNCLASSIFIED = -1;
-  static const int NOISE = -2;
-
-/*
-~computeEnv~
-
-This function computes the epsilon environment for each point
-contained in pts;
-
-*/
-
-  void computeEnv(){
-     mmrtree::Rtree<2> tree(10,30);
+void filter(long size){
      Point p;
      double min1[2];
      double max1[2];
-
-     /* insert all contained points into an R- tree */
-     for(int i=0;i<pts->Size();i++){
-        pts->Get(i,p);
-        double x = p.GetX();
-        double y = p.GetY();
-        min1[0] = x - FACTOR;
-        min1[1] = y - FACTOR;
-        max1[0] = x + FACTOR;
-        max1[1] = y - FACTOR;
-        Rectangle<2> box(true,min1,max1);
-        tree.insert(box, i);
+     this->size = 1000; 
+     no = new int[size];
+     env1 = new set<int>*[size];
+     pos = 0;
+     clusterId = 1;
+     
+     // set all points to be UNCLASSIFIED
+     // and clean all sets
+     for(int i=0;i<size;i++){
+       no[i] = UNCLASSIFIED;
+       env1[i] = new set<int>();
      }
 
-
-     /* compute environments using filter /refine */
-     for(int i=0;i<pts->Size();i++){
+     for(int i=0;i<size;i++){
         pts->Get(i,p);
         set<long> cands;
         double x = p.GetX();
@@ -268,7 +241,7 @@ contained in pts;
         max1[0] = x+eps;
         max1[1] = y+eps;
         Rectangle<2> searchbox(true, min1,max1);
-        tree.findAll(searchbox,cands);
+        tree->findAll(searchbox,cands);
         set<long>::iterator it;
         for(it = cands.begin(); it!=cands.end(); it++){
           Point p2;
@@ -279,8 +252,33 @@ contained in pts;
           }
         }
      }
-  }
+}	
 
+
+
+
+
+/*
+~Members~
+
+*/
+
+
+private:	
+  unsigned int minPts; // minimum size for core points
+  double eps;          // epsilon
+  double eps2;         // epsilon * epsilon
+  bool  defined;
+  int* no;             // cluster number
+  set<int>** env1;     // environments;
+  int size;            // number of points
+  int pos;             // current position
+  int clusterId;       // current cluster id
+
+
+
+  static const int UNCLASSIFIED = -1;
+  static const int NOISE = -2;
 
 
 /*
@@ -349,67 +347,84 @@ Points* expand(int pos){
 
 int dbscanFun (Word* args, Word& result, int message, Word& local,
                 Supplier s) {
-Word elem;
-dbscan_LocalInfo *dli = static_cast<dbscan_LocalInfo*>(local.addr);
-
- switch(message){
-      case OPEN : {
-	//folgender Teil funktioniert nicht
-	ListExpr* lex = static_cast<ListExpr*>(args[0].addr);
-	string attname;	
-	int searchpos = 1;
-	int attpos = listutils::findType(lex,
-		nl->SymbolAtom(Points::BasicType()), attname, searchpos);
-	Points* pts = static_cast<Points*>(args[attpos].addr);
-        CcInt* minPts = static_cast<CcInt*>(args[1].addr);
-        CcReal* eps = static_cast<CcReal*>(args[2].addr);
-	dbscan_LocalInfo *dli = new dbscan_LocalInfo(pts, minPts, eps);
-	local.setAddr(dli);
-	qp->Open(args[0].addr);
-        return 0;
-    } case REQUEST : {
-        if(local.addr==0){
-          return CANCEL;
-        }
-	qp->Request(args[0].addr, elem);
-	while (qp->Received(args[0].addr) ) {
-	        Points* hasNext = dli->getNext();
-        	result.setAddr(hasNext);
-        	if(hasNext){
-           	return YIELD;
-        	} else {
-           	return CANCEL;
-        	}
+	static long c = 0; 
+	CcInt* minPts = static_cast<CcInt*>(args[1].addr);
+	CcReal* eps = static_cast<CcReal*>(args[2].addr);
+	if(!minPts->IsDefined() || !eps->IsDefined() ){
+	  return 0;
 	}
-    } case CLOSE : {
+	int minPts_val = minPts->GetValue();
+	int eps_val = eps->GetValue();
+	if(minPts_val < 0 || eps_val < 0){
+	  return 0;
+	}
+	local.setAddr(new dbscan_LocalInfo(minPts,eps));
+	dbscan_LocalInfo* linfo = static_cast<dbscan_LocalInfo*>(local.addr);
+	linfo->tree  = static_cast<mmrtree::Rtree<2>*>(local.addr);
+	result = qp->ResultStorage(s);	
+	Points* res = static_cast<Points*>(result.addr);
+	res->Clear();
+	res->SetDefined(true);
+	Word elem;
+	res->StartBulkLoad();
+	qp->Open(args[0].addr);
+	qp->Request(args[0].addr,elem); 
+	while(qp->Received(args[0].addr)){
+		//insert the stream into the MMRTree
+		result = elem;
+	  	Rectangle<2>* r = (Rectangle<2>*) result.addr;
+		if (linfo->tree){
+		   linfo->tree->insert(*r,c++);
+		}
+		//Save the stream as Points
+		Point* p = static_cast<Point*>(elem.addr);
+		  if(p->IsDefined()){
+		    (*res) += *p;
+		  } else {
+		    res->EndBulkLoad(false,false,false);
+		    res->Clear();
+		    res->SetDefined(false);
+		    qp->Close(args[0].addr);
+		    return 0;
+		  }
+		p->DeleteIfAllowed();
+		qp->Request(args[0].addr,elem);
+		}
 	qp->Close(args[0].addr);
-        return 0;
-    }
- }
- return -1; // should never be reached
+	res->EndBulkLoad();
+	linfo->pts = res;
+	linfo->filter(c);
+	linfo->getNext();
+	return 0;
 }
 
 
+
 /*
-6.3 Specification string for Operator dbscan
+3.3 Specification string for Operator dbscan
 
 */
 const string dbscanSpec =
 		"( ( \"Signature\" \"Syntax\" \"Meaning\" "
 		"\"Example\" ) "
-		"( <text>points x int x real -> stream(points)</text--->"
-		"<text> _ dbscan [ minpts, epsilon ] </text--->"
-    "<text>For a point set given as a points value, compute the clusters using "
-    "the DBSCAN algorithm with parameters minPts (minimum number of points "
-    "forming a cluster core) and epsilon (maximum distance between points in "
-    "a cluster core). "
-    "Returns a stream of points values (point sets) representing the clusters. "
+		"( <text>stream(tuple) x points x int x real -> "
+		"stream(tuple)</text--->"
+		"<text> _ dbscan [fun, minpts, epsilon ] </text--->"
+    		"<text>For a point set given as a points value, "
+		"compute the clusters using "
+    		"the DBSCAN algorithm with parameters minPts "
+		"(minimum number of points "
+   		"forming a cluster core) and epsilon (maximum distance "
+		"between points in "
+    		"a cluster core). "
+    		"Returns a stream of tuples representing the clusters. "
 		"</text--->"
-		"<text>query Kneipen dbscan[5,200.0] count</text--->"
+		"<text>query Kneipen dbscan[.geoData, 5,200.0] "
+		"count</text--->"
 		") )";
 
 /*
-7.3 Operator dbscan
+3.4 Operator dbscan
 
 */
 Operator dbscan (
@@ -422,8 +437,9 @@ Operator dbscan (
 
 
 
+
 /*
-8.1 Creating the cluster algebra
+4 Creating the Cluster2 algebra
 
 */
 class Cluster2Algebra : public Algebra
@@ -437,10 +453,10 @@ public:
 };
 
 
-} // end of namespace dbs
+} // end of namespace cl2
 
 /*
-9.1 Initialization (Standard)
+5 Initialization (Standard)
 
 Each algebra module needs an initialization function. The algebra manager
 has a reference to this function if this algebra is included in the list
@@ -463,5 +479,5 @@ InitializeCluster2Algebra(NestedList* nlRef, QueryProcessor* qpRef)
 {
   nl = nlRef;
   qp = qpRef;
-  return (new dbsalg::Cluster2Algebra());
+  return (new cl2::Cluster2Algebra());
 }

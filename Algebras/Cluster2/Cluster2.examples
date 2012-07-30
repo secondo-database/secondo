@@ -3,6 +3,6 @@ Restore : NO
 
 Operator : dbscan
 Number   : 1
-Signature: points  x int x real -> stream(points)
-Example  : query [const points value ( (2.0 3.0) (3.0 2.0) (10.0 11))] dbscan[2, 3.0] count
+Signature: stream  x int x real -> stream(points)
+Example  : query Kneipen dbscan[.Geodata, 2, 3.0] count
 Result   : (int 1)
