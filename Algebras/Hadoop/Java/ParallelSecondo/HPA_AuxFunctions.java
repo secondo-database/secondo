@@ -604,7 +604,7 @@ then the other mappers should indicate that as an empty row.
 			ListExpr.twoElemList( ListExpr.symbolAtom("feed"), result);
 		return result;
 	}
-
+	
 	public static ListExpr feedInterResult(int columnNo, String interResultName, 
 			String interFileTupleName, int typeNodeIdx, ListExpr feedList)
 	{
@@ -648,5 +648,67 @@ then the other mappers should indicate that as an empty row.
 		return result;
 	}
 	
+	/**
+	 * Prepared for new created pffeed operator
+	 * Create a temporary relation describe the distribution of one column 
+	 * in the intermediate flist
+	 * 
+	 */
+	public static ListExpr feedColumn(Iterator<Integer> it, int column)
+	{
+		ListExpr result = ListExpr.theEmptyList();
+		while (it.hasNext())
+		{
+			int row = it.next();
+			result = ListExpr.concat(result, 
+				ListExpr.threeElemList(ListExpr.intAtom(row), 
+						ListExpr.intAtom(column), ListExpr.intAtom(row)) );
+		}
+		
+		result = ListExpr.twoElemList(
+				ListExpr.twoElemList(
+						ListExpr.symbolAtom("trel"), 
+						ListExpr.twoElemList(
+								ListExpr.symbolAtom("tuple"),
+										ListExpr.threeElemList(
+												ListExpr.twoElemList(
+														ListExpr.symbolAtom(frsName), 
+														ListExpr.symbolAtom("int")),
+												ListExpr.twoElemList(
+														ListExpr.symbolAtom(fcsName), 
+														ListExpr.symbolAtom("int")),
+												ListExpr.twoElemList(
+														ListExpr.symbolAtom(fssName), 
+														ListExpr.symbolAtom("int"))))), 	//TRel Definition 
+						result																						//TRel Value
+			);
+		result = 
+			ListExpr.twoElemList( ListExpr.symbolAtom("feed"), result);
+		return result;
+	}
 	
+	/**
+	 * Using pffeed operator to fetch intermediate result.
+	 * 
+	 * 
+	 */
+	public static ListExpr feedInterResult2( String interResultName, 
+			int typeNodeIdx, ListExpr feedList)
+	{
+		ListExpr result = ListExpr.oneElemList(ListExpr.symbolAtom("pffeed"));
+		ListExpr last = result;
+		last = ListExpr.append(last, feedList);
+		last = ListExpr.append(last, ListExpr.fourElemList(
+				ListExpr.symbolAtom(frsName),
+				ListExpr.symbolAtom(fcsName),
+				ListExpr.symbolAtom(fssName),
+				ListExpr.stringAtom(
+						interResultName.substring(
+								interResultName.lastIndexOf(":") + 1, 
+								interResultName.lastIndexOf("/>")))));
+		last = ListExpr.append(last, 
+				ListExpr.oneElemList(ListExpr.intAtom(typeNodeIdx)));
+		
+		return result;
+	}
 }
