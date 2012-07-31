@@ -98,29 +98,17 @@ class DServerThreadRunner
   , public DServerParamStorage
 {
 /*
-2.1 Private Default Constructor
-
-  * may not be used!
-
-*/
-  DServerThreadRunner() 
-  : DServerParamStorage()
-  , m_worker(NULL)
-  , m_index(-1) {}
-/*
-2.2 Constructor
-
-  * DServer[ast] inWorker - pointer to the worker object, where data is stored
-  
-  * int inIndex - data index of the darray
+2.1 Default Constructor
 
 */
 public:
-  DServerThreadRunner(DServer *inWorker, 
-                      int inIndex)
-    : DServerParamStorage()
-    , m_worker(inWorker)
-    , m_index(inIndex) {}
+  DServerThreadRunner() 
+  : DServerParamStorage()
+  , m_worker(NULL)
+  , m_index(-1)
+  , m_curIndex(-1)
+  , m_vecIndex((unsigned long) (-1)) {}
+
 /*
 2.2 Destructor
 
@@ -143,7 +131,7 @@ public:
   * returns int - the index of the darray
 
 */
-  int getIndex() const { return m_index; }
+  int getIndex() const { return m_curIndex; }
 
 /*
 2.3.3 Method ~string getIndexStr const~
@@ -151,7 +139,42 @@ public:
   * returns string - the index of the darray as string
 
 */
-  string getIndexStr() const { return int2Str(m_index); }
+  string getIndexStr() const { return int2Str(m_curIndex); }
+
+/*
+2.3.3 Method ~bool nextIndex~
+moves to the next index of the available darrayIndex on this worker
+
+  * returns bool - next index is set
+
+*/
+  bool nextIndex() 
+  { 
+    if (m_darrayIndexes.empty())
+      {
+        return false;
+      }
+ 
+    // check, if start situation
+    if (m_vecIndex == (unsigned long) (-1) )
+      m_vecIndex = 0;
+    else
+      m_vecIndex ++;
+    
+
+    // check valid index
+    if (m_vecIndex < m_darrayIndexes.size())
+      {
+        m_curIndex = m_darrayIndexes[m_vecIndex];
+      }
+    else
+      {
+        // out of range
+        return false;
+      }
+
+    return true;
+  }
 
 /*
 2.3.4 Method ~virtual string getInfo const = 0~
@@ -162,6 +185,41 @@ interface definition to retrieve an infromation string
 
 */
   virtual string getInfo() const = 0;
+  
+/*
+2.4 Setter Methods
+
+2.4.1 Method ~void setRunWorker~
+
+  * DServer[ast] - pointer to the worker object
+
+*/
+  void setRunWorker(DServer* inWorker) { m_worker = inWorker; }
+
+/*
+2.4.2 Method ~void setIndex~
+
+  * int inIndex - the DArray Index or the worker index
+
+*/
+  void setIndex(int inIndex) 
+  { 
+    m_darrayIndexes.push_back(inIndex);
+    m_curIndex = inIndex;
+  }
+
+/*
+2.4.3 Method ~void setAllIndex~
+
+  * vector[<]int[>] inAllIndex - all DArray Index at this worker
+
+*/
+  void setAllIndex(vector<int> inIndex) 
+  { 
+    m_darrayIndexes = inIndex;
+  }
+
+
 
 /*
 2.6 Method ~virtual void run = 0~
@@ -207,6 +265,9 @@ private:
 */
   DServer* m_worker;
   int m_index;
+  vector<int> m_darrayIndexes;
+  int m_curIndex;
+  unsigned long m_vecIndex;
 /*
 2.9 End of Class 
 

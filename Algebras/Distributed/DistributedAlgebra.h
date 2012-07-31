@@ -105,13 +105,6 @@ public:
   void refresh();
   void refresh(TFQ tfqOut, ThreadedMemoryCounter *inMemCntr);
   
-  bool refreshTFQRunning() 
-  { ZThread::Guard<ZThread::Mutex> g(ms_rTFQlock); return m_tfqRunning; };
-  void initTFQRefresh() 
-  {  ZThread::Guard<ZThread::Mutex> g(ms_rTFQlock); m_tfqRunning = true; }
-  void tfqRefreshDone() 
-  {  ZThread::Guard<ZThread::Mutex> g(ms_rTFQlock); m_tfqRunning = false; }
-  
   //Deletes all the remote elements on the workers
   void remove();
 
@@ -151,21 +144,19 @@ public:
   string getErrorText() const;
 
   bool destroyAnyChilds();
-  bool multiplyWorkers(vector<DServer*>* outServerList = NULL);
+  bool multiplyWorkers(vector<DServer*>* outServerList,
+                       bool startChilds = true);
   template <class T, class P>
   bool runCommand(const P& inParam,
-                  int inServerIndex = -1);
+                  int inServerIndex);
    
 
   template <class T, class P>
   bool runCommandThreaded(ZThread::ThreadedExecutor& inExec,
                           const P& inParam,
-                          vector<DServer *>* inServerList = NULL,
-                          bool inWaitForThreadToEnd = true);
+                          bool inWaitForThreadToEnd = true,
+                          bool startChilds = true);
 private:
-
-  //Sends the relation in elements[index] to the respective worker
-  void WriteRelation(int index);
 
   //Is the DArray defined (posseses a name, size, serverlist, type?!)
   bool m_defined;
@@ -188,7 +179,6 @@ private:
   vector<Word> m_elements;
 
   bool m_tfqRunning;
-  static ZThread::Mutex ms_rTFQlock;
 };
 
 #endif // _DISTRIBUTEDALGEBRA_H_

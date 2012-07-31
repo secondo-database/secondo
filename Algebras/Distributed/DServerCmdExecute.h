@@ -80,8 +80,6 @@ the ~run~ - method of the class ~DServerCmdExecute~.
 
 Provided parameters:
 
-  * string m[_]newName - new DArray data name 
-  
   * string m[_]cmd - the command, which is executed
 
   * vector[<]string[>] m[_]sourceObjects - DArrayObject names, which serve as
@@ -101,8 +99,6 @@ class DServerCmdExecuteParam
 /*
 2.2 Constructor
 
-  * const string[&] inNewName - new name for the darray index data
-
   * const string[&] inCmd - the command to be executed
 
   * const vector[<]string[>][&] inSourceObject - DArray names, which are used
@@ -110,11 +106,9 @@ as input in the command
 
 */
 public:
-  DServerCmdExecuteParam(const string& inNewName,
-                         const string& inCmd,
+  DServerCmdExecuteParam(const string& inCmd,
                          const vector<string>& inSourceObjects)
     : DServerParam()  
-    , m_newName(inNewName)
     , m_cmd(inCmd)
     , m_sourceObjects(inSourceObjects)
   {}
@@ -124,7 +118,6 @@ public:
 */
   DServerCmdExecuteParam(const DServerCmdExecuteParam & inP)
     : DServerParam(inP)
-    , m_newName(inP.m_newName)
     , m_cmd(inP.m_cmd)
     , m_sourceObjects(inP.m_sourceObjects) {}
 /*
@@ -135,14 +128,6 @@ public:
 /*
 2.5 Getter Methods
 
-2.5.1 Method ~const string[&] getNewName const~
-
-  * returns const string[&] - the new darray data name
-
-*/
-  const string& getNewName() const { return m_newName; }
-
-/*
 2.5.2 Method ~const string[&] getCommand const~
 
   * returns const string[&] - the command
@@ -180,6 +165,14 @@ public:
 
 
 /*
+2.5.6 Method ~bool useChilds() const~
+
+  * we runnign on each darray index in parallel
+
+*/
+  bool useChilds() const { return true; }
+
+/*
 2.6 Private Section
 
 */
@@ -193,8 +186,7 @@ private:
 /*
 2.6.1 Private Members
 
-*/
-  string m_newName;
+*/ 
   string m_cmd;
   vector<string> m_sourceObjects;
 /*
@@ -231,8 +223,8 @@ public:
 
 */
 
-  DServerCmdExecute(DServer *inWorker, int inIndex)
-    : DServerCmd(DServerCmd::DS_CMD_COPY, inWorker, inIndex)
+  DServerCmdExecute()
+    : DServerCmd(DServerCmd::DS_CMD_COPY)
   {}
 
 /*
@@ -246,20 +238,6 @@ public:
 /*
 3.3 Getter Methods
 
-3.3.1 Method ~const string[&] getNewName const~
-
-  * returns const string[&] - the new darray name
-
-*/
-  
-  const string& getNewName() const 
-  { 
-    const DServerCmdExecuteParam *p = 
-      DServerCmd::getParam<DServerCmdExecuteParam>() ;
-    return p -> getNewName();
-  }
-
-/*
 3.3.2 Method ~const string[&] getCmd const~
 
   * returns const string[&] - the command
@@ -321,8 +299,13 @@ unsigned long getSourceObjectSize() const
 */
   string getInfo() const 
   {
-    return string("CMD-Execute from:"  + getWorker() -> getName() + 
-                  getIndexStr() + " to " +  getNewName() + getIndexStr());
+    string fromNames;
+    for (unsigned long i = 0; i < getSourceObjectSize(); ++i)
+      fromNames += getSourceObject(i) + ", ";
+
+    return string("CMD-Execute from:"  + fromNames + "(idx:" + 
+                  getIndexStr() + ") to " +  
+                  getWorker() -> getName() + getIndexStr());
   }
 
 /*

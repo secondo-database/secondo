@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-[1] Class DServerCmdWrite Definition
+[1] Class DServerCmdDelete Definition
 
 \begin{center}
 April 2012 Thomas Achmann
@@ -44,11 +44,14 @@ April 2012 Thomas Achmann
 
 0 Description
 
-The class ~DServerCmdWrite~ writes the data of an DArray of atomic values
-and stores it on the workres.
+The class ~DServerCmdDelete~ provides the functionality to delete the data of a
+darray index to antoher darray, keeping the index. It is used in the 
+DArray::Clone() method and in the implementation of the ~put~ operator.
+This class derives from ~DServerCmd~ class, which provides the basic
+communication and run functionality.
 
-The class ~DServerCmdWriteParam~ is a data class for the parameters used 
-during the execution of a ~DServerCmdWrite~ object.
+The class ~DServerCmdDeleteParam~ is a data class for the parameters used 
+during the execution of a ~DServerCmdDelete~ object.
 
 */
 
@@ -58,8 +61,8 @@ during the execution of a ~DServerCmdWrite~ object.
 1.1 Defines
 
 */
-#ifndef H_DSERVERCMDWRITE_H
-#define H_DSERVERCMDWRITE_H
+#ifndef H_DSERVERCMDDELETE_H
+#define H_DSERVERCMDDELETE_H
 
 /*
 1.2 Includes
@@ -68,77 +71,45 @@ during the execution of a ~DServerCmdWrite~ object.
 #include "DServerCmd.h"
 
 /*
-2 Class ~DServerCmdWriteParam~
+2 Class ~DServerCmdDeleteParam~
 
-The class ~DServerCmdWriteParam~ contains the parameters used in
-the ~run~ - method of the class ~DServerCmdWrite~.
+The class ~DServerCmdDeleteParam~ contains the parameters used in
+the ~run~ - method of the class ~DServerCmdDelete~.
 
   * derives from class ~DServerParam~
 
-Provided parameters:
-
-  * vector[<]Word[>][ast] m[_]outElements - pointer to the global 
-storage container for the elements of this darray
-
-
 */
-class DServerCmdWriteParam 
+class DServerCmdDeleteParam 
   : public DServerParam
 {
 /*
-2.1 Private Default Constructor
-
-  * may not be used!
-
-*/
-  DServerCmdWriteParam() {}
-/*
 2.2 Constructor
-used, if multiple indexes are transferred
-
-  * vector[<]Word[>][ast] outElements - pointer to the global 
-storage container for the elements of this darray
-
 
 */
 public:
- 
-  DServerCmdWriteParam(vector<Word>* inElements)
-    : DServerParam()  
-    , m_inElements(inElements) {} 
-  
+  DServerCmdDeleteParam()
+    : DServerParam()
+  {}
 /*
-2.4 Copy - Constructor
+2.3 Copy - Constructor
 
 */
-  DServerCmdWriteParam(const DServerCmdWriteParam & inP)
-    : DServerParam(inP)
-    , m_inElements(inP.m_inElements) {}
+  DServerCmdDeleteParam(const DServerCmdDeleteParam & inP)
+    : DServerParam(inP){}
 
 /*
-2.5 Destructor
+2.4 Destructor
 
 */
-  virtual ~DServerCmdWriteParam() {}
+  virtual ~DServerCmdDeleteParam() {}
 
 /*
-2.6 Getter Methods
-
-2.6.1 Method ~vector[<]Word[>][ast] getinElements const~
-
-  * returns vector[<]Word[>][ast] - pointer to the global storage array
-
-*/
-  vector<Word>* getInElements() const { return m_inElements; }
-
-/*
-2.6.2 Method ~bool useChilds() const~
+2.6.4 Method ~bool useChilds() const~
 
   * not using childs, we are fast enough
 
 */
   bool useChilds() const { return false; }
-
 
 /*
 2.6 Private Section
@@ -149,13 +120,13 @@ private:
 2.6.1 Private Methods
 
 */
+// n/a
 
 /*
 2.6.1 Private Members
 
 */
-  vector<Word>* m_inElements;
-
+// n/a
 /*
 2.7 End of Class
 
@@ -163,15 +134,15 @@ private:
 };
 
 /* 
-3 Class ~DServerCmdWrite~
+3 Class ~DServerCmdDelete~
 
-The class ~DServerCmdWrite~ provides the functionality of writing data of
-atomic DArray elements to the workers
+The class ~DServerCmdDelete~ provides the functionality of deleteing data of a
+darray index.
 
   * derives from the class ~DServerCmd~
 
 */
-class DServerCmdWrite 
+class DServerCmdDelete 
   : public DServerCmd
 {
 /*
@@ -188,8 +159,8 @@ public:
 
 */
 
-  DServerCmdWrite()
-    : DServerCmd(DServerCmd::DS_CMD_WRITE)
+  DServerCmdDelete()
+    : DServerCmd(DServerCmd::DS_CMD_DELETE)
   {}
 
 /*
@@ -197,34 +168,17 @@ public:
 
 */
 
-  virtual ~DServerCmdWrite() {}
-
-
-/*
-3.3 Getter Methods
-
-3.3.1 Method ~vector[<]Word[>][ast] getOutElements const~
-
-  * returns vector[<]Word[>][ast] - pointer to the global storage array
-
-*/
-  
-  vector<Word>* getInElements() const 
-  {
-    const DServerCmdWriteParam *p = 
-      DServerCmd::getParam<DServerCmdWriteParam>() ;
-    return p -> getInElements();
-  }
+  virtual ~DServerCmdDelete() {}
 
 /*
-3.3.5 Method ~string getInfo const~
+2.3.3 Method ~string getInfo const~
 
   * returns string - an informaiton string
 
 */
   string getInfo() const 
   {
-    return string("CMD-Write to:"  + getWorker() -> getName() + 
+    return string("CMD-Delete :"  + getWorker() -> getName() + 
                   getIndexStr());
   }
 
@@ -265,4 +219,4 @@ private:
 
 };
 
-#endif // H_DSERVERCMDWRITE_H
+#endif // H_DSERVERCMDDELETE_H

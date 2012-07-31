@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 /*
-[1] Class DServerCmdCopy Implementation
+[1] Class DServerCmdDelete Implementation
 
 \begin{center}
 April 2012 Thomas Achmann
@@ -44,7 +44,7 @@ April 2012 Thomas Achmann
 
 0 Description
 
-Implementation of the class ~DServerCmdCopy~
+Implementation of the class ~DServerCmdDelete~
 
 1 Preliminaries
 
@@ -53,14 +53,14 @@ Implementation of the class ~DServerCmdCopy~
 uncomment the following line
 
 */
-//#define DS_CMD_COPY_DEBUG 1
+//#define DS_CMD_DELETE_DEBUG 1
 
 /*
 1.2 Includes
 
 */
 
-#include "DServerCmdCopy.h"
+#include "DServerCmdDelete.h"
 
 /*
   
@@ -68,21 +68,20 @@ uncomment the following line
 
 2.1 Method ~void run~
 
-implements the actual copy functionality of data from one darray index
-to an index of another darray on the same worker.
+implements the actual delete functionality of the data of  one darray index
  
 */
 
 void
-DServerCmdCopy::run()
+DServerCmdDelete::run()
 { 
-#if DS_CMD_COPY_DEBUG
-  cout << "DServerCmdCopy::run" << endl;
+#if DS_CMD_DELETE_DEBUG
+  cout << "DServerCmdDelete::run" << endl;
 #endif
 
   if (!checkWorkerAvailable())
     return;
-    
+
   if (!startWorkerStreamCommunication())
     {
       setErrorText("Could not initiate communication!");
@@ -91,41 +90,29 @@ DServerCmdCopy::run()
 
   while (nextIndex())
     {
-      if (getIndex() != getReplaceIndex())
-        {
-#if DS_CMD_COPY_DEBUG
-          cout << "DServerCmdCopy::run - substituing:" 
-               << getReplaceIndex()<< endl;
-#endif
+      //Element is copied on the worker
+      string cmd = "delete r" + getWorker() -> getName() + getIndexStr(); 
 
-          //Element is copied on the worker
-          string cmd = "let r" + getNewName() + getIndexStr() + " = r" 
-            + getWorker() -> getName() + getIndexStr(); 
-
-#if DS_CMD_COPY_DEBUG
-          cout << "DServerCmdCopy::run - sending" 
-               << cmd << endl;
-#endif
-          if (!sendSecondoCmdToWorkerSOS(cmd))
-            { 
-              string err;
-              if (hasCmdError())
-                err = getCmdErrorText();
-              else
-                err = "Could not start copy function on worker!";
-              setErrorText(err);
-              return;
-            }
+      bool retVal = sendSecondoCmdToWorkerSOS(cmd);
+      if (!retVal)
+        { 
+          string err;
+          if (hasCmdError())
+            err = getCmdErrorText();
+          else
+            err = "Could not start delete function on worker!";
+          setErrorText(err);
+          return;
         }
     }
- 
+
   if (!closeWorkerStreamCommunication())
     {
       setErrorText("Could not stop communication!");
       return;
     }
 
-#if DS_CMD_COPY_DEBUG
-  cout << "DServerCmdCopy::run DONE" << endl;
+#if DS_CMD_DELETE_DEBUG
+  cout << "DServerCmdDelete::run DONE" << endl;
 #endif
 } // run()

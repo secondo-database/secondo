@@ -55,7 +55,7 @@ Added an interanl class to represent the command and its parameters.
 0.2 November 2010
 
 Header-File for Remote.cpp
-Contains definitions of DServer, DServerManager, DServerExecutor
+Contains definitions of DServer, DServerManager
 RelationWriter and DServerCreator
 
 1 Preliminaries
@@ -93,34 +93,10 @@ class DServer
 
 */
   DServer() 
-  : m_cmd(NULL)
-  , m_server(NULL)
-  , m_cbworker(NULL)
+  : m_server(NULL)
   , m_error(false) {}
 
-/*
-2.2 Public Enumeration
-
-denotes the type of command
-
-*/
 public:
-
-  enum CmdType { DS_CMD_NONE = 0,  // undefined
-                 DS_CMD_DELETE,    // deletes an element on the worker
-                 DS_CMD_OPEN_WRITE_REL, // opens a relation on the worker to
-                                        // add elements
-                 DS_CMD_WRITE_REL, // writes a singel tuple to a relation 
-                                   // on the worker
-                 DS_CMD_CLOSE_WRITE_REL, // closes a relation on the worker
-                 DS_CMD_READ_REL,  // reads a tuple from a relation on
-                                   // the worker and puts it into a 
-                                   // relation on the server
-                 DS_CMD_READ_TB_REL,    // reads a tuple from a relation on
-                                        // the worker and puts it into a 
-                                        // tuplebuffer on the server
-                 
-  };
 
 /*
 2.3 Constructor
@@ -156,82 +132,6 @@ represents the parameters for command, which is run on a worker.
 
 */
 public:
-  class RemoteCommand
-  {
-  public:
-   
-/*
-2.5.1 Constructor
-
-  * CmdType inCmdType - command type description
-  
-  * const list[<]int[>][ast] inDarrayIndex - list or darray indexes
-
-  * vector [<]Word[>][ast] inElements - list of elements 
-
-  * vector [<]string[>][ast] inFromNames - list of source darray names
-
-*/
-
-
-    RemoteCommand(CmdType inCmdType,
-                  const vector<int>* inDarrayIndex,
-                  vector<Word>* inElements,
-                  vector<string>* inFromNames)
-
-      : m_cmdType( inCmdType )
-      , m_elements( inElements )
-    {
-      if (inDarrayIndex != 0)
-        m_darrayIndex = *inDarrayIndex;
-
-      if (inFromNames != 0)
-        m_fromNames = *inFromNames;
-    }
-/*
-2.5.2 Destructor
-
-*/
-    virtual ~RemoteCommand() {}
-
-/*
-2.5.3 Getter Methods
-
-*/
-    CmdType getCmdType() const { return m_cmdType; }
-    vector<int>* getDArrayIndex() { return &m_darrayIndex; }
-    vector<Word>* getElements() const { return m_elements; }
-    const vector<string>& getFromNames() const { return m_fromNames; }
-
-/*
-2.5.4 Private Section
-
-*/
-  private:
-    // no copy and paste!
-    RemoteCommand(const RemoteCommand&) {} 
-    RemoteCommand() 
-      : m_cmdType( DS_CMD_NONE )
-      , m_elements( NULL ) {}
-
-    // members
-    CmdType m_cmdType;
-    vector<int> m_darrayIndex;
-    vector<Word>* m_elements;
-    vector<string> m_fromNames;
-/*
-2.5.4 End of Class
-
-*/
-  };
-
-/*
-2.6 Friend declarations
-
-2.6.1 Operator ~ostream[&] [<][<]~
-
-*/
-  friend ostream& operator << (ostream&, RemoteCommand&) ;
 
 /*
 
@@ -288,41 +188,7 @@ stops the SECONDO instance on the worker
 */
   void Terminate();
 
-/*
-2.8 Running Commands
 
-2.8.1 Method ~void setCmd~
-
-creates a ~RemoteCommand~ obecjt and sets the parameters 
-for a specific command
-
-  * CmdType inCmdType - the type specifier of the command
-
-  * const list[<]int[>][ast] inIndex - list of darray indexes to be worked on
-
-*/
-  void setCmd(CmdType inCmdType,
-              const vector<int>* inIndex, 
-              vector<Word>* inElements = 0,
-              vector<string>* inFromNames = 0);
-
-/*
-2.8.2 Method ~void setCommand~
-
-sets the local pointer to an already constructed ~RemoteCommand~ object
-
-*/
-  void setCmd(RemoteCommand* rc) { m_cmd = rc; }
-
-/*
-2.8.2 Method ~void run~
-
-runs a command on a worker. Command and parameters are specified in
-a ~RemoteCommand~ object.
-
-*/
-  virtual void run();
-    
 /*
 2.9 Error Handling
 
@@ -375,7 +241,7 @@ returns the number of child workers created by the ~multiply~ method.
   * returns int - the number of child workers
 
 */
-  int getNumChilds() const { return m_numChilds;}
+  int getNumChilds() const { return m_childs.size();}
 
 /*
 2.10.3 Method ~const vector[<]DServer[ast][>][&] getChilds const~
@@ -434,7 +300,7 @@ returns the child workers created by the ~multiply~ method.
   * returns const string[&] - the name of darray data stored at the worker
 
 */  
-  const string& getName() const { return name; }
+  const string& getName() const { return m_name; }
 
 /*
 2.10.10 Method ~const string[&] getMasterHostIP const~
@@ -455,65 +321,6 @@ returns the child workers created by the ~multiply~ method.
 
 */  
   const string& getMasterHostIP_() const;
-
-/*
-2.11 Callback Communication
-
-2.11.1 Method ~void saveWorkerCallBackConnection~
-
-stores a callback communication for later reuse
-
-  * Socket[ast] - the callback communication socket
-
-*/
-  void  saveWorkerCallBackConnection(Socket *inCBWorker)
-  {
-    assert(m_cbworker == NULL);
-    m_cbworker = inCBWorker;
-  }
-
-/*
-2.11.2 Method ~Socket[ast] getSavedWorkerCBConnection~
-
-  * returns Socket[ast] - the callback communication socket
-
-*/  
-  Socket* getSavedWorkerCBConnection()
-  { 
-    assert(m_cbworker != NULL);
-    return m_cbworker;
-  }
-
-/*
-2.11.3 Method ~void closeSavedWorkerCBConnection~
-
-closes the saved callback communication socket
-
-*/  
-  void closeSavedWorkerCBConnection();
-
-/*
-2.12 Command Status Flags
-
-for the command processing two status flags are used:
-
-  * RelOpen: indicates, if a relation write operation is ongoing
-
-  * ShuffleOpen: indicates, if a dshuffle operation is in process
-
-2.12.1 Methods ~RelOpen~
-
-*/
-  bool isRelOpen() const { return m_rel_open; }
-  void setRelOpen() { m_rel_open = true; }
-  void setRelClose() { m_rel_open = false; }
-/*
-2.11.3 Methods ~ShuffleOpen~
-
-*/  
-  bool isShuffleOpen() const { return m_shuffle_open; }
-  void setShuffleOpen() { m_shuffle_open = true; }
-  void setShuffleClose() { m_shuffle_open = false; }
 
 /*
 2.13 Print Output
@@ -542,29 +349,16 @@ private:
   string m_host; // host name of the worker
   int m_port;    // port number, the worker listens to
 
-  string name;   // name of the SECONDO object at the worker
+  string m_name;   // name of the SECONDO object at the worker
 
   ListExpr m_type;  // darray type in nested list format
   string m_typeStr; // darray type in nested list format 
-                    // in string representation
-
-  RemoteCommand* m_cmd; // pointer to the command object 
-                        // (includes paramaeters)
-
-
+    
   Socket* m_server; // stored TCP/IP connection to the worker
-
-  // saves a TCP/IP connection for later reuse
-  Socket* m_cbworker; 
-                                                
+                    
   // multiplying worker instances
   vector<DServer*> m_childs;
-  int m_numChilds;
-                 
-  // command operation flags
-  bool m_rel_open;
-  bool m_shuffle_open;
-   
+        
   // error handling
   string m_errorText;
   bool m_error;
@@ -574,18 +368,5 @@ private:
 */
 };
        
-/*
-2.16 Operator ~ostream[&] [<][<]~
-
-ostream operator for the internal class ~RemoteCommand~
-
-  * ostream[&] - the output stream
-
-  * RemoteCommand[&] - reference to the ~RemoteCommand~ object
-
-  * returns ostream[&] - the output stream
-
-*/         
-ostream& operator << (ostream &out, DServer::RemoteCommand& rc);
 
 #endif // H_DSERVER_H

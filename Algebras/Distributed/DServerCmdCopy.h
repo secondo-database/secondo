@@ -142,6 +142,13 @@ public:
   int getReplaceIndex() const { return m_replaceIndex; }
 
 /*
+2.5.3 Method ~bool useChilds() const~
+
+  * not using childs, we are fast enough
+
+*/
+  bool useChilds() const { return false; }
+/*
 2.6 Private Section
 
 */
@@ -192,8 +199,8 @@ public:
 
 */
 
-  DServerCmdCopy(DServer *inWorker, int inIndex)
-    : DServerCmd(DServerCmd::DS_CMD_COPY, inWorker, inIndex)
+  DServerCmdCopy()
+    : DServerCmd(DServerCmd::DS_CMD_COPY)
   {}
 
 /*

@@ -94,6 +94,8 @@ void  DServerShuffleReceiver::run()
 
       TupleType *tt = DBAccess::getInstance() -> TT_New(m_recType);
 
+      ReceiveRelContainer recContainer(m_rel);
+
       while(m_runit)
         {
           m_runit = 
@@ -102,7 +104,7 @@ void  DServerShuffleReceiver::run()
 
           if (m_runit)
             {
-              dscCallBack -> readTupleFromCallBack(tt, m_rel);
+              dscCallBack -> readTupleFromCallBack(tt, &recContainer);
 #ifdef SHUFFLE_RECEIVE_DEBUG 
               cout << "Rec:" << m_destHost << ":" << m_toPort 
                    << " - " << dbg_count << endl;

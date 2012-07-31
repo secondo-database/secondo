@@ -106,8 +106,8 @@ class DServerCmd
 */
 
   DServerCmd()
-    : DServerThreadRunner(NULL, -1)
-    , DServerCmdWorkerCommunication(NULL) {}
+    : DServerThreadRunner()
+    , DServerCmdWorkerCommunication() {}
 
 
 /* 
@@ -144,6 +144,7 @@ public:
                  DS_CMD_OPEN_SHUFFLE_SEND,  // opens sockets on the destination
                                         // workers to be ready to receive
                                         // the data for the new DArray
+                 DS_CMD_SHUFFLE_MULTI,  // starts the suffle procedure
                  
   };
 /*
@@ -156,9 +157,9 @@ public:
 
 */
 
-  DServerCmd (CmdType inType, DServer * inWorker, int inIndex) 
-    : DServerThreadRunner(inWorker, inIndex)
-    , DServerCmdWorkerCommunication(inWorker)
+  DServerCmd (CmdType inType) 
+    : DServerThreadRunner()
+    , DServerCmdWorkerCommunication()
     , m_cmdType(inType){}
 
 /*
@@ -167,6 +168,20 @@ public:
 */
 
   virtual ~DServerCmd() { }
+  
+/*
+2.4 Setter Methods
+
+2.4.1 Method ~void setWorker~
+
+  * DServer[ast] - pointer to the worker object
+
+*/
+  void setWorker(DServer* inWorker) 
+  { 
+    setRunWorker(inWorker); 
+    setCommWorker(inWorker);
+  }
 
 /*
 2.7 Getter Methods

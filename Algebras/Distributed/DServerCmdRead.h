@@ -83,20 +83,6 @@ storage container for the elements of this darray
   * vector[<]bool[>][ast] m[_]outIsPresent - pointer of the global
 container, indicating if a element is present at the master
 
-  * vector[<]vector[<]int[>] [>] m[_]indexList - list of indexes to be 
-transferred
-
-This data structure maps the index of the DServerCmdRead Object to the
-indexes, which shall be transferred within the ~run~ methode. This is 
-necessary, because for a DArray of atomic values these indexes differ.
-One DServerCmdRead object can handle multiple DArray indexes, if
-data consists of atomic values.
-
-Thus, if the atomic data of only one index is transferred, it 
-is stored directly in the following variable.
-
-  * int m[_]singleIndex - single DArray to avoid complex data structure
-
 */
 class DServerCmdReadParam 
   : public DServerParam
@@ -112,9 +98,6 @@ class DServerCmdReadParam
 2.2 Constructor
 used, if multiple indexes are transferred
 
-  * const vector[<]vector[<]int[>] [>] inIndexList - list of indexs to be 
-transferred
-
   * vector[<]Word[>][ast] outElements - pointer to the global 
 storage container for the elements of this darray
 
@@ -124,37 +107,10 @@ container, indicating if a element is present at the master
 
 */
 public:
-  DServerCmdReadParam(const vector<vector<int> >& inIndexList,
-                      vector<Word>* outElements,
-                      vector<bool>* outIsPresent)
-    : DServerParam()  
-    , m_outElements(outElements)
-    , m_outIsPresent(outIsPresent)
-    , m_indexList(inIndexList)
-    , m_singleIndex(-1) {}  
+  DServerCmdReadParam(vector<Word>* outElements,
+                      vector<bool>* outIsPresent,
+                      ListExpr inDaType);
   
-
-/*
-2.3 Constructor
-used, if only one index is transferred
-
-  * int inIndex - DArray index
-
-  * vector[<]Word[>][ast] outElements - pointer to the global 
-storage container for the elements of this darray
-
-  * vector[<]bool[>][ast] outIsPresent - pointer of the global
-container, indicating if a element is present at the master
-
-
-*/
-  DServerCmdReadParam(int inIndex,
-                      vector<Word>* outElements,
-                      vector<bool>* outIsPresent)
-    : DServerParam()  
-    , m_outElements(outElements)
-    , m_outIsPresent(outIsPresent)
-    , m_singleIndex(inIndex){}
   
 /*
 2.4 Copy - Constructor
@@ -164,8 +120,9 @@ container, indicating if a element is present at the master
     : DServerParam(inP)
     , m_outElements(inP.m_outElements)
     , m_outIsPresent(inP.m_outIsPresent)
-    , m_indexList(inP.m_indexList)
-    , m_singleIndex(inP.m_singleIndex){}
+    , m_algID (inP.m_algID)
+    , m_typeID (inP.m_typeID)
+    , m_ttype (inP.m_ttype) {}
 
 /*
 2.5 Destructor
@@ -191,35 +148,19 @@ indicating if the data is present on the master
 */
   vector<bool>* getOutIsPresent() const { return m_outIsPresent; }
 
-/*
-2.6.3 Method ~int getIndexAt const~
-automatically falls back to the single index, if available
+  int getAlgId() const { return m_algID; }
 
-  * unsigned long j - the index of this DServerCmdRead object
+  int getTypId() const { return m_typeID; }
 
-  * unisigned long i - the position of the container, which is transferred
-
-  * returns int - the DArray index, which shall be transferred.
-
-*/
-  const int getIndexAt(unsigned long j, unsigned long i) const 
-  { if (hasSingleIndex()) return getSingleIndex(); return m_indexList[j][i]; }
+  ListExpr getTType() const { return m_ttype; }
 
 /*
-2.6.4 Method ~unsigned long getIndexListSize const~
-automatically falls back to 1, if onlye one index is set
+2.5.7 Method ~bool useChilds() const~
 
-  * unsigned long j - the index of this DServerCmdRead object
-
-  * returns unsigned long - the size of indexes, which are transferred
+  * this function does not use childs
 
 */
-  unsigned long getIndexListSize(unsigned long i) const 
-  { 
-    if (hasSingleIndex()) return 1;
-    return m_indexList[i].size(); 
-  }
-
+  bool useChilds() const { return false; }
 
 /*
 2.6 Private Section
@@ -230,18 +171,16 @@ private:
 2.6.1 Private Methods
 
 */
-  bool hasSingleIndex() const { return m_singleIndex > -1; }
-
-  int getSingleIndex() const { return m_singleIndex; }
-
+// n/a
 /*
 2.6.1 Private Members
 
 */
   vector<Word>* m_outElements;
   vector<bool>* m_outIsPresent;
-  vector< vector<int> > m_indexList;
-  int m_singleIndex;
+  int m_algID;
+  int m_typeID;
+  ListExpr m_ttype;
 
 /*
 2.7 End of Class
@@ -275,8 +214,8 @@ public:
 
 */
 
-  DServerCmdRead(DServer *inWorker, int inIndex)
-    : DServerCmd(DServerCmd::DS_CMD_READ, inWorker, inIndex)
+  DServerCmdRead()
+    : DServerCmd(DServerCmd::DS_CMD_READ)
   {}
 
 /*
@@ -317,37 +256,17 @@ indicating if the data is present on the master
     return p -> getOutIsPresent();
   }
 
-/*
-3.3.3 Method ~int getIndexAt const~
-automatically falls back to the single index, if available
-
-  * unisigned long i - the position of the container, which is transferred
-
-  * returns int - the DArray index, which shall be transferred.
-
-*/
-const int getIndexAt(unsigned long i) const 
-  { 
-    const DServerCmdReadParam *p = 
+  int getAlgId() const {  const DServerCmdReadParam *p = 
       DServerCmd::getParam<DServerCmdReadParam>() ;
-    return p -> getIndexAt(getIndex(), i); 
-  }
+    return p -> getAlgId(); }
 
-
-/*
-3.3.4 Method ~unsigned long getIndexListSize const~
-automatically falls back to 1, if onlye one index is set
-
-  * returns unsigned long - the size of indexes, which are transferred
-
-*/
-unsigned long getIndexListSize() const 
-  { 
-    const DServerCmdReadParam *p = 
+  int getTypId() const {  const DServerCmdReadParam *p = 
       DServerCmd::getParam<DServerCmdReadParam>() ;
-    return p -> getIndexListSize(getIndex()); 
-  }
+    return p -> getTypId(); }
 
+  ListExpr getTType() const {  const DServerCmdReadParam *p = 
+      DServerCmd::getParam<DServerCmdReadParam>() ;
+    return p -> getTType(); }
 /*
 3.3.5 Method ~string getInfo const~
 

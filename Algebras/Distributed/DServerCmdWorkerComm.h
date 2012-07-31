@@ -91,33 +91,28 @@ class DServerCmdWorkerCommunication :
 {
 /*
 
-2.2 Private Default Constructor
-
-  * may not be used!
-
-*/
-protected:
-  DServerCmdWorkerCommunication()
-    : DServerCmdCommunication(/*"DS_CMD_WORKER"*/)
-    , m_worker (NULL)
-    , m_workerIoStrOpen(false)
-    , m_error (false)
-    , m_exec (NULL) {}
-
-/*
-
 2.3 Constructor
 
   * DServer[ast] inWorker - pointer to the worker object
 
 */
 public:
-  DServerCmdWorkerCommunication(DServer *inWorker)
+  DServerCmdWorkerCommunication()
     :DServerCmdCommunication(/*"DS_CMD_WORKER"*/)
-    , m_worker (inWorker)
+    , m_worker (NULL)
     , m_workerIoStrOpen(false)
     , m_error (false)
     , m_exec (NULL) {}
+
+/*
+2.3.1 Methode ~void setCommWorker~
+
+  * DServer[ast] - pointer to the worker object
+
+*/
+  void setCommWorker(DServer* inWorker)
+  { m_worker = inWorker; }
+
 /*
 2.4 Destructor
 
@@ -322,6 +317,22 @@ retrieves the result from the SECONDO instance
     while (line.find("</SecondoResponse>") == string::npos &&
            receiveLineFromWorker(line))
       {
+        // we don't need the special chars!
+        string trimmed;
+        for (unsigned long c = 0; c < line.length(); ++c)
+          {
+            const char chr = line[c];
+            if ((int) chr > 31)
+              trimmed += chr;
+          }
+        size_t pos = trimmed.find("bnl");
+        if (pos != string::npos)
+          trimmed.erase(pos,3);
+          
+        line = trimmed;
+        //std::stringstream trimmer;
+        //trimmer << line; line.clear(); trimmer >> line;
+
         if (debugOut)
           cout << "SECONDO RESULT:" << line << endl;
 
@@ -332,11 +343,28 @@ retrieves the result from the SECONDO instance
           {
             ret = false;
           }
-        if (line.find("SecondoResponse") == string::npos &&
-            line.find("bnl") == string::npos)
-          outErr += line + "\n";
+ 
+        size_t pos1 = trimmed.find("</SecondoResponse>");
+        if (pos1 != string::npos)
+          trimmed.erase(pos1,18);
+        size_t pos2 = trimmed.find("<SecondoResponse>");
+        if (pos2 != string::npos)
+          trimmed.erase(pos2,17);
+
+        string::size_type pos3 = trimmed.find_last_not_of(' ');
+        if(pos3 != string::npos) {
+          trimmed.erase(pos3 + 1);
+          pos3 = trimmed.find_first_not_of(' ');
+          if(pos3 != string::npos) trimmed.erase(0, pos3);
+        }
+        else trimmed.erase(trimmed.begin(), trimmed.end());
+
+        if (!trimmed.empty())
+          outErr += trimmed + "\n";
         
       }
+    if (ret && outErr.empty())
+      outErr = "Success";
 
     setCmdResult(outErr);
 

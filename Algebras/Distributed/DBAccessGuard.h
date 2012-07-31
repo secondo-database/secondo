@@ -65,6 +65,8 @@ private:
   DBAccessGuard &operator= (const DBAccessGuard&) {return *this;}
 
   MyMutex lock;
+  MyMutex buf_lock;
+  MyMutex nl_lock;
  
 public:
   virtual ~DBAccessGuard() {}
@@ -175,6 +177,12 @@ deletes a tuple
     t-> DeleteIfAllowed();
   }
 
+  void T_IncReference(Tuple* t)
+  {
+    ZThread::Guard<MyMutex> g(lock);
+    t-> IncReference();
+  }
+
 /*
 
 3.5 T[_]GetBlockSize
@@ -258,7 +266,7 @@ Retruns the next tuple of an iterator
 */
   void NL_ToString(const ListExpr &l, string& out)
   {
-    ZThread::Guard<MyMutex> g(lock);
+    ZThread::Guard<MyMutex> g(nl_lock);
     out = nl -> ToString(l);
   }
 
@@ -269,7 +277,7 @@ Retruns the next tuple of an iterator
 */
   void NL_ReadFromString(const string& inStr, ListExpr &l)
   {
-    ZThread::Guard<MyMutex> g(lock);
+    ZThread::Guard<MyMutex> g(nl_lock);
     nl -> ReadFromString(inStr, l);
   }
 
@@ -280,8 +288,45 @@ Retruns the next tuple of an iterator
 */
   ListExpr NL_Second(ListExpr &l)
   {
-    ZThread::Guard<MyMutex> g(lock);
+    ZThread::Guard<MyMutex> g(nl_lock);
     return nl -> Second( l);
+  }  
+
+  void NL_Assign(ListExpr &l, ListExpr &r)
+  {
+    ZThread::Guard<MyMutex> g(nl_lock);
+    l = r;
+  }
+
+/*
+
+8 NestedList Access
+
+8.1 BUF[_]Alloc
+
+allocates a certain amount of memory
+
+*/
+  char* BUF_Alloc(size_t buf_size)
+  {
+    ZThread::Guard<MyMutex> g(buf_lock);
+
+    char* buffer = new char[buf_size];
+    memset(buffer,0,buf_size);
+    return buffer;
+  } 
+
+/*
+8.1 BUF[_]Free
+
+frees previously allocated memory
+
+*/
+  void BUF_Free(char* buffer)
+  {
+    ZThread::Guard<MyMutex> g(buf_lock);
+
+    delete [] buffer;
   }
 };
 

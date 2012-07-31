@@ -138,7 +138,9 @@ DServerManager::DServerManager(ListExpr serverlist_n,
                thisRoundPorts.pop_back();
                int hId = thisRoundHostID.back();
                thisRoundHostID.pop_back();
-
+               /*
+                * enable this line, if sequential start
+                * of secondo on the worker is better!
                if (connectedHosts.find(host) != connectedHosts.end())
                  {
                    nextRoundHosts.push_back(host);
@@ -146,6 +148,7 @@ DServerManager::DServerManager(ListExpr serverlist_n,
                    nextRoundHostID.push_back(hId);
                  }
                else
+               */
                  {
                    connectedHosts.insert(host);
                 

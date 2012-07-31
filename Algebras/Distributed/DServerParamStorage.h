@@ -223,6 +223,13 @@ public:
 
 */
   virtual ~DServerParam() {}
+
+/*
+3.4 virtual Method ~bool useChilds() const = 0~
+every methode needs to determin, if it run on childes
+
+*/
+  virtual bool useChilds() const = 0;
 /*
 
 3.4 Private Section

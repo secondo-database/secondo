@@ -76,12 +76,6 @@ DServerCmdShuffleSend::run()
   if (!checkWorkerAvailable())
     return;
 
-  if (getWorker() -> isShuffleOpen())
-    {
-      cerr << "A shuffle operation is already opened for sending!" << endl;
-      return;
-    }
-
 #ifdef DS_CMD_OPEN_SEND_SHUFFLE_DEBUG
   cout << (unsigned long)(this) << " DS_CMD_OPEN_SEND_SHUFFLE - start" 
        << endl;

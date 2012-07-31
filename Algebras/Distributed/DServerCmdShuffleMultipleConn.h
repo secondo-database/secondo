@@ -68,7 +68,7 @@ function.
 1.2 Includes
 
 */
-#include "DServerThreadRunner.h"
+#include "DServerCmd.h"
 
 /*
 2 Class ~DServerCmdShuffleMultiConnParam~
@@ -253,6 +253,14 @@ as string
   int getBasePortNr() const { return m_basePortNr; }
 
 /*
+2.5.7 Method ~bool useChilds() const~
+
+  * this function uses childs
+
+*/
+  bool useChilds() const { return true; }
+
+/*
 2.6 Private Section
 
 */
@@ -303,7 +311,7 @@ The parameters are taken from the class ~DServerCmdShuffleMultiConnParam~.
   * derives from the class ~DServerThreadRunner~
 
 */
-class DServerCmdShuffleMultiConn : public DServerThreadRunner
+class DServerCmdShuffleMultiConn : public DServerCmd
 {
 /*
 3.1 Private Default Constructor
@@ -321,8 +329,8 @@ class DServerCmdShuffleMultiConn : public DServerThreadRunner
 
 */
 public:
-  DServerCmdShuffleMultiConn(DServer *inWorker, int inIndex)
-    : DServerThreadRunner (inWorker, inIndex) {}
+  DServerCmdShuffleMultiConn()
+    : DServerCmd (DServerCmd::DS_CMD_SHUFFLE_MULTI) {}
 
 /*
 3.3 Destructor

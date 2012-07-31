@@ -31,7 +31,7 @@ moved classes DServer and DServerManager into their own files
 November 2010 Tobias Timmerscheidt
 
 Header-File for Remote.cpp
-Contains definitions of DServer, DServerManager, DServerExecutor
+Contains definitions of DServer, DServerManager
 RelationWriter and DServerCreator
 
 */
@@ -46,55 +46,9 @@ RelationWriter and DServerCreator
 #include "zthread/Condition.h"
 #include "zthread/Mutex.h"
 #include "RelationAlgebra.h"
-#include "TupleFifoQueue.h"
 
 class DServer;
 class ThreadedMemoryCounter;
-
-class DServerExecutor : public ZThread::Runnable
-{
-  DServer* server;
-public:
-  DServerExecutor(DServer* s) {server=s;}
-     
-  void run();
-};
-
-class DServerMultiCommand : public ZThread::Runnable
-{
-private:
-  TupleFifoQueue m_tfq;
-   int m_index;
-  DServer* m_server;
-  ZThread::FastMutex lock;
-  ZThread::Condition cond;
-  bool m_runit;
-  ThreadedMemoryCounter* m_memCntr;
-
-public:
-  DServerMultiCommand(int i, DServer* s, ThreadedMemoryCounter* inMemCntr) :
-    m_index(i),
-    m_server(s),
-    cond(lock),
-    m_runit(true),
-    m_memCntr(inMemCntr)
-  { 
-  }
-
-  void AppendTuple(Tuple* t)
-  {
-    m_tfq.put(t);
-  }
-
-  void done()
-  {
-    m_runit = false;
-    m_tfq.put(NULL); // dummy to wake up waiting threads
-  }
-
-  void run();
-};
-
 
 class DServerCreator : public ZThread::Runnable
 {
@@ -130,23 +84,5 @@ public:
   void run();
 };
    
-   
-
-class RelationWriter : public ZThread::Runnable
-{
-   DServer* worker;
-  vector<Word>* m_elements;
-   vector<int> arg;
-   
-   public:
-  RelationWriter(DServer* s, vector<Word>* e, const vector<int>& a) 
-    : worker(s)
-    , m_elements(e)
-    , arg(a) {}
-     
-      void run();
-
-  
-};
 
 #endif

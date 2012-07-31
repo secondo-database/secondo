@@ -83,8 +83,6 @@ DServerCmdExecute::run()
   if (!checkWorkerAvailable())
     return;
 
-  if(getWorker() -> isRelOpen()) return;
-
   if (!startWorkerStreamCommunication())
     {
       setErrorText("Could not initiate communication!");
@@ -114,8 +112,8 @@ DServerCmdExecute::run()
 
   //A command is executed on the worker and assigned
   //to the new DArray Objekt on that worker
-  string cmd;
-  cmd = "(let r" + getNewName() + getIndexStr() + " = " + execCmd + ")";
+  string cmd = "(let r" + getWorker() -> getName() + 
+    getIndexStr() + " = " + execCmd + ")";
 
   if (!sendSecondoCmdToWorkerNL(cmd))
     { 
@@ -125,6 +123,12 @@ DServerCmdExecute::run()
       else
         err = "Could not execute this command on worker:\n" + cmd;
       setErrorText(err);
+    }
+
+  if (!closeWorkerStreamCommunication())
+    {
+      setErrorText("Could not stop communication!");
+      return;
     }
 
 #if DS_CMD_COPY_DEBUG

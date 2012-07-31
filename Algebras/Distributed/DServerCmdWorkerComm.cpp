@@ -124,6 +124,8 @@ DServerCmdWorkerCommunication::startWorkerStreamCommunication()
 bool
 DServerCmdWorkerCommunication::closeWorkerStreamCommunication()
 {
+  return true;
+
   if (!m_workerIoStrOpen)
     {
       const string errMsg = 

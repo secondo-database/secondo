@@ -126,6 +126,15 @@ public:
 */
   int getBasePortNr() const { return m_basePortNr; }
 
+
+/*
+2.5.2 Method ~bool useChilds() const~
+
+  * this function uses childs
+
+*/
+  bool useChilds() const { return true; }
+
 /*
 2.6 Private Section
 
@@ -183,10 +192,8 @@ class DServerCmdShuffleRec : public DServerCmd
 */
 
 public:
-  DServerCmdShuffleRec(DServer *inWorker,
-                       int inIndex)
-    : DServerCmd(DServerCmd::DS_CMD_OPEN_SHUFFLE_REC,
-                 inWorker, inIndex) { }
+  DServerCmdShuffleRec()
+    : DServerCmd(DServerCmd::DS_CMD_OPEN_SHUFFLE_REC) { }
 
 /*
 

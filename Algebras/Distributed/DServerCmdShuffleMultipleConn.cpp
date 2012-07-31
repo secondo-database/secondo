@@ -151,8 +151,6 @@ DServerCmdShuffleMultiConn::run()
        } // if (getType() == 
          //             DServerCmdShuffleMultiConnParam::DSC_SMC_P_RECEIVER)
 
-     getWorker() -> setShuffleOpen();
-
      // sending size of sourceWorkers
      if (!(callBack -> sendTagToCallBack("STARTMULTIPLYCONN")))
        {

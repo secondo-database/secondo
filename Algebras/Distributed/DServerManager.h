@@ -106,7 +106,7 @@ returns the pointer to a DServer
 
 */
 
-  DServer* getServerbyID(int id) const { return m_serverlist[id]; }
+  DServer* getServerByID(int id) const { return m_serverlist[id]; }
      
 /*
 
@@ -131,14 +131,25 @@ distributed array, which are controlled by the DServer with the given index
         
 /*
 
-2.5 getNoOfWorkers
+2.5 getNoOfAllWorkers
 
 returns the number of DServer-Objects controlled by the DServerManager
 
 */
-  int getNoOfWorkers() const 
+  int getNoOfAllWorkers() const 
   { 
     return size; 
+  }
+/*
+
+2.5 getNoOfUsedWorkers
+
+returns the number of DServer-Objects controlled by the DServerManager
+
+*/
+  int getNoOfUsedWorkers(int inArraySize) const 
+  { 
+    return (inArraySize < size ? inArraySize : size); 
   }
 
 /*

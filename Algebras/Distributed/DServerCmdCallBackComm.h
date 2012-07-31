@@ -144,6 +144,16 @@ class DServerCmdCallBackCommunication :
 */
   DServerCmdCallBackCommunication() {}
 
+public:
+  class ReadTupleContainer
+  {
+  public:
+    ReadTupleContainer() {}
+    virtual ~ReadTupleContainer() {}
+
+    virtual bool storeTuple(Tuple* t) const = 0;
+  };
+
 /*
 
 2.3 Constructor
@@ -155,7 +165,6 @@ class DServerCmdCallBackCommunication :
   * const string[&] DBGMSG - debug message to appear during debugging (optional)
 
 */
-public:
   DServerCmdCallBackCommunication(const std::string& inHost,
                                   const std::string& inPort,
                                   const std::string& DBGMSG = "")
@@ -765,14 +774,14 @@ receives a tuple (binary stream) and inserts it into a relation
 
   * TupleType[ast] inTupleType - type of the expected tuple
 
-  * GenericRelation[ast] inRel - pointer to the relation, where the 
-tuple will be stored
+  * ReadTupleContainer[ast] inContainer - pointer to the container
+where the tuple is stored
 
   * returns true - success
 
 */
   bool readTupleFromCallBack(TupleType* inTupleType,
-                                GenericRelation *rel);
+                             ReadTupleContainer *inContainer);
 
 
 /*
@@ -957,4 +966,22 @@ private:
 
 */
 };
+
+class ReceiveRelContainer 
+  : public DServerCmdCallBackCommunication::ReadTupleContainer
+{
+public:
+  ReceiveRelContainer(GenericRelation* inRel) 
+    : DServerCmdCallBackCommunication::ReadTupleContainer()
+    , m_rel(inRel) {}
+
+  virtual ~ReceiveRelContainer() {}
+
+  bool storeTuple(Tuple *t) const;
+
+private:
+  GenericRelation* m_rel;
+
+};
+
 #endif //H_DSERVERCMDCALLBACKCOMM_H

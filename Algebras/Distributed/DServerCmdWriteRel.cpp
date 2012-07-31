@@ -44,7 +44,7 @@ April 2012 Thomas Achmann
 
 0 Description
 
-Implementation of the class ~DServerCmdWrite~
+Implementation of the class ~DServerCmdWriterel~
 
 1 Preliminaries
 
@@ -53,23 +53,16 @@ Implementation of the class ~DServerCmdWrite~
 uncomment the following line
 
 */
-//#define DS_CMD_WRITE_DEBUG 1
+//#define DS_CMD_WRITEREL_DEBUG 1
 
 /*
 1.2 Includes
 
 */
 
-#include "DServerCmdWrite.h"
+#include "DServerCmdWriteRel.h"
 #include "DServerCmdCallBackComm.h"
-
-
-//Uses Function from ArrayAlgebra
-extern void extractIds(const ListExpr,int&,int&);
-
-// From file DServer.h
-extern ZThread::Mutex Cmd_Mutex;
-extern ZThread::Mutex Flob_Mutex;
+#include "DBAccessGuard.h"
 
 /*
   
@@ -83,10 +76,10 @@ to an index of another darray on the same worker.
 */
 
 void
-DServerCmdWrite::run()
+DServerCmdWriteRel::run()
 { 
-#if DS_CMD_WRITE_DEBUG
-  cout << "DServerCmdWrite::run" << getIndexStr() << endl;
+#if DS_CMD_WRITEREL_DEBUG
+  cout << "DServerCmdWriteRel::run" << getIndexStr() << endl;
 #endif
 
   if (!checkWorkerAvailable())
@@ -98,11 +91,7 @@ DServerCmdWrite::run()
       return;
     }
 
-  int algID,typID;
-  extractIds(getWorker() -> getTType(),algID,typID);
-  TypeConstructor* tc = am->GetTC(algID,typID);
-
-  while (nextIndex())
+  while(nextIndex())
     {
       const int curIdx = getIndex();
 
@@ -110,10 +99,10 @@ DServerCmdWrite::run()
           
       string sendCmd = 
         "let r" + getWorker() -> getName() + int2Str(curIdx) +
-        " = " + "receiveD(" + getWorker() -> getMasterHostIP_() + 
+        " = " + "d_receive_rel(" + getWorker() -> getMasterHostIP_() + 
         ",p" + master_port + ")";
 
-#if DS_CMD_WRITE_DEBUG
+#if DS_CMD_WRITEREL_DEBUG
       cout << "Sending:" << sendCmd << endl;
 #endif
       //The sendD-operator on the worker is started 
@@ -131,7 +120,7 @@ DServerCmdWrite::run()
           return;
         }
 
-      // open communication with receiveD - TypeMap
+      // open communication with d_receive_rel - TypeMap
       DServerCmdCallBackCommunication callBack(getWorker() ->getMasterHostIP(),
                                                master_port);
       callBack.startSocket();
@@ -153,8 +142,6 @@ DServerCmdWrite::run()
       // stop communication w/ reveive TypeMap
       callBack.closeSocketCommunication();
 
-      // type map has finished
-
       //The callback connection from the value-mapping 
       // is opened and stored
       if (!(callBack.startSocketCommunication()))
@@ -172,120 +159,53 @@ DServerCmdWrite::run()
           return;
         }
 
-      if (!callBack.getTagFromCallBack("GOTTYPE"))
+      // send INTYPE to receiveD - TypeMap
+      if (!callBack.sendTextToCallBack("INTYPE", getSendType()))
+        {
+          setErrorText(callBack.getErrorText());
+          waitForSecondoResultThreaded();
+          return;
+        }
+
+      // send INTYPE to receiveD - TypeMap
+      if (!callBack.sendTextToCallBack("DELIDX", getDelIndex()))
+        {
+          setErrorText(callBack.getErrorText());
+          waitForSecondoResultThreaded();
+          return;
+        }
+
+      if (!callBack.getTagFromCallBack("GOTALL"))
         { 
           setErrorText(callBack.getErrorText());
           waitForSecondoResultThreaded();
           return;
         }
 
-      //The element is converted into a binary stream of data
-      SmiRecordFile recF(false,0);
-      SmiRecord rec;
-      SmiRecordId recID;
-      Cmd_Mutex.acquire();       
-      recF.Open("send");
-      recF.AppendRecord(recID,rec);
-      size_t size = 0;
-      am->SaveObj(algID,typID,rec,size,getWorker() -> getTType(),
-                  (*(getInElements()))[curIdx]);
-      char* buffer = new char[size]; 
-      rec.Read(buffer,size,0);
-      //rec.Truncate(3);
-      recF.DeleteRecord(recID);
-      recF.Close();
-      Cmd_Mutex.release();
-
-      //Size of the binary data is sent
-      if (!callBack.sendTextToCallBack("SIZE", size))
-        { 
-          waitForSecondoResultThreaded();
-          return;
-        }
-
-#if DS_CMD_WRITE_DEBUG
-      cout << "Send Size:" << size << endl;
-#endif
-
-      //The actual data are sent
-      if (!callBack.Write(buffer,size))
-        { 
-          waitForSecondoResultThreaded();
-          return;
-        }
- 
-      delete [] buffer ;
-
-      Attribute* a;
-      if(tc->NumOfFLOBs() > 0 ) 
-        a = static_cast<Attribute*>((am->Cast(algID,typID))
-                (((*(getInElements()))[curIdx]).addr));
-         
-      //Flobs are sent to worker
-      for(int i = 0; i < tc->NumOfFLOBs(); i++)
+      bool allOk = true;
+      if (sendingRelation())
         {
-          //send FLOB Tag as info
-          if (!callBack.sendTagToCallBack("FLOB"))
-            { 
-              waitForSecondoResultThreaded();
-              return;
-            }
+          allOk = sendRelation(callBack);
+        }
+      else
+        {
+          allOk = sendTupleQueue(callBack);
+        }
 
-          Flob* f = a->GetFLOB(i);
-         
-          //Flob is converted to binary data
-          SmiSize si = f->getSize();
-          int n_blocks = si / 1024 + 1;
-          char* buf = new char[n_blocks*1024];
-          memset(buf,0,1024*n_blocks);
-         
-          f->read(buf,si,0);
- 
-#if DS_CMD_WRITE_DEBUG
-          cout << "Send Flob - Size:" << si << endl;
-#endif
-          //Size of the binary data is sent
-          if (!callBack.sendTextToCallBack("FLOBSIZE", si))
-            { 
-              waitForSecondoResultThreaded();
-              return;
-            }
-
-         
-          //Flob data is sent
-          for(int j = 0; j<n_blocks;j++)
-            callBack.Write(buf+j*1024,1024);
-            
-          delete [] buf;
-
-          //send FLOB Tag as info
-          bool noErr = true;
-          if (!callBack.getTagFromCallBackTF("GOTFLOB", "ERROR", noErr))
-            { 
-              waitForSecondoResultThreaded();
-              return;
-            }
-
-          if (!noErr)
-            { 
-              waitForSecondoResultThreaded();
-              return;
-            }
-        } //
-         
-
-      if (!callBack.sendTagToCallBack("CLOSE"))
+      if (allOk && // don't send close in case of error!
+          !callBack.sendTagToCallBack("CLOSE"))
         { 
           waitForSecondoResultThreaded();
           return;
         }
 
-      if (!callBack.getTagFromCallBack("FINISH")) 
+      if (!callBack.getTagFromCallBack("FINISH"))
         { 
+          setErrorText(callBack.getErrorText());
           waitForSecondoResultThreaded();
           return;
         }
-              
+   
       callBack.closeCallBackCommunication();
 
       if (!waitForSecondoResultThreaded())
@@ -298,7 +218,7 @@ DServerCmdWrite::run()
        
           setErrorText(errMsg);
         }
-    } // while(nextIndex())
+    }
 
   if (!closeWorkerStreamCommunication())
     {
@@ -306,7 +226,68 @@ DServerCmdWrite::run()
       return;
     }
 
-#if DS_CMD_WRITE_DEBUG
-  cout << "DServerCmdWrite::run DONE" << endl;
+#if DS_CMD_WRITEREL_DEBUG
+  cout << "DServerCmdWriteRel::run DONE" << endl;
 #endif
 } // run()
+
+bool
+DServerCmdWriteRel::sendRelation(DServerCmdCallBackCommunication &callBack)
+{
+  //create relation iterator
+  GenericRelation* rel = 
+    (Relation*)(getInElements() -> operator [] (getIndex())).addr;
+  GenericRelationIterator* iter = rel->MakeScan();
+  Tuple* t = NULL;
+  bool allOK = true;
+  while (allOK &&
+         ((t = iter->GetNextTuple()) != 0))
+    { 
+      if (!callBack.sendTagToCallBack("TUPLE"))
+        { 
+          waitForSecondoResultThreaded();
+          return false;
+        }
+
+      callBack.writeTupleToCallBack(t); 
+      
+      DBAccessGuard::getInstance() -> T_DeleteIfAllowed(t);
+
+      if (!callBack.getTagFromCallBackTF("OK", "ERROR", allOK))
+        {
+          allOK = false;
+        }
+    } 
+
+  delete iter;
+  return allOK;
+}
+
+bool 
+DServerCmdWriteRel::sendTupleQueue(DServerCmdCallBackCommunication &callBack)
+{ 
+  Tuple* t = NULL;
+  bool allOK = true;
+  DServerMultiCommand* fifoQueue =  getTupleQueue(getIndex());
+  
+  while (allOK && 
+         ((t = fifoQueue -> GetTuple()) != 0))
+    { 
+      if (!callBack.sendTagToCallBack("TUPLE"))
+        { 
+          waitForSecondoResultThreaded();
+          return false;
+        }
+
+      callBack.writeTupleToCallBack(t); 
+       
+      DBAccessGuard::getInstance() -> T_DeleteIfAllowed(t);
+
+      if (!callBack.getTagFromCallBackTF("OK", "ERROR", allOK))
+        {
+          allOK = false;
+        }
+    }
+
+  return allOK;
+}

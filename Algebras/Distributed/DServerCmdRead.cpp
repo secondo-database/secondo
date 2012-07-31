@@ -53,6 +53,7 @@ Implementation of the class ~DServerCmdRead~
 uncomment the following line
 
 */
+
 //#define DS_CMD_READ_DEBUG 1
 
 /*
@@ -81,6 +82,16 @@ implements the actual read functionality of data from the workers
 to the master
  
 */
+DServerCmdReadParam::DServerCmdReadParam(vector<Word>* outElements,
+                                         vector<bool>* outIsPresent,
+                                         ListExpr inDaType)
+  : DServerParam()  
+  , m_outElements(outElements)
+  , m_outIsPresent(outIsPresent)
+  , m_ttype(inDaType)
+{
+  extractIds(inDaType, m_algID, m_typeID);
+}
 
 void
 DServerCmdRead::run()
@@ -92,22 +103,15 @@ DServerCmdRead::run()
   if (!checkWorkerAvailable())
     return;
 
-  if(getWorker() -> isRelOpen()) return;
-
   if (!startWorkerStreamCommunication())
     {
       setErrorText("Could not initiate communication!");
       return;
     }
 
-  int algID,typID;
-  extractIds(getWorker() -> getTType(),algID,typID);
-
-  const unsigned long idxSize = getIndexListSize();
-
-  for (unsigned long idx = 0; idx < idxSize; idx ++)
+  while (nextIndex())
     {
-      const int curIdx = getIndexAt(idx);
+      const int curIdx = getIndex();
 
       Cmd_Mutex.acquire(); 
       (*(getOutIsPresent()))[curIdx] = false; // not here yet
@@ -175,7 +179,7 @@ DServerCmdRead::run()
       rec.Write(buffer,size,0);
               
       size_t s = 0;
-      am->OpenObj(algID,typID,rec,s,getWorker() -> getTType(),
+      am->OpenObj(getAlgId(),getTypId(),rec,s,getTType(),
                   (*(getOutElements()))[curIdx]);
       
       recF.DeleteRecord(recID);
@@ -196,7 +200,7 @@ DServerCmdRead::run()
               setErrorText(string("Unexpected Response from ") +
                            "worker (<FSIZE> expected)!");        
               Attribute* a = static_cast<Attribute*>
-                ((am->Cast(algID,typID))
+                ((am->Cast(getAlgId(),getTypId()))
                  ((*(getOutElements()))[curIdx].addr));
 
               a -> SetDefined(false);
@@ -218,7 +222,7 @@ DServerCmdRead::run()
             callBack.Read(buf+1024*i,1024);
                   
           Attribute* a = static_cast<Attribute*>
-            ((am->Cast(algID,typID))
+            ((am->Cast(getAlgId(), getTypId()))
              ((*(getOutElements()))[curIdx].addr));
           
           //Flob data is written
@@ -259,7 +263,14 @@ DServerCmdRead::run()
           (*(getOutIsPresent()))[curIdx] = true; //got it
           Cmd_Mutex.release(); 
         }
-    } // while(!m_cmd -> getDArrayIndex() -> empty())
+    } // while(nextIndex())
+
+   
+  if (!closeWorkerStreamCommunication())
+    {
+      setErrorText("Could not stop communication!");
+      return;
+    }
 
 #if DS_CMD_READ_DEBUG
   cout << "DServerCmdRead::run DONE" << endl;

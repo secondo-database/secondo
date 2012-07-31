@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 November 2010 Tobias Timmerscheidt
 
 This file contains the implementation of DServer, DServerManager,
-DServerCreator, DServerExecutor and RelationWriter
+DServerCreator
 
 */
 
@@ -48,113 +48,6 @@ DServerCreator, DServerExecutor and RelationWriter
 
 using namespace std; 
 
-
-/*
-
-3 Class RelationWriter
-
-3.1 run
-
-copies a relation to a remote system
-can run as a thread of its own
-
-*/
-        
-void RelationWriter::run()
-{
-  int index;
-     
-  while(!arg.empty())
-    { 
-
-      index = arg.back();
-      arg.pop_back();
-        
-      //create relation iterator
-
-      GenericRelation* rel = (Relation*)(*m_elements)[index].addr;
-      GenericRelationIterator* iter = rel->MakeScan();
-      
-      Tuple* t;
-     
-      string attrIndex("EMPTY"), rec_type("EMPTY");
-      //open tuple stream to worker
-      vector<int> l;
-      l.push_back(index);
-      vector<Word> open_words(2);
-      open_words[0].addr = &attrIndex;
-      open_words[1].addr = &rec_type;
-     
-      //open tuple stream to the worker
-      worker->setCmd(DServer::DS_CMD_OPEN_WRITE_REL,&l,&open_words);
-      worker->run();
-     
-      vector<Word> word(1);
-
-      t = iter->GetNextTuple();
-
-      unsigned long cnt = 0;
-      //send tuples
-      while(t != 0)
-        {
-          word[0].addr = t;
-          t->IncReference();
-          worker->setCmd(DServer::DS_CMD_WRITE_REL,0,&word);
-          
-          worker->run();
-          t->DeleteIfAllowed();
-          t = iter->GetNextTuple();
-     
-        }
-     
-      //close tuple stream
-      worker->setCmd(DServer::DS_CMD_CLOSE_WRITE_REL,0);
-      worker->run();
-     
-     
-      delete iter;
-    }
-     
-}
-
-/*
-
-5 Class DServerExecutor
-
-*/
-                        
-void DServerExecutor::run()
-{ 
-  server->run(); 
-}
-/*
-
-5 Class DServerMultiCommand
-
-*/
-void  DServerMultiCommand::run()
-{
-  //cout << "Starting DMC:" << m_index << " " << m_runit << endl;
-  Tuple *t;
-  vector<Word> w(1);
-  while(m_runit || !m_tfq.empty())
-    {
-      //cout << m_index << ": got " << tb -> GetNoAttributes()  << endl;
-
-      //cout << "Sending:" << m_index << endl;
-      t = m_tfq.get();
-      if (t != NULL)
-        {
-          w[0] = SetWord(t);
-          m_server->setCmd(DServer::DS_CMD_WRITE_REL, 
-                       0, &w, 0);
-          m_server -> run();
-          m_memCntr -> put_back(t -> GetSize());
-          DBAccess::getInstance() -> T_DeleteIfAllowed(t);
-        }
-    }
-  //cout << "DMC:" << m_index << " ... done" << endl;
-}
 
 /*
 
@@ -184,5 +77,6 @@ DServerMultiplyer::run()
     {
       cerr << "Error multiplying Servers:" 
            << server -> getErrorText() << endl;
+      assert(0);
     }
 }

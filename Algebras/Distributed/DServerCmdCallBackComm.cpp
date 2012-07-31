@@ -117,8 +117,10 @@ DServerCmdCallBackCommunication::writeTupleToCallBack(Tuple *inTuple)
           setErrorText("Invalid number of blocks for sending tuples");
           return false;
         }
-      char* buffer = new char[num_blocks*1024];
-      memset(buffer,0,1024*num_blocks);
+      
+      char* buffer = DBAccess::getInstance() -> BUF_Alloc(num_blocks*1024);
+      //char* buffer = new char[num_blocks*1024];
+      //memset(buffer,0,1024*num_blocks);
                
       //Get the binary data of the tuple
       DBAccess::getInstance() -> T_WriteToBin(inTuple, buffer, cS, eS, fS);
@@ -127,7 +129,8 @@ DServerCmdCallBackCommunication::writeTupleToCallBack(Tuple *inTuple)
       for(int i = 0; i<num_blocks;i++)
         Write(buffer+i*1024,1024);
 
-      delete [] buffer;
+      DBAccess::getInstance() -> BUF_Free(buffer);
+      //delete [] buffer;
       
       if (!(getTagFromCallBack("GOTTUPLE")))
         {
@@ -148,18 +151,18 @@ receives a tuple (binary stream) and inserts it into a relation
 
 (this method is threadsave w/ regards to DB access)
 
-  * ListExpr inTupleType - type of the expected tuple
+  * TupleType[ast] inTupleType - type of the expected tuple
 
-  * GenericRelation[ast] inRel - pointer to the relation, where the 
-tuple will be stored
+  * ReadTupleContainer[ast] inContainer - pointer to the container
+where the tuple is stored
 
   * returns true - success
 
 */
 bool
 DServerCmdCallBackCommunication::
-    readTupleFromCallBack(TupleType* inTupleType,
-                          GenericRelation *inRel)
+readTupleFromCallBack(TupleType* inTupleType,
+                      ReadTupleContainer *inContainer)
 {
   string line;
   if (getTextFromCallBack("TUPLE", line, false))
@@ -171,8 +174,9 @@ DServerCmdCallBackCommunication::
 
       int num_blocks = (size / 1024) + 1;
       
-      char* buffer = new char[1024*num_blocks];
-      memset(buffer,0,1024*num_blocks);
+      char* buffer = DBAccess::getInstance() -> BUF_Alloc(num_blocks*1024);
+      //char* buffer = new char[1024*num_blocks];
+      //memset(buffer,0,1024*num_blocks);
 
       // reading tuple data in biary format
       // from server 
@@ -187,14 +191,24 @@ DServerCmdCallBackCommunication::
 
       // instantiating tuple
       DBAccessGuard::getInstance() -> T_ReadFromBin(curTuple, buffer);
-      DBAccessGuard::getInstance() -> REL_AppendTuple(inRel,curTuple);
-      DBAccessGuard::getInstance() -> T_DeleteIfAllowed(curTuple);
+      
+      inContainer -> storeTuple(curTuple);
      
-      delete [] buffer;
+      DBAccessGuard::getInstance() -> T_DeleteIfAllowed(curTuple);
+
+      DBAccess::getInstance() -> BUF_Free(buffer);
+      //delete [] buffer;
       
       sendTagToCallBack("GOTTUPLE");
     
          
     }
+  return true;
+}
+
+bool 
+ReceiveRelContainer::storeTuple(Tuple *t) const
+{
+  DBAccessGuard::getInstance() -> REL_AppendTuple(m_rel,t);
   return true;
 }

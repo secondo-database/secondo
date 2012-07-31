@@ -102,7 +102,7 @@ class DSecondoMonitorCommunication
 */
 
   DSecondoMonitorCommunication()
-    : DServerCmdWorkerCommunication(NULL)
+    : DServerCmdWorkerCommunication()
     , m_server(NULL) {}
 
 /*
@@ -117,7 +117,7 @@ SECONDO monitor instance
 public:
   DSecondoMonitorCommunication(const string& inHostName, 
                                const string& inPortNumber) 
-    : DServerCmdWorkerCommunication(NULL)
+    : DServerCmdWorkerCommunication()
     , m_hostName(inHostName)
     , m_portNr(inPortNumber)
     , m_server(NULL) {}
