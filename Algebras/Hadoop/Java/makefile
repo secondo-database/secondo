@@ -6,8 +6,7 @@ BIN_P = bin
 CLS_P = ${BIN_P}/${PKGNM}
 SRC_P = ./${PKGNM}
 
-all: checkenv ${CLS_P}/PS_HadoopMap.class ${CLS_P}/PS_HadoopReduce.class ${CLS_P}/PS_HadoopReduce2.class 
-	if [ ! -d ${BIN_P} ];then mkdir -p ${BIN_P}/lib; fi
+all: checkenv checkbin ${CLS_P}/PS_HadoopMap.class ${CLS_P}/PS_HadoopReduce.class ${CLS_P}/PS_HadoopReduce2.class 
 	cp ${SEC_P} ${BIN_P}/lib/
 	jar -cf ${JarFile} -C ${BIN_P} .
 	cp ${JarFile} ../../../bin/
@@ -54,7 +53,7 @@ ${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  
 ${SRC_P}/PS_HadoopReduce2_Reduce.java
 	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2_Reduce.java -d ${BIN_P}	
 
-${CLS_P}/HPA_AuxFunctions.class: ${CLS_P}/Constant.class ${SRC_P}/HPA_AuxFunctions.java
+${CLS_P}/HPA_AuxFunctions.class: ${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${SRC_P}/HPA_AuxFunctions.java
 	javac -classpath ${BIN_P}:${SEC_P} ${SRC_P}/HPA_AuxFunctions.java -d ${BIN_P}
 	
 ${CLS_P}/Constant.class: ${SRC_P}/Constant.java
@@ -74,7 +73,7 @@ run:
 
 clean:
 	rm ParallelSecondo.jar
-	rm ${CLS_P}/*.class
+	rm -rf ${BIN_P}
 output:
 
 doc:
@@ -85,6 +84,9 @@ ifndef HADOOP_HOME
 	@ echo Environment variable HADOOP_HOME is not set
 	exit 1
 endif	
+
+checkbin:
+	if [ ! -d ${BIN_P} ];then mkdir -p ${BIN_P}/lib; fi
 
 help:
 	@echo "Usage:"
