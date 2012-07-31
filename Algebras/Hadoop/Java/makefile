@@ -72,7 +72,7 @@ ${CLS_P}/QuerySecondo.class: ${SRC_P}/QuerySecondo.java
 run:
 
 clean:
-	rm ParallelSecondo.jar
+	if [ -f ${JarFile} ];then rm ${JarFile}; fi
 	rm -rf ${BIN_P}
 output:
 
