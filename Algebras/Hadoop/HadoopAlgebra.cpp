@@ -2542,12 +2542,13 @@ void* PFFeedLocalInfo::tCopyFile(void* ptr)
     else{
       //Copy file from the remote node
       int copyTimes = MAX_COPYTIMES;
-      pthread_mutex_lock(&CLI_mutex);
-      cerr << "WANT file " << lPath << " from " << rPath << endl;
-      pthread_mutex_unlock(&CLI_mutex);
+//      pthread_mutex_lock(&CLI_mutex);
+//      cerr << "WANT file " << lPath << " from " << rPath << endl;
+//      pthread_mutex_unlock(&CLI_mutex);
       while (copyTimes-- > 0){
-        if (0 == copyFile(rPath, lPath, true))
+	if (0 == system((scpCommand + rPath + " " + lPath).c_str())){
           break;
+	}
       }
     }
 
