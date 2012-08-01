@@ -34,9 +34,6 @@
 
 include ../../makefile.env
 
-
-SPECFILES := $(wildcard $(addsuffix /*.spec, $(ALL_ALGEBRA_DIRS) ))
-
 CCFLAGS = $(DEFAULTCCFLAGS)
 CCFLAGS += -DYY_FLEX_MAJOR_VERSION=$(shell ../../bin/getversion.sh major flex -V)
 CCFLAGS += -DYY_FLEX_MINOR_VERSION=$(shell ../../bin/getversion.sh minor flex -V)
@@ -73,10 +70,9 @@ CC := g++
 SPECPARSER := SpecParser/Parser$(PARSEREXT)
 SPECFILE := ../../Algebras/specs 
 
-all: SpecParser/Parser$(PARSEREXT) $(SPECFILE) $(GENFILES) $(OBJECTS)
+all:  $(SPECFILE) $(GENFILES) $(OBJECTS)
 #	echo $(ALL_ALGEBRA_DIRS)
 #	echo "---------------"
-#	echo $(SPECFILES)
 
 $(SPECPARSER):
 	$(MAKE) -C SpecParser
