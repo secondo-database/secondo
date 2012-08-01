@@ -426,6 +426,42 @@ void MLabel::compress() {
 }
 
 /*
+\subsubsection{Function ~createml~}
+
+Creates an MLabel of a certain size for testing purposes.
+
+*/
+void MLabel::create(int size) {
+  string labels[] = {"Büro", "Kantine", "Flur", "Aufzug", "Parkplatz","Mensa"};
+  srand(time(NULL));
+  int random;
+  MLabel* newML = new MLabel(1);
+  ULabel ul(1);
+  Instant* end = new Instant();
+  Instant* start = new Instant();
+  DateTime* minute = new DateTime(0, 60000, durationtype); // duration
+  end->Now();
+  end->Add(minute);
+  start->Now();
+  SecInterval* iv = new SecInterval(*start, *end, true, false);
+  for (int i = 0; i < size; i++) {
+    random = rand() % 6;
+    start->Minus(minute);
+    end->Minus(minute);
+    iv->Set(*start, *end, true, false);
+    ul.timeInterval = *iv;
+    ul.constValue.Set(true, labels[random]);
+    newML->MergeAdd(ul);
+  }
+  *this = *newML;
+  delete minute;
+  delete start;
+  delete end;
+  delete iv;
+  delete newML;
+}
+
+/*
 \subsubsection{Function ~build~}
 
 Builds a moving label from another moving label and a vector.
@@ -1347,7 +1383,7 @@ rewriting.
 
 */
 void NFA::filterSequences(MLabel const &ml) {
-  set<vector<size_t> >::iterator it;
+  set<multiset<size_t> >::iterator it;
   for (it = sequences.begin(); it != sequences.end(); it++) {
     for (unsigned int i = 0; i < conds.size(); i++) {
       cout << "processing cond #" << i << endl;
@@ -1368,12 +1404,13 @@ void NFA::filterSequences(MLabel const &ml) {
   }
 }
 
-void NFA::buildRewriteSequence(vector<size_t> sequence) {
+void NFA::buildRewriteSequence(multiset<size_t> sequence) {
+  vector<size_t> seq(sequence.begin(), sequence.end());
   vector<size_t> rewriteSeq;
   for (unsigned int j = 0; j < resultVars.size(); j++) {
-    rewriteSeq.push_back(sequence[resultVars[j]]); // begin
+    rewriteSeq.push_back(seq[resultVars[j]]); // begin
     if (resultVars[j] < f - 1) {
-      rewriteSeq.push_back(sequence[resultVars[j] + 1]); // end
+      rewriteSeq.push_back(seq[resultVars[j] + 1]); // end
     }
     else { // last state
       rewriteSeq.push_back(maxLabelId + 1);
@@ -1435,7 +1472,7 @@ void NFA::buildNFA(Pattern p) {
   int prev[3] = {-1, -1, -1}; // prevStar, prevNotStar, secondPrevNotStar
   for (int i = 0; i < f; i++) {
     delta[i][i].insert(i + 1); // state i, read pattern i => new state i+1
-    if ((patterns[i].wc != STAR) || (i == f - 1)) { // no star or end
+    if ((!patterns[i].wc) || (i == f - 1)) { // no wildcard or end
       if ((prev[0] == i - 1) || (i == f - 1)) { // '...* #(1 a)...'
         for (int j = prev[1] + 1; j < i; j++) {
           delta[j][i].insert(i + 1); // '* * * #(1 a ) ...'
@@ -1508,7 +1545,6 @@ bool NFA::match(MLabel const &ml, bool rewrite) {
   if (!currentStates.count(f)) { // is the final state active?
     return false;
   }
-
   if (rewrite) {
     computeCardsets();
     printCards();
@@ -1516,6 +1552,7 @@ bool NFA::match(MLabel const &ml, bool rewrite) {
   }
   if (conds.size()) {
     computeCardsets();
+    printCards();
     buildSequences();
     printSequences(50);
     if (!conditionsMatch(ml)) {
@@ -1610,16 +1647,17 @@ be very high, only the first ~max~ sequences are printed.
 
 */
 void NFA::printSequences(size_t max) {
-  set<vector<size_t> >::iterator it;
+  set<multiset<size_t> >::iterator it1;
+  set<size_t>::iterator it2;
   unsigned int seqCount = 0;
-  it = sequences.begin();
-  while ((seqCount < max) && (it != sequences.end())) {
+  it1 = sequences.begin();
+  while ((seqCount < max) && (it1 != sequences.end())) {
     cout << "seq_" << (seqCount < 9 ? "0" : "") << seqCount  + 1 << " | ";
-    for (unsigned int i = 0; i < (*it).size(); i++) {
-      cout << (*it)[i] << ", ";
+    for (it2 = (*it1).begin(); it2 != (*it1).end(); it2++) {
+      cout << (*it2) << ", ";
     }
     cout << endl;
-    it++;
+    it1++;
     seqCount++;
   }
   cout << "there are " << sequences.size() << " possible sequences" << endl;
@@ -1776,10 +1814,10 @@ void NFA::computeCardsets() {
       }
       else { // '... (1 a) * ... #*' or '* ... #*'
         for (int j = prev + 1; j <= i; j++) {
-          for (size_t k = 1; k <= maxLabelId - *(matchings[prev].begin()); k++){
-            cardsets[j].insert(k);
+          for (size_t m = 1; m <= maxLabelId - *(matchings[prev].begin()); m++){
+            cardsets[j].insert(m);
           }
-          if (patterns[i].wc == STAR) {
+          if (patterns[j].wc == STAR) {
             cardsets[j].insert(0);
           }
         }
@@ -1878,32 +1916,48 @@ sequences with length maxLabelId + 1 are accepted.
 
 */
 void NFA::buildSequences() {
-  vector<size_t> seq;
+  multiset<size_t> seq;
+  vector<size_t> cards;
   set<size_t>::iterator it;
+  int maxNumber = 0;
   size_t totalSize = 1;
+  size_t j, cardSum, partSum;
+  for (int i = 0; i < f; i++) { // determine id of most cardinality candidates
+    if (cardsets[i].size() > cardsets[maxNumber].size()) {
+      maxNumber = i;
+    }
+  }
   for (int i = 0; i < f; i++) {
-    totalSize *= cardsets[i].size();
+    if (i != maxNumber) {
+      totalSize *= cardsets[i].size();
+    }
   }
   cout << "totalSize = " << totalSize << endl;
-  for (size_t j = 0; j < totalSize; j++) {
-    size_t k = j;
+  for (size_t i = 0; i < totalSize; i++) {
+    j = i;
     seq.clear();
-    seq.push_back(0);
-    size_t sequenceSum = 0;
+    cards.clear();
+    cardSum = 0;
+    partSum = 0;
     for (int state = 0; state < f; state++) {
-      it = cardsets[state].begin();
-      advance(it, k % cardsets[state].size());
-      if (state < f - 1) {
-        seq.push_back(*it + *seq.rbegin());
-      }
-      k /= cardsets[state].size();
-      sequenceSum += *it;
-      if (sequenceSum > maxLabelId + 1) { // stop if sum exceeds maximum
-        state = f + 1;
+      if (state != maxNumber) {
+        it = cardsets[state].begin();
+        advance(it, j % cardsets[state].size());
+        cards.push_back(*it);
+        cardSum += *it;
+        j /= cardsets[state].size();
+        if (cardSum > maxLabelId + 1) {
+          state = f; // stop if sum exceeds maximum
+        }
       }
     }
-    if ((sequenceSum == maxLabelId + 1)
-    && (*seq.rbegin() < maxLabelId + 2)) {
+    if ((cardSum <= maxLabelId + 1)
+      && cardsets[maxNumber].count(maxLabelId + 1 - cardSum)) {
+      cards.insert(cards.begin() + maxNumber, maxLabelId + 1 - cardSum);
+      for (unsigned int k = 0; k < cards.size(); k++) {
+        seq.insert(partSum);
+        partSum += cards[k];
+      }
       sequences.insert(seq);
     }
   }
@@ -1918,16 +1972,16 @@ condition.
 
 */
 bool NFA::conditionsMatch(MLabel const &ml) {
-  bool goToNextCond(false);
-  set<vector<size_t> >::iterator it;
+  bool proceed(false);
+  set<multiset<size_t> >::iterator it;
   if (conds.empty()) {
     return true;
   }
   for (unsigned int i = 0; i < conds.size(); i++) {
     it = sequences.begin();
-    goToNextCond = false;
-    while ((it != sequences.end()) && !goToNextCond) {
-      goToNextCond = false;
+    proceed = false;
+    while ((it != sequences.end()) && !proceed) {
+      proceed = false;
       if (!conds[i].keys.empty()) {
         buildCondMatchings(i, *it);
       }
@@ -1937,10 +1991,10 @@ bool NFA::conditionsMatch(MLabel const &ml) {
         i = 0; // in case of a mismatch, return to the first condition
       }
       else {
-        goToNextCond = true;
+        proceed = true;
       }
     }
-    if (!goToNextCond) { // no matching sequence found
+    if (!proceed) { // no matching sequence found
       cout << "mismatch in condition " << i << endl;
       return false;
     }
@@ -1954,41 +2008,39 @@ bool NFA::conditionsMatch(MLabel const &ml) {
 \subsection{Function ~buildCondMatchings~}
 
 For one condition and one cardinality sequence, a set of possible matching
-sequences is built if necessary (that is, if the condition contains a label).
+sequences is built if necessary, i.e., if the condition contains a label.
 
 */
-void NFA::buildCondMatchings(unsigned int condId, vector<size_t> sequence) {
+void NFA::buildCondMatchings(unsigned int condId, multiset<size_t> sequence) {
   bool necessary(false);
   condMatchings.clear();
   int pId;
   size_t totalSize = 1;
   vector<size_t> condMatching;
+  vector<size_t> seq(sequence.begin(), sequence.end());
   set<int> consideredIds;
   set<int>::iterator it;
   size_t size;
-  sequence.push_back(maxLabelId + 1); // easier for last pattern
+  seq.push_back(maxLabelId + 1); // easier for last pattern
   for (unsigned int i = 0; i < conds[condId].keys.size(); i++) {
     pId = conds[condId].pIds[i];
     if (!conds[condId].keys[i] && !consideredIds.count(pId)) { // no doubles
-      totalSize *= sequence[pId + 1] - sequence[pId];
+      totalSize *= seq[pId + 1] - seq[pId];
       consideredIds.insert(pId);
       necessary = true;
     }
   }
-  if (!necessary) {
-    totalSize = 0;
-  }
-  for (size_t j = 0; j < totalSize; j++) {
-    size_t k = j;
-    condMatching.clear();
-    for (it = consideredIds.begin(); it != consideredIds.end(); it++) {
-      size = sequence[*it + 1] - sequence[*it];
-      condMatching.push_back(sequence[*it] + k % size);
-      k /= size;
+  if (necessary) {
+    for (size_t j = 0; j < totalSize; j++) {
+      size_t k = j;
+      condMatching.clear();
+      for (it = consideredIds.begin(); it != consideredIds.end(); it++) {
+        size = seq[*it + 1] - seq[*it];
+        condMatching.push_back(seq[*it] + k % size);
+        k /= size;
+      }
+      condMatchings.insert(condMatching);
     }
-    condMatchings.insert(condMatching);
-  }
-  if (totalSize) {
     printCondMatchings(5);
   }
 }
@@ -2001,23 +2053,24 @@ possible cardinalities matches a certain condition.
 
 */
 bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
-                       vector<size_t> sequence) {
+                       multiset<size_t> sequence) {
   conds[condId].textSubst.assign(conds[condId].text); // reset textSubst
   bool success(false), replaced(false);
   string condStrCardTime, subst;
+  vector<size_t> seq(sequence.begin(), sequence.end());
   for (unsigned int j = 0; j < conds[condId].keys.size(); j++) {
     int pId = conds[condId].pIds[j];
     if (conds[condId].keys[j] == 4) { // card
       if (pId == f - 1) {
-        subst.assign(int2Str(maxLabelId - sequence[pId] + 1));
+        subst.assign(int2Str(maxLabelId - seq[pId] + 1));
       }
       else {
-        subst.assign(int2Str(sequence[pId + 1] - sequence[pId]));
+        subst.assign(int2Str(seq[pId + 1] - seq[pId]));
       }
     }
     else if (conds[condId].keys[j] > 0) { // time, start, end
-      size_t from = sequence[pId];
-      size_t to = (pId == f - 1 ? maxLabelId : sequence[pId + 1]);
+      size_t from = seq[pId];
+      size_t to = (pId == f - 1 ? maxLabelId : seq[pId + 1]);
       subst.assign(getTimeSubst(ml, conds[condId].keys[j], from, to));
     }
     if (conds[condId].keys[j] > 0) { // time, start, end, card
@@ -2297,7 +2350,6 @@ struct matchesInfo : OperatorInfo {
     name      = "matches";
     signature = MLabel::BasicType() + " x " + Pattern::BasicType() + " -> "
                                     + CcBool::BasicType();
-    // overloaded operator => alternative signature appended
     appendSignature(MLabel::BasicType() + " x Text -> " + CcBool::BasicType());
     appendSignature(MString::BasicType() +" x " + Pattern::BasicType() + " -> "
                                          + CcBool::BasicType());
@@ -2480,6 +2532,8 @@ int compressFun_Str(Word* args, Word& result, int message, Word& local,
         mlabel->compress();
       }
       else {
+        cout << "Error: undefined MLabel." << endl;
+        mlabel->SetDefined(false);
         result.addr = 0;
         return CANCEL;
       }
@@ -2505,6 +2559,54 @@ struct compressInfo : OperatorInfo {
     appendSignature("stream(MString) -> stream(MLabel)");
     syntax    = "compress(_)";
     meaning   = "Unites subsequent units.";
+  }
+};
+
+/*
+\subsection{Type Mapping for operator ~createml~}
+
+*/
+ListExpr createmlTypeMap(ListExpr args) {
+  const string errMsg = "Expecting an integer.";
+  if (nl->ListLength(args) != 1) {
+    return listutils::typeError("One argument expected.");
+  }
+  if (nl->IsEqual(nl->First(args), CcInt::BasicType())) {
+    return nl->SymbolAtom(MLabel::BasicType());
+  }
+  return NList::typeError(errMsg);
+}
+
+/*
+\subsection{Value Mapping for operator ~createml~}
+
+*/
+int createmlFun(Word* args, Word& result, int message, Word& local, Supplier s){
+  CcInt* ccint = static_cast<CcInt*>(args[0].addr);
+  int size;
+  MLabel* ml = new MLabel(1);
+  if (ccint->IsDefined()) {
+    size = ccint->GetValue();
+    ml->create(size);
+  }
+  else {
+    cout << "Error: undefined CcInt." << endl;
+    ml->SetDefined(false);
+  }
+  result.addr = ml;
+  return 0;
+}
+
+/*
+\subsection{Operator Info for operator ~createml~}
+
+*/
+struct createmlInfo : OperatorInfo {
+  createmlInfo() {
+    name      = "createml";
+    signature = "int -> MLabel";
+    syntax    = "createml(_)";
+    meaning   = "Creates an MLabel of a certain size.";
   }
 };
 
@@ -2537,6 +2639,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
       ValueMapping compressFuns[] = {compressFun_1, compressFun_Str, 0};
       AddOperator(compressInfo(), compressFuns, compressSelect,compressTypeMap);
+
+      AddOperator(createmlInfo(), createmlFun, createmlTypeMap);
 
     }
     ~SymbolicTrajectoryAlgebra() {}

@@ -79,8 +79,8 @@ set<string> stringToSet(string input) {
   if (!contents.compare("_")) {
     return result;
   }
-  if (input.at(0) == '{') {
-    contents.assign(contents.substr(1, input.length() - 2));
+  if (contents.at(0) == '{') {
+    contents.assign(contents.substr(1, contents.length() - 2));
   }
   while (!contents.empty()) {
     contents.erase(0, contents.find_first_not_of(", "));

@@ -36,3 +36,9 @@ Number   : 2
 Signature: mstring -> mlabel
 Example  : query compress([const mlabel value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))])
 Result   : 1
+
+Operator : createml
+Number   : 1
+Signature: int -> mlabel
+Example  : query createml(2) matches '() ()'
+Result   : TRUE

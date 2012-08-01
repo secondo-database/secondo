@@ -70,6 +70,7 @@ class MLabel : public MString {
     static ListExpr MLabelProperty();
     static bool CheckMLabel(ListExpr type, ListExpr& errorInfo);
     void compress();
+    void create(int size);
     void rewrite(MLabel const &ml, vector<size_t> seq, vector<UPat> assigns);
 };
 
@@ -217,7 +218,7 @@ class NFA {
   size_t ulId, maxLabelId;
   set<size_t> *matchings;
   set<size_t> *cardsets;
-  set<vector<size_t> > sequences; // all possible matching sequences
+  set<multiset<size_t> > sequences; // all possible matching sequences
   set<vector<size_t> > condMatchings; // for condition evaluation
   set<vector<size_t> > rewriteSeqs; // matching sequences for rewriting
   vector<int> resultVars; // [3, 1] means: 1st result var is the one from the
@@ -261,13 +262,13 @@ class NFA {
   void computeCardsets();
   void buildSequences();
   void filterSequences(MLabel const &ml);
-  void buildRewriteSequence(vector<size_t> sequence);
+  void buildRewriteSequence(multiset<size_t> sequence);
   void computeResultVars(vector<UPat> results);
   set<vector<size_t> > getRewriteSequences();
   bool conditionsMatch(MLabel const &ml);
-  void buildCondMatchings(unsigned int condId, vector<size_t> sequence);
+  void buildCondMatchings(unsigned int condId, multiset<size_t> sequence);
   bool evaluateCond(MLabel const &ml, unsigned int condId,
-                    vector<size_t> sequence);
+                    multiset<size_t> sequence);
   string getLabelSubst(MLabel const &ml, unsigned int pos);
   string getTimeSubst(MLabel const &ml, Key key, size_t from, size_t to);
   string toString();
