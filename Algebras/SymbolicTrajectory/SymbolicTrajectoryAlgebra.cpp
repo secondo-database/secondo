@@ -406,8 +406,13 @@ If there are subsequent ULabels with the same Label, this function squeezes
 them to one ULabel.
 
 */
-void MLabel::compress() {
+MLabel* MLabel::compress() {
   MLabel* newML = new MLabel(1);
+  if(!IsDefined()){
+     newML->SetDefined(false);
+    return newML;
+  }  
+  
   ULabel ul(1);
   for (size_t i = 0; i < (size_t)this->GetNoComponents(); i++) {
     this->Get(i, ul);
@@ -421,8 +426,7 @@ void MLabel::compress() {
     cout << "MLabel could not be compressed, still has "
          << newML->GetNoComponents() << " components." << endl;
   }
-  *this = *newML;
-  delete newML;
+  return newML;
 }
 
 /*
@@ -481,7 +485,39 @@ void MLabel::rewrite(MLabel const &ml, vector<size_t> seq,
         if (!assigns[i / 2].lbs.empty()) {
           ul.constValue.Set(true, (*(assigns[i / 2].lbs.begin())));
         }
-        this->Add(ul);
+        if (!assigns[i / 2].ivs.empty() && (seq[i] + 1 == seq[i + 1])) {
+          Instant *newStart = new DateTime(instanttype);
+          Instant *newEnd = new DateTime(instanttype);
+          SecInterval *newIv = new SecInterval(0);
+          string iv = *(assigns[i / 2].ivs.begin());
+          if (iv.at(0) == '~') { // case ~2012-05-12
+            *newStart = ul.timeInterval.start;
+            newEnd->ReadFrom(extendDate(iv.substr(1), false));
+          }
+          else if (iv[iv.size() - 1] == '~') { //case 2011-04-02-19:09~
+            newStart->ReadFrom(extendDate(iv.substr(0, iv.size() - 1), true));
+            *newEnd = ul.timeInterval.end;
+          }
+          else if ((iv.find('~')) == string::npos) { // no [~] found
+            newStart->ReadFrom(extendDate(iv, true));
+            newEnd->ReadFrom(extendDate(iv, false));
+          }
+          else { // 2012-05-12-20:00~2012-05-12-22:00
+            newStart->ReadFrom(extendDate(iv.substr(0, iv.find('~')), true));
+            newEnd->ReadFrom(extendDate(iv.substr(iv.find('~') + 1), false));
+          }
+          newIv->Set(*newStart, *newEnd, true, false);
+          if (newIv->IsValid()) {
+            ul.timeInterval = *newIv;
+          }
+          else {
+            cout << "Error: new interval invalid." << endl;
+          }
+          delete newIv;
+          delete newStart;
+          delete newEnd;
+        }
+        this->MergeAdd(ul);
       }
     }
     i++;
@@ -515,10 +551,10 @@ TypeConstructor movinglabel(
 template <class Mapping, class Alpha>
 int MappingAtInstantExt(Word* args, Word& result, int message, Word& local,
                         Supplier s) {
-    result = qp->ResultStorage(s);
-    Intime<Alpha>* pResult = (Intime<Alpha>*)result.addr;
-    ((Mapping*)args[0].addr)->AtInstant(*((Instant*)args[1].addr), *pResult);
-    return 0;
+  result = qp->ResultStorage(s);
+  Intime<Alpha>* pResult = (Intime<Alpha>*)result.addr;
+  ((Mapping*)args[0].addr)->AtInstant(*((Instant*)args[1].addr), *pResult);
+  return 0;
 }
 
 const string TemporalSpecAtInstantExt  =
@@ -1230,6 +1266,10 @@ bool Pattern::verifyPattern() {
   set<string>::iterator it;
   SecInterval iv;
   set<string> vars;
+  if (!this) {
+    cout << "Error: Pattern not initialized." << endl;
+    return false;
+  }
   for (unsigned int i = 0; i < patterns.size(); i++) {
     for (it = patterns[i].ivs.begin(); it != patterns[i].ivs.end(); it++) {
       if ((*it).at(0) >= 65 && (*it).at(0) <= 122
@@ -1472,7 +1512,8 @@ void NFA::buildNFA(Pattern p) {
   int prev[3] = {-1, -1, -1}; // prevStar, prevNotStar, secondPrevNotStar
   for (int i = 0; i < f; i++) {
     delta[i][i].insert(i + 1); // state i, read pattern i => new state i+1
-    if ((!patterns[i].wc) || (i == f - 1)) { // no wildcard or end
+    if (!patterns[i].wc || !patterns[i].ivs.empty() || !patterns[i].lbs.empty()
+      || (i == f - 1)) { // last pattern or any pattern except + and *
       if ((prev[0] == i - 1) || (i == f - 1)) { // '...* #(1 a)...'
         for (int j = prev[1] + 1; j < i; j++) {
           delta[j][i].insert(i + 1); // '* * * #(1 a ) ...'
@@ -1505,13 +1546,16 @@ void NFA::buildNFA(Pattern p) {
           }
         }
       }
+      if (patterns[i].wc == PLUS) {
+        delta[i][i].insert(i);
+      }
       prev[2] = prev[1];
       prev[1] = i;
     }
     else if (patterns[i].wc == STAR) { // reading '*'
       prev[0] = i;
     }
-    else if (patterns[i].wc == PLUS) { // reading '+' or '((...))'
+    else if (patterns[i].wc == PLUS) { // reading '+'
       delta[i][i].insert(i);
       prev[2] = prev[1];
       prev[1] = i;
@@ -1741,6 +1785,32 @@ void NFA::updateStates() {
 }
 
 /*
+\subsection{Function ~processDoublePars~}
+
+Computes the set of possible cardinalities for sequence patterns in double
+parentheses and stores their positions into a set.
+
+*/
+void NFA::processDoublePars(int pos) {
+  set<size_t>::iterator j;
+  size_t last = -2;
+  size_t count = 0;
+  for (j = matchings[pos].begin(); j != matchings[pos].end(); j++) {
+    if (*j == last + 1) {
+      count++;
+      cardsets[pos].insert(count);
+    }
+    else {
+      count = 1;
+    }
+    last = *j;
+  }
+  if (!patterns[pos].ivs.empty() || !patterns[pos].lbs.empty()) {
+    doublePars.insert(pos);
+  }
+}
+
+/*
 \subsection{Function ~computeCardsets~}
 
 Computes the set of possible cardinalities for every state.
@@ -1752,6 +1822,9 @@ void NFA::computeCardsets() {
   for (int i = 0; i < f; i++) {
     if (matchings[i].size()) {
       cardsets[i].insert(1);
+      if (patterns[i].wc == PLUS) { // '... #((1 a)) ...'
+        processDoublePars(i);
+      }
       if (prev == i - 2) { // '(1 a) * #(2 b)' or '* #(1 a)'
         if (prev > -1) {
           for (j = matchings[i - 2].begin(); j != matchings[i - 2].end(); j++) {
@@ -1958,9 +2031,39 @@ void NFA::buildSequences() {
         seq.insert(partSum);
         partSum += cards[k];
       }
-      sequences.insert(seq);
+      if (doublePars.empty() || checkDoublePars(seq)) {
+        sequences.insert(seq);
+      }
     }
   }
+}
+
+/*
+\subsection{Function ~checkDoublePars~}
+
+Checks the correctness of a sequence concerning double parentheses. Therefore,
+a comparison with the contents of the respective matchings set is performed.
+
+*/
+bool NFA::checkDoublePars(multiset<size_t> sequence) {
+  vector<size_t> seq(sequence.begin(), sequence.end());
+  size_t max = -1;
+  for (unsigned int i = 0; i < seq.size(); i++) {
+    if (doublePars.count(i)) {
+      if (i < seq.size() - 1) {
+        max = seq[i + 1] - 1;
+      }
+      else {
+        max = maxLabelId;
+      }  
+      for (size_t j = seq[i]; j <= max; j++) {
+        if (!matchings[i].count(j)) {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
 }
 
 /*
@@ -2085,20 +2188,20 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
   } // cardinality and time substitutions completed
   condStrCardTime.assign(conds[condId].textSubst); // save status
   if (condMatchings.empty() && replaced) {
-    if (conds[condId].falseExprs.count(condStrCardTime)) {
+    if (falseExprs.count(condStrCardTime)) {
       return false; // if condStrCardTime is already known as false
     }
-    else if (conds[condId].trueExprs.count(condStrCardTime)) {
+    else if (trueExprs.count(condStrCardTime)) {
       return true;
     }
     else {
       if (!evaluate(condStrCardTime, true)) {
         cout << "cardinality & time evaluation negative" << endl;
-        conds[condId].falseExprs.insert(condStrCardTime);
+        falseExprs.insert(condStrCardTime);
         return false;
       }
       else {
-        conds[condId].trueExprs.insert(condStrCardTime);
+        trueExprs.insert(condStrCardTime);
         return true;
       }
     }
@@ -2119,22 +2222,22 @@ bool NFA::evaluateCond(MLabel const &ml, unsigned int condId,
         pos++;
       }
     }
-    if (conds[condId].falseExprs.count(conds[condId].textSubst)) {
+    if (falseExprs.count(conds[condId].textSubst)) {
       cout << conds[condId].textSubst << "----> is known as FALSE" << endl;
       return false;
     }
-    else if (conds[condId].trueExprs.count(conds[condId].textSubst)) {
+    else if (trueExprs.count(conds[condId].textSubst)) {
       cout << conds[condId].textSubst << "----> is known as TRUE" << endl;
       success = true;
     }
     else {
       if (!evaluate(conds[condId].textSubst, true)) {
         cout << "evaluation negative" << endl;
-        conds[condId].falseExprs.insert(conds[condId].textSubst);
+        falseExprs.insert(conds[condId].textSubst);
         return false; // one false evaluation is enough to yield ~false~
       }
       else {
-        conds[condId].trueExprs.insert(conds[condId].textSubst);
+        trueExprs.insert(conds[condId].textSubst);
         success = true;
       }
     }
@@ -2151,7 +2254,7 @@ it by the parameter ~subst~.
 */
 void Condition::substitute(unsigned int pos, string subst){
   string varKey(vars[pos]);
-  varKey.append(types[keys[pos]]);
+  varKey.append(getType(keys[pos]));
   size_t varKeyPos = textSubst.find(varKey);
   if (varKeyPos == string::npos) {
     cout << "var.key " << varKey << " not found in " << textSubst << endl;
@@ -2159,6 +2262,41 @@ void Condition::substitute(unsigned int pos, string subst){
   }
   else {
     textSubst.replace(varKeyPos, varKey.size(), subst);
+  }
+}
+
+string Condition::getType(int t) {
+  switch (t) {
+    case 0:
+      return ".label";
+    case 1:
+      return ".time";
+    case 2:
+      return ".start";
+    case 3:
+      return ".end";
+    case 4:
+      return ".card";
+    default:
+      return ".ERROR";
+  }
+}
+
+string Condition::getSubst(int s) {
+  switch (s) {
+    case 0:
+      return "\"a\"";
+    case 1:
+      return "[const periods value ((\"2003-11-20-07:01:40\" "
+               "\"2003-11-20-07:45\" TRUE TRUE))]";
+    case 2:
+      return "[const instant value \"1909-12-19\"]";
+    case 3:
+      return "[const instant value \"2012-05-12\"]";
+    case 4:
+      return "1";
+    default:
+      return "";
   }
 }
 
@@ -2397,23 +2535,30 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
   Pattern *pattern = 0;
   RewriteResult *rr = 0;
   switch (message) {
-    case OPEN:
+    case OPEN: {
       mlabel = static_cast<MLabel*>(args[0].addr);
       patternText = static_cast<FText*>(args[1].addr);
       if (!patternText->IsDefined()) {
-        cout << "Error: undefined pattern." << endl;
+        cout << "Error: undefined pattern text." << endl;
         return 0;
       }
       pattern = Pattern::getPattern(patternText->toText());
+      if (!pattern) {
+        cout << "Error: pattern not initialized." << endl;
+        delete pattern;
+        return 0;
+      }
       if (!mlabel->IsDefined()) {
         cout << "Error: undefined MLabel." << endl;
       }
-      mlabel->compress();
-      rr = new RewriteResult(pattern->getRewriteSequences(*mlabel), mlabel,
+      MLabel* mlNew = mlabel->compress();
+      rr = new RewriteResult(pattern->getRewriteSequences(*mlNew), mlNew,
                              pattern->results);
+      delete pattern;
       local.addr = rr;
       return 0;
-    case REQUEST:
+    }  
+    case REQUEST: {
       if (!local.addr) {
         result.addr = 0;
         return CANCEL;
@@ -2428,12 +2573,15 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
       result.addr = ml;
       rr->next(); 
       return YIELD;
-    case CLOSE:
+    }  
+    case CLOSE: {
       if (local.addr) {
         rr = ((RewriteResult*)local.addr);
+        rr->killMLabel();
         delete rr;
       }
       return 0;
+    }  
     default:
       return -1;
   }
@@ -2468,18 +2616,18 @@ struct rewriteInfo : OperatorInfo {
 ListExpr compressTypeMap(ListExpr args) {
   const string errMsg
           = "Expecting mlabel or mstring or stream(mlabel) or stream(mstring).";
-  if (listutils::isSymbol(nl->First(args), MLabel::BasicType())
-   || listutils::isSymbol(nl->First(args), MString::BasicType())) {
-    return nl->SymbolAtom(MLabel::BasicType());
-  }
-  if (listutils::isSymbol(nl->First(nl->First(args)),
-                                     Stream<Tuple>::BasicType())
-   && (listutils::isSymbol(nl->Second(nl->First(args)), MLabel::BasicType())
-    || listutils::isSymbol(nl->Second(nl->First(args)), MString::BasicType()))){
-    return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
-                           nl->SymbolAtom(MLabel::BasicType()));
-  }
-  return NList::typeError(errMsg);
+
+   if(!nl->HasLength(args,1)){
+      return listutils::typeError(errMsg);
+   }
+   ListExpr arg = nl->First(args);
+   if(MLabel::checkType(arg) ||
+      MString::checkType(arg)||
+      Stream<MLabel>::checkType(arg) ||
+      Stream<MString>::checkType(arg)){
+      return arg;
+   }
+   return listutils::typeError(errMsg);
 }
 
 /*
@@ -2487,61 +2635,58 @@ ListExpr compressTypeMap(ListExpr args) {
 
 */
 int compressSelect(ListExpr args) {
-  return ((listutils::isSymbol(nl->First(args), MLabel::BasicType())
-   || listutils::isSymbol(nl->First(args), MString::BasicType())) ? 0 : 1);
+   ListExpr arg = nl->First(args);
+   if(MLabel::checkType(arg)) return 0;
+   if(MString::checkType(arg)) return 1;
+   if(Stream<MLabel>::checkType(arg)) return 2;
+   if(Stream<MString>::checkType(arg)) return 3;
+   return -1;
 }
 
 /*
 \subsection{Value Mapping for operator ~compress~ (for a single MLabel)}
 
 */
+template<class T>
 int compressFun_1(Word* args, Word& result, int message, Word& local,
                   Supplier s){
-  MLabel* mlabel = static_cast<MLabel*>(args[0].addr);
-  if (mlabel->IsDefined()) {
-    mlabel->compress();
-  }
-  else {
-    cout << "Error: undefined MLabel." << endl;
-    mlabel->SetDefined(false);
-  }
-  result.addr = mlabel;
-  return 0;
+  T* mlabel = static_cast<T*>(args[0].addr);
+  result = qp->ResultStorage(s);
+  T* res  = (T*) result.addr;
+  T* tmp = mlabel->compress();
+  res->CopyFrom(tmp);
+  delete tmp;
+  return  0;
 }
 
 /*
 \subsection{Value Mapping for operator ~compress~ (for a stream of MLabels)}
 
 */
+template<class T>
 int compressFun_Str(Word* args, Word& result, int message, Word& local,
                   Supplier s){
-  Stream<MLabel> stream(args[0]);
-  MLabel* mlabel = 0;
+  
   switch (message) {
-    case OPEN:
-      stream.open();
-      mlabel = new MLabel(1);
-      local.addr = mlabel;
+    case OPEN:{
+      qp->Open(args[0].addr);
       return 0;
-    case REQUEST:
-      if (!local.addr) {
-        return CANCEL;
-      }
-      mlabel = stream.request();
-      if (mlabel) {
-        mlabel->compress();
-      }
-      else {
-        cout << "Error: undefined MLabel." << endl;
-        mlabel->SetDefined(false);
-        result.addr = 0;
-        return CANCEL;
-      }
-      result.addr = mlabel;
-      return result.addr ? YIELD : CANCEL;
-    case CLOSE:
-      local.addr = 0;
+    }  
+    case REQUEST:{
+     Word arg;
+     qp->Request(args[0].addr,arg);
+     if(qp->Received(args[0].addr)){
+       T* mlabel =(T*) arg.addr;
+       result.addr = mlabel->compress();
+       return YIELD;
+     } else {
+       return CANCEL;
+     }
+    }  
+    case CLOSE:{
+      qp->Close(args[0].addr); 
       return 0;
+    }  
   }
   return 0;
 }
@@ -2637,7 +2782,10 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       ValueMapping rewriteFuns[] = {rewriteFun_MT, rewriteFun_MP, 0};
       AddOperator(rewriteInfo(), rewriteFuns, rewriteSelect, rewriteTypeMap);
 
-      ValueMapping compressFuns[] = {compressFun_1, compressFun_Str, 0};
+      ValueMapping compressFuns[] = {compressFun_1<MLabel>,
+                                     compressFun_1<MString>,
+                                     compressFun_Str<MLabel>,
+                                     compressFun_Str<MString>, 0};
       AddOperator(compressInfo(), compressFuns, compressSelect,compressTypeMap);
 
       AddOperator(createmlInfo(), createmlFun, createmlTypeMap);

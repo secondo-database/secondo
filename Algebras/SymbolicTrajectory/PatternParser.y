@@ -78,8 +78,8 @@ unsigned int pos = 0;
 
 %token ZZEND
 %token<text> ZZVARIABLE ZZCONTENTS ZZWILDCARD ZZDOUBLESLASH ZZVAR_DOT_TYPE
-             ZZRIGHTARROW ZZCONST_OP ZZCONTENTS_RESULT ZZVAR_DOT_LABEL ZZASSIGN
-             ZZLABEL ZZERROR
+             ZZRIGHTARROW ZZCONST_OP ZZCONTENTS_RESULT ZZVAR_DOT_LABEL
+             ZZVAR_DOT_TIME ZZINTERVAL ZZASSIGN ZZLABEL ZZERROR
 %type<text> variable unitpattern conditionsequence condition expression
             resultsequence result assignment unitpattern_result
             results_assignments assignmentsequence
@@ -97,7 +97,9 @@ start : patternsequence ZZDOUBLESLASH conditionsequence ZZEND {
           cout << wholepat->toString();
         }
       | patternsequence ZZDOUBLESLASH conditionsequence ZZRIGHTARROW results_assignments ZZEND {
-          cout << wholepat->toString();
+          if (wholepat) {
+            cout << wholepat->toString();
+          }
         }
       ;
 
@@ -116,7 +118,7 @@ assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABEL {
                  label.assign(label.substr(1, label.size() - 2));
                }
                var.assign(var.substr(0, var.find('.')));
-               uPat.getUnit(convert(var), true);
+               uPat.getUnit(convert(var), false);
                if (!uPat.var.empty()) {
                  bool foundInRes(false);
                  unsigned int i = 0;
@@ -137,6 +139,31 @@ assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABEL {
                free($1);
                free($3);
              }
+           | ZZVAR_DOT_TIME ZZASSIGN ZZINTERVAL {
+               string var($1);
+               string interval($3);
+               var.assign(var.substr(0, var.find('.')));
+               uPat.getUnit(convert(var), false);
+               if (!uPat.var.empty()) {
+                 bool foundInRes(false);
+                 unsigned int i = 0;
+                 while (!foundInRes && (i < wholepat->results.size())) {
+                   if (!wholepat->results[i].var.compare(var)) {
+                     foundInRes = true;
+                   }
+                   else {
+                     i++;
+                   }
+                 }
+                 if (foundInRes) {
+                   wholepat->results[i].ivs.clear();
+                   wholepat->results[i].ivs.insert(interval);
+                 }
+                 cout << "unit added to assignments" << endl;
+               }
+               free($1);
+               free($3);
+             }
            ;
 
 resultsequence : result
@@ -144,7 +171,7 @@ resultsequence : result
                ;
 
 result : ZZVARIABLE unitpattern_result {
-           uPat.getUnit($1, false);
+           uPat.getUnit($1, true);
            if (!uPat.var.empty()) {
              uPat.createUnit($1, $2);
              uPat.wc = NO;
@@ -157,7 +184,7 @@ result : ZZVARIABLE unitpattern_result {
            free($2);
          }
        | ZZVARIABLE {
-           uPat.getUnit($1, false);
+           uPat.getUnit($1, true);
            if (!uPat.var.empty()) {
              uPat.lbs.clear();
              wholepat->results.push_back(uPat);
@@ -382,6 +409,7 @@ Pattern* stj::parseString(const char* input) {
   if (patternparse() != 0) {
     cout << "Error found, parsing aborted." << endl;
     parseSuccess = false;
+    delete wholepat;
     wholepat = 0;
   }
   else {
@@ -396,15 +424,12 @@ Pattern* stj::parseString(const char* input) {
 
 /*
 function ~getUnit~
-Searches var in the pattern and verifies the correct order of variables in the
+Searches varP in the pattern and verifies the correct order of variables in the
 result pattern. In case of success, the unit pattern gets the suitable values.
 
 */
-void UPat::getUnit(const char *varP, bool assign) {
-  if (firstAssign) {
-    pos = 0;
-  }
-  if (assign && firstAssign) {
+void UPat::getUnit(const char *varP, bool order) {
+  if (!order || firstAssign) {
     pos = 0; // reset counter for first assignment
     firstAssign = false;
   }
@@ -517,9 +542,9 @@ void Condition::substitute() {
   textSubst.assign(text);
   while (i < keys.size()) {
     varKey.assign(vars[i]);
-    varKey.append(types[keys[i]]);
+    varKey.append(getType(keys[i]));
     int pos = textSubst.find(varKey);
-    textSubst.replace(pos, varKey.size(), subst[keys[i]]);
+    textSubst.replace(pos, varKey.size(), getSubst(keys[i]));
     i++;
   }
 }

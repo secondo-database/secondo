@@ -53,12 +53,12 @@ plus \+
 wildcard {star}|{plus}
 date {si}(-{ui}(-{ui}(-{ui}(\:{ui})(\:{ui}(\.{ui})?)?)?)?)?
 time {ui}\:{ui}(\:{ui}(\.{ui})?)?
-interval ({date}(\~{date})?)|\~{date}|{date}\~|([a-zA-Z_][a-zA-Z0-9_]*)|\~{time}|{time}\~|{time}\~{time}
+interval ({date}(\~{date})?)|\~{date}|{date}\~|([a-z_][a-zA-Z0-9_]*)|\~{time}|{time}\~|{time}\~{time}
 intervalset {interval}|(\{{interval}(\,[ ]*{interval})*\})
 label ([a-zA-Z_\-][a-zA-Z0-9_\-]*)|\"[a-zA-Z0-9\. \ß\ä\ö\ü\Ä\Ö\Ü\/\(\)\[\]\{\}_\-]*\"
 labelset {label}|(\{{label}(\,[ ]*{label})*\})
 contents {intervalset}[\ ]+{labelset}
-contents_result _[ ]+{labelset}
+contents_result {interval}[\ ]+{label}
 variable [A-Z]{1,2}[0-9]*
 doubleslash \/{2}
 conditiontype label|time|start|end|card
@@ -66,6 +66,7 @@ vardottype {variable}\.{conditiontype}
 rightarrow =>
 const_op ([^A-Z\(\)\[\]\,\t\n ][^\(\)\[\]\,\t\n ]*)|TRUE|FALSE
 vardotlabel {variable}\.label
+vardottime {variable}\.time
 assign \:=
 
 %option yylineno
@@ -96,8 +97,10 @@ assign \:=
 <result>{doubleslash} {BEGIN(assignment); return ZZDOUBLESLASH;}
 <result>\n {BEGIN(INITIAL); return ZZEND;}
 <assignment>{vardotlabel} {patternlval.text = strdup(patterntext); return ZZVAR_DOT_LABEL;}
+<assignment>{vardottime} {patternlval.text = strdup(patterntext); return ZZVAR_DOT_TIME;}
 <assignment>{assign} {return ZZASSIGN;}
 <assignment>{label} {patternlval.text = strdup(patterntext); return ZZLABEL;}
+<assignment>{interval} {patternlval.text = strdup(patterntext); return ZZINTERVAL;}
 <assignment>\, {return ',';}
 <assignment>\n {BEGIN(INITIAL); return ZZEND;}
 . {patternlval.text = strdup(patterntext); return ZZERROR;}

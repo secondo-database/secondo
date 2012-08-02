@@ -71,7 +71,6 @@ Splits a string {a, b, c, ...} into a set of strings a, b, c, ...
 
 */
 set<string> stringToSet(string input) {
-  cout << "stringToSet called with string " << input << endl;
   string element, contents(input);
   int limitpos;
   set<string> result;
@@ -84,7 +83,6 @@ set<string> stringToSet(string input) {
   }
   while (!contents.empty()) {
     contents.erase(0, contents.find_first_not_of(", "));
-    cout << "contents=" << contents << endl;
     if (contents.at(0) == '\"') {
       limitpos = contents.find('\"', 1);
       element = contents.substr(1, limitpos - 1);
@@ -125,7 +123,6 @@ string setToString(set<string> input) {
 }
 
 vector<string> splitPattern(string input) {
-  cout << "splitPattern called with string \"" << input << "\"" << endl;
   vector<string> result;
   if (!input.size()) {
     return result;
@@ -153,10 +150,6 @@ vector<string> splitPattern(string input) {
     result.push_back(input.substr(0, input.find(' ')));
     result.push_back(input.substr(input.find(' ')));
   }
-  for (unsigned int i = 0; i < result.size(); i++) {
-    cout << "|" << result[i] << "|";
-  }
-  cout << endl;
   return result;
 }
 

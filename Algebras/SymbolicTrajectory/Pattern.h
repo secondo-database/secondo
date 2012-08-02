@@ -39,6 +39,7 @@ This is the header file for the Symbolic Trajectory Algebra.
 #include "SymbolicTrajectoryTools.h"
 #include "StandardTypes.h"
 #include "TemporalAlgebra.h"
+#include "ListUtils.h"
 #include <string>
 #include <set>
 
@@ -67,9 +68,12 @@ class MLabel : public MString {
     static const string BasicType() {
       return "mlabel";
     }
+    static bool checkType(ListExpr t){
+       return listutils::isSymbol(t,BasicType());
+    }  
     static ListExpr MLabelProperty();
     static bool CheckMLabel(ListExpr type, ListExpr& errorInfo);
-    void compress();
+    MLabel* compress();
     void create(int size);
     void rewrite(MLabel const &ml, vector<size_t> seq, vector<UPat> assigns);
 };
@@ -100,29 +104,12 @@ class Condition {
  public:
   string text;
   string textSubst; // the condition after replacing, see maps below
-  map<int, string> types;
   map<int, string> subst;
   vector<Key> keys;
   vector<string> vars;
   vector<int> pIds;
-  set<string> falseExprs; // strings whose evaluation yields a negative/positive
-  set<string> trueExprs; // result are stored in these sets
 
-  Condition() {
-    types[0] = ".label";
-    types[1] = ".time";
-    types[2] = ".start";
-    types[3] = ".end";
-    types[4] = ".card";
-    types[5] = ".ERROR";
-    subst[0] = "\"a\"";
-    subst[1] = "[const periods value ((\"2003-11-20-07:01:40\" "
-               "\"2003-11-20-07:45\" TRUE TRUE))]";
-    subst[2] = "[const instant value \"1909-12-19\"]";
-    subst[3] = "[const instant value \"2012-05-12\"]";
-    subst[4] = "1";
-    subst[5] = "";
-  }
+  Condition() {}
 
   ~Condition() {}
   
@@ -131,6 +118,8 @@ class Condition {
   void clear();
   void substitute();
   void substitute(unsigned int pos, string subst);
+  static string getType(int t);
+  static string getSubst(int s);
 };
 
 class UPat {
@@ -205,6 +194,12 @@ class Pattern {
   set<vector<size_t> > getRewriteSequences(MLabel const &ml);
 };
 
+struct DoubleParsInfo {
+  int pId;
+  size_t start;
+  size_t length;
+};
+
 class NFA {
  private:
   set<int> **delta; // 1st coord: old state; 2nd coord: unit pattern id;
@@ -212,7 +207,6 @@ class NFA {
   set<int> currentStates;
   vector<UPat> patterns;
   vector<Condition> conds;
-  //bool *relevantPos; // stores the positions of unit patterns with a var
   int f; // number of the final state
   ULabel ul;
   size_t ulId, maxLabelId;
@@ -223,6 +217,9 @@ class NFA {
   set<vector<size_t> > rewriteSeqs; // matching sequences for rewriting
   vector<int> resultVars; // [3, 1] means: 1st result var is the one from the
                           // 3rd up, 2nd result var is the one from the 1st up
+  set<int> doublePars; // positions of nonempty patterns in double parentheses
+  set<string> falseExprs; // strings whose evaluation yields a negative/positive
+  set<string> trueExprs;  // result are stored in these sets
 
  public:
   NFA(const int size) {
@@ -246,7 +243,6 @@ class NFA {
     delete[] delta;
     delete[] matchings;
     delete[] cardsets;
-    //delete[] relevantPos;
   }
 
   void buildNFA(Pattern p);
@@ -260,6 +256,8 @@ class NFA {
   bool labelsMatch(int pos);
   bool timesMatch(int pos);
   void computeCardsets();
+  void processDoublePars(int pos);
+  bool checkDoublePars(multiset<size_t> sequence);
   void buildSequences();
   void filterSequences(MLabel const &ml);
   void buildRewriteSequence(multiset<size_t> sequence);
@@ -294,6 +292,11 @@ class RewriteResult {
   bool finished() {
     return (it == sequences.end());
   }
+
+  void killMLabel(){
+     delete inputML;
+     inputML=0;
+  }  
 
   MLabel getML() {
     return *inputML;
