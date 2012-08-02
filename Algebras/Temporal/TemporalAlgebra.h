@@ -3307,6 +3307,17 @@ and ~m~ is the number of intervals of the periods ~Y~
     bool Present( const Instant& t ) const;
     bool Present( const Periods& periods ) const;
 
+
+/*
+3.10.5.4 Operator compress
+
+Creates a compressed version of this mapping.
+ 
+*/
+   Mapping<Unit,Alpha>* compress() const;
+
+    
+
 /*
 3.10.5.3 Operation ~passes~
 
@@ -6570,6 +6581,24 @@ int Mapping<Unit, Alpha>::Position( const Instant& t ) const
     }
     return -1;
 }
+
+template<class Unit, class Alpha>
+Mapping<Unit,Alpha>* Mapping<Unit,Alpha>::compress() const{
+    Mapping<Unit,Alpha>* result = new Mapping<Unit,Alpha>(GetNoComponents());
+    if(!IsDefined()){
+      result->SetDefined(false);
+      return result;
+    }
+    result->SetDefined(true);
+    Unit u;
+    for(int i=0;i<GetNoComponents();i++){
+       Get(i,u);
+       result->MergeAdd(u);
+    }  
+    return result;
+}
+
+
 
 template <class Unit, class Alpha>
 void Mapping<Unit, Alpha>::AtInstant( const Instant& t,
