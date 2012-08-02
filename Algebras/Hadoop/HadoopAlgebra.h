@@ -37,6 +37,20 @@ used in HadoopAlgebra.
 #ifndef HADOOPALGEBRA_H_
 #define HADOOPALGEBRA_H_
 
+/*
+Select different collect option.
+
+  * COLLECTONE: Copy files one by one, read after all files are got
+
+  * COLLECTTWO: Copy files with parallel threads, read after all files are got
+
+  * COLLECTTHREE: Copy files with parallel threads, read when one file is available
+
+*/
+//#define COLLECTONE
+//#define COLLECTTWO
+#define COLLECTTHREE
+
 #include "../HadoopParallel/HadoopParallelAlgebra.h"
 #include <pthread.h>
 
@@ -286,8 +300,15 @@ public:
   bool fetchAllPartFiles();
   bool fetchAllPartFiles2();
   //Copy files in pipeline
+  static void* fetchAllPartFiles3(void* ptr);
+  //Copy files in pipeline, with an independent thread
 
   Tuple* getNextTuple();
+  Tuple* getNextTuple3();
+
+  size_t getRow(){ return row; }
+  size_t getColumn(){ return column; }
+  fList* getFileList(){ return fileList;}
 
 private:
   fList* fileList;
@@ -301,6 +322,9 @@ private:
   pthread_t threadID[PipeWidth];
   bool tokenPass[PipeWidth];
   bool *fileStatus;
+  pthread_t faf_TID;
+  size_t fIdx;
+
 
   bool partFileOpened();
   static void* tCopyFile(void* ptr);

@@ -581,6 +581,9 @@ size_t fList::getPartitionFileLoc(
     size_t row, vector<string>& locations)
 {
   if (!isAvailable()){
+    cerr << "not available"
+        << " with " << objKind << "," << (isDistributed?"T":"F")
+        << endl;
     return 0;
   }
 
@@ -1582,7 +1585,14 @@ int CollectValueMap(Word* args, Word& result,
         cli = 0;
       }
       cli = new CollectLocalInfo(partitionFileList, row, column);
+
+#ifndef COLLECTTHREE
+
+#ifdef COLLECTONE
+      if (cli->fetchAllPartFiles()){
+#elif defined(COLLECTTWO)
       if (cli->fetchAllPartFiles2()){
+#endif
         local.setAddr(cli);
       }
       else{
@@ -1590,7 +1600,9 @@ int CollectValueMap(Word* args, Word& result,
         cli = 0;
         local.setAddr(Address(0));
       }
+#endif
 
+      local.setAddr(cli);
       return 0;
     }
     case REQUEST: {
@@ -1598,7 +1610,12 @@ int CollectValueMap(Word* args, Word& result,
         return CANCEL;
 
       cli = (CollectLocalInfo*)local.addr;
+
+#ifdef COLLECTTHREE
+      result.setAddr(cli->getNextTuple3());
+#else
       result.setAddr(cli->getNextTuple());
+#endif
       if ( 0 == result.addr)
       {
         return CANCEL;
@@ -1635,8 +1652,14 @@ CollectLocalInfo::CollectLocalInfo(fList* _fl, size_t _r, size_t _c):
   ListExpr resultTypeList =
       sc->NumericType(typeList.second().listExpr());
   resultType = new TupleType(resultTypeList);
+
+#ifdef COLLECTTHREE
+  pthread_create(&faf_TID, NULL, fetchAllPartFiles3, this);
+  fIdx = 0;
+#endif
 }
 
+#ifdef COLLECTONE
 bool CollectLocalInfo::fetchAllPartFiles()
 {
   //According to the accepted row and column number,
@@ -1741,6 +1764,7 @@ bool CollectLocalInfo::fetchAllPartFiles()
   }
   return true;
 }
+#endif
 
 /*
 Prepare to replace the fetchAllPartFiles function,
@@ -1748,6 +1772,7 @@ using pipeline to copy files in parallel, instead of sequentially.
 
 
 */
+#ifdef COLLECTTWO
 bool CollectLocalInfo::fetchAllPartFiles2()
 {
 
@@ -1796,7 +1821,63 @@ bool CollectLocalInfo::fetchAllPartFiles2()
 
   return true;
 }
+#endif
 
+#ifdef COLLECTTHREE
+void* CollectLocalInfo::fetchAllPartFiles3(void* ptr)
+{
+  CollectLocalInfo* cli = (CollectLocalInfo*)ptr;
+  size_t row = cli->getRow();
+
+  size_t rBegin = ( row == 0 ) ? 1 : row,
+         rEnd   = ( row == 0 ) ? cli->getFileList()->getMtxRowNum() : row;
+
+  pthread_t threadID[PipeWidth];
+  cli->fileStatus = new bool[(rEnd - rBegin + 1)];
+  memset(cli->tokenPass, false, PipeWidth);
+  pthread_mutex_init(&CLI_mutex,NULL);
+
+  for (size_t ri = rBegin; ri <= rEnd;)
+  {
+    //For each row, start an independent thread to copy it from remote computer,
+    //if it does not exist in the present one.
+    for (int token = 0; token < PipeWidth; token++)
+    {
+      //All rows are visited
+      if ( ri > rEnd)
+        break;
+
+      if (!cli->tokenPass[token] || pthread_kill(cli->threadID[token], 0))
+      {
+        cli->tokenPass[token] = true;
+        CLI_Thread* ct = new CLI_Thread(cli, ri, token);
+        pthread_create(&threadID[token], NULL, tCopyFile, ct);
+        ri++;
+      }
+    }
+  }
+
+  for (int token = 0; token < PipeWidth; token++)
+  {
+    //Wait until all copy threads finishes
+    if (cli->tokenPass[token]){
+      pthread_join(threadID[token], NULL);
+    }
+  }
+
+  for (size_t ri = 0; ri <(rEnd - rBegin + 1); ri++){
+    if (!cli->fileStatus[ri]){
+      //It is possible that some rows are empty,
+      //hence only the warning message instead of error message is given.
+      cerr << "Warning! Row " << (rBegin + ri) << " is not prepared" << endl;
+    }
+  }
+
+  return NULL;
+}
+#endif
+
+#if (defined(COLLECTTWO) || defined(COLLECTTHREE))
 void* CollectLocalInfo::tCopyFile(void* ptr)
 {
   //Copy thread function
@@ -1814,13 +1895,11 @@ void* CollectLocalInfo::tCopyFile(void* ptr)
   string subName;
   vector<int> allColumns;
   pthread_mutex_lock(&CLI_mutex);
-  {
     cand = fileList->getPartitionFileLoc(ri, remotePaths);
     ListExpr cpl = nl->CopyList(fileList->getColumnList(ri).listExpr(), nl);
     columnList = NList(cpl);
 
     subName = fileList->getSubName();
-  }
   pthread_mutex_unlock(&CLI_mutex);
 
   if ( cand > 0)
@@ -1939,7 +2018,9 @@ void* CollectLocalInfo::tCopyFile(void* ptr)
 
   return NULL;
 }
+#endif
 
+#if (defined(COLLECTONE) || defined(COLLECTTWO))
 bool CollectLocalInfo::partFileOpened()
 {
   if (0 == inputFile){
@@ -2022,6 +2103,85 @@ Tuple* CollectLocalInfo::getNextTuple()
   }
   return t;
 }
+#endif
+
+#ifdef COLLECTTHREE
+Tuple* CollectLocalInfo::getNextTuple3()
+{
+  Tuple* t = 0;
+  if (inputFile != 0)
+  {
+    t = readTupleFromFile(inputFile, resultType);
+    if ( t == 0 ){
+      inputFile->close();
+      delete inputFile;
+      inputFile = 0;
+    }
+    else
+      return t;
+  }
+
+  string inputFileName = "";
+  while(true)
+  {
+    if (inputFileName.length() != 0){
+      inputFile = new ifstream(inputFileName.c_str(), ios::binary);
+
+      if (!inputFile->good()){
+        cerr << "ERROR! Read file " << inputFileName << " fail.\n\n";
+        inputFile = 0;
+        return 0;
+      }
+
+      //Read the description list
+      u_int32_t descSize;
+      size_t fileLength;
+      inputFile->seekg(0, ios::end);
+      fileLength = inputFile->tellg();
+      inputFile->seekg((fileLength - sizeof(descSize)), ios::beg);
+      inputFile->read((char*)&descSize, sizeof(descSize));
+
+      char descStr[descSize];
+      inputFile->seekg((fileLength - (descSize + sizeof(descSize))),
+          ios::beg);
+      inputFile->read(descStr, descSize);
+      inputFile->seekg(0, ios::beg);
+      NList descList = NList(binDecode(string(descStr)));
+      if (descList.isEmpty()){
+        cerr << "ERROR! Format error with fetched file "
+            << inputFileName << endl;
+        inputFile->close();
+        delete inputFile;
+        inputFile = 0;
+        return 0;
+      }
+
+      t = readTupleFromFile(inputFile, resultType);
+      if ( t == 0 ){
+        cerr << "Waring! File " << inputFileName
+            << " is empty! " << endl;
+        inputFile->close();
+        delete inputFile;
+        inputFile = 0;
+      }
+      else
+        return t;
+    }
+    else if (partFiles.size() > 0 && fIdx < partFiles.size()){
+      inputFileName = partFiles[fIdx];
+      fIdx++;
+    }
+
+    if (pthread_kill(faf_TID, 0)
+        && (fIdx >= partFiles.size())
+        && inputFileName.length() == 0){
+      break;
+    }
+  }
+
+  return 0;
+}
+#endif
 
 Operator collectOp(CollectInfo(), CollectValueMap, CollectTypeMap);
 
@@ -2546,9 +2706,9 @@ void* PFFeedLocalInfo::tCopyFile(void* ptr)
 //      cerr << "WANT file " << lPath << " from " << rPath << endl;
 //      pthread_mutex_unlock(&CLI_mutex);
       while (copyTimes-- > 0){
-	if (0 == system((scpCommand + rPath + " " + lPath).c_str())){
+        if (0 == system((scpCommand + rPath + " " + lPath).c_str())){
           break;
-	}
+        }
       }
     }
 
