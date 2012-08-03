@@ -115,7 +115,7 @@ void NetworkAdapter::GetSectionsOfRoute(
 
     if (pRouteCurve != NULL &&
         pRouteCurve->IsDefined() &&
-        MMUtil::Intersects(rRegion, *pRouteCurve))  // TODO
+        MMUtil::Intersects(rRegion, *pRouteCurve))
     {
         RouteInterval Interval(nRouteID, 0.0,
                 std::numeric_limits<double>::max());

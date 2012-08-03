@@ -1688,24 +1688,6 @@ void MapMatchingMHT::AddAdjacentSections(
         }
     }
 
-#if 0 // TODO endless recursion
-    if (bCorrectUTurn)
-    {
-        // make copy of current candidate
-        MHTRouteCandidate* pNewCandidate = new MHTRouteCandidate(*pCandidate);
-        if (!pNewCandidate->CorrectUTurn())
-        {
-            delete pNewCandidate;
-        }
-        else
-        {
-            rvecNewRouteCandidates.push_back(pNewCandidate);
-        }
-        // U-Turn - don't add adjacent sections
-        return;
-    }
-#endif
-
     vector<shared_ptr<IMMNetworkSection> > vecAdjSections;
     pSection->GetAdjacentSections(bUpDown, vecAdjSections);
 

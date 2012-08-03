@@ -184,7 +184,7 @@ double ONetworkSectionAdapter::GetCurveLength(const double dScale) const
 
 bool ONetworkSectionAdapter::GetCurveStartsSmaller(void) const
 {
-    if (m_pEdge != NULL) // TODO
+    if (m_pEdge != NULL)
         return m_pEdge->GetCurve()->GetStartSmaller();
     else
         return true;
@@ -210,17 +210,7 @@ IMMNetworkSection::EDirection ONetworkSectionAdapter::GetDirection(void) const
 {
     if (m_pEdge != NULL)
     {
-        return DIR_UP; // TODO
-        /*switch(m_pEdge->GetDirection())
-        {
-        case DirectedNetworkSection::DIR_UP:
-            return DIR_UP;
-        case DirectedNetworkSection::DIR_DOWN:
-            return DIR_DOWN;
-        case DirectedNetworkSection::DIR_NONE:
-        default:
-            return DIR_NONE;
-        }*/
+        return DIR_UP;
     }
     else
     {

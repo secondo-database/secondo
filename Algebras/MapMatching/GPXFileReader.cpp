@@ -128,32 +128,6 @@ bool GPXFileReader::Open(std::string strFileName)
     return true;
 }
 
-/*
-3.3 GPXFileReader::DoRead
-    Reading of GPX file
-
-*/
-
-/*bool GPXFileReader::DoRead(std::string strFileName, double dScale)
-{
-    if (!Open(strFileName))
-        return false;
-
-    m_dScale = dScale;
-
-    xmlNodePtr pCurNode = GetFirstTrkNode();
-    while (pCurNode != NULL)
-    {
-        ParseTrk(pCurNode);
-
-        pCurNode = GetNextTrkNode(pCurNode);
-    }
-
-    Finalize();
-
-    return true;
-}*/
-
 void GPXFileReader::ParseTrk(xmlNodePtr pNode)
 {
     if (pNode == NULL)

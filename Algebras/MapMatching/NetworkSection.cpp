@@ -369,29 +369,11 @@ bool DirectedNetworkSection::operator==
 
 Point DirectedNetworkSection::GetStartPoint(void) const
 {
-    return NetworkSection::GetStartPoint(); // TODO
-
-    if (GetDirection() == DirectedNetworkSection::DIR_DOWN)
-    {
-        return NetworkSection::GetEndPoint();
-    }
-    else
-    {
-        return NetworkSection::GetStartPoint();
-    }
+    return NetworkSection::GetStartPoint();
 }
 
 Point DirectedNetworkSection::GetEndPoint(void) const
 {
-    return NetworkSection::GetEndPoint(); // TODO
-
-    /*if (GetDirection() == DirectedNetworkSection::DIR_DOWN)
-    {
-        return NetworkSection::GetStartPoint();
-    }
-    else
-    {
-        return NetworkSection::GetEndPoint();
-    }*/
+    return NetworkSection::GetEndPoint();
 }
 
