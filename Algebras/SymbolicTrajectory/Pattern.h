@@ -264,6 +264,7 @@ class NFA {
   void computeResultVars(vector<UPat> results);
   set<vector<size_t> > getRewriteSequences();
   bool conditionsMatch(MLabel const &ml);
+  bool evaluateEmptyML();
   void buildCondMatchings(unsigned int condId, multiset<size_t> sequence);
   bool evaluateCond(MLabel const &ml, unsigned int condId,
                     multiset<size_t> sequence);

@@ -419,11 +419,13 @@ bool evaluate(string input, const bool eval) {
         else {
           cout << nl->ToString(nl->First(nl->Rest(queryList))) << endl;
           if (eval) { // evaluate the condition
-            if (!qp->ExecuteQuery(nl->ToString(nl->First(nl->Rest(queryList))),
-                                  queryResult)) {
+            string query = nl->ToString(nl->First(nl->Rest(queryList)));
+            cout << "execute query '" << query << "'" << endl;
+            if (!qp->ExecuteQuery(query, queryResult)) {
               cout << "execution error" << endl;
             }
             else {
+              cout << "query successful processed" << endl;
               CcBool *ccResult = static_cast<CcBool*>(queryResult.addr);
               isTrue = ccResult->GetValue();
               ccResult->DeleteIfAllowed();

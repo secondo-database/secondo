@@ -409,10 +409,9 @@ them to one ULabel.
 MLabel* MLabel::compress() {
   MLabel* newML = new MLabel(1);
   if(!IsDefined()){
-     newML->SetDefined(false);
+    newML->SetDefined(false);
     return newML;
-  }  
-  
+  }
   ULabel ul(1);
   for (size_t i = 0; i < (size_t)this->GetNoComponents(); i++) {
     this->Get(i, ul);
@@ -466,9 +465,9 @@ void MLabel::create(int size) {
 }
 
 /*
-\subsubsection{Function ~build~}
+\subsubsection{Function ~rewrite~}
 
-Builds a moving label from another moving label and a vector.
+Rewrites a moving label from another moving label and a vector.
 
 */
 void MLabel::rewrite(MLabel const &ml, vector<size_t> seq,
@@ -1577,13 +1576,22 @@ the matching procedure ends after the unit pattern test.
 */
 bool NFA::match(MLabel const &ml, bool rewrite) {
   maxLabelId = (size_t)ml.GetNoComponents() - 1;
-  for (size_t i = 0; i <= maxLabelId; i++) {
-    ml.Get(i, ul);
-    ulId = i;
-    updateStates();
-    if (currentStates.empty()) {
-      cout << "no current state" << endl;
-      return false;
+  if (ml.GetNoComponents()) {
+    for (size_t i = 0; i <= maxLabelId; i++) {
+      ml.Get(i, ul);
+      ulId = i;
+      updateStates();
+      if (currentStates.empty()) {
+        cout << "no current state" << endl;
+        return false;
+      }
+    }
+  }
+  else { // empty MLabel
+    int pos = 0;
+    while (patterns[pos].wc == STAR) {
+      currentStates.insert(pos + 1);
+      pos++;
     }
   }
   if (!currentStates.count(f)) { // is the final state active?
@@ -2075,10 +2083,14 @@ condition.
 
 */
 bool NFA::conditionsMatch(MLabel const &ml) {
+  cout << "conditionsMatch called, #elem = " << ml.GetNoComponents() << endl;
   bool proceed(false);
   set<multiset<size_t> >::iterator it;
   if (conds.empty()) {
     return true;
+  }
+  if (!ml.GetNoComponents()) { // empty MLabel
+    return evaluateEmptyML();
   }
   for (unsigned int i = 0; i < conds.size(); i++) {
     it = sequences.begin();
@@ -2105,6 +2117,24 @@ bool NFA::conditionsMatch(MLabel const &ml) {
   }
   cout << "Matching ok, " << sequences.size() << " remaining." << endl;
   return !sequences.empty();
+}
+
+bool NFA::evaluateEmptyML() {
+  for (unsigned int i = 0; i < conds.size(); i++) {
+    conds[i].textSubst.assign(conds[i].text); // reset
+    for (unsigned int j = 0; j < conds[i].keys.size(); j++) {
+      if (conds[i].keys[j] < 4) { // only card conditions possible
+        cout << "Error: Only cardinality conditions allowed" << endl;
+        return false;
+      }
+      conds[i].substitute(j, "0");
+    }
+    if (!evaluate(conds[i].textSubst, true)) {
+      return false;
+    }
+  }
+  cout << "conditions ok" << endl;
+  return true;
 }
 
 /*
@@ -2267,36 +2297,24 @@ void Condition::substitute(unsigned int pos, string subst){
 
 string Condition::getType(int t) {
   switch (t) {
-    case 0:
-      return ".label";
-    case 1:
-      return ".time";
-    case 2:
-      return ".start";
-    case 3:
-      return ".end";
-    case 4:
-      return ".card";
-    default:
-      return ".ERROR";
+    case 0: return ".label";
+    case 1: return ".time";
+    case 2: return ".start";
+    case 3: return ".end";
+    case 4: return ".card";
+    default: return ".ERROR";
   }
 }
 
 string Condition::getSubst(int s) {
   switch (s) {
-    case 0:
-      return "\"a\"";
-    case 1:
-      return "[const periods value ((\"2003-11-20-07:01:40\" "
-               "\"2003-11-20-07:45\" TRUE TRUE))]";
-    case 2:
-      return "[const instant value \"1909-12-19\"]";
-    case 3:
-      return "[const instant value \"2012-05-12\"]";
-    case 4:
-      return "1";
-    default:
-      return "";
+    case 0: return "\"a\"";
+    case 1: return "[const periods value ((\"2003-11-20-07:01:40\" "
+                   "\"2003-11-20-07:45\" TRUE TRUE))]";
+    case 2: return "[const instant value \"1909-12-19\"]";
+    case 3: return "[const instant value \"2012-05-12\"]";
+    case 4: return "1";
+    default: return "";
   }
 }
 
@@ -2616,18 +2634,15 @@ struct rewriteInfo : OperatorInfo {
 ListExpr compressTypeMap(ListExpr args) {
   const string errMsg
           = "Expecting mlabel or mstring or stream(mlabel) or stream(mstring).";
-
-   if(!nl->HasLength(args,1)){
-      return listutils::typeError(errMsg);
-   }
-   ListExpr arg = nl->First(args);
-   if(MLabel::checkType(arg) ||
-      MString::checkType(arg)||
-      Stream<MLabel>::checkType(arg) ||
-      Stream<MString>::checkType(arg)){
-      return arg;
-   }
-   return listutils::typeError(errMsg);
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError(errMsg);
+  }
+  ListExpr arg = nl->First(args);
+  if (MLabel::checkType(arg) || MString::checkType(arg)
+   || Stream<MLabel>::checkType(arg) || Stream<MString>::checkType(arg)) {
+    return arg;
+  }
+  return listutils::typeError(errMsg);
 }
 
 /*
@@ -2635,12 +2650,12 @@ ListExpr compressTypeMap(ListExpr args) {
 
 */
 int compressSelect(ListExpr args) {
-   ListExpr arg = nl->First(args);
-   if(MLabel::checkType(arg)) return 0;
-   if(MString::checkType(arg)) return 1;
-   if(Stream<MLabel>::checkType(arg)) return 2;
-   if(Stream<MString>::checkType(arg)) return 3;
-   return -1;
+  ListExpr arg = nl->First(args);
+  if (MLabel::checkType(arg)) return 0;
+  if (MString::checkType(arg)) return 1;
+  if (Stream<MLabel>::checkType(arg)) return 2;
+  if (Stream<MString>::checkType(arg)) return 3;
+  return -1;
 }
 
 /*
@@ -2652,7 +2667,7 @@ int compressFun_1(Word* args, Word& result, int message, Word& local,
                   Supplier s){
   T* mlabel = static_cast<T*>(args[0].addr);
   result = qp->ResultStorage(s);
-  T* res  = (T*) result.addr;
+  T* res = (T*)result.addr;
   T* tmp = mlabel->compress();
   res->CopyFrom(tmp);
   delete tmp;
@@ -2666,27 +2681,27 @@ int compressFun_1(Word* args, Word& result, int message, Word& local,
 template<class T>
 int compressFun_Str(Word* args, Word& result, int message, Word& local,
                   Supplier s){
-  
   switch (message) {
-    case OPEN:{
+    case OPEN: {
       qp->Open(args[0].addr);
       return 0;
     }  
-    case REQUEST:{
-     Word arg;
-     qp->Request(args[0].addr,arg);
-     if(qp->Received(args[0].addr)){
-       T* mlabel =(T*) arg.addr;
-       result.addr = mlabel->compress();
-       return YIELD;
-     } else {
-       return CANCEL;
-     }
-    }  
+    case REQUEST: {
+      Word arg;
+      qp->Request(args[0].addr,arg);
+      if (qp->Received(args[0].addr)) {
+        T* mlabel =(T*) arg.addr;
+        result.addr = mlabel->compress();
+        return YIELD;
+      }
+      else {
+        return CANCEL;
+      }
+    }
     case CLOSE:{
       qp->Close(args[0].addr); 
       return 0;
-    }  
+    }
   }
   return 0;
 }
