@@ -432,7 +432,8 @@ bool evaluate(string input, const bool eval) {
             }
           }
           else { // check the result type
-            qp->Construct(nl->First(nl->Rest(queryList)), correct, evaluable,
+            QueryProcessor* qpp = new QueryProcessor(nl,am);
+            qpp->Construct(nl->First(nl->Rest(queryList)), correct, evaluable,
                           defined, isFunction, tree, resultType);
             if (!correct) {
               cout << "type error" << endl;
@@ -446,6 +447,11 @@ bool evaluate(string input, const bool eval) {
             else {
               isBool = true;
             }
+            if(tree){
+               qpp->Destroy(tree,true);
+            }
+            delete qpp;
+
           }
         }
       }
