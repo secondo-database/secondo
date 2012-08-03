@@ -1847,7 +1847,7 @@ void* CollectLocalInfo::fetchAllPartFiles3(void* ptr)
       if ( ri > rEnd)
         break;
 
-      if (!cli->tokenPass[token] || pthread_kill(cli->threadID[token], 0))
+      if (!cli->tokenPass[token] || pthread_kill(threadID[token], 0))
       {
         cli->tokenPass[token] = true;
         CLI_Thread* ct = new CLI_Thread(cli, ri, token);
@@ -1895,11 +1895,12 @@ void* CollectLocalInfo::tCopyFile(void* ptr)
   string subName;
   vector<int> allColumns;
   pthread_mutex_lock(&CLI_mutex);
-    cand = fileList->getPartitionFileLoc(ri, remotePaths);
-    ListExpr cpl = nl->CopyList(fileList->getColumnList(ri).listExpr(), nl);
-    columnList = NList(cpl);
 
-    subName = fileList->getSubName();
+  cand = fileList->getPartitionFileLoc(ri, remotePaths);
+  ListExpr cpl = nl->CopyList(fileList->getColumnList(ri).listExpr(), nl);
+  columnList = NList(cpl);
+
+  subName = fileList->getSubName();
   pthread_mutex_unlock(&CLI_mutex);
 
   if ( cand > 0)
