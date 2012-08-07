@@ -98,5 +98,8 @@ operator getQueryNL alias GETQUERYNL pattern op()
 operator getOpTreeNL alias GETOPTREENL pattern op()
 operator getOpName alias GETOPNAME pattern op()
 
+operator regexmatches alias REGEXMATCHES pattern op(_,_)
+operator startsReg alias STARTSREG pattern op(_,_)
+
 
 

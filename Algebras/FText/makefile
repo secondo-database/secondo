@@ -40,6 +40,8 @@ CCFLAGS += $(ALG_INC_DIRS)
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
+
+OBJECTS += RegExParser.o RegExScanner.o
 .PHONY: all
 all: check_dependencies $(OBJECTS) $(LIBOBJ)
 
@@ -52,6 +54,18 @@ ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
 endif
 
+RegExScanner.o: RegExScanner.c
+	$(CC) -c $(ALG_INC_DIRS) -I../../include -o RegExScanner.o RegExScanner.c
+
+RegExScanner.c: RegExScanner.l RegExParser.y.c
+	$(LEX) -o RegExScanner.c RegExScanner.l
+
+RegExParser.o:  RegExParser.y.c
+	$(CC) -x c++ -c -o RegExParser.o  $(ALG_INC_DIRS) -I../../include RegExParser.y.c
+
+RegExParser.y.c: RegExParser.y 
+	$(YACC) -d -o RegExParser.y.c RegExParser.y
+
 
 # generic rule for creating a library
 $(LIBOBJ): $(OBJECTS)
@@ -61,3 +75,4 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
+	rm -f RegExParser.y.c RegExScanner.c RegExParser.y.h 

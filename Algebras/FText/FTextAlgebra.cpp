@@ -55,6 +55,10 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 1.1 Includes
 
 */
+
+#include "RegExPattern.h"
+#include "RegExPattern2.h"
+
 #include <cstring>
 #include <iostream>
 #include <sstream>
@@ -548,6 +552,28 @@ TypeConstructor svg(
   CastFText,                    //cast function
   SizeOfFText,                  //sizeof function
   CheckSVG );                 //kind checking function
+
+
+GenTC<RegExPattern> regexPattern;
+
+
+TypeConstructor regexPattern2(
+  RegExPattern2::BasicType(),   //name of the type
+  RegExPattern2::Property,      //property function describing signature
+  RegExPattern2::Out,           // out function
+  RegExPattern2::In,           //In function
+  0,           0,               //SaveToList and RestoreFromList functions
+  RegExPattern2::Create,     //object creation and deletion
+  RegExPattern2::Delete,
+  RegExPattern2::Open,
+  RegExPattern2::Save,
+  RegExPattern2::Close,
+  RegExPattern2::Clone,       //close, and clone
+  RegExPattern2::Cast,                    //cast function
+  RegExPattern2::SizeOf,                  //sizeof function
+  RegExPattern2::Check );                 //kind checking function
+
+
 
 /*
 
@@ -8690,6 +8716,193 @@ Operator getOpName
   );
 
 
+
+/*
+4.29 Operator regexmatch
+
+4.29.1 TypeMapping
+
+Signature is:
+   text x regex -> bool
+   string x regex -> bool
+
+*/
+ListExpr regexmatchTM(ListExpr args){
+  string err = "{string,text} x {regex, regex2} expected";
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+  }
+  if(!RegExPattern::checkType(nl->Second(args)) &&
+     !RegExPattern2::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+  }
+  if(!CcString::checkType(nl->First(args)) &&
+     !FText::checkType(nl->First(args))){
+     return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+/*
+4.29.2 Value Mapping 
+
+*/
+template<class T, class P>
+int regexmatchVM( Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+
+   T* arg = (T*) args[0].addr;
+   P* p = (P*) args[1].addr;
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   if(!arg->IsDefined() || !p->IsDefined()){
+      res->SetDefined(false);
+   } else {
+      bool m = p->matches(arg->GetValue());
+      res->Set(true,m);
+   }
+   return  0;
+}
+
+/*
+4.29.3 Value Mapping Array and Selection function
+
+*/
+
+ValueMapping regexmatchVMs[] = {
+     regexmatchVM<CcString, RegExPattern>,
+     regexmatchVM<FText, RegExPattern>,
+     regexmatchVM<CcString, RegExPattern2>,
+     regexmatchVM<FText, RegExPattern2>
+   };
+
+int regexmatchSelect(ListExpr args){
+   int res = 0;
+   if(CcString::checkType(nl->First(args))){
+      res = 0;
+   } else {
+      res = 1;
+   }
+   if(RegExPattern2::checkType(nl->Second(args))){
+       res += 2;
+   }
+   return res;
+}
+
+
+OperatorSpec regexmatchSpec(
+           "{string,text} x {regex, regex2} -> bool",
+           " regexmatch(_,_)",
+           " Checks whether the text matches the pattern ",
+           " query regexmatch('secondo' [const regex value '.*cond.*'])");
+
+/*
+4.29.4 Operator instance
+
+*/
+Operator regexmatches(
+    "regexmatches",
+    regexmatchSpec.getStr(),
+    4,
+    regexmatchVMs,
+    regexmatchSelect,
+    regexmatchTM 
+  );
+
+
+/*
+4.30 Operator startsReg
+
+Signature: {text,string} x regex -> bool
+
+*/
+ListExpr startsRegTM(ListExpr args){
+  string err = "{string,text} x {regex, regex2} expected";
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+  }
+  if(!RegExPattern::checkType(nl->Second(args)) &&
+     !RegExPattern2::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+  }
+  if(!CcString::checkType(nl->First(args)) &&
+     !FText::checkType(nl->First(args))){
+     return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcBool>();
+
+}
+
+/*
+4.30.2 Value Mapping 
+
+*/
+template<class T, class P>
+int startsRegVM( Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+
+   T* arg = (T*) args[0].addr;
+   P* p = (P*) args[1].addr;
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   if(!arg->IsDefined() || !p->IsDefined()){
+      res->SetDefined(false);
+   } else {
+      bool m = p->starts(arg->GetValue());
+      res->Set(true,m);
+   }
+   return  0;
+}
+
+
+/*
+4.30.3 Value Mapping Array and Selection function
+
+*/
+
+ValueMapping startsRegVMs[] = {
+     startsRegVM<CcString, RegExPattern>,
+     startsRegVM<FText, RegExPattern>,
+     startsRegVM<CcString, RegExPattern2>,
+     startsRegVM<FText, RegExPattern2>
+ };
+
+int startsRegSelect(ListExpr args){
+   int res = 0;
+   if(CcString::checkType(nl->First(args))){
+      res = 0;
+   } else {
+      res = 1;
+   }
+   if(RegExPattern2::checkType(nl->Second(args))){
+     res += 2;
+   }
+   return res;
+}
+
+
+OperatorSpec startsRegSpec(
+           "{string,text} x {regex,regex2} -> bool",
+           " startsReg(_,_)",
+           " Checks whether the text starts with the pattern ",
+           " query startsWith('secondo' [const regex value '.*cond'])");
+
+/*
+4.29.4 Operator instance
+
+*/
+Operator startsReg(
+    "startsreg",
+    startsRegSpec.getStr(),
+    4,
+    startsRegVMs,
+    startsRegSelect,
+    startsRegTM 
+  );
+
+
+
+
   /*
   5 Creating the algebra
 
@@ -8708,6 +8921,13 @@ Operator getOpName
       svg.AssociateKind(Kind::DATA());
       ftext.AssociateKind(Kind::INDEXABLE());
       ftext.AssociateKind(Kind::CSVIMPORTABLE());
+
+      AddTypeConstructor(&regexPattern);
+      regexPattern.AssociateKind(Kind::DATA());  
+      
+      AddTypeConstructor(&regexPattern2);
+      regexPattern.AssociateKind(Kind::SIMPLE());  
+
       AddOperator( &contains );
       AddOperator( &length );
       AddOperator( &getkeywords );
@@ -8782,6 +9002,9 @@ Operator getOpName
       AddOperator(&getQueryNL);
       AddOperator(&getOpTreeNL);
       AddOperator(&getOpName);
+      AddOperator(&regexmatches);
+      AddOperator(&startsReg);
+
       
        AddOperator(&pointerTest);
 

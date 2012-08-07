@@ -1038,6 +1038,15 @@ Signature : int x int -> text
 Example   : query getOpName(1,0);
 Result    : "+"
 
+Operator : regexmatches
+Number   : 1
+Signature: text x regex -> bool
+Example  : query regexmatches('Secondo',[const regex value '.*cond.*'])
+Result   : TRUE
 
-
+Operator : startsreg
+Number   : 1
+Signature: text x regex -> bool
+Example  : query startsReg('Secondo',[const regex value '.*cond'])
+Result   : TRUE
 
