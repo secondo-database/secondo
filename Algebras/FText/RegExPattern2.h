@@ -333,7 +333,7 @@ Converts this dfa into it's nested list representation.
            }
          }
      } 
-     ListExpr fin;
+     ListExpr fin = nl->TheEmptyList();
      first = true;
      for(unsigned int i=0;i<finalStates.size();i++){
         bool isf = finalStates[i];

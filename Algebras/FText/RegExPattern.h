@@ -398,7 +398,7 @@ Returns the representation of this dfa as a nested list.
            }
          }
      } 
-     ListExpr fin;
+     ListExpr fin=nl->TheEmptyList();
      first = true;
      for(int i=0;i<finalStates.Size();i++){
         bool isf;
