@@ -740,6 +740,10 @@ Checks whether the list represents a stream.
     }
   }
 
+  ListExpr getUndefined(){
+     return nl->SymbolAtom("undefined");
+  }
+
 
   ListExpr getPtrList(const void* ptr){
     // ensure that two int atoms can pick up a pointer

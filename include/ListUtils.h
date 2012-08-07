@@ -342,6 +342,9 @@ alway use const string Symbol::UNDEFINED()!
   bool isSymbolUndefined( ListExpr le );
 
 
+  ListExpr getUndefined(); 
+
+
 /*
 ~basicSymbol~
 
