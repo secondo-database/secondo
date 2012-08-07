@@ -79,7 +79,7 @@ stars "*"("*"|whitespace)*
 <INITIAL>"[^"            { BEGIN(SET);
                            return OPENINVERSESET;
                          }
-<INITIAL>.               { cregexlval.numval = (int)yytext[0];
+<INITIAL>.               { cregexlval.numval = (int)(unsigned char)yytext[0];
                            return CHAR;}
 
 <SET>"\\-"               { cregexlval.numval = (int)'-'; return CHAR;}
@@ -89,7 +89,7 @@ stars "*"("*"|whitespace)*
 <SET>"]"                 { BEGIN(INITIAL);
                            return CLOSESET;
                          }
-<SET>.                   { cregexlval.numval = (int)yytext[0];
+<SET>.                   { cregexlval.numval = (int)(unsigned char)yytext[0];
                            return CHAR; 
                          }
 
