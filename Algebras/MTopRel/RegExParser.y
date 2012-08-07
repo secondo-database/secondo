@@ -75,9 +75,9 @@ extern "C"{
 }
 #endif
 
-int parse_success;
-IntNfa* result;
-Stack<IntNfa*>* stack=0;
+int mtoprel_parse_success;
+IntNfa* mtoprel_result;
+Stack<IntNfa*>* mtoprel_stack=0;
 char* regex_last_message=0;
 
 %}
@@ -108,7 +108,7 @@ char* regex_last_message=0;
 start: expr{
 
          //std::cout << "start -> expr" << std::endl;
-         result = $1;
+         mtoprel_result = $1;
       }
 
 expr : term {
@@ -157,12 +157,12 @@ atom  : OPEN expr CLOSE {
          //std::cout << "atom -> number" << std::endl;
         int number = $1;
         $$ = new IntNfa(number); 
-        stack->push($$);
+        mtoprel_stack->push($$);
         }
       | EPSILON {
          //std::cout << "atom -> epsilon " << std::endl;
           $$ = new IntNfa();
-          stack->push($$);
+          mtoprel_stack->push($$);
         }
       ;
 
@@ -179,17 +179,14 @@ an error.
 
 int regexerror (const char *error)
 {
-  parse_success=0; 
-  if(result){   // kill partially result
-     delete result;  
-  }
-  result = 0;
+  mtoprel_parse_success=1; 
+  mtoprel_result = 0; // force deleting of result
   return 0;
 }
 
 
 
-extern "C"{void lexDestroy();}
+extern "C"{void mtoprel_lexDestroy();}
 
 /*
 2.5 The parseString function
@@ -201,34 +198,34 @@ the first argument is parsed according to the rules given above.
 
 */
 int parseString(const char* argument, IntNfa** T){
-    lexDestroy();
+    mtoprel_lexDestroy();
 
-    stack = new Stack<IntNfa*>();
+    mtoprel_stack = new Stack<IntNfa*>();
 
     regex_scan_string(argument);
 
     yyparse();
 
-    if(parse_success && regex_last_message){
+    if(mtoprel_parse_success && regex_last_message){
           free(regex_last_message);
           regex_last_message=0;
     }
 
     // kill the stack
-    while(!stack->isEmpty()){
-      IntNfa* elem = stack->pop();
-      if(elem!=result){
+    while(!mtoprel_stack->isEmpty()){
+      IntNfa* elem = mtoprel_stack->pop();
+      if(elem!=mtoprel_result){
         delete elem;
       }
     }
 
-    (*T) = result;
+    (*T) = mtoprel_result;
 
-    delete stack;
-    stack = 0;
+    delete mtoprel_stack;
+    mtoprel_stack = 0;
 
-    lexDestroy();
-    return parse_success;
+    mtoprel_lexDestroy();
+    return mtoprel_parse_success;
 }
 
 /* 
@@ -239,7 +236,7 @@ is available, the result will be NULL. Otherwise you shoul don't forget
 to deallocate the memory of the result.
 
 */
-char* GetLastMessage(){
+char* MTopRel_GetLastMessage(){
   if(!regex_last_message){
     return 0;
   }

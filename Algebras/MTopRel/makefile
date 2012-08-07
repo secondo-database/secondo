@@ -45,13 +45,14 @@ check_dependencies:
 
 
 
-NFATest: NFATest.o Scanner.o RegExParser.o  
-	$(CC) -o NFATest  NFATest.o  RegExParser.o Scanner.o Functions.o  -lstdc++ -lfl
+NFATest: NFATest.o Scanner.o RegExParser.o  ../FText/Functions.o
+	$(CC) -o NFATest  NFATest.o  RegExParser.o Scanner.o ../FText/Functions.o  -lstdc++ -lfl
 
-NFATest.o: NFATest.cpp
-	$(CC) -c -o  NFATest.o NFATest.cpp
+NFATest.o: NFATest.cpp 
+	$(CC) -c -o  NFATest.o -I../FText  NFATest.cpp
 
-
+../FText/Functions.o: ../FText/Functions.h ../FText/Functions.cpp
+	make -C ../FText
 
 OBJECTS += Scanner.o RegExParser.o 
 
@@ -79,10 +80,10 @@ else
 endif
 
 RegExParser.o: RegExParser.y.c
-	$(CC) -x c++ -c -o RegExParser.o RegExParser.y.c 
+	$(CC) -x c++ -I../FText -c -o RegExParser.o RegExParser.y.c 
 
 
-RegExParser.y.c: RegExParser.y Nfa.h
+RegExParser.y.c: RegExParser.y ../FText/Nfa.h
 	$(YACC) -d -o RegExParser.y.c RegExParser.y
 
 Scanner.o: Scanner.c

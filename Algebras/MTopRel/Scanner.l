@@ -35,7 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RegExParser.y.h"
 
 
-  void lexDestroy(){
+  void mtoprel_lexDestroy(){
      yy_delete_buffer(YY_CURRENT_BUFFER);
     regexlex_destroy();
   }

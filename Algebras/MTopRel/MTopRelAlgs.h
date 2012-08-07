@@ -314,7 +314,7 @@ This functions computes the result and stores it into the private members.
         toprels.push_back(r);
      } else { // nonstatic upoint
         HalfSegment hs(true,up->p0, up->p1);
-        if(!hs.Contains(p)){ // never on line
+        if(!hs.Contains(*p)){ // never on line
            m.Set(0,0,1, 0,0,0, 1,0,1); // set to "disjoint"
            if(sym){
               m.Transpose();
