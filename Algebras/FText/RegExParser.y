@@ -287,8 +287,6 @@ int parseRegEx(const char* argument, IntNfa** T){
 
     lexDestroy();
 
-    std::cout << "parse_success = " << parse_success << std::endl;
-
     return parse_success;
 }
 
