@@ -40,16 +40,14 @@ used in HadoopAlgebra.
 /*
 Select different collect option.
 
-  * COLLECTONE: Copy files one by one, read after all files are got
+  * SEQCOPY: Copy files one by one, read after all files are got
 
-  * COLLECTTWO: Copy files with parallel threads, read after all files are got
-
-  * COLLECTTHREE: Copy files with parallel threads, read when one file is available
+  * PIPECOPY: Copy files with parallel threads, read when one file is available
 
 */
-//#define COLLECTONE
-//#define COLLECTTWO
-#define COLLECTTHREE
+
+//#define SEQCOPY
+#define PIPECOPY
 
 #include "../HadoopParallel/HadoopParallelAlgebra.h"
 #include <pthread.h>
@@ -141,7 +139,7 @@ public:
   }
 
   size_t getPartitionFileLoc(size_t row, vector<string>& locations);
-  NList  getColumnList(size_t row);
+  ListExpr getColumnList(size_t row);
 
   inline string getSubName(){ return subName; }
   inline int getMtxRowNum() { return mrNum; }
@@ -282,6 +280,7 @@ private:
 1.7 CollectLocalInfo class
 
 */
+class CLI_Thread;
 class CollectLocalInfo{
 public:
   CollectLocalInfo(fList* valueList, size_t row, size_t column);
@@ -295,16 +294,18 @@ public:
       delete inputFile;
       inputFile = 0;
     }
+#ifdef PIPECOPY
+    pthread_mutex_destroy(&CLI_OWN_Mutex);
+#endif
   }
 
   bool fetchAllPartFiles();
-  bool fetchAllPartFiles2();
-  //Copy files in pipeline
-  static void* fetchAllPartFiles3(void* ptr);
+  //Copy files in sequential order
+  static void* fetchAllPartFiles2(void* ptr);
   //Copy files in pipeline, with an independent thread
 
-  Tuple* getNextTuple();
-  Tuple* getNextTuple3();
+  Tuple* getNextTuple();    //Sequence Copy
+  Tuple* getNextTuple2();   //Parallel Copy
 
   size_t getRow(){ return row; }
   size_t getColumn(){ return column; }
@@ -318,29 +319,48 @@ private:
   vector<string> partFiles;
   ifstream *inputFile;
 
+#ifdef PIPECOPY
   static const int PipeWidth = 10;
   pthread_t threadID[PipeWidth];
   bool tokenPass[PipeWidth];
   bool *fileStatus;
   pthread_t faf_TID;
   size_t fIdx;
-
-
-  bool partFileOpened();
+  static pthread_mutex_t CLI_OWN_Mutex;
+  vector<CLI_Thread*> fileTasks;
   static void* tCopyFile(void* ptr);
+#else
+  bool partFileOpened();
+#endif
+
 };
 
 class CLI_Thread
 {
 public:
-  CLI_Thread(CollectLocalInfo* _ci, int _r, int _t)
-    : cli(_ci), row(_r), token(_t){}
+  CLI_Thread(CollectLocalInfo* _ci, string _sn, int _r, ListExpr _clst)
+    : cli(_ci), subName(_sn), row(_r)
+  {
+    columnList = _clst;
+    remotePaths = new vector<string>();
+    allColumns = new vector<int>();
+    token = 0;
+  }
+
+  void setToken(int _t)
+  {
+    token = _t;
+  }
+
 
   CollectLocalInfo* cli;
+  string subName;
   int row;
   int token;
+  ListExpr columnList;
+  vector<string>* remotePaths;
+  vector<int>* allColumns;
 };
-
 
 class PFFeedLocalInfo{
 public:
