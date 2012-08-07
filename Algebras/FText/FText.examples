@@ -1047,7 +1047,7 @@ Result   : TRUE
 Operator : startsreg
 Number   : 1
 Signature: text x regex -> bool
-Example  : query startsReg('Secondo',[const regex value '.*cond'])
+Example  : query startsreg('Secondo',[const regex value '.*cond'])
 Result   : TRUE
 
 Operator : findPattern
