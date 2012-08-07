@@ -1050,3 +1050,9 @@ Signature: text x regex -> bool
 Example  : query startsReg('Secondo',[const regex value '.*cond'])
 Result   : TRUE
 
+Operator : findPattern
+Number   : 1
+Signature: text x regex -> stream(tuple((P1 int, P2 int)))
+Example  : query findPattern('Secondo',[const regex value 'o']) count
+Result   : 2
+

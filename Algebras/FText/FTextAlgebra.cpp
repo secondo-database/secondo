@@ -8163,6 +8163,7 @@ int markTextVM( Word* args, Word& result, int message,
         }
         tuple->DeleteIfAllowed();
      }
+     stream.close(); 
 
 
      while(!smarks.empty() && !emarks.empty()){
@@ -8171,7 +8172,7 @@ int markTextVM( Word* args, Word& result, int message,
          int top;
          string in;
 
-         if(stop>etop){
+         if(stop>=etop){
            top = stop;
            in = marks;
            smarks.pop();
@@ -8901,6 +8902,175 @@ Operator startsReg(
   );
 
 
+/*
+4.30 Operator ~searchPattern~
+
+4.30.1 TypeMapping
+
+Signature: {text,string} x {regex,regex2} -> stream(tuple( (P1 : int), (P2 : int)))
+
+*/
+
+ListExpr findPatternTM(ListExpr args){
+  string err = "{string,text} x {regex, regex2} expected";
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+  }
+  if(!RegExPattern::checkType(nl->Second(args)) &&
+     !RegExPattern2::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+  }
+  if(!CcString::checkType(nl->First(args)) &&
+     !FText::checkType(nl->First(args))){
+     return listutils::typeError(err);
+  }
+  ListExpr attrList = nl->TwoElemList(
+              nl->TwoElemList( nl->SymbolAtom("P1"),
+                               listutils::basicSymbol<CcInt>()),
+              nl->TwoElemList( nl->SymbolAtom("P2"),
+                               listutils::basicSymbol<CcInt>()));
+  return nl->TwoElemList(
+             listutils::basicSymbol<Stream<Tuple> >(),
+             nl->TwoElemList(
+                  listutils::basicSymbol<Tuple>(),
+                   attrList));
+}
+
+/*
+4.30.2 Value Mapping
+
+*/
+template<class T, class P>
+class FindPatternInfo{
+
+ public:
+    FindPatternInfo( T* t, P* p, ListExpr tupleType){
+      if(!t->IsDefined() || !p->IsDefined()){
+         text = "";
+         pattern = 0;
+         pos = 0;
+         tt = 0;
+      } else {
+         text = t->GetValue();
+         pattern = p;
+         pos = 0;
+         tt = new TupleType(tupleType);
+      }
+    }
+
+   ~FindPatternInfo(){
+      if(tt){
+         tt->DeleteIfAllowed();
+      }
+      pattern = 0;
+   }
+
+   Tuple* next(){
+      if(!pattern){
+        return 0;
+      }
+      int length;
+      while(pos < text.length()){
+         if(pattern->starts2(text,pos,length)){
+            Tuple* res = new Tuple(tt);
+            res->PutAttribute( 0 , new CcInt(true,pos));
+            res->PutAttribute( 1 , new CcInt(true,pos+length));
+            if(length>0){
+               pos += length;
+            } else {
+               pos++;
+            }  
+            return res;
+        
+         }
+         pos++;
+      }
+      return 0;
+   }
+
+ private:
+   string text;
+   P* pattern;
+   unsigned int pos;
+   TupleType* tt;
+};
+
+template<class T, class P>
+int findPatternVM( Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+   FindPatternInfo<T,P>* li = (FindPatternInfo<T,P>*) local.addr;
+   switch(message){
+      case OPEN: {
+          if(li){
+             delete li;
+          }
+          local.addr = new FindPatternInfo<T,P> ( (T*) args[0].addr,
+                                          (P*) args[1].addr,
+                                          nl->Second(GetTupleResultType(s)));
+          return 0;  
+      }
+      case REQUEST: {
+          result.addr = li?li->next():0;
+          return result.addr?YIELD:CANCEL;
+      }
+      case CLOSE : {
+         if(li){
+            delete li;
+            local.addr = 0;
+         }
+         return 0;
+      }
+   }
+   return -1;
+}
+
+/*
+4.30.3 Value Mapping Array and Selection function
+
+*/
+
+ValueMapping findPatternVMs[] = {
+     findPatternVM<CcString, RegExPattern>,
+     findPatternVM<FText, RegExPattern>,
+     findPatternVM<CcString, RegExPattern2>,
+     findPatternVM<FText, RegExPattern2>
+ };
+
+int findPatternSelect(ListExpr args){
+   int res = 0;
+   if(CcString::checkType(nl->First(args))){
+      res = 0;
+   } else {
+      res = 1;
+   }
+   if(RegExPattern2::checkType(nl->Second(args))){
+     res += 2;
+   }
+   return res;
+}
+
+
+OperatorSpec findPatternSpec(
+           "{string,text} x {regex,regex2} -> "
+           "stream(tuple((P1 : int, P2: int)))",
+           " findPattern(_,_)",
+           " Returns all positions of regex in text ",
+           " query findPattern('Secondo', [const regex2 value 'o']) count");
+
+/*
+4.29.4 Operator instance
+
+*/
+Operator findPattern(
+    "findPattern",
+    findPatternSpec.getStr(),
+    4,
+    findPatternVMs,
+    findPatternSelect,
+    findPatternTM 
+  );
+
+
 
 
   /*
@@ -9004,6 +9174,7 @@ Operator startsReg(
       AddOperator(&getOpName);
       AddOperator(&regexmatches);
       AddOperator(&startsReg);
+      AddOperator(&findPattern);
 
       
        AddOperator(&pointerTest);

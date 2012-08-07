@@ -100,6 +100,7 @@ operator getOpName alias GETOPNAME pattern op()
 
 operator regexmatches alias REGEXMATCHES pattern op(_,_)
 operator startsReg alias STARTSREG pattern op(_,_)
+operator findPattern alias FINDPATTERN pattern op(_,_)
 
 
 

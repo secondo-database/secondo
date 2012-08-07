@@ -281,6 +281,40 @@ by this dfa.
    }
 
 /*
+1.8 starts2
+
+This function checks whether text at position offset starts with
+this pattern. The length of the substring is returned.
+
+*/
+   bool starts2(const string& text, const int offset, int& length){
+       if(!IsDefined()){
+         return false;
+       }  
+      if((finalStates.Size()==0) || (numOfStates==0)){
+        return false;
+      }
+      length=0;
+      int state = 0;
+      bool isFinal;
+      for(size_t i=offset; i<text.length();i++){
+          finalStates.Get(state,isFinal);
+          if(isFinal){
+            return true;
+          }
+          state = nextState(state, (unsigned char) text[i]);
+          length++;
+          if(state<0){
+             return false;
+          }  
+      }
+      finalStates.Get(state,isFinal);
+      return isFinal;
+   }
+
+
+
+/*
 1.7 readFrom
 
 Constructs a dfa from a nested list. If the nested list is not a 

@@ -217,6 +217,33 @@ represented by this automaton.
       return finalStates[state];
    }
 
+
+   bool starts2(const string& text, const int offset, int& length){
+      length=0;
+       if(!IsDefined()){
+         return false;
+       }  
+      if((finalStates.size()==0) || (numOfStates==0)){
+        return false;
+      }
+      if(offset>=(int)text.length()){
+          return false;
+      }
+      int state = 0;
+      for(size_t i=offset; i<text.length();i++){
+          if(finalStates[state]){
+            return true;
+          }
+          state = transitions[state*NUMCHARS+(unsigned char)text[i]];
+          length++;
+          if(state<0){
+             return false;
+          }  
+      }
+      return finalStates[state];
+   }
+
+
 /*
 1.10 readFrom
 
