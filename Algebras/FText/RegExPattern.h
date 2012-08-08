@@ -40,6 +40,8 @@ This class is the implementation of a finite automaton.
 #include "IntNfa.h"
 
 
+
+
 int parseRegEx(const char* argument, IntNfa** T);
 
 class RegExPattern: public Attribute{
@@ -51,7 +53,7 @@ class RegExPattern: public Attribute{
 Must be nothing.  Never cal it outside the cast function.
 
 */  
-   RegExPattern() {}
+   RegExPattern() { }
 
 /*
 1.2 Constructors
@@ -66,8 +68,8 @@ Must be nothing.  Never cal it outside the cast function.
                                        numOfStates(p.numOfStates),
                                        transitions(p.transitions.Size()),
                                        finalStates(p.finalStates.Size()){
-      p.transitions.copyTo(transitions);
-      p.finalStates.copyTo(finalStates);
+      transitions.copyFrom(p.transitions);
+      finalStates.copyFrom(p.finalStates);
   }
                
   RegExPattern& operator=(const RegExPattern& p){
@@ -82,7 +84,7 @@ Must be nothing.  Never cal it outside the cast function.
 1.3 Destructor
 
 */
-  ~RegExPattern() {}
+  ~RegExPattern() {  }
 
 
 /*
@@ -94,7 +96,7 @@ Must be nothing.  Never cal it outside the cast function.
     return 2;
    }
   
-   Flob* GetFLOB(int index) {
+   Flob* GetFLOB(const int index) {
       if(index==0) return &transitions;
       if(index==1) return &finalStates;
       assert(false);
