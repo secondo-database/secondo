@@ -364,9 +364,9 @@ valid representation of a dfa, this object is set to be undefined.
          SetDefined(false);
          return false;
        }
-       if(nl->AtomType(nl->First(t)!=IntType) ||
-          nl->AtomType(nl->Second(t)!=IntType) ||
-          nl->AtomType(nl->Third(t)!=IntType)){
+       if((nl->AtomType(nl->First(t))!=IntType) ||
+          (nl->AtomType(nl->Second(t))!=IntType) ||
+          (nl->AtomType(nl->Third(t))!=IntType)){
           SetDefined(false);
           return false;
        }
