@@ -1056,3 +1056,16 @@ Signature: text x regex -> stream(tuple((P1 int, P2 int)))
 Example  : query findPattern('Secondo',[const regex value 'o']) count
 Result   : 2
 
+
+Operator : createRegEx
+Number   : 1
+Signature: {text,string} -> regex
+Example  : query regexmatches('Secondo',createRegEx('.*cond.*') )
+Result   : TRUE
+
+Operator : createRegEx2
+Number   : 1
+Signature: {text,string} -> regex2
+Example  : query regexmatches('Secondo',createRegEx2('.*cond.*') )
+Result   : TRUE
+

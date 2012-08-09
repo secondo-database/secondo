@@ -9070,8 +9070,101 @@ Operator findPattern(
     findPatternTM 
   );
 
+/*
+4.31 Operators createRegEx / createRegEx2
 
+4.31.1 Type Mapping 
 
+*/
+template<bool two>
+ListExpr createRegExTM(ListExpr args){
+  string err = "string or text expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+
+  if(!CcString::checkType(nl->First(args)) &&
+     !FText::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return two?listutils::basicSymbol<RegExPattern2>()
+            :listutils::basicSymbol<RegExPattern>();
+}
+
+/*
+4.31.2 Value Mapping
+
+*/
+template<class T, class P>
+int createRegExVM( Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+  result = qp->ResultStorage(s);
+  T* arg = (T*) args[0].addr;
+  P* res = (P*)result.addr;
+  if(!arg->IsDefined()){
+     res->SetDefined(false);
+  } else {
+     res->constructFrom(arg->GetValue());
+  }
+  return 0;
+}
+
+/*
+4.31.3 Value Mapping Arrays and Selection function
+
+*/
+
+ValueMapping createRegExVMs[] = {
+      createRegExVM<CcString,RegExPattern>,  
+      createRegExVM<FText,RegExPattern>  
+ };
+
+ValueMapping createRegEx2VMs[] = {
+      createRegExVM<CcString,RegExPattern2>,  
+      createRegExVM<FText,RegExPattern2>  
+ };
+
+int createRegExSelect(ListExpr args){
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+/*
+4.31.4 Specifications
+
+*/
+OperatorSpec createRegExSpec(
+           "{string,text}  -> regex",
+           " createRegEx(_)",
+           " Creates a regex pattern from a string/text ",
+           " query createRegEx(\".*ob?a\")");
+
+OperatorSpec createRegEx2Spec(
+           "{string,text}  -> regex2",
+           " createRegEx2(_)",
+           " Creates a regex2 pattern from a string/text ",
+           " query createRegEx2(\".*ob?a\")");
+
+/*
+4.31.5 Operator instances
+
+*/
+Operator createRegEx(
+    "createRegEx",
+    createRegExSpec.getStr(),
+    2,
+    createRegExVMs,
+    createRegExSelect,
+    createRegExTM<false> 
+  );
+
+Operator createRegEx2(
+    "createRegEx2",
+    createRegEx2Spec.getStr(),
+    2,
+    createRegEx2VMs,
+    createRegExSelect,
+    createRegExTM<true> 
+  );
 
   /*
   5 Creating the algebra
@@ -9175,6 +9268,8 @@ Operator findPattern(
       AddOperator(&regexmatches);
       AddOperator(&startsReg);
       AddOperator(&findPattern);
+      AddOperator(&createRegEx);
+      AddOperator(&createRegEx2);
 
       
        AddOperator(&pointerTest);

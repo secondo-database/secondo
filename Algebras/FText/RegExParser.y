@@ -168,7 +168,13 @@ atom  : OPEN expr CLOSE {
         stack->push($$);
         }
       | ANY {
-        $$ = new IntNfa(0,255);
+        std::vector<int> v;
+        for(int i=0;i<NUMCHARS;i++){
+           if(i!=(int)'\n'){
+             v.push_back(i);
+           }
+        }
+        $$ = new IntNfa(v);
         stack->push($$);  
        }
       | OPENSET set CLOSESET {
@@ -206,9 +212,15 @@ set : singlerange {
 
 singlerange : CHAR TO CHAR{
                 $$ = new ivec();
-                for(int i=$1;i<=$3;i++){
-                  $$->theVector.push_back(i);
-                }
+                if($1<$3){
+                  for(int i=$1;i<=$3;i++){
+                     $$->theVector.push_back(i);
+                  }
+                 } else {
+                  for(int i=$3;i<=$1;i++){
+                     $$->theVector.push_back(i);
+                  }
+                 }
              }
       | CHAR {
           $$ = new ivec();
