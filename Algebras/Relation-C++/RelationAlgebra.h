@@ -1073,7 +1073,7 @@ a tuple
 */
 
 
-  ostream& Print(ostream& out){
+  ostream& Print(ostream& out) const{
     out << "Tuple: (" << endl;
     for(int i = 0; i < noAttributes; i++) {
        GetAttribute(i)->Print(out);
