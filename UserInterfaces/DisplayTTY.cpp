@@ -3163,6 +3163,100 @@ struct DisplayMJPoint : DisplayFunction{
   }
 };
 
+struct DisplayRegEx : DisplayFunction{
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value){
+     if(nl->IsEqual(value,Symbol::UNDEFINED())){
+       cout << Symbol::UNDEFINED() << endl;
+       return;
+     }
+     if(!nl->HasLength(value,3)){
+       cout << "Invalid regex representation" << endl;
+       return;
+     }
+     // TODO: check for errors
+     int numStates = nl->IntValue(nl->First(value));
+     ListExpr transitions = nl->Second(value);
+     ListExpr finalStates = nl->Third(value);
+     vector<bool> final;
+     for(int i=0;i<numStates;i++){
+        final.push_back(false);
+     } 
+     while(!nl->IsEmpty(finalStates)){
+        int n = nl->IntValue(nl->First(finalStates));
+        finalStates = nl->Rest(finalStates);
+        final[n] = true;
+     }
+     set<int> table[numStates][numStates];
+     while(!nl->IsEmpty(transitions)){
+         ListExpr transition = nl->First(transitions);
+         transitions = nl->Rest(transitions);
+         int source = nl->IntValue(nl->First(transition));
+         int value = nl->IntValue(nl->Second(transition));
+         int target = nl->IntValue(nl->Third(transition));
+         (table[source][target]).insert(value);
+     }
+     for(int s=0;s<numStates;s++){
+        for(int t=0;t<numStates;t++){
+           if(!table[s][t].empty()){
+              printtransition(s,t,table[s][t],final[s],final[t]);
+           }
+        }
+     }
+  }
+  private:
+     void printtransition(const int src, const int dest, const set<int>& d, 
+                          const bool srcfinal, const bool destFinal){
+
+          // TODO: abbreviate d
+          set<int>::iterator it;
+          int last = -2;
+          vector<int> range;
+          stringstream ss;
+          for(it = d.begin(); it!=d.end(); it++){
+             int next = *it;
+             if(next!=last+1) { // start new range
+               if(range.size()>4){
+                  ss << "[" << getStr(range[0]) << "-" 
+                     << getStr(range[range.size()-1]) << "]";
+               } else {
+                 for(size_t i=0;i<range.size();i++){
+                   ss << getStr(range[i]);
+                 }
+               }
+               range.clear();
+             } 
+             range.push_back(next);
+             last = next;
+          }
+          if(range.size()>4){
+             ss << "[" << getStr(range[0]) << "-" 
+                << getStr(range[range.size()-1]) << "]";
+          } else {
+            for(size_t i=0;i<range.size();i++){
+              ss << getStr(range[i]);
+            }
+          }
+          cout << (srcfinal?"*":" ") << src << " - "
+               << ss.str() << " -> " << dest << (destFinal?"*":" ") << endl;
+     }
+
+     bool isPrintable(int c){
+       return (c>32) && (c<127);
+     }
+
+     string getStr(int c){
+        stringstream h;
+        if(isPrintable(c)){
+          h << (char)c;
+        } else {
+          h << "(" << c << ")";
+        }
+        return h.str();
+     }
+};
+
+
+
 /*
 Display Hadoop file list
 
@@ -3341,6 +3435,8 @@ DisplayTTY::Initialize()
   d.Insert( "ijpoint", new DisplayIJPoint());
   d.Insert( "ujpoint", new DisplayUJPoint());
   d.Insert( "mjpoint", new DisplayMJPoint());
+  d.Insert( "regex", new DisplayRegEx());
+  d.Insert( "regex2", new DisplayRegEx());
 }
 
 /*
