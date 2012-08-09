@@ -24,14 +24,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#include "UJPoint.h"
 #include "ListUtils.h"
 #include "NestedList.h"
 #include "NList.h"
 #include "Symbols.h"
-#include "Direction.h"
 #include "StandardTypes.h"
-
+#include "Direction.h"
+#include "UJPoint.h"
+#include "JNetwork.h"
 
 
 /*
@@ -45,7 +45,7 @@ UJPoint::UJPoint(): Attribute()
 {}
 
 UJPoint::UJPoint(const bool def) :
-    Attribute(def), time(), rint(def)
+    Attribute(def), unit(def)
 {}
 
 UJPoint::UJPoint(const UJPoint& other) :
@@ -54,19 +54,36 @@ UJPoint::UJPoint(const UJPoint& other) :
   if (other.IsDefined())
   {
     strcpy(nid, *other.GetNetworkId());
-    time = other.GetTimeInterval();
-    rint = other.GetRouteInterval();
+    unit = other.GetUnit();
   }
 }
 
+UJPoint::UJPoint(const string id, const JUnit& u) :
+  Attribute(true), unit(u)
+{
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  Word value;
+  bool valDefined = false;
+  if (sc->IsObjectName(id) &&
+      sc->GetObject(id, value, valDefined) &&
+            valDefined)
+  {
+    JNetwork* jnet = (JNetwork*) value.addr;
+    JRouteInterval rint(u.GetRouteInterval());
+    if (jnet->Contains(&rint))
+      strcpy(nid, id.c_str());
+    else
+      SetDefined(false);
+    sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), value);
+  }
+}
 
 UJPoint::UJPoint(const string id, const Interval<Instant>& inst,
                  const JRouteInterval& r) :
-  Attribute(true)
+  Attribute(true), unit(true)
 {
   if (inst.IsDefined() && r.IsDefined())
   {
-    time = inst;
     SecondoCatalog* sc = SecondoSystem::GetCatalog();
     Word value;
     bool valDefined = false;
@@ -78,7 +95,8 @@ UJPoint::UJPoint(const string id, const Interval<Instant>& inst,
       if (jnet->Contains(&r))
       {
         strcpy(nid, id.c_str());
-        rint = r;
+        unit.SetTimeInterval(inst);
+        unit.SetRouteInterval(r);
       }
       else
       {
@@ -98,18 +116,15 @@ UJPoint::UJPoint(const string id, const Interval<Instant>& inst,
 }
 
 UJPoint::UJPoint(const JNetwork* jnet, const JRouteInterval* jrint,
-                 const Instant* starttime, const Instant* endtime,
-                 const bool lc, const bool rc) :
-  Attribute(true)
+                 const Interval<Instant>* timeInter) :
+  Attribute(true), unit(true)
 {
   if (jnet->IsDefined() && jrint->IsDefined() && jnet->Contains(jrint) &&
-      starttime->IsDefined() && endtime->IsDefined())
+      timeInter->IsDefined())
   {
     strcpy(nid, *jnet->GetId());
-    rint = *jrint;
-    Interval<Instant>* i = new Interval<Instant> (*starttime, *endtime, lc, rc);
-    time = *i;
-    delete i;
+    unit.SetTimeInterval(*timeInter);
+    unit.SetRouteInterval(*jrint);
   }
   else
   {
@@ -125,40 +140,15 @@ UJPoint::~UJPoint()
 
 */
 
-Interval<Instant> UJPoint::GetTimeInterval() const
-{
-  return time;
-}
-
 const STRING_T* UJPoint::GetNetworkId() const
 {
   return &nid;
 }
 
 
-JRouteInterval UJPoint::GetRouteInterval() const
+JUnit UJPoint::GetUnit() const
 {
-  return rint;
-}
-
-JPoint* UJPoint::GetStartPoint() const
-{
-  return new JPoint (nid, RouteLocation(rint.GetRouteId(),
-                                        rint.GetStartPosition(),
-                                        rint.GetSide()));
-}
-
-JPoint* UJPoint::GetEndPoint() const
-{
-  return new JPoint (nid, RouteLocation(rint.GetRouteId(),
-                                        rint.GetEndPosition(),
-                                        rint.GetSide()));
-}
-
-
-void UJPoint::SetTimeInterval(const Interval<Instant>& t)
-{
-  time = t;
+  return unit;
 }
 
 void UJPoint::SetNetworkId(const STRING_T& id)
@@ -167,9 +157,9 @@ void UJPoint::SetNetworkId(const STRING_T& id)
 }
 
 
-void UJPoint::SetRouteInterval(const JRouteInterval& r)
+void UJPoint::SetUnit(const JUnit& j)
 {
-  rint = r;
+  unit = j;
 }
 
 /*
@@ -184,8 +174,7 @@ void UJPoint::CopyFrom(const Attribute* right)
   {
     UJPoint in(*(UJPoint*) right);
     strcpy(nid, *in.GetNetworkId());
-    time = in.GetTimeInterval();
-    rint = in.GetRouteInterval();
+    unit = in.GetUnit();
   }
 }
 
@@ -196,8 +185,7 @@ Attribute::StorageType UJPoint::GetStorageType() const
 
 size_t UJPoint::HashValue() const
 {
-  return strlen(nid) + time.start.HashValue() + time.end.HashValue() +
-         rint.HashValue();
+  return strlen(nid) + unit.HashValue();
 }
 
 Attribute* UJPoint::Clone() const
@@ -229,9 +217,7 @@ int UJPoint::Compare(const UJPoint& rhs) const
   if (!IsDefined() && rhs.IsDefined()) return -1;
   int test = strcmp(nid, *rhs.GetNetworkId());
   if (test != 0) return test;
-  test = time.CompareTo(rhs.GetTimeInterval());
-  if (test != 0) return test;
-  return rint.Compare(rhs.GetRouteInterval());
+  return unit.Compare(rhs.GetUnit());
 }
 
 size_t UJPoint::Sizeof() const
@@ -244,16 +230,13 @@ ostream& UJPoint::Print(ostream& os) const
   os << "UJPoint ";
   if (IsDefined())
   {
-    os << "in " << nid << " at ";
-    time.Print(os);
-    os << ", at ";
-    rint.Print(os);
+    os << "Move in " << nid << ":";
+    unit.Print(os);
   }
   else
   {
     os << " : " << Symbol::UNDEFINED() << endl;
   }
-
   return os;
 }
 
@@ -278,8 +261,7 @@ UJPoint& UJPoint::operator=(const UJPoint& other)
   if (other.IsDefined())
   {
     strcpy(nid, *other.GetNetworkId());
-    time = other.GetTimeInterval();
-    rint = other.GetRouteInterval();
+    unit = other.GetUnit();
   }
   return *this;
 }
@@ -329,18 +311,10 @@ ListExpr UJPoint::Out(ListExpr typeInfo, Word value)
   else
   {
     NList netList(*in->GetNetworkId(),true,false);
-    Interval<Instant> netTime(in->GetTimeInterval());
-    Instant* start = (Instant*)&netTime.start;
-    Instant* end = (Instant*)&netTime.end;
-    JRouteInterval netRI(in->GetRouteInterval());
-    return nl->ThreeElemList(
+    JUnit junit(in->GetUnit());
+    return nl->TwoElemList(
       netList.listExpr(),
-      nl->FourElemList(
-        OutDateTime(nl->TheEmptyList(), SetWord(start)),
-        OutDateTime(nl->TheEmptyList(), SetWord(end)),
-        nl->BoolAtom( netTime.lc ),
-        nl->BoolAtom( netTime.rc)),
-      JRouteInterval::Out(nl->TheEmptyList(), SetWord((void*) &netRI)));
+      JUnit::Out(nl->TheEmptyList(), SetWord((void*) &junit)));
   }
 }
 
@@ -355,81 +329,29 @@ Word UJPoint::In(const ListExpr typeInfo, const ListExpr instance,
   }
   else
   {
-    if (nl->ListLength(instance) != 3)
+    if (nl->ListLength(instance) != 2)
     {
       correct = false;
-      cmsg.inFunError("list length should be 1 or 3");;
+      cmsg.inFunError("list length should be 1 or 2");;
       return SetWord(Address(0));
     }
 
     ListExpr netList = nl->First(instance);
-    ListExpr intervalList = nl->Second(instance);
-    ListExpr rintList = nl->Third(instance);
+    ListExpr unitList = nl->Second(instance);
 
     STRING_T netId;
     strcpy (netId, nl->StringValue(netList).c_str());
 
-    if (nl->ListLength(intervalList) != 4 ||
-        !nl->IsAtom(nl->First(intervalList)) ||
-        !nl->IsAtom(nl->Second(intervalList)) ||
-        !nl->IsAtom(nl->Third(intervalList)) ||
-        !nl->IsAtom(nl->Fourth(intervalList)) ||
-        !nl->AtomType(nl->Third(intervalList) == BoolType) ||
-        !nl->AtomType(nl->Fourth(intervalList) == BoolType))
-    {
-      cmsg.inFunError("Intervallist must have length 4");
-      correct = false;
-      return SetWord(Address(0));
-    }
-
-    Instant* start = (Instant*)InInstant( nl->TheEmptyList(),
-                                          nl->First(intervalList),
-                                          errorPos, errorInfo,
-                                          correct ).addr;
-    if(correct == false)
-    {
-      cmsg.inFunError("Invalid start time instant");
-      return SetWord( Address(0) );
-    }
-
-    Instant* end = (Instant*)InInstant( nl->TheEmptyList(),
-                                        nl->Second(intervalList),
-                                        errorPos, errorInfo,
-                                        correct ).addr;
-    if(correct == false)
-    {
-      cmsg.inFunError("Invalid end time instant");
-      delete start;
-      return SetWord( Address(0) );
-    }
-
-    bool lc = nl->BoolValue(nl->Third(intervalList));
-    bool rc = nl->BoolValue(nl->Fourth(intervalList));
-
-    Interval<Instant> interval( *start, *end, lc, rc );
-    correct = interval.IsValid();
-    delete start;
-    delete end;
-
-    if (correct == false)
-    {
-      cmsg.inFunError("Timeinterval not valid.");
-      return SetWord( Address(0) );
-    }
-
-    JRouteInterval* rint =
-      (JRouteInterval*) JRouteInterval::In(nl->TheEmptyList(),
-                                           rintList,
-                                           errorPos, errorInfo,
-                                           correct ).addr;
+    JUnit* junit = (JUnit*) JUnit::In(nl->TheEmptyList(), unitList,
+                                      errorPos, errorInfo, correct ).addr;
     if( correct == false )
     {
-      cmsg.inFunError("Error in routeinterval list not correct.");
+      cmsg.inFunError("Error in unit list.");
       return SetWord(Address(0));
     }
 
-    UJPoint* out = new UJPoint(netId, interval,*rint);
-    delete rint;
+    UJPoint* out = new UJPoint(netId, *junit);
+    junit->DeleteIfAllowed();
     return SetWord(out);
   }
 }
@@ -482,10 +404,8 @@ ListExpr UJPoint::Property()
     nl->FourElemList(
       nl->StringAtom("-> " + Kind::TEMPORAL()),
       nl->StringAtom(BasicType()),
-      nl->TextAtom("(string ("+ Instant::BasicType() + " " +
-      Instant::BasicType() + " "+ CcBool::BasicType() +" " +
-      CcBool::BasicType() + ") " + JRouteInterval::BasicType() +
-      "), describes the positions of mjpoint within the time interval."),
+      nl->TextAtom("(string ("+ JUnit::BasicType() + ")), describes the " +
+      " positions of mjpoint within the time interval."),
       nl->TextAtom(Example())));
 }
 
@@ -497,8 +417,7 @@ ListExpr UJPoint::Property()
 
 string UJPoint::Example()
 {
-  return "(netname ((instant 0.5)(instant 0.6) TRUE FALSE)" +
-          JRouteInterval::Example() + ")";
+  return "(netname (" + JUnit::Example() + "))";
 }
 
 /*

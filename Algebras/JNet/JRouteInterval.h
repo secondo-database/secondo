@@ -71,7 +71,8 @@ classes.
   JRouteInterval(const int routeid, const double from, const double to,
                  const JSide sideofroad);
 
-  JRouteInterval(const RouteLocation& from, const RouteLocation& to);
+  JRouteInterval(const RouteLocation& from, const RouteLocation& to,
+                 const bool allowResetSide = false);
 
   ~JRouteInterval();
 
@@ -83,8 +84,6 @@ classes.
     int GetRouteId() const;
 
 /*
-1.1.1.1 GetFirstPosition
-
 Returns always the smaller distance from the start of the route.
 
 */
@@ -92,8 +91,6 @@ Returns always the smaller distance from the start of the route.
     double GetFirstPosition()const;
 
 /*
-1.1.1.1 GetLastPosition
-
 Returns always the bigger distance from the start of the route.
 
 */
@@ -101,8 +98,6 @@ Returns always the bigger distance from the start of the route.
     double GetLastPosition()const;
 
 /*
-1.1.1.1 GetStartPosition
-
 Returns the first point of the routeinterval respecting the direction of the
 route interval on the road.
 
@@ -111,8 +106,6 @@ route interval on the road.
     double GetStartPosition()const;
 
 /*
-1.1.1.1 GetStartPosition
-
 Returns the last point of the routeinterval respecting the direction of the
 route interval on the road.
 
@@ -122,19 +115,12 @@ route interval on the road.
 
     Direction GetSide() const;
 
+    double GetLength() const;
+
     void SetRouteId(const int routeid);
     void SetSide(const Direction sideofroad);
+    void SetInterval(const double from, const double to);
 
-/*
-1.1.1.1 SetStartPosition and SetAndPosition
-
-Use carefully. They may not work as expected by their name, because they are
-only introduced for connecting overlapping route intervals while sorting and
-compressing the JRouteInterval sets in the JLine data type. Using JRITree.
-
-*/
-    void SetStartPosition(const double position);
-    void SetEndPosition(const double position);
 
 /*
 1.1.1 Override Methods from Attribute
@@ -215,7 +201,36 @@ and their intervals overlap at atleast one point.
 
 */
 
-  bool Overlaps(const JRouteInterval& other) const;
+  bool Overlaps(const JRouteInterval& other,
+                bool strict = true) const;
+
+/*
+1.1.1.1 Contains
+
+Returns true if the JRouteInterval contains the route location.
+
+*/
+
+  bool Contains(const RouteLocation& rloc) const;
+
+/*
+1.1.1.1 Extend
+
+Extends the current RouteInterval to enlcose also the given RouteInterval.
+
+*/
+
+JRouteInterval& Extend(const JRouteInterval& rint);
+
+/*
+1.1.1.1 Between
+
+Returns true if the routeInterval is between the two given route locations,
+false elsewhere.
+
+*/
+
+bool Between(const RouteLocation& left, const RouteLocation& right) const;
 
 /*
 1.1 private deklarations
@@ -233,6 +248,21 @@ private:
   double startpos, endpos; //start respectively end position on route
   Direction side; //covered side(s) of the road
 
+/*
+1.1.1 Private Methods
+
+1.1.1.1 SetStartPosition and SetAndPosition
+
+Use carefully. They may not work as expected by their name, because they are
+only introduced for connecting overlapping route intervals while sorting and
+compressing the JRouteInterval sets in the JLine data type. Using JRITree.
+
+*/
+
+    void SetStartPosition(const double position);
+    void SetEndPosition(const double position);
+
+    friend class JRITreeElement;
 };
 
 /*

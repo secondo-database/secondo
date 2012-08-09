@@ -55,17 +55,8 @@ JPoints::JPoints(const string netId, const DbArray<RouteLocation>& rlocList) :
       valDefined)
   {
     JNetwork* jnet = (JNetwork*) value.addr;
-    RouteLocation actInt;
-    StartBulkload();
     strcpy(nid, *jnet->GetId());
-    for (int i = 0; i < rlocList.Size(); i++){
-      rlocList.Get(i,actInt);
-      if (jnet->Contains(&actInt))
-      {
-        Add(actInt);
-      }
-    }
-    EndBulkload();
+    FillLocationList(&rlocList, jnet);
     sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), value);
   }
 }
@@ -80,16 +71,8 @@ JPoints::JPoints(const JNetwork* jnet, const JListRLoc* rlocList) :
   else
   {
     strcpy(nid, *jnet->GetId());
-    RouteLocation actInt;
-    StartBulkload();
-    int i = 0;
-    while (i < rlocList->GetNoOfComponents())
-    {
-      rlocList->Get(i++,actInt);
-      if (jnet->Contains(&actInt))
-        Add(actInt);
-    }
-    EndBulkload();
+    DbArray<RouteLocation> rlist = rlocList->GetList();
+    FillLocationList(&rlist, jnet);
   }
 }
 
@@ -567,6 +550,21 @@ bool JPoints::IsSorted() const
   return (IsDefined() && sorted);
 }
 
+void JPoints::FillLocationList(const DbArray<RouteLocation>* locList,
+                               const JNetwork* jnet)
+{
+  RouteLocation actInt;
+  StartBulkload();
+  for (int i = 0; i < locList->Size(); i++)
+  {
+    locList->Get(i,actInt);
+    if (jnet->Contains(&actInt))
+    {
+      Add(actInt);
+    }
+  }
+  EndBulkload();
+}
 
 /*
 1 Overwrite output operator

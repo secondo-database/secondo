@@ -105,7 +105,7 @@ void JRLTree::Insert(const RouteLocation rl, int pos /*=0*/)
   {
     JRLTreeElement testRL;
     tree.Get(pos, testRL);
-    switch(rl.Compare(testRL.GetRouteLocation()))
+    switch(rl.Compare(testRL.GetValue()))
     {
       case -1:
       {
@@ -164,7 +164,7 @@ void JRLTree::TreeToDbArray(DbArray<RouteLocation>* outArray,
   tree.Get(fromPos,test);
   if (test.GetLeftSon() > -1)
     TreeToDbArray(outArray, test.GetLeftSon());
-  outArray->Append(test.GetRouteLocation());
+  outArray->Append(test.GetValue());
   if (test.GetRightSon() > -1)
     TreeToDbArray (outArray, test.GetRightSon());
 }

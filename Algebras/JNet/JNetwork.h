@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <map>
 #include <string>
+#include <vector>
 #include "NestedList.h"
 #include "NList.h"
 #include "StandardTypes.h"
@@ -38,6 +39,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RTreeAlgebra.h"
 #include "SpatialAlgebra.h"
 #include "JList.h"
+#include "JUnit.h"
+#include "PQManagement.h"
+
+/*
+1 Forward declarations of network data types
+
+*/
+
+class MJPoint;
 
 /*
 1 Class ~JNetwork~
@@ -267,6 +277,56 @@ Returns true if the given position(s) exist in the network.
   bool Contains(const RouteLocation* rloc) const;
   bool Contains(const JRouteInterval* rint) const;
 
+/*
+1.1.1 Operations for Translation from Spatial Data Types into Network Data Types
+
+*/
+
+  RouteLocation* GetNetworkValueOf(const Point* p) const;
+  JRouteInterval* GetNetworkValueOf(const HalfSegment& hs) const;
+
+  JListRLoc* GetNetworkValuesOf(const Point* p) const;
+  JListRLoc* GetNetworkValuesOf(const RouteLocation& rloc) const;
+  JListRLoc* GetNetworkValuesOf(const Tuple* actSect,
+                                const double distStart) const;
+
+/*
+1.1.1 Operation for Translation from network data types into spatial data types
+
+*/
+
+  Point* GetSpatialValueOf(const RouteLocation& rloc) const;
+  Point* GetSpatialValueOf(const RouteLocation& rloc,
+                           const double relpos,
+                           const Tuple* actSect)const;
+
+/*
+1.1.1 ~SimulateTrip~
+
+Generates a trip on the shortest path from source to target in the given time
+interval. jnetwork is not const because ShortestPath computation is included by
+the algorithm, which might change the netdistances relation.
+
+*/
+
+MJPoint* SimulateTrip(const RouteLocation& source, const RouteLocation& target,
+                      const Point* targetPos,
+                      const Instant& starttime, const Instant& endtime,
+                      const bool& lc, const bool& rc);
+
+/*
+1.1.1 ~ShortestPath~
+
+Returns the shortest path from source to target and the total length of the
+path. jnetwork is not const because the relation with the precomputed network
+distances might be updated.
+
+*/
+
+DbArray<JRouteInterval>* ShortestPath(const RouteLocation& source,
+                                      const RouteLocation& target,
+                                      const Point* targetPos,
+                                      double& length);
 
 /*
 1.1 Private declarations
@@ -358,17 +418,15 @@ static string routesBTreeTypeInfo;
   };
 
   enum PositionsNetdistancesRelation {
-    SOURCE_JID = 0,
-    TARGET_JID,
-    NEXT_JUNCTION_JID,
-    NEXT_SECTIION_JID,
-    NETWORKDISTANCE
+    NETDIST_FROM_JID = 0,
+    NETDIST_TO_JID,
+    NETDIST_NEXT_JID,
+    NETDIST_NEXT_SID,
+    NETDIST_DIST
   };
 
 /*
-1.1.1 Private Helper Functions
-
-1.1.1.1 ListRepresentation of internal relations
+1.1.1 Return list representation of internal relations
 
 */
 
@@ -378,38 +436,176 @@ static string routesBTreeTypeInfo;
   ListExpr NetdistancesToList() const;
 
 /*
-1.1.1.1 Create Internal Trees
+1.1.1 create internal trees
 
 */
 
   void CreateTrees();
 
 /*
-1.1.1.1 Initialize ordered relation of netdistances by section length between
-        junctions
+1.1.1 Initialize netdistances relation by section lengths between junctions
 
 */
 
   void InitNetdistances();
+  void InsertNetdistanceTuple(const int fromjid, const JPQEntry* entry);
+  void InsertNetdistanceTuple(const int fromjid, const int tojid,
+                              const int viajid, const int viasid,
+                              const double dist);
 
 /*
-1.1.1.1 Tuple Access by Identifier
+1.1.1 Tuple Access on internal relations
 
 The returned tuple must be deleted by the caller.
+
+1.1.1.1 By Identifier
 
 */
 
   Tuple* GetRouteTupleWithId(const int rid) const;
+  Tuple* GetSectionTupleWithId(const int sid) const;
+  Tuple* GetJunctionTupleWithId(const int jid) const;
+  Tuple* GetTupleWithId(BTree* tree, const Relation* rel,
+                        const int id) const;
+  Tuple* GetNetdistanceTupleFor(const int fid, const int tid) const;
 
 /*
-1.1.1.1 Access to (tuple) attributes for identifiers
+1.1.1.1 By Spatial Position
+
+*/
+
+  Tuple* GetSectionTupleFor(const Point* p, double& pos) const;
+
+/*
+1.1.1.1 By Single Network Postion
+
+*/
+
+  Tuple* GetSectionTupleFor(const RouteLocation& rloc, double& pos) const;
+
+/*
+1.1.1 Access to tuple attributes of internal relations
+
+1.1.1.1 Attributes of routes relation
 
 */
 
   double GetRouteLength(const int rid) const;
+  double GetRouteLength(const Tuple* routeTuple) const;
 
+  JListInt* GetRouteSectionList (const int rid) const;
+  JListInt* GetRouteSectionList (const Tuple* routeTuple) const;
+
+/*
+1.1.1.1 Attributes of Sections Relation
+
+*/
+
+  SimpleLine* GetSectionCurve(const int sid) const;
+  SimpleLine* GetSectionCurve(const Tuple* sectTuple) const;
+  SimpleLine* GetSectionCurve(const RouteLocation& rloc, double& relpos) const;
+
+  JListRInt* GetSectionListRouteIntervals(const int sid) const;
+  JListRInt* GetSectionListRouteIntervals(const Tuple* sectTuple) const;
+
+  JListInt* GetSectionListAdjSectionsUp(const Tuple* sectTuple) const;
+  JListInt* GetSectionListAdjSectionsDown(const Tuple* sectTuple) const;
+  JListInt* GetSectionListReverseAdjSectionsUp(const Tuple* sectTuple) const;
+  JListInt* GetSectionListReverseAdjSectionsDown(const Tuple* sectTuple) const;
+
+  JRouteInterval* GetRouteIntervalFor(const JListRLoc* leftrlocs,
+                                      const JListRLoc* rightrlocs,
+                                      const bool allowResetSide) const;
+  JRouteInterval* GetRouteIntervalFor(const RouteLocation& left,
+                                      const RouteLocation& right,
+                                      const bool allowResetSide) const;
+
+  JRouteInterval* GetSectionFirstRouteInterval(const Tuple* sectTuple) const;
+
+  Tuple* GetSectionStartJunctionTuple(const Tuple* sectTuple) const;
+  Tuple* GetSectionEndJunctionTuple(const Tuple* sectTuple) const;
+
+  JListRLoc* GetSectionStartJunctionRLoc(const Tuple* sectTuple) const;
+  JListRLoc* GetSectionEndJunctionRLoc(const Tuple* sectTuple) const;
+
+  int GetSectionStartJunctionID (const Tuple* sectTuple) const;
+  int GetSectionEndJunctionID(const Tuple* sectTuple) const;
+
+  double GetSectionLength(const Tuple* sectTuple) const;
+
+  Direction* GetSectionDirection(const Tuple* sectTuple) const;
+
+  int GetSectionId(const Tuple* sectTuple) const;
+
+/*
+1.1.1.1 Attributes of Junctions Relation
+
+*/
+
+  int GetJunctionId(const Tuple* juncTup) const;
+  JListRLoc* GetJunctionListRLoc(const Tuple* juncTup) const;
+  Point* GetJunctionSpatialPos(const Tuple* juncTup) const;
+  JListInt* GetJunctionOutSectionList(const Tuple* juncTup) const;
+  JListInt* GetJunctionInSectionList(const Tuple* juncTup) const;
+
+/*
+1.1.1.1 Attributes of Netdistance Relation
+
+*/
+
+ int GetNetdistanceNextSID(const Tuple* actNetDistTup) const;
+ bool ExistsNetworkdistanceFor(const int startPathJID,
+                               const DbArray<pair<int, double> >* endJunctions,
+                               const int endPathJID) const;
+
+/*
+1.1.1.1 DirectConnectionExists
+
+Checks Network for a direct connection between source and target which are
+expected to be on the same route and are allocated in the sections given by
+sourceSectTup and targetSectTup. If the connection exists true is returned and
+the connecting route interval is returned as result.
+
+*/
+
+bool DirectConnectionExists(const int startSID, const int endSID,
+                            const Tuple* sourceSectTup,
+                            const Tuple* targetSectTup,
+                            const RouteLocation& source,
+                            const RouteLocation& target,
+                            DbArray<JRouteInterval>* res,
+                            double& length) const;
+/*
+1.1.1.1 AddAdjacentSections
+
+Adds the sections with id from listSID to priority queue.
+
+*/
+
+void AddAdjacentSections(PQManagement* pq, JPQEntry curEntry,
+                         const Point* targetPos);
+
+void AddAdjacentSections(PQManagement* pq, const JListInt* listSID,
+                         JPQEntry curEntry, const Point* targetPos);
+
+/*
+1.1.1.1 WriteShortestPath
+
+Writes the route intervals of the shortest path from source to target in res.
+Uses netdistance table.
+
+*/
+
+void WriteShortestPath(const RouteLocation& source,
+                       const double distSourceStartSect,
+                       const RouteLocation& target,
+                       const double distTargetStartSect,
+                       const Tuple* startSectTup, const Tuple* endSectTup,
+                       const int startPathJID, const int endPathJID,
+                       DbArray<JRouteInterval>* res, double& length) const;
 
 };
+
 /*
 1 Overwrite output operator
 

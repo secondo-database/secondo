@@ -243,6 +243,16 @@ Position.
 
   void Sort();
 
+/*
+1.1.1.1.1 FillLocationList
+
+Fills the location List from an DbArray of RouteLocations. Route Locations
+out of the network are ignored.
+
+*/
+
+  void FillLocationList(const DbArray<RouteLocation>* locList,
+                        const JNetwork* jnet);
 };
 
 /*

@@ -47,7 +47,6 @@ kind DATA as attribute in relations.
 
 */
 
-extern std::set< std::string > a;
 template<class ListElem>
 class JList: public Attribute
 {
@@ -158,6 +157,7 @@ Returns the element at position ~i~ as ~res~.
 */
 
 void Get(const int i, ListElem& res) const;
+void Get(const int i, ListElem* res) const;
 
 /*
 1.1.1.1 ~isEmpty~
@@ -939,6 +939,17 @@ template<class ListElem>
 void JList<ListElem>::Get(const int i, ListElem& res) const
 {
   if (!IsDefined() || IsEmpty()) res.SetDefined(false);
+  else
+  {
+    assert (0 <= i && i < elemlist.Size());
+    elemlist.Get(i, res);
+  }
+}
+
+template<class ListElem>
+void JList<ListElem>::Get(const int i, ListElem* res) const
+{
+  if (!IsDefined() || IsEmpty()) res->SetDefined(false);
   else
   {
     assert (0 <= i && i < elemlist.Size());

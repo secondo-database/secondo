@@ -155,6 +155,15 @@ at least one of them is ~Both~.
 bool SameSide(const RouteLocation& rloc, const bool strict = true) const;
 
 /*
+1.1.1.1 ~IsOnSameRoute~
+
+Returns true if the rid is the same. Otherwise false.
+
+*/
+
+bool IsOnSameRoute(const RouteLocation& rloc) const;
+
+/*
 1.1. Private deklarations
 
 */

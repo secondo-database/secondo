@@ -89,6 +89,24 @@ JPoint::JPoint(const JNetwork* jnet, const RouteLocation* rloc) :
   }
 }
 
+JPoint::JPoint(const JNetwork* jnet, const Point* in):
+  Attribute(in->IsDefined())
+{
+  if (jnet != NULL && jnet->IsDefined() &&
+      in != NULL && in->IsDefined())
+  {
+    strcpy(nid,*jnet->GetId());
+    RouteLocation* rloc = jnet->GetNetworkValueOf(in);
+    if (rloc != NULL && rloc->IsDefined())
+      npos = *rloc;
+    else
+      SetDefined(false);
+    rloc->DeleteIfAllowed();
+  }
+  else
+    SetDefined(false);
+}
+
 JPoint::~JPoint()
 {}
 

@@ -41,6 +41,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RouteLocation.h"
 #include "JRouteInterval.h"
 #include "NetDistanceGroup.h"
+#include "JUnit.h"
 #include "JList.h"
 #include "JNetwork.h"
 #include "JPoint.h"
@@ -148,6 +149,27 @@ TypeConstructor jndgTC(
   NetDistanceGroup::Cast,
   NetDistanceGroup::SizeOf,
   NetDistanceGroup::KindCheck);
+
+/*
+1.1 ~junit~
+
+Pair of an time interval and ~jrint~ describing a single route position within
+the given time interval.
+
+*/
+
+TypeConstructor junitTC(
+  JUnit::BasicType(),
+  JUnit::Property,
+  JUnit::Out, JUnit::In,
+  0, 0,
+  JUnit::Create, JUnit::Delete,
+  OpenAttribute<JUnit>,
+  SaveAttribute<JUnit>,
+  JUnit::Close, JUnit::Clone,
+  JUnit::Cast,
+  JUnit::SizeOf,
+  JUnit::KindCheck);
 
 
 /*
@@ -385,7 +407,9 @@ TypeConstructor mjpointTC(
 /*
 1 Secondo Operators
 
-1.1 ~creatjnet~
+1.1 Creation
+
+1.1.1 ~creatjnet~
 
 The operator ~createjnet~ creates an single network object from the given
 ressources. It expects four arguments:
@@ -537,7 +561,6 @@ Operator createjnetOp("createjnet", createjnetSpec, createjnetVM,
                       Operator::SimpleSelect, createjnetTM);
 
 /*
-1.1 Create
 
 1.1.1 list from stream and stream from list
 
@@ -1052,7 +1075,7 @@ Operator createndgOp(
 );
 
 /*
-1.1 Createion of data types connected to an existing jnet
+1.1 Creation of data types connected to an existing jnet
 
 1.1.1 ~createjpoint~
 Creates an ~jpoint~ from an existing ~jnet~ and an ~rloc~ value.
@@ -1374,8 +1397,11 @@ int createujpointVM( Word* args, Word& result, int message, Word& local,
       lc != 0 && lc->IsDefined() &&
       rc != 0 && rc->IsDefined())
   {
-    UJPoint* ujp = new UJPoint(jnet, rint, starttime, endtime, lc->GetBoolval(),
-                               rc->GetBoolval());
+    Interval<Instant> time(Interval<Instant>(*starttime,
+                                             *endtime,
+                                             lc->GetBoolval(),
+                                             rc->GetBoolval()));
+    UJPoint* ujp = new UJPoint(jnet, rint, &time);
     *res = *ujp;
     ujp->DeleteIfAllowed();
   }
@@ -1479,6 +1505,80 @@ Operator createmjpointOp(
   createmjpointTM
 );
 
+/*
+1.1 Translation from spatial data types into network datatypes
+
+*/
+
+const string maps_tonetwork[3][3] =
+{
+  {JNetwork::BasicType(), Point::BasicType(), JPoint::BasicType()},
+  {JNetwork::BasicType(), Line::BasicType(), JLine::BasicType()},
+  {JNetwork::BasicType(), MPoint::BasicType(), MJPoint::BasicType()}
+};
+
+ListExpr tonetworkTM (ListExpr args)
+{
+  return SimpleMaps<3,3>(maps_tonetwork, args);
+}
+
+int tonetworkSelect(ListExpr args)
+{
+  return SimpleSelect<3,3>(maps_tonetwork, args);
+}
+
+template<class InType, class OutType>
+int tonetworkVM( Word* args, Word& result, int message, Word& local,
+                 Supplier s)
+{
+  result = qp->ResultStorage(s);
+  OutType* res = static_cast<OutType*> (result.addr);
+  JNetwork* jnet = (JNetwork*) args[0].addr;
+  InType* in = (InType*) args[1].addr;
+  if (jnet != NULL && jnet->IsDefined() &&
+      in != NULL && in->IsDefined())
+  {
+    OutType* m = new OutType(jnet, in);
+    *res = *m;
+    m->DeleteIfAllowed();
+  }
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping tonetworkMap[] =
+{
+  tonetworkVM<Point, JPoint>,
+  tonetworkVM<Line, JLine>,
+  tonetworkVM<MPoint, MJPoint>
+};
+
+const string tonetworkSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JNetwork::BasicType() + " x " + Point::BasicType() + " -> " +
+  JPoint::BasicType() +
+  JNetwork::BasicType() + " x " + Line::BasicType() + " -> " +
+  JLine::BasicType() +
+  JNetwork::BasicType() + " x " + MPoint::BasicType() + " -> " +
+  MJPoint::BasicType() + "</text--->"
+  "<text>tonetwork( <jnetwork> <spatialobject>) </text--->"
+  "<text>Translates the spatial or spatiotemporal object into the " +
+  "corresponding object of the given " +  JNetwork::BasicType() +
+  " if possible.</text--->"
+  "<text>query tonetwork(testjnet, [const mpoint value(((\"2007-01-01-" +
+  "10:02:01.000\" \"2007-01-01-10:02:03.000\" TRUE FALSE)(8209.0 8769.0 " +
+  " 8293.0 8768.0)))]) </text--->))";
+
+Operator tonetworkOp(
+  "tonetwork",
+  tonetworkSpec,
+  3,
+  tonetworkMap,
+  tonetworkSelect,
+  tonetworkTM
+);
 
 /*
 1.1 Comparision of Data Types
@@ -2173,6 +2273,15 @@ JNetAlgebra::JNetAlgebra():Algebra()
   jndgTC.AssociateKind(Kind::DATA());
 
 /*
+1.1.1.1 Simple Temporal Data Types
+
+*/
+
+  AddTypeConstructor(&junitTC);
+  junitTC.AssociateKind(Kind::DATA());
+  junitTC.AssociateKind(Kind::TEMPORAL());
+
+/*
 1.1.1.1 List Data Types
 
 */
@@ -2244,12 +2353,6 @@ JNetAlgebra::JNetAlgebra():Algebra()
 
 1.1.1 Creation
 
-1.1.1.1 Network Construction
-
-*/
-  AddOperator(&createjnetOp);
-
-/*
 1.1.1.1 Simple Datatypes
 
 */
@@ -2257,6 +2360,21 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddOperator(&createrlocOp);
   AddOperator(&createrintOp);
   AddOperator(&createndgOp);
+
+/*
+1.1.1.1 Lists and streams of Data Types
+
+*/
+
+  AddOperator(&createlistOp);
+  AddOperator(&createstreamOp);
+
+/*
+1.1.1.1 Network Construction
+
+*/
+AddOperator(&createjnetOp);
+
 
 /*
 1.1.1.1 Datatypes belonging to a network
@@ -2279,12 +2397,11 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddOperator(&createmjpointOp);
 
 /*
-1.1.1.1 Lists and streams of Data Types
+1.1.1 Translation of spatial data types into jnet data types
 
 */
 
-  AddOperator(&createlistOp);
-  AddOperator(&createstreamOp);
+  AddOperator(&tonetworkOp);
 
 /*
 1.1.1 Comparision of Data types

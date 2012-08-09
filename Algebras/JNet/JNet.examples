@@ -40,14 +40,14 @@ Operator : createujpoint
 Number   : 1
 Signature: jnet x jrint x instant x instant x bool x bool -> ujpoint
 Example  : query createujpoint(testjnet, createrint(1, 0.001, 0.01, [const jdirection value(Up)]), create_instant(0.4), create_instant(0.45), TRUE, FALSE);
-Result   : (ujpoint ("testjnet" ("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) (1 0.001 0.01 (Up))))
+Result   : (ujpoint ("testjnet" (("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) (1 0.001 0.01 (Up)))))
 Tolerance: 0.01%
 
 Operator : createmjpoint
 Number   : 1
 Signature: ujpoint -> mjpoint
 Example  : query createmjpoint(createujpoint(testjnet, createrint(1, 0.001, 0.01, [const jdirection value(Up)]), create_instant(0.4), create_instant(0.45), TRUE, FALSE));
-Result   : (mjpoint ("testjnet" (("testjnet" ("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) (1 0.001 0.01 (Up))))))
+Result   : (mjpoint ("testjnet" ((("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) (1 0.001 0.01 (Up))))))
 Tolerance: 0.01%
 
 Operator : createrloc
@@ -696,4 +696,25 @@ Number   : 8
 Signature: listndg x listndg -> listndg
 Example  : query restrict(testlistndg, testlistndg);
 Result   : (listndg((1 23 1 34 54.3)(2 3 4 423 545.5)(3 34 2 23 132.5)(4 24 4 34 15.5)(5 42 9 54 546.6)))
+Tolerance: 0.01%
+
+Operator : tonetwork
+Number   : 1
+Signature: jnet x point -> jpoint
+Example  : query tonetwork(testjnet, [const point value(7.4801436 51.3596479)]);
+Result   : (jpoint("testjnet" (3 0.01072473178283396 (Both))))
+Tolerance: 0.01%
+
+Operator : tonetwork
+Number   : 2
+Signature: jnet x line -> jline
+Example  : query tonetwork(testjnet, [const line value ((7.4801436 51.3596479 7.4804329 51.3595782))]);
+Result   : (jline ("testjnet" ((1 0.0 0.003633804260856697 (Both)))))
+Tolerance: 0.01%
+
+Operator : tonetwork
+Number   : 3
+Signature: jnet x mpoint -> mjpoint
+Example  : query tonetwork(testjnet, [const mpoint value((("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE)(7.4801436 51.3596479 7.4822519 51.3598317)))]);
+Result   : (mjpoint("testjnet" ((("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) (3 0.01025262971283514 0.01281627938863925 (Down))))))
 Tolerance: 0.01%

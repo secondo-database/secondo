@@ -45,9 +45,8 @@ JLine::JLine(const bool def) :
 {}
 
 JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList) :
-    Attribute(true)
+    Attribute(true), routeintervals(0), sorted(false), activBulkload(false)
 {
-
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   Word value;
   bool valDefined = false;
@@ -56,23 +55,14 @@ JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList) :
       valDefined)
   {
     JNetwork* jnet = (JNetwork*) value.addr;
-    JRouteInterval actInt;
-    StartBulkload();
     strcpy(nid, netId.c_str());
-    for (int i = 0; i < rintList.Size(); i++){
-      rintList.Get(i,actInt);
-      if (jnet->Contains(&actInt))
-      {
-        Add(actInt);
-      }
-    }
-    EndBulkload();
+    FillIntervalList(&rintList, jnet);
     sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), value);
   }
 }
 
 JLine::JLine(const JNetwork* jnet, const JListRInt* rintList) :
-    Attribute(true),routeintervals(rintList->GetNoOfComponents())
+    Attribute(true),routeintervals(0), sorted(false), activBulkload(false)
 {
   if (!rintList->IsDefined() || !jnet->IsDefined())
   {
@@ -81,21 +71,14 @@ JLine::JLine(const JNetwork* jnet, const JListRInt* rintList) :
   else
   {
     strcpy(nid, *jnet->GetId());
-    JRouteInterval actInt;
-    StartBulkload();
-    int i = 0;
-    while (i < rintList->GetNoOfComponents())
-    {
-      rintList->Get(i++,actInt);
-      if (jnet->Contains(&actInt))
-        Add(actInt);
-    }
-    EndBulkload();
+    DbArray<JRouteInterval> rlist = rintList->GetList();
+    FillIntervalList(&rlist, jnet);
   }
 }
 
 JLine::JLine(const JLine& other) :
-  Attribute(other.IsDefined())
+  Attribute(other.IsDefined()), routeintervals(0), sorted(false),
+  activBulkload(false)
 {
   if (other.IsDefined())
   {
@@ -104,6 +87,30 @@ JLine::JLine(const JLine& other) :
     sorted = other.IsSorted();
     activBulkload = false;
   }
+}
+
+JLine::JLine(const JNetwork* jnet, const Line* in):
+  Attribute(in->IsDefined()),routeintervals(0), sorted(false),
+  activBulkload(false)
+{
+  if (jnet != NULL && jnet->IsDefined() &&
+      in != NULL && in->IsDefined())
+  {
+    strcpy(nid,*jnet->GetId());
+    HalfSegment hs;
+    StartBulkload();
+    for (int i = 0; i < in->NoComponents(); i++)
+    {
+      in->Get(i,hs);
+      JRouteInterval* actInt = jnet->GetNetworkValueOf(hs);
+      actInt->SetSide((Direction) Both);
+      Add(*actInt);
+      actInt->DeleteIfAllowed();
+    }
+    EndBulkload();
+  }
+  else
+    SetDefined(false);
 }
 
 JLine::~JLine()
@@ -543,6 +550,21 @@ JLine& JLine::Add(const JRouteInterval& rint)
     }
   }
   return *this;
+}
+
+void JLine::FillIntervalList(const DbArray<JRouteInterval>* rintList,
+                             const JNetwork* jnet)
+{
+  JRouteInterval actInt;
+  StartBulkload();
+  for (int i = 0; i < rintList->Size(); i++){
+    rintList->Get(i,actInt);
+    if (jnet->Contains(&actInt))
+    {
+      Add(actInt);
+    }
+  }
+  EndBulkload();
 }
 
 /*

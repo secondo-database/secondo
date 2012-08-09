@@ -85,7 +85,8 @@ JRouteInterval::JRouteInterval(const bool defined) :
 {}
 
 JRouteInterval::JRouteInterval(const RouteLocation& from,
-                               const RouteLocation& to) :
+                               const RouteLocation& to,
+                               const bool allowResetSide /*false*/) :
   Attribute(true)
 {
   if (from.IsDefined() && to.IsDefined() &&
@@ -97,7 +98,16 @@ JRouteInterval::JRouteInterval(const RouteLocation& from,
     startpos = min(from.GetPosition(),to.GetPosition());
     endpos = max(from.GetPosition(),to.GetPosition());
     side = min(from.GetSide(), to.GetSide());
-  } else {
+    if (allowResetSide)
+    {
+      if (from.GetPosition() <= to.GetPosition())
+        side = (Direction) Up;
+      else
+        side = (Direction) Down;
+    }
+  }
+  else
+  {
     SetDefined(false);
     rid = 0;
     startpos = 0.0;
@@ -151,6 +161,11 @@ double JRouteInterval::GetEndPosition() const
   return side;
 }
 
+double JRouteInterval::GetLength() const
+{
+  return endpos - startpos;
+}
+
   void JRouteInterval::SetRouteId(const int routeid)
 {
   if (routeid >= 0)
@@ -189,6 +204,12 @@ double JRouteInterval::GetEndPosition() const
   side = sideofroad;
 }
 
+void JRouteInterval::SetInterval(const double f, const double t)
+{
+  startpos =  min(f, t);
+  endpos = max (f,t);
+}
+
 /*
 1.1 Overwrite Methods from Attribute
 
@@ -224,12 +245,14 @@ Attribute* JRouteInterval::Clone() const
 
 bool JRouteInterval::Adjacent(const Attribute* attrib) const
 {
-  JRouteInterval* in = (JRouteInterval*) attrib;
-  if ( rid == in->GetRouteId() &&
-       (AlmostEqual(startpos, in->GetLastPosition()) ||
-        AlmostEqual(endpos, in->GetFirstPosition())) &&
-       side.SameSide(in->GetSide(),false))
-    return true;
+  if (IsDefined() && attrib->IsDefined())
+  {
+    JRouteInterval* in = (JRouteInterval*) attrib;
+    return ( rid == in->GetRouteId() &&
+            (AlmostEqual(startpos, in->GetLastPosition()) ||
+             AlmostEqual(endpos, in->GetFirstPosition())) &&
+            side.SameSide(in->GetSide(),true));
+  }
   else
     return false;
 }
@@ -539,9 +562,10 @@ bool JRouteInterval::SameSide(const JRouteInterval& other,
 
 */
 
-bool JRouteInterval::Overlaps(const JRouteInterval& other) const
+bool JRouteInterval::Overlaps(const JRouteInterval& other,
+                              bool strict /* = True*/) const
 {
-  if (rid == other.GetRouteId() && SameSide(other,true))
+  if (rid == other.GetRouteId() && SameSide(other,strict))
   {
     if (startpos <= other.GetLastPosition() ||
         endpos <= other.GetFirstPosition())
@@ -551,6 +575,51 @@ bool JRouteInterval::Overlaps(const JRouteInterval& other) const
   }
   else
     return false;
+}
+
+
+/*
+1.1 Contains
+
+Returns true if the JRouteInterval contains the route location.
+
+*/
+
+bool JRouteInterval::Contains(const RouteLocation& rloc) const
+{
+  return (IsDefined() && rloc.IsDefined() &&
+          rid == rloc.GetRouteId() &&
+          startpos <= rloc.GetPosition() &&
+          rloc.GetPosition() <= endpos &&
+          side.SameSide(rloc.GetSide(),false));
+}
+
+/*
+1.1.Extend
+
+*/
+
+JRouteInterval& JRouteInterval::Extend(const JRouteInterval& rint)
+{
+  if (IsDefined() && rint.IsDefined() && Adjacent(&rint))
+  {
+    startpos = min(startpos, rint.GetFirstPosition());
+    endpos = max(endpos, rint.GetLastPosition());
+  }
+  return *this;
+}
+
+/*
+1.1 Between
+
+*/
+
+bool JRouteInterval::Between(const RouteLocation& left,
+                             const RouteLocation& right) const
+{
+  return (rid == left.GetRouteId() && rid == right.GetRouteId() &&
+          startpos >= min(left.GetPosition(),right.GetPosition()) &&
+          max(left.GetPosition(),right.GetPosition()) >= endpos);
 }
 
 /*

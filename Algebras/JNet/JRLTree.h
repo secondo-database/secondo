@@ -28,17 +28,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define JRLTREE_H
 
 #include "../../Tools/Flob/DbArray.h"
-#include "JRLTreeElement.h"
-#include "RouteLocation.h"
+#include "JTreeElement.h"
 
 /*
 1 class JRLTree
 
-The JRLTree enables the user to sort sets of RouteLocations as
+The JRLTree enables the user to sort sets of JRLTreeElements as
 far as possible. It uses an tree embedded in an DbArray to avoid problems
-with main memory limitation. For big amounts of data. Therefore the
-RouteLocations are embedded in JRLTreeElements which extend the RouteLocation
-by two pointers to the indexes of their right and left sons.
+with main memory limitation. For big amounts of data.
 
 */
 
@@ -112,7 +109,7 @@ private:
 */
 
   DbArray<JRLTreeElement> tree;  //Tree embedded in DbArray to avoid problems
-                                 //with main memory limitations
+                                //with main memory limitations
   int firstFree;
 
 /*

@@ -41,9 +41,9 @@ Returns true if u is valid Defined and after lastUP
 
 */
 
-bool checkNextUnit(UJPoint u, UJPoint lastUP)
+bool checkNextUnit(JUnit u, JUnit lastUP)
 {
-  return(u.IsDefined() &&
+  return(u.IsDefined() && lastUP.IsDefined() &&
          u.Compare(lastUP) > 0 &&
          u.GetTimeInterval().After(lastUP.GetTimeInterval()));
 }
@@ -74,17 +74,17 @@ MJPoint::MJPoint(const MJPoint& other) :
 }
 
 
-MJPoint::MJPoint(const DbArray<UJPoint>& upoints) :
+MJPoint::MJPoint(const string netId, const DbArray<JUnit>& upoints) :
   Attribute(true), units(0), activBulkload(false)
 {
+  strcpy(nid, netId.c_str());
   bool first = true;
-  UJPoint u, lastUP;
+  JUnit u, lastUP;
   for (int i = 0; i < upoints.Size(); i++)
   {
     upoints.Get(i,u);
     if (first)
     {
-      strcpy(nid, *u.GetNetworkId());
       lastUP = u;
       units.Append(u);
       first = false;
@@ -106,12 +106,82 @@ MJPoint::MJPoint(const UJPoint* u) :
   if (u->IsDefined())
   {
     strcpy(nid, *u->GetNetworkId());
-    units.Append(*u);
+    units.Append(u->GetUnit());
   }
   else
   {
     SetDefined(false);
   }
+}
+
+MJPoint::MJPoint(JNetwork* jnet, const MPoint* in) :
+  Attribute(in->IsDefined()), units(0), activBulkload(false)
+{
+  if (jnet != 0 && jnet->IsDefined() &&
+      in != 0 && in->IsDefined())
+  {
+    strcpy(nid, *jnet->GetId());
+    if (!in->IsEmpty())
+    {
+      UPoint actSource;
+      int i = 0;
+      RouteLocation* startPos = 0;
+      RouteLocation* endPos = 0;
+      Instant starttime(0.0);
+      Instant endtime(0.0);
+      bool lc = false;
+      bool rc = false;
+      StartBulkload();
+      while (i < in->GetNoComponents())
+      {
+        //find valid startposition in network
+        while((startPos == 0 || !startPos->IsDefined()) &&
+              i < in->GetNoComponents())
+        {
+          if (startPos != 0)
+            startPos->DeleteIfAllowed();
+          in->Get(i,actSource);
+          startPos = jnet->GetNetworkValueOf(&actSource.p0);
+          starttime = actSource.getTimeInterval().start;
+          lc = actSource.getTimeInterval().lc;
+          if (startPos == 0 || !startPos->IsDefined())
+            i++;
+        }
+        //find valid endposition in network
+        while((endPos == 0 || !endPos->IsDefined()) &&
+              i < in->GetNoComponents())
+        {
+          if (endPos != 0)
+            endPos->DeleteIfAllowed();
+          in->Get(i, actSource);
+          endPos = jnet->GetNetworkValueOf(&actSource.p1);
+          endtime = actSource.getTimeInterval().end;
+          rc = actSource.getTimeInterval().rc;
+          if (endPos == 0 || !endPos->IsDefined())
+            i++;
+        }
+        if (startPos != 0 && endPos != 0 &&
+            startPos->IsDefined() && endPos->IsDefined())
+        { // got valid RouteLocations and TimeStamps
+          MJPoint* partRes = jnet->SimulateTrip(*startPos, *endPos,
+                                                &actSource.p1,
+                                                starttime, endtime, lc, rc);
+          Append(partRes);
+        }
+        startPos->DeleteIfAllowed();
+        startPos = endPos;
+        endPos = 0;
+        starttime = endtime;
+        lc = !rc;
+        i++;
+      }
+      if (startPos != 0) startPos->DeleteIfAllowed();
+      if (endPos != 0) endPos->DeleteIfAllowed();
+      EndBulkload();
+    }
+  }
+  else
+    SetDefined(false);
 }
 
 MJPoint::~MJPoint()
@@ -127,13 +197,13 @@ const STRING_T* MJPoint::GetNetworkId() const
   return &nid;
 }
 
-const DbArray<UJPoint>& MJPoint::GetUnits() const
+const DbArray<JUnit>& MJPoint::GetUnits() const
 {
   return units;
 }
 
 
-void MJPoint::SetUnits(const DbArray<UJPoint>& upoints)
+void MJPoint::SetUnits(const DbArray<JUnit>& upoints)
 {
   assert(upoints != 0);
   units.copyFrom(upoints);
@@ -174,7 +244,7 @@ Attribute::StorageType MJPoint::GetStorageType() const
 size_t MJPoint::HashValue() const
 {
   size_t res = strlen(nid);
-  UJPoint u;
+  JUnit u;
   for (int i = 0 ; i < units.Size(); i++)
   {
     Get(i,u);
@@ -214,7 +284,7 @@ int MJPoint::Compare(const MJPoint& rhs) const
   if (test != 0) return test;
   if (units.Size() < rhs.GetNoComponents()) return -1;
   if (units.Size() > rhs.GetNoComponents()) return 1;
-  UJPoint u, ur;
+  JUnit u, ur;
   for (int i = 0; i < units.Size(); i++)
   {
     Get(i,u);
@@ -252,7 +322,7 @@ ostream& MJPoint::Print(ostream& os) const
   if (IsDefined())
   {
     os << " in " << nid << " : " << endl;
-    UJPoint u;
+    JUnit u;
 
     for (int i = 0; i < units.Size(); i++)
     {
@@ -341,13 +411,13 @@ ListExpr MJPoint::Out(ListExpr typeInfo, Word value)
     NList netList(*in->GetNetworkId(),true,false);
     ListExpr uList = nl->TheEmptyList();
     ListExpr lastElem = nl->TheEmptyList();
-    UJPoint u;
+    JUnit u;
     for (int i = 0; i < in->GetNoComponents(); i++)
     {
       in->Get(i,u);
       Word w;
       w.setAddr(&u);
-      ListExpr curList = UJPoint::Out(nl->TheEmptyList(), w);
+      ListExpr curList = JUnit::Out(nl->TheEmptyList(), w);
       if (nl->TheEmptyList() == uList)
       {
         uList =  nl->Cons( curList, nl->TheEmptyList() );
@@ -389,23 +459,23 @@ Word MJPoint::In(const ListExpr typeInfo, const ListExpr instance,
     res->SetNetworkId(netId);
     res->StartBulkload();
     ListExpr actUP = nl->TheEmptyList();
-    UJPoint lastUP;
+    JUnit lastUP;
     correct = true;
     while( !nl->IsEmpty( uList ) && correct)
     {
       actUP = nl->First( uList );
-      Word w = UJPoint::In(nl->TheEmptyList(), actUP, errorPos,
-                           errorInfo, correct);
+      Word w = JUnit::In(nl->TheEmptyList(), actUP, errorPos,
+                         errorInfo, correct);
       if (correct)
       {
-        UJPoint* actU = (UJPoint*) w.addr;
+        JUnit* actU = (JUnit*) w.addr;
         res->Add(*actU);
         actU->DeleteIfAllowed();
         actU = 0;
       }
       else
       {
-        cmsg.inFunError("Error in list of " + UJPoint::BasicType() +
+        cmsg.inFunError("Error in list of " + JUnit::BasicType() +
         " at " + nl->ToString(actUP));
       }
       uList = nl->Rest( uList );
@@ -470,8 +540,8 @@ ListExpr MJPoint::Property()
     nl->FourElemList(
       nl->StringAtom("-> " + Kind::TEMPORAL()),
       nl->StringAtom(BasicType()),
-      nl->TextAtom("(string (("+ UJPoint::BasicType() + ")... ( " +
-      UJPoint::BasicType() + "))), describes the moving of an jpoint in the "+
+      nl->TextAtom("(string (("+ JUnit::BasicType() + ")... ( " +
+      JUnit::BasicType() + "))), describes the moving of an jpoint in the "+
       "jnetwork."),
       nl->TextAtom(Example())));
 }
@@ -484,7 +554,7 @@ ListExpr MJPoint::Property()
 
 string MJPoint::Example()
 {
-  return "(netname ("+ UJPoint::Example()+"))";
+  return "(netname ("+ JUnit::Example()+"))";
 }
 
 int MJPoint::GetNoComponents() const
@@ -497,7 +567,13 @@ bool MJPoint::IsEmpty() const
   return units.Size() == 0;
 }
 
-void MJPoint::Get(const int i, UJPoint& up) const
+void MJPoint::Get(const int i, JUnit& up) const
+{
+  assert (IsDefined() && 0 <= i && i < units.Size());
+  units.Get(i,up);
+}
+
+void MJPoint::Get(const int i, JUnit* up) const
 {
   assert (IsDefined() && 0 <= i && i < units.Size());
   units.Get(i,up);
@@ -530,7 +606,7 @@ void MJPoint::EndBulkload()
   }
 }
 
-MJPoint& MJPoint::Add(const UJPoint& up)
+MJPoint& MJPoint::Add(const JUnit& up)
 {
   if (IsDefined() && up.IsDefined())
   {
@@ -539,8 +615,8 @@ MJPoint& MJPoint::Add(const UJPoint& up)
     else
     {
       int pos = 0;
-      units.Find(&up, UJPoint::Compare, pos);
-      UJPoint actUP, nextUP;
+      units.Find(&up, JUnit::Compare, pos);
+      JUnit actUP, nextUP;
       units.Get(pos,actUP);
       if (actUP.Compare(up) != 0)
       {
@@ -572,7 +648,7 @@ bool MJPoint::CheckSorted() const
 {
   if (IsDefined() && units.Size() > 1)
   {
-    UJPoint lastUP, actUP;
+    JUnit lastUP, actUP;
     Get(0,lastUP);
     int i = 1;
     bool sorted = true;
@@ -591,6 +667,23 @@ bool MJPoint::CheckSorted() const
   }
 }
 
+/*
+1.1 Append
+
+*/
+
+void MJPoint::Append(const MJPoint* in)
+{
+  JUnit curUnit;
+  if (in != 0 && in->IsDefined() && !in->IsEmpty())
+  {
+    for (int j = 0; j < in->GetNoComponents(); j++)
+    {
+      in->Get(j,curUnit);
+      Add(curUnit);
+    }
+  }
+}
 
 /*
 1 Overwrite output operator

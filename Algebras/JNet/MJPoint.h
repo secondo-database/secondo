@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "DateTime.h"
 #include "TemporalAlgebra.h"
 #include "UJPoint.h"
+#include "JNetwork.h"
 
 /*
 1 class ~MJPoint~
@@ -61,8 +62,9 @@ public:
 
   explicit MJPoint(const bool def);
   explicit MJPoint(const MJPoint& other);
-  explicit MJPoint(const DbArray<UJPoint>& upoints);
+  explicit MJPoint(const string netid, const DbArray<JUnit>& upoints);
   explicit MJPoint(const UJPoint* u);
+  MJPoint(JNetwork* jnet, const MPoint* in);
 
   ~MJPoint();
 
@@ -72,10 +74,10 @@ public:
 */
 
   const STRING_T* GetNetworkId() const;
-  const DbArray<UJPoint>& GetUnits() const;
+  const DbArray<JUnit>& GetUnits() const;
 
   void SetNetworkId(const STRING_T& id);
-  void SetUnits(const DbArray<UJPoint>& upoints);
+  void SetUnits(const DbArray<JUnit>& junits);
 
 /*
 1.1.1 Override Methods from Attribute
@@ -136,7 +138,8 @@ public:
   static string Example();
   int GetNoComponents() const;
   bool IsEmpty() const;
-  void Get(const int i, UJPoint& up) const;
+  void Get(const int i, JUnit& up) const;
+  void Get(const int i, JUnit* up) const;
 
 /*
 1.1.1 Manage Bullkload
@@ -145,7 +148,7 @@ public:
 
   void StartBulkload();
   void EndBulkload();
-  MJPoint& Add(const UJPoint& up);
+  MJPoint& Add(const JUnit& up);
 
 /*
 1.1 Private declarations
@@ -159,8 +162,8 @@ private:
 
 */
 
-  STRING_T nid;             //network identifier
-  DbArray<UJPoint> units; //set of UJPoint describing the way of the mjpoint
+  STRING_T nid;         //network identifier
+  DbArray<JUnit> units; //set of JUnit describing the way of the mjpoint
   bool activBulkload; //only true while bulkload of ujpoints runs
 
 /*
@@ -181,6 +184,15 @@ Checks if the units are well sorted. Used if complete Arrays are inserted.
 */
 
 bool CheckSorted() const;
+
+/*
+1.1.1 Append
+
+Appends the units of the in MJPoint to the current mjpoint.
+
+*/
+
+void Append(const MJPoint* in);
 
 };
 /*

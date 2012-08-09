@@ -35,6 +35,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TemporalAlgebra.h"
 #include "JRouteInterval.h"
 #include "JPoint.h"
+#include "JUnit.h"
+#include "JNetwork.h"
 
 /*
 1 class ~UJPoint~
@@ -65,11 +67,11 @@ It can not be private because UJPoint is used as part of MJPoint.
   UJPoint();
   explicit UJPoint(const bool def);
   UJPoint(const UJPoint& other);
+  UJPoint(const string id, const JUnit& u);
   UJPoint(const string id, const Interval<Instant>& inst,
-          const JRouteInterval& rint);
+          const JRouteInterval& r);
   UJPoint(const JNetwork* jnet, const JRouteInterval* jrint,
-          const Instant* starttime, const Instant* endtime,
-          const bool lc, const bool rc);
+          const Interval<Instant>* timeInter);
 
   ~UJPoint();
 
@@ -78,15 +80,11 @@ It can not be private because UJPoint is used as part of MJPoint.
 
 */
 
-  Interval<Instant> GetTimeInterval() const;
   const STRING_T* GetNetworkId() const;
-  JRouteInterval GetRouteInterval() const;
-  JPoint* GetStartPoint() const;
-  JPoint* GetEndPoint() const;
+  JUnit GetUnit() const;
 
-  void SetTimeInterval(const Interval<Instant>& inst);
   void SetNetworkId(const STRING_T& id);
-  void SetRouteInterval(const JRouteInterval& ri);
+  void SetUnit (const JUnit& j);
 
 /*
 1.1.1 Override Methods from Attribute
@@ -155,12 +153,9 @@ private:
 
 */
 
-  STRING_T nid;             //network identifier
-  Interval<Instant> time; //time interval the mjpoint needs to move from start
-                          //to end
-  JRouteInterval rint;    //network positions the mjpoint passes in the time
-                          //interval
-
+  STRING_T nid;  //network identifier
+  JUnit    unit; //time interval and route interval passed within this
+                 //time interval
 };
 
 /*

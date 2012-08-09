@@ -212,7 +212,7 @@ double JRITree::CheckTree(JRITreeElement& father, const int posfather,
       if (test.GetRouteInterval().GetFirstPosition() <
             testRI.GetRouteInterval().GetFirstPosition())
         testRI.SetRouteIntervalStart(
-            test.GetRouteInterval().GetFirstPosition());
+                                    test.GetRouteInterval().GetFirstPosition());
       if (father.GetLeftSon() == postest)
       {
         father.SetLeftSon(test.GetLeftSon());

@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../Tools/Flob/DbArray.h"
 #include "JList.h"
 #include "JNetwork.h"
+#include "SpatialAlgebra.h"
 
 /*
 1 class JLine
@@ -61,10 +62,11 @@ public:
 */
 
   explicit JLine(const bool defined);
-  JLine(const string netId, const DbArray<JRouteInterval>& rintList);
-  JLine(const JNetwork* jnet, const JListRInt* rintList);
-  JLine(const JLine& other);
+  explicit JLine(const string netId, const DbArray<JRouteInterval>& rintList);
+  explicit JLine(const JNetwork* jnet, const JListRInt* rintList);
+  explicit JLine(const JLine& other);
   JLine(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+  explicit JLine (const JNetwork* jnet, const Line* in);
 
   ~JLine();
 
@@ -244,6 +246,17 @@ possible.
 */
 
   void Sort();
+
+/*
+1.1.1.1.1 FillIntervalList
+
+Fills the list of route intervals from the given DbArray. Ignores
+RouteIntervals which are not in the network.
+
+*/
+
+void FillIntervalList(const DbArray<JRouteInterval>* rintList,
+                      const JNetwork* jnet);
 
 };
 

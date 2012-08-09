@@ -24,21 +24,23 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef JRLTREEELEMENT_H
-#define JRLTREEELEMENT_H
+#ifndef VISITEDJUNCTION_H
+#define VISITEDJUNCTION_H
 
-#include "RouteLocation.h"
+#include <ostream>
+#include "JPQEntry.h"
+
+using namespace std;
 
 /*
-1 class JRLTreeElement
+1 class VisitedJunction
 
-An JRLTreeElement is used in the JRLTree. It consists of an
-~RouteLocation~ and two int values indexing the right and left son of the
-element in the JRLTree.
+Extends JPQEntry by an integer indexing the position of the Entry in the
+priority Queue.
 
 */
 
-class JRLTreeElement {
+class VisitedJunction : public JPQEntry{
 
 /*
 1.1 public declaration part
@@ -52,35 +54,30 @@ public:
 
 */
 
-JRLTreeElement();
-JRLTreeElement(const RouteLocation& rl, const int l = -1, const int r = -1 );
-JRLTreeElement(const JRLTreeElement& other);
-~JRLTreeElement();
+VisitedJunction();
+VisitedJunction(const VisitedJunction& other);
+VisitedJunction(const JPQEntry& entry, const int index);
+~VisitedJunction();
 
 /*
 1.1.1 Getter and Setter
 
 */
 
-RouteLocation GetRouteLocation() const;
-int GetLeftSon() const;
-int GetRightSon() const;
 
-void SetRouteLocation(const RouteLocation in);
-void SetLeftSon(const int i);
-void SetRightSon(const int i);
-
-void SetRouteLocationRid (const int r);
-void SetRouteLocationPos (const double pos);
+int GetIndexPQ() const;
+void SetIndexPQ(const int id);
 
 /*
 1.1.1 Some standard operations
 
 */
 
-void operator= (const JRLTreeElement nelem);
-ostream& Print(ostream&) const;
+VisitedJunction& operator= (const VisitedJunction& other);
+ostream& Print(ostream& os) const;
 
+int Compare(const VisitedJunction& other) const;
+int CompareEndJID(const int id) const;
 
 /*
 1.1 private declaration part
@@ -89,8 +86,7 @@ ostream& Print(ostream&) const;
 
 private:
 
-  RouteLocation rloc;  //single route part
-  int left, right;      //point by index in array to left resp. right son
+  int pqIndex; //index of endJID in priority queue
 
 };
 
@@ -99,6 +95,6 @@ private:
 
 */
 
-ostream& operator<< (ostream& os, const JRLTreeElement elem);
+ostream& operator<< (ostream& os, const VisitedJunction elem);
 
-#endif //JRLTREEELEMENT_H
+#endif //VISITEDJUNCTION_H
