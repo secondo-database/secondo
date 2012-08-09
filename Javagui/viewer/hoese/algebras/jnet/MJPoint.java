@@ -54,13 +54,13 @@ public class MJPoint{
       UJPoint actUP = null;
       while (!uList.isEmpty()){
         ListExpr actUList = uList.first();
-        actUP = new UJPoint(actUList);
+        actUP = new UJPoint(jnet, actUList);
         units.add(actUP);
         if (first){
           starttime = actUP.getStartTime();
           first = false;
         }
-        times.add(LEUtils.readInterval(actUList.second()));
+        times.add(LEUtils.readInterval(actUList.first()));
         uList = uList.rest();
       }
       if (actUP != null){

@@ -44,17 +44,27 @@ public class UJPoint{
 
 
   public UJPoint(ListExpr value) throws JNetworkNotAvailableException {
-    if (value.listLength() == 3){
+    if (value.listLength() == 2){
       netId = value.first().stringValue();
       JNetwork jnet = JNetworkManager.getInstance().getNetwork(netId);
-      time = LEUtils.readInterval(value.second());
-      rint = new JRouteInterval(value.third());
+      time = LEUtils.readInterval(value.second().first());
+      rint = new JRouteInterval(value.second().second());
       sect = jnet.getSection(rint);
     } else {
       netId = "undefined";
     }
   }
 
+  public UJPoint(JNetwork jnet, ListExpr value){
+    if (value.listLength() == 2){
+      netId = jnet.toString();
+      time = LEUtils.readInterval(value.first());
+      rint = new JRouteInterval(value.second());
+      sect = jnet.getSection(rint);
+    } else {
+      netId = "undefined";
+    }
+  }
   public String toString(){
     if (netId.compareTo("undefined") != 0)
       return "ujpoint";
@@ -125,8 +135,9 @@ public class UJPoint{
 
   public JPanel getTimeRenderer (double PixelTime) {
     int start = 0;
-    JLabel label = new JLabel("|"+LEUtils.convertTimeToString(time.getStart()).substring(11,
-                              16), JLabel.LEFT);
+    JLabel label =
+      new JLabel("|"+LEUtils.convertTimeToString(time.getStart()).substring(11,
+                 16), JLabel.LEFT);
     label.setBounds(start, 15, 100, 15);
     label.setVerticalTextPosition(JLabel.CENTER);
     label.setHorizontalTextPosition(JLabel.RIGHT);

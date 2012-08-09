@@ -3034,10 +3034,10 @@ struct DisplayJNetwork : DisplayFunction {
         rest = nl->Rest(rest);
 
         cout << "Id: " << nl->IntValue(nl->First(first));
-        cout << "Length: " << nl->RealValue(nl->Seventh(first));
-        cout << "Speedlimit: " << nl->RealValue(nl->Sixth(first));
+        cout << ", Length: " << nl->RealValue(nl->Seventh(first));
+        cout << ", Speedlimit: " << nl->RealValue(nl->Sixth(first));
         NList dir(nl->Fifth(first));
-        cout << "Direction: " << dir.first().str() << endl;
+        cout << ", Direction: " << dir.first().str() << endl;
         cout << "Startjunction: " << nl->IntValue(nl->Third(first)) << endl;
         cout << "Targetjunction: " << nl->IntValue(nl->Fourth(first)) << endl;
         cout << "Represented route parts: " << endl;
@@ -3062,7 +3062,7 @@ struct DisplayJNetwork : DisplayFunction {
         if (nl->BoolValue(nl->Second(nl->Second(first))))
           cout << "smaller ";
         else
-          cout << "bigger";
+          cout << "bigger ";
         cout << "endpoint." << endl;
 
         ListExpr restElem = nl->First(nl->Second(first));
@@ -3128,7 +3128,21 @@ struct DisplayUJPoint : DisplayFunction{
     {
       NList netL(nl->First(value));
       cout << "Network: " << netL.str() << " " << endl;
-      ListExpr instL = nl->Second(value);
+      ListExpr subtype = nl->TheEmptyList();
+      nl->ReadFromString("junit", subtype);
+      DisplayTTY::GetInstance().DisplayResult(subtype, nl->Second(value));
+    }
+  }
+};
+
+struct DisplayJUnit : DisplayFunction{
+  virtual void Display(ListExpr type, ListExpr numType, ListExpr value)
+  {
+    if (nl->IsEqual(value, Symbol::UNDEFINED()))
+      cout << Symbol::UNDEFINED() << endl;
+    else
+    {
+      ListExpr instL = nl->First(value);
       ListExpr subtype = nl->TheEmptyList();
       nl->ReadFromString("instant", subtype);
       DisplayTTY::GetInstance().DisplayResult(subtype, nl->First(instL));
@@ -3137,7 +3151,7 @@ struct DisplayUJPoint : DisplayFunction{
       DisplayTTY::GetInstance().DisplayResult(subtype, nl->Third(instL));
       DisplayTTY::GetInstance().DisplayResult(subtype, nl->Fourth(instL));
       nl->ReadFromString("jrint", subtype);
-      DisplayTTY::GetInstance().DisplayResult(subtype, nl->Third(value));
+      DisplayTTY::GetInstance().DisplayResult(subtype, nl->Second(value));
     }
   }
 };
@@ -3152,7 +3166,7 @@ struct DisplayMJPoint : DisplayFunction{
       NList netL(nl->First(value));
       cout << "Network: " << netL.str() << " " << endl;
       ListExpr subtype = nl->TheEmptyList();
-      nl->ReadFromString("ujpoint", subtype);
+      nl->ReadFromString("junit", subtype);
       ListExpr unitList = nl->Second(value);
       while (!nl->IsEmpty(unitList))
       {
@@ -3424,6 +3438,7 @@ DisplayTTY::Initialize()
   d.Insert( "rloc", new DisplayRouteLocation());
   d.Insert( "jrint", new DisplayJRouteInterval());
   d.Insert( "ndg", new DisplayNDG());
+  d.Insert( "junit", new DisplayJUnit());
   d.Insert( "listint", new DisplayJListInt());
   d.Insert( "listrloc", new DisplayJListRLoc());
   d.Insert( "listjrint", new DisplayJListRInt());
