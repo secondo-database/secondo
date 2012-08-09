@@ -8,6 +8,7 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import javax.swing.*;
 
@@ -19,6 +20,7 @@ public class OperationsDialog extends JDialog {
     
     private MainPane main;
     private ArrayList<ObjectView> objects;
+    private Operation operation;
     private String[] attributes;
     private JCheckBox[] cbs;
     private JRadioButton[] rbs;
@@ -26,14 +28,20 @@ public class OperationsDialog extends JDialog {
     private ButtonGroup radiogroupRelation1 = new ButtonGroup();
     private ButtonGroup radiogroupRelation2 = new ButtonGroup();
     
-    public OperationsDialog(MainPane main) {
+    public OperationsDialog(MainPane main, Operation operation) {
         this.main = main;
+        this.operation = operation;
         setLayout(new GridLayout(0,1));
+        
+        if (operation.getParameter().equals("int") || operation.getParameter().equals("String")) {
+            text();
+        }
     }
     
     public void show(ActionListener al) {
         JButton ok = new JButton("ok");
         ok.addActionListener(al);
+        this.getRootPane().setDefaultButton(ok);
         add(ok);
         
         setLocation(100, 100);
@@ -90,16 +98,10 @@ public class OperationsDialog extends JDialog {
         this.setVisible(false);
     }
     
-    public void filter(String[] atts){
-        int i = 0;
-        this.attributes = atts;
-        this.cbs = new JCheckBox[attributes.length];
-        for (JCheckBox cb: this.cbs) {
-            if (!cb.isSelected()) {
-                attributes[i] = cb.getName();
-            }
-            i++;
-        }
+    public void filter(ObjectView[] atts){
+        FilterViewer viewer = new FilterViewer(this.main, this.operation, "bool");
+        viewer.addObjects(atts);
+        viewer.setVisible(true);
     }
     
     public void joinAttributes(StreamView r1, StreamView r2){
@@ -138,9 +140,9 @@ public class OperationsDialog extends JDialog {
     //adds the name of the object to the operation
     public void sendObject(ActionEvent e) {
         if (this.radiogroupRelation1.getButtonCount() > 0) {
-            main.addString(radiogroupRelation1.getSelection().getActionCommand()+ ", " + radiogroupRelation2.getSelection().getActionCommand());
+            main.addString(radiogroupRelation1.getSelection().getActionCommand()+ ", " + radiogroupRelation2.getSelection().getActionCommand(), this.operation.getBrackets());
         } else {
-            main.addString(radiogroup.getSelection().getActionCommand());
+            main.addString(radiogroup.getSelection().getActionCommand(), this.operation.getBrackets());
         }
         this.setVisible(false);
     }
@@ -160,7 +162,14 @@ public class OperationsDialog extends JDialog {
     
     //adds the text to the operation name
     public void sendText(ActionEvent e, JTextField text){
-        main.addString(text.getText());
+        String resultString = operation.getBrackets()[0] + text.getText() + operation.getBrackets()[1];
+        if (operation.getName().equals("rename")) {
+            operation.setName(resultString);
+        }
+        else {
+            operation.setName(operation.getName() + resultString);
+        }
+        main.update();
         setVisible(false);
     }
     

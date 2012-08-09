@@ -14,29 +14,44 @@ import javax.swing.*;
  * @author lrentergent
  */
 public class InfoDialog extends JDialog {
+    
+    JTextArea textArea = new JTextArea();
+    
+    public InfoDialog() {
+        //this.setPreferredSize(new Dimension(100, 100));
+        textArea.setEditable(false);
+        textArea.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+        
+    }
         
     public InfoDialog(StreamView stream) {
         
-        setLocation(100, 100);
-        setLayout(new GridLayout(0, 2));
-        setPreferredSize(new Dimension(600, (stream.getHeight()+1)*50));
-        stream.view(this);
-        
-        view();
+        super();
+        setLayout(new GridLayout(0, 1));
     }
     
-    public InfoDialog(ObjectView object) {
-        object.viewInfo(this);
+    public InfoDialog(ObjectType object) {
+        
+        super();
+        setLayout(new GridLayout(0, 1));
+        
     }
     
     public void addStream(StreamView stream) {
-        stream.view(this);
+        
     }
     
     public void view() {
-        this.setAlwaysOnTop(true);
+        //this.setAlwaysOnTop(true);
         pack();
         setVisible(true);
     }
     
+    public void viewInfo(String str) {
+        
+        str = str.replace("(", "  ").replace(")", "");
+        textArea.setText(str);
+        this.add(textArea);
+        
+    }
 }

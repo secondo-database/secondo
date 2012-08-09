@@ -7,6 +7,7 @@ package viewer.queryconstruction;
 
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.GridLayout;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -23,32 +24,21 @@ public class ObjectPane extends MainPane {
     public ObjectPane (QueryconstructionViewer viewer) {
         super(viewer);
         this.viewer = viewer;
-    }
-    
-    /** paints a Secondo Object into the ObjectsPane */
-    @Override
-    public void paintComponent(Graphics g) {        
-        int x = 0;
-        int y = 0;
-        
-        for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
-            ObjectView object = (ObjectView)iter.next();
-            object.paintComponent( g, x, y, null );
-            x++;
-        }
+        this.setLayout(new GridLayout(1, 0));
     }
     
     //add all relations and objects of berlintest database to the viewer
     public ArrayList<ObjectView> addObjects(ListExpr list){
+        this.removeAll();
+        
         // the length must be two and the object element must be an symbol atom with content "inquiry"
         if(list.listLength()==2 && list.first().symbolValue().equals("inquiry")) { 
             objects = list.second().second();
-            setPreferredSize(new Dimension (objects.listLength()*120 - 120, 70));
+            setPreferredSize(new Dimension (objects.listLength()*120, 70));
             while (objects.listLength() > 1) {
                 ListExpr object = objects.second();
-                ObjectView object_view = new ObjectView(object);
-                
-                addObject(object_view);
+                ObjectView objectView = new ObjectView(object);
+                addObject(objectView);
                 objects = objects.rest();
             }
         }
@@ -59,54 +49,55 @@ public class ObjectPane extends MainPane {
     //    adds an operation or an object to the main panel
     @Override
     public void addObject(ObjectView object){
+        object.addMouseListener(this);
+        add(object);
         elements.add(object);
     }
     
-    // updates the operations panel, only allowed operations shoul be viewed black
+    public void showObjectType(String type) {
+        for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
+            ObjectView object = (ObjectView)iter.next();
+            if (!object.getType().equals(type)) {
+                object.setActive(true);
+            }
+        }
+        this.revalidate();
+    }
+    
+    // updates the panel, only active objects are shown
     public void update() {
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
-            object.setUnactive();
-            if ((object.getType().equals("rel") || object.getType().equals("trel")) && viewer.getState() < StreamView.TWOSTREAMS) {
-                object.setActive();
-            }
+            //TODO alle Objekte sind aktiv
+            object.setActive(true);
         }
-        this.repaint();
+        this.revalidate();
     }
 
     //double click adds a copy of the selected object to the main panel
     @Override
     public void mouseClicked ( MouseEvent arg0 ) {
-        if (arg0.getClickCount () == 2) {
-            int x = 0;
-            if (10 < arg0.getY() && arg0.getY() < 80) {
-                while (arg0.getX() > (10 + x*120)) { x++; }
-                if (arg0.getX() < (10 + x*120)) {
-                    if (x <= elements.size()) {
-                        if (elements.get(x-1).isActive()) {
-                            ObjectView element = elements.get(x-1);
-                            ObjectView new_object = new ObjectView(element.getType(), element.getName());
-                            new_object.setOType(element.getOType());
-                            viewer.addObject(new_object);
-                        }
-                    }
-                }
+        if (arg0.getComponent() != null) {
+            ObjectView element = (ObjectView)arg0.getComponent();
+            
+            if (arg0.getButton() == 3) {
+                InfoDialog dialog = new InfoDialog(element.getOType());
+                dialog.viewInfo(element.getOType().getViewString());
+                dialog.view();
             }
-        }
-        
-        if (arg0.getButton() == 3) {
-            int x = 0;
-            if (10 < arg0.getY() && arg0.getY() < 80) {
-                while (arg0.getX() > (10 + x*120)) { x++; }
-                if (arg0.getX() < (10 + x*120)) {
-                    if (x <= elements.size()) {
-                        if (elements.get(x-1).isActive()) {
-                            ObjectView element = elements.get(x-1);
-                            new InfoDialog(element);
-                        }
-                    }
-                }
+            else {
+                ObjectView new_object1 = new ObjectView(element.getType(), element.getName());
+                new_object1.setOType(element.getOType());
+                viewer.addObject(new_object1);
             }
         }
     }
+    public void mousePressed(MouseEvent e) {}
+
+    public void mouseReleased(MouseEvent e) {}
+
+    public void mouseEntered(MouseEvent e) {}
+
+    public void mouseExited(MouseEvent e) {}
+
 }

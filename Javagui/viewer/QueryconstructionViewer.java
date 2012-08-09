@@ -34,6 +34,7 @@ import viewer.queryconstruction.MainPane;
 import viewer.queryconstruction.ObjectPane;
 import viewer.queryconstruction.ObjectView;
 import viewer.queryconstruction.OperationsPane;
+import viewer.queryconstruction.Operation;
 
 /**
  * this viewer class admits the construction of a query
@@ -45,15 +46,17 @@ import viewer.queryconstruction.OperationsPane;
  */
 public class QueryconstructionViewer extends SecondoViewer {
     
-    private ObjectPane ObjectPane = new ObjectPane(this);
-    private OperationsPane OperationsPane = new OperationsPane(this);
-    private MainPane MainPane;
+    protected ObjectPane ObjectPane = new ObjectPane(this);
+    protected OperationsPane OperationsPane = new OperationsPane(this);
+    protected MainPane MainPane;
+    
+    private JScrollPane MainScrollPane;
+    private JScrollPane ObjectsScrollPane;
+    private JScrollPane OperationsScrollPane;
     
     private ArrayList<ObjectView> objectList = new ArrayList<ObjectView>();
-    private ArrayList<ObjectView> operationList = new ArrayList<ObjectView>();
     
     private MenuVector MV = new MenuVector();
-    private int streamCounter = 0;
     private static ListExpr objects;
     
     public QueryconstructionViewer(){
@@ -63,23 +66,34 @@ public class QueryconstructionViewer extends SecondoViewer {
         MainPane.setPreferredSize(new Dimension (500, 400));
         OperationsPane.update();
         
-        JScrollPane MainScrollPane = new JScrollPane(MainPane);
-        JScrollPane ObjectsScrollPane = new JScrollPane(ObjectPane);
+        MainScrollPane = new JScrollPane(MainPane);
+        ObjectsScrollPane = new JScrollPane(ObjectPane);
         ObjectsScrollPane.setPreferredSize(new Dimension (600, 90));
-        JScrollPane OperationsScrollPane = new JScrollPane(OperationsPane);
-        OperationsScrollPane.setPreferredSize(new Dimension (120, 400));
+        OperationsScrollPane = new JScrollPane(OperationsPane);
+        OperationsScrollPane.setPreferredSize(new Dimension (120, 300));
         
         this.add(ObjectsScrollPane, BorderLayout.NORTH);
         this.add(OperationsScrollPane, BorderLayout.EAST);
         this.add(MainScrollPane, BorderLayout.CENTER);
         
         JPanel buttonPanel = new JPanel();
+        JButton newQuery = new JButton("new");
+        buttonPanel.add(newQuery);
         JButton run = new JButton("run");
         buttonPanel.add(run);
         JButton back = new JButton("back");
         buttonPanel.add(back);
+        JButton addObj = new JButton("add objects");
+        buttonPanel.add(addObj);
         
         this.add(buttonPanel, BorderLayout.SOUTH);
+        
+        ActionListener newl = new ActionListener() {
+            public void actionPerformed( ActionEvent e ) {
+                removeAll();
+            }
+        };
+        newQuery.addActionListener(newl);
         
         ActionListener runl = new ActionListener() {
             public void actionPerformed( ActionEvent e ) {
@@ -94,13 +108,28 @@ public class QueryconstructionViewer extends SecondoViewer {
             }
         };
         back.addActionListener(backl);
+        
+        ActionListener addObjl = new ActionListener() {
+            public void actionPerformed( ActionEvent e ) {
+                if (VC != null) {
+                    listObjects();
+                }
+            }
+        };
+        addObj.addActionListener(addObjl);
     }
     
     //adds an object to the main panel
     public void addObject(ObjectView object){
-        if (object.getType().equals("rel"))
-            streamCounter++;
+        //TODO prüfen ob das Objekt einen neuen Stream erzeugt
         MainPane.addObject(object);
+        update();
+    }
+    
+    //adds an object to the main panel
+    public void addOperation(Operation operation){
+        //TODO prüfen ob das Objekt einen neuen Stream erzeugt
+        MainPane.addOperation(operation);
         update();
     }
     
@@ -118,15 +147,19 @@ public class QueryconstructionViewer extends SecondoViewer {
         return MainPane.getState();
     }
     
+    public String[] getParameters() {
+        return MainPane.getParameters();
+    }
+    
     //executes the constructed query
     public void runQuery() {
         System.out.println(MainPane.getStrings());
         if (VC.execCommand(MainPane.getStrings()) == 0) {
-            System.out.println(VC.getCommandResult(MainPane.getStrings()));
             VC.execUserCommand(MainPane.getStrings());
         }
         else {
-            System.out.println("Fehler!");
+            System.out.println(VC.getCommandResult(MainPane.getStrings()));
+            System.out.println("Kann nicht ausgeführt werden.");
         }
     }
     
@@ -147,9 +180,24 @@ public class QueryconstructionViewer extends SecondoViewer {
         //super.setViewerControl(VC);
         if (VC != null) {
             this.VC = VC;
-            VC.execCommand("open database berlintest");
             objects = VC.getCommandResult("list objects");
-            objectList = ObjectPane.addObjects(objects);
+            
+            if (objects != null)
+                objectList = ObjectPane.addObjects(objects);
+        }
+    }
+    
+    public void listObjects() {
+        if (VC != null) {
+            objects = VC.getCommandResult("list objects");
+            
+            if (objects != null)
+                objectList = ObjectPane.addObjects(objects);
+            
+            update();
+        }
+        else {
+            System.out.println("Fehler: noch keine Datenbank geöffnet");
         }
     }
     
@@ -171,7 +219,11 @@ public class QueryconstructionViewer extends SecondoViewer {
     
     /** remove all containing objects */
     public void removeAll(){
-        
+        MainPane = new MainPane(this);
+        MainPane.setPreferredSize(new Dimension (500, 400));
+        MainScrollPane.setViewportView(MainPane);
+        MainScrollPane.repaint();
+        this.update();
     }
     
     /** returns InquiryViewer */

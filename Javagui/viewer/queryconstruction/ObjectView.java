@@ -5,10 +5,14 @@
 package viewer.queryconstruction;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseEvent;
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
-import javax.swing.JLabel;
+import javax.swing.*;
+import javax.swing.JTextArea;
 import sj.lang.ListExpr;
 import viewer.QueryconstructionViewer;
 
@@ -20,12 +24,18 @@ public class ObjectView extends JComponent {
     
     private String name;
     private String label;
-    private int xpos;
-    private int ypos;
+    
+    private int xpos = 10;
+    private int ypos = 10;
     private ObjectType otype;
     private String type;
     private boolean active = false;
     private Color color = Color.BLACK;
+    
+    public ObjectView(){
+        this.setOpaque(false);
+        this.setPreferredSize(new Dimension(120, 70));
+    }
     
     public ObjectView(String type, String name){
         
@@ -46,10 +56,8 @@ public class ObjectView extends JComponent {
     }
     
     /** paints a Secondo ObjectView into the RelationsPane
-     height 80, width 50*/
-    public void paintComponent(Graphics g, int x, int y, Color color){
-        this.xpos = 10 + x*120;
-        this.ypos = 10 + y*40;
+     height 90, width 50*/
+    protected void paintComponent(Graphics g){
         
         g.setColor(this.color);
         
@@ -95,39 +103,15 @@ public class ObjectView extends JComponent {
         g.drawString(s, xpos + 45 - w/2, ypos + 30);
     }
     
-    public void paintTable(Graphics g, int x, int y){
+    /** paints a Secondo ObjectView into the MainPane
+     * 
+     */
+    public void paintComponent(Graphics g, int x, int y, Color color){
         this.xpos = 10 + x*120;
-        this.ypos = 10 + y*30;
+        this.ypos = 10 + y*80;
+        this.color = color;
         
-        g.setColor(this.color);
-        
-        g.drawLine(xpos - 10, ypos + 20, xpos + 120, ypos + 20);
-        
-        int w = g.getFontMetrics().stringWidth(label);
-        String s = label;
-        if (w > 80) {
-            s = label.substring(0, 12);
-        }
-        
-        g.drawString(s, xpos + 10, ypos + 10);
-    }
-    
-    public void viewInfo(InfoDialog dialog) {
-        //dialog.add(this);
-        JLabel name = new JLabel( otype.getName(), JLabel.LEADING );
-        JLabel type = new JLabel( otype.getType(), JLabel.LEADING );
-        String[] attributes = otype.getAttributes();
-        String[] attrtypes = otype.getAttrTypes();
-        int i = 0;
-        for (String att: attributes) {
-            JLabel label = new JLabel( att, JLabel.LEADING );
-            dialog.add(label);
-            
-            dialog.add(new JLabel( attrtypes[i] ));
-            i++;
-        }
-        
-        dialog.view();
+        paintComponent(g);
     }
     
     public String getName() {
@@ -145,6 +129,10 @@ public class ObjectView extends JComponent {
         return type;
     }
     
+    public boolean isSecondoObject(){
+        return (otype != null);
+    }
+    
     public ObjectType getOType() {
         return otype;
     }
@@ -157,13 +145,8 @@ public class ObjectView extends JComponent {
         return active;
     }
     
-    public void setActive() {
+    public void setActive(boolean active) {
         color = Color.BLACK;
-        active = true;
-    }
-    
-    public void setUnactive() {
-        color = Color.GRAY;
-        active = false;
+        this.active = active;
     }
 }

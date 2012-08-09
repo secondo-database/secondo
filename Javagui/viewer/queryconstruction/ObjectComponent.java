@@ -13,7 +13,7 @@ import viewer.QueryconstructionViewer;
  *
  * @author lrentergent
  */
-public class ObjectComponent extends Component {
+public class ObjectComponent extends JComponent {
     
     private String name;
     private int xpos;
@@ -24,17 +24,18 @@ public class ObjectComponent extends Component {
     public ObjectComponent(String type, String name){
         
         this.setPreferredSize(new Dimension(120,70));
+        this.setOpaque(true);
         this.name = name;
         this.type = type;        
         this.active = false;
         
     }
     
-    /** paints a Secondo ObjectComponent into the RelationsPane
+    /** paints a Secondo ObjectComponent into the ObjectPane
      height 80, width 50*/
-    public void paintComponent(Graphics g, int x, int y){
-        this.xpos = 10 + x*120;
-        this.ypos = 10 + y*70;
+    public void paintComponent(Graphics g){
+        this.xpos = 10;
+        this.ypos = 10;
         
         g.setColor(Color.BLACK);
         

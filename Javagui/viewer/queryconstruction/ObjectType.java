@@ -4,11 +4,10 @@
  */
 package viewer.queryconstruction;
 
+import javax.swing.BorderFactory;
+import javax.swing.JDialog;
+import javax.swing.JTextArea;
 import sj.lang.ListExpr;
-import java.util.ArrayList;
-import java.util.Iterator;
-import viewer.QueryconstructionViewer;
-import viewer.queryconstruction.StreamView;
 
 /**
  *
@@ -20,7 +19,7 @@ public class ObjectType {
     private String type;
     private ListExpr list;
     
-    // define supported types
+    // define supported object types
     protected static final String OPERATION = "operation";
     protected static final String TRELATION = "trel";
     protected static final String RELATION = "rel";
@@ -29,6 +28,7 @@ public class ObjectType {
     protected static final String REGION = "region";
     protected static final String MREGION = "mregion";
     
+    //constructor of secondo objects
     public ObjectType(ListExpr obj){
         
         this.list = obj.fourth().first();
@@ -37,6 +37,7 @@ public class ObjectType {
         
     }
     
+    //construct an object of the getType-string, Zwischenergebnis
     public ObjectType(String name, ListExpr list){
         
         this.list = list;
@@ -54,7 +55,6 @@ public class ObjectType {
     }
     
     public void setType(ListExpr obj) {
-        String type = "";
         //the object can be of atom type or a relation
         if (obj.fourth().first().isAtom()) {
             type = obj.fourth().first().symbolValue();
@@ -62,7 +62,6 @@ public class ObjectType {
         else {
             type = obj.fourth().first().first().symbolValue();
         }
-        this.type = type;
     }
     
     public String getType() {
@@ -99,5 +98,9 @@ public class ObjectType {
             return attarray;
         }
         else return null;
+    }
+    
+    public String getViewString() {        
+        return this.list.toString();
     }
 }

@@ -14,101 +14,144 @@ import viewer.QueryconstructionViewer;
 /* RelationsPane.java requires no other files. */
 public class OperationsPane extends MainPane {
     
-    private ArrayList<ObjectView> elements = new ArrayList<ObjectView>();
+    private ArrayList<Operation> operations = new ArrayList<Operation>();
     private QueryconstructionViewer viewer;
+    private String result;
 
     public OperationsPane(QueryconstructionViewer viewer) {
         super(viewer);
-        ObjectView feed = new ObjectView(ObjectType.OPERATION, "feed");
-        addObject(feed);
-        ObjectView rename = new ObjectView(ObjectType.OPERATION, "rename");
-        addObject(rename);
-        ObjectView filter = new ObjectView(ObjectType.OPERATION, "project");
-        addObject(filter);
-        ObjectView count = new ObjectView(ObjectType.OPERATION, "count");
-        addObject(count);
-        ObjectView head = new ObjectView(ObjectType.OPERATION, "head");
-        addObject(head);
-        ObjectView tail = new ObjectView(ObjectType.OPERATION, "tail");
-        addObject(tail);
-        ObjectView units = new ObjectView(ObjectType.OPERATION, "units");
-        addObject(units);
-        ObjectView consume = new ObjectView(ObjectType.OPERATION, "consume");
-        addObject(consume);
-        ObjectView symmjoin = new ObjectView(ObjectType.OPERATION, "symmjoin");
-        addObject(symmjoin);
-        ObjectView sortmergejoin = new ObjectView(ObjectType.OPERATION, "sortmergejoin");
-        addObject(sortmergejoin);
-        ObjectView mergejoin = new ObjectView(ObjectType.OPERATION, "mergejoin");
-        addObject(mergejoin);
-        ObjectView hashjoin = new ObjectView(ObjectType.OPERATION, "hashjoin");
-        addObject(hashjoin);
-        
-        setPreferredSize(new Dimension (100, elements.size()*30));
         this.viewer = viewer;
+        this.setLayout(new GridLayout(0, 1));
+        
+        String rel[] = {"rel"};
+        //operation(name, objects, brackets, parameter, result
+        Operation feedrel = new Operation("feed", rel, null, null, "stream");
+        addOperation(feedrel);
+        Operation countrel = new Operation("count", rel, null, null, "int");
+        addOperation(countrel);
+        
+        String stream[] = {"stream"};
+        Operation filter = new Operation("filter", stream, "[]", "bool", "stream");
+        addOperation(filter);
+        Operation rename = new Operation("rename", stream, "{}", "String", "stream");
+        addOperation(rename);
+        
+        Operation project = new Operation("project", stream, "[]", "arraylist", "stream");
+        addOperation(project);
+        Operation count = new Operation("count", stream, null, null, "int");
+        addOperation(count);
+        Operation head = new Operation("head", stream, "[]", "int", "stream");
+        addOperation(head);
+        Operation tail = new Operation("tail", stream, "[]", "int", "stream");
+        addOperation(tail);
+        Operation consume = new Operation("consume", stream, null, null, "rel");
+        addOperation(consume);
+        
+        String twoStreams[] = {"stream", "stream"};
+        Operation symmjoin = new Operation("symmjoin", twoStreams, "[]", "arraylist", "stream");
+        addOperation(symmjoin);
+        Operation sortmergejoin = new Operation("sortmergejoin", twoStreams, "[]", "arraylist", "stream");
+        addOperation(sortmergejoin);
+        Operation mergejoin = new Operation("mergejoin", twoStreams, "[]", "arraylist", "stream");
+        addOperation(mergejoin);
+        Operation hashjoin = new Operation("hashjoin", twoStreams, "[]", "arraylist", "stream");
+        addOperation(hashjoin);
+        
+        String empty[] = {null};
+        Operation units = new Operation("units", empty, "()", "mpoint", "stream upoint");
+        addOperation(units);
+        
+        String compare[] = {"int"};
+        Operation equal = new Operation("=", compare, null, "int", "bool");
+        addOperation(equal);
+        Operation bigger = new Operation(">", compare, null, "int", "bool");
+        addOperation(bigger);
+        Operation smaller = new Operation("<", compare, null, "int", "bool");
+        addOperation(smaller);
+//        Operation text = new Operation("text", null, null, "String", "bool");
+//        addOperation(text);
+        
+        String compareString[] = {"String"};
+        Operation equalString = new Operation("=", compareString, null, "String", "bool");
+        addOperation(equalString);
     }
     
     /** paints a Secondo Object into the relations panel */
     public void paintComponent(Graphics g) {
+        this.removeAll();
+        String[] viewerParam = viewer.getParameters();
         
-        int x = 0;
-        int y = 0;
-        
-        for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
-            ObjectView object = (ObjectView)iter.next();
-            object.paintTable( g, x, y );
-            y++;
-        }
-        
-    }
-    
-    //adds an operation or an object to the operations panel
-    public void addObject(ObjectView object){
-        elements.add(object);
-    }
-    
-    //updates the operations panel, only allowed operations should be painted black
-    public void update() {
-        int state = viewer.getState();
-        for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
-            ObjectView object = (ObjectView)iter.next();
-            object.setUnactive();
-            String name = object.getName();
+        for ( Iterator iter = operations.iterator(); iter.hasNext(); ) {
+            Operation op = (Operation)iter.next();
             
-            if (state == StreamView.TUPEL && name.equals("count")) {
-                object.setActive();
+            boolean view = true;
+            String[] operationParam = op.getObjects();
+            
+            if ((this.result != null) && (op.getResultType() != null) && (!op.getResultType().equals(result))) {
+                view = false;
             }
-            if ((state == StreamView.TUPEL || state == StreamView.TWORELATIONS) && name.startsWith("feed")) {
-                object.setActive();
+            
+            if ((operationParam[0] == null) && (viewerParam.length == 1)) {
+                viewOperation(op);
             }
-            if ((state == StreamView.STREAM || state == StreamView.TWOSTREAMS)) {
-                if (name.startsWith("rename") || name.startsWith("head") || name.startsWith("tail") || name.startsWith("project")) {
-                    object.setActive();
+            
+            if (viewerParam.length == (operationParam.length + 1)) {
+
+                if ((viewerParam.length > 0) && (viewerParam[0] == null)) {
+                    int i = 1;
+
+                    String viewerStr = "";
+                    for (String s : operationParam) {
+
+                        if ((s != null) && (viewerParam.length > i) && (viewerParam[i] != null)) {
+                            viewerStr = viewerParam[i].trim();
+                            
+                            if (!s.equals(viewerStr)) {
+                                view = false;
+                            }
+                        }
+                        i++;
+                    }
+                
+                }
+                else {
+                    view = false;
+                }
+                if (view) {
+                    viewOperation(op); 
                 }
             }
-            if (name.equals("consume") && (state == StreamView.STREAM || state == StreamView.TWOSTREAMS)) {
-                object.setActive();
-            }
-            if (name.endsWith("join") && (state == StreamView.TWOSTREAMS)) {
-                object.setActive();
-            }
-            if (name.startsWith("units") && (state == StreamView.EMPTY)) {
-                object.setActive();
-            }
+            
         }
+        this.setPreferredSize(new Dimension(120, 30*this.getComponentCount()));
+        this.revalidate();
+    }
+    
+    public void setResult(String result) {
+        this.result = result;
+    }
+    
+    public void viewOperation(Operation op) {
+        add(op);
+    }
+    
+    public void addOperation(Operation op){
+        op.addMouseListener(this);
+        operations.add(op);
+    }
+    
+    //updates the operations panel, only allowed operations should visible
+    public void update() {
         this.repaint();
     }
     
     @Override
     public void mouseClicked ( MouseEvent arg0 ) {
         //double click adds a copy of the selected operation to the main panel
-        if (arg0.getClickCount () == 2) {
-            int y = 0;
-            while (arg0.getY() > (y*30)) { y++; }
-            if (y <= elements.size()) {
-                if (elements.get(y-1).isActive())
-                    viewer.addObject(new ObjectView(elements.get(y-1).getType(), elements.get(y-1).getName()));
-            }
+        if ((arg0.getClickCount () == 1) && (arg0.getComponent() != null)) {
+            Operation element = (Operation)arg0.getComponent();
+            
+            viewer.addOperation(element);
         }
     }
 }
