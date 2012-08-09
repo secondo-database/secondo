@@ -128,13 +128,13 @@ let QueryRegionsNet =
 #                                                                              #
 ################################################################################
 
-let dataSNcar_Licence_btree = dataSNcar createbtree[Licence];
+derive dataSNcar_Licence_btree = dataSNcar createbtree[Licence];
 
-let dataMcar_Licence_btree = dataMcar createbtree[Licence];
+derive dataMcar_Licence_btree = dataMcar createbtree[Licence];
 
-let dataMcar_Moid_btree = dataMcar createbtree[Moid];
+derive dataMcar_Moid_btree = dataMcar createbtree[Moid];
 
-let dataMNtrip_Moid_btree = dataMNtrip createbtree[Moid];
+derive dataMNtrip_Moid_btree = dataMNtrip createbtree[Moid];
 
 
 ################################################################################
@@ -144,7 +144,7 @@ let dataMNtrip_Moid_btree = dataMNtrip createbtree[Moid];
 #                                                                              #
 ################################################################################
 
-let dataSNcar_BoxNet_timespace =
+derive dataSNcar_BoxNet_timespace =
   dataSNcar feed
   extend[TID: tupleid(.)]
   projectextendstream[TID; UTrip: units(.Trip)]
@@ -152,7 +152,7 @@ let dataSNcar_BoxNet_timespace =
   sortby[Box asc]
 bulkloadrtree[Box];
 
-let dataMNtrip_BoxNet_timespace =
+derive dataMNtrip_BoxNet_timespace =
   dataMNtrip feed
   extend[TID: tupleid(.)]
   projectextendstream[TID; UTrip: units(.Trip)]
@@ -160,14 +160,14 @@ let dataMNtrip_BoxNet_timespace =
   sortby[Box asc]
  bulkloadrtree[Box];
 
-let dataSNcar_TrajBoxNet =
+derive dataSNcar_TrajBoxNet =
   dataSNcar feed
   extend[TID: tupleid(.)]
   projectextendstream[TID; Box: routeintervals(trajectory(.Trip))]
   sortby [Box asc]
  bulkloadrtree[Box];
 
-let dataMNtrip_TrajBoxNet =
+derive dataMNtrip_TrajBoxNet =
   dataMNtrip feed
   extend[TID: tupleid(.)]
   projectextendstream[TID; Box: routeintervals(trajectory(.Trip))]
@@ -180,7 +180,7 @@ let dataMNtrip_TrajBoxNet =
 #                                                                              #
 ################################################################################
 
-let dataMNtrip_SpatioTemp =
+derive dataMNtrip_SpatioTemp =
   dataMNtrip feed
   extend[TID: tupleid(.)]
   projectextend[TID; Box: mgpbbox(.Trip)]

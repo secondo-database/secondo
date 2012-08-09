@@ -246,12 +246,12 @@ consume;
 
 let QueryPointsNet =
   QueryPoints feed
-  projectextend[Id; Pos: tonetwork(B_NETWORK, .Pos)]
+  projectextend[Id; Pos: tonetwork(JBNet, .Pos)]
  consume;
 
 let QueryPoints1Net =
   QueryPoints feed head[10]
-  projectextend[Id; Pos: tonetwork(B_NETWORK, .Pos)]
+  projectextend[Id; Pos: tonetwork(JBNet, .Pos)]
  consume;
 
 ################################################################################
@@ -261,7 +261,7 @@ let QueryPoints1Net =
 ################################################################################
 
 let routesline =
-  components(routes(B_NETWORK) feed
+  components(routes(JBNet) feed
     projectextend[;Curve: toline(.Curve)]
     aggregateB[Curve; fun(L1: line, L2: line) union_new(L1, L2); [const line value()]])
   transformstream
