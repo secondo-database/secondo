@@ -1548,14 +1548,14 @@
             mjpoint 
             ("testjnet" 
                 (
-                    ("testjnet" 
+                    (
                         ("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) 
                         (1 0.001 0.01 
                             (Up)))))) 
-        (OBJECT testnet 
+        (OBJECT testjnet 
             () 
             jnet 
-            ("testnet" 
+            ("testjnet"
                 (
                     (1 
                         (7.4796806 51.359579) 
@@ -2270,6 +2270,7 @@
             () 
             ujpoint 
             ("testjnet" 
-                ("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) 
-                (1 0.001 0.01 
-                    (Up))))))
+                (
+	          ("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) 
+                  (1 0.001 0.01 
+                    (Up)))))))
