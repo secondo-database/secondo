@@ -56,7 +56,7 @@ stars "*"("*"|whitespace)*
 
 
 
-<INITIAL>{whitespace}   { ; } 
+<INITIAL>{whitespace}    { ; } 
 <INITIAL>"\\\\"          { cregexlval.numval = (int) '\\'; return CHAR; }
 <INITIAL>"\\("           { cregexlval.numval = (int)'('; return CHAR; }
 <INITIAL>"\\)"           { cregexlval.numval = (int)')'; return CHAR;}
@@ -88,8 +88,9 @@ stars "*"("*"|whitespace)*
 <INITIAL>"[^"            { BEGIN(SET);
                            return OPENINVERSESET;
                          }
-<INITIAL>.           { cregexlval.numval = (int)(unsigned char)yytext[0];
-                           return CHAR;}
+<INITIAL>.               { cregexlval.numval = (int)(unsigned char)yytext[0];
+                           return CHAR;
+                         }
 
 <SET>"\\-"               { cregexlval.numval = (int)'-'; return CHAR;}
 <SET>"-"                 { return TO; }
@@ -98,13 +99,13 @@ stars "*"("*"|whitespace)*
 <SET>"]"                 { BEGIN(INITIAL);
                            return CLOSESET;
                          }
-<SET>"\\n"           { cregexlval.numval = (int)'\n'; return CHAR;}
-<SET>"\\t"           { cregexlval.numval = (int)'\t'; return CHAR;}
-<SET>"\\r"           { cregexlval.numval = (int)'\r'; return CHAR;}
-<SET>"\\a"           { cregexlval.numval = (int)'\a'; return CHAR;}
-<SET>"\\b"           { cregexlval.numval = (int)'\b'; return CHAR;}
-<SET>"\\f"           { cregexlval.numval = (int)'\f'; return CHAR;}
-<SET>"\\v"           { cregexlval.numval = (int)'\v'; return CHAR;}
+<SET>"\\n"               { cregexlval.numval = (int)'\n'; return CHAR;}
+<SET>"\\t"               { cregexlval.numval = (int)'\t'; return CHAR;}
+<SET>"\\r"               { cregexlval.numval = (int)'\r'; return CHAR;}
+<SET>"\\a"               { cregexlval.numval = (int)'\a'; return CHAR;}
+<SET>"\\b"               { cregexlval.numval = (int)'\b'; return CHAR;}
+<SET>"\\f"               { cregexlval.numval = (int)'\f'; return CHAR;}
+<SET>"\\v"               { cregexlval.numval = (int)'\v'; return CHAR;}
 <SET>.                   { cregexlval.numval = (int)(unsigned char)yytext[0];
                            return CHAR; 
                          }
