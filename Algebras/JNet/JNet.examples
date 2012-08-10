@@ -709,12 +709,12 @@ Operator : tonetwork
 Number   : 2
 Signature: jnet x line -> jline
 Example  : query tonetwork(testjnet, [const line value ((7.4801436 51.3596479 7.4804329 51.3595782))]);
-Result   : (jline ("testjnet" ((1 0.0 0.003633804260856697 (Both)))))
+Result   : (jline ("testjnet" ((1 0.0 0.0029757786 (Both)))))
 Tolerance: 0.01%
 
 Operator : tonetwork
 Number   : 3
 Signature: jnet x mpoint -> mjpoint
-Example  : query tonetwork(testjnet, [const mpoint value((("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE)(7.4801436 51.3596479 7.4822519 51.3598317)))]);
-Result   : (mjpoint("testjnet" ((("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) (3 0.01025262971283514 0.01281627938863925 (Down))))))
+Example  : query tonetwork(testjnet, [const mpoint value((("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE)(7.4801436 51.3596479 7.4804329 51.3595782)))]);
+Result   : (mjpoint("testjnet" ((("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) (1 0.0 0.0002975778553586566 (Up))))))
 Tolerance: 0.01%

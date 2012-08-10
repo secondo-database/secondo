@@ -604,6 +604,16 @@ void WriteShortestPath(const RouteLocation& source,
                        const int startPathJID, const int endPathJID,
                        DbArray<JRouteInterval>* res, double& length) const;
 
+/*
+1.1.1.1 WriteShortestPath
+
+Returns true if src and tgt can be mapped to the same route. In this case
+one or both are changed to the values belonging to the same route.
+
+*/
+
+bool ExistsCommonRoute(RouteLocation& src, RouteLocation& tgt) const;
+
 };
 
 /*
