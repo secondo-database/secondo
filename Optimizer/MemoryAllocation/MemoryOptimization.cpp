@@ -1,12 +1,12 @@
 /*
 
-Header
-author Nikolai van Kempen
+$Header$
+@author Nikolai van Kempen
 
 Provides the non linear algorithm to optimize a fomula that represents a memory
 assignment.
 
-See SECONDO\_HOME/Optimizer/MemoryAllocation/ for more information.
+See \$SECONDO\_HOME/Optimizer/MemoryAllocation/ for more information.
 
 */
 #include <string.h>
