@@ -1183,10 +1183,6 @@ static foreign_t pl_global_memory(term_t value) {
   if(sbd.length()>0) {
     globalMem = SmiProfile::GetParameter("QueryProcessor", "GlobalMemory", 512,
       sbd + "/bin/SecondoConfig.ini");
-    // That two lines above can't be committed due to some checks...
-    //string q=sbd + "/bin/SecondoConfig.ini";
-    //string qq="QueryProcessor";
-    ////globalMem=SmiProfile::GetParameter(qq, "GlobalMemory", 512, q);
   }
   else
     PL_fail;
