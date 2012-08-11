@@ -1,0 +1,31 @@
+
+
+This extension has to be bind with the NLopt library.
+
+NLopt can obtained from
+
+http://ab-initio.mit.edu/wiki/index.php/NLopt
+
+
+To activate this extensions, some things needs to be done:
+
+1)
+The NLopt library needs to be installed, either manually or with the
+./install_nlopt.sh script, if the version 2.2.4 is still available, this should work (you might need to enter the root password).
+
+2) 
+Replace/add some files:
+cp MemoryOptimization.cpp $SECONDO_BUILD_DIR/UserInterfaces/
+cp SecondoPL.cpp $SECONDO_BUILD_DIR/UserInterfaces/
+cp makefile $SECONDO_BUILD_DIR/UserInterfaces/
+cp MemoryOptimization.h $SECONDO_BUILD_DIR/include/
+
+3)
+The steps described in $SECONDO_BUILD_DIR/Optimizer/NestedRelations/README needs to be done, too.
+
+4)
+The last step is now to recompile secondo:
+
+cd $SECONDO_BUILD_DIR
+make
+
