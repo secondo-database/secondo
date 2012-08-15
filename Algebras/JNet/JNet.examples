@@ -3,8 +3,8 @@ Restore : yes
 
 Operator : createjnet
 Number   : 1
-Signature: int x rel x rel x rel -> bool
-Example  : query createjnet("testnet", junctest, secttest, routtest);
+Signature: int x real x rel x rel x rel -> bool
+Example  : query createjnet("testnet", 0.0000001, junctest, secttest, routtest);
 Result   : TRUE
 Tolerance: 0.01%
 

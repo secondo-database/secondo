@@ -40,8 +40,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 extern NestedList* nl;
 
-const double TOLERANCE = 0.0000001;
-
 /*
 1 Helpful Operations
 
@@ -54,6 +52,7 @@ Returns a pointer to the copy of the relation of relPointer.
 OrderedRelation* getRelationCopy(const string relTypeInfo,
                                  const OrderedRelation* relPointer)
 {
+
   ListExpr relType;
   nl->ReadFromString ( relTypeInfo, relType );
   ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType(relType);
@@ -358,14 +357,15 @@ JNetwork::JNetwork()
 {}
 
 JNetwork::JNetwork(const bool def) :
-  defined(def), junctions(0), sections(0), routes(0), netdistances(0),
-  junctionsBTree(0), junctionsRTree(0), sectionsBTree(0),sectionsRTree(0),
-  routesBTree(0)
+  defined(def), tolerance(0.0), junctions(0), sections(0), routes(0),
+  netdistances(0), junctionsBTree(0), junctionsRTree(0), sectionsBTree(0),
+  sectionsRTree(0), routesBTree(0)
 {}
 
-JNetwork::JNetwork(const string nid, const Relation* injunctions,
-                   const Relation* insections, const Relation* inroutes) :
-  defined(true),
+JNetwork::JNetwork(const string nid, const double t,
+                   const Relation* injunctions, const Relation* insections,
+                   const Relation* inroutes) :
+  defined(true), tolerance(t),
   junctions(getRelationCopy(junctionsRelationTypeInfo, injunctions)),
   sections(getRelationCopy(sectionsRelationTypeInfo, insections)),
   routes(getRelationCopy(routesRelationTypeInfo, inroutes)),
@@ -377,10 +377,10 @@ JNetwork::JNetwork(const string nid, const Relation* injunctions,
   CreateTrees();
 }
 
-JNetwork::JNetwork(const string nid, const Relation* injunctions,
-                   const Relation* insections, const Relation* inroutes,
-                   const OrderedRelation* inDist) :
-  defined(true),
+JNetwork::JNetwork(const string nid, const double t,
+                   const Relation* injunctions, const Relation* insections,
+                   const Relation* inroutes, const OrderedRelation* inDist) :
+  defined(true), tolerance(t),
   junctions(getRelationCopy(junctionsRelationTypeInfo, injunctions)),
   sections(getRelationCopy(sectionsRelationTypeInfo, insections)),
   routes(getRelationCopy(routesRelationTypeInfo, inroutes)),
@@ -395,9 +395,9 @@ JNetwork::JNetwork(const string nid, const Relation* injunctions,
 
 JNetwork::JNetwork(SmiRecord& valueRecord, size_t& offset,
                    const ListExpr typeInfo) :
-  defined(false), junctions(0), sections(0), routes(0), netdistances(0),
-  junctionsBTree(0), junctionsRTree(0), sectionsBTree(0),sectionsRTree(0),
-  routesBTree(0)
+  defined(false), tolerance(0.0), junctions(0), sections(0), routes(0),
+  netdistances(0), junctionsBTree(0), junctionsRTree(0), sectionsBTree(0),
+  sectionsRTree(0), routesBTree(0)
 {
   Word w;
   ListExpr idLE;
@@ -416,6 +416,20 @@ JNetwork::JNetwork(SmiRecord& valueRecord, size_t& offset,
   if (ok && id == Symbol::UNDEFINED())
   {
     ok = false;
+  }
+
+  if (ok)
+  {
+    nl->ReadFromString(CcReal::BasicType(), idLE);
+    numId = SecondoSystem::GetCatalog()->NumericType(idLE);
+    ok = OpenAttribute<CcReal>(valueRecord, offset, numId, w);
+  }
+
+  if (ok)
+  {
+    CcReal* tol = (CcReal*) w.addr;
+    tolerance = tol->GetRealval();
+    tol->DeleteIfAllowed();
   }
 
   if (ok)
@@ -550,6 +564,11 @@ const STRING_T* JNetwork::GetId() const
   return &id;
 }
 
+double JNetwork::GetTolerance() const
+{
+  return tolerance;
+}
+
 string JNetwork::GetJunctionsRelationType()
 {
   return junctionsRelationTypeInfo;
@@ -586,13 +605,17 @@ Relation* JNetwork::GetSectionsCopy() const
 
 OrderedRelation* JNetwork::GetNedistancesRelationCopy() const
 {
-  return getRelationCopy(netdistancesRelationTypeInfo,
-                         netdistances);
+  return getRelationCopy(netdistancesRelationTypeInfo, netdistances);
 }
 
 void JNetwork::SetDefined(const bool def)
 {
   defined = def;
+}
+
+void JNetwork::SetTolerance(const double t)
+{
+  tolerance = t;
 }
 
 /*
@@ -611,11 +634,13 @@ ListExpr JNetwork::Out(ListExpr typeInfo, Word value)
   else
   {
     ListExpr netId = nl->StringAtom(*source->GetId());
+    ListExpr toleranceList = nl->RealAtom(source->GetTolerance());
     ListExpr junclist = source->JunctionsToList();
     ListExpr sectlist = source->SectionsToList();
     ListExpr routelist = source->RoutesToList();
     ListExpr dislist = source->NetdistancesToList();
-    return nl->FiveElemList(netId, junclist, sectlist, routelist, dislist);
+    return nl->SixElemList(netId, toleranceList, junclist, sectlist,
+                            routelist, dislist);
   }
 }
 
@@ -635,22 +660,23 @@ Word JNetwork::In(const ListExpr typeInfo, const ListExpr instance,
   }
   else
   {
-    if (nl->ListLength(instance) == 5)
+    if (nl->ListLength(instance) == 6)
     {
       ListExpr netId = nl->First(instance);
       string nid = nl->StringValue(netId);
-
-      Relation* juncRel = relationFromList(nl->Second(instance),
+      ListExpr tolList = nl->Second(instance);
+      double tol = nl->RealValue(tolList);
+      Relation* juncRel = relationFromList(nl->Third(instance),
                                            junctionsRelationTypeInfo,
                                            errorPos, errorInfo, correct);
-      Relation* sectRel = relationFromList(nl->Third(instance),
+      Relation* sectRel = relationFromList(nl->Fourth(instance),
                                            sectionsRelationTypeInfo,
                                            errorPos, errorInfo, correct);
-      Relation* routeRel = relationFromList(nl->Fourth(instance),
+      Relation* routeRel = relationFromList(nl->Fifth(instance),
                                             routesRelationTypeInfo,
                                             errorPos, errorInfo, correct);
       OrderedRelation* distRel =
-        ordRelationFromList(nl->Fifth(instance), netdistancesRelationTypeInfo,
+        ordRelationFromList(nl->Sixth(instance), netdistancesRelationTypeInfo,
                             errorPos, errorInfo, correct);
       if (!correct){
         if (juncRel != 0) juncRel->Delete();
@@ -663,7 +689,7 @@ Word JNetwork::In(const ListExpr typeInfo, const ListExpr instance,
         return SetWord(Address(0));
       }
 
-      JNetwork* n = new JNetwork(nid, juncRel, sectRel, routeRel, distRel);
+      JNetwork* n = new JNetwork(nid, tol, juncRel, sectRel, routeRel, distRel);
 
       juncRel->Delete();
       sectRel->Delete();
@@ -699,6 +725,7 @@ Word JNetwork::Clone( const ListExpr typeInfo, const Word& w )
 {
   JNetwork* source = (JNetwork*) w.addr;
   JNetwork* clone = new JNetwork(*source->GetId(),
+                                 source->GetTolerance(),
                                  source->junctions,
                                  source->sections,
                                  source->routes,
@@ -753,6 +780,16 @@ bool JNetwork::Save(SmiRecord& valueRecord, size_t& offset,
   stn->DeleteIfAllowed();
 
   if (ok)
+  {
+    CcReal* tol = new CcReal(true, tolerance);
+    w.setAddr(tol);
+    nl->ReadFromString(CcReal::BasicType(), idLE);
+    numId = SecondoSystem::GetCatalog()->NumericType(idLE);
+    ok = SaveAttribute<CcReal>(valueRecord, offset, numId, w);
+    tol->DeleteIfAllowed();
+  }
+
+  if (ok)
     ok = saveRelation(junctionsRelationTypeInfo, junctions, valueRecord,
                       offset);
 
@@ -802,12 +839,13 @@ ListExpr JNetwork::Property()
     nl->FourElemList(
       nl->StringAtom("-> " + Kind::JNETWORK()),
       nl->StringAtom(BasicType()),
-      nl->TextAtom("(" + CcString::BasicType() + " " +
-        junctionsRelationTypeInfo + " " + sectionsRelationTypeInfo + " " +
+      nl->TextAtom("(" + CcString::BasicType() + " " + CcReal::BasicType() + " "
+        + junctionsRelationTypeInfo + " " + sectionsRelationTypeInfo + " " +
         routesRelationTypeInfo +" " + netdistancesRelationTypeInfo + "), the" +
         " string defines the name of the network, it is followed by the " +
-        "network data for junctions, sections, routes and network distances "+
-        "in nested list format."),
+        "tolerance value for the network representation used in map matching "+
+        "algorithms, and the network data for junctions, sections, routes and "+
+        "network distances in nested list format."),
       nl->TextAtom("(netname junctionsrel sectionsrel routesrel distrel)")));
 }
 
@@ -824,6 +862,8 @@ ostream& JNetwork::Print(ostream& os) const
   else
   {
     os << "Id: " << id << endl;
+
+    os << "Tolerance: " << tolerance << endl;
 
     os << "Junctions: " << endl;
     if (junctions !=  0)junctions->Print(os);
@@ -884,7 +924,7 @@ RouteLocation* JNetwork::GetNetworkValueOf(const Point* p) const
     }
     actInt->DeleteIfAllowed();
   }
-    return res;
+  return res;
 }
 
 JListRLoc* JNetwork::GetNetworkValuesOf(const Point* p) const
@@ -1553,10 +1593,10 @@ Tuple* JNetwork::GetSectionTupleFor(const Point* p, double& pos) const
 {
   const Rectangle<2> pbox = p->BoundingBox();
   const Rectangle<2> searchbox(true,
-                               pbox.MinD(0) - TOLERANCE,
-                               pbox.MaxD(0) + TOLERANCE,
-                               pbox.MinD(1) + TOLERANCE,
-                               pbox.MaxD(1) + TOLERANCE);
+                               pbox.MinD(0) - tolerance,
+                               pbox.MaxD(0) + tolerance,
+                               pbox.MinD(1) - tolerance,
+                               pbox.MaxD(1) + tolerance);
   R_TreeLeafEntry<2,TupleId> curEntry;
   Tuple* actSect = 0;
   if (sectionsRTree->First(searchbox, curEntry))
@@ -1571,7 +1611,7 @@ Tuple* JNetwork::GetSectionTupleFor(const Point* p, double& pos) const
   while (!found)
   {
     actCurve = GetSectionCurve(actSect);
-    if (actCurve->AtPoint(*p, pos))
+    if (actCurve->AtPoint(*p, pos, tolerance))
     {
       found = true;
     }
@@ -1618,10 +1658,10 @@ Tuple* JNetwork::GetSectionTupleFor(const Point* p, double& pos) const
             yr = right.GetY(),
              x = p->GetX(),
              y = p->GetY();
-      if((AlmostEqualAbsolute(x, xl, TOLERANCE) &&
-          AlmostEqualAbsolute(y, yl, TOLERANCE)) ||
-         (AlmostEqualAbsolute(x, xr, TOLERANCE) &&
-          AlmostEqualAbsolute(y, yr, TOLERANCE)))
+      if((AlmostEqualAbsolute(x, xl, tolerance) &&
+          AlmostEqualAbsolute(y, yl, tolerance)) ||
+         (AlmostEqualAbsolute(x, xr, tolerance) &&
+          AlmostEqualAbsolute(y, yr, tolerance)))
       {
         diff = 0.0;
         found = true;
@@ -1633,17 +1673,17 @@ Tuple* JNetwork::GetSectionTupleFor(const Point* p, double& pos) const
           k1 = ( y - yl ) / ( x - xl );
           k2 = ( yr - yl ) / ( xr - xl );
           if ((( xl < xr &&
-                 ( x > xl || AlmostEqualAbsolute(x, xl, TOLERANCE)) &&
-                 ( x < xr || AlmostEqualAbsolute(x, xr, TOLERANCE))) ||
+                 ( x > xl || AlmostEqualAbsolute(x, xl, tolerance)) &&
+                 ( x < xr || AlmostEqualAbsolute(x, xr, tolerance))) ||
                ( xl > xr &&
-                 ( x < xl || AlmostEqualAbsolute(x, xl, TOLERANCE)) &&
-                 ( x > xr || AlmostEqualAbsolute(x, xr, TOLERANCE)))) &&
-              (( ( yl < yr || AlmostEqualAbsolute(yl, yr, TOLERANCE)) &&
-                 ( y > yl || AlmostEqualAbsolute(y, yl, TOLERANCE)) &&
-                 ( y < yr || AlmostEqualAbsolute(y, yr, TOLERANCE))) ||
+                 ( x < xl || AlmostEqualAbsolute(x, xl, tolerance)) &&
+                 ( x > xr || AlmostEqualAbsolute(x, xr, tolerance)))) &&
+              (( ( yl < yr || AlmostEqualAbsolute(yl, yr, tolerance)) &&
+                 ( y > yl || AlmostEqualAbsolute(y, yl, tolerance)) &&
+                 ( y < yr || AlmostEqualAbsolute(y, yr, tolerance))) ||
                ( yl > yr &&
-                 ( y < yl || AlmostEqualAbsolute(y, yl, TOLERANCE)) &&
-                 ( y > yr || AlmostEqualAbsolute(y, yr, TOLERANCE)))))
+                 ( y < yl || AlmostEqualAbsolute(y, yl, tolerance)) &&
+                 ( y > yr || AlmostEqualAbsolute(y, yr, tolerance)))))
           {
             diff = fabs ( k1-k2 );
             found = true;
@@ -1655,14 +1695,14 @@ Tuple* JNetwork::GetSectionTupleFor(const Point* p, double& pos) const
         }
         else
         {
-          if((AlmostEqualAbsolute(xl, xr, TOLERANCE) &&
-              AlmostEqualAbsolute(xl, x, TOLERANCE)) &&
-             ((( yl < yr || AlmostEqualAbsolute(yl, yr, TOLERANCE)) &&
-               ( yl < y || AlmostEqualAbsolute(yl, y , TOLERANCE)) &&
-               ( y < yr || AlmostEqualAbsolute(y, yr, TOLERANCE))) ||
+          if((AlmostEqualAbsolute(xl, xr, tolerance) &&
+              AlmostEqualAbsolute(xl, x, tolerance)) &&
+             ((( yl < yr || AlmostEqualAbsolute(yl, yr, tolerance)) &&
+               ( yl < y || AlmostEqualAbsolute(yl, y , tolerance)) &&
+               ( y < yr || AlmostEqualAbsolute(y, yr, tolerance))) ||
               ( yl > yr  &&
-               ( yl > y || AlmostEqualAbsolute(yl, y, TOLERANCE)) &&
-               ( y > yr || AlmostEqualAbsolute(y, yr, TOLERANCE)))))
+               ( yl > y || AlmostEqualAbsolute(yl, y, tolerance)) &&
+               ( y > yr || AlmostEqualAbsolute(y, yr, tolerance)))))
           {
             diff = 0.0;
             found = true;
@@ -1681,10 +1721,10 @@ Tuple* JNetwork::GetSectionTupleFor(const Point* p, double& pos) const
         pos = lrs.lrsPos + p->Distance(hs.GetDomPoint());
         if(!actCurve->GetStartSmaller())
           pos = actCurve->Length() - pos;
-        if ( pos < 0.0 || AlmostEqualAbsolute( pos, 0.0, TOLERANCE))
+        if ( pos < 0.0 || AlmostEqualAbsolute( pos, 0.0, tolerance))
           pos = 0.0;
         else if ( pos > actCurve->Length() ||
-          AlmostEqualAbsolute(pos, actCurve->Length(), TOLERANCE))
+          AlmostEqualAbsolute(pos, actCurve->Length(), tolerance))
           pos = actCurve->Length();
       }
     }

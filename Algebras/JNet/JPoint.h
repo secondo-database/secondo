@@ -63,7 +63,6 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
   JPoint(const JPoint& other);
   JPoint(const string netId, const RouteLocation& rloc);
   JPoint(const JNetwork* jnet, const RouteLocation* rloc);
-  JPoint(const JNetwork* jnet, const Point* in);
 
   ~JPoint();
 
@@ -133,6 +132,7 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
 */
   static string Example();
 
+  void FromSpatial(const JNetwork* jnet, const Point* p);
 /*
 1.1 Private declarations
 

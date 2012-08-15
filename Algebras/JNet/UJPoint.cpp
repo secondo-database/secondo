@@ -190,7 +190,7 @@ size_t UJPoint::HashValue() const
 
 Attribute* UJPoint::Clone() const
 {
-  return new UJPoint(this);
+  return new UJPoint(*this);
 }
 
 bool UJPoint::Adjacent(const Attribute* attrib) const

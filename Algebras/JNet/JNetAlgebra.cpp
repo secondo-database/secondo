@@ -412,8 +412,9 @@ TypeConstructor mjpointTC(
 1.1.1 ~creatjnet~
 
 The operator ~createjnet~ creates an single network object from the given
-ressources. It expects four arguments:
+ressources. It expects five arguments:
 - an string object with the object name for the new jnetwork
+- an double value with the tolerance value for map matching for this network
 - an relation with the junctions data.The tuples are expected to have the
   attribute data types (meaning):
   -- ~int~ (junction identifier)
@@ -452,34 +453,39 @@ returned, ~false~ elsewhere.
 
 ListExpr createjnetTM (ListExpr args)
 {
-  if (!nl->HasLength(args,4))
-    return listutils::typeError("Four arguments expected.");
+  if (!nl->HasLength(args,5))
+    return listutils::typeError("Five arguments expected.");
 
   ListExpr idList = nl->First(args);
   if (!listutils::isSymbol(idList, CcString::BasicType()))
     return listutils::typeError("First argument should be " +
                                 CcString::BasicType());
 
-  ListExpr juncList = nl->Second(args);
+  ListExpr tolList = nl->Second(args);
+  if (!listutils::isSymbol(tolList, CcReal::BasicType()))
+    return listutils::typeError("Second argument should be " +
+                                 CcReal::BasicType());
+
+  ListExpr juncList = nl->Third(args);
   if (!IsRelDescription(juncList))
-    return listutils::typeError("Second argument must be an relation");
+    return listutils::typeError("Third argument must be an relation");
 
   ListExpr xType;
   nl->ReadFromString ( JNetwork::GetJunctionsRelationType(), xType );
   if (!CompareSchemas ( juncList, xType ))
     return (nl->SymbolAtom("First relation (junctions) has wrong schema." ));
 
-  ListExpr sectList = nl->Third(args);
+  ListExpr sectList = nl->Fourth(args);
   if (!IsRelDescription(sectList))
-    return listutils::typeError("Third argument must be an relation.");
+    return listutils::typeError("Fourth argument must be an relation.");
 
   nl->ReadFromString ( JNetwork::GetSectionsRelationType(), xType );
   if (!CompareSchemas ( sectList, xType ))
     return (nl->SymbolAtom("Second relation (sections) has wrong schema."));
 
-  ListExpr routesList = nl->Fourth(args);
+  ListExpr routesList = nl->Fifth(args);
   if (!IsRelDescription(routesList))
-    return listutils::typeError("Fourth argument must be an relation.");
+    return listutils::typeError("Fifth argument must be an relation.");
 
   nl->ReadFromString ( JNetwork::GetRoutesRelationType(), xType );
   if (!CompareSchemas ( routesList, xType ))
@@ -523,13 +529,15 @@ int createjnetVM ( Word* args, Word& result, int message, Word& local,
       return 0;
     }
     //Create jnetwork
-    Relation* juncRel = (Relation*) args[1].addr;
-    Relation* sectRel = (Relation*) args[2].addr;
-    Relation* routesRel = (Relation*) args[3].addr;
+    double tolerance = ((CcReal*) args[1].addr)->GetRealval();
+    Relation* juncRel = (Relation*) args[2].addr;
+    Relation* sectRel = (Relation*) args[3].addr;
+    Relation* routesRel = (Relation*) args[4].addr;
 
     if (juncRel != 0 && sectRel != 0 && routesRel != 0)
     {
-      JNetwork* resNet = new JNetwork(netid, juncRel, sectRel, routesRel);
+      JNetwork* resNet = new JNetwork(netid, tolerance, juncRel, sectRel,
+                                      routesRel);
       //store new jnetwork in database
       Word netWord;
       netWord.setAddr(resNet);
@@ -545,17 +553,18 @@ int createjnetVM ( Word* args, Word& result, int message, Word& local,
 
 const string createjnetSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + CcString::BasicType() + " X " +
+  "(<text>" + CcString::BasicType() + " X " + CcReal::BasicType() + " X " +
   JNetwork::GetJunctionsRelationType() + "X " +
   JNetwork::GetSectionsRelationType() + " X " +
   JNetwork::GetRoutesRelationType() + " -> " +
   CcBool::BasicType() + "</text--->"
-  "<text>createjnet( <id> , <junctions relation> , <sections relation> , "+
-  "<routes relation> ) </text--->"
+  "<text>createjnet( <id> , <tolerance> , <junctions relation> ," +
+  "<sections relation> , <routes relation> ) </text--->"
   "<text>If the id is a possible object name in the database the operation"
   "creates the " + JNetwork::BasicType() + " with given data and object name "+
   "id and returns true, false otherwise.</text--->"
-  "<text>query createjnet(testnet, juncrel, sectrel, routerel)</text--->))";
+  "<text>query createjnet(testnet, 0.01, juncrel, sectrel, " +
+  "routerel)</text--->))";
 
 Operator createjnetOp("createjnet", createjnetSpec, createjnetVM,
                       Operator::SimpleSelect, createjnetTM);
@@ -1532,16 +1541,12 @@ int tonetworkVM( Word* args, Word& result, int message, Word& local,
                  Supplier s)
 {
   result = qp->ResultStorage(s);
-  OutType* res = static_cast<OutType*> (result.addr);
+  OutType* res = (OutType*) result.addr;
   JNetwork* jnet = (JNetwork*) args[0].addr;
   InType* in = (InType*) args[1].addr;
   if (jnet != NULL && jnet->IsDefined() &&
       in != NULL && in->IsDefined())
-  {
-    OutType* m = new OutType(jnet, in);
-    *res = *m;
-    m->DeleteIfAllowed();
-  }
+    res->FromSpatial(jnet, in);
   else
     res->SetDefined(false);
   return 0;

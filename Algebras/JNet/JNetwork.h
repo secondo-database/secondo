@@ -54,7 +54,8 @@ class MJPoint;
 
 Hybrid representation for street networks.
 
-The representation consists of an defined flag (bool), an network id (string),
+The representation consists of an defined flag (bool), an double value telling
+which error can be accepted in map matching algorithms, an network id (string),
 three relations, one ordered relation, and some BTree and RTree indices on this
 relations providing faster access to the data stored in the network.
 
@@ -164,9 +165,9 @@ network indexes over the copied relations.
 */
 
   explicit JNetwork(const bool def);
-  JNetwork(const string nid, const Relation* inJuncRel,
+  JNetwork(const string nid, const double t, const Relation* inJuncRel,
            const Relation* inSectRel, const Relation* inRoutesRel);
-  JNetwork(const string nid, const Relation* inJuncRel,
+  JNetwork(const string nid, const double t, const Relation* inJuncRel,
            const Relation* inSectRel, const Relation* inRoutesRel,
            const OrderedRelation* inNetDistRel);
   JNetwork(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
@@ -201,6 +202,16 @@ Returns the network id.
 */
 
   const STRING_T* GetId() const;
+
+/*
+1.1.1.1 ~GetTolerance~
+
+Returns the tolerance value of the network for map matching.
+
+*/
+
+  double GetTolerance() const;
+  void SetTolerance(const double t);
 
 /*
 1.1.1.1 Get Relation Type Infos
@@ -340,6 +351,7 @@ private:
 
 */
   bool defined;           //defined Flag
+  double tolerance;        //Accectable derivation for map matching algorithms
   STRING_T id;              //network identifier
   Relation* junctions;    //data of street crossings and death ends
   Relation* sections;     //data of connections between junctions

@@ -64,7 +64,6 @@ public:
   explicit MJPoint(const MJPoint& other);
   explicit MJPoint(const string netid, const DbArray<JUnit>& upoints);
   explicit MJPoint(const UJPoint* u);
-  MJPoint(JNetwork* jnet, const MPoint* in);
 
   ~MJPoint();
 
@@ -140,6 +139,9 @@ public:
   bool IsEmpty() const;
   void Get(const int i, JUnit& up) const;
   void Get(const int i, JUnit* up) const;
+
+
+  void FromSpatial(JNetwork* jnet, const MPoint* in);
 
 /*
 1.1.1 Manage Bullkload

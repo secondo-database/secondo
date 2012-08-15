@@ -114,75 +114,6 @@ MJPoint::MJPoint(const UJPoint* u) :
   }
 }
 
-MJPoint::MJPoint(JNetwork* jnet, const MPoint* in) :
-  Attribute(in->IsDefined()), units(0), activBulkload(false)
-{
-  if (jnet != 0 && jnet->IsDefined() &&
-      in != 0 && in->IsDefined())
-  {
-    strcpy(nid, *jnet->GetId());
-    if (!in->IsEmpty())
-    {
-      UPoint actSource;
-      int i = 0;
-      RouteLocation* startPos = 0;
-      RouteLocation* endPos = 0;
-      Instant starttime(0.0);
-      Instant endtime(0.0);
-      bool lc = false;
-      bool rc = false;
-      StartBulkload();
-      while (i < in->GetNoComponents())
-      {
-        //find valid startposition in network
-        while((startPos == 0 || !startPos->IsDefined()) &&
-              i < in->GetNoComponents())
-        {
-          if (startPos != 0)
-            startPos->DeleteIfAllowed();
-          in->Get(i,actSource);
-          startPos = jnet->GetNetworkValueOf(&actSource.p0);
-          starttime = actSource.getTimeInterval().start;
-          lc = actSource.getTimeInterval().lc;
-          if (startPos == 0 || !startPos->IsDefined())
-            i++;
-        }
-        //find valid endposition in network
-        while((endPos == 0 || !endPos->IsDefined()) &&
-              i < in->GetNoComponents())
-        {
-          if (endPos != 0)
-            endPos->DeleteIfAllowed();
-          in->Get(i, actSource);
-          endPos = jnet->GetNetworkValueOf(&actSource.p1);
-          endtime = actSource.getTimeInterval().end;
-          rc = actSource.getTimeInterval().rc;
-          if (endPos == 0 || !endPos->IsDefined())
-            i++;
-        }
-        if (startPos != 0 && endPos != 0 &&
-            startPos->IsDefined() && endPos->IsDefined())
-        { // got valid RouteLocations and TimeStamps
-          MJPoint* partRes = jnet->SimulateTrip(*startPos, *endPos,
-                                                &actSource.p1,
-                                                starttime, endtime, lc, rc);
-          Append(partRes);
-        }
-        startPos->DeleteIfAllowed();
-        startPos = endPos;
-        endPos = 0;
-        starttime = endtime;
-        lc = !rc;
-        i++;
-      }
-      if (startPos != 0) startPos->DeleteIfAllowed();
-      if (endPos != 0) endPos->DeleteIfAllowed();
-      EndBulkload();
-    }
-  }
-  else
-    SetDefined(false);
-}
 
 MJPoint::~MJPoint()
 {}
@@ -255,7 +186,7 @@ size_t MJPoint::HashValue() const
 
 Attribute* MJPoint::Clone() const
 {
-  return new MJPoint(this);
+  return new MJPoint(*this);
 }
 
 bool MJPoint::Adjacent(const Attribute* attrib) const
@@ -577,6 +508,77 @@ void MJPoint::Get(const int i, JUnit* up) const
 {
   assert (IsDefined() && 0 <= i && i < units.Size());
   units.Get(i,up);
+}
+
+void MJPoint::FromSpatial(JNetwork* jnet, const MPoint* in)
+{
+  units.clean();
+  SetDefined(in->IsDefined());
+  if (jnet != 0 && jnet->IsDefined() &&
+      in != 0 && in->IsDefined())
+  {
+    strcpy(nid, *jnet->GetId());
+    if (!in->IsEmpty())
+    {
+      UPoint actSource;
+      int i = 0;
+      RouteLocation* startPos = 0;
+      RouteLocation* endPos = 0;
+      Instant starttime(0.0);
+      Instant endtime(0.0);
+      bool lc = false;
+      bool rc = false;
+      StartBulkload();
+      while (i < in->GetNoComponents())
+      {
+        //find valid startposition in network
+        while((startPos == 0 || !startPos->IsDefined()) &&
+          i < in->GetNoComponents())
+        {
+          if (startPos != 0)
+            startPos->DeleteIfAllowed();
+          in->Get(i,actSource);
+          startPos = jnet->GetNetworkValueOf(&actSource.p0);
+          starttime = actSource.getTimeInterval().start;
+          lc = actSource.getTimeInterval().lc;
+          if (startPos == 0 || !startPos->IsDefined())
+            i++;
+        }
+        //find valid endposition in network
+        while((endPos == 0 || !endPos->IsDefined()) &&
+              i < in->GetNoComponents())
+        {
+          if (endPos != 0)
+            endPos->DeleteIfAllowed();
+          in->Get(i, actSource);
+          endPos = jnet->GetNetworkValueOf(&actSource.p1);
+          endtime = actSource.getTimeInterval().end;
+          rc = actSource.getTimeInterval().rc;
+          if (endPos == 0 || !endPos->IsDefined())
+            i++;
+        }
+        if (startPos != 0 && endPos != 0 &&
+          startPos->IsDefined() && endPos->IsDefined())
+        { // got valid RouteLocations and TimeStamps
+          MJPoint* partRes = jnet->SimulateTrip(*startPos, *endPos,
+                                                &actSource.p1,
+                                                starttime, endtime, lc, rc);
+          Append(partRes);
+        }
+        startPos->DeleteIfAllowed();
+        startPos = endPos;
+        endPos = 0;
+        starttime = endtime;
+        lc = !rc;
+        i++;
+      }
+      if (startPos != 0) startPos->DeleteIfAllowed();
+      if (endPos != 0) endPos->DeleteIfAllowed();
+      EndBulkload();
+    }
+  }
+else
+  SetDefined(false);
 }
 
 /*

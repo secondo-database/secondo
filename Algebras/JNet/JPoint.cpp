@@ -46,17 +46,16 @@ JPoint::JPoint(const bool def) :
 {}
 
 JPoint::JPoint(const JPoint& other) :
-    Attribute(other.IsDefined())
+    Attribute(other.IsDefined()), npos(other.GetPosition())
 {
   if (other.IsDefined())
   {
     strcpy(nid, *other.GetNetworkId());
-    npos = other.GetPosition();
   }
 }
 
 JPoint::JPoint(const string netId, const RouteLocation& rloc) :
-  Attribute(true)
+  Attribute(rloc.IsDefined()), npos(rloc)
 {
   SecondoCatalog* sc = SecondoSystem::GetCatalog();
   Word value;
@@ -67,7 +66,6 @@ JPoint::JPoint(const string netId, const RouteLocation& rloc) :
   {
     JNetwork* jnet = (JNetwork*) value.addr;
     strcpy(nid, *jnet->GetId());
-    npos = rloc;
     SetDefined(jnet->Contains(&rloc));
     sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), value);
   }
@@ -78,33 +76,14 @@ JPoint::JPoint(const string netId, const RouteLocation& rloc) :
 }
 
 JPoint::JPoint(const JNetwork* jnet, const RouteLocation* rloc) :
-  Attribute(true)
+  Attribute(true), npos(*rloc)
 {
   if (!rloc->IsDefined() || !jnet->IsDefined() || !jnet->Contains(rloc))
     SetDefined(false);
   else
   {
     strcpy(nid, *jnet->GetId());
-    npos = *rloc;
   }
-}
-
-JPoint::JPoint(const JNetwork* jnet, const Point* in):
-  Attribute(in->IsDefined())
-{
-  if (jnet != NULL && jnet->IsDefined() &&
-      in != NULL && in->IsDefined())
-  {
-    strcpy(nid,*jnet->GetId());
-    RouteLocation* rloc = jnet->GetNetworkValueOf(in);
-    if (rloc != NULL && rloc->IsDefined())
-      npos = *rloc;
-    else
-      SetDefined(false);
-    rloc->DeleteIfAllowed();
-  }
-  else
-    SetDefined(false);
 }
 
 JPoint::~JPoint()
@@ -163,7 +142,7 @@ size_t JPoint::HashValue() const
 
 Attribute* JPoint::Clone() const
 {
-  return new JPoint(this);
+  return new JPoint(*this);
 }
 
 bool JPoint::Adjacent(const Attribute* attrib) const
@@ -401,6 +380,37 @@ ListExpr JPoint::Property()
 string JPoint::Example()
 {
   return "(netname " + RouteLocation::Example() + ")";
+}
+
+/*
+1.1.1 FromSpatial
+
+Set this to network location of spatial point in the given network.
+
+*/
+
+void JPoint::FromSpatial(const JNetwork* jnet, const Point* in)
+{
+  SetDefined(in->IsDefined());
+  if (jnet != NULL && jnet->IsDefined() &&
+      in != NULL && in->IsDefined())
+  {
+    strcpy(nid,*(jnet->GetId()));
+    RouteLocation* rloc = jnet->GetNetworkValueOf(in);
+    if (rloc != NULL && rloc->IsDefined())
+    {
+      npos = *rloc;
+      if (rloc != NULL) rloc->DeleteIfAllowed();
+    }
+    else
+    {
+      SetDefined(false);
+    }
+  }
+  else
+  {
+    SetDefined(false);
+  }
 }
 
 /*

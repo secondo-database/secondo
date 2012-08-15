@@ -66,7 +66,6 @@ public:
   explicit JLine(const JNetwork* jnet, const JListRInt* rintList);
   explicit JLine(const JLine& other);
   JLine(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
-  explicit JLine (const JNetwork* jnet, const Line* in);
 
   ~JLine();
 
@@ -194,6 +193,8 @@ Adds the given JRouteInterval to the set of routeintervals.
 */
 
  JLine& Add(const JRouteInterval& rint);
+
+ void FromSpatial (const JNetwork* jnet, const Line* in);
 
 /*
 

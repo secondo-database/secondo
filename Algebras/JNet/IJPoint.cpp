@@ -127,7 +127,7 @@ size_t IJPoint::HashValue() const
 
 Attribute* IJPoint::Clone() const
 {
-  return new IJPoint(this);
+  return new IJPoint(*this);
 }
 
 bool IJPoint::Adjacent(const Attribute* attrib) const
