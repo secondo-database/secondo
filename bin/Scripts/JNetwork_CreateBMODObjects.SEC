@@ -98,8 +98,32 @@ let RoadsTmp2 =
                RoadPos: atpoint(.RoadCurve,.Pos)]
 consume;
 
-let RoadJuncList =
+let RoadsTmp3 =
   RoadsTmp2 feed
+  filter [iscycle(.RoadCurve)]
+  filter [.RoadPos = 0.0]
+  projectextend[Rid, VMax, Lenth, RoadCurve, Jid, SpatialPos; RoadPos: size(.RoadCurve)]
+consume;
+
+let RoadsTmp4 =
+  RoadsTmp2 feed
+  filter [iscycle(.RoadCurve)]
+  filter [.RoadPos = size(.RoadCurve)]
+  projectextend[Rid, VMax, Lenth, RoadCurve, Jid, SpatialPos; RoadPos: 0.0]
+consume;
+
+let RoadsTmp5 =
+  ((RoadsTmp3 feed)
+   (RoadsTmp4 feed)
+   concat)
+  (RoadsTmp2 feed)
+  concat
+  sortby[Rid, RoadPos, Jid, SpatialPos, VMax, Lenth, RoadCurve]
+  rdup
+consume;
+
+let RoadJuncList =
+  RoadsTmp5 feed
   project[Rid, Jid]
   sortby [Rid, Jid]
   rdup
@@ -107,15 +131,15 @@ let RoadJuncList =
 consume;
 
 let JuncRLocList =
-  RoadsTmp2 feed
-  projectextend[Jid; RLoc: createrloc(.Rid, .RoadPos, [const jdirection value(Both)])]
+  RoadsTmp5 feed
+  projectextend[Jid; RLoc: createrloc(.Rid,.RoadPos,[const jdirection value(Both)])]
   sortby[Jid, RLoc]
   rdup
   groupby[Jid; RLocList: group feed projecttransformstream[RLoc] createlist]
 consume;
 
 let SectTmp =
-   RoadsTmp2 feed
+   RoadsTmp5 feed
    project[Rid, RoadCurve, SpatialPos]
    sortby[Rid, RoadCurve, SpatialPos]
    groupby[Rid, RoadCurve; SplitPoints: group feed projecttransformstream[SpatialPos] collect_points[TRUE]]
@@ -127,18 +151,25 @@ let SectTmp =
    JunctionsTmp feed {j1}
    itSpatialJoin[StartPoint,Pos_j1,4,8]
    filter[.StartPoint = .Pos_j1]
-   projectextend[Rid, SectCurve, StartPoint, EndPoint, Lenth, JDir; StartJid: .Jid_j1]
+   projectextend[Rid, SectCurve, EndPoint, Lenth, JDir; StartJid: .Jid_j1]
    JunctionsTmp feed {j2}
    itSpatialJoin[EndPoint,Pos_j2,4,8]
    filter[.EndPoint = .Pos_j2]
-   projectextend[Rid, SectCurve, StartPoint, EndPoint, Lenth, JDir, StartJid; EndJid: .Jid_j2]
-   RoadsTmp2 feed {r1}
+   projectextend[Rid, SectCurve, Lenth, JDir, StartJid; EndJid: .Jid_j2]
+   RoadsTmp5 feed {r1}
    hashjoin[Rid, Rid_r1]
    filter [.Rid = .Rid_r1]
-   projectextend[Rid, SectCurve, StartJid, EndJid, JDir, Lenth; VMax: .VMax_r1,
-      StartPos: atpoint(.RoadCurve_r1, .StartPoint),
-      EndPos: atpoint(.RoadCurve_r1, .EndPoint)]
-   sortby[StartJid, EndJid, Lenth]
+   filter [.StartJid = .Jid_r1]
+   projectextend[Rid, SectCurve, Lenth, JDir, StartJid, EndJid; VMax: .VMax_r1,
+     StartPos: .RoadPos_r1]
+   RoadsTmp5 feed {r2}
+   hashjoin[Rid, Rid_r2]
+   filter [.Rid = .Rid_r2]
+   filter [.EndJid = .Jid_r2]
+   projectextend[Rid, SectCurve, Lenth, JDir, StartJid, EndJid, VMax,
+     StartPos; EndPos: .RoadPos_r2]
+   sortby[Rid, StartJid, EndJid, Lenth, VMax, JDir, SectCurve, StartPos, EndPos]
+   filter[.StartPos < .EndPos]
    rdup
    addcounter[Sid,1]
 consume;
@@ -216,27 +247,7 @@ let InRoad =
   project[Rid, ListJunc, ListSect, Lenth]
 consume;
 
-query createjnet("JBNet", InJunc, InSect, InRoad);
-
-
-close database;
-
-quit;
-
-################################################################################
-#                                                                              #
-# Translate Trips into Network Representation                                  #
-#                                                                              #
-################################################################################
-
-let dataSNcar = dataScar feed
-  projectextend[Licence, Model, Type; Trip: tonetwork(JBNet, .Trip)]
-consume;
-
-let dataMNtrip =
-  dataMtrip feed
-  projectextend [Moid; Trip: tonetwork(JBNet, .Trip)]
-consume;
+query createjnet("JBNet", 1.0, InJunc, InSect, InRoad);
 
 ################################################################################
 #                                                                              #
@@ -253,6 +264,27 @@ let QueryPoints1Net =
   QueryPoints feed head[10]
   projectextend[Id; Pos: tonetwork(JBNet, .Pos)]
  consume;
+
+close database;
+
+quit;
+
+################################################################################
+#                                                                              #
+# Translate Trips into Network Representation                                  #
+#                                                                              #
+################################################################################
+
+
+let dataSNcar = dataScar feed
+  projectextend[Licence, Model, Type; Trip: tonetwork(JBNet, .Trip)]
+consume;
+
+let dataMNtrip =
+  dataMtrip feed
+  projectextend [Moid; Trip: tonetwork(JBNet, .Trip)]
+consume;
+
 
 ################################################################################
 #                                                                              #
