@@ -80,6 +80,7 @@ delete uItHashJoin;
 delete vItHashJoin; 
 delete wItHashJoin; 
 delete xItHashJoin; 
+delete yItHashJoin; 
 
 # ithashjoin #######################################################
 #
@@ -90,6 +91,7 @@ delete xItHashJoin;
 # double vItHashJoin = 0.021;      //millisecs for processing a tupe in right stream 
 # double wItHashJoin = 0.004;      //millisecs for writing and reading one byte into/from tuplefile 
 # double xItHashJoin = 0.001;      //millisecs for reading one byte from tuplefile
+# double yItHashJoin = 0.001;      //millisecs for creating a attr in result
 #
 #####################################################################
 
@@ -288,6 +290,55 @@ let x5 = x3 * x4;
 let xItHashJoin = (((x1 - x2) * 1000) / x5) * MF;
 
 query ProgressConstants inserttuple["ExtRelation2Algebra", "itHashJoin", "xItHashJoin", xItHashJoin, "msecs per byte read from TupleFile", ""] consume
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+
+##
+# measure time for processing one result attr (yItHashJoin)
+##
+
+# measure time for processing 100000 * 100000 tuples with 6 attributes in result
+let x3 = plzsmall feed head[100000] {r1} plzsmall feed head[100000] {r2} itHashJoin[PLZ1_r1, PLZ1_r2] count
+
+query plzsmall feed head[100000] {r1} plzsmall feed head[100000] {r2} itHashJoin[PLZ1_r1, PLZ1_r2] count
+
+query plzsmall feed head[100000] {r1} plzsmall feed head[100000] {r2} itHashJoin[PLZ1_r1, PLZ1_r2] count
+
+query plzsmall feed head[100000] {r1} plzsmall feed head[100000] {r2} itHashJoin[PLZ1_r1, PLZ1_r2] count
+
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# measure time for processing 100000 * 100000 tuples with 20 attributes in result
+query plzsmallWidth10 feed head[100000] {r1} plzsmallWidth10 feed head[100000] {r2} itHashJoin[PLZ1_r1, PLZ1_r2] count;
+
+query plzsmallWidth10 feed head[100000] {r1} plzsmallWidth10 feed head[100000] {r2} itHashJoin[PLZ1_r1, PLZ1_r2] count;
+
+query plzsmallWidth10 feed head[100000] {r1} plzsmallWidth10 feed head[100000] {r2} itHashJoin[PLZ1_r1, PLZ1_r2] count;
+
+query plzsmallWidth10 feed head[100000] {r1} plzsmallWidth10 feed head[100000] {r2} itHashJoin[PLZ1_r1, PLZ1_r2] count;
+
+
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime];
+
+
+# calculate time for processing one attribute
+# (x2 - x1) is the time for processing 10 attributes more on 1000000 tuples
+#
+# x3 is the size of the result relation
+# so (14 * x3) is the number of additionally processed attributes
+#
+# multiply by 1000 to get the time in milliseconds
+let yItHashJoin = (((x2 - x1) * 1000) / (14 * x3)) * MF;
+
+query ProgressConstants inserttuple["ExtRelation2Algebra", "itHashJoin", "yItHashJoin", yItHashJoin, "msecs per attr in result relation", ""] consume
 
 
 #query ProgressConstants feed csvexport['ProgressConstants.csv', FALSE, TRUE] count
