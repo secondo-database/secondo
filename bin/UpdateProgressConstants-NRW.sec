@@ -1,0 +1,333 @@
+open database nrw2
+
+delete ProgressConstants
+
+let ProgressConstants = [const rel(tuple([
+  Algebra: string,
+  Operator: string,
+  ConstantName: string,
+  ConstantValue: real,
+  Meaning: string,
+  Meaning2: string
+]))
+value ()] 
+
+# ... csvimport['ProgressConstants.csv', 1, ""] consume
+
+# machine factor, needed as long as not all constants are determined in this way.
+delete MF;
+
+let MF = 3.35;
+
+# build some relations
+# delete Roads100000
+# delete Roads200000
+# delete Roads500000
+# delete RoadsWidth20
+
+# Roads100000 has 100.000 tuples
+let Roads100000 = Roads feed head[100000] consume;
+
+# Roads200000 has 200.000 tuples
+let Roads200000 = Roads feed head[200000] consume;
+
+# Roads500000 has 500.000 tuples
+let Roads500000 = Roads feed head[500000] consume;
+
+# RoadsWidth20 has 20 Attributes
+let RoadsWidth20 = 
+  Roads feed extend[
+  Osm_id2: .Osm_id,
+    Name2: .Name,
+     Ref2: .Ref,
+    Type2: .Type,
+  OneWay2: .Oneway,
+  Osm_id3: .Osm_id,
+    Name3: .Name,
+     Ref3: .Ref,
+    Type3: .Type,
+  OneWay3: .Oneway]
+  consume
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+delete uItSpatialJoin; 
+delete vItSpatialJoin; 
+delete wItSpatialJoin; 
+delete xItSpatialJoin; 
+delete yItSpatialJoin; 
+
+# itspatialjoin #######################################################
+#
+# Cost formula:
+# pRes->Time = p1.Time + p2.Time + tuplesInTupleFile * wItSpatialJoin + (partitions - 1) * xItSpatialJoin;
+#
+# double uItSpatialJoin = 0.002;      //millisecs per insert in R-Tree
+# double vItSpatialJoin = 0.021;      //millisecs for processing a tupe in right stream 
+# double wItSpatialJoin = 0.004;      //millisecs for writing and reading one byte into/from relation
+# double xItSpatialJoin = 0.001;      //millisecs for reading one byte from relation
+# double yItSpatialJoin = 0.001;      //millisecs for creating a attr in result tuple
+#
+#####################################################################
+
+##
+# measure time for one rtree insert (uItHashJoin)
+##
+
+query Roads200000 feed {r1} Roads200000 feed head[0] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+# measure time for processing 200.000 inserts
+query Roads200000 feed {r1} Roads200000 feed head[0] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+query Roads200000 feed {r1} Roads200000 feed head[0] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+query Roads200000 feed {r1} Roads200000 feed head[0] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+query Roads100000 feed {r1} Roads100000 feed head[0] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+# measure time for processing 100.000 inserts
+query Roads100000 feed {r1} Roads100000 feed head[0] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+query Roads100000 feed {r1} Roads100000 feed head[0] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+query Roads100000 feed {r1} Roads100000 feed head[0] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# x5 is the size of additinal tuples
+let x5 = (Roads200000 count) - (Roads100000 count);
+
+# Calculate time to process one rtree insert
+# x1 - x2 is the time to insert (x5) tuples more
+# multiply by 1000 to get the time in milliseconds
+let uItSpatialJoin = (((x1 - x2) * 1000) / x5) * MF;
+
+query ProgressConstants inserttuple["MMRTreeAlgebra", "itSpatialJoin", "uItSpatialJoin", uItSpatialJoin, "msecs per rtree insert", ""] consume
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+##
+# measure time for processing one tuple in right stream, partition = 1 (vItHashJoin)
+##
+
+query Roads100000 feed {r1} Roads100000 feed head[40000] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+# measure time for processing 40000 tuples 
+query Roads100000 feed {r1} Roads100000 feed head[40000] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+query Roads100000 feed {r1} Roads100000 feed head[40000] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+query Roads100000 feed {r1} Roads100000 feed head[40000] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# measure time for processing 20000 tuples 
+query Roads100000 feed {r1} Roads100000 feed head[20000] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+query Roads100000 feed {r1} Roads100000 feed head[20000] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+query Roads100000 feed {r1} Roads100000 feed head[20000] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count; 
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# Calculate time to process one tuple in right stream
+# x1 - x2 is the time to insert (20000) tuples more
+# multiply by 1000 to get the time in milliseconds
+let vItSpatialJoin = (((x1 - x2) * 1000) / 20000) * MF;
+
+query ProgressConstants inserttuple["MMRTreeAlgebra", "itSpatialJoin", "vItSpatialJoin", vItSpatialJoin, "msecs per tuple in right input stream (part. 1)", ""] consume
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+##
+# measure time for reading and writing one byte into a Relation (wItSpatialJoin)
+#
+# Set memory to 300 MB, so itHashJoin runs with 2 partitions and 
+# has to write the tuples into the tuplefile
+#
+##
+
+# we always run 4 times and take the time of the last three, to have consistent
+# warm state
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] {memory 300} count
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] {memory 300} count
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] {memory 300} count
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] {memory 300} count
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] {memory 500} count
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] {memory 500} count
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] {memory 500} count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+let x3 = Roads count
+
+let x4 = Roads roottuplesize;
+
+# Amount of bytes written to Disk
+let x5 = x3 * x4;
+
+# Calculate time to read and write one byte to Tuplefile 
+# x1 - x2 is the time to write and read x5 bytes to Tuplefile
+# multiply by 1000 to get the time in milliseconds
+let wItSpatialJoin = (((x1 - x2) * 1000) / x5) * MF;
+
+delete wItSpatialJoin;
+
+let wItSpatialJoin = (((x1 - x2) * 1000) / x5) * MF;
+
+query ProgressConstants inserttuple["MMRTreeAlgebra", "itSpatialJoin", "wItSpatialJoin", wItSpatialJoin, "msecs per byte written and read into/from Relation", ""] consume
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+##
+# measure time for reading one byte into Relation (xItSpatialJoin)
+#
+# We run itSpatialJoin with 2 and 3 partitions
+# the run with 3 partitions has to write the tuples and read them twice (140 MB)
+# the run with 2 partitons write and read the tuples ony one times (300 MB)
+##
+
+# we always run 4 times and take the time of the last three, to have consistent
+# warm state
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] {memory 140} count
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] {memory 140} count
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] {memory 140} count
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] {memory 140} count
+
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] {memory 300} count
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] {memory 300} count
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] {memory 300} count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+let x3 = Roads count
+
+let x4 = Roads roottuplesize;
+
+# Amount of bytes written to Disk
+let x5 = x3 * x4;
+
+# Calculate time to read and write one byte to Tuplefile 
+# x1 - x2 is the time to write and read x5 bytes to Tuplefile
+# multiply by 1000 to get the time in milliseconds
+let xItSpatialJoin = (((x1 - x2) * 1000) / x5) * MF;
+
+query ProgressConstants inserttuple["MMRTreeAlgebra", "itSpatialJoin", "xItSpatialJoin", xItSpatialJoin, "msecs per byte read from Relation", ""] consume
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+##
+# measure time for creating a attr in result tuple (yItSpatialJoin)
+# Relation Roads has 10 attributes - so a join has 20 attributes
+# Relation RoadsWidth20 has 20 attributes - so a join has 40 attributes
+##
+
+# we always run 4 times and take the time of the last three, to have consistent
+# warm state
+let x3 = Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count
+
+query Roads feed {r1} Roads feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count
+
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+query RoadsWidth20 feed {r1} RoadsWidth20 feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count
+
+query RoadsWidth20 feed {r1} RoadsWidth20 feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count
+
+query RoadsWidth20 feed {r1} RoadsWidth20 feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count
+
+query RoadsWidth20 feed {r1} RoadsWidth20 feed {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# calculate time for processing one attribute
+# (x2 - x1) is the time for processing 20 attributes more
+#
+# x3 is the size of the result relation
+# so (20 * x3) is the number of additionally processed attributes
+#
+# multiply by 1000 to get the time in milliseconds
+let yItSpatialJoin = (((x2 - x1) * 1000) / (20 * x3)) * MF;
+
+query ProgressConstants inserttuple["MMRTreeAlgebra", "itSpatialJoin", "yItSpatialJoin", yItSpatialJoin, "msecs per attr in result relation", ""] consume
+
+
+query ProgressConstants feed csvexport['ProgressConstants-nrw.csv', FALSE, TRUE] count
+
+close database
+
+quit
+
+
