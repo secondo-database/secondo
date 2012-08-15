@@ -116,6 +116,12 @@ public:
         ProgressConstants::getValue("MMRTreeAlgebra", 
         "itSpatialJoin", "xItSpatialJoin");
 
+     // msecs per attr in result tuple 
+     static const double yItSpatialJoin = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "itSpatialJoin", "yItSpatialJoin");
+
+
      if (qp->RequestProgress(args[0].addr, &p1)
        && qp->RequestProgress(args[1].addr, &p2)) {
         
@@ -225,6 +231,10 @@ public:
              pRes->Card = returned;
           }
 
+          // Append time for creating new tuples
+          pRes->Time += p1.noAttrs + p2.noAttrs 
+             * yItSpatialJoin * pRes->Card;
+         
           if(DEBUG) {
              cout << "Progress is " << pRes->Progress << endl;
              cout << "Time is " << pRes->Time << endl;
@@ -272,6 +282,12 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
         ProgressConstants::getValue("MMRTreeAlgebra", 
         "itSpatialJoin", "xItSpatialJoin");
 
+     // msecs per attr in result tuple 
+     static const double yItSpatialJoin = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "itSpatialJoin", "yItSpatialJoin");
+
+
  //Calculate number of partitions
  size_t partitions = getNoOfPartitions(NoTuples1, sizeOfTuple1, maxmem);
 
@@ -284,6 +300,13 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
   } else {
       costs = NoTuples2 * vItSpatialJoin;
   }
+  
+  // Add costs for creating new tuples
+  // with default selectivity of 0.1
+  costs += NoTuples1 * NoTuples2 
+     * sizeOfTuple1 * sizeOfTuple2 
+     * yItSpatialJoin * 0.1;
+
 
    return true;
 }

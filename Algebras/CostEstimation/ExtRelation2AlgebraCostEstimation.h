@@ -121,6 +121,10 @@ public:
         ProgressConstants::getValue("ExtRelation2Algebra", 
         "itHashJoin", "xItHashJoin");
 
+      // msecs per attr in result tuple 
+       static const double yItHashJoin = 
+         ProgressConstants::getValue("ExtRelation2Algebra", 
+         "itHashJoin", "yItHashJoin");
 
      if (qp->RequestProgress(args[0].addr, &p1)
        && qp->RequestProgress(args[1].addr, &p2)) 
@@ -219,6 +223,10 @@ public:
              pRes->Card = returned;
           } 
 
+          // Append time for creating new tuples
+          pRes->Time += p1.noAttrs + p2.noAttrs 
+                     * yItHashJoin * pRes->Card;
+
           if(DEBUG) {
              cout << "Progress is " << pRes->Progress << endl;
              cout << "Time is " << pRes->Time << endl;
@@ -226,8 +234,11 @@ public:
              cout << "BTime is " << pRes->BTime << endl;
              cout << "Card is: " << pRes->Card << endl;
              cout << "Partitions is: " << partitions << endl;
+             cout << "Card is: " << pRes->Card << endl;
+             cout << "Returned / Progress" << returned 
+                 << " / " <<  pRes->Progress << endl;
           }
-
+             
           pRes->CopySizes(pli);
 
           return YIELD;
@@ -267,6 +278,12 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
     ProgressConstants::getValue("ExtRelation2Algebra", 
     "itHashJoin", "xItHashJoin");
 
+ // msecs per attr in result tuple 
+ static const double yItHashJoin = 
+    ProgressConstants::getValue("ExtRelation2Algebra", 
+    "itHashJoin", "yItHashJoin");
+
+
  //Calculate number of partitions
  size_t partitions = getNoOfPartitions(NoTuples1, sizeOfTuple1, maxmem);
 
@@ -279,6 +296,13 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
   } else {
       costs = NoTuples2 * vItHashJoin; 
   }
+
+
+  // Add costs for creating new tuples
+  // with default selectivity of 0.1
+  costs += NoTuples1 * NoTuples2 
+          * sizeOfTuple1 * sizeOfTuple2 
+          * yItHashJoin * 0.1;
          
      return true;
 }
