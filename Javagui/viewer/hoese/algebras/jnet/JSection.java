@@ -116,6 +116,9 @@ public class JSection{
     return getPoint(distFromStartOfSection, tolerance);
   }
 
+  public Point2D.Double getPosition(double pos){
+    return getPosition(pos, 0.0);
+  }
 
   public int contains(RouteLocation rloc){
     for (int i = 0; i < routeIntervals.size(); i++){
