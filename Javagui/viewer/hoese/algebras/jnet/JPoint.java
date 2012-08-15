@@ -35,6 +35,7 @@ import viewer.hoese.*;
 public class JPoint{
 
    private String netId;
+   private boolean defined;
    private RouteLocation rloc;
    private Point2D.Double pos;
 
@@ -42,45 +43,70 @@ public class JPoint{
     if (value.listLength() == 2){
       netId = value.first().stringValue();
       rloc = new RouteLocation(value.second());
-      JNetwork jnet = JNetworkManager.getInstance().getNetwork(netId);
-      pos = jnet.getPosition(rloc);
-      Point2D.Double rendPos = new Point2D.Double(0.0,0.0);
-      if (ProjectionManager.project(pos.x, pos.y, rendPos)){
-        pos = rendPos;
+      if (rloc != null){
+        JNetwork jnet = JNetworkManager.getInstance().getNetwork(netId);
+        pos = jnet.getPosition(rloc);
+        if (pos != null){
+          Point2D.Double rendPos = new  Point2D.Double(0.0,0.0);
+          if (ProjectionManager.project(pos.x, pos.y, rendPos)){
+            pos = rendPos;
+          }
+        }
+      } else {
+        pos = null;
       }
+      if (pos == null )
+        defined = false;
+      else
+        defined = true;
     } else {
+      defined = false;
       netId = "undefined";
     }
   }
 
   public String toString(){
-    if (netId.compareTo("undefined") != 0)
+    if (defined)
       return rloc.toString();
     else
       return "undefined";
   }
 
+  public Point2D.Double getPos(){
+    if (defined)
+      return pos;
+    else
+     return null;
+  }
+
   public Rectangle2D.Double getBounds(){
-    return new Rectangle2D.Double(pos.getX(), pos.getY(),0.0,0.0);
+    if (!defined)
+      pos = null;
+    return new Rectangle2D.Double(pos.x, pos.y,0,0);
   }
 
   public Shape getRenderObject(int no, AffineTransform af, double pointSize,
                                boolean asRect){
-    double pointSizeX = Math.abs(pointSize/af.getScaleX());
-    double pointSizeY = Math.abs(pointSize/af.getScaleY());
-    Shape shape;
-    if (asRect) {
-      shape = new Rectangle2D.Double(pos.getX()- pointSizeX/2,
-                                     pos.getY()- pointSizeY/2,
+    if (defined)
+    {
+      double pointSizeX = Math.abs(pointSize/af.getScaleX());
+      double pointSizeY = Math.abs(pointSize/af.getScaleY());
+      Shape shape;
+      if (asRect) {
+        shape = new Rectangle2D.Double(pos.getX()- pointSizeX/2,
+                                       pos.getY()- pointSizeY/2,
+                                       pointSizeX,
+                                       pointSizeY);
+      } else {
+        shape = new Ellipse2D.Double(pos.getX()- pointSizeX/2,
+                                     pos.getY() - pointSizeY/2,
                                      pointSizeX,
                                      pointSizeY);
-    } else {
-      shape = new Ellipse2D.Double(pos.getX()- pointSizeX/2,
-                                   pos.getY() - pointSizeY/2,
-                                   pointSizeX,
-                                   pointSizeY);
+      }
+      return  shape;
     }
-    return  shape;
+    return null;
+
   }
 
 }

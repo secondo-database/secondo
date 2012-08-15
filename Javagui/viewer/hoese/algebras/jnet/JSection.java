@@ -103,16 +103,17 @@ public class JSection{
     return bounds;
   }
 
-  public Point2D.Double getPosition(RouteLocation rloc, int pos){
+  public Point2D.Double getPosition(RouteLocation rloc, int pos, double tolerance){
     JRouteInterval curInt = routeIntervals.get(pos);
-    double distFromStartOfSection = rloc.getPos() - curInt.getStartPos();
-    return getPoint(distFromStartOfSection);
+    double distFromStartOfSection =
+      rloc.getPos() - curInt.getStartPos();
+    return getPoint(distFromStartOfSection, tolerance);
   }
 
-  public Point2D.Double getPosition(double pos){
+  public Point2D.Double getPosition(double pos, double tolerance){
     JRouteInterval curInt = routeIntervals.get(0);
     double distFromStartOfSection = pos - curInt.getStartPos();
-    return getPoint(distFromStartOfSection);
+    return getPoint(distFromStartOfSection, tolerance);
   }
 
 
@@ -447,7 +448,7 @@ private static void reverse(Vector<Point2D.Double >  v){
     }
   }
 
-  private Point2D.Double getPoint(double pos){
+  private Point2D.Double getPoint(double pos, double tolerance){
     if (!startSmaller){
       pos = lenth - pos;
     }
@@ -465,7 +466,9 @@ private static void reverse(Vector<Point2D.Double >  v){
       lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
                        Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
       distNew = distOnSection + lSeg;
-      if (distOnSection <= pos && pos <= distNew){
+      if ((distOnSection < pos && pos < distNew) ||
+           Math.abs(distOnSection - pos) < tolerance ||
+           Math.abs(distNew - pos) < tolerance){
         double x = coordsFrom[0] + (pos - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
         double y = coordsFrom[1] + (pos - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
         return new Point2D.Double(x,y);
@@ -476,7 +479,7 @@ private static void reverse(Vector<Point2D.Double >  v){
       }
       pi.next();
     }
-    return new Point2D.Double(0.0,0.0); //should never been reached.
+    return null; //should never been reached.
   }
 
   private GeneralPath getCurveFrom(double pos, boolean rendered){

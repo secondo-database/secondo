@@ -41,15 +41,17 @@ public class JNetwork{
    private Vector junctions = new Vector<JJunction>();
    private Vector sections = new Vector<JSection>();
    private Vector routes = new Vector<JRoute>();
+   private double tolerance = 0.0;
    private String name = "";
 
   public JNetwork(ListExpr value)
   {
-    if (value.listLength() == 5){
+    if (value.listLength() == 6){
       name = value.first().stringValue();
-      fillJunctions(value.second());
-      fillSections(value.third());
-      fillRoutes(value.fourth());
+      tolerance = value.second().realValue();
+      fillJunctions(value.third());
+      fillSections(value.fourth());
+      fillRoutes(value.fifth());
       JNetworkManager.getInstance().addNetwork(this);
     }
     else {
@@ -118,7 +120,7 @@ public class JNetwork{
         JSection curSect = (JSection)sections.get(sid-1);
         int pos = curSect.contains(rloc);
         if (pos > -1)
-          return curSect.getPosition(rloc, pos);
+          return curSect.getPosition(rloc, pos, tolerance);
       }
     }
     return null;
@@ -156,8 +158,9 @@ public class JNetwork{
             curSectRenderedPath = curSect.getCurve(rint, pos, true);
             curSectPath = curSect.getCurve(rint, pos, false);
             addResult = true;
-            startpoint = curSect.getPosition(rint.getStartRLoc(), pos);
-            endpoint = curSect.getPosition(rint.getEndRLoc(), pos);
+            startpoint = curSect.getPosition(rint.getStartRLoc(), pos,
+                                             tolerance);
+            endpoint = curSect.getPosition(rint.getEndRLoc(), pos, tolerance);
             if (hasArrow) drawArrow = true;
           } else {
             pos = curSect.contains(rint.getStartRLoc());
@@ -168,7 +171,8 @@ public class JNetwork{
               curSectPath = curSect.getCurveFrom(rint.getStartRLoc(), pos,
                                                  false);
               addResult = true;
-              startpoint = curSect.getPosition(rint.getStartRLoc(), pos);
+              startpoint = curSect.getPosition(rint.getStartRLoc(), pos,
+                                               tolerance);
               if (hasArrow && !up) drawArrow = true;
             } else {
               pos = curSect.contains(rint.getEndRLoc());
@@ -177,7 +181,8 @@ public class JNetwork{
                                                          true);
                 curSectPath = curSect.getCurveTo(rint.getEndRLoc(),pos, false);
                 addResult = true;
-                endpoint = curSect.getPosition(rint.getEndRLoc(), pos);
+                endpoint = curSect.getPosition(rint.getEndRLoc(), pos,
+                                               tolerance);
                 if (hasArrow && up) drawArrow = true;
               }
             }

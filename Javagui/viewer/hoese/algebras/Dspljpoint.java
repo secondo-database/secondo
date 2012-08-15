@@ -37,9 +37,7 @@ import gui.SecondoObject;
  */
 public class Dspljpoint extends DisplayGraph {
 	/** The internal datatype representation */
-	String label;
 	 JPoint jp;
-  Rectangle2D.Double bounds=null;
 
   public Dspljpoint(){
     super();
@@ -57,7 +55,6 @@ public void init(String name, int nameWidth, int indent,ListExpr type,
   AttrName = extendString(name,nameWidth, indent);
   try{
     jp = new JPoint(value);
-    label = jp.toString();
     qr.addEntry(this);
     return;
   } catch (JNetworkNotAvailableException ex){
@@ -69,7 +66,7 @@ public void init(String name, int nameWidth, int indent,ListExpr type,
     ex.printStackTrace();
     err = true;
     Reporter.writeError("Error in ListExpr :parsing aborted");
-    qr.addEntry(AttrName + "error");
+    qr.addEntry(AttrName + " error ");
     return;
   }
 
@@ -98,9 +95,7 @@ public String toString(){
  */
 
 public Rectangle2D.Double getBounds(){
-  if (bounds == null)
-    bounds = jp.getBounds();
-  return bounds;
+  return jp.getBounds();
 }
 
 public Shape getRenderObject(int no, AffineTransform af){

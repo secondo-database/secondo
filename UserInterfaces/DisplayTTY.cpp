@@ -2997,9 +2997,9 @@ struct DisplayJNetwork : DisplayFunction {
     {
       NList nid(nl->First(value));
       cout << nid.str() << endl;
-
+      cout << "tolerance: " << nl->RealValue(nl->Second(value)) << endl;
       cout << "Junctions: " << endl;
-      ListExpr rest = nl->Second(value);
+      ListExpr rest = nl->Third(value);
       ListExpr first = nl->TheEmptyList();
 
       while (!nl->IsEmpty(rest))
@@ -3026,7 +3026,7 @@ struct DisplayJNetwork : DisplayFunction {
       cout << endl;
 
       cout << "Sections: " << endl;
-      rest = nl->Third(value);
+      rest = nl->Fourth(value);
       first = nl->TheEmptyList();
       while (!nl->IsEmpty(rest))
       {
@@ -3083,7 +3083,7 @@ struct DisplayJNetwork : DisplayFunction {
       cout << endl;
 
       cout << "Routes: " << endl;
-      rest = nl->Fourth(value);
+      rest = nl->Fifth(value);
       first = nl->TheEmptyList();
       while (!nl->IsEmpty(rest))
       {
@@ -3194,7 +3194,7 @@ struct DisplayRegEx : DisplayFunction{
      vector<bool> final;
      for(int i=0;i<numStates;i++){
         final.push_back(false);
-     } 
+     }
      while(!nl->IsEmpty(finalStates)){
         int n = nl->IntValue(nl->First(finalStates));
         finalStates = nl->Rest(finalStates);
@@ -3218,7 +3218,7 @@ struct DisplayRegEx : DisplayFunction{
      }
   }
   private:
-     void printtransition(const int src, const int dest, const set<int>& d, 
+     void printtransition(const int src, const int dest, const set<int>& d,
                           const bool srcfinal, const bool destFinal){
 
           // TODO: abbreviate d
@@ -3230,7 +3230,7 @@ struct DisplayRegEx : DisplayFunction{
              int next = *it;
              if(next!=last+1) { // start new range
                if(range.size()>4){
-                  ss << "[" << getStr(range[0]) << "-" 
+                  ss << "[" << getStr(range[0]) << "-"
                      << getStr(range[range.size()-1]) << "]";
                } else {
                  for(size_t i=0;i<range.size();i++){
@@ -3238,12 +3238,12 @@ struct DisplayRegEx : DisplayFunction{
                  }
                }
                range.clear();
-             } 
+             }
              range.push_back(next);
              last = next;
           }
           if(range.size()>4){
-             ss << "[" << getStr(range[0]) << "-" 
+             ss << "[" << getStr(range[0]) << "-"
                 << getStr(range[range.size()-1]) << "]";
           } else {
             for(size_t i=0;i<range.size();i++){
