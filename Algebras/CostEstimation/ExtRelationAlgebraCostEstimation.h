@@ -59,6 +59,14 @@ Jun 2012, JKN, First version of this file
 #define DEBUG false 
 
 /*
+
+0.2 Includes
+
+*/
+
+#include "SortByLocalInfo.h"
+
+/*
 1.0 Prototyping
 
 Local info for operator
@@ -489,6 +497,263 @@ private:
   size_t readStream2;       // processes tuple in stream2
 };
 
+/*
+1.1 The class ~MergeJoinCostEstimation~ provides cost estimation
+    capabilities for the operator mergejoin and sortmergejoin\_old
+
+*/
+
+/*
+
+1.1.1 Prototyping
+
+*/
+
+template<bool expectSorted>
+class MergeJoinCostEstimation : public CostEstimation 
+{
+
+public:
+    MergeJoinCostEstimation()
+    {    
+       pli = new ProgressLocalInfo();
+    }    
+
+/*
+1.2 Free local datastructures
+
+*/
+  virtual ~MergeJoinCostEstimation() {
+     if(pli) { 
+        delete pli;
+     }
+  }
+
+  virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo, 
+    bool argsAvialable) {
+
+     // no progress info available => cancel
+     if(! argsAvialable) {
+         return CANCEL;
+     }
+     
+     if (qp->RequestProgress(args[0].addr, &p1)
+       && qp->RequestProgress(args[1].addr, &p2)) {
+       
+      const double uSortBy = 0.00043;   //millisecs per byte read in sort step
+
+      const double uMergeJoin = 0.0008077;  //millisecs per tuple read
+                                        //in merge step (merge)
+
+      const double wMergeJoin = 0.0001738; //millisecs per byte read in
+                                          //merge step (sortmerge)
+
+      const double xMergeJoin = 0.0012058; //millisecs per result tuple in
+                                          //merge step
+
+      const double yMergeJoin = 0.0001072; //millisecs per result attribute in
+                                          //merge step
+
+      pli->SetJoinSizes(p1, p2);
+	    pRes->CopySizes(pli);
+
+	    double factor = (double) readStream1 / p1.Card;
+
+	    if ( (qp->GetSelectivity(supplier) != 0.1) &&
+		          ( returned > (size_t) enoughSuccessesJoin) ) {
+		       
+           pRes->Card = factor * ((double) returned) * p1.Card
+                 			  / ((double) readStream1) +
+                			  (1.0 - factor) * p1.Card * p2.Card
+              			    * qp->GetSelectivity(supplier);
+		  } else {
+          if ( returned > (size_t) enoughSuccessesJoin ) {
+            pRes->Card = ((double) returned) * p1.Card
+                          /  ((double) readStream1);
+          } else {
+            pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(supplier);
+          }
+      }
+
+      if ( expectSorted ) {
+            pRes->Time = p1.Time + p2.Time +
+              (p1.Card + p2.Card) * uMergeJoin +
+              pRes->Card * (xMergeJoin + pRes->noAttrs * yMergeJoin);
+
+            pRes->Progress =
+                (p1.Progress * p1.Time + p2.Progress * p2.Time +
+                (((double) readStream1) + ((double) readStream2))
+                * uMergeJoin +
+                ((double) returned)
+                * (xMergeJoin + pRes->noAttrs * yMergeJoin))
+                / pRes->Time;
+            
+            //non-blocking in this case
+      	    pRes->CopyBlocking(p1, p2);	   
+
+       } else {
+
+            pRes->Time =
+               p1.Time +
+	             p2.Time +
+               p1.Card * p1.Size * uSortBy +
+               p2.Card * p2.Size * uSortBy +
+               (p1.Card * p1.Size + p2.Card * p2.Size) * wMergeJoin +
+               pRes->Card * (xMergeJoin + pRes->noAttrs * yMergeJoin);
+
+
+            long readFirst = readStream1;
+            long readSecond = readStream2;
+
+            pRes->Progress =
+               (p1.Progress * p1.Time +
+               p2.Progress * p2.Time +
+               ((double) readFirst) * p1.Size * uSortBy +
+               ((double) readSecond) * p2.Size * uSortBy +
+               (((double) readStream1) * p1.Size +
+               ((double) readStream2) * p2.Size) * wMergeJoin +
+               ((double) returned)
+               * (xMergeJoin + pRes->noAttrs * yMergeJoin))
+               / pRes->Time;
+
+            pRes->BTime = p1.Time + p2.Time
+	             + p1.Card * p1.Size * uSortBy
+               + p2.Card * p2.Size * uSortBy;
+          
+	          pRes->BProgress =
+	             (p1.Progress * p1.Time + p2.Progress * p2.Time
+               + ((double) readFirst) * p1.Size * uSortBy
+               + ((double) readSecond) * p2.Size * uSortBy)
+      	       / pRes->BTime;
+        }
+          
+       return YIELD;
+   }
+   
+   // default: send cancel
+   return CANCEL;
+}
+
+
+/*
+1.3 getCosts
+
+Returns the estimated time in ms for given arguments.
+
+*/
+virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
+                      const size_t NoTuples2, const size_t sizeOfTuple2,
+                      const double memoryMB, double &costs) const{
+
+        
+        //TODO: FIXME
+     return true;
+}
+
+
+/*
+1.4 Calculate the sufficent memory for this operator.
+
+*/
+double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
+   return 16;
+}
+
+
+/*
+1.5 Get Linear Params
+Input: 
+NoTuples1, sizeOfTuple1
+NoTuples2, sizeOfTuple2,
+
+Output:
+sufficientMemory = sufficientMemory for this operator with the given 
+                   input
+
+timeAtSuffMemory = Time for the calculation with sufficientMemory
+
+timeAt16MB - Time for the calculation with 16MB Memory
+
+*/
+   virtual bool getLinearParams(
+            size_t NoTuples1, size_t sizeOfTuple1,
+            size_t NoTuples2, size_t sizeOfTuple2,
+            double& sufficientMemory, double& timeAtSuffMemory,
+            double& timeAt16MB )  const { 
+      
+      sufficientMemory=calculateSufficientMemory(NoTuples2, sizeOfTuple2);
+      
+      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
+        sufficientMemory, timeAtSuffMemory);
+
+      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
+        16, timeAt16MB);
+      
+      return true;
+   }
+
+
+/*
+1.6 getFunction
+
+This function approximates the costfunction by an parametrizable
+function. Allowed types are:
+
+1: linear function
+2: a / x
+
+*/
+   virtual bool getLinearParams(
+            size_t NoTuples1, size_t sizeOfTuple1,
+            size_t NoTuples2, size_t sizeOfTuple2,
+            int& functionType,
+            double& sufficientMemory, double& timeAtSuffMemory,
+            double& timeAt16MB,
+            double& a, double& b, double& c, double& d) const {
+       functionType=1;
+       a=0;b=0;c=0;d=0;
+       return getLinearParams(NoTuples1, sizeOfTuple1,
+                              NoTuples2, sizeOfTuple2,
+                              sufficientMemory, timeAtSuffMemory, 
+                              timeAt16MB);  
+  }  
+
+
+/*
+1.7 Update processed tuples in stream1
+
+*/
+   void processedTupleInStream1() {
+      readStream1++;
+   }
+
+
+/*
+1.8 Update processed tuples in stream2
+
+*/
+    void processedTupleInStream2() {
+       readStream2++;
+    }
+
+
+/*
+1.9 init our class
+
+*/
+  virtual void init(Word* args, void* localInfo)
+  {
+    returned = 0;
+    readStream1 = 0;
+    readStream2 = 0;
+  }
+
+private:
+  ProgressLocalInfo *pli;   // Local Progress info
+  ProgressInfo p1, p2;      // Progress info for stream 1 / 2
+  size_t readStream1;       // processed tuple in stream1
+  size_t readStream2;       // processes tuple in stream2
+};
+
 
 #endif
-
