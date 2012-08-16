@@ -19,30 +19,69 @@ while [ $numOfArgs -ne $OPTIND ]; do
     h)
       echo -e "List all processes involving Secondo inside the cluster.\n"
       echo -e "  -h Print this message and exit.\n"
+      echo -e "  -s List a Short status for the current cluster.\n"
       exit
       ;;
   esac
 
 done
 
-IPLIST=$(get_slaveIPs -m)
-declare -i CORCNT=0
-declare -i COUNTR=0
+aJobs=()
+Status="/tmp/.ps-cluster-queryMonitorStatus.data"
+cat /dev/null > $Status
 
-FAILER=""
-for node in $IPLIST; do 
-  echo "$(($COUNTR + 1)): Node: $node" 
-  ssh $node "ps -af" | grep Secondo | grep -v "grep"
-  if [ $? -eq 0 ]; then
-    let CORCNT++
-  else
-    FAILER=$node:$FAILER
+function checkNode
+{
+  IPAddr=$1
+  NIdx=$2
+
+  FPORT=""
+  declare -i START=0
+  declare -i FAILED=0
+  DSList=($(cat $PARALLEL_SECONDO_MASTER $PARALLEL_SECONDO_SLAVES | grep $IPAddr | awk '!x[$0]++' ))
+  for DataServer in ${DSList[*]};do
+    Port=$(echo $DataServer | cut -d':' -f3)
+    ssh $IPAddr "lsof -i :${Port}" | grep Secondo | grep $USER 2>&1 1>/dev/null
+    if [ $? -eq 0 ]; then
+      let START++
+    else
+      let FAILED++
+      FPORT="$FPORT:$Port"
+    fi    
+  done  
+ 
+  NodeStatus="${IPAddr}\t${#DSList[*]}\t${START}\t${FAILED}(${FPORT})"  
+  echo -e $NodeStatus >> $Status
+}
+
+IPLIST=($(get_slaveIPs -m))
+NDNUM=${#IPLIST[*]}
+declare -i NDIDX=1
+
+for ((NDIDX=0;NDIDX<$NDNUM;));do
+  node=${IPLIST[$NDIDX]}
+  for((token=1;token<$PS_PIPE_Width;token++));do
+    if [ $NDIDX -gt $NDNUM ]; then
+      break
+    fi
+   
+    if [ ! "${aJobs[$token]}" ] || ! kill -0 ${aJobs[$token]} 2>/dev/null; then
+      $(checkNode $node $NDIDX) &
+      aJobs[$token]=$!
+      let NDIDX++
+      break
+    fi
+  done 
+done
+
+for ((token=1;token<$PS_PIPE_Width;)); do
+  if ! kill -0 ${aJobs[$token]} 2>/dev/null; then
+    let token++
   fi
-  let COUNTR++
- done
+done
 
-echo "$CORCNT Monitors are started"
-if [ "$FAILER" != "" ]; then
-  echo "Follow monitors are not started correctly."
-  echo "$FAILER"
-fi
+echo -e "IPAddr\tDataServer\tStarted\tFailed"
+cat $Status | sort
+
+exit 0
+

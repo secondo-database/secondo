@@ -1,5 +1,7 @@
 #!/bin/bash
 
+declare -i PS_PIPE_Width=10
+
 function get_localIP
 {
   if [ "$SECONDO_PLATFORM" = "linux" -o "$SECONDO_PLATFORM" = "linux64" ]; then 
