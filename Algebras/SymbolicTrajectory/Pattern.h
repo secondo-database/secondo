@@ -65,10 +65,9 @@ class MLabel : public MString {
   public:
     MLabel() {}
     MLabel(int i): MString(i) {}
-    static const string BasicType() {
-      return "mlabel";
-    }
-    static bool checkType(ListExpr t){
+    
+    static const string BasicType() {return "mlabel";}
+    static bool checkType(ListExpr t) {
        return listutils::isSymbol(t,BasicType());
     }  
     static ListExpr MLabelProperty();
@@ -82,9 +81,8 @@ class ULabel : public UString {
   public:
     ULabel() {}
     ULabel(int i): UString(i){}
-    static const string BasicType() {
-      return "ulabel";
-    }
+    
+    static const string BasicType() {return "ulabel";}
     static ListExpr ULabelProperty();
     static bool CheckULabel(ListExpr type, ListExpr& errorInfo);
 };
@@ -94,7 +92,6 @@ class ExprList {
   vector<string> exprs;
   
   ExprList() {}
-
   ~ExprList() {}
 
   string toString();
@@ -111,7 +108,6 @@ class Condition {
 
  public:
   Condition() {}
-
   ~Condition() {}
   
   string toString() const;
@@ -142,7 +138,6 @@ class UPat {
 
  public:
   UPat() {}
-
   ~UPat() {}
 
   UPat(const string v, const string i, const string l, const Wildcard w){
@@ -190,8 +185,7 @@ class Pattern {
     return (*this);
   }  
 
-  ~Pattern() {
-  }
+  ~Pattern() {}
 
   string toString() const;
   string GetText() const;
@@ -240,9 +234,9 @@ class NFA {
   set<int> currentStates;
   vector<UPat> patterns;
   vector<Condition> conds;
-  int f; // number of the final state
+  int maxCardPos, f; // number of the final state
   ULabel ul;
-  size_t ulId, numOfLabels;
+  size_t ulId, numOfLabels, seqCounter, seqMax;
   set<size_t> *matchings;
   set<size_t> *cardsets;
   set<multiset<size_t> > sequences; // all possible matching sequences
@@ -288,7 +282,8 @@ class NFA {
   void computeCardsets();
   void processDoublePars(int pos);
   bool checkDoublePars(multiset<size_t> sequence);
-  void buildSequences();
+  void buildSequences(); // for rewrite, every sequence must be built
+  multiset<size_t> getNextSeq(); // for matches, we just need the next sequence
   void filterSequences(MLabel const &ml);
   void buildRewriteSequence(multiset<size_t> sequence);
   void computeResultVars(vector<UPat> results);
@@ -319,30 +314,12 @@ class RewriteResult {
 
   ~RewriteResult() {}
 
-  bool finished() {
-    return (it == sequences.end());
-  }
-
-  void killMLabel(){
-    delete inputML;
-    inputML = 0;
-  }
-
-  MLabel getML() {
-    return *inputML;
-  }
-
-  vector<size_t> getCurrentSeq() {
-    return *it;
-  }
-
-  vector<UPat> getAssignments() {
-    return assigns;
-  }
-
-  void next() {
-    it++;
-  }
+  bool           finished()       {return (it == sequences.end());}
+  void           killMLabel()     {delete inputML; inputML = 0;}
+  MLabel         getML()          {return *inputML;}
+  vector<size_t> getCurrentSeq()  {return *it;}
+  vector<UPat>   getAssignments() {return assigns;}
+  void           next()           {it++;}
 };
 
 }

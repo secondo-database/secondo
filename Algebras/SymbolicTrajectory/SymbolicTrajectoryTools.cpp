@@ -445,11 +445,10 @@ bool evaluate(string input, const bool eval) {
             else {
               isBool = true;
             }
-            if(tree){
-               qpp->Destroy(tree,true);
+            if (tree) {
+              qpp->Destroy(tree, true);
             }
             delete qpp;
-
           }
         }
       }
