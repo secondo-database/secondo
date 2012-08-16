@@ -589,7 +589,7 @@ public:
                 / pRes->Time;
             
             //non-blocking in this case
-            pRes->CopyBlocking(p1, p2);	   
+            pRes->CopyBlocking(p1, p2);
 
        } else {
 
