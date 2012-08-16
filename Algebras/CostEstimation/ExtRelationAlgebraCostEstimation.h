@@ -555,18 +555,18 @@ public:
                                           //merge step
 
       pli->SetJoinSizes(p1, p2);
-	    pRes->CopySizes(pli);
+      pRes->CopySizes(pli);
 
-	    double factor = (double) readStream1 / p1.Card;
+      double factor = (double) readStream1 / p1.Card;
 
-	    if ( (qp->GetSelectivity(supplier) != 0.1) &&
-		          ( returned > (size_t) enoughSuccessesJoin) ) {
-		       
-           pRes->Card = factor * ((double) returned) * p1.Card
-                 			  / ((double) readStream1) +
-                			  (1.0 - factor) * p1.Card * p2.Card
-              			    * qp->GetSelectivity(supplier);
-		  } else {
+      if ( (qp->GetSelectivity(supplier) != 0.1) &&
+           ( returned > (size_t) enoughSuccessesJoin) ) {
+     
+            pRes->Card = factor * ((double) returned) * p1.Card
+                        / ((double) readStream1) +
+                        (1.0 - factor) * p1.Card * p2.Card
+                        * qp->GetSelectivity(supplier);
+      } else {
           if ( returned > (size_t) enoughSuccessesJoin ) {
             pRes->Card = ((double) returned) * p1.Card
                           /  ((double) readStream1);
@@ -589,13 +589,12 @@ public:
                 / pRes->Time;
             
             //non-blocking in this case
-      	    pRes->CopyBlocking(p1, p2);	   
+            pRes->CopyBlocking(p1, p2);	   
 
        } else {
 
             pRes->Time =
-               p1.Time +
-	             p2.Time +
+               p1.Time + p2.Time +
                p1.Card * p1.Size * uSortBy +
                p2.Card * p2.Size * uSortBy +
                (p1.Card * p1.Size + p2.Card * p2.Size) * wMergeJoin +
@@ -617,14 +616,14 @@ public:
                / pRes->Time;
 
             pRes->BTime = p1.Time + p2.Time
-	             + p1.Card * p1.Size * uSortBy
+               + p1.Card * p1.Size * uSortBy
                + p2.Card * p2.Size * uSortBy;
           
-	          pRes->BProgress =
-	             (p1.Progress * p1.Time + p2.Progress * p2.Time
+            pRes->BProgress =
+               (p1.Progress * p1.Time + p2.Progress * p2.Time
                + ((double) readFirst) * p1.Size * uSortBy
                + ((double) readSecond) * p2.Size * uSortBy)
-      	       / pRes->BTime;
+               / pRes->BTime;
         }
           
        return YIELD;
