@@ -119,11 +119,11 @@ assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABEL {
                }
                var.assign(var.substr(0, var.find('.')));
                uPat.getUnit(convert(var), false);
-               if (!uPat.var.empty()) {
+               if (!uPat.getV().empty()) {
                  bool foundInRes(false);
                  unsigned int i = 0;
-                 while (!foundInRes && (i < wholepat->results.size())) {
-                   if (!wholepat->results[i].var.compare(var)) {
+                 while (!foundInRes && (i < wholepat->getResults().size())) {
+                   if (!wholepat->getResult(i).getV().compare(var)) {
                      foundInRes = true;
                    }
                    else {
@@ -131,8 +131,8 @@ assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABEL {
                    }
                  }
                  if (foundInRes) {
-                   wholepat->results[i].lbs.clear();
-                   wholepat->results[i].lbs.insert(label);
+                   wholepat->getResult(i).clearL();
+                   wholepat->getResult(i).insertL(label);
                  }
                  cout << "unit added to assignments" << endl;
                }
@@ -144,11 +144,11 @@ assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABEL {
                string interval($3);
                var.assign(var.substr(0, var.find('.')));
                uPat.getUnit(convert(var), false);
-               if (!uPat.var.empty()) {
+               if (!uPat.getV().empty()) {
                  bool foundInRes(false);
                  unsigned int i = 0;
-                 while (!foundInRes && (i < wholepat->results.size())) {
-                   if (!wholepat->results[i].var.compare(var)) {
+                 while (!foundInRes && (i < wholepat->getResults().size())) {
+                   if (!wholepat->getResult(i).getV().compare(var)) {
                      foundInRes = true;
                    }
                    else {
@@ -156,8 +156,8 @@ assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABEL {
                    }
                  }
                  if (foundInRes) {
-                   wholepat->results[i].ivs.clear();
-                   wholepat->results[i].ivs.insert(interval);
+                   wholepat->getResult(i).clearI();
+                   wholepat->getResult(i).insertI(interval);
                  }
                  cout << "unit added to assignments" << endl;
                }
@@ -172,10 +172,10 @@ resultsequence : result
 
 result : ZZVARIABLE unitpattern_result {
            uPat.getUnit($1, true);
-           if (!uPat.var.empty()) {
+           if (!uPat.getV().empty()) {
              uPat.createUnit($1, $2);
-             uPat.wc = NO;
-             wholepat->results.push_back(uPat);
+             uPat.clearW();
+             wholepat->addResult(uPat);
              cout << "unit " << $2 << " added to results" << endl;}
            else {
              cout << $1 << " was not found in the pattern" << endl;
@@ -185,9 +185,9 @@ result : ZZVARIABLE unitpattern_result {
          }
        | ZZVARIABLE {
            uPat.getUnit($1, true);
-           if (!uPat.var.empty()) {
-             uPat.lbs.clear();
-             wholepat->results.push_back(uPat);
+           if (!uPat.getV().empty()) {
+             uPat.clearL();
+             wholepat->addResult(uPat);
              cout << "unit added to results" << endl;}
            else {
              cout << $1 << " was not found in the pattern" << endl;
@@ -206,15 +206,13 @@ conditionsequence : condition
                   ;
 
 condition : expressionlist {
-              cond.text.assign(exprList.toString());
-              cout << "store condition " << cond.text << endl;
+              cond.setText(exprList.toString());
+              cout << "store condition " << cond.getText() << endl;
               cond.substitute();
-              wholepat->conds.push_back(cond);
+              wholepat->addCond(cond);
               cout << "condition stored" << endl;
               exprList.exprs.clear();
-              cond.vars.clear();
-              cond.keys.clear();
-              cond.pIds.clear();
+              cond.clearVectors();
             }
           ;
 
@@ -357,18 +355,18 @@ expressionlist : expression {
 patternsequence : variable unitpattern {
                     $$ = wholepat;
                     uPat.createUnit($1, $2);
-                    wholepat->patterns.push_back(uPat);
+                    wholepat->addUPat(uPat);
                     free($1);
                     free($2);
-                    cout << "pattern #" << wholepat->patterns.size() << endl;
+                    cout << "pattern #" << wholepat->getPats().size() << endl;
                   }
                 | patternsequence variable unitpattern {
                     $$ = wholepat;
                     uPat.createUnit($2, $3);
-                    wholepat->patterns.push_back(uPat);
+                    wholepat->addUPat(uPat);
                     free($2);
                     free($3);
-                    cout << "pattern #" << wholepat->patterns.size() << endl;
+                    cout << "pattern #" << wholepat->getPats().size() << endl;
                   }
                 ;
 
@@ -415,10 +413,10 @@ Pattern* stj::parseString(const char* input) {
   else {
     parseSuccess = true;
     result = wholepat;
-    result->text.assign(input);
+    result->setText(input);
     wholepat = 0;
   }
-  uPat.lbs.clear();
+  uPat.clearL();
   return result;
 }
 
@@ -435,17 +433,17 @@ void UPat::getUnit(const char *varP, bool order) {
   }
   string varStr(varP);
   bool found = false;
-  while ((pos < wholepat->patterns.size()) && !found) { // look for the variable
-    if (!(wholepat->patterns)[pos].var.compare(varStr)) {
-      var.assign((wholepat->patterns)[pos].var);
-      ivs = (wholepat->patterns)[pos].ivs;
-      lbs = (wholepat->patterns)[pos].lbs;
-      wc = (wholepat->patterns)[pos].wc;
+  while ((pos < wholepat->getPats().size()) && !found) { // look for var
+    if (!(wholepat->getPat(pos)).var.compare(varStr)) {
+      var.assign((wholepat->getPat(pos)).var);
+      ivs = (wholepat->getPat(pos)).ivs;
+      lbs = (wholepat->getPat(pos)).lbs;
+      wc = (wholepat->getPat(pos)).wc;
       found = true;
       curIvs = ivs;
       cout << "variable " << var << " found in pattern " << pos << endl;
     }
-    cout << pos << " " << (wholepat->patterns)[pos].var << endl;
+    cout << pos << " " << (wholepat->getPat(pos)).var << endl;
     pos++;
   }
   if (!found) {
@@ -561,8 +559,8 @@ Key Condition::convertVarKey(const char *varKey) {
   int dotpos = input.find('.');
   string varInput(input.substr(0, dotpos));
   string kInput(input.substr(dotpos + 1));
-  for (unsigned int i = 0; i < wholepat->patterns.size(); i++) {
-    if (!varInput.compare(((wholepat->patterns)[i]).var)) {
+  for (unsigned int i = 0; i < wholepat->getPats().size(); i++) {
+    if (!varInput.compare((wholepat->getPat(i)).getV())) {
       var.assign(varInput);
       if (!kInput.compare("label"))
         key = LABEL;
@@ -579,7 +577,7 @@ Key Condition::convertVarKey(const char *varKey) {
       cond.vars.push_back(var);
       cond.keys.push_back(key);
       cond.pIds.push_back(i);
-      cout << varInput << " | pat #" << i << " | cond #" << wholepat->conds.size() << endl;
+      cout << varInput << " | pat #" << i << " | cond #" << wholepat->getConds().size() << endl;
       return key;
     }
   }

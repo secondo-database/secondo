@@ -92,7 +92,7 @@ class ULabel : public UString {
 class ExprList {
  public: 
   vector<string> exprs;
-
+  
   ExprList() {}
 
   ~ExprList() {}
@@ -101,7 +101,7 @@ class ExprList {
 };
 
 class Condition {
- public:
+ private:
   string text;
   string textSubst; // the condition after replacing, see maps below
   map<int, string> subst;
@@ -109,26 +109,38 @@ class Condition {
   vector<string> vars;
   vector<int> pIds;
 
+ public:
   Condition() {}
 
   ~Condition() {}
   
-  void toString();
+  string toString() const;
   Key convertVarKey(const char *varKey);
   void clear();
   void substitute();
-  void substitute(unsigned int pos, string subst);
+  void substitute(int pos, string subst);
   static string getType(int t);
   static string getSubst(int s);
+  
+  string getText() const           {return text;}
+  void   setText(string newText)   {text = newText;}
+  string getSubst() const          {return textSubst;}
+  void   resetSubst()              {textSubst = text;}
+  void   setSubst(string newSubst) {textSubst = newSubst;}
+  int    getKeysSize() const       {return keys.size();}
+  Key    getKey(unsigned int pos)  {return keys[pos];}
+  int    getPId(unsigned int pos)  {return pIds[pos];}
+  void   clearVectors()            {vars.clear(); keys.clear(); pIds.clear();}
 };
 
 class UPat {
- public:
+ private:
   string var;
   set<string> ivs;
   set<string> lbs;
   Wildcard wc;
 
+ public:
   UPat() {}
 
   ~UPat() {}
@@ -143,15 +155,26 @@ class UPat {
   void setUnit(const char *v, const char *i, const char *l, const char *w);
   void getUnit(const char *v, bool assignment);
   void createUnit(const char *v, const char *pat);
+
+  string      getV() const                {return var;}
+  set<string> getL() const                {return lbs;}
+  set<string> getI() const                {return ivs;}
+  Wildcard    getW() const                {return wc;}
+  void        clearL()                    {lbs.clear();}
+  void        insertL(string newLabel)    {lbs.insert(newLabel);}
+  void        clearI()                    {ivs.clear();}
+  void        insertI(string newInterval) {ivs.insert(newInterval);}
+  void        clearW()                    {wc = NO;}
 };
 
 class Pattern {
- public:
+ private:
   vector<UPat> patterns;
   vector<UPat> results;
   vector<Condition> conds;
   string text;
 
+ public:
   Pattern() {}
 
   Pattern(const Pattern& rhs) {
@@ -192,6 +215,16 @@ class Pattern {
   bool verifyPattern();
   bool hasResults();
   set<vector<size_t> > getRewriteSequences(MLabel const &ml);
+
+  vector<UPat>      getPats()               {return patterns;}
+  vector<Condition> getConds()              {return conds;}
+  vector<UPat>      getResults()            {return results;}
+  UPat              getPat(int pos)         {return patterns[pos];}
+  UPat              getResult(int pos)      {return results[pos];}
+  void              addUPat(UPat upat)      {patterns.push_back(upat);}
+  void              addCond(Condition cond) {conds.push_back(cond);}
+  void              addResult(UPat res)     {results.push_back(res);}
+  void              setText(string newText) {text = newText;}
 };
 
 struct DoubleParsInfo {
@@ -209,7 +242,7 @@ class NFA {
   vector<Condition> conds;
   int f; // number of the final state
   ULabel ul;
-  size_t ulId, maxLabelId;
+  size_t ulId, numOfLabels;
   set<size_t> *matchings;
   set<size_t> *cardsets;
   set<multiset<size_t> > sequences; // all possible matching sequences
@@ -218,17 +251,14 @@ class NFA {
   vector<int> resultVars; // [3, 1] means: 1st result var is the one from the
                           // 3rd up, 2nd result var is the one from the 1st up
   set<int> doublePars; // positions of nonempty patterns in double parentheses
-  set<string> falseExprs; // strings whose evaluation yields a negative/positive
-  set<string> trueExprs;  // result are stored in these sets
+  map<string, bool> knownEval; // condition evaluation history
 
  public:
   NFA(const int size) {
     f = size - 1;
     delta = new set<int>*[f + 1];
-    //relevantPos = new bool[f];
     for (int i = 0; i < f; i++) {
       delta[i] = new set<int>[f + 1];
-      //relevantPos[i] = false;
     }
     delta[f] = new set<int>[f + 1];
     currentStates.insert(0);
@@ -265,10 +295,9 @@ class NFA {
   set<vector<size_t> > getRewriteSequences();
   bool conditionsMatch(MLabel const &ml);
   bool evaluateEmptyML();
-  void buildCondMatchings(unsigned int condId, multiset<size_t> sequence);
-  bool evaluateCond(MLabel const &ml, unsigned int condId,
-                    multiset<size_t> sequence);
-  string getLabelSubst(MLabel const &ml, unsigned int pos);
+  void buildCondMatchings(int condId, multiset<size_t> sequence);
+  bool evaluateCond(MLabel const &ml, int cId, multiset<size_t> sequence);
+  string getLabelSubst(MLabel const &ml, int pos);
   string getTimeSubst(MLabel const &ml, Key key, size_t from, size_t to);
   string toString();
 };
@@ -295,9 +324,9 @@ class RewriteResult {
   }
 
   void killMLabel(){
-     delete inputML;
-     inputML=0;
-  }  
+    delete inputML;
+    inputML = 0;
+  }
 
   MLabel getML() {
     return *inputML;

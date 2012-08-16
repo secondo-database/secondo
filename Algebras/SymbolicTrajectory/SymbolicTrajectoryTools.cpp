@@ -417,7 +417,6 @@ bool evaluate(string input, const bool eval) {
           cout << "Rest of list is empty" << endl;
         }
         else {
-          cout << nl->ToString(nl->First(nl->Rest(queryList))) << endl;
           if (eval) { // evaluate the condition
             string query = nl->ToString(nl->First(nl->Rest(queryList)));
             cout << "execute query '" << query << "'" << endl;
@@ -425,7 +424,6 @@ bool evaluate(string input, const bool eval) {
               cout << "execution error" << endl;
             }
             else {
-              cout << "query successful processed" << endl;
               CcBool *ccResult = static_cast<CcBool*>(queryResult.addr);
               isTrue = ccResult->GetValue();
               ccResult->DeleteIfAllowed();

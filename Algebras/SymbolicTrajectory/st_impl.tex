@@ -1,0 +1,635 @@
+% This is "sig-alternate.tex" V2.0 May 2012
+% This file should be compiled with V2.5 of "sig-alternate.cls" May 2012
+%
+% This example file demonstrates the use of the 'sig-alternate.cls'
+% V2.5 LaTeX2e document class file. It is for those submitting
+% articles to ACM Conference Proceedings WHO DO NOT WISH TO
+% STRICTLY ADHERE TO THE SIGS (PUBS-BOARD-ENDORSED) STYLE.
+% The 'sig-alternate.cls' file will produce a similar-looking,
+% albeit, 'tighter' paper resulting in, invariably, fewer pages.
+%
+% ----------------------------------------------------------------------------------------------------------------
+% This .tex file (and associated .cls V2.5) produces:
+%       1) The Permission Statement
+%       2) The Conference (location) Info information
+%       3) The Copyright Line with ACM data
+%       4) NO page numbers
+%
+% as against the acm_proc_article-sp.cls file which
+% DOES NOT produce 1) thru' 3) above.
+%
+% Using 'sig-alternate.cls' you have control, however, from within
+% the source .tex file, over both the CopyrightYear
+% (defaulted to 200X) and the ACM Copyright Data
+% (defaulted to X-XXXXX-XX-X/XX/XX).
+% e.g.
+% \CopyrightYear{2007} will cause 2007 to appear in the copyright line.
+% \crdata{0-12345-67-8/90/12} will cause 0-12345-67-8/90/12 to appear in the copyright line.
+%
+% ---------------------------------------------------------------------------------------------------------------
+% This .tex source is an example which *does* use
+% the .bib file (from which the .bbl file % is produced).
+% REMEMBER HOWEVER: After having produced the .bbl file,
+% and prior to final submission, you *NEED* to 'insert'
+% your .bbl file into your source .tex file so as to provide
+% ONE 'self-contained' source file.
+%
+% ================= IF YOU HAVE QUESTIONS =======================
+% Questions regarding the SIGS styles, SIGS policies and
+% procedures, Conferences etc. should be sent to
+% Adrienne Griscti (griscti@acm.org)
+%
+% Technical questions _only_ to
+% Gerald Murray (murray@hq.acm.org)
+% ===============================================================
+%
+% For tracking purposes - this is V2.0 - May 2012
+
+\documentclass{sig-alternate}
+\newcommand{\ic}[1]{\textit{#1}}
+\newcommand{\secondo}{\textsc{Secondo}}
+
+\begin{document}
+%
+% --- Author Metadata here ---
+\conferenceinfo{WOODSTOCK}{'97 El Paso, Texas USA}
+%\CopyrightYear{2007} % Allows default copyright year (20XX) to be over-ridden - IF NEED BE.
+%\crdata{0-12345-67-8/90/01}  % Allows default copyright data (0-89791-88-6/97/05) to be over-ridden - IF NEED BE.
+% --- End of Author Metadata ---
+
+\title{Symbolic Trajectories}
+% \subtitle{[Extended Abstract]
+% \titlenote{A full version of this paper is available as
+% \textit{Author's Guide to Preparing ACM SIG Proceedings Using
+% \LaTeX$2_\epsilon$\ and BibTeX} at
+% \texttt{www.acm.org/eaddress.htm}}}
+%
+% You need the command \numberofauthors to handle the 'placement
+% and alignment' of the authors beneath the title.
+%
+% For aesthetic reasons, we recommend 'three authors at a time'
+% i.e. three 'name/affiliation blocks' be placed beneath the title.
+%
+% NOTE: You are NOT restricted in how many 'rows' of
+% "name/affiliations" may appear. We just ask that you restrict
+% the number of 'columns' to three.
+%
+% Because of the available 'opening page real-estate'
+% we ask you to refrain from putting more than six authors
+% (two rows with three columns) beneath the article title.
+% More than six makes the first-page appear very cluttered indeed.
+%
+% Use the \alignauthor commands to handle the names
+% and affiliations for an 'aesthetic maximum' of six authors.
+% Add names, affiliations, addresses for
+% the seventh etc. author(s) as the argument for the
+% \additionalauthors command.
+% These 'additional authors' will be output/set for you
+% without further effort on your part as the last section in
+% the body of your article BEFORE References or any Appendices.
+
+\numberofauthors{3} %  in this sample file, there are a *total*
+% of EIGHT authors. SIX appear on the 'first-page' (for formatting
+% reasons) and the remaining two appear in the \additionalauthors section.
+%
+\author{
+% You can go ahead and credit any number of authors here,
+% e.g. one 'row of three' or two rows (consisting of one row of three
+% and a second row of one, two or three).
+%
+% The command \alignauthor (no curly braces needed) should
+% precede each author name, affiliation/snail-mail address and
+% e-mail address. Additionally, tag each line of
+% affiliation/address with \affaddr, and tag the
+% e-mail address with \email.
+%
+% 1st. author
+\alignauthor
+Ralf Hartmut G\"uting\\
+       \affaddr{Faculty of Mathematics and Computer Science}\\
+       \affaddr{University of Hagen, Germany}\\
+       \email{rhg@fernuni-hagen.de}
+\alignauthor
+% 2nd. author
+Maria Luisa Damiani\\
+       \affaddr{Department of Informatics and Communication}\\
+       \affaddr{University of Milan, Italy}\\
+       \email{damiani@dico.unimi.it}
+% 3rd. author
+\alignauthor Fabio Vald\'{e}s\\
+       \affaddr{Faculty of Mathematics and Computer Science}\\
+       \affaddr{University of Hagen, Germany}\\
+       \email{fabio.valdes@fernuni-hagen.de}
+%\and  % use '\and' if you need 'another row' of author names
+}
+% There's nothing stopping you putting the seventh, eighth, etc.
+% author on the opening page (as the 'third row') but we ask,
+% for aesthetic reasons that you place these 'additional authors'
+% in the \additional authors block, viz.
+%\additionalauthors{Additional authors: John Smith (The Th{\o}rv{\"a}ld Group,
+%email: {\texttt{jsmith@affiliation.org}}) and Julius P.~Kumquat
+%(The Kumquat Consortium, email: {\texttt{jpkumquat@consortium.net}}).}
+%\date{30 July 1999}
+% Just remember to make sure that the TOTAL number of authors
+% is the number that will appear on the first page PLUS the
+% number that will appear in the \additionalauthors section.
+
+\maketitle
+\begin{abstract}
+
+\end{abstract}
+
+% A category with the (minimum) three required fields
+\category{H.4}{Information Systems Applications}{Miscellaneous}
+%A category including the fourth, optional field follows...
+\category{D.2.8}{Software Engineering}{Metrics}[complexity measures, performance measures]
+
+\terms{Theory}
+
+\keywords{ACM proceedings, \LaTeX, text tagging}
+
+\section{Implementation}
+% \texttt{\char'134 balancecolumns} will
+% be used in your very last run of \LaTeX\ to ensure
+% balanced column heights on the last page.
+After elaborating the concepts of a pattern, of a moving label and the capabilities of the \texttt{matches} and \texttt{rewrite} operators, we strove to implement our theory. In this section, we present data structures and algorithms fulfilling the requirements hereinafter: realization of the operators; efficiency; compatibility with the \secondo\ database system; and extensibility for future work. Details concerning the input parsing are omitted for brevity.
+
+\subsection{Data Structure}
+In the following, we present three important classes. 
+
+\subsubsection{Class Unit Pattern}
+For every unit pattern, the input parser stores a variable (type string, may be empty), a set of intervals (strings), a set of labels (strings) and a wildcard (enum, 3 alternatives).
+
+\subsubsection{Class Condition}\label{sec:class condition}
+The condition objects are built during the parsing process, too. Each one holds its text (string), a substituted text (string; e.g., for the condition \texttt{X.label = \dq at\_home\dq}, the expression \texttt{X.label} would be replaced by the label of a certain unit label, in order to obtain the evaluable string \texttt{\dq at\_work\dq \\= \dq at\_home\dq}), and a vector of information concerning variables and related unit patterns.
+
+\subsubsection{Class NFA}
+The NFA instance (there is only one) is constructed in several steps. First, the transition function $\delta$ is computed. We model $\delta$ as a matrix of integer sets, i.e., for every pair $(i,j)$ of an NFA state and a unit pattern id, there is a (possibly empty) set of states that become active if a unit label matching the unit pattern $p_j$ is read in state $i$ (replacing the formerly active states). After this, a vector of sets of numbers is filled with all proper matches, e.g., if unit pattern $p_m$ matches unit label $n$, the number $n$ is inserted into the $m$th set.
+
+If the \texttt{matches} operator is called without a condition, no more work is required. Otherwise, for every unit pattern, we have to build another vector of sets containing every cardinality that unit pattern could assume. It is still impossible to perform the condition evaluation or the rewriting, but by combining these cardinality candidates, we acquire the set of all matching sequences (a set of sets of integers). Similar data structures are applied for evaluating conditions and rewriting sequences.
+
+In addition, the number of the final state (integer), the currently active states (set of integers), the current unit label, its id (integer) and the highest unit label id are stored.
+
+Finally, the NFA holds a set of expressions (strings) which have already been evaluated as \ic{true} or \ic{false}, respectively (avoiding multiple evaluation of the same expression in \secondo).
+
+\subsection{Algorithms}
+\IncMargin{-1mm}
+\SetInd{2.5mm}{1.5mm}
+\SetNlSkip{2mm}
+In this section, we present the most important algorithms of our implementation.
+
+\subsubsection{NFA Construction}
+The first step after storing the input data is the computation of the NFA's transition function. This is done in algorithm \ref{alg:buildNFA}.
+
+\begin{algorithm}[ht]
+  \caption{\label{alg:buildNFA}\ic{buildNFA$(p)$}}
+    \KwIn{$p$ - a vector of $n$ Unit Patterns.}
+    \KwResult{$\delta$ - the NFA transitions.}
+    let $h_0=h_1=h_2=-1$\;
+    \For(\tcp*[f]{\scriptsize{loop through pattern}}){$i=0$ \KwTo $n-1$}{
+      $\delta_{i,i}\leftarrow i+1$\;
+      \uIf{$p_i\notin\{\ast,+,((\dots))\}\ \mathbf{or}\ p_i.ivs\neq\emptyset\ \mathbf{or}\ p_i.lbs\neq\emptyset\ \mathbf{or}\ i=n-1$}{
+        \If{$h_0=i-1$ $\mathbf{or}$ $i=n-1$}{
+          \For(\tcp*[f]{\scriptsize{step 1}}){$j=h_1+1$ \KwTo $i-1$}{
+            $\delta_{j,i}\leftarrow i+1$\;
+            \For(\tcp*[f]{\scriptsize{after last match}}){$k=j$ \KwTo $i$}{
+              \ic{$\delta_{j,k}\leftarrow j$}\;
+              \lFor{$m=j$ \KwTo $i$}{$\delta{j,k}\leftarrow m$\;}
+              \If{$p_i=\ast$ $\mathbf{and}$ $i=n-1$}{$\delta_{j,k}\leftarrow n$\;}
+            }
+          }
+          \If(\tcp*[f]{\scriptsize{step 2}}){$h_1>-1$}{
+            \lFor{$j=h_1+1$ \KwTo $i$}{$\delta_{h_1,h_1}\leftarrow j$}\;
+            \lIf{$p_i=\ast$ $\mathbf{and}$ $i=n-1$}{$\delta_{h_1,h_1}\leftarrow n$\;}
+          }
+          \If(\tcp*[f]{\scriptsize{step 3}}){$h_2<h_1-1$}{
+            \For{$j=h_2+1$ \KwTo $h_1-1$}{
+              \lFor{$k=h_1+1$ \KwTo $i$}{$\delta_{j,h_1}\leftarrow k$\;}
+              \If{$p_i=\ast$ $\mathbf{and}$ $i=n-1$}{$\delta_{j,h_1}\leftarrow n$\;}
+            }
+          }
+        }
+        \lIf{$p_i\in\{+,((\dots))\}$}{$\delta_{i,i}\leftarrow i$\;}
+        \ic{$h_2=h_1$}\;
+        \ic{$h_1=i$}\;
+      }
+      \lElseIf{$p_i=\ast$}{$h_0=i$\;}
+      \ElseIf{$p_i\in\{+,((\dots))\}$}{
+        \ic{$\delta(i,i)\leftarrow i$}\;
+        \ic{$h_2=h_1$}\;
+        \ic{$h_1=i$}\;
+      }
+    }
+    \lIf{$p_{n-1}\in\{+,\ast\}$}{$\delta_{n-1,n-1}\leftarrow n-1$\;}
+\end{algorithm}
+
+In order to reduce the algorithm's time consumption, a history of important events is kept. More exactly, we track the last $\ast$, the last unit pattern different from $\ast$, and the second last unit pattern different from $\ast$ ($h_0, h_1, h_2$, respectively). While looping through the unit patterns, we first insert $i+1$ into the set $\delta(i,i)$ since we can always proceed from one state to the next if reading the appropiate unit label (l. 3).
+
+In case of reading a wildcard unit or the last unit, there is only little work to do. In contrast, when the algorithm finds a non-wildcard unit (or the last unit) preceded by $\ast$, several transitions have to be caught up. These are divided into three parts, i.e., for the preceding $\ast$ sequence, for the previous non $\ast$ unit (if existing), and for the $\ast$-sequence before that (if existing).
+
+\subsubsection{Working with the NFA}
+After the transition function is completed, it is applied in algorithm \ref{alg:match} which yields the matching result of the moving label and the sequence of unit patterns.
+
+\begin{algorithm}[ht]
+  \caption{\label{alg:match}\ic{match$(\delta, ml)$}}
+    \KwIn{$\delta$ - an NFA transition function\;
+      \hspace{1.11cm}$ml$ - an MLabel.}
+    \KwOut{the matching result - a boolean.}
+    let $S_{cur}=\{0\}$\;
+    \ForEach{ULabel $ul\in ml$}{
+      let $S_{old}=S_{cur}$\;
+      \ForEach{$s\in S_{old}$}{
+        \For(\tcp*[f]{\scriptsize{no need to look back}}){$i=s$ \KwTo $n-1$}{
+          \If{$\delta_{s,i}\neq\emptyset\ \mathbf{and}\ ul\ \textnormal{matches}\ p_i$}{
+            $S_{cur}\leftarrow\delta_{s,i}$\;
+            $M_s\leftarrow ulId$\;
+          }
+        }
+      }      
+      \lIf{$S_{cur}=\emptyset$}{\Return \ic{false}\;}
+    }
+    \lIf{$n\in S_{cur}$}{\Return \ic{true}\;}
+    \lElse{\Return \ic{false}\;}
+\end{algorithm}
+
+Initially, the only active state of the NFA is 0. For each unit label, we perform an update of the currently active states ($S_{cur}$, for brevity). More exactly, the algorithm scans the active states, checks every possible transition from one active state to itself or a higher state, and inserts the new states into $S_{cur}$ if and only if the transition is valid (i.e., $k\in\delta(i,j)$ means that, being in state $i$, state $k$ becomes active if and only if the $j$th unit pattern matches the current unit label).
+
+If there is no active state after any outer loop, the algorithm stops immediately, which implies a mismatch. In the other case, we verify whether the final state $n$ is an element of the active state set. This is already the query result if the operator \texttt{matches} is applied without conditions.
+
+In line 8, for every state the set of matching unit label ids is stored for later use.
+
+\subsubsection{Preparing the Condition Evaluation}\label{sec:preparing the condition evaluation}
+Since the conditions are evaluated by \secondo, there are only two rules they have to obey:
+\begin{itemize}
+  \item at least one term containing a variable and a condition type (e.g., \texttt{Y.time}) is mandatory for every condition
+  \item every condition must be a boolean expression, i.e., its evaluation has to yield \ic{true} or \ic{false}
+\end{itemize}
+
+Therefore, we cannot retrieve useful information from a condition in order to reduce the time consumption. For instance, although it is obvious that trying to match the input \texttt{X $\ast$ Y $\ast$ // X.card = 100} and a moving label with 50 components will fail, the evaluation of the conditions cannot take place until we know all the possible replacements for \texttt{X.card}.
+
+For realizing this, we need to compute a set of cardinality candidates $C_i$ (as hinted in \ref{sec:class condition}) for every unit pattern id, which is done with the help of the matching sets ($M_s$ in algorithm \ref{alg:match}). We distinguish three cases:
+\begin{itemize}
+  \item a simple pattern: $C_i=\{1\}$
+  \item a sequence pattern surrounded by two proper matches: $C_i=M_{i+1}-M_{i-1}$\footnote{For two sets $A, B\subseteq \mathbb{N}_0$, we denote the set of all non-negative differences $\{b-a\colon a\in A, b\in B, a\leq b\}$ by $B-A$}
+  \item a sequence pattern besides other sequence patterns: $C_{i}=\{1,\dots,\max\{M_{n}-M_{p}\}\}$, with $n$ and $p$ denoting the next and the previous position of simple patterns, respectively
+\end{itemize}
+
+If the aforementioned sequence pattern consists of a $\ast$, it is necessary to add $0$ to its cardinality candidate set.
+
+These candidate sets enable us to build further sets providing an evaluation order, as done in algorithm \ref{alg:buildsequences}. First, all cardinality set sizes except the largest one are multiplied, yielding the number of matching sequence candidates which are going to be built in the next step. We skip the largest set in the multiplication since a matching sequence is already determined by $n-1$ numbers. This technique reduces the computational cost for the outer loop by a factor up to $\left|ml\right|$, depending on the occurrence of $+$ and $\ast$ in the pattern.
+
+\begin{algorithm}[ht]
+  \caption{\label{alg:buildsequences}\ic{buildSequences$(C)$}}
+    \KwIn{$C$ - a vector of sets containing the cardinality candidates for every unit pattern.}
+    \KwOut{$S$ - a set of multisets representing all possible matching sequences.}
+    let $m\in \{0,\dots,n-1\}$, with $\left|C_m\right|=\max\limits_i \left|C_i\right|$\;
+    let $size=\prod_{0\leq i<n,i\neq m}\left|C_i\right|$\;
+    \For{$i=0$ \KwTo $size-1$}{
+      let $j=i$\;
+      let $sq$ be a multiset of integers, initially empty\;
+      let $cards$ be a vector of $n$ integers, initially empty\;
+      let $cSum=0$\;
+      \ForEach{$s\in\{0,\dots,n-1\}\setminus \{m\}$}{
+        $cards_s=C_{s,\,j\ \textnormal{mod}\ \left|C_s\right|}$\;
+        $cSum=cSum+C_{s,\,j\ \textnormal{mod}\ \left|C_s\right|}$\;
+        $j=j/\left|C_s\right|$\;
+        \lIf(\tcp*[f]{\scriptsize{sum too high}}){$cSum>\left|ml\right|$}{$s=n$}
+      }
+      \If{$\left|ml\right|-cSum\in C_m$}{
+        $cards_m=\left|ml\right|-cSum$\;
+        $sq=\{0,\sum_{k=0}^{0}cards_k,\dots,\sum_{k=0}^{n-2}cards_k\}$\;
+        $S\leftarrow sq$\;
+      }
+    }
+\end{algorithm}
+
+The algorithm performs a combinatorial task, i.e., the cardinality candidates of every unit pattern are combined in every possible way. In line 12, we check the sum of the $n-1$ chosen candidates. If it already exceeds the moving label's size, the current combination is ignored. Otherwise, we consider the non-negative difference $\left|ml\right|-cSum$ which, if it is an element of $C_m$ (i.e., a legal cardinality for the unit pattern $p_m$), is the number that completes the $n-1$ candidates such that the sum of cardinalities equals $\left|ml\right|$. Now, the vector $cards$ contains a valid cardinality sequence, e.g., $cards=(1,0,25,1)$ for a pattern consisting of four units means that the first unit pattern matches the first unit label (0), the second unit pattern (which obviously is a $\ast$) is skipped, the third one matches the sequence of unit labels 1 to 25, and the last one matches the last unit label, 26. Finally, we translate this vector into a sequence indicating the unit label id where the respective matching starts. For the above example, this is $sq=\{0,1,1,26\}$. Every such sequence is stored as a multiset (since $sq_{i-1}\leq sq_i$ holds for $1\leq i<\left|sq\right|$) and inserted into $S$.
+
+\subsubsection{Condition Evaluation}\label{sec:condition evaluation}
+Both operators, \texttt{matches} and \texttt{rewrite}, take advantage of $S$. The next step for \texttt{rewrite} is to scan $S$, eliminating the sequences which do not fulfill the set of specified conditions in order to obtain the final set of sequences for rewriting the pattern.
+
+However, we suppose the operator \texttt{matches} is invoked, with the consequence that we need to verify whether there is a sequence in $S$ that complies with every condition. This test is performed in algorithm \ref{alg:conditionsmatch}.
+
+\begin{algorithm}[ht]
+  \caption{\label{alg:conditionsmatch}\ic{conditionsMatch$(conds, S, ml)$}}
+    \KwIn{$conds$ - a vector of conditions\;
+      \hspace{1.11cm}$S$ - as aforementioned\;
+      \hspace{1.11cm}$ml$ - an MLabel.}
+    \KwOut{the verification result - a boolean.}
+    \lIf{$conds=\emptyset$}{\Return \ic{true}\;}
+    \For{$i=0$ \KwTo $\left|conds\right|-1$}{
+      let \ic{proceed} $=$ \ic{false}\;
+      \While{$S\neq\emptyset\ \mathbf{and}\ $proceed $=$ false}{
+        \ic{proceed} $=$ \ic{false}\;
+        let $sq\in S$\;
+        %\ic{buildCondMatchings$(i,sq)$}\;
+        \uIf{evaluateCond$(ml,i,sq)=$ false}{
+          $S=S\setminus sq$\;
+          $i=0$\;
+        }
+        \lElse{\ic{proceed} $=$ \ic{true}\;}
+      }
+      \lIf{proceed $=$ false}{\Return \ic{false}\;}
+    }
+    \Return \ic{true}\;
+\end{algorithm}
+
+The outer loop scans the conditions while the inner loop processes the sequences. If a condition evaluation fails (l. 7), the corresponding sequence is deleted, and we have to return to the first condition (l. 9) and to choose another sequence (l. 6). Only if an evaluation is successful, the sequence remains a solution candidate, and we proceed to the next condition. Algorithm \ref{alg:conditionsmatch} returns \ic{false} if and only if there is no element of $S$ which fulfills all conditions.
+
+Due to lack of space, we limit ourselves to discuss the basic strategies of the evaluation process. In line 7, the function \ic{evaluateCond} receives the moving label, the current sequence, and the number of the current condition. Its major task is to replace parts of the condition according to the sequence. For example, assume the query \texttt{X () Y $\ast$ Z $\ast$ // Y.card < Z.card}, the strongly simplified moving label \texttt{((00-08 at\_home)} \texttt{(08-17 at\_work)} \texttt{(17-19 shopping)} \texttt{(19-00 at\_home))}, and the sequence $\{0,1,4\}$. The latter implies that \texttt{X} corresponds to unit label 0, \texttt{Y} is bound to the other three unit labels while \texttt{Z} remains empty. Now, the expressions \texttt{Y.card} and \texttt{Z.card} from the condition are replaced by \texttt{3} and \texttt{0}, respectively, yielding a negative answer from the \secondo\ evaluation. The next sequence could read $\{0,1,2\}$ -- binding \texttt{Y} to unit label 1 and \texttt{Z} to 2 and 3 -- which leads to the inequation $1<2$, so this sequence is the one fulfilling all conditions.
+
+In order to avoid repeated evaluations of the same term -- which may happen if the pattern contains many stars, or if some labels occur frequently in the moving label -- every analyzed term and its corresponding boolean result are stored into a set. Thus, a substituted condition is only sent to \secondo\ if the aforementioned set does not contain it.\newpage
+
+\subsubsection{Display Equations}
+A numbered display equation -- one set off by vertical space
+from the text and centered horizontally -- is produced
+by the \textbf{equation} environment. An unnumbered display
+equation is produced by the \textbf{displaymath} environment.
+
+Again, in either environment, you can use any of the symbols
+and structures available in \LaTeX; this section will just
+give a couple of examples of display equations in context.
+First, consider the equation, shown as an inline equation above:
+\begin{equation}\lim_{n\rightarrow \infty}x=0\end{equation}
+Notice how it is formatted somewhat differently in
+the \textbf{displaymath}
+environment.  Now, we'll enter an unnumbered equation:
+\begin{displaymath}\sum_{i=0}^{\infty} x + 1\end{displaymath}
+and follow it with another numbered equation:
+\begin{equation}\sum_{i=0}^{\infty}x_i=\int_{0}^{\pi+2} f\end{equation}
+just to demonstrate \LaTeX's able handling of numbering.
+
+\subsection{Citations}
+Citations to articles \cite{bowman:reasoning,
+clark:pct, braams:babel, herlihy:methodology},
+conference proceedings \cite{clark:pct} or
+books \cite{salas:calculus, Lamport:LaTeX} listed
+in the Bibliography section of your
+article will occur throughout the text of your article.
+You should use BibTeX to automatically produce this bibliography;
+you simply need to insert one of several citation commands with
+a key of the item cited in the proper location in
+the \texttt{.tex} file \cite{Lamport:LaTeX}.
+The key is a short reference you invent to uniquely
+identify each work; in this sample document, the key is
+the first author's surname and a
+word from the title.  This identifying key is included
+with each item in the \texttt{.bib} file for your article.
+
+The details of the construction of the \texttt{.bib} file
+are beyond the scope of this sample document, but more
+information can be found in the \textit{Author's Guide},
+and exhaustive details in the \textit{\LaTeX\ User's
+Guide}\cite{Lamport:LaTeX}.
+
+This article shows only the plainest form
+of the citation command, using \texttt{{\char'134}cite}.
+This is what is stipulated in the SIGS style specifications.
+No other citation format is endorsed or supported.
+
+\subsection{Tables}
+Because tables cannot be split across pages, the best
+placement for them is typically the top of the page
+nearest their initial cite.  To
+ensure this proper ``floating'' placement of tables, use the
+environment \textbf{table} to enclose the table's contents and
+the table caption.  The contents of the table itself must go
+in the \textbf{tabular} environment, to
+be aligned properly in rows and columns, with the desired
+horizontal and vertical rules.  Again, detailed instructions
+on \textbf{tabular} material
+is found in the \textit{\LaTeX\ User's Guide}.
+
+Immediately following this sentence is the point at which
+Table 1 is included in the input file; compare the
+placement of the table here with the table in the printed
+dvi output of this document.
+
+\begin{table}
+\centering
+\caption{Frequency of Special Characters}
+\begin{tabular}{|c|c|l|} \hline
+Non-English or Math&Frequency&Comments\\ \hline
+\O & 1 in 1,000& For Swedish names\\ \hline
+$\pi$ & 1 in 5& Common in math\\ \hline
+\$ & 4 in 5 & Used in business\\ \hline
+$\Psi^2_1$ & 1 in 40,000& Unexplained usage\\
+\hline\end{tabular}
+\end{table}
+
+To set a wider table, which takes up the whole width of
+the page's live area, use the environment
+\textbf{table*} to enclose the table's contents and
+the table caption.  As with a single-column table, this wide
+table will ``float" to a location deemed more desirable.
+Immediately following this sentence is the point at which
+Table 2 is included in the input file; again, it is
+instructive to compare the placement of the
+table here with the table in the printed dvi
+output of this document.
+
+
+\begin{table*}
+\centering
+\caption{Some Typical Commands}
+\begin{tabular}{|c|c|l|} \hline
+Command&A Number&Comments\\ \hline
+\texttt{{\char'134}alignauthor} & 100& Author alignment\\ \hline
+\texttt{{\char'134}numberofauthors}& 200& Author enumeration\\ \hline
+\texttt{{\char'134}table}& 300 & For tables\\ \hline
+\texttt{{\char'134}table*}& 400& For wider tables\\ \hline\end{tabular}
+\end{table*}
+% end the environment with {table*}, NOTE not {table}!
+
+\subsection{Figures}
+Like tables, figures cannot be split across pages; the
+best placement for them
+is typically the top or the bottom of the page nearest
+their initial cite.  To ensure this proper ``floating'' placement
+of figures, use the environment
+\textbf{figure} to enclose the figure and its caption.
+
+This sample document contains examples of \textbf{.eps}
+and \textbf{.ps} files to be displayable with \LaTeX.  More
+details on each of these is found in the \textit{Author's Guide}.
+
+\begin{figure}
+\centering
+\epsfig{file=fly.eps}
+\caption{A sample black and white graphic (.eps format).}
+\end{figure}
+
+\begin{figure}
+\centering
+\epsfig{file=fly.eps, height=1in, width=1in}
+\caption{A sample black and white graphic (.eps format)
+that has been resized with the \texttt{epsfig} command.}
+\end{figure}
+
+
+As was the case with tables, you may want a figure
+that spans two columns.  To do this, and still to
+ensure proper ``floating'' placement of tables, use the environment
+\textbf{figure*} to enclose the figure and its caption.
+and don't forget to end the environment with
+{figure*}, not {figure}!
+
+\begin{figure*}
+\centering
+\epsfig{file=flies.eps}
+\caption{A sample black and white graphic (.eps format)
+that needs to span two columns of text.}
+\end{figure*}
+
+Note that either {\textbf{.ps}} or {\textbf{.eps}} formats are
+used; use
+the \texttt{{\char'134}epsfig} or \texttt{{\char'134}psfig}
+commands as appropriate for the different file types.
+
+\subsection{Theorem-like Constructs}
+Other common constructs that may occur in your article are
+the forms for logical constructs like theorems, axioms,
+corollaries and proofs.  There are
+two forms, one produced by the
+command \texttt{{\char'134}newtheorem} and the
+other by the command \texttt{{\char'134}newdef}; perhaps
+the clearest and easiest way to distinguish them is
+to compare the two in the output of this sample document:
+
+This uses the \textbf{theorem} environment, created by
+the\linebreak\texttt{{\char'134}newtheorem} command:
+\newtheorem{theorem}{Theorem}
+\begin{theorem}
+Let $f$ be continuous on $[a,b]$.  If $G$ is
+an antiderivative for $f$ on $[a,b]$, then
+\begin{displaymath}\int^b_af(t)dt = G(b) - G(a).\end{displaymath}
+\end{theorem}
+
+The other uses the \textbf{definition} environment, created
+by the \texttt{{\char'134}newdef} command:
+\newdef{definition}{Definition}
+\begin{definition}
+If $z$ is irrational, then by $e^z$ we mean the
+unique number which has
+logarithm $z$: \begin{displaymath}{\log e^z = z}\end{displaymath}
+\end{definition}
+
+Two lists of constructs that use one of these
+forms is given in the
+\textit{Author's  Guidelines}.
+ 
+There is one other similar construct environment, which is
+already set up
+for you; i.e. you must \textit{not} use
+a \texttt{{\char'134}newdef} command to
+create it: the \textbf{proof} environment.  Here
+is a example of its use:
+\begin{proof}
+Suppose on the contrary there exists a real number $L$ such that
+\begin{displaymath}
+\lim_{x\rightarrow\infty} \frac{f(x)}{g(x)} = L.
+\end{displaymath}
+Then
+\begin{displaymath}
+l=\lim_{x\rightarrow c} f(x)
+= \lim_{x\rightarrow c}
+\left[ g{x} \cdot \frac{f(x)}{g(x)} \right ]
+= \lim_{x\rightarrow c} g(x) \cdot \lim_{x\rightarrow c}
+\frac{f(x)}{g(x)} = 0\cdot L = 0,
+\end{displaymath}
+which contradicts our assumption that $l\neq 0$.
+\end{proof}
+
+Complete rules about using these environments and using the
+two different creation commands are in the
+\textit{Author's Guide}; please consult it for more
+detailed instructions.  If you need to use another construct,
+not listed therein, which you want to have the same
+formatting as the Theorem
+or the Definition\cite{salas:calculus} shown above,
+use the \texttt{{\char'134}newtheorem} or the
+\texttt{{\char'134}newdef} command,
+respectively, to create it.
+
+\subsection*{A {\secit Caveat} for the \TeX\ Expert}
+Because you have just been given permission to
+use the \texttt{{\char'134}newdef} command to create a
+new form, you might think you can
+use \TeX's \texttt{{\char'134}def} to create a
+new command: \textit{Please refrain from doing this!}
+Remember that your \LaTeX\ source code is primarily intended
+to create camera-ready copy, but may be converted
+to other forms -- e.g. HTML. If you inadvertently omit
+some or all of the \texttt{{\char'134}def}s recompilation will
+be, to say the least, problematic.
+
+\section{Conclusions}
+This paragraph will end the body of this sample document.
+Remember that you might still have Acknowledgments or
+Appendices; brief samples of these
+follow.  There is still the Bibliography to deal with; and
+we will make a disclaimer about that here: with the exception
+of the reference to the \LaTeX\ book, the citations in
+this paper are to articles which have nothing to
+do with the present subject and are used as
+examples only.
+%\end{document}  % This is where a 'short' article might terminate
+
+%ACKNOWLEDGMENTS are optional
+%
+% The following two commands are all you need in the
+% initial runs of your .tex file to
+% produce the bibliography for the citations in your paper.
+\bibliographystyle{abbrv}
+\bibliography{sigproc}  % sigproc.bib is the name of the Bibliography in this case
+% You must have a proper ".bib" file
+%  and remember to run:
+% latex bibtex latex latex
+% to resolve all references
+%
+% ACM needs 'a single self-contained file'!
+%
+%APPENDICES are optional
+%\balancecolumns
+\appendix
+%Appendix A
+\section{Headings in Appendices}
+The rules about hierarchical headings discussed above for
+the body of the article are different in the appendices.
+In the \textbf{appendix} environment, the command
+\textbf{section} is used to
+indicate the start of each Appendix, with alphabetic order
+designation (i.e. the first is A, the second B, etc.) and
+a title (if you include one).  So, if you need
+hierarchical structure
+\textit{within} an Appendix, start with \textbf{subsection} as the
+highest level. Here is an outline of the body of this
+document in Appendix-appropriate form:
+\subsection{Introduction}
+\subsection{The Body of the Paper}
+\subsubsection{Type Changes and  Special Characters}
+\subsubsection{Math Equations}
+\paragraph{Inline (In-text) Equations}
+\paragraph{Display Equations}
+\subsubsection{Citations}
+\subsubsection{Tables}
+\subsubsection{Figures}
+\subsubsection{Theorem-like Constructs}
+\subsubsection*{A Caveat for the \TeX\ Expert}
+\subsection{Conclusions}
+\subsection{Acknowledgments}
+\subsection{Additional Authors}
+This section is inserted by \LaTeX; you do not insert it.
+You just add the names and information in the
+\texttt{{\char'134}additionalauthors} command at the start
+of the document.
+\subsection{References}
+Generated by bibtex from your ~.bib file.  Run latex,
+then bibtex, then latex twice (to resolve references)
+to create the ~.bbl file.  Insert that ~.bbl file into
+the .tex source file and comment out
+the command \texttt{{\char'134}thebibliography}.
+% This next section command marks the start of
+% Appendix B, and does not continue the present hierarchy
+%\balancecolumns % GM June 2007
+\end{document}
