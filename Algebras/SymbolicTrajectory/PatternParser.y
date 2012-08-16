@@ -131,8 +131,8 @@ assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABEL {
                    }
                  }
                  if (foundInRes) {
-                   wholepat->getResult(i).clearL();
-                   wholepat->getResult(i).insertL(label);
+                   wholepat->clearResLbs(i);
+                   wholepat->insertResLb(i, label);
                  }
                  cout << "unit added to assignments" << endl;
                }
@@ -156,8 +156,8 @@ assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABEL {
                    }
                  }
                  if (foundInRes) {
-                   wholepat->getResult(i).clearI();
-                   wholepat->getResult(i).insertI(interval);
+                   wholepat->clearResIvs(i);
+                   wholepat->insertResIv(i, interval);
                  }
                  cout << "unit added to assignments" << endl;
                }

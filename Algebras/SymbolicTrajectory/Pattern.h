@@ -219,6 +219,10 @@ class Pattern {
   void              addCond(Condition cond) {conds.push_back(cond);}
   void              addResult(UPat res)     {results.push_back(res);}
   void              setText(string newText) {text = newText;}
+  void              clearResLbs(int pos)    {results[pos].clearL();}
+  void      insertResLb(int pos, string lb) {results[pos].insertL(lb);}
+  void              clearResIvs(int pos)    {results[pos].clearI();}
+  void      insertResIv(int pos, string iv) {results[pos].insertI(iv);}
 };
 
 struct DoubleParsInfo {
