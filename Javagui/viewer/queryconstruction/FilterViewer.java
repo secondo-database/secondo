@@ -16,63 +16,60 @@ import java.awt.event.ActionListener;
  * @author lrentergent
  */
 public class FilterViewer extends QueryconstructionViewer {
-    private String result;
-    private QueryconstructionViewer viewer;
     private MainPane main;
     private Operation operation;
+    private JFrame f = new JFrame();
     
-    public FilterViewer(MainPane main, Operation operation, String result) {
-        super();
-//        this.main = main;
-//        this.operation = operation;
-//        this.result = result;
-//        
-//        this.setLayout(new BorderLayout());
-//        MainPane = new MainPane(this);
-//        MainPane.setPreferredSize(new Dimension (500, 400));
-//        ObjectPane = new ObjectPane(this);
-//        OperationsPane.update();
-//        
-//        JScrollPane MainScrollPane = new JScrollPane(MainPane);
-//        JScrollPane ObjectsScrollPane = new JScrollPane(ObjectPane);
-//        ObjectsScrollPane.setPreferredSize(new Dimension (600, 90));
-//        JScrollPane OperationsScrollPane = new JScrollPane(OperationsPane);
-//        OperationsScrollPane.setPreferredSize(new Dimension (120, 400));
-//        
-//        this.add(ObjectsScrollPane, BorderLayout.NORTH);
-//        this.add(OperationsScrollPane, BorderLayout.EAST);
-//        this.add(MainScrollPane, BorderLayout.CENTER);
-//        
-//        JPanel buttonPanel = new JPanel();
-//        JButton run = new JButton("ok");
-//        buttonPanel.add(run);
-//        JButton back = new JButton("back");
-//        buttonPanel.add(back);
-//        
-//        this.add(buttonPanel, BorderLayout.SOUTH);
-//        
-//        ActionListener runl = new ActionListener() {
-//            public void actionPerformed( ActionEvent e ) {
-//                addString();
-//            }
-//        };
-//        run.addActionListener(runl);
-//        
-//        ActionListener backl = new ActionListener() {
-//            public void actionPerformed( ActionEvent e ) {
-//                back();
-//            }
-//        };
-//        back.addActionListener(backl);
+    public FilterViewer(MainPane main, Operation operation, ArrayList<ObjectView> objects) {
+        this.main = main;
+        this.operation = operation;
         
-        JFrame f = new JFrame();
+        this.setLayout(new BorderLayout());
+        MainPane = new MainPane(this);
+        MainPane.setPreferredSize(new Dimension (500, 400));
+        ObjectPane = new ObjectPane(this);
+        ObjectPane.addObjects(objects);
+        OperationsPane.update();
+        
+        JScrollPane MainScrollPane = new JScrollPane(MainPane);
+        JScrollPane ObjectsScrollPane = new JScrollPane(ObjectPane);
+        ObjectsScrollPane.setPreferredSize(new Dimension (600, 90));
+        JScrollPane OperationsScrollPane = new JScrollPane(OperationsPane);
+        OperationsScrollPane.setPreferredSize(new Dimension (120, 400));
+        
+        this.add(ObjectsScrollPane, BorderLayout.NORTH);
+        this.add(OperationsScrollPane, BorderLayout.EAST);
+        this.add(MainScrollPane, BorderLayout.CENTER);
+        
+        JPanel buttonPanel = new JPanel();
+        JButton ok = new JButton("ok");
+        buttonPanel.add(ok);
+        JButton back = new JButton("back");
+        buttonPanel.add(back);
+        
+        this.add(buttonPanel, BorderLayout.SOUTH);
+        
+        ActionListener okl = new ActionListener() {
+            public void actionPerformed( ActionEvent e ) {
+                addString();
+            }
+        };
+        ok.addActionListener(okl);
+        
+        ActionListener backl = new ActionListener() {
+            public void actionPerformed( ActionEvent e ) {
+                back();
+            }
+        };
+        back.addActionListener(backl);
+        
+    }
+    
+    public void show() {
         f.add(this);
-        this.setPreferredSize(new Dimension(500, 400));
-        f.setPreferredSize(new Dimension(500, 400));
+        f.setSize(new Dimension(500, 400));
         f.setLocation(100, 100);
         f.setVisible(true);
-        
-        this.OperationsPane.setResult(result);
     }
     
     public void addObjects(ObjectView[] objects) {
@@ -82,26 +79,25 @@ public class FilterViewer extends QueryconstructionViewer {
         ObjectPane.update();
     }
     
-//    public String[] getParameters() {
-//        
-//    }
-    
+    //adds an object to the main panel
     @Override
-    public void addObject(ObjectView object) {
-        super.addObject(object);
-        if (super.getParameters() != null)
-            System.out.println(super.getParameters()[0] + super.getParameters().length);
-    }
-    
-    public void addOperation(Operation op) {
-        if (op.getResultType().equals(this.result)) {
-            super.addOperation(op);
+    public void addOperation(Operation operation){
+        super.addOperation(operation);
+        if (!operation.getParameter().equals("")) {
+            ObjectPane.updateObjects(operation.getParameter());
         }
+        else {
+            ObjectPane.showAllObjects();
+        }
+        update();
     }
     
     public void addString() {
-        String resultString = operation.getBrackets()[0] + MainPane.getStrings() + operation.getBrackets()[1];
+        String brackets = operation.getBrackets();
+        String resultString = brackets.toCharArray()[0] + MainPane.getStrings() + brackets.toCharArray()[1];
         operation.setName(operation.getName() + resultString);
         main.update();
+        //TODO Objekt bleibt bestehen
+        f.setVisible(false);
     }
 }

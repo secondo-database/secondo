@@ -13,6 +13,7 @@ import java.awt.event.MouseEvent;
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.*;
+import javax.swing.BorderFactory;
 import javax.swing.JTextArea;
 import sj.lang.ListExpr;
 import viewer.QueryconstructionViewer;
@@ -26,15 +27,10 @@ public class Operation extends JComponent {
     private String name;
     private String label;
     private String[] objects;
-    private String parameter = "none";
+    private String parameter = "";
     private String result;
-    private char[] brackets = new char[2];
+    private String brackets;
     private ObjectView view;
-    
-    public Operation() {
-        this.setOpaque(false);
-        this.setPreferredSize(new Dimension(120, 30));
-    }
     
     /**
      * 
@@ -45,12 +41,12 @@ public class Operation extends JComponent {
      * @param result type of the result, when needed
      */
     public Operation(String name, String[] objects, String brackets, String parameter, String result){
-        
+        this.setOpaque(false);
+        this.setPreferredSize(new Dimension(120, 30));
         this.name = name;
         this.label = name;
         if (brackets != null) {
-            this.brackets[0] = brackets.toCharArray()[0];
-            this.brackets[1] = brackets.toCharArray()[1];
+            this.brackets = brackets;
         }
         if (parameter != null) {
             this.parameter = parameter;
@@ -65,7 +61,7 @@ public class Operation extends JComponent {
     
     
     public void paintComponent(Graphics g) {
-        g.drawLine(0, 30, 120, 30);
+        this.setBorder(BorderFactory.createEtchedBorder());
         
         int w = g.getFontMetrics().stringWidth(label);
         String s = label;
@@ -73,7 +69,12 @@ public class Operation extends JComponent {
             s = label.substring(0, 12);
         }
         
-        g.drawString(s, 20, 20);
+        g.drawString(s, 20, this.getSize().height/2 + 5);
+        
+    }
+    
+    public Operation copy() {
+        return new Operation(this.name, this.objects, this.brackets, this.parameter, this.result);
     }
     
     public void setResultType(String result) {
@@ -113,12 +114,18 @@ public class Operation extends JComponent {
         return objects.length;
     }
     
-    public char[] getBrackets() {
-        return brackets;
+    public String getBrackets() {
+        if (brackets == null)
+            return "";
+        else return brackets;
     }
     
     public String getParameter() {
         return this.parameter;
+    }
+    
+    public void setParameter(String pa) {
+        this.parameter = pa;
     }
     
 }

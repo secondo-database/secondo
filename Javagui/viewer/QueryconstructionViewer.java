@@ -64,13 +64,12 @@ public class QueryconstructionViewer extends SecondoViewer {
         
         MainPane = new MainPane(this);
         MainPane.setPreferredSize(new Dimension (500, 400));
-        OperationsPane.update();
         
         MainScrollPane = new JScrollPane(MainPane);
         ObjectsScrollPane = new JScrollPane(ObjectPane);
         ObjectsScrollPane.setPreferredSize(new Dimension (600, 90));
         OperationsScrollPane = new JScrollPane(OperationsPane);
-        OperationsScrollPane.setPreferredSize(new Dimension (120, 300));
+        OperationsScrollPane.setPreferredSize(new Dimension (120, 30));
         
         this.add(ObjectsScrollPane, BorderLayout.NORTH);
         this.add(OperationsScrollPane, BorderLayout.EAST);
@@ -135,16 +134,20 @@ public class QueryconstructionViewer extends SecondoViewer {
     
     public ListExpr getType(String query) {
         ListExpr getTypeNL = null;
-        if ((VC != null) && (VC.execCommand(query + " getTypeNL") == 0)) {
+        if (VC != null) {
             getTypeNL = VC.getCommandResult(query + " getTypeNL");
         }
         
         return getTypeNL;
     }
     
-    //returns the state of the actual query
-    public int getState() {
-        return MainPane.getState();
+    public ListExpr getCount(String query) {
+        ListExpr getTypeNL = null;
+        if (VC != null) {
+            getTypeNL = VC.getCommandResult(query + " count");
+        }
+        
+        return getTypeNL;
     }
     
     public String[] getParameters() {
@@ -153,12 +156,11 @@ public class QueryconstructionViewer extends SecondoViewer {
     
     //executes the constructed query
     public void runQuery() {
-        System.out.println(MainPane.getStrings());
-        if (VC.execCommand(MainPane.getStrings()) == 0) {
-            VC.execUserCommand(MainPane.getStrings());
+        if (VC.execCommand(MainPane.getStringsQuery()) == 0) {
+            VC.execUserCommand(MainPane.getStringsQuery());
         }
         else {
-            System.out.println(VC.getCommandResult(MainPane.getStrings()));
+            System.out.println(VC.getCommandResult(MainPane.getStringsQuery()));
             System.out.println("Kann nicht ausgeführt werden.");
         }
     }
@@ -166,8 +168,8 @@ public class QueryconstructionViewer extends SecondoViewer {
     //sets the panels up to date and repaints them
     public void update() {
         MainPane.update();
-        OperationsPane.update();
         ObjectPane.update();
+        OperationsPane.update();
     }
     
     public void back() {
@@ -177,32 +179,26 @@ public class QueryconstructionViewer extends SecondoViewer {
     
     @Override
     public void setViewerControl(ViewerControl VC){
-        //super.setViewerControl(VC);
+        super.setViewerControl(VC);
         if (VC != null) {
             this.VC = VC;
-            objects = VC.getCommandResult("list objects");
-            
-            if (objects != null)
-                objectList = ObjectPane.addObjects(objects);
+            if (objects == null) {
+                listObjects();
+            }
         }
     }
     
+    /**
+     * add all database objects to the object panel
+     */
     public void listObjects() {
-        if (VC != null) {
-            objects = VC.getCommandResult("list objects");
-            
-            if (objects != null)
-                objectList = ObjectPane.addObjects(objects);
-            
-            update();
-        }
-        else {
-            System.out.println("Fehler: noch keine Datenbank geöffnet");
-        }
+        objects = VC.getCommandResult("list objects");
+        if (objects != null)
+            ObjectPane.addObjects(objects);
     }
     
     public ArrayList<ObjectView> getObjects(){
-        return objectList;
+        return ObjectPane.getObjects();
     }
     
     public boolean addObject(SecondoObject o){

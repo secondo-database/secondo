@@ -20,38 +20,34 @@ public class InfoDialog extends JDialog {
     public InfoDialog() {
         //this.setPreferredSize(new Dimension(100, 100));
         textArea.setEditable(false);
-        textArea.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
-        
-    }
-        
-    public InfoDialog(StreamView stream) {
-        
-        super();
+        textArea.setBorder(BorderFactory.createEmptyBorder(5,5,5,15));
+        this.add(textArea);
         setLayout(new GridLayout(0, 1));
     }
     
-    public InfoDialog(ObjectType object) {
-        
-        super();
-        setLayout(new GridLayout(0, 1));
-        
+    public void addInfo(String name, String str) {
+        str = name + "\n" + str.replace("(", "\n  ").replace(")", "");
+        textArea.append("\n" + str + "\n");
     }
     
-    public void addStream(StreamView stream) {
-        
+    public void removeText() {
+        textArea.setText("");
     }
     
     public void view() {
         //this.setAlwaysOnTop(true);
+        if (textArea.getText() == null) {
+            textArea.setText("Keine Informationen verfügbar.");
+        }
         pack();
         setVisible(true);
     }
     
-    public void viewInfo(String str) {
+    public void viewInfo(String name, String str) {
         
+        this.setTitle(name);
         str = str.replace("(", "  ").replace(")", "");
         textArea.setText(str);
-        this.add(textArea);
         
     }
 }
