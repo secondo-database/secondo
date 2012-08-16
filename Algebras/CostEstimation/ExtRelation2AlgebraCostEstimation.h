@@ -58,6 +58,9 @@ Mai 2012, JKN, First version of this file
 
 #define DEBUG false 
 
+#include <GraceHashJoin.h>
+#include <HybridHashJoin.h>
+
 /*
 1.0 Prototyping
 
@@ -615,20 +618,20 @@ public:
          return CANCEL;
      }
 
+     extrel2::GraceHashJoinLocalInfo* li;
+     li = static_cast<extrel2::GraceHashJoinLocalInfo*>( localInfo );
+     
+     if( !li ) {
+          return CANCEL;
+     }
 
      if (qp->RequestProgress(args[0].addr, &p1)
-       && qp->RequestProgress(args[1].addr, &p2)) 
-      {     
-        pli->SetJoinSizes(p1, p2);
+       && qp->RequestProgress(args[1].addr, &p2)) {     
 
-        // Read memory for operator in bytes
-        size_t maxmem = qp->GetMemorySize(supplier) * 1024 * 1024;
-        
-
-          pRes->CopySizes(pli);
-
-          return YIELD;
-       }
+        return li->CalcProgress(p1, p2, pRes, supplier);
+     } else {
+         return CANCEL;
+     }
 
    // default: send cancel
    return CANCEL;
@@ -805,20 +808,19 @@ public:
          return CANCEL;
      }
 
+     extrel2::HybridHashJoinLocalInfo* li;
+     li = static_cast<extrel2::HybridHashJoinLocalInfo*>( localInfo );
+
+     if( !li ) {
+        return CANCEL;
+     }
 
      if (qp->RequestProgress(args[0].addr, &p1)
-       && qp->RequestProgress(args[1].addr, &p2)) 
-      {     
-        pli->SetJoinSizes(p1, p2);
-
-        // Read memory for operator in bytes
-        size_t maxmem = qp->GetMemorySize(supplier) * 1024 * 1024;
-        
-
-          pRes->CopySizes(pli);
-
-          return YIELD;
-       }
+       && qp->RequestProgress(args[1].addr, &p2)) {     
+          return li->CalcProgress(p1, p2, pRes, supplier);
+     } else {
+          return CANCEL;
+     }
 
    // default: send cancel
    return CANCEL;
