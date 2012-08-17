@@ -138,62 +138,77 @@ if [ $DISLC = true ]; then
 
 fi
 
-# Deploy the mini Secondo to cluster nodes
+# Deploy the mini Secondo to cluster nodes in pipeline
 # Also the master and slave lists
+RARVNAME="DTR_secondo.tar.gz"
+aJobs=()
+Status="/tmp/.ps-secondo-buildMini.data"
+cat /dev/null > $Status
+
+function buildNodeMiniSec
+{
+  NODE=$1 #IP Address
+  RSEC=$(ssh $NODE "echo \$PARALLEL_SECONDO" 2>/dev/null)  # Remote mini Secondo
+  RSECON=$(ssh $NODE "echo \$PARALLEL_SECONDO_DBCONFIG" 2>/dev/null)  # Use nodes' local description
+  RSECDSNAME=$(ssh $NODE "echo \$PARALLEL_SECONDO_DATASERVER_NAME" 2>/dev/null)
+  RSECMNNAME=$(ssh $NODE "echo \$PARALLEL_SECONDO_MINI_NAME" 2>/dev/null)
+  declare -a RSA=($(echo $RSEC | tr ':' ' '))
+  declare -a RSCA=($(echo $RSECON | tr ':' ' ')) 
+  
+  if [ ${#RSA[@]} -ne ${#RSCA[@]} ]; then
+    echo "In node $NODE, the PARALLEL_SECONDO doesn't match with its PARALLEL_SECONDO_DBCONFIG, \
+PARALLEL_SECONDO is: $RSEC , PARALLEL_SECONDO_DBCONFIG is: $RSECON " >> $Status
+  else
+    declare -i CNT=0
+    while [ $CNT -lt ${#RSA[@]} ]; do
+      fLoc="${RSA[$CNT]}/${RSECDSNAME}"
+      rsLoc="${fLoc}/${RSECMNNAME}"
+      LPOS=$(ssh "$NODE" "readlink ${rsLoc}" 2>/dev/null)
+      if [ "$LPOS" != "" ]; then
+        echo -e "${NODE}:$(($CNT + 1))\t${rsLoc}\t\tOmit as it is a link to ${LPos}" >> $Status
+      else
+        scp "$MSARV" "$NODE:${fLoc}/${RARVNAME}" 2>/dev/null
+        ssh "$NODE"  "rm -rf ${rsLoc}" 2>/dev/null
+        ssh "$NODE"  "mkdir ${rsLoc}" 2>/dev/null
+        ssh "$NODE"  "tar -xzf ${fLoc}/${RARVNAME} -C ${rsLoc} --strip=${SLEVEL}" 2>/dev/null
+        # Changed the access mode after distribute the data
+        ssh "$NODE"  "chmod -R 775 ${rsLoc}/bin" 2>/dev/null
+        ssh "$NODE"  "cp ${RSCA[$CNT]} ${rsLoc}/bin/${CONFNAME}" 2>/dev/null
+        echo -e "${NODE}:$(($CNT + 1))\t${rsLoc}\tDone with ${RSCA[$CNT]}" >> $Status
+      fi
+      let CNT++
+    done
+  fi
+}
+
 if [ $DISCL = true ]; then
   echo "===== Deploy mini Secondo Cluster ====="
   echo -e "Distribute the mini secondo to every node inside the cluster, \nincluding the master node. ... \n\n"
-  RARVNAME="DTR_secondo.tar.gz"
-  IPLIST="$(get_slaveIPs -m)"
-
-  for NODE in $IPLIST; do
-    CNT=0
-  
-    #Distribute the master and slave lists
-#    RCONF=`ssh $NODE "echo \\\$PARALLEL_SECONDO_CONF"`
-#    scp ${PARALLEL_SECONDO_MASTER} ${PARALLEL_SECONDO_SLAVES} $NODE:$RCONF
-
-    RSEC=$(ssh $NODE "echo \$PARALLEL_SECONDO" 2>/dev/null)  # Remote mini Secondo
-#    RSECON=$PARALLEL_SECONDO_DBCONFIG
-    RSECON=$(ssh $NODE "echo \\$PARALLEL_SECONDO_DBCONFIG" 2>/dev/null)  # Use nodes' local description
-    declare -a RSA=($(echo $RSEC | tr ':' ' '))
-    declare -a RSCA=($(echo $RSECON | tr ':' ' '))
-
-    if [ ${#RSA[@]} -ne ${#RSCA[@]} ]; then
-      echo "In node $NODE, the PARALLEL_SECONDO doesn't match with its PARALLEL_SECONDO_DBCONFIG"
-      echo "PARALLEL_SECONDO is: $RSEC"
-      echo "PARALLEL_SECONDO_DBCONFIG is: $RSECON"
-      continue
-    fi  
-    
-    while [ $CNT -lt ${#RSA[@]} ]; do
-       fLoc="${RSA[$CNT]}/${PARALLEL_SECONDO_DATASERVER_NAME}"
-       rsLoc="${fLoc}/${PARALLEL_SECONDO_MINI_NAME}"
-       echo "Distribute mini Secondo -> $NODE:$fLoc ... "
-       
-       LPos=$(ssh "$NODE" "readlink ${rsLoc}" 2>/dev/null)
-       if [ "$LPos" != "" ]; then
-         echo -e "${NODE}:${rsLoc} is a link pointing to ${LPos}."
-         echo -e "Hence the MiniSecondo distribution passes over this data server. \n"
-       else
-         scp "$MSARV" "$NODE:${fLoc}/${RARVNAME}" 2>/dev/null
-         ssh "$NODE"  "rm -rf ${rsLoc}" 2>/dev/null
-         ssh "$NODE"  "mkdir ${rsLoc}" 2>/dev/null
-         ssh "$NODE"  "tar -xzf ${fLoc}/${RARVNAME} -C ${rsLoc} --strip=${SLEVEL}" 2>/dev/null
-         # Changed the access mode after distribute the data
-         ssh "$NODE"  "chmod -R 775 ${rsLoc}/bin" 2>/dev/null
- #        echo "Changed the access mod of mini Secondo"
- #        ssh "$NODE"  "ls -ld ${rsLoc}/bin"       
-         ssh "$NODE"  "cp ${RSCA[$CNT]} ${rsLoc}/bin/${CONFNAME}" 2>/dev/null
-         echo -e "Use ${RSCA[$CNT]} to set data server ${NODE}:$(($CNT + 1)) \n"
-       fi
-       let CNT++
+  IPLIST=($(get_slaveIPs -m))
+  NDNUM=${#IPLIST[*]}
+  for((NDIDX=0;NDIDX<$NDNUM;))do
+    node=${IPLIST[$NDIDX]}
+    for((token=1;token<$PS_PIPE_Width;token++));do
+      if [ $NDIDX -gt $NDNUM ];then
+        break
+      fi
+      if [ ! "${aJobs[$token]}" ] || ! kill -0 ${aJobs[$token]} 2>/dev/null; then
+        buildNodeMiniSec $node &
+        aJobs[$token]=$!
+        let NDIDX++
+        break
+      fi
     done
+  done  
 
+  for ((token=1;token<$PS_PIPE_Width;)); do
+    if ! kill -0 ${aJobs[$token]} 2>/dev/null; then
+      let token++
+    fi
   done
 
-  echo "===== Deploy mini Secondo Cluster ====="
-
+  echo -e "\tDataServer\t\tMiniSec\t\t\t\tStatus"
+  cat $Status | sort | cat -n
 fi
 
 exit 0
