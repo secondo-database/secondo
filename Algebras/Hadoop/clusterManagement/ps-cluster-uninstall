@@ -88,7 +88,10 @@ else
   echo "No Hadoop deamons are running on this cluster."
 fi
 
-SMNUM=$(${bin}/ps-cluster-queryMonitorStatus 2>/dev/null | grep $USER | grep SecondoMonitor | wc -l)
+IPList=($(get_slaveIPs -m))
+$bin/ps-cluster-queryMonitorStatus 2>&1 1>/dev/null
+NSNUM=$?   				#The number of nodes without running Secondo Monitors
+SMNUM=$(( ${#IPList[*]} - $NSNUM ))	#The number of nodes running Secondo Monitors
 if [ $SMNUM -gt 0 ]; then
   echo "${WARNINFO}$SMNUM Secondo monitors are running now, attempt to turn them off ... ... "
   $bin/ps-stop-AllMonitors
@@ -110,20 +113,45 @@ for DST in $(cat $PARALLEL_SECONDO_MASTER $PARALLEL_SECONDO_SLAVES | awk '!x[$0]
   echo "$IPADDR:$DSPATH" >> $DSLIST
 done
 
+function removeDataServer
+{
+  IPADDR=$1
+  DSPATH=$2
+  echo "Remove Data Server: $IPADDR:$DSPATH" >&2
+  ssh $IPADDR "rm -rf $DSPATH" 2>/dev/null &
+}
+
+aJobs=()
 DBSERVERS=($(cat $DSLIST | tr '\n' ' '))
-for DServ in ${DBSERVERS[*]}; do
+DSNUM=${#DBSERVERS[*]}
+for((DSIDX=0;DSIDX<$DSNUM;))do
+  DServ=${DBSERVERS[$DSIDX]}
   IPADDR=$(echo $DServ | cut -d':' -f1)
   DSPATH=$(echo $DServ | cut -d':' -f2)
-  echo "Remove Data Server: $IPADDR:$DSPATH"
-  ssh $IPADDR "rm -rf $DSPATH" 2>/dev/null
+  
+  for((token=1;token<=$PS_PIPE_Width;token++));do
+    if [ $DSIDX -gt $DSNUM ]; then
+      break
+    fi
+    
+    if [ ! "${aJobs[$token]}" ] || ! kill -0 ${aJobs[$token]} 2>/dev/null; then
+#      echo "Remove Data Server: $IPADDR:$DSPATH"
+#      ssh $IPADDR "rm -rf $DSPATH" 2>/dev/null &
+#      sleep 1 &
+      removeDataServer $IPADDR $DSPATH &
+      aJobs[$token]=$!
+      let DSIDX++
+      break
+    fi
+  done
 done
 
 # 4. remove .parasecrc file and the "source .parasecrc" line in .bashrc file from all slaves
 cat $DSLIST | cut -d':' -f 1 | awk '!x[$0]++' > $IPLIST
 ANODES=($(cat $IPLIST | tr '\n' ' '))
 for nodeIP in ${ANODES[*]};do
-  ssh $nodeIP "sed $(PSEDOPT) \"s/^source [\\\$A-Z_.\\\/]*$RCFILENAME//\" \$HOME/.bashrc "
-  ssh $nodeIP "rm .parasecrc"
+  ssh $nodeIP "sed $(PSEDOPT) \"s/^source [\\\$A-Z_./]*$RCFILENAME//\" \$HOME/.bashrc "
+  ssh $nodeIP "if [ -f $RCFILENAME ]; then rm ${RCFILENAME}; fi"
   echo "Remove environment setting on node $nodeIP"
 done
 
