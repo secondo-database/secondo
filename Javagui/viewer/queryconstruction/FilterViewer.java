@@ -80,7 +80,6 @@ public class FilterViewer extends QueryconstructionViewer {
     }
     
     //adds an object to the main panel
-    @Override
     public void addOperation(Operation operation){
         super.addOperation(operation);
         if (!operation.getParameter().equals("")) {

@@ -17,6 +17,8 @@ public class OperationsPane extends MainPane {
     private ArrayList<Operation> operations = new ArrayList<Operation>();
     private QueryconstructionViewer viewer;
     private String result;
+    
+    private Operation rename;
 
     public OperationsPane(QueryconstructionViewer viewer) {
         super(viewer);
@@ -34,7 +36,7 @@ public class OperationsPane extends MainPane {
         String stream[] = {"stream"};
         Operation filter = new Operation("filter", stream, "[]", "bool", "stream");
         addOperation(filter);
-        Operation rename = new Operation("rename", stream, "{}", "String", "stream");
+        rename = new Operation("rename", stream, "{}", "String", "stream");
         addOperation(rename);
         
         Operation project = new Operation("project", stream, "[]", "attrlist", "stream");
@@ -158,13 +160,20 @@ public class OperationsPane extends MainPane {
         this.repaint();
     }
     
-    @Override
     public void mouseClicked ( MouseEvent arg0 ) {
         //double click adds a copy of the selected operation to the main panel
         if ((arg0.getClickCount () == 1) && (arg0.getComponent() != null)) {
             if (!arg0.getComponent().equals(this)) {
                 Operation element = (Operation)arg0.getComponent();
-            
+                
+                //check if objects have to be renamed
+                if (element.countObjects() > 1) {
+                    if (!viewer.checkAttributes()) {
+                        //dialog.setMessage("Two attributes have the same name. Please rename the object "+activeStream.getName()+".");
+                        viewer.addOperation(rename);
+                        return;
+                    }
+                }
                 viewer.addOperation(element.copy());
             }
         }

@@ -141,17 +141,22 @@ public class QueryconstructionViewer extends SecondoViewer {
         return getTypeNL;
     }
     
-    public ListExpr getCount(String query) {
-        ListExpr getTypeNL = null;
+    public String getCount(String query) {
+        String result = null;
         if (VC != null) {
-            getTypeNL = VC.getCommandResult(query + " count");
+            ListExpr getTypeNL = VC.getCommandResult("query " + query + " count");
+            result = getTypeNL.second().toString();
         }
         
-        return getTypeNL;
+        return result;
     }
     
     public String[] getParameters() {
         return MainPane.getParameters();
+    }
+    
+    public boolean checkAttributes() {
+        return MainPane.checkAttributes();
     }
     
     //executes the constructed query
@@ -177,7 +182,6 @@ public class QueryconstructionViewer extends SecondoViewer {
         update();
     }
     
-    @Override
     public void setViewerControl(ViewerControl VC){
         super.setViewerControl(VC);
         if (VC != null) {

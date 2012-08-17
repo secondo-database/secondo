@@ -42,7 +42,6 @@ public class MainPane extends JComponent implements MouseListener {
         this.addMouseListener(this);
     }
     
-    @Override
     public void paintComponent(Graphics g) {
         
         for ( Iterator iter = fullStream.iterator(); iter.hasNext(); ) {
@@ -126,7 +125,7 @@ public class MainPane extends JComponent implements MouseListener {
      * update the panel and the stream information
      */
     public void update() {
-        getActiveStreams();
+        setActiveStreams();
         this.updateStream(activeStream);
         ListExpr type = viewer.getType(getStringsQuery());
         if (type != null) {
@@ -169,7 +168,6 @@ public class MainPane extends JComponent implements MouseListener {
         StreamView returnStream = null;
         for ( Iterator iter = fullStream.iterator(); iter.hasNext(); ) {
             StreamView stream = (StreamView)iter.next();
-            System.out.println(stream.getY());
             if (stream.getY() == y) {
                 if ((stream.getX()-1 < x ) && (x < stream.getX() + stream.getLength() + 1))
                     returnStream = stream;
@@ -178,7 +176,39 @@ public class MainPane extends JComponent implements MouseListener {
         return returnStream;
     }
     
-    public void getActiveStreams(){
+    /**
+     * check for attributes with the same name
+     * @return true, if no double attribute names exist
+     */
+    public boolean checkAttributes() {
+        String[][] attributes = new String[activeStreams.size()][];
+        int i = 0;
+        for ( Iterator iter = activeStreams.iterator(); iter.hasNext(); ) {
+            StreamView stream = (StreamView)iter.next();
+            attributes[i] = stream.getAttributes();
+            i++;
+        }
+        int j = 0;
+        while (j < attributes.length-1) {
+            for (String attr1 : attributes[j]) {
+                System.out.println(attr1);
+                for (String attr2 : attributes[j+1]) {
+                    if (attr1.equals(attr2)) {
+                        return false;
+                    }
+                }
+            }
+            j++;
+        }
+        for (String[] sarray : attributes) {
+            for (String attr : sarray) {
+                System.out.println(attr);
+            }
+        }
+        return true;
+    }
+    
+    public void setActiveStreams(){
         activeStreams = (ArrayList<StreamView>)fullStream.clone();
         for ( Iterator iter = fullStream.iterator(); iter.hasNext(); ) {
             StreamView stream = (StreamView)iter.next();
@@ -237,9 +267,9 @@ public class MainPane extends JComponent implements MouseListener {
             StreamView stream = (StreamView)iter.next();
             String result = stream.getState();
             String name = stream.getName();
-            ListExpr countL = viewer.getCount("query " + stream.toString());
+            String countL = viewer.getCount(stream.toString());
             if (countL != null) {
-                name += countL.second();
+                name += countL;
             }
             infoDialog.addInfo(name, result);
         }

@@ -163,8 +163,14 @@ public class OperationsDialog extends JDialog {
         this.setVisible(false);
     }
     
+    public void setMessage(String message) {
+        JLabel label = new JLabel(message);
+        add(label);
+    }
+    
     //opens a popup window with a textfield
     public void text(){
+        
         final JTextField textfield = new JTextField(20);
         ActionListener al = new ActionListener() {
             public void actionPerformed( ActionEvent e ) {

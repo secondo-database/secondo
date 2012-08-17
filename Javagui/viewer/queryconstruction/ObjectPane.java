@@ -33,7 +33,6 @@ public class ObjectPane  extends MainPane {
         this.setLayout(new GridLayout(1, 0));
         
         ActionListener textL = new ActionListener() {
-            @Override
             public void actionPerformed( ActionEvent e ) {
                 String objName = textfield.getText();
                 updateObjects(objName);
@@ -75,7 +74,6 @@ public class ObjectPane  extends MainPane {
     }
     
     //adds an operation or an object to the main panel
-    @Override
     public void addObject(ObjectView object){
         object.addMouseListener(this);
         object.setActive(true);
@@ -84,7 +82,6 @@ public class ObjectPane  extends MainPane {
     }
     
     // updates the panel, only active objects are shown
-    @Override
     public void update() {
         setPreferredSize(new Dimension (this.getComponentCount()*120, 70));
         this.revalidate();
@@ -120,18 +117,18 @@ public class ObjectPane  extends MainPane {
         }
     }
 
-    @Override
     public void mouseClicked ( MouseEvent arg0 ) {
         if (arg0.getComponent() != null) {
             ObjectView element = (ObjectView)arg0.getComponent();
             
             if (arg0.getButton() == 3) {
+                String name = element.getName() + "("+viewer.getCount(element.getName()).trim()+")";
                 //generating the info dialog of the clicked object
                 if (element.getOType() == null) {
-                    dialog.viewInfo(element.getName(), element.getType());
+                    dialog.viewInfo(name, element.getType());
                 }
                 else {
-                    dialog.viewInfo(element.getName(), element.getOType().getViewString());
+                    dialog.viewInfo(name, element.getOType().getViewString());
                 }
                 dialog.view();
             }
