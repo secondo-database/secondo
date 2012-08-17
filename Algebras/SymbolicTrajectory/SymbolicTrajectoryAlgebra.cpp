@@ -1623,7 +1623,7 @@ Returns a string displaying the information stored in the NFA.
 */
 string NFA::toString() {
   stringstream nfa;
-  set<int>::iterator k;
+  set<unsigned int>::iterator k;
   for (int i = 0; i < f; i++) {
     for (int j = i; j < f; j++) {
       if (delta[i][j].size() > 0) {
@@ -1652,7 +1652,7 @@ Prints the set of currently active states.
 */
 void NFA::printCurrentStates() {
   if (!currentStates.empty()) {
-    set<int>::iterator it = currentStates.begin();
+    set<unsigned int>::iterator it = currentStates.begin();
     cout << "after ULabel # " << ulId << ", active states are {" << *it;
     it++;
     while (it != currentStates.end()) {
@@ -1770,9 +1770,9 @@ which current state. The set of current states is updated.
 
 */
 void NFA::updateStates() {
-  set<int> newStates;
+  set<unsigned int> newStates;
   newStates.clear();
-  set<int>::iterator i, it;
+  set<unsigned int>::iterator i, it;
   for (i = currentStates.begin(); i != currentStates.end(); i++) {
     for (int j = *i; j < f; j++) {
       if (!delta[*i][j].empty()) {

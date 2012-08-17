@@ -233,9 +233,9 @@ struct DoubleParsInfo {
 
 class NFA {
  private:
-  set<int> **delta; // 1st coord: old state; 2nd coord: unit pattern id;
-                    // set contents: new state(s).
-  set<int> currentStates;
+  map<unsigned int, set<unsigned int> > *delta; // array pos: old state;
+                           // first: unit pattern id; second: new state.
+  set<unsigned int> currentStates;
   vector<UPat> patterns;
   vector<Condition> conds;
   int maxCardPos, f; // number of the final state
@@ -254,20 +254,13 @@ class NFA {
  public:
   NFA(const int size) {
     f = size - 1;
-    delta = new set<int>*[f + 1];
-    for (int i = 0; i < f; i++) {
-      delta[i] = new set<int>[f + 1];
-    }
-    delta[f] = new set<int>[f + 1];
+    delta = new map<unsigned int, set<unsigned int> >[f];
     currentStates.insert(0);
     matchings = new set<size_t>[f];
     cardsets = new set<size_t>[f];
   }
 
   ~NFA() {
-    for (int i = 0; i <= f; i++) {
-      delete[] delta[i];
-    }
     delete[] delta;
     delete[] matchings;
     delete[] cardsets;
