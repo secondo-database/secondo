@@ -84,12 +84,12 @@ cat $Status | sort | cat -n
 echo -e "\n\n"
 
 # Conclude the status
-FAILCNT=$(cat $Status | grep "[0-9]([0-9,:]+)" | wc -l)
+FAILCNT=$(cat $Status | grep "[1-9]\d*([0-9,:]*)" | wc -l)
 SUCCCNT=$(( $NDNUM - $FAILCNT ))
 echo -e "In total, $SUCCCNT nodes start completely, while $FAILCNT nodes fail."
 if [ $FAILCNT -gt 0 ]; then
   echo -e "Failed nodes include:"
-  cat $Status | grep "[0-9]([0-9,:]*)" | cut -f1
+  cat $Status | grep "[1-9]\d*([0-9,:]*)" | cut -f1
 fi
 
 exit 0
