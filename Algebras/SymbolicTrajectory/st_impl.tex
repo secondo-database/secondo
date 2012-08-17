@@ -166,11 +166,9 @@ The condition objects are built during the parsing process, too. Each one holds 
 \subsubsection{Class NFA}
 The NFA instance (there is only one) is constructed in several steps. First, the transition function $\delta$ is computed. We model $\delta$ as a matrix of integer sets, i.e., for every pair $(i,j)$ of an NFA state and a unit pattern id, there is a (possibly empty) set of states that become active if a unit label matching the unit pattern $p_j$ is read in state $i$ (replacing the formerly active states). After this, a vector of sets of numbers is filled with all proper matches, e.g., if unit pattern $p_m$ matches unit label $n$, the number $n$ is inserted into the $m$th set.
 
-If the \texttt{matches} operator is called without a condition, no more work is required. Otherwise, for every unit pattern, we have to build another vector of sets containing every cardinality that unit pattern could assume. It is still impossible to perform the condition evaluation or the rewriting, but by combining these cardinality candidates, we acquire the set of all matching sequences (a set of sets of integers). Similar data structures are applied for evaluating conditions and rewriting sequences.
+If the \texttt{matches} operator is called without a condition, no more data structure is required. Otherwise, for every unit pattern, we have to build another vector of sets containing every cardinality that unit pattern could assume. It is still impossible to perform the condition evaluation or the rewriting, but by combining these cardinality candidates, we acquire the set of all matching sequences (a set of multisets of integers). Similar data structures are applied for evaluating conditions and rewriting sequences.
 
-In addition, the number of the final state (integer), the currently active states (set of integers), the current unit label, its id (integer) and the highest unit label id are stored.
-
-Finally, the NFA holds a set of expressions (strings) which have already been evaluated as \ic{true} or \ic{false}, respectively (avoiding multiple evaluation of the same expression in \secondo).
+In addition, the NFA holds a set of expressions (strings) which have already been evaluated as \ic{true} or \ic{false}, respectively (avoiding multiple evaluation of the same expression in \secondo), together with the corresponding result.
 
 \subsection{Algorithms}
 \IncMargin{-1mm}
@@ -194,7 +192,7 @@ The first step after storing the input data is the computation of the NFA's tran
             $\delta_{j,i}\leftarrow i+1$\;
             \For(\tcp*[f]{\scriptsize{after last match}}){$k=j$ \KwTo $i$}{
               \ic{$\delta_{j,k}\leftarrow j$}\;
-              \lFor{$m=j$ \KwTo $i$}{$\delta{j,k}\leftarrow m$\;}
+              \lFor{$m=j$ \KwTo $i$}{$\delta_{j,k}\leftarrow m$\;}
               \If{$p_i=\ast$ $\mathbf{and}$ $i=n-1$}{$\delta_{j,k}\leftarrow n$\;}
             }
           }
@@ -248,11 +246,11 @@ After the transition function is completed, it is applied in algorithm \ref{alg:
       }      
       \lIf{$S_{cur}=\emptyset$}{\Return \ic{false}\;}
     }
-    \lIf{$n\in S_{cur}$}{\Return \ic{true}\;}
+    \lIf(\tcp*[f]{\scriptsize{final state active?}}){$n\in S_{cur}$}{\Return \ic{true}}
     \lElse{\Return \ic{false}\;}
 \end{algorithm}
 
-Initially, the only active state of the NFA is 0. For each unit label, we perform an update of the currently active states ($S_{cur}$, for brevity). More exactly, the algorithm scans the active states, checks every possible transition from one active state to itself or a higher state, and inserts the new states into $S_{cur}$ if and only if the transition is valid (i.e., $k\in\delta(i,j)$ means that, being in state $i$, state $k$ becomes active if and only if the $j$th unit pattern matches the current unit label).
+Initially, the only active state of the NFA is 0. For each unit label, we perform an update on the set of currently active states ($S_{cur}$, for brevity). More exactly, the algorithm scans the active states, checks every possible transition from one active state to itself or a higher state, and inserts the new states into $S_{cur}$ if and only if the transition is valid (i.e., $k\in\delta(i,j)$ means that, being in state $i$, state $k$ becomes active if and only if the $j$th unit pattern matches the current unit label).
 
 If there is no active state after any outer loop, the algorithm stops immediately, which implies a mismatch. In the other case, we verify whether the final state $n$ is an element of the active state set. This is already the query result if the operator \texttt{matches} is applied without conditions.
 
@@ -265,9 +263,9 @@ Since the conditions are evaluated by \secondo, there are only two rules they ha
   \item every condition must be a boolean expression, i.e., its evaluation has to yield \ic{true} or \ic{false}
 \end{itemize}
 
-Therefore, we cannot retrieve useful information from a condition in order to reduce the time consumption. For instance, although it is obvious that trying to match the input \texttt{X $\ast$ Y $\ast$ // X.card = 100} and a moving label with 50 components will fail, the evaluation of the conditions cannot take place until we know all the possible replacements for \texttt{X.card}.
+Therefore, we are not able to retrieve useful information from a condition in order to reduce the time consumption. For instance, although it is obvious that trying to match the input \texttt{X $\ast$ Y $\ast$ // X.card = 100} and a moving label with 50 components will fail, the evaluation of the conditions cannot take place until we know the appropiate value candidates to put in for \texttt{X.card}.
 
-For realizing this, we need to compute a set of cardinality candidates $C_i$ (as hinted in \ref{sec:class condition}) for every unit pattern id, which is done with the help of the matching sets ($M_s$ in algorithm \ref{alg:match}). We distinguish three cases:
+For realizing this, we need to compute a set of cardinality candidates $C_i$ for every unit pattern id $i$, which is done with the help of the matching sets ($M_s$ in algorithm \ref{alg:match}). We distinguish three cases:
 \begin{itemize}
   \item a simple pattern: $C_i=\{1\}$
   \item a sequence pattern surrounded by two proper matches: $C_i=M_{i+1}-M_{i-1}$\footnote{For two sets $A, B\subseteq \mathbb{N}_0$, we denote the set of all non-negative differences $\{b-a\colon a\in A, b\in B, a\leq b\}$ by $B-A$}
@@ -303,28 +301,28 @@ These candidate sets enable us to build further sets providing an evaluation ord
     }
 \end{algorithm}
 
-The algorithm performs a combinatorial task, i.e., the cardinality candidates of every unit pattern are combined in every possible way. In line 12, we check the sum of the $n-1$ chosen candidates. If it already exceeds the moving label's size, the current combination is ignored. Otherwise, we consider the non-negative difference $\left|ml\right|-cSum$ which, if it is an element of $C_m$ (i.e., a legal cardinality for the unit pattern $p_m$), is the number that completes the $n-1$ candidates such that the sum of cardinalities equals $\left|ml\right|$. Now, the vector $cards$ contains a valid cardinality sequence, e.g., $cards=(1,0,25,1)$ for a pattern consisting of four units means that the first unit pattern matches the first unit label (0), the second unit pattern (which obviously is a $\ast$) is skipped, the third one matches the sequence of unit labels 1 to 25, and the last one matches the last unit label, 26. Finally, we translate this vector into a sequence indicating the unit label id where the respective matching starts. For the above example, this is $sq=\{0,1,1,26\}$. Every such sequence is stored as a multiset (since $sq_{i-1}\leq sq_i$ holds for $1\leq i<\left|sq\right|$) and inserted into $S$.
+The algorithm performs a combinatorial task, i.e., the cardinality candidates of every unit pattern are combined in every possible way. In line 12, we check the sum of the $n-1$ chosen candidates. If it already exceeds the moving label's size, the current combination is ignored. Otherwise, we consider the non-negative difference $\left|ml\right|-cSum$ which, if it is an element of $C_m$ (i.e., a valid cardinality for the unit pattern $p_m$), is the number that completes the $n-1$ candidates such that the sum of cardinalities equals $\left|ml\right|$. Now, the vector $cards$ contains a valid cardinality sequence, e.g., $cards=(1,0,25,1)$ for a pattern consisting of four units means that the first unit pattern matches the first unit label (0), the second unit pattern (which obviously is a $\ast$) is skipped, the third one matches the sequence of unit labels 1 to 25, and the last one matches the last unit label, 26. Finally, we translate this vector into a sequence indicating the unit label id where the respective matching starts. For the above example, this is $sq=\{0,1,1,26\}$. Every such sequence is stored as a multiset (since $sq_{i-1}\leq sq_i$ holds for $1\leq i<\left|sq\right|$) and inserted into $S$.
+
+Since algorithm \ref{alg:buildsequences} is heavily time-consuming, this version is only executed if the operator \texttt{rewrite} is called. The other case is discussed in \ref{sec:condition evaluation}.
 
 \subsubsection{Condition Evaluation}\label{sec:condition evaluation}
-Both operators, \texttt{matches} and \texttt{rewrite}, take advantage of $S$. The next step for \texttt{rewrite} is to scan $S$, eliminating the sequences which do not fulfill the set of specified conditions in order to obtain the final set of sequences for rewriting the pattern.
+The next step for \texttt{rewrite} is to scan $S$, eliminating the sequences which do not fulfill the set of specified conditions in order to obtain the final set of sequences for rewriting the pattern.
 
-However, we suppose the operator \texttt{matches} is invoked, with the consequence that we need to verify whether there is a sequence in $S$ that complies with every condition. This test is performed in algorithm \ref{alg:conditionsmatch}.
+However, we suppose the operator \texttt{matches} is invoked, with the consequence that it suffices to verify whether there is a sequence that complies with every condition, which is performed in algorithm \ref{alg:conditionsmatch}. Hence, it is not necessary to compute $S$ as seen in algorithm \ref{alg:buildsequences}, and with slight modifications we can use the latter to create only one sequence at a time.
 
 \begin{algorithm}[ht]
   \caption{\label{alg:conditionsmatch}\ic{conditionsMatch$(conds, S, ml)$}}
     \KwIn{$conds$ - a vector of conditions\;
-      \hspace{1.11cm}$S$ - as aforementioned\;
       \hspace{1.11cm}$ml$ - an MLabel.}
     \KwOut{the verification result - a boolean.}
     \lIf{$conds=\emptyset$}{\Return \ic{true}\;}
+    let $sq=$ \ic{getNextSeq$()$}\;
+    let \ic{proceed} $=$ \ic{false}\;
     \For{$i=0$ \KwTo $\left|conds\right|-1$}{
-      let \ic{proceed} $=$ \ic{false}\;
-      \While{$S\neq\emptyset\ \mathbf{and}\ $proceed $=$ false}{
+      \While{$sq\neq\emptyset\ \mathbf{and}\ $proceed $=$ false}{
         \ic{proceed} $=$ \ic{false}\;
-        let $sq\in S$\;
-        %\ic{buildCondMatchings$(i,sq)$}\;
         \uIf{evaluateCond$(ml,i,sq)=$ false}{
-          $S=S\setminus sq$\;
+          $sq=$ \ic{getNextSeq$()$}\;
           $i=0$\;
         }
         \lElse{\ic{proceed} $=$ \ic{true}\;}
@@ -334,11 +332,17 @@ However, we suppose the operator \texttt{matches} is invoked, with the consequen
     \Return \ic{true}\;
 \end{algorithm}
 
-The outer loop scans the conditions while the inner loop processes the sequences. If a condition evaluation fails (l. 7), the corresponding sequence is deleted, and we have to return to the first condition (l. 9) and to choose another sequence (l. 6). Only if an evaluation is successful, the sequence remains a solution candidate, and we proceed to the next condition. Algorithm \ref{alg:conditionsmatch} returns \ic{false} if and only if there is no element of $S$ which fulfills all conditions.
+The outer loop scans the conditions while the inner loop processes the sequences. If a condition evaluation fails (l. 7), the next sequence is requested, and we have to return to the first condition (l. 9) and to request the next sequence (l. 8; this function either returns the next sequence, or, if no more sequences are available, an empty set). Only if an evaluation is successful, the sequence remains a solution candidate, and we proceed to the next condition. Algorithm \ref{alg:conditionsmatch} returns \ic{false} if and only if there is no sequence returned by \ic{getNextSeq$()$} which fulfills all conditions.
 
 Due to lack of space, we limit ourselves to discuss the basic strategies of the evaluation process. In line 7, the function \ic{evaluateCond} receives the moving label, the current sequence, and the number of the current condition. Its major task is to replace parts of the condition according to the sequence. For example, assume the query \texttt{X () Y $\ast$ Z $\ast$ // Y.card < Z.card}, the strongly simplified moving label \texttt{((00-08 at\_home)} \texttt{(08-17 at\_work)} \texttt{(17-19 shopping)} \texttt{(19-00 at\_home))}, and the sequence $\{0,1,4\}$. The latter implies that \texttt{X} corresponds to unit label 0, \texttt{Y} is bound to the other three unit labels while \texttt{Z} remains empty. Now, the expressions \texttt{Y.card} and \texttt{Z.card} from the condition are replaced by \texttt{3} and \texttt{0}, respectively, yielding a negative answer from the \secondo\ evaluation. The next sequence could read $\{0,1,2\}$ -- binding \texttt{Y} to unit label 1 and \texttt{Z} to 2 and 3 -- which leads to the inequation $1<2$, so this sequence is the one fulfilling all conditions.
 
-In order to avoid repeated evaluations of the same term -- which may happen if the pattern contains many stars, or if some labels occur frequently in the moving label -- every analyzed term and its corresponding boolean result are stored into a set. Thus, a substituted condition is only sent to \secondo\ if the aforementioned set does not contain it.\newpage
+In order to avoid repeated evaluations of the same term -- which may happen if the pattern contains many stars, or if some labels occur repeatedly in the moving label -- every analyzed term and its corresponding boolean result are stored into a set. Thus, a substituted condition is only sent to \secondo\ if the aforementioned set does not contain it.
+
+\subsubsection{Filtering the Sequences}
+At this point, the operator \texttt{matches} has finished its task, in contrast to \texttt{rewrite}. As mentioned before, in the latter we have computed the set $S$ of all matching sequence candidates. Unlike in the previous subsection, it is not enough to decide whether there is a sequence matching every condition, but we need to find all the sequences that match every condition -- that is, to filter the set of sequences.
+
+The filtering works similarly to algorithm \ref{alg:conditionsmatch}, i.e., for every sequence in $S$, we check whether it fulfills every condition. If it does, it stays in $S$, otherwise it is deleted. Now, all information for rewriting the pattern is available.
+\newpage
 
 \subsubsection{Display Equations}
 A numbered display equation -- one set off by vertical space
