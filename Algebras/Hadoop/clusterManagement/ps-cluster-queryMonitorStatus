@@ -50,7 +50,7 @@ function checkNode
     fi    
   done  
  
-  NodeStatus="${IPAddr}\t${#DSList[*]}\t${START}\t${FAILED}(${FPORT})"  
+  NodeStatus="${IPAddr}\t${#DSList[*]}\t\t${START}\t${FAILED}(${FPORT})"  
   echo -e $NodeStatus >> $Status
 }
 
@@ -80,8 +80,18 @@ for ((token=1;token<$PS_PIPE_Width;)); do
   fi
 done
 
-echo -e "IPAddr\tDataServer\tStarted\tFailed"
-cat $Status | sort
+echo -e "\tIPAddr\t\tDataServer\tStarted\tFailed"
+cat $Status | sort | cat -n
+echo -e "\n\n"
+
+# Conclude the status
+FAILCNT=$(cat $Status | grep "[0-9]([0-9,:]*)" | wc -l)
+SUCCCNT=$(( $NDNUM - $FAILCNT ))
+echo -e "In total, $SUCCCNT nodes start completely, while $FAILCNT nodes fail."
+if [ $FAILCNT -gt 0 ]; then
+  echo -e "Failed nodes include:"
+  cat $Status | grep "[0-9]([0-9,:]*)" | cut -f1
+fi
 
 exit 0
 
