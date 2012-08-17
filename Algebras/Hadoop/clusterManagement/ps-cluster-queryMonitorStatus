@@ -56,7 +56,6 @@ function checkNode
 
 IPLIST=($(get_slaveIPs -m))
 NDNUM=${#IPLIST[*]}
-declare -i NDIDX=1
 
 for ((NDIDX=0;NDIDX<$NDNUM;));do
   node=${IPLIST[$NDIDX]}
