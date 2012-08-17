@@ -36,22 +36,51 @@ while [ $numOfArgs -ne $OPTIND ]; do
   esac
 done
 
-if $SLONLY ; then
-  IPLIST=$(get_slaveIPs)
-else
-  IPLIST=$(get_slaveIPs -m)
-fi
+aJobs=()
+Status="/tmp/.ps-stop-AllMonitors.data"
+cat /dev/null > $Status
 
-RT=0
-for node in $IPLIST; do
-  echo -n "Switch OFF Monitor on $node ... ... "
-  ssh $node "ps-stopMonitors ${ADDPAR}" >/dev/null #2>&1
+function stopNodeMonitors
+{
+  IPAddr=$1
+  ssh $IPAddr "ps-stopMonitors ${ADDPAR}" >/dev/null
   if [ $? -ne 0 ]; then
-    echo "FAIL."
-    RT=1
+    echo -e "Switch OFF Monitor on $IPAddr ... ... FAIL." >> $Status
   else
-    echo "Done!"
-  fi 
+    echo -e "Switch OFF Monitor on $IPAddr ... ... Done." >> $Status
+  fi
+}
+
+if $SLONLY ; then
+  IPLIST=($(get_slaveIPs))
+else
+  IPLIST=($(get_slaveIPs -m))
+fi
+NDNUM=${#IPLIST[*]}
+
+for ((NDIDX=0;NDIDX<$NDNUM;));do
+  IPAddr=${IPLIST[$NDIDX]}
+    
+  for((token=1;token<=$PS_PIPE_Width;token++)); do
+    if [ $NDIDX -gt $NDNUM ]; then
+      break
+    fi
+    
+    if [ ! "${aJobs[$token]}" ] || ! kill -0 ${aJobs[$token]} 2>/dev/null; then
+      stopNodeMonitors $IPAddr &
+      aJobs[$token]=$!
+      let NDIDX++
+      break
+    fi
+  done    
 done
 
+for ((token=1;token<=$PS_PIPE_Width;));do
+  if ! kill -0 ${aJobs[$token]} 2>/dev/null; then
+    let token++
+  fi
+done
+
+cat $Status | sort | cat -n
+RT=$(grep "FAIL" $Status | wc -l)
 exit $RT
