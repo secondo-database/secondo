@@ -41,21 +41,56 @@ while [ $numOfArgs -ne $OPTIND ]; do
 
 done
 
-if $SLONLY ; then
-  DSLIST=$(get_mainDServs)
-else
-  DSIST=$(get_mainDServs -m)
-fi
+aJobs=()
+Status="/tmp/.ps-start-AllMonitors.data"
+cat /dev/null > $Status
 
-for node in $DSIST; do
+function startNodeMonitors
+{
+  IPAddr=$1
+  DSPath=$2
+  ssh $IPAddr "${DSPath}/bin/ps-startMonitors ${ADDPAR}" >/dev/null 2>&1
+  if [ $? -ne 0 ]; then
+    echo -e "Switch ON Monitor on $IPAddr ... ... FAIL." >>$Status
+  else
+    echo -e "Switch ON Monitor on $IPAddr ... ... Done!" >>$Status
+  fi
+}
+
+if $SLONLY ; then
+  DSLIST=($(get_mainDServs))
+else
+  DSLIST=($(get_mainDServs -m))
+fi
+NDNUM=${#DSLIST[*]}
+
+echo "In total, has $NDNUM nodes"
+for ((NDIDX=0;NDIDX<$NDNUM;));do
+  node=${DSLIST[$NDIDX]}
   IPAddr=${node%:*}
   DSPath=${node#*:}
-  echo -n "Switch ON Monitor on $IPAddr ... ... "
-  ssh $IPAddr "${DSPath}/bin/ps-startMonitors ${ADDPAR}" >/dev/null 2>&1
-  if [ $? -ne 0 ]; then 
-    echo -e "\nStart up fail."
-  else
-    echo "Done!"
+  
+  for((token=1;token<=$PS_PIPE_Width;token++)); do
+    if [ $NDIDX -gt $NDNUM ]; then
+      break
+    fi
+    
+    if [ ! "${aJobs[$token]}" ] || ! kill -0 ${aJobs[$token]} 2>/dev/null; then
+      startNodeMonitors $IPAddr $DSPath &
+      aJobs[$token]=$!
+      let NDIDX++
+      break
+    fi
+  done    
+done
+
+for ((token=1;token<=$PS_PIPE_Width;));do
+  if ! kill -0 ${aJobs[$token]} 2>/dev/null; then
+    let token++
   fi
 done
+
+cat $Status | sort | cat -n
+
+exit 0
 
