@@ -56,6 +56,7 @@ function checkNode
 
 IPLIST=($(get_slaveIPs -m))
 NDNUM=${#IPLIST[*]}
+declare -i NDIDX=1
 
 for ((NDIDX=0;NDIDX<$NDNUM;));do
   node=${IPLIST[$NDIDX]}
@@ -92,5 +93,5 @@ if [ $FAILCNT -gt 0 ]; then
   cat $Status | grep "[1-9]\d*([0-9,:]*)" | cut -f1
 fi
 
-exit 0
+exit $FAILCNT 
 
