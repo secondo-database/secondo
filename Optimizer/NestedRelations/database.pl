@@ -2157,16 +2157,17 @@ inquires the cardinality and stores it in local memory.
 
 */
 
-% NVK ADDED NR
-
-% Just return the stored size.
+/*
+NVK ADDED NR
+Just return the stored size.
+*/
 card(relsubquery(Q, SQID, TOP, PS), Size) :-
   optimizerOption(nestedRelations),
   PS=sqInfo(_, _, Size, _, _).
 	
-card(arel(A, B, C, D), Size) :-
+card(arel(A, B, C, D, E, F), Size) :-
   optimizerOption(nestedRelations),
-	cardNR(arel(A, B, C, D), Size),
+	cardNR(arel(A, B, C, D, E, F), Size),
 	!.
 % NVK ADDED NR END
 
@@ -2236,8 +2237,8 @@ If the predicate fails, this means, that there is no such index.
 
 /*
 NVK ADDED NR
-Currently there are not indicies for arel attributes or for subqueries.
-To implemented this, this predicates is needed, calling the below predicates won't work because it won't fail silently.
+Currently there are not indicies for arel attributes or for subqueries as far as i know.
+To implemented this, this predicates is necessary, calling the below predicates won't work because it won't fail silently.
 */
 hasIndex(Rel, _, _, _) :-
 	Rel=rel(Term, _),
@@ -4101,6 +4102,8 @@ analyseTupleInfoQueryResultList(DB,DCrel, ARelPath,ExtAttrList, ResListAtts, Res
   %analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,MoreInfos,TupleMemSize),
 	
 	appendAttributeList([DCrel|ARelPath], NewDCrel),
+	% Card is the number of tuples aber unnesting all previous arels within 
+	% the path.
   assert(storedCard(DB, NewDCrel, Card)),
   ( TupleSizeLOB = undefined
     -> ( % undefined tuplesize due to empty relation
@@ -4175,7 +4178,7 @@ analyseTupleInfoQueryResultList2(DB,DCrel,ARelPath,ExtAttrList,InfoListAtts, Inf
   analyseTupleInfoQueryResultList2(DB,DCrel,ARelPath,MoreAttrs, MoreInfosAtts, MoreInfos, MoreMemTotal),
   MemTotal is MemSize + MoreMemTotal,
   append(ARelPath, [DCAttr], TMP1),
-  attAppendLst(TMP1, DCAttrPath),
+  listToAttributeTerm(TMP1, DCAttrPath),
   assert(storedSpell(DB, DCrel:DCAttrPath, IntAttr)),
   assert(storedAttrSize(DB,DCrel,DCAttrPath,DCType,MemSize,CoreAttrSize,LOBSize2)),
   %attAppend(DCrel:DCAttr, DCSubRel),
@@ -4193,44 +4196,6 @@ analyseTupleInfoQueryResultList2(DB,DCrel,X,Y,Z,G,Q):-
                                                   ::unspecifiedError::ErrMsg)),
   !.
 
-
-/* OLD:
-analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,InfoList,MemTotal):-
-  dm(dbhandling,['\nTry: analyseTupleInfoQueryResultList2(',DB,',',DCrel,',',
-                                  ExtAttrList,',',InfoList,').']),
-  ExtAttrList = [[ExtAttr,ExtType]|MoreAttrs],
-  InfoList  = [SizeCore,SizeExt|MoreInfos],
-  % take first elem from ExtAttrList, retrieve three entries from
-  % the InfoList and process the information.
-  dcName2externalName(DCType,ExtType),
-  dcName2externalName(DCAttr,ExtAttr),
-  internalName2externalName(IntAttr,ExtAttr),
-  % Use inquired average attribute sizes. Avoid problems with undefined
-  % sizes, which will occur for relations with cardinalit=0.
-  secDatatype(DCType, MemSize, _, _, _, _),
-  ( SizeCore = undefined
-    -> ( % Fallback: use typesize, but 1 byte at least
-         CoreAttrSize is max(1,MemSize)
-       )
-    ;  CoreAttrSize is max(0,SizeCore) % avoid rounding errors
-  ),
-  ( SizeExt = undefined
-    -> LOBSize is 0
-    ;  LOBSize is max(0,SizeExt) % avoid rounding errors
-  ),
-  LOBSize2 is max(0,LOBSize),    % avoid rounding errors
-  analyseTupleInfoQueryResultList2(DB,DCrel,MoreAttrs,MoreInfos,MoreMemTotal),
-  MemTotal is MemSize + MoreMemTotal,
-  assert(storedSpell(DB, DCrel:DCAttr, IntAttr)),
-  assert(storedAttrSize(DB,DCrel,DCAttr,DCType,MemSize,CoreAttrSize,LOBSize2)),
-  !.
-analyseTupleInfoQueryResultList2(DB,DCrel,X,Y):-
-  concat_atom(['Retrieval of tuple and attribute information failed.'],
-               '',ErrMsg),
-  throw(error_Internal(database_analyseTupleInfoQueryResultList(DB,DCrel,X,Y)
-                                                  ::unspecifiedError::ErrMsg)),
-  !.
-*/
 
 
 /*
@@ -4316,67 +4281,20 @@ is the average size of the tuples' core data in byte, and ~LOBSize~ is the avera
 size of data stored in the relation's LOB file.
 
 */
-% NVK ADDED NR
-tupleSizeSplit(Var:ARel, sizeTerm(MemSize3,CoreSize3,LOBSize3)) :-
-  attributeToFQN(Var:ARel, DCFQN, _),
-  dm(dbhandling,['\nTry: tupleSizeSplit(',DCrel,',',
-                 sizeTerm(MemSize,CoreSize,LOBSize),').']),
-	tupleSizeSplitByFQN(DCFQN, sizeTerm(MemSize3,CoreSize3,LOBSize3)).
+/*
+NVK ADDED NR
+Just return here pre-stored tuple sizes.
+*/
+tupleSizeSplit(relsubquery(_, _, _, PS), TupleSize) :-
+  PS=sqInfo(_, _, _, TupleSize, _).
 
-% Open issue: tupleSize values for arels that are created during the query.
-tupleSizeSplitByFQN(DCFQN, sizeTerm(50, 50, 50)) :-
-  DCFQN=queryAttr(_).
-tupleSizeSplitByFQN(DCFQN, sizeTerm(50, 50, 50)) :-
-  DCFQN=queryAttr(_):_.
-
-tupleSizeSplitByFQN(DCFQN, sizeTerm(MemSize3,CoreSize3,LOBSize3)) :-
-  databaseName(DB),
-	relNameFromFQN(DCFQN, DCRel),
-  ( ( storedTupleSize(DB, DCFQN, MemSize, CoreSize, LOBSize), % already known
-      MemSize \= nAn, CoreSize \= nAn, LOBSize \= nAn )       % well defined
-    -> ( MemSize2 = MemSize, CoreSize2 = CoreSize, LOBSize2 = LOBSize
-       )
-    ;  ( write_list(['\INFO:\tTuplesize contains "not a number" (nAn). ',
-                     '\n--->\tTherefore, I retry getting meaningful data...']),
-         nl,
-         getTupleInfo(DCrel),   % inquire for it, then it should be known!
-         storedTupleSize(DB, DCFQN, MemSize2, CoreSize2, LOBSize2)
-       )
-  ),
-  ( MemSize2 = nAn
-    -> ( write_list(['\nWARNING:\tTupleMemSize is not a number (nAn). ',
-                     '\n--->\tTherefore, it is set to 1.']),
-         nl,
-         MemSize3 is 1
-       )
-    ; MemSize3 is MemSize2
-  ),
-  ( CoreSize2 = nAn
-    -> ( write_list(['\nWARNING:\tTupleCoreSize is not a number (nAn). ',
-                     '\n--->\tTherefore, it is set to 1.']),
-         nl,
-         CoreSize3 is 1
-       )
-    ; CoreSize3 is CoreSize2
-  ),
-  ( LOBSize2 = nAn
-    -> ( write_list(['\nWARNING:\tTupleLOBSize is not a number (nAn). ',
-                     '\n--->\tTherefore, it is set to 1.']),
-         nl,
-         LOBSize3 is 1
-       )
-    ; LOBSize3 is LOBSize2
-  ),
-  !.
-% NVK ADDED
+tupleSizeSplit(arel(_, _, _, _, _, ST), ST).
+% NVK ADDED NR END
 
 tupleSizeSplit(DCrel, sizeTerm(MemSize3,CoreSize3,LOBSize3)) :-
   dm(dbhandling,['\nTry: tupleSizeSplit(',DCrel,',',
                  sizeTerm(MemSize,CoreSize,LOBSize),').']),
-	% NVK MODIFIED NR
-  %databaseName(DB),
-	tupleSizeSplitByFQN(DCrel, sizeTerm(MemSize3,CoreSize3,LOBSize3)),
-	/*
+  databaseName(DB),
   ( ( storedTupleSize(DB, DCrel, MemSize, CoreSize, LOBSize), % already known
       MemSize \= nAn, CoreSize \= nAn, LOBSize \= nAn )       % well defined
     -> ( MemSize2 = MemSize, CoreSize2 = CoreSize, LOBSize2 = LOBSize
@@ -4412,8 +4330,6 @@ tupleSizeSplit(DCrel, sizeTerm(MemSize3,CoreSize3,LOBSize3)) :-
        )
     ; LOBSize3 is LOBSize2
   ),
-*/
-% NVK MODIFIED END
   !.
 
 tupleSizeSplit(DCrel, X) :-

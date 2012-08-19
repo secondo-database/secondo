@@ -9,6 +9,8 @@ let OrteM = Orte feed extend[BevTH: .BevT div 100] sortby[BevTH] nest [BevTH;Sub
 
 let OrteM2 = Orte feed extend[BevTH: .BevT div 100] sortby[BevTH] nest [BevTH;SubH] extend[BevM: .BevTH div 10] sortby[BevM] nest [BevM;SubM] extend[SubMH: fun(alias: TUPLE) Orte feed extend[Temp: .BevT div 1000] filter[.Temp=attr(alias, BevM)] remove[Temp] aconsume] consume
 
+let StaedteNested = Staedte feed sortby[SName, Bev] nest[SName, Bev; SubRel] consume
+
 close database
 
 

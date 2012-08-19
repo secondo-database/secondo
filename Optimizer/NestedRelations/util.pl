@@ -87,4 +87,40 @@ count(Goal, Times) :-
     Counter=counter(Times)
   ).
 
+/* 
+Calls assertz for every element within the list.
+*/
+assertzall([]) :- 
+	!.
+
+assertzall([F|Rest]) :-
+  assertz(F),
+  assertzall(Rest).
+
+% A list containing a list of facts.
+assertzalllist([]) :- 
+	!.
+
+assertzalllist([List|Rest]) :- 
+	!,
+  assertzall(List),
+  assertzalllist(Rest).
+
+/*
+Calls the predicate P/1 for every element within the list.
+*/
+forAllIn(P, []) :- !.
+forAllIn(P, [E|Rest]) :-
+  call(P, E),
+  forAllIn(P, Rest).
+
+/*
+Like append/3 all lists within the first parameter list are added
+to the result list.
+*/
+appendLists([], []).
+appendLists([List|RestLists], ResultList) :-
+  appendLists(RestLists, RestResultList),
+  append(List, RestResultList, ResultList).
+
 % eof

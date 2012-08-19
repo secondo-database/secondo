@@ -491,10 +491,27 @@ preTransformNestedPredicate(Attrs, Attrs, Rels, Rels,
   exists(select SubAttr from RelsWhere),
   0 < (select count(SubAttr) from RelsWhere)).
 
+/* :-
+  \+ optimizerOption(nestedRelations). % NVK MODIFIED
+
+preTransformNestedPredicate(Attrs, Attrs, Rels, Rels,
+  exists(Query),
+  0 < (CCQuery)) :-
+  optimizerOption(nestedRelations), % NVK MODIFIED
+	simplifiedIsQuery(Query),
+	rewriteQueryForSubqueryProcessing(Query, CQuery),
+	transformQueryToCountQuery(CQuery, CCQuery).
+	
+transformQueryToCountQuery(CQuery, CCQuery) :-
+	CQuery=(select Attr from RelsWhere),
+	CCQuery=(select count(Attr) from RelsWhere).
+*/
+
 % case operator ~not exists~
 preTransformNestedPredicate(Attrs, Attrs, Rels, Rels,
   not(exists(select SubAttr from RelsWhere)),
   0 = (select count(SubAttr) from RelsWhere)).
+
 
 % case operator ~any~
 preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, Pred, NewPred) :-
@@ -1116,14 +1133,43 @@ areAttributesOf([ Attr | Rest ], Rels) :-
 /*
 NVK NOTE
 This isn't correct, it dosn't invole they query context at all.
-*/
 isAttributeOf(Var:Attr, Rel as Alias) :-
  	optimizerOption(nestedRelations),
-	findBinding(Var, variable(Var, Rel2)),
+	findBinding(Var, variable(Var, Rel2), _),
   relation(Rel, List),
   atomic(Attr),
   downcase_atom(Attr, DCAttr),
   member(DCAttr, List).
+isAttributeOf(Var:Attr, Rel as Var) :-
+	% a lookup is done, so it is assumed here that the attribute
+	% is within the relation.
+ 	optimizerOption(nestedRelations),
+	findBinding(Var, variable(Var, RelT), _),
+	RelT=rel(Rel, Var).
+*/
+
+% NVK ADDED NR 
+% i don't see where this can happend for nested relations.
+isAttributeOf(Var:Attr, Rel as Var) :-
+ 	optimizerOption(nestedRelations),
+	isAttributeOf(Var:Attr, Rel).
+
+isAttributeOf(Var:Attr, Rel) :-
+ 	optimizerOption(nestedRelations),
+	atomic(Attr),
+	downcase_atom(Attr, AttrDC),
+  findAttrLists(predicate, Var, RelX, AttrDesc),
+	RelX=rel(Rel, _),
+  nrSimpleFindAttribute(AttrDC, AttrDesc, _).
+
+isAttributeOf(Attr, Rel) :-
+ 	optimizerOption(nestedRelations),
+	atomic(Attr),
+	downcase_atom(Attr, AttrDC),
+  findAttrLists(predicate, *, RelX, AttrDesc),
+	RelX=rel(Rel, *),
+  nrSimpleFindAttribute(AttrDC, AttrDesc, _).
+ % NVK ADDED NR END
 
 isAttributeOf(Alias:Attr, Rel as Alias) :-
  	\+ optimizerOption(nestedRelations), % NVK ADDED NR
@@ -1808,27 +1854,6 @@ lookupRelsDblCheck(Rel, Rel2) :-
   not(is_list(Rel)),
   lookupRelDblCheck(Rel, Rel2).
 
-% NVK NOTE XXX consider something like this:
-%lookupRelDblCheck(Rel:ARELS as Var, arel(RelDC, Var)) :-
-%  lookupRel(Rel as Var, rel(RelDC, Var)).
-
-% NVK ADDED
-xlookupRelDblCheck(Rel as Var, arel(RelDC, Var)) :-
-  lookupRel(Rel as Var, arel(RelDC, Var)).
-
-xlookupRelDblCheck(Rel, arel(RelDC, *)) :-
-  not(queryRel(Rel, _)),
-  lookupRel(Rel, arel(RelDC, *)).
-
-xlookupRelDblCheck(Rel, arel(RelDC, *)) :-
-  queryRel(Rel, arel(RelDC, *)),
-  term_to_atom(Rel, RelA),
-  concat_atom(['Ambiguous use of relation ',RelA,
-         ' in outer and inner query block.'],'',ErrMsg),
-  write_list(['\nERROR:\t',ErrMsg]),
-  throw(error_SQL(subqueries_lookupRelDblCheck(Rel)::malformedExpression::ErrMsg)).
-% NVK ADDED END
-
 lookupRelDblCheck(Rel as Var, rel(RelDC, Var)) :-
   lookupRel(Rel as Var, rel(RelDC, Var)).
 
@@ -1858,11 +1883,6 @@ lookupRelNoDblCheck(Rel as Var, rel(RelDC, Var)) :-
 :- dynamic(currentAttrs/1).
 :- dynamic(currentRels/1).
 :- dynamic(currentVariables/1).
-:- dynamic(currentIsStarQuery/2).
-:- dynamic(currentVariablesAll/2). % NVK ADDED
-:- dynamic(currentQueryRels/2). % NVK ADDED
-:- dynamic(currentUsedAttr/2). % NVK ADDED
-:- dynamic(currentQueryAttr/2). % NVK ADDED
 :- dynamic(isJoinPred/1).
 :- dynamic(selectivityQuery/1).
 :- dynamic(selectivityRels/1).
@@ -1939,7 +1959,7 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
   findall(V, variable(V, _), Variables),
   assert(currentVariables(Variables)),
 	% NVK ADDED
-	enterSubquery,
+	enterSubquery(predicate),
 	% NVK ADDED END
   lookupSubquery(Query, Query2),
 	getSubqueryCurrent(SQID),
@@ -1979,7 +1999,7 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
   findall(V, variable(V, _), Variables),
   assert(currentVariables(Variables)),
   % NVK ADDED
-	enterSubquery,
+	enterSubquery(predicate),
   % NVK ADDED END
   lookupSubquery(Query, Query2),
 	getSubqueryCurrent(SQID),
@@ -2000,134 +2020,6 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
 	% are not separated any longer. So we need lookup data within in the plan creation.
 	% don't know yet how to do this in a good way.
   subquerySelectivity(Pred2, RelsAfter).
-
-:- dynamic(subqueryCurrent/1).
-:- dynamic(subqueryMaxLabel/1).
-
-/*
-0 is the top level query and at this time, the optimizer is not in the lookup
-of a subquery.
-
-During the lookup phase, these are node numbers of the subquery ~tree~. These are also stored within the subquery(_, _, _) terms to generate a identifer for the subqueries. This is needed to be able to identify a subquery within the plan_to_atom phase.
-*/
-getSubqueryCurrent(N) :-
-	subqueryCurrent(N),
-	!.
-getSubqueryCurrent(0) :-
-	!.
-
-setSubqueryCurrent(N) :-
-	retractall(subqueryCurrent(_)),
-	assertz(subqueryCurrent(N)).
-
-switchToSQID(SQID) :-
-	setSubqueryCurrent(SQID),
-	restoreCurrentQueryInfos(SQID).
-
-storeCurrentQueryInfos(SQID) :-
-	% What variable are accessable for a query?
-	retractall(currentIsStarQuery(SQID, _)),
-  findall(isStarQuery, isStarQuery, L1),
-  asserta(currentIsStarQuery(SQID, L1)),
-
-	retractall(currentVariablesAll(SQID, _)),
-  findall(variable(V1, V2), variable(V1, V2), L2),
-  asserta(currentVariablesAll(SQID, L2)),
-
-	retractall(currentQueryRels(SQID, _)),
-	findall(queryRel(V1, V2), queryRel(V1, V2), L3),
-  asserta(currentQueryRels(SQID, L3)),
-
-	retractall(currentUsedAttr(SQID, _)),
-	findall(usedAttr(V1, V2), usedAttr(V1, V2), L4),
-  asserta(currentUsedAttr(SQID, L4)),
-
-	retractall(currentQueryAttr(SQID, _)),
-	findall(queryAttr(V1), queryAttr(V1), L5),
-  asserta(currentQueryAttr(SQID, L5)).
-
-/*
- XXX won't work, Current is not the deep, in't thed node prorccessing
-*/
-inSubquery :-
-	subqueryCurrent(Current),
-	Current > 0.
-
-restoreCurrentQueryInfos(SQID) :-
-	retractall(isStarQuery),
-  currentIsStarQuery(SQID, L1),
-	assertzall(L1),
-
-	retractall(variable(_, _)),
-  currentVariablesAll(SQID, L2),
-	assertzall(L2),
-
-	retractall(queryRel(_, _)),
-  currentQueryRels(SQID, L3),
-	assertzall(L3),
-
-	retractall(usedAttr(_, _)),
-  currentUsedAttr(SQID, L4),
-	assertzall(L4),
-
-	retractall(queryAttr(_)),
-  currentQueryAttr(SQID, L5),
-	assertzall(L5).
-
-/*
-The stored facts about the subquery could be deleted now. But for errory tracking we kept them and let them removed if a totaly new query will looked up.
-*/
-leaveSubquery :- 
-	dm(nr, ['\nleaveSubquery']),
-	subqueryCurrent(SQID), 
-	storeCurrentQueryInfos(SQID), 
-	setSQIDToPrevious(SQID),
-	!.
-
-% don't fail silently coz if this happend there is really something wrong.
-leaveSubquery :- 
-	throw(error_Internal(nestedrelations_leaveSubquery::invalidState)).
-
-setSQIDToPrevious(SQID) :-
-	retractall(subqueryCurrent(_)), 
-	subqueryDFSLabel(PreviousSQID, SQID), % find the prev node
-  asserta(subqueryCurrent(PreviousSQID)), 
-	restoreCurrentQueryInfos(PreviousSQID).
-
-enterSubquery :- 
-	dm(nr, ['\nenterSubquery']),
-  % Just ennumerate the subquries coz we have currently to other way to 
-  % identify a query. In particular i'm interested in the parent queries to 
-  % get some knowledge about these query variable bindings.
-  getSubqueryCurrent(SQID),
-  (retract(subqueryMaxLabel(Max)) ->
-    true
-  ;
-    Max=0),
-  retractall(subqueryMaxLabel(_)),
-  NewSQID is Max+1,
-  assertz(subqueryMaxLabel(NewSQID)),
-  setSubqueryCurrent(NewSQID),
-  assertz(subqueryDFSLabel(SQID, NewSQID)),
-
-	storeCurrentQueryInfos(SQID), % To restore the current lookup process 
-	% after a subquery was processed.
-	newQuery, 
-	!.
-
-enterSubquery :- 
-	throw(error_Internal(nestedrelations_enterSubquery::invalidState)).
-
-% Call this after a subquery was processed.
-% XXX crap or?
-clearCurrentQueryInfos(Deep) :-
-	retractall(currentIsStarQuery(Deep, _)),
-	retractall(currentVariablesAll(Deep, _)),
-	retractall(currentQueryRels(Deep, _)),
-	retractall(currentUsedAttr(Deep, _)),
-	retractall(currentQueryAttr(Deep, _)).
-
-% NVK END
 
 % remove side effects, if previous predicate failed
 lookupSubqueryPred(_, _, _, _) :-
@@ -2150,7 +2042,7 @@ lookupSubqueryPred(not(Pred), not(Pred2), RelsBefore, RelsAfter) :-
     ['\nOp: ', Op,
     '\nQuery: ', Query]),
   % NVK ADDED
-  enterSubquery,
+  enterSubquery(predicate),
   % NVK ADDED END
   lookupSubquery(Query, Query2),
 	getSubqueryCurrent(SQID),
@@ -2172,7 +2064,7 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
     ['\nOp: ', Op,
     '\nQuery: ', Query]),
   % NVK ADDED
-  enterSubquery,
+  enterSubquery(predicate),
   % NVK ADDED END
   lookupSubquery(Query, Query2),
 	getSubqueryCurrent(SQID),
@@ -2259,6 +2151,7 @@ of the from-clause.
 */
 
 correlationRels(Query, OuterRels) :-
+	\+ optimizerOption(nestedRelations), %NVK ADDED NR
   removeCorrelatedPreds(Query, _, Preds),
   usedRels(Preds, Rels),
   Query =.. [from, _, Where],
@@ -2267,15 +2160,39 @@ correlationRels(Query, OuterRels) :-
   dm(subqueryDebug, ['\ncorrelationRels_OuterRels: ', OuterRels]).
 
 /*
-NVK ADDED NR 
-Added because we need to ensure the second parameter must be a list, which
-for the lower predicate not always true.
-correlationRels(select _ from InnerRels, [InnerRels]) :-
-	\+ is_list(InnterRels), 
-  not(InnerRels =.. [where | _ ]).
+NVK ADDED NR
+Replaced to reflect that a subquery can kown be a correlated predicates if the 
+from clause contains a attribute from the outer query. Otherwiese queries like test query no. 9 would not be possible with the current pog optimizer.
 */
-%NVK ADDED NR END
-%correlationRels(select _ from InnerRels, [o:subrel]).
+correlationRels(Query, OuterRels3) :-
+	optimizerOption(nestedRelations),
+  Query =.. [from, _, Where],
+  (	(
+  		Where =.. [where, InnerRels, _],
+			removeCorrelatedPreds(Query, _, Preds)
+		) ->
+		(
+  		usedRels(Preds, Rels),
+  		findall(Rel, (member(Rel, Rels), not(member(Rel, InnerRels))), OuterRels)
+		)
+	;
+		% no sql predicates
+		(
+			OuterRels=[],
+			makeList(Where, InnerRels)
+		)
+	),
+	
+  findall(ParentQueryRel, (
+			member(Rel2, InnerRels), 
+			Rel2=rel(T, _), 
+			T=..[arel|_], 
+			toParentQueryRel(Rel2, ParentQueryRel)
+		), OuterRels2),
+	append(OuterRels, OuterRels2, OuterRels3),
+  dm(subqueryDebug, ['\ncorrelationRels_OuterRels: ', OuterRels3]).
+% NVK ADDED NR END
+
 
 correlationRels(select _ from InnerRels, InnerRels) :-
   not(InnerRels =.. [where | _ ]).
@@ -2286,6 +2203,15 @@ correlationRels(all(Query), OuterRels) :-
 correlationRels(any(Query), OuterRels) :-
   correlationRels(Query, OuterRels).
 
+% NVK ADDED NR
+% Note that this arel attribute can only come from the direct sorrounded query
+% because otherwiese the optimization strategy can't handle this case.
+% The error that will occur then is pogCreationFailed.
+toParentQueryRel(Rel, ParentQueryRel) :-
+	Rel=rel(T, _),
+	T=..[arel, RelVar:_|_],
+  findBinding(RelVar, variable(RelVar, ParentQueryRel), _).
+% NVK ADDED NR END
 /*
 
 Collect the relations used in the given predicate list.
@@ -3217,6 +3143,12 @@ subquery_expr_to_plan(A, B, C) :-
   concat_atom(['Not Implemented'], Msg),
   throw(error_Internal(subqueries_Expr(A, B, C)::notImplemented::Msg)).
 
+% NVK ADDED NR
+subqueryContainsWhere(subquery(_, Query, _)) :-
+  Query =.. [from, _, Where],
+  Where =.. [where, _, _].
+% NVK ADDED NR END
+
 /*
 
 Extract query from subquery and put used relations on stack.
@@ -3445,6 +3377,7 @@ subquery_plan_to_atom(Pred, Result) :-
   dm(subqueryDebug, ['\nStreamPlan: ', StreamPlan]),
   subquery_expr_to_plan(Attr, T, Attr2),
   ResultPlan =.. [in, Attr2, collect_set(projecttransformstream(StreamPlan, QueryAttr))],
+	rd,
   plan_to_atom(fun([param(T, tuple)], ResultPlan), Result),
 	setSQIDToPrevious(SQID),
   clearStreamName,
@@ -3506,6 +3439,11 @@ subquery_plan_to_atom(AttrExpr, Result) :-
 subquery_plan_to_atom(Expr, Result) :-
   ground(Expr),
   Expr =.. [exists, Query],
+	% NVK ADDED NR: Pretest with no side effects (unlike extractQuery).
+	rd,
+	subqueryContainsWhere(Query),
+	rd,
+	% NVK ADDED NR END
   extractQuery(Query, Query1),
   Query1 =.. [from, _, Where],
   Where =.. [where | _],
@@ -3516,7 +3454,6 @@ subquery_plan_to_atom(Expr, Result) :-
   newAlias(T),
   streamName(T),
 	Query=subquery(SQID, _, _), % NVK ADDED
-	%setSubqueryCurrent(SQID), % NVK ADDED
 	switchToSQID(SQID), % NVK ADDED
   subquery_to_plan(Query2, Plan, T),
   dm(subqueryDebug, ['\nPlan: ', Plan]),
@@ -3525,6 +3462,45 @@ subquery_plan_to_atom(Expr, Result) :-
   %addCorrelatedPreds(Plan, consume(Query3), Preds2),
 	% NVK MODIFIED NR
   addCorrelatedPreds(Plan, Plan2, Preds2),
+  Plan2=..[COp, Query3],
+	member(COp, [consume, aconsume]),
+	% NVK MODIFIED NR END
+  dm(subqueryDebug, ['\nsubquery_plan_to_atom_Query2: ', Query3]),
+  plan_to_atom(fun([param(T, tuple)], =(count(head(Query3, 1)), 1)), Result),
+  dm(subqueryDebug, ['\nsubquery_plan_to_atom_QueryAtom: ', Result]),
+	setSQIDToPrevious(SQID),
+  clearStreamName,
+  clearQuery(Query).
+
+	
+
+/*
+NVK ADDED NR
+case nested predicate with exists
+Case as above, but without a where clause.
+
+Note that this is currentliy only use full if in the from clause a arel relation appears due to the optimization limitations.
+*/
+subquery_plan_to_atom(Expr, Result) :-
+  ground(Expr),
+  Expr =.. [exists, Query],
+  extractQuery(Query, Query1),
+  Query1 =.. [from, _, Where],
+  \+ Where =.. [where | _],
+  %removeCorrelatedPreds(Query1, Query2, Preds), !,
+	Query1=Query2,
+  ground(Query2),
+  dm(subqueryDebug, ['\nQuery2: ', Query2]),
+  newAlias(T),
+  streamName(T),
+	Query=subquery(SQID, _, _), % NVK ADDED
+	switchToSQID(SQID), % NVK ADDED
+  subquery_to_plan(Query2, Plan, T),
+  dm(subqueryDebug, ['\nPlan: ', Plan]),
+  %transformPreds(Preds, T, 2, Preds2),
+  %dm(subqueryDebug, ['\nPreds2: ', Preds2]), !,
+  %addCorrelatedPreds(Plan, Plan2, Preds2),
+	Plan=Plan2,
   Plan2=..[COp, Query3],
 	member(COp, [consume, aconsume]),
 	% NVK MODIFIED NR END
@@ -3549,7 +3525,6 @@ subquery_plan_to_atom(not(Expr), Result) :-
   newAlias(T),
   streamName(T),
 	Query=subquery(SQID, _, _), % NVK ADDED
-	%setSubqueryCurrent(SQID), % NVK ADDED
 	switchToSQID(SQID), % NVK ADDED
   subquery_to_plan(Query2, Plan, T),
   dm(subqueryDebug, ['\nPlan: ', Plan]),
@@ -3612,21 +3587,12 @@ is for subqueries within the attribute list.
 */
 subquery_plan_to_atom(SQuery, Result) :-
 	SQuery=subquery(SQID, Query, Rels),
-	%subquery_plan_to_atom(Query, Result).
-  %Query1 =.. [from | _],
   ground(Query),
   newAlias(T),
   streamName(T),
-	%setSubqueryCurrent(SQID), % NVK ADDED
-	switchToSQID(SQID), % NVK ADDED
+	switchToSQID(SQID),
   subquery_to_plan(Query, QueryPlan, T),
-  %ResultPlan =.. [Op, Attr2, QueryPlan],
-  % NVK XXX ResultPlan need now replacements with T...
-  %plan_to_atom(fun([param(T, tuple)], ResultPlan), Result),
-%extend [SubRel2: .SubRel afeed filter[.Kennzeichen="KLE"] aconsume]
-  %plan_to_atom(extend(inStream, extendlbl, fun([param(T, tuple)], QueryPlan)), Result),
   plan_to_atom(fun([param(T, tuple)], QueryPlan), Result),
-  %plan_to_atom(extend(extendlbl, QueryPlan), Result),
 	setSQIDToPrevious(SQID),
   clearStreamName,
 	(Rels \= [] ->

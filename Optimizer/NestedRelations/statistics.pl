@@ -107,19 +107,25 @@ is transformed into
 
 
 */
-% NVK ADDED
+% NVK ADDED NR
 % Reflect the nested relations
-simple(attr(Attr, Index, _), RelList, rel(relsubquery(Q, SQID, TOP, PS), Var):Attr2) :-
+simple(attr(Attr, Index, _), RelList, rel(RelT, Var):Attr2) :-
   optimizerOption(nestedRelations),
 	(Index=0 -> I2=1 ; I2 is Index),
-  memberchk((I2,rel(relsubquery(Q, SQID, TOP, PS), Var)),RelList),
- 	downcaseAttributeList(Attr,Attr2), !.
-simple(attr(Attr, Index, _), RelList, rel(arel(A, B, C, D), Var):Attr2) :-
+  memberchk((I2,rel(RelT, Var)),RelList),
+	RelT=..[relsubquery|_],
+ 	downcaseAttributeList(Attr, Attr2), !.
+simple(attr(Attr, Index, _), RelList, rel(RelT, Var):Attr2) :-
   optimizerOption(nestedRelations),
   (Index=0 -> I2=1 ; I2 is Index),
-  memberchk((I2,rel(arel(A, B, C, D), Var)),RelList),
-  downcaseAttributeList(Attr,Attr2), !.
+  memberchk((I2,rel(RelT, Var)),RelList),
+	RelT=..[arel|_],
+  downcaseAttributeList(Attr, Attr2), !.
 
+simple(rel(RelT, Var), _, rel(RelT, Var)) :-
+	RelT=..[Functor|_],
+	member(Functor, [arel, relsubquery]).
+% NVK ADDED NR END
 
 simple(attr(Var:Attr, 0, _), RelList, Rel2:Attr2) :-
   optimizerOption(nestedRelations),
@@ -290,13 +296,10 @@ sampleNameSmall(Name, Small) :-
   atom_concat(Name, '_small', Small), !.
 
 % NVK ADDED
-feedOp(Rel, afeed) :-
-	assertion(ground(Rel)),
-  Rel = rel(_:_, _), !.
-
-feedOp(Rel, afeed) :-
-	assertion(ground(Rel)),
-  Rel = rel(arel(_, _, _, _), _), !.
+feedOp(RelT, afeed) :-
+	assertion(ground(RelT)),
+  RelT = rel(Term, _),
+	Term =.. [arel|_], !.
 
 feedOp(Rel, feed) :-
 	assertion(ground(Rel)),
@@ -1146,17 +1149,17 @@ selectivity(P, Sel, CalcPET, ExpPET) :-
 
 % NVK ADDED NR
 nrRel(Rel) :-
-	Rel = rel(Var:DCARel, _).
+	Rel = rel(_:_, _).
 nrRel(Rel) :-
 	Rel = rel(T, _),
 	T=..[arel|_].
 nrRel(Rel) :-
 	isRelsubquery(Rel).
-nrRel(pr(Pred, Rel1, Rel2)) :-
+nrRel(pr(_, Rel1, _)) :-
 	nrRel(Rel1). 
-nrRel(pr(Pred, Rel1, Rel2)) :-
+nrRel(pr(_, _, Rel2)) :-
 	nrRel(Rel2). 
-nrRel(pr(Pred, Rel)) :-
+nrRel(pr(_, Rel)) :-
 	nrRel(Rel). 
 
 isRelsubquery(Rel) :-

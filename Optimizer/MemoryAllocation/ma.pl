@@ -927,5 +927,40 @@ derivativeFunction(Dimension, Vars, Result) :-
   Result is Formula, % Evaluate the expression with the bindings from Vars.
 	dm(ma6, ['\nCompute derivativeFunction: Result: ', Result]).
 
+/*
+I don't how to call this...it is something between a ugly hack and a feature.
+Here a new node is created behind the last node and a new edge, planEdge and costEdge is created. It is used to optimize the memory allocation with the 
+sort operator because the sort operator has currently no cost edge. But the POG is mainly for predicates and what predicates are evalualated, hence we misuse the POG a little bit.
+*/
+addNewHighNode(N, Term) :-
+  ensure((
+    highNode(N),
+    NewN is N + 1,
+    retractall(highNode(_)),
+    asserta(highNode(NewN)),
+
+    node(N, NPreds, NPartition),
+    NewNode=node(NewN, NPreds, NPartition),
+    assertz(NewNode),
+
+    % Unlike a planEdge or costEdge, there is always just one plan edge from
+    % one node to another node.
+    assertz(edgeSelectivity(N, NewN, 1)),
+    assertz(edge(N, NewN, Term, NewN, NewNode, NewNode)),
+    Term => Plan, % For now, i just need one translation.
+    assert(planEdge(N, NewN, Plan, NewN))
+  )).
+
+extractPredFromEdgeTerm(EdgeTerm, Pred) :-
+  EdgeTerm = select(_, Pred).
+extractPredFromEdgeTerm(EdgeTerm, Pred) :-
+  EdgeTerm = join(_, _, Pred).
+extractPredFromEdgeTerm(EdgeTerm, Pred) :-
+  EdgeTerm = sortedjoin(_, _, Pred, _, _).
+extractPredFromEdgeTerm(EdgeTerm, Pred) :-
+  EdgeTerm = sortby(_, _),
+  % There is no predicate for the sort edge.
+  Pred = pr(fakePred(1,1,0,0)).
+
 % eof
 

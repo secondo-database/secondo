@@ -2737,8 +2737,8 @@ opSignature(randomdelay, stpattern, [mpoint, duration], mpoint,[]).
 opSignature(passmbool, stpattern, [mbool], mbool,[]).
 opSignature(randommbool, stpattern, [instant], mbool,[]).
 % NVK ADDED NR
-opSignature(unnest, nestedrelations, [[stream,[tuple,X]],_],[stream,[tuple,Y]], []).
-opSignature(nest, nestedrelations, [[stream,[tuple,X]],_],[stream,[tuple,Y]], []).
+opSignature(unnest, nestedrelations, [[stream,[tuple,_]],_],[stream,[tuple,_]], []).
+opSignature(nest, nestedrelations, [[stream,[tuple,_]],_],[stream,[tuple,_]], []).
 % NVK ADDED NR END
 
 
