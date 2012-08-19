@@ -26,7 +26,7 @@ scanner.c: parser.h OptParser.l Types.h
 parser.h: parser.c
 
 parser.c: OptParser.y OptSecUtils.h Types.h
-	$(YACC)  -d -o parser.c OptParser.y
+	$(YACC)  -d -v -o parser.c OptParser.y
 
 LINKFILES := $(SECONDO_BUILD_DIR)/UserInterfaces/cmsg.o $(SECONDOPL_DIR)/SecondoPL.o $(LIBDIR)/SecondoInterface.o $(LIBDIR)/SecondoInterfaceGeneral.o $(LIBDIR)/libappCommon.a 
 

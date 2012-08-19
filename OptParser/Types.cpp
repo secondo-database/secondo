@@ -40,7 +40,9 @@ This is the source code of the data structure passed up in the bison parser tree
 
 OptParseStruct::OptParseStruct()
 {
-
+  groupbyclause = false;
+  aggregationalias = false;
+  aggregationoperator = false;
 }
 
 OptParseStruct::~OptParseStruct()
@@ -50,26 +52,37 @@ OptParseStruct::~OptParseStruct()
 /*
 ~mergeOptParseStruct~
 
-The method ~mergeOptParseStruct~ joins two OptParseStruct classes so the data can be passed up in the Parsertree.
+The method ~mergeStruct~ joins two OptParseStruct classes so the data can be passed up in the Parsertree.
 
 */
 
 void OptParseStruct::mergeStruct(OptParseStruct *optstruct)
 {
+  if (optstruct != NULL)
+  {  
+  // merge ErrorMessages
   std::string mErrorMessages = optstruct->getErrorMessages();
   addErrorMessage(mErrorMessages);
 
+  // merge NewNames
   std::set<std::string> mNewNames = optstruct->getNewNames();
   newNames.insert(mNewNames.begin(), mNewNames.end());
 
+  // merge usedAliases
   std::set<std::string> mUsedAliases = optstruct->getUsedAliases();
   usedAliases.insert(mUsedAliases.begin(), mUsedAliases.end());
 
-  // merge Attributes
+  // merge Attributes  
   std::multimap<std::string, std::string> mAttributes =
       optstruct->getMyAttributes();
   myAttributes.insert(mAttributes.begin(), mAttributes.end());
 
+  // merge myGroupClauseAttributes
+  std::multimap<std::string, std::string> mGroupClauseAttributes =
+      optstruct->getMyGroupClauseAttributes();
+  myGroupClauseAttributes.insert(mGroupClauseAttributes.begin(), 
+      mGroupClauseAttributes.end());
+  
   // merge Relations
   std::multimap<std::string, std::string> mRelations =
       optstruct->getMyRelations();
@@ -78,7 +91,28 @@ void OptParseStruct::mergeStruct(OptParseStruct *optstruct)
   // merge Operator stacks
   std::stack<std::string> mOperators = optstruct->getMyOperators();
   appendToOpStack(mOperators);
-
+  
+  // merge groupclause
+  bool groupbyClauseUsed = optstruct->getGroupbyClauseUsed();
+  if (groupbyClauseUsed)
+  {
+     setGroupClause(true);
+  }
+ 
+  // merge aggregationalias
+  bool aggregationAliasUsed = optstruct->getAggregationAlias();
+  if (aggregationAliasUsed)
+  {
+    setAggregationAlias(true); 
+  }
+  
+  // merge aggregationoperator
+  bool aggregationoperatorUsed = optstruct->getAggregationoperatorUsed();
+  if (aggregationoperatorUsed)
+  {
+    setAggregationoperatorUsed(true); 
+  }
+  }
 }
 
 void OptParseStruct::addNewName(std::string newname)
@@ -132,6 +166,49 @@ void OptParseStruct::addRelation(std::string relationname)
   addRelation(relationname, "");
 }
 
+/*
+~addGroupClauseAttribute~
+
+Adds the name and the alias of an groupattribute in the groupbyclause to the OptParseStruct.
+
+*/
+void OptParseStruct::addGroupClauseAttribute(std::string attributename, 
+     std::string attributealias)
+{
+     myGroupClauseAttributes.insert(std::pair<std::string, 
+     std::string>(attributename, attributealias));
+}
+
+void OptParseStruct::addGroupClauseAttribute(std::string attributename)
+{
+    addGroupClauseAttribute(attributename, "");
+}
+
+/*
+~addGroupAttribute~
+
+Adds the name and the alias of an attribute to the OptParseStruct.
+
+*/
+
+void OptParseStruct::addGroupAttribute(std::string attributename, 
+                     std::string attributealias)
+{
+     myGroupOpAttributes.insert(std::pair<std::string, 
+     std::string>(attributename, attributealias));
+}
+
+void OptParseStruct::addGroupAttribute(std::string attributename)
+{
+     addGroupAttribute(attributename, "");
+}
+
+/*
+~addAttribute~
+
+Adds the name and the alias of an attribute to the OptParseStruct.
+
+*/
 void OptParseStruct::addAttribute(std::string attributename,
     std::string attributealias)
 {
@@ -172,6 +249,7 @@ void OptParseStruct::addAttribute(std::string attributename,
     std::cout
         << "**** OptParseStruct::addAttribute pushed to operatorstack : "
         << opstack << endl;
+
     myOperators.push(opstack);
   }
 }
@@ -285,7 +363,7 @@ void OptParseStruct::checkAttributes()
     if (dbObjectNames.find(attributename) != dbObjectNames.end())
     {
       string errormessage = attributename
-          + " is an objectname which cannot be used. ";
+          + " is an objectname. ";
       std::cout << errormessage << std::endl;
       addErrorMessage(errormessage);
     }
@@ -354,7 +432,7 @@ void OptParseStruct::checkAttributes()
           {
             string errormessage = "Found " + attributename
                 + " in Relation " + (*it).first
-                + " but this Relation has an Alias. ";
+                + " but this Relation has an Alias defined.";
             addErrorMessage(errormessage);
           }
         }
@@ -362,7 +440,7 @@ void OptParseStruct::checkAttributes()
         {
           string errormessage =
               "Did not find any Relation which contained "
-                  + attributename + " and had no alias. ";
+                  + attributename + " and had no alias.";
           addErrorMessage(errormessage);
         }
       }
@@ -381,10 +459,6 @@ void OptParseStruct::checkAttributes()
       {
         string myAlias = (*itAlias).second;
         string myRel = (*itAlias).first;
-        std::cout << "*** gesuchter alias: "
-            << "aliasname, Relation : " << (*itAlias).first
-            << " Relationsalias : " << (*itAlias).second
-            << std::endl;
         if ((*itAlias).second == aliasname)
         {
           // check if attribute is in relation with that alias
@@ -392,9 +466,6 @@ void OptParseStruct::checkAttributes()
               dbAttributeNames.begin(); it
               != dbAttributeNames.end(); it++)
           {
-            std::cout << "*** Attributenames to check : "
-                << attributename << " for Relation :"
-                << (*it).first << std::endl;
             if ((*it).second.find(attributename)
                 != (*it).second.end() and ((*it).first
                 == (*itAlias).first))
@@ -408,7 +479,7 @@ void OptParseStruct::checkAttributes()
           {
             string errormessage = "Found Relation which had alias "
                 + aliasname + " but it had no attribute "
-                + attributename + ". ";
+                + attributename + ".";
 
           }
 
@@ -435,13 +506,14 @@ This method takes a stack<string> and appends it to the bottom of the local Oper
 */
 void OptParseStruct::appendToOpStack(stack<string> append)
 {
-  std::cout << "*** OptParseStruct::appendToOpStack : " << std::endl;
+  //std::cout << "*** OptParseStruct::appendToOpStack : " << std::endl;
+  if (!append.empty())
+  {
   stack<string> returnStack;
   stack<string> reverseStack;
   while (!append.empty())
   {
     string element = append.top();
-    std::cout << "Element :" << element << std::endl;
     reverseStack.push(element);
     append.pop();
   }
@@ -464,6 +536,7 @@ void OptParseStruct::appendToOpStack(stack<string> append)
     reverseStack.pop();
   }
   myOperators = returnStack;
+  }
 }
 
 void OptParseStruct::addOperatorSeparator()
@@ -484,25 +557,13 @@ stack<string> OptParseStruct::reverseOpStack(stack<string> opstack)
   return reverse;
 }
 
-/*
-~checkOperators~
-
-This method checks if there were operators used. If there are any, check them with their parameters
-with checkOperatorTypeMap2
-
-*/
 
 string OptParseStruct::checkOpStack(stack<string> operators)
 {
-  // debug
   std::stack<string> optemp;
-  std::cout
-      << "*** OptParseStruct::checkOpStack called with stack content : "
-      << std::endl;
   while (operators.size() > 0)
   {
     string element = operators.top();
-    std::cout << element << std::endl;
     optemp.push(element);
     operators.pop();
   }
@@ -519,7 +580,7 @@ string OptParseStruct::checkOpStack(stack<string> operators)
 
   std::stack<std::string> reversestack = reverseOpStack(operators);
   string operatorname;
-  std::cout << "Size of reversestack : " << reversestack.size() << std::endl;
+  //std::cout << "Size of reversestack : " << reversestack.size() << std::endl;
   // parameterlist for checkOperatorTypeMap2
   std::list<std::string> parameters;
   // reduce the stack until an error occurs or there is only one element left
@@ -528,7 +589,7 @@ string OptParseStruct::checkOpStack(stack<string> operators)
     //size_t pos = reversestack.top().find_firstof(":");
     // if topelement is operator then getOperatorType is called with it
     string element = reversestack.top();
-    cout << "aktuelles Element : " << element << endl;
+    //cout << "aktuelles Element : " << element << endl;
     if (element.find_first_of(":") == 8)
     {
       operatorname = element.substr(9);
@@ -568,8 +629,8 @@ string OptParseStruct::checkOpStack(stack<string> operators)
       }
     }
   }
-  std::cout << "*** OptParseStruct::checkOpStack returntype: " << type
-      << std::endl;
+  /*std::cout << "*** OptParseStruct::checkOpStack returntype: " << type
+      << std::endl;*/
 
   return type;
 }
@@ -583,7 +644,6 @@ This method tries to determine the type of the attribute by checking the given r
 
 string OptParseStruct::getAttributeType(string attribute)
 {
-  std::cout << "Trying to determine type of " << attribute << std::endl;
   size_t colonpos = attribute.find(":");
   string alias;
   string attributename;
@@ -617,16 +677,11 @@ string OptParseStruct::getAttributeType(string attribute)
   // got no alias
   else
   {
-    std::cout << attribute << " has no alias" << std::endl;
     attributename = attribute;
     string relationname;
-    std::cout << "Number of Relations in myRelations is : "
-        << myRelations.size() << std::endl;
     for (map<string, string>::iterator it = myRelations.begin(); it
         != myRelations.end(); ++it)
     {
-      std::cout << "checking in Relationname " << (*it).first
-          << std::endl;
       set<string> attributeNameList;
       optutils::getAttributeNames((*it).first, attributeNameList);
 
@@ -638,9 +693,6 @@ string OptParseStruct::getAttributeType(string attribute)
             and (!(*it).second.size() > 0))
         {
           relationname = (*it).first;
-          std::cout << "Found " << attributename << " in "
-              << relationname << std::endl;
-
           break;
         }
       }
@@ -665,7 +717,8 @@ method to check for nested Operators. Is being called in the Optparser.y when gi
 
 */
 void OptParseStruct::checkOperators()
-{
+{ 
+  /*
   std::cout << "*** OptParseStruct::checkOperators() " << std::endl;
   std::cout << "*** current stack :" << std::endl;
 
@@ -684,8 +737,8 @@ void OptParseStruct::checkOperators()
     savestack.pop();
   }
   // debug end
+  */
 
-  std::cout << "*** after stack" << std::endl;
   if (!myOperators.empty())
   {
     //    checkOpStack(myOperators);
@@ -715,7 +768,7 @@ void OptParseStruct::checkOperators()
         {
           opstack.pop();
         }
-      }
+      } 
       if (myOperators.empty() and opstack.size() > 0 and reverseOpStack(
           opstack).top().find(":") == 8)
       {
@@ -729,6 +782,37 @@ void OptParseStruct::checkOperators()
   }
 }
 
+/*
+~checkAggregation~
+
+This method is being called to check if the the structure of the aggregation
+operators is correct.
+
+*/
+void OptParseStruct::checkAggregation()
+{
+  // if there is a groupby clause, you must use alias for aggregation
+  if(groupbyclause && !aggregationalias && aggregationoperator)
+  {
+     addErrorMessage("If a groupby clause is used, you must use aliases \\
+for aggregationoperators.");
+  }
+  
+  // if there is a no groupby clause, you must not use alias for aggregation
+  if(!groupbyclause && aggregationalias && aggregationoperator)
+  {
+     addErrorMessage("If a no groupby clause is used, you may not use \\
+aliases for aggregation.");
+  }
+  // if there is a groupby clause, at least one aggregationoperator
+  if(groupbyclause && !aggregationoperator)
+  {
+     addErrorMessage("If a groupby clause is used, you must use at least\\
+ one aggregationoperator.");
+  }
+  
+}
+ 
 /*
 ~subqueriesAllowed~
 
@@ -794,6 +878,35 @@ void OptParseStruct::dumpAllInfo()
     }
   }
 
+  std::cout << "---------- groupbyattributes -----------" << endl;
+  for (map<string, string>::iterator ii = myGroupOpAttributes.begin(); ii
+      != myGroupOpAttributes.end(); ++ii)
+  {
+    if (((*ii).second).size() > 0)
+    {
+      std::cout << (*ii).second << ":" << (*ii).first << std::endl;
+    }
+    else
+    {
+      std::cout << (*ii).first << std::endl;
+    }
+  }
+
+
+  std::cout << "---------- groupclauseattributes -----------" << endl;
+  for (map<string, string>::iterator ii = myGroupClauseAttributes.begin(); ii
+      != myGroupClauseAttributes.end(); ++ii)
+  {
+    if (((*ii).second).size() > 0)
+    {
+      std::cout << (*ii).second << ":" << (*ii).first << std::endl;
+    }
+    else
+    {
+      std::cout << (*ii).first << std::endl;
+    }
+  }
+
   std::cout << "---------- relations -----------" << endl;
   for (map<string, string>::iterator ii = myRelations.begin(); ii
       != myRelations.end(); ++ii)
@@ -808,7 +921,7 @@ void OptParseStruct::dumpAllInfo()
     }
   }
   std::cout << "---------- operators -----------" << endl;
-  {
+
     string op;
     stack<string> backin;
     while (!myOperators.empty())
@@ -823,7 +936,20 @@ void OptParseStruct::dumpAllInfo()
       myOperators.push(backin.top());
       backin.pop();
     }
+  std::cout << "---------- aggregation and groupbyclause -----------" << endl;
+  if(groupbyclause)
+  {
+    std::cout << "groupbyclause is true" << endl; 
+  }  
+  if(aggregationalias)
+  {
+    std::cout << "aggregationalias is true" << endl; 
+  }  
+  if(aggregationoperator)
+  {
+    std::cout << "aggregationalias is true" << endl; 
+  }  
 
-  }
+
 }
 

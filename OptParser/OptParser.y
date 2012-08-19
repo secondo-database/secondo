@@ -23,11 +23,13 @@
  //paragraph [1] title: [{\Large \bf ]	[}]
  //[ae] [\"{a}]
  //[ue] [\"{u}]
+ 
   1 Overview
   This is the document describes the implementation of the OptParser.
   1.1 OptParser Bison Definition 
   The Bison Parser definition is described in this document.
- */
+
+*/
 
 %{
 #include <stdio.h>
@@ -77,8 +79,6 @@ For further checks, we have to extend this definition.
 
 %verbose
 %locations
-
-
 %union 
 {
  char* strval;
@@ -94,12 +94,12 @@ For further checks, we have to extend this definition.
 Define simple token and token holding a value.
 
 */
-%token TOKEN_SELECT "keyword select" TOKEN_FROM "keyword from" TOKEN_ERROR TOKEN_LET "keyword let" TOKEN_OPEN_BRACKET "symbol (" TOKEN_COMMA "symbol ," TOKEN_SQL "keyword sql" TOKEN_SQOPEN_BRACKET "symbol [" TOKEN_SQCLOSE_BRACKET "symbol ]" TOKEN_CLOSE_BRACKET "symbol )" TOKEN_DOT "symbol ." TOKEN_PUNCT "symbol '"  TOKEN_INDEX_TYPE "keyword indextype" TOKEN_INSERT "keyword insert" TOKEN_INTO "keyword into" TOKEN_VALUES "keyword values" TOKEN_DELETE "keyword delete" TOKEN_UPDATE "keyword update" TOKEN_SET "keyword set" TOKEN_TABLE "keyword table" TOKEN_CREATE "keyword create" TOKEN_COLUMNS "keyword columns" TOKEN_ON "keyword on" TOKEN_DROP "keyword drop" TOKEN_INDEX "keyword index" TOKEN_NULL "keyword null" TOKEN_NON_EMPTY "keyword nonempty" TOKEN_WHERE "keyword where" TOKEN_ORDER_BY "keyword orderby" TOKEN_FIRST "keyword first" TOKEN_LAST "keyword last" TOKEN_GROUP_BY "keyword groupby" TOKEN_AS "keyword as" TOKEN_COUNT "keyword count" TOKEN_AGGREGATE "keyword aggregate" TOKEN_ASC "keyword asc" TOKEN_DESC "keyword desc" TOKEN_COLON "symbol :"  TOKEN_ANY "keyword any" TOKEN_CUR_OPEN_BRACKET "symbol {"  TOKEN_CUR_CLOSE_BRACKET "symbol }"  TOKEN_FALSE "keyword false" TOKEN_TRUE "keyword true" TOKEN_SOME "keyword some" TOKEN_ROWID "keyword rowid" TOKEN_VALUE "keyword value" TOKEN_INTERSECTION "keyword intersection" TOKEN_UNION "keyword union" TOKEN_DISTANCE "keyword distance" TOKEN_NOT "keyword not" TOKEN_EXISTS "keyword exists"   TOKEN_IN "keyword in" TOKEN_LINE "keyword line" TOKEN_POINTS "keyword points" TOKEN_MPOINT "keyword mpoint" TOKEN_UREGION "keyword uregion" TOKEN_RTREE "keyword rtree" TOKEN_BTREE "keyword btree" TOKEN_HASH1 "keyword hash" TOKEN_OR "keyword or" TOKEN_AND "keyword and" TOKEN_BOOL "boolean value"  TOKEN_ALL "keyword all" TOKEN_DISTINCT "distinct"
+%token TOKEN_SELECT "keyword select" TOKEN_FROM "keyword from" TOKEN_ERROR TOKEN_LET "keyword let" TOKEN_OPEN_BRACKET "symbol (" TOKEN_COMMA "symbol ," TOKEN_SQL "keyword sql" TOKEN_SQOPEN_BRACKET "symbol [" TOKEN_SQCLOSE_BRACKET "symbol ]" TOKEN_CLOSE_BRACKET "symbol )" TOKEN_DOT "symbol ." TOKEN_PUNCT "symbol '"  TOKEN_INDEX_TYPE "keyword indextype" TOKEN_INSERT "keyword insert" TOKEN_INTO "keyword into" TOKEN_VALUES "keyword values" TOKEN_DELETE "keyword delete" TOKEN_UPDATE "keyword update" TOKEN_SET "keyword set" TOKEN_TABLE "keyword table" TOKEN_CREATE "keyword create" TOKEN_COLUMNS "keyword columns" TOKEN_ON "keyword on" TOKEN_DROP "keyword drop" TOKEN_INDEX "keyword index" TOKEN_NULL "keyword null" TOKEN_NON_EMPTY "keyword nonempty" TOKEN_WHERE "keyword where" TOKEN_ORDER_BY "keyword orderby" TOKEN_FIRST "keyword first" TOKEN_LAST "keyword last" TOKEN_GROUP_BY "keyword groupby" TOKEN_AS "keyword as" TOKEN_ASC "keyword asc" TOKEN_DESC "keyword desc" TOKEN_COLON "symbol :"  TOKEN_ANY "keyword any" TOKEN_CUR_OPEN_BRACKET "symbol {"  TOKEN_CUR_CLOSE_BRACKET "symbol }"  TOKEN_FALSE "keyword false" TOKEN_TRUE "keyword true" TOKEN_SOME "keyword some" TOKEN_ROWID "keyword rowid" TOKEN_VALUE "keyword value" TOKEN_INTERSECTION "keyword intersection" TOKEN_UNION "keyword union" TOKEN_DISTANCE "keyword distance" TOKEN_NOT "keyword not" TOKEN_EXISTS "keyword exists"   TOKEN_IN "keyword in" TOKEN_LINE "keyword line" TOKEN_POINTS "keyword points" TOKEN_MPOINT "keyword mpoint" TOKEN_UREGION "keyword uregion" TOKEN_RTREE "keyword rtree" TOKEN_BTREE "keyword btree" TOKEN_HASH1 "keyword hash" TOKEN_OR "keyword or" TOKEN_AND "keyword and" TOKEN_BOOL "boolean value"  TOKEN_ALL "keyword all" TOKEN_DISTINCT "distinct" 
 
-%token<strval> TOKEN_ID "identifier" TOKEN_VARIABLE "variable" TOKEN_DIGIT "digit" TOKEN_smallLetter "small letter" TOKEN_LETTER "letter" TOKEN_SYMBOL "symbol" TOKEN_TEXT "text" TOKEN_CONST "keyword const" TOKEN_STAR "symbol *" TOKEN_PLUS "symbol +" TOKEN_MINUS "symbol -" TOKEN_SMALL_THAN "symbol <" TOKEN_SMALL_THAN_EQUAL "symbol <=" TOKEN_EQUAL "symbol =" TOKEN_GREATER_THAN_EQUAL "symbol >=" TOKEN_GREATER_THAN "symbol >" TOKEN_HASH "symbol #" TOKEN_DOUBLE_BRACKET "symbol <>" TOKEN_INT "integer value" TOKEN_STRING "string value" TOKEN_REAL "real value"
+%token<strval> TOKEN_ID "identifier" TOKEN_VARIABLE "variable" TOKEN_DIGIT "digit" TOKEN_smallLetter "small letter" TOKEN_LETTER "letter" TOKEN_SYMBOL "symbol" TOKEN_TEXT "text" TOKEN_CONST "keyword const" TOKEN_STAR "symbol *" TOKEN_PLUS "symbol +" TOKEN_MINUS "symbol -" TOKEN_SMALL_THAN "symbol <" TOKEN_SMALL_THAN_EQUAL "symbol <=" TOKEN_EQUAL "symbol =" TOKEN_GREATER_THAN_EQUAL "symbol >=" TOKEN_GREATER_THAN "symbol >" TOKEN_HASH "symbol #" TOKEN_DOUBLE_BRACKET "symbol <>" TOKEN_INT "integer value" TOKEN_STRING "string value" TOKEN_REAL "real value" TOKEN_COUNT "operator count" TOKEN_AGGREGATE "operator aggregate" TOKEN_EXTRACT "operator extract" TOKEN_AVG "operator avg" TOKEN_SUM "operator sum" TOKEN_MIN "operator min" TOKEN_MAX "operator max" TOKEN_VAR "operator var"  TOKEN_OPERATOR "operator"
 
-%type<attrset> attribute attributeboolexpr attributeexpr attributeexprlist attributename compareoperator const firstclause groupbyattributelist groupbyclause insertquery integer mquery orderbyclause orderbyattribute orderbyattributelist predicate predicatelist quant query relation relclause relationlist result resultlist selclause sqlclause subquerypred transform transformclause transformlist whereclause operator updatequery value valuelist updateexpression deletequery createquery
-%type<strval> identifier relationname newname  
+%type<attrset> aggregation aggregationoperator asclause attribute attributeboolexpr attributeexpr attributename compareoperator const createquery deletequery dropquery firstclause groupbyclause groupbyattribute groupclauseattribute groupclauseattributelist insertquery integer mquery operatorclause orderbyclause orderbyattribute orderbyattributelist predicate predicatelist quant query querylist relation relclause relationlist result resultlist selclause sqlclause subquerypred transform transformclause transformlist whereclause operator updatequery value valuelist updateexpression      
+%type<strval> aggregationoperatornames identifier newname relationname   
 
 %start start
 
@@ -115,46 +115,105 @@ start : sqlclause
               $1->dumpAllInfo();
          }
 ;
+aggregation : aggregationoperator TOKEN_OPEN_BRACKET groupbyattribute TOKEN_CLOSE_BRACKET asclause
+              {
+               $3->mergeStruct($5);
+               $$ = $3;
+              }
+            | TOKEN_COUNT TOKEN_OPEN_BRACKET distinct groupbyattribute TOKEN_CLOSE_BRACKET asclause
+              {
+               $4->mergeStruct($6);
+               $$ = $4;               
+              }
+            | TOKEN_COUNT TOKEN_OPEN_BRACKET distinct TOKEN_STAR TOKEN_CLOSE_BRACKET asclause
+              {                
+                 $$ = $6;
+              }
+;
 
+aggregationoperator : TOKEN_MAX
+                      {
+                         $$ = new OptParseStruct();
+                         $$->addToOpStack($1);
+                      }
+                    | TOKEN_MIN
+                      {
+                         $$ = new OptParseStruct();
+                         $$->addToOpStack($1);
+                      }
+                    | TOKEN_EXTRACT
+                      {
+                         $$ = new OptParseStruct();
+                         $$->addToOpStack($1);
+                      }
+                    | TOKEN_AVG
+                      {
+                         $$ = new OptParseStruct();
+                         $$->addToOpStack($1);
+                      }
+                    | TOKEN_SUM
+                      {
+                         $$ = new OptParseStruct();
+                         $$->addToOpStack($1);
+                      }
+                    | TOKEN_VAR
+                      {
+                         $$ = new OptParseStruct();
+                         $$->addToOpStack($1);
+                      }
+;
+
+aggregationoperatornames : TOKEN_MAX
+                         | TOKEN_MIN
+                         | TOKEN_EXTRACT
+                         | TOKEN_AVG
+                         | TOKEN_SUM
+                         | TOKEN_VAR
+;
+
+asclause : TOKEN_AS newname
+           {
+               $$ = new OptParseStruct();
+               $$->setAggregationAlias(true);
+           }
+         | /* epsilon */
+           {
+               $$ = new OptParseStruct();
+           }
+;
 
 attribute : attributename
             {
                $$ = $1;
             }
           | TOKEN_ROWID
-            { 
-             opterror("rowid feature not yet implemented in Secondo optimizer");
-            }            
+            {
+                string errormessages = "Squared bracket around expression need to be closed.";
+                opterror(errormessages.c_str());
+                YYABORT;
+            }      
 ;
 
-// TODO predicate may not compare 2 constants catch that
 attributeboolexpr : attribute compareoperator attributeexpr 
                     {
-                         $1->mergeStruct($2);
-                         $1->mergeStruct($3);
-                         $1->mergeStruct($3);
-                         $$ = $1;     
+                         $2->mergeStruct($1);
+                         $2->mergeStruct($3);
+                         $$ = $2;     
                     }
-                  | attribute compareoperator attributeexpr 
-                    {
-                         //TODO merge and pass up
-                         $$ = new OptParseStruct();
-                    }  
                   | attributeboolexpr TOKEN_AND attributeboolexpr 
                     { 
                          $$ = new OptParseStruct();
                     }
                   | attributeboolexpr TOKEN_OR attributeboolexpr 
-                    { 
+                    {
                           $$ = new OptParseStruct();
                     }
                   | TOKEN_NOT attributeboolexpr 
-                    { 
+                    {
                           $$ = new OptParseStruct();
                     }
 ;
 
-//TODO on this level operator checks should be done
 attributeexpr : attribute
                 {
                     $$ = $1;
@@ -167,60 +226,15 @@ attributeexpr : attribute
                 {
                    $$ = $2;
                 }
-              // infix operator
-              | attributeexpr operator attributeexpr
-                {   
-                    // pass Attributes to operator
-                    $2->mergeStruct($1);
-                    $2->mergeStruct($3);
-                    $$ = $2;
-                }
-              // prefix operator
-              | attributeexpr operator 
-                {                    
-                    $2->mergeStruct($1);
-                    $$ = $2;
-                }
-              | operator TOKEN_OPEN_BRACKET attributeexprlist TOKEN_CLOSE_BRACKET
+              | operatorclause
                 {
-                    $1->mergeStruct($3);
-                    $$ = $1;
-                    
-                }
-              // postfixbrackets without parameter      
-              | operator TOKEN_OPEN_BRACKET TOKEN_CLOSE_BRACKET
-                {
-                    $$ = $1;                    
-                }
-              // postfixbrackets with parameter      
-              | operator TOKEN_OPEN_BRACKET TOKEN_STAR TOKEN_CLOSE_BRACKET
-                {
-                    $$ = $1;           
-                }  
-              | attributeexpr compareoperator attributeexpr
-                {
-                  
-                       $2->mergeStruct($1);
-                       $2->mergeStruct($3);
-                       $$ = $2;
-                }            
-;
-
-attributeexprlist : attributeexpr
-                    {
-                         $$ = $1;     
-                    }
-                  | attributeexprlist TOKEN_COMMA attributeexpr
-                    {
-                         $1->mergeStruct($3);
-                         $$ = $1;     
-                    }
+                   $$ = $1;
+                } 
 ;
 
 attributename : identifier
                 {                
-                 $$ = new OptParseStruct();
-                 // "" empty parameter means no alias              
+                 $$ = new OptParseStruct();         
                  $$->addAttribute($1);
                 }
               | newname TOKEN_COLON identifier
@@ -274,8 +288,6 @@ compareoperator : TOKEN_SMALL_THAN
                   }
 ;
 
-
-//TODO Werte einfügen und hochreichen
 const : TOKEN_BOOL
         { 
           $$ = new OptParseStruct();
@@ -287,33 +299,30 @@ const : TOKEN_BOOL
         }
       | TOKEN_REAL
         { 
-          // debug
-          cout << "Realwert : "<< $1 << endl;
-          // debug end
           $$ = new OptParseStruct(); 
           $$->addToOpStack("real");
         }
       | TOKEN_STRING
         { 
-        // debug
-          cout << "String : " << $1 << endl;
-          // debug end
           $$ = new OptParseStruct(); 
           $$->addToOpStack("string");
         }
       | TOKEN_TEXT
         {
-          // debug
-          cout << "Text : " << $1 << endl;
-          // debug end
           $$ = new OptParseStruct();
           $$->addToOpStack("text");
         }
 ;
 
 createquery : TOKEN_CREATE TOKEN_TABLE newname TOKEN_COLUMNS TOKEN_SQOPEN_BRACKET columnlist TOKEN_SQCLOSE_BRACKET
+              {
+               $$ = new OptParseStruct();
+              }
+
             | TOKEN_CREATE TOKEN_INDEX TOKEN_ON relationname TOKEN_COLUMNS indexclause
-          
+              {
+               $$ = new OptParseStruct();
+              }
 ;
 
 datatype : TOKEN_INT
@@ -339,71 +348,99 @@ distinct : TOKEN_DISTINCT
 ;
 
 dropquery : TOKEN_DROP TOKEN_TABLE relationname
+            {
+               $$ = new OptParseStruct();
+            }
           | TOKEN_DROP TOKEN_INDEX indexname
+            {
+               $$ = new OptParseStruct();
+            }
           | TOKEN_DROP TOKEN_INDEX TOKEN_ON relationname indexclause
+            {
+               $$ = new OptParseStruct();
+            }
 ;
 
 firstclause : TOKEN_LAST TOKEN_INT
               {
-                    // debug
-                    cout << "firstclause : TOKEN_LAST TOKEN_INT" << endl; 
                     $$ = new OptParseStruct();
               }
             | TOKEN_FIRST TOKEN_INT
               {
-                    // debug
-                    cout << "firstclause : TOKEN_FIRST TOKEN_INT" << endl; 
                     $$ = new OptParseStruct();
               }
             | /* epsilon */
               {
-                    // debug
-                    cout << "firstclause : /* epsilon */" << endl; 
                     $$ = new OptParseStruct();
               }
 ;
 
-groupbyattributelist: attribute
-                      {
-                         $$=$1
-                      }
-                    | groupbyattributelist TOKEN_COMMA attribute
-                      {
-                         //TODO merge structures
-                         $$=$1
-                      }
+groupbyattribute : newname
+                   {                
+                      $$ = new OptParseStruct();
+                      $$->addGroupAttribute($1);
+                      $$->addAttribute($1);
+
+                   }
+                  | newname TOKEN_COLON identifier
+                    {
+                         $$ = new OptParseStruct();
+                         $$->addGroupAttribute($3,$1);
+                         $$->addAttribute($3,$1);
+                    }
 ;
                     
-groupbyclause : TOKEN_GROUP_BY TOKEN_SQOPEN_BRACKET groupbyattributelist TOKEN_SQCLOSE_BRACKET
-                { 
-                    // debug
-                    cout << "groupbyclause : TOKEN_GROUP_BY TOKEN_SQOPEN_BRACKET groupbyattributelist TOKEN_SQCLOSE_BRACKET" << endl;                   
-                    $$ = $3 ; 
+groupbyclause : TOKEN_GROUP_BY TOKEN_SQOPEN_BRACKET groupclauseattributelist TOKEN_SQCLOSE_BRACKET
+                {     
+                    $3->setGroupClause(true);            
+                    $$ = $3 ;
                 }
-              | TOKEN_GROUP_BY attribute 
+              | TOKEN_GROUP_BY groupclauseattribute 
                 { 
-                    // debug
-                    cout << "groupbyclause : TOKEN_GROUP_BY attribute" << endl;                  
+                    $2->setGroupClause(true);
                     $$ = $2;
                 }
-              | /* epsilon */
+              | TOKEN_GROUP_BY TOKEN_SQOPEN_BRACKET TOKEN_SQCLOSE_BRACKET 
                 { 
-                    // debug
-                    cout << "groupbyclause : /* epsilon */" << endl;                    
-                    $$ = new OptParseStruct(); 
+                    $$ = new OptParseStruct();
+                    $$->setGroupClause(true);                    
                 }
+              | TOKEN_GROUP_BY TOKEN_SQOPEN_BRACKET groupclauseattributelist
+                {
+                 string errormessages = "Squared bracket around expression needs to be closed.";
+                 opterror(errormessages.c_str());
+                 YYABORT;
+                }
+              | /* epsilon */
+                {
+                    $$ = new OptParseStruct();
+                }          
+;
+
+groupclauseattribute : newname
+                       {                
+                         $$ = new OptParseStruct();
+                         $$->addGroupClauseAttribute($1);
+                       }
+                     | newname TOKEN_COLON identifier
+                       {
+                         $$ = new OptParseStruct();
+                         $$->addGroupClauseAttribute($3,$1);
+                       }
+;
+
+groupclauseattributelist: groupclauseattribute
+                          {
+                              $$=$1;
+                          }
+                        | groupclauseattributelist TOKEN_COMMA groupclauseattribute
+                          {
+                              $$=$1;
+                          }
 ;
 
 identifier : TOKEN_ID
              { 
-               if (optutils::isValidID($1))
-               {
-                    cout << "--- " << $1 << " is a valid ID" << endl;
-               }
-               else
-               {
-                    cout << "--- " << $1 << " is not an valid ID" << endl;
-               }
                $$ = $1;
              }
 ;
@@ -436,24 +473,15 @@ insertquery : TOKEN_INSERT TOKEN_INTO relation TOKEN_VALUES valuelist
 integer : TOKEN_INT
           {              
               $$ = new OptParseStruct();
-              // debug
-	          cout << "Integer : " << $1 << endl;
-	          // debug end
               $$->addToOpStack("int");
           }
         | TOKEN_MINUS TOKEN_INT
           {
-              // debug
-	          cout << "Integer : -" << $1 << endl;
-	          // debug end
               $$ = new OptParseStruct();
               $$->addToOpStack("int");
           }
         | TOKEN_PLUS TOKEN_INT
           {
-              // debug
-	          cout << "Integer : +" << $1 << endl;
-	          // debug end
               $$ = new OptParseStruct();
               $$->addToOpStack("int");
           }      
@@ -464,12 +492,33 @@ mquery : query
           $$ = $1;
          }
        | insertquery
+         {
+          $$ = $1;
+         }
        | updatequery 
+         {
+          $$ = $1;
+         }
        | deletequery
+         {
+          $$ = $1;
+         }
        | createquery
+         {
+          $$ = $1;
+         }
        | dropquery
+         {
+          $$ = $1;
+         }
        | TOKEN_UNION TOKEN_SQOPEN_BRACKET querylist TOKEN_SQCLOSE_BRACKET
+         {
+          $$ = $3;
+         }
        | TOKEN_INTERSECTION TOKEN_SQOPEN_BRACKET querylist TOKEN_SQCLOSE_BRACKET
+         {
+          $$ = $3;
+         }
 ;
 
 nestedlist : TOKEN_OPEN_BRACKET nestedlistelementlist TOKEN_CLOSE_BRACKET
@@ -489,12 +538,11 @@ nestedlistelement: nestedlist
 ;
 
 newname : TOKEN_ID
-          {
-               $$ = $1;
-          }
+        | aggregationoperatornames
+        | TOKEN_OPERATOR
 ;
 
-operator : TOKEN_ID
+operator : TOKEN_OPERATOR
            {
                $$ = new OptParseStruct();               
                $$->addToOpStack($1);
@@ -521,9 +569,47 @@ operator : TOKEN_ID
            }
 ;
 
+operatorclause : operator
+                {
+                    $$ = $1;
+                }
+              // infix operator
+               | attributeexpr operator attributeexpr
+                 {   
+                    // pass Attributes to operator
+                    $2->mergeStruct($1);
+                    $2->mergeStruct($3);
+                    $$ = $2;
+                 }
+               // prefix operator
+               | attributeexpr operator 
+                 {                    
+                     $2->mergeStruct($1);
+                     $$ = $2;
+                 }
+              // postfixbrackets without parameter      
+               | operator TOKEN_OPEN_BRACKET TOKEN_CLOSE_BRACKET
+                 {
+                     $$ = $1;                    
+                 }
+               // postfixbrackets with one or more parameters      
+               | operator TOKEN_OPEN_BRACKET attributeexpr TOKEN_CLOSE_BRACKET
+                 {
+                     $1->mergeStruct($3);
+                     $$ = $1;           
+                 }  
+               // unary operator
+               | attributeexpr compareoperator attributeexpr
+                 {
+                  
+                    $2->mergeStruct($1);
+                    $2->mergeStruct($3);
+                    $$ = $2;
+                 }         
+;
+
 orderbyattribute: attribute
                   {
-                    //TODO check if it is a forbidden operator
                     $$=$1;
                   }
 ;
@@ -534,27 +620,26 @@ orderbyattributelist : orderbyattribute
                        }
                      | orderbyattributelist TOKEN_COMMA orderbyattribute
                        {
-                         //TODO merge $1 and $3
                           $$=$1;
                        }
 ;
 
-orderbyclause : TOKEN_ORDER_BY TOKEN_SQOPEN_BRACKET orderbyattributelist TOKEN_SQCLOSE_BRACKET
+orderbyclause : TOKEN_ORDER_BY TOKEN_SQOPEN_BRACKET orderbyattributelist sortorder TOKEN_SQCLOSE_BRACKET
                 { 
-                    // debug
-                    cout << "orderbyclause : TOKEN_ORDER_BY TOKEN_SQOPEN_BRACKET orderbyattributelist TOKEN_SQCLOSE_BRACKET" << endl;                  
                     $$ = $3 ;
                 }
-              | TOKEN_ORDER_BY orderbyattribute
-                { 
-                    // debug
-                    cout << "orderbyclause : TOKEN_ORDER_BY orderbyattribute" << endl;                  
+              | TOKEN_ORDER_BY TOKEN_SQOPEN_BRACKET orderbyattributelist
+                 {
+                  string errormessages = "Squared bracket around expression needs to be closed.";
+                  opterror(errormessages.c_str());
+                  YYABORT;
+                 }  
+              | TOKEN_ORDER_BY orderbyattribute sortorder
+                {     
                     $$ = $2 ;
                 }
               | /* epislon */
                 { 
-                    // debug
-                    cout << "orderbyclause : /* epislon */" << endl;                                  
                     $$ = new OptParseStruct(); 
                 }
 ;
@@ -577,27 +662,34 @@ predicatelist : predicate
               | predicatelist TOKEN_COMMA predicate
                 {
                     $$ = $1
-                    // TODO merge structures
                 }
 ;
 
 query : TOKEN_SELECT distinct selclause TOKEN_FROM relclause whereclause groupbyclause orderbyclause firstclause
-            { /* TODO 
-               - if groupby is used, alias maybe used for attribute, otherwise not
-            */
-               // merge all OptParseStructs
-               $7->mergeStruct($8);
-               $6->mergeStruct($7);
-               $3->mergeStruct($6);
-               $5->mergeStruct($3);
-               $5->checkAttributes();
-               $5->checkOperators();
-               $$ = $5;
-            }
+        { 
+          // merge all OptParseStructs
+          $7->dumpAllInfo();
+          $7->mergeStruct($8);          
+          $6->mergeStruct($7);
+          $3->mergeStruct($6);                    
+          $5->mergeStruct($3);
+          $5->checkAttributes();
+          $5->checkOperators();
+          $5->checkAggregation();
+          $5->dumpAllInfo();
+          $$ = $5;
+        }
 ;
 
 querylist : query
+            {
+               $$ = $1;
+            }
           | querylist TOKEN_COMMA query
+            {  
+               $1->mergeStruct($3);
+               $$ = $1;
+            }
 ;          
 
 quant : TOKEN_ANY
@@ -617,8 +709,7 @@ quant : TOKEN_ANY
 relation : relationname
            { 
                $$ = new OptParseStruct();
-               
-               $$->addRelation(($1));
+               $$->addRelation($1);
            }
          | relationname TOKEN_AS newname 
            { 
@@ -630,15 +721,17 @@ relation : relationname
 
 relclause : relation
             {             
-               // debug
-               cout << "relclause : relation" << endl;             
                $$ = $1;
             }
            | TOKEN_SQOPEN_BRACKET relationlist TOKEN_SQCLOSE_BRACKET
-             {
-               // debug
-               cout << "relclause : TOKEN_SQOPEN_BRACKET relationlist TOKEN_SQCLOSE_BRACKET" << endl;                         
+             {                      
                $$ = $2;
+             }
+           | TOKEN_SQOPEN_BRACKET relationlist
+             {
+              string errormessages = "Squared bracket around relationlist needs to be closed.";
+              opterror(errormessages.c_str());
+              YYABORT;
              }
 ;
 
@@ -661,25 +754,28 @@ relationname : TOKEN_ID
 
 result : attribute 
          {
-          $$ = $1;
+           $$ = $1;
          }
              
        | attributeexpr TOKEN_AS newname
          {
-             $$ = $1;
-             $$->addUsedAlias($3);           
-             $1->dumpAllInfo();
+           $$ = $1;
+           $$->addUsedAlias($3);           
+           $1->dumpAllInfo();
+         }
+       | aggregation
+         { 
+           $1->setAggregationoperatorUsed(true);
+           $$ = $1;
          }
 ;
 
 resultlist : result
              {
                $$ = $1;
-               $1->dumpAllInfo();
              }
            | resultlist TOKEN_COMMA result
              {
-               //TODO $1->addOperator( addseparator if both have operatoras)
                $1->addOperatorSeparator();
                $1->mergeStruct($3);
                $$ = $1;
@@ -693,21 +789,36 @@ selclause : TOKEN_STAR
                cout << "selclause: TOKEN_STAR " << endl;
                $$ = new OptParseStruct();
             }
-           | result
-             {
+            | result
+              {
                // debug
                cout << "selclause: result" << endl;
                $$ = $1;
-             }
-             
-           | TOKEN_SQOPEN_BRACKET resultlist TOKEN_SQCLOSE_BRACKET
+              }             
+            | TOKEN_SQOPEN_BRACKET resultlist TOKEN_SQCLOSE_BRACKET
              {
                // debug
                cout << "selclause: TOKEN_SQOPEN_BRACKET resultlist TOKEN_SQCLOSE_BRACKET" << endl;
                $$ = $2;
-             }            
+             }
+            | TOKEN_SQOPEN_BRACKET resultlist
+             {
+               string errormessages = "Squared brackets need to be closed.";
+               opterror(errormessages.c_str());
+               YYABORT;
+             }  
+            | resultlist TOKEN_COMMA result
+             {
+               string errormessages = "If there is more than one expression in the selection clause it needs to be enclosed in squared brackets.";
+               opterror(errormessages.c_str());
+               YYABORT;
+             }
 ;
 
+sortorder : TOKEN_ASC
+          | TOKEN_DESC
+          | /* Epsilon */
+;
 
 sqlclause :  TOKEN_LET newname mquery
              {
@@ -733,11 +844,10 @@ sqlclause :  TOKEN_LET newname mquery
             }
 ;
 
-//TODO check if return type is needed
 subquerypred : attributeexpr TOKEN_IN TOKEN_OPEN_BRACKET query TOKEN_CLOSE_BRACKET
                {
                     $$=$4
-               } //TODO compare number of returned attributes
+               }
              | attributeexpr TOKEN_NOT TOKEN_IN TOKEN_OPEN_BRACKET query TOKEN_CLOSE_BRACKET
                {
                    $$=$1
@@ -807,6 +917,12 @@ whereclause : TOKEN_WHERE predicate
                     cout << "whereclause : TOKEN_WHERE TOKEN_SQOPEN_BRACKET predicatelist TOKEN_SQCLOSE_BRACKET" << endl;               
                     $$ = $3;
                }
+             | TOKEN_WHERE TOKEN_SQOPEN_BRACKET predicatelist
+               {
+                string errormessages = "Squared bracket around expression need to be closed.";
+                opterror(errormessages.c_str());
+                YYABORT;
+               }  
              | /* epsilon */
               { 
                $$ = new OptParseStruct(); 
@@ -814,7 +930,13 @@ whereclause : TOKEN_WHERE predicate
 ;
 
 updateexpression : const
+                   {
+                    $$ = new OptParseStruct();
+                   }
                  | nestedlist
+                   {
+                    $$ = new OptParseStruct();
+                   }
 ;
 
 updatequery : TOKEN_UPDATE relation TOKEN_SET transformclause whereclause

@@ -45,7 +45,6 @@ Use the prolog nested list plnl.
 extern NestedList* plnl;
 
 const static string OPSTACKSEPARATOR = "---";
-
 /*
 Class which represents a multipurpose structure which passes information from the parser leafs up to the root of the parser. It also includes the needed checks.
 
@@ -59,9 +58,19 @@ class OptParseStruct {
   std::multimap<std::string, std::string> myAttributes;
   // relationname, alias
   std::multimap<std::string, std::string> myRelations;
-
+  // groupybclauseaattribuename, alias
+  std::multimap<std::string, std::string> myGroupClauseAttributes;
+  // stores attributes and alias from within aggregation op stack of strings
+  std::multimap<std::string, std::string> myGroupOpAttributes;
   // stores operators and parameters in a stack of strings
   std::stack<std::string> myOperators;
+  // is there a groupclose in the query
+  bool groupbyclause;
+  // is there an aggregationoperator alias in the query
+  bool aggregationalias;
+  // is there a aggregationoperator
+  bool aggregationoperator;
+
 public:
   OptParseStruct();
   ~OptParseStruct();
@@ -96,7 +105,7 @@ Adds a new name to the OptParseStruct which can be an alias or a new object name
 /*
 ~addAttribute~
 
-Adds the name and the alias of an attribute to the OptParseStruct. A empty string must be given for alias if there is no alias
+Adds the name and the alias of an attribute to the OptParseStruct.
 
 */
   void addAttribute(std::string attributename, std::string attributealias);
@@ -104,9 +113,60 @@ Adds the name and the alias of an attribute to the OptParseStruct. A empty strin
   void addAttribute(std::string attributename);
 
 /*
+~addGroupClauseAttribute~
+
+Adds the name and the alias of an groupattribute in the groupbyclause to the OptParseStruct.
+
+*/
+ void addGroupClauseAttribute(std::string attributename, 
+ std::string attributealias);
+
+ void addGroupClauseAttribute(std::string attributename);
+
+/*
+~setGroupClause~
+
+Makes it possible to check if there is a groupby clause in the query.
+
+*/
+ void setGroupClause(bool value) {
+    groupbyclause = value;
+ }
+ 
+/*
+~setAggregationAlias~
+
+Makes it possible to check if there is a alias for a aggregationterm was used in the query.
+
+*/
+ void setAggregationAlias(bool value) {
+    aggregationalias = value;
+ } 
+ 
+/*
+~setAggregationoperatorUsed~
+
+Makes it possible to check if there was an aggregationoperator used in the query.
+
+*/
+ void setAggregationoperatorUsed(bool value) {
+    aggregationoperator = value;
+ } 
+ 
+/*
+~addGroupAttribute~
+
+  Adds the name and the alias of an groupattribute in selclause to the OptParseStruct.
+
+*/
+void addGroupAttribute(std::string attributename, std::string attributealias);
+
+void addGroupAttribute(std::string attributename);
+
+/*
 ~addRelation~
 
-Adds the name and of a Relation to the OptParseStruct.
+  Adds the name and of a Relation to the OptParseStruct.
 
 */
   void addRelation(std::string relationname);
@@ -142,7 +202,8 @@ check if attributes in myAttributes do exist in the given Relations
 /*
 ~appendToOperators~
 
-This method takes a stack<string> and appends it to the bottom of the local Operators stack.
+This method takes a stack<string> and appends it to the bottom of the local 
+Operators stack.
 
 */
   void appendToOpStack(stack<string> append);
@@ -168,7 +229,8 @@ A recursive Function which takes a string stack and tries to return
 /*
 ~getAttributeType~
 
-This method tries to determine the type of the attribute by checking the given relations.
+This method tries to determine the type of the attribute by checking 
+the given relations.
 
 */
 
@@ -177,11 +239,23 @@ This method tries to determine the type of the attribute by checking the given r
 /*
 ~checkOperators~
 
-This method is being called to check the myOperators stack if it does return one valid type. Calls the recursive ~checkOpStack~
-method to check for nested Operators. Is being called in the Optparser.y when given relations are available.
+This method is being called to check the myOperators stack if it does return 
+one valid type. Calls the recursive ~checkOpStack~ method to check for nested 
+Operators. Is being called in the Optparser.y when given relations are 
+available.
 
 */
   void checkOperators();
+
+
+/*
+~checkAggregation~
+
+This method is being called to check if the the structure of the aggregation
+operators is correct.
+
+*/
+  void checkAggregation();
 
   void dumpAllInfo();
 
@@ -198,6 +272,15 @@ method to check for nested Operators. Is being called in the Optparser.y when gi
     return myAttributes;
   }
 
+  std::multimap<std::string, std::string> getMyGroupClauseAttributes() const {
+    return myGroupClauseAttributes;
+  }
+  
+    std::multimap<std::string, std::string> getMyGroupOpAttributes() const {
+    return myGroupOpAttributes;
+  }
+  
+
   std::multimap<std::string, std::string> getMyRelations() const {
     return myRelations;
   }
@@ -211,8 +294,23 @@ method to check for nested Operators. Is being called in the Optparser.y when gi
   }
 
   std::set<std::string> getUsedAliases() const {
-    return newNames;
+    return usedAliases;
   }
+  
+  bool getGroupbyClauseUsed() const {
+    return groupbyclause;
+  }
+  
+  bool getAggregationAlias() const {
+    return aggregationalias;
+  }
+  
+  bool getAggregationoperatorUsed() const {
+    return aggregationoperator;
+  }
+  
 };
+  
+
 #endif
 
