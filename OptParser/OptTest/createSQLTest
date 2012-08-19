@@ -1,0 +1,12 @@
+#!/bin/bash
+
+cp makefile /home/secondo/secondo/OptParser/OptTest
+cp regSecondo.c /home/secondo/secondo/OptParser/OptTest
+cp StartTest /home/secondo/secondo/OptParser/OptTest
+cp 30/OptTest.java /home/secondo/secondo/OptParser/OptTest/30
+cp 30/makefile /home/secondo/secondo/OptParser/OptTest/30
+cp 30/ParserFile.java /home/secondo/secondo/OptParser/OptTest/30
+cp 30/sqltest.tspec /home/secondo/secondo/OptParser/OptTest
+cd /home/secondo/secondo/OptParser/OptTest
+make
+StartTest -c sqltest.tspec

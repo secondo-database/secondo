@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cp 30/optparse.tspec /home/secondo/secondo/OptParser/OptTest
+cd /home/secondo/secondo/OptParser/OptTest
+make
+StartTest -c optparse.tspec

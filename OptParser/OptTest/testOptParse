@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cd /home/secondo/secondo/OptParser/OptTest
+make
+StartTest optparse.test
