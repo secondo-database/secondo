@@ -43,8 +43,12 @@ declare -a MSECARR=($(echo $PARALLEL_SECONDO | tr ':' ' '))
 for MINISEC in ${MSECARR[*]}; do
   MINISEC="${MINISEC}/${PARALLEL_SECONDO_DATASERVER_NAME}/${PARALLEL_SECONDO_MINI_NAME}"
   CONFFILE="${MINISEC}/bin/SecondoConfig.ini"
-  let MSCNT++
   SCRNAME="secmon${MSCNT}"
+  let MSCNT++
+  if [ ! -f $CONFFILE ]; then
+    echo "Error! The Secondo Configure File $CONFFILE doesn't exist. "
+    continue
+  fi
 
   # Create a temporal file to record the configuration file path
   # In case another user also trying to use this configuration to start up Monitors
@@ -98,7 +102,7 @@ tor -s"
 done
 
 LIP=$(get_localIP)
-if [ ${SMCNT} -le 0 ]; then
+if [ ${SMCNT} -le 0 -o ${SMCNT} -ne ${MSCNT} ]; then
   echo "ERROR! $LIP Start up ${SMCNT} Secondo Monitor Screens, expect ${MSCNT} Monitors." >&2
   exit -1
 else 

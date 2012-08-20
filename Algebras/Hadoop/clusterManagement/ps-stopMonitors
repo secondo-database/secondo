@@ -44,6 +44,11 @@ for MINISEC in ${MSECARR[*]}; do
 #  CONFFILE="${MINISEC}/${PARALLEL_SECONDO_MINI_DIR}/bin/SecondoConfig.ini"
   MINISEC="${MINISEC}/${PARALLEL_SECONDO_DATASERVER_NAME}/${PARALLEL_SECONDO_MINI_NAME}"
   CONFFILE="${MINISEC}/bin/SecondoConfig.ini"
+  if [ ! -f $CONFFILE ]; then
+    echo "The configure file $CONFFILE doesn't exist, cannot stop the corresponding Monitor." >&2
+    continue
+  fi
+
 
   LFNAME="/tmp/SECMON_$(get_secPort $CONFFILE)"
   REGNAME="/tmp/$(get_regFileName $CONFFILE)"
