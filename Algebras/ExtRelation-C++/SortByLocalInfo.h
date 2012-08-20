@@ -42,7 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Tupleorder.h"
 
 #ifndef SORTBYLOCALINFO_
-#define SORTBYLOCALINFO
+#define SORTBYLOCALINFO_
 #ifndef USE_PROGRESS
 
 class SortByLocalInfo
