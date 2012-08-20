@@ -27,18 +27,14 @@ public class MainPane extends JComponent implements MouseListener {
     
     private QueryconstructionViewer viewer;
     private OperationsDialog dialog;
-    private ObjectView lastComponent;
+    private ObjectView lastObject;
     private int lastY = 0;
     private int lastX = 0;
     
-    private static int state;
     private InfoDialog infoDialog = new InfoDialog();
     
     public MainPane(QueryconstructionViewer viewer) {
         this.viewer = viewer;
-        state = StreamView.EMPTY;
-        //fullStream.add(activeStream);
-        
         this.addMouseListener(this);
     }
     
@@ -57,24 +53,24 @@ public class MainPane extends JComponent implements MouseListener {
         fullStream.add(activeStream);
         lastY++;
         activeStream.addObject(object);
-        lastComponent = object;
+        lastObject = object;
+        object.addMouseListener(this);
     }
     
     public void addOperation(Operation operation) {
         
         if (operation.getParameter() != null) {
-            String parameter = operation.getParameter();
             if (operation.getParameter().equals("typ")) {
-                parameter = lastComponent.getType();
+                operation.setParameter(lastObject.getType());
             }
             dialog = new OperationsDialog(this, operation, viewer.getObjects());
-            dialog.getObjects(parameter);
+            
             if (operation.getObjects().length > 0) {
                 String dot = ".";
                 for ( Iterator iter = activeStreams.iterator(); iter.hasNext(); ) {
                     StreamView stream = (StreamView)iter.next();
                     if (stream.getAttributes() != null) {
-                        dialog.addAttributes(stream.getAttrObjects(dot));
+                        this.dialog.addAttributes(stream.getAttrObjects(dot));
                         if (operation.getParameter().equals("attr,attr")) {
                             dialog.addRadiobuttons(stream.getName(), stream.getAttributes());
                         }
@@ -84,18 +80,10 @@ public class MainPane extends JComponent implements MouseListener {
                         dot += ".";
                     }
                 }
-                if (operation.getParameter().equals("attr,attr")) {
-                    dialog.joinAttributes();
-                }
-                if (operation.getParameter().equals("attrlist")) {
-                    dialog.project();
-                }
+                dialog.activate();
             }
             
         }
-        
-        lastComponent = operation.getView();
-        
         if (operation.countObjects() > 1) {
             lastX = getLastX();
             
@@ -108,17 +96,13 @@ public class MainPane extends JComponent implements MouseListener {
             fullStream.add(activeStream);
             
         } 
-        if (operation.getObjects() == new String[]{null}) {
-            addObject(new ObjectView(operation.getName(), operation.getResultType()));
+        lastObject = operation.getView();
+        if (operation.getObjects()[0] == null) {
+            addObject(new ObjectView(operation.getResultType(), operation.getName()));
         }
         else {
             activeStream.addObject(operation.getView());
         }
-        
-        if (operation.getParameter().equals("bool")){
-            dialog.filter();
-        }
-        
     }
     
     /**
@@ -135,6 +119,7 @@ public class MainPane extends JComponent implements MouseListener {
         else {
             this.setToolTipText(getStringsQuery());
         }
+        this.setPreferredSize(new Dimension(getLastX()*120, this.lastY * 80));
         this.repaint();
         this.revalidate();
     }
@@ -191,7 +176,6 @@ public class MainPane extends JComponent implements MouseListener {
         int j = 0;
         while (j < attributes.length-1) {
             for (String attr1 : attributes[j]) {
-                System.out.println(attr1);
                 for (String attr2 : attributes[j+1]) {
                     if (attr1.equals(attr2)) {
                         return false;
@@ -200,11 +184,11 @@ public class MainPane extends JComponent implements MouseListener {
             }
             j++;
         }
-        for (String[] sarray : attributes) {
-            for (String attr : sarray) {
-                System.out.println(attr);
-            }
-        }
+//        for (String[] sarray : attributes) {
+//            for (String attr : sarray) {
+//                System.out.println(attr);
+//            }
+//        }
         return true;
     }
     
@@ -234,7 +218,7 @@ public class MainPane extends JComponent implements MouseListener {
     
     public void updateStream(StreamView stream) {
         if (stream != null) {
-            ListExpr obj = viewer.getType("query " + stream.toString());
+            ListExpr obj = viewer.getType("query " + stream.getString());
         
             if (obj != null) {
                 String result = obj.second().textValue();
@@ -244,6 +228,11 @@ public class MainPane extends JComponent implements MouseListener {
             }
         }
         
+    }
+    
+    public void updateOperation(String result) {
+        lastObject.setName(result);
+        this.update();
     }
     
     public String[] getParameters() {
@@ -267,13 +256,14 @@ public class MainPane extends JComponent implements MouseListener {
             StreamView stream = (StreamView)iter.next();
             String result = stream.getState();
             String name = stream.getName();
-            String countL = viewer.getCount(stream.toString());
-            if (countL != null) {
+            String countL = viewer.getCount(stream.getString());
+            if (result != null) {
                 name += countL;
+                infoDialog.addInfo(name, result);
+                infoDialog.view();
             }
-            infoDialog.addInfo(name, result);
+            
         }
-        infoDialog.view();
     }
     
     public String getStrings(){
@@ -281,7 +271,7 @@ public class MainPane extends JComponent implements MouseListener {
         
         for ( Iterator iter = activeStreams.iterator(); iter.hasNext(); ) {
             StreamView stream = (StreamView)iter.next();
-            query += stream.toString();
+            query += stream.getString();
         }
         
         return query;
@@ -291,30 +281,7 @@ public class MainPane extends JComponent implements MouseListener {
         return "query "+getStrings();
     }
     
-    //adds an array of strings to the active operation
-    public void addArray(String[] attributes) {
-        String result = lastComponent.getName();
-        result+="[";
-        
-        for (String att: attributes) {
-            
-            if (att != null)
-                result+=att+", ";
-        }
-        lastComponent.setName(result.substring(0, result.length()-2) +"]");
-        viewer.update();
-    }
-    
-    public void addString(String s, String brackets) {
-        String result = lastComponent.getName();
-        result += brackets.toCharArray()[0] + s + brackets.toCharArray()[1];
-        
-        lastComponent.setName(result);
-        viewer.update();
-    }
-    
     //Handle mouse events.
-    
     public void mouseClicked ( MouseEvent e ) {
         
         //get the position of the click
@@ -327,6 +294,7 @@ public class MainPane extends JComponent implements MouseListener {
         if (e.getButton() == 3) {
             if (e.getComponent() instanceof ObjectView) {
                 ObjectView object = (ObjectView)e.getComponent();
+                System.out.println(object.getName());
             }
             else {
                 getInfo();

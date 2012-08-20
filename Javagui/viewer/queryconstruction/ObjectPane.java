@@ -19,16 +19,16 @@ import sj.lang.ListExpr;
 import viewer.QueryconstructionViewer;
 
 /* ObjectsPane.java requires no other files. */
-public class ObjectPane  extends MainPane {
+public class ObjectPane  extends JComponent implements MouseListener {
     
     private ArrayList<ObjectView> elements = new ArrayList<ObjectView>();
+    private ArrayList<ObjectView> attributeElements = new ArrayList<ObjectView>();
     private QueryconstructionViewer viewer;
     private ListExpr objects;
     private JTextField textfield = new JTextField();
     private InfoDialog dialog = new InfoDialog();
 
     public ObjectPane (QueryconstructionViewer viewer) {
-        super(viewer);
         this.viewer = viewer;
         this.setLayout(new GridLayout(1, 0));
         
@@ -66,19 +66,37 @@ public class ObjectPane  extends MainPane {
     }
     
     public void addObjects(ArrayList<ObjectView> objects) {
-        elements = objects;
+        this.elements = objects;
     }
     
     public ArrayList<ObjectView> getObjects(){
-        return elements;
+        return this.elements;
     }
     
-    //adds an operation or an object to the main panel
-    public void addObject(ObjectView object){
+    /**
+     * adds the object to the object panel if it does not exist already
+     * @param object 
+     */
+    protected void addObject(ObjectView object){
         object.addMouseListener(this);
         object.setActive(true);
         add(object);
-        elements.add(object);
+        this.elements.add(object);
+    }
+    
+    /**
+     * adds the object to the object panel if it does not exist already
+     * @param object 
+     */
+    protected void addAttributeObject(ObjectView object){
+        object.addMouseListener(this);
+        object.setActive(true);
+        add(object);
+        this.attributeElements.add(object);
+    }
+    
+    protected void clear() {
+        this.attributeElements.clear();
     }
     
     // updates the panel, only active objects are shown
@@ -90,35 +108,44 @@ public class ObjectPane  extends MainPane {
     public void showAllObjects() {
         this.removeAll();
         this.add(textfield);
-        
+        for ( Iterator iter = attributeElements.iterator(); iter.hasNext(); ) {
+            ObjectView object = (ObjectView)iter.next();
+            this.add(object);
+            object.setActive(true);
+        }
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
             this.add(object);
             object.setActive(true);
         }
+        update();
     }
     
     // updates the panel, only active that fit to the input of the textfield are shown
-    public void updateObjects(String s) {
-        
+    public void updateObjects(String type) {
+        String[] types = type.split(",");
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
-            //TODO alle Objekte sind aktiv
-            if (object.getName().toLowerCase().startsWith(s.toLowerCase()) || object.getType().equals(s)) {
-                if (!object.isActive()) {
-                    this.add(object);
+            object.setActive(false);
+            for (String s: types) {
+                if (s.equals("bool"))
+                    return;
+                if (object.getName().toLowerCase().startsWith(s.toLowerCase()) || object.getType().equals(s)) {
                     object.setActive(true);
                 }
             }
+            if (object.isActive()) {
+                this.add(object);
+            }
             else {
                 this.remove(object);
-                object.setActive(false);
             }
         }
+        this.update();
     }
 
     public void mouseClicked ( MouseEvent arg0 ) {
-        if (arg0.getComponent() != null) {
+        if (arg0.getComponent() instanceof ObjectView) {
             ObjectView element = (ObjectView)arg0.getComponent();
             
             if (arg0.getButton() == 3) {
@@ -140,5 +167,9 @@ public class ObjectPane  extends MainPane {
             }
         }
     }
+    public void mouseReleased(MouseEvent e) {}
+    public void mouseEntered(MouseEvent e){}
+    public void mouseExited(MouseEvent e){}
+    public void mousePressed(MouseEvent e) {}
 
 }

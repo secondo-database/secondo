@@ -5,13 +5,9 @@
 package viewer.queryconstruction;
 
 import java.awt.Color;
-import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.GridLayout;
 import java.util.ArrayList;
 import java.util.Iterator;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 
 /**
  *
@@ -29,16 +25,9 @@ public class StreamView {
     private int[] line;
     private boolean active = true;
     private boolean hasNext = false;
-    private boolean hasObjects = false;
     private ArrayList<StreamView> inputStreams = new ArrayList<StreamView>();
-    private StreamView nextStream;
     private int xpos;
     private int ypos;
-    protected static final int EMPTY = 0;
-    protected static final int TUPEL = 1;
-    protected static final int STREAM = 2;
-    protected static final int TWOSTREAMS = 3;
-    protected static final int TWORELATIONS = 4;
 
     public StreamView(String name, int x, int y) {
         this.name = name;
@@ -46,77 +35,56 @@ public class StreamView {
         this.ypos = y;
     }
 
-    public void setState(String str) {
-        this.state = str;
-        this.parts = str.split("\\(");
-        if (parts.length > 4) {
-            this.setAttributes(str.split("\\("));
-        }
-        if (parts.length > 1) {
-            this.type = parts[1];
-        } else {
-            this.type = str;
-        }
+    protected void addInputStream(StreamView stream) {
+        this.inputStreams.add(stream);
     }
 
-    public void addStream(ArrayList<ObjectView> list) {
-        objects.addAll(list);
-    }
+//    protected void addStream(ArrayList<ObjectView> list) {
+//        objects.addAll(list);
+//    }
 
-    public void addObject(ObjectView object) {
+    protected void addObject(ObjectView object) {
         objects.add(object);
     }
 
-    public void change() {
+    protected void change() {
         if (objects.size() > 0) {
             this.active = !this.active;
         }
     }
 
-    public boolean isActive() {
+    protected boolean isActive() {
         return this.active;
     }
 
-    public boolean hasNext() {
-        return hasNext;
-    }
-
-    public void setNext(StreamView nextStream) {
+    protected void setNext(StreamView nextStream) {
         hasNext = true;
         this.active = false;
         this.addLine(nextStream.getX(), nextStream.getY());
     }
 
-    public void removeNext() {
+    protected void removeNext() {
         hasNext = false;
         line = null;
         active = true;
     }
 
-    public StreamView next() {
-        return nextStream;
-    }
-
-    public void addInputStream(StreamView stream) {
-        this.inputStreams.add(stream);
-    }
-
-    public ObjectView getLastComponent() {
+    protected ObjectView getLastComponent() {
         if (this.objects.size() > 0) {
             return this.objects.get(objects.size() - 1);
         }
         return null;
     }
 
-    public ArrayList<ObjectView> getObjects() {
+    protected ArrayList<ObjectView> getObjects() {
         return this.objects;
     }
 
-    public String toString() {
+    protected String getString() {
         String s = "";
         for (Iterator iter = inputStreams.iterator(); iter.hasNext();) {
             StreamView stream = (StreamView) iter.next();
-            s += stream.toString();
+            s += stream.getString();
         }
         for (Iterator iter = objects.iterator(); iter.hasNext();) {
             ObjectView object = (ObjectView) iter.next();
@@ -125,35 +93,19 @@ public class StreamView {
         return s;
     }
 
-    public String getName() {
+    protected String getName() {
         return this.name;
     }
 
-    public int getLength() {
+    protected int getLength() {
         return this.objects.size();
     }
 
-    public final void setAttributes(String[] attributes) {
-        int i = 4;
-        int j = 0;
-
-        this.attributes = new String[attributes.length - 4];
-        this.attrtypes = new String[attributes.length - 4];
-        while (i < attributes.length) {
-            attributes[i] = attributes[i].replaceAll("\\)", "");
-            String[] att = attributes[i].split(" ");
-            this.attributes[j] = att[0];
-            this.attrtypes[j] = att[1];
-            i++;
-            j++;
-        }
-    }
-
-    public String[] getAttributes() {
+    protected String[] getAttributes() {
         return attributes;
     }
 
-    public ObjectView[] getAttrObjects(String dot) {
+    protected ObjectView[] getAttrObjects(String dot) {
         int i = 0;
         ObjectView objectViews[] = new ObjectView[attributes.length];
         for (String objName : attributes) {
@@ -163,36 +115,23 @@ public class StreamView {
         return objectViews;
     }
 
-    public String getType() {
+    protected String getType() {
         return type;
     }
     
-    public String getState() {
+    protected String getState() {
         return state;
     }
 
-    public int getHeight() {
-        return attributes.length;
-    }
-
-    public int getX() {
+    protected int getX() {
         return xpos;
     }
 
-    public int getY() {
+    protected int getY() {
         return ypos;
     }
 
-    public void print() {
-        if (parts != null) {
-            for (String s : parts) {
-                System.out.println(s);
-            }
-        }
-
-    }
-
-    public void addLine(int x, int y) {
+    private void addLine(int x, int y) {
         line = new int[2];
         line[0] = x;
         line[1] = y;
@@ -202,7 +141,7 @@ public class StreamView {
      * paints all objects and operations of the stream
      * @param g 
      */
-    public void paintComponent(Graphics g) {
+    protected void paintComponent(Graphics g) {
         int x = xpos;
 
         for (Iterator iter = objects.iterator(); iter.hasNext();) {
@@ -222,5 +161,34 @@ public class StreamView {
             }
         }
 
+    }
+    
+    protected void setState(String str) {
+        this.state = str;
+        this.parts = str.split("\\(");
+        if (parts.length > 4) {
+            this.setAttributes(str.split("\\("));
+        }
+        if (parts.length > 1) {
+            this.type = parts[1];
+        } else {
+            this.type = str;
+        }
+    }
+    
+    protected final void setAttributes(String[] attributes) {
+        int i = 4;
+        int j = 0;
+
+        this.attributes = new String[attributes.length - 4];
+        this.attrtypes = new String[attributes.length - 4];
+        while (i < attributes.length) {
+            attributes[i] = attributes[i].replaceAll("\\)", "");
+            String[] att = attributes[i].split(" ");
+            this.attributes[j] = att[0];
+            this.attrtypes[j] = att[1];
+            i++;
+            j++;
+        }
     }
 }

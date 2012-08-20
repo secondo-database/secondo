@@ -46,15 +46,13 @@ import viewer.queryconstruction.Operation;
  */
 public class QueryconstructionViewer extends SecondoViewer {
     
-    protected ObjectPane ObjectPane = new ObjectPane(this);
-    protected OperationsPane OperationsPane = new OperationsPane(this);
+    protected ObjectPane ObjectPane;
+    protected OperationsPane OperationsPane;
     protected MainPane MainPane;
     
     private JScrollPane MainScrollPane;
     private JScrollPane ObjectsScrollPane;
     private JScrollPane OperationsScrollPane;
-    
-    private ArrayList<ObjectView> objectList = new ArrayList<ObjectView>();
     
     private MenuVector MV = new MenuVector();
     private static ListExpr objects;
@@ -63,7 +61,8 @@ public class QueryconstructionViewer extends SecondoViewer {
         this.setLayout(new BorderLayout());
         
         MainPane = new MainPane(this);
-        MainPane.setPreferredSize(new Dimension (500, 400));
+        ObjectPane = new ObjectPane(this);
+        OperationsPane = new OperationsPane(this);
         
         MainScrollPane = new JScrollPane(MainPane);
         ObjectsScrollPane = new JScrollPane(ObjectPane);
@@ -118,16 +117,20 @@ public class QueryconstructionViewer extends SecondoViewer {
         addObj.addActionListener(addObjl);
     }
     
-    //adds an object to the main panel
+    /**
+     * adds an object to the main panel
+     * @param object new object
+     */
     public void addObject(ObjectView object){
-        //TODO prüfen ob das Objekt einen neuen Stream erzeugt
         MainPane.addObject(object);
         update();
     }
     
-    //adds an object to the main panel
+    /**
+     * adds an operation to the main panel
+     * @param operation new operation
+     */
     public void addOperation(Operation operation){
-        //TODO prüfen ob das Objekt einen neuen Stream erzeugt
         MainPane.addOperation(operation);
         update();
     }
@@ -145,10 +148,12 @@ public class QueryconstructionViewer extends SecondoViewer {
         String result = null;
         if (VC != null) {
             ListExpr getTypeNL = VC.getCommandResult("query " + query + " count");
-            result = getTypeNL.second().toString();
+            
+            if (getTypeNL != null)
+                return getTypeNL.second().toString();
         }
         
-        return result;
+        return "0";
     }
     
     public String[] getParameters() {

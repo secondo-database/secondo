@@ -30,24 +30,28 @@ public class Operation extends JComponent {
     private String parameter = "";
     private String result;
     private String brackets;
+    private String signature;
     private ObjectView view;
+    
     
     /**
      * 
      * @param name name of the operation
      * @param objects type of objects which the operation needs
-     * @param brackets brackets around the parameter
+     * @param signature signature of the operation
      * @param parameter type of parameter which the operation needs
      * @param result type of the result, when needed
      */
-    public Operation(String name, String[] objects, String brackets, String parameter, String result){
+    public Operation(String name, String[] objects, String signature, String parameter, String result){
         this.setOpaque(false);
         this.setPreferredSize(new Dimension(120, 30));
         this.name = name;
         this.label = name;
-        if (brackets != null) {
-            this.brackets = brackets;
+        this.signature = signature;
+        if ((signature != null) && (signature.toCharArray().length == 2)) {
+            this.brackets = signature;
         }
+        
         if (parameter != null) {
             this.parameter = parameter;
         }
@@ -73,8 +77,12 @@ public class Operation extends JComponent {
         
     }
     
+    public char[] getSignature() {
+        return signature.toCharArray();
+    }
+    
     public Operation copy() {
-        return new Operation(this.name, this.objects, this.brackets, this.parameter, this.result);
+        return new Operation(this.name, this.objects, this.signature, this.parameter, this.result);
     }
     
     public void setResultType(String result) {
@@ -124,8 +132,8 @@ public class Operation extends JComponent {
         return this.parameter;
     }
     
-    public void setParameter(String pa) {
-        this.parameter = pa;
+    public void setParameter(String par) {
+        this.parameter = par;
     }
     
 }

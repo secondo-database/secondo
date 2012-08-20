@@ -9,77 +9,78 @@ import java.awt.*;
 import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.Iterator;
+import javax.swing.JComponent;
 import viewer.QueryconstructionViewer;
 
 /* RelationsPane.java requires no other files. */
-public class OperationsPane extends MainPane {
+public class OperationsPane extends JComponent implements MouseListener {
     
     private ArrayList<Operation> operations = new ArrayList<Operation>();
     private QueryconstructionViewer viewer;
-    private String result;
     
     private Operation rename;
 
     public OperationsPane(QueryconstructionViewer viewer) {
-        super(viewer);
         this.viewer = viewer;
         this.setLayout(new GridLayout(0, 1));
         
         
         String rel[] = {"rel"};
         //operation(name, objects, brackets, parameter, result
-        Operation feedrel = new Operation("feed", rel, null, null, "stream");
+        Operation feedrel = new Operation("feed", rel, "#", null, "stream");
         addOperation(feedrel);
-        Operation countrel = new Operation("count", rel, null, null, "int");
+        Operation countrel = new Operation("count", rel, "#", null, "int");
         addOperation(countrel);
         
         String stream[] = {"stream"};
-        Operation filter = new Operation("filter", stream, "[]", "bool", "stream");
+        Operation filter = new Operation("filter", stream, "#[p]", "bool", "stream");
         addOperation(filter);
-        rename = new Operation("rename", stream, "{}", "String", "stream");
+        rename = new Operation("rename", stream, "{p}", "String", "stream");
         addOperation(rename);
-        
-        Operation project = new Operation("project", stream, "[]", "attrlist", "stream");
+        Operation extend = new Operation("extend", stream, "#[p: p]", "String;new", "stream");
+        addOperation(extend);
+        Operation project = new Operation("project", stream, "#[p]", "attrlist", "stream");
         addOperation(project);
-        Operation count = new Operation("count", stream, null, null, "int");
-        addOperation(count);
-        Operation head = new Operation("head", stream, "[]", "int", "stream");
+        Operation head = new Operation("head", stream, "#[p]", "int", "stream");
         addOperation(head);
-        Operation tail = new Operation("tail", stream, "[]", "int", "stream");
+        Operation tail = new Operation("tail", stream, "#[p]", "int", "stream");
         addOperation(tail);
-        Operation consume = new Operation("consume", stream, null, null, "rel");
+        
+        Operation count = new Operation("count", stream, "#", null, "int");
+        addOperation(count);
+        Operation consume = new Operation("consume", stream, "#", null, "rel");
         addOperation(consume);
         
         String twoStreams[] = {"stream", "stream"};
-        Operation symmjoin = new Operation("symmjoin", twoStreams, "[]", "bool", "stream");
+        Operation symmjoin = new Operation("symmjoin", twoStreams, "#[p]", "bool", "stream");
         addOperation(symmjoin);
-        Operation sortmergejoin = new Operation("sortmergejoin", twoStreams, "[]", "attr,attr", "stream");
+        Operation sortmergejoin = new Operation("sortmergejoin", twoStreams, "#[p]", "attr,attr", "stream");
         addOperation(sortmergejoin);
-        Operation mergejoin = new Operation("mergejoin", twoStreams, "[]", "attr,attr", "stream");
+        Operation mergejoin = new Operation("mergejoin", twoStreams, "#[p]", "attr,attr", "stream");
         addOperation(mergejoin);
-        Operation hashjoin = new Operation("hashjoin", twoStreams, "[]", "attr,attr", "stream");
+        Operation hashjoin = new Operation("hashjoin", twoStreams, "#[p]", "attr,attr", "stream");
         addOperation(hashjoin);
         
         String empty[] = {null};
-        Operation units = new Operation("units", empty, "()", "mpoint", "stream upoint");
+        Operation units = new Operation("units", empty, "#(p)", "mpoint", "stream upoint");
         addOperation(units);
-        Operation distance = new Operation("distance", empty, null, "(), mpoint", "int");
+        Operation distance = new Operation("distance", empty, "#(p, p)", "spatial;spatial", "int");
         addOperation(distance);
+        Operation string = new Operation("new string", empty, "p", "String", "bool");
+        addOperation(string);
         
         String compare[] = {"int"};
-        Operation equal = new Operation("=", compare, null, "int", "bool");
-        addOperation(equal);
-        Operation bigger = new Operation(">", compare, null, "int", "bool");
+        Operation bigger = new Operation(">", compare, "# p", "int", "bool");
         addOperation(bigger);
-        Operation smaller = new Operation("<", compare, null, "int", "bool");
+        Operation smaller = new Operation("<", compare, "# p", "int", "bool");
         addOperation(smaller);
         
-        String compareString[] = {"typ"};
-        Operation equalString = new Operation("=", compareString, null, "typ", "bool");
+        String compareTyp[] = {"typ"};
+        Operation equalString = new Operation("=", compareTyp, "# p", "typ", "bool");
         addOperation(equalString);
         
-        String mpoint[] = {"mpoint"};
-        Operation passes = new Operation("passes", mpoint, null, "point", "bool");
+        String mpoint[] = {"mpoint,mregion"};
+        Operation passes = new Operation("passes", mpoint, "# p", "point", "bool");
         addOperation(passes);
     }
     
@@ -93,19 +94,13 @@ public class OperationsPane extends MainPane {
             boolean view = true;
             String[] operationParam = op.getObjects();
             
-            if ((this.result != null) && (op.getResultType() != null) && (!op.getResultType().equals(result))) {
-                view = false;
-            }
             //TODO
             int viewerCount = viewerParam.length;
-            if (viewerCount == 0) {
-                return;
-            }
-            int i = 0;
-            if ((operationParam[0] == null) && (viewerParam.length < 2) && (viewerParam[0] == null) ) {
+            
+            if (operationParam[0] == null) {
                 viewOperation(op);
             }
-            
+            int i = 0;
             if ((viewerParam.length > 1) && (viewerParam[0] == null)) {
                 viewerCount--;
                 i++;
@@ -120,14 +115,18 @@ public class OperationsPane extends MainPane {
 
                         viewerStr = viewerParam[i].trim();
                         //some operations can be used on different object types
-                        if (!s.equals(viewerStr)) {
+                        String[] oPs = s.split(",");
+                        boolean oneright = false;
+                        for (String oP: oPs) {
                             if (s.equals("typ")) {
                                 op.setParameter(viewerStr);
+                                oP = viewerStr;
                             }
-                            else {
-                                view = false;
+                            if (oP.equals(viewerStr)) {
+                                oneright = true;
                             }
                         }
+                        view = oneright;
                     }
                     i++;
                 }
@@ -142,15 +141,11 @@ public class OperationsPane extends MainPane {
         this.revalidate();
     }
     
-    public void setResult(String result) {
-        this.result = result;
-    }
-    
     public void viewOperation(Operation op) {
         add(op);
     }
     
-    public void addOperation(Operation op){
+    private void addOperation(Operation op){
         op.addMouseListener(this);
         operations.add(op);
     }
@@ -170,7 +165,7 @@ public class OperationsPane extends MainPane {
                 if (element.countObjects() > 1) {
                     if (!viewer.checkAttributes()) {
                         //dialog.setMessage("Two attributes have the same name. Please rename the object "+activeStream.getName()+".");
-                        viewer.addOperation(rename);
+                        viewer.addOperation(rename.copy());
                         return;
                     }
                 }
@@ -178,4 +173,8 @@ public class OperationsPane extends MainPane {
             }
         }
     }
+    public void mouseReleased(MouseEvent e) {}
+    public void mouseEntered(MouseEvent e){}
+    public void mouseExited(MouseEvent e){}
+    public void mousePressed(MouseEvent e) {}
 }

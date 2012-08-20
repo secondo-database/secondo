@@ -16,16 +16,16 @@ import java.awt.event.ActionListener;
  * @author lrentergent
  */
 public class FilterViewer extends QueryconstructionViewer {
-    private MainPane main;
-    private Operation operation;
+    private OperationsDialog dialog;
     private JFrame f = new JFrame();
     
-    public FilterViewer(MainPane main, Operation operation, ArrayList<ObjectView> objects) {
-        this.main = main;
-        this.operation = operation;
+    public FilterViewer(OperationsDialog dialog, ArrayList<ObjectView> objects) {
+        this.dialog = dialog;
         
         this.setLayout(new BorderLayout());
         MainPane = new MainPane(this);
+        ObjectPane = new ObjectPane(this);
+        OperationsPane = new OperationsPane(this);
         MainPane.setPreferredSize(new Dimension (500, 400));
         ObjectPane = new ObjectPane(this);
         ObjectPane.addObjects(objects);
@@ -72,31 +72,39 @@ public class FilterViewer extends QueryconstructionViewer {
         f.setVisible(true);
     }
     
-    public void addObjects(ObjectView[] objects) {
-        for (ObjectView object : objects) {
-            ObjectPane.addObject(object);
-        }
-        ObjectPane.update();
-    }
-    
-    //adds an object to the main panel
-    public void addOperation(Operation operation){
-        super.addOperation(operation);
-        if (!operation.getParameter().equals("")) {
-            ObjectPane.updateObjects(operation.getParameter());
-        }
-        else {
-            ObjectPane.showAllObjects();
+    protected void addObjects(ObjectView[] objects) {
+        ObjectPane.clear();
+        for (ObjectView o: objects) {
+            ObjectPane.addAttributeObject(o);
         }
         update();
     }
     
-    public void addString() {
-        String brackets = operation.getBrackets();
-        String resultString = brackets.toCharArray()[0] + MainPane.getStrings() + brackets.toCharArray()[1];
-        operation.setName(operation.getName() + resultString);
-        main.update();
-        //TODO Objekt bleibt bestehen
+    public void updateObjects(String type) {
+        this.ObjectPane.updateObjects(type);
+    }
+    
+    //
+    /**
+     * adds an operation to the dialog main panel
+     * @param operation new operation
+     */
+    public void addOperation(Operation operation){
+        this.MainPane.addOperation(operation);
+        if (!operation.getParameter().equals("")) {
+            this.ObjectPane.updateObjects(operation.getParameter());
+        }
+        else {
+            this.ObjectPane.showAllObjects();
+        }
+        update();
+    }
+    
+    /**
+     * add the generated string to the query
+     */
+    private void addString() {
+        dialog.addResult(MainPane.getStrings());
         f.setVisible(false);
     }
 }
