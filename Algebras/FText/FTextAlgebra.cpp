@@ -1108,25 +1108,19 @@ Type Mapping for ~getTypeNL~:
 
 */
 
-ListExpr FTextTypeMapExpression2Text( ListExpr args )
+ListExpr FTextTypeMapGetTypeNL( ListExpr args )
 {
-  NList type(args);
-  if(type.hasLength(1))
-  {
-    if (!type.first().isEqual(Symbols::TYPEERROR()))
-    {
-    string firsttype = type.first().convertToString();
-    NList firstType = NList(firsttype, true, true).enclose();
-    NList append(Symbol::APPEND());
-    NList text(FText::BasicType());
-    NList restype(append,
-                  firstType,
-                  text
-                 );
-    return restype.listExpr();
-    }
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
   }
-  return NList::typeError("Expected any Expression as single argument.");
+  if(listutils::isSymbol(nl->First(args), Symbols::TYPEERROR())){
+    return listutils::typeError("typeerror received");
+  }
+  //return listutils::basicSymbol<FText>();
+  return nl->ThreeElemList( 
+             nl->SymbolAtom(Symbols::APPEND()),
+             nl->OneElemList(nl->TextAtom(nl->ToString(nl->First(args)))),
+             listutils::basicSymbol<FText>()); 
 }
 
 /*
@@ -3742,10 +3736,10 @@ int FTextValueMapGetTypeNL( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   FText* Res = static_cast<FText*>(result.addr);
-  Word tmpRes; 
-  qp->Request(args[1].addr,tmpRes); 
-  FText* myType = static_cast<FText*>(tmpRes.addr);
-  Res->CopyFrom((Attribute*)myType);
+  Word argResWord;
+  qp->Request(args[1].addr,argResWord);
+  FText* argType = (FText*) argResWord.addr;
+  Res->CopyFrom(argType);
   return 0;
 }
 
@@ -7206,7 +7200,7 @@ Operator getTypeNL
     FTextGetTypeNLSpec,
     FTextValueMapGetTypeNL,
     Operator::SimpleSelect,
-    FTextTypeMapExpression2Text
+    FTextTypeMapGetTypeNL
     );
 
 Operator getValueNL
