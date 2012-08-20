@@ -540,19 +540,19 @@ tar -czf ${SDSFLODER}.tar.gz ${SDSFLODER} &> /dev/null
 #cat $DSRVFILE
 #echo "---------------------"
 
-ANODES=($(cat $DSRVFILE | tr '\n' ' '))
-for node in ${ANODES[*]};do
+function formatNode
+{
+  node=$1
+  curPlat=$2
   nodeIP=${node%%:*}
-echo "Distributing on Node: $nodeIP"
   dataServers=($(echo ${node#*:} | tr ':' ' '))
   nodeRCFile=$PSDKLOC/parasecrc_${nodeIP}
-  scp $nodeRCFile $nodeIP:$RCFILENAME 2>/dev/null
-echo "Copy file $nodeRCFile to $nodeIP:$RCFILENAME"
-
+  scp $nodeRCFile $nodeIP:$RCFILENAME
+  
   # Delete exist commands if necessary
   ssh $nodeIP "sed $(PSEDOPT) \"s/^source [\\\$A-Z_.\\\/]*$RCFILENAME//\" \$HOME/.bashrc "
   #source .parasecrc file in the .bashrc, to set all required environment
-  case $(echo $SECONDO_PLATFORM | sed 's/[0-9]*$//') in
+  case ${curPlat} in
   # Process linux and linux64 with same statements
     linux )
       # Execute the .parasecrc directly after processing .secondorc
@@ -560,15 +560,11 @@ echo "Copy file $nodeRCFile to $nodeIP:$RCFILENAME"
     ;;
     mac_osx )
       ssh $nodeIP "echo \"source \\\$HOME/$RCFILENAME\" >> \$HOME/.bashrc"
-      echo "${WARNINFO}The $HOME/.bashrc file must be executed in Mac OS X shell prompt" 
-      echo "This step has to be done manually by users."
+      echo "${WARNINFO}The $HOME/.bashrc file must be executed in Mac OS X shell prompt" >&2
+      echo "This step has to be done manually by users." >&2
     ;;
-    * )
-      echo "${ERRORINFO}Unknown Platform, Check your \$SECONDO_PLATFORM definition."
-      echo "Installation for Parallel Secondo Fails. "
-      exit -1;;
   esac
-
+  
   declare -i sidx=0
   for dserv in ${dataServers[*]}; do
     dserv="$dserv/$USER" #Use $USER to different users' data servers on a same cluster node
@@ -596,7 +592,40 @@ echo "Copy file $nodeRCFile to $nodeIP:$RCFILENAME"
     
     let sidx++
   done
+}
 
+CURPLAT=$(echo $SECONDO_PLATFORM | sed 's/[0-9]*$//')
+if [ "$CURPLAT" != "linux" -a "$CURPLAT" != "mac_osx" ]; then
+      echo "${ERRORINFO}Unknown Platform, Check your \$SECONDO_PLATFORM definition." 
+      echo "Installation for Parallel Secondo Fails. "
+      exit 1
+fi
+
+ANODES=($(cat $DSRVFILE | tr '\n' ' '))
+NDNUM=${#ANODES[*]}
+aJobs=()
+
+echo "Start to distribute data servers on the cluster ..."
+for ((NDIDX=0;NDIDX<$NDNUM;));do
+  node=${ANODES[$NDIDX]}
+  for ((token=1;token=$PS_PIPE_Width;toekn++));do
+    if [ $NDIDX -gt  $NDNUM ];then
+      break
+    fi
+    
+    if [ ! "${aJobs[$token]}" ] || ! kill -0 ${aJobs[$token]} 2>/dev/null; then
+      formatNode $node $CURPLAT &
+      aJobs[$token]=$!
+      let NDIDX++
+      break
+    fi
+  done
+done
+
+for ((token=1;token<$PS_PIPE_Width;)); do
+  if ! kill -0 ${aJobs[$token]} 2>/dev/null; then
+    let token++
+  fi
 done
 
 # 7. Set up Master Mini Secondo Configuration if NS4Master is set
