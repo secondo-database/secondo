@@ -158,7 +158,50 @@ function. Allowed types are:
                               timeAt16MB);  
   }  
    
+/*
+1.4 ~calculateXPoints~
 
+Determine both equation solving points (x1, x2) for a given
+sufficentPoint
+
+*/
+void calculateXPoints(double sufficentPoint, double &x1, 
+  double &x2) {
+
+    x1 = 16;
+    x2 = sufficentPoint * 0.8;
+}
+
+/*
+1.5 ~resolveInverseProportionality~
+
+This function calculates the parameter m and b for 
+inverse proportionality function f(x) = m/x + b 
+for the points (x1, y1) and (x2, y2).
+
+This function will return true if the calculation was
+successfully, false otherwise.
+
+*/
+bool resolveInverseProportionality(double x1, double y1, 
+   double x2, double y2, double &m, double &b) {
+
+   // invalid points
+   if(x1 == 0 || x2 == 0) {
+      return false;
+   }
+
+   // invalid input
+   if(x1 == x2) {
+      return false;
+   }
+
+   // resolve
+   m = (x1 * x2 * (y1 - y2)) / (x2 - x1); 
+   b = -1 * (m / x1) + y1;
+
+   return true;
+}
 
 
   protected:
