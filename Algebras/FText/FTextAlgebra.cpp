@@ -3742,7 +3742,9 @@ int FTextValueMapGetTypeNL( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   FText* Res = static_cast<FText*>(result.addr);
-  FText* myType = static_cast<FText*>(args[1].addr);
+  Word tmpRes; 
+  qp->Request(args[1].addr,tmpRes); 
+  FText* myType = static_cast<FText*>(tmpRes.addr);
   Res->CopyFrom((Attribute*)myType);
   return 0;
 }
@@ -9217,6 +9219,7 @@ Operator createRegEx2(
       AddOperator( &ftexttotext );
       AddOperator( &isDBObject);
       AddOperator( &getTypeNL );
+      getTypeNL.SetRequestsArguments();
       AddOperator( &getValueNL );
       AddOperator( &ftexttoobject );
       AddOperator( &chartext );
