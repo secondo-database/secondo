@@ -1503,7 +1503,10 @@ SmiEnvironment::EraseDatabase( const string& dbname )
               delete dbp;
               iter++;
             }
-            ok = ok && FileSystem::EraseFolder( database );
+            //ok = ok && FileSystem::EraseFolder( database );
+            // In client server mode there are problems 
+            // when a database are created and deleted within the
+            // same session. Keeping the folder fixes this problem.
           }
           else
             cerr<<"\nWarning: database " << database
