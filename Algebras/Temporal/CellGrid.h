@@ -199,6 +199,8 @@ Check the validity of parameters in the constructor
 */
 inline CellGrid(const bool defined, ...);
 
+inline CellGrid(const int dummy);
+
 /*
 Called after the above function, while the parameters have been checked.
 
@@ -224,7 +226,7 @@ Destructor
 Checks if the cellgrid is defined.
 
 */
-inline void set(/*const bool defined,*/ const double* originPoint,
+inline void set(const double* originPoint,
     const double *cellWidthes, const int32_t* cellNumbers);
 /*
 Get denoted parameters
@@ -366,7 +368,7 @@ Simulate the function for the rectangle algebra.
 */
 template<unsigned dim>
 inline CellGrid<dim>::CellGrid( const bool defined, ... )
-  //: StandardSpatialAttribute<dim>(defined)
+  : Attribute(defined)
 {
   va_list ap;
   va_start(ap, defined);
@@ -412,10 +414,16 @@ Called after the above function, while the parameters have been checked.
 template<unsigned dim>
 inline CellGrid<dim>::CellGrid( const bool defined, const double* originPoint,
     const double *cellWidthes, const int32_t* cellNumbers):
-    StandardSpatialAttribute<dim>(defined)
+    Attribute(defined)
 {
-  set(defined, originPoint, cellWidthes, cellNumbers);
+  set(originPoint, cellWidthes, cellNumbers);
 }
+
+template<unsigned dim>
+inline CellGrid<dim>::CellGrid(int dummy):
+  Attribute(false){
+}
+
 
 /*
 The copy constructor.
