@@ -495,9 +495,9 @@ void AlgebraManager::matchingOperators(const int algId,
     for(int o=0 ; o<alg->GetNumOps() ; o++){
       Operator* op = alg->GetOperator(o);
       try{
-          cout << "CHeck Operator " << op->GetName() << " in " << GetAlgebraName(algId) << endl;
+          //cout << "CHeck Operator " << op->GetName() << " in " << GetAlgebraName(algId) << endl;
           ListExpr res = op->CallTypeMapping(arguments);
-          cout << "Check finished" << endl << endl;
+         // cout << "Check finished" << endl << endl;
           if(!nl->Equal(res,typeError)){
             pair<int, int> p1(algId,o);
             pair<pair<int, int>, ListExpr> p(p1, res);
