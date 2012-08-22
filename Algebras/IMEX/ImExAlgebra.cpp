@@ -1191,6 +1191,9 @@ ListExpr shpexportTM(ListExpr args){
 
   ListExpr stream = nl->First(args);
   if(Stream<Tuple>::checkType(stream)){
+     if(len<3){
+        return listutils::typeError(err);
+     }
      // case stream(tuple) x text x attrname [ x text]
      ListExpr an = nl->Third(args);
      if(!listutils::isSymbol(an)){

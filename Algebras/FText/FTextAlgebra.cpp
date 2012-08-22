@@ -1671,13 +1671,10 @@ ListExpr sysgetMatchingOperatorsTM(ListExpr args){
 
     int noargs = nl->ListLength(args);
     string errmsg = "Expected (int x ...) or ({string|text} x int).";
-    cout << "huhu" << nl->ToString(args) << endl;
     if( noargs < 1 ) {
-      cout << "huhu 2" << endl;
       return NList::typeError(errmsg);
     }
 
-    cout << "huhu 1" << endl;
     ListExpr first = nl->First(args);
     if(! listutils::isSymbol(first,CcInt::BasicType())){
       if(   !listutils::isSymbol(first,CcString::BasicType())

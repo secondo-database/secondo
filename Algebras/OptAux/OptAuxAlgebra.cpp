@@ -320,6 +320,11 @@ ListExpr predcounts_tm(ListExpr args)
       rest = nl->Rest(rest);
 
       // check the predicate alias
+      if(!nl->HasLength(predicateDeclaration,2)) {
+        return listutils::typeError("PredicateDeclaration"
+                                    " must have two elems");
+      }     
+ 
       predicateAlias = nl->First(predicateDeclaration);
       nl->WriteToString(argstr, predicateAlias);
       if( !(nl->IsAtom(predicateAlias)) ||

@@ -2253,7 +2253,7 @@ In constrast to ~krdup~, this operator does not require a sorted input stream.
 ListExpr krduphTM(ListExpr args){
 
    string err = "stream(tuple) x attrname_1 x attrname_2 ... [x int] expected";
-   if(nl->ListLength(args) < 0){ 
+   if(nl->ListLength(args) < 1){ 
      return listutils::typeError(err);
    }
 
@@ -11371,6 +11371,9 @@ ListExpr extend_lastTM(ListExpr args){
   ListExpr last;
   bool first = true;
 
+  if(nl->AtomType(fundeflist)!=NoAtom){
+    return listutils::typeError("Inavlid function definition list");
+  }
 
   while(!nl->IsEmpty(fundeflist)){
     ListExpr firstFun = nl->First(fundeflist);

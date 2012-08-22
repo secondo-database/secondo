@@ -239,6 +239,7 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include "AlmostEqual.h"
 #include "Progress.h"
 #include "Symbols.h"
+#include "Stream.h"
 
 #include <iostream>
 #include <string>
@@ -4197,26 +4198,25 @@ TypeMapping for binand and binands operator
 ListExpr CCBinAndTM (ListExpr args)
 {
   if(!nl->HasLength(args,2)){
-    return listutils::typeError("Expected two int values.");
+    return listutils::typeError("Expected int x int ");
   }
-
-  if(listutils::isSymbol(nl->First(args), CcInt::BasicType()) &&
-     listutils::isSymbol(nl->Second(args), CcInt::BasicType())){
-    return nl->SymbolAtom(CcInt::BasicType());
+  if(!CcInt::checkType(nl->First(args)) ||
+     !CcInt::checkType(nl->Second(args))){
+    return listutils::typeError("Expected int x int ");
   }
-
-  return listutils::typeError("Expected two int values");
+  return listutils::basicSymbol<CcInt>();
 }
 
 ListExpr CCBinAndSTM  (ListExpr args)
 {
-  if (!listutils::isStream(nl->First(args)))
-    return listutils::typeError("Expects stream of int");
-
-  if (listutils::isSymbol(nl->Second(nl->First(args)), CcInt::BasicType()))
-    return nl->SymbolAtom(CcInt::BasicType());
-
-  return listutils::typeError("Expected a stream of int values");
+  string err = "expected stream(int) ";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  if(!Stream<CcInt>::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcInt>();;
 }
 
 /*

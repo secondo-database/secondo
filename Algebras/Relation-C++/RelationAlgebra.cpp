@@ -4502,8 +4502,6 @@ ListExpr RenameAttrTypeMap(ListExpr args){
      return listutils::typeError("Two arguments expected.");
   }
 
-  cerr << __PRETTY_FUNCTION__ << ": args = " << nl->ToString(args) << endl;
-
   ListExpr firstarg = nl->First(args);
   if(nl->ListLength(firstarg) !=2){
     return listutils::typeError("First argument must consists of 2 parts.");

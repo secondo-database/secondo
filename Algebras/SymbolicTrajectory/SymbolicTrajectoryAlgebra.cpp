@@ -2476,6 +2476,9 @@ string NFA::getLabelSubst(MLabel const &ml, int pos) {
 
 */
 ListExpr textToPatternMap(ListExpr args) {
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("expected text");
+  }
   NList type(args);
   if (type.first() == NList(FText::BasicType())) {
     return NList(Pattern::BasicType()).listExpr();

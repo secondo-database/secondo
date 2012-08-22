@@ -410,7 +410,6 @@ int getconnectivitycodeValueMap(Word* args, Word& result, int message,
 
 // Type-mapping-function of operator getconnectivitycode
 ListExpr getconnectivitycodeTypeMap(ListExpr args){
-   assert (args);
    if(nl->ListLength(args) != 8){
       return listutils::typeError("eight arguments expected");
    }
@@ -492,7 +491,6 @@ int binorValueMap(Word* args, Word& result, int message,
 
 // Type-mapping-function of operator binor
 ListExpr binorTypeMap(ListExpr args){
-   assert (args);
    if(nl->ListLength(args) != 2){
       return listutils::typeError("two arguments expected");
    }
@@ -619,7 +617,6 @@ int setscalefactorxValueMap(Word* args, Word& result, int message,
 
 // Type-mapping-function of operator setscalefactorx
 ListExpr setscalefactorxTypeMap(ListExpr args){
-   assert (args);
    if(nl->ListLength(args) != 1){
       return listutils::typeError("one argument expected");
    }
@@ -666,7 +663,6 @@ int setscalefactoryValueMap(Word* args, Word& result, int message,
 
 // Type-mapping-function of operator setscalefactory
 ListExpr setscalefactoryTypeMap(ListExpr args){
-   assert (args);
    if(nl->ListLength(args) != 1){
       return listutils::typeError("one argument expected");
    }

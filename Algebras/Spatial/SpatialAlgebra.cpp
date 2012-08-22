@@ -20911,6 +20911,11 @@ values, where the input values are connected to as long as possible line parts.
 */
 
 ListExpr SpatialLongLinesTM(ListExpr args){
+  string err = "line expected";
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError(err);
+  }
+
   if(!nl->IsEqual(nl->First(args),Line::BasicType())) {
     return listutils::typeError("Argument of type " + Line::BasicType() +
                                 " expected.");
@@ -21397,6 +21402,11 @@ returns the result as an stream of ~sline~ values.
 */
 
 ListExpr SplitSLineAtPointsTM(ListExpr args){
+
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("two arguments expected"); 
+  }
+
   if(!nl->IsEqual(nl->First(args),SimpleLine::BasicType()))
     return listutils::typeError("First argument must be an " +
                                   SimpleLine::BasicType());

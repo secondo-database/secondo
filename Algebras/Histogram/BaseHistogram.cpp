@@ -282,7 +282,7 @@ namespace hgr
   {
     NList argList = NList(args);
 
-    if(!argList.length() == 2){
+    if(argList.length() != 2){
       return listutils::typeError("Expects 2 arguments.");
     }
 
@@ -700,7 +700,7 @@ namespace hgr
 
     //cout << "argList " << argList << endl;
 
-    if(!argList.length() == 3){
+    if(argList.length() != 3){
       return listutils::typeError("Expects 3 arguments.");
     }
 
