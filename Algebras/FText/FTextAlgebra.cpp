@@ -1582,6 +1582,14 @@ ListExpr TypeMap_textstring__text(ListExpr args){
 */
 
 ListExpr matchingOperatorNamesTM(ListExpr args){
+    ListExpr args2 = args;
+    while(!nl->IsEmpty(args2)){
+      if(listutils::isSymbol(nl->First(args2),Symbols::TYPEERROR())){
+        return listutils::typeError("TypeError in ArgumentList");
+      }
+      args2 = nl->Rest(args2);
+    }
+
     ListExpr res =  nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                                     nl->SymbolAtom(CcString::BasicType()));
     return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
@@ -1608,6 +1616,13 @@ ListExpr matchingOperatorNamesTM(ListExpr args){
 */
 
 ListExpr matchingOperatorsTM(ListExpr args){
+    ListExpr args2 = args;
+    while(!nl->IsEmpty(args2)){
+      if(listutils::isSymbol(nl->First(args2),Symbols::TYPEERROR())){
+        return listutils::typeError("TypeError in ArgumentList");
+      }
+      args2 = nl->Rest(args2);
+    }
 
     ListExpr attrList = nl->OneElemList(nl->TwoElemList(
                            nl->SymbolAtom("OperatorName"),
