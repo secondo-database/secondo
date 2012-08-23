@@ -68,6 +68,407 @@ let plzsmallWidth10 =
     No10: .No1]
   consume
 
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+delete uHashJoin;
+delete vHashJoin;
+delete wHashJoin;
+delete t_read;
+delete t_write;
+delete t_probe;
+delete t_hash;
+delete t_result;
+
+# gracehashjoin / hybridhashjoin #####################################
+#
+# Cost formula:
+#
+# // calculate total time
+# pRes->Time = p1.Time + p2.Time
+#              + p2.Card * vHashJoin     // reading stream B into hash table
+#              + p1.Card * uHashJoin     // probing stream A against hash table
+#              + pRes->Card * wHashJoin; // output of result tuples
+#
+# double t2 = p1.Card * ( t_probe + t_hash + t_read + t_write );
+#
+#
+# 
+# const double GraceHashJoinProgressLocalInfo::uHashJoin = 0.023;
+# const double GraceHashJoinProgressLocalInfo::vHashJoin = 0.0067;
+# const double GraceHashJoinProgressLocalInfo::wHashJoin = 0.0025;
+# const double GraceHashJoinProgressLocalInfo::t_read = 0.001090;
+# const double GraceHashJoinProgressLocalInfo::t_write = 0.001090;
+# const double GraceHashJoinProgressLocalInfo::t_probe = 0.001557;
+# const double GraceHashJoinProgressLocalInfo::t_hash = 0.004163;
+# const double GraceHashJoinProgressLocalInfo::t_result = 0.0044;
+#
+#
+# The following queries are taken from Sven Jungnickels 
+# "Masterthesis". Page 76.
+#
+#####################################################################
+
+let plz100 = plz feed thousand feed head[100] product
+  extend[Ran: randint(50000)] sortby[Ran asc] remove[Ran] consume
+
+let plz100Even = plz100 feed extend[PLZE: .PLZ * 2] 
+  project[PLZE, Ort, No] consume
+
+let plz100Odd = plz100 feed extend[PLZO: (.PLZ * 2) + 1] 
+  project[PLZO, Ort, No] consume
+
+##
+# t_result
+##
+
+query plz100Even feed head[41267*10] {a} plz100Odd feed
+  head[41267*10] {b} hybridhashjoin[PLZE_a, PLZO_b, 1000] count
+
+query plz100Even feed head[41267*10] {a} plz100Odd feed
+  head[41267*10] {b} hybridhashjoin[PLZE_a, PLZO_b, 1000] count
+
+query plz100Even feed head[41267*10] {a} plz100Odd feed
+  head[41267*10] {b} hybridhashjoin[PLZE_a, PLZO_b, 1000] count
+
+query plz100Even feed head[41267*10] {a} plz100Odd feed
+  head[41267*10] {b} hybridhashjoin[PLZE_a, PLZO_b, 1000] count
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+let x3 = plz100Even feed head[41267*10] {a} plz100Even feed
+  head[41267*10] {b} hybridhashjoin[PLZE_a, PLZE_b, 1000] count
+
+query plz100Even feed head[41267*10] {a} plz100Even feed
+  head[41267*10] {b} hybridhashjoin[PLZE_a, PLZE_b, 1000] count
+
+query plz100Even feed head[41267*10] {a} plz100Even feed
+  head[41267*10] {b} hybridhashjoin[PLZE_a, PLZE_b, 1000] count
+
+query plz100Even feed head[41267*10] {a} plz100Even feed
+  head[41267*10] {b} hybridhashjoin[PLZE_a, PLZE_b, 1000] count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# x3 is the tuplecount of the second query
+let tresult = (((x2 - x1) * 1000) / x3) * MF;
+
+query ProgressConstants inserttuple["ExtRelation2Algebra", "gracehashjoin", "tresult", tresult, "millisecs per result tuple", ""] consume
+
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+
+##
+# t_write
+##
+query plz100Even feed head[41267*10] {a} plz100Even feed
+   head[41267*10] {b} hybridhashjoin[PLZE_a, PLZE_b, 1000] head[1] count
+
+query plz100Even feed head[41267*10] {a} plz100Even feed
+   head[41267*10] {b} hybridhashjoin[PLZE_a, PLZE_b, 1000] head[1] count
+
+query plz100Even feed head[41267*10] {a} plz100Even feed
+   head[41267*10] {b} hybridhashjoin[PLZE_a, PLZE_b, 1000] head[1] count
+
+query plz100Even feed head[41267*10] {a} plz100Even feed
+   head[41267*10] {b} hybridhashjoin[PLZE_a, PLZE_b, 1000] head[1] count
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+query plz100Even feed head[41267*10] {a} plz100Even feed head[41267*10] {b}
+   hybridhashjoinParam[PLZE_a, PLZE_b, 1000,32,1024*1024,4096] head[1] count
+
+query plz100Even feed head[41267*10] {a} plz100Even feed head[41267*10] {b}
+   hybridhashjoinParam[PLZE_a, PLZE_b, 1000,32,1024*1024,4096] head[1] count
+
+query plz100Even feed head[41267*10] {a} plz100Even feed head[41267*10] {b}
+   hybridhashjoinParam[PLZE_a, PLZE_b, 1000,32,1024*1024,4096] head[1] count
+
+query plz100Even feed head[41267*10] {a} plz100Even feed head[41267*10] {b}
+   hybridhashjoinParam[PLZE_a, PLZE_b, 1000,32,1024*1024,4096] head[1] count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# x3 is the tuplecount of the second query
+let twrite = (((x2 - x1) * 1000) / 412670) * MF;
+
+query ProgressConstants inserttuple["ExtRelation2Algebra", "gracehashjoin", "twrite", twrite, "millisecs per written tuple", ""] consume
+
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+##
+# t_read
+##
+
+
+# Assume that twrite = tread
+# See Masterthesis Page 78 
+#
+let tread = twrite;
+
+query ProgressConstants inserttuple["ExtRelation2Algebra", "gracehashjoin", "tread", tread, "millisecs per read tuple", ""] consume
+
+##
+# t_hash
+##
+
+query plz100Even feed {a} plz100Even feed head[41267*50] {b}
+hybridhashjoin[PLZE_a, PLZE_b, 1000] head[1] count
+
+query plz100Even feed {a} plz100Even feed head[41267*50] {b}
+hybridhashjoin[PLZE_a, PLZE_b, 1000] head[1] count
+
+query plz100Even feed {a} plz100Even feed head[41267*50] {b}
+hybridhashjoin[PLZE_a, PLZE_b, 1000] head[1] count
+
+query plz100Even feed {a} plz100Even feed head[41267*50] {b}
+hybridhashjoin[PLZE_a, PLZE_b, 1000] head[1] count
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+query plz100Even feed {a} plz100Even feed head[41267*100] {b}
+hybridhashjoin[PLZE_a, PLZE_b, 1000] head[1] count
+
+query plz100Even feed {a} plz100Even feed head[41267*100] {b}
+hybridhashjoin[PLZE_a, PLZE_b, 1000] head[1] count
+
+query plz100Even feed {a} plz100Even feed head[41267*100] {b}
+hybridhashjoin[PLZE_a, PLZE_b, 1000] head[1] count
+
+query plz100Even feed {a} plz100Even feed head[41267*100] {b}
+hybridhashjoin[PLZE_a, PLZE_b, 1000] head[1] count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+let thash = ((((x2 - x1) * 1000) / (41267 * 50)) * MF) - twrite;
+
+query ProgressConstants inserttuple["ExtRelation2Algebra", "gracehashjoin", "thash", thash, "millisecs per hash value written to disk", ""] consume
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+
+##
+# t_probe
+##
+
+query plz100Even feed head[41267*20] {a} plz100Odd feed head[41267*20] {b}
+   hybridhashjoinParam[PLZE_a, PLZO_b, 1000,32,1024*1024,4096] count
+
+query plz100Even feed head[41267*20] {a} plz100Odd feed head[41267*20] {b}
+   hybridhashjoinParam[PLZE_a, PLZO_b, 1000,32,1024*1024,4096] count
+
+query plz100Even feed head[41267*20] {a} plz100Odd feed head[41267*20] {b}
+   hybridhashjoinParam[PLZE_a, PLZO_b, 1000,32,1024*1024,4096] count
+
+query plz100Even feed head[41267*20] {a} plz100Odd feed head[41267*20] {b}
+   hybridhashjoinParam[PLZE_a, PLZO_b, 1000,32,1024*1024,4096] count
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+query plz100Even feed head[41267*30] {a} plz100Odd feed head[41267*20] {b}
+   hybridhashjoinParam[PLZE_a, PLZO_b, 1000,32,1024*1024,4096] count
+
+query plz100Even feed head[41267*30] {a} plz100Odd feed head[41267*20] {b}
+   hybridhashjoinParam[PLZE_a, PLZO_b, 1000,32,1024*1024,4096] count
+
+query plz100Even feed head[41267*30] {a} plz100Odd feed head[41267*20] {b}
+   hybridhashjoinParam[PLZE_a, PLZO_b, 1000,32,1024*1024,4096] count
+
+query plz100Even feed head[41267*30] {a} plz100Odd feed head[41267*20] {b}
+   hybridhashjoinParam[PLZE_a, PLZO_b, 1000,32,1024*1024,4096] count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+let tprobe = ((((x2 - x1) * 1000) / 412670) * MF) - twrite - thash - tread;
+
+query ProgressConstants inserttuple["ExtRelation2Algebra", "gracehashjoin", "tprobe", tprobe, "millisecs per hash table lookup", ""] consume
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+
+##
+# vHashJoin
+#
+# The following constants are determined by using hashjoin
+# See Masterthesis Page 138
+##
+
+query plzbig feed {r1} plz feed head[0] {r2} hashjoin[PLZ_r1, PLZ_r2] count;
+
+# measure time for processing 2000000 inserts
+query plzbig feed {r1} plz feed head[0] {r2} hashjoin[PLZ_r1, PLZ_r2] count;
+
+query plzbig feed {r1} plz feed head[0] {r2} hashjoin[PLZ_r1, PLZ_r2] count;
+
+query plzbig feed {r1} plz feed head[0] {r2} hashjoin[PLZ_r1, PLZ_r2] count;
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+query plzsmall feed {r1} plz feed head[0] {r2} hashjoin[PLZ1_r1, PLZ_r2] count;
+
+query plzsmall feed {r1} plz feed head[0] {r2} hashjoin[PLZ1_r1, PLZ_r2] count;
+
+query plzsmall feed {r1} plz feed head[0] {r2} hashjoin[PLZ1_r1, PLZ_r2] count;
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# x5 is the size of additinal tuples
+let x5 = (plzbig count) - (plzsmall count);
+
+# Calculate time to process one hashtable insert
+# x1 - x2 is the time to insert (x5) tuples more
+# multiply by 1000 to get the time in milliseconds
+let vHashJoin = (((x1 - x2) * 1000) / x5) * MF;
+
+query ProgressConstants inserttuple["ExtRelation2Algebra", "gracehashjoin", "vHashJoin", vHashJoin, "msecs per hash table insert", ""] consume
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+##
+# vHashJoin
+##
+
+query plzsmall feed {r1} plzbig feed head [40000] {r2} hashjoin[PLZ1_r1, PLZ_r2] count
+
+# measure time for processing 40000 tuples 
+query plzsmall feed {r1} plzbig feed head [40000] {r2} hashjoin[PLZ1_r1, PLZ_r2] count
+
+query plzsmall feed {r1} plzbig feed head [40000] {r2} hashjoin[PLZ1_r1, PLZ_r2] count
+
+query plzsmall feed {r1} plzbig feed head [40000] {r2} hashjoin[PLZ1_r1, PLZ_r2] count
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# measure time for processing 20000 tuples 
+query plzsmall feed {r1} plzbig feed head [20000] {r2} hashjoin[PLZ1_r1, PLZ_r2] count
+
+query plzsmall feed {r1} plzbig feed head [20000] {r2} hashjoin[PLZ1_r1, PLZ_r2] count
+
+query plzsmall feed {r1} plzbig feed head [20000] {r2} hashjoin[PLZ1_r1, PLZ_r2] count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# Calculate time to process one tuple of the right input
+# x1 - x2 is the time to insert (20000) tuples more
+# multiply by 1000 to get the time in milliseconds
+let uHashJoin = (((x1 - x2) * 1000) / 20000) * MF;
+
+query ProgressConstants inserttuple["ExtRelation2Algebra", "gracehashjoin", "uHashJoin", uHashJoin, "msecs per right input tuple", ""] consume
+
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+##
+# wHashJoin
+##
+
+
+# measure time for processing 100000 * 100000 tuples with 6 attributes in result
+let x3 = plzsmall feed head[100000] {r1} plzsmall feed head[100000] {r2} hashjoin[PLZ1_r1, PLZ1_r2] count
+
+query plzsmall feed head[100000] {r1} plzsmall feed head[100000] {r2} hashjoin[PLZ1_r1, PLZ1_r2] count
+
+query plzsmall feed head[100000] {r1} plzsmall feed head[100000] {r2} hashjoin[PLZ1_r1, PLZ1_r2] count
+
+query plzsmall feed head[100000] {r1} plzsmall feed head[100000] {r2} hashjoin[PLZ1_r1, PLZ1_r2] count
+
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# measure time for processing 100000 * 100000 tuples with 20 attributes in result
+query plzsmallWidth10 feed head[100000] {r1} plzsmallWidth10 feed head[100000] {r2} hashjoin[PLZ1_r1, PLZ1_r2] count;
+
+query plzsmallWidth10 feed head[100000] {r1} plzsmallWidth10 feed head[100000] {r2} hashjoin[PLZ1_r1, PLZ1_r2] count;
+
+query plzsmallWidth10 feed head[100000] {r1} plzsmallWidth10 feed head[100000] {r2} hashjoin[PLZ1_r1, PLZ1_r2] count;
+
+query plzsmallWidth10 feed head[100000] {r1} plzsmallWidth10 feed head[100000] {r2} hashjoin[PLZ1_r1, PLZ1_r2] count;
+
+
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime];
+
+
+# calculate time for processing one attribute
+# (x2 - x1) is the time for processing 10 attributes more on 1000000 tuples
+#
+# x3 is the size of the result relation
+# so (14 * x3) is the number of additionally processed attributes
+#
+# multiply by 1000 to get the time in milliseconds
+let wHashJoin = (((x2 - x1) * 1000) / (14 * x3)) * MF;
+
+query ProgressConstants inserttuple["ExtRelation2Algebra", "gracehashjoin", "wHashJoin", wHashJoin, "msecs per attr in result relation", ""] consume
+
+
+
+
 # delete variables used before
 delete x1;
 delete x2;
@@ -456,8 +857,7 @@ let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
 # x5 is the size of additinal tuples
 let x5 = 36000000 - 25000000;
 
-# Calculate time to process one hashtable insert
-# x1 - x2 is the time to insert (x5) tuples more
+# x1 - x2 is the time to process (x5) tuples more
 # multiply by 1000 to get the time in milliseconds
 let uSymmJoin = (((x2 - x1) * 1000) / x5) * MF;
 
