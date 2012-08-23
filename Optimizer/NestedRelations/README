@@ -11,5 +11,5 @@ cp opsyntax.pl $SECONDO_BUILD_DIR/Optimizer/
 cp optimizer.pl $SECONDO_BUILD_DIR/Optimizer/
 cp statistics.pl $SECONDO_BUILD_DIR/Optimizer/
 
-cp nr_subqueries.pl $SECONDO_BUILD_DIR/Optimizer/Subqueries/subqueries.pl
+cp subqueries.pl $SECONDO_BUILD_DIR/Optimizer/Subqueries/
 

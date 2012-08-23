@@ -7,6 +7,7 @@ This files provides different functions to work with nested relations within the
 
 /* 
 Checks if DCRel is a rel of the type nrel. Can be used to enumerate the nested relation objects within the current database.
+
 is_nrel(?DCRel)
 */
 is_nrel(DCRel) :-
@@ -14,6 +15,8 @@ is_nrel(DCRel) :-
 
 /*
 The list elements needs to be in external spelling.
+
+getArelUnnestAtom(+ARelListInExternalSpelling, ?UnnestAtom)
 */
 getArelUnnestAtom([], '').
 
@@ -242,7 +245,7 @@ clearOptimizerState :-
 optimizerFacts([nCounter, node, edge, argument, 
 	varDefined, highNode, planEdge]).
 
-writeOptimizerState :-
+nrOptInfo :-
 	write('\nCurrent optimizer state:\n'), 
 	optimizerFacts(FList),
 	forAllIn(writefacts, FList),
@@ -253,7 +256,7 @@ writeOptimizerState :-
 Outputs most of the relevant facts inserted and deleted during the lookup.
 */
 nrInfo :-
-  write('***************** FACTS *************************'),nl,
+  write('*** FACTS ***\n'),
   writefacts(optimizerState),
   writefacts(queryAttrDesc),
   writefacts(currentAttrs),
@@ -320,6 +323,9 @@ setSubqueryCurrent(N) :-
   retractall(subqueryCurrent(_)),
   assertz(subqueryCurrent(N)).
 
+/*
+Stores the current enviroment and restores the enviroment given by the parameter. This is not needed during the lookup, but later within the plan generation by the subquery extension.
+*/
 switchToSQID(SQID) :-
 	getSubqueryCurrent(CSQID),
 	storeCurrentQueryInfos(CSQID),
@@ -347,13 +353,6 @@ storeCurrentQueryInfos(SQID) :-
   retractall(currentQueryAttr(SQID, _)),
   findall(queryAttr(V1), queryAttr(V1), L5),
   asserta(currentQueryAttr(SQID, L5)).
-
-/*
- XXX won't work, Current is not the deep, in't thed node prorccessing
-*/
-inSubquery :-
-  subqueryCurrent(Current),
-  Current > 0.
 
 restoreCurrentQueryInfos(SQID) :-
   retractall(isStarQuery),
@@ -411,7 +410,7 @@ injectUsedAttrToPreviousSQID(SQID) :-
 	appendLists([L1, L2, L3], L4),
   assertz(currentUsedAttr(PreviousSQID, L4)).
 
-createUsedAttrFromARelList(SQID, [], []).
+createUsedAttrFromARelList(_, [], []).
 createUsedAttrFromARelList(SQID, [RelT|Rest], [A|ARel]) :-
 	createUsedAttrFromARelList(SQID, Rest, ARel),	
 	RelT=rel(Rel, _),
@@ -438,9 +437,6 @@ getCurrentARels(CurrentARelList) :-
     ), L2),
 	append(L1, L2, CurrentARelList).
 
-	
-	
-
 /*
 Returns all rels used in the query with the given SQID, works not
 for the current query.
@@ -460,7 +456,6 @@ setSQIDToPrevious(SQID) :-
 
 enterSubquery(Type) :-
   dm(nr, ['\nenterSubquery']),
-  %nrInfo, rd,
   % Just ennumerate the subquries coz we have currently to other way to 
   % identify a query. In particular i'm interested in the parent queries to 
   % get some knowledge about these query variable bindings.
@@ -484,178 +479,6 @@ enterSubquery(Type) :-
   throw(error_Internal(nestedrelations_enterSubquery(Type)::invalidState)).
 
 /*
-Transform a attribute identifier to it's full qualified name (FQN).
-Means: 
-  o:bevth is orteh:bevth
-  p:o:bevth is orteh:subrel:bevth
-
-  bevt for from o:subrel -> orteh:subrel:bevt
-In this case, we have to define first the meaning of operations like this.
-
-ModAttr tracks back the renaming process, that we know the attribute name in current subquery.
-*/
-% Already known
-% still in use
-/*
-attributeToFQN(arel(_, FQN, ModAttr, _, _, _), FQN, ModAttr) :-
-	!.
-
-attributeToFQN(A, A, []) :-
-  atomic(A),
-	!.
-
-attributeToFQN(A, FQN, ModAttr) :-
-  A=Var:Attr,
-	!,
-  (findBinding(Var, variable(Var, rel(DCRel, Var))) -> 
-		true
-  ;
-    throw(error_Internal(nr_attributeToFQN(A, FQN, ModAttr)::failed))
-	),
-	(DCRel = relsubquery(_, SQID, TOP, _) ->
-		% what todo now?
-		(
-			% So the attributes can be found within the result relation of the subquery. But still to compute what the attributes orign is.
-			getRel(Attr, SQID, TOP, Rel, Mod),
-			%Rel=rel(DCRel2, Var2),
-			DCRel2=Rel,
-			(Rel=queryAttr(_) ->
-				(FQN=Rel, ModAttr=Var)
-			;
-			(
-			%attributeToFQN(DCRel2, DCRelFQN, SubModAttr),
-  		%appendAttribute(DCRelFQN, Attr, FQN),
-  		appendAttribute(DCRel2, Attr, FQN),
-  		appendAttribute(Var, Mod, Var2),
-  		%appendAttribute(Var2, SubModAttr, ModAttr)
-			ModAttr=Var2
-			))
-		)
-	;
-  	(
-			% Var refers to the current query or a surrounding query
-			attributeToFQN(DCRel, DCRelFQN, SubModAttr),
-  		appendAttribute(DCRelFQN, Attr, FQN),
-  		appendAttribute(Var, SubModAttr, ModAttr)
-		)
-	).
-*/
-
-/*
-Attr can be found within 
-- the queryRel facts of the SQID.
-- the variable facts of the subquery.
-- another from-subquery.
-Not implemented is the attribute access for computed attributes or 
-constants.
-*/
-/*
-getRel(Attr, SQID, TOP, Rel, []) :-
-	%var(TOP), % No transformation operator used
-	atomic(Attr),
-	currentQueryRels(SQID, L),
-	member(queryRel(Rel, _), L),
-	relation(Rel, AttList),
-	member(Attr, AttList).
-
-getRel(Attr, SQID, TOP, Rel, Var) :-
-	%var(TOP), % No transformation operator used
-	atomic(Attr),
-	currentVariablesAll(SQID, L),
-	member(variable(Var, RelT), L),
-	RelT=rel(Rel, _),
-	relation(Rel, AttList),
-	member(Attr, AttList).
-
-% for unesting in this case the attribute found this way
-% more complex var bindings are not allowed here in difference
-% to the subquieres within attributes oder predictes.
-getRel(Var:Attr, SQID, TOP, Rel, Var) :-
-  %var(TOP), % No transformation operator used
-  atomic(Attr),
-  currentVariablesAll(SQID, L),
-  member(variable(Var, RelT), L),
-  RelT=rel(Rel, _),
-  relation(Rel, AttList),
-  member(Attr, AttList).
-*/
-/*
-Special case that might happen now, the attribute to lookup might be now a new created attribute basedn on a expression within a subquery.
-See for an example test query no. 843.
-*/
-/*
-getRel(Attr, SQID, TOP, Rel, []) :-
-  atomic(Attr),
-  currentQueryAttr(SQID, L),
-  member(queryAttr(attr(Attr, Index, Case)), L),
-	Rel=queryAttr(attr(Attr, Index, Case)).
-*/
-/*
-getRel(Attr, SQID, TOP, Rel, Mod) :-
-	ground(TOP),
-	getRel(Attr, SQID, _, Rel, Mod).
-*/
-/*
-getRel(Attr, SQID, unnest(UAttr), Rel, []) :-
-  atomic(Attr),
-	ground(UAttr),
-	UAttr=attrname(attr(UAttrInternal, _, _)),
-  atomic(UAttrInternal),
-	dcName2internalName(DC, UAttrInternal),
-	!,
-	getRel(DC, SQID, _, URel, UVar),
-  appendAttribute(URel, DC, XY), 
-	Rel=XY.
-
-getRel(_:Attr, SQID, unnest(UAttr), Rel, []) :-
-  atomic(Attr),
-  ground(UAttr),
-  UAttr=attrname(attr(UAttrInternal, _, _)),
-  atomic(UAttrInternal),
-  dcName2internalName(DC, UAttrInternal),
-  !,
-  getRel(DC, SQID, _, URel, UVar),
-  appendAttribute(URel, DC, XY),
-  Rel=XY.
-
-getRel(Attr, SQID, unnest(UAttr), Rel, V) :-
-  atomic(Attr),
-  ground(UAttr),
-  UAttr=attrname(attr(UAttrInternal, _, _)),
-	UAttrInternal=_:_,
-  dcName2internalName(DC, UAttrInternal),
-  !,
-  getRel(DC, SQID, _, URel, UVar),
-	DC=V:DCRest,
-  appendAttribute(URel, DCRest, XY),
-  Rel=XY.
-
-getRel(_:Attr, SQID, unnest(UAttr), Rel, V) :-
-  atomic(Attr),
-  ground(UAttr),
-  UAttr=attrname(attr(UAttrInternal, _, _)),
-	UAttrInternal=_:_,
-  dcName2internalName(DC, UAttrInternal),
-  !,
-  getRel(DC, SQID, _, URel, UVar),
-	DC=V:DCRest,
-  appendAttribute(URel, DCRest, XY),
-  Rel=XY.
-*/
-/*
-in case of nest(...) we can lookup the attributes without doing any special
-getRel(_:Attr, SQID, nest(UAttr), Rel, V) :-
-*/
-
-/*
-  currentVariablesAll(SQID, L),
-  member(variable(Var, RelT), L),
-  RelT=rel(Rel, _),
-  relation(Rel, AttList),
-  member(Attr, AttList).
-*/
-	
-/*
 If not bounded to the current query, it is necessary to look into the variable bindings of the outer queries. Note that that some outer queries maybe skipped coz the variable isn't used there.
 */
 findBinding(Var, Result, SQID) :-
@@ -670,7 +493,7 @@ findBinding(Var, Result, SQIDFound) :-
 
 findBinding(SQID, Var, Result, SQIDFound) :-
   ((currentVariablesAll(SQID, VarsList),
-  	findfirst(variable(Var, rel(FREEVAR, Var)), VarsList, Result)) ->
+  	findfirst(variable(Var, rel(_, Var)), VarsList, Result)) ->
     SQIDFound=SQID
   ; 
 		(
@@ -678,7 +501,6 @@ findBinding(SQID, Var, Result, SQIDFound) :-
       findBinding(PrevSQID, Var, Result, SQIDFound)
     )
   ).
-
 
 /*
 Extract the relation name from a full qualified identifer.
@@ -719,14 +541,21 @@ isStarQuery(SQID) :-
 /*
 
 */
-reduceToARel(AttrList, ARelPath, AttrList2) :-
+reduceToARel(AttrList, ARelPath, AttrListOut) :-
   findall(ALast, (
       member(A, AttrList),
       lastAttribute(A, ALast),
       appendAttribute(ARelPath, ALast, Cmp),
       A=Cmp
-    ), L),
-  L=AttrList2.
+    ), AttrListOut).
+
+%reduceAttrDescListToSimpleAttrList(AttrListDesc, AttrListOut) :-
+reduceAttrDescListToSimpleAttrList([], []).
+reduceAttrDescListToSimpleAttrList([AD|AttrListDescRest], [A|AttrListOutRest]) :-
+	AD=..[_, Attr|_],
+	downcase_atom(Attr, AttrDC),
+	A=AttrDC,
+	reduceAttrDescListToSimpleAttrList(AttrListDescRest, AttrListOutRest).
 
 /*
 Not a very efficent version.
@@ -820,7 +649,7 @@ nrARename(AD, Rename, ADR) :-
   AD = [DCAttr, DCAttrMod, Case, DCFQN, Type, ARelTerm, AST],
 	(ARelTerm =.. [areldesc|_] ->
 		(
-			% A rename renames the attributes within the arel, too.
+			% A rename renames the attributes within all arel attributes, too.
 			ARelTerm=areldesc(ARelAtts, ARelSZ),
 			nrRenameAttrList(ARelAtts, Rename, RARelAtts),
 			ARelTermNew=areldesc(RARelAtts, ARelSZ)
@@ -874,20 +703,36 @@ buildAttrList2(LRels, SQID, TOP, AttrList2, ST) :-
 
 /*
 Transforms the virtual relation description ~AttrList~ based on the given transformation operator in the way the secondo text-syntax operator would change the structure.
+
+applyTOP(+SQID, +TOP, +LRels, +AttrList, -AttrListOut)
 */
-applyTOP(SQID, notop, LRels, AttrList, AttrList) :-
+applyTOP(_, notop, _, AttrList, AttrList) :-
 	!.
 
-applyTOP(SQID, unnest(attrname(NAttr)), LRels, AttrList, AttrList2) :-
-  NAttr=attr(Attr, Index, Case),
+applyTOP(_, unnest(arel, attrname(NAttr)), _, AttrList, AttrList2) :-
+  NAttr=attr(Attr, _, _),
 	nrSimpleFindAttribute(Attr, AttrList, AD, BeforeA, AfterA),
   AD=[_, _, _, _, _, areldesc(ARelAtts, _), _],
-	append(BeforeA, ARelAtts, TMP1),
-	append(TMP1, AfterA, AttrList2),
+	%append(BeforeA, ARelAtts, TMP1),
+	%append(TMP1, AfterA, AttrList2),
+	appendLists([BeforeA, ARelAtts, AfterA], AttrList2),
   !.
 
-applyTOP(SQID, nest(Attrs3, LA), LRels, AttrList, AttrList4) :-
-	LA=attrname(attr(NewLabel, Index, Case)),
+applyTOP(_, unnest(mpoint, attrname(NAttr)), _, AttrList, AttrList2) :-
+  NAttr=attr(Attr, _, _),
+	nrSimpleFindAttribute(Attr, AttrList, AD, BeforeA, AfterA),
+  AD   =[DCAttr, NewLabel, Case, FQN, Type, ARelD, _CSZ],
+	ensure(Type=mpoint),
+	% Can the upoint size and CSZ be used to adjust the card?!?
+	%CSZNEW=CSZ, % open issue. But i think we can set this size to a fixed value.
+	secDatatype(upoint, MemSize, _FlobSize, _, _, _),
+	CSZNEW=sizeTerm(MemSize, MemSize, 0),
+  ADNEW=[DCAttr, NewLabel, Case, FQN, upoint, ARelD, CSZNEW],
+	appendLists([BeforeA, [ADNEW], AfterA], AttrList2),
+  !.
+
+applyTOP(_, nest(Attrs3, LA), _, AttrList, AttrList4) :-
+	LA=attrname(attr(NewLabel, _, Case)),
 	(
 		% only the case for non isStarQuery.
 		% it's a little bit nasty, but the queryAttr facts need to be added
@@ -899,7 +744,8 @@ applyTOP(SQID, nest(Attrs3, LA), LRels, AttrList, AttrList4) :-
 	nrRemoveAttrs(Attrs3, AttrList2, AttrList3, Removed),
 	lastAttribute(NewLabel, Attr),
 	downcase_atom(Attr, DCAttr),
-  recomputeSizeTerm(AttrList3, CSZ),
+  recomputeSizeTerm(AttrList3, CSZ), % No extra space for the arel attribute
+	% himself is added.
 	ARelD=areldesc(AttrList3, CSZ),
 	FQN=fqn(no), % Just building a term that indicates that this attribute
 	% is not comming from the database, i can't pass just no because it
@@ -919,7 +765,7 @@ applyTOP(SQID, TOP, LRels, AttrList, AttrList) :-
 
 nrRemoveAttrs([], AttrList, AttrList, []).
 nrRemoveAttrs([Attr|Rest], AttrList, AttrList3, RemovedNew) :-
-	Attr=attrname(attr(Attr2, Index, Case)),
+	Attr=attrname(attr(Attr2, _, _)),
 	nrSimpleFindAttribute(Attr2, AttrList, A, BeforeA, AfterA),
 	append(BeforeA, AfterA, AttrList2),
 	nrRemoveAttrs(Rest, AttrList2, AttrList3, Removed),
@@ -947,27 +793,12 @@ attsFromRels(SQID, TOP, [Rel|RelRest], AttrList, SizeTermResult) :-
   append(ResAttrList2, AttrListRest, AttrList),
   addSizeTerms([SizeTerm1,SizeTerm], SizeTermResult).
 
-/*
 attsFromRels(SQID, TOP, [Rel|RelRest], AttrList, SizeTermResult) :-
   attsFromRels(SQID, TOP, RelRest, AttrListRest, SizeTerm1),
   Rel=rel(T, Var),
   T=..[arel|_],
   !,
-% XXX missing: reflect previous renamings...
-  T=arel(_, FQN, ModAttr, _, _, _),
-  FQN=_:_, % The simle case: get it from the database meta data.
-  getRelDesc(FQN, reldesc(ResAttrList, SizeTerm)),
-	nrRenameAttrList(ResAttrList, Var, ResAttrList2),
-  append(ResAttrList2, AttrListRest, AttrList),
-  addSizeTerms([SizeTerm1,SizeTerm], SizeTermResult), rd, true.
-*/
-
-attsFromRels(SQID, TOP, [Rel|RelRest], AttrList, SizeTermResult) :-
-  attsFromRels(SQID, TOP, RelRest, AttrListRest, SizeTerm1),
-  Rel=rel(T, Var),
-  T=..[arel|_],
-  !,
-  T=arel(_, FQN, ModAttr, _, areldesc(ResAttrList, _), SizeTerm),
+  T=arel(_, _, _, _, areldesc(ResAttrList, _), SizeTerm),
   %(var(FQN);FQN=fqn(no)), % create during query execution
   %FQN=fqn(no),
   nrRenameAttrList(ResAttrList, Var, ResAttrList2),
@@ -976,8 +807,8 @@ attsFromRels(SQID, TOP, [Rel|RelRest], AttrList, SizeTermResult) :-
 
 attsFromRels(SQID, TOP, [Rel|RelRest], AttrList, SizeTermResult) :-
   attsFromRels(SQID, TOP, RelRest, AttrListRest, SizeTerm1),
-  Rel=rel(T, Var),
-  T=relsubquery(Query2, _, _, PS), % This SQID value may differ from SQID.
+  Rel=rel(T, _),
+  T=relsubquery(_, _, _, PS), % This SQID value may differ from SQID.
   !,
   PS=sqInfo(_, _, _, SizeTerm, ResAttrList),
 	% Note that here is no renaming needed, this was already done.
@@ -1033,7 +864,6 @@ nrSimpleFindAttributeTmp2(Attr, [A|Rest], AL, Firsts, F2, Rest2) :-
 	append(Firsts, [A], Firsts2),
   nrSimpleFindAttributeTmp2(Attr, Rest, AL, Firsts2, F2, Rest2).
 
-
 /*
 
 */
@@ -1046,7 +876,7 @@ addVar(A, Var, AV) :-
 Provable if the attribute A1 is in the list,
 */
 nrContainsAttribute(A1, [L1|_]) :-
-  L1=usedAttr(RelT, attr(Attr, Index, Case)),
+  L1=usedAttr(RelT, attr(Attr, _, _)),
 	RelT=rel(_, Var),
   %applyOnAttributeList(downcase_atom, Attr, DCAttr),
 	Attr=DCAttr,
@@ -1063,7 +893,7 @@ nrRemoveUnusedAttrs(L, [A1|ARest], [A1|ARest2]) :-
   !,
   nrRemoveUnusedAttrs(L, ARest, ARest2).
 
-nrRemoveUnusedAttrs(L, [A1|ARest], ARest2) :-
+nrRemoveUnusedAttrs(L, [_|ARest], ARest2) :-
   !,
   nrRemoveUnusedAttrs(L, ARest, ARest2).
 
@@ -1082,7 +912,7 @@ addQueryAttr(SQID, [L|Rest], AttrList, AttrList2) :-
 addQueryAttr(SQID, [L|Rest], AttrList, AttrList2) :-
   L=queryAttr(attr(Attr, Index, Case)),
 	queryAttrDesc(SQID, attr(Attr, Index, Case), OutQuery),
-  OutQuery = subquery(_, Query2, _, ARelAttrList),
+  OutQuery = subquery(_, _, _, ARelAttrList),
 
   applyOnAttributeList(downcase_atom, Attr, DCAttr),
   % Open issue: compute the type and the sizeTerm
@@ -1121,7 +951,7 @@ getQueryResultSize(select _ from RelT, Size, TupleSize) :-
   card(Rel, Size),
   tupleSizeSplit(Rel, TupleSize).
 
-getQueryResultSize(select _ from RelT, Size, TupleSize) :-
+getQueryResultSize(select _ from RelT, Size, sizeTerm(0, 0, 0)) :-
   \+ optimizerOption(nawracosts),
   \+ optimizerOption(improvedcosts),
   \+ optimizerOption(memoryAllocation),
@@ -1132,12 +962,12 @@ getQueryResultSize(select _ from RelT, Size, TupleSize) :-
 In this case we can obtain the values from the pog optimization. (because a where condition is within the query)
 Note that with is not available for the standard costs (but nested relations works only with these standard cost). But i added it anyway if later needed.
 */
-getQueryResultSize(Query, Size, TupleSize) :-
+getQueryResultSize(_, Size, TupleSize) :-
   highNode(N),
   resultSize(N, Size),
   nodeTupleSize(N, TupleSize).
 
-getQueryResultSize(Query, Size, sizeTerm(0, 0, 0)) :-
+getQueryResultSize(_, Size, sizeTerm(0, 0, 0)) :-
   \+ optimizerOption(nawracosts),
   \+ optimizerOption(improvedcosts),
   \+ optimizerOption(memoryAllocation),
@@ -1157,6 +987,19 @@ addUsedAttrIfNeeded(RelT, Attr) :-
 addUsedAttrIfNeeded(RelT, Attr) :-
   assertz(usedAttr(RelT, Attr)),
 	!.
+
+getAttributeDesc(Type, Var:Attr, Rel, AD) :-
+  atomic(Var),
+  atomic(Attr),
+  downcase_atom(Attr, AttrDC),
+  findAttrLists(Type, Var, Rel, AttrDesc),
+  nrSimpleFindAttribute(AttrDC, AttrDesc, AD).
+
+getAttributeDesc(Type, Attr, Rel, AD) :-
+  atomic(Attr),
+  downcase_atom(Attr, AttrDC),
+  findAttrLists(Type, *, Rel, AttrDesc),
+  nrSimpleFindAttribute(AttrDC, AttrDesc, AD).
 
 nrLookupAttr(Var:Attr, attr(Attr2, 0, Case)) :-
   atomic(Var),
@@ -1233,7 +1076,7 @@ nrLookupSubqueryAttr(Query as Name, OutQuery as attr(Name, 0, u)) :-
 
   leaveSubquery,
   TOP=notop,
-  buildAttrList(Query2, SQID, TOP, AttrList1, TupleSize),
+  buildAttrList(Query2, SQID, TOP, AttrList1, _),
   %nrRenameAttrList(AttrList1, Name, AttrList2),
   AttrList1=AttrList2,
   %PS=sqInfo(Stream, Costs, Size, TupleSize, AttrList2),
@@ -1292,7 +1135,6 @@ Not within the from clause queries (direct, of course, within the from query, at
 nrLookupRel(RelVar:ARel as Var, Y) :-
   atomicCheck([RelVar, ARel, Var]),
   downcase_atom(ARel, AttrDC),
-	Attr=ARel,
 	findAttrLists(relation, RelVar, RelT, AttrDescList),
   nrSimpleFindAttribute(AttrDC, AttrDescList, AD),
   AD=[_, Attr2, Case, DCFQN, Type, ARelTerm, ST],
@@ -1321,7 +1163,6 @@ nrLookupRel(ARel as Var, Y) :-
 	atomic(ARel),
   atomicCheck([ARel, Var]),
   downcase_atom(ARel, AttrDC),
-  Attr=ARel,
 	findAttrLists(relation, *, RelT, AttrDescList),
   nrSimpleFindAttribute(AttrDC, AttrDescList, AD),
   AD=[_, Attr2, Case, DCFQN, Type, ARelTerm, ST],
@@ -1353,17 +1194,14 @@ nrLookupRel(RelVar:ARel, Y) :-
   atomicCheck([RelVar, ARel]),
 
   downcase_atom(ARel, AttrDC),
-  Attr=ARel,
-  %findAttributeDesc(RelVar, Attr, AD),
 	findAttrLists(relation, RelVar, RelT, AttrList),
   nrSimpleFindAttribute(AttrDC, AttrList, AD),
   AD=[_, Attr2, Case, DCFQN, Type, ARelTerm, ST],
 
-  %\+ duplicateAttrs(RelDC), % XXX this dosn't checks the arel attributes
   (Type \= arel ->
     (
       ErrMsg='Source attribute has not the type arel. This is not allowed',
-      throw(error_Internal(nr_nrLookupRel(RelVar:ARel as Var, Y))::ErrMsg)
+      throw(error_Internal(nr_nrLookupRel(RelVar:ARel, Y))::ErrMsg)
     )
   ;
     true
@@ -1374,9 +1212,16 @@ nrLookupRel(RelVar:ARel, Y) :-
   Y=rel(arel(RelVar:AttrDC, DCFQN, Attr2, Case, ARelTerm, ST), *),
   subqueryCurrent(SQID),
 	assertz(arelTermToOuterRelTerm(SQID, Y, RelT)),
+	
+	% XXX still to implement
+  %\+ duplicateAttrs(Y),
 
   assertz(queryRel(RelVar:AttrDC, Y)).
 
+nrLookupRel(Query, _) :-
+  simplifiedIsQuery(Query),
+	ErrMsg='Subqueries within the from clause needs to be specified with a label like \'Query as label\'.',
+	throw(error_SQL(nr_nrLookupRel(Query, _)::ErrMsg)).
 
 nrLookupRel(Query as Var, RRel) :-
   simplifiedIsQuery(Query),
@@ -1400,8 +1245,7 @@ nrLookupRel(Query as Var, RRel) :-
   % simplifiedIsQuery expendable.
   RRel=rel(relsubquery(Query2, SQID, TOP, PS), Var),
 	checkVarIsFree(Var),
-  assertz(variable(Var, RRel)),
-	rd,true.
+  assertz(variable(Var, RRel)).
 
 nrLookupRel(Query as Var, RRel) :-
   simplifiedIsQuery(Query),
@@ -1420,10 +1264,18 @@ nrLookupRel(Query unnest(Attr) as Var, RRel) :-
   getQueryResultSize(Query2, Size, _),
 
   lookupAttr(Attr, NAttr),
+	getAttributeDesc(attribute, Attr, _, AD),
+  AD=[_, _, _, _, Type|_],
+	(member(Type, [arel, mpoint]) -> 
+		true
+	;
+		throw(error_SQL(nr_nrLookupRel(Query unnest(Attr) as Var, RRel)::
+			'The unnest operator can only be applied on arel or mpoint attributes.'))
+	),
 
   leaveSubquery,
 
-  TOP=unnest(attrname(NAttr)),
+  TOP=unnest(Type, attrname(NAttr)),
   buildAttrList(Query2, SQID, TOP, AttrList1, TupleSize),
   nrRenameAttrList(AttrList1, Var, AttrList2),
   PS=sqInfo(Stream, Costs, Size, TupleSize, AttrList2),
@@ -1469,15 +1321,6 @@ nrLookupRel(Query nest(Attrs, NewLabel) as Var, RRel) :-
   assertz(variable(Var, RRel)).
 
 /*
-nrLookupRel(Rel, RRel) :-
-  optimizerOption(nestedRelations),
-  simplifiedIsQuery(Rel), 
-  ...
-  assertz(queryRel(_, RRel)). % Because of this, to makes this work, much more needs to be done whereever queryRel is used. 
-*/
-
-
-/*
 For count queries, here is fixed that within the secondo the sql dialect fulfills not the closure property. Within secondo, a count query returns a single value and not a relation. Here the value is transformed into a tuple stream.
 This is just a work around, i think it would be better to implement a new count operator that returns a tuple stream (with one tuple) as a result that can be consumed.
 The same is the case for max/min/avg etc.
@@ -1512,24 +1355,25 @@ atomicValueToTupleStream(StreamIn, Attr, StreamOut) :-
 Special version for the lookupAttr phase.
 In this case, of course, the attrlist can't be reduces based on the
 usedAttr facts.
+getCurrentAttrList(+SQID, ?Var, ?RelT, -AttrList) 
 */
-getCurrentAttrList(SQID, Var, RelT, AttrList) :-
+getCurrentAttrList(_, Var, RelT, AttrList) :-
   Var \= *,
   variable(Var, RelT),
 	extractAttrList(RelT, AttrList).
 
-getCurrentAttrList(SQID, *, RelT, AttrList) :-
+getCurrentAttrList(_, *, RelT, AttrList) :-
   queryRel(_, RelT),
 	extractAttrList(RelT, AttrList).
 
 getCurrentAttrList(SQID, Var, RelT, AttrList) :-
 	Var \= *,
   variable(Var, RelT),
-  attsFromRels(SQID, notop, [RelT], AttrList, ST).
+  attsFromRels(SQID, notop, [RelT], AttrList, _).
 
 getCurrentAttrList(SQID, *, RelT, AttrList) :-
   queryRel(_, RelT),
-  attsFromRels(SQID, notop, [RelT], AttrList, ST).
+  attsFromRels(SQID, notop, [RelT], AttrList, _).
 
 /*
 Like findBinding, but searches only in the direct outer query.
@@ -1544,7 +1388,7 @@ findParentBinding(SQID, Var, Result, SQID) :-
 
 getParentAttrList(SQID, Var, RelT, AttrList) :-
   Var \= *,
-	findParentBinding(SQID, Var, Result, SQIDFound),
+	findParentBinding(SQID, Var, Result, _),
   Result=variable(Var, RelT),
   extractAttrList(RelT, AttrList).
 
@@ -1558,13 +1402,13 @@ getParentAttrList(SQID, Var, RelT, AttrList) :-
   Var \= *,
 	findParentBinding(SQID, Var, Result, SQIDFound),
   Result=variable(Var, RelT),
-  attsFromRels(SQIDFound, notop, [RelT], AttrList, ST).
+  attsFromRels(SQIDFound, notop, [RelT], AttrList, _).
 
 getParentAttrList(SQID, *, RelT, AttrList) :-
   subqueryDFSLabel(PrevSQID, SQID, _),
   currentQueryRels(PrevSQID, List),
 	member(queryRel(_, RelT), List),
-  attsFromRels(PrevSQID, notop, [RelT], AttrList, ST).
+  attsFromRels(PrevSQID, notop, [RelT], AttrList, _).
 
 
 % With the lookup of attribute, the attribute may come from the attribute
@@ -1601,7 +1445,7 @@ findAttrLists(Mode, *, norel, AttrList) :-
   subqueryDFSLabel(PrevSQID, SQID, _),
   currentQueryAttr(PrevSQID, L),
 	member(queryAttr(Attr), L),
-	Attr=attr(Label, Index, Case),
+	Attr=attr(Label, _, Case),
 	queryAttrDesc(PrevSQID, Attr, SQT),
 	SQT=subquery(_, _, _, ARelAttrList),
 	downcase_atom(Label, LabelDC),
@@ -1611,7 +1455,6 @@ findAttrLists(Mode, *, norel, AttrList) :-
 	AttrList=[AD].
 
 findAttrLists(Mode, Var, RelT, AttrList) :-
-  getSubqueryCurrent(SQID),
 	\+ member(Mode, [relation, attribute, predicate]),
 	throw(error_Internal(nr_findAttrLists(Mode, Var, RelT, AttrList)::
 		'illegal call')).
@@ -1623,7 +1466,7 @@ extractAttrList(rel(relsubquery(_, _, _, PS), _), AttrList) :-
 	!,
   PS=sqInfo(_, _, _, _, AttrList).
 
-extractAttrList(rel(arel(_, _, Attr2, Case, ARelTerm, ST), _), AttrList) :-
+extractAttrList(rel(arel(_, _, _, _, ARelTerm, _), _), AttrList) :-
 	!,
 	ARelTerm=areldesc(AttrList, _).
 
@@ -1657,12 +1500,24 @@ nrApplyCase(Attr, Case, AttrOut) :-
 	throw(error_Internal(nr_nrApplyCase(Attr, Case, AttrOut)::invalidCase)).
 
 /*
-
+StreamIn is a plan that creates a tuple stream, on this stream, the stream is transformed based on the transformation operation(TOP) to create the ~StreamOut~ plan.
+addTransformationOperator(+StreamIn, +TOP, -StreamOut)
 */
 addTransformationOperator(Stream, notop, Stream).
 
-addTransformationOperator(Stream1, unnest(Attr), Stream2) :-
+
+addTransformationOperator(Stream1, unnest(arel, Attr), Stream2) :-
   Stream2=unnest(Stream1, Attr).
+
+% Example: 
+% extendstream[UTrip: units(.Trip)] remove[Trip] renameattr[Trip: UTrip] consume
+addTransformationOperator(Stream1, unnest(mpoint, Attr), Stream4) :-
+	Attr=attrname(attr(A, Index, Case)),
+	AttrN=attr(tempxxxxx, Index, Case),
+	NewAttr=newattr(attrname(AttrN), units(attr(A, Index, Case))),
+  Stream2=extendstream(Stream1, NewAttr),
+  Stream3=remove(Stream2, Attr),
+  Stream4=renameattr(Stream3, newattr(Attr, attrname(AttrN))).
 
 addTransformationOperator(Stream1, nest(Attrs, NewLabel), Stream3) :-
   % The nest operation expect a sorted stream.
@@ -1670,5 +1525,27 @@ addTransformationOperator(Stream1, nest(Attrs, NewLabel), Stream3) :-
   Stream3=nest(Stream2, Attrs, NewLabel).
   % Open issue: restoring the sort order after the nest operation, but this
   % not easy at all.
+
+addTransformationOperator(StreamIn, TOP, StreamOut) :-
+	throw(error_Internal(nr_addTransformationOperator(StreamIn, TOP, StreamOut)::failed)).
+
+/*
+
+*/
+nrRel(Rel) :-
+  Rel = rel(T, _),
+  T=..[arel|_].
+nrRel(Rel) :-
+  isRelsubquery(Rel).
+nrRel(pr(_, Rel1, _)) :-
+  nrRel(Rel1).
+nrRel(pr(_, _, Rel2)) :-
+  nrRel(Rel2).
+nrRel(pr(_, Rel)) :-
+  nrRel(Rel).
+
+isRelsubquery(Rel) :-
+  Rel = rel(T, _),
+  T =.. [relsubquery|_].
 
 % eof

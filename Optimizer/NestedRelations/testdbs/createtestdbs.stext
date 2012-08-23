@@ -19,3 +19,9 @@ delete database literature
 restore database literature from literature
 
 close database
+
+delete database berlintest
+
+restore database berlintest from berlintest
+
+close database

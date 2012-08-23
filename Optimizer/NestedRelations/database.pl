@@ -147,7 +147,6 @@ InternalSpelling within the current database.
 
 */
 
-% InternObj -> DCobj  ALWAYS SUCCEEDS FOR CORRECT INTERNAL SPELLINGS
 /*
 NVK ADDED NR
 For nested relations support.
@@ -155,10 +154,11 @@ For nested relations support.
 dcName2internalName(DC, Intern) :-
   ground(Intern),                % second arg instantiated
   Intern=_:_,
-	applyOnAttributeList(dcName2internalName, DC, Intern),
+  applyOnAttributeList(dcName2internalName, DC, Intern),
   !.
-%	NVK ADDED END
+% NVK ADDED END
 
+% InternObj -> DCobj  ALWAYS SUCCEEDS FOR CORRECT INTERNAL SPELLINGS
 dcName2internalName(DC,Intern) :-
   ground(Intern),                % second arg instantiated
   atomic(Intern),
@@ -179,8 +179,6 @@ dcName2internalName(DC,Intern) :-
 % DCrel:DCattr -> InternAttr
 dcName2internalName(DC,Intern) :-
   ground(DC),                    % first arg instantiated
-  % NVK NOTE: This works for nested relations as well. But DCattr may contain
-	% more : operators.
   DC = DCrel : DCattr,           % is attribute identifier
   databaseName(DB),              % get current DB name
   storedSpell(DB,DCrel:DCattr,Intern), % get stored internal attribute spelling
@@ -216,7 +214,6 @@ dcName2externalName(DC,External) :-
   secondoCatalogInfo(DC,External,_,_), % get external spelling from catalog
   !.
 % DCrel:DCattr -> ExternalAttr  RELIES ON STORED TRANSLATION!
-% NVK NOTE: Works even for nested relations.
 dcName2externalName(DC,External) :-
   ground(DC),                    % first arg instantiated
   DC = _ : _,                    % is attribute identifier
@@ -516,11 +513,11 @@ checkForAttributeNameConflicts :-
   findall(Clashes, (
                      secondoCatalogInfo(DCrel,_,_,[[RelType, [tuple, _]]]),
                      % NVK MODIFIED
-										 % The check clause has to be to extended to check nested
-										 % attribute names.
+                     % The check clause has to be to extended to check nested
+                     % attribute names.
                      %member(RelType,[trel,rel]),
                      member(RelType,[trel,rel,nrel]),
-										 % NVK MODIFIED END
+                     % NVK MODIFIED END
                      getAttributeNameConflicts(DCrel,ConflictList),
                      ConflictList \= [],
                      secondoCatalogInfo(DCrel,ExtRel,_,_),
@@ -560,6 +557,15 @@ getAttributeNameConflicts(DCrel,ConflictList) :-
 % returns a list of conflicting attribute names, i.e.
 % attribute names that are also used as an object name in the current database.
 getAttributeNameConflicts2(_,[],[]) :- !.
+/* NVK ADDED PRE VERSION
+getAttributeNameConflicts2(ExtRel,[[Attr,[arel,[tuple,ARelAttrList]]]|More],
+		[ExtRel:Attr|ConflictList]) :-
+	optimizerOption(nestedRelations),
+	getAttributeNameConflicts2(ExtRel, ARelAttrList, ARelConflicts),
+
+  ( secondoCatalogInfo(_,Attr,_,_) ; systemIdentifier(Attr,_) ) , !,
+  getAttributeNameConflicts2(ExtRel,More,ConflictList), !.
+*/
 
 getAttributeNameConflicts2(ExtRel,[[Attr,_]|More],[ExtRel:Attr|ConflictList]) :-
   ( secondoCatalogInfo(_,Attr,_,_) ; systemIdentifier(Attr,_) ) , !,
@@ -659,13 +665,14 @@ findNewRelations(NewRelations) :-
   databaseName(DB),
   findall( DCRel,
            (
-              % NVK ADDED
+              % NVK ADDED NR
               % OLD:
               %secondoCatalogInfo(DCRel,_,_,[[rel, _]]),
               % NEW:
               ( secondoCatalogInfo(DCRel,_,_,[[rel, _]])
               ; secondoCatalogInfo(DCRel,_,_,[[nrel, _]])
               ),
+							% NVK ADDED NR END
               not(storedRel(DB, DCRel, _))
            ),
            NewRelations
@@ -790,10 +797,10 @@ handleNewRelation(DCrel) :-
       )
   ),
   ( ( secondoCatalogInfo(DCrel,ExtRel,_,Type),
-    % NVK ADDED
-    (
-        Type = [[rel, [tuple, _]]]
-      ; Type = [[nrel, [tuple, _]]])
+    	% NVK ADDED NR
+      Type = [[RelType, [tuple, _]]],
+			member(RelType, [rel, nrel])
+    	% NVK ADDED NR END
     )
     -> true
     ;  (  concat_atom(['Object \'',DCrel,
@@ -1301,8 +1308,6 @@ buildSmallRelation(ExtRel, ExtRelSmall, MinSize, Percent) :-
   dcName2externalName(DCrel,ExtRel),
   dcName2externalName(DCrelSmall,ExtRelSmall),
   atom_concat('XxxID', DCrel, IDAttr),
-  % NVK NOTE: Sampling for nrel currently dosen't take care about arel attribute relations.
-  % May cause trouble when using big nested relations.
   concat_atom(['derive ', ExtRelSmall, ' = ', ExtRel,
     ' sample[', MinSize, ', ', Percent, '] extend[', IDAttr,
     ': seqnext()] consume'], '',
@@ -1683,11 +1688,12 @@ createSampleS(DCRel) :-
 sampleQuery(ExtSample, ExtRel, SampleSize, QueryAtom) :-
   dm(dbhandling,['\nTry: sampleQuery(',ExtSample,',',ExtRel,',',SampleSize,',',
                  QueryAtom,').']),
-	% NVK MODIFIED to support samples on nrel relations.
+  % NVK MODIFIED NR to support samples on nrel relations.
+	% because currentliy there exists no samples operator for nrel relations.
   %secondoCatalogInfo(_,ExtRel,_,[[trel, [tuple, _]]]),
   secondoCatalogInfo(_,ExtRel,_,[[RelType, [tuple, _]]]),
-	member(RelType, [trel, nrel]),
-	% NVK MODIFIED END
+  member(RelType, [trel, nrel]),
+  % NVK MODIFIED END
   concat_atom(['derive ', ExtSample, ' = ', ExtRel,
     ' feed head[', SampleSize, ']
       extend[XxxNo: randint(20000)] sortby[XxxNo asc] remove[XxxNo]
@@ -1803,23 +1809,41 @@ A = [year, publications] .
 So we just return the attributes of a arel and no more attributes of deeper
 arel attributes.
 */
-relation(Rel:ARels, AttrList2) :- 
-	% No reverse call allowed like the subqueries extentions
-	% wan't to do this.
-	( var(Rel)	; var(ARels) ),
-	throw(notAllowed).
+relation(Rel:ARels, AttrList) :-
+	optimizerOption(nestedRelations),
+  % No reverse call allowed like the subqueries extentions
+  % wan't to do this.
+  ( var(Rel)  ; var(ARels) ),
+  throw(error_Internal(nr_relation(Rel:ARels, AttrList)::notAllowed)).
 
 relation(Rel:ARels, AttrList2) :-
+	optimizerOption(nestedRelations),
   dm(dbhandling,['\nTry: relation(',Rel:ARels,',', AttrList2,').']),
   databaseName(DB),
-	ground(Rel),
-	ground(ARels),
+  ground(Rel),
+  ground(ARels),
   storedRel(DB, Rel, AttrList),
-	reduceToARel(AttrList, ARels, AttrList2).
+  reduceToARel(AttrList, ARels, AttrList2).
+
+relation(rel(RelT, _), AttrList2) :-
+	!,
+	relation(RelT, AttrList2).
+
+% XXX TODO	
+relation(arel(_, _, _, _, areldesc(ResAttrList, _), _), AttrList2) :-
+  optimizerOption(nestedRelations),
+  reduceToARel(ResAttrList, [], AttrList2).
+
+relation(relsubquery(_, _, _, PS), AttrList2) :-
+  optimizerOption(nestedRelations),
+  PS=sqInfo(_, _, _, _, ResAttrList),
+  reduceToARel(ResAttrList, [], AttrList2).
+
 % NVK ADDED END
 
 relation(Rel, AttrList) :-
   dm(dbhandling,['\nTry: relation(',Rel,',',AttrList,').']),
+	atomic(Rel), % NVK ADDED NR
   databaseName(DB),
   storedRel(DB, Rel, AttrList).
 
@@ -1987,24 +2011,25 @@ use.
 % --- getIntSpellingFromDCattrList(+DCAttr, +ExtAttrList, -IntAttr)
 getIntSpellingFromDCattrList(_, [], _) :- !, fail.
 
+getIntSpellingFromDCattrList(DCattr,[[ExtAttr, _] | _], IntAttr) :-
+  dcName2externalName(DCattr,ExtAttr),
+  internalName2externalName(IntAttr,ExtAttr), !.
 
-% NVK ADDED
-% Note that a attibute name in unique within a nrel relation.
+getIntSpellingFromDCattrList(DCattr,[[_, _] | Rest], IntAttr) :-
+  getIntSpellingFromDCattrList(DCattr,Rest,IntAttr),
+  !.
+
+% NVK ADDED NR
+% Note that a attibute name is unique within a nrel relation.
 % If this assumption is no longer valid, this is no longer possible.
-getIntSpellingFromDCattrList(DCFRAAP,[[AttrExt, Type] | Rest], IntAttr) :-
+getIntSpellingFromDCattrList(DCFRAAP,[[_, Type] | _], IntAttr) :-
   optimizerOption(nestedRelations),
   Type = [arel, [tuple, ArelTypes]],
   catch(dcName2externalName(DCFRAAP, ExtDCNRel),
-		error_Internal(database_dcName2externalName(_,_)::cannotTranslate), fail),
-  internalName2externalName(IntDCRel,ExtDCNRel),
-	DCNRel=IntDCRel,
-	getIntSpellingFromDCattrList(DCattr,ArelTypes, IntAttr),
+    error_Internal(database_dcName2externalName(_,_)::cannotTranslate), fail),
+  internalName2externalName(_, ExtDCNRel),
+  getIntSpellingFromDCattrList(_,ArelTypes, IntAttr),
   !.
-
-getIntSpellingFromDCattrList(DCNRel:DCattr,[[_, _] | Rest], IntAttr) :-
-  optimizerOption(nestedRelations),
-	getIntSpellingFromDCattrList(DCNRel:DCattr,Rest, IntAttr).
-
 
 % NVK NOTE i don't know how this should work coz dcName2externalName
 % will thow an error. 
@@ -2014,49 +2039,28 @@ getIntSpellingFromDCattrList(DCNRel:DCattr,[[_, _] | Rest], IntAttr) :-
 % OrteH:SubRel:Kennzeichen
 getIntSpellingFromDCattrList(FRAAP,[[ExtAttr, _] | _], IntAttr) :-
   %dcName2externalName(DCattr,ExtAttr),
-	% NVK: Now catch and ignore the exception to allow test the other attributes.
+  % NVK: Now catch and ignore the exception to allow test the other attributes.
   catch(dcName2externalName(FRAAP,ExtAttr),
-		error_Internal(database_dcName2externalName(_,_)::cannotTranslate), fail),
+    error_Internal(database_dcName2externalName(_,_)::cannotTranslate), fail),
   internalName2externalName(IntAttr,ExtAttr), !.
 
-xxxgetIntSpellingFromDCattrList(DCattr,[[AttrExt, Type] | Rest], IntAttr) :-
-	optimizerOption(nestedRelations),
-	( Type = [arel, [tuple, ArelTypes]] ->
-		( getIntSpellingFromDCattrList(DCattr, ArelTypes, IntAttrInArel) ->
-			IntAttr=IntAttrInArel % found
-		; 
-			true
-		)
-	;
-		true
-	),
-	(var(IntAttr) ->
-  	getIntSpellingFromDCattrList(DCattr,Rest,IntAttr)
-	;
-		true
-	),
-  !.
-
-getIntSpellingFromDCattrList(DCattr,[[_, _] | Rest], IntAttr) :-
-	%\+ optimizerOption(nestedRelations), % NVK ADDED
-  getIntSpellingFromDCattrList(DCattr,Rest,IntAttr),
-  !.
+% NVK ADDED END 
 
 /*
 NVK ADDED NR
 Allows to execute ~spelling(orteh:subrel:ort, S)~ (result is S = ort) calls for nested relations.
 */
 spelling(Rel:Atts, Spelled) :-
+  optimizerOption(nestedRelations),
   dm(dbhandling,['\nTry: spelling(',Rel,':',Atts,',',Spelled,').']),
-	optimizerOption(nestedRelations),
   databaseName(DB),
   ( storedSpell(DB, Rel:Atts, Spelled) % OK but spelled dosn't contain the
-																				% arel structure!
+                                        % arel structure!
     ; (
         secondoCatalogInfo(Rel,_,_,TypeList),
         TypeList = [[RelType, [tuple, AttrList]]],
-				member(RelType, [rel,nrel,trel]), % trel just added coz is should be ok.
-				% XXX
+        member(RelType, [rel,nrel,trel]), % trel just added coz is should be ok.
+        % XXX
         getIntSpellingFromDCattrList(Atts, AttrList, Spelled), !,
         assert(storedSpell(DB, Rel:Atts, Spelled))
       )
@@ -2156,19 +2160,18 @@ If this fails, a Secondo query is issued via ~getTupleInfo/1~, which also
 inquires the cardinality and stores it in local memory.
 
 */
-
 /*
 NVK ADDED NR
 Just return the stored size.
 */
-card(relsubquery(Q, SQID, TOP, PS), Size) :-
+card(relsubquery(_, _, _, PS), Size) :-
   optimizerOption(nestedRelations),
   PS=sqInfo(_, _, Size, _, _).
-	
+
 card(arel(A, B, C, D, E, F), Size) :-
   optimizerOption(nestedRelations),
-	cardNR(arel(A, B, C, D, E, F), Size),
-	!.
+  cardNR(arel(A, B, C, D, E, F), Size),
+  !.
 % NVK ADDED NR END
 
 card(DCrel, Size) :-
@@ -2183,7 +2186,6 @@ card(DCrel, Size) :-
   secondoCatalogInfo(DCrel,_,_,_),
   getTupleInfo(DCrel),
   storedCard(DB, DCrel, Size), !.
-
 
 card(DCrel, X) :-
   write('\nERROR:\tCardinality for relation \''),write(DCrel), %'
@@ -2241,10 +2243,10 @@ Currently there are not indicies for arel attributes or for subqueries as far as
 To implemented this, this predicates is necessary, calling the below predicates won't work because it won't fail silently.
 */
 hasIndex(Rel, _, _, _) :-
-	Rel=rel(Term, _),
-	(Term = _:_ ; Term=..[relsubquery|_]),
-	!,
-	fail.
+  Rel=rel(Term, _),
+  (Term = _:_ ; Term=..[relsubquery|_]),
+  !,
+  fail.
 % NVK ADDED NR END
 
 hasIndex(Rel, Attr, IndexName, IndexType) :-
@@ -3805,7 +3807,7 @@ getTupleInfo(DCrel) :-
   ( ( secondoCatalogInfo(DCrel,ExtRel, _, TypeExpr),
       (   TypeExpr = [[rel, [tuple, ExtAttrList]]]
         ; TypeExpr = [[trel, [tuple, ExtAttrList]]]
-        % NVK ADDED recognize nested relations. Later we unnesting the attributes.
+ 				% NVK ADDED recognize nested relations.
         ; TypeExpr = [[nrel, [tuple, ExtAttrList]]]
       ),
       internalName2externalName(IntRel,ExtRel)
@@ -3829,61 +3831,64 @@ getTupleInfo(DCrel) :-
   retractall(storedSpell(DB,_,IntRel)),    % spelling of relation
   retractall(storedSpell(DB, DCrel:_, _)), % spelling of attributes
   % query for new information
-  % NVK ADDED
-  % old:
-  %( systemTable(DCrel,_)                           
-  %new:
-/*
-  ( (systemTable(DCrel,_) ; is_nrel(DCrel) )       % special case: trel or nrel objects
-	% NVK ADDED
-    -> concat_atom([ExtRel,' feed'],'',UsedExtRel) % require an additional
-    ; UsedExtRel = ExtRel                          % 'feed'-operator!
-  ),
-	*/
+	% NVK MODIFIED NR
   assert(storedSpell(DB,DCrel,IntRel)),    % XRIS: could be omitted!
-  getTupleInfo2(DB, ExtRel, DCrel, [], [], ExtAttrList, DCattrList1),
-  getTupleInfo2ARels(DB, ExtRel, DCrel, [], [], ExtAttrList, DCattrList2),
-	append(DCattrList1, DCattrList2, DCattrList), % Note: DCattrList is noch longer in order.
+ 	(optimizerOption(nestedRelations) ->
+		(
+  		getTupleInfo2(DB, ExtRel, DCrel, [], [], ExtAttrList, DCattrList1),
+  		getTupleInfo2ARels(DB, ExtRel, DCrel, [], [], ExtAttrList, DCattrList2),
+  		append(DCattrList1, DCattrList2, DCattrList)
+		)
+	; 
+		(
+  		( systemTable(DCrel,_)                     % special case: trel objects
+    		-> concat_atom([ExtRel,' feed'],'',UsedExtRel) % require an additional
+    		; UsedExtRel = ExtRel                          % 'feed'-operator!
+  		),
+  		getTupleInfo2(DB, UsedExtRel, DCrel, ExtAttrList, DCattrList)
+		)
+	),
+	% NVK MODIFIED END NR
   assert(storedRel(DB,DCrel,DCattrList)),  % Doing this as the last step avoids
                                            % problems with missing data
   !.
 
-getTupleInfo2ARels(_, _, _, _, _, [], []) :- 
-	!.
-
-getTupleInfo2ARels(DB, ExtRel, DCrel, ExtARelPath, DCARelPath, ExtAttrList, DCattrList) :-
-	ExtAttrList=[Attr|Rest],
-	getTupleInfo2ARels(DB, ExtRel, DCrel, ExtARelPath, DCARelPath, Rest, DCattrList1), 
-  Attr = [A,TYPE],
-  ( TYPE = [arel,[tuple,ExtArelAtts]] -> (
-		%write_list(['Analyse now arel: ', A, '...']),nl, sleep(2),
-		append(ExtARelPath, [A], NewExtARelPath),
-  	dcName2externalName(AttrDC,A),
-		append(DCARelPath, [AttrDC], NewDCARelPath),
-  	getTupleInfo2(DB, ExtRel, DCrel, NewExtARelPath, NewDCARelPath, ExtArelAtts, DCattrList2),
-		getTupleInfo2ARels(DB, ExtRel, DCrel, NewExtARelPath, NewDCARelPath, ExtArelAtts, DCattrList3),
-		append(DCattrList1, DCattrList2, DCattrList4), % Note: DCattrList is noch longer in order.
-		append(DCattrList3, DCattrList4, DCattrList) % Note: DCattrList is noch longer in order.
-	) ;
-		DCattrList1=DCattrList
-	).
-	
 /*
 ----
-getTupleInfo2(+DB, +ExtRel, +DCrel, +ARelPath, +ExtAttrList, -DCattrList)
+getTupleInfo2(+DB, +ExtRel, +DCrel, +ExtAttrList, -DCattrList)
 ----
 
 Will inquire and assert size and type data on attributes.
 
 */
 
+% NVK ADDED NR
+getTupleInfo2ARels(_, _, _, _, _, [], []) :-
+  !.
+
+getTupleInfo2ARels(DB, ExtRel, DCrel, ExtARelPath, DCARelPath, ExtAttrList, DCattrList) :-
+  ExtAttrList=[Attr|Rest],
+  getTupleInfo2ARels(DB, ExtRel, DCrel, ExtARelPath, DCARelPath, Rest, DCattrList1),
+  Attr = [A,TYPE],
+  ( TYPE = [arel,[tuple,ExtArelAtts]] -> (
+    %write_list(['Analyse now arel: ', A, '...']),nl, sleep(2),
+    append(ExtARelPath, [A], NewExtARelPath),
+    dcName2externalName(AttrDC,A),
+    append(DCARelPath, [AttrDC], NewDCARelPath),
+    getTupleInfo2(DB, ExtRel, DCrel, NewExtARelPath, NewDCARelPath, ExtArelAtts, DCattrList2),
+    getTupleInfo2ARels(DB, ExtRel, DCrel, NewExtARelPath, NewDCARelPath, ExtArelAtts, DCattrList3),
+    append(DCattrList1, DCattrList2, DCattrList4), % Note: DCattrList is noch longer in order.
+    append(DCattrList3, DCattrList4, DCattrList) % Note: DCattrList is noch longer in order.
+  ) ;
+    DCattrList1=DCattrList
+  ).
 
 getTupleInfo2(DB,ExtRel,DCrel, ExtARelPath, DCARelPath, ExtAttrList,DCAttrList) :-
-  dm(dbhandling,['\nTry: getTupleInfo2(',DB,',',ExtRel,',',DCrel,',',ARelPath,',',
+  dm(dbhandling,['\nTry: getTupleInfo2(',DB,',',ExtRel,',',DCrel,',',ExtARelPath,',',
                   ExtAttrList,',',DCAttrList,').']),
   getTupleInfoQuery(ExtRel,ExtARelPath,DCARelPath,ExtAttrList,DCAttrList,TupleInfoQuery),
   secondo(TupleInfoQuery,TupleInfoQueryResultList),
-	% NVK ADDED
+  % NVK ADDED
   %( TupleInfoQueryResultList = [[trel, [tuple, _]], [ResultTuple]]
   ( TupleInfoQueryResultList = [[trel, [tuple, ResultTupleAtts]], [ResultTuple]]
     -> true
@@ -3896,25 +3901,18 @@ getTupleInfo2(DB,ExtRel,DCrel, ExtARelPath, DCARelPath, ExtAttrList,DCAttrList) 
                                   ExtAttrList,DCAttrList)::wrongType::ErrMsg))
        )
   ),
-	% NVK MODIFIED
+  % NVK MODIFIED
   %analyseTupleInfoQueryResultList(DB,DCrel,ExtAttrList,ResultTuple),
 
   analyseTupleInfoQueryResultList(DB, DCrel, DCARelPath, ExtAttrList, ResultTupleAtts, ResultTuple),
   !.
 
-/*
----- getTupleInfoQuery(+ExtRel,+ExtAttrList,-DCAttrList,-TupleInfoQuery)
-----
-
-Creates a complete tuple info query from an ExtensionListExpression
-
-*/
 getTupleInfoQuery(ExtRel,ARelPath, DCARelPath, ExtAttrList,DCAttrList,TupleInfoQuery):-
   dm(dbhandling,['\nTry: getTupleInfoQuery(',ExtRel,',',ARelPath,',',ExtAttrList,',',
                  DCAttrList,',',TupleInfoQuery,').']),
   getTupleInfoQuery2(ExtRel,ARelPath,DCARelPath,ExtAttrList,DCAttrList,ExtensionList),
-	xxxxxx(ARelPath, ARelUnnestAtom),
-	atomic_list_concat([ExtRel, ' feed ', ARelUnnestAtom], '', TupleFeed),
+  xxxxxx(ARelPath, ARelUnnestAtom),
+  atomic_list_concat([ExtRel, ' feed ', ARelUnnestAtom], '', TupleFeed),
   atomic_list_concat([
       'query 1 feed transformstream projectextend[; ',
       'Cardi_nality: (',TupleFeed,' count), ',
@@ -3928,9 +3926,9 @@ getTupleInfoQuery(ExtRel,ARelPath, DCARelPath, ExtAttrList,DCAttrList,TupleInfoQ
 
 xxxxxx([], '') :- !.
 xxxxxx([ARel|ARelPath], Out) :-
-	xxxxxx(ARelPath, Out1),
-	concat_atom(['project[', ARel, '] unnest[', ARel, '] ', Out1], Out).
-	
+  xxxxxx(ARelPath, Out1),
+  concat_atom(['project[', ARel, '] unnest[', ARel, '] ', Out1], Out).
+
 
 % getTupleInfoQuery2(+ExtRel,+ExtAttrList,-DCattrList,-Extension)
 % Concatenates an ExtensionList to an ExtensionListExpression
@@ -3949,50 +3947,6 @@ getTupleInfoQuery2(ExtRel,ARelPath,DCARelPath,ExtAttrList,DCattrList,Extension):
 %getTupleInfoQuery3(_,[],[],[]):- !.
 getTupleInfoQuery3(_,_,_,[],[],[]):- !.
 
-% In this new version we keep track of the nested relation when we move into
-% a nested relation.
-xxxgetTupleInfoQuery3(R,ARelPath, AttrList, AttrDClist, AttrExtensionList) :-
-  dm(dbhandling,['\nTry: getTupleInfoQuery3(',R,',',ARelPath,',',AttrList,',',
-                                 AttrDClist,',',AttrExtensionList,')']),
-  AttrList          = [[A,TYPE]|MoreAttrs],
-/*
-  ( TYPE = [arel,[tuple,ArelAtts]]
-    -> ( % go deeper into the nested relations...
-        append(ArelList, [A], ArelListDeep),
-        getTupleInfoQuery3(R,ArelAtts,ArelListDeep,MoreDCAttrs2,MoreAttrExtensions2)
-      )
-    ;  ( MoreDCAttrs2 = [], MoreAttrExtensions2 = [])
-  ),
-*/
-  getTupleInfoQuery3(R,MoreAttrs,ArelList,MoreDCAttrs,MoreAttrExtensions),
-  dcName2externalName(AttrDC,A),
-  %getArelUnnestAtom(ArelList, ArelUnnesting),
-
-  % Build a attribute label indicating the nested relation structure.
-  % and label nested relation attributes with the nested relation attriubate name
-  % before the :.
-  LBL=A, LBL2=AttrDC,
-/*
-  ( ArelList = []
-    -> (LBL=A, LBL2=AttrDC)
-    ; (
-      atomic_list_concat(ArelList, '_', ArelAttrExt),
-      atomic_list_concat([ArelAttrExt, '_', A], '', LBL),
-      append(ArelList, [AttrDC], TMPLST),
-      concatAttributes(TMPLST, LBL2)
-    )
-  ),
-*/
-	xxxxxx(ARelPath, ARelUnnestAtom),
-	atomic_list_concat([R, ' feed ', ARelUnnestAtom], '', TupleFeed),
-  concat_atom([
-     LBL,'_c: (',TupleFeed,' extattrsize[',A,']), ',
-    LBL,'_l: ((',TupleFeed,' attrsize[',A,']) - (',TupleFeed,' extattrsize[',A,']))'
-    ],'',AttrExtension),
-  AttrDClist        = [LBL2|MoreDCAttrs],
-  AttrExtensionList = [AttrExtension|MoreAttrExtensions],
-  !.
-
 getTupleInfoQuery3(R,ARelPath,DCARelPath, AttrList,AttrDClist,AttrExtensionList):-
   dm(dbhandling,['\nTry: getTupleInfoQuery3(',R,',',ARelPath,',',AttrList,',',
                                  AttrDClist,',',AttrExtensionList,')']),
@@ -4000,9 +3954,9 @@ getTupleInfoQuery3(R,ARelPath,DCARelPath, AttrList,AttrDClist,AttrExtensionList)
   getTupleInfoQuery3(R,ARelPath,DCARelPath,MoreAttrs,MoreDCAttrs,MoreAttrExtensions),
   dcName2externalName(AttrDC,A),
   append(DCARelPath, [AttrDC], T),
-	appendAttributeList(T, AttrDCPath), 
-	xxxxxx(ARelPath, ARelUnnestAtom),
-	atomic_list_concat([R, ' feed ', ARelUnnestAtom], '', TupleFeed),
+  appendAttributeList(T, AttrDCPath),
+  xxxxxx(ARelPath, ARelUnnestAtom),
+  atomic_list_concat([R, ' feed ', ARelUnnestAtom], '', TupleFeed),
   concat_atom([
      A,'_c: (',TupleFeed,' extattrsize[',A,']), ',
      A,'_l: ((',TupleFeed,' attrsize[',A,']) - (',TupleFeed,' extattrsize[',A,']))'
@@ -4011,44 +3965,6 @@ getTupleInfoQuery3(R,ARelPath,DCARelPath, AttrList,AttrDClist,AttrExtensionList)
   AttrDClist        = [AttrDCPath|MoreDCAttrs],
   AttrExtensionList = [AttrExtension|MoreAttrExtensions],
   !.
-
-
-% NVK ADDED END
-
-% OLD:
-/*
-getTupleInfoQuery3(R,AttrList,AttrDClist,AttrExtensionList):-
-  dm(dbhandling,['\nTry: getTupleInfoQuery3(',R,',',AttrList,',',
-                                 AttrDClist,',',AttrExtensionList,')']),
-  AttrList          = [[A,_]|MoreAttrs],
-  getTupleInfoQuery3(R,MoreAttrs,MoreDCAttrs,MoreAttrExtensions),
-  dcName2externalName(AttrDC,A),
-  concat_atom([
-     A,'_c: (',R,' extattrsize[',A,']), ',
-     A,'_l: ((',R,' attrsize[',A,']) - (',R,' extattrsize[',A,']))'
-    ],'',AttrExtension),
-  AttrDClist        = [AttrDC|MoreDCAttrs],
-  AttrExtensionList = [AttrExtension|MoreAttrExtensions],
-  !.
-*/
-
-/*
----- analyseTupleInfoQueryResultList(+DB,+DCrel,+ExtAttrList, +ResultTuple)
-----
-
-This predicate will analyse ~ExtAttrList~ and ~ResultTuple~ (which is the result
-tuple of a TupleInfoQuery in Nested List format) in parallel and assert the
-facts concerning attribute types, attribute sizes, and attribute spelling.
-
-~ExtAttrList~ and ~ResultTuple~ need to cover the same sequence of attributes.
-For each element in ~ExtAttrList~, ~ResultTuple~ is required to contain 3
-elements for the CoreSize, InternalFlobSize and ExternalFlobSize
-(in that order).
-
-Facts are asserted *after* the query result was successfully scanned, such
-that when an error occurs, nothing gets (wrongly) asserted.
-
-*/
 
 % NVK MODIFIED
 %analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
@@ -4097,13 +4013,14 @@ analyseTupleInfoQueryResultList(DB,DCrel, ARelPath,ExtAttrList, ResListAtts, Res
             )
        )
     ; StoreCoreSize = TupleSizeCore % OK - no problem occured
+
   ),
-	analyseTupleInfoQueryResultList2(DB,DCrel,ARelPath,ExtAttrList, MoreRestListAtts, MoreInfos, TupleMemSize), % NVK MODIFIED
+  analyseTupleInfoQueryResultList2(DB,DCrel,ARelPath,ExtAttrList, MoreRestListAtts, MoreInfos, TupleMemSize), % NVK MODIFIED
   %analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,MoreInfos,TupleMemSize),
-	
-	appendAttributeList([DCrel|ARelPath], NewDCrel),
-	% Card is the number of tuples aber unnesting all previous arels within 
-	% the path.
+
+  appendAttributeList([DCrel|ARelPath], NewDCrel),
+  % Card is the number of tuples aber unnesting all previous arels within 
+  % the path.
   assert(storedCard(DB, NewDCrel, Card)),
   ( TupleSizeLOB = undefined
     -> ( % undefined tuplesize due to empty relation
@@ -4187,14 +4104,200 @@ analyseTupleInfoQueryResultList2(DB,DCrel,ARelPath,ExtAttrList,InfoListAtts, Inf
   %write_list(['step 10', ExtAttr]), nl,
   %write_list(['step 10', ExtAttr]), nl,
   !.
-
 % NVK MODIFIED: analyseTupleInfoQueryResultList2(DB,DCrel,X,Y):-
 analyseTupleInfoQueryResultList2(DB,DCrel,X,Y,Z,G,Q):-
   concat_atom(['Retrieval of tuple and attribute information failed.'],
                '',ErrMsg),
-  throw(error_Internal(database_analyseTupleInfoQueryResultList(DB,DCrel,X,Y,Z,Q)
+  throw(error_Internal(database_analyseTupleInfoQueryResultList2(
+    DB,DCrel,X,Y,Z,G,Q)::unspecifiedError::ErrMsg)),
+  !.
+
+
+% NVK ADDED NR END
+
+getTupleInfo2(DB,ExtRel,DCrel,ExtAttrList,DCAttrList) :-
+  dm(dbhandling,['\nTry: getTupleInfo2(',DB,',',ExtRel,',',DCrel,',',
+                  ExtAttrList,',',DCAttrList,').']),
+  getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery),
+  secondo(TupleInfoQuery,TupleInfoQueryResultList),
+  ( TupleInfoQueryResultList = [[trel, [tuple, _]], [ResultTuple]]
+    -> true
+    ;  ( write('TupleInfoQuery = '),
+         writeln(TupleInfoQuery),
+         write('TupleInfoQueryResultList = '),
+         writeln(TupleInfoQueryResultList),
+         concat_atom(['Wrong result list'],'',ErrMsg),
+         throw(error_Internal(database_getTupleInfo2(DB,ExtRel,DCrel,
+                                  ExtAttrList,DCAttrList)::wrongType::ErrMsg))
+       )
+  ),
+  analyseTupleInfoQueryResultList(DB,DCrel,ExtAttrList,ResultTuple),
+  !.
+
+/*
+---- getTupleInfoQuery(+ExtRel,+ExtAttrList,-DCAttrList,-TupleInfoQuery)
+----
+
+Creates a complete tuple info query from an ExtensionListExpression
+
+*/
+getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery):-
+  dm(dbhandling,['\nTry: getTupleInfoQuery(',ExtRel,',',ExtAttrList,',',
+                 DCAttrList,',',TupleInfoQuery,').']),
+  getTupleInfoQuery2(ExtRel,ExtAttrList,DCAttrList,ExtensionList),
+  concat_atom([
+      'query 1 feed transformstream projectextend[; ',
+      'Cardi_nality: (',ExtRel,' count), ',
+      'Tuple_TotalSize: (',ExtRel,' tuplesize), ',
+      'Tuple_CoreSize: (',ExtRel,' exttuplesize), ',
+      'Tuple_LOBSize: ((',ExtRel,' tuplesize) - (',ExtRel,' exttuplesize)), ',
+      ExtensionList,' ] tconsume'], '', TupleInfoQuery),
+  write_list(['\n\nRES: ',
+      getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery),'\n\n']),
+  !.
+
+% getTupleInfoQuery2(+ExtRel,+ExtAttrList,-DCattrList,-Extension)
+% Concatenates an ExtensionList to an ExtensionListExpression
+%    getTupleInfoQuery2(+ExtRel,+ExtAttrList,-DCattrList,-Extension)
+getTupleInfoQuery2(ExtRel,ExtAttrList,DCattrList,Extension):-
+  dm(dbhandling,['\nTry: getTupleInfoQuery2(',ExtRel,',',ExtAttrList,',',
+                 DCattrList,',',Extension,').']),
+  getTupleInfoQuery3(ExtRel,ExtAttrList,DCattrList,ExtensionList),
+  concat_atom(ExtensionList,', ',Extension),
+  !.
+
+% getTupleInfoQuery(+ExtRel,+ExtAttrList,-DCattrList,-ExtensionList)
+% creates an ExtensionList from the ExtensionList.
+%   getTupleInfoQuery3(+ExtRel,+ExtAttrList,-AttrDClist,-AttrExtensionList)
+getTupleInfoQuery3(_,[],[],[]):- !.
+getTupleInfoQuery3(R,AttrList,AttrDClist,AttrExtensionList):-
+  dm(dbhandling,['\nTry: getTupleInfoQuery3(',R,',',AttrList,',',
+                                 AttrDClist,',',AttrExtensionList,')']),
+  AttrList          = [[A,_]|MoreAttrs],
+  getTupleInfoQuery3(R,MoreAttrs,MoreDCAttrs,MoreAttrExtensions),
+  dcName2externalName(AttrDC,A),
+  concat_atom([
+     A,'_c: (',R,' extattrsize[',A,']), ',
+     A,'_l: ((',R,' attrsize[',A,']) - (',R,' extattrsize[',A,']))'
+    ],'',AttrExtension),
+  AttrDClist        = [AttrDC|MoreDCAttrs],
+  AttrExtensionList = [AttrExtension|MoreAttrExtensions],
+  !.
+
+/*
+---- analyseTupleInfoQueryResultList(+DB,+DCrel,+ExtAttrList, +ResultTuple)
+----
+
+This predicate will analyse ~ExtAttrList~ and ~ResultTuple~ (which is the result
+tuple of a TupleInfoQuery in Nested List format) in parallel and assert the
+facts concerning attribute types, attribute sizes, and attribute spelling.
+
+~ExtAttrList~ and ~ResultTuple~ need to cover the same sequence of attributes.
+For each element in ~ExtAttrList~, ~ResultTuple~ is required to contain 3
+elements for the CoreSize, InternalFlobSize and ExternalFlobSize
+(in that order).
+
+Facts are asserted *after* the query result was successfully scanned, such
+that when an error occurs, nothing gets (wrongly) asserted.
+
+*/
+
+analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
+  dm(dbhandling,['\nTry: analyseTupleInfoQueryResultList(',DB,',',DCrel,',',
+                                  ExtAttrList,',',ResList,').']),
+  ResList = [Card,
+             TupleTotalSize,
+             TupleSizeCore,
+             TupleSizeLOB|MoreInfos],
+  ( Card = undefined % Undefined cardinality - may not happen!
+    -> ( concat_atom(['Cardinality query for relation ',DCrel,
+                     ' has strange result: ',Card,'.'],'',ErrMsg),
+         write_list(['\nERROR:\t',ErrMsg]),nl,
+         throw(error_Internal(analyseTupleInfoQueryResultList(DB,DCrel,
+                                ExtAttrList,
+                                [Card,
+                                 TupleTotalSize,
+                                 TupleSizeCore,
+                                 TupleSizeLOB|MoreInfos]))::wrongType::ErrMsg),
+         fail
+       )
+    ;  true
+  ),
+  ( TupleTotalSize = undefined % some error may have occured
+    -> ( Card < 0.5        % special case for card=0
+         -> ( % undefined tuplesize due to empty relation
+              write_list(['\nWARNING:\Tuplesize for relation ',DCrel,
+                     ' is undefined due to a cardinality of ', Card,
+                     '\n--->\tTherefore, tuplesize is set to \'not a number\'',
+                     '(nAn).']),nl,
+              StoreCoreSize = nAn
+            )
+         ;  ( % Error! - should not happen!
+              concat_atom(['Tuplesize query for relation ',DCrel,
+                     ' has strange result: ',TupleTotalSize,'.'],'',ErrMsg),
+              write_list(['\nERROR:\t',ErrMsg]),nl,
+              throw(error_Internal(analyseTupleInfoQueryResultList(DB,DCrel,
+                                ExtAttrList,
+                                [Card,
+                                 TupleTotalSize,
+                                 TupleSizeCore,
+                                 TupleSizeLOB|MoreInfos]))::wrongType::ErrMsg),
+              fail
+            )
+       )
+    ; StoreCoreSize = TupleSizeCore % OK - no problem occured
+  ),
+  analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,MoreInfos,TupleMemSize),
+  assert(storedCard(DB, DCrel, Card)),
+  ( TupleSizeLOB = undefined
+    -> ( % undefined tuplesize due to empty relation
+              StoreLOBsize = nAn
+            )
+    ; StoreLOBsize is max(0,TupleSizeLOB) % avoid rounding errors
+  ),
+  assert(storedTupleSize(DB, DCrel, TupleMemSize, StoreCoreSize, StoreLOBsize)),
+  !.
+
+%   analyseTupleInfoQueryResultList2(+DB,+DCrel,+ExtAttrList,+InfoList)
+analyseTupleInfoQueryResultList2(_,_,[],[],0):- !.
+
+analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,InfoList,MemTotal):-
+  dm(dbhandling,['\nTry: analyseTupleInfoQueryResultList2(',DB,',',DCrel,',',
+                                  ExtAttrList,',',InfoList,').']),
+  ExtAttrList = [[ExtAttr,ExtType]|MoreAttrs],
+  InfoList  = [SizeCore,SizeExt|MoreInfos],
+  % take first elem from ExtAttrList, retrieve three entries from
+  % the InfoList and process the information.
+  dcName2externalName(DCType,ExtType),
+  dcName2externalName(DCAttr,ExtAttr),
+  internalName2externalName(IntAttr,ExtAttr),
+  % Use inquired average attribute sizes. Avoid problems with undefined
+  % sizes, which will occur for relations with cardinalit=0.
+  secDatatype(DCType, MemSize, _, _, _, _),
+  ( SizeCore = undefined
+    -> ( % Fallback: use typesize, but 1 byte at least
+         CoreAttrSize is max(1,MemSize)
+       )
+    ;  CoreAttrSize is max(0,SizeCore) % avoid rounding errors
+  ),
+  ( SizeExt = undefined
+    -> LOBSize is 0
+    ;  LOBSize is max(0,SizeExt) % avoid rounding errors
+  ),
+  LOBSize2 is max(0,LOBSize),    % avoid rounding errors
+  analyseTupleInfoQueryResultList2(DB,DCrel,MoreAttrs,MoreInfos,MoreMemTotal),
+  MemTotal is MemSize + MoreMemTotal,
+  assert(storedSpell(DB, DCrel:DCAttr, IntAttr)),
+  assert(storedAttrSize(DB,DCrel,DCAttr,DCType,MemSize,CoreAttrSize,LOBSize2)),
+  !.
+
+analyseTupleInfoQueryResultList2(DB,DCrel,X,Y):-
+  concat_atom(['Retrieval of tuple and attribute information failed.'],
+               '',ErrMsg),
+  throw(error_Internal(database_analyseTupleInfoQueryResultList(DB,DCrel,X,Y)
                                                   ::unspecifiedError::ErrMsg)),
   !.
+
 
 
 
@@ -4291,6 +4394,7 @@ tupleSizeSplit(relsubquery(_, _, _, PS), TupleSize) :-
 tupleSizeSplit(arel(_, _, _, _, _, ST), ST).
 % NVK ADDED NR END
 
+
 tupleSizeSplit(DCrel, sizeTerm(MemSize3,CoreSize3,LOBSize3)) :-
   dm(dbhandling,['\nTry: tupleSizeSplit(',DCrel,',',
                  sizeTerm(MemSize,CoreSize,LOBSize),').']),
@@ -4352,36 +4456,23 @@ For given relation ~DCrel~, return a list ~AttrList~ having format
 with a list for each of ~rel~'s attributes. Also return the total splitTupleSize.
 
 */
-
 % NVK ADDED NR
 getRelAttrList(DCFQN, ResAttrList, SizeTerm) :-
-	optimizerOption(nestedRelations),
+  optimizerOption(nestedRelations),
   databaseName(DB),
-	DCFQN=DCrel:_,
-	relation(DCFQN, AttrList),
+  DCFQN=_:_,
+  relation(DCFQN, AttrList),
   getRelAttrList2(DB, DCFQN, AttrList, ResAttrList, SizeTerm), !.
 
-getRelAttrList2(_, _, [], [], sizeTerm(0,0,0)) :- !.
-getRelAttrList2(DB, DCFQN, [Attr|AttrList1],[ResAttr|ResAttrList1],TupleSize) :-
-	optimizerOption(nestedRelations),
-	DCFQN=DCrel:NRelPath,
-	appendAttribute(NRelPath, Attr, Attr2),
-
-  storedAttrSize(DB, DCrel, Attr2, Type, MemSize, Core, LOB),
-  getRelAttrList2(DB, DCFQN, AttrList1, ResAttrList1, TupleSize1),
-  AttrSizeTerm = sizeTerm(MemSize, Core, LOB),
-  ResAttr = [Attr, Type, AttrSizeTerm],
-  addSizeTerms([TupleSize1,AttrSizeTerm],TupleSize),
-  !.
 
 getRelAttrList(DCrel, ResAttrList, SizeTerm) :-
-	optimizerOption(nestedRelations),
+  optimizerOption(nestedRelations),
   databaseName(DB),
-	is_nrel(DCrel),
+  is_nrel(DCrel),
   relation(DCrel, AttrList),
-	reduceToARel(AttrList, [], AttrList2),
+  reduceToARel(AttrList, [], AttrList2),
   getRelAttrList2(DB, DCrel, AttrList2, ResAttrList, SizeTerm), !.
-% NVK ADDED END
+% NVK ADDED NR END
 
 getRelAttrList(DCrel, ResAttrList, SizeTerm) :-
   databaseName(DB),
@@ -4393,6 +4484,21 @@ getRelAttrList(DCrel, ResAttrList, SizeTerm) :-
   throw(error_Internal(database_getRelAttrList(DCrel, ResAttrList, SizeTerm)
                                                     ::unknownError::ErrMsg)),
   fail, !.
+
+% NVK ADDED NR
+getRelAttrList2(_, _, [], [], sizeTerm(0,0,0)) :- !.
+getRelAttrList2(DB, DCFQN, [Attr|AttrList1],[ResAttr|ResAttrList1],TupleSize) :-
+  optimizerOption(nestedRelations),
+  DCFQN=DCrel:NRelPath,
+  appendAttribute(NRelPath, Attr, Attr2),
+
+  storedAttrSize(DB, DCrel, Attr2, Type, MemSize, Core, LOB),
+  getRelAttrList2(DB, DCFQN, AttrList1, ResAttrList1, TupleSize1),
+  AttrSizeTerm = sizeTerm(MemSize, Core, LOB),
+  ResAttr = [Attr, Type, AttrSizeTerm],
+  addSizeTerms([TupleSize1,AttrSizeTerm],TupleSize),
+  !.
+% NVK ADDED NR END
 
 getRelAttrList2(_, _, [], [], sizeTerm(0,0,0)) :- !.
 getRelAttrList2(DB,DCrel,[Attr|AttrList1],[ResAttr|ResAttrList1],TupleSize) :-
@@ -4459,18 +4565,18 @@ createExtendAttrList([Field|MoreFields],
                      RelInfoList,
                      [[AttrName,AttrType,AttrSize]|MoreAttrs],
                      TotalAttrSize) :-
-	/*
- 	NVK MODIFIED NR
-	org:
+  /*
+  NVK MODIFIED NR
+  org:
   Field = newattr(attrname(attr(Name, _, _)), Expr),
-	newattr terms are generated within e.g. the translate predicates, 
-	but field(attr(...)) terms are generated for new attributes within
-	the select clause. Compare lookupAttr(Expr as XY).
-	Don't know if this should be fixed?!?
-	*/
+  newattr terms are generated within e.g. the translate predicates, 
+  but field(attr(...)) terms are generated for new attributes within
+  the select clause. Compare lookupAttr(Expr as XY).
+  Don't know if this should be fixed?!?
+  */
   (Field = newattr(attrname(attr(Name, _, _)), Expr)
-	; Field = field(attr(Name, _, _), Expr)),
-	% NVK MODIFIED NR END
+  ; Field = field(attr(Name, _, _), Expr)),
+  % NVK MODIFIED NR END
 
 %   write_list(['createExtendAttrList: Called with ',[Field|MoreFields],'.\n']),
   ( Name = Attr:Suffix

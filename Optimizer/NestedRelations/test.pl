@@ -2,7 +2,7 @@
 $Header$
 @author Nikolai van Kempen
 
-Note: the test run only test if the goal is provable, not if the result is correct. 
+Note: the test run only tests if the goal is provable, not if the result is correct. 
 	
 Before you are able to run the test, it is needed to create and prepare the test databases, so please make sure you created the test database with testdbs/recreate.sh.
 */
@@ -16,13 +16,16 @@ reset :-
 odb :-  
 	open('database optext').
 
+obt :-  
+	open('database berlintest').
+
+
 reload :-
 	['NestedRelations/test'], 
 	['NestedRelations/nr'], 
 	['NestedRelations/init'], 
 	['NestedRelations/util'], 
 	['NestedRelations/tutil'], 
-	['NestedRelations/nr_subqueries'], 
 	['MemoryAllocation/ma.pl'], 
 	['MemoryAllocation/ma_improvedcosts.pl'], 
 	%['Subqueries/subqueries'], % reloaded already then by optimizer
@@ -109,7 +112,7 @@ testNRQuery(108, [], select subrel from orteh where bevth=34).
 testNRQuery(109, [], select o:subrel from orteh as o where o:bevth=34).
 
 % This is currently not possible because the POG can't handle this.
-% This works now, see comments within the nr_subqueries.pl file.
+% This works now, see comments within the subqueries.pl file.
 % predicate: correlationsRels/2.
 testNRQuery(110, [], select * from orteh as o where [exists(select * from o:subrel as p)]).
 
@@ -255,7 +258,9 @@ testNRQuery(403, [], select * from (select [bevth, subrel] from orteh) as o).
 testNRQuery(404, [], select * from (select [xy:bevth, xy:subrel] from orteh as xy) as o).
 testNRQuery(405, [], select [o:bevth] from (select [xy:bevth, xy:subrel] from orteh as xy) as o).
 testNRQuery(406, [], select [o:bevth] from (select [xy:bevth, xy:subrel] from orteh as xy) unnest(xy:subrel) as o).
-testNRQuery(407, [], select [o:kennzeichen] from (select [xy:subrel] from orteh as xy) unnest(xy:subrel) as o).
+% fail if we apply the unnest operator on a integer attribute.
+testNRQuery(407, [expectedResult(fail)], select * from (select [xy:bevth, xy:subrel] from orteh as xy) unnest(xy:bevth) as o).
+testNRQuery(408, [], select [o:kennzeichen] from (select [xy:subrel] from orteh as xy) unnest(xy:subrel) as o).
 testNRQuery(430, [], select * from (select * from orte as x) nest(x:bevt, subrel) as o first 1).
 testNRQuery(431, [], select [o:bevt] from (select * from orte as x) nest(x:bevt, subrel) as o).
 testNRQuery(432, [], select [o:bevt, o:subrel] from (select * from orte as x) nest(x:bevt, subrel) as o).
@@ -383,7 +388,7 @@ testNRQuery(614, [], select [om2:subm, (select * from (select [t:bevm, t:subm] f
 
 
 % Following some queries that are reduced to these parts of the above queries
-% that unconverd some problems.
+% that uncoverd some problems.
 testNRQuery(620, [], select * from ortem2 as o where [exists(select * from o:subm as r where exists(select * from r:subh))]).
 testNRQuery(621, [], select * from ortem2 as o where [exists(select [r:bevth, r:subh] from o:subm as r where exists(select * from r:subh))]).
 
@@ -413,6 +418,31 @@ testNRQuery(2002, [], select * from authordoc as a where [a:name="A. Bar-Hen", e
 testNRQuery(2003, [], select * from authordoc as a where [a:name="A. Bar-Hen", exists(select * from a:details as d where [exists(select * from d:publications as p where d:year=p:docid)])]).
 testNRQuery(2004, [], select * from authordoc as a where [a:name="A. Bar-Hen", exists(select * from a:details as d where [exists(select * from d:publications as p where a:name=p:title)])]).
 */
+
+% Test cases for unnesting a mpoint attributes into it's units.
+testNRQuery(3000, [database(berlintest)], select * from trains first 1).
+testNRQuery(3001, [], select * from trains where id=531).
+testNRQuery(3002, [], select [t:id, t:trip] from trains as t where t:id=531).
+testNRQuery(3003, [], select * from (select [t:id, t:trip] from trains as t where t:id=531) as t2).
+testNRQuery(3004, [], select * from (select [t:id, t:trip] from trains as t where t:id=531) unnest(t:trip) as t2).
+testNRQuery(3005, [], select * from (select [t:id, t:trip] from trains as t where t:id=531) unnest(t:trip) as t2 first 1).
+testNRQuery(3006, [], select * from (select [id, trip] from trains where id=531)  unnest(trip) as t2 first 1).
+% this query unnests the mpoint and in the next steps the upoint are collected
+% into a nested relation.
+testNRQuery(3007, [], select * from (select * from (select * from trains where id=531)  unnest(trip) as t2) nest([t2:id,t2:line,t2:up], trips) as x).
+% and now get only the id...
+testNRQuery(3008, [], select x2:id from (select * from (select * from (select * from trains where id=531)  unnest(trip) as t2) nest([t2:id,t2:line,t2:up], trips) as x) as x2).
+% join it agin with the trains table.
+testNRQuery(3008, [], select * from [(select * from (select * from (select * from trains where id=531)  unnest(trip) as t2) nest([t2:id,t2:line,t2:up], trips) as x) as x2, trains as t4] where t4:id=x2:id).
+
+% some cases to test some other stuff, but for relations with moving or spatial
+% objects, it 's uncertain how far all this works.
+testNRQuery(3100, [], select count(*) from trains where trip passes mehringdamm).
+
+testNRQuery(3101, [preexecgoal((secondo('let seven05 = theInstant(2003,11,20,7,5);true')))], select [id, line, up, val(trip atinstant seven05) as pos] from trains where [trip passes mehringdamm, trip present seven05]).
+testNRQuery(3102, [], select * from trains where [not(isempty(deftime(intersection(trip, msnow))))]).
+testNRQuery(3103, [], select [id, intersection(trip, msnow) as insnow] from trains where [not(isempty(deftime(intersection(trip, msnow))))]).
+
 
 % Returns by backtracking the subqueries test examples 
 testNRQuery(NoNew, [database(opt)], Query) :-
@@ -459,7 +489,7 @@ testNR :-
   setOption(nestedRelations),
 	(
 		testNRQuery(No, Properties, Query),
-		openDatabaseP(Properties),
+		processProperties(Properties),
 		% So we check if this is provable, not if the result is correct.
 		% That that sql catches exceptions, otherwise more must be done here.
 		(getTime(sql(Query), TimeMS) ->
@@ -474,6 +504,14 @@ testNR :-
 	!,
 	retractall(testRunning),
 	showTestResults.
+
+processProperties(Properties) :-
+	openDatabaseP(Properties),
+	(member(preexecgoal(Goal), Properties) ->
+		Goal
+	;
+		true
+	).
 
 addResult(Properties, No, TimeMs, ok) :-
 	propertyValue(expectedResult, Properties, ER),
@@ -496,7 +534,7 @@ addResult(_, No, _, failed) :-
   !.
 
 addResult(Properties, No, Time, Stat) :-
-	throw(addResultFailed::addResult(Properties, No, Time, Stat)).
+	throw(error_Internal(test_addResult(Properties, No, Time, Stat)::failed)).
 
 showTestResults :- 
 	!,
@@ -543,7 +581,7 @@ openDatabaseD(DB) :-
  	!.
 
 openDatabaseD(DB) :-
-	throw(failedToOpenDatabase::DB).
+	throw(error_Internal(test_openDatabaseD(DB)::'Failed to open database.')).
 
 closeDBIfOpen :-
 	\+ databaseName(_), 

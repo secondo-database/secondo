@@ -21,7 +21,6 @@ initNR :-
 	% Note that this files must be loaded, regardless if the nestedRelations 
 	% is enabled or not.
 	['nr.pl'],
-	%['nr_subqueries.pl'],
 	['nr_auxiliary.pl'],
 
 	['util.pl'],

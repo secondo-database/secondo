@@ -312,18 +312,19 @@ secondoOp( exactmatchS,       postfixbrackets, 1).
 secondoOp( export,            postfix, 1).
 secondoOp( extattrsize,       postfixbrackets, 1).
 secondoOp( extend,            postfixbrackets, 1).
-secondoOp( extendstream,      special, 1).
+%secondoOp( extendstream,      special, 1). NVK REMOVED because there is no such rule.
 secondoOp( extenddeftime,     prefix, 2).
 secondoOp( extract,           postfixbrackets, 1).
 secondoOp( exttuplesize,      postfix, 1).
 secondoOp( feed,              postfix, 1).
 % NVK ADDED NR
 secondoOp( afeed,             postfix, 1).
-secondoOp( aconsume, 					postfix, 1).
+secondoOp( aconsume,          postfix, 1).
 secondoOp( nest,              special, 2).
 secondoOp( unnest,            special, 1). % currently like postfixbrackets
+secondoOp( renameattr,        postfixbrackets, 1). % missing
+secondoOp( extendstream,      postfixbrackets, 1). % missing
 % NVK ADDED NR END
-
 secondoOp( fileSize,          prefix,  1).
 secondoOp( filter,            postfixbrackets, 1).
 secondoOp( find,              prefix, 2).

@@ -107,26 +107,25 @@ is transformed into
 
 
 */
+
 % NVK ADDED NR
 % Reflect the nested relations
 simple(attr(Attr, Index, _), RelList, rel(RelT, Var):Attr2) :-
   optimizerOption(nestedRelations),
-	(Index=0 -> I2=1 ; I2 is Index),
+  (Index=0 -> I2=1 ; I2 is Index),
   memberchk((I2,rel(RelT, Var)),RelList),
-	RelT=..[relsubquery|_],
- 	downcaseAttributeList(Attr, Attr2), !.
+  RelT=..[relsubquery|_],
+  downcaseAttributeList(Attr, Attr2), !.
 simple(attr(Attr, Index, _), RelList, rel(RelT, Var):Attr2) :-
   optimizerOption(nestedRelations),
   (Index=0 -> I2=1 ; I2 is Index),
   memberchk((I2,rel(RelT, Var)),RelList),
-	RelT=..[arel|_],
+  RelT=..[arel|_],
   downcaseAttributeList(Attr, Attr2), !.
 
 simple(rel(RelT, Var), _, rel(RelT, Var)) :-
-	RelT=..[Functor|_],
-	member(Functor, [arel, relsubquery]).
-% NVK ADDED NR END
-
+  RelT=..[Functor|_],
+  member(Functor, [arel, relsubquery]).
 simple(attr(Var:Attr, 0, _), RelList, Rel2:Attr2) :-
   optimizerOption(nestedRelations),
   memberchk((1,rel(Rel, Var)),RelList),
@@ -144,9 +143,8 @@ simple(attr(Attr, ArgNo, _), RelList, Rel2:Attr2) :-
   optimizerOption(nestedRelations),
   memberchk((ArgNo,rel(Rel, *)),RelList),
   downcaseAttributeList(Rel,Rel2), downcaseAttributeList(Attr,Attr2), !.
-
 % NVK ADDED NR END
-	
+
 
 simple(attr(Var:Attr, 0, _), RelList, Rel2:Attr2) :-
   memberchk((1,rel(Rel, Var)),RelList),
@@ -297,30 +295,40 @@ sampleNameSmall(Name, Small) :-
 
 % NVK ADDED
 feedOp(RelT, afeed) :-
-	assertion(ground(RelT)),
+  assertion(ground(RelT)),
   RelT = rel(Term, _),
-	Term =.. [arel|_], !.
+  Term =.. [arel|_], !.
 
 feedOp(Rel, feed) :-
-	assertion(ground(Rel)),
+  assertion(ground(Rel)),
   Rel \= rel(_:_, _), !.
-% NVK ADDED END
-
 
 possiblyRename(Rel, Renamed) :-
+  optimizerOption(nestedRelations),
   Rel = rel(_, *),
   !,
-	feedOp(Rel, Op), % NVK MODIFIED
+  feedOp(Rel, Op),
   Renamed =.. [Op, Rel].
-  %Renamed = feed(Rel).
 
 possiblyRename(Rel, Renamed) :-
+  optimizerOption(nestedRelations),
   Rel = rel(_, Name),
-	feedOp(Rel, Op),% NVK MODIFIED
-  Renamed1 =.. [Op, Rel],% NVK MODIFIED
-  Renamed = rename(Renamed1, Name).% NVK MODIFIED
-	%write('\nRenamed to: '), write_term(Renamed, []), nl, sleep(5).% NVK MODIFIED
-  %Renamed = rename(feed(Rel), Name).
+  feedOp(Rel, Op),
+  Renamed1 =.. [Op, Rel],
+  Renamed = rename(Renamed1, Name).
+
+% NVK ADDED END
+
+possiblyRename(Rel, Renamed) :-
+  \+ optimizerOption(nestedRelations), % NVK ADDED
+  Rel = rel(_, *),
+  !,
+  Renamed = feed(Rel).
+
+possiblyRename(Rel, Renamed) :-
+  \+ optimizerOption(nestedRelations), % NVK ADDED
+  Rel = rel(_, Name),
+  Renamed = rename(feed(Rel), Name).
 
 dynamicPossiblyRenameJ(Rel, Renamed) :-
   Rel = rel(_, *),
@@ -1098,6 +1106,7 @@ selectivity(P, X) :-
   fail, !.
 
 
+
 % Wrapper selectivity/5 to get also bbox selectivity
 
 % faked predicate:
@@ -1112,7 +1121,6 @@ selectivity(pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
   ),
   !.
 
-
 selectivity(Pred, Sel, BBoxSel, CalcPET, ExpPET) :-
   selectivity(Pred, Sel, CalcPET, ExpPET),
   simplePred(Pred, PSimple),
@@ -1121,7 +1129,6 @@ selectivity(Pred, Sel, BBoxSel, CalcPET, ExpPET) :-
     ; (commute(PSimple,PSimple2), storedBBoxSel(DB, PSimple2, BBoxSel) )
   ),
   !.
-
 
 selectivity(Pred, Sel, noBBox, CalcPET, ExpPET) :-
   selectivity(Pred, Sel, CalcPET, ExpPET).
@@ -1147,36 +1154,22 @@ selectivity(P, Sel, CalcPET, ExpPET) :-
   simplePred(P, PSimple),
   sels(PSimple, Sel, CalcPET, ExpPET), !.
 
-% NVK ADDED NR
-nrRel(Rel) :-
-	Rel = rel(_:_, _).
-nrRel(Rel) :-
-	Rel = rel(T, _),
-	T=..[arel|_].
-nrRel(Rel) :-
-	isRelsubquery(Rel).
-nrRel(pr(_, Rel1, _)) :-
-	nrRel(Rel1). 
-nrRel(pr(_, _, Rel2)) :-
-	nrRel(Rel2). 
-nrRel(pr(_, Rel)) :-
-	nrRel(Rel). 
-
-isRelsubquery(Rel) :-
-	Rel = rel(T, _),
-	T =.. [relsubquery|_].
-
+/*
+NVK ADDED NR
+Currently for nested relation related queries, selectivity estimation and 
+PET's are faked.
+*/
 selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   optimizerOption(nestedRelations),
   % Recognize if it is the nested relations case
-	nrRel(pr(Pred, Rel1, Rel2)),
+  nrRel(pr(Pred, Rel1, Rel2)),
   write('\nFake nestedRelation selectivity, pred: '), write_term(Pred, []), nl,
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
   Sel=0.1,
   CalcPET=0.1,
   ExpPET=0.1,
   databaseName(DB),
-	%	unfortunately it is still necessary to store this faked results.
+  % unfortunately it is still necessary to store this faked results.
   assert(storedPET(DB, PSimple, CalcPET, ExpPET)),
   assert(storedSel(DB, PSimple, Sel)),
   !.
@@ -1191,12 +1184,11 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   CalcPET=0.1,
   ExpPET=0.1,
   databaseName(DB),
-	%	unfortunately it is still necessary to store this faked results.
+  % unfortunately it is still necessary to store this faked results.
   assert(storedPET(DB, PSimple, CalcPET, ExpPET)),
   assert(storedSel(DB, PSimple, Sel)),
   !.
 % NVK ADDED NR END
-
 
 
 % query for join-selectivity (static samples case)
@@ -1248,7 +1240,6 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
 selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   not(optimizerOption(dynamicSample)),
   Rel = rel(BaseName, _),
-  %BaseName \= _:_, % NVK ADDED to handel this within the above predicate.
   ensureSampleSexists(BaseName),
   selectivityQuerySelection(Pred, Rel, MSs, BBoxResCard, ResCard, InputCard),
   nonzero(ResCard, NonzeroResCard),

@@ -507,7 +507,7 @@ optimizerOptionInfo(subqueries, none, yes,
                    'Process subqueries.',
                    true,
                    (delOption(subqueryUnnesting),
-                   delOption(nestedRelations)) % NVK ADDED
+                   delOption(nestedRelations)) % NVK ADDED NR
                   ).
 optimizerOptionInfo(subqueryUnnesting, subqueries, yes,
                    'Apply unnesting algorithms to subqueries.',
@@ -964,6 +964,11 @@ dc(_, _) :- !.
 :- [opsyntax].
 :- loadFiles(standard).        % load the files for the standard optimizer
 
+% NVK ADDED: Initialize the extensions.
+:- ['./NestedRelations/init.pl'].
+:- ['./MemoryAllocation/init.pl'].
+% NVK ADDED END
+
 :- assert( highNode(0) ),
    assert( boundarySize(0) ),
    assert( boundaryMaxSize(0) ).
@@ -1045,15 +1050,8 @@ initializeOptions :-
     )
   ).
 
-% NVK ADDED: Initialize the extensions.
-:- ['./NestedRelations/init.pl']. 
-:- ['./MemoryAllocation/init.pl']. 
-% NVK ADDED END
-
-
 :- at_halt((optimizerOption(autosave), saveOptions)). % automatically safe option configuration on exit
 :- initializeOptions.
-
 
 /*
 5.3 Print Additional Information

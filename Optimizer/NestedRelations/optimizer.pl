@@ -562,10 +562,6 @@ pog(Rels, Preds, Nodes, Edges) :-
   % uncomment next line for debugging
   dc(pog, showpog(Rels, Preds)).
 
-% NVK ADDED??
-pog(Rels, Preds, Nodes, Edges) :-
-	throw(pogCreatingFailed::pog(Rels, Preds, Nodes, Edges)).
-
 /*
 
 3.2 Maintaining Counters
@@ -1366,10 +1362,10 @@ This is handeld within makeStream or within the translation rules, hence a rel(r
 */
 rel_to_atom(rel(arel(_, _, Attr, Case, _, _), _), Atom) :-
   optimizerOption(nestedRelations),
-	!,
-	currentAlias(Alias),
-	nrApplyCase(Attr, Case, RName),
-	atomic_list_concat(['attr(', Alias,', ', RName, ')'], '', Atom).
+  !,
+  currentAlias(Alias),
+  nrApplyCase(Attr, Case, RName),
+  atomic_list_concat(['attr(', Alias,', ', RName, ')'], '', Atom).
 % NVK ADDED NR END
 
 rel_to_atom(rel(DCname, _), ExtName) :-
@@ -1586,6 +1582,7 @@ plan_to_atom(type_expr(Term), Result) :-
 Handle Implicit arguments in parameter functions:
 
 */
+
 plan_to_atom(implicitArg(1), Result) :-
   atom_concat('.', ' ', Result), !.
 
@@ -1829,7 +1826,7 @@ plan_to_atom(rename(X, Y), Result) :-
 % NVK ADDED MA
 plan_to_atom(memory(X, MID, _), Result) :-
   plan_to_atom(X, XAtom),
-	ensure(memoryValue(MID, MiB, _)), % If not found, there is something wrong.
+  ensure(memoryValue(MID, MiB, _)), % If not found, there is something wrong.
   atomic_list_concat([XAtom, '{memory ', MiB, '}'], '', Result),
   !.
 % NVK ADDED MA END
@@ -1843,7 +1840,7 @@ plan_to_atom(nest(X, Atts, NewAttLabel), Result) :-
   plan_to_atom(Atts, AttsAtom),
   plan_to_atom(NewAttLabel, NewAttLabelAtom),
   atomic_list_concat([XAtom, ' nest[', AttsAtom, '; ', NewAttLabelAtom, ']'],
-		'', Result),
+    '', Result),
   !.
 
 /*
@@ -1855,6 +1852,7 @@ plan_to_atom(unnest(X, Att), Result) :-
   atomic_list_concat([XAtom, ' unnest[', AttAtom, ']'], '', Result),
   !.
 % NVK ADDED NR END
+
 
 plan_to_atom(predinfo(X, Sel, Cost), Result) :-
   plan_to_atom(X, XAtom),
@@ -1868,11 +1866,13 @@ plan_to_atom(fun(Params, Expr), Result) :-
   concat_atom(['fun(', ParamAtom, ') ', ExprAtom], '', Result),
   !.
 
+
 plan_to_atom(attribute(X, Y), Result) :-
   plan_to_atom(X, XAtom),
   plan_to_atom(Y, YAtom),
   concat_atom(['attr(', XAtom, ', ', YAtom, ')'], '', Result),
   !.
+
 
 plan_to_atom(date(X), Result) :-
   plan_to_atom(X, XAtom),
@@ -1938,14 +1938,14 @@ Note that the case is only related to the last element (in the example this is s
 plan_to_atom(a(A:B:C, _, l), Result) :-
   optimizerOption(nestedRelations),
   attributeTermToList(A:B:C, LST),
-	reverse(LST, RLST),
+  reverse(LST, RLST),
   atomic_list_concat(RLST, '_', Result),
   !.
 
 plan_to_atom(a(A:B:C, _, u), Result) :-
   optimizerOption(nestedRelations),
   attributeTermToList(A:B:C, LST),
-	reverse(LST, [F|RList]),
+  reverse(LST, [F|RList]),
   upper(F, FUpper),
   atomic_list_concat([FUpper|RList], '_', Result),
   !.
@@ -2598,42 +2598,41 @@ arg(N) => rename(project(distancescan(IndexName, rel(Name, Var), Attr, 0),
   argument(N, rel(Name, Var)),
   distanceRel(rel(Name, Var), IndexName, Attr, _), !,
   usedAttrList(rel(Name, Var), AttrNames).
-
 /*
 NVK ADDED NR
 Rules added to allow subquery optimization and plan generation.
 */
 arg(N) => afeed(rel(T, *)) :-
   isStarQuery,
-  argument(N, rel(T, *)), 
-	T=..[arel|_],
-	!.
+  argument(N, rel(T, *)),
+  T=..[arel|_],
+  !.
 
 arg(N) => rename(afeed(rel(T, Var)), Var) :-
   isStarQuery,
-  argument(N, rel(T, Var)), 
-	T=..[arel|_],
-	!.
+  argument(N, rel(T, Var)),
+  T=..[arel|_],
+  !.
 
 /*
 There is even no afeedproject operator as for arel's (see below). Note that these rules are used for optimization of subquries, there are usually subqueries create like 0 COMPARE_OP (select count(*) ...) and count(*) is NOT a isStarQuery, so the above rules are not used.
 */
 arg(N) => project(afeed(rel(T, *)), AttrNames) :-
   argument(N, rel(T, *)),
-	T=..[arel|_],
-	!,
+  T=..[arel|_],
+  !,
   usedAttrList(rel(T, *), AttrNames).
 
 arg(N) => rename(project(afeed(rel(T, Var)), AttrNames), Var) :-
   argument(N, rel(T, Var)),
-	T=..[arel|_],
-	!,
+  T=..[arel|_],
+  !,
   usedAttrList(rel(T, Var), AttrNames).
 
 arg(N) => Stream2 :-
   argument(N, rel(relsubquery(_, _, TOP, PS), Var)),
-	PS=sqInfo(Stream, _, _, _, _),
- 	addTransformationOperator(Stream, TOP, Stream1),
+  PS=sqInfo(Stream, _, _, _, _),
+  addTransformationOperator(Stream, TOP, Stream1),
   (Var = * ->
     Stream2=Stream1
   ;
@@ -2641,68 +2640,92 @@ arg(N) => Stream2 :-
   ),
   !.%,
   %usedAttrList(rel(Name, Var), AttrNames).
+
+arg(N) => feed(rel(Name, *)) :-
+  optimizerOption(nestedRelations), 
+  isStarQuery,
+  argument(N, rel(Name, *)), 
+  % NVK ADDED to distinguish between this rule and the afeed rules:
+  atomic(Name),
+  !.
+
+arg(N) => rename(feed(rel(Name, Var)), Var) :-
+  optimizerOption(nestedRelations),
+  isStarQuery,
+  argument(N, rel(Name, Var)),
+  % NVK ADDED to distinguish between this rule and the afeed rules:
+  atomic(Name),
+  !.
+
+arg(N) => feedproject(rel(Name, *), AttrNames) :-
+  optimizerOption(nestedRelations),
+  argument(N, rel(Name, *)), %!, NVK MODIFIED
+  % NVK ADDED to distinguish between this rule and the afeed rules:
+  atomic(Name),
+  % There is no feedproject operator for nrel relations.
+  %\+ secondoCatalogInfo(Name,_,_,[[nrel, _]]), 
+  \+ is_nrel(Name),
+  !,
+  usedAttrList(rel(Name, *), AttrNames).
+
+arg(N) => rename(feedproject(rel(Name, Var), AttrNames), Var) :-
+  optimizerOption(nestedRelations),
+  argument(N, rel(Name, Var)),
+  % to distinguish between this rule and the afeed rules:
+  atomic(Name),
+  % There is no feedproject operator for nrel relations.
+  %\+ secondoCatalogInfo(Name,_,_,[[nrel, _]]), 
+  \+ is_nrel(Name),
+  !,
+  usedAttrList(rel(Name, Var), AttrNames).
+
+/*
+There is no feedproject operator for nrel relations, hence this is translated into a project after the regular feed.
+*/
+arg(N) => project(feed(rel(Name, *)), AttrNames) :-
+  optimizerOption(nestedRelations),
+  argument(N, rel(Name, *)),
+  is_nrel(Name),
+  !,
+  usedAttrList(rel(Name, *), AttrNames).
+
+arg(N) => rename(project(feed(rel(Name, Var)), AttrNames), Var) :-
+  optimizerOption(nestedRelations),
+  argument(N, rel(Name, Var)),
+  is_nrel(Name),
+  !,
+  usedAttrList(rel(Name, Var), AttrNames).
+
 % NVK ADDED NR END
 
 /*
 NVK ADDED MA
 There is not much to translate. Used to integrate the sortby operator into the memory allocation optimization.
 */
-sortby(N, AttrNames) => sortby(N, AttrNames) :- 
-	!.
+sortby(N, AttrNames) => sortby(N, AttrNames) :-
+  !.
 % NVK ADDED MA END
 
 arg(N) => feed(rel(Name, *)) :-
+  \+ optimizerOption(nestedRelations), % NVK ADDED NR
   isStarQuery,
-  argument(N, rel(Name, *)), 
- 	% NVK ADDED to distinguish between this rule and the afeed rules:
-	atomic(Name),
-	!.
+  argument(N, rel(Name, *)), !.
 
 arg(N) => rename(feed(rel(Name, Var)), Var) :-
+  \+ optimizerOption(nestedRelations), % NVK ADDED NR
   isStarQuery,
-  argument(N, rel(Name, Var)), 
- 	% NVK ADDED to distinguish between this rule and the afeed rules:
-	atomic(Name),
-	!.
+  argument(N, rel(Name, Var)), !.
 
 arg(N) => feedproject(rel(Name, *), AttrNames) :-
-  argument(N, rel(Name, *)), %!, NVK MODIFIED
- 	% NVK ADDED to distinguish between this rule and the afeed rules:
-	atomic(Name),
-	% There is no feedproject operator for nrel relations.
-	%\+ secondoCatalogInfo(Name,_,_,[[nrel, _]]), 
-	\+ is_nrel(Name),
-	!,
-	% NVK ADDED NR END
+  \+ optimizerOption(nestedRelations), % NVK ADDED NR
+  argument(N, rel(Name, *)), !,
   usedAttrList(rel(Name, *), AttrNames).
 
 arg(N) => rename(feedproject(rel(Name, Var), AttrNames), Var) :-
-  argument(N, rel(Name, Var)), %!, NVK MODIFIED
- 	% NVK ADDED to distinguish between this rule and the afeed rules:
-	atomic(Name),
-	% There is no feedproject operator for nrel relations.
-	%\+ secondoCatalogInfo(Name,_,_,[[nrel, _]]), 
-	\+ is_nrel(Name),
-	!,
-	% NVK ADDED NR END
+  \+ optimizerOption(nestedRelations), % NVK ADDED NR
+  argument(N, rel(Name, Var)), !,
   usedAttrList(rel(Name, Var), AttrNames).
 
-/*
-NVK ADDED NR
-There is no feedproject operator for nrel relations, hence this is translated into a project after the regular feed.
-*/
-arg(N) => project(feed(rel(Name, *)), AttrNames) :-
-  argument(N, rel(Name, *)),
-	is_nrel(Name),
-	!,
-  usedAttrList(rel(Name, *), AttrNames).
-
-arg(N) => rename(project(feed(rel(Name, Var)), AttrNames), Var) :-
-  argument(N, rel(Name, Var)),
-	is_nrel(Name),
-	!,
-  usedAttrList(rel(Name, Var), AttrNames).
-% NVK ADDED NR END
 
 /*
 5.2.2 Translation of Selections
@@ -4252,8 +4275,8 @@ assignSizes1 :-
 % Annotates tuple sizes to nodes and predicates to edges
 %  - assignSize(+Source, +Target, +Term, -Result)
 assignSize(Source, Target, select(Arg, Pred), Result) :-
-  ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) ; 
-		optimizerOption(memoryAllocation) ), % NVK MODIFIED MA
+  ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) ;
+  	optimizerOption(memoryAllocation) ), % NVK MODIFIED MA
   resSize(Arg, Card),
   resTupleSize(Arg, TupleSize),
   selectivity(Pred, Sel, BBoxSel, CalcPET, ExpPET),
@@ -4268,8 +4291,8 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   !.
 
 assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
-  ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) ; 
-		optimizerOption(memoryAllocation) ), % NVK MODIFIED MA
+  ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) ;
+  	optimizerOption(memoryAllocation) ), % NVK MODIFIED MA
   resSize(Arg1, Card1),
   resSize(Arg2, Card2),
   resTupleSize(Arg1, TupleSize1),
@@ -4291,20 +4314,20 @@ NVK ADDED MA
 
 */
 assignSize(Source, Target, sortby(Arg1, _), Result) :-
-	optimizerOption(memoryAllocation),
+  optimizerOption(memoryAllocation),
   resSize(Arg1, Card1),
   resTupleSize(Arg1, TupleSize1),
-	Sel = 1, % Here we have to predicate, so there is no selection, every
-	% row is processed.
-  Size is Card1 * Sel, 
+  Sel = 1, % Here we have to predicate, so there is no selection, every
+  % row is processed.
+  Size is Card1 * Sel,
   !,
   setNodeSize(Result, Size),
   setNodeTupleSize(Result, TupleSize1),
   %setPredNoPET(Source, Target, 1, 1),
   assert(edgeSelectivity(Source, Target, Sel)),
   assert(edgeInputCards(Source, Target, Card1, Card1)),
-	% Just insert this with some values, there is no predicate here
-	% so there are no selctivity queries to determine the times.
+  % Just insert this with some values, there is no predicate here
+  % so there are no selctivity queries to determine the times.
   assert(edgeInfoProgress(Source, Target, 1, 1)),
   !.
 % NVK ADDED MA END
@@ -4315,7 +4338,7 @@ assignSize(Source, Target, sortby(Arg1, _), Result) :-
 assignSize(Source, Target, select(Arg, Pred), Result) :-
   not( optimizerOption(nawracosts) ),
   not( optimizerOption(improvedcosts) ), % standard cost functions
-	\+ optimizerOption(memoryAllocation), % NVK ADDED MA
+  \+ optimizerOption(memoryAllocation), % NVK ADDED MA
   resSize(Arg, Card),
   selectivity(Pred, Sel, BBoxSel, _, ExpPET),
   Size is Card * Sel,
@@ -4327,7 +4350,7 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
 
 assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   not(  ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) ) ),
-	\+ optimizerOption(memoryAllocation), % NVK ADDED MA
+  \+ optimizerOption(memoryAllocation), % NVK ADDED MA
   resSize(Arg1, Card1),
   resSize(Arg2, Card2),
   selectivity(Pred, Sel, BBoxSel, _, ExpPET),
@@ -4361,7 +4384,6 @@ setNodeSize(Node, Size) :- assert(resultSize(Node, Size)).
 Argument ~Arg~ has size ~Size~.
 
 */
-
 
 resSize(arg(N), Size) :-
   argument(N, rel(Rel, _)),
@@ -4399,8 +4421,8 @@ Return saved sizes.
 resTupleSize(arg(N), TupleSize) :-
   optimizerOption(nestedRelations),
   argument(N, rel(relsubquery(_, _, _, PS), _)),
-	PS=sqInfo(_, _, _, TupleSize, _),
- 	!.
+  PS=sqInfo(_, _, _, TupleSize, _),
+  !.
 % NVK ADDED NR END
 
 resTupleSize(arg(N), TupleSize) :-
@@ -4719,15 +4741,15 @@ Added because the dcName2internalName evaluation of the below predicate fails fo
 */
 cost(rel(T, _), _, _, Size, 0) :-
   optimizerOption(nestedRelations),
-	T=..[arel|_], 
-	!,
+  T=..[arel|_],
+  !,
   card(T, Size).
 
 cost(rel(T, _), _, __, Size, 0) :-
   optimizerOption(nestedRelations),
   T=relsubquery(_, _, _, PS),
   PS=sqInfo(_, _, Size, _, _),
-	!.
+  !.
 % NVK ADDED NR END
 
 % the if-then-else-part  is just for error-detection --- FIXME!
@@ -4760,7 +4782,7 @@ cost(feed(X), Sel, P, S, C) :-
 
 /*
 NVK ADDED NR
-I didn't analyzed the cost of the nested relations operators, hence, the same costs as for the regular feed operator are assumed.
+I didn't analyzed the cost of the nested relations operators, hence, the same costs as for the regular feed operator are assumed. Note that the aspect of cost estimation wasn't looked at all under the topic "nested relations".
 */
 cost(afeed(X), Sel, P, S, C) :-
   cost(X, Sel, P, S, C1),
@@ -4773,14 +4795,12 @@ cost(aconsume(X), Sel, P, S, C) :-
   C is C1 + A * S.
 
 /*
-I don't have any costs for these operations.
+This is now needed, but i don't have any costs models for this operations so i just make this work with no costs (but of source with the costs of the sub-streams). 
 */
 cost(unnest(X, _), Sel, P, S, C) :-
   cost(X, Sel, P, S, C).
 cost(nest(X, _, _), Sel, P, S, C) :-
   cost(X, Sel, P, S, C).
-% This is now needed, but i don't have any costs models for this operations
-% so i just make this work with no costs.
 cost(groupby(X, _, _), Sel, P, S, C) :-
   cost(X, Sel, P, S, C).
 cost(transformstream(X), Sel, P, S, C) :-
@@ -4789,6 +4809,11 @@ cost(namedtransformstream(X, _), Sel, P, S, C) :-
   cost(X, Sel, P, S, C).
 cost(predinfo(X, _, _), Sel, P, S, C) :-
   cost(X, Sel, P, S, C).
+cost(renameattr(X, _), Sel, P, S, C) :-
+  cost(X, Sel, P, S, C).
+cost(extendstream(X, _), Sel, P, S, C) :-
+  cost(X, Sel, P, S, C).
+
 % NVK ADDED NR END
 
 
@@ -5263,28 +5288,29 @@ createCostEdge :- % use Nawra's cost functions
 NVK ADDED MA
 The costs are now based on a given operator function to estimate the costs. This is based on the ma_improvedcosts and the CostEstimation class.
 */
-createCostEdge :- 
-  optimizerOption(memoryAllocation), 
+createCostEdge :-
+  optimizerOption(memoryAllocation),
   planEdge(Source, Target, Term, Result),
   edge(Source, Target, EdgeTerm, _, _, _),
-	% We ensure here that no predicate will fail here because tracking
-	% an error within the predicate isn't very simple.
-	ensure((
-		extractPredFromEdgeTerm(EdgeTerm, Pred),
-  	edgeSelectivity(Source, Target, Sel),
- 		costterm(Term, Source, Target, Result, Sel, Pred, Size, Cost, NewTerm),
-		% Changed to remember assigned memory, if ever needed.
-		% Currently the plan is generated on costEdge's, to there is not need
-		% to change the planEdge.
- 		%retract(planEdge(Source, Target, Term, Result)),
-		%asserta(planEdge(Source, Target, NewTerm, Result)),
-		
-		% It is possible to create several costEdges. But as far as i know,
-		% only the cheapest is interesting...
-  	assert(costEdge(Source, Target, NewTerm, Result, Size, Cost))
-	)),
+  % We ensure here that no predicate will fail here because tracking
+  % an error within the predicate isn't very simple.
+  ensure((
+    extractPredFromEdgeTerm(EdgeTerm, Pred),
+    edgeSelectivity(Source, Target, Sel),
+    costterm(Term, Source, Target, Result, Sel, Pred, Size, Cost, NewTerm),
+    % Changed to remember assigned memory, if ever needed.
+    % Currently the plan is generated on costEdge's, to there is not need
+    % to change the planEdge.
+    %retract(planEdge(Source, Target, Term, Result)),
+    %asserta(planEdge(Source, Target, NewTerm, Result)),
+
+    % It is possible to create several costEdges. But as far as i know,
+    % only the cheapest is interesting...
+    assert(costEdge(Source, Target, NewTerm, Result, Size, Cost))
+  )),
   fail.
 % NVK ADDED MA END
+
 
 createCostEdge :- % use standard cost functions
   not(optimizerOption(nawracosts)),
@@ -5410,7 +5436,9 @@ of the distance and path of the successor.
 */
 
 successor(node(Source, Distance, Path), node(Target, Distance2, Path2)) :-
-  (\+ optimizerOption(memoryAllocation) ; \+ useModifiedDijkstra), % NVK MODIFIED
+	% NVK ADDED MA
+ 	(\+ optimizerOption(memoryAllocation) ; \+ useModifiedDijkstra),
+	% NVK ADDED MA END
   costEdge(Source, Target, Term, Result, Size, Cost),
   Distance2 is Distance + Cost,
   append(Path, [costEdge(Source, Target, Term, Result, Size, Cost)], Path2).
@@ -5420,7 +5448,7 @@ NVK ADDED MA
 */
 successor(node(Source, Distance, Path), node(Target, Distance2, RPath)) :-
   optimizerOption(memoryAllocation),
-	useModifiedDijkstra,
+  useModifiedDijkstra,
   costEdge(Source, Target, Term, Result, Size, Cost),
   append(Path, [costEdge(Source, Target, Term, Result, Size, Cost)], Path2),
 
@@ -5436,13 +5464,12 @@ successor(node(Source, Distance, Path), node(Target, Distance2, RPath)) :-
     getCostsFromPath(RPath, NewCosts),
     dm(ma, ['\n\tCosts after memory optimisation: ', NewCosts]),
     dm(ma3, ['\n\tPath: ', RPath]),
-		last(RPath, LastEdge),
-		LastEdge=costEdge(_, _, _, _, _, NewEdgeCosts)
+    last(RPath, LastEdge),
+    LastEdge=costEdge(_, _, _, _, _, NewEdgeCosts)
   )),
-	% New distance mod?
+  % New distance mod?
   Distance2 is Distance + NewEdgeCosts.
 % NVK ADDED MA END
-	
 
 /*
 
@@ -5855,7 +5882,7 @@ See MemoryAllocation/ma.pl for more information.
 bestPlan(Plan, Cost) :-
   optimizerOption(memoryAllocation),
   nl, write('Computing best Plan ...'), nl,
-	maBestPlan(Path, Cost),
+  maBestPlan(Path, Cost),
   assert(path(Path)),
   dc(bestPlan, writePath(Path)),
   plan(Path, Plan).
@@ -5864,11 +5891,13 @@ bestPlan(Plan, Cost) :-
 bestPlan(Plan, Cost) :-
   \+ optimizerOption(memoryAllocation), % NVK ADDED MA
   nl, write('Computing best Plan ...'), nl,
+  dc(bestPlan, writeCostEdges),
   highNode(N),
   dijkstra(0, N, Path, Cost),
   assert(path(Path)),
   dc(bestPlan, writePath(Path)),
   plan(Path, Plan).
+
 
 
 /*
@@ -6253,19 +6282,20 @@ callLookup(Query, Query2) :-
 % NVK ADDED NR
 callLookup(Query, Query2) :-
   optimizerOption(nestedRelations),
-	!,
-	totalNewQuery,  % This is more like a totally new query, hence we
-													% have to invalidate the old var bindings as well.
+  !,
+  totalNewQuery,  % This is more like a totally new query, hence we
+                  % have to invalidate the old var bindings as well.
   lookup(Query, Query2), !.
 
 /*
- 	Intended for subquery lookup's.
+  Intended for subquery lookup's.
 */
 callSubqueryLookup(Query, Query2) :-
   optimizerOption(nestedRelations),!,
   newQuery,
   lookup(Query, Query2), !.
 % NVK ADDED NR END
+
 
 newQuery :-
 % Section:Start:newQuery_0_i
@@ -6324,6 +6354,7 @@ lookup(select Attrs from Rels where Preds,
 Standard version of lookup.
 
 */
+
 
 lookup(select Attrs from Rels where Preds,
         select Attrs2 from Rels2List where Preds2List) :-
@@ -6498,6 +6529,7 @@ Translate and store a single relation definition.
   distanceRel/4,
   planvariable/2.
 
+
 lookupRel(Rel as Var, Y) :-
   atomic(Rel),       %% changed code FIXME
   atomic(Var),       %% changed code FIXME
@@ -6524,10 +6556,9 @@ lookupRel(Rel, rel(RelDC, *)) :-
 % NVK ADDED NR
 lookupRel(Term, ResultTerm) :-
   optimizerOption(nestedRelations),
-	nrLookupRel(Term, ResultTerm).
+  nrLookupRel(Term, ResultTerm).
 % NVK ADDED NR END
 
-% NVK NOTE: i still don't know under what circumsantes this should have beed worked...
 lookupRel(Rel, Rel2) :-
   optimizerOption(subqueries),
   lookupSubquery(Rel, Rel2).
@@ -6589,7 +6620,7 @@ There is a relation stored in ~queryRel~ that has attribute names also
 occurring in ~Rel~.
 
 */
-% NVK NOTE: this need to work for nested relation as well...
+
 duplicateAttrs(Rel) :-
   queryRel(Rel2, _),
   relation(Rel2, Attrs2),
@@ -6699,7 +6730,7 @@ lookupAttr(const(Type,Value), Y) :-
   !, fail.
 
 % renamed attribute
-lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- 
+lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :-
   \+ optimizerOption(nestedRelations), % NVK ADDED
 	!,
   atomic(Var),  %% changed code FIXME
@@ -6749,14 +6780,16 @@ lookup subqueries within the attribute list.
 This will create a new arel attribute.
 */
 lookupAttr(InTerm, OutTerm) :-
-	optimizerOption(nestedRelations),
-	nrLookupAttr(InTerm, OutTerm), 
-	!.
+  optimizerOption(nestedRelations),
+  nrLookupAttr(InTerm, OutTerm),
+  !.
 % NVK ADDED NR END
 
 /*
 Special clause for ~aggregate~
+
 */
+
 lookupAttr(Term, Result) :-
   compound(Term),
   Term =.. [AggrOp, Term2, Op, Type, Default],
@@ -6923,11 +6956,11 @@ lookupPred(Pred, pr(Pred2, Rel)) :-
 
 
 lookupPred(Pred, pr(Pred2, Rel)) :-
-  nextCounter(selectionPred, _),
+  nextCounter(selectionPred,_),
   lookupPred1(Pred, Pred2, [], [Rel]), !.
 
 lookupPred(Pred, pr(Pred2, Rel1, Rel2)) :-
-  nextCounter(joinPred, _),
+  nextCounter(joinPred,_),
   lookupPred1(Pred, Pred2, [], [Rel1, Rel2]), !.
 
 lookupPred(Pred, X) :-
@@ -6949,8 +6982,7 @@ lookupPred(Pred, X) :-
   ),
   write_list(['\nERROR:\t',ErrMsg]),nl,
   throw(error_SQL(optimizer_lookupPred(Pred, X)::malformedExpression::ErrMsg)),
-  fail, 
-	!.
+  fail, !.
 
 /*
 ----    lookupPred1(+Pred, -Pred2, +RelsBefore, -RelsAfter)
@@ -7005,18 +7037,19 @@ lookupPred1(patternex(Preds,C, F),patternex(Res,C1, F1),RelsBefore,RelsAfter) :-
 
 lookupPred1(Pred, Pred2, RelsBefore, RelsAfter) :-
   optimizerOption(subqueries),
-  lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter), rd,!.
+  lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter), !.
 
 % NVK ADDED NR
 lookupPred1(InTerm, OutTerm, RelsBefore, RelsAfter) :-
   optimizerOption(nestedRelations),
-	nrLookupPred1(InTerm, OutTerm, RelsBefore, RelsAfter),
-	!.
+  nrLookupPred1(InTerm, OutTerm, RelsBefore, RelsAfter),
+  !.
 % NVK ADDED NR END
 
-lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter) :-
-	\+ optimizerOption(nestedRelations), % NVK ADDED
-  variable(Var, Rel2),!, Rel2 = rel(Rel, Var),
+lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter)
+  :-
+  \+ optimizerOption(nestedRelations), % NVK ADDED
+  variable(Var, Rel2), !, Rel2 = rel(Rel, Var),
   downcase_atom(Rel,RelDC),
   downcase_atom(Attr,AttrDC),
   spelled(RelDC:AttrDC, attr(Attr2, X, Case)),
@@ -7030,7 +7063,7 @@ lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter) :-
   ), !.
 
 lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
-	\+ optimizerOption(nestedRelations), % NVK ADDED
+  \+ optimizerOption(nestedRelations), % NVK ADDED
   isAttribute(Attr, Rel), !,
   downcase_atom(Rel,RelDC),
   downcase_atom(Attr,AttrDC),
@@ -7231,8 +7264,8 @@ if there is a non-atomic value between the ~:~. This predicate could
 handle the next two predicate cases as well.
 */
 spelled(Rel:Atts, attr(Attr2, 0, Case)) :-
-	optimizerOption(nestedRelations),
-	applyOnAttributeList(downcase_atom, Rel:Atts, DCRel:DCAtts),
+  optimizerOption(nestedRelations),
+  applyOnAttributeList(downcase_atom, Rel:Atts, DCRel:DCAtts),
   spelling(DCRel:DCAtts, DCLastAtt),
   (DCLastAtt = lc(Attr2), Case=l ; Attr2=DCLastAtt, Case=u),
   !.
@@ -7366,6 +7399,9 @@ translate1(Select from Rels where Preds, Stream2, Select2, Update, Cost) :-
 
 %LargeQueries end
 
+
+
+
 % default handling
 translate1(Query, Stream2, Select2, Update, Cost) :-
   translate(Query, Stream, Select, Update, Cost),
@@ -7460,7 +7496,7 @@ translate(Select from Rels where Preds orderby OrderAtts, Stream, Select2, Updat
   optimizerOption(memoryAllocation), % NVK ADDED MA
   getTime(( pog(Rels, Preds, _, _),
             %assignCosts, !, % this is now done within maBestPlan.
-						addNewHighNode(N, sortby(res(N), OrderAtts)),
+            addNewHighNode(N, sortby(res(N), OrderAtts)),
             bestPlan(Stream, Cost),
             !
           ), Time),
@@ -7491,8 +7527,8 @@ translate(Select from Rels where Preds, Stream, Select2, Update, Cost) :-
 
 translate(Select from Rels where Preds, Stream, Select2, Update, Cost) :-
   not( optimizerOption(immediatePlan) ),
-  \+ optimizerOption(memoryAllocation), % NVK ADDED MA
   not( optimizerOption(intOrders(_))  ),  % standard behaviour
+  \+ optimizerOption(memoryAllocation), % NVK ADDED MA
   getTime(( pog(Rels, Preds, _, _),
             assignCosts, !,
             bestPlan(Stream, Cost),
@@ -7565,13 +7601,6 @@ translate(Select from [Rel | Rels],
   newVariable(T2),
   !.
 
-/*
-NVK
-makeStream(Rel, X):-
-	write('\nmake strema Rel: '), write_term(Rel, []),
-	rd, fail.
-*/
-
 % special handling for distance-queries
 makeStream(Rel, distancescan(IndexName, Rel, Attr, HeadCount)) :-
   Rel = rel(_, *),
@@ -7596,16 +7625,16 @@ arel attributes of the NestedRelation Algebra needs a afeed instead of a feed.
 */
 makeStream(Rel, Plan) :-
   optimizerOption(nestedRelations),
-  Rel = rel(Name, *), 
+  Rel = rel(Name, *),
   atomic(Name),
-	Plan = feed(Rel),
-  !. 
+  Plan = feed(Rel),
+  !.
 
 makeStream(Rel, Plan) :-
   optimizerOption(nestedRelations),
-  Rel = rel(Name, Var), 
+  Rel = rel(Name, Var),
   atomic(Name),
-	Plan=rename(feed(Rel), Var).
+  Plan=rename(feed(Rel), Var).
 
 makeStream(ARel, Plan) :-
   optimizerOption(nestedRelations),
@@ -7614,32 +7643,30 @@ makeStream(ARel, Plan) :-
 
 makeStream(ARel, Plan) :-
   optimizerOption(nestedRelations),
-  ARel = rel(arel(_, _, _, _, _, _), Var), 
-	Plan=rename(afeed(ARel), Var).
+  ARel = rel(arel(_, _, _, _, _, _), Var),
+  Plan=rename(afeed(ARel), Var).
 
-makeStream(rel(relsubquery(_, _, TOP, SQInfo), Var), Stream3) :- 
+makeStream(rel(relsubquery(_, _, TOP, SQInfo), Var), Stream3) :-
   optimizerOption(nestedRelations),
-	SQInfo=sqInfo(Stream1, _, _, _, _),
-	addTransformationOperator(Stream1, TOP, Stream2),
-	(Var = * ->
-		Stream3=Stream2
-	;
-		Stream3=rename(Stream2, Var)
-	).
+  SQInfo=sqInfo(Stream1, _, _, _, _),
+  addTransformationOperator(Stream1, TOP, Stream2),
+  (Var = * ->
+    Stream3=Stream2
+  ;
+    Stream3=rename(Stream2, Var)
+  ).
 % NVK ADDED NR/MA
 
 % Catch this delayed error coz it is very nasty to track.
 makeStream(RelTerm, _) :-
-	RelTerm=..[where, _, _],
+  RelTerm=..[where, _, _],
   throw(error_Internal(optimizer_makeStream(RelTerm, _)::'The first parameter can\'t be a where-term, but when this happens, the first parameter was set to this value during backtracking. Everytime i got this error, the problem is that a costEdge could not been created for a edge/planEdge. So you might want to check this first.')).
 % NVK ADDED NR/MA END
 % NVK ADDED NR END
 
-makeStream(Rel, _) :-
-	throw(nostream::Rel).
-
 /*
 Begin Code added by Goehr
+
 */
 
 % Delete all attributes from ~SelectClause~ which
@@ -7710,12 +7737,14 @@ to find all goal for query ~usedAttr(Rel,X)~.
 NVK NOTE 
 For the handling of nested relations we have to support this for
 terms like rel(arel(...), Var). This is done by adding the facts
-in an appropriate way.
+in a appropriate way.
 NVK NOTE END
+
 */
 %   usedAttrList(+Rel, -ResList)
 usedAttrList(Rel, ResList) :-
   setof(X, usedAttr(Rel, X), R1),
+  %nl, write('AttrList: '), write(R1), nl,
   attrnames(R1, ResList).
 
 renameAttributes(_, [], []).
@@ -8383,16 +8412,16 @@ If the stream was feed by the afeed operator, or created a new attribute, the re
 queryToPlan(Query, StreamOut, Cost) :-
   optimizerOption(nestedRelations),
   queryToStream(Query, Stream, Cost), !,
-	ensure((consumeStream(Stream, SConsumed),
+  ensure((consumeStream(Stream, SConsumed),
   addTmpVariables(SConsumed, StreamOut))).
 
 consumeStream(Stream, aconsume(Stream)) :-
-	%afeedStream(Stream),
-	getSubqueryCurrent(N),
-	N>0,
-	!.
-consumeStream(Stream, consume(Stream)) :- 
-	!.
+  %afeedStream(Stream),
+  getSubqueryCurrent(N),
+  N>0,
+  !.
+consumeStream(Stream, consume(Stream)) :-
+  !.
 
 /*
 Unfortunately there is no way to know if the stream is to consumed with the consume or aconsume operator when the only input is the plan. Hence, this is just faked.
@@ -8400,12 +8429,10 @@ Unfortunately there is no way to know if the stream is to consumed with the cons
 afeedStream(afeed(_)) :- !.
 
 afeedStream(Stream) :-
-	compound(Stream),
-	!,
-	Stream =.. [_,Arg1|_],
-	afeedStream(Arg1).
-	
-
+  compound(Stream),
+  !,
+  Stream =.. [_,Arg1|_],
+  afeedStream(Arg1).
 % NVK ADDED NR END
 
 /*
@@ -8415,9 +8442,6 @@ Check whether ~Query~ is a counting query.
 
 
 countQuery(select count(_) from _) :- !.
-% NVK ADDED NR
-%countQuery(select count(_) as _ from _) :- !.
-% NVK ADDED NR END
 countQuery(select all count(_) from _) :- !.      % This is deprecated!
 countQuery(select distinct count(_) from _) :- !. % This is deprecated!
 
@@ -8623,15 +8647,6 @@ queryToStream(Select from Rels groupby Attrs, Stream3, Cost) :-
   finishUpdate(Update, Stream2, Stream3),
   !.
 
-% NVK ADD MORE PreTransformation?
-queryToStream(Query, Stream3, Cost) :-
-  optimizerOption(nestedRelations),
-  translate1(Query, Stream, Select, Update, Cost),
-  finish(Stream, Select, [], Stream2),
-  finishUpdate(Update, Stream2, Stream3),
-  !.
-% NVK ADDED NR END
-
 queryToStream(Query, Stream3, Cost) :-
   translate1(Query, Stream, Select, Update, Cost),
   finish(Stream, Select, [], Stream2),
@@ -8795,6 +8810,7 @@ extendProject([attr(Name, Var, Case) | Attrs], Extend,
         [attr(Name, Var, Case) | Project]) :-
   extendProject(Attrs, Extend, Project).
 
+
 /*
 
 ----    attrnames(Attrs, AttrNames) :-
@@ -8873,28 +8889,13 @@ optimize(Query, QueryOut, CostOut) :-
 %LargeQueries end
 
 
-% NVK TEST ADDED test predicate
-optimize(Query, QueryOut, CostOut) :-
-  retractall(removefilter(_)),
-  rewriteQuery(Query, RQuery),
-  write('\nNVK rewrite query result '),write_term(RQuery, []),nl,
-  callLookup(RQuery, Query2), !,
-  write('\nNVK callLoopup result '),write_term(Query2, []),nl,
-  queryToPlan(Query2, Plan, CostOut), !,
-  write('\nNVK queryToPlan: '),write_term(Plan, []),nl,
-  plan_to_atom(Plan, QueryOut),
-  write('\nNVK plan_to_atom: '),write_term(QueryOut, []),nl .
-/*
-org optimize predicate:
+
 optimize(Query, QueryOut, CostOut) :-
   retractall(removefilter(_)),
   rewriteQuery(Query, RQuery),
   callLookup(RQuery, Query2), !,
   queryToPlan(Query2, Plan, CostOut), !,
   plan_to_atom(Plan, QueryOut).
-*/
-
-
 
 /*
 ----    sqlToPlan(QueryText, Plan)
@@ -9640,21 +9641,21 @@ mOptimize(Term, Query, Cost) :-
 mStreamOptimize(union [Term], Query, Cost) :-
   streamOptimize(Term, QueryPart, Cost),
   %concat_atom([QueryPart, 'sort rdup '], '', Query).
-	% NVK MODIFIED NR: missing blank before sort.
+  % NVK MODIFIED NR: missing blank before sort.
   concat_atom([QueryPart, ' sort rdup '], '', Query).
 
 mStreamOptimize(union [Term | Terms], Query, Cost) :-
   streamOptimize(Term, Plan1, Cost1),
   mStreamOptimize(union Terms, Plan2, Cost2),
   %concat_atom([Plan1, 'sort rdup ', Plan2, 'mergeunion '], '', Query),
-	% NVK MODIFIED NR: missing blank before sort.
+  % NVK MODIFIED NR: missing blank before sort.
   concat_atom([Plan1, ' sort rdup ', Plan2, 'mergeunion '], '', Query),
   Cost is Cost1 + Cost2.
 
 mStreamOptimize(intersection [Term], Query, Cost) :-
   streamOptimize(Term, QueryPart, Cost),
   %concat_atom([QueryPart, 'sort rdup '], '', Query).
-	% NVK MODIFIED NR: missing blank before sort.
+  % NVK MODIFIED NR: missing blank before sort.
   concat_atom([QueryPart, ' sort rdup '], '', Query).
 
 mStreamOptimize(intersection [Term | Terms], Query, Cost) :-

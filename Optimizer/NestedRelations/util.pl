@@ -75,7 +75,7 @@ A simpler alternative is
   length(L, Count).
 but this might create huge lists.
 */
-count(Goal, Times) :-
+count(Goal, Count) :-
   Counter = counter(0),
   (
     Goal,
@@ -84,7 +84,7 @@ count(Goal, Times) :-
     nb_setarg(1, Counter, NewC),
     fail
   ;         
-    Counter=counter(Times)
+    Counter=counter(Count)
   ).
 
 /* 
@@ -109,7 +109,7 @@ assertzalllist([List|Rest]) :-
 /*
 Calls the predicate P/1 for every element within the list.
 */
-forAllIn(P, []) :- !.
+forAllIn(_, []) :- !.
 forAllIn(P, [E|Rest]) :-
   call(P, E),
   forAllIn(P, Rest).

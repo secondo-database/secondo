@@ -1477,12 +1477,12 @@ opSignature(namedtransformstream, stream, [[stream,T],Attr],
   [stream,[tuple,[[Attr,T]]]],[]) :- isData(T), !.
 opSignature(feed, stream,[[rel,[tuple,AttrList]]],[stream,[tuple,AttrList]],[]).
 opSignature(feed, stream,[T],[stream,T],[]) :- isData(T),!.
-
 % NVK ADDED NR
 opSignature(afeed, stream,[[arel,[tuple,AttrList]]],[stream,[tuple,AttrList]],[]).
 opSignature(aconsume, relation, [[stream,[tuple,X]]],[nrel,[tuple,X]],[block]).
+opSignature(unnest, nestedrelations, [[stream,[tuple,_]],_],[stream,[tuple,_]], []).
+opSignature(nest, nestedrelations, [[stream,[tuple,_]],_],[stream,[tuple,_]], []).
 % NVK ADDED NR END
-
 opSignature(use, stream, [[stream,T1],[map, T1, T2]],[stream,T2],[]) :-
   isData(T1),isData(T2),!.
 opSignature(use, stream, [[stream,T1],[map, T1, [stream, T2]]],[stream,T2],[]):-
@@ -2736,10 +2736,6 @@ opSignature(as, stpattern, [mbool,X], namedPred,[]):-
 opSignature(randomdelay, stpattern, [mpoint, duration], mpoint,[]).
 opSignature(passmbool, stpattern, [mbool], mbool,[]).
 opSignature(randommbool, stpattern, [instant], mbool,[]).
-% NVK ADDED NR
-opSignature(unnest, nestedrelations, [[stream,[tuple,_]],_],[stream,[tuple,_]], []).
-opSignature(nest, nestedrelations, [[stream,[tuple,_]],_],[stream,[tuple,_]], []).
-% NVK ADDED NR END
 
 
 /*
