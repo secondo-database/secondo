@@ -24,8 +24,7 @@ secondoGlobalMemory(Memory) :-
 secondoGlobalMemory(512).
 
 /*
-Every operator gains at least this amount of memory. But this extension
-is able to compute solutions for other values. But the absolute lowest values is one MiB, refer to other comments why this lower limit can't be less then one megabyte.
+Every operator gains at least this amount of memory. But this extension is able to compute solutions for other values. But the absolute lowest values is one MiB, refer to other comments why this lower limit can't be less then one megabyte.
 Unit: MiB
 */
 minimumOperatorMemory(16).
@@ -43,6 +42,11 @@ A little smarter is now to distriubute the entire memory over all memory consumi
 Choose a path on the upper strategies and then try optimize it with there memory-depending cost functions.
 
 */
+
+setMAStrategies(List) :-
+	retractall(maStrategiesToEval(_)),
+	asserta(maStrategiesToEval(List)).
+
 :- 
 	dynamic(maStrategiesToEval/1),
 	secondoGlobalMemory(Max), % This is secondo default value
@@ -55,8 +59,7 @@ Choose a path on the upper strategies and then try optimize it with there memory
 		staticMaxDivOpCount,
  		enumeratePaths
 	],
-	retractall(maStrategiesToEval(_)), % support reloading.
-	asserta(maStrategiesToEval(List)).
+	setMAStrategies(List).
 
 /*
 Returns the amount of memory that is used to compute the costs for memory
@@ -110,8 +113,6 @@ Provable if strategy S should be evaluated.
 testStrategy(S) :-
   maStrategiesToEval(List),
 	member(S, List).
-
-:- dynamic useModifiedDijkstra/0.
 
 /*
 Here we try to find the best plan regarding the optimal memory allocation for the memory using operators. This is not a simple task at all because there sees to be no such algorithm that computes the shortest path for edges with nonlinear cost functions.
@@ -203,12 +204,26 @@ writeMaResults :-
 Just write some information about the optimizing process.
 */
 maInfo :-
+  write('*** FACTS ***\n'),
 	writefacts(memoryValue),
 	writefacts(maStrategiesToEval),
 	writefacts(staticMemory),
 	writefacts(maFormula),
 	writefacts(maDerivativeFormula).
 
+/*
+Writes all operators to stdout that have a CostEstimation implementation.
+*/
+maOpInfo :-
+	findall(_, (
+			operatorMemSpec(OpName, _, Sig),
+  		getOpIndexes(OpName, Sig, _, _, _, _),	
+			write_list(['\nOperator: ', OpName, '\n\tSignature: ', Sig])
+		), _).
+
+/*
+Returns a list with all current memoryValue facts.
+*/	
 getMemoryValues(MemoryValues) :-
 	findall(A, (
 			memoryValue(B,C,D),
@@ -381,21 +396,35 @@ getMaxMemoryConsumingOperatorsFromPOG2 :-
 /*
 
 */
-operatorMemSpec(sort,		[t], 				blocking, [[stream,[tuple,[[a,int]]]]]).
-operatorMemSpec(sortby,	[t,f], 			blocking, [[stream,[tuple,[[a,int]]]]]).
-operatorMemSpec(sortmergejoin, 	[t,t,f,f], 	blocking, 
+operatorMemSpec(sort,		[t], 	[[stream,[tuple,[[a,int]]]]]).
+operatorMemSpec(sortby,	[t,f], [[stream,[tuple,[[a,int]]]]]).
+operatorMemSpec(sortmergejoin, 	[t,t,f,f], 
 	[[stream, [tuple, [[a, int]]]], [stream, [tuple, [[b, int]]]], a, b]).
-operatorMemSpec(hashjoin, 	[t,t,f,f], 	nonblocking, 
+operatorMemSpec(hashjoin, 	[t,t,f,f], 
 	[[stream, [tuple, [[a, int]]]], [stream, [tuple, [[b, int]]]], a, b]).
-operatorMemSpec(mergejoin, 	[t,t,f,f], 	blocking, 
+operatorMemSpec(mergejoin, 	[t,t,f,f], 
 	[[stream, [tuple, [[a, int]]]], [stream, [tuple, [[b, int]]]], a, b]).
-operatorMemSpec(loopjoin, 	[t,t], 	nonblocking, 
+operatorMemSpec(loopjoin, 	[t,t], 
 	[[stream,[tuple, [[a, int]]]], [map,[tuple,[[a, int]]],
 		[stream,[tuple,[[b, int]]]]]]).
-operatorMemSpec(symmjoin, 	[t,t,f], 	nonblocking, 
+operatorMemSpec(symmjoin, 	[t,t,f],
 	[[stream,[tuple,[[a,int]] ]], [stream,[tuple,[[b,int]]]], 
 		[map,[tuple,[[a,int]]],[tuple,[[b,int]]],bool]]).
 % Add more operators here if needed.
+
+/*
+Determines if a operator is a blocking stream operator.
+isBlockingOperator(?OpName, ?Sig)
+*/
+isBlockingOperator(OpName, Sig) :-
+	opSignature(OpName, _, Sig, _, Attributes),
+	member(block, Attributes).
+
+isBlockingOperator(OpName, Sig) :-
+	% Note that this might return a incorrect result, even if this
+	% is very unlikly.
+	clause(opSignature(OpName, _, Sig, _, Attributes), _),
+	member(block, Attributes).
 
 /*
 This method with the alist is not very efficient, but it can easily extended without taken care about every predicates using this.
@@ -413,8 +442,8 @@ opCosts(OpName, CardX, SizeX, MiB, CostsInMS, AList) :-
   % Very nasty signature handling
 	% A operatoren is non-memory sensitiv if the operatorMemSpec fact 
 	% doesn't exisits or getOpIndexes fails.
-  operatorMemSpec(OpName, _, _, Sig),
-  getOpIndexes(OpName, Sig, _ /*ResultType*/, AlgID, OpID, FunID),
+  operatorMemSpec(OpName, _, Sig),
+  getOpIndexes(OpName, Sig, _ResultType, AlgID, OpID, FunID),
   % Whatever amount of memory we choose here...we still need the values for
   % the plan generation.
   %getCosts(AlgID, OpID, FunID, ICardX, ISizeX, MiB, OpCostsInMS),
@@ -437,8 +466,8 @@ opCosts(OpName, CardX, SizeX, CardY, SizeY, MiB, CostsInMS, AList) :-
 	ICardY is integer(CardY),
 	ISizeY is integer(SizeY),
   % Very nasty signature handling
-  operatorMemSpec(OpName, _, _ /*BType*/, Sig),
-  getOpIndexes(OpName, Sig, _ /*ResultType*/, AlgID, OpID, FunID),
+  operatorMemSpec(OpName, _, Sig),
+  getOpIndexes(OpName, Sig, _ResultType, AlgID, OpID, FunID),
   % Whatever amount of memory we choose here...we still need the values for
   % the plan generation.
   %getCosts(AlgID, OpID, FunID, ICardX, ISizeX, ICardY, ISizeY, MiB,OpCostsInMS),
@@ -454,7 +483,9 @@ opCosts(OpName, CardX, SizeX, CardY, SizeY, MiB, CostsInMS, AList) :-
 
 % Just for simulating some results because currently there are no cost 
 % functions implemented.
+/*
 fakedCosts(true).
+
 opCosts(OpName, CardX, SizeX, MiB, CostsInMS, AList) :-
 	fakedCosts(true),
 	opCosts(OpName, CardX, SizeX, 0, 0, MiB, CostsInMS, AList).
@@ -478,6 +509,7 @@ opCosts(OpName, CardX, SizeX, CardY, SizeY, MiB, CostsInMS, AList) :-
 		functionType(2), 
 		dlist([SufficientMemoryInMiB, -1, CostsAt16MiB, A, b, c, d])
 	].
+*/
 
 /*
 The nonlinear optimization.
@@ -583,7 +615,6 @@ recomputePathCosts([CEdge|RPath], [NewCEdge|NewPath]) :-
 recomputePathCosts(A, B) :-
 	Msg='Can\'t recompute costs from path.',
 	throw(error_Internal(ma_recomputePathCosts(A, B))::Msg).
-	
 
 /*
 Assign the memory
@@ -626,7 +657,7 @@ analyzePath([Edge]) :-
 
 analyzePath([Edge|Rest]) :- 
 	!,
-	% Edges must be analyzed in order!
+	% Edges must be analyzed in order.
 	analyzePath([Edge]),
 	analyzePath(Rest).
 
@@ -634,13 +665,16 @@ analyzePath(P) :-
 	Msg='Can\'t analyze the path.',
 	throw(error_Internal(ma_analyzePath(P)::Msg)).
 
-analyzeListTerm(_ /*Edge*/, []) :- 
+analyzeListTerm(_Edge, []) :- 
 	!.
 analyzeListTerm(Edge, [Term|Rest]) :- 
 	!, 
 	analyzeTerm(Edge, Term),
 	analyzeListTerm(Edge, Rest).
 
+/*
+analyzeTerm(+Edge, +Term)
+*/
 analyzeTerm(Edge, Term) :-
 	compound(Term),
 	Term=..[Functor|Args],
@@ -650,11 +684,11 @@ analyzeTerm(Edge, Term) :-
 	SubTerm=..[OpFunctor|OpArgs],
 	% This ansumption is based on how the terms are constructed and plans 
 	% are generated.
-	operatorMemSpec(OpFunctor, Map, BlockingType, _),
+	operatorMemSpec(OpFunctor, Map, _),
 
-	addFormulaByAList(MIDVAR, MID, AList),
+	addFormulaByAList(_MIDVAR, MID, AList),
 
-	(BlockingType = blocking ->
+	(isBlockingOperator(OpFunctor, _) ->
 		% how to create the shelf constraints? first, we need to bring the
 		% terms in order.
 		true
@@ -678,7 +712,6 @@ analyzeTerm(Edge, Term) :-
 	
 /*
 For non-compound terms, there is no stream in it and there is no further analyze necessary.
-analyzeTerm(+Edge, +Term)
 */
 analyzeTerm(_, Term) :- 
 	\+ compound(Term).
@@ -765,8 +798,13 @@ Allowed values are all values between the minimum operator memory(>=1) and the s
 buildFormulaByFT(1, DList, MVar, Out) :- 
 	!,
 	DList=[_, _, TimeAt16MB, A|_], % Vars names as within the CostEstimation.h.
-	ensure((number(TimeAt16MB), number(A))), % The memory can be the only free variable.
-	TimeAt0MB is TimeAt16MB+(16*A), % This approximation is	dangerous if the calculation is enabled for memory assigments below 16 MiB.
+ 	% The memory can be the only free variable.
+	ensure((number(TimeAt16MB), number(A))),
+  % This approximation is	dangerous if the calculation is enabled for 
+	% memory assigments below 16 MiB. Because when we approach 1 MiB the 
+	% difference to the real costs might be getting huge (if the costs are not
+	% really linear).
+	TimeAt0MB is TimeAt16MB+(16*A),
 	Out=TimeAt0MB-(MVar*A).
 
 buildFormulaByFT(2, DList, MVar, Out) :- 
@@ -784,8 +822,6 @@ buildFormulaByFT(3, DList, MVar, Out) :-
 buildFormulaByFT(FT, DList, MVar, Out) :-
 	Msg='Can\'t build formula.',
 	throw(error_Internal(ma_buildFormulaByFT(FT, DList, MVar, Out)::Msg)).
-
-
 
 /*
 Return which plan arguments are streams.
@@ -827,7 +863,7 @@ opMap(Op, Map) :-
 	throw(error_Internal(ma_opMap(Op, Map)::Msg)).
 
 analyzeOpSig([P|PRest], [t|Map]) :-
-	\+ var(P), % Because P may be a variable, see the hashjoin signature.
+	nonvar(P), % Because P may be a variable, see the hashjoin signature.
 	P=[stream|_], !,
 	analyzeOpSig(PRest, Map).
 analyzeOpSig([_|PRest], [f|Map]) :- !,
@@ -928,28 +964,29 @@ derivativeFunction(Dimension, Vars, Result) :-
 	dm(ma6, ['\nCompute derivativeFunction: Result: ', Result]).
 
 /*
-I don't how to call this...it is something between a ugly hack and a feature.
-Here a new node is created behind the last node and a new edge, planEdge and costEdge is created. It is used to optimize the memory allocation with the 
-sort operator because the sort operator has currently no cost edge. But the POG is mainly for predicates and what predicates are evalualated, hence we misuse the POG a little bit.
+I don't know how to call this...it is something between a ugly hack and a feature. Here a new node is created behind the last node and a new edge, planEdge and costEdge is created. It is used to optimize the memory allocation with the sort operator because the sort operator has currently no cost edge. But the POG is mainly for predicates and what predicates are evalualated, hence we misuse the POG a little bit.
 */
 addNewHighNode(N, Term) :-
-  ensure((
-    highNode(N),
-    NewN is N + 1,
-    retractall(highNode(_)),
-    asserta(highNode(NewN)),
+  highNode(N),
+  NewN is N + 1,
+  retractall(highNode(_)),
+  asserta(highNode(NewN)),
 
-    node(N, NPreds, NPartition),
-    NewNode=node(NewN, NPreds, NPartition),
-    assertz(NewNode),
+  node(N, NPreds, NPartition),
+  NewNode=node(NewN, NPreds, NPartition),
+  assertz(NewNode),
 
-    % Unlike a planEdge or costEdge, there is always just one plan edge from
-    % one node to another node.
-    assertz(edgeSelectivity(N, NewN, 1)),
-    assertz(edge(N, NewN, Term, NewN, NewNode, NewNode)),
-    Term => Plan, % For now, i just need one translation.
-    assert(planEdge(N, NewN, Plan, NewN))
-  )).
+  % Unlike a planEdge or costEdge, there is always just one plan edge from
+  % one node to another node.
+  assertz(edgeSelectivity(N, NewN, 1)),
+  assertz(edge(N, NewN, Term, NewN, NewNode, NewNode)),
+  Term => Plan, % For now, i just need one translation.
+  assert(planEdge(N, NewN, Plan, NewN)),
+	!.
+
+addNewHighNode(N, Term) :-
+	throw(error_Internal(ma_addNewHighNode(N, Term)::failed)).
+
 
 extractPredFromEdgeTerm(EdgeTerm, Pred) :-
   EdgeTerm = select(_, Pred).
@@ -963,4 +1000,3 @@ extractPredFromEdgeTerm(EdgeTerm, Pred) :-
   Pred = pr(fakePred(1,1,0,0)).
 
 % eof
-

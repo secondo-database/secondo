@@ -25,3 +25,11 @@ delete database berlintest
 restore database berlintest from berlintest
 
 close database
+
+delete database opt
+
+restore database opt from opt
+
+close database
+
+

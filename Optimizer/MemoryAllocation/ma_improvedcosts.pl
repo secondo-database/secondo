@@ -135,7 +135,7 @@ cost(rel(Rel, X), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, 0, rel(Rel, 
     ;  (
          write('ERROR:\tcost/8 failed due to non-dc relation name.'), nl,
          write('---> THIS SHOULD BE CORRECTED!'), nl,
-         throw(error_Internal(optimizer_cost(rel(Rel, X1_), Sel, Pred,
+         throw(error_Internal(optimizer_cost(rel(Rel, X), Sel, Pred,
                                ResAttrList, ResTupleSize, ResCard, 0)
               ::malformedExpression)),
          fail
@@ -152,9 +152,9 @@ cost(rel(Rel, X), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, 0, rel(Rel, 
 NVK ADDED NR 
 Added because the dcName2internalName evaluation of the below predicate fails for non atomic values. Note that if other cost models should support the nested relations, this cost predicates must be added first.
 */
-cost(rel(RT, X), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, 0, rel(RT, X)) :-
+cost(rel(RT, X), _Sel, _Pred, _, ResAttrList, ResTupleSize, ResCard, 0, rel(RT, X)) :-
   optimizerOption(nestedRelations),
-	RT=arel(RelVar:ARelDC, FQN, ModAttr, RName),
+	RT=arel(_, FQN, _, _, _, _),
 	!,
 	% XXX still to eval if this works
   ( (ground(ResAttrList), ResAttrList = ignore)
@@ -292,8 +292,7 @@ cost(filter(X, Y), Sel, Pred, _, ResAttrList,
 
 % rule for filter with spatio-temporal pattern
 cost(Term, Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, Term) :-
-	Term=filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), BBox))),
-  NewTerm=tconsume(NewTermX), rel(RelName, A1)), FilterPred),
+	Term=filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), BBox))), rel(RelName, _)), FilterPred),
   dm(costFunctions,['cost(filter(gettuples(rdup(sort(windowintersectsS(...): ',
                     'IndexName= ',IndexName,', BBox=',BBox,
                     ', FilterPred=',FilterPred]),
@@ -355,7 +354,7 @@ cost(filter(X, Y), Sel, Pred, _, ResAttrList,
           + ResCard1 * (U + max(CalcPET,ExpPET)),!.
 
 
-cost(product(X, Y), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, product(NewTermX, NewTermX)) :-
+cost(product(X, Y), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, product(NewTermX, NewTermY)) :-
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> (ResAttrListX = ignore, ResAttrListY = ignore) ; true
   ),
@@ -421,8 +420,8 @@ cost(exactmatch(A1, Rel, A3), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, 
 	NewTerm=exactmatch(A1, Rel, A3),
 	!.
 
-cost(exactmatchS(dbObject(Index), _KeyValue), Sel, _Pred, _, ResAttrList,
-     ResTupleSize, ResCard, Cost, exactmatchS(dbObject(Index), _KeyValue))
+cost(exactmatchS(dbObject(Index), KeyValue), Sel, _Pred, _, ResAttrList,
+     ResTupleSize, ResCard, Cost, exactmatchS(dbObject(Index), KeyValue))
   :-
   dcName2externalName(DcIndexName,Index),
   getIndexStatistics(DcIndexName, noentries, _DCrelName, ResCard1),
@@ -444,8 +443,8 @@ cost(leftrange(A1, Rel, A3), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, C
   Cost is   U
           + V * ResCard,!.
 
-cost(leftrangeS(dbObject(Index), _KeyValue), Sel, _Pred, _, ResAttrList,
-     ResTupleSize, ResCard, Cost, leftrangeS(dbObject(Index), _KeyValue))
+cost(leftrangeS(dbObject(Index), KeyValue), Sel, _Pred, _, ResAttrList,
+     ResTupleSize, ResCard, Cost, leftrangeS(dbObject(Index), KeyValue))
   :-
   dcName2externalName(DcIndexName,Index),
   getIndexStatistics(DcIndexName, noentries, _DCrelName, ResCard1),
@@ -467,8 +466,8 @@ cost(rightrange(A1, Rel, A3), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, 
   Cost is   U
           + V * ResCard,!.
 
-cost(rightrangeS(dbObject(Index), _KeyValue), Sel, _Pred, _, ResAttrList,
-     ResTupleSize, ResCard, Cost, rightrangeS(dbObject(Index), _KeyValue))
+cost(rightrangeS(dbObject(Index), KeyValue), Sel, _Pred, _, ResAttrList,
+     ResTupleSize, ResCard, Cost, rightrangeS(dbObject(Index), KeyValue))
   :-
   dcName2externalName(DcIndexName,Index),
   getIndexStatistics(DcIndexName, noentries, _DCrelName, ResCard1),
@@ -489,8 +488,8 @@ cost(range(A1, Rel, A3), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost,
   Cost is   U
           + V * ResCard,!.
 
-cost(rangeS(dbObject(Index), _KeyValue), Sel, _Pred, _, ResAttrList,
-     ResTupleSize, ResCard, Cost, rangeS(dbObject(Index), _KeyValue))
+cost(rangeS(dbObject(Index), KeyValue), Sel, _Pred, _, ResAttrList,
+     ResTupleSize, ResCard, Cost, rangeS(dbObject(Index), KeyValue))
   :-
   dcName2externalName(DcIndexName,Index),
   getIndexStatistics(DcIndexName, noentries, _DCrelName, ResCard1),
@@ -525,83 +524,7 @@ cost(loopjoin(X, Y), Sel, Pred, MT, ResAttrList, ResTupleSize, ResCard, Cost, Ne
   Cost is CostX + CostY + OpCostsInMS,
   !.
 
-/*
 
-The genericCosts predicate supports either to compute the costs on static
-memory values that is assigned to every memory consuming operator or
-based on a explict assigned memory amount. The idea behind this is 
-that isn't needed to duplicate all costs predicates.
-
-*/
-% Non-join operator
-genericCosts(MT, Term, [CardX, SizeX], OpCostsInMS, NewTerm) :-
-	var(MT),
-	Term=..[Op|_],
-  getStaticMemory(MiB),
-  opCosts(Op, CardX, SizeX, MiB, OpCostsInMS, AList),
-  toMemoryTerm(Term, MiB, AList, NewTerm),
-	nextCounter(memoryUsingOperators, _).
-
-% Join operator
-genericCosts(MT, Term, [CardX, SizeX, CardY, SizeY], OpCostsInMS, NewTerm) :-
-	var(MT),
-	Term=..[Op|_],
-  getStaticMemory(MiB),
-  opCosts(Op, CardX, SizeX, CardY, SizeY, MiB, OpCostsInMS, AList),
-  toMemoryTerm(Term, MiB, AList, NewTerm),
-	nextCounter(memoryUsingOperators, _).
-
-% Second cost call with stored memory term.
-genericCosts(MT, Term, _, OpCostsInMS, NewTerm) :-
-	\+ var(MT),
-  % In this case, the cost were calculated at least on time before.
-  % We obtain now the new memory value from the memoryValue term 
-  % and recompute the costs based on the new memory value and the
-  % stored AList.
-  % Of course, that the other variables like row size and
-  % row cards are non-chaging is assumed.
-  ensure((
-		MT=memory(_, MID, AList), % If not found, there is something wrong.
-		memoryValue(MID, MiB, _) % Calculate on the new given memory value.
-	), 'Error: memoryValue missing'), 
-  propertyValue(functionType, AList, FT),
-  propertyValue(dlist, AList, DList),
-	DList=[SuffMiB|_], % Don't use more memory as needed for the cost calculation.
-	minimumOperatorMemory(MinOpMem), % And not less than this value.
-	CMiB is max(MinOpMem, min(MiB, SuffMiB)),
-  buildFormulaByFT(FT, DList, CMiB, CostF),
-  OpCostsInMS is CostF,
-	dm(ma6, ['\nComputed costs: ', OpCostsInMS]),
-  NewTerm=Term,
-	nextCounter(memoryUsingOperators, _).
-  
-genericCosts(MT, Term, _, OpCostsInMS, NewTerm) :-
-	Msg='failed to compute costs',
-  throw(error_Internal(ma_genericCosts(MT, Term, _, OpCostsInMS, NewTerm)::Msg)).
-
-
-/*
-The idea is to change the assigned memory value dynamically because later changes withn the path are more cost expensive to perform.
-*/
-toMemoryTerm(Term, MiB, AList, NewTerm) :-
-	newMID(MID),
-	assertz(memoryValue(MID, MiB, AList)),
-	NewTerm=memory(Term, MID, AList).
-
-clearMemoryValues :-
-	retractall(memoryValue(_, _, _)).
-
-:- 
-	dynamic maxMID/1,
-					memoryValue/3.
-maxMID(0).
-
-newMID(SMID) :-
-	retract(maxMID(CurrentMID)),
-	MID is CurrentMID+1,
-	asserta(maxMID(MID)),
-	atomic_concat('mid', MID, SMID).
-% END NVK ADDED MA
 
 cost(loopjoin(X, Y), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, NewTerm) :-
 	write('\nloopoin fallback!'), sleep(5),
@@ -622,7 +545,7 @@ cost(loopjoin(X, Y), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, New
 
 cost(loopsel(X, Y), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, loopsel(NewTermX, NewTermY)) :-
   cost(X, 1, Pred, _, ignore, _, ResCardX, CostX, NewTermX),
-  cost(Y, Sel, Pred, _, ResAttrList, ResTupleSize, ResCardY, CostY, NewTermX),
+  cost(Y, Sel, Pred, _, ResAttrList, ResTupleSize, ResCardY, CostY, NewTermY),
   ResCard is ResCardX * ResCardY,
   Cost is CostX + ResCardX * CostY,!.
 
@@ -632,15 +555,14 @@ cost(fun(A1, X), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, NewTerm
 	!.
 
 % NVK ADDED MA
-cost(Term, Sel, Pred, MT, ResAttrList, ResTupleSize, ResCard, Cost, NewTerm) :-
+cost(Term, Sel, Pred, MT, ResAttrList, ResTupleSize, ResCard, Cost, NewTerm2) :-
 	Term=hashjoin(X, Y, P1, P2, NBuckets),
-	Term=..[Functor|_],
 	
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> (ResAttrListX = ignore, ResAttrListY = ignore) ; true
   ),
-  cost(X, Sel, Pred, _, ResAttrListX, ResTupleSizeX, ResCardX, CostX, NewTerm1),
-  cost(Y, Sel, Pred, _, ResAttrListY, ResTupleSizeY, ResCardY, CostY, NewTerm2),
+  cost(X, Sel, Pred, _, ResAttrListX, ResTupleSizeX, ResCardX, CostX, NewTermX),
+  cost(Y, Sel, Pred, _, ResAttrListY, ResTupleSizeY, ResCardY, CostY, NewTermY),
   addSizeTerms([ResTupleSizeX,ResTupleSizeY],ResTupleSize),
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> true
@@ -651,7 +573,8 @@ cost(Term, Sel, Pred, MT, ResAttrList, ResTupleSize, ResCard, Cost, NewTerm) :-
   ResTupleSizeX = sizeTerm(MemSizeX,_,_),
   ResTupleSizeY = sizeTerm(MemSizeY,_,_),
   Sizes=[ResCardX, MemSizeX, ResCardY, MemSizeY],
-  genericCosts(MT, Term, Sizes, OpCostsInMS, NewTerm),
+	NewTerm=hashjoin(NewTermX, NewTermY, P1, P2, NBuckets),
+  genericCosts(MT, NewTerm, Sizes, OpCostsInMS, NewTerm2),
   Cost is CostX + CostY + OpCostsInMS,
 	!.
 % NVK ADDED
@@ -918,12 +841,13 @@ costs for pjoin2 will only be used if option ~adpativeJoin~ is enabled.
 */
 
 % NVK Currently not supported
+/*
 cost(pjoin2(X, Y, [ A1 | A2 ]), Sel, Pred, _,
     ResAttrList, ResTupleSize, ResCard, Cost, NewTerm) :-
   cost(sortmergejoin(X, Y, _, _), Sel, Pred, _,
-    ResAttrList, ResTupleSize, ResCard, Cost1, NewTermX),
+    ResAttrList, ResTupleSize, ResCard, Cost1, _NewTermX),
   cost(hashjoin(X, Y, _, _, 99997), Sel, Pred, _,
-    ResAttrList, ResTupleSize, ResCard, Cost2, NewTermY),
+    ResAttrList, ResTupleSize, ResCard, Cost2, _NewTermY),
   Cost is min(Cost1, Cost2),
 	NewTerm=pjoin2(X, Y, [ A1 | A2 ]),
 	!.
@@ -933,10 +857,11 @@ cost(pjoin2_hj(X, Y, [ _ | _ ]), Sel, Pred,
   cost(hashjoin(X, Y, _, _, 99997), Sel, Pred,
                               ResAttrList, ResTupleSize, ResCard, Cost),!.
 
-cost(_, pjoin2_smj(X, Y, [ _ | _ ]), Sel, Pred,
+cost(pjoin2_smj(X, Y, [ _ | _ ]), Sel, Pred,
                               ResAttrList, ResTupleSize, ResCard, Cost) :-
-  cost(_, sortmergejoin(X, Y, _, _), Sel, Pred,
+  cost(sortmergejoin(X, Y, _, _), Sel, Pred,
                               ResAttrList, ResTupleSize, ResCard, Cost),!.
+*/
 
 
 cost(extend(X, ExtendFields), Sel, Pred, _,
@@ -1074,7 +999,7 @@ cost(rdup(X), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, rdup(NewTe
   Cost is   Cost1
           + ResCard1 * (U + V),!. %% ToDo: Cost function looks strange...
 
-cost(krdup(X,_AttrList), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, krdup(NewTermX,_AttrList)) :-
+cost(krdup(X, AttrList), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, krdup(NewTermX, AttrList)) :-
   cost(rdup(X), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, NewTermX), !.
 
 cost(windowintersects(dbobject(Index), Rel, QueryObj), Sel, Pred, _,
@@ -1192,7 +1117,7 @@ cost(distancescan(A1, Rel, A3, A4), Sel, Pred, _,
   cost(Rel, Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, C1, NewTermX),
   distancescanTC(C),
   Cost is C1 + C * ResCard * log(ResCard + 1),
-	NewTerm=distancescan(A1, Rel, A3, A4).
+	NewTerm=distancescan(A1, NewTermX, A3, A4).
 
 cost(ksmallest(X, K), Sel, Pred, _,
      ResAttrList, ResTupleSize, ResCard, C, NewTerm) :-
@@ -1444,6 +1369,84 @@ costConst(windowintersects, msPerByte, 0.0000106).
 
 % Section:Start:costConst_3_e
 % Section:End:costConst_3_e
+
+/*
+
+The genericCosts predicate supports either to compute the costs on static
+memory values that is assigned to every memory consuming operator or
+based on a explict assigned memory amount. The idea behind this is 
+that isn't needed to duplicate all costs predicates.
+
+*/
+% Non-join operator
+genericCosts(MT, Term, [CardX, SizeX], OpCostsInMS, NewTerm) :-
+	var(MT),
+	Term=..[Op|_],
+  getStaticMemory(MiB),
+  opCosts(Op, CardX, SizeX, MiB, OpCostsInMS, AList),
+  toMemoryTerm(Term, MiB, AList, NewTerm),
+	nextCounter(memoryUsingOperators, _).
+
+% Join operator
+genericCosts(MT, Term, [CardX, SizeX, CardY, SizeY], OpCostsInMS, NewTerm) :-
+	var(MT),
+	Term=..[Op|_],
+  getStaticMemory(MiB),
+  opCosts(Op, CardX, SizeX, CardY, SizeY, MiB, OpCostsInMS, AList),
+  toMemoryTerm(Term, MiB, AList, NewTerm),
+	nextCounter(memoryUsingOperators, _).
+
+% Second cost call with stored memory term.
+genericCosts(MT, Term, _, OpCostsInMS, NewTerm) :-
+	nonvar(MT),
+  % In this case, the cost were calculated at least on time before.
+  % We obtain now the new memory value from the memoryValue term 
+  % and recompute the costs based on the new memory value and the
+  % stored AList.
+  % Of course, that the other variables like row size and
+  % row cards are non-chaging is assumed.
+  ensure((
+		MT=memory(_, MID, AList), % If not found, there is something wrong.
+		memoryValue(MID, MiB, _) % Calculate on the new given memory value.
+	), 'Error: memoryValue missing'), 
+  propertyValue(functionType, AList, FT),
+  propertyValue(dlist, AList, DList),
+	DList=[SuffMiB|_], % Don't use more memory as needed for the cost calculation.
+	minimumOperatorMemory(MinOpMem), % And not less than this value.
+	CMiB is max(MinOpMem, min(MiB, SuffMiB)),
+  buildFormulaByFT(FT, DList, CMiB, CostF),
+  OpCostsInMS is CostF,
+	dm(ma6, ['\nComputed costs: ', OpCostsInMS]),
+  NewTerm=Term,
+	nextCounter(memoryUsingOperators, _).
+  
+genericCosts(MT, Term, _, OpCostsInMS, NewTerm) :-
+  throw(error_Internal(ma_genericCosts(MT, Term, _, OpCostsInMS, NewTerm)
+		::'failed to compute the costs')).
+
+
+/*
+The idea is to change the assigned memory value dynamically because later changes withn the path are much more expensive to perform.
+*/
+toMemoryTerm(Term, MiB, AList, NewTerm) :-
+	newMID(MID),
+	assertz(memoryValue(MID, MiB, AList)),
+	NewTerm=memory(Term, MID, AList).
+
+clearMemoryValues :-
+	retractall(memoryValue(_, _, _)).
+
+:- 
+	dynamic maxMID/1,
+					memoryValue/3.
+maxMID(0).
+
+newMID(SMID) :-
+	retract(maxMID(CurrentMID)),
+	MID is CurrentMID+1,
+	asserta(maxMID(MID)),
+	atomic_concat('mid', MID, SMID).
+% END NVK ADDED MA
 
 /*
 End of file ~improvedcosts.pl~

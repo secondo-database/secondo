@@ -6,6 +6,23 @@ Just some simple test predicates to illustrate how the form looks like.
 The assumed global memory for these examples are 512 MiB.
 */
 
+nrw2 :-
+	open('database nrw2').
+
+reloadMA :-
+  ['MemoryAllocation/ma.pl'],
+  ['MemoryAllocation/ma_improvedcosts.pl'],
+  ['MemoryAllocation/test.pl'].
+
+showRowCounts :-
+	sql(select count(*) from buildings),
+	sql(select count(*) from natural),
+	sql(select count(*) from places),
+	sql(select count(*) from points),
+	sql(select count(*) from railways),
+	sql(select count(*) from roads),
+	sql(select count(*) from waterways).
+
 exampleFunction1([X1], 100000/(0.01*X1)).
 exampleFunction2([X1], 123456/(0.01*X1)).
 exampleFunction3([X1], 200000/(0.011*X1)).
@@ -55,21 +72,28 @@ matest(VarList, Formula) :-
   write_list(['Total costs  : ', Costs, '\n']).
 	
 
-testMAQuery(1, [], select (*)from[staedte, plz as p1, plz as p2, plz as p3]where[sname=p1:ort, p1:plz=p2:plz+1, p2:plz=p3:plz*5] first 1).
+testMAQuery(1, [database(opt)], select (*)from[staedte, plz as p1, plz as p2, plz as p3]where[sname=p1:ort, p1:plz=p2:plz+1, p2:plz=p3:plz*5] first 1).
 testMAQuery(2, [], select (*)from[staedte, plz as p1, plz as p2, plz as p3]where[sname=p1:ort, p1:plz=p2:plz+1, p2:plz=p3:plz*5] orderby[sname] first 1).
 testMAQuery(3, [], select (*)from[staedte, plz as p1, plz as p2, plz as p3, plz as p4]where[sname=p1:ort, p1:plz=p2:plz, p2:plz=p3:plz, p3:plz=p4:plz] orderby[sname] first 1).
 testMAQuery(4, [], select (*)from[staedte, plz as p1, plz as p2, plz as p3, plz as p4, plz as p5]where[sname=p1:ort, p1:plz=p2:plz, p2:plz=p3:plz, p3:plz=p4:plz, p4:plz=p5:plz] orderby[sname] first 1).
-testMAQuery(5, [], select (*)from[staedte, plz as p1, plz as p2, plz as p3, plz as p4, plz as p5, plz as p6]where[sname=p1:ort, sname="xy", p1:plz=p2:plz, p2:plz=p3:plz, p3:plz=p4:plz, p4:plz=p5:plz, p5:plz=p6:plz] orderby[sname] first 1).
+% writes to much on the filesystem.
+%testMAQuery(5, [], select (*)from[staedte, plz as p1, plz as p2, plz as p3, plz as p4, plz as p5, plz as p6]where[sname=p1:ort, sname="xy", p1:plz=p2:plz, p2:plz=p3:plz, p3:plz=p4:plz, p4:plz=p5:plz, p5:plz=p6:plz] orderby[sname] first 1).
+testMAQuery(6, [database(nrw2)],  select * from [buildings as b, roads as r] where[b:osm_id=r:osm_id]).
 
 
 testMA :-
-  reset,
+  reload, % this is to simplify my testings, but when using this, the 
+  % catalogs should be reloaded.
+  retractall(testResult(_, _, _, _, _)),
+  retractall(testRunning),
+  asserta(testRunning),
 	delOption(nestedRelations),
 	setOption(memoryAllocation),
-  retractall(testResult(_, _, _, _, _)),
   (
     testMAQuery(No, Properties, Query),
+  	processProperties(Properties),
     % So we check if this is provable, not if the result is correct.
+    % That that sql catches exceptions, otherwise more must be done here.
     (getTime(sql(Query), TimeMS) ->
       addResult(Properties, No, TimeMS, ok)
     ;
@@ -80,6 +104,7 @@ testMA :-
 
 testMA :-
   !,
+  retractall(testRunning),
   showTestResults.
 
 % eof

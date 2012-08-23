@@ -1,8 +1,8 @@
-
-
-To activate this extensions, some things needs to be done:
-
-1)
+#!/bin/bash
+#
+# To activate this extensions, some things needs to be done:
+#
+# 1)
 cp auxiliary.pl $SECONDO_BUILD_DIR/Optimizer/
 cp calloptimizer.pl $SECONDO_BUILD_DIR/Optimizer/
 cp database.pl $SECONDO_BUILD_DIR/Optimizer/
@@ -13,3 +13,4 @@ cp statistics.pl $SECONDO_BUILD_DIR/Optimizer/
 
 cp subqueries.pl $SECONDO_BUILD_DIR/Optimizer/Subqueries/
 
+# eof

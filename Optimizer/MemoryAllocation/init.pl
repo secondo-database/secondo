@@ -15,6 +15,9 @@ initMA :-
 	% This is a very detailed log level for the callback predicates.
 	assertz(optDebugLevel(ma6)). 
 
+% Needs to be delcared here (used within optimizer.pl)
+:- dynamic useModifiedDijkstra/0.
+
 :- initMA.
 
 loadMA :-
