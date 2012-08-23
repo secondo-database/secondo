@@ -68,6 +68,336 @@ let plzsmallWidth10 =
     No10: .No1]
   consume
 
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+delete uSortBy; 
+delete uMergeJoin;
+delete wMergeJoin;
+delete xMergeJoin;
+delete yMergeJoin;
+
+
+# mergejoin / sortmergejoin_old #####################################
+#
+# Cost formula (mergejoin):
+#            pRes->Time = p1.Time + p2.Time +
+#                         (p1.Card + p2.Card) * uMergeJoin +
+#                         pRes->Card * (xMergeJoin + pRes->noAttrs * yMergeJoin);
+#
+#
+# Cost formular (sortmergejoin_old)
+#            pRes->Time = p1.Time + p2.Time +
+#                         p1.Card * p1.Size * uSortBy +
+#                         p2.Card * p2.Size * uSortBy +
+#                         (p1.Card * p1.Size + p2.Card * p2.Size) * wMergeJoin +
+#                         pRes->Card * (xMergeJoin + pRes->noAttrs * yMergeJoin);
+#
+#
+#
+#      const double uSortBy = 0.00043;   //millisecs per byte read in sort step
+#
+#      const double uMergeJoin = 0.0008077;  //millisecs per tuple read
+#                                        //in merge step (merge)
+#
+#      const double wMergeJoin = 0.0001738; //millisecs per byte read in
+#                                          //merge step (sortmerge)
+#
+#      const double xMergeJoin = 0.0012058; //millisecs per result tuple in
+#                                          //merge step
+#
+#      const double yMergeJoin = 0.0001072; //millisecs per result attribute in
+#                                          //merge step
+#
+#
+# The following queries are taken from 
+# secondo/Algebras/ExtRelation-C++/ConstantsSortmergejoin.txt
+#
+#####################################################################
+
+let plz10 = plz feed ten feed product extend[Ran: randint(50000)]
+sortby[Ran asc] remove[Ran] consume
+
+let plz10Even = plz10 feed extend[PLZE: .PLZ * 2] project[PLZE, Ort, No] consume
+
+let plz10Odd = plz10 feed extend[PLZO: (.PLZ * 2) + 1] project[PLZO, Ort, No] consume
+
+let FirstEven = plz10Even feed head[80] consume
+
+##
+# uSortBy (millisecs per byte read in sort step)
+##
+
+query plz10Even feed {p1} FirstEven feed {p2} sortmergejoin[PLZE_p1, PLZE_p2] head[1] count
+
+query plz10Even feed {p1} FirstEven feed {p2} sortmergejoin[PLZE_p1, PLZE_p2] head[1] count
+
+query plz10Even feed {p1} FirstEven feed {p2} sortmergejoin[PLZE_p1, PLZE_p2] head[1] count
+
+query plz10Even feed {p1} FirstEven feed {p2} sortmergejoin[PLZE_p1, PLZE_p2] head[1] count
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+query plz10Even feed count
+
+query plz10Even feed count
+
+query plz10Even feed count
+
+query plz10Even feed count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+let x4 = (plz10Even count) * (FirstEven count);
+
+# multiply by 1000 to get the time in milliseconds
+let uSortBy = (((x1 - x2) * 1000) / x4) * MF;
+
+query ProgressConstants inserttuple["ExtRelationAlgebra", "mergejoin", "uSortBy", uSortBy, "millisecs per byte read in sort step", ""] consume
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+
+
+##
+# uMergeJoin (millisecs per tuple read in merge step (merge))
+##
+
+let plz50Even = plz10Even feed ten feed filter[.No < 6] {t} product remove[No_t] consume 
+
+let plz50EvenSortedPLZE = plz50Even feed sortby[PLZE asc] consume
+
+let plz10EvenSorted = plz10Even feed sortby[PLZE asc] consume
+
+let plz10OddSorted = plz10Odd feed sortby[PLZO asc] consume
+
+
+query plz50EvenSortedPLZE feed plz10OddSorted feed renameattr[PLZE: PLZO] concat count
+
+query plz50EvenSortedPLZE feed plz10OddSorted feed renameattr[PLZE: PLZO] concat count
+
+query plz50EvenSortedPLZE feed plz10OddSorted feed renameattr[PLZE: PLZO] concat count
+
+query plz50EvenSortedPLZE feed plz10OddSorted feed renameattr[PLZE: PLZO] concat count
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+query plz50EvenSortedPLZE feed count
+
+query plz50EvenSortedPLZE feed count
+
+query plz50EvenSortedPLZE feed count
+
+query plz50EvenSortedPLZE feed count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+query plz10OddSorted feed count
+
+query plz10OddSorted feed count
+
+query plz10OddSorted feed count
+
+query plz10OddSorted feed count
+
+# calculate avg. time to process these tuples
+let x3 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+let x4 = plz50EvenSortedPLZE count;
+
+# multiply by 1000 to get the time in milliseconds
+let uMergeJoin = (((x1 - (x2 + x3)) * 1000) / x4) * MF;
+
+query ProgressConstants inserttuple["ExtRelationAlgebra", "mergejoin", "uMergeJoin", uMergeJoin, "millisecs per tuple read in merge step (merge)", ""] consume
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+
+##
+# wMergeJoin (millisecs per byte read in merge step (sortmerge))
+##
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+
+let plz10Even15Attrs = plz10Even feed extend[
+  A1: 1,
+  A2: 1,
+  A3: 1,
+  A4: 1,
+  A5: 1,
+  A6: 1,
+  A7: 1,
+  A8: 1,
+  A9: 1,
+  A10: 1,
+  A11: 1,
+  A12: 1]
+  consume
+
+
+let plz10Odd15Attrs = plz10Odd feed extend[
+  A1: 1,
+  A2: 1,
+  A3: 1,
+  A4: 1,
+  A5: 1,
+  A6: 1,
+  A7: 1,
+  A8: 1,
+  A9: 1,
+  A10: 1,
+  A11: 1,
+  A12: 1]
+  consume
+
+
+query plz10Even15Attrs feed {p1} plz10Even feed {p2} sortmergejoin_old[PLZE_p1, PLZE_p2] head[1] count
+
+query plz10Even15Attrs feed {p1} plz10Even feed {p2} sortmergejoini_old[PLZE_p1, PLZE_p2] head[1] count
+
+query plz10Even15Attrs feed {p1} plz10Even feed {p2} sortmergejoin_old[PLZE_p1, PLZE_p2] head[1] count
+
+query plz10Even15Attrs feed {p1} plz10Even feed {p2} sortmergejoin_old[PLZE_p1, PLZE_p2] head[1] count
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+query plz10Even15Attrs feed {p1} plz10Odd feed {p2} sortmergejoin_old[PLZE_p1, PLZO_p2] count
+
+query plz10Even15Attrs feed {p1} plz10Odd feed {p2} sortmergejoin_old[PLZE_p1, PLZO_p2] count
+
+query plz10Even15Attrs feed {p1} plz10Odd feed {p2} sortmergejoin_old[PLZE_p1, PLZO_p2] count
+
+query plz10Even15Attrs feed {p1} plz10Odd feed {p2} sortmergejoin_old[PLZE_p1, PLZO_p2] count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+let x3 = plz10Even15Attrs tuplesize;
+
+let x4 = plz10Even tuplesize;
+
+let x5 = plz10Even count;
+
+
+# Count all processed bytes
+let x6 = x5 * (x3 + x4);
+
+# multiply by 1000 to get the time in milliseconds
+let wMergeJoin = (((x2 - x1) * 1000) / x6) * MF;
+
+query ProgressConstants inserttuple["ExtRelationAlgebra", "mergejoin", "wMergeJoin", wMergeJoin, "millisecs per byte read in merge step (sortmerge)", ""] consume
+
+
+
+##
+# xMergeJoin (millisecs per result tuple in merge step)
+# yMergeJoin (millisecs per result attribute in merge step)
+##
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+# Result 0 tuples
+query plz10Even feed {p1} plz10Odd feed {p2} sortmergejoin_old[PLZE_p1, PLZO_p2] count
+
+query plz10Even feed {p1} plz10Odd feed {p2} sortmergejoin_old[PLZE_p1, PLZO_p2] count
+
+query plz10Even feed {p1} plz10Odd feed {p2} sortmergejoin_old[PLZE_p1, PLZO_p2] count
+
+query plz10Even feed {p1} plz10Odd feed {p2} sortmergejoin_old[PLZE_p1, PLZO_p2] count
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# Result Tuples 24879300
+let x3 = plz10Even feed {p1} plz10Even feed {p2} sortmergejoin_old[PLZE_p1, PLZE_p2] count
+
+query plz10Even feed {p1} plz10Even feed {p2} sortmergejoin_old[PLZE_p1, PLZE_p2] count
+
+query plz10Even feed {p1} plz10Even feed {p2} sortmergejoin_old[PLZE_p1, PLZE_p2] count
+
+query plz10Even feed {p1} plz10Even feed {p2} sortmergejoin_old[PLZE_p1, PLZE_p2] count
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# Difference: time for result tuple with 6 attributes
+let x4 = ((x2 - x1) / x3);
+
+
+query plz10Even15Attrs feed {p1} plz10Odd feed {p2} sortmergejoin_old[PLZE_p1, PLZO_p2] count
+
+query plz10Even15Attrs feed {p1} plz10Odd feed {p2} sortmergejoin_old[PLZE_p1, PLZO_p2] count
+
+query plz10Even15Attrs feed {p1} plz10Odd feed {p2} sortmergejoin_old[PLZE_p1, PLZO_p2] count
+
+query plz10Even15Attrs feed {p1} plz10Odd feed {p2} sortmergejoin_old[PLZE_p1, PLZO_p2] count
+
+let x5 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+
+query plz10Even15Attrs feed {p1} plz10Even feed {p2} sortmergejoin_old[PLZE_p1, PLZE_p2] count
+
+query plz10Even15Attrs feed {p1} plz10Even feed {p2} sortmergejoin_old[PLZE_p1, PLZE_p2] count
+
+query plz10Even15Attrs feed {p1} plz10Even feed {p2} sortmergejoin_old[PLZE_p1, PLZE_p2] count
+
+query plz10Even15Attrs feed {p1} plz10Even feed {p2} sortmergejoin_old[PLZE_p1, PLZE_p2] count
+
+let x6 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# Time per tuple
+let xMergeJoin = (((x6 - x5 - x2 - x1) * 1000) / x3) * MF;
+
+# Time for additional 12 attributes
+let yMergeJoin = (((x6 - x5 - x2 - x1) * 1000) / (x3 * 12)) * MF;
+
+
+query ProgressConstants inserttuple["ExtRelationAlgebra", "mergejoin", "xMergeJoin", xMergeJoin, "millisecs per result tuple in merge step", ""] consume
+
+query ProgressConstants inserttuple["ExtRelationAlgebra", "mergejoin", "yMergeJoin", yMergeJoin, "millisecs per result attribute in merge step", ""] consume
+
 
 
 # delete variables used before

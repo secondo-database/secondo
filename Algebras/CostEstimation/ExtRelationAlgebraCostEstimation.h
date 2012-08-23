@@ -542,20 +542,33 @@ public:
      
      if (qp->RequestProgress(args[0].addr, &p1)
        && qp->RequestProgress(args[1].addr, &p2)) {
-       
-      const double uSortBy = 0.00043;   //millisecs per byte read in sort step
+      
+      //millisecs per byte read in sort step (0.00043)
+      static const double uSortBy =
+           ProgressConstants::getValue("ExtRelationAlgebra",
+           "mergejoin", "uSortBy");
 
-      const double uMergeJoin = 0.0008077;  //millisecs per tuple read
-                                        //in merge step (merge)
+      // millisecs per tuple read in merge step (merge) (0.0008077)
+      static const double uMergeJoin =
+           ProgressConstants::getValue("ExtRelationAlgebra",
+           "mergejoin", "uMergeJoin");
+      
+      //millisecs per byte read in merge step (sortmerge) 
+      // (0.0001738)
+      static const double wMergeJoin =
+           ProgressConstants::getValue("ExtRelationAlgebra",
+           "mergejoin", "wMergeJoin");
+      
+      //millisecs per result tuple in merge step (0.0012058)
+      static const double xMergeJoin =
+           ProgressConstants::getValue("ExtRelationAlgebra",
+           "mergejoin", "xMergeJoin");
 
-      const double wMergeJoin = 0.0001738; //millisecs per byte read in
-                                          //merge step (sortmerge)
-
-      const double xMergeJoin = 0.0012058; //millisecs per result tuple in
-                                          //merge step
-
-      const double yMergeJoin = 0.0001072; //millisecs per result attribute in
-                                          //merge step
+      //millisecs per result attribute in merge step
+      // (0.0001072)
+      static const double yMergeJoin =
+           ProgressConstants::getValue("ExtRelationAlgebra",
+           "mergejoin", "yMergeJoin");
 
       pli->SetJoinSizes(p1, p2);
       pRes->CopySizes(pli);

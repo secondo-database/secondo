@@ -1,5 +1,10 @@
 Algebra,Operator,ConstantName,ConstantValue,Meaning,Meaning2
-ExtRelationAlgebra,symmjoin,uSymmJoin,0.0079119938,millisecs per tuple pair
+ExtRelationAlgebra,symmjoin,uSymmJoin,0.00791199,millisecs per tuple pair,
+ExtRelationAlgebra,mergejoin,uSortBy,0.000309732,millisecs per byte read in sort step,
+ExtRelationAlgebra,mergejoin,uMergeJoin,0.00185698,millisecs per tuple read in merge step (merge),
+ExtRelationAlgebra,mergejoin,wMergeJoin,6.20138e-05,millisecs per byte read in merge step (sortmerge,
+ExtRelationAlgebra,mergejoin,xMergeJoin,0.00848114,millisecs per result tuple in merge step,
+ExtRelationAlgebra,mergejoin,yMergeJoin,0.000706762,millisecs per result attribute in merge step,
 MMRTreeAlgebra,itSpatialJoin,uItSpatialJoin,0.0596237,msecs per rtree insert,
 MMRTreeAlgebra,itSpatialJoin,vItSpatialJoin,0.125445,msecs per tuple in right input stream (part. 1),
 MMRTreeAlgebra,itSpatialJoin,wItSpatialJoin,0.00602206,msecs per byte written and read into/from Relati,
