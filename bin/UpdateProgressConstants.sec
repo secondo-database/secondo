@@ -68,6 +68,75 @@ let plzsmallWidth10 =
     No10: .No1]
   consume
 
+
+
+# delete variables used before
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
+
+delete uSymmJoin; 
+
+
+# symmjoim ##########################################################
+#
+# Cost formula:
+#        pRes->Time = p1.Time + p2.Time +
+#                     p1.Card * p2.Card * predCost * uSymmJoin;
+#
+#
+# const double uSymmJoin = 0.2;  //millisecs per tuple pair
+#
+#
+#####################################################################
+
+##
+# measure time for processing a tuple pair (uSymmJoin)
+##
+
+query plzbig feed head[5000] {r1} plzbig feed head[5000] {r2} symmjoin[.PLZ_r1 = ..PLZ_r2] count;
+
+# measure time for processing 5000 * 5000 = 25.000.000 Tuples
+
+query plzbig feed head[5000] {r1} plzbig feed head[5000] {r2} symmjoin[.PLZ_r1 = ..PLZ_r2] count;
+
+query plzbig feed head[5000] {r1} plzbig feed head[5000] {r2} symmjoin[.PLZ_r1 = ..PLZ_r2] count;
+
+query plzbig feed head[5000] {r1} plzbig feed head[5000] {r2} symmjoin[.PLZ_r1 = ..PLZ_r2] count;
+
+# calculate avg. time to process these tuples
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+# measure time for processing 6000 * 6000 = 36.000.000 Tuples
+
+query plzbig feed head[6000] {r1} plzbig feed head[6000] {r2} symmjoin[.PLZ_r1 = ..PLZ_r2] count;
+
+query plzbig feed head[6000] {r1} plzbig feed head[6000] {r2} symmjoin[.PLZ_r1 = ..PLZ_r2] count;
+
+query plzbig feed head[6000] {r1} plzbig feed head[6000] {r2} symmjoin[.PLZ_r1 = ..PLZ_r2] count;
+
+
+# calculate avg. time to process these tuples
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
+
+
+# x5 is the size of additinal tuples
+let x5 = 36000000 - 25000000;
+
+# Calculate time to process one hashtable insert
+# x1 - x2 is the time to insert (x5) tuples more
+# multiply by 1000 to get the time in milliseconds
+let uSymmJoin = (((x2 - x1) * 1000) / x5) * MF;
+
+query ProgressConstants inserttuple["ExtRelationAlgebra", "symmjoin", "uSymmJoin", uSymmJoin, "millisecs per tuple pair", ""] consume
+
+
+
+
+
 # delete variables used before
 delete x1;
 delete x2;
