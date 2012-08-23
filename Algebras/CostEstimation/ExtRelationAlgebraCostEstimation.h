@@ -314,7 +314,10 @@ public:
       {     
         pli->SetJoinSizes(p1, p2);
 
-        const double uSymmJoin = 0.2;  //millisecs per tuple pair
+        // millisecs per tuple pair 0.2
+        static const double uSymmJoin =
+           ProgressConstants::getValue("ExtRelationAlgebra",
+           "symmjoin", "uSymmJoin");
 
         if (!pli){
             return CANCEL;
@@ -341,11 +344,11 @@ public:
             / pRes->Time;
         }
 
-        if (pli->returned > enoughSuccessesJoin ) {   
-          // stable state assumed now
+        if (returned > (size_t) enoughSuccessesJoin ) {   
+         // stable state assumed now
           pRes->Card = p1.Card * p2.Card *
-            ((double) pli->returned /
-              (double) (pli->readFirst * pli->readSecond));
+            ((double) returned /
+              (double) (readStream1 * readStream2));
         } else {
           pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(supplier);
         }
