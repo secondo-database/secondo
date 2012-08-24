@@ -223,6 +223,18 @@ Prints out this segments as a nested list reprenting a line.
      return out;
   }
 
+/*
+SimpleString
+
+Returns a segmnet representation (x1,y1) -> (x2,y2) where 
+(x1,y1) is the domination point and (x2,y2) is the secondary point.
+
+*/
+   string SimpleString() const{
+     stringstream ss;
+     ss << GetDomPoint() << " -> " << GetSecPoint();
+     return ss.str();
+   }
 
 
 
@@ -440,6 +452,8 @@ HalfSegment::GetRightPoint() const
 {
   return rp;
 }
+
+
 
 inline const Point&
 HalfSegment::GetDomPoint() const
