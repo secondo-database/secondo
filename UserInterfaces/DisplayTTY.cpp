@@ -3288,6 +3288,8 @@ struct DisplayFileList : DisplayFunction {
       size_t dupTimes = nl->IntValue(nl->Sixth(value));
       bool isDistributed = nl->BoolValue(nl->Nth(7, value));
       int dataKind = nl->IntValue(nl->Nth(8, value));
+      //NEW
+      ListExpr UEMapQuery = nl->Nth(9, value);
 
       cout << "Name : " << objName << endl;
       cout << "Type : " << nl->ToString(type) << endl;
@@ -3349,6 +3351,16 @@ struct DisplayFileList : DisplayFunction {
 
       string kinds[4] = {"UNDEF", "DLO", "DLF"};
       cout << "Data kind: " << kinds[dataKind] << endl;
+
+      //NEW
+      cout << "UnExecuted Map Query: ";
+      if (nl->IsEmpty(UEMapQuery))
+        cout << "\"\"" << endl;
+      else
+      {
+        cout << endl << nl->ToString(UEMapQuery) << endl;
+      }
+
     }
   }
 };

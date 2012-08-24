@@ -1,16 +1,9 @@
 package ParallelSecondo;
 
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.InetAddress;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
-import java.util.Scanner;
 
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;

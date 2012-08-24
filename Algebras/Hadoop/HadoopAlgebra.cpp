@@ -151,14 +151,16 @@ or the distributed field is set as false, then available is false, or else it is
 
 */
 fList::fList(string _on, NList _tl, clusterInfo* _ci, NList _fll,
-      size_t _dp, bool _idd, fListKind _fkd, size_t _mrn, size_t _mcn):
+      size_t _dp, bool _idd, fListKind _fkd, size_t _mrn, size_t _mcn,
+      NList _uemq):
     subName(_on), objectType(_tl),
     interCluster(new clusterInfo(*_ci)),
     fileLocList(_fll),
     dupTimes(_dp),
     mrNum(_mrn), mcNum(_mcn),
     isDistributed(_idd),
-    objKind(_fkd)
+    objKind(_fkd),
+    UEMapQuery(_uemq)   //By default, it is an empty list
 {
   if (mrNum == 0 || mcNum == 0){
     if (!verifyLocList()){
@@ -355,6 +357,7 @@ ListExpr fList::Out(ListExpr typeInfo, Word value)
     outList.append(NList(fl->getDupTimes()));
     outList.append(NList(fl->isDistributed, false));
     outList.append(NList(fl->objKind));
+    outList.append(fl->getUEMapQuery());
     return outList.listExpr();
   }
   else
@@ -458,13 +461,16 @@ Word fList::RestoreFromList(
   size_t dupTimes = il.sixth().intval();
   bool distributed = il.seventh().boolval();
   fListKind kind = (fListKind)il.eigth().intval();
+  NList ueMapQuery;
+  if (il.length() == 9)
+    ueMapQuery = il.nineth();
 
   clusterInfo *ci = new clusterInfo();
   fList* fl = 0;
   if (ci->covers(nodeList))
   {
     fl = new fList(objName, typeList, ci, locList, dupTimes,
-        distributed, kind, maxRNum, maxCNum);
+        distributed, kind, maxRNum, maxCNum, ueMapQuery);
     return SetWord(fl);
   }
   else{
@@ -2865,6 +2871,23 @@ flist(T) x [string] x [text] x [(DLO):DLF] x [mapTaskNum]
 If the produced flist kind is DLO, then the mapTaskNum must be less than
 the scale of slaves, as each slave database can only keep one sub-object.
 
+Update at 21th Aug. 2012 by Jiamin
+
+Adds an optional parameter executed:bool, to indicate whether the
+Hadoop job practically process. If it is false, then this operator creates
+an intermediate flist object. An intermediate flist contains an umempty
+UEMapQuery (UnExecuted Map Query), describing the process in the Map stage.
+It is composed by four elements(MapQuery DLO\_List DLF\_List mapTaskNum),
+both hadoopReduce and hadoopReduce2 operators set their Map tasks based on
+this UEMapQuery.
+
+By default this value is true. Now this operator maps
+
+----
+flist(T) x [string] x [text] x [(DLO):DLF] x [int] x [bool]
+  x ( map ( T -> T1) ) -> flist(T1)
+----
+
 
 */
 
@@ -2873,7 +2896,8 @@ ListExpr hadoopMapTypeMap(ListExpr args){
 
   string lenErr = "ERROR! Operator hadoopMap expects 3 argument lists. ";
   string typErr = "ERROR! Operator hadoopMap expects "
-      "flist(T) x [string] x [text] x [(DLO):DLF] x [mapTaskNum] x (map T T1))";
+      "flist(T) x [string] x [text] x [(DLO):DLF] x [int] x [bool] "
+      "x (map T T1))";
 
   string ifaErr = "ERROR! Infeasible evaluation in TM of attribute:";
   string mtnErr = "ERROR! Expect a positive map task number. ";
@@ -2888,9 +2912,11 @@ ListExpr hadoopMapTypeMap(ListExpr args){
   string fwtErr = "ERROR! Failed writing type into file: ";
   string expErr = "ERROR! Improper output type for DLF flist";
   string udnErr = "ERROR! Long database name is set.";
+  string uewErr = "ERROR! An unexecuted flist must be DLF type.";
 
   string objName, filePath, qStr;
   fListKind kind = DLO;
+  bool executed = false;
 
   if (l.length() != 3)
     return l.typeError(lenErr);
@@ -2949,10 +2975,24 @@ ListExpr hadoopMapTypeMap(ListExpr args){
       else if (pp.isSymbol("DLF")){
         kind = DLF;
       }
-      else if (!pp.isSymbol("DLO")){
-        return l.typeError(nprErr);
+      else if (pp.isSymbol("DLO")){
+        kind = DLO;
+      }
+      else if (pp.isSymbol(CcBool::BasicType())){
+        NList etList;
+        if (!QueryProcessor::GetNLArgValueInTM(pv, etList)){
+          return l.typeError(ifaErr + "executed");
+        }
+        executed = etList.boolval();
+      }
+      else{
+        return l.typeError(typErr);
       }
     }
+  }
+
+  if (!executed && (kind != DLF)){
+    return l.typeError(uewErr);
   }
 
   if (mapTaskNum <= 0){
@@ -3068,6 +3108,7 @@ int hadoopMapValueMap(Word* args, Word& result,
     Supplier oppList = args[1].addr;
     int opLen = qp->GetNoSons(oppList);
     int mapTaskNum = -1;
+    bool executed = true;
     for (int i = 0; i < opLen; i++)
     {
       ListExpr pp = qp->GetType(qp->GetSupplierSon(oppList,i));
@@ -3078,6 +3119,10 @@ int hadoopMapValueMap(Word* args, Word& result,
       else if (nl->IsEqual(pp, CcInt::BasicType())){
         mapTaskNum = ((CcInt*)
           qp->Request(qp->GetSupplier(oppList, i)).addr)->GetValue();
+      }
+      else if (nl->IsEqual(pp, CcBool::BasicType())){
+        executed =
+          ((CcBool*)qp->Request(qp->GetSupplier(oppList, i)).addr)->GetValue();
       }
     }
 
@@ -3118,7 +3163,7 @@ int hadoopMapValueMap(Word* args, Word& result,
             replaceDLOF(CreateQueryList,
                 flistParaList[i], flistObjList[i],
                 DLF_NameList, DLF_fileLocList,
-                DLO_NameList, DLO_locList, ok, argIndex);
+                DLO_NameList, DLO_locList, false, ok, argIndex);
         if (!ok){
           cerr << "Replace DLF flist fails" << endl;
           break;
@@ -3154,101 +3199,121 @@ int hadoopMapValueMap(Word* args, Word& result,
       if (mapTaskNum < 0)
         mapTaskNum = ci->getSlaveSize();
 
-      //Call the Hadoop job
-      stringstream queryStr;
-      queryStr
-        << "hadoop jar ParallelSecondo.jar "
-            "ParallelSecondo.PS_HadoopMap \\\n"
-        << dbName << " " << CreateObjectName << " "
-        << " \"" << tranStr(nl->ToString(CreateQueryList),
-            "\"", "\\\"") << "\" \\\n"
-        << " \"" << tranStr(dlfNameList.convertToString(),
-            "\"", "\\\"") << "\" \\\n"
-        << " \"" << tranStr(dlfLocList.convertToString(),
-            "\"", "\\\"") << "\" \\\n"
-        << " \"" << tranStr(dloNameList.convertToString(),
-            "\"", "\\\"") << "\" \\\n"
-        << " \"" << tranStr(dloLocList.convertToString(),
-            "\"", "\\\"") << "\" \\\n"
-        << dupTimes  << " " << kind << " "
-        << " \"" << CreateFilePath << "\" "
-        << mapTaskNum << endl;
-      int rtn = -1;
-      cout << queryStr.str() << endl;
-      rtn = system(queryStr.str().c_str());
-      ok = (rtn == 0);
-
-      if (ok)
+      if (executed)
       {
-        FILE *fs;
-        char buf[MAX_STRINGSIZE];
-        fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
-        if (NULL != fs)
+        //Call the Hadoop job
+        stringstream queryStr;
+        queryStr
+          << "hadoop jar ParallelSecondo.jar "
+              "ParallelSecondo.PS_HadoopMap \\\n"
+          << dbName << " " << CreateObjectName << " "
+          << " \"" << tranStr(nl->ToString(CreateQueryList),
+              "\"", "\\\"") << "\" \\\n"
+          << " \"" << tranStr(dlfNameList.convertToString(),
+              "\"", "\\\"") << "\" \\\n"
+          << " \"" << tranStr(dlfLocList.convertToString(),
+              "\"", "\\\"") << "\" \\\n"
+          << " \"" << tranStr(dloNameList.convertToString(),
+              "\"", "\\\"") << "\" \\\n"
+          << " \"" << tranStr(dloLocList.convertToString(),
+              "\"", "\\\"") << "\" \\\n"
+          << dupTimes  << " " << kind << " "
+          << " \"" << CreateFilePath << "\" "
+          << mapTaskNum << endl;
+        int rtn = -1;
+        cout << queryStr.str() << endl;
+        rtn = system(queryStr.str().c_str());
+        ok = (rtn == 0);
+
+        if (ok)
         {
-          if (fgets(buf, sizeof(buf),fs))
+          FILE *fs;
+          char buf[MAX_STRINGSIZE];
+          fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
+          if (NULL != fs)
           {
-            stringstream ss;
-            ss << buf;
-            string locListStr = ss.str();
-            locListStr = locListStr.substr(locListStr.find_first_of(' '));
-            nl->ReadFromString(locListStr, sidList);
+            if (fgets(buf, sizeof(buf),fs))
+            {
+              stringstream ss;
+              ss << buf;
+              string locListStr = ss.str();
+              locListStr = locListStr.substr(locListStr.find_first_of(' '));
+              nl->ReadFromString(locListStr, sidList);
+            }
+            else
+              ok = false;
           }
           else
             ok = false;
         }
+
+        if (ok)
+        {
+          NList fileLocList;
+
+          if (kind == DLO)
+            CreateFilePath = dbLoc;
+
+          //Create file location list
+          ListExpr rest = sidList;
+          int lastRow = 0;
+          NList emptyRow = NList();
+          while (!nl->IsEmpty(rest))
+          {
+            ListExpr rowInfo = nl->First(rest);
+            int rowNum = nl->IntValue(nl->First(rowInfo));
+            int slaveIdx = nl->IntValue(nl->Second(rowInfo));
+
+            for (lastRow++; lastRow < rowNum; lastRow++)
+            {
+              if (fileLocList.isEmpty())
+              {
+                fileLocList.makeHead(emptyRow);
+              }
+              else
+              {
+                fileLocList.append(emptyRow);
+              }
+            }
+
+            NList newRow = NList(NList(slaveIdx), NList(1).enclose(), NList(
+                CreateFilePath, true, true));
+            if (fileLocList.isEmpty())
+            {
+              fileLocList.makeHead(newRow);
+            }
+            else
+            {
+              fileLocList.append(newRow);
+            }
+            rest = nl->Rest(rest);
+          }
+
+          resultFList = new fList(CreateObjectName, NList(resultType), ci,
+              fileLocList, 1, true, kind);
+        }
         else
-          ok = false;
+        {
+          //If the creation job is not successfully returned,
+          //Then an empty flist is returned as the result
+          resultFList = 0;
+        }
+      }
+      else
+      {//executed == false
+
+        //Create an intermediate flist
+        NList UEMapQuery(
+           NList(CreateQueryList),
+           NList(dlfNameList, dlfLocList),
+           NList(dloNameList, dloLocList),
+           NList(mapTaskNum));
+
+        resultFList = new fList(CreateObjectName, NList(resultType),
+          ci, NList(), 1, false, kind, 0, 0, UEMapQuery);
       }
     }
 
-    if (ok)
-    {
-      NList fileLocList;
-
-      if (kind == DLO)
-        CreateFilePath = dbLoc;
-
-      //Create file location list
-      ListExpr rest = sidList;
-      int lastRow = 0;
-      NList emptyRow = NList();
-      while (!nl->IsEmpty(rest))
-      {
-        ListExpr rowInfo = nl->First(rest);
-        int rowNum = nl->IntValue(nl->First(rowInfo));
-        int slaveIdx = nl->IntValue(nl->Second(rowInfo));
-
-
-//        int rowNum = slaveIdx;
-
-        for (lastRow++ ;lastRow < rowNum; lastRow++){
-          if (fileLocList.isEmpty()){
-            fileLocList.makeHead(emptyRow);
-          }
-          else{
-            fileLocList.append(emptyRow);
-          }
-        }
-
-        NList newRow = NList(NList(slaveIdx), NList(1).enclose(),
-            NList(CreateFilePath, true, true));
-        if (fileLocList.isEmpty()){
-          fileLocList.makeHead(newRow);
-        }
-        else{
-          fileLocList.append(newRow);
-        }
-        rest = nl->Rest(rest);
-      }
-
-      resultFList = new fList(CreateObjectName, NList(resultType),
-        ci, fileLocList, 1, true, kind);
-    }
-    else{
-      //If the creation job is not successfully returned,
-      //Then an empty flist is returned as the result
-      resultFList = 0;
-    }
 
     result.setAddr(resultFList);
   }
@@ -3276,6 +3341,10 @@ This is mainly used to process the reduce step of the precast Hadoop job.
 
 It also creates both DLO and DLF kind flist.
 This one provides the unary operation, while the binary operator will be implemented later.
+
+Update 22th Aug. 2012 by Jiamin
+Make it possible to accept intermediate flist object as the input parameter.
+All flist objects used in its argument functions cannot be in intermediate status.
 
 */
 struct hadoopReduceInfo : OperatorInfo
@@ -3589,8 +3658,6 @@ int hadoopReduceValueMap(Word* args, Word& result,
     vector<string> DLF_NameList, DLF_fileLocList;
     vector<string> DLO_NameList, DLO_locList;
 
-//    int dloNumber = (inputFList->getKind() == DLO) ? 1 : 0;
-
     bool ok = true;
     CreateQueryList = replaceParaOp(CreateQueryList, flistParaList,
         flistObjList, ok);
@@ -3607,15 +3674,10 @@ int hadoopReduceValueMap(Word* args, Word& result,
             replaceDLOF(CreateQueryList,
                 flistParaList[i], flistObjList[i],
                 DLF_NameList, DLF_fileLocList,
-                DLO_NameList, DLO_locList, ok, argIndex);
+                DLO_NameList, DLO_locList, true, ok, argIndex);
         if (!ok)
           break;
       }
-
-//      if ((int)DLO_NameList.size() > dloNumber){
-//        cerr << "Not allow using DLO flist in reduce queries. " << endl;
-//        ok = false;
-//      }
     }
 
     NList dlfNameList, dlfLocList;
@@ -3649,27 +3711,48 @@ int hadoopReduceValueMap(Word* args, Word& result,
       else
         inputRcg = "<DLFMark:Arg1:" + inputFList->getSubName() + "/>";
 
+      bool mapStage = false;
+      //Name and Location lists for DLF and DLO flist in the map stage
+      NList mq, mfn, mfl, mon, mol;
+      int mapTaskNum;
+      if (!inputFList->getUEMapQuery().isEmpty()){
+        mapStage = true;
+        mq = inputFList->getUEMapQuery().first();
+        mfn = inputFList->getUEMapQuery().second().first();
+        mfl  = inputFList->getUEMapQuery().second().second();
+        mon = inputFList->getUEMapQuery().third().first();
+        mol  = inputFList->getUEMapQuery().third().second();
+        mapTaskNum = inputFList->getUEMapQuery().fourth().intval();
+      }
+
+
       //Call the Hadoop job
       stringstream queryStr;
       queryStr
-        << "hadoop jar ParallelSecondo.jar "
-            "ParallelSecondo.PS_HadoopReduce \\\n"
-        << dbName << " " << CreateObjectName << " "
-        << " \"" << tranStr(nl->ToString(CreateQueryList),
-            "\"", "\\\"") << "\" \\\n"
-        << " \"" << tranStr(dlfNameList.convertToString(),
-            "\"", "\\\"") << "\" \\\n"
-        << " \"" << tranStr(dlfLocList.convertToString(),
-            "\"", "\\\"") << "\" \\\n"
-        << " \"" << tranStr(dloNameList.convertToString(),
-            "\"", "\\\"") << "\" \\\n"
-        << " \"" << tranStr(dloLocList.convertToString(),
-            "\"", "\\\"") << "\" \\\n"
-        << dupTimes  << " " << kind << " "
-        << " \"" << CreateFilePath << "\" "
-        << " \"" << inputRcg << "\" "
-        //The input flist sub-object, which will be partitioned in the map step
-        << "\"" << PAName << "\" "<< reduceTaskNum
+      << "hadoop jar ParallelSecondo.jar ParallelSecondo.PS_HadoopReduce \\\n"
+      << dbName << " " << CreateObjectName << " "
+    << " \"" << tranStr(nl->ToString(CreateQueryList),"\"", "\\\"") << "\" \\\n"
+    << " \"" << tranStr(dlfNameList.convertToString(),"\"", "\\\"") << "\" \\\n"
+    << " \"" << tranStr(dlfLocList.convertToString(), "\"", "\\\"") << "\" \\\n"
+    << " \"" << tranStr(dloNameList.convertToString(),"\"", "\\\"") << "\" \\\n"
+    << " \"" << tranStr(dloLocList.convertToString(), "\"", "\\\"") << "\" \\\n"
+    << dupTimes  << " " << kind << " " << " \"" << CreateFilePath << "\" "
+    << " \"" << inputRcg << "\" ";
+
+      if (mapStage)
+      {
+        //Describe the map tasks
+        queryStr
+          << " \"" << tranStr(mq.convertToString(), "\"", "\\\"") << "\" \\\n"
+          << " \"" << tranStr(mfn.convertToString(), "\"", "\\\"") << "\" \\\n"
+          << " \"" << tranStr(mfl.convertToString(), "\"", "\\\"") << "\" \\\n"
+          << " \"" << tranStr(mon.convertToString(), "\"", "\\\"") << "\" \\\n"
+          << " \"" << tranStr(mol.convertToString(), "\"", "\\\"") << "\" \\\n"
+          << mapTaskNum << " ";
+      }
+
+      //The input flist sub-object, which will be partitioned in the map step
+      queryStr << " \"" << PAName << "\" "<< reduceTaskNum
         << endl;
       int rtn = -1;
       cout << queryStr.str() << endl;
@@ -4105,19 +4188,11 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
             replaceDLOF(CreateQueryList,
                 flistParaList[i], flistObjList[i],
                 DLF_NameList, DLF_fileLocList,
-                DLO_NameList, DLO_locList, ok, argIndex);
+                DLO_NameList, DLO_locList, true, ok, argIndex);
         if (!ok)
           break;
       }
-
-//      if (DLO_NameList.size() > dloNumber){
-//        cerr << "Not allow using DLO flist in reduce queries. " << endl;
-//        ok = false;
-//      }
     }
-
-
-
 
     NList dlfNameList, dlfLocList;
     NList dloNameList, dloLocList;
@@ -4155,29 +4230,27 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
             + inputFList[i]->getSubName() + "/>";
       }
 
+      NList IUEMapQuery = NList(
+          inputFList[0]->getUEMapQuery(),
+          inputFList[1]->getUEMapQuery());
+
       //Call the Hadoop job
       stringstream queryStr;
       queryStr
         << "hadoop jar ParallelSecondo.jar "
             "ParallelSecondo.PS_HadoopReduce2 \\\n"
-        << dbName << " " << CreateObjectName << " \\\n"
-        << " \"" << tranStr(nl->ToString(CreateQueryList),
-            "\"", "\\\"") << "\" \\\n"
-        << " \"" << tranStr(dlfNameList.convertToString(),
-            "\"", "\\\"") << "\" \\\n"
-        << " \"" << tranStr(dlfLocList.convertToString(),
-            "\"", "\\\"") << "\" \\\n"
-        << " \"" << tranStr(dloNameList.convertToString(),
-            "\"", "\\\"") << "\" \\\n"
-        << " \"" << tranStr(dloLocList.convertToString(),
-            "\"", "\\\"") << "\" \\\n"
-        << " \"" << CreateFilePath << "\" \\\n"
-        << " \"" << inputRcg[0]
-            << "\" "<< dupTimes[0] << " \"" << PAName[0]<< "\" "
-        << " \"" << inputRcg[1]
-            << "\" "<< dupTimes[1] << " \"" << PAName[1]<< "\" "
-        << reduceTaskNum << " " << kind
-        << endl;
+  << dbName << " " << CreateObjectName << " \\\n"
+  << " \"" << tranStr(nl->ToString(CreateQueryList), "\"", "\\\"") << "\" \\\n"
+  << " \"" << tranStr(dlfNameList.convertToString(), "\"", "\\\"") << "\" \\\n"
+  << " \"" << tranStr(dlfLocList.convertToString(), "\"", "\\\"") << "\" \\\n"
+  << " \"" << tranStr(dloNameList.convertToString(), "\"", "\\\"") << "\" \\\n"
+  << " \"" << tranStr(dloLocList.convertToString(), "\"", "\\\"") << "\" \\\n"
+  << " \"" << CreateFilePath << "\" \\\n"
+  << " \"" << inputRcg[0] << "\" " << dupTimes[0] << " \"" << PAName[0]<< "\" "
+  << " \"" << inputRcg[1] << "\" "<< dupTimes[1] << " \"" << PAName[1]<< "\" "
+  << reduceTaskNum << " " << kind << " \\\n"
+  << " \"" << tranStr(IUEMapQuery.convertToString(), "\"", "\\\"") << "\" "
+  << endl;
       int rtn = -1;
       cout << queryStr.str() << endl;
       rtn = system(queryStr.str().c_str());
@@ -4412,11 +4485,16 @@ and returns location information of both kinds flists.
 Therefore, if a sub-object of a DLO flist doesn't exist on one slave data server,
 no map task is deployed.
 
+Update at 22th Aug. Jiamin
+Add the boolean parameter ua (Unavailable Allowed).
+If it is set as true, then for function argument (argIndex > 0),
+they can be unavailable
+
 */
 ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
     vector<string>& DLF_NameList, vector<string>& DLF_fileLocList,
     vector<string>& DLO_NameList, vector<string>& DLO_locList,
-    bool& ok, int argIndex/* = 0*/)
+    bool ua, bool& ok, int argIndex/* = 0*/)
 { //Replace DLO and DLF
   if (!ok)
   {
@@ -4431,7 +4509,7 @@ ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
     if ((nl->AtomType(createQuery) == SymbolType) &&
         (nl->SymbolValue(createQuery) == listName))
     {
-      if (listObject->isAvailable())
+      if (listObject->isAvailable() || (ua && argIndex > 0))
       {
         string objectName = listObject->getSubName();
         switch (listObject->getKind())
@@ -4480,10 +4558,10 @@ ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
   {
     return (nl->Cons(replaceDLOF(nl->First(createQuery),
           listName, listObject, DLF_NameList, DLF_fileLocList,
-          DLO_NameList, DLO_locList, ok, argIndex),
+          DLO_NameList, DLO_locList, ua, ok, argIndex),
         replaceDLOF(nl->Rest(createQuery),
           listName, listObject, DLF_NameList, DLF_fileLocList,
-          DLO_NameList, DLO_locList, ok, argIndex)));
+          DLO_NameList, DLO_locList, ua, ok, argIndex)));
   }
 }
 

@@ -4628,10 +4628,7 @@ Tuple* readTupleFromFile(ifstream* file, TupleType* type)
 
 int getRoundRobinIndex(int row, int clusterSize)
 {
-  int result = row%clusterSize;
-  if ( 0 == result)
-    result = clusterSize;
-  return result;
+  return ((row - 1)%clusterSize + 1);
 }
 
 /*

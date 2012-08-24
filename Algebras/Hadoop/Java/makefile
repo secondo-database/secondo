@@ -26,7 +26,7 @@ ${SRC_P}/PS_HadoopMap_Reduce.java
 	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopMap_Reduce.java -d ${BIN_P}	
 
 ${CLS_P}/PS_HadoopReduce.class: ${CLS_P}/PS_HadoopReduce_Map.class ${CLS_P}/PS_HadoopReduce_Reduce.class \
-${SRC_P}/PS_HadoopReduce.java
+${CLS_P}/PS_HadoopReduce_QMap.class ${SRC_P}/PS_HadoopReduce.java
 	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce.java -d ${BIN_P}
 
 ${CLS_P}/PS_HadoopReduce_Map.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
@@ -34,19 +34,29 @@ ${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  
 ${SRC_P}/PS_HadoopReduce_Map.java
 	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce_Map.java -d ${BIN_P}	
 
+${CLS_P}/PS_HadoopReduce_QMap.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  \
+${SRC_P}/PS_HadoopReduce_QMap.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce_QMap.java -d ${BIN_P}	
+
 ${CLS_P}/PS_HadoopReduce_Reduce.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
 ${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  \
 ${SRC_P}/PS_HadoopReduce_Reduce.java
 	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce_Reduce.java -d ${BIN_P}	
 
 ${CLS_P}/PS_HadoopReduce2.class: ${CLS_P}/PS_HadoopReduce2_Map.class ${CLS_P}/PS_HadoopReduce2_Reduce.class \
-${SRC_P}/PS_HadoopReduce2.java
+${CLS_P}/PS_HadoopReduce2_QMap.class ${SRC_P}/PS_HadoopReduce2.java
 	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2.java -d ${BIN_P}
 
 ${CLS_P}/PS_HadoopReduce2_Map.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
 ${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  \
 ${SRC_P}/PS_HadoopReduce2_Map.java
 	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2_Map.java -d ${BIN_P}	
+
+${CLS_P}/PS_HadoopReduce2_QMap.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  \
+${SRC_P}/PS_HadoopReduce2_QMap.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2_QMap.java -d ${BIN_P}	
 
 ${CLS_P}/PS_HadoopReduce2_Reduce.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
 ${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  \

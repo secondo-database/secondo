@@ -56,7 +56,7 @@ bool isFListStreamDescription(const NList& typeInfo);
 ListExpr replaceDLOF(ListExpr createQuery, string listName, fList* listObject,
     vector<string>& DLF_NameList, vector<string>& DLF_fileLocList,
     vector<string>& DLO_NameList, vector<string>& DLO_locList,
-    bool& ok, int argIndex = 0);  //Replace DLO and DLF
+    bool ua, bool& ok, int argIndex = 0);  //Replace DLO and DLF
 ListExpr replaceParaOp(
     ListExpr createQuery, vector<string>& flistParaList,
     vector<fList*>& flistObjList, bool& ok);
@@ -66,6 +66,30 @@ pthread_mutex_t CLI_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*
 1.7 fList class
+
+At 20th Aug.
+Increase a new parameter to flist class, named UEMapQuery (UnExecuted Map Query).
+Since it is difficult to adjust the QueryProcessor to permit setting up
+a sequence of argument functions in an operator,
+e.g using 3 argument functions , A, B and C, in a same operator,
+and the result of A and B can be used as the input parameter of the function C.
+Regarding this issue, we have to extend the data type ~flist~ with an intermediate status,
+by extending a new member variable, UEMapQuery.
+
+This new parameter describes a MapQuery, which can create a flist.
+However, this query is not yet processed, hence this flist stays in the intermediate status.
+When this flist is delivered to a hadoopReduce or hadoopReduce2 operator,
+then the created Hadoop job should process this Map Query at first in its Map stage,
+before its Reduce stage.
+
+This paramemeter is a nested-list, composed by three elements.
+(MapQuery, DLO-List, DLF-List)
+The second and third list describes the distribution of involved DLO and DLF objects
+inside this MapQuery.
+
+Since the UEMapQuery need to be executed in another operator,
+its output must be DLF type, since this is the only type that can be
+shuffled in the cluster.
 
 */
 typedef enum { UNDEF, DLO, DLF } fListKind;
@@ -79,7 +103,8 @@ public:
       bool isDistributed = false,
       fListKind kind = UNDEF,
       size_t maxRNum = 0,
-      size_t maxCNum = 0);
+      size_t maxCNum = 0,
+      NList ueMapQuery = NList());  //NEW
   fList(fList& rhg);
   ~fList()
   {
@@ -158,7 +183,8 @@ public:
   inline NList getLocList() { return fileLocList; }
   inline bool isInDB() { return (isAvailable() && (objKind == DLO));}
   inline fListKind getKind() { return objKind; }
-
+  //NEW
+  inline NList getUEMapQuery() { return UEMapQuery; }
   inline static string tempName(const bool isDB){
     stringstream ss;
     if (isDB){
@@ -193,6 +219,8 @@ private:
           mcNum;    // matrix column number
   bool isDistributed;
   fListKind objKind;
+  //NEW
+  NList UEMapQuery;  // UnExecuted Map Query
 
   bool setLocList(NList fllist);
   bool verifyLocList();
