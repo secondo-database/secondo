@@ -87,3 +87,5 @@ operator bufferLine alias BUFFERLINE pattern op(_,_)
 operator circle alias CIRCLE pattern op ( _ , _ , _ )
 operator longlines alias LONGLINES pattern _ op
 operator splitslineatpoints alias SPLITSLINEATPOINTS pattern op ( _ , _ )
+operator findCycles alias FINDCYCLES pattern op(_)
+

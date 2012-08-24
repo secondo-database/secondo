@@ -1080,3 +1080,16 @@ Example  : query splitslineatpoints(create_sline(makepoint(10.0,10.0), makepoint
 Result   : 2
 Tolerance: 0.01%
 
+Operator  : findCycles
+Number    : 1
+Signature : line -> stream(line)
+Example   : query findCycles(BGrenzenLine) count
+Result    : 1
+
+
+Operator  : removeDeadEnds 
+Number    : 1
+Signature : line -> line
+Example   : query removeDeadEnds(BGrenzenLine) = BGrenzenLine
+Result    : TRUE
+
