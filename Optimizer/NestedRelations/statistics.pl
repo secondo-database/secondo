@@ -1163,7 +1163,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   optimizerOption(nestedRelations),
   % Recognize if it is the nested relations case
   nrRel(pr(Pred, Rel1, Rel2)),
-  write('\nFake nestedRelation selectivity, pred: '), write_term(Pred, []), nl,
+  dm(nr, ['\nFake nestedRelation selectivity, pred: ', Pred]),
   simplePred(pr(Pred, Rel1, Rel2), PSimple),
   Sel=0.1,
   CalcPET=0.1,
@@ -1178,7 +1178,7 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   optimizerOption(nestedRelations),
   % Recognize if it is the nested relations case
   nrRel(pr(Pred, Rel)),
-  write('\nFake nestedRelation selectivity, pred: '), write_term(Pred, []), nl,
+  dm(nr, ['\nFake nestedRelation selectivity, pred: ', Pred]),
   simplePred(pr(Pred, Rel), PSimple),
   Sel=0.1,
   CalcPET=0.1,

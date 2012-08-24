@@ -2043,7 +2043,6 @@ getIntSpellingFromDCattrList(FRAAP,[[ExtAttr, _] | _], IntAttr) :-
   catch(dcName2externalName(FRAAP,ExtAttr),
     error_Internal(database_dcName2externalName(_,_)::cannotTranslate), fail),
   internalName2externalName(IntAttr,ExtAttr), !.
-
 % NVK ADDED END 
 
 /*
@@ -4039,15 +4038,12 @@ analyseTupleInfoQueryResultList2(_,_,_,[],_,_,0):- !.
 analyseTupleInfoQueryResultList2(DB,DCrel,ARelPath,ExtAttrList,InfoListAtts, InfoList, MemTotal):-
   dm(dbhandling,['\nTry: analyseTupleInfoQueryResultList2(',DB,',',DCrel,',',ARelPath,',',
                                   ExtAttrList,',',InfoListAtts,',',InfoList,').']),
-  write('\nNVK ExtAttrList: '),write_term(ExtAttrList,[]),nl,
-  write('\nNVK InfoListAtts: '),write_term(InfoListAtts, []),nl,
-  write('\nNVK InfoList: '),write_term(InfoList,[]),nl,
   ExtAttrList = [[ExtAttr,ExtType]|MoreAttrs],
   InfoList  = [SizeCore,SizeExt|MoreInfos],
   InfoListAtts  = [_,_|MoreInfosAtts],
   % take first elem from ExtAttrList, retrieve three entries from
   % the InfoList and process the information.
-  write_list(['ask for ExtType=', ExtType, ' and ', ExtAttr, ' size core: ', SizeCore, ' size ext: ', SizeExt]), nl,
+  %write_list(['ask for ExtType=', ExtType, ' and ', ExtAttr, ' size core: ', SizeCore, ' size ext: ', SizeExt]), nl,
   % NVK ADDED
   % old:
   % dcName2externalName(DCType,ExtType),
