@@ -150,8 +150,10 @@ public class PS_HadoopReduce2 implements Constant{
 					ListExpr mamolList = UEMapQueryLists[i].third().second();		//Map DLO location list
 					mapTaskNums[i] = UEMapQueryLists[i].fourth().intValue();
 					
-					AllMapDLFList[i] = HPA_AuxFunctions.flist2Mapper2(mamfnList, mamflList, mapTaskNums[i], slaves.size());
-					AllMapDLOList[i] = HPA_AuxFunctions.flist2Mapper2(mamonList, mamolList, mapTaskNums[i], slaves.size());
+//					AllMapDLFList[i] = HPA_AuxFunctions.flist2Mapper2(mamfnList, mamflList, mapTaskNums[i], slaves.size());
+					AllMapDLFList[i] = HPA_AuxFunctions.flist2Mapper(mamfnList, mamflList, mapTaskNums[i]);
+//					AllMapDLOList[i] = HPA_AuxFunctions.flist2Mapper2(mamonList, mamolList, mapTaskNums[i], slaves.size());
+					AllMapDLOList[i] = HPA_AuxFunctions.flist2Mapper(mamonList, mamolList, mapTaskNums[i]);
 				}
 			}
 		}

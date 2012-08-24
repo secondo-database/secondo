@@ -138,21 +138,17 @@ doesn't exist, and cause the failure of the map task and the whole job.
 		ListExpr allDLFLocLists = new ListExpr();
 		allDLFLocLists.readFromString(DLF_fileLoc_List);
 		
-		System.out.println("Input: " + HPA_AuxFunctions.plainStr(allDLFNameLists));
-		System.out.println("Input: " + HPA_AuxFunctions.plainStr(allDLFLocLists));
-//		ListExpr allDLFLists = HPA_AuxFunctions.flist2Mapper(allDLFNameLists, allDLFLocLists, MapTasksNum);
-		ListExpr allDLFLists = HPA_AuxFunctions.flist2Mapper2(allDLFNameLists, allDLFLocLists, MapTasksNum, slaves.size());
-		System.out.println("The allDLFLists is: " + HPA_AuxFunctions.plainStr(allDLFLists));
-		
+		ListExpr allDLFLists = HPA_AuxFunctions.flist2Mapper(allDLFNameLists, allDLFLocLists, MapTasksNum);
+//		ListExpr allDLFLists = HPA_AuxFunctions.flist2Mapper2(allDLFNameLists, allDLFLocLists, MapTasksNum, slaves.size());
+//System.out.println("The allDLFLists is: \n " + allDLFLists.toString());		
 		ListExpr allDLONameLists = new ListExpr();
 		allDLONameLists.readFromString(DLO_Name_List);
 		ListExpr allDLOLocLists = new ListExpr();
 		allDLOLocLists.readFromString(DLO_loc_List);
-//		ListExpr allDLOLists = HPA_AuxFunctions.flist2Mapper(allDLONameLists, allDLOLocLists, MapTasksNum);
-		ListExpr allDLOLists = HPA_AuxFunctions.flist2Mapper2(allDLONameLists, allDLOLocLists, MapTasksNum, slaves.size());
+		ListExpr allDLOLists = HPA_AuxFunctions.flist2Mapper(allDLONameLists, allDLOLocLists, MapTasksNum);
+//		ListExpr allDLOLists = HPA_AuxFunctions.flist2Mapper2(allDLONameLists, allDLOLocLists, MapTasksNum, slaves.size());
 
 //		System.out.println("The mapTaskNumber is: " + MapTasksNum);
-		System.out.println("The allDLOLists is: " + HPA_AuxFunctions.plainStr(allDLOLists));
 		
 //		System.exit(0);
 		
@@ -166,7 +162,7 @@ doesn't exist, and cause the failure of the map task and the whole job.
 			FileSystem.get(conf).delete(new Path(inputPath), true);
 			ListExpr aMapperDLO_Rest = allDLOLists;
 			ListExpr aMapperDLF_Rest = allDLFLists;
-			
+
 			for (int mapperIdx = 1; mapperIdx <= MapTasksNum; mapperIdx++)
 			{
 				ListExpr amDLO = aMapperDLO_Rest.first();
@@ -174,11 +170,9 @@ doesn't exist, and cause the failure of the map task and the whole job.
 	
 				boolean allDLOexist = HPA_AuxFunctions.allMapperFOExist(amDLO);
 				boolean allDLFexist = HPA_AuxFunctions.allMapperFOExist(amDLF);
-				
+
 				if (allDLFexist && allDLOexist)
 				{
-					System.out.println("The amDLF is: " + HPA_AuxFunctions.plainStr(amDLF));
-
 					String dlfLocStr = HPA_AuxFunctions.plainStr(amDLF);
 					int slaveIdx = HPA_AuxFunctions.findFirstSlave(amDLF);
 					if (slaveIdx == 0){
@@ -216,7 +210,7 @@ doesn't exist, and cause the failure of the map task and the whole job.
 			e.printStackTrace();
 			System.exit(-1);
 		}
-		
+
 		//Create the job
 		try {
 			Job job = new Job();

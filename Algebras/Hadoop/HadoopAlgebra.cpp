@@ -1854,7 +1854,7 @@ void* CollectLocalInfo::fetchAllPartFiles2(void* ptr)
          rEnd   = ( row == 0 ) ? cli->getFileList()->getMtxRowNum() : row;
 
   pthread_t threadID[PipeWidth];
-  size_t ri = rBegin;
+
   for (vector<CLI_Thread*>::iterator task = cli->fileTasks.begin();
         task != cli->fileTasks.end();)
   {
@@ -1862,7 +1862,7 @@ void* CollectLocalInfo::fetchAllPartFiles2(void* ptr)
     //computer, if it does not exist in the present one.
     for (int token = 0; token < PipeWidth; token++)
     {
-      if ( ri > rEnd)
+      if (task == cli->fileTasks.end())
         break;
 
       if (!cli->tokenPass[token] || pthread_kill(threadID[token], 0))
@@ -1870,7 +1870,7 @@ void* CollectLocalInfo::fetchAllPartFiles2(void* ptr)
         cli->tokenPass[token] = true;
         (*task)->setToken(token);
         pthread_create(&threadID[token], NULL, tCopyFile, (*task));
-        task++;ri++;
+        task++;
       }
     }
   }
@@ -2130,6 +2130,7 @@ Tuple* CollectLocalInfo::getNextTuple2()
         inputFile->close();
         delete inputFile;
         inputFile = 0;
+        inputFileName = "";
       }
       else
         return t;
@@ -2916,7 +2917,7 @@ ListExpr hadoopMapTypeMap(ListExpr args){
 
   string objName, filePath, qStr;
   fListKind kind = DLO;
-  bool executed = false;
+  bool executed = true;
 
   if (l.length() != 3)
     return l.typeError(lenErr);
@@ -3232,16 +3233,14 @@ int hadoopMapValueMap(Word* args, Word& result,
           fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
           if (NULL != fs)
           {
-            if (fgets(buf, sizeof(buf),fs))
+            stringstream ss;
+            while (!feof(fs) && fgets(buf,sizeof(buf),fs))
             {
-              stringstream ss;
-              ss << buf;
-              string locListStr = ss.str();
-              locListStr = locListStr.substr(locListStr.find_first_of(' '));
-              nl->ReadFromString(locListStr, sidList);
+                ss << buf;
             }
-            else
-              ok = false;
+            string locListStr = ss.str();
+            locListStr = locListStr.substr(locListStr.find_first_of(' '));
+            nl->ReadFromString(locListStr, sidList);
           }
           else
             ok = false;
@@ -3258,12 +3257,24 @@ int hadoopMapValueMap(Word* args, Word& result,
           ListExpr rest = sidList;
           int lastRow = 0;
           NList emptyRow = NList();
-          while (!nl->IsEmpty(rest))
+          map<int, int> resultMap;
+          while(!nl->IsEmpty(rest))
           {
             ListExpr rowInfo = nl->First(rest);
             int rowNum = nl->IntValue(nl->First(rowInfo));
             int slaveIdx = nl->IntValue(nl->Second(rowInfo));
+            resultMap.insert(pair<int, int>(rowNum, slaveIdx));
+            rest = nl->Rest(rest);
+          }
 
+          //Sort according to the row number automatically
+          map<int,int>::iterator it;
+          for (it = resultMap.begin(); it != resultMap.end(); it++)
+          {
+            int rowNum = it->first;
+            int slaveIdx = it->second;
+
+            //Insert empty rows
             for (lastRow++; lastRow < rowNum; lastRow++)
             {
               if (fileLocList.isEmpty())
@@ -3276,6 +3287,7 @@ int hadoopMapValueMap(Word* args, Word& result,
               }
             }
 
+            //Insert the current row
             NList newRow = NList(NList(slaveIdx), NList(1).enclose(), NList(
                 CreateFilePath, true, true));
             if (fileLocList.isEmpty())
@@ -3286,9 +3298,7 @@ int hadoopMapValueMap(Word* args, Word& result,
             {
               fileLocList.append(newRow);
             }
-            rest = nl->Rest(rest);
           }
-
           resultFList = new fList(CreateObjectName, NList(resultType), ci,
               fileLocList, 1, true, kind);
         }

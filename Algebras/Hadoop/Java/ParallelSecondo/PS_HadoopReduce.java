@@ -166,8 +166,10 @@ public class PS_HadoopReduce implements Constant{
 			ListExpr allMap_DLOLocList 	= new ListExpr();
 			allMap_DLOLocList.readFromString(Map_DLO_Loc_ListStr);
 			
-			allMapDLFList = HPA_AuxFunctions.flist2Mapper2(allMap_DLFNameList, allMap_DLFLocList, mapTasksNum, slaves.size());
-			allMapDLOList = HPA_AuxFunctions.flist2Mapper2(allMap_DLONameList, allMap_DLOLocList, mapTasksNum, slaves.size());
+//			allMapDLFList = HPA_AuxFunctions.flist2Mapper2(allMap_DLFNameList, allMap_DLFLocList, mapTasksNum, slaves.size());
+			allMapDLFList = HPA_AuxFunctions.flist2Mapper(allMap_DLFNameList, allMap_DLFLocList, mapTasksNum);
+//			allMapDLOList = HPA_AuxFunctions.flist2Mapper2(allMap_DLONameList, allMap_DLOLocList, mapTasksNum, slaves.size());
+			allMapDLOList = HPA_AuxFunctions.flist2Mapper(allMap_DLONameList, allMap_DLOLocList, mapTasksNum);
 		}
 		
 /*

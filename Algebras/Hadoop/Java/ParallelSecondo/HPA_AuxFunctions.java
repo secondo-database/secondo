@@ -262,7 +262,6 @@ then the other mappers should indicate that as an empty row.
 	public static int findFirstSlave(ListExpr locList)
 	{
 		int slaveIdx = 0;
-		
 		ListExpr objs = locList;
 		while (!objs.isEmpty())
 		{
@@ -274,7 +273,10 @@ then the other mappers should indicate that as an empty row.
 				}
 				rows = rows.rest();
 			}
-			objs = objs.rest();
+			if ( slaveIdx > 0 )
+			  break;
+			else
+			  objs = objs.rest();
 		}
 		
 		return slaveIdx;
@@ -451,13 +453,13 @@ then the other mappers should indicate that as an empty row.
 				replaced = false;
 				break;
 			}
-			
+
 			//For one flist mark
 			ListExpr inputStreamList = null;
 			if (!fileLoc.isEmpty())
 			{
 				int rowNum = 0; 
-                                int appendRowNum = 0;
+				int appendRowNum = 0;
 				ListExpr fl_rest = fileLoc;
 				while (!fl_rest.isEmpty())
 				{
