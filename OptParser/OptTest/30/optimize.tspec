@@ -1,0 +1,148 @@
+open database opt;
+#testcase
+
+% %%%%%%%%% select %%%%%%%%%%%
+% first simple star query
+optimize(select * from ten,Plan, _);
+
+% simple one attribute element query
+optimize(select bevt from orte,Plan, _);
+
+% multiple attributes element query
+optimize(select [bevt,ort,kennzeichen,vorwahl] from orte,Plan, _);
+
+% aliased attributes element query
+optimize(select bevt as bevoelkerung from orte,Plan, _);
+
+% alias, multiple attributes
+optimize(select [bevt as bevoelkerung, ort as stadt] from orte first 5,Plan, _);
+
+% alias on relation 
+optimize(select [o:bevt, o:ort] from orte as o first 5,Plan, _);
+
+% alias on everything
+optimize(select [o:bevt as bevoelkerung, o:ort as stadt] from orte as o,Plan, _);
+
+% distinct clause
+optimize(select distinct kennzeichen from orte,Plan, _);
+
+% distinct all clause
+optimize(select all kennzeichen from orte,Plan, _);
+% %%%%%%%%% operators %%%%%%%%%%%
+% count(*)
+optimize(select count(*) from ten,Plan, _);
+
+% sum operator
+optimize(select sum(no) from ten,Plan, _);
+
+% min operator
+optimize(select min(no) from ten,Plan, _);
+
+% max operator
+optimize(select max(no) from ten,Plan, _);
+
+% avg operator
+optimize(select avg(no) from ten,Plan, _);
+
+% unary now operator
+optimize(select [now as time] from ten,Plan, _);
+
+% nested operators
+optimize(select [randint(5+3) as zufallszahl] from ten,Plan, _);
+
+% addition expression 
+optimize(select [1+1 as sum] from ten,Plan, _);
+
+% addition expression 
+optimize(select [no + 1 as sum] from ten,Plan, _);
+
+% addition expression
+optimize(select [no + 1 as sum] from ten,Plan, _);
+
+% subtraction expression
+optimize(select [1-1 as sum] from ten,Plan, _);
+
+% subtraction addition expression
+optimize(select [-3 + no as sum] from ten,Plan, _);
+
+% multiplication expression
+optimize(select [3 * -5 as sum] from ten,Plan, _);
+
+% multi expression query
+optimize(select [3 + 6 as sum, 4 * 7 as product, no] from ten,Plan, _);
+
+% mixture of aliased and non aliased attributes
+optimize(select [bevt, 1+1 as t] from orte,Plan, _);
+
+% mixture of alias, unaliased and expressions
+optimize(select distinct [kennzeichen, ort, 12+bevt as d,bevt] from orte,Plan, _);
+
+% mixture of distinct and expressions and alias and unaliased elements
+optimize(select distinct [12+ (-13) as t,bevt]  from orte,Plan, _);
+
+% %%%%%%%%% fromclause %%%%%%%%%%%
+% simple multirelation cross join
+optimize(select * from [ten as a, ten as b],Plan, _);
+
+% simple multirelation cross self join one aliased one not
+optimize(select * from [ten, ten as b],Plan, _);
+
+% %%%%%%%%% fromclause %%%%%%%%%%%
+% simple where clause with one simple predicate
+optimize(select * from ten where no < 4,Plan, _);
+
+% where clause with expression in predicate
+optimize(select * from ten where no+1 < 4,Plan, _);
+
+% where clause with expression in predicate
+optimize(select * from ten where no+1 < 4-2,Plan, _);
+
+% where clause with twi expressions in predicate
+optimize(select * from ten where no+1 < 4-2,Plan, _);
+
+% where clause with multiple predicates 
+optimize(select * from ten where [no < 6, no > 2],Plan, _);
+
+% where clause with multiple predicates 
+optimize(select * from ten where [no < 6, no > 2, no >1],Plan, _);
+
+% where clause with or operator and bracketed first order expression
+optimize(select * from ten where [(no >5 and no > 6) or no < 2],Plan, _);
+
+% where clause with nested first order expression
+optimize(select * from ten where [(no >5 and no > 6) or (no < 2 and no <3)],Plan, _);
+
+% where clause with nested first order expression
+optimize(select * from ten where [(no >5 and no > 6) or no=4],Plan, _);
+
+% %%%%%%%%% groupby clause %%%%%%%%%%%
+% simple groupby no where
+optimize(select [kennzeichen, sum(bevt) as bevoelkerung ]from orte groupby kennzeichen,Plan, _);
+
+% empty groupby clause
+optimize(select [min(plz) as minplz,
+            max(plz) as maxplz,
+            avg(plz) as avgplz,
+            count(distinct ort) as ortcnt]
+           from plz
+           groupby [],Plan, _);
+
+% %%%%%%%%% orderby clause %%%%%%%%%%%
+% simple orderby query
+optimize(select * from ten orderby no,Plan, _);
+
+% simple orderby query ascending order
+optimize(select * from ten orderby no asc,Plan, _);
+
+% simple orderby query descending order
+optimize(select * from ten orderby no desc,Plan, _);
+
+% %%%%%%%%% first clause %%%%%%%%%%%
+% simple first query
+optimize(select * from ten first 5,Plan, _);
+
+% simple last query
+optimize(select * from ten last 5,Plan, _);
+
+#teardown
+close database opt.

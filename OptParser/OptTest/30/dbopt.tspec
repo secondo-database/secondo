@@ -1,0 +1,22 @@
+open database opt;
+#testcase 
+sql select count(*)
+    from [staedte as s, plz as p]
+    where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0];
+
+optimize(select count(*) from staedte,Plan, Cost);
+
+sql select count(*) 
+    from staedte 
+    where bev > 500000;
+    
+optimize(select count(*)
+    from [staedte as s, plz as p]
+    where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0],Plan, Cost);
+    
+# sql select *
+#    from [staedte as s, plz as p]
+#    where [p:ort = s:sname, p:plz > 40000, (p:plz mod 5) = 0];
+
+#teardown   
+secondo('close database',R).

@@ -1,0 +1,62 @@
+open database berlintest;
+#testcase
+% Example: spatial predicate intersects (database berlintest)
+sql select [s:name as sname, w:name as wname] 
+from [strassen as s, wstrassen as w] 
+where [s:geodata intersects w:geodata];
+
+% Example: spatio temporal predicate (database berlintest)
+sql select [s:name as sname]
+from [strassen as s]
+where [train1 passes s:geodata];
+
+% Example: temporal predicate (database berlintest)
+sql select [t:id as id]
+from [trains as t]
+where [t:trip present six30];
+
+% Example: spatio temporal predicate (database berlintest)
+sql select [s:name as sname]
+from [strassen as s]
+where [(train1 atperiods deftime(train5)) passes s:geodata];
+
+% Example: spatio temporal predicate (database berlintest)
+sql select [s:name as sname]
+from [trains as t, strassen as s]
+where [(t:trip atperiods deftime(train5)) passes s:geodata];
+
+% Example: distance query, no predicate (database berlintest)
+sql select *
+from kinos
+orderby distance(geodata, mehringdamm) first 5;
+
+% Example: distance query, selection predicate (database berlintest)
+sql select *
+from ubahnhof
+where typ = "Zone A"
+orderby distance(geodata, alexanderplatz) first 5;
+
+% Example: distance query, rtree, no predicate (database berlintest)
+sql select *
+from strassen
+orderby distance(geodata, mehringdamm) first 5;
+
+% Example: distance query, rtree, selection predicate (database berlintest)
+sql select *
+from strassen
+where typ starts "Hauptstra"
+orderby distance(geodata, alexanderplatz) first 5;
+
+% Example: distance query, rtree, join predicate (database berlintest)
+sql select *
+from [strassen as s, sbahnhof as b]
+where s:name = b:name
+orderby distance(s:geodata, mehringdamm) first 5;
+
+% Example: spatio temporal pattern query (database berlintest)
+sql select count(*)
+from trains
+where pattern([trip inside msnow as preda,
+            distance(trip, mehringdamm)<10.0 as predb],
+           [stconstraint("preda","predb",vec("aabb"))]);
+           

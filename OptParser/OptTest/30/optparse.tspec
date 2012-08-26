@@ -1,0 +1,126 @@
+open database opt;
+#testcase
+% %%%%%% select queries working %%%%%%%%
+% simple select
+check_syntax('sql select * from orte',R);
+
+% simple one attribute element query
+check_syntax('sql select bevt from orte',R);
+
+% multiple attributes element query
+check_syntax('sql select [bevt,ort,kennzeichen,vorwahl] from orte',R);
+
+% aliased attributes element query
+check_syntax('sql select bevt as bevoelkerung from orte',R);
+
+% alias, multiple attributes
+check_syntax('sql select [bevt as bevoelkerung, ort as stadt] from orte first 5',R);
+
+% alias on relation 
+check_syntax('sql select [o:bevt, o:ort] from orte as o first 5',R);
+
+% alias on everything
+check_syntax('sql select [o:bevt as bevoelkerung, o:ort as stadt] from orte as o',R);
+
+% distinct clause
+check_syntax('sql select distinct kennzeichen from orte',R);
+
+% distinct all clause
+check_syntax('sql select all kennzeichen from orte',R);
+
+% aliased attributes element query
+check_syntax('sql select bevt as bevoelkerung from orte',R);
+
+% alias, multiple attributes
+check_syntax('sql select [bevt as bevoelkerung, ort as stadt] from orte first 5',R);
+
+% alias on relation 
+check_syntax('sql select [o:bevt, o:ort] from orte as o first 5',R);
+
+% alias on everything
+check_syntax('sql select [o:bevt as bevoelkerung, o:ort as stadt] from orte as o',R);
+
+% distinct clause
+check_syntax('sql select distinct kennzeichen from orte',R);
+
+% distinct all clause
+check_syntax('sql select all kennzeichen from orte',R);
+
+% %%%%%%%%% operators %%%%%%%%%%%
+% count(*)
+check_syntax('sql select count(*) from ten',R);
+
+% sum operator
+check_syntax('sql select sum(no) from ten',R);
+
+% min operator
+check_syntax('sql select min(no) from ten',R);
+
+% max operator
+check_syntax('sql select max(no) from ten',R);
+
+% avg operator
+check_syntax('sql select avg(no) from ten',R);
+
+% unary now operator
+check_syntax('sql select [now as time] from ten',R);
+
+% nested operators
+check_syntax('sql select [randint(5+3) as zufallszahl] from ten',R);
+
+% addition expression 
+check_syntax('sql select [1+1 as sum] from ten',R);
+
+% addition expression 
+check_syntax('sql select [no + 1 as sum] from ten',R);
+
+% addition expression
+check_syntax('sql select [no + 1 as sum] from ten',R);
+
+% subtraction expression
+check_syntax('sql select [1-1 as sum] from ten',R);
+
+% subtraction addition expression
+check_syntax('sql select [-3 + no as sum] from ten',R);
+
+% multiplication expression
+check_syntax('sql select [3 * -5 as sum] from ten',R);
+
+% multi expression query
+check_syntax('sql select [3 + 6 as sum, 4 * 7 as product, no] from ten',R);
+
+% mixture of aliased and non aliased attributes
+check_syntax('sql select [bevt, 1+1 as t] from orte',R);
+
+% mixture of alias, unaliased and expressions
+check_syntax('sql select distinct [kennzeichen, ort, 12+bevt as d,bevt] from orte',R);
+
+% mixture of distinct and expressions and alias and unaliased elements
+check_syntax('sql select distinct [12+ (-13) as t,bevt]  from orte',R);
+
+% %%%%%% select queries with errors in them %%%%%%%%
+% not existent attribute in list brackets
+check_syntax('sql select [bev] from orte',R);
+
+% not existent attribute in list brackets
+check_syntax('sql select bev from orte',R);
+
+% two not existent attribute
+check_syntax('sql select [bev, ard] from orte',R);
+
+% mixture of existing and not existent attributes
+check_syntax('sql select [bev, ard,bevt] from orte',R);
+
+% mixture of existing and not existent attributes and an expression
+check_syntax('sql select [bev, ard,bevt, 1+4 as t] from orte',R);
+
+% missing prolog list brackets
+check_syntax('sql select bevt, kennzeichen from orte',R);
+
+% missing close brackets  
+check_syntax('sql select [bevt, kennzeichen from orte',R);
+
+% missing close brackets  
+check_syntax('sql select bevt from orte where [bevt < 10',R);
+
+

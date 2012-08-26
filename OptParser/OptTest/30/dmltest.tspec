@@ -1,0 +1,138 @@
+secondo('drop database dmltest');
+secondo('create database dmltest');
+secondo('close database');
+open database dmltest;
+#testcase
+% create table with standard datatypes
+sql create table standardtypes columns [zeichenkette:string, ganzzahl:int, fliesszahl:real, wahrheitswert:bool];
+% check if table standard types exists
+sql select * from standardtypes;
+
+% insert into table standardtypes values
+sql insert into standardtypes values ["Hallo", 1 , 2.3, false];
+% check dml result
+sql select * from standardtypes;
+
+% update single column string
+sql update standardtypes set zeichenkette = "Welt";
+% check dml result
+sql select * from standardtypes;
+
+% update single column int
+sql update standardtypes set ganzzahl = 2;
+% check dml result
+sql select * from standardtypes;
+
+% update single column real
+sql update standardtypes set fliesszahl = 0.6;
+% check dml result
+sql select * from standardtypes;
+
+% update single column boolean
+sql update standardtypes set wahrheitswert = true;
+% check dml result
+sql select * from standardtypes;
+
+% update all columns not in order
+sql update standardtypes set [ganzzahl = 9, fliesszahl=0.3, zeichenkette="SECONDO", wahrheitswert=false];
+% check dml result
+sql select * from standardtypes;
+
+% insert into table standardtypes values
+sql insert into standardtypes values ["Hagen", 2 , 7.3, true];
+% check dml result
+sql select * from standardtypes;
+
+% update all values with predicate
+sql update standardtypes set [zeichenkette = "Dortmund", ganzzahl = 4, fliesszahl=6.6] where zeichenkette = "Hagen";
+% check dml result
+sql select * from standardtypes;
+
+% update single column string with predicate
+sql update standardtypes set zeichenkette = "Welt" where zeichenkette = "SECONDO";
+% check dml result
+sql select * from standardtypes;
+
+% update single column int with predicate
+sql update standardtypes set ganzzahl = 2 where ganzzahl = 9;
+% check dml result
+sql select * from standardtypes;
+
+% update single column real with predicate
+sql update standardtypes set fliesszahl=0.6 where fliesszahl = 0.3;
+% check dml result
+sql select * from standardtypes;
+
+% update single column boolean
+sql update standardtypes set wahrheitswert = false where wahrheitswert not 'false';
+% check dml result
+sql select * from standardtypes;
+
+% delete row with predicate
+sql delete from standardtypes where fliesszahl = 0.3;
+% check dml result
+sql select * from standardtypes;
+
+% delete all rows
+sql delete from standardtypes;
+% check dml result
+sql select * from standardtypes;
+
+% drop the table standardtypes
+sql drop table standardtypes;
+
+% drop the table standardtypes
+showDatabaseSchema;
+
+% prepare table for let and index tests
+sql create table testindex columns [zeichenkette:string, ganzzahl:int];
+
+sql insert into testindex values ["The", 1];
+sql insert into testindex values ["goal", 2];
+sql insert into testindex values ["of", 3];
+sql insert into testindex values ["SECONDO", 4];
+sql insert into testindex values ["is", 5];
+sql insert into testindex values ["to", 6];
+sql insert into testindex values ["provide", 7];
+sql insert into testindex values ["a", 8];
+sql insert into testindex values ["generic", 9];
+sql insert into testindex values ["database", 10];
+sql insert into testindex values ["system", 11];
+sql insert into testindex values ["frame", 12];
+sql insert into testindex values ["that", 13];
+sql insert into testindex values ["can", 14];
+sql insert into testindex values ["be", 15];
+sql insert into testindex values ["filled", 16];
+sql insert into testindex values ["with", 17];
+sql insert into testindex values ["implementations", 18];
+sql insert into testindex values ["of", 19];
+sql insert into testindex values ["various", 20];
+sql insert into testindex values ["DBMS", 21];
+sql insert into testindex values ["data", 22];
+sql insert into testindex values ["models", 23];
+
+% create standard index on 
+sql create index on testindex columns zeichenkette;
+
+% drop standard index on 
+sql drop index testindex_zeichenkette_btree;
+
+% create btree index on
+sql create index on testindex columns zeichenkette indextype btree;
+% drop btree index on 
+sql drop index testindex_zeichenkette_btree;
+
+% create standard index on
+sql create index on testindex columns zeichenkette indextype hash;
+% drop hash index on 
+sql drop index testindex_zeichenkette_hash;
+
+% create an object with let
+let(testindex2,select * from testindex orderby ganzzahl desc);
+
+% create an object with hybrid let
+let(testindex3,select * from testindex,'sortby[Ganzzahl desc] consume');
+
+#teardown
+# secondo('delete database dmltest');
+

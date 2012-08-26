@@ -1,0 +1,155 @@
+open database opt;
+#testcase
+
+% %%%%%%%%% select %%%%%%%%%%%
+% first simple star query
+sql select * from ten;
+
+% simple one attribute element query
+sql select bevt from orte;
+
+% multiple attributes element query
+sql select [bevt,ort,kennzeichen,vorwahl] from orte;
+
+% aliased attributes element query
+sql select bevt as bevoelkerung from orte;
+
+% alias, multiple attributes
+sql select [bevt as bevoelkerung, ort as stadt] from orte first 5;
+
+% alias on relation 
+sql select [o:bevt, o:ort] from orte as o first 5;
+
+% alias on everything
+sql select [o:bevt as bevoelkerung, o:ort as stadt] from orte as o;
+
+% distinct clause
+sql select distinct kennzeichen from orte;
+
+% distinct all clause
+sql select all kennzeichen from orte;
+% %%%%%%%%% operators %%%%%%%%%%%
+% count(*)
+sql select count(*) from ten;
+
+% sum operator
+sql select sum(no) from ten;
+
+% min operator
+sql select min(no) from ten;
+
+% max operator
+sql select max(no) from ten;
+
+% avg operator
+sql select avg(no) from ten;
+
+% unary now operator
+sql select [now as time] from ten;
+
+% nested operators
+sql select [randint(5+3) as zufallszahl] from ten;
+
+% addition expression 
+sql select [1+1 as sum] from ten;
+
+% addition expression 
+sql select [no + 1 as sum] from ten;
+
+% addition expression
+sql select [no + 1 as sum] from ten;
+
+% subtraction expression
+sql select [1-1 as sum] from ten;
+
+% subtraction addition expression
+sql select [-3 + no as sum] from ten;
+
+% multiplication expression
+sql select [3 * -5 as sum] from ten;
+
+% multi expression query
+sql select [3 + 6 as sum, 4 * 7 as product, no] from ten;
+
+% mixture of aliased and non aliased attributes
+sql select [bevt, 1+1 as t] from orte;
+
+% mixture of alias, unaliased and expressions
+sql select distinct [kennzeichen, ort, 12+bevt as d,bevt] from orte;
+
+% mixture of distinct and expressions and alias and unaliased elements
+sql select distinct [12+ (-13) as t,bevt]  from orte;
+
+% %%%%%%%%% fromclause %%%%%%%%%%%
+% simple multirelation cross join
+sql select * from [ten as a, ten as b];
+
+% simple multirelation cross self join one aliased one not
+sql select * from [ten, ten as b];
+
+% %%%%%%%%% fromclause %%%%%%%%%%%
+% simple where clause with one simple predicate
+sql select * from ten where no < 4;
+
+% where clause with expression in predicate
+sql select * from ten where no+1 < 4;
+
+% where clause with expression in predicate
+sql select * from ten where no+1 < 4-2;
+
+% where clause with twi expressions in predicate
+sql select * from ten where no+1 < 4-2;
+
+% where clause with multiple predicates 
+sql select * from ten where [no < 6, no > 2];
+
+% where clause with multiple predicates 
+sql select * from ten where [no < 6, no > 2, no >1];
+
+% where clause with or operator and bracketed first order expression
+sql select * from ten where [(no >5 and no > 6) or no < 2];
+
+% where clause with nested first order expression
+sql select * from ten where [(no >5 and no > 6) or (no < 2 and no <3)];
+
+% where clause with nested first order expression
+sql select * from ten where [(no >5 and no > 6) or no=4];
+
+% %%%%%%%%% groupby clause %%%%%%%%%%%
+% simple groupby no where
+sql select [kennzeichen, sum(bevt) as bevoelkerung ]from orte groupby kennzeichen;
+
+% empty groupby clause
+sql select [min(plz) as minplz,
+            max(plz) as maxplz,
+            avg(plz) as avgplz,
+            count(distinct ort) as ortcnt]
+           from plz
+           groupby [];
+
+% %%%%%%%%% orderby clause %%%%%%%%%%%
+% simple orderby query
+sql select * from ten orderby no;
+
+% simple orderby query ascending order
+sql select * from ten orderby no asc;
+
+% simple orderby query descending order
+sql select * from ten orderby no desc;
+
+% %%%%%%%%% first clause %%%%%%%%%%%
+% simple first query
+sql select * from ten first 5;
+
+% simple last query
+sql select * from ten last 5;
+
+% %%%%%%%%% not working = false != exeception %%%%%%%%%%%
+% notworking select String 
+sql select "text" as t from ten;
+
+# % where clause with nested unbracketed first order expression
+# % sql select * from ten where [no >5 and no > 6 or no=4];
+
+#teardown
+close database opt.
