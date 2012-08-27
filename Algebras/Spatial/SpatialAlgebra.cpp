@@ -5933,7 +5933,7 @@ void markUsage(const Line* line, char* usage, char* critical ){
   bool removed = false; // true if halfsegments was removed
   // 1.2 mark segments
   for(int i=0;i<line->Size();i++) {
-     if((usage[i]==0) && critical[i]){
+     if((usage[i]==0) ){
         // not used, but critical 
         line->Get(i,hs);
         vector<int> path;
@@ -22460,6 +22460,9 @@ Operator removeDeadEnds(
 ListExpr markUsageTM(ListExpr args){
    string err = "line expected";
    if(!nl->HasLength(args,1)){
+      return listutils::typeError(err);
+   }
+   if(!Line::checkType(nl->First(args))){
       return listutils::typeError(err);
    }
    ListExpr attrList = nl->TwoElemList(
