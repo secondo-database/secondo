@@ -5828,26 +5828,227 @@ result.EndBulkLoad(); // reordering may be required
 
 }
 
+
+/*
+~getNext~
+
+auxiliary function for Line::Transform
+
+*/
+int getNext(const Line* line, int pos, const char* usage){
+   HalfSegment hs;
+   line->Get(pos,hs);
+   pos = hs.attr.partnerno;
+   line->Get(pos,hs);
+   Point dp = hs.GetDomPoint();
+   int res = -1;
+   // go backwards from pos, store a candidate as res 
+   int pos1 = pos-1;
+   bool done = false;
+   // search left of pos
+   while( (pos1>=0) && ! done){
+       line->Get(pos1,hs);
+       Point dp1 = hs.GetDomPoint();
+       if(!AlmostEqual(dp,dp1)){
+         done = true;
+       } else {
+         if(usage[pos1] == 3){
+           return pos1;
+         } else if(usage[pos1]==0){
+            res = pos1;
+         }
+         pos1--;
+       }
+   }
+   // search right of pos
+   pos1 = pos+1;
+   done = false;
+   while((pos1<line->Size()) && ! done){
+       line->Get(pos1,hs);
+        Point dp1 = hs.GetDomPoint();
+        if(!AlmostEqual(dp,dp1)){
+          done = true;
+        } else {
+           if(usage[pos1] == 3){
+             return pos1;
+           } else if(usage[pos1]==0){
+              res = pos1;
+           }
+           pos1++;
+        }
+   }
+   return res;
+}
+
+
+/*
+~markUsage~
+
+This function marks all HalfSgements of a line with its usage. This means:
+0 : Part of an unique cycle
+1 : not Part of a cycle
+2 : Part of an ambiguous cycle 
+
+
+*/
+void markUsage(const Line* line, char* usage, char* critical ){
+  // step 1: mark halfsegments not belonging to a cycle
+  memset(usage,0,line->Size());
+  // meaning of elements of usage
+  // 0 : not used => part of a cycle
+  // 1 : not part of a cycle
+  // 2 : part of a cycle
+  // 3 : part of the current path (will be set to 1 or 2 later)
+  // 4 : partner of a segment in the current path
+  memset(critical,0,line->Size());
+  // 1.1 mark critical points
+  int count = 0;
+  HalfSegment hs;
+  Point lastPoint;
+  for(int i=0;i<line->Size();i++){
+     line->Get(i,hs);
+     Point currentPoint = hs.GetDomPoint();
+     if(i==0){
+       lastPoint = currentPoint;
+       count = 1;
+     } else {
+        if(AlmostEqual(lastPoint,currentPoint)){
+           count++;
+        } else {
+          if(count != 2){
+             for(int r=1;r<=count-1;r++){
+                critical[i-r] = 1;
+             }
+          }
+          lastPoint = currentPoint;
+          count = 1;
+        }
+     }
+  } 
+  if(count != 2){
+     for(int r=1;r<=count;r++){
+        critical[line->Size()-r] = 1;
+     }
+  }
+  bool removed = false; // true if halfsegments was removed
+  // 1.2 mark segments
+  for(int i=0;i<line->Size();i++) {
+     if((usage[i]==0) && critical[i]){
+        // not used, but critical 
+        line->Get(i,hs);
+        vector<int> path;
+        usage[i] = 3; // part of current path
+        usage[hs.attr.partnerno] = 4;
+        // extend path
+        int pos = i;
+        path.push_back(pos);
+        int next = getNext(line,pos,usage);
+        while(!path.empty()) { 
+          if(next < 0){ 
+             // no extension found => mark segments in path as non-cycle
+             // go back until the next critical point is reachedA
+
+             removed = true;
+             bool done = path.empty();
+             while(!done){
+               if(path.empty()){
+                 done = true;
+               } else {
+                 pos = path.back();
+                 path.pop_back();
+                 usage[pos] = 1;
+                 line->Get(pos,hs);
+                 usage[hs.attr.partnerno] = 1; 
+
+                 if(critical[pos]){
+                   done = true;
+                 } else {
+                 }
+               }
+             }
+             if(!path.empty()){
+               pos = path.back();
+               next = getNext(line,pos,usage);
+             }  
+          } else {
+            if(usage[next] == 3){
+                // (sub) path found
+                int p = path.back();
+                path.pop_back();
+                while(p!=next && !path.empty()){
+                  usage[p] = 2;
+                  line->Get(p,hs);
+                  usage[hs.attr.partnerno] = 2;
+                  p = path.back();
+                  path.pop_back();
+                }
+                usage[p] = 2;
+                line->Get(p,hs);
+                usage[hs.attr.partnerno] = 2;
+                if(!path.empty()){
+                  pos = path.back(); // try to extend first part of path
+                  next = getNext(line,pos,usage);
+                }
+            }  else { // normal extension
+               pos = next;
+               path.push_back(pos);
+               usage[pos] = 3;
+               line->Get(pos,hs);
+               usage[hs.attr.partnerno] = 4;
+               next = getNext(line,pos,usage);
+            }
+          }
+        } // while path not empty 
+     }
+  }
+
+}
+
+
+
 void Line::Transform( Region& result ) const
 {
-result.Clear();
-if( !IsDefined() ){
-  result.SetDefined( false );
-  return;
-}
-result.SetDefined( true );
-if( !IsEmpty() ) {
-  assert( IsOrdered() );
-  HalfSegment hs;
-  result.StartBulkLoad();
-  for( int i = 0; i < Size(); i++ )
-  {
-    Get( i, hs );
-    result += hs;
+  result.Clear();
+  if( !IsDefined() ){
+    result.SetDefined( false );
+    return;
   }
-  result.SetNoComponents( NoComponents() );
-  result.EndBulkLoad();
-}
+  result.SetDefined( true );
+  if(Size()==0){
+     return;
+  }
+
+  char* usage = new char[Size()];
+  char* critical = new char[this->Size()];
+  markUsage(this,usage, critical);
+
+  // TODO: Set insideAboveFlag of halfsegments
+
+  if( !IsEmpty() ) {
+    assert( IsOrdered() );
+    HalfSegment hs;
+    result.StartBulkLoad();
+    int edgeno=0; 
+    for( int i = 0; i < Size(); i++ )
+    {
+      if(usage[i] != 1){
+        assert(usage[i]!=3);
+        Get( i, hs );
+        if(hs.IsLeftDomPoint()){
+           hs.attr.edgeno = edgeno;
+           result += hs;
+           hs.SetLeftDomPoint(false);
+           result += hs;
+           edgeno++;
+        }
+      }
+    }
+    result.EndBulkLoad();
+  }
+  delete[] usage;
+  delete[] critical;
+
+
 }
 
 
@@ -14303,15 +14504,14 @@ The result type is a region.
 ListExpr
 SpatialLine2RegionMap( ListExpr args )
 {
-  ListExpr arg1;
-  if ( nl->ListLength( args ) == 1 )
-  {
-    arg1 = nl->First( args );
-
-    if ( SpatialTypeOfSymbol( arg1 ) == stline )
-      return (nl->SymbolAtom( Region::BasicType() ));
+  string err = "line expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
   }
-  return listutils::typeError("");
+  if(!Line::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<Region>();
 }
 
 /*
@@ -16341,11 +16541,7 @@ SpatialLine2Region( Word* args, Word& result, int message,
   Line *cl = (Line *)args[0].addr;
   Region *pResult = (Region *)result.addr;
   pResult->Clear();
-  if(  cl->IsDefined() )
-    cl->Transform( *pResult );
-  else
-    ((Region*)result.addr)->SetDefined( false );
-
+  cl->Transform( *pResult );
   return 0;
 }
 
@@ -22255,6 +22451,214 @@ Operator removeDeadEnds(
 
 
 
+/*
+10.39 Debug-Operator markUsage
+
+10.39.1 Type Mapping: line -> Stream(tuple(L:line)(U : int))
+
+*/
+ListExpr markUsageTM(ListExpr args){
+   string err = "line expected";
+   if(!nl->HasLength(args,1)){
+      return listutils::typeError(err);
+   }
+   ListExpr attrList = nl->TwoElemList(
+              nl->TwoElemList(
+                  nl->SymbolAtom("L"),
+                  listutils::basicSymbol<Line>()),
+              nl->TwoElemList(
+                  nl->SymbolAtom("Usage"),
+                  listutils::basicSymbol<CcInt>()));
+   return nl->TwoElemList(
+               listutils::basicSymbol<Stream<Tuple> >(),
+               nl->TwoElemList(
+                    listutils::basicSymbol<Tuple>(),
+                     attrList));
+}
+
+/*
+10.30.2 Value Mapping
+
+*/
+
+class MarkUsageInfo{
+  public:
+   MarkUsageInfo(Line* line, ListExpr tupleType){
+     this->line = line;
+     if(line->IsDefined() && (line->Size()>0)){
+        usage = new char[line->Size()];
+        critical = new char[line->Size()];
+        pos = 0;
+        markUsage(line,usage, critical);
+        tt = new TupleType(tupleType);
+     } else {
+        usage = 0;
+        pos = -1;
+        tt = 0;
+     }
+   }
+  
+   ~MarkUsageInfo(){
+     if(usage){
+       delete[] usage;
+     }
+     if( critical){
+        delete[] critical;
+     }
+     if(tt){
+        tt->DeleteIfAllowed();
+     }
+   }
+
+   Tuple* next(){
+      if(!usage){
+        return 0;
+      }
+      if(pos>=line->Size()){
+        return 0;
+      } 
+      Tuple* res = new Tuple(tt);
+      HalfSegment hs;
+      line->Get(pos,hs);
+      Line* l = new Line(2);
+      hs.attr.edgeno = 0;
+      l->StartBulkLoad();
+      (*l) += hs;
+      hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+      (*l) += hs;
+      l->EndBulkLoad();
+      res->PutAttribute(0,l);
+      res->PutAttribute(1,new CcInt(true,usage[pos]));
+      pos++;
+      return res; 
+   }
+
+   private:
+       Line* line;
+       char* usage;
+       char* critical;
+       int pos;
+       TupleType* tt;
+};
+
+int markUsageVM(Word* args, Word& result, int message, Word& local,
+                         Supplier s )
+{
+   MarkUsageInfo* li = (MarkUsageInfo*) local.addr;
+   switch(message){
+      case OPEN: {
+         if(li){
+           delete li;
+         }
+         local.addr = new MarkUsageInfo((Line*) args[0].addr,
+                                        nl->Second(GetTupleResultType(s)));
+         return 0;
+      }
+      case REQUEST: {
+         result.addr = li?li->next():0;
+         return result.addr?YIELD:CANCEL;
+      }   
+      case CLOSE: {
+         if(li){
+            delete li;
+            local.addr = 0;
+         }
+      }
+   }
+   return -1;
+}
+
+OperatorSpec markUsageSpec (
+    "line -> stream(tuple(L line)(U int))",
+    "markUsage(_)",
+    "Rteurns the usage of halfsegments. (for debugging only)",
+    "query markUsage(GrenzenLine) "
+  );
+
+/*
+10.38.5 Operator Instance
+
+*/
+Operator markUsageOp(
+   "markUsage",
+   markUsageSpec.getStr(),
+   markUsageVM,
+   Operator::SimpleSelect,
+   markUsageTM
+);
+
+/*
+10.40 Operator getCriticalPoints
+
+
+10.40.1 Signature
+
+
+*/
+
+ListExpr criticalPointsTM(ListExpr args){
+  string err = "line expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  if(!Line::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<Points>();
+}
+
+
+
+int criticalPointsVM(Word* args, Word& result, int message, Word& local,
+                         Supplier s )
+{
+  Line* arg = (Line*) args[0].addr;
+  result = qp->ResultStorage(s);
+  Points* res = (Points*) result.addr;
+  if(!arg->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+  } else {
+     res->SetDefined(true);
+     res->Clear();
+     if(arg->Size()==0){
+       return 0;
+     }
+     char* usage = new char[arg->Size()];
+     char* crit = new char[arg->Size()];
+     markUsage(arg,usage,crit);
+     res->StartBulkLoad();
+     for(int i=0;i<arg->Size();i++){
+        if(crit[i]){
+          HalfSegment hs;
+          arg->Get(i,hs);
+          if(hs.IsLeftDomPoint()){
+             (*res) += hs.GetDomPoint();
+          }
+        }
+     }
+     res->EndBulkLoad();
+     delete[] usage;
+     delete[] crit;
+     return 0;
+  }
+
+}
+
+OperatorSpec criticalPointsSpec (
+    "line -> points",
+    "criticalPoints(_)",
+    "Returns the critical points of a line value",
+    "query criticalPoints(GrenzenLine) "
+  );
+
+Operator criticalPoints(
+   "criticalPoints",
+   criticalPointsSpec.getStr(),
+   criticalPointsVM,
+   Operator::SimpleSelect,
+   criticalPointsTM
+);
 
 /*
 11 Creating the Algebra
@@ -22385,6 +22789,10 @@ class SpatialAlgebra : public Algebra
 
     AddOperator(&findCycles);
     AddOperator(&removeDeadEnds);
+
+    AddOperator(&markUsageOp);
+    AddOperator(&criticalPoints);
+
 
   }
   ~SpatialAlgebra() {};

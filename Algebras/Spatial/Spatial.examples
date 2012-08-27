@@ -1093,3 +1093,17 @@ Signature : line -> line
 Example   : query removeDeadEnds(BGrenzenLine) = BGrenzenLine
 Result    : TRUE
 
+Operator : markUsage
+Number   : 1
+Signature : line -> stream(tzuple((l line)(U int)))
+Example   : query markUsage(BGrenzenLine) krdup[U] count
+Result    : 1
+ 
+Operator : criticalPoints
+Number   : 1
+Signature : line -> points
+Example   : query criticalPoints(BGrenzenLine)
+Result    : (points ())
+
+
+
