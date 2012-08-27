@@ -26,7 +26,7 @@ public class ObjectPane  extends JComponent implements MouseListener {
     private QueryconstructionViewer viewer;
     private ListExpr objects;
     private JTextField textfield = new JTextField();
-    private InfoDialog dialog = new InfoDialog();
+    private InfoDialog dialog;
 
     public ObjectPane (QueryconstructionViewer viewer) {
         this.viewer = viewer;
@@ -65,10 +65,6 @@ public class ObjectPane  extends JComponent implements MouseListener {
         this.update();
     }
     
-    public void addObjects(ArrayList<ObjectView> objects) {
-        this.elements = objects;
-    }
-    
     public ArrayList<ObjectView> getObjects(){
         return this.elements;
     }
@@ -105,7 +101,7 @@ public class ObjectPane  extends JComponent implements MouseListener {
         this.revalidate();
     }
     
-    public void showAllObjects() {
+    protected void showAllObjects() {
         this.removeAll();
         this.add(textfield);
         for ( Iterator iter = attributeElements.iterator(); iter.hasNext(); ) {
@@ -149,13 +145,17 @@ public class ObjectPane  extends JComponent implements MouseListener {
             ObjectView element = (ObjectView)arg0.getComponent();
             
             if (arg0.getButton() == 3) {
-                String name = element.getName() + "("+viewer.getCount(element.getName()).trim()+")";
+                dialog = new InfoDialog(arg0.getXOnScreen(), arg0.getYOnScreen());
+                String elementCount = viewer.getCount(element.getName()).trim();
+                String elementName = element.getName();
+                if (!elementCount.equals("0"))
+                    elementName += " ("+elementCount+")";
                 //generating the info dialog of the clicked object
                 if (element.getOType() == null) {
-                    dialog.viewInfo(name, element.getType());
+                    dialog.viewInfo(elementName, element.getType());
                 }
                 else {
-                    dialog.viewInfo(name, element.getOType().getViewString());
+                    dialog.viewInfo(elementName, element.getOType().getViewString());
                 }
                 dialog.view();
             }

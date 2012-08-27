@@ -30,11 +30,7 @@ import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import sj.lang.ListExpr;
-import viewer.queryconstruction.MainPane;
-import viewer.queryconstruction.ObjectPane;
-import viewer.queryconstruction.ObjectView;
-import viewer.queryconstruction.OperationsPane;
-import viewer.queryconstruction.Operation;
+import viewer.queryconstruction.*;
 
 /**
  * this viewer class admits the construction of a query
@@ -46,33 +42,33 @@ import viewer.queryconstruction.Operation;
  */
 public class QueryconstructionViewer extends SecondoViewer {
     
-    protected ObjectPane ObjectPane;
-    protected OperationsPane OperationsPane;
-    protected MainPane MainPane;
+    protected ObjectPane objectPane;
+    protected OperationsPane operationsPane;
+    protected MainPane mainPane;
     
-    private JScrollPane MainScrollPane;
-    private JScrollPane ObjectsScrollPane;
-    private JScrollPane OperationsScrollPane;
+    private JScrollPane mainScrollpane;
+    private JScrollPane objectScrollpane;
+    private JScrollPane operationsScrollpane;
     
-    private MenuVector MV = new MenuVector();
-    private static ListExpr objects;
+    private ListExpr objects;
+    private ListExpr operators;
     
     public QueryconstructionViewer(){
         this.setLayout(new BorderLayout());
         
-        MainPane = new MainPane(this);
-        ObjectPane = new ObjectPane(this);
-        OperationsPane = new OperationsPane(this);
+        mainPane = new MainPane(this);
+        objectPane = new ObjectPane(this);
+        operationsPane = new OperationsPane(this);
         
-        MainScrollPane = new JScrollPane(MainPane);
-        ObjectsScrollPane = new JScrollPane(ObjectPane);
-        ObjectsScrollPane.setPreferredSize(new Dimension (600, 90));
-        OperationsScrollPane = new JScrollPane(OperationsPane);
-        OperationsScrollPane.setPreferredSize(new Dimension (120, 30));
+        mainScrollpane = new JScrollPane(mainPane);
+        objectScrollpane = new JScrollPane(objectPane);
+        objectScrollpane.setPreferredSize(new Dimension (600, 90));
+        operationsScrollpane = new JScrollPane(operationsPane);
+        operationsScrollpane.setPreferredSize(new Dimension (120, 30));
         
-        this.add(ObjectsScrollPane, BorderLayout.NORTH);
-        this.add(OperationsScrollPane, BorderLayout.EAST);
-        this.add(MainScrollPane, BorderLayout.CENTER);
+        this.add(objectScrollpane, BorderLayout.NORTH);
+        this.add(operationsScrollpane, BorderLayout.EAST);
+        this.add(mainScrollpane, BorderLayout.CENTER);
         
         JPanel buttonPanel = new JPanel();
         JButton newQuery = new JButton("new");
@@ -122,7 +118,7 @@ public class QueryconstructionViewer extends SecondoViewer {
      * @param object new object
      */
     public void addObject(ObjectView object){
-        MainPane.addObject(object);
+        mainPane.addObject(object);
         update();
     }
     
@@ -131,7 +127,7 @@ public class QueryconstructionViewer extends SecondoViewer {
      * @param operation new operation
      */
     public void addOperation(Operation operation){
-        MainPane.addOperation(operation);
+        this.mainPane.addOperation(operation);
         update();
     }
     
@@ -145,7 +141,6 @@ public class QueryconstructionViewer extends SecondoViewer {
     }
     
     public String getCount(String query) {
-        String result = null;
         if (VC != null) {
             ListExpr getTypeNL = VC.getCommandResult("query " + query + " count");
             
@@ -157,61 +152,114 @@ public class QueryconstructionViewer extends SecondoViewer {
     }
     
     public String[] getParameters() {
-        return MainPane.getParameters();
+        return mainPane.getParameters();
     }
     
     public boolean checkAttributes() {
-        return MainPane.checkAttributes();
+        return mainPane.checkAttributes();
     }
     
-    //executes the constructed query
-    public void runQuery() {
-        if (VC.execCommand(MainPane.getStringsQuery()) == 0) {
-            VC.execUserCommand(MainPane.getStringsQuery());
+    /**
+     * Executes the constructed query.
+     */
+    private void runQuery() {
+        if (VC.execCommand(mainPane.getStringsQuery()) == 0) {
+            VC.execUserCommand(mainPane.getStringsQuery());
         }
         else {
-            System.out.println(VC.getCommandResult(MainPane.getStringsQuery()));
-            System.out.println("Kann nicht ausgeführt werden.");
+            System.out.println(VC.getCommandResult(mainPane.getStringsQuery()));
+            System.out.println("Kann nicht ausgeführt werden. Fehler: "+VC.execCommand(mainPane.getStringsQuery()));
         }
     }
     
-    //sets the panels up to date and repaints them
+    /**
+     * Update the three panels.
+     */
     public void update() {
-        MainPane.update();
-        ObjectPane.update();
-        OperationsPane.update();
+        mainPane.update();
+        objectPane.update();
+        operationsPane.update();
     }
     
+    
     public void back() {
-        MainPane.removeLastObject();
+        mainPane.removeLastObject();
         update();
     }
     
+    /**
+     * Set the ViewerControl object to communicate with the server.
+     * @param VC ViewerControl object
+     */
     public void setViewerControl(ViewerControl VC){
         super.setViewerControl(VC);
         if (VC != null) {
-            this.VC = VC;
             if (objects == null) {
                 listObjects();
             }
         }
     }
     
+    public void setObjects(ListExpr ob) {
+        if (ob != null) {
+            this.objects = ob;
+            objectPane.addObjects(this.objects);
+        }
+    }
+    
+    public void setOperators(ListExpr op) {
+        if (op != null) {
+            this.operators = op;
+            operationsPane.addOperations(this.operators);
+        }
+    }
+    
     /**
-     * add all database objects to the object panel
+     * Add all database objects to the object panel
+     * and check if the table with the operation objects exists.
+     * If it does not exist restore it from the database.
      */
-    public void listObjects() {
+    protected void listObjects() {
         objects = VC.getCommandResult("list objects");
-        if (objects != null)
-            ObjectPane.addObjects(objects);
+        if (objects != null) {
+            operators = VC.getCommandResult("query QueryOperators feed sortby[OpName asc] consume");
+            if (operators == null) {
+                VC.execCommand("restore QueryOperators from '../bin/QueryOperators'");
+                operators = VC.getCommandResult("query QueryOperators feed sortby[OpName asc] consume");
+            }
+            operationsPane.addOperations(operators);
+            objectPane.addObjects(objects);
+        }
     }
     
     public ArrayList<ObjectView> getObjects(){
-        return ObjectPane.getObjects();
+        return objectPane.getObjects();
+    }
+    
+    public ListExpr getObjectList(){
+        return objects;
+    }
+    
+    public ListExpr getOperatorList(){
+        return operators;
+    }
+    
+    /** returns QueryconstructionViewer */
+    public String getName(){
+        return "QueryconstructionViewer";
+    }
+    
+    /** remove all containing objects */
+    public void removeAll(){
+        mainPane = new MainPane(this);
+        mainPane.setPreferredSize(new Dimension (500, 400));
+        mainScrollpane.setViewportView(mainPane);
+        mainScrollpane.repaint();
+        update();
     }
     
     public boolean addObject(SecondoObject o){
-        return true;
+        return false;
     }
     
     public void removeObject(SecondoObject o){
@@ -219,41 +267,18 @@ public class QueryconstructionViewer extends SecondoViewer {
     }
     
     public boolean selectObject (SecondoObject o) {
-        return true;
-    }
-    
-    /** remove all containing objects */
-    public void removeAll(){
-        MainPane = new MainPane(this);
-        MainPane.setPreferredSize(new Dimension (500, 400));
-        MainScrollPane.setViewportView(MainPane);
-        MainScrollPane.repaint();
-        this.update();
-    }
-    
-    /** returns InquiryViewer */
-    public String getName(){
-        return "QueryconstructionViewer";
-    }
+        return false;
+    }    
     
     public boolean canDisplay(SecondoObject o){
         return false;
     }
-
-    /** check if o displayed in the moment **/
+    
     public boolean isDisplayed(SecondoObject o) {
-        return true;
-    }
-    
-    public MenuVector getMenuVector() {
-        return MV;
-    }
-    
-    public double getDisplayQuality(SecondoObject SO) {
-        return 1.0;
+        return false;
     }
 
     public void enableTestmode (boolean on) {
-        on = true;
+        //does nothing
     }
 }

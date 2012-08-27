@@ -19,6 +19,7 @@ public class StreamView {
     private String[] parts;
     private String[] attributes;
     private String[] attrtypes;
+    private char[] signature;
     private String name;
     private String type;
     private String state;
@@ -29,19 +30,16 @@ public class StreamView {
     private int xpos;
     private int ypos;
 
-    public StreamView(String name, int x, int y) {
+    public StreamView(String name, String signature, int x, int y) {
         this.name = name;
         this.xpos = x;
         this.ypos = y;
+        this.signature = signature.toCharArray();
     }
 
     protected void addInputStream(StreamView stream) {
         this.inputStreams.add(stream);
     }
-
-//    protected void addStream(ArrayList<ObjectView> list) {
-//        objects.addAll(list);
-//    }
 
     protected void addObject(ObjectView object) {
         objects.add(object);
@@ -81,16 +79,35 @@ public class StreamView {
     }
 
     protected String getString() {
-        String s = "";
-        for (Iterator iter = inputStreams.iterator(); iter.hasNext();) {
-            StreamView stream = (StreamView) iter.next();
-            s += stream.getString();
+        String result = "";
+        int i = 0;
+        if (signature.length == 0) {
+            for (Iterator iter = objects.iterator(); iter.hasNext();) {
+                ObjectView object = (ObjectView) iter.next();
+                result += object.getName().trim() + " ";
+            }
         }
-        for (Iterator iter = objects.iterator(); iter.hasNext();) {
-            ObjectView object = (ObjectView) iter.next();
-            s += object.getName() + " ";
+        for (char c : signature) {
+            switch(c) {
+                case OperationsDialog.obChar: 
+                    if (i < inputStreams.size()){
+                        result += inputStreams.get(i).getString();
+                        i++;
+                    }
+                    break;
+                case OperationsDialog.opChar:
+                    for (Iterator iter = objects.iterator(); iter.hasNext();) {
+                        ObjectView object = (ObjectView) iter.next();
+                        result += object.getName().trim() + " ";
+                    }
+                    break;
+                case OperationsDialog.pChar: 
+                    break;
+                default:
+                    break;
+            }
         }
-        return s;
+        return result;
     }
 
     protected String getName() {

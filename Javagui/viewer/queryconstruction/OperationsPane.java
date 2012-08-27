@@ -5,14 +5,17 @@ package viewer.queryconstruction;
  * a tutorial reader.
  */
 
-import java.awt.*;
-import java.awt.event.*;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.GridLayout;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.util.ArrayList;
 import java.util.Iterator;
 import javax.swing.JComponent;
+import sj.lang.ListExpr;
 import viewer.QueryconstructionViewer;
 
-/* RelationsPane.java requires no other files. */
 public class OperationsPane extends JComponent implements MouseListener {
     
     private ArrayList<Operation> operations = new ArrayList<Operation>();
@@ -23,65 +26,6 @@ public class OperationsPane extends JComponent implements MouseListener {
     public OperationsPane(QueryconstructionViewer viewer) {
         this.viewer = viewer;
         this.setLayout(new GridLayout(0, 1));
-        
-        
-        String rel[] = {"rel"};
-        //operation(name, objects, brackets, parameter, result
-        Operation feedrel = new Operation("feed", rel, "#", null, "stream");
-        addOperation(feedrel);
-        Operation countrel = new Operation("count", rel, "#", null, "int");
-        addOperation(countrel);
-        
-        String stream[] = {"stream"};
-        Operation filter = new Operation("filter", stream, "#[p]", "bool", "stream");
-        addOperation(filter);
-        rename = new Operation("rename", stream, "{p}", "String", "stream");
-        addOperation(rename);
-        Operation extend = new Operation("extend", stream, "#[p: p]", "String;new", "stream");
-        addOperation(extend);
-        Operation project = new Operation("project", stream, "#[p]", "attrlist", "stream");
-        addOperation(project);
-        Operation head = new Operation("head", stream, "#[p]", "int", "stream");
-        addOperation(head);
-        Operation tail = new Operation("tail", stream, "#[p]", "int", "stream");
-        addOperation(tail);
-        
-        Operation count = new Operation("count", stream, "#", null, "int");
-        addOperation(count);
-        Operation consume = new Operation("consume", stream, "#", null, "rel");
-        addOperation(consume);
-        
-        String twoStreams[] = {"stream", "stream"};
-        Operation symmjoin = new Operation("symmjoin", twoStreams, "#[p]", "bool", "stream");
-        addOperation(symmjoin);
-        Operation sortmergejoin = new Operation("sortmergejoin", twoStreams, "#[p]", "attr,attr", "stream");
-        addOperation(sortmergejoin);
-        Operation mergejoin = new Operation("mergejoin", twoStreams, "#[p]", "attr,attr", "stream");
-        addOperation(mergejoin);
-        Operation hashjoin = new Operation("hashjoin", twoStreams, "#[p]", "attr,attr", "stream");
-        addOperation(hashjoin);
-        
-        String empty[] = {null};
-        Operation units = new Operation("units", empty, "#(p)", "mpoint", "stream upoint");
-        addOperation(units);
-        Operation distance = new Operation("distance", empty, "#(p, p)", "spatial;spatial", "int");
-        addOperation(distance);
-        Operation string = new Operation("new string", empty, "p", "String", "bool");
-        addOperation(string);
-        
-        String compare[] = {"int"};
-        Operation bigger = new Operation(">", compare, "# p", "int", "bool");
-        addOperation(bigger);
-        Operation smaller = new Operation("<", compare, "# p", "int", "bool");
-        addOperation(smaller);
-        
-        String compareTyp[] = {"typ"};
-        Operation equalString = new Operation("=", compareTyp, "# p", "typ", "bool");
-        addOperation(equalString);
-        
-        String mpoint[] = {"mpoint,mregion"};
-        Operation passes = new Operation("passes", mpoint, "# p", "point", "bool");
-        addOperation(passes);
     }
     
     /** paints a Secondo Object into the relations panel */
@@ -92,12 +36,11 @@ public class OperationsPane extends JComponent implements MouseListener {
         for ( Iterator iter = operations.iterator(); iter.hasNext(); ) {
             Operation op = (Operation)iter.next();
             boolean view = true;
-            String[] operationParam = op.getObjects();
+            String[] operationObjects = op.getObjects();
             
-            //TODO
             int viewerCount = viewerParam.length;
-            
-            if (operationParam[0] == null) {
+            String object0 = operationObjects[0].trim();
+            if (object0.equals("")) {
                 viewOperation(op);
             }
             int i = 0;
@@ -106,22 +49,25 @@ public class OperationsPane extends JComponent implements MouseListener {
                 i++;
             }
             
-            if (viewerCount == operationParam.length) {
+            /* 
+             * If the count of active objects equals the count of objects, the operation needs, 
+             * the viewer checks if the types are the same.
+             */
+            if (viewerCount == operationObjects.length) {
 
-                String viewerStr = "";
-                for (String s : operationParam) {
+                for (String opObject : operationObjects) {
 
-                    if ((s != null) && (viewerCount > i) && (viewerParam[i] != null)) {
+                    if ((!opObject.equals("")) && (viewerCount > i) && (viewerParam[i] != null)) {
 
-                        viewerStr = viewerParam[i].trim();
+                        String viewerStr = viewerParam[i].trim();
                         //some operations can be used on different object types
-                        String[] oPs = s.split(",");
+                        String[] oPs = opObject.split(",");
                         boolean oneright = false;
+                        if (opObject.equals("typ")) {
+                            operationObjects[i] = viewerParam[i];
+                            operationObjects[i+1] = viewerParam[i];
+                        }
                         for (String oP: oPs) {
-                            if (s.equals("typ")) {
-                                op.setParameter(viewerStr);
-                                oP = viewerStr;
-                            }
                             if (oP.equals(viewerStr)) {
                                 oneright = true;
                             }
@@ -136,12 +82,12 @@ public class OperationsPane extends JComponent implements MouseListener {
             }
             
         }
-        this.setPreferredSize(new Dimension(120, (30 * this.getComponentCount())));
+        this.setPreferredSize(new Dimension(110, (30 * this.getComponentCount())));
         
         this.revalidate();
     }
     
-    public void viewOperation(Operation op) {
+    private void viewOperation(Operation op) {
         add(op);
     }
     
@@ -150,7 +96,33 @@ public class OperationsPane extends JComponent implements MouseListener {
         operations.add(op);
     }
     
-    //updates the operations panel, only allowed operations should visible
+    public void addOperations(ListExpr operators) {
+        operations.clear();
+        while (operators.listLength() > 1) {
+            ListExpr objects = operators.second();
+            while (objects.listLength() > 0) {
+                String opName = objects.first().first().stringValue();
+                String opObjects = objects.first().second().textValue();
+                String opParams = objects.first().third().textValue();
+                String opSignature = objects.first().fourth().textValue();
+                String opResult = objects.first().fifth().stringValue();
+                
+                Operation op = new Operation(opName, opObjects.split(";"), opSignature, opParams.split(";"), opResult);
+                addOperation(op);
+                
+                if (opName.equals("rename")){
+                    rename = new Operation(opName, opObjects.split(";"), opSignature, opParams.split(";"), opResult);
+                }
+                objects = objects.rest();
+            }
+            operators = operators.rest();
+        }
+        update();
+    }
+    
+    /**
+     * updates the operations panel, only allowed operations should visible
+     */
     public void update() {
         this.repaint();
     }
@@ -162,9 +134,8 @@ public class OperationsPane extends JComponent implements MouseListener {
                 Operation element = (Operation)arg0.getComponent();
                 
                 //check if objects have to be renamed
-                if (element.countObjects() > 1) {
+                if (element.getParameter()[0].equals("attr,attr")) {
                     if (!viewer.checkAttributes()) {
-                        //dialog.setMessage("Two attributes have the same name. Please rename the object "+activeStream.getName()+".");
                         viewer.addOperation(rename.copy());
                         return;
                     }

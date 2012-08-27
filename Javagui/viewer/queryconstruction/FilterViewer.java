@@ -10,6 +10,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import sj.lang.ListExpr;
 
 /**
  *
@@ -19,27 +22,17 @@ public class FilterViewer extends QueryconstructionViewer {
     private OperationsDialog dialog;
     private JFrame f = new JFrame();
     
-    public FilterViewer(OperationsDialog dialog, ArrayList<ObjectView> objects) {
+    ArrayList<ObjectView> objects;
+    ArrayList<Operation> operations;
+    
+    public FilterViewer(OperationsDialog dialog) {
+        super();
         this.dialog = dialog;
-        
-        this.setLayout(new BorderLayout());
-        MainPane = new MainPane(this);
-        ObjectPane = new ObjectPane(this);
-        OperationsPane = new OperationsPane(this);
-        MainPane.setPreferredSize(new Dimension (500, 400));
-        ObjectPane = new ObjectPane(this);
-        ObjectPane.addObjects(objects);
-        OperationsPane.update();
-        
-        JScrollPane MainScrollPane = new JScrollPane(MainPane);
-        JScrollPane ObjectsScrollPane = new JScrollPane(ObjectPane);
-        ObjectsScrollPane.setPreferredSize(new Dimension (600, 90));
-        JScrollPane OperationsScrollPane = new JScrollPane(OperationsPane);
-        OperationsScrollPane.setPreferredSize(new Dimension (120, 400));
-        
-        this.add(ObjectsScrollPane, BorderLayout.NORTH);
-        this.add(OperationsScrollPane, BorderLayout.EAST);
-        this.add(MainScrollPane, BorderLayout.CENTER);
+        f.addWindowListener( new WindowAdapter() {
+            public void windowClosing ( WindowEvent e) {
+                back();
+            }
+        } );
         
         JPanel buttonPanel = new JPanel();
         JButton ok = new JButton("ok");
@@ -62,41 +55,24 @@ public class FilterViewer extends QueryconstructionViewer {
             }
         };
         back.addActionListener(backl);
-        
     }
     
-    public void show() {
+    protected void showViewer() {
         f.add(this);
         f.setSize(new Dimension(500, 400));
         f.setLocation(100, 100);
         f.setVisible(true);
     }
     
+    public void back() {
+        dialog.back();
+    }
+    
     protected void addObjects(ObjectView[] objects) {
-        ObjectPane.clear();
         for (ObjectView o: objects) {
-            ObjectPane.addAttributeObject(o);
+            objectPane.addAttributeObject(o);
         }
-        update();
-    }
-    
-    public void updateObjects(String type) {
-        this.ObjectPane.updateObjects(type);
-    }
-    
-    //
-    /**
-     * adds an operation to the dialog main panel
-     * @param operation new operation
-     */
-    public void addOperation(Operation operation){
-        this.MainPane.addOperation(operation);
-        if (!operation.getParameter().equals("")) {
-            this.ObjectPane.updateObjects(operation.getParameter());
-        }
-        else {
-            this.ObjectPane.showAllObjects();
-        }
+        objectPane.showAllObjects();
         update();
     }
     
@@ -104,7 +80,7 @@ public class FilterViewer extends QueryconstructionViewer {
      * add the generated string to the query
      */
     private void addString() {
-        dialog.addResult(MainPane.getStrings());
+        dialog.addResult(mainPane.getStrings());
         f.setVisible(false);
     }
 }

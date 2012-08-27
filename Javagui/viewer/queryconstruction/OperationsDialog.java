@@ -6,13 +6,16 @@ package viewer.queryconstruction;
 
 import java.awt.*;
 import java.awt.GridLayout;
+import java.awt.event.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowListener;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import javax.swing.*;
+import viewer.QueryconstructionViewer;
 
 /**
  *
@@ -21,9 +24,10 @@ import javax.swing.*;
 public class OperationsDialog extends JDialog {
     
     private MainPane main;
-    private FilterViewer viewer;
+    private QueryconstructionViewer mainViewer;
+    private FilterViewer filterViewer =  new FilterViewer(this);
     private Operation operation;
-    private String[] parameters;
+    private String[] params;
     private ArrayList<ObjectView> allObjects;
     
     private JDialog objectDialog;
@@ -39,39 +43,52 @@ public class OperationsDialog extends JDialog {
     private char[] signature;
     private String result = "";
     
-    private final static char opChar = '#';
-    private final static char pChar = 'p';
+    protected final static char obChar = 'o';
+    protected final static char opChar = '#';
+    protected final static char pChar = 'p';
     
-    public OperationsDialog(MainPane main, Operation operation, ArrayList<ObjectView> objects) {
+    public OperationsDialog(MainPane main, QueryconstructionViewer viewer, Operation operation, ArrayList<ObjectView> objects) {
         this.main = main;
+        this.mainViewer = viewer;
         this.operation = operation;
-        this.signature = operation.getSignature();
-        this.allObjects = objects;
-        this.viewer = new FilterViewer(this, objects);
+        this.signature = operation.getSignature().toCharArray();
+        
         this.resetObjectDialog();
         setLayout(new GridLayout(0,1));
+        if (main.isShowing())
+            this.setLocation(main.getLocationOnScreen());
         
-        parameters = operation.getParameter().split(";");
+        params = operation.getParameter();
+        
+        this.addWindowListener( new WindowAdapter() {
+            public void windowClosing ( WindowEvent e) {
+                back();
+            }
+        } );
+        
+        filterViewer.setOperators(mainViewer.getOperatorList());
+        filterViewer.setObjects(mainViewer.getObjectList());
+        allObjects = filterViewer.getObjects();
     }
     
-    public void activate(){
+    protected void activate(){
         this.setResult();
+    }
+    
+    protected void back(){
+        mainViewer.back();
     }
     
     private void showDialog() {
         this.radiogroup.remove(objectButtons);
         
-        String parameter = parameters[hasParameter];
-        
+        String parameter = params[hasParameter];
         if (parameter.equals("bool") || parameter.equals("new")){
             nestedQuery();
         }
         if (!parameter.equals("bool")) {
-            if (parameter.equals("spatial")) {
-                addObjectButtons("point,mpoint,points,line,sline,rect");
-            }
-            else {
-                addObjectButtons(parameter);
+            for (String param: parameter.split(",")) {
+                addObjectButtons(param);
             }
         }
         if (hasButtons)
@@ -81,8 +98,7 @@ public class OperationsDialog extends JDialog {
         }
         if (parameter.equals("int") || parameter.toLowerCase().equals("string")) {
             text();
-        }
-        
+        }        
     }
     
     private void show(JDialog dialog, ActionListener al) {
@@ -91,7 +107,14 @@ public class OperationsDialog extends JDialog {
         dialog.getRootPane().setDefaultButton(ok);
         dialog.add(ok);
         
-        dialog.setLocation(100, 100);
+        dialog.addWindowListener( new WindowAdapter() {
+            public void windowClosing ( WindowEvent e) {
+                back();
+            }
+        } );
+        
+        if (main.isShowing())
+            dialog.setLocation(main.getLocationOnScreen());
         dialog.pack();
         dialog.setVisible(true);
     }
@@ -116,7 +139,7 @@ public class OperationsDialog extends JDialog {
      * @param atts object attributes
      */
     public void addAttributes(ObjectView[] atts) {
-        this.viewer.addObjects(atts);
+        this.filterViewer.addObjects(atts);
     }
     
     /**
@@ -142,8 +165,6 @@ public class OperationsDialog extends JDialog {
      */
     private void addObjectButtons(String type) {
         int i = 0;
-        //resetObjectDialog();
-        //hasButtons = false;
         String[] types = type.split(",");
         for (ObjectView o: allObjects) {
             for (String t: types) {
@@ -186,17 +207,17 @@ public class OperationsDialog extends JDialog {
         }
     }
     
-    public void addResult(String s){
+    protected void addResult(String s){
         hasParameter++;
         result += s;
         check();
     }
     
     /**
-     * check if the input parameters are complete
+     * check if the input params are complete
      */
     private void check() {
-        if (hasParameter == parameters.length) {
+        if (hasParameter == params.length) {
             send();
         }
         else {
@@ -211,9 +232,15 @@ public class OperationsDialog extends JDialog {
     private void setResult() {
         if (charAt < signature.length) {
             char c = signature[charAt];
+            if (c == pChar) {
+                showDialog();
+                charAt++;
+            }
             while (c != pChar && charAt < signature.length) {
                 c = signature[charAt++];
                 switch(c) {
+                    case obChar: 
+                        break;
                     case opChar: 
                         result += operation.getName();
                         break;
@@ -252,10 +279,10 @@ public class OperationsDialog extends JDialog {
     }
     
     /**
-     * activates the FilterViewer for a boolean parameter
+     * Activates the FilterViewer to get a boolean parameter.
      */
     private void nestedQuery(){
-        viewer.show();
+        filterViewer.showViewer();
     }
     
     public void setMessage(String message) {
@@ -282,7 +309,7 @@ public class OperationsDialog extends JDialog {
     * adds the name of the chosen object to the operation
     */
     private void sendButtons() {
-        objectDialog.setVisible(false);
+        objectDialog.dispose();
         String labels = "";
         if (radiogroup.size() > 1) {
             int i = 0;
@@ -305,6 +332,7 @@ public class OperationsDialog extends JDialog {
     }
     
     private void sendCheckboxes() {
+        objectDialog.dispose();
         int i = 0;
         String labels = "";
         for (JCheckBox cb: this.cbs) {
@@ -324,16 +352,13 @@ public class OperationsDialog extends JDialog {
     //adds the textfield to the operation name
     private void sendText(JTextField textfield){
         String text = textfield.getText();
-        if (parameters[hasParameter].equals("string")) {
-            text = "'"+text+"'";
-        }
         this.addResult(text);
     }
     
     private void send() {
         setResult();
         main.updateOperation(result);
-        setVisible(false);
+        this.dispose();
     }
     
 }

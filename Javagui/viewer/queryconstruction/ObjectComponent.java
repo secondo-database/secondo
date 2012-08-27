@@ -23,7 +23,7 @@ public class ObjectComponent extends JComponent {
     
     public ObjectComponent(String type, String name){
         
-        this.setPreferredSize(new Dimension(120,70));
+        this.setPreferredSize(new Dimension(110,70));
         this.setOpaque(true);
         this.name = name;
         this.type = type;        
@@ -31,7 +31,7 @@ public class ObjectComponent extends JComponent {
         
     }
     
-    /** paints a Secondo ObjectComponent into the ObjectPane
+    /** paints a Secondo ObjectComponent into the objectPane
      height 80, width 50*/
     public void paintComponent(Graphics g){
         this.xpos = 10;

@@ -27,7 +27,7 @@ public class Operation extends JComponent {
     private String name;
     private String label;
     private String[] objects;
-    private String parameter = "";
+    private String[] parameter;
     private String result;
     private String brackets;
     private String signature;
@@ -42,20 +42,14 @@ public class Operation extends JComponent {
      * @param parameter type of parameter which the operation needs
      * @param result type of the result, when needed
      */
-    public Operation(String name, String[] objects, String signature, String parameter, String result){
+    public Operation(String name, String[] objects, String signature, String[] parameter, String result){
         this.setOpaque(false);
         this.setPreferredSize(new Dimension(120, 30));
         this.name = name;
         this.label = name;
         this.signature = signature;
-        if ((signature != null) && (signature.toCharArray().length == 2)) {
-            this.brackets = signature;
-        }
         
-        if (parameter != null) {
-            this.parameter = parameter;
-        }
-        
+        this.parameter = parameter;
         this.objects = objects;
         Arrays.sort(this.objects);
         this.view = new ObjectView(ObjectType.OPERATION, name);
@@ -77,8 +71,8 @@ public class Operation extends JComponent {
         
     }
     
-    public char[] getSignature() {
-        return signature.toCharArray();
+    public String getSignature() {
+        return signature;
     }
     
     public Operation copy() {
@@ -128,12 +122,12 @@ public class Operation extends JComponent {
         else return brackets;
     }
     
-    public String getParameter() {
+    public String[] getParameter() {
         return this.parameter;
     }
     
-    public void setParameter(String par) {
-        this.parameter = par;
+    public void setParameter(String par, int index) {
+        this.parameter[index] = par;
     }
     
 }

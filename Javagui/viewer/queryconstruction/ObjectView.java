@@ -103,7 +103,7 @@ public class ObjectView extends JComponent {
         g.drawString(s, xpos + 45 - w/2, ypos + 30);
     }
     
-    /** paints a Secondo ObjectView into the MainPane
+    /** paints a Secondo ObjectView into the mainPane
      * 
      */
     public void paintComponent(Graphics g, int x, int y, Color color){
