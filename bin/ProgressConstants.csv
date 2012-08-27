@@ -38,3 +38,5 @@ ExtRelation2Algebra,gracehashjoin,tprobe,0.0698414,millisecs per hash table look
 ExtRelation2Algebra,gracehashjoin,vHashJoin,0.00694905,msecs per hash table insert,
 ExtRelation2Algebra,gracehashjoin,uHashJoin,1.47071,msecs per right input tuple,
 ExtRelation2Algebra,gracehashjoin,wHashJoin,0.000451361,msecs per attr in result relation,
+Global,Global,twrite,0.000651897,msecs per byte written to TupleFile,
+Global,Global,tread,0.000157665,msecs per byte read from TupleFile,

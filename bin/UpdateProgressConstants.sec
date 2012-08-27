@@ -888,7 +888,7 @@ delete yItHashJoin;
 #
 # double uItHashJoin = 0.002;      //millisecs per insert in hash table
 # double vItHashJoin = 0.021;      //millisecs for processing a tupe in right stream 
-# double wItHashJoin = 0.004;      //millisecs for writing and reading one byte into/from tuplefile 
+# double wItHashJoin = 0.004;      //millisecs for writing one byte to tuplefile 
 # double xItHashJoin = 0.001;      //millisecs for reading one byte from tuplefile
 # double yItHashJoin = 0.001;      //millisecs for creating a attr in result
 #
@@ -1994,6 +1994,10 @@ query ProgressConstants inserttuple["Relation-C++", "consume", "wConsume", wCons
 
 #####################################################################
 
+## Adding Global consts
+
+query ProgressConstants inserttuple["Global", "Global", "twrite", wItHashJoin, "msecs per byte written to TupleFile", ""] consume
+query ProgressConstants inserttuple["Global", "Global", "tread", yItHashJoin, "msecs per byte read from TupleFile", ""] consume
 
 query ProgressConstants feed csvexport['ProgressConstants.csv', FALSE, TRUE] count
 
