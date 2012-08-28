@@ -230,9 +230,11 @@ public:
              pRes->BProgress = 1.0;
              pRes->Card = returned;
           }
-
-          // Append time for creating new tuples
-          pRes->Time += p1.noAttrs + p2.noAttrs 
+          
+          // Append time for creating new tuples. Assume that the creation 
+          // of new tuples is equally distributed during the calculation. So 
+          // we can add the time without affecting the progress calculation
+          pRes->Time += (p1.noAttrs + p2.noAttrs) 
              * yItSpatialJoin * pRes->Card;
          
           if(DEBUG) {
@@ -304,7 +306,6 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
   // Add costs for creating new tuples
   // with default selectivity of 0.1
   costs += NoTuples1 * NoTuples2 
-     * sizeOfTuple1 * sizeOfTuple2 
      * yItSpatialJoin * 0.1;
 
 
@@ -326,39 +327,6 @@ double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
    return ceil(memory / (1024 * 1024));
 }
 
-
-/*
-1.5 Get Linear Params
-Input: 
-NoTuples1, sizeOfTuple1
-NoTuples2, sizeOfTuple2,
-
-Output:
-sufficientMemory = sufficientMemory for this operator with the given 
-                   input
-
-timeAtSuffMemory = Time for the calculation with sufficientMemory
-
-timeAt16MB - Time for the calculation with 16MB Memory
-
-*/
-   virtual bool getLinearParams(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
-            double& sufficientMemory, double& timeAtSuffMemory,
-            double& timeAt16MB )  const { 
-      
-      sufficientMemory=calculateSufficientMemory(NoTuples2, sizeOfTuple2);
-      
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        sufficientMemory, timeAtSuffMemory);
-
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        16, timeAt16MB);
-      
-      return true;
-   }
-
 /*
 1.6 getFunction
 
@@ -369,7 +337,7 @@ function. Allowed types are:
 2: a / x
 
 */
-   virtual bool getLinearParams(
+   virtual bool getFunction(
             size_t NoTuples1, size_t sizeOfTuple1,
             size_t NoTuples2, size_t sizeOfTuple2,
             int& functionType,
@@ -377,13 +345,47 @@ function. Allowed types are:
             double& timeAt16MB,
             double& a, double& b, double& c, double& d) const {
 
-       functionType=1;
-       a=0;b=0;c=0;d=0;
-       return getLinearParams(NoTuples1, sizeOfTuple1,
-                              NoTuples2, sizeOfTuple2,
-                              sufficientMemory, timeAtSuffMemory, 
-                              timeAt16MB);  
- }
+      // Function is a/x + b
+      functionType=2;
+      
+      // Init variables
+      a = b = c = d = 0;
+
+      // Points for resolving parameter
+      double point1, point2, timeAtPoint1, timeAtPoint2;
+
+      calculateXPoints(sufficientMemory, point1, point2);
+
+      // Calculate costs for first point
+      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
+        point1, timeAtPoint1);
+
+      // Calculate costs for second point
+      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
+        point2, timeAtPoint2);
+
+      // Calculate a and b for function f(x) = a/x+b 
+      resolveInverseProportionality(point1, timeAtPoint1, point2, 
+        timeAtPoint2, a, b);
+
+
+
+      // Calculate sufficientMemory and time at sufficientMemory and 16MB
+      sufficientMemory=calculateSufficientMemory(NoTuples2, sizeOfTuple2);
+      
+      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
+        sufficientMemory, timeAtSuffMemory);
+
+      // is point1 at 16mb? => We have costs for 16mb
+      if(point1 == 16) {
+         timeAt16MB = timeAtPoint1;
+      } else {
+         getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
+           16, timeAt16MB);
+      }
+
+      return true;
+  }  
 
 /*
 1.7 Calculate the numer of partitions for this operator
