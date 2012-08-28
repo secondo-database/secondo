@@ -154,92 +154,6 @@ public:
    return CANCEL;
 }
 
-
-/*
-1.3 getCosts
-
-Returns the estimated time in ms for given arguments.
-
-*/
-virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
-                      const size_t NoTuples2, const size_t sizeOfTuple2,
-                      const double memoryMB, double &costs) const{
-
-     // TODO: FIXME!
-     costs = NoTuples1 * NoTuples2 * 0.0002;        
- 
-     return true;
-}
-
-
-/*
-1.4 Calculate the sufficent memory for this operator.
-
-*/
-double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
-    
-    // this operator does not need memory
-    return 16;
-}
-
-/*
-1.5 Get Linear Params
-Input: 
-NoTuples1, sizeOfTuple1
-NoTuples2, sizeOfTuple2,
-
-Output:
-sufficientMemory = sufficientMemory for this operator with the given 
-                   input
-
-timeAtSuffMemory = Time for the calculation with sufficientMemory
-
-timeAt16MB - Time for the calculation with 16MB Memory
-
-*/
-   virtual bool getLinearParams(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
-            double& sufficientMemory, double& timeAtSuffMemory,
-            double& timeAt16MB )  const { 
-      
-      sufficientMemory=calculateSufficientMemory(NoTuples2, sizeOfTuple2);
-      
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        sufficientMemory, timeAtSuffMemory);
-
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        16, timeAt16MB);
-      
-      return true;
-   }
-
-/*
-1.6 getFunction
-
-This function approximates the costfunction by an parametrizable
-function. Allowed types are:
-
-1: linear function
-2: a / x
-
-*/
-   virtual bool getLinearParams(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
-            int& functionType,
-            double& sufficientMemory, double& timeAtSuffMemory,
-            double& timeAt16MB,
-            double& a, double& b, double& c, double& d) const {
-       functionType=1;
-       a=0;b=0;c=0;d=0;
-       return getLinearParams(NoTuples1, sizeOfTuple1,
-                              NoTuples2, sizeOfTuple2,
-                              sufficientMemory, timeAtSuffMemory, 
-                              timeAt16MB);  
-  }  
-   
-
 /*
 1.8 Setter for stream1Exhausted
 
@@ -308,6 +222,8 @@ public:
          return CANCEL;
      }
 
+     // Read memory for operator in bytes
+     size_t maxmem = qp->GetMemorySize(supplier) * 1024 * 1024;
 
      if (qp->RequestProgress(args[0].addr, &p1)
        && qp->RequestProgress(args[1].addr, &p2)) 
@@ -318,6 +234,22 @@ public:
         static const double uSymmJoin =
            ProgressConstants::getValue("ExtRelationAlgebra",
            "symmjoin", "uSymmJoin");
+        
+        // millisecs per byte written
+        static const double twrite =
+           ProgressConstants::getValue("Global",
+           "TupleFile", "twrite");
+
+        // millisecs per byte read
+        static const double tread =
+           ProgressConstants::getValue("Global",
+           "TupleFile", "tread");
+        
+        // millisecs per attr in result tuple
+        static const double tattr =
+           ProgressConstants::getValue("Global",
+           "ResultTuple", "attr");
+
 
         if (!pli){
             return CANCEL;
@@ -331,19 +263,6 @@ public:
 
         //the default value of 0.1 is only suitable for selections
 
-        pRes->Time = p1.Time + p2.Time +
-          p1.Card * p2.Card * predCost * uSymmJoin;
-
-        if(stream1Exhausted && stream2Exhausted) {
-           pRes->Progress = 1.0;
-        } else {
-          pRes->Progress =
-            (p1.Progress * p1.Time + p2.Progress * p2.Time +
-            readStream1 * readStream2 *
-            predCost * uSymmJoin)
-            / pRes->Time;
-        }
-
         if (returned > (size_t) enoughSuccessesJoin ) {   
          // stable state assumed now
           pRes->Card = p1.Card * p2.Card *
@@ -352,6 +271,56 @@ public:
         } else {
           pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(supplier);
         }
+
+        // % of tuples in stream 1 are written to disk
+        double t1d = percentTupleOnDisk(p1.Card, p1.Size, maxmem / 2);
+
+        // % of tuples in stream 2 are written to disk
+        double t2d = percentTupleOnDisk(p2.Card, p2.Size, maxmem / 2);
+
+        // Tuples in Buffer 1 or Buffer 2 are written to disk?
+        double wtd1 = 0;
+        double wtd2 = 0;
+
+        if(t1d > 0) {
+          wtd1 = 1;
+        }
+
+        if(t2d > 0) {
+          wtd2 = 1;
+        }
+
+        pRes->Time = p1.Time + p2.Time
+          + p1.Card * p2.Card * predCost * uSymmJoin
+          + pRes->Card * tattr * (p1.noAttrs + p2.noAttrs)
+          + wtd1 * p1.Size * p1.Card * twrite  
+          + wtd2 * p2.Size * p2.Card * twrite  
+          + t1d * p1.Size * p1.Card * tread * p2.Card
+          + t2d * p2.Size * p2.Card * tread * p1.Card;
+
+        if(stream1Exhausted && stream2Exhausted) {
+           pRes->Progress = 1.0;
+        } else {
+          pRes->Progress =
+            (p1.Progress * p1.Time + p2.Progress * p2.Time 
+            + readStream1 * readStream2 * predCost * uSymmJoin
+            + returned * tattr * (p1.noAttrs + p2.noAttrs)
+            + tupleBuffer1OnDisk * p1.Size * p1.Card * twrite 
+            + tupleBuffer2OnDisk * p2.Size * p2.Card * twrite 
+            + t1d * p1.Size * p1.Card * tread * p2.Card * p2.Progress
+            + t2d * p2.Size * p2.Card * tread * p1.Card * p1.Progress
+            ) / pRes->Time;
+
+            /* Debug
+            cout << "r1 " << readStream1 << endl;
+            cout << "r2 " << readStream2 << endl;
+            cout << "wtd1 " << wtd1 << endl;
+            cout << "t1d " << t1d << endl;
+            cout << "wtd2 " << wtd2 << endl;
+            cout << "t2d " << t2d << endl;
+            */
+        }
+
 
         pRes->CopyBlocking(p1, p2);  //non-blocking oprator
 
@@ -373,18 +342,77 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
                       const double memoryMB, double &costs) const{
 
-         
-     return true;
+        // millisecs per tuple pair (0.2)
+        static const double uSymmJoin =
+           ProgressConstants::getValue("ExtRelationAlgebra",
+           "symmjoin", "uSymmJoin");
+
+        // millisecs per byte written
+        static const double twrite =
+           ProgressConstants::getValue("Global",
+           "TupleFile", "twrite");
+
+        // millisecs per byte read
+        static const double tread =
+           ProgressConstants::getValue("Global",
+           "TupleFile", "tread");
+        
+        // Tuples in Buffer 1 or Buffer 2 are written to disk?
+        double wtd1, wtd2;
+
+        // % of tuples in stream 1 are written to disk
+        double t1d = percentTupleOnDisk(NoTuples1, sizeOfTuple1, memoryMB / 2);
+
+        // % of tuples in stream 2 are written to disk
+        double t2d = percentTupleOnDisk(NoTuples2, sizeOfTuple2, memoryMB / 2);
+
+        if(t1d > 0) {
+          wtd1 = 1;
+        }
+
+        if(t2d > 0) {
+          wtd2 = 1;
+        }
+
+        costs = NoTuples1 * NoTuples2 * uSymmJoin
+                + wtd1 * NoTuples1 * sizeOfTuple1 * twrite
+                + t1d * NoTuples1 * sizeOfTuple1 * tread * NoTuples2
+                + wtd2 * NoTuples2 * sizeOfTuple2 * twrite
+                + t2d * NoTuples2 * sizeOfTuple2 * tread * NoTuples1;
+ 
+        return true;
 }
 
+
+/*
+1.4 percecent of Tuple written to disk
+
+*/
+double percentTupleOnDisk(const size_t NoTuples, 
+   const size_t sizeOfTuple, const double memoryMB) const {
+
+   double tupleInMemory = 
+      1 - (memoryMB / (NoTuples * sizeOfTuple / 1024 * 1024));
+  
+   if(tupleInMemory < 0) {
+      tupleInMemory = 0;
+   }
+   
+   return tupleInMemory;
+}
 
 /*
 1.4 Calculate the sufficent memory for this operator.
 
 */
-double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
-   //TODO: FIXME
-   return 16;
+double calculateSufficientMemory(size_t NoTuples1, 
+  size_t sizeOfTuple1, size_t NoTuples2, 
+  size_t sizeOfTuple2) const {
+
+  // Space for placing all tuples in memory
+  return NoTuples1 * sizeOfTuple1 
+    + NoTuples2 * sizeOfTuple2 / 1024 * 1024;
+
 }
 
 /*
@@ -408,7 +436,8 @@ timeAt16MB - Time for the calculation with 16MB Memory
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB )  const { 
       
-      sufficientMemory=calculateSufficientMemory(NoTuples2, sizeOfTuple2);
+      sufficientMemory=calculateSufficientMemory(NoTuples1, sizeOfTuple1,
+         NoTuples2, sizeOfTuple2);
       
       getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
         sufficientMemory, timeAtSuffMemory);
@@ -418,32 +447,6 @@ timeAt16MB - Time for the calculation with 16MB Memory
       
       return true;
    }
-
-/*
-1.6 getFunction
-
-This function approximates the costfunction by an parametrizable
-function. Allowed types are:
-
-1: linear function
-2: a / x
-
-*/
-   virtual bool getLinearParams(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
-            int& functionType,
-            double& sufficientMemory, double& timeAtSuffMemory,
-            double& timeAt16MB,
-            double& a, double& b, double& c, double& d) const {
-       functionType=1;
-       a=0;b=0;c=0;d=0;
-       return getLinearParams(NoTuples1, sizeOfTuple1,
-                              NoTuples2, sizeOfTuple2,
-                              sufficientMemory, timeAtSuffMemory, 
-                              timeAt16MB);  
-  }  
-   
 
 /*
 1.8 Setter for stream1Exhausted
@@ -471,7 +474,23 @@ function. Allowed types are:
    }
 
 /*
-1.11 Update processed tuples in stream2
+1.11 Tuple Buffer 1 on disk
+
+*/
+   void setTupleBuffer1OnDisk(bool onDisk) {
+      tupleBuffer1OnDisk = onDisk;
+   }
+
+/*
+1.12 Tuple Buffer 2 on disk
+
+*/
+   void setTupleBuffer2OnDisk(bool onDisk) {
+      tupleBuffer2OnDisk = onDisk;
+   }
+
+/*
+1.13 Update processed tuples in stream2
 
 */
     void processedTupleInStream2() {
@@ -479,7 +498,7 @@ function. Allowed types are:
     }
 
 /*
-1.12 init our class
+1.14 init our class
 
 */
   virtual void init(Word* args, void* localInfo)
@@ -487,6 +506,8 @@ function. Allowed types are:
     returned = 0;
     stream1Exhausted = false;
     stream2Exhausted = false;
+    tupleBuffer1OnDisk = false;
+    tupleBuffer2OnDisk = false;
     readStream1 = 0;
     readStream2 = 0;
   }
@@ -496,6 +517,8 @@ private:
   ProgressInfo p1, p2;      // Progress info for stream 1 / 2
   bool stream1Exhausted;    // is stream 1 exhaused?
   bool stream2Exhausted;    // is stream 2 exhaused?
+  bool tupleBuffer1OnDisk;  // is tuple buffer 1 written to disk?
+  bool tupleBuffer2OnDisk;  // is tuple buffer 2 written to disk?
   size_t readStream1;       // processed tuple in stream1
   size_t readStream2;       // processes tuple in stream2
 };
@@ -660,8 +683,24 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
                       const double memoryMB, double &costs) const{
 
-        
-        //TODO: FIXME
+     //millisecs per byte read in sort step (0.00043)
+     static const double uSortBy =
+           ProgressConstants::getValue("ExtRelationAlgebra",
+           "mergejoin", "uSortBy");
+
+     //millisecs per byte read in merge step (sortmerge) 
+     // (0.0001738)
+     static const double wMergeJoin =
+           ProgressConstants::getValue("ExtRelationAlgebra",
+           "mergejoin", "wMergeJoin");
+      
+
+     // Time for creating new tuples 
+     costs = NoTuples1 * NoTuples2 * wMergeJoin * 0.1
+     
+     // Time for processing a byte in input
+           + uSortBy * (NoTuples1 + NoTuples2) * (sizeOfTuple1 + sizeOfTuple2);
+     
      return true;
 }
 
