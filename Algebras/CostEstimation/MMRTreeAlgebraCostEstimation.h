@@ -118,7 +118,7 @@ public:
 
      // msecs per attr in result tuple 
      static const double yItSpatialJoin = 
-        ProgressConstants::getValue("ExtRelation2Algebra", 
+        ProgressConstants::getValue("MMRTreeAlgebra", 
         "itSpatialJoin", "yItSpatialJoin");
 
 
@@ -156,10 +156,13 @@ public:
            pRes->Time = p2.Time 
              + (tuplesPerIteration * wItSpatialJoin * p2.Size) 
              + ((partitions - 1) * tuplesPerIteration 
-                 * xItSpatialJoin * p2.Size);
+                 * xItSpatialJoin * p2.Size)
+                 + p1.Card * uItSpatialJoin + p1.Time;
   
            // Calculate Elapsed time 
-           size_t elapsedTime = p2.Time * p2.Progress;
+           size_t elapsedTime = p2.Time * p2.Progress
+                         + (p1.Progress * p1.Card * uItSpatialJoin) 
+                         + (p1.Progress * p1.Time);
 
            if(iteration <= 1) {
               elapsedTime += readInIteration * wItSpatialJoin * p2.Size;
@@ -198,7 +201,8 @@ public:
            }
 
            pRes->Progress = p2.Progress;
-           pRes->Time = p2.Time + p2.Card * vItSpatialJoin;
+           pRes->Time = p2.Time + p2.Card * vItSpatialJoin 
+              + p1.Card * uItSpatialJoin + p1.Time;
         }
 
          // Blocking time is: adding p1.Card tuples to r-tree
@@ -207,13 +211,6 @@ public:
          pRes->BProgress = ((p1.Progress * p1.Card * uItSpatialJoin) 
               + (p1.Progress * p1.Time) + (p1.BProgress * p1.BTime) 
               + (p2.BProgress * p2.BTime)) / pRes->BTime;
-
-          // Add Blocking time to normal time
-          // and merge progress values
-          pRes->Time += pRes->BTime;
-          pRes->Progress = (pRes->Time * pRes->Progress
-               + pRes->BTime * pRes->BProgress)
-               / (pRes->Time + pRes->BTime);
 
           // Calculate cardinality
           // Warm state or cold state?
@@ -286,7 +283,7 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
 
      // msecs per attr in result tuple 
      static const double yItSpatialJoin = 
-        ProgressConstants::getValue("ExtRelation2Algebra", 
+        ProgressConstants::getValue("MMRTreeAlgebra", 
         "itSpatialJoin", "yItSpatialJoin");
 
 
