@@ -70,6 +70,7 @@ using namespace std;
 #include "RegionTools.h"
 #include "Symbols.h"
 #include "Stream.h"
+#include "RegionCreator.h"
 
 #include <vector>
 #include <queue>
@@ -8824,11 +8825,12 @@ void Region::EndBulkLoad( bool sort, bool setCoverageNo,
 {
   if( !IsDefined() ) {
     Clear();
-    SetDefined( false );
+    return;
   }
 
-  if( sort )
+  if( sort ) {
     Sort();
+  }
 
   if( setCoverageNo )
   {
@@ -10170,7 +10172,8 @@ void Region::SetPartnerNo()
   if( !IsDefined() )
     return;
   int size = Size();
-  int tmp[size/2];
+  int* tmp = new int[size/2];
+  memset(tmp,0,size*sizeof(int) / 2);
   HalfSegment hs;
   for( int i = 0; i < size; i++ )
   {
@@ -10191,6 +10194,7 @@ void Region::SetPartnerNo()
       Put( p, hs1 );
     }
   }
+  delete[] tmp;
 }
 
 
@@ -11507,7 +11511,7 @@ void Region::ComputeRegion()
     cycle[i] = false;
   }
 #else
-  memset( cycle, false, Size() );
+  memset( cycle, 0, Size()*sizeof(bool) );
 #endif
   for ( int i=0; i<Size(); i++)
   {
@@ -22663,6 +22667,56 @@ Operator criticalPoints(
    criticalPointsTM
 );
 
+
+
+/*
+Operator testRegionCreator 
+
+For debugging only, should be removed after tests
+
+Signature : line -> region
+
+*/
+ListExpr testRegionCreatorTM(ListExpr args){
+  string err = "line expected";
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError(err);
+  }  
+  if(!Line::checkType(nl->First(args))){
+     return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<Region>();
+}
+
+
+int testRegionCreatorVM(Word* args, Word& result, int message, Word& local,
+                       Supplier s )
+{
+  Line* line = (Line*) args[0].addr;
+  result=qp->ResultStorage(s);
+  Region* res = (Region*) result.addr;
+  RegionCreator::createRegion((DbArray<HalfSegment>*) line->GetFLOB(0),res);
+  return 0;
+}
+
+OperatorSpec testRegionCreatorSpec (
+    "line -> region",
+    "testRegionCreator(_)",
+    "for debugging only",
+    "query testRegionCreator(GrenzenLine) "
+  );
+
+Operator testRegionCreator(
+   "testRegionCreator",
+   testRegionCreatorSpec.getStr(),
+   testRegionCreatorVM,
+   Operator::SimpleSelect,
+   testRegionCreatorTM
+);
+
+
+
+
 /*
 11 Creating the Algebra
 
@@ -22795,6 +22849,7 @@ class SpatialAlgebra : public Algebra
 
     AddOperator(&markUsageOp);
     AddOperator(&criticalPoints);
+    AddOperator(&testRegionCreator);
 
 
   }
