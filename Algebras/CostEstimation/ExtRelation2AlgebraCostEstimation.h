@@ -800,7 +800,24 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
                       const double memoryMB, double &costs) const{
 
-         
+     //millisecs per byte read in sort step
+     static const double uSortBy =
+           ProgressConstants::getValue("ExtRelationAlgebra",
+           "mergejoin", "uSortBy");
+
+     //millisecs per byte read in merge step (sortmerge)
+     const double wMergeJoin = 
+           ProgressConstants::getValue("ExtRelationAlgebra",
+           "mergejoin", "wMergeJoin");
+
+     // Time = Sort tuples in left and right stream
+     // and merge both streams
+     costs = NoTuples1 * sizeOfTuple1 * uSortBy +
+             + NoTuples2 * sizeOfTuple2 * uSortBy +
+             + (NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2) 
+             * wMergeJoin;
+
+        
      return true;
 }
 
@@ -809,8 +826,12 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
 3.3 Calculate the sufficent memory for this operator.
 
 */
-double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
-     return 16.0; // FIXME
+double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1, 
+   size_t NoTuples2, size_t sizeOfTuple2) const {
+     
+     // Space for do an in memory sort
+     // of both streams + 20 % memory for merging
+     return (NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2) * 1.2;
 }
 
 /*
@@ -834,7 +855,8 @@ timeAt16MB - Time for the calculation with 16MB Memory
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB )  const { 
       
-      sufficientMemory=calculateSufficientMemory(NoTuples2, sizeOfTuple2);
+      sufficientMemory=calculateSufficientMemory(NoTuples1, sizeOfTuple1, 
+        NoTuples2, sizeOfTuple2);
       
       getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
         sufficientMemory, timeAtSuffMemory);
@@ -897,7 +919,7 @@ class SortMergeJoinCostEstimation : public CostEstimation
 public:
     SortMergeJoinCostEstimation()
     {    
-       pli = new ProgressLocalInfo();
+       pli = new LocalInfo<extrel2::SortMergeJoinLocalInfo>();
     }    
 
 /*
@@ -908,6 +930,7 @@ public:
      if(pli) {
         delete pli;
      }
+     pli = 0;
   };
 
   virtual int requestProgress(Word* args, ProgressInfo* pRes, void* localInfo, 
@@ -919,6 +942,8 @@ public:
      }
 
      ProgressInfo p1, p2;
+
+     
 
      //millisecs per byte read in sort step
      static const double uSortBy =
@@ -947,6 +972,9 @@ public:
      typedef LocalInfo<extrel2::SortMergeJoinLocalInfo> LocalType;
      LocalType* li = static_cast<LocalType*>( localInfo );
 
+     // save reference to localInfo for cleanup
+//     pli->ptr = static_cast<extrel2::SortMergeJoinLocalInfo*> ( localInfo );
+
      liFirst = static_cast<extrel2::SortProgressLocalInfo*>
                     (li->firstLocalInfo);
      liSecond = static_cast<extrel2::SortProgressLocalInfo*>
@@ -960,12 +988,15 @@ public:
 
           pRes->CopySizes(pli);
 
+          long readFirst = (liFirst ? liFirst->read : 0);
+          long readSecond = (liSecond ? liSecond->read : 0);
+
           double factor = (double) li->readFirst / p1.Card;
 
           // Calculate result cardinality
-          if ( li->returned > enoughSuccessesJoin )
+          if ( returned > (size_t) enoughSuccessesJoin )
           {
-            double m = (double)li->returned;
+            double m = (double)returned;
             double k1 = (double)li->readFirst;
             double k2 = (double)li->readSecond;
 
@@ -1000,9 +1031,6 @@ public:
                      + p2.Card * p2.Size * uSortBy +
                      + (p1.Card * p1.Size + p2.Card * p2.Size) * wMergeJoin
                      + pRes->Card * (pRes->noAttrs * yMergeJoin);
-
-          long readFirst = (liFirst ? liFirst->read : 0);
-          long readSecond = (liSecond ? liSecond->read : 0);
 
           pRes->Progress = (   p1.Progress * p1.Time
                              + p2.Progress * p2.Time
@@ -1049,7 +1077,21 @@ Returns the estimated time in ms for given arguments.
 virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
                       const double memoryMB, double &costs) const{
+ 
+     //millisecs per byte read in sort step
+     static const double uSortBy =
+           ProgressConstants::getValue("ExtRelationAlgebra",
+           "mergejoin", "uSortBy");
 
+     //millisecs per byte read in merge step (sortmerge)
+     const double wMergeJoin = 
+           ProgressConstants::getValue("ExtRelationAlgebra",
+           "mergejoin", "wMergeJoin");
+
+     costs = NoTuples1 * sizeOfTuple1 * uSortBy +
+             NoTuples2 * sizeOfTuple2 * uSortBy +
+             (NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2) 
+             * wMergeJoin;
          
      return true;
 }
@@ -1059,8 +1101,13 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
 4.3 Calculate the sufficent memory for this operator.
 
 */
-double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
-   return 16.0; // FIXME
+double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1, 
+   size_t NoTuples2, size_t sizeOfTuple2) const {
+
+   // Space for in memory sorting of both streams
+   // + 20% memory for merge
+   return (NoTuples1 * sizeOfTuple1 
+      + NoTuples2 * sizeOfTuple2) * 1.2;
 }
 
 /*
@@ -1084,7 +1131,8 @@ timeAt16MB - Time for the calculation with 16MB Memory
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB )  const { 
       
-      sufficientMemory=calculateSufficientMemory(NoTuples2, sizeOfTuple2);
+      sufficientMemory=calculateSufficientMemory(NoTuples1, sizeOfTuple1, 
+         NoTuples2, sizeOfTuple2);
       
       getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
         sufficientMemory, timeAtSuffMemory);
@@ -1130,7 +1178,7 @@ function. Allowed types are:
   }
 
 private:
-  ProgressLocalInfo *pli;   // Local Progress info
+  LocalInfo<extrel2::SortMergeJoinLocalInfo> *pli;   // Local Progress info
   ProgressInfo p1, p2;      // Progress info for stream 1 / 2
 };
 
