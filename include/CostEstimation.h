@@ -166,7 +166,7 @@ sufficentPoint
 
 */
 void calculateXPoints(double sufficentPoint, double &x1, 
-  double &x2) {
+  double &x2) const{
 
     x1 = 16;
     x2 = sufficentPoint * 0.8;
@@ -184,7 +184,7 @@ successfully, false otherwise.
 
 */
 bool resolveInverseProportionality(double x1, double y1, 
-   double x2, double y2, double &m, double &b) {
+   double x2, double y2, double &m, double &b) const {
 
    // invalid points
    if(x1 == 0 || x2 == 0) {
