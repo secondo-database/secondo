@@ -1998,8 +1998,11 @@ query ProgressConstants inserttuple["Relation-C++", "consume", "wConsume", wCons
 
 query ProgressConstants inserttuple["Global", "TupleFile", "twrite", wItHashJoin, "msecs per byte written to TupleFile", ""] consume
 
-query ProgressConstants inserttuple["Global", "TupleFile", "tread", yItHashJoin, "msecs per byte read from TupleFile", ""] consume
+query ProgressConstants inserttuple["Global", "TupleFile", "tread", xItHashJoin, "msecs per byte read from TupleFile", ""] consume
 
+query ProgressConstants inserttuple["Global", "ResultTuple", "attr", yItHashJoin, "msecs per attr in result relation", ""] consume
+
+Global,ResultTuple,attr,0.000451361,msecs per attr in result relation,
 query ProgressConstants feed csvexport['ProgressConstants.csv', FALSE, TRUE] count
 
 close database
