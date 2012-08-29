@@ -617,14 +617,14 @@ public:
       if ( expectSorted ) {
             pRes->Time = p1.Time + p2.Time +
               (p1.Card + p2.Card) * uMergeJoin +
-              pRes->Card * (xMergeJoin + pRes->noAttrs * yMergeJoin);
+              pRes->Card * (pRes->noAttrs * yMergeJoin);
 
             pRes->Progress =
                 (p1.Progress * p1.Time + p2.Progress * p2.Time +
                 (((double) readStream1) + ((double) readStream2))
                 * uMergeJoin +
                 ((double) returned)
-                * (xMergeJoin + pRes->noAttrs * yMergeJoin))
+                * (pRes->noAttrs * yMergeJoin))
                 / pRes->Time;
             
             //non-blocking in this case
@@ -683,34 +683,21 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
                       const double memoryMB, double &costs) const{
 
-     //millisecs per byte read in sort step (0.00043)
-     static const double uSortBy =
-           ProgressConstants::getValue("ExtRelationAlgebra",
-           "mergejoin", "uSortBy");
-
-     //millisecs per byte read in merge step (sortmerge) 
-     // (0.0001738)
-     static const double wMergeJoin =
-           ProgressConstants::getValue("ExtRelationAlgebra",
-           "mergejoin", "wMergeJoin");
-      
-
-     // Time for creating new tuples 
-     costs = NoTuples1 * NoTuples2 * wMergeJoin * 0.1
+   // Cost Estimation is only implemented for mergejoin
+   if ( expectSorted ) {
      
-     // Time for processing a byte in input
-           + uSortBy * (NoTuples1 + NoTuples2) * (sizeOfTuple1 + sizeOfTuple2);
+     //millisecs per tuple read in merge step
+     static const double uMergeJoin =
+           ProgressConstants::getValue("ExtRelationAlgebra",
+           "mergejoin", "uMergeJoin");
+
+     // Time for merging tuples in both streams
+     costs = NoTuples1 * NoTuples2 * uMergeJoin;
      
      return true;
-}
+   }
 
-
-/*
-1.4 Calculate the sufficent memory for this operator.
-
-*/
-double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
-   return 16;
+   return false;
 }
 
 
@@ -734,16 +721,22 @@ timeAt16MB - Time for the calculation with 16MB Memory
             size_t NoTuples2, size_t sizeOfTuple2,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB )  const { 
-      
-      sufficientMemory=calculateSufficientMemory(NoTuples2, sizeOfTuple2);
-      
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        sufficientMemory, timeAtSuffMemory);
+  
+      // Cost Estimation is only implemented for mergejoin
+      if ( expectSorted ) {
+     
+        sufficientMemory = 16;
 
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        16, timeAt16MB);
+        getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
+          sufficientMemory, timeAtSuffMemory);
+
+        getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
+          16, timeAt16MB);
       
-      return true;
+        return true;
+      }
+
+      return false;
    }
 
 
