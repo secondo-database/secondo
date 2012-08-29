@@ -37,6 +37,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TupleIdentifier.h"
 #include "FTextAlgebra.h"
 
+#include "Progress.h"
+#include "../CostEstimation/MMRTreeAlgebraCostEstimation.h"
 
 /*
 1.1 Auxiliary Functions
@@ -844,9 +846,10 @@ class ItSpatialJoinInfo{
   ItSpatialJoinInfo(Word& _s1, Word& _s2, 
                     const int _min, const int _max,
                     size_t _maxMem, const int _a1,
-                    const int _a2, ListExpr ttl):
+                    const int _a2, ListExpr ttl, 
+                    ItSpatialJoinCostEstimation* _costEstimation):
                     s1(_s1), s2(_s2), min(_min), max(_max),
-                     a1(_a1), a2(_a2)
+                    a1(_a1), a2(_a2), costEstimation(_costEstimation)
   {
       s1.open();
       s2.open();
@@ -857,11 +860,15 @@ class ItSpatialJoinInfo{
       bufferIt = 0;
       currentTuple2 =0;
 
+      costEstimation -> setMinRtree(min);
+      costEstimation -> setMaxRtree(max);
+
       // process the first Tuple
       if(t1){
          index = new mmrtree::RtreeT<dim, TupleId>(min,max);
          int rootSize = t1->GetRootSize();
-         int sizePerTuple = rootSize + sizeof(void*) + 100;  
+         int sizePerTuple = rootSize + sizeof(void*) + 100;
+         costEstimation -> setSizeOfTupleSt1(sizePerTuple);
          maxTuples = (_maxMem*1024) / sizePerTuple; 
          if(maxTuples <= 10){
             maxTuples = 10; // force a minimum of ten tuples
@@ -874,7 +881,8 @@ class ItSpatialJoinInfo{
       } else {
         index = 0;
         return; 
-      }      
+      }     
+      costEstimation -> processedTupleInStream1();
       t1 = s1.request();
       int noTuples = 1;
       while( (t1!=0) && (noTuples < maxTuples -1)){
@@ -883,6 +891,7 @@ class ItSpatialJoinInfo{
         Rectangle<dim> box = ((StandardSpatialAttribute<dim>*)
                          t1->GetAttribute(a1))->BoundingBox(); 
         index->insert(box,id);
+        costEstimation -> processedTupleInStream1();
         t1 = s1.request();
         noTuples++;
       }
@@ -896,10 +905,11 @@ class ItSpatialJoinInfo{
         index->insert(box,id);
         
       } else {
+        costEstimation -> setStream1Exhausted(true);
         finished = true; // stream 1 exhausted
       }
       scans = 1;
-
+      costEstimation -> readPartitionDone();
    }
     
    ~ItSpatialJoinInfo(){
@@ -938,6 +948,7 @@ class ItSpatialJoinInfo{
           if(!treeIt){ // try to create a new tree iterator
              createNewTreeIt();
              if(treeIt==0){
+               costEstimation -> setStream2Exhausted(true);
                cout << "Join finished with " << scans 
                     << " scans for stream 2" << endl;
                cout << "there are " << maxTuples 
@@ -980,7 +991,7 @@ class ItSpatialJoinInfo{
       GenericRelationIterator* bufferIt;
       mmrtree::RtreeT<dim, TupleId>* index;
       int scans;
-
+      ItSpatialJoinCostEstimation* costEstimation;
 
       void createNewTreeIt(){
          assert(!treeIt);
@@ -1002,6 +1013,7 @@ class ItSpatialJoinInfo{
          }
          if(bufferIt){ // read from Buffer
             currentTuple2 = bufferIt->GetNextTuple();
+            costEstimation -> incReadInIteration();
             if(!currentTuple2){
                if(finished){
                  return;
@@ -1014,6 +1026,8 @@ class ItSpatialJoinInfo{
             }
          } else {
            currentTuple2 = s2.request();
+           costEstimation -> processedTupleInStream2();
+           costEstimation -> incReadInIteration();
            if(!currentTuple2){
               if(finished){
                 return; 
@@ -1028,6 +1042,7 @@ class ItSpatialJoinInfo{
                }
                currentTuple2->PinAttributes();
                tuples2->AppendTupleNoLOBs(currentTuple2);
+               costEstimation -> incTuplesInTupleFile();
              }
              return;
            }
@@ -1049,6 +1064,7 @@ class ItSpatialJoinInfo{
          tuples1.clear();
          index = new mmrtree::RtreeT<dim, TupleId>(min,max);
          Tuple* t1 = s1.request();
+         costEstimation -> processedTupleInStream1();
          int noTuples = 0;
          while( (t1!=0) && (noTuples < maxTuples -1)){
              TupleId id = (TupleId) tuples1.size();
@@ -1057,6 +1073,7 @@ class ItSpatialJoinInfo{
                            t1->GetAttribute(a1))->BoundingBox(); 
              index->insert(box,id);
              t1 = s1.request();
+             costEstimation -> processedTupleInStream1();
              noTuples++;
          }
          // process the last tuple if present
@@ -1068,8 +1085,11 @@ class ItSpatialJoinInfo{
                           t1->GetAttribute(a1))->BoundingBox(); 
            index->insert(box,id);
         } else {
+          costEstimation -> setStream1Exhausted(true);
           finished = true; // stream 1 exhausted
         }
+
+        costEstimation -> readPartitionDone();
       }
 
       void resetBuffer(){
@@ -1077,24 +1097,87 @@ class ItSpatialJoinInfo{
          if(bufferIt){
            delete bufferIt;
          }
+         costEstimation -> resetReadInIteration();
+         costEstimation -> setTupleFileWritten(true);
          bufferIt = tuples2->MakeScan();
          assert(currentTuple2==0);
          currentTuple2 = bufferIt->GetNextTuple();
+         costEstimation -> incReadInIteration();
+         
+         // Next iteration
          scans++;
+         costEstimation -> setIteration(scans);
       }
 
 
 };
 
-
-
 /*
 1.5.3 Value Mapping
 
-There is no special value mapping required. 
-We use joinMMRTreeItVM with the specialized localInfo .
-
 */
+template <int dim>
+int itSpatialJoinVM( Word* args, Word& result, int message,
+                      Word& local, Supplier s ) {
+
+
+   ItSpatialJoinInfo<dim>* li = (ItSpatialJoinInfo<dim>*) local.addr;
+   switch (message){
+     case OPEN : {
+                   if(li){
+                     delete li;
+                     li = 0;
+                     local.setAddr(0);
+                   }
+                   CcInt* Min = (CcInt*) args[4].addr;
+                   CcInt* Max = (CcInt*) args[5].addr;
+                   CcInt* MaxMem = (CcInt*) args[6].addr;
+                   if(!Min->IsDefined() || !Max->IsDefined()){
+                      return 0; // invalid option
+                   }
+                   int min = Min->GetIntval();
+                   int max = Max->GetIntval();
+                   if(min<2 || max < 2*min){
+                       return 0;
+                   } 
+                   size_t maxMem = (qp->GetMemorySize(s) * 1024); // in kB
+                   if(MaxMem->IsDefined() && MaxMem->GetValue() > 0){
+                      maxMem = MaxMem->GetValue();
+                   }
+                   
+                  ItSpatialJoinCostEstimation* costEstimation =
+                    (ItSpatialJoinCostEstimation*) qp->getCostEstimation(s);
+
+                  costEstimation -> init(NULL, NULL);
+ 
+                  local.setAddr(new ItSpatialJoinInfo<dim>(args[0], args[1],
+                                       min, max, maxMem, 
+                                      ((CcInt*)args[7].addr)->GetIntval(),
+                                      ((CcInt*)args[8].addr)->GetIntval(),
+                                       nl->Second(GetTupleResultType(s)),
+                                       costEstimation ));
+                    return 0;
+                 }
+
+      case REQUEST : {
+                    if(!li){
+                      return CANCEL;
+                    }
+                    result.addr = li->next();
+                    return result.addr?YIELD:CANCEL;
+
+                 }
+      case CLOSE :{
+                   if(li){
+                     delete li;
+                     local.setAddr(0);
+                   }
+                   return 0;
+                 }
+   }
+  return -1;
+}
+
 
 
 /*
@@ -1102,11 +1185,9 @@ We use joinMMRTreeItVM with the specialized localInfo .
 
 */
 ValueMapping ItSpatialJoinVM[] = {
-         joinMMRTreeItVM<2,ItSpatialJoinInfo<2> >,
-         joinMMRTreeItVM<3,ItSpatialJoinInfo<3> > 
+         itSpatialJoinVM<2>,
+         itSpatialJoinVM<3> 
       };
-
-
 
 /*
 1.5.5 Selection function
@@ -1116,9 +1197,16 @@ We use realJoinSelect here.
 */
 
 /*
-1.5.6 Specification
+1.5.6 Cost Estimation
 
 */
+CostEstimation* ItSpatialJoinCostEstimationFunc() {
+  return new ItSpatialJoinCostEstimation();
+}
+
+CreateCostEstimation ItSpatialJoinCostEstimationList[] 
+  = {ItSpatialJoinCostEstimationFunc, ItSpatialJoinCostEstimationFunc};
+
 
 /*
 1.5.7 Operator instance
@@ -1130,8 +1218,9 @@ Operator itSpatialJoin(
        2, 
        ItSpatialJoinVM,
        realJoinSelect ,
-       realJoinMMRTreeTM
-     );
+       realJoinMMRTreeTM,
+       ItSpatialJoinCostEstimationList     
+);
 
 
 
