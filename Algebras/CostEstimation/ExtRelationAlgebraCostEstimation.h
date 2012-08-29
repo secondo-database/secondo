@@ -739,33 +739,6 @@ timeAt16MB - Time for the calculation with 16MB Memory
       return false;
    }
 
-
-/*
-1.6 getFunction
-
-This function approximates the costfunction by an parametrizable
-function. Allowed types are:
-
-1: linear function
-2: a / x
-
-*/
-   virtual bool getLinearParams(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
-            int& functionType,
-            double& sufficientMemory, double& timeAtSuffMemory,
-            double& timeAt16MB,
-            double& a, double& b, double& c, double& d) const {
-       functionType=1;
-       a=0;b=0;c=0;d=0;
-       return getLinearParams(NoTuples1, sizeOfTuple1,
-                              NoTuples2, sizeOfTuple2,
-                              sufficientMemory, timeAtSuffMemory, 
-                              timeAt16MB);  
-  }  
-
-
 /*
 1.7 Update processed tuples in stream1
 
