@@ -738,7 +738,7 @@ inline void Rectangle<dim>::Extend(const Rectangle<dim>& r,
      return;
    }
    // both rectangle are defined
-   for(int i=0;i<dim;i++){
+   for(unsigned i=0;i<dim;i++){
        min[i] = MIN(min[i],r.min[i]);
        max[i] = MAX(max[i],r.max[i]);
    }
