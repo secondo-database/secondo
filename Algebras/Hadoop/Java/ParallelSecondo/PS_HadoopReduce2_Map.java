@@ -32,14 +32,16 @@ public class PS_HadoopReduce2_Map
 		String 	reduceQuery 			= parameters[3];
 		String 	mapFileNames	 		= parameters[4];
 		String 	mapFileLocs				= parameters[5];
-		//The parameters[6-7] is prepared for reduce tasks
-		String CreateFilePath 		= parameters[8];
+		String 	mapObjNames	 			= parameters[6];
+		String 	mapObjLocs				= parameters[7];
+		//The parameters[8-9] is prepared for reduce tasks
+		String CreateFilePath 		= parameters[10];
 		FListKind outputKind 			= 
-			FListKind.values()[Integer.parseInt(parameters[9])];
-		String[] InputObjectName	= {parameters[10], parameters[13]};
-		int[] 	 duplicateTimes   = {Integer.parseInt(parameters[11]), 
-																 Integer.parseInt(parameters[14])};
-		String[] PAName						= {parameters[12], parameters[15]};
+			FListKind.values()[Integer.parseInt(parameters[11])];
+		String[] InputObjectName	= {parameters[12], parameters[15]};
+		int[] 	 duplicateTimes   = {Integer.parseInt(parameters[13]), 
+																 Integer.parseInt(parameters[16])};
+		String[] PAName						= {parameters[14], parameters[17]};
 		
 		
 		ListExpr fpList = new ListExpr();
@@ -53,6 +55,9 @@ public class PS_HadoopReduce2_Map
 		ListExpr fileNameList = new ListExpr(), fileLocList = new ListExpr();
 		fileNameList.readFromString(mapFileNames);
 		fileLocList.readFromString(mapFileLocs);
+		ListExpr ObjNameList = new ListExpr(), ObjLocList = new ListExpr();
+		ObjNameList.readFromString(mapObjNames);
+		ObjLocList.readFromString(mapObjLocs);
 		ListExpr reduceQueryList = new ListExpr();
 		reduceQueryList.readFromString(reduceQuery);
 
@@ -153,8 +158,18 @@ public class PS_HadoopReduce2_Map
 					inputStreamList = ListExpr.twoElemList(
 							ListExpr.symbolAtom("feed"),
 							ListExpr.symbolAtom(InputObjectName[side]));
-					comMapQuery[side] = ExtListExpr.replace(
-							comMapQuery[side], InterSymbol, inputStreamList);
+					
+					boolean isObjExist = HPA_AuxFunctions.objectExist(
+							InputObjectName[side] ,ObjNameList, ObjLocList);
+					if (isObjExist){
+						comMapQuery[side] = ExtListExpr.replace(
+								comMapQuery[side], InterSymbol, inputStreamList);
+					}
+					else{
+						//Not execute the query if the required DLO sub-object doesn't exist.
+						comMapQuery[side] = ListExpr.theEmptyList();
+					}
+					
 					pattern = inputStreamList;
 					replaced = true;
 				}
@@ -205,8 +220,8 @@ public class PS_HadoopReduce2_Map
 										CreateObjectName 				+inDim+ 
 										CreateFilePath 					+inDim+ 
 										reduceQuery 						+inDim+ 
-										parameters[6] 					+inDim+ 
-										parameters[7] 					+inDim+ 
+										parameters[8] 					+inDim+ 
+										parameters[9] 					+inDim+ 
 										outputKind.ordinal()));
 					}
 				} else {

@@ -115,13 +115,10 @@ set in the reduceQuery,
 Build up the nested-list of the intermediate result locations
  
 */
-//		ListExpr irSuffixList = HPA_AuxFunctions.feedRows(rows.iterator()); 
 		ListExpr irSuffixList = HPA_AuxFunctions.feedColumn(rows.iterator(), columnNo);
 		
 		String iftName = "xxxjmIFTP";
 		int typeNodeIdx = rows.get(new Random().nextInt(rows.size()));
-/*		ListExpr lfInterList = HPA_AuxFunctions.feedInterResult(
-				columnNo, interResultName, iftName, typeNodeIdx, irSuffixList);*/
 		ListExpr lfInterList = HPA_AuxFunctions.feedInterResult2(
 				interResultName,typeNodeIdx, irSuffixList);
 		

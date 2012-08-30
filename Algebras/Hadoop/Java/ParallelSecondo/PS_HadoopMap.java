@@ -139,19 +139,12 @@ doesn't exist, and cause the failure of the map task and the whole job.
 		allDLFLocLists.readFromString(DLF_fileLoc_List);
 		
 		ListExpr allDLFLists = HPA_AuxFunctions.flist2Mapper(allDLFNameLists, allDLFLocLists, MapTasksNum);
-//		ListExpr allDLFLists = HPA_AuxFunctions.flist2Mapper2(allDLFNameLists, allDLFLocLists, MapTasksNum, slaves.size());
-//System.out.println("The allDLFLists is: \n " + allDLFLists.toString());		
 		ListExpr allDLONameLists = new ListExpr();
 		allDLONameLists.readFromString(DLO_Name_List);
 		ListExpr allDLOLocLists = new ListExpr();
 		allDLOLocLists.readFromString(DLO_loc_List);
 		ListExpr allDLOLists = HPA_AuxFunctions.flist2Mapper(allDLONameLists, allDLOLocLists, MapTasksNum);
-//		ListExpr allDLOLists = HPA_AuxFunctions.flist2Mapper2(allDLONameLists, allDLOLocLists, MapTasksNum, slaves.size());
 
-//		System.out.println("The mapTaskNumber is: " + MapTasksNum);
-		
-//		System.exit(0);
-		
 		//Prepare the input for mappers
     String inputPath = "INPUT";
     String outputPath = "OUTPUT";

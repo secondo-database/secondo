@@ -135,13 +135,9 @@ public class PS_HadoopReduce2_Reduce
 		ListExpr[] lfInterList = {ListExpr.theEmptyList(), ListExpr.theEmptyList()};
 		for (int side = 0; side < 2; side++)
 		{
-//			irSuffixList[side] = HPA_AuxFunctions.feedRows(bothRows.get(side).iterator());
 			irSuffixList[side] = HPA_AuxFunctions.feedColumn(bothRows.get(side).iterator(), columnNo);
 			
 			int typeNodeIdx = bothRows.get(side).get(new Random().nextInt(bothRows.get(side).size()));
-/*			lfInterList[side] = HPA_AuxFunctions.feedInterResult(
-					columnNo, interResultName[side], iftName[side], 
-					typeNodeIdx, irSuffixList[side]);*/
 			lfInterList[side] = HPA_AuxFunctions.feedInterResult2(
 					interResultName[side], typeNodeIdx, irSuffixList[side]);
 

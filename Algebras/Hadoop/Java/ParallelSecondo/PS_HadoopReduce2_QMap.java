@@ -36,16 +36,24 @@ public class PS_HadoopReduce2_QMap
 		ListExpr fpList = new ListExpr();
 		fpList.readFromString(CreateFilePath);
 		CreateFilePath = fpList.first().textValue();
+		String AcceptNameList = parameters[6];
+		String AcceptFileLocList = parameters[7];
+		String AcceptDLOName = parameters[8];
+		String AcceptDLOLoc = parameters[9];
 		//-----------------------------------------------------------
-		String[] 	InputObjectName		= { parameters[8], parameters[15]} ;
+		String[] 	InputObjectName		= { parameters[12], parameters[19]} ;
 		int[] 		slaveIdx					= 
-									{ Integer.parseInt(parameters[9]), Integer.parseInt(parameters[16])};							 							
+									{ Integer.parseInt(parameters[13]), Integer.parseInt(parameters[20])};							 							
 		int[] 		duplicateTimes    = 
-									{ Integer.parseInt(parameters[10]), Integer.parseInt(parameters[17])};
-		String[] 	PAName						= { parameters[11], parameters[18]} ;
-		String[] 	mapCreateQuery 		= { parameters[12], parameters[19]} ;
-		String[] 	mapFileName 			= { parameters[13], parameters[20]} ;
-		String[] 	mapFileLoc				= { parameters[14], parameters[21]} ;
+									{ Integer.parseInt(parameters[14]), Integer.parseInt(parameters[21])};
+		String[] 	PAName						= { parameters[15], parameters[22]} ;
+		String[] 	mapCreateQuery 		= { parameters[16], parameters[23]} ;
+		String[] 	mapFileName 			= { parameters[17], parameters[24]} ;
+		String[] 	mapFileLoc				= { parameters[18], parameters[25]} ;
+
+		ListExpr recvFileList = new ListExpr();
+		recvFileList.readFromString(AcceptFileLocList);
+
 		
 		String[] interResultName = { 
 				"P" + 1 + "_" + context.getJobName(),
@@ -82,6 +90,7 @@ public class PS_HadoopReduce2_QMap
 		QuerySecondo secEntity = new QuerySecondo();
 		try
 		{
+			
 			ListExpr InterSymbol = ListExpr.symbolAtom(QUERYNLSTR);
 			ListExpr[] comMapQuery = 
 				{ListExpr.theEmptyList(), ListExpr.theEmptyList()};
@@ -110,33 +119,85 @@ public class PS_HadoopReduce2_QMap
 											ListExpr.oneElemList(ListExpr.symbolAtom("Suffix")))));
 				
 				boolean replaced = true;
-				ListExpr pattern = null;
+				boolean isInputFile = true;
+				ListExpr inputStream = null;
+				
+				ListExpr mapQueryList = new ListExpr();
+				mapQueryList.readFromString(mapCreateQuery[side]);
+
 				ListExpr mapDLFNameList = new ListExpr(), mapDLFLocList = new ListExpr();
 				mapDLFNameList.readFromString(mapFileName[side]);
 				mapDLFLocList.readFromString(mapFileLoc[side]);
-				if (!mapDLFNameList.isEmpty())
+
+				if (!mapQueryList.isEmpty())
 				{
-					pattern = mapDLFNameList.first();
-					comMapQuery[side] = ExtListExpr.replace(comMapQuery[side], InterSymbol, pattern);
-					comMapQuery[side] = HPA_AuxFunctions.loc2Ffeed(
-							comMapQuery[side], ListExpr.oneElemList(pattern), 
-							mapDLFLocList, duplicateTimes[side]);
-					replaced = (!comMapQuery[side].isEmpty());
+					//Embed the unexecuted map Query
+					if (!mapDLFNameList.isEmpty())
+					{
+						inputStream = mapDLFNameList.first();
+						comMapQuery[side] = ExtListExpr.replace(comMapQuery[side], InterSymbol, mapQueryList);
+						comMapQuery[side] = HPA_AuxFunctions.loc2Ffeed(
+								comMapQuery[side], ListExpr.oneElemList(inputStream), 
+								mapDLFLocList, duplicateTimes[side]);
+						replaced = (!comMapQuery[side].isEmpty());
+					}
+					else
+					{
+						//Impossible happen, as unexecuted flist can only be DLF type
+						isInputFile = false;
+						inputStream = ListExpr.twoElemList(
+								ListExpr.symbolAtom("feed"), 
+								ListExpr.symbolAtom(InputObjectName[side]));
+						comMapQuery[side] = ExtListExpr.replace(
+								comMapQuery[side], InterSymbol, inputStream);
+					}
+					
 				}
 				else
 				{
-					pattern = ListExpr.twoElemList(
-							ListExpr.symbolAtom("feed"), 
-							ListExpr.symbolAtom(InputObjectName[side]));
-					comMapQuery[side] = ExtListExpr.replace(
-							comMapQuery[side], InterSymbol, pattern);
+					//Follow the old way
+					if (InputObjectName[side].matches(INDLFPattern))
+					{
+						inputStream = ListExpr.stringAtom(InputObjectName[side]);
+						comMapQuery[side] = ExtListExpr.replace(comMapQuery[side], InterSymbol, inputStream);
+						ListExpr mapFileLocList = null;
+						if (side == 0)
+							mapFileLocList = recvFileList.first();
+						else 
+							mapFileLocList = recvFileList.second();
+						comMapQuery[side] = HPA_AuxFunctions.loc2Ffeed(
+								comMapQuery[side], ListExpr.oneElemList(inputStream), 
+								ListExpr.oneElemList(mapFileLocList), duplicateTimes[side]);
+						replaced = (!comMapQuery[side].isEmpty());
+					}
+					else
+					{
+						isInputFile = false;
+						inputStream = ListExpr.twoElemList(ListExpr.symbolAtom("feed"), 
+								ListExpr.symbolAtom(InputObjectName[side]));
+						ListExpr omnList = new ListExpr();
+						ListExpr omlList = new ListExpr();
+						omnList.readFromString(AcceptDLOName);
+						omlList.readFromString(AcceptDLOLoc);
+						boolean isObjExist = HPA_AuxFunctions.objectExist(InputObjectName[side], omnList, omlList);
+						if (isObjExist){
+							comMapQuery[side] = ExtListExpr.replace(comMapQuery[side], InterSymbol, inputStream);
+						}
+						else{
+							comMapQuery[side] = ListExpr.theEmptyList();
+						}
+					}
 				}
-				
+
 				interResultName[side] = "<DLFMark:" + interResultName[side] + "/>";
 				ListExpr interPattern  = ListExpr.stringAtom(interResultName[side]);
-				ListExpr orgnlPattern  = ListExpr.stringAtom(InputObjectName[side]);
+				ListExpr orgnlPattern  = null;
+				if (isInputFile) 
+					orgnlPattern = ListExpr.stringAtom(InputObjectName[side]);
+				else
+					orgnlPattern = inputStream;
+
 				reduceQueryList = ExtListExpr.replace(reduceQueryList, orgnlPattern, interPattern);
-				
 				bothReplaced &= replaced;
 			}
 			reduceQuery = HPA_AuxFunctions.plainStr(reduceQueryList);
@@ -174,15 +235,16 @@ public class PS_HadoopReduce2_QMap
 										parameters[2]						+inDim+//CreateObjectName
 										CreateFilePath					+inDim+
 										reduceQuery							+inDim+
-										parameters[6]						+inDim+//frnstr
-										parameters[7]						+inDim+//frlstr
+										parameters[10]						+inDim+//frnstr
+										parameters[11]						+inDim+//frlstr
 										parameters[5]						+inDim+//outputKind.ordinal
 								""));
 					}
 				}
 				else
 				{
-					System.err.println("2: The construction of map query fails");
+					System.err.println("Warning: The construction of map query fails, " +
+							"it is possible that the inputStream doesn't exist. ");
 				}
 			}
 			secEntity.close();

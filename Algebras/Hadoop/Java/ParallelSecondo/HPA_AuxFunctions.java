@@ -418,6 +418,58 @@ then the other mappers should indicate that as an empty row.
 		return false;
 	}
 	
+	/**
+	 * Check whether the object with ~objName~ exists,
+	 * find name in the nameList, and its corresponding location list is not empty.
+	 * 
+	 * 
+	 * @param objName
+	 * @param nameList
+	 * @param locsList
+	 * @return
+	 */
+	
+	/*
+	 * if (fileName.matches(DLOFPattern))
+				fileName = fileName.substring(fileName.lastIndexOf(':') + 1, 
+						fileName.lastIndexOf("/>"));
+
+	 */
+	
+	public static boolean objectExist(String objName, ListExpr nameList, ListExpr locsList)
+	{
+		ListExpr nameRest = nameList;
+		ListExpr locsRest = locsList;
+		
+		while (!nameRest.isEmpty())
+		{
+			ListExpr nml = nameRest.first();
+			ListExpr lcl = locsRest.first();
+			
+			String name = nml.first().stringValue();
+			
+			if (name.matches(DLOFPattern))
+			{
+				name = name.substring(name.lastIndexOf(':') + 1, 
+						name.lastIndexOf("/>"));
+				if (objName.compareTo(name) == 0)
+				{
+					ListExpr rows = lcl;
+					while (!rows.isEmpty()){
+						if (!rows.first().isEmpty()){
+							return true;
+						}
+						rows = rows.rest();
+					}
+				}
+			}
+			nameRest = nameRest.rest();
+			locsRest = locsRest.rest();
+		}
+		
+		return false;
+	}
+	
 	
 	/**
 	 * Use the flist location to replace the flist subsititution mark.

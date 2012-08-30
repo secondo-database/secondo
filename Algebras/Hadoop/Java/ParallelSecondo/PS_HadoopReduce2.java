@@ -128,50 +128,54 @@ public class PS_HadoopReduce2 implements Constant{
 		ListExpr[] UEMapQueryLists = new ListExpr[2];
 		UEMapQueryLists[0] =UEMapQuery.first(); 
 		UEMapQueryLists[1] =UEMapQuery.second();
-		boolean runMapper = ! (UEMapQueryLists[0].isEmpty() && UEMapQueryLists[1].isEmpty());
+		boolean runMapper[] = {!UEMapQueryLists[0].isEmpty(), !UEMapQueryLists[1].isEmpty()};
+//		boolean runMapper = ! (UEMapQueryLists[0].isEmpty() && UEMapQueryLists[1].isEmpty());
 		ListExpr[] AllMapDLFList = new ListExpr[2]; 
 		ListExpr[] AllMapDLOList = new ListExpr[2];
 		int[] mapTaskNums = new int[2];
 		String[] MapQueryStr = {"", ""};
 		String Map_DLF_Name_ListStr[] = {"", ""};
-		if (runMapper)
+		
+//------------------------------------------------------------------------------------------
+		
+		//Prepare two sections of parameters for the mappers.
+		for (int i = 0; i < 2; i++)
 		{
-			for (int i = 0; i < 2; i++)
+			if (runMapper[i])
 			{
-				if (!UEMapQueryLists[i].isEmpty())
-				{
-					MapQueryStr[i] = HPA_AuxFunctions.plainStr(UEMapQueryLists[i].first()); 						
-					//Map map query
-					ListExpr mamfnList = UEMapQueryLists[i].second().first();		//Map DLF name list
-					Map_DLF_Name_ListStr[i] = HPA_AuxFunctions.plainStr(mamfnList);
-					
-					ListExpr mamflList = UEMapQueryLists[i].second().second(); 	//Map DLF location list
-					ListExpr mamonList = UEMapQueryLists[i].third().first(); 		//Map DLO name list
-					ListExpr mamolList = UEMapQueryLists[i].third().second();		//Map DLO location list
-					mapTaskNums[i] = UEMapQueryLists[i].fourth().intValue();
-					
-//					AllMapDLFList[i] = HPA_AuxFunctions.flist2Mapper2(mamfnList, mamflList, mapTaskNums[i], slaves.size());
-					AllMapDLFList[i] = HPA_AuxFunctions.flist2Mapper(mamfnList, mamflList, mapTaskNums[i]);
-//					AllMapDLOList[i] = HPA_AuxFunctions.flist2Mapper2(mamonList, mamolList, mapTaskNums[i], slaves.size());
-					AllMapDLOList[i] = HPA_AuxFunctions.flist2Mapper(mamonList, mamolList, mapTaskNums[i]);
-				}
+				MapQueryStr[i] = HPA_AuxFunctions.plainStr(UEMapQueryLists[i].first()); 						
+				//Map map query
+				ListExpr mamfnList = UEMapQueryLists[i].second().first();		//Map DLF name list
+				Map_DLF_Name_ListStr[i] = HPA_AuxFunctions.plainStr(mamfnList);
+				
+				ListExpr mamflList = UEMapQueryLists[i].second().second(); 	//Map DLF location list
+				ListExpr mamonList = UEMapQueryLists[i].third().first(); 		//Map DLO name list
+				ListExpr mamolList = UEMapQueryLists[i].third().second();		//Map DLO location list
+				mapTaskNums[i] = UEMapQueryLists[i].fourth().intValue();
+				
+				AllMapDLFList[i] = HPA_AuxFunctions.flist2Mapper(mamfnList, mamflList, mapTaskNums[i]);
+				AllMapDLOList[i] = HPA_AuxFunctions.flist2Mapper(mamonList, mamolList, mapTaskNums[i]);
+			}
+			else
+			{
+				AllMapDLFList[i] = ListExpr.theEmptyList();
+				AllMapDLOList[i] = ListExpr.theEmptyList();
 			}
 		}
 
-		//Apply each map task with one row of the fileLoc list.
-		ListExpr allDLFLocList = new ListExpr();
-		allDLFLocList.readFromString(DLF_Loc_ListStr);
-		ListExpr allDLFNameList = new ListExpr();
+		//Apply each map task with one row of the fileLoc list, for the executed flists. 
+		ListExpr allDLFNameList = new ListExpr(), allDLFLocList = new ListExpr();
 		allDLFNameList.readFromString(DLF_Name_ListStr);
+		allDLFLocList.readFromString(DLF_Loc_ListStr);
 		ListExpr DLFByMappers = HPA_AuxFunctions.flist2Mapper(allDLFNameList, allDLFLocList, mapTasksNum);
 		DLFByMappers = HPA_AuxFunctions.divMRDLO(allDLFNameList, DLFByMappers, mapTasksNum);
-		
-		ListExpr allDLOLocList = new ListExpr();
-		allDLOLocList.readFromString(DLO_Loc_ListStr);
-		ListExpr allDLONameList = new ListExpr();
+
+		ListExpr allDLONameList = new ListExpr(), allDLOLocList = new ListExpr();
 		allDLONameList.readFromString(DLO_Name_ListStr);
+		allDLOLocList.readFromString(DLO_Loc_ListStr);
 		ListExpr DLOByMappers = HPA_AuxFunctions.flist2Mapper(allDLONameList, allDLOLocList, mapTasksNum);
 		DLOByMappers = HPA_AuxFunctions.divMRDLO(allDLONameList, DLOByMappers, mapTasksNum);
+//------------------------------------------------------------------------------------------
 		
 		//Prepare the input for mappers
     String inputPath = "INPUT";
@@ -199,11 +203,17 @@ public class PS_HadoopReduce2 implements Constant{
 			
 			ListExpr[] amapDLF_rest = new ListExpr[2];
 			ListExpr[] amapDLO_rest = new ListExpr[2];
-			if (runMapper)
+			
+			
+			if (runMapper[0])
 			{
 				amapDLF_rest[0] = AllMapDLFList[0];
-				amapDLF_rest[1] = AllMapDLFList[1];
 				amapDLO_rest[0] = AllMapDLOList[0];
+			}
+			
+			if (runMapper[1])
+			{
+				amapDLF_rest[1] = AllMapDLFList[1];
 				amapDLO_rest[1] = AllMapDLOList[1];
 			}
 
@@ -219,38 +229,45 @@ public class PS_HadoopReduce2 implements Constant{
 				if (!afml_rest.isEmpty()) afmLoc = afml_rest.first();
 				if (!aomn_rest.isEmpty()) aomName = aomn_rest.first();
 				if (!afmn_rest.isEmpty()) afmName = afmn_rest.first();
-				ListExpr[] amap_DLF = new ListExpr[2], 
-									 amap_DLO = new ListExpr[2];
+				ListExpr[] amap_DLF = {ListExpr.theEmptyList(),ListExpr.theEmptyList()}, 
+									 amap_DLO = {ListExpr.theEmptyList(),ListExpr.theEmptyList()};
+
+				if (!afmName.isEmpty())
+					allDLFexist = HPA_AuxFunctions.allObjectExist(afmName, afmLoc);
+				if (!aomName.isEmpty())
+					allDLOexist = HPA_AuxFunctions.allObjectExist(aomName, aomLoc);
+				boolean[] mapDLFExist = {false, false};
+				boolean[] mapDLOExist = {false, false};
 				
-				if (runMapper)
+				for (int i=0; i<2; i++)
 				{
-					if (!amapDLF_rest[0].isEmpty()) amap_DLF[0] = amapDLF_rest[0].first();
-					if (!amapDLF_rest[1].isEmpty()) amap_DLF[1] = amapDLF_rest[1].first();
-					if (!amapDLO_rest[0].isEmpty()) amap_DLO[0] = amapDLO_rest[0].first();
-					if (!amapDLO_rest[1].isEmpty()) amap_DLO[1] = amapDLO_rest[1].first();
-
-					allDLOexist = 
-						HPA_AuxFunctions.allMapperFOExist(amap_DLO[0])
-						|| HPA_AuxFunctions.allMapperFOExist(amap_DLO[1]);
-					allDLFexist = 
-						HPA_AuxFunctions.allMapperFOExist(amap_DLF[0])
-						|| HPA_AuxFunctions.allMapperFOExist(amap_DLF[1]);
-				}
-				else
-				{
-					
-					if (!afmName.isEmpty())
-						allDLFexist = HPA_AuxFunctions.allObjectExist(afmName, afmLoc);
-					if (!aomName.isEmpty())
-						allDLOexist = HPA_AuxFunctions.allObjectExist(aomName, aomLoc);
+					if (runMapper[i])
+					{
+						if (!amapDLF_rest[i].isEmpty()) amap_DLF[i] = amapDLF_rest[i].first();
+						if (!amapDLO_rest[i].isEmpty()) amap_DLO[i] = amapDLO_rest[i].first();
+						
+						if (!amap_DLF[i].isEmpty())
+							mapDLFExist[i] = HPA_AuxFunctions.allMapperFOExist(amap_DLF[i]);
+						if (!amap_DLO[i].isEmpty())
+							mapDLOExist[i] = HPA_AuxFunctions.allMapperFOExist(amap_DLO[i]);
+					}
 				}
 
-				if (allDLOexist && allDLFexist)
+				if (!allDLFexist && (runMapper[0] || runMapper[1])){
+					allDLFexist = mapDLFExist[0] || mapDLFExist[1]; 
+				}
+				if (!allDLOexist && (runMapper[0] || runMapper[1])){
+					allDLOexist = mapDLOExist[0] || mapDLOExist[1]; 
+				}
+
+				if (allDLOexist || allDLFexist)
 				{
 					
 					//For mappers
 					String fmnstr = HPA_AuxFunctions.plainStr(afmName);
 					String fmlstr = HPA_AuxFunctions.plainStr(afmLoc);
+					String omnstr = HPA_AuxFunctions.plainStr(aomName);
+					String omlstr = HPA_AuxFunctions.plainStr(aomLoc);
 				
 					//For reducers
 					ListExpr aorLoc, afrLoc, aorName, afrName;
@@ -267,12 +284,12 @@ public class PS_HadoopReduce2 implements Constant{
 					PrintWriter out = new PrintWriter(
 							FileSystem.get(conf).create(
 									new Path(inputPath + "/" + fileName)));
-
-					if (runMapper)
+					
+					if (runMapper[0] || runMapper[1])
 					{
 						String[] dlfLocStr = new String[2];
 						dlfLocStr [0] = HPA_AuxFunctions.plainStr(amap_DLF[0]);
-						dlfLocStr [1] = HPA_AuxFunctions.plainStr(amap_DLF[0]);
+						dlfLocStr [1] = HPA_AuxFunctions.plainStr(amap_DLF[1]);
 						int[] slaveIdx = {0, 0}; 
 						slaveIdx[0] = HPA_AuxFunctions.findFirstSlave(amap_DLF[0]);
 						slaveIdx[1] = HPA_AuxFunctions.findFirstSlave(amap_DLF[1]);
@@ -280,7 +297,7 @@ public class PS_HadoopReduce2 implements Constant{
 							slaveIdx[0] = HPA_AuxFunctions.findFirstSlave(amap_DLO[0]);
 						if (slaveIdx[1] == 0)
 							slaveIdx[1] = HPA_AuxFunctions.findFirstSlave(amap_DLO[1]);
-						
+
 						out.print("" +
 								mapperIdx 							+ inDim +//0
 								databaseName 						+ inDim +//1
@@ -288,24 +305,28 @@ public class PS_HadoopReduce2 implements Constant{
 								CreateQuery 						+ inDim +//3
 								CreateFilePath					+ inDim +//4
 								outputKind.ordinal()  	+ inDim +//5
-								frnstr									+ inDim +//6
-								frlstr									+ inDim +//7
+								fmnstr									+ inDim +//6
+								fmlstr									+ inDim +//7
+								omnstr									+ inDim +//8
+								omlstr									+ inDim +//9
+								frnstr									+ inDim +//10
+								frlstr									+ inDim +//11
 								//-------------------------------
-								inObjName[0]						+ inDim +//8
-								slaveIdx[0]							+ inDim +//9
-								duplicateTimes[0]				+ inDim +//10
-								PAName[0]								+ inDim +//11
-								MapQueryStr[0]					+ inDim +//12
-								Map_DLF_Name_ListStr[0] + inDim +//13
-								dlfLocStr [0]						+ inDim +//14
+								inObjName[0]						+ inDim +//12
+								slaveIdx[0]							+ inDim +//13
+								duplicateTimes[0]				+ inDim +//14
+								PAName[0]								+ inDim +//15
+								MapQueryStr[0]					+ inDim +//16
+								Map_DLF_Name_ListStr[0] + inDim +//17
+								dlfLocStr [0]						+ inDim +//18
 								//-------------------------------
-								inObjName[1]						+ inDim +//15
-								slaveIdx[1]							+ inDim +//16
-								duplicateTimes[1]				+ inDim +//17
-								PAName[1]								+ inDim +//18	
-								MapQueryStr[1]					+ inDim +//19
-								Map_DLF_Name_ListStr[1] + inDim +//20
-								dlfLocStr [1]						+ inDim +//21
+								inObjName[1]						+ inDim +//19
+								slaveIdx[1]							+ inDim +//20
+								duplicateTimes[1]				+ inDim +//21
+								PAName[1]								+ inDim +//22	
+								MapQueryStr[1]					+ inDim +//23
+								Map_DLF_Name_ListStr[1] + inDim +//24
+								dlfLocStr [1]						+ inDim +//25
 						"");
 						
 						out.close();
@@ -320,16 +341,18 @@ public class PS_HadoopReduce2 implements Constant{
 								CreateQuery 					+ inDim +//3
 								fmnstr								+ inDim +//4
 								fmlstr								+ inDim +//5
-								frnstr								+ inDim +//6
-								frlstr								+ inDim +//7
-								CreateFilePath				+ inDim +//8
-								outputKind.ordinal()  + inDim +//9
-								inObjName[0]					+ inDim +//10
-								duplicateTimes[0]			+ inDim +//11
-								PAName[0]							+ inDim +//12
-								inObjName[1]					+ inDim +//13
-								duplicateTimes[1]			+ inDim +//14
-								PAName[1]											 //15	
+								omnstr								+ inDim +//6 
+								omlstr								+ inDim +//7
+								frnstr								+ inDim +//8
+								frlstr								+ inDim +//9
+								CreateFilePath				+ inDim +//10
+								outputKind.ordinal()  + inDim +//11
+								inObjName[0]					+ inDim +//12
+								duplicateTimes[0]			+ inDim +//13
+								PAName[0]							+ inDim +//14
+								inObjName[1]					+ inDim +//15
+								duplicateTimes[1]			+ inDim +//16
+								PAName[1]											 //17	
 						);
 						out.close();
 					}
@@ -339,20 +362,21 @@ public class PS_HadoopReduce2 implements Constant{
 				if (!aorl_rest.isEmpty()) aorl_rest = aorl_rest.rest();
 				if (!afrn_rest.isEmpty()) afrn_rest = afrn_rest.rest();
 				if (!afrl_rest.isEmpty()) afrl_rest = afrl_rest.rest();
+				if (!aomn_rest.isEmpty()) aomn_rest = aomn_rest.rest();
+				if (!aoml_rest.isEmpty()) aoml_rest = aoml_rest.rest();
+				if (!afmn_rest.isEmpty()) afmn_rest = afmn_rest.rest();
+				if (!afml_rest.isEmpty()) afml_rest = afml_rest.rest();
 
-				if (runMapper)
+				if  (runMapper[0])
 				{
 					if (!amapDLO_rest[0].isEmpty()) amapDLO_rest[0] = amapDLO_rest[0].rest();
-					if (!amapDLO_rest[1].isEmpty()) amapDLO_rest[1] = amapDLO_rest[1].rest();
 					if (!amapDLF_rest[0].isEmpty()) amapDLF_rest[0] = amapDLF_rest[0].rest();
-					if (!amapDLF_rest[1].isEmpty()) amapDLF_rest[1] = amapDLF_rest[1].rest();
 				}
-				else
+				
+				if (runMapper[1])
 				{
-					if (!aomn_rest.isEmpty()) aomn_rest = aomn_rest.rest();
-					if (!aoml_rest.isEmpty()) aoml_rest = aoml_rest.rest();
-					if (!afmn_rest.isEmpty()) afmn_rest = afmn_rest.rest();
-					if (!afml_rest.isEmpty()) afml_rest = afml_rest.rest();
+					if (!amapDLO_rest[1].isEmpty()) amapDLO_rest[1] = amapDLO_rest[1].rest();
+					if (!amapDLF_rest[1].isEmpty()) amapDLF_rest[1] = amapDLF_rest[1].rest();
 				}
 				
 			}
@@ -370,7 +394,7 @@ public class PS_HadoopReduce2 implements Constant{
 			
 			FileInputFormat.addInputPath(job, new Path(inputPath));
 			FileOutputFormat.setOutputPath(job, new Path(outputPath));
-			if (runMapper)
+			if  (runMapper[0] || runMapper[1])
 				job.setMapperClass(PS_HadoopReduce2_QMap.class);
 			else
 				job.setMapperClass(PS_HadoopReduce2_Map.class);

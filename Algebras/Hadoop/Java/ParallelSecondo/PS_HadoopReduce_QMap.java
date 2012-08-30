@@ -33,13 +33,15 @@ public class PS_HadoopReduce_QMap
 		String 	mapFileName 			= parameters[4];
 		String 	mapFileLoc				= parameters[5];
 		String 	reduceQuery 			= parameters[7];
-		int 		duplicateTimes    = Integer.parseInt(parameters[10]);
-		String CreateFilePath 		= parameters[12];
+		String  paraMapFileName   = parameters[8];
+		String 	paraMapFileLocs		= parameters[9];
+		int 		duplicateTimes    = Integer.parseInt(parameters[12]);
+		String CreateFilePath 		= parameters[14];
 		ListExpr fpList = new ListExpr();
 		fpList.readFromString(CreateFilePath);
 		CreateFilePath = fpList.first().textValue();
-		String 	InputObjectName		= parameters[13];
-		String 	PAName						= parameters[14];
+		String 	InputObjectName		= parameters[15];
+		String 	PAName						= parameters[16];
 		
 		String 	interResultName = "P_"+ context.getJobName();
 		int secondoSlaveIdx = mapperIdx + 1;
@@ -53,6 +55,10 @@ public class PS_HadoopReduce_QMap
 		fileLocList.readFromString(mapFileLoc);
 		mapQueryList.readFromString(mapCreateQuery);
 		reduceQueryList.readFromString(reduceQuery);
+		
+		ListExpr paraFileNameList = new ListExpr(), paraFileLocsList = new ListExpr();
+		paraFileNameList.readFromString(paraMapFileName);
+		paraFileLocsList.readFromString(paraMapFileLocs);
 
 		//Locate the mapper node
 		String slFile = System.getenv().get("PARALLEL_SECONDO_SLAVES");
@@ -109,9 +115,8 @@ public class PS_HadoopReduce_QMap
 			if (!fileNameList.isEmpty())
 			{
 				pattern = fileNameList.first();
-				comMapQuery = ExtListExpr.replace(comMapQuery, InterSymbol, pattern);
-				comMapQuery = HPA_AuxFunctions.loc2Ffeed(comMapQuery, 
-						ListExpr.oneElemList(pattern), fileLocList, duplicateTimes);
+				comMapQuery = ExtListExpr.replace(comMapQuery, InterSymbol, mapQueryList);
+				comMapQuery = HPA_AuxFunctions.loc2Ffeed(comMapQuery, fileNameList, fileLocList, duplicateTimes);
 				replaced = (!comMapQuery.isEmpty());
 			}
 			else
@@ -155,9 +160,9 @@ public class PS_HadoopReduce_QMap
 									CreateFilePath			+ inDim +
 									reduceQuery					+ inDim +
 									interResultName			+ inDim +
-									parameters[8]				+ inDim +		// reducer DLF name list
-									parameters[9]				+ inDim +		// reduce DLF loc list
-									parameters[11]									// output kind
+									parameters[10]			+ inDim +		// reducer DLF name list
+									parameters[11]			+ inDim +		// reduce DLF loc list
+									parameters[13]									// output kind
 							));
 				}
 			}

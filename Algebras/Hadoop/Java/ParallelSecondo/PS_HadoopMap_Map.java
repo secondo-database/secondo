@@ -134,13 +134,11 @@ public class PS_HadoopMap_Map
 				//Create a local object or partition file in this slave
 				context.write(
 						new Text(mapperIdx + " " + slaveIdx), new BooleanWritable(true));
-//						new IntWritable(mapperIdx), new BooleanWritable(true));
 			}
 			else{
 				//Nothing is created in this slave
 				context.write(
 						new Text(mapperIdx + " " + slaveIdx), new BooleanWritable(false));
-//						new IntWritable(mapperIdx), new BooleanWritable(false));
 			}
 			secEntity.close();
 			

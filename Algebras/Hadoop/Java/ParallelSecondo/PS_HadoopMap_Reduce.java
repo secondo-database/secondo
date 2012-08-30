@@ -41,18 +41,6 @@ public class PS_HadoopMap_Reduce
 						ListExpr.twoElemList(
 								ListExpr.intAtom(rowIdx), 
 								ListExpr.intAtom(slaveIdx)));
-				
-				
-/*				if (cnt == 0)
-				{
-					resultList = ListExpr.oneElemList(ListExpr.intAtom(slaveIdx));
-					last = resultList;
-				}
-				else
-				{
-					last = ListExpr.append(last, ListExpr.intAtom(slaveIdx));
-				}
-*/				
 				cnt++;
 			}
 		}

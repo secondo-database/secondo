@@ -15,6 +15,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
@@ -262,7 +263,6 @@ while all other DLF flists are decomposed in the reduce query only.
 					if (!afmName.isEmpty())
 						allDLFexist = HPA_AuxFunctions.allObjectExist(afmName, afmLoc);
 				}
-				System.out.println(allDLOexist + ", " + allDLFexist);
 				
 				if (allDLOexist && allDLFexist)
 				{
@@ -305,13 +305,15 @@ while all other DLF flists are decomposed in the reduce query only.
 								dlfLocStr							+ inDim +//5
 								CreateObjectName			+ inDim +//6
 								CreateQuery						+ inDim +//7
-								frnstr								+ inDim +//8
-								frlstr								+ inDim +//9
-								duplicateTimes				+ inDim +//10
-								outputKind.ordinal()  + inDim +//11
-								CreateFilePath				+ inDim +//12
-								InputObjectName				+ inDim +//13
-								PAName												 //14
+								fmnstr								+ inDim +//8
+								fmlstr								+ inDim +//9
+								frnstr								+ inDim +//10
+								frlstr								+ inDim +//11
+								duplicateTimes				+ inDim +//12
+								outputKind.ordinal()  + inDim +//13
+								CreateFilePath				+ inDim +//14
+								InputObjectName				+ inDim +//15
+								PAName												 //16
 						);
 						
 						out.close();
@@ -319,11 +321,6 @@ while all other DLF flists are decomposed in the reduce query only.
 					else
 					{
 						
-/*						String fileName = JOBID + "_INPUT_"+ mapperIdx + ".dat";
-						PrintWriter out = new PrintWriter(
-								FileSystem.get(conf).create(
-										new Path(inputPath + "/" + fileName)));
-*/						
 						out.print( "" + 
 								mapperIdx 						+ inDim +
 								databaseName 					+ inDim + 
