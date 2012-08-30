@@ -113,7 +113,7 @@ public class StreamView {
                 ObjectView object = (ObjectView) iter.next();
                 result += object.getObjectName().trim() + " ";
             }
-            if (!result.isEmpty())
+            if (!result.length()==0)
                 result = result.substring(0, result.length() - 1);
         }
         for (char c : signature) {
