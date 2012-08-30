@@ -155,10 +155,13 @@ public:
            // For partition 1: write 'tuplesInTupleFile' to tuplefile
            // For partition 1+n: read 'tuplesInTupleFile' from tuplefile
            pRes->Time = p2.Time + (tuplesPerIteration * wItHashJoin * p2.Size) 
-              + ((partitions - 1) * tuplesPerIteration * xItHashJoin * p2.Size);
+              + ((partitions - 1) * tuplesPerIteration * xItHashJoin * p2.Size)
+              +  p1.Card * uItHashJoin + p1.Time;
 
            // Calculate Elapsed time 
-           size_t elapsedTime = p2.Time * p2.Progress;
+           size_t elapsedTime = p2.Time * p2.Progress 
+                                + (p1.Progress * p1.Card * uItHashJoin)
+                                + (p1.Progress * p1.Time);
 
            if(iteration <= 1) {
               elapsedTime += readInIteration * wItHashJoin * p2.Size;
@@ -194,7 +197,8 @@ public:
               }
 
               pRes->Progress = p2.Progress;
-              pRes->Time = p2.Time + p2.Card * vItHashJoin; 
+              pRes->Time = p2.Time + p2.Card * vItHashJoin 
+                + p1.Card * uItHashJoin + p1.Time ; 
            }
     
           // Blocking time is: adding p1.Card tuples to hashtable
@@ -203,13 +207,6 @@ public:
           pRes->BProgress = ((p1.Progress * p1.Card * uItHashJoin) 
             + (p1.Progress * p1.Time) + (p1.BProgress * p1.BTime) 
             + (p2.BProgress * p2.BTime)) / pRes->BTime;
-
-          // Add Blocking time to normal time
-          // and merge progress values
-          pRes->Time += pRes->BTime;
-          pRes->Progress = (pRes->Time * pRes->Progress 
-               + pRes->BTime * pRes->BProgress) 
-               / (pRes->Time + pRes->BTime);
 
           // Calculate cardinality
           // Warm state or cold state?
@@ -627,16 +624,32 @@ public:
      li = static_cast<extrel2::GraceHashJoinLocalInfo*>( localInfo );
      
      if( !li ) {
-          return CANCEL;
+
+       // if localInfo is deleted, and we have
+       // a old ProgressInfo. Use them and assume
+       // that the calculation is done
+       if(pi.Time > 0) {
+          pRes->Copy(pi);
+          pRes -> BProgress = 1;
+          pRes -> Progress = 1;
+          pRes -> Card = returned;
+          return YIELD;
+       }
+       return CANCEL;
      }
 
      if (qp->RequestProgress(args[0].addr, &p1)
        && qp->RequestProgress(args[1].addr, &p2)) {     
 
-        return li->CalcProgress(p1, p2, pRes, supplier);
-     } else {
-         return CANCEL;
-     }
+        li->CalcProgress(p1, p2, pRes, supplier);
+
+        // Copy values, if the localInfo value of the 
+        // operator is deleted, we can use the last progress
+        // estimation
+        pi.Copy(*pRes);
+
+        return YIELD;
+     } 
 
    // default: send cancel
    return CANCEL;
@@ -653,7 +666,44 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
                       const double memoryMB, double &costs) const{
 
-         
+     double uHashJoin = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "uHashJoin");
+ 
+     double vHashJoin = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "vHashJoin");
+
+     double t_read = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "tread");
+ 
+     double t_write = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "twrite");
+ 
+     double t_probe = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "tprobe");
+ 
+     double t_hash = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "thash");
+     
+     // Internal or external mode?
+     if(calculateSufficientMemory(NoTuples1, sizeOfTuple1, 
+         NoTuples2, sizeOfTuple2) > memoryMB) {
+
+        // External mode
+        costs = NoTuples1 * ( t_probe + t_hash + t_read + t_write ) +
+        NoTuples2 * ( t_hash + t_read + t_write );
+     } else {
+        // Internal mode
+         costs = 
+                + NoTuples1 * vHashJoin  // reading stream B into hash table
+                + NoTuples2 * uHashJoin; // probing stream A against hash table
+     }
+
      return true;
 }
 
@@ -662,8 +712,11 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
 2.3 Calculate the sufficent memory for this operator.
 
 */
-double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
-   return 16.0; // FIXME
+double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1, 
+  const size_t NoTuples2, const size_t sizeOfTuple2) const {
+
+   // Space for placing all tuples in memory
+   return NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2 / (1024 * 1024);
 }
 
 /*
@@ -687,7 +740,8 @@ timeAt16MB - Time for the calculation with 16MB Memory
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB )  const { 
       
-      sufficientMemory=calculateSufficientMemory(NoTuples2, sizeOfTuple2);
+      sufficientMemory=calculateSufficientMemory(NoTuples1, sizeOfTuple1,
+        NoTuples2, sizeOfTuple2);
       
       getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
         sufficientMemory, timeAtSuffMemory);
@@ -735,6 +789,7 @@ function. Allowed types are:
 private:
   ProgressLocalInfo *pli;   // Local Progress info
   ProgressInfo p1, p2;      // Progress info for stream 1 / 2
+  ProgressInfo pi;          // Progress Info
 };
 
 
@@ -775,20 +830,35 @@ public:
      li = static_cast<extrel2::HybridHashJoinLocalInfo*>( localInfo );
 
      if( !li ) {
-        return CANCEL;
+       // if localInfo is deleted, and we have
+       // a old ProgressInfo. Use them and assume
+       // that the calculation is done
+       if(pi.Time > 0) {
+          pRes->Copy(pi);
+          pRes -> BProgress = 1;
+          pRes -> Progress = 1;
+          pRes -> Card = returned;
+          return YIELD;
+       }
+
+       return CANCEL;
      }
 
      if (qp->RequestProgress(args[0].addr, &p1)
-       && qp->RequestProgress(args[1].addr, &p2)) {     
-          return li->CalcProgress(p1, p2, pRes, supplier);
-     } else {
-          return CANCEL;
-     }
+       && qp->RequestProgress(args[1].addr, &p2)) {
+          li->CalcProgress(p1, p2, pRes, supplier);
+          
+          // Copy values, if the localInfo value of the 
+          // operator is deleted, we can use the last progress
+          // estimation
+          pi.Copy(*pRes); 
+          
+          return YIELD; 
+     } 
 
    // default: send cancel
    return CANCEL;
 }
-
 
 /*
 3.2 getCosts
@@ -800,24 +870,52 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
                       const double memoryMB, double &costs) const{
 
-     //millisecs per byte read in sort step
-     static const double uSortBy =
-           ProgressConstants::getValue("ExtRelationAlgebra",
-           "mergejoin", "uSortBy");
+     double uHashJoin = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "uHashJoin");
+ 
+     double vHashJoin = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "vHashJoin");
 
-     //millisecs per byte read in merge step (sortmerge)
-     const double wMergeJoin = 
-           ProgressConstants::getValue("ExtRelationAlgebra",
-           "mergejoin", "wMergeJoin");
+     double t_read = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "tread");
+ 
+     double t_write = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "twrite");
+ 
+     double t_probe = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "tprobe");
+ 
+     double t_hash = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "thash");
+     
+     // Internal or external mode?
+     if(calculateSufficientMemory(NoTuples1, 
+        sizeOfTuple1, NoTuples2, sizeOfTuple2) > memoryMB) {
 
-     // Time = Sort tuples in left and right stream
-     // and merge both streams
-     costs = NoTuples1 * sizeOfTuple1 * uSortBy +
-             + NoTuples2 * sizeOfTuple2 * uSortBy +
-             + (NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2) 
-             * wMergeJoin;
+        // External mode
 
-        
+        // No of tuples in partition 0
+        double card0 = (memoryMB * 1024 * 1024) / sizeOfTuple2;
+
+
+        costs = NoTuples1 * ( t_probe + t_hash + t_read + t_write ) +
+        NoTuples2 * ( t_hash + t_read + t_write )
+
+        // Tuples in Partition 0 are hold in memory
+        -  card0 * ( t_read + t_write );
+     } else {
+        // Internal mode
+         costs = 
+                + NoTuples1 * vHashJoin   // reading stream B into hash table
+                + NoTuples2 * uHashJoin; // probing stream A against hash table
+     }
+
      return true;
 }
 
@@ -827,11 +925,10 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
 
 */
 double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1, 
-   size_t NoTuples2, size_t sizeOfTuple2) const {
-     
-     // Space for do an in memory sort
-     // of both streams + 20 % memory for merging
-     return (NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2) * 1.2;
+  const size_t NoTuples2, const size_t sizeOfTuple2) const {
+
+   // Space for placing all tuples in memory
+   return NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2 / (1024 * 1024);
 }
 
 /*
@@ -855,7 +952,7 @@ timeAt16MB - Time for the calculation with 16MB Memory
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB )  const { 
       
-      sufficientMemory=calculateSufficientMemory(NoTuples1, sizeOfTuple1, 
+      sufficientMemory=calculateSufficientMemory(NoTuples1, sizeOfTuple1,
         NoTuples2, sizeOfTuple2);
       
       getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
@@ -866,34 +963,9 @@ timeAt16MB - Time for the calculation with 16MB Memory
       
       return true;
    }
-
+ 
 /*
-3.5 getFunction
-
-This function approximates the costfunction by an parametrizable
-function. Allowed types are:
-
-1: linear function
-2: a / x
-
-*/
-   virtual bool getLinearParams(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
-            int& functionType,
-            double& sufficientMemory, double& timeAtSuffMemory,
-            double& timeAt16MB,
-            double& a, double& b, double& c, double& d) const {
-       functionType=1;
-       a=0;b=0;c=0;d=0;
-       return getLinearParams(NoTuples1, sizeOfTuple1,
-                              NoTuples2, sizeOfTuple2,
-                              sufficientMemory, timeAtSuffMemory, 
-                              timeAt16MB);  
-  }  
-   
-/*
-3.6 init our class
+3.5 init our class
 
 */
   virtual void init(Word* args, void* localInfo)
@@ -904,13 +976,14 @@ function. Allowed types are:
 private:
   ProgressLocalInfo *pli;   // Local Progress info
   ProgressInfo p1, p2;      // Progress info for stream 1 / 2
+  ProgressInfo pi;          // Progress Info
 };
 
 
 
 /*
 4.0 The class ~SortMergeJoinCostEstimation~ provides cost estimation
-    capabilities for the operator gracehashjoin
+    capabilities for the operator sortmergejoin
 
 */
 class SortMergeJoinCostEstimation : public CostEstimation 
@@ -966,6 +1039,16 @@ public:
 
      if( !localInfo )
      {
+       // if localInfo is deleted, and we have
+       // a old ProgressInfo. Use them and assume
+       // that the calculation is done
+       if(pi.Time > 0) {
+          pRes->Copy(pi);
+          pRes -> BProgress = 1;
+          pRes -> Progress = 1;
+          pRes -> Card = returned;
+          return YIELD;
+       }
        return CANCEL;
      }
      
@@ -1056,7 +1139,12 @@ public:
                               + p2.BProgress * p2.BTime
                               + ((double) readFirst) * p1.Size * uSortBy
                               + ((double) readSecond) * p2.Size * uSortBy )
-                            / pRes->BTime;
+                        / pRes->BTime;
+
+          // Copy values, if the localInfo value of the 
+          // operator is deleted, we can use the last progress
+          // estimation
+          pi.Copy(*pRes);
 
           return YIELD;
      } else {
@@ -1066,7 +1154,6 @@ public:
    // default: send cancel
    return CANCEL;
 }
-
 
 /*
 4.2 getCosts
@@ -1179,6 +1266,7 @@ function. Allowed types are:
 
 private:
   LocalInfo<extrel2::SortMergeJoinLocalInfo> *pli;   // Local Progress info
+  ProgressInfo pi;          // Progress info
   ProgressInfo p1, p2;      // Progress info for stream 1 / 2
 };
 
