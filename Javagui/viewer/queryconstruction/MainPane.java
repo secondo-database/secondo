@@ -101,12 +101,17 @@ public class MainPane extends JComponent implements MouseListener {
         }
         lastObject = operation.getView();
         if (operation.getObjects()[0].equals("")) {
-            addObject(new ObjectView(operation.getResultType(), operation.getOperationName()));
+            ObjectView new_object = new ObjectView(operation.getResultType(), operation.getOperationName());
+            addObject(new_object);
+            new_object.setSignature(operation.getSignature());
         }
         else {
             activeStream.addObject(operation.getView());
         }
-        //activeStream.setSignature(operation.getSignature());
+    }
+    
+    protected void addParamStream(StreamView stream){
+        lastObject.addParamStream(stream);
     }
     
     /**
@@ -146,8 +151,7 @@ public class MainPane extends JComponent implements MouseListener {
         
     }
     
-    protected void updateOperation(String result) {
-        lastObject.setObjectName(result);
+    protected void updateOperation() {
         /* delete the signature, only the new name of the operation is used */
         //activeStream.setSignature("");
         viewer.update();

@@ -23,6 +23,7 @@ public class StreamView {
     private boolean active = true;
     private boolean hasNext = false;
     private ArrayList<StreamView> inputStreams = new ArrayList<StreamView>();
+    private ArrayList<StreamView> paramStreams = new ArrayList<StreamView>();
     private int xpos;
     private int ypos;
 
@@ -34,11 +35,15 @@ public class StreamView {
     }
 
     protected void addInputStream(StreamView stream) {
-        this.inputStreams.add(stream);
+        inputStreams.add(stream);
     }
 
     protected void addObject(ObjectView object) {
         objects.add(object);
+    }
+    
+    protected void addParamStream(StreamView stream) {
+        paramStreams.add(stream);
     }
 
     protected void change() {
@@ -101,34 +106,41 @@ public class StreamView {
 
     protected String getString() {
         String result = "";
-        int i = 0;
+        int iS = 0;
+        int pS = 0;
         if (signature.length == 0) {
             for (Iterator iter = objects.iterator(); iter.hasNext();) {
                 ObjectView object = (ObjectView) iter.next();
                 result += object.getObjectName().trim() + " ";
             }
+            if (!result.isEmpty())
+                result = result.substring(0, result.length() - 1);
         }
         for (char c : signature) {
             switch(c) {
                 case OperationsDialog.obChar: 
-                    if (i < inputStreams.size()){
-                        result += inputStreams.get(i).getString();
+                    if (iS < inputStreams.size()){
+                        result += inputStreams.get(iS).getString();
                     }
-                    i++;
+                    iS++;
                     break;
                 case OperationsDialog.opChar:
                     for (Iterator iter = objects.iterator(); iter.hasNext();) {
                         ObjectView object = (ObjectView) iter.next();
                         result += object.getObjectName().trim()+" ";
                     }
-                    if (i == inputStreams.size()) {
+                    if (iS == inputStreams.size()) {
                         return result;
                     }
                     break;
                 case OperationsDialog.pChar:
+                    if (pS < paramStreams.size()){
+                        result += paramStreams.get(pS).getTypeString();
+                    }
+                    pS++;
                     break;
                 default:
-                    if (i <= inputStreams.size()) {
+                    if (iS <= inputStreams.size()) {
                         result += c;
                     }
                     break;
@@ -144,13 +156,16 @@ public class StreamView {
         if (signature.length == 0) {
             for (Iterator iter = objects.iterator(); iter.hasNext();) {
                 ObjectView object = (ObjectView) iter.next();
-                if (object.getObjectName().startsWith(".")) {
+                /* Attribute objects should be treated as constants in inner queries. */
+                if (object.getObjectName().startsWith(".") && !object.getType().equals("param")) {
                     result += object.getConst() + " ";
                 }
                 else {
                     result += object.getObjectName().trim() + " ";
                 }
             }
+            if (result.length() > 0)
+                result = result.substring(0, result.length() - 1);
         }
         for (char c : signature) {
             switch(c) {
@@ -175,6 +190,10 @@ public class StreamView {
                     }
                     break;
                 case OperationsDialog.pChar:
+                    if (pAt < paramStreams.size()){
+                        result += paramStreams.get(pAt).getTypeString();
+                    }
+                    pAt++;
                     break;
                 default:
                     if (i <= inputStreams.size()) {

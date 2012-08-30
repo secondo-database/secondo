@@ -72,7 +72,7 @@ public class OperationsDialog extends JDialog {
     }
     
     protected void activate(){
-        this.setResult();
+        check();
     }
     
     protected void back(){
@@ -221,7 +221,7 @@ public class OperationsDialog extends JDialog {
             send();
         }
         else {
-            setResult();
+            showDialog();
         }
     }
     
@@ -356,13 +356,16 @@ public class OperationsDialog extends JDialog {
     //adds the textfield to the operation name
     private void sendText(JTextField textfield){
         String text = textfield.getText();
-        this.addResult(text);
+        addResult(text);
     }
     
     private void send() {
-        setResult();
-        //operation.addParam(result);
-        main.updateOperation(result);
+        ObjectView new_object = new ObjectView("param", result);
+        StreamView paramStream = new StreamView("OperationStream", "", 0, 0);
+        paramStream.addObject(new_object);
+        //operation.getView().addParamStream(paramStream);
+        main.addParamStream(paramStream);
+        main.update();
         this.dispose();
     }
     

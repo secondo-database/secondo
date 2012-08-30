@@ -31,7 +31,6 @@ public class FilterViewer extends QueryconstructionViewer {
     public FilterViewer(OperationsDialog dialog) {
         super();
         this.dialog = dialog;
-        this.result = result;
         
         f.addWindowListener( new WindowAdapter() {
             public void windowClosing ( WindowEvent e) {
@@ -66,8 +65,6 @@ public class FilterViewer extends QueryconstructionViewer {
         f.setVisible(true);
     }
     
-    
-    
     /**
      * add the attribute objects to the object panel
      * @param objects attribute objects
@@ -84,6 +81,7 @@ public class FilterViewer extends QueryconstructionViewer {
      * add the generated string to the query
      */
     private void addString() {
+        
         dialog.addResult(mainPane.getStrings());
         f.setVisible(false);
     }
@@ -96,6 +94,7 @@ public class FilterViewer extends QueryconstructionViewer {
     }
     
     public void update(){
+        
         super.update();
         if (result != null) {
             if (mainPane.getType().equals(result)) {

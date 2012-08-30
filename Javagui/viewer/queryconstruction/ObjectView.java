@@ -9,6 +9,7 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
 import javax.swing.*;
@@ -24,15 +25,20 @@ public class ObjectView extends JComponent {
     
     private String name;
     private String label;
-    private String[] paramValue;
-    private int paramAt = 0;
+    private char[] signature;
+    private boolean isActive;
+    private boolean isOperation;
+    private ArrayList<StreamView> paramStreams = new ArrayList<StreamView>();
     
     private int xpos = 10;
     private int ypos = 10;
     private ObjectType otype;
     private String type;
-    private boolean active = false;
     private Color color = Color.BLACK;
+    
+    protected final static char obChar = 'o';
+    protected final static char opChar = '#';
+    protected final static char pChar = 'p';
     
     public ObjectView(){
         this.setOpaque(false);
@@ -45,6 +51,7 @@ public class ObjectView extends JComponent {
         this.label = name;
         this.type = type;
         
+        this.isOperation = type.equals(ObjectType.OPERATION);
     }
     
     public ObjectView(ListExpr list){
@@ -57,8 +64,9 @@ public class ObjectView extends JComponent {
         
     }
     
-    protected void addParam(String param) {
-        paramValue[paramAt] = param;
+    protected void addParamStream(StreamView stream) {
+        paramStreams.add(stream);
+        this.setObjectName();
     }
     
     /** paints a Secondo ObjectView into the RelationsPane
@@ -109,8 +117,8 @@ public class ObjectView extends JComponent {
         g.drawString(s, xpos + 45 - w/2, ypos + 30);
     }
     
-    /** paints a Secondo ObjectView into the mainPane
-     * 
+    /** 
+     * paints a Secondo ObjectView into the mainPane
      */
     public void paintComponent(Graphics g, int x, int y, Color color){
         this.xpos = 10 + x*120;
@@ -131,19 +139,36 @@ public class ObjectView extends JComponent {
         return result;
     }
     
-    protected void setObjectName(String name) {
-        this.name = name;
-        if (name.length() < 12) {
-            label = name;
-        }
+    protected void setLabel(String label) {
+        this.label = label;
     }
     
-    protected String getParam(int i){
+    protected void setObjectName() {
+        String result = "";
+        int pS = 0;
+        for (char c : signature) {
+            switch(c) {
+                case obChar: 
+                    break;
+                case opChar: 
+                    result += this.name;
+                    break;
+                case pChar: 
+                    if (pS < paramStreams.size()){
+                        result += paramStreams.get(pS).getTypeString();
+                    }
+                    pS++;
+                    break;
+                default:
+                    result += c;
+                    break;
+            }
+        }
         
-        if (paramValue != null)
-            return paramValue[i];
-        else
-            return null;
+        name = result;
+        if (name.length() < 12) {
+            setLabel(name);
+        }
     }
     
     public String getType(){
@@ -154,24 +179,23 @@ public class ObjectView extends JComponent {
         return (otype != null);
     }
     
+    protected boolean isActive() {
+        return isActive;
+    }
+    
     public ObjectType getOType() {
         return otype;
+    }
+    
+    protected void setActive(boolean active){
+        this.isActive = active;
     }
     
     public void setOType(ObjectType otype) {
         this.otype = otype;
     }
     
-    public boolean isActive() {
-        return active;
-    }
-    
-    public void setActive(boolean active) {
-        color = Color.BLACK;
-        this.active = active;
-    }
-    
-    protected void setParams(String[] params) {
-        paramValue = params;
+    protected void setSignature(String sig) {
+        this.signature = sig.toCharArray();
     }
 }

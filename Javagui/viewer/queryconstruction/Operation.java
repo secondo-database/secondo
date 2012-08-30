@@ -22,7 +22,7 @@ import viewer.QueryconstructionViewer;
  *
  * @author lrentergent
  */
-public class Operation extends JComponent { 
+public class Operation extends ObjectView { 
     
     private String name;
     private String label;
@@ -54,16 +54,11 @@ public class Operation extends JComponent {
         Arrays.sort(this.objects);
         
         view = new ObjectView(ObjectType.OPERATION, name);
-        view.setParams(new String[parameter.length]);
-    }
-    
-    protected void addParam(String param) {
-        view.addParam(param);
-    }    
+        view.setSignature(signature);
+    }  
     
     public void paintComponent(Graphics g) {
         this.setBorder(BorderFactory.createEtchedBorder());
-        
         int w = g.getFontMetrics().stringWidth(label);
         String s = label;
         if (w > 80) {
@@ -91,20 +86,16 @@ public class Operation extends JComponent {
     }
     
     protected String getOperationName() {
-        return this.name;
+        return getView().getObjectName();
     }
     
-    protected void setOperationName(String name) {
-        this.name = name;
-        view.setObjectName(name);
+    protected String getLabel() {
+        return label;
     }
     
-    public String getLabel() {
-        return this.label;
-    }
-    
-    public void setLabel(String label) {
-        this.label = label;
+    protected void setLabel() {
+        if ((0 < getView().getObjectName().length()) && (getView().getObjectName().length() < 10))
+            label = getView().getObjectName();
     }
     
     public ObjectView getView() {
