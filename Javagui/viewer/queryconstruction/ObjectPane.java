@@ -151,7 +151,7 @@ public class ObjectPane  extends JComponent implements MouseListener {
             ObjectView element = (ObjectView)arg0.getComponent();
             
             if (arg0.getButton() == 3) {
-                /*  // Java 1.4 compatible 
+                // Java 1.4 compatible 
                 int dx = 0;
                 int dy = 0;
                 Object src = arg0.getSource();
@@ -165,9 +165,7 @@ public class ObjectPane  extends JComponent implements MouseListener {
                    }
                 }
                 dialog = new InfoDialog(dx + arg0.getX(), dy + arg0.getY());
-                */
-                // java 1.6 compatible
-                dialog = new InfoDialog(arg0.getXOnScreen(), arg0.getYOnScreen());
+                
                 String elementCount = viewer.getCount(element.getObjectName()).trim();
                 String elementName = element.getObjectName();
                 if (!elementCount.equals("0"))

@@ -331,7 +331,7 @@ public class MainPane extends JComponent implements MouseListener {
         //right click on an object shows more information about it
         if (e.getButton() == 3) {
 
-          /* // java 1.4 compatible code
+          // java 1.4 compatible code
             int dx = 0;
             int dy = 0;
             Object src = e.getSource();
@@ -345,9 +345,9 @@ public class MainPane extends JComponent implements MouseListener {
                }
             }
             infoDialog = new InfoDialog(dx + e.getX(), dy + e.getY());
-            */
+            
             // works with java 1.6
-            infoDialog = new InfoDialog(e.getXOnScreen(), e.getYOnScreen());
+            //infoDialog = new InfoDialog(e.getXOnScreen(), e.getYOnScreen());
             infoDialog.setTitle(activeStream.getName());
             getInfo();
         }
