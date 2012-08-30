@@ -3128,8 +3128,10 @@ int hadoopMapValueMap(Word* args, Word& result,
     }
 
     //Result type
+    clusterInfo *ci = new clusterInfo();
     ListExpr resultType = qp->GetType(s);
-    fList* resultFList;
+    fList* resultFList = new fList(CreateObjectName, NList(resultType),
+        ci, NList(), 1, false, kind);
     fList* inputFList = (fList*)args[0].addr;
     int dupTimes = inputFList->getDupTimes();
     //Parameters required by the Hadoop job are:
@@ -3175,7 +3177,6 @@ int hadoopMapValueMap(Word* args, Word& result,
     NList dlfNameList, dlfLocList;
     NList dloNameList, dloLocList;
     ListExpr sidList;
-    clusterInfo *ci = new clusterInfo();
     if (!ok){
       cerr << "Preparing Hadoop job parameters fails." << endl;
     }
@@ -3302,12 +3303,6 @@ int hadoopMapValueMap(Word* args, Word& result,
           resultFList = new fList(CreateObjectName, NList(resultType), ci,
               fileLocList, 1, true, kind);
         }
-        else
-        {
-          //If the creation job is not successfully returned,
-          //Then an empty flist is returned as the result
-          resultFList = 0;
-        }
       }
       else
       {//executed == false
@@ -3323,7 +3318,6 @@ int hadoopMapValueMap(Word* args, Word& result,
           ci, NList(), 1, false, kind, 0, 0, UEMapQuery);
       }
     }
-
 
     result.setAddr(resultFList);
   }
