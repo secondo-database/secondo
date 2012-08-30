@@ -50,6 +50,8 @@ public class QueryconstructionViewer extends SecondoViewer {
     private JScrollPane objectScrollpane;
     private JScrollPane operationsScrollpane;
     
+    protected JButton back = new JButton("back");
+    
     private ListExpr objects;
     private ListExpr operators;
     
@@ -75,7 +77,7 @@ public class QueryconstructionViewer extends SecondoViewer {
         buttonPanel.add(newQuery);
         JButton run = new JButton("run");
         buttonPanel.add(run);
-        JButton back = new JButton("back");
+        
         buttonPanel.add(back);
         JButton addObj = new JButton("add objects");
         buttonPanel.add(addObj);
@@ -127,7 +129,7 @@ public class QueryconstructionViewer extends SecondoViewer {
      * @param operation new operation
      */
     public void addOperation(Operation operation){
-        this.mainPane.addOperation(operation);
+        mainPane.addOperation(operation);
         update();
     }
     
@@ -138,6 +140,10 @@ public class QueryconstructionViewer extends SecondoViewer {
         }
         
         return getTypeNL;
+    }
+    
+    public ViewerControl getViewerControl() {
+        return VC;
     }
     
     public String getCount(String query) {
