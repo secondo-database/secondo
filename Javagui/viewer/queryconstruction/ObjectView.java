@@ -24,6 +24,8 @@ public class ObjectView extends JComponent {
     
     private String name;
     private String label;
+    private String[] paramValue;
+    private int paramAt = 0;
     
     private int xpos = 10;
     private int ypos = 10;
@@ -53,6 +55,10 @@ public class ObjectView extends JComponent {
         this.type = otype.getType();
         this.label = this.name;
         
+    }
+    
+    protected void addParam(String param) {
+        paramValue[paramAt] = param;
     }
     
     /** paints a Secondo ObjectView into the RelationsPane
@@ -114,15 +120,30 @@ public class ObjectView extends JComponent {
         paintComponent(g);
     }
     
-    public String getName() {
+    protected String getObjectName() {
         return this.name;
     }
     
-    public void setName(String name) {
+    protected String getConst(){
+        String result = "[const ";
+        result += this.getType() + " value undef]";
+        
+        return result;
+    }
+    
+    protected void setObjectName(String name) {
         this.name = name;
         if (name.length() < 12) {
             label = name;
         }
+    }
+    
+    protected String getParam(int i){
+        
+        if (paramValue != null)
+            return paramValue[i];
+        else
+            return null;
     }
     
     public String getType(){
@@ -148,5 +169,9 @@ public class ObjectView extends JComponent {
     public void setActive(boolean active) {
         color = Color.BLACK;
         this.active = active;
+    }
+    
+    protected void setParams(String[] params) {
+        paramValue = params;
     }
 }

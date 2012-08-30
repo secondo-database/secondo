@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package viewer.queryconstruction;
 
 import java.awt.Color;
@@ -60,13 +56,34 @@ public class StreamView {
         this.active = false;
         this.addLine(nextStream.getX(), nextStream.getY());
     }
+    
+    protected void setSignature(String sig) {
+        this.signature = sig.toCharArray();
+    }
+    
+    /**
+     * remove the stream and set the input streams active
+     */
+    protected void remove(){
+        for ( Iterator iter = inputStreams.iterator(); iter.hasNext(); ) {
+            StreamView stream = (StreamView)iter.next();
+            stream.removeNext();
+        }
+    }
 
+    /**
+     * remove the following stream
+     */
     protected void removeNext() {
         hasNext = false;
         line = null;
         active = true;
     }
 
+    /**
+     * returns the last object of a stream
+     * @return last object of type ObjetView
+     */
     protected ObjectView getLastComponent() {
         if (this.objects.size() > 0) {
             return this.objects.get(objects.size() - 1);
@@ -74,6 +91,10 @@ public class StreamView {
         return null;
     }
 
+    /**
+     * returns all objects of the stream
+     * @return ArrayList of all ObjectView objects
+     */
     protected ArrayList<ObjectView> getObjects() {
         return this.objects;
     }
@@ -84,7 +105,7 @@ public class StreamView {
         if (signature.length == 0) {
             for (Iterator iter = objects.iterator(); iter.hasNext();) {
                 ObjectView object = (ObjectView) iter.next();
-                result += object.getName().trim() + " ";
+                result += object.getObjectName().trim() + " ";
             }
         }
         for (char c : signature) {
@@ -92,18 +113,73 @@ public class StreamView {
                 case OperationsDialog.obChar: 
                     if (i < inputStreams.size()){
                         result += inputStreams.get(i).getString();
-                        i++;
                     }
+                    i++;
                     break;
                 case OperationsDialog.opChar:
                     for (Iterator iter = objects.iterator(); iter.hasNext();) {
                         ObjectView object = (ObjectView) iter.next();
-                        result += object.getName().trim() + " ";
+                        result += object.getObjectName().trim()+" ";
+                    }
+                    if (i == inputStreams.size()) {
+                        return result;
                     }
                     break;
-                case OperationsDialog.pChar: 
+                case OperationsDialog.pChar:
                     break;
                 default:
+                    if (i <= inputStreams.size()) {
+                        result += c;
+                    }
+                    break;
+            }
+        }
+        return result;
+    }
+    
+    protected String getTypeString(){
+        String result = "";
+        int i = 0;
+        int pAt = 0;
+        if (signature.length == 0) {
+            for (Iterator iter = objects.iterator(); iter.hasNext();) {
+                ObjectView object = (ObjectView) iter.next();
+                if (object.getObjectName().startsWith(".")) {
+                    result += object.getConst() + " ";
+                }
+                else {
+                    result += object.getObjectName().trim() + " ";
+                }
+            }
+        }
+        for (char c : signature) {
+            switch(c) {
+                case OperationsDialog.obChar: 
+                    if (i < inputStreams.size()){
+                        result += inputStreams.get(i).getTypeString();
+                    }
+                    i++;
+                    break;
+                case OperationsDialog.opChar:
+                    for (Iterator iter = objects.iterator(); iter.hasNext();) {
+                        ObjectView object = (ObjectView) iter.next();
+                        if (object.getObjectName().startsWith(".")) {
+                            result += object.getConst()+" ";
+                        }
+                        else {
+                            result += object.getObjectName().trim()+" ";
+                        }
+                    }
+                    if (i == inputStreams.size()) {
+                        return result;
+                    }
+                    break;
+                case OperationsDialog.pChar:
+                    break;
+                default:
+                    if (i <= inputStreams.size()) {
+                        result += c;
+                    }
                     break;
             }
         }

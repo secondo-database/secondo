@@ -4,15 +4,14 @@
  */
 package viewer.queryconstruction;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.GridLayout;
-import java.awt.event.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.WindowListener;
-import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import javax.swing.*;
 import viewer.QueryconstructionViewer;
@@ -69,6 +68,7 @@ public class OperationsDialog extends JDialog {
         filterViewer.setOperators(mainViewer.getOperatorList());
         filterViewer.setObjects(mainViewer.getObjectList());
         allObjects = filterViewer.getObjects();
+        filterViewer.setViewerControl(viewer.getViewerControl());
     }
     
     protected void activate(){
@@ -83,8 +83,8 @@ public class OperationsDialog extends JDialog {
         this.radiogroup.remove(objectButtons);
         
         String parameter = params[hasParameter];
-        if (parameter.equals("bool") || parameter.equals("new")){
-            nestedQuery();
+        if (parameter.equals("bool") || parameter.startsWith("new")){
+            nestedQuery(parameter);
         }
         if (!parameter.equals("bool")) {
             for (String param: parameter.split(",")) {
@@ -147,14 +147,14 @@ public class OperationsDialog extends JDialog {
      * @param objectName
      * @param atts attributes of the object
      */
-    public void addCheckboxes(String objectName, String[] atts) {
+    protected void addCheckboxes(String objectName, String[] atts) {
         JLabel name = new JLabel(objectName);
         this.add(name);
         this.cbs = new JCheckBox[atts.length];
         int i = 0;
         for (String att: atts) {
             cbs[i] = new JCheckBox( att, false );
-            add(cbs[i]);
+            
             i++;
         }
     }
@@ -169,8 +169,8 @@ public class OperationsDialog extends JDialog {
         for (ObjectView o: allObjects) {
             for (String t: types) {
                 if (o.getType().equals(t)) {
-                    JRadioButton rb = new JRadioButton(o.getType() + " " + o.getName());
-                    rb.setActionCommand(o.getName());
+                    JRadioButton rb = new JRadioButton(o.getType() + " " + o.getObjectName());
+                    rb.setActionCommand(o.getObjectName());
                     buttonPanel.add(rb);
                     objectButtons.add(rb);
                     i++;
@@ -242,11 +242,11 @@ public class OperationsDialog extends JDialog {
                     case obChar: 
                         break;
                     case opChar: 
-                        result += operation.getName();
+                        result += operation.getOperationName();
                         break;
                     case pChar: 
                         showDialog();
-                        break;
+                        return;
                     default: 
                         result += c;
                         break;
@@ -256,6 +256,9 @@ public class OperationsDialog extends JDialog {
     }
     
     private void project() {
+        for (JCheckBox cb: this.cbs){
+            add(cb);
+        }
         ActionListener al = new ActionListener() {
             public void actionPerformed( ActionEvent e ) {
                 sendCheckboxes();
@@ -281,7 +284,8 @@ public class OperationsDialog extends JDialog {
     /**
      * Activates the FilterViewer to get a boolean parameter.
      */
-    private void nestedQuery(){
+    private void nestedQuery(String result){
+        filterViewer.setResult(result);
         filterViewer.showViewer();
     }
     
@@ -357,6 +361,7 @@ public class OperationsDialog extends JDialog {
     
     private void send() {
         setResult();
+        //operation.addParam(result);
         main.updateOperation(result);
         this.dispose();
     }

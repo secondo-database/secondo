@@ -27,16 +27,14 @@ public class MainPane extends JComponent implements MouseListener {
     
     private QueryconstructionViewer viewer;
     private OperationsDialog dialog;
+    private InfoDialog infoDialog;
     private ObjectView lastObject;
     private int lastY = 0;
     private int lastX = 0;
     
-    private InfoDialog infoDialog;
-    
     public MainPane(QueryconstructionViewer viewer) {
         this.viewer = viewer;
         this.addMouseListener(this);
-        //this.dialog = new OperationsDialog(this, viewer.getObjects(), viewer.getOperations());
     }
     
     public void paintComponent(Graphics g) {
@@ -50,7 +48,7 @@ public class MainPane extends JComponent implements MouseListener {
     
     //adds an operation or an object to the main panel
     public void addObject(ObjectView object){
-        activeStream = new StreamView(object.getName(), "", 0, lastY);
+        activeStream = new StreamView(object.getObjectName(), "", 0, lastY);
         fullStream.add(activeStream);
         lastY++;
         activeStream.addObject(object);
@@ -58,6 +56,10 @@ public class MainPane extends JComponent implements MouseListener {
         object.addMouseListener(this);
     }
     
+    /**
+     * add the operation to the query
+     * @param operation 
+     */
     public void addOperation(Operation operation) {
         if (!operation.getParameter()[0].equals("")) {
             
@@ -69,39 +71,42 @@ public class MainPane extends JComponent implements MouseListener {
                     StreamView stream = (StreamView)iter.next();
                     if (stream.getAttributes() != null) {
                         dialog.addAttributes(stream.getAttrObjects(dot));
-                        if (operation.getParameter()[0].equals("attr,attr")) {
-                            dialog.addRadiobuttons(stream.getName(), stream.getAttributes());
-                        }
-                        if (operation.getParameter()[0].equals("attrlist")) {
-                            dialog.addCheckboxes(stream.getName(), stream.getAttributes());
+                        for (String param: operation.getParameter()) {
+                            if (param.equals("attr,attr")) {
+                                dialog.addRadiobuttons(stream.getName(), stream.getAttributes());
+                            }
+                            if (param.equals("attrlist")) {
+                                dialog.addCheckboxes(stream.getName(), stream.getAttributes());
+                            }
                         }
                         dot += ".";
                     }
                 }
                 
             }
-            System.out.println("dialog activate");
             dialog.activate();
         }
-        if (operation.countObjects() > 1) {
+        System.out.println(operation.getOperationName()+ " " +operation.getSignature());
+        if ((operation.countObjects() > 1) || ((operation.countObjects() == 1) && operation.getSignature().contains("o") && !operation.getSignature().startsWith("o"))) {
+            
             lastX = getLastX();
             
-            activeStream = new StreamView(operation.getName(), operation.getSignature(), lastX, activeStream.getY());
+            activeStream = new StreamView(operation.getOperationName(), operation.getSignature(), lastX, activeStream.getY());
             for ( Iterator iter = activeStreams.iterator(); iter.hasNext(); ) {
                 StreamView stream = (StreamView)iter.next();
                 activeStream.addInputStream(stream);
                 stream.setNext(activeStream);
             }
-            fullStream.add(activeStream);
-            
-        } 
+            fullStream.add(activeStream); 
+        }
         lastObject = operation.getView();
         if (operation.getObjects()[0].equals("")) {
-            addObject(new ObjectView(operation.getResultType(), operation.getName()));
+            addObject(new ObjectView(operation.getResultType(), operation.getOperationName()));
         }
         else {
             activeStream.addObject(operation.getView());
         }
+        //activeStream.setSignature(operation.getSignature());
     }
     
     /**
@@ -109,10 +114,13 @@ public class MainPane extends JComponent implements MouseListener {
      */
     public void update() {
         setActiveStreams();
-        this.updateStream(activeStream);
-        ListExpr type = viewer.getType(getStringsQuery());
+        updateStream(activeStream);
+        ListExpr type = viewer.getType(this.getTypeString());
+        
         if ((type != null) && (type.second().textValue() != null)) {
             String text = type.second().textValue();
+            if (text.equals("undefined"))
+                    text = type.first().textValue();
             this.setToolTipText(text);
         }
         else {
@@ -125,24 +133,29 @@ public class MainPane extends JComponent implements MouseListener {
     
     private void updateStream(StreamView stream) {
         if (stream != null) {
-            ListExpr obj = viewer.getType("query " + stream.getString());
+            ListExpr obj = viewer.getType("query " + stream.getTypeString());
         
             if (obj != null) {
                 String result = obj.second().textValue();
-                if (result != null) {
+                if (result.equals("undefined"))
+                    result = obj.first().textValue();
+                if (result != null)
                     stream.setState(result);
-                }
             }
         }
         
     }
     
     protected void updateOperation(String result) {
-        lastObject.setName(result);
-        this.update();
+        lastObject.setObjectName(result);
+        /* delete the signature, only the new name of the operation is used */
+        //activeStream.setSignature("");
+        viewer.update();
     }
     
-    //removes the last object of the query and sets the object before to the last and active component
+    /**
+     * deletes the last added object of the query
+     */
     public void removeLastObject(){
         if (fullStream.size() > 0) {
             StreamView lastStream = fullStream.get(fullStream.size()-1);
@@ -151,15 +164,14 @@ public class MainPane extends JComponent implements MouseListener {
                 if (lastStream.getY() > 0) {
                     lastY--;
                 }
+                
+                /* remove the stream and set the input streams active */
+                lastStream.remove();
                 fullStream.remove(lastStream);
+                
+                /* set the new active stream */
                 if (fullStream.size() > 0) {
                     activeStream = fullStream.get(fullStream.size()-1);
-                    if (activeStreams.size() > 0) {
-                        for ( Iterator iter = activeStreams.iterator(); iter.hasNext(); ) {
-                            StreamView stream = (StreamView)iter.next();
-                            stream.removeNext();
-                        }
-                    }
                 }
                 else {
                     activeStream = new StreamView("new", "", 0, 0);
@@ -261,11 +273,10 @@ public class MainPane extends JComponent implements MouseListener {
                 infoDialog.addInfo(name, result);
                 infoDialog.view();
             }
-            
         }
     }
     
-    public String getStrings(){
+    protected String getStrings(){
         String query = "";
         
         for ( Iterator iter = activeStreams.iterator(); iter.hasNext(); ) {
@@ -277,7 +288,31 @@ public class MainPane extends JComponent implements MouseListener {
     }
     
     public String getStringsQuery(){
-        return "query "+getStrings();
+        return "query " + getStrings();
+    }
+    
+    public String getTypeString(){
+        String query = "query ";
+        
+        for ( Iterator iter = activeStreams.iterator(); iter.hasNext(); ) {
+            StreamView stream = (StreamView)iter.next();
+            query += stream.getTypeString();
+        }
+        
+        return query;
+    }
+    
+    protected String getType(){
+        String result = "";
+        ListExpr obj = viewer.getType(this.getTypeString());
+        
+        if (obj != null) {
+            result = obj.second().textValue();
+            if (result.equals("undefined"))
+                result = obj.first().textValue();
+        }
+        
+        return result;
     }
     
     //Handle mouse events.

@@ -19,8 +19,11 @@ import sj.lang.ListExpr;
  * @author lrentergent
  */
 public class FilterViewer extends QueryconstructionViewer {
+    
     private OperationsDialog dialog;
+    private String result;
     private JFrame f = new JFrame();
+    private JButton ok = new JButton("ok");
     
     ArrayList<ObjectView> objects;
     ArrayList<Operation> operations;
@@ -28,16 +31,18 @@ public class FilterViewer extends QueryconstructionViewer {
     public FilterViewer(OperationsDialog dialog) {
         super();
         this.dialog = dialog;
+        this.result = result;
+        
         f.addWindowListener( new WindowAdapter() {
             public void windowClosing ( WindowEvent e) {
-                back();
+                reset();
             }
         } );
         
         JPanel buttonPanel = new JPanel();
-        JButton ok = new JButton("ok");
+        
+        ok.setEnabled(false);
         buttonPanel.add(ok);
-        JButton back = new JButton("back");
         buttonPanel.add(back);
         
         this.add(buttonPanel, BorderLayout.SOUTH);
@@ -48,13 +53,10 @@ public class FilterViewer extends QueryconstructionViewer {
             }
         };
         ok.addActionListener(okl);
-        
-        ActionListener backl = new ActionListener() {
-            public void actionPerformed( ActionEvent e ) {
-                back();
-            }
-        };
-        back.addActionListener(backl);
+    }
+    
+    protected void setResult(String result) {
+        this.result = result;
     }
     
     protected void showViewer() {
@@ -64,10 +66,12 @@ public class FilterViewer extends QueryconstructionViewer {
         f.setVisible(true);
     }
     
-    public void back() {
-        dialog.back();
-    }
     
+    
+    /**
+     * add the attribute objects to the object panel
+     * @param objects attribute objects
+     */
     protected void addObjects(ObjectView[] objects) {
         for (ObjectView o: objects) {
             objectPane.addAttributeObject(o);
@@ -82,5 +86,27 @@ public class FilterViewer extends QueryconstructionViewer {
     private void addString() {
         dialog.addResult(mainPane.getStrings());
         f.setVisible(false);
+    }
+    
+    /**
+     * reset all actions in the filter window
+     */
+    private void reset() {
+        dialog.back();
+    }
+    
+    public void update(){
+        super.update();
+        if (result != null) {
+            if (mainPane.getType().equals(result)) {
+                ok.setEnabled(true);
+            }
+            if (result.equals("new") && !mainPane.getType().startsWith("(stream")){
+                ok.setEnabled(true);
+            }
+            if (result.equals("newstream") && mainPane.getType().startsWith("(stream")) {
+                ok.setEnabled(true);
+            }
+        }
     }
 }

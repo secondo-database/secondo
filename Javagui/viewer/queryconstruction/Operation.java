@@ -28,11 +28,11 @@ public class Operation extends JComponent {
     private String label;
     private String[] objects;
     private String[] parameter;
+    
     private String result;
     private String brackets;
     private String signature;
     private ObjectView view;
-    
     
     /**
      * 
@@ -48,15 +48,18 @@ public class Operation extends JComponent {
         this.name = name;
         this.label = name;
         this.signature = signature;
-        
+        this.result = result;
         this.parameter = parameter;
         this.objects = objects;
         Arrays.sort(this.objects);
-        this.view = new ObjectView(ObjectType.OPERATION, name);
-        this.result = result;
         
+        view = new ObjectView(ObjectType.OPERATION, name);
+        view.setParams(new String[parameter.length]);
     }
     
+    protected void addParam(String param) {
+        view.addParam(param);
+    }    
     
     public void paintComponent(Graphics g) {
         this.setBorder(BorderFactory.createEtchedBorder());
@@ -75,7 +78,7 @@ public class Operation extends JComponent {
         return signature;
     }
     
-    public Operation copy() {
+    protected Operation copy() {
         return new Operation(this.name, this.objects, this.signature, this.parameter, this.result);
     }
     
@@ -87,13 +90,13 @@ public class Operation extends JComponent {
         return result;
     }
     
-    public String getName() {
+    protected String getOperationName() {
         return this.name;
     }
     
-    public void setName(String name) {
+    protected void setOperationName(String name) {
         this.name = name;
-        view.setName(name);
+        view.setObjectName(name);
     }
     
     public String getLabel() {

@@ -56,7 +56,7 @@ public class ObjectPane  extends JComponent implements MouseListener {
                 ListExpr object = objects.second();
                 
                 ObjectView objectView = new ObjectView(object);
-                if (!objectView.getName().startsWith("SEC")) {
+                if (!objectView.getObjectName().startsWith("SEC")) {
                     addObject(objectView);
                 }
                 objects = objects.rest();
@@ -101,6 +101,9 @@ public class ObjectPane  extends JComponent implements MouseListener {
         this.revalidate();
     }
     
+    /**
+     * add all existing objects to the Component
+     */
     protected void showAllObjects() {
         this.removeAll();
         this.add(textfield);
@@ -117,8 +120,11 @@ public class ObjectPane  extends JComponent implements MouseListener {
         update();
     }
     
-    // updates the panel, only active that fit to the input of the textfield are shown
-    public void updateObjects(String type) {
+    /**
+     * updates the panel, only active objects that fit to the input of textfield are visible
+     * @param type input of the textfield
+     */
+    private void updateObjects(String type) {
         String[] types = type.split(",");
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
@@ -126,7 +132,7 @@ public class ObjectPane  extends JComponent implements MouseListener {
             for (String s: types) {
                 if (s.equals("bool"))
                     return;
-                if (object.getName().toLowerCase().startsWith(s.toLowerCase()) || object.getType().equals(s)) {
+                if (object.getObjectName().toLowerCase().startsWith(s.toLowerCase()) || object.getType().equals(s)) {
                     object.setActive(true);
                 }
             }
@@ -146,11 +152,11 @@ public class ObjectPane  extends JComponent implements MouseListener {
             
             if (arg0.getButton() == 3) {
                 dialog = new InfoDialog(arg0.getXOnScreen(), arg0.getYOnScreen());
-                String elementCount = viewer.getCount(element.getName()).trim();
-                String elementName = element.getName();
+                String elementCount = viewer.getCount(element.getObjectName()).trim();
+                String elementName = element.getObjectName();
                 if (!elementCount.equals("0"))
                     elementName += " ("+elementCount+")";
-                //generating the info dialog of the clicked object
+                /* generating the info dialog of the clicked object */
                 if (element.getOType() == null) {
                     dialog.viewInfo(elementName, element.getType());
                 }
@@ -161,7 +167,7 @@ public class ObjectPane  extends JComponent implements MouseListener {
             }
             else {
                 //a copy of the object is added to the main panel
-                ObjectView new_object = new ObjectView(element.getType(), element.getName());
+                ObjectView new_object = new ObjectView(element.getType(), element.getObjectName());
                 new_object.setOType(element.getOType());
                 viewer.addObject(new_object);
             }
