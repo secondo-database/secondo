@@ -1112,3 +1112,11 @@ Signature : line -> region
 Example   : query testRegionCreator(BGrenzenLine)
 Result    : (region undef)
 
+
+Operator  : collect_box
+Number    : 1
+Signature : stream<SPATIAL2D> x bool -> rectangle
+Example   : query (strassen feed projecttransformstream[GeoData] collect_box[TRUE]) = strassen feed extend[B : bbox(.GeoData)] aggregateB[B; fun(r1 : rect,r2: rect)      r1 union r2; [const rect value undef] ] 
+Result : TRUE
+
+

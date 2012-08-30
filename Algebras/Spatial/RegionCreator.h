@@ -51,6 +51,8 @@ The Halfsegmentarray must be:
 */
    static  void createRegion(const DbArray<HalfSegment>*, Region* result);
 
+    // sets the partner, assumes equal edgenos for partners
+    static void setPartnerNo(DbArray<HalfSegment>* hss);
   private:
 
 /*
@@ -75,8 +77,6 @@ The Halfsegmentarray must be:
        forcePairsFromLeftDom(const DbArray<HalfSegment>* hss);
 
 
-    // sets the partner, assumes equal edgenos for partners
-    static void setPartnerNo(DbArray<HalfSegment>* hss);
 
     // findCycles, fills the cycles vector from the halfsegments
     void findCycles(const DbArray<HalfSegment>* hss);

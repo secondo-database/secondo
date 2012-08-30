@@ -6023,12 +6023,12 @@ void Line::Transform( Region& result ) const
   char* critical = new char[this->Size()];
   markUsage(this,usage, critical);
 
-  // TODO: Set insideAboveFlag of halfsegments
 
+  DbArray<HalfSegment>* halfsegments = 
+                      new DbArray<HalfSegment>(this->Size());
   if( !IsEmpty() ) {
     assert( IsOrdered() );
     HalfSegment hs;
-    result.StartBulkLoad();
     int edgeno=0; 
     for( int i = 0; i < Size(); i++ )
     {
@@ -6037,19 +6037,20 @@ void Line::Transform( Region& result ) const
         Get( i, hs );
         if(hs.IsLeftDomPoint()){
            hs.attr.edgeno = edgeno;
-           result += hs;
+           halfsegments->Append(hs);
            hs.SetLeftDomPoint(false);
-           result += hs;
+           halfsegments->Append(hs);
            edgeno++;
         }
       }
     }
-    result.EndBulkLoad();
   }
+  halfsegments->Sort(HalfSegmentCompare);
+  RegionCreator::setPartnerNo(halfsegments);
+  RegionCreator::createRegion(halfsegments,&result);
+  delete halfsegments;
   delete[] usage;
   delete[] critical;
-
-
 }
 
 
@@ -22715,8 +22716,93 @@ Operator testRegionCreator(
 );
 
 
+/*
+1.40 Collect Box
 
+1.40.1 TypeMapping
 
+Signature is Stream<SPATIAL> x bool -> rectangle
+
+*/
+ListExpr collect_boxTM(ListExpr args){
+  string err = "stream(spatial) x bool expected ";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err +  "  (wrong number of args)");
+  }
+  if(!Stream<Attribute>::checkType(nl->First(args))){
+    return listutils::typeError(err +
+                             "  ( first arg is not an attribute stream)");
+  }
+  if(!CcBool::checkType(nl->Second(args))){
+    return listutils::typeError(err + " (second arg is not a bool)");
+  }
+  ListExpr attr = nl->Second(nl->First(args));
+  if(!listutils::isKind(attr,Kind::SPATIAL2D())){
+    return listutils::typeError(err + " (attribute not in kind SPATIAL2D)");
+  }
+  return listutils::basicSymbol<Rectangle<2> >();
+}
+
+template<int dim>
+int collect_boxVM(Word* args, Word& result, int message, Word& local,
+                       Supplier s )
+{
+  Stream<StandardSpatialAttribute<dim> > stream(args[0]);
+  CcBool* ignoreUndefined = (CcBool*) args[1].addr;
+  result = qp->ResultStorage(s);
+  Rectangle<dim>* res = (Rectangle<dim>*) result.addr;
+  res->SetDefined(false);
+  if(!ignoreUndefined->IsDefined()){
+     return 0;
+  } 
+  stream.open();
+  bool first = true;
+  bool useundef = !ignoreUndefined->GetValue();
+  StandardSpatialAttribute<dim>* a = stream.request();
+  while(a){
+     if(a->IsDefined()){
+        Rectangle<dim> box  = a->BoundingBox();
+        if(box.IsDefined()){
+          if(first){
+            res->SetDefined(true);
+            (*res) = box;
+            first = false;
+          } else {
+            res->Extend(box);
+          }
+        }
+     } else {
+        if(!useundef){ 
+           res->SetDefined(false);
+           a->DeleteIfAllowed();
+           a=0;
+           stream.close();
+           return 0;
+        }
+     }
+     a->DeleteIfAllowed();
+     a = stream.request();
+  } 
+  return 0;
+}
+
+OperatorSpec collect_boxSpec (
+    "stream<SPATIAL> x bool -> rectangle",
+    " _ collect_box[_]",
+    "Computes the bounding box from a stream of spatial attributes"
+    "If the second parameter is ste to be true, undefined elements "
+    " within the stream are ignored. Otherwise an undefined element"
+    " will lead to an undefined result.",
+    "query strassen feed projecttransformstream[GeoData] collect_box[TRUE] "
+  );
+
+Operator collect_box(
+   "collect_box",
+   collect_boxSpec.getStr(),
+   collect_boxVM<2>,
+   Operator::SimpleSelect,
+   collect_boxTM
+);
 /*
 11 Creating the Algebra
 
@@ -22850,6 +22936,7 @@ class SpatialAlgebra : public Algebra
     AddOperator(&markUsageOp);
     AddOperator(&criticalPoints);
     AddOperator(&testRegionCreator);
+    AddOperator(&collect_box);
 
 
   }
