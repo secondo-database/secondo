@@ -21784,12 +21784,15 @@ class FindCyclesInfo{
 ~Constructor~
 
 */
-     FindCyclesInfo(Line* _line):  line(_line), pos(0){
+     FindCyclesInfo(Line* _line):  line(_line), globalPos(0){
        assert(line->IsDefined());
        max = line->Size();
-       used = new char[max];
-       memset(used,0,max); // mark all halfssegments to be unused
-       markDeadEnds(line,used);
+       usage = new char[max];
+       memset(usage,0,max); // mark all halfssegments to be unused
+       isCritical = new char[max];
+       memset(isCritical,0,max);
+       DbArray<HalfSegment>* hss = (DbArray<HalfSegment>*) line->GetFLOB(0);
+       RegionCreator::findCritical(hss,isCritical); 
      }
 
 /*
@@ -21797,7 +21800,8 @@ class FindCyclesInfo{
 
 */
      ~FindCyclesInfo(){
-         delete[] used;
+         delete[] usage;
+         delete[] isCritical;
       }
 
 
@@ -21810,67 +21814,32 @@ if no further cycle can be found.
 */
      Line* nextLine(){
         Line* res = 0;
-        while(pos < max){
-           if(!used[pos]){
+        while(globalPos < max){
+           if(!usage[globalPos]){
              // debug:: start
              HalfSegment hs;
-             line->Get(pos,hs);
+             line->Get(globalPos,hs);
              // debug:: end
-             res = findCycle(pos);
+             res = findCycle(globalPos);
              if(res){
                return res;
-             } else {
-                 used[pos] = 1;
-             }
+             } 
            } else {
-              pos++;
+              globalPos++;
            }
         }
         return 0;
      }
   
 
- static void removeDeadEnds(Line* src, Line* res){
-    res->Clear();
-    char* used = new char[src->Size()];
-    memset(used,0,src->Size());
-    markDeadEnds(src,used);
-    int edgeno = 0;
-    res->StartBulkLoad(); 
-    for(int i=0;i<src->Size();i++){
-       if(!used[i]){
-         HalfSegment hs;
-         src->Get(i,hs);
-         if(hs.IsLeftDomPoint()){
-           hs.attr.edgeno= edgeno;
-           (*res) += hs;
-           hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-           (*res) += hs;
-            edgeno++;
-         }
-       }
-    }
-    res->EndBulkLoad(true,false);
-
-  }
-
   private:
     Line* line;
-    int pos;
+    int globalPos;
     int max;
-    char* used;
-
-
-  static void markDeadEnds(Line* src, char* used){
-    for(int i=0;i<src->Size();i++){
-       if(!used[i]){
-          if(isDeadEnd(src,i,used)){
-             removeDeadEnd(src,i, used);
-          }
-       }
-    }
-   }
-
+    char* usage;
+    char* isCritical;
+    vector<int> currentPath;
+    
 /*
 ~findCycle~
 
@@ -21885,70 +21854,164 @@ inspection of dead ends more than once.
 
 */     
   Line* findCycle(int pos){
-    int pos1 = findStartPos(pos); 
+     int pos1 = findStartPos(pos); 
+     if(pos1 < 0){ // no start found
+        usage[pos] = 1; 
+        return 0;
+     }
+     pos = pos1;
+     usage[pos] = 3;
+     HalfSegment hs;
+     line->Get(pos,hs);
+     if(usage[hs.attr.partnerno]==0){
+        usage[hs.attr.partnerno]=4; 
+     }
+     currentPath.push_back(pos);
+     Line* line =  findCycle(currentPath);
+     return line;
+ }
 
-    if(pos1 < 0){ // no start found
-       return 0;
-    }
-    pos = pos1;
-    used[pos] = 1;
-  
-    // try to create a cycle starting at pos
-    HalfSegment hs;
-    line->Get(pos,hs);
+ void print(const vector<int>& v)const{
+   cout << "<";
+   for(size_t i =0;i<v.size();i++){
+     if(i>0) cout << ", ";
+     cout << v[i];
+   }
+   cout << ">";
+ } 
 
-
-    Point startPoint = hs.GetDomPoint(); 
-    vector<pair<int,bool> > path;  // <position, isbranch>
-    path.push_back(pair<int,bool>(pos,true));
-    // insert first segment to path
-
-    pair<int,bool> next;
-    used[pos] = 1;
-    Point endPoint = hs.GetSecPoint();
-    while(!AlmostEqual(startPoint,endPoint) && path.size()>0){
-       next = nextPos(pos); // retrive next Halfsegment
-       if(next.first<0){ // no extension possible
-          reducePath(path); // remove path until the last branch is reached
-          if(path.empty()){
-             return 0;
+ Line* findCycle(vector<int>& currentPath){
+    int pos = currentPath.back();
+    //cout << "start a new path with " << pos << endl;
+    int next =  nextPos(pos);
+    vector<int> resPath; // path to construct
+    vector<int> cycleStarts; // stores the positions of subcycles
+    while(!currentPath.empty()){
+      while((next>=0) && !currentPath.empty()){
+        if(usage[next] == 3){ // found sub path
+          cycleStarts.push_back(resPath.size());
+          while(currentPath.back() != next){
+              int last = currentPath.back();
+              resPath.push_back(last);
+              currentPath.pop_back(); 
+              usage[last] = 1;
+              //cout << "put " << last << " from path into result" << endl;
           }
-          next = path.back();
-       } else { // extend path
-          path.push_back(next);
-          used[next.first] = 1;
+         // process first elem of path
+         int last = currentPath.back();
+         resPath.push_back(last);
+         currentPath.pop_back(); 
+         usage[last] = 1;
+         //cout << "put " << last << " from path into result" << endl;
+         if(!currentPath.empty()){
+            pos = currentPath.back();
+            next = nextPos(pos);
+         }
+      } else { // normal extension
+         usage[next] = 3;
+         HalfSegment hs;
+         line->Get(next,hs);
+         if(usage[hs.attr.partnerno]==0){
+            usage[hs.attr.partnerno]= 4;
+         }
+         currentPath.push_back(next);
+         //cout << "extend path " << next << endl;
+         pos = next;
+         next = nextPos(pos);
+      }
+     }
+     if(!currentPath.empty()){
+       reducePath(currentPath);
+       if(!currentPath.empty()){
+           pos = currentPath.back();
+           next = nextPos(pos);
        }
-       pos = next.first;
-       endPoint = getEndPoint(pos);
-    }
-    if(isClockwise(path)){
-       return constructLine(path);
+     }
+    } // currentPath not emptyA
+
+
+    if(resPath.empty()){
+       return 0;
     } else {
-      return 0;
+      HalfSegment hs;
+      // mark the locked halfsegments as usuable
+      // find out the index of the leftmost point within the path
+      vector<int>::iterator it;
+      size_t outerPathStarts = cycleStarts.back();
+      int smallestIndex = cycleStarts.back();
+      Point smallestDomPoint;
+      for(size_t i=0;i<resPath.size();i++){
+         line->Get(resPath[i],hs);
+          if(usage[hs.attr.partnerno]==4){
+            usage[hs.attr.partnerno] = 0;
+          }
+          if(i==outerPathStarts){
+            smallestDomPoint = hs.GetDomPoint(); 
+          } else if(i>outerPathStarts){
+            Point p = hs.GetDomPoint();
+            if(smallestDomPoint.GetX() > p.GetX()){
+              smallestIndex = i;
+              smallestDomPoint = p;
+            }
+          }
+      }
+      
+      line->Get( resPath[smallestIndex],hs);
+      Point p2 = hs.GetDomPoint();
+      Point p3 = hs.GetSecPoint();
+      size_t i3 = smallestIndex +1;
+      if(i3==resPath.size()){
+         i3 = outerPathStarts;
+      }
+      line->Get( resPath[i3],hs);
+      Point p1 = hs.GetDomPoint();
+
+      if(!Region::GetCycleDirection(p1,p2,p3)){
+         //cout << "ignore Path of length " << resPath.size() << endl;
+         return 0;
+      } else {
+         //cout << "path directed clockwise" << endl;
+         //cout << "Path has " << resPath.size() << " edges" << endl;
+         return constructLine(resPath);
+      }
     }
+    
   }
 
-/*
-Checks wether path is in clockwise order. The leftmost point of the path has to be
-the dominating point of the first element within the path
 
-*/
-bool isClockwise(const vector<pair<int,bool> > & path){
-   if(path.size() < 3){
-     return false;
-   }
-   HalfSegment shs;
-   HalfSegment ehs;
-   line->Get(path.front().first,shs);
-   line->Get(path.back().first,ehs);
-   if(!AlmostEqual(shs.GetDomPoint(), ehs.GetSecPoint())){
-     return false;
-   }
-   Point P = shs.GetDomPoint();
-   Point A = ehs.GetDomPoint();
-   Point B = shs.GetSecPoint();
-   return Region::GetCycleDirection(A,P,B);
-}
+  void reducePath(vector<int>& path){
+     //size_t oldsize = path.size();
+     if(path.empty()){
+        return;
+     }
+     int last = path.back();
+     path.pop_back();
+     usage[last] = 1;
+     HalfSegment hs;
+     line->Get(last,hs);
+     if(usage[hs.attr.partnerno]==4){
+        usage[hs.attr.partnerno] = 0;
+     }
+     //cout << "remove " << last << " from path " << endl;
+     while(!path.empty()){
+        if(isCritical[last]){ // possible a new extension
+            return;
+        } else {
+           //cout << last << " is not critical  remove next "<< endl;
+        }
+        
+        last = path.back();
+        path.pop_back();
+        usage[last] = 1;
+        line->Get(last,hs);
+        if(usage[hs.attr.partnerno]==4){
+           usage[hs.attr.partnerno] = 0;
+        }
+        //cout << "remove " << last << " from path " << endl;
+     }
+  }
+
+
 
 
 /*
@@ -21965,27 +22028,44 @@ available (this halfsegment cannot contribute to a cycle in clockwise order).
      // collect all unused halfsegments with the same dominating point as hs
      // into a vector
      vector<pair<HalfSegment,int> > candidates;
-
-
-
+     if(!usage[pos]){
+         candidates.push_back(pair<HalfSegment,int>(hs,pos));
+     }
      Point dp = hs.GetDomPoint();
-     Point sp = hs.GetSecPoint();
-                                     // pos allowUsed useOrig, allowLeft
-     findHalfSegmentsWithSameDomPoint(pos,true, true, false, candidates);
-     
+     int pos1 = pos-1;
+     bool done = false;
+     while( (pos1>=0) && ! done) {
+        line->Get(pos1,hs);
+        if(!AlmostEqual(hs.GetDomPoint(),dp)){
+          done = true;
+        } else if(!usage[pos1]){
+          candidates.push_back( pair<HalfSegment,int>(hs,pos1));  
+        }
+        pos1--;
+     }
+     pos1=pos + 1;
+     done = false;
+     while( (pos1<line->Size()) && ! done) {
+        line->Get(pos1,hs);
+        if(!AlmostEqual(hs.GetDomPoint(),dp)){
+          done = true;
+        } else if(!usage[pos1]){
+          candidates.push_back(pair<HalfSegment,int>(hs,pos1));  
+        }
+        pos1++;
+     }
+
 
      if(candidates.size() < 1){
        return -1;
      }
      // search hs with minimum slope
 
-
-
      // search for the unused halfsegment with he maximum slope
      int index = -1;
      double slope = 0;
      for(size_t i=0; i< candidates.size(); i++){
-       if(!used[candidates[i].second]){
+       if(!usage[candidates[i].second]){
           pair<HalfSegment,int> cand = candidates[i];
           double slope1; bool up;
           if(getSlope(cand.first,slope1,up)){
@@ -22031,125 +22111,18 @@ true if the segment goes up.
      return true;
   }
 
-  static void removeDeadEnd(Line* line, int pos, char* used){
-     assert(isDeadEnd(line,pos,used));
-     int done = false;
-     while(!done){
-        used[pos] = 1;
-        HalfSegment hs;
-        line->Get(pos,hs);
-        int ppos = hs.attr.partnerno;
-        used[ppos] = 1; 
-        done = !isConnection(line,ppos,pos,used) || isDeadEnd(line,ppos,used);
-   //     if(!done && used[pos]){
-   //        done = true;
-   //     }
-     }
-  }
-
-
-
-
-  // returns true if the line has at position pos an dead end
-  static bool isDeadEnd(Line* line, int pos, char* used){
-     return branchCount(line,pos, used) == 1; // only this line
-  }
-
-  // returns true, if at position pos in line is a simple 
-  // connection (two segments)
-  static bool isConnection(Line* line, int pos, int& con, char* used){
-      con = -1;
-      HalfSegment hs;
-      line->Get(pos,hs);
-      Point p = hs.GetDomPoint();
-      int pos1 = pos-1;
-      int count = 0; 
-      while((pos1 >= 0) && (count < 2)){
-         line->Get(pos1,hs);
-         if(AlmostEqual(hs.GetDomPoint(), p)){
-           if(!used[pos1]){
-              count++;
-           }
-           pos1--;
-         } else {
-           pos1 = -1;
-         }
-      }
-      if(count == 1){
-         con = pos - 1;
-      }
-      pos1 = pos+1;
-      while(count < 2 && pos1 < line->Size()){
-         line->Get(pos1,hs);
-         if(AlmostEqual(hs.GetDomPoint(), p)){
-           if(!used[pos1]){
-              count++;
-           }
-           pos1++;
-         } else {
-           pos1 = line->Size();
-         }
-      }
-      if(count == 1 && con < 0 ){
-         con = pos + 1;
-      }         
-      return count == 1;
-
-  }
-
-  static int branchCount(Line* line, int pos, char* used){
-    HalfSegment hs;
-    line->Get(pos,hs);
-    Point p = hs.GetDomPoint();
-    int pos1 = pos-1;
-    int count =1;
-    while(pos1>=0){
-       line->Get(pos1,hs);
-       if(AlmostEqual(hs.GetDomPoint(),p)){
-         if(!used[pos1]){
-            count++;
-         }
-         pos1--;
-       } else {
-         pos1 = -1;
-       }
-    }
-    pos1=pos+1;
-    while(pos1<line->Size()){
-       line->Get(pos1,hs);
-       if(AlmostEqual(hs.GetDomPoint(),p)){
-         if(!used[pos1]){
-           count++;
-         }
-         pos1++;
-       } else {
-         pos1 = line->Size();
-       }
-    }
-    return count;
-  }
-
-
-
-
-  Point getEndPoint(int pos){
-     HalfSegment hs;
-     line->Get(pos,hs);
-     return hs.GetSecPoint();
-  }
-
-  Line* constructLine(vector<pair<int,bool> >& path){
+  Line* constructLine(vector<int>& path){
      if(path.empty()){
         return 0;
      }
      Line* res = new Line(path.size()*2);
      res->StartBulkLoad();
-     vector<pair<int,bool> >::iterator it;
+     vector<int>::iterator it;
      int c = -1;
      for(it=path.begin(); it!=path.end();it++){
         c++;
         HalfSegment hs;
-        line->Get(it->first,hs);
+        line->Get(*it,hs);
         hs.attr.edgeno = c;
         (*res) += hs;
         hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
@@ -22159,23 +22132,6 @@ true if the segment goes up.
      return res;
   }
 
-/*
-~reducePath~
-
-goes back the path until the last branch or until the vector is empty
-
-
-*/
-  void reducePath(vector<pair<int,bool> >& path) const{
-     path.pop_back();
-     while(!path.empty()){
-        pair<int,bool> p = path.back();
-        if(p.second){
-           return;
-        }
-        path.pop_back();
-     }
-  }
 
 /*
 ~nextPos~
@@ -22186,25 +22142,57 @@ already used, (-1, false) is returned.
 
 */
 
-   pair<int,bool> nextPos(int pos) const{
+   int nextPos(int pos) const{
       HalfSegment hs;
       line->Get(pos,hs);
+      Point dp = hs.GetSecPoint(); // dompoint of the partner
       int ppos = hs.attr.partnerno;
       vector<pair<HalfSegment,int> > candidates;
-      findHalfSegmentsWithSameDomPoint(ppos,false, false, true, candidates);
-
+      int ppos1 = ppos-1;
+      bool done = false;
+      HalfSegment hs1;
+      while((ppos1>=0)&&!done){
+         line->Get(ppos1,hs1);
+         if(!AlmostEqual(dp,hs1.GetDomPoint())){
+           done = true;
+         } else {
+           if(usage[ppos1]==3){
+              return ppos1;
+           } 
+           if(!usage[ppos1]){ 
+              candidates.push_back(pair<HalfSegment,int>(hs1,ppos1));
+           }
+         }
+         ppos1--;
+      }
+      ppos1 = ppos+1;
+      done = false;
+      while((ppos1<line->Size())&&!done){
+         line->Get(ppos1,hs1);
+         if(!AlmostEqual(dp,hs1.GetDomPoint())){
+           done = true;
+         } else {
+           if(usage[ppos1]==3){
+              return ppos1;
+           } 
+           if(!usage[ppos1]){ 
+             candidates.push_back(pair<HalfSegment,int>(hs1,ppos1));
+           }
+         }
+         ppos1++;
+      }
 
       if(candidates.empty()){ // no extension possible
-        return pair<int,bool>(-1,false);
+        return -1;
       }
       if(candidates.size()==1){ // simple extension, no branch
-        return pair<int,bool>(candidates[0].second,false);
+        return candidates[0].second;
       }
 
       //partition candidates to those ones left of hs and those ones right of hs
       vector<pair<HalfSegment,int> > candidates_left;
       vector<pair<HalfSegment,int> > candidates_right;
-      Point dp = hs.GetDomPoint();
+      dp = hs.GetDomPoint();
       Point sp = hs.GetSecPoint();
       for(unsigned int i=0;i<candidates.size();i++){
          Point p = candidates[i].first.GetSecPoint();
@@ -22227,69 +22215,9 @@ already used, (-1, false) is returned.
          }
       }
 
-      return pair<int,bool>(candidates[index].second, true);
+      return candidates[index].second;
    }
 
-/*
-~findHalfSegmentsWithSameDomPoint~
-
-Searches in the line for Halfsegments having the same dominating point as
-the Halfsegment store at position pos. It inserts the Halfsegments and the
-corresponding positions into res. 
-
-allowUsed: if true, also as used marked segments are inserted
-useOrig: inserts the halfsegment stored at pos into the result if all other 
-         conditions are fullfilled
-allowLeft: if set to false, Halfsegments directed to left are not part of the result.
-
-*/
-
-   void findHalfSegmentsWithSameDomPoint(int pos, bool allowUsed, bool useOrig,
-                                     bool allowLeft,
-                                   vector< pair<HalfSegment,int> >& res) const{
-
-      HalfSegment hs;
-      line->Get(pos,hs);
-      Point dp = hs.GetDomPoint();
-      if(useOrig){
-          if(allowUsed || !used[pos]){
-             if(allowLeft || notLeft(hs)){      
-                res.push_back(pair<HalfSegment,int>(hs,pos));
-             }
-          }
-      }
-      int pos1 = pos-1;
-      HalfSegment hs1;
-      while(pos1>=0){
-         line->Get(pos1,hs1);
-         Point dp1 = hs1.GetDomPoint();
-         if(!AlmostEqual(dp1,dp)){
-           pos1 = -1;
-         } else {
-           if(allowUsed || !used[pos1]){
-              if(allowLeft || notLeft(hs1)){
-                 res.push_back(pair<HalfSegment,int>(hs1,pos1));
-              }
-           }
-           pos1--;
-         }
-      }
-      pos1 = pos + 1;
-      while(pos1<max){
-         line->Get(pos1,hs1);
-         Point dp1 = hs1.GetDomPoint();
-         if(!AlmostEqual(dp1,dp)){
-           pos1 = max;
-         } else {
-           if(allowUsed || !used[pos1]){
-              if(allowLeft || notLeft(hs1)){
-                 res.push_back(pair<HalfSegment,int>(hs1,pos1));
-              }
-           }
-           pos1++;
-         }
-      }
-   }
 
 
 /*
@@ -22308,7 +22236,8 @@ Returns true if __hs__ is vertical or directed to right.
 /*
 ~moreRight~
 
-Returns true if hs2 closes a smaller clockwise cycle than hs1.  Both halfsegments must
+Returns true if hs2 closes a smaller clockwise cycle than hs1. 
+ Both halfsegments must
 have the same dominating point.
 
 */
@@ -22404,56 +22333,6 @@ Operator findCycles(
    Operator::SimpleSelect,
    findCyclesTM
 );
-
-/*
-10.39 SDebug Operator removeDeadEnds
-
-*/
-ListExpr removeDeadEndsTM(ListExpr args){
-
-   if(!nl->HasLength(args,1)){
-     return listutils::typeError("line expected");
-   }
-   if(!Line::checkType(nl->First(args))){
-     return listutils::typeError("line expected");
-   }
-   return listutils::basicSymbol<Line>();
-}
-
-
-int removeDeadEndsVM(Word* args, Word& result, int message, Word& local,
-                         Supplier s )
-{
-   Line* arg = (Line*) args[0].addr;
-   result = qp->ResultStorage(s);
-   Line* res = (Line*) result.addr;
-   if(!arg->IsDefined()){
-     res->SetDefined(false);
-   } else {
-      FindCyclesInfo::removeDeadEnds(arg,res);
-   }
-   return 0;
-}
-
-OperatorSpec removeDeadEndsSpec (
-    "line -> line",
-    "removeDeadEnds(_)",
-    "Removes dead ends from a line",
-    "query removeDeadEnds(BGrenzenLine) "
-  );
-
-/*
-10.38.5 Operator Instance
-
-*/
-Operator removeDeadEnds(
-   "removeDeadEnds",
-   removeDeadEndsSpec.getStr(),
-   removeDeadEndsVM,
-   Operator::SimpleSelect,
-   removeDeadEndsTM
-);
-
 
 
 /*
@@ -22931,7 +22810,6 @@ class SpatialAlgebra : public Algebra
     AddOperator(&spatialsplitslineatpoints);
 
     AddOperator(&findCycles);
-    AddOperator(&removeDeadEnds);
 
     AddOperator(&markUsageOp);
     AddOperator(&criticalPoints);
