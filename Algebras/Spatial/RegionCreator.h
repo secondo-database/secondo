@@ -53,6 +53,11 @@ The Halfsegmentarray must be:
 
     // sets the partner, assumes equal edgenos for partners
     static void setPartnerNo(DbArray<HalfSegment>* hss);
+
+    // find the critical points within hss
+    static void findCritical(const DbArray<HalfSegment>* hss, char* critical);
+
+
   private:
 
 /*
@@ -96,8 +101,6 @@ The Halfsegmentarray must be:
                        const char* usage);
 
     
-    // find the critical points within hss
-    static void findCritical(const DbArray<HalfSegment>* hss, char* critical);
 
     // checks whether r is to the right of the ray defined by p qnd q 
     static bool isRight(const Point& p, const Point& q, const Point& r);
