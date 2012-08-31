@@ -545,23 +545,25 @@ Marks the halfsegments of hss as
 
    void RegionCreator::findCritical(const DbArray<HalfSegment>* hss, 
                                     char* critical){
-     memset(critical,0,hss->Size());
+
+     memset(critical,0,hss->Size()); // initialize with 0
      int count = 0;
      HalfSegment hs;
      Point lastPoint;
+
      for(int i=0;i<hss->Size();i++){
         hss->Get(i,hs);
         Point currentPoint = hs.GetDomPoint();
-        if(i==0){
+        if(i==0){ // start new sequence
           lastPoint = currentPoint;
           count = 1;
         } else {
-           if(AlmostEqual(lastPoint,currentPoint)){
+           if(AlmostEqual(lastPoint,currentPoint)){ // extend sequence
               count++;
            } else {
              if(count != 2){
                 int mark = count==1?1:2;
-                for(int r=1;r<=count-1;r++){
+                for(int r=1;r<=count;r++){
                    critical[i-r] = mark;
                 }
              }
