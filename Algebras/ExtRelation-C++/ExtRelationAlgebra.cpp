@@ -123,6 +123,10 @@ tuples into a relation schema.
 #include "FTextAlgebra.h"
 #include "SecondoCatalog.h"
 
+#ifdef USE_PROGRESS
+#include "../CostEstimation/ExtRelationAlgebraCostEstimation.h"
+#endif
+
 extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
@@ -4293,6 +4297,15 @@ JoinTypeMap<true,1>(ListExpr args);
 
 
 /*
+2.15.1 Create Cost Estimation 
+
+*/
+template<bool expectSorted> 
+CostEstimation* MergeJoinCostEstimationFunc() {
+   return new MergeJoinCostEstimation<expectSorted>();
+}
+
+/*
 2.15.2 Value mapping functions of operator ~mergejoin~
 
 */
@@ -4331,6 +4344,7 @@ const string MergeJoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 2.15.4 Definition of operator ~mergejoin~
 
 */
+#ifndef USE_PROGRESS
 Operator extrelmergejoin(
          "mergejoin",             // name
          MergeJoinSpec,           // specification
@@ -4338,6 +4352,17 @@ Operator extrelmergejoin(
          Operator::SimpleSelect,  // trivial selection function
          JoinTypeMap<false,0>    // type mapping
 );
+#else
+Operator extrelmergejoin(
+         "mergejoin",             // name
+         MergeJoinSpec,           // specification
+         mergejoin_vm<true>,      // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         JoinTypeMap<false,0>,    // type mapping
+         MergeJoinCostEstimationFunc<true> // cost estimation
+);
+#endif
+
 
 /*
 2.16 Operator ~sortmergejoin~
@@ -4366,6 +4391,7 @@ const string SortMergeJoinSpec  = "( ( \"Signature\" \"Syntax\" "
 2.16.2 Definition of operator ~sortmergejoin~
 
 */
+#ifndef USE_PROGRESS
 Operator extrelsortmergejoin(
          "sortmergejoin_old",            // name
          SortMergeJoinSpec,          // specification
@@ -4373,6 +4399,18 @@ Operator extrelsortmergejoin(
          Operator::SimpleSelect,     // trivial selection function
          JoinTypeMap<false,0>       // type mapping
 );
+
+#else
+
+Operator extrelsortmergejoin(
+         "sortmergejoin_old",        // name
+         SortMergeJoinSpec,          // specification
+         mergejoin_vm<false>,        // value mapping
+         Operator::SimpleSelect,     // trivial selection function
+         JoinTypeMap<false,0>,       // type mapping
+         MergeJoinCostEstimationFunc<false> // cost estimation
+);
+#endif
 
 /*
 2.17 Operator ~hashjoin~
@@ -5092,7 +5130,9 @@ class LoopjoinLocalInfo: public ProgressLocalInfo
 {
 public:
   LoopjoinLocalInfo():tuplex(Address(0)),streamy(Address(0)),
-                      resultTupleType(0) {}
+                      resultTupleType(0), costEstimation(0)
+                      {}
+
   ~LoopjoinLocalInfo() {
      if(resultTupleType){
        resultTupleType->DeleteIfAllowed();
@@ -5103,8 +5143,12 @@ public:
   Word tuplex;
   Word streamy;
   TupleType *resultTupleType;
-
+  LoopJoinCostEstimation<true> *costEstimation;
 };
+
+CostEstimation* LoopJoinCostEstimationFunc() {
+  return new LoopJoinCostEstimation<true>();
+}
 
 
 int Loopjoin(Word* args, Word& result, int message,
@@ -5142,11 +5186,18 @@ int Loopjoin(Word* args, Word& result, int message,
 
       local.setAddr(lli);
 
+      // cost estimation
+      lli->costEstimation = 
+         (LoopJoinCostEstimation<true>*) qp->getCostEstimation(s); 
+      lli->costEstimation->init(NULL, NULL);
+
       qp->Open (args[0].addr);
       qp->Request(args[0].addr, tuplex);
       if (qp->Received(args[0].addr))
       {
         lli->readFirst++;
+        lli->costEstimation->processedTupleInStream1();
+
         funargs = qp->Argument(args[1].addr);
         (*funargs)[0] = tuplex;
         streamy=args[1];
@@ -5186,6 +5237,7 @@ int Loopjoin(Word* args, Word& result, int message,
           if (qp->Received(args[0].addr))
           {
             lli->readFirst++;
+            lli->costEstimation->processedTupleInStream1();
             funargs = qp->Argument(args[1].addr);
             ctuplex=(Tuple*)tuplex.addr;
             (*funargs)[0] = tuplex;
@@ -5198,6 +5250,7 @@ int Loopjoin(Word* args, Word& result, int message,
           }
           else
           {
+            lli->costEstimation->setStream1Exhausted(true);
             lli->streamy.setAddr(0);
             lli->tuplex.setAddr(0);
             return CANCEL;
@@ -5219,9 +5272,7 @@ int Loopjoin(Word* args, Word& result, int message,
 
     case CLOSE:
       qp->Close(args[0].addr);
-      return 0;
 
-    case CLOSEPROGRESS:
       if ( lli )
       {
          if ( lli->tuplex.addr != 0 )
@@ -5237,57 +5288,6 @@ int Loopjoin(Word* args, Word& result, int message,
          local.setAddr(0);
       }
       return 0;
-
-
-    case REQUESTPROGRESS:
-    {
-      ProgressInfo p1, p2;
-      ProgressInfo *pRes;
-      //const double uLoopjoin = 0.2;  //not used
-
-      pRes = (ProgressInfo*) result.addr;
-
-      if (!lli) {
-         return CANCEL;
-      }
-
-      if (qp->RequestProgress(args[0].addr, &p1)
-       && qp->RequestProgress(args[1].addr, &p2))
-      {
-        lli->SetJoinSizes(p1, p2);
-
-
-
-        if (lli->returned > enoughSuccessesJoin)
-        {
-          pRes->Card = p1.Card  *
-            ((double) (lli->returned) /
-              (double) (lli->readFirst));
-        }
-        else
-          pRes->Card = p1.Card  * p2.Card;
-
-        pRes->CopySizes(lli);
-
-        pRes->Time = p1.Time + p1.Card * p2.Time;
-
-
-        if ( p1.BTime < 0.1 && pipelinedProgress )      //non-blocking,
-                                                        //use pipelining
-          pRes->Progress = p1.Progress;
-        else
-          pRes->Progress =
-            (p1.Progress * p1.Time + (double) lli->readFirst * p2.Time)
-          / pRes->Time;
-
-        pRes->CopyBlocking(p1);  //non-blocking operator;
-        //second argument assumed not to block
-
-        return YIELD;
-      } else {
-        return CANCEL;
-      }
-    }
   }
   return 0;
 }
@@ -5320,13 +5320,25 @@ const string LoopjoinSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 2.19.4 Definition of operator ~loopjoin~
 
 */
+#ifndef USE_PROGRESS
 Operator extrelloopjoin (
          "loopjoin",                // name
          LoopjoinSpec,              // specification
          Loopjoin,                  // value mapping
-         Operator::SimpleSelect,            // trivial selection function
+         Operator::SimpleSelect,    // trivial selection function
          LoopjoinTypeMap            // type mapping
 );
+#else
+Operator extrelloopjoin (
+         "loopjoin",                // name
+         LoopjoinSpec,              // specification
+         Loopjoin,                  // value mapping
+         Operator::SimpleSelect,    // trivial selection function
+         LoopjoinTypeMap,           // type mapping
+         LoopJoinCostEstimationFunc // costestimation
+);
+
+#endif
 
 /*
 
@@ -5517,7 +5529,8 @@ Loopselect(Word* args, Word& result, int message,
 struct LoopselectLocalInfo: public ProgressLocalInfo
 {
   LoopselectLocalInfo(): ::ProgressLocalInfo(),tuplex(Address(0)),
-                         streamy(Address(0)), resultTupleType(0){}
+                         streamy(Address(0)), resultTupleType(0),
+                         costEstimation(0) {}
 
   ~LoopselectLocalInfo(){
      if(resultTupleType){
@@ -5529,10 +5542,16 @@ struct LoopselectLocalInfo: public ProgressLocalInfo
   Word tuplex;
   Word streamy;
   TupleType *resultTupleType;
+  LoopJoinCostEstimation<false> *costEstimation;
 };
 
-int
-    Loopselect(Word* args, Word& result, int message,
+CostEstimation* LoopSelCostEstimationFunc() {
+  return new LoopJoinCostEstimation<false>();
+}
+
+
+
+int Loopselect(Word* args, Word& result, int message,
                Word& local, Supplier s)
 {
   ArgVectorPointer funargs;
@@ -5570,6 +5589,12 @@ int
         localinfo->readFirst=1;   // first tuple read
         localinfo->returned=0;
         local.setAddr(localinfo);
+      
+        // CostEstimation
+        localinfo -> costEstimation = 
+         (LoopJoinCostEstimation<false>*) qp->getCostEstimation(s);
+        localinfo->costEstimation->init(NULL, NULL);
+        localinfo->costEstimation->processedTupleInStream1();
       }
       else
       {
@@ -5601,6 +5626,7 @@ int
           if (qp->Received(args[0].addr))
           {
             localinfo->readFirst++;         // another tuple read
+            localinfo->costEstimation->processedTupleInStream1();
             funargs = qp->Argument(args[1].addr);
             ctuplex = (Tuple*)tuplex.addr;
             (*funargs)[0] = tuplex;
@@ -5616,6 +5642,7 @@ int
           {
             localinfo->streamy.setAddr(0);
             localinfo->tuplex.setAddr(0);
+            localinfo->costEstimation->setStream1Exhausted(true);
             return CANCEL;
           }
         }
@@ -5644,48 +5671,7 @@ int
       }
       qp->Close(args[0].addr);
       return 0;
-    case CLOSEPROGRESS:
-      return 0;
-    case REQUESTPROGRESS:
-      localinfo = (LoopselectLocalInfo *) local.addr;
-      if (localinfo)
-      {
-        ProgressInfo p1, p2;
-        ProgressInfo *pRes;
-        pRes = (ProgressInfo*) result.addr;
-        if (qp->RequestProgress(args[0].addr, &p1) &&
-            qp->RequestProgress(args[1].addr, &p2))
-        {
-          if (localinfo->readFirst>1)
-          {
-       // cardinality is estimated from the returned tuples and the read tuples
-            pRes->Card = p1.Card * localinfo->returned / localinfo->readFirst;
-          }
-          else
-          {
-        // default guess is the multiplication of cardinalities
-            pRes->Card = p1.Card * p2.Card;
-          }
-
-          pRes->CopySizes(p2);  // tuples are axtracted from fun relation
-          // for each tuplex, all matching tupley will be collected,
-          // therefore the time for the query for tupley is multiplied
-          pRes->Time = p1.Time + p1.Card * p2.Time;
-
-          pRes->Progress =
-              (p1.Progress * p1.Time + (double) localinfo->readFirst * p2.Time)
-              / pRes->Time;
-          // progress depends on how many tuplex have been done (with readFirst)
-
-          pRes->CopyBlocking(p1);  //non-blocking operator;
-          return YIELD;
-        }
-
-      } else {
-        return CANCEL;
-      }
-
-  }
+   }
 
   return -1;
 }
@@ -5713,6 +5699,7 @@ const string LoopselectSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 4.1.3 Definition of operator ~loopsel~
 
 */
+#ifndef USE_PROGRESS
 Operator extrelloopsel (
          "loopsel",                // name
          LoopselectSpec,           // specification
@@ -5720,6 +5707,16 @@ Operator extrelloopsel (
          Operator::SimpleSelect,   // trivial selection function
          LoopselectTypeMap         // type mapping
 );
+#else
+Operator extrelloopsel (
+         "loopsel",                // name
+         LoopselectSpec,           // specification
+         Loopselect,               // value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         LoopselectTypeMap,        // type mapping
+         LoopSelCostEstimationFunc // CostEstimation
+);
+#endif
 
 /*
 2.21 Operator ~extendstream~
@@ -6223,7 +6220,7 @@ int ExtendStream(Word* args, Word& result, int message,
           eli->SizeExt += eli->attrSizeExt[eli->noAttrs - 1];
           
           eli->sizesInitialized = true;
-          eli->sizesChanged = true;;
+          eli->sizesChanged = true;
         }
         if ( eli->returned >= eli->stableValue ) eli->sizesFinal = true;
 
@@ -6776,7 +6773,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
             }
           }
           eli->sizesInitialized = true;
-          eli->sizesChanged = true;;
+          eli->sizesChanged = true;
         }
         if ( eli->read >= eli->stableValue ) eli->sizesFinal = true;
 
@@ -7399,7 +7396,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
           eli->SizeExt += eli->attrSizeExt[eli->noAttrs - 1];
           
           eli->sizesInitialized = true;
-          eli->sizesChanged = true;;
+          eli->sizesChanged = true;
         }
         if ( eli->returned >= eli->stableValue ) eli->sizesFinal = true;
 
@@ -9623,7 +9620,8 @@ public:
 
    SymmJoinLocalInfo(): resultTupleType(0), rightRel(0),
        rightIter(0),leftRel(0),leftIter(0),right(false),
-       currTuple(0),rightFinished(false),leftFinished(false) {}
+       currTuple(0),rightFinished(false),leftFinished(false),
+       costEstimation(0) {}
 
    ~SymmJoinLocalInfo() {
       if(resultTupleType){
@@ -9662,7 +9660,12 @@ public:
   Tuple *currTuple;
   bool rightFinished;
   bool leftFinished;
+  SymmjoinCostEstimation *costEstimation;
 };
+
+CostEstimation* SymmjoinCostEstimationFunc() {
+  return new SymmjoinCostEstimation();
+}
 
 int
 SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -9695,6 +9698,10 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
       pli->currTuple = 0;
       pli->rightFinished = false;
       pli->leftFinished = false;
+
+      pli -> costEstimation =
+         (SymmjoinCostEstimation*) qp->getCostEstimation(s);
+      pli -> costEstimation -> init(NULL, NULL);
 
       ListExpr resultType = GetTupleResultType( s );
       pli->resultTupleType = new TupleType( nl->Second( resultType ) );
@@ -9729,14 +9736,17 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
               pli->currTuple = (Tuple*)r.addr;
               pli->leftIter = pli->leftRel->MakeScan();
               pli->readFirst++;
+              pli->costEstimation->processedTupleInStream2();
+              pli->costEstimation->setTupleBuffer2OnDisk(
+                                           ! pli->rightRel->InMemory());
             }
             else
             {
               pli->rightFinished = true;
-              if( pli->leftFinished )
+              pli->costEstimation-> setStream2Exhausted(true);
+              if( pli->leftFinished ) {
                 return CANCEL;
-              else
-              {
+              } else {
                 pli->right = false;
                 continue; // Go back to the loop
               }
@@ -9809,14 +9819,17 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
               pli->currTuple = (Tuple*)l.addr;
               pli->rightIter = pli->rightRel->MakeScan();
               pli->readSecond++;
+              pli->costEstimation->processedTupleInStream1();
+              pli->costEstimation->setTupleBuffer1OnDisk(
+                                         ! pli->leftRel->InMemory());
             }
             else
             {
               pli->leftFinished = true;
-              if( pli->rightFinished )
+              pli->costEstimation->setStream1Exhausted(true);
+              if( pli->rightFinished ) {
                 return CANCEL;
-              else
-              {
+             } else {
                 pli->right = true;
                 continue; // Go back to the loop
               }
@@ -9914,75 +9927,15 @@ SymmJoin(Word* args, Word& result, int message, Word& local, Supplier s)
           delete pli->leftRel;
           pli->leftRel=0;
         }
+         
+       delete pli;
+       local.setAddr(0);
       }
 
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
 
       return 0;
-    }
-
-
-    case CLOSEPROGRESS:
-      if ( pli )
-      {
-         delete pli;
-         local.setAddr(0);
-      }
-      return 0;
-
-
-    case REQUESTPROGRESS :
-    {
-      ProgressInfo p1, p2;
-      ProgressInfo *pRes;
-      const double uSymmJoin = 0.2;  //millisecs per tuple pair
-
-
-      pRes = (ProgressInfo*) result.addr;
-
-      if (!pli){
-          return CANCEL;
-      }
-
-      if (qp->RequestProgress(args[0].addr, &p1)
-       && qp->RequestProgress(args[1].addr, &p2))
-      {
-        pli->SetJoinSizes(p1, p2);
-
-        pRes->CopySizes(pli);
-
-        double predCost =
-          (qp->GetPredCost(s) == 0.1 ? 0.004 : qp->GetPredCost(s));
-
-        //the default value of 0.1 is only suitable for selections
-
-        pRes->Time = p1.Time + p2.Time +
-          p1.Card * p2.Card * predCost * uSymmJoin;
-
-        pRes->Progress =
-          (p1.Progress * p1.Time + p2.Progress * p2.Time +
-          pli->readFirst * pli->readSecond *
-          predCost * uSymmJoin)
-          / pRes->Time;
-
-        if (pli->returned > enoughSuccessesJoin )   // stable state assumed now
-        {
-          pRes->Card = p1.Card * p2.Card *
-            ((double) pli->returned /
-              (double) (pli->readFirst * pli->readSecond));
-        }
-        else
-        {
-          pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
-        }
-
-        pRes->CopyBlocking(p1, p2);  //non-blocking oprator
-
-        return YIELD;
-      } else {
-        return CANCEL;
-      }
     }
   }
   return 0;
@@ -10017,14 +9970,27 @@ const string SymmJoinSpec  =
 5.10.4 Definition of operator ~symmjoin~
 
 */
+
+#ifndef USE_PROGRESS
 Operator extrelsymmjoin (
-         "symmjoin",            // name
-         SymmJoinSpec,          // specification
-         SymmJoin,              // value mapping
-         Operator::SimpleSelect,         // trivial selection function
-         SymmJoinTypeMap        // type mapping
-//         true                   // needs large amounts of memory
+         "symmjoin",                // name
+         SymmJoinSpec,              // specification
+         SymmJoin,                  // value mapping
+         Operator::SimpleSelect,    // trivial selection function
+         SymmJoinTypeMap            // type mapping
+//         true                     // needs large amounts of memory
 );
+#else
+Operator extrelsymmjoin (
+         "symmjoin",                // name
+         SymmJoinSpec,              // specification
+         SymmJoin,                  // value mapping
+         Operator::SimpleSelect,    // trivial selection function
+         SymmJoinTypeMap,           // type mapping
+         SymmjoinCostEstimationFunc // CostEstimation
+//         true                     // needs large amounts of memory
+);
+#endif
 
 
 

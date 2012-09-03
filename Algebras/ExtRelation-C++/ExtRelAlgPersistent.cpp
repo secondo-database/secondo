@@ -83,6 +83,10 @@ merging and a simple hash-join.
 #include "RTuple.h"
 #include "Tupleorder.h"
 
+#ifdef USE_PROGRESS
+#include "../CostEstimation/ExtRelationAlgebraCostEstimation.h"
+#endif
+
 extern NestedList* nl;
 extern QueryProcessor* qp;
 
@@ -753,6 +757,7 @@ mergejoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 //-- begin progress version --//
 
 
+template<bool expectSorted> 
 class MergeJoinLocalInfo: protected ProgressWrapper
 {
 private:
@@ -793,15 +798,15 @@ private:
 
   TupleType *resultTupleType;
 
-  // a flag which indicates if sorting is needed
-  bool expectSorted;
-
   // switch trace messages on/off
   const bool traceFlag;
 
   // a flag needed in function NextTuple which tells
   // if the merge with grpB has been finished
   bool continueMerge;
+
+  // Cost Estimation
+  MergeJoinCostEstimation<expectSorted>* costEstimation;
 
   template<bool BOTH_B>
   int CompareTuples(Tuple* t1, Tuple* t2)
@@ -875,12 +880,14 @@ private:
   inline Tuple* NextTupleA()
   {
     progress->readFirst++;
+    costEstimation -> processedTupleInStream1();
     return NextTuple(streamA, sliA);
   }
 
   inline Tuple* NextTupleB()
   {
     progress->readSecond++;
+    costEstimation -> processedTupleInStream2();
     return NextTuple(streamB, sliB);
   }
 
@@ -888,13 +895,12 @@ private:
 public:
   MergeJoinLocalInfo( Word _streamA, Word wAttrIndexA,
                       Word _streamB, Word wAttrIndexB,
-                      bool _expectSorted, Supplier s,
-                      ProgressLocalInfo* p ) :
+                      Supplier s, ProgressLocalInfo* p,
+                      MergeJoinCostEstimation<expectSorted>* _costEstimation) :
     ProgressWrapper(p),
-    traceFlag( RTFlag::isActive("ERA:TraceMergeJoin") )
+    traceFlag( RTFlag::isActive("ERA:TraceMergeJoin")) 
   {
     iter = 0;
-    expectSorted = _expectSorted;
     streamA = _streamA;
     streamB = _streamB;
     attrIndexA = StdTypes::GetInt( wAttrIndexA ) - 1;
@@ -906,6 +912,8 @@ public:
 
     liB = 0;
     sliB = 0;
+
+    costEstimation = _costEstimation;
 
     if( !expectSorted )
     {
@@ -1107,13 +1115,13 @@ public:
 
 */
 
-
 //CPUTimeMeasurer mergeMeasurer;
 
-template<bool expectSorted> int
+template<bool expectSorted> 
+int
 mergejoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  typedef LocalInfo<MergeJoinLocalInfo> LocalType;
+  typedef LocalInfo< MergeJoinLocalInfo<expectSorted> > LocalType;
   LocalType* li = static_cast<LocalType*>( local.addr );
 
   switch(message)
@@ -1140,11 +1148,14 @@ mergejoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 				//constructor put here to avoid delays in OPEN
 				//which are a problem for progress estimation
       {
-        li->ptr = new MergeJoinLocalInfo
-          (args[0], args[4], args[1], args[5], expectSorted, s, li);
+        MergeJoinCostEstimation<expectSorted>* costEstimation =
+            (MergeJoinCostEstimation<expectSorted>*) qp->getCostEstimation(s);
+        costEstimation -> init(NULL, NULL);
+        li->ptr = new MergeJoinLocalInfo<expectSorted>
+          (args[0], args[4], args[1], args[5], s, li, costEstimation);
       }
 
-      MergeJoinLocalInfo* mli = li->ptr;
+      MergeJoinLocalInfo<expectSorted>* mli = li->ptr;
       result.addr = mli->NextResultTuple();
       li->returned++;
 
@@ -1160,140 +1171,11 @@ mergejoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
 
-      //nothing is deleted on close because the substructures are still
-      //needed for progress estimation. Instead, everything is deleted on
-      //(repeated) OPEN and on CLOSEPROGRESS
-
-      return 0;
-
-    case CLOSEPROGRESS:
       if (li) {
         delete li;
-	local.addr = 0;
+	      local.addr = 0;
       }
-
       return 0;
-
-
-    case REQUESTPROGRESS:
-    {
-      ProgressInfo p1, p2;
-      ProgressInfo* pRes = static_cast<ProgressInfo*>( result.addr );
-
-      const double uSortBy = 0.00043;   //millisecs per byte read in sort step
-
-      const double uMergeJoin = 0.0008077;  //millisecs per tuple read
-                                        //in merge step (merge)
-
-      const double wMergeJoin = 0.0001738; //millisecs per byte read in
-                                          //merge step (sortmerge)
-
-      const double xMergeJoin = 0.0012058; //millisecs per result tuple in
-                                          //merge step
-
-      const double yMergeJoin = 0.0001072; //millisecs per result attribute in
-                                          //merge step
-
-                                      //see file ConstantsSortmergejoin.txt
-
-
-      LocalInfo<SortByLocalInfo>* liFirst;
-      LocalInfo<SortByLocalInfo>* liSecond;
-
-      if( !li ) return CANCEL;
-      else
-      {
-
-        liFirst = static_cast<LocalInfo<SortByLocalInfo>*>
-	  (li->firstLocalInfo);
-        liSecond = static_cast<LocalInfo<SortByLocalInfo>*>
-	  (li->secondLocalInfo);
-
-        if (qp->RequestProgress(args[0].addr, &p1)
-         && qp->RequestProgress(args[1].addr, &p2))
-        {
-	  li->SetJoinSizes(p1, p2);
-
-	  pRes->CopySizes(li);
-
-	      double factor = (double) li->readFirst / p1.Card;
-
-	      if ( (qp->GetSelectivity(s) != 0.1) &&
-		          (li->returned > enoughSuccessesJoin) )
-		    pRes->Card = factor * ((double) li->returned) * p1.Card
-			  / ((double) li->readFirst) +
-			  (1.0 - factor) * p1.Card * p2.Card
-			    * qp->GetSelectivity(s);
-		  else
-
-          if ( li->returned > enoughSuccessesJoin ) 	// stable state
-          {
-            pRes->Card = ((double) li->returned) * p1.Card
-            /  ((double) li->readFirst);
-          }
-          else
-          {
-            pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
-          }
-
-
-          if ( expectSorted )
-          {
-            pRes->Time = p1.Time + p2.Time +
-              (p1.Card + p2.Card) * uMergeJoin +
-              pRes->Card * (xMergeJoin + pRes->noAttrs * yMergeJoin);
-
-            pRes->Progress =
-              (p1.Progress * p1.Time + p2.Progress * p2.Time +
-                (((double) li->readFirst) + ((double) li->readSecond))
-                * uMergeJoin +
-              ((double) li->returned)
-                * (xMergeJoin + pRes->noAttrs * yMergeJoin))
-              / pRes->Time;
-
-	    pRes->CopyBlocking(p1, p2);	   //non-blocking in this case
-          }
-          else
-          {
-            pRes->Time =
-              p1.Time +
-	      p2.Time +
-              p1.Card * p1.Size * uSortBy +
-              p2.Card * p2.Size * uSortBy +
-              (p1.Card * p1.Size + p2.Card * p2.Size) * wMergeJoin +
-              pRes->Card * (xMergeJoin + pRes->noAttrs * yMergeJoin);
-
-            long readFirst = (liFirst ? liFirst->read : 0);
-            long readSecond = (liSecond ? liSecond->read : 0);
-
-            pRes->Progress =
-              (p1.Progress * p1.Time +
-              p2.Progress * p2.Time +
-              ((double) readFirst) * p1.Size * uSortBy +
-              ((double) readSecond) * p2.Size * uSortBy +
-              (((double) li->readFirst) * p1.Size +
-               ((double) li->readSecond) * p2.Size) * wMergeJoin +
-              ((double) li->returned)
-                * (xMergeJoin + pRes->noAttrs * yMergeJoin))
-              / pRes->Time;
-
-            pRes->BTime = p1.Time + p2.Time
-	      + p1.Card * p1.Size * uSortBy
-              + p2.Card * p2.Size * uSortBy;
-
-	    pRes->BProgress =
-	      (p1.Progress * p1.Time + p2.Progress * p2.Time
-              + ((double) readFirst) * p1.Size * uSortBy
-              + ((double) readSecond) * p2.Size * uSortBy)
-	      / pRes->BTime;
-          }
-
-          return YIELD;
-        }
-        else return CANCEL;
-
-      }
-    }
   }
   return 0;
 }
