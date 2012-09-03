@@ -267,6 +267,11 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
  // Read variables
  
  // Time for processing one tuple in stream 2 (partitions = 1)
+ static const double uItHashJoin = 
+    ProgressConstants::getValue("ExtRelation2Algebra", 
+    "itHashJoin", "uItHashJoin");
+
+ // Time for processing one tuple in stream 2 (partitions = 1)
  static const double vItHashJoin = 
     ProgressConstants::getValue("ExtRelation2Algebra", 
     "itHashJoin", "vItHashJoin");
@@ -281,32 +286,25 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
     ProgressConstants::getValue("ExtRelation2Algebra", 
     "itHashJoin", "xItHashJoin");
 
- // msecs per attr in result tuple 
- static const double yItHashJoin = 
-    ProgressConstants::getValue("ExtRelation2Algebra", 
-    "itHashJoin", "yItHashJoin");
-
-
  //Calculate number of partitions
  size_t partitions = getNoOfPartitions(NoTuples1, sizeOfTuple1, maxmem);
 
  if(partitions > 1) { 
       // For partition 1: write 'tuplesInTupleFile' to tuplefile
       // For partition 2+n: read 'tuplesInTupleFile' from tuplefile
-      costs = 
+      costs =
+           NoTuples1 * uItHashJoin // place tuples in hash table
+           
+           // write tuples in stream 2 to buffer
            + (NoTuples2 * wItHashJoin * sizeOfTuple2) 
-           + ((partitions - 1) * xItHashJoin * sizeOfTuple2);
+
+           // read tuples from buffer
+           + ((partitions - 1) * xItHashJoin * sizeOfTuple2); 
   } else {
-      costs = NoTuples2 * vItHashJoin; 
+      costs = NoTuples1 * uItHashJoin + NoTuples2 * vItHashJoin; 
   }
 
-
-  // Add costs for creating new tuples
-  // with default selectivity of 0.1
-  costs += NoTuples1 * NoTuples2 
-          * yItHashJoin * 0.1;
-         
-     return true;
+ return true;
 }
 
 
@@ -699,8 +697,7 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
         NoTuples2 * ( t_hash + t_read + t_write );
      } else {
         // Internal mode
-         costs = 
-                + NoTuples1 * vHashJoin  // reading stream B into hash table
+         costs = NoTuples1 * vHashJoin  // reading stream B into hash table
                 + NoTuples2 * uHashJoin; // probing stream A against hash table
      }
 
@@ -1193,8 +1190,8 @@ double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1,
 
    // Space for in memory sorting of both streams
    // + 20% memory for merge
-   return (NoTuples1 * sizeOfTuple1 
-      + NoTuples2 * sizeOfTuple2) * 1.2;
+   return ((NoTuples1 * sizeOfTuple1 
+      + NoTuples2 * sizeOfTuple2) * 1.2) / (1024 * 1024);
 }
 
 /*

@@ -571,11 +571,6 @@ public:
            ProgressConstants::getValue("ExtRelationAlgebra",
            "mergejoin", "uSortBy");
 
-      // millisecs per tuple read in merge step (merge) (0.0008077)
-      static const double uMergeJoin =
-           ProgressConstants::getValue("ExtRelationAlgebra",
-           "mergejoin", "uMergeJoin");
-      
       //millisecs per byte read in merge step (sortmerge) 
       // (0.0001738)
       static const double wMergeJoin =
@@ -616,15 +611,15 @@ public:
 
       if ( expectSorted ) {
             pRes->Time = p1.Time + p2.Time +
-              (p1.Card + p2.Card) * uMergeJoin +
+              p1.Card * p1.Size * wMergeJoin + // Stream 1 
+              p2.Card * p2.Size * wMergeJoin + // Stream 2
               pRes->Card * (pRes->noAttrs * yMergeJoin);
 
             pRes->Progress =
                 (p1.Progress * p1.Time + p2.Progress * p2.Time +
-                (((double) readStream1) + ((double) readStream2))
-                * uMergeJoin +
-                ((double) returned)
-                * (pRes->noAttrs * yMergeJoin))
+                readStream1 * p1.Size * wMergeJoin +  
+                readStream2 * p2.Size * wMergeJoin + 
+                returned * (pRes->noAttrs * yMergeJoin))
                 / pRes->Time;
             
             //non-blocking in this case
@@ -683,13 +678,14 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
    if ( expectSorted ) {
      
      //millisecs per tuple read in merge step
-     static const double uMergeJoin =
+     static const double wMergeJoin =
            ProgressConstants::getValue("ExtRelationAlgebra",
            "mergejoin", "uMergeJoin");
 
-     // Time for merging tuples in both streams
-     costs = NoTuples1 * NoTuples2 * uMergeJoin;
-     
+      // costs for merging bytes of stream 1 and stream 2
+      costs = (NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2) 
+              * wMergeJoin;
+
      return true;
    }
 

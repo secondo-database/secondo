@@ -267,6 +267,11 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
      size_t maxmem = memoryMB * 1024 * 1024;
 
      // Time for processing one tuple in stream 2 (partitions = 1)
+     static const double uItSpatialJoin = 
+        ProgressConstants::getValue("MMRTreeAlgebra", 
+        "itSpatialJoin", "uItSpatialJoin");
+
+     // Time for processing one tuple in stream 2 (partitions = 1)
      static const double vItSpatialJoin = 
         ProgressConstants::getValue("MMRTreeAlgebra", 
         "itSpatialJoin", "vItSpatialJoin");
@@ -281,32 +286,27 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
         ProgressConstants::getValue("MMRTreeAlgebra", 
         "itSpatialJoin", "xItSpatialJoin");
 
-     // msecs per attr in result tuple 
-     static const double yItSpatialJoin = 
-        ProgressConstants::getValue("MMRTreeAlgebra", 
-        "itSpatialJoin", "yItSpatialJoin");
-
 
  //Calculate number of partitions
  size_t partitions = getNoOfPartitions(NoTuples1, sizeOfTuple1, maxmem);
 
- if(partitions > 1) {
+
+ if(partitions > 1) { 
       // For partition 1: write 'tuplesInTupleFile' to tuplefile
-      // For partition 2: read 'tuplesInTupleFile' from tuplefile
+      // For partition 2+n: read 'tuplesInTupleFile' from tuplefile
       costs =
+           NoTuples1 * uItSpatialJoin // place tuples in mmrtree
+   
+           // write tuples in stream 2 to buffer
            + (NoTuples2 * wItSpatialJoin * sizeOfTuple2)
-           + ((partitions - 1) * xItSpatialJoin * sizeOfTuple2);
+           
+           // read tuples from buffer
+           + ((partitions - 1) * xItSpatialJoin * sizeOfTuple2); 
   } else {
-      costs = NoTuples2 * vItSpatialJoin;
+      costs = NoTuples1 * uItSpatialJoin + NoTuples2 * vItSpatialJoin; 
   }
-  
-  // Add costs for creating new tuples
-  // with default selectivity of 0.1
-  costs += NoTuples1 * NoTuples2 
-     * yItSpatialJoin * 0.1;
 
-
-   return true;
+  return true;
 }
 
 
@@ -317,6 +317,8 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
 double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
    
    // size per tuple
+   // calculate size for one bucket datastructure
+   // code taken from MMRTreeAlgebra.cpp 
    size_t sizePerTupleReal = sizeOfTuple1 + sizeof(void*) + 100;
    
    size_t memory = NoTuples1 * sizePerTupleReal;
