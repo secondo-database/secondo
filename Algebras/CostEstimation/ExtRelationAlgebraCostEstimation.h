@@ -639,15 +639,11 @@ public:
                (p1.Card * p1.Size + p2.Card * p2.Size) * wMergeJoin +
                pRes->Card * (xMergeJoin + pRes->noAttrs * yMergeJoin);
 
-
-            long readFirst = readStream1;
-            long readSecond = readStream2;
-
             pRes->Progress =
                (p1.Progress * p1.Time +
                p2.Progress * p2.Time +
-               ((double) readFirst) * p1.Size * uSortBy +
-               ((double) readSecond) * p2.Size * uSortBy +
+               readFirst * p1.Size * uSortBy +
+               readSecond * p2.Size * uSortBy +
                (((double) readStream1) * p1.Size +
                ((double) readStream2) * p2.Size) * wMergeJoin +
                ((double) returned)
@@ -756,9 +752,25 @@ timeAt16MB - Time for the calculation with 16MB Memory
        readStream2++;
     }
 
+/*
+1.9 Update processed tuples in readFirst
+
+*/
+   void processedTupleInReadFirst() {
+      readFirst++;
+   }
+
 
 /*
-1.9 init our class
+1.19 Update processed tuples in readSecond
+
+*/
+    void processedTupleInReadSecond() {
+       readSecond++;
+    }
+
+/*
+1.11 init our class
 
 */
   virtual void init(Word* args, void* localInfo)
@@ -766,6 +778,8 @@ timeAt16MB - Time for the calculation with 16MB Memory
     returned = 0;
     readStream1 = 0;
     readStream2 = 0;
+    readFirst = 0;
+    readSecond = 0;
   }
 
 private:
@@ -773,6 +787,8 @@ private:
   ProgressInfo p1, p2;      // Progress info for stream 1 / 2
   size_t readStream1;       // processed tuple in stream1
   size_t readStream2;       // processes tuple in stream2
+  size_t readFirst;         // processed tuple in sort (stream 1)
+  size_t readSecond;        // processed tuple in sort (stream 2)
 };
 
 
