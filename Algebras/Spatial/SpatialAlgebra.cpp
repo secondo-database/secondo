@@ -22662,6 +22662,7 @@ int collect_boxVM(Word* args, Word& result, int message, Word& local,
      a->DeleteIfAllowed();
      a = stream.request();
   } 
+  stream.close();
   return 0;
 }
 
