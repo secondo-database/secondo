@@ -119,6 +119,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, touchpoints).
 :- op(800, xfx, union).
 :- op(800, xfx, when).
+ 
+% NVK ADDED NR 
+:- op(799, xfx, unnest),
+   op(799, xfx, nest).
+% NVK ADDED NR END
+
 
 % Section:Start:opSyntaxPreference_3_e
 % Section:End:opSyntaxPreference_3_e

@@ -15,6 +15,9 @@ initNR :-
 		assertz(optDebugLevel(nr))
 	),
 
+	% This must always be available, otherwiese loading the optimizer.pl will
+	% display some errors(because, of course, prolog does not know what to do
+	% this these 'operators').
 	op(799, xfx, unnest),
 	op(799, xfx, nest),
 
