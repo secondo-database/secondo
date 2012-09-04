@@ -21812,7 +21812,7 @@ Returns the next cycles within this line or 0
 if no further cycle can be found.
 
 */
-     Line* nextLine(){
+     Line* nextLine2(){
         Line* res = 0;
         while(globalPos < max){
            if(!usage[globalPos]){
@@ -21830,6 +21830,29 @@ if no further cycle can be found.
         }
         return 0;
      }
+
+     Line* nextLine(){
+        Line* res = 0;
+        if(!cycles.empty()){
+           res = constructLine(cycles.back());
+           cycles.pop_back();
+           return res; 
+        }
+
+        while(globalPos < max){
+           computeCycles(globalPos);
+           if(!cycles.empty()){
+              res = constructLine(cycles.back());
+              cycles.pop_back();
+              return res;
+           }  else {
+              usage[globalPos] = 1; 
+              globalPos++;
+           }
+        }
+        return 0;
+     }
+
   
 
   private:
@@ -21839,6 +21862,7 @@ if no further cycle can be found.
     char* usage;
     char* isCritical;
     vector<int> currentPath;
+    vector<vector<int> > cycles;
     
 /*
 ~findCycle~
@@ -21870,6 +21894,96 @@ inspection of dead ends more than once.
      Line* line =  findCycle(currentPath);
      return line;
  }
+
+   void computeCycles( int pos ){
+      assert(cycles.empty());
+      int pos1 = findStartPos(pos);
+      if(pos1 < 0){
+         return;  // keep cycles empty
+      }    
+      pos = pos1;
+      usage[pos] = 3;
+      HalfSegment hs;
+      line->Get(pos,hs);
+      if(usage[hs.attr.partnerno]==0){
+         usage[hs.attr.partnerno] = 4;
+      } 
+      vector<int> path;
+      path.push_back(pos);
+      computeCycles(path);
+   }
+
+   void computeCycles(vector<int>& path){
+      HalfSegment hs;
+      while(!path.empty()){
+         int pos = path.back();
+         int next = nextPos(pos);
+         if(next<0){ // no extension found
+             reducePath(path);
+         } else {
+           if(usage[next]==3) { // found cycle
+             vector<int> cycle;
+             int s = path.back();
+             while(s!=next){
+                path.pop_back();
+                cycle.push_back(s);
+                usage[s] = 1;
+                line->Get(s,hs);
+                if(usage[hs.attr.partnerno]==4){
+                   usage[hs.attr.partnerno] = 0;
+                }
+                s = path.back();
+             } 
+             // process last element in path
+             path.pop_back();
+             cycle.push_back(s);
+             usage[s] = 1;
+             line->Get(s,hs);
+             if(usage[hs.attr.partnerno]==4){
+                usage[hs.attr.partnerno] = 0;
+             } 
+             if(isClockwise(cycle)){
+                cycles.push_back(cycle);
+             }
+           } else { // normal extension
+              usage[next] = 3;
+              line->Get(next,hs);
+              if(!usage[hs.attr.partnerno]){
+                 usage[hs.attr.partnerno] = 4;
+              }
+              path.push_back(next);
+           }
+         }
+      }
+   }
+
+   bool isClockwise(vector<int>& path){
+      assert(!path.empty());
+      // find the smallest dom point in path
+      int index = 0;
+      HalfSegment hs;
+      line->Get(path[0],hs);
+      Point dp = hs.GetDomPoint();
+      for(size_t i=1;i<path.size();i++){
+          line->Get(path[i],hs);
+          Point dp1 = hs.GetDomPoint();
+          if(dp1<dp){
+             index = i;
+             dp = dp1;
+          }
+      }   
+
+      line->Get(path[index],hs);
+      Point p2 = hs.GetDomPoint();
+      Point p3 = hs.GetSecPoint();
+      line->Get(path[ ( index +1 )%path.size()],hs);
+      Point p1 = hs.GetDomPoint();
+      return Region::GetCycleDirection(p1,p2,p3);
+   }
+
+
+
+
 
  void print(const vector<int>& v)const{
    cout << "<";
