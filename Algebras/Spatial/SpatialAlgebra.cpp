@@ -21761,12 +21761,18 @@ The Signature is: line [->] stream(line)
 
 */
 ListExpr findCyclesTM(ListExpr args){
- string err = "line expected";
- if(!nl->HasLength(args,1)){
+ string err = "line [x bool]  expected";
+ int len = nl->ListLength(args);
+ if((len != 2) && (len!=1)){
     return listutils::typeError(err);
  }
  if(!Line::checkType(nl->First(args))){
     return listutils::typeError(err);
+ }
+ if(len==2){
+   if(!CcBool::checkType(nl->Second(args))){
+       return listutils::typeError(err);
+   }
  }
  return nl->TwoElemList( listutils::basicSymbol<Stream<Line> >(),
                          listutils::basicSymbol<Line>());
@@ -21784,7 +21790,8 @@ class FindCyclesInfo{
 ~Constructor~
 
 */
-     FindCyclesInfo(Line* _line):  line(_line), globalPos(0){
+     FindCyclesInfo(Line* _line, const bool extractH):line(_line), globalPos(0){
+       extractHoles = extractH;
        assert(line->IsDefined());
        max = line->Size();
        usage = new char[max];
@@ -21812,26 +21819,16 @@ Returns the next cycles within this line or 0
 if no further cycle can be found.
 
 */
-     Line* nextLine2(){
-        Line* res = 0;
-        while(globalPos < max){
-           if(!usage[globalPos]){
-             // debug:: start
-             HalfSegment hs;
-             line->Get(globalPos,hs);
-             // debug:: end
-             res = findCycle(globalPos);
-             if(res){
-               return res;
-             } 
-           } else {
-              globalPos++;
-           }
-        }
-        return 0;
-     }
 
      Line* nextLine(){
+         if(extractHoles){
+            return nextLineExtractHoles();
+         } else {
+            return nextLineSimpleCycles();
+         }
+     }
+
+     Line* nextLineSimpleCycles(){
         Line* res = 0;
         if(!cycles.empty()){
            res = constructLine(cycles.back());
@@ -21853,6 +21850,85 @@ if no further cycle can be found.
         return 0;
      }
 
+
+
+     Line* nextLineExtractHoles(){ // extended version including holes detection
+        Line* res = 0;
+        if(!cycles.empty()){ // cycles are computed
+            if(globalPos < (int)cycles.size()){
+               res = constructLine(cycles[globalPos]);
+               globalPos++;
+               return res;
+            }
+            return 0;
+        } 
+
+        // compute cycles
+        // step 1: compute all simple cycles
+        int pos = 0;
+        while(pos < max){
+           computeCycles(pos);
+           pos++; 
+        }
+
+        if(cycles.empty()){
+          return 0;
+        }
+        if(cycles.size() < 2){ // no hole possible
+           res = constructLine(cycles[0]);
+           globalPos = 1;
+           return res; 
+        }
+
+        
+        // step 3 store Bounding boxes for each cycle ( acceleration of step 3)
+        vector<Rectangle<2> > boxes;
+        for(size_t i=0; i < cycles.size();i++){
+            boxes.push_back(computeBox(cycles[i]));
+        }
+
+        vector<int> outers;
+
+        for(size_t c1 = 0; c1<cycles.size();c1++){
+            int outer = -1;
+            double dist = 0;
+            for(size_t c2 = 0; c2<cycles.size(); c2++){
+                if(c1!=c2){
+                  if(boxes[c2].Contains(boxes[c1])){ 
+                     pair<bool,double> r = isHole(cycles[c1], cycles[c2]);
+                     if(r.first){
+                        if((outer < 0) || (dist > r.second)){ 
+                            outer = c2;
+                            dist = r.second;
+                        }
+                     }
+                  } else {
+                  }
+                }
+            }
+            outers.push_back(outer);
+        }
+
+
+        // step 4 append hole cycles to the outer cycles
+        // it may be, that halfsegments belongs to more than one hole
+        // such halfsegments should not be inserted into a result lineA
+
+        memset(usage,0,max); 
+        for(size_t i=0;i<cycles.size();i++){
+            if(outers[i]>=0){
+               append(cycles[outers[i]],cycles[i],usage,outers[i]+1);
+            }
+        } 
+        res = constructLine(cycles[0]);
+        globalPos = 1;
+        return res; 
+     }
+
+     static bool odd(const int i){
+        int mask = 1;
+        return (i & mask);
+     }
   
 
   private:
@@ -21863,6 +21939,104 @@ if no further cycle can be found.
     char* isCritical;
     vector<int> currentPath;
     vector<vector<int> > cycles;
+    bool extractHoles;
+
+
+   void printCycle(const vector<int>& cycle){
+      vector<int>::const_iterator it;
+      for(it=cycle.begin();it!=cycle.end();it++){
+         HalfSegment hs;
+         line->Get(*it,hs);
+         cout << *it << " : " << hs.SimpleString() << endl;
+      }
+   }
+
+   pair<bool, double> isHole(const vector<int>& hole, const vector<int>& outer){
+      HalfSegment hs;
+      int hi = hole[0];
+      line->Get(hi,hs);
+      Point dp = hs.GetDomPoint();
+      Point sp = hs.GetSecPoint();
+      double x = (dp.GetX() + sp.GetX()) /2; 
+      double y = (dp.GetY() + sp.GetY()) /2; 
+      int count = 0;
+      double dist = 0;
+      for(size_t i=0;i<outer.size();i++){
+         if(outer[i] == hi){
+            return pair<bool,double>(false,0);
+         }
+         line->Get(outer[i],hs);
+         if(hs.attr.partnerno==hi) {
+            return pair<bool,double>(false,0);
+         }
+         double dist1 = RegionCreator::getLeftDist(hs,x,y, true);
+         if(dist1>=0){
+            count++;
+            if((count==1) || (dist1<dist)){
+               dist = dist1;
+            }
+         }
+      }
+      if(odd(count)){
+         return pair<bool,double>(true,dist);
+      } else {
+         return pair<bool,double>(false,0);
+      }
+
+   }
+
+
+   int find(const vector<int>& v, int value){
+     for(size_t i=0;i<v.size();i++){
+        if(v[i]==value){
+          return i;
+        }
+     }
+     return -1;
+   }
+
+   void erase(vector<int>& v, int value){
+     int pos = find(v,value);
+     if(pos>=0){
+       v[pos] = v.back();
+       v.pop_back();
+     }  
+   }
+
+   void append(vector<int>& v1, const vector<int>& v2, char* usage, char Umark){
+      HalfSegment hs;
+      for(size_t i=0;i<v2.size();i++){
+          int n = v2[i];
+          if(usage[n]==Umark){
+             erase(v1,n);
+          } else {
+            line->Get(n,hs);
+            if(usage[hs.attr.partnerno]==Umark){
+                erase(v1, hs.attr.partnerno);
+            } else {
+               usage[n] = Umark;
+               v1.push_back(v2[i]);
+            }
+          }
+      }
+   }
+
+   Rectangle<2> computeBox(const vector<int>& cycle){
+      Rectangle<2> res(false);
+      HalfSegment hs;
+      Point p;
+      for(size_t i=0;i<cycle.size();i++){
+         line->Get(cycle[i],hs);
+         p = hs.GetDomPoint();
+         if(i==0){
+            res = p.BoundingBox();
+         } else {
+            res.Extend(p.BoundingBox());
+         }
+      }
+      return res;
+   }
+
     
 /*
 ~findCycle~
@@ -21896,7 +22070,6 @@ inspection of dead ends more than once.
  }
 
    void computeCycles( int pos ){
-      assert(cycles.empty());
       int pos1 = findStartPos(pos);
       if(pos1 < 0){
          return;  // keep cycles empty
@@ -22403,8 +22576,16 @@ int findCyclesVM(Word* args, Word& result, int message, Word& local,
                      local.addr=0;
                   }
                   Line* arg = (Line*) args[0].addr;
+                  bool extractHoles = false;
+                  if(qp->GetNoSons(s)==2){
+                    CcBool* b = (CcBool*) args[1].addr;
+                    if(!b->IsDefined()){
+                       return 0;
+                    } 
+                    extractHoles = b->GetValue();
+                  }
                   if(arg->IsDefined()){
-                    local.addr = new FindCyclesInfo(arg);
+                    local.addr = new FindCyclesInfo(arg, extractHoles);
                   }
                   return 0;
                }
@@ -22430,9 +22611,10 @@ int findCyclesVM(Word* args, Word& result, int message, Word& local,
 */
 
 OperatorSpec findCyclesSpec (
-    "line -> stream(line)",
-    "findCycles(_)",
-    "Finds minimum cycles within a line value",
+    "line [x bool] -> stream(line)",
+    "findCycles(_,_)",
+    "Finds minimum cycles within a line value. If the boolean argument is"
+    " present and TRUE, holes are also part of the resulting lines",
     "query findCycles(BGrenzenLine) count"
   );
 

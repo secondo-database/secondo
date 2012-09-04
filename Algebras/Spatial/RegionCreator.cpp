@@ -257,35 +257,51 @@ stored, this function can be used to assign each cycle to an outer cycle.
 
   */
   double RegionCreator::getLeftDist(const HalfSegment& hs, 
-                                    const double x, const double y) const{
+                            const double x, const double y, const bool move){
+
+     //cout << "check " << hs.SimpleString() << endl;
+     //cout << "with Point ("  << x << ", " << y << ")" << endl;
+
      double x1 = hs.GetDomPoint().GetX();
      double y1 = hs.GetDomPoint().GetY();
      double x2 = hs.GetSecPoint().GetX();
      double y2 = hs.GetSecPoint().GetY();
      double xmin = min(x1,x2);
      if(!AlmostEqual(xmin,x) && (xmin > x)){ //segment completely right of (x,y)
+       //cout << "right" << endl;
        return -1;
      }
      double xmax = max(x1,x2);
      double ymin = min(y1,y2);
      if(!AlmostEqual(ymin,y) && (ymin > y)){ // segment above (x,y)
+       //cout << "above" << endl;
        return -1;
      }
      double ymax = max(y1,y2);
      if(!AlmostEqual(ymax,y) && (ymax < y)) { // segment below (x,y)
+        //cout << "below" << endl;
        return -1;
      }
      if(AlmostEqual(y1,y2)){  // horizontal segment
+        // cout << "horizontal" << endl;
         return abs(x - xmax); // abs is for rounding errors
-     }     
+     } 
+     if(move && AlmostEqual(ymin,y)){
+       // cout << "Moved away" << endl;
+       return -1;
+     }
+    
      double delta = (y-y1)/(y2-y1);
      double xsec = x1 + delta*(x2-x1);
      if(AlmostEqual(x,xsec)){
+        // cout << "hit" << endl;
         return 0;
      }
      if(xsec > x){
+       // cout << "cutpoint is right" << endl;
        return -1;
      }      
+     // cout << " interection, dist = " << x-xsec << endl;
      return x - xsec;
   }
 

@@ -1086,6 +1086,13 @@ Signature : line -> stream(line)
 Example   : query findCycles(BGrenzenLine) count
 Result    : 1
 
+Operator  : findCycles
+Number    : 2
+Signature : line x bool-> stream(line)
+Example   : query findCycles([const line value ((0 0 100 0)(100 0 100 100)(100 100 0 100)(0 100 0 0)(20 20 80 20)(80 20 80 80)(80 80 20 80)(20 80 20 20)(20 20 80 80))]) namedtransformstream[L] tconsume
+Result    : ((trel (tuple ((L line)))) ((((0.0 0.0 100.0 0.0) (0.0 0.0 0.0 100.0) (0.0 100.0 100.0 100.0) (100.0 0.0 100.0 100.0))) (((20.0 20.0 80.0 80.0) (20.0 20.0 20.0 80.0) (20.0 80.0 80.0 80.  0))) (((20.0 20.0 80.0 20.0) (20.0 20.0 80.0 80.0) (80.0 20.0 80.0 80.0))))) 
+Remark    : The boolean argument enables hole detection
+
 Operator : markUsage
 Number   : 1
 Signature : line -> stream(tzuple((l line)(U int)))

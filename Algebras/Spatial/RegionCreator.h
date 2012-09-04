@@ -57,6 +57,12 @@ The Halfsegmentarray must be:
     // find the critical points within hss
     static void findCritical(const DbArray<HalfSegment>* hss, char* critical);
 
+    // returns the length of the segment starting at (x,y) 
+    // going horizontal to left
+    // until the interscetion point with hs, if no intersection point exists,
+    // -1 is returned
+    static double getLeftDist(const HalfSegment& hs, 
+                       const double x, const double y, const bool move=false);
 
   private:
 
@@ -131,13 +137,7 @@ The Halfsegmentarray must be:
     int findLeftNearestOuter(const double x, const double y) const;
     // returns the length of the segment from (x,y) to the 
     // interscetion point of a ray ... 
-    double getLeftDist(const int cycle, const double x, const double y) const;
-    // returns the length of the segment starting at (x,y) 
-    // going horizontal to left
-    // until the interscetion point with hs, if no intersection point exists,
-    // -1 is returned
-    double getLeftDist(const HalfSegment& hs, 
-                       const double x, const double y) const;
+     double getLeftDist(const int cycle, const double x, const double y)const;
     // sets the insideabove flags of the halfsegments within the cycles
     void setInsideAbove();
     // sets the insideAbove flags for the halfsegments of a specified cycle
