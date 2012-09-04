@@ -80,7 +80,7 @@ class ItHashJoinCostEstimation : public CostEstimation
 {
 
 public:
-    ItHashJoinCostEstimation()
+    ItHashJoinCostEstimation() : buckets(999997)
     {    
        pli = new ProgressLocalInfo();
     }    
