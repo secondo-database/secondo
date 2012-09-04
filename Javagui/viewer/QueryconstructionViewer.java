@@ -23,6 +23,8 @@ import gui.SecondoObject;
 import gui.ViewerControl;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
@@ -50,7 +52,10 @@ public class QueryconstructionViewer extends SecondoViewer {
     private JScrollPane objectScrollpane;
     private JScrollPane operationsScrollpane;
     
+    private JPanel buttonPanel = new JPanel();
     protected JButton back = new JButton("back");
+    private JButton run = new JButton("run");
+    private JButton command = new JButton("copy command");
     
     private ListExpr objects;
     private ListExpr operators;
@@ -72,13 +77,14 @@ public class QueryconstructionViewer extends SecondoViewer {
         this.add(operationsScrollpane, BorderLayout.EAST);
         this.add(mainScrollpane, BorderLayout.CENTER);
         
-        JPanel buttonPanel = new JPanel();
         JButton newQuery = new JButton("new");
         buttonPanel.add(newQuery);
-        JButton run = new JButton("run");
-        buttonPanel.add(run);
         
+        run.setEnabled(false);
+        buttonPanel.add(run);
         buttonPanel.add(back);
+        buttonPanel.add(command);
+        
         JButton addObj = new JButton("add objects");
         buttonPanel.add(addObj);
         
@@ -104,6 +110,13 @@ public class QueryconstructionViewer extends SecondoViewer {
             }
         };
         back.addActionListener(backl);
+        
+        ActionListener commandl = new ActionListener() {
+            public void actionPerformed( ActionEvent e ) {
+                copyCommand();
+            }
+        };
+        command.addActionListener(commandl);
         
         ActionListener addObjl = new ActionListener() {
             public void actionPerformed( ActionEvent e ) {
@@ -165,6 +178,11 @@ public class QueryconstructionViewer extends SecondoViewer {
         return mainPane.checkAttributes();
     }
     
+    private void copyCommand() {
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
+                        new StringSelection(mainPane.getStringsQuery()), null);
+    }
+    
     /**
      * Executes the constructed query.
      */
@@ -182,7 +200,12 @@ public class QueryconstructionViewer extends SecondoViewer {
      * Update the three panels.
      */
     public void update() {
-        mainPane.update();
+        String state = mainPane.update();
+        /* check if the query is runnable */
+        if (!state.equals("") && !state.contains("stream")) {
+            run.setEnabled(true);
+        }
+        
         objectPane.update();
         operationsPane.update();
     }
