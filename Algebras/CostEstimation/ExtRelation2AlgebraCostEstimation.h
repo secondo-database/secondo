@@ -1036,8 +1036,8 @@ public:
 
      if( !localInfo )
      {
-       // if localInfo is deleted, and we have
-       // a old ProgressInfo. Use them and assume
+       // if localInfo is deleted and we have
+       // an old ProgressInfo. Use them and assume
        // that the calculation is done
        if(pi.Time > 0) {
           pRes->Copy(pi);
@@ -1051,9 +1051,6 @@ public:
      
      typedef LocalInfo<extrel2::SortMergeJoinLocalInfo> LocalType;
      LocalType* li = static_cast<LocalType*>( localInfo );
-
-     // save reference to localInfo for cleanup
-//     pli->ptr = static_cast<extrel2::SortMergeJoinLocalInfo*> ( localInfo );
 
      liFirst = static_cast<extrel2::SortProgressLocalInfo*>
                     (li->firstLocalInfo);
