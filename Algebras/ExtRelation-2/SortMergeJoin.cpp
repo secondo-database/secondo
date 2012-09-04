@@ -116,7 +116,6 @@ SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word streamA,
   ptA.setTuple( NextTupleA() );
   ptB.setTuple( NextTupleB() );
 
-
   grpB = new TupleBuffer2( reservedMemory );
 
   if ( traceMode )
@@ -130,6 +129,7 @@ SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word streamA,
 
 SortMergeJoinLocalInfo::~SortMergeJoinLocalInfo()
 {
+
   if ( sliA )
   {
     delete sliA;
@@ -379,145 +379,13 @@ int SortMergeJoinValueMap( Word* args, Word& result,
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
 
-      //nothing is deleted on close because the substructures are still
-      //needed for progress estimation. Instead, everything is deleted on
-      //(repeated) OPEN and on CLOSEPROGRESS
+       if (li)
+       {
+         delete li;
+         local.addr = 0;
+       }
 
       return 0;
-    }
-
-    case CLOSEPROGRESS:
-    {
-      if (li)
-      {
-        delete li;
-        local.addr = 0;
-      }
-
-      return 0;
-    }
-
-    case REQUESTPROGRESS:
-    {
-      ProgressInfo p1, p2;
-      ProgressInfo* pRes = static_cast<ProgressInfo*>( result.addr );
-
-      const double uSortBy = 0.00043;   //millisecs per byte read in sort step
-
-      //const double uMergeJoin = 0.0008077;  //millisecs per tuple read
-                                        //in merge step (merge)
-
-      const double wMergeJoin = 0.0001738; //millisecs per byte read in
-                                          //merge step (sortmerge)
-
-      const double xMergeJoin = 0.0012058; //millisecs per result tuple in
-                                          //merge step
-
-      const double yMergeJoin = 0.0001072; //millisecs per result attribute in
-                                          //merge step
-
-                                      //see file ConstantsSortmergejoin.txt
-
-
-      SortProgressLocalInfo* liFirst;
-      SortProgressLocalInfo* liSecond;
-
-      if( !li )
-      {
-        return CANCEL;
-      }
-      else
-      {
-
-        liFirst = static_cast<SortProgressLocalInfo*>
-                    (li->firstLocalInfo);
-        liSecond = static_cast<SortProgressLocalInfo*>
-                    (li->secondLocalInfo);
-
-        if (qp->RequestProgress(args[0].addr, &p1)
-         && qp->RequestProgress(args[1].addr, &p2))
-        {
-          li->SetJoinSizes(p1, p2);
-
-          pRes->CopySizes(li);
-
-          double factor = (double) li->readFirst / p1.Card;
-
-          // Calculate result cardinality
-          if ( li->returned > enoughSuccessesJoin )
-          {
-            double m = (double)li->returned;
-            double k1 = (double)li->readFirst;
-            double k2 = (double)li->readSecond;
-
-            // estimated selectivity
-            double sel = m / ( k1 * k2 );
-
-            // warm state
-            if ( qp->GetSelectivity(s) != 0.1 )
-            {
-              // estimated selectivity from optimizer is used
-              // as more tuples are processed the weight of the
-              // optimizer estimation is reduced
-              pRes->Card = ( p1.Card * p2.Card ) *
-                           ( factor * sel +
-                             ( 1.0 - factor ) * qp->GetSelectivity(s) );
-            }
-            else
-            {
-              // if optimizer is not used use only estimation
-              pRes->Card = sel * p1.Card * p2.Card;
-            }
-          }
-          else
-          {
-            // cold state
-            pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
-          }
-
-          // total time
-          pRes->Time = p1.Time + p2.Time +
-                     + p1.Card * p1.Size * uSortBy +
-                     + p2.Card * p2.Size * uSortBy +
-                     + (p1.Card * p1.Size + p2.Card * p2.Size) * wMergeJoin
-                     + pRes->Card * (xMergeJoin + pRes->noAttrs * yMergeJoin);
-
-          long readFirst = (liFirst ? liFirst->read : 0);
-          long readSecond = (liSecond ? liSecond->read : 0);
-
-          pRes->Progress = (   p1.Progress * p1.Time
-                             + p2.Progress * p2.Time
-                             + ((double) readFirst) * p1.Size * uSortBy
-                             + ((double) readSecond) * p2.Size * uSortBy
-                             + (((double) li->readFirst) * p1.Size
-                             + ((double) li->readSecond) * p2.Size)
-                               * wMergeJoin
-                             + ((double) li->returned)
-                               * (xMergeJoin + pRes->noAttrs * yMergeJoin) )
-                           / pRes->Time;
-
-          // first result tuple is possible after both input streams
-          // deliver the first tuples and both sort algorithm have
-          // consumed their streams completely
-          pRes->BTime =   p1.BTime
-                        + p2.BTime
-                        + p1.Card * p1.Size * uSortBy
-                        + p2.Card * p2.Size * uSortBy;
-
-          // blocking progress
-          pRes->BProgress = (   p1.BProgress * p1.BTime
-                              + p2.BProgress * p2.BTime
-                              + ((double) readFirst) * p1.Size * uSortBy
-                              + ((double) readSecond) * p2.Size * uSortBy )
-                            / pRes->BTime;
-
-          return YIELD;
-        }
-        else
-        {
-          return CANCEL;
-        }
-      }
     }
   }
 

@@ -68,6 +68,7 @@ for my master's thesis
 
 #include "Stream.h"
 
+#include "../CostEstimation/ExtRelation2AlgebraCostEstimation.h"
 
 using namespace std;
 
@@ -699,6 +700,14 @@ const string SortMergeJoinSpec  = "( ( \"Signature\" \"Syntax\" "
                                    "<text>query duplicates feed ten feed "
                                    "sortmergejoin[no, nr] consume</text--->"
                                    ") )";
+/*
+3.1.4 Costestimation for operator ~sortmergejoin~
+
+*/
+CostEstimation* SortmergeJoinCostEstimationFunc() {
+  return new SortMergeJoinCostEstimation();
+}
+
 
 /*
 3.3.4 Definition of operator ~sortmergejoin~
@@ -709,7 +718,8 @@ Operator extrelsortmergejoin (
          SortMergeJoinSpec,             // specification
          SortMergeJoinValueMap<false>,  // value mapping
          Operator::SimpleSelect,        // trivial selection function
-         JoinTypeMap<2>                 // type mapping
+         JoinTypeMap<2>,                // type mapping
+         SortmergeJoinCostEstimationFunc // cost estimation
 );
 
 /*
@@ -791,9 +801,17 @@ const string HybridHashJoinSpec  = "( ( \"Signature\" \"Syntax\" "
                                    "<text>query duplicates feed ten feed "
                                    "hybridhashjoin[no, nr, 1000] consume "
                                    "</text--->) )";
+/*
+3.1.4 Costestimation for operator ~hybridhashjoin~
+
+*/
+CostEstimation* HybridHashCostEstimationFunc() {
+  return new HybridHashJoinCostEstimation();
+}
+
 
 /*
-3.1.4 Definition of operator ~hybridhashjoin~
+3.1.5 Definition of operator ~hybridhashjoin~
 
 */
 Operator extrelhybridhashjoin(
@@ -802,7 +820,8 @@ Operator extrelhybridhashjoin(
          HybridHashJoinValueMap<false>, // value mapping - first
                                         // argument of sort order spec is 1
          Operator::SimpleSelect,        // trivial selection function
-         JoinTypeMap<0>                 // type mapping
+         JoinTypeMap<0>,                // type mapping
+         HybridHashCostEstimationFunc   // cost estimation
 );
 
 /*
@@ -884,9 +903,16 @@ const string GraceHashJoinSpec  = "( ( \"Signature\" \"Syntax\" "
                                    "<text>query duplicates feed ten feed "
                                    "gracehashjoin[no, nr, 1000] consume "
                                    "</text--->) )";
+/*
+3.1.4 Costestimation for operator ~gracehashjoin~
+
+*/
+CostEstimation* GraceHashCostEstimationFunc() {
+  return new GraceHashJoinCostEstimation();
+}
 
 /*
-3.1.4 Definition of operator ~gracehashjoin~
+3.1.5 Definition of operator ~gracehashjoin~
 
 */
 Operator extrelgracehashjoin(
@@ -895,7 +921,8 @@ Operator extrelgracehashjoin(
          GraceHashJoinValueMap<false>, // value mapping - first
                                         // argument of sort order spec is 1
          Operator::SimpleSelect,        // trivial selection function
-         JoinTypeMap<4>                 // type mapping
+         JoinTypeMap<4>,                 // type mapping
+         GraceHashCostEstimationFunc   // Cost Estimation
 );
 
 /*
@@ -1640,7 +1667,8 @@ Operator extrelhybridhashjoinParam(
          HybridHashJoinParamSpec,       // specification
          HybridHashJoinValueMap<true>,  // value mapping
          Operator::SimpleSelect,        // trivial selection function
-         JoinTypeMap<1>                 // type mapping
+         JoinTypeMap<1>,                // type mapping
+         HybridHashCostEstimationFunc   // cost estimation
 );
 
 /*
@@ -1688,6 +1716,7 @@ const string GraceHashJoinParamSpec  = "( ( \"Signature\" \"Syntax\" "
                                    "16*1024*1024, 4096] consume</text--->"
                                    ") )";
 
+
 /*
 4.11.2 Definition of operator ~gracehashjoinParam~
 
@@ -1697,7 +1726,8 @@ Operator extrelgracehashjoinParam(
          GraceHashJoinParamSpec,       // specification
          GraceHashJoinValueMap<true>,  // value mapping
          Operator::SimpleSelect,       // trivial selection function
-         JoinTypeMap<5>                // type mapping
+         JoinTypeMap<5>,               // type mapping
+         GraceHashCostEstimationFunc   // Cost Estimation
 );
 
 /*
@@ -1743,7 +1773,8 @@ Operator extrelsortmergejoinParam (
          SortMergeJoinParamSpec,     // specification
          SortMergeJoinValueMap<true>, // value mapping
          Operator::SimpleSelect,      // trivial selection function
-         JoinTypeMap<3>               // type mapping
+         JoinTypeMap<3>,               // type mapping
+         SortmergeJoinCostEstimationFunc // cost estimation
 );
 
 
@@ -1862,13 +1893,15 @@ Constructor
                 const int _index1, const int _index2, 
                 const ListExpr _resType,
                 const size_t _maxMem,
-                const size_t _buckNum): 
+                const size_t _buckNum, 
+                ItHashJoinCostEstimation* _costEstimation): 
                 stream1(_stream1), stream2(_stream2), 
                 index1(_index1), index2(_index2), 
                 hashTable(0), tt(0), maxMem(_maxMem), 
                 buffer(0),it(0), 
                 usedMem(0), currentTuple(0), bucket(0), bucketPos(0),
-                s1finished(false), scans(0), buckNum(_buckNum){
+                s1finished(false), scans(0), buckNum(_buckNum),
+                costEstimation(_costEstimation) {
 
          size_t tableSize = sizeof(void*) * buckNum;
          if(tableSize > maxMem / 5){
@@ -1885,6 +1918,9 @@ Constructor
          stream2.open();
          readNextPartition();
          updateCurrentTuple();
+
+         // Update cost estimation
+         costEstimation -> setBuckets(buckNum);
     }
 
 /*
@@ -1920,6 +1956,7 @@ can be created.
    Tuple* nextTuple(){
       while(true){
        if(!currentTuple){ //both streams are exhausted 
+         costEstimation -> setStream2Exhausted(true);
          return 0;
        }
        if(bucketPos>=bucket->size()){ // current bucket exhausted
@@ -1959,6 +1996,8 @@ can be created.
      unsigned int scans;
      unsigned int buckNum;
 
+     // cost estimation
+     ItHashJoinCostEstimation* costEstimation;
 
 
 
@@ -2000,7 +2039,11 @@ removes all Tuple from the current table
         bucket = 0;
         bucketPos = 0;
         if(!it){ // read from stream
+           
            currentTuple = stream2.request();
+           costEstimation -> processedTupleInStream2();
+           costEstimation -> incReadInIteration();
+
            while( (bucket==0) && (currentTuple!=0)){
              if(!s1finished){
                if(!buffer){
@@ -2009,12 +2052,15 @@ removes all Tuple from the current table
                } 
                currentTuple->PinAttributes();
                buffer->Append(currentTuple);
+               costEstimation -> incTuplesInTupleFile();
              }
              size_t hash = getBucket(currentTuple,false);
              bucket = hashTable[hash];
              if(!bucket){
                 currentTuple->DeleteIfAllowed();
                 currentTuple=stream2.request();
+                costEstimation -> processedTupleInStream2();
+                costEstimation -> incReadInIteration();
              }
            }
            if(bucket){ // found a bucket/tuple pair
@@ -2022,7 +2068,9 @@ removes all Tuple from the current table
            }
            if(buffer){
              buffer->Close();
+             costEstimation -> setTupleFileWritten(true);
              it = buffer->MakeScan();
+             costEstimation -> resetReadInIteration();
              readNextPartition();
            } 
         } 
@@ -2031,12 +2079,14 @@ removes all Tuple from the current table
         }
         while(true){
            currentTuple = it->GetNextTuple();
+           costEstimation -> incReadInIteration();
            while((bucket==0) && (currentTuple!=0)){
              size_t hash = getBucket(currentTuple,false);
              bucket = hashTable[hash];
              if(!bucket){
                 currentTuple->DeleteIfAllowed();
                 currentTuple=it->GetNextTuple();
+                costEstimation -> incReadInIteration();
              }
            } 
            if(bucket){
@@ -2047,6 +2097,7 @@ removes all Tuple from the current table
            if(!s1finished){
              readNextPartition();
              it = buffer->MakeScan();
+             costEstimation -> resetReadInIteration();
            } else {
              return;
            }
@@ -2058,6 +2109,10 @@ removes all Tuple from the current table
          return;
        }
        scans++;
+       
+       // update cost estimation
+       costEstimation -> setIteration(scans);
+       
        if(hashTable){
          clearTable();
        } else {
@@ -2074,13 +2129,15 @@ removes all Tuple from the current table
        }
 
        Tuple* inTuple = stream1.request();
-
+       costEstimation -> processedTupleInStream1();
+       
        size_t noTuples = 0; 
        while((inTuple!=0) && (usedMem<maxMem)){
          size_t hash = getBucket(inTuple,true);
          usedMem += inTuple->GetMemSize();
          if(!hashTable[hash]){
            hashTable[hash] = new vector<Tuple*>();
+           
            usedMem += sizeof(*hashTable[hash]);
            usedMem += sizeof(void*) * hashTable[hash]->capacity();
          }
@@ -2093,11 +2150,16 @@ removes all Tuple from the current table
          noTuples++;
          if(usedMem < maxMem){
             inTuple = stream1.request();
+            costEstimation -> processedTupleInStream1();
          }
        }
+       
        if(inTuple==0){
          s1finished = true;
+         costEstimation -> setStream1Exhausted(true);
        }
+    
+       costEstimation -> readPartitionDone();
 	 }
 };
 
@@ -2123,10 +2185,16 @@ int itHashJoinVM( Word* args, Word& result,
                   if(b->IsDefined() && b->GetValue()>=3){
                       buckets = b->GetValue();
                   }
+
+                  ItHashJoinCostEstimation* costEstimation =
+                    (ItHashJoinCostEstimation*) qp->getCostEstimation(s);
+
+                  costEstimation -> init(NULL, NULL);
+
                   local.addr = new ItHashJoinDInfo(args[0],args[1], 
                                           ((CcInt*)args[5].addr)->GetValue(),
                                           ((CcInt*)args[6].addr)->GetValue(),
-                                          ttype,mem, buckets);
+                                          ttype,mem, buckets, costEstimation);
                   return 0;
                 }
      case REQUEST: { if(!li){
@@ -2163,15 +2231,18 @@ const string itHashJoinSpec  =
       "   </text--->))";
 
 
+CostEstimation* ItHashJoinCostEstimationFunc() {
+  return new ItHashJoinCostEstimation();
+}
+
 Operator itHashJoin (
-         "itHashJoin",       // name
-         itHashJoinSpec,     // specification
-         itHashJoinVM, // value mapping
+         "itHashJoin",                // name
+         itHashJoinSpec,              // specification
+         itHashJoinVM,                // value mapping
          Operator::SimpleSelect,      // trivial selection function
-         itHashJoinTM               // type mapping
+         itHashJoinTM,                // type mapping
+         ItHashJoinCostEstimationFunc // cost estimation
 );
-
-
 
 
 } // end of namespace extrel2

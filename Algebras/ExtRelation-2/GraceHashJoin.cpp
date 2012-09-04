@@ -51,15 +51,6 @@ extern QueryProcessor* qp;
 namespace extrel2
 {
 
-const double GraceHashJoinProgressLocalInfo::uHashJoin = 0.023;
-const double GraceHashJoinProgressLocalInfo::vHashJoin = 0.0067;
-const double GraceHashJoinProgressLocalInfo::wHashJoin = 0.0025;
-const double GraceHashJoinProgressLocalInfo::t_read = 0.001090;
-const double GraceHashJoinProgressLocalInfo::t_write = 0.001090;
-const double GraceHashJoinProgressLocalInfo::t_probe = 0.001557;
-const double GraceHashJoinProgressLocalInfo::t_hash = 0.004163;
-const double GraceHashJoinProgressLocalInfo::t_result = 0.0044;
-
 
 
 /*
@@ -73,6 +64,40 @@ GraceHashJoinProgressLocalInfo::GraceHashJoinProgressLocalInfo( Supplier s )
 , tuplesProcessedSinceLastResult(0)
 , traceMode(false)
 {
+
+ // Load constants from ProgressConstants
+ uHashJoin = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "uHashJoin");
+ 
+ vHashJoin = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "vHashJoin");
+ 
+ wHashJoin = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "wHashJoin");
+ 
+ t_read = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "tread");
+ 
+ t_write = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "twrite");
+ 
+ t_probe = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "tprobe");
+ 
+ t_hash = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "thash");
+ 
+ t_result = 
+        ProgressConstants::getValue("ExtRelation2Algebra", 
+        "gracehashjoin", "tresult");
+
 }
 
 int GraceHashJoinProgressLocalInfo::CalcProgress( ProgressInfo& p1,
@@ -143,13 +168,17 @@ void GraceHashJoinProgressLocalInfo::calcProgressStd( ProgressInfo& p1,
   pRes->Time = p1.Time + p2.Time
                 + p2.Card * vHashJoin     // reading stream B into hash table
                 + p1.Card * uHashJoin     // probing stream A against hash table
-                + pRes->Card * wHashJoin; // output of result tuples
+                + pRes->Card   // output of result tuples 
+                  * (p1.noAttrs + p2.noAttrs)
+                  * wHashJoin; 
+
 
   // calculate total progress
   pRes->Progress = ( p1.Progress * p1.Time + p2.Progress * p2.Time
                       + this->readSecond * vHashJoin
                       + this->readFirst * uHashJoin
-                      + this->returned * wHashJoin ) / pRes->Time;
+                      + this->returned * wHashJoin * (p1.noAttrs + p2.noAttrs)
+                      ) / pRes->Time;
 
   // calculate time until first result tuple
   pRes->BTime = p1.BTime + p2.BTime
@@ -1034,13 +1063,6 @@ int GraceHashJoinValueMap( Word* args, Word& result,
       qp->Close(args[0].addr);
       qp->Close(args[1].addr);
 
-      // Note: object deletion is handled in OPEN and CLOSEPROGRESS
-      return 0;
-    }
-
-
-    case CLOSEPROGRESS:
-    {
       if (li)
       {
         delete li;
@@ -1049,28 +1071,6 @@ int GraceHashJoinValueMap( Word* args, Word& result,
       return 0;
     }
 
-    case REQUESTPROGRESS:
-    {
-      ProgressInfo p1, p2;
-      ProgressInfo* pRes = static_cast<ProgressInfo*>( result.addr );
-
-      if( !li )
-      {
-         return CANCEL;
-      }
-      else
-      {
-        if ( qp->RequestProgress(args[0].addr, &p1) &&
-             qp->RequestProgress(args[1].addr, &p2) )
-        {
-          return li->CalcProgress(p1, p2, pRes, s);
-        }
-        else
-        {
-          return CANCEL;
-        }
-      }
-    }
   }
   return 0;
 }

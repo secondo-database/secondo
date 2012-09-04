@@ -100,18 +100,18 @@ The following constants were assumed from operator ~hashjoin~.
 
 */
 
-    static const double uHashJoin;
+    double uHashJoin;
 /*
 Milliseconds per probe tuple.
 
 */
-    static const double vHashJoin;
+    double vHashJoin;
 /*
 Milliseconds per tuple right.
 
 */
 
-    static const double wHashJoin;
+    double wHashJoin;
 /*
 Milliseconds per tuple returned.
 
@@ -120,31 +120,31 @@ ConstantsHybridHashJoin.txt for details.
 
 */
 
-    static const double t_read;
+    double t_read;
 /*
 Milliseconds per tuple read from disc.
 
 */
 
-    static const double t_write;
+    double t_write;
 /*
 Milliseconds per tuple written to disc.
 
 */
 
-    static const double t_probe;
+    double t_probe;
 /*
 Milliseconds per probe tuple.
 
 */
 
-    static const double t_hash;
+    double t_hash;
 /*
 Milliseconds per tuple hashed.
 
 */
 
-    static const double t_result;
+    double t_result;
 /*
 Milliseconds per tuple returned.
 
