@@ -1,3 +1,21 @@
+//This file is part of SECONDO.
+
+//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Database Systems for New Applications.
+
+//SECONDO is free software; you can redistribute it and/or modify
+//it under the terms of the GNU General Public License as published by
+//the Free Software Foundation; either version 2 of the License, or
+//(at your option) any later version.
+
+//SECONDO is distributed in the hope that it will be useful,
+//but WITHOUT ANY WARRANTY; without even the implied warranty of
+//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//GNU General Public License for more details.
+
+//You should have received a copy of the GNU General Public License
+//along with SECONDO; if not, write to the Free Software
+//Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package viewer.queryconstruction;
 
 import java.awt.Color;
@@ -11,7 +29,6 @@ import java.util.Iterator;
  */
 public class StreamView {
 
-    private ArrayList<ObjectView> objects = new ArrayList<ObjectView>();
     private String[] parts;
     private String[] attributes;
     private String[] attrtypes;
@@ -22,6 +39,8 @@ public class StreamView {
     private int[] line;
     private boolean active = true;
     private boolean hasNext = false;
+    
+    private ArrayList<ObjectView> objects = new ArrayList<ObjectView>();
     private ArrayList<StreamView> inputStreams = new ArrayList<StreamView>();
     private ArrayList<StreamView> paramStreams = new ArrayList<StreamView>();
     private int xpos;
@@ -45,6 +64,11 @@ public class StreamView {
     protected void addParamStream(StreamView stream) {
         paramStreams.add(stream);
     }
+    
+//    protected void addParamStream(StreamView stream) {
+//        System.out.println(name);
+//        paramStreams.add(stream);
+//    }
 
     protected void change() {
         if (objects.size() > 0) {
@@ -56,34 +80,15 @@ public class StreamView {
         return this.active;
     }
 
-    protected void setNext(StreamView nextStream) {
-        hasNext = true;
-        this.active = false;
-        this.addLine(nextStream.getX(), nextStream.getY());
-    }
     
-    protected void setSignature(String sig) {
-        this.signature = sig.toCharArray();
-    }
     
-    /**
-     * remove the stream and set the input streams active
-     */
-    protected void remove(){
-        for ( Iterator iter = inputStreams.iterator(); iter.hasNext(); ) {
-            StreamView stream = (StreamView)iter.next();
-            stream.removeNext();
-        }
-    }
+//    protected void setSignature(String sig) {
+//        this.signature = sig.toCharArray();
+//    }
+    
+    
 
-    /**
-     * remove the following stream
-     */
-    protected void removeNext() {
-        hasNext = false;
-        line = null;
-        active = true;
-    }
+    
 
     /**
      * returns the last object of a stream
@@ -108,12 +113,16 @@ public class StreamView {
         String result = "";
         int iS = 0;
         int pS = 0;
+        
         if (signature.length == 0) {
             for (Iterator iter = objects.iterator(); iter.hasNext();) {
                 ObjectView object = (ObjectView) iter.next();
-                result += object.getObjectName().trim() + " ";
+                if (object.getLabel().equals("group"))
+                    result += "group ";
+                else
+                    result += object.getObjectName().trim() + " ";
             }
-            if (result.length()>0)
+            if (!result.isEmpty())
                 result = result.substring(0, result.length() - 1);
         }
         for (char c : signature) {
@@ -127,17 +136,18 @@ public class StreamView {
                 case OperationsDialog.opChar:
                     for (Iterator iter = objects.iterator(); iter.hasNext();) {
                         ObjectView object = (ObjectView) iter.next();
-                        result += object.getObjectName().trim()+" ";
+                        result += object.getOnlyName().trim()+" ";
                     }
                     if (iS == inputStreams.size()) {
                         return result;
                     }
                     break;
                 case OperationsDialog.pChar:
-                    if (pS < paramStreams.size()){
-                        result += paramStreams.get(pS).getTypeString();
-                    }
-                    pS++;
+                    for (Iterator iter = paramStreams.get(pS).getObjects().iterator(); iter.hasNext();) {
+                            ObjectView object = (ObjectView) iter.next();
+                            result += object.getObjectName().trim();
+                        }
+                        pS++;
                     break;
                 default:
                     if (iS <= inputStreams.size()) {
@@ -150,9 +160,11 @@ public class StreamView {
     }
     
     protected String getTypeString(){
+        
         String result = "";
-        int i = 0;
-        int pAt = 0;
+        int iS = 0;
+        int pS = 0;
+        
         if (signature.length == 0) {
             for (Iterator iter = objects.iterator(); iter.hasNext();) {
                 ObjectView object = (ObjectView) iter.next();
@@ -164,16 +176,17 @@ public class StreamView {
                     result += object.getObjectName().trim() + " ";
                 }
             }
-            if (result.length() > 0)
+            if (!result.isEmpty())
                 result = result.substring(0, result.length() - 1);
         }
+        
         for (char c : signature) {
             switch(c) {
                 case OperationsDialog.obChar: 
-                    if (i < inputStreams.size()){
-                        result += inputStreams.get(i).getTypeString();
+                    if (iS < inputStreams.size()){
+                        result += inputStreams.get(iS).getTypeString();
                     }
-                    i++;
+                    iS++;
                     break;
                 case OperationsDialog.opChar:
                     for (Iterator iter = objects.iterator(); iter.hasNext();) {
@@ -182,21 +195,22 @@ public class StreamView {
                             result += object.getConst()+" ";
                         }
                         else {
-                            result += object.getObjectName().trim()+" ";
+                            result += object.getOnlyName().trim()+" ";
                         }
                     }
-                    if (i == inputStreams.size()) {
+                    if (iS == inputStreams.size()) {
                         return result;
                     }
                     break;
                 case OperationsDialog.pChar:
-                    if (pAt < paramStreams.size()){
-                        result += paramStreams.get(pAt).getTypeString();
-                    }
-                    pAt++;
+                    for (Iterator iter = paramStreams.get(pS).getObjects().iterator(); iter.hasNext();) {
+                            ObjectView object = (ObjectView) iter.next();
+                            result += object.getObjectName().trim();
+                        }
+                        pS++;
                     break;
                 default:
-                    if (i <= inputStreams.size()) {
+                    if (iS <= inputStreams.size()) {
                         result += c;
                     }
                     break;
@@ -221,7 +235,7 @@ public class StreamView {
         int i = 0;
         ObjectView objectViews[] = new ObjectView[attributes.length];
         for (String objName : attributes) {
-            objectViews[i] = new ObjectView(attrtypes[i], dot + objName);
+            objectViews[i] = new ObjectView(dot + objName, attrtypes[i]);
             i++;
         }
         return objectViews;
@@ -275,19 +289,29 @@ public class StreamView {
 
     }
     
-    protected void setState(String str) {
-        this.state = str;
-        this.parts = str.split("\\(");
-        if (parts.length > 4) {
-            this.setAttributes(str.split("\\("));
-        }
-        if (parts.length > 1) {
-            this.type = parts[1];
-        } else {
-            this.type = str;
+    /**
+     * remove the stream and set the input streams active
+     */
+    protected void remove(){
+        for ( Iterator iter = inputStreams.iterator(); iter.hasNext(); ) {
+            StreamView stream = (StreamView)iter.next();
+            stream.removeNext();
         }
     }
     
+    /**
+     * remove the following stream
+     */
+    private void removeNext() {
+        hasNext = false;
+        line = null;
+        active = true;
+    }
+    
+    /**
+     * Set the attributes if the intermediate result is a relation or a stream of tuples.
+     * @param attributes Array of attribute names and values;
+     */
     protected final void setAttributes(String[] attributes) {
         int i = 4;
         int j = 0;
@@ -301,6 +325,29 @@ public class StreamView {
             this.attrtypes[j] = att[1];
             i++;
             j++;
+        }
+    }
+    
+    protected void setNext(StreamView nextStream) {
+        hasNext = true;
+        this.active = false;
+        this.addLine(nextStream.getX(), nextStream.getY());
+    }
+    
+    /**
+     * Set the actual state of the object stream.
+     * @param str Result of the server communication.
+     */
+    protected void setState(String str) {
+        this.state = str;
+        this.parts = str.split("\\(");
+        if (parts.length > 4) {
+            this.setAttributes(str.split("\\("));
+        }
+        if (parts.length > 1) {
+            this.type = parts[1];
+        } else {
+            this.type = str;
         }
     }
 }
