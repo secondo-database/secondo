@@ -1,25 +1,35 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
+//This file is part of SECONDO.
+
+//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Database Systems for New Applications.
+
+//SECONDO is free software; you can redistribute it and/or modify
+//it under the terms of the GNU General Public License as published by
+//the Free Software Foundation; either version 2 of the License, or
+//(at your option) any later version.
+
+//SECONDO is distributed in the hope that it will be useful,
+//but WITHOUT ANY WARRANTY; without even the implied warranty of
+//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//GNU General Public License for more details.
+
+//You should have received a copy of the GNU General Public License
+//along with SECONDO; if not, write to the Free Software
+//Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package viewer.queryconstruction;
 
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.event.MouseListener;
-import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Iterator;
 import javax.swing.ImageIcon;
 import javax.swing.JComponent;
-import javax.swing.*;
-import javax.swing.JTextArea;
 import sj.lang.ListExpr;
 import viewer.QueryconstructionViewer;
 
 /**
- *
- * @author lrentergent
+ * An instance of this class is the object component in the ObjectsPane and the MainPane.
  */
 public class ObjectView extends JComponent {
     
@@ -27,7 +37,6 @@ public class ObjectView extends JComponent {
     private String label;
     private char[] signature;
     private boolean isActive;
-    private boolean isOperation;
     private ArrayList<StreamView> paramStreams = new ArrayList<StreamView>();
     
     private int xpos = 10;
@@ -45,13 +54,10 @@ public class ObjectView extends JComponent {
         this.setPreferredSize(new Dimension(120, 70));
     }
     
-    public ObjectView(String type, String name){
-        
+    public ObjectView(String name, String type){
         this.name = name;
         this.label = name;
         this.type = type;
-        
-        this.isOperation = type.equals(ObjectType.OPERATION);
     }
     
     public ObjectView(ListExpr list){
@@ -66,7 +72,15 @@ public class ObjectView extends JComponent {
     
     protected void addParamStream(StreamView stream) {
         paramStreams.add(stream);
-        this.setObjectName();
+    }
+    
+    protected ObjectView copy(String label){
+        ObjectView newObject = new ObjectView(this.name, this.type);
+        newObject.setLabel(label);
+        if (this.otype != null)
+            newObject.setOType(otype);
+        
+        return newObject;
     }
     
     /** paints a Secondo ObjectView into the RelationsPane
@@ -129,23 +143,12 @@ public class ObjectView extends JComponent {
     }
     
     protected String getObjectName() {
-        return this.name;
-    }
-    
-    protected String getConst(){
-        String result = "[const ";
-        result += this.getType() + " value undef]";
+        if (signature == null)
+            return name;
         
-        return result;
-    }
-    
-    protected void setLabel(String label) {
-        this.label = label;
-    }
-    
-    protected void setObjectName() {
         String result = "";
         int pS = 0;
+        
         for (char c : signature) {
             switch(c) {
                 case obChar: 
@@ -155,21 +158,54 @@ public class ObjectView extends JComponent {
                     break;
                 case pChar: 
                     if (pS < paramStreams.size()){
-                        result += paramStreams.get(pS).getTypeString();
+                        for (Iterator iter = paramStreams.get(pS).getObjects().iterator(); iter.hasNext();) {
+                            ObjectView object = (ObjectView) iter.next();
+                            result += object.getObjectName().trim();
+                        }
+                        pS++;
                     }
-                    pS++;
                     break;
                 default:
                     result += c;
                     break;
             }
         }
-        
-        name = result;
-        if (name.length() < 12) {
-            setLabel(name);
-        }
+        if (result.length() < 12)
+            this.label = result;
+        return result;
     }
+    
+    protected String getOnlyName() {
+        return this.name;
+    }
+    
+    protected StreamView getParamStream(int index){
+        if (paramStreams.size() > index)
+            return paramStreams.get(index);
+        return null;
+    }
+    
+    protected String getConst(){
+        String result = "[const ";
+        result += this.getType() + " value undef]";
+        
+        return result;
+    }
+    
+    protected String getLabel(){
+        return label;
+    }
+    
+    protected void setLabel(String label) {
+        this.label = label;
+    }
+    
+//    private void setObjectName(String name) {
+//        this.name = name;
+//        if (name.length() < 12) {
+//            setLabel(name);
+//        }
+//    }
     
     public String getType(){
         return type;
@@ -191,7 +227,7 @@ public class ObjectView extends JComponent {
         this.isActive = active;
     }
     
-    public void setOType(ObjectType otype) {
+    protected void setOType(ObjectType otype) {
         this.otype = otype;
     }
     

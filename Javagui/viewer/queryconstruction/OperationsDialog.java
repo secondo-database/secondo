@@ -1,7 +1,21 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
+//This file is part of SECONDO.
+
+//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Database Systems for New Applications.
+
+//SECONDO is free software; you can redistribute it and/or modify
+//it under the terms of the GNU General Public License as published by
+//the Free Software Foundation; either version 2 of the License, or
+//(at your option) any later version.
+
+//SECONDO is distributed in the hope that it will be useful,
+//but WITHOUT ANY WARRANTY; without even the implied warranty of
+//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//GNU General Public License for more details.
+
+//You should have received a copy of the GNU General Public License
+//along with SECONDO; if not, write to the Free Software
+//Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package viewer.queryconstruction;
 
 import java.awt.BorderLayout;
@@ -25,7 +39,6 @@ public class OperationsDialog extends JDialog {
     private MainPane main;
     private QueryconstructionViewer mainViewer;
     private FilterViewer filterViewer =  new FilterViewer(this);
-    private Operation operation;
     private String[] params;
     private ArrayList<ObjectView> allObjects;
     
@@ -38,9 +51,6 @@ public class OperationsDialog extends JDialog {
     private boolean hasButtons = false;
     
     private int hasParameter = 0;
-    private int charAt = 0;
-    private char[] signature;
-    private String result = "";
     
     protected final static char obChar = 'o';
     protected final static char opChar = '#';
@@ -49,8 +59,6 @@ public class OperationsDialog extends JDialog {
     public OperationsDialog(MainPane main, QueryconstructionViewer viewer, Operation operation, ArrayList<ObjectView> objects) {
         this.main = main;
         this.mainViewer = viewer;
-        this.operation = operation;
-        this.signature = operation.getSignature().toCharArray();
         
         this.resetObjectDialog();
         setLayout(new GridLayout(0,1));
@@ -85,6 +93,8 @@ public class OperationsDialog extends JDialog {
         String parameter = params[hasParameter];
         if (parameter.equals("bool") || parameter.startsWith("new")){
             nestedQuery(parameter);
+            if (parameter.startsWith("new"))
+                filterViewer.setLabel("attribute name", "First letter has to be uppercase.");
         }
         if (!parameter.equals("bool")) {
             for (String param: parameter.split(",")) {
@@ -188,14 +198,13 @@ public class OperationsDialog extends JDialog {
      * @param objectName
      * @param atts attributes of the object
      */
-    public void addRadiobuttons(String objectName, String[] atts) {
+    protected void addRadiobuttons(String objectName, String[] atts) {
         JLabel name = new JLabel(objectName);
         buttonPanel.add(name);
         ButtonGroup buttons = new ButtonGroup();
-        JRadioButton rb = new JRadioButton();
         int i = 0;
         for (String att: atts) {
-            rb = new JRadioButton( att );
+            JRadioButton rb = new JRadioButton( att );
             rb.setActionCommand(att);
             buttonPanel.add(rb);
             buttons.add(rb);
@@ -207,10 +216,27 @@ public class OperationsDialog extends JDialog {
         }
     }
     
+    /**
+     * Add the string s to the result string.
+     * @param s 
+     */
     protected void addResult(String s){
         hasParameter++;
-        result += s;
+        
+        ObjectView new_object = new ObjectView(s, "param");
+        StreamView paramStream = new StreamView("OperationStream", "", 0, 0);
+        paramStream.addObject(new_object);
+        main.addParamStream(paramStream);
+        
         check();
+    }
+    
+    /**
+     * Adds the tuple as an object to the filterViewer.
+     * @param tuple 
+     */
+    protected void addTuple(ObjectView tuple){
+        filterViewer.addObjects(new ObjectView[]{tuple});
     }
     
     /**
@@ -218,40 +244,10 @@ public class OperationsDialog extends JDialog {
      */
     private void check() {
         if (hasParameter == params.length) {
-            send();
+            close();
         }
         else {
             showDialog();
-        }
-    }
-    
-    /**
-     * add the next character or string to the result and start the operation showDialog()
-     * if the parameter is 'p'
-     */
-    private void setResult() {
-        if (charAt < signature.length) {
-            char c = signature[charAt];
-            if (c == pChar) {
-                showDialog();
-                charAt++;
-            }
-            while (c != pChar && charAt < signature.length) {
-                c = signature[charAt++];
-                switch(c) {
-                    case obChar: 
-                        break;
-                    case opChar: 
-                        result += operation.getOperationName();
-                        break;
-                    case pChar: 
-                        showDialog();
-                        return;
-                    default: 
-                        result += c;
-                        break;
-                }
-            }
         }
     }
     
@@ -353,20 +349,18 @@ public class OperationsDialog extends JDialog {
         addResult(labels);
     }
     
-    //adds the textfield to the operation name
+    /**
+     * adds the text of the textfield to the result
+     * @param textfield 
+     */
     private void sendText(JTextField textfield){
         String text = textfield.getText();
         addResult(text);
     }
     
-    private void send() {
-        ObjectView new_object = new ObjectView("param", result);
-        StreamView paramStream = new StreamView("OperationStream", "", 0, 0);
-        paramStream.addObject(new_object);
-        //operation.getView().addParamStream(paramStream);
-        main.addParamStream(paramStream);
-        main.update();
+    private void close() {
         this.dispose();
+        mainViewer.update();
     }
     
 }

@@ -18,7 +18,6 @@ public class InfoDialog extends JDialog {
     JTextArea textArea = new JTextArea();
     
     public InfoDialog(int x, int y) {
-        //this.setPreferredSize(new Dimension(100, 100));
         textArea.setEditable(false);
         textArea.setBorder(BorderFactory.createEmptyBorder(5,5,5,15));
         this.add(textArea);

@@ -28,7 +28,10 @@ public class OperationsPane extends JComponent implements MouseListener {
         this.setLayout(new GridLayout(0, 1));
     }
     
-    /** paints a Secondo Object into the relations panel */
+    /**
+     * Paint all usable operations into the panel.
+     * @param g 
+     */
     public void paintComponent(Graphics g) {
         this.removeAll();
         String[] viewerParam = viewer.getParameters();

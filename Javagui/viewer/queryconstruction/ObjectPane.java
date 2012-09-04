@@ -181,7 +181,8 @@ public class ObjectPane  extends JComponent implements MouseListener {
             }
             else {
                 //a copy of the object is added to the main panel
-                ObjectView new_object = new ObjectView(element.getType(), element.getObjectName());
+                ObjectView new_object = new ObjectView(element.getObjectName(), element.getType());
+                new_object.setLabel(element.getLabel());
                 new_object.setOType(element.getOType());
                 viewer.addObject(new_object);
             }

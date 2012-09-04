@@ -21,9 +21,14 @@ import sj.lang.ListExpr;
 public class FilterViewer extends QueryconstructionViewer {
     
     private OperationsDialog dialog;
-    private String result;
+    private String resultType;
+    private String resultString = "";
     private JFrame f = new JFrame();
-    private JButton ok = new JButton("ok");
+    private JPanel buttonPanel = new JPanel();
+    private JButton paste = new JButton("ok");
+    private JButton add = new JButton("add");
+    private JTextField attribute = new JTextField(15);
+    private JLabel textLabel = new JLabel();
     
     ArrayList<ObjectView> objects;
     ArrayList<Operation> operations;
@@ -34,36 +39,45 @@ public class FilterViewer extends QueryconstructionViewer {
         
         f.addWindowListener( new WindowAdapter() {
             public void windowClosing ( WindowEvent e) {
-                reset();
+                exit();
             }
         } );
         
-        JPanel buttonPanel = new JPanel();
+        paste.setEnabled(false);
+        buttonPanel.add(paste);
+        add.setEnabled(false);
+        buttonPanel.add(add);
         
-        ok.setEnabled(false);
-        buttonPanel.add(ok);
         buttonPanel.add(back);
+        buttonPanel.add(attribute);
+        buttonPanel.add(textLabel);
         
         this.add(buttonPanel, BorderLayout.SOUTH);
         
         ActionListener okl = new ActionListener() {
             public void actionPerformed( ActionEvent e ) {
-                addString();
+                addString("");
+                close();
             }
         };
-        ok.addActionListener(okl);
-    }
-    
-    protected void setResult(String result) {
-        this.result = result;
-    }
-    
-    protected void showViewer() {
-        f.add(this);
-        f.setSize(new Dimension(500, 400));
-        f.setLocation(100, 100);
-        f.setVisible(true);
-    }
+        paste.addActionListener(okl);
+        
+        ActionListener addl = new ActionListener() {
+            public void actionPerformed( ActionEvent e ) {
+                addString(", ");
+                reset();
+            }
+        };
+        add.addActionListener(addl);
+        
+        ActionListener textL = new ActionListener() {
+            public void actionPerformed( ActionEvent e ) {
+                update();
+            }
+        };
+        
+        attribute.addActionListener(textL);
+    }    
     
     /**
      * add the attribute objects to the object panel
@@ -78,33 +92,86 @@ public class FilterViewer extends QueryconstructionViewer {
     }
     
     /**
-     * add the generated string to the query
+     * Add the generated string to the result string.
      */
-    private void addString() {
-        
-        dialog.addResult(mainPane.getStrings());
+    private void addString(String tail) {
+        if  (attribute.getText().length() > 0) {
+            resultString += attribute.getText()+": ";
+        }
+        resultString += mainPane.getStrings() + tail;
+    }
+    
+    /**
+     * Add the result to the query and close the frame.
+     */
+    private void close(){
+        dialog.addResult(resultString);
         f.setVisible(false);
+    }
+    
+    /**
+     * Remove the changes, that are made by the last operation.
+     */
+    private void exit() {
+        dialog.back();
     }
     
     /**
      * reset all actions in the filter window
      */
-    private void reset() {
-        dialog.back();
+    private void reset(){
+        attribute.setText(null);
+        removeAll();
+        update();
     }
     
+    /**
+     * Set the label of the buttonPanel.
+     * @param text
+     * @param tooltip Tooltip text of the textfield.
+     */
+    protected void setLabel(String text, String tooltip) {
+        textLabel.setText(text);
+        attribute.setToolTipText(tooltip);
+        buttonPanel.revalidate();
+    }
+    
+    /**
+     * Set the expected result type.
+     * @param result 
+     */
+    protected void setResult(String result) {
+        this.resultType = result;
+    }
+    
+    /**
+     * Set the viewer frame visible.
+     */
+    protected void showViewer() {
+        f.add(this);
+        f.setSize(new Dimension(500, 400));
+        f.setLocation(100, 100);
+        f.setVisible(true);
+    }
+    
+    /**
+     * Update the FilterViewer and all buttons.
+     */
     public void update(){
-        
         super.update();
-        if (result != null) {
-            if (mainPane.getType().equals(result)) {
-                ok.setEnabled(true);
+        if (resultType != null) {
+            if (mainPane.getType().equals(resultType)) {
+                paste.setEnabled(true);
             }
-            if (result.equals("new") && !mainPane.getType().startsWith("(stream")){
-                ok.setEnabled(true);
+            if (resultType.startsWith("new") && !mainPane.getType().startsWith("(stream") && (attribute.getText().length() > 0)){
+                paste.setEnabled(true);
             }
-            if (result.equals("newstream") && mainPane.getType().startsWith("(stream")) {
-                ok.setEnabled(true);
+            
+            if (resultType.startsWith("newstream") && mainPane.getType().startsWith("(stream")) {
+                paste.setEnabled(true);
+            }
+            if (paste.isEnabled() && resultType.endsWith("list") && (attribute.getText().length() > 0)) {
+                add.setEnabled(true);
             }
         }
     }
