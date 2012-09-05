@@ -391,6 +391,8 @@ find minimal cycles within a sorted dbarray
             pos++;
          }
       }
+      delete[] usage;
+      delete[] critical;
    }
 
    void RegionCreator::findCycle(const DbArray<HalfSegment>* hss, 
