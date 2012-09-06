@@ -967,7 +967,7 @@ let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
 
 
 # Calculate time to process one tuple of the right input
-# x1 - x2 is the time to insert (20000) tuples more
+# x1 - x2 is the time to process 20.000 tuples more
 # multiply by 1000 to get the time in milliseconds
 let vItHashJoin = (((x1 - x2) * 1000) / 20000) * MF;
 
@@ -986,11 +986,8 @@ delete x6;
 # measure time for reading and writing one byte into TupleFile (wItHashJoin)
 #
 # Set memory to 128 MB, so itHashJoin runs with 2 partitions and 
-# has to write the tuples into the tuplefile
+# has to write the tuples from the right stream to disk 
 #
-#
-# Selectivity of plzsmall and plzbig_select0 is 0
-# So itHashJoin has to write all tuples of stream2 to disk
 ##
 
 # we always run 4 times and take the time of the last three, to have consistent
@@ -1030,8 +1027,7 @@ let x5 = x3 * x4;
 # multiply by 1000 to get the time in milliseconds
 let wItHashJoin = (((x1 - x2) * 1000) / x5) * MF;
 
-query ProgressConstants inserttuple["ExtRelation2Algebra", "itHashJoin", "wItHashJoin", wItHashJoin, "msecs per byte written and read into/from TupleFile", ""] consume
-
+query ProgressConstants inserttuple["ExtRelation2Algebra", "itHashJoin", "wItHashJoin", wItHashJoin, "msecs per byte written to TupleFile", ""] consume
 
 # delete variables used before
 delete x1;
