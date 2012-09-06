@@ -410,8 +410,8 @@ double calculateSufficientMemory(size_t NoTuples1,
   size_t sizeOfTuple2) const {
 
   // Space for placing all tuples in memory
-  return NoTuples1 * sizeOfTuple1 
-    + NoTuples2 * sizeOfTuple2 / 1024 * 1024;
+  return (NoTuples1 * sizeOfTuple1 
+    + NoTuples2 * sizeOfTuple2) / (1024 * 1024);
 
 }
 
