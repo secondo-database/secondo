@@ -4,15 +4,15 @@
  */
 package viewer.queryconstruction;
 
-import viewer.QueryconstructionViewer;
-import java.util.*;
-import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import sj.lang.ListExpr;
+import java.util.ArrayList;
+import javax.swing.*;
+import viewer.QueryconstructionViewer;
 
 /**
  *
@@ -30,9 +30,10 @@ public class FilterViewer extends QueryconstructionViewer {
     private JTextField attribute = new JTextField(15);
     private JLabel textLabel = new JLabel();
     
-    ArrayList<ObjectView> objects;
-    ArrayList<Operation> operations;
-    
+    /**
+     * Construct a new queryconstruction window.
+     * @param dialog receives the result query
+     */
     public FilterViewer(OperationsDialog dialog) {
         super();
         this.dialog = dialog;
@@ -43,11 +44,11 @@ public class FilterViewer extends QueryconstructionViewer {
             }
         } );
         
+        /* add the buttons for the nested viewer */
         paste.setEnabled(false);
         buttonPanel.add(paste);
         add.setEnabled(false);
         buttonPanel.add(add);
-        
         buttonPanel.add(back);
         buttonPanel.add(attribute);
         buttonPanel.add(textLabel);
@@ -70,12 +71,12 @@ public class FilterViewer extends QueryconstructionViewer {
         };
         add.addActionListener(addl);
         
+        /* update the window, if the a text is added */
         ActionListener textL = new ActionListener() {
             public void actionPerformed( ActionEvent e ) {
                 update();
             }
         };
-        
         attribute.addActionListener(textL);
     }    
     

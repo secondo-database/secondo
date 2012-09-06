@@ -16,6 +16,7 @@
 //You should have received a copy of the GNU General Public License
 //along with SECONDO; if not, write to the Free Software
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 package viewer.queryconstruction;
 
 import java.awt.Color;
@@ -138,16 +139,15 @@ public class StreamView {
                         ObjectView object = (ObjectView) iter.next();
                         result += object.getOnlyName().trim()+" ";
                     }
-                    if (iS == inputStreams.size()) {
-                        return result;
-                    }
                     break;
                 case OperationsDialog.pChar:
-                    for (Iterator iter = paramStreams.get(pS).getObjects().iterator(); iter.hasNext();) {
+                    if (pS < paramStreams.size()) {
+                        for (Iterator iter = paramStreams.get(pS).getObjects().iterator(); iter.hasNext();) {
                             ObjectView object = (ObjectView) iter.next();
                             result += object.getObjectName().trim();
                         }
                         pS++;
+                    }
                     break;
                 default:
                     if (iS <= inputStreams.size()) {
@@ -198,16 +198,15 @@ public class StreamView {
                             result += object.getOnlyName().trim()+" ";
                         }
                     }
-                    if (iS == inputStreams.size()) {
-                        return result;
-                    }
                     break;
                 case OperationsDialog.pChar:
-                    for (Iterator iter = paramStreams.get(pS).getObjects().iterator(); iter.hasNext();) {
+                    if (pS < paramStreams.size()) {
+                        for (Iterator iter = paramStreams.get(pS).getObjects().iterator(); iter.hasNext();) {
                             ObjectView object = (ObjectView) iter.next();
                             result += object.getObjectName().trim();
                         }
                         pS++;
+                    }
                     break;
                 default:
                     if (iS <= inputStreams.size()) {

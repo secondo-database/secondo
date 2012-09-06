@@ -16,6 +16,7 @@
 //You should have received a copy of the GNU General Public License
 //along with SECONDO; if not, write to the Free Software
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 package viewer.queryconstruction;
 
 import java.awt.Color;
@@ -29,7 +30,8 @@ import sj.lang.ListExpr;
 import viewer.QueryconstructionViewer;
 
 /**
- * An instance of this class is the object component in the ObjectsPane and the MainPane.
+ * An instance of this class is the object 
+ * component in the ObjectsPane and the MainPane.
  */
 public class ObjectView extends JComponent {
     
