@@ -353,11 +353,13 @@ function. Allowed types are:
       functionType=2;
       
       // Init variables
-      a = b = c = d = 0;
+      a = 0; b = 0; c = 0; d = 0;
 
+      // Calculate sufficientMemory and time at sufficientMemory and 16MB
+      sufficientMemory=calculateSufficientMemory(NoTuples2, sizeOfTuple2);
+      
       // Points for resolving parameter
       double point1, point2, timeAtPoint1, timeAtPoint2;
-
       calculateXPoints(sufficientMemory, point1, point2);
 
       // Calculate costs for first point
@@ -371,16 +373,11 @@ function. Allowed types are:
       // Calculate a and b for function f(x) = a/x+b 
       resolveInverseProportionality(point1, timeAtPoint1, point2, 
         timeAtPoint2, a, b);
-
-
-
-      // Calculate sufficientMemory and time at sufficientMemory and 16MB
-      sufficientMemory=calculateSufficientMemory(NoTuples2, sizeOfTuple2);
       
       getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
         sufficientMemory, timeAtSuffMemory);
 
-      // is point1 at 16mb? => We have costs for 16mb
+      // is point1 at 16mb? => We have already costs for 16mb
       if(point1 == 16) {
          timeAt16MB = timeAtPoint1;
       } else {
