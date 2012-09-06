@@ -411,36 +411,55 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
         }
 
         // otherwise we must estimate
-        // calculate size for one bucket datastructure
+        // calculate size for one bucket
         vector<Tuple*>* bucket = new vector<Tuple*>();
         size_t sizePerBucket = sizeof(bucket);
         delete bucket;
         bucket = NULL;
-          
-        // Memory for datastruct
-         if(s1Card / buckets > 10) {
-            sizePerBucket += sizeof(void*) * (s1Card / buckets);      
-         } else {
-            sizePerBucket += sizeof(void*) * 10;
-         }
+        
 
+        // Handle low memory situations, hashtable is to big for memory
+        // Recalcualte size of buckets (needed if called from optimizer and 
+        // not from operator)
+        size_t realBuckets = buckets;
+
+        if(buckets * sizePerBucket > maxmem / 5){
+           // reduce size of table when table structure takes more than
+           // 20 percent of the available memory
+           realBuckets = maxmem / (5 * sizeof(void*));
+        
+           if(realBuckets < 3){
+             realBuckets = 3;
+           }
+        }
+        
         // calculate size of the whole datastructure
-        size_t memoryOfDatastruct = sizePerBucket * buckets; 
+        size_t memoryOfDatastruct = sizePerBucket * realBuckets; 
 
         // calculate max number of tuples in hashtable
-        size_t tuplesInMemory = (maxmem - memoryOfDatastruct) / s1Size;
+        size_t tuplesInMemory = (maxmem - memoryOfDatastruct)
+           / (s1Size + sizeof(void*));
         
         // calculate number of partitions
         size_t noOfPartitions = ceil((double) s1Card / (double) tuplesInMemory);
 
         if(DEBUG) {
-           cout << "DEBUG: Size of datastucture is: " 
+           ofstream file;
+           file.open("/tmp/secondolog",  ios::out | ios::app);
+           file << "s1Card " << s1Card << " s1Size " << s1Size << endl;
+           file << "Memory is " << maxmem << endl;
+           file << "Real buckets " << realBuckets << endl;
+           file << "DEBUG: Size of datastucture is: " 
               << memoryOfDatastruct << endl;
            
-           cout << "DEBUG: Size per Bucket: " << sizePerBucket << endl;
-           cout << "DEBUG: Tuples is memory are: " << tuplesInMemory << endl;
-           cout << "DEBUG: total Tuples are: " << s1Card << endl;
-           cout << "DEBUG: No of partitons is: " << noOfPartitions << endl;
+           file << "DEBUG: Size per Bucket: " << sizePerBucket << endl;
+           file << "DEBUG: Tuples is memory are: " << tuplesInMemory << endl;
+           file << "DEBUG: total Tuples are: " << s1Card << endl;
+           file << "DEBUG: No of partitons is: " << noOfPartitions << endl;
+           file << endl << endl;
+
+           file.close();
+
         }
 
         return noOfPartitions;
