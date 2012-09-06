@@ -35,7 +35,7 @@ import sj.lang.ListExpr;
 import viewer.queryconstruction.*;
 
 /**
- * this viewer class admits the construction of a query
+ * this viewer class admits the visual construction of a query
  * 
  * @author Lisa Rentergent
  * @since 01.06.2012
@@ -43,23 +43,27 @@ import viewer.queryconstruction.*;
  * 
  */
 public class QueryconstructionViewer extends SecondoViewer {
-    
+    //scrollpanels in the viewer
     protected ObjectPane objectPane;
     protected OperationsPane operationsPane;
     protected MainPane mainPane;
-    
     private JScrollPane mainScrollpane;
     private JScrollPane objectScrollpane;
     private JScrollPane operationsScrollpane;
     
+    //buttons
     private JPanel buttonPanel = new JPanel();
     protected JButton back = new JButton("back");
     private JButton run = new JButton("run");
     private JButton command = new JButton("copy command");
     
+    //lists of all objects and operators in nested list format
     private ListExpr objects;
     private ListExpr operators;
     
+    /**
+     * Construct the viewer window.
+     */
     public QueryconstructionViewer(){
         this.setLayout(new BorderLayout());
         
@@ -146,6 +150,11 @@ public class QueryconstructionViewer extends SecondoViewer {
         update();
     }
     
+    /**
+     * Send the query to the secondo server and return the result.
+     * @param query
+     * @return query result
+     */
     public ListExpr getType(String query) {
         ListExpr getTypeNL = null;
         if (VC != null) {
@@ -155,13 +164,23 @@ public class QueryconstructionViewer extends SecondoViewer {
         return getTypeNL;
     }
     
+    /**
+     * Get the object for the communication with the server.
+     * @return 
+     */
     public ViewerControl getViewerControl() {
         return VC;
     }
     
+    /**
+     * Get the amount of tuples in a relation, if the object is a relation.
+     * @param query
+     * @return 0, if the query result is not countable
+     */
     public String getCount(String query) {
         if (VC != null) {
-            ListExpr getTypeNL = VC.getCommandResult("query " + query + " count");
+            ListExpr getTypeNL = 
+                    VC.getCommandResult("query " + query + " count");
             
             if (getTypeNL != null)
                 return getTypeNL.second().toString();
@@ -170,14 +189,26 @@ public class QueryconstructionViewer extends SecondoViewer {
         return "0";
     }
     
+    /**
+     * Get the types of all active objects in the main panel.
+     * @return array of types
+     */
     public String[] getParameters() {
         return mainPane.getParameters();
     }
     
+    /**
+     * Send a request to the main panel to check the attributes 
+     * for duplicate names.
+     * @return 
+     */
     public boolean checkAttributes() {
         return mainPane.checkAttributes();
     }
     
+    /**
+     * Copy the active query in the main panel to the system clipboard.
+     */
     private void copyCommand() {
         Toolkit.getDefaultToolkit().getSystemClipboard().setContents(
                         new StringSelection(mainPane.getStringsQuery()), null);
@@ -187,12 +218,12 @@ public class QueryconstructionViewer extends SecondoViewer {
      * Executes the constructed query.
      */
     private void runQuery() {
-        if (VC.execCommand(mainPane.getStringsQuery()) == 0) {
-            VC.execUserCommand(mainPane.getStringsQuery());
-        }
-        else {
-            System.out.println(VC.getCommandResult(mainPane.getStringsQuery()));
-            System.out.println("Kann nicht ausgeführt werden. Fehler: "+VC.execCommand(mainPane.getStringsQuery()));
+//        if (VC.execCommand(mainPane.getStringsQuery()) == 0) {
+//            VC.execUserCommand(mainPane.getStringsQuery());
+//        }
+        if (!VC.execUserCommand(mainPane.getStringsQuery())) {
+            System.out.println("Kann nicht ausgeführt werden. Fehler: "
+                    +VC.execCommand(mainPane.getStringsQuery()));
         }
     }
     
@@ -210,7 +241,9 @@ public class QueryconstructionViewer extends SecondoViewer {
         operationsPane.update();
     }
     
-    
+    /**
+     * Set the main panel one step back.
+     */
     public void back() {
         mainPane.removeLastObject();
         update();
@@ -229,6 +262,11 @@ public class QueryconstructionViewer extends SecondoViewer {
         }
     }
     
+    /**
+     * Add the objects of the database to the object panel.
+     * Used in the nested window.
+     * @param ob list of the objects to add
+     */
     public void setObjects(ListExpr ob) {
         if (ob != null) {
             this.objects = ob;
@@ -236,6 +274,11 @@ public class QueryconstructionViewer extends SecondoViewer {
         }
     }
     
+    /**
+     * Add the operators of the database to the operators panel.
+     * Used in the nested window.
+     * @param op list of the operators to add
+     */
     public void setOperators(ListExpr op) {
         if (op != null) {
             this.operators = op;
@@ -251,34 +294,53 @@ public class QueryconstructionViewer extends SecondoViewer {
     protected void listObjects() {
         objects = VC.getCommandResult("list objects");
         if (objects != null) {
-            operators = VC.getCommandResult("query QueryOperators feed sortby[OpName asc] consume");
+            operators = VC.getCommandResult(
+                    "query QueryOperators feed sortby[OpName asc] consume");
             if (operators == null) {
-                VC.execCommand("restore QueryOperators from '../bin/QueryOperators'");
-                operators = VC.getCommandResult("query QueryOperators feed sortby[OpName asc] consume");
+                VC.execCommand(
+                        "restore QueryOperators from '../bin/QueryOperators'");
+                operators = VC.getCommandResult(
+                        "query QueryOperators feed sortby[OpName asc] consume");
             }
             operationsPane.addOperations(operators);
             objectPane.addObjects(objects);
         }
     }
     
+    /**
+     * Get a list of all objects in the object panel.
+     * @return 
+     */
     public ArrayList<ObjectView> getObjects(){
         return objectPane.getObjects();
     }
     
+    /**
+     * Get the list expression of the objects.
+     * @return this.objects
+     */
     public ListExpr getObjectList(){
         return objects;
     }
     
+    /**
+     * Get the list expression of the operators.
+     * @return this.operators
+     */
     public ListExpr getOperatorList(){
         return operators;
     }
     
-    /** returns QueryconstructionViewer */
+    /**
+     * @return "QueryconstructionViewer"
+     */
     public String getName(){
         return "QueryconstructionViewer";
     }
     
-    /** remove all containing objects */
+    /**
+     * Remove all containing objects and renew the main panel.
+     */
     public void removeAll(){
         mainPane = new MainPane(this);
         mainPane.setPreferredSize(new Dimension (500, 400));
@@ -292,7 +354,7 @@ public class QueryconstructionViewer extends SecondoViewer {
     }
     
     public void removeObject(SecondoObject o){
-        
+        //does nothing
     }
     
     public boolean selectObject (SecondoObject o) {
