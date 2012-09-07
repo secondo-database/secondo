@@ -304,6 +304,20 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
       costs = NoTuples1 * uItHashJoin + NoTuples2 * vItHashJoin; 
   }
 
+  // Write Debug output to file. Needed if called from optimizer
+  if(DEBUG) {
+     ofstream file;
+     file.open("/tmp/secondolog",  ios::out | ios::app);
+     file << "Called with NoTuples1 " << NoTuples1 
+        << " sizeOfTuple1 " << sizeOfTuple1 << endl;
+     file << "Called with NoTuples2 " << NoTuples2 
+        << " sizeOfTuple2 " << sizeOfTuple2 << endl;
+     file << "Partitions is " << partitions << endl;
+     file << "Memory is " << maxmem << endl;
+     file << "Costs " << costs << endl << endl;
+     file.close();
+  }
+
  return true;
 }
 
@@ -454,9 +468,7 @@ size_t getNoOfPartitions(size_t s1Card, size_t s1Size, size_t maxmem) const {
            file << "DEBUG: total Tuples are: " << s1Card << endl;
            file << "DEBUG: No of partitons is: " << noOfPartitions << endl;
            file << endl << endl;
-
            file.close();
-
         }
 
         return noOfPartitions;
@@ -729,7 +741,7 @@ double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1,
   const size_t NoTuples2, const size_t sizeOfTuple2) const {
 
    // Space for placing all tuples in memory
-   return NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2 / (1024 * 1024);
+   return (NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2) / (1024 * 1024);
 }
 
 /*
@@ -941,7 +953,7 @@ double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1,
   const size_t NoTuples2, const size_t sizeOfTuple2) const {
 
    // Space for placing all tuples in memory
-   return NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2 / (1024 * 1024);
+   return (NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2) / (1024 * 1024);
 }
 
 /*
@@ -1185,6 +1197,7 @@ virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
            ProgressConstants::getValue("ExtRelationAlgebra",
            "mergejoin", "wMergeJoin");
 
+     // Time for sorting (uSortBy) + time for merging (wMergeJoin)
      costs = NoTuples1 * sizeOfTuple1 * uSortBy +
              NoTuples2 * sizeOfTuple2 * uSortBy +
              (NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2) 
