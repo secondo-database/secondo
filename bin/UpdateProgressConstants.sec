@@ -111,7 +111,7 @@ delete t_result;
 #
 #
 # The following queries are taken from Sven Jungnickels 
-# "Masterthesis". Page 76.
+# Master thesis. Page 76.
 #
 #####################################################################
 
@@ -230,7 +230,7 @@ delete x6;
 
 
 # Assume that twrite = tread
-# See Masterthesis Page 78 
+# See Jungnickel - page 78 
 #
 let tread = twrite;
 
