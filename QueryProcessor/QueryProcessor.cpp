@@ -3641,9 +3641,14 @@ the function in a database object.
     if ( perOperator < 16 ) perOperator = 16;
     distributeMemory( tree, perOperator );
   }
+
+  static bool printNoMemOps = !RTFlag::isActive("QP:DISABLE_PRINT_NO_MEM_OPS");
+  if(printNoMemOps){
          cout << "noMemoryOperators = " << noMemoryOperators << endl;
          cout << "perOperator = " << perOperator << endl;
+  }
          // print(cout, tree);
+  
 
   QueryTree = tree;
   ResetCounters();
