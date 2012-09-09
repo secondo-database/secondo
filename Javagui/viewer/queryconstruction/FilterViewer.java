@@ -1,7 +1,22 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
+//This file is part of SECONDO.
+
+//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Database Systems for New Applications.
+
+//SECONDO is free software; you can redistribute it and/or modify
+//it under the terms of the GNU General Public License as published by
+//the Free Software Foundation; either version 2 of the License, or
+//(at your option) any later version.
+
+//SECONDO is distributed in the hope that it will be useful,
+//but WITHOUT ANY WARRANTY; without even the implied warranty of
+//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//GNU General Public License for more details.
+
+//You should have received a copy of the GNU General Public License
+//along with SECONDO; if not, write to the Free Software
+//Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 package viewer.queryconstruction;
 
 import java.awt.BorderLayout;
@@ -11,18 +26,16 @@ import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.util.ArrayList;
+import java.util.Iterator;
 import javax.swing.*;
 import viewer.QueryconstructionViewer;
 
-/**
- *
- * @author lrentergent
- */
 public class FilterViewer extends QueryconstructionViewer {
     
     private OperationsDialog dialog;
     private String resultType;
     private String resultString = "";
+    
     private JFrame f = new JFrame();
     private JPanel buttonPanel = new JPanel();
     private JButton paste = new JButton("ok");
@@ -84,6 +97,18 @@ public class FilterViewer extends QueryconstructionViewer {
      * add the attribute objects to the object panel
      * @param objects attribute objects
      */
+    protected void addAttributes(ArrayList<ObjectView> objects) {
+        for ( Iterator iter = objects.iterator(); iter.hasNext(); ) {
+            ObjectView object = (ObjectView)iter.next();
+            objectPane.addAttributeObject(object);
+        }
+        update();
+    }
+    
+    /**
+     * add the attribute objects to the object panel
+     * @param objects attribute objects
+     */
     protected void addObjects(ObjectView[] objects) {
         for (ObjectView o: objects) {
             objectPane.addAttributeObject(o);
@@ -97,9 +122,23 @@ public class FilterViewer extends QueryconstructionViewer {
      */
     private void addString(String tail) {
         if  (attribute.getText().length() > 0) {
-            resultString += attribute.getText()+": ";
+            if (resultType.startsWith("new"))
+                resultString += attribute.getText()+": ";
+            if (resultType.equals("fun")) {
+                resultString += "fun(" + attribute.getText()
+                        + ": TUPLE) ";
+            }
+            
         }
+        
         resultString += mainPane.getStrings() + tail;
+        /* replace the automatically generated tuple name */
+        System.out.println(resultString);
+        if (resultType.equals("fun")) {
+            resultString = resultString.replace("(t,", "("+attribute.getText()+",");
+        }
+        //resultString.replace("(t:", "("+attribute.getText()+":");
+        
     }
     
     /**
@@ -115,6 +154,10 @@ public class FilterViewer extends QueryconstructionViewer {
      */
     private void exit() {
         dialog.back();
+    }
+    
+    protected void rename(String tuple){
+        objectPane.renameAttributes(tuple);
     }
     
     /**
@@ -161,13 +204,16 @@ public class FilterViewer extends QueryconstructionViewer {
     public void update(){
         super.update();
         if (resultType != null) {
+            if (resultType.equals("fun") && (attribute.getText().length() > 0)) {
+                paste.setEnabled(true);
+                return;
+            }
             if (mainPane.getType().equals(resultType)) {
                 paste.setEnabled(true);
             }
             if (resultType.startsWith("new") && !mainPane.getType().startsWith("(stream") && (attribute.getText().length() > 0)){
                 paste.setEnabled(true);
             }
-            
             if (resultType.startsWith("newstream") && mainPane.getType().startsWith("(stream")) {
                 paste.setEnabled(true);
             }

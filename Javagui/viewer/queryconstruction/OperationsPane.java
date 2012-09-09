@@ -67,8 +67,8 @@ public class OperationsPane extends JComponent implements MouseListener {
                         String[] oPs = opObject.split(",");
                         boolean oneright = false;
                         if (opObject.equals("typ")) {
-                            operationObjects[i] = viewerParam[i];
-                            operationObjects[i+1] = viewerParam[i];
+                            operationObjects[i] = viewerStr;
+                            operationObjects[i+1] = viewerStr;
                         }
                         for (String oP: oPs) {
                             if (oP.equals(viewerStr)) {
@@ -137,7 +137,7 @@ public class OperationsPane extends JComponent implements MouseListener {
                 Operation element = (Operation)arg0.getComponent();
                 
                 //check if objects have to be renamed
-                if (element.getParameter()[0].equals("attr,attr")) {
+                if ((element.getObjects().length == 2) && (element.getObjects()[0].equals("stream")) && (element.getObjects()[1].equals("stream")) && (element.getParameter().length > 0)) {
                     if (!viewer.checkAttributes()) {
                         viewer.addOperation(rename.copy());
                         return;

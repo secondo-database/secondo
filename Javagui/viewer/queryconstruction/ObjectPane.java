@@ -41,6 +41,8 @@ public class ObjectPane  extends JComponent implements MouseListener {
     private ListExpr objects;
     private JTextField textfield = new JTextField();
     private InfoDialog dialog;
+    
+    private static int level;
 
     public ObjectPane (QueryconstructionViewer viewer) {
         this.viewer = viewer;
@@ -80,6 +82,20 @@ public class ObjectPane  extends JComponent implements MouseListener {
     }
     
     /**
+     * Get a list of all attribute objects in the panel.
+     * @return 
+     */
+    public ArrayList<ObjectView> getAttributes(){
+        ArrayList<ObjectView> attributes = attributeElements;
+        for ( Iterator iter = attributes.iterator(); iter.hasNext(); ) {
+            ObjectView object = (ObjectView)iter.next();
+            object.removeMouseListener(this);
+        }
+        
+        return attributes;
+    }
+    
+    /**
      * Get a list of all objects in the panel.
      * @return 
      */
@@ -109,14 +125,18 @@ public class ObjectPane  extends JComponent implements MouseListener {
         this.attributeElements.add(object);
     }
     
-    protected void clear() {
-        this.attributeElements.clear();
-    }
-    
     // updates the panel, only active objects are shown
     public void update() {
         setPreferredSize(new Dimension (this.getComponentCount()*120, 70));
         this.revalidate();
+    }
+    
+    protected void renameAttributes(String tuple){
+        for ( Iterator iter = attributeElements.iterator(); iter.hasNext(); ) {
+            ObjectView object = (ObjectView)iter.next();
+            object.rename("attr("+tuple+", "+object.getOnlyName()+")");
+        }
+        this.update();
     }
     
     /**
@@ -173,7 +193,7 @@ public class ObjectPane  extends JComponent implements MouseListener {
                 int dx = 0;
                 int dy = 0;
                 Object src = arg0.getSource();
-                if(src!=null){
+                if(src != null){
                    if(src instanceof java.awt.Component){
                       java.awt.Point p = ((java.awt.Component) src).getLocationOnScreen();
                       if(p!=null){

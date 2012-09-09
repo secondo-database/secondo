@@ -45,20 +45,12 @@ public class MainPane extends JComponent implements MouseListener {
     private ObjectView lastObject;
     private int lastY = 0;
     private int lastX = 0;
+    private String result;
     
     public MainPane(QueryconstructionViewer viewer) {
         this.viewer = viewer;
         this.addMouseListener(this);
     }
-    
-    public void paintComponent(Graphics g) {
-        
-        for ( Iterator iter = fullStream.iterator(); iter.hasNext(); ) {
-            StreamView stream = (StreamView)iter.next();
-            stream.paintComponent(g);
-        }
-        
-    }    
     
     //adds an operation or an object to the main panel
     public void addObject(ObjectView object){
@@ -75,29 +67,32 @@ public class MainPane extends JComponent implements MouseListener {
      * @param operation 
      */
     public void addOperation(Operation operation) {
+        
         if (!operation.getParameter()[0].equals("")) {
-            
             this.dialog = new OperationsDialog(this, this.viewer, operation);
-            
+            String dot = ".";
             if (operation.getObjects().length > 0) {
-                String dot = ".";
                 for ( Iterator iter = activeStreams.iterator(); iter.hasNext(); ) {
                     StreamView stream = (StreamView)iter.next();
+                    
                     if (stream.getAttributes() != null) {
                         dialog.addAttributes(stream.getAttrObjects(dot));
                         for (String param: operation.getParameter()) {
                             if (param.equals("attr,attr")) {
                                 dialog.addRadiobuttons(stream.getName(), stream.getAttributes());
                             }
-                            if (param.equals("attrlist")) {
-                                dialog.addCheckboxes(stream.getName(), stream.getAttributes());
+                            if (param.startsWith("attrlist")) {
+                                if (param.endsWith("dir"))
+                                    dialog.addCheckboxes(stream.getName(), stream.getAttributes(), new String[]{"asc", "desc"});
+                                else
+                                    dialog.addCheckboxes(stream.getName(), stream.getAttributes(), null);
                             }
                         }
-                        dot += ".";
                     }
                     if (operation.getOperationName().startsWith("group")) {
                         dialog.addTuple(stream.getObjects().get(0).copy("group"));
                     }
+                    dot += ".";
                 }
                 
             }
@@ -131,52 +126,6 @@ public class MainPane extends JComponent implements MouseListener {
         lastObject.addParamStream(stream);
         activeStream.addParamStream(stream);
     }
-    
-    /**
-     * update the panel and the stream information
-     */
-    public String update() {
-        setActiveStreams();
-        updateStream(activeStream);
-        ListExpr type = viewer.getType(this.getTypeString());
-        String result = "";
-        
-        if ((type != null) && (type.second().textValue() != null)) {
-            result = type.second().textValue();
-            if (result.equals("undefined"))
-                    result = type.first().textValue();
-            this.setToolTipText(result);
-        }
-        else {
-            this.setToolTipText(getStringsQuery());
-        }
-        
-        this.setPreferredSize(new Dimension(getLastX()*120, this.lastY * 80));
-        this.repaint();
-        this.revalidate();
-        return result;
-    }
-    
-    private void updateStream(StreamView stream) {
-        if (stream != null) {
-            ListExpr obj = viewer.getType("query " + stream.getTypeString());
-        
-            if (obj != null) {
-                String result = obj.second().textValue();
-                if (result.equals("undefined"))
-                    result = obj.first().textValue();
-                if (result != null)
-                    stream.setState(result);
-            }
-        }
-        
-    }
-    
-//    protected void updateOperation() {
-//        /* delete the signature, only the new name of the operation is used */
-//        //activeStream.setSignature("");
-//        viewer.update();
-//    }
     
     /**
      * deletes the last added object of the query
@@ -331,20 +280,69 @@ public class MainPane extends JComponent implements MouseListener {
         return query;
     }
     
-    protected String getType(){
-        String result = "";
-        ListExpr obj = viewer.getType(this.getTypeString());
-        
+    private void setType(ListExpr obj) {
         if (obj != null) {
             result = obj.second().textValue();
             if (result.equals("undefined"))
                 result = obj.first().textValue();
         }
+    }
+    
+    /**
+     * update the panel and the stream information
+     */
+    public String update() {
+        setActiveStreams();
+        System.out.println(activeStreams.size());
+        ListExpr type = updateStream(activeStream);
+        if (activeStreams.size() > 1)
+            type = viewer.getType(this.getTypeString());
         
+        if ((type != null) && (type.second().textValue() != null)) {
+            result = type.second().textValue();
+            if (result.equals("undefined"))
+                    result = type.first().textValue();
+            this.setToolTipText(result);
+        }
+        else {
+            this.setToolTipText(getStringsQuery());
+            result = getStringsQuery();
+        }
+        
+        this.setPreferredSize(new Dimension(getLastX()*120, this.lastY * 80));
+        this.repaint();
+        this.revalidate();
         return result;
     }
     
-    //Handle mouse events.
+    private ListExpr updateStream(StreamView stream) {
+        ListExpr obj = viewer.getType("query " + stream.getTypeString());
+
+        if (obj != null) {
+            String streamResult = obj.second().textValue();
+            if (streamResult.equals("undefined"))
+                streamResult = obj.first().textValue();
+            if (streamResult != null)
+                stream.setState(streamResult);
+        }
+        return obj;
+    }
+    
+    protected String getType(){
+        return result;
+    }
+    
+    public void paintComponent(Graphics g) {
+        for ( Iterator iter = fullStream.iterator(); iter.hasNext(); ) {
+            StreamView stream = (StreamView)iter.next();
+            stream.paintComponent(g);
+        }
+    }
+    
+    /**
+     * Handle mouse event.
+     * @param e mouse event
+     */
     public void mouseClicked ( MouseEvent e ) {
         
         //get the position of the click

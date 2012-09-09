@@ -174,6 +174,7 @@ public class ObjectView extends JComponent {
         }
         if (result.length() < 12)
             this.label = result;
+        
         return result;
     }
     
@@ -181,16 +182,29 @@ public class ObjectView extends JComponent {
         return this.name;
     }
     
-    protected StreamView getParamStream(int index){
-        if (paramStreams.size() > index)
-            return paramStreams.get(index);
-        return null;
-    }
+//    protected StreamView getParamStream(int index){
+//        if (paramStreams.size() > index)
+//            return paramStreams.get(index);
+//        return null;
+//    }
     
-    protected String getConst(){
-        String result = "[const ";
-        result += this.getType() + " value undef]";
-        
+    /**
+     * Return a constant copy of the object, if it is an attribute.
+     * @param onlyName return only the name and don't process the signature
+     * @return 
+     */
+    protected String getConst(boolean onlyName){
+        String result = "";
+        if ((this.name.startsWith(".") || this.name.startsWith("attr")) && !this.type.equals("param")) {
+            result = "[const ";
+            result += this.getType() + " value undef]";
+        }
+        else {
+            if (onlyName)
+                return this.name;
+            else
+                return this.getObjectName().trim() + " ";
+        }
         return result;
     }
     
@@ -201,13 +215,6 @@ public class ObjectView extends JComponent {
     protected void setLabel(String label) {
         this.label = label;
     }
-    
-//    private void setObjectName(String name) {
-//        this.name = name;
-//        if (name.length() < 12) {
-//            setLabel(name);
-//        }
-//    }
     
     public String getType(){
         return type;
@@ -223,6 +230,14 @@ public class ObjectView extends JComponent {
     
     public ObjectType getOType() {
         return otype;
+    }
+    
+    protected void rename(String name){
+        this.name = name.replace(".", "");
+        if (name.length() < 12)
+            this.label = name;
+        else
+            label = label.replace(".", "");
     }
     
     protected void setActive(boolean active){

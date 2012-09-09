@@ -111,50 +111,51 @@ public class StreamView {
     }
 
     protected String getString() {
+        
         String result = "";
+        int index = 0;
         int iS = 0;
         int pS = 0;
         
-        if (signature.length == 0) {
-            for (Iterator iter = objects.iterator(); iter.hasNext();) {
-                ObjectView object = (ObjectView) iter.next();
+        for (Iterator iter = objects.iterator(); iter.hasNext();) {
+            ObjectView object = (ObjectView) iter.next();
+            if ((index == 0) && (signature.length != 0)) {
+                for (char c : signature) {
+                    switch(c) {
+                        case OperationsDialog.obChar: 
+                            if (iS < inputStreams.size()){
+                                result += inputStreams.get(iS).getString();
+                            }
+                            iS++;
+                            break;
+                        case OperationsDialog.opChar:
+                            result += object.getOnlyName().trim();
+                            break;
+                        case OperationsDialog.pChar:
+                            if (pS < paramStreams.size()) {
+                                for (Iterator iterParam = paramStreams.get(pS).getObjects().iterator(); iterParam.hasNext();) {
+                                    ObjectView paramObject = (ObjectView) iterParam.next();
+                                    result += paramObject.getObjectName().trim();
+                                }
+                                pS++;
+                            }
+                            break;
+                        default:
+                            if (iS <= inputStreams.size()) {
+                                result += c;
+                            }
+                            break;
+                    }
+                }
+                result += " ";
+            }
+            else {
                 if (object.getLabel().equals("group"))
                     result += "group ";
                 else
                     result += object.getObjectName().trim() + " ";
             }
-            if (result.length() > 0)
-                result = result.substring(0, result.length() - 1);
-        }
-        for (char c : signature) {
-            switch(c) {
-                case OperationsDialog.obChar: 
-                    if (iS < inputStreams.size()){
-                        result += inputStreams.get(iS).getString();
-                    }
-                    iS++;
-                    break;
-                case OperationsDialog.opChar:
-                    for (Iterator iter = objects.iterator(); iter.hasNext();) {
-                        ObjectView object = (ObjectView) iter.next();
-                        result += object.getOnlyName().trim()+" ";
-                    }
-                    break;
-                case OperationsDialog.pChar:
-                    if (pS < paramStreams.size()) {
-                        for (Iterator iter = paramStreams.get(pS).getObjects().iterator(); iter.hasNext();) {
-                            ObjectView object = (ObjectView) iter.next();
-                            result += object.getObjectName().trim();
-                        }
-                        pS++;
-                    }
-                    break;
-                default:
-                    if (iS <= inputStreams.size()) {
-                        result += c;
-                    }
-                    break;
-            }
+            index++;
         }
         return result;
     }
@@ -162,58 +163,47 @@ public class StreamView {
     protected String getTypeString(){
         
         String result = "";
+        int index = 0;
         int iS = 0;
         int pS = 0;
         
-        if (signature.length == 0) {
-            for (Iterator iter = objects.iterator(); iter.hasNext();) {
-                ObjectView object = (ObjectView) iter.next();
+        for (Iterator iter = objects.iterator(); iter.hasNext();) {
+            ObjectView object = (ObjectView) iter.next();
+            if ((index == 0) && (signature.length != 0)) {
+                for (char c : signature) {
+                    switch(c) {
+                        case OperationsDialog.obChar: 
+                            if (iS < inputStreams.size()){
+                                result += inputStreams.get(iS).getTypeString();
+                            }
+                            iS++;
+                            break;
+                        case OperationsDialog.opChar:
+                            result += object.getConst(true);
+                            break;
+                        case OperationsDialog.pChar:
+                            if (pS < paramStreams.size()) {
+                                for (Iterator iterParam = paramStreams.get(pS).getObjects().iterator(); iterParam.hasNext();) {
+                                    ObjectView paramObject = (ObjectView) iterParam.next();
+                                    result += paramObject.getObjectName().trim();
+                                }
+                                pS++;
+                            }
+                            break;
+                        default:
+                            if (iS <= inputStreams.size()) {
+                                result += c;
+                            }
+                            break;
+                    }
+                }
+                result += " ";
+            }
+            else {
                 /* Attribute objects should be treated as constants in inner queries. */
-                if (object.getObjectName().startsWith(".") && !object.getType().equals("param")) {
-                    result += object.getConst() + " ";
-                }
-                else {
-                    result += object.getObjectName().trim() + " ";
-                }
+                result += object.getConst(false) + " ";
             }
-            if (result.length() > 0)
-                result = result.substring(0, result.length() - 1);
-        }
-        
-        for (char c : signature) {
-            switch(c) {
-                case OperationsDialog.obChar: 
-                    if (iS < inputStreams.size()){
-                        result += inputStreams.get(iS).getTypeString();
-                    }
-                    iS++;
-                    break;
-                case OperationsDialog.opChar:
-                    for (Iterator iter = objects.iterator(); iter.hasNext();) {
-                        ObjectView object = (ObjectView) iter.next();
-                        if (object.getObjectName().startsWith(".")) {
-                            result += object.getConst()+" ";
-                        }
-                        else {
-                            result += object.getOnlyName().trim()+" ";
-                        }
-                    }
-                    break;
-                case OperationsDialog.pChar:
-                    if (pS < paramStreams.size()) {
-                        for (Iterator iter = paramStreams.get(pS).getObjects().iterator(); iter.hasNext();) {
-                            ObjectView object = (ObjectView) iter.next();
-                            result += object.getObjectName().trim();
-                        }
-                        pS++;
-                    }
-                    break;
-                default:
-                    if (iS <= inputStreams.size()) {
-                        result += c;
-                    }
-                    break;
-            }
+            index++;
         }
         return result;
     }
