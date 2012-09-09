@@ -308,6 +308,14 @@ public class QueryconstructionViewer extends SecondoViewer {
     }
     
     /**
+     * Get a list of all attribute objects in the object panel.
+     * @return 
+     */
+    public ArrayList<ObjectView> getAttributes(){
+        return objectPane.getAttributes();
+    }
+    
+    /**
      * Get a list of all objects in the object panel.
      * @return 
      */
