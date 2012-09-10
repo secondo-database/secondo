@@ -179,9 +179,9 @@ ListExpr doubleExportTypeMap(ListExpr args)
       && nl->Equal(attrTypeA, attrTypeB))
     {
       ListExpr attrList = nl->TwoElemList(
-          nl->TwoElemList(nl->StringAtom("keyT",false),
+          nl->TwoElemList(nl->StringAtom("KeyT",false),
               nl->SymbolAtom(CcString::BasicType())),
-          nl->TwoElemList(nl->StringAtom("valueT",false),
+          nl->TwoElemList(nl->StringAtom("ValueT",false),
               nl->SymbolAtom(FText::BasicType())));
       NList AttrList(attrList, nl);
       NList tupleStreamList =
@@ -738,6 +738,17 @@ and forwards this type encapsulated in a stream type.
     ( (rel(T1)) ... ) -> stream(T1)
 ----
 
+Update at Spetemper 2012
+Allow to pass stream(tuple(...)) as well, hence to avoid creating relation objects in slave databases.
+Now maps:
+
+----
+    ( (rel(T1)) ... ) -> stream(T1) |
+    ( (stream(T1)) ... ) -> stream(T1)
+----
+
+The same update is done for ~TUPLESTREAM2~ and ~TUPLESTREAM3~
+
 4.1 Specification of Operator ~TUPSTREAM~
 
 */
@@ -762,7 +773,7 @@ ListExpr TUPSTREAMType( ListExpr args)
   if (nl->ListLength(args) < 1)
     return listutils::typeError("Expect one argument at least");
   ListExpr first = nl->First(args);
-  if (!listutils::isRelDescription(first))
+  if (!listutils::isRelDescription(first) && !listutils::isTupleStream(first))
     return listutils::typeError("rel(tuple(...)) expected");
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->Second(first));
@@ -802,7 +813,7 @@ ListExpr TUPSTREAM2Type( ListExpr args)
   if (nl->ListLength(args) < 2)
     return listutils::typeError("Expect two argument at least");
   ListExpr second = nl->Second(args);
-  if (!listutils::isRelDescription(second))
+  if (!listutils::isRelDescription(second) && !listutils::isTupleStream(second))
     return listutils::typeError("rel(tuple(...)) expected");
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->Second(second));
@@ -843,7 +854,7 @@ ListExpr TUPSTREAM3Type( ListExpr args)
   if (nl->ListLength(args) < 3)
     return listutils::typeError("Expect 3 arguments at least");
   ListExpr third = nl->Third(args);
-  if (!listutils::isRelDescription(third))
+  if (!listutils::isRelDescription(third) && !listutils::isTupleStream(third))
       return listutils::typeError("rel(tuple(...)) expected");
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->Second(third));
@@ -898,6 +909,11 @@ of this function's argument list. Then the query processor knows that
 these two inputs are streams, and will use specific messages to drive
 the function work.
 
+
+Update at September 2012.
+Allow the two schema relations can replaced with tuple streams,
+hence to be able to accept tuple types from operators like ~ffeed~.
+
 */
 
 struct paraJoinInfo : OperatorInfo
@@ -939,8 +955,10 @@ ListExpr paraJoinTypeMap( ListExpr args )
     ListExpr mapNL = nl->Fourth(args);
 
     if (listutils::isTupleStream(streamList)
-      && listutils::isRelDescription(relAList)
-      && listutils::isRelDescription(relBList))
+      && ( listutils::isRelDescription(relAList)
+        || listutils::isTupleStream(relAList))
+      && ( listutils::isRelDescription(relBList)
+        || listutils::isTupleStream(relBList)))
     {
       ListExpr attrList = nl->Second(nl->Second(streamList));
       if (nl->ListLength(attrList) != 1)
@@ -3132,14 +3150,14 @@ if the target machine is not the producer.
 
   if (!fileFound)
   {
-    cerr << "\nERROR! File " << targetFilePath
+    cerr << "\nWarning! File " << targetFilePath
          << " is not exist and cannot be remotely fetched.\n\n\n";
     return false;
   }
   tupleBlockFile = new ifstream(targetFilePath.c_str(), ios::binary);
   if (!tupleBlockFile->good())
   {
-    cerr << "ERROR! Read file " << targetFilePath << " fail.\n\n\n";
+    cerr << "Warning! Read file " << targetFilePath << " fail.\n\n\n";
     tupleBlockFile = 0;
     return false;
   }

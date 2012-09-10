@@ -10,38 +10,38 @@ Result: 8
 Operator: parahashjoin
 Number: 1
 Signature: ( (stream (tuple((v: text)))) text text ) -> stream(tuple(...))
-Example: query plz feed {p} Orte feed {o} doubleexport[Ort_p, Ort_o] sortby[keyT] add0Tuple project[valueT] plz Orte parahashjoin count;
+Example: query plz feed {p} Orte feed {o} doubleexport[Ort_p, Ort_o] sortby[KeyT] add0Tuple project[ValueT] plz Orte parahashjoin count;
 Result: 10052
 
 Operator: TUPSTREAM
 Number: 1
 Signature: ( (rel(T1)) ... ) -> stream(T1)
-Example: query plz feed {p} Orte feed {o} doubleexport[Ort_p, Ort_o] sortby[keyT] add0Tuple project[valueT] plz Orte parajoin[. {p} .. {o} product] count;
+Example: query plz feed {p} Orte feed {o} doubleexport[Ort_p, Ort_o] sortby[KeyT] add0Tuple project[ValueT] plz Orte parajoin[. {p} .. {o} product] count;
 Result: 10052
 
 Operator: TUPSTREAM2
 Number: 1
 Signature: ( T1 (rel(T2)) ... ) -> stream(T2)
-Example: query plz feed {p} Orte feed {o} doubleexport[Ort_p, Ort_o] sortby[keyT] add0Tuple project[valueT] plz Orte parajoin[. {p} .. {o} product] count;
+Example: query plz feed {p} Orte feed {o} doubleexport[Ort_p, Ort_o] sortby[KeyT] add0Tuple project[ValueT] plz Orte parajoin[. {p} .. {o} product] count;
 Result: 10052
 
 Operator: TUPSTREAM3
 Number: 1
 Signature: ( T1 T2 (rel(T3)) ... ) -> stream(T3)
-Example: query plz feed {p} Orte feed {o} doubleexport[Ort_p, Ort_o] sortby[keyT] add0Tuple project[valueT] plz Orte parajoin[. {p} .. {o} product] count;
+Example: query plz feed {p} Orte feed {o} doubleexport[Ort_p, Ort_o] sortby[KeyT] add0Tuple project[ValueT] plz Orte parajoin[. {p} .. {o} product] count;
 Result: 10052
 
 Operator: parajoin
 Number: 1
 Signature: ( (stream(tuple((v: text)))) x (rel(tuple(T1))) x (rel(tuple(T2))) x ((map (stream(T1)) (stream(T2)) (stream(T1 T2)))))) -> stream(tuple(T1 T2))
-Example: query plz feed {p} Orte feed {o} doubleexport[Ort_p, Ort_o] sortby[keyT] add0Tuple project[valueT] plz Orte parajoin[. {p} .. {o} product] count;
+Example: query plz feed {p} Orte feed {o} doubleexport[Ort_p, Ort_o] sortby[KeyT] add0Tuple project[ValueT] plz Orte parajoin[. {p} .. {o} product] count;
 Result: 10052
 
 
 Operator: add0Tuple
 Number: 1
-Signature: (stream(tuple((keyT string)(valueT text)))) -> stream(tuple((keyT string)(valueT text)))
-Example: query plz feed head[5] {p} Orte feed head[3] {o} doubleexport[Ort_p, Ort_o] sortby[keyT] add0Tuple count;
+Signature: (stream(tuple((KeyT string)(ValueT text)))) -> stream(tuple((KeyT string)(ValueT text)))
+Example: query plz feed head[5] {p} Orte feed head[3] {o} doubleexport[Ort_p, Ort_o] sortby[KeyT] add0Tuple count;
 Result: 11
 
 Operator : fconsume
