@@ -137,14 +137,18 @@ doesn't exist, and cause the failure of the map task and the whole job.
 		allDLFNameLists.readFromString(DLF_Name_List);
 		ListExpr allDLFLocLists = new ListExpr();
 		allDLFLocLists.readFromString(DLF_fileLoc_List);
-		
+
+System.out.println("The allDLFLocLists is: " + allDLFLocLists);
 		ListExpr allDLFLists = HPA_AuxFunctions.flist2Mapper(allDLFNameLists, allDLFLocLists, MapTasksNum);
+System.out.println("The allDLFLists is: " + allDLFLists);
 		ListExpr allDLONameLists = new ListExpr();
 		allDLONameLists.readFromString(DLO_Name_List);
 		ListExpr allDLOLocLists = new ListExpr();
 		allDLOLocLists.readFromString(DLO_loc_List);
 		ListExpr allDLOLists = HPA_AuxFunctions.flist2Mapper(allDLONameLists, allDLOLocLists, MapTasksNum);
 
+System.exit(-1);
+		
 		//Prepare the input for mappers
     String inputPath = "INPUT";
     String outputPath = "OUTPUT";

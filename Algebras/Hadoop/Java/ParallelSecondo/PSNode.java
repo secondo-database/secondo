@@ -164,4 +164,28 @@ public class PSNode implements Constant{
 		return "";
 	}
 
+	public static PSNode getMasterNode() throws FileNotFoundException
+	{
+		String smFile = System.getenv().get("PARALLEL_SECONDO_MASTER");
+		if (smFile.length() == 0)
+		{
+			System.err.println(
+				"The Master list PARALLEL_SECONDO_MASTER is not defined at current node.");
+			System.exit(-1);
+		}
+		Scanner scanner = new Scanner(new FileInputStream(smFile));
+		String masterIP = "", masterLoc = "";
+		int masterPort = -1;
+		if (scanner.hasNext())
+		{
+			String[] pms = scanner.nextLine().split(sysDim);
+			masterIP 		 = pms[0];
+			masterLoc		 = pms[1];
+			masterPort   = Integer.parseInt(pms[2]);
+		}
+
+		return new PSNode(0, masterIP, masterLoc, masterPort);
+	}
+	
+	
 }

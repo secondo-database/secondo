@@ -1,10 +1,15 @@
 package ParallelSecondo;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
-
+import java.util.StringTokenizer;
 import sj.lang.ListExpr;
 
 /**
@@ -483,7 +488,7 @@ then the other mappers should indicate that as an empty row.
 	 * @return queryList
 	 */
 	public static ListExpr loc2Ffeed (ListExpr queryList, ListExpr nameList,
-			ListExpr loclList, int dupTimes)
+			ListExpr loclList, int dupTimes/*, String tuplePrefix*/)
 	{
 		ListExpr nameRest = nameList;
 		ListExpr loclRest = loclList;
@@ -765,4 +770,86 @@ then the other mappers should indicate that as an empty row.
 		
 		return result;
 	}
+
+	
+	// ------------------------------------------------------------------------
+	// Functions for HDJ 
+	// ------------------------------------------------------------------------
+	
+	
+	public static int getPort() throws IOException
+	{
+		int transPortNum = Integer.parseInt(getPID());
+		transPortNum = 40000 + transPortNum % 7000;
+		
+    while(true){
+      ServerSocket tmpSock = null;
+      try{
+        tmpSock = new ServerSocket(transPortNum);
+      }catch(IOException e){
+        transPortNum++;
+        tmpSock = null;
+      }finally{
+        if (tmpSock != null){
+          try {
+            tmpSock.close();
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+          break;
+        }
+      }
+    }
+    
+    return transPortNum;
+
+	}
+	
+  public static String getPID() throws IOException{
+    String pid = System.getProperty("pid"); //NOI18N
+    if(pid==null){
+        String cmd[];
+        File tempFile = null;
+        if(System.getProperty("os.name").toLowerCase().indexOf("windows")==-1)
+            cmd = new String[]{ "/bin/sh", "-c", "echo $$ $PPID" }; //NOI18N
+        else{
+            // getpids.exe is taken from http://www.scheibli.com/projects/getpids/index.html (GPL)
+            tempFile = File.createTempFile("getpids", "exe"); //NOI18N
+            // extract the embedded getpids.exe file from the jar and save it to above file
+            pump(HPA_AuxFunctions.class.getResourceAsStream("getpids.exe"), new FileOutputStream(tempFile), true, true); //NOI18N
+            cmd = new String[]{ tempFile.getAbsolutePath() };
+        }
+        if(cmd!=null){
+            Process p = Runtime.getRuntime().exec(cmd);
+            ByteArrayOutputStream bout = new ByteArrayOutputStream();
+            pump(p.getInputStream(), bout, false, true);
+            if(tempFile!=null)
+                tempFile.delete();
+
+            StringTokenizer stok = new StringTokenizer(bout.toString());
+            stok.nextToken(); // this is pid of the process we spanned
+            pid = stok.nextToken();
+            if(pid!=null)
+                System.setProperty("pid", pid); //NOI18N
+        }
+    }
+    return pid;
+  }
+
+  public static void pump(InputStream in, OutputStream out, boolean closeIn, boolean closeOut) throws IOException{
+    byte[] bytes = new byte[1024];
+    int read;
+    try{
+        while((read=in.read(bytes))!= -1)
+            out.write(bytes, 0, read);
+    }finally{
+        if(closeIn)
+            in.close();
+        if(closeOut)
+            out.close();
+    }
 }
+
+}
+
+

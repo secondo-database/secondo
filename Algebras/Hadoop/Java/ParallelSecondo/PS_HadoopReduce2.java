@@ -12,10 +12,10 @@ import java.util.Scanner;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
@@ -52,7 +52,7 @@ public class PS_HadoopReduce2 implements Constant{
 
 	public static void main(String[] args) {
 		
-		final int paraLength = 17;
+		final int paraLength = 18;
 		String usage = "Usage HadoopReduce2 " +
 				"<databaseName>  <CreateObjectName> <CreateQuery> " +
 				"<DLF_Name_List> <DLF_fileLoc_List> " +
@@ -60,7 +60,7 @@ public class PS_HadoopReduce2 implements Constant{
 				"<FilePath> "+
 				"<InputObjectName_1> <duplicateTimes_1> <PartAttributeName_1> " +
 				"<InputObjectName_2> <duplicateTimes_2> <PartAttributeName_2> " +
-				"<reduceTasksNum> <FListKind> [ MapQuery(2) ]"; 
+				"<reduceTasksNum> <FListKind> [ MapQuery(2) ] isHDJ"; 
 
 		if (args.length != paraLength)
 		{
@@ -110,6 +110,7 @@ public class PS_HadoopReduce2 implements Constant{
 		int reduceTasksNum 		= Integer.parseInt(args[14]);
 		FListKind outputKind 	= FListKind.values()[Integer.parseInt(args[15])];
 		String UEMapQueryStrs	= args[16];
+		boolean isHDJ = Boolean.parseBoolean(args[17]);
 		int mapTasksNum = slaves.size();
 
 		if (outputKind == FListKind.DLO && reduceTasksNum > slaves.size()){
@@ -129,7 +130,6 @@ public class PS_HadoopReduce2 implements Constant{
 		UEMapQueryLists[0] =UEMapQuery.first(); 
 		UEMapQueryLists[1] =UEMapQuery.second();
 		boolean runMapper[] = {!UEMapQueryLists[0].isEmpty(), !UEMapQueryLists[1].isEmpty()};
-//		boolean runMapper = ! (UEMapQueryLists[0].isEmpty() && UEMapQueryLists[1].isEmpty());
 		ListExpr[] AllMapDLFList = new ListExpr[2]; 
 		ListExpr[] AllMapDLOList = new ListExpr[2];
 		int[] mapTaskNums = new int[2];
@@ -175,16 +175,15 @@ public class PS_HadoopReduce2 implements Constant{
 		allDLOLocList.readFromString(DLO_Loc_ListStr);
 		ListExpr DLOByMappers = HPA_AuxFunctions.flist2Mapper(allDLONameList, allDLOLocList, mapTasksNum);
 		DLOByMappers = HPA_AuxFunctions.divMRDLO(allDLONameList, DLOByMappers, mapTasksNum);
-//------------------------------------------------------------------------------------------
+		
+		//------------------------------------------------------------------------------------------
 		
 		//Prepare the input for mappers
-    String inputPath = "INPUT";
-    String outputPath = "OUTPUT";
     Configuration conf = new Configuration();
 		try
 		{
-			FileSystem.get(conf).delete(new Path(outputPath), true);
-			FileSystem.get(conf).delete(new Path(inputPath), true);
+			FileSystem.get(conf).delete(new Path(hadoopOutputPath), true);
+			FileSystem.get(conf).delete(new Path(hadoopInputPath), true);
 			
 			ListExpr allDLOMappers = DLOByMappers.first();  //All DLO list for mappers (include name and loc)
 			ListExpr allDLOReducers = DLOByMappers.second();  //All DLO list for reducers (include name and loc)
@@ -283,9 +282,9 @@ public class PS_HadoopReduce2 implements Constant{
 					String fileName = JOBID + "_INPUT_"+ mapperIdx + ".dat";
 					PrintWriter out = new PrintWriter(
 							FileSystem.get(conf).create(
-									new Path(inputPath + "/" + fileName)));
+									new Path(hadoopInputPath + "/" + fileName)));
 					
-					if (runMapper[0] || runMapper[1])
+					if (runMapper[0] || runMapper[1] || isHDJ )
 					{
 						String[] dlfLocStr = new String[2];
 						dlfLocStr [0] = HPA_AuxFunctions.plainStr(amap_DLF[0]);
@@ -380,6 +379,105 @@ public class PS_HadoopReduce2 implements Constant{
 				}
 				
 			}
+			
+			if (isHDJ)
+			{
+				// First the reduce query have to be processed here. 
+				// Only the ~parajoin~ operation is provided, since the intermediate data 
+				// contains only one stream of MRPairs
+				
+				ListExpr reduceQueryList = new ListExpr();
+				reduceQueryList.readFromString(CreateQuery);
+				int replaceCount = 0, listCount = 0;
+				ListExpr[] DLOFLists = {allDLFNameList, allDLONameList};
+				while (replaceCount < 2)
+				{
+					ListExpr nameList = DLOFLists[listCount];
+					while (!nameList.isEmpty())
+					{
+						String argName = nameList.first().stringValue();
+						if (argName.matches(INDLOFPattern))
+						{
+							reduceQueryList = ExtListExpr.replace(
+									reduceQueryList, nameList.first(), 
+									ListExpr.symbolAtom(tupleStreamName[replaceCount]));
+							replaceCount++;
+						}
+						
+						nameList = nameList.rest();
+					}
+					listCount++;
+				}
+
+				//The intermediate result type file names are
+				String[] interResultName = { "P" + 1 + "_" + JOBID , "P" + 2 + "_" + JOBID };
+				reduceQueryList = ListExpr.fiveElemList(
+						ListExpr.symbolAtom("parajoin"), 
+						ListExpr.symbolAtom(QUERYNLSTR),  //will be replaced by receive operator in reduce stage 
+						ListExpr.fiveElemList(
+								ListExpr.symbolAtom("ffeed"), 
+								ListExpr.stringAtom(interResultName[0]), 
+								ListExpr.oneElemList(ListExpr.textAtom("")), 
+								ListExpr.oneElemList(ListExpr.intAtom(0)), //Get the type file from the master node 
+								ListExpr.theEmptyList()), 
+						ListExpr.fiveElemList(
+								ListExpr.symbolAtom("ffeed"), 
+								ListExpr.stringAtom(interResultName[1]), 
+								ListExpr.oneElemList(ListExpr.textAtom("")),
+								ListExpr.oneElemList(ListExpr.intAtom(0)), //Get the type file from the master node
+								ListExpr.theEmptyList()), 
+						ListExpr.fourElemList(
+								ListExpr.symbolAtom("fun"), 
+								ListExpr.twoElemList(
+										ListExpr.symbolAtom(tupleStreamName[0]), 
+										ListExpr.symbolAtom("TUPSTREAM2")), 
+								ListExpr.twoElemList(
+										ListExpr.symbolAtom(tupleStreamName[1]), 
+										ListExpr.symbolAtom("TUPSTREAM3")), 
+								reduceQueryList));
+				
+				
+				CreateQuery = HPA_AuxFunctions.plainStr(reduceQueryList);
+				try {
+					//Prepare the meta data
+					PSNode masterNode = PSNode.getMasterNode();
+					String masterIP  	= masterNode.getIpAddr(), 
+								 masterLoc 	= masterNode.getFileLoc();
+					int    masterPort = masterNode.getPortNum();
+
+					QuerySecondo secEntity = new QuerySecondo();
+					secEntity.open(masterIP, metaDBName, masterPort, true);
+					//First, prepare the meta data in the master database only
+					//In the future, if necessary, spread the meta data to other databases.
+					//like what we did in the HaSec_iot
+					
+					String createQuery = "let " + metaRelName + " = " + metaRelSchema;
+					String insertQuery = 
+						"query " + metaRelName + " inserttuple " + 
+						"[\"" + JOBID 						+ "\"," + 
+						" \"" + databaseName 			+ "\"," +
+						" \"" + CreateObjectName 	+ "\"," +
+						"  '" + CreateFilePath    + "' ," +
+						"  '" + CreateQuery   		+ "'] count";
+					ListExpr resultList = new ListExpr();
+					secEntity.query(createQuery, resultList, true);
+					secEntity.query(insertQuery, resultList);
+					secEntity.close();
+					
+					//Prepare the zeroTuple file
+					Path localzTuplePATH = new Path (masterLoc + "/" + zTupleFileName);
+					HDJ_GetZTuple.getZeroTuple(zTupleFileName);
+					Path zTuplePath = new Path(hadoopAuxiliaryPath + "/" + zTupleFileName);
+					FileSystem.get(conf).copyFromLocalFile(localzTuplePATH, zTuplePath);
+
+				} catch (FileNotFoundException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
 		}
 		catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -392,19 +490,33 @@ public class PS_HadoopReduce2 implements Constant{
 			Job job = new Job();
 			job.setJarByClass(PS_HadoopMap.class);
 			
-			FileInputFormat.addInputPath(job, new Path(inputPath));
-			FileOutputFormat.setOutputPath(job, new Path(outputPath));
-			if  (runMapper[0] || runMapper[1])
-				job.setMapperClass(PS_HadoopReduce2_QMap.class);
+			FileInputFormat.addInputPath(job, new Path(hadoopInputPath));
+			FileOutputFormat.setOutputPath(job, new Path(hadoopOutputPath));
+			if (!isHDJ)
+			{
+				if  (runMapper[0] || runMapper[1])
+					job.setMapperClass(PS_HadoopReduce2_QMap.class);
+				else
+					job.setMapperClass(PS_HadoopReduce2_Map.class);
+				job.setReducerClass(PS_HadoopReduce2_Reduce.class);
+
+				job.setMapOutputKeyClass(IntWritable.class);
+				job.setMapOutputValueClass(Text.class);
+				job.setOutputKeyClass(IntWritable.class);
+				job.setOutputValueClass(Text.class);  
+			}
 			else
-				job.setMapperClass(PS_HadoopReduce2_Map.class);
-			job.setReducerClass(PS_HadoopReduce2_Reduce.class);
-			
-			
-			job.setMapOutputKeyClass(IntWritable.class);
-			job.setMapOutputValueClass(Text.class);
-			job.setOutputKeyClass(IntWritable.class);
-			job.setOutputValueClass(Text.class);  
+			{
+				//Prepare different Mapper and Reducer classes.
+				job.setMapperClass(PS_HadoopReduce2_HDJ_QMap.class);
+				job.setReducerClass(PS_HadoopReduce2_HDJ_Reduce.class);
+				
+				job.setMapOutputKeyClass(IntWritable.class);
+				job.setMapOutputValueClass(BytesWritable.class);
+				job.setOutputKeyClass(IntWritable.class);
+				job.setOutputValueClass(Text.class);
+				
+			}
 
 			job.setJobName(JOBID);
 			job.setNumReduceTasks(reduceTasksNum);

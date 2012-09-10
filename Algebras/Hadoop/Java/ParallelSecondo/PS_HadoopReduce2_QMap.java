@@ -36,7 +36,7 @@ public class PS_HadoopReduce2_QMap
 		ListExpr fpList = new ListExpr();
 		fpList.readFromString(CreateFilePath);
 		CreateFilePath = fpList.first().textValue();
-		String AcceptNameList = parameters[6];
+		String AcceptFileNameList = parameters[6];
 		String AcceptFileLocList = parameters[7];
 		String AcceptDLOName = parameters[8];
 		String AcceptDLOLoc = parameters[9];

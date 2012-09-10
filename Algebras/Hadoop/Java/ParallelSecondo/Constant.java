@@ -6,8 +6,14 @@ public interface Constant {
 	public final static String inDim = "#SEP#";//Delimiter for internal parameters of the Hadoop job
 	public final static String sysDim = ":";   //Delimiter for systematic parameters
 	
-	public final static String metaDB = "hadoopmeta";
-	public final static String metaRel = "psMetaJobs";
+	public final static String metaDBName 		= "hadoopmeta";
+	public final static String metaRelName 		= "HDJ_Meta";
+	public final static String metaRelSchema 	= 
+		"[const rel(tuple([JobID:string, DBName:string, " +
+		"ResultName:string, CreateFilePath:text, " +
+		"RQ:text])) value ()]";
+	public final static String[] tupleStreamName = {"XxxStream1","XxxStream2"};
+	public final static String zTupleFileName = "zTupleFile";
 	
 	public final static String relDim = "_";
 	public final static String fsName = "XxxAttrFSN";  //file suffix name
@@ -49,6 +55,12 @@ data types.
 	//The array objects in Secondo that contains all nodes' names. 
 	
 	public enum FListKind {UNDEF, DLO, DLF}
+	
+	String hadoopInputPath 			= "INPUT";
+	String hadoopOutputPath 		= "OUTPUT";
+	String hadoopAuxiliaryPath 	= "AUXILIARY";
+	
+	
 }
 
 class RemoteStreamException extends RuntimeException{
