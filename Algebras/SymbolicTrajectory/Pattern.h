@@ -73,7 +73,7 @@ class MLabel : public MString {
     static ListExpr MLabelProperty();
     static bool CheckMLabel(ListExpr type, ListExpr& errorInfo);
     MLabel* compress();
-    void create(int size);
+    void create(int size, double rate);
     void rewrite(MLabel const &ml, vector<size_t> seq, vector<UPat> assigns);
 };
 
@@ -105,6 +105,7 @@ class Condition {
   vector<Key> keys;
   vector<string> vars;
   vector<int> pIds;
+  static bool onlyCard;
 
  public:
   Condition() {}
@@ -118,15 +119,17 @@ class Condition {
   static string getType(int t);
   static string getSubst(int s);
   
-  string getText() const           {return text;}
-  void   setText(string newText)   {text = newText;}
-  string getSubst() const          {return textSubst;}
-  void   resetSubst()              {textSubst = text;}
-  void   setSubst(string newSubst) {textSubst = newSubst;}
-  int    getKeysSize() const       {return keys.size();}
-  Key    getKey(unsigned int pos)  {return keys[pos];}
-  int    getPId(unsigned int pos)  {return pIds[pos];}
-  void   clearVectors()            {vars.clear(); keys.clear(); pIds.clear();}
+  string   getText() const           {return text;}
+  void     setText(string newText)   {text = newText;}
+  string   getSubst() const          {return textSubst;}
+  void     resetSubst()              {textSubst = text;}
+  void     setSubst(string newSubst) {textSubst = newSubst;}
+  int      getKeysSize() const       {return keys.size();}
+  Key      getKey(unsigned int pos)  {return keys[pos];}
+  int      getPId(unsigned int pos)  {return pIds[pos];}
+  void     clearVectors()            {vars.clear(); keys.clear(); pIds.clear();}
+  static bool getOnlyCard()          {return onlyCard;}
+  void     setOnlyCard(bool oc)      {onlyCard = oc;}
 };
 
 class UPat {
@@ -207,7 +210,6 @@ class Pattern {
   static Pattern* getPattern(string input);
   bool matches(MLabel const &ml);
   bool verifyPattern();
-  bool hasResults();
   set<vector<size_t> > getRewriteSequences(MLabel const &ml);
 
   vector<UPat>      getPats()               {return patterns;}
@@ -215,6 +217,7 @@ class Pattern {
   vector<UPat>      getResults()            {return results;}
   UPat              getPat(int pos)         {return patterns[pos];}
   UPat              getResult(int pos)      {return results[pos];}
+  bool              hasResults()            {return !results.empty();}
   void              addUPat(UPat upat)      {patterns.push_back(upat);}
   void              addCond(Condition cond) {conds.push_back(cond);}
   void              addResult(UPat res)     {results.push_back(res);}
@@ -233,16 +236,15 @@ struct DoubleParsInfo {
 
 class NFA {
  private:
-  map<unsigned int, set<unsigned int> > *delta; // array pos: old state;
+  map<int, set<int> > *delta; // array pos: old state;
                            // first: unit pattern id; second: new state.
-  set<unsigned int> currentStates;
+  set<int> currentStates;
   vector<UPat> patterns;
   vector<Condition> conds;
   int maxCardPos, f; // number of the final state
   ULabel ul;
-  size_t ulId, numOfLabels, seqCounter, seqMax;
-  set<size_t> *matchings;
-  set<size_t> *cardsets;
+  size_t ulId, numOfLabels, seqCounter, seqMax, numOfNegEvals;
+  set<size_t> *match, *cardsets;
   set<multiset<size_t> > sequences; // all possible matching sequences
   set<vector<size_t> > condMatchings; // for condition evaluation
   set<vector<size_t> > rewriteSeqs; // matching sequences for rewriting
@@ -250,24 +252,25 @@ class NFA {
                           // 3rd up, 2nd result var is the one from the 1st up
   set<int> doublePars; // positions of nonempty patterns in double parentheses
   map<string, bool> knownEval; // condition evaluation history
+  map<pair<size_t, size_t>, string> knownPers; // periods string history
 
  public:
   NFA(const int size) {
     f = size - 1;
-    delta = new map<unsigned int, set<unsigned int> >[f];
+    delta = new map<int, set<int> >[f];
     currentStates.insert(0);
-    matchings = new set<size_t>[f];
+    match = new set<size_t>[f];
     cardsets = new set<size_t>[f];
   }
 
   ~NFA() {
     delete[] delta;
-    delete[] matchings;
+    delete[] match;
     delete[] cardsets;
   }
 
   void buildNFA(Pattern p);
-  bool match(MLabel const &ml, bool rewrite);
+  bool matches(MLabel const &ml, bool rewrite);
   void printCurrentStates();
   void printCards();
   void printSequences(size_t max);
@@ -286,12 +289,17 @@ class NFA {
   void computeResultVars(vector<UPat> results);
   set<vector<size_t> > getRewriteSequences();
   bool conditionsMatch(MLabel const &ml);
+  size_t getRelevantCombs();
   bool evaluateEmptyML();
   void buildCondMatchings(int condId, multiset<size_t> sequence);
   bool evaluateCond(MLabel const &ml, int cId, multiset<size_t> sequence);
   string getLabelSubst(MLabel const &ml, int pos);
   string getTimeSubst(MLabel const &ml, Key key, size_t from, size_t to);
   string toString();
+  void copyFromPattern(Pattern p) {
+    patterns = p.getPats();
+    conds = p.getConds();
+  }
 };
 
 class RewriteResult {

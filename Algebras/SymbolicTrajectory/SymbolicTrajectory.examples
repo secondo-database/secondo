@@ -39,6 +39,6 @@ Result   : 1
 
 Operator : createml
 Number   : 1
-Signature: int -> mlabel
-Example  : query createml(2) matches '() ()'
+Signature: int x real -> mlabel
+Example  : query createml(2, 0.5) matches '() ()'
 Result   : TRUE

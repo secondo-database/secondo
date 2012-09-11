@@ -419,7 +419,7 @@ bool evaluate(string input, const bool eval) {
         else {
           if (eval) { // evaluate the condition
             string query = nl->ToString(nl->First(nl->Rest(queryList)));
-            cout << "execute query '" << query << "'" << endl;
+//             cout << "execute query '" << query << "'" << endl;
             if (!qp->ExecuteQuery(query, queryResult)) {
               cout << "execution error" << endl;
             }

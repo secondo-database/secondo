@@ -59,6 +59,7 @@ void patternerror(const char* s) {
 }
 stj::Pattern* wholepat = 0;
 Condition cond;
+bool Condition::onlyCard = false;
 UPat uPat;
 ExprList exprList;
 bool doublePars(false), firstAssign(true);
@@ -88,18 +89,18 @@ unsigned int pos = 0;
           expressionlistbrackets expressionlistenclosed
 %%
 start : patternsequence ZZDOUBLESLASH conditionsequence ZZEND {
-          cout << wholepat->toString();
+/*           cout << wholepat->toString(); */
         }
       | patternsequence ZZEND {
-          cout << wholepat->toString();
+/*           cout << wholepat->toString(); */
         }
       | patternsequence ZZRIGHTARROW results_assignments ZZEND {
-          cout << wholepat->toString();
+/*           cout << wholepat->toString(); */
         }
       | patternsequence ZZDOUBLESLASH conditionsequence ZZRIGHTARROW results_assignments ZZEND {
-          if (wholepat) {
+          /*if (wholepat) {
             cout << wholepat->toString();
-          }
+          }*/
         }
       ;
 
@@ -358,7 +359,7 @@ patternsequence : variable unitpattern {
                     wholepat->addUPat(uPat);
                     free($1);
                     free($2);
-                    cout << "pattern #" << wholepat->getPats().size() << endl;
+                    //cout << "pattern #" << wholepat->getPats().size() << endl;
                   }
                 | patternsequence variable unitpattern {
                     $$ = wholepat;
@@ -366,7 +367,7 @@ patternsequence : variable unitpattern {
                     wholepat->addUPat(uPat);
                     free($2);
                     free($3);
-                    cout << "pattern #" << wholepat->getPats().size() << endl;
+                    //cout << "pattern #" << wholepat->getPats().size() << endl;
                   }
                 ;
 
@@ -554,6 +555,9 @@ is valid; returns the recognized key.
 
 */
 Key Condition::convertVarKey(const char *varKey) {
+  if (!wholepat->getConds().size()) {
+    setOnlyCard(true);
+  }
   string input(varKey), var;
   Key key;
   int dotpos = input.find('.');
@@ -574,6 +578,9 @@ Key Condition::convertVarKey(const char *varKey) {
         key = CARD;
       else
         key = ERROR;
+      if (key < 4) {
+        setOnlyCard(false);
+      }
       cond.vars.push_back(var);
       cond.keys.push_back(key);
       cond.pIds.push_back(i);

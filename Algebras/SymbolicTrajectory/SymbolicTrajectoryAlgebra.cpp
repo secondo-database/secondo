@@ -431,37 +431,41 @@ MLabel* MLabel::compress() {
 /*
 \subsubsection{Function ~createml~}
 
-Creates an MLabel of a certain size for testing purposes.
+Creates an MLabel of a certain size for testing purposes. The labels will be
+contain only numbers between 1 and size[*]rate; rate being the number of
+different labels divided by the size.
 
 */
-void MLabel::create(int size) {
-  string labels[] = {"Büro", "Kantine", "Flur", "Aufzug", "Parkplatz","Mensa"};
-  srand(time(NULL));
-  int random;
-  MLabel* newML = new MLabel(1);
-  ULabel ul(1);
-  Instant* end = new Instant();
-  Instant* start = new Instant();
-  DateTime* minute = new DateTime(0, 60000, durationtype); // duration
-  end->Now();
-  end->Add(minute);
-  start->Now();
-  SecInterval* iv = new SecInterval(*start, *end, true, false);
-  for (int i = 0; i < size; i++) {
-    random = rand() % 6;
-    start->Minus(minute);
-    end->Minus(minute);
-    iv->Set(*start, *end, true, false);
-    ul.timeInterval = *iv;
-    ul.constValue.Set(true, labels[random]);
-    newML->MergeAdd(ul);
+void MLabel::create(int size, double rate) {
+  if ((size > 0) && (rate > 0) && (rate <= 1)) {
+    int max = size * rate;
+    MLabel* newML = new MLabel(1);
+    ULabel ul(1);
+    Instant* end = new Instant();
+    Instant* start = new Instant();
+    DateTime* minute = new DateTime(0, 60000, durationtype); // duration
+    end->Now();
+    end->Add(minute);
+    start->Now();
+    SecInterval* iv = new SecInterval(*start, *end, true, false);
+    for (int i = 0; i < size; i++) {
+      ul.constValue.Set(true, int2String(max - (i % max)));
+      start->Minus(minute);
+      end->Minus(minute);
+      iv->Set(*start, *end, true, false);
+      ul.timeInterval = *iv;
+      newML->MergeAdd(ul);
+    }
+    *this = *newML;
+    delete minute;
+    delete start;
+    delete end;
+    delete iv;
+    delete newML;
   }
-  *this = *newML;
-  delete minute;
-  delete start;
-  delete end;
-  delete iv;
-  delete newML;
+  else {
+    cout << "Invalid parameters for creation." << endl;
+  }
 }
 
 /*
@@ -1305,18 +1309,8 @@ bool Pattern::verifyConditions() {
       return false;
     }
   }
+  cout << (Condition::getOnlyCard() ? "" : "not ") << "only card keys" << endl;
   return true;
-}
-
-/*
-\subsection{Function ~hasResults~}
-
-Returns ~true~ iff the pattern results vector is not empty. This is necessary
-for the operator ~rewrite~.
-
-*/
-bool Pattern::hasResults() {
-  return !results.empty();
 }
 
 /*
@@ -1345,8 +1339,8 @@ bool Pattern::matches(MLabel const &ml) {
   }
   NFA *nfa = new NFA(patterns.size() + 1);
   nfa->buildNFA(*this);
-  cout << nfa->toString() << endl;
-  bool result = nfa->match(ml, false);
+//   cout << nfa->toString() << endl;
+  bool result = nfa->matches(ml, false);
   delete nfa;
   return result;
 }
@@ -1366,24 +1360,24 @@ set<vector<size_t> > Pattern::getRewriteSequences(MLabel const &ml) {
   }
   NFA *nfa = new NFA(patterns.size() + 1);
   nfa->buildNFA(*this);
-  cout << nfa->toString() << endl;
-  if (!nfa->match(ml, true)) {
+//   cout << nfa->toString() << endl;
+  if (!nfa->matches(ml, true)) {
     cout << "Error: Mismatch" << endl;
     delete nfa;
     return result;
   }
   nfa->computeResultVars(this->results);
   nfa->buildSequences();
-  nfa->printSequences(30);
+//   nfa->printSequences(30);
   nfa->filterSequences(ml);
-  nfa->printRewriteSequences(50);
+//   nfa->printRewriteSequences(50);
   result = nfa->getRewriteSequences();
   delete nfa;
   return result;
 }
 
 /*
-\subsection{Function ~getRelevantSequences~}
+\subsection{Function ~getRewriteSequences~}
 
 */
 set<vector<size_t> > NFA::getRewriteSequences() {
@@ -1426,12 +1420,12 @@ void NFA::filterSequences(MLabel const &ml) {
   set<multiset<size_t> >::iterator it;
   for (it = sequences.begin(); it != sequences.end(); it++) {
     for (int i = 0; i < (int)conds.size(); i++) {
-      cout << "processing cond #" << i << endl;
+//       cout << "processing cond #" << i << endl;
       if (conds[i].getKeysSize()) {
         buildCondMatchings(i, *it);
       }
       if (!evaluateCond(ml, i, *it)) {
-        cout << "mismatch at #" << i << endl;
+//         cout << "mismatch at #" << i << endl;
         i = conds.size(); // continue with next sequence
       }
       else if (i == (int)conds.size() - 1) { // all conditions are fulfilled
@@ -1507,8 +1501,7 @@ Reads the pattern and generates the delta function.
 
 */
 void NFA::buildNFA(Pattern p) {
-  patterns = p.getPats();
-  conds = p.getConds();
+  copyFromPattern(p);
   int prev[3] = {-1, -1, -1}; // prevStar, prevNotStar, secondPrevNotStar
   for (int i = 0; i < f; i++) {
     delta[i][i].insert(i + 1); // state i, read pattern i => new state i+1
@@ -1575,7 +1568,7 @@ the loop. If ~rewrite~ is true (which happens in case of the operator ~rewrite~)
 the matching procedure ends after the unit pattern test.
 
 */
-bool NFA::match(MLabel const &ml, bool rewrite) {
+bool NFA::matches(MLabel const &ml, bool rewrite) {
   numOfLabels = (size_t)ml.GetNoComponents();
   for (size_t i = 0; i < numOfLabels; i++) {
     ml.Get(i, ul);
@@ -1602,12 +1595,12 @@ bool NFA::match(MLabel const &ml, bool rewrite) {
       return false;
     }
     computeCardsets();
-    printCards();
+//     printCards();
     return true;
   }
   if (conds.size()) {
     computeCardsets();
-    printCards();
+//     printCards();
     if (!conditionsMatch(ml)) {
       return false;
     }
@@ -1623,7 +1616,7 @@ Returns a string displaying the information stored in the NFA.
 */
 string NFA::toString() {
   stringstream nfa;
-  set<unsigned int>::iterator k;
+  set<int>::iterator k;
   for (int i = 0; i < f; i++) {
     for (int j = i; j < f; j++) {
       if (delta[i][j].size() > 0) {
@@ -1652,7 +1645,7 @@ Prints the set of currently active states.
 */
 void NFA::printCurrentStates() {
   if (!currentStates.empty()) {
-    set<unsigned int>::iterator it = currentStates.begin();
+    set<int>::iterator it = currentStates.begin();
     cout << "after ULabel # " << ulId << ", active states are {" << *it;
     it++;
     while (it != currentStates.end()) {
@@ -1677,7 +1670,7 @@ void NFA::printCards() {
   set<size_t>::iterator it;
   for (int j = 0; j < f; j++) {
     cout << "upat " << j << " matches ulabels ";
-    for (it = matchings[j].begin(); it != matchings[j].end(); it++) {
+    for (it = match[j].begin(); it != match[j].end(); it++) {
       cout << *it << ", ";
     }
     cout << endl;
@@ -1770,27 +1763,22 @@ which current state. The set of current states is updated.
 
 */
 void NFA::updateStates() {
-  set<unsigned int> newStates;
-  newStates.clear();
-  set<unsigned int>::iterator i, it;
-  for (i = currentStates.begin(); i != currentStates.end(); i++) {
-    for (int j = *i; j < f; j++) {
-      if (!delta[*i][j].empty()) {
-        if (labelsMatch(j) && timesMatch(j)) {
-          if (!patterns[j].getW() || !patterns[j].getI().empty()
-           || !patterns[j].getL().empty()) {//(_ a) or ((1 _)) or () or similar
-            matchings[j].insert(ulId);
-          }
-          for (it = delta[*i][j].begin();
-               it != delta[*i][j].end(); it++) {
-            newStates.insert(*it);
-          }
+  set<int> newStates;
+  set<int>::iterator i, k;
+  map<int, set<int> >::iterator j;
+  for (i = currentStates.begin(); (i != currentStates.end() && *i < f); i++) {
+    for (j = delta[*i].begin(); j != delta[*i].end(); j++) {
+      if (labelsMatch(j->first) && timesMatch(j->first)) {
+        if (!patterns[j->first].getW() || !patterns[j->first].getI().empty()
+         || !patterns[j->first].getL().empty()) {//(_ a), ((1 _)), () or similar
+          match[j->first].insert(ulId);
         }
+        newStates.insert(j->second.begin(), j->second.end());
       }
     }
   }
   currentStates = newStates;
-  printCurrentStates();
+//   printCurrentStates();
 }
 
 /*
@@ -1804,7 +1792,7 @@ void NFA::processDoublePars(int pos) {
   set<size_t>::iterator j;
   size_t last = -2;
   size_t count = 0;
-  for (j = matchings[pos].begin(); j != matchings[pos].end(); j++) {
+  for (j = match[pos].begin(); j != match[pos].end(); j++) {
     if (*j == last + 1) {
       count++;
       cardsets[pos].insert(count);
@@ -1828,48 +1816,37 @@ Computes the set of possible cardinalities for every state.
 void NFA::computeCardsets() {
   set<size_t>::iterator j, k;
   int prev = -1; // previous matching position
+  int numOfNonStars = 0;
+  size_t limit;
   for (int i = 0; i < f; i++) {
-    if (matchings[i].size()) {
+    if (match[i].size()) {
       cardsets[i].insert(1);
       if (patterns[i].getW() == PLUS) { // '... #((1 a)) ...'
         processDoublePars(i);
       }
-      if (prev == i - 2) { // '(1 a) * #(2 b)' or '* #(1 a)'
-        if (prev > -1) {
-          for (j = matchings[i - 2].begin(); j != matchings[i - 2].end(); j++) {
-            for (k = matchings[i].begin(); k != matchings[i].end(); k++) {
-              if (*k > *j) {
-                cardsets[i - 1].insert(*k - *j - 1);
-              }
+      if (prev == i - 2) {
+        if (prev > -1) { // '(1 a) +|* #(2 b)'
+          for (j = match[i - 2].begin(); j != match[i - 2].end(); j++) {
+            for (k = match[i].begin(); (k != match[i].end() && *k > *j); k++) {
+              cardsets[i - 1].insert(*k - *j - 1);
             }
           }
         }
-        else { // first match
-          for (k = matchings[i].begin(); k != matchings[i].end(); k++) {
+        else { // '+|* #(1 a)'
+          for (k = match[i].begin(); k != match[i].end(); k++) {
             cardsets[0].insert(*k);
           }
         }
       }
       else if (prev < i - 2) {//'(1 a) *|+ .. *|+ #(2 b)' or '*|+ .. *|+ #(1 a)'
-        if (prev > -1) {
-          for (int j = prev + 1; j < i; j++) {
-            for (size_t m = 1; m < *(matchings[i].rbegin()) // 61 - 0
-                                   - *(matchings[prev].begin()); m++) {
-              cardsets[j].insert(m);
-            }
-            if (patterns[j].getW() == STAR) {
-              cardsets[j].insert(0);
-            }
-          } 
-        }
-        else { // '* ... * #(1 a)'
-          for (int j = 0; j < i; j++) {
-            for (size_t m = 1; m <= *(matchings[i].rbegin()); m++) {
-              cardsets[j].insert(m);
-            }
-            if (patterns[j].getW() == STAR) {
-              cardsets[j].insert(0);
-            }
+        limit = (prev > -1) ? *(match[i].rbegin()) - *(match[prev].begin())
+                            : *(match[i].rbegin()) + 1;
+        for (int j = prev + 1; j < i; j++) {
+          for (size_t m = 1; m < limit; m++) {
+            cardsets[j].insert(m);
+          }
+          if (patterns[j].getW() == STAR) {
+            cardsets[j].insert(0);
           }
         }
       }
@@ -1887,7 +1864,7 @@ void NFA::computeCardsets() {
         }
       }
       else if (prev == i - 1) {
-        for (j = matchings[i - 1].begin(); j != matchings[i - 1].end(); j++) {
+        for (j = match[i - 1].begin(); j != match[i - 1].end(); j++) {
           cardsets[i].insert(numOfLabels - 1 - *j);
         }
         if (patterns[i].getW() != STAR) {
@@ -1896,7 +1873,7 @@ void NFA::computeCardsets() {
       }
       else { // '... (1 a) * ... #*' or '* ... #*'
         for (int j = prev + 1; j <= i; j++) {
-          for (size_t m = 1; m < numOfLabels - *(matchings[prev].begin()); m++){
+          for (size_t m = 1; m < numOfLabels - *(match[prev].begin()); m++){
             cardsets[j].insert(m);
           }
           if (patterns[j].getW() == STAR) {
@@ -1904,6 +1881,15 @@ void NFA::computeCardsets() {
           }
         }
       }
+    }
+    if (patterns[i].getW() != STAR) {
+      numOfNonStars++;
+    }
+  }
+  for (int i = 0; i < f; i++) { // correct too large sets
+    if (cardsets[i].count(numOfLabels - numOfNonStars + 1)) {
+      j = cardsets[i].find(numOfLabels - numOfNonStars + 1);
+      cardsets[i].erase(j, cardsets[i].end());
     }
   }
 }
@@ -2070,7 +2056,7 @@ bool NFA::checkDoublePars(multiset<size_t> sequence) {
         max = numOfLabels - 1;
       }  
       for (size_t j = seq[i]; j <= max; j++) {
-        if (!matchings[i].count(j)) {
+        if (!match[i].count(j)) {
           return false;
         }
       }
@@ -2111,25 +2097,71 @@ bool NFA::conditionsMatch(MLabel const &ml) {
   cout << "seqMax = " << seqMax << endl;
   seqCounter = 0;
   multiset<size_t> seq = getNextSeq();
-  for (int i = 0; i < (int)conds.size(); i++) {
-    do {
-      proceed = false;
-      if (conds[i].getKeysSize()) {
-        buildCondMatchings(i, seq);
+  if (!Condition::getOnlyCard()) { // standard case
+    for (int i = 0; i < (int)conds.size(); i++) {
+      do {
+        proceed = false;
+        if (conds[i].getKeysSize()) {
+          buildCondMatchings(i, seq);
+        }
+        if (!evaluateCond(ml, i, seq)) {
+          seq = getNextSeq();
+          i = 0; // in case of a mismatch, return to the first condition
+        }
+        else {
+          proceed = true;
+        }
+      } while (!seq.empty() && !proceed);
+      if (!proceed) { // no matching sequence found
+        return false;
       }
-      if (!evaluateCond(ml, i, seq)) {
-        seq = getNextSeq();
-        i = 0; // in case of a mismatch, return to the first condition
+    }
+  }
+  else { // conditions only contain cardinality expressions
+    size_t numOfRelCombs = getRelevantCombs();
+    numOfNegEvals = 0;
+    for (int i = 0; i < (int)conds.size(); i++) {
+      do {
+        proceed = false;
+        if (!evaluateCond(ml, i, seq)) {
+          if (numOfNegEvals == numOfRelCombs) { // relevant sequences tested
+            return false;
+          }
+          seq = getNextSeq();
+          i = 0; // in case of a mismatch, return to the first condition
+        }
+        else {
+          proceed = true;
+        }
+      } while (!seq.empty() && !proceed);
+      if (!proceed) { // no matching sequence found
+        return false;
       }
-      else {
-        proceed = true;
-      }
-    } while (!seq.empty() && !proceed);
-    if (!proceed) { // no matching sequence found
-      return false;
     }
   }
   return true;
+}
+
+/*
+\subsection{Function ~getRelevantCombs~}
+
+Computes and returns the number of relevant combinations. This function is only
+executed if the conditions only contain cardinality expressions.
+
+*/
+size_t NFA::getRelevantCombs() {
+  set<int> usedUPats;
+  size_t result = 1;
+  for (int i = 0; i < (int)conds.size(); i++) {
+    for (int j = 0; j < (int)conds[i].getKeysSize(); j++) {
+      if (!usedUPats.count(conds[i].getPId(j))) {
+        result *= cardsets[conds[i].getPId(j)].size();
+        usedUPats.insert(conds[i].getPId(j));
+      }
+    }
+  }
+  cout << "there are " << result << " relevant combinations" << endl;
+  return result;
 }
 
 /*
@@ -2138,8 +2170,8 @@ bool NFA::conditionsMatch(MLabel const &ml) {
 Invoked during ~matches~, similar to ~buildSequences~, but with a crucial
 difference: Not all the possible matching sequences are built but only one.
 Unless the last created sequence matches every condition (which is unlikely),
-this reduces the time consumption heavily -- in contrast to the operator
-~rewrite~, where all the sequences are needed.
+this may reduce the time consumption drastically (depending on the exact input)
+-- in contrast to the operator ~rewrite~, where all the sequences are needed.
 
 */
 multiset<size_t> NFA::getNextSeq() {
@@ -2148,7 +2180,7 @@ multiset<size_t> NFA::getNextSeq() {
   vector<size_t> cards;
   set<size_t>::iterator it;
   while (seqCounter < seqMax) {
-    cout << "trying to compute sequence # " << seqCounter << endl;
+//     cout << "trying to compute sequence # " << seqCounter << endl;
     j = seqCounter;
     cardSum = 0;
     partSum = 0;
@@ -2175,11 +2207,6 @@ multiset<size_t> NFA::getNextSeq() {
       }
       if (doublePars.empty() || checkDoublePars(result)) {
         seqCounter++;
-        multiset<size_t>::iterator i;
-        for (i = result.begin(); i != result.end(); i++) {
-          cout << " " << *i;
-        }
-        cout << endl;
         return result;
       }
     }
@@ -2193,8 +2220,8 @@ multiset<size_t> NFA::getNextSeq() {
 \subsection{Function ~evaluateEmptyML~}
 
 This function is invoked in case of an empty moving label (i.e., with 0
-components). A match is possible for a pattern like 'X * Y *' and conditions
-X.card = 0, X.card = Y.card * 7. Time or label constraints are invalid.
+components). A match is possible for a pattern like 'X [*] Y [*]' and conditions
+X.card = 0, X.card = Y.card [*] 7. Time or label constraints are invalid.
 
 */
 bool NFA::evaluateEmptyML() {
@@ -2252,7 +2279,7 @@ void NFA::buildCondMatchings(int cId, multiset<size_t> sequence) {
       }
       condMatchings.insert(condMatching);
     }
-    printCondMatchings(5);
+//     printCondMatchings(5);
   }
 }
 
@@ -2282,6 +2309,9 @@ bool NFA::evaluateCond(MLabel const &ml, int cId, multiset<size_t> sequence) {
       size_t from = seq[pId];
       size_t to = (pId == f - 1 ? numOfLabels - 1 : seq[pId + 1]);
       subst.assign(getTimeSubst(ml, conds[cId].getKey(j), from, to));
+      if (!subst.compare("error")) {
+        return false;
+      }
     }
     if (conds[cId].getKey(j) > 0) { // time, start, end, card
       conds[cId].substitute(j, subst);
@@ -2301,6 +2331,9 @@ bool NFA::evaluateCond(MLabel const &ml, int cId, multiset<size_t> sequence) {
     else {
       if (!evaluate(condStrCardTime, true)) {
         knownEval[condStrCardTime] = false;
+        if (Condition::getOnlyCard()) {
+          numOfNegEvals++;
+        }
         return false;
       }
       else {
@@ -2326,8 +2359,6 @@ bool NFA::evaluateCond(MLabel const &ml, int cId, multiset<size_t> sequence) {
       }
     }
     if (knownEval.count(conds[cId].getSubst())) {
-      cout << conds[cId].getSubst() << " ----> is known as "
-           << knownEval[conds[cId].getSubst()] << endl;
       if (knownEval[conds[cId].getSubst()]) {
         success = true;
       }
@@ -2411,38 +2442,51 @@ MLabel and returned as a string.
 
 */
 string NFA::getTimeSubst(MLabel const &ml, Key key, size_t from, size_t to) {
-  stringstream result;  
+  stringstream result;
   if ((from < 0) || (to >= numOfLabels)) {
     cout << "ULabel #" << (from < 0 ? from : to) << " does not exist." << endl;
     return "error";
   }
-  Periods timesML(0); // TODO store this in the class?
-  SecInterval uIv;
+  if (from > to) {
+    cout << "[" << from << ", " << to << "] is an invalid interval." << endl;
+    return "error";
+  }
+  pair<size_t, size_t> from_to;
+  Periods per(0);
+  SecInterval iv(0);
   switch (key) {
     case 1: // time
-      for (size_t i = from; i <= to; i++) { // build periods
-        ml.Get(i, ul);
-        timesML.Add(ul.timeInterval);
+      from_to = make_pair(from, to);
+      if (knownPers.count(from_to)) {
+        return knownPers[from_to];
       }
-      result << "[const periods value("; // build string
-      for (size_t j = 0; j < (size_t)timesML.GetNoComponents(); j++) {
-        timesML.Get(j, uIv);
-        result << "(\"" << uIv.start.ToString() << "\" \"" << uIv.end.ToString()
-               << "\" " << (uIv.lc ? "TRUE " : "FALSE ")
-               << (uIv.rc ? "TRUE" : "FALSE") << ")"
-               << (j == (size_t)timesML.GetNoComponents() - 1 ? "" : " ");
+      else {
+        result << "[const periods value("; // build string
+        for (size_t i = from; i <= to; i++) {
+          ml.Get(i, ul);
+          per.MergeAdd(ul.timeInterval);
+        }
+        for (size_t i = 0; i < (size_t)per.GetNoComponents(); i++) {
+          per.Get(i, iv);
+          result << "(\"" << iv.start.ToString() << "\" \""
+                 << iv.end.ToString() << "\" "
+                 << (iv.lc ? "TRUE " : "FALSE ")
+                 << (iv.rc ? "TRUE" : "FALSE") << ")"
+                 << (i == to ? "" : " ");
+        }
+        result << ")]";
+        knownPers[from_to] = result.str();
       }
-      result << ")]";
       break;
     case 2: // start
       ml.Get(from, ul);
-      uIv = ul.timeInterval;
-      result << "[const instant value \"" << uIv.start.ToString() << "\"]";
+      result << "[const instant value \"" << ul.timeInterval.start.ToString()
+             << "\"]";
       break;
     case 3: // end
       ml.Get(to, ul);
-      uIv = ul.timeInterval;
-      result << "[const instant value \"" << uIv.end.ToString() << "\"]";
+      result << "[const instant value \"" << ul.timeInterval.end.ToString()
+             << "\"]";
       break;
     default: // should not occur
       result << "error";
@@ -2814,11 +2858,12 @@ struct compressInfo : OperatorInfo {
 
 */
 ListExpr createmlTypeMap(ListExpr args) {
-  const string errMsg = "Expecting an integer.";
-  if (nl->ListLength(args) != 1) {
-    return listutils::typeError("One argument expected.");
+  const string errMsg = "Expecting an integer and a real.";
+  if (nl->ListLength(args) != 2) {
+    return listutils::typeError("Two arguments expected.");
   }
-  if (nl->IsEqual(nl->First(args), CcInt::BasicType())) {
+  if (nl->IsEqual(nl->First(args), CcInt::BasicType())
+   && nl->IsEqual(nl->Second(args), CcReal::BasicType())) {
     return nl->SymbolAtom(MLabel::BasicType());
   }
   return NList::typeError(errMsg);
@@ -2830,14 +2875,17 @@ ListExpr createmlTypeMap(ListExpr args) {
 */
 int createmlFun(Word* args, Word& result, int message, Word& local, Supplier s){
   CcInt* ccint = static_cast<CcInt*>(args[0].addr);
+  CcReal* ccreal = static_cast<CcReal*>(args[1].addr);
   int size;
+  double rate;
   MLabel* ml = new MLabel(1);
-  if (ccint->IsDefined()) {
+  if (ccint->IsDefined() && ccreal->IsDefined()) {
     size = ccint->GetValue();
-    ml->create(size);
+    rate = ccreal->GetValue();
+    ml->create(size, rate);
   }
   else {
-    cout << "Error: undefined CcInt." << endl;
+    cout << "Error: undefined value." << endl;
     ml->SetDefined(false);
   }
   result.addr = ml;
@@ -2851,9 +2899,10 @@ int createmlFun(Word* args, Word& result, int message, Word& local, Supplier s){
 struct createmlInfo : OperatorInfo {
   createmlInfo() {
     name      = "createml";
-    signature = "int -> MLabel";
-    syntax    = "createml(_)";
-    meaning   = "Creates an MLabel of a certain size.";
+    signature = "int x real -> MLabel";
+    syntax    = "createml(_,_)";
+    meaning   = "Creates an MLabel, the size being determined by the first"
+                "parameter. The second one is the rate of different entries.";
   }
 };
 
