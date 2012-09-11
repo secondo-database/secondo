@@ -2821,7 +2821,7 @@ struct hadoopMapInfo : OperatorInfo
   {
     name = "hadoopMap";
     signature =
-        "flist(T) x [string] x [text] x [(DLO):DLF] "
+        "flist(T) x [string] x [text] x [(DLO):DLF] x [bool] "
         "x ( map T T1 ) -> flist(T1)";
     meaning = "Create DLO or DLF kind flist after the map step";
   }
@@ -3857,9 +3857,9 @@ struct hadoopReduce2Info : OperatorInfo
   {
     name = "hadoopReduce2";
     signature =
-        "flist(T1) x flist(T2) "
-        "x partAttr1 x partAttr2 x [string] x [text] x [(DLO):DLF] x [int] "
-        "x ( map (T1 T2) T3 ) -> flist(T3)";
+      "flist(T1) x flist(T2) x partAttr1 x partAttr2 "
+      "x [string] x [text] x [(DLO):DLF] x [int] x [bool]"
+      "x ( map (T1 T2) T3 ) -> flist(T3)";
     meaning = "Create DLO or DLF kind flist after the binary reduce step";
   }
 };
@@ -3896,19 +3896,37 @@ T is rel(tuple) or stream(tuple)
 
 ----
 
+Update at 11th Sept. 2012.
+
+Allow hadoopReduce2 to describe Hadoop-based parallel queries,
+intermediate results are shuffled with HDFS.
+Here no DLO flist is allowed being used in the argument function.
+It maps:
+
+----
+flist(T1) x flist(T2)
+  x partAttr1 x partAttr2
+  x [objectName: string] x [objectPath: text] x [(DLO):DLF]
+  x [reduceTaskNum: int] x [isHDJ: bool]
+  x ( interFunc: map ( T1 x T2 \to T1) )
+\to flist(T3)
+
+T is rel(tuple) or stream(tuple)
+
+----
+
+By default, the ~isHDJ~ parameter is false.
+
 */
 
 ListExpr hadoopReduce2TypeMap(ListExpr args){
-
-  cerr << "hadoopReduce2TypeMap" << endl;
-
   NList l(args);
 
   string lenErr = "ERROR! Operator hadoopReduce expects 4 argument lists. ";
   string typErr = "ERROR! Operator hadoopReduce expects "
       "flist(T1) x flist(T2) "
-      "x partAttr1 x partAttr2 x [string] x [text] x [(DLO):DLF] x [int] "
-      "x ( map (T1 T2) T3 ) -> flist(T3)";
+      "x partAttr1 x partAttr2 x [string] x [text] x [(DLO):DLF] "
+      "x [int] x [bool] x ( map (T1 T2) T3 ) -> flist(T3)";
   string ifsErr = "ERROR! Operator hadoopReduce expects the input flist "
       "contains either a tuple stream or a tuple relation. ";
   string upaErr = "ERROR! The partition attribute "
@@ -3964,6 +3982,7 @@ ListExpr hadoopReduce2TypeMap(ListExpr args){
   string    PAName[2] = { pType.first().str(), pType.second().str()};
   int       PAIndex[2]= {0,0};
   ListExpr  PAType[2];
+  bool      isHDJ = false;
   for (int inc = 0; inc < 2; inc++){
     ListExpr attrList = inputType[inc].second().second().second().listExpr();
     PAIndex[inc] = listutils::findAttribute(attrList, PAName[inc], PAType[inc]);
@@ -4000,6 +4019,13 @@ ListExpr hadoopReduce2TypeMap(ListExpr args){
         return l.typeError(ifaErr + "objName");
       }
       reduceTaskNum = rnList.intval();
+    }
+    else if (pp.isSymbol(CcBool::BasicType())){
+      NList ihList;
+      if (!QueryProcessor::GetNLArgValueInTM(pv, ihList)){
+        return l.typeError(ifaErr + "isHDJ");
+      }
+      isHDJ = ihList.boolval();
     }
     else if (pp.isSymbol("DLF")){
       kind = DLF;
@@ -4090,13 +4116,17 @@ ListExpr hadoopReduce2TypeMap(ListExpr args){
     return l.typeError(udnErr);
   }
 
+  NList appendList;
+  appendList.append(NList(qStr, true, true));
+  appendList.append(NList(objName, true, false));
+  appendList.append(NList((int)kind));
+  appendList.append(NList(coParaName[0], true, false));
+  appendList.append(NList(coParaName[1], true, false));
+  appendList.append(NList(dbName, true, false));
+  appendList.append(NList(isHDJ));
+
   return NList(NList(Symbol::APPEND()),
-      NList(NList(qStr, true, true),
-            NList(objName, true, false),
-            NList((int)kind),
-            NList(coParaName[0], true, false),
-            NList(coParaName[1], true, false),
-            NList(dbName, true, false)),
+      appendList,
       resultType).listExpr();
 
 }
@@ -4123,6 +4153,8 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
     //Get the database name
     string dbName =
         ((CcString*)args[9].addr)->GetValue();
+    //Get isHDJ
+    bool isHDJ = ((CcBool*)args[10].addr)->GetValue();
 
     clusterInfo *ci = new clusterInfo();
     //Get the partition attribute name, since the partition is done by mappers
@@ -4198,6 +4230,12 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
       }
     }
 
+    if (ok && isHDJ && (DLO_NameList.size() > dloNumber)){
+      cerr << "For Hadoop-based queries, it is not allowed "
+          "to use DLO flist in the argument function." << endl;
+      ok = false;
+    }
+
     NList dlfNameList, dlfLocList;
     NList dloNameList, dloLocList;
     vector<pair<int, pair<int, int> > > hpResult;
@@ -4254,6 +4292,7 @@ int hadoopReduce2ValueMap(Word* args, Word& result,
   << " \"" << inputRcg[1] << "\" "<< dupTimes[1] << " \"" << PAName[1]<< "\" "
   << reduceTaskNum << " " << kind << " \\\n"
   << " \"" << tranStr(IUEMapQuery.convertToString(), "\"", "\\\"") << "\" "
+  << boolalpha << isHDJ
   << endl;
       int rtn = -1;
       cout << queryStr.str() << endl;
