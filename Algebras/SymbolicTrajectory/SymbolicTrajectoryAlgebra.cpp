@@ -1309,7 +1309,6 @@ bool Pattern::verifyConditions() {
       return false;
     }
   }
-  cout << (Condition::getOnlyCard() ? "" : "not ") << "only card keys" << endl;
   return true;
 }
 
@@ -1368,7 +1367,7 @@ set<vector<size_t> > Pattern::getRewriteSequences(MLabel const &ml) {
   }
   nfa->computeResultVars(this->results);
   nfa->buildSequences();
-//   nfa->printSequences(30);
+  nfa->printSequences(300);
   nfa->filterSequences(ml);
 //   nfa->printRewriteSequences(50);
   result = nfa->getRewriteSequences();
@@ -1600,7 +1599,7 @@ bool NFA::matches(MLabel const &ml, bool rewrite) {
   }
   if (conds.size()) {
     computeCardsets();
-//     printCards();
+    printCards();
     if (!conditionsMatch(ml)) {
       return false;
     }
@@ -1845,9 +1844,6 @@ void NFA::computeCardsets() {
           for (size_t m = 1; m < limit; m++) {
             cardsets[j].insert(m);
           }
-          if (patterns[j].getW() == STAR) {
-            cardsets[j].insert(0);
-          }
         }
       }
       prev = i;
@@ -1858,26 +1854,17 @@ void NFA::computeCardsets() {
           for (size_t n = 1; n <= numOfLabels; n++) {
             cardsets[m].insert(n);
           }
-          if (patterns[m].getW() == STAR) {
-            cardsets[m].insert(0);
-          }
         }
       }
       else if (prev == i - 1) {
         for (j = match[i - 1].begin(); j != match[i - 1].end(); j++) {
           cardsets[i].insert(numOfLabels - 1 - *j);
         }
-        if (patterns[i].getW() != STAR) {
-          cardsets[i].erase(0);
-        }
       }
       else { // '... (1 a) * ... #*' or '* ... #*'
         for (int j = prev + 1; j <= i; j++) {
           for (size_t m = 1; m < numOfLabels - *(match[prev].begin()); m++){
             cardsets[j].insert(m);
-          }
-          if (patterns[j].getW() == STAR) {
-            cardsets[j].insert(0);
           }
         }
       }
@@ -1886,9 +1873,21 @@ void NFA::computeCardsets() {
       numOfNonStars++;
     }
   }
-  for (int i = 0; i < f; i++) { // correct too large sets
-    if (cardsets[i].count(numOfLabels - numOfNonStars + 1)) {
-      j = cardsets[i].find(numOfLabels - numOfNonStars + 1);
+  correctCardsets(numOfNonStars);
+}
+
+void NFA::correctCardsets(int nonStars) {
+  set<size_t>::iterator j;
+  for (int i = 0; i < f; i++) { // correct zeros
+    if (patterns[i].getW() == STAR) {
+      cardsets[i].insert(0);
+    }
+    else {
+      cardsets[i].erase(0);
+    }
+    int k = (patterns[i].getW() == STAR ? 1 : 2);
+    if ((j = cardsets[i].lower_bound(numOfLabels - nonStars + k))
+        != cardsets[i].end()) { // delete too high cardinalities
       cardsets[i].erase(j, cardsets[i].end());
     }
   }
@@ -2097,7 +2096,8 @@ bool NFA::conditionsMatch(MLabel const &ml) {
   cout << "seqMax = " << seqMax << endl;
   seqCounter = 0;
   multiset<size_t> seq = getNextSeq();
-  if (!Condition::getOnlyCard()) { // standard case
+  size_t numOfRelCombs = getRelevantCombs();
+  if (seqMax <= numOfRelCombs) { // standard case
     for (int i = 0; i < (int)conds.size(); i++) {
       do {
         proceed = false;
@@ -2117,13 +2117,18 @@ bool NFA::conditionsMatch(MLabel const &ml) {
       }
     }
   }
-  else { // conditions only contain cardinality expressions
-    size_t numOfRelCombs = getRelevantCombs();
+  else { // accelerated case
     numOfNegEvals = 0;
     for (int i = 0; i < (int)conds.size(); i++) {
       do {
         proceed = false;
+        if (conds[i].getKeysSize()) {
+          buildCondMatchings(i, seq);
+        }
         if (!evaluateCond(ml, i, seq)) {
+          if (numOfNegEvals % 10 == 0) {
+            cout << numOfNegEvals << " negative evaluations now." << endl;
+          }
           if (numOfNegEvals == numOfRelCombs) { // relevant sequences tested
             return false;
           }
@@ -2145,18 +2150,28 @@ bool NFA::conditionsMatch(MLabel const &ml) {
 /*
 \subsection{Function ~getRelevantCombs~}
 
-Computes and returns the number of relevant combinations. This function is only
-executed if the conditions only contain cardinality expressions.
+Computes and returns the (maximal) number of relevant combinations, depending
+on the types of the occurring conditions and their number.
 
 */
 size_t NFA::getRelevantCombs() {
   set<int> usedUPats;
+  int pos;
   size_t result = 1;
   for (int i = 0; i < (int)conds.size(); i++) {
     for (int j = 0; j < (int)conds[i].getKeysSize(); j++) {
-      if (!usedUPats.count(conds[i].getPId(j))) {
-        result *= cardsets[conds[i].getPId(j)].size();
-        usedUPats.insert(conds[i].getPId(j));
+      pos = conds[i].getPId(j);
+      if (!usedUPats.count(pos)) {
+        if (conds[i].getKey(j) == 4) { // card
+          result *= cardsets[pos].size();
+        }
+        else if ((conds[i].getKey(j) > 1) || !patterns[pos].getW()) {
+          result *= numOfLabels; 
+        }
+        else {
+          result *= (numOfLabels * numOfLabels);
+        }
+        usedUPats.insert(pos);
       }
     }
   }
@@ -2307,7 +2322,7 @@ bool NFA::evaluateCond(MLabel const &ml, int cId, multiset<size_t> sequence) {
     }
     else if (conds[cId].getKey(j) > 0) { // time, start, end
       size_t from = seq[pId];
-      size_t to = (pId == f - 1 ? numOfLabels - 1 : seq[pId + 1]);
+      size_t to = (pId == f - 1 ? numOfLabels - 1 : seq[pId + 1] - 1);
       subst.assign(getTimeSubst(ml, conds[cId].getKey(j), from, to));
       if (!subst.compare("error")) {
         return false;
@@ -2331,9 +2346,8 @@ bool NFA::evaluateCond(MLabel const &ml, int cId, multiset<size_t> sequence) {
     else {
       if (!evaluate(condStrCardTime, true)) {
         knownEval[condStrCardTime] = false;
-        if (Condition::getOnlyCard()) {
-          numOfNegEvals++;
-        }
+        cout << "false expression: " << condStrCardTime << endl;
+        numOfNegEvals++;
         return false;
       }
       else {

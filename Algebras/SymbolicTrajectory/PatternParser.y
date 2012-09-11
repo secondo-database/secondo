@@ -59,7 +59,6 @@ void patternerror(const char* s) {
 }
 stj::Pattern* wholepat = 0;
 Condition cond;
-bool Condition::onlyCard = false;
 UPat uPat;
 ExprList exprList;
 bool doublePars(false), firstAssign(true);
@@ -555,9 +554,6 @@ is valid; returns the recognized key.
 
 */
 Key Condition::convertVarKey(const char *varKey) {
-  if (!wholepat->getConds().size()) {
-    setOnlyCard(true);
-  }
   string input(varKey), var;
   Key key;
   int dotpos = input.find('.');
@@ -578,9 +574,6 @@ Key Condition::convertVarKey(const char *varKey) {
         key = CARD;
       else
         key = ERROR;
-      if (key < 4) {
-        setOnlyCard(false);
-      }
       cond.vars.push_back(var);
       cond.keys.push_back(key);
       cond.pIds.push_back(i);

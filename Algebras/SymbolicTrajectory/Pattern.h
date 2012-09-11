@@ -105,7 +105,6 @@ class Condition {
   vector<Key> keys;
   vector<string> vars;
   vector<int> pIds;
-  static bool onlyCard;
 
  public:
   Condition() {}
@@ -128,8 +127,6 @@ class Condition {
   Key      getKey(unsigned int pos)  {return keys[pos];}
   int      getPId(unsigned int pos)  {return pIds[pos];}
   void     clearVectors()            {vars.clear(); keys.clear(); pIds.clear();}
-  static bool getOnlyCard()          {return onlyCard;}
-  void     setOnlyCard(bool oc)      {onlyCard = oc;}
 };
 
 class UPat {
@@ -280,6 +277,7 @@ class NFA {
   bool labelsMatch(int pos);
   bool timesMatch(int pos);
   void computeCardsets();
+  void correctCardsets(int nonStars);
   void processDoublePars(int pos);
   bool checkDoublePars(multiset<size_t> sequence);
   void buildSequences(); // for rewrite, every sequence must be built
