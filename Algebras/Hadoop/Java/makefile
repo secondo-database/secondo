@@ -45,7 +45,8 @@ ${SRC_P}/PS_HadoopReduce_Reduce.java
 	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce_Reduce.java -d ${BIN_P}	
 
 ${CLS_P}/PS_HadoopReduce2.class: ${CLS_P}/PS_HadoopReduce2_Map.class ${CLS_P}/PS_HadoopReduce2_Reduce.class \
-${CLS_P}/PS_HadoopReduce2_QMap.class ${SRC_P}/PS_HadoopReduce2.java
+${CLS_P}/PS_HadoopReduce2_QMap.class ${CLS_P}/PS_HadoopReduce2_HDJ_QMap.class ${CLS_P}/PS_HadoopReduce2_HDJ_Reduce.class \
+${CLS_P}/HDJ_GetZTuple.class ${SRC_P}/PS_HadoopReduce2.java
 	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2.java -d ${BIN_P}
 
 ${CLS_P}/PS_HadoopReduce2_Map.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
@@ -58,6 +59,19 @@ ${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  
 ${SRC_P}/PS_HadoopReduce2_QMap.java
 	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2_QMap.java -d ${BIN_P}	
 
+${CLS_P}/PS_HadoopReduce2_HDJ_QMap.class: ${SRC_P}/PS_HadoopReduce2_HDJ_QMap.java \
+${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  \
+${CLS_P}/SecExRunnable.class ${CLS_P}/RemoteStream.class ${CLS_P}/RMDataOutputStream.class ${CLS_P}/RMDataInputStream.class 
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2_HDJ_QMap.java -d ${BIN_P}	
+
+${CLS_P}/PS_HadoopReduce2_HDJ_Reduce.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
+${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  \
+${CLS_P}/SecExRunnable.class ${CLS_P}/RemoteStream.class ${CLS_P}/RMDataOutputStream.class ${CLS_P}/RMDataInputStream.class \
+${SRC_P}/PS_HadoopReduce2_HDJ_Reduce.java
+	javac -classpath ${BIN_P}:${SEC_P}:${HDC_P} ${SRC_P}/PS_HadoopReduce2_HDJ_Reduce.java -d ${BIN_P}	
+
+
 ${CLS_P}/PS_HadoopReduce2_Reduce.class: ${CLS_P}/HPA_AuxFunctions.class ${CLS_P}/PSNode.class \
 ${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${CLS_P}/QuerySecondo.class  \
 ${SRC_P}/PS_HadoopReduce2_Reduce.java
@@ -65,7 +79,25 @@ ${SRC_P}/PS_HadoopReduce2_Reduce.java
 
 ${CLS_P}/HPA_AuxFunctions.class: ${CLS_P}/Constant.class ${CLS_P}/ExtListExpr.class ${SRC_P}/HPA_AuxFunctions.java
 	javac -classpath ${BIN_P}:${SEC_P} ${SRC_P}/HPA_AuxFunctions.java -d ${BIN_P}
-	
+
+${CLS_P}/RemoteStream.class: ${SRC_P}/RemoteStream.java ${CLS_P}/RMDataInputStream.class ${CLS_P}/RMDataOutputStream.class
+	javac -classpath ${BIN_P}:${SEC_P} ${SRC_P}/RemoteStream.java -d ${BIN_P}
+${CLS_P}/SecExRunnable.class: ${SRC_P}/SecExRunnable.java ${CLS_P}/QuerySecondo.class
+	javac -classpath ${BIN_P}:${SEC_P} ${SRC_P}/SecExRunnable.java -d ${BIN_P}
+
+${CLS_P}/HDJ_GetZTuple.class: ${SRC_P}/HDJ_GetZTuple.java ${CLS_P}/RMDataInputStream.class \
+${CLS_P}/RMDataOutputStream.class ${CLS_P}/PSNode.class
+	javac -classpath ${BIN_P}:${SEC_P} ${SRC_P}/HDJ_GetZTuple.java -d ${BIN_P}
+
+${CLS_P}/PSNode.class: ${SRC_P}/PSNode.java
+	javac -classpath ${BIN_P}:${SEC_P} ${SRC_P}/PSNode.java -d ${BIN_P}
+
+${CLS_P}/RMDataInputStream.class: ${SRC_P}/RMDataInputStream.java
+	javac -classpath ${SEC_P} $? -d ${BIN_P}
+${CLS_P}/RMDataOutputStream.class: ${SRC_P}/RMDataOutputStream.java
+	javac -classpath ${SEC_P} $? -d ${BIN_P}
+
+
 ${CLS_P}/Constant.class: ${SRC_P}/Constant.java
 	javac $? -d ${BIN_P}
 
