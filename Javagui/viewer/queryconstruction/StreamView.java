@@ -65,11 +65,6 @@ public class StreamView {
     protected void addParamStream(StreamView stream) {
         paramStreams.add(stream);
     }
-    
-//    protected void addParamStream(StreamView stream) {
-//        System.out.println(name);
-//        paramStreams.add(stream);
-//    }
 
     protected void change() {
         if (objects.size() > 0) {
@@ -80,17 +75,7 @@ public class StreamView {
     protected boolean isActive() {
         return this.active;
     }
-
     
-    
-//    protected void setSignature(String sig) {
-//        this.signature = sig.toCharArray();
-//    }
-    
-    
-
-    
-
     /**
      * returns the last object of a stream
      * @return last object of type ObjetView

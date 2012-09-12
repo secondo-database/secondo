@@ -52,7 +52,6 @@ public class Operation extends ObjectView {
      */
     public Operation(String name, String[] objects, String signature, String[] parameter, String result){
         this.setOpaque(false);
-        this.setPreferredSize(new Dimension(120, 30));
         this.name = name;
         this.label = name;
         this.signature = signature;
@@ -83,24 +82,6 @@ public class Operation extends ObjectView {
     protected int countObjects() {
         return objects.length;
     }
-    
-//    public void setResultType(String result) {
-//        this.result = result;
-//    }
-    
-    
-    
-    
-    
-//    protected String getLabel() {
-//        return label;
-//    }
-    
-//    protected void setLabel() {
-//        if ((0 < getView().getObjectName().length()) && (getView().getObjectName().length() < 10))
-//            label = getView().getObjectName();
-//    }
-    
     
     /**
      * 
@@ -149,19 +130,14 @@ public class Operation extends ObjectView {
         return this.view;
     }
     
-//    public void setParameter(String par, int index) {
-//        this.parameter[index] = par;
-//    }
-    
     public void paintComponent(Graphics g) {
         this.setBorder(BorderFactory.createEtchedBorder());
         int w = g.getFontMetrics().stringWidth(label);
         String s = label;
-        if (w > 80) {
-            s = label.substring(0, 12);
-        }
+//        if (w > 80) {
+//            s = label.substring(0, 12);
+//        }
         
         g.drawString(s, 20, this.getSize().height/2 + 5);
-        
     }
 }

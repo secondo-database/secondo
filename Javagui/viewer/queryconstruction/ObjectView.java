@@ -182,12 +182,6 @@ public class ObjectView extends JComponent {
         return this.name;
     }
     
-//    protected StreamView getParamStream(int index){
-//        if (paramStreams.size() > index)
-//            return paramStreams.get(index);
-//        return null;
-//    }
-    
     /**
      * Return a constant copy of the object, if it is an attribute.
      * @param onlyName return only the name and don't process the signature

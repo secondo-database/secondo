@@ -18,27 +18,114 @@ import viewer.QueryconstructionViewer;
 
 public class OperationsPane extends JComponent implements MouseListener {
     
+    //list of all operations
     private ArrayList<Operation> operations = new ArrayList<Operation>();
     private QueryconstructionViewer viewer;
-    
     private Operation rename;
+    private String longestName = "";
 
+    /**
+     * Generate a new Panel for the Operations.
+     * @param viewer main viewer
+     */
     public OperationsPane(QueryconstructionViewer viewer) {
         this.viewer = viewer;
         this.setLayout(new GridLayout(0, 1));
     }
     
     /**
-     * Paint all usable operations into the panel.
+     * Add a new operation to the operation list.
+     * @param op 
+     */
+    private void addOperation(Operation op){
+        op.addMouseListener(this);
+        operations.add(op);
+    }
+    
+    /**
+     * Generate a list of operations of a nested list.
+     * @param operators 
+     */
+    public void addOperations(ListExpr operators) {
+        operations.clear();
+        while (operators.listLength() > 1) {
+            ListExpr objects = operators.second();
+            while (objects.listLength() > 0) {
+                //processing the nested list
+                String opName = objects.first().first().stringValue();
+                String opObjects = objects.first().second().textValue();
+                String opParams = objects.first().third().textValue();
+                String opSignature = objects.first().fourth().textValue();
+                String opResult = objects.first().fifth().stringValue();
+                
+                Operation op = new Operation(opName, opObjects.split(";"), opSignature, opParams.split(";"), opResult);
+                addOperation(op);
+                
+                //save the rename operator as variable
+                if (opName.equals("rename")){
+                    rename = op;
+                }
+                objects = objects.rest();
+            }
+            operators = operators.rest();
+        }
+        update();
+    }
+    
+    /**
+     * Check if the type is in the array of usable types.
+     * @param type
+     * @param tArray array of types
+     * @return type is part of the array
+     */
+    private boolean typeInArray(String type, String[] tArray){
+        for (String s: tArray) {
+            if (s.equals(type))
+                return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Check if the type is in the array of usable types.
+     * @param type
+     * @param tArray array of types
+     * @return type is part of the array
+     */
+    private int[] typeInArray2(String type, String[] tArray){
+        int[] result = new int[tArray.length];
+        int i = 0;
+        for (String s1: tArray) {
+            String[] sArray = s1.split(",");
+            
+            if (typeInArray(type, sArray))
+                result[i] = 1;
+            else
+                result[i] = 0;
+            i++;
+        }
+        return result;
+    }
+    
+    /**
+     * Repaint the operations panel.
+     */
+    public void update() {
+        this.repaint();
+    }
+    
+    /**
+     * Paint all operations into the panel, 
+     * only allowed operations should visible.
      * @param g 
      */
     public void paintComponent(Graphics g) {
         this.removeAll();
+        longestName = "";
         String[] viewerParam = viewer.getParameters();
         
         for ( Iterator iter = operations.iterator(); iter.hasNext(); ) {
             Operation op = (Operation)iter.next();
-            boolean view = true;
             String[] operationObjects = op.getObjects();
             
             int viewerCount = viewerParam.length;
@@ -57,77 +144,46 @@ public class OperationsPane extends JComponent implements MouseListener {
              * the viewer checks if the types are the same.
              */
             if (viewerCount == operationObjects.length) {
-
-                for (String opObject : operationObjects) {
-
-                    if ((!opObject.equals("")) && (viewerCount > i) && (viewerParam[i] != null)) {
-
-                        String viewerStr = viewerParam[i].trim();
-                        //some operations can be used on different object types
-                        String[] oPs = opObject.split(",");
-                        boolean oneright = false;
-                        if (opObject.equals("typ")) {
-                            operationObjects[i] = viewerStr;
-                            operationObjects[i+1] = viewerStr;
-                        }
-                        for (String oP: oPs) {
-                            if (oP.equals(viewerStr)) {
-                                oneright = true;
-                            }
-                        }
-                        view = oneright;
-                    }
-                    i++;
+                int[][] typesIn = new int[viewerCount][viewerCount];
+                
+                int index = 0;
+                for (String viewerStr : viewerParam) {
+                    typesIn[index] = this.typeInArray2(viewerStr.trim(), operationObjects);
+                    index++;
                 }
-                if (view) {
+                
+                boolean contains = false;
+                if (viewerCount == 1) {
+                    if (typesIn[0][0] == 1)
+                        contains = true;
+                }
+                if (viewerCount == 2) {
+                    if ((typesIn[0][0] == 1) && (typesIn[1][1] == 1))
+                        contains = true;
+                    if ((typesIn[1][0] == 1) && (typesIn[0][1] == 1))
+                        contains = true;
+                }
+                if (contains) {
                     viewOperation(op);
                 }
             }
-            
         }
-        this.setPreferredSize(new Dimension(110, (30 * this.getComponentCount())));
+        
+        int width = g.getFontMetrics().stringWidth(longestName);
+        this.setPreferredSize(new Dimension((width + 40), (30 * this.getComponentCount())));
         
         this.revalidate();
     }
     
+    /**
+     * Add an operation to the panel.
+     * @param op 
+     */
     private void viewOperation(Operation op) {
         add(op);
-    }
-    
-    private void addOperation(Operation op){
-        op.addMouseListener(this);
-        operations.add(op);
-    }
-    
-    public void addOperations(ListExpr operators) {
-        operations.clear();
-        while (operators.listLength() > 1) {
-            ListExpr objects = operators.second();
-            while (objects.listLength() > 0) {
-                String opName = objects.first().first().stringValue();
-                String opObjects = objects.first().second().textValue();
-                String opParams = objects.first().third().textValue();
-                String opSignature = objects.first().fourth().textValue();
-                String opResult = objects.first().fifth().stringValue();
-                
-                Operation op = new Operation(opName, opObjects.split(";"), opSignature, opParams.split(";"), opResult);
-                addOperation(op);
-                
-                if (opName.equals("rename")){
-                    rename = new Operation(opName, opObjects.split(";"), opSignature, opParams.split(";"), opResult);
-                }
-                objects = objects.rest();
-            }
-            operators = operators.rest();
+        if (longestName.length() < op.getOperationName().length()) {
+            longestName = op.getOperationName();
         }
-        update();
-    }
-    
-    /**
-     * updates the operations panel, only allowed operations should visible
-     */
-    public void update() {
-        this.repaint();
     }
     
     public void mouseClicked ( MouseEvent arg0 ) {

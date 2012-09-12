@@ -1,7 +1,5 @@
-# file: viewer/pictureviewer/makefile
+# file: viewer/queryconstruction/makefile
 #
-# last change: 05-2003; Thomas Behr
-# very last change: 01-2005; Uwe Hartmann
 #
 
 include ../../makefile.inc

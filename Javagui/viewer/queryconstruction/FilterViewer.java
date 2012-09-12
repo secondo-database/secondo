@@ -87,6 +87,7 @@ public class FilterViewer extends QueryconstructionViewer {
         /* update the window, if the a text is added */
         ActionListener textL = new ActionListener() {
             public void actionPerformed( ActionEvent e ) {
+                System.out.println("update");
                 update();
             }
         };
@@ -133,7 +134,6 @@ public class FilterViewer extends QueryconstructionViewer {
         
         resultString += mainPane.getStrings() + tail;
         /* replace the automatically generated tuple name */
-        System.out.println(resultString);
         if (resultType.equals("fun")) {
             resultString = resultString.replace("(t,", "("+attribute.getText()+",");
         }
@@ -214,7 +214,7 @@ public class FilterViewer extends QueryconstructionViewer {
             if (resultType.startsWith("new") && !mainPane.getType().startsWith("(stream") && (attribute.getText().length() > 0)){
                 paste.setEnabled(true);
             }
-            if (resultType.startsWith("newstream") && mainPane.getType().startsWith("(stream")) {
+            if (resultType.startsWith("newstream") && mainPane.getType().startsWith("(stream") && !mainPane.getType().startsWith("(stream (tuple")) {
                 paste.setEnabled(true);
             }
             if (paste.isEnabled() && resultType.endsWith("list") && (attribute.getText().length() > 0)) {
