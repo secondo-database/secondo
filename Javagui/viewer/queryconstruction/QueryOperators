@@ -55,4 +55,6 @@
       ( "mod"  <text>int;int</text--->  <text></text--->  <text>o # o</text--->  "int" )
       ( "div"  <text>int;int</text--->  <text></text--->  <text>o # o</text--->  "int" )
       ( "projectextendstream"  <text>stream</text--->  <text>attrlist; new stream list</text--->  <text>o #[p; p]</text--->  "stream" )
-      ( "/"  <text>int,real;int,real</text--->  <text></text--->  <text>o # o</text--->  "real" )))
+      ( "/"  <text>int,real;int,real</text--->  <text></text--->  <text>o # o</text--->  "real" )
+      ( "and"  <text>bool;bool</text--->  <text></text--->  <text>(o # o)</text--->  "bool" )
+      ( "or"  <text>bool; bool</text--->  <text></text--->  <text>(o # o)</text--->  "bool" )))
