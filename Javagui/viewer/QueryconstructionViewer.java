@@ -75,7 +75,7 @@ public class QueryconstructionViewer extends SecondoViewer {
         objectScrollpane = new JScrollPane(objectPane);
         objectScrollpane.setPreferredSize(new Dimension (600, 90));
         operationsScrollpane = new JScrollPane(operationsPane);
-        operationsScrollpane.setPreferredSize(new Dimension (120, 30));
+        operationsScrollpane.setPreferredSize(new Dimension (140, 30));
         
         this.add(objectScrollpane, BorderLayout.NORTH);
         this.add(operationsScrollpane, BorderLayout.EAST);
@@ -120,6 +120,7 @@ public class QueryconstructionViewer extends SecondoViewer {
                 copyCommand();
             }
         };
+        command.setToolTipText("copy command to clipboard");
         command.addActionListener(commandl);
         
         ActionListener addObjl = new ActionListener() {
@@ -298,7 +299,8 @@ public class QueryconstructionViewer extends SecondoViewer {
                     "query QueryOperators feed sortby[OpName asc] consume");
             if (operators == null) {
                 VC.execCommand(
-                        "restore QueryOperators from '../bin/QueryOperators'");
+                        "restore QueryOperators from '../Javagui/viewer/"
+                        + "queryconstruction/QueryOperators'");
                 operators = VC.getCommandResult(
                         "query QueryOperators feed sortby[OpName asc] consume");
             }
