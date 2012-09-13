@@ -338,7 +338,7 @@ delete x6;
 # vHashJoin
 #
 # The following constants are determined by using hashjoin
-# See Masterthesis Page 138
+# See Jungnikel Page 138
 ##
 
 query plzbig feed {r1} plz feed head[0] {r2} hashjoin[PLZ_r1, PLZ_r2] count;
