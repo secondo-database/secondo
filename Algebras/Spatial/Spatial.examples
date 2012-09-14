@@ -1120,3 +1120,14 @@ Example   : query (strassen feed projecttransformstream[GeoData] collect_box[TRU
 Result : TRUE
 
 
+Operator : intersection_rob
+Number   : 1
+Signature: region x line
+Example  : query intersection(thecenter,  boundary(thecenter)) = intersection_rob(thecenter, boundary(thecenter))
+Result   : TRUE
+
+Operator : contains_rob
+Number   : 1
+Signature: region x point [x bool] ->  bool
+Example  : query contains_rob(thecenter,mehringdamm)
+Result   : TRUE

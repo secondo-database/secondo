@@ -64,6 +64,13 @@ The Halfsegmentarray must be:
     static double getLeftDist(const HalfSegment& hs, 
                        const double x, const double y, const bool move=false);
 
+    // checks whether r is to the right of the ray defined by p qnd q 
+    static bool isRight(const Point& p, const Point& q, const Point& r);
+    
+    // checks whether a horizontal ray starting at (x,y) to left 
+    // intersects hs
+    static size_t intersects(const double x, const double y, 
+                      const HalfSegment& hs); 
   private:
 
 /*
@@ -108,8 +115,6 @@ The Halfsegmentarray must be:
 
     
 
-    // checks whether r is to the right of the ray defined by p qnd q 
-    static bool isRight(const Point& p, const Point& q, const Point& r);
 
     // checks whether hs2 is more right than hs1
     static bool moreRight(const HalfSegment& hs1, const HalfSegment& hs2);
@@ -125,10 +130,6 @@ The Halfsegmentarray must be:
     // checks whether a point is inside the region defined by all cycles except 
     // the one at position ommit
     bool isInside(const double x, const double y, size_t ommit) const;
-    // checks whether a horizontal ray starting at (x,y) to left 
-    // intersects hs
-    size_t intersects(const double x, const double y, 
-                      const HalfSegment& hs) const; 
 
     // finds out the outer cycles where the holes belongs to
     void findCorrespondingOuters();
@@ -152,5 +153,9 @@ The Halfsegmentarray must be:
                    const int cycleno, int& edgeno, Region* result) const;
 
 };
+
+
+void markUsage(const DbArray<HalfSegment>* line, char* usage, char* critical );
+
 
 

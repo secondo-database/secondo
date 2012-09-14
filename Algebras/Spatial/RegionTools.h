@@ -59,6 +59,7 @@ You can ensure this using code like:
 
 
 Region* buildRegion(vector< vector<Point> >& cycles);
+Region* buildRegion2(vector< vector<Point> >& cycles);
 
 
 /*

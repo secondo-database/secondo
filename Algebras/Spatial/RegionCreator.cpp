@@ -131,7 +131,7 @@ bool RegionCreator::isInside(const double x, const double y,
 }
 
 size_t RegionCreator::intersects(const double x, const double y, 
-                                 const HalfSegment& hs) const{
+                                 const HalfSegment& hs) {
   // returns 1 if a ray starting at (x,y) horizontaly to left 
   // intersects hs, 0 otherwise
   Point p1 = hs.GetDomPoint();

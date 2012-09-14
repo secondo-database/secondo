@@ -39,3 +39,12 @@ Results in a line.
 void intersection(const Region& r, const Line& line, Line& result);
 
 
+/*
+1.2 checks whether the region contains the point. If the point is outside or
+at least one of the arguments is undefined, the result will be false. The result
+is 1 if the point is inside the region and 2 if the point is onborder of the region.
+
+*/
+
+int contains(const Region& reg, const Point& p);
+

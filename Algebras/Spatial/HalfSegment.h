@@ -197,6 +197,31 @@ Checks whethet the HalsSegment is vertical
     bool operator>=(const HalfSegment& hs) const;
 
 
+
+
+/*
+~insideLeft~
+
+This function converts the insideAbove flag into a 
+insideLeft flag. The halfsegment is treated as directed
+from the dominating point to the secondary point. 
+
+*/
+  bool insideLeft() const;
+
+
+/*
+~middlePoint~
+
+Returns the point of this halfsegment located at the middle.
+
+*/
+  Point middlePoint() const{
+    return Point(true, (rp.GetX() + lp.GetX()) / 2.0 ,
+                       (rp.GetY() + lp.GetY()) / 2.0);
+  }
+
+
 /*
 ~Print~
 

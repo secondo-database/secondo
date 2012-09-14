@@ -90,6 +90,8 @@ using namespace std;
 #include "../TopRel/Tree.h"
 #include "../GeneralTree/BBoxReg.h"
 
+#include "RobustSetOps.h"
+
 
 #ifndef M_PI
 const double M_PI = acos( -1.0 );
@@ -3661,6 +3663,7 @@ int HalfSegment::LogicCompare( const HalfSegment& hs ) const
   return 0;
 }
 
+
 int HalfSegmentCompare(const void *a, const void *b)
 {
   const HalfSegment *hsa = (const HalfSegment *)a,
@@ -3688,6 +3691,18 @@ int LRSCompare( const void *a, const void *b )
 
   return 0;
 }
+
+
+bool HalfSegment::insideLeft() const{
+
+    if(ldp){
+      return attr.insideAbove;
+    } else {
+      return !attr.insideAbove;
+    }
+}
+
+
 
 ostream& operator<<(ostream &os, const HalfSegment& hs)
 {
@@ -5836,11 +5851,11 @@ result.EndBulkLoad(); // reordering may be required
 auxiliary function for Line::Transform
 
 */
-int getNext(const Line* line, int pos, const char* usage){
+int getNext(const DbArray<HalfSegment>* hss, int pos, const char* usage){
    HalfSegment hs;
-   line->Get(pos,hs);
+   hss->Get(pos,hs);
    pos = hs.attr.partnerno;
-   line->Get(pos,hs);
+   hss->Get(pos,hs);
    Point dp = hs.GetDomPoint();
    int res = -1;
    // go backwards from pos, store a candidate as res 
@@ -5848,7 +5863,7 @@ int getNext(const Line* line, int pos, const char* usage){
    bool done = false;
    // search left of pos
    while( (pos1>=0) && ! done){
-       line->Get(pos1,hs);
+       hss->Get(pos1,hs);
        Point dp1 = hs.GetDomPoint();
        if(!AlmostEqual(dp,dp1)){
          done = true;
@@ -5864,8 +5879,8 @@ int getNext(const Line* line, int pos, const char* usage){
    // search right of pos
    pos1 = pos+1;
    done = false;
-   while((pos1<line->Size()) && ! done){
-       line->Get(pos1,hs);
+   while((pos1<hss->Size()) && ! done){
+       hss->Get(pos1,hs);
         Point dp1 = hs.GetDomPoint();
         if(!AlmostEqual(dp,dp1)){
           done = true;
@@ -5892,22 +5907,27 @@ This function marks all HalfSgements of a line with its usage. This means:
 
 
 */
-void markUsage(const Line* line, char* usage, char* critical ){
+void markUsage( Line* line, char* usage, char* critical){
+    markUsage( (DbArray<HalfSegment>*) line->GetFLOB(0),usage, critical); 
+}
+
+
+void markUsage(const DbArray<HalfSegment>* hss, char* usage, char* critical ){
   // step 1: mark halfsegments not belonging to a cycle
-  memset(usage,0,line->Size());
+  memset(usage,0,hss->Size());
   // meaning of elements of usage
   // 0 : not used => part of a cycle
   // 1 : not part of a cycle
   // 2 : part of a cycle
   // 3 : part of the current path (will be set to 1 or 2 later)
   // 4 : partner of a segment in the current path
-  memset(critical,0,line->Size());
+  memset(critical,0,hss->Size());
   // 1.1 mark critical points
   int count = 0;
   HalfSegment hs;
   Point lastPoint;
-  for(int i=0;i<line->Size();i++){
-     line->Get(i,hs);
+  for(int i=0;i<hss->Size();i++){
+     hss->Get(i,hs);
      Point currentPoint = hs.GetDomPoint();
      if(i==0){
        lastPoint = currentPoint;
@@ -5928,22 +5948,22 @@ void markUsage(const Line* line, char* usage, char* critical ){
   } 
   if(count != 2){
      for(int r=1;r<=count;r++){
-        critical[line->Size()-r] = 1;
+        critical[hss->Size()-r] = 1;
      }
   }
   bool removed = false; // true if halfsegments was removed
   // 1.2 mark segments
-  for(int i=0;i<line->Size();i++) {
+  for(int i=0;i<hss->Size();i++) {
      if((usage[i]==0) ){
         // not used, but critical 
-        line->Get(i,hs);
+        hss->Get(i,hs);
         vector<int> path;
         usage[i] = 3; // part of current path
         usage[hs.attr.partnerno] = 4;
         // extend path
         int pos = i;
         path.push_back(pos);
-        int next = getNext(line,pos,usage);
+        int next = getNext(hss,pos,usage);
         while(!path.empty()) { 
           if(next < 0){ 
              // no extension found => mark segments in path as non-cycle
@@ -5958,7 +5978,7 @@ void markUsage(const Line* line, char* usage, char* critical ){
                  pos = path.back();
                  path.pop_back();
                  usage[pos] = 1;
-                 line->Get(pos,hs);
+                 hss->Get(pos,hs);
                  usage[hs.attr.partnerno] = 1; 
 
                  if(critical[pos]){
@@ -5969,7 +5989,7 @@ void markUsage(const Line* line, char* usage, char* critical ){
              }
              if(!path.empty()){
                pos = path.back();
-               next = getNext(line,pos,usage);
+               next = getNext(hss,pos,usage);
              }  
           } else {
             if(usage[next] == 3){
@@ -5978,25 +5998,25 @@ void markUsage(const Line* line, char* usage, char* critical ){
                 path.pop_back();
                 while(p!=next && !path.empty()){
                   usage[p] = 2;
-                  line->Get(p,hs);
+                  hss->Get(p,hs);
                   usage[hs.attr.partnerno] = 2;
                   p = path.back();
                   path.pop_back();
                 }
                 usage[p] = 2;
-                line->Get(p,hs);
+                hss->Get(p,hs);
                 usage[hs.attr.partnerno] = 2;
                 if(!path.empty()){
                   pos = path.back(); // try to extend first part of path
-                  next = getNext(line,pos,usage);
+                  next = getNext(hss,pos,usage);
                 }
             }  else { // normal extension
                pos = next;
                path.push_back(pos);
                usage[pos] = 3;
-               line->Get(pos,hs);
+               hss->Get(pos,hs);
                usage[hs.attr.partnerno] = 4;
-               next = getNext(line,pos,usage);
+               next = getNext(hss,pos,usage);
             }
           }
         } // while path not empty 
@@ -6021,7 +6041,7 @@ void Line::Transform( Region& result ) const
 
   char* usage = new char[Size()];
   char* critical = new char[this->Size()];
-  markUsage(this,usage, critical);
+  markUsage(&(this->line), usage, critical);
 
 
   DbArray<HalfSegment>* halfsegments = 
@@ -9252,7 +9272,15 @@ void Region::Intersection(const Points& ps, Points& result,
 
 void Region::Intersection(const Line& l, Line& result,
                           const Geoid* geoid/*=0*/) const{
-  SetOp(l,*this,result,avlseg::intersection_op, geoid);
+
+  try{
+     SetOp(l,*this,result,avlseg::intersection_op, geoid);
+  } catch (exception& e){
+    // compute using robust implementation
+    intersection(*this,l,result);
+  }
+
+
 }
 
 
@@ -22979,6 +23007,181 @@ Operator collect_box(
    Operator::SimpleSelect,
    collect_boxTM
 );
+
+/*
+1.38 Operator intersection_rob
+
+To test the robust implementation
+
+1.38.1 Type Mapping
+
+*/
+
+ListExpr intersection_robTM(ListExpr args){
+  string err = "region x line expected";
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+  }
+  // currently implemented only for region x line
+  if(!Region::checkType(nl->First(args)) ||
+     !Line::checkType(nl->Second(args))){
+   return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<Line>();
+}
+
+/*
+1.38.2 Value Mapping
+
+Implemented as template for later support of other types.
+
+*/
+template<class A, class B, class R>
+int intersection_robVM1(Word* args, Word& result, int message, Word& local,
+                       Supplier s ){
+
+   A* arg1 = (A*) args[0].addr;
+   B* arg2 = (B*) args[1].addr;
+   result = qp->ResultStorage(s);
+   R* res = (R*) result.addr;
+   if(!arg1->IsDefined() || !arg2->IsDefined()){
+     res->SetDefined(false);
+   } else {
+     intersection(*arg1,*arg2,*res);
+   }
+   return 0;
+}
+
+/*
+1.38.3 ValueMappinmg Array and SelectionFunction
+
+*/
+ValueMapping intersection_robVM[] = {
+      intersection_robVM1<Region,Line,Line>
+    };
+
+int intersection_robSelect(ListExpr args){
+
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+   if(Region::checkType(arg1)){
+      if(Line::checkType(arg2)){
+         return 0;
+      }
+   }
+   return  -1;
+}
+
+/*
+1.38.4 Specification
+
+*/
+OperatorSpec intersection_robSpec (
+    "region x line -> line",
+    " intersection_rob(_,_)",
+    "Computes the intersection of the arguments"
+    "using a (hopefully) robust implementation.",
+    "query intersection_rob(thecenter, boundary(thecenter) "
+  );
+
+/*
+1.38.5 Operator instance
+
+*/
+Operator spatialintersection_rob( "intersection_rob",
+                            intersection_robSpec.getStr(),
+                            1,
+                            intersection_robVM,
+                            intersection_robSelect,
+                            intersection_robTM);
+
+
+
+/*
+1.39 Operator contains_rob
+
+1.39.1 Type Mapping
+
+Signature is region x point [x bool] -> bool
+
+*/
+ListExpr contains_robTM(ListExpr args){
+
+  string err = " region x point [ x bool] expected";
+  int len = nl->ListLength(args);
+  if( (len!=2) && (len!=3) ){
+      return listutils::typeError(err);
+  }
+  if(!Region::checkType(nl->First(args)) ||
+     !Point::checkType(nl->Second(args)) ){
+     return listutils::typeError(err);
+  }
+  if(len==3){
+    if(!CcBool::checkType(nl->Third(args))){
+         return listutils::typeError(err);
+    }  
+    return listutils::basicSymbol<CcBool>();
+  }
+  return nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
+                            nl->OneElemList(nl->BoolAtom(false)),
+                            listutils::basicSymbol<CcBool>());
+
+}
+/*
+1.39.2 Value Mapping
+
+*/
+int contains_robVM(Word* args, Word& result, int message, Word& local,
+                    Supplier s ){
+   Region* reg = (Region*) args[0].addr;
+   Point* p = (Point*) args[1].addr;
+   CcBool* b = (CcBool*) args[2].addr;
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+   if(!reg->IsDefined() || !p->IsDefined() || !b->IsDefined()){
+       res->SetDefined(false);
+   }
+   int r = contains(*reg,*p);
+   if(r==0){
+     res->Set(true,false);
+   } else {
+     if(r==1 || b->GetValue()){
+       res->Set(true,true);
+     } else {
+       res->Set(true,false);
+    }
+   }
+   return 0;
+}
+
+/*
+1.39.3 Specification
+
+*/
+OperatorSpec contains_robSpec (
+    "region x point [x bool] -> line",
+    " contains_rob(_,_)",
+    "Checks whether the point is inside the region"
+    "if the booolean argument is present and has value true"
+    " the function returns also true, if the point is "
+    " on the border of the region",
+    "query contains_rob(thecenter, mehringdamm "
+  );
+
+/*
+1.39.4 Operator instance
+
+*/
+Operator contains_rob(
+   "contains_rob",
+   contains_robSpec.getStr(),
+   contains_robVM,
+   Operator::SimpleSelect,
+   contains_robTM
+);
+
+
+
 /*
 11 Creating the Algebra
 
@@ -23033,6 +23236,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialonborder );
     AddOperator( &spatialininterior );
     AddOperator( &spatialintersection);
+    AddOperator( &spatialintersection_rob);
     AddOperator( &spatialminus );
     AddOperator( &spatialunion );
     AddOperator( &spatialcrossings );
@@ -23112,6 +23316,7 @@ class SpatialAlgebra : public Algebra
     AddOperator(&criticalPoints);
     AddOperator(&testRegionCreator);
     AddOperator(&collect_box);
+    AddOperator(&contains_rob);
 
 
   }

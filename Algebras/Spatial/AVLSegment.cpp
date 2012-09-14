@@ -30,6 +30,26 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SpatialAlgebra.h"
 #include "AVLSegment.h"
 #include <functional>
+#include <typeinfo>
+
+
+
+class myexception: public exception
+{
+  public:
+    myexception(const string& s) : err(s){}
+
+    ~myexception() throw() {}
+
+  private:
+  virtual const char* what() const throw()
+  {
+    return err.c_str();
+  }
+
+     string err;
+
+};
 
 
 /*
@@ -1628,6 +1648,7 @@ bool splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
           if(current.crosses(*neighbour)){
              cerr << "6 : crosses" << endl;
           }
+          throw myexception("Invalid order of halfsegments");
           assert(false);
           return true;
        }

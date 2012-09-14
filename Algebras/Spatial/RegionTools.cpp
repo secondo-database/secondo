@@ -60,7 +60,8 @@ void reverseCycle(vector<Point>& cycle){
 1.2 ~getDir~
 
 Determines the direction of a cycle. If the cycle is in clockwise order, the
-return value is true. If the cycle is directed counter clockwise, the result will
+return value is true. If the cycle is directed counter clockwise, the result 
+will
 be false. 
 
 
@@ -251,11 +252,81 @@ static void SetPartnerNo(DbArray<HalfSegment>& segs){
 }
 
 
+
+ void addRegion(vector<pair<Region*, bool> > & regs, vector<Point>& cycle){
+   bool isFace = getDir(cycle);
+   if(cycle.size()<2){
+     return;
+   }
+
+   if(!AlmostEqual(cycle[0],cycle[cycle.size()-1])){ // cycle not closed
+
+   }
+
+    if(cycle.size() < 4){
+       return;
+    }
+
+    Line* hss = new Line(cycle.size()*2);
+
+    hss->StartBulkLoad();
+    for(size_t i = 0; i<cycle.size()-1; i++){
+       HalfSegment hs(true, cycle[i],cycle[i+1]);
+       hs.attr.edgeno = i;
+       (*hss) += hs;
+       hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+       (*hss) += hs; 
+    }
+    hss->EndBulkLoad();
+    Region* res= new Region(cycle.size()*2);
+
+    hss->Transform(*res);
+    hss->DeleteIfAllowed();
+    regs.push_back(pair<Region*,bool>(res, isFace));
+}
+
+
+ 
+
+ Region*  buildRegion2( vector< vector<Point> >& cycles){
+
+
+   //cout << "buildRegion2  called wth " << cycles.size() << " cycles " << endl;
+
+   Line* hss = new Line(80);
+
+   hss->StartBulkLoad();
+   int edgeno = 0;
+   for(size_t c = 0; c<cycles.size(); c++){
+       for(size_t i=0;i<cycles[c].size()-1; i++){
+          HalfSegment hs(true, cycles[c][i],cycles[c][i+1]);
+          hs.attr.edgeno = edgeno;
+          (*hss) += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          (*hss) += hs; 
+          edgeno++;
+       }
+    }
+
+
+    hss->EndBulkLoad();
+
+    
+
+    Region* res= new Region(hss->Size());
+
+    hss->Transform(*res);
+
+
+    hss->DeleteIfAllowed();
+    return res;
+}
+
 /*
 Adds a single cycle region to regs if cycle is valid.
 
 */
-void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
+void addRegion2(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
 
   if(cycle.size()<4){ // at least 3 points
     cerr << "Cycle with less than 3 different points detected" << endl;
@@ -265,7 +336,7 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
 
   // create a DBArray of halfsegments representing this cycle
   DbArray<HalfSegment> segments1(0);
-
+  
   for(unsigned int i=0;i<cycle.size()-1;i++){
     Point p1 = cycle[i];
     Point p2 = cycle[i+1];
@@ -415,6 +486,8 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
 Builds a region from a set of cycles.
 
 */
+
+
  Region* buildRegion(vector< vector<Point> >& cycles){
      // first step create a single region from each cycle
      vector<pair<Region*, bool> > sc_regions; // single cycle regions

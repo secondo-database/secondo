@@ -36,6 +36,43 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 /*
+~contains~
+
+This operator checks whether a Point is part of a region.
+The function returns 0 if the point is outside the region,
+1 if the point is in interior and 2 if the point is onborder.
+
+*/
+int contains(const Region& reg, const Point& p){
+   if(!reg.IsDefined() || !p.IsDefined()){
+     return false;
+   }
+   if(reg.IsEmpty()){
+      return false;
+   }
+   size_t count = 0;
+   HalfSegment hs; 
+   for(int i=0;i<reg.Size();i++){
+      reg.Get(i,hs);
+      if(hs.IsLeftDomPoint()){
+         if(hs.Contains(p)){
+            return 2;
+         } 
+         if( RegionCreator::intersects(p.GetX(),p.GetY(),hs)){
+             count++;
+         }
+      }
+   }
+   size_t mask = 1;
+   return (count & mask) > 0;
+}
+
+
+
+
+
+
+/*
 1. Intersection between line and region.
 
 1.1 Auxiliary function processParallel
@@ -215,14 +252,18 @@ void insertLineParts(HalfSegment& hs,
        // because, we ignore 'splitpoint' at the endpoints, we 
        // have to use an inner point of the halfsegment for 
        // checking the containedness
-       //cout << "no SPlitPoints " << endl;
-       if(region.Contains(hs.middlePoint())){
+      // cout << "no SPlitPoints " << endl;
+      // cout << "check " << hs.middlePoint() << " for containedness" << endl;
+       if(contains(region,hs.middlePoint())){
+         // cout << "Region contains point" << endl;
           hs.attr.edgeno = edgeno;
           result += hs;
           hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
           result += hs;
           edgeno++; 
-       } 
+       } else {
+          // cout << "point is not contained" << endl;
+       }
        //cout << "finsihed" << endl;
        return;
     }
@@ -277,7 +318,7 @@ void insertLineParts(HalfSegment& hs,
     if(splitpoints2.empty()){ // segment completely inside or 
        // TODO: ensure, that the used point is not a former
        // splitpoint   
-       if(region.Contains(hs.middlePoint())){
+       if(contains(region,hs.middlePoint())){
           hs.attr.edgeno = edgeno;
           result += hs;
           hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
