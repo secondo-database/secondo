@@ -118,15 +118,17 @@ class Condition {
   static string getType(int t);
   static string getSubst(int s);
   
-  string   getText() const           {return text;}
-  void     setText(string newText)   {text = newText;}
-  string   getSubst() const          {return textSubst;}
-  void     resetSubst()              {textSubst = text;}
-  void     setSubst(string newSubst) {textSubst = newSubst;}
-  int      getKeysSize() const       {return keys.size();}
-  Key      getKey(unsigned int pos)  {return keys[pos];}
-  int      getPId(unsigned int pos)  {return pIds[pos];}
-  void     clearVectors()            {vars.clear(); keys.clear(); pIds.clear();}
+  string  getText() const          {return text;}
+  void    setText(string newText)  {text = newText;}
+  string  getSubst() const         {return textSubst;}
+  void    resetSubst()             {textSubst = text;}
+  void    setSubst(string newSub)  {textSubst = newSub;}
+  int     getKeysSize() const      {return keys.size();}
+  Key     getKey(unsigned int pos) {return (pos < keys.size() ?
+                                                  keys[pos] : ERROR);}
+  int     getPId(unsigned int pos) {return (pos < pIds.size() ?
+                                                  pIds[pos] : -1);}
+  void    clearVectors()           {vars.clear(); keys.clear(); pIds.clear();}
 };
 
 class UPat {
@@ -248,6 +250,7 @@ class NFA {
   vector<int> resultVars; // [3, 1] means: 1st result var is the one from the
                           // 3rd up, 2nd result var is the one from the 1st up
   set<int> doublePars; // positions of nonempty patterns in double parentheses
+  int *seqOrder;
   map<string, bool> knownEval; // condition evaluation history
   map<pair<size_t, size_t>, string> knownPers; // periods string history
 
@@ -258,12 +261,14 @@ class NFA {
     currentStates.insert(0);
     match = new set<size_t>[f];
     cardsets = new set<size_t>[f];
+    seqOrder = new int[f];
   }
 
   ~NFA() {
     delete[] delta;
     delete[] match;
     delete[] cardsets;
+    delete[] seqOrder;
   }
 
   void buildNFA(Pattern p);
@@ -287,7 +292,9 @@ class NFA {
   void computeResultVars(vector<UPat> results);
   set<vector<size_t> > getRewriteSequences();
   bool conditionsMatch(MLabel const &ml);
+  void computeSeqOrder();
   size_t getRelevantCombs();
+  bool isFixed(int pos, bool start);
   bool evaluateEmptyML();
   void buildCondMatchings(int condId, multiset<size_t> sequence);
   bool evaluateCond(MLabel const &ml, int cId, multiset<size_t> sequence);
