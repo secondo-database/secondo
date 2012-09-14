@@ -2545,6 +2545,7 @@ will be 0.
           defined = false;
           return 0;
        } else { // NULL shape, return an empty region
+         cout << "found null shape" << endl;
          return new Region(0);
        }
      }
@@ -2564,6 +2565,9 @@ will be 0.
      uint32_t numPoints = readLittleInt32();
      // for debugging the file
      uint32_t clen = (44 + 4*numParts + 16*numPoints)/2;
+
+     //cout << "region has " << numParts << " parts " << endl;
+
      if(clen!=len){
         cerr << "File invalid: length given in header seems to be wrong"
              << endl;
@@ -2577,6 +2581,7 @@ will be 0.
        uint32_t p = readLittleInt32();
        parts.push_back(p);
      }
+
 
      // read the cycles
      vector<vector <Point> > cycles;
@@ -2600,9 +2605,10 @@ will be 0.
             }
             pos++;
         }
+        //cout << "part " << p << " has " << cycle.size() << " points " << endl;
         cycles.push_back(cycle);
      }
-     return buildRegion(cycles);
+     return buildRegion2(cycles);
    }
 
 public:
