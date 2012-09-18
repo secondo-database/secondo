@@ -18,19 +18,18 @@
 //Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 package viewer.queryconstruction;
 
-import java.awt.Dimension;
 import java.awt.Graphics;
 import java.util.Arrays;
 import javax.swing.BorderFactory;
 
 /**
- * This class is respresenting the operations in the query and the operation objects in the OperationsPane.
+ * This class is respresenting the operations in the query 
+ * and the operation objects in the OperationsPane.
  */
 public class Operation extends ObjectView { 
     
+    //name of the operator shown in the OperationsPane
     private String name;
-    //name of the operator shown in the viewer
-    private String label;
     //objects, the operator is applicable to
     private String[] objects;
     //parameters, the operator needs
@@ -50,10 +49,10 @@ public class Operation extends ObjectView {
      * @param parameter type of parameter which the operation needs
      * @param result type of the result, when needed
      */
-    public Operation(String name, String[] objects, String signature, String[] parameter, String result){
+    public Operation(String name, String[] objects, String signature, 
+            String[] parameter, String result){
         this.setOpaque(false);
         this.name = name;
-        this.label = name;
         this.signature = signature;
         this.result = result;
         this.parameter = parameter;
@@ -61,18 +60,17 @@ public class Operation extends ObjectView {
         Arrays.sort(this.objects);
         
         /* initialize the related object component */
-        view = new ObjectView(name, ObjectType.OPERATION);
+        view = new ObjectView(name, ObjectView.OPERATION);
         view.setSignature(signature);
     }  
-    
-    
     
     /**
      * Returns a copy of this operation object.
      * @return 
      */
     protected Operation copy() {
-        return new Operation(this.name, this.objects, this.signature, this.parameter, this.result);
+        return new Operation(this.name, this.objects, this.signature, 
+                this.parameter, this.result);
     }
     
     /**
@@ -85,7 +83,7 @@ public class Operation extends ObjectView {
     
     /**
      * 
-     * @return 
+     * @return objects array
      */
     protected String[] getObjects() {
         return this.objects;
@@ -101,7 +99,7 @@ public class Operation extends ObjectView {
     
     /**
      * 
-     * @return 
+     * @return parameter array
      */
     protected String[] getParameter() {
         return this.parameter;
@@ -122,8 +120,9 @@ public class Operation extends ObjectView {
     protected String getSignature() {
         return signature;
     }
+    
     /**
-     * 
+     * Get the ObjectView object of this operation.
      * @return 
      */
     protected ObjectView getView() {
@@ -132,11 +131,7 @@ public class Operation extends ObjectView {
     
     public void paintComponent(Graphics g) {
         this.setBorder(BorderFactory.createEtchedBorder());
-        int w = g.getFontMetrics().stringWidth(label);
-        String s = label;
-//        if (w > 80) {
-//            s = label.substring(0, 12);
-//        }
+        String s = name;
         
         g.drawString(s, 20, this.getSize().height/2 + 5);
     }

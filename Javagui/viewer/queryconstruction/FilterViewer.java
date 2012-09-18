@@ -30,6 +30,9 @@ import java.util.Iterator;
 import javax.swing.*;
 import viewer.QueryconstructionViewer;
 
+/**
+ * Window for the nested query construction.
+ */
 public class FilterViewer extends QueryconstructionViewer {
     
     private OperationsDialog dialog;
@@ -87,7 +90,6 @@ public class FilterViewer extends QueryconstructionViewer {
         /* update the window, if the a text is added */
         ActionListener textL = new ActionListener() {
             public void actionPerformed( ActionEvent e ) {
-                System.out.println("update");
                 update();
             }
         };
@@ -137,7 +139,6 @@ public class FilterViewer extends QueryconstructionViewer {
         if (resultType.equals("fun")) {
             resultString = resultString.replace("(t,", "("+attribute.getText()+",");
         }
-        //resultString.replace("(t:", "("+attribute.getText()+":");
         
     }
     
@@ -145,7 +146,7 @@ public class FilterViewer extends QueryconstructionViewer {
      * Add the result to the query and close the frame.
      */
     private void close(){
-        dialog.addResult(resultString);
+        dialog.addResult(resultString, null);
         f.setVisible(false);
     }
     
@@ -166,7 +167,6 @@ public class FilterViewer extends QueryconstructionViewer {
     private void reset(){
         attribute.setText(null);
         removeAll();
-        update();
     }
     
     /**
@@ -204,20 +204,30 @@ public class FilterViewer extends QueryconstructionViewer {
     public void update(){
         super.update();
         if (resultType != null) {
-            if (resultType.equals("fun") && (attribute.getText().length() > 0)) {
+            //parameter function is expected
+            if (resultType.equals("fun") && 
+                    (attribute.getText().length() > 0)) {
                 paste.setEnabled(true);
-                return;
             }
+            //result type equals the active type
             if (mainPane.getType().equals(resultType)) {
                 paste.setEnabled(true);
             }
-            if (resultType.startsWith("new") && !mainPane.getType().startsWith("(stream") && (attribute.getText().length() > 0)){
-                paste.setEnabled(true);
+            //new stream or new object is expected
+            if (resultType.startsWith("new") && 
+                    (attribute.getText().length() > 0)){
+                if (!resultType.contains("stream") &&
+                        !mainPane.getType().startsWith("(stream"))
+                    paste.setEnabled(true);
+                //only stream of data is allowed, instead of stream of tuple
+                if (resultType.contains("stream") && 
+                        mainPane.getType().startsWith("(stream") && 
+                        !mainPane.getType().startsWith("(stream (tuple"))
+                    paste.setEnabled(true);
             }
-            if (resultType.startsWith("newstream") && mainPane.getType().startsWith("(stream") && !mainPane.getType().startsWith("(stream (tuple")) {
-                paste.setEnabled(true);
-            }
-            if (paste.isEnabled() && resultType.endsWith("list") && (attribute.getText().length() > 0)) {
+            //a list of objects is expected
+            if (paste.isEnabled() && resultType.endsWith("list") && 
+                    (attribute.getText().length() > 0)) {
                 add.setEnabled(true);
             }
         }

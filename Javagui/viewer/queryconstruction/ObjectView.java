@@ -31,7 +31,8 @@ import viewer.QueryconstructionViewer;
 
 /**
  * An instance of this class is the object 
- * component in the ObjectsPane and the MainPane.
+ * component in the ObjectsPane and the MainPane or an
+ * operation component in the MainPane.
  */
 public class ObjectView extends JComponent {
     
@@ -43,9 +44,18 @@ public class ObjectView extends JComponent {
     
     private int xpos = 10;
     private int ypos = 10;
-    private ObjectType otype;
+    private ListExpr list;
     private String type;
     private Color color = Color.BLACK;
+    
+    // define supported object types
+    protected static final String OPERATION = "operation";
+    protected static final String TRELATION = "trel";
+    protected static final String RELATION = "rel";
+    protected static final String MPOINT = "mpoint";
+    protected static final String POINT = "point";
+    protected static final String REGION = "region";
+    protected static final String MREGION = "mregion";
     
     protected final static char obChar = 'o';
     protected final static char opChar = '#';
@@ -56,94 +66,80 @@ public class ObjectView extends JComponent {
         this.setPreferredSize(new Dimension(120, 70));
     }
     
-    public ObjectView(String name, String type){
+    protected ObjectView(String name, String type){
         this.name = name;
         this.label = name;
         this.type = type;
     }
     
-    public ObjectView(ListExpr list){
-        //generate an instance of ObjectType
-        otype = new ObjectType(list);
+    protected ObjectView(ListExpr list){
         
-        this.name = otype.getName();
-        this.type = otype.getType();
+        this.list = list.fourth().first();
+        
+        name = list.second().stringValue();
+        
+        //the object can be of atom type or a relation
+        if (list.fourth().first().isAtom()) {
+            type = list.fourth().first().symbolValue();
+        }
+        else {
+            type = list.fourth().first().first().symbolValue();
+        }
+        
         this.label = this.name;
         
     }
     
+    /**
+     * Add a stream as input parameter.
+     * @param stream 
+     */
     protected void addParamStream(StreamView stream) {
         paramStreams.add(stream);
     }
     
+    /**
+     * Generate a copy of the object.
+     * @param label
+     * @return 
+     */
     protected ObjectView copy(String label){
         ObjectView newObject = new ObjectView(this.name, this.type);
         newObject.setLabel(label);
-        if (this.otype != null)
-            newObject.setOType(otype);
         
         return newObject;
     }
     
-    /** paints a Secondo ObjectView into the RelationsPane
-     height 90, width 50*/
-    protected void paintComponent(Graphics g){
-        
-        g.setColor(this.color);
-        
-        if (type.equals(ObjectType.OPERATION)) {
-            g.drawOval(xpos, ypos, 90, 50);
+    /**
+     * Return a constant copy of the object, if it is an attribute.
+     * @param onlyName return only the name and don't process the signature
+     * @return 
+     */
+    protected String getConst(boolean onlyName){
+        String result = "";
+        if ((this.name.startsWith(".") || this.name.startsWith("attr")) 
+                && !this.type.equals("param")) {
+            result = "[const ";
+            result += this.getType() + " value undef]";
         }
         else {
-            g.drawRect(xpos, ypos, 90, 50);
-            
-            if (type.equals(ObjectType.RELATION)) {
-                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/relation.gif"));
-                g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
-            }
-
-            if (type.equals(ObjectType.MPOINT)) {
-                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/mpoint.gif"));
-                g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
-            }
-            
-            if (type.equals(ObjectType.POINT)) {
-                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/point.gif"));
-                g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
-            }
-            
-            if (type.equals(ObjectType.REGION)) {
-                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/region.gif"));
-                g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
-            }
-            
-            if (type.equals(ObjectType.MREGION)) {
-                ImageIcon icon = new ImageIcon(QueryconstructionViewer.class.getResource("queryconstruction/images/mregion.gif"));
-                g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
-            }
+            if (onlyName)
+                return this.name;
+            else
+                return this.getObjectName().trim() + " ";
         }
-        
-        int w = g.getFontMetrics().stringWidth(label);
-        String s = label;
-        if (w > 90) {
-            s = label.substring(0, 10);
-            w = g.getFontMetrics().stringWidth(s);
-        }
-        
-        g.drawString(s, xpos + 45 - w/2, ypos + 30);
+        return result;
     }
     
-    /** 
-     * paints a Secondo ObjectView into the mainPane
+    protected String getLabel(){
+        return label;
+    }
+    
+    /**
+     * Get the name or the result string of the object.
+     * If it is an Operator, use the signature.
+     * @return 
      */
-    public void paintComponent(Graphics g, int x, int y, Color color){
-        this.xpos = 10 + x*120;
-        this.ypos = 10 + y*80;
-        this.color = color;
-        
-        paintComponent(g);
-    }
-    
     protected String getObjectName() {
         if (signature == null)
             return name;
@@ -159,8 +155,10 @@ public class ObjectView extends JComponent {
                     result += this.name;
                     break;
                 case pChar: 
+                    // use the parameter objects.
                     if (pS < paramStreams.size()){
-                        for (Iterator iter = paramStreams.get(pS).getObjects().iterator(); iter.hasNext();) {
+                        for (Iterator iter = paramStreams.get(pS).getObjects()
+                                .iterator(); iter.hasNext();) {
                             ObjectView object = (ObjectView) iter.next();
                             result += object.getObjectName().trim();
                         }
@@ -178,54 +176,42 @@ public class ObjectView extends JComponent {
         return result;
     }
     
+    /**
+     * Get only the object name.
+     * @return 
+     */
     protected String getOnlyName() {
         return this.name;
     }
     
     /**
-     * Return a constant copy of the object, if it is an attribute.
-     * @param onlyName return only the name and don't process the signature
-     * @return 
+     * @return type
      */
-    protected String getConst(boolean onlyName){
-        String result = "";
-        if ((this.name.startsWith(".") || this.name.startsWith("attr")) && !this.type.equals("param")) {
-            result = "[const ";
-            result += this.getType() + " value undef]";
-        }
-        else {
-            if (onlyName)
-                return this.name;
-            else
-                return this.getObjectName().trim() + " ";
-        }
-        return result;
-    }
-    
-    protected String getLabel(){
-        return label;
-    }
-    
-    protected void setLabel(String label) {
-        this.label = label;
-    }
-    
-    public String getType(){
+    protected String getType(){
         return type;
     }
     
-    public boolean isSecondoObject(){
-        return (otype != null);
+    /**
+     * Get the nested list, the object is generated of.
+     * @return 
+     */
+    protected String getViewString() {
+        if (this.list != null)
+            return this.list.toString();
+        else return this.getType();
     }
     
+    /**
+     * @return true, if the object should be visible
+     */
     protected boolean isActive() {
         return isActive;
     }
     
-    public ObjectType getOType() {
-        return otype;
-    }
-    
+    /**
+     * Change the name and the label of the object.
+     * @param name 
+     */
     protected void rename(String name){
         this.name = name.replace(".", "");
         if (name.length() < 12)
@@ -238,11 +224,81 @@ public class ObjectView extends JComponent {
         this.isActive = active;
     }
     
-    protected void setOType(ObjectType otype) {
-        this.otype = otype;
+    protected void setLabel(String label) {
+        this.label = label;
     }
     
     protected void setSignature(String sig) {
         this.signature = sig.toCharArray();
+    }
+    
+    /** 
+     * Paint an ObjectView into the mainPane.
+     */
+    protected void paintComponent(Graphics g, int x, int y){
+        this.xpos = 10 + x*120;
+        this.ypos = 10 + y*80;
+        
+        paintComponent(g);
+    }
+    
+    /** 
+     * Paint an ObjectView object into the MainPane or the ObjectPane.
+     * height 90, width 50
+     */
+    protected void paintComponent(Graphics g){
+        g.setColor(Color.black);
+        
+        if (type.equals(OPERATION)) {
+            g.drawOval(xpos, ypos, 90, 50);
+        }
+        else {
+            g.drawRect(xpos, ypos, 90, 50);
+            
+            if (type.equals(RELATION)) {
+                ImageIcon icon = new ImageIcon(QueryconstructionViewer
+                        .class.getResource(
+                        "queryconstruction/images/relation.gif"));
+                g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
+            }
+
+            if (type.equals(MPOINT)) {
+                ImageIcon icon = new ImageIcon(QueryconstructionViewer
+                        .class.getResource(
+                        "queryconstruction/images/mpoint.gif"));
+                g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
+            }
+            
+            if (type.equals(POINT)) {
+                ImageIcon icon = new ImageIcon(QueryconstructionViewer
+                        .class.getResource(
+                        "queryconstruction/images/point.gif"));
+                g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
+            }
+            
+            if (type.equals(REGION)) {
+                ImageIcon icon = new ImageIcon(QueryconstructionViewer
+                        .class.getResource(
+                        "queryconstruction/images/region.gif"));
+                g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
+            }
+            
+            if (type.equals(MREGION)) {
+                ImageIcon icon = new ImageIcon(QueryconstructionViewer
+                        .class.getResource(
+                        "queryconstruction/images/mregion.gif"));
+                g.drawImage(icon.getImage(), xpos + 5, ypos + 5, this);
+            }
+        }
+        
+        int w = g.getFontMetrics().stringWidth(label);
+        String s = label;
+        if (w > 90) {
+            s = label.substring(0, 5) + "..." +
+                    label.substring(label.length()-5, label.length());
+            w = g.getFontMetrics().stringWidth(s);
+        }
+        
+        g.drawString(s, xpos + 45 - w/2, ypos + 30);
     }
 }

@@ -39,7 +39,7 @@ public class OperationsDialog extends JDialog {
     private MainPane main;
     private QueryconstructionViewer mainViewer;
     private FilterViewer filterViewer =  new FilterViewer(this);
-    private String operation;
+    private Operation operation;
     private String[] params;
     private ArrayList<ObjectView> allObjects;
     
@@ -86,7 +86,7 @@ public class OperationsDialog extends JDialog {
             this.setLocation(main.getLocationOnScreen());
         
         params = operation.getParameter();
-        this.operation = operation.getOnlyName();
+        this.operation = operation;
         
         this.addWindowListener( new WindowAdapter() {
             public void windowClosing ( WindowEvent e) {
@@ -112,7 +112,7 @@ public class OperationsDialog extends JDialog {
      * Remove the last object.
      */
     protected void back(){
-        mainViewer.back();
+        main.removeActiveComponent();
     }
     
     /**
@@ -155,7 +155,10 @@ public class OperationsDialog extends JDialog {
         if (parameter.equals("int") || 
                 parameter.toLowerCase().equals("string")) {
             text();
-        }        
+        }  
+        if (parameter.equals("const")) {
+            constant();
+        }
     }
     
     
@@ -177,22 +180,24 @@ public class OperationsDialog extends JDialog {
         JLabel name = new JLabel(objectName);
         this.add(name);
         int cbsCount = atts.length;
+        
         if (labels != null)
             cbsCount = atts.length * labels.length;
         this.cbs = new JCheckBox[cbsCount];
         int i = 0;
         for (String att: atts) {
-            if (labels != null) {
-                for (String label: labels) {
-                    cbs[i] = new JCheckBox( att + " " + label, false );
+            if (att != null) {
+                if (labels != null) {
+                    for (String label: labels) {
+                        cbs[i] = new JCheckBox( att + " " + label, false );
+                        i++;
+                    }
+                }
+                else {
+                    cbs[i] = new JCheckBox( att, false );
                     i++;
                 }
             }
-            else {
-                cbs[i] = new JCheckBox( att, false );
-                i++;
-            }
-            
         }
     }
     
@@ -244,16 +249,16 @@ public class OperationsDialog extends JDialog {
     }
     
     /**
-     * Add the string s to the result string.
-     * @param s 
+     * Add the string value to the result string.
+     * @param value 
      */
-    protected void addResult(String s){
+    protected void addResult(String value, String label){
         hasParameter++;
         
-        ObjectView new_object = new ObjectView(s, "param");
+        ObjectView new_object = new ObjectView(value, "param");
         StreamView paramStream = new StreamView("OperationStream", "", 0, 0);
         paramStream.addObject(new_object);
-        main.addParamStream(paramStream);
+        main.addParamStream(paramStream, label);
         
         check();
     }
@@ -267,7 +272,7 @@ public class OperationsDialog extends JDialog {
     }
     
     /**
-     * check if the input params are complete
+     * Check if the input parameters are complete.
      */
     private void check() {
         
@@ -287,7 +292,26 @@ public class OperationsDialog extends JDialog {
         mainViewer.update();
     }
     
-    
+    /**
+     * Create a new object of a constant type.
+     */
+    private void constant() {
+        JLabel typeLabel = new JLabel("Please insert the type.");
+        final JTextField type = new JTextField(20);
+        JLabel valueLabel = new JLabel("Please insert the value.");
+        final JTextField value = new JTextField(20);
+        ActionListener al = new ActionListener() {
+            public void actionPerformed( ActionEvent e ) {
+                sendConstant(type, value);
+            }
+        };
+        
+        add(typeLabel);
+        add(type);
+        add(valueLabel);
+        add(value);
+        show(this, al);       
+    }
     
     /**
      * Activates the FilterViewer to get a boolean parameter.
@@ -303,7 +327,8 @@ public class OperationsDialog extends JDialog {
      */
     private void project() {
         for (JCheckBox cb: this.cbs){
-            add(cb);
+            if (cb != null)
+                add(cb);
         }
         ActionListener al = new ActionListener() {
             public void actionPerformed( ActionEvent e ) {
@@ -314,7 +339,7 @@ public class OperationsDialog extends JDialog {
     }
     
     /**
-    * adds the name of the chosen object to the operation
+    * Adds the name of the chosen object to the operation.
     */
     private void sendButtons() {
         objectDialog.dispose();
@@ -336,7 +361,7 @@ public class OperationsDialog extends JDialog {
         else if (radiogroup.get(0).getButtonCount() > 0)
             labels += radiogroup.get(0).getSelection().getActionCommand();
         
-        addResult(labels);
+        addResult(labels, null);
     }
     
     /**
@@ -349,6 +374,10 @@ public class OperationsDialog extends JDialog {
             if (cb.isSelected()) {
                 labels += cb.getActionCommand() + ", ";
                 i++;
+                if (operation.getOperationName().equals("sortby")){
+                    main.addSortedAttribute(cb.getActionCommand()
+                            .replace(" asc", "").replace(" desc", ""));
+                }
             }
             
         }
@@ -356,7 +385,18 @@ public class OperationsDialog extends JDialog {
             labels = labels.substring(0, labels.length()-2);
         }
         
-        addResult(labels);
+        addResult(labels, null);
+    }
+    
+    /**
+     * Add the constant with values of the two
+     * textfields to the result.
+     * @param textfield 
+     */
+    private void sendConstant(JTextField type, JTextField value){
+        addResult("[const " + type.getText() +
+                " value " + value.getText() + "]",
+                value.getText());
     }
     
     /**
@@ -365,20 +405,11 @@ public class OperationsDialog extends JDialog {
      */
     private void sendText(JTextField textfield){
         String text = textfield.getText();
-        if (params[hasParameter].equals("fun")) {
-            filterViewer.rename(text);
-        }
-        addResult(text);
+//        if (params[hasParameter].equals("fun")) {
+//            filterViewer.rename(text);
+//        }
+        addResult(text, null);
     }
-    
-    /**
-     * Set the label message besides the textfield.
-     * @param message 
-     */
-//    public void setMessage(String message) {
-//        JLabel label = new JLabel(message);
-//        add(label);
-//    }
     
     /**
      * Set the dialog visible.

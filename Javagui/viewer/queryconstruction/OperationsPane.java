@@ -1,10 +1,5 @@
 package viewer.queryconstruction;
 
-/*
- * This code is based on an example provided by John Vella,
- * a tutorial reader.
- */
-
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.GridLayout;
@@ -14,13 +9,16 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import javax.swing.JComponent;
 import sj.lang.ListExpr;
-import viewer.QueryconstructionViewer;
 
+/**
+ * Panel for the allowed operations.
+ */
 public class OperationsPane extends JComponent implements MouseListener {
     
     //list of all operations
     private ArrayList<Operation> operations = new ArrayList<Operation>();
-    private QueryconstructionViewer viewer;
+    
+    private MainPane mainPane;
     private Operation rename;
     private String longestName = "";
 
@@ -28,8 +26,8 @@ public class OperationsPane extends JComponent implements MouseListener {
      * Generate a new Panel for the Operations.
      * @param viewer main viewer
      */
-    public OperationsPane(QueryconstructionViewer viewer) {
-        this.viewer = viewer;
+    public OperationsPane(MainPane main) {
+        this.mainPane = main;
         this.setLayout(new GridLayout(0, 1));
     }
     
@@ -58,18 +56,24 @@ public class OperationsPane extends JComponent implements MouseListener {
                 String opSignature = objects.first().fourth().textValue();
                 String opResult = objects.first().fifth().stringValue();
                 
-                Operation op = new Operation(opName, opObjects.split(";"), opSignature, opParams.split(";"), opResult);
-                addOperation(op);
-                
-                //save the rename operator as variable
-                if (opName.equals("rename")){
-                    rename = op;
+                String[] possible = opObjects.split("\\|");
+                for (String objectStrings: possible) {
+                    Operation op = new Operation(opName, 
+                            objectStrings.split(";"), opSignature, 
+                            opParams.split(";"), opResult);
+                    addOperation(op);
+                    
+                    //save the rename operator as variable
+                    if (opName.equals("rename")){
+                        rename = op;
+                    }
                 }
+                
                 objects = objects.rest();
             }
             operators = operators.rest();
         }
-        update();
+        this.repaint();
     }
     
     /**
@@ -81,6 +85,12 @@ public class OperationsPane extends JComponent implements MouseListener {
     private boolean typeInArray(String type, String[] tArray){
         for (String s: tArray) {
             if (s.equals(type))
+                return true;
+            //stream of data or one attribute is needed
+            if (s.startsWith("stream") 
+                    && s.contains("data") 
+                    && (type.startsWith("stream ") 
+                    || this.mainPane.getAttributesCount() == 1))
                 return true;
         }
         return false;
@@ -107,12 +117,12 @@ public class OperationsPane extends JComponent implements MouseListener {
         return result;
     }
     
-    /**
-     * Repaint the operations panel.
-     */
-    public void update() {
-        this.repaint();
-    }
+//    /**
+//     * Repaint the operations panel.
+//     */
+//    public void update() {
+//        this.repaint();
+//    }
     
     /**
      * Paint all operations into the panel, 
@@ -122,10 +132,12 @@ public class OperationsPane extends JComponent implements MouseListener {
     public void paintComponent(Graphics g) {
         this.removeAll();
         longestName = "";
-        String[] viewerParam = viewer.getParameters();
+        // objects, that are given by the actual query
+        String[] viewerParam = mainPane.getParameters();
         
         for ( Iterator iter = operations.iterator(); iter.hasNext(); ) {
             Operation op = (Operation)iter.next();
+            // objects, tha are needed by the operation
             String[] operationObjects = op.getObjects();
             
             int viewerCount = viewerParam.length;
@@ -140,15 +152,17 @@ public class OperationsPane extends JComponent implements MouseListener {
             }
             
             /* 
-             * If the count of active objects equals the count of objects, the operation needs, 
-             * the viewer checks if the types are the same.
+             * If the count of active objects equals the count of objects, 
+             * the operation needs, the viewer checks if the 
+             * types are the same.
              */
             if (viewerCount == operationObjects.length) {
                 int[][] typesIn = new int[viewerCount][viewerCount];
                 
                 int index = 0;
                 for (String viewerStr : viewerParam) {
-                    typesIn[index] = this.typeInArray2(viewerStr.trim(), operationObjects);
+                    typesIn[index] = this.typeInArray2(viewerStr.trim(), 
+                            operationObjects);
                     index++;
                 }
                 
@@ -170,7 +184,8 @@ public class OperationsPane extends JComponent implements MouseListener {
         }
         
         int width = g.getFontMetrics().stringWidth(longestName);
-        this.setPreferredSize(new Dimension((width + 40), (30 * this.getComponentCount())));
+        this.setPreferredSize(new Dimension((width + 40), 
+                (30 * this.getComponentCount())));
         
         this.revalidate();
     }
@@ -181,6 +196,7 @@ public class OperationsPane extends JComponent implements MouseListener {
      */
     private void viewOperation(Operation op) {
         add(op);
+        // fit the width of the panel to the longest operatorname
         if (longestName.length() < op.getOperationName().length()) {
             longestName = op.getOperationName();
         }
@@ -193,13 +209,16 @@ public class OperationsPane extends JComponent implements MouseListener {
                 Operation element = (Operation)arg0.getComponent();
                 
                 //check if objects have to be renamed
-                if ((element.getObjects().length == 2) && (element.getObjects()[0].equals("stream")) && (element.getObjects()[1].equals("stream")) && (element.getParameter().length > 0)) {
-                    if (!viewer.checkAttributes()) {
-                        viewer.addOperation(rename.copy());
+                if ((element.getObjects().length == 2) && 
+                        (element.getObjects()[0].equals("stream")) && 
+                        (element.getObjects()[1].equals("stream")) && 
+                        (element.getParameter().length > 0)) {
+                    if (!mainPane.checkAttributes()) {
+                        mainPane.addOperation(rename.copy());
                         return;
                     }
                 }
-                viewer.addOperation(element.copy());
+                mainPane.addOperation(element.copy());
             }
         }
     }

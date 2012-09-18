@@ -25,13 +25,19 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 /**
- *
- * @author lrentergent
+ * Stream of objects and operators.
  */
 public class StreamView {
 
+    //list of query objects
+    private ArrayList<ObjectView> objects = new ArrayList<ObjectView>();
+    //input streams as objects and parameters
+    private ArrayList<StreamView> inputStreams = new ArrayList<StreamView>();
+    private ArrayList<StreamView> paramStreams = new ArrayList<StreamView>();
+    
     private String[] parts;
     private String[] attributes;
+    private String[] attributesSorted;
     private String[] attrtypes;
     private char[] signature;
     private String name;
@@ -40,10 +46,6 @@ public class StreamView {
     private int[] line;
     private boolean active = true;
     private boolean hasNext = false;
-    
-    private ArrayList<ObjectView> objects = new ArrayList<ObjectView>();
-    private ArrayList<StreamView> inputStreams = new ArrayList<StreamView>();
-    private ArrayList<StreamView> paramStreams = new ArrayList<StreamView>();
     private int xpos;
     private int ypos;
 
@@ -54,30 +56,100 @@ public class StreamView {
         this.signature = signature.toCharArray();
     }
 
+    /**
+     * Add a stream as an input parameter for the stream object.
+     * @param stream input stream
+     */
     protected void addInputStream(StreamView stream) {
         inputStreams.add(stream);
     }
+    
+    /**
+     * Add a line between an input stream and another stream.
+     * @param x x-position of the next stream
+     * @param y y-position of the next stream
+     */
+    private void addLine(int x, int y) {
+        line = new int[2];
+        line[0] = x;
+        line[1] = y;
+    }
 
+    /**
+     * Add an object to the stream.
+     * @param object 
+     */
     protected void addObject(ObjectView object) {
         objects.add(object);
     }
     
+    /**
+     * Add a parameter stream to the stream.
+     * @param stream 
+     */
     protected void addParamStream(StreamView stream) {
         paramStreams.add(stream);
     }
+    
+    /**
+     * Add an attribute to the list of sorted attributes.
+     * @param new_attr 
+     */
+    protected void addSortedAttribute(String new_attr) {
+        int i = 0;
+        for (String attr: this.attributesSorted){
+            if (attr == null){
+                this.attributesSorted[i] = new_attr;
+                return;
+            }
+            if (attr.equals(new_attr))
+                return;
+            i++;
+        }
+    }
 
+    /**
+     * Change the active state of the stream.
+     */
     protected void change() {
         if (objects.size() > 0) {
             this.active = !this.active;
         }
     }
-
-    protected boolean isActive() {
-        return this.active;
+    
+    /**
+     * 
+     * @param dot
+     * @return attributes as objects
+     */
+    protected ObjectView[] getAttrObjects(String dot) {
+        int i = 0;
+        ObjectView objectViews[] = new ObjectView[attributes.length];
+        for (String objName : attributes) {
+            objectViews[i] = new ObjectView(dot + objName, attrtypes[i]);
+            i++;
+        }
+        return objectViews;
     }
     
     /**
-     * returns the last object of a stream
+     * 
+     * @return all attributes
+     */
+    protected String[] getAttributes() {
+        return attributes;
+    }
+
+    /**
+     * 
+     * @return only sorted attributes
+     */
+    protected String[] getAttributesSorted() {
+        return attributesSorted;
+    }
+    
+    /**
+     * Returns the last object of a stream.
      * @return last object of type ObjetView
      */
     protected ObjectView getLastComponent() {
@@ -86,15 +158,35 @@ public class StreamView {
         }
         return null;
     }
+    
+    /**
+     * 
+     * @return length of the object list
+     */
+    protected int getLength() {
+        return this.objects.size();
+    }
+    
+    protected String getName() {
+        return this.name;
+    }
 
     /**
-     * returns all objects of the stream
+     * Return a list of all objects of the stream.
      * @return ArrayList of all ObjectView objects
      */
     protected ArrayList<ObjectView> getObjects() {
         return this.objects;
     }
-
+    
+    protected String getState() {
+        return state;
+    }
+    
+    /**
+    * Return the string of the query with attributes as constant objects.
+    * @return 
+    */
     protected String getString() {
         
         String result = "";
@@ -132,19 +224,31 @@ public class StreamView {
                             break;
                     }
                 }
-                result += " ";
+                result += "";
             }
             else {
                 if (object.getLabel().equals("group"))
                     result += "group ";
                 else
-                    result += object.getObjectName().trim() + " ";
+                    result += object.getObjectName().trim() + "";
             }
             index++;
         }
         return result;
     }
     
+    /**
+     * Get result type of the query in the stream.
+     * @return 
+     */
+    protected String getType() {
+        return type;
+    }
+    
+    /**
+     * Return the string of the query with attributes as constant objects.
+     * @return query
+     */
     protected String getTypeString(){
         
         String result = "";
@@ -168,9 +272,14 @@ public class StreamView {
                             break;
                         case OperationsDialog.pChar:
                             if (pS < paramStreams.size()) {
-                                for (Iterator iterParam = paramStreams.get(pS).getObjects().iterator(); iterParam.hasNext();) {
-                                    ObjectView paramObject = (ObjectView) iterParam.next();
-                                    result += paramObject.getObjectName().trim();
+                                for (Iterator iterParam = 
+                                        paramStreams.get(pS)
+                                        .getObjects().iterator(); 
+                                        iterParam.hasNext();) {
+                                    ObjectView paramObject = 
+                                            (ObjectView) iterParam.next();
+                                    result += paramObject
+                                            .getObjectName().trim();
                                 }
                                 pS++;
                             }
@@ -185,60 +294,38 @@ public class StreamView {
                 result += " ";
             }
             else {
-                /* Attribute objects should be treated as constants in inner queries. */
-                result += object.getConst(false) + " ";
+                /* Attribute objects should be treated as 
+                 * constants in inner queries. */
+                result += object.getConst(false) + "";
             }
             index++;
         }
         return result;
     }
 
-    protected String getName() {
-        return this.name;
-    }
-
-    protected int getLength() {
-        return this.objects.size();
-    }
-
-    protected String[] getAttributes() {
-        return attributes;
-    }
-
-    protected ObjectView[] getAttrObjects(String dot) {
-        int i = 0;
-        ObjectView objectViews[] = new ObjectView[attributes.length];
-        for (String objName : attributes) {
-            objectViews[i] = new ObjectView(dot + objName, attrtypes[i]);
-            i++;
-        }
-        return objectViews;
-    }
-
-    protected String getType() {
-        return type;
-    }
-    
-    protected String getState() {
-        return state;
-    }
-
+    /**
+     * @return y-position of this stream
+     */
     protected int getX() {
         return xpos;
     }
 
+    /**
+     * @return x-position of this stream
+     */
     protected int getY() {
         return ypos;
     }
 
-    private void addLine(int x, int y) {
-        line = new int[2];
-        line[0] = x;
-        line[1] = y;
+    /**
+     * @return stream is active
+     */
+    protected boolean isActive() {
+        return this.active;
     }
     
     /**
-     * paints all objects and operations of the stream
+     * Paints all objects and operations of the stream.
      * @param g 
      */
     protected void paintComponent(Graphics g) {
@@ -247,24 +334,27 @@ public class StreamView {
         for (Iterator iter = objects.iterator(); iter.hasNext();) {
             ObjectView object = (ObjectView) iter.next();
 
-            object.paintComponent(g, x, ypos, Color.black);
+            object.paintComponent(g, x, ypos);
             if (!iter.hasNext() && active && !hasNext) {
                 g.setColor(Color.red);
             }
-            g.drawLine(10 + x * 120 + 90, 10 + ypos * 80 + 25, 10 + x * 120 + 120, 10 + ypos * 80 + 25);
+            g.drawLine(10 + x * 120 + 90, 10 + ypos * 80 + 25, 
+                    10 + x * 120 + 120, 10 + ypos * 80 + 25);
             x++;
 
             if (!iter.hasNext() && (line != null)) {
                 g.setColor(Color.black);
-                g.drawLine(10 + x * 120, 10 + ypos * 80 + 25, 10 + line[0] * 120, 10 + ypos * 80 + 25);
-                g.drawLine(10 + line[0] * 120, 10 + ypos * 80 + 25, 10 + line[0] * 120, 10 + line[1] * 80 + 25);
+                g.drawLine(10 + x * 120, 10 + ypos * 80 + 25, 
+                        10 + line[0] * 120, 10 + ypos * 80 + 25);
+                g.drawLine(10 + line[0] * 120, 10 + ypos * 80 + 25, 
+                        10 + line[0] * 120, 10 + line[1] * 80 + 25);
             }
         }
 
     }
     
     /**
-     * remove the stream and set the input streams active
+     * Remove the stream and set the input streams active.
      */
     protected void remove(){
         for ( Iterator iter = inputStreams.iterator(); iter.hasNext(); ) {
@@ -274,7 +364,7 @@ public class StreamView {
     }
     
     /**
-     * remove the following stream
+     * Remove the following stream.
      */
     private void removeNext() {
         hasNext = false;
@@ -283,15 +373,28 @@ public class StreamView {
     }
     
     /**
+     * Remove all saved sorted Attribute names of the list.
+     */
+    protected void removeSortedAttributes(){
+        int i = 0;
+        while (i < attributesSorted.length) {
+            attributesSorted[i++] = null;
+        }
+    }
+    
+    /**
      * Set the attributes if the intermediate result is a relation or a stream of tuples.
      * @param attributes Array of attribute names and values;
      */
-    protected final void setAttributes(String[] attributes) {
+    private void setAttributes(String[] attributes) {
         int i = 4;
         int j = 0;
 
         this.attributes = new String[attributes.length - 4];
+        if (attributesSorted == null)
+            this.attributesSorted = new String[attributes.length - 4];
         this.attrtypes = new String[attributes.length - 4];
+        
         while (i < attributes.length) {
             attributes[i] = attributes[i].replaceAll("\\)", "");
             String[] att = attributes[i].split(" ");
@@ -302,6 +405,10 @@ public class StreamView {
         }
     }
     
+    /**
+     * Set the following stream if this stream is an input stream.
+     * @param nextStream 
+     */
     protected void setNext(StreamView nextStream) {
         hasNext = true;
         this.active = false;
@@ -319,9 +426,9 @@ public class StreamView {
             this.setAttributes(str.split("\\("));
         }
         if (parts.length > 1) {
-            this.type = parts[1];
+            this.type = parts[1].replace(")", "");
         } else {
-            this.type = str;
+            this.type = str.replace(")", "");
         }
     }
 }

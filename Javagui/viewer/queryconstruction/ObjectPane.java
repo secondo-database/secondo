@@ -32,20 +32,23 @@ import javax.swing.JTextField;
 import sj.lang.ListExpr;
 import viewer.QueryconstructionViewer;
 
-/* ObjectsPane.java requires no other files. */
+/*
+ * Panel for the objects and attributes.
+ */
 public class ObjectPane  extends JComponent implements MouseListener {
     
     private ArrayList<ObjectView> elements = new ArrayList<ObjectView>();
-    private ArrayList<ObjectView> attributeElements = new ArrayList<ObjectView>();
+    private ArrayList<ObjectView> attributeElements = 
+            new ArrayList<ObjectView>();
     private QueryconstructionViewer viewer;
+    private MainPane mainPane;
     private ListExpr objects;
     private JTextField textfield = new JTextField();
     private InfoDialog dialog;
-    
-    private static int level;
 
-    public ObjectPane (QueryconstructionViewer viewer) {
+    public ObjectPane (QueryconstructionViewer viewer, MainPane main) {
         this.viewer = viewer;
+        this.mainPane = main;
         this.setLayout(new GridLayout(1, 0));
         
         ActionListener textL = new ActionListener() {
@@ -58,14 +61,41 @@ public class ObjectPane  extends JComponent implements MouseListener {
         textfield.addActionListener(textL);
     }
     
-    //add all relations and objects of berlintest database to the viewer
+    /**
+     * Adds the object to the object panel if it does not exist already.
+     * @param object 
+     */
+    protected void addAttributeObject(ObjectView object){
+        object.addMouseListener(this);
+        object.setActive(true);
+        add(object);
+        this.attributeElements.add(object);
+    }
+    
+    /**
+     * Adds the object to the object panel if it does not exist already.
+     * @param object 
+     */
+    protected void addObject(ObjectView object){
+        object.addMouseListener(this);
+        object.setActive(true);
+        add(object);
+        this.elements.add(object);
+    }
+    
+    /**
+     * Add all relations and objects of the database to the viewer.
+     * @param list 
+     */
     public void addObjects(ListExpr list){
         this.removeAll();
         elements.clear();
         this.add(textfield);
         
-        // the length must be two and the object element must be a symbol atom with content "inquiry"
-        if(list.listLength()==2 && list.first().symbolValue().equals("inquiry")) { 
+        // the length must be two and the object 
+        // element must be a symbol atom with content "inquiry"
+        if(list.listLength()==2 && 
+                list.first().symbolValue().equals("inquiry")) { 
             objects = list.second().second();
             
             while (objects.listLength() > 1) {
@@ -103,34 +133,6 @@ public class ObjectPane  extends JComponent implements MouseListener {
         return this.elements;
     }
     
-    /**
-     * adds the object to the object panel if it does not exist already
-     * @param object 
-     */
-    protected void addObject(ObjectView object){
-        object.addMouseListener(this);
-        object.setActive(true);
-        add(object);
-        this.elements.add(object);
-    }
-    
-    /**
-     * adds the object to the object panel if it does not exist already
-     * @param object 
-     */
-    protected void addAttributeObject(ObjectView object){
-        object.addMouseListener(this);
-        object.setActive(true);
-        add(object);
-        this.attributeElements.add(object);
-    }
-    
-    // updates the panel, only active objects are shown
-    public void update() {
-        setPreferredSize(new Dimension (this.getComponentCount()*120, 70));
-        this.revalidate();
-    }
-    
     protected void renameAttributes(String tuple){
         for ( Iterator iter = attributeElements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();
@@ -140,7 +142,7 @@ public class ObjectPane  extends JComponent implements MouseListener {
     }
     
     /**
-     * add all existing objects to the Component
+     * Add all existing objects to the Component.
      */
     protected void showAllObjects() {
         this.removeAll();
@@ -157,9 +159,18 @@ public class ObjectPane  extends JComponent implements MouseListener {
         }
         update();
     }
+     
+    /**
+    * Updates the panel, only active objects are shown.
+    */
+    public void update() {
+        setPreferredSize(new Dimension (this.getComponentCount()*120, 70));
+        this.revalidate();
+    }
     
     /**
-     * updates the panel, only active objects that fit to the input of textfield are visible
+     * Updates the panel, only active objects that fit to 
+     * the input of textfield are visible.
      * @param type input of the textfield
      */
     private void updateObjects(String type) {
@@ -170,7 +181,9 @@ public class ObjectPane  extends JComponent implements MouseListener {
             for (String s: types) {
                 if (s.equals("bool"))
                     return;
-                if (object.getObjectName().toLowerCase().startsWith(s.toLowerCase()) || object.getType().equals(s)) {
+                if (object.getObjectName().toLowerCase()
+                        .startsWith(s.toLowerCase()) || 
+                        object.getType().equals(s)) {
                     object.setActive(true);
                 }
             }
@@ -195,7 +208,8 @@ public class ObjectPane  extends JComponent implements MouseListener {
                 Object src = arg0.getSource();
                 if(src != null){
                    if(src instanceof java.awt.Component){
-                      java.awt.Point p = ((java.awt.Component) src).getLocationOnScreen();
+                      java.awt.Point p = 
+                              ((java.awt.Component) src).getLocationOnScreen();
                       if(p!=null){
                          dx = p.x;
                          dy = p.y;
@@ -204,25 +218,23 @@ public class ObjectPane  extends JComponent implements MouseListener {
                 }
                 dialog = new InfoDialog(dx + arg0.getX(), dy + arg0.getY());
                 
-                String elementCount = viewer.getCount(element.getObjectName()).trim();
+                String elementCount = 
+                        viewer.getCount(element.getObjectName()).trim();
                 String elementName = element.getObjectName();
                 if (!elementCount.equals("0"))
                     elementName += " ("+elementCount+")";
                 /* generating the info dialog of the clicked object */
-                if (element.getOType() == null) {
-                    dialog.viewInfo(elementName, element.getType());
-                }
-                else {
-                    dialog.viewInfo(elementName, element.getOType().getViewString());
+                if (element.getViewString() != null) {
+                    dialog.viewInfo(elementName, element.getViewString());
                 }
                 dialog.view();
             }
             else {
                 //a copy of the object is added to the main panel
-                ObjectView new_object = new ObjectView(element.getObjectName(), element.getType());
+                ObjectView new_object = new ObjectView(
+                        element.getObjectName(), element.getType());
                 new_object.setLabel(element.getLabel());
-                new_object.setOType(element.getOType());
-                viewer.addObject(new_object);
+                mainPane.addObject(new_object);
             }
         }
     }
