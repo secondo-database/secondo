@@ -68,8 +68,8 @@ public class QueryconstructionViewer extends SecondoViewer {
         this.setLayout(new BorderLayout());
         
         mainPane = new MainPane(this);
-        objectPane = new ObjectPane(this);
-        operationsPane = new OperationsPane(this);
+        objectPane = new ObjectPane(this, mainPane);
+        operationsPane = new OperationsPane(mainPane);
         
         mainScrollpane = new JScrollPane(mainPane);
         objectScrollpane = new JScrollPane(objectPane);
@@ -136,20 +136,20 @@ public class QueryconstructionViewer extends SecondoViewer {
     /**
      * adds an object to the main panel
      * @param object new object
-     */
-    public void addObject(ObjectView object){
-        mainPane.addObject(object);
-        update();
-    }
+//     */
+//    public void addObject(ObjectView object){
+//        mainPane.addObject(object);
+//        update();
+//    }
     
-    /**
-     * adds an operation to the main panel
-     * @param operation new operation
-     */
-    public void addOperation(Operation operation){
-        mainPane.addOperation(operation);
-        update();
-    }
+//    /**
+//     * adds an operation to the main panel
+//     * @param operation new operation
+//     */
+//    public void addOperation(Operation operation){
+//        mainPane.addOperation(operation);
+//        update();
+//    }
     
     /**
      * Send the query to the secondo server and return the result.
@@ -219,9 +219,6 @@ public class QueryconstructionViewer extends SecondoViewer {
      * Executes the constructed query.
      */
     private void runQuery() {
-//        if (VC.execCommand(mainPane.getStringsQuery()) == 0) {
-//            VC.execUserCommand(mainPane.getStringsQuery());
-//        }
         if (!VC.execUserCommand(mainPane.getStringsQuery())) {
             System.out.println("Kann nicht ausgeführt werden. Fehler: "
                     +VC.execCommand(mainPane.getStringsQuery()));
@@ -239,7 +236,7 @@ public class QueryconstructionViewer extends SecondoViewer {
         }
         
         objectPane.update();
-        operationsPane.update();
+        operationsPane.repaint();
     }
     
     /**
@@ -352,10 +349,7 @@ public class QueryconstructionViewer extends SecondoViewer {
      * Remove all containing objects and renew the main panel.
      */
     public void removeAll(){
-        mainPane = new MainPane(this);
-        mainPane.setPreferredSize(new Dimension (500, 400));
-        mainScrollpane.setViewportView(mainPane);
-        mainScrollpane.repaint();
+        mainPane.removeAllObjects();
         update();
     }
     
