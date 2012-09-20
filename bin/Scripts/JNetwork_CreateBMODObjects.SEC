@@ -210,6 +210,8 @@ let InJunc =
   filter [.Jid = .Jid_sl]
   projectextend[Jid, Pos, ListRLoc; ListInSect: .ListInOutSect_sl,
      ListOutSect: .ListInOutSect_sl]
+ sortby[Jid, Pos, ListRLoc, ListInSect, ListOutSect]
+ rdup
 consume;
 
 let InSect =
@@ -233,6 +235,8 @@ let InSect =
     ListRevAdjSectDown: .ListInSect_j2]
   project[Sid, SectCurve, StartJid, EndJid, JDir, VMax, Lenth, ListRint, ListAdjSectUp,
     ListAdjSectDown, ListRevAdjSectUp, ListRevAdjSectDown]
+  sortby [Sid, StartJid, EndJid, SectCurve, JDir, VMax, Lenth, ListRint, ListAdjSectUp, ListAdjSectDown, ListRevAdjSectUp, ListRevAdjSectDown]
+  rdup
 consume;
 
 let InRoad =
@@ -245,6 +249,8 @@ let InRoad =
   hashjoin[Rid, Rid_s1]
   projectextend[Rid, ListJunc, Lenth; ListSect: .ListSect_s1]
   project[Rid, ListJunc, ListSect, Lenth]
+  sortby [Rid, ListJunc, ListSect, Lenth]
+  rdup
 consume;
 
 query createjnet("JBNet", 1.0, InJunc, InSect, InRoad);
@@ -265,16 +271,12 @@ let QueryPoints1Net =
   projectextend[Id; Pos: tonetwork(JBNet, .Pos)]
  consume;
 
-close database;
-
-quit;
 
 ################################################################################
 #                                                                              #
 # Translate Trips into Network Representation                                  #
 #                                                                              #
 ################################################################################
-
 
 let dataSNcar = dataScar feed
   projectextend[Licence, Model, Type; Trip: tonetwork(JBNet, .Trip)]
@@ -285,6 +287,10 @@ let dataMNtrip =
   projectextend [Moid; Trip: tonetwork(JBNet, .Trip)]
 consume;
 
+close database;
+
+quit;
+
 
 ################################################################################
 #                                                                              #
@@ -293,7 +299,7 @@ consume;
 ################################################################################
 
 let routesline =
-  components(routes(JBNet) feed
+  components(sections(JBNet) feed
     projectextend[;Curve: toline(.Curve)]
     aggregateB[Curve; fun(L1: line, L2: line) union_new(L1, L2); [const line value()]])
   transformstream
@@ -308,7 +314,7 @@ let QRlines =
 
 let QueryRegionsNet =
   QRlines feed
-  projectextend[Id; Region: tonetwork(B_NETWORK, .Lr)]
+  projectextend[Id; Region: tonetwork(JBNet, .Lr)]
  consume;
 
 ################################################################################
