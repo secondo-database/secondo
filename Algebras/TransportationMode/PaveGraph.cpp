@@ -6935,7 +6935,6 @@ void VGraph::GetVNode()
   delete query_p;
 }
 
-
 /*
 create a relation for the vertices of the region with the cycleno
 
@@ -7786,6 +7785,10 @@ const ListExpr in_xTypeInfo)
 
 }
 
+/*
+adjlist storings node id
+
+*/
 void VisualGraph::Load(int id, Relation* r1, Relation* r2)
 {
 //  cout<<"VisualGraph::Load()"<<endl;
@@ -7841,6 +7844,87 @@ void VisualGraph::Load(int id, Relation* r1, Relation* r2)
   }
 
   delete btree_node_oid1;
+
+}
+
+/*
+adjlist storing edge id
+(oid1, oid2) only once, but find two times, one for oid1, one for oid2
+
+*/
+void VisualGraph::Load2(int id, Relation* r1, Relation* r2)
+{
+//  cout<<"VisualGraph::Load()"<<endl;
+  g_id = id;
+  //////////////////node relation////////////////////
+  ListExpr ptrList1 = listutils::getPtrList(r1);
+
+  string strQuery = "(consume(sort(feed(" + NodeTypeInfo +
+                "(ptr " + nl->ToString(ptrList1) + ")))))";
+  Word xResult;
+  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  node_rel = (Relation*)xResult.addr;
+
+  /////////////////edge relation/////////////////////
+  ListExpr ptrList2 = listutils::getPtrList(r2);
+  
+  strQuery = "(consume(sort(feed(" + EdgeTypeInfo +
+                "(ptr " + nl->ToString(ptrList2) + ")))))";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  edge_rel = (Relation*)xResult.addr;
+
+  ////////////adjacency list ////////////////////////////////
+  ListExpr ptrList3 = listutils::getPtrList(edge_rel);
+
+  strQuery = "(createbtree (" + EdgeTypeInfo +
+             "(ptr " + nl->ToString(ptrList3) + "))" + "Oid1)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  BTree* btree_node_oid1 = (BTree*)xResult.addr;
+
+  strQuery = "(createbtree (" + EdgeTypeInfo +
+             "(ptr " + nl->ToString(ptrList3) + "))" + "Oid2)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
+  assert(QueryExecuted);
+  BTree* btree_node_oid2 = (BTree*)xResult.addr;
+
+
+//  cout<<"b-tree on edge is finished....."<<endl;
+
+  for(int i = 1;i <= node_rel->GetNoTuples();i++){
+    CcInt* nodeid = new CcInt(true, i);
+    BTreeIterator* btree_iter1 = btree_node_oid1->ExactMatch(nodeid);
+    int start = adj_list.Size();
+//    cout<<"node id "<<i<<endl;
+    while(btree_iter1->Next()){
+      Tuple* edge_tuple = edge_rel->GetTuple(btree_iter1->GetId(), false);
+//      int oid = ((CcInt*)edge_tuple->GetAttribute(OIDSECOND))->GetIntval();
+      adj_list.Append(edge_tuple->GetTupleId());//storing edge id
+//      cout<<"edge id "<<edge_tuple->GetTupleId()<<endl;
+      edge_tuple->DeleteIfAllowed();
+    }
+    delete btree_iter1;
+
+
+    BTreeIterator* btree_iter2 = btree_node_oid2->ExactMatch(nodeid);
+
+    while(btree_iter2->Next()){
+      Tuple* edge_tuple = edge_rel->GetTuple(btree_iter2->GetId(), false);
+      adj_list.Append(edge_tuple->GetTupleId());//storing edge id
+      edge_tuple->DeleteIfAllowed();
+    }
+    delete btree_iter2;
+
+    int end = adj_list.Size();
+    entry_adj_list.Append(ListEntry(start, end));
+//    cout<<"end "<<end<<endl;
+    delete nodeid;
+  }
+
+  delete btree_node_oid1;
+  delete btree_node_oid2;
 
 }
 

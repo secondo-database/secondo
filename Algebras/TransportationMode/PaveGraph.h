@@ -363,6 +363,7 @@ public:
   VisualGraph(SmiRecord&, size_t&, const ListExpr);
   //////////////////////////////////////////////////////////////
   void Load(int, Relation*, Relation*);
+  void Load2(int, Relation*, Relation*);//different meaning of adjlist
   static ListExpr OutVisualGraph(ListExpr typeInfo, Word value);
   ListExpr Out(ListExpr typeInfo);
   static bool CheckVisualGraph(ListExpr type, ListExpr& errorInfo);
@@ -382,6 +383,7 @@ public:
   bool Save(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
               const ListExpr in_xTypeInfo);
 };
+
 
 struct Walk_SP{
   DualGraph* dg;
@@ -529,6 +531,7 @@ struct VGraph{
   bool MyCross(const HalfSegment& hs1, const HalfSegment& hs2);
   ////////////////////for walk shortest algorithm/////////////////////////
   void GetVisibilityNode(int tri_id, Point query_p);
+
 };
 
 /*

@@ -1317,6 +1317,14 @@ const string OpTMInstant2DaySpec  =
     "<text>query instant2day(theInstant(2007,6,3,9,0,0,0));</text--->"
     ") )";
 
+const string OpTMMode2BitSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>int  -> int </text--->"
+    "<text>mode2bit(int)</text--->"
+    "<text>return the number of marked bit for an integer </text--->"
+    "<text>query mode2bit(2) </text--->) )";
+
 /*
 build a path between the entrance of the building and the pavement area 
 

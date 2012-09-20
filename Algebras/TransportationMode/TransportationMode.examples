@@ -230,7 +230,6 @@ Signature: int x rel x rel -> visibilitygraph
 Example  : query getadjnode(createvgraph(1, vgnodes, vgedges), 1) count;
 Result   : 3
 
-
 Operator : getcontour
 Number   : 2
 Signature: int -> (stream(((x1 t1) ... (xn tn)))
@@ -1343,3 +1342,10 @@ Number   : 1
 Signature: rel x rel -> stream (tuple (x1 t1)...(xn tn) (id tid))) xi xj)
 Example  : query range_query(genmo_union, query_rel) count;
 Result   : 0
+
+
+Operator : mode2bit
+Number   : 1
+Signature: int -> int
+Example  : query mode2bit(2);
+Result   : 1

@@ -9137,6 +9137,10 @@ void GenMObject::GenerateGenMOBench1(Space* sp, Periods* peri, int mo_no,
       string mode = 
         ((CcString*)dis_tuple->GetAttribute(BENCH_MODE))->GetValue();
 
+//       if(GetTM(mode) != TM_BUS) {////////for debuging
+//         dis_tuple->DeleteIfAllowed();
+//         continue;
+//       }
 
       if(GetTM(mode) == TM_CAR || GetTM(mode) == TM_BIKE){
 

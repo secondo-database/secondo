@@ -7718,8 +7718,9 @@ int BusNetwork::GetMOBus_MP(Bus_Stop* bs, Point* bs_loc, Instant t, MPoint& mp)
   CcInt* search_id2 = new CcInt(true, br_uoid);
   BTreeIterator* btree_iter2 = btree_trip_br_id->ExactMatch(search_id2);
   bool found = false;
-  const double delta_dist = 0.01;
+
   vector<Id_Time> res_list;
+  const double delta_dist = 0.03;//a small value, numeric problem 
 
   while(btree_iter2->Next() && found == false){
       Tuple* tuple = bustrips_rel->GetTuple(btree_iter2->GetId(), false);
@@ -7737,14 +7738,16 @@ int BusNetwork::GetMOBus_MP(Bus_Stop* bs, Point* bs_loc, Instant t, MPoint& mp)
           mo_bus->Get(i, unit);
           Point p0 = unit.p0;
           Point p1 = unit.p1;
-
-          if(bs_loc->Distance(p0) < delta_dist &&
+//          double d = bs_loc->Distance(p0);
+//          if(bs_loc->Distance(p0) < EPSDIST && /// Berlin data
+          if(bs_loc->Distance(p0) < delta_dist && //Houston data
               unit.timeInterval.Contains(t)){
               mp = *mo_bus;
               bus_oid = ((CcInt*)tuple->GetAttribute(BN_BUS_OID))->GetIntval();
               found = true;
               break;
           }
+//          if(unit.timeInterval.Contains(t)) cout<<"d: "<<d<<endl;
         }
 
       }

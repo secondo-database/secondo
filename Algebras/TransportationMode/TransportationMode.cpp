@@ -8716,6 +8716,26 @@ ListExpr TMMode2StrTypeMap ( ListExpr args )
 
 }
 
+/*
+TypeMap fun for operator mode2bit
+
+*/
+ListExpr TMMode2BitTypeMap ( ListExpr args )
+{
+
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return listutils::typeError("expecting two arguments");
+  }
+
+  ListExpr mode = nl->First(args);
+
+  if(nl->IsEqual(mode, "int") )
+    return nl->SymbolAtom("int");
+
+  return nl->SymbolAtom("typeerror");
+
+}
 
 /*
 TypeMap fun for operator rangequery simple method
@@ -10909,6 +10929,7 @@ int OpTMCreateVGValueMap ( Word* args, Word& result, int message,
   result = SetWord(vg);
   return 0;
 }
+
 
 /*
 for operator getcontour
@@ -15521,9 +15542,10 @@ int BulkLoadTMRtreeValueMap( Word* args, Word& result, int message,
                  ((TupleIdentifier *)tuple->
                      GetAttribute(tidIndex))->GetTid() );
 
-      if(treetype == 1)//TMRtree
+      if(treetype == 1){//TMRtree
+
         tmrtree->TM_BulkLoad(e, m, last_m);
-      else if (treetype == 2){//ADRtree
+      }else if (treetype == 2){//ADRtree
         tmrtree->BulkLoad(e);
       }
 
@@ -15684,6 +15706,25 @@ int OpTMMode2StrValueMap ( Word* args, Word& result, int message,
   }else{//////////integer (after converting) to string
       pResult->Set(true, GetModeStringExt(mode));
   }
+  return 0;
+}
+
+/*
+return the number of marked bits for an integer -- transportation modes
+
+*/
+int OpTMMode2BitValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+
+  int mode = ((CcInt*)args[0].addr)->GetIntval();
+  result = qp->ResultStorage(in_pSupplier);
+
+  if(mode > 0 && mode < pow(2, TM_SUM_NO)){
+       bitset<TM_SUM_NO> mode_bit(mode);
+      ((CcInt*)result.addr)->Set(true, mode_bit.count());
+  }else
+    ((CcInt*)result.addr)->Set(false, 0);
   return 0;
 }
 
@@ -15963,7 +16004,6 @@ Operator pave_loc_togp(
     Operator::SimpleSelect,
     OpTMPaveLocToGPTypeMap
 );
-
 
 Operator generate_wp1(
     "generate_wp1",
@@ -16942,6 +16982,14 @@ Operator range_query(
   TMRangeQueryTypeMap
 );
 
+Operator mode2bit(
+  "mode2bit",
+  OpTMMode2BitSpec,
+  OpTMMode2BitValueMap,
+  Operator::SimpleSelect,
+  TMMode2BitTypeMap
+);
+
 /*
 Main Class for Transportation Mode
 data types and operators 
@@ -17054,13 +17102,14 @@ class TransportationModeAlgebra : public Algebra
     AddOperator(&decomposetri);
     AddOperator(&getvgedge);
     AddOperator(&createvgraph);//create a visibility graph 
-    
+
     AddOperator(&walk_sp_old);//trip planning for pedestrian 
     AddOperator(&test_walk_sp); //test the algorithm of trip planning 
     AddOperator(&walk_sp);//trip planning for pedestrian 
     AddOperator(&walk_sp_debug);//trip planning for pedestrian considering type
     AddOperator(&setpave_rid);//set rid value for each pavement 
     AddOperator(&pave_loc_togp);//map pavements locations to gpoints 
+
     ////////////////////////////////////////////////////////////////
     ////////////////     dual graph         ////////////////////////
     ////////////////////////////////////////////////////////////////
@@ -17346,6 +17395,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&range_tmrtree);//using tmrtree to do range query
    AddOperator(&mode2str);//mode 2 string
    AddOperator(&range_query);//single method to test range query
+   AddOperator(&mode2bit);//bit count for an integer
 
   }
   ~TransportationModeAlgebra() {};

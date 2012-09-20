@@ -1913,13 +1913,13 @@ void QueryTM::RangeTMRTree(TM_RTree<3,TupleId>* tmrtree, Relation* units_rel,
       bitset<ARR_SIZE(str_tm)> modebits;
       modebits.reset();
       for(unsigned int i = 0;i < seq_tm.size();i++){
-         cout<<GetTMStrExt(seq_tm[i])<<" ";
+//         cout<<GetTMStrExt(seq_tm[i])<<" ";
           bit_pos[seq_tm[i]] = true;
           modebits.set(seq_tm[i]);
       }
-      cout<<endl;
-      cout<<modebits.to_string()<<" "
-          <<GetModeStringExt(modebits.to_ulong())<<endl;;
+//       cout<<endl;
+//       cout<<modebits.to_string()<<" "
+//           <<GetModeStringExt(modebits.to_ulong())<<endl;;
 
       ///////////split the mode value by walk + m///////////////
       assert(seq_tm.size() > 1);
@@ -3331,9 +3331,9 @@ baseline method to check a sequence of modes
 void QueryTM::Seq_RangeQuery(Relation* rel1, Periods* peri, 
                              Rectangle<2>* q_box, vector<long> seq_tm)
 {
-  for(unsigned int i = 0;i < seq_tm.size();i++){
-    cout<<GetTMStrExt(seq_tm[i])<<" ";
-  }
+//   for(unsigned int i = 0;i < seq_tm.size();i++){
+//     cout<<GetTMStrExt(seq_tm[i])<<" ";
+//   }
 
   Interval<Instant> time_span;
   peri->Get(0, time_span);
@@ -3553,7 +3553,7 @@ void QueryTM::SeqMode_Filter1(TM_RTree<3,TupleId>* tmrtree,
 
           node_count++;
        }
-
+        delete node;
     }
 
     cout<<node_count<<" nodes accessed "
@@ -3645,6 +3645,7 @@ void QueryTM::SeqMode_Filter2(TM_RTree<3,TupleId>* tmrtree,
           node_count++;
        }
 
+      delete node;
     }
 
     cout<<node_count<<" nodes accessed "
@@ -3723,7 +3724,7 @@ void QueryTM::SeqMode_Filter3(TM_RTree<3,TupleId>* tmrtree,
           }
 
           node_count++;
-
+          delete node;
     }
 
     cout<<node_count<<" nodes accessed "

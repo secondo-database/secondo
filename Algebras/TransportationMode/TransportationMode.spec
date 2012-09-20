@@ -39,6 +39,7 @@ operator walk_sp_debug alias WALK_SP_DEBUG pattern op(_,_,_,_)
 operator test_walk_sp alias TEST_WALK_SP pattern op(_,_,_,_,_)
 operator setpave_rid alias SETPAVE_RID pattern op(_,_,_)
 operator pave_loc_togp alias PAVE_LOC_TOGP pattern op(_,_,_,_)
+
 operator generate_wp1 alias GENERATE_WP1 pattern op(_,_)
 operator generate_wp2 alias GENERATE_WP2 pattern op(_,_)
 operator generate_wp3 alias GENERATE_WP3 pattern op(_,_)
@@ -60,6 +61,7 @@ operator at_point alias AT_POINT pattern op(_,_,_)
 
 operator decomposetri alias DECOMPOSETRI pattern op(_)
 operator createvgraph alias CREATEVGRAPH pattern op(_,_,_)
+
 operator getcontour alias GETCONTOUR pattern op(_)
 operator getpolygon alias GETPOLYGON pattern op(_,_)
 
@@ -253,3 +255,4 @@ operator tm_nodes alias TM_NODES pattern op(_)
 operator range_tmrtree alias RANGE_TMRTREE pattern op(_,_,_,_)
 operator mode2str alias MODE2STR pattern op(_,_)
 operator range_query alias RANGE_QUERY pattern op(_,_)
+operator mode2bit alias MODE2BIT pattern op(_)

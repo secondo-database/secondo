@@ -5386,6 +5386,10 @@ generate an indoor location only in Office Room
 */
 void IndoorNav::GenerateIP3(int num)
 {
+
+  genloc_list.clear();
+  p3d_list.clear();
+
   int no_rooms = rel1->GetNoTuples();
 
 //  struct timeval tval;
@@ -5400,6 +5404,8 @@ void IndoorNav::GenerateIP3(int num)
     unsigned int room_oid; 
 
     room_oid = GetRandom() % no_rooms + 1;
+
+//    room_oid = 47;//////////debug 2012.8.22
 
     Tuple* room_tuple = rel1->GetTuple(room_oid, false);
     string type = ((CcString*)room_tuple->GetAttribute(I_Type))->GetValue();
@@ -5445,16 +5451,20 @@ void IndoorNav::GenerateIP3(int num)
         if(coord_x < TM_EPSILON) coord_x = 0.0;
         if(coord_y < TM_EPSILON) coord_y = 0.0;
 
+
         p1.Set(coord_x, coord_y); //set back to relative position
         //lower the precision
         Modify_Point_3(p1);
 
         Coord x_cord = p1.GetX() + bbox.MinD(0);
         Coord y_cord = p1.GetY() + bbox.MinD(1);
+
+
         p2.Set(x_cord, y_cord); //absolute position 
 
         inside = p2.Inside(*reg);
         count++;
+
       }
       if(inside){
         float h = groom->GetLowHeight();////////////always on the lowest level 
