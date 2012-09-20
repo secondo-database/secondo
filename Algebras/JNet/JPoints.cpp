@@ -126,16 +126,7 @@ void JPoints::SetRouteIntervals(DbArray<RouteLocation>& setri)
 
 void JPoints::CopyFrom(const Attribute* right)
 {
-  SetDefined(right->IsDefined());
-  if (right->IsDefined())
-  {
-    JPoints in(*(JPoints*) right);
-    strcpy(nid, *in.GetNetworkId());
-    routelocations.copyFrom(in.GetRouteLocations());
-    sorted = in.IsSorted();
-  }
-  else
-    SetDefined(false);
+  *this = *((JPoints*) right);
 }
 
 size_t JPoints::HashValue() const
@@ -154,7 +145,7 @@ size_t JPoints::HashValue() const
   return res;
 }
 
-Attribute* JPoints::Clone() const
+JPoints* JPoints::Clone() const
 {
   return new JPoints(*this);
 }

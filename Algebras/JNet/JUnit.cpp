@@ -111,13 +111,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
   void JUnit::CopyFrom(const Attribute* right)
   {
-    SetDefined(right->IsDefined());
-    if (right->IsDefined())
-    {
-      JUnit* in = (JUnit*) right;
-      timeInter = in->GetTimeInterval();
-      routeInter = in->GetRouteInterval();
-    }
+    *this = *((JUnit*)right);
   }
 
   Attribute::StorageType JUnit::GetStorageType() const
@@ -132,7 +126,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
            (size_t) (timeInter.lc + timeInter.rc);
   }
 
-  Attribute* JUnit::Clone() const
+  JUnit* JUnit::Clone() const
   {
     return new JUnit(*this);
   }
@@ -151,8 +145,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
   int JUnit::Compare(const Attribute* rhs) const
   {
-    JUnit in(*(JUnit*) rhs);
-    return Compare(in);
+    return Compare(*((JUnit*)rhs));
   }
 
   int JUnit::Compare(const JUnit& rhs) const
@@ -406,6 +399,46 @@ string JUnit::Example()
 {
   return "(((instant 0.5) (instant 0.6) TRUE FALSE)" +
            JRouteInterval::Example() + ")";
+}
+
+/*
+1.1.1.1 ExtendedBy
+
+*/
+
+
+bool JUnit::ExtendBy(const JUnit& other)
+{
+  if (CanBeExtendedBy(other))
+  {
+    Interval<Instant> oldTime = GetTimeInterval();
+    Interval<Instant> otherTime = other.GetTimeInterval();
+    JRouteInterval oldRint = GetRouteInterval();
+    JRouteInterval otherRint = other.GetRouteInterval();
+    SetTimeInterval(Interval<Instant> (oldTime.start,
+                                      otherTime.end,
+                                      oldTime.lc,
+                                      otherTime.rc));
+    SetRouteInterval(JRouteInterval(oldRint.GetRouteId(),
+                                    oldRint.GetStartPosition(),
+                                    otherRint.GetEndPosition(),
+                                    oldRint.GetSide()));
+    return true;
+  }
+  else
+    return false;
+}
+
+/*
+1.1.1.1 CanBeExtendedBy
+
+*/
+
+bool JUnit::CanBeExtendedBy(const JUnit& other) const
+{
+  return (timeInter.end == other.GetTimeInterval().start &&
+          routeInter.Adjacent(other.GetRouteInterval()) &&
+          AlmostEqual(GetSpeed(), other.GetSpeed()));
 }
 
 /*

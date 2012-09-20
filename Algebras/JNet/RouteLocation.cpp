@@ -125,14 +125,7 @@ void RouteLocation::SetSide(const Direction sideofroad)
 
 void RouteLocation::CopyFrom(const Attribute* right)
 {
-  SetDefined(right->IsDefined());
-  if (right->IsDefined())
-  {
-    RouteLocation* source = (RouteLocation*) right;
-    rid = source->GetRouteId();
-    pos = source->GetPosition();
-    side = source->GetSide();
-  }
+  *this = *((RouteLocation*)right);
 }
 
 Attribute::StorageType RouteLocation::GetStorageType() const
@@ -145,16 +138,15 @@ size_t RouteLocation::HashValue() const
   return (size_t) rid + (size_t) pos + side.HashValue();
 }
 
-Attribute* RouteLocation::Clone() const
+RouteLocation* RouteLocation::Clone() const
 {
   return new RouteLocation(*this);
 }
 
-bool RouteLocation::Adjacent(const RouteLocation attrib) const
+bool RouteLocation::Adjacent(const RouteLocation& attrib) const
 {
-  if (rid  == attrib.GetRouteId() &&
-      pos == attrib.GetPosition() &&
-      side.SameSide(attrib.GetSide(),false))
+  if (IsDefined() && attrib.IsDefined() && rid  == attrib.GetRouteId() &&
+      pos == attrib.GetPosition() && side.SameSide(attrib.GetSide(),false))
     return true;
   else
     return false;
@@ -174,8 +166,7 @@ int RouteLocation::Compare(const void* rs, const void* ls)
 
 int RouteLocation::Compare(const Attribute* rhs) const
 {
-  RouteLocation in(*(RouteLocation*) rhs);
-  return Compare(in);
+  return Compare(*((RouteLocation*)rhs));
 }
 
 int RouteLocation::Compare(const RouteLocation& in) const

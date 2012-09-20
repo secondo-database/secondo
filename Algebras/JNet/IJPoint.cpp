@@ -106,13 +106,7 @@ void IJPoint::SetPoint(const JPoint& jp)
 
 void IJPoint::CopyFrom(const Attribute* right)
 {
-  SetDefined(right->IsDefined());
-  if (right->IsDefined())
-  {
-    IJPoint in(*(IJPoint*) right);
-    time = in.GetInstant();
-    point = in.GetPoint();
-  }
+  *this = *((IJPoint*)right);
 }
 
 Attribute::StorageType IJPoint::GetStorageType() const
@@ -125,7 +119,7 @@ size_t IJPoint::HashValue() const
   return time.HashValue() + point.HashValue();
 }
 
-Attribute* IJPoint::Clone() const
+IJPoint* IJPoint::Clone() const
 {
   return new IJPoint(*this);
 }

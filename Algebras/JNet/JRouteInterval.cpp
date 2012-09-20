@@ -217,15 +217,7 @@ void JRouteInterval::SetInterval(const double f, const double t)
 
 void JRouteInterval::CopyFrom(const Attribute* right)
 {
-  JRouteInterval* source = (JRouteInterval*) right;
-  SetDefined(source->IsDefined());
-  if (source->IsDefined())
-  {
-    rid = source->GetRouteId();
-    startpos = source->GetFirstPosition();
-    endpos = source->GetLastPosition();
-    side = source->GetSide();
-  }
+  *this = *((JRouteInterval*)right);
 }
 
 Attribute::StorageType JRouteInterval::GetStorageType() const
@@ -238,29 +230,30 @@ size_t JRouteInterval::HashValue() const
   return (size_t) rid + (size_t) startpos + (size_t) endpos + side.HashValue();
 }
 
-Attribute* JRouteInterval::Clone() const
+JRouteInterval* JRouteInterval::Clone() const
 {
   return new JRouteInterval(*this);
 }
 
-bool JRouteInterval::Adjacent(const Attribute* attrib) const
+bool JRouteInterval::Adjacent(const JRouteInterval& other) const
 {
-  if (IsDefined() && attrib->IsDefined())
-  {
-    JRouteInterval* in = (JRouteInterval*) attrib;
-    return ( rid == in->GetRouteId() &&
-            (AlmostEqual(startpos, in->GetLastPosition()) ||
-             AlmostEqual(endpos, in->GetFirstPosition())) &&
-            side.SameSide(in->GetSide(),true));
-  }
+  if (IsDefined() && other.IsDefined())
+    return (rid == other.GetRouteId() &&
+            (AlmostEqual(startpos, other.GetLastPosition()) ||
+             AlmostEqual(endpos, other.GetFirstPosition())) &&
+             side.SameSide(other.GetSide(),true));
   else
     return false;
 }
 
+bool JRouteInterval::Adjacent(const Attribute* attrib) const
+{
+  return Adjacent(*((JRouteInterval*) attrib));
+}
+
 int JRouteInterval::Compare(const Attribute* rhs) const
 {
-  JRouteInterval in ( *(JRouteInterval*) rhs);
-  return Compare(in);
+  return Compare(*((JRouteInterval*)rhs));
 }
 
 int JRouteInterval::Compare(const void* ls, const void* rs)
@@ -594,6 +587,16 @@ bool JRouteInterval::Contains(const RouteLocation& rloc) const
           side.SameSide(rloc.GetSide(),false));
 }
 
+bool JRouteInterval::Contains(const RouteLocation& rloc,
+                              const double tolerance) const
+{
+  return (IsDefined() && rloc.IsDefined() && rid == rloc.GetRouteId() &&
+          (
+            (startpos < rloc.GetPosition() && rloc.GetPosition() < endpos) ||
+            AlmostEqualAbsolute(startpos, rloc.GetPosition(), tolerance) ||
+            AlmostEqualAbsolute(endpos, rloc.GetPosition(), tolerance)) &&
+            side.SameSide(rloc.GetSide(),false));
+}
 /*
 1.1.Extend
 

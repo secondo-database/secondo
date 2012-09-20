@@ -91,7 +91,7 @@ It can not be private because JUnit is used as part of MJPoint and JUnit.
   void CopyFrom(const Attribute* right);
   StorageType GetStorageType() const;
   size_t HashValue() const;
-  Attribute* Clone() const;
+  JUnit* Clone() const;
   bool Adjacent(const Attribute* attrib) const;
   static int Compare(const void* ls, const void* rs);
   int Compare(const Attribute* rhs) const;
@@ -138,6 +138,16 @@ It can not be private because JUnit is used as part of MJPoint and JUnit.
 */
   static string Example();
 
+
+/*
+1.1.1 ~ExtendBy~
+
+Extends the given JUnit to cover the values of other, also.
+
+*/
+
+  bool ExtendBy(const JUnit& other);
+
 /*
 1.1 Private declarations
 
@@ -155,6 +165,19 @@ private:
   JRouteInterval routeInter;   //network positions the mjpoint passes in the
                                //time interval
 
+/*
+1.1.1 ~CanBeExtendedBy~
+
+Checks if the current JUnit can be extended to include other without loss of
+information. That means the time interval of this ends when other time interval
+starts, the route intervals are adjacent in same direction and the speed of
+both units is the same.
+
+*/
+
+bool CanBeExtendedBy(const JUnit& other) const;
+
+
 };
 
 /*
@@ -162,5 +185,6 @@ private:
 
 */
 
-ostream& operator<< (const ostream& os, const JUnit& jp);
+ostream& operator<< (ostream& os, const JUnit& jp);
+
 #endif // JUNIT_H

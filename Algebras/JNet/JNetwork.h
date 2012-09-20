@@ -169,7 +169,7 @@ network indexes over the copied relations.
            const Relation* inSectRel, const Relation* inRoutesRel);
   JNetwork(const string nid, const double t, const Relation* inJuncRel,
            const Relation* inSectRel, const Relation* inRoutesRel,
-           const OrderedRelation* inNetDistRel);
+           OrderedRelation* inNetDistRel);
   JNetwork(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
 
   ~JNetwork();
@@ -244,7 +244,7 @@ beeing damaged.
   Relation* GetJunctionsCopy() const;
   Relation* GetRoutesCopy() const;
   Relation* GetSectionsCopy() const;
-  OrderedRelation* GetNedistancesRelationCopy() const;
+  OrderedRelation* GetNetdistancesCopy() const;
 
 /*
 1.1.1 Secondo Integration
@@ -568,7 +568,7 @@ The returned tuple must be deleted by the caller.
  int GetNetdistanceNextSID(const Tuple* actNetDistTup) const;
  bool ExistsNetworkdistanceFor(const int startPathJID,
                                const DbArray<pair<int, double> >* endJunctions,
-                               const int endPathJID) const;
+                               int& endPathJID) const;
 
 /*
 1.1.1.1 DirectConnectionExists
@@ -617,7 +617,7 @@ void WriteShortestPath(const RouteLocation& source,
                        DbArray<JRouteInterval>* res, double& length) const;
 
 /*
-1.1.1.1 WriteShortestPath
+1.1.1.1 ExistsCommonRoute
 
 Returns true if src and tgt can be mapped to the same route. In this case
 one or both are changed to the values belonging to the same route.

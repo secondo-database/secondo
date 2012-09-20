@@ -85,7 +85,7 @@ void SetList(const DbArray<ListElem> inList);
 void CopyFrom(const Attribute* right);
 StorageType GetStorageType() const;
 size_t HashValue() const;
-Attribute* Clone() const;
+JList* Clone() const;
 bool Adjacent(const Attribute* attrib) const;
 static int Compare(const void* ls, const void* rs);
 int Compare(const Attribute* rhs) const;
@@ -373,13 +373,7 @@ void JList<ListElem>::EndBulkload()
 template<class ListElem>
 void JList<ListElem>::CopyFrom(const Attribute* right)
 {
-  SetDefined(right->IsDefined());
-  if (right->IsDefined())
-  {
-    JList<ListElem>* source = (JList<ListElem>*) right;
-    elemlist.copyFrom(source->GetList());
-    activBulkload = source->activBulkload;
-  }
+  *this = *((JList<ListElem>*)right);
 }
 
 template<class ListElem>
@@ -405,7 +399,7 @@ size_t JList<ListElem>::HashValue() const
 }
 
 template<class ListElem>
-Attribute* JList<ListElem>::Clone() const
+JList<ListElem>* JList<ListElem>::Clone() const
 {
   return new JList<ListElem>(*this);
 }

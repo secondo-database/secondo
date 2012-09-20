@@ -57,22 +57,16 @@ public:
 
 */
 
-  explicit PQManagement(const int a);
+  PQManagement();
   ~PQManagement();
 
 /*
 1.1.1 Insert
 
-Checks first if the end junction of the new entry has already been used.
-If it not has been used before it is inserted in visited junction list and
-priority queue.
-If it has been used before we check if it is still in the priority queue.
-If it is still in the priority queue we check if the new distance is smaller
-than the old one.
-If the new distance is smaller than the old one we update the entry in the
-priority queue and in the visited junction list.
+Inserts the JPQEntry in the priority queue if the end junction of the new entry
+has not been used before, respectively if it is still in the priority queue and
+the new distance is smaller than the old one.
 Otherwise we ignore the new values.
-
 
 */
   void Insert(const JPQEntry& e);
@@ -81,8 +75,7 @@ Otherwise we ignore the new values.
 1.1.1 GetAndDeleteMin
 
 Returns the priority queue entry with the smallest priority value and removes
-it from the priority queue and updates the corresponding entry in the visited
-junctions list.
+it from the priority queue.
 
 */
 
@@ -100,7 +93,7 @@ bool IsEmpty() const;
 /*
 1.1.1 Destroy
 
-Marks the DbArrays to be removable from Harddisk on delete.
+Marks the DbArrays to be removable from harddisk on delete.
 
 */
 
@@ -132,6 +125,7 @@ private:
 1.1.1 IsEmpty
 
 1.1.1.1 IsEmptyPQ
+
 Returns true if the priority queue is empty, false elsewhere.
 
 */
@@ -140,6 +134,7 @@ bool IsEmptyPQ() const;
 
 /*
 1.1.1.1 IsEmptyVisited
+
 Returns true if visited is empty, false elsewhere.
 
 */
@@ -150,42 +145,32 @@ bool IsEmptyVisited() const;
 1.1.1 FindVisited
 
 Returns true if the end node of e has already been visited, false elsewhere.
-At the end visitedPos contains the index of e in the DbArray if it has been
-found or the position of the node which will be the father node of e. In the
-latter case visitedLeft indicates if the new node will be the left or right son.
-If visited is empty we return visitedPos -1 as special case indikator.
+visitedPos returns -1 if the visited array is empty, the pos of e if it has been
+found in the array, or the position of the node which will be the father node
+of e if it has not been found. In the latter case visitedLeft indicates if the
+new node will be the left or right son.
 
 */
 
 bool FindVisited(const JPQEntry& e, int& visitedPos, bool& visitedLeft) const;
 
 /*
-1.1.1 GetVisited
+1.1.1 Getter and Setter
 
-Returns the value at position in visited
+1.1.1.1 For Visited
 
 */
 
 VisitedJunctionTreeElement GetVisited(const int pos) const;
-
+void SetVisited(const int pos, const VisitedJunctionTreeElement elem);
 
 /*
-1.1.1 GetPQ
-
-Returns the value at position in pq
+1.1.1.1 For PQ
 
 */
 
 JPQEntryTreeElement GetPQ(const int pos) const;
-
-/*
-1.1.1 RemoveFromPQ
-
-Removes the Entry at position from the Priority Queue
-
-*/
-
-void RemoveFromPQ(JPQEntryTreeElement& elem, int pos);
+void SetPQ(const int pos, const JPQEntryTreeElement elem);
 
 /*
 1.1.1 InsertIntoPQ
@@ -198,58 +183,61 @@ position.
 int InsertPQ(const JPQEntry& entry);
 
 /*
+1.1.1 GetFatherPos
+
+Returns the father position of pos and tells if pos is the leftSon of the
+father.
+
+*/
+
+int GetFatherPos(const int pos, bool& isLeftSon);
+
+/*
 1.1.1 InsertVisited
 
 Inserts the value into the list of visited junctions.
 
 */
 
-void InsertVisited(const VisitedJunction& elem, const int visitedPos,
-                   const bool visitedLeft);
-
-/*
-1.1.1 GetFather
-
-Returns the JPQEntryTreeElement which points to pos. fatherPos returns the
-index of this father node element and fatherLeft is true if pos is the left
-son false if it is the right son.
-
-*/
-
-JPQEntryTreeElement GetFather(const JPQEntry& elem, const int pos,
-                              int& fatherPos, bool& fatherLeft) const;
-
-/*
-1.1.1 PQGetMin
-
-Returns the element from pq with the minimal priority value. The position of
-the element in qp is given within pos.
-
-*/
-
-void PQGetMin(int& pos, JPQEntryTreeElement& elem) const;
-
-/*
-1.1.1 PQGetMax
-
-Returns the element from pq with the maximal priority value. The position of
-the element in qp is given within pos.
-
-*/
-
-void PQGetMax(int& pos, JPQEntryTreeElement& elem) const;
+void InsertVisited(const VisitedJunction& elem, const int fatherPos,
+                   const bool fatherLeft);
 
 /*
 1.1.1 Swap
 
-Exchanges the element values from elem and minElem which are allocated at pos
-resp. minPos. After that element value from elem is stored at minPos and
-the element value from minElem at pos.
+Exchanges the JPQEntries from elem and minElem which are allocated at pos
+resp. minPos.
 
 */
 
 void SwapPQ(JPQEntryTreeElement& elem, const int pos,
             JPQEntryTreeElement& minElem, const int minPos);
+
+/*
+1.1.1 CorrectPosition
+
+Correct Position moves the newElem to its correct position in the heap of the
+priority queue.
+
+1.1.1.1 CorrectPositionUp
+
+Moves the newElem upwards in the tree until it has found its correct
+position in the heap.
+
+*/
+
+void CorrectPositionUp(JPQEntryTreeElement& newElem, int& pos);
+
+/*
+1.1.1.1 CorrectPositionDown
+
+Moves the newElem upwards in the tree until it has found its correct
+position in the heap.
+
+*/
+
+void CorrectPositionDown(JPQEntryTreeElement& newElem, int& pos);
+
 };
 
 /*

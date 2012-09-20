@@ -121,13 +121,7 @@ void JPoint::SetPosition(const RouteLocation& rloc)
 
 void JPoint::CopyFrom(const Attribute* right)
 {
-  SetDefined(right->IsDefined());
-  if (right->IsDefined())
-  {
-    JPoint in(*(JPoint*) right);
-    strcpy(nid, *in.GetNetworkId());
-    npos = in.GetPosition();
-  }
+  *this = *((JPoint*) right);
 }
 
 Attribute::StorageType JPoint::GetStorageType() const
@@ -140,7 +134,7 @@ size_t JPoint::HashValue() const
   return strlen(nid) + npos.HashValue();
 }
 
-Attribute* JPoint::Clone() const
+JPoint* JPoint::Clone() const
 {
   return new JPoint(*this);
 }

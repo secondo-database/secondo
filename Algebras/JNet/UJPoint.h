@@ -94,7 +94,7 @@ It can not be private because UJPoint is used as part of MJPoint.
   void CopyFrom(const Attribute* right);
   StorageType GetStorageType() const;
   size_t HashValue() const;
-  Attribute* Clone() const;
+  UJPoint* Clone() const;
   bool Adjacent(const Attribute* attrib) const;
   static int Compare(const void* ls, const void* rs);
   int Compare(const Attribute* rhs) const;

@@ -81,7 +81,7 @@ be defined to be private.
   void CopyFrom(const Attribute* right);
   Attribute::StorageType GetStorageType() const;
   size_t HashValue() const;
-  Attribute* Clone() const;
+  Direction* Clone() const;
   bool Adjacent(const Attribute* attrib) const;
   static int Compare(const void* ls, const void* rhs);
   int Compare(const Attribute* rhs) const;

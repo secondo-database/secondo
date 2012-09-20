@@ -145,16 +145,7 @@ void NetDistanceGroup::SetNextJunction(const int t)
 
 void NetDistanceGroup::CopyFrom ( const Attribute* right )
 {
-  SetDefined(right->IsDefined());
-  if (right->IsDefined())
-  {
-    NetDistanceGroup* in = (NetDistanceGroup*) right;
-    source = in->GetSource();
-    target = in->GetTarget();
-    nextJunction = in->GetNextJunction();
-    nextSection = in->GetNextSection();
-    netdistance = in->GetNetdistance();
-  }
+  *this = *((NetDistanceGroup*) right);
 }
 
 Attribute::StorageType NetDistanceGroup::GetStorageType() const
@@ -168,7 +159,7 @@ size_t NetDistanceGroup::HashValue() const
          (size_t) netdistance;
 }
 
-Attribute* NetDistanceGroup::Clone() const
+NetDistanceGroup* NetDistanceGroup::Clone() const
 {
   return new NetDistanceGroup(*this);
 }
@@ -188,7 +179,7 @@ int NetDistanceGroup::Compare(const void* ls, const void* rs)
 int NetDistanceGroup::Compare ( const Attribute* rhs ) const
 {
   NetDistanceGroup in(*(NetDistanceGroup*) rhs);
-  return Compare(in);
+  return Compare(*((NetDistanceGroup*) rhs));
 }
 
 int NetDistanceGroup::Compare (const NetDistanceGroup& rhs) const

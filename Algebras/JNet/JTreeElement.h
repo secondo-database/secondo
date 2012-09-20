@@ -55,7 +55,7 @@ public:
 */
 
 JTreeElement();
-JTreeElement(const TreeElem& elem, const int l = -1, const int r = -1 );
+JTreeElement(const TreeElem& elem, const int l = -1, const int r = -1);
 JTreeElement(const JTreeElement& other);
 ~JTreeElement();
 
@@ -118,7 +118,7 @@ JTreeElement<TreeElem>::JTreeElement()
 template<class TreeElem>
 JTreeElement<TreeElem>::JTreeElement(const TreeElem& elem,
                                      const int l /*= -1*/,
-                                     const int r  /*= -1*/) :
+                                     const int r /*= -1*/) :
   value(elem), left(l), right(r)
 {}
 

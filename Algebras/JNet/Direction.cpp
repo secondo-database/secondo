@@ -89,9 +89,7 @@ void Direction::SetDirection(const Direction& indir)
 
 void Direction::CopyFrom(const Attribute* right)
 {
-  Direction* in = (Direction*) right;
-  SetDefined(in->IsDefined());
-  side = in->GetDirection();
+  *this = *((Direction*)right);
 }
 
 Attribute::StorageType Direction::GetStorageType() const
@@ -106,7 +104,7 @@ size_t Direction::HashValue() const
   else return (size_t) 0;
 }
 
-Attribute* Direction::Clone() const
+Direction* Direction::Clone() const
 {
   return new Direction(*this);
 }

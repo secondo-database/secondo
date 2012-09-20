@@ -86,7 +86,7 @@ public:
   void CopyFrom(const Attribute* right);
   StorageType GetStorageType() const;
   size_t HashValue() const;
-  Attribute* Clone() const;
+  MJPoint* Clone() const;
   bool Adjacent(const Attribute* attrib) const;
   static int Compare(const void* ls, const void* rs);
   int Compare(const Attribute* rhs) const;
@@ -95,6 +95,7 @@ public:
   int NumOfFLOBs() const;
   Flob* GetFLOB(const int i);
   void Destroy();
+  void Clear();
   ostream& Print(ostream& os) const;
   static const string BasicType();
   static const bool checkType(const ListExpr type);
@@ -186,6 +187,15 @@ Checks if the units are well sorted. Used if complete Arrays are inserted.
 */
 
 bool CheckSorted() const;
+
+/*
+1.1.1 ~Simplify~
+
+Checks if the units are sorted and compresses the units as far as possible.
+
+*/
+
+bool Simplify();
 
 /*
 1.1.1 Append

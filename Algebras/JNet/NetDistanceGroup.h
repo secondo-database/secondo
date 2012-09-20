@@ -95,7 +95,7 @@ void SetNetdistance(const double dist);
 void CopyFrom ( const Attribute* right );
 StorageType GetStorageType() const;
 size_t HashValue() const;
-Attribute* Clone() const;
+NetDistanceGroup* Clone() const;
 bool Adjacent ( const Attribute* attrib ) const;
 
 /*

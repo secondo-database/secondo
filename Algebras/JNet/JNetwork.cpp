@@ -50,14 +50,14 @@ Returns a pointer to the copy of the relation of relPointer.
 */
 
 OrderedRelation* getRelationCopy(const string relTypeInfo,
-                                 const OrderedRelation* relPointer)
+                                 OrderedRelation* relPointer)
 {
 
   ListExpr relType;
   nl->ReadFromString ( relTypeInfo, relType );
   ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType(relType);
   Word wrel;
-  wrel.setAddr(const_cast<OrderedRelation*> (relPointer));
+  wrel.setAddr(relPointer);
   Word res = OrderedRelation::Clone(relNumType, wrel);
   return (OrderedRelation*) res.addr;
 }
@@ -379,7 +379,7 @@ JNetwork::JNetwork(const string nid, const double t,
 
 JNetwork::JNetwork(const string nid, const double t,
                    const Relation* injunctions, const Relation* insections,
-                   const Relation* inroutes, const OrderedRelation* inDist) :
+                   const Relation* inroutes, OrderedRelation* inDist) :
   defined(true), tolerance(t),
   junctions(getRelationCopy(junctionsRelationTypeInfo, injunctions)),
   sections(getRelationCopy(sectionsRelationTypeInfo, insections)),
@@ -603,7 +603,7 @@ Relation* JNetwork::GetSectionsCopy() const
   return sections->Clone();
 }
 
-OrderedRelation* JNetwork::GetNedistancesRelationCopy() const
+OrderedRelation* JNetwork::GetNetdistancesCopy() const
 {
   return getRelationCopy(netdistancesRelationTypeInfo, netdistances);
 }
@@ -1007,6 +1007,11 @@ JListRLoc* JNetwork::GetNetworkValuesOf(const Tuple* actSect,
           }
           res->EndBulkload();
         }
+        if (rintList != 0)
+        {
+          rintList->Destroy();
+          rintList->DeleteIfAllowed();
+        }
       }
     }
   }
@@ -1086,40 +1091,59 @@ MJPoint* JNetwork::SimulateTrip(const RouteLocation& source,
                                 const Instant& endtime,
                                 const bool& lc, const bool& rc)
 {
-  MJPoint* res = new MJPoint(true);
-  res->SetNetworkId(*this->GetId());
+  MJPoint* res = 0;
   double length = 0.0;
   DbArray<JRouteInterval>* sp = ShortestPath(source, target, targetPos, length);
-  if (sp->Size() > 0)
+  if (sp != 0)
   {
-    JRouteInterval actInt;
-    double duration = (endtime - starttime).ToDouble();
-    Instant unitstart = starttime;
-    bool unitlc = lc;
-    Instant unitend = unitstart;
-    bool unitrc = rc;
+    res = new MJPoint(true);
+    res->SetNetworkId(*this->GetId());
     res->StartBulkload();
-    for (int i = 0; i < sp->Size(); i++)
+    if (sp->Size() == 1 && length == 0 &&
+        starttime.ToDouble() != endtime.ToDouble())
     {
-      sp->Get(i,actInt);
-      if (actInt.Contains(target))
+      JUnit actUnit(JUnit(Interval<Instant>(starttime, endtime, lc, rc),
+                          JRouteInterval(source.GetRouteId(),
+                                       source.GetPosition(),
+                                       source.GetPosition(),
+                                       (Direction) Both)));
+      res->Add(actUnit);
+    }
+    else
+    {
+      if (sp->Size() > 0)
       {
-        unitend = endtime;
-        unitrc = rc;
+        JRouteInterval actInt;
+        Instant unitstart = starttime;
+        bool unitlc = lc;
+        Instant unitend = unitstart;
+        bool unitrc = rc;
+        for (int i = 0; i < sp->Size(); i++)
+        {
+          sp->Get(i,actInt);
+          if (i == sp->Size()-1)
+          {
+            unitend = endtime;
+            unitrc = rc;
+          }
+          else
+            unitend = (endtime - starttime) * actInt.GetLength() /
+                      length + unitstart;
+          JUnit actUnit(JUnit(Interval<Instant>(unitstart, unitend,
+                                                unitlc, unitrc),
+                              actInt));
+          res->Add(actUnit);
+          unitstart = unitend;
+          unitlc = !unitrc;
+          unitrc = !unitlc;
+          unitend = unitstart;
+        }
       }
-      else
-         unitend = unitstart + (actInt.GetLength()*duration/length);
-      res->Add(JUnit(Interval<Instant>(unitstart, unitend, unitlc, unitrc),
-                      actInt));
-      unitstart = unitend;
-      unitlc = !unitrc;
-      unitrc = !unitlc;
-      unitend = unitstart;
     }
     res->EndBulkload();
+    sp->Destroy();
+    delete sp;
   }
-  sp->Destroy();
-  delete sp;
   return res;
 }
 
@@ -1133,13 +1157,25 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
                                                 const Point* targetPos,
                                                 double& length)
 {
-  DbArray<JRouteInterval>* res = new DbArray<JRouteInterval> (0);
-  length = 0.0;
   double distSourceStartSect, distTargetStartSect;
   Tuple* startSectTup = GetSectionTupleFor(source, distSourceStartSect);
+  if (startSectTup == 0)
+  {
+    cerr << "startsection not found for: " << source << endl;
+    return 0;
+  }
   Tuple* endSectTup = GetSectionTupleFor(target, distTargetStartSect);
+  if (endSectTup == 0)
+  {
+    cerr << "endsection not found for: " << target
+         << ", pos: " << *targetPos << endl;
+    startSectTup->DeleteIfAllowed();
+    return 0;
+  }
   int startSectId = GetSectionId(startSectTup);
   int endSectId = GetSectionId(endSectTup);
+  DbArray<JRouteInterval>* res = new DbArray<JRouteInterval> (0);
+  length = 0.0;
   RouteLocation src(source);
   RouteLocation tgt(target);
   if ((startSectId == endSectId || ExistsCommonRoute(src, tgt)) &&
@@ -1180,7 +1216,7 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
         make_pair<int, double> (GetSectionEndJunctionID(endSectTup),
                     fabs(GetSectionLength(endSectTup) - distTargetStartSect)));
   }
-  PQManagement* pq = new PQManagement(0);
+  PQManagement* pq = new PQManagement();
   JPQEntry* pqEntry = 0;
   int startPathJID = -1;
   int endPathJID = -1;
@@ -1214,11 +1250,11 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
     else
     {
       JListInt* curAdjSec = GetJunctionOutSectionList(curJunc);
-      if (pqEntry != 0) delete pqEntry;
       pqEntry = new JPQEntry(*curSectDir, -1, startPathJID, -1, -1,
-                             startPathJID, -1, 0.0, 0.0);
+                             -1, startPathJID, 0.0, 0.0);
       AddAdjacentSections(pq, curAdjSec, *pqEntry, targetPos);
       delete pqEntry;
+      pqEntry = 0;
       curAdjSec->Destroy();
       curAdjSec->DeleteIfAllowed();
     }
@@ -1247,15 +1283,15 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
       else
       {
         curAdjSec = GetSectionListAdjSectionsUp(startSectTup);
-        if (pqEntry != 0) delete pqEntry;
         pqEntry = new JPQEntry((Direction) Up, startSectId, startPathJID, -1,
-                               -1, startPathJID, -1,
+                               startSectId, -1, startPathJID,
                                fabs(GetSectionLength(startSectTup) -
                                  distSourceStartSect),
                                fabs(GetSectionLength(startSectTup) -
                                  distSourceStartSect));
         AddAdjacentSections(pq, curAdjSec, *pqEntry, targetPos);
         delete pqEntry;
+        pqEntry = 0;
         curAdjSec->Destroy();
         curAdjSec->DeleteIfAllowed();
       }
@@ -1277,12 +1313,13 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
       else
       {
         curAdjSec = GetSectionListAdjSectionsUp(startSectTup);
-        if (pqEntry != 0) delete pqEntry;
-        pqEntry = new  JPQEntry((Direction) Down, -1, startPathJID, -1, -1,
-                                startPathJID, -1, distSourceStartSect,
+        pqEntry = new  JPQEntry((Direction) Down, startSectId, startPathJID, -1,
+                                startSectId, -1, startPathJID,
+                                distSourceStartSect,
                                 distSourceStartSect);
         AddAdjacentSections(pq, curAdjSec, *pqEntry, targetPos);
         delete pqEntry;
+        pqEntry = 0;
         curAdjSec->Destroy();
         curAdjSec->DeleteIfAllowed();
       }
@@ -1393,7 +1430,7 @@ string JNetwork::netdistancesRelationTypeInfo = "("+
   OrderedRelation::BasicType() + "("+ Tuple::BasicType() +
   "((Source " + CcInt::BasicType() + ")(Target " + CcInt::BasicType() +
   ")(NextJunct " + CcInt::BasicType() + ")(ViaSect " + CcInt::BasicType() +
-  ")(NetDist " + CcReal::BasicType() + "))) (Source Target))";
+  ")(NetDist " + CcReal::BasicType() + "))) (Source))";
 
 string JNetwork::junctionsBTreeTypeInfo = "("+ BTree::BasicType() + "(" +
   junctionsTupleTypeInfo + ")" + CcInt::BasicType() + ")";
@@ -1516,18 +1553,40 @@ void JNetwork::InsertNetdistanceTuple(const int fromjid, const int tojid,
                                       const int viajid, const int viasid,
                                       const double dist)
 {
-  ListExpr relType;
-  nl->ReadFromString(netdistancesRelationTypeInfo, relType);
-  ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType ( relType );
-  Tuple* insertTuple = 0;
-  insertTuple = new Tuple(nl->Second(relNumType));
-  insertTuple->PutAttribute(NETDIST_FROM_JID, new CcInt(true, fromjid));
-  insertTuple->PutAttribute(NETDIST_TO_JID, new CcInt(true, tojid));
-  insertTuple->PutAttribute(NETDIST_NEXT_JID, new CcInt(true, viajid));
-  insertTuple->PutAttribute(NETDIST_NEXT_SID, new CcInt(true, viasid));
-  insertTuple->PutAttribute(NETDIST_DIST, new CcReal(true, dist));
-  netdistances->AppendTuple(insertTuple);
-  insertTuple->DeleteIfAllowed();
+  Tuple* existingTuple = GetNetdistanceTupleFor(fromjid, tojid);
+  if (existingTuple == 0)
+  {
+    ListExpr relType;
+    nl->ReadFromString(netdistancesRelationTypeInfo, relType);
+    ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType ( relType );
+    Tuple* insertTuple = new Tuple(nl->Second(relNumType));
+    insertTuple->PutAttribute(NETDIST_FROM_JID, new CcInt(true, fromjid));
+    insertTuple->PutAttribute(NETDIST_TO_JID, new CcInt(true, tojid));
+    insertTuple->PutAttribute(NETDIST_NEXT_JID, new CcInt(true, viajid));
+    insertTuple->PutAttribute(NETDIST_NEXT_SID, new CcInt(true, viasid));
+    insertTuple->PutAttribute(NETDIST_DIST, new CcReal(true, dist));
+    netdistances->AppendTuple(insertTuple);
+    insertTuple->DeleteIfAllowed();
+  }
+  else
+  {
+    if (((CcReal*)existingTuple->GetAttribute(NETDIST_DIST))->GetRealval()
+          > dist)
+    {
+      vector<int> indexes(0);
+      vector<Attribute *> attrs(0);
+      indexes.push_back(NETDIST_NEXT_JID);
+      attrs.push_back(new CcInt(true, viajid));
+      indexes.push_back(NETDIST_NEXT_SID);
+      attrs.push_back(new CcInt(true, viasid));
+      indexes.push_back(NETDIST_DIST);
+      attrs.push_back(new CcReal(true, dist));
+      netdistances->UpdateTuple(existingTuple, indexes, attrs);
+      indexes.clear();
+      attrs.clear();
+    }
+    existingTuple->DeleteIfAllowed();
+  }
 }
 
 /*
@@ -1565,19 +1624,38 @@ Tuple* JNetwork::GetTupleWithId(BTree* tree, const Relation* rel,
 
 Tuple* JNetwork::GetNetdistanceTupleFor(const int fid, const int tid) const
 {
+  CcInt* minNodeId = new CcInt(true,0);
+  CcInt* maxNodeId = new CcInt(true,numeric_limits<int>::max());
   vector<void*> attributes(2);
   vector<SmiKey::KeyDataType> kElems(2);
   SmiKey test((long int) 0);
   kElems[0] = test.GetType();
   kElems[1] = test.GetType();
   CcInt* from = new CcInt(true,fid);
-  CcInt* to = new CcInt(true,tid);
   attributes[0] = from;
-  attributes[1] = to;
-  CompositeKey actKey(attributes,kElems,false);
-  Tuple* res = netdistances->GetTuple(actKey);
+  attributes[1] = minNodeId;
+  CompositeKey lowerKey(attributes,kElems,false);
+  attributes[1] = maxNodeId;
+  CompositeKey upperKey(attributes,kElems,true);
+  OrderedRelationIterator* it =
+              (OrderedRelationIterator*) netdistances->MakeRangeScan(lowerKey,
+                                                                    upperKey);
+  Tuple* res = it->GetNextTuple();
+  bool found = false;
+  while(res != 0 && !found)
+  {
+    if (tid == ((CcInt*)res->GetAttribute(NETDIST_TO_JID))->GetIntval())
+    {
+      found = true;
+    }
+    else
+    {
+      res = it->GetNextTuple();
+    }
+  }
   from->DeleteIfAllowed();
-  to->DeleteIfAllowed();
+  minNodeId->DeleteIfAllowed();
+  maxNodeId->DeleteIfAllowed();
   attributes.clear();
   kElems.clear();
   return res;
@@ -1603,133 +1681,141 @@ Tuple* JNetwork::GetSectionTupleFor(const Point* p, double& pos) const
     actSect = sections->GetTuple(curEntry.info, false);
   else
     return 0;
-  double diff = numeric_limits< double >::max();
-  double mindiff = numeric_limits< double >::max();
-  TupleId minTupId = curEntry.info;
+  double diff;
+  double mindiff = numeric_limits<double>::max();
+  TupleId minTupId;
   bool found = false;
-  SimpleLine* actCurve = 0;
-  while (!found)
+  SimpleLine* actCurve = GetSectionCurve(actSect);
+  if (actCurve != 0)
   {
-    actCurve = GetSectionCurve(actSect);
-    if (actCurve->AtPoint(*p, pos, tolerance))
-    {
-      found = true;
-    }
-    else
-    {
-      diff = actCurve->Distance(p);
-      if (diff < mindiff)
-      {
-        mindiff = diff;
-        minTupId = curEntry.info;
-      }
-    }
+    found = actCurve->AtPoint(*p, pos, tolerance);
     if (!found)
     {
-      if (sectionsRTree->Next(curEntry))
+      mindiff = actCurve->Distance(*p);
+      minTupId = curEntry.info;
+    }
+  }
+  while (!found && sectionsRTree->Next(curEntry))
+  {
+    if (actSect != 0) actSect->DeleteIfAllowed();
+    actSect = sections->GetTuple(curEntry.info, false);
+    if (actSect != 0)
+    {
+      if (actCurve != 0) actCurve->DeleteIfAllowed();
+      actCurve = GetSectionCurve(actSect);
+      if (actCurve != 0)
       {
-        actSect->DeleteIfAllowed();
-        actSect = sections->GetTuple(curEntry.info, false);
-        actCurve->DeleteIfAllowed();
-      }
-      else
-      {
-        break;
+        found = actCurve->AtPoint(*p, pos, tolerance);
+        if (!found)
+        {
+          diff = actCurve->Distance(*p);
+          if (diff < mindiff)
+          {
+            mindiff = diff;
+            minTupId = curEntry.info;
+          }
+        }
       }
     }
   }
-  diff = mindiff;
   if (!found)
   {
-    actSect->DeleteIfAllowed();
+    if (actSect != 0) actSect->DeleteIfAllowed();
     actSect = sections->GetTuple(minTupId, false);
-    actCurve = GetSectionCurve(actSect);
-    HalfSegment hs;
-    double k1, k2;
-    Point left, right;
-    for ( int i = 0; i < actCurve->Size()-1; i++ )
+    if (actSect != 0)
     {
-      actCurve->Get ( i, hs );
-      left = hs.GetLeftPoint();
-      right = hs.GetRightPoint();
-      Coord xl = left.GetX(),
-            yl = left.GetY(),
-            xr = right.GetX(),
-            yr = right.GetY(),
-             x = p->GetX(),
-             y = p->GetY();
-      if((AlmostEqualAbsolute(x, xl, tolerance) &&
-          AlmostEqualAbsolute(y, yl, tolerance)) ||
-         (AlmostEqualAbsolute(x, xr, tolerance) &&
-          AlmostEqualAbsolute(y, yr, tolerance)))
-      {
-        diff = 0.0;
-        found = true;
-      }
-      else
-      {
-        if ( xl != xr && xl != x )
+      if (actCurve != 0) actCurve->DeleteIfAllowed();
+      actCurve = GetSectionCurve(actSect);
+      if (actCurve != 0){
+        HalfSegment hs;
+        double k1, k2;
+        Point left, right;
+        for ( int i = 0; i < actCurve->Size()-1; i++ )
         {
-          k1 = ( y - yl ) / ( x - xl );
-          k2 = ( yr - yl ) / ( xr - xl );
-          if ((( xl < xr &&
-                 ( x > xl || AlmostEqualAbsolute(x, xl, tolerance)) &&
-                 ( x < xr || AlmostEqualAbsolute(x, xr, tolerance))) ||
-               ( xl > xr &&
-                 ( x < xl || AlmostEqualAbsolute(x, xl, tolerance)) &&
-                 ( x > xr || AlmostEqualAbsolute(x, xr, tolerance)))) &&
-              (( ( yl < yr || AlmostEqualAbsolute(yl, yr, tolerance)) &&
-                 ( y > yl || AlmostEqualAbsolute(y, yl, tolerance)) &&
-                 ( y < yr || AlmostEqualAbsolute(y, yr, tolerance))) ||
-               ( yl > yr &&
-                 ( y < yl || AlmostEqualAbsolute(y, yl, tolerance)) &&
-                 ( y > yr || AlmostEqualAbsolute(y, yr, tolerance)))))
-          {
-            diff = fabs ( k1-k2 );
-            found = true;
-          }
-          else
-          {
-            found = false;
-          }
-        }
-        else
-        {
-          if((AlmostEqualAbsolute(xl, xr, tolerance) &&
-              AlmostEqualAbsolute(xl, x, tolerance)) &&
-             ((( yl < yr || AlmostEqualAbsolute(yl, yr, tolerance)) &&
-               ( yl < y || AlmostEqualAbsolute(yl, y , tolerance)) &&
-               ( y < yr || AlmostEqualAbsolute(y, yr, tolerance))) ||
-              ( yl > yr  &&
-               ( yl > y || AlmostEqualAbsolute(yl, y, tolerance)) &&
-               ( y > yr || AlmostEqualAbsolute(y, yr, tolerance)))))
+          actCurve->Get ( i, hs );
+          left = hs.GetLeftPoint();
+          right = hs.GetRightPoint();
+          Coord xl = left.GetX(),
+                yl = left.GetY(),
+                xr = right.GetX(),
+                yr = right.GetY(),
+                x = p->GetX(),
+                y = p->GetY();
+          if((AlmostEqualAbsolute(x, xl, tolerance) &&
+              AlmostEqualAbsolute(y, yl, tolerance)) ||
+             (AlmostEqualAbsolute(x, xr, tolerance) &&
+              AlmostEqualAbsolute(y, yr, tolerance)))
           {
             diff = 0.0;
             found = true;
           }
           else
           {
-            found = false;
+            if ( xl != xr && xl != x )
+            {
+              k1 = ( y - yl ) / ( x - xl );
+              k2 = ( yr - yl ) / ( xr - xl );
+              if ((( xl < xr &&
+                   ( x > xl || AlmostEqualAbsolute(x, xl, tolerance)) &&
+                   ( x < xr || AlmostEqualAbsolute(x, xr, tolerance))) ||
+                   (xl > xr &&
+                   ( x < xl || AlmostEqualAbsolute(x, xl, tolerance)) &&
+                   ( x > xr || AlmostEqualAbsolute(x, xr, tolerance)))) &&
+                  ((( yl < yr || AlmostEqualAbsolute(yl, yr, tolerance)) &&
+                    ( y > yl || AlmostEqualAbsolute(y, yl, tolerance)) &&
+                    ( y < yr || AlmostEqualAbsolute(y, yr, tolerance))) ||
+                    ( yl > yr &&
+                    ( y < yl || AlmostEqualAbsolute(y, yl, tolerance)) &&
+                    ( y > yr || AlmostEqualAbsolute(y, yr, tolerance)))))
+              {
+                diff = fabs ( k1-k2 );
+                found = true;
+              }
+              else
+              {
+                found = false;
+              }
+            }
+            else
+            {
+              if((AlmostEqualAbsolute(xl, xr, tolerance) &&
+                  AlmostEqualAbsolute(xl, x, tolerance)) &&
+                 ((( yl < yr || AlmostEqualAbsolute(yl, yr, tolerance)) &&
+                   ( yl < y || AlmostEqualAbsolute(yl, y , tolerance)) &&
+                   ( y < yr || AlmostEqualAbsolute(y, yr, tolerance))) ||
+                   ( yl > yr  &&
+                   ( yl > y || AlmostEqualAbsolute(yl, y, tolerance)) &&
+                   ( y > yr || AlmostEqualAbsolute(y, yr, tolerance)))))
+              {
+                diff = 0.0;
+                found = true;
+              }
+              else
+              {
+                found = false;
+              }
+            }
+          }
+          if ( found )
+          {
+            LRS lrs;
+            actCurve->Get ( hs.attr.edgeno, lrs );
+            actCurve->Get ( lrs.hsPos, hs );
+            pos = lrs.lrsPos + p->Distance(hs.GetDomPoint());
+            if(!actCurve->GetStartSmaller())
+              pos = actCurve->Length() - pos;
+            if ( pos < 0.0 || AlmostEqualAbsolute( pos, 0.0, tolerance))
+              pos = 0.0;
+            else if ( pos > actCurve->Length() ||
+              AlmostEqualAbsolute(pos, actCurve->Length(), tolerance))
+              pos = actCurve->Length();
+            break;
           }
         }
       }
-      if ( found )
-      {
-        LRS lrs;
-        actCurve->Get ( hs.attr.edgeno, lrs );
-        actCurve->Get ( lrs.hsPos, hs );
-        pos = lrs.lrsPos + p->Distance(hs.GetDomPoint());
-        if(!actCurve->GetStartSmaller())
-          pos = actCurve->Length() - pos;
-        if ( pos < 0.0 || AlmostEqualAbsolute( pos, 0.0, tolerance))
-          pos = 0.0;
-        else if ( pos > actCurve->Length() ||
-          AlmostEqualAbsolute(pos, actCurve->Length(), tolerance))
-          pos = actCurve->Length();
-      }
     }
   }
-  actCurve->DeleteIfAllowed();
+  if (actCurve != 0) actCurve->DeleteIfAllowed();
   return actSect;
 }
 
@@ -1738,39 +1824,53 @@ const
 {
   Tuple* actSect = 0;
   JListInt* sectList = GetRouteSectionList(rloc.GetRouteId());
-  if (sectList->IsDefined() && !sectList->IsEmpty())
+  if (sectList != 0)
   {
-    int i = 0;
-    CcInt actSid;
-    while (i < sectList->GetNoOfComponents())
+    if (sectList->IsDefined() && !sectList->IsEmpty())
     {
-      sectList->Get(i, actSid);
-      if (actSect != 0) actSect->DeleteIfAllowed();
-      actSect = GetSectionTupleWithId(actSid.GetIntval());
-      JListRInt* rintList = GetSectionListRouteIntervals(actSect);
-      if (rintList->IsDefined() && !rintList->IsEmpty())
+      int i = 0;
+      CcInt actSid;
+      while (i < sectList->GetNoOfComponents())
       {
-        JRouteInterval actInt;
-        int j = 0;
-        while (j < rintList->GetNoOfComponents())
+        sectList->Get(i, actSid);
+        actSect = GetSectionTupleWithId(actSid.GetIntval());
+        if (actSect != 0)
         {
-          rintList->Get(j,actInt);
-          if (actInt.Contains(rloc))
+          JListRInt* rintList = GetSectionListRouteIntervals(actSect);
+          if (rintList != 0)
           {
-            relpos = fabs(rloc.GetPosition() - actInt.GetFirstPosition());
-            j = rintList->GetNoOfComponents();
-            i = sectList->GetNoOfComponents();
+            if (rintList->IsDefined() && !rintList->IsEmpty())
+            {
+              JRouteInterval actInt;
+              int j = 0;
+              while (j < rintList->GetNoOfComponents())
+              {
+                rintList->Get(j,actInt);
+                if (actInt.Contains(rloc, tolerance))
+                {
+                  relpos = fabs(rloc.GetPosition() - actInt.GetFirstPosition());
+                  rintList->Destroy();
+                  rintList->DeleteIfAllowed();
+                  sectList->Destroy();
+                  sectList->DeleteIfAllowed();
+                  return actSect;
+                }
+                j++;
+              }
+            }
+            rintList->Destroy();
+            rintList->DeleteIfAllowed();
+            rintList = 0;
           }
-          j++;
+          actSect->DeleteIfAllowed();
+          actSect = 0;
         }
+        i++;
       }
-      rintList->Destroy();
-      rintList->DeleteIfAllowed();
-      i++;
+      sectList->Destroy();
+      sectList->DeleteIfAllowed();
     }
   }
-  sectList->Destroy();
-  sectList->DeleteIfAllowed();
   return actSect;
 }
 
@@ -2053,16 +2153,27 @@ int JNetwork::GetNetdistanceNextSID(const Tuple* actNetDistTup) const
 
 bool JNetwork::ExistsNetworkdistanceFor(const int startPathJID,
                               const DbArray<pair<int, double> >* endJunctions,
-                              const int endPathJID) const
+                              int& endPathJID) const
 {
   pair<int, double> curEntry;
+  double minDist = numeric_limits<double>::max();
+  bool found = false;
   for (int i = 0; i < endJunctions->Size();i++)
   {
     endJunctions->Get(i,curEntry);
-    if (curEntry.first == endPathJID)
-      return true;
+    Tuple* netDistTup = GetNetdistanceTupleFor(startPathJID, curEntry.first);
+    if (netDistTup != 0)
+    {
+      found = true;
+      endPathJID = curEntry.first;
+      double actDist =
+        ((CcReal*)netDistTup->GetAttribute(NETDIST_DIST))->GetRealval();
+      if (minDist > actDist)
+        minDist = actDist;
+      netDistTup->DeleteIfAllowed();
+    }
   }
-  return false;
+  return found;
 }
 
 /*
@@ -2086,7 +2197,7 @@ bool JNetwork::DirectConnectionExists(const int startSID,
   {
     res->Append(JRouteInterval(source.GetRouteId(), source.GetPosition(),
                                target.GetPosition(), movDir));
-    length = length + fabs(target.GetPosition()-source.GetPosition());
+    length += fabs(target.GetPosition()-source.GetPosition());
     sectDir->DeleteIfAllowed();
     return true;
   }
@@ -2129,7 +2240,7 @@ bool JNetwork::DirectConnectionExists(const int startSID,
     sectDir->DeleteIfAllowed();
     res->Append(JRouteInterval(source.GetRouteId(), source.GetPosition(),
                                target.GetPosition(), movDir));
-    length = length + fabs(target.GetPosition()-source.GetPosition());
+    length = fabs(target.GetPosition()-source.GetPosition());
     return true;
   }
   sectDir->DeleteIfAllowed();
@@ -2150,7 +2261,7 @@ void JNetwork::AddAdjacentSections(PQManagement* pq, JPQEntry curEntry,
   if (movDir.Compare((Direction) Up) == 0)
     listSID = GetSectionListAdjSectionsUp(pqSectTup);
   else
-    listSID = GetSectionListAdjSectionsUp(pqSectTup);
+    listSID = GetSectionListAdjSectionsDown(pqSectTup);
   AddAdjacentSections(pq, listSID, curEntry, targetPos);
   listSID->Destroy();
   listSID->DeleteIfAllowed();
@@ -2203,7 +2314,7 @@ void JNetwork::AddAdjacentSections(PQManagement* pq, const JListInt* listSID,
     Point* curEndPoint = GetJunctionSpatialPos(curJunc);
     double curDist =
       curEntry.GetDistFromStart() + GetSectionLength(curSectTup);
-    double prio = curDist + curEndPoint->Distance(targetPos);
+    double prio = curDist + curEndPoint->Distance(*targetPos);
     pq->Insert(JPQEntry(curEntry.GetDirection(),
                         nextSID.GetIntval(),
                         curEntry.GetStartPathJID(),
@@ -2246,7 +2357,7 @@ void JNetwork::WriteShortestPath(const RouteLocation& source,
     curRint->SetInterval(curRint->GetFirstPosition(),
                          curRint->GetFirstPosition()+distSourceStartSect);
     result->Append(*curRint);
-    length = length + distSourceStartSect;
+    length = length + curRint->GetLength();
     if (endPathJID == GetSectionEndJunctionID(startSectTup))
     {
       found = true;
@@ -2260,8 +2371,7 @@ void JNetwork::WriteShortestPath(const RouteLocation& source,
                   fabs(GetSectionLength(startSectTup)-distSourceStartSect),
                    curRint->GetLastPosition());
     result->Append(*curRint);
-    length = length + fabs(GetSectionLength(startSectTup) -
-          distSourceStartSect);
+    length = length + curRint->GetLength();
     if (endPathJID == GetSectionStartJunctionID(startSectTup))
     {
       found = true;
@@ -2292,7 +2402,7 @@ void JNetwork::WriteShortestPath(const RouteLocation& source,
       curStartJID = GetSectionStartJunctionID(curSectTup);
     }
     result->Append(*curRint);
-    length = length + GetSectionLength(curSectTup);
+    length = length + curRint->GetLength();
     if (endPathJID == curStartJID)
       found = true;
   }
@@ -2304,7 +2414,7 @@ void JNetwork::WriteShortestPath(const RouteLocation& source,
     curRint->SetInterval(curRint->GetFirstPosition(),
                          curRint->GetFirstPosition()+distTargetStartSect);
     result->Append(*curRint);
-    length = length + distTargetStartSect;
+    length = length + curRint->GetLength();
   }
   else
   {
@@ -2313,7 +2423,7 @@ void JNetwork::WriteShortestPath(const RouteLocation& source,
                          curRint->GetLastPosition() -
                         fabs(GetSectionLength(endSectTup)-distTargetStartSect));
     result->Append(*curRint);
-    length = length + fabs(GetSectionLength(endSectTup)-distTargetStartSect);
+    length = length + curRint->GetLength();
   }
   if (actNetDistTup != 0) actNetDistTup->DeleteIfAllowed();
   if (curSectTup != 0) curSectTup->DeleteIfAllowed();
@@ -2327,7 +2437,9 @@ void JNetwork::WriteShortestPath(const RouteLocation& source,
 
 bool JNetwork::ExistsCommonRoute(RouteLocation& src, RouteLocation& tgt) const
 {
-  if (src.IsOnSameRoute(tgt)) return true;
+  if (src.IsOnSameRoute(tgt)) {
+    return true;
+  }
   else
   {
     JListRLoc* left = GetNetworkValuesOf(src);
@@ -2359,7 +2471,6 @@ bool JNetwork::ExistsCommonRoute(RouteLocation& src, RouteLocation& tgt) const
     return false;
   }
 }
-
 
 /*
 1 Overwrite output operator

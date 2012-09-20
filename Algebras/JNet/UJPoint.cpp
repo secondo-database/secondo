@@ -169,13 +169,7 @@ void UJPoint::SetUnit(const JUnit& j)
 
 void UJPoint::CopyFrom(const Attribute* right)
 {
-  SetDefined(right->IsDefined());
-  if (right->IsDefined())
-  {
-    UJPoint in(*(UJPoint*) right);
-    strcpy(nid, *in.GetNetworkId());
-    unit = in.GetUnit();
-  }
+  *this = *((UJPoint*)right);
 }
 
 Attribute::StorageType UJPoint::GetStorageType() const
@@ -188,7 +182,7 @@ size_t UJPoint::HashValue() const
   return strlen(nid) + unit.HashValue();
 }
 
-Attribute* UJPoint::Clone() const
+UJPoint* UJPoint::Clone() const
 {
   return new UJPoint(*this);
 }
@@ -206,8 +200,7 @@ int UJPoint::Compare(const void* l, const void* r){
 
 int UJPoint::Compare(const Attribute* rhs) const
 {
-  UJPoint in(*(UJPoint*) rhs);
-  return Compare(in);
+  return Compare(*((UJPoint*)rhs));
 }
 
 int UJPoint::Compare(const UJPoint& rhs) const

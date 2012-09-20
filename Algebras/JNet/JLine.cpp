@@ -128,16 +128,7 @@ void JLine::SetRouteIntervals(DbArray<JRouteInterval>& setri)
 
 void JLine::CopyFrom(const Attribute* right)
 {
-  SetDefined(right->IsDefined());
-  if (right->IsDefined())
-  {
-    JLine in(*(JLine*) right);
-    strcpy(nid, *in.GetNetworkId());
-    routeintervals.copyFrom(in.GetRouteIntervals());
-    sorted = in.IsSorted();
-  }
-  else
-    SetDefined(false);
+  *this = *((JLine*)right);
 }
 
 size_t JLine::HashValue() const
@@ -156,7 +147,7 @@ size_t JLine::HashValue() const
   return res;
 }
 
-Attribute* JLine::Clone() const
+JLine* JLine::Clone() const
 {
   return new JLine(*this);
 }

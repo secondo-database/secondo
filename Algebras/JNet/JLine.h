@@ -86,7 +86,7 @@ public:
 */
   void CopyFrom(const Attribute* right);
   size_t HashValue() const;
-  Attribute* Clone() const;
+  JLine* Clone() const;
   bool Adjacent(const Attribute* attrib) const;
   static int Compare(const void* ls, const void* rs);
   int Compare(const Attribute* rhs) const;

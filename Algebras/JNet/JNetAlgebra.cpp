@@ -1541,9 +1541,9 @@ int tonetworkVM( Word* args, Word& result, int message, Word& local,
                  Supplier s)
 {
   result = qp->ResultStorage(s);
-  OutType* res = (OutType*) result.addr;
-  JNetwork* jnet = (JNetwork*) args[0].addr;
-  InType* in = (InType*) args[1].addr;
+  OutType* res = static_cast<OutType*> (result.addr);
+  JNetwork* jnet = static_cast<JNetwork*> (args[0].addr);
+  InType* in = static_cast<InType*> (args[1].addr);
   if (jnet != NULL && jnet->IsDefined() &&
       in != NULL && in->IsDefined())
     res->FromSpatial(jnet, in);
@@ -2246,6 +2246,292 @@ Operator restrictOp(
 );
 
 /*
+1.1. Access to parts of data types
+
+1.1.1. JNetwork Data
+
+1.1.1.1 sections
+
+Returns the sections relation of a jnet.
+
+*/
+
+ListExpr sectionsTM (ListExpr args)
+{
+  if (!nl->HasLength(args,1))
+    return listutils::typeError("One argument expected.");
+
+  if (!listutils::isSymbol(nl->First(args), JNetwork::BasicType()))
+    return listutils::typeError("Argument should be " + JNetwork::BasicType());
+
+  ListExpr retType;
+  nl->ReadFromString ( JNetwork::GetSectionsRelationType(), retType );
+  return retType;
+}
+
+int sectionsVM ( Word* args, Word& result, int message, Word& local,
+                 Supplier s )
+{
+  JNetwork *jnet = ( JNetwork* ) args[0].addr;
+  if (jnet != NULL && jnet->IsDefined())
+  {
+    Relation *resultSt = ( Relation* ) qp->ResultStorage ( s ).addr;
+    resultSt->Close();
+    result = SetWord ( jnet->GetSectionsCopy());
+    qp->ChangeResultStorage ( s, result );
+  }
+  return 0;
+}
+
+const string sectionsSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + JNetwork::BasicType() + " -> " +
+  JNetwork::GetSectionsRelationType() + "</text--->"
+  "<text>sections(<jnet>) </text--->"
+  "<text>Returns a copy of the sections relation of the given jnet.</text--->"
+  "<text>query sections(testnet)</text--->))";
+
+Operator sectionsOp("sections", sectionsSpec, sectionsVM,
+                    Operator::SimpleSelect, sectionsTM);
+
+/*
+
+1.1.1.1 routes
+
+Returns the routes relation of a jnet.
+
+*/
+
+ListExpr routesTM (ListExpr args)
+{
+  if (!nl->HasLength(args,1))
+    return listutils::typeError("One argument expected.");
+
+  if (!listutils::isSymbol(nl->First(args), JNetwork::BasicType()))
+    return listutils::typeError("Argument should be " + JNetwork::BasicType());
+
+  ListExpr retType;
+  nl->ReadFromString ( JNetwork::GetRoutesRelationType(), retType );
+  return retType;
+}
+
+int routesVM ( Word* args, Word& result, int message, Word& local,
+                 Supplier s )
+{
+  JNetwork *jnet = ( JNetwork* ) args[0].addr;
+  if (jnet != NULL && jnet->IsDefined())
+  {
+    Relation *resultSt = ( Relation* ) qp->ResultStorage ( s ).addr;
+    resultSt->Close();
+    result = SetWord ( jnet->GetRoutesCopy());
+    qp->ChangeResultStorage ( s, result );
+  }
+  return 0;
+}
+
+const string routesSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + JNetwork::BasicType() + " -> " +
+  JNetwork::GetRoutesRelationType() + "</text--->"
+  "<text>routes(<jnet>) </text--->"
+  "<text>Returns a copy of the routes relation of the given jnet.</text--->"
+  "<text>query routes(testnet)</text--->))";
+
+Operator routesOp("routes", routesSpec, routesVM, Operator::SimpleSelect,
+                  routesTM);
+
+/*
+1.1.1.1 routes
+
+Returns the junctions relation of a jnet.
+
+*/
+
+ListExpr junctionsTM (ListExpr args)
+{
+  if (!nl->HasLength(args,1))
+    return listutils::typeError("One argument expected.");
+
+  if (!listutils::isSymbol(nl->First(args), JNetwork::BasicType()))
+    return listutils::typeError("Argument should be " + JNetwork::BasicType());
+
+  ListExpr retType;
+  nl->ReadFromString ( JNetwork::GetJunctionsRelationType(), retType );
+  return retType;
+}
+
+int junctionsVM ( Word* args, Word& result, int message, Word& local,
+                  Supplier s )
+{
+  JNetwork *jnet = ( JNetwork* ) args[0].addr;
+  if (jnet != NULL && jnet->IsDefined())
+  {
+    Relation *resultSt = ( Relation* ) qp->ResultStorage ( s ).addr;
+    resultSt->Close();
+    result = SetWord ( jnet->GetJunctionsCopy());
+    qp->ChangeResultStorage ( s, result );
+  }
+  return 0;
+}
+
+const string junctionsSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + JNetwork::BasicType() + " -> " +
+  JNetwork::GetJunctionsRelationType() + "</text--->"
+  "<text>junctions(<jnet>) </text--->"
+  "<text>Returns a copy of the junctions relation of the given jnet.</text--->"
+  "<text>query junctions(testnet)</text--->))";
+
+Operator junctionsOp("junctions", junctionsSpec, junctionsVM,
+                     Operator::SimpleSelect, junctionsTM);
+
+/*
+1.1.1.1 distances
+
+Returns the netdistances relation of a jnet.
+
+*/
+
+ListExpr distancesTM (ListExpr args)
+{
+  if (!nl->HasLength(args,1))
+    return listutils::typeError("One argument expected.");
+
+  if (!listutils::isSymbol(nl->First(args), JNetwork::BasicType()))
+    return listutils::typeError("Argument should be " + JNetwork::BasicType());
+
+  ListExpr retType;
+  nl->ReadFromString ( JNetwork::GetNetdistancesRelationType(), retType );
+  return retType;
+}
+
+int distancesVM ( Word* args, Word& result, int message, Word& local,
+                  Supplier s )
+{
+  JNetwork *jnet = ( JNetwork* ) args[0].addr;
+  if (jnet != NULL && jnet->IsDefined())
+  {
+    result = SetWord ( jnet->GetNetdistancesCopy());
+    qp->ChangeResultStorage ( s, result );
+  }
+  return 0;
+}
+
+const string distancesSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + JNetwork::BasicType() + " -> " +
+  JNetwork::GetNetdistancesRelationType() + "</text--->"
+  "<text>distances(<jnet>) </text--->"
+  "<text>Returns a copy of the netdistances relation of the given jnet."+
+  "</text--->"
+  "<text>query distances(testnet)</text--->))";
+
+Operator distancesOp("distances", distancesSpec, distancesVM,
+                       Operator::SimpleSelect, distancesTM);
+
+/*
+1.1.1. MJPoint Data
+
+1.1.1.1 units
+
+Returns a stream of the ~junit~ for an given ~mjpoint~
+
+*/
+
+ListExpr unitsTM (ListExpr args)
+{
+  if (!nl->HasLength(args,1))
+    return listutils::typeError("One argument expected.");
+
+  if (!listutils::isSymbol(nl->First(args), MJPoint::BasicType()))
+    return listutils::typeError("Argument should be " + MJPoint::BasicType());
+
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                         nl->SymbolAtom(JUnit::BasicType()));
+}
+
+struct locInfoUnits {
+  locInfoUnits()
+  {
+    index = 0;
+    in = 0;
+  }
+
+  MJPoint* in;
+  int index;
+};
+
+int unitsVM ( Word* args, Word& result, int message, Word& local,
+              Supplier s )
+{
+  locInfoUnits* li = 0;
+  switch(message)
+  {
+    case OPEN:
+    {
+      li = new locInfoUnits();
+      MJPoint* t = (MJPoint*) args[0].addr;
+      if (t != 0 && t->IsDefined())
+        li->in = t;
+      li->index = 0;
+      local.addr = li;
+      return 0;
+      break;
+    }
+
+    case REQUEST:
+    {
+      result = qp->ResultStorage(s);
+      if (local.addr == 0) return CANCEL;
+      li = (locInfoUnits*) local.addr;
+      if (0 <= li->index && li->index < li->in->GetNoComponents())
+      {
+        JUnit elem;
+        (li->in)->Get(li->index, elem);
+        li->index++;
+        result = SetWord(new JUnit(elem));
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+      break;
+    }
+
+    case CLOSE:
+    {
+      if (local.addr)
+      {
+        li = (locInfoUnits*) local.addr;
+        delete li;
+      }
+      li = 0;
+      local.addr = 0;
+      return 0;
+      break;
+    }
+
+    default:
+    {
+      return CANCEL; // Should never been reached
+      break;
+    }
+  }
+}
+
+const string unitsSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + MJPoint::BasicType() + " -> " +
+  Symbol::STREAM() + "("+ JUnit::BasicType() + ") </text--->"
+  "<text>units(<mjpoint>) </text--->"
+  "<text>Returns the "+ JUnit::BasicType() + "s of the "+ MJPoint::BasicType()+
+  "as stream.</text--->"
+  "<text>query units(testmjp)</text--->))";
+
+Operator unitsOp("units", unitsSpec, unitsVM, Operator::SimpleSelect, unitsTM);
+
+/*
 1 Implementation of ~class JNetAlgebra~
 
 1.1 Constructor
@@ -2427,6 +2713,31 @@ AddOperator(&createjnetOp);
 
   AddOperator(&minusOp);
   AddOperator(&restrictOp);
+
+/*
+1.1.1 Access to data type values
+
+1.1.1.1 Network Data
+
+*/
+
+  AddOperator(&sectionsOp);
+  AddOperator(&routesOp);
+  AddOperator(&junctionsOp);
+  AddOperator(&distancesOp);
+
+/*
+1.1.1.1 MJPoint Data
+
+*/
+
+ AddOperator(&unitsOp);
+
+/*
+1.1.1.1 UJPoint Data
+
+*/
+
 
 }
 

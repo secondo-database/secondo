@@ -43,9 +43,7 @@ Returns true if u is valid Defined and after lastUP
 
 bool checkNextUnit(JUnit u, JUnit lastUP)
 {
-  return(u.IsDefined() && lastUP.IsDefined() &&
-         u.Compare(lastUP) > 0 &&
-         u.GetTimeInterval().After(lastUP.GetTimeInterval()));
+  return(u.IsDefined() && lastUP.IsDefined() && u.Compare(lastUP) > 0);
 }
 
 /*
@@ -63,13 +61,12 @@ MJPoint::MJPoint(const bool def) :
 {}
 
 MJPoint::MJPoint(const MJPoint& other) :
-    Attribute(other.IsDefined())
+    Attribute(other.IsDefined()), units(0), activBulkload(false)
 {
   if (other.IsDefined())
   {
     strcpy(nid, *other.GetNetworkId());
     units.copyFrom(other.GetUnits());
-    activBulkload = false;
   }
 }
 
@@ -157,14 +154,7 @@ void MJPoint::SetNetworkId(const STRING_T& id)
 
 void MJPoint::CopyFrom(const Attribute* right)
 {
-  SetDefined(right->IsDefined());
-  if (right->IsDefined())
-  {
-    MJPoint in(*(MJPoint*) right);
-    strcpy(nid, *in.GetNetworkId());
-    units.copyFrom(in.GetUnits());
-    activBulkload = false;
-  }
+  *this = *((MJPoint*)right);
 }
 
 Attribute::StorageType MJPoint::GetStorageType() const
@@ -184,7 +174,7 @@ size_t MJPoint::HashValue() const
   return res;
 }
 
-Attribute* MJPoint::Clone() const
+MJPoint* MJPoint::Clone() const
 {
   return new MJPoint(*this);
 }
@@ -202,8 +192,7 @@ int MJPoint::Compare(const void* l, const void* r){
 
 int MJPoint::Compare(const Attribute* rhs) const
 {
-  MJPoint in(*(MJPoint*) rhs);
-  return Compare(in);
+  return Compare(*((MJPoint*)rhs));
 }
 
 int MJPoint::Compare(const MJPoint& rhs) const
@@ -245,6 +234,13 @@ Flob* MJPoint::GetFLOB(const int i)
 void MJPoint::Destroy()
 {
   units.Destroy();
+}
+
+void MJPoint::Clear()
+{
+  units.clean();
+  SetDefined(true);
+  activBulkload = false;
 }
 
 ostream& MJPoint::Print(ostream& os) const
@@ -368,9 +364,8 @@ Word MJPoint::In(const ListExpr typeInfo, const ListExpr instance,
 {
   if ( listutils::isSymbolUndefined( instance ) )
   {
-    MJPoint* p = new MJPoint(false);
     correct = true;
-    return SetWord( p );
+    return SetWord(  new MJPoint(false) );
   }
   else
   {
@@ -430,7 +425,8 @@ Word MJPoint::Create(const ListExpr typeInfo)
 
 void MJPoint::Delete( const ListExpr typeInfo, Word& w )
 {
-  ((MJPoint*) w.addr)->DeleteIfAllowed();
+  MJPoint* in = (MJPoint*) w.addr;
+  in->DeleteIfAllowed();
   w.addr = 0;
 }
 
@@ -447,7 +443,7 @@ Word MJPoint::Clone( const ListExpr typeInfo, const Word& w )
 
 void* MJPoint::Cast( void* addr )
 {
-  return (new (addr) MJPoint);
+  return new (addr) MJPoint();
 }
 
 bool MJPoint::KindCheck ( ListExpr type, ListExpr& errorInfo )
@@ -512,7 +508,7 @@ void MJPoint::Get(const int i, JUnit* up) const
 
 void MJPoint::FromSpatial(JNetwork* jnet, const MPoint* in)
 {
-  units.clean();
+  Clear();
   SetDefined(in->IsDefined());
   if (jnet != 0 && jnet->IsDefined() &&
       in != 0 && in->IsDefined())
@@ -533,7 +529,7 @@ void MJPoint::FromSpatial(JNetwork* jnet, const MPoint* in)
       {
         //find valid startposition in network
         while((startPos == 0 || !startPos->IsDefined()) &&
-          i < in->GetNoComponents())
+              i < in->GetNoComponents())
         {
           if (startPos != 0)
             startPos->DeleteIfAllowed();
@@ -557,13 +553,18 @@ void MJPoint::FromSpatial(JNetwork* jnet, const MPoint* in)
           if (endPos == 0 || !endPos->IsDefined())
             i++;
         }
-        if (startPos != 0 && endPos != 0 &&
-          startPos->IsDefined() && endPos->IsDefined())
+        if (startPos != 0 &&  startPos->IsDefined() &&
+            endPos != 0 && endPos->IsDefined())
         { // got valid RouteLocations and TimeStamps
           MJPoint* partRes = jnet->SimulateTrip(*startPos, *endPos,
                                                 &actSource.p1,
                                                 starttime, endtime, lc, rc);
-          Append(partRes);
+          if (partRes != 0)
+          {
+            Append(partRes);
+            partRes->Destroy();
+            partRes->DeleteIfAllowed();
+          }
         }
         startPos->DeleteIfAllowed();
         startPos = endPos;
@@ -588,19 +589,18 @@ else
 
 void MJPoint::StartBulkload()
 {
+  Clear();
   SetDefined(true);
   activBulkload = true;
-  units.clean();
-  units.TrimToSize();
 }
 
 void MJPoint::EndBulkload()
 {
   activBulkload = false;
-  if (!CheckSorted())
+  if (!Simplify())
   {
     SetDefined(false);
-    units.Destroy();
+    Clear();
   }
   else
   {
@@ -667,6 +667,39 @@ bool MJPoint::CheckSorted() const
   {
     return true;
   }
+}
+
+bool MJPoint::Simplify()
+{
+  if (IsDefined() && units.Size() > 1)
+  {
+    DbArray<JUnit>* simpleUnits = new DbArray<JUnit>(0);
+    JUnit actNewUnit, actOldUnit;
+    Get(0,actOldUnit);
+    actNewUnit = actOldUnit;
+    int i = 1;
+    bool sorted = true;
+    while (i < units.Size() && sorted)
+    {
+      Get(i,actOldUnit);
+      sorted = checkNextUnit(actOldUnit, actNewUnit);
+      if (!actNewUnit.ExtendBy(actOldUnit))
+      {
+        simpleUnits->Append(actNewUnit);
+        actNewUnit = actOldUnit;
+      }
+      i++;
+    }
+    simpleUnits->Append(actNewUnit);
+    simpleUnits->TrimToSize();
+    units.clean();
+    units.copyFrom(*simpleUnits);
+    simpleUnits->Destroy();
+    delete simpleUnits;
+    return sorted;
+  }
+  else
+    return true;
 }
 
 /*

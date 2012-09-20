@@ -130,8 +130,9 @@ route interval on the road.
   void CopyFrom(const Attribute* right);
   Attribute::StorageType GetStorageType() const;
   size_t HashValue() const;
-  Attribute* Clone() const;
+  JRouteInterval* Clone() const;
   bool Adjacent(const Attribute* attrib) const;
+  bool Adjacent(const JRouteInterval& other)const;
   static int Compare(const void* ls, const void* rs);
   int Compare(const Attribute* rhs) const;
   int Compare(const JRouteInterval& rhs) const;
@@ -212,6 +213,7 @@ Returns true if the JRouteInterval contains the route location.
 */
 
   bool Contains(const RouteLocation& rloc) const;
+  bool Contains(const RouteLocation& rloc, const double tolerance) const;
 
 /*
 1.1.1.1 Extend
