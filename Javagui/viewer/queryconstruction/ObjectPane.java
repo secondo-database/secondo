@@ -42,7 +42,6 @@ public class ObjectPane  extends JComponent implements MouseListener {
             new ArrayList<ObjectView>();
     private QueryconstructionViewer viewer;
     private MainPane mainPane;
-    private ListExpr objects;
     private JTextField textfield = new JTextField();
     private InfoDialog dialog;
 
@@ -96,7 +95,7 @@ public class ObjectPane  extends JComponent implements MouseListener {
         // element must be a symbol atom with content "inquiry"
         if(list.listLength()==2 && 
                 list.first().symbolValue().equals("inquiry")) { 
-            objects = list.second().second();
+            ListExpr objects = list.second().second();
             
             while (objects.listLength() > 1) {
                 ListExpr object = objects.second();
@@ -173,7 +172,7 @@ public class ObjectPane  extends JComponent implements MouseListener {
      * the input of textfield are visible.
      * @param type input of the textfield
      */
-    private void updateObjects(String type) {
+    protected void updateObjects(String type) {
         String[] types = type.split(",");
         for ( Iterator iter = elements.iterator(); iter.hasNext(); ) {
             ObjectView object = (ObjectView)iter.next();

@@ -1,3 +1,22 @@
+//This file is part of SECONDO.
+
+//Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+//Database Systems for New Applications.
+
+//SECONDO is free software; you can redistribute it and/or modify
+//it under the terms of the GNU General Public License as published by
+//the Free Software Foundation; either version 2 of the License, or
+//(at your option) any later version.
+
+//SECONDO is distributed in the hope that it will be useful,
+//but WITHOUT ANY WARRANTY; without even the implied warranty of
+//MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//GNU General Public License for more details.
+
+//You should have received a copy of the GNU General Public License
+//along with SECONDO; if not, write to the Free Software
+//Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 package viewer.queryconstruction;
 
 import java.awt.Dimension;
@@ -77,6 +96,68 @@ public class OperationsPane extends JComponent implements MouseListener {
     }
     
     /**
+     * Recursive method to find a combination array, with one 1 in
+     * each row and each column.
+     * @param level
+     * @param typeMatrix
+     * @param resultArray
+     * @return 
+     */
+    private int[] checkComb(int level, int[][] typeMatrix, int[] resultArray){
+        
+        int n = resultArray.length;
+        int index = 0;
+        int[] typeArray = typeMatrix[level];
+        for (int check: resultArray) {
+            if (check == 0) {
+                if (typeArray[index] == 1) {
+                    resultArray[index] = 1;
+                    if (level < n-1)
+                        resultArray = checkComb(level + 1, typeMatrix, 
+                                resultArray);
+                    if (resultArray == null)
+                        return null;
+                }
+            }
+            if (resultArray != null) {
+                boolean result = true;
+                for (int i: resultArray) {
+                    result = (result && (i == 1));
+                }
+                if (result && (level == n-1))
+                    return resultArray;
+            }
+            index++;
+        }
+        if (level == n-1)
+            return null;
+        return resultArray;
+    }
+    
+    /**
+     * Search in the matrix for a right combination.
+     * @param typeMatrix
+     * @return 
+     */
+    private boolean checkMatrix(int[][] typeMatrix){
+        int[] resultArray = new int[typeMatrix.length];
+        for (int i: resultArray) {
+            i = 0;
+        }
+        resultArray = checkComb(0, typeMatrix, resultArray);
+        if (resultArray != null){
+            boolean result = true;
+            for (int i: resultArray) {
+                result = (result && (i == 1));
+            }
+            return result;
+        }
+        else {
+            return false;
+        }
+    }
+    
+    /**
      * Check if the type is in the array of usable types.
      * @param type
      * @param tArray array of types
@@ -84,10 +165,10 @@ public class OperationsPane extends JComponent implements MouseListener {
      */
     private boolean typeInArray(String type, String[] tArray){
         for (String s: tArray) {
-            if (s.equals(type))
+            if (s.trim().equals(type))
                 return true;
             //stream of data or one attribute is needed
-            if (s.startsWith("stream") 
+            if (s.trim().startsWith("stream") 
                     && s.contains("data") 
                     && (type.startsWith("stream ") 
                     || this.mainPane.getAttributesCount() == 1))
@@ -116,13 +197,6 @@ public class OperationsPane extends JComponent implements MouseListener {
         }
         return result;
     }
-    
-//    /**
-//     * Repaint the operations panel.
-//     */
-//    public void update() {
-//        this.repaint();
-//    }
     
     /**
      * Paint all operations into the panel, 
@@ -160,6 +234,7 @@ public class OperationsPane extends JComponent implements MouseListener {
                 int[][] typesIn = new int[viewerCount][viewerCount];
                 
                 int index = 0;
+                // generating the matrix
                 for (String viewerStr : viewerParam) {
                     typesIn[index] = this.typeInArray2(viewerStr.trim(), 
                             operationObjects);
@@ -176,6 +251,9 @@ public class OperationsPane extends JComponent implements MouseListener {
                         contains = true;
                     if ((typesIn[1][0] == 1) && (typesIn[0][1] == 1))
                         contains = true;
+                }
+                if (viewerCount > 2) {
+                    contains = checkMatrix(typesIn);
                 }
                 if (contains) {
                     viewOperation(op);

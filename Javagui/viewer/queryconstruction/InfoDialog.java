@@ -44,8 +44,8 @@ public class InfoDialog extends JDialog {
     
     /**
      * Add an information string to the window.
-     * @param name title of the frame
-     * @param str 
+     * @param name line one
+     * @param str line two
      */
     protected void addInfo(String name, String str) {
         str = name + "\n" + str.replace("(", "\n  ").replace(")", "");

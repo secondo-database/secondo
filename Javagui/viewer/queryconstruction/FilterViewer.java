@@ -166,7 +166,8 @@ public class FilterViewer extends QueryconstructionViewer {
      */
     private void reset(){
         attribute.setText(null);
-        removeAll();
+        mainPane.removeAllObjects();
+        this.update();
     }
     
     /**
@@ -209,9 +210,11 @@ public class FilterViewer extends QueryconstructionViewer {
                     (attribute.getText().length() > 0)) {
                 paste.setEnabled(true);
             }
-            //result type equals the active type
-            if (mainPane.getType().equals(resultType)) {
-                paste.setEnabled(true);
+            for (String type: resultType.split(",")) {
+                //result type equals the active type
+                if (mainPane.getType().equals(type.trim())) {
+                    paste.setEnabled(true);
+                }
             }
             //new stream or new object is expected
             if (resultType.startsWith("new") && 

@@ -136,8 +136,20 @@ public class StreamView {
      * 
      * @return all attributes
      */
-    protected String[] getAttributes() {
-        return attributes;
+    protected String[] getAttributes(String type) {
+        if (type == null)
+            return attributes;
+        else {
+            String[] result = new String[attributes.length];
+            int i = 0;
+            for (String attr: result){
+                for (String paramT: type.split(",")) {
+                    if (attrtypes[i].equals(paramT.toLowerCase().trim()))
+                        result[i] = attributes[i];
+                }
+            }
+            return result;
+        }
     }
 
     /**
@@ -230,7 +242,7 @@ public class StreamView {
                 if (object.getLabel().equals("group"))
                     result += "group ";
                 else
-                    result += object.getObjectName().trim() + "";
+                    result += object.getObjectName().trim() + " ";
             }
             index++;
         }

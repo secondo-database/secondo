@@ -57,7 +57,7 @@ public class MainPane extends JComponent implements MouseListener {
      * Add an object to the main panel in a new row.
      * @param object 
      */
-    public void addObject(ObjectView object){
+    protected void addObject(ObjectView object){
         activeStream.change();
         //generate a new stream for the object
         activeStream = new StreamView(object.getLabel(), "", 0, lastY);
@@ -75,7 +75,7 @@ public class MainPane extends JComponent implements MouseListener {
      * Add an operation to the main panel.
      * @param operation 
      */
-    public void addOperation(Operation operation) {
+    protected void addOperation(Operation operation) {
         
         if (!operation.getParameter()[0].equals("")) {
             //generate the communication dialog
@@ -89,20 +89,26 @@ public class MainPane extends JComponent implements MouseListener {
                         iter.hasNext(); ) {
                     StreamView stream = (StreamView)iter.next();
                     
-                    if (stream.getAttributes() != null) {
+                    if (stream.getAttributes(null) != null) {
                         //add attributes for nested queries
                         dialog.addAttributes(stream.getAttrObjects(dot));
                         for (String param: operation.getParameter()) {
                             //add attributes for radio buttons
-                            if (param.equals("attr,attr")) {
+                            if (param.equals("attr,attr") || 
+                                    param.equals("attr")) {
                                 dialog.addRadiobuttons(stream.getName(), 
-                                        stream.getAttributes());
+                                        stream.getAttributes(null));
+                            }
+                            if (param.startsWith("attr") && (param.split(" ").length > 1)) {
+                                String parameterType = param.replace("attr ", "");
+                                dialog.addRadiobuttons(stream.getName(), 
+                                    stream.getAttributes(parameterType));
                             }
                             //add attributes for checkboxes
                             if (param.startsWith("attrlist")) {
                                 if (param.endsWith("dir"))
                                     dialog.addCheckboxes(stream.getName(), 
-                                            stream.getAttributes(), 
+                                            stream.getAttributes(null), 
                                             new String[]{"asc", "desc"});
                                 else if (param.contains("sort"))
                                     dialog.addCheckboxes(stream.getName(), 
@@ -110,7 +116,7 @@ public class MainPane extends JComponent implements MouseListener {
                                             null);
                                 else
                                     dialog.addCheckboxes(stream.getName(), 
-                                            stream.getAttributes(), 
+                                            stream.getAttributes(null), 
                                             null);
                             }
                         }
@@ -192,12 +198,12 @@ public class MainPane extends JComponent implements MouseListener {
      * Search for two attributes with the same name.
      * @return true, if no double attribute names exist
      */
-    public boolean checkAttributes() {
+    protected boolean checkAttributes() {
         String[][] attributes = new String[activeStreams.size()][];
         int i = 0;
         for ( Iterator iter = activeStreams.iterator(); iter.hasNext(); ) {
             StreamView stream = (StreamView)iter.next();
-            attributes[i] = stream.getAttributes();
+            attributes[i] = stream.getAttributes(null);
             if (attributes[i] != null)
                 i++;
         }
@@ -220,8 +226,8 @@ public class MainPane extends JComponent implements MouseListener {
      * @return 
      */
     protected int getAttributesCount() {
-        if (activeStream.getAttributes() != null)
-            return activeStream.getAttributes().length;
+        if (activeStream.getAttributes(null) != null)
+            return activeStream.getAttributes(null).length;
         else
             return 0;
     }
@@ -234,10 +240,11 @@ public class MainPane extends JComponent implements MouseListener {
             StreamView stream = (StreamView)iter.next();
             String state = stream.getState();
             String name = stream.getName();
-            if (state != null) {
+            if (state != null) 
                 infoDialog.addInfo(name, state);
+            
+            if (infoDialog != null)
                 infoDialog.view();
-            }
         }
     }
     
@@ -260,7 +267,7 @@ public class MainPane extends JComponent implements MouseListener {
      * Get the types of the active streams.
      * @return 
      */
-    public String[] getParameters() {
+    protected String[] getParameters() {
         String parameters[] = new String[activeStreams.size()];
         int i = 0;
         for ( Iterator iter = activeStreams.iterator(); iter.hasNext(); ) {
@@ -343,7 +350,8 @@ public class MainPane extends JComponent implements MouseListener {
     /**
      * Remove the active object in the query.
      */
-    public void removeActiveComponent(){
+    protected void removeActiveComponent(){
+        System.out.println("remove");
         if (activeStream.getObjects().size() > 0) {
             activeStream.getObjects().remove(activeStream.getLastComponent());
             lastObject = activeStream.getLastComponent();
@@ -369,11 +377,10 @@ public class MainPane extends JComponent implements MouseListener {
     public void removeLastObject(){
         if (fullStream.size() > 0) {
             StreamView lastStream = fullStream.get(fullStream.size()-1);
+            if (lastStream.getLastComponent().getOnlyName().startsWith("sort"))
+                lastStream.removeSortedAttributes();
             lastStream.getObjects().remove(lastStream.getLastComponent());
             if (lastStream.getLength() < 1) {
-                if (lastY > 0) {
-                    lastY--;
-                }
                 
                 /* remove the stream and set the input streams active */
                 lastStream.remove();
@@ -386,10 +393,13 @@ public class MainPane extends JComponent implements MouseListener {
                 else {
                     activeStream = new StreamView("new", "", 0, 0);
                 }
+                lastY = activeStream.getY()+1;
+                System.out.println(lastY);
             }
         }
         else {
-            viewer.removeAll();
+            this.removeAllObjects();
+            viewer.update();
         }
     }
     
@@ -409,13 +419,14 @@ public class MainPane extends JComponent implements MouseListener {
         }
     }
     
-//    private void setType(ListExpr obj) {
-//        if (obj != null) {
-//            result = obj.second().textValue();
-//            if (result.equals("undefined"))
-//                result = obj.first().textValue();
-//        }
-//    }
+    /**
+     * Set all attributes as sorted attributes.
+     */
+    protected void setSorted() {
+        for (String attrName: activeStream.getAttributes(null)) {
+            activeStream.addSortedAttribute(attrName);
+        }
+    }
     
     /**
      * Update the panel and the stream information.
@@ -490,6 +501,8 @@ public class MainPane extends JComponent implements MouseListener {
           // java 1.4 compatible code
             int dx = 0;
             int dy = 0;
+            
+            // set the position of the frame
             Object src = e.getSource();
             if(src!=null){
                if(src instanceof java.awt.Component){
@@ -500,11 +513,10 @@ public class MainPane extends JComponent implements MouseListener {
                   }
                }
             }
-            
             infoDialog = new InfoDialog(dx + e.getX(), dy + e.getY());
-            infoDialog.setTitle(activeStream.getName());
-            if (stream != null)
-                infoDialog.addInfo("Query: "+stream.getName(), stream.getString());
+            
+            infoDialog.setTitle("Query information");
+            infoDialog.addInfo("Active query:", this.getStrings());
             getInfo();
         }
         
