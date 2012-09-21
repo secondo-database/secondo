@@ -96,7 +96,7 @@ public class QueryconstructionViewer extends SecondoViewer {
         
         ActionListener newl = new ActionListener() {
             public void actionPerformed( ActionEvent e ) {
-                removeAll();
+                removeAllObjects();
             }
         };
         newQuery.addActionListener(newl);
@@ -193,19 +193,19 @@ public class QueryconstructionViewer extends SecondoViewer {
     /**
      * Get the types of all active objects in the main panel.
      * @return array of types
-     */
-    public String[] getParameters() {
-        return mainPane.getParameters();
-    }
+//     */
+//    public String[] getParameters() {
+//        return mainPane.getParameters();
+//    }
     
     /**
      * Send a request to the main panel to check the attributes 
      * for duplicate names.
      * @return 
      */
-    public boolean checkAttributes() {
-        return mainPane.checkAttributes();
-    }
+//    public boolean checkAttributes() {
+//        return mainPane.checkAttributes();
+//    }
     
     /**
      * Copy the active query in the main panel to the system clipboard.
@@ -242,7 +242,7 @@ public class QueryconstructionViewer extends SecondoViewer {
     /**
      * Set the main panel one step back.
      */
-    public void back() {
+    private void back() {
         mainPane.removeLastObject();
         update();
     }
@@ -348,7 +348,7 @@ public class QueryconstructionViewer extends SecondoViewer {
     /**
      * Remove all containing objects and renew the main panel.
      */
-    public void removeAll(){
+    private void removeAllObjects(){
         mainPane.removeAllObjects();
         update();
     }
@@ -358,6 +358,10 @@ public class QueryconstructionViewer extends SecondoViewer {
     }
     
     public void removeObject(SecondoObject o){
+        //does nothing
+    }
+    
+    public void removeAll(){
         //does nothing
     }
     
