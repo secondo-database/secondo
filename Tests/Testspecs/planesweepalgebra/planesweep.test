@@ -225,11 +225,11 @@ query testline1 p_intersects testline2;
 query testline40 p_intersects testline41;
 
 #testcase Union Simple Region x Line 1
-#yields (region ( ( ( (6.0 1.0) (1.0 1.0) (3.0 3.0) (8.0 3.0)))))
+#yields (region ( ( ( (1.0 1.0) (6.0 1.0) (8.0 3.0) (3.0 3.0))))) 
 query union_new(testreg1, testline3);
 
 #testcase Union Simple Line x Region 1
-#yields (region ( ( ( (6.0 1.0) (1.0 1.0) (3.0 3.0) (8.0 3.0)))))
+#yields  (region ( ( ( (1.0 1.0) (6.0 1.0) (8.0 3.0) (3.0 3.0))))) 
 query union_new(testline3, testreg1);
 
 #testcase Intersection Simple Region x Line 1
@@ -241,7 +241,7 @@ query intersection_new(testreg1, testline3);
 query intersection_new(testline3, testreg1);
 
 #testcase Minus Simple Region x Line 1
-#yields (region ( ( ( (6.0 1.0) (1.0 1.0) (3.0 3.0) (8.0 3.0)))))
+#yields (region ( ( ( (1.0 1.0) (6.0 1.0) (8.0 3.0) (3.0 3.0))))) 
 query minus_new(testreg1, testline3);
 
 #testcase Minus Simple Line x Region 1
