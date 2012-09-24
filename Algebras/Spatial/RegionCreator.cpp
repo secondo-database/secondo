@@ -746,7 +746,8 @@ int RegionCreator::getNext(const DbArray<HalfSegment>* hss, int pos,
              faceno++;
          }
      }  
-     result->EndBulkLoad(true, false, true, false); // sort & setPartnerno
+     result->SetNoComponents(faceno);
+     result->EndBulkLoad(true, true, true, false); //sort,coverageNo,Partnerno
   }
 
   void RegionCreator::saveFace(const int cycle, const int faceno,  
