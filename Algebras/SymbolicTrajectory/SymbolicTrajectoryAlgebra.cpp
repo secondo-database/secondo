@@ -2136,9 +2136,9 @@ bool NFA::conditionsMatch(MLabel const &ml) {
           buildCondMatchings(i, seq);
         }
         if (!evaluateCond(ml, i, seq)) {
-          if (numOfNegEvals % 10 == 0) {
+//           if (numOfNegEvals % 10 == 0) {
 //             cout << numOfNegEvals << " negative evaluations now." << endl;
-          }
+//           }
           if (numOfNegEvals == numOfRelCombs) { // relevant sequences tested
             return false;
           }
@@ -2287,11 +2287,11 @@ multiset<size_t> NFA::getNextSeq() {
       }
       if (doublePars.empty() || checkDoublePars(result)) {
         seqCounter++;
-        cout << "seq_" << seqCounter << " | ";
-        for (m = result.begin(); m != result.end(); m++) {
-          cout << *m << ", ";
-        }
-        cout << endl;
+//         cout << "seq_" << seqCounter << " | ";
+//         for (m = result.begin(); m != result.end(); m++) {
+//           cout << *m << ", ";
+//         }
+//         cout << endl;
         return result;
       }
     }
