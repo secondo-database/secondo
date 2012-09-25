@@ -248,6 +248,15 @@ Prints out this segments as a nested list reprenting a line.
      return out;
   }
 
+  string getLineString() const{
+    stringstream ss;
+    ss << setprecision(16);
+    PrintAsLine(ss);
+    return ss.str();
+  }
+
+
+
 /*
 SimpleString
 
