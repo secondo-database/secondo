@@ -99,20 +99,23 @@ void processParallel(const HalfSegment& hsline,
       delta2 = (ry2-ldy) / ldy;
 
    } else { // use x for computing delta
-      double ry1 = hsreg.GetDomPoint().GetY();
-      double ry2 = hsreg.GetSecPoint().GetY();
-      delta1 = (ry1-ldy) / ldy;
-      delta2 = (ry2-ldy) / ldy;
+      double rx1 = hsreg.GetDomPoint().GetX();
+      double rx2 = hsreg.GetSecPoint().GetX();
+      delta1 = (rx1-ldx) / ldx;
+      delta2 = (rx2-ldx) / ldx;
    }
    if(delta1>delta2){
      double tmp = delta1;
      delta1 = delta2;
      delta2 = tmp;
    }
+
    if( (delta1 >= 1.0) || AlmostEqual(delta1,1.0)){
+      // split right of the segment
       return;
    }
    if((delta2<=0) || AlmostEqual(delta1,0.0)){
+      // split left of the segment
       return;
    }
    if(delta1<0){
@@ -123,7 +126,6 @@ void processParallel(const HalfSegment& hsline,
    }
    res.push_back(pair<double,bool>(delta1,true));
    res.push_back(pair<double,bool>(delta2,false));
-
 }
 
 /*
@@ -165,19 +167,33 @@ void addSplitPoint( const HalfSegment hsline,
 
    double k = y*u-v*x;
 
-   if(AlmostEqual(k,0)){ // parallel segments
+
+   //cout << "called addSplitPoint" << endl;
+   //cout << "hsline = " << hsline.getLineString() << endl;
+   //cout << "hsreg = " << hsreg.getLineString() << endl;
+
+
+   //cout << "k = " << k << endl; 
+
+   //if(AlmostEqual(k,0)){ // parallel segments
+   if(k==0){
       //cout << "parallel segments found " << endl;
       processParallel(hsline,hsreg,res);
       return; 
    }
 
    double delta2 = (w*x-z*u) / k;
+
+   //cout << "delta2 = " << delta2 << endl;
    double delta1;
    if(abs(u) > abs(x)){
       delta1 = -1*((w+delta2*v)/u);
    } else {
       delta1 = -1*((z+delta2*y)/x);
    }   
+
+   //cout << "delta1 = " << delta1 << endl;
+
    if(delta1<0 || delta2 < 0){  // intersection point outside segments
         return;
    }   
@@ -196,6 +212,8 @@ void addSplitPoint( const HalfSegment hsline,
                                                   hsreg.GetSecPoint(), 
                                                   hsline.GetSecPoint()); 
    bool insideLeft = hsreg.insideLeft();
+
+   //cout << "insert delta " << delta1 << endl;
    res.push_back(pair<double,bool>(delta1,leftBehindDelta == insideLeft));
 }
 
@@ -254,7 +272,8 @@ void insertLineParts(HalfSegment& hs,
        // checking the containedness
       // cout << "no SPlitPoints " << endl;
       // cout << "check " << hs.middlePoint() << " for containedness" << endl;
-       if(contains(region,hs.middlePoint())){
+
+      if(contains(region,hs.middlePoint())){
          // cout << "Region contains point" << endl;
           hs.attr.edgeno = edgeno;
           result += hs;
@@ -399,6 +418,8 @@ void intersection(const Region& region, const Line& line, Line& result){
    result.Resize(line.Size());
    
    // 1st. Build an RTree and insert the halfsegments of the region
+
+   //cout << "build r-tree" << endl;
 
    mmrtree::RtreeT<2,int> tree(4,8);
    HalfSegment hs;
