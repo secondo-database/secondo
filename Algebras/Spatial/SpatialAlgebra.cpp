@@ -9274,7 +9274,7 @@ void Region::Intersection(const Line& l, Line& result,
                           const Geoid* geoid/*=0*/) const{
 
   try{
-     SetOp(l,*this,result,avlseg::intersection_op, geoid);
+     SetOp(l,*this,result,avlseg::intersection_op, geoid, true);
   } catch (exception& e){
     // compute using robust implementation
     intersection(*this,l,result);

@@ -1554,7 +1554,8 @@ bool splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
                                  greater<avlseg::ExtendedHalfSegment> >& q1,
                       priority_queue<avlseg::ExtendedHalfSegment,
                                  vector<avlseg::ExtendedHalfSegment>,
-                                 greater<avlseg::ExtendedHalfSegment> >& q2){
+                                 greater<avlseg::ExtendedHalfSegment> >& q2,
+                     const bool forceThrow ){
     avlseg::AVLSegment left1, right1, left2, right2;
 
     if(neighbour && !neighbour->innerDisjoint(current)){
@@ -1611,6 +1612,10 @@ bool splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
           insertEvents(right2,true,true,q1,q2);
           return true;
        } else {  // forgotten case or wrong order of halfsegments
+          if(forceThrow){
+             throw myexception("Invalid halfsegment order");
+          }
+
           cerr.precision(16);
           cerr << "Warning wrong order in halfsegment array detected" << endl;
 
@@ -1675,7 +1680,8 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
                                     greater<avlseg::ExtendedHalfSegment> >& q1,
                      priority_queue<avlseg::ExtendedHalfSegment,
                                     vector<avlseg::ExtendedHalfSegment>,
-                                    greater<avlseg::ExtendedHalfSegment> >& q2){
+                                    greater<avlseg::ExtendedHalfSegment> >& q2,
+                     const bool forceThrow){
 
   if(leftN && rightN && !leftN->innerDisjoint(*rightN)){
     avlseg::AVLSegment left1, right1, left2, right2;
@@ -1713,6 +1719,9 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
          insertEvents(right1,true,true,q1,q2);
          insertEvents(right2,true,true,q1,q2);
     } else if(leftN->ininterior(rightN->getX1(), rightN->getY1())){
+       if(forceThrow){
+          throw myexception("found element to split too late");
+       }
        cerr << __LINE__ << "Warning found an element to split too late" << endl;
        sss.remove(*leftN);
        leftN->splitAt(rightN->getX1(), rightN->getY1(), left1, right1);
@@ -1722,6 +1731,9 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
        }
        insertEvents(right1, true,true,q1,q2);
     } else if(rightN->ininterior(leftN->getX1(), leftN->getY1())){
+       if(forceThrow){
+          throw myexception("found element to split too late");
+       }
        cerr << __LINE__ << "Warning found an element to split too late" << endl;
        sss.remove(*rightN);
        rightN->splitAt(leftN->getX1(), leftN->getY1(), left1, right1);
@@ -1732,6 +1744,9 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
        insertEvents(right1, true,true,q1,q2);
     } else { // forgotten case or overlapping segments (rounding errors)
        if(leftN->overlaps(*rightN)){
+         if(forceThrow){
+            throw myexception("found element to split too late");
+         }
          cerr << "Overlapping neighbours found" << endl;
          cerr << "leftN = " << *leftN << endl;
          cerr << "rightN = " << *rightN << endl;
@@ -1763,6 +1778,9 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
          }
 
        } else {
+          if(forceThrow){
+             throw myexception("found element to split too late");
+          }
           cout.precision(16);
           cout << "Found to segments which are in no  valid relation " << endl;
           cout << " leftN  = " << (*leftN) << endl;
@@ -2215,7 +2233,7 @@ avlseg::ownertype selectNext(const Line& src, int& pos,
 }
 
 
-void Realminize2(const Line& src, Line& result){
+void Realminize2(const Line& src, Line& result, const bool forceThrow){
 
   result.Clear();
   if(!src.IsDefined()){
@@ -2266,8 +2284,8 @@ void Realminize2(const Line& src, Line& result){
                insertEvents(right1,true,true,q,q);
             }
          } else { // no overlapping segment found
-            splitByNeighbour(sss,current,leftN,q,q);
-            splitByNeighbour(sss,current,rightN,q,q);
+            splitByNeighbour(sss,current,leftN,q,q, forceThrow);
+            splitByNeighbour(sss,current,rightN,q,q, forceThrow);
             if(!current.isPoint()){
               sss.insert(current);
               insertEvents(current,false,true,q,q);
@@ -2284,7 +2302,7 @@ void Realminize2(const Line& src, Line& result){
              hs2.attr.edgeno = edgeno;
              result += hs1;
              result += hs2;
-             splitNeighbours(sss,leftN,rightN,q,q);
+             splitNeighbours(sss,leftN,rightN,q,q, forceThrow);
              edgeno++;
              sss.remove(*member);
           }
@@ -2354,7 +2372,8 @@ class XRemover: public unary_functor<avlseg::AVLSegment, bool>{
 };
 
 
-DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
+DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments, 
+                                 const bool forceThrow){
 
 
   DbArray<HalfSegment>* res = new DbArray<HalfSegment>(segments.Size());
@@ -2418,7 +2437,7 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
                   hs2.attr.edgeno = edgeno;
                   res->Append(hs1);
                   res->Append(hs2);
-                  splitNeighbours(sss,leftN,rightN,q1,q2);
+                  splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
                   edgeno++;
                   sss.remove(*member);
                   insertEvents(current,true,true,q1,q2);
@@ -2435,9 +2454,9 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
                }
             }
          } else { // no overlapping segment found
-            if(splitByNeighbour(sss,current,leftN,q1,q2)){
+            if(splitByNeighbour(sss,current,leftN,q1,q2, forceThrow)){
                insertEvents(current,true,true,q1,q2);
-            } else if(splitByNeighbour(sss,current,rightN,q1,q2)) {
+            } else if(splitByNeighbour(sss,current,rightN,q1,q2, forceThrow)) {
                insertEvents(current,true,true,q1,q2);
             } else {
                sss.insert(current);
@@ -2453,7 +2472,7 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
              hs2.attr.edgeno = edgeno;
              res->Append(hs1);
              res->Append(hs2);
-             splitNeighbours(sss,leftN,rightN,q1,q2);
+             splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
              edgeno++;
              sss.remove(*member);
           }
@@ -2535,7 +2554,8 @@ that overlapping parts of segments are kept, instead of beeig removed.
 But at all crossing points and so on, the segments will be split.
 
 */
-DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments){
+DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments,
+                            const bool forceThrow /*=false*/){
 
   DbArray<HalfSegment>* res = new DbArray<HalfSegment>(0);
 
@@ -2606,8 +2626,8 @@ DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments){
               insertEvents(tmp_right,true,true,q,q);
             }
          } else { // no overlapping segment found
-            splitByNeighbour(sss,current,leftN,q,q);
-            splitByNeighbour(sss,current,rightN,q,q);
+            splitByNeighbour(sss,current,leftN,q,q, forceThrow);
+            splitByNeighbour(sss,current,rightN,q,q, forceThrow);
             if(!current.isPoint()){
               sss.insert(current);
               insertEvents(current,false,true,q,q);
@@ -2622,7 +2642,7 @@ DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments){
              hs2.attr.edgeno = edgeno;
              res->Append(hs1);
              res->Append(hs2);
-             splitNeighbours(sss,leftN,rightN,q,q);
+             splitNeighbours(sss,leftN,rightN,q,q, forceThrow);
              edgeno++;
              sss.remove(*member);
           }
@@ -2641,7 +2661,8 @@ DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments){
 }
 
 bool hasOverlaps(const DbArray<HalfSegment>& segments,
-                 const bool ignoreEqual){
+                 const bool ignoreEqual,
+                 const bool forceThrow){
   if(segments.Size()<2){ // no overlaps possible
     return false;
   }
@@ -2685,8 +2706,8 @@ bool hasOverlaps(const DbArray<HalfSegment>& segments,
                insertEvents(right1,true,true,q,q);
             }
          } else { // no overlapping segment found
-            splitByNeighbour(sss,current,leftN,q,q);
-            splitByNeighbour(sss,current,rightN,q,q);
+            splitByNeighbour(sss,current,leftN,q,q, forceThrow);
+            splitByNeighbour(sss,current,rightN,q,q, forceThrow);
             if(!current.isPoint()){
               sss.insert(current);
               insertEvents(current,false,true,q,q);
@@ -2695,7 +2716,7 @@ bool hasOverlaps(const DbArray<HalfSegment>& segments,
       } else {  // nextHS rightDomPoint
           if(member && member->exactEqualsTo(current)){
              // insert the halfsegments
-             splitNeighbours(sss,leftN,rightN,q,q);
+             splitNeighbours(sss,leftN,rightN,q,q, forceThrow);
              sss.remove(*member);
           }
       }
@@ -2716,7 +2737,8 @@ void SetOp(const Line& line1,
            const Line& line2,
            Line& result,
            avlseg::SetOperation op,
-           const Geoid* geoid/*=0*/){
+           const Geoid* geoid/*=0*/,
+           const bool forceThrow /*=false*/){
 
    result.Clear();
 
@@ -2819,8 +2841,8 @@ void SetOp(const Line& line1,
                  }
              }
           } else { // no overlapping segment found
-            splitByNeighbour(sss,current,leftN,q1,q2);
-            splitByNeighbour(sss,current,rightN,q1,q2);
+            splitByNeighbour(sss,current,leftN,q1,q2, forceThrow);
+            splitByNeighbour(sss,current,rightN,q1,q2, forceThrow);
             if(!current.isPoint()){
               sss.insert(current);
               insertEvents(current,false,true,q1,q2);
@@ -2866,7 +2888,7 @@ void SetOp(const Line& line1,
                 }
              }
              sss.remove(*member);
-             splitNeighbours(sss,leftN,rightN,q1,q2);
+             splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
          }
        }
   }
@@ -2892,7 +2914,8 @@ void SetOp(const Region& reg1,
            const Region& reg2,
            Region& result,
            avlseg::SetOperation op,
-           const Geoid* geoid/*=0*/){
+           const Geoid* geoid/*=0*/,
+           const bool forceThrow/*=false*/){
 
    if(geoid){
       cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
@@ -3061,8 +3084,8 @@ void SetOp(const Region& reg1,
           } else { // there is no overlapping segment
 
             // try to split segments if required
-            splitByNeighbour(sss,current,leftN,q1,q2);
-            splitByNeighbour(sss,current,rightN,q1,q2);
+            splitByNeighbour(sss,current,leftN,q1,q2, forceThrow);
+            splitByNeighbour(sss,current,rightN,q1,q2, forceThrow);
 
 
             // update coverage numbers
@@ -3182,7 +3205,7 @@ void SetOp(const Region& reg1,
                 default : assert(false);
               } // end of switch
               sss.remove(*member);
-              splitNeighbours(sss,leftN,rightN,q1,q2);
+              splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
           } // current found in sss
        } // right endpoint
   }
@@ -3195,7 +3218,8 @@ void SetOp(const Region& reg1,
 } // setOP region x region -> region
 
 Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op,
-              const Geoid* geoid/*=0*/){
+              const Geoid* geoid/*=0*/,
+              const bool forceThrow/*=false*/){
   Region* result = new Region(1);
   SetOp(reg1,reg2,*result,op,geoid);
   return result;
@@ -3240,7 +3264,8 @@ void SetOp(const Line& line,
            const Region& region,
            Line& result,
            avlseg::SetOperation op,
-           const Geoid* geoid/*=0*/){
+           const Geoid* geoid/*=0*/,
+           const bool forceThrow /*=false*/){
 
   assert(op==avlseg::intersection_op || op == avlseg::difference_op);
 
@@ -3348,8 +3373,8 @@ void SetOp(const Line& line,
              }
            }
         } else { // no overlapping segment in sss found
-          splitByNeighbour(sss,current,leftN,q1,q2);
-          splitByNeighbour(sss,current,rightN,q1,q2);
+          splitByNeighbour(sss,current,leftN,q1,q2, forceThrow);
+          splitByNeighbour(sss,current,rightN,q1,q2, forceThrow);
           // update coverage numbers
           if(owner==avlseg::second){ // the region
             bool iac = current.getInsideAbove();
@@ -3419,7 +3444,7 @@ void SetOp(const Line& line,
               default : assert(false);
           }
           sss.remove(*member);
-          splitNeighbours(sss,leftN,rightN,q1,q2);
+          splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
        }
        if(pos1>=size1 && q1.empty()){ // line is processed
           done = true;
@@ -3437,7 +3462,8 @@ Here is only ~intersection~ applicable.
 */
 
 void SetOp(const Line& line1, const SimpleLine& line2, SimpleLine& result,
-           avlseg::SetOperation op, const Geoid* geoid /*=0*/){
+           avlseg::SetOperation op, const Geoid* geoid /*=0*/,
+           const bool forceThrow/*=false*/){
   result.Clear();
 
   if(geoid){
@@ -3523,8 +3549,8 @@ void SetOp(const Line& line1, const SimpleLine& line2, SimpleLine& result,
       }
       else
       { // no overlapping segment found
-        splitByNeighbour(sss,current,leftN,q1,q2);
-        splitByNeighbour(sss,current,rightN,q1,q2);
+        splitByNeighbour(sss,current,leftN,q1,q2, forceThrow);
+        splitByNeighbour(sss,current,rightN,q1,q2, forceThrow);
         if(!current.isPoint()){
           sss.insert(current);
           insertEvents(current,false,true,q1,q2);
@@ -3544,7 +3570,7 @@ void SetOp(const Line& line1, const SimpleLine& line2, SimpleLine& result,
           edgeno++;
         }
         sss.remove(*member);
-        splitNeighbours(sss,leftN,rightN,q1,q2);
+        splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
       }
     }
   }
@@ -3559,7 +3585,8 @@ applicable for difference  and union
 */
 
 void SetOp(const Line& line1, const SimpleLine& line2, Line& result,
-           avlseg::SetOperation op, const Geoid* geoid /*=0*/){
+           avlseg::SetOperation op, const Geoid* geoid /*=0*/,
+           const bool forceThrow/*=false*/){
   result.Clear();
   if(geoid){
     cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
@@ -3654,8 +3681,8 @@ void SetOp(const Line& line1, const SimpleLine& line2, Line& result,
       }
       else
       { // no overlapping segment found
-        splitByNeighbour(sss,current,leftN,q1,q2);
-        splitByNeighbour(sss,current,rightN,q1,q2);
+        splitByNeighbour(sss,current,leftN,q1,q2, forceThrow);
+        splitByNeighbour(sss,current,rightN,q1,q2, forceThrow);
         if(!current.isPoint()){
           sss.insert(current);
           insertEvents(current,false,true,q1,q2);
@@ -3695,7 +3722,7 @@ void SetOp(const Line& line1, const SimpleLine& line2, Line& result,
           }
         }
         sss.remove(*member);
-        splitNeighbours(sss,leftN,rightN,q1,q2);
+        splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
       }
     }
   }
@@ -3710,7 +3737,8 @@ applicable for intersection and difference
 */
 
 void SetOp(const SimpleLine& line1, const Line& line2, SimpleLine& result,
-           avlseg::SetOperation op, const Geoid* geoid /*=0*/){
+           avlseg::SetOperation op, const Geoid* geoid /*=0*/,
+            const bool forceThrow/*=false*/){
   result.Clear();
 
   if(geoid){
@@ -3809,8 +3837,8 @@ void SetOp(const SimpleLine& line1, const Line& line2, SimpleLine& result,
       }
       else
       { // no overlapping segment found
-        splitByNeighbour(sss,current,leftN,q1,q2);
-        splitByNeighbour(sss,current,rightN,q1,q2);
+        splitByNeighbour(sss,current,leftN,q1,q2, forceThrow);
+        splitByNeighbour(sss,current,rightN,q1,q2, forceThrow);
         if(!current.isPoint()){
           sss.insert(current);
           insertEvents(current,false,true,q1,q2);
@@ -3851,7 +3879,7 @@ void SetOp(const SimpleLine& line1, const Line& line2, SimpleLine& result,
           }
         }
         sss.remove(*member);
-        splitNeighbours(sss,leftN,rightN,q1,q2);
+        splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
       }
     }
   }
@@ -3866,7 +3894,8 @@ for union only
 */
 
 void SetOp(const SimpleLine& line1, const Line& line2, Line& result,
-           avlseg::SetOperation op, const Geoid* geoid/*=0*/)
+           avlseg::SetOperation op, const Geoid* geoid/*=0*/,
+           const bool forceThrow/*=false*/)
 {
   result.Clear();
   if(geoid){
@@ -3957,8 +3986,8 @@ void SetOp(const SimpleLine& line1, const Line& line2, Line& result,
       }
       else
       { // no overlapping segment found
-        splitByNeighbour(sss,current,leftN,q1,q2);
-        splitByNeighbour(sss,current,rightN,q1,q2);
+        splitByNeighbour(sss,current,leftN,q1,q2, forceThrow);
+        splitByNeighbour(sss,current,rightN,q1,q2, forceThrow);
         if(!current.isPoint()){
           sss.insert(current);
           insertEvents(current,false,true,q1,q2);
@@ -3977,7 +4006,7 @@ void SetOp(const SimpleLine& line1, const Line& line2, Line& result,
         edgeno++;
       }
       sss.remove(*member);
-      splitNeighbours(sss,leftN,rightN,q1,q2);
+      splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
     }
   }
   result.EndBulkLoad(true,false);
@@ -3991,7 +4020,8 @@ for ~intersection~ and ~minus~
 */
 
 void SetOp(const SimpleLine& line1, const SimpleLine& line2, SimpleLine& result,
-           avlseg::SetOperation op, const Geoid* geoid /*=0*/)
+           avlseg::SetOperation op, const Geoid* geoid /*=0*/,
+           const bool forceThrow/*=false*/)
 {
   result.Clear();
 
@@ -4090,8 +4120,8 @@ void SetOp(const SimpleLine& line1, const SimpleLine& line2, SimpleLine& result,
       }
       else
       { // no overlapping segment found
-        splitByNeighbour(sss,current,leftN,q1,q2);
-        splitByNeighbour(sss,current,rightN,q1,q2);
+        splitByNeighbour(sss,current,leftN,q1,q2, forceThrow);
+        splitByNeighbour(sss,current,rightN,q1,q2, forceThrow);
         if(!current.isPoint()){
           sss.insert(current);
           insertEvents(current,false,true,q1,q2);
@@ -4132,7 +4162,7 @@ void SetOp(const SimpleLine& line1, const SimpleLine& line2, SimpleLine& result,
           }
         }
         sss.remove(*member);
-        splitNeighbours(sss,leftN,rightN,q1,q2);
+        splitNeighbours(sss,leftN,rightN,q1,q2,forceThrow);
       }
     }
   }
@@ -4147,7 +4177,8 @@ for union only
 */
 
 void SetOp(const SimpleLine& line1, const SimpleLine& line2, Line& result,
-           avlseg::SetOperation op, const Geoid* geoid /*=0*/){
+           avlseg::SetOperation op, const Geoid* geoid /*=0*/,
+           const bool forceThrow/*=false*/){
   result.Clear();
 
   if(geoid){
@@ -4240,8 +4271,8 @@ void SetOp(const SimpleLine& line1, const SimpleLine& line2, Line& result,
       }
       else
       { // no overlapping segment found
-        splitByNeighbour(sss,current,leftN,q1,q2);
-        splitByNeighbour(sss,current,rightN,q1,q2);
+        splitByNeighbour(sss,current,leftN,q1,q2, forceThrow);
+        splitByNeighbour(sss,current,rightN,q1,q2, forceThrow);
         if(!current.isPoint()){
           sss.insert(current);
           insertEvents(current,false,true,q1,q2);
@@ -4260,7 +4291,7 @@ void SetOp(const SimpleLine& line1, const SimpleLine& line2, Line& result,
         edgeno++;
       }
       sss.remove(*member);
-      splitNeighbours(sss,leftN,rightN,q1,q2);
+      splitNeighbours(sss,leftN,rightN,q1,q2,forceThrow);
     }
   }
   result.EndBulkLoad(true,false);
@@ -4294,7 +4325,8 @@ for intersection and difference only.
 */
 
 void SetOp(const SimpleLine& line, const Region& region, SimpleLine& result,
-           avlseg::SetOperation op, const Geoid* geoid /*=0*/){
+           avlseg::SetOperation op, const Geoid* geoid /*=0*/,
+           const bool forceThrow/* = false*/){
   assert(op==avlseg::intersection_op || op == avlseg::difference_op);
   if(geoid){
     cerr << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
@@ -4401,8 +4433,8 @@ void SetOp(const SimpleLine& line, const Region& region, SimpleLine& result,
       }
       else
       { // no overlapping segment in sss found
-        splitByNeighbour(sss,current,leftN,q1,q2);
-        splitByNeighbour(sss,current,rightN,q1,q2);
+        splitByNeighbour(sss,current,leftN,q1,q2, forceThrow);
+        splitByNeighbour(sss,current,rightN,q1,q2, forceThrow);
         // update coverage numbers
         if(owner==avlseg::second){ // the region
           bool iac = current.getInsideAbove();
@@ -4484,7 +4516,7 @@ void SetOp(const SimpleLine& line, const Region& region, SimpleLine& result,
           default : assert(false);
         }
         sss.remove(*member);
-        splitNeighbours(sss,leftN,rightN,q1,q2);
+        splitNeighbours(sss,leftN,rightN,q1,q2,forceThrow);
       }
       if(pos1>=size1 && q1.empty()){ // line is processed
         done = true;
@@ -4505,7 +4537,8 @@ void CommonBorder(
            const Region& reg1,
            const Region& reg2,
            Line& result,
-           const Geoid* geoid/*=0*/){
+           const Geoid* geoid/*=0*/,
+           const bool forceThrow/*=false*/){
 
    result.Clear();
 
@@ -4594,8 +4627,8 @@ void CommonBorder(
             }
           } else { // there is no overlapping segment
             // try to split segments if required
-            splitByNeighbour(sss,current,leftN,q1,q2);
-            splitByNeighbour(sss,current,rightN,q1,q2);
+            splitByNeighbour(sss,current,leftN,q1,q2, forceThrow);
+            splitByNeighbour(sss,current,rightN,q1,q2, forceThrow);
             if(!current.isPoint()){
               sss.insert(current);
               insertEvents(current,false,true,q1,q2);
@@ -4613,7 +4646,7 @@ void CommonBorder(
                  edgeno++;
               }
               sss.remove(*member);
-              splitNeighbours(sss,leftN,rightN,q1,q2);
+              splitNeighbours(sss,leftN,rightN,q1,q2,forceThrow);
           } // current found in sss
           if(((pos1 >= size1) && q1.empty())  ||
              ((pos2 >= size2) && q2.empty())){

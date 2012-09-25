@@ -623,7 +623,8 @@ bool GetInt9M(Line const* const line,
               Pclass const* const point,
               Int9M& res,
               const bool useCluster,
-              Cluster& cluster){
+              Cluster& cluster,
+              const bool forceThrow/*=false*/){
 
    bool pointdone1 = false;
    if(initBox(line,point,res,pointdone1)){
@@ -790,8 +791,8 @@ bool GetInt9M(Line const* const line,
                 q.push(right1.convertToExtendedHs(false,avlseg::first));
               }
            } else { // there is no overlapping segment
-             splitByNeighbour(sss,current,leftN,q,q);
-             splitByNeighbour(sss,current,rightN,q,q);
+             splitByNeighbour(sss,current,leftN,q,q, forceThrow);
+             splitByNeighbour(sss,current,rightN,q,q, forceThrow);
              sss.insert(current);
            } // no overlapping segment
        } else { // right event
@@ -801,7 +802,7 @@ bool GetInt9M(Line const* const line,
            if(member && member->exactEqualsTo(current)){ // segment found
 
               sss.remove(current);
-              splitNeighbours(sss,leftN,rightN,q,q);
+              splitNeighbours(sss,leftN,rightN,q,q, forceThrow);
            }
        }
      }
@@ -825,13 +826,15 @@ Instantiations of the template function
 */
 
 bool GetInt9M(Line const* const line, Point const* const point,Int9M& res,
-              const bool useCluster=false, Cluster cluster = Cluster()){
-   return GetInt9M<Point>(line,point,res, useCluster, cluster);
+              const bool useCluster=false, Cluster cluster = Cluster(),
+              const bool forceThrow = false){
+   return GetInt9M<Point>(line,point,res, useCluster, cluster, forceThrow);
 }
 
 bool GetInt9M(Line const* const line, Points const* const point,Int9M& res,
-              const bool useCluster=false, Cluster cluster = Cluster()){
-  return GetInt9M<Points>(line,point,res, useCluster, cluster);
+              const bool useCluster=false, Cluster cluster = Cluster(),
+              const bool forceThrow= false){
+  return GetInt9M<Points>(line,point,res, useCluster, cluster, forceThrow);
 }
 
 
@@ -1083,7 +1086,8 @@ avlseg::ownertype selectNext(const Region*  reg,
 
 bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
               const bool useCluster=false,
-              Cluster cluster = Cluster()){
+              Cluster cluster = Cluster(),
+              const bool forceThrow = false){
   res.SetValue(0);
   // test for emptyness
    res.SetEE(true);
@@ -1217,13 +1221,13 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
          }
       // debug::end
          assert(!member); // a single region can't contain overlapping segments
-         splitByNeighbour(sss,current,leftN,q1,q1);
-         splitByNeighbour(sss,current,rightN,q1,q1);
+         splitByNeighbour(sss,current,leftN,q1,q1, forceThrow);
+         splitByNeighbour(sss,current,rightN,q1,q1, forceThrow);
          sss.insert(current);
       } else { // right event
         if(member && member->exactEqualsTo(current)){
            sss.remove(current);
-           splitNeighbours(sss,leftN,rightN,q1,q1);
+           splitNeighbours(sss,leftN,rightN,q1,q1, forceThrow);
         }
       }
     } // element from region
@@ -1283,7 +1287,8 @@ class OwnedPoint{
 
 bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
               const bool useCluster =false,
-              Cluster cluster = Cluster()){
+              Cluster cluster = Cluster(),
+              const bool forceThrow = false){
 
   res.SetValue(0);;
   res.SetEE(true);
@@ -1592,8 +1597,8 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
                      SetBB(res,useCluster,cluster,done);
                  }
               }
-              splitByNeighbour(sss,current,leftN,q1,q2);
-              splitByNeighbour(sss,current,rightN,q1,q2);
+              splitByNeighbour(sss,current,leftN,q1,q2, forceThrow);
+              splitByNeighbour(sss,current,rightN,q1,q2, forceThrow);
              // insert current (may be shortened) into sss
             // update coverage numbers
             bool iac = current.getOwner()==avlseg::first?
@@ -1705,7 +1710,7 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
                  return true;
               }
            }
-           splitNeighbours(sss,leftN,rightN,q1,q2);
+           splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
         }
       }
     }
@@ -1842,7 +1847,8 @@ bool GetInt9M(Line const* const line1,
               Line const* const line2,
               Int9M& res,
               const bool useCluster=false,
-              Cluster cluster = Cluster() ){
+              Cluster cluster = Cluster(),
+              const bool forceThrow = false ){
 
 
 // we can only ommit the planesweep if both lines are empty
@@ -2019,8 +2025,8 @@ bool GetInt9M(Line const* const line1,
 
         }
       } else { // no overlapping segment stored in sss
-        splitByNeighbour(sss,current,leftN,q1,q2);
-        splitByNeighbour(sss,current,rightN,q1,q2);
+        splitByNeighbour(sss,current,leftN,q1,q2, forceThrow);
+        splitByNeighbour(sss,current,rightN,q1,q2, forceThrow);
         updateDomPoints_Line_Line(lastDomPoint,nextHs.GetDomPoint(),
                         lastDomPointCount1, lastDomPointCount2,
                          owner,res,useCluster,cluster,done);
@@ -2052,7 +2058,7 @@ bool GetInt9M(Line const* const line1,
                        break;
           default:     assert(false);
         }
-        splitNeighbours(sss,leftN,rightN,q1,q2);
+        splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
      } // otherwise current comes from a splitted segment and is ignored
    }
    done = done || res.IsFull();
@@ -2195,7 +2201,8 @@ bool GetInt9M(Line   const* const line,
               Region const* const region,
               Int9M& res,
               const bool useCluster=false,
-              Cluster cluster = Cluster()){
+              Cluster cluster = Cluster(),
+              const bool forceThrow = false){
 
   res.SetValue(0);
   res.SetEE(true);
@@ -2379,8 +2386,8 @@ bool GetInt9M(Line   const* const line,
          }
        } else { // no overlapping segment found
           // check if current or an existing segment must be divided
-          splitByNeighbour(sss,current,leftN,q1,q2);
-          splitByNeighbour(sss,current,rightN,q1,q2);
+          splitByNeighbour(sss,current,leftN,q1,q2, forceThrow);
+          splitByNeighbour(sss,current,rightN,q1,q2, forceThrow);
           // update coverage numbers
           if(owner==avlseg::second){ // the region
             bool iac = current.getInsideAbove();
@@ -2434,7 +2441,7 @@ bool GetInt9M(Line   const* const line,
            avlseg::AVLSegment tmp = *member;
            sss.remove(*member);
            member = &tmp;
-           splitNeighbours(sss,leftN,rightN,q1,q2);
+           splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
            // update dominating point information
            Point domPoint = nextHs.GetDomPoint();
            updateDomPointInfo_Line_Region(lastDomPoint, domPoint,

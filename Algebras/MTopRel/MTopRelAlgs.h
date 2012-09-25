@@ -1186,7 +1186,8 @@ Returns the next cluster with its corresponding time interval.
 
 
        void init(const Region* reg, const UPoint* up, 
-                 const toprel::PredicateGroup* pg);
+                 const toprel::PredicateGroup* pg,
+                 const bool forceThrow = false);
 
 };
 
@@ -1279,7 +1280,8 @@ Returns the next cluster with its corresponding time interval.
 
    template<bool sym>
    void MTopRelAlg_RUP_T<sym>::init( const Region* reg, const UPoint* up, 
-                          const toprel::PredicateGroup* pg ){
+                          const toprel::PredicateGroup* pg,
+                          const bool forceThrow/* = false*/ ){
 
 
      if(!reg || !up){
@@ -1428,9 +1430,9 @@ Returns the next cluster with its corresponding time interval.
                   // check for possible intersections with neighbours
 
 
-                  splitByNeighbour(sss,current,leftN,qreg,qup);
+                  splitByNeighbour(sss,current,leftN,qreg,qup, forceThrow);
 
-                  splitByNeighbour(sss,current,rightN,qreg,qup);
+                  splitByNeighbour(sss,current,rightN,qreg,qup, forceThrow);
 
 
 
@@ -1494,7 +1496,7 @@ Returns the next cluster with its corresponding time interval.
                   }
                } 
                sss.remove(*member);
-               splitNeighbours(sss,leftN,rightN,qreg,qup);
+               splitNeighbours(sss,leftN,rightN,qreg,qup, forceThrow);
              }
          }
       } // while

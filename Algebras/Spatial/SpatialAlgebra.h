@@ -4342,6 +4342,9 @@ and current is shortened to its left part. The remainding parts (the right parts
 are inserted into the corresponding queues depending on the woner of ~current~ and
 ~neighbour~.
 
+If forceThrow is set to true, in each case of trouble, an excapeion is thrown.
+Otherwise, the algorithms tries to correct the error.
+
 */
 
 bool splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
@@ -4352,7 +4355,8 @@ bool splitByNeighbour(avltree::AVLTree<avlseg::AVLSegment>& sss,
                                 greater<avlseg::ExtendedHalfSegment> >& q1,
                       priority_queue<avlseg::ExtendedHalfSegment,
                                 vector<avlseg::ExtendedHalfSegment>,
-                                greater<avlseg::ExtendedHalfSegment> >& q2);
+                                greater<avlseg::ExtendedHalfSegment> >& q2,
+                     const bool forceThrow);
 
 /*
 ~splitByNeighbours~
@@ -4370,7 +4374,8 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
                                     greater<avlseg::ExtendedHalfSegment> >& q1,
                      priority_queue<avlseg::ExtendedHalfSegment,
                                     vector<avlseg::ExtendedHalfSegment>,
-                                    greater<avlseg::ExtendedHalfSegment> >& q2);
+                                    greater<avlseg::ExtendedHalfSegment> >& q2,
+                     const bool forceThrow);
 
 /*
 ~SetOp~
@@ -4381,7 +4386,7 @@ or avlseg::intersection[_]op.
 
 */
 Line* SetOp(const Line& line1, const Line& line2, avlseg::SetOperation op,
-            const Geoid* geoid=0 );
+            const Geoid* geoid=0, const bool forceThrow = false );
 
 /*
 ~SetOp~
@@ -4392,49 +4397,63 @@ or avlseg::intersection[_]op.
 
 */
 Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op,
-              const Geoid* geoid=0 );
+              const Geoid* geoid = 0,
+              const bool forceThrow = false );
 
 
 
 void SetOp(const Line& line, const Region& region,
-           Line& result, avlseg::SetOperation op, const Geoid* geoid=0);
+           Line& result, avlseg::SetOperation op, const Geoid* geoid=0,
+           const bool forceThrow = false);
 
 void SetOp(const Line& line, const Region& region,
-           Region& result, avlseg::SetOperation op, const Geoid* geoid=0);
+           Region& result, avlseg::SetOperation op, const Geoid* geoid=0,
+           const bool forceThrow = false);
 
 
 void SetOp(const Line& line1, const Line& line2,
-           Line& result, avlseg::SetOperation op, const Geoid* geoid=0);
+           Line& result, avlseg::SetOperation op, const Geoid* geoid=0,
+           const bool forceThrow = false);
 
 void SetOp(const Region& reg1, const Region& reg2,
-           Region& result, avlseg::SetOperation op, const Geoid* geoid=0);
+           Region& result, avlseg::SetOperation op, const Geoid* geoid=0,
+           const bool forceThrow = false);
 
 void SetOp(const Line& l, const SimpleLine& sl, SimpleLine& result,
-           avlseg::SetOperation op, const Geoid* geoid=0);
+           avlseg::SetOperation op, const Geoid* geoid=0,
+           const bool forceThrow = false);
 
 void SetOp(const Line& l, const SimpleLine& sl, Line& result,
-           avlseg::SetOperation op, const Geoid* geoid=0);
+           avlseg::SetOperation op, const Geoid* geoid=0,
+           const bool forceThrow = false);
 
 void SetOp(const SimpleLine& sl, const Line& l, SimpleLine& result,
-           avlseg::SetOperation op, const Geoid* geoid=0);
+           avlseg::SetOperation op, const Geoid* geoid=0,
+           const bool forceThrow = false);
 
 void SetOp(const SimpleLine& sl, const Line& l, Line& result,
-           avlseg::SetOperation op, const Geoid* geoid=0);
+           avlseg::SetOperation op, const Geoid* geoid=0,
+           const bool forceThrow = false);
 
 void SetOp(const SimpleLine& sl1, const SimpleLine& sl2, SimpleLine& result,
-           avlseg::SetOperation op, const Geoid* geoid=0);
+           avlseg::SetOperation op, const Geoid* geoid=0,
+           const bool forceThrow = false);
 
 void SetOp(const SimpleLine& sl1, const SimpleLine& sl2, Line& result,
-           avlseg::SetOperation op, const Geoid* geoid=0);
+           avlseg::SetOperation op, const Geoid* geoid=0,
+           const bool forceThrow = false);
 
 void SetOp(const Region& r, const SimpleLine& sl, Region& result,
-           avlseg::SetOperation op, const Geoid* geoid=0);
+           avlseg::SetOperation op, const Geoid* geoid=0,
+           const bool forceThrow = false);
 
 void SetOp(const SimpleLine& sl, const Region& r, SimpleLine& result,
-           avlseg::SetOperation op, const Geoid* geoid=0);
+           avlseg::SetOperation op, const Geoid* geoid=0,
+           const bool forceThrow = false);
 
 void SetOp(const SimpleLine& sl, const Region& r, Region& result,
-           avlseg::SetOperation op, const Geoid* geoid=0);
+           avlseg::SetOperation op, const Geoid* geoid=0,
+           const bool forceThrow = false);
 
 /*
 ~Realminize~
@@ -4444,7 +4463,8 @@ if halfsegments overlap, only one of the segments left. If halfsegments are cros
 or touching at their interior, their are split.
 
 */
-DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments);
+DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments, 
+                                 const bool forceThrow= false);
 
 /*
 ~Split~
@@ -4453,7 +4473,8 @@ This function is similar to Realminize. In contrast to that function, segments c
 same space left instead to replace by a single segment.
 
 */
-DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments);
+DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments, 
+                            const bool forceThrow = false);
 
 /*
 ~hasOverlaps~
@@ -4462,7 +4483,8 @@ This function checks whether in ~segments~ at least two segments overlap.
 
 */
 bool hasOverlaps(const DbArray<HalfSegment>& segments,
-                 const bool ignoreEqual=false);
+                 const bool ignoreEqual=false,
+                 const bool forceThrow = false);
 
 
 /*
@@ -4553,10 +4575,10 @@ avlseg::ownertype selectNext( const Line& line,
                       avlseg::ExtendedHalfSegment& resHs,
                       Point& resPoint);
 
-void Realminize2(const Line& src, Line& result);
+void Realminize2(const Line& src, Line& result, const bool forceThrow = false);
 
 void CommonBorder( const Region& reg1, const Region& reg2, Line& result,
-                   const Geoid* geoid = 0);
+                   const Geoid* geoid = 0, const bool forceThrow = false);
 
 struct P3D;
 
