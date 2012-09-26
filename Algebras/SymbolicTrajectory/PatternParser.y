@@ -207,10 +207,10 @@ conditionsequence : condition
 
 condition : expressionlist {
               cond.setText(exprList.toString());
-              cout << "store condition " << cond.getText() << endl;
+/*               cout << "store condition " << cond.getText() << endl; */
               cond.substitute();
               wholepat->addCond(cond);
-              cout << "condition stored" << endl;
+/*               cout << "condition stored" << endl; */
               exprList.exprs.clear();
               cond.clearVectors();
             }
@@ -293,7 +293,7 @@ enclosedlist : expression expressionlistenclosed {
 
 expressionlistenclosed : expression {
                            expr.assign($1);
-                           cout << "one element list = " << $1 << endl;
+/*                            cout << "one element list = " << $1 << endl; */
                            free($1);
                            exprList.exprs.push_back(expr);
                            $$ = &exprList;
@@ -334,7 +334,7 @@ expressionlistcomma : ',' expression {
 
 expressionlist : expression {
                    expr.assign($1);
-                   cout << "one element list = " << $1 << endl;
+/*                    cout << "one element list = " << $1 << endl; */
                    exprList.exprs.push_back(expr);
                    free($1);
                    $$ = &exprList;
@@ -348,7 +348,7 @@ expressionlist : expression {
                    }
                    free($2);
                    $$ = &exprList;
-                   cout << "condition reads \"" << exprList.toString() << "\"" << endl;
+/*                    cout << "condition reads \"" << exprList.toString() << "\"" << endl; */
                  }
                ;
 
@@ -577,7 +577,7 @@ Key Condition::convertVarKey(const char *varKey) {
       cond.vars.push_back(var);
       cond.keys.push_back(key);
       cond.pIds.push_back(i);
-      cout << varInput << " | pat #" << i << " | cond #" << wholepat->getConds().size() << endl;
+/*       cout << varInput << " | pat #" << i << " | cond #" << wholepat->getConds().size() << endl; */
       return key;
     }
   }

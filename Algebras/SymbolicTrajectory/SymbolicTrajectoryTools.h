@@ -52,3 +52,4 @@ bool checkSemanticDate(const string text, const SecInterval uIv,
                        const bool resultNeeded);
 bool checkDaytime(const string text, const SecInterval uIv);
 bool evaluate(string condStr, const bool eval);
+vector<string> createTrajectory(int size);

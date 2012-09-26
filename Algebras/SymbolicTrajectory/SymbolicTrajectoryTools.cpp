@@ -94,7 +94,7 @@ set<string> stringToSet(string input) {
       contents.erase(0, limitpos);
     }
     result.insert(element);
-    cout << "element " << element << " added" << endl;
+//     cout << "element " << element << " added" << endl;
   }
   return result;
 }
@@ -466,4 +466,54 @@ bool evaluate(string input, const bool eval) {
     qp->Destroy(tree, true);
   }
   return eval ? isTrue : isBool;
+}
+
+vector<string> createTrajectory(int size) {
+  vector<string> result;
+  string districts[12] = {"Aplerbeck", "Brackel", "Eving", "Hörde", "Hombruch",
+                          "Huckarde", "Innenstadt-Nord", "Innenstadt-Ost",
+                          "Innenstadt-West", "Lütgendortmund", "Mengede",
+                          "Scharnhorst"};
+  map<int, set<int> > transitions;
+  set<int>::iterator it;
+  transitions[0].insert(3);
+  transitions[0].insert(7);
+  transitions[0].insert(1);
+  transitions[1].insert(6);
+  transitions[1].insert(7);
+  transitions[1].insert(11);
+  transitions[2].insert(5);
+  transitions[2].insert(6);
+  transitions[2].insert(10);
+  transitions[2].insert(11);
+  transitions[3].insert(4);
+  transitions[3].insert(7);
+  transitions[4].insert(7);
+  transitions[4].insert(8);
+  transitions[4].insert(9);
+  transitions[5].insert(6);
+  transitions[5].insert(8);
+  transitions[5].insert(9);
+  transitions[5].insert(10);
+  transitions[6].insert(7);
+  transitions[6].insert(8);
+  transitions[6].insert(11);
+  transitions[7].insert(8);
+  transitions[8].insert(9);
+  for (int i = 0; i < 12; i++) {
+    for (it = transitions[i].begin(); it != transitions[i].end(); it++) {
+      transitions[*it].insert(i); // add symmetric transitions
+    }
+    transitions[i].insert(i); // remaining in the same area is possible
+  }
+  int choice, prevPos;
+  prevPos = (int)rand() % 12;
+  for (int i = 0; i < size; i++) {
+    choice = (int)rand() % transitions[prevPos].size();
+    it = transitions[prevPos].begin();
+    advance(it, choice);
+    result.push_back(districts[*it]);
+    prevPos = *it;
+  }
+  return result;
 }

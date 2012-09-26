@@ -54,6 +54,7 @@ This algebra includes the operators ~matches~ and ~rewrite~.
 #include "SecParser.h"
 #include "Pattern.h"
 #include "TemporalUnitAlgebra.h"
+#include "RelationAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -429,35 +430,47 @@ MLabel* MLabel::compress() {
 }
 
 /*
-\subsubsection{Function ~createml~}
+\subsubsection{Function ~create~}
 
 Creates an MLabel of a certain size for testing purposes. The labels will be
 contain only numbers between 1 and size[*]rate; rate being the number of
 different labels divided by the size.
 
 */
-void MLabel::create(int size, double rate) {
+void MLabel::create(int size, bool text, double rate = 1.0) {
   if ((size > 0) && (rate > 0) && (rate <= 1)) {
     int max = size * rate;
     MLabel* newML = new MLabel(1);
     ULabel ul(1);
-    Instant* end = new Instant();
-    Instant* start = new Instant();
-    DateTime* minute = new DateTime(0, 60000, durationtype); // duration
-    end->Now();
-    end->Add(minute);
-    start->Now();
+    DateTime* start = new DateTime(instanttype);
+    DateTime* halfHour = new DateTime(0, 1800000, durationtype); // duration
+    start->Set(2012, 1, 1);
+    Instant* end = new Instant(*start);
+    end->Add(halfHour);
     SecInterval* iv = new SecInterval(*start, *end, true, false);
-    for (int i = 0; i < size; i++) {
-      ul.constValue.Set(true, int2String(max - (i % max)));
-      start->Minus(minute);
-      end->Minus(minute);
-      iv->Set(*start, *end, true, false);
-      ul.timeInterval = *iv;
-      newML->MergeAdd(ul);
+    vector<string> trajectory = createTrajectory(size);
+    if (text) {
+      for (int i = 0; i < size; i++) {
+        ul.constValue.Set(true, trajectory[i]);
+        iv->Set(*start, *end, true, false);
+        ul.timeInterval = *iv;
+        newML->MergeAdd(ul);
+        start->Add(halfHour);
+        end->Add(halfHour);
+      }
+    }
+    else {
+      for (int i = 0; i < size; i++) {
+        ul.constValue.Set(true, int2String(max - (i % max)));
+        start->Add(halfHour);
+        end->Add(halfHour);
+        iv->Set(*start, *end, true, false);
+        ul.timeInterval = *iv;
+        newML->MergeAdd(ul);
+      }
     }
     *this = *newML;
-    delete minute;
+    delete halfHour;
     delete start;
     delete end;
     delete iv;
@@ -1320,7 +1333,7 @@ Calls the parser.
 */
 Pattern* Pattern::getPattern(string input) {
   input.append("\n");
-  cout << input << endl;
+//   cout << input << endl;
   const char *patternChar = input.c_str();
   return parseString(patternChar);
 }
@@ -1574,7 +1587,7 @@ bool NFA::matches(MLabel const &ml, bool rewrite) {
     ulId = i;
     updateStates();
     if (currentStates.empty()) {
-      cout << "no current state" << endl;
+//       cout << "no current state" << endl;
       return false;
     }
   }
@@ -2012,7 +2025,7 @@ void NFA::buildSequences() {
       totalSize *= cardsets[i].size();
     }
   }
-  cout << "totalSize = " << totalSize << endl;
+//   cout << "totalSize = " << totalSize << endl;
   for (size_t i = 0; i < totalSize; i++) {
     j = i;
     seq.clear();
@@ -2102,7 +2115,7 @@ bool NFA::conditionsMatch(MLabel const &ml) {
       seqMax *= cardsets[i].size();
     }
   }
-  cout << "seqMax = " << seqMax << endl;
+//   cout << "seqMax = " << seqMax << endl;
   seqCounter = 0;
   computeSeqOrder();
   multiset<size_t> seq = getNextSeq();
@@ -2222,7 +2235,7 @@ size_t NFA::getRelevantCombs() {
   for (it = factors.begin(); it != factors.end(); it++) {
     result *= (*it).second;
   }
-  cout << "there are " << result << " relevant combinations" << endl;
+//   cout << "there are " << result << " relevant combinations" << endl;
   return result;
 }
 
@@ -2297,7 +2310,7 @@ multiset<size_t> NFA::getNextSeq() {
     }
     seqCounter++;
   }
-  cout << "no more sequences" << endl;
+//   cout << "no more sequences" << endl;
   return result;
 }
 
@@ -2968,10 +2981,10 @@ int createmlFun(Word* args, Word& result, int message, Word& local, Supplier s){
   if (ccint->IsDefined() && ccreal->IsDefined()) {
     size = ccint->GetValue();
     rate = ccreal->GetValue();
-    ml->create(size, rate);
+    ml->create(size, false, rate);
   }
   else {
-    cout << "Error: undefined value." << endl;
+//     cout << "Error: undefined value." << endl;
     ml->SetDefined(false);
   }
   result.addr = ml;
@@ -2989,6 +3002,90 @@ struct createmlInfo : OperatorInfo {
     syntax    = "createml(_,_)";
     meaning   = "Creates an MLabel, the size being determined by the first"
                 "parameter. The second one is the rate of different entries.";
+  }
+};
+
+/*
+\subsection{Type Mapping for operator ~createmlrelation~}
+
+*/
+ListExpr createmlrelationTypeMap(ListExpr args) {
+  const string errMsg = "Expecting two integers and a string.";
+  if (nl->ListLength(args) != 3) {
+    return listutils::typeError("Three arguments expected.");
+  }
+  if (nl->IsEqual(nl->First(args), CcInt::BasicType())
+   && nl->IsEqual(nl->Second(args), CcInt::BasicType())
+   && nl->IsEqual(nl->Third(args), CcString::BasicType())) {
+    return nl->SymbolAtom(CcBool::BasicType());
+  }
+  return NList::typeError(errMsg);
+}
+
+/*
+\subsection{Value Mapping for operator ~createmlrelation~}
+
+*/
+int createmlrelationFun(Word* args, Word& result, int message, Word& local,
+                        Supplier s) {
+  CcInt* ccint1 = static_cast<CcInt*>(args[0].addr);
+  CcInt* ccint2 = static_cast<CcInt*>(args[1].addr);
+  CcString* ccstring = static_cast<CcString*>(args[2].addr);
+  int number, size;
+  string relName;
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*)result.addr;
+  if (ccint1->IsDefined() && ccint2->IsDefined() && ccstring->IsDefined()) {
+    number = ccint1->GetValue();
+    size = ccint2->GetValue();
+    relName = ccstring->GetValue();
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    ListExpr typeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+        nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("No"),
+                                        nl->SymbolAtom(CcInt::BasicType())),
+                        nl->TwoElemList(nl->SymbolAtom("Trajectory"),
+                                        nl->SymbolAtom(MLabel::BasicType()))));
+    ListExpr numTypeInfo = sc->NumericType(typeInfo);
+    TupleType* type = new TupleType(numTypeInfo);
+    Relation* rel = new Relation(type, false);
+    Tuple* tuple;
+    MLabel* ml;
+    srand(time(0));
+    for (int i = 0; i < number; i++) {
+      tuple = new Tuple(type);
+      ml = new MLabel(1);
+      ml->create(size, true);
+      tuple->PutAttribute(0, new CcInt(true, i));
+      tuple->PutAttribute(1, ml);
+      rel->AppendTuple(tuple);
+      tuple = 0;
+      ml = 0;
+    }
+    Word relWord;
+    relWord.setAddr(rel);
+    sc->InsertObject(relName, "", nl->TwoElemList
+             (nl->SymbolAtom(Relation::BasicType()), typeInfo), relWord, true);
+    res->Set(true, true);
+    type->DeleteIfAllowed();
+  }
+  else {
+    cout << "Error: undefined value." << endl;
+    res->Set(true, false);
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info for operator ~createmlrelation~}
+
+*/
+struct createmlrelationInfo : OperatorInfo {
+  createmlrelationInfo() {
+    name      = "createmlrelation";
+    signature = "int x int x string -> bool";
+    syntax    = "createmlrelation(_ , _ , _)";
+    meaning   = "Creates a relation containing arbitrary many synthetic moving"
+                "labels of arbitrary size and stores it into the database.";
   }
 };
 
@@ -3026,6 +3123,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddOperator(compressInfo(), compressFuns, compressSelect,compressTypeMap);
 
       AddOperator(createmlInfo(), createmlFun, createmlTypeMap);
+
+      AddOperator(createmlrelationInfo(), createmlrelationFun,
+                  createmlrelationTypeMap);
 
     }
     ~SymbolicTrajectoryAlgebra() {}

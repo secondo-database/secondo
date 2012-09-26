@@ -73,7 +73,7 @@ class MLabel : public MString {
     static ListExpr MLabelProperty();
     static bool CheckMLabel(ListExpr type, ListExpr& errorInfo);
     MLabel* compress();
-    void create(int size, double rate);
+    void create(int size, bool text, double rate);
     void rewrite(MLabel const &ml, vector<size_t> seq, vector<UPat> assigns);
 };
 

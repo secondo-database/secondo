@@ -42,3 +42,9 @@ Number   : 1
 Signature: int x real -> mlabel
 Example  : query createml(2, 0.5) matches '() ()'
 Result   : TRUE
+
+Operator : createmlrelation
+Number   : 1
+Signature: int x int x string -> bool
+Example  : query createmlrelation(100, 500, Test1)
+Result   : TRUE
