@@ -85,4 +85,5 @@ operator fromFields alias FROMFIELDS pattern _ _ op
 operator applyToAll alias APPLYTOALL pattern _ op [ _ ]
 
 
+operator replaceAttr alias REPLACEATTR  pattern _ op [ funlist ] implicit parameter tuple type TUPLE
 

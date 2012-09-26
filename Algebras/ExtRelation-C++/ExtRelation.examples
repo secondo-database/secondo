@@ -379,3 +379,26 @@ Signature: stream(tuple(X)) x fun -> stream(tuple(Y))
 Example  : query ten feed applyToAll[ fun(i : int) i + 1] sum[No]
 Result   : 65
 
+
+Operator  : replaceAttr
+Number    : 1
+Signature : stream(tuple(x)) x funlist -> stream(tuple(Y))
+Example   : query (plz feed replaceAttr[ PLZ : .Ort, Ort : .PLZ]) = (plz feed projectextend[;PLZ : .Ort, Ort : .PLZ])
+Result    : TRUE
+
+Operator  : =
+Number    : 1
+Signature : stream(X) x stream(X) -> bool
+Example   : query (plz feed) = (plz feed)
+Result    : TRUE
+
+Operator  : =
+Number    : 2
+Signature : stream(X) x stream(X) -> bool
+Example   : query (plz feed projecttransformstream[PLZ]) = (plz feed projecttransformstream[PLZ])
+Result    : TRUE
+
+
+
+
+

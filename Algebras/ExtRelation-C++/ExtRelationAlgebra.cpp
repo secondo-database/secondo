@@ -12298,6 +12298,380 @@ Operator applyToAll(
 
 
 
+/*
+2.117 Operator = 
+
+This operator compares two stream of the same type for equality.
+The stream type can be either a tuple stream or an attribute stream.
+
+2.117.1 Type Mapping
+
+*/
+
+ListExpr equalStreamsTM(ListExpr args){
+  string err = "stream(X) x stream(X) expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of arguments");
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->Equal(arg1,arg2)){
+    return listutils::typeError(err + " (arguments have different types)");
+  }  
+  if(!Stream<Attribute>::checkType(arg1) &&
+     !Stream<Tuple>::checkType(arg1)){
+    return listutils::typeError(err + " ( arguments are not streams)");
+  }
+  return listutils::basicSymbol<CcBool>();
+}
+
+/*
+2.117.2 ValueMapping
+
+*/
+template<class StreamType, class Cmp>
+int equalStreamsVM1( Word* args, Word& result, int message,
+		   Word& local, Supplier s ) {
+
+   result = qp->ResultStorage(s);
+   CcBool* res = (CcBool*) result.addr;
+
+   Stream<StreamType> s1(args[0]);
+   Stream<StreamType> s2(args[1]);
+
+   s1.open();
+   s2.open();
+
+   StreamType* e1 = s1.request();
+   StreamType* e2 = s2.request();
+   Cmp compare;   
+
+   while( (e1!=0) && (e2!=0)){
+       int cmp = compare(e1,e2);
+       e1->DeleteIfAllowed();
+       e2->DeleteIfAllowed();
+       if(cmp!=0){ // different elements found
+           s1.close();
+           s2.close();
+           res->Set(true,false);
+           return 0; 
+       }
+       e1 = s1.request();
+       e2 = s2.request(); 
+   }
+   s1.close();
+   s2.close();
+
+   if(e1){ // s1 has more elements
+     e1->DeleteIfAllowed();
+     res->Set(true,false);
+     return 0;
+   }
+   if(e2) {
+     e2->DeleteIfAllowed();
+     res->Set(true,false);
+     return 0;
+   }
+   res->Set(true,true);
+   return 0; 
+}
+
+
+/*
+2.117.4 Auxiliary classes for Value Mapping
+
+*/
+class AttrCompareAlmost{
+  public:
+  int operator()(Attribute* a1, Attribute* a2){
+     return a1->CompareAlmost(a2);
+  }  
+};
+
+/*
+2.117.4 ValueMapping Array and SelectionFunction
+
+*/
+
+ValueMapping equalStreamsVM[] = {
+     equalStreamsVM1<Tuple,LexicographicalTupleCmpAlmost>,
+     equalStreamsVM1<Attribute,AttrCompareAlmost>  
+   };
+
+int equalStreamsSelect(ListExpr args){
+
+  ListExpr arg1 = nl->First(args);
+  if(Stream<Attribute>::checkType(arg1)){ // attribute stream
+     return 1;
+  } else { // tuple stream
+     return 0;
+  }
+}
+
+/*
+2.117.5 Specification
+
+*/
+OperatorSpec equalStreamsSpec(
+    "stream(X) x stream(X) -> bool; with X in {attribute, tuple(Y)}",
+    "  _ = _ ",
+    " Check streams for equality ",
+    " query (plz feed) = (plz feed)");
+
+/*
+2.117.6 Operator instance
+
+*/
+Operator equalStreams(
+     "=",
+     equalStreamsSpec.getStr(),
+     2,
+     equalStreamsVM,
+     equalStreamsSelect,
+     equalStreamsTM
+  );
+
+
+
+/*
+2.118 Operator ~replaceAttr~
+
+This operator replaces attributes by function values
+
+*/
+ListExpr replaceAttrTM(ListExpr args){
+  string err = "stream(tuple(x)) x funlist expected";
+  if(!nl->HasLength(args,2)) {
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  ListExpr stream = nl->First(args);
+  if(!Stream<Tuple>::checkType(stream)){
+     return listutils::typeError(err + " ( first arg is not a tuple stream)");
+  }
+  ListExpr funList = nl->Second(args);
+  if(nl->AtomType(funList) != NoAtom){
+     return listutils::typeError(err + " ( second argument is atomar)");
+  }
+  if(nl->IsEmpty(funList)){
+      return listutils::typeError(err + " (funlist is empty)");
+  }
+
+  // first, we store all functions within a map<string, ListExpr>
+  // the listexpr is the return type of the map
+  ListExpr tupleT = nl->Second(stream);
+  ListExpr attrList = nl->Second(tupleT);
+
+  string error;
+  ListExpr attrType;
+  map<string,ListExpr> newTypes;
+  ListExpr indexList;
+  bool first = true;
+  ListExpr last;
+
+  while(!nl->IsEmpty(funList)){
+    ListExpr fun = nl->First(funList);
+    funList = nl->Rest(funList);
+    if(!nl->HasLength(fun,2)){ // (name, map)
+       return listutils::typeError(err + " ( invalid function found)");
+    }
+    ListExpr name = nl->First(fun);
+    if(!listutils::isValidAttributeName(name, error)){
+      return listutils::typeError(nl->ToString(name) + 
+                                  " is not a valid attribute name (" 
+                                  + error +")");
+    }
+    string nameS = nl->SymbolValue(name);
+    int index = listutils::findAttribute(attrList,nameS,attrType);
+    if(index==0){
+       return listutils::typeError("AttrName + " + nameS + 
+                                   " not present in Tuple");
+    }
+    if(newTypes.find(nameS)!=newTypes.end()){
+      return listutils::typeError("Attribute " + nameS 
+                                   + " is mentioned twice");
+    }
+
+    ListExpr maplist = nl->Second(fun);
+    if(!listutils::isMap<1>(maplist)){
+       return listutils::typeError(nl->ToString(maplist) 
+                                   + " is not a map with 1 argument");
+    }
+    if(!nl->Equal(tupleT, nl->Second(maplist))){
+      return listutils::typeError("function argument for " + nameS
+                       + "does not correspond to the tuple in stream");
+    }
+    ListExpr resType = nl->Third(maplist);
+    if(!Attribute::checkType(resType)){
+      return listutils::typeError("function result for " + nameS
+                         + " is not an attribute");
+    }
+    // store index for appending
+    if(first){
+       indexList = nl->OneElemList(nl->IntAtom(index-1));
+       last = indexList;
+       first = false;
+    } else {
+       last = nl->Append(last, nl->IntAtom(index-1));  
+    }
+    // store result type in map
+    newTypes[nameS] = resType;
+  }
+
+  // now, we create the result attr type
+  ListExpr resAttrList;
+  first = true;
+  while(!nl->IsEmpty(attrList)){
+    ListExpr attr = nl->First(attrList);
+    attrList = nl->Rest(attrList);
+    string name = nl->SymbolValue(nl->First(attr));
+    ListExpr newAttr;
+    if(newTypes.find(name)==newTypes.end()){ // no change
+       newAttr = attr;
+    } else {
+       newAttr = nl->TwoElemList(nl->First(attr),
+                                 newTypes[name]);
+    }
+    if(first){
+       resAttrList = nl->OneElemList(newAttr);
+       last = resAttrList;
+       first = false;
+    } else {
+       last = nl->Append(last, newAttr);
+    }
+  }
+  ListExpr resList = nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+                            nl->TwoElemList(listutils::basicSymbol<Tuple>(),
+                            resAttrList));
+
+
+  return nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
+                            indexList,
+                            resList);
+}
+
+/*
+2.118.2 LocalInfo 
+
+*/
+
+class replaceAttrLocalInfo{
+
+ public:
+    replaceAttrLocalInfo(Word _stream,
+                         Supplier _funs,
+                         map<int,int> _mapping,
+                         ListExpr _tupleType): 
+                stream(_stream), funs(_funs),mapping(_mapping){
+       stream.open();
+       tt = new TupleType(_tupleType);
+    }
+
+   ~replaceAttrLocalInfo(){
+       tt->DeleteIfAllowed();
+       stream.close();
+    }
+
+    Tuple* next(){
+       Tuple* orig = stream.request();
+       if(!orig){
+          return 0;
+       } 
+       Tuple* res = new Tuple(tt);
+       for(int i=0;i<res->GetNoAttributes();i++){
+          if(mapping.find(i)==mapping.end()){
+              // no function known
+              res->CopyAttribute(i,orig,i);
+          } else {
+             // evaluate function
+             Supplier sf = qp->GetSon(funs,mapping[i]);
+             Supplier sfm = qp->GetSon(sf,1); // access mapping
+             ((*qp->Argument(sfm))[0]).setAddr(orig);
+             Word value;
+             qp->Request(sfm,value);
+             Attribute* a = (Attribute*) value.addr;
+             res->PutAttribute(i,a->Clone());
+          }
+       }
+       orig->DeleteIfAllowed();
+       return res;
+
+    }
+
+ private:
+    Stream<Tuple> stream;
+    Supplier funs;
+    map<int,int> mapping;
+    TupleType* tt;
+
+};
+
+
+
+/*
+2.118.3 ValueMapping
+
+*/
+
+int replaceAttrVM( Word* args, Word& result, int message,
+		   Word& local, Supplier s ) {
+
+  replaceAttrLocalInfo* li = (replaceAttrLocalInfo*) local.addr;
+  switch(message){
+    case OPEN: {
+          if(li){
+            delete li;
+            local.addr = 0;
+          }
+          map<int,int> pos;
+          for(int i=2;i<qp->GetNoSons(s);i++){
+             int index = ( ((CcInt*) args[i].addr)->GetValue());
+             pos[index] = i-2;
+          }
+          local.addr = new replaceAttrLocalInfo(args[0], qp->GetSon(s,1), pos,
+                            nl->Second(GetTupleResultType(s)));
+          return 0;
+    }
+    case REQUEST : {
+         result.addr = li?li->next():0;
+         return result.addr?YIELD:CANCEL;  
+    }
+    case CLOSE : {
+         if(li){
+           delete li;
+           local.addr=0;
+         }
+         return 0;
+    }
+    default: return -1;
+  }
+  return -1;
+}
+
+/*
+1.118.4 Specification
+
+*/
+
+OperatorSpec replaceAttrSpec(
+    "stream(X) x funlist -> stream(Y)",
+    " _ replaceAttr [ funlist ]  ",
+    " Replaces attributes within a tuple stream ",
+    " query plz feed replaceAttr[ Ort : .PLZ , PLZ : .PLZ + 23] consume" );
+
+/*
+2.117.6 Operator instance
+
+*/
+Operator replaceAttr(
+     "replaceAttr",
+     replaceAttrSpec.getStr(),
+     replaceAttrVM,
+     Operator::SimpleSelect,
+     replaceAttrTM
+  );
+
+
+
 
 /*
 
@@ -12403,6 +12777,8 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(toFieldsInfo(), toFieldsFun, toFieldsType );
     AddOperator(fromFieldsInfo(), fromFieldsFun, fromFieldsType );
     AddOperator(&applyToAll);
+    AddOperator(&equalStreams);
+    AddOperator(&replaceAttr);
 
 #ifdef USE_PROGRESS
 // support for progress queries
