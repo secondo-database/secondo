@@ -741,8 +741,7 @@ double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1,
   const size_t NoTuples2, const size_t sizeOfTuple2) const {
 
    // Space for placing all tuples in memory
-   return ceil((NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2) 
-        / (1024 * 1024));
+   return ceil((NoTuples2 * sizeOfTuple2) / (1024 * 1024));
 }
 
 /*
@@ -954,8 +953,7 @@ double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1,
   const size_t NoTuples2, const size_t sizeOfTuple2) const {
 
    // Space for placing all tuples in memory
-   return ceil((NoTuples1 * sizeOfTuple1 + NoTuples2 * sizeOfTuple2) 
-      / (1024 * 1024));
+   return ceil((NoTuples2 * sizeOfTuple2) / (1024 * 1024));
 }
 
 /*
