@@ -57,22 +57,14 @@ JPoint::JPoint(const JPoint& other) :
 JPoint::JPoint(const string netId, const RouteLocation& rloc) :
   Attribute(rloc.IsDefined()), npos(rloc)
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  Word value;
-  bool valDefined = false;
-  if (sc->IsObjectName(netId) &&
-      sc->GetObject(netId, value, valDefined) &&
-      valDefined)
-  {
-    JNetwork* jnet = (JNetwork*) value.addr;
+  JNetwork* jnet = GetNetwork(netId);
+  if (jnet != 0){
     strcpy(nid, *jnet->GetId());
     SetDefined(jnet->Contains(&rloc));
-    sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), value);
+    CloseNetwork(jnet);
   }
   else
-  {
     SetDefined(false);
-  }
 }
 
 JPoint::JPoint(const JNetwork* jnet, const RouteLocation* rloc) :
@@ -405,6 +397,57 @@ void JPoint::FromSpatial(const JNetwork* jnet, const Point* in)
   {
     SetDefined(false);
   }
+}
+
+/*
+1.1.1 NetBox
+
+*/
+
+Rectangle< 2 > JPoint::NetBox() const
+{
+  if (IsDefined())
+    return npos.NetBox();
+  else
+    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
+}
+
+/*
+1.1.1 OtherNetworkPositions
+
+*/
+
+JListRLoc* JPoint::OtherNetworkPositions() const
+{
+  JNetwork* jnet = GetNetwork(nid);
+  JListRLoc* result = jnet->GetNetworkValuesOf(npos);
+  CloseNetwork(jnet);
+  return result;
+}
+
+/*
+1. Implementation of private Methods
+
+1.1. Open and Close JNetwork for JPoint
+
+*/
+
+JNetwork* JPoint::GetNetwork(const string netId) const {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  Word value;
+  bool valDefined = false;
+  if (sc->IsObjectName(netId) &&
+      sc->GetObject(netId, value, valDefined) &&
+      valDefined)
+    return (JNetwork*) value.addr;
+  else
+    return 0;
+}
+
+void JPoint::CloseNetwork(JNetwork* jnet) const {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  Word value(jnet);
+  sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), value);
 }
 
 /*

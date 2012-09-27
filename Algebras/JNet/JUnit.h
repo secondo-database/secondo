@@ -36,6 +36,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JRouteInterval.h"
 #include "RouteLocation.h"
 
+class JNetwork;
+
 /*
 1 class ~JUnit~
 
@@ -140,13 +142,48 @@ It can not be private because JUnit is used as part of MJPoint and JUnit.
 
 
 /*
-1.1.1 ~ExtendBy~
+1.1.1.1 ~ExtendBy~
 
 Extends the given JUnit to cover the values of other, also.
 
 */
 
   bool ExtendBy(const JUnit& other);
+
+/*
+1.1.1.1 Boxes
+
+1.1.1.1.1 TempNetBox
+
+Returns a 3 dimensional rectangle where x1 and x2 are identic and respresent
+the route id, y1 represents the start position on this route and y2 represents
+the end position on this route, and z1 is the start time and z2 is the end
+time. All coordinates are double values.
+
+*/
+
+Rectangle<3> TempNetBox() const;
+
+/*
+1.1.1.1.1 NetBox
+
+Returns a 2 dimensional rectangle where x1 and x2 are identic and respresent
+the route id, y1 represents the start position on this route, and y2 represents
+the end position on this route. All coordinates are double values.
+
+*/
+
+Rectangle<2> NetBox() const;
+
+/*
+1.1.1.1.1 BoundigBox
+
+Returns an 3 dimensional rectangle with the spatio-temporal bounding box of the
+junit.
+
+*/
+
+Rectangle<3> BoundingBox(JNetwork* jnet) const;
 
 /*
 1.1 Private declarations

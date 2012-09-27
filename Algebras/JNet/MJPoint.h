@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TemporalAlgebra.h"
 #include "UJPoint.h"
 #include "JNetwork.h"
+#include "JLine.h"
 
 /*
 1 class ~MJPoint~
@@ -134,15 +135,70 @@ public:
 /*
 1.1.1 Other Operations
 
+1.1.1.1 Example
+
+Returns an example mjpoint listrepresentation as string.
+
 */
+
   static string Example();
+
+/*
+1.1.1.1 GetNoComponents
+
+Returns the number of ~junit~s of the ~mjpoint~.
+
+*/
+
   int GetNoComponents() const;
+
+/*
+1.1.1.1 IsEmpty
+
+Returns false if the ~mjpoint~ has at least one defined junit, false elsewhere.
+
+*/
+
   bool IsEmpty() const;
+
+/*
+1.1.1.1 Get
+
+Returns the ~junit~ at the given position.
+
+*/
+
   void Get(const int i, JUnit& up) const;
   void Get(const int i, JUnit* up) const;
+  void Get(const int i, UJPoint& up) const;
 
+/*
+1.1.1.1 FromSpatial
 
+Returns the corresponding ~mjpoint~ in ~jnet~ for the given ~mpoint~.
+
+*/
   void FromSpatial(JNetwork* jnet, const MPoint* in);
+
+/*
+1.1.1.1 Trajectory
+
+Returns an ~jline~ value representing all network position ever passed by the
+~mjpoint~.
+
+*/
+
+void Trajectory(JLine* result) const;
+
+/*
+1.1.1.1 BoundingBox
+
+Returns an 3 dimensional rectangle with the spatial temporal bounding box of
+the mjpoint.
+
+*/
+
+Rectangle<3> BoundingBox() const;
 
 /*
 1.1.1 Manage Bullkload
@@ -213,4 +269,5 @@ void Append(const MJPoint* in);
 */
 
 ostream& operator<< (const ostream& os, const MJPoint& jp);
+
 #endif // MJPOINT_H

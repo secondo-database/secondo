@@ -179,7 +179,7 @@ void JRITree::Insert (const bool left, const int pos,
 */
 
 void JRITree::TreeToDbArray(DbArray<JRouteInterval>* outArray,
-                            int fromPos /*= 0*/)
+                            int fromPos /* = 0 */)
 {
   assert(fromPos > -1 && fromPos < firstFree);
   JRITreeElement test;
@@ -190,7 +190,6 @@ void JRITree::TreeToDbArray(DbArray<JRouteInterval>* outArray,
   if (test.GetRightSon() > -1)
     TreeToDbArray (outArray, test.GetRightSon());
 }
-
 
 /*
 1.1 ~CheckTree~

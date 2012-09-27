@@ -523,28 +523,32 @@ JLine& JLine::Add(const JRouteInterval& rint)
 void JLine::FromSpatial(const JNetwork* jnet, const Line* in)
 {
   routeintervals.clean();
-  SetDefined(in->IsDefined());
   if (jnet != NULL && jnet->IsDefined() &&
       in != NULL && in->IsDefined())
   {
     strcpy(nid,*jnet->GetId());
     HalfSegment hs;
-    StartBulkload();
-    for (int i = 0; i < in->NoComponents(); i++)
+    JRITree* tree = new JRITree(0);
+    for (int i = 0; i < in->Size(); i++)
     {
       in->Get(i,hs);
       JRouteInterval* actInt = jnet->GetNetworkValueOf(hs);
       if (actInt != NULL && actInt->IsDefined())
       {
         actInt->SetSide((Direction) Both);
-        Add(*actInt);
+        tree->Insert(*actInt);
         actInt->DeleteIfAllowed();
+        actInt = 0;
       }
     }
-    EndBulkload();
+    tree->TreeToDbArray(&routeintervals);
+    tree->Destroy();
+    delete tree;
+    sorted = true;
   }
   else
     SetDefined(false);
+  SetDefined(in->IsDefined());
 }
 
 void JLine::FillIntervalList(const DbArray<JRouteInterval>* rintList,

@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <ostream>
 #include "Attribute.h"
 #include "Direction.h"
+#include "RectangleAlgebra.h"
 
 /*
 1 ~class RouteLocation~
@@ -162,6 +163,17 @@ Returns true if the rid is the same. Otherwise false.
 */
 
 bool IsOnSameRoute(const RouteLocation& rloc) const;
+
+/*
+1.1.1.1 NetBox
+
+Returns a 2 dimensional rectangle where x1 and x2 are identic and respresent
+the route id, and y1 and y2 are identic and  represent the position on this
+route. All coordinates are double values.
+
+*/
+
+Rectangle<2> NetBox() const;
 
 /*
 1.1. Private deklarations

@@ -133,6 +133,27 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
   static string Example();
 
   void FromSpatial(const JNetwork* jnet, const Point* p);
+
+/*
+1.1.1.1 NetBox
+
+Returns a 2 dimensional rectangle where x1 and x2 are identic and respresent
+the route id, and y1 and y2 are identic and  represent the position on this
+route. All coordinates are double values.
+
+*/
+
+Rectangle<2> NetBox() const;
+
+/*
+1.1.1.1 OtherNetworkPositions
+
+Returns a list of alternative route locations for this jpoint.
+
+*/
+
+JListRLoc* OtherNetworkPositions() const;
+
 /*
 1.1 Private declarations
 
@@ -147,6 +168,14 @@ private:
 
   STRING_T nid;         // network id of the network the point belongs to.
   RouteLocation npos; //position in this network.
+
+/*
+1.1.1 Open and Close Network access
+
+*/
+
+JNetwork* GetNetwork(const string netId) const;
+void CloseNetwork(JNetwork* jnet) const;
 
 };
 

@@ -91,7 +91,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
   double JUnit::GetSpeed() const
   {
     return routeInter.GetLength() /
-           (timeInter.end - timeInter.start).ToDouble();
+               ((timeInter.end.ToDouble() - timeInter.start.ToDouble())/
+                 0.00001157);
   }
 
   void JUnit::SetTimeInterval(const Interval<Instant>& inst)
@@ -419,14 +420,68 @@ bool JUnit::ExtendBy(const JUnit& other)
                                       otherTime.end,
                                       oldTime.lc,
                                       otherTime.rc));
-    SetRouteInterval(JRouteInterval(oldRint.GetRouteId(),
-                                    oldRint.GetStartPosition(),
-                                    otherRint.GetEndPosition(),
-                                    oldRint.GetSide()));
+    if (oldRint.GetSide().Compare((Direction) Down) != 0)
+    {
+      SetRouteInterval(JRouteInterval(oldRint.GetRouteId(),
+                                      oldRint.GetStartPosition(),
+                                      otherRint.GetEndPosition(),
+                                      oldRint.GetSide()));
+    }
+    else
+    {
+      SetRouteInterval(JRouteInterval(oldRint.GetRouteId(),
+                                      otherRint.GetStartPosition(),
+                                      oldRint.GetEndPosition(),
+                                      oldRint.GetSide()));
+    }
     return true;
   }
   else
     return false;
+}
+
+/*
+1.1.1.1 Boxes
+
+*/
+
+Rectangle<3> JUnit::TempNetBox() const
+{
+  if (IsDefined())
+    return Rectangle<3>(true,
+                       (double) GetRouteInterval().GetRouteId(),
+                       (double) GetRouteInterval().GetRouteId(),
+                       GetRouteInterval().GetFirstPosition(),
+                       GetRouteInterval().GetLastPosition(),
+                       GetTimeInterval().start.ToDouble(),
+                       GetTimeInterval().end.ToDouble());
+  else
+    return Rectangle<3>(false,0.0,0.0,0.0,0.0,0.0,0.0);
+}
+
+Rectangle<2> JUnit::NetBox() const
+{
+  if (IsDefined())
+    return routeInter.NetBox();
+  else
+    return Rectangle<2>(false,0.0,0.0,0.0,0.0);
+}
+
+Rectangle< 3 > JUnit::BoundingBox(JNetwork* jnet) const
+{
+  if (IsDefined())
+  {
+    Rectangle<2> rintBox = routeInter.BoundingBox(jnet);
+    if (rintBox.IsDefined())
+    {
+      return Rectangle<3>(true,
+                          rintBox.MinD(0), rintBox.MaxD(0),
+                          rintBox.MinD(1), rintBox.MaxD(1),
+                          GetTimeInterval().start.ToDouble(),
+                          GetTimeInterval().end.ToDouble());
+    }
+  }
+  return Rectangle<3>(false,0.0,0.0,0.0,0.0,0.0,0.0);
 }
 
 /*

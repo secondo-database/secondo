@@ -413,6 +413,43 @@ string UJPoint::Example()
   return "(netname (" + JUnit::Example() + "))";
 }
 
+
+Rectangle< 3 > UJPoint::BoundingBox() const
+{
+  if (IsDefined())
+  {
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    Word w;
+    bool defined;
+    if (!sc->GetObject(nid, w, defined))
+      return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    if (!defined)
+      return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    JNetwork* jnet = (JNetwork*) w.addr;
+    Rectangle<3> result = unit.BoundingBox(jnet);
+    sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()),w);
+    return result;
+  }
+  else
+    return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+}
+
+Rectangle< 3 > UJPoint::TempNetBox() const
+{
+  if (IsDefined())
+    return unit.TempNetBox();
+  else
+    return Rectangle<3> (false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+}
+
+Rectangle< 2 > UJPoint::NetBox() const
+{
+  if (IsDefined())
+    return unit.NetBox();
+  else
+    return Rectangle<2> (false, 0.0, 0.0, 0.0, 0.0 );
+}
+
 /*
 1 Overwrite output operator
 

@@ -506,6 +506,7 @@ ostream& JList<ListElem>::Print(ostream& os) const
       os << i << ". ";
       elemlist.Get(i,p);
       p.Print(os);
+      os << endl;
     }
     os << endl << "end of List." << endl;
   }

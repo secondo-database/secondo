@@ -1,0 +1,27 @@
+
+(
+    (rel 
+        (tuple 
+            (
+                (Elem jpoint)))) 
+    (
+        (
+            ("testjnet" 
+                (1 0.0 
+                    (Both)))) 
+        (
+            ("testjnet" 
+                (2 0.0 
+                    (Both)))) 
+        (
+            ("testjnet" 
+                (3 0.01025262971283514 
+                    (Both)))) 
+        (
+            ("testjnet" 
+                (4 0.01025262971283514 
+                    (Both)))) 
+        (
+            ("testjnet" 
+                (5 0.01025262971283514 
+                    (Both))))))

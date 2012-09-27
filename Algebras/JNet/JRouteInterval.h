@@ -31,6 +31,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Attribute.h"
 #include "Direction.h"
 #include "RouteLocation.h"
+#include "RectangleAlgebra.h"
+
+class JNetwork;
 
 /*
 1 ~class JRouteInterval~
@@ -233,6 +236,37 @@ false elsewhere.
 */
 
 bool Between(const RouteLocation& left, const RouteLocation& right) const;
+/*
+1.1.1.1 Inside
+
+Returns true if the route interval is complete into the other route interval,
+false elsewhere.
+
+*/
+
+bool Inside(const JRouteInterval& other) const;
+
+/*
+1.1.1.1 NetBox
+
+Returns a 2 dimensional rectangle where x1 and x2 are identic and respresent
+the route id, y1 represents the start position on this route and y2 represents
+the end position on this route, and z1 is the start time and z2 is the end
+time. All coordinates are double values.
+
+*/
+
+Rectangle<2> NetBox() const;
+
+/*
+1.1.1.1 BoundingBox
+
+Returns an two dimensional rectangle with the spatial bounding box of the
+route interval.
+
+*/
+
+Rectangle<2> BoundingBox(JNetwork* jnet) const;
 
 /*
 1.1 private deklarations

@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../Tools/Flob/DbArray.h"
 #include "JRITreeElement.h"
 #include "JRouteInterval.h"
+#include "JLine.h"
 
 /*
 1 class JRITree
@@ -97,7 +98,6 @@ start positions into ~DbArray~ outArray.
 */
 
 void TreeToDbArray(DbArray<JRouteInterval>* outArray, int fromPos = 0);
-
 
 /*
 1.1 private declaration part

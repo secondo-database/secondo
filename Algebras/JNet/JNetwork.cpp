@@ -1061,6 +1061,84 @@ Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc,
   return res;
 }
 
+SimpleLine* JNetwork::GetSpatialValueOf(const JRouteInterval& rint) const
+{
+  SimpleLine* result = new SimpleLine(0);
+  JListInt* sectList = GetRouteSectionList(rint.GetRouteId());
+  if (sectList != 0)
+  {
+    Line* res = new Line(0);
+    CcInt sidC;
+    for (int i = 0; i < sectList->GetNoOfComponents(); i++)
+    {
+      sectList->Get(i,sidC);
+      int sid = sidC.GetIntval();
+      JListRInt* rintList = GetSectionListRouteIntervals(sid);
+      if (rintList != 0)
+      {
+        JRouteInterval actInt;
+        int j = 0;
+        while (j < rintList->GetNoOfComponents())
+        {
+          rintList->Get(j,actInt);
+          if (actInt.Overlaps(rint, false))
+          {
+            SimpleLine* actCurve = GetSectionCurve(sid);
+            j = rintList->GetNoOfComponents();
+            Line* l = new Line(0);
+            if (actInt.Inside(rint))
+            {
+              res->Union(*actCurve, *l);
+              *res = *l;
+            }
+            else
+            {
+              SimpleLine* sl = new SimpleLine(0);
+              if (actInt.Contains(RouteLocation(rint.GetRouteId(),
+                                                rint.GetFirstPosition(),
+                                                rint.GetSide())))
+              {
+                actCurve->SubLine(abs(rint.GetFirstPosition() -
+                                        actInt.GetFirstPosition()),
+                                  abs(actInt.GetLastPosition()-
+                                      actInt.GetFirstPosition()),
+                                  *sl);
+                res->Union(*sl, *l);
+                *res = *l;
+              }
+              else
+              {
+                if (actInt.Contains(RouteLocation(rint.GetRouteId(),
+                                                  rint.GetLastPosition(),
+                                                  rint.GetSide())))
+                {
+                  actCurve->SubLine(0,
+                                    abs(actInt.GetFirstPosition() -
+                                        rint.GetLastPosition()),
+                                    *sl);
+                  res->Union(*sl, *l);
+                  *res = *l;
+                }
+              }
+              sl->DeleteIfAllowed();
+            }
+            actCurve->DeleteIfAllowed();
+            actCurve = 0;
+            l->DeleteIfAllowed();
+          }
+          j++;
+        }
+        rintList->DeleteIfAllowed();
+        rintList = 0;
+      }
+    }
+    sectList->DeleteIfAllowed();
+    sectList = 0;
+    result->fromLine(*res);
+    res->DeleteIfAllowed();
+  }
+  return result;
+}
 /*
 1.1 Operations for other network data types
 
@@ -1099,7 +1177,7 @@ MJPoint* JNetwork::SimulateTrip(const RouteLocation& source,
     res = new MJPoint(true);
     res->SetNetworkId(*this->GetId());
     res->StartBulkload();
-    if (sp->Size() == 1 && length == 0 &&
+    if (length == 0 &&
         starttime.ToDouble() != endtime.ToDouble())
     {
       JUnit actUnit(JUnit(Interval<Instant>(starttime, endtime, lc, rc),
@@ -1994,9 +2072,27 @@ JRouteInterval* JNetwork::GetRouteIntervalFor(const JListRLoc* leftrlocs,
       rightrlocs->Get(j,right);
       if (left.IsOnSameRoute(right))
       {
-        res = new JRouteInterval(left, right, allowResetSide);
-        i = leftrlocs->GetNoOfComponents();
-        j = rightrlocs->GetNoOfComponents();
+        if (res == 0)
+        {
+          res = new JRouteInterval(left, right, allowResetSide);
+        }
+        else
+        {
+          JRouteInterval* inter =
+            new JRouteInterval(left, right, allowResetSide);
+          if (inter->GetLength() < res->GetLength())
+          {
+            res->DeleteIfAllowed();
+            res = inter;
+          }
+          else
+          {
+            inter->DeleteIfAllowed();
+            inter = 0;
+          }
+        }
+        i++;
+        j++;
       }
       else
       {

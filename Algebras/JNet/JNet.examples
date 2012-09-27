@@ -518,6 +518,27 @@ Example  : query testlistndg - testlistndg;
 Result   : (listndg())
 Tolerance: 0.01%
 
+Operator : altrlocs
+Number   : 1
+Signature: jpoint -> stream(jpoint)
+Example  : query altrlocs(createjpoint(testjnet, createrloc(1, 0.0, [const jdirection value("Both")]))) transformstream consume;
+Result   : file
+Tolerance: 0.01%
+
+Operator : bbox
+Number   : 1
+Signature: mjpoint -> rect3
+Example  : query bbox(testmjp);
+Result   : (rect3 (7.481126374724948 7.489988582869583 51.35944219 51.35994302458907 0.4 0.45))
+Tolerance: 0.01%
+
+Operator : bbox
+Number   : 2
+Signature: ujpoint -> rect3
+Example  : query bbox([const ujpoint value("testjnet" (("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) (1 0.001 0.01 (Up))))]);
+Result   : (rect3 (7.481126374724948 7.489988582869583 51.35944219 51.35994302458907 0.4 0.45))
+Tolerance: 0.01%
+
 Operator : createijpoint
 Number   : 1
 Signature: jpoint x instant -> ijpoint
@@ -657,6 +678,27 @@ Example  : query junctions(testjnet);
 Result   : file
 Tolerance: 0.01%
 
+Operator : netbox
+Number   : 1
+Signature: ujpoint -> rect
+Example  : query netbox([const ujpoint value("testjnet" (("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) (1 0.001 0.01 (Up))))]);
+Result   : (rect (1.0 1.0 0.001 0.01))
+Tolerance: 0.01%;
+
+Operator : netbox
+Number   : 2
+Signature: jrint -> rect
+Example  : query netbox(createrint(4, 234.4, 3467.5, [const jdirection value(Up)]));
+Result   : (rect (4.0 4.0 234.4 3467.5))
+Tolerance: 0.01%
+
+Operator : netbox
+Number   : 3
+Signature: jpoint -> rect
+Example  : query netbox(createjpoint(testjnet, createrloc(1, 0.0, [const jdirection value("Both")])));
+Result   : (rect(1.0 1.0 0.0 0.0))
+Tolerance: 0.01%
+
 Operator : restrict
 Number   : 1
 Signature: listint x int -> listint
@@ -727,6 +769,13 @@ Example  : query sections(testjnet);
 Result   : file
 Tolerance: 0.01%
 
+Operator : tempnetbox
+Number   : 1
+Signature: ujpoint -> rect3
+Example  : query tempnetbox([const ujpoint value("testjnet" (("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) (1 0.001 0.01 (Up))))]);
+Result   : (rect3 (1.0 1.0 0.001 0.01 0.4 0.45))
+Tolerance: 0.01%;
+
 Operator : tonetwork
 Number   : 1
 Signature: jnet x point -> jpoint
@@ -748,9 +797,23 @@ Example  : query tonetwork(testjnet, [const mpoint value((("2000-01-03-09:36" "2
 Result   : (mjpoint("testjnet" ((("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE) (1 0.0 0.0002975778553586566 (Up))))))
 Tolerance: 0.01%
 
+Operator : trajectory
+Number   : 1
+Signature: mjpoint -> jline
+Example  : query trajectory(testmjp);
+Result   : (jline("testjnet" ((1 0.001 0.01 (Up)))))
+Tolerance: 0.01%
+
 Operator : units
 Number   : 1
-Signature: mjpoint -> stream(junit)
+Signature: mjpoint -> stream(ujpoint)
 Example  : query units(testmjp) transformstream consume;
+Result   : file
+Tolerance: 0.01%
+
+Operator : units
+Number   : 2
+Signature: jline -> stream(jrint)
+Example  : query units(testjl) transformstream consume;
 Result   : file
 Tolerance: 0.01%

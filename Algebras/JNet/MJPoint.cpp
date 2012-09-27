@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Symbols.h"
 #include "Direction.h"
 #include "StandardTypes.h"
+#include "JRITree.h"
 
 /*
 1 Helpful Operations
@@ -477,6 +478,8 @@ ListExpr MJPoint::Property()
 /*
 1.1 Other Operations
 
+1.1.1 Example
+
 */
 
 string MJPoint::Example()
@@ -484,15 +487,33 @@ string MJPoint::Example()
   return "(netname ("+ JUnit::Example()+"))";
 }
 
+
+/*
+1.1.1 GetNoComponents
+
+*/
+
 int MJPoint::GetNoComponents() const
 {
   return units.Size();
 }
 
+
+/*
+1.1.1.1 IsEmpty
+
+*/
+
 bool MJPoint::IsEmpty() const
 {
   return units.Size() == 0;
 }
+
+
+/*
+1.1.1 Get
+
+*/
 
 void MJPoint::Get(const int i, JUnit& up) const
 {
@@ -506,6 +527,19 @@ void MJPoint::Get(const int i, JUnit* up) const
   units.Get(i,up);
 }
 
+void MJPoint::Get(const int i, UJPoint& up) const
+{
+  assert(IsDefined()&& 0 <= i && i < units.Size());
+  JUnit ju;
+  units.Get(i,ju);
+  up.SetNetworkId(nid);
+  up.SetUnit(ju);
+}
+
+/*
+1.1.1 FromSpatial
+
+*/
 void MJPoint::FromSpatial(JNetwork* jnet, const MPoint* in)
 {
   Clear();
@@ -555,7 +589,7 @@ void MJPoint::FromSpatial(JNetwork* jnet, const MPoint* in)
         }
         if (startPos != 0 &&  startPos->IsDefined() &&
             endPos != 0 && endPos->IsDefined())
-        { // got valid RouteLocations and TimeStamps
+        { // got valid RouteLocations and
           MJPoint* partRes = jnet->SimulateTrip(*startPos, *endPos,
                                                 &actSource.p1,
                                                 starttime, endtime, lc, rc);
@@ -580,6 +614,76 @@ void MJPoint::FromSpatial(JNetwork* jnet, const MPoint* in)
   }
 else
   SetDefined(false);
+}
+
+/*
+1.1.1 Trajectory
+
+*/
+
+void MJPoint::Trajectory(JLine* result) const
+{
+  result->StartBulkload();
+  result->EndBulkload();
+  if (IsDefined())
+  {
+    result->SetDefined(true);
+    result->SetNetworkId(nid);
+    if (!IsEmpty())
+    {
+      JRITree* tree = new JRITree(0);
+      JUnit actUnit;
+      JRouteInterval actRInt;
+      for (int i = 0; i < GetNoComponents() ; i++)
+      {
+        Get(i,actUnit);
+        actRInt = actUnit.GetRouteInterval();
+        tree->Insert(actRInt);
+      }
+      DbArray<JRouteInterval>* res = new DbArray<JRouteInterval>(0);
+      tree->TreeToDbArray(res);
+      result->SetRouteIntervals(*res);
+      tree->Destroy();
+      delete tree;
+      res->Destroy();
+      delete res;
+    }
+  }
+  else
+    result->SetDefined(false);
+}
+/*
+1.1.1 BoundingBox
+
+*/
+
+Rectangle< 3 > MJPoint::BoundingBox() const
+{
+  if (IsDefined() && GetNoComponents() > 0)
+  {
+    JUnit actUnit;
+    Get(0,actUnit);
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    Word w;
+    bool defined;
+    if (!sc->GetObject(nid, w, defined))
+      return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    if (!defined)
+      return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    JNetwork* jnet = (JNetwork*) w.addr;
+    Rectangle<3> result = actUnit.BoundingBox(jnet);
+    for (int i = 1; i < GetNoComponents(); i++)
+    {
+      Get(i,actUnit);
+      Rectangle<3> actRect = actUnit.BoundingBox(jnet);
+      if (actRect.IsDefined())
+        result.Union(actRect);
+    }
+    sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), w);
+    return result;
+  }
+  else
+    return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 }
 
 /*
@@ -681,16 +785,16 @@ bool MJPoint::Simplify()
     bool sorted = true;
     while (i < units.Size() && sorted)
     {
-      Get(i,actOldUnit);
-      sorted = checkNextUnit(actOldUnit, actNewUnit);
-      if (!actNewUnit.ExtendBy(actOldUnit))
+      Get(i,actNewUnit);
+      sorted = checkNextUnit(actNewUnit, actOldUnit);
+      if (!actOldUnit.ExtendBy(actNewUnit))
       {
-        simpleUnits->Append(actNewUnit);
-        actNewUnit = actOldUnit;
+        simpleUnits->Append(actOldUnit);
+        actOldUnit = actNewUnit;
       }
       i++;
     }
-    simpleUnits->Append(actNewUnit);
+    simpleUnits->Append(actOldUnit);
     simpleUnits->TrimToSize();
     units.clean();
     units.copyFrom(*simpleUnits);
@@ -725,7 +829,7 @@ void MJPoint::Append(const MJPoint* in)
 
 */
 
-ostream& operator<<(ostream& os, const MJPoint& m)
+ostream& operator<< (ostream& os, const MJPoint& m)
 {
   m.Print(os);
   return os;

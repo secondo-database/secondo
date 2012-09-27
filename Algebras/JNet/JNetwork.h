@@ -310,6 +310,7 @@ Returns true if the given position(s) exist in the network.
   Point* GetSpatialValueOf(const RouteLocation& rloc,
                            const double relpos,
                            const Tuple* actSect)const;
+  SimpleLine* GetSpatialValueOf(const JRouteInterval& rint) const;
 
 /*
 1.1.1 ~SimulateTrip~

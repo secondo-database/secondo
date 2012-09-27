@@ -558,14 +558,9 @@ bool JRouteInterval::SameSide(const JRouteInterval& other,
 bool JRouteInterval::Overlaps(const JRouteInterval& other,
                               bool strict /* = True*/) const
 {
-  if (rid == other.GetRouteId() && SameSide(other,strict))
-  {
-    if (startpos <= other.GetLastPosition() ||
-        endpos <= other.GetFirstPosition())
-      return true;
-    else
-      return false;
-  }
+  if (rid == other.GetRouteId() && side.SameSide(other.GetSide(), strict))
+    return (!(startpos > other.GetLastPosition() ||
+              endpos < other.GetFirstPosition()));
   else
     return false;
 }
@@ -623,6 +618,47 @@ bool JRouteInterval::Between(const RouteLocation& left,
   return (rid == left.GetRouteId() && rid == right.GetRouteId() &&
           startpos >= min(left.GetPosition(),right.GetPosition()) &&
           max(left.GetPosition(),right.GetPosition()) >= endpos);
+}
+
+/*
+1.1. Inside
+
+*/
+
+bool JRouteInterval::Inside(const JRouteInterval& other) const
+{
+  return (rid == other.GetRouteId() && startpos >= other.GetFirstPosition() &&
+          endpos <= other.GetLastPosition());
+}
+
+
+
+/*
+1.1 NetBox
+
+*/
+
+Rectangle<2> JRouteInterval::NetBox() const
+{
+  if (IsDefined())
+    return Rectangle<2>(true, (double) rid, (double) rid, startpos, endpos);
+  else
+    return Rectangle<2>(false,0.0,0.0,0.0,0.0);
+}
+
+Rectangle< 2 > JRouteInterval::BoundingBox(JNetwork* jnet) const
+{
+  if (IsDefined())
+  {
+    SimpleLine* sl = jnet->GetSpatialValueOf(*this);
+    if (sl !=  0)
+    {
+      Rectangle<2> res = sl->BoundingBox();
+      sl->DeleteIfAllowed();
+      return res;
+    }
+  }
+  return Rectangle<2>(false,0.0,0.0,0.0,0.0);
 }
 
 /*

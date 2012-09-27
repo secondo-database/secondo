@@ -66,7 +66,7 @@ RouteLocation::RouteLocation(const int routeId, const double position,
                              const Direction sideofroad) :
   Attribute(true), rid(routeId),  pos(position),  side(sideofroad)
 {
-  if(!(rid >= 0 && pos >= 0.0)) SetDefined(false);
+  if(rid < 0 || pos < 0.0) SetDefined(false);
 }
 
 RouteLocation::RouteLocation(const int routeId, const double position,
@@ -448,6 +448,19 @@ Returns true if the rid is the same. Otherwise false.
 bool RouteLocation::IsOnSameRoute(const RouteLocation& rloc) const
 {
   return rid == rloc.GetRouteId();
+}
+
+/*
+1.1.1.1 NetBox
+
+*/
+
+Rectangle< 2  > RouteLocation::NetBox() const
+{
+  if (IsDefined())
+    return Rectangle<2>(true, (double) rid, (double) rid, pos, pos);
+  else
+    return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
 }
 
 /*

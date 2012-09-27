@@ -142,6 +142,15 @@ It can not be private because UJPoint is used as part of MJPoint.
   static string Example();
 
 /*
+1.1.1 Bounding Box
+
+*/
+
+Rectangle<3> BoundingBox() const;
+Rectangle<3> TempNetBox() const;
+Rectangle<2> NetBox() const;
+
+/*
 1.1 Private declarations
 
 */

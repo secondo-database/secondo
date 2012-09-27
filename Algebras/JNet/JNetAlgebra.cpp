@@ -566,7 +566,7 @@ const string createjnetSpec =
   "<text>query createjnet(testnet, 0.01, juncrel, sectrel, " +
   "routerel)</text--->))";
 
-Operator createjnetOp("createjnet", createjnetSpec, createjnetVM,
+Operator createjnetJNet("createjnet", createjnetSpec, createjnetVM,
                       Operator::SimpleSelect, createjnetTM);
 
 /*
@@ -702,7 +702,7 @@ const string createlistSpec =
   "of the corresponding list data type.</text--->"
   "<text>query createstream(testlistint) createlist</text--->))";
 
-Operator createlistOp("createlist", createlistSpec, 8, createlistMap,
+Operator createlistJNet("createlist", createlistSpec, 8, createlistMap,
                       createlistSelect, createlistTM);
 
 /*
@@ -844,7 +844,7 @@ const string createstreamSpec =
   "from the list.</text--->"
   "<text>query createstream(testlistint) createlist</text--->))";
 
-Operator createstreamOp("createstream", createstreamSpec, 4, createstreamMap,
+Operator createstreamJNet("createstream", createstreamSpec, 4, createstreamMap,
                          createstreamSelect, createstreamTM);
 
 /*
@@ -911,7 +911,7 @@ const string createrlocSpec =
   "the position on the route and the side value.</text--->"
   "<text>query createrloc(rid, pos, side)</text--->))";
 
-Operator createrlocOp(
+Operator createrlocJNet(
   "createrloc",
   createrlocSpec,
   1,
@@ -990,7 +990,7 @@ const string createrintSpec =
    "and the side value.</text--->"
   "<text>query createrint(rid, spos, epos, side)</text--->))";
 
-Operator createrintOp(
+Operator createrintJNet(
   "createrint",
   createrintSpec,
   1,
@@ -1074,7 +1074,7 @@ const string createndgSpec =
   "<text>query createndg(sourcejid, targetjid, nextjid, nextsectid, netdist)"+
   "</text--->))";
 
-Operator createndgOp(
+Operator createndgJNet(
   "createndg",
   createndgSpec,
   1,
@@ -1146,7 +1146,7 @@ const string createjpointSpec =
   "<text>query createjpoint(testjnet, createrloc(1, 0.0, [const jdirection " +
   " value(\"Both\")]) </text--->))";
 
-  Operator createjpointOp(
+  Operator createjpointJNet(
     "createjpoint",
     createjpointSpec,
     1,
@@ -1216,7 +1216,7 @@ const string createjlineSpec =
   "</text--->"
   "<text>query createjline(testjnet, testlistjrint) </text--->))";
 
-Operator createjlineOp(
+Operator createjlineJNet(
   "createjline",
   createjlineSpec,
   1,
@@ -1287,7 +1287,7 @@ const string createjpointsSpec =
   "undefined." +"</text--->"
   "<text>query createjpoints(testjnet, testlistrloc) </text--->))";
 
-Operator createjpointsOp(
+Operator createjpointsJNet(
   "createjpoints",
   createjpointsSpec,
   1,
@@ -1353,7 +1353,7 @@ const string createijpointSpec =
   "<text>query createijpoint(createjpoint(testjnet, createrloc(1, 0.0, " +
   "[const jdirection value(\"Both\")])), createinstant(0.5)) </text--->))";
 
-Operator createijpointOp(
+Operator createijpointJNet(
   "createijpoint",
   createijpointSpec,
   1,
@@ -1441,7 +1441,7 @@ const string createujpointSpec =
   "[const jdirection value(Up)]), createinstant(0.5), createinstant(0.6)," +
   " TRUE, FALSE) </text--->))";
 
-Operator createujpointOp(
+Operator createujpointJNet(
     "createujpoint",
     createujpointSpec,
     1,
@@ -1505,7 +1505,7 @@ const string createmjpointSpec =
   " [const jdirection value(Up)]), createinstant(0.5), createinstant(0.6)," +
   " TRUE, FALSE)) </text--->))";
 
-Operator createmjpointOp(
+Operator createmjpointJNet(
   "createmjpoint",
   createmjpointSpec,
   1,
@@ -1576,7 +1576,7 @@ const string tonetworkSpec =
   "10:02:01.000\" \"2007-01-01-10:02:03.000\" TRUE FALSE)(8209.0 8769.0 " +
   " 8293.0 8768.0)))]) </text--->))";
 
-Operator tonetworkOp(
+Operator tonetworkJNet(
   "tonetwork",
   tonetworkSpec,
   3,
@@ -1684,7 +1684,7 @@ const string eqSpec =
   "<text>Returns TRUE if x and y are equal, false otherwise.</text--->"
   "<text>query x = x</text--->))";
 
-  Operator eqOp(
+  Operator eqJNet(
     "=",
     eqSpec,
     10,
@@ -1759,7 +1759,7 @@ const string ltSpec =
   "<text>Returns TRUE if x is lower than y, false otherwise.</text--->"
   "<text>query x < y</text--->))";
 
-Operator ltOp(
+Operator ltJNet(
   "<",
   ltSpec,
   10,
@@ -1834,7 +1834,7 @@ const string gtSpec =
   "<text>Returns TRUE if x is greater than y, false otherwise.</text--->"
   "<text>query x > y</text--->))";
 
-Operator gtOp(
+Operator gtJNet(
   ">",
   gtSpec,
   10,
@@ -1910,7 +1910,7 @@ const string leSpec =
   "</text--->"
   "<text>query x <= y</text--->))";
 
-Operator leOp(
+Operator leJNet(
   "<=",
   leSpec,
   10,
@@ -1986,7 +1986,7 @@ const string geSpec =
   "</text--->"
   "<text>query x >= y</text--->))";
 
-  Operator geOp(
+  Operator geJNet(
     ">=",
     geSpec,
     10,
@@ -2061,7 +2061,7 @@ const string neSpec =
   "<text>Returns TRUE if x not equals y, false otherwise.</text--->"
   "<text>query x # y</text--->))";
 
-Operator neOp(
+Operator neJNet(
   "#",
   neSpec,
   10,
@@ -2164,7 +2164,7 @@ const string minusSpec =
   "<text>Returns x without y.</text--->"
   "<text>query x - y</text--->))";
 
-Operator minusOp(
+Operator minusJNet(
   "-",
   minusSpec,
   8,
@@ -2236,7 +2236,7 @@ const string restrictSpec =
   "<text>Returns only the elements of x which are also in y.</text--->"
   "<text>query restrict (x,y)</text--->))";
 
-Operator restrictOp(
+Operator restrictJNet(
   "restrict",
   restrictSpec,
   8,
@@ -2291,7 +2291,7 @@ const string sectionsSpec =
   "<text>Returns a copy of the sections relation of the given jnet.</text--->"
   "<text>query sections(testnet)</text--->))";
 
-Operator sectionsOp("sections", sectionsSpec, sectionsVM,
+Operator sectionsJNet("sections", sectionsSpec, sectionsVM,
                     Operator::SimpleSelect, sectionsTM);
 
 /*
@@ -2337,7 +2337,7 @@ const string routesSpec =
   "<text>Returns a copy of the routes relation of the given jnet.</text--->"
   "<text>query routes(testnet)</text--->))";
 
-Operator routesOp("routes", routesSpec, routesVM, Operator::SimpleSelect,
+Operator routesJNet("routes", routesSpec, routesVM, Operator::SimpleSelect,
                   routesTM);
 
 /*
@@ -2382,7 +2382,7 @@ const string junctionsSpec =
   "<text>Returns a copy of the junctions relation of the given jnet.</text--->"
   "<text>query junctions(testnet)</text--->))";
 
-Operator junctionsOp("junctions", junctionsSpec, junctionsVM,
+Operator junctionsJNet("junctions", junctionsSpec, junctionsVM,
                      Operator::SimpleSelect, junctionsTM);
 
 /*
@@ -2426,7 +2426,7 @@ const string distancesSpec =
   "</text--->"
   "<text>query distances(testnet)</text--->))";
 
-Operator distancesOp("distances", distancesSpec, distancesVM,
+Operator distancesJNet("distances", distancesSpec, distancesVM,
                        Operator::SimpleSelect, distancesTM);
 
 /*
@@ -2438,18 +2438,34 @@ Returns a stream of the ~junit~ for an given ~mjpoint~
 
 */
 
+
 ListExpr unitsTM (ListExpr args)
 {
   if (!nl->HasLength(args,1))
     return listutils::typeError("One argument expected.");
 
-  if (!listutils::isSymbol(nl->First(args), MJPoint::BasicType()))
-    return listutils::typeError("Argument should be " + MJPoint::BasicType());
+  if (listutils::isSymbol(nl->First(args), MJPoint::BasicType()))
+    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                           nl->SymbolAtom(UJPoint::BasicType()));
 
-  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                         nl->SymbolAtom(JUnit::BasicType()));
+  if (listutils::isSymbol(nl->First(args), JLine::BasicType()))
+    return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                           nl->SymbolAtom(JRouteInterval::BasicType()));
+
+  return listutils::typeError("Argument should be " + MJPoint::BasicType() +
+                              " or " + JLine::BasicType());
 }
 
+int unitsSelect(ListExpr args)
+{
+  if ( nl->SymbolValue ( nl->First ( args )) == MJPoint::BasicType())
+    return 0;
+  if ( nl->SymbolValue ( nl->First(args)) == JLine::BasicType())
+    return 1;
+  return -1; // This point should never be reached
+};
+
+template<class InClass>
 struct locInfoUnits {
   locInfoUnits()
   {
@@ -2457,22 +2473,23 @@ struct locInfoUnits {
     in = 0;
   }
 
-  MJPoint* in;
+  InClass* in;
   int index;
 };
 
+template<class InClass, class OutClass>
 int unitsVM ( Word* args, Word& result, int message, Word& local,
               Supplier s )
 {
-  locInfoUnits* li = 0;
+  locInfoUnits<InClass>* li = 0;
   switch(message)
   {
     case OPEN:
     {
-      li = new locInfoUnits();
-      MJPoint* t = (MJPoint*) args[0].addr;
-      if (t != 0 && t->IsDefined())
-        li->in = t;
+      li = new locInfoUnits<InClass>();
+      InClass* in = (InClass*) args[0].addr;
+      if (in != 0 && in->IsDefined())
+        li->in = in;
       li->index = 0;
       local.addr = li;
       return 0;
@@ -2483,13 +2500,13 @@ int unitsVM ( Word* args, Word& result, int message, Word& local,
     {
       result = qp->ResultStorage(s);
       if (local.addr == 0) return CANCEL;
-      li = (locInfoUnits*) local.addr;
+      li = (locInfoUnits<InClass>*) local.addr;
       if (0 <= li->index && li->index < li->in->GetNoComponents())
       {
-        JUnit elem;
+        OutClass elem;
         (li->in)->Get(li->index, elem);
         li->index++;
-        result = SetWord(new JUnit(elem));
+        result = SetWord(new OutClass(elem));
         return YIELD;
       }
       else
@@ -2503,7 +2520,7 @@ int unitsVM ( Word* args, Word& result, int message, Word& local,
     {
       if (local.addr)
       {
-        li = (locInfoUnits*) local.addr;
+        li = (locInfoUnits<InClass>*) local.addr;
         delete li;
       }
       li = 0;
@@ -2520,17 +2537,371 @@ int unitsVM ( Word* args, Word& result, int message, Word& local,
   }
 }
 
+ValueMapping unitsMap[] =
+{
+  unitsVM<MJPoint, UJPoint>,
+  unitsVM<JLine, JRouteInterval>
+};
+
+
 const string unitsSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + MJPoint::BasicType() + " -> " +
-  Symbol::STREAM() + "("+ JUnit::BasicType() + ") </text--->"
+  "(<text>" + MJPoint::BasicType() + " -> " +  Symbol::STREAM() + "("+
+  UJPoint::BasicType() + "), "+
+  JLine::BasicType() +" -> "  +  Symbol::STREAM() + "("+
+  JRouteInterval::BasicType() + ") </text--->"
   "<text>units(<mjpoint>) </text--->"
-  "<text>Returns the "+ JUnit::BasicType() + "s of the "+ MJPoint::BasicType()+
-  "as stream.</text--->"
+  "<text>Returns the components of the input value as stream.</text--->"
   "<text>query units(testmjp)</text--->))";
 
-Operator unitsOp("units", unitsSpec, unitsVM, Operator::SimpleSelect, unitsTM);
+  Operator unitsJNet("units", unitsSpec, 2, unitsMap, unitsSelect, unitsTM);
 
+/*
+1.1.1.1 trajectory
+
+Returns an ~jline~ representing the movement of the mjpoint in the network.
+
+*/
+
+ListExpr trajectoryTM (ListExpr args)
+{
+  if (!nl->HasLength(args,1))
+    return listutils::typeError("One argument expected.");
+
+  if (!listutils::isSymbol(nl->First(args), MJPoint::BasicType()))
+    return listutils::typeError("Argument should be " + MJPoint::BasicType());
+
+  return nl->SymbolAtom(JLine::BasicType());
+}
+
+int trajectoryVM ( Word* args, Word& result, int message, Word& local,
+                   Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MJPoint *mjp = ( MJPoint* ) args[0].addr;
+  JLine* jl = static_cast<JLine*> (result.addr);
+  if (mjp != NULL)
+  {
+    mjp->Trajectory(jl);
+  }
+  else
+    jl->SetDefined(false);
+  return 0;
+}
+
+const string trajectorySpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + MJPoint::BasicType() + " -> " +
+  JLine::BasicType() + "</text--->"
+  "<text>trajectory(<testmjp>) </text--->"
+  "<text>Returns an "+ JLine::BasicType() + " representing the movement of "
+  "the "+ MJPoint::BasicType() + " in the network.</text--->"
+  "<text>query trajectory(testmjp)</text--->))";
+
+Operator trajectoryJNet("trajectory", trajectorySpec, trajectoryVM,
+                         Operator::SimpleSelect, trajectoryTM);
+
+/*
+1.1.1.1 ~altrlocs~
+
+Returns for an given jpoint a stream of jpoints with all possible network
+descriptions of this jpoint. This is interesting because a junction belongs to
+different routes and has therefore different jnet representations.
+
+*/
+
+ListExpr altrlocsTM (ListExpr args)
+{
+  NList param(args);
+  if (param.length()==1)
+  {
+    if (param.first().isEqual(JPoint::BasicType()))
+      return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                             nl->SymbolAtom(JPoint::BasicType()));
+  }
+  return listutils::typeError("Expected " + JPoint::BasicType() + ".");
+}
+
+struct altrlocsLocInfo {
+  altrlocsLocInfo() : list(0)
+  {
+    it = 0;
+  }
+
+    JListRLoc* list;
+    STRING_T jnetId;
+    int it;
+};
+
+int altrlocsVM ( Word* args, Word& result, int message, Word& local,
+                 Supplier s )
+{
+  altrlocsLocInfo* li = 0;
+  switch(message)
+  {
+    case OPEN:
+    {
+      li = new altrlocsLocInfo();
+      JPoint* jp = (JPoint*) args[0].addr;
+      if (jp != 0 && jp->IsDefined())
+      {
+        strcpy(li->jnetId, *jp->GetNetworkId());
+        li->list = jp->OtherNetworkPositions();
+        li->it = 0;
+      }
+      local.addr = li;
+      return 0;
+      break;
+    }
+
+    case REQUEST:
+    {
+      result = qp->ResultStorage(s);
+      if (local.addr == 0) return CANCEL;
+      li = (altrlocsLocInfo*) local.addr;
+      if (0 <= li->it && li->it < li->list->GetNoOfComponents())
+      {
+        RouteLocation elem;
+        li->list->Get(li->it,elem);
+        li->it = li->it + 1;
+        result = SetWord(new JPoint(li->jnetId, elem));
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+      break;
+    }
+
+    case CLOSE:
+    {
+      if (local.addr)
+      {
+        li = (altrlocsLocInfo*) local.addr;
+        li->list->Destroy();
+        li->list->DeleteIfAllowed();
+        delete li;
+      }
+      li = 0;
+      local.addr = 0;
+      return 0;
+      break;
+    }
+
+    default:
+    {
+      return CANCEL; // Should never been reached
+            break;
+    }
+  }
+}
+
+ValueMapping altrlocsMap [] =
+{
+  altrlocsVM
+};
+
+int altrlocsSelect ( ListExpr args )
+{
+  NList param(args);
+  if (param.first() == JPoint::BasicType()) return 0;
+  return -1; // this point should never been reached.
+}
+
+const string altrlocsSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JPoint::BasicType() + " -> " + Symbol::STREAM() + "(" +
+  JPoint::BasicType() + ")</text--->"
+  "<text>altrlocs(<jpoint>) </text--->"
+  "<text>The operator gets an jpoint and returns an " +
+  Symbol::STREAM() + " of the corresponding " + JPoint::BasicType() +
+  " representing the same spatial position in the network. This function is"+
+  " needed because spatial positions of junctions have more than one network"+
+  " representation.</text--->"
+  "<text>query altrlocs(testjp) transformstream consume</text--->))";
+
+Operator altrlocsJNet("altrlocs", altrlocsSpec, 1, altrlocsMap,
+                           altrlocsSelect, altrlocsTM);
+
+/*
+1.1.1. JUnit Data
+
+1.1.1.1 tempnetbox
+
+Returns a 3 dimensional rectangle where x1 and x2 are identic and respresent
+the route id, y1 represents the start position on this route and y2 represents
+the end position on this route, and z1 is the start time and z2 is the end
+time. All coordinates are double values.
+
+*/
+
+ListExpr tempnetboxTM (ListExpr args)
+{
+  if (!nl->HasLength(args,1))
+    return listutils::typeError("One argument expected.");
+
+  if (!listutils::isSymbol(nl->First(args), UJPoint::BasicType()))
+    return listutils::typeError("Argument should be " + UJPoint::BasicType());
+
+  return nl->SymbolAtom(Rectangle<3>::BasicType());
+}
+
+int tempnetboxVM ( Word* args, Word& result, int message, Word& local,
+                   Supplier s )
+{
+  result = qp->ResultStorage( s );
+  UJPoint *ju = ( UJPoint* ) args[0].addr;
+  Rectangle<3>* r = static_cast<Rectangle<3>* > (result.addr);
+  if (ju != NULL && ju->IsDefined())
+  {
+    *r = ju->TempNetBox();
+  }
+  else
+    r->SetDefined(false);
+    return 0;
+}
+
+const string tempnetboxSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + UJPoint::BasicType() + " -> " +  Rectangle<3>::BasicType() +
+  "</text--->"
+  "<text>tempnetbox(<ujpoint>) </text--->"
+  "<text>Returns a three dimensional rectangle with double coordinates. "
+  "The edges represent a temporal bounding box in terms of network. "
+  " Whereas x1 and x2 are defined by the route id, y1 by the startposition "
+  "on this route, y2 by the end position on this route, z1 by the start time "
+  "and z2 by the end time of the junit.</text--->"
+  "<text>query tempnetbox(testujp)</text--->))";
+
+Operator tempnetboxJNet("tempnetbox", tempnetboxSpec, tempnetboxVM,
+                         Operator::SimpleSelect, tempnetboxTM);
+
+/*
+1.1.1.1 netbox
+
+Returns a 2 dimensional rectangle where x1 and x2 are identic and respresent
+the route id, y1 represents the start position on this route and y2 represents
+the end position on this route, and z1 is the start time and z2 is the end
+time. All coordinates are double values.
+
+*/
+
+const string maps_netbox[3][2] =
+{
+  {UJPoint::BasicType(), Rectangle<2>::BasicType()},
+  {JRouteInterval::BasicType(), Rectangle<2>::BasicType()},
+  {JPoint::BasicType(), Rectangle<2>::BasicType()}
+};
+
+ListExpr netboxTM (ListExpr args)
+{
+  return SimpleMaps<3,2>(maps_netbox, args);
+}
+
+int netboxSelect(ListExpr args)
+{
+  return SimpleSelect<3,2>(maps_netbox, args);
+}
+
+template<class InClass>
+int netboxVM ( Word* args, Word& result, int message, Word& local,
+               Supplier s )
+{
+  result = qp->ResultStorage( s );
+  InClass *in = ( InClass* ) args[0].addr;
+  Rectangle<2>* r = static_cast<Rectangle<2>* > (result.addr);
+  if (in != NULL && in->IsDefined())
+  {
+    *r = in->NetBox();
+  }
+    else
+      r->SetDefined(false);
+    return 0;
+}
+
+ValueMapping netboxMap[] =
+  {
+    netboxVM<UJPoint>,
+    netboxVM<JRouteInterval>,
+    netboxVM<JPoint>
+  };
+
+const string netboxSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + UJPoint::BasicType() + " -> " +  Rectangle<2>::BasicType() +
+  JRouteInterval::BasicType() + " -> " +  Rectangle<2>::BasicType() +
+  JPoint::BasicType() + " -> " + Rectangle<2>::BasicType() +
+  "</text--->"
+  "<text>netbox(<junit>) </text--->"
+  "<text>Returns a two dimensional rectangle with double coordinates. "
+  "The edges represent a bounding box in terms of network. "
+  " Whereas x1 and x2 are defined by the route id, y1 by the startposition "
+  "on this route, and y2 by the end position on this route.</text--->"
+  "<text>query netbox(testjunit)</text--->))";
+
+Operator netboxJNet( "netbox", netboxSpec, 3, netboxMap, netboxSelect,
+                     netboxTM);
+
+/*
+1.1.1.1 bbox
+
+Returns a 3 dimensional rectangle with the spatial temporal bounding box
+of the input value.
+
+*/
+
+const string maps_bbox[2][2] =
+{
+  {MJPoint::BasicType(), Rectangle<3>::BasicType()},
+  {UJPoint::BasicType(), Rectangle<3>::BasicType()}
+
+};
+
+ListExpr bboxTM (ListExpr args)
+{
+  return SimpleMaps<2,2>(maps_bbox, args);
+}
+
+int bboxSelect(ListExpr args)
+{
+  return SimpleSelect<2,2>(maps_bbox, args);
+}
+
+template<class InClass>
+int bboxVM ( Word* args, Word& result, int message, Word& local,
+             Supplier s )
+{
+  result = qp->ResultStorage( s );
+  InClass *in = ( InClass* ) args[0].addr;
+  Rectangle<3>* r = static_cast<Rectangle<3>* > (result.addr);
+  if (in != NULL && in->IsDefined())
+  {
+    *r = in->BoundingBox();
+  }
+  else
+    r->SetDefined(false);
+  return 0;
+}
+
+ValueMapping bboxMap[] =
+  {
+    bboxVM<MJPoint>,
+    bboxVM<UJPoint>
+  };
+
+const string bboxSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "(<text>" + MJPoint::BasicType() + " -> " +  Rectangle<3>::BasicType() +
+    UJPoint::BasicType() + " -> " +  Rectangle<3>::BasicType() +
+    "</text--->"
+    "<text>bbox(<mjpoint>) </text--->"
+    "<text>Returns a three dimensional rectangle representing the spatial"
+    " temporal bounding box of the in value.</text--->"
+    "<text>query bbox(testmjp)</text--->))";
+
+    Operator bboxJNet( "bbox", bboxSpec, 2, bboxMap, bboxSelect, bboxTM);
 /*
 1 Implementation of ~class JNetAlgebra~
 
@@ -2648,23 +3019,23 @@ JNetAlgebra::JNetAlgebra():Algebra()
 
 */
 
-  AddOperator(&createrlocOp);
-  AddOperator(&createrintOp);
-  AddOperator(&createndgOp);
+  AddOperator(&createrlocJNet);
+  AddOperator(&createrintJNet);
+  AddOperator(&createndgJNet);
 
 /*
 1.1.1.1 Lists and streams of Data Types
 
 */
 
-  AddOperator(&createlistOp);
-  AddOperator(&createstreamOp);
+  AddOperator(&createlistJNet);
+  AddOperator(&createstreamJNet);
 
 /*
 1.1.1.1 Network Construction
 
 */
-AddOperator(&createjnetOp);
+AddOperator(&createjnetJNet);
 
 
 /*
@@ -2674,71 +3045,111 @@ AddOperator(&createjnetOp);
 
 */
 
-  AddOperator(&createjpointOp);
-  AddOperator(&createjlineOp);
-  AddOperator(&createjpointsOp);
+  AddOperator(&createjpointJNet);
+  AddOperator(&createjlineJNet);
+  AddOperator(&createjpointsJNet);
 
 /*
 1.1.1.1.1 Time dependent
 
 */
 
-  AddOperator(&createijpointOp);
-  AddOperator(&createujpointOp);
-  AddOperator(&createmjpointOp);
+  AddOperator(&createijpointJNet);
+  AddOperator(&createujpointJNet);
+  AddOperator(&createmjpointJNet);
 
 /*
-1.1.1 Translation of spatial data types into jnet data types
+1.1.1 Translation of spatial / spatio-temporal data types into jnet data types
 
 */
 
-  AddOperator(&tonetworkOp);
+  AddOperator(&tonetworkJNet);
 
 /*
-1.1.1 Comparision of Data types
+1.1.1 Translation of jnet data types into spatial / spatio-temporal data types
 
 */
 
-  AddOperator(&eqOp);
-  AddOperator(&ltOp);
-  AddOperator(&gtOp);
-  AddOperator(&leOp);
-  AddOperator(&geOp);
-  AddOperator(&neOp);
+  //AddOperator(&fromnetworkJNet);
+
+/*
+1.1.1 Comparision of equal Data types
+
+*/
+
+  AddOperator(&eqJNet);
+  AddOperator(&ltJNet);
+  AddOperator(&gtJNet);
+  AddOperator(&leJNet);
+  AddOperator(&geJNet);
+  AddOperator(&neJNet);
 
 /*
 1.1.1 Manipulate DataTypes
 
 */
 
-  AddOperator(&minusOp);
-  AddOperator(&restrictOp);
+  AddOperator(&minusJNet);
+  AddOperator(&restrictJNet);
 
 /*
 1.1.1 Access to data type values
 
-1.1.1.1 Network Data
+1.1.1.1 Components
 
 */
 
-  AddOperator(&sectionsOp);
-  AddOperator(&routesOp);
-  AddOperator(&junctionsOp);
-  AddOperator(&distancesOp);
+  AddOperator(&sectionsJNet);
+  AddOperator(&routesJNet);
+  AddOperator(&junctionsJNet);
+  AddOperator(&distancesJNet);
+
+  //AddOperator(&valJNet);
+  //AddOperator(&instJNet);
+
+  AddOperator(&unitsJNet);
+  AddOperator(&trajectoryJNet);
+  //AddOperator(&lengthJNet);
+  AddOperator(&altrlocsJNet);
+
 
 /*
-1.1.1.1 MJPoint Data
+1.1.1 Spatial, Temporal, Network Projections
 
 */
 
- AddOperator(&unitsOp);
+  AddOperator(&tempnetboxJNet);
+  AddOperator(&netboxJNet);
+  AddOperator(&bboxJNet);
 
 /*
-1.1.1.1 UJPoint Data
+1.1.1 Restrict Data Types
 
 */
 
 
+  //AddOperator(&initialJNet);
+  //AddOperator(&atinstantJNet);
+  //AddOperator(&atperiodsJNet);
+  //AddOperator(&atJNet);
+
+/*
+1.1.1 Check data types for given properties
+
+*/
+
+  //AddOperator(&passesJNet);
+  //AddOperator(&intersectsJNet);
+  //AddOperator(&isemptyJNet);
+  //AddOperator(&presentJNet);
+  //AddOperator(&insideJNet);
+
+/*
+1.1.1 Network operators
+
+*/
+
+  //AddOperator(&netdistanceJNet);
 }
 
 /*
