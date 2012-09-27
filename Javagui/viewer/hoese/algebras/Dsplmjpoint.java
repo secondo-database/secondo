@@ -59,7 +59,7 @@ public class Dsplmjpoint extends DisplayTimeGraph {
     } catch (Exception ex) {
       ex.printStackTrace();
       err = true;
-      Reporter.writeError("Error in ListExpr :parsing aborted");
+      Reporter.writeError("Error in ListExpr :parsing aborted" + ex.getMessage());
       qr.addEntry(AttrName + "error");
     }
     return;
@@ -84,7 +84,26 @@ public class Dsplmjpoint extends DisplayTimeGraph {
     double t = RefLayer.getActualTime();
     double pointSize = Cat.getPointSize(renderAttribute,CurrentState.ActualTime);
     boolean asRect = Cat.getPointasRect();
-    return mjp.getRenderObject(no, af, t, pointSize, asRect);
+    Point2D.Double actPos = mjp.getPointAtTime(t);
+    if(actPos == null)
+      return null;
+    if(!ProjectionManager.project(actPos.x,actPos.y,actPos))
+      return null;
+    double pointSizeX = Math.abs(pointSize/af.getScaleX());
+    double pointSizeY = Math.abs(pointSize/af.getScaleY());
+    Shape shape;
+    if (asRect) {
+      shape = new Rectangle2D.Double(actPos.getX()- pointSizeX/2,
+                                     actPos.getY()- pointSizeY/2,
+                                     pointSizeX,
+                                     pointSizeY);
+    } else {
+      shape = new Ellipse2D.Double(actPos.getX() - pointSizeX/2,
+                                   actPos.getY() - pointSizeY/2,
+                                   pointSizeX,
+                                   pointSizeY);
+    }
+    return  shape;
   }
 
 /** A method of the Timed-Interface

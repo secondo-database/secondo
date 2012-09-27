@@ -69,21 +69,30 @@ public class JRouteInterval{
       return "undefined";
   }
 
-  public boolean contains(RouteLocation rloc){
+  public boolean contains(RouteLocation rloc, double tolerance){
     return (rid.compareTo(rloc.getRid()) == 0 &&
-            spos <= rloc.getPos() && rloc.getPos() <= epos &&
+            (spos <= rloc.getPos() ||
+                almostEqual(spos, rloc.getPos(), tolerance)) &&
+            (rloc.getPos() <= epos ||
+                almostEqual(epos, rloc.getPos(), tolerance)) &&
             dir.compareTo(rloc.getDir(), false) == 0);
   }
 
-  public boolean contains(JRouteInterval rint){
+  public boolean contains(JRouteInterval rint, double tolerance){
     return (rid.compareTo(rint.getRid()) == 0 &&
-            spos <= rint.getStartPos() && rint.getEndPos() <= epos &&
+            (spos <= rint.getStartPos() ||
+                almostEqual(spos, rint.getStartPos(), tolerance)) &&
+            (rint.getEndPos() <= epos ||
+                almostEqual(epos, rint.getEndPos(), tolerance)) &&
             dir.compareTo(rint.getDir().toString(), false) == 0);
   }
 
-  public boolean completelyInside(JRouteInterval rint){
+  public boolean completelyInside(JRouteInterval rint, double tolerance){
     return (rid.compareTo(rint.getRid()) == 0 &&
-            rint.getStartPos() <= spos && epos <= rint.getEndPos() &&
+            (rint.getStartPos() <= spos ||
+              almostEqual(spos , rint.getStartPos(), tolerance)) &&
+            (epos <= rint.getEndPos() ||
+              almostEqual(epos, rint.getEndPos(), tolerance)) &&
             dir.compareTo(rint.getDir().toString(), false) == 0);
   }
 
@@ -114,6 +123,15 @@ public class JRouteInterval{
   public RouteLocation getEndRLoc(){
     return new RouteLocation(rid, epos, dir);
   }
+
+  private static boolean almostEqual(double a, double b){
+    return almostEqual(a,b, 0.00000001);
+  }
+
+  private static boolean almostEqual(double a, double b, double tolerance){
+    return Math.abs(a-b) < tolerance;
+  }
+
 
 }
 

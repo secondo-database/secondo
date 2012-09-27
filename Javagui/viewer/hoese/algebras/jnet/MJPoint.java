@@ -59,17 +59,13 @@ public class MJPoint{
         if (first){
           starttime = actUP.getStartTime();
           first = false;
+          endtime = starttime;
         }
+        endtime = actUP.getEndTime();
         times.add(LEUtils.readInterval(actUList.first()));
         uList = uList.rest();
       }
-      if (actUP != null){
-        endtime = actUP.getEndTime();
-        deftime = new Interval(starttime, endtime, true, true);
-      } else {
-        deftime = new Interval(starttime, starttime, true, true);
-      }
-
+      deftime = new Interval(starttime, endtime, true, true);
     } else {
       netId = "undefined";
     }
@@ -107,14 +103,13 @@ public class MJPoint{
     return false;
   }
 
-  public Shape getRenderObject(int no, AffineTransform af, double actTime,
-                               double pointSize, boolean asRect){
+  public Point2D.Double getPointAtTime(double actTime){
     int index = IntervalSearch.getTimeIndex(actTime,times);
-    if(index == -1){ // t is outside from the deftime
+    if(index < 0){ // t is outside from the deftime
       return null;
     }
     UJPoint u = (UJPoint) units.get(index);
-    return u.getRenderObject(no, af, actTime, pointSize, asRect);
+    return u.getPointAtTime(actTime);
   }
 
   public Vector getIntervals(){

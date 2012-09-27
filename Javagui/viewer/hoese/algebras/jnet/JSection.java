@@ -103,6 +103,10 @@ public class JSection{
     return bounds;
   }
 
+  public JRouteInterval getRouteInterval (int pos){
+    return routeIntervals.get(pos);
+  }
+
   public Point2D.Double getPosition(RouteLocation rloc, int pos, double tolerance){
     JRouteInterval curInt = routeIntervals.get(pos);
     double distFromStartOfSection =
@@ -120,30 +124,30 @@ public class JSection{
     return getPosition(pos, 0.0);
   }
 
-  public int contains(RouteLocation rloc){
+  public int contains(RouteLocation rloc, double tolerance){
     for (int i = 0; i < routeIntervals.size(); i++){
       JRouteInterval curInt = routeIntervals.get(i);
-      if (curInt.contains(rloc)){
+      if (curInt.contains(rloc, tolerance)){
         return i;
       }
     }
     return -1;
   }
 
-  public int contains(JRouteInterval rint){
+  public int contains(JRouteInterval rint, double tolerance){
     for (int i = 0; i < routeIntervals.size(); i++){
       JRouteInterval curInt = routeIntervals.get(i);
-      if (curInt.contains(rint)){
+      if (curInt.contains(rint, tolerance)){
         return i;
       }
     }
     return -1;
   }
 
-  public int isCompletelyInside(JRouteInterval rint){
+  public int isCompletelyInside(JRouteInterval rint, double tolerance){
     for (int i = 0; i < routeIntervals.size(); i++){
       JRouteInterval curInt = routeIntervals.get(i);
-      if (curInt.completelyInside(rint)){
+      if (curInt.completelyInside(rint, tolerance)){
         return i;
       }
     }
@@ -168,17 +172,35 @@ public class JSection{
                                   boolean rendered){
     JRouteInterval curInt = routeIntervals.get(pos);
     double distFromStartOfSection = rloc.getPos() - curInt.getStartPos();
-    return getCurveFrom(distFromStartOfSection, rendered);
+    if (startSmaller)
+      return getCurveFrom(distFromStartOfSection, rendered);
+    else
+       return getCurveTo(distFromStartOfSection, rendered);
   }
 
   public GeneralPath getCurveTo(RouteLocation rloc, int pos, boolean rendered){
     JRouteInterval curInt = routeIntervals.get(pos);
     double distFromStartOfSection = rloc.getPos() - curInt.getStartPos();
-    return getCurveTo(distFromStartOfSection, rendered);
+    if (startSmaller)
+      return getCurveTo(distFromStartOfSection, rendered);
+    else
+      return getCurveFrom(distFromStartOfSection, rendered);
   }
 
   public boolean getStartSmaller(){
     return startSmaller;
+  }
+
+  private void curveToString(){
+    PathIterator pi1 = curve.getPathIterator(null, 0.0);
+    double[] coordsA = new double [6];
+    while(!pi1.isDone()){
+      pi1.currentSegment(coordsA);
+      for (int i = 0; i < 6; i++){
+        System.out.println("coordsA " + i + ": " + coordsA[i]);
+      }
+      pi1.next();
+    }
   }
 
   private void readCurve (ListExpr value){
@@ -189,9 +211,9 @@ public class JSection{
         startSmaller = true;
       Vector<Vector<Point2D.Double>> pointSequences =
         new Vector<Vector<Point2D.Double>>();
-      ListExpr rest = value.first();
-      while (!rest.isEmpty()){
-        ListExpr curSegment = rest.first();
+      ListExpr hslist = value.first();
+      while (!hslist.isEmpty()){
+        ListExpr curSegment = hslist.first();
         if (curSegment.listLength() == 4){
           Double X1 = LEUtils.readNumeric(curSegment.first());
           Double Y1 = LEUtils.readNumeric(curSegment.second());
@@ -205,7 +227,7 @@ public class JSection{
             insertSegment(pointSequences, x1,y1,x2,y2);
           }
         }
-        rest = rest.rest();
+        hslist = hslist.rest();
       }
       if (pointSequences.size() == 1){
         Vector<Point2D.Double> sequence = pointSequences.get(0);
@@ -235,6 +257,17 @@ public class JSection{
             this.p1 = sequence.get(1);
             this.p2 = sequence.get(0);
           }
+          if (startSmaller && !firstLess){
+            int smallindex = findSmallestIndex(sequence);
+            if (0 < smallindex)
+              reverse(sequence);
+          } else {
+            if (!startSmaller && !firstLess){
+              int smallindex = findSmallestIndex(sequence);
+              if (0 < smallindex)
+                reverse(sequence);
+            }
+          }
         }
       }
       curve = new GeneralPath();
@@ -245,20 +278,21 @@ public class JSection{
         Vector<Point2D.Double> sequence = it.next();
         for(int i=0 ; i < sequence.size(); i++){
           Point2D.Double p = sequence.get(i);
+          if (i == 0){
+            curve.moveTo((float) p.x, (float) p.y);
+          } else {
+            curve.lineTo((float)p.x, (float)p.y);
+          }
           if(ProjectionManager.project(p.x,p.y,rendRes)){
             if(i == 0){
-              curve.moveTo((float) p.x, (float) p.y);
               curveRendered.moveTo((float)rendRes.x, (float)rendRes.y);
             } else {
-              curve.lineTo((float)p.x, (float)p.y);
               curveRendered.lineTo((float)rendRes.x,(float)rendRes.y);
             }
           } else {
             if(i == 0){
-              curve.moveTo((float)p.x, (float)p.y);
               curveRendered.moveTo((float)p.x, (float)p.y);
             } else {
-              curve.lineTo((float)p.x,(float)p.y);
               curveRendered.lineTo((float)p.x,(float)p.y);
             }
           }
@@ -322,11 +356,15 @@ public class JSection{
   }
 
 private static boolean almostEqual(double a, double b){
-  return Math.abs(a-b) < 0.00000001;
+  return almostEqual(a,b, 0.00000001);
 }
 
 private static boolean almostEqual(Point2D.Double p1, Point2D.Double p2){
   return almostEqual(p1.x,p2.x) && almostEqual(p1.y,p2.y);
+}
+
+private static boolean almostEqual(double a, double b, double tolerance){
+  return Math.abs(a-b) < tolerance;
 }
 
 private static boolean isLess(Point2D.Double p1, Point2D.Double p2){
@@ -462,18 +500,24 @@ private static void reverse(Vector<Point2D.Double >  v){
     double distOnSection = 0.0;
     double lSeg = 0.0;
     double distNew = 0.0;
+    double x = 0.0;
+    double y = 0.0;
     // Look for segment
     pi.next();
-    while(!pi.isDone() && distOnSection <= lenth){
+    while(!pi.isDone() && (distOnSection < lenth)){
       pi.currentSegment(coordsTo);
       lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
                        Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
       distNew = distOnSection + lSeg;
-      if ((distOnSection < pos && pos < distNew) ||
-           Math.abs(distOnSection - pos) < tolerance ||
-           Math.abs(distNew - pos) < tolerance){
-        double x = coordsFrom[0] + (pos - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
-        double y = coordsFrom[1] + (pos - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
+      if ((distOnSection <= pos || almostEqual(distOnSection, pos, tolerance)) &&
+          (pos <= distNew) ||  almostEqual(pos, distNew, tolerance)) {
+        if (lSeg != 0) {
+          x = coordsFrom[0] + (pos - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
+          y = coordsFrom[1] + (pos - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
+        } else {
+          x = coordsFrom[0];
+          y = coordsFrom[1];
+        }
         return new Point2D.Double(x,y);
       } else {
         coordsFrom[0] = coordsTo[0];
@@ -482,7 +526,7 @@ private static void reverse(Vector<Point2D.Double >  v){
       }
       pi.next();
     }
-    return null; //should never been reached.
+    return new Point2D.Double(coordsFrom[0], coordsFrom[1]);
   }
 
   private GeneralPath getCurveFrom(double pos, boolean rendered){
@@ -505,7 +549,8 @@ private static void reverse(Vector<Point2D.Double >  v){
       lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
                        Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
       distNew = distOnSection + lSeg;
-      if (distOnSection <= pos && pos <= distNew){
+      if ((distOnSection <= pos || almostEqual(distOnSection, pos)) &&
+           (pos <= distNew || almostEqual(distNew, pos))){
         startfound = true;
         double x = coordsFrom[0] + (pos - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
         double y = coordsFrom[1] + (pos - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
@@ -581,7 +626,7 @@ private static void reverse(Vector<Point2D.Double >  v){
       lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
                        Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
       distNew = distOnSection + lSeg;
-      if (distNew <= pos){
+      if (distNew <= pos || almostEqual(distNew, pos)){
         if (rendered){
           if (ProjectionManager.project((float)coordsTo[0],(float)coordsTo[1],rendRes))
             gp.lineTo((float)rendRes.x, (float)rendRes.y);
@@ -633,7 +678,8 @@ private static void reverse(Vector<Point2D.Double >  v){
       lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
                        Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
       distNew = distOnSection + lSeg;
-      if (distOnSection <= from && from <= distNew){
+      if ((distOnSection <= from || almostEqual(distOnSection, from)) &&
+          (from <= distNew || almostEqual(from, distNew))){
         startfound = true;
         double x = coordsFrom[0] + (from - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
         double y = coordsFrom[1] + (from - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
@@ -645,16 +691,8 @@ private static void reverse(Vector<Point2D.Double >  v){
         } else {
           gp.moveTo((float)x,(float)y);
         }
-        if (to >= distNew) {
-          if (rendered){
-            if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
-              gp.lineTo((float)rendRes.x, (float)rendRes.y);
-            else
-              gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
-          }else {
-            gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
-          }
-        } else {
+        if ((distOnSection <= to || almostEqual(distOnSection, to)) &&
+            (to <= distNew || almostEqual(to, distNew))) {
           endfound = true;
           x = coordsFrom[0] + (to - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
           y = coordsFrom[1] + (to - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
@@ -665,6 +703,15 @@ private static void reverse(Vector<Point2D.Double >  v){
               gp.lineTo((float)x,(float)y);
           } else {
             gp.lineTo((float)x,(float)y);
+          }
+        } else {
+          if (rendered){
+            if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
+              gp.lineTo((float)rendRes.x, (float)rendRes.y);
+            else
+              gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
+          }else {
+            gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
           }
         }
       }
@@ -680,16 +727,8 @@ private static void reverse(Vector<Point2D.Double >  v){
           lSeg = Math.sqrt(Math.pow(Math.abs(coordsTo[0] - coordsFrom[0]),2) +
                            Math.pow(Math.abs(coordsTo[1] - coordsFrom[1]),2));
           distNew = distOnSection + lSeg;
-          if (distNew <= to){
-            if (rendered){
-              if (ProjectionManager.project(coordsTo[0],coordsTo[1],rendRes))
-                gp.lineTo((float)rendRes.x, (float)rendRes.y);
-              else
-                gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
-            } else {
-              gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
-            }
-          } else {
+          if ((distOnSection <= to || almostEqual(distOnSection, to)) &&
+              (to <= distNew || almostEqual(to, distNew))){
             endfound = true;
             double x = coordsFrom[0] + (to - distOnSection) * (coordsTo[0]-coordsFrom[0]) / lSeg;
             double y = coordsFrom[1] + (to - distOnSection) * (coordsTo[1]-coordsFrom[1]) / lSeg;
@@ -700,6 +739,15 @@ private static void reverse(Vector<Point2D.Double >  v){
                 gp.lineTo((float)x,(float)y);
             } else {
               gp.lineTo((float)x,(float)y);
+            }
+          } else {
+            if (rendered){
+              if (ProjectionManager.project((float)coordsTo[0],(float)coordsTo[1],rendRes))
+                gp.lineTo((float)rendRes.x, (float)rendRes.y);
+              else
+                gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
+            } else {
+              gp.lineTo((float)coordsTo[0],(float)coordsTo[1]);
             }
           }
           coordsFrom[0] = coordsTo[0];
@@ -713,6 +761,5 @@ private static void reverse(Vector<Point2D.Double >  v){
   }
 
 }
-
 
 

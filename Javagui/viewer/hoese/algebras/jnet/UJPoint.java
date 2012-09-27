@@ -88,8 +88,7 @@ public class UJPoint{
     return false;
   }
 
-  public Shape getRenderObject(int no, AffineTransform af, double actTime,
-                               double pointSize, boolean asRect){
+  public Point2D.Double getPointAtTime(double actTime){
     if(!time.isDefinedAt(actTime)){ // t is outside from the deftime
       return null;
     }
@@ -97,30 +96,18 @@ public class UJPoint{
     double t2 = time.getEnd();
     double timeDelta = (actTime-t1)/(t2-t1);
     double distOnRoute;
-    if (rint.getDir().toString().compareTo("Down") != 0 )
-      distOnRoute = rint.getStartPos() + rint.getLength() * timeDelta;
-    else
-      distOnRoute = rint.getEndPos() - rint.getLength() * timeDelta;
-    Point2D.Double actPos = sect.getPosition(distOnRoute);
-    Point2D.Double rendPos = new Point2D.Double(0.0,0.0);
-    if (ProjectionManager.project(actPos.x, actPos.y, rendPos)){
-      actPos = rendPos;
-    }
-    double pointSizeX = Math.abs(pointSize/af.getScaleX());
-    double pointSizeY = Math.abs(pointSize/af.getScaleY());
-    Shape shape;
-    if (asRect) {
-      shape = new Rectangle2D.Double(actPos.getX()- pointSizeX/2,
-                                     actPos.getY()- pointSizeY/2,
-                                     pointSizeX,
-                                     pointSizeY);
+    if (sect.getStartSmaller()){
+      if (rint.getDir().toString().compareTo("Down") != 0 )
+        distOnRoute = rint.getStartPos() + rint.getLength() * timeDelta;
+      else
+        distOnRoute = rint.getEndPos() - rint.getLength() * timeDelta;
     } else {
-      shape = new Ellipse2D.Double(actPos.getX() - pointSizeX/2,
-                                   actPos.getY() - pointSizeY/2,
-                                   pointSizeX,
-                                   pointSizeY);
+      if (rint.getDir().toString().compareTo("Down") != 0 )
+        distOnRoute = rint.getEndPos() - rint.getLength() * timeDelta;
+      else
+        distOnRoute = rint.getStartPos() + rint.getLength() * timeDelta;
     }
-    return  shape;
+    return sect.getPosition(distOnRoute);
   }
 
   public Interval getBoundingInterval (){
@@ -156,6 +143,9 @@ public class UJPoint{
     return time.getEnd();
   }
 
+  public JRouteInterval getRouteInterval(){
+    return rint;
+  }
 }
 
 
