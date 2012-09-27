@@ -1998,7 +1998,6 @@ query ProgressConstants inserttuple["Global", "TupleFile", "tread", xItHashJoin,
 
 query ProgressConstants inserttuple["Global", "ResultTuple", "attr", yItHashJoin, "msecs per attr in result relation", ""] consume
 
-Global,ResultTuple,attr,0.000451361,msecs per attr in result relation,
 query ProgressConstants feed csvexport['ProgressConstants.csv', FALSE, TRUE] count
 
 close database
