@@ -46,8 +46,9 @@ open database berlinmod;
 let RoadsTmp =
   streets feed
   projectextend[GeoData; VMax: ifthenelse(.Vmax > 0.0, .Vmax, 0.01)]
-  projectextendstream[VMax; RoadCurve: .GeoData longlines]
-  extend[Lenth: size(.RoadCurve)]
+  projectextendstream[VMax; RoadCurve: .GeoData polylines[FALSE]]
+  projectextend[VMax; RoadC: fromline(.RoadCurve)]
+  projectextend[VMax; Lenth: size(.RoadC), RoadCurve: .RoadC]
   sortby[Lenth desc, VMax asc, RoadCurve asc]
   addcounter[Rid, 1]
   project[Rid, RoadCurve, VMax, Lenth]
@@ -266,11 +267,22 @@ let QueryPointsNet =
   projectextend[Id; Pos: tonetwork(JBNet, .Pos)]
  consume;
 
+let QueryPointsNetAll =
+  QueryPointsNet feed
+  projectextendstream[Id; altrlocs(.NPos)]
+  projectextend[Id; Pos: .NPos]
+consume;
+
 let QueryPoints1Net =
   QueryPoints feed head[10]
   projectextend[Id; Pos: tonetwork(JBNet, .Pos)]
  consume;
 
+let QueryPoints1NetAll =
+  QueryPoints1Net feed
+  projectextendstream[Id; altrlocs(.NPos)]
+  projectextend[Id; Pos: .NPos]
+consume;
 
 ################################################################################
 #                                                                              #
@@ -286,10 +298,6 @@ let dataMNtrip =
   dataMtrip feed
   projectextend [Moid; Trip: tonetwork(JBNet, .Trip)]
 consume;
-
-close database;
-
-quit;
 
 
 ################################################################################
@@ -317,6 +325,7 @@ let QueryRegionsNet =
   projectextend[Id; Region: tonetwork(JBNet, .Lr)]
  consume;
 
+
 ################################################################################
 #                                                                              #
 # Build Network Indexes                                                        #
@@ -328,14 +337,13 @@ let QueryRegionsNet =
 #                                                                              #
 ################################################################################
 
-let dataSNcar_Licence_btree = dataSNcar createbtree[Licence];
+derive dataSNcar_Licence_btree = dataSNcar createbtree[Licence];
 
-let dataMcar_Licence_btree = dataMcar createbtree[Licence];
+derive dataMcar_Licence_btree = dataMcar createbtree[Licence];
 
-let dataMcar_Moid_btree = dataMcar createbtree[Moid];
+derive dataMcar_Moid_btree = dataMcar createbtree[Moid];
 
-let dataMNtrip_Moid_btree = dataMNtrip createbtree[Moid];
-
+derive dataMNtrip_Moid_btree = dataMNtrip createbtree[Moid];
 
 ################################################################################
 #                                                                              #
@@ -344,35 +352,53 @@ let dataMNtrip_Moid_btree = dataMNtrip createbtree[Moid];
 #                                                                              #
 ################################################################################
 
-let dataSNcar_BoxNet_timespace =
+derive dataSNcar_BoxNet_timespace =
   dataSNcar feed
   extend[TID: tupleid(.)]
   projectextendstream[TID; UTrip: units(.Trip)]
-  extend[Box: unitbox(.UTrip)]
+  extend[Box: tempnetbox(.UTrip)]
   sortby[Box asc]
 bulkloadrtree[Box];
 
-let dataMNtrip_BoxNet_timespace =
+derive dataMNtrip_BoxNet_timespace =
   dataMNtrip feed
   extend[TID: tupleid(.)]
   projectextendstream[TID; UTrip: units(.Trip)]
-  extend[Box: unitbox(.UTrip)]
+  extend[Box: tempnetbox(.UTrip)]
   sortby[Box asc]
  bulkloadrtree[Box];
 
-let dataSNcar_TrajBoxNet =
+derive dataSNcar_BoxNet =
   dataSNcar feed
   extend[TID: tupleid(.)]
-  projectextendstream[TID; Box: routeintervals(trajectory(.Trip))]
+  projectextendstream[TID; UTrip: units(.Trip)]
+  extend[Box: netbox(.UTrip)]
   sortby [Box asc]
  bulkloadrtree[Box];
 
-let dataMNtrip_TrajBoxNet =
+derive dataMNtrip_BoxNet =
   dataMNtrip feed
   extend[TID: tupleid(.)]
-  projectextendstream[TID; Box: routeintervals(trajectory(.Trip))]
+  projectextendstream[TID; UTrip: units(.Trip)]
+  extend[Box: netbox(.UTrip)]
   sortby [Box asc]
  bulkloadrtree[Box];
+
+derive dataSNcar_TrajBoxNet =
+  dataSNcar feed
+  extend[TID: tupleid(.)]
+  projectextendstream[TID; RInt: units(trajectory(.Trip))]
+  projectextend[TID; Box: netbox(.RInt)]
+  sortby[Box asc]
+bulkloadrtree[Box];
+
+derive dataMNtrip_TrajBoxNet =
+  dataMNtrip feed
+  extend[TID: tupleid(.)]
+  projectextendstream[TID; RInt: units(trajectory(.Trip))]
+  projectextend[TID; Box: netbox(.RInt)]
+  sortby[Box asc]
+bulkloadrtree[Box];
 
 ################################################################################
 #                                                                              #
@@ -380,13 +406,20 @@ let dataMNtrip_TrajBoxNet =
 #                                                                              #
 ################################################################################
 
-let dataMNtrip_SpatioTemp =
+derive dataMNtrip_SpatioTemp =
   dataMNtrip feed
   extend[TID: tupleid(.)]
-  projectextend[TID; Box: mgpbbox(.Trip)]
+  projectextend[TID; Box: bbox(.Trip)]
   sortby [Box asc]
  bulkloadrtree[Box];
 
+#derive dataMNtrip_SpatioTempUnits =
+#  dataMNtrip feed
+#  extend[TID: tupleid(.)]
+#  projectextendstream[TID; UTrip: units(.Trip)]
+#  extend[Box: bbox(.UTrip)]
+#  sortby[Box asc]
+#bulkloadrtree[Box];
 
 ################################################################################
 #                                                                              #
@@ -406,8 +439,10 @@ let QueryRegions1Net = QueryRegionsNet feed head[10] consume;
 
 ################################################################################
 #                                                                              #
-# Creation Finished Close Database                                             #
+# Finished Close Database                                                      #
 #                                                                              #
 ################################################################################
 
 close database;
+
+quit
