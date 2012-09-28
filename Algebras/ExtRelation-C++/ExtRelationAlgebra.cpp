@@ -7632,214 +7632,132 @@ Result type of ~groupby~ operation.
 ----
 
 */
-ListExpr GroupByTypeMap2(ListExpr args, const bool memoryImpl = false )
-{
-  ListExpr first, second, third;     // list used for analysing input
-  ListExpr listn, lastlistn, listp;  // list used for constructing output
-
-  first = second = third = nl->TheEmptyList();
-  listn = lastlistn = listp = nl->TheEmptyList();
-
-  string relSymbolStr = Relation::BasicType();
-  string tupleSymbolStr = Tuple::BasicType();
-
-  if ( memoryImpl ) {
-    relSymbolStr = "mrel";
-    tupleSymbolStr = "mtuple";
-  }
-
-  bool listOk = true;
-  listOk = listOk && ( nl->ListLength(args) == 3 );
-
-  if ( listOk ) {
-    first  = nl->First(args);
-    second = nl->Second(args);
-    third  = nl->Third(args);
-
-    // check input list structure
-    listOk = listOk && (nl->ListLength(first) == 2);
-    listOk = listOk && !nl->IsEmpty( third );
-// Original implementation:
-//     listOk = listOk && !nl->IsAtom(second) &&
-//              ( nl->ListLength(second) > 0 );
-    // Also allow for an empty grouping attr-list:
-    listOk = listOk && !nl->IsAtom(second);
-
-  }
-
-  if( !listOk )
-  {
-    stringstream errMsg;
-    errMsg << "groupby: Invalid input list structure. "
-        << "The structure should be a three elem list "
-        << "like (stream (" << tupleSymbolStr
-        << "((x1 t1) ... (xn tn)) (xi1 ... xik) "
-        << "( (y1 (map R T1)) ... (ym (map R Tm))!";
-
-    ErrorReporter::ReportError(errMsg.str());
-    return nl->SymbolAtom(Symbol::TYPEERROR());
-  }
-
-
-  // check for tuple stream
-  listOk = listOk &&
-           (nl->ListLength(first) == 2) &&
-           (TypeOfRelAlgSymbol(nl->First(first) == stream)) &&
-           (nl->ListLength(nl->Second(first)) == 2 ) &&
-           (nl->IsEqual(nl->First(nl->Second(first)),tupleSymbolStr)) &&
-           (IsTupleDescription(nl->Second(nl->Second(first))));
-
-  if ( !listOk ) {
-
-    ErrorReporter::ReportError( "groupby: Input is not of type (stream "
-        + tupleSymbolStr + "(...))." );
-    return nl->SymbolAtom(Symbol::TYPEERROR());
-  }
-
-  // list seems to be ok. Extract the grouping attributes
-  // out of the input stream
-
-  ListExpr rest = second;
-  ListExpr lastlistp = nl->TheEmptyList();
-  bool firstcall = true;
-
-  while (!nl->IsEmpty(rest))
-  {
-    ListExpr attrtype = nl->TheEmptyList();
-    ListExpr first2 = nl->First(rest);
-    if(nl->AtomType(first2)!=SymbolType){
-      ErrorReporter::ReportError("Wrong format for an attribute name");
-      return nl->TypeError();
-    }
-
-    string attrname = nl->SymbolValue(first2);
-
-    // calculate index of attribute in tuple
-    int j = FindAttribute(nl->Second(nl->Second(first)),
-                          attrname, attrtype);
-    if (j)
-    {
-      if (!firstcall)
-      {
-        lastlistn = nl->Append(lastlistn,nl->TwoElemList(first2,attrtype));
-        lastlistp = nl->Append(lastlistp,nl->IntAtom(j));
-      }
-      else
-      {
-        firstcall = false;
-        listn = nl->OneElemList(nl->TwoElemList(first2,attrtype));
-        lastlistn = listn;
-        listp = nl->OneElemList(nl->IntAtom(j));
-        lastlistp = listp;
-      }
-    }
-    else // grouping attribute not in input stream
-    {
-      string errMsg = "groupby: Attribute " + attrname
-          + " not present in input stream!";
-
-      ErrorReporter::ReportError(errMsg);
-      return nl->SymbolAtom(Symbol::TYPEERROR());
-    }
-    rest = nl->Rest(rest);
-  } // end while
-
-  // compute output tuple with attribute names and their types
-  //loopok = true;
-  rest = third;
-  ListExpr groupType = nl->TwoElemList( nl->SymbolAtom(relSymbolStr),
-                                        nl->Second(first) );
-
-  while (!(nl->IsEmpty(rest))) // check functions y1 .. ym
-  {
-      // iterate over elements of the 3rd input list
-    ListExpr firstr = nl->First(rest);
-    rest = nl->Rest(rest);
-
-    ListExpr newAttr = nl->First(firstr);
-    ListExpr mapDef = nl->Second(firstr);
-    ListExpr mapOut = nl->Third(mapDef);
-
-      // check list structure
-    bool listOk = true;
-    listOk = listOk && ( nl->IsAtom(newAttr) );
-    listOk = listOk && ( nl->ListLength(mapDef) == 3 );
-    listOk = listOk && ( nl->AtomType(newAttr) == SymbolType );
-    listOk = listOk && ( TypeOfRelAlgSymbol(nl->First(mapDef)) == ccmap );
-    listOk = listOk && ( nl->Equal(groupType, nl->Second(mapDef)) );
-
-    if( !listOk )
-        // Todo: there could be more fine grained error messages
-    {
-      ErrorReporter::ReportError(
-          "groupby: Function definition is not correct!");
-      return nl->SymbolAtom(Symbol::TYPEERROR());
-    }
-
-    // check if the Type Constructor belongs to KIND DATA
-    // If the functions result type is typeerror this check will also fail
-    ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ErrorInfo"));
-    if ( !am->CheckKind(Kind::DATA(), mapOut, errorInfo) ) {
-
-      stringstream errMsg;
-      errMsg << "groupby: The aggregate function for attribute \""
-          << nl->SymbolValue(newAttr) << "\""
-          << " returns a type which is not usable in tuples."
-          << " The type constructor \""
-          <<  nl->ToString(mapOut) << "\""
-          << " belongs not to kind DATA!"
-          << ends;
-
-      ErrorReporter::ReportError(errMsg.str());
-      return nl->SymbolAtom(Symbol::TYPEERROR());
-
-    }
-
-    if (    (nl->EndOfList( lastlistn ) == true)
-         && (nl->IsEmpty( lastlistn ) == false)
-         && (nl->IsAtom( lastlistn ) == false)
-       )
-    { // list already contains group-attributes (not empty)
-      lastlistn = nl->Append(lastlistn,(nl->TwoElemList(newAttr,mapOut)));
-    }
-    else
-    { // no group attribute (list is still empty)
-      listn = nl->OneElemList(nl->TwoElemList(newAttr,mapOut));
-      lastlistn = listn;
-    }
-  } // end of while check functions
-
-  if ( !CompareNames(listn) )
-  { // check if attribute names are unique
-    ErrorReporter::ReportError("groupby: Attribute names are not unique");
-    return nl->SymbolAtom(Symbol::TYPEERROR());
-  }
-
-  // Type mapping is correct, return result type.
-
-  ListExpr result =
-    nl->ThreeElemList(
-      nl->SymbolAtom(Symbol::APPEND()),
-      nl->Cons(nl->IntAtom(nl->ListLength(listp)), listp),
-      nl->TwoElemList(
-        nl->SymbolAtom(Symbol::STREAM()),
-        nl->TwoElemList(
-          nl->SymbolAtom(tupleSymbolStr),
-          listn
-        )
-      )
-    );
-
-//  string resstring;
-//  nl->WriteToString(resstring, result);
-//  cout << "groupbyTypeMap: result = " << resstring << endl;
-  return result;
-}
-
 ListExpr GroupByTypeMap(ListExpr args)
 {
-  return GroupByTypeMap2(args);
+
+ string err = "stream(tuple(X)) x attrlist x funlist expected";
+ if(!nl->HasLength(args,3)){
+   return listutils::typeError(err + " ( wrong number of args");
+ } 
+
+ ListExpr stream = nl->First(args);
+ ListExpr groupList = nl->Second(args);
+ ListExpr funList = nl->Third(args);
+
+ if(!Stream<Tuple>::checkType(stream) ||
+    (nl->AtomType(groupList) != NoAtom) ||
+    (nl->AtomType(funList) != NoAtom)){
+    return listutils::typeError(err);
+ }
+
+ ListExpr attrList = nl->Second(nl->Second(stream));
+
+ // 
+ set<string> usedNames;
+
+ ListExpr indexList;
+ ListExpr indexLast;
+ ListExpr resAttrList;
+ ListExpr resAttrLast;
+ bool first = true;
+
+ // process group list
+
+ while(!nl->IsEmpty(groupList)){
+    ListExpr attrNameList = nl->First(groupList);
+    groupList = nl->Rest(groupList);
+    if(!listutils::isSymbol(attrNameList)){
+       return listutils::typeError(" invalid attribute name: " 
+                                   + nl->ToString(attrNameList));
+    }
+    string attrName = nl->SymbolValue(attrNameList);
+    if(usedNames.find(attrName)!=usedNames.end()){
+       return listutils::typeError("Attribute " + attrName + " used twice");
+    }
+    usedNames.insert(attrName);
+    ListExpr type;
+    int index = listutils::findAttribute(attrList, attrName, type);
+    if(!index){
+      return listutils::typeError("attribute " + attrName 
+                                  + " not part of tuple");
+    }
+    ListExpr newAttr = nl->TwoElemList(attrNameList, type);
+    if(first){
+       indexList = nl->OneElemList(nl->IntAtom(index));
+       indexLast = indexList;
+       resAttrList = nl->OneElemList(newAttr);
+       resAttrLast = resAttrList;
+       first = false;
+    }  else {
+       indexLast = nl->Append(indexLast, nl->IntAtom(index));
+       resAttrLast = nl->Append(resAttrLast, newAttr);
+    }
+ }
+
+ // process funlist
+ ListExpr tupleType = nl->Second(stream);
+ ListExpr relType = nl->TwoElemList( 
+              listutils::basicSymbol<Relation>(),
+              tupleType);
+ 
+ while(!nl->IsEmpty(funList)) {
+   ListExpr fun = nl->First(funList);
+   funList = nl->Rest(funList);
+   if(!nl->HasLength(fun,2)){ // (name map)
+      return listutils::typeError("invalid function definition "
+                                  "found (missing name or map)");
+   } 
+   // check attribute name
+   ListExpr attrNameList = nl->First(fun);
+   if(!listutils::isValidAttributeName(attrNameList,err)){
+     return listutils::typeError("Attribute name " 
+                                 + nl->ToString(attrNameList) 
+                                 + " is not valid:" + err);  
+   }
+   string attrname = nl->SymbolValue(attrNameList);
+   if(usedNames.find(attrname)!=usedNames.end()){
+     return listutils::typeError("Attribute " + attrname + " used twice"); 
+   }
+   usedNames.insert(attrname);
+   // check map
+   ListExpr fundef = nl->Second(fun);
+   if(!listutils::isMap<1>(fundef)){
+     return listutils::typeError(nl->ToString(fundef) 
+                                   + " is not a valid function definition");
+   }
+   // check argument
+   if(!nl->Equal(relType, nl->Second(fundef))){
+     return listutils::typeError("invalid argument type for attribute " 
+                          + attrname + " expected " + nl->ToString(relType) 
+                          + " but got " + nl->ToString(nl->Second(fundef) ));
+   }
+   // check result
+   if(!Attribute::checkType(nl->Third(fundef))){
+     return listutils::typeError("result of function for " + attrname
+                                 + " is not an attribute");
+   }
+   ListExpr newAttr = nl->TwoElemList(attrNameList, nl->Third(fundef));
+   if(first){
+      indexList = nl->TheEmptyList();
+      resAttrList = nl->OneElemList(newAttr);
+      resAttrLast = resAttrList;
+      first = false;
+   } else {
+      resAttrLast = nl->Append(resAttrLast, newAttr);
+   }
+ }
+ // create result list
+ ListExpr resList = nl->TwoElemList(
+                      listutils::basicSymbol<Stream<Tuple> >(),
+                      nl->TwoElemList(
+                        listutils::basicSymbol<Tuple>(),
+                        resAttrList));
+ return nl->ThreeElemList(
+            nl->SymbolAtom(Symbol::APPEND()),
+            nl->Cons(nl->IntAtom(nl->ListLength(indexList)), indexList),
+            resList);
 }
+
 
 /*
 2.22 Operator ~slidingwindow~
