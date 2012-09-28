@@ -2193,9 +2193,9 @@ void MovingRegionCompareMS( MRegion *mr, const Region *r, MBool *result,
     bool staticequal = true;
     bool finish = false;
     MSegmentData dms;
-    int i = 0;
-    while(staticequal && (i < ur.GetSegmentsNum())){
-      ur.GetSegment(mr->GetMSegmentData(), i, dms);
+    int j = 0;
+    while(staticequal && (j < ur.GetSegmentsNum())){
+      ur.GetSegment(mr->GetMSegmentData(), j, dms);
       if (dms.GetInitialStartX() == dms.GetFinalStartX()
        && dms.GetInitialStartY() == dms.GetFinalStartY()
        && dms.GetInitialEndX()   == dms.GetFinalEndX()
@@ -2240,7 +2240,7 @@ void MovingRegionCompareMS( MRegion *mr, const Region *r, MBool *result,
           cout<<"s is not static"<<endl;
         staticequal = false;
       }
-      i++;
+      j++;
     }
     if(staticequal){
       uBool.timeInterval = ur.timeInterval;

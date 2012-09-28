@@ -1106,13 +1106,13 @@ void MappingExt<Unit, Alpha>::AtMin( Mapping<Unit, Alpha> &result ) const
     result.Clear();
     result.StartBulkLoad();
 
-    Get(0, unit);
+    this->Get(0, unit);
     result.Add( unit );
     umin = unit;
 
     for(int i=1;i<Mapping<Unit, Alpha>::GetNoComponents();i++)
     {
-      Get(i, unit);
+      this->Get(i, unit);
       compRes = (unit.constValue).Compare( &(umin.constValue) );
       if(compRes > 0)
         continue;
@@ -1153,13 +1153,13 @@ void MappingExt<Unit, Alpha>::AtMax( Mapping<Unit, Alpha> &result ) const
     result.Clear();
     result.StartBulkLoad();
 
-    Get(0, unit);
+    this->Get(0, unit);
     result.Add( unit );
     umin = unit;
 
     for(int i=1;i<Mapping<Unit, Alpha>::GetNoComponents();i++)
     {
-      Get(i, unit);
+      this->Get(i, unit);
       compRes = (unit.constValue).Compare( &(umin.constValue) );
       if(compRes < 0)
         continue;
@@ -1520,7 +1520,7 @@ causes a unesthetic termination of DB-UI.
         result.StartBulkLoad();
         for(int i=0;i<Mapping<Unit, Alpha>::GetNoComponents();i++)
         {
-            Get(i, utemp);
+            this->Get(i, utemp);
             if(inv->Contains(utemp.constValue))
                 result.Add( utemp );
         }

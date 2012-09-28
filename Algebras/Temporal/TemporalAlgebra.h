@@ -1787,14 +1787,14 @@ value of the temporal unit ~i~ and ~false~ if they are different.
     }
     // merge the units (i.e. their timeIntervals)
     ConstTemporalUnit<Alpha> res(false);
-    if(StartsBefore(i)){
+    if(this->StartsBefore(i)){
       res.timeInterval.start = this->timeInterval.start;
       res.timeInterval.lc    = this->timeInterval.lc;
     } else {
       res.timeInterval.start = i.timeInterval.start;
       res.timeInterval.lc    = i.timeInterval.lc;
     }
-    if(EndsAfter(i)){
+    if(this->EndsAfter(i)){
       res.timeInterval.end   = this->timeInterval.end;
       res.timeInterval.rc    = this->timeInterval.rc;
     } else {
