@@ -1131,3 +1131,9 @@ Number   : 1
 Signature: region x point [x bool] ->  bool
 Example  : query contains_rob(thecenter,mehringdamm)
 Result   : TRUE
+
+Operator : getHoles
+Number   : 1
+Signature : region -> region
+Example   : query getHoles((BGrenzenLine line2region ) minus thecenter) = thecenter
+Result    : TRUE

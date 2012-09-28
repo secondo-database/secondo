@@ -9276,7 +9276,9 @@ void Region::Intersection(const Line& l, Line& result,
   try{
      SetOp(l,*this,result,avlseg::intersection_op, geoid, true);
   } catch (exception& e){
-    // compute using robust implementation
+    // compute intersection using robust implementation
+    cerr << "Problem during plane sweep detected, "
+         << "switch to slow implementation" << endl;
     intersection(*this,l,result);
   }
 
@@ -9787,6 +9789,34 @@ void Region::Components( vector<Region*>& components )
     components[i]->EndBulkLoad(false,false,false,false);
   }
 }
+
+void Region::getHoles(Region& result) const{
+   if(!IsDefined()){
+      result.SetDefined(false);
+   }
+   result.Clear();
+   result.SetDefined(true);
+   result.StartBulkLoad();
+   int edgeno = 0;
+   for(int i=0; i< Size(); i++){
+       HalfSegment hs;
+       Get(i,hs);
+       if(hs.IsLeftDomPoint()){ 
+         if(hs.attr.cycleno!=0){ // not the outer cycle
+            hs.attr.edgeno = edgeno;
+            hs.attr.insideAbove = ! hs.attr.insideAbove;
+            result += hs;
+            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+            result += hs; 
+            edgeno++;
+         }
+      }
+   }
+   result.EndBulkLoad(true,true,true,false);
+}
+
+
+
 
 void Region::Translate( const Coord& x, const Coord& y, Region& result ) const
 {
@@ -23181,6 +23211,61 @@ Operator contains_rob(
 );
 
 
+/*
+1.40 Operator ~holes~
+
+1.40.1 Type Mapping : region -> region
+
+*/
+
+ListExpr getHolesTM(ListExpr args){
+  string err = "region expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err + "( wrong number of args");
+  }
+  if(!Region::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<Region>();
+}
+
+/*
+1.40.2 Value Mapping
+
+*/
+int getHolesVM(Word* args, Word& result, int message, Word& local,
+                    Supplier s ){
+
+   Region* arg = (Region*) args[0].addr;
+   result = qp->ResultStorage(s);
+   Region* res = (Region*) result.addr;
+   arg->getHoles(*res);
+   return 0;
+}
+
+/*
+1.40.3 Specification
+
+*/
+
+OperatorSpec getHolesSpec (
+    "region -> region ",
+    " getHoles(_) ",
+    "Returns the holes of a region.",
+    "query isempty(getHoles(thecenter)) "
+  );
+
+/*
+1.40.4 Operator instance
+
+*/
+Operator getHoles(
+   "getHoles",
+   getHolesSpec.getStr(),
+   getHolesVM,
+   Operator::SimpleSelect,
+   getHolesTM
+);
 
 /*
 11 Creating the Algebra
@@ -23317,6 +23402,7 @@ class SpatialAlgebra : public Algebra
     AddOperator(&testRegionCreator);
     AddOperator(&collect_box);
     AddOperator(&contains_rob);
+    AddOperator(&getHoles);
 
 
   }

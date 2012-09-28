@@ -149,7 +149,7 @@ The Halfsegmentarray must be:
     void saveFace(const int cycle, const int faceno, 
                   int& edgeno, Region * result) const;
     // saves a single cycle
-    void saveCycle(const int cycle, const int faceno, 
+    bool saveCycle(const int cycle, const int faceno, 
                    const int cycleno, int& edgeno, Region* result) const;
 
 };

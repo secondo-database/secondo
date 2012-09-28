@@ -3297,6 +3297,10 @@ void SetOp(const Line& line,
       }
    }
 
+  // set result to a highly estimated value to avoid
+  // frequent enlargements of the underlying DbArray
+  result.Resize(line.Size());  
+
   priority_queue<avlseg::ExtendedHalfSegment,
                  vector<avlseg::ExtendedHalfSegment>,
                  greater<avlseg::ExtendedHalfSegment> > q1;

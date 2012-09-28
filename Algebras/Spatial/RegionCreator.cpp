@@ -753,18 +753,28 @@ int RegionCreator::getNext(const DbArray<HalfSegment>* hss, int pos,
   void RegionCreator::saveFace(const int cycle, const int faceno,  
                                int& edgeno, Region* result) const{
      int cycleno = 0;
-     saveCycle(cycle, faceno, cycleno, edgeno, result);
+     if(!saveCycle(cycle, faceno, cycleno, edgeno, result)){
+         return;
+     }
+     cycleno++;
      for(size_t i=0;i<cycles.size();i++){
          if((correspondingOuters[i]==cycle) && holes[i]){
-             cycleno++;
-             saveCycle(i,faceno, cycleno,edgeno, result);
+             if(saveCycle(i,faceno, cycleno,edgeno, result)){
+               cycleno++;
+             }
          }
      }
   }
 
-  void RegionCreator::saveCycle(const int cycle, const int faceno, 
+  bool RegionCreator::saveCycle(const int cycle, const int faceno, 
                                 const int cycleno, int& edgeno, 
                                 Region* result)const{
+
+      if(cycles[cycle].size() < 3){
+          cerr << "found cycle with less than 3 halfsegments -> ignore" << endl;
+          return false;
+      }
+
       for(size_t i=0;i<cycles[cycle].size();i++){
           HalfSegment hs = cycles[cycle][i];
           hs.attr.faceno = faceno;
@@ -775,6 +785,7 @@ int RegionCreator::getNext(const DbArray<HalfSegment>* hss, int pos,
           (*result) += hs;
           edgeno++;
       }
+      return true;
   }
 
 

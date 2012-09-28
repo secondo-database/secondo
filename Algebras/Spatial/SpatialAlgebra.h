@@ -2548,6 +2548,16 @@ and must be deleted outside.
 
 */
   void Components( vector<Region*>& components );
+
+/*
+6.4.5 Operation ~getHoles~
+
+This operation returns all holes of the region as another region.
+
+*/
+   void getHoles(Region& result) const;
+
+
 /*
 6.4.5 Operation ~touch[_]points~ (with ~line~)
 
