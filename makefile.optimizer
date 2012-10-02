@@ -64,7 +64,7 @@ ifeq ($(platform2),linux)
   ifndef GMP_LIB
     PLVER := $(shell if [ $(PL_VERSION) -lt 50600 ]; then  echo "5x"; else echo "6x"; fi)
     ifeq ($(PLVER), 6x)
-      LD_GMP := -lgmp
+      LD_GMP := -lgmpxx -lgmp
     endif  
   else
     LD_GMP := -l$(GMP_LIB)

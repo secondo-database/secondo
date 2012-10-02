@@ -80,6 +80,8 @@ Data/Objects/KreisLaender
 Algebras/RegionInterpolation/Tex
 Algebras/JNet/Scripts
 Algebras/Network/Scripts
+bin/Scripts
+bin/Scripts2
 
 #Tools/RStarTree
 

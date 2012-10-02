@@ -525,6 +525,13 @@ Example  : query altrlocs(createjpoint(testjnet, createrloc(1, 0.0, [const jdire
 Result   : file
 Tolerance: 0.01%
 
+Operator : atinstant
+Number   : 1
+Signature: mjpoint x instant -> ijpoint
+Example  : query testmjp atinstant create_instant(0.4);
+Result   : (ijpoint("2000-01-03-09:36" ("testjnet" (1 0.001 (Up)))))
+Tolerance: 0.01%
+
 Operator : bbox
 Number   : 1
 Signature: mjpoint -> rect3
@@ -671,6 +678,13 @@ Example  : query distances(testjnet);
 Result   : file
 Tolerance: 0.01%
 
+Operator : inst
+Number   : 1
+Signature: ijpoint -> instant
+Example  : query inst(createijpoint(createjpoint(testjnet, createrloc(1, 0.0, [const jdirection value("Both")])), create_instant(0.5)));
+Result   : (instant "2000-01-03-12:00")
+Tolerance: 0.01%
+
 Operator : junctions
 Number   : 1
 Signature: jnet -> rel
@@ -697,6 +711,27 @@ Number   : 3
 Signature: jpoint -> rect
 Example  : query netbox(createjpoint(testjnet, createrloc(1, 0.0, [const jdirection value("Both")])));
 Result   : (rect(1.0 1.0 0.0 0.0))
+Tolerance: 0.01%
+
+Operator : passes
+Number   : 1
+Signature: mjpoint x jpoint -> bool
+Example  : query testmjp passes createjpoint(testjnet, createrloc(1, 0.0, [const jdirection value("Both")]));
+Result   : FALSE
+Tolerance: 0.01%
+
+Operator : passes
+Number   : 2
+Signature: mjpoint x jpoint -> bool
+Example  : query testmjp passes createjpoint(testjnet, createrloc(1, 0.0015, [const jdirection value("Both")]));
+Result   : TRUE
+Tolerance: 0.01%
+
+Operator : passes
+Number   : 3
+Signature: mjpoint x jline -> bool
+Example  : query testmjp passes testjl;
+Result   : TRUE
 Tolerance: 0.01%
 
 Operator : restrict
@@ -816,4 +851,11 @@ Number   : 2
 Signature: jline -> stream(jrint)
 Example  : query units(testjl) transformstream consume;
 Result   : file
+Tolerance: 0.01%
+
+Operator : val
+Number   : 1
+Signature: ijpoint -> jpoint
+Example  : query val(createijpoint(createjpoint(testjnet, createrloc(1, 0.0, [const jdirection value("Both")])), create_instant(0.5)));
+Result   : (jpoint("testjnet" (1 0.0 (Both))))
 Tolerance: 0.01%

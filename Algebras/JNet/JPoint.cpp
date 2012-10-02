@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "NList.h"
 #include "Symbols.h"
+#include "ManageJNet.h"
 
 
 /*
@@ -57,11 +58,11 @@ JPoint::JPoint(const JPoint& other) :
 JPoint::JPoint(const string netId, const RouteLocation& rloc) :
   Attribute(rloc.IsDefined()), npos(rloc)
 {
-  JNetwork* jnet = GetNetwork(netId);
+  JNetwork* jnet = ManageJNet::GetNetwork(netId);
   if (jnet != 0){
     strcpy(nid, *jnet->GetId());
     SetDefined(jnet->Contains(&rloc));
-    CloseNetwork(jnet);
+    ManageJNet::CloseNetwork(jnet);
   }
   else
     SetDefined(false);
@@ -419,36 +420,12 @@ Rectangle< 2 > JPoint::NetBox() const
 
 JListRLoc* JPoint::OtherNetworkPositions() const
 {
-  JNetwork* jnet = GetNetwork(nid);
+  JNetwork* jnet = ManageJNet::GetNetwork(nid);
   JListRLoc* result = jnet->GetNetworkValuesOf(npos);
-  CloseNetwork(jnet);
+  ManageJNet::CloseNetwork(jnet);
   return result;
 }
 
-/*
-1. Implementation of private Methods
-
-1.1. Open and Close JNetwork for JPoint
-
-*/
-
-JNetwork* JPoint::GetNetwork(const string netId) const {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  Word value;
-  bool valDefined = false;
-  if (sc->IsObjectName(netId) &&
-      sc->GetObject(netId, value, valDefined) &&
-      valDefined)
-    return (JNetwork*) value.addr;
-  else
-    return 0;
-}
-
-void JPoint::CloseNetwork(JNetwork* jnet) const {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  Word value(jnet);
-  sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), value);
-}
 
 /*
 1 Overwrite output operator

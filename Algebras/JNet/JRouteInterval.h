@@ -99,6 +99,7 @@ Returns always the bigger distance from the start of the route.
 */
 
     double GetLastPosition()const;
+    RouteLocation GetStartLocation() const;
 
 /*
 Returns the first point of the routeinterval respecting the direction of the
@@ -107,7 +108,7 @@ route interval on the road.
 */
 
     double GetStartPosition()const;
-
+    RouteLocation GetEndLocation() const;
 /*
 Returns the last point of the routeinterval respecting the direction of the
 route interval on the road.

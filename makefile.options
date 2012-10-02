@@ -40,7 +40,7 @@ DEBUG = -ggdb
 
 # Use even more optimization
 #OPTIMIZE += -O3 -march=native
-#OPTIMIZE += -O3
+OPTIMIZE += -O3
 
 # Do not use assertions. 
 # Assertions may

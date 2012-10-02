@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Symbols.h"
 #include "StandardTypes.h"
 #include "JRITree.h"
+#include "ManageJNet.h"
 
 /*
 1 Implementation of class JLine
@@ -47,18 +48,10 @@ JLine::JLine(const bool def) :
 JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList) :
     Attribute(true), routeintervals(0), sorted(false), activBulkload(false)
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  Word value;
-  bool valDefined = false;
-  if (sc->IsObjectName(netId) &&
-      sc->GetObject(netId, value, valDefined) &&
-      valDefined)
-  {
-    JNetwork* jnet = (JNetwork*) value.addr;
-    strcpy(nid, netId.c_str());
-    FillIntervalList(&rintList, jnet);
-    sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), value);
-  }
+  JNetwork* jnet = ManageJNet::GetNetwork(netId);
+  strcpy(nid, netId.c_str());
+  FillIntervalList(&rintList, jnet);
+  ManageJNet::CloseNetwork(jnet);
 }
 
 JLine::JLine(const JNetwork* jnet, const JListRInt* rintList) :
@@ -88,7 +81,6 @@ JLine::JLine(const JLine& other) :
     activBulkload = false;
   }
 }
-
 
 JLine::~JLine()
 {}
@@ -441,35 +433,8 @@ ListExpr JLine::Property()
       nl->TextAtom(Example())));
 }
 
-
 /*
-1.1 Other helpful operators
-
-*/
-
-string JLine::Example()
-{
-  return "(netname ("+ JRouteInterval::Example() + "))";
-}
-
-
-int JLine::GetNoComponents() const
-{
-  return routeintervals.Size();
-}
-
-bool JLine::IsEmpty() const {
-  return (IsDefined() && GetNoComponents() == 0);
-}
-
-void JLine::Get(const int i, JRouteInterval& ri) const
-{
-  assert (IsDefined() && 0 <= i && i < routeintervals.Size());
-  routeintervals.Get(i, ri);
-}
-
-/*
-1.1 Managing bulkload of routeintervals
+1.1 Manage Bulkload of Routeintervals
 
 */
 
@@ -520,6 +485,52 @@ JLine& JLine::Add(const JRouteInterval& rint)
   return *this;
 }
 
+/*
+1.1 Other helpful operators
+
+1.1.1 Example
+
+*/
+
+string JLine::Example()
+{
+  return "(netname ("+ JRouteInterval::Example() + "))";
+}
+
+/*
+1.1.1 GetNoComponents
+
+*/
+
+int JLine::GetNoComponents() const
+{
+  return routeintervals.Size();
+}
+
+/*
+1.1.1 IsEmpty
+
+*/
+
+bool JLine::IsEmpty() const {
+  return (IsDefined() && GetNoComponents() == 0);
+}
+
+/*
+1.1.1 Get
+
+*/
+void JLine::Get(const int i, JRouteInterval& ri) const
+{
+  assert (IsDefined() && 0 <= i && i < routeintervals.Size());
+  routeintervals.Get(i, ri);
+}
+
+/*
+1.1.1 FromSpatial
+
+*/
+
 void JLine::FromSpatial(const JNetwork* jnet, const Line* in)
 {
   routeintervals.clean();
@@ -551,6 +562,103 @@ void JLine::FromSpatial(const JNetwork* jnet, const Line* in)
   SetDefined(in->IsDefined());
 }
 
+/*
+1.1.1 Intersects
+
+*/
+
+bool JLine::Intersects(const JLine* other) const
+{
+  if (IsDefined() && !IsEmpty() && other->IsDefined() && !other->IsEmpty())
+  {
+    if (IsSorted() && other->IsSorted())
+    {
+      int i = 0;
+      int j = 0;
+      JRouteInterval ri1, ri2;
+      while (i < GetNoComponents() && j < other->GetNoComponents())
+      {
+        Get(i, ri1);
+        Get(j, ri2);
+        if (ri1.Overlaps(ri2))
+          return true;
+        switch (ri1.Compare(ri2))
+        {
+          case -1:
+          {
+            i++;
+            break;
+          }
+
+          case 1:
+          {
+            j++;
+            break;
+          }
+
+          default: // should never been reached
+          {
+            assert(false);
+            break;
+          }
+        }
+      }
+    }
+    else
+    {
+      if (IsSorted() && !other->IsSorted())
+      {
+        int j = 0;
+        JRouteInterval ri;
+        for (int i = 0; i < GetNoComponents(); i++)
+        {
+          Get(i,ri);
+          j = other->GetOverlappingPos(ri, 0, other->GetNoComponents()-1);
+          if (j > -1)
+            return true;
+        }
+      }
+      else
+      {
+        if (!IsSorted() && other->IsSorted())
+        {
+          int i = -1;
+          JRouteInterval ri;
+          for (int j = 0; j < GetNoComponents(); j++)
+          {
+            Get(j,ri);
+            i = GetOverlappingPos(ri, 0, GetNoComponents()-1);
+            if (i > -1)
+              return true;
+          }
+        }
+        else
+        {
+          JRouteInterval ri1, ri2;
+          for (int i = 0; i < GetNoComponents(); i++)
+          {
+            Get(i,ri1);
+            for (int j = 0; j < other->GetNoComponents(); j++)
+            {
+              Get(j,ri2);
+              if (ri1.Overlaps(ri2))
+                return true;
+            }
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+/*
+1.1 private Methods
+
+1.1.1 FillIntervalList
+
+*/
+
 void JLine::FillIntervalList(const DbArray<JRouteInterval>* rintList,
                              const JNetwork* jnet)
 {
@@ -567,7 +675,7 @@ void JLine::FillIntervalList(const DbArray<JRouteInterval>* rintList,
 }
 
 /*
-1.1 Management of RouteIntervals
+1.1.1 Sort
 
 */
 
@@ -587,12 +695,61 @@ void JLine::Sort()
   }
 }
 
+/*
+1.1.1 IsSorted
+
+*/
 bool JLine::IsSorted() const
 {
   if (IsDefined())
     return sorted;
   else
     return false;
+}
+
+/*
+1.1.1 GetOverlappingPos
+
+*/
+
+int JLine::GetOverlappingPos(const JRouteInterval& rint, int spos, int epos)
+const
+{
+  if (IsDefined() && !IsEmpty() && rint.IsDefined() && spos > -1 &&
+      epos < GetNoComponents() && spos <= epos)
+  {
+    JRouteInterval ri;
+    int mid = (epos + spos)/ 2;
+    Get(mid, ri);
+    if (ri.Overlaps(rint))
+      return mid;
+    else
+    {
+      switch(ri.Compare(rint))
+      {
+        case -1:
+        {
+          return GetOverlappingPos(rint, mid+1, epos);
+          break;
+        }
+
+        case 1:
+        {
+          return GetOverlappingPos(rint, spos, mid-1);
+          break;
+        }
+
+        default: //should never been reached
+        {
+          assert(false);
+          return -1;
+          break;
+        }
+
+      }
+    }
+  }
+  return -1;
 }
 
 

@@ -1,0 +1,350 @@
+######################################################################
+## File: OBA-JNetwork-Queries         ################################
+######################################################################
+##  This file is part of SECONDO.
+##
+##  Copyright (C) 2007, University in Hagen, Faculty of Mathematics and
+##  Computer Science, Database Systems for New Applications.
+##
+##  SECONDO is free software; you can redistribute it and/or modify
+##  it under the terms of the GNU General Public License as published by
+##  the Free Software Foundation; either version 2 of the License, or
+##  (at your option) any later version.
+##
+##  SECONDO is distributed in the hope that it will be useful,
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+##  GNU General Public License for more details.
+##
+##  You should have received a copy of the GNU General Public License
+##  along with SECONDO; if not, write to the Free Software
+##  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+######################################################################
+
+## This file performs the OBA-Queries of the BerlinMOD benchmark
+## in the Compact Representation on the Secondo DBMS.
+
+open database berlinmod;
+#############################################################
+#############################################################
+# All OBA/JNetwork - Queries
+
+query now();
+#############################################################
+# A - 1
+let OBAJNres001 = QueryLicences feed {O}
+  loopjoin[ dataSNcar_Licence_btree dataSNcar exactmatch[.Licence_O]]
+  project[Licence, Model] consume;
+
+query now();
+#############################################################
+# B - 2
+let OBAJNres002 =
+  dataSNcar feed filter [.Type = "passenger"] count;
+
+query now();
+#############################################################
+# C - 3
+let OBAJNres003 =
+  QueryLicences feed {LL} head[10]
+  loopjoin[dataSNcar_Licence_btree dataSNcar exactmatch[.Licence_LL]]
+  QueryInstants feed {II} head[10]
+  product
+  projectextend[; Licence: .Licence_LL, Instant: .Instant_II,
+                  Pos: val(.Trip atinstant .Instant_II)]
+  consume;
+
+query now();
+#############################################################
+# D - 4
+let OBAJNres004 =
+  QueryPointsNetAll feed
+  loopjoin[ dataSNcar_TrajBoxNet
+            windowintersectsS[netbox(.Pos)] sort rdup
+            dataSNcar gettuples]
+  filter[.Trip passes .Pos] project[Id, Licence]
+  sortby[Id asc, Licence asc] krdup[Id, Licence] consume;
+
+
+close database;
+quit;
+
+query now();
+#############################################################
+## E - 5
+let OBAJNres005tmp1 = QueryLicences feed head[10]
+  loopsel[ dataSNcar_Licence_btree dataSNcar
+    exactmatch[.Licence] ]
+  projectextend[Licence; Traj:
+    fromnetwork(trajectory(.Trip))] consume;
+
+query now();
+
+let OBAJNres005tmp2 = QueryLicences feed head[20] filter[.Id>10]
+  loopsel[ dataSNcar_Licence_btree dataSNcar
+    exactmatch[.Licence] ]
+  projectextend[Licence; Traj:
+    fromnetwork(trajectory(.Trip))] consume;
+
+query now();
+
+let OBAJNres005 = OBAJNres005tmp1 feed {V1} OBAJNres005tmp2 feed {V2}
+  product
+  projectextend[ ; Licence1: .Licence_V1,
+    Licence2: .Licence_V2,
+    Dist: distance(.Traj_V1, .Traj_V2)]
+  sort rdup consume;
+
+delete OBAJNres005tmp1;
+delete OBAJNres005tmp2;
+
+query now();
+#############################################################
+# F - 6
+
+let OBAJNres006tmp1 =
+  dataSNcar feed
+  filter [.Type = "truck"]
+  projectextend [Licence; Ptrip: fromnetwork(.Trip)]
+  extend[BBox: bbox(.Trip)]
+  projectextend [Licence, Ptrip; Box: rectangle3(minD(.BBox,1) - 5.0, maxD(.BBox,1) + 5.0, minD(.BBox,2) - 5.0, maxD(.BBox,2) + 5.0, minD(.BBox,3), maxD(.BBox,3))]
+ consume;
+
+let OBAJNres006 =
+  OBAJNres006tmp1 feed {a}
+  OBAJNres006tmp1 feed {b}
+  symmjoin [(.Box_a intersects ..Box_b) and (.Licence_a < ..Licence_b) and (everNearerThan(.Ptrip_a, ..Ptrip_b, 10.0))]
+  project [Licence_a, Licence_b]
+  sortby [Licence_a asc, Licence_b asc]
+  krdup [Licence_a, Licence_b]
+consume;
+
+delete OBAJNres006tmp1;
+
+query now();
+#############################################################
+# G - 7
+let OBAJNres007tmp1 =
+  QueryPointsNetAll
+    projectextend[Id, Pos; Prect: netbox(.NPos)]
+  loopsel [fun(t:TUPLE) dataSNcar_TrajBoxNet windowintersectsS[attr(t,Prect)]
+  sort rdup dataSNcar gettuples
+  filter [.Type = "passenger"]
+  filter [.Trip passes .NPos]
+  projectextend[Licence; Id: attr(t,Id) , Instant: inst(initial(.Trip at attr(t,Pos)))]]
+  filter[not(isempty(.Instant))]
+  sortby[Id asc, Instant asc]
+consume;
+
+let OBAJNres007 =
+  OBAJNres007tmp1 feed groupby[Id; FirstTime: group feed min[Instant]]{b}
+  OBAJNres007tmp1 feed {a}
+  symmjoin [..Id_a = .Id_b]
+  filter[.Instant_a <= .FirstTime_b]
+  project[Id_a, Licence_a]
+consume;
+
+delete OBAJNres007tmp1;
+
+query now();
+
+#############################################################
+# H - 8
+let OBAJNres008 =
+  QueryLicences feed {LL} head[10]
+  loopsel[ dataSNcar_Licence_btree dataSNcar exactmatch[.Licence_LL] ]
+  QueryPeriods feed head[10] filter [not(isempty(.Period))]{PP}
+  product
+  projectextend[Licence; Period: .Period_PP,
+    Dist: length(.Trip atperiods .Period_PP)]
+  project[Licence, Period, Dist]
+ sortby [Licence asc, Period asc] consume;
+
+query now();
+#############################################################
+# I - 9
+let OBAJNres009 =
+  dataSNcar feed {c}
+  QueryPeriods feed filter[not(isempty(.Period))]{p}
+  product
+  projectextend [Id_p, Period_p, Licence_c; Dist: length(.Trip_c atperiods .Period_p)]
+  sortby [Id_p asc, Period_p asc, Dist desc]
+  groupby [Id_p, Period_p; Distance: group feed max[Dist]]
+  project[Id_p, Period_p, Distance]
+  sortby [Id_p asc]
+  project [Period_p, Distance]
+consume;
+
+query now();
+#############################################################
+# J - 10
+let OBAJNres010 =
+  dataSNcar feed
+  projectextend[Licence; TripA: fromnetwork(.Trip)]
+  extend[BBox: bbox(.TripA)]
+  projectextend[Licence, TripA;Box: rectangle2((minD(.BBox,1) - 1.5), (maxD(.BBox,1) + 1.5), (minD(.BBox,2) - 1.5), (maxD(.BBox,2) + 1.5))]{c1}
+  QueryLicences1 feed
+  loopsel[dataSNcar_Licence_btree dataSNcar exactmatch[.Licence]]
+  projectextend[Licence, Trip; TripA: fromnetwork(.Trip)]
+  extend [BBox: bbox(.TripA)]
+  projectextend [Licence, Trip, TripA; Box: rectangle2((minD(.BBox,1) - 1.5), (maxD(.BBox,1) + 1.5), (minD(.BBox,2) - 1.5), (maxD(.BBox,2) + 1.5))] {c2}
+  symmjoin[.Box_c1 intersects ..Box_c2]
+  filter [.Licence_c1 # .Licence_c2]
+  filter [everNearerThan(.TripA_c1, .TripA_c2, 3.0)]
+  projectextend [Licence_c1, Licence_c2; Pos: .Trip_c2 atperiods deftime((distance(.TripA_c1, .TripA_c2) < 3.0) at TRUE)]
+  filter [not(isempty(.Pos))]
+  project [Licence_c2, Licence_c1, Pos]
+  sortby [Licence_c2 asc, Licence_c1 asc]
+consume;
+
+query now();
+#############################################################
+# K - 11
+let OBAJNres011 =
+ QueryInstant1 feed {i}
+ QueryPoints1NetAll
+  projectextend[Id; Prect: netbox(.Pos)]{p}
+  product
+  projectextend[Id_p, Instant_i; Box: box3d(.Prect_p, .Instant_i)]
+  loopsel[fun(t:TUPLE) dataSNcar_BoxNet_timespace windowintersectsS[attr(t,Box)]
+  sort rdup dataSNcar gettuples
+  projectextend [Licence; Id: attr(t,Id_p), Instant_i: attr(t,Instant_i)]]
+consume;
+
+query now();
+#############################################################
+# L - 12
+
+let OBAJNres012tmp1 =
+  QueryInstant1 feed {i}
+  QueryPoints1NetAll feed
+  projectextend[Id, Pos; Prect: netbox(.Pos)]{p}
+  product
+  loopsel[fun(t:TUPLE) dataSNcar_BoxNet_timespace windowintersectsS[box3d(attr(t,Prect_p), attr(t,Instant_i))]
+  sort rdup dataSNcar gettuples
+  projectextend [Licence; Id_p: attr(t,Id_p), Pos_p: attr(t,Pos_p), Instant_i: attr(t,Instant_i)]]
+  sortby [Id_p asc, Instant_i asc, Licence asc]
+consume;
+
+let OBAJNres012 =
+  OBAJNres012tmp1 feed {c1}
+  OBAJNres012tmp1 feed {c2}
+  symmjoin [(.Licence_c1 < ..Licence_c2) and (.Id_p_c1 = ..Id_p_c2) and (.Instant_i_c1 = ..Instant_i_c2)]
+  project [Id_p_c1, Pos_p_c1, Instant_i_c1, Licence_c1, Licence_c2]
+  sortby [Id_p_c1 asc, Instant_i_c1 asc, Licence_c2 asc]
+consume;
+
+delete OBAJNres012tmp1;
+
+query now();
+#############################################################
+# M - 13
+let OBAJNres013 =
+  dataSNcar feed {c}
+  QueryRegions1Net feed filter[not(isempty(.Region))] {r}
+  symmjoin[.Trip_c passes ..Region_r]
+  projectextend[Licence_c, Id_r, Region_r; Trip: .Trip_c at .Region_r]
+  QueryPeriods1 feed filter[not(isempty(.Period))]{p}
+  symmjoin [.Trip present ..Period_p]
+  projectextend[Id_r, Period_p; Licence: .Licence_c, Trip: .Trip atperiods .Period_p]
+  filter [not(isempty(.Trip))]
+  project[Id_r, Period_p, Licence]
+  sortby[Id_r asc, Period_p asc, Licence asc]
+consume;
+
+query now();
+#############################################################
+# M1 - 14
+let OBAJNres014 =
+  dataSNcar feed
+  QueryInstant1 feed
+  product
+  projectextend[Licence, Instant; PosX: val(.Trip atinstant .Instant)]
+  projectextendstream[Licence, Instant; Pos: altrlocs(.PosX)]
+  QueryRegions1Net feed filter[not(isempty(.Region))]
+  symmjoin[.Pos inside ..Region]
+  project[Id, Instant, Licence]
+  sortby [Id asc, Instant asc, Licence asc]
+  krdup[Id, Instant, Licence]
+consume;
+
+query now();
+#############################################################
+# M2 - 15
+let OBACRres015 =
+  QueryPoints1NetAll feed
+  projectextend[Id, Pos; Prect: netbox(.NPos)] {p}
+  QueryPeriods1 feed filter[not(isempty(.Period))] {t}
+  product
+  projectextend[Id_p, Pos_p, Period_t; Box: box3d(.Prect_p, .Period_t)]
+  loopsel [fun(t:TUPLE) dataSNcar_BoxNet_timespace windowintersectsS[attr(t, Box)]
+  sort rdup dataSNcar gettuples
+  filter[(.Trip atperiods (attr(t,Period_t))) passes (attr(t,Pos_p))]
+  projectextend[; Id: attr(t,Id_p), Period: attr(t,Period_t), Licence: .Licence]]
+  sortby [Id asc, Period asc, Licence asc]
+  krdup [Id, Period, Licence]
+consume;
+
+query now();
+#############################################################
+# N - 16
+
+let OBACRres016 =
+  QueryLicences1 feed {l}
+  loopjoin [dataSNcar_Licence_btree dataSNcar exactmatch [.Licence_l]] {c}
+  QueryPeriods1 feed filter[not(isempty(.Period))]{p}
+  symmjoin [.Trip_c present ..Period_p]
+  projectextend[Id_p, Period_p; Licence: .Licence_c, Trip: .Trip_c atperiods .Period_p]
+  filter [not(isempty(.Trip))]
+  QueryRegions1Net feed filter[not(isempty(.Region))] {r}
+  symmjoin[.Trip passes ..Region_r]
+  projectextend[Licence, Id_r, Region_r, Id_p, Period_p; Trip: .Trip at .Region_r]
+  filter [not(isempty(.Trip))]{a}
+  QueryLicences2 feed {l}
+  loopjoin [dataSNcar_Licence_btree dataSNcar exactmatch [.Licence_l]] {c}
+  QueryPeriods1 feed filter[not(isempty(.Period))]{p}
+  symmjoin [.Trip_c present ..Period_p]
+  projectextend[Id_p, Period_p; Licence: .Licence_c, Trip: .Trip_c atperiods .Period_p]
+  filter [not(isempty(.Trip))]
+  QueryRegions1Net feed filter[not(isempty(.Region))] {r}
+  symmjoin[.Trip passes ..Region_r]
+  projectextend[Licence, Id_r, Region_r, Id_p, Period_p; Trip: .Trip at .Region_r]
+  filter [not(isempty(.Trip))]{b}
+  symmjoin[(.Id_r_a = ..Id_r_b) and (.Id_p_a = ..Id_p_b)]
+  filter [.Licence_a # .Licence_b]
+  filter[not(.Trip_a intersects .Trip_b)]
+  project [Id_r_a, Period_p_a, Licence_a, Licence_b]
+consume;
+
+
+query now();
+
+#############################################################
+# O - 17
+let OBAJNres017tmp1 =
+  dataSNcar feed {c}
+  QueryPointsNetAll feed {p}
+  symmjoin [.Trip_c passes ..Pos_p]
+  project [Id_p, Licence_c]
+  sortby [Id_p, Licence_c]
+  krdup [Id_p, Licence_c]
+  groupby[Id_p; Hits: group feed count]
+consume;
+
+let OBAJNres017 =
+  OBAJNres017tmp1 feed
+  filter [.Hits = (OBAJNres017tmp1 feed max[Hits])]
+  project [Id_p, Hits]
+consume;
+
+query now();
+
+delete OBACRres017tmp1;
+
+#############################################################
+#############################################################
+let EVAL_SEC2COMMANDS_BERLINMOD_OBA_JNET = SEC2COMMANDS feed consume;
+
+#save EVAL_SEC2COMMANDS_BERLINMOD_OBA_JNET to 'BerlinMODOBAJNetRunTimesRunX.DAT';
+
+close database;

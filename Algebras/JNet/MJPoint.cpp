@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Direction.h"
 #include "StandardTypes.h"
 #include "JRITree.h"
+#include "ManageJNet.h"
+#include "IJPoint.h"
 
 /*
 1 Helpful Operations
@@ -146,6 +148,70 @@ void MJPoint::SetUnits(const DbArray<JUnit>& upoints)
 void MJPoint::SetNetworkId(const STRING_T& id)
 {
   strcpy(nid, id);
+}
+
+/*
+1.1.1 Trajectory
+
+*/
+
+void MJPoint::Trajectory(JLine* result) const
+{
+  result->StartBulkload();
+  result->EndBulkload();
+  if (IsDefined())
+  {
+    result->SetDefined(true);
+    result->SetNetworkId(nid);
+    if (!IsEmpty())
+    {
+      JRITree* tree = new JRITree(0);
+      JUnit actUnit;
+      JRouteInterval actRInt;
+      for (int i = 0; i < GetNoComponents() ; i++)
+      {
+        Get(i,actUnit);
+        actRInt = actUnit.GetRouteInterval();
+        tree->Insert(actRInt);
+      }
+            DbArray<JRouteInterval>* res = new DbArray<JRouteInterval>(0);
+            tree->TreeToDbArray(res);
+            result->SetRouteIntervals(*res);
+            tree->Destroy();
+            delete tree;
+            res->Destroy();
+            delete res;
+    }
+  }
+    else
+      result->SetDefined(false);
+}
+
+/*
+1.1.1 BoundingBox
+
+*/
+
+Rectangle< 3 > MJPoint::BoundingBox() const
+{
+  if (IsDefined() && GetNoComponents() > 0)
+  {
+    JUnit actUnit;
+    Get(0,actUnit);
+    JNetwork* jnet = ManageJNet::GetNetwork(*GetNetworkId());
+    Rectangle<3> result = actUnit.BoundingBox(jnet);
+    for (int i = 1; i < GetNoComponents(); i++)
+    {
+      Get(i,actUnit);
+      Rectangle<3> actRect = actUnit.BoundingBox(jnet);
+      if (actRect.IsDefined())
+        result.Union(actRect);
+    }
+        ManageJNet::CloseNetwork(jnet);
+        return result;
+  }
+    else
+      return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 }
 
 /*
@@ -474,6 +540,62 @@ ListExpr MJPoint::Property()
       nl->TextAtom(Example())));
 }
 
+/*
+1.1. Manage Bulkload
+
+*/
+
+void MJPoint::StartBulkload()
+{
+  Clear();
+  SetDefined(true);
+  activBulkload = true;
+}
+
+void MJPoint::EndBulkload()
+{
+  activBulkload = false;
+  if (!Simplify())
+  {
+    SetDefined(false);
+    Clear();
+  }
+    else
+    {
+      units.TrimToSize();
+    }
+}
+
+MJPoint& MJPoint::Add(const JUnit& up)
+{
+  if (IsDefined() && up.IsDefined())
+  {
+    if(activBulkload)
+      units.Append(up);
+    else
+    {
+      int pos = 0;
+      units.Find(&up, JUnit::Compare, pos);
+      JUnit actUP, nextUP;
+      units.Get(pos,actUP);
+      if (actUP.Compare(up) != 0)
+      {
+        nextUP = actUP;
+        units.Put(pos, up);
+        pos++;
+        while(pos < units.Size())
+        {
+          units.Get(pos, actUP);
+          units.Put(pos, nextUP);
+          nextUP = actUP;
+          pos++;
+        }
+        units.Append(nextUP);
+      }
+    }
+  }
+  return *this;
+}
 
 /*
 1.1 Other Operations
@@ -617,136 +739,60 @@ else
 }
 
 /*
-1.1.1 Trajectory
+1.1.1 ~AtInstant~
 
 */
 
-void MJPoint::Trajectory(JLine* result) const
+IJPoint MJPoint::AtInstant(const Instant* time) const
 {
-  result->StartBulkload();
-  result->EndBulkload();
-  if (IsDefined())
+  if (IsDefined() && !IsEmpty() && time != 0 && time->IsDefined())
   {
-    result->SetDefined(true);
-    result->SetNetworkId(nid);
-    if (!IsEmpty())
+    int pos = GetUnitPosForTime(time, 0, GetNoComponents()-1);
+    if (pos > -1)
     {
-      JRITree* tree = new JRITree(0);
-      JUnit actUnit;
-      JRouteInterval actRInt;
-      for (int i = 0; i < GetNoComponents() ; i++)
-      {
-        Get(i,actUnit);
-        actRInt = actUnit.GetRouteInterval();
-        tree->Insert(actRInt);
-      }
-      DbArray<JRouteInterval>* res = new DbArray<JRouteInterval>(0);
-      tree->TreeToDbArray(res);
-      result->SetRouteIntervals(*res);
-      tree->Destroy();
-      delete tree;
-      res->Destroy();
-      delete res;
+      JUnit ju;
+      Get(pos, ju);
+      return ju.AtInstant(time, nid);
     }
   }
-  else
-    result->SetDefined(false);
+  return IJPoint(false);
 }
+
 /*
-1.1.1 BoundingBox
+1.1.1 ~Passes~
 
 */
 
-Rectangle< 3 > MJPoint::BoundingBox() const
+bool MJPoint::Passes(const JPoint* jp) const
 {
-  if (IsDefined() && GetNoComponents() > 0)
+  if (IsDefined() && !IsEmpty())
   {
-    JUnit actUnit;
-    Get(0,actUnit);
-    SecondoCatalog* sc = SecondoSystem::GetCatalog();
-    Word w;
-    bool defined;
-    if (!sc->GetObject(nid, w, defined))
-      return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-    if (!defined)
-      return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-    JNetwork* jnet = (JNetwork*) w.addr;
-    Rectangle<3> result = actUnit.BoundingBox(jnet);
-    for (int i = 1; i < GetNoComponents(); i++)
+    JUnit ju;
+    for (int i = 0; i < GetNoComponents(); i++)
     {
-      Get(i,actUnit);
-      Rectangle<3> actRect = actUnit.BoundingBox(jnet);
-      if (actRect.IsDefined())
-        result.Union(actRect);
+      Get(i,ju);
+      if (ju.GetRouteInterval().Contains(jp->GetPosition()))
+        return true;
     }
-    sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), w);
-    return result;
   }
-  else
-    return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  return false;
+}
+
+bool MJPoint::Passes(const JLine* jl) const
+{
+  if (IsDefined() && !IsEmpty() && jl != 0 && jl->IsDefined() && !jl->IsEmpty())
+  {
+    JLine* traj = new JLine(0);
+    Trajectory(traj);
+    return traj->Intersects(jl);
+  }
+  return false;
 }
 
 /*
-1.1. Manage Bulkload
+1.1  Private Methods
 
-*/
-
-void MJPoint::StartBulkload()
-{
-  Clear();
-  SetDefined(true);
-  activBulkload = true;
-}
-
-void MJPoint::EndBulkload()
-{
-  activBulkload = false;
-  if (!Simplify())
-  {
-    SetDefined(false);
-    Clear();
-  }
-  else
-  {
-    units.TrimToSize();
-  }
-}
-
-MJPoint& MJPoint::Add(const JUnit& up)
-{
-  if (IsDefined() && up.IsDefined())
-  {
-    if(activBulkload)
-      units.Append(up);
-    else
-    {
-      int pos = 0;
-      units.Find(&up, JUnit::Compare, pos);
-      JUnit actUP, nextUP;
-      units.Get(pos,actUP);
-      if (actUP.Compare(up) != 0)
-      {
-        nextUP = actUP;
-        units.Put(pos, up);
-        pos++;
-        while(pos < units.Size())
-        {
-          units.Get(pos, actUP);
-          units.Put(pos, nextUP);
-          nextUP = actUP;
-          pos++;
-        }
-        units.Append(nextUP);
-      }
-    }
-  }
-  return *this;
-}
-
-/*
-1 Private Methods
-
-1.1 CheckSorted
+1.1.1 CheckSorted
 
 */
 
@@ -765,13 +811,18 @@ bool MJPoint::CheckSorted() const
       lastUP = actUP;
       i++;
     }
-    return sorted;
+        return sorted;
   }
-  else
-  {
-    return true;
-  }
+    else
+    {
+      return true;
+    }
 }
+
+/*
+1.1.1 ~Simplifiy~
+
+*/
 
 bool MJPoint::Simplify()
 {
@@ -792,7 +843,7 @@ bool MJPoint::Simplify()
         simpleUnits->Append(actOldUnit);
         actOldUnit = actNewUnit;
       }
-      i++;
+            i++;
     }
     simpleUnits->Append(actOldUnit);
     simpleUnits->TrimToSize();
@@ -807,7 +858,7 @@ bool MJPoint::Simplify()
 }
 
 /*
-1.1 Append
+1.1.1 Append
 
 */
 
@@ -822,6 +873,63 @@ void MJPoint::Append(const MJPoint* in)
       Add(curUnit);
     }
   }
+}
+
+/*
+1.1.1 ~Starttime~
+
+*/
+
+Instant* MJPoint::Starttime() const
+{
+  JUnit first;
+  if (IsDefined() && !IsEmpty())
+  {
+    Get(0, first);
+    return new Instant(first.GetTimeInterval().start);
+  }
+  else
+    return 0;
+}
+
+/*
+1.1.1 ~Endtime~
+
+*/
+
+Instant* MJPoint::Endtime() const
+{
+  JUnit last;
+  if (IsDefined() && !IsEmpty())
+  {
+    Get(GetNoComponents()-1, last);
+    return new Instant(last.GetTimeInterval().start);
+  }
+    else
+      return 0;
+}
+
+/*
+1.1.1 ~GetUnitPosForTime~
+
+*/
+
+int MJPoint::GetUnitPosForTime(const Instant* time, const int spos,
+                               const int epos) const
+{
+  if (!IsDefined() || time == 0 || !time->IsDefined() || IsEmpty() ||
+      spos < 0 || epos > GetNoComponents()-1 || epos < spos)
+    return -1;
+  int mid = (epos + spos) / 2;
+  JUnit ju;
+  Get(mid, ju);
+  if (ju.GetTimeInterval().end < *time)
+    return GetUnitPosForTime(time, mid+1, epos);
+  else
+    if (ju.GetTimeInterval().start > *time)
+      return GetUnitPosForTime(time, spos, mid-1);
+    else
+      return mid;
 }
 
 /*

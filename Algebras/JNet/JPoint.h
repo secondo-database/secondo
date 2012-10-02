@@ -169,14 +169,6 @@ private:
   STRING_T nid;         // network id of the network the point belongs to.
   RouteLocation npos; //position in this network.
 
-/*
-1.1.1 Open and Close Network access
-
-*/
-
-JNetwork* GetNetwork(const string netId) const;
-void CloseNetwork(JNetwork* jnet) const;
-
 };
 
 /*

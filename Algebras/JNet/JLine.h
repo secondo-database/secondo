@@ -49,14 +49,11 @@ and start and end positions and are compressed as far as possible.
 class JLine : public Attribute
 {
 
-/*
-1.1 public declarations
-
-*/
-
 public:
 
 /*
+1.1 public declarations
+
 1.1.1 Constructors and Deconstructor
 
 */
@@ -65,7 +62,6 @@ public:
   explicit JLine(const string netId, const DbArray<JRouteInterval>& rintList);
   explicit JLine(const JNetwork* jnet, const JListRInt* rintList);
   explicit JLine(const JLine& other);
-  JLine(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
 
   ~JLine();
 
@@ -132,6 +128,16 @@ public:
   static ListExpr Property();
 
 /*
+1.1.1 Manage Bulkload of RouteIntervals
+
+*/
+
+  void StartBulkload();
+  void EndBulkload();
+
+  JLine& Add(const JRouteInterval& rint);
+
+/*
 1.1.1 Other helpful operators
 
 1.1.1.1 ~Example~
@@ -170,41 +176,29 @@ Returns the routeinterval at the given position
   void Get(const int i, JRouteInterval& ri) const;
 
 /*
-1.1.1.1 Managing bulkload of routeintervals
+1.1.1.1 ~FromSpatial~
 
-1.1.1.1.1 ~StartBulkload~
-
-*/
-
-  void StartBulkload();
-
-/*
-1.1.1.1.1 ~EndBulkload~
+Computes a ~jline~ from an given ~line~ value.
 
 */
-
-  void EndBulkload();
-
-/*
-1.1.1.1.1 ~Add~
-
-Adds the given JRouteInterval to the set of routeintervals.
-
-*/
-
- JLine& Add(const JRouteInterval& rint);
 
  void FromSpatial (const JNetwork* jnet, const Line* in);
 
 /*
+1.1.1.1 ~Intersects~
 
-1.1 private Deklaration part
+Returns true if at least one pair of intervals (one interval from each ~jline~)
+intersects.
 
 */
+
+bool Intersects(const JLine* other) const;
 
 private:
 
 /*
+1.1 private Deklaration part
+
 1.1.1 Attributes
 
 */
@@ -227,9 +221,7 @@ declare it to be private.
 /*
 1.1.1 Methods
 
-1.1.1.1 Management of RouteIntervals
-
-1.1.1.1.1 IsSorted
+1.1.1.1 IsSorted
 
 Checks if the given set of JRouteIntervals is sorted.
 
@@ -238,7 +230,7 @@ Checks if the given set of JRouteIntervals is sorted.
   bool IsSorted() const;
 
 /*
-1.1.1.1.1 Sort
+1.1.1.1 Sort
 
 Sorts the given set of RouteIntervals ascending by route Identifier,
 StartPosition and EndPosition and reduces the number of route intervals if
@@ -249,7 +241,7 @@ possible.
   void Sort();
 
 /*
-1.1.1.1.1 FillIntervalList
+1.1.1.1 FillIntervalList
 
 Fills the list of route intervals from the given DbArray. Ignores
 RouteIntervals which are not in the network.
@@ -258,6 +250,17 @@ RouteIntervals which are not in the network.
 
 void FillIntervalList(const DbArray<JRouteInterval>* rintList,
                       const JNetwork* jnet);
+
+/*
+1.1.1.1 GetOverlappingPos
+
+Searches binary in the list of sorted intervallist if a overlapping route
+interval for rint exists. If an overlapping route interval exists the position
+of this interval is returned. Otherwise -1 is returned.
+
+*/
+
+int GetOverlappingPos(const JRouteInterval& rint, int spos, int epos)  const;
 
 };
 

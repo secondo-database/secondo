@@ -49,14 +49,11 @@ intervals.
 class MJPoint : public Attribute
 {
 
-/*
-1.1 Public Declarations
-
-*/
-
 public:
 
 /*
+1.1 Public Declarations
+
 1.1.1 Constructors and Deconstructors
 
 */
@@ -78,6 +75,27 @@ public:
 
   void SetNetworkId(const STRING_T& id);
   void SetUnits(const DbArray<JUnit>& junits);
+
+/*
+1.1.1.1 Trajectory
+
+Returns an ~jline~ value representing all network position ever passed by the
+~mjpoint~.
+
+*/
+
+  void Trajectory(JLine* result) const;
+
+/*
+1.1.1.1 BoundingBox
+
+Returns an 3 dimensional rectangle with the spatial temporal bounding box of
+the mjpoint.
+
+*/
+
+  Rectangle<3> BoundingBox() const;
+
 
 /*
 1.1.1 Override Methods from Attribute
@@ -133,6 +151,15 @@ public:
   static ListExpr Property();
 
 /*
+1.1.1 Manage Bullkload
+
+*/
+
+  void StartBulkload();
+  void EndBulkload();
+  MJPoint& Add(const JUnit& up);
+
+/*
 1.1.1 Other Operations
 
 1.1.1.1 Example
@@ -180,43 +207,33 @@ Returns the corresponding ~mjpoint~ in ~jnet~ for the given ~mpoint~.
 */
   void FromSpatial(JNetwork* jnet, const MPoint* in);
 
-/*
-1.1.1.1 Trajectory
 
-Returns an ~jline~ value representing all network position ever passed by the
-~mjpoint~.
+
+/*
+1.1.1.1 ~AtInstant~
+
+Returns an ijpoint telling the position of the mjpoint at the given time
+instant.
 
 */
 
-void Trajectory(JLine* result) const;
+  IJPoint AtInstant(const Instant* time) const;
 
 /*
-1.1.1.1 BoundingBox
+1.1.1.1 ~Passes~
 
-Returns an 3 dimensional rectangle with the spatial temporal bounding box of
-the mjpoint.
+Returns true if the mjpoint passes at least once the given place.
 
 */
 
-Rectangle<3> BoundingBox() const;
-
-/*
-1.1.1 Manage Bullkload
-
-*/
-
-  void StartBulkload();
-  void EndBulkload();
-  MJPoint& Add(const JUnit& up);
-
-/*
-1.1 Private declarations
-
-*/
+bool Passes(const JPoint* jp) const;
+bool Passes(const JLine* jl) const;
 
 private:
 
 /*
+1.1 Private Declarations
+
 1.1.1 Attributes
 
 */
@@ -236,7 +253,9 @@ declared to be private.
   MJPoint();
 
 /*
-1.1.1 ~CheckSorted~
+1.1.1 Methods
+
+1.1.1.1 ~CheckSorted~
 
 Checks if the units are well sorted. Used if complete Arrays are inserted.
 
@@ -245,7 +264,7 @@ Checks if the units are well sorted. Used if complete Arrays are inserted.
 bool CheckSorted() const;
 
 /*
-1.1.1 ~Simplify~
+1.1.1.1 ~Simplify~
 
 Checks if the units are sorted and compresses the units as far as possible.
 
@@ -254,7 +273,7 @@ Checks if the units are sorted and compresses the units as far as possible.
 bool Simplify();
 
 /*
-1.1.1 Append
+1.1.1.1 Append
 
 Appends the units of the in MJPoint to the current mjpoint.
 
@@ -262,7 +281,38 @@ Appends the units of the in MJPoint to the current mjpoint.
 
 void Append(const MJPoint* in);
 
+/*
+1.1.1.1 Starttime
+
+Returns the time instant the MJPoint starts, if the mjpoint is defined and
+not empty. 0 elsewhere.
+
+*/
+
+Instant* Starttime() const;
+
+/*
+1.1.1.1 Endtime
+
+Returns the time instant the MJPoint ends, if the mjpoint is defined and
+not empty. 0 elsewhere.
+
+*/
+
+Instant* Endtime() const;
+
+/*
+1.1.1.1 GetUnitPosForTime
+
+Searches binary for the position of the JUnit including the given time interval.
+
+*/
+
+int GetUnitPosForTime(const Instant* time, const int spos, const int epos)
+  const;
+
 };
+
 /*
 1 Overwrite output operator
 

@@ -485,6 +485,49 @@ Rectangle< 3 > JUnit::BoundingBox(JNetwork* jnet) const
 }
 
 /*
+1.1.1.1.1 AtInstant
+
+*/
+
+IJPoint JUnit::AtInstant(const Instant* inst, const string netId) const
+{
+  if (!IsDefined() || inst == 0 || !inst->IsDefined() ||
+      !timeInter.Contains(*inst))
+  {
+    return IJPoint(false);
+  }
+  else
+  {
+    cout << "Junit: " << *this << endl;
+    if (*inst == timeInter.start)
+    {
+      return IJPoint(*inst, JPoint(netId, routeInter.GetStartLocation()));
+    }
+    else
+    {
+      if (*inst == timeInter.end)
+      {
+        return IJPoint(*inst, JPoint(netId, routeInter.GetEndLocation()));
+      }
+      else
+      {
+        return IJPoint(*inst,
+                       JPoint(netId,
+                              RouteLocation(routeInter.GetRouteId(),
+                                            routeInter.GetStartPosition() +
+                                             ((routeInter.GetEndPosition() -
+                                             routeInter.GetStartPosition())*
+                                             ((*inst - timeInter.start)/
+                                             (timeInter.end -
+                                              timeInter.start))),
+                                            routeInter.GetSide())));
+      }
+    }
+  }
+}
+
+
+/*
 1.1.1.1 CanBeExtendedBy
 
 */

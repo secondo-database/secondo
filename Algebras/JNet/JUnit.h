@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TemporalAlgebra.h"
 #include "JRouteInterval.h"
 #include "RouteLocation.h"
+#include "IJPoint.h"
 
 class JNetwork;
 
@@ -184,6 +185,15 @@ junit.
 */
 
 Rectangle<3> BoundingBox(JNetwork* jnet) const;
+
+/*
+1.1.1.1.1 AtInstant
+
+Returns the ijpoint giving the position in the network at the given instant.
+
+*/
+
+IJPoint AtInstant(const Instant* inst, const string netId) const;
 
 /*
 1.1 Private declarations
