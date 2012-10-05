@@ -274,7 +274,7 @@ bool Date::readFrom(string& s){
   char buf[100];
   const char* c_string = s.c_str();
 
-  if ((strcmp(c_string,"-")==0) || listutils::isSymbolUndefined(s)) // undefined
+  if ( (strcmp(c_string,"-")==0) ) // undefined, special notation
   {
     Set(false, 0,0,0);
     return true;
@@ -542,7 +542,13 @@ Word
 InDate( const ListExpr typeInfo, const ListExpr instance,
         const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  if(nl->AtomType(instance)!=StringType){
+  if (listutils::isSymbolUndefined(instance)) {
+    Date* date = new Date(false,0,0,0);
+    correct = true;
+    return SetWord(date);
+  }
+  
+  if (nl->AtomType(instance)!=StringType){
      correct = false;
      return SetWord(Address(0));
   }
