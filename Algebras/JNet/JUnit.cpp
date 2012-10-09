@@ -74,14 +74,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
     return routeInter;
   }
 
-  RouteLocation* JUnit::GetStartPoint() const
+  RouteLocation* JUnit::GetStartRLoc() const
   {
     return new RouteLocation(routeInter.GetRouteId(),
                              routeInter.GetStartPosition(),
                              routeInter.GetSide());
   }
 
-  RouteLocation* JUnit::GetEndPoint() const
+  RouteLocation* JUnit::GetEndRLoc() const
   {
     return new RouteLocation(routeInter.GetRouteId(),
                              routeInter.GetEndPosition(),
@@ -498,7 +498,6 @@ IJPoint JUnit::AtInstant(const Instant* inst, const string netId) const
   }
   else
   {
-    cout << "Junit: " << *this << endl;
     if (*inst == timeInter.start)
     {
       return IJPoint(*inst, JPoint(netId, routeInter.GetStartLocation()));
@@ -514,18 +513,96 @@ IJPoint JUnit::AtInstant(const Instant* inst, const string netId) const
         return IJPoint(*inst,
                        JPoint(netId,
                               RouteLocation(routeInter.GetRouteId(),
-                                            routeInter.GetStartPosition() +
-                                             ((routeInter.GetEndPosition() -
-                                             routeInter.GetStartPosition())*
-                                             ((*inst - timeInter.start)/
-                                             (timeInter.end -
-                                              timeInter.start))),
+                                            PosAtTime(inst),
                                             routeInter.GetSide())));
       }
     }
   }
 }
 
+/*
+1.1.1.1 Split
+
+*/
+
+MPoint* JUnit::Split(const JNetwork* jnet) const
+{
+  MPoint* res = new MPoint(0);
+  res->StartBulkLoad();
+  if (IsDefined())
+  {
+    Point* startP = jnet->GetSpatialValueOf(routeInter.GetStartLocation());
+    Point* endP = jnet->GetSpatialValueOf(routeInter.GetEndLocation());
+    if(*startP == *endP)
+    {
+      res->Add(UPoint(timeInter, *startP, *startP));
+    }
+    else
+    {
+      SimpleLine* resLine = routeInter.GetSpatialValue(jnet);
+      if (resLine != 0)
+      {
+        if (resLine->IsDefined() && !resLine->IsEmpty())
+        {
+          if (resLine->Size() > 2)
+          {
+            LRS lrs;
+            HalfSegment hs;
+            Point interP1 = *startP;
+            Point interP2;
+            Instant instInter1 = timeInter.start;
+            Instant instInter2;
+            double actDist = 0.0;
+            if ((*startP <= *endP && resLine->StartsSmaller()) ||
+                (*startP > *endP && !resLine->StartsSmaller()))
+            {
+              for (int i = 0; i < resLine->Size()/2; i++)
+              {
+                resLine->Get(i, lrs);
+                resLine->Get(lrs.hsPos, hs);
+                actDist += hs.Length();
+                resLine->AtPosition(actDist, interP2);
+                instInter2 = TimeAtPos(actDist);
+                res->Add(UPoint(Interval<Instant> (instInter1, instInter2,
+                                                   true, false),
+                                interP1, interP2));
+                interP1 = interP2;
+                instInter1 = instInter2;
+              }
+            }
+            if ((*startP <= *endP && !resLine->StartsSmaller()) ||
+                (*startP > *endP && resLine->StartsSmaller()))
+            {
+              for (int i = resLine->Size()/2 -1; i >= 0; i--)
+              {
+                resLine->Get(i, lrs);
+                resLine->Get(lrs.hsPos, hs);
+                actDist += hs.Length();
+                resLine->AtPosition(actDist, interP2);
+                instInter2 = TimeAtPos(resLine->Length() - actDist);
+                res->Add(UPoint(Interval<Instant> (instInter1, instInter2,
+                                                   true, false),
+                                interP1, interP2));
+                interP1 = interP2;
+                instInter1 = instInter2;
+              }
+            }
+          }
+          else
+          {
+            res->Add(UPoint(timeInter, *startP, *endP));
+          }
+        }
+        resLine->Destroy();
+        resLine->DeleteIfAllowed();
+      }
+    }
+    startP->DeleteIfAllowed();
+    endP->DeleteIfAllowed();
+  }
+  res->EndBulkLoad();
+  return res;
+}
 
 /*
 1.1.1.1 CanBeExtendedBy
@@ -537,6 +614,25 @@ bool JUnit::CanBeExtendedBy(const JUnit& other) const
   return (timeInter.end == other.GetTimeInterval().start &&
           routeInter.Adjacent(other.GetRouteInterval()) &&
           AlmostEqual(GetSpeed(), other.GetSpeed()));
+}
+
+/*
+1.1.1.1 ~PosAtTime~
+
+*/
+
+double JUnit::PosAtTime(const Instant* inst) const
+{
+  return routeInter.GetStartPosition() +
+         ((routeInter.GetEndPosition() - routeInter.GetStartPosition())*
+          ((*inst - timeInter.start)/(timeInter.end - timeInter.start)));
+}
+
+Instant JUnit::TimeAtPos(const double pos) const
+{
+  return (timeInter.end - timeInter.start)*
+         (pos / fabs(routeInter.GetEndPosition()-routeInter.GetStartPosition()))
+         + timeInter.start;
 }
 
 /*

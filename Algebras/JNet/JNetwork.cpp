@@ -1057,8 +1057,12 @@ Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc,
 {
   Point* res = 0;
   SimpleLine* sectCurve = GetSectionCurve(actSect);
-  sectCurve->AtPosition(relpos, *res);
-  sectCurve->DeleteIfAllowed();
+  if (sectCurve != 0)
+  {
+    res = new Point(false);
+    sectCurve->AtPosition(relpos, *res);
+    sectCurve->DeleteIfAllowed();
+  }
   return res;
 }
 
@@ -1070,7 +1074,8 @@ SimpleLine* JNetwork::GetSpatialValueOf(const JRouteInterval& rint) const
   {
     Line* res = new Line(0);
     CcInt sidC;
-    for (int i = 0; i < sectList->GetNoOfComponents(); i++)
+    int i = 0;
+    while(i < sectList->GetNoOfComponents())
     {
       sectList->Get(i,sidC);
       int sid = sidC.GetIntval();
@@ -1090,39 +1095,49 @@ SimpleLine* JNetwork::GetSpatialValueOf(const JRouteInterval& rint) const
             if (actInt.Inside(rint))
             {
               res->Union(*actCurve, *l);
-              *res = *l;
             }
             else
             {
               SimpleLine* sl = new SimpleLine(0);
-              if (actInt.Contains(RouteLocation(rint.GetRouteId(),
-                                                rint.GetFirstPosition(),
-                                                rint.GetSide())))
+              if (actInt.Contains(rint))
               {
-                actCurve->SubLine(abs(rint.GetFirstPosition() -
-                                        actInt.GetFirstPosition()),
-                                  abs(actInt.GetLastPosition()-
-                                      actInt.GetFirstPosition()),
+                actCurve->SubLine(fabs(rint.GetFirstPosition() -
+                                       actInt.GetFirstPosition()),
+                                  fabs(rint.GetLastPosition() -
+                                       actInt.GetFirstPosition()),
                                   *sl);
-                res->Union(*sl, *l);
-                *res = *l;
+                i = sectList->GetNoOfComponents();
               }
               else
               {
                 if (actInt.Contains(RouteLocation(rint.GetRouteId(),
-                                                  rint.GetLastPosition(),
+                                                  rint.GetFirstPosition(),
                                                   rint.GetSide())))
                 {
-                  actCurve->SubLine(0,
-                                    abs(actInt.GetFirstPosition() -
-                                        rint.GetLastPosition()),
+                  actCurve->SubLine(fabs(rint.GetFirstPosition() -
+                                         actInt.GetFirstPosition()),
+                                    fabs(actInt.GetLastPosition()-
+                                         actInt.GetFirstPosition()),
                                     *sl);
-                  res->Union(*sl, *l);
-                  *res = *l;
+                }
+                else
+                {
+                  if (actInt.Contains(RouteLocation(rint.GetRouteId(),
+                                                    rint.GetLastPosition(),
+                                                    rint.GetSide())))
+                  {
+                    actCurve->SubLine(0,
+                                      fabs(rint.GetLastPosition() -
+                                           actInt.GetFirstPosition()),
+                                      *sl);
+                    i = sectList->GetNoOfComponents();
+                  }
                 }
               }
+              res->Union(*sl, *l);
               sl->DeleteIfAllowed();
             }
+            *res = *l;
             actCurve->DeleteIfAllowed();
             actCurve = 0;
             l->DeleteIfAllowed();
@@ -1132,6 +1147,7 @@ SimpleLine* JNetwork::GetSpatialValueOf(const JRouteInterval& rint) const
         rintList->DeleteIfAllowed();
         rintList = 0;
       }
+      i++;
     }
     sectList->DeleteIfAllowed();
     sectList = 0;

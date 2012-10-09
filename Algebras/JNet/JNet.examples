@@ -678,6 +678,27 @@ Example  : query distances(testjnet);
 Result   : file
 Tolerance: 0.01%
 
+Operator : fromnetwork
+Number   : 1
+Signature: jpoint -> point
+Example  : query fromnetwork(createjpoint(testjnet, createrloc(3, 0.01072473178283396, [const jdirection value("Both")])));
+Result   : (point(7.4801436 51.3596479))
+Tolerance: 0.01%
+
+Operator : fromnetwork
+Number   : 2
+Signature: jline -> line
+Example  : query fromnetwork(tonetwork(testjnet,[const line value ((7.4801436 51.3596479 7.4804329 51.3595782))]))
+Result   : (line((7.4801436 51.3596479 7.4804329 51.3595782)))
+Tolerance: 0.01%
+
+Operator : fromnetwork
+Number   : 3
+Signature: mjpoint -> mpoint
+Example  : query fromnetwork(tonetwork(testjnet, [const mpoint value((("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE)(7.4801436 51.3596479 7.4804329 51.3595782)))]));
+Result   : (mpoint((("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE)(7.4801436 51.3596479 7.4804329 51.3595782))))
+Tolerance: 0.01%
+
 Operator : inst
 Number   : 1
 Signature: ijpoint -> instant

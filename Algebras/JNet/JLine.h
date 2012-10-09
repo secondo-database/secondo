@@ -178,11 +178,19 @@ Returns the routeinterval at the given position
 /*
 1.1.1.1 ~FromSpatial~
 
-Computes a ~jline~ from an given ~line~ value.
+Computes a ~jline~ in ~jnet~ from an given ~line~ value.
 
 */
 
  void FromSpatial (const JNetwork* jnet, const Line* in);
+
+/*
+1.1.1.1 ~ToSpatial~
+
+Computes a corresponding spatial line value for the ~jline~.
+
+*/
+ void ToSpatial(Line* result) const;
 
 /*
 1.1.1.1 ~Intersects~

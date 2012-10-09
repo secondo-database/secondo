@@ -129,10 +129,32 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
 /*
 1.1.1 Other Operations
 
+1.1.1.1 Example
+
+Returns an string with an example list representation.
+
 */
   static string Example();
 
+/*
+1.1.1 Translation from / to spatial point
+
+1.1.1.1 FromSpatial
+
+Computes the jpoint corresponding to the given point in jnet.
+
+*/
+
   void FromSpatial(const JNetwork* jnet, const Point* p);
+
+/*
+1.1.1.1 ToSpatial
+
+Computes the corresponding spatial point from the given jpoint.
+
+*/
+
+void ToSpatial(Point* result) const;
 
 /*
 1.1.1.1 NetBox

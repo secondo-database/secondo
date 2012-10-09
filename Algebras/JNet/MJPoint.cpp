@@ -739,6 +739,36 @@ else
 }
 
 /*
+1.1.1 ~ToSpatial~
+
+*/
+
+void MJPoint::ToSpatial(MPoint* result) const
+{
+  result->Clear();
+  if (IsDefined() && !IsEmpty())
+  {
+    JNetwork* jnet = ManageJNet::GetNetwork(nid);
+    JUnit ju;
+    for (int i = 0; i < GetNoComponents(); i++)
+    {
+      Get(i,ju);
+      MPoint* partRes = ju.Split(jnet);
+      for (int j = 0; j < partRes->GetNoComponents(); j++)
+      {
+        UPoint up;
+        partRes->Get(j, up);
+        result->Add(up);
+      }
+      partRes->DeleteIfAllowed();
+    }
+    ManageJNet::CloseNetwork(jnet);
+  }
+  else
+    result->SetDefined(false);
+}
+
+/*
 1.1.1 ~AtInstant~
 
 */

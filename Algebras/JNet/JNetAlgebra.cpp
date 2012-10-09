@@ -1303,19 +1303,19 @@ int createlistSelect ( ListExpr args )
 const string createlistSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text>" + Symbol::STREAM() + "("+ CcInt::BasicType() + ") -> " +
-  JListInt::BasicType() + ", " +
+  JListInt::BasicType() + ", \n" +
   Symbol::STREAM() + "("+ RouteLocation::BasicType() + ") -> " +
-  JListRLoc::BasicType() + ", " +
+  JListRLoc::BasicType() + ", \n" +
   Symbol::STREAM() + "("+ JRouteInterval::BasicType() + ") -> " +
-  JListRInt::BasicType() + ", " +
+  JListRInt::BasicType() + ", \n" +
   Symbol::STREAM() + "("+ NetDistanceGroup::BasicType() + ") -> " +
-  JListNDG::BasicType() +  ", " +
+  JListNDG::BasicType() +  ", \n" +
   Symbol::STREAM() + "("+ JListInt::BasicType() + ") -> " +
-  JListInt::BasicType() +  ", " +
+  JListInt::BasicType() +  ", \n" +
   Symbol::STREAM() + "("+ JListRLoc::BasicType() + ") -> " +
-  JListRLoc::BasicType() +  ", " +
+  JListRLoc::BasicType() +  ", \n" +
   Symbol::STREAM() + "("+ JListRInt::BasicType() + ") -> " +
-  JListRInt::BasicType() +  ", " +
+  JListRInt::BasicType() +  ", \n" +
   Symbol::STREAM() + "("+ JListNDG::BasicType() + ") -> " +
   JListNDG::BasicType() + " </text--->"
   "<text>_ createlist </text--->"
@@ -1465,11 +1465,11 @@ const string createstreamSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text>" +
   JListInt::BasicType() + " -> " + Symbol::STREAM() + "(" +
-  CcInt::BasicType() + "), " +
+  CcInt::BasicType() + "), \n" +
   JListRLoc::BasicType() + " -> " + Symbol::STREAM() + "(" +
-  RouteLocation::BasicType() + "), " +
+  RouteLocation::BasicType() + "), \n" +
   JListRInt::BasicType() + " -> " + Symbol::STREAM() + "(" +
-  JRouteInterval::BasicType() + "), " +
+  JRouteInterval::BasicType() + "), \n" +
   JListNDG::BasicType() + " -> " + Symbol::STREAM() + "(" +
   NetDistanceGroup::BasicType() + ")</text--->"
   "<text>createstream (<list>) </text--->"
@@ -1597,7 +1597,7 @@ ValueMapping unitsMap [] =
 const string unitsSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text>" + MJPoint::BasicType() + " -> " +  Symbol::STREAM() + "("+
-  UJPoint::BasicType() + "), "+
+  UJPoint::BasicType() + "), \n"+
   JLine::BasicType() +" -> "  +  Symbol::STREAM() + "("+
   JRouteInterval::BasicType() + ") </text--->"
   "<text>units(<mjpoint>) </text--->"
@@ -1765,6 +1765,28 @@ int compareSelect(ListExpr args)
   return SimpleSelect<10,3>(maps_compare, args);
 }
 
+const string compareTypeCombinations =
+  Direction::BasicType() + " x " + Direction::BasicType() +
+  " -> " + CcBool::BasicType() +", \n" +
+  RouteLocation::BasicType() + " x " + RouteLocation::BasicType() + " -> " +
+  CcBool::BasicType() + ", \n" +
+  JRouteInterval::BasicType() + " x " + JRouteInterval::BasicType() + " -> " +
+  CcBool::BasicType() + ", \n" +
+  NetDistanceGroup::BasicType() + " x " + NetDistanceGroup::BasicType() +" -> "+
+  CcBool::BasicType() + ", \n" +
+  JPoint::BasicType() +" x "+ JPoint::BasicType() + " -> " +
+  CcBool::BasicType() + ", \n" +
+  JLine::BasicType() + " x " + JLine::BasicType() + " -> " +
+  CcBool::BasicType() + ", \n" +
+  JListInt::BasicType() + "x " + JListInt::BasicType() + " -> " +
+  CcBool::BasicType() +", \n" +
+  JListRLoc::BasicType()+ " x " + JListRLoc::BasicType()+ " -> " +
+  CcBool::BasicType() + ", \n" +
+  JListRInt::BasicType() + " x " + JListRInt::BasicType() + " -> " +
+  CcBool::BasicType() + ", \n"+
+  JListNDG::BasicType() + " x " + JListNDG::BasicType() + " -> " +
+  CcBool::BasicType();
+
 /*
 1.1.1 ~eq~
 
@@ -1806,26 +1828,7 @@ ValueMapping eqMap[] =
 
 const string eqSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + Direction::BasicType() + " x " + Direction::BasicType() +
-  " -> " + CcBool::BasicType() +", " +
-  RouteLocation::BasicType() + " x " + RouteLocation::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JRouteInterval::BasicType() + " x " + JRouteInterval::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  NetDistanceGroup::BasicType() + " x " + NetDistanceGroup::BasicType() +" -> "+
-  CcBool::BasicType() + ", " +
-  JPoint::BasicType() +" x "+ JPoint::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JLine::BasicType() + " x " + JLine::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JListInt::BasicType() + "x " + JListInt::BasicType() + " -> " +
-  CcBool::BasicType() +", " +
-  JListRLoc::BasicType()+ " x " + JListRLoc::BasicType()+ " -> " +
-  CcBool::BasicType() + ", " +
-  JListRInt::BasicType() + " x " + JListRInt::BasicType() + " -> " +
-  CcBool::BasicType() + ", "+
-  JListNDG::BasicType() + " x " + JListNDG::BasicType() + " -> " +
-  CcBool::BasicType() + "</text--->"
+  "(<text>" + compareTypeCombinations + "</text--->"
   "<text>x = y </text--->"
   "<text>Returns TRUE if x and y are equal, false otherwise.</text--->"
   "<text>query x = x</text--->))";
@@ -1874,26 +1877,7 @@ ValueMapping ltMap[] =
 
 const string ltSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + Direction::BasicType() + " x " + Direction::BasicType() +
-  " -> " + CcBool::BasicType() +", " +
-  RouteLocation::BasicType() + " x " + RouteLocation::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JRouteInterval::BasicType() + " x " + JRouteInterval::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  NetDistanceGroup::BasicType() + " x " + NetDistanceGroup::BasicType() +" -> "+
-  CcBool::BasicType() + ", " +
-  JPoint::BasicType() +" x "+ JPoint::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JLine::BasicType() + " x " + JLine::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JListInt::BasicType() + "x " + JListInt::BasicType() + " -> " +
-  CcBool::BasicType() +", " +
-  JListRLoc::BasicType()+ " x " + JListRLoc::BasicType()+ " -> " +
-  CcBool::BasicType() + ", " +
-  JListRInt::BasicType() + " x " + JListRInt::BasicType() + " -> " +
-  CcBool::BasicType() + ", "+
-  JListNDG::BasicType() + " x " + JListNDG::BasicType() + " -> " +
-  CcBool::BasicType() + "</text--->"
+  "(<text>" + compareTypeCombinations + "</text--->"
   "<text>x < y </text--->"
   "<text>Returns TRUE if x is lower than y, false otherwise.</text--->"
   "<text>query x < y</text--->))";
@@ -1942,26 +1926,7 @@ ValueMapping gtMap[] =
 
 const string gtSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + Direction::BasicType() + " x " + Direction::BasicType() +
-  " -> " + CcBool::BasicType() +", " +
-  RouteLocation::BasicType() + " x " + RouteLocation::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JRouteInterval::BasicType() + " x " + JRouteInterval::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  NetDistanceGroup::BasicType() + " x " + NetDistanceGroup::BasicType() +" -> "+
-  CcBool::BasicType() + ", " +
-  JPoint::BasicType() +" x "+ JPoint::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JLine::BasicType() + " x " + JLine::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JListInt::BasicType() + "x " + JListInt::BasicType() + " -> " +
-  CcBool::BasicType() +", " +
-  JListRLoc::BasicType()+ " x " + JListRLoc::BasicType()+ " -> " +
-  CcBool::BasicType() + ", " +
-  JListRInt::BasicType() + " x " + JListRInt::BasicType() + " -> " +
-  CcBool::BasicType() + ", "+
-  JListNDG::BasicType() + " x " + JListNDG::BasicType() + " -> " +
-  CcBool::BasicType() + "</text--->"
+  "(<text>" + compareTypeCombinations + "</text--->"
   "<text>x > y </text--->"
   "<text>Returns TRUE if x is greater than y, false otherwise.</text--->"
   "<text>query x > y</text--->))";
@@ -2010,26 +1975,7 @@ ValueMapping leMap[] =
 
 const string leSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + Direction::BasicType() + " x " + Direction::BasicType() +
-  " -> " + CcBool::BasicType() +", " +
-  RouteLocation::BasicType() + " x " + RouteLocation::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JRouteInterval::BasicType() + " x " + JRouteInterval::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  NetDistanceGroup::BasicType() + " x " + NetDistanceGroup::BasicType() +" -> "+
-  CcBool::BasicType() + ", " +
-  JPoint::BasicType() +" x "+ JPoint::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JLine::BasicType() + " x " + JLine::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JListInt::BasicType() + "x " + JListInt::BasicType() + " -> " +
-  CcBool::BasicType() +", " +
-  JListRLoc::BasicType()+ " x " + JListRLoc::BasicType()+ " -> " +
-  CcBool::BasicType() + ", " +
-  JListRInt::BasicType() + " x " + JListRInt::BasicType() + " -> " +
-  CcBool::BasicType() + ", "+
-  JListNDG::BasicType() + " x " + JListNDG::BasicType() + " -> " +
-  CcBool::BasicType() + "</text--->"
+  "(<text>" + compareTypeCombinations + "</text--->"
   "<text>x < y </text--->"
   "<text>Returns TRUE if x is lower than or equal y, false otherwise."+
   "</text--->"
@@ -2079,26 +2025,7 @@ ValueMapping geMap[] =
 
 const string geSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + Direction::BasicType() + " x " + Direction::BasicType() +
-  " -> " + CcBool::BasicType() +", " +
-  RouteLocation::BasicType() + " x " + RouteLocation::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JRouteInterval::BasicType() + " x " + JRouteInterval::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  NetDistanceGroup::BasicType() + " x " + NetDistanceGroup::BasicType() +" -> "+
-  CcBool::BasicType() + ", " +
-  JPoint::BasicType() +" x "+ JPoint::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JLine::BasicType() + " x " + JLine::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JListInt::BasicType() + "x " + JListInt::BasicType() + " -> " +
-  CcBool::BasicType() +", " +
-  JListRLoc::BasicType()+ " x " + JListRLoc::BasicType()+ " -> " +
-  CcBool::BasicType() + ", " +
-  JListRInt::BasicType() + " x " + JListRInt::BasicType() + " -> " +
-  CcBool::BasicType() + ", "+
-  JListNDG::BasicType() + " x " + JListNDG::BasicType() + " -> " +
-  CcBool::BasicType() + "</text--->"
+  "(<text>" + compareTypeCombinations + "</text--->"
   "<text>x >= y </text--->"
   "<text>Returns TRUE if x is greater than or equal y, false otherwise."+
   "</text--->"
@@ -2148,26 +2075,7 @@ int neVM( Word* args, Word& result, int message, Word& local,
 
 const string neSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + Direction::BasicType() + " x " + Direction::BasicType() +
-  " -> " + CcBool::BasicType() +", " +
-  RouteLocation::BasicType() + " x " + RouteLocation::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JRouteInterval::BasicType() + " x " + JRouteInterval::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  NetDistanceGroup::BasicType() + " x " + NetDistanceGroup::BasicType() +" -> "+
-  CcBool::BasicType() + ", " +
-  JPoint::BasicType() +" x "+ JPoint::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JLine::BasicType() + " x " + JLine::BasicType() + " -> " +
-  CcBool::BasicType() + ", " +
-  JListInt::BasicType() + "x " + JListInt::BasicType() + " -> " +
-  CcBool::BasicType() +", " +
-  JListRLoc::BasicType()+ " x " + JListRLoc::BasicType()+ " -> " +
-  CcBool::BasicType() + ", " +
-  JListRInt::BasicType() + " x " + JListRInt::BasicType() + " -> " +
-  CcBool::BasicType() + ", "+
-  JListNDG::BasicType() + " x " + JListNDG::BasicType() + " -> " +
-  CcBool::BasicType() + "</text--->"
+  "(<text>" + compareTypeCombinations + "</text--->"
   "<text>x # y </text--->"
   "<text>Returns TRUE if x not equals y, false otherwise.</text--->"
   "<text>query x # y</text--->))";
@@ -2279,8 +2187,9 @@ ValueMapping netboxMap[] =
 
 const string netboxSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + UJPoint::BasicType() + " -> " +  Rectangle<2>::BasicType() +
-  JRouteInterval::BasicType() + " -> " +  Rectangle<2>::BasicType() +
+  "(<text>" +
+  UJPoint::BasicType() + " -> " +  Rectangle<2>::BasicType() + ", \n" +
+  JRouteInterval::BasicType() + " -> " +  Rectangle<2>::BasicType() + ", \n" +
   JPoint::BasicType() + " -> " + Rectangle<2>::BasicType() +
   "</text--->"
   "<text>netbox(<junit>) </text--->"
@@ -2340,7 +2249,8 @@ ValueMapping bboxMap[] =
 
 const string bboxSpec =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-   "(<text>" + MJPoint::BasicType() + " -> " +  Rectangle<3>::BasicType() +
+   "(<text>" +
+   MJPoint::BasicType() + " -> " +  Rectangle<3>::BasicType() + ", \n"+
    UJPoint::BasicType() + " -> " +  Rectangle<3>::BasicType() +
    "</text--->"
    "<text>bbox(<mjpoint>) </text--->"
@@ -2424,20 +2334,21 @@ ValueMapping minusMap[] =
 
 const string minusSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + JListInt::BasicType() + " x " + CcInt::BasicType() +
-  " -> " + JListInt::BasicType() +", " +
+  "(<text>" +
+  JListInt::BasicType() + " x " + CcInt::BasicType() + " -> " +
+  JListInt::BasicType() +", \n" +
   JListRLoc::BasicType() + " x " + RouteLocation::BasicType() + " -> " +
-  JListRLoc::BasicType() + ", " +
+  JListRLoc::BasicType() + ", \n" +
   JListRInt::BasicType() + " x " + JRouteInterval::BasicType() + " -> " +
-  JListRInt::BasicType() + ", " +
+  JListRInt::BasicType() + ", \n" +
   JListNDG::BasicType() + " x " + NetDistanceGroup::BasicType() +" -> "+
-  JListNDG::BasicType() + ", " +
+  JListNDG::BasicType() + ", \n" +
   JListInt::BasicType() +" x "+ JListInt::BasicType() + " -> " +
-  JListInt::BasicType() + ", " +
+  JListInt::BasicType() + ", \n" +
   JListRLoc::BasicType() + " x " + JListRLoc::BasicType() + " -> " +
-  JListRLoc::BasicType() + ", " +
+  JListRLoc::BasicType() + ", \n" +
   JListRInt::BasicType() + "x " + JListRInt::BasicType() + " -> " +
-  JListRInt::BasicType() +", " +
+  JListRInt::BasicType() +", \n" +
   JListNDG::BasicType() + " x " + JListNDG::BasicType() + " -> " +
   JListNDG::BasicType() + "</text--->"
   "<text>x - y </text--->"
@@ -2490,20 +2401,21 @@ ValueMapping restrictMap[] =
 
 const string restrictSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + JListInt::BasicType() + " x " + CcInt::BasicType() +
-  " -> " + JListInt::BasicType() +", " +
+  "(<text>" +
+  JListInt::BasicType() + " x " + CcInt::BasicType() + " -> " +
+  JListInt::BasicType() +", \n" +
   JListRLoc::BasicType() + " x " + RouteLocation::BasicType() + " -> " +
-  JListRLoc::BasicType() + ", " +
+  JListRLoc::BasicType() + ", \n" +
   JListRInt::BasicType() + " x " + JRouteInterval::BasicType() + " -> " +
-  JListRInt::BasicType() + ", " +
+  JListRInt::BasicType() + ", \n" +
   JListNDG::BasicType() + " x " + NetDistanceGroup::BasicType() +" -> "+
-  JListNDG::BasicType() + ", " +
+  JListNDG::BasicType() + ", \n" +
   JListInt::BasicType() +" x "+ JListInt::BasicType() + " -> " +
-  JListInt::BasicType() + ", " +
+  JListInt::BasicType() + ", \n" +
   JListRLoc::BasicType() + " x " + JListRLoc::BasicType() + " -> " +
-  JListRLoc::BasicType() + ", " +
+  JListRLoc::BasicType() + ", \n" +
   JListRInt::BasicType() + "x " + JListRInt::BasicType() + " -> " +
-  JListRInt::BasicType() +", " +
+  JListRInt::BasicType() +", \n" +
   JListNDG::BasicType() + " x " + JListNDG::BasicType() + " -> " +
   JListNDG::BasicType() + "</text--->"
   "<text>restrict(x,y) </text--->"
@@ -2565,7 +2477,8 @@ ValueMapping atinstantMap[] =
 
 const string atinstantSpec =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-   "(<text>" + MJPoint::BasicType() + " X " + Instant::BasicType() +" -> " +
+   "(<text>" +
+   MJPoint::BasicType() + " X " + Instant::BasicType() +" -> " +
    IJPoint::BasicType() +
    "</text--->"
    "<text><mjpoint> atinstant <instant> </text--->"
@@ -2626,8 +2539,9 @@ int sectionsVM ( Word* args, Word& result, int message, Word& local,
 
 const string sectionsSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + JNetwork::BasicType() + " -> " +
-  JNetwork::GetSectionsRelationType() + "</text--->"
+  "(<text>" +
+  JNetwork::BasicType() + " -> " + JNetwork::GetSectionsRelationType() +
+  "</text--->"
   "<text>sections(<jnet>) </text--->"
   "<text>Returns a copy of the sections relation of the given jnet.</text--->"
   "<text>query sections(testnet)</text--->))";
@@ -2672,8 +2586,9 @@ int routesVM ( Word* args, Word& result, int message, Word& local,
 
 const string routesSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + JNetwork::BasicType() + " -> " +
-  JNetwork::GetRoutesRelationType() + "</text--->"
+  "(<text>" +
+  JNetwork::BasicType() + " -> " +   JNetwork::GetRoutesRelationType() +
+  "</text--->"
   "<text>routes(<jnet>) </text--->"
   "<text>Returns a copy of the routes relation of the given jnet.</text--->"
   "<text>query routes(testnet)</text--->))";
@@ -2717,8 +2632,9 @@ int junctionsVM ( Word* args, Word& result, int message, Word& local,
 
 const string junctionsSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + JNetwork::BasicType() + " -> " +
-  JNetwork::GetJunctionsRelationType() + "</text--->"
+  "(<text>" +
+  JNetwork::BasicType() + " -> " + JNetwork::GetJunctionsRelationType() +
+  "</text--->"
   "<text>junctions(<jnet>) </text--->"
   "<text>Returns a copy of the junctions relation of the given jnet.</text--->"
   "<text>query junctions(testnet)</text--->))";
@@ -2760,8 +2676,9 @@ int distancesVM ( Word* args, Word& result, int message, Word& local,
 
 const string distancesSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + JNetwork::BasicType() + " -> " +
-  JNetwork::GetNetdistancesRelationType() + "</text--->"
+  "(<text>" +
+  JNetwork::BasicType() + " -> " + JNetwork::GetNetdistancesRelationType() +
+  "</text--->"
   "<text>distances(<jnet>) </text--->"
   "<text>Returns a copy of the netdistances relation of the given jnet."+
   "</text--->"
@@ -2808,8 +2725,9 @@ int trajectoryVM ( Word* args, Word& result, int message, Word& local,
 
 const string trajectorySpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + MJPoint::BasicType() + " -> " +
-  JLine::BasicType() + "</text--->"
+  "(<text>" +
+  MJPoint::BasicType() + " -> " + JLine::BasicType() +
+  "</text--->"
   "<text>trajectory(<testmjp>) </text--->"
   "<text>Returns an "+ JLine::BasicType() + " representing the movement of "
   "the "+ MJPoint::BasicType() + " in the network.</text--->"
@@ -2862,7 +2780,8 @@ ValueMapping valMap[] =
 
 const string valSpec =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-      "(<text>" + IJPoint::BasicType() + " -> " +  JPoint::BasicType() +
+      "(<text>" +
+      IJPoint::BasicType() + " -> " +  JPoint::BasicType() +
       "</text--->"
       "<text>val(<ijpoint>) </text--->"
       "<text>Returns the "+ JPoint::BasicType() +" value of the given " +
@@ -2914,7 +2833,8 @@ ValueMapping instMap[] =
 
 const string instSpec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"(<text>" + IJPoint::BasicType() + " -> " +  Instant::BasicType() +
+"(<text>" +
+IJPoint::BasicType() + " -> " +  Instant::BasicType() +
 "</text--->"
 "<text>inst(<ijpoint>) </text--->"
 "<text>Returns the time instant of the " + IJPoint::BasicType() +" value "
@@ -2977,7 +2897,7 @@ const string passesSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text>" +
   MJPoint::BasicType() + " x " + JPoint::BasicType() + " -> " +
-  CcBool::BasicType() +
+  CcBool::BasicType() + ", \n" +
   MJPoint::BasicType() + " x " + JLine::BasicType() + " -> " +
   CcBool::BasicType() +
   "</text--->"
@@ -3004,6 +2924,9 @@ Operator passesJNet("passes", passesSpec, 2, passesMap, passesSelect, passesTM);
 1.1 Translation beteween spatial(-temporal) and network(-temporal) data types
 
 1.1.1 ~tonetwork~
+
+Computes to a given spatial(-temporal) value the corresponding jnet value for
+the given jnet.
 
 */
 
@@ -3051,9 +2974,9 @@ const string tonetworkSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text>" +
   JNetwork::BasicType() + " x " + Point::BasicType() + " -> " +
-  JPoint::BasicType() +
+  JPoint::BasicType() + ", \n" +
   JNetwork::BasicType() + " x " + Line::BasicType() + " -> " +
-  JLine::BasicType() +
+  JLine::BasicType() + ", \n" +
   JNetwork::BasicType() + " x " + MPoint::BasicType() + " -> " +
   MJPoint::BasicType() + "</text--->"
   "<text>tonetwork( <jnetwork> <spatialobject>) </text--->"
@@ -3070,12 +2993,69 @@ Operator tonetworkJNet("tonetwork", tonetworkSpec, 3, tonetworkMap,
 /*
 1.1.1 ~fromnetwork~
 
+Computes from a given jnet data type the corresponding  spatial(-temporal)
+data type.
+
+*/
+
+const string maps_fromnetwork[3][2] =
+{
+  {JPoint::BasicType(), Point::BasicType()},
+  {JLine::BasicType(), Line::BasicType()},
+  {MJPoint::BasicType(), MPoint::BasicType()}
+};
+
+ListExpr fromnetworkTM (ListExpr args)
+{
+  return SimpleMaps<3,2>(maps_fromnetwork, args);
+}
+
+int fromnetworkSelect(ListExpr args)
+{
+  return SimpleSelect<3,2>(maps_fromnetwork, args);
+}
+
+template<class InType, class OutType>
+int fromnetworkVM( Word* args, Word& result, int message, Word& local,
+                  Supplier s)
+{
+  result = qp->ResultStorage(s);
+  OutType* res = static_cast<OutType*> (result.addr);
+  InType* in = static_cast<InType*> (args[0].addr);
+  if (in != NULL && in->IsDefined())
+    in->ToSpatial(res);
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping fromnetworkMap[] =
+{
+  fromnetworkVM<JPoint, Point>,
+  fromnetworkVM<JLine, Line>,
+  fromnetworkVM<MJPoint, MPoint>
+};
+
+const string fromnetworkSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JPoint::BasicType() + " -> " + Point::BasicType() +  ", \n " +
+  JLine::BasicType() + " -> " + Line::BasicType() + ", \n" +
+  MJPoint::BasicType() + " -> " + MPoint::BasicType() + "</text--->"
+  "<text>fromnetwork(<jnetobject>) </text--->"
+  "<text>Translates the jnet object into corresponding spatial or "+
+  " spatiotemporal object.</text--->"
+  "<text>query fromnetwork(testjp) </text--->))";
+
+Operator fromnetworkJNet("fromnetwork", fromnetworkSpec, 3, fromnetworkMap,
+                         fromnetworkSelect, fromnetworkTM);
+
+/*
 1 Implementation of ~class JNetAlgebra~
 
 1.1 Constructor
 
 */
-
 
 JNetAlgebra::JNetAlgebra():Algebra()
 {
@@ -3300,7 +3280,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
 */
 
   AddOperator(&tonetworkJNet);
- //AddOperator(&fromnetworkJNet);
+  AddOperator(&fromnetworkJNet);
 
 }
 

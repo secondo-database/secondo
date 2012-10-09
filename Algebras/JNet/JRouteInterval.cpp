@@ -607,6 +607,15 @@ bool JRouteInterval::Contains(const RouteLocation& rloc,
             AlmostEqualAbsolute(endpos, rloc.GetPosition(), tolerance)) &&
             side.SameSide(rloc.GetSide(),false));
 }
+
+bool JRouteInterval::Contains(const JRouteInterval& other) const
+{
+  return (IsDefined() && other.IsDefined() && rid == other.GetRouteId() &&
+          startpos <= other.GetFirstPosition() &&
+          other.GetLastPosition()<= endpos &&
+          side.SameSide(other.GetSide(), false));
+}
+
 /*
 1.1.Extend
 
@@ -674,6 +683,16 @@ Rectangle< 2 > JRouteInterval::BoundingBox(JNetwork* jnet) const
     }
   }
   return Rectangle<2>(false,0.0,0.0,0.0,0.0);
+}
+
+/*
+1.1 GetSpatialValue
+
+*/
+
+SimpleLine* JRouteInterval::GetSpatialValue(const JNetwork* jnet) const
+{
+  return jnet->GetSpatialValueOf(*this);
 }
 
 /*

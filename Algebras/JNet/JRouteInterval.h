@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Direction.h"
 #include "RouteLocation.h"
 #include "RectangleAlgebra.h"
+#include "SpatialAlgebra.h"
 
 class JNetwork;
 
@@ -218,6 +219,7 @@ Returns true if the JRouteInterval contains the route location.
 
   bool Contains(const RouteLocation& rloc) const;
   bool Contains(const RouteLocation& rloc, const double tolerance) const;
+  bool Contains(const JRouteInterval& other) const;
 
 /*
 1.1.1.1 Extend
@@ -268,6 +270,16 @@ route interval.
 */
 
 Rectangle<2> BoundingBox(JNetwork* jnet) const;
+
+/*
+1.1.1.1 GetSpatialValue
+
+Returns a pointer to the simple line representing the spatial position of the
+route interval.
+
+*/
+
+SimpleLine* GetSpatialValue(const JNetwork* jnet) const;
 
 /*
 1.1 private deklarations

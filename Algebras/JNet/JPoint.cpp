@@ -372,8 +372,6 @@ string JPoint::Example()
 /*
 1.1.1 FromSpatial
 
-Set this to network location of spatial point in the given network.
-
 */
 
 void JPoint::FromSpatial(const JNetwork* jnet, const Point* in)
@@ -397,6 +395,27 @@ void JPoint::FromSpatial(const JNetwork* jnet, const Point* in)
   else
   {
     SetDefined(false);
+  }
+}
+
+/*
+1.1.1 ToSpatial
+
+*/
+
+void JPoint::ToSpatial(Point* result) const
+{
+  if (IsDefined())
+  {
+    JNetwork* jnet = ManageJNet::GetNetwork(nid);
+    Point* tmp = jnet->GetSpatialValueOf(npos);
+    *result = *tmp;
+    tmp->DeleteIfAllowed();
+    ManageJNet::CloseNetwork(jnet);
+  }
+  else
+  {
+    result->SetDefined(false);
   }
 }
 

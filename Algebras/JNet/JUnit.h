@@ -79,8 +79,8 @@ It can not be private because JUnit is used as part of MJPoint and JUnit.
 
   Interval<Instant> GetTimeInterval() const;
   JRouteInterval GetRouteInterval() const;
-  RouteLocation* GetStartPoint() const;
-  RouteLocation* GetEndPoint() const;
+  RouteLocation* GetStartRLoc() const;
+  RouteLocation* GetEndRLoc() const;
   double GetSpeed() const;
 
   void SetTimeInterval(const Interval<Instant>& inst);
@@ -196,6 +196,15 @@ Returns the ijpoint giving the position in the network at the given instant.
 IJPoint AtInstant(const Instant* inst, const string netId) const;
 
 /*
+1.1.1.1.1 Split
+
+Translates the junit into an corresponding MPoint value.
+
+*/
+
+MPoint* Split(const JNetwork* jnet) const;
+
+/*
 1.1 Private declarations
 
 */
@@ -223,6 +232,24 @@ both units is the same.
 */
 
 bool CanBeExtendedBy(const JUnit& other) const;
+
+/*
+1.1.1 ~PosAtTime~
+
+Returns the position of the jpoint at the given time instant.
+
+*/
+
+double PosAtTime(const Instant* inst) const;
+
+/*
+1.1.1 ~PosAtTime~
+
+Returns the position of the jpoint at the given time instant.
+
+*/
+
+Instant TimeAtPos(const double pos) const;
 
 
 };

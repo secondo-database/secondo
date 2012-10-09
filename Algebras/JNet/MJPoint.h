@@ -207,6 +207,14 @@ Returns the corresponding ~mjpoint~ in ~jnet~ for the given ~mpoint~.
 */
   void FromSpatial(JNetwork* jnet, const MPoint* in);
 
+/*
+1.1.1.1 ToSpatial
+
+Returns the corresponding ~mpoint~ for this ~mjpoint~.
+
+*/
+
+ void ToSpatial(MPoint* result) const;
 
 
 /*
