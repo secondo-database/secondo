@@ -47,7 +47,7 @@ JPoint::JPoint(const bool def) :
 {}
 
 JPoint::JPoint(const JPoint& other) :
-    Attribute(other.IsDefined()), npos(other.GetPosition())
+    Attribute(other.IsDefined()), npos(other.GetLocation())
 {
   if (other.IsDefined())
   {
@@ -92,7 +92,7 @@ const STRING_T* JPoint::GetNetworkId() const
   return &nid;
 }
 
-RouteLocation JPoint::GetPosition() const
+RouteLocation JPoint::GetLocation() const
 {
   return npos;
 }
@@ -139,7 +139,7 @@ bool JPoint::Adjacent(const Attribute* attrib) const
     JPoint in(*(JPoint*) attrib);
     if (IsDefined() && strcmp(nid, *in.GetNetworkId()) == 0)
     {
-      return npos.Adjacent(in.GetPosition());
+      return npos.Adjacent(in.GetLocation());
     }
   }
   return false;
@@ -165,7 +165,7 @@ int JPoint::Compare(const JPoint& rhs) const
   if (!IsDefined() && rhs.IsDefined()) return -1;
   int test = strcmp(nid, *rhs.GetNetworkId());
   if (test != 0) return test;
-  return npos.Compare(rhs.GetPosition());
+  return npos.Compare(rhs.GetLocation());
 }
 
 size_t JPoint::Sizeof() const
@@ -211,7 +211,7 @@ JPoint& JPoint::operator=(const JPoint& other)
   if (other.IsDefined())
   {
     strcpy(nid, *other.GetNetworkId());
-    npos = other.GetPosition();
+    npos = other.GetLocation();
   }
   return *this;
 }
@@ -261,7 +261,7 @@ ListExpr JPoint::Out(ListExpr typeInfo, Word value)
   else
   {
     NList netList(*in->GetNetworkId(),true,false);
-    RouteLocation netPos(in->GetPosition());
+    RouteLocation netPos(in->GetLocation());
     return nl->TwoElemList(netList.listExpr(),
                            RouteLocation::Out(nl->TheEmptyList(),
                                               SetWord((void*) &netPos)));
@@ -385,17 +385,14 @@ void JPoint::FromSpatial(const JNetwork* jnet, const Point* in)
     if (rloc != NULL && rloc->IsDefined())
     {
       npos = *rloc;
-      if (rloc != NULL) rloc->DeleteIfAllowed();
+      if (rloc != NULL)
+        rloc->DeleteIfAllowed();
     }
     else
-    {
       SetDefined(false);
-    }
   }
   else
-  {
     SetDefined(false);
-  }
 }
 
 /*
@@ -403,20 +400,19 @@ void JPoint::FromSpatial(const JNetwork* jnet, const Point* in)
 
 */
 
-void JPoint::ToSpatial(Point* result) const
+void JPoint::ToSpatial(Point& result) const
 {
   if (IsDefined())
   {
+    result.SetDefined(true);
     JNetwork* jnet = ManageJNet::GetNetwork(nid);
     Point* tmp = jnet->GetSpatialValueOf(npos);
-    *result = *tmp;
+    result = *tmp;
     tmp->DeleteIfAllowed();
     ManageJNet::CloseNetwork(jnet);
   }
   else
-  {
-    result->SetDefined(false);
-  }
+    result.SetDefined(false);
 }
 
 /*

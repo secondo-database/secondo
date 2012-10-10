@@ -2291,6 +2291,24 @@ int updateListsSelect(ListExpr args)
   return SimpleSelect<8,3>(maps_updateLists, args);
 }
 
+const string updateTypeCombinations =
+  JListInt::BasicType() + " x " + CcInt::BasicType() + " -> " +
+  JListInt::BasicType() +", \n" +
+  JListRLoc::BasicType() + " x " + RouteLocation::BasicType() + " -> " +
+  JListRLoc::BasicType() + ", \n" +
+  JListRInt::BasicType() + " x " + JRouteInterval::BasicType() + " -> " +
+  JListRInt::BasicType() + ", \n" +
+  JListNDG::BasicType() + " x " + NetDistanceGroup::BasicType() +" -> "+
+  JListNDG::BasicType() + ", \n" +
+  JListInt::BasicType() +" x "+ JListInt::BasicType() + " -> " +
+  JListInt::BasicType() + ", \n" +
+  JListRLoc::BasicType() + " x " + JListRLoc::BasicType() + " -> " +
+  JListRLoc::BasicType() + ", \n" +
+  JListRInt::BasicType() + "x " + JListRInt::BasicType() + " -> " +
+  JListRInt::BasicType() +", \n" +
+  JListNDG::BasicType() + " x " + JListNDG::BasicType() + " -> " +
+  JListNDG::BasicType();
+
 /*
 1.1.1.1 ~minus~
 
@@ -2334,23 +2352,7 @@ ValueMapping minusMap[] =
 
 const string minusSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" +
-  JListInt::BasicType() + " x " + CcInt::BasicType() + " -> " +
-  JListInt::BasicType() +", \n" +
-  JListRLoc::BasicType() + " x " + RouteLocation::BasicType() + " -> " +
-  JListRLoc::BasicType() + ", \n" +
-  JListRInt::BasicType() + " x " + JRouteInterval::BasicType() + " -> " +
-  JListRInt::BasicType() + ", \n" +
-  JListNDG::BasicType() + " x " + NetDistanceGroup::BasicType() +" -> "+
-  JListNDG::BasicType() + ", \n" +
-  JListInt::BasicType() +" x "+ JListInt::BasicType() + " -> " +
-  JListInt::BasicType() + ", \n" +
-  JListRLoc::BasicType() + " x " + JListRLoc::BasicType() + " -> " +
-  JListRLoc::BasicType() + ", \n" +
-  JListRInt::BasicType() + "x " + JListRInt::BasicType() + " -> " +
-  JListRInt::BasicType() +", \n" +
-  JListNDG::BasicType() + " x " + JListNDG::BasicType() + " -> " +
-  JListNDG::BasicType() + "</text--->"
+  "(<text>" + updateTypeCombinations + "</text--->"
   "<text>x - y </text--->"
   "<text>Returns x without y.</text--->"
   "<text>query x - y</text--->))";
@@ -2401,23 +2403,7 @@ ValueMapping restrictMap[] =
 
 const string restrictSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" +
-  JListInt::BasicType() + " x " + CcInt::BasicType() + " -> " +
-  JListInt::BasicType() +", \n" +
-  JListRLoc::BasicType() + " x " + RouteLocation::BasicType() + " -> " +
-  JListRLoc::BasicType() + ", \n" +
-  JListRInt::BasicType() + " x " + JRouteInterval::BasicType() + " -> " +
-  JListRInt::BasicType() + ", \n" +
-  JListNDG::BasicType() + " x " + NetDistanceGroup::BasicType() +" -> "+
-  JListNDG::BasicType() + ", \n" +
-  JListInt::BasicType() +" x "+ JListInt::BasicType() + " -> " +
-  JListInt::BasicType() + ", \n" +
-  JListRLoc::BasicType() + " x " + JListRLoc::BasicType() + " -> " +
-  JListRLoc::BasicType() + ", \n" +
-  JListRInt::BasicType() + "x " + JListRInt::BasicType() + " -> " +
-  JListRInt::BasicType() +", \n" +
-  JListNDG::BasicType() + " x " + JListNDG::BasicType() + " -> " +
-  JListNDG::BasicType() + "</text--->"
+  "(<text>" + updateTypeCombinations + "</text--->"
   "<text>restrict(x,y) </text--->"
   "<text>Returns only the elements of x which are also in y.</text--->"
   "<text>query restrict (x,y)</text--->))";
@@ -2432,6 +2418,60 @@ Operator restrictJNet("restrict", restrictSpec, 8, restrictMap,
 
 1.1.1.1.1 ~initialJNet~
 
+Returns the start position and time of the ~mjpoint~ as ~ijpoint~
+
+*/
+
+const string maps_initial[1][2] =
+{
+  {MJPoint::BasicType(), IJPoint::BasicType()}
+};
+
+ListExpr initialTM (ListExpr args)
+{
+  return SimpleMaps<1,2>(maps_initial, args);
+}
+
+int initialSelect(ListExpr args)
+{
+  return SimpleSelect<1,2>(maps_initial, args);
+}
+
+int initialVM ( Word* args, Word& result, int message, Word& local,
+                Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MJPoint* mjp = ( MJPoint* ) args[0].addr;
+  IJPoint* ijp = static_cast<IJPoint* > (result.addr);
+  if (mjp != NULL && mjp->IsDefined())
+  {
+    *ijp = mjp->Initial();
+  }
+  else
+    ijp->SetDefined(false);
+  return 0;
+}
+
+ValueMapping initialMap[] =
+{
+  initialVM
+};
+
+const string initialSpec =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "(<text>" +
+   MJPoint::BasicType() + " -> " + IJPoint::BasicType() +
+    "</text--->"
+    "<text>initial(<mjpoint>) </text--->"
+    "<text>Returns an " + IJPoint::BasicType() + " with the start time and"
+    " network position of the " + MJPoint::BasicType()+ "."
+    "</text--->"
+    "<text>query testmjp atinstant create_instant(0.5)</text--->))";
+
+Operator initialJNet( "initial", initialSpec, 1, initialMap, initialSelect,
+                      initialTM);
+
+/*
 1.1.1.1.1 ~atinstant~
 
 Returns an ijpoint telling the position of the mjpoint at the given timeinstant.
@@ -2498,6 +2538,67 @@ Operator atinstantJNet( "atinstant", atinstantSpec, 1, atinstantMap,
 
 1.1.1.1.1 ~at~
 
+Restricts the ~mjpoint~ to the times it was at the given positions
+
+*/
+
+const string maps_at[2][3] =
+{
+  {MJPoint::BasicType(), JPoint::BasicType(), MJPoint::BasicType()},
+  {MJPoint::BasicType(), JLine::BasicType(), MJPoint::BasicType()}
+};
+
+ListExpr atTM (ListExpr args)
+{
+  return SimpleMaps<2,3>(maps_at, args);
+}
+
+int atSelect(ListExpr args)
+{
+  return SimpleSelect<2,3>(maps_at, args);
+}
+
+const string atTypeCombinations =
+  MJPoint::BasicType() + " X " + JPoint::BasicType() +" -> " +
+  MJPoint::BasicType() + ", \n" +
+  MJPoint::BasicType() + " X " + JLine::BasicType() +" -> " +
+  MJPoint::BasicType() ;
+
+template<class Places>
+int atVM ( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MJPoint* mjp = ( MJPoint* ) args[0].addr;
+  Places* p = (Places*) args[1].addr;
+  MJPoint* res = static_cast<MJPoint* > (result.addr);
+  if (mjp != NULL && mjp->IsDefined() &&
+      p != NULL && p->IsDefined())
+  {
+    mjp->At(p,*res);
+  }
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping atMap[] =
+{
+  atVM<JPoint>,
+  atVM<JLine>
+};
+
+const string atSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" + atTypeCombinations +
+  "</text--->"
+  "<text><mjpoint> at <jpoint> </text--->"
+  "<text>Restricts the " + MJPoint::BasicType() + " to the given places."
+  "</text--->"
+  "<text>query testmjp at testjp</text--->))";
+
+Operator atJNet( "at", atSpec, 2, atMap, atSelect, atTM);
+
+/*
 1.1 Access to parts of data types
 
 1.1.1 ~length~
@@ -3023,7 +3124,7 @@ int fromnetworkVM( Word* args, Word& result, int message, Word& local,
   OutType* res = static_cast<OutType*> (result.addr);
   InType* in = static_cast<InType*> (args[0].addr);
   if (in != NULL && in->IsDefined())
-    in->ToSpatial(res);
+    in->ToSpatial(*res);
   else
     res->SetDefined(false);
   return 0;
@@ -3039,7 +3140,7 @@ ValueMapping fromnetworkMap[] =
 const string fromnetworkSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text>" +
-  JPoint::BasicType() + " -> " + Point::BasicType() +  ", \n " +
+  JPoint::BasicType() + " -> " + Point::BasicType() +  ", \n" +
   JLine::BasicType() + " -> " + Line::BasicType() + ", \n" +
   MJPoint::BasicType() + " -> " + MPoint::BasicType() + "</text--->"
   "<text>fromnetwork(<jnetobject>) </text--->"
@@ -3211,7 +3312,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
 
 */
 
-  //AddOperator(&initialJNet);
+  AddOperator(&initialJNet);
   AddOperator(&atinstantJNet);
   //AddOperator(&atperiodsJNet);
 
@@ -3220,7 +3321,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
 
 */
 
-//AddOperator(&atJNet);
+ AddOperator(&atJNet);
 
 
 /*

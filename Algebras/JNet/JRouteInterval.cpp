@@ -655,7 +655,22 @@ bool JRouteInterval::Inside(const JRouteInterval& other) const
           endpos <= other.GetLastPosition());
 }
 
+/*
+1.1. Intersection
 
+*/
+
+JRouteInterval* JRouteInterval::Intersection(const JRouteInterval& rint) const
+{
+  if (IsDefined() && rint.IsDefined() && Overlaps(rint, false))
+     return new JRouteInterval(rid,
+                              max(startpos, rint.GetFirstPosition()),
+                              min(endpos, rint.GetLastPosition()),
+                              min(side, rint.GetSide()));
+  else
+    return 0;
+
+}
 
 /*
 1.1 NetBox

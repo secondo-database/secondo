@@ -174,13 +174,13 @@ void MJPoint::Trajectory(JLine* result) const
         actRInt = actUnit.GetRouteInterval();
         tree->Insert(actRInt);
       }
-            DbArray<JRouteInterval>* res = new DbArray<JRouteInterval>(0);
-            tree->TreeToDbArray(res);
-            result->SetRouteIntervals(*res);
-            tree->Destroy();
-            delete tree;
-            res->Destroy();
-            delete res;
+      DbArray<JRouteInterval>* res = new DbArray<JRouteInterval>(0);
+      tree->TreeToDbArray(res);
+      result->SetRouteIntervals(*res);
+      tree->Destroy();
+      delete tree;
+      res->Destroy();
+      delete res;
     }
   }
     else
@@ -743,29 +743,34 @@ else
 
 */
 
-void MJPoint::ToSpatial(MPoint* result) const
+void MJPoint::ToSpatial(MPoint& result) const
 {
-  result->Clear();
+  result.Clear();
   if (IsDefined() && !IsEmpty())
   {
+    result.SetDefined(true);
+    result.StartBulkLoad();
     JNetwork* jnet = ManageJNet::GetNetwork(nid);
     JUnit ju;
+    bool endTimeCorrected = false;
+    Instant lastEnd;
     for (int i = 0; i < GetNoComponents(); i++)
     {
       Get(i,ju);
-      MPoint* partRes = ju.Split(jnet);
+      MPoint* partRes = ju.Split(jnet, endTimeCorrected, lastEnd);
       for (int j = 0; j < partRes->GetNoComponents(); j++)
       {
         UPoint up;
         partRes->Get(j, up);
-        result->Add(up);
+        result.Add(up);
       }
       partRes->DeleteIfAllowed();
     }
+    result.EndBulkLoad();
     ManageJNet::CloseNetwork(jnet);
   }
   else
-    result->SetDefined(false);
+    result.SetDefined(false);
 }
 
 /*
@@ -789,19 +794,36 @@ IJPoint MJPoint::AtInstant(const Instant* time) const
 }
 
 /*
+1.1.1 ~Initial~
+
+*/
+
+IJPoint MJPoint::Initial() const
+{
+  if (IsDefined() && !IsEmpty())
+  {
+    JUnit ju;
+    Get(0, ju);
+    return ju.Initial(nid);
+  }
+  return IJPoint(false);
+}
+
+
+/*
 1.1.1 ~Passes~
 
 */
 
 bool MJPoint::Passes(const JPoint* jp) const
 {
-  if (IsDefined() && !IsEmpty())
+  if (IsDefined() && !IsEmpty() && jp != 0 && jp->IsDefined())
   {
     JUnit ju;
     for (int i = 0; i < GetNoComponents(); i++)
     {
       Get(i,ju);
-      if (ju.GetRouteInterval().Contains(jp->GetPosition()))
+      if (ju.GetRouteInterval().Contains(jp->GetLocation()))
         return true;
     }
   }
@@ -817,6 +839,60 @@ bool MJPoint::Passes(const JLine* jl) const
     return traj->Intersects(jl);
   }
   return false;
+}
+
+/*
+1.1.1 ~At~
+
+*/
+
+void MJPoint::At(const JPoint* jp, MJPoint& result) const
+{
+  result.Clear();
+  if (IsDefined() && !IsEmpty() && jp != 0 && jp->IsDefined() &&
+      strcmp(nid, *jp->GetNetworkId()) == 0)
+  {
+    result.SetDefined(true);
+    result.SetNetworkId(nid);
+    result.StartBulkload();
+    JUnit ju;
+    for (int i = 0; i < GetNoComponents(); i++)
+    {
+      Get(i,ju);
+      if (ju.GetRouteInterval().Contains(jp->GetLocation()))
+        result.Add(ju.AtPos(jp));
+    }
+    result.EndBulkload();
+  }
+  else
+    result.SetDefined(false);
+}
+
+void MJPoint::At(const JLine* jl, MJPoint& result) const
+{
+  if (IsDefined() && !IsEmpty() && jl != 0 && jl->IsDefined() &&
+      strcmp(nid, *jl->GetNetworkId()) == 0)
+  {
+    result.SetDefined(true);
+    result.SetNetworkId(nid);
+    result.StartBulkload();
+    JUnit ju;
+    JRouteInterval* rint = 0;
+    for (int i = 0; i < GetNoComponents(); i++)
+    {
+      Get(i, ju);
+      rint = jl->Intersection(ju.GetRouteInterval());
+      if (rint != 0)
+      {
+        result.Add(ju.AtRint(rint));
+        rint->DeleteIfAllowed();
+        rint = 0;
+      }
+    }
+    result.EndBulkload();
+  }
+  else
+    result.SetDefined(false);
 }
 
 /*

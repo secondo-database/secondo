@@ -190,7 +190,7 @@ Computes a ~jline~ in ~jnet~ from an given ~line~ value.
 Computes a corresponding spatial line value for the ~jline~.
 
 */
- void ToSpatial(Line* result) const;
+ void ToSpatial(Line& result) const;
 
 /*
 1.1.1.1 ~Intersects~
@@ -201,6 +201,17 @@ intersects.
 */
 
 bool Intersects(const JLine* other) const;
+
+/*
+1.1.1.1 ~Intersection~
+
+The intersection is returned if exists otherwise a 0 pointer is returned.
+
+*/
+
+JRouteInterval* Intersection(const JRouteInterval& rint) const;
+  /*DbArray<JRouteInterval>* Intersection(const DbArray<JRouteInterval>& in)
+    const;*/
 
 private:
 
@@ -277,5 +288,5 @@ int GetOverlappingPos(const JRouteInterval& rint, int spos, int epos)  const;
 
 */
 
-ostream& operator<<(ostream& os, const JLine l);
+ostream& operator<<(ostream& os, const JLine& l);
 #endif // JLINE_H

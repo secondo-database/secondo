@@ -72,7 +72,7 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
 */
 
   const STRING_T* GetNetworkId() const;
-  RouteLocation GetPosition() const;
+  RouteLocation GetLocation() const;
 
   void SetNetId(const STRING_T& netId);
   void SetPosition(const RouteLocation& rloc);
@@ -154,7 +154,7 @@ Computes the corresponding spatial point from the given jpoint.
 
 */
 
-void ToSpatial(Point* result) const;
+void ToSpatial(Point& result) const;
 
 /*
 1.1.1.1 NetBox

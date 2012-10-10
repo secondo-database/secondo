@@ -525,6 +525,20 @@ Example  : query altrlocs(createjpoint(testjnet, createrloc(1, 0.0, [const jdire
 Result   : file
 Tolerance: 0.01%
 
+Operator : at
+Number   : 1
+Signature: mjpoint x jpoint -> mjpoint
+Example  : query testmjp at createjpoint(testjnet, createrloc(1, 0.001, [const jdirection value("Both")]));
+Result   : (mjpoint("testjnet" ((("2000-01-03-09:36" "2000-01-03-09:36" TRUE TRUE) (1 0.001 0.001 (Up))))))
+Tolerance: 0.01%
+
+Operator : at
+Number   : 2
+Signature: mjpoint x jline -> mjpoint
+Example  : query testmjp at testjl;
+Result   : (mjpoint("testjnet"((("2000-01-03-09:36" "2000-01-03-09:44" TRUE FALSE) (1 0.001 0.002 (Up))))))
+Tolerance: 0.01%
+
 Operator : atinstant
 Number   : 1
 Signature: mjpoint x instant -> ijpoint
@@ -697,6 +711,13 @@ Number   : 3
 Signature: mjpoint -> mpoint
 Example  : query fromnetwork(tonetwork(testjnet, [const mpoint value((("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE)(7.4801436 51.3596479 7.4804329 51.3595782)))]));
 Result   : (mpoint((("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE)(7.4801436 51.3596479 7.4804329 51.3595782))))
+Tolerance: 0.01%
+
+Operator : initial
+Number   : 1
+Signature: mjpoint -> ijpoint
+Example  : query initial(testmjp);
+Result   : (ijpoint("2000-01-03-09:36" ("testjnet" (1 0.001 (Up)))))
 Tolerance: 0.01%
 
 Operator : inst

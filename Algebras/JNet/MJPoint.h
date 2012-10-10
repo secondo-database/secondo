@@ -214,7 +214,7 @@ Returns the corresponding ~mpoint~ for this ~mjpoint~.
 
 */
 
- void ToSpatial(MPoint* result) const;
+ void ToSpatial(MPoint& result) const;
 
 
 /*
@@ -228,6 +228,15 @@ instant.
   IJPoint AtInstant(const Instant* time) const;
 
 /*
+1.1.1.1 ~Initial~
+
+Returns an ~ijpoint~ with the start position and time of the given ~mjpoint~
+
+*/
+
+ IJPoint Initial() const;
+
+/*
 1.1.1.1 ~Passes~
 
 Returns true if the mjpoint passes at least once the given place.
@@ -236,6 +245,17 @@ Returns true if the mjpoint passes at least once the given place.
 
 bool Passes(const JPoint* jp) const;
 bool Passes(const JLine* jl) const;
+
+/*
+1.1.1.1 ~At~
+
+Returns an ~mjpoint~ restricted to the times the original was at the given
+places.
+
+*/
+
+void At(const JPoint* jp, MJPoint& result) const;
+void At(const JLine* jl, MJPoint& result) const;
 
 private:
 

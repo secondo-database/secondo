@@ -566,11 +566,11 @@ void JLine::FromSpatial(const JNetwork* jnet, const Line* in)
 
 */
 
-void JLine::ToSpatial(Line* result) const
+void JLine::ToSpatial(Line& result) const
 {
   if (IsDefined() && !IsEmpty())
   {
-    result->Clear();
+    result.Clear();
     JNetwork* jnet = ManageJNet::GetNetwork(nid);
     JRouteInterval rint;
     for (int i = 0; i < GetNoComponents(); i++)
@@ -578,8 +578,8 @@ void JLine::ToSpatial(Line* result) const
       Get(i,rint);
       SimpleLine* tmp = rint.GetSpatialValue(jnet);
       Line* tmp1 = new Line(0);
-      result->Union(*tmp, *tmp1);
-      *result = *tmp1;
+      result.Union(*tmp, *tmp1);
+      result = *tmp1;
       tmp1->DeleteIfAllowed();
       tmp->DeleteIfAllowed();
       tmp = 0;
@@ -587,7 +587,7 @@ void JLine::ToSpatial(Line* result) const
     ManageJNet::CloseNetwork(jnet);
   }
   else
-    result->SetDefined(false);
+    result.SetDefined(false);
 }
 
 /*
@@ -638,10 +638,10 @@ bool JLine::Intersects(const JLine* other) const
       {
         int j = 0;
         JRouteInterval ri;
-        for (int i = 0; i < GetNoComponents(); i++)
+        for (int i = 0; i < other->GetNoComponents(); i++)
         {
-          Get(i,ri);
-          j = other->GetOverlappingPos(ri, 0, other->GetNoComponents()-1);
+          other->Get(i,ri);
+          j = GetOverlappingPos(ri, 0, GetNoComponents()-1);
           if (j > -1)
             return true;
         }
@@ -655,7 +655,7 @@ bool JLine::Intersects(const JLine* other) const
           for (int j = 0; j < GetNoComponents(); j++)
           {
             Get(j,ri);
-            i = GetOverlappingPos(ri, 0, GetNoComponents()-1);
+            i = other->GetOverlappingPos(ri, 0, other->GetNoComponents()-1);
             if (i > -1)
               return true;
           }
@@ -678,6 +678,43 @@ bool JLine::Intersects(const JLine* other) const
     }
   }
   return false;
+}
+
+/*
+1.1.1 Intersection
+
+*/
+
+JRouteInterval* JLine::Intersection(const JRouteInterval& rint) const
+{
+  if (IsDefined() && !IsEmpty() && rint.IsDefined())
+  {
+     if (IsSorted())
+    {
+       int j = GetOverlappingPos(rint, 0, GetNoComponents()-1);
+      if (j > -1)
+      {
+        JRouteInterval actInt;
+        Get(j,actInt);
+         return actInt.Intersection(rint);
+      }
+    }
+    else
+    {
+       int j =  0;
+      JRouteInterval actInt;
+      while (j < GetNoComponents())
+      {
+        Get(j,actInt);
+         if (actInt.Overlaps(rint, false))
+        {
+           return actInt.Intersection(rint);
+        }
+        j++;
+      }
+    }
+  }
+  return  0;
 }
 
 /*
@@ -743,14 +780,16 @@ bool JLine::IsSorted() const
 int JLine::GetOverlappingPos(const JRouteInterval& rint, int spos, int epos)
 const
 {
-  if (IsDefined() && !IsEmpty() && rint.IsDefined() && spos > -1 &&
-      epos < GetNoComponents() && spos <= epos)
+  if (IsDefined() && !IsEmpty() && IsSorted() && rint.IsDefined() &&
+    spos > -1 && epos < GetNoComponents() && spos <= epos)
   {
     JRouteInterval ri;
     int mid = (epos + spos)/ 2;
     Get(mid, ri);
-    if (ri.Overlaps(rint))
+    if (ri.Overlaps(rint, false))
+    {
       return mid;
+    }
     else
     {
       switch(ri.Compare(rint))

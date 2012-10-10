@@ -6,6 +6,7 @@ operator < alias LT pattern _ infixop _
 operator - alias MINUS pattern _ infixop _
 operator # alias NE pattern _ infixop _
 operator altrlocs alias ALTRLOCS pattern op ( _ )
+operator at alias AT pattern _ infixop _
 operator atinstant alias ATINSTANT pattern _ infixop _
 operator bbox alias BBOX pattern op ( _ , _ )
 operator createijpoint alias CREATEIJPOINT pattern op ( _ , _ )
@@ -22,6 +23,7 @@ operator createstream alias CREATESTREAM pattern op ( _ )
 operator createujpoint alias CREATEUJPOINT pattern op ( _ , _ , _ , _ , _ , _ )
 operator fromnetwork alias FROMNETWORK pattern op ( _ )
 operator distances alias DISTANCES pattern op ( _ )
+operator initial alias INITIAL pattern op ( _ )
 operator inst alias INST pattern op ( _ )
 operator junctions alias JUNCTIONS pattern op ( _ )
 operator netbox alias NETBOX pattern op ( _ )

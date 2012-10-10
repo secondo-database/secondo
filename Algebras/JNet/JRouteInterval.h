@@ -213,13 +213,33 @@ and their intervals overlap at atleast one point.
 /*
 1.1.1.1 Contains
 
-Returns true if the JRouteInterval contains the route location.
+Returns true if the JRouteInterval contains the route location resp. interval.
 
 */
 
   bool Contains(const RouteLocation& rloc) const;
   bool Contains(const RouteLocation& rloc, const double tolerance) const;
   bool Contains(const JRouteInterval& other) const;
+
+/*
+1.1.1.1 Inside
+
+Returns true if the route interval is complete into the other route interval,
+false elsewhere.
+
+*/
+
+ bool Inside(const JRouteInterval& other) const;
+
+/*
+1.1.1.1 Intersection
+
+Returns the intersecting part of the both route intervals if exists,
+0 elsewhere.
+
+*/
+
+  JRouteInterval* Intersection(const JRouteInterval& rint) const;
 
 /*
 1.1.1.1 Extend
@@ -239,15 +259,6 @@ false elsewhere.
 */
 
 bool Between(const RouteLocation& left, const RouteLocation& right) const;
-/*
-1.1.1.1 Inside
-
-Returns true if the route interval is complete into the other route interval,
-false elsewhere.
-
-*/
-
-bool Inside(const JRouteInterval& other) const;
 
 /*
 1.1.1.1 NetBox
