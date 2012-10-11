@@ -688,14 +688,25 @@ Type mapping for ~extract~ is
 */
 ListExpr ExtractTypeMap( ListExpr args )
 {
+   
 
-  if(nl->ListLength(args)!=2){
-   return listutils::typeError("two arguments expected");
+  string err = "(stream( tuple[ a1 : t1, .., an : tn ])) x a_i"
+               "   or stream(DATA)  expected";
+  if(!nl->HasLength(args,2) && !nl->HasLength(args,1)){
+   return listutils::typeError("one or two arguments expected");
   }
+
+  if(nl->HasLength(args,1)){ // DATA stream version
+     if(!Stream<Attribute>::checkType(nl->First(args))){
+       return listutils::typeError("if called with one arg, "
+                                   "this arg must be stream(DATA)");
+     }
+     return nl->Second(nl->First(args));
+  }
+
 
   ListExpr stream = nl->First(args);
   ListExpr attrname = nl->Second(args);
-  string err = "(stream( tuple[ a1 : t1, .., an : tn ])) x a_i expected";
 
   if(!listutils::isTupleStream(stream) ||
      nl->AtomType(attrname)!=SymbolType){
@@ -732,43 +743,60 @@ tuple object.
 */
 int Extract(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  int index;
-  Attribute* res = (Attribute*)((qp->ResultStorage(s)).addr);
-  result.setAddr(res);
 
-  Stream<Tuple> stream(args[0]);
-  stream.open();
-  Tuple* tuple = stream.request(); 
-
-  if(tuple) {
-    index = ((CcInt*)args[2].addr)->GetIntval();
-    res->CopyFrom(
-      (const Attribute*)tuple->GetAttribute(index - 1));
-    tuple->DeleteIfAllowed();
+  if(qp->GetNoSons(s)>1){
+    int index;
+    Attribute* res = (Attribute*)((qp->ResultStorage(s)).addr);
+    result.setAddr(res);
+    Stream<Tuple> stream(args[0]);
+    stream.open();
+    Tuple* tuple = stream.request(); 
+  
+    if(tuple) {
+      index = ((CcInt*)args[2].addr)->GetIntval();
+      res->CopyFrom(
+        (const Attribute*)tuple->GetAttribute(index - 1));
+      tuple->DeleteIfAllowed();
+    }
+    else
+    {
+      res->SetDefined(false);
+    }
+  
+    stream.close();
+    return 0;
+  } else { // attribute stream version
+    Stream<Attribute> stream(args[0]);
+    result = qp->ResultStorage(s); 
+    Attribute* res = (Attribute*)(result.addr);
+    stream.open();
+    Attribute* a = stream.request();
+    if(a){
+       res->CopyFrom(a);
+       a->DeleteIfAllowed();
+    } else {
+       res->SetDefined(false);
+    }
+    stream.close();
+    return 0;
   }
-  else
-  {
-    res->SetDefined(false);
-  }
-
-  stream.close();
-  return 0;
 }
 /*
 2.7.3 Specification of operator ~extract~
 
 */
-const string ExtractSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-                            "))) x ai) -> di</text--->"
-                            "<text>_ extract [ _ ]</text--->"
-                            "<text>Returns the value of attribute ai of "
-                            "the first tuple in the input stream."
-                            "</text--->"
-                            "<text>query cities feed extract [population]"
-                            "</text--->"
-                              ") )";
+const string ExtractSpec  = 
+     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+     "\"Example\" ) "
+     "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
+     "))) x ai) -> di || stream<X> -> X , X in DATA</text--->"
+     "<text>_ extract [ _ ]</text--->"
+     "<text>Returns the value of attribute ai of "
+     "the first tuple in the input stream."
+     "</text--->"
+     "<text>query cities feed extract [population]"
+     "</text--->"
+     ") )";
 
 /*
 2.7.4 Definition of operator ~extract~

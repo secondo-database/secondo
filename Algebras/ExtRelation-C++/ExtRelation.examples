@@ -78,6 +78,11 @@ Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di
 Example  : query no_segments(Flaechen feed filter[.Name = "Hasenheide"] extract[GeoData])
 Result   : 26
 
+Operator : extract
+Number   : 2
+Signature: stream(X) -> X , X in DATA 
+Example  : query intstream(3,5) extract[.]
+Result   : 3
 
 Operator : groupby
 Number   : 1
