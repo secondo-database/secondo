@@ -80,6 +80,8 @@ intersection2, difference2, commonborder2) are implemented.
 #include "StandardTypes.h"
 #include "AVLSegment.h"
 
+#include "MMRTree.h"
+
 
 
 
@@ -1084,158 +1086,225 @@ avlseg::ownertype selectNext(const Region*  reg,
 }
 
 
+
+bool GetInt9MRob(const Region* reg, const Points* ps, Int9M& res,
+              const bool useCluster, const Cluster& cluster){
+
+  bool*  puses= new bool[ps->Size()];
+  memset(puses,0,ps->Size() * sizeof(bool));
+
+  res.SetValue(0);
+  res.SetEE(true);
+   
+
+  mmrtree::RtreeT<2,int> tree(4,8);
+  Point p;
+  for(int i=0;i<ps->Size();i++){
+     ps->Get(i,p);
+     tree.insert(p.BoundingBox(),i);
+  }
+  // find points of boundary of the region
+  HalfSegment hs;
+  for(int i=0;i<reg->Size();i++){
+     reg->Get(i,hs);
+     if(hs.IsLeftDomPoint()){
+       mmrtree::RtreeT<2,int>::iterator* it = tree.find(hs.BoundingBox());
+       int const* pos;
+       while( (pos = it->next()) != 0){
+          ps->Get(*pos,p);
+          if(hs.Contains(p)){
+             puses[*pos] = true;
+             res.SetBI(true);            
+          }
+       }
+       delete it;
+     }
+  } 
+  // the unused points are inside or outside the region
+  bool ii=false;
+  bool ei = false;
+  for(int i=0;i<ps->Size();i++){
+     if(!puses[i]){
+       ps->Get(i,p);
+       if(reg->InnerContains(p)){
+         ii = true;
+         res.SetII(true);
+       } else {
+         ei = true;
+         res.SetEI(true); 
+       }
+       if(ii && ei){
+          delete[] puses;
+          return cluster.Contains(res);
+       }
+    }
+  } 
+  delete[] puses;
+  return cluster.Contains(res);
+
+
+}
+
+
 bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
               const bool useCluster=false,
               Cluster cluster = Cluster(),
               const bool forceThrow = false){
-  res.SetValue(0);
-  // test for emptyness
-   res.SetEE(true);
-   if(reg->IsEmpty()){
-      if(ps->IsEmpty()){
-       if(useCluster){
-          return cluster.Contains(res);
-       } else {
-         return true;
-       }
-      }
-      res.SetEI(true);
-      if(useCluster){
-        return cluster.Contains(res);;
-      } else {
-        return true;
-      }
-   }
-   res.SetIE(true);
-   res.SetBE(true);
 
-   if(ps->IsEmpty()){ // no more intersections can be found
+
+  try{
+    res.SetValue(0);
+    // test for emptyness
+     res.SetEE(true);
+     if(reg->IsEmpty()){
+        if(ps->IsEmpty()){
+         if(useCluster){
+            return cluster.Contains(res);
+         } else {
+           return true;
+         }
+        }
+        res.SetEI(true);
+        if(useCluster){
+          return cluster.Contains(res);;
+        } else {
+          return true;
+        }
+     }
+     res.SetIE(true);
+     res.SetBE(true);
+  
+     if(ps->IsEmpty()){ // no more intersections can be found
+        if(useCluster){
+          return cluster.Contains(res);
+        } else {
+          return true;
+        }
+     }
+    // bounding box test
+    Rectangle<2> regbox = reg->BoundingBox();
+    Rectangle<2> pbox = ps->BoundingBox();
+    if(!regbox.Intersects(pbox)){ // disjoint objects
+      res.SetEI(true);
       if(useCluster){
         return cluster.Contains(res);
       } else {
         return true;
       }
-   }
-  // bounding box test
-  Rectangle<2> regbox = reg->BoundingBox();
-  Rectangle<2> pbox = ps->BoundingBox();
-  if(!regbox.Intersects(pbox)){ // disjoint objects
-    res.SetEI(true);
+    }
+    if(useCluster){
+        int cb = cluster.checkBoxes(regbox, false, pbox, false);
+        if(cb==1) {
+           return true;
+        }
+        if(cb==2){
+           return false;
+        }
+     }
+    // bbox failed, perform a plane sweep
+  
+    if(useCluster){
+      // restrict the cluster to possible values
+  
+      // boundary of an points value is empty
+      Int9M m1(true,false,true, true,false,true, true,false,true);
+      cluster.Restrict(m1,false,false);
+  
+      cluster.Restrict(res,true,false);
+  
+      if(cluster.IsEmpty()){
+        return false;
+      }
+      if(cluster.isExtension(res)){
+        return true;
+      }
+    }
+  
+    // queue for splitted segments of the region
+    priority_queue<avlseg::ExtendedHalfSegment,
+                   vector<avlseg::ExtendedHalfSegment>,
+                   greater<avlseg::ExtendedHalfSegment> > q1;
+    avltree::AVLTree<avlseg::AVLSegment> sss;
+  
+    avlseg::ownertype owner;
+    bool done = false;
+    int pos1 =0;
+    int pos2 =0;
+    Point CP;
+    avlseg::ExtendedHalfSegment CH;
+    avlseg::AVLSegment tmpL,tmpR;
+  
+    while (!done &&
+           ( (owner= selectNext(reg,q1,pos1, ps,pos2,CH,CP))!=avlseg::none)){
+      if(owner==avlseg::second){ // the point
+         avlseg::AVLSegment current(CP,avlseg::second);
+         const avlseg::AVLSegment* left=0;
+         const avlseg::AVLSegment* right=0;
+         const avlseg::AVLSegment* member = sss.getMember(current, left, right);
+         if(left){
+            tmpL = *left;
+            left = &tmpL;
+         }
+         if(right){
+            tmpR = *right;
+            right = &tmpR;
+         }
+         if(member){ // point located on boundary
+           SetBI(res,useCluster,cluster,done);
+         } else if(left){
+           if(left->getInsideAbove_first()){
+              SetII(res,useCluster,cluster,done);
+           } else {
+              SetEI(res,useCluster,cluster,done);
+           }
+         } else { // there is nothing under cp
+           SetEI(res,useCluster,cluster,done);
+         }
+         done = done || (res.GetII() && res.GetBI() && res.GetEI());
+      } else {  // the next element comes from the region
+        avlseg::AVLSegment current(CH,avlseg::first);
+  
+        const avlseg::AVLSegment* leftN = 0;
+        const avlseg::AVLSegment* rightN = 0;
+        const avlseg::AVLSegment* member = sss.getMember(current,leftN,rightN);
+        if(leftN){
+           tmpL = *leftN;
+           leftN = &tmpL;
+        }
+        if(rightN){
+           tmpR = *rightN;
+           rightN = &tmpR;
+        }
+        if(CH.IsLeftDomPoint()){ // left Event
+           if(member){
+              cout << "found overlapping segments"
+                      " within a single region"  << endl;
+              cout << "Segment1 " <<  setprecision(16) << current << endl;
+              cout << "Segment2 " << setprecision(16) << (*member) << endl;
+              throw myexception("found overlapping segments") ;
+           }
+           assert(!member); // a single region can't 
+                            //contain overlapping segments
+           splitByNeighbour(sss,current,leftN,q1,q1, forceThrow);
+           splitByNeighbour(sss,current,rightN,q1,q1, forceThrow);
+           sss.insert(current);
+        } else { // right event
+          if(member && member->exactEqualsTo(current)){
+             sss.remove(current);
+             splitNeighbours(sss,leftN,rightN,q1,q1, forceThrow);
+          }
+        }
+      } // element from region
+    } // while
     if(useCluster){
       return cluster.Contains(res);
-    } else {
+    } else{
       return true;
     }
-  }
-  if(useCluster){
-      int cb = cluster.checkBoxes(regbox, false, pbox, false);
-      if(cb==1) {
-         return true;
-      }
-      if(cb==2){
-         return false;
-      }
-   }
-  // bbox failed, perform a plane sweep
-
-  if(useCluster){
-    // restrict the cluster to possible values
-
-    // boundary of an points value is empty
-    Int9M m1(true,false,true, true,false,true, true,false,true);
-    cluster.Restrict(m1,false,false);
-
-    cluster.Restrict(res,true,false);
-
-    if(cluster.IsEmpty()){
-      return false;
-    }
-    if(cluster.isExtension(res)){
-      return true;
-    }
-  }
-
-  // queue for splitted segments of the region
-  priority_queue<avlseg::ExtendedHalfSegment,
-                 vector<avlseg::ExtendedHalfSegment>,
-                 greater<avlseg::ExtendedHalfSegment> > q1;
-  avltree::AVLTree<avlseg::AVLSegment> sss;
-
-  avlseg::ownertype owner;
-  bool done = false;
-  int pos1 =0;
-  int pos2 =0;
-  Point CP;
-  avlseg::ExtendedHalfSegment CH;
-  avlseg::AVLSegment tmpL,tmpR;
-
-  while (!done &&
-         ( (owner= selectNext(reg,q1,pos1, ps,pos2,CH,CP))!=avlseg::none)){
-    if(owner==avlseg::second){ // the point
-       avlseg::AVLSegment current(CP,avlseg::second);
-       const avlseg::AVLSegment* left=0;
-       const avlseg::AVLSegment* right=0;
-       const avlseg::AVLSegment* member = sss.getMember(current, left, right);
-       if(left){
-          tmpL = *left;
-          left = &tmpL;
-       }
-       if(right){
-          tmpR = *right;
-          right = &tmpR;
-       }
-       if(member){ // point located on boundary
-         SetBI(res,useCluster,cluster,done);
-       } else if(left){
-         if(left->getInsideAbove_first()){
-            SetII(res,useCluster,cluster,done);
-         } else {
-            SetEI(res,useCluster,cluster,done);
-         }
-       } else { // there is nothing under cp
-         SetEI(res,useCluster,cluster,done);
-       }
-       done = done || (res.GetII() && res.GetBI() && res.GetEI());
-    } else {  // the next element comes from the region
-      avlseg::AVLSegment current(CH,avlseg::first);
-
-      const avlseg::AVLSegment* leftN = 0;
-      const avlseg::AVLSegment* rightN = 0;
-      const avlseg::AVLSegment* member = sss.getMember(current,leftN,rightN);
-      if(leftN){
-         tmpL = *leftN;
-         leftN = &tmpL;
-      }
-      if(rightN){
-         tmpR = *rightN;
-         rightN = &tmpR;
-      }
-      if(CH.IsLeftDomPoint()){ // left Event
-      // debug::start
-         if(member){
-            cout << "found overlapping segments"
-                    " within a single region"  << endl;
-            cout << "Segment1 " << current << endl;
-            cout << "Segment2 " << (*member) << endl;
-            cout << "Region = " << *reg << endl;
-         }
-      // debug::end
-         assert(!member); // a single region can't contain overlapping segments
-         splitByNeighbour(sss,current,leftN,q1,q1, forceThrow);
-         splitByNeighbour(sss,current,rightN,q1,q1, forceThrow);
-         sss.insert(current);
-      } else { // right event
-        if(member && member->exactEqualsTo(current)){
-           sss.remove(current);
-           splitNeighbours(sss,leftN,rightN,q1,q1, forceThrow);
-        }
-      }
-    } // element from region
-  } // while
-  if(useCluster){
-    return cluster.Contains(res);
-  } else{
-    return true;
+  } catch(...){
+    return GetInt9MRob(reg, ps, res,
+                useCluster,
+                cluster );
   }
 }
 
@@ -1436,6 +1505,26 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
         avlseg::AVLSegment left, common, right;
         if(member){ // there is an overlapping segment in the tree
            // check for valid region representation
+           if(forceThrow){
+              if(member->getOwner() != current.getOwner()){
+                cerr << "overlapping segments within one region detected" 
+                     << endl;
+                cerr << "Segment 1 : " << member << endl;
+                cerr << "Segment 2 : " << current << endl;
+                cerr << "owner = " << member->getOwner() << endl;
+                throw myexception("Overlapping segments "
+                                  "within one region detected");
+              }
+              if(member->getOwner() == avlseg::both){
+                cerr << "overlapping segments within one region detected" 
+                     << endl;
+                cerr << "Segment 1 : " << member << endl;
+                cerr << "Segment 2 : " << current << endl;
+                cerr << "owner = " << current.getOwner() << endl;
+                throw myexception("Overlapping segments "
+                                  "within one region detected");
+              }
+           }
            assert(member->getOwner() != current.getOwner());
            assert(member->getOwner() != avlseg::both);
 
@@ -2635,14 +2724,19 @@ int TopPred(Word* args, Word& result, int message,
   t1* v1 = static_cast<t1*>(args[0].addr);
   t2* v2 = static_cast<t2*>(args[1].addr);
   Cluster* cluster = static_cast<Cluster*>(args[2].addr);
-  if(!cluster->IsDefined()){
+  if(!cluster->IsDefined() || !v1->IsDefined() || !v2->IsDefined()){
       (static_cast<CcBool*>(result.addr))->Set(false,false);
       return 0;
   }
 
   Int9M matrix;
-  bool res = GetInt9M(v1,v2,matrix,true,*cluster);
-  (static_cast<CcBool*>(result.addr))->Set(true,res);
+  try{
+     bool res = GetInt9M(v1,v2,matrix,true,*cluster);
+    (static_cast<CcBool*>(result.addr))->Set(true,res);
+   } catch(...){
+     cerr << "Toppred failed, set to undefined, TODO: robust toppred" << endl;
+     (static_cast<CcBool*>(result.addr))->Set(false,false);  
+  } 
   return 0;
 }
 
