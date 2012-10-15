@@ -1137,3 +1137,31 @@ Number   : 1
 Signature : region -> region
 Example   : query getHoles((BGrenzenLine line2region ) minus thecenter) = thecenter
 Result    : TRUE
+
+
+Operator : collect_line2
+Number   : 1
+Signature : stream(line) -> line
+Example   : query size((strassen feed projecttransformstream[GeoData] collect_line[TRUE]) minus (strassen feed projecttransformstream[GeoData] collect_line2) ) < 1.0
+Result    : TRUE
+
+
+Operator: getInnerPoint
+Number  : 1
+Signature : region -> point
+Example   : query (WFlaechen feed extend[IP : getInnerPoint(.GeoData)] filter[ .IP ininterior .GeoData] count) = (WFlaechen count)
+Result    : TRUE
+
+
+Operator: checkRealm
+Number  : 1
+Signature: {line,reagion} -> bool
+Example : query (strassen feed filter[ checkRealm(.GeoData)] count) = strassen count
+Result  : TRUE
+
+Operator: badRealm
+Number  : 1
+Signature: {line,reagion} -> stream(tuple( (No1 int)(Partner1 int)(Segment1 line)(No2 int)(Partner2 int)(Segment2 line)))
+Example : query badRealm(BGrenzenLine) count
+Result  : 0
+

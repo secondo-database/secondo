@@ -806,8 +806,9 @@ Marks the begin of a bulk load of half segments relaxing the condition that the 
 ordered.
 
 */
-     void EndBulkLoad (bool sort = true,
-                       bool realminize = true);
+     void EndBulkLoad (const bool sort = true,
+                       const bool realminize = true,
+                       const bool robust = false);
 /*
 
 Marks the end of a bulk load for this line.
@@ -4474,7 +4475,8 @@ or touching at their interior, their are split.
 
 */
 DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments, 
-                                 const bool forceThrow= false);
+                                 const bool forceThrow= false,
+                                 const bool robust = false);
 
 /*
 ~Split~

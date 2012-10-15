@@ -259,8 +259,6 @@ stored, this function can be used to assign each cycle to an outer cycle.
   double RegionCreator::getLeftDist(const HalfSegment& hs, 
                             const double x, const double y, const bool move){
 
-     //cout << "check " << hs.SimpleString() << endl;
-     //cout << "with Point ("  << x << ", " << y << ")" << endl;
 
      double x1 = hs.GetDomPoint().GetX();
      double y1 = hs.GetDomPoint().GetY();
@@ -268,28 +266,23 @@ stored, this function can be used to assign each cycle to an outer cycle.
      double y2 = hs.GetSecPoint().GetY();
      double xmin = min(x1,x2);
      if(!AlmostEqual(xmin,x) && (xmin > x)){ //segment completely right of (x,y)
-       //cout << "right" << endl;
        return -1;
      }
      double xmax = max(x1,x2);
      double ymin = min(y1,y2);
      if(!AlmostEqual(ymin,y) && (ymin > y)){ // segment above (x,y)
-       //cout << "above" << endl;
        return -1;
      }
      double ymax = max(y1,y2);
      if(!AlmostEqual(ymax,y) && (ymax < y)) { // segment below (x,y)
-        //cout << "below" << endl;
+       return -1;
+     }
+     if(move && AlmostEqual(ymin,y)){
        return -1;
      }
      if(AlmostEqual(y1,y2)){  // horizontal segment
-        // cout << "horizontal" << endl;
         return abs(x - xmax); // abs is for rounding errors
      } 
-     if(move && AlmostEqual(ymin,y)){
-       // cout << "Moved away" << endl;
-       return -1;
-     }
     
      double delta = (y-y1)/(y2-y1);
      double xsec = x1 + delta*(x2-x1);
@@ -303,6 +296,143 @@ stored, this function can be used to assign each cycle to an outer cycle.
      }      
      // cout << " interection, dist = " << x-xsec << endl;
      return x - xsec;
+  }
+
+
+  double RegionCreator::getRightDist(const HalfSegment& hs, 
+                            const double x, const double y){
+
+     //cout << "check " << hs.SimpleString() << endl;
+     //cout << "with Point ("  << x << ", " << y << ")" << endl;
+
+     double x1 = hs.GetDomPoint().GetX();
+     double y1 = hs.GetDomPoint().GetY();
+     double x2 = hs.GetSecPoint().GetX();
+     double y2 = hs.GetSecPoint().GetY();
+     double xmax = max(x1,x2);
+     if(!AlmostEqual(xmax,x) && (xmax <  x)){ //segment completely left of (x,y)
+       return -1;
+     }
+     double xmin = min(x1,x2);
+     double ymin = min(y1,y2);
+     if(!AlmostEqual(ymin,y) && (ymin > y)){ // segment above (x,y)
+       return -1;
+     }
+     double ymax = max(y1,y2);
+     if(!AlmostEqual(ymax,y) && (ymax < y)) { // segment below (x,y)
+       return -1;
+     }
+     if(AlmostEqual(y1,y2)){  // horizontal segment
+        // cout << "horizontal" << endl;
+        return abs(xmin - x); // abs is for rounding errors
+     } 
+
+     double delta = (y-y1)/(y2-y1);
+     double xsec = x1 + delta*(x2-x1);
+     if(AlmostEqual(x,xsec) && xsec < x){
+        return 0;
+     }
+     if(xsec < x){
+       // cout << "cutpoint is left" << endl;
+       return -1;
+     }      
+     // cout << " interection, dist = " << x-xsec << endl;
+     return  xsec - x;
+  }
+/*
+Returns the distance from (x,y) to hs following a vertical 
+ray in upper direction. If the ray does not intersects the halfsegment,
+-1 is returned.
+
+*/
+  double RegionCreator::getUpDist(const HalfSegment& hs, 
+                            const double x, const double y){
+
+     double x1 = hs.GetDomPoint().GetX();
+     double y1 = hs.GetDomPoint().GetY();
+     double x2 = hs.GetSecPoint().GetX();
+     double y2 = hs.GetSecPoint().GetY();
+     double ymax = max(y1,y2);
+     
+     if(!AlmostEqual(ymax,y) && (ymax < y)){ //segment completely under (x,y)
+       //cout << "under" << endl;
+       return -1;
+     }
+     
+     double xmin=min(x1,x2);
+     if(!AlmostEqual(xmin,x) && xmin>x){
+       // right of the ray
+       return -1;
+     }
+     double xmax = max(x1,x2);
+     if(!AlmostEqual(xmax,x) && xmax < x){
+        // left of the ray
+        return -1; 
+     }
+
+     double ymin = min(y1,y2);
+     if(AlmostEqual(x1,x2)){ // vertical segment
+        if(ymin<y){
+           return 0;
+        }
+        return (ymin-y);
+     }
+
+     double delta = (x -x1) / (x2-x1);
+     double ycut = y1 + delta*(y2-y1);
+
+     if(!AlmostEqual(ycut,y) && ycut < y){
+        return -1;
+     }
+     if(AlmostEqual(ycut,y)){
+         return 0;
+     }
+     return abs(ycut-y) ;
+  }
+
+  double RegionCreator::getDownDist(const HalfSegment& hs, 
+                            const double x, const double y){
+
+     double x1 = hs.GetDomPoint().GetX();
+     double y1 = hs.GetDomPoint().GetY();
+     double x2 = hs.GetSecPoint().GetX();
+     double y2 = hs.GetSecPoint().GetY();
+     double ymin = min(y1,y2);
+     
+     if(!AlmostEqual(ymin,y) && (ymin  > y)){ //segment completely above (x,y)
+       //cout << "above" << endl;
+       return -1;
+     }
+     
+     double xmin=min(x1,x2);
+     if(!AlmostEqual(xmin,x) && xmin>x){
+       // right of the ray
+       return -1;
+     }
+     double xmax = max(x1,x2);
+     if(!AlmostEqual(xmax,x) && xmax < x){
+        // left of the ray
+        return -1; 
+     }
+
+     double ymax = max(y1,y2);
+     if(AlmostEqual(x1,x2)){ // vertical segment
+        if(ymax>y){
+           return 0;
+        }
+        return (y - ymax);
+     }
+
+     double delta = (x -x1) / (x2-x1);
+     double ycut = y1 + delta*(y2-y1);
+
+     if(!AlmostEqual(ycut,y) && ycut > y){ // above
+        return -1;
+     }
+     if(AlmostEqual(ycut,y)){ // nearly hit
+         return 0;
+     }
+     return abs(y-ycut) ;
   }
 
 

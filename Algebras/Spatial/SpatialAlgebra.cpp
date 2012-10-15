@@ -36,10 +36,10 @@ January, 2005 Leonardo Guerreiro Azevedo
 
 1 Overview
 
-This implementation file essentially contains the implementation of the classes ~Point~,
-~Points~, ~Line~, and ~Region~ used in the Spatial Algebra. These classes
-respectively correspond to the memory representation for the type constructors
-~point~, ~points~, ~line~, and ~region~.
+This implementation file essentially contains the implementation of the classes 
+~Point~, ~Points~, ~Line~, and ~Region~ used in the Spatial Algebra. These 
+classes respectively correspond to the memory representation for the type 
+constructors ~point~, ~points~, ~line~, and ~region~.
 
 For more detailed information see SpatialAlgebra.h.
 
@@ -110,9 +110,9 @@ Later on we will
 examine nested list type descriptions. In particular, we
 are going to check whether they describe one of the four types just introduced.
 In order to simplify dealing with list expressions describing these types, we
-declare an enumeration, ~SpatialType~, containing the four types, and a function,
-~SpatialTypeOfSymbol~, taking a nested list as argument and returning the
-corresponding ~SpatialType~ type name.
+declare an enumeration, ~SpatialType~, containing the four types, and a 
+function, ~SpatialTypeOfSymbol~, taking a nested list as argument and returning
+the corresponding ~SpatialType~ type name.
 
 */
 enum SpatialType { stpoint, stpoints, stline, stregion,
@@ -137,8 +137,8 @@ SpatialTypeOfSymbol( ListExpr symbol )
 /*
 9 Object Traversal functions
 
-These functions are utilities useful for traversing objects.  They are basic functions
-to be called by the operations defined below.
+These functions are utilities useful for traversing objects.  They are basic 
+functions to be called by the operations defined below.
 
 There are 6 combinations, pp, pl, pr, ll, lr, rr
 
@@ -852,7 +852,8 @@ template<class T> struct print : public unary_function<T, void>
 /*
 4 Type Constructor ~point~
 
-A value of type ~point~ represents a point in the Euclidean plane or is undefined.
+A value of type ~point~ represents a point in the Euclidean plane or is 
+undefined.
 
 4.1 Implementation of the class ~Point~
 
@@ -3475,7 +3476,8 @@ TypeConstructor points(
 /*
 6 Type Constructor ~halfsegment~
 
-A ~halfsegment~ value is a pair of points, with a boolean flag indicating the dominating point .
+A ~halfsegment~ value is a pair of points, with a boolean flag indicating the 
+dominating point .
 
 6.1 Implementation of the class ~halfsegment~
 
@@ -4956,8 +4958,9 @@ InHalfSegment( const ListExpr typeInfo, const ListExpr instance,
 /*
 7 Type Constructor ~line~
 
-A ~line~ value is a set of halfsegments. In the external (nestlist) representation, a line value is
-expressed as a set of segments. However, in the internal (class) representation, it is expressed
+A ~line~ value is a set of halfsegments. In the external (nestlist) 
+representation, a line value is expressed as a set of segments. 
+However, in the internal (class) representation, it is expressed
 as a set of sorted halfsegments, which are stored as a PArray.
 
 7.1 Implementation of the class ~line~
@@ -4992,8 +4995,9 @@ produce a system crash within some operators.
 
 */
 
-void Line::EndBulkLoad( bool sort /* = true */,
-                        bool realminize /* = true */
+void Line::EndBulkLoad( const bool sort /* = true */,
+                        const bool realminize /* = true */,
+                        const bool robust /* = false */ //don't try plane sweep
                       ){
   if( !IsDefined() ) {
     Clear();
@@ -5005,7 +5009,7 @@ void Line::EndBulkLoad( bool sort /* = true */,
   }
 if(Size()>0){
    if(realminize){
-     DbArray<HalfSegment>* line2 = ::Realminize(line);
+     DbArray<HalfSegment>* line2 = ::Realminize(line,false, robust);
      line2->Sort(HalfSegmentCompare);
      line.copyFrom(*line2);
      line2->Destroy();
@@ -5458,7 +5462,24 @@ void Line::Union(const Points& ps, Line& result,
 
 void Line::Union(const Line& line, Line& result,
                  const Geoid* geoid/*=0*/) const{
- SetOp(*this, line, result, avlseg::union_op,geoid);
+ try{
+    SetOp(*this, line, result, avlseg::union_op,geoid,true);
+ } catch(...){
+    cerr << "union via plane sweep  failed, use slower implementation";
+    result.Clear();
+    result.Resize(this->Size()+line.Size());
+    HalfSegment hs;
+    result.StartBulkLoad();
+    for(int i=0;i<line.Size();i++){
+       line.Get(i,hs);
+       result += hs;
+    } 
+    for(int i=0;i<this->Size();i++){
+       this->Get(i,hs);
+       result += hs;
+    }
+    result.EndBulkLoad(true,true,true);
+ }
 }
 
 void Line::Union(const Region& region, Region& result,
@@ -8668,9 +8689,11 @@ TypeConstructor sline(
 /*
 8 Type Constructor ~region~
 
-A ~region~ value is a set of halfsegments. In the external (nestlist) representation, a region value is
-expressed as a set of faces, and each face is composed of a set of cycles.  However, in the internal
-(class) representation, it is expressed as a set of sorted halfsegments, which are stored as a PArray.
+A ~region~ value is a set of halfsegments. In the external (nestlist) 
+representation, a region value is expressed as a set of faces, and each
+face is composed of a set of cycles.  However, in the internal
+(class) representation, it is expressed as a set of sorted halfsegments,
+which are stored as a PArray.
 
 8.1 Implementation of the class ~region~
 
@@ -9812,7 +9835,7 @@ void Region::getHoles(Region& result) const{
          }
       }
    }
-   result.EndBulkLoad(true,true,true,false);
+   result.EndBulkLoad(true,true,true,true);
 }
 
 
@@ -10833,21 +10856,24 @@ bool Region::GetCycleDirection() const
 /*
 Preconditions:
 * The region must represent just one cycle!!!!
-* It is need that the edgeno stores the order that the half segments were typed, and
-the half segments must be sorted in the half segment order. In other words if
-hs1.attr.edgeno is less than hs2.attr.edgeno then hs1 was typed first than hs2.
+* It is need that the edgeno stores the order that the half segments were 
+ typed, and the half segments must be sorted in the half segment order. In 
+ other words if hs1.attr.edgeno is less than hs2.attr.edgeno then hs1 was 
+ typed first than hs2.
 
-This function has the purpose of choosing the A, P, and B points in order to call the
-function that really computes the cycle direction.
-As the point P is leftmost point then it is the left point of hs1 or the left point
-of hs2 because in the half segment order these two points are equal.
-Now the problem is to decide which of the right points are A and B. At the first sight
-we could say that the point A is the right point of the half segment with lowest
-partner number. However it is not true ever because the APB connected points may be go over the
-bound of the pointlist. This will be the case if the cycle is in the form P,B,..,A
-and B,...,A,P. Nevertheless the segments are ordered in the half segment order, and when the
-last half segment is been considered for choosing the APB connected points, the point A will be
-always the right point of the last segment.
+This function has the purpose of choosing the A, P, and B points in order 
+to call the function that really computes the cycle direction.
+As the point P is leftmost point then it is the left point of hs1 or
+ the left point of hs2 because in the half segment order these two points 
+are equal.  Now the problem is to decide which of the right points are A 
+and B. At the first sight we could say that the point A is the right point 
+of the half segment with lowest partner number. However it is not true ever 
+because the APB connected points may be go over the
+bound of the pointlist. This will be the case if the cycle is in the form 
+P,B,..,A and B,...,A,P. Nevertheless the segments are ordered in the half 
+segment order, and when the last half segment is been considered for choosing
+ the APB connected points, the point A will be always the right point of the 
+last segment.
 
 */
   Point pA, pP, pB;
@@ -11857,9 +11883,9 @@ bool Region::InsertOk( const HalfSegment& hs ) const
     }
   }
 /*
-Now we know that the new half segment is not inside any other previous holes of the
-same face. However, whether this new hole contains any previous hole of the same
-face is not clear. In the following we do this kind of check.
+Now we know that the new half segment is not inside any other previous holes 
+of the same face. However, whether this new hole contains any previous hole 
+of the same face is not clear. In the following we do this kind of check.
 
 */
 
@@ -11957,14 +11983,16 @@ bool IsSpatialType(ListExpr type){
 
 
 /*
-This function check whether a region value is valid after the insertion of a new half segment.
-Whenever a half segment is about to be inserted, the state of the region is checked.
+This function check whether a region value is valid after the insertion of a
+ new half segment.  Whenever a half segment is about to be inserted, the 
+state of the region is checked.
 A valid region must satisfy the following conditions:
 
-1)  any two cycles of the same region must be disconnect, which means that no edges
-of different cycles can intersect each other;
+1)  any two cycles of the same region must be disconnect, which means that no 
+  edges of different cycles can intersect each other;
 
-2) edges of the same cycle can only intersect with their endpoints, but no their middle points;
+2) edges of the same cycle can only intersect with their endpoints, but no 
+  their middle points;
 
 3)  For a certain face, the holes must be inside the outer cycle;
 
@@ -11976,7 +12004,8 @@ of different cycles can intersect each other;
 
 7)  any cycle must be made up of at least 3 edges;
 
-8)  It is allowed that one face is inside another provided that their edges do not intersect.
+8)  It is allowed that one face is inside another provided that their edges do 
+   not intersect.
 
 */
 
@@ -13408,8 +13437,8 @@ ListExpr SpatialTypeMapIsLess(ListExpr args){
 /*
 10.1.2 Type mapping function GeoGeoMapBool
 
-It is for the binary operators which have ~bool~ as result type, such as interscets,
-inside, onborder, ininterior, etc.
+It is for the binary operators which have ~bool~ as result type, such as 
+interscets, inside, onborder, ininterior, etc.
 
 */
 
@@ -13606,7 +13635,8 @@ InsideTypeMap( ListExpr args )
 /*
 10.1.3 Type mapping function SpatialTypeMapBool1
 
-It is for the operator ~isempty~ which have ~point~, ~points~, ~line~, and ~region~ as input and ~bool~ resulttype.
+It is for the operator ~isempty~ which have ~point~, ~points~, ~line~, 
+and ~region~ as input and ~bool~ resulttype.
 
 */
 
@@ -13827,7 +13857,8 @@ ListExpr SpatialUnionTypeMap(ListExpr args){
 10.1.7 Type mapping function for operator ~crossings~
 
 This type mapping function is the one for ~crossings~ operator. This operator
-compute the crossing point of two lines so that the result type is a set of points.
+compute the crossing point of two lines so that the result type is a set 
+of points.
 
 */
 ListExpr
@@ -14198,8 +14229,8 @@ ListExpr SpatialBoundaryMap(ListExpr args)
 /*
 10.1.14 Type mapping function for operator ~commonborder~
 
-This type mapping function is used for the ~commonborder~ operator. This operator
-computes the commonborder of two regions.
+This type mapping function is used for the ~commonborder~ operator. This 
+operator computes the commonborder of two regions.
 
 */
 ListExpr
@@ -18569,6 +18600,12 @@ int SpatialCollect_slineVMLinestream(Word* args, Word& result, int message,
   return 0;
 }
 
+
+
+
+
+
+
 int SpatialVMSetStartSmaller(Word* args, Word& result, int message,
                              Word& local, Supplier s){
   SimpleLine* l = static_cast<SimpleLine*>(args[0].addr);
@@ -18628,10 +18665,11 @@ int SpatialVMCreateSline(Word* args, Word& result, int message,
 Definition of operators is done in a way similar to definition of
 type constructors: an instance of class ~Operator~ is defined.
 
-Because almost all operators are overloaded, we have first do define an array of value
-mapping functions for each operator. For nonoverloaded operators there is also such and array
-defined, so it easier to make them overloaded.
-
+Because almost all operators are overloaded, we have first do define an 
+array of value mapping functions for each operator. For nonoverloaded 
+operators there is also such and array defined, so it easier to make them 
+overloaded.
+  
 10.5.1 Definition of value mapping vectors
 
 */
@@ -21938,7 +21976,7 @@ if no further cycle can be found.
            return res; 
         }
 
-        
+
         // step 3 store Bounding boxes for each cycle ( acceleration of step 3)
         vector<Rectangle<2> > boxes;
         for(size_t i=0; i < cycles.size();i++){
@@ -21975,7 +22013,7 @@ if no further cycle can be found.
         memset(usage,0,max); 
         for(size_t i=0;i<cycles.size();i++){
             if(outers[i]>=0){
-               append(cycles[outers[i]],cycles[i],usage,outers[i]+1);
+               append(cycles[outers[i]],cycles[i],usage,1);
             }
         } 
         res = constructLine(cycles[0]);
@@ -22009,7 +22047,64 @@ if no further cycle can be found.
       }
    }
 
+   void printCycleAsLine(const vector<int>& cycle, ostream& o = cout){
+      vector<int>::const_iterator it;
+      o << setprecision(16);
+      o << "(line (";
+      for(it=cycle.begin();it!=cycle.end();it++){
+         HalfSegment hs;
+         line->Get(*it,hs);
+         o << "(" << hs.GetDomPoint().GetX() << " " << hs.GetDomPoint().GetY()
+           << " " << hs.GetSecPoint().GetX() << " " << hs.GetSecPoint().GetY()
+           << ")";
+      }
+      o << "))";
+   }
+
+   void printAsRel(const vector<int>& cycle, ostream& o = cout){
+       o << setprecision(16);
+       o << "( (rel(tuple((No int)(Partner int) (Seg line)))) (" << endl;
+      vector<int>::const_iterator it;
+      HalfSegment hs;
+      for(it=cycle.begin();it!=cycle.end();it++){
+        line->Get(*it,hs);
+        o << "(" << *it << " " << hs.attr.partnerno << " "
+          << "((" << hs.GetDomPoint().GetX() << " " << hs.GetDomPoint().GetY()
+          << " " << hs.GetSecPoint().GetX() << " " << hs.GetSecPoint().GetY()
+          << ")) )" << endl;
+      }
+      o << "))";
+      
+   }
+
+
+
+   // axuxiliary function (for debugging 
+   // returns 0 if (x,y) is outside the cycle
+   // returns 2 if (x,y) is on the cycle
+   // returns 1 if (x,y) is inside the cycle
+   int cycleContains(const vector<int>& cycle, const double& x, 
+                     const double& y) const{
+      int hits = 0;
+      HalfSegment hs;
+      for(size_t i=0;i<cycle.size();i++){
+         line->Get(cycle[i],hs);
+         if(hs.Contains(Point(true,x,y))){
+            return 2; // 
+         }
+         double dist = RegionCreator::getLeftDist(hs,x,y,true);
+         if(dist>=0){
+            hits++;
+         }
+      }
+      int mask = 1;
+      return (hits&mask) > 0?1:0;
+   }
+
+
    pair<bool, double> isHole(const vector<int>& hole, const vector<int>& outer){
+
+
       HalfSegment hs;
       int hi = hole[0];
       line->Get(hi,hs);
@@ -22019,15 +22114,18 @@ if no further cycle can be found.
       double y = (dp.GetY() + sp.GetY()) /2; 
       int count = 0;
       double dist = 0;
+
       for(size_t i=0;i<outer.size();i++){
-         if(outer[i] == hi){
+         int ho = outer[i];
+         if(ho == hi){
             return pair<bool,double>(false,0);
          }
-         line->Get(outer[i],hs);
+         line->Get(ho, hs);
          if(hs.attr.partnerno==hi) {
             return pair<bool,double>(false,0);
          }
          double dist1 = RegionCreator::getLeftDist(hs,x,y, true);
+
          if(dist1>=0){
             count++;
             if((count==1) || (dist1<dist)){
@@ -22061,21 +22159,25 @@ if no further cycle can be found.
      }  
    }
 
-   void append(vector<int>& v1, const vector<int>& v2, char* usage, char Umark){
+   void append(vector<int>& v1,  vector<int>& v2, char* usage, char Umark){
+      // v1 is the outer
+      // v2 is some hole
+      // usage is 0 => unused
+      // usage == Umark => halfsegment is already used
+
       HalfSegment hs;
       for(size_t i=0;i<v2.size();i++){
-          int n = v2[i];
-          if(usage[n]==Umark){
+         int n = v2[i];
+         line->Get(n,hs);
+         int p = hs.attr.partnerno;
+         if( (usage[n]==Umark) || (usage[p]==Umark)){
              erase(v1,n);
-          } else {
-            line->Get(n,hs);
-            if(usage[hs.attr.partnerno]==Umark){
-                erase(v1, hs.attr.partnerno);
-            } else {
-               usage[n] = Umark;
-               v1.push_back(v2[i]);
-            }
-          }
+             erase(v1,p);
+         } else {
+             usage[n] = Umark;
+             usage[p] = Umark;
+             v1.push_back(n);
+         }
       }
    }
 
@@ -23267,6 +23369,372 @@ Operator getHoles(
    getHolesTM
 );
 
+
+
+/*
+1.41 Opegartor collect_line2
+
+This operatotr is for checking the robust realminize implementation.
+
+1.41.1 Type Mapping
+
+*/
+ListExpr collect_line2TM(ListExpr args){
+  string err =" stream(line) expected";
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError(err + " (wrong number of args)");
+  }
+  if(!Stream<Line>::checkType(nl->First(args))){
+     return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<Line>();
+}
+
+
+int collect_line2VM(Word* args, Word& result, int message, Word& local,
+                    Supplier s ){
+
+  result = qp->ResultStorage(s);
+  Line* res = (Line*) result.addr;
+  Stream<Line> stream(args[0]);
+  stream.open();
+  Line* line;
+  res->Clear();
+  res->SetDefined(true);
+  DbArray<HalfSegment>*  dba= new DbArray<HalfSegment>(2000);
+  HalfSegment hs;
+  while( (line = stream.request()) != 0){
+     if(line->IsDefined()){
+       for(int i=0;i<line->Size();i++){
+          line->Get(i,hs);
+           if(hs.IsLeftDomPoint()){
+              dba->Append(hs);
+           }
+       }
+     }
+  }
+  stream.close();
+
+  // get the DbArray from result;
+  res->StartBulkLoad();
+  DbArray<HalfSegment>* dbl = (DbArray<HalfSegment>*) res->GetFLOB(0);
+  robustRealminize(*dba, *dbl);
+  dba->destroy();
+  delete dba;
+
+  res->EndBulkLoad(true,false); // sort, no realminize 
+  return 0;
+}
+
+
+/*
+1.41.3 Specification
+
+*/
+
+OperatorSpec collect_line2Spec (
+    " stream(line) -> line ",
+    " _ collect_line2 ",
+    " Builds the union of all lines within the "
+    "stream iggnoring undefined lines.",
+    "query strassen feed projecttransformstream[GeoData] collect_line2 "
+  );
+
+/*
+1.41.4 Operator instance
+
+*/
+Operator collect_line2(
+   "collect_line2",
+   collect_line2Spec.getStr(),
+   collect_line2VM,
+   Operator::SimpleSelect,
+   collect_line2TM
+);
+
+
+
+/*
+1.41 Operator ~getInnerPoint~
+
+Returns some point from the inetrior of a region.
+
+1.41.1 Type Mapping
+
+*/
+ListExpr getInnerPointTM(ListExpr args){
+  string err = "region expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err + " (wrong number of arguments");
+  }
+  if(!Region::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<Point>();
+}
+
+/*
+1.41.2 Value Mapping
+
+*/
+int getInnerPointVM(Word* args, Word& result, int message, Word& local,
+                    Supplier s ){
+
+  Region* arg = (Region*) args[0].addr;
+  result = qp->ResultStorage(s);
+  Point* res = (Point*) result.addr;
+  if(!arg->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+  }
+  if(arg->IsEmpty()){
+      res->SetDefined(false);
+      return 0;
+  } 
+  HalfSegment hs;
+  arg->Get(0,hs);
+  double dx = abs(hs.GetDomPoint().GetX() - hs.GetSecPoint().GetX());
+  double dy = abs(hs.GetDomPoint().GetY() - hs.GetSecPoint().GetY());
+  double dist = -1;
+  Point mp = hs.middlePoint();
+  double x = mp.GetX();
+  double y = mp.GetY();
+
+  double (*distComp)(const HalfSegment& hs, const double x, const double y);
+
+  int dir;
+
+  if(dx>dy){
+    if(hs.attr.insideAbove){
+       distComp = &RegionCreator::getUpDist;
+       dir = 0;
+    } else {
+       distComp = &RegionCreator::getDownDist;
+       dir = 1;
+    }
+  }  else {
+    double y2 = hs.GetSecPoint().GetY();
+    double y1 = hs.GetDomPoint().GetY();
+    if(hs.attr.insideAbove  == (y2>y1)){
+      distComp = &RegionCreator::getLeftDist;
+      dir = 2;
+    }  else{
+      distComp = &RegionCreator::getRightDist;
+      dir = 3; 
+    }
+  }
+  double d;
+
+
+  for(int i=1;i<arg->Size();i++){
+    arg->Get(i,hs);
+    if(hs.IsLeftDomPoint()){
+       d = distComp(hs,x,y);
+       if(d>0){
+           if((dist<0) || d<dist){
+              dist = d;
+           }
+       }
+    }
+  }
+
+  assert(dist>0);
+  switch(dir){
+     case 0: y += dist/2.0; break;
+     case 1: y -= dist/2.0; break;
+     case 2: x -= dist/2.0; break;
+     case 3: x += dist/2.0; break;
+     default: assert(false); 
+  }
+  res->Set(x,y);
+  return 0;
+}
+
+
+/*
+1.42.3 Specification
+
+*/
+
+OperatorSpec getInnerPointSpec (
+    " region -> point ",
+    " getInnerPoint(_) ",
+    " Returns some point within the interior of a region.",
+    " query WFaechen feed extend[IP : getInnerPoint(.GeoData)] "
+    "filter[ inInterior(IP,.GeoData)] count = WFlaechen count "
+  );
+
+
+/*
+1.42.4 Operator instance
+
+*/
+Operator getInnerPoint(
+   "getInnerPoint",
+   getInnerPointSpec.getStr(),
+   getInnerPointVM,
+   Operator::SimpleSelect,
+   getInnerPointTM
+);
+
+
+/*
+1.43 Operator ~checkRealm~
+
+Debugging operator. Checks whether the halfsegments of a line or a regaion
+are realminized. 
+
+1.43.1 Type Map
+
+*/
+ListExpr checkRealmTM(ListExpr args){
+   string err = "line or region expected";
+   if(!nl->HasLength(args,1)){
+     return listutils::typeError(err);
+   }
+   ListExpr arg = nl->First(args);
+   if(!Line::checkType(arg) && !Region::checkType(arg)){
+     return listutils::typeError(err);
+   }
+   return listutils::basicSymbol<CcBool>();   
+}
+
+/*
+1.43.2 Value Mapping
+
+*/
+int checkRealmVM(Word* args, Word& result, int message, Word& local,
+                    Supplier s ){
+
+  Attribute* arg = (Attribute*) args[0].addr;
+  result = qp->ResultStorage(s);
+  CcBool* res = (CcBool*) result.addr;
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    DbArray<HalfSegment>* hss = (DbArray<HalfSegment>*) arg->GetFLOB(0);
+    RealmChecker rc(hss);
+    res->Set(true,rc.checkRealm());
+  }
+  return 0;
+}
+
+/*
+1.42.3 Specification
+
+*/
+
+OperatorSpec checkRealmSpec (
+    " {region,line} -> bool ",
+    " checkRealm(_) ",
+    " Checks the argumet for correct realminization (debug operator).",
+    " query WFaechen feed  filter[ checkRealm(.GeoData)(] count "
+  );
+
+
+/*
+1.42.4 Operator instance
+
+*/
+Operator checkRealmOp(
+   "checkRealm",
+   checkRealmSpec.getStr(),
+   checkRealmVM,
+   Operator::SimpleSelect,
+   checkRealmTM
+);
+
+
+/*
+1.43 Operator badRealm
+
+This operator returns the pairs of halfsegments within a
+line or a region violating the realm properties.
+
+*/
+
+ListExpr badRealmTM(ListExpr args){
+  string err = "line or region expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err + " ( wrong number of args");
+  } 
+  ListExpr arg = nl->First(args);
+  if(!Line::checkType(arg) && !Region::checkType(arg)){
+    return listutils::typeError(err);
+  }
+  ListExpr tt = RealmChecker::getTupleType();
+  return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                          tt);
+}
+
+/*
+1.43.2 Value Mapping
+
+*/
+
+int badRealmVM(Word* args, Word& result, int message, Word& local,
+               Supplier s ){
+
+  RealmChecker* li = (RealmChecker*) local.addr;
+  switch(message){
+      case OPEN : {
+                      if(li){
+                        delete li;
+                        li = 0;
+                      }
+                      Attribute* a = (Attribute*) args[0].addr;
+                      if(a->IsDefined()){
+                        DbArray<HalfSegment>* hss =
+                             (DbArray<HalfSegment>*) a->GetFLOB(0);
+                        local.addr = new RealmChecker(hss);
+                      }
+                      return 0;
+                  }
+      case REQUEST: {
+                      result.addr = li?li->nextTuple():0;
+                      return result.addr?YIELD:CANCEL;
+                  }
+      case CLOSE: {
+              if(li){
+                 delete li;
+                 local.addr = 0;
+              }
+              return 0;
+      }
+  }
+  return -1;
+
+}
+
+
+/*
+1.43.3 Specification
+
+*/
+
+OperatorSpec badRealmSpec (
+    " {region,line} -> stream(tuple( (No1 int)(Partner1 int)"
+    "(Segment1 line)(No2 int)(Partner2 int)(Segment2 line))) ",
+    " badRealm(_) ",
+    " Returns pairs of  halfsegments of a line or a region "
+    "violating the realm properties. (For debugging purposes).",
+    " query badRealm(BGrenzenLine) count "
+  );
+
+
+/*
+1.43.4 Operator instance
+
+*/
+Operator badRealmOp(
+   "badRealm",
+   badRealmSpec.getStr(),
+   badRealmVM,
+   Operator::SimpleSelect,
+   badRealmTM
+);
+
+
 /*
 11 Creating the Algebra
 
@@ -23403,6 +23871,12 @@ class SpatialAlgebra : public Algebra
     AddOperator(&collect_box);
     AddOperator(&contains_rob);
     AddOperator(&getHoles);
+
+    AddOperator(&collect_line2);
+    AddOperator(&getInnerPoint);
+    AddOperator(&checkRealmOp);
+    AddOperator(&badRealmOp);
+    
 
 
   }

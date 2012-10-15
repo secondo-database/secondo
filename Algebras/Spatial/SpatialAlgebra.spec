@@ -90,3 +90,5 @@ operator splitslineatpoints alias SPLITSLINEATPOINTS pattern op ( _ , _ )
 operator findCycles alias FINDCYCLES pattern op(_)
 operator collect_box alias COLLECTBOX pattern _ op[_]
 
+operator collect_line2 alias COLLECT_LINE2 pattern _ op
+

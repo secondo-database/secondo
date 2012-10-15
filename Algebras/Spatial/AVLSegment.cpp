@@ -29,27 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "SpatialAlgebra.h"
 #include "AVLSegment.h"
+#include "RobustSetOps.h"
 #include <functional>
 #include <typeinfo>
 
-
-
-class myexception: public exception
-{
-  public:
-    myexception(const string& s) : err(s){}
-
-    ~myexception() throw() {}
-
-  private:
-  virtual const char* what() const throw()
-  {
-    return err.c_str();
-  }
-
-     string err;
-
-};
 
 
 /*
@@ -2373,174 +2356,190 @@ class XRemover: public unary_functor<avlseg::AVLSegment, bool>{
 
 
 DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments, 
-                                 const bool forceThrow){
+                                 const bool forceThrow,
+                                 const bool robust){
 
 
   DbArray<HalfSegment>* res = new DbArray<HalfSegment>(segments.Size());
-
-  if(segments.Size()==0){ // no halfsegments, nothing to realminize
-    res->TrimToSize();
-    return res;
-  }
-
-  priority_queue<avlseg::ExtendedHalfSegment,
-                 vector<avlseg::ExtendedHalfSegment>,
-                 greater<avlseg::ExtendedHalfSegment> > q1;
-  // dummy queue
-  priority_queue<avlseg::ExtendedHalfSegment,
-                 vector<avlseg::ExtendedHalfSegment>,
-                 greater<avlseg::ExtendedHalfSegment> > q2;
-  avltree::AVLTree<avlseg::AVLSegment> sss;
-
-  int pos = 0;
-
-  avlseg::ExtendedHalfSegment nextHS;
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN  = 0;
-  const avlseg::AVLSegment* rightN = 0;
-
-  avlseg::AVLSegment left1, right1,left2,right2;
-
-  int edgeno = 0;
-  avlseg::AVLSegment tmpL,tmpR,tmpM;
-
-  XRemover xRemover;
-
-  while(selectNext(segments,pos,q1,nextHS)!=avlseg::none) {
-
-      avlseg::AVLSegment current(nextHS,avlseg::first);
-      member = sss.getMember(current,leftN,rightN);
-      if(leftN){
-         tmpL = *leftN;
-         leftN = &tmpL;
-      }
-      if(rightN){
-         tmpR = *rightN;
-         rightN = &tmpR;
-      }
-      if(member){
-         tmpM = *member;
-         member = &tmpM;
-      }
-      if(nextHS.IsLeftDomPoint()){
-         if(member && member->overlaps(current)){
-            // overlapping segment found in sss
-            double xm = member->getX2();
-            double xc = current.getX2();
-            if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
-               // possibly rounding errors
-               if( xm < current.getX1()){
-                  // create halfsegments and remove member
-                  HalfSegment hs1 = current.convertToExtendedHs(true);
-                  HalfSegment hs2 = current.convertToExtendedHs(false);
+  if(robust){
+    res->clean();
+    robustRealminize(segments,*res);
+  } else {
+     try {
+   
+        if(segments.Size()==0){ // no halfsegments, nothing to realminize
+          res->TrimToSize();
+          return res;
+        }
+      
+        priority_queue<avlseg::ExtendedHalfSegment,
+                       vector<avlseg::ExtendedHalfSegment>,
+                       greater<avlseg::ExtendedHalfSegment> > q1;
+        // dummy queue
+        priority_queue<avlseg::ExtendedHalfSegment,
+                       vector<avlseg::ExtendedHalfSegment>,
+                       greater<avlseg::ExtendedHalfSegment> > q2;
+        avltree::AVLTree<avlseg::AVLSegment> sss;
+      
+        int pos = 0;
+      
+        avlseg::ExtendedHalfSegment nextHS;
+        const avlseg::AVLSegment* member=0;
+        const avlseg::AVLSegment* leftN  = 0;
+        const avlseg::AVLSegment* rightN = 0;
+      
+        avlseg::AVLSegment left1, right1,left2,right2;
+      
+        int edgeno = 0;
+        avlseg::AVLSegment tmpL,tmpR,tmpM;
+      
+        XRemover xRemover;
+      
+        while(selectNext(segments,pos,q1,nextHS)!=avlseg::none) {
+      
+            avlseg::AVLSegment current(nextHS,avlseg::first);
+            member = sss.getMember(current,leftN,rightN);
+            if(leftN){
+               tmpL = *leftN;
+               leftN = &tmpL;
+            }
+            if(rightN){
+               tmpR = *rightN;
+               rightN = &tmpR;
+            }
+            if(member){
+               tmpM = *member;
+               member = &tmpM;
+            }
+            if(nextHS.IsLeftDomPoint()){
+               if(member && member->overlaps(current)){
+                  // overlapping segment found in sss
+                  double xm = member->getX2();
+                  double xc = current.getX2();
+                  if(!AlmostEqual(xm,xc) && (xm<xc)){ // current extends member
+                     // possibly rounding errors
+                     if( xm < current.getX1()){
+                        // create halfsegments and remove member
+                        HalfSegment hs1 = current.convertToExtendedHs(true);
+                        HalfSegment hs2 = current.convertToExtendedHs(false);
+                        hs1.attr.edgeno = edgeno;
+                        hs2.attr.edgeno = edgeno;
+                        res->Append(hs1);
+                        res->Append(hs2);
+                        splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
+                        edgeno++;
+                        sss.remove(*member);
+                        insertEvents(current,true,true,q1,q2);
+                     } else {
+                       current.splitAtRight(xm,member->getY2(),right1);
+                       insertEvents(right1,true,true,q1,q2);
+                     }
+                  } else if(AlmostEqual(xm,xc) && current.isVertical()){
+                     double ym = member->getY2();
+                     double yc = current.getY2();
+                     if(!AlmostEqual(ym,yc) && (ym < yc)){
+                        current.splitAtRight(xc,yc,right1);
+                        insertEvents(right1,true,true,q1,q2);
+                     }
+                  }
+               } else { // no overlapping segment found
+                  if(splitByNeighbour(sss,current,leftN,q1,q2, forceThrow)){
+                     insertEvents(current,true,true,q1,q2);
+                  } else if(splitByNeighbour(sss,current,rightN,q1,q2, 
+                                             forceThrow)) {
+                     insertEvents(current,true,true,q1,q2);
+                  } else {
+                     sss.insert(current);
+                     insertEvents(current,false,true,q1,q2);
+                  }
+               }
+            } else {  // nextHS rightDomPoint
+                if(member && member->exactEqualsTo(current)){
+                   // insert the halfsegments
+                   HalfSegment hs1 = current.convertToExtendedHs(true);
+                   HalfSegment hs2 = current.convertToExtendedHs(false);
+                   hs1.attr.edgeno = edgeno;
+                   hs2.attr.edgeno = edgeno;
+                   res->Append(hs1);
+                   res->Append(hs2);
+                   splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
+                   edgeno++;
+                   sss.remove(*member);
+                }
+          }
+      
+          if(avlseg::AVLSegment::isError()){
+             cerr << "error during comparision detected" << endl;
+             avltree::AVLTree<avlseg::AVLSegment>::iterator it = sss.begin();
+             double val = avlseg::AVLSegment::getErrorValue();
+             vector<const avlseg::AVLSegment*> evilsegments;
+             cout << "start iterating" << endl;
+             unsigned int size = sss.Size();
+             cout << "The tree has " << size << " entries" << endl;
+             unsigned int b=0;
+             while(!it.onEnd()){
+                b++;
+                const avlseg::AVLSegment* seg = it.Get();
+                double x2 = seg->getX2();
+                if(!AlmostEqual(x2,val) && x2 < val){
+                    evilsegments.push_back(seg);
+                }
+                it++;
+                assert(b<=size);
+             }
+             if(evilsegments.size() > 0){
+                cout << "recognized " << evilsegments.size()
+                     << " evil segments" << endl;
+                cout << "error_value = " << val << endl;
+                unsigned int count = 0;
+                for(unsigned int i=0; i< evilsegments.size();i++){
+                  const avlseg::AVLSegment* seg = evilsegments[i];
+                  HalfSegment hs1 = seg->convertToExtendedHs(true);
+                  HalfSegment hs2 = seg->convertToExtendedHs(false);
                   hs1.attr.edgeno = edgeno;
                   hs2.attr.edgeno = edgeno;
                   res->Append(hs1);
                   res->Append(hs2);
-                  splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
+                  bool ok = sss.remove(*seg);
                   edgeno++;
-                  sss.remove(*member);
-                  insertEvents(current,true,true,q1,q2);
-               } else {
-                 current.splitAtRight(xm,member->getY2(),right1);
-                 insertEvents(right1,true,true,q1,q2);
-               }
-            } else if(AlmostEqual(xm,xc) && current.isVertical()){
-               double ym = member->getY2();
-               double yc = current.getY2();
-               if(!AlmostEqual(ym,yc) && (ym < yc)){
-                  current.splitAtRight(xc,yc,right1);
-                  insertEvents(right1,true,true,q1,q2);
-               }
-            }
-         } else { // no overlapping segment found
-            if(splitByNeighbour(sss,current,leftN,q1,q2, forceThrow)){
-               insertEvents(current,true,true,q1,q2);
-            } else if(splitByNeighbour(sss,current,rightN,q1,q2, forceThrow)) {
-               insertEvents(current,true,true,q1,q2);
-            } else {
-               sss.insert(current);
-               insertEvents(current,false,true,q1,q2);
-            }
-         }
-      } else {  // nextHS rightDomPoint
-          if(member && member->exactEqualsTo(current)){
-             // insert the halfsegments
-             HalfSegment hs1 = current.convertToExtendedHs(true);
-             HalfSegment hs2 = current.convertToExtendedHs(false);
-             hs1.attr.edgeno = edgeno;
-             hs2.attr.edgeno = edgeno;
-             res->Append(hs1);
-             res->Append(hs2);
-             splitNeighbours(sss,leftN,rightN,q1,q2, forceThrow);
-             edgeno++;
-             sss.remove(*member);
+                  evilsegments[i] = 0;
+                  if(!ok){
+                    count++;
+                  }
+                }
+                if(count != 0){
+                  cout << "some (" << count
+                       << " of the evil segments was not found, scan the tree"
+                       << " to remove them" << endl;
+                  xRemover.setX(val);
+                  cout << "Start removeAll" << endl;
+                  unsigned int count2 = sss.removeAll(xRemover);
+                  if(count != count2){
+                    cout << count
+                         << " elements should be remove, but only " << count2
+                         << " was found " << endl;
+                  }
+                }
+                cout << "segments removed" << endl;
+             } else {
+                cout << "evil segment already processed" << endl;
+             }
+             avlseg::AVLSegment::clearError();
+      
           }
-    }
-
-    if(avlseg::AVLSegment::isError()){
-       cerr << "error during comparision detected" << endl;
-       avltree::AVLTree<avlseg::AVLSegment>::iterator it = sss.begin();
-       double val = avlseg::AVLSegment::getErrorValue();
-       vector<const avlseg::AVLSegment*> evilsegments;
-       cout << "start iterating" << endl;
-       unsigned int size = sss.Size();
-       cout << "The tree has " << size << " entries" << endl;
-       unsigned int b=0;
-       while(!it.onEnd()){
-          b++;
-          const avlseg::AVLSegment* seg = it.Get();
-          double x2 = seg->getX2();
-          if(!AlmostEqual(x2,val) && x2 < val){
-              evilsegments.push_back(seg);
-          }
-          it++;
-          assert(b<=size);
-       }
-       if(evilsegments.size() > 0){
-          cout << "recognized " << evilsegments.size()
-               << " evil segments" << endl;
-          cout << "error_value = " << val << endl;
-          unsigned int count = 0;
-          for(unsigned int i=0; i< evilsegments.size();i++){
-            const avlseg::AVLSegment* seg = evilsegments[i];
-            HalfSegment hs1 = seg->convertToExtendedHs(true);
-            HalfSegment hs2 = seg->convertToExtendedHs(false);
-            hs1.attr.edgeno = edgeno;
-            hs2.attr.edgeno = edgeno;
-            res->Append(hs1);
-            res->Append(hs2);
-            bool ok = sss.remove(*seg);
-            edgeno++;
-            evilsegments[i] = 0;
-            if(!ok){
-              count++;
-            }
-          }
-          if(count != 0){
-            cout << "some (" << count
-                 << " of the evil segments was not found, scan the tree"
-                 << " to remove them" << endl;
-            xRemover.setX(val);
-            cout << "Start removeAll" << endl;
-            unsigned int count2 = sss.removeAll(xRemover);
-            if(count != count2){
-              cout << count
-                   << " elements should be remove, but only " << count2
-                   << " was found " << endl;
-            }
-          }
-          cout << "segments removed" << endl;
-       } else {
-          cout << "evil segment already processed" << endl;
-       }
-       avlseg::AVLSegment::clearError();
-
-    }
-  }
-  if(sss.Size()!=0){
-    cout << " After planesweep, the status structure is not empty ! " << endl;
-  }
+        }
+        if(sss.Size()!=0){
+          cout << " After planesweep, the status structure is not empty ! " 
+               << endl;
+        }
+     } catch (...){
+       cerr << "Realminize via plane sweep failed, switch to "
+               "slower (robust) implementation" 
+            << endl;
+       res->clean();
+       robustRealminize(segments,*res);
+     }
+  } 
   res->Sort(HalfSegmentCompare);
   res->TrimToSize();
   return res;

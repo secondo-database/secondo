@@ -62,7 +62,22 @@ The Halfsegmentarray must be:
     // until the interscetion point with hs, if no intersection point exists,
     // -1 is returned
     static double getLeftDist(const HalfSegment& hs, 
-                       const double x, const double y, const bool move=false);
+                       const double x, const double y, const bool move);
+
+    static double getLeftDist(const HalfSegment& hs,
+                              const double x, const double y){
+      return getLeftDist(hs,x,y,false);
+    }
+
+    
+    static double getUpDist(const HalfSegment& hs, 
+                       const double x, const double y);
+    
+     static double getRightDist(const HalfSegment& hs, 
+                       const double x, const double y);
+     
+     static double getDownDist(const HalfSegment& hs, 
+                       const double x, const double y);
 
     // checks whether r is to the right of the ray defined by p qnd q 
     static bool isRight(const Point& p, const Point& q, const Point& r);
@@ -122,6 +137,10 @@ The Halfsegmentarray must be:
     // output functions
     void printCycles() const;
     void printCycle(size_t i) const;
+  
+
+     double getLeftDist(const int cycle, 
+                        const double x, const double y) const;
 
     // detects holes within the cycles vector
     void detectHoles();
@@ -136,9 +155,6 @@ The Halfsegmentarray must be:
     // find the nearest outer cycle intersecting a horizontal ray
     // starting at(x,y) to left
     int findLeftNearestOuter(const double x, const double y) const;
-    // returns the length of the segment from (x,y) to the 
-    // interscetion point of a ray ... 
-     double getLeftDist(const int cycle, const double x, const double y)const;
     // sets the insideabove flags of the halfsegments within the cycles
     void setInsideAbove();
     // sets the insideAbove flags for the halfsegments of a specified cycle

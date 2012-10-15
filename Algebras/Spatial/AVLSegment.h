@@ -16,6 +16,23 @@ This enumeration is used to indicate the source of an ~AVLSegment~.
 #include "Coord.h"
 
 
+class myexception: public exception
+{
+  public:
+    myexception(const string& s) : err(s){}
+
+    ~myexception() throw() {}
+
+  private:
+  virtual const char* what() const throw()
+  {
+    return err.c_str();
+  }
+
+     string err;
+
+};
+
 
 namespace avlseg{
 
