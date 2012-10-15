@@ -37,6 +37,7 @@ Algebra.
 #include <iostream>
 #include <string>
 using namespace std;
+
 %}
 %option prefix="pattern"
 %option nounput
@@ -72,15 +73,15 @@ assign \:=
 %option yylineno
 %option noyywrap
 %%
-[ \a\b\f\t\v\r]+ {}
-\( {return '(';}
-\) {return ')';}
-{variable} {patternlval.text = strdup(patterntext); return ZZVARIABLE;}
-{wildcard} {patternlval.text = strdup(patterntext); return ZZWILDCARD;}
-{contents} {patternlval.text = strdup(patterntext); return ZZCONTENTS;}
-{rightarrow} {BEGIN(result); return ZZRIGHTARROW;}
-\n {return ZZEND;}
-{doubleslash} {BEGIN(condition); return ZZDOUBLESLASH;}
+<INITIAL>[ \a\b\f\t\v\r]+ {}
+<INITIAL>\( {return '(';}
+<INITIAL>\) {return ')';}
+<INITIAL>{variable} {patternlval.text = strdup(patterntext); return ZZVARIABLE;}
+<INITIAL>{wildcard} {patternlval.text = strdup(patterntext); return ZZWILDCARD;}
+<INITIAL>{contents} {patternlval.text = strdup(patterntext); return ZZCONTENTS;}
+<INITIAL>{rightarrow} {BEGIN(result); return ZZRIGHTARROW;}
+<INITIAL>\n {return ZZEND;}
+<INITIAL>{doubleslash} {BEGIN(condition); return ZZDOUBLESLASH;}
 <condition>{vardottype} {patternlval.text = strdup(patterntext); return ZZVAR_DOT_TYPE;}
 <condition>{rightarrow} {BEGIN(result); return ZZRIGHTARROW;}
 <condition>{const_op} {patternlval.text = strdup(patterntext); return ZZCONST_OP;}
@@ -103,5 +104,10 @@ assign \:=
 <assignment>{interval} {patternlval.text = strdup(patterntext); return ZZINTERVAL;}
 <assignment>\, {return ',';}
 <assignment>\n {BEGIN(INITIAL); return ZZEND;}
-. {patternlval.text = strdup(patterntext); return ZZERROR;}
+<INITIAL>. {patternlval.text = strdup(patterntext); BEGIN(INITIAL); return ZZERROR;}
 %%
+namespace stj {
+void patternFlushBuffer() {
+  BEGIN(INITIAL);
+}
+}

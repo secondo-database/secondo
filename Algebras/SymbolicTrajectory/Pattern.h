@@ -60,27 +60,62 @@ enum Wildcard {NO, STAR, PLUS};
 //enum Operations {EQUALS, IN, CONTAINS};
 
 Pattern* parseString(const char* input);
+void patternFlushBuffer();
+
+struct CharLink {
+  CharLink() {}
+  CharLink(char symbol, int cf, int ct, int f, int t) :
+           c(symbol), charFrom(cf), charTo(ct), posFrom(f), posTo(t) {}
+
+  void set(char symbol, int cf, int ct, int pf, int pt) {
+    c = symbol;
+    charFrom = cf;
+    charTo = ct;
+    posFrom = pf;
+    posTo = pt;
+  }
+
+  char c;
+  int charFrom;
+  int charTo;
+  int posFrom;
+  int posTo;
+};
 
 class MLabel : public MString {
-  public:
-    MLabel() {}
-    MLabel(int i): MString(i) {}
-    
-    static const string BasicType() {return "mlabel";}
-    static bool checkType(ListExpr t) {
-       return listutils::isSymbol(t,BasicType());
-    }  
-    static ListExpr MLabelProperty();
-    static bool CheckMLabel(ListExpr type, ListExpr& errorInfo);
-    MLabel* compress();
-    void create(int size, bool text, double rate);
-    void rewrite(MLabel const &ml, vector<size_t> seq, vector<UPat> assigns);
+ public:
+  MLabel() {}
+  MLabel(int i): MString(i) {}
+//   MLabel(int i): MString(i), hasIndex(false), links(i), positions(i) {}
+  ~MLabel() {}
+
+  static const string BasicType() {return "mlabel";}
+  static bool checkType(ListExpr t) {
+    return listutils::isSymbol(t, BasicType());
+  }
+  static ListExpr MLabelProperty();
+  static bool CheckMLabel(ListExpr type, ListExpr& errorInfo);
+//   int NumOfFLOBs() const;
+//   Flob* GetFLOB(const int i);
+//   CharLink getCharLink(const int index) const;
+//   int getPosition(const int index) const;
+//   void destroyIndex();
+//   bool indexExists() {return hasIndex;}
+//   bool buildIndex(MLabel const &source);
+  MLabel* compress();
+  void create(int size, bool text, double rate);
+  void rewrite(MLabel const &ml, vector<size_t> seq, vector<UPat> assigns);
+
+//  private:
+//   bool hasIndex;
+//   DbArray<CharLink> links;
+//   DbArray<int> positions;
 };
 
 class ULabel : public UString {
   public:
     ULabel() {}
-    ULabel(int i): UString(i){}
+    ULabel(int i): UString(i) {}
     
     static const string BasicType() {return "ulabel";}
     static ListExpr ULabelProperty();
@@ -207,7 +242,7 @@ class Pattern {
   static const bool checkType(const ListExpr type);
   bool verifyConditions();
   static Pattern* getPattern(string input);
-  bool matches(MLabel const &ml);
+  bool matches(MString const &ml);
   bool verifyPattern();
   set<vector<size_t> > getRewriteSequences(MLabel const &ml);
 
@@ -272,7 +307,7 @@ class NFA {
   }
 
   void buildNFA(Pattern p);
-  bool matches(MLabel const &ml, bool rewrite);
+  bool matches(MString const &ml, bool rewrite = false);
   void printCurrentStates();
   void printCards();
   void printSequences(size_t max);
@@ -287,23 +322,27 @@ class NFA {
   bool checkDoublePars(multiset<size_t> sequence);
   void buildSequences(); // for rewrite, every sequence must be built
   multiset<size_t> getNextSeq(); // for matches, we just need the next sequence
-  void filterSequences(MLabel const &ml);
+  void filterSequences(MString const &ml);
   void buildRewriteSequence(multiset<size_t> sequence);
   void computeResultVars(vector<UPat> results);
   set<vector<size_t> > getRewriteSequences();
-  bool conditionsMatch(MLabel const &ml);
+  bool conditionsMatch(MString const &ml);
   void computeSeqOrder();
   size_t getRelevantCombs();
   bool isFixed(int pos, bool start);
   bool evaluateEmptyML();
   void buildCondMatchings(int condId, multiset<size_t> sequence);
-  bool evaluateCond(MLabel const &ml, int cId, multiset<size_t> sequence);
-  string getLabelSubst(MLabel const &ml, int pos);
-  string getTimeSubst(MLabel const &ml, Key key, size_t from, size_t to);
+  bool evaluateCond(MString const &ml, int cId, multiset<size_t> sequence);
+  string getLabelSubst(MString const &ml, int pos);
+  string getTimeSubst(MString const &ml, Key key, size_t from, size_t to);
   string toString();
   void copyFromPattern(Pattern p) {
     patterns = p.getPats();
     conds = p.getConds();
+  }
+  void resetStates() {
+    currentStates.clear();
+    currentStates.insert(0);
   }
 };
 
@@ -313,6 +352,7 @@ class RewriteResult {
   set<vector<size_t> >::iterator it;
   MLabel *inputML;
   vector<UPat> assigns;
+  bool correct;
   
  public:
   RewriteResult(set<vector<size_t> > seqs, MLabel *ml, vector<UPat> assigns){
@@ -320,6 +360,12 @@ class RewriteResult {
     it = sequences.begin();
     inputML = ml;
     this->assigns = assigns;
+    correct = true;
+  }
+
+  RewriteResult(bool ok) {
+    correct = ok;
+    inputML = 0;
   }
 
   ~RewriteResult() {}
@@ -330,6 +376,7 @@ class RewriteResult {
   vector<size_t> getCurrentSeq()  {return *it;}
   vector<UPat>   getAssignments() {return assigns;}
   void           next()           {it++;}
+  bool           isCorrect()      {return correct;}
 };
 
 }

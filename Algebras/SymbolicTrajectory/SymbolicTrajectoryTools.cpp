@@ -121,6 +121,23 @@ string setToString(set<string> input) {
   }
   return result.str();
 }
+/*
+function ~prefixCount~
+
+Returns the number of strings from which ~str~ is a prefix. This is needed in
+MLabel::buildIndex.
+
+*/
+int prefixCount(string str, set<string> strings) {
+  set<string>::iterator it;
+  int result = 0;
+  for (it = strings.begin(); it != strings.end(); it++) {
+    if ((it->substr(0, str.length()) == str) && (*it != str)) {
+      result++;
+    }
+  }
+  return result;
+}
 
 vector<string> splitPattern(string input) {
   vector<string> result;
@@ -516,4 +533,30 @@ vector<string> createTrajectory(int size) {
     prevPos = *it;
   }
   return result;
+}
+
+void fillML(const MString& source, MString& result, DateTime* duration) {
+//   result.Clear();
+  if (!source.IsDefined()) {
+    result.SetDefined(false);
+    return;
+  }
+  if (!source.GetNoComponents()) {
+    return;
+  }
+  UString last, next;
+  source.Get(0, last);
+  for (int i = 1; i < source.GetNoComponents(); i++) {
+    source.Get(i, next);
+    if ((last.constValue == next.constValue) && (!duration ||
+        (next.timeInterval.start - last.timeInterval.end <= *duration))) {
+      last.timeInterval.end = next.timeInterval.end;
+      last.timeInterval.rc = next.timeInterval.rc;
+    }
+    else {
+      result.MergeAdd(last);
+      last = next;
+    }
+  }
+  result.MergeAdd(last);
 }

@@ -448,8 +448,8 @@ void MLabel::create(int size, bool text, double rate = 1.0) {
     Instant* end = new Instant(*start);
     end->Add(halfHour);
     SecInterval* iv = new SecInterval(*start, *end, true, false);
-    vector<string> trajectory = createTrajectory(size);
     if (text) {
+      vector<string> trajectory = createTrajectory(size);
       for (int i = 0; i < size; i++) {
         ul.constValue.Set(true, trajectory[i]);
         iv->Set(*start, *end, true, false);
@@ -498,7 +498,7 @@ void MLabel::rewrite(MLabel const &ml, vector<size_t> seq,
     else {
       for (size_t j = seq[i]; j < seq[i + 1]; j++) {
         ml.Get(j, ul);
-        if (!assigns[i / 2].getL().empty()) {
+        if (!assigns[i / 2].getL().empty()) { // assign new label
           ul.constValue.Set(true, (*(assigns[i / 2].getL().begin())));
         }
         if (!assigns[i / 2].getI().empty() && (seq[i] + 1 == seq[i + 1])) {
@@ -537,6 +537,9 @@ void MLabel::rewrite(MLabel const &ml, vector<size_t> seq,
       }
     }
     i++;
+  }
+  if (!this->IsValid()) {
+    this->Clear();
   }
 }
 
@@ -613,14 +616,6 @@ Operator temporalatinstantext(
     temporalatinstantextmap,
     MovingExtSimpleSelect,
     MovingInstantExtTypeMapIntime);
-
-//**********************************************************************
-
-
-
-//**********************************************************************
-
-
 
 //**********************************************************************
 
@@ -1296,7 +1291,7 @@ bool Pattern::verifyPattern() {
     }
     if (!patterns[i].getV().empty()) {
       if (vars.count(patterns[i].getV())) {
-        cout << "Error: variables in the pattern must be unique." << endl;
+        cout << "Error: double variable " << patterns[i].getV() << endl;
         return false;
       }
       else {
@@ -1345,14 +1340,14 @@ Checks the pattern and the condition and (if no problem occurs) invokes the NFA
 construction and the matching procedure.
 
 */
-bool Pattern::matches(MLabel const &ml) {
+bool Pattern::matches(MString const &ml) {
   if (!verifyPattern() || !verifyConditions()) {
     return false;
   }
   NFA *nfa = new NFA(patterns.size() + 1);
   nfa->buildNFA(*this);
 //   cout << nfa->toString() << endl;
-  bool result = nfa->matches(ml, false);
+  bool result = nfa->matches(ml);
   delete nfa;
   return result;
 }
@@ -1428,7 +1423,7 @@ Searches for sequences which fulfill all conditions and stores parts of them for
 rewriting.
 
 */
-void NFA::filterSequences(MLabel const &ml) {
+void NFA::filterSequences(MString const &ml) {
   set<multiset<size_t> >::iterator it;
   for (it = sequences.begin(); it != sequences.end(); it++) {
     for (int i = 0; i < (int)conds.size(); i++) {
@@ -1580,7 +1575,7 @@ the loop. If ~rewrite~ is true (which happens in case of the operator ~rewrite~)
 the matching procedure ends after the unit pattern test.
 
 */
-bool NFA::matches(MLabel const &ml, bool rewrite) {
+bool NFA::matches(MString const &ml, bool rewrite) {
   numOfLabels = (size_t)ml.GetNoComponents();
   for (size_t i = 0; i < numOfLabels; i++) {
     ml.Get(i, ul);
@@ -1612,7 +1607,7 @@ bool NFA::matches(MLabel const &ml, bool rewrite) {
   }
   if (conds.size()) {
     computeCardsets();
-//     printCards();
+    printCards();
     if (!conditionsMatch(ml)) {
       return false;
     }
@@ -2094,7 +2089,7 @@ and only if there is (at least) one cardinality sequence that matches every
 condition.
 
 */
-bool NFA::conditionsMatch(MLabel const &ml) {
+bool NFA::conditionsMatch(MString const &ml) {
   bool proceed(false);
   multiset<size_t>::iterator it;
   if (conds.empty()) {
@@ -2388,7 +2383,7 @@ This function is invoked by ~conditionsMatch~ and checks whether a sequence of
 possible cardinalities matches a certain condition.
 
 */
-bool NFA::evaluateCond(MLabel const &ml, int cId, multiset<size_t> sequence) {
+bool NFA::evaluateCond(MString const &ml, int cId, multiset<size_t> sequence) {
   conds[cId].resetSubst();
   bool success(false), replaced(false);
   string condStrCardTime, subst;
@@ -2540,7 +2535,7 @@ limits ~from~ and ~to~, the respective time information is retrieved from the
 MLabel and returned as a string.
 
 */
-string NFA::getTimeSubst(MLabel const &ml, Key key, size_t from, size_t to) {
+string NFA::getTimeSubst(MString const &ml, Key key, size_t from, size_t to) {
   stringstream result;
   if ((from < 0) || (to >= numOfLabels)) {
     cout << "ULabel #" << (from < 0 ? from : to) << " does not exist." << endl;
@@ -2599,7 +2594,7 @@ string NFA::getTimeSubst(MLabel const &ml, Key key, size_t from, size_t to) {
 The label substitution is found and returned.
 
 */
-string NFA::getLabelSubst(MLabel const &ml, int pos) {
+string NFA::getLabelSubst(MString const &ml, int pos) {
   stringstream result;
   set<vector<size_t> >::iterator it = condMatchings.begin();
   ml.Get((*it)[pos], ul);
@@ -2615,7 +2610,9 @@ string NFA::getLabelSubst(MLabel const &ml, int pos) {
 }
 
 /*
-\subsection{Type Mapping for operator ~stjpattern~}
+\section{Operator ~stjpattern~}
+
+\subsection{Type Mapping}
 
 */
 ListExpr textToPatternMap(ListExpr args) {
@@ -2630,7 +2627,7 @@ ListExpr textToPatternMap(ListExpr args) {
 }
 
 /*
-\subsection{Value Mapping for operator ~stjpattern~}
+\subsection{Value Mapping}
 
 */
 int patternFun(Word* args, Word& result, int message, Word& local, Supplier s) {
@@ -2653,6 +2650,10 @@ int patternFun(Word* args, Word& result, int message, Word& local, Supplier s) {
   return 0;
 }
 
+/*
+\subsection{Operator Info}
+
+*/
 struct patternInfo : OperatorInfo {
   patternInfo() {
     name      = "stjpattern";
@@ -2663,7 +2664,9 @@ struct patternInfo : OperatorInfo {
 };
 
 /*
-\subsection{Type Mapping for operator ~matches~}
+\section{Operator ~matches~}
+
+\subsection{Type Mapping}
 
 */
 ListExpr matchesTypeMap(ListExpr args) {
@@ -2679,7 +2682,7 @@ ListExpr matchesTypeMap(ListExpr args) {
 }
 
 /*
-\subsection{Selection Function for operator ~rewrite~}
+\subsection{Selection Function}
 
 */
 int matchesSelect(ListExpr args) {
@@ -2688,7 +2691,7 @@ int matchesSelect(ListExpr args) {
 }
 
 /*
-\subsection{Value Mapping for operator ~matches~}
+\subsection{Value Mapping (for a Pattern)}
 
 */
 int matchesFun_MP (Word* args, Word& result, int message,
@@ -2703,12 +2706,12 @@ int matchesFun_MP (Word* args, Word& result, int message,
 }
 
 /*
-\subsection{Value Mapping for operator ~matches~}
+\subsection{Value Mapping (for a text)}
 
 */
 int matchesFun_MT (Word* args, Word& result, int message,
                    Word& local, Supplier s) {
-  MLabel* mlabel = static_cast<MLabel*>(args[0].addr);
+  MString* mstring = static_cast<MString*>(args[0].addr);
   FText* patternText = static_cast<FText*>(args[1].addr);
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>(result.addr);
@@ -2720,7 +2723,7 @@ int matchesFun_MT (Word* args, Word& result, int message,
     b->SetDefined(false);
   }
   else {
-    bool res = pattern->matches(*mlabel);
+    bool res = pattern->matches(*mstring);
     delete pattern;
     b->Set(true, res);
   }
@@ -2728,7 +2731,7 @@ int matchesFun_MT (Word* args, Word& result, int message,
 }
 
 /*
-\subsection{Operator Info for operator ~matches~}
+\subsection{Operator Info}
 
 */
 struct matchesInfo : OperatorInfo {
@@ -2746,7 +2749,133 @@ struct matchesInfo : OperatorInfo {
 };
 
 /*
-\subsection{Type Mapping for operator ~rewrite~}
+\section{Operator ~filterMatches~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr filterMatchesTM(ListExpr args) {
+  string err = "the expected syntax is: stream(tuple) x attrname  x text";
+  if (!nl->HasLength(args, 3)) {
+    return listutils::typeError(err + " (wrong number of arguments)");
+  }
+  ListExpr stream = nl->First(args);
+  ListExpr anlist = nl->Second(args);
+  if (!Stream<Tuple>::checkType(stream) || !listutils::isSymbol(anlist)
+   || !FText::checkType(nl->Third(args))) {
+    return listutils::typeError(err);
+  }
+  string name = nl->SymbolValue(anlist);
+  ListExpr type;
+  int index = listutils::findAttribute(nl->Second(nl->Second(stream)),
+                                       name, type);
+  if (!index) {
+    return listutils::typeError("attribute " + name + " not found in tuple");
+  }
+  if (!MLabel::checkType(type) && !MString::checkType(type)) {
+    return listutils::typeError("attribute " + name + " not of type mlabel");
+  }
+  return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                           nl->OneElemList(nl->IntAtom(index-1)), stream);
+}
+
+/*
+\subsection{Class ~FilterMatchesLI~}
+
+*/
+class FilterMatchesLI {
+ public:
+  FilterMatchesLI(Word _stream, int _attrIndex, FText* text):
+      stream(_stream), attrIndex(_attrIndex) {
+    Pattern *pattern = Pattern::getPattern(text->GetValue());
+    if (pattern->verifyPattern() && pattern->verifyConditions()) {
+      nfa = new NFA(pattern->getPats().size() + 1);
+      nfa->buildNFA(*pattern);
+      stream.open();
+    }
+  }
+
+  ~FilterMatchesLI() {
+    delete nfa;
+    stream.close();
+  }
+
+  Tuple* next() {
+    Tuple* cand = stream.request();
+    while (cand) {
+      MString* mstring = (MString*)cand->GetAttribute(attrIndex);
+      bool match = nfa->matches(*mstring);
+      nfa->resetStates();
+      if (match) {
+        return cand;
+      }
+      cand->DeleteIfAllowed();
+      cand = stream.request();
+    }
+    return 0;
+  }
+
+ private:
+  Stream<Tuple> stream;
+  int attrIndex;
+  NFA* nfa;
+};
+
+/*
+\subsection{Value Mapping}
+
+*/
+int filterMatchesVM(Word* args, Word& result, int message,
+                    Word& local, Supplier s) {
+  FilterMatchesLI* li = (FilterMatchesLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      int index = ((CcInt*) args[3].addr)->GetValue();
+      FText* text = (FText*) args[2].addr;
+      if (text->IsDefined()) {
+        local.addr = new FilterMatchesLI(args[0], index, text);
+      }
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return  0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct filterMatchesInfo : OperatorInfo {
+  filterMatchesInfo() {
+    name      = "filterMatches";
+    signature = "stream(tuple(X)) x IDENT x text -> stream(tuple(X))";
+    syntax    = "_ filterMatches [ _ , _ ]";
+    meaning   = "Filters a stream of tuples containing moving labels, passing "
+                "exactly the tuples whose moving labels match the pattern on "
+                "to the output stream.";
+  }
+};
+
+
+/*
+\section{Operator ~rewrite~}
+
+\subsection{Type Mapping}
 
 */
 ListExpr rewriteTypeMap(ListExpr args) {
@@ -2757,24 +2886,25 @@ ListExpr rewriteTypeMap(ListExpr args) {
    || (type == NList(MString::BasicType(), Pattern::BasicType()))
    || (type == NList(MString::BasicType(), FText::BasicType()))) {
     return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
-                           nl->SymbolAtom(MLabel::BasicType()));
+                           nl->First(args));
   }
   return NList::typeError(errMsg);
 }
 
 /*
-\subsection{Selection Function for operator ~rewrite~}
+\subsection{Selection Function}
 
 */
 int rewriteSelect(ListExpr args) {
-  NList type(args);
-  return type.second().isSymbol(Pattern::BasicType()) ? 1 : 0;
+  if (nl->IsEqual(nl->Second(args), Pattern::BasicType())) {return 2;}
+  return (nl->IsEqual(nl->First(args), MString::BasicType()) ? 1 : 0);
 }
 
 /*
-\subsection{Value Mapping for operator ~rewrite~, type ~text~}
+\subsection{Value Mapping (for a text)}
 
 */
+template<class T>
 int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
                   Supplier s) {
   MLabel* mlabel = 0;
@@ -2790,18 +2920,20 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
         cout << "Error: undefined pattern text." << endl;
         return 0;
       }
+      if (!mlabel->IsDefined()) {
+        cout << "Error: undefined MLabel." << endl;
+        return 0;
+      }
       pattern = Pattern::getPattern(patternText->toText());
       if (!pattern) {
         cout << "Error: pattern not initialized." << endl;
-        delete pattern;
-        return 0;
+        rr = new RewriteResult(false);
       }
-      if (!mlabel->IsDefined()) {
-        cout << "Error: undefined MLabel." << endl;
+      else {
+        MLabel* mlNew = mlabel->compress();
+        rr = new RewriteResult(pattern->getRewriteSequences(*mlNew), mlNew,
+                               pattern->getResults());
       }
-      MLabel* mlNew = mlabel->compress();
-      rr = new RewriteResult(pattern->getRewriteSequences(*mlNew), mlNew,
-                             pattern->getResults());
       delete pattern;
       local.addr = rr;
       return 0;
@@ -2817,11 +2949,16 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
         return CANCEL;
       }
       ml = new MLabel(1);
-      ml->rewrite(rr->getML(), rr->getCurrentSeq(), rr->getAssignments());
-      result.addr = ml;
-      rr->next(); 
-      return YIELD;
-    }  
+      if (rr->isCorrect()) {
+        ml->rewrite(rr->getML(), rr->getCurrentSeq(), rr->getAssignments());
+        result.addr = ml;
+        rr->next();
+        return YIELD;
+      }
+      cout << "No rewrite result." << endl;
+      result.addr = 0;
+      return CANCEL;
+    }
     case CLOSE: {
       if (local.addr) {
         rr = ((RewriteResult*)local.addr);
@@ -2836,7 +2973,7 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
 }
 
 /*
-\subsection{Value Mapping for operator ~rewrite~, type ~text~}
+\subsection{Value Mapping (for a Pattern)}
 
 */
 int rewriteFun_MP(Word* args, Word& result, int message, Word& local,
@@ -2844,21 +2981,23 @@ int rewriteFun_MP(Word* args, Word& result, int message, Word& local,
   return 0;
 }
 /*
-\subsection{Operator Info for operator ~rewrite~}
+\subsection{Operator Info}
 
 */
 struct rewriteInfo : OperatorInfo {
   rewriteInfo() {
     name      = "rewrite";
     signature = "MLabel x Text -> stream(MLabel)";
-    appendSignature("MString x Text -> + stream(MLabel)");
+    appendSignature("MString x Text -> + stream(MString)");
     syntax    = "_ rewrite _";
     meaning   = "Rewrite a mlabel.";
   }
 };
 
 /*
-\subsection{Type Mapping for operator ~compress~}
+\section{Operator ~compress~}
+
+\subsection{Type Mapping}
 
 */
 ListExpr compressTypeMap(ListExpr args) {
@@ -2876,7 +3015,7 @@ ListExpr compressTypeMap(ListExpr args) {
 }
 
 /*
-\subsection{Selection Function for operator ~compress~}
+\subsection{Selection Function}
 
 */
 int compressSelect(ListExpr args) {
@@ -2889,7 +3028,7 @@ int compressSelect(ListExpr args) {
 }
 
 /*
-\subsection{Value Mapping for operator ~compress~ (for a single MLabel)}
+\subsection{Value Mapping (for a single MLabel)}
 
 */
 template<class T>
@@ -2905,7 +3044,7 @@ int compressFun_1(Word* args, Word& result, int message, Word& local,
 }
 
 /*
-\subsection{Value Mapping for operator ~compress~ (for a stream of MLabels)}
+\subsection{Value Mapping (for a stream of MLabels)}
 
 */
 template<class T>
@@ -2937,23 +3076,139 @@ int compressFun_Str(Word* args, Word& result, int message, Word& local,
 }
 
 /*
-\subsection{Operator Info for operator ~compress~}
+\subsection{Operator Info}
 
 */
 struct compressInfo : OperatorInfo {
   compressInfo() {
     name      = "compress";
     signature = "MLabel -> MLabel";
-    appendSignature("MString -> MLabel");
+    appendSignature("MString -> MString");
     appendSignature("stream(MLabel) -> stream(MLabel)");
-    appendSignature("stream(MString) -> stream(MLabel)");
+    appendSignature("stream(MString) -> stream(MString)");
     syntax    = "compress(_)";
-    meaning   = "Unites subsequent units.";
+    meaning   = "Unites temporally subsequent units with the same label.";
   }
 };
 
+
 /*
-\subsection{Type Mapping for operator ~createml~}
+\section{Operator ~fillgaps~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr fillgapsTypeMap(ListExpr args) {
+  string errMsg = "Expecting one argument of type mlabel or mstring and one of"
+                  " type integer.";
+  if (nl->ListLength(args) != 2) {
+    return listutils::typeError("Two arguments expected.");
+  }
+  ListExpr arg = nl->First(args);
+  if ((MString::checkType(arg) || MLabel::checkType(arg)
+    || Stream<MString>::checkType(arg) || Stream<MLabel>::checkType(arg))
+    && CcInt::checkType(nl->Second(args))) {
+    return arg;
+  }
+  else {
+    return listutils::typeError(errMsg);
+  }
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int fillgapsSelect(ListExpr args) {
+  ListExpr arg = nl->First(args);
+  if (MLabel::checkType(arg)) return 0;
+  if (MString::checkType(arg)) return 1;
+  if (Stream<MLabel>::checkType(arg)) return 2;
+  if (Stream<MString>::checkType(arg)) return 3;
+  return -1;
+}
+
+/*
+\subsection{Value Mapping (for MLabel or MString)}
+
+*/
+template<class T>
+int fillgapsFun_1(Word* args, Word& result, int message, Word& local,
+                  Supplier s) {
+  T* source = (T*)(args[0].addr);
+  CcInt* ccDur = (CcInt*)(args[1].addr);
+  result = qp->ResultStorage(s);
+  T* res = (T*)result.addr;
+  DateTime* dur = new DateTime(0, ccDur->GetValue(), durationtype);
+  fillML(*source, *res, dur);
+  return 0;
+}
+
+/*
+\subsection{Value Mapping (for a stream of MLabels)}
+
+*/
+template<class T>
+int fillgapsFun_Str(Word* args, Word& result, int message, Word& local,
+                    Supplier s){
+  CcInt* ccInt = 0;
+  switch (message) {
+    case OPEN: {
+      qp->Open(args[0].addr);
+      ccInt = (CcInt*)(args[1].addr);
+      local.addr = ccInt;
+      return 0;
+    }
+    case REQUEST: {
+      if (!local.addr) {
+        result.addr = 0;
+        return CANCEL;
+      }
+      Word arg;
+      qp->Request(args[0].addr, arg);
+      if (qp->Received(args[0].addr)) {
+        ccInt = (CcInt*)local.addr;
+        T* source =(T*)arg.addr;
+        T* res = new T(1);
+        DateTime* dur = new DateTime(0, ccInt->GetValue(), durationtype);
+        fillML(*source, *res, dur);
+        result.addr = res;
+        return YIELD;
+      }
+      else {
+        return CANCEL;
+      }
+    }
+    case CLOSE:{
+      qp->Close(args[0].addr);
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info for operator ~fillgaps~}
+
+*/
+struct fillgapsInfo : OperatorInfo {
+  fillgapsInfo() {
+    name      = "fillgaps";
+    signature = "MLabel -> MLabel";
+    appendSignature("MString -> MString");
+    appendSignature("stream(MLabel) -> stream(MLabel)");
+    appendSignature("stream(MString) -> stream(MString)");
+    syntax    = "fillgaps(_)";
+    meaning   = "Fills temporal gaps between two (not temporally) subsequent "
+                "units inside the moving label if the labels coincide";
+  }
+};
+
+
+/*
+\section{operator ~createml~}
+
+\subsection{Type Mapping}
 
 */
 ListExpr createmlTypeMap(ListExpr args) {
@@ -2962,14 +3217,15 @@ ListExpr createmlTypeMap(ListExpr args) {
     return listutils::typeError("Two arguments expected.");
   }
   if (nl->IsEqual(nl->First(args), CcInt::BasicType())
-   && nl->IsEqual(nl->Second(args), CcReal::BasicType())) {
+   && (nl->IsEqual(nl->Second(args), CcReal::BasicType())
+    || CcInt::checkType(nl->Second(args)))) {
     return nl->SymbolAtom(MLabel::BasicType());
   }
   return NList::typeError(errMsg);
 }
 
 /*
-\subsection{Value Mapping for operator ~createml~}
+\subsection{Value Mapping}
 
 */
 int createmlFun(Word* args, Word& result, int message, Word& local, Supplier s){
@@ -2992,7 +3248,7 @@ int createmlFun(Word* args, Word& result, int message, Word& local, Supplier s){
 }
 
 /*
-\subsection{Operator Info for operator ~createml~}
+\subsection{Operator Info}
 
 */
 struct createmlInfo : OperatorInfo {
@@ -3006,11 +3262,12 @@ struct createmlInfo : OperatorInfo {
 };
 
 /*
-\subsection{Type Mapping for operator ~createmlrelation~}
+\section{Operator ~createmlrelation~}
+
+\subsection{Type Mapping}
 
 */
 ListExpr createmlrelationTypeMap(ListExpr args) {
-  const string errMsg = "Expecting two integers and a string.";
   if (nl->ListLength(args) != 3) {
     return listutils::typeError("Three arguments expected.");
   }
@@ -3019,11 +3276,11 @@ ListExpr createmlrelationTypeMap(ListExpr args) {
    && nl->IsEqual(nl->Third(args), CcString::BasicType())) {
     return nl->SymbolAtom(CcBool::BasicType());
   }
-  return NList::typeError(errMsg);
+  return NList::typeError("Expecting two integers and a string.");
 }
 
 /*
-\subsection{Value Mapping for operator ~createmlrelation~}
+\subsection{Value Mapping}
 
 */
 int createmlrelationFun(Word* args, Word& result, int message, Word& local,
@@ -3076,7 +3333,7 @@ int createmlrelationFun(Word* args, Word& result, int message, Word& local,
 }
 
 /*
-\subsection{Operator Info for operator ~createmlrelation~}
+\subsection{Operator Info}
 
 */
 struct createmlrelationInfo : OperatorInfo {
@@ -3086,6 +3343,51 @@ struct createmlrelationInfo : OperatorInfo {
     syntax    = "createmlrelation(_ , _ , _)";
     meaning   = "Creates a relation containing arbitrary many synthetic moving"
                 "labels of arbitrary size and stores it into the database.";
+  }
+};
+
+/*
+\section{Operator ~index~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr indexTypeMap(ListExpr args) {
+  if (nl->ListLength(args) != 1) {
+    return listutils::typeError("One argument expected.");
+  }
+  if (nl->IsEqual(args, MLabel::BasicType())) {
+    return listutils::typeError("Argument type must be MLabel.");
+  }
+  return nl->SymbolAtom(MLabel::BasicType());
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int indexFun(Word* args, Word& result, int message, Word& local, Supplier s) {
+//   MLabel* source = (MLabel*)(args[0].addr);
+//   MLabel* res = new MLabel(1);
+//   if (!res->buildIndex(*source)) {
+//     cout << "index construction failed" << endl;
+//     result.addr = 0;
+//     return 0;
+//   }
+//   result.addr = res;
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct indexInfo : OperatorInfo {
+  indexInfo() {
+    name      = "index";
+    signature = "mlabel -> mlabel";
+    syntax    = "index(_)";
+    meaning   = "Builds an index for a moving label.";
   }
 };
 
@@ -3112,8 +3414,12 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
       ValueMapping matchesFuns[] = {matchesFun_MT, matchesFun_MP, 0};
       AddOperator(matchesInfo(), matchesFuns, matchesSelect, matchesTypeMap);
+
+      AddOperator(filterMatchesInfo(), filterMatchesVM, filterMatchesTM);
       
-      ValueMapping rewriteFuns[] = {rewriteFun_MT, rewriteFun_MP, 0};
+      ValueMapping rewriteFuns[] = {rewriteFun_MT<MLabel>,
+                                    rewriteFun_MT<MString>,
+                                    rewriteFun_MP, 0};
       AddOperator(rewriteInfo(), rewriteFuns, rewriteSelect, rewriteTypeMap);
 
       ValueMapping compressFuns[] = {compressFun_1<MLabel>,
@@ -3122,10 +3428,18 @@ class SymbolicTrajectoryAlgebra : public Algebra {
                                      compressFun_Str<MString>, 0};
       AddOperator(compressInfo(), compressFuns, compressSelect,compressTypeMap);
 
+      ValueMapping fillgapsFuns[] = {fillgapsFun_1<MLabel>,
+                                     fillgapsFun_1<MString>,
+                                     fillgapsFun_Str<MLabel>,
+                                     fillgapsFun_Str<MString>, 0};
+      AddOperator(fillgapsInfo(), fillgapsFuns, fillgapsSelect,fillgapsTypeMap);
+
       AddOperator(createmlInfo(), createmlFun, createmlTypeMap);
 
       AddOperator(createmlrelationInfo(), createmlrelationFun,
                   createmlrelationTypeMap);
+
+      AddOperator(indexInfo(), indexFun, indexTypeMap);
 
     }
     ~SymbolicTrajectoryAlgebra() {}

@@ -45,6 +45,7 @@ string int2String(int i);
 int str2Int(string const &text);
 set<string> stringToSet(string input);
 string setToString(set<string> input);
+int prefixCount(string str, set<string> strings);
 vector<string> splitPattern(string input);
 char* convert(string arg);
 string extendDate(string input, const bool start);
@@ -53,3 +54,4 @@ bool checkSemanticDate(const string text, const SecInterval uIv,
 bool checkDaytime(const string text, const SecInterval uIv);
 bool evaluate(string condStr, const bool eval);
 vector<string> createTrajectory(int size);
+void fillML(const MString& source, MString& result, DateTime* duration);

@@ -401,6 +401,7 @@ This function is the only one called by the algebra.
 */
 Pattern* stj::parseString(const char* input) {
   wholepat = new Pattern();
+  patternFlushBuffer();
   pattern_scan_string(input);
   Pattern* result = 0;
   firstAssign = true;
@@ -417,6 +418,7 @@ Pattern* stj::parseString(const char* input) {
     wholepat = 0;
   }
   uPat.clearL();
+  uPat.clearI();
   return result;
 }
 
