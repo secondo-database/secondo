@@ -2363,7 +2363,7 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments,
   DbArray<HalfSegment>* res = new DbArray<HalfSegment>(segments.Size());
   if(robust){
     res->clean();
-    robustRealminize(segments,*res);
+    robust::realminize(segments,*res);
   } else {
      try {
    
@@ -2537,7 +2537,7 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments,
                "slower (robust) implementation" 
             << endl;
        res->clean();
-       robustRealminize(segments,*res);
+       robust::realminize(segments,*res);
      }
   } 
   res->Sort(HalfSegmentCompare);

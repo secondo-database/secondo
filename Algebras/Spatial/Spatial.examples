@@ -1122,9 +1122,16 @@ Result : TRUE
 
 Operator : intersection_rob
 Number   : 1
-Signature: region x line
+Signature: region x line -> line
 Example  : query intersection(thecenter,  boundary(thecenter)) = intersection_rob(thecenter, boundary(thecenter))
 Result   : TRUE
+
+Operator : intersection_rob
+Number   : 2
+Signature : line x line -> line
+Example   : query intersection_rob(BGrenzenLine, BGrenzenLine) = BGrenzenLine
+Result    : TRUE
+
 
 Operator : contains_rob
 Number   : 1
@@ -1164,4 +1171,11 @@ Number  : 1
 Signature: {line,reagion} -> stream(tuple( (No1 int)(Partner1 int)(Segment1 line)(No2 int)(Partner2 int)(Segment2 line)))
 Example : query badRealm(BGrenzenLine) count
 Result  : 0
+
+Operator : crossings_rob
+Number   : 1
+Signature: line x line -> points
+Example  : query crossings_rob(BGrenzenLine,BGrenzenLine);
+Result : (points ())
+
 

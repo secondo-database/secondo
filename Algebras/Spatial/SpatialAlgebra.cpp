@@ -9302,7 +9302,7 @@ void Region::Intersection(const Line& l, Line& result,
     // compute intersection using robust implementation
     cerr << "Problem during plane sweep detected, "
          << "switch to slow implementation" << endl;
-    intersection(*this,l,result);
+    robust::intersection(*this,l,result);
   }
 
 
@@ -22514,7 +22514,8 @@ available (this halfsegment cannot contribute to a cycle in clockwise order).
      for(size_t i=0; i< candidates.size(); i++){
        if(!usage[candidates[i].second]){
           pair<HalfSegment,int> cand = candidates[i];
-          double slope1; bool up;
+          double slope1=0; 
+          bool up;
           if(getSlope(cand.first,slope1,up)){
              if(index < 0 ){
                 index = i;
@@ -23154,11 +23155,22 @@ ListExpr intersection_robTM(ListExpr args){
   if(!nl->HasLength(args,2)){
      return listutils::typeError(err);
   }
-  // currently implemented only for region x line
-  if(!Region::checkType(nl->First(args)) ||
-     !Line::checkType(nl->Second(args))){
-   return listutils::typeError(err);
+  ListExpr a1 = nl->First(args);
+  ListExpr a2 = nl->Second(args);
+  if(Region::checkType(a1) && // region x line
+     Line::checkType(a2)){
+     return listutils::basicSymbol<Line>();
   }
+  if(Line::checkType(a1) && // line x region 
+     Region::checkType(a2)){
+     return listutils::basicSymbol<Line>();
+  }
+  
+  if(Line::checkType(a1) && // line x line
+     Line::checkType(a2)){
+     return listutils::basicSymbol<Line>();
+  }
+
   return listutils::basicSymbol<Line>();
 }
 
@@ -23179,7 +23191,7 @@ int intersection_robVM1(Word* args, Word& result, int message, Word& local,
    if(!arg1->IsDefined() || !arg2->IsDefined()){
      res->SetDefined(false);
    } else {
-     intersection(*arg1,*arg2,*res);
+     robust::intersection(*arg1,*arg2,*res);
    }
    return 0;
 }
@@ -23189,19 +23201,24 @@ int intersection_robVM1(Word* args, Word& result, int message, Word& local,
 
 */
 ValueMapping intersection_robVM[] = {
-      intersection_robVM1<Region,Line,Line>
+      intersection_robVM1<Region,Line,Line>,
+      intersection_robVM1<Line,Region,Line>,
+      intersection_robVM1<Line,Line,Line>
     };
 
 int intersection_robSelect(ListExpr args){
-
-   ListExpr arg1 = nl->First(args);
-   ListExpr arg2 = nl->Second(args);
-   if(Region::checkType(arg1)){
-      if(Line::checkType(arg2)){
-         return 0;
-      }
-   }
-   return  -1;
+    ListExpr a1 = nl->First(args);
+    ListExpr a2 = nl->Second(args);
+    if(Region::checkType(a1) && Line::checkType(a2)){
+      return 0;
+    }
+    if(Line::checkType(a1) && Region::checkType(a2)){
+      return 0;
+    }
+    if(Line::checkType(a1) && Line::checkType(a2)){
+      return 0;
+    }
+    return -1;
 }
 
 /*
@@ -23209,7 +23226,7 @@ int intersection_robSelect(ListExpr args){
 
 */
 OperatorSpec intersection_robSpec (
-    "region x line -> line",
+    "region x line -> line | line x region -> line | line x line -> line",
     " intersection_rob(_,_)",
     "Computes the intersection of the arguments"
     "using a (hopefully) robust implementation.",
@@ -23222,7 +23239,7 @@ OperatorSpec intersection_robSpec (
 */
 Operator spatialintersection_rob( "intersection_rob",
                             intersection_robSpec.getStr(),
-                            1,
+                            3,
                             intersection_robVM,
                             intersection_robSelect,
                             intersection_robTM);
@@ -23273,7 +23290,7 @@ int contains_robVM(Word* args, Word& result, int message, Word& local,
    if(!reg->IsDefined() || !p->IsDefined() || !b->IsDefined()){
        res->SetDefined(false);
    }
-   int r = contains(*reg,*p);
+   int r = robust::contains(*reg,*p);
    if(r==0){
      res->Set(true,false);
    } else {
@@ -23418,7 +23435,7 @@ int collect_line2VM(Word* args, Word& result, int message, Word& local,
   // get the DbArray from result;
   res->StartBulkLoad();
   DbArray<HalfSegment>* dbl = (DbArray<HalfSegment>*) res->GetFLOB(0);
-  robustRealminize(*dba, *dbl);
+  robust::realminize(*dba, *dbl);
   dba->destroy();
   delete dba;
 
@@ -23613,7 +23630,7 @@ int checkRealmVM(Word* args, Word& result, int message, Word& local,
     res->SetDefined(false);
   } else {
     DbArray<HalfSegment>* hss = (DbArray<HalfSegment>*) arg->GetFLOB(0);
-    RealmChecker rc(hss);
+    robust::RealmChecker rc(hss);
     res->Set(true,rc.checkRealm());
   }
   return 0;
@@ -23662,7 +23679,7 @@ ListExpr badRealmTM(ListExpr args){
   if(!Line::checkType(arg) && !Region::checkType(arg)){
     return listutils::typeError(err);
   }
-  ListExpr tt = RealmChecker::getTupleType();
+  ListExpr tt = robust::RealmChecker::getTupleType();
   return nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
                           tt);
 }
@@ -23675,7 +23692,7 @@ ListExpr badRealmTM(ListExpr args){
 int badRealmVM(Word* args, Word& result, int message, Word& local,
                Supplier s ){
 
-  RealmChecker* li = (RealmChecker*) local.addr;
+  robust::RealmChecker* li = (robust::RealmChecker*) local.addr;
   switch(message){
       case OPEN : {
                       if(li){
@@ -23686,7 +23703,7 @@ int badRealmVM(Word* args, Word& result, int message, Word& local,
                       if(a->IsDefined()){
                         DbArray<HalfSegment>* hss =
                              (DbArray<HalfSegment>*) a->GetFLOB(0);
-                        local.addr = new RealmChecker(hss);
+                        local.addr = new robust::RealmChecker(hss);
                       }
                       return 0;
                   }
@@ -23733,6 +23750,72 @@ Operator badRealmOp(
    Operator::SimpleSelect,
    badRealmTM
 );
+
+
+/*
+1.44 Operator crossings_rob
+
+
+1.44.1 Type Mapping
+
+*/
+ListExpr crossings_robTM(ListExpr args){
+
+   string err = "line x line expected";
+   if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+   }
+   if(!Line::checkType(nl->First(args)) ||
+      !Line::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+   }
+   return listutils::basicSymbol<Points>();
+}
+
+/*
+1.44.2 Value Mapping
+
+*/
+
+int crossings_robVM(Word* args, Word& result, int message, Word& local,
+               Supplier s ){
+
+  result = qp->ResultStorage(s);
+  Line* l1 = (Line*) args[0].addr;
+  Line* l2 = (Line*) args[1].addr;
+  Points* res = (Points*) result.addr;
+  robust::crossings(*l1,*l2,*res);
+  return 0;
+}
+
+
+
+/*
+1.44.3 Specification
+
+*/
+
+OperatorSpec crossings_robSpec (
+    " line x line -> points",
+    " crossings_rob(l1,l2) ",
+    " Returns common points of two lines which are not part "
+    " of a common segment",
+    " query crossings_rob(BGrenzenLine,BGrenzenLine) "
+  );
+
+
+/*
+1.44.4 Operator instance
+
+*/
+Operator crossings_rob(
+   "crossings_rob",
+   crossings_robSpec.getStr(),
+   crossings_robVM,
+   Operator::SimpleSelect,
+   crossings_robTM
+);
+
 
 
 /*
@@ -23876,6 +23959,7 @@ class SpatialAlgebra : public Algebra
     AddOperator(&getInnerPoint);
     AddOperator(&checkRealmOp);
     AddOperator(&badRealmOp);
+    AddOperator(&crossings_rob);
     
 
 

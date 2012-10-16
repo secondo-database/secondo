@@ -23,6 +23,9 @@ class Line;
 class SimpleLine;
 class Region;
 
+
+
+
 /*
 4.0 Auxiliary functions
 
@@ -776,6 +779,42 @@ inline Coord radToDeg(const Coord & rad) {
 inline Coord degToRad(const Coord &deg) {
   return (deg * M_PI)/180.0;
 }
+
+
+/*
+Class for comparing points.
+
+This class is useful for storing points within standard
+stl containers,e.g. set.
+
+*/
+class ApproxPointLess{
+ public:
+  bool operator()(const Point& p1, const Point& p2){
+     if(!p1.IsDefined()){
+        return p2.IsDefined();
+     }
+     if(!p2.IsDefined()){
+        return false;
+     }
+     double x1 = p1.GetX();
+     double x2 = p2.GetX();
+     if(!AlmostEqual(x1,x2)){
+       return x1 < x2;
+     }
+     // both points are on the same x coordinate
+     double y1 = p1.GetY();
+     double y2 = p2.GetY();
+     if(y1>=y2){
+       return false;
+     } else {
+       return !AlmostEqual(y1,y2);
+     }
+  }
+
+};
+
+
 
 
 #endif

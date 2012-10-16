@@ -34,6 +34,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SecondoSystem.h"
 
 
+
+
+namespace robust{
+
 /*
 ~contains~
 
@@ -708,12 +712,16 @@ void insertSegmentParts(HalfSegment& hs,
 }
 
 
-void realminizeParallel(const HalfSegment& hs1, const HalfSegment& hs2,
-                        vector<pair<double,splitKind> >& splitPoints){
+/*
+Checks two haslfsegments which are on the same line for a common
+subsegment. If there is a such segment, true is returned.
+The delta values are set as the relative position
+(range (0,1) of hs1.
 
+*/
 
-   double delta1;
-   double delta2;
+bool commonPart(const HalfSegment& hs1, const HalfSegment& hs2,
+                double& delta1, double& delta2){
    lineContains(hs1, hs2.GetDomPoint(), delta1);
    lineContains(hs1, hs2.GetSecPoint(), delta2); 
    if(delta1>delta2){
@@ -722,7 +730,7 @@ void realminizeParallel(const HalfSegment& hs1, const HalfSegment& hs2,
      delta2 = tmp;
    }
    if((delta1 >= 1)  || (delta2 <=0)){ // no overlappings
-      return;
+      return false;
    }
    if(delta1<0){
      delta1 = 0;
@@ -730,9 +738,19 @@ void realminizeParallel(const HalfSegment& hs1, const HalfSegment& hs2,
    if(delta2>1){
      delta2 = 1;
    }
+   return true;
+}
 
-   splitPoints.push_back(pair<double,splitKind>(delta1,startCommon));
-   splitPoints.push_back(pair<double,splitKind>(delta2,endCommon)); 
+void realminizeParallel(const HalfSegment& hs1, const HalfSegment& hs2,
+                        vector<pair<double,splitKind> >& splitPoints){
+
+
+   double delta1;
+   double delta2;
+   if(commonPart(hs1,hs2,delta1,delta2)){
+     splitPoints.push_back(pair<double,splitKind>(delta1,startCommon));
+     splitPoints.push_back(pair<double,splitKind>(delta2,endCommon)); 
+   }
 }
 
 
@@ -777,7 +795,7 @@ void realminize(HalfSegment& hs1, HalfSegment& hs2, const bool secondFirst,
 }
 
 
-void robustRealminize(const DbArray<HalfSegment>& src, 
+void realminize(const DbArray<HalfSegment>& src, 
                       DbArray<HalfSegment>& result){
     if(src.Size()==0){
       result.clean();
@@ -819,6 +837,84 @@ void robustRealminize(const DbArray<HalfSegment>& src,
     }
 }
 
+
+
+
+void crossings(const HalfSegment& hs1, 
+               const HalfSegment& hs2,
+               set<Point,ApproxPointLess>& candidates,
+               set<Point,ApproxPointLess>& falseHitsCandidates){
+
+
+   if(!onSameLine(hs1,hs2)){
+     double delta1, delta2;
+     bool ok = computeSplitPoint(hs1,hs2,delta1,delta2);
+     if(ok && (delta1>=0) && (delta1<=1) && (delta2>=0) && (delta2<=1)){
+        candidates.insert(atDelta(hs1,delta1));
+     }
+     return;
+   } else {
+      double delta1, delta2;
+      if(commonPart(hs1,hs2,delta1,delta2)){
+         falseHitsCandidates.insert(atDelta(hs1,delta1));
+         falseHitsCandidates.insert(atDelta(hs1,delta2));
+      }
+   }
+   
+}
+
+void crossings(const Line& l1, 
+               const Line& l2,
+               Points& result) {
+    if(!l1.IsDefined() || !l2.IsDefined()){
+       result.SetDefined(false);
+       return;
+    }
+    result.Clear();
+    result.SetDefined(true);
+
+    //build an r-tree from the first line
+
+    // step1: insert halfSegments into an mmrtree
+    mmrtree::RtreeT<2,int> tree(4,8);
+    HalfSegment hs;
+    for(int i=0;i<l1.Size();i++){
+      l1.Get(i,hs);
+      if(hs.IsLeftDomPoint()){
+         tree.insert(hs.BoundingBox(),i);
+      }  
+    }
+
+    // step 2 process halfsegments of l2
+    set<Point,ApproxPointLess> candidates;
+    set<Point,ApproxPointLess> falseHitCandidates;
+
+    for(int i=0;i<l2.Size();i++){
+       l2.Get(i,hs);
+       if(hs.IsLeftDomPoint()){
+          mmrtree::RtreeT<2,int>::iterator* it = tree.find(hs.BoundingBox());
+          HalfSegment hs2;
+          int const* pos;
+          while( (pos = it->next()) != 0){
+             l1.Get(*pos,hs2);
+             crossings(hs,hs2,candidates, falseHitCandidates);   
+          }
+          delete it;
+       }
+    }
+
+    result.StartBulkLoad();
+    set<Point,ApproxPointLess>::iterator it;
+  
+    for(it = candidates.begin();it!=candidates.end();it++){
+       if(falseHitCandidates.find(*it) == falseHitCandidates.end()){
+          result += *it;
+       }
+    } 
+   
+    result.EndBulkLoad();
+
+}
 
 
  bool RealmChecker::isRealm(const HalfSegment& hs1, 
@@ -1014,6 +1110,72 @@ ListExpr RealmChecker::getTupleType(){
 }
 
 
+void intersection(const Line& l1, const Line& l2,  Line& result){
 
+   if(!l1.IsDefined() || !l1.IsDefined()){
+      result.SetDefined(false);
+      return;
+   }
+   if(l1.Size() == 0){
+      result.CopyFrom(&l2);
+      return;
+   }
+   if(l2.Size() == 0){
+      result.CopyFrom(&l1);
+      return;
+   }
+   if(!l1.BoundingBox().Intersects(l2.BoundingBox())){
+      result.Clear();
+      return;
+   }
+   // overlapping bounding boxes, we have to compute 
+   // insert l1 into an r-tree
+   mmrtree::RtreeT<2,int> tree(4,8);
+   HalfSegment hs;
+   for(int i=0;i<l1.Size();i++){
+      l1.Get(i,hs);
+      if(hs.IsLeftDomPoint()){
+        tree.insert(hs.BoundingBox(),i);
+      }
+   }
+   // iterate over l2, look for common parts in tree
+   result.Clear();
+   result.SetDefined(true);
+   result.StartBulkLoad();
+   vector<pair<double,bool> > v;
+   int edgeno = 0;
+   for(int i=0;i<l2.Size();i++){
+      l2.Get(i,hs);
+      if(hs.IsLeftDomPoint()){
+        mmrtree::RtreeT<2,int>::iterator* it=0;
+        it = tree.find(hs.BoundingBox());
+        int  const* pos;
+        HalfSegment hs2;
+        while( (pos = it->next()) != 0){
+           l1.Get(*pos,hs2);
+           if(onSameLine(hs,hs2)){
+              processParallel(hs,hs2,v);
+              if(!v.empty()){
+                double d1 = v[0].first;
+                double d2 = v[1].first;
+                v.clear();
+                HalfSegment hsr(true,atDelta(hs,d1), atDelta(hs,d2));
+                hsr.attr.edgeno = edgeno;
+                result += hsr;
+                hsr.SetLeftDomPoint(!hsr.IsLeftDomPoint());
+                result += hsr;
+                edgeno++;       
+              }
+           } 
+        } 
+        delete it;
+     }
+  }
+  result.EndBulkLoad( true,false); // sort, no realminize
+}
 
+void intersection(const Line& l, const Region& r, Line& result){
+   intersection(r,l,result);
+}
 
+} // end of namespace robust

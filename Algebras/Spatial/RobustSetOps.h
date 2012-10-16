@@ -26,11 +26,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#ifndef ROBUSTSETOPS_H
+#define ROBUSTSETOPS_H
+
 #include "SpatialAlgebra.h"
 #include "MMRTree.h"
 #include "RelationAlgebra.h"
 
 
+
+namespace robust {
 /*
 1.1 Intersection between region and line
 
@@ -39,6 +44,8 @@ Results in a line.
 */
 
 void intersection(const Region& r, const Line& line, Line& result);
+
+void intersection(const Line& l, const Region& r, Line& result);
 
 
 /*
@@ -54,13 +61,13 @@ int contains(const Region& reg, const Point& p);
 
 
 /*
-1.3 robustRealminize
+1.3 realminize
 
 Realminize function
 
 */
 
-void robustRealminize(const DbArray<HalfSegment>& src, 
+void realminize(const DbArray<HalfSegment>& src, 
                       DbArray<HalfSegment>& result);
 
 
@@ -109,5 +116,16 @@ class RealmChecker{
 };
 
 
+void intersection(const Line& l1, const Line& l2,  Line& result);
+
+
+
+void crossings(const Line& l1, const Line& l2, Points& result);
+
+
+} // end of namespace robust
+
+
+#endif
 
 
