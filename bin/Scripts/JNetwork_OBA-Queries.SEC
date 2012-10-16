@@ -19,101 +19,152 @@
 ##  You should have received a copy of the GNU General Public License
 ##  along with SECONDO; if not, write to the Free Software
 ##  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-######################################################################
-
-## This file performs the OBA-Queries of the BerlinMOD benchmark
-## in the Compact Representation on the Secondo DBMS.
+################################################################################
+## This file performs the OBA-Queries of the BerlinMOD benchmark               #
+## in the Compact Representation on the JNetwork representation Secondo DBMS.  #
+################################################################################
 
 open database berlinmod;
-#############################################################
-#############################################################
-# All OBA/JNetwork - Queries
 
 query now();
-#############################################################
-# A - 1
-let OBAJNres001 = QueryLicences feed {O}
-  loopjoin[ dataSNcar_Licence_btree dataSNcar exactmatch[.Licence_O]]
-  project[Licence, Model] consume;
+
+################################################################################
+#                                                                              #
+# Query 1: What are the models of the vehicles with license plate numbers from #
+#          QueryLicence?                                                       #
+#                                                                              #
+################################################################################
+
+let OBAJNres001 =
+  QueryLicences feed {l}
+  loopjoin[ dataSNcar_Licence_btree dataSNcar exactmatch[.Licence_l]]
+  project[Licence, Model]
+consume;
 
 query now();
-#############################################################
-# B - 2
+
+################################################################################
+#                                                                              #
+# Query 2: How many vehicles exist that are passenger cars?                    #
+#                                                                              #
+################################################################################
+
 let OBAJNres002 =
-  dataSNcar feed filter [.Type = "passenger"] count;
+  dataSNcar feed
+  filter [.Type = "passenger"]
+count;
 
 query now();
-#############################################################
-# C - 3
+
+################################################################################
+#                                                                              #
+# Query 3: Where have the vehicles with licenses from QueryLicence1 been at    #
+#          each instant from QueryInstant1?                                    #
+#                                                                              #
+################################################################################
+
 let OBAJNres003 =
-  QueryLicences feed {LL} head[10]
-  loopjoin[dataSNcar_Licence_btree dataSNcar exactmatch[.Licence_LL]]
-  QueryInstants feed {II} head[10]
+  QueryLicences feed {l} head[10]
+  loopjoin[dataSNcar_Licence_btree dataSNcar exactmatch[.Licence_l]]
+  QueryInstants feed {i} head[10]
   product
-  projectextend[; Licence: .Licence_LL, Instant: .Instant_II,
-                  Pos: val(.Trip atinstant .Instant_II)]
-  consume;
+  projectextend[; Licence: .Licence_l,
+    Instant: .Instant_i,
+    Pos: val(.Trip atinstant .Instant_i)]
+consume;
 
 query now();
-#############################################################
-# D - 4
+
+################################################################################
+#                                                                              #
+# Query 4: Which license plate numbers belong to vehicles that have passed the #
+#          points from QueryPoints?                                            #
+#                                                                              #
+################################################################################
+
 let OBAJNres004 =
   QueryPointsNetAll feed
-  loopjoin[ dataSNcar_TrajBoxNet
-            windowintersectsS[netbox(.Pos)] sort rdup
-            dataSNcar gettuples]
-  filter[.Trip passes .Pos] project[Id, Licence]
-  sortby[Id asc, Licence asc] krdup[Id, Licence] consume;
-
-
-close database;
-quit;
-
-query now();
-#############################################################
-## E - 5
-let OBAJNres005tmp1 = QueryLicences feed head[10]
-  loopsel[ dataSNcar_Licence_btree dataSNcar
-    exactmatch[.Licence] ]
-  projectextend[Licence; Traj:
-    fromnetwork(trajectory(.Trip))] consume;
+    extend[NBox: netbox(.Pos)]
+  loopjoin[
+    dataSNcar_TrajBoxNet windowintersectsS[.NBox]
+    sort rdup dataSNcar gettuples]
+  filter[.Trip passes .Pos]
+  project[Id, Licence]
+  sortby[Id asc, Licence asc]
+  krdup[Id, Licence]
+consume;
 
 query now();
 
-let OBAJNres005tmp2 = QueryLicences feed head[20] filter[.Id>10]
-  loopsel[ dataSNcar_Licence_btree dataSNcar
-    exactmatch[.Licence] ]
-  projectextend[Licence; Traj:
-    fromnetwork(trajectory(.Trip))] consume;
+################################################################################
+#                                                                              #
+# Query 5: What is the minimum distance between places, where a vehicle with a #
+#          license from QueryLicences1 and a vehicle with licenses from        #
+#          from QueryLicence2 have been?                                       #
+#                                                                              #
+################################################################################
+
+let OBAJNres005tmp1 =
+  QueryLicences1 feed
+  loopsel[dataSNcar_Licence_btree dataSNcar exactmatch[.Licence] ]
+  projectextend[Licence; Traj: fromnetwork(trajectory(.Trip))]
+consume;
 
 query now();
 
-let OBAJNres005 = OBAJNres005tmp1 feed {V1} OBAJNres005tmp2 feed {V2}
+let OBAJNres005tmp2 =
+  QueryLicences2 feed 
+  loopsel[ dataSNcar_Licence_btree dataSNcar exactmatch[.Licence] ]
+  projectextend[Licence; Traj: fromnetwork(trajectory(.Trip))]
+consume;
+
+query now();
+
+let OBAJNres005 =
+  OBAJNres005tmp1 feed {t1}
+  OBAJNres005tmp2 feed {t2}
   product
-  projectextend[ ; Licence1: .Licence_V1,
-    Licence2: .Licence_V2,
-    Dist: distance(.Traj_V1, .Traj_V2)]
-  sort rdup consume;
+  projectextend[ ; Licence1: .Licence_t1,
+    Licence2: .Licence_t2,
+    Dist: distance(.Traj_t1, .Traj_t2)]
+  sortby [Licence1, Licence2]
+consume;
+
+query now();
 
 delete OBAJNres005tmp1;
 delete OBAJNres005tmp2;
 
 query now();
-#############################################################
-# F - 6
+
+################################################################################
+#                                                                              #
+# Query 6: What are the pairs of license plate numbers of "trucks", that have  #
+#          been as close as 10m or less to each other?                         #
+#                                                                              #
+################################################################################
 
 let OBAJNres006tmp1 =
   dataSNcar feed
   filter [.Type = "truck"]
   projectextend [Licence; Ptrip: fromnetwork(.Trip)]
-  extend[BBox: bbox(.Trip)]
-  projectextend [Licence, Ptrip; Box: rectangle3(minD(.BBox,1) - 5.0, maxD(.BBox,1) + 5.0, minD(.BBox,2) - 5.0, maxD(.BBox,2) + 5.0, minD(.BBox,3), maxD(.BBox,3))]
+  extend[BBox: bbox(.Ptrip)]
+  projectextend [Licence, Ptrip; Box: rectangle3(minD(.BBox,1) - 5.0,
+                                                 maxD(.BBox,1) + 5.0,
+                                                 minD(.BBox,2) - 5.0,
+                                                 maxD(.BBox,2) + 5.0,
+                                                 minD(.BBox,3),
+                                                 maxD(.BBox,3))]
  consume;
+
+query now();
 
 let OBAJNres006 =
   OBAJNres006tmp1 feed {a}
   OBAJNres006tmp1 feed {b}
-  symmjoin [(.Box_a intersects ..Box_b) and (.Licence_a < ..Licence_b) and (everNearerThan(.Ptrip_a, ..Ptrip_b, 10.0))]
+  symmjoin [(.Box_a intersects ..Box_b) and
+            (.Licence_a < ..Licence_b) and
+            (everNearerThan(.Ptrip_a, ..Ptrip_b, 10.0))]
   project [Licence_a, Licence_b]
   sortby [Licence_a asc, Licence_b asc]
   krdup [Licence_a, Licence_b]
@@ -122,24 +173,37 @@ consume;
 delete OBAJNres006tmp1;
 
 query now();
-#############################################################
-# G - 7
+
+################################################################################
+#                                                                              #
+# Query 7: What are the license plate numbers of the "passenger" cars that     #
+#          have reached points from QueryPoints first of all "passenger" cars  #
+#          during the complete observation period?                             #
+#                                                                              #
+################################################################################
+
 let OBAJNres007tmp1 =
-  QueryPointsNetAll
-    projectextend[Id, Pos; Prect: netbox(.NPos)]
-  loopsel [fun(t:TUPLE) dataSNcar_TrajBoxNet windowintersectsS[attr(t,Prect)]
-  sort rdup dataSNcar gettuples
-  filter [.Type = "passenger"]
-  filter [.Trip passes .NPos]
-  projectextend[Licence; Id: attr(t,Id) , Instant: inst(initial(.Trip at attr(t,Pos)))]]
+  QueryPointsNetAll feed
+    extend[Prect: netbox(.Pos)]
+  loopsel [fun(t:TUPLE)
+    dataSNcar_TrajBoxNet windowintersectsS[attr(t,Prect)]
+    sort rdup dataSNcar gettuples
+    filter [.Type = "passenger"]
+    filter [.Trip passes attr(t,Pos)]
+    projectextend[Licence; Id: attr(t,Id) ,
+                           Instant: inst(initial(.Trip at attr(t,Pos)))]]
   filter[not(isempty(.Instant))]
   sortby[Id asc, Instant asc]
 consume;
 
+query now();
+
 let OBAJNres007 =
-  OBAJNres007tmp1 feed groupby[Id; FirstTime: group feed min[Instant]]{b}
+  OBAJNres007tmp1 feed
+    groupby[Id; FirstTime: group feed min[Instant]]{b}
   OBAJNres007tmp1 feed {a}
-  symmjoin [..Id_a = .Id_b]
+  hashjoin[Id_b,Id_a]
+  filter [.Id_a  = .Id_b]
   filter[.Instant_a <= .FirstTime_b]
   project[Id_a, Licence_a]
 consume;
@@ -148,27 +212,42 @@ delete OBAJNres007tmp1;
 
 query now();
 
-#############################################################
-# H - 8
+################################################################################
+#                                                                              #
+# Query 8: What are the overall traveled distances of the vehicles with        #
+#          license plate numbers from QueryLicences1 during the periods from   #
+#          QueryPeriods1?                                                      #
+#                                                                              #
+################################################################################
+
 let OBAJNres008 =
-  QueryLicences feed {LL} head[10]
-  loopsel[ dataSNcar_Licence_btree dataSNcar exactmatch[.Licence_LL] ]
-  QueryPeriods feed head[10] filter [not(isempty(.Period))]{PP}
+  QueryLicences1 feed {l}
+    loopsel[ dataSNcar_Licence_btree dataSNcar exactmatch[.Licence_l]]
+  QueryPeriods1 feed
+    filter [not(isempty(.Period))]{p}
   product
-  projectextend[Licence; Period: .Period_PP,
-    Dist: length(.Trip atperiods .Period_PP)]
+  projectextend[Licence; Period: .Period_p,
+    Dist: length(.Trip atperiods .Period_p)]
   project[Licence, Period, Dist]
- sortby [Licence asc, Period asc] consume;
+  sortby [Licence asc, Period asc]
+consume;
 
 query now();
-#############################################################
-# I - 9
+
+################################################################################
+#                                                                              #
+# Query 9: What is the longest distance that was traveled by a vehicle during  #
+#          each of the periods from QueryPeriods?                              #
+#                                                                              #
+################################################################################
+
 let OBAJNres009 =
   dataSNcar feed {c}
-  QueryPeriods feed filter[not(isempty(.Period))]{p}
+  QueryPeriods feed
+    filter[not(isempty(.Period))]{p}
   product
   projectextend [Id_p, Period_p, Licence_c; Dist: length(.Trip_c atperiods .Period_p)]
-  sortby [Id_p asc, Period_p asc, Dist desc]
+  sortby [Id_p asc, Period_p asc]
   groupby [Id_p, Period_p; Distance: group feed max[Dist]]
   project[Id_p, Period_p, Distance]
   sortby [Id_p asc]
@@ -176,18 +255,31 @@ let OBAJNres009 =
 consume;
 
 query now();
-#############################################################
-# J - 10
+
+################################################################################
+#                                                                              #
+# Query 10: When and where did the vehicles with license plate numbers from    #
+#           QueryLicences1 meet other vehicles (distance < 3m) and what are    #
+#           the latter licenses?                                               #
+#                                                                              #
+################################################################################
+
 let OBAJNres010 =
   dataSNcar feed
-  projectextend[Licence; TripA: fromnetwork(.Trip)]
-  extend[BBox: bbox(.TripA)]
-  projectextend[Licence, TripA;Box: rectangle2((minD(.BBox,1) - 1.5), (maxD(.BBox,1) + 1.5), (minD(.BBox,2) - 1.5), (maxD(.BBox,2) + 1.5))]{c1}
+    projectextend[Licence; TripA: fromnetwork(.Trip)]
+    extend[BBox: bbox(.TripA)]
+    projectextend[Licence, TripA ;Box: rectangle2((minD(.BBox,1) - 1.5),
+                                                  (maxD(.BBox,1) + 1.5),
+                                                  (minD(.BBox,2) - 1.5),
+                                                  (maxD(.BBox,2) + 1.5))]{c1}
   QueryLicences1 feed
-  loopsel[dataSNcar_Licence_btree dataSNcar exactmatch[.Licence]]
-  projectextend[Licence, Trip; TripA: fromnetwork(.Trip)]
-  extend [BBox: bbox(.TripA)]
-  projectextend [Licence, Trip, TripA; Box: rectangle2((minD(.BBox,1) - 1.5), (maxD(.BBox,1) + 1.5), (minD(.BBox,2) - 1.5), (maxD(.BBox,2) + 1.5))] {c2}
+    loopsel[dataSNcar_Licence_btree dataSNcar exactmatch[.Licence]]
+    projectextend[Licence, Trip; TripA: fromnetwork(.Trip)]
+    extend [BBox: bbox(.TripA)]
+    projectextend [Licence, Trip, TripA; Box: rectangle2((minD(.BBox,1) - 1.5),
+                                                         (maxD(.BBox,1) + 1.5),
+                                                         (minD(.BBox,2) - 1.5),
+                                                         (maxD(.BBox,2) + 1.5))] {c2}
   symmjoin[.Box_c1 intersects ..Box_c2]
   filter [.Licence_c1 # .Licence_c2]
   filter [everNearerThan(.TripA_c1, .TripA_c2, 3.0)]
@@ -198,63 +290,102 @@ let OBAJNres010 =
 consume;
 
 query now();
-#############################################################
-# K - 11
+
+################################################################################
+#                                                                              #
+# Query 11: Which vehicles passed a point from QueryPoints1 at one of the      #
+#           instants from QueryInstant1?                                       #
+#                                                                              #
+################################################################################
+
 let OBAJNres011 =
- QueryInstant1 feed {i}
- QueryPoints1NetAll
-  projectextend[Id; Prect: netbox(.Pos)]{p}
-  product
-  projectextend[Id_p, Instant_i; Box: box3d(.Prect_p, .Instant_i)]
-  loopsel[fun(t:TUPLE) dataSNcar_BoxNet_timespace windowintersectsS[attr(t,Box)]
-  sort rdup dataSNcar gettuples
-  projectextend [Licence; Id: attr(t,Id_p), Instant_i: attr(t,Instant_i)]]
+  QueryPoints1NetAll feed
+    extend[NBox: netbox(.Pos)]
+  loopsel[fun(t:TUPLE)
+    dataSNcar_TrajBoxNet windowintersectsS[attr(t,NBox)]
+    sort rdup dataSNcar gettuples
+    filter[.Trip passes attr(t,Pos)]
+    projectextend[Licence; Id: (attr(t,Id)), TripN: .Trip at attr(t,Pos)]]
+  QueryInstant1 feed {i}
+  symmjoin[.TripN present .Instant_i]
+  project[Licence, Id, Instant_i]
 consume;
 
 query now();
-#############################################################
-# L - 12
+
+################################################################################
+#                                                                              #
+# Query 12: Which vehicles met at a point from QueryPoints1 at an instant from #
+#           QueryInstant1?                                                     #
+#                                                                              #
+################################################################################
 
 let OBAJNres012tmp1 =
   QueryInstant1 feed {i}
   QueryPoints1NetAll feed
-  projectextend[Id, Pos; Prect: netbox(.Pos)]{p}
+    projectextend[Id, Pos; Prect: netbox(.Pos)]{p}
   product
-  loopsel[fun(t:TUPLE) dataSNcar_BoxNet_timespace windowintersectsS[box3d(attr(t,Prect_p), attr(t,Instant_i))]
-  sort rdup dataSNcar gettuples
-  projectextend [Licence; Id_p: attr(t,Id_p), Pos_p: attr(t,Pos_p), Instant_i: attr(t,Instant_i)]]
-  sortby [Id_p asc, Instant_i asc, Licence asc]
+  projectextend[Instant_i, Id_p, Pos_p; Box: box3d(.Prect_p, .Instant_i)]
+  loopsel[fun(t:TUPLE)
+    dataSNcar_BoxNet_timespace windowintersectsS[attr(t,Box)]
+    sort rdup dataSNcar gettuples
+    filter[.Trip passes attr(t,Pos_p)]
+    projectextend [Licence; Id: attr(t,Id_p), Instant: attr(t,Instant_i), Pos: attr(t,Pos_p)]]
+  sortby [Id asc, Instant asc, Licence asc, Pos asc]
+  rdup
 consume;
+
+query now();
 
 let OBAJNres012 =
   OBAJNres012tmp1 feed {c1}
   OBAJNres012tmp1 feed {c2}
-  symmjoin [(.Licence_c1 < ..Licence_c2) and (.Id_p_c1 = ..Id_p_c2) and (.Instant_i_c1 = ..Instant_i_c2)]
-  project [Id_p_c1, Pos_p_c1, Instant_i_c1, Licence_c1, Licence_c2]
-  sortby [Id_p_c1 asc, Instant_i_c1 asc, Licence_c2 asc]
+  symmjoin[(.Licence_c1 < ..Licence_c2) and
+           (.Id_c1 = ..Id_c2) and
+           (.Instant_c1 = ..Instant_c2)]
+  project[Id_c1, Pos_c1, Instant_c1, Licence_c1, Licence_c2]
+  sortby[Id_c1 asc, Instant_c1 asc, Licence_c2 asc]
+  rdup
 consume;
+
+query now();
 
 delete OBAJNres012tmp1;
 
 query now();
-#############################################################
-# M - 13
+
+################################################################################
+#                                                                              #
+# Query 13: Which vehicles traveled within one of the regions from             #
+#           QueryRegions1 during the periods from QueryPeriods1?               #
+#                                                                              #
+################################################################################
+
 let OBAJNres013 =
   dataSNcar feed {c}
-  QueryRegions1Net feed filter[not(isempty(.Region))] {r}
+  QueryRegions1Net feed
+    filter[not(isempty(.Region))] {r}
   symmjoin[.Trip_c passes ..Region_r]
-  projectextend[Licence_c, Id_r, Region_r; Trip: .Trip_c at .Region_r]
-  QueryPeriods1 feed filter[not(isempty(.Period))]{p}
+    projectextend[Licence_c, Id_r, Region_r; Trip: .Trip_c at .Region_r]
+    filter[not(isempty(.Trip))]
+  QueryPeriods1 feed
+    filter[not(isempty(.Period))]{p}
   symmjoin [.Trip present ..Period_p]
-  projectextend[Id_r, Period_p; Licence: .Licence_c, Trip: .Trip atperiods .Period_p]
-  filter [not(isempty(.Trip))]
-  project[Id_r, Period_p, Licence]
+    projectextend[Id_r, Period_p; Licence: .Licence_c, Trip: .Trip atperiods .Period_p]
+    filter [not(isempty(.Trip))]
+    project[Id_r, Period_p, Licence]
   sortby[Id_r asc, Period_p asc, Licence asc]
 consume;
 
 query now();
-#############################################################
-# M1 - 14
+
+################################################################################
+#                                                                              #
+# Query 14: Which vehicles traveled within one of the regions from             #
+#           QueryRegions1 at one of the instants from QueryInstant1?           #
+#                                                                              #
+################################################################################
+
 let OBAJNres014 =
   dataSNcar feed
   QueryInstant1 feed
@@ -269,82 +400,117 @@ let OBAJNres014 =
 consume;
 
 query now();
-#############################################################
-# M2 - 15
+
+################################################################################
+#                                                                              #
+#  Query 15: Which vehicles passed a point from QueryPoints1 during a period   #
+#            from QueryPeriods1?                                               #
+#                                                                              #
+################################################################################
+
 let OBACRres015 =
   QueryPoints1NetAll feed
-  projectextend[Id, Pos; Prect: netbox(.NPos)] {p}
-  QueryPeriods1 feed filter[not(isempty(.Period))] {t}
+    projectextend[Id, Pos; Prect: netbox(.Pos)] {p}
+  QueryPeriods1 feed
+    filter[not(isempty(.Period))] {t}
   product
   projectextend[Id_p, Pos_p, Period_t; Box: box3d(.Prect_p, .Period_t)]
-  loopsel [fun(t:TUPLE) dataSNcar_BoxNet_timespace windowintersectsS[attr(t, Box)]
-  sort rdup dataSNcar gettuples
-  filter[(.Trip atperiods (attr(t,Period_t))) passes (attr(t,Pos_p))]
-  projectextend[; Id: attr(t,Id_p), Period: attr(t,Period_t), Licence: .Licence]]
+  loopsel [fun(t:TUPLE)
+    dataSNcar_BoxNet_timespace windowintersectsS[attr(t, Box)]
+    sort rdup dataSNcar gettuples
+    filter[(.Trip atperiods (attr(t,Period_t))) passes (attr(t,Pos_p))]
+    projectextend[; Id: attr(t,Id_p), Period: attr(t,Period_t), Licence: .Licence]]
   sortby [Id asc, Period asc, Licence asc]
   krdup [Id, Period, Licence]
 consume;
 
 query now();
-#############################################################
-# N - 16
+
+################################################################################
+#                                                                              #
+# Query 16: List the pairs of licenses for vehicles the first from             #
+#           QueryLicences1, the second from QueryLicences2, where the          #
+#           corresponding vehicles are both present within a region from       #
+#           QueryRegions1 during a period from QueryPeriod1, but do not meet   #
+#           each other there and then.                                         #
+#                                                                              #
+################################################################################
 
 let OBACRres016 =
   QueryLicences1 feed {l}
-  loopjoin [dataSNcar_Licence_btree dataSNcar exactmatch [.Licence_l]] {c}
-  QueryPeriods1 feed filter[not(isempty(.Period))]{p}
+    loopjoin [dataSNcar_Licence_btree dataSNcar exactmatch [.Licence_l]] {c}
+  QueryPeriods1 feed
+    filter[not(isempty(.Period))]{p}
   symmjoin [.Trip_c present ..Period_p]
-  projectextend[Id_p, Period_p; Licence: .Licence_c, Trip: .Trip_c atperiods .Period_p]
-  filter [not(isempty(.Trip))]
-  QueryRegions1Net feed filter[not(isempty(.Region))] {r}
+    projectextend[Id_p, Period_p; Licence: .Licence_c, Trip: .Trip_c atperiods .Period_p]
+    filter [not(isempty(.Trip))]
+  QueryRegions1Net feed
+    filter[not(isempty(.Region))] {r}
   symmjoin[.Trip passes ..Region_r]
-  projectextend[Licence, Id_r, Region_r, Id_p, Period_p; Trip: .Trip at .Region_r]
-  filter [not(isempty(.Trip))]{a}
+    projectextend[Licence, Id_r, Region_r, Id_p, Period_p; Trip: .Trip at .Region_r]
+    filter [not(isempty(.Trip))]{a}
   QueryLicences2 feed {l}
-  loopjoin [dataSNcar_Licence_btree dataSNcar exactmatch [.Licence_l]] {c}
-  QueryPeriods1 feed filter[not(isempty(.Period))]{p}
+    loopjoin [dataSNcar_Licence_btree dataSNcar exactmatch [.Licence_l]] {c}
+  QueryPeriods1 feed
+    filter[not(isempty(.Period))]{p}
   symmjoin [.Trip_c present ..Period_p]
-  projectextend[Id_p, Period_p; Licence: .Licence_c, Trip: .Trip_c atperiods .Period_p]
-  filter [not(isempty(.Trip))]
-  QueryRegions1Net feed filter[not(isempty(.Region))] {r}
+    projectextend[Id_p, Period_p; Licence: .Licence_c, Trip: .Trip_c atperiods .Period_p]
+    filter [not(isempty(.Trip))]
+  QueryRegions1Net feed
+    filter[not(isempty(.Region))] {r}
   symmjoin[.Trip passes ..Region_r]
-  projectextend[Licence, Id_r, Region_r, Id_p, Period_p; Trip: .Trip at .Region_r]
-  filter [not(isempty(.Trip))]{b}
+    projectextend[Licence, Id_r, Region_r, Id_p, Period_p; Trip: .Trip at .Region_r]
+    filter [not(isempty(.Trip))]{b}
   symmjoin[(.Id_r_a = ..Id_r_b) and (.Id_p_a = ..Id_p_b)]
   filter [.Licence_a # .Licence_b]
   filter[not(.Trip_a intersects .Trip_b)]
   project [Id_r_a, Period_p_a, Licence_a, Licence_b]
 consume;
 
-
 query now();
 
-#############################################################
-# O - 17
+################################################################################
+#                                                                              #
+# Query 17: Which points from QueryPoints have been visited by a maximum       #
+#           number of different vehicles?                                      #
+#                                                                              #
+################################################################################
+
 let OBAJNres017tmp1 =
-  dataSNcar feed {c}
-  QueryPointsNetAll feed {p}
-  symmjoin [.Trip_c passes ..Pos_p]
-  project [Id_p, Licence_c]
-  sortby [Id_p, Licence_c]
-  krdup [Id_p, Licence_c]
-  groupby[Id_p; Hits: group feed count]
+  QueryPointsNetAll feed
+    extend[NBox: netbox(.Pos)]
+  loopjoin[
+    dataSNcar_TrajBoxNet windowintersectsS[.NBox]
+    sort rdup dataSNcar gettuples]
+  filter[.Trip passes .Pos]
+  project [Id, Licence]
+  sortby [Id, Licence]
+  krdup [Id, Licence]
+  groupby[Id; Hits: group feed count]
 consume;
+
+query now();
 
 let OBAJNres017 =
   OBAJNres017tmp1 feed
   filter [.Hits = (OBAJNres017tmp1 feed max[Hits])]
-  project [Id_p, Hits]
+  project [Id, Hits]
 consume;
 
 query now();
 
-delete OBACRres017tmp1;
+delete OBAJNres017tmp1;
 
-#############################################################
-#############################################################
+################################################################################
+#                                                                              #
+# Store Query times                                                            #
+#                                                                              #
+################################################################################
+
 let EVAL_SEC2COMMANDS_BERLINMOD_OBA_JNET = SEC2COMMANDS feed consume;
 
 #save EVAL_SEC2COMMANDS_BERLINMOD_OBA_JNET to 'BerlinMODOBAJNetRunTimesRunX.DAT';
 
 close database;
+
+quit;

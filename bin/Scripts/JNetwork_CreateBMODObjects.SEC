@@ -279,7 +279,7 @@ let QueryPoints1Net =
  consume;
 
 let QueryPoints1NetAll =
-  QueryPoints1Net feed
+  QueryPoints1Net feed head[10]
   projectextendstream[Id; NPos: altrlocs(.Pos)]
   projectextend[Id; Pos: .NPos]
 consume;
@@ -413,13 +413,13 @@ derive dataMNtrip_SpatioTemp =
   sortby [Box asc]
  bulkloadrtree[Box];
 
-derive dataMNtrip_SpatioTempUnits =
-  dataMNtrip feed
-  extend[TID: tupleid(.)]
-  projectextendstream[TID; UTrip: units(.Trip)]
-  extend[Box: bbox(.UTrip)]
-  sortby[Box asc]
-bulkloadrtree[Box];
+#derive dataMNtrip_SpatioTempUnits =
+#  dataMNtrip feed
+#  extend[TID: tupleid(.)]
+#  projectextendstream[TID; UTrip: units(.Trip)]
+#  extend[Box: bbox(.UTrip)]
+#  sortby[Box asc]
+#bulkloadrtree[Box];
 
 ################################################################################
 #                                                                              #
