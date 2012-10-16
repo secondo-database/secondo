@@ -3226,30 +3226,62 @@ struct DisplayRegEx : DisplayFunction{
           int last = -2;
           vector<int> range;
           stringstream ss;
-          for(it = d.begin(); it!=d.end(); it++){
-             int next = *it;
-             if(next!=last+1) { // start new range
-               if(range.size()>4){
-                  ss << "[" << getStr(range[0]) << "-"
-                     << getStr(range[range.size()-1]) << "]";
-               } else {
-                 for(size_t i=0;i<range.size();i++){
-                   ss << getStr(range[i]);
+
+          if(d.size()<250) {
+            for(it = d.begin(); it!=d.end(); it++){
+               int next = *it;
+               if(next!=last+1) { // start new range
+                 if(range.size()>4){
+                    ss << "[" << getStr(range[0]) << "-"
+                       << getStr(range[range.size()-1]) << "]";
+                 } else {
+                   for(size_t i=0;i<range.size();i++){
+                     ss << getStr(range[i]);
+                   }
                  }
+                 range.clear();
                }
-               range.clear();
-             }
-             range.push_back(next);
-             last = next;
-          }
-          if(range.size()>4){
-             ss << "[" << getStr(range[0]) << "-"
-                << getStr(range[range.size()-1]) << "]";
-          } else {
-            for(size_t i=0;i<range.size();i++){
-              ss << getStr(range[i]);
+               range.push_back(next);
+               last = next;
             }
+            if(range.size()>4){
+               ss << "[" << getStr(range[0]) << "-"
+                  << getStr(range[range.size()-1]) << "]";
+            } else {
+              for(size_t i=0;i<range.size();i++){
+                ss << getStr(range[i]);
+              }
+            }
+          } else {
+            if(d.size()==256){
+              ss << "'all'";
+            } else {
+              // the most chars are not affected by this rule
+              ss << "[^";
+              it = d.begin();
+              int pos = 0;
+              while(pos<256){
+                 if(it==d.end()){
+                    ss << getStr(pos);
+                    pos++;
+                 } else {
+                    int dpos = *it;
+                    if(pos<dpos){
+                      ss << getStr(pos);
+                      pos++;
+                    } else if(pos>dpos){
+                      // shound never be the case
+                      it++;
+                    } else { // dpos == pos
+                      pos++;
+                      it++;
+                    }
+                 }
+              }
+              ss << "]";
+            }  
           }
+
           cout << (srcfinal?"*":" ") << src << " - "
                << ss.str() << " -> " << dest << (destFinal?"*":" ") << endl;
      }
@@ -3262,9 +3294,20 @@ struct DisplayRegEx : DisplayFunction{
         stringstream h;
         if(isPrintable(c)){
           h << (char)c;
-        } else {
-          h << "(" << c << ")";
+          return h.str();
+        } 
+        if(c==9){
+          return "\\t";
         }
+        if(c==10){
+          return "\\n";
+          
+        } 
+        if(c==13){
+           return "\\r";
+        } 
+
+        h << "(" << c << ")";
         return h.str();
      }
 };
