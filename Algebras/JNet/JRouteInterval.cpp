@@ -293,6 +293,18 @@ int JRouteInterval::Compare(const JRouteInterval& in) const
   return side.Compare(in.GetSide());
 }
 
+int JRouteInterval::Compare(const RouteLocation& rloc) const
+{
+  if (!IsDefined() && !rloc.IsDefined()) return 0;
+  if (!IsDefined() && rloc.IsDefined()) return -1;
+  if (IsDefined() && !rloc.IsDefined()) return 1;
+  if (rid < rloc.GetRouteId()) return -1;
+  if (rid > rloc.GetRouteId()) return 1;
+  if (endpos < rloc.GetPosition()) return -1;
+  if (startpos > rloc.GetPosition()) return 1;
+  return side.Compare(rloc.GetSide());
+}
+
 size_t JRouteInterval::Sizeof() const
 {
   return sizeof(JRouteInterval);
@@ -573,11 +585,10 @@ bool JRouteInterval::SameSide(const JRouteInterval& other,
 bool JRouteInterval::Overlaps(const JRouteInterval& other,
                               bool strict /* = True*/) const
 {
-  if (rid == other.GetRouteId() && side.SameSide(other.GetSide(), strict))
-    return (!(startpos > other.GetLastPosition() ||
-              endpos < other.GetFirstPosition()));
-  else
-    return false;
+  return (rid == other.GetRouteId() &&
+          side.SameSide(other.GetSide(), strict)&&
+          (!(startpos > other.GetLastPosition() ||
+              endpos < other.GetFirstPosition())));
 }
 
 

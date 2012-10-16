@@ -72,6 +72,7 @@ public:
 
   const STRING_T* GetNetworkId() const;
   const DbArray<JUnit>& GetUnits() const;
+  double Length() const;
 
   void SetNetworkId(const STRING_T& id);
   void SetUnits(const DbArray<JUnit>& junits);
@@ -228,6 +229,26 @@ instant.
   IJPoint AtInstant(const Instant* time) const;
 
 /*
+1.1.1.1 ~Present~
+
+Returns true if the ~mjpoint~ is defined at least once in the given ~periods~.
+
+*/
+
+bool Present(const Periods* per) const;
+bool Present(const Instant* inst) const;
+
+/*
+1.1.1.1 ~AtPeriods~
+
+The result value restricts the mjpoint to the given periods of time.
+
+*/
+
+ void AtPeriods(const Periods* times, MJPoint& result) const;
+
+
+/*
 1.1.1.1 ~Initial~
 
 Returns an ~ijpoint~ with the start position and time of the given ~mjpoint~
@@ -257,6 +278,16 @@ places.
 void At(const JPoint* jp, MJPoint& result) const;
 void At(const JLine* jl, MJPoint& result) const;
 
+/*
+1.1.1.1 ~Intersects~
+
+Returns true if the ~mjpoint~ are at least once at the same place at the same
+time, false elsewhere.
+
+*/
+
+bool Intersects(const MJPoint* other) const;
+
 private:
 
 /*
@@ -268,7 +299,8 @@ private:
 
   STRING_T nid;         //network identifier
   DbArray<JUnit> units; //set of JUnit describing the way of the mjpoint
-  bool activBulkload; //only true while bulkload of ujpoints runs
+  bool activBulkload;   //only true while bulkload of ujpoints runs
+  double lenth;         //total driven distance
 
 /*
 1.1.1 Standard Constructor
@@ -308,6 +340,7 @@ Appends the units of the in MJPoint to the current mjpoint.
 */
 
 void Append(const MJPoint* in);
+void Append(const JUnit ju);
 
 /*
 1.1.1.1 Starttime
@@ -338,6 +371,19 @@ Searches binary for the position of the JUnit including the given time interval.
 
 int GetUnitPosForTime(const Instant* time, const int spos, const int epos)
   const;
+int GetUnitPosForTime(const Interval<Instant>& time) const;
+
+/*
+1.1.1.1 GetNext
+
+Returns true and changes the values to the next unit if next unit exists, false
+elsewhere.
+
+*/
+
+bool Next(int& index, JUnit& ju) const;
+
+void Refinement(const MJPoint* in2, MJPoint* out1, MJPoint* out2) const;
 
 };
 

@@ -141,6 +141,7 @@ route interval on the road.
   static int Compare(const void* ls, const void* rs);
   int Compare(const Attribute* rhs) const;
   int Compare(const JRouteInterval& rhs) const;
+  int Compare(const RouteLocation& rloc ) const;
   size_t Sizeof() const;
   ostream& Print(ostream& os) const;
   static const string BasicType();

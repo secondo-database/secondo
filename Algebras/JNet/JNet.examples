@@ -546,6 +546,13 @@ Example  : query testmjp atinstant create_instant(0.4);
 Result   : (ijpoint("2000-01-03-09:36" ("testjnet" (1 0.001 (Up)))))
 Tolerance: 0.01%
 
+Operator : atperiods
+Number   : 1
+Signature: mjpoint x periods -> mjpoint
+Example  : query testmjp atperiods [const periods value(("2000-01-03-09:44" "2000-01-03-10:00" TRUE TRUE))];
+Result   : (mjpoint("testjnet" ((("2000-01-03-09:44" "2000-01-03-10:00" TRUE FALSE)(1 0.002 0.004 (Up))))))
+Tolerance: 0.01%
+
 Operator : bbox
 Number   : 1
 Signature: mjpoint -> rect3
@@ -720,6 +727,20 @@ Example  : query initial(testmjp);
 Result   : (ijpoint("2000-01-03-09:36" ("testjnet" (1 0.001 (Up)))))
 Tolerance: 0.01%
 
+Operator : inside
+Number   : 1
+Signature: jpoint x jline -> bool
+Example  : query createjpoint(testjnet, createrloc(3, 0.01072473178283396, [const jdirection value("Both")])) inside testjl;
+Result   : FALSE
+Tolerance: 0.01%
+
+Operator : inside
+Number   : 2
+Signature: jpoint x jline -> bool
+Example  : query createjpoint(testjnet, createrloc(1, 0.002, [const jdirection value("Both")])) inside testjl;
+Result   : TRUE
+Tolerance: 0.01%
+
 Operator : inst
 Number   : 1
 Signature: ijpoint -> instant
@@ -727,11 +748,32 @@ Example  : query inst(createijpoint(createjpoint(testjnet, createrloc(1, 0.0, [c
 Result   : (instant "2000-01-03-12:00")
 Tolerance: 0.01%
 
+Operator : intersects
+Number   : 1
+Signature: ijpoint -> instant
+Example  : query testmjp intersects testmjp;
+Result   : TRUE
+Tolerance: 0.01%
+
+Operator : isempty
+Number   : 1
+Signature: mjpoint -> bool
+Example  : query isempty(testmjp);
+Result   : FALSE
+Tolerance: 0.01%
+
 Operator : junctions
 Number   : 1
 Signature: jnet -> rel
 Example  : query junctions(testjnet);
 Result   : file
+Tolerance: 0.01%
+
+Operator : length
+Number   : 1
+Signature: mjpoint -> real
+Example  : query length(testmjp);
+Result   : 0.009
 Tolerance: 0.01%
 
 Operator : netbox
@@ -774,6 +816,34 @@ Number   : 3
 Signature: mjpoint x jline -> bool
 Example  : query testmjp passes testjl;
 Result   : TRUE
+Tolerance: 0.01%
+
+Operator : present
+Number   : 1
+Signature: mjpoint x periods -> bool
+Example  : query testmjp present [const periods value(("2000-01-03-09:44" "2000-01-03-10:00" TRUE TRUE))];
+Result   : TRUE
+Tolerance: 0.01%
+
+Operator : present
+Number   : 2
+Signature: mjpoint x periods -> bool
+Example  : query testmjp present [const periods value(("2010-01-03-09:44" "2010-01-03-10:00" TRUE TRUE))];
+Result   : FALSE
+Tolerance: 0.01%
+
+Operator : present
+Number   : 3
+Signature: mjpoint x instant -> bool
+Example  : query testmjp present create_instant(0.4);
+Result   : TRUE
+Tolerance: 0.01%
+
+Operator : present
+Number   : 4
+Signature: mjpoint x instant -> bool
+Example  : query testmjp present create_instant(55.7);
+Result   : FALSE
 Tolerance: 0.01%
 
 Operator : restrict

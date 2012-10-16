@@ -1652,9 +1652,15 @@ int altrlocsVM ( Word* args, Word& result, int message, Word& local,
       {
         strcpy(li->jnetId, *jp->GetNetworkId());
         li->list = jp->OtherNetworkPositions();
-        li->it = 0;
+        if (li->list != 0)
+        {
+          li->it = 0;
+          local.addr = li;
+          return 0;
+        }
       }
-      local.addr = li;
+      delete li;
+      local.addr = 0;
       return 0;
       break;
     }
@@ -1664,7 +1670,8 @@ int altrlocsVM ( Word* args, Word& result, int message, Word& local,
       result = qp->ResultStorage(s);
       if (local.addr == 0) return CANCEL;
       li = (altrlocsLocInfo*) local.addr;
-      if (0 <= li->it && li->it < li->list->GetNoOfComponents())
+      if (li->list->IsDefined() &&
+          0 <= li->it && li->it < li->list->GetNoOfComponents())
       {
         RouteLocation elem;
         li->list->Get(li->it,elem);
@@ -2534,6 +2541,62 @@ Operator atinstantJNet( "atinstant", atinstantSpec, 1, atinstantMap,
 
 1.1.1.1.1 ~atperiods~
 
+Restricts the mjpoint to the given periods.
+
+*/
+
+const string maps_atperiods[1][3] =
+{
+  {MJPoint::BasicType(), Periods::BasicType(), MJPoint::BasicType()}
+};
+
+ListExpr atperiodsTM (ListExpr args)
+{
+  return SimpleMaps<1,3>(maps_atperiods, args);
+}
+
+int atperiodsSelect(ListExpr args)
+{
+  return SimpleSelect<1,3>(maps_atperiods, args);
+}
+
+int atperiodsVM ( Word* args, Word& result, int message, Word& local,
+                  Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MJPoint* mjp = ( MJPoint* ) args[0].addr;
+  Periods* inst = (Periods*) args[1].addr;
+  MJPoint* res = static_cast<MJPoint* > (result.addr);
+  if (mjp != NULL && mjp->IsDefined() &&
+      inst != NULL && inst->IsDefined())
+  {
+    mjp->AtPeriods(inst, *res);
+  }
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping atperiodsMap[] =
+{
+  atperiodsVM
+};
+
+const string atperiodsSpec =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "(<text>" +
+   MJPoint::BasicType() + " X " + Periods::BasicType() +" -> " +
+   MJPoint::BasicType() +
+   "</text--->"
+   "<text><mjpoint> atperiods <periods> </text--->"
+   "<text>Returns an " + MJPoint::BasicType() + " restricted to the given " +
+   Periods::BasicType()  + ".</text--->"
+   "<text>query testmjp atperiods testperiod </text--->))";
+
+Operator atperiodsJNet( "atperiods", atperiodsSpec, 1, atperiodsMap,
+                        atperiodsSelect, atperiodsTM);
+
+/*
 1.1.1.1 By Place
 
 1.1.1.1.1 ~at~
@@ -2603,6 +2666,57 @@ Operator atJNet( "at", atSpec, 2, atMap, atSelect, atTM);
 
 1.1.1 ~length~
 
+*/
+
+const string maps_length[1][2] =
+{
+  {MJPoint::BasicType(), CcReal::BasicType()}
+};
+
+ListExpr lengthTM (ListExpr args)
+{
+  return SimpleMaps<1,2>(maps_length, args);
+}
+
+int lengthSelect(ListExpr args)
+{
+  return SimpleSelect<1,2>(maps_length, args);
+}
+
+int lengthVM ( Word* args, Word& result, int message, Word& local,
+               Supplier s )
+{
+  result = qp->ResultStorage( s );
+  MJPoint* mjp = ( MJPoint* ) args[0].addr;
+  CcReal* res = static_cast<CcReal* > (result.addr);
+  if (mjp != NULL && mjp->IsDefined())
+  {
+    res->Set(true, mjp->Length());
+  }
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping lengthMap[] =
+{
+  lengthVM
+};
+
+const string lengthSpec =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "(<text>" +
+   MJPoint::BasicType() + " -> " + CcReal::BasicType() +
+   "</text--->"
+   "<text>length(<mjpoint>) </text--->"
+   "<text>Returns the total driven length of an " + MJPoint::BasicType() +
+   ".</text--->"
+   "<text>query length(testmjp) </text--->))";
+
+Operator lengthJNet( "length", lengthSpec, 1, lengthMap, lengthSelect,
+                     lengthTM);
+
+/*
 1.1.1 JNetwork Data
 
 1.1.1.1 ~sections~
@@ -2949,6 +3063,61 @@ Operator instJNet( "inst", instSpec, 1, instMap, instSelect, instTM);
 
 1.1.1 ~isempty~
 
+Returns true if the DbArray of the data type has no content.
+
+*/
+
+
+const string maps_isempty[2][2] =
+{
+  {MJPoint::BasicType(), CcBool::BasicType()},
+  {JLine::BasicType(), CcBool::BasicType()}
+};
+
+ListExpr isemptyTM (ListExpr args)
+{
+  return SimpleMaps<2,2>(maps_isempty, args);
+}
+
+int isemptySelect(ListExpr args)
+{
+  return SimpleSelect<2,2>(maps_isempty, args);
+}
+
+template<class InClass>
+int isemptyVM ( Word* args, Word& result, int message, Word& local,
+            Supplier s )
+{
+  result = qp->ResultStorage( s );
+  InClass *in = ( InClass* ) args[0].addr;
+  CcBool* res = static_cast<CcBool* > (result.addr);
+  if (in != NULL && in->IsDefined())
+    res->Set(true, in->IsEmpty());
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping isemptyMap[] =
+{
+  isemptyVM<MJPoint>,
+  isemptyVM<JLine>
+};
+
+const string isemptySpec =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+      "(<text>" +
+      MJPoint::BasicType() + " -> " +  CcBool::BasicType() + ", \n" +
+      JLine::BasicType() + " -> " +  CcBool::BasicType() +
+      "</text--->"
+      "<text>isempty(<mjpoint>) </text--->"
+      "<text>Returns true if the inserted value is empty.</text--->"
+      "<text>query isempty(testmjp)</text--->))";
+
+Operator isemptyJNet( "isempty", isemptySpec, 2, isemptyMap, isemptySelect,
+                      isemptyTM);
+
+/*
 1.1.1 ~passes~
 
 Returns true if the ~mjpoint~ passes at least once the given ~jline~ or
@@ -3014,10 +3183,179 @@ Operator passesJNet("passes", passesSpec, 2, passesMap, passesSelect, passesTM);
 
 1.1.1 ~intersects~
 
+Returns true if the two ~mjpoint~ pass the same place at the same time. False
+otherwise.
+
+*/
+
+const string maps_intersects[1][3] =
+{
+  {MJPoint::BasicType(), MJPoint::BasicType(), CcBool::BasicType()}
+};
+
+ListExpr intersectsTM (ListExpr args)
+{
+  return SimpleMaps<1,3>(maps_intersects, args);
+}
+
+int intersectsSelect(ListExpr args)
+{
+  return SimpleSelect<1,3>(maps_intersects, args);
+}
+
+int intersectsVM( Word* args, Word& result, int message, Word& local,
+                  Supplier s)
+{
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*> (result.addr);
+  MJPoint* mjp1 = static_cast<MJPoint*> (args[0].addr);
+  MJPoint* mjp2 = static_cast<MJPoint*> (args[1].addr);
+  if (mjp1 != NULL && mjp1->IsDefined() && !mjp1->IsEmpty() &&
+      mjp2 != NULL && mjp2->IsDefined() && !mjp2->IsEmpty())
+    res->Set(true, mjp1->Intersects(mjp2));
+  else
+    res->Set(false, false);
+  return 0;
+}
+
+ValueMapping intersectsMap[] =
+{
+  intersectsVM
+};
+
+const string intersectsSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  MJPoint::BasicType() + " x " + MJPoint::BasicType() + " -> " +
+  CcBool::BasicType() +
+  "</text--->"
+  "<text><mjpoint1> intersects <mjpoint2> </text--->"
+  "<text>Returns true if the two "+ MJPoint::BasicType() + " are at least once"
+  " at the same place at the same time, false otherwise.</text--->"
+  "<text>query testmjp intersects testmjp </text--->))";
+
+Operator intersectsJNet("intersects", intersectsSpec, 1, intersectsMap,
+                        intersectsSelect, intersectsTM);
+
+/*
 1.1.1 ~present~
 
+Returns true if the ~mjpoint~ is defined at least once in the given ~periods~.
+
+*/
+
+const string maps_present[2][3] =
+{
+  {MJPoint::BasicType(), Periods::BasicType(), CcBool::BasicType()},
+  {MJPoint::BasicType(), Instant::BasicType(), CcBool::BasicType()}
+};
+
+ListExpr presentTM (ListExpr args)
+{
+  return SimpleMaps<2,3>(maps_present, args);
+}
+
+int presentSelect(ListExpr args)
+{
+  return SimpleSelect<2,3>(maps_present, args);
+}
+
+template<class InClass>
+int presentVM( Word* args, Word& result, int message, Word& local,
+              Supplier s)
+{
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*> (result.addr);
+  MJPoint* mjp = static_cast<MJPoint*> (args[0].addr);
+  InClass* per = static_cast<InClass*> (args[1].addr);
+  if (mjp != NULL && mjp->IsDefined() &&
+      per != NULL && per->IsDefined())
+    res->Set(true, mjp->Present(per));
+  else
+    res->Set(false, false);
+  return 0;
+}
+
+ValueMapping presentMap[] =
+{
+  presentVM<Periods>,
+  presentVM<Instant>
+};
+
+const string presentSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  MJPoint::BasicType() + " x " + Periods::BasicType() + " -> " +
+  CcBool::BasicType() + ", \n" +
+  MJPoint::BasicType() + " x " + Instant::BasicType() + " -> " +
+  CcBool::BasicType() +
+  "</text--->"
+  "<text><mjpoint> present <periods> </text--->"
+  "<text>Returns true if the "+MJPoint::BasicType() + " is defined at least "
+   "once in  the given "+ Periods::BasicType()+ " of time, respectively" +
+   " at the given time instant, false elsewhere.</text--->"
+  "<text>query testmjp present testperiod </text--->))";
+
+Operator presentJNet("present", presentSpec, 2, presentMap, presentSelect,
+                     presentTM);
+
+/*
 1.1.1 ~inside~
 
+Returns true if the ~jpoint~ is inside the ~jline~, false otherwise.
+
+*/
+
+const string maps_inside[1][3] =
+{
+  {JPoint::BasicType(), JLine::BasicType(), CcBool::BasicType()}
+};
+
+ListExpr insideTM(ListExpr args)
+{
+  return SimpleMaps<1,3>(maps_inside, args);
+}
+
+int insideSelect(ListExpr args)
+{
+  return SimpleSelect<1,3>(maps_inside, args);
+}
+
+int insideVM( Word* args, Word& result, int message, Word& local,
+              Supplier s)
+{
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*> (result.addr);
+  JPoint* jp = static_cast<JPoint*> (args[0].addr);
+  JLine* jl = static_cast<JLine*> (args[1].addr);
+  if (jp != NULL && jp->IsDefined() &&
+      jl != NULL && jl->IsDefined())
+    res->Set(true, jl->Contains(jp));
+  else
+    res->Set(false, false);
+  return 0;
+}
+
+ValueMapping insideMap[] =
+{
+  insideVM
+};
+
+const string insideSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JPoint::BasicType() + " x " + JLine::BasicType() + " -> " +
+  CcBool::BasicType() +
+  "</text--->"
+  "<text><jpoint> inside <jline> </text--->"
+  "<text>Returns true if the "+ JPoint::BasicType() + " is inside the "
+  + JLine::BasicType()+ ", false otherwise.</text--->"
+  "<text>query testmjp present testjp </text--->))";
+
+Operator insideJNet("inside", insideSpec, 1, insideMap, insideSelect,
+                    insideTM);
+
+/*
 1.1 Network Operations
 
 1.1.1 ~netdistance~
@@ -3314,7 +3652,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
 
   AddOperator(&initialJNet);
   AddOperator(&atinstantJNet);
-  //AddOperator(&atperiodsJNet);
+  AddOperator(&atperiodsJNet);
 
 /*
 1.1.1.1.1 By Place
@@ -3329,7 +3667,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
 
 */
 
-  //AddOperator(&lengthJNet);
+  AddOperator(&lengthJNet);
 
 /*
 1.1.1.1.1 JNet Components
@@ -3362,11 +3700,11 @@ JNetAlgebra::JNetAlgebra():Algebra()
 
 */
 
-  //AddOperator(&isemptyJNet);
+  AddOperator(&isemptyJNet);
   AddOperator(&passesJNet);
-  //AddOperator(&intersectsJNet);
-  //AddOperator(&presentJNet);
-  //AddOperator(&insideJNet);
+  AddOperator(&intersectsJNet);
+  AddOperator(&presentJNet);
+  AddOperator(&insideJNet);
 
 /*
 1.1.1.1 Network Operations

@@ -82,6 +82,7 @@ It can not be private because JUnit is used as part of MJPoint and JUnit.
   RouteLocation* GetStartRLoc() const;
   RouteLocation* GetEndRLoc() const;
   double GetSpeed() const;
+  double GetLength() const;
 
   void SetTimeInterval(const Interval<Instant>& inst);
   void SetRouteInterval(const JRouteInterval& ri);
@@ -222,7 +223,7 @@ Returns the junit when the jpoint  was at position.
 
 */
 
-JUnit AtPos(const JPoint* jp) const;
+JUnit* AtPos(const JPoint* jp) const;
 
 /*
 1.1.1.1.1 AtRint
@@ -231,8 +232,26 @@ Returns the junit when the jpoint  was at the route interval.
 
 */
 
-JUnit AtRint(const JRouteInterval* rint) const;
+JUnit* AtRint(const JRouteInterval* rint) const;
 
+/*
+1.1.1 ~PosAtTime~
+
+Returns the position of the jpoint at the given time.
+
+*/
+
+double PosAtTime(const Instant* inst) const;
+JRouteInterval* PosAtTimeInterval(const Interval<Instant>& time) const;
+
+/*
+1.1.1 ~TimeAtPosTime~
+
+Returns the time when the jpoint was at the given position.
+
+*/
+
+Instant TimeAtPos(const double pos) const;
 
 /*
 1.1 Private declarations
@@ -262,24 +281,6 @@ both units is the same.
 */
 
 bool CanBeExtendedBy(const JUnit& other) const;
-
-/*
-1.1.1 ~PosAtTime~
-
-Returns the position of the jpoint at the given time instant.
-
-*/
-
-double PosAtTime(const Instant* inst) const;
-
-/*
-1.1.1 ~PosAtTime~
-
-Returns the position of the jpoint at the given time instant.
-
-*/
-
-Instant TimeAtPos(const double pos) const;
 
 
 };

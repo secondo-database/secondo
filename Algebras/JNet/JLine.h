@@ -36,6 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JList.h"
 #include "JNetwork.h"
 #include "SpatialAlgebra.h"
+#include "JPoint.h"
 
 /*
 1 class JLine
@@ -213,6 +214,15 @@ JRouteInterval* Intersection(const JRouteInterval& rint) const;
   /*DbArray<JRouteInterval>* Intersection(const DbArray<JRouteInterval>& in)
     const;*/
 
+/*
+1.1.1.1 ~Contains~
+
+Returns true if the ~jpoint~ is inside the ~jline~, false otherwise.
+
+*/
+
+bool Contains(const JPoint* jp) const;
+
 private:
 
 /*
@@ -274,12 +284,13 @@ void FillIntervalList(const DbArray<JRouteInterval>* rintList,
 1.1.1.1 GetOverlappingPos
 
 Searches binary in the list of sorted intervallist if a overlapping route
-interval for rint exists. If an overlapping route interval exists the position
-of this interval is returned. Otherwise -1 is returned.
+interval for rint or rloc exists. If an overlapping route interval exists the
+position of this interval is returned. Otherwise -1 is returned.
 
 */
 
-int GetOverlappingPos(const JRouteInterval& rint, int spos, int epos)  const;
+int GetOverlappingPos(const JRouteInterval& rint, int spos, int epos) const;
+int GetOverlappingPos(const RouteLocation& rloc, int spos, int epos) const;
 
 };
 
