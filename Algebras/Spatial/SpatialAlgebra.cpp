@@ -23429,6 +23429,7 @@ int collect_line2VM(Word* args, Word& result, int message, Word& local,
            }
        }
      }
+     line->DeleteIfAllowed();
   }
   stream.close();
 
