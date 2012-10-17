@@ -2266,6 +2266,70 @@ const string bboxSpec =
    "<text>query bbox(testmjp)</text--->))";
 
 Operator bboxJNet( "bbox", bboxSpec, 2, bboxMap, bboxSelect, bboxTM);
+/*
+1.1. Extend Datatypes
+
+1.1.1 ~union~
+
+Concats the given values to one single object if possible, otherwise an
+undefined object is returned.
+
+*/
+
+
+const string maps_union[2][3] =
+{
+  {MJPoint::BasicType(), MJPoint::BasicType(), MJPoint::BasicType()},
+  {JLine::BasicType(), JLine::BasicType(), JLine::BasicType()}
+};
+
+ListExpr unionTM (ListExpr args)
+{
+  return SimpleMaps<2,3>(maps_union, args);
+}
+
+int unionSelect(ListExpr args)
+{
+  return SimpleSelect<2,3>(maps_union, args);
+}
+
+template<class IOClass>
+int unionVM ( Word* args, Word& result, int message, Word& local,
+              Supplier s )
+{
+  result = qp->ResultStorage( s );
+  IOClass* src1 = ( IOClass* ) args[0].addr;
+  IOClass* src2 = (IOClass*) args[1].addr;
+  IOClass* r = static_cast<IOClass*> (result.addr);
+  if (src1 != NULL && src2 != NULL)
+  {
+    src1->Union(src2, r);
+  }
+   else
+     r->SetDefined(false);
+   return 0;
+}
+
+ValueMapping unionMap[] =
+{
+  unionVM<MJPoint>,
+  unionVM<JLine>
+};
+
+const string unionSpec =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "(<text>" +
+   MJPoint::BasicType() + " X " +  MJPoint::BasicType() + " -> " +
+   MJPoint::BasicType() + ", \n"+
+   JLine::BasicType() + " X " +  JLine::BasicType() + " -> " +
+   JLine::BasicType() +
+   "</text--->"
+   "<text><mjpoint> union <mjpoint2> </text--->"
+   "<text>Returns an object consisting  of the union of both input objects"
+   " if possible. Otherwise an undefined value is returned.</text--->"
+   "<text>query testmjp union testmjp1</text--->))";
+
+Operator unionJNet( "union", unionSpec, 2, unionMap, unionSelect, unionTM);
 
 /*
 1.1 Restrict Data Types
@@ -3633,6 +3697,12 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddOperator(&tempnetboxJNet);
   AddOperator(&netboxJNet);
   AddOperator(&bboxJNet);
+/*
+1.1.1.1 Extend Datatypes
+
+*/
+
+  AddOperator(&unionJNet);
 
 /*
 1.1.1.1 Restrict Datatypes

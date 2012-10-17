@@ -217,6 +217,15 @@ Returns the corresponding ~mpoint~ for this ~mjpoint~.
 
  void ToSpatial(MPoint& result) const;
 
+/*
+1.1.1.1 Union
+
+Computes the union of two ~mjpoint~ if possible otherwise the resulting
+~mjpoint~ is undefined.
+
+*/
+
+void Union(const MJPoint* other, MJPoint* result) const;
 
 /*
 1.1.1.1 ~AtInstant~

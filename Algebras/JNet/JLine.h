@@ -92,6 +92,7 @@ public:
   int NumOfFLOBs() const;
   Flob* GetFLOB(const int i);
   void Destroy();
+  void Clear();
   ostream& Print(ostream& os) const;
   Attribute::StorageType GetStorageType() const;
   static const string BasicType();
@@ -211,8 +212,6 @@ The intersection is returned if exists otherwise a 0 pointer is returned.
 */
 
 JRouteInterval* Intersection(const JRouteInterval& rint) const;
-  /*DbArray<JRouteInterval>* Intersection(const DbArray<JRouteInterval>& in)
-    const;*/
 
 /*
 1.1.1.1 ~Contains~
@@ -222,6 +221,15 @@ Returns true if the ~jpoint~ is inside the ~jline~, false otherwise.
 */
 
 bool Contains(const JPoint* jp) const;
+
+/*
+1.1.1.1 ~Union~
+
+Computes the union of the two given jline objects
+
+*/
+
+void Union(const JLine* other, JLine* result) const;
 
 private:
 
@@ -268,6 +276,15 @@ possible.
 */
 
   void Sort();
+
+/*
+1.1.1.1 Append
+
+Appends the intervals of the jline into the current jline.
+
+*/
+
+void Append(const JLine* other);
 
 /*
 1.1.1.1 FillIntervalList

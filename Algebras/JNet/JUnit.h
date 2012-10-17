@@ -254,6 +254,15 @@ Returns the time when the jpoint was at the given position.
 Instant TimeAtPos(const double pos) const;
 
 /*
+1.1.1. ~Contains~
+
+Returns true if this ~junit~ contains ~other~ junit.
+
+*/
+
+bool Contains(const JUnit& other) const;
+
+/*
 1.1 Private declarations
 
 */

@@ -46,7 +46,9 @@ Returns true if u is valid Defined and after lastUP
 
 bool checkNextUnit(JUnit u, JUnit lastUP)
 {
-  return(u.IsDefined() && lastUP.IsDefined() && u.Compare(lastUP) > 0);
+  return(u.IsDefined() &&
+         lastUP.IsDefined() &&
+         (u.Compare(lastUP) > 0 || lastUP.Contains(u)));
 }
 
 /*
@@ -327,6 +329,7 @@ void MJPoint::Destroy()
 void MJPoint::Clear()
 {
   units.clean();
+  units.TrimToSize();
   SetDefined(true);
   activBulkload = false;
 }
@@ -807,6 +810,52 @@ void MJPoint::ToSpatial(MPoint& result) const
 }
 
 /*
+1.1.1. ~Union~
+
+*/
+
+void MJPoint::Union(const MJPoint* other, MJPoint* result) const
+{
+  result->Clear();
+  if (IsDefined())
+  {
+    if (other != 0 && other->IsDefined())
+    {
+      if (strcmp(nid, *other->GetNetworkId()) == 0)
+      {
+        result->SetNetworkId(nid);
+        if(!IsEmpty())
+        {
+          if (!other->IsEmpty())
+          {
+            result->StartBulkload();
+            result->Append(this);
+            result->Append(other);
+            result->units.Sort(JUnit::Compare);
+            result->EndBulkload();
+          }
+          else
+            *result = *this;
+        }
+        else
+          *result = *other;
+      }
+      else
+        result->SetDefined(false);
+    }
+    else
+      *result = *this;
+  }
+  else
+  {
+    if (other != 0)
+      *result = *other;
+    else
+      result->SetDefined(false);
+  }
+}
+
+/*
 1.1.1 ~AtInstant~
 
 */
@@ -1237,6 +1286,7 @@ bool MJPoint::Simplify()
 
 void MJPoint::Append(const MJPoint* in)
 {
+  assert(activBulkload);
   JUnit curUnit;
   if (in != 0 && in->IsDefined() && !in->IsEmpty())
   {

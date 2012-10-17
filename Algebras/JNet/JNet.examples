@@ -951,6 +951,20 @@ Example  : query trajectory(testmjp);
 Result   : (jline("testjnet" ((1 0.001 0.01 (Up)))))
 Tolerance: 0.01%
 
+Operator : union
+Number   : 1
+Signature: mjpoint x mjpoint -> mjpoint
+Example  : query testmjp union testmjp;
+Result   : file
+Tolerance: 0.01%
+
+Operator : union
+Number   : 2
+Signature: jline X  jline -> jline
+Example  : query testjl union testjl;
+Result   : file
+Tolerance: 0.01%
+
 Operator : units
 Number   : 1
 Signature: mjpoint -> stream(ujpoint)

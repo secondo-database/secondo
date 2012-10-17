@@ -223,6 +223,15 @@ void JLine::Destroy()
   routeintervals.Destroy();
 }
 
+void JLine::Clear()
+{
+  routeintervals.clean();
+  SetDefined(true);
+  sorted = true;
+  activBulkload  = false;
+  routeintervals.TrimToSize();
+}
+
 Attribute::StorageType JLine::GetStorageType() const
 {
   return Default;
@@ -733,6 +742,51 @@ bool JLine::Contains(const JPoint* jp) const
 }
 
 /*
+1.1.1 Union
+
+*/
+
+void JLine::Union(const JLine* other, JLine* result) const
+{
+  result->Clear();
+  if (IsDefined())
+  {
+    if (other != 0 && other->IsDefined())
+    {
+      if (strcmp(nid, *other->GetNetworkId()) == 0)
+      {
+        result->SetNetworkId(nid);
+        if(!IsEmpty())
+        {
+          if (!other->IsEmpty())
+          {
+            result->StartBulkload();
+            result->Append(this);
+            result->Append(other);
+            result->EndBulkload();
+          }
+          else
+            *result = *this;
+        }
+        else
+          *result = *other;
+      }
+      else
+        result->SetDefined(false);
+    }
+    else
+        *result = *this;
+  }
+  else
+  {
+    if (other != 0)
+      *result = *other;
+    else
+      result->SetDefined(false);
+  }
+}
+
+/*
 1.1 private Methods
 
 1.1.1 FillIntervalList
@@ -772,6 +826,25 @@ void JLine::Sort()
       delete sorted;
     }
     sorted = true;
+  }
+}
+
+/*
+1.1.1 Append
+
+*/
+
+void JLine::Append(const JLine* other)
+{
+  assert(activBulkload);
+  JRouteInterval curInt;
+  if (other != 0 && other->IsDefined() && !other->IsEmpty())
+  {
+    for (int j = 0; j < other->GetNoComponents(); j++)
+    {
+      other->Get(j,curInt);
+      Add(curInt);
+    }
   }
 }
 

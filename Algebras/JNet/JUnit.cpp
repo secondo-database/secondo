@@ -443,7 +443,7 @@ bool JUnit::ExtendBy(const JUnit& other)
     return true;
   }
   else
-    return false;
+   return Contains(other);
 }
 
 /*
@@ -830,12 +830,28 @@ JRouteInterval* JUnit::PosAtTimeInterval(const Interval< Instant >& time) const
                             routeInter.GetSide());
 }
 
+/*
+1.1.1.1 ~TimeAtPos~
+
+*/
 
 Instant JUnit::TimeAtPos(const double pos) const
 {
   return (timeInter.end - timeInter.start)*
          (pos / fabs(routeInter.GetEndPosition()-routeInter.GetStartPosition()))
          + timeInter.start;
+}
+
+/*
+1.1.1.1 ~Contains~
+
+*/
+
+bool JUnit::Contains(const JUnit& other) const
+{
+  return (IsDefined() && other.IsDefined() &&
+          timeInter.Contains(other.GetTimeInterval(), true) &&
+          routeInter.Contains(other.GetRouteInterval()));
 }
 
 /*
