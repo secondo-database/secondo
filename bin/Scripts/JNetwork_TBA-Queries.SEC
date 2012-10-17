@@ -125,7 +125,7 @@ let TBAJNres005 =
     dataMcar_Licence_btree dataMcar exactmatch[attr(t,Licence_LL1)] {CAR}
     loopsel[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_CAR]]
     projectextend[;Traj: trajectory(.Trip)]
-    aggregateB[Traj; fun(L1: jline, L2: jline) L1 union L2; [const jline value ()]]
+    aggregateB[Traj; fun(L1: jline, L2: jline) L1 union L2; [const jline value ("JBNet" ())]]
     feed namedtransformstream[Traxj]
     extend[Licence: attr(t,Licence_LL1)]
   ]
@@ -135,7 +135,7 @@ let TBAJNres005 =
     dataMcar_Licence_btree dataMcar exactmatch[attr(s,Licence_LL2)] {CAR}
     loopsel[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_CAR]]
     projectextend[;Traj: trajectory(.Trip)]
-    aggregateB[Traj; fun(L3: jline, L4: jline) L3 union L4; [const jline value ()]]
+    aggregateB[Traj; fun(L3: jline, L4: jline) L3 union L4; [const jline value ("JBNet"())]]
     feed namedtransformstream[Traxj]
     extend[Licence: attr(s,Licence_LL2)]
   ]
@@ -307,7 +307,7 @@ let TBAJNres010 =
     filter[not(isempty(.Pos))]]
   sortby[QueryLicence asc, OtherLicence asc]
   groupby [QueryLicence, OtherLicence; AllPos: group feed
-    aggregateB[Pos; fun(M1:mjpoint, M2:mjpoint) M1 union M2; [const mjpoint value()]]]
+    aggregateB[Pos; fun(M1:mjpoint, M2:mjpoint) M1 union M2; [const mjpoint value("JBNet"())]]]
   project[QueryLicence, OtherLicence, AllPos]
   consume;
 
