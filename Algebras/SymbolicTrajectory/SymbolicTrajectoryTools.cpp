@@ -171,7 +171,20 @@ vector<string> splitPattern(string input) {
 }
 
 /*
+function ~extractVar~
+
+Takes an assignment string like ~time=Z.time~ and returns the variable string.
+
+*/
+string extractVar(string input) {
+  int posEq = input.find('=');
+  int posDot = input.find('.');
+  return input.substr(posEq + 1, posDot - posEq - 1);
+}
+
+/*
 function ~extendDate~
+
 Takes a datetime string and extends it to the format YYYY-MM-DD-HH:MM:SS.MMM,
 the variable ~start~ decides on the values.
 

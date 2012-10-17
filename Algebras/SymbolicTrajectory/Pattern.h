@@ -104,7 +104,8 @@ class MLabel : public MString {
 //   bool buildIndex(MLabel const &source);
   MLabel* compress();
   void create(int size, bool text, double rate);
-  void rewrite(MLabel const &ml, vector<size_t> seq, vector<UPat> assigns);
+  void rewrite(MLabel const &ml, pair<vector<size_t>, vector<size_t> > seq,
+               vector<UPat> assigns, map<string, int> varPos);
 
 //  private:
 //   bool hasIndex;
@@ -205,6 +206,8 @@ class Pattern {
   vector<UPat> results;
   vector<Condition> conds;
   string text;
+  map<string, int> varPos;
+  set<string> assignedVars; // variables on the right side of an assignment
 
  public:
   Pattern() {}
@@ -244,7 +247,8 @@ class Pattern {
   static Pattern* getPattern(string input);
   bool matches(MString const &ml);
   bool verifyPattern();
-  set<vector<size_t> > getRewriteSequences(MLabel const &ml);
+  set<pair<vector<size_t>, vector<size_t> > > getRewriteSeqs(MLabel const &ml);
+  map<string, int> getVarPosInSeq();
 
   vector<UPat>      getPats()               {return patterns;}
   vector<Condition> getConds()              {return conds;}
@@ -260,6 +264,12 @@ class Pattern {
   void      insertResLb(int pos, string lb) {results[pos].insertL(lb);}
   void              clearResIvs(int pos)    {results[pos].clearI();}
   void      insertResIv(int pos, string iv) {results[pos].insertI(iv);}
+  void       addVarPos(char* var, int pos)  {varPos[convert(var)] = pos;}
+  int               getVarPos(string var)   {return varPos[var];}
+  int               getSize()               {return patterns.size();}
+  map<string, int>  getVarPos()             {return varPos;}
+  void              insertAssVar(string v)  {assignedVars.insert(v);}
+  set<string>       getAssVars()            {return assignedVars;}
 };
 
 struct DoubleParsInfo {
@@ -281,9 +291,10 @@ class NFA {
   set<size_t> *match, *cardsets;
   set<multiset<size_t> > sequences; // all possible matching sequences
   set<vector<size_t> > condMatchings; // for condition evaluation
-  set<vector<size_t> > rewriteSeqs; // matching sequences for rewriting
-  vector<int> resultVars; // [3, 1] means: 1st result var is the one from the
-                          // 3rd up, 2nd result var is the one from the 1st up
+  set<pair<vector<size_t>, vector<size_t> > > rewriteSeqs; // rewrite sequences
+  map<int, int> resultVars; // (0,3) means: 0th result var occurs in 3rd unit p.
+  set<string> assignedVars;
+  map<string, int> varPos, varPosInSeq;
   set<int> doublePars; // positions of nonempty patterns in double parentheses
   int *seqOrder;
   map<string, bool> knownEval; // condition evaluation history
@@ -311,7 +322,7 @@ class NFA {
   void printCurrentStates();
   void printCards();
   void printSequences(size_t max);
-  void printRewriteSequences(size_t max);
+  void printRewriteSeqs(size_t max);
   void printCondMatchings(size_t max);
   void updateStates();
   bool labelsMatch(int pos);
@@ -323,9 +334,11 @@ class NFA {
   void buildSequences(); // for rewrite, every sequence must be built
   multiset<size_t> getNextSeq(); // for matches, we just need the next sequence
   void filterSequences(MString const &ml);
-  void buildRewriteSequence(multiset<size_t> sequence);
+  void buildRewriteSeq(multiset<size_t> sequence);
   void computeResultVars(vector<UPat> results);
-  set<vector<size_t> > getRewriteSequences();
+  void computeAssignedVars(vector<UPat> results);
+  set<pair<vector<size_t>, vector<size_t> > > getRewriteSeqs()
+                                              {return rewriteSeqs;}
   bool conditionsMatch(MString const &ml);
   void computeSeqOrder();
   size_t getRelevantCombs();
@@ -335,10 +348,17 @@ class NFA {
   bool evaluateCond(MString const &ml, int cId, multiset<size_t> sequence);
   string getLabelSubst(MString const &ml, int pos);
   string getTimeSubst(MString const &ml, Key key, size_t from, size_t to);
+  set<multiset<size_t> > getSequences() {return sequences;}
+  set<string> getAssVars() {return assignedVars;}
+  void setAssVars(set<string> aV) {assignedVars = aV;}
+  void setVarPos(map<string, int> vP) {varPos = vP;}
+  map<string, int> getVarPosInSeq() {return varPosInSeq;}
   string toString();
   void copyFromPattern(Pattern p) {
     patterns = p.getPats();
     conds = p.getConds();
+    assignedVars = p.getAssVars(); // TODO why is it empty?
+    varPos = p.getVarPos(); // TODO why is it empty?
   }
   void resetStates() {
     currentStates.clear();
@@ -348,35 +368,31 @@ class NFA {
 
 class RewriteResult {
  private:
-  set<vector<size_t> > sequences; // all matching sequences
-  set<vector<size_t> >::iterator it;
+  set<pair<vector<size_t>, vector<size_t> > > sequences; // matching sequences
+  set<pair<vector<size_t>, vector<size_t> > >::iterator it;
   MLabel *inputML;
   vector<UPat> assigns;
-  bool correct;
+  map<string, int> varPosInSeq;
   
  public:
-  RewriteResult(set<vector<size_t> > seqs, MLabel *ml, vector<UPat> assigns){
+  RewriteResult(set<pair<vector<size_t>, vector<size_t> > > seqs, MLabel *ml,
+                vector<UPat> assigns, map<string, int> vPIS){
     sequences = seqs;
     it = sequences.begin();
     inputML = ml;
     this->assigns = assigns;
-    correct = true;
-  }
-
-  RewriteResult(bool ok) {
-    correct = ok;
-    inputML = 0;
+    varPosInSeq = vPIS;
   }
 
   ~RewriteResult() {}
 
-  bool           finished()       {return (it == sequences.end());}
-  void           killMLabel()     {delete inputML; inputML = 0;}
-  MLabel         getML()          {return *inputML;}
-  vector<size_t> getCurrentSeq()  {return *it;}
-  vector<UPat>   getAssignments() {return assigns;}
-  void           next()           {it++;}
-  bool           isCorrect()      {return correct;}
+  bool             finished()       {return (it == sequences.end());}
+  void             killMLabel()     {delete inputML; inputML = 0;}
+  MLabel           getML()          {return *inputML;}
+  vector<UPat>     getAssignments() {return assigns;}
+  void             next()           {it++;}
+  map<string, int> getVarPosInSeq() {return varPosInSeq;}
+  pair<vector<size_t>, vector<size_t> > getCurrentSeq() {return *it;}
 };
 
 }

@@ -65,6 +65,7 @@ bool doublePars(false), firstAssign(true);
 string expr;
 set<string> curIvs;
 unsigned int pos = 0;
+char* errMsg;
 %}
 
 %union{
@@ -79,7 +80,7 @@ unsigned int pos = 0;
 %token ZZEND
 %token<text> ZZVARIABLE ZZCONTENTS ZZWILDCARD ZZDOUBLESLASH ZZVAR_DOT_TYPE
              ZZRIGHTARROW ZZCONST_OP ZZCONTENTS_RESULT ZZVAR_DOT_LABEL
-             ZZVAR_DOT_TIME ZZINTERVAL ZZASSIGN ZZLABEL ZZERROR
+             ZZVAR_DOT_TIME ZZVAR_DOT_TYPE2 ZZINTERVAL ZZASSIGN ZZLABEL ZZERROR
 %type<text> variable unitpattern conditionsequence condition expression
             resultsequence result assignment unitpattern_result
             results_assignments assignmentsequence
@@ -111,9 +112,66 @@ assignmentsequence : assignment
                    | assignmentsequence ',' assignment
                    ;
 
-assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABEL {
+assignment : ZZVAR_DOT_TYPE2 ZZASSIGN ZZVAR_DOT_TYPE2 {
+               string var1($1);
+               string arg($3);
+               string type = var1.substr(var1.find('.') + 1);
+               string var2 = arg.substr(0, arg.find('.'));
+               var1.assign(var1.substr(0, var1.find('.')));
+               uPat.getUnit(convert(var1), false);
+               if (!uPat.getV().empty()) {
+                 bool found1InRes(false), found2InPat(false);
+                 unsigned int i(0), j(0);
+                 while (!found1InRes && (i < wholepat->getResults().size())) {
+                   if (!wholepat->getResult(i).getV().compare(var1)) {
+                     found1InRes = true;
+                   }
+                   else {i++;}
+                 }
+                 while (!found2InPat && j < wholepat->getPats().size()) {
+                   if (!wholepat->getPat(j).getV().compare(var2)) {
+                     found2InPat = true;
+                   }
+                   else {j++;}
+                 }
+                 if (found1InRes && found2InPat) {
+                   string argType = arg.substr(arg.find('.') + 1);
+                   if ((type == "label") && (argType == "label")) {
+                     if (wholepat->getPats()[wholepat->getVarPos()[var2]].getW() == NO) {
+                       wholepat->insertResLb(i, "=" + var2);
+                       wholepat->insertAssVar(var2);
+                     }
+                     else {
+                       errMsg = convert("label assignment from sequence pattern invalid");
+                       yyerror(errMsg);
+                       YYERROR;
+                     }
+                   }
+                   else if (((type == "time") && (argType == "time"))
+                        || (((type == "start") || (type == "end"))
+                        && ((argType == "start") || (argType == "end")))) {
+                     wholepat->insertResIv(i, type + "=" + arg);
+                     wholepat->insertAssVar(var2);
+                   }
+                   else {
+                     errMsg = convert("invalid type combination");
+                     yyerror(errMsg);
+                     YYERROR;
+                   }
+                 }
+                 else {
+                   errMsg = convert("variables " + var1 + " & " + var2 + " not found");
+                   yyerror(errMsg);
+                   YYERROR;
+                 }
+               }
+               free($1);
+               free($3);
+             }
+           | ZZVAR_DOT_TYPE2 ZZASSIGN ZZLABEL {
                string var($1);
                string label($3);
+               string type = var.substr(var.find('.') + 1);
                if (label.at(0) == '\"') {
                  label.assign(label.substr(1, label.size() - 2));
                }
@@ -130,18 +188,20 @@ assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABEL {
                      i++;
                    }
                  }
-                 if (foundInRes) {
-                   wholepat->clearResLbs(i);
+                 if (foundInRes && (type == "label")) {
                    wholepat->insertResLb(i, label);
                  }
-                 cout << "unit added to assignments" << endl;
+                 else {
+                   cout << "variable " << var << " not found; assignment ignored" << endl;
+                 }
                }
                free($1);
                free($3);
              }
-           | ZZVAR_DOT_TIME ZZASSIGN ZZINTERVAL {
+           | ZZVAR_DOT_TYPE2 ZZASSIGN ZZINTERVAL {
                string var($1);
-               string interval($3);
+               string timeEx($3);
+               string type = var.substr(var.find('.') + 1);
                var.assign(var.substr(0, var.find('.')));
                uPat.getUnit(convert(var), false);
                if (!uPat.getV().empty()) {
@@ -155,11 +215,12 @@ assignment : ZZVAR_DOT_LABEL ZZASSIGN ZZLABEL {
                      i++;
                    }
                  }
-                 if (foundInRes) {
-                   wholepat->clearResIvs(i);
-                   wholepat->insertResIv(i, interval);
+                 if (foundInRes && ((type == "time") || (type == "start") || (type == "end"))) {
+                   wholepat->insertResIv(i, type + "=" + timeEx);
                  }
-                 cout << "unit added to assignments" << endl;
+                 else {
+                   cout << "variable " << var << " not found; assignment ignored" << endl;
+                 }
                }
                free($1);
                free($3);
@@ -176,7 +237,7 @@ result : ZZVARIABLE unitpattern_result {
              uPat.createUnit($1, $2);
              uPat.clearW();
              wholepat->addResult(uPat);
-             cout << "unit " << $2 << " added to results" << endl;}
+/*              cout << "unit " << $2 << " added to results" << endl;*/} 
            else {
              cout << $1 << " was not found in the pattern" << endl;
            }
@@ -188,7 +249,7 @@ result : ZZVARIABLE unitpattern_result {
            if (!uPat.getV().empty()) {
              uPat.clearL();
              wholepat->addResult(uPat);
-             cout << "unit added to results" << endl;}
+/*              cout << "unit added to results" << endl;*/}
            else {
              cout << $1 << " was not found in the pattern" << endl;
            }
@@ -356,6 +417,7 @@ patternsequence : variable unitpattern {
                     $$ = wholepat;
                     uPat.createUnit($1, $2);
                     wholepat->addUPat(uPat);
+                    wholepat->addVarPos($1, wholepat->getSize() - 1);
                     free($1);
                     free($2);
                     //cout << "pattern #" << wholepat->getPats().size() << endl;
@@ -364,6 +426,7 @@ patternsequence : variable unitpattern {
                     $$ = wholepat;
                     uPat.createUnit($2, $3);
                     wholepat->addUPat(uPat);
+                    wholepat->addVarPos($2, wholepat->getSize() - 1);
                     free($2);
                     free($3);
                     //cout << "pattern #" << wholepat->getPats().size() << endl;
@@ -443,7 +506,7 @@ void UPat::getUnit(const char *varP, bool order) {
       wc = (wholepat->getPat(pos)).wc;
       found = true;
       curIvs = ivs;
-      cout << "variable " << var << " found in pattern " << pos << endl;
+/*       cout << "variable " << var << " found in pattern " << pos << endl; */
     }
     cout << pos << " " << (wholepat->getPat(pos)).var << endl;
     pos++;

@@ -48,6 +48,7 @@ string setToString(set<string> input);
 int prefixCount(string str, set<string> strings);
 vector<string> splitPattern(string input);
 char* convert(string arg);
+string extractVar(string input);
 string extendDate(string input, const bool start);
 bool checkSemanticDate(const string text, const SecInterval uIv,
                        const bool resultNeeded);

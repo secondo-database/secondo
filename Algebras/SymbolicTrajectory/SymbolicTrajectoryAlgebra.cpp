@@ -487,59 +487,93 @@ void MLabel::create(int size, bool text, double rate = 1.0) {
 Rewrites a moving label using another moving label and a vector.
 
 */
-void MLabel::rewrite(MLabel const &ml, vector<size_t> seq,
-                     vector<UPat> assigns) {
-  ULabel ul(1);
-  for (int i = 0; i < (int)seq.size(); i++) {
-    if ((seq[i] < 0) || (seq[i] > (size_t)ml.GetNoComponents())
-     || (seq[i] > seq[i + 1])) {
-       cout << "Error: " << seq[i] << ", " << seq[i + 1] << endl;
+void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
+                     vector<UPat> assigns, map<string, int> varPosInSeq) {
+  ULabel ul(1), ulSource(1);
+  int pos;
+  for (int i = 0; i < (int)seq.first.size(); i = i + 2) {
+    if ((seq.first[i] < 0) || (seq.first[i] > (size_t)ml.GetNoComponents())
+     || (seq.first[i] > seq.first[i + 1])) {
+       cout << "Error: " << seq.first[i] << ", " << seq.first[i + 1] << endl;
     }
     else {
-      for (size_t j = seq[i]; j < seq[i + 1]; j++) {
+      for (size_t j = seq.first[i]; j < seq.first[i + 1]; j++) {
+        cout << "i = " << i << " ||| j = " << j << endl;
         ml.Get(j, ul);
         if (!assigns[i / 2].getL().empty()) { // assign new label
-          ul.constValue.Set(true, (*(assigns[i / 2].getL().begin())));
+          if (assigns[i / 2].getL().size() == 1) { // one assignment
+            string label = *(assigns[i / 2].getL().begin());
+            if (label.at(0) == '=') {
+              pos = varPosInSeq[label.substr(1, label.find('.'))];
+              ml.Get(seq.second[pos], ulSource);
+              ul.constValue.Set(true, ulSource.constValue.GetValue());
+            }
+            else {
+              ul.constValue.Set(true, label);
+            }
+          }
+          else { // size > 1
+            cout << "Error: more than one assignment for "
+                 << assigns[i / 2].getV() << ".label" << endl;
+            this->SetDefined(false);
+            return;
+          }
         }
-        if (!assigns[i / 2].getI().empty() && (seq[i] + 1 == seq[i + 1])) {
+        if (!assigns[i / 2].getI().empty()
+        && (seq.first[i] + 1 == seq.first[i + 1])) {
           Instant *newStart = new DateTime(instanttype);
           Instant *newEnd = new DateTime(instanttype);
           SecInterval *newIv = new SecInterval(0);
           string iv = *(assigns[i / 2].getI().begin());
-          if (iv.at(0) == '~') { // case ~2012-05-12
-            *newStart = ul.timeInterval.start;
-            newEnd->ReadFrom(extendDate(iv.substr(1), false));
+          if (iv.find('=') != string::npos) { // case Y.{t|s|e} := X.{t|s|e}
+            bool lc, rc;
+            pos = varPosInSeq[extractVar(iv)];
+            ml.Get(seq.second[pos], ulSource);
+            *newStart = ulSource.timeInterval.start;
+            lc = ulSource.timeInterval.lc;
+            *newEnd = ulSource.timeInterval.end;
+            rc = ulSource.timeInterval.rc;
+            newIv->Set(*newStart, *newEnd, lc, rc);
           }
-          else if (iv[iv.size() - 1] == '~') { //case 2011-04-02-19:09~
-            newStart->ReadFrom(extendDate(iv.substr(0, iv.size() - 1), true));
-            *newEnd = ul.timeInterval.end;
+          else {
+            if (iv.at(0) == '~') { // case ~2012-05-12
+              *newStart = ul.timeInterval.start;
+              newEnd->ReadFrom(extendDate(iv.substr(1), false));
+            }
+            else if (iv[iv.size() - 1] == '~') { //case 2011-04-02-19:09~
+              newStart->ReadFrom(extendDate(iv.substr(0, iv.size() - 1), true));
+              *newEnd = ul.timeInterval.end;
+            }
+            else if ((iv.find('~')) == string::npos) { // no [~] found
+              newStart->ReadFrom(extendDate(iv, true));
+              newEnd->ReadFrom(extendDate(iv, false));
+            }
+            else { // 2012-05-12-20:00~2012-05-12-22:00
+              newStart->ReadFrom(extendDate(iv.substr(0, iv.find('~')), true));
+              newEnd->ReadFrom(extendDate(iv.substr(iv.find('~') + 1), false));
+            }
+            newIv->Set(*newStart, *newEnd, true, false);
           }
-          else if ((iv.find('~')) == string::npos) { // no [~] found
-            newStart->ReadFrom(extendDate(iv, true));
-            newEnd->ReadFrom(extendDate(iv, false));
-          }
-          else { // 2012-05-12-20:00~2012-05-12-22:00
-            newStart->ReadFrom(extendDate(iv.substr(0, iv.find('~')), true));
-            newEnd->ReadFrom(extendDate(iv.substr(iv.find('~') + 1), false));
-          }
-          newIv->Set(*newStart, *newEnd, true, false);
           if (newIv->IsValid()) {
             ul.timeInterval = *newIv;
           }
           else {
-            cout << "Error: new interval invalid." << endl;
+            cout << "Error: new interval " << iv << " invalid." << endl;
+            this->SetDefined(false);
           }
           delete newIv;
           delete newStart;
           delete newEnd;
         }
+        if (!this->IsDefined()) {
+          return;
+        }
         this->MergeAdd(ul);
       }
     }
-    i++;
   }
   if (!this->IsValid()) {
-    this->Clear();
+    this->SetDefined(false);
   }
 }
 
@@ -1353,20 +1387,27 @@ bool Pattern::matches(MString const &ml) {
 }
 
 /*
-\subsection{Function ~getRewriteSequences~}
+\subsection{Function ~getRewriteSeqs~}
 
 Performs a match and returns the set of matching sequences for the operator
 ~rewrite~.
 
 */
-set<vector<size_t> > Pattern::getRewriteSequences(MLabel const &ml) {
-  set<vector<size_t> > result;
-  if (!verifyPattern() || !verifyConditions() || !hasResults()) {
+set<pair<vector<size_t>, vector<size_t> > > Pattern::
+                                            getRewriteSeqs(MLabel const &ml) {
+  set<pair<vector<size_t>, vector<size_t> > > result;
+  if (!verifyPattern() || !verifyConditions()) {
     cout << "Error: Invalid pattern." << endl;
+    return result;
+  }
+  if (!hasResults()) {
+    cout << "No result specified." << endl;
     return result;
   }
   NFA *nfa = new NFA(patterns.size() + 1);
   nfa->buildNFA(*this);
+  nfa->setAssVars(this->getAssVars());
+  nfa->setVarPos(this->getVarPos());
 //   cout << nfa->toString() << endl;
   if (!nfa->matches(ml, true)) {
     cout << "Error: Mismatch" << endl;
@@ -1377,25 +1418,34 @@ set<vector<size_t> > Pattern::getRewriteSequences(MLabel const &ml) {
   nfa->buildSequences();
 //   nfa->printSequences(300);
   nfa->filterSequences(ml);
-//   nfa->printRewriteSequences(50);
-  result = nfa->getRewriteSequences();
+//   nfa->printRewriteSeqs(50);
+  result = nfa->getRewriteSeqs();
   delete nfa;
   return result;
 }
 
-/*
-\subsection{Function ~getRewriteSequences~}
-
-*/
-set<vector<size_t> > NFA::getRewriteSequences() {
-  return rewriteSeqs;
+map<string, int> Pattern::getVarPosInSeq() {
+  set<string>::iterator it;
+  int pos = 0;
+  map<string, int> result;
+  for (it = assignedVars.begin(); it != assignedVars.end(); it++) {
+    result[*it] = pos;
+    pos = pos + 2;
+  }
+  cout << endl << "varPosInSeq=";
+  map<string, int>::iterator ite;
+  for (ite = result.begin(); ite != result.end(); ite++) {
+    cout << (*ite).first << "|" << (*ite).second << "<  >";
+  }
+  cout << endl;
+  return result;
 }
 
 /*
-\subsection{Function ~buildResultVars~}
+\subsection{Function ~computeResultVars~}
 
-Computes a vector containing the positions of the unit patterns which the
-result variables belong to.
+Computes a mapping containing the positions of the unit patterns the result
+variables belong to.
 
 */
 void NFA::computeResultVars(vector<UPat> results) {
@@ -1405,7 +1455,7 @@ void NFA::computeResultVars(vector<UPat> results) {
     int j = 0;
     while (!found) {
       if (!results[i].getV().compare(patterns[j].getV())) {
-        resultVars.push_back(j);
+        resultVars[i] = j;
         j = 0;
         found = true;
       }
@@ -1419,8 +1469,8 @@ void NFA::computeResultVars(vector<UPat> results) {
 /*
 \subsection{Function ~filterSequences~}
 
-Searches for sequences which fulfill all conditions and stores parts of them for
-rewriting.
+Searches for sequences which fulfill all conditions and stores their relevant
+parts for rewriting.
 
 */
 void NFA::filterSequences(MString const &ml) {
@@ -1436,18 +1486,19 @@ void NFA::filterSequences(MString const &ml) {
         i = conds.size(); // continue with next sequence
       }
       else if (i == (int)conds.size() - 1) { // all conditions are fulfilled
-        buildRewriteSequence(*it);
+        buildRewriteSeq(*it);
       }
     }
     if (conds.empty()) {
-      buildRewriteSequence(*it);
+      buildRewriteSeq(*it);
     }
   }
 }
 
-void NFA::buildRewriteSequence(multiset<size_t> sequence) {
+void NFA::buildRewriteSeq(multiset<size_t> sequence) {
   vector<size_t> seq(sequence.begin(), sequence.end());
-  vector<size_t> rewriteSeq;
+  vector<size_t> rewriteSeq, assignedSeq;
+  pair<vector<size_t>, vector<size_t> > completeSeq;
   for (int j = 0; j < (int)resultVars.size(); j++) {
     rewriteSeq.push_back(seq[resultVars[j]]); // begin
     if (resultVars[j] < f - 1) {
@@ -1457,7 +1508,24 @@ void NFA::buildRewriteSequence(multiset<size_t> sequence) {
       rewriteSeq.push_back(numOfLabels);
     }
   }
-  rewriteSeqs.insert(rewriteSeq);
+  set<string>::iterator it; // for assigned variables (... := X...)
+  for (it = assignedVars.begin(); it != assignedVars.end(); it++) {
+    assignedSeq.push_back(seq[varPos[*it]]);
+    if (varPos[*it] < f - 1) {
+      assignedSeq.push_back(seq[varPos[*it] + 1]);
+    }
+    else { // last state
+      assignedSeq.push_back(numOfLabels);
+    }
+  }
+  cout << "assignedSeq=";
+  for (int i = 0; i < (int)assignedSeq.size(); i++) {
+    cout << assignedSeq[i] << "|";
+  }
+  cout << endl;
+  completeSeq.first = rewriteSeq;
+  completeSeq.second = assignedSeq;
+  rewriteSeqs.insert(completeSeq);
 }
 
 /*
@@ -1717,20 +1785,20 @@ void NFA::printSequences(size_t max) {
 }
 
 /*
-\subsection{Function ~printRewriteSequences~}
+\subsection{Function ~printRewriteSeqs~}
 
 Displays the sequences for rewriting. As the number of sequences may be very
 high, only the first ~max~ sequences are printed.
 
 */
-void NFA::printRewriteSequences(size_t max) {
-  set<vector<size_t> >::iterator it;
+void NFA::printRewriteSeqs(size_t max) {
+  set<pair<vector<size_t>, vector<size_t> > >::iterator it;
   unsigned int seqCount = 0;
   it = rewriteSeqs.begin();
   while ((seqCount < max) && (it != rewriteSeqs.end())) {
     cout << "result_" << (seqCount < 9 ? "0" : "") << seqCount  + 1 << " | ";
-    for (unsigned int i = 0; i < (*it).size(); i++) {
-      cout << (*it)[i] << ", ";
+    for (unsigned int i = 0; i < (*it).first.size(); i++) {
+      cout << (*it).first[i] << ", ";
     }
     cout << endl;
     it++;
@@ -2909,14 +2977,14 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
                   Supplier s) {
   MLabel* mlabel = 0;
   MLabel* ml = 0;
-  FText* patternText = 0;
-  Pattern *pattern = 0;
+  FText* pText = 0;
+  Pattern *p = 0;
   RewriteResult *rr = 0;
   switch (message) {
     case OPEN: {
       mlabel = static_cast<MLabel*>(args[0].addr);
-      patternText = static_cast<FText*>(args[1].addr);
-      if (!patternText->IsDefined()) {
+      pText = static_cast<FText*>(args[1].addr);
+      if (!pText->IsDefined()) {
         cout << "Error: undefined pattern text." << endl;
         return 0;
       }
@@ -2924,17 +2992,19 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
         cout << "Error: undefined MLabel." << endl;
         return 0;
       }
-      pattern = Pattern::getPattern(patternText->toText());
-      if (!pattern) {
+      p = Pattern::getPattern(pText->toText());
+      if (!p) {
         cout << "Error: pattern not initialized." << endl;
-        rr = new RewriteResult(false);
       }
       else {
         MLabel* mlNew = mlabel->compress();
-        rr = new RewriteResult(pattern->getRewriteSequences(*mlNew), mlNew,
-                               pattern->getResults());
+        set<pair<vector<size_t>, vector<size_t> > > rewriteSeqs =
+                                                    p->getRewriteSeqs(*mlNew);
+        map<string, int> varPosInSeq = p->getVarPosInSeq();
+        rr = new RewriteResult(rewriteSeqs, mlNew, p->getResults(),
+                               varPosInSeq);
       }
-      delete pattern;
+      delete p;
       local.addr = rr;
       return 0;
     }  
@@ -2949,15 +3019,19 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
         return CANCEL;
       }
       ml = new MLabel(1);
-      if (rr->isCorrect()) {
-        ml->rewrite(rr->getML(), rr->getCurrentSeq(), rr->getAssignments());
-        result.addr = ml;
+      do {
+        ml->rewrite(rr->getML(), rr->getCurrentSeq(), rr->getAssignments(),
+                    rr->getVarPosInSeq());
         rr->next();
+      } while (!ml->IsDefined() && !rr->finished());
+      if (ml->IsDefined()) {
+        result.addr = ml;
         return YIELD;
       }
-      cout << "No rewrite result." << endl;
-      result.addr = 0;
-      return CANCEL;
+      else {
+        result.addr = 0;
+        return CANCEL;
+      }
     }
     case CLOSE: {
       if (local.addr) {
