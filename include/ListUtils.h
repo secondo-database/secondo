@@ -61,6 +61,13 @@ CHecks whether this list corresponds to a type in given kind
 
 
 /*
+Returns the value of a text or a string atom
+
+*/
+ string stringValue(ListExpr src);
+
+
+/*
 Check for rect, rect3, rect4, rect8
 
 */
