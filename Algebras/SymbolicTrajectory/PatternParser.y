@@ -192,7 +192,9 @@ assignment : ZZVAR_DOT_TYPE2 ZZASSIGN ZZVAR_DOT_TYPE2 {
                    wholepat->insertResLb(i, label);
                  }
                  else {
-                   cout << "variable " << var << " not found; assignment ignored" << endl;
+                   errMsg = convert("variable or type error");
+                   yyerror(errMsg);
+                   YYERROR;
                  }
                }
                free($1);
@@ -219,7 +221,9 @@ assignment : ZZVAR_DOT_TYPE2 ZZASSIGN ZZVAR_DOT_TYPE2 {
                    wholepat->insertResIv(i, type + "=" + timeEx);
                  }
                  else {
-                   cout << "variable " << var << " not found; assignment ignored" << endl;
+                   errMsg = convert("variable or type error");
+                   yyerror(errMsg);
+                   YYERROR;
                  }
                }
                free($1);

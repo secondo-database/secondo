@@ -489,7 +489,24 @@ Rewrites a moving label using another moving label and a vector.
 */
 void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
                      vector<UPat> assigns, map<string, int> varPosInSeq) {
-  ULabel ul(1), ulSource(1);
+  cout << "seq=";
+  for (int i = 0; i < (int)seq.first.size(); i++) {
+    cout << seq.first[i] << "|";
+  }
+  cout << endl << "assignedSeq=";
+  for (int i = 0; i < (int)seq.second.size(); i++) {
+    cout << seq.second[i] << "|";
+  }
+  cout << endl;
+  for (int i = 0; i < (int)seq.second.size(); i = i + 2) {
+    if ((seq.second[i] < 0) || (seq.second[i] > (size_t)ml.GetNoComponents())
+     || (seq.second[i] >= seq.second[i + 1])) {
+      cout << "Error: empty assignment sequence" << endl;
+      this->SetDefined(false);
+      return;
+    }
+  }
+  ULabel ul(1), uls(1);
   int pos;
   for (int i = 0; i < (int)seq.first.size(); i = i + 2) {
     if ((seq.first[i] < 0) || (seq.first[i] > (size_t)ml.GetNoComponents())
@@ -505,8 +522,8 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
             string label = *(assigns[i / 2].getL().begin());
             if (label.at(0) == '=') {
               pos = varPosInSeq[label.substr(1, label.find('.'))];
-              ml.Get(seq.second[pos], ulSource);
-              ul.constValue.Set(true, ulSource.constValue.GetValue());
+              ml.Get(seq.second[pos], uls);
+              ul.constValue.Set(true, uls.constValue.GetValue());
             }
             else {
               ul.constValue.Set(true, label);
@@ -520,22 +537,66 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
           }
         }
         if (!assigns[i / 2].getI().empty()
-        && (seq.first[i] + 1 == seq.first[i + 1])) {
+        && ((j == seq.first[i]) || (j == seq.first[i + 1] - 1))) {
           Instant *newStart = new DateTime(instanttype);
           Instant *newEnd = new DateTime(instanttype);
           SecInterval *newIv = new SecInterval(0);
           string iv = *(assigns[i / 2].getI().begin());
-          if (iv.find('=') != string::npos) { // case Y.{t|s|e} := X.{t|s|e}
-            bool lc, rc;
+          if (iv.find('.') != string::npos) { // case Y.{t|s|e} := X.{t|s|e}
             pos = varPosInSeq[extractVar(iv)];
-            ml.Get(seq.second[pos], ulSource);
-            *newStart = ulSource.timeInterval.start;
-            lc = ulSource.timeInterval.lc;
-            *newEnd = ulSource.timeInterval.end;
-            rc = ulSource.timeInterval.rc;
-            newIv->Set(*newStart, *newEnd, lc, rc);
+            if (!iv.find("start") && (j == seq.first[i])) { //Y.start := X.{s|e}
+              ml.Get(seq.second[pos], uls);
+              *newIv = ul.timeInterval;
+              if (iv.find("start", iv.find('=')) != string::npos) { //:= X.start
+                if (!newIv->SetStart(uls.timeInterval.start,
+                                     uls.timeInterval.lc)) {
+                  cout << "new interval invalid" << endl;
+                  this->SetDefined(false);
+                }
+              }
+              else if (iv.find("end", iv.find('=')) != string::npos) { //:=X.end
+                if (!newIv->SetStart(uls.timeInterval.end,
+                                     uls.timeInterval.rc)) {
+                  cout << "new interval invalid" << endl;
+                  this->SetDefined(false);
+                }
+              }
+            }
+            else if (!iv.find("end") && (j == seq.first[i + 1] - 1)) {
+              ml.Get(seq.second[pos], uls); // Y.end := X.{s|e}
+              *newIv = ul.timeInterval;
+              if (iv.find("start", iv.find('=')) != string::npos) { //:= X.start
+                if (!newIv->SetEnd(uls.timeInterval.start,
+                                   uls.timeInterval.lc)) {
+                  cout << "new interval invalid" << endl;
+                  this->SetDefined(false);
+                }
+              }
+              else if (iv.find("end", iv.find('=')) != string::npos) { //:=X.end
+                if (!newIv->SetEnd(uls.timeInterval.end, uls.timeInterval.rc)) {
+                  cout << "new interval invalid" << endl;
+                  this->SetDefined(false);
+                }
+              }
+            }
+            else if (iv.find("time", iv.find('=')) != string::npos) {
+              if ((j == seq.first[i]) && (j == seq.first[i + 1] - 1)) { 
+                ml.Get(seq.second[pos], uls);
+                *newIv = uls.timeInterval;
+                ml.Get(seq.second[pos + 1] - 1, uls);
+                if (!newIv->SetEnd(uls.timeInterval.end, uls.timeInterval.rc)) {
+                  cout << "new interval invalid" << endl;
+                  this->SetDefined(false);
+                }
+              }
+            }
+            if ((!iv.find("start") && (j == seq.first[i + 1] - 1))
+            || ((!iv.find("end") && (j == seq.first[i])))) {
+              *newIv = ul.timeInterval;
+            }
           }
           else {
+            iv = iv.substr(iv.find('=') + 1);
             if (iv.at(0) == '~') { // case ~2012-05-12
               *newStart = ul.timeInterval.start;
               newEnd->ReadFrom(extendDate(iv.substr(1), false));
@@ -558,7 +619,7 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
             ul.timeInterval = *newIv;
           }
           else {
-            cout << "Error: new interval " << iv << " invalid." << endl;
+            cout << "New interval " << newIv->ToString() << " invalid." << endl;
             this->SetDefined(false);
           }
           delete newIv;
@@ -1435,7 +1496,7 @@ map<string, int> Pattern::getVarPosInSeq() {
   cout << endl << "varPosInSeq=";
   map<string, int>::iterator ite;
   for (ite = result.begin(); ite != result.end(); ite++) {
-    cout << (*ite).first << "|" << (*ite).second << "<  >";
+    cout << (*ite).first << "|" << (*ite).second << "--";
   }
   cout << endl;
   return result;
@@ -1518,11 +1579,6 @@ void NFA::buildRewriteSeq(multiset<size_t> sequence) {
       assignedSeq.push_back(numOfLabels);
     }
   }
-  cout << "assignedSeq=";
-  for (int i = 0; i < (int)assignedSeq.size(); i++) {
-    cout << assignedSeq[i] << "|";
-  }
-  cout << endl;
   completeSeq.first = rewriteSeq;
   completeSeq.second = assignedSeq;
   rewriteSeqs.insert(completeSeq);
