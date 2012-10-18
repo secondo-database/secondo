@@ -411,7 +411,7 @@ for deleting the result using delete[]. If an error occurs, the result
 will be null.
 
 */
-    inline char* getData(){
+    inline char* getData() const{
          char*res = new char[size];
          if(!read(res,size,0)){
              delete[] res;
