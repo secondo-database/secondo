@@ -67,7 +67,7 @@ using namespace ftext;
 
 */
 
-inline BinaryFile::BinaryFile( const int size, const bool defined /* =0 */ ) :
+BinaryFile::BinaryFile( const int size, const bool defined /* =0 */ ) :
 Attribute(defined),
 binData( size ),
 canDelete( false )
