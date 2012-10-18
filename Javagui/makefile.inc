@@ -91,7 +91,7 @@ JARS := $(JLEXCLASSESPATH):$(CUPCLASSESPATH)
 JARS := $(JARS):$(LIBPATH)/jl0.4.jar
 JARS := $(JARS):$(LIBPATH)/14_os_jpedal.jar
 JARS := $(JARS):$(LIBPATH)/batik.jar
-JARS := $(JARS):$(LIBPATH)/grappa1_1.jar
+JARS := $(JARS):$(LIBPATH)/grappa1_2.jar
 
 
 
