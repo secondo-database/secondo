@@ -3259,14 +3259,15 @@ ListExpr
 RootTupleSizeTypeMap(ListExpr args)
 {
 
-  if(nl->ListLength(args)!=1){
-    ErrorReporter::ReportError("one argument expected");
-    return nl->TypeError();
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
   }
   ListExpr first = nl->First(args);
+
   if(!listutils::isTupleStream(first) &&
-     !listutils::isRelDescription(first)){
-    ErrorReporter::ReportError("tuple stream or relation expected");
+     !listutils::isRelDescription(first) &&
+     !Tuple::checkType(first)){
+    ErrorReporter::ReportError("tuple stream, relation, or tuple expected");
     return nl->TypeError();
   }
   return nl->SymbolAtom(CcInt::BasicType());
@@ -3320,6 +3321,18 @@ RootTupleSizeRel(Word* args, Word& result, int message,
   return 0;
 }
 
+
+int
+RootTupleSizeTuple(Word* args, Word& result, int message,
+                 Word& local, Supplier s)
+{
+   Tuple* tup = (Tuple*) args [0].addr;
+   result=qp->ResultStorage(s);
+   CcInt* res = (CcInt*) result.addr;
+   res->Set(true, tup->GetRootSize());
+   return 0;
+}
+
 /*
 
 5.11.3 Specification of operator ~roottuplesize~
@@ -3328,7 +3341,7 @@ RootTupleSizeRel(Word* args, Word& result, int message,
 const string RootTupleSizeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>((stream|rel (tuple x))) -> int"
+  "( <text>((stream|rel (tuple x))) | tuple -> int"
   "</text--->"
   "<text>_ roottuplesize</text--->"
   "<text>Return the size of the tuples' root part within a "
@@ -3340,20 +3353,36 @@ const string RootTupleSizeSpec  =
 /*
 5.11.4 Selection function of operator ~roottuplesize~
 
-This function is the same as for the ~count~ operator.
+*/
+int roottuplesizeSelect(ListExpr args){
 
+   ListExpr arg = nl->First(args);
+   if(Stream<Tuple>::checkType(arg)){
+     return 0;
+   }
+   if(listutils::isRelDescription(arg)){
+     return 1;
+   }
+   if(Tuple::checkType(arg)){
+     return 2;
+   }
+   return -1; 
+}
+
+/*
 5.11.5 Definition of operator ~roottuplesize~
 
 */
 ValueMapping roottuplesizemap[] = {RootTupleSizeStream,
-                                   RootTupleSizeRel };
+                                   RootTupleSizeRel,
+                                   RootTupleSizeTuple };
 
 Operator relalgroottuplesize (
          "roottuplesize",           // name
          RootTupleSizeSpec,         // specification
-         2,                     // number of value mapping functions
+         3,                     // number of value mapping functions
          roottuplesizemap,          // value mapping functions
-         TCountSelect,          // selection function
+         roottuplesizeSelect,          // selection function
          RootTupleSizeTypeMap       // type mapping
 );
 
@@ -3383,8 +3412,9 @@ ExtTupleSizeTypeMap(ListExpr args)
   }
   ListExpr first = nl->First(args);
   if(!listutils::isTupleStream(first) &&
-     !listutils::isRelDescription(first)){
-    ErrorReporter::ReportError("tuple stream or relation expected");
+     !listutils::isRelDescription(first) &&
+     !Tuple::checkType(first)){
+    ErrorReporter::ReportError("tuple stream, relation, or tuple  expected");
     return nl->TypeError();
   }
   return nl->SymbolAtom(CcReal::BasicType());
@@ -3439,6 +3469,17 @@ ExtTupleSizeRel(Word* args, Word& result, int message,
 }
 
 
+int
+ExtTupleSizeTuple(Word* args, Word& result, int message,
+                Word& local, Supplier s)
+{
+   Tuple* tup = (Tuple*) args [0].addr;
+   result=qp->ResultStorage(s);
+   CcReal* res = (CcReal*) result.addr;
+   res->Set(true, tup->GetExtSize());
+   return 0;
+}
+
 /*
 
 5.11.3 Specification of operator ~exttuplesize~
@@ -3447,7 +3488,7 @@ ExtTupleSizeRel(Word* args, Word& result, int message,
 const string ExtTupleSizeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>((stream/rel (tuple x))) -> real"
+  "( <text>((stream/rel (tuple x)))  | tuple -> real"
   "</text--->"
   "<text>_ exttuplesize</text--->"
   "<text>Return the average size of the tuples within a stream "
@@ -3459,20 +3500,37 @@ const string ExtTupleSizeSpec  =
 /*
 5.11.4 Selection function of operator ~exttuplesize~
 
-This function is the same as for the ~count~ operator.
+*/
 
+int exttuplesizeSelect(ListExpr args){
+
+   ListExpr arg = nl->First(args);
+   if(Stream<Tuple>::checkType(arg)){
+     return 0;
+   }
+   if(listutils::isRelDescription(arg)){
+     return 1;
+   }
+   if(Tuple::checkType(arg)){
+     return 2;
+   }
+   return -1; 
+}
+
+/*
 5.11.5 Definition of operator ~exttuplesize~
 
 */
 ValueMapping exttuplesizemap[] = {ExtTupleSizeStream,
-                                  ExtTupleSizeRel };
+                                  ExtTupleSizeRel,
+                                  ExtTupleSizeTuple };
 
 Operator relalgexttuplesize (
          "exttuplesize",           // name
          ExtTupleSizeSpec,         // specification
-         2,                     // number of value mapping functions
+         3,                     // number of value mapping functions
          exttuplesizemap,          // value mapping functions
-         TCountSelect,          // selection function
+         exttuplesizeSelect,          // selection function
          ExtTupleSizeTypeMap       // type mapping
 );
 
@@ -3502,8 +3560,9 @@ TupleSizeTypeMap(ListExpr args)
   ListExpr first = nl->First(args);
   if(!listutils::isTupleStream(first) &&
      !listutils::isRelDescription(first,false) &&
-     !listutils::isRelDescription(first,true)){
-    ErrorReporter::ReportError("tuple stream or relation expected");
+     !listutils::isRelDescription(first,true) &&
+     !Tuple::checkType(first)){
+    ErrorReporter::ReportError("tuple stream, relation, or tuple  expected");
     return nl->TypeError();
   }
   return nl->SymbolAtom(CcReal::BasicType());
@@ -3559,6 +3618,18 @@ TupleSizeRel(Word* args, Word& result, int message,
 }
 
 
+int
+TupleSizeTuple(Word* args, Word& result, int message,
+                Word& local, Supplier s)
+{
+   Tuple* tup = (Tuple*) args [0].addr;
+   result=qp->ResultStorage(s);
+   CcReal* res = (CcReal*) result.addr;
+   res->Set(true, tup->GetSize());
+   return 0;
+}
+
+
 /*
 
 5.11.3 Specification of operator ~tuplesize~
@@ -3567,7 +3638,7 @@ TupleSizeRel(Word* args, Word& result, int message,
 const string TupleSizeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>((stream/rel (tuple x))) -> real"
+  "( <text>((stream/rel (tuple x))) | tuple -> real"
   "</text--->"
   "<text>_ tuplesize</text--->"
   "<text>Return the average size of the tuples within a stream "
@@ -3579,21 +3650,99 @@ const string TupleSizeSpec  =
 /*
 5.11.4 Selection function of operator ~tuplesize~
 
-This function is the same as for the ~count~ operator.
+*/
 
+int tuplesizeSelect(ListExpr args){
+
+   ListExpr arg = nl->First(args);
+   if(Stream<Tuple>::checkType(arg)){
+     return 0;
+   }
+   if(listutils::isRelDescription(arg)){
+     return 1;
+   }
+   if(Tuple::checkType(arg)){
+     return 2;
+   }
+   return -1; 
+}
+
+/*
 5.11.5 Definition of operator ~tuplesize~
 
 */
-ValueMapping tuplesizemap[] = {TupleSizeStream, TupleSizeRel };
+ValueMapping tuplesizemap[] = {TupleSizeStream, TupleSizeRel, TupleSizeTuple };
 
 Operator relalgtuplesize (
          "tuplesize",           // name
          TupleSizeSpec,         // specification
-         2,                     // number of value mapping functions
+         3,                     // number of value mapping functions
          tuplesizemap,          // value mapping functions
-         TCountSelect,          // selection function
+         tuplesizeSelect,          // selection function
          TupleSizeTypeMap       // type mapping
 );
+
+/*
+5.10 Opeartor tuplememsize
+
+5.10.1 Signature
+
+*/
+ListExpr memtuplesizeTM(ListExpr args){
+
+   cout << "MemtupleSizeTM called " << endl;
+
+  string err ="tuple expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("one argument expected");
+  }
+  if(!Tuple::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+/*
+5.10.2 Value Mapping
+
+*/
+
+int
+memtuplesizeVM(Word* args, Word& result, int message,
+                Word& local, Supplier s){
+ 
+   Tuple* tup = (Tuple*) args [0].addr;
+   result=qp->ResultStorage(s);
+   CcInt* res = (CcInt*) result.addr;
+   res->Set(true, tup->GetMemSize());
+   return 0;
+}
+
+/*
+5.10.3 Specification
+
+*/
+
+OperatorSpec memtuplesizeSpec(
+           "tuple -> int",
+           "  _ memtuplesize",
+           "Returns the size of the memory usage of a tuple ",
+           " query strassen feed extend [MTS : . memtuplesize] consume");
+
+/*
+5.10.4 Operator instance
+
+*/
+Operator memtuplesize (
+   "memtuplesize",
+   memtuplesizeSpec.getStr(),
+   memtuplesizeVM,
+   Operator::SimpleSelect,
+   memtuplesizeTM
+);
+
+
+
 
 /*
 5.11 Operator ~rootattrsize~
@@ -5256,6 +5405,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgroottuplesize);
     AddOperator(&relalgexttuplesize);
     AddOperator(&relalgtuplesize);
+    AddOperator(&memtuplesize);
     AddOperator(&relalgrootattrsize);
     AddOperator(&relalgextattrsize);
     AddOperator(&relalgattrsize);

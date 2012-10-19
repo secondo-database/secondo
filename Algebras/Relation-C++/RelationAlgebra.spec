@@ -23,6 +23,7 @@ operator countboth alias COUNTBOTH pattern _ _ op
 operator roottuplesize alias ROOTTUPLESIZE pattern _ op
 operator exttuplesize alias EXTTUPLESIZE pattern _ op
 operator tuplesize alias TUPLESIZE pattern _ op
+operator memtuplesize alias MEMTUPLESIZE pattern _ op
 operator rootattrsize alias ROOTATTRSIZE pattern _ op[ _ ]
 operator extattrsize alias EXTATTRSIZE pattern _ op[ _ ]
 operator attrsize alias ATTRSIZE pattern _ op[ _ ]

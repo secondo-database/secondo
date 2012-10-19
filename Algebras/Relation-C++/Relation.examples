@@ -154,6 +154,14 @@ Example  : query Trains roottuplesize = Trains feed roottuplesize
 Result   : TRUE
 
 
+Operator : memtuplesize
+Number   : 1
+Signature: ((stream|rel (tuple x))) -> int
+Example  : query Trains roottuplesize < Trains feed extend[MTS : . memtuplesize] avg[MTS]
+Result   : TRUE
+
+
+
 Operator : sizecounters
 Number   : 1
 Signature: stream(tuple(y)) x string -> stream(tuple(y))
