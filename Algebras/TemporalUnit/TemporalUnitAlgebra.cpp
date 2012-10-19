@@ -10829,6 +10829,24 @@ bool SecInterval::Set(const Interval<Instant>* iinst) {
   return Set(iinst->start, iinst->end, iinst->lc, iinst->rc);
 }
 
+bool SecInterval::SetStart(const DateTime& s, const bool lc) {
+  if ((s < this->end) || ((s == this->end) && lc && this->rc)) {
+    this->start = s;
+    this->lc = lc;
+    return true;
+  }
+  return false;
+}
+
+bool SecInterval::SetEnd(const DateTime& e, const bool rc) {
+  if ((this->start < e) || ((this->start == e) && rc && this->lc)) {
+    this->end = e;
+    this->rc = rc;
+    return true;
+  }
+  return false;
+}
+
 ListExpr SecInterval::Property(){
   return (nl->TwoElemList(
           nl->FiveElemList(

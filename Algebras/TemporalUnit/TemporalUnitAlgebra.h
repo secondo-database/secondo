@@ -102,6 +102,10 @@ public:
 
   bool Set(const Interval<Instant>* iinst);
 
+  bool SetStart(const DateTime& s, const bool lc);
+
+  bool SetEnd(const DateTime& e, const bool rc);
+
   static ListExpr Property();
 
   bool IsDefined() const{
