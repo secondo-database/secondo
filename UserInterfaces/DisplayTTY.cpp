@@ -3183,11 +3183,18 @@ struct DisplayRegEx : DisplayFunction{
        cout << Symbol::UNDEFINED() << endl;
        return;
      }
-     if(!nl->HasLength(value,3)){
+     if(!nl->HasLength(value,3) && !nl->HasLength(value,4)){
        cout << "Invalid regex representation" << endl;
        return;
      }
-     // TODO: check for errors
+     if(nl->HasLength(value,4)){
+       ListExpr srcList = nl->Fourth(value);
+       if(nl->AtomType(srcList) == TextType) {
+         cout << "Source : " << nl->Text2String(srcList) << endl;
+       }
+     }
+    
+     
      int numStates = nl->IntValue(nl->First(value));
      ListExpr transitions = nl->Second(value);
      ListExpr finalStates = nl->Third(value);
@@ -3244,14 +3251,9 @@ struct DisplayRegEx : DisplayFunction{
                range.push_back(next);
                last = next;
             }
-            if(range.size()>4){
-               ss << "[" << getStr(range[0]) << "-"
-                  << getStr(range[range.size()-1]) << "]";
-            } else {
-              for(size_t i=0;i<range.size();i++){
-                ss << getStr(range[i]);
-              }
-            }
+           for(size_t i=0;i<range.size();i++){
+             ss << getStr(range[i]);
+           }
           } else {
             if(d.size()==256){
               ss << "'all'";

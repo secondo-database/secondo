@@ -62,7 +62,9 @@ Must be nothing.  Never cal it outside the cast function.
    RegExPattern(bool defined): Attribute(defined),
                                numOfStates(0),
                                transitions(0),
-                               finalStates(0) {}
+                               finalStates(0),
+                               src(0),
+                               srcDefined(false) {}
 
    RegExPattern(const RegExPattern& p): Attribute(p),
                                        numOfStates(p.numOfStates),
@@ -70,6 +72,8 @@ Must be nothing.  Never cal it outside the cast function.
                                        finalStates(p.finalStates.Size()){
       transitions.copyFrom(p.transitions);
       finalStates.copyFrom(p.finalStates);
+      src.copyFrom(p.src);
+      srcDefined = p.srcDefined;
   }
                
   RegExPattern& operator=(const RegExPattern& p){
@@ -77,6 +81,8 @@ Must be nothing.  Never cal it outside the cast function.
      numOfStates = p.numOfStates;
      p.transitions.copyTo(transitions);
      p.finalStates.copyTo(finalStates);
+     p.src.copyTo(src);
+     srcDefined = p.srcDefined;
      return *this;
   }
 
@@ -93,12 +99,13 @@ Must be nothing.  Never cal it outside the cast function.
 */
 
    virtual int NumOfFLOBs() const{
-    return 2;
+    return 3;
    }
   
    Flob* GetFLOB(const int index) {
       if(index==0) return &transitions;
       if(index==1) return &finalStates;
+      if(index==2) return &src;
       assert(false);
    }   
 
@@ -136,8 +143,37 @@ Must be nothing.  Never cal it outside the cast function.
          if(tf<pf) return -1;
          if(tf>pf) return 1;
       }
+      if(srcDefined != p->srcDefined){
+         return srcDefined?1:-1;
+      } 
+      string s = getSource();
+      string ps = p->getSource();
+      if(s < ps){
+        return -1;
+      }
+      if(s > ps){
+        return 1;
+      }
       return 0;
    }
+
+   string getSource() const{
+      if(!srcDefined){
+          cerr << "called getSource but src is not defined" << endl;
+          return "";
+      }
+      char* g = src.getData();
+      string res(g, src.getSize());
+      delete g;;
+      return res;
+   }
+
+   void setSource(const string& re){
+     srcDefined = true;
+     src.resize(re.length());
+     src.write(re.c_str(),re.length());
+   }
+
 
    bool Adjacent(const Attribute* r) const{
    // there is no meaningful implementation for it
@@ -193,8 +229,9 @@ be undefined.
 
    bool constructFrom(const string& regex){
       IntNfa* nfa;
+      setSource(regex);
       if(parseRegEx(regex.c_str(),&nfa)!=0){
-         SetDefined(false);
+         SetDefinedKeepSrc(false);
          return false;
       } 
       nfa->nfa.makeDeterministic();
@@ -315,6 +352,18 @@ this pattern. The length of the substring is returned.
    }
 
 
+   void SetDefined(bool defined){
+      Attribute::SetDefined(defined);
+      if(!defined){
+         srcDefined = false;
+         src.clean(); 
+      }
+   }
+
+   void SetDefinedKeepSrc(bool defined){
+      Attribute::SetDefined(defined);
+   } 
+
 
 /*
 1.7 readFrom
@@ -342,10 +391,20 @@ valid representation of a dfa, this object is set to be undefined.
      transitions.clean();
      finalStates.clean();
      SetDefined(true);      
-     if(!nl->HasLength(value,3)){
+     if(!nl->HasLength(value,3) && !nl->HasLength(value,4)){
        SetDefined(false);
        return false;
-     }     
+     } 
+     if(nl->HasLength(value,4)){
+        ListExpr srcList = nl->Fourth(value);
+        if((nl->AtomType(srcList) == StringType ) ||
+           (nl->AtomType(srcList) == TextType)){
+           setSource(listutils::stringValue(srcList));
+        } else {
+           SetDefined(false);
+           return false;
+        }
+     }    
      if(nl->AtomType(nl->First(value))!=IntType){
         SetDefined(false);
         return false;
@@ -359,6 +418,9 @@ valid representation of a dfa, this object is set to be undefined.
        finalStates.Append(false);
      }
      ListExpr T = nl->Second(value);
+     if(nl->AtomType(T)!=NoAtom){
+       return  false;
+     }
      while(!nl->IsEmpty(T)){
        ListExpr t = nl->First(T);
        T = nl->Rest(T);
@@ -386,6 +448,9 @@ valid representation of a dfa, this object is set to be undefined.
        transitions.Put(source*NUMCHARS+arg,target);
      }
      ListExpr F = nl->Third(value);
+     if(nl->AtomType(F) != NoAtom){
+         return false;
+     }
      while(!nl->IsEmpty(F)){
        ListExpr f = nl->First(F);
        F = nl->Rest(F);
@@ -416,7 +481,7 @@ Returns the representation of this dfa as a nested list.
      }
      ListExpr ns = nl->IntAtom(numOfStates);
      ListExpr tr = nl->TheEmptyList();
-     ListExpr last;
+     ListExpr last = nl->TheEmptyList();
      bool first = true;
      for(int i=0;i<transitions.Size();i++){
          int t;
@@ -449,16 +514,24 @@ Returns the representation of this dfa as a nested list.
           }
         }
      }
-     return nl->ThreeElemList(ns,tr,fin);
+     if(!srcDefined){
+        return nl->ThreeElemList(ns,tr,fin);
+     } else {
+        return nl->FourElemList(ns,tr,fin, nl->TextAtom(getSource()));
+     }
    }
 
-
+   bool hasSource() const{
+     return srcDefined;
+   }
 
 
  private: 
    int numOfStates;            // number of states
    DbArray<int>  transitions;  // transitions size is NUMCHARS * numberofStates
    DbArray<bool> finalStates;  // bitvector true for a final state
+   Flob src;                   // stores the source of this automaton
+   bool srcDefined;            // defined flag for source
 
 /*
 1.9 nextState

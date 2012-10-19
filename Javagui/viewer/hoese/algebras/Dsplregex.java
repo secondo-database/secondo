@@ -23,12 +23,15 @@ public class Dsplregex extends DsplGeneric implements ExternDisplay{
  private Graph g;
  private GrappaPanel gp;
  private String name;
+ private String source;
  
 
  private static JFrame externFrame;
  private static Dsplregex currentlyDisplayed=null;
  private static JFileChooser fc;
  private static JScrollPane sp;
+ private static JTextField tf;
+
 
  public Dsplregex(){
     g = null;
@@ -62,6 +65,9 @@ public class Dsplregex extends DsplGeneric implements ExternDisplay{
        controlPanel.add(closeBtn);
        sp = new JScrollPane();
        externFrame.add(sp, BorderLayout.CENTER);
+       tf = new JTextField(100);
+       externFrame.add(tf,BorderLayout.NORTH);
+       tf.setEditable(false);
     }
     
  }
@@ -121,8 +127,10 @@ private String getStr(int i){
       return "\\t";
    }
    if(i==10){
-     return "\\n";
+     String res = "\\n";
+     return res;
    }
+ 
    if(i==13){
       return "\\r";
    }
@@ -143,7 +151,8 @@ private String getStr(int first, int last){
       buf.append(" - ");
       buf.append(getStr(last));
    }
-   return buf.toString();
+   String res = buf.toString();
+   return res;
 }
 
 
@@ -255,18 +264,21 @@ private void buildGraph(TreeSet<Integer>[][] transitions, TreeSet<Integer> final
        }
     }
   }
-  // format the graph using dot
-  String[] processArgs = {"dot"};
+
   try{
+    // format the graph using dot
+     String[] processArgs = {"dot"};
+    //String[] processArgs = {"twopi"};
     Process formatProcess = Runtime.getRuntime().exec(processArgs,null,null);
     GrappaSupport.filterGraph(g,formatProcess);
     formatProcess.getOutputStream().close();
   } catch(Exception e){
     e.printStackTrace();  
   }
+
+
   gp = new GrappaPanel(g);
   g.addPanel(gp);
-  //g.printGraph(System.out);
 }
 
 
@@ -303,10 +315,21 @@ public void init(String name, int nameWidth, int indent, ListExpr type,ListExpr 
      setTo("undef",nameWidth,indent,qr);
      return;
   }
-  if(value.listLength() !=3){ // (#states <transitions> <finalstates>)
+  if((value.listLength() !=3) && (value.listLength() != 4)){ // (#states <transitions> <finalstates> [source])
      setTo("error 1",nameWidth,indent,qr);
      return;
   }
+  if(value.listLength()==4){
+    ListExpr sourceList = value.fourth();
+    if((sourceList.atomType()==ListExpr.STRING_ATOM) || 
+       (sourceList.atomType()==ListExpr.TEXT_ATOM)){
+      source = sourceList.stringValue();
+    }else{
+      setTo("error 1.1", nameWidth, indent, qr);
+      return;
+    }
+  }
+
   ListExpr noStatesL = value.first();
   if(noStatesL.atomType()!=ListExpr.INT_ATOM){
     setTo("error 2",nameWidth,indent,qr);
@@ -388,6 +411,7 @@ public void displayExtern(){
    }
    currentlyDisplayed = this;
    sp.setViewportView(gp);
+   tf.setText(source);
    externFrame.validate();
    Dimension d = externFrame.getSize();
    if( (d.width < 640) || (d.height<480)){

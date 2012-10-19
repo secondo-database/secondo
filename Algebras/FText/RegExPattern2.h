@@ -62,12 +62,27 @@ class RegExPattern2{
    RegExPattern2(bool _defined): defined(_defined),
                                numOfStates(0),
                                transitions(),
-                               finalStates() {}
+                               finalStates(),
+                               src(""),
+                               srcDefined(false) {}
 
    RegExPattern2(const RegExPattern2& p): defined(p.defined),
                                        numOfStates(p.numOfStates),
                                        transitions(p.transitions),
-                                       finalStates(p.finalStates){
+                                       finalStates(p.finalStates),
+                                       src(p.src), 
+                                       srcDefined(p.srcDefined){
+  }
+
+  bool hasSource() const{
+     return srcDefined;
+  }
+  std::string getSource() const{
+     return src;
+  }
+  void setSource(const std::string& src){
+     this->src = src;
+     srcDefined = true;
   }
                
   RegExPattern2& operator=(const RegExPattern2& p){
@@ -75,8 +90,11 @@ class RegExPattern2{
      numOfStates = p.numOfStates;
      transitions = p.transitions;
      finalStates = p.finalStates;
+     src = p.src;
+     srcDefined = p.srcDefined;
      return *this;
   }
+
 
 /*
 1.3 Destructor
@@ -108,8 +126,20 @@ clears the contained vectors.
          numOfStates = 0;
          transitions.clear();
          finalStates.clear();
+         src = "";
+         srcDefined = false; 
       } 
    }
+
+   void SetDefinedKeepSource(const bool def){
+      defined = def;
+      if(!def){
+         numOfStates = 0;
+         transitions.clear();
+         finalStates.clear();
+      }
+   }
+
 
 /*
 1.6 IsDefined
@@ -129,10 +159,11 @@ Checks whether this automaton is a defined one.
 Creates a dfa from a regular expression.
 
 */
-   bool constructFrom(const string& regex){
+   bool constructFrom(const std::string& regex){
       IntNfa* nfa;
+      setSource(regex);
       if(parseRegEx(regex.c_str(),&nfa)!=0){
-         SetDefined(false);
+         SetDefinedKeepSource(false);
          return false;
       } 
       nfa->nfa.makeDeterministic();
@@ -170,7 +201,7 @@ Checks whether the given string is a word of the
 language represented by this dfa.
 
 */
-   bool matches(const string& text){
+   bool matches(const std::string& text){
       if(!IsDefined()){
         return false;
       }
@@ -196,7 +227,7 @@ represented by this automaton.
 
 */
 
-   bool starts(const string& text){
+   bool starts(const std::string& text){
       if(!IsDefined()){
         return false;
       }
@@ -218,7 +249,7 @@ represented by this automaton.
    }
 
 
-   bool starts2(const string& text, const int offset, int& length){
+   bool starts2(const std::string& text, const int offset, int& length){
       length=0;
        if(!IsDefined()){
          return false;
@@ -268,10 +299,20 @@ Reads this automaton from a nested list representation.
      transitions.clear();
      finalStates.clear();
      SetDefined(true);      
-     if(!nl->HasLength(value,3)){
+     if(!nl->HasLength(value,3) && !nl->HasLength(value,4)){
        SetDefined(false);
        return false;
      }     
+     if(nl->HasLength(value,4)){
+       ListExpr sourceList = nl->Fourth(value);
+       if( (nl->AtomType(sourceList)==StringType) || 
+           (nl->AtomType(sourceList)==TextType)){
+         setSource(listutils::stringValue(sourceList));
+       } else {
+           SetDefined(false);
+           return false;
+       }
+     }
      if(nl->AtomType(nl->First(value))!=IntType){
         SetDefined(false);
         return false;
@@ -343,7 +384,7 @@ Converts this dfa into it's nested list representation.
      }
      ListExpr ns = nl->IntAtom(numOfStates);
      ListExpr tr = nl->TheEmptyList();
-     ListExpr last;
+     ListExpr last = nl->TheEmptyList();
      bool first = true;
      for(unsigned int i=0;i<transitions.size();i++){
          int t = transitions[i];
@@ -374,7 +415,11 @@ Converts this dfa into it's nested list representation.
           }
         }
      }
-     return nl->ThreeElemList(ns,tr,fin);
+     if(!srcDefined){
+        return nl->ThreeElemList(ns,tr,fin);
+     } else {
+        return nl->FourElemList(ns,tr,fin, nl->TextAtom(src));
+     }
    }
 
 /*
@@ -382,7 +427,7 @@ Secondo specific operators
 
 */
 
-   static const string BasicType(){
+   static const std::string BasicType(){
      return "regex2";
    }
 
@@ -477,6 +522,24 @@ Secondo specific operators
           offset += sizeof(bool);
           p->finalStates.push_back(isFinal);
        }
+       int srcLength;
+       valueRecord.Read(&srcLength,sizeof(int), offset);
+       offset += sizeof(int);
+       if(srcLength<0){
+         p->srcDefined = false;
+         p->src = "";
+       } else {
+          p->srcDefined = true;
+          if(srcLength==0){
+             p->src = "";
+          } else {
+             char* buffer = new char[srcLength];
+             valueRecord.Read(buffer,srcLength,offset);
+             offset += srcLength;
+             p->src = std::string(buffer,srcLength);
+             delete buffer; 
+          }
+       }
        value.addr = p;
        return true;
    }
@@ -502,6 +565,17 @@ Secondo specific operators
           valueRecord.Write(&isFinal,sizeof(bool), offset);
           offset += sizeof(bool);
        } 
+       if(!p->srcDefined){
+         int srcLength = -1;
+         valueRecord.Write(&srcLength, sizeof(int), offset);
+         offset += sizeof(int);
+       } else {
+         int srcLength = strlen(p->src.c_str());
+         valueRecord.Write(&srcLength, sizeof(int), offset);
+         offset += sizeof(int);
+         valueRecord.Write(p->src.c_str(), srcLength, offset);
+         offset += srcLength;   
+       }
        return true;
    }
  private: 
@@ -509,6 +583,8 @@ Secondo specific operators
    int numOfStates;
    std::vector<int>  transitions;
    std::vector<bool> finalStates;
+   std::string src;
+   bool srcDefined;
 };
 
 
