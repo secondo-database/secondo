@@ -678,7 +678,7 @@ Checks whether the list represents a stream.
                           ListExpr& resAttrList, string& errmsg){
 
     bool firstCall = true;
-    ListExpr last;
+    ListExpr last = nl->TheEmptyList();
     map<string, string>::iterator it;
     while(!nl->IsEmpty(attrList)){
         ListExpr attr = nl->First(attrList);
@@ -773,6 +773,17 @@ Checks whether the list represents a stream.
     return (void*) v;
  }
  
+
+ string stringValue(ListExpr src){
+   if(nl->AtomType(src)==StringType){
+      return nl->StringValue(src);
+   }
+   if(nl->AtomType(src)==TextType){
+      return nl->Text2String(src); 
+   }
+   return ""; 
+
+ }
 
 
 
