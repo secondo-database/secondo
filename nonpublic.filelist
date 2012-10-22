@@ -9,16 +9,12 @@
 ###                                        ###
 
 # Research in progress
-DistributedAlgebra DistributedAlgebra
 FlockAlgebra Flock
 GPatternAlgebra GPattern
-HadoopParallelAlgebra HadoopParallel
 IndoorAlgebra Indoor
 MAttiaTestsAlgebra MAttiaTests
 PartitionedStreamAlgebra PartitionedStream
-RemoteStreamAlgebra RemoteStream
 TrafficAlgebra Traffic
-TransportationModeAlgebra TransportationMode
 JNetAlgebra JNet
 RIndexAlgebra RIndex
 
@@ -39,7 +35,6 @@ HierarchicalGeoAlgebra HierarchicalGeo
 MRegionOpsAlgebra MRegionOps
 Network2Algebra Network2
 NestedRelation2Algebra NestedRelation2
-OsmAlgebra OSM
 PointSequenceAlgebra PointSequence
 RasterAlgebra Raster
 RasterSpatialAlgebra RasterSpatial
@@ -49,13 +44,9 @@ TemporalNet2Algebra TemporalNet2
 UGridAlgebra UGrid
 UrelAlgebra Urel
 WebAlgebra Web
-GroupbyAlgebra Groupby
-DistributedAlgebra Distributed
-MapMatchingAlgebra MapMatching
 MovingRegion2Algebra MovingRegion2
 NestedRelation2Algebra NestedRelation2
 SpatialJoin2Algebra SpatialJoin2
-SymbolicTrajectoryAlgebra SymbolicTrajetory
 
 # Java algebras - not longer supported
 FuzzyAlgebra Fuzzy
