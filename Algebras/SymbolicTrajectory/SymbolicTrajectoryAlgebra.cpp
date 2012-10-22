@@ -538,7 +538,6 @@ bool Assign::prepareRewrite(int key, vector<size_t> assSeq,
     }
   }
   textSubst[key] = newSubst;
-  cout << "newSubst=" << textSubst[key] << endl;
   start->DeleteIfAllowed();
   end->DeleteIfAllowed();
   return result;
@@ -572,7 +571,6 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
         this->SetDefined(false);
       }
       else { // enough data; create ul
-        cout << "create new ul for variable " << assigns[i].getV() << endl;
         for (int key = 0; key < 4; key++) {
           if (!assigns[i].getText(key).empty()) {
             if (!assigns[i].prepareRewrite(key, seq.second, varPosInSeq, ml)) {

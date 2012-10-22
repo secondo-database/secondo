@@ -579,7 +579,6 @@ Word evaluateAssign(string input) {
     if (nl->ReadFromString(queryStr, queryList)) {
       if (!nl->IsEmpty(nl->Rest(queryList))) {
         query = nl->ToString(nl->First(nl->Rest(queryList)));
-        cout << "execute " << query << endl;
         if (qp->ExecuteQuery(query, queryResult)) {
           return queryResult;
         }

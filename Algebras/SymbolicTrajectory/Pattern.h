@@ -252,7 +252,6 @@ class Assign {
 class Pattern {
  private:
   vector<UPat> patterns;
-  vector<UPat> results;
   vector<Assign> assigns;
   vector<Condition> conds;
   string text;
@@ -264,14 +263,20 @@ class Pattern {
 
   Pattern(const Pattern& rhs) {
     patterns = rhs.patterns;
-    results = rhs.results;
+    assigns = rhs.assigns;
     conds = rhs.conds;
+    text = rhs.text;
+    varPos = rhs.varPos;
+    assignedVars = rhs.assignedVars;
   }
 
   Pattern& operator=(const Pattern& rhs){
     patterns = rhs.patterns;
-    results = rhs.results;
+    assigns = rhs.assigns;
     conds = rhs.conds;
+    text = rhs.text;
+    varPos = rhs.varPos;
+    assignedVars = rhs.assignedVars;
     return (*this);
   }  
 
@@ -306,21 +311,14 @@ class Pattern {
 
   vector<UPat>      getPats()               {return patterns;}
   vector<Condition> getConds()              {return conds;}
-  vector<UPat>      getResults()            {return results;}
   vector<Assign>    getAssigns()            {return assigns;}
   UPat              getPat(int pos)         {return patterns[pos];}
-  UPat              getResult(int pos)      {return results[pos];}
   Assign            getAssign(int pos)      {return assigns[pos];}
   bool              hasAssigns()            {return !assigns.empty();}
   void              addUPat(UPat upat)      {patterns.push_back(upat);}
   void              addCond(Condition cond) {conds.push_back(cond);}
-  void              addResult(UPat res)     {results.push_back(res);}
   void              addAssign(Assign ass)   {assigns.push_back(ass);}
   void              setText(string newText) {text = newText;}
-  void              clearResLbs(int pos)    {results[pos].clearL();}
-  void      insertResLb(int pos, string lb) {results[pos].insertL(lb);}
-  void              clearResIvs(int pos)    {results[pos].clearI();}
-  void      insertResIv(int pos, string iv) {results[pos].insertI(iv);}
   void       addVarPos(char* var, int pos)  {varPos[convert(var)] = pos;}
   int               getVarPos(string var)   {return varPos[var];}
   int               getSize()               {return patterns.size();}
@@ -398,7 +396,6 @@ class NFA {
   void filterSequences(MString const &ml);
   void buildRewriteSeq(multiset<size_t> sequence);
   void computeResultVars(vector<Assign> assigns);
-  void computeAssignedVars(vector<UPat> results);
   set<pair<vector<size_t>, vector<size_t> > > getRewriteSeqs()
                                               {return rewriteSeqs;}
   bool conditionsMatch(MString const &ml);

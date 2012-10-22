@@ -645,7 +645,6 @@ void Pattern::collectAssVars() {
     for (int j = 0; j < 4; j++) {
       for (int k = 0; k < assigns[i].getRightSize(j); k++) {
         assignedVars.insert(assigns[i].getRightVar(j, k));
-        cout << "assignedVars <-- " << assigns[i].getRightVar(j, k) << endl;
       }
     }
   }
