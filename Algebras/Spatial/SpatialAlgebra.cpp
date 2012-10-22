@@ -88,7 +88,6 @@ using namespace std;
 #include <errno.h>
 #include <cerrno>
 #include "../TopRel/Tree.h"
-#include "../GeneralTree/BBoxReg.h"
 
 #include "RobustSetOps.h"
 
