@@ -9314,6 +9314,59 @@ Operator flobMemSize(
     flobSizeTM 
   );
 
+/*
+4.34 Operator sizeOf
+
+4.35.1 Type Mapping
+
+*/
+ListExpr sizeOfTM(ListExpr args){
+ string err = "DATA expected";
+ if(!nl->HasLength(args,1)){
+   return listutils::typeError(err + " (wrong number of args)");
+ }
+ if(!Attribute::checkType(nl->First(args))){
+   return listutils::typeError(err);
+ }
+ return  listutils::basicSymbol<CcInt>(); 
+}
+
+/*
+
+4.35.2 Value Mapping
+
+*/
+
+int sizeOfVM( Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+  Attribute* arg = (Attribute*) args[0].addr;
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+  res->Set(true, arg->Sizeof()); 
+  return 0;
+}
+
+
+OperatorSpec sizeOfSpec(
+           "DATA -> int",
+           "sizeOf(_)",
+           "Applies sizeof to an attribute. ",
+           "query sizeOf(theCenter) > 0");
+
+
+/*
+4.35.4 Operator instance
+
+*/
+
+Operator sizeOf(
+    "sizeOf",
+    sizeOfSpec.getStr(),
+    sizeOfVM, 
+    Operator::SimpleSelect,
+    sizeOfTM 
+  );
+
   /*
   5 Creating the algebra
 
@@ -9422,6 +9475,7 @@ Operator flobMemSize(
       AddOperator(&numOfFlobs);
       AddOperator(&flobSize);
       AddOperator(&flobMemSize);
+      AddOperator(&sizeOf);
 
       
        AddOperator(&pointerTest);

@@ -1088,3 +1088,11 @@ Signature : DATA x int -> int
 Example   : query flobMemSize(thecenter,0) > 0 
 Result    : FALSE
 
+Operator : sizeOf
+Number : 1
+Signature : DATA -> int
+Example : sizeOf(1) > 0
+Result : TRUE
+
+
+
