@@ -330,7 +330,6 @@ bool ULabel::CheckULabel(ListExpr type, ListExpr& errorInfo) {
   return (nl->IsEqual(type, ULabel::BasicType()));
 }
 
-
 /*
 5.4 Creation of the type constructor ~ulabel~
 
@@ -482,159 +481,175 @@ void MLabel::create(int size, bool text, double rate = 1.0) {
 }
 
 /*
+\subsubsection{Function ~prepareRewrite~}
+
+*/
+bool Assign::prepareRewrite(int key, vector<size_t> assSeq,
+                            map<string, int> varPosInSeq, MLabel const &ml) {
+  string varKey, newSubst, subst;
+  unsigned int vkPos;
+  int varPos(-1);
+  ULabel ul(1);
+  Instant *start = new DateTime(instanttype);
+  Instant *end = new DateTime(instanttype);
+  bool lc, rc, result(true);
+  newSubst = text[key];
+  for (int i = 0; i < (int)right[key].size(); i++) {
+    varKey = right[key][i].first;
+    varPos = varPosInSeq[varKey];
+    varKey.append(Condition::getType(right[key][i].second));
+    vkPos = newSubst.find(varKey);
+    subst.clear();
+    if (vkPos != string::npos) {
+      if (key == 0) { // process label
+        for (size_t j = assSeq[varPos]; j < assSeq[varPos + 1]; j++) {
+          ml.Get(j, ul);
+          subst.append(ul.constValue.GetValue());
+          if (j < assSeq[varPos + 1] - 1) {
+            subst.append(" ");
+          }
+        }
+        subst = addQM(subst);
+      }
+      else { // key > 0
+        ml.Get(assSeq[varPos], ul);
+        *start = ul.timeInterval.start;
+        lc = ul.timeInterval.lc;
+        ml.Get(assSeq[varPos + 1] - 1, ul);
+        *end = ul.timeInterval.end;
+        rc = ul.timeInterval.rc;
+        if (key == 1) { // time
+          subst = "[const interval value (\"" + start->ToString() + "\" \""
+                + end->ToString() + "\" " + (lc ? "TRUE " : "FALSE ")
+                + (rc ? "TRUE" : "FALSE") + ")]";
+        }
+        else if (key == 2) { // start
+          subst = "[const instant value \"" + start->ToString() + "\"]";
+        }
+        else { // key == 3; end
+          subst = "[const instant value \"" + end->ToString() + "\"]";
+        }
+      }
+      newSubst.replace(vkPos, varKey.size(), subst);
+    }
+    else {
+      cout << varKey << " not found in " << newSubst << endl;
+      result = false;
+    }
+  }
+  textSubst[key] = newSubst;
+  cout << "newSubst=" << textSubst[key] << endl;
+  start->DeleteIfAllowed();
+  end->DeleteIfAllowed();
+  return result;
+}
+
+/*
 \subsubsection{Function ~rewrite~}
 
 Rewrites a moving label using another moving label and a vector.
 
 */
 void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
-                     vector<UPat> assigns, map<string, int> varPosInSeq) {
-  cout << "seq=";
-  for (int i = 0; i < (int)seq.first.size(); i++) {
-    cout << seq.first[i] << "|";
-  }
-  cout << endl << "assignedSeq=";
-  for (int i = 0; i < (int)seq.second.size(); i++) {
-    cout << seq.second[i] << "|";
-  }
-  cout << endl;
-  for (int i = 0; i < (int)seq.second.size(); i = i + 2) {
-    if ((seq.second[i] < 0) || (seq.second[i] > (size_t)ml.GetNoComponents())
-     || (seq.second[i] >= seq.second[i + 1])) {
-      cout << "Error: empty assignment sequence" << endl;
-      this->SetDefined(false);
-      return;
-    }
+                     vector<Assign> assigns, map<string, int> varPosInSeq) {
+  if (!checkRewriteSeq(seq, ml.GetNoComponents(), true)) {
+    this->SetDefined(false);
+    return;
   }
   ULabel ul(1), uls(1);
-  int pos;
-  for (int i = 0; i < (int)seq.first.size(); i = i + 2) {
-    if ((seq.first[i] < 0) || (seq.first[i] > (size_t)ml.GetNoComponents())
-     || (seq.first[i] > seq.first[i + 1])) {
-       cout << "Error: " << seq.first[i] << ", " << seq.first[i + 1] << endl;
-    }
-    else {
-      for (size_t j = seq.first[i]; j < seq.first[i + 1]; j++) {
-        cout << "i = " << i << " ||| j = " << j << endl;
-        ml.Get(j, ul);
-        if (!assigns[i / 2].getL().empty()) { // assign new label
-          if (assigns[i / 2].getL().size() == 1) { // one assignment
-            string label = *(assigns[i / 2].getL().begin());
-            if (label.at(0) == '=') {
-              pos = varPosInSeq[label.substr(1, label.find('.'))];
-              ml.Get(seq.second[pos], uls);
-              ul.constValue.Set(true, uls.constValue.GetValue());
-            }
-            else {
-              ul.constValue.Set(true, label);
-            }
-          }
-          else { // size > 1
-            cout << "Error: more than one assignment for "
-                 << assigns[i / 2].getV() << ".label" << endl;
-            this->SetDefined(false);
-            return;
-          }
+  int seqPos(0);
+  string newL;
+  Word queryResult;
+  CcString *ccstring;
+  SecInterval *iv = new SecInterval(0);
+  Instant *inst = new DateTime(instanttype);
+  for (int i = 0; i < (int)assigns.size(); i++) {
+    if (assigns[i].getPatternPos() == -1) { // A does not occur in the pattern
+      if (assigns[i].getText(0).empty() || (assigns[i].getText(1).empty() &&
+         (assigns[i].getText(2).empty() || assigns[i].getText(3).empty()))) {
+        cout << "not enough data to create " << assigns[i].getV() << endl;
+        this->SetDefined(false);
+      }
+      else { // enough data; create ul
+        cout << "create new ul for variable " << assigns[i].getV() << endl;
+        if (!assigns[i].prepareRewrite(0, seq.second, varPosInSeq, ml)) {
+          this->SetDefined(false);
         }
-        if (!assigns[i / 2].getI().empty()
-        && ((j == seq.first[i]) || (j == seq.first[i + 1] - 1))) {
-          Instant *newStart = new DateTime(instanttype);
-          Instant *newEnd = new DateTime(instanttype);
-          SecInterval *newIv = new SecInterval(0);
-          string iv = *(assigns[i / 2].getI().begin());
-          if (iv.find('.') != string::npos) { // case Y.{t|s|e} := X.{t|s|e}
-            pos = varPosInSeq[extractVar(iv)];
-            if (!iv.find("start") && (j == seq.first[i])) { //Y.start := X.{s|e}
-              ml.Get(seq.second[pos], uls);
-              *newIv = ul.timeInterval;
-              if (iv.find("start", iv.find('=')) != string::npos) { //:= X.start
-                if (!newIv->SetStart(uls.timeInterval.start,
-                                     uls.timeInterval.lc)) {
-                  cout << "new interval invalid" << endl;
-                  this->SetDefined(false);
-                }
-              }
-              else if (iv.find("end", iv.find('=')) != string::npos) { //:=X.end
-                if (!newIv->SetStart(uls.timeInterval.end,
-                                     uls.timeInterval.rc)) {
-                  cout << "new interval invalid" << endl;
-                  this->SetDefined(false);
-                }
-              }
-            }
-            else if (!iv.find("end") && (j == seq.first[i + 1] - 1)) {
-              ml.Get(seq.second[pos], uls); // Y.end := X.{s|e}
-              *newIv = ul.timeInterval;
-              if (iv.find("start", iv.find('=')) != string::npos) { //:= X.start
-                if (!newIv->SetEnd(uls.timeInterval.start,
-                                   uls.timeInterval.lc)) {
-                  cout << "new interval invalid" << endl;
-                  this->SetDefined(false);
-                }
-              }
-              else if (iv.find("end", iv.find('=')) != string::npos) { //:=X.end
-                if (!newIv->SetEnd(uls.timeInterval.end, uls.timeInterval.rc)) {
-                  cout << "new interval invalid" << endl;
-                  this->SetDefined(false);
-                }
-              }
-            }
-            else if (iv.find("time", iv.find('=')) != string::npos) {
-              if ((j == seq.first[i]) && (j == seq.first[i + 1] - 1)) { 
-                ml.Get(seq.second[pos], uls);
-                *newIv = uls.timeInterval;
-                ml.Get(seq.second[pos + 1] - 1, uls);
-                if (!newIv->SetEnd(uls.timeInterval.end, uls.timeInterval.rc)) {
-                  cout << "new interval invalid" << endl;
-                  this->SetDefined(false);
-                }
-              }
-            }
-            if ((!iv.find("start") && (j == seq.first[i + 1] - 1))
-            || ((!iv.find("end") && (j == seq.first[i])))) {
-              *newIv = ul.timeInterval;
-            }
-          }
-          else {
-            iv = iv.substr(iv.find('=') + 1);
-            if (iv.at(0) == '~') { // case ~2012-05-12
-              *newStart = ul.timeInterval.start;
-              newEnd->ReadFrom(extendDate(iv.substr(1), false));
-            }
-            else if (iv[iv.size() - 1] == '~') { //case 2011-04-02-19:09~
-              newStart->ReadFrom(extendDate(iv.substr(0, iv.size() - 1), true));
-              *newEnd = ul.timeInterval.end;
-            }
-            else if ((iv.find('~')) == string::npos) { // no [~] found
-              newStart->ReadFrom(extendDate(iv, true));
-              newEnd->ReadFrom(extendDate(iv, false));
-            }
-            else { // 2012-05-12-20:00~2012-05-12-22:00
-              newStart->ReadFrom(extendDate(iv.substr(0, iv.find('~')), true));
-              newEnd->ReadFrom(extendDate(iv.substr(iv.find('~') + 1), false));
-            }
-            newIv->Set(*newStart, *newEnd, true, false);
-          }
-          if (newIv->IsValid()) {
-            ul.timeInterval = *newIv;
-          }
-          else {
-            cout << "New interval " << newIv->ToString() << " invalid." << endl;
+        queryResult = evaluateAssign(assigns[i].getSubst(0));
+        ccstring = static_cast<CcString*>(queryResult.addr);
+        if (ccstring->IsDefined()) {
+          ul.constValue.Set(true, eraseQM(ccstring->GetValue()));
+        } // label assigned now
+        if (!assigns[i].getText(1).empty()) { // assign time
+          if (!assigns[i].prepareRewrite(1, seq.second, varPosInSeq, ml)) {
             this->SetDefined(false);
           }
-          delete newIv;
-          delete newStart;
-          delete newEnd;
+          queryResult = evaluateAssign(assigns[i].getSubst(1));
+          iv = static_cast<SecInterval*>(queryResult.addr);
+          if (iv->IsDefined()) {
+            ul.timeInterval = *iv;
+          } // time assigned now
         }
-        if (!this->IsDefined()) {
-          return;
+        if (!assigns[i].getText(2).empty()) { // assign start
+          if (!assigns[i].prepareRewrite(2, seq.second, varPosInSeq, ml)) {
+            this->SetDefined(false);
+          }
+          queryResult = evaluateAssign(assigns[i].getSubst(2));
+          inst = static_cast<Instant*>(queryResult.addr);
+          if (inst->IsDefined()) {
+            ul.timeInterval.start = *inst;
+          } // start assigned now
+        }
+        if (!assigns[i].getText(3).empty()) { // assign end
+          if (!assigns[i].prepareRewrite(3, seq.second, varPosInSeq, ml)) {
+            this->SetDefined(false);
+          }
+          queryResult = evaluateAssign(assigns[i].getSubst(3));
+          inst = static_cast<Instant*>(queryResult.addr);
+          if (inst->IsDefined()) {
+            ul.timeInterval.end = *inst;
+          } // end assigned now
         }
         this->MergeAdd(ul);
       }
     }
+    else { // A occurs in unit pattern i
+      for (size_t j = seq.first[seqPos]; j < seq.first[seqPos + 1]; j++) {
+        cout << "i = " << i << " ||| j = " << j << endl;
+        ml.Get(j, ul);
+        if (!assigns[i].getText(0).empty()) { // assign new label
+          cout << "old text = " << ul.constValue.GetValue() << endl;
+          if (!assigns[i].prepareRewrite(0, seq.second, varPosInSeq, ml)) {
+            this->SetDefined(false);
+            return;
+          }
+          queryResult = evaluateAssign(assigns[i].getSubst(0));
+          ccstring = static_cast<CcString*>(queryResult.addr);
+          if (ccstring->IsDefined()) {
+            ul.constValue.Set(true, eraseQM(ccstring->GetValue()));
+          }
+          else {
+            cout << "ccstring undefined" << endl;
+            this->SetDefined(false);
+            return;
+          }
+          cout << "new text = " << ul.constValue.GetValue() << endl;
+        }
+        // TODO assign time values
+        this->MergeAdd(ul);
+
+      }
+      seqPos = seqPos + 2;
+    }
   }
+  ccstring->DeleteIfAllowed();
+  iv->DeleteIfAllowed();
+  inst->DeleteIfAllowed();
   if (!this->IsValid()) {
     this->SetDefined(false);
+  }
+  if (!this->IsDefined()) {
+    return;
   }
 }
 
@@ -1212,7 +1227,7 @@ Writes all pattern information into a string.
 */
 string Pattern::toString() const {
   stringstream str;
-  str << "~~~~~~pattern~~~~~~" << endl;
+  str << "=======pattern=======" << endl;
   for (int i = 0; i < (int)patterns.size(); i++) {
     str << "[" << i << "] " << patterns[i].getV() << " | "
         << setToString(patterns[i].getI()) << " | "
@@ -1220,17 +1235,22 @@ string Pattern::toString() const {
         << (patterns[i].getW() ? (patterns[i].getW() == STAR ? "*" : "+") :"")
         << endl;
   }
-  str << "~~~~~~conditions~~~~~~" << endl;
+  str << "=====conditions======" << endl;
   for (int i = 0; i < (int)conds.size(); i++) {
     str << "[" << i << "] " << conds[i].toString() << endl;
   }
-  str << "~~~~~~results~~~~~~" << endl;
-  for (int i = 0; i < (int)results.size(); i++) {
-    str << "[" << i << "] " << results[i].getV() << " | "
-        << setToString(results[i].getI()) << " | "
-        << setToString(results[i].getL()) << " | "
-        << (results[i].getW() ? (results[i].getW() == STAR ? "*" : "+") : "")
-        << endl;
+  str << "=results/assignments=" << endl;
+  for (int i = 0; i < (int)assigns.size(); i++) {
+    str << "[" << i << "] " << assigns[i].getV() << " | ";
+    for (int j = 0; j < 4; j++) {
+      str << assigns[i].getText(j) << " - " << assigns[i].getSubst(j) << "; ";
+      for (int k = 0; k < assigns[i].getRightSize(j); k++) {
+        str << "(" << assigns[i].getVarKey(j, k).first << ", "
+            << assigns[i].getVarKey(j, k).second << ") ";
+      }
+      str << " # ";
+    }
+    str << endl;
   }
   str << endl;
   return str.str();
@@ -1407,9 +1427,31 @@ is rejected.
 */
 bool Pattern::verifyConditions() {
   for (int i = 0; i < (int)conds.size(); i++) {
-    if (!evaluate(conds[i].getSubst(), false)) {
+    if (!evaluate(conds[i].getSubst(), false, "bool")) {
       cout << "condition \'" << conds[i].getSubst() << "\' is invalid." << endl;
       return false;
+    }
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~checkAssignTypes~}
+
+Loops through the assignments and checks whether the data types are compatible.
+In case of an invalid assignment, the function returns ~false~.
+
+*/
+bool Pattern::checkAssignTypes() {
+  Assign assign;
+  for (int i = 0; i < (int)assigns.size(); i++) {
+    assign = assigns[i];
+    for (int j = 0; j < 4; j++) {
+      if (!assign.getSubst(j).empty()) {
+        if (!evaluate(assign.getSubst(j), false, Assign::getDataType(j))) {
+          return false;
+        }
+      }
     }
   }
   return true;
@@ -1458,13 +1500,17 @@ set<pair<vector<size_t>, vector<size_t> > > Pattern::
                                             getRewriteSeqs(MLabel const &ml) {
   set<pair<vector<size_t>, vector<size_t> > > result;
   if (!verifyPattern() || !verifyConditions()) {
-    cout << "Error: Invalid pattern." << endl;
+    cout << "Error: Invalid pattern/condition." << endl;
     return result;
   }
-  if (!hasResults()) {
+  if (!hasAssigns()) {
     cout << "No result specified." << endl;
     return result;
   }
+  if (!checkAssignTypes()) {
+    return result;
+  }
+  cout << toString() << endl;
   NFA *nfa = new NFA(patterns.size() + 1);
   nfa->buildNFA(*this);
   nfa->setAssVars(this->getAssVars());
@@ -1475,7 +1521,7 @@ set<pair<vector<size_t>, vector<size_t> > > Pattern::
     delete nfa;
     return result;
   }
-  nfa->computeResultVars(this->results);
+  nfa->computeResultVars(this->assigns);
   nfa->buildSequences();
 //   nfa->printSequences(300);
   nfa->filterSequences(ml);
@@ -1509,21 +1555,9 @@ Computes a mapping containing the positions of the unit patterns the result
 variables belong to.
 
 */
-void NFA::computeResultVars(vector<UPat> results) {
-  bool found = false;
-  for (int i = 0; i < (int)results.size(); i++) {
-    found = false;
-    int j = 0;
-    while (!found) {
-      if (!results[i].getV().compare(patterns[j].getV())) {
-        resultVars[i] = j;
-        j = 0;
-        found = true;
-      }
-      else {
-        j++;
-      }
-    }
+void NFA::computeResultVars(vector<Assign> assigns) {
+  for (int i = 0; i < (int)assigns.size(); i++) {
+    resultVars[i] = assigns[i].getPatternPos();
   }
 }
 
@@ -1561,12 +1595,14 @@ void NFA::buildRewriteSeq(multiset<size_t> sequence) {
   vector<size_t> rewriteSeq, assignedSeq;
   pair<vector<size_t>, vector<size_t> > completeSeq;
   for (int j = 0; j < (int)resultVars.size(); j++) {
-    rewriteSeq.push_back(seq[resultVars[j]]); // begin
-    if (resultVars[j] < f - 1) {
-      rewriteSeq.push_back(seq[resultVars[j] + 1]); // end
-    }
-    else { // last state
-      rewriteSeq.push_back(numOfLabels);
+    if (resultVars[j] > -1) {
+      rewriteSeq.push_back(seq[resultVars[j]]); // begin
+      if (resultVars[j] < f - 1) {
+        rewriteSeq.push_back(seq[resultVars[j] + 1]); // end
+      }
+      else { // last state
+        rewriteSeq.push_back(numOfLabels);
+      }
     }
   }
   set<string>::iterator it; // for assigned variables (... := X...)
@@ -2451,7 +2487,7 @@ bool NFA::evaluateEmptyML() {
       }
       conds[i].substitute(j, "0");
     }
-    if (!evaluate(conds[i].getSubst(), true)) {
+    if (!evaluate(conds[i].getSubst(), true, "bool")) {
       return false;
     }
   }
@@ -2546,7 +2582,7 @@ bool NFA::evaluateCond(MString const &ml, int cId, multiset<size_t> sequence) {
       return knownEval[condStrCardTime];
     }
     else {
-      if (!evaluate(condStrCardTime, true)) {
+      if (!evaluate(condStrCardTime, true, "bool")) {
         knownEval[condStrCardTime] = false;
 //         cout << "false expression: " << condStrCardTime << endl;
         numOfNegEvals++;
@@ -2583,7 +2619,7 @@ bool NFA::evaluateCond(MString const &ml, int cId, multiset<size_t> sequence) {
       }
     }
     else {
-      if (!evaluate(conds[cId].getSubst(), true)) {
+      if (!evaluate(conds[cId].getSubst(), true, "bool")) {
         knownEval[conds[cId].getSubst()] = false;
 //         cout << "false expression: " << conds[cId].getSubst() << endl;
         numOfNegEvals++;
@@ -2651,6 +2687,16 @@ string Condition::toString() const {
   return result.str();
 }
 
+string Assign::getDataType(int key) {
+  switch (key) {
+    case 0: return "string";
+    case 1: return "periods";
+    case 2: return "instant";
+    case 3: return "instant";
+    default: return "error";
+  }
+}
+
 /*
 \subsection{Function ~getTimeSubst~}
 
@@ -2659,7 +2705,7 @@ limits ~from~ and ~to~, the respective time information is retrieved from the
 MLabel and returned as a string.
 
 */
-string NFA::getTimeSubst(MString const &ml, Key key, size_t from, size_t to) {
+string NFA::getTimeSubst(MString const &ml, int key, size_t from, size_t to) {
   stringstream result;
   if ((from < 0) || (to >= numOfLabels)) {
     cout << "ULabel #" << (from < 0 ? from : to) << " does not exist." << endl;
@@ -3057,7 +3103,7 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
         set<pair<vector<size_t>, vector<size_t> > > rewriteSeqs =
                                                     p->getRewriteSeqs(*mlNew);
         map<string, int> varPosInSeq = p->getVarPosInSeq();
-        rr = new RewriteResult(rewriteSeqs, mlNew, p->getResults(),
+        rr = new RewriteResult(rewriteSeqs, mlNew, p->getAssigns(),
                                varPosInSeq);
       }
       delete p;

@@ -65,6 +65,28 @@ char* convert(string arg) {
 }
 
 /*
+\subsection{Function ~eraseQM~}
+
+Deletes enclosing quotation marks from a string.
+
+*/
+string eraseQM(string arg) {
+  if (arg.at(0) == '"') {
+    return arg.substr(1, arg.length() - 2);
+  }
+  return arg;
+}
+
+string addQM(string arg) {
+  if (arg.at(0) == '"') {
+    return arg;
+  }
+  arg.insert(0, "\"");
+  arg.append("\"");
+  return arg;
+}
+
+/*
 \subsection{Function ~stringToSet~}
 
 Splits a string {a, b, c, ...} into a set of strings a, b, c, ...
@@ -180,6 +202,15 @@ string extractVar(string input) {
   int posEq = input.find('=');
   int posDot = input.find('.');
   return input.substr(posEq + 1, posDot - posEq - 1);
+}
+
+int getKey(string type) {
+  if (type == "label") return 0;
+  if (type == "time")  return 1;
+  if (type == "start") return 2;
+  if (type == "end")   return 3;
+  if (type == "card")  return 4;
+  else return -1; // should not occur
 }
 
 /*
@@ -419,6 +450,42 @@ bool checkDaytime(const string text, const SecInterval uIv) {
 }
 
 /*
+function ~checkAndPrintSeq~
+
+Checks a rewrite sequence and prints it
+
+*/
+bool checkRewriteSeq(pair<vector<size_t>, vector<size_t> > seq, size_t maxSize,
+                     bool print) {
+  for (int i = 0; i < (int)seq.second.size(); i = i + 2) {
+    if ((seq.second[i] < 0) || (seq.second[i] > maxSize)
+     || (seq.second[i] >= seq.second[i + 1])) {
+      cout << "Error: empty assignment sequence" << endl;
+      return false;
+    }
+  }
+  for (int i = 0; i < (int)seq.first.size(); i = i + 2) {
+    if ((seq.first[i] < 0) || (seq.first[i] > maxSize)
+     || (seq.first[i] > seq.first[i + 1])) {
+       cout << "Error: " << seq.first[i] << ", " << seq.first[i + 1] << endl;
+       return false;
+    }
+  }
+  if (print) {
+    cout << "seq=";
+    for (int i = 0; i < (int)seq.first.size(); i++) {
+      cout << seq.first[i] << "|";
+    }
+    cout << endl << "assignedSeq=";
+    for (int i = 0; i < (int)seq.second.size(); i++) {
+      cout << seq.second[i] << "|";
+    }
+    cout << endl;
+  }
+  return true;
+}
+
+/*
 \subsection{Function ~evaluate~}
 
 In case of testing a condition's syntactical correctness, we are only
@@ -428,8 +495,8 @@ On the other hand, if we ask for the condition result, the function executes
 the appropiate query and returns its result.
 
 */
-bool evaluate(string input, const bool eval) {
-  bool isBool(false), isTrue(false);
+bool evaluate(string input, const bool eval, string desiredType) {
+  bool isTrue(false), isDesired(false);
   SecParser condParser;
   string queryStr;
   ListExpr queryList, resultType;
@@ -460,7 +527,7 @@ bool evaluate(string input, const bool eval) {
             }
           }
           else { // check the result type
-            QueryProcessor* qpp = new QueryProcessor(nl,am);
+            QueryProcessor* qpp = new QueryProcessor(nl, am);
             qpp->Construct(nl->First(nl->Rest(queryList)), correct, evaluable,
                           defined, isFunction, tree, resultType);
             if (!correct) {
@@ -469,11 +536,11 @@ bool evaluate(string input, const bool eval) {
             else if (!evaluable) {
               cout << "not evaluable" << endl;
             }
-            else if (nl->ToString(resultType).compare("bool")) {
-              cout << "wrong result type " << nl->ToString(resultType) << endl;
+            else if (nl->ToString(resultType).compare(desiredType)) {
+              cout << "Error: type " << desiredType << " required" << endl;
             }
             else {
-              isBool = true;
+              isDesired = true;
             }
             if (tree) {
               qpp->Destroy(tree, true);
@@ -495,9 +562,40 @@ bool evaluate(string input, const bool eval) {
   if (tree) {
     qp->Destroy(tree, true);
   }
-  return eval ? isTrue : isBool;
+  return eval ? isTrue : isDesired;
 }
 
+/*
+\subsection{Function ~evaluateAssign~}
+
+*/
+Word evaluateAssign(string input) {
+  SecParser assignParser;
+  string query, queryStr;
+  ListExpr queryList;
+  Word queryResult;
+  input.insert(0, "query ");
+  if (!assignParser.Text2List(input, queryStr)) {
+    if (nl->ReadFromString(queryStr, queryList)) {
+      if (!nl->IsEmpty(nl->Rest(queryList))) {
+        query = nl->ToString(nl->First(nl->Rest(queryList)));
+        cout << "execute " << query << endl;
+        if (qp->ExecuteQuery(query, queryResult)) {
+          return queryResult;
+        }
+      }
+    }
+  }
+  return queryResult;
+}
+
+/*
+\subsection{Function ~createTrajectory~}
+
+Creates a vector of string containing districts of Dortmund in a random but
+correct order.
+
+*/
 vector<string> createTrajectory(int size) {
   vector<string> result;
   string districts[12] = {"Aplerbeck", "Brackel", "Eving", "Hörde", "Hombruch",

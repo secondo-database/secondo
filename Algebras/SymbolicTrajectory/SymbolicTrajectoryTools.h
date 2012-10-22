@@ -48,11 +48,17 @@ string setToString(set<string> input);
 int prefixCount(string str, set<string> strings);
 vector<string> splitPattern(string input);
 char* convert(string arg);
+string eraseQM(string arg);
+string addQM(string arg);
+int getKey(string type);
 string extractVar(string input);
 string extendDate(string input, const bool start);
 bool checkSemanticDate(const string text, const SecInterval uIv,
                        const bool resultNeeded);
 bool checkDaytime(const string text, const SecInterval uIv);
-bool evaluate(string condStr, const bool eval);
+bool checkRewriteSeq(pair<vector<size_t>, vector<size_t> > seq, size_t maxSize,
+                     bool print);
+bool evaluate(string condStr, const bool eval, string desiredType);
+Word evaluateAssign(string input);
 vector<string> createTrajectory(int size);
 void fillML(const MString& source, MString& result, DateTime* duration);

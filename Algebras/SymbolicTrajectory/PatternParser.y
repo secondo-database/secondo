@@ -60,10 +60,11 @@ void patternerror(const char* s) {
 stj::Pattern* wholepat = 0;
 Condition cond;
 UPat uPat;
+Assign assign;
 ExprList exprList;
-bool doublePars(false), firstAssign(true);
+bool doublePars(false), firstAssign(true), assignNow(false);
 string expr;
-set<string> curIvs;
+set<string> curIvs, resultVars;
 unsigned int pos = 0;
 char* errMsg;
 %}
@@ -80,27 +81,23 @@ char* errMsg;
 %token ZZEND
 %token<text> ZZVARIABLE ZZCONTENTS ZZWILDCARD ZZDOUBLESLASH ZZVAR_DOT_TYPE
              ZZRIGHTARROW ZZCONST_OP ZZCONTENTS_RESULT ZZVAR_DOT_LABEL
-             ZZVAR_DOT_TIME ZZVAR_DOT_TYPE2 ZZINTERVAL ZZASSIGN ZZLABEL ZZERROR
+             ZZVAR_DOT_TIME ZZINTERVAL ZZASSIGN ZZLABEL ZZERROR
 %type<text> variable unitpattern conditionsequence condition expression
             resultsequence result assignment unitpattern_result
             results_assignments assignmentsequence
 %type<p> patternsequence
 %type<el> expressionlist expressionlistcomma expressionlistparentheses
-          expressionlistbrackets expressionlistenclosed
+          expressionlistbrackets expressionlistenclosed assignment_expressionlist
 %%
 start : patternsequence ZZDOUBLESLASH conditionsequence ZZEND {
-/*           cout << wholepat->toString(); */
         }
       | patternsequence ZZEND {
-/*           cout << wholepat->toString(); */
         }
       | patternsequence ZZRIGHTARROW results_assignments ZZEND {
-/*           cout << wholepat->toString(); */
+          wholepat->collectAssVars();
         }
       | patternsequence ZZDOUBLESLASH conditionsequence ZZRIGHTARROW results_assignments ZZEND {
-          /*if (wholepat) {
-            cout << wholepat->toString();
-          }*/
+          wholepat->collectAssVars();
         }
       ;
 
@@ -112,152 +109,98 @@ assignmentsequence : assignment
                    | assignmentsequence ',' assignment
                    ;
 
-assignment : ZZVAR_DOT_TYPE2 ZZASSIGN ZZVAR_DOT_TYPE2 {
-               string var1($1);
-               string arg($3);
-               string type = var1.substr(var1.find('.') + 1);
-               string var2 = arg.substr(0, arg.find('.'));
-               var1.assign(var1.substr(0, var1.find('.')));
-               uPat.getUnit(convert(var1), false);
-               if (!uPat.getV().empty()) {
-                 bool found1InRes(false), found2InPat(false);
-                 unsigned int i(0), j(0);
-                 while (!found1InRes && (i < wholepat->getResults().size())) {
-                   if (!wholepat->getResult(i).getV().compare(var1)) {
-                     found1InRes = true;
-                   }
-                   else {i++;}
-                 }
-                 while (!found2InPat && j < wholepat->getPats().size()) {
-                   if (!wholepat->getPat(j).getV().compare(var2)) {
-                     found2InPat = true;
-                   }
-                   else {j++;}
-                 }
-                 if (found1InRes && found2InPat) {
-                   string argType = arg.substr(arg.find('.') + 1);
-                   if ((type == "label") && (argType == "label")) {
-                     if (wholepat->getPats()[wholepat->getVarPos()[var2]].getW() == NO) {
-                       wholepat->insertResLb(i, "=" + var2);
-                       wholepat->insertAssVar(var2);
-                     }
-                     else {
-                       errMsg = convert("label assignment from sequence pattern invalid");
-                       yyerror(errMsg);
-                       YYERROR;
-                     }
-                   }
-                   else if (((type == "time") && (argType == "time"))
-                        || (((type == "start") || (type == "end"))
-                        && ((argType == "start") || (argType == "end")))) {
-                     wholepat->insertResIv(i, type + "=" + arg);
-                     wholepat->insertAssVar(var2);
-                   }
-                   else {
-                     errMsg = convert("invalid type combination");
-                     yyerror(errMsg);
-                     YYERROR;
-                   }
-                 }
-                 else {
-                   errMsg = convert("variables " + var1 + " & " + var2 + " not found");
-                   yyerror(errMsg);
-                   YYERROR;
-                 }
-               }
-               free($1);
-               free($3);
-             }
-           | ZZVAR_DOT_TYPE2 ZZASSIGN ZZLABEL {
+assignment : ZZVAR_DOT_TYPE ZZASSIGN assignment_expressionlist {
                string var($1);
-               string label($3);
+               string arg = $3->toString();
                string type = var.substr(var.find('.') + 1);
-               if (label.at(0) == '\"') {
-                 label.assign(label.substr(1, label.size() - 2));
-               }
+               pair<string, int> varKey;
                var.assign(var.substr(0, var.find('.')));
-               uPat.getUnit(convert(var), false);
-               if (!uPat.getV().empty()) {
-                 bool foundInRes(false);
-                 unsigned int i = 0;
-                 while (!foundInRes && (i < wholepat->getResults().size())) {
-                   if (!wholepat->getResult(i).getV().compare(var)) {
-                     foundInRes = true;
-                   }
-                   else {
-                     i++;
-                   }
-                 }
-                 if (foundInRes && (type == "label")) {
-                   wholepat->insertResLb(i, label);
-                 }
-                 else {
-                   errMsg = convert("variable or type error");
-                   yyerror(errMsg);
-                   YYERROR;
-                 }
+               int posR = wholepat->getResultPos(var);
+               if (posR == -1) {
+                 errMsg = convert("variable " + var + " not found in results");
+                 yyerror(errMsg);
+                 YYERROR;
                }
-               free($1);
-               free($3);
-             }
-           | ZZVAR_DOT_TYPE2 ZZASSIGN ZZINTERVAL {
-               string var($1);
-               string timeEx($3);
-               string type = var.substr(var.find('.') + 1);
-               var.assign(var.substr(0, var.find('.')));
-               uPat.getUnit(convert(var), false);
-               if (!uPat.getV().empty()) {
-                 bool foundInRes(false);
-                 unsigned int i = 0;
-                 while (!foundInRes && (i < wholepat->getResults().size())) {
-                   if (!wholepat->getResult(i).getV().compare(var)) {
-                     foundInRes = true;
-                   }
-                   else {
-                     i++;
-                   }
+               int posP = wholepat->getPatternPos(var);
+               if (getKey(type) < 5) {
+                 wholepat->setAssign(posR, posP, getKey(type), arg);
+                 while (assign.getRightSize(4)) {
+                   varKey = assign.getVarKey(4);
+                   wholepat->addAssignRight(posR, getKey(type), varKey);
+                   assign.removeUnordered();
                  }
-                 if (foundInRes && ((type == "time") || (type == "start") || (type == "end"))) {
-                   wholepat->insertResIv(i, type + "=" + timeEx);
-                 }
-                 else {
-                   errMsg = convert("variable or type error");
-                   yyerror(errMsg);
-                   YYERROR;
-                 }
+                 wholepat->substAssign(posR, getKey(type));
                }
+               else {
+                 errMsg = convert("type \"" + type + "\" is invalid");
+                 yyerror(errMsg);
+                 YYERROR;
+               }
+               assign.clear();
+               exprList.exprs.clear();
                free($1);
-               free($3);
              }
            ;
+
+assignment_expressionlist : expression {
+                   expr.assign($1);
+                   exprList.exprs.push_back(expr);
+                   free($1);
+                   $$ = &exprList;
+                 }
+               | expressionlist expression {
+                   expr.assign($2);
+                   int exprSize = exprList.exprs.size();
+                   if (exprSize > 0) {
+                     exprList.exprs[exprSize - 1].append(" ");
+                     exprList.exprs[exprSize - 1].append(expr);
+                   }
+                   free($2);
+                   $$ = &exprList;
+                 }
+               ;
 
 resultsequence : result
                | resultsequence result
                ;
 
 result : ZZVARIABLE unitpattern_result {
-           uPat.getUnit($1, true);
-           if (!uPat.getV().empty()) {
-             uPat.createUnit($1, $2);
-             uPat.clearW();
-             wholepat->addResult(uPat);
-/*              cout << "unit " << $2 << " added to results" << endl;*/} 
-           else {
-             cout << $1 << " was not found in the pattern" << endl;
+           assignNow = true;
+           string var($1);
+           if (resultVars.count(var)) {
+             errMsg = convert("result variables must be unique");
+             yyerror(errMsg);
+             YYERROR;
            }
-           free($1);
-           free($2);
+           else {
+             uPat.createUnit($1, $2);
+             assign.init(var, wholepat->getPatternPos(var));
+             if (!uPat.getI().empty()) {
+               assign.setText(1, *uPat.getI().begin());
+             }
+             if (!uPat.getL().empty()) {
+               assign.setText(0, *uPat.getL().begin());
+             }
+             wholepat->addAssign(assign);
+/*              cout << "result for result variable " << assign.getV() << " added" << endl; */
+             free($1);
+             free($2);
+           }
          }
        | ZZVARIABLE {
-           uPat.getUnit($1, true);
-           if (!uPat.getV().empty()) {
-             uPat.clearL();
-             wholepat->addResult(uPat);
-/*              cout << "unit added to results" << endl;*/}
-           else {
-             cout << $1 << " was not found in the pattern" << endl;
+           assignNow = true;
+           string var($1);
+           if (resultVars.count(var)) {
+             errMsg = convert("result variables must be unique");
+             yyerror(errMsg);
+             YYERROR;
            }
-           free($1);
+           else {
+             assign.init(var, wholepat->getPatternPos(var));
+             wholepat->addAssign(assign);
+/*              cout << "result variable " << assign.getV() << " added" << endl; */
+             free($1);
+           }
          }
        ;
 
@@ -282,10 +225,16 @@ condition : expressionlist {
           ;
 
 expression : ZZVAR_DOT_TYPE {
-               if (cond.convertVarKey($1) == ERROR) {
-                 $$ = convert("");
+               if (cond.convertVarKey($1) == 5) {
+                 string varDotType($1);
+                 errMsg = convert("error: " + varDotType + " not accepted");
+                 yyerror(errMsg);
+                 YYERROR;
                  free($1);
                } else {
+                 if (assignNow) {
+                   assign.convertVarKey($1);
+                 }
                  $$ = $1;
                }
              }
@@ -490,6 +439,22 @@ Pattern* stj::parseString(const char* input) {
 }
 
 /*
+function ~getResultPos~
+Searches ~v~ in the results. A returned value of -1 means that ~v~ does not
+occur in the results.
+
+*/
+int Pattern::getResultPos(const string v) {
+  string var(v);
+  for (int i = 0; i < (int)getAssigns().size(); i++) {
+    if (getAssign(i).getV() == var) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/*
 function ~getUnit~
 Searches varP in the pattern and verifies the correct order of variables in the
 result pattern. In case of success, the unit pattern gets the suitable values.
@@ -622,36 +587,77 @@ Checks whether the variable var occurs in the pattern and whether the key k
 is valid; returns the recognized key.
 
 */
-Key Condition::convertVarKey(const char *varKey) {
+int Condition::convertVarKey(const char *varKey) {
   string input(varKey), var;
-  Key key;
+  int key;
   int dotpos = input.find('.');
   string varInput(input.substr(0, dotpos));
   string kInput(input.substr(dotpos + 1));
   for (unsigned int i = 0; i < wholepat->getPats().size(); i++) {
     if (!varInput.compare((wholepat->getPat(i)).getV())) {
       var.assign(varInput);
-      if (!kInput.compare("label"))
-        key = LABEL;
-      else if (!kInput.compare("time"))
-        key = TIME;
-      else if (!kInput.compare("start"))
-        key = START;
-      else if (!kInput.compare("end"))
-        key = END;
-      else if (!kInput.compare("card"))
-        key = CARD;
-      else
-        key = ERROR;
+      key = ::getKey(kInput);
       cond.vars.push_back(var);
       cond.keys.push_back(key);
       cond.pIds.push_back(i);
-/*       cout << varInput << " | pat #" << i << " | cond #" << wholepat->getConds().size() << endl; */
       return key;
     }
   }
-  cout << "variable " << var << " does not exist in the pattern" << endl;
-  return ERROR;
+  cout << "variable " << varInput << " does not exist in the pattern" << endl;
+  return 5;
+}
+
+void Assign::convertVarKey(const char *varKey) {
+  string input(varKey);
+  int dotpos = input.find('.');
+  string varInput(input.substr(0, dotpos));
+  string kInput(input.substr(dotpos + 1));
+  pair<string, int> right;
+  for (unsigned int i = 0; i < wholepat->getPats().size(); i++) {
+    if (!varInput.compare((wholepat->getPat(i)).getV())) {
+      right.first = varInput;
+      right.second = getKey(kInput);
+      addRight(4, right); // assign to 0, 1, 2 or 3 afterwards
+    }
+  }
+}
+
+void Assign::substitute(int key) {
+  string varKey;
+  bool substituted = false;
+  textSubst[key] = text[key];
+  for (int i = 0; i < (int)right[key].size(); i++) {
+    varKey = right[key][i].first;
+    varKey.append(Condition::getType(right[key][i].second));
+    size_t pos = textSubst[key].find(varKey);
+    if (pos != string::npos) {
+      textSubst[key].replace(pos, varKey.size(), Condition::getSubst(right[key][i].second));
+      substituted = true;
+    }
+  }
+  if (!substituted) { // no substitution necessary, e.g., 2012-05-12-20:00
+    textSubst[key].clear();
+  }
+}
+
+void Pattern::collectAssVars() {
+  for (int i = 0; i < (int)assigns.size(); i++) {
+    for (int j = 0; j < 4; j++) {
+      for (int k = 0; k < assigns[i].getRightSize(j); k++) {
+        assignedVars.insert(assigns[i].getRightVar(j, k));
+        cout << "assignedVars <-- " << assigns[i].getRightVar(j, k) << endl;
+      }
+    }
+  }
+}
+
+int Pattern::getPatternPos(const string var) {
+  for (int i = 0; i < (int)patterns.size(); i++) {
+    if (patterns[i].getV() == var) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 void Condition::clear() {

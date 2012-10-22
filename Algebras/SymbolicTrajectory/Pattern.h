@@ -54,8 +54,8 @@ namespace stj {
 
 class Pattern;
 class UPat;
-
-enum Key {LABEL, TIME, START, END, CARD, ERROR};
+class Assign;
+  
 enum Wildcard {NO, STAR, PLUS};
 //enum Operations {EQUALS, IN, CONTAINS};
 
@@ -105,7 +105,7 @@ class MLabel : public MString {
   MLabel* compress();
   void create(int size, bool text, double rate);
   void rewrite(MLabel const &ml, pair<vector<size_t>, vector<size_t> > seq,
-               vector<UPat> assigns, map<string, int> varPos);
+               vector<Assign> assigns, map<string, int> varPos);
 
 //  private:
 //   bool hasIndex;
@@ -114,13 +114,13 @@ class MLabel : public MString {
 };
 
 class ULabel : public UString {
-  public:
-    ULabel() {}
-    ULabel(int i): UString(i) {}
-    
-    static const string BasicType() {return "ulabel";}
-    static ListExpr ULabelProperty();
-    static bool CheckULabel(ListExpr type, ListExpr& errorInfo);
+ public:
+  ULabel() {}
+  ULabel(int i): UString(i) {}
+  
+  static const string BasicType() {return "ulabel";}
+  static ListExpr ULabelProperty();
+  static bool CheckULabel(ListExpr type, ListExpr& errorInfo);
 };
 
 class ExprList {
@@ -138,7 +138,7 @@ class Condition {
   string text;
   string textSubst; // the condition after replacing, see maps below
   map<int, string> subst;
-  vector<Key> keys;
+  vector<int> keys;
   vector<string> vars;
   vector<int> pIds;
 
@@ -147,7 +147,7 @@ class Condition {
   ~Condition() {}
   
   string toString() const;
-  Key convertVarKey(const char *varKey);
+  int convertVarKey(const char *varKey);
   void clear();
   void substitute();
   void substitute(int pos, string subst);
@@ -160,11 +160,12 @@ class Condition {
   void    resetSubst()             {textSubst = text;}
   void    setSubst(string newSub)  {textSubst = newSub;}
   int     getKeysSize() const      {return keys.size();}
-  Key     getKey(unsigned int pos) {return (pos < keys.size() ?
-                                                  keys[pos] : ERROR);}
+  int     getKey(unsigned int pos) {return (pos < keys.size() ?
+                                                  keys[pos] : -1);}
   int     getPId(unsigned int pos) {return (pos < pIds.size() ?
                                                   pIds[pos] : -1);}
   void    clearVectors()           {vars.clear(); keys.clear(); pIds.clear();}
+//   string  getSubst(int pos)        {return subst[pos];}
 };
 
 class UPat {
@@ -200,10 +201,59 @@ class UPat {
   void        clearW()                    {wc = NO;}
 };
 
+class Assign {
+ private:
+  int resultPos;
+  int patternPos; // -1 if ~var~ does not occur in the pattern
+  string text[4]; // one for label, one for time, one for start, one for end
+  string textSubst[4];
+  string var;
+  vector<pair<string, int> > right[5]; // a list of vars and keys for every type
+
+ public:
+  Assign() {}
+  ~Assign() {}
+
+  void clear() {
+    resultPos = -1;
+    for (int i = 0; i < 4; i++) {
+      text[i].clear(); textSubst[i].clear(); right[i].clear();
+    }
+  }
+
+  static string getDataType(int key);
+  void convertVarKey(const char* vk);
+  void substitute(int key);
+  bool prepareRewrite(int key, vector<size_t> assSeq,
+                      map<string, int> varPosInSeq, MLabel const &ml);
+
+  void    init(string v, int pp)             {clear(); var=v; patternPos=pp;}
+  int     getResultPos() const               {return resultPos;}
+  void    setResultPos(int p)                {resultPos = p;}
+  int     getPatternPos() const              {return patternPos;}
+  void    setPatternPos(int p)               {patternPos = p;}
+  string  getText(int key) const             {return text[key];}
+  void    setText(int key, string newText)   {if (!text[key].empty()) {
+                                               right[key].clear();}
+                                              text[key] = newText;}
+  string  getSubst(int key) const            {return textSubst[key];}
+  void    setSubst(int key, string newSubst) {textSubst[key] = newSubst;}
+  int     getRightSize(int key) const        {return right[key].size();}
+  string  getV() const                       {return var;}
+  int     getRightKey(int lkey, int j) const {return right[lkey][j].second;}
+  pair<string, int> getVarKey(int key, int i) const {return right[key][i];}
+  pair<string, int> getVarKey(int key) const {return right[key].back();}
+  string  getRightVar(int lkey, int j) const {return right[lkey][j].first;}
+  void    addRight(int key,
+               pair<string, int> newRight)   {right[key].push_back(newRight);}
+  void    removeUnordered()                  {right[4].pop_back();}
+};
+
 class Pattern {
  private:
   vector<UPat> patterns;
   vector<UPat> results;
+  vector<Assign> assigns;
   vector<Condition> conds;
   string text;
   map<string, int> varPos;
@@ -249,16 +299,23 @@ class Pattern {
   bool verifyPattern();
   set<pair<vector<size_t>, vector<size_t> > > getRewriteSeqs(MLabel const &ml);
   map<string, int> getVarPosInSeq();
+  int getResultPos(const string v);
+  void collectAssVars();
+  int getPatternPos(const string v);
+  bool checkAssignTypes();
 
   vector<UPat>      getPats()               {return patterns;}
   vector<Condition> getConds()              {return conds;}
   vector<UPat>      getResults()            {return results;}
+  vector<Assign>    getAssigns()            {return assigns;}
   UPat              getPat(int pos)         {return patterns[pos];}
   UPat              getResult(int pos)      {return results[pos];}
-  bool              hasResults()            {return !results.empty();}
+  Assign            getAssign(int pos)      {return assigns[pos];}
+  bool              hasAssigns()            {return !assigns.empty();}
   void              addUPat(UPat upat)      {patterns.push_back(upat);}
   void              addCond(Condition cond) {conds.push_back(cond);}
   void              addResult(UPat res)     {results.push_back(res);}
+  void              addAssign(Assign ass)   {assigns.push_back(ass);}
   void              setText(string newText) {text = newText;}
   void              clearResLbs(int pos)    {results[pos].clearL();}
   void      insertResLb(int pos, string lb) {results[pos].insertL(lb);}
@@ -270,6 +327,11 @@ class Pattern {
   map<string, int>  getVarPos()             {return varPos;}
   void              insertAssVar(string v)  {assignedVars.insert(v);}
   set<string>       getAssVars()            {return assignedVars;}
+  void setAssign(int posR, int posP, int key, string arg) {
+            assigns[posR].setText(key, arg); assigns[posR].setPatternPos(posP);}
+  void addAssignRight(int pos, int key, pair<string, int> varKey)
+                                           {assigns[pos].addRight(key, varKey);}
+  void        substAssign(int pos, int key) {assigns[pos].substitute(key);}
 };
 
 struct DoubleParsInfo {
@@ -335,7 +397,7 @@ class NFA {
   multiset<size_t> getNextSeq(); // for matches, we just need the next sequence
   void filterSequences(MString const &ml);
   void buildRewriteSeq(multiset<size_t> sequence);
-  void computeResultVars(vector<UPat> results);
+  void computeResultVars(vector<Assign> assigns);
   void computeAssignedVars(vector<UPat> results);
   set<pair<vector<size_t>, vector<size_t> > > getRewriteSeqs()
                                               {return rewriteSeqs;}
@@ -347,7 +409,7 @@ class NFA {
   void buildCondMatchings(int condId, multiset<size_t> sequence);
   bool evaluateCond(MString const &ml, int cId, multiset<size_t> sequence);
   string getLabelSubst(MString const &ml, int pos);
-  string getTimeSubst(MString const &ml, Key key, size_t from, size_t to);
+  string getTimeSubst(MString const &ml, int key, size_t from, size_t to);
   set<multiset<size_t> > getSequences() {return sequences;}
   set<string> getAssVars() {return assignedVars;}
   void setAssVars(set<string> aV) {assignedVars = aV;}
@@ -371,12 +433,12 @@ class RewriteResult {
   set<pair<vector<size_t>, vector<size_t> > > sequences; // matching sequences
   set<pair<vector<size_t>, vector<size_t> > >::iterator it;
   MLabel *inputML;
-  vector<UPat> assigns;
+  vector<Assign> assigns;
   map<string, int> varPosInSeq;
   
  public:
   RewriteResult(set<pair<vector<size_t>, vector<size_t> > > seqs, MLabel *ml,
-                vector<UPat> assigns, map<string, int> vPIS){
+                vector<Assign> assigns, map<string, int> vPIS){
     sequences = seqs;
     it = sequences.begin();
     inputML = ml;
@@ -389,7 +451,7 @@ class RewriteResult {
   bool             finished()       {return (it == sequences.end());}
   void             killMLabel()     {delete inputML; inputML = 0;}
   MLabel           getML()          {return *inputML;}
-  vector<UPat>     getAssignments() {return assigns;}
+  vector<Assign>   getAssignments() {return assigns;}
   void             next()           {it++;}
   map<string, int> getVarPosInSeq() {return varPosInSeq;}
   pair<vector<size_t>, vector<size_t> > getCurrentSeq() {return *it;}

@@ -63,11 +63,9 @@ contents_result {interval}[\ ]+{label}
 variable [A-Z]{1,2}[0-9]*
 doubleslash \/{2}
 conditiontype label|time|start|end|card
-assignmenttype label|time|start|end
 vardottype {variable}\.{conditiontype}
 rightarrow =>
 const_op ([^A-Z\(\)\[\]\,\t\n ][^\(\)\[\]\,\t\n ]*)|TRUE|FALSE
-vardottype2 {variable}\.{assignmenttype}
 vardotlabel {variable}\.label
 vardottime {variable}\.time
 assign \:=
@@ -99,11 +97,14 @@ assign \:=
 <result>{contents_result} {patternlval.text = strdup(patterntext); return ZZCONTENTS_RESULT;}
 <result>{doubleslash} {BEGIN(assignment); return ZZDOUBLESLASH;}
 <result>\n {BEGIN(INITIAL); return ZZEND;}
-<assignment>{vardottype2} {patternlval.text = strdup(patterntext); return ZZVAR_DOT_TYPE2;}
+<assignment>{vardottype} {patternlval.text = strdup(patterntext); return ZZVAR_DOT_TYPE;}
 <assignment>{assign} {return ZZASSIGN;}
-<assignment>{label} {patternlval.text = strdup(patterntext); return ZZLABEL;}
-<assignment>{interval} {patternlval.text = strdup(patterntext); return ZZINTERVAL;}
+<assignment>{const_op} {patternlval.text = strdup(patterntext); return ZZCONST_OP;}
 <assignment>\, {return ',';}
+<assignment>\( {return '(';}
+<assignment>\) {return ')';}
+<assignment>\[ {return '[';}
+<assignment>\] {return ']';}
 <assignment>\n {BEGIN(INITIAL); return ZZEND;}
 <INITIAL>. {patternlval.text = strdup(patterntext); BEGIN(INITIAL); return ZZERROR;}
 %%
