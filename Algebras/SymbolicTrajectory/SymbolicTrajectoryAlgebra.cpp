@@ -519,9 +519,9 @@ bool Assign::prepareRewrite(int key, vector<size_t> assSeq,
         *end = ul.timeInterval.end;
         rc = ul.timeInterval.rc;
         if (key == 1) { // time
-          subst = "[const interval value (\"" + start->ToString() + "\" \""
+          subst = "[const periods value ((\"" + start->ToString() + "\" \""
                 + end->ToString() + "\" " + (lc ? "TRUE " : "FALSE ")
-                + (rc ? "TRUE" : "FALSE") + ")]";
+                + (rc ? "TRUE" : "FALSE") + "))]";
         }
         else if (key == 2) { // start
           subst = "[const instant value \"" + start->ToString() + "\"]";
@@ -561,8 +561,9 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
   string newL;
   Word queryResult;
   CcString *ccstring;
-  SecInterval *iv = new SecInterval(0);
+  Periods *per = new Periods(0);
   Instant *inst = new DateTime(instanttype);
+  SecInterval *iv = new SecInterval(0);
   for (int i = 0; i < (int)assigns.size(); i++) {
     if (assigns[i].getPatternPos() == -1) { // A does not occur in the pattern
       if (assigns[i].getText(0).empty() || (assigns[i].getText(1).empty() &&
@@ -572,43 +573,39 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
       }
       else { // enough data; create ul
         cout << "create new ul for variable " << assigns[i].getV() << endl;
-        if (!assigns[i].prepareRewrite(0, seq.second, varPosInSeq, ml)) {
-          this->SetDefined(false);
-        }
-        queryResult = evaluateAssign(assigns[i].getSubst(0));
-        ccstring = static_cast<CcString*>(queryResult.addr);
-        if (ccstring->IsDefined()) {
-          ul.constValue.Set(true, eraseQM(ccstring->GetValue()));
-        } // label assigned now
-        if (!assigns[i].getText(1).empty()) { // assign time
-          if (!assigns[i].prepareRewrite(1, seq.second, varPosInSeq, ml)) {
-            this->SetDefined(false);
+        for (int key = 0; key < 4; key++) {
+          if (!assigns[i].getText(key).empty()) {
+            if (!assigns[i].prepareRewrite(key, seq.second, varPosInSeq, ml)) {
+              this->SetDefined(false);
+            }
+            queryResult = evaluateAssign(assigns[i].getSubst(key));
+            if (key == 0) {
+              ccstring = static_cast<CcString*>(queryResult.addr);
+              if (ccstring->IsDefined()) {
+                ul.constValue.Set(true, eraseQM(ccstring->GetValue()));
+              } // label assigned now
+            }
+            else { // key > 0
+              if (key == 1) {
+                per = static_cast<Periods*>(queryResult.addr);
+                if (per->IsDefined() && (per->GetNoComponents() == 1)) {
+                  per->Get(0, *iv);
+                  ul.timeInterval = *iv;
+                } // time assigned now
+              }
+              else {
+                inst = static_cast<Instant*>(queryResult.addr);
+                if (inst->IsDefined()) {
+                  if (key == 2) {
+                    ul.timeInterval.start = *inst;
+                  } // start assigned now
+                  else { // key == 3
+                    ul.timeInterval.end = *inst;
+                  } // end assigned now
+                } 
+              }
+            }
           }
-          queryResult = evaluateAssign(assigns[i].getSubst(1));
-          iv = static_cast<SecInterval*>(queryResult.addr);
-          if (iv->IsDefined()) {
-            ul.timeInterval = *iv;
-          } // time assigned now
-        }
-        if (!assigns[i].getText(2).empty()) { // assign start
-          if (!assigns[i].prepareRewrite(2, seq.second, varPosInSeq, ml)) {
-            this->SetDefined(false);
-          }
-          queryResult = evaluateAssign(assigns[i].getSubst(2));
-          inst = static_cast<Instant*>(queryResult.addr);
-          if (inst->IsDefined()) {
-            ul.timeInterval.start = *inst;
-          } // start assigned now
-        }
-        if (!assigns[i].getText(3).empty()) { // assign end
-          if (!assigns[i].prepareRewrite(3, seq.second, varPosInSeq, ml)) {
-            this->SetDefined(false);
-          }
-          queryResult = evaluateAssign(assigns[i].getSubst(3));
-          inst = static_cast<Instant*>(queryResult.addr);
-          if (inst->IsDefined()) {
-            ul.timeInterval.end = *inst;
-          } // end assigned now
         }
         this->MergeAdd(ul);
       }
@@ -618,10 +615,8 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
         cout << "i = " << i << " ||| j = " << j << endl;
         ml.Get(j, ul);
         if (!assigns[i].getText(0).empty()) { // assign new label
-          cout << "old text = " << ul.constValue.GetValue() << endl;
           if (!assigns[i].prepareRewrite(0, seq.second, varPosInSeq, ml)) {
             this->SetDefined(false);
-            return;
           }
           queryResult = evaluateAssign(assigns[i].getSubst(0));
           ccstring = static_cast<CcString*>(queryResult.addr);
@@ -631,11 +626,50 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
           else {
             cout << "ccstring undefined" << endl;
             this->SetDefined(false);
-            return;
           }
-          cout << "new text = " << ul.constValue.GetValue() << endl;
         }
-        // TODO assign time values
+        if (!assigns[i].getText(1).empty()) { // time
+          if ((j == seq.first[seqPos]) || (j == seq.first[seqPos + 1] - 1)) {
+            if (!assigns[i].prepareRewrite(1, seq.second, varPosInSeq, ml)) {
+              this->SetDefined(false);
+            }
+            queryResult = evaluateAssign(assigns[i].getSubst(1));
+            per = static_cast<Periods*>(queryResult.addr);
+            if (per->IsDefined() && (per->GetNoComponents() == 1)) {
+              per->Get(0, *iv);
+              if (j == seq.first[seqPos]) {
+                ul.timeInterval.start = iv->start;
+              }
+              if (j == seq.first[seqPos + 1] - 1) {
+                ul.timeInterval.end = iv->end;
+              }
+            }
+            else {
+              cout << "invalid periods" << endl;
+              this->SetDefined(false);
+            }
+          }
+        }
+        if (!assigns[i].getText(2).empty() && (j == seq.first[seqPos])) {//start
+          if (!assigns[i].prepareRewrite(2, seq.second, varPosInSeq, ml)) {
+            this->SetDefined(false);
+          }
+          queryResult = evaluateAssign(assigns[i].getSubst(2));
+          inst = static_cast<Instant*>(queryResult.addr);
+          if (inst->IsDefined()) {
+            ul.timeInterval.start = *inst;
+          }
+        }
+        if (!assigns[i].getText(3).empty() && (j == seq.first[seqPos + 1] - 1)){
+          if (!assigns[i].prepareRewrite(3, seq.second, varPosInSeq, ml)) {
+            this->SetDefined(false);
+          }
+          queryResult = evaluateAssign(assigns[i].getSubst(3));
+          inst = static_cast<Instant*>(queryResult.addr);
+          if (inst->IsDefined()) {
+            ul.timeInterval.end = *inst;
+          }
+        }
         this->MergeAdd(ul);
 
       }
@@ -643,8 +677,9 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
     }
   }
   ccstring->DeleteIfAllowed();
-  iv->DeleteIfAllowed();
+  per->DeleteIfAllowed();
   inst->DeleteIfAllowed();
+  iv->DeleteIfAllowed();
   if (!this->IsValid()) {
     this->SetDefined(false);
   }
@@ -3138,7 +3173,9 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
     case CLOSE: {
       if (local.addr) {
         rr = ((RewriteResult*)local.addr);
-        rr->killMLabel();
+        if (rr->getML().IsDefined()) {
+          rr->killMLabel();
+        }
         delete rr;
       }
       return 0;
