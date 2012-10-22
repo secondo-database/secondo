@@ -1069,3 +1069,22 @@ Signature: {text,string} -> regex2
 Example  : query regexmatches('Secondo',createRegEx2('.*cond.*') )
 Result   : TRUE
 
+Operator  : numOfFlobs
+Number    : 1
+Signature : DATA -> int
+Example   : query numOfFlobs(1)
+Result    : 0
+
+
+Operator  : flobSize 
+Number    : 1
+Signature : DATA x int -> int
+Example   : query flobSize(thecenter,0) > 0 
+Result    : TRUE
+
+Operator  : flobMemSize 
+Number    : 1
+Signature : DATA x int -> int
+Example   : query flobMemSize(thecenter,0) > 0 
+Result    : FALSE
+

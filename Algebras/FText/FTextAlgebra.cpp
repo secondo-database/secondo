@@ -9174,6 +9174,146 @@ Operator createRegEx2(
     createRegExTM<true> 
   );
 
+/*
+4.32 Operator numOfFlobs
+
+4.32.1 Type Mapping
+
+*/
+ListExpr numOfFlobsTM(ListExpr args){
+ string err = "DATA expected";
+ if(!nl->HasLength(args,1)){
+   return listutils::typeError(err + " (wrong number of args)");
+ }
+ if(!Attribute::checkType(nl->First(args))){
+   return listutils::typeError(err);
+ }
+ return  listutils::basicSymbol<CcInt>(); 
+}
+
+/*
+4.32.2 Value Mapping 
+
+*/
+int numOfFlobsVM( Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+  Attribute* arg = (Attribute*) args[0].addr;
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+  res->Set(true, arg->NumOfFLOBs()); 
+  return 0;
+}
+
+/*
+4.32.3 Specification
+
+*/
+
+OperatorSpec numOfFlobsSpec(
+           "DATA -> int",
+           "numOfFlobs(_)",
+           "Returns the number of flobs used by an attribute ",
+           "query numOfFlobs(1)");
+
+
+/*
+4.32.4 Operator instance
+
+*/
+
+Operator numOfFlobs(
+    "numOfFlobs",
+    numOfFlobsSpec.getStr(),
+    numOfFlobsVM, 
+    Operator::SimpleSelect,
+    numOfFlobsTM 
+  );
+
+/*
+4.33 Operators flobSize / flobMemSize
+
+4.33.1 Type Mapping
+
+*/
+ListExpr flobSizeTM(ListExpr args){
+  string err = "DATA x int expected";
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err + " (wrong number of args)");
+  }
+  if(!Attribute::checkType(nl->First(args)) ||
+     !CcInt::checkType(nl->Second(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+/*
+4.33.2 Value Mapping
+
+*/
+template<bool memsize>
+int flobSizeVM( Word* args, Word& result, int message,
+                   Word& local, Supplier s ){
+
+  result = qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+  Attribute* attr = (Attribute*) args[0].addr;
+  CcInt* flob = (CcInt*) args[1].addr;
+  if(!flob->IsDefined()){
+    res->SetDefined(false);
+    return 0;
+  }
+  int flobi = flob->GetValue();
+  if((flobi<0) || (flobi>=attr->NumOfFLOBs())){
+    res->SetDefined(false);
+    return 0;
+  }
+  if(memsize){
+    res->Set(true, attr->GetFLOB(flobi)->getUncontrolledSize());
+  } else {
+    res->Set(true, attr->GetFLOB(flobi)->getSize());
+  }
+  return 0;
+}
+
+/*
+4.33.3 Specification
+
+*/
+
+OperatorSpec flobSizeSpec(
+           "DATA x int -> int",
+           "flobSize(_,int)",
+           "Returns the size of a flob ",
+           "query flobSize(thecenter,0)");
+
+
+OperatorSpec flobMemSizeSpec(
+           "DATA x int -> int",
+           "flobSize(_,int)",
+           "Returns the size of a flob in main memory",
+           "query flobMemSize(thecenter,0)");
+
+/*
+4.33.4 Operator instances
+
+*/
+Operator flobSize(
+    "flobSize",
+    flobSizeSpec.getStr(),
+    flobSizeVM<false>, 
+    Operator::SimpleSelect,
+    flobSizeTM 
+  );
+
+Operator flobMemSize(
+    "flobMemSize",
+    flobMemSizeSpec.getStr(),
+    flobSizeVM<true>, 
+    Operator::SimpleSelect,
+    flobSizeTM 
+  );
+
   /*
   5 Creating the algebra
 
@@ -9279,6 +9419,9 @@ Operator createRegEx2(
       AddOperator(&findPattern);
       AddOperator(&createRegEx);
       AddOperator(&createRegEx2);
+      AddOperator(&numOfFlobs);
+      AddOperator(&flobSize);
+      AddOperator(&flobMemSize);
 
       
        AddOperator(&pointerTest);
