@@ -228,17 +228,17 @@ Example  : query restrict([const cluster value ("c1" 511 510)] , [const text val
 Result   : (cluster ("c1" 511))
 Remark   : Removes all matrices from the cluster which not fulfil the given condition
 
-Operator : sizeof
+Operator : size
 Number   : 1
 Signature: cluster -> int 
-Example  : query sizeof([const cluster value ("c1" 500 501)]) 
+Example  : query size([const cluster value ("c1" 500 501)]) 
 Result   : (int 2)
 Remark   : the number of contained matrices
 
-Operator : sizeof
+Operator : size
 Number   : 2
 Signature: predicategroup  -> int 
-Example  : query sizeof([const predicategroup value (("c1" 45))]) 
+Example  : query size([const predicategroup value (("c1" 45))]) 
 Result   : (int 2)
 Remark   : the number of contained clusters (+1 for the unspecified cluster)
 

@@ -2925,7 +2925,7 @@ Operator invert(
          InvertTM);
 
 Operator sizeof_op(
-         "sizeof",     // name
+         "size",     // name
          SizeOf_Spec,   // specification
          2,               // number of functions
          SizeOfMap,    // array of value mappings
