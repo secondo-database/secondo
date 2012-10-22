@@ -1091,7 +1091,7 @@ Result    : FALSE
 Operator : sizeOf
 Number : 1
 Signature : DATA -> int
-Example : sizeOf(1) > 0
+Example : query sizeOf(1) > 0
 Result : TRUE
 
 
