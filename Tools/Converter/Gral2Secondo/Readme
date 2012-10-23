@@ -1,5 +1,0 @@
-For creating the executable file 'GralToSec' simply type 'make'.
-
-'make clean' removes 'lex.yy.c' and 'GralToSec'.
-
-For detailed information about the usage of 'GralToSec' type 'GralToSec help ' or 'GralToSec h'.

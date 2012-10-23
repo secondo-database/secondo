@@ -1,3 +1,0 @@
-
-
-java -classpath .:$SECONDO_BUILD_DIR/Javagui VagCom2Secondo $*

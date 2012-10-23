@@ -1,9 +1,0 @@
-#/bin/sh
-#
-# 02.07.2008
-#
-# A small script which prints a cvs log in reverse order
-#
-
-cvs log $* | tac - | sed 's#commitid: .*##'
-

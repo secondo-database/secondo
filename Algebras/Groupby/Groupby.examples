@@ -1,9 +1,0 @@
-Database : opt
-Restore  : NO
-
-Operator : groupby2
-Number   : 1
-Signature: stream(Tuple) x AttrList x (NewAttr-1 x (Tuple x Data -> Data) x Data) .. (NewAttr-j  x (Tuple x Data -> Data) x Data) -> stream(Tuple(Attrlist) o Tuple([NewAttr-1: Data]..[NewAttr-j: Data]) 
-Example  : query plz feed filter[.Ort = "Dresden"] groupby2[PLZ; AnzOrte: fun(t:TUPLE, i:int) i + 1::0] count
-Result   : 146
-

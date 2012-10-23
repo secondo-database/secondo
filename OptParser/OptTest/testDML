@@ -1,5 +1,0 @@
-#!/bin/bash
-
-cd /home/secondo/secondo/OptParser/OptTest
-make
-StartTest dmltest.test

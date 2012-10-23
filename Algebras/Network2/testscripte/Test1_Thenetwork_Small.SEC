@@ -1,8 +1,0 @@
-#################################################################
-# Testszenario for testing the operator thenetwork
-#################################################################
-
-open database networktest;
-query thenetwork(1, B_ROUTES, B_JUNCTIONS);
-close database;
-

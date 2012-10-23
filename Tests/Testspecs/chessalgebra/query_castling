@@ -1,6 +1,0 @@
-query wjc2 feed filter[ (.Match moves
- filter[ (. startfile = "e") and (. endfile = "g") 
-         and (. agent = "King") ] ensure[1])] 
- filter[ (.Match moves
-   filter[ (. startfile = "e") and (. endfile = "c") 
-           and (. agent = "king") ] ensure[1])] count

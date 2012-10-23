@@ -1,8 +1,0 @@
-(
-  ( (translate (-2000 0)) )
-  ( (translate (2000 0)) )
-  ( (translate ( 0 -2000 )))
-  ( (translate (0 2000 )))
-  ( (translate ( -2000 2000)))
-  ( (translate ( 2000 -2000)))
-)

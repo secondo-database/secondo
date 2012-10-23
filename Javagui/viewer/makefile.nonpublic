@@ -1,6 +1,0 @@
-# nonpublic viewers
-
-VIEWER_CLASSES += ChessViewer.class
-VIEWER_DIRS += chess
-
-

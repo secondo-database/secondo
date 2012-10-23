@@ -1,7 +1,0 @@
-let OrteP = plz feed sortby[Ort asc] groupby[Ort; Anzahl: . count] consume;
-
-let OrteP2 = plz feed project[Ort] consume;
-
-let OrteP2_Ort = OrteP2 createbtree[Ort];
-
-let plz_Ort = plz createbtree[Ort];

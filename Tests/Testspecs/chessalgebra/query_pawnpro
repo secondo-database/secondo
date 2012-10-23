@@ -1,6 +1,0 @@
-query wjc2 feed extendstream[Move: .Match moves] 
-  filter[((.Move endrow = 1) or (.Move endrow = 8)) 
-         and ((.Move agent = "Pawn") or (.Move agent = "pawn")) ] 
-  extend[File: .Move startfile] 
-  sortby[File asc] groupby[File; GrpSize: . count] count 
- 

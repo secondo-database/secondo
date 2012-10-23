@@ -1,8 +1,0 @@
-Database: berlintest
-Restore : NO
-
-Operator : dbscan
-Number   : 1
-Signature: stream  x int x real -> stream(points)
-Example  : query Kneipen dbscan[.Geodata, 2, 3.0] count
-Result   : (int 1)

@@ -1,8 +1,0 @@
-\contentsline {chapter}{\numberline {1}Das Matching in der Praxis}{5}
-\contentsline {section}{\numberline {1.1}Benutzte Hilfsklassen}{5}
-\contentsline {subsection}{\numberline {1.1.1}RegionTreeNode}{5}
-\contentsline {subsection}{\numberline {1.1.2}\p@index {SingleMatch}SingleMatch}{5}
-\contentsline {section}{\numberline {1.2}Die abstrakte Klasse Match}{6}
-\contentsline {section}{\numberline {1.3}Beseitigung von 1:n Matches}{7}
-\contentsline {section}{\numberline {1.4}Beseitigung von \active@dq \dq@prtct {`}gedrehten Konkativit\active@dq \dq@prtct {a}ten\active@dq \dq@prtct {'}}{7}
-\contentsline {section}{\numberline {1.5}Eine Beispielimplementation}{8}
