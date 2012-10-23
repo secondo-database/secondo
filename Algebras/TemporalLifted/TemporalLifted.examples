@@ -613,7 +613,7 @@ Result   : file
 Operator : area
 Number   : 1
 Signature: mregion -> mreal
-Example  : query area(move(train1, Sehenswuerdreg feed extract[geoData]))
+Example  : query area(move(train1, Sehenswuerdreg feed extract[GeoData]))
 Result   : (platform (linux file) (win32 file) (linux64 bug) (mac_osx bug))
 Remark   : On linux64 the result has more untis, hence there is probably a bug in the area operator. On mac osx also have the same problem here.
 
