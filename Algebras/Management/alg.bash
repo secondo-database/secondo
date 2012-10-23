@@ -33,9 +33,8 @@ regexp="(,$1"
 shift
 while [ $# -ne 0 ];
 do
-   regexp=$regexp"\)|,$1"	
+   grep ", *$1" $file
    shift
 done
 
-regexp=$regexp")"
-awk "BEGIN {IGNORECASE=1}; {FS=\"(\"}; /"$regexp"/{print \"ALGEBRA_INCLUDE(\"\$2}; " $file 
+
