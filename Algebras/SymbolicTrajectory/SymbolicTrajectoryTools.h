@@ -58,7 +58,6 @@ bool checkSemanticDate(const string text, const SecInterval uIv,
 bool checkDaytime(const string text, const SecInterval uIv);
 bool checkRewriteSeq(pair<vector<size_t>, vector<size_t> > seq, size_t maxSize,
                      bool print);
-bool evaluate(string condStr, const bool eval, string desiredType);
-Word evaluateAssign(string input);
+Word evaluate(string input);
 vector<string> createTrajectory(int size);
 void fillML(const MString& source, MString& result, DateTime* duration);

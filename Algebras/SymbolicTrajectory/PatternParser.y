@@ -246,14 +246,14 @@ expression : ZZVAR_DOT_TYPE {
                list.append(exprList.exprs.back());
                $$ = convert(list);
                exprList.exprs.erase(exprList.exprs.end());
-               cout << "expressionlistparentheses reads " << $$ << endl;
+/*                cout << "expressionlistparentheses reads " << $$ << endl; */
              }
            | expressionlistbrackets {
                string list;
                list.append(exprList.exprs.back());
                $$ = convert(list);
                exprList.exprs.erase(exprList.exprs.end());
-               cout << "expressionlistbrackets reads " << $$ << endl;
+/*                cout << "expressionlistbrackets reads " << $$ << endl; */
              }
            ;
 
@@ -321,14 +321,14 @@ expressionlistenclosed : expression {
                            }
                            free($2);
                            $$ = &exprList;
-                           cout << "expressionlistenclosed reads \"" << exprList.toString() << "\"" << endl;
+/*                            cout << "expressionlistenclosed reads \"" << exprList.toString() << "\"" << endl; */
                          }
                        ;
 
 expressionlistcomma : ',' expression {
                         expr.assign($2);
                         expr.insert(0, ",");
-                        cout << "one elem list = " << expr << endl;
+/*                         cout << "one elem list = " << expr << endl; */
                         exprList.exprs.push_back(expr);
                         free($2);
                         $$ = &exprList;
@@ -342,7 +342,7 @@ expressionlistcomma : ',' expression {
                         }
                         free($3);
                         $$ = &exprList;
-                        cout << "comma list = " << exprList.toString() << endl;
+/*                         cout << "comma list = " << exprList.toString() << endl; */
                       }
                     ;
 
@@ -420,6 +420,7 @@ Pattern* stj::parseString(const char* input) {
   patternFlushBuffer();
   pattern_scan_string(input);
   Pattern* result = 0;
+  cond.clear();
   firstAssign = true;
   if (patternparse() != 0) {
     cout << "Error found, parsing aborted." << endl;
@@ -477,7 +478,6 @@ void UPat::getUnit(const char *varP, bool order) {
       curIvs = ivs;
 /*       cout << "variable " << var << " found in pattern " << pos << endl; */
     }
-    cout << pos << " " << (wholepat->getPat(pos)).var << endl;
     pos++;
   }
   if (!found) {
@@ -576,6 +576,7 @@ void Condition::substitute() {
     varKey.assign(vars[i]);
     varKey.append(getType(keys[i]));
     int pos = textSubst.find(varKey);
+    cout << pos << " " << varKey << " " << getSubst(keys[i]) << endl;
     textSubst.replace(pos, varKey.size(), getSubst(keys[i]));
     i++;
   }
@@ -597,9 +598,9 @@ int Condition::convertVarKey(const char *varKey) {
     if (!varInput.compare((wholepat->getPat(i)).getV())) {
       var.assign(varInput);
       key = ::getKey(kInput);
-      cond.vars.push_back(var);
-      cond.keys.push_back(key);
-      cond.pIds.push_back(i);
+      vars.push_back(var);
+      keys.push_back(key);
+      pIds.push_back(i);
       return key;
     }
   }

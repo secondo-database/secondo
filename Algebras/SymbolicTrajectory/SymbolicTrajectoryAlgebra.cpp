@@ -551,7 +551,7 @@ Rewrites a moving label using another moving label and a vector.
 */
 void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
                      vector<Assign> assigns, map<string, int> varPosInSeq) {
-  if (!checkRewriteSeq(seq, ml.GetNoComponents(), true)) {
+  if (!checkRewriteSeq(seq, ml.GetNoComponents(), false)) {
     this->SetDefined(false);
     return;
   }
@@ -559,7 +559,7 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
   int seqPos(0);
   string newL;
   Word queryResult;
-  CcString *ccstring;
+  CcString *ccstring = 0;
   Periods *per = new Periods(0);
   Instant *inst = new DateTime(instanttype);
   SecInterval *iv = new SecInterval(0);
@@ -576,7 +576,7 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
             if (!assigns[i].prepareRewrite(key, seq.second, varPosInSeq, ml)) {
               this->SetDefined(false);
             }
-            queryResult = evaluateAssign(assigns[i].getSubst(key));
+            queryResult = evaluate(assigns[i].getSubst(key));
             if (key == 0) {
               ccstring = static_cast<CcString*>(queryResult.addr);
               if (ccstring->IsDefined()) {
@@ -610,13 +610,12 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
     }
     else { // A occurs in unit pattern i
       for (size_t j = seq.first[seqPos]; j < seq.first[seqPos + 1]; j++) {
-        cout << "i = " << i << " ||| j = " << j << endl;
         ml.Get(j, ul);
         if (!assigns[i].getText(0).empty()) { // assign new label
           if (!assigns[i].prepareRewrite(0, seq.second, varPosInSeq, ml)) {
             this->SetDefined(false);
           }
-          queryResult = evaluateAssign(assigns[i].getSubst(0));
+          queryResult = evaluate(assigns[i].getSubst(0));
           ccstring = static_cast<CcString*>(queryResult.addr);
           if (ccstring->IsDefined()) {
             ul.constValue.Set(true, eraseQM(ccstring->GetValue()));
@@ -631,7 +630,7 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
             if (!assigns[i].prepareRewrite(1, seq.second, varPosInSeq, ml)) {
               this->SetDefined(false);
             }
-            queryResult = evaluateAssign(assigns[i].getSubst(1));
+            queryResult = evaluate(assigns[i].getSubst(1));
             per = static_cast<Periods*>(queryResult.addr);
             if (per->IsDefined() && (per->GetNoComponents() == 1)) {
               per->Get(0, *iv);
@@ -652,7 +651,7 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
           if (!assigns[i].prepareRewrite(2, seq.second, varPosInSeq, ml)) {
             this->SetDefined(false);
           }
-          queryResult = evaluateAssign(assigns[i].getSubst(2));
+          queryResult = evaluate(assigns[i].getSubst(2));
           inst = static_cast<Instant*>(queryResult.addr);
           if (inst->IsDefined()) {
             ul.timeInterval.start = *inst;
@@ -662,7 +661,7 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
           if (!assigns[i].prepareRewrite(3, seq.second, varPosInSeq, ml)) {
             this->SetDefined(false);
           }
-          queryResult = evaluateAssign(assigns[i].getSubst(3));
+          queryResult = evaluate(assigns[i].getSubst(3));
           inst = static_cast<Instant*>(queryResult.addr);
           if (inst->IsDefined()) {
             ul.timeInterval.end = *inst;
@@ -1460,10 +1459,13 @@ is rejected.
 */
 bool Pattern::verifyConditions() {
   for (int i = 0; i < (int)conds.size(); i++) {
-    if (!evaluate(conds[i].getSubst(), false, "bool")) {
+    CcBool* ccbool = static_cast<CcBool*>(evaluate(conds[i].getSubst()).addr);
+    if (!ccbool->IsDefined()) {
       cout << "condition \'" << conds[i].getSubst() << "\' is invalid." << endl;
+      ccbool->DeleteIfAllowed();
       return false;
     }
+    ccbool->DeleteIfAllowed();
   }
   return true;
 }
@@ -1477,12 +1479,43 @@ In case of an invalid assignment, the function returns ~false~.
 */
 bool Pattern::checkAssignTypes() {
   Assign assign;
+  Instant *inst = new DateTime(instanttype);
+  Periods *per = new Periods(0);
+  CcString *ccstr = 0;
   for (int i = 0; i < (int)assigns.size(); i++) {
     assign = assigns[i];
     for (int j = 0; j < 4; j++) {
       if (!assign.getSubst(j).empty()) {
-        if (!evaluate(assign.getSubst(j), false, Assign::getDataType(j))) {
-          return false;
+        switch (j) {
+          case 0: {
+            ccstr = static_cast<CcString*>(evaluate(assign.getSubst(0)).addr);
+            if (!ccstr->IsDefined()) {
+              ccstr->DeleteIfAllowed();
+              cout << assign.getSubst(0) << " is not a string" << endl;
+              return false;
+            }
+            ccstr->DeleteIfAllowed();
+            break;
+          }
+          case 1: {
+            per = static_cast<Periods*>(evaluate(assign.getSubst(1)).addr);
+            if (!per->IsDefined()) {
+              per->DeleteIfAllowed();
+              cout << assign.getSubst(1) << " is not a period" << endl;
+              return false;
+            }
+            per->DeleteIfAllowed();
+            break;
+          }
+          default: {
+            inst = static_cast<Instant*>(evaluate(assign.getSubst(j)).addr);
+            if (!inst->IsDefined()) {
+              inst->DeleteIfAllowed();
+              cout << assign.getSubst(j) << " is not an instant" << endl;
+              return false;
+            }
+            inst->DeleteIfAllowed();
+          }
         }
       }
     }
@@ -1543,12 +1576,10 @@ set<pair<vector<size_t>, vector<size_t> > > Pattern::
   if (!checkAssignTypes()) {
     return result;
   }
-  cout << toString() << endl;
   NFA *nfa = new NFA(patterns.size() + 1);
   nfa->buildNFA(*this);
   nfa->setAssVars(this->getAssVars());
   nfa->setVarPos(this->getVarPos());
-//   cout << nfa->toString() << endl;
   if (!nfa->matches(ml, true)) {
     cout << "Error: Mismatch" << endl;
     delete nfa;
@@ -1572,12 +1603,12 @@ map<string, int> Pattern::getVarPosInSeq() {
     result[*it] = pos;
     pos = pos + 2;
   }
-  cout << endl << "varPosInSeq=";
-  map<string, int>::iterator ite;
-  for (ite = result.begin(); ite != result.end(); ite++) {
-    cout << (*ite).first << "|" << (*ite).second << "--";
-  }
-  cout << endl;
+//   cout << endl << "varPosInSeq=";
+//   map<string, int>::iterator ite;
+//   for (ite = result.begin(); ite != result.end(); ite++) {
+//     cout << (*ite).first << "|" << (*ite).second << "--";
+//   }
+//   cout << endl;
   return result;
 }
 
@@ -1775,7 +1806,6 @@ bool NFA::matches(MString const &ml, bool rewrite) {
     ulId = i;
     updateStates();
     if (currentStates.empty()) {
-//       cout << "no current state" << endl;
       return false;
     }
   }
@@ -1800,7 +1830,7 @@ bool NFA::matches(MString const &ml, bool rewrite) {
   }
   if (conds.size()) {
     computeCardsets();
-    printCards();
+//     printCards();
     if (!conditionsMatch(ml)) {
       return false;
     }
@@ -2520,9 +2550,12 @@ bool NFA::evaluateEmptyML() {
       }
       conds[i].substitute(j, "0");
     }
-    if (!evaluate(conds[i].getSubst(), true, "bool")) {
+    CcBool* cc = static_cast<CcBool*>(evaluate(conds[i].getSubst()).addr);
+    if (!cc->IsDefined() || !cc->GetValue()) {
+      cc->DeleteIfAllowed();
       return false;
     }
+    cc->DeleteIfAllowed();
   }
   cout << "conditions ok" << endl;
   return true;
@@ -2615,13 +2648,16 @@ bool NFA::evaluateCond(MString const &ml, int cId, multiset<size_t> sequence) {
       return knownEval[condStrCardTime];
     }
     else {
-      if (!evaluate(condStrCardTime, true, "bool")) {
+      CcBool* ccbool = static_cast<CcBool*>(evaluate(condStrCardTime).addr);
+      if (!ccbool->IsDefined() || !ccbool->GetValue()) {
+        ccbool->DeleteIfAllowed();
         knownEval[condStrCardTime] = false;
 //         cout << "false expression: " << condStrCardTime << endl;
         numOfNegEvals++;
         return false;
       }
       else {
+        ccbool->DeleteIfAllowed();
         knownEval[condStrCardTime] = true;
         return true;
       }
@@ -2652,13 +2688,16 @@ bool NFA::evaluateCond(MString const &ml, int cId, multiset<size_t> sequence) {
       }
     }
     else {
-      if (!evaluate(conds[cId].getSubst(), true, "bool")) {
+      CcBool* ccb = static_cast<CcBool*>(evaluate(conds[cId].getSubst()).addr);
+      if (!ccb->IsDefined() || !ccb->GetValue()) {
+        ccb->DeleteIfAllowed();
         knownEval[conds[cId].getSubst()] = false;
 //         cout << "false expression: " << conds[cId].getSubst() << endl;
         numOfNegEvals++;
         return false; // one false evaluation is enough to yield ~false~
       }
       else {
+        ccb->DeleteIfAllowed();
         knownEval[conds[cId].getSubst()] = true;
         success = true;
       }

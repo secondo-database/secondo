@@ -486,90 +486,12 @@ bool checkRewriteSeq(pair<vector<size_t>, vector<size_t> > seq, size_t maxSize,
 }
 
 /*
-\subsection{Function ~evaluate~}
-
-In case of testing a condition's syntactical correctness, we are only
-interested in the result type. Thus, ~eval~ is ~false~, an operator tree
-is built, and ~true~ is returned if and only if the result type is ~boolean~.
-On the other hand, if we ask for the condition result, the function executes
-the appropiate query and returns its result.
-
-*/
-bool evaluate(string input, const bool eval, string desiredType) {
-  bool isTrue(false), isDesired(false);
-  SecParser condParser;
-  string queryStr;
-  ListExpr queryList, resultType;
-  Word queryResult;
-  bool correct(false), evaluable(false), defined(false), isFunction(false);
-  OpTree tree = 0;
-  input.insert(0, "query ");
-  switch (condParser.Text2List(input, queryStr)) {
-    case 0:
-      if (!nl->ReadFromString(queryStr, queryList)) {
-        cout << "ReadFromString error" << endl;
-      }
-      else {
-        if (nl->IsEmpty(nl->Rest(queryList))) {
-          cout << "Rest of list is empty" << endl;
-        }
-        else {
-          if (eval) { // evaluate the condition
-            string query = nl->ToString(nl->First(nl->Rest(queryList)));
-//             cout << "execute query '" << query << "'" << endl;
-            if (!qp->ExecuteQuery(query, queryResult)) {
-              cout << "execution error" << endl;
-            }
-            else {
-              CcBool *ccResult = static_cast<CcBool*>(queryResult.addr);
-              isTrue = ccResult->GetValue();
-              ccResult->DeleteIfAllowed();
-            }
-          }
-          else { // check the result type
-            QueryProcessor* qpp = new QueryProcessor(nl, am);
-            qpp->Construct(nl->First(nl->Rest(queryList)), correct, evaluable,
-                          defined, isFunction, tree, resultType);
-            if (!correct) {
-              cout << "type error" << endl;
-            }
-            else if (!evaluable) {
-              cout << "not evaluable" << endl;
-            }
-            else if (nl->ToString(resultType).compare(desiredType)) {
-              cout << "Error: type " << desiredType << " required" << endl;
-            }
-            else {
-              isDesired = true;
-            }
-            if (tree) {
-              qpp->Destroy(tree, true);
-            }
-            delete qpp;
-          }
-        }
-      }
-      break;
-    case 1:
-      cout << "String cannot be converted to list" << endl;
-      break;
-    case 2:
-      cout << "stack overflow" << endl;
-      break;
-    default: // should not occur
-      break;
-  }
-  if (tree) {
-    qp->Destroy(tree, true);
-  }
-  return eval ? isTrue : isDesired;
-}
-
-/*
 \subsection{Function ~evaluateAssign~}
 
+The string ~input~ is evaluated by Secondo. The result is returned as a Word.
+
 */
-Word evaluateAssign(string input) {
+Word evaluate(string input) {
   SecParser assignParser;
   string query, queryStr;
   ListExpr queryList;
