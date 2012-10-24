@@ -36,9 +36,9 @@ January, 2005 Leonardo Guerreiro Azevedo
 
 1 Overview
 
-This implementation file essentially contains the implementation of the classes 
-~Point~, ~Points~, ~Line~, and ~Region~ used in the Spatial Algebra. These 
-classes respectively correspond to the memory representation for the type 
+This implementation file essentially contains the implementation of the classes
+~Point~, ~Points~, ~Line~, and ~Region~ used in the Spatial Algebra. These
+classes respectively correspond to the memory representation for the type
 constructors ~point~, ~points~, ~line~, and ~region~.
 
 For more detailed information see SpatialAlgebra.h.
@@ -109,7 +109,7 @@ Later on we will
 examine nested list type descriptions. In particular, we
 are going to check whether they describe one of the four types just introduced.
 In order to simplify dealing with list expressions describing these types, we
-declare an enumeration, ~SpatialType~, containing the four types, and a 
+declare an enumeration, ~SpatialType~, containing the four types, and a
 function, ~SpatialTypeOfSymbol~, taking a nested list as argument and returning
 the corresponding ~SpatialType~ type name.
 
@@ -136,7 +136,7 @@ SpatialTypeOfSymbol( ListExpr symbol )
 /*
 9 Object Traversal functions
 
-These functions are utilities useful for traversing objects.  They are basic 
+These functions are utilities useful for traversing objects.  They are basic
 functions to be called by the operations defined below.
 
 There are 6 combinations, pp, pl, pr, ll, lr, rr
@@ -851,7 +851,7 @@ template<class T> struct print : public unary_function<T, void>
 /*
 4 Type Constructor ~point~
 
-A value of type ~point~ represents a point in the Euclidean plane or is 
+A value of type ~point~ represents a point in the Euclidean plane or is
 undefined.
 
 4.1 Implementation of the class ~Point~
@@ -3475,7 +3475,7 @@ TypeConstructor points(
 /*
 6 Type Constructor ~halfsegment~
 
-A ~halfsegment~ value is a pair of points, with a boolean flag indicating the 
+A ~halfsegment~ value is a pair of points, with a boolean flag indicating the
 dominating point .
 
 6.1 Implementation of the class ~halfsegment~
@@ -4957,8 +4957,8 @@ InHalfSegment( const ListExpr typeInfo, const ListExpr instance,
 /*
 7 Type Constructor ~line~
 
-A ~line~ value is a set of halfsegments. In the external (nestlist) 
-representation, a line value is expressed as a set of segments. 
+A ~line~ value is a set of halfsegments. In the external (nestlist)
+representation, a line value is expressed as a set of segments.
 However, in the internal (class) representation, it is expressed
 as a set of sorted halfsegments, which are stored as a PArray.
 
@@ -5472,7 +5472,7 @@ void Line::Union(const Line& line, Line& result,
     for(int i=0;i<line.Size();i++){
        line.Get(i,hs);
        result += hs;
-    } 
+    }
     for(int i=0;i<this->Size();i++){
        this->Get(i,hs);
        result += hs;
@@ -5878,7 +5878,7 @@ int getNext(const DbArray<HalfSegment>* hss, int pos, const char* usage){
    hss->Get(pos,hs);
    Point dp = hs.GetDomPoint();
    int res = -1;
-   // go backwards from pos, store a candidate as res 
+   // go backwards from pos, store a candidate as res
    int pos1 = pos-1;
    bool done = false;
    // search left of pos
@@ -5923,12 +5923,12 @@ int getNext(const DbArray<HalfSegment>* hss, int pos, const char* usage){
 This function marks all HalfSgements of a line with its usage. This means:
 0 : Part of an unique cycle
 1 : not Part of a cycle
-2 : Part of an ambiguous cycle 
+2 : Part of an ambiguous cycle
 
 
 */
 void markUsage( Line* line, char* usage, char* critical){
-    markUsage( (DbArray<HalfSegment>*) line->GetFLOB(0),usage, critical); 
+    markUsage( (DbArray<HalfSegment>*) line->GetFLOB(0),usage, critical);
 }
 
 
@@ -5965,7 +5965,7 @@ void markUsage(const DbArray<HalfSegment>* hss, char* usage, char* critical ){
           count = 1;
         }
      }
-  } 
+  }
   if(count != 2){
      for(int r=1;r<=count;r++){
         critical[hss->Size()-r] = 1;
@@ -5975,7 +5975,7 @@ void markUsage(const DbArray<HalfSegment>* hss, char* usage, char* critical ){
   // 1.2 mark segments
   for(int i=0;i<hss->Size();i++) {
      if((usage[i]==0) ){
-        // not used, but critical 
+        // not used, but critical
         hss->Get(i,hs);
         vector<int> path;
         usage[i] = 3; // part of current path
@@ -5984,8 +5984,8 @@ void markUsage(const DbArray<HalfSegment>* hss, char* usage, char* critical ){
         int pos = i;
         path.push_back(pos);
         int next = getNext(hss,pos,usage);
-        while(!path.empty()) { 
-          if(next < 0){ 
+        while(!path.empty()) {
+          if(next < 0){
              // no extension found => mark segments in path as non-cycle
              // go back until the next critical point is reachedA
 
@@ -5999,7 +5999,7 @@ void markUsage(const DbArray<HalfSegment>* hss, char* usage, char* critical ){
                  path.pop_back();
                  usage[pos] = 1;
                  hss->Get(pos,hs);
-                 usage[hs.attr.partnerno] = 1; 
+                 usage[hs.attr.partnerno] = 1;
 
                  if(critical[pos]){
                    done = true;
@@ -6010,7 +6010,7 @@ void markUsage(const DbArray<HalfSegment>* hss, char* usage, char* critical ){
              if(!path.empty()){
                pos = path.back();
                next = getNext(hss,pos,usage);
-             }  
+             }
           } else {
             if(usage[next] == 3){
                 // (sub) path found
@@ -6039,7 +6039,7 @@ void markUsage(const DbArray<HalfSegment>* hss, char* usage, char* critical ){
                next = getNext(hss,pos,usage);
             }
           }
-        } // while path not empty 
+        } // while path not empty
      }
   }
 
@@ -6064,12 +6064,12 @@ void Line::Transform( Region& result ) const
   markUsage(&(this->line), usage, critical);
 
 
-  DbArray<HalfSegment>* halfsegments = 
+  DbArray<HalfSegment>* halfsegments =
                       new DbArray<HalfSegment>(this->Size());
   if( !IsEmpty() ) {
     assert( IsOrdered() );
     HalfSegment hs;
-    int edgeno=0; 
+    int edgeno=0;
     for( int i = 0; i < Size(); i++ )
     {
       if(usage[i] != 1){
@@ -8442,7 +8442,8 @@ int SimpleLine::Compare(const Attribute* arg)const{
 
 ostream& SimpleLine::Print(ostream& o)const{
   o << "SimpleLine def =" << IsDefined()
-    << " size = " << Size() << endl;
+    << " size = " << Size()
+    << " startSmaller: " << startSmaller << endl;
   for (int i = 0; i < Size(); i++)
   {
     HalfSegment hs;
@@ -8688,7 +8689,7 @@ TypeConstructor sline(
 /*
 8 Type Constructor ~region~
 
-A ~region~ value is a set of halfsegments. In the external (nestlist) 
+A ~region~ value is a set of halfsegments. In the external (nestlist)
 representation, a region value is expressed as a set of faces, and each
 face is composed of a set of cycles.  However, in the internal
 (class) representation, it is expressed as a set of sorted halfsegments,
@@ -8724,7 +8725,9 @@ ordered( true )
   }
 }
 
-Region::Region( const Rectangle<2>& r ):region(8)
+Region::Region( const Rectangle<2>& r )
+   :StandardSpatialAttribute<2>(r.IsDefined()),
+    region(8)
 {
     Clear();
     if(  r.IsDefined() )
@@ -8810,7 +8813,8 @@ bool IsInsideAbove(const HalfSegment& hs,
     (MIN(hs.GetLeftPoint().GetY(),hs.GetRightPoint().GetY())<thirdPoint.GetY());
 }
 
-Region::Region( const Point& p1, const Point& p2, const Point& p3 ):region(6)
+Region::Region( const Point& p1, const Point& p2, const Point& p3 ):
+   StandardSpatialAttribute<2>(true),region(6)
 {
   Clear();
   if( !p1.IsDefined() || !p2.IsDefined() || !p3.IsDefined() ){
@@ -9823,13 +9827,13 @@ void Region::getHoles(Region& result) const{
    for(int i=0; i< Size(); i++){
        HalfSegment hs;
        Get(i,hs);
-       if(hs.IsLeftDomPoint()){ 
+       if(hs.IsLeftDomPoint()){
          if(hs.attr.cycleno!=0){ // not the outer cycle
             hs.attr.edgeno = edgeno;
             hs.attr.insideAbove = ! hs.attr.insideAbove;
             result += hs;
             hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
-            result += hs; 
+            result += hs;
             edgeno++;
          }
       }
@@ -10855,23 +10859,23 @@ bool Region::GetCycleDirection() const
 /*
 Preconditions:
 * The region must represent just one cycle!!!!
-* It is need that the edgeno stores the order that the half segments were 
- typed, and the half segments must be sorted in the half segment order. In 
- other words if hs1.attr.edgeno is less than hs2.attr.edgeno then hs1 was 
+* It is need that the edgeno stores the order that the half segments were
+ typed, and the half segments must be sorted in the half segment order. In
+ other words if hs1.attr.edgeno is less than hs2.attr.edgeno then hs1 was
  typed first than hs2.
 
-This function has the purpose of choosing the A, P, and B points in order 
+This function has the purpose of choosing the A, P, and B points in order
 to call the function that really computes the cycle direction.
 As the point P is leftmost point then it is the left point of hs1 or
- the left point of hs2 because in the half segment order these two points 
-are equal.  Now the problem is to decide which of the right points are A 
-and B. At the first sight we could say that the point A is the right point 
-of the half segment with lowest partner number. However it is not true ever 
+ the left point of hs2 because in the half segment order these two points
+are equal.  Now the problem is to decide which of the right points are A
+and B. At the first sight we could say that the point A is the right point
+of the half segment with lowest partner number. However it is not true ever
 because the APB connected points may be go over the
-bound of the pointlist. This will be the case if the cycle is in the form 
-P,B,..,A and B,...,A,P. Nevertheless the segments are ordered in the half 
+bound of the pointlist. This will be the case if the cycle is in the form
+P,B,..,A and B,...,A,P. Nevertheless the segments are ordered in the half
 segment order, and when the last half segment is been considered for choosing
- the APB connected points, the point A will be always the right point of the 
+ the APB connected points, the point A will be always the right point of the
 last segment.
 
 */
@@ -11882,8 +11886,8 @@ bool Region::InsertOk( const HalfSegment& hs ) const
     }
   }
 /*
-Now we know that the new half segment is not inside any other previous holes 
-of the same face. However, whether this new hole contains any previous hole 
+Now we know that the new half segment is not inside any other previous holes
+of the same face. However, whether this new hole contains any previous hole
 of the same face is not clear. In the following we do this kind of check.
 
 */
@@ -11983,14 +11987,14 @@ bool IsSpatialType(ListExpr type){
 
 /*
 This function check whether a region value is valid after the insertion of a
- new half segment.  Whenever a half segment is about to be inserted, the 
+ new half segment.  Whenever a half segment is about to be inserted, the
 state of the region is checked.
 A valid region must satisfy the following conditions:
 
-1)  any two cycles of the same region must be disconnect, which means that no 
+1)  any two cycles of the same region must be disconnect, which means that no
   edges of different cycles can intersect each other;
 
-2) edges of the same cycle can only intersect with their endpoints, but no 
+2) edges of the same cycle can only intersect with their endpoints, but no
   their middle points;
 
 3)  For a certain face, the holes must be inside the outer cycle;
@@ -12003,7 +12007,7 @@ A valid region must satisfy the following conditions:
 
 7)  any cycle must be made up of at least 3 edges;
 
-8)  It is allowed that one face is inside another provided that their edges do 
+8)  It is allowed that one face is inside another provided that their edges do
    not intersect.
 
 */
@@ -13436,7 +13440,7 @@ ListExpr SpatialTypeMapIsLess(ListExpr args){
 /*
 10.1.2 Type mapping function GeoGeoMapBool
 
-It is for the binary operators which have ~bool~ as result type, such as 
+It is for the binary operators which have ~bool~ as result type, such as
 interscets, inside, onborder, ininterior, etc.
 
 */
@@ -13634,7 +13638,7 @@ InsideTypeMap( ListExpr args )
 /*
 10.1.3 Type mapping function SpatialTypeMapBool1
 
-It is for the operator ~isempty~ which have ~point~, ~points~, ~line~, 
+It is for the operator ~isempty~ which have ~point~, ~points~, ~line~,
 and ~region~ as input and ~bool~ resulttype.
 
 */
@@ -13856,7 +13860,7 @@ ListExpr SpatialUnionTypeMap(ListExpr args){
 10.1.7 Type mapping function for operator ~crossings~
 
 This type mapping function is the one for ~crossings~ operator. This operator
-compute the crossing point of two lines so that the result type is a set 
+compute the crossing point of two lines so that the result type is a set
 of points.
 
 */
@@ -14228,7 +14232,7 @@ ListExpr SpatialBoundaryMap(ListExpr args)
 /*
 10.1.14 Type mapping function for operator ~commonborder~
 
-This type mapping function is used for the ~commonborder~ operator. This 
+This type mapping function is used for the ~commonborder~ operator. This
 operator computes the commonborder of two regions.
 
 */
@@ -18664,11 +18668,11 @@ int SpatialVMCreateSline(Word* args, Word& result, int message,
 Definition of operators is done in a way similar to definition of
 type constructors: an instance of class ~Operator~ is defined.
 
-Because almost all operators are overloaded, we have first do define an 
-array of value mapping functions for each operator. For nonoverloaded 
-operators there is also such and array defined, so it easier to make them 
+Because almost all operators are overloaded, we have first do define an
+array of value mapping functions for each operator. For nonoverloaded
+operators there is also such and array defined, so it easier to make them
 overloaded.
-  
+
 10.5.1 Definition of value mapping vectors
 
 */
@@ -21701,7 +21705,7 @@ returns the result as an stream of ~sline~ values.
 ListExpr SplitSLineAtPointsTM(ListExpr args){
 
   if(!nl->HasLength(args,2)){
-    return listutils::typeError("two arguments expected"); 
+    return listutils::typeError("two arguments expected");
   }
 
   if(!nl->IsEqual(nl->First(args),SimpleLine::BasicType()))
@@ -21894,7 +21898,7 @@ class FindCyclesInfo{
        isCritical = new char[max];
        memset(isCritical,0,max);
        DbArray<HalfSegment>* hss = (DbArray<HalfSegment>*) line->GetFLOB(0);
-       RegionCreator::findCritical(hss,isCritical); 
+       RegionCreator::findCritical(hss,isCritical);
      }
 
 /*
@@ -21910,7 +21914,7 @@ class FindCyclesInfo{
 /*
 ~nextLine~
 
-Returns the next cycles within this line or 0 
+Returns the next cycles within this line or 0
 if no further cycle can be found.
 
 */
@@ -21928,7 +21932,7 @@ if no further cycle can be found.
         if(!cycles.empty()){
            res = constructLine(cycles.back());
            cycles.pop_back();
-           return res; 
+           return res;
         }
 
         while(globalPos < max){
@@ -21938,7 +21942,7 @@ if no further cycle can be found.
               cycles.pop_back();
               return res;
            }  else {
-              usage[globalPos] = 1; 
+              usage[globalPos] = 1;
               globalPos++;
            }
         }
@@ -21956,14 +21960,14 @@ if no further cycle can be found.
                return res;
             }
             return 0;
-        } 
+        }
 
         // compute cycles
         // step 1: compute all simple cycles
         int pos = 0;
         while(pos < max){
            computeCycles(pos);
-           pos++; 
+           pos++;
         }
 
         if(cycles.empty()){
@@ -21972,7 +21976,7 @@ if no further cycle can be found.
         if(cycles.size() < 2){ // no hole possible
            res = constructLine(cycles[0]);
            globalPos = 1;
-           return res; 
+           return res;
         }
 
 
@@ -21989,10 +21993,10 @@ if no further cycle can be found.
             double dist = 0;
             for(size_t c2 = 0; c2<cycles.size(); c2++){
                 if(c1!=c2){
-                  if(boxes[c2].Contains(boxes[c1])){ 
+                  if(boxes[c2].Contains(boxes[c1])){
                      pair<bool,double> r = isHole(cycles[c1], cycles[c2]);
                      if(r.first){
-                        if((outer < 0) || (dist > r.second)){ 
+                        if((outer < 0) || (dist > r.second)){
                             outer = c2;
                             dist = r.second;
                         }
@@ -22009,22 +22013,22 @@ if no further cycle can be found.
         // it may be, that halfsegments belongs to more than one hole
         // such halfsegments should not be inserted into a result lineA
 
-        memset(usage,0,max); 
+        memset(usage,0,max);
         for(size_t i=0;i<cycles.size();i++){
             if(outers[i]>=0){
                append(cycles[outers[i]],cycles[i],usage,1);
             }
-        } 
+        }
         res = constructLine(cycles[0]);
         globalPos = 1;
-        return res; 
+        return res;
      }
 
      static bool odd(const int i){
         int mask = 1;
         return (i & mask);
      }
-  
+
 
   private:
     Line* line;
@@ -22073,23 +22077,23 @@ if no further cycle can be found.
           << ")) )" << endl;
       }
       o << "))";
-      
+
    }
 
 
 
-   // axuxiliary function (for debugging 
+   // axuxiliary function (for debugging
    // returns 0 if (x,y) is outside the cycle
    // returns 2 if (x,y) is on the cycle
    // returns 1 if (x,y) is inside the cycle
-   int cycleContains(const vector<int>& cycle, const double& x, 
+   int cycleContains(const vector<int>& cycle, const double& x,
                      const double& y) const{
       int hits = 0;
       HalfSegment hs;
       for(size_t i=0;i<cycle.size();i++){
          line->Get(cycle[i],hs);
          if(hs.Contains(Point(true,x,y))){
-            return 2; // 
+            return 2; //
          }
          double dist = RegionCreator::getLeftDist(hs,x,y,true);
          if(dist>=0){
@@ -22109,8 +22113,8 @@ if no further cycle can be found.
       line->Get(hi,hs);
       Point dp = hs.GetDomPoint();
       Point sp = hs.GetSecPoint();
-      double x = (dp.GetX() + sp.GetX()) /2; 
-      double y = (dp.GetY() + sp.GetY()) /2; 
+      double x = (dp.GetX() + sp.GetX()) /2;
+      double y = (dp.GetY() + sp.GetY()) /2;
       int count = 0;
       double dist = 0;
 
@@ -22155,7 +22159,7 @@ if no further cycle can be found.
      if(pos>=0){
        v[pos] = v.back();
        v.pop_back();
-     }  
+     }
    }
 
    void append(vector<int>& v1,  vector<int>& v2, char* usage, char Umark){
@@ -22196,24 +22200,24 @@ if no further cycle can be found.
       return res;
    }
 
-    
+
 /*
 ~findCycle~
 
-Tries to find a cycle starting at the dominating point of the Halfsegment 
+Tries to find a cycle starting at the dominating point of the Halfsegment
 at position pos. Note, the cycle can also start with an halfsegment at
-another location (having the same dominating point).  It's assumed the 
+another location (having the same dominating point).  It's assumed the
 dominating point is the left most one within this cycle.
 
 Only non-used halfsegments are used for finding the cycle.
-For dead ends, all halfssegments are set to be used. This avoids the 
+For dead ends, all halfssegments are set to be used. This avoids the
 inspection of dead ends more than once.
 
-*/     
+*/
   Line* findCycle(int pos){
-     int pos1 = findStartPos(pos); 
+     int pos1 = findStartPos(pos);
      if(pos1 < 0){ // no start found
-        usage[pos] = 1; 
+        usage[pos] = 1;
         return 0;
      }
      pos = pos1;
@@ -22221,7 +22225,7 @@ inspection of dead ends more than once.
      HalfSegment hs;
      line->Get(pos,hs);
      if(usage[hs.attr.partnerno]==0){
-        usage[hs.attr.partnerno]=4; 
+        usage[hs.attr.partnerno]=4;
      }
      currentPath.push_back(pos);
      Line* line =  findCycle(currentPath);
@@ -22232,14 +22236,14 @@ inspection of dead ends more than once.
       int pos1 = findStartPos(pos);
       if(pos1 < 0){
          return;  // keep cycles empty
-      }    
+      }
       pos = pos1;
       usage[pos] = 3;
       HalfSegment hs;
       line->Get(pos,hs);
       if(usage[hs.attr.partnerno]==0){
          usage[hs.attr.partnerno] = 4;
-      } 
+      }
       vector<int> path;
       path.push_back(pos);
       computeCycles(path);
@@ -22265,7 +22269,7 @@ inspection of dead ends more than once.
                    usage[hs.attr.partnerno] = 0;
                 }
                 s = path.back();
-             } 
+             }
              // process last element in path
              path.pop_back();
              cycle.push_back(s);
@@ -22273,7 +22277,7 @@ inspection of dead ends more than once.
              line->Get(s,hs);
              if(usage[hs.attr.partnerno]==4){
                 usage[hs.attr.partnerno] = 0;
-             } 
+             }
              if(isClockwise(cycle)){
                 cycles.push_back(cycle);
              }
@@ -22303,7 +22307,7 @@ inspection of dead ends more than once.
              index = i;
              dp = dp1;
           }
-      }   
+      }
 
       line->Get(path[index],hs);
       Point p2 = hs.GetDomPoint();
@@ -22324,7 +22328,7 @@ inspection of dead ends more than once.
      cout << v[i];
    }
    cout << ">";
- } 
+ }
 
  Line* findCycle(vector<int>& currentPath){
     int pos = currentPath.back();
@@ -22339,14 +22343,14 @@ inspection of dead ends more than once.
           while(currentPath.back() != next){
               int last = currentPath.back();
               resPath.push_back(last);
-              currentPath.pop_back(); 
+              currentPath.pop_back();
               usage[last] = 1;
               //cout << "put " << last << " from path into result" << endl;
           }
          // process first elem of path
          int last = currentPath.back();
          resPath.push_back(last);
-         currentPath.pop_back(); 
+         currentPath.pop_back();
          usage[last] = 1;
          //cout << "put " << last << " from path into result" << endl;
          if(!currentPath.empty()){
@@ -22392,7 +22396,7 @@ inspection of dead ends more than once.
             usage[hs.attr.partnerno] = 0;
           }
           if(i==outerPathStarts){
-            smallestDomPoint = hs.GetDomPoint(); 
+            smallestDomPoint = hs.GetDomPoint();
           } else if(i>outerPathStarts){
             Point p = hs.GetDomPoint();
             if(smallestDomPoint.GetX() > p.GetX()){
@@ -22401,7 +22405,7 @@ inspection of dead ends more than once.
             }
           }
       }
-      
+
       line->Get( resPath[smallestIndex],hs);
       Point p2 = hs.GetDomPoint();
       Point p3 = hs.GetSecPoint();
@@ -22421,7 +22425,7 @@ inspection of dead ends more than once.
          return constructLine(resPath);
       }
     }
-    
+
   }
 
 
@@ -22445,7 +22449,7 @@ inspection of dead ends more than once.
         } else {
            //cout << last << " is not critical  remove next "<< endl;
         }
-        
+
         last = path.back();
         path.pop_back();
         usage[last] = 1;
@@ -22463,7 +22467,7 @@ inspection of dead ends more than once.
 /*
 Returns the position of the halfsegment having the same domination point as the
 halfsegment at pos with the highest slope.
-If only one unused halfsegment is available, -1 is returned. This can be the 
+If only one unused halfsegment is available, -1 is returned. This can be the
 case if 1) a dead end  2) only the halfsegment with the smallest slope is
 available (this halfsegment cannot contribute to a cycle in clockwise order).
 
@@ -22485,7 +22489,7 @@ available (this halfsegment cannot contribute to a cycle in clockwise order).
         if(!AlmostEqual(hs.GetDomPoint(),dp)){
           done = true;
         } else if(!usage[pos1]){
-          candidates.push_back( pair<HalfSegment,int>(hs,pos1));  
+          candidates.push_back( pair<HalfSegment,int>(hs,pos1));
         }
         pos1--;
      }
@@ -22496,7 +22500,7 @@ available (this halfsegment cannot contribute to a cycle in clockwise order).
         if(!AlmostEqual(hs.GetDomPoint(),dp)){
           done = true;
         } else if(!usage[pos1]){
-          candidates.push_back(pair<HalfSegment,int>(hs,pos1));  
+          candidates.push_back(pair<HalfSegment,int>(hs,pos1));
         }
         pos1++;
      }
@@ -22513,7 +22517,7 @@ available (this halfsegment cannot contribute to a cycle in clockwise order).
      for(size_t i=0; i< candidates.size(); i++){
        if(!usage[candidates[i].second]){
           pair<HalfSegment,int> cand = candidates[i];
-          double slope1=0; 
+          double slope1=0;
           bool up;
           if(getSlope(cand.first,slope1,up)){
              if(index < 0 ){
@@ -22539,7 +22543,7 @@ available (this halfsegment cannot contribute to a cycle in clockwise order).
 
 /*
 Computes the slope of an HalfSegment from dompoint to secpoint.
-If the segment is vertical, false is returned and up is set to be 
+If the segment is vertical, false is returned and up is set to be
 true if the segment goes up.
 
 */
@@ -22584,7 +22588,7 @@ true if the segment goes up.
 ~nextPos~
 
 extends a pth ending at the halfsegment at pos by the halfsegment having the
-most right direction. If this halfsegment is not present (dead end) or 
+most right direction. If this halfsegment is not present (dead end) or
 already used, (-1, false) is returned.
 
 */
@@ -22605,8 +22609,8 @@ already used, (-1, false) is returned.
          } else {
            if(usage[ppos1]==3){
               return ppos1;
-           } 
-           if(!usage[ppos1]){ 
+           }
+           if(!usage[ppos1]){
               candidates.push_back(pair<HalfSegment,int>(hs1,ppos1));
            }
          }
@@ -22621,8 +22625,8 @@ already used, (-1, false) is returned.
          } else {
            if(usage[ppos1]==3){
               return ppos1;
-           } 
-           if(!usage[ppos1]){ 
+           }
+           if(!usage[ppos1]){
              candidates.push_back(pair<HalfSegment,int>(hs1,ppos1));
            }
          }
@@ -22672,7 +22676,7 @@ already used, (-1, false) is returned.
 
 Returns true if __hs__ is vertical or directed to right.
 
-*/  
+*/
 
    bool notLeft(HalfSegment& hs) const{
      double dx = hs.GetDomPoint().GetX();
@@ -22683,7 +22687,7 @@ Returns true if __hs__ is vertical or directed to right.
 /*
 ~moreRight~
 
-Returns true if hs2 closes a smaller clockwise cycle than hs1. 
+Returns true if hs2 closes a smaller clockwise cycle than hs1.
  Both halfsegments must
 have the same dominating point.
 
@@ -22694,7 +22698,7 @@ have the same dominating point.
      assert(AlmostEqual(dp1,dp2));
      Point sp1 = hs1.GetSecPoint();
      Point sp2 = hs2.GetSecPoint();
-     return isRight(dp1,sp1,sp2); 
+     return isRight(dp1,sp1,sp2);
   }
 
 
@@ -22703,7 +22707,7 @@ have the same dominating point.
 
 Returns true if r is on the right side of the line defined by p and q
 
-*/   
+*/
   bool isRight(const Point& p, const Point& q, const Point& r) const{
     double rx=r.GetX();
     double ry=r.GetY();
@@ -22711,12 +22715,12 @@ Returns true if r is on the right side of the line defined by p and q
     double py=p.GetY();
     double qx=q.GetX();
     double qy=q.GetY();
-    
+
     double A2 = px*qy + py*rx + qx*ry - (rx*qy + ry*px +qx*py);
-    return A2 < 0;  
+    return A2 < 0;
   }
 
-     
+
 };
 
 
@@ -22741,7 +22745,7 @@ int findCyclesVM(Word* args, Word& result, int message, Word& local,
                     CcBool* b = (CcBool*) args[1].addr;
                     if(!b->IsDefined()){
                        return 0;
-                    } 
+                    }
                     extractHoles = b->GetValue();
                   }
                   if(arg->IsDefined()){
@@ -22840,7 +22844,7 @@ class MarkUsageInfo{
         tt = 0;
      }
    }
-  
+
    ~MarkUsageInfo(){
      if(usage){
        delete[] usage;
@@ -22859,7 +22863,7 @@ class MarkUsageInfo{
       }
       if(pos>=line->Size()){
         return 0;
-      } 
+      }
       Tuple* res = new Tuple(tt);
       HalfSegment hs;
       line->Get(pos,hs);
@@ -22873,7 +22877,7 @@ class MarkUsageInfo{
       res->PutAttribute(0,l);
       res->PutAttribute(1,new CcInt(true,usage[pos]));
       pos++;
-      return res; 
+      return res;
    }
 
    private:
@@ -22900,7 +22904,7 @@ int markUsageVM(Word* args, Word& result, int message, Word& local,
       case REQUEST: {
          result.addr = li?li->next():0;
          return result.addr?YIELD:CANCEL;
-      }   
+      }
       case CLOSE: {
          if(li){
             delete li;
@@ -23006,7 +23010,7 @@ Operator criticalPoints(
 
 
 /*
-Operator testRegionCreator 
+Operator testRegionCreator
 
 For debugging only, should be removed after tests
 
@@ -23017,7 +23021,7 @@ ListExpr testRegionCreatorTM(ListExpr args){
   string err = "line expected";
   if(!nl->HasLength(args,1)){
      return listutils::typeError(err);
-  }  
+  }
   if(!Line::checkType(nl->First(args))){
      return listutils::typeError(err);
   }
@@ -23089,7 +23093,7 @@ int collect_boxVM(Word* args, Word& result, int message, Word& local,
   res->SetDefined(false);
   if(!ignoreUndefined->IsDefined()){
      return 0;
-  } 
+  }
   stream.open();
   bool first = true;
   bool useundef = !ignoreUndefined->GetValue();
@@ -23107,7 +23111,7 @@ int collect_boxVM(Word* args, Word& result, int message, Word& local,
           }
         }
      } else {
-        if(!useundef){ 
+        if(!useundef){
            res->SetDefined(false);
            a->DeleteIfAllowed();
            a=0;
@@ -23117,7 +23121,7 @@ int collect_boxVM(Word* args, Word& result, int message, Word& local,
      }
      a->DeleteIfAllowed();
      a = stream.request();
-  } 
+  }
   stream.close();
   return 0;
 }
@@ -23160,11 +23164,11 @@ ListExpr intersection_robTM(ListExpr args){
      Line::checkType(a2)){
      return listutils::basicSymbol<Line>();
   }
-  if(Line::checkType(a1) && // line x region 
+  if(Line::checkType(a1) && // line x region
      Region::checkType(a2)){
      return listutils::basicSymbol<Line>();
   }
-  
+
   if(Line::checkType(a1) && // line x line
      Line::checkType(a2)){
      return listutils::basicSymbol<Line>();
@@ -23267,7 +23271,7 @@ ListExpr contains_robTM(ListExpr args){
   if(len==3){
     if(!CcBool::checkType(nl->Third(args))){
          return listutils::typeError(err);
-    }  
+    }
     return listutils::basicSymbol<CcBool>();
   }
   return nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
@@ -23439,7 +23443,7 @@ int collect_line2VM(Word* args, Word& result, int message, Word& local,
   dba->destroy();
   delete dba;
 
-  res->EndBulkLoad(true,false); // sort, no realminize 
+  res->EndBulkLoad(true,false); // sort, no realminize
   return 0;
 }
 
@@ -23507,7 +23511,7 @@ int getInnerPointVM(Word* args, Word& result, int message, Word& local,
   if(arg->IsEmpty()){
       res->SetDefined(false);
       return 0;
-  } 
+  }
   HalfSegment hs;
   arg->Get(0,hs);
   double dx = abs(hs.GetDomPoint().GetX() - hs.GetSecPoint().GetX());
@@ -23537,7 +23541,7 @@ int getInnerPointVM(Word* args, Word& result, int message, Word& local,
       dir = 2;
     }  else{
       distComp = &RegionCreator::getRightDist;
-      dir = 3; 
+      dir = 3;
     }
   }
   double d;
@@ -23561,7 +23565,7 @@ int getInnerPointVM(Word* args, Word& result, int message, Word& local,
      case 1: y -= dist/2.0; break;
      case 2: x -= dist/2.0; break;
      case 3: x += dist/2.0; break;
-     default: assert(false); 
+     default: assert(false);
   }
   res->Set(x,y);
   return 0;
@@ -23599,7 +23603,7 @@ Operator getInnerPoint(
 1.43 Operator ~checkRealm~
 
 Debugging operator. Checks whether the halfsegments of a line or a regaion
-are realminized. 
+are realminized.
 
 1.43.1 Type Map
 
@@ -23613,7 +23617,7 @@ ListExpr checkRealmTM(ListExpr args){
    if(!Line::checkType(arg) && !Region::checkType(arg)){
      return listutils::typeError(err);
    }
-   return listutils::basicSymbol<CcBool>();   
+   return listutils::basicSymbol<CcBool>();
 }
 
 /*
@@ -23674,7 +23678,7 @@ ListExpr badRealmTM(ListExpr args){
   string err = "line or region expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError(err + " ( wrong number of args");
-  } 
+  }
   ListExpr arg = nl->First(args);
   if(!Line::checkType(arg) && !Region::checkType(arg)){
     return listutils::typeError(err);
@@ -23960,7 +23964,7 @@ class SpatialAlgebra : public Algebra
     AddOperator(&checkRealmOp);
     AddOperator(&badRealmOp);
     AddOperator(&crossings_rob);
-    
+
 
 
   }
