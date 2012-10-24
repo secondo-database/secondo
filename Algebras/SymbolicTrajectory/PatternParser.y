@@ -215,10 +215,8 @@ conditionsequence : condition
 
 condition : expressionlist {
               cond.setText(exprList.toString());
-/*               cout << "store condition " << cond.getText() << endl; */
               cond.substitute();
               wholepat->addCond(cond);
-/*               cout << "condition stored" << endl; */
               exprList.exprs.clear();
               cond.clearVectors();
             }
@@ -422,6 +420,7 @@ Pattern* stj::parseString(const char* input) {
   Pattern* result = 0;
   cond.clear();
   firstAssign = true;
+  assignNow = false;
   if (patternparse() != 0) {
     cout << "Error found, parsing aborted." << endl;
     parseSuccess = false;
@@ -576,7 +575,6 @@ void Condition::substitute() {
     varKey.assign(vars[i]);
     varKey.append(getType(keys[i]));
     int pos = textSubst.find(varKey);
-    cout << pos << " " << varKey << " " << getSubst(keys[i]) << endl;
     textSubst.replace(pos, varKey.size(), getSubst(keys[i]));
     i++;
   }
@@ -662,6 +660,7 @@ int Pattern::getPatternPos(const string var) {
 
 void Condition::clear() {
   text.clear();
+  textSubst.clear();
   subst.clear();
   keys.clear();
   vars.clear();

@@ -417,14 +417,14 @@ MLabel* MLabel::compress() {
     this->Get(i, ul);
     newML->MergeAdd(ul);
   }
-  if (newML->GetNoComponents() < this->GetNoComponents()) {
-    cout << "MLabel was compressed from " << this->GetNoComponents() << " to "
-         << newML->GetNoComponents() << " components." << endl;
-  }
-  else {
-    cout << "MLabel could not be compressed, still has "
-         << newML->GetNoComponents() << " components." << endl;
-  }
+// if (newML->GetNoComponents() < this->GetNoComponents()) {
+//   cout << "MLabel was compressed from " << this->GetNoComponents() << " to "
+//        << newML->GetNoComponents() << " components." << endl;
+// }
+// else {
+//   cout << "MLabel could not be compressed, still has "
+//        << newML->GetNoComponents() << " components." << endl;
+// }
   return newML;
 }
 
@@ -1549,7 +1549,6 @@ bool Pattern::matches(MString const &ml) {
   }
   NFA *nfa = new NFA(patterns.size() + 1);
   nfa->buildNFA(*this);
-//   cout << nfa->toString() << endl;
   bool result = nfa->matches(ml);
   delete nfa;
   return result;
@@ -1581,7 +1580,6 @@ set<pair<vector<size_t>, vector<size_t> > > Pattern::
   nfa->setAssVars(this->getAssVars());
   nfa->setVarPos(this->getVarPos());
   if (!nfa->matches(ml, true)) {
-    cout << "Error: Mismatch" << endl;
     delete nfa;
     return result;
   }
