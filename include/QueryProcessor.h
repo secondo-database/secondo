@@ -171,6 +171,9 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 #include "DotSpec.h"
 #include "NList.h"
 
+
+#define DEFAULT_GLOBAL_MEMORY 128
+
 struct OpNode;
 typedef OpNode* OpTree;
 bool IsRootObject( OpTree tree );
@@ -199,7 +202,8 @@ class QueryProcessor
 {
  public:
   QueryProcessor( NestedList* newNestedList,
-                  AlgebraManager* newAlgebraManager );
+                  AlgebraManager* newAlgebraManager,
+                  size_t globalMemory = DEFAULT_GLOBAL_MEMORY );
 /*
 Creates a query processor instance using the provided nested list container
 and algebra manager.
@@ -594,7 +598,8 @@ MUST be used in combination with SetUsesMemory() (see include/Operator.h) in ope
 
 
   static bool ExecuteQuery( const string& queryListStr,
-                            Word& queryResult);
+                            Word& queryResult,
+                   const size_t availableMemory = DEFAULT_GLOBAL_MEMORY);
 /*
   Executes a Secondo query, given in nested list syntax of type string and returns
   a query result of type Word.
@@ -611,7 +616,8 @@ MUST be used in combination with SetUsesMemory() (see include/Operator.h) in ope
                           bool& correct,
                           bool& evaluable,
                           bool& defined,
-                          bool& isFunction);
+                          bool& isFunction,
+                    const size_t availableMemory = DEFAULT_GLOBAL_MEMORY);
 /*
 Just as before, but if an error occurs, it is written to argument  ~errorString~.
 Also, the result's type expression is in returned in parameter ~typeString~.
@@ -623,7 +629,8 @@ Also, the result's type expression is in returned in parameter ~typeString~.
 
 */
 
-  static bool GetNLArgValueInTM(const NList& arg, NList& value);
+  static bool GetNLArgValueInTM(const NList& arg, NList& value, 
+                  const size_t availableMemory = DEFAULT_GLOBAL_MEMORY );
 /*
 A method to evaluate an argument ~arg~ within a type mapping. The
 argument is given as a nested list, evaluated by a new instance of

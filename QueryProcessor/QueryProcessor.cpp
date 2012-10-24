@@ -306,12 +306,14 @@ variables is described in the introduction of procedure ~annotate~.
 
 
 QueryProcessor::QueryProcessor( NestedList* newNestedList,
-  AlgebraManager* newAlgebraManager )
+  AlgebraManager* newAlgebraManager, 
+  const size_t _globalMemory /* = DEFAULT_GLOBAL_MEMORY */ )
   : progressView(0),nl( newNestedList ),
     algebraManager( newAlgebraManager ),
     testMode( false ), debugMode( false ),
     traceMode( false ), traceNodes( false ), debugLocal(false),
-    debugProgress(false), traceProgress(false)
+    debugProgress(false), traceProgress(false),
+    globalMemory(_globalMemory)
 {
   values.resize( MAXVALUES );
   argVectors.resize( MAXFUNCTIONS,0 );
@@ -4938,7 +4940,9 @@ QueryProcessor::SetDebugLevel( const int level )
 
 bool
     QueryProcessor::ExecuteQuery( const string& queryListStr,
-                                  Word& queryResult)
+                                  Word& queryResult,
+                                  const size_t availableMemory 
+                                    /* = DEFAULT_GLOBAL_MEMORY */)
 {
   string typeString(""), errorString("");
   bool success = true;
@@ -4959,7 +4963,8 @@ bool
                             correct,
                             evaluable,
                             defined,
-                            isFunction);
+                            isFunction,
+                            availableMemory);
   }
   if (errorString != "OK")
   {
@@ -4976,7 +4981,9 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
                               bool& correct,
                               bool& evaluable,
                               bool& defined,
-                              bool& isFunction)
+                              bool& isFunction,
+                              const size_t availableMemory 
+                                /* = DEFAULT_GLOBAL_MEMORY */ )
 { // reset return parameters
   errorString  = "";
   correct      = false;
@@ -4991,7 +4998,8 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
 //   ErrorReporter::GetErrorMessage(errorMessage); // clear
   QueryProcessor* qpp =
     new QueryProcessor( nli,
-                        SecondoSystem::GetAlgebraManager() );
+                        SecondoSystem::GetAlgebraManager(),
+                        availableMemory );
   qpp->Construct( commandList, correct,
                   evaluable, defined, isFunction, tree, resultType );
   nli->WriteToString(typeString,resultType);
@@ -5031,7 +5039,9 @@ QueryProcessor::ExecuteQuery( const ListExpr& commandList,
 }
 
 bool
-QueryProcessor::GetNLArgValueInTM(const NList& arg, NList& value)
+QueryProcessor::GetNLArgValueInTM(const NList& arg, NList& value,
+                                  const size_t availableMemory 
+                                  /* = DEFAULT_GLOBAL_MEMORY */)
 {
   if ((arg.isList()) || (arg.isSymbol()))
   {
@@ -5052,7 +5062,8 @@ QueryProcessor::GetNLArgValueInTM(const NList& arg, NList& value)
                                       correct,
                                       evaluable,
                                       defined,
-                                      isFunction);
+                                      isFunction,
+                                      availableMemory);
     ListExpr queryResType;
     NestedList* nli = SecondoSystem::GetNestedList();
     if (!nli->ReadFromString(typestring, queryResType))
