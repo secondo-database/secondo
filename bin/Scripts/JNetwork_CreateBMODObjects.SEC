@@ -262,24 +262,24 @@ query createjnet("JBNet", 1.0, InJunc, InSect, InRoad);
 #                                                                              #
 ################################################################################
 
-let QueryPointsNet =
+let QueryPointsJNet =
   QueryPoints feed
   projectextend[Id; Pos: tonetwork(JBNet, .Pos)]
  consume;
 
-let QueryPointsNetAll =
-  QueryPointsNet feed
+let QueryPointsJNetAll =
+  QueryPointsJNet feed
   projectextendstream[Id; NPos: altrlocs(.Pos)]
   projectextend[Id; Pos: .NPos]
 consume;
 
-let QueryPoints1Net =
+let QueryPoints1JNet =
   QueryPoints feed head[10]
   projectextend[Id; Pos: tonetwork(JBNet, .Pos)]
  consume;
 
-let QueryPoints1NetAll =
-  QueryPoints1Net feed head[10]
+let QueryPoints1JNetAll =
+  QueryPoints1JNet feed 
   projectextendstream[Id; NPos: altrlocs(.Pos)]
   projectextend[Id; Pos: .NPos]
 consume;
@@ -290,11 +290,11 @@ consume;
 #                                                                              #
 ################################################################################
 
-let dataSNcar = dataScar feed
+let dataSJcar = dataScar feed
   projectextend[Licence, Model, Type; Trip: tonetwork(JBNet, .Trip)]
 consume;
 
-let dataMNtrip =
+let dataMJtrip =
   dataMtrip feed
   projectextend [Moid; Trip: tonetwork(JBNet, .Trip)]
 consume;
@@ -306,7 +306,7 @@ consume;
 #                                                                              #
 ################################################################################
 
-let routesline =
+let routeslinej =
   components(sections(JBNet) feed
     projectextend[;Curve: toline(.Curve)]
     aggregateB[Curve; fun(L1: line, L2: line) union_new(L1, L2); [const line value()]])
@@ -315,16 +315,15 @@ let routesline =
   sortby [NoSeg desc]
   extract [Elem];
 
-let QRlines =
+let QRlinesj =
   QueryRegions feed
-  projectextend [Id; Lr: intersection_new(.Region, routesline)]
+  projectextend [Id; Lr: intersection_new(.Region, routeslinej)]
  consume;
 
-let QueryRegionsNet =
-  QRlines feed
+let QueryRegionsJNet =
+  QRlinesj feed
   projectextend[Id; Region: tonetwork(JBNet, .Lr)]
  consume;
-
 
 ################################################################################
 #                                                                              #
@@ -337,13 +336,13 @@ let QueryRegionsNet =
 #                                                                              #
 ################################################################################
 
-derive dataSNcar_Licence_btree = dataSNcar createbtree[Licence];
+derive dataSJcar_Licence_btree = dataSJcar createbtree[Licence];
 
 derive dataMcar_Licence_btree = dataMcar createbtree[Licence];
 
 derive dataMcar_Moid_btree = dataMcar createbtree[Moid];
 
-derive dataMNtrip_Moid_btree = dataMNtrip createbtree[Moid];
+derive dataMJtrip_Moid_btree = dataMJtrip createbtree[Moid];
 
 ################################################################################
 #                                                                              #
@@ -352,48 +351,48 @@ derive dataMNtrip_Moid_btree = dataMNtrip createbtree[Moid];
 #                                                                              #
 ################################################################################
 
-derive dataSNcar_BoxNet_timespace =
-  dataSNcar feed
+derive dataSJcar_BoxNet_timespace =
+  dataSJcar feed
   extend[TID: tupleid(.)]
   projectextendstream[TID; UTrip: units(.Trip)]
   extend[Box: tempnetbox(.UTrip)]
   sortby[Box asc]
 bulkloadrtree[Box];
 
-derive dataMNtrip_BoxNet_timespace =
-  dataMNtrip feed
+derive dataMJtrip_BoxNet_timespace =
+  dataMJtrip feed
   extend[TID: tupleid(.)]
   projectextendstream[TID; UTrip: units(.Trip)]
   extend[Box: tempnetbox(.UTrip)]
   sortby[Box asc]
  bulkloadrtree[Box];
 
-derive dataSNcar_BoxNet =
-  dataSNcar feed
+derive dataSJcar_BoxNet =
+  dataSJcar feed
   extend[TID: tupleid(.)]
   projectextendstream[TID; UTrip: units(.Trip)]
   extend[Box: netbox(.UTrip)]
   sortby [Box asc]
  bulkloadrtree[Box];
 
-derive dataMNtrip_BoxNet =
-  dataMNtrip feed
+derive dataMJtrip_BoxNet =
+  dataMJtrip feed
   extend[TID: tupleid(.)]
   projectextendstream[TID; UTrip: units(.Trip)]
   extend[Box: netbox(.UTrip)]
   sortby [Box asc]
  bulkloadrtree[Box];
 
-derive dataSNcar_TrajBoxNet =
-  dataSNcar feed
+derive dataSJcar_TrajBoxNet =
+  dataSJcar feed
   extend[TID: tupleid(.)]
   projectextendstream[TID; RInt: units(trajectory(.Trip))]
   projectextend[TID; Box: netbox(.RInt)]
   sortby[Box asc]
 bulkloadrtree[Box];
 
-derive dataMNtrip_TrajBoxNet =
-  dataMNtrip feed
+derive dataMJtrip_TrajBoxNet =
+  dataMJtrip feed
   extend[TID: tupleid(.)]
   projectextendstream[TID; RInt: units(trajectory(.Trip))]
   projectextend[TID; Box: netbox(.RInt)]
@@ -406,8 +405,8 @@ bulkloadrtree[Box];
 #                                                                              #
 ################################################################################
 
-derive dataMNtrip_SpatioTemp =
-  dataMNtrip feed
+derive dataMJtrip_SpatioTemp =
+  dataMJtrip feed
   extend[TID: tupleid(.)]
   projectextend[TID; Box: bbox(.Trip)]
   sortby [Box asc]
@@ -435,7 +434,7 @@ let QueryPeriods1 = QueryPeriods feed head[10] consume;
 
 let QueryInstant1 = QueryInstants feed head[10] consume;
 
-let QueryRegions1Net = QueryRegionsNet feed head[10] consume;
+let QueryRegions1JNet = QueryRegionsJNet feed head[10] consume;
 
 ################################################################################
 #                                                                              #

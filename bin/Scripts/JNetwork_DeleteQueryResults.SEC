@@ -1,0 +1,42 @@
+open database berlinmod;
+
+delete OBAJNres001;
+delete OBAJNres002;
+delete OBAJNres003;
+delete OBAJNres004;
+delete OBAJNres005;
+delete OBAJNres006;
+delete OBAJNres007;
+delete OBAJNres008;
+delete OBAJNres009;
+delete OBAJNres010;
+delete OBAJNres011;
+delete OBAJNres012;
+delete OBAJNres013;
+delete OBAJNres014;
+delete OBAJNres015;
+delete OBAJNres016;
+delete OBAJNres017;
+delete QUERYRUNTIMES_JNETWOK_OBA;
+
+delete TBAJNres001;
+delete TBAJNres002;
+delete TBAJNres003;
+delete TBAJNres004;
+delete TBAJNres005;
+delete TBAJNres006;
+delete TBAJNres007;
+delete TBAJNres008;
+delete TBAJNres009;
+delete TBAJNres010;
+delete TBAJNres011;
+delete TBAJNres012;
+delete TBAJNres013;
+delete TBAJNres014;
+delete TBAJNres015;
+delete TBAJNres016;
+delete TBAJNres017;
+delete QUERYRUNTIMES_JNETWOK_TBA;
+
+close database;
+quit;

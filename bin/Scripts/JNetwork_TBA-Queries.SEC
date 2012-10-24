@@ -78,7 +78,7 @@ query now();
 let TBAJNres003 =
   QueryLicences1 feed {l}
   loopsel[dataMcar_Licence_btree dataMcar exactmatch[.Licence_l] {ll}]
-  loopjoin[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_ll]]
+  loopjoin[dataMJtrip_Moid_btree dataMJtrip exactmatch[.Moid_ll]]
   QueryInstant1 feed {i}
   symmjoin [.Trip present ..Instant_i]
   projectextend[Instant_i, Licence_ll; Pos: val(.Trip atinstant .Instant_i)]
@@ -93,11 +93,11 @@ query now();
 #                                                                              #
 ################################################################################
 
-let TBAJNetres004 =
-  QueryPointsNetAll feed
+let TBAJNres004 =
+  QueryPointsJNetAll feed
     projectextend[Id; Elem: netbox(.Pos)]
-    loopjoin[dataMNtrip_TrajBoxNet windowintersectsS[.Elem]
-             sort rdup dataMNtrip gettuples]
+    loopjoin[dataMJtrip_TrajBoxNet windowintersectsS[.Elem]
+             sort rdup dataMJtrip gettuples]
   project [Moid, Id]
   loopsel[fun(t:TUPLE)
     dataMcar_Moid_btree dataMcar exactmatch[attr(t, Moid)]
@@ -107,9 +107,6 @@ let TBAJNetres004 =
 consume;
 
 query now();
-
-close database;
-quit;
 
 ################################################################################
 #                                                                              #
@@ -123,7 +120,7 @@ let TBAJNres005 =
   QueryLicences1 feed project[Licence] {LL1}
   loopsel[ fun(t:TUPLE)
     dataMcar_Licence_btree dataMcar exactmatch[attr(t,Licence_LL1)] {CAR}
-    loopsel[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_CAR]]
+    loopsel[dataMJtrip_Moid_btree dataMJtrip exactmatch[.Moid_CAR]]
     projectextend[;Traj: trajectory(.Trip)]
     aggregateB[Traj; fun(L1: jline, L2: jline) L1 union L2; [const jline value ("JBNet" ())]]
     feed namedtransformstream[Traxj]
@@ -133,7 +130,7 @@ let TBAJNres005 =
   QueryLicences2 feed project[Licence] {LL2}
   loopsel[ fun(s:TUPLE)
     dataMcar_Licence_btree dataMcar exactmatch[attr(s,Licence_LL2)] {CAR}
-    loopsel[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_CAR]]
+    loopsel[dataMJtrip_Moid_btree dataMJtrip exactmatch[.Moid_CAR]]
     projectextend[;Traj: trajectory(.Trip)]
     aggregateB[Traj; fun(L3: jline, L4: jline) L3 union L4; [const jline value ("JBNet"())]]
     feed namedtransformstream[Traxj]
@@ -142,6 +139,7 @@ let TBAJNres005 =
   projectextend[Licence; Trax: fromnetwork(.Traxj)]{c2}
   product
   projectextend [Licence_c1, Licence_c2; Distance: distance(.Trax_c1, .Trax_c2)]
+  sortby[Licence_c1, Licence_c2]
 consume;
 
 query now();
@@ -156,7 +154,7 @@ query now();
 let TBAJNres006tmp1 =
   dataMcar feed filter [.Type = "truck"]
   project [Licence, Moid] {c}
-  loopjoin[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_c]]
+  loopjoin[dataMJtrip_Moid_btree dataMJtrip exactmatch[.Moid_c]]
   projectextend [;Licence: .Licence_c, Ptrip: fromnetwork(.Trip)]
   extend[BBox: bbox(.Ptrip)]
   projectextend[Licence, Ptrip; Box: rectangle3((minD(.BBox,1) - 5.0),
@@ -194,10 +192,10 @@ query now();
 ################################################################################
 
 let TBAJNres007tmp1 =
-  QueryPointsNetAll feed
+  QueryPointsJNetAll feed
   projectextend[Id, Pos; Prect: netbox(.Pos)]
-  loopsel[fun(t:TUPLE) dataMNtrip_TrajBoxNet windowintersectsS[attr(t,Prect)]
-  sort rdup dataMNtrip gettuples
+  loopsel[fun(t:TUPLE) dataMJtrip_TrajBoxNet windowintersectsS[attr(t,Prect)]
+  sort rdup dataMJtrip gettuples
   loopjoin[dataMcar_Moid_btree dataMcar exactmatch [.Moid]
   filter[.Type = "passenger"]
   project[Licence] {X}]
@@ -236,14 +234,15 @@ let TBAJNres008 =
   QueryLicences1 feed {l}
   loopjoin[dataMcar_Licence_btree dataMcar exactmatch[.Licence_l]]
   project[Licence, Moid]
-  loopsel[fun(t:TUPLE) dataMNtrip_Moid_btree dataMNtrip exactmatch[attr(t, Moid)]
+  loopsel[fun(t:TUPLE) dataMJtrip_Moid_btree dataMJtrip exactmatch[attr(t, Moid)]
   projectextend[Trip; Licence: attr(t,Licence)]]
   QueryPeriods1 feed
   symmjoin [.Trip present ..Period]
   projectextend [Licence, Period, Id; Distance: length(.Trip atperiods .Period)]
   sortby [Id asc, Licence asc, Distance desc]
-  groupby[Id, Period, Licence; Dist: group feed sum[Distance]]
+  groupby[Id, Period, Licence; Dist: round(group feed sum[Distance],3)]
   project[Licence, Period, Dist]
+  sortby[Licence, Period, Dist]
 consume;
 
 query now();
@@ -256,15 +255,17 @@ query now();
 ################################################################################
 
 let TBAJNres009 =
-  dataMNtrip feed {c}
+  dataMJtrip feed {c}
   QueryPeriods feed
   filter[not(isempty(.Period))]{p}
   symmjoin[.Trip_c present ..Period_p]
   projectextend [Moid_c, Period_p, Id_p; Distance: length(.Trip_c atperiods .Period_p)]
   sortby [Id_p asc, Moid_c asc, Distance desc]
   groupby[Id_p, Period_p, Moid_c; Dist: group feed sum[Distance]]
-  groupby[Id_p, Period_p; Dista: group feed max[Dist]]
+  groupby[Id_p, Period_p; Dista: round(group feed max[Dist],3)]
+  filter[.Dista > 0.0]
   project[Period_p, Dista]
+  sortby[Period_p, Dista]
 consume;
 
 query now();
@@ -282,11 +283,11 @@ let TBAJNres010 =
   loopsel[ fun(t:TUPLE)
     dataMcar_Licence_btree dataMcar exactmatch[attr(t,Licence_V1)]
     project[Moid]
-    loopjoin[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid] remove[Moid]] {V3}
+    loopjoin[dataMJtrip_Moid_btree dataMJtrip exactmatch[.Moid] remove[Moid]] {V3}
     extend[PtripA: fromnetwork(.Trip_V3)]
     extend[T3bbx: bbox(.PtripA)]
     loopjoin[ fun(u:TUPLE)
-      dataMNtrip_SpatioTemp
+      dataMJtrip_SpatioTemp
       windowintersectsS[rectangle3(
         minD(attr(u,T3bbx),1) - 3.0,
         maxD(attr(u,T3bbx),1) + 3.0,
@@ -294,7 +295,7 @@ let TBAJNres010 =
         maxD(attr(u,T3bbx),2) + 3.0,
         minD(attr(u,T3bbx),3),
         maxD(attr(u,T3bbx),3))]
-      sort rdup dataMNtrip gettuples
+      sort rdup dataMJtrip gettuples
       filter[.Moid # attr(u, Moid_V3)]
       projectextend[Moid; PtripB: fromnetwork(.Trip)]
       filter[everNearerThan(attr(u, PtripA), .PtripB, 3.0)]
@@ -309,6 +310,7 @@ let TBAJNres010 =
   groupby [QueryLicence, OtherLicence; AllPos: group feed
     aggregateB[Pos; fun(M1:mjpoint, M2:mjpoint) M1 union M2; [const mjpoint value("JBNet"())]]]
   project[QueryLicence, OtherLicence, AllPos]
+  sortby[QueryLicence, OtherLicence, AllPos]
   consume;
 
 query now();
@@ -322,10 +324,10 @@ query now();
 
 let TBAJNres011 =
   QueryInstant1 feed {i}
-  QueryPoints1NetAll feed projectextend[Id, Pos; Prect: netbox(.Pos)]{p}
+  QueryPoints1JNetAll feed projectextend[Id, Pos; Prect: netbox(.Pos)]{p}
   product
-  loopsel[fun(t:TUPLE) dataMNtrip_BoxNet_timespace windowintersectsS[box3d(attr(t,Prect_p), attr(t,Instant_i))]
-  sort rdup dataMNtrip gettuples
+  loopsel[fun(t:TUPLE) dataMJtrip_BoxNet_timespace windowintersectsS[box3d(attr(t,Prect_p), attr(t,Instant_i))]
+  sort rdup dataMJtrip gettuples
   projectextend [Moid; Id: attr(t,Id_p), Instant: attr(t,Instant_i)]]{a}
   loopjoin[dataMcar_Moid_btree dataMcar exactmatch[.Moid_a]]
   project[Id_a, Instant_a, Licence]
@@ -343,12 +345,12 @@ query now();
 ################################################################################
 
 let TBAJNres012tmp1 =
-  QueryPoints1NetAll feed projectextend[Id, Pos; Prect: netbox(.Pos)]{p}
+  QueryPoints1JNetAll feed projectextend[Id, Pos; Prect: netbox(.Pos)]{p}
   QueryInstant1 feed {i}
   product
   projectextend [Id_p, Pos_p, Instant_i; Box: box3d(.Prect_p, .Instant_i)]
-  loopsel[fun(t:TUPLE) dataMNtrip_BoxNet_timespace windowintersectsS[attr(t,Box)]
-  sort rdup dataMNtrip gettuples
+  loopsel[fun(t:TUPLE) dataMJtrip_BoxNet_timespace windowintersectsS[attr(t,Box)]
+  sort rdup dataMJtrip gettuples
   projectextend [Moid; Id: attr(t,Id_p), Instant: attr(t,Instant_i)]]{a}
   loopjoin[dataMcar_Moid_btree dataMcar exactmatch[.Moid_a]]
   projectextend[Moid, Licence; Id: .Id_a, Instant: .Instant_a]
@@ -378,8 +380,8 @@ delete TBAJNres012tmp1;
 ################################################################################
 
 let TBAJNres013 =
-  dataMNtrip feed {c}
-  QueryRegions1Net feed filter[not(isempty(.Region))] {r}
+  dataMJtrip feed {c}
+  QueryRegions1JNet feed filter[not(isempty(.Region))] {r}
   symmjoin[.Trip_c passes ..Region_r]
   projectextend[Moid_c, Id_r; Trip: .Trip_c at .Region_r]
   QueryPeriods1 feed filter[not(isempty(.Period))]{p}
@@ -400,15 +402,15 @@ query now();
 ################################################################################
 
 let TBAJNres014 =
-  QueryRegions1Net feed
+  QueryRegions1JNet feed
     filter[not(isempty(.Region))]
     projectextendstream[Id, Region; UReg: units(.Region)]
     extend[Brect: netbox(.UReg)]{r}
   QueryInstant1 feed {i}
   product
   projectextend[Id_r, Region_r, Instant_i; Box: box3d(.Brect_r, .Instant_i)]
-  loopsel[fun(t:TUPLE) dataMNtrip_BoxNet_timespace windowintersectsS[attr(t,Box)]
-  sort rdup dataMNtrip gettuples
+  loopsel[fun(t:TUPLE) dataMJtrip_BoxNet_timespace windowintersectsS[attr(t,Box)]
+  sort rdup dataMJtrip gettuples
   filter[(val(.Trip atinstant (attr(t,Instant_i)))) inside (attr(t,Region_r))]
   projectextend [Moid;Instant: attr(t,Instant_i), Id: attr(t,Id_r)]]{a}
   loopjoin[dataMcar_Moid_btree dataMcar exactmatch [.Moid_a]]
@@ -427,11 +429,11 @@ query now();
 ################################################################################
 
 let TBAJNres015 =
-  QueryPoints1NetAll feed projectextend [Id, Pos; Prect: netbox(.Pos)] {p}
+  QueryPoints1JNetAll feed projectextend [Id, Pos; Prect: netbox(.Pos)] {p}
   QueryPeriods1 feed filter[not(isempty(.Period))]{t}
   product
-  loopsel[fun(t:TUPLE) dataMNtrip_BoxNet_timespace windowintersectsS[box3d(attr(t,Prect_p), attr(t,Period_t))]
-  sort rdup dataMNtrip gettuples
+  loopsel[fun(t:TUPLE) dataMJtrip_BoxNet_timespace windowintersectsS[box3d(attr(t,Prect_p), attr(t,Period_t))]
+  sort rdup dataMJtrip gettuples
   filter[(.Trip atperiods (attr(t,Period_t))) passes (attr(t,Pos_p))]
   projectextend [Moid;Period: attr(t,Period_t), Id: attr(t,Id_p)]]{a}
   loopjoin[dataMcar_Moid_btree dataMcar exactmatch [.Moid_a]]
@@ -456,30 +458,30 @@ query now();
 let TBAJNres016 =
   QueryLicences1 feed {l}
   loopjoin [dataMcar_Licence_btree dataMcar exactmatch[.Licence_l]] {a}
-  loopjoin[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_a]]
+  loopjoin[dataMJtrip_Moid_btree dataMJtrip exactmatch[.Moid_a]]
   QueryPeriods1 feed filter[not(isempty(.Period))]{p}
   symmjoin [.Trip present ..Period_p]
   projectextend[Id_p, Period_p; Licence: .Licence_a, Trip: .Trip atperiods .Period_p]
   filter[not(isempty(.Trip))]
-  QueryRegions1Net feed filter[not(isempty(.Region))]{r}
+  QueryRegions1JNet feed filter[not(isempty(.Region))]{r}
   symmjoin [.Trip passes ..Region_r]
   projectextend[Licence, Id_p, Period_p, Id_r; Trip: .Trip at .Region_r]
   filter [not(isempty(.Trip))]{a}
   QueryLicences2 feed {l}
   loopjoin [dataMcar_Licence_btree dataMcar exactmatch[.Licence_l]]{a}
-  loopjoin[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_a]]
+  loopjoin[dataMJtrip_Moid_btree dataMJtrip exactmatch[.Moid_a]]
   QueryPeriods1 feed filter[not(isempty(.Period))]{p}
   symmjoin [.Trip present ..Period_p]
   projectextend[Id_p, Period_p; Licence: .Licence_a, Trip: .Trip atperiods .Period_p]
   filter[not(isempty(.Trip))]
-  QueryRegions1Net feed filter[not(isempty(.Region))]{r}
+  QueryRegions1JNet feed filter[not(isempty(.Region))]{r}
   symmjoin [.Trip passes ..Region_r]
   projectextend[Licence, Id_p, Id_r; Trip: .Trip at .Region_r]
   filter [not(isempty(.Trip))]{b}
   symmjoin[(.Id_r_a = ..Id_r_b) and (.Id_p_a = ..Id_p_b)]
   filter[.Licence_a # .Licence_b]
   filter [not(.Trip_a intersects .Trip_b)]
-  project [Id_r_a, Id_p_a, Period_p_a, Licence_a, Licence_b]
+  project [Id_r_a, Id_p_a, Licence_a, Licence_b]
   sortby [Id_r_a asc, Id_p_a asc, Licence_a asc, Licence_b asc]
   krdup [Id_r_a, Id_p_a, Licence_a, Licence_b]
 consume;
@@ -494,10 +496,10 @@ query now();
 ################################################################################
 
 let TBAJNres017tmp1 =
-  QueryPointsNetAll feed
+  QueryPointsJNetAll feed
   projectextend[Id; Elem: netbox(.Pos)]
-  loopsel[fun(t:TUPLE) dataMNtrip_TrajBoxNet windowintersectsS[attr(t,Elem)]
-  sort rdup dataMNtrip gettuples
+  loopsel[fun(t:TUPLE) dataMJtrip_TrajBoxNet windowintersectsS[attr(t,Elem)]
+  sort rdup dataMJtrip gettuples
   projectextend [Moid; Id_p: attr(t,Id)]]
   sortby [Id_p asc, Moid asc]
   krdup[Id_p, Moid]
@@ -522,7 +524,7 @@ delete TBAJNres017tmp1;
 #                                                                              #
 ################################################################################
 
-let EVAL_SEC2COMMANDS_NETTBA = SEC2COMMANDS feed  consume;
+let QUERYRUNTIMES_JNETWORK_TBA = SEC2COMMANDS feed  consume;
 
 # save EVAL_SEC2COMMANDS_NETTBA to 'NetworkTBANNNRunTimesRunX.DAT';
 

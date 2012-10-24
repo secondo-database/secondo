@@ -1,0 +1,42 @@
+open database berlinmod;
+
+delete OBANres001;
+delete OBANres002;
+delete OBANres003;
+delete OBANres004;
+delete OBANres005;
+delete OBANres006;
+delete OBANres007;
+delete OBANres008;
+delete OBANres009;
+delete OBANres010;
+delete OBANres011;
+delete OBANres012;
+delete OBANres013;
+delete OBANres014;
+delete OBANres015;
+delete OBANres016;
+delete OBANres017;
+delete QUERYRUNTIMES_NETWOK_OBA;
+
+delete TBANres001;
+delete TBANres002;
+delete TBANres003;
+delete TBANres004;
+delete TBANres005;
+delete TBANres006;
+delete TBANres007;
+delete TBANres008;
+delete TBANres009;
+delete TBANres010;
+delete TBANres011;
+delete TBANres012;
+delete TBANres013;
+delete TBANres014;
+delete TBANres015;
+delete TBANres016;
+delete TBANres017;
+delete QUERYRUNTIMES_NETWOK_TBA;
+
+close database;
+quit;

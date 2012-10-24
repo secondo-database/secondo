@@ -1,0 +1,42 @@
+open database berlinmod;
+
+save OBAJNres001 to 'results/OBAJNres001';
+save OBAJNres002 to 'results/OBAJNres002';
+save OBAJNres003 to 'results/OBAJNres003';
+save OBAJNres004 to 'results/OBAJNres004';
+save OBAJNres005 to 'results/OBAJNres005';
+save OBAJNres006 to 'results/OBAJNres006';
+save OBAJNres007 to 'results/OBAJNres007';
+save OBAJNres008 to 'results/OBAJNres008';
+save OBAJNres009 to 'results/OBAJNres009';
+save OBAJNres010 to 'results/OBAJNres010';
+save OBAJNres011 to 'results/OBAJNres011';
+save OBAJNres012 to 'results/OBAJNres012';
+save OBAJNres013 to 'results/OBAJNres013';
+save OBAJNres014 to 'results/OBAJNres014';
+save OBAJNres015 to 'results/OBAJNres015';
+save OBAJNres016 to 'results/OBAJNres016';
+save OBAJNres017 to 'results/OBAJNres017';
+save QRT_JNET_OBA to 'results/QUERYRUNTIMES_JNETWORK_OBA';
+
+save TBAJNres001 to 'results/TBAJNres001';
+save TBAJNres002 to 'results/TBAJNres002';
+save TBAJNres003 to 'results/TBAJNres003';
+save TBAJNres004 to 'results/TBAJNres004';
+save TBAJNres005 to 'results/TBAJNres005';
+save TBAJNres006 to 'results/TBAJNres006';
+save TBAJNres007 to 'results/TBAJNres007';
+save TBAJNres008 to 'results/TBAJNres008';
+save TBAJNres009 to 'results/TBAJNres009';
+save TBAJNres010 to 'results/TBAJNres010';
+save TBAJNres011 to 'results/TBAJNres011';
+save TBAJNres012 to 'results/TBAJNres012';
+save TBAJNres013 to 'results/TBAJNres013';
+save TBAJNres014 to 'results/TBAJNres014';
+save TBAJNres015 to 'results/TBAJNres015';
+save TBAJNres016 to 'results/TBAJNres016';
+save TBAJNres017 to 'results/TBAJNres017';
+save QRT_JNET_TBA to 'results/QUERYRUNTIMES_JNETWORK_TBA';
+
+close database;
+quit;

@@ -1,0 +1,42 @@
+open database berlinmod;
+
+save OBACRres001 to 'results/OBACRres001';
+save OBACRres002 to 'results/OBACRres002';
+save OBACRres003 to 'results/OBACRres003';
+save OBACRres004 to 'results/OBACRres004';
+save OBACRres005 to 'results/OBACRres005';
+save OBACRres006 to 'results/OBACRres006';
+save OBACRres007 to 'results/OBACRres007';
+save OBACRres008 to 'results/OBACRres008';
+save OBACRres009 to 'results/OBACRres009';
+save OBACRres010 to 'results/OBACRres010';
+save OBACRres011 to 'results/OBACRres011';
+save OBACRres012 to 'results/OBACRres012';
+save OBACRres013 to 'results/OBACRres013';
+save OBACRres014 to 'results/OBACRres014';
+save OBACRres015 to 'results/OBACRres015';
+save OBACRres016 to 'results/OBACRres016';
+save OBACRres017 to 'results/OBACRres017';
+save QRT_BMOD_OBA to 'results/QUERYRUNTIMES_BERLINMOD_OBA';
+
+save TBACRres001 to 'results/TBACRres001';
+save TBACRres002 to 'results/TBACRres002';
+save TBACRres003 to 'results/TBACRres003';
+save TBACRres004 to 'results/TBACRres004';
+save TBACRres005 to 'results/TBACRres005';
+save TBACRres006 to 'results/TBACRres006';
+save TBACRres007 to 'results/TBACRres007';
+save TBACRres008 to 'results/TBACRres008';
+save TBACRres009 to 'results/TBACRres009';
+save TBACRres010 to 'results/TBACRres010';
+save TBACRres011 to 'results/TBACRres011';
+save TBACRres012 to 'results/TBACRres012';
+save TBACRres013 to 'results/TBACRres013';
+save TBACRres014 to 'results/TBACRres014';
+save TBACRres015 to 'results/TBACRres015';
+save TBACRres016 to 'results/TBACRres016';
+save TBACRres017 to 'results/TBACRres017';
+save QRT_BMOD_TBA to 'results/QUERYRUNTIMES_BERLINMOD_TBA';
+
+close database;
+quit;

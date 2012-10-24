@@ -25,42 +25,63 @@
 ## in the Secondo DBMS.
 
 open database berlinmod;
-#############################################################
-#############################################################
-# All TBA/CR - queries
 
 query now();
-#############################################################
-# A - 1
+
+################################################################################
+#                                                                              #
+# Query 1: What are the models of the vehicles with license plate numbers from #
+#          QueryLicence?                                                       #
+#                                                                              #
+################################################################################
+
 let TBACRres001 = QueryLicences feed {O}
   loopjoin[ dataMCcar_Licence_btree dataMCcar exactmatch[.Licence_O] ]
   project[Licence, Model] consume;
 
 query now();
-#############################################################
-# B - 2
+
+################################################################################
+#                                                                              #
+# Query 2: How many vehicles exist that are passenger cars?                    #
+#                                                                              #
+################################################################################
+
 let TBACRres002 =
   dataMCcar feed filter [.Type = "passenger"] count;
 
 query now();
-#############################################################
-# C - 3
+
+################################################################################
+#                                                                              #
+# Query 3: Where have the vehicles with licenses from QueryLicence1 been at    #
+#          each instant from QueryInstant1?                                    #
+#                                                                              #
+################################################################################
+
 let TBACRres003 =
   QueryLicences feed head[10] {LL}
   loopsel[dataMCcar_Licence_btree dataMCcar exactmatch[.Licence_LL]
           project[Licence, Moid] {LL}]
   loopjoin[dataMCtrip_Moid_btree dataMCtrip
-           exactmatch[.MoId_LL]]
+           exactmatch[.Moid_LL]]
   QueryInstants feed head[10] {II}
   symmjoin[.Trip present ..Instant_II]
   projectextend[; Licence: .Licence_LL, Instant: .Instant_II,
                   Pos: val(.Trip atinstant .Instant_II)]
   sortby[Instant asc, Licence asc]
+  project[Instant, Licence, Pos]
   consume;
 
 query now();
-#############################################################
-# D - 4
+
+################################################################################
+#                                                                              #
+# Query 4: Which license plate numbers belong to vehicles that have passed the #
+#          points from QueryPoints?                                            #
+#                                                                              #
+################################################################################
+
 let TBACRres004 = QueryPoints feed
   loopjoin[ dataMCtrip_Trip_sptuni
             windowintersectsS[bbox(.Pos)] sort rdup
@@ -69,12 +90,21 @@ let TBACRres004 = QueryPoints feed
   loopsel[fun(t1: TUPLE)
           dataMCcar_Moid_btree dataMCcar exactmatch[attr(t1,Moid)]
           projectextend[Moid; Id: attr(t1,Id), Licence: .Licence]]
-  sortby[Id asc, Licence asc] krdup[Id, Licence] project[Id, Licence] consume;
+  sortby[Id asc, Licence asc]
+  krdup[Id, Licence]
+  project[Licence, Id] consume;
 
 query now();
-#############################################################
-# E - 5
-let TBACRres005Traj1 =
+
+################################################################################
+#                                                                              #
+# Query 5: What is the minimum distance between places, where a vehicle with a #
+#          license from QueryLicences1 and a vehicle with licenses from        #
+#          from QueryLicence2 have been?                                       #
+#                                                                              #
+################################################################################
+
+let TBACRres005tmp1 =
   QueryLicences feed head[10] project[Licence] {LL1}
   loopsel[ fun(t:TUPLE)
     dataMCcar_Licence_btree dataMCcar exactmatch[attr(t,Licence_LL1)] {CAR}
@@ -88,7 +118,9 @@ let TBACRres005Traj1 =
   ]
   consume;
 
-let TBACRres005Traj2 =
+query now();
+
+let TBACRres005tmp2 =
   QueryLicences feed head[20] filter[.Id >10] {LL1}
   loopsel[ fun(t:TUPLE)
     dataMCcar_Licence_btree dataMCcar exactmatch[attr(t,Licence_LL1)] {CAR}
@@ -102,23 +134,33 @@ let TBACRres005Traj2 =
   ]
   consume;
 
-let TBACRres005 = TBACRres005Traj1 feed {LL1}
-  TBACRres005Traj2 feed {LL2}
+query now();
+
+let TBACRres005 = TBACRres005tmp1 feed {LL1}
+  TBACRres005tmp2 feed {LL2}
   product
   projectextend[ ; Licence1: .Licence_LL1,
     Licence2: .Licence_LL2, Dist:
     distance(.Traj_LL1, .Traj_LL2)
   ]
+sortby[Licence1, Licence2]
   consume;
-
-delete TBACRres005Traj1;
-delete TBACRres005Traj2;
 
 query now();
 
-#############################################################
-# F - 6
-let TBACRres006BBoxMtrip =
+delete TBACRres005tmp1;
+delete TBACRres005Tmp2;
+
+query now();
+
+################################################################################
+#                                                                              #
+# Query 6: What are the pairs of license plate numbers of "trucks", that have  #
+#          been as close as 10m or less to each other?                         #
+#                                                                              #
+################################################################################
+
+let TBACRres006tmp1 =
   dataMCcar feed filter[.Type = "truck"]
   project[Licence, Moid]
   loopsel[fun(t: TUPLE)
@@ -134,11 +176,12 @@ let TBACRres006BBoxMtrip =
   consume;
 
 query now();
+
 let TBACRres006 =
-  TBACRres006BBoxMtrip feed {C1}
-  TBACRres006BBoxMtrip feed {C2}
+  TBACRres006tmp1 feed {C1}
+  TBACRres006tmp1 feed {C2}
   spatialjoin[Box_C1, Box_C2]
-  filter[ .Moid_C1 < .Moid_C2 ]
+  filter[ .Licence__C1 < .Licence_C2 ]
   filter[ everNearerThan(.Trip_C1, .Trip_C2, 10.0) ]
   projectextend[ ; Licence1: .Licence_C1,
                    Licence2: .Licence_C2 ]
@@ -146,13 +189,20 @@ let TBACRres006 =
 
 query now();
 
-delete TBACRres006BBoxMtrip;
+delete TBACRres006tmp1;
 
 query now();
-#############################################################
-# G - 7
-let TBACRres007PointMinInst2 =
-  QueryPoints feed project[Pos]
+
+################################################################################
+#                                                                              #
+# Query 7: What are the license plate numbers of the "passenger" cars that     #
+#          have reached points from QueryPoints first of all "passenger" cars  #
+#          during the complete observation period?                             #
+#                                                                              #
+################################################################################
+
+let TBACRres007tmp1 =
+  QueryPoints feed project[Id, Pos]
   loopjoin[ fun(t:TUPLE)
     dataMCtrip_Trip_sptuni
     windowintersectsS[bbox(attr(t,Pos))]
@@ -160,7 +210,7 @@ let TBACRres007PointMinInst2 =
     filter[.Trip passes attr(t,Pos)]
     loopjoin[ dataMCcar_Moid_btree dataMCcar exactmatch[.Moid]
       filter[.Type = "passenger"] project[Licence] {X} ]
-    projectextend[ ; TimeAtPos: inst(initial(
+    projectextend[; TimeAtPos: inst(initial(
       .Trip at attr(t,Pos)))]
     min[TimeAtPos] feed namedtransformstream[FirstTime]
     filter[not(isempty(.FirstTime))]
@@ -170,7 +220,7 @@ let TBACRres007PointMinInst2 =
 query now();
 
 let TBACRres007 =
-  TBACRres007PointMinInst2 feed
+  TBACRres007tmp1 feed
   loopjoin[ fun(t:TUPLE)
     dataMCtrip_Trip_sptmpuni windowintersectsS[box3d(bbox(attr(t,Pos)), attr(t,FirstTime))]
     sort rdup dataMCtrip gettuples
@@ -179,15 +229,25 @@ let TBACRres007 =
       dataMCcar_Moid_btree dataMCcar exactmatch[attr(t2,Moid)]
       filter[.Type = "passenger"] project[Licence, Moid]]
   ]
-  project[ Pos, Licence, Moid ] sort rdup project[Pos, Licence] consume;
+  project[ Pos, Licence, Moid ]
+  rdup
+  project[Pos, Licence]
+  consume;
 
 query now();
 
-delete TBACRres007PointMinInst2;
+delete TBACRres007tmp1;
 
 query now();
-#############################################################
-# H - 8
+
+################################################################################
+#                                                                              #
+# Query 8: What are the overall traveled distances of the vehicles with        #
+#          license plate numbers from QueryLicences1 during the periods from   #
+#          QueryPeriods1?                                                      #
+#                                                                              #
+################################################################################
+
 let TBACRres008 =
   QueryPeriods  feed head[10]
   QueryLicences feed head[10] project[Licence]
@@ -201,12 +261,19 @@ let TBACRres008 =
       sum[L], 3)]
     projectextend[; Licence: attr(t,Licence), Period: attr(t,Period), Dist: .Dist]
   ]
+  sortby[Licence, Period, Dist]
   consume;
 
 
 query now();
-#############################################################
-# I - 9
+
+################################################################################
+#                                                                              #
+# Query 9: What is the longest distance that was traveled by a vehicle during  #
+#          each of the periods from QueryPeriods?                              #
+#                                                                              #
+################################################################################
+
 let TBACRres009 =
   QueryPeriods feed extend[ PeriodBox: queryrect2d(
     minimum(.Period)) union queryrect2d(maximum(.Period))]
@@ -217,15 +284,22 @@ let TBACRres009 =
       length(.Trip atperiods attr(t,Period))]
     filter[.TripOdo > 0]
     sortby[Moid asc]
-    groupby[Moid; Length: round(group feed sum[TripOdo],3)]
+    groupby[Moid; Length: group feed sum[TripOdo])]
   ]
-  groupby[Id, Period; Dist: group feed max[Length]]
-  project[Period, Dist] consume;
+  groupby[Moid, Period; Dist: round(group feed max[Length], 3)]
+  project[Period, Dist]
+  sortby[Period, Dist]
+consume;
 
 query now();
-#############################################################
-# J - 10
 
+################################################################################
+#                                                                              #
+# Query 10: When and where did the vehicles with license plate numbers from    #
+#           QueryLicences1 meet other vehicles (distance < 3m) and what are    #
+#           the latter licenses?                                               #
+#                                                                              #
+################################################################################
 
 let TBACRres010 =
   QueryLicences feed head[10] project[Licence] {V1}
@@ -273,13 +347,20 @@ let TBACRres010 =
     projectextend[QueryLicence,OtherLicence; Pos:
       .AllTrips atperiods .AllTimes]
   ]
+  sortby[QueryLicence, OtherLicence, Pos]
   consume;
 
 query now();
-#############################################################
-# K - 11
+
+################################################################################
+#                                                                              #
+# Query 11: Which vehicles passed a point from QueryPoints1 at one of the      #
+#           instants from QueryInstant1?                                       #
+#                                                                              #
+################################################################################
+
 let TBACRres011 =
-  QueryPoints feed head[10] project[Pos] {PP}
+  QueryPoints feed head[10] project[Id, Pos] {PP}
   QueryInstants feed head[10] project[Instant] {II}
   product
   loopjoin[ fun(t:TUPLE)
@@ -295,14 +376,21 @@ let TBACRres011 =
     project[Moid] sort rdup
   ]
   loopjoin[dataMCcar_Moid_btree dataMCcar exactmatch[.Moid] project[Licence]]
-  projectextend[Licence; Pos: .Pos_PP, Instant: .Instant_II]
+  projectextend[; Id: .Id_PP,  Instant: .Instant_II, Licenc: .Licence]
+  sortby[Id, Instant, Licence]
   consume;
 
 query now();
-#############################################################
-# L - 12
+
+################################################################################
+#                                                                              #
+# Query 12: Which vehicles met at a point from QueryPoints1 at an instant from #
+#           QueryInstant1?                                                     #
+#                                                                              #
+################################################################################
+
 let TBACRres012 =
-  QueryPoints feed head[10] project[Pos]
+  QueryPoints feed head[10] project[Id, Pos]
   QueryInstants feed head[10] project[Instant]
   product
   loopsel[ fun(t: TUPLE)
@@ -319,15 +407,22 @@ let TBACRres012 =
     sort rdup
     loopjoin[dataMCcar_Moid_btree dataMCcar exactmatch[.Moid] project[Licence]]
     loopjoin[dataMCcar_Moid_btree dataMCcar exactmatch[.Moid_C] project[Licence] {C}]
-    projectextend[ ; Pos_V2: attr(t,Pos),
+    projectextend[ ; Id: attr(t,Id),
       Instant: attr(t,Instant),
       Licence1: .Licence, Licence2: .Licence_C]
   ]
+  sortby[Id, Instant, Licence1, Licence2]
   consume;
 
 query now();
-#############################################################
-# M - 13
+
+################################################################################
+#                                                                              #
+# Query 13: Which vehicles traveled within one of the regions from             #
+#           QueryRegions1 during the periods from QueryPeriods1?               #
+#                                                                              #
+################################################################################
+
 let TBACRres013 =
   QueryRegions feed head[10] filter[not(isempty(.Region))]{RR}
   QueryPeriods feed head[10] filter[not(isempty(.Period))]{PP}
@@ -341,13 +436,20 @@ let TBACRres013 =
     ]
     project[Moid] sort rdup
     loopjoin[dataMCcar_Moid_btree dataMCcar exactmatch[.Moid] project[Licence]]
-    projectextend[;Region: attr(t,Region_RR), Period: attr(t,Period_PP), Licence: .Licence]
+    projectextend[;Id_r: attr(t,Id_RR), Period: attr(t,Period_PP), Licence: .Licence]
   ]
+  sortby[Licence, Id_r, Period]
   consume;
 
 query now();
-#############################################################
-# M1 - 14
+
+################################################################################
+#                                                                              #
+# Query 14: Which vehicles traveled within one of the regions from             #
+#           QueryRegions1 at one of the instants from QueryInstant1?           #
+#                                                                              #
+################################################################################
+
 let TBACRres014 =
   QueryRegions  feed head[10] {RR}
   QueryInstants feed head[10] {II} product
@@ -361,13 +463,20 @@ let TBACRres014 =
     ]
     project[Moid] sort rdup
     loopjoin[dataMCcar_Moid_btree dataMCcar exactmatch[.Moid] project[Licence]]
-    projectextend[;Region: attr(t,Region_RR), Instant: attr(t,Instant_II), Licence: .Licence]
+    projectextend[;Id: attr(t,Id_RR), Instant: attr(t,Instant_II), Licence: .Licence]
   ]
+sortby[Licence, Id, Instant]
   consume;
 
 query now();
-#############################################################
-# M2 - 15
+
+################################################################################
+#                                                                              #
+#  Query 15: Which vehicles passed a point from QueryPoints1 during a period   #
+#            from QueryPeriods1?                                               #
+#                                                                              #
+################################################################################
+
 let TBACRres015 =
   QueryPoints  feed head[10] {PO}
   QueryPeriods feed head[10] {PR} product
@@ -382,15 +491,26 @@ let TBACRres015 =
     ]
     project[Moid] sort rdup
     loopjoin[dataMCcar_Moid_btree dataMCcar exactmatch[.Moid] project[Licence]]
-    projectextend[; Point: attr(t,Pos_PO),
+    projectextend[; Id: attr(t,Id_PO),
       Period: attr(t,Period_PR),Licence: .Licence]
   ]
+ sortby[Id, Period, Licence]
+ project[Licence, Id, Period]
   consume;
 
 query now();
-#############################################################
-# N - 16
-let TBACRres016CandidateTrips1 =
+
+################################################################################
+#                                                                              #
+# Query 16: List the pairs of licenses for vehicles the first from             #
+#           QueryLicences1, the second from QueryLicences2, where the          #
+#           corresponding vehicles are both present within a region from       #
+#           QueryRegions1 during a period from QueryPeriod1, but do not meet   #
+#           each other there and then.                                         #
+#                                                                              #
+################################################################################
+
+let TBACRres016tmp1 =
   QueryRegions feed head[10] {RR}
   QueryPeriods feed head[10] {PP}
   product
@@ -418,7 +538,7 @@ let TBACRres016CandidateTrips1 =
 
 query now();
 
-let TBACRres016CandidateTrips2 =
+let TBACRres016tmp2 =
   QueryRegions feed head[10] {RR}
   QueryPeriods feed head[10] {PP}
   product
@@ -446,10 +566,9 @@ let TBACRres016CandidateTrips2 =
 
 query now();
 
-### Increased Tolerance to 0.1m
 let TBACRres016 =
-  TBACRres016CandidateTrips1 feed {C1}
-  TBACRres016CandidateTrips2 feed {C2}
+  TBACRres016tmp1 feed {C1}
+  TBACRres016tmp2 feed {C2}
   symmjoin[ (.Moid_C1 # ..Moid_C2)
     and (.Id_RR_C1 = ..Id_RR_C2)
     and (.Id_PP_C1 = ..Id_PP_C2)
@@ -460,16 +579,24 @@ let TBACRres016 =
     .Period_PP_C1, Id_RR: .Id_RR_C1, Id_PP: .Id_PP_C1 ]
   sortby[Id_RR, Id_PP, Moid_C1, Moid_C2]
   krdup[Id_RR, Id_PP, Moid_C1, Moid_C2]
-  project[Region, Period, Licence1, Licence2] consume;
-
-delete TBACRres016CandidateTrips1;
-delete TBACRres016CandidateTrips2;
+  project[Id_RR, Id_PP, Licence1, Licence2] consume;
 
 query now();
-#############################################################
-# O - 17
-let TBACRres017PosCount2 =
-  QueryPoints feed project[Pos]
+
+delete TBACRres016tmp1;
+delete TBACRres016tmp2;
+
+query now();
+
+################################################################################
+#                                                                              #
+# Query 17: Which points from QueryPoints have been visited by a maximum       #
+#           number of different vehicles?                                      #
+#                                                                              #
+################################################################################
+
+let TBACRres017tmp1 =
+  QueryPoints feed project[Id, Pos]
   loopjoin[ fun(t:TUPLE)
     dataMCtrip_Trip_sptuni
     windowintersectsS[bbox(attr(t,Pos))]
@@ -479,23 +606,34 @@ let TBACRres017PosCount2 =
     sort rdup
     count feed namedtransformstream[Hits]
   ]
-  sortby[Hits desc, Pos asc] consume;
+  sortby[Hits desc, Id asc] consume;
+
 query now();
 
 let TBACRres017 =
-  (TBACRres017PosCount2 feed head[1] extract[Hits]) within
+  (TBACRres017tmp1 feed head[1] extract[Hits]) within
   [ fun(MaxHits: int)
-    TBACRres017PosCount2 feed filter[.Hits = MaxHits ] tconsume
-  ] feed consume;
-
-delete TBACRres017PosCount2
+    TBACRres017tmp1 feed filter[.Hits = MaxHits ] tconsume
+  ] feed
+  project [Id, Hits]
+consume;
 
 query now();
-#############################################################
-#############################################################
-let EVAL_SEC2COMMANDS_BERLINMODTBA = SEC2COMMANDS feed consume;
+
+delete TBACRres017tmp1;
+
+query now();
+
+################################################################################
+#                                                                              #
+# Store Query times                                                            #
+#                                                                              #
+################################################################################
+
+let QRT_BMOD_TBA = SEC2COMMANDS feed consume;
 
 #save EVAL_SEC2COMMANDS_BERLINMODTBA to 'BerlinMODNNNTBARunTimesRunX.DAT';
 
 close database;
 
+quit;

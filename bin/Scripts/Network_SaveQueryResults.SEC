@@ -1,0 +1,42 @@
+open database berlinmod;
+
+save OBANres001 to  'results/OBANres001';
+save OBANres002 to  'results/OBANres002';
+save OBANres003 to  'results/OBANres003';
+save OBANres004 to  'results/OBANres004';
+save OBANres005 to  'results/OBANres005';
+save OBANres006 to  'results/OBANres006';
+save OBANres007 to  'results/OBANres007';
+save OBANres008 to  'results/OBANres008';
+save OBANres009 to  'results/OBANres009';
+save OBANres010 to  'results/OBANres010';
+save OBANres011 to  'results/OBANres011';
+save OBANres012 to  'results/OBANres012';
+save OBANres013 to  'results/OBANres013';
+save OBANres014 to  'results/OBANres014';
+save OBANres015 to  'results/OBANres015';
+save OBANres016 to  'results/OBANres016';
+save OBANres017 to  'results/OBANres017';
+save QRT_NET_OBA to  'results/QUERYRUNTIMES_NETWORK_OBA';
+
+save TBANres001 to  'results/TBANres001';
+save TBANres002 to  'results/TBANres002';
+save TBANres003 to  'results/TBANres003';
+save TBANres004 to  'results/TBANres004';
+save TBANres005 to  'results/TBANres005';
+save TBANres006 to  'results/TBANres006';
+save TBANres007 to  'results/TBANres007';
+save TBANres008 to  'results/TBANres008';
+save TBANres009 to  'results/TBANres009';
+save TBANres010 to  'results/TBANres010';
+save TBANres011 to  'results/TBANres011';
+save TBANres012 to  'results/TBANres012';
+save TBANres013 to  'results/TBANres013';
+save TBANres014 to  'results/TBANres014';
+save TBANres015 to  'results/TBANres015';
+save TBANres016 to  'results/TBANres016';
+save TBANres017 to  'results/TBANres017';
+save QRT_NET_TBA to  'results/QUERYRUNTIMES_NETWORK_TBA';
+
+close database;
+quit;

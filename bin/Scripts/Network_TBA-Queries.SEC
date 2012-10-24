@@ -38,6 +38,8 @@
 
 open database berlinmod;
 
+query now();
+
 ################################################################################
 #                                                                              #
 # Query 1: What are the models of the vehicles with license plate numbers from #
@@ -45,9 +47,7 @@ open database berlinmod;
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q1TBA =
+let TBANres001 =
   QueryLicences feed {l}
   loopjoin [dataMcar_Licence_btree dataMcar exactmatch[.Licence_l]]
   project [Licence, Model]
@@ -61,9 +61,7 @@ query now();
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q2TBA =
+let TBANres002 =
   dataMcar feed
   filter [.Type = "passenger"]
 count;
@@ -77,9 +75,7 @@ query now();
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q3aTBA =
+let TBANres003 =
   QueryLicences1 feed {l}
   loopsel[dataMcar_Licence_btree dataMcar exactmatch[.Licence_l] {ll}]
   loopjoin[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_ll]]
@@ -97,9 +93,7 @@ query now();
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q4TBA =
+let TBANres004 =
   QueryPointsNet feed projectextend[Id; Elem: gpoint2rect(.Pos)]
   loopjoin[dataMNtrip_TrajBoxNet windowintersectsS[.Elem]
   sort rdup dataMNtrip gettuples]
@@ -120,9 +114,7 @@ query now();
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q5aTBA =
+let TBANres005 =
   QueryLicences1 feed project[Licence] {LL1}
   loopsel[ fun(t:TUPLE)
     dataMcar_Licence_btree dataMcar exactmatch[attr(t,Licence_LL1)] {CAR}
@@ -145,6 +137,7 @@ let Q5aTBA =
   projectextend[Licence; Trax: gline2line(.Traxj)]{c2}
   product
   projectextend [Licence_c1, Licence_c2; Distance: distance(.Trax_c1, .Trax_c2)]
+  sortby[Licence_c1, Licence_c2]
 consume;
 
 query now();
@@ -156,9 +149,7 @@ query now();
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q6bh1TBA =
+let TBANres006tmp1 =
   dataMcar feed filter [.Type = "truck"]
   project [Licence, Moid] {c}
   loopjoin[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_c]]
@@ -167,9 +158,11 @@ let Q6bh1TBA =
     (minD(.BBox,1) - 5.0), (maxD(.BBox,1) + 5.0), (minD(.BBox,2) - 5.0), (maxD(.BBox,2) + 5.0), minD(.BBox,3), maxD(.BBox,3))]
 consume;
 
-let Q6bTBA =
-  Q6bh1TBA feed {c1}
-  Q6bh1TBA feed {c2}
+query now();
+
+let TBANres006 =
+  TBANres006tmp1 feed {c1}
+  TBANres006tmp1 feed {c2}
   symmjoin[(.Box_c1 intersects ..Box_c2) and (.Licence_c1 < ..Licence_c2)]
   filter [everNearerThan(.Ptrip_c1, .Ptrip_c2, 10.0)]
   project [Licence_c1, Licence_c2]
@@ -179,7 +172,9 @@ consume;
 
 query now();
 
-delete Q6bh1TBA;
+delete TBANres006tmp1;
+
+query now();
 
 ################################################################################
 #                                                                              #
@@ -189,9 +184,7 @@ delete Q6bh1TBA;
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q7hTBA =
+let TBANres007tmp1 =
   QueryPointsNet feed
   projectextend[Id, Pos; Prect: gpoint2rect(.Pos)]
   loopsel[fun(t:TUPLE) dataMNtrip_TrajBoxNet windowintersectsS[attr(t,Prect)]
@@ -203,10 +196,12 @@ let Q7hTBA =
   sortby [Id asc, TimeAtPos asc]
 consume;
 
-let Q7aTBA =
-  Q7hTBA feed
+query now();
+
+let TBANres007 =
+  TBANres007tmp1 feed
     groupby [Id; FirstTime: group feed min[TimeAtPos]]{b}
-  Q7hTBA feed {a}
+  TBANres007tmp1 feed {a}
   symmjoin[(..Id_a = .Id_b)]
   filter[.TimeAtPos_a <= .FirstTime_b]
   project [Id_a, Licence_X_a]
@@ -216,7 +211,9 @@ let Q7aTBA =
 
 query now();
 
-delete Q7hTBA;
+delete TBANres007tmp1;
+
+query now();
 
 ################################################################################
 #                                                                              #
@@ -226,9 +223,7 @@ delete Q7hTBA;
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q8aTBA =
+let TBANres008 =
   QueryLicences1 feed {l}
   loopjoin[dataMcar_Licence_btree dataMcar exactmatch[.Licence_l]]
   project[Licence, Moid]
@@ -238,8 +233,9 @@ let Q8aTBA =
   symmjoin [.Trip present ..Period]
   projectextend [Licence, Period, Id; Distance: length(.Trip atperiods .Period)]
   sortby [Id asc, Licence asc, Distance desc]
-  groupby[Id, Period, Licence; Dist: group feed sum[Distance]]
+  groupby[Id, Period, Licence; Dist: round(group feed sum[Distance],3)]
   project[Licence, Period, Dist]
+  sortby[Licence, Period, Dist]
 consume;
 
 query now();
@@ -251,9 +247,7 @@ query now();
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q9TBA =
+let TBANres009 =
   dataMNtrip feed {c}
   QueryPeriods feed
   filter[not(isempty(.Period))]{p}
@@ -261,8 +255,10 @@ let Q9TBA =
   projectextend [Moid_c, Period_p, Id_p; Distance: length(.Trip_c atperiods .Period_p)]
   sortby [Id_p asc, Moid_c asc, Distance desc]
   groupby[Id_p, Period_p, Moid_c; Dist: group feed sum[Distance]]
-  groupby[Id_p, Period_p; Dista: group feed max[Dist]]
+  groupby[Id_p, Period_p; Dista: round(group feed max[Dist],3)]
+  filter[Dista > 0.0]
   project[Period_p, Dista]
+  sortby[Period_p, Dista]
 consume;
 
 query now();
@@ -275,9 +271,7 @@ query now();
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q10dTBA =
+let TBANres010 =
   QueryLicences1 feed project[Licence] {V1}
   loopsel[ fun(t:TUPLE)
     dataMcar_Licence_btree dataMcar exactmatch[attr(t,Licence_V1)]
@@ -312,6 +306,7 @@ let Q10dTBA =
   groupby [QueryLicence, OtherLicence; AllPos: group feed
     aggregateB[Pos; fun(M1:mgpoint, M2:mgpoint) M1 union M2; [const mgpoint value()]]]
   project[QueryLicence, OtherLicence, AllPos]
+  sortby[QueryLicence, OtherLicence, AllPos]
   consume;
 
 query now();
@@ -323,9 +318,7 @@ query now();
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q11TBA =
+let TBANres011 =
   QueryInstant1 feed {i}
   QueryPoints1Net feed projectextend[Id, Pos; Prect: gpoint2rect(.Pos)]{p}
   product
@@ -347,9 +340,7 @@ query now();
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q12ah1TBA =
+let TBANres012tmp1 =
   QueryPoints1Net feed projectextend[Id, Pos; Prect: gpoint2rect(.Pos)]{p}
   QueryInstant1 feed {i}
   product
@@ -361,9 +352,11 @@ let Q12ah1TBA =
   projectextend[Moid, Licence; Id: .Id_a, Instant: .Instant_a]
 consume;
 
-let Q12aTBA =
-  Q12ah1TBA feed {A}
-  Q12ah1TBA feed {B}
+query now();
+
+let TBANres012 =
+  TBANres012tmp1 feed {A}
+  TBANres012tmp1 feed {B}
   symmjoin [(.Id_A = ..Id_B) and (.Instant_A = ..Instant_B) and (.Moid_A < ..Moid_B)]
   project [Id_A, Instant_A, Licence_A, Licence_B]
   sortby [Id_A asc, Instant_A asc, Licence_B asc]
@@ -371,7 +364,9 @@ consume;
 
 query now();
 
-delete Q12ah1TBA;
+delete TBANres012tmp1;
+
+query now();
 
 ################################################################################
 #                                                                              #
@@ -380,9 +375,7 @@ delete Q12ah1TBA;
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q13cTBA =
+let TBANres013 =
   dataMNtrip feed {c}
   QueryRegions1Net feed filter[not(isempty(.Region))] {r}
   symmjoin[.Trip_c passes ..Region_r]
@@ -404,9 +397,7 @@ query now();
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q14bTBA =
+let TBANres014 =
   QueryRegions1Net feed filter[not(isempty(.Region))] projectextendstream[Id, Region; Brect: routeintervals(.Region)]{r}
   QueryInstant1 feed {i}
   product
@@ -430,9 +421,7 @@ query now();
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q15TBA =
+let TBANres015 =
   QueryPoints1Net feed projectextend [Id, Pos; Prect: gpoint2rect(.Pos)] {p}
   QueryPeriods1 feed filter[not(isempty(.Period))]{t}
   product
@@ -459,9 +448,7 @@ query now();
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q16bTBA =
+let TBANres016 =
   QueryLicences1 feed {l}
   loopjoin [dataMcar_Licence_btree dataMcar exactmatch[.Licence_l]] {a}
   loopjoin[dataMNtrip_Moid_btree dataMNtrip exactmatch[.Moid_a]]
@@ -487,7 +474,7 @@ let Q16bTBA =
   symmjoin[(.Id_r_a = ..Id_r_b) and (.Id_p_a = ..Id_p_b)]
   filter[.Licence_a # .Licence_b]
   filter [not(.Trip_a intersects .Trip_b)]
-  project [Id_r_a, Id_p_a, Period_p_a, Licence_a, Licence_b]
+  project [Id_r_a, Id_p_a, Licence_a, Licence_b]
   sortby [Id_r_a asc, Id_p_a asc, Licence_a asc, Licence_b asc]
   krdup [Id_r_a, Id_p_a, Licence_a, Licence_b]
 consume;
@@ -501,9 +488,7 @@ query now();
 #                                                                              #
 ################################################################################
 
-query now();
-
-let Q17h1TBA =
+let TBANres017tmp1 =
   QueryPointsNet feed
   projectextend[Id; Elem: gpoint2rect(.Pos)]
   loopsel[fun(t:TUPLE) dataMNtrip_TrajBoxNet windowintersectsS[attr(t,Elem)]
@@ -514,15 +499,19 @@ let Q17h1TBA =
   groupby[Id_p; Hits: group feed count]
 consume;
 
-let Q17TBA =
-  Q17h1TBA feed
-  filter [.Hits = (Q17h1TBA feed max[Hits])]
+query now();
+
+let TBANres017 =
+  TBANres017tmp1 feed
+  filter [.Hits = (TBANres017tmp1 feed max[Hits])]
   project [Id_p, Hits]
 consume;
 
 query now();
 
-delete Q17h1TBA;
+delete TBANres017tmp1;
+
+query now();
 
 ################################################################################
 #                                                                              #
@@ -530,7 +519,7 @@ delete Q17h1TBA;
 #                                                                              #
 ################################################################################
 
-let EVAL_SEC2COMMANDS_NETTBA = SEC2COMMANDS feed  consume;
+let QRT_NET_TBA = SEC2COMMANDS feed  consume;
 
 # save EVAL_SEC2COMMANDS_NETTBA to 'NetworkTBANNNRunTimesRunX.DAT';
 
@@ -543,3 +532,4 @@ let EVAL_SEC2COMMANDS_NETTBA = SEC2COMMANDS feed  consume;
 ################################################################################
 
 close database;
+quit;
