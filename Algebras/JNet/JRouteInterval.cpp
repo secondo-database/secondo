@@ -141,7 +141,8 @@ JRouteInterval::~JRouteInterval()
 
 double JRouteInterval::GetStartPosition() const
 {
-  if (side.Compare((Direction) "Down") == 0)
+  Direction compD(Down);
+  if (side.Compare(compD) == 0)
     return endpos;
   else
     return startpos;
@@ -149,7 +150,8 @@ double JRouteInterval::GetStartPosition() const
 
 RouteLocation JRouteInterval::GetStartLocation() const
 {
-  if (side.Compare((Direction) "Down") == 0)
+  Direction compD(Down);
+  if (side.Compare(compD) == 0)
     return RouteLocation(rid, endpos, side);
   else
     return RouteLocation(rid, startpos, side);
@@ -157,7 +159,8 @@ RouteLocation JRouteInterval::GetStartLocation() const
 
 double JRouteInterval::GetEndPosition() const
 {
-  if (side.Compare((Direction) "Down") == 0)
+  Direction compD(Down);
+  if (side.Compare(compD) == 0)
     return startpos;
   else
     return endpos;
@@ -165,7 +168,8 @@ double JRouteInterval::GetEndPosition() const
 
 RouteLocation JRouteInterval::GetEndLocation() const
 {
-  if (side.Compare((Direction) "Down") == 0)
+  Direction compD(Down);
+  if (side.Compare(compD) == 0)
     return RouteLocation(rid, startpos, side);
   else
     return RouteLocation(rid, endpos, side);

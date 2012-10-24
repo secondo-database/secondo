@@ -426,7 +426,8 @@ bool JUnit::ExtendBy(const JUnit& other)
                                       otherTime.end,
                                       oldTime.lc,
                                       otherTime.rc));
-    if (oldRint.GetSide().Compare((Direction) Down) != 0)
+    Direction compD(Down);
+    if (oldRint.GetSide().Compare(compD) != 0)
     {
       SetRouteInterval(JRouteInterval(oldRint.GetRouteId(),
                                       oldRint.GetStartPosition(),
@@ -715,6 +716,7 @@ JUnit* JUnit::AtPos(const JPoint* jp) const
 
 JUnit* JUnit::AtRint(const JRouteInterval* rint) const
 {
+  Direction compD(Down);
   if (IsDefined() && rint != 0 && rint->IsDefined())
   {
     if (rint->Contains(routeInter))
@@ -740,7 +742,7 @@ JUnit* JUnit::AtRint(const JRouteInterval* rint) const
         if (rint->Contains(routeInter.GetStartLocation()) &&
             rint->GetEndLocation() != routeInter.GetStartLocation())
         {
-          if (routeInter.GetSide().Compare((Direction) Down) != 0)
+          if (routeInter.GetSide().Compare(compD) != 0)
           {
             Instant endTime = TimeAtPos(fabs(rint->GetLastPosition()-
                                              routeInter.GetStartPosition()));
@@ -768,7 +770,7 @@ JUnit* JUnit::AtRint(const JRouteInterval* rint) const
           if (rint->Contains(routeInter.GetEndLocation()) &&
               rint->GetStartLocation() != routeInter.GetEndLocation())
           {
-            if (routeInter.GetSide().Compare((Direction) Down) != 0)
+            if (routeInter.GetSide().Compare(compD) != 0)
             {
               Instant startTime = TimeAtPos(fabs(rint->GetFirstPosition()-
                                                routeInter.GetEndPosition()));
