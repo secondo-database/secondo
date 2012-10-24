@@ -73,6 +73,7 @@ GPXImporter::~GPXImporter()
 {
     delete m_pReader;
     m_pReader = NULL;
+    m_pTupleTypeTrkPt->DeleteIfAllowed();
 }
 
 void GPXImporter::SetScaleFactor(double dScale)

@@ -434,7 +434,7 @@ int OpMapMatchingMHTGPXValueMapping(Word* args,
     // get Arguments
     Network* pNetwork = static_cast<Network*>(args[0].addr);
     FText* pFileName = static_cast<FText*>(args[1].addr);
-    std::string strFileName = pFileName->Get();
+    std::string strFileName = pFileName->GetValue();
     CcReal *pNetworkScale = static_cast<CcReal*>(args[2].addr);
 
     // Do Map Matching
@@ -1243,7 +1243,7 @@ int OpOMapMatchingMHTGPX2OStreamValueMapping(
           ONetwork Network(pORel, pRTree, pRelation, Indexes);
 
           FText* pFileName = static_cast<FText*>(args[3].addr);
-          std::string strFileName = pFileName->Get();
+          std::string strFileName = pFileName->GetValue();
 
           // Do Map Matching
 
@@ -1727,7 +1727,7 @@ int OpOMapMatchingMHTGPX2MPointValueMapping(Word* args,
     ONetwork Network(pORel, pRTree, pRelation, Indexes);
 
     FText* pFileName = static_cast<FText*>(args[3].addr);
-    std::string strFileName = pFileName->Get();
+    std::string strFileName = pFileName->GetValue();
 
     // Matching
 
@@ -1874,7 +1874,7 @@ int OpGPXImportValueMapping(Word* args,
               pImporter = NULL;
           }
 
-          std::string strFileName = pFileName->Get();
+          std::string strFileName = pFileName->GetValue();
 
           pImporter = new GPXImporter(strFileName);
 

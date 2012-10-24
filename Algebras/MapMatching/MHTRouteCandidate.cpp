@@ -775,6 +775,7 @@ MHTRouteCandidate::PointData::PointData(const MapMatchData* pMMData,
 :m_pData(pMMData),
  m_pPointProjection(NULL),
  m_pSection(),
+ m_dDistance(0.0),
  m_dScore(dScore)
 {
 }
