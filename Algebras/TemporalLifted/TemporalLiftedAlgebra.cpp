@@ -4269,6 +4269,7 @@ void MovingMultiplyMRMI(
         uReal.a= u1.a / u2.constValue.GetIntval();
         uReal.b= u1.b / u2.constValue.GetIntval();
         uReal.c= u1.c / u2.constValue.GetIntval();
+        uReal.r = false;
       }
     }
     else
@@ -4276,6 +4277,7 @@ void MovingMultiplyMRMI(
       uReal.a= u1.a * u2.constValue.GetIntval();
       uReal.b= u1.b * u2.constValue.GetIntval();
       uReal.c= u1.c * u2.constValue.GetIntval();
+      uReal.r = false;
       uReal.SetDefined(true);
     }
 
