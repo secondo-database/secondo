@@ -38,7 +38,7 @@ For a description of the public interface see the ~SocketIO~ header file.
 // On Linux64 palttform, this makes Secondo report errors and crash when
 // connecting in the client server mode.
 
-//#define ACHMANNPATCH
+#define ACHMANNPATCH
 
 #include "SecondoConfig.h"
 
