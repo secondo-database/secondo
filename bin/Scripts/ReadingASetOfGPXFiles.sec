@@ -18,6 +18,7 @@ let Raw =  getDirectory('/home/ralf/Tracks') transformstream
 let twohours = [const duration value (0 7200000)]
 
 let DayTrips =  Raw feed 
+  filter[.Lat > 50.0]
   extend_last[Seg: makeline(.Pos, ..Pos)::[const line value undef]] 
   extend[Length: size(.Seg)] 
   filter[.Length < 0.001]
