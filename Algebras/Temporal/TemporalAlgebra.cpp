@@ -12972,7 +12972,7 @@ int IPointBBox(Word* args, Word& result, int message, Word& local,
   const Intime<Point> *arg = static_cast<const Intime<Point>*>(args[0].addr);
   const Geoid*  geoid =
                 (qp->GetNoSons(s)==2)?static_cast<const Geoid*>(args[1].addr):0;
-  Rectangle<2> pbox;
+  Rectangle<2> pbox(true);
   double min[3], max[3];
 
   if( !arg->IsDefined() || (geoid && !geoid->IsDefined()) )

@@ -1938,12 +1938,9 @@ class UReal : public StandardTemporalUnit<CcReal>
 */
   UReal() {};
 
-  UReal(bool is_defined):StandardTemporalUnit<CcReal>(is_defined)
-  {
-    del.refs=1;
-    del.SetDelete();
-    del.isDefined=is_defined;
-  };
+  UReal(bool is_defined):StandardTemporalUnit<CcReal>(is_defined),
+                         a(0.0), b(0.0), c(0.0), r(false)
+  { };
 
   UReal( const Interval<Instant>& _interval,
          const double a,
