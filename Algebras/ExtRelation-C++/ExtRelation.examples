@@ -11,7 +11,7 @@ Operator : slidingwindow
 Number   : 1
 Signature: (stream x) -> (stream y)
 Example  : query no_components(units(speed(train7)) transformstream slidingwindow[5, 1; I: inst(initial(group feed tail[1] extract[Elem])),  V: group feed extend[V0: val(initial(.Elem))] avg[V0]  ]  approximate[I,V] )
-Result   : 90
+Result   : 180
 
 Operator : aggregate
 Number   : 1

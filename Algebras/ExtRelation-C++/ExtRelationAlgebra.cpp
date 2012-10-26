@@ -8578,7 +8578,9 @@ int SlidingWindowValueMapping
         {
           s= static_cast<Tuple*>(sWord.addr);
           gbli->tb->AppendTuple(s);
-          qp->Request(args[0].addr, sWord);
+          if(i < windowSize){
+             qp->Request(args[0].addr, sWord);
+          }
           s->DeleteIfAllowed();
         }
       }
@@ -8589,7 +8591,9 @@ int SlidingWindowValueMapping
         {
           s= static_cast<Tuple*>(sWord.addr);
           gbli->tb->AppendTuple(s);
-          qp->Request(args[0].addr, sWord);
+          if(i < stepSize){
+            qp->Request(args[0].addr, sWord);
+          }
           s->DeleteIfAllowed();
         }
       }
