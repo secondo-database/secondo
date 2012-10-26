@@ -2595,11 +2595,11 @@ int UpdateDirectSave(Word* args, Word& result, int message,
           newAttribute = ((Attribute*)value.addr)->Clone();
           (*newAttrs)[i-1] = newAttribute;
 
-	  // store new value in result tuple
-          newTuple->PutAttribute( index, newAttribute );
+          // store new value in result tuple
+          newTuple->PutAttribute( index, newAttribute->Copy() );
         }
 
-	// store tid in output tuple
+        // store tid in output tuple
         const TupleId& tid = tup->GetTupleId();
         Attribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute(
@@ -2607,23 +2607,18 @@ int UpdateDirectSave(Word* args, Word& result, int message,
 
         // copy new attribute values into auxTuple
         Tuple *auxTuple = new Tuple( auxRelation->GetTupleType() );
-// 	cout << "tup:" << *tup << endl;
-// 	cout << "new:" << *newTuple << endl;
 
         for (int i=0; i< auxTuple->GetNoAttributes() - 1; i++){
             auxTuple->CopyAttribute( i, newTuple, i);
         }
-	auxTuple->PutAttribute(auxTuple->GetNoAttributes()-1, tidAttr->Copy());
-// 	cout << "aux:" << *auxTuple << endl;
+        auxTuple->PutAttribute(auxTuple->GetNoAttributes()-1, tidAttr->Copy());
 
         auxRelation->AppendTuple(auxTuple);
         auxTuple->DeleteIfAllowed();
 
-	relation->UpdateTuple(tup,*changedIndices,*newAttrs);
-	//cout << "new2:" << *newTuple << endl;
-	//tup->DecReference();
-        //tup->DeleteIfAllowed();
-	//cout << "new3:" << *newTuple << endl;
+        relation->UpdateTuple(tup,*changedIndices,*newAttrs);
+        
+        tup->DeleteIfAllowed();
 
         delete changedIndices;
         delete newAttrs;
@@ -2827,8 +2822,9 @@ int UpdateSearchSave(Word* args, Word& result, int message,
         nextBucket =
           localTransport->getBucket(hashValue);
         nextBucket->push_back(nextTup);
-
-        nextTup = iter->GetNextTuple();
+        if(!iter->EndOfScan()){  
+            nextTup = iter->GetNextTuple();
+        }
       }
       delete iter;
 
