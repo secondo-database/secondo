@@ -6546,6 +6546,7 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
 
   // Finalize bulk load
   int FinalizedBulkLoad = rtree->FinalizeBulkLoad();
+  delete systemTime;
   assert(FinalizedBulkLoad);
   return 0;
 }
