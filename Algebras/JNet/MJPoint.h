@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <ostream>
 #include <string>
+#include "../Tools/Flob/DbArray.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
 #include "DateTime.h"
@@ -159,6 +160,16 @@ the mjpoint.
   void StartBulkload();
   void EndBulkload();
   MJPoint& Add(const JUnit& up);
+
+/*
+1.1.1 Append
+
+Appends the units of the in MJPoint to the current mjpoint.
+
+*/
+
+  void Append(const MJPoint* in);
+  void Append(const JUnit ju);
 
 /*
 1.1.1 Other Operations
@@ -342,16 +353,6 @@ Checks if the units are sorted and compresses the units as far as possible.
 bool Simplify();
 
 /*
-1.1.1.1 Append
-
-Appends the units of the in MJPoint to the current mjpoint.
-
-*/
-
-void Append(const MJPoint* in);
-void Append(const JUnit ju);
-
-/*
 1.1.1.1 Starttime
 
 Returns the time instant the MJPoint starts, if the mjpoint is defined and
@@ -380,17 +381,15 @@ Searches binary for the position of the JUnit including the given time interval.
 
 int GetUnitPosForTime(const Instant* time, const int spos, const int epos)
   const;
-int GetUnitPosForTime(const Interval<Instant>& time) const;
 
 /*
-1.1.1.1 GetNext
+1.1.1.1 Refinement
 
-Returns true and changes the values to the next unit if next unit exists, false
-elsewhere.
+Converts the two given ~mjpoint~ into two ~mjpoint~ with identic time intervals.
+The result might be empty if the two in ~mjpoint~ does not have any common
+deftime.
 
 */
-
-bool Next(int& index, JUnit& ju) const;
 
 void Refinement(const MJPoint* in2, MJPoint* out1, MJPoint* out2) const;
 
@@ -401,6 +400,6 @@ void Refinement(const MJPoint* in2, MJPoint* out1, MJPoint* out2) const;
 
 */
 
-ostream& operator<< (const ostream& os, const MJPoint& jp);
+ostream& operator<< (ostream& os, const MJPoint& jp);
 
 #endif // MJPOINT_H

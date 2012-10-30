@@ -546,30 +546,21 @@ void JLine::FromSpatial(const JNetwork* jnet, const Line* in)
   if (jnet != NULL && jnet->IsDefined() &&
       in != NULL && in->IsDefined())
   {
+    SetDefined(true);
     strcpy(nid,*jnet->GetId());
-    HalfSegment hs;
-    JRITree* tree = new JRITree(0);
-    for (int i = 0; i < in->Size(); i++)
+    DbArray<JRouteInterval>* tmp = jnet->GetNetworkValueOf(in);
+    if (tmp != 0)
     {
-      in->Get(i,hs);
-      JRouteInterval* actInt = jnet->GetNetworkValueOf(hs);
-      if (actInt != NULL && actInt->IsDefined())
-      {
-        actInt->SetSide((Direction) Both);
-        tree->Insert(*actInt);
-        actInt->DeleteIfAllowed();
-        actInt = 0;
-      }
+      routeintervals.copyFrom(*tmp);
+      tmp->Destroy();
+      delete tmp;
     }
-    tree->TreeToDbArray(&routeintervals);
-    tree->Destroy();
-    delete tree;
     sorted = true;
   }
   else
     SetDefined(false);
-  SetDefined(in->IsDefined());
 }
+
 /*
 1.1.1 ToSpatial
 
@@ -579,21 +570,14 @@ void JLine::ToSpatial(Line& result) const
 {
   if (IsDefined() && !IsEmpty())
   {
-    result.Clear();
     JNetwork* jnet = ManageJNet::GetNetwork(nid);
-    JRouteInterval rint;
-    for (int i = 0; i < GetNoComponents(); i++)
-    {
-      Get(i,rint);
-      SimpleLine* tmp = rint.GetSpatialValue(jnet);
-      Line* tmp1 = new Line(0);
-      result.Union(*tmp, *tmp1);
-      result = *tmp1;
-      tmp1->DeleteIfAllowed();
-      tmp->DeleteIfAllowed();
-      tmp = 0;
-    }
+    Line* tmp = jnet->GetSpatialValueOf(this);
     ManageJNet::CloseNetwork(jnet);
+    if (tmp != 0)
+    {
+      result = *tmp;
+      tmp->DeleteIfAllowed();
+    }
   }
   else
     result.SetDefined(false);
@@ -707,7 +691,7 @@ JRouteInterval* JLine::Intersection(const JRouteInterval& rint) const
       {
         JRouteInterval actInt;
         Get(j,actInt);
-         return actInt.Intersection(rint);
+        return actInt.Intersection(rint);
       }
     }
     else

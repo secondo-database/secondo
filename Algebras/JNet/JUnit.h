@@ -207,16 +207,6 @@ time interval.
 IJPoint Initial(const string netId) const;
 
 /*
-1.1.1.1.1 Split
-
-Translates the junit into an corresponding MPoint value.
-
-*/
-
-MPoint* Split(const JNetwork* jnet, bool& endTimeCorrected,
-              Instant& lastEnd) const;
-
-/*
 1.1.1.1.1 AtPos
 
 Returns the junit when the jpoint  was at position.
@@ -232,7 +222,7 @@ Returns the junit when the jpoint  was at the route interval.
 
 */
 
-JUnit* AtRint(const JRouteInterval* rint) const;
+JUnit* AtRint(const JRouteInterval* rint, bool& lastrc) const;
 
 /*
 1.1.1 ~PosAtTime~

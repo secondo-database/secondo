@@ -716,16 +716,6 @@ Rectangle< 2 > JRouteInterval::BoundingBox(JNetwork* jnet) const
 }
 
 /*
-1.1 GetSpatialValue
-
-*/
-
-SimpleLine* JRouteInterval::GetSpatialValue(const JNetwork* jnet) const
-{
-  return jnet->GetSpatialValueOf(*this);
-}
-
-/*
 1 Overwrite output operator
 
 */

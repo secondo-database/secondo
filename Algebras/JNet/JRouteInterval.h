@@ -284,16 +284,6 @@ route interval.
 Rectangle<2> BoundingBox(JNetwork* jnet) const;
 
 /*
-1.1.1.1 GetSpatialValue
-
-Returns a pointer to the simple line representing the spatial position of the
-route interval.
-
-*/
-
-SimpleLine* GetSpatialValue(const JNetwork* jnet) const;
-
-/*
 1.1 private deklarations
 
 */

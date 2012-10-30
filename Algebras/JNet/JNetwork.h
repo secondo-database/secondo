@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <map>
 #include <string>
 #include <vector>
+#include "../Tools/Flob/DbArray.h"
 #include "NestedList.h"
 #include "NList.h"
 #include "StandardTypes.h"
@@ -38,8 +39,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "BTreeAlgebra.h"
 #include "RTreeAlgebra.h"
 #include "SpatialAlgebra.h"
+#include "TemporalAlgebra.h"
 #include "JList.h"
 #include "PQManagement.h"
+
 
 /*
 1 Forward declarations of network data types
@@ -47,6 +50,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 class MJPoint;
+class JLine;
+class JUnit;
 
 /*
 1 Class ~JNetwork~
@@ -294,7 +299,8 @@ Returns true if the given position(s) exist in the network.
 
   RouteLocation* GetNetworkValueOf(const Point* p) const;
   JRouteInterval* GetNetworkValueOf(const HalfSegment& hs) const;
-
+  DbArray<JRouteInterval>* GetNetworkValueOf(const Line* in) const;
+  MJPoint* GetNetworkValueOf(const MPoint* in);
   JListRLoc* GetNetworkValuesOf(const Point* p) const;
   JListRLoc* GetNetworkValuesOf(const RouteLocation& rloc) const;
   JListRLoc* GetNetworkValuesOf(const Tuple* actSect,
@@ -306,9 +312,16 @@ Returns true if the given position(s) exist in the network.
 */
 
   Point* GetSpatialValueOf(const RouteLocation& rloc) const;
+
+  Line* GetSpatialValueOf(const JLine* jl) const;
   Point* GetSpatialValueOf(const RouteLocation& rloc, double relpos,
                            const Tuple* actSect)const;
+  MPoint* GetSpatialValueOf(const MJPoint* mjp) const;
   SimpleLine* GetSpatialValueOf(const JRouteInterval& rint) const;
+  SimpleLine* GetSpatialValueOf(const JRouteInterval& rint,
+                                const JListInt* sectList,
+                                const int fromIndex,
+                                const int toIndex) const;
 
 /*
 1.1.1 ~SimulateTrip~
@@ -322,7 +335,10 @@ the algorithm, which might change the netdistances relation.
 MJPoint* SimulateTrip(const RouteLocation& source, const RouteLocation& target,
                       const Point* targetPos,
                       const Instant& starttime, const Instant& endtime,
-                      const bool& lc, const bool& rc);
+                      const bool& lc, const bool& rc,
+                      const Tuple* startSectTup, const Tuple* endSectTup,
+                      const double distSourceStartSect,
+                      const double distTargetStartSect);
 
 /*
 1.1.1 ~ShortestPath~
@@ -336,7 +352,11 @@ distances might be updated.
 DbArray<JRouteInterval>* ShortestPath(const RouteLocation& source,
                                       const RouteLocation& target,
                                       const Point* targetPos,
-                                      double& length);
+                                      double& length,
+                                      const Tuple* startSectTup,
+                                      const Tuple* endSectTup,
+                                      const double distSourceStartSect,
+                                      const double distTargetStartSect);
 
 /*
 1.1 Private declarations
@@ -493,6 +513,8 @@ The returned tuple must be deleted by the caller.
 */
 
   Tuple* GetSectionTupleFor(const RouteLocation& rloc, double& pos) const;
+  Tuple* GetSectionTupleFor(const RouteLocation& rloc, double& pos,
+                            const JListInt* sectList, int& index) const;
 
 /*
 1.1.1 Access to tuple attributes of internal relations
@@ -532,6 +554,8 @@ The returned tuple must be deleted by the caller.
                                       const bool allowResetSide) const;
 
   JRouteInterval* GetSectionFirstRouteInterval(const Tuple* sectTuple) const;
+  JRouteInterval* GetSectionRouteIntervalForRLoc(const RouteLocation& rloc,
+                                                 const Tuple* sectTup) const;
 
   Tuple* GetSectionStartJunctionTuple(const Tuple* sectTuple) const;
   Tuple* GetSectionEndJunctionTuple(const Tuple* sectTuple) const;
@@ -625,6 +649,54 @@ one or both are changed to the values belonging to the same route.
 
 bool ExistsCommonRoute(RouteLocation& src, RouteLocation& tgt) const;
 
+/*
+1.1.1.1 GetRLocOfPosOnRouteInterval
+
+Returns the RouteLocation with distance pos from the start of the route
+interval actInt.
+
+*/
+
+RouteLocation* GetRLocOfPosOnRouteInterval(
+  const JRouteInterval* actInt, const double pos) const;
+
+/*
+1.1.1.1 SplitJunit
+
+Returns the corresponding spatial mpoint representation of the junit.
+
+*/
+
+MPoint* SplitJUnit(const JUnit* ju, bool& endTimeCorrected,
+                   Instant& lastEnd, const JListInt* routeSectList,
+                   int& routeSectListIndexLastPos) const;
+
+/*
+1.1.1.1 CheckTupleForRLoc
+
+Returns true if the the route location is allocated within
+the given section, false otherwise. If true is returned pos
+describes the distance between the first position of the
+RouteInterval describing the section and the route location.
+
+*/
+
+bool CheckTupleForRLoc(const Tuple* actSect,
+                       const RouteLocation& rloc,
+                       double& pos) const;
+
+/*
+1.1.1.1 GetSpatialValueOf
+
+Returns the spatial position of the given rloc in the network.
+
+*/
+
+Point* GetSpatialValueOf(const RouteLocation& rloc,
+                         const JListInt* routeSectList) const;
+Point* GetSpatialValueOf(const RouteLocation& rloc,
+                         const JListInt* routeSectList,
+                         int& index) const;
 };
 
 /*

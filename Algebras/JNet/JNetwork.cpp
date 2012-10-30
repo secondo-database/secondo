@@ -38,6 +38,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JRouteInterval.h"
 #include "MJPoint.h"
 #include "JUnit.h"
+#include "JRITree.h"
+
 
 extern NestedList* nl;
 
@@ -327,8 +329,7 @@ Cleans up memory at end of shortest path computation.
 
 void cleanShortestPathMemory(Direction* dir,
                              DbArray<pair<int, double> >* ej,
-                             PQManagement* pq, Tuple* start, Tuple* end,
-                             Tuple* cj, JPQEntry* jpq)
+                             PQManagement* pq, Tuple* cj, JPQEntry* jpq)
 {
   if (dir != 0) dir->DeleteIfAllowed();
   if (ej != 0)
@@ -341,8 +342,6 @@ void cleanShortestPathMemory(Direction* dir,
     pq->Destroy();
     delete pq;
   }
-  if (start != 0) start->DeleteIfAllowed();
-  if (end != 0) end->DeleteIfAllowed();
   if (cj != 0) cj->DeleteIfAllowed();
   if (jpq != 0) delete jpq;
 }
@@ -900,6 +899,10 @@ const bool JNetwork::checkType(const ListExpr type)
 /*
 1.1 Translation operations
 
+1.1.1 GetNetworkValueOf
+
+Translates spatial data types into their Network representation.
+
 */
 
 RouteLocation* JNetwork::GetNetworkValueOf(const Point* p) const
@@ -910,20 +913,8 @@ RouteLocation* JNetwork::GetNetworkValueOf(const Point* p) const
   if (actSect != 0)
   {
     JRouteInterval* actInt = GetSectionFirstRouteInterval(actSect);
+    res = GetRLocOfPosOnRouteInterval(actInt, pos);
     actSect->DeleteIfAllowed();
-    Direction compD(Down);
-    if (actInt->GetSide().Compare(compD) != 0)
-    {
-      res = new RouteLocation(actInt->GetRouteId(),
-                              actInt->GetFirstPosition() + pos,
-                              actInt->GetSide());
-    }
-    else
-    {
-      res = new RouteLocation(actInt->GetRouteId(),
-                              actInt->GetFirstPosition() - pos,
-                              actInt->GetSide());
-    }
     actInt->DeleteIfAllowed();
   }
   return res;
@@ -949,19 +940,9 @@ JListRLoc* JNetwork::GetNetworkValuesOf(const Point* p) const
       for(int i = 0; i < rints->GetNoOfComponents(); i++)
       {
         rints->Get(i,actInt);
-        Direction compD(Down);
-        if (actInt.GetSide().Compare(compD) != 0)
-        {
-          res->operator+=(RouteLocation(actInt.GetRouteId(),
-                                        actInt.GetFirstPosition() + pos,
-                                        actInt.GetSide()));
-        }
-        else
-        {
-          res->operator+=(RouteLocation(actInt.GetRouteId(),
-                                        actInt.GetFirstPosition() - pos,
-                                        actInt.GetSide()));
-        }
+        RouteLocation* result = GetRLocOfPosOnRouteInterval(&actInt, pos);
+        res->operator+=(*result);
+        result->DeleteIfAllowed();
       }
       res->EndBulkload();
       rints->Destroy();
@@ -971,6 +952,197 @@ JListRLoc* JNetwork::GetNetworkValuesOf(const Point* p) const
   actSect->DeleteIfAllowed();
   return res;
 }
+
+DbArray< JRouteInterval >* JNetwork::GetNetworkValueOf(const Line* in) const
+{
+  if (in != 0 && in->IsDefined() && !in->IsEmpty())
+  {
+    HalfSegment hs;
+    JRITree* tree = new JRITree(0);
+    Direction dirB(Both);
+    for (int i = 0; i < in->Size(); i++)
+    {
+      in->Get(i,hs);
+      JRouteInterval* actInt = GetNetworkValueOf(hs);
+      if (actInt != NULL)
+      {
+        if(actInt->IsDefined())
+        {
+          actInt->SetSide(dirB);
+          tree->Insert(*actInt);
+        }
+        actInt->DeleteIfAllowed();
+        actInt = 0;
+      }
+    }
+    DbArray<JRouteInterval>* res = new DbArray<JRouteInterval> (0);
+    tree->TreeToDbArray(res);
+    tree->Destroy();
+    delete tree;
+    return res;
+  }
+  else
+    return new DbArray<JRouteInterval>(0);
+}
+
+MJPoint* JNetwork::GetNetworkValueOf(const MPoint* in)
+{
+  if (in != 0 && in->IsDefined())
+  {
+    MJPoint* res = new MJPoint(true);
+    res->SetNetworkId(*GetId());
+    if (!in->IsEmpty())
+    {
+      UPoint actSource;
+      int i = 0;
+      RouteLocation* startPos = 0;
+      RouteLocation* endPos = 0;
+      Instant starttime(0.0);
+      Instant endtime(0.0);
+      bool lc = false;
+      bool rc = false;
+      Tuple* actSectTup = 0;
+      Tuple* startSectTup = 0;
+      Tuple* endSectTup = 0;
+      JRouteInterval* actRInt = 0;
+      SimpleLine* actCurve = 0;
+      double distStart = 0.0;
+      double distEnd = 0.0;
+      res->StartBulkload();
+      while (i < in->GetNoComponents())
+      {
+        //find valid startposition in network
+        while((startPos == 0 || !startPos->IsDefined()) &&
+               i < in->GetNoComponents())
+        {
+          if (startPos != 0)
+          {
+            startPos->DeleteIfAllowed();
+            startPos = 0;
+          }
+          in->Get(i,actSource);
+          if (actCurve != 0)
+          {
+            if (actCurve->AtPoint(actSource.p0, distStart, tolerance))
+              startPos = GetRLocOfPosOnRouteInterval(actRInt, distStart);
+            else
+            {
+              actCurve->DeleteIfAllowed();
+              actCurve = 0;
+              if (actSectTup != 0)
+              {
+                actSectTup->DeleteIfAllowed();
+                actSectTup = 0;
+              }
+              if (actRInt != 0)
+              {
+                actRInt->DeleteIfAllowed();
+                actRInt = 0;
+              }
+              if (startSectTup != 0)
+              {
+                startSectTup->DeleteIfAllowed();
+                startSectTup = 0;
+              }
+            }
+          }
+          if (actSectTup == 0)
+          {
+            actSectTup = GetSectionTupleFor(&actSource.p0, distStart);
+            if (actSectTup != 0)
+            {
+              actRInt = GetSectionFirstRouteInterval(actSectTup);
+              actCurve = GetSectionCurve(actSectTup);
+              startPos = GetRLocOfPosOnRouteInterval(actRInt, distStart);
+              startSectTup = actSectTup;
+              startSectTup->IncReference();
+            }
+          }
+          starttime = actSource.getTimeInterval().start;
+          lc = actSource.getTimeInterval().lc;
+          if (startPos == 0 || !startPos->IsDefined())
+            i++;
+        }
+        //find valid endposition in network
+        while((endPos == 0 || !endPos->IsDefined()) &&
+               i < in->GetNoComponents())
+        {
+          if (endPos != 0)
+          {
+            endPos->DeleteIfAllowed();
+            endPos = 0;
+          }
+          in->Get(i, actSource);
+          if (actCurve != 0 &&
+              actCurve->AtPoint(actSource.p1, distEnd, tolerance))
+          {
+            endPos = GetRLocOfPosOnRouteInterval(actRInt, distEnd);
+            endSectTup = actSectTup;
+            endSectTup->IncReference();
+          }
+          else
+          {
+            if (actSectTup  != 0)
+              actSectTup->DeleteIfAllowed();
+            actSectTup = GetSectionTupleFor(&actSource.p1, distEnd);
+            if (actSectTup != 0)
+            {
+              if (actRInt != 0)
+                actRInt->DeleteIfAllowed();
+              actRInt = GetSectionFirstRouteInterval(actSectTup);
+              if (actCurve != 0)
+                actCurve->DeleteIfAllowed();
+              actCurve = GetSectionCurve(actSectTup);
+              endPos = GetRLocOfPosOnRouteInterval(actRInt, distEnd);
+              endSectTup = actSectTup;
+              endSectTup->IncReference();
+            }
+          }
+          endtime = actSource.getTimeInterval().end;
+          rc = actSource.getTimeInterval().rc;
+          if (endPos == 0 || !endPos->IsDefined())
+            i++;
+        }
+        if (startPos != 0 &&  startPos->IsDefined() &&
+             endPos != 0 && endPos->IsDefined())
+        { // got valid RouteLocations and
+          MJPoint* partRes = SimulateTrip(*startPos, *endPos,
+                                          &actSource.p1,
+                                          starttime, endtime, lc, rc,
+                                          startSectTup, endSectTup,
+                                          distStart, distEnd);
+          if (partRes != 0)
+          {
+            res->Append(partRes);
+            partRes->Destroy();
+            partRes->DeleteIfAllowed();
+          }
+        }
+        startPos->DeleteIfAllowed();
+        startSectTup->DeleteIfAllowed();
+        startSectTup = endSectTup;
+        endSectTup = 0;
+        startPos = endPos;
+        endPos = 0;
+        starttime = endtime;
+        lc = !rc;
+        i++;
+      }
+      if (startPos != 0) startPos->DeleteIfAllowed();
+      if (endPos != 0) endPos->DeleteIfAllowed();
+      if (actSectTup  != 0) actSectTup->DeleteIfAllowed();
+      if (actRInt != 0) actRInt->DeleteIfAllowed();
+      if (actCurve != 0) actCurve->DeleteIfAllowed();
+      if (startSectTup != 0) startSectTup->DeleteIfAllowed();
+      if (endSectTup != 0) endSectTup->DeleteIfAllowed();
+      res->EndBulkload();
+    }
+    return res;
+  }
+  else
+    return 0;
+}
+
 
 JListRLoc* JNetwork::GetNetworkValuesOf(const Tuple* actSect,
                                         const double distStart) const
@@ -995,19 +1167,10 @@ JListRLoc* JNetwork::GetNetworkValuesOf(const Tuple* actSect,
           for (int i = 0; i < rintList->GetNoOfComponents(); i++)
           {
             rintList->Get(i, actInt);
-            Direction compD(Down);
-            if (actInt.GetSide().Compare(compD) != 0)
-            {
-              res->operator+=(RouteLocation(actInt.GetRouteId(),
-                                         actInt.GetFirstPosition() + distStart,
-                                            actInt.GetSide()));
-            }
-            else
-            {
-              res->operator+=(RouteLocation(actInt.GetRouteId(),
-                                         actInt.GetFirstPosition() - distStart,
-                                            actInt.GetSide()));
-            }
+            RouteLocation* result = GetRLocOfPosOnRouteInterval(&actInt,
+                                                                distStart);
+            res->operator+=(*result);
+            result->DeleteIfAllowed();
           }
           res->EndBulkload();
         }
@@ -1044,6 +1207,37 @@ JRouteInterval* JNetwork::GetNetworkValueOf(const HalfSegment& hs) const
   return res;
 }
 
+/*
+1.1.1 GetSpatialValueOf
+
+Transforms network datatypes into their corresponding spatial data types.
+
+*/
+
+Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc,
+                                   const JListInt* routeSectList,
+                                   int& index) const
+{
+  Point* res = 0;
+  double pos = 0.0;
+  Tuple* sectTup = GetSectionTupleFor(rloc, pos, routeSectList, index);
+  res = GetSpatialValueOf(rloc, pos, sectTup);
+  sectTup->DeleteIfAllowed();
+  return res;
+}
+
+Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc,
+                                   const JListInt* routeSectList) const
+{
+  Point* res = 0;
+  double pos = 0.0;
+  int index = -1;
+  Tuple* sectTup = GetSectionTupleFor(rloc, pos, routeSectList, index);
+  res = GetSpatialValueOf(rloc, pos, sectTup);
+  sectTup->DeleteIfAllowed();
+  return res;
+}
+
 Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc) const
 {
   Point* res = 0;
@@ -1053,6 +1247,81 @@ Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc) const
   sectTup->DeleteIfAllowed();
   return res;
 }
+
+Line* JNetwork::GetSpatialValueOf(const JLine* jl) const
+{
+  if (jl != 0 && jl->IsDefined() && !jl->IsEmpty())
+  {
+    Line* res = new Line(0);
+    JRouteInterval rint;
+    for (int i = 0; i < jl->GetNoComponents(); i++)
+    {
+      jl->Get(i,rint);
+      SimpleLine* tmp = GetSpatialValueOf(rint);
+      if (tmp != 0)
+      {
+        if (tmp->IsDefined() && !tmp->IsEmpty())
+        {
+          Line* tmp1 = new Line(0);
+          res->Union(*tmp, *tmp1);
+          *res = *tmp1;
+          tmp1->DeleteIfAllowed();
+        }
+        tmp->DeleteIfAllowed();
+        tmp = 0;
+      }
+    }
+    return res;
+  }
+  else
+    return new Line(false);
+
+}
+
+MPoint* JNetwork::GetSpatialValueOf(const MJPoint* mjp) const
+{
+  if (mjp != 0 && mjp->IsDefined() && !mjp->IsEmpty())
+  {
+    MPoint* result = new MPoint(0);
+    result->SetDefined(true);
+    result->StartBulkLoad();
+    JUnit ju;
+    bool endTimeCorrected = false;
+    Instant lastEnd;
+    MPoint* partRes = 0;
+    JListInt* routeSectList = 0;
+    int curRid = -1;
+    int routeSecListIndexLastPos = -1;
+    for (int i = 0; i < mjp->GetNoComponents(); i++)
+    {
+      mjp->Get(i,ju);
+      if (curRid == -1 || curRid != ju.GetRouteInterval().GetRouteId())
+      {
+        curRid = ju.GetRouteInterval().GetRouteId();
+        routeSectList = GetRouteSectionList(curRid);
+        routeSecListIndexLastPos = -1;
+      }
+      partRes = SplitJUnit(&ju, endTimeCorrected, lastEnd, routeSectList,
+                           routeSecListIndexLastPos);
+      if (partRes != 0)
+      {
+        for (int j = 0; j < partRes->GetNoComponents(); j++)
+        {
+          UPoint up;
+          partRes->Get(j, up);
+          result->Add(up);
+        }
+        partRes->DeleteIfAllowed();
+        partRes = 0;
+      }
+    }
+    result->EndBulkLoad();
+    return result;
+  }
+  else
+    return 0;
+}
+
 
 Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc,
                                    double relpos,
@@ -1076,15 +1345,28 @@ Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc,
 
 SimpleLine* JNetwork::GetSpatialValueOf(const JRouteInterval& rint) const
 {
-  SimpleLine* result = 0;
   JListInt* sectList = GetRouteSectionList(rint.GetRouteId());
+  int fromInd = 0;
+  int toInd = sectList->GetNoOfComponents()-1;
+  SimpleLine* res = GetSpatialValueOf(rint, sectList, fromInd, toInd);
+  sectList->Destroy();
+  sectList->DeleteIfAllowed();
+  return res;
+}
+
+SimpleLine* JNetwork::GetSpatialValueOf(const JRouteInterval& rint,
+                                        const JListInt* sectList,
+                                        const int fromIndex,
+                                        const int toIndex) const
+{
   if (sectList != 0)
   {
+    SimpleLine* result = 0;
     Line* res = new Line(0);
     res->SetDefined(true);
     CcInt sidC;
-    int i = 0;
-    while(i < sectList->GetNoOfComponents())
+    int i = fromIndex;
+    while(i <= toIndex)
     {
       sectList->Get(i,sidC);
       int sid = sidC.GetIntval();
@@ -1103,74 +1385,71 @@ SimpleLine* JNetwork::GetSpatialValueOf(const JRouteInterval& rint) const
             Line* l = new Line(0);
             l->SetDefined(true);
             if (actInt.Inside(rint))
-            {
               res->Union(*actCurve, *l);
-            }
             else
             {
               SimpleLine* sl = new SimpleLine(0);
               if (actInt.Contains(rint))
-              {
                 actCurve->SubLine(fabs(rint.GetFirstPosition() -
                                        actInt.GetFirstPosition()),
                                   fabs(rint.GetLastPosition() -
                                        actInt.GetFirstPosition()),
                                   *sl);
-                i = sectList->GetNoOfComponents();
-              }
               else
               {
                 if (actInt.Contains(RouteLocation(rint.GetRouteId(),
                                                   rint.GetFirstPosition(),
                                                   rint.GetSide())))
-                {
                   actCurve->SubLine(fabs(rint.GetFirstPosition() -
                                          actInt.GetFirstPosition()),
                                     fabs(actInt.GetLastPosition()-
                                          actInt.GetFirstPosition()),
                                     *sl);
-                }
                 else
                 {
                   if (actInt.Contains(RouteLocation(rint.GetRouteId(),
                                                     rint.GetLastPosition(),
                                                     rint.GetSide())))
-                  {
                     actCurve->SubLine(0,
                                       fabs(rint.GetLastPosition() -
                                            actInt.GetFirstPosition()),
                                       *sl);
-                  }
                 }
               }
               if (sl != 0 && sl->IsDefined() && !sl->IsEmpty())
-              {
                 res->Union(*sl, *l);
-              }
               if (sl != 0)
+              {
+                sl->Destroy();
                 sl->DeleteIfAllowed();
+              }
             }
             if (l != 0 && l->IsDefined() && !l->IsEmpty())
               *res = *l;
             actCurve->DeleteIfAllowed();
             actCurve = 0;
             if (l != 0)
+            {
+              l->Destroy();
               l->DeleteIfAllowed();
+            }
           }
           j++;
         }
+        rintList->Destroy();
         rintList->DeleteIfAllowed();
         rintList = 0;
       }
       i++;
     }
-    sectList->DeleteIfAllowed();
-    sectList = 0;
     result = new SimpleLine(*res);
+    res->Destroy();
     res->DeleteIfAllowed();
+    return result;
   }
-  return result;
+  return 0;
 }
+
 /*
 1.1 Operations for other network data types
 
@@ -1199,11 +1478,18 @@ MJPoint* JNetwork::SimulateTrip(const RouteLocation& source,
                                 const Point* targetPos,
                                 const Instant& starttime,
                                 const Instant& endtime,
-                                const bool& lc, const bool& rc)
+                                const bool& lc, const bool& rc,
+                                const Tuple* startSectTup,
+                                const Tuple* endSectTup,
+                                const double distSourceStartSect,
+                                const double distTargetStartSect)
 {
   MJPoint* res = 0;
   double length = 0.0;
-  DbArray<JRouteInterval>* sp = ShortestPath(source, target, targetPos, length);
+  DbArray<JRouteInterval>* sp = ShortestPath(source, target, targetPos, length,
+                                             startSectTup, endSectTup,
+                                             distSourceStartSect,
+                                             distTargetStartSect);
   if (sp != 0)
   {
     res = new MJPoint(true);
@@ -1263,27 +1549,16 @@ MJPoint* JNetwork::SimulateTrip(const RouteLocation& source,
 */
 
 DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
-                                                const RouteLocation& target,
-                                                const Point* targetPos,
-                                                double& length)
+                                              const RouteLocation& target,
+                                              const Point* targetPos,
+                                              double& length,
+                                              const Tuple* startSectTup,
+                                              const Tuple* endSectTup,
+                                              const double distSourceStartSect,
+                                              const double distTargetStartSect)
 {
-  double distSourceStartSect, distTargetStartSect;
   Direction compU(Up);
   Direction compD(Down);
-  Tuple* startSectTup = GetSectionTupleFor(source, distSourceStartSect);
-  if (startSectTup == 0)
-  {
-    cerr << "startsection not found for: " << source << endl;
-    return 0;
-  }
-  Tuple* endSectTup = GetSectionTupleFor(target, distTargetStartSect);
-  if (endSectTup == 0)
-  {
-    cerr << "endsection not found for: " << target
-         << ", pos: " << *targetPos << endl;
-    startSectTup->DeleteIfAllowed();
-    return 0;
-  }
   int startSectId = GetSectionId(startSectTup);
   int endSectId = GetSectionId(endSectTup);
   DbArray<JRouteInterval>* res = new DbArray<JRouteInterval> (0);
@@ -1295,8 +1570,6 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
                               src, tgt, res, length))
   {
     //Special case computation already finished.
-    startSectTup->DeleteIfAllowed();
-    endSectTup->DeleteIfAllowed();
     return res;
   }
   Direction* curSectDir = 0;
@@ -1355,8 +1628,7 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
       WriteShortestPath(source,  distSourceStartSect, target,
                         distTargetStartSect, startSectTup, endSectTup,
                         startPathJID, endPathJID, res, length);
-      cleanShortestPathMemory( curSectDir, endJunctions, pq,
-                              startSectTup, endSectTup, curJunc, pqEntry);
+      cleanShortestPathMemory( curSectDir, endJunctions, pq, curJunc, pqEntry);
       return res;
     }
     else
@@ -1388,8 +1660,8 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
         WriteShortestPath(source, distSourceStartSect,target,
                           distTargetStartSect, startSectTup, endSectTup,
                           startPathJID, endPathJID, res, length);
-        cleanShortestPathMemory( curSectDir, endJunctions, pq,
-                                startSectTup, endSectTup, curJunc, pqEntry);
+        cleanShortestPathMemory( curSectDir, endJunctions, pq, curJunc,
+                                 pqEntry);
         return res;
       }
       else
@@ -1418,8 +1690,8 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
         WriteShortestPath(source, distSourceStartSect, target,
                           distTargetStartSect, startSectTup, endSectTup,
                           startPathJID, endPathJID, res, length);
-        cleanShortestPathMemory( curSectDir, endJunctions, pq,
-                                startSectTup, endSectTup, curJunc, pqEntry);
+        cleanShortestPathMemory( curSectDir, endJunctions, pq, curJunc,
+                                 pqEntry);
         return res;
       }
       else
@@ -1490,16 +1762,15 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
         WriteShortestPath(source, distSourceStartSect, target,
                           distTargetStartSect, startSectTup, endSectTup,
                           startPathJID, endPathJID, res, length);
-        cleanShortestPathMemory( curSectDir, endJunctions, pq,
-                                startSectTup, endSectTup, curJunc, pqEntry);
+        cleanShortestPathMemory( curSectDir, endJunctions, pq, curJunc,
+                                 pqEntry);
         return res;
       }
     }
     else
       AddAdjacentSections(pq, *curPQElement, targetPos);
   }
-  cleanShortestPathMemory( curSectDir, endJunctions, pq,
-                          startSectTup, endSectTup, curJunc, pqEntry);
+  cleanShortestPathMemory( curSectDir, endJunctions, pq, curJunc, pqEntry);
   return res;
 }
 
@@ -1936,56 +2207,50 @@ Tuple* JNetwork::GetSectionTupleFor(const Point* p, double& pos) const
 Tuple* JNetwork::GetSectionTupleFor(const RouteLocation& rloc, double& relpos)
 const
 {
-  Tuple* actSect = 0;
   JListInt* sectList = GetRouteSectionList(rloc.GetRouteId());
+  int index = -1;
+  Tuple* res = GetSectionTupleFor(rloc, relpos, sectList, index);
+  sectList->Destroy();
+  sectList->DeleteIfAllowed();
+  return res;
+}
+
+Tuple* JNetwork::GetSectionTupleFor(const RouteLocation& rloc, double& pos,
+                                    const JListInt* sectList,
+                                    int& index) const
+{
   if (sectList != 0)
   {
     if (sectList->IsDefined() && !sectList->IsEmpty())
     {
-      int i = 0;
+      Tuple* actSect = 0;
       CcInt actSid;
+      if (index > -1 && index < sectList->GetNoOfComponents())
+      {
+        sectList->Get(index, actSid);
+        actSect = GetSectionTupleWithId(actSid.GetIntval());
+        if (CheckTupleForRLoc(actSect, rloc, pos))
+          return actSect;
+      }
+      int i = 0;
       while (i < sectList->GetNoOfComponents())
       {
         sectList->Get(i, actSid);
         actSect = GetSectionTupleWithId(actSid.GetIntval());
-        if (actSect != 0)
+        if (CheckTupleForRLoc(actSect, rloc, pos))
         {
-          JListRInt* rintList = GetSectionListRouteIntervals(actSect);
-          if (rintList != 0)
-          {
-            if (rintList->IsDefined() && !rintList->IsEmpty())
-            {
-              JRouteInterval actInt;
-              int j = 0;
-              while (j < rintList->GetNoOfComponents())
-              {
-                rintList->Get(j,actInt);
-                if (actInt.Contains(rloc, tolerance))
-                {
-                  relpos = fabs(rloc.GetPosition() - actInt.GetFirstPosition());
-                  rintList->Destroy();
-                  rintList->DeleteIfAllowed();
-                  sectList->Destroy();
-                  sectList->DeleteIfAllowed();
-                  return actSect;
-                }
-                j++;
-              }
-            }
-            rintList->Destroy();
-            rintList->DeleteIfAllowed();
-            rintList = 0;
-          }
-          actSect->DeleteIfAllowed();
-          actSect = 0;
+          index = i;
+          return actSect;
         }
+        if (actSect != 0)
+          actSect->DeleteIfAllowed();
+        actSect = 0;
         i++;
       }
-      sectList->Destroy();
-      sectList->DeleteIfAllowed();
     }
   }
-  return actSect;
+  index = -1;
+  return 0;
 }
 
 
@@ -2073,6 +2338,39 @@ const
   rintList->Get(0,res);
   rintList->DeleteIfAllowed();
   return new JRouteInterval(res);
+}
+
+JRouteInterval* JNetwork::GetSectionRouteIntervalForRLoc(
+                        const RouteLocation& rloc,
+                        const Tuple* sectTup) const
+{
+  if (sectTup != 0)
+  {
+    JListRInt* rintList = GetSectionListRouteIntervals(sectTup);
+    if (rintList != 0)
+    {
+      if (rintList->IsDefined() && !rintList->IsEmpty())
+      {
+        JRouteInterval actInt;
+        int j = 0;
+        while (j < rintList->GetNoOfComponents())
+        {
+          rintList->Get(j,actInt);
+          if (actInt.Contains(rloc, tolerance))
+          {
+            JRouteInterval* res = new JRouteInterval(actInt);
+            rintList->Destroy();
+            rintList->DeleteIfAllowed();
+            return res;
+          }
+          j++;
+        }
+      }
+      rintList->Destroy();
+      rintList->DeleteIfAllowed();
+    }
+  }
+  return 0;
 }
 
 double JNetwork::GetSectionLength(const Tuple* actSect) const
@@ -2322,9 +2620,13 @@ bool JNetwork::DirectConnectionExists(const int startSID,
                                       double& length) const
 {
   Direction* sectDir = GetSectionDirection(sourceSectTup);
-  Direction movDir(Up);
+  Direction dirU(Up);
+  Direction dirD(Down);
+  Direction movDir(false);
   if (source.GetPosition() > target.GetPosition())
-    movDir.SetDirection((Direction) Down);
+    movDir = dirD;
+  else
+    movDir = dirU;
   if (startSID == endSID && sectDir->SameSide(movDir, false))
   {
     res->Append(JRouteInterval(source.GetRouteId(), source.GetPosition(),
@@ -2604,6 +2906,184 @@ bool JNetwork::ExistsCommonRoute(RouteLocation& src, RouteLocation& tgt) const
     return false;
   }
 }
+
+/*
+1.1.1 GetRLocOfPosOnRouteInterval
+
+*/
+
+RouteLocation* JNetwork::GetRLocOfPosOnRouteInterval(
+    const JRouteInterval* actInt, const double pos) const
+{
+  Direction compD(Down);
+  if (actInt->GetSide().Compare(compD) != 0)
+    return new RouteLocation(actInt->GetRouteId(),
+                             actInt->GetFirstPosition() + pos,
+                             actInt->GetSide());
+  else
+    return new RouteLocation(actInt->GetRouteId(),
+                             actInt->GetFirstPosition() - pos,
+                             actInt->GetSide());
+}
+
+/*
+1.1.1 Split Junit
+
+*/
+
+MPoint* JNetwork::SplitJUnit(const JUnit* ju, bool& endTimeCorrected,
+                        Instant& lastEnd, const JListInt* routeSectList,
+                        int& lastRouteSectListIndex) const
+{
+  if (ju != 0 && ju->IsDefined())
+  {
+    MPoint* res = new MPoint(0);
+    res->StartBulkLoad();
+    JRouteInterval jurint = ju->GetRouteInterval();
+    Interval<Instant> jutime = ju->GetTimeInterval();
+    Instant instInter1 = jutime.start;
+    Instant instInter2 = jutime.end;
+    const Instant TIMECORRECTION(0,1, durationtype);
+    int startIndex = lastRouteSectListIndex;
+    Point* startP = GetSpatialValueOf(jurint.GetStartLocation(), routeSectList,
+                                      startIndex);
+    int lastIndex = startIndex;
+    Point* endP = GetSpatialValueOf(jurint.GetEndLocation(), routeSectList,
+                                    lastIndex);
+    Point interP1 = *startP;
+    Point interP2 = *endP;
+    if (endTimeCorrected)
+    {
+      endTimeCorrected = false;
+      instInter1 = lastEnd;
+      if (instInter1 > instInter2)
+      {
+        endTimeCorrected = true;
+        instInter2 = instInter1 + TIMECORRECTION;
+      }
+    }
+    if(*startP == *endP)
+      res->Add(UPoint(Interval<Instant> (instInter1, instInter2, true, false),
+                      *startP, *startP));
+    else
+    {
+      SimpleLine* resLine = GetSpatialValueOf(jurint, routeSectList,
+                                              startIndex, lastIndex);
+      if (resLine != 0)
+      {
+        if (resLine->IsDefined() && !resLine->IsEmpty())
+        {
+          if (resLine->Size() > 2)
+          {
+            LRS lrs;
+            HalfSegment hs;
+            double actDist = 0.0;
+            if ((*startP <= *endP && resLine->StartsSmaller()) ||
+                (*startP > *endP && !resLine->StartsSmaller()))
+            {
+              int lrsIndex = 0;
+              LRS lrsA(0.0, 0);
+              resLine->Get(lrsA, lrsIndex);
+              bool end = false;
+              while(lrsIndex < resLine->Size()/2 && !end)
+              {
+                resLine->Get(lrsIndex, lrs);
+                resLine->Get(lrs.hsPos, hs);
+                actDist += hs.Length();
+                interP2 = hs.AtPosition(hs.Length());
+                instInter2 = ju->TimeAtPos(actDist);
+                if (endTimeCorrected && instInter1 < instInter2)
+                  endTimeCorrected = false;
+                if (instInter1 == instInter2)
+                {
+                  instInter2 = instInter2 + TIMECORRECTION;
+                  endTimeCorrected = true;
+                }
+                UPoint tmpU(Interval<Instant> (instInter1, instInter2,
+                                               true, false),
+                            interP1, interP2);
+                res->Add(tmpU);
+                interP1 = interP2;
+                instInter1 = instInter2;
+                end = (instInter2 >= jutime.end);
+                lrsIndex++;
+              }
+            }
+            else
+            {
+              if ((*startP <= *endP && !resLine->StartsSmaller()) ||
+                 (*startP > *endP && resLine->StartsSmaller()))
+              {
+                int lrsIndex = resLine->Size()/2 -1;
+                bool end = false;
+                actDist = resLine->Length();
+                LRS lrsA(actDist,0);
+                resLine->Get(lrsA, lrsIndex);
+                while (lrsIndex >= 0 && !end)
+                {
+                  resLine->Get(lrsIndex, lrs);
+                  resLine->Get(lrs.hsPos, hs);
+                  actDist -= hs.Length();
+                  interP2 = hs.AtPosition(0.0);
+                  instInter2 = ju->TimeAtPos(resLine->Length() - actDist);
+                  if (endTimeCorrected && instInter1 < instInter2)
+                    endTimeCorrected = false;
+                  if (instInter1 == instInter2)
+                  {
+                    instInter2 = instInter2 + TIMECORRECTION;
+                    endTimeCorrected = true;
+                  }
+                  UPoint tmpU(Interval<Instant> (instInter1, instInter2,
+                                                 true, false),
+                             interP1, interP2);
+                  res->Add(tmpU);
+                  interP1 = interP2;
+                  instInter1 = instInter2;
+                  end = (instInter2 >= jutime.end);
+                  lrsIndex--;
+                }
+              }
+            }
+          }
+          else
+          {
+            res->Add(UPoint(Interval<Instant> (instInter1, instInter2,
+                                               true, false),
+                            *startP, *endP));
+          }
+        }
+        resLine->Destroy();
+        resLine->DeleteIfAllowed();
+      }
+    }
+    lastEnd = instInter2;
+    startP->DeleteIfAllowed();
+    endP->DeleteIfAllowed();
+    res->EndBulkLoad();
+    lastRouteSectListIndex = lastIndex;
+    return res;
+  }
+  else
+    return 0;
+}
+
+bool JNetwork::CheckTupleForRLoc(const Tuple* actSect,
+                                 const RouteLocation& rloc,
+                                 double& pos) const
+{
+  if (actSect != 0)
+  {
+    JRouteInterval* actInt = GetSectionRouteIntervalForRLoc(rloc, actSect);
+    if (actInt != 0)
+    {
+      pos = fabs(rloc.GetPosition() - actInt->GetFirstPosition());
+      actInt->DeleteIfAllowed();
+      return true;
+    }
+  }
+  return false;
+}
+
 
 /*
 1 Overwrite output operator

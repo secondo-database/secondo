@@ -382,11 +382,10 @@ void JPoint::FromSpatial(const JNetwork* jnet, const Point* in)
   {
     strcpy(nid,*(jnet->GetId()));
     RouteLocation* rloc = jnet->GetNetworkValueOf(in);
-    if (rloc != NULL && rloc->IsDefined())
+    if (rloc != NULL)
     {
       npos = *rloc;
-      if (rloc != NULL)
-        rloc->DeleteIfAllowed();
+      rloc->DeleteIfAllowed();
     }
     else
       SetDefined(false);

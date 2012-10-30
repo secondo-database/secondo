@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "JUnit.h"
+#include <X11/X.h>
 
 /*
 1 Implementation of class JUnit
@@ -534,136 +535,6 @@ IJPoint JUnit::Initial(const string netId) const
 }
 
 /*
-1.1.1.1 Split
-
-*/
-
-MPoint* JUnit::Split(const JNetwork* jnet, bool& endTimeCorrected,
-                     Instant& lastEnd) const
-{
-  MPoint* res = new MPoint(0);
-  res->StartBulkLoad();
-  if (IsDefined())
-  {
-    Point* startP = jnet->GetSpatialValueOf(routeInter.GetStartLocation());
-    Point* endP = jnet->GetSpatialValueOf(routeInter.GetEndLocation());
-    Point interP1 = *startP;
-    Point interP2 = *endP;
-    Instant instInter1 = timeInter.start;
-    Instant instInter2 = timeInter.end;
-    const Instant TIMECORRECTION(0,1, durationtype);
-    if (endTimeCorrected)
-    {
-      endTimeCorrected = false;
-      instInter1 = lastEnd;
-      if (instInter1 > instInter2)
-      {
-        endTimeCorrected = true;
-        instInter2 = instInter1 + TIMECORRECTION;
-      }
-    }
-    if(*startP == *endP)
-    {
-      res->Add(UPoint(Interval<Instant> (instInter1, instInter2, true, false),
-                      *startP, *startP));
-    }
-    else
-    {
-      SimpleLine* resLine = routeInter.GetSpatialValue(jnet);
-      if (resLine != 0)
-      {
-        if (resLine->IsDefined() && !resLine->IsEmpty())
-        {
-          if (resLine->Size() > 2)
-          {
-            LRS lrs;
-            HalfSegment hs;
-            double actDist = 0.0;
-            if ((*startP <= *endP && resLine->StartsSmaller()) ||
-                (*startP > *endP && !resLine->StartsSmaller()))
-            {
-              int lrsIndex = 0;
-              LRS lrsA(0.0, 0);
-              resLine->Get(lrsA, lrsIndex);
-              bool end = false;
-              while(lrsIndex < resLine->Size()/2 && !end)
-              {
-                resLine->Get(lrsIndex, lrs);
-                resLine->Get(lrs.hsPos, hs);
-                actDist += hs.Length();
-                interP2 = hs.AtPosition(hs.Length());
-                instInter2 = TimeAtPos(actDist);
-                if (endTimeCorrected && instInter1 < instInter2)
-                  endTimeCorrected = false;
-                if (instInter1 == instInter2)
-                {
-                  instInter2 = instInter2 + TIMECORRECTION;
-                  endTimeCorrected = true;
-                }
-                res->Add(UPoint(Interval<Instant> (instInter1, instInter2,
-                                                   true, false),
-                                interP1, interP2));
-                interP1 = interP2;
-                instInter1 = instInter2;
-                end = (instInter2 >= timeInter.end);
-                lrsIndex++;
-              }
-            }
-            else
-            {
-              if ((*startP <= *endP && !resLine->StartsSmaller()) ||
-                  (*startP > *endP && resLine->StartsSmaller()))
-              {
-                int lrsIndex = resLine->Size()/2 -1;
-                bool end = false;
-                actDist = resLine->Length();
-                LRS lrsA(actDist,0);
-                resLine->Get(lrsA, lrsIndex);
-                while (lrsIndex >= 0 && !end)
-                {
-                  resLine->Get(lrsIndex, lrs);
-                  resLine->Get(lrs.hsPos, hs);
-                  actDist -= hs.Length();
-                  interP2 = hs.AtPosition(0.0);
-                  instInter2 = TimeAtPos(resLine->Length() - actDist);
-                  if (endTimeCorrected && instInter1 < instInter2)
-                    endTimeCorrected = false;
-                  if (instInter1 == instInter2)
-                  {
-                    instInter2 = instInter2 + TIMECORRECTION;
-                    endTimeCorrected = true;
-                  }
-                  res->Add(UPoint(Interval<Instant> (instInter1, instInter2,
-                                                     true, false),
-                                  interP1, interP2));
-                  interP1 = interP2;
-                  instInter1 = instInter2;
-                  end = (instInter2 >= timeInter.end);
-                  lrsIndex--;
-                }
-              }
-            }
-          }
-          else
-          {
-            res->Add(UPoint(Interval<Instant> (instInter1, instInter2,
-                                               true, false),
-                            *startP, *endP));
-          }
-        }
-        resLine->Destroy();
-        resLine->DeleteIfAllowed();
-      }
-    }
-    lastEnd = instInter2;
-    startP->DeleteIfAllowed();
-    endP->DeleteIfAllowed();
-  }
-  res->EndBulkLoad();
-  return res;
-}
-
-/*
 1.1.1.1 AtPos
 
 */
@@ -714,88 +585,84 @@ JUnit* JUnit::AtPos(const JPoint* jp) const
 
 */
 
-JUnit* JUnit::AtRint(const JRouteInterval* rint) const
+JUnit* JUnit::AtRint(const JRouteInterval* rint, bool& lastrc) const
 {
-  Direction compD(Down);
   if (IsDefined() && rint != 0 && rint->IsDefined())
   {
+    Direction compD(Down);
+    Instant startTime, endTime;
+    double startpos, endpos, startdist, enddist;
+    bool lc = !lastrc;
+    bool rc = false;
+    lastrc = false;
     if (rint->Contains(routeInter))
     {
-      return new JUnit(*this);
+      startpos = routeInter.GetStartPosition();
+      endpos = routeInter.GetEndPosition();
+      startTime = timeInter.start;
+      endTime = timeInter.end;
     }
     else
     {
       if (rint->Inside(routeInter))
       {
-        Instant startTime = TimeAtPos(fabs(rint->GetFirstPosition() -
-                                           routeInter.GetStartPosition()));
-        Instant endTime =  TimeAtPos(fabs(rint->GetLastPosition()-
-                                          routeInter.GetStartPosition()));
-        return new JUnit(Interval<Instant>(startTime, endTime, true, false),
-                         JRouteInterval(routeInter.GetRouteId(),
-                                        rint->GetFirstPosition(),
-                                        rint->GetLastPosition(),
-                                        routeInter.GetSide()));
+        if(routeInter.GetSide() != compD)
+        {
+          startpos = rint->GetFirstPosition();
+          endpos = rint->GetLastPosition();
+          startdist = fabs(startpos - routeInter.GetFirstPosition());
+          enddist = fabs(endpos - routeInter.GetFirstPosition());
+        }
+        else
+        {
+          startpos = rint->GetLastPosition();
+          endpos = rint->GetFirstPosition();
+          startdist = fabs(startpos - routeInter.GetLastPosition());
+          enddist = fabs(endpos - routeInter.GetLastPosition());
+        }
+        startTime = TimeAtPos(startdist);
+        endTime = TimeAtPos(enddist);
       }
       else
       {
         if (rint->Contains(routeInter.GetStartLocation()) &&
             rint->GetEndLocation() != routeInter.GetStartLocation())
         {
-          if (routeInter.GetSide().Compare(compD) != 0)
-          {
-            Instant endTime = TimeAtPos(fabs(rint->GetLastPosition()-
-                                             routeInter.GetStartPosition()));
-            return new JUnit(Interval<Instant>(timeInter.start, endTime,
-                                               true, false),
-                             JRouteInterval(routeInter.GetRouteId(),
-                                            routeInter.GetStartPosition(),
-                                            rint->GetLastPosition(),
-                                            routeInter.GetSide()));
-          }
+          startpos = routeInter.GetStartPosition();
+          startTime = timeInter.start;
+          if (routeInter.GetSide() != compD)
+            endpos = rint->GetLastPosition();
           else
-          {
-            Instant endTime = TimeAtPos(fabs(rint->GetFirstPosition() -
-                                             routeInter.GetStartPosition()));
-            return new JUnit(Interval<Instant>(timeInter.start, endTime,
-                                               true, false),
-                             JRouteInterval(routeInter.GetRouteId(),
-                                            routeInter.GetStartPosition(),
-                                            rint->GetFirstPosition(),
-                                            routeInter.GetSide()));
-          }
+            endpos = rint->GetFirstPosition();
+          enddist = fabs(endpos - routeInter.GetStartPosition());
+          endTime = TimeAtPos(enddist);
         }
         else
         {
           if (rint->Contains(routeInter.GetEndLocation()) &&
               rint->GetStartLocation() != routeInter.GetEndLocation())
           {
-            if (routeInter.GetSide().Compare(compD) != 0)
-            {
-              Instant startTime = TimeAtPos(fabs(rint->GetFirstPosition()-
-                                               routeInter.GetEndPosition()));
-              return new JUnit(Interval<Instant>(startTime, timeInter.end,
-                                                 true, false),
-                               JRouteInterval(routeInter.GetRouteId(),
-                                              rint->GetFirstPosition(),
-                                              routeInter.GetEndPosition(),
-                                              routeInter.GetSide()));
-            }
+            endpos = routeInter.GetEndPosition();
+            endTime = timeInter.end;
+            if (routeInter.GetSide() != compD)
+              startpos = rint->GetFirstPosition();
             else
-            {
-              Instant startTime = TimeAtPos(fabs(rint->GetLastPosition() -
-                                              routeInter.GetEndPosition()));
-              return new JUnit(Interval<Instant>(startTime, timeInter.end,
-                                               true, false),
-                             JRouteInterval(routeInter.GetRouteId(),
-                                            rint->GetLastPosition(),
-                                            routeInter.GetEndPosition(),
-                                            routeInter.GetSide()));
-            }
+              startpos = rint->GetLastPosition();
+            startdist = fabs(startpos - routeInter.GetEndPosition());
+            startTime = TimeAtPos(startdist);
           }
         }
       }
     }
+    if (startTime == endTime)
+    {
+      lc = true;
+      rc = true;
+      lastrc = true;
+    }
+    return new JUnit(Interval<Instant>(startTime, endTime, lc, rc),
+                     JRouteInterval(routeInter.GetRouteId(),
+                                    startpos, endpos, routeInter.GetSide()));
   }
   return 0;
 }
