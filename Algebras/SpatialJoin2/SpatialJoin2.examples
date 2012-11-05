@@ -40,6 +40,6 @@ Result   : 8
 Operator : InfoGrepSpatialJoin 
 Number   : 1 
 Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int x int  -> stream(tuple(A o B)) 
-Example  : query (Roads feed head[100000] {r1} Roads feed head[100000] {r2} InfoGrepSpatialJoin[geoData_r1, geoData_r2, 4, 8] count) =  (Roads feed head[100000] {r1} Roads feed head[100000] {r2} itSpatialJoin[geoData_r1, geoData_r2, 4, 8] count)
+Example  : query (Roads feed head[100000] {r1} Roads feed head[100000] {r2} InfoGrepSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count) =  (Roads feed head[100000] {r1} Roads feed head[100000] {r2} itSpatialJoin[GeoData_r1, GeoData_r2, 4, 8] count)
 Result   : TRUE
 
