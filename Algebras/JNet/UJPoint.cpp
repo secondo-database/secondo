@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Direction.h"
 #include "UJPoint.h"
 #include "JNetwork.h"
+#include "ManageJNet.h"
 
 
 /*
@@ -418,16 +419,9 @@ Rectangle< 3 > UJPoint::BoundingBox() const
 {
   if (IsDefined())
   {
-    SecondoCatalog* sc = SecondoSystem::GetCatalog();
-    Word w;
-    bool defined;
-    if (!sc->GetObject(nid, w, defined))
-      return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-    if (!defined)
-      return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-    JNetwork* jnet = (JNetwork*) w.addr;
-    Rectangle<3> result = unit.BoundingBox(jnet);
-    sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()),w);
+    JNetwork* jnet = ManageJNet::GetNetwork(nid);
+    Rectangle<3> result = jnet->BoundingBox(unit);
+    ManageJNet::CloseNetwork(jnet);
     return result;
   }
   else

@@ -700,21 +700,6 @@ Rectangle<2> JRouteInterval::NetBox() const
     return Rectangle<2>(false,0.0,0.0,0.0,0.0);
 }
 
-Rectangle< 2 > JRouteInterval::BoundingBox(JNetwork* jnet) const
-{
-  if (IsDefined())
-  {
-    SimpleLine* sl = jnet->GetSpatialValueOf(*this);
-    if (sl !=  0)
-    {
-      Rectangle<2> res = sl->BoundingBox();
-      sl->DeleteIfAllowed();
-      return res;
-    }
-  }
-  return Rectangle<2>(false,0.0,0.0,0.0,0.0);
-}
-
 /*
 1 Overwrite output operator
 

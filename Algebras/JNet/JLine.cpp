@@ -105,9 +105,8 @@ void JLine::SetNetworkId(const STRING_T& id)
   strcpy(nid, id);
 }
 
-void JLine::SetRouteIntervals(DbArray<JRouteInterval>& setri)
+void JLine::SetRouteIntervals(const DbArray<JRouteInterval>& setri)
 {
-  assert(setri != 0);
   routeintervals.copyFrom(setri);
   sorted = false;
   Sort();
@@ -928,7 +927,7 @@ const
       }
     }
   }
-    return -1;
+  return -1;
 }
 
 

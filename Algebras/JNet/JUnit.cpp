@@ -419,28 +419,26 @@ bool JUnit::ExtendBy(const JUnit& other)
 {
   if (CanBeExtendedBy(other))
   {
-    Interval<Instant> oldTime = GetTimeInterval();
-    Interval<Instant> otherTime = other.GetTimeInterval();
-    JRouteInterval oldRint = GetRouteInterval();
     JRouteInterval otherRint = other.GetRouteInterval();
-    SetTimeInterval(Interval<Instant> (oldTime.start,
-                                      otherTime.end,
-                                      oldTime.lc,
-                                      otherTime.rc));
+    Interval<Instant> otherTime = other.GetTimeInterval();
+    SetTimeInterval(Interval<Instant> (timeInter.start,
+                                       otherTime.end,
+                                       timeInter.lc,
+                                       otherTime.rc));
     Direction compD(Down);
-    if (oldRint.GetSide().Compare(compD) != 0)
+    if (routeInter.GetSide() == compD)
     {
-      SetRouteInterval(JRouteInterval(oldRint.GetRouteId(),
-                                      oldRint.GetStartPosition(),
-                                      otherRint.GetEndPosition(),
-                                      oldRint.GetSide()));
+      SetRouteInterval(JRouteInterval(routeInter.GetRouteId(),
+                                      otherRint.GetFirstPosition(),
+                                      routeInter.GetLastPosition(),
+                                      routeInter.GetSide()));
     }
     else
     {
-      SetRouteInterval(JRouteInterval(oldRint.GetRouteId(),
-                                      otherRint.GetStartPosition(),
-                                      oldRint.GetEndPosition(),
-                                      oldRint.GetSide()));
+      SetRouteInterval(JRouteInterval(routeInter.GetRouteId(),
+                                      routeInter.GetFirstPosition(),
+                                      otherRint.GetLastPosition(),
+                                      routeInter.GetSide()));
     }
     return true;
   }
@@ -473,23 +471,6 @@ Rectangle<2> JUnit::NetBox() const
     return routeInter.NetBox();
   else
     return Rectangle<2>(false,0.0,0.0,0.0,0.0);
-}
-
-Rectangle< 3 > JUnit::BoundingBox(JNetwork* jnet) const
-{
-  if (IsDefined())
-  {
-    Rectangle<2> rintBox = routeInter.BoundingBox(jnet);
-    if (rintBox.IsDefined())
-    {
-      return Rectangle<3>(true,
-                          rintBox.MinD(0), rintBox.MaxD(0),
-                          rintBox.MinD(1), rintBox.MaxD(1),
-                          GetTimeInterval().start.ToDouble(),
-                          GetTimeInterval().end.ToDouble());
-    }
-  }
-  return Rectangle<3>(false,0.0,0.0,0.0,0.0,0.0,0.0);
 }
 
 /*

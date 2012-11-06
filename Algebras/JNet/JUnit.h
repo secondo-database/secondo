@@ -178,16 +178,6 @@ the end position on this route. All coordinates are double values.
 Rectangle<2> NetBox() const;
 
 /*
-1.1.1.1.1 BoundigBox
-
-Returns an 3 dimensional rectangle with the spatio-temporal bounding box of the
-junit.
-
-*/
-
-Rectangle<3> BoundingBox(JNetwork* jnet) const;
-
-/*
 1.1.1.1.1 AtInstant
 
 Returns the ijpoint giving the position in the network at the given instant.

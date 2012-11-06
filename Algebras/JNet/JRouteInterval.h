@@ -274,16 +274,6 @@ time. All coordinates are double values.
 Rectangle<2> NetBox() const;
 
 /*
-1.1.1.1 BoundingBox
-
-Returns an two dimensional rectangle with the spatial bounding box of the
-route interval.
-
-*/
-
-Rectangle<2> BoundingBox(JNetwork* jnet) const;
-
-/*
 1.1 private deklarations
 
 */

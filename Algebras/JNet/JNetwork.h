@@ -49,9 +49,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-class MJPoint;
+class JPoint;
 class JLine;
 class JUnit;
+class MJPoint;
 
 /*
 1 Class ~JNetwork~
@@ -311,17 +312,17 @@ Returns true if the given position(s) exist in the network.
 
 */
 
-  Point* GetSpatialValueOf(const RouteLocation& rloc) const;
-
+  Point* GetSpatialValueOf(const JPoint& jp) const;
   Line* GetSpatialValueOf(const JLine* jl) const;
-  Point* GetSpatialValueOf(const RouteLocation& rloc, double relpos,
-                           const Tuple* actSect)const;
   MPoint* GetSpatialValueOf(const MJPoint* mjp) const;
-  SimpleLine* GetSpatialValueOf(const JRouteInterval& rint) const;
-  SimpleLine* GetSpatialValueOf(const JRouteInterval& rint,
-                                const JListInt* sectList,
-                                const int fromIndex,
-                                const int toIndex) const;
+
+/*
+1.1.1 Spatial and Spatio-Temporal BoundingBoxes of Network DataTypes
+
+*/
+
+Rectangle<3> BoundingBox(const JUnit& ju) const;
+Rectangle<2> BoundingBox(const JRouteInterval& rint) const;
 
 /*
 1.1.1 ~SimulateTrip~
@@ -667,9 +668,10 @@ Returns the corresponding spatial mpoint representation of the junit.
 
 */
 
-MPoint* SplitJUnit(const JUnit* ju, bool& endTimeCorrected,
-                   Instant& lastEnd, const JListInt* routeSectList,
-                   int& routeSectListIndexLastPos) const;
+MPoint* SplitJUnit(const JUnit& ju, int& curRid, JRouteInterval*& lastRint,
+                   JListInt*& routeSectList, int& lastRouteSecListIndex,
+                   bool& endTimeCorrected, Instant& lastEnd,
+                   SimpleLine*& lastCurve) const;
 
 /*
 1.1.1.1 CheckTupleForRLoc
@@ -694,9 +696,17 @@ Returns the spatial position of the given rloc in the network.
 
 Point* GetSpatialValueOf(const RouteLocation& rloc,
                          const JListInt* routeSectList) const;
-Point* GetSpatialValueOf(const RouteLocation& rloc,
-                         const JListInt* routeSectList,
-                         int& index) const;
+Point* GetSpatialValueOf(const RouteLocation& rloc, int& curRid,
+                         JListInt*& routeSectList,
+                         int& index, JRouteInterval*& lastRint,
+                         SimpleLine*& lastCurve) const;
+Point* GetSpatialValueOf(const RouteLocation& rloc, double relpos,
+                        const Tuple* actSect)const;
+SimpleLine* GetSpatialValueOf(const JRouteInterval& rint) const;
+SimpleLine* GetSpatialValueOf(const JRouteInterval& rint,
+                              const JListInt* sectList,
+                              const int fromIndex,
+                              const int toIndex) const;
 };
 
 /*

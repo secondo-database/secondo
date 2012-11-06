@@ -73,6 +73,7 @@ public:
 
   const STRING_T* GetNetworkId() const;
   const DbArray<JUnit>& GetUnits() const;
+  const DbArray<JRouteInterval>& GetTrajectory() const;
   double Length() const;
 
   void SetNetworkId(const STRING_T& id);
@@ -91,12 +92,12 @@ Returns an ~jline~ value representing all network position ever passed by the
 /*
 1.1.1.1 BoundingBox
 
-Returns an 3 dimensional rectangle with the spatial temporal bounding box of
-the mjpoint.
+Returns an 3D rectangle representing the spatio-temporal bounding box of the
+mjpoint.
 
 */
 
-  Rectangle<3> BoundingBox() const;
+Rectangle<3> BoundingBox() const;
 
 
 /*
@@ -319,6 +320,8 @@ private:
 
   STRING_T nid;         //network identifier
   DbArray<JUnit> units; //set of JUnit describing the way of the mjpoint
+  DbArray<JRouteInterval> trajectory; //sorted list of all jrint passed
+                                      //by the mjpoint
   bool activBulkload;   //only true while bulkload of ujpoints runs
   double lenth;         //total driven distance
 

@@ -405,7 +405,7 @@ void JPoint::ToSpatial(Point& result) const
   {
     result.SetDefined(true);
     JNetwork* jnet = ManageJNet::GetNetwork(nid);
-    Point* tmp = jnet->GetSpatialValueOf(npos);
+    Point* tmp = jnet->GetSpatialValueOf(*this);
     result = *tmp;
     tmp->DeleteIfAllowed();
     ManageJNet::CloseNetwork(jnet);

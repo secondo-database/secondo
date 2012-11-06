@@ -75,7 +75,7 @@ public:
   const DbArray<JRouteInterval>& GetRouteIntervals() const;
 
   void SetNetworkId(const STRING_T& nid);
-  void SetRouteIntervals(DbArray<JRouteInterval>& setri);
+  void SetRouteIntervals(const DbArray<JRouteInterval>& setri);
 
 /*
 1.1.1 Override Methods from Attribute

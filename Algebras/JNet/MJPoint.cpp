@@ -62,23 +62,24 @@ MJPoint::MJPoint(): Attribute()
 {}
 
 MJPoint::MJPoint(const bool def) :
-    Attribute(def), units(0), activBulkload(false), lenth(0.0)
+    Attribute(def), units(0), trajectory(0), activBulkload(false), lenth(0.0)
 {}
 
 MJPoint::MJPoint(const MJPoint& other) :
-    Attribute(other.IsDefined()), units(0), activBulkload(false), lenth(0.0)
+    Attribute(other.IsDefined()), units(0), trajectory(0), activBulkload(false),
+    lenth(0.0)
 {
   if (other.IsDefined())
   {
     strcpy(nid, *other.GetNetworkId());
     units.copyFrom(other.GetUnits());
+    trajectory.copyFrom(other.GetTrajectory());
     lenth = other.Length();
   }
 }
 
-
 MJPoint::MJPoint(const string netId, const DbArray<JUnit>& upoints) :
-  Attribute(true), units(0), activBulkload(false), lenth(0.0)
+  Attribute(true), units(0), trajectory(0), activBulkload(false), lenth(0.0)
 {
   JNetwork* jnet = ManageJNet::GetNetwork(netId);
   if (jnet == 0)
@@ -89,40 +90,21 @@ MJPoint::MJPoint(const string netId, const DbArray<JUnit>& upoints) :
   {
     ManageJNet::CloseNetwork(jnet);
     strcpy(nid, netId.c_str());
-    bool first = true;
-    JUnit u, lastUP;
-    for (int i = 0; i < upoints.Size(); i++)
-    {
-      upoints.Get(i,u);
-      if (first)
-      {
-        lastUP = u;
-        units.Append(u);
-        lenth += u.GetLength();
-        first = false;
-      }
-      else
-      {
-        if(checkNextUnit(u, lastUP))
-        {
-          lastUP = u;
-          units.Append(u);
-          lenth += u.GetLength();
-        }
-      }
-    }
+    SetDefined(true);
+    units.copyFrom(upoints);
+    SetDefined(Simplify());
   }
-
 }
 
 MJPoint::MJPoint(const UJPoint* u) :
-  Attribute(true), units(0), activBulkload(false), lenth(0.0)
+  Attribute(true), units(0), trajectory(0), activBulkload(false), lenth(0.0)
 {
   if (u->IsDefined())
   {
     strcpy(nid, *u->GetNetworkId());
     units.Append(u->GetUnit());
     lenth = u->GetUnit().GetLength();
+    trajectory.Append(u->GetUnit().GetRouteInterval());
   }
   else
   {
@@ -149,6 +131,11 @@ const DbArray<JUnit>& MJPoint::GetUnits() const
   return units;
 }
 
+const DbArray<JRouteInterval>& MJPoint::GetTrajectory() const
+{
+  return trajectory;
+}
+
 double MJPoint::Length() const
 {
   return lenth;
@@ -159,10 +146,9 @@ void MJPoint::SetUnits(const DbArray<JUnit>& upoints)
 {
   assert(upoints != 0);
   units.copyFrom(upoints);
-  if (!CheckSorted())
+  if (!Simplify())
   {
     SetDefined(false);
-    units.Destroy();
   }
 }
 
@@ -178,34 +164,13 @@ void MJPoint::SetNetworkId(const STRING_T& id)
 
 void MJPoint::Trajectory(JLine* result) const
 {
-  result->StartBulkload();
-  result->EndBulkload();
+  result->Clear();
+  result->SetDefined(IsDefined());
   if (IsDefined())
   {
-    result->SetDefined(true);
     result->SetNetworkId(nid);
-    if (!IsEmpty())
-    {
-      JRITree* tree = new JRITree(0);
-      JUnit actUnit;
-      JRouteInterval actRInt;
-      for (int i = 0; i < GetNoComponents() ; i++)
-      {
-        Get(i,actUnit);
-        actRInt = actUnit.GetRouteInterval();
-        tree->Insert(actRInt);
-      }
-      DbArray<JRouteInterval>* res = new DbArray<JRouteInterval>(0);
-      tree->TreeToDbArray(res);
-      result->SetRouteIntervals(*res);
-      tree->Destroy();
-      delete tree;
-      res->Destroy();
-      delete res;
-    }
+    result->SetRouteIntervals(trajectory);
   }
-    else
-      result->SetDefined(false);
 }
 
 /*
@@ -217,22 +182,33 @@ Rectangle< 3 > MJPoint::BoundingBox() const
 {
   if (IsDefined() && GetNoComponents() > 0)
   {
-    JUnit actUnit;
-    Get(0,actUnit);
     JNetwork* jnet = ManageJNet::GetNetwork(*GetNetworkId());
-    Rectangle<3> result = actUnit.BoundingBox(jnet);
-    for (int i = 1; i < GetNoComponents(); i++)
+    JRouteInterval actRint;
+    int i = 0;
+    trajectory.Get(i,actRint);
+    Rectangle<2> tmpres = jnet->BoundingBox(actRint);
+    while (i < trajectory.Size())
     {
-      Get(i,actUnit);
-      Rectangle<3> actRect = actUnit.BoundingBox(jnet);
+      trajectory.Get(i,actRint);
+      Rectangle<2> actRect = jnet->BoundingBox(actRint);
       if (actRect.IsDefined())
-        result.Union(actRect);
+        tmpres.Union(actRect);
+      i++;
     }
-        ManageJNet::CloseNetwork(jnet);
-        return result;
+    ManageJNet::CloseNetwork(jnet);
+    Instant* startTime = Starttime();
+    Instant* endTime = Endtime();
+    double mintime = startTime->ToDouble();
+    double maxtime = endTime->ToDouble();
+    startTime->DeleteIfAllowed();
+    endTime->DeleteIfAllowed();
+    return Rectangle<3> (true,
+                         tmpres.MinD(0), tmpres.MaxD(0),
+                         tmpres.MinD(1), tmpres.MaxD(1),
+                         mintime, maxtime);
   }
-    else
-      return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+  else
+    return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 }
 
 /*
@@ -312,26 +288,31 @@ size_t MJPoint::Sizeof() const
 
 int MJPoint::NumOfFLOBs() const
 {
-  return 1;
+  return 2;
 }
 
 Flob* MJPoint::GetFLOB(const int i)
 {
   if (i == 0) return &units;
+  if (i == 1) return &trajectory;
   return 0;
 }
 
 void MJPoint::Destroy()
 {
   units.Destroy();
+  trajectory.Destroy();
 }
 
 void MJPoint::Clear()
 {
   units.clean();
   units.TrimToSize();
+  trajectory.clean();
+  trajectory.TrimToSize();
   SetDefined(true);
   activBulkload = false;
+  lenth = 0.0;
 }
 
 ostream& MJPoint::Print(ostream& os) const
@@ -378,6 +359,7 @@ MJPoint& MJPoint::operator=(const MJPoint& other)
   {
     strcpy(nid, *other.GetNetworkId());
     units.copyFrom(other.GetUnits());
+    trajectory.copyFrom(other.GetTrajectory());
     activBulkload = false;
     lenth = other.Length();
   }
@@ -598,38 +580,14 @@ void MJPoint::EndBulkload()
   else
   {
     units.TrimToSize();
+    trajectory.TrimToSize();
   }
 }
 
 MJPoint& MJPoint::Add(const JUnit& up)
 {
-  if (IsDefined() && up.IsDefined())
-  {
-    if(activBulkload)
-      units.Append(up);
-    else
-    {
-      int pos = 0;
-      units.Find(&up, JUnit::Compare, pos);
-      JUnit actUP, nextUP;
-      units.Get(pos,actUP);
-      if (actUP.Compare(up) != 0)
-      {
-        nextUP = actUP;
-        units.Put(pos, up);
-        lenth += up.GetLength();
-        pos++;
-        while(pos < units.Size())
-        {
-          units.Get(pos, actUP);
-          units.Put(pos, nextUP);
-          nextUP = actUP;
-          pos++;
-        }
-        units.Append(nextUP);
-      }
-    }
-  }
+  if (IsDefined() && up.IsDefined() && activBulkload)
+    units.Append(up);
   return *this;
 }
 
@@ -1018,13 +976,16 @@ bool MJPoint::Passes(const JPoint* jp) const
 {
   if (IsDefined() && !IsEmpty() && jp != 0 && jp->IsDefined())
   {
-    JUnit ju;
-    for (int i = 0; i < GetNoComponents(); i++)
+    JLine* tmp = new JLine(0);
+    Trajectory(tmp);
+    if (tmp->Contains(jp))
     {
-      Get(i,ju);
-      if (ju.GetRouteInterval().Contains(jp->GetLocation()))
-        return true;
+      tmp->Destroy();
+      tmp->DeleteIfAllowed();
+      return true;
     }
+    tmp->Destroy();
+    tmp->DeleteIfAllowed();
   }
   return false;
 }
@@ -1033,9 +994,16 @@ bool MJPoint::Passes(const JLine* jl) const
 {
   if (IsDefined() && !IsEmpty() && jl != 0 && jl->IsDefined() && !jl->IsEmpty())
   {
-    JLine* traj = new JLine(0);
-    Trajectory(traj);
-    return traj->Intersects(jl);
+    JLine* tmp = new JLine(0);
+    Trajectory(tmp);
+    if (tmp->Intersects(jl))
+    {
+      tmp->Destroy();
+      tmp->DeleteIfAllowed();
+      return true;
+    }
+    tmp->Destroy();
+    tmp->DeleteIfAllowed();
   }
   return false;
 }
@@ -1187,38 +1155,39 @@ bool MJPoint::CheckSorted() const
 
 bool MJPoint::Simplify()
 {
-  lenth = 0.0;
-  if (IsDefined() && units.Size() > 1)
-  {
-    DbArray<JUnit>* simpleUnits = new DbArray<JUnit>(0);
-    JUnit actNewUnit, actOldUnit;
+  JRITree* tree = new JRITree(0);
+  DbArray<JUnit>* simpleUnits = new DbArray<JUnit>(0);
+  JUnit actNewUnit(false), actOldUnit(false);
+  if (units.Size() > 0)
     Get(0,actOldUnit);
-    actNewUnit = actOldUnit;
-    int i = 1;
-    bool sorted = true;
-    while (i < units.Size() && sorted)
+  actNewUnit = actOldUnit;
+  int i = 1;
+  bool sorted = true;
+  while (i < units.Size() && sorted)
+  {
+    Get(i,actNewUnit);
+    sorted = sorted && checkNextUnit(actNewUnit, actOldUnit);
+    if (!actOldUnit.ExtendBy(actNewUnit))
     {
-      Get(i,actNewUnit);
-      sorted = sorted && checkNextUnit(actNewUnit, actOldUnit);
-      if (!actOldUnit.ExtendBy(actNewUnit))
-      {
-        simpleUnits->Append(actOldUnit);
-        lenth += actOldUnit.GetLength();
-        actOldUnit = actNewUnit;
-      }
-      i++;
+      simpleUnits->Append(actOldUnit);
+      lenth += actOldUnit.GetLength();
+      actOldUnit = actNewUnit;
+      tree->Insert(actOldUnit.GetRouteInterval());
     }
-    simpleUnits->Append(actOldUnit);
-    lenth += actOldUnit.GetLength();
-    simpleUnits->TrimToSize();
-    units.clean();
-    units.copyFrom(*simpleUnits);
-    simpleUnits->Destroy();
-    delete simpleUnits;
-    return sorted;
+    i++;
   }
-  else
-    return true;
+  simpleUnits->Append(actOldUnit);
+  tree->Insert(actOldUnit.GetRouteInterval());
+  lenth += actOldUnit.GetLength();
+  simpleUnits->TrimToSize();
+  units.clean();
+  units.copyFrom(*simpleUnits);
+  simpleUnits->Destroy();
+  tree->TreeToDbArray(&trajectory,0);
+  tree->Destroy();
+  delete tree;
+  delete simpleUnits;
+  return sorted;
 }
 
 /*
@@ -1242,6 +1211,7 @@ void MJPoint::Append(const MJPoint* in)
 
 void MJPoint::Append(const JUnit ju)
 {
+  assert(activBulkload);
   if (ju.IsDefined())
     units.Append(ju);
 }
@@ -1275,7 +1245,7 @@ Instant* MJPoint::Endtime() const
   if (IsDefined() && !IsEmpty())
   {
     Get(GetNoComponents()-1, last);
-    return new Instant(last.GetTimeInterval().start);
+    return new Instant(last.GetTimeInterval().end);
   }
     else
       return 0;
@@ -1321,6 +1291,8 @@ void MJPoint::Refinement(const MJPoint* in2, MJPoint* out1, MJPoint* out2) const
     bool lc, rc;
     int i = 0;
     int j = 0;
+    out1->StartBulkload();
+    out2->StartBulkload();
     while (i < GetNoComponents() && j < in2->GetNoComponents())
     {
       Get(i,juIn1);
@@ -1381,6 +1353,8 @@ void MJPoint::Refinement(const MJPoint* in2, MJPoint* out1, MJPoint* out2) const
         }
       }
     }
+    out1->EndBulkload();
+    out2->EndBulkload();
   }
 }
 
