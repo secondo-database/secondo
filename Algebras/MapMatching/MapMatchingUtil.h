@@ -238,6 +238,11 @@ public:
         return (m_pA != NULL);
     }
 
+    operator Type*() const
+    {
+    	return get();
+    }
+
     Type* get(void) const
     {
         return m_pA;
