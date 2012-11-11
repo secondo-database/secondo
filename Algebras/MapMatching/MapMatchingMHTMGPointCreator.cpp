@@ -106,26 +106,25 @@ bool MGPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
 
             // Find first defined point
             MHTRouteCandidate::PointDataPtr pData1;
-            const GPoint* pGP1 = NULL;
+            AttributePtr<GPoint> pGP1(NULL);
             while(itData != itDataEnd &&
                   (pData1 == NULL ||
-                   (pGP1 = GetGPoint(pData1, nNetworkkId, m_dNetworkScale))
-                                                                       == NULL))
+                   !(pGP1 = GetGPoint(pData1, nNetworkkId, m_dNetworkScale))))
             {
                 pData1 = *itData;
                 ++itData;
             }
 
             // Process next points
-            while (itData != itDataEnd && pData1 != NULL && pGP1 != NULL)
+            while (itData != itDataEnd && pData1 != NULL && pGP1)
             {
                 MHTRouteCandidate::PointDataPtr pData2;
-                const GPoint* pGP2 = NULL;
+                AttributePtr<GPoint> pGP2(NULL);
 
                 while (itData != itDataEnd &&
                        (pData2 == NULL ||
-                        (pGP2 = GetGPoint(pData2, nNetworkkId, m_dNetworkScale))
-                                                                       == NULL))
+                       !(pGP2 = GetGPoint(pData2, nNetworkkId, m_dNetworkScale))
+                                                                              ))
                 {
                     pData2 = *itData;
                     ++itData;
@@ -157,7 +156,7 @@ bool MGPointCreator::CreateResult(const std::vector<MHTRouteCandidate*>&
                     bCalcShortestPath = false;
                 }
 
-                if (pData2 != NULL && pGP2 != NULL)
+                if (pData2 != NULL && pGP2)
                 {
                     const Interval<Instant> timeInterval(pData1->GetTime(),
                                                          pData2->GetTime(),
@@ -233,7 +232,7 @@ void MGPointCreator::Finalize(void)
     }
 }
 
-const GPoint* MGPointCreator::GetGPoint(
+const AttributePtr<GPoint> MGPointCreator::GetGPoint(
                                    const MHTRouteCandidate::PointDataPtr& pData,
                                    const int& nNetworkId,
                                    const double& dNetworkScale) const

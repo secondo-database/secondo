@@ -80,9 +80,10 @@ private:
     bool Init(void);
     void Finalize(void);
 
-    const GPoint* GetGPoint(const MHTRouteCandidate::PointDataPtr& pData,
-                            const int& nNetworkId,
-                            const double& dNetworkScale) const;
+    const AttributePtr<GPoint> GetGPoint(
+                                   const MHTRouteCandidate::PointDataPtr& pData,
+                                   const int& nNetworkId,
+                                   const double& dNetworkScale) const;
 
     void AddUGPoint(const UGPoint& rAktUGPoint);
 

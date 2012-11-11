@@ -215,8 +215,6 @@ Tuple* ONetwork::GetUndefEdgeTuple(void) const
     R_TreeLeafEntry<2, TupleId> res;
     if (m_pRTreeEdges->First(BBox, res))
     {
-        m_pIndexEdges->GetTuple(res.info, false);
-
         Tuple* pTuple = m_pIndexEdges->GetTuple(res.info, false);
 
         if (pTuple != NULL)
