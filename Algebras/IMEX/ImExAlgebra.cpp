@@ -5567,9 +5567,9 @@ public:
      double min[2];
      double max[2];
      min[0] = lbx + cellsize*posx;
-     min[1] = lby - cellsize*(posy+1);
+     min[1] = lby + cellsize*(posy);
      max[0] = lbx + cellsize*(posx+1);
-     max[1] = lby - cellsize*(posy);
+     max[1] = lby + cellsize*(posy+1);
 
      Tuple* res = new Tuple(tt);
      res->PutAttribute(0, new Rectangle<2>(true,min,max));
