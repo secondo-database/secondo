@@ -332,3 +332,14 @@ Signature: stream(tuple) x text x string x bool  -> bool
 Example  : query ten feed sqlExport['ten.sql',"Ten",TRUE]
 Result   : TRUE
 
+
+Operator : importHGT1
+Number   : 1
+Signature: text -> stream(tuple([R : rect, V : int))
+Example  : query importGHT1('N55W130.hgt') count
+Result  : 12967201
+
+
+
+
+

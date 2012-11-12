@@ -443,7 +443,8 @@ Operator csvexport( "csvexport",
                      use an empty string for disable this feature
 
   optional string : use another separator, default is ","
-  optional bool   : if set to true, ignore separators within quotes, for example,
+  optional bool   : if set to true, ignore separators within quotes, 
+                    for example,
                     treat "hello, hello" as a single item , default is false
 
 */
@@ -2322,7 +2323,8 @@ class shpimportInfo{
       if(!WinUnix::isLittleEndian()){
          tmp = WinUnix::convertEndian(tmp);
       }
-      double res = * (reinterpret_cast<double*>(&tmp));
+      void* tmpv = (void*) &tmp;
+      double res = * (reinterpret_cast<double*>(tmpv));
       return res;
    }
 
@@ -3015,8 +3017,8 @@ ListExpr getDBAttrList(string name, bool& correct, string& errorMessage){
   f.seekg(32,ios::beg);
   char buffer[32];
 
-  ListExpr attrList;
-  ListExpr last;
+  ListExpr attrList=nl->TheEmptyList();
+  ListExpr last = nl->TheEmptyList();
   for(int i=0;i<noRecords;i++){
      f.read(buffer,32);
      stringstream ns;
@@ -5353,7 +5355,7 @@ int sqlExportVM1(Word* args, Word& result,
 
     Stream<Tuple> stream(args[0]);
     stream.open();
-    Tuple* tuple;
+    Tuple* tuple = 0;
 
     string tabname = TabName->GetValue();
 
@@ -5449,6 +5451,202 @@ Operator sqlExport(
 
 
 /*
+24.25 Operator importHGT1
+
+24.25.1 TypeMapping
+
+Signature is text -> stream(tuple((R : rect, V : int))
+
+*/
+ListExpr importHGT1TM(ListExpr args){
+  string err = "text expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  if(FText::checkType(nl->First(args))){
+    return nl->TwoElemList(listutils::basicSymbol<Stream<Tuple> >(),
+               nl->TwoElemList(listutils::basicSymbol<Tuple>(),
+               nl->TwoElemList(
+                  nl->TwoElemList(nl->SymbolAtom("R"),
+                                  listutils::basicSymbol<Rectangle<2> >()),
+                  nl->TwoElemList(nl->SymbolAtom("V"),
+                                  listutils::basicSymbol<CcInt>()))));
+  }
+  return listutils::typeError(err);
+}
+
+/*
+24.25.2 Value Mapping 
+
+*/
+
+class ImportHGT1Local{
+
+public:
+  ImportHGT1Local(FText* name, ListExpr t){
+     tt = new TupleType(t);
+     f = 0;
+     if(!name->IsDefined()){
+        return;
+     }
+     string names = name->GetValue();
+     if(names.length() < 4){
+        return;
+     }
+     stringstream ss(names);
+     char c;
+     ss.get(c);
+     int signum1 = tolower(c)=='s'?-1:1;
+
+     int y;
+     ss >> y;
+     ss.get(c);
+     int signum2 = tolower(c)=='w'?-1:1;
+     int x;
+     ss >> x;
+     if(  (y>90) || (x > 180)){
+        return;
+     }
+     x = x * signum2;
+     y = y * signum1;
+     lbx = x;
+     lby = y;
+     f = new ifstream(names.c_str(), ios::in|ios::binary|ios::ate);
+     if(!f->is_open()){
+         delete f;
+         f = 0;
+         return;
+     }
+     ifstream::pos_type size = f->tellg();
+     if(size==25934402) { // == 3601 * 3601 * 2
+        gridsize = 3601;
+     } else if(size==2884802) { // 1201 * 1201 * 2
+       gridsize = 1201;
+     } else {
+       f->close();
+       delete f;
+       f = 0;
+     }
+     posx = 0;
+     posy = 0;
+     cellsize = 1.0 / (double) gridsize;
+     f->seekg (0, ios::beg);
+  }
+
+  
+ ~ImportHGT1Local(){
+     if(f){
+       f->close();
+     }
+     delete f;
+     tt->DeleteIfAllowed();
+  }
+
+  Tuple*   next(){
+     if(!f){
+       // error during initialization
+       return 0;
+     }
+     if( (posy==gridsize)){
+       return 0;
+     }
+     if(!f->good()){
+       cout << " file not good" << endl;
+       return 0;
+     }
+
+     if(posx==0){ // read next line from file
+        f->read((char*) buffer, gridsize*2);
+        if(!f->good()){
+           return 0;
+        }
+     }
+  
+     uint16_t v = buffer[posx];
+   
+     double min[2];
+     double max[2];
+     min[0] = lbx + cellsize*posx;
+     min[1] = lby - cellsize*(posy+1);
+     max[0] = lbx + cellsize*(posx+1);
+     max[1] = lby - cellsize*(posy);
+
+     Tuple* res = new Tuple(tt);
+     res->PutAttribute(0, new Rectangle<2>(true,min,max));
+     res->PutAttribute(1, new CcInt(true,v));
+     posx++;
+     if(posx==gridsize){
+        posy++;
+        posx=0;
+     }
+     return res;
+  }
+
+
+
+private:
+  ifstream* f;
+  int gridsize;
+  double cellsize;
+  int lbx;
+  int lby;
+  int posx;
+  int posy;
+  TupleType* tt;
+  int16_t buffer[3601]; // buffer for reading from file 
+
+};
+
+int importHGT1VM(Word* args, Word& result,
+                  int message, Word& local, Supplier s){
+
+    ImportHGT1Local* li  = (ImportHGT1Local*) local.addr;
+    switch(message){
+         case  OPEN : { if(li){
+                            delete li;
+                         }
+                      local.addr = new ImportHGT1Local( (FText*) args[0].addr,
+                                           nl->Second(GetTupleResultType(s)));
+                         return 0;
+                        }
+         case REQUEST : { result.addr = li?li->next():0;
+                          return  result.addr?YIELD:CANCEL;
+                        }
+         case CLOSE : {
+                         if(li){ delete li; }
+                         local.addr = 0;
+                         return 0;
+                       }
+    }
+    return  -1;
+
+}
+
+
+/*
+Specification
+
+*/
+OperatorSpec importHGT1Spec(
+  " text -> stream(tuple([R : rect, V : int)) ", // signature
+  "  importGHT1(_)" , //syntax
+  " imports an HGT file" ,
+  " query importGHT1('N55W51.hgt') consume"
+);
+
+/*
+Operator instance
+
+*/
+Operator importGHT1(
+   "importHGT1",
+   importHGT1Spec.getStr(),
+   importHGT1VM,
+   Operator::SimpleSelect,
+   importHGT1TM);
+   
+
+/*
 25 Creating the Algebra
 
 */
@@ -5493,6 +5691,9 @@ public:
     nmeaimport_line.SetUsesArgsInTypeMapping();
     AddOperator( &get_lines);
     AddOperator( &sqlExport);
+
+    AddOperator( &importGHT1);
+
   }
   ~ImExAlgebra() {};
 };
