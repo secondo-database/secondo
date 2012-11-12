@@ -336,8 +336,8 @@ Result   : TRUE
 Operator : importHGT1
 Number   : 1
 Signature: text -> stream(tuple([R : rect, V : int))
-Example  : query importGHT1('N55W130.hgt') count
-Result  : 12967201
+Example  : query importHGT1('N51E007.hgt') count
+Result  : 1442401
 
 
 

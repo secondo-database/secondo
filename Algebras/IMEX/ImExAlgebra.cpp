@@ -5484,6 +5484,8 @@ class ImportHGT1Local{
 
 public:
   ImportHGT1Local(FText* name, ListExpr t){
+     little = WinUnix::isLittleEndian();
+     undefvalue = -32768; // given by file format
      tt = new TupleType(t);
      f = 0;
      if(!name->IsDefined()){
@@ -5510,7 +5512,7 @@ public:
      x = x * signum2;
      y = y * signum1;
      lbx = x;
-     lby = y;
+     lby = y+1;
      f = new ifstream(names.c_str(), ios::in|ios::binary|ios::ate);
      if(!f->is_open()){
          delete f;
@@ -5562,18 +5564,28 @@ public:
         }
      }
   
-     uint16_t v = buffer[posx];
+     int16_t v = buffer[posx];
+  
+     if(little){
+       //cout << "convert " << v ;
+       v = WinUnix::convertEndian((uint16_t)v);
+       //cout << " into " << v << endl;
+     }
    
      double min[2];
      double max[2];
      min[0] = lbx + cellsize*posx;
-     min[1] = lby + cellsize*(posy);
+     min[1] = lby - cellsize*(posy+1);
      max[0] = lbx + cellsize*(posx+1);
-     max[1] = lby + cellsize*(posy+1);
+     max[1] = lby - cellsize*(posy);
 
      Tuple* res = new Tuple(tt);
      res->PutAttribute(0, new Rectangle<2>(true,min,max));
-     res->PutAttribute(1, new CcInt(true,v));
+     if(v!=undefvalue){
+        res->PutAttribute(1, new CcInt(true,v));
+     } else {
+        res->PutAttribute(1, new CcInt(false));
+     }
      posx++;
      if(posx==gridsize){
         posy++;
@@ -5593,7 +5605,9 @@ private:
   int posx;
   int posy;
   TupleType* tt;
+  bool little;
   int16_t buffer[3601]; // buffer for reading from file 
+  int undefvalue;
 
 };
 
