@@ -131,7 +131,7 @@ void WinUnix::writeLittleEndian(ostream& o, const uint32_t number){
 void WinUnix::writeLittleEndian(ostream& o, const uint16_t number){
   uint16_t x = number;
   if(!isLittleEndian()){
-    x =  ( (x & 0x00FF) << 1 ) | ( (x & 0xFF00) >> 1);
+    x =  (( x & 0x00FF) << 8) | ( ( x & 0xFF00) >> 8);
   }
   o.write(reinterpret_cast<char*>(&x),2);
 }
@@ -140,7 +140,7 @@ void WinUnix::writeLittleEndian(ostream& o, const uint16_t number){
 void WinUnix::writeBigEndian(ostream& o, const uint16_t number){
   uint16_t x = number;
   if(isLittleEndian()){
-    x =  ( (x & 0x00FF) << 1 ) | ( (x & 0xFF00) >> 1);
+    x =  (( x & 0x00FF) << 8) | ( ( x & 0xFF00) >> 8);
   }
   o.write(reinterpret_cast<char*>(&x),2);
 }
@@ -187,7 +187,7 @@ uint32_t WinUnix::convertEndian(const uint32_t n){
 
 uint16_t WinUnix::convertEndian(const uint16_t number){
   uint16_t x = number;
-  return  ( (x & 0x00FF) << 1 ) | ( (x & 0xFF00) >> 1);
+  return  (( x & 0x00FF) << 8) | ( ( x & 0xFF00) >> 8);
 }
 
 
