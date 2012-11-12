@@ -69,6 +69,7 @@ public class ViewConfig extends javax.swing.JDialog {
   static String RENDER_WHITE_BLUE ="white -> blue";
   static String RENDER_WHITE_GREEN="white -> green";
   static String RENDER_GREEN_RED  ="green -> red";
+  static String RENDER_GREEN_BROWN ="green -> brown";
   static String RENDER_BLUE_RED   ="blue -> red";
   static String RENDER_BLUE_GREEN ="blue -> green";
 
@@ -478,6 +479,7 @@ public class ViewConfig extends javax.swing.JDialog {
     RendTypeCB.addItem(RENDER_WHITE_GREEN);
     RendTypeCB.addItem(RENDER_WHITE_BLUE);
     RendTypeCB.addItem(RENDER_GREEN_RED);
+    RendTypeCB.addItem(RENDER_GREEN_BROWN);
     RendTypeCB.addItem(RENDER_BLUE_RED);
     RendTypeCB.addItem(RENDER_BLUE_GREEN);
     RendTypeCB.addItem(RENDER_POINTSIZE);
@@ -919,6 +921,9 @@ public class ViewConfig extends javax.swing.JDialog {
     }
     if (RendType.equals(RENDER_GREEN_RED)) {
       NewCat.setColorRange(Color.GREEN,Color.RED);
+    }
+    if (RendType.equals(RENDER_GREEN_BROWN)) {
+      NewCat.setColorRange(Color.GREEN,new Color(139,69,19));
     }
     if (RendType.equals(RENDER_BLUE_RED)) {
       NewCat.setColorRange(Color.BLUE,Color.RED);
