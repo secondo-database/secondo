@@ -141,7 +141,7 @@ let TBACRres005 = TBACRres005tmp1 feed {LL1}
   product
   projectextend[ ; Licence1: .Licence_LL1,
     Licence2: .Licence_LL2, Dist:
-    distance(.Traj_LL1, .Traj_LL2)
+    round(distance(.Traj_LL1, .Traj_LL2),3)
   ]
 sortby[Licence1, Licence2]
   consume;
@@ -181,7 +181,7 @@ let TBACRres006 =
   TBACRres006tmp1 feed {C1}
   TBACRres006tmp1 feed {C2}
   spatialjoin[Box_C1, Box_C2]
-  filter[ .Licence__C1 < .Licence_C2 ]
+  filter[ .Licence_C1 < .Licence_C2 ]
   filter[ everNearerThan(.Trip_C1, .Trip_C2, 10.0) ]
   projectextend[ ; Licence1: .Licence_C1,
                    Licence2: .Licence_C2 ]
@@ -257,7 +257,7 @@ let TBACRres008 =
     extend[Dist: round(
       dataMCtrip_Moid_btree dataMCtrip exactmatch[.Moid_CAR]
       filter[.Trip present attr(t,Period)]
-      projectextend[;L: length(.Trip atperiods attr(t,Period))]
+      projectextend[;L: round(length(.Trip atperiods attr(t,Period)),3)]
       sum[L], 3)]
     projectextend[; Licence: attr(t,Licence), Period: attr(t,Period), Dist: .Dist]
   ]
@@ -281,12 +281,12 @@ let TBACRres009 =
     dataMCtrip_Trip_tmpuni windowintersectsS[ attr(t,PeriodBox) ] sort rdup
     dataMCtrip gettuples
     projectextend[Moid; TripOdo:
-      length(.Trip atperiods attr(t,Period))]
+      round(length(.Trip atperiods attr(t,Period)),3)]
     filter[.TripOdo > 0]
     sortby[Moid asc]
-    groupby[Moid; Length: group feed sum[TripOdo])]
+    groupby[Moid; Length: group feed sum[TripOdo]]
   ]
-  groupby[Moid, Period; Dist: round(group feed max[Length], 3)]
+  groupby[Moid, Period; Dist: group feed max[Length]]
   project[Period, Dist]
   sortby[Period, Dist]
 consume;
@@ -377,7 +377,7 @@ let TBACRres011 =
   ]
   loopjoin[dataMCcar_Moid_btree dataMCcar exactmatch[.Moid] project[Licence]]
   projectextend[; Id: .Id_PP,  Instant: .Instant_II, Licenc: .Licence]
-  sortby[Id, Instant, Licence]
+  sortby[Id, Instant, Licenc]
   consume;
 
 query now();
@@ -436,7 +436,7 @@ let TBACRres013 =
     ]
     project[Moid] sort rdup
     loopjoin[dataMCcar_Moid_btree dataMCcar exactmatch[.Moid] project[Licence]]
-    projectextend[;Id_r: attr(t,Id_RR), Period: attr(t,Period_PP), Licence: .Licence]
+    projectextend[;Licence: .Licence, Id_r: attr(t,Id_RR), Period: attr(t,Period_PP)]
   ]
   sortby[Licence, Id_r, Period]
   consume;
@@ -463,9 +463,10 @@ let TBACRres014 =
     ]
     project[Moid] sort rdup
     loopjoin[dataMCcar_Moid_btree dataMCcar exactmatch[.Moid] project[Licence]]
-    projectextend[;Id: attr(t,Id_RR), Instant: attr(t,Instant_II), Licence: .Licence]
+    projectextend[; Licence: .Licence, Id: attr(t,Id_RR), Instant: attr(t,Instant_II)]
   ]
-sortby[Licence, Id, Instant]
+sortby[Id, Instant, Licence]
+krdup[Id, Instant, Licence]
   consume;
 
 query now();

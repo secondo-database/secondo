@@ -82,6 +82,7 @@ let TBANres003 =
   QueryInstant1 feed {i}
   symmjoin [.Trip present ..Instant_i]
   projectextend[Instant_i, Licence_ll; Pos: val(.Trip atinstant .Instant_i)]
+  sortby[Instant_i, Licence_ll]
 consume;
 
 query now();
@@ -94,9 +95,10 @@ query now();
 ################################################################################
 
 let TBANres004 =
-  QueryPointsNet feed projectextend[Id; Elem: gpoint2rect(.Pos)]
+  QueryPointsNet feed projectextend[Id, Pos; Elem: gpoint2rect(.Pos)]
   loopjoin[dataMNtrip_TrajBoxNet windowintersectsS[.Elem]
   sort rdup dataMNtrip gettuples]
+  filter[.Trip passes .Pos]
   project [Moid, Id]
   loopsel[fun(t:TUPLE) dataMcar_Moid_btree dataMcar exactmatch[attr(t, Moid)]
   projectextend[Licence; Id: attr(t,Id)]]
@@ -136,7 +138,7 @@ let TBANres005 =
   ]
   projectextend[Licence; Trax: gline2line(.Traxj)]{c2}
   product
-  projectextend [Licence_c1, Licence_c2; Distance: distance(.Trax_c1, .Trax_c2)]
+  projectextend [Licence_c1, Licence_c2; Distance: round(distance(.Trax_c1, .Trax_c2),3)]
   sortby[Licence_c1, Licence_c2]
 consume;
 
@@ -189,6 +191,7 @@ let TBANres007tmp1 =
   projectextend[Id, Pos; Prect: gpoint2rect(.Pos)]
   loopsel[fun(t:TUPLE) dataMNtrip_TrajBoxNet windowintersectsS[attr(t,Prect)]
   sort rdup dataMNtrip gettuples
+  filter[.Trip passes (attr(t,Pos))]
   loopjoin[dataMcar_Moid_btree dataMcar exactmatch [.Moid]
   filter[.Type = "passenger"]
   project[Licence] {X}]
@@ -256,7 +259,7 @@ let TBANres009 =
   sortby [Id_p asc, Moid_c asc, Distance desc]
   groupby[Id_p, Period_p, Moid_c; Dist: group feed sum[Distance]]
   groupby[Id_p, Period_p; Dista: round(group feed max[Dist],3)]
-  filter[Dista > 0.0]
+  filter[.Dista > 0.0]
   project[Period_p, Dista]
   sortby[Period_p, Dista]
 consume;
@@ -324,6 +327,7 @@ let TBANres011 =
   product
   loopsel[fun(t:TUPLE) dataMNtrip_BoxNet_timespace windowintersectsS[box3d(attr(t,Prect_p), attr(t,Instant_i))]
   sort rdup dataMNtrip gettuples
+  filter[.Trip passes (attr(t,Pos_p))]
   projectextend [Moid; Id: attr(t,Id_p), Instant: attr(t,Instant_i)]]{a}
   loopjoin[dataMcar_Moid_btree dataMcar exactmatch[.Moid_a]]
   project[Id_a, Instant_a, Licence]
@@ -347,6 +351,7 @@ let TBANres012tmp1 =
   projectextend [Id_p, Pos_p, Instant_i; Box: box3d(.Prect_p, .Instant_i)]
   loopsel[fun(t:TUPLE) dataMNtrip_BoxNet_timespace windowintersectsS[attr(t,Box)]
   sort rdup dataMNtrip gettuples
+  filter[.Trip passes (attr(t,Pos_p))]
   projectextend [Moid; Id: attr(t,Id_p), Instant: attr(t,Instant_i)]]{a}
   loopjoin[dataMcar_Moid_btree dataMcar exactmatch[.Moid_a]]
   projectextend[Moid, Licence; Id: .Id_a, Instant: .Instant_a]
@@ -384,8 +389,8 @@ let TBANres013 =
   symmjoin [.Trip present ..Period_p]
   loopjoin [dataMcar_Moid_btree dataMcar exactmatch[.Moid_c]]
   project[Licence, Id_r, Period_p]
-  sortby [Id_r asc, Period_p asc, Licence asc]
-  krdup [Id_r, Period_p, Licence]
+  sortby [ Licence asc, Id_r asc, Period_p asc]
+  krdup [ Licence, Id_r, Period_p]
 consume;
 
 query now();
@@ -490,9 +495,10 @@ query now();
 
 let TBANres017tmp1 =
   QueryPointsNet feed
-  projectextend[Id; Elem: gpoint2rect(.Pos)]
+  projectextend[Id, Pos; Elem: gpoint2rect(.Pos)]
   loopsel[fun(t:TUPLE) dataMNtrip_TrajBoxNet windowintersectsS[attr(t,Elem)]
   sort rdup dataMNtrip gettuples
+  filter [.Trip passes (attr(t,Pos))]
   projectextend [Moid; Id_p: attr(t,Id)]]
   sortby [Id_p asc, Moid asc]
   krdup[Id_p, Moid]

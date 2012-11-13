@@ -115,7 +115,7 @@ let OBACRres005 = OBACRres005tmp1 feed {V1} OBACRres005tmp2 feed {V2}
   product
   projectextend[ ; Licence1: .Licence_V1,
     Licence2: .Licence_V2,
-    Dist: distance(.Traj_V1, .Traj_V2)]
+    Dist: round(distance(.Traj_V1, .Traj_V2),3)]
   sort rdup consume;
 
 query now();
@@ -216,7 +216,7 @@ let OBACRres009 =
   QueryPeriods feed {PP}
   product
   projectextend[Id_PP ; Period: .Period_PP, D:
-    length(.Journey_V1 atperiods .Period_PP)]
+    round(length(.Journey_V1 atperiods .Period_PP),3)]
   sortby[Id_PP, Period, D desc]
   groupby[ Id_PP, Period; Dist: group feed max[D]]
   project[Period, Dist] consume;
@@ -431,7 +431,7 @@ let OBACRres016tmp1 = QueryLicences feed head[10]
 
 query now();
 
-let OBACRres016Ctmp2 = QueryLicences feed head[20] filter[.Id > 10]
+let OBACRres016tmp2 = QueryLicences feed head[20] filter[.Id > 10]
   loopsel[ fun(t:TUPLE)
     dataSCcar_Licence_btree dataSCcar exactmatch[attr(t,Licence)]]
   QueryPeriods feed head[10] {PP}
@@ -455,9 +455,8 @@ let OBACRres016 =
   projectextend[; Licence1: .Licence_C1,
     Licence2: .Licence_C2, Region:
     .Region_RR_C1, Period: .Period_PP_C1, Id_RR:
-    .Id_RR_C1, Id_PP: .Id_PP_C1
-  ]
-  sortby[Id_RR, Id_PP, Licence1, Licence2]
+    .Id_RR_C1]
+  sortby[Id_RR, Period, Licence1, Licence2]
   project[Id_RR, Period, Licence1, Licence2] consume;
 
 query now();

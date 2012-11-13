@@ -95,6 +95,7 @@ let OBANres004 =
   QueryPointsNet feed projectextend[Id, Pos; Prect: gpoint2rect(.Pos)]
   loopjoin[dataSNcar_TrajBoxNet windowintersectsS[.Prect]
   sort rdup dataSNcar gettuples]
+  filter [.Trip passes .Pos]
   project [Id, Licence]
   sortby [Id asc, Licence asc]
   krdup [Id, Licence]
@@ -129,7 +130,7 @@ let OBANres005 =
 OBANres005tmp1 feed {c1}
 OBANres005tmp2 feed {c2}
   product
-  projectextend [Licence_c1, Licence_c2; Distance: distance(.TrajLine_c1, .TrajLine_c2)]
+  projectextend [Licence_c1, Licence_c2; Distance: round(distance(.TrajLine_c1, .TrajLine_c2),3)]
   sortby[Licence_c1, Licence_c2]
 consume;
 
@@ -219,7 +220,7 @@ let OBANres008 =
   loopsel [dataSNcar_Licence_btree dataSNcar exactmatch [.Licence_l]]
   QueryPeriods1 feed filter[not(isempty(.Period))] {p}
   product
-  projectextend [Licence, Period_p; Distance: length(.Trip atperiods .Period_p)]
+  projectextend [Licence, Period_p; Distance: round(length(.Trip atperiods .Period_p),3)]
   sortby[Licence, Period_p]
 consume;
 
@@ -236,7 +237,7 @@ let OBANres009 =
   dataSNcar feed {c}
   QueryPeriods feed filter[not(isempty(.Period))]{p}
   product
-  projectextend [Id_p, Period_p, Licence_c; Dist: length(.Trip_c atperiods .Period_p)]
+  projectextend [Id_p, Period_p, Licence_c; Dist: round(length(.Trip_c atperiods .Period_p),3)]
   sortby [Id_p asc, Period_p asc, Dist desc]
   groupby [Id_p, Period_p; Distance: group feed max[Dist]]
   project[Id_p, Period_p, Distance]
@@ -283,9 +284,10 @@ let OBANres011 =
   QueryInstant1 feed {i}
   QueryPoints1Net feed projectextend[Id, Pos; Prect: gpoint2rect(.Pos)]{p}
   product
-  projectextend[Id_p, Instant_i; Box: box3d(.Prect_p, .Instant_i)]
+  projectextend[Id_p, Pos_p, Instant_i; Box: box3d(.Prect_p, .Instant_i)]
   loopsel[fun(t:TUPLE) dataSNcar_BoxNet_timespace windowintersectsS[attr(t,Box)]
   sort rdup dataSNcar gettuples
+  filter [.Trip passes (attr(t,Pos_p))]
   projectextend [Licence; Id: attr(t,Id_p), Instant: attr(t,Instant_i)]]
   sortby[Id, Licence,  Instant]
 consume;
@@ -305,6 +307,7 @@ let OBANres012tmp1 =
   product
   loopsel[fun(t:TUPLE) dataSNcar_BoxNet_timespace windowintersectsS[box3d(attr(t,Prect_p), attr(t,Instant_i))]
   sort rdup dataSNcar gettuples
+  filter [.Trip passes (attr(t,Pos_p))]
   projectextend [Licence; Id_p: attr(t,Id_p), Pos_p: attr(t,Pos_p), Instant_i: attr(t,Instant_i)]]
   sortby [Id_p asc, Instant_i asc, Licence asc]
 consume;
@@ -426,6 +429,7 @@ let OBANres016 =
   filter [.Licence_a # .Licence_b]
   filter[not(.Trip_a intersects .Trip_b)]
   project [Id_r_a, Period_p_a, Licence_a, Licence_b]
+  sortby[Id_r_a, Period_p_a, Licence_a, Licence_b]
 consume;
 
 query now();

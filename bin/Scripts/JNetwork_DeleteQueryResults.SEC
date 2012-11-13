@@ -17,7 +17,7 @@ delete OBAJNres014;
 delete OBAJNres015;
 delete OBAJNres016;
 delete OBAJNres017;
-delete QUERYRUNTIMES_JNETWOK_OBA;
+delete QRT_JNET_OBA;
 
 delete TBAJNres001;
 delete TBAJNres002;
@@ -36,7 +36,7 @@ delete TBAJNres014;
 delete TBAJNres015;
 delete TBAJNres016;
 delete TBAJNres017;
-delete QUERYRUNTIMES_JNETWOK_TBA;
+delete QRT_JNET_TBA;
 
 close database;
 quit;

@@ -82,6 +82,7 @@ let TBAJNres003 =
   QueryInstant1 feed {i}
   symmjoin [.Trip present ..Instant_i]
   projectextend[Instant_i, Licence_ll; Pos: val(.Trip atinstant .Instant_i)]
+  sortby[Instant_i, Licence_ll]
 consume;
 
 query now();
@@ -95,8 +96,11 @@ query now();
 
 let TBAJNres004 =
   QueryPointsJNetAll feed
-    projectextend[Id; Elem: netbox(.Pos)]
-    loopjoin[dataMJtrip_TrajBoxNet windowintersectsS[.Elem]
+    extend[Prect: netbox(.Pos)]
+    projectextend[Id, Pos; NBox: rectangle2(minD(.Prect,1), maxD(.Prect, 1),
+                                            minD(.Prect,2) - 0.00001,
+                                            maxD(.Prect,2) + 0.00001)]
+    loopjoin[dataMJtrip_TrajBoxNet windowintersectsS[.NBox]
              sort rdup dataMJtrip gettuples]
   project [Moid, Id]
   loopsel[fun(t:TUPLE)
@@ -138,7 +142,7 @@ let TBAJNres005 =
   ]
   projectextend[Licence; Trax: fromnetwork(.Traxj)]{c2}
   product
-  projectextend [Licence_c1, Licence_c2; Distance: distance(.Trax_c1, .Trax_c2)]
+  projectextend [Licence_c1, Licence_c2; Distance: round(distance(.Trax_c1, .Trax_c2),3)]
   sortby[Licence_c1, Licence_c2]
 consume;
 
@@ -170,8 +174,9 @@ query now();
 let TBAJNres006 =
   TBAJNres006tmp1 feed {c1}
   TBAJNres006tmp1 feed {c2}
-  symmjoin[(.Box_c1 intersects ..Box_c2) and (.Licence_c1 < ..Licence_c2)]
-  filter [everNearerThan(.Ptrip_c1, .Ptrip_c2, 10.0)]
+  symmjoin[((.Box_c1 intersects ..Box_c2) and
+            (.Licence_c1 < ..Licence_c2)) and
+           (everNearerThan(.Ptrip_c1, ..Ptrip_c2, 10.0))]
   project [Licence_c1, Licence_c2]
   sortby [Licence_c1 asc, Licence_c2 asc]
   krdup [Licence_c1, Licence_c2]
@@ -193,13 +198,17 @@ query now();
 
 let TBAJNres007tmp1 =
   QueryPointsJNetAll feed
-  projectextend[Id, Pos; Prect: netbox(.Pos)]
-  loopsel[fun(t:TUPLE) dataMJtrip_TrajBoxNet windowintersectsS[attr(t,Prect)]
+  extend[Prect: netbox(.Pos)]
+  projectextend[Id, Pos; NBox: rectangle2(minD(.Prect,1), maxD(.Prect, 1),
+                                            minD(.Prect,2) - 0.00001,
+                                            maxD(.Prect,2) + 0.00001)]
+  loopsel[fun(t:TUPLE) dataMJtrip_TrajBoxNet windowintersectsS[attr(t,NBox)]
   sort rdup dataMJtrip gettuples
   loopjoin[dataMcar_Moid_btree dataMcar exactmatch [.Moid]
   filter[.Type = "passenger"]
   project[Licence] {X}]
   projectextend[ Licence_X;TimeAtPos: inst(initial(.Trip at attr(t,Pos))), Id: attr(t, Id)]]
+  filter[not(isempty(.TimeAtPos))]
   sortby [Id asc, TimeAtPos asc]
 consume;
 
@@ -209,8 +218,7 @@ let TBAJNres007 =
   TBAJNres007tmp1 feed
     groupby [Id; FirstTime: group feed min[TimeAtPos]]{b}
   TBAJNres007tmp1 feed {a}
-  symmjoin[(..Id_a = .Id_b)]
-  filter[.TimeAtPos_a <= .FirstTime_b]
+  symmjoin[(..Id_a = .Id_b) and (..TimeAtPos_a <= .FirstTime_b)]
   project [Id_a, Licence_X_a]
   sortby [Id_a asc, Licence_X_a asc]
   krdup [Id_a, Licence_X_a]
@@ -324,9 +332,13 @@ query now();
 
 let TBAJNres011 =
   QueryInstant1 feed {i}
-  QueryPoints1JNetAll feed projectextend[Id, Pos; Prect: netbox(.Pos)]{p}
+  QueryPoints1JNetAll feed
+    extend[Prect: netbox(.Pos)]
+    projectextend[Id, Pos; NBox: rectangle2(minD(.Prect,1), maxD(.Prect, 1),
+                                            minD(.Prect,2) - 0.00001,
+                                            maxD(.Prect,2) + 0.00001)]{p}
   product
-  loopsel[fun(t:TUPLE) dataMJtrip_BoxNet_timespace windowintersectsS[box3d(attr(t,Prect_p), attr(t,Instant_i))]
+  loopsel[fun(t:TUPLE) dataMJtrip_BoxNet_timespace windowintersectsS[box3d(attr(t,NBox_p), attr(t,Instant_i))]
   sort rdup dataMJtrip gettuples
   projectextend [Moid; Id: attr(t,Id_p), Instant: attr(t,Instant_i)]]{a}
   loopjoin[dataMcar_Moid_btree dataMcar exactmatch[.Moid_a]]
@@ -345,10 +357,14 @@ query now();
 ################################################################################
 
 let TBAJNres012tmp1 =
-  QueryPoints1JNetAll feed projectextend[Id, Pos; Prect: netbox(.Pos)]{p}
+  QueryPoints1JNetAll feed
+    extend[Prect: netbox(.Pos)]
+    projectextend[Id, Pos; NBox: rectangle2(minD(.Prect,1), maxD(.Prect, 1),
+                                            minD(.Prect,2) - 0.00001,
+                                            maxD(.Prect,2) + 0.00001)]{p}
   QueryInstant1 feed {i}
   product
-  projectextend [Id_p, Pos_p, Instant_i; Box: box3d(.Prect_p, .Instant_i)]
+  projectextend [Id_p, Pos_p, Instant_i; Box: box3d(.NBox_p, .Instant_i)]
   loopsel[fun(t:TUPLE) dataMJtrip_BoxNet_timespace windowintersectsS[attr(t,Box)]
   sort rdup dataMJtrip gettuples
   projectextend [Moid; Id: attr(t,Id_p), Instant: attr(t,Instant_i)]]{a}
@@ -386,10 +402,12 @@ let TBAJNres013 =
   projectextend[Moid_c, Id_r; Trip: .Trip_c at .Region_r]
   QueryPeriods1 feed filter[not(isempty(.Period))]{p}
   symmjoin [.Trip present ..Period_p]
+  projectextend[Moid_c, Id_r, Period_p; TripA: .Trip atperiods .Period_p]
+  filter[not(isempty(.TripA))]
   loopjoin [dataMcar_Moid_btree dataMcar exactmatch[.Moid_c]]
   project[Licence, Id_r, Period_p]
-  sortby [Id_r asc, Period_p asc, Licence asc]
-  krdup [Id_r, Period_p, Licence]
+  sortby [Licence asc, Id_r asc, Period_p asc]
+  krdup [Licence, Id_r, Period_p]
 consume;
 
 query now();
@@ -429,10 +447,14 @@ query now();
 ################################################################################
 
 let TBAJNres015 =
-  QueryPoints1JNetAll feed projectextend [Id, Pos; Prect: netbox(.Pos)] {p}
+  QueryPoints1JNetAll feed
+    extend[Prect: netbox(.Pos)]
+    projectextend[Id, Pos; NBox: rectangle2(minD(.Prect,1), maxD(.Prect,1),
+                                            minD(.Prect,2) - 0.00001,
+                                            maxD(.Prect,2) + 0.00001)] {p}
   QueryPeriods1 feed filter[not(isempty(.Period))]{t}
   product
-  loopsel[fun(t:TUPLE) dataMJtrip_BoxNet_timespace windowintersectsS[box3d(attr(t,Prect_p), attr(t,Period_t))]
+  loopsel[fun(t:TUPLE) dataMJtrip_BoxNet_timespace windowintersectsS[box3d(attr(t,NBox_p), attr(t,Period_t))]
   sort rdup dataMJtrip gettuples
   filter[(.Trip atperiods (attr(t,Period_t))) passes (attr(t,Pos_p))]
   projectextend [Moid;Period: attr(t,Period_t), Id: attr(t,Id_p)]]{a}
@@ -497,8 +519,11 @@ query now();
 
 let TBAJNres017tmp1 =
   QueryPointsJNetAll feed
-  projectextend[Id; Elem: netbox(.Pos)]
-  loopsel[fun(t:TUPLE) dataMJtrip_TrajBoxNet windowintersectsS[attr(t,Elem)]
+   extend[Prect: netbox(.Pos)]
+    projectextend[Id, Pos; NBox: rectangle2(minD(.Prect,1), maxD(.Prect, 1),
+                                            minD(.Prect,2) - 0.00001,
+                                            maxD(.Prect,2) + 0.00001)]
+  loopsel[fun(t:TUPLE) dataMJtrip_TrajBoxNet windowintersectsS[attr(t,NBox)]
   sort rdup dataMJtrip gettuples
   projectextend [Moid; Id_p: attr(t,Id)]]
   sortby [Id_p asc, Moid asc]
@@ -524,7 +549,7 @@ delete TBAJNres017tmp1;
 #                                                                              #
 ################################################################################
 
-let QUERYRUNTIMES_JNETWORK_TBA = SEC2COMMANDS feed  consume;
+let QRT_JNET_TBA = SEC2COMMANDS feed  consume;
 
 # save EVAL_SEC2COMMANDS_NETTBA to 'NetworkTBANNNRunTimesRunX.DAT';
 
