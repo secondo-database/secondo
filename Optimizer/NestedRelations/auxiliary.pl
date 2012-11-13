@@ -232,13 +232,13 @@ display([Rel, [tuple, Attrs]], Tuples) :-
   max_attr_length(Attrs, AttrLength),
   displayTuples(Attrs, Tuples, AttrLength).
 
-% NVK ADDED: Support for nested relations.
+% NVK ADDED NR: Support for nested relations.
 display([Rel, [tuple, Attrs]], Tuples) :-
   nr_display([Rel, [tuple, Attrs]], Tuples),
   !.
 
-% i just write the terms to stdout, mainly to avoid 
-% the 'There is no specific display'... message.
+% Just write the terms to stdout to avoid the 'There is no specific display'
+% message.
 display(upoint, UPoint) :-
   write_term(UPoint, []),
   !.

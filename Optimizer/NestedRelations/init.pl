@@ -15,17 +15,12 @@ initNR :-
 		assertz(optDebugLevel(nr))
 	),
 
-	% This must always be available, otherwiese loading the optimizer.pl will
-	% display some errors(because, of course, prolog does not know what to do
-	% this these 'operators').
-	op(799, xfx, unnest),
-	op(799, xfx, nest),
-
 	% Note that this files must be loaded, regardless if the nestedRelations 
-	% is enabled or not.
+	% option is enabled or not.
 	['nr.pl'],
 	['nr_auxiliary.pl'],
 
+	['nvkutil.pl'],
 	['util.pl'],
 	['tutil.pl'],
 	['test.pl'].
@@ -40,9 +35,27 @@ loadNR :-
 	; 
 		setOption(subqueries)
 	),
-	%delOption(subqueries)
-	% This is not implemented and not checked how nested relations affect
+ 	delOption(determinePredSig), % incompatible
+	% This is not implemented and not checked how nested relations affects
 	% the subquery unnesting capabilities.
-	delOption(subqueryUnnesting).
+	delOption(subqueryUnnesting),
+	nrSelfCheck.
+
+nrSelfCheck :-
+	nrOKOpts(List),
+	optimizerOption(X),
+	\+ member(X, List),
+	write_list(['\nNestedRelations: Warning: Option ', X, 
+		' may be incompatible.']), nl,
+	sleep(5),
+	fail.
+
+nrSelfCheck :-
+	!.
+
+nrOKOpts([nestedRelations, subqueries, debug, autosave, autoSamples, standard,
+	noHashjoin]).
+
+knownAsIncompatible([determinePredSig, subqueryUnnesting, memoryAllocation]).
 
 % eof

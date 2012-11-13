@@ -2063,6 +2063,18 @@ opSignature(sortmergejoin,extrelation,[[stream,[tuple,X]],
 opSignature(hashjoin,extrelation,[[stream,[tuple,X]],
         [stream,[tuple,Y]],XA,YA,int],[stream,[tuple,R]],[join,block]) :-
   memberchk([XA,T],X),memberchk([YA,T],X),append(X,Y,R), !.
+
+% NVK ADDED MA
+opSignature(gracehashjoin,extrelation,[[stream,[tuple,X]],
+        [stream,[tuple,Y]],XA,YA,int],[stream,[tuple,R]],[join]) :-
+  memberchk([XA,T],X),memberchk([YA,T],X),append(X,Y,R), !.
+opSignature(hybridhashjoin,extrelation,[[stream,[tuple,X]],
+        [stream,[tuple,Y]],XA,YA,int],[stream,[tuple,R]],[join]) :-
+  memberchk([XA,T],X),memberchk([YA,T],X),append(X,Y,R), !.
+opSignature(itHashJoin,extrelation,[[stream,[tuple,X]],
+        [stream,[tuple,Y]],XA,YA,int],[stream,[tuple,R]],[join]) :-
+  memberchk([XA,T],X),memberchk([YA,T],X),append(X,Y,R), !.
+% NVK ADDED MA END
 opSignature(loopjoin, extrelation, [[stream,[tuple,X]],
         [map,[tuple,X],[stream,[tuple,Y]]]],[stream,[tuple,R]],[join]) :-
   append(X,Y,R), !.

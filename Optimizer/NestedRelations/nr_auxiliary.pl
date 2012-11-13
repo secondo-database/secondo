@@ -2,14 +2,14 @@
 $Header$
 @author Nikolai van Kempen
 
-Following some stuff used from auxiliary.pl to display nrel in the way
+Following some stuff used from auxiliary.pl to display nrel types in the way
 it is done within the SecondoBDB.
 
 */
 
 
 /*
-This is now for nested relations. Like the algebra display function we add 4 blank when we go into a nested relation.
+This is now for nested relations. Like the algebra display function 4 blanks are added when the predicate runs into a arel relation.
 */
 max_attr_length_nrel([], _, R, R).
 
@@ -25,7 +25,7 @@ max_attr_length_nrel([[Name, Type] | AttrDescription], Deep, IN, OUT) :-
       OUT2=IN
   ),
   max_attr_length_nrel(AttrDescription, Deep, OUT2, M1OUT),
-  % NVK NOTE: The arel attribute name himself is not indended.
+  % NVK NOTE: The arel attribute name is not indended.
   atom_length(Name, M2),
   % Unfortunately this is a little bit nasty, but every nested relation 
   % within the deep x should be layouted at the same position.
@@ -41,8 +41,7 @@ setx([A|REST], Deep, T, [A|OUT]) :-
   setx(REST, NewDeep, T, OUT).
 
 /* 
-  For nrel's we want to do the same thing as the what the display 
-  predicate does.
+For nrel types the same thing is done as by the display predicate.
 */
 nr_pretty_print([[nrel, [tuple, AttrDescription]], Tuples]) :-
   display([[nrel, [tuple, AttrDescription]], Tuples]).
@@ -72,7 +71,7 @@ makeIncreasingList([A,B|Rest],[A,D|Rest2]) :-
   makeIncreasingList([C|Rest],[D|Rest2]).
 
 /* 
- Display function for nested relations, kept here separated, too. But if wanted, this could handle the usual rel/trel case as well.
+Display function for nested relations, kept here separated, too. But if needed, this could handle the usual rel/trel case as well.
 */
 displayTuplesNrel(_, _, [], _).
 
@@ -87,7 +86,8 @@ displayTuplesNrel(Attrs, Deep, [Tuple | Rest], AttrLength) :-
 
 displayTupleNrel([], _, _, _).
 
-displayTupleNrel([[Name, Type] | Attrs], Deep, [Value | Values], [AttrNameLength|RestLength]) :-
+displayTupleNrel([[Name, Type] | Attrs], Deep, [Value | Values], 
+		[AttrNameLength|RestLength]) :-
   atom_length(Name, NLength),
   PadLength is (Deep * 4) + (AttrNameLength - NLength),
   write_spaces(PadLength),
@@ -96,7 +96,7 @@ displayTupleNrel([[Name, Type] | Attrs], Deep, [Value | Values], [AttrNameLength
   ( Type = [arel,[tuple,ArelDef]]
     -> nl,
       NewDeep is Deep + 1,
-      % Note: The first element is a internal pointer used by the 
+      % Note: The first element is a internal reference used by the 
       % nested relation algebra.
       Value = [_|DValue],
       displayTuplesNrel(ArelDef, NewDeep, DValue, RestLength)

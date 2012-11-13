@@ -114,18 +114,11 @@ simple(attr(Attr, Index, _), RelList, rel(RelT, Var):Attr2) :-
   optimizerOption(nestedRelations),
   (Index=0 -> I2=1 ; I2 is Index),
   memberchk((I2,rel(RelT, Var)),RelList),
-  RelT=..[relsubquery|_],
-  downcaseAttributeList(Attr, Attr2), !.
-simple(attr(Attr, Index, _), RelList, rel(RelT, Var):Attr2) :-
-  optimizerOption(nestedRelations),
-  (Index=0 -> I2=1 ; I2 is Index),
-  memberchk((I2,rel(RelT, Var)),RelList),
-  RelT=..[arel|_],
+  RelT=..[irrel|_],
   downcaseAttributeList(Attr, Attr2), !.
 
 simple(rel(RelT, Var), _, rel(RelT, Var)) :-
-  RelT=..[Functor|_],
-  member(Functor, [arel, relsubquery]).
+  RelT=..[irrel|_].
 simple(attr(Var:Attr, 0, _), RelList, Rel2:Attr2) :-
   optimizerOption(nestedRelations),
   memberchk((1,rel(Rel, Var)),RelList),
@@ -295,14 +288,22 @@ sampleNameSmall(Name, Small) :-
 
 % NVK ADDED
 feedOp(RelT, afeed) :-
-  assertion(ground(RelT)),
   RelT = rel(Term, _),
-  Term =.. [arel|_], !.
+	compound(Term),
+  Term =.. [irrel,arel|_], 
+	!.
 
-feedOp(Rel, feed) :-
-  assertion(ground(Rel)),
-  Rel \= rel(_:_, _), !.
+feedOp(_RelT, feed) :-
+	!.
+/*
+feedOp(RelT, afeed) :-
+  RelT = rel(Term, _),
+  Term =.. [irrel,arel|_], !.
 
+feedOp(RelT, feed) :-
+  RelT = rel(Term, _),
+  \+ Term =.. [irrel,arel|_], !.
+*/
 possiblyRename(Rel, Renamed) :-
   optimizerOption(nestedRelations),
   Rel = rel(_, *),
@@ -1156,40 +1157,17 @@ selectivity(P, Sel, CalcPET, ExpPET) :-
 
 /*
 NVK ADDED NR
-Currently for nested relation related queries, selectivity estimation and 
-PET's are faked.
 */
 selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   optimizerOption(nestedRelations),
-  % Recognize if it is the nested relations case
-  nrRel(pr(Pred, Rel1, Rel2)),
-  dm(nr, ['\nFake nestedRelation selectivity, pred: ', Pred]),
-  simplePred(pr(Pred, Rel1, Rel2), PSimple),
-  Sel=0.1,
-  CalcPET=0.1,
-  ExpPET=0.1,
-  databaseName(DB),
-  % unfortunately it is still necessary to store this faked results.
-  assert(storedPET(DB, PSimple, CalcPET, ExpPET)),
-  assert(storedSel(DB, PSimple, Sel)),
-  !.
+	nrSelectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET),
+	!.
 
 selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   optimizerOption(nestedRelations),
-  % Recognize if it is the nested relations case
-  nrRel(pr(Pred, Rel)),
-  dm(nr, ['\nFake nestedRelation selectivity, pred: ', Pred]),
-  simplePred(pr(Pred, Rel), PSimple),
-  Sel=0.1,
-  CalcPET=0.1,
-  ExpPET=0.1,
-  databaseName(DB),
-  % unfortunately it is still necessary to store this faked results.
-  assert(storedPET(DB, PSimple, CalcPET, ExpPET)),
-  assert(storedSel(DB, PSimple, Sel)),
-  !.
+	nrSelectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET),	
+	!.
 % NVK ADDED NR END
-
 
 % query for join-selectivity (static samples case)
 selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-

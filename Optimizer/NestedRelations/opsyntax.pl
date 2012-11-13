@@ -60,9 +60,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 %:- op(200, xfx, :).
 % NVK MODIFIED for nested relations support
 % With xfy tests for nested relation like A:_ and X:Y:_ are supported.
-% But note: (a:b):c is not valid. We use now the : like a list, hence a
-% predicate like the append for lists is needed to add a attribute to a existing
-% x:y term is needed.
+% But note: (a:b):c is not valid. The : is used like a list, hence a
+% predicate like the append/3 for lists is needed to add a attribute to a
+% existing x:y term.
 :- op(200, xfy, :).
 % NVK MODIFIED END
 :- op(800, xfx, =>).
@@ -121,8 +121,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, when).
  
 % NVK ADDED NR 
-:- op(799, xfx, unnest),
-   op(799, xfx, nest).
+:- op(799, yfx, unnest),
+   op(799, yfx, nest).
 % NVK ADDED NR END
 
 
@@ -318,11 +318,12 @@ secondoOp( exactmatchS,       postfixbrackets, 1).
 secondoOp( export,            postfix, 1).
 secondoOp( extattrsize,       postfixbrackets, 1).
 secondoOp( extend,            postfixbrackets, 1).
-%secondoOp( extendstream,      special, 1). NVK REMOVED because there is no such rule.
+%secondoOp( extendstream,      special, 1). NVK REMOVED because there is no such rule?!?. Added below with the type postfixbrackets.
 secondoOp( extenddeftime,     prefix, 2).
 secondoOp( extract,           postfixbrackets, 1).
 secondoOp( exttuplesize,      postfix, 1).
 secondoOp( feed,              postfix, 1).
+secondoOp( units, 						prefix, 1).
 % NVK ADDED NR
 secondoOp( afeed,             postfix, 1).
 secondoOp( aconsume,          postfix, 1).
@@ -331,6 +332,11 @@ secondoOp( unnest,            special, 1). % currently like postfixbrackets
 secondoOp( renameattr,        postfixbrackets, 1). % missing
 secondoOp( extendstream,      postfixbrackets, 1). % missing
 % NVK ADDED NR END
+% NVK ADDED MA
+secondoOp( gracehashjoin,     postfixbrackets, 2).
+secondoOp( hybridhashjoin,    postfixbrackets, 2).
+secondoOp( itHashJoin,        postfixbrackets, 2).
+% NVK ADDED MA END
 secondoOp( fileSize,          prefix,  1).
 secondoOp( filter,            postfixbrackets, 1).
 secondoOp( find,              prefix, 2).

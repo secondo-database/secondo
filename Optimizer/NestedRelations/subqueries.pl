@@ -108,7 +108,7 @@ correlated predicates.
 
 /*
 NVK ADDED NR
-Not anymore intended for top-level query lookup. See optimizer.pl#callLookup for further information. This exception thing is really annoying, this exceptions are raised during the query rewriting phase, because this happens before the lookup phase, so there are no variable bindings known. To fix this, i added some more predicates to identify subqueries directly without lookup, but it is still a workaround. This is based on the lookup(Query, _) predicates within the optimizer.pl, but i wrote this done just for the select queries, update/insert/delete queries are, of course, not allowed in subqueries. Keep in mind that there is now a difference between the lookup version, now there is no lookup performed anymore. But this should not be a problem because the places where isQuery is called are totally not interessted into the lookup results.
+Not anymore intended for top-level query lookup. See optimizer.pl#callLookup for further information. This exception thing is really annoying during debugging, the exceptions are raised during the query rewriting phase, because this happens before the lookup phase, so there are no outer variables etc. known. To fix this, i added some more predicates to identify subqueries directly without to call the lookup, but it is still a workaround. This is based on the lookup(Query, _) predicates within the optimizer.pl. 
 */
 isQuery(Query) :-
   optimizerOption(nestedRelations),
@@ -1113,7 +1113,7 @@ isAttributeOf(Var:Attr, Rel) :-
   optimizerOption(nestedRelations),
   atomic(Attr),
   downcase_atom(Attr, AttrDC),
-  findAttrLists(predicate, Var, RelX, AttrDesc),
+  findAttrLists(predicate, _SRCSQID, Var, RelX, AttrDesc),
   RelX=rel(Rel, _),
   nrSimpleFindAttribute(AttrDC, AttrDesc, _).
 
@@ -1121,7 +1121,7 @@ isAttributeOf(Attr, Rel) :-
   optimizerOption(nestedRelations),
   atomic(Attr),
   downcase_atom(Attr, AttrDC),
-  findAttrLists(predicate, *, RelX, AttrDesc),
+  findAttrLists(predicate, _SRCSQID, *, RelX, AttrDesc),
   RelX=rel(Rel, *),
   nrSimpleFindAttribute(AttrDC, AttrDesc, _).
 % NVK ADDED NR END
@@ -1595,11 +1595,8 @@ the plan_to_atom phase.
 newAlias(Var) :-
 	optimizerOption(nestedRelations),
   !,
-  newUniqueVar('alias', Var),
-  retractall(currentAlias(_)),
-  assert(currentAlias(Var)).
-
-:- dynamic(currentAlias/1).
+	getSubqueryCurrent(SQID), 
+	aliasBySQID(SQID, Var).
 % NVK ADDED NR END
 
 /*
@@ -1764,6 +1761,7 @@ lookupSubquery(any(Query), any(Query2)) :-
 
 lookupSubquery(select Attrs from Rels where Preds,
         select Attrs2 from Rels2List where Preds2List) :-
+	nrAssignAlias, % NVK ADDED NR
   lookupRelsDblCheck(Rels, Rels2),
   !,
   lookupAttrs(Attrs, Attrs2),
@@ -1776,6 +1774,7 @@ lookupSubquery(select Attrs from Rels where Preds,
 
 lookupSubquery(select Attrs from Rels,
         select Attrs2 from Rels2) :-
+	nrAssignAlias, % NVK ADDED NR
   lookupRelsDblCheck(Rels, Rels2), !,
   lookupAttrs(Attrs, Attrs2).
 
@@ -1794,6 +1793,7 @@ lookupSubquery(Query first N, Query2 first N) :-
 
 lookupSubquery(Query last N, Query2 last N) :-
   lookupSubquery(Query, Query2).
+
 
 /*
 
@@ -2124,7 +2124,8 @@ correlationRels(Query, OuterRels3) :-
   findall(ParentQueryRel, (
       member(Rel2, InnerRels),
       Rel2=rel(T, _),
-      T=..[arel|_],
+      %T=..[arel|_],
+      T=..[irrel,arel|_],
       toParentQueryRel(Rel2, ParentQueryRel)
     ), OuterRels2),
   append(OuterRels, OuterRels2, OuterRels3),
@@ -2142,13 +2143,14 @@ correlationRels(any(Query), OuterRels) :-
 
 /*
 NVK ADDED NR
-Note that this arel attribute can only come from the direct sorrounded query
+Note that this arel attribute can only come from the direct surrounded query
 because otherwiese the optimization strategy can't handle this case.
 The error that will occur then is that the pog creation fails.
 */
 toParentQueryRel(Rel, ParentQueryRel) :-
   Rel=rel(T, _),
-  T=..[arel, RelVar:_|_],
+  T=irrel(_, _, _, _, _, _, TypeSpec),
+	TypeSpec=arel(RelVar:_, _, _, _, _), 
   findBinding(RelVar, variable(RelVar, ParentQueryRel), _).
 % NVK ADDED NR END
 
@@ -2188,6 +2190,7 @@ removeCorrelatedPreds(Query first N, Query2 first N, Pred) :-
 removeCorrelatedPreds(Query last N, Query2 last N, Pred) :-
   removeCorrelatedPreds(Query, Query2, Pred).
 
+
 removeCorrelatedPreds(select Attrs from Rels where [], select Attrs from Rels, []) :-
   ground(Attrs),
   ground(Rels).
@@ -2198,6 +2201,10 @@ removeCorrelatedPreds(Select from Rels where [ Pred | Rest ], Query2, Correlated
   CorrelatedPreds1 = [ CorrelatedPred | CorrelatedRest ],
   flatten(CorrelatedPreds1, CorrelatedPreds),
   appendPred(Query, Pred2, Query2).
+
+% NVK ADDED NR
+removeCorrelatedPreds(select Attrs from Rels, select Attrs from Rels, []).
+% NVK ADDED NR END
 
 removeCorrelatedPred(Rels, pr(P, Rel), pr(P, Rel), []) :-
   member(Rel, Rels).
@@ -2835,6 +2842,12 @@ transformPlan1(feedproject(Rel, Attrs),
 transformPlan1(rel(Rel, Var), rel(Rel, Var), _) :-
   selectivityRel.
 
+% NVK ADDED NR
+% This is the case for arel access where there is no rel-term anymore available.
+transformPlan1(afeed(Rel), head(afeed(Rel), C), C) :-
+  selectivityRel.
+% NVK ADDED NR END
+
 transformPlan1([ Plan | Rest ], [Plan2 | Rest2], C) :-
   transformPlan1(Plan, Plan2, C),
   transformPlan1(Rest, Rest2, C).
@@ -2910,6 +2923,7 @@ extractStream(consume(StreamPlan), StreamPlan, QueryAttr) :-
   extractQueryAttr(StreamPlan, QueryAttr).
 
 % NVK ADDED NR
+% May still fail for tables or arel's with only one column.
 extractStream(aconsume(project(StreamPlan, QueryAttr)), StreamPlan, QueryAttr).
 extractStream(aconsume(StreamPlan), StreamPlan, QueryAttr) :-
   extractQueryAttr(StreamPlan, QueryAttr).
@@ -2944,9 +2958,9 @@ subquery_to_plan(Query, Plan3, T) :-
   transformAttrExpr(Select1, T, 2, Select2, []),
   Query2 =..[from, Select2, Where1],
   descendLevel,
-  putOptimizerState, % NVK ADDED
+  %putOptimizerState, % NVK ADDED
   queryToPlan(Query2, Plan, _), !,
-  restoreOptimizerState, % NVK ADDED
+  %restoreOptimizerState, % NVK ADDED
   ascendLevel,
   dm(subqueryDebug, ['\nPlan: ', Plan]),
   transformCorrelatedPreds(Rels, T, Preds, Preds2),
@@ -2960,7 +2974,7 @@ subquery_to_plan(Query, Plan2, _) :-
   descendLevel,
   queryToPlan(Query, Plan, _), !,
   ascendLevel,
-  transformPlan(Plan, Plan2),
+  ensure(transformPlan(Plan, Plan2)),
   dm(subqueryDebug, ['\nPlan2: ', Plan2]).
 
 % case subquery of join predicate, apply both names
@@ -3155,14 +3169,14 @@ subquery_plan_to_atom(Pred, Result) :-
   newTempRel(T2),
   streamName(T2),
   Query=subquery(SQID, _, _), % NVK ADDED
-  switchToSQID(SQID), 				% NVK ADDED
+  restoreSQID(SQID), 				% NVK ADDED
   subquery_to_plan(Query1, QueryPlan, T1, T2),
   transformAttrExpr(Attr, T1, 1, Attr3, []),
   transformAttrExpr(Attr3, T2, 2, Attr4, []),
   ResultPlan =.. [Op, Attr4, QueryPlan],
   dm(subqueryDebug, ['\nQueryPlan: ', QueryPlan]),
   plan_to_atom(fun([param(T1, tuple), param(T2, tuple2)], ResultPlan), Result),
-  setSQIDToPrevious(SQID), % NVK ADDED, don't know if this is really needed
+  setSQIDToPrevious(SQID), % NVK ADDED
   clearStreamName,
   clearStreamName,
   clearQuery(Query).
@@ -3187,7 +3201,7 @@ subquery_plan_to_atom(Pred, Result) :-
   newTempRel(T2),
   streamName(T2),
   Query=subquery(SQID, _, _), % NVK ADDED
-  switchToSQID(SQID), 				% NVK ADDED
+  restoreSQID(SQID), 				% NVK ADDED
   subquery_to_plan(Query1, QueryPlan, T1, T2),
   extractStream(QueryPlan, StreamPlan, QueryAttr),
   transformAttrExpr(Attr, T1, 1, Attr3, []),
@@ -3195,7 +3209,7 @@ subquery_plan_to_atom(Pred, Result) :-
   ResultPlan =.. [in, Attr4, collect_set(projecttransformstream(StreamPlan, QueryAttr))],
   dm(subqueryDebug, ['\nQueryPlan: ', QueryPlan]),
   plan_to_atom(fun([param(T1, tuple), param(T2, tuple2)], not(ResultPlan)), Result),
-  setSQIDToPrevious(SQID), % NVK ADDED, don't know if this is really needed
+  setSQIDToPrevious(SQID), % NVK ADDED
   clearStreamName,
   clearStreamName,
   clearQuery(Query).
@@ -3214,18 +3228,18 @@ subquery_plan_to_atom(Pred, Result) :-
   dm(subqueryDebug, ['\nAttr: ', Attr,
            '\nQuery: ', Query1, '\n\n\n\n']),
 %  newTempRel(T),
+  Query=subquery(SQID, _, _), % NVK ADDED
+  restoreSQID(SQID), 				% NVK ADDED
   newAlias(T),
   streamName(T),
 %  subquery_to_plan(Query, consume(project(StreamPlan, QueryAttr)), T),
-  Query=subquery(SQID, _, _), % NVK ADDED
-  switchToSQID(SQID), 				% NVK ADDED
   subquery_to_plan(Query1, QueryPlan, T),
   extractStream(QueryPlan, StreamPlan, QueryAttr),
   dm(subqueryDebug, ['\nStreamPlan: ', StreamPlan]),
   subquery_expr_to_plan(Attr, T, Attr2),
   ResultPlan =.. [in, Attr2, collect_set(projecttransformstream(StreamPlan, QueryAttr))],
   plan_to_atom(fun([param(T, tuple)], not(ResultPlan)), Result),
-  setSQIDToPrevious(SQID), % NVK ADDED, don't know if this is really needed
+  setSQIDToPrevious(SQID), % NVK ADDED
   clearStreamName,
   clearQuery(Query).
 
@@ -3241,11 +3255,11 @@ subquery_plan_to_atom(Pred, Result) :-
   dm(subqueryDebug, ['\nAttr: ', Attr,
            '\nQuery: ', Query, '\n\n\n\n']),
 %  newTempRel(T),
+  Query=subquery(SQID, _, _), % NVK ADDED
+  restoreSQID(SQID), 				% NVK ADDED
   newAlias(T),
   streamName(T),
 %  assert(firstStream(T)),
-  Query=subquery(SQID, _, _), % NVK ADDED
-  switchToSQID(SQID), 				% NVK ADDED
   subquery_to_plan(Query1, QueryPlan, T),
   % consume(project(StreamPlan, QueryAttr))
   extractStream(QueryPlan, StreamPlan, QueryAttr),
@@ -3253,7 +3267,7 @@ subquery_plan_to_atom(Pred, Result) :-
   subquery_expr_to_plan(Attr, T, Attr2),
   ResultPlan =.. [in, Attr2, collect_set(projecttransformstream(StreamPlan, QueryAttr))],
   plan_to_atom(fun([param(T, tuple)], ResultPlan), Result),
-  setSQIDToPrevious(SQID), % NVK ADDED, don't know if this is really needed
+  setSQIDToPrevious(SQID), % NVK ADDED
   clearStreamName,
   clearQuery(Query).
 
@@ -3274,16 +3288,16 @@ subquery_plan_to_atom(Pred, Result) :-
   dm(subqueryDebug, ['\nOp: ', Op,
            '\nAttr: ', Attr,
            '\nQuery: ', Query1]),
+  Query=subquery(SQID, _, _), % NVK ADDED
+  restoreSQID(SQID), 				% NVK ADDED
   newAlias(T),
   streamName(T),
-  Query=subquery(SQID, _, _), % NVK ADDED
-  switchToSQID(SQID), 				% NVK ADDED
   subquery_to_plan(Query1, QueryPlan, T),
   subquery_expr_to_plan(Attr, T, Attr2),
   dm(subqueryDebug, ['\nAttr2: ', Attr2]),
   ResultPlan =.. [Op, Attr2, QueryPlan],
   plan_to_atom(fun([param(T, tuple)], ResultPlan), Result),
-  setSQIDToPrevious(SQID), % NVK ADDED, don't know if this is really needed
+  setSQIDToPrevious(SQID), % NVK ADDED
   clearStreamName,
   clearQuery(Query).
 
@@ -3312,10 +3326,10 @@ subquery_plan_to_atom(Expr, Result) :-
   ground(Query2),
   dm(subqueryDebug, ['\nQuery2: ', Query2,
                      '\nCorrelatedPreds: ', Preds]),
+  Query=subquery(SQID, _, _), % NVK ADDED
+  restoreSQID(SQID), 				% NVK ADDED
   newAlias(T),
   streamName(T),
-  Query=subquery(SQID, _, _), % NVK ADDED
-  switchToSQID(SQID), 				% NVK ADDED
   subquery_to_plan(Query2, Plan, T),
   dm(subqueryDebug, ['\nPlan: ', Plan]),
   transformPreds(Preds, T, 2, Preds2),
@@ -3328,7 +3342,7 @@ subquery_plan_to_atom(Expr, Result) :-
   % NVK MODIFIED NR END
   dm(subqueryDebug, ['\nsubquery_plan_to_atom_Query2: ', Query3]),
   plan_to_atom(fun([param(T, tuple)], =(count(head(Query3, 1)), 1)), Result),
-  setSQIDToPrevious(SQID), % NVK ADDED, don't know if this is really needed
+  setSQIDToPrevious(SQID), % NVK ADDED NR
   dm(subqueryDebug, ['\nsubquery_plan_to_atom_QueryAtom: ', Result]),
   clearStreamName,
   clearQuery(Query).
@@ -3339,27 +3353,28 @@ case nested predicate with exists
 Case as above, but without a where clause.
 
 Note that this is currentliy only usefull if in the from clause a arel relation appears due to the optimization limitations.
+
+Imlemented exemplarily for the exists operators. This subquery_plan_to_atom thing should be generalized in some way...
 */
 subquery_plan_to_atom(Expr, Result) :-
+	optimizerOption(nestedRelations),
   ground(Expr),
   Expr =.. [exists, Query],
   extractQuery(Query, Query1),
   Query1 =.. [from, _, Where],
   \+ Where =.. [where | _],
-  %removeCorrelatedPreds(Query1, Query2, Preds), !,
   Query1=Query2,
   ground(Query2),
   dm(subqueryDebug, ['\nQuery2: ', Query2]),
+  Query=subquery(SQID, _, _), 
+  restoreSQID(SQID), 
   newAlias(T),
   streamName(T),
-  Query=subquery(SQID, _, _), % NVK ADDED
-  switchToSQID(SQID), % NVK ADDED
   subquery_to_plan(Query2, Plan, T),
   dm(subqueryDebug, ['\nPlan: ', Plan]),
   Plan=Plan2,
   Plan2=..[COp, Query3],
   member(COp, [consume, aconsume]),
-  % NVK MODIFIED NR END
   dm(subqueryDebug, ['\nsubquery_plan_to_atom_Query2: ', Query3]),
   plan_to_atom(fun([param(T, tuple)], =(count(head(Query3, 1)), 1)), Result),
   dm(subqueryDebug, ['\nsubquery_plan_to_atom_QueryAtom: ', Result]),
@@ -3380,10 +3395,10 @@ subquery_plan_to_atom(not(Expr), Result) :-
   ground(Query2),
   dm(subqueryDebug, ['\nQuery2: ', Query2,
                      '\nCorrelatedPreds: ', Preds]),
+  Query=subquery(SQID, _, _), % NVK ADDED
+  restoreSQID(SQID), % NVK ADDED
   newAlias(T),
   streamName(T),
-  Query=subquery(SQID, _, _), % NVK ADDED
-  switchToSQID(SQID), % NVK ADDED
   subquery_to_plan(Query2, Plan, T),
   dm(subqueryDebug, ['\nPlan: ', Plan]),
   transformPreds(Preds, T, 2, Preds2),
@@ -3396,7 +3411,7 @@ subquery_plan_to_atom(not(Expr), Result) :-
   % NVK MODIFIED NR END
   dm(subqueryDebug, ['\nsubquery_plan_to_atom_Query2: ', Query3]),
   plan_to_atom(fun([param(T, tuple)], not(=(count(head(Query3, 1)), 1))), Result),
-  setSQIDToPrevious(SQID), % NVK ADDED, don't know if this is really needed
+  setSQIDToPrevious(SQID), % NVK ADDED NR
   dm(subqueryDebug, ['\nsubquery_plan_to_atom_Result: ', Result]),
   clearStreamName,
   clearQuery(Query).
@@ -3418,10 +3433,10 @@ subquery_plan_to_atom(rightrange(Arg1, Arg2, Query), Result) :-
   Query1 =.. [from | _],
   dm(subqueryDebug, ['\nrightrange: ', Query]),
   Query=subquery(SQID, _, _), % NVK ADDED
-  switchToSQID(SQID), % NVK ADDED
+  restoreSQID(SQID), % NVK ADDED
   subquery_to_plan(Query1, Plan, _),
   plan_to_atom(rightrange(Arg1, Arg2, Plan), Result),
-  setSQIDToPrevious(SQID). % NVK ADDED, don't know if this is really needed
+  setSQIDToPrevious(SQID). % NVK ADDED NR
 
 % case leftrange with nested predicate
 subquery_plan_to_atom(leftrange(Arg1, Arg2, Query), Result) :-
@@ -3429,25 +3444,32 @@ subquery_plan_to_atom(leftrange(Arg1, Arg2, Query), Result) :-
   Query1 =.. [from | _],
   dm(subqueryDebug, ['\nleftrange: ', Query]),
   Query=subquery(SQID, _, _), % NVK ADDED
-  switchToSQID(SQID), % NVK ADDED
+  restoreSQID(SQID), % NVK ADDED
   subquery_to_plan(Query1, Plan, _),
   plan_to_atom(rightrange(Arg1, Arg2, Plan), Result),
-  setSQIDToPrevious(SQID). % NVK ADDED, don't know if this is really needed
+  setSQIDToPrevious(SQID). % NVK ADDED NR
 
 /*
 NVK ADDED NR
-The above Prolog predicates are for query predicate, this
-is for subqueries within the attribute list.
+The above Prolog predicates are for query predicates, this
+is for subqueries within the attribute list. It is added in same way as the
+upper predicates.
 
 */
 subquery_plan_to_atom(SQuery, Result) :-
   SQuery=subquery(SQID, Query, Rels),
   ground(Query),
+  removeCorrelatedPreds(Query, Query2, Preds), !,
+  restoreSQID(SQID),
   newAlias(T),
   streamName(T),
-  switchToSQID(SQID),
-  subquery_to_plan(Query, QueryPlan, T),
-  plan_to_atom(fun([param(T, tuple)], QueryPlan), Result),
+  subquery_to_plan(Query2, QueryPlan, T),
+
+  transformPreds(Preds, T, 2, Preds2),
+  dm(subqueryDebug, ['\nPreds2: ', Preds2]), !,
+  addCorrelatedPreds(QueryPlan, Plan2, Preds2),
+
+  plan_to_atom(fun([param(T, tuple)], Plan2), Result),
   setSQIDToPrevious(SQID),
   clearStreamName,
   (Rels \= [] ->

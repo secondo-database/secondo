@@ -1,18 +1,14 @@
 /*
-  $Header$
-  @author Nikolai van Kempen
+$Header$
+@author Nikolai van Kempen
 
-	Utility predicates that are NEEDED for the regular program
-	execution.
+Utility predicates that are NEEDED for the regular program execution.
 */
 
 /*
-	This works like the assertion predicate, it has no effect if 
-	Goal could been proven, if not, a exception is thrown.
-	I would prefer assertion, but it runs under SWI-Prolog 5.10.4
-	under some circumstances into an infinite loop.
+This works like the assertion predicate, it has no effect if Goal could been proven, if not, a exception is thrown.  I would prefer assertion, but it runs under SWI-Prolog 5.10.4 under some circumstances into an infinite loop.
+ensure(+Goal)
 */
-%ensure(+Goal)
 ensure(Goal) :-
   Goal, 
 	!.
@@ -54,7 +50,7 @@ propertyValue(Property, [_|Rest], Value) :-
   propertyValue(Property, Rest, Value).
 
 /*
-	Rouding/ceiling of float lists.
+Rouding/ceiling of float lists.
 */
 %roundListToInts(+FloatList, -IntegerList)
 roundListToInts([], []).
@@ -122,5 +118,168 @@ appendLists([], []).
 appendLists([List|RestLists], ResultList) :-
   appendLists(RestLists, RestResultList),
   append(List, RestResultList, ResultList).
+
+/*
+Summarize all list elements.
+*/
+listSum([], 0).
+listSum([Value|Rest], Sum) :-
+	listSum(Rest, RSum),
+	Sum is Value+RSum.
+
+/*
+
+listMax(+MinValue, +ValueList, -ResultList)
+*/
+listMax(_Min, [], []) :-
+	!.
+listMax(Min, [Value|Rest], ResultList) :-
+	listMax(Min, Rest, RestResult),
+	Result is max(Min, Value),
+	append([Result], RestResult, ResultList),
+	!.
+
+
+/*
+Creates a list with all the same elements
+*/
+listFix(0, _Value, []) :-
+	!.
+listFix(Len, Value, [Value|Rest]) :-
+	!,
+	NextLen is Len - 1,
+	listFix(NextLen, Value, Rest).
+
+/*
+Like makeList, but this behavior is better when errors results into backtracking because the error can be better identified.
+*/
+btMakeList(L, L) :- 
+	is_list(L),
+	!.
+
+btMakeList(L, [L]) :- 
+	\+ is_list(L),
+	!.
+
+/*
+Calls the goal ~Goal~ ~Count~ Times and returns all exec times within 
+a list.
+xcall(+Goal, +Count, -Times)
+
+Example:
+?- xcall(sleep(3), 0, 10, Times).
+Times = [3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000, 3000].
+
+Note that the goal needs to stable in way thata a nonvar(X) term X in Goal produces every time the same results. Hence, 
+xcall((A is random(10)), 0, 10, Times)
+will fail.
+*/
+xcall(_Goal, _Sleep, 0, []) :- 
+  !.
+
+xcall(Goal, Sleep, Count, Result) :-
+  Count>0,
+	(Sleep =\= 0 -> sleep(Sleep) ; true),
+	garbage_collect,
+  getTime(once(Goal), Time),
+  CountNew is Count - 1,
+  xcall(Goal, Sleep, CountNew, List), 
+  append(List, [Time], Result).
+
+/*
+Special version if the predicate delivers the time ifself.
+The time must be the last attribut that is not within ~Goal~
+because it will later be added by the call predicate.
+*/
+xcallAddTime(_Goal, _Sleep, 0, []) :-
+  !.
+
+xcallAddTime(Goal, Sleep, Count, Result) :-
+  Count>0,
+  (Sleep =\= 0 -> sleep(Sleep) ; true),
+  garbage_collect,
+	call(Goal, Time),
+  CountNew is Count - 1,
+  xcallAddTime(Goal, Sleep, CountNew, List),
+  append(List, [Time], Result).
+
+/*
+like atomic_list_concat/3 but here terms a converted to atoms, if needed.
+*/
+term_list_concat(TList, Sep, A) :-
+	!,
+  termlist_to_atomlist(TList, AList),
+  atomic_list_concat(AList, Sep, A).
+
+termlist_to_atomlist([], []) :-
+	!.
+
+termlist_to_atomlist([T|TRest], [T|ARest]) :-
+	atomic(T),
+	!,
+	termlist_to_atomlist(TRest, ARest).
+
+termlist_to_atomlist([T|TRest], [A|ARest]) :-
+	\+ atomic(T),
+	!,
+	termlist_to_atomlist(TRest, ARest),
+	term_to_atom(T, A).
+
+/*
+Determines the index of the smallest or highest number within the list.
+find_extreme_value0(+Type, +List, ?Index)
+*/
+find_extreme_value0(Type, List, Index) :- 
+	!,
+	find_extreme_value0(Type, List, 0, Index, _Value).
+
+find_extreme_value0(_Type, [V], Index, Index, V) :- 
+	!.
+
+find_extreme_value0(min, [A,B|Rest], CIx, Ix, CVal) :-
+  CIx2 is CIx + 1,
+  find_extreme_value0(min, [B|Rest], CIx2, IxR, CValR),
+  (A<CValR ->
+    (Ix=CIx, CVal=A)
+  ;
+    (Ix=IxR, CVal=CValR)
+  ).
+
+find_extreme_value0(max, [A,B|Rest], CIx, Ix, CVal) :-
+  CIx2 is CIx + 1,
+  find_extreme_value0(max, [B|Rest], CIx2, IxR, CValR),
+  (A>CValR ->
+    (Ix=CIx, CVal=A)
+  ;
+    (Ix=IxR, CVal=CValR)
+  ).
+	
+/*
+Removes the smallest or highest number within the list.
+remove_extreme_value(Type, +List, -NewList)
+*/
+remove_extreme_value(_Type, [], []) :-
+	!.
+
+remove_extreme_value(Type, List, RList) :- 
+	List \= [],
+	!,
+	find_extreme_value0(Type, List, Index),
+	once(split_at_index(List, Index, HList, [_|TList])),
+	append(HList, TList, RList).
+	
+/*
+Splits the list at a given index starting at 0.
+
+split_at_index(+List, +Index, ?HeadList, ?TailList) 
+*/
+split_at_index(List, 0, [], List) :-
+	!.
+
+split_at_index([Head|Tail], Index, [Head|HeadList], TailList) :-
+	Index > 0,
+	!,
+  NewIndex is Index - 1,
+  split_at_index(Tail, NewIndex, HeadList, TailList).
 
 % eof

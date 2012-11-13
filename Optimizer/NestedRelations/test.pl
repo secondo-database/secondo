@@ -4,68 +4,7 @@ $Header$
 
 Note: the test run only tests if the goal is provable, not if the result is correct. 
 	
-Before you are able to run the test, it is needed to create and prepare the test databases, so please make sure you created the test database with testdbs/recreate.sh.
-*/
-
-reset :-  
-	reload, 
-	closeDB, 
-	updateDB(optext), 
-	odb.
-
-odb :-  
-	open('database optext').
-
-obt :-  
-	open('database berlintest').
-
-
-reload :-
-	['NestedRelations/test'], 
-	['NestedRelations/nr'], 
-	['NestedRelations/init'], 
-	['NestedRelations/util'], 
-	['NestedRelations/tutil'], 
-	['MemoryAllocation/ma.pl'], 
-	['MemoryAllocation/ma_improvedcosts.pl'], 
-	%['Subqueries/subqueries'], % reloaded already then by optimizer
-	[database],
-	[operators],
-	[statistics],
-	[optimizer].
-
-% Simply switch the enviroment
-nr :-
-	setOption(nestedRelations),
-	delOption(memoryAllocation).
-		
-ma :-
-	delOption(nestedRelations),
-	setOption(memoryAllocation).
-
-nomanr :-
-	delOption(nestedRelations),
-	delOption(memoryAllocation).
-
-manr :-
-	setOption(nestedRelations),
-	setOption(memoryAllocation).
-
-/*
- sql select *
-        from [staedte, plz as p1, plz as p2, plz as p3]
-        where [sname = p1:ort,
-          p1:plz = p2:plz + 1
-         , p2:plz = p3:plz * 5
-          , bev > 300000
-          ,bev < 500000
-          , p2:plz > 50000
-          , p2:plz < 60000
-          ,kennzeichen starts "W",
-           p3:ort contains "burg"
-         , p3:ort starts "M"].
-
-
+Before you are able to run the test, it is needed to create and prepare the test databases, so please make sure you created the test databases with testdbs/recreate.sh.
 */
 
 % Just some simple queries that don't work with nested relations, just to test if i haven't damaged something because subquery-error-tracking is much more complex as for non-subquery queries.
@@ -138,6 +77,7 @@ testNRQuery(123, [], select * from orteh as o where [o:bevth not in(select p:bev
 % selections
 testNRQuery(140, [], select * from orteh as o where [exists(select * from o:subrel as p where [p:bevt>o:bevth, p:bevt>100000])]).
 testNRQuery(141, [], select * from orteh as o where [o:bevth < 99, exists(select * from o:subrel as p where [p:bevt>o:bevth, p:bevt<1000000])]).
+testNRQuery(141, [], select * from orteh as o where [exists(select * from o:subrel as p where [p:bevt>1000])]).
 testNRQuery(142, [], select * from orteh as o where [o:bevth < 99, exists(select * from o:subrel as p where [p:bevt>o:bevth, p:bevt<1000000])]).
 testNRQuery(143, [], select * from orteh as o where [o:bevth < 99, exists(select * from o:subrel as p where [p:bevt>o:bevth, p:kennzeichen="H", p:bevt<1000000])]).
 testNRQuery(144, [], select * from orteh as o where [o:bevth < 99, not(exists(select * from o:subrel as p where [p:bevt>o:bevth, p:kennzeichen="H", p:bevt<1000000]))]).
@@ -213,8 +153,7 @@ testNRQuery(300, [expectedResult(fail)], select [bevth, (select * from subrel)]f
 % no renmae for new attribute
 testNRQuery(301, [expectedResult(fail)], select [o:bevth, (select * from o:subrel)]from orteh as o).
 testNRQuery(302, [], select [o:bevth, (select * from o:subrel) as sub]from orteh as o).
-% arel access without variable not (yet) possible.
-testNRQuery(310, [expectedResult(fail)], select [bevth, (select * from subrel) as sr1]from orteh).
+testNRQuery(310, [], select [bevth, (select * from subrel) as sr1]from orteh).
 
 testNRQuery(320, [], select [o:bevth, (select s:kennzeichen from o:subrel as s) as sub]from orteh as o).
 testNRQuery(321, [], select [o:bevth, o:subrel, (select s:kennzeichen from o:subrel as s) as sub]from orteh as o).
@@ -228,10 +167,15 @@ testNRQuery(324, [expectedResult(fail)], select [*, (select s:kennzeichen from o
 testNRQuery(325, [], select [o:bevth, o:subrel, (select s:kennzeichen from o:subrel as s where [s:kennzeichen = "B"]) as sub]from orteh as o where [exists(select * from o:subrel as s where[s:kennzeichen = "B", s:bevt=o:bevth])]).
 
 testNRQuery(326, [], select [o:bevth, o:subrel, (select sX:kennzeichen from o:subrel as sX where [sX:kennzeichen = "B"]) as sub]from orteh as o where [exists(select sY:kennzeichen from o:subrel as sY where[sY:kennzeichen = "B", sY:bevt=o:bevth])]).
+testNRQuery(326, [], select [o:bevth, (select * from o:subrel where [kennzeichen = "B"]) as newSubRel] from orteh as o where [exists(select kennzeichen from o:subrel where[kennzeichen = "B"])]).
 testNRQuery(327, [], select [o:bevth, o:subrel, (select s:kennzeichen from o:subrel as s where [s:kennzeichen = "B"]) as sub]from orteh as o where [exists(select * from o:subrel as s where[s:kennzeichen = "B"])]).
 testNRQuery(328, [], select [o:bevth, o:subrel, (select count(*) from o:subrel as sX where [sX:kennzeichen = "B"]) as sub]from orteh as o where [exists(select sY:kennzeichen from o:subrel as sY where[sY:kennzeichen = "B", sY:bevt=o:bevth])]).
 testNRQuery(329, [], select [o:bevth, o:subrel, (select count(distinct *) from o:subrel as sX where [sX:kennzeichen = "B"]) as sub]from orteh as o where [exists(select sY:kennzeichen from o:subrel as sY where[sY:kennzeichen = "B", sY:bevt=o:bevth])]).
 testNRQuery(330, [], select [o:bevth, o:subrel, (select [sX:kennzeichen, count(*) as countlabel] from o:subrel as sX where [sX:kennzeichen = "B"] groupby sX:kennzeichen) as sub]from orteh as o where [exists(select sY:kennzeichen from o:subrel as sY where[sY:kennzeichen = "B", sY:bevt=o:bevth])]).
+testNRQuery(331, [], select ort from (select [ort, min(plz) as minplz, max(plz) as maxplz, count(*) as cntplz] from plz where plz > 40000 groupby ort)).
+testNRQuery(332, [], select [minplz, ort] from (select [ort, min(plz) as minplz, max(plz) as maxplz, count(*) as cntplz] from plz where plz > 40000 groupby ort)).
+testNRQuery(333, [], select [minplz, ox] from (select [ort as ox, min(plz) as minplz, max(plz) as maxplz, count(*) as cntplz] from plz where plz > 40000 groupby ort)).
+testNRQuery(334, [], select [y:minplz, y:ox as os] from (select [ort as ox, min(plz) as minplz, max(plz) as maxplz, count(*) as cntplz] from plz where plz > 40000 groupby ort) as y first 1).
 
 testNRQuery(340, [], select [o:bevth, (select * from [o:subrel as s, plz as p] where [s:ort=p:ort]) as sub] from orteh as o).
 
@@ -261,6 +205,7 @@ testNRQuery(406, [], select [o:bevth] from (select [xy:bevth, xy:subrel] from or
 % fail if we apply the unnest operator on a integer attribute.
 testNRQuery(407, [expectedResult(fail)], select * from (select [xy:bevth, xy:subrel] from orteh as xy) unnest(xy:bevth) as o).
 testNRQuery(408, [], select [o:kennzeichen] from (select [xy:subrel] from orteh as xy) unnest(xy:subrel) as o).
+testNRQuery(408, [], select * from (select * from orteh) unnest(subrel) as o).
 testNRQuery(430, [], select * from (select * from orte as x) nest(x:bevt, subrel) as o first 1).
 testNRQuery(431, [], select [o:bevt] from (select * from orte as x) nest(x:bevt, subrel) as o).
 testNRQuery(432, [], select [o:bevt, o:subrel] from (select * from orte as x) nest(x:bevt, subrel) as o).
@@ -280,7 +225,9 @@ testNRQuery(458, [], select o1:vorwahl from (select [bevt, vorwahl] from orte or
 testNRQuery(459, [], select o1:vorwahl from (select [o0:bevt, o0:vorwahl] from orte as o0 orderby o0:vorwahl desc) as o1).
 
 testNRQuery(470, [], select * from (select * from orte as o) nest(o:bevt, subRel) as o1).
+testNRQuery(470, [], select * from (select * from orte) nest(bevt, subRel) as o1).
 testNRQuery(471, [], select * from (select [o:bevt, o:kennzeichen] from orte as o) nest(o:bevt, subRel) as o1).
+testNRQuery(471, [], select * from (select [bevt div 100 as bevth, ort, kennzeichen, vorwahl] from orte) nest(bevth, subRel) as o1).
 testNRQuery(472, [], select o1:subrel from (select [o:bevt, o:kennzeichen] from orte as o) nest(o:bevt, subrel) as o1).
 testNRQuery(473, [], select * from (select o1:subrel from (select [o:bevt, o:kennzeichen] from orte as o) nest(o:bevt, subrel) as o1) as o2).
 testNRQuery(474, [], select * from (select * from orte as o) nest([o:bevt, o:vorwahl, o:kennzeichen], subRel) as o1).
@@ -289,87 +236,92 @@ testNRQuery(475, [], select * from (select * from staedtenested as s1) nest([s1:
 % Aggregate subqueries within the from clause
 testNRQuery(480, [], select * from (select [min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz, count(distinct ort) as ortcnt] from plz groupby []) as subrel).  
 testNRQuery(481, [], select s:minplz from (select [min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz, count(distinct ort) as ortcnt] from plz groupby []) as s).  
-% open issue
-testNRQuery(482, [expectedResult(fail)], select s:minplz from (select [ort, min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz] from plz where ort in (select x:ort from orte as x first 10) groupby [ort]) as s).  
+testNRQuery(482, [], select * from(select [ort, min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz] from plz groupby[ort]) as x).
+testNRQuery(483, [], select x:ort from(select [ort, min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz] from plz groupby[ort]) as x).
+testNRQuery(484, [], select [count(*) as countattr] from(select [ort, min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz] from plz groupby[ort]) as x groupby[]).
+testNRQuery(485, [], select [x:ort, count(*) as countattr] from(select [ort, min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz] from plz groupby[ort]) as x groupby[x:ort]).
+testNRQuery(486, [], select [s:ort, count(*) as count] from (select [ort, min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz] from plz groupby[ort]) as s groupby[s:ort]).
+testNRQuery(487, [], select [s:ort, count(*) as count] from (select [ort, min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz] from plz where ort="Berlin" groupby[ort]) as s where s:ort="Berlin" groupby[s:ort]).
+testNRQuery(488, [], select [s:ort, s:plz, count(*) as count] from (select [ort, plz, min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz] from plz where ort="Berlin" groupby[ort, plz]) as s where s:ort="Berlin" groupby[s:ort, s:plz]).
+testNRQuery(489, [], select [s:ort, s:plz, count(*) as count] from [(select [ort, plz, min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz] from plz where ort="Berlin" groupby[ort, plz]) as s, (select * from orteh) unnest(subrel) as oh] where [s:ort="Berlin", s:ort=oh:ort] groupby[s:ort, s:plz]).
+testNRQuery(490, [], select [s:ort, s:plz, oh:kennzeichen, count(*) as count] from [(select [ort, plz, min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz] from plz where ort="Berlin" groupby[ort, plz]) as s, (select * from orteh) unnest(subrel) as oh] where [s:ort="Berlin", s:ort=oh:ort] groupby[s:ort, s:plz, oh:kennzeichen]).
+testNRQuery(491, [], select [count(*) as count] from [(select [ort, plz, min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz] from plz where ort="Berlin" groupby[ort, plz]) as s, (select * from orteh) unnest(subrel) as oh] where [s:ort="Berlin", s:ort=oh:ort] groupby[]).
+testNRQuery(492, [], select distinct(s:ort) from [(select [ort, plz, min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz] from plz where ort="Berlin" groupby[ort, plz]) as s, (select * from orteh) unnest(subrel) as oh] where [s:ort="Berlin", s:ort=oh:ort]).
 
 /*
 Works, but the result is not correct. This is not possible in this way because a count(*) does not return a tuple stream. So there is not natural straight forward implementation possible, more is to done manullay to reconvert the result into a tuple stream.
-Idea: query intstream(Orte feed count, Orte feed count) namedtransformstream[Count] consume
-=>
- query 1 feed transformstream projectextend[; Count: (Orte feed count)] consume
-
 See the comments of the nrSubqueryToStream/3 predicate for more information.
-Update: Now this works for the count operator only.
+Update: Now this works
 */
-testNRQuery(480, [expectedResult(fail)], select count(*) as summe from orte).
-testNRQuery(481, [], select * from (select count(*) from orte as o0) as o1).
-testNRQuery(482, [], select * from (select count(distinct kennzeichen) from orte) as o1).
+testNRQuery(500, [expectedResult(fail)], select count(*) as summe from orte).
+testNRQuery(501, [], select * from (select count(*) from orte as o0) as o1).
+testNRQuery(502, [], select * from (select count(distinct kennzeichen) from orte) as o1).
 /*
-testNRQuery(483, [], select * from (select sum(o0:bevt) from orte as o0) as o1).
-testNRQuery(484, [], select * from (select max(bevt) from orte) as o1).
-testNRQuery(485, [], select * from (select min(bevt) from orte) as o1).
-testNRQuery(486, [], select * from (select avg(bevt) from orte) as o1).
+testNRQuery(503, [], select * from (select sum(o0:bevt) from orte as o0) as o1).
+testNRQuery(504, [], select * from (select max(bevt) from orte) as o1).
+testNRQuery(505, [], select * from (select min(bevt) from orte) as o1).
+testNRQuery(506, [], select * from (select avg(bevt) from orte) as o1).
 */
 
-testNRQuery(487, [], select [kennzeichen, sum(bevt) as x] from orte groupby kennzeichen).
-testNRQuery(488, [], select * from (select [kennzeichen, sum(bevt) as x] from orte groupby kennzeichen) as oOOOo).
-testNRQuery(489, [], select * from (select [kennzeichen, sum(bevt) as sumEinwohner] from orte groupby kennzeichen) as y where y:kennzeichen="B").
+testNRQuery(507, [], select [kennzeichen, sum(bevt) as x] from orte groupby kennzeichen).
+testNRQuery(508, [], select * from (select [kennzeichen, sum(bevt) as x] from orte groupby kennzeichen) as oOOOo).
+testNRQuery(509, [], select * from (select [kennzeichen, sum(bevt) as sumEinwohner] from orte groupby kennzeichen) as y where y:kennzeichen="B").
+% There is no "collect" operator for this
+testNRQuery(510, [expectedResult(fail)], select [x:bevt, (select o:kennzeichen from orte as o where o:bevt=x:bevt) as subrel] from orte as x groupby [x:bevt]).
+testNRQuery(511, [],  select [x:bevt, (select o:kennzeichen from orte as o where o:bevt=x:bevt) as subrel] from orte as x).
 
 % subqueries within the from clause
 % first only with the deep 1.
-testNRQuery(500, [], select * from (select * from orte) as o).
-% Subquery needs to be given a label.
-testNRQuery(501, [expectedResult(fail)], select * from (select * from orte)).
-testNRQuery(502, [], select * from (select * from orte) as o first 1).
-testNRQuery(503, [], select * from (select * from orte) as o orderby o:bevt first 1).
-testNRQuery(504, [], select o:bevt from (select * from orte) as o).
-testNRQuery(505, [], select o:bevt from (select bevt from orte) as o).
-testNRQuery(506, [], select o:bevt from (select x:bevt from orte as x) as o first 1).
+testNRQuery(530, [], select * from (select * from orte) as o).
+testNRQuery(531, [], select * from (select * from orte)).
+testNRQuery(532, [], select * from (select * from orte) as o first 1).
+testNRQuery(533, [], select * from (select * from orte) as o orderby o:bevt first 1).
+testNRQuery(534, [], select o:bevt from (select * from orte) as o).
+testNRQuery(535, [], select o:bevt from (select bevt from orte) as o).
+testNRQuery(536, [], select o:bevt from (select x:bevt from orte as x) as o first 1).
 
 % unnesting
-testNRQuery(510, [], select o:bevt from (select subrel from orteh) unnest(subrel) as o first 1).
-testNRQuery(511, [], select [o:bevth, o:bevt] from (select * from orteh) unnest(subrel) as o first 1).
-testNRQuery(512, [], select [o:bevth, o:bevt, o:kennzeichen] from (select * from orteh) unnest(subrel) as o orderby [o:kennzeichen] first 1).
-testNRQuery(513, [], select * from (select subrel from orteh) unnest(subrel) as o orderby [o:kennzeichen] first 1).
-testNRQuery(514, [], select * from (select x:subrel from orteh as x) unnest(x:subrel) as o orderby [o:kennzeichen] first 1).
-testNRQuery(515, [], select [o:bevt, o:bevth, o:kennzeichen] from (select [x:bevth,x:subrel] from orteh as x) unnest(x:subrel) as o orderby [o:kennzeichen] first 1).
-testNRQuery(516, [], select [o:bevt, o:bevth, o:kennzeichen] from (select * from orteh as x) unnest(x:subrel) as o orderby [o:kennzeichen] first 1).
+testNRQuery(550, [], select o:bevt from (select subrel from orteh) unnest(subrel) as o first 1).
+testNRQuery(551, [], select [o:bevth, o:bevt] from (select * from orteh) unnest(subrel) as o first 1).
+testNRQuery(552, [], select [o:bevth, o:bevt, o:kennzeichen] from (select * from orteh) unnest(subrel) as o orderby [o:kennzeichen] first 1).
+testNRQuery(553, [], select * from (select subrel from orteh) unnest(subrel) as o orderby [o:kennzeichen] first 1).
+testNRQuery(554, [], select * from (select x:subrel from orteh as x) unnest(x:subrel) as o orderby [o:kennzeichen] first 1).
+testNRQuery(555, [], select [o:bevt, o:bevth, o:kennzeichen] from (select [x:bevth,x:subrel] from orteh as x) unnest(x:subrel) as o orderby [o:kennzeichen] first 1).
+testNRQuery(556, [], select [o:bevt, o:bevth, o:kennzeichen] from (select * from orteh as x) unnest(x:subrel) as o orderby [o:kennzeichen] first 1).
 
 % nesting
-testNRQuery(520, [], select * from (select * from orte as x) nest(x:bevt, subrel) as o first 1).
-testNRQuery(521, [], select * from (select * from orte as x) nest(x:bevt) as subrel as o first 1).
+testNRQuery(570, [], select * from (select * from orte as x) nest(x:bevt, subrel) as o first 1).
+testNRQuery(571, [], select * from (select * from orte as x) nest(x:bevt) as subrel as o first 1).
 
 % o:kennzeichen is moved into the arel attribute.
 % so the query is written wrong.
-testNRQuery(522, [expectedResult(fail)], select * from (select * from orte as x) nest(x:bevt, subrel) as o orderby [o:kennzeichen] first 1).
+testNRQuery(572, [expectedResult(fail)], select * from (select * from orte as x) nest(x:bevt, subrel) as o orderby [o:kennzeichen] first 1).
 % sorting is only allowed over attributes. nest sorts always the query over its nesting attributes.
-testNRQuery(523, [expectedResult(fail)], select * from (select * from orte as x orderby x:kennzeichen) nest(x:bevt, subrel) as o where exists(select * from o:subrel as s where [s:kennzeichen="B", s:vorwahl=o:bevt]) first 1).
+testNRQuery(573, [expectedResult(fail)], select * from (select * from orte as x orderby x:kennzeichen) nest(x:bevt, subrel) as o where exists(select * from o:subrel as s where [s:kennzeichen="B", s:vorwahl=o:bevt]) first 1).
 
-testNRQuery(524, [], select * from (select [x:bevt div 100 as bevth, x:kennzeichen, x:ort, x:vorwahl, x:bevt] from orte as x) nest(x:bevt) as subrel as o first 1).
-testNRQuery(525, [], select * from (select [x:bevt div 100 as bevth, x:kennzeichen, x:ort, x:vorwahl, x:bevt] from orte as x) nest(bevth) as subrel as o first 1).
+testNRQuery(574, [], select * from (select [x:bevt div 100 as bevth, x:kennzeichen, x:ort, x:vorwahl, x:bevt] from orte as x) nest(x:bevt) as subrel as o first 1).
+testNRQuery(575, [], select * from (select [x:bevt div 100 as bevth, x:kennzeichen, x:ort, x:vorwahl, x:bevt] from orte as x) nest(bevth) as subrel as o first 1).
 
-testNRQuery(530, [], select [o:bevt, o:kennzeichen] from (select x:subrel from orteh as x) unnest(x:subrel) as o where o:kennzeichen="B" orderby [o:kennzeichen] first 1).
-testNRQuery(531, [], select [o:bevt, o:bevth, o:kennzeichen] from (select [x:bevth,x:subrel] from orteh as x) unnest(x:subrel) as o where o:kennzeichen="B" orderby [o:kennzeichen] first 1).
-testNRQuery(532, [], select * from (select [x:bevth,x:subrel] from orteh as x) unnest(x:subrel) as o where o:kennzeichen="B" orderby [o:kennzeichen] first 1).
-testNRQuery(533, [], select * from (select * from orteh as x) unnest(x:subrel) as o where o:kennzeichen="B" orderby [o:kennzeichen] first 1).
-testNRQuery(534, [], select * from [(select * from orteh as x) as o] where [o:bevth=10] first 1).
+testNRQuery(576, [], select [o:bevt, o:kennzeichen] from (select x:subrel from orteh as x) unnest(x:subrel) as o where o:kennzeichen="B" orderby [o:kennzeichen] first 1).
+testNRQuery(577, [], select [o:bevt, o:bevth, o:kennzeichen] from (select [x:bevth,x:subrel] from orteh as x) unnest(x:subrel) as o where o:kennzeichen="B" orderby [o:kennzeichen] first 1).
+testNRQuery(578, [], select * from (select [x:bevth,x:subrel] from orteh as x) unnest(x:subrel) as o where o:kennzeichen="B" orderby [o:kennzeichen] first 1).
+testNRQuery(579, [], select * from (select * from orteh as x) unnest(x:subrel) as o where o:kennzeichen="B" orderby [o:kennzeichen] first 1).
+testNRQuery(580, [], select * from [(select * from orteh as x) as o] where [o:bevth=10] first 1).
 
 % joins
-testNRQuery(540, [], select * from [(select * from orteh as x) as o1, (select * from orteh as x) as o2] where [o1:bevth=10,o1:bevth=o2:bevth] first 1).
-testNRQuery(541, [], select * from [(select * from orteh as x) as o1, (select * from orteh as x) as o2] where [o1:bevth=10,o1:bevth=o2:bevth-1] first 1).
-testNRQuery(542, [], select * from [(select * from orteh as x) unnest(x:subrel) as o1, (select * from orteh as x) as o2] where [o1:kennzeichen="B",o1:bevth=o2:bevth] orderby [o1:vorwahl] first 1).
+testNRQuery(590, [], select * from [(select * from orteh as x) as o1, (select * from orteh as x) as o2] where [o1:bevth=10,o1:bevth=o2:bevth] first 1).
+testNRQuery(591, [], select * from [(select * from orteh as x) as o1, (select * from orteh as x) as o2] where [o1:bevth=10,o1:bevth=o2:bevth-1] first 1).
+testNRQuery(592, [], select * from [(select * from orteh as x) unnest(x:subrel) as o1, (select * from orteh as x) as o2] where [o1:kennzeichen="B",o1:bevth=o2:bevth] orderby [o1:vorwahl] first 1).
 % this works now...
-testNRQuery(543, [], select * from [(select * from orteh as x) unnest(x:subrel) as o1, (select [x:bevt div 100 as bevth, x:kennzeichen, x:ort, x:vorwahl, x:bevt] from orte as x) nest(bevth) as subrel as o2] where [o1:kennzeichen="B",o1:bevth=o2:bevth] orderby [o1:vorwahl] first 1).
+testNRQuery(593, [], select * from [(select * from orteh as x) unnest(x:subrel) as o1, (select [x:bevt div 100 as bevth, x:kennzeichen, x:ort, x:vorwahl, x:bevt] from orte as x) nest(bevth) as subrel as o2] where [o1:kennzeichen="B",o1:bevth=o2:bevth] orderby [o1:vorwahl] first 1).
 % but this not... (because in the first case the selectivities are faked)
-testNRQuery(544, [expectedResult(fail)], select[bevt div 100 as bevth]from orte where [bevth=10]).
+testNRQuery(594, [expectedResult(fail)], select[bevt div 100 as bevth]from orte where [bevth=10]).
 
-% so we are not able to nest 
-testNRQuery(545, [], select * from [(select * from orteh as x) unnest(x:subrel) as o1, (select [x:kennzeichen, x:ort, x:vorwahl, x:bevt] from orte as x) nest(x:bevt) as subrel as o2] where [o1:kennzeichen="B",o1:bevth=o2:bevt] orderby [o1:vorwahl] first 1).
-testNRQuery(546, [], select * from [(select * from orteh as x) unnest(x:subrel) as o1, (select [x:kennzeichen, x:ort, x:vorwahl, x:bevt] from orte as x) nest([x:bevt, x:vorwahl]) as subrel as o2] where [o1:kennzeichen="B",o1:bevth=o2:bevt] orderby [o1:vorwahl] first 1).
-testNRQuery(547, [], select * from [(select * from orteh as x) unnest(x:subrel) as o1, (select [x:bevt div 100 as bevth, x:kennzeichen, x:ort, x:vorwahl, x:bevt] from orte as x) nest([bevth,x:bevt]) as subrel as o2] where [o1:bevth=o2:bevt] orderby [o1:vorwahl] first 1).
+testNRQuery(595, [], select * from [(select * from orteh as x) unnest(x:subrel) as o1, (select [x:kennzeichen, x:ort, x:vorwahl, x:bevt] from orte as x) nest(x:bevt) as subrel as o2] where [o1:kennzeichen="B",o1:bevth=o2:bevt] orderby [o1:vorwahl] first 1).
+testNRQuery(596, [], select * from [(select * from orteh as x) unnest(x:subrel) as o1, (select [x:kennzeichen, x:ort, x:vorwahl, x:bevt] from orte as x) nest([x:bevt, x:vorwahl]) as subrel as o2] where [o1:kennzeichen="B",o1:bevth=o2:bevt] orderby [o1:vorwahl] first 1).
+testNRQuery(597, [], select * from [(select * from orteh as x) unnest(x:subrel) as o1, (select [x:bevt div 100 as bevth, x:kennzeichen, x:ort, x:vorwahl, x:bevt] from orte as x) nest([bevth,x:bevt]) as subrel as o2] where [o1:bevth=o2:bevt] orderby [o1:vorwahl] first 1).
 
-% building some queries that are totally useless (like the previous queries) but
-% are complex as much as possible (but without special cases that are not supported like distance queries and so on).
+% increase complexity...
 testNRQuery(600, [], select (select * from ortem2 where bevm=3) as ortem from ten first 1).
 testNRQuery(601, [], select (select * from (select * from ortem2) as xy) as m from ten first 1).
 testNRQuery(602, [], select (select * from (select * from ortem2 first 1) unnest(subm) as xy) as m from ten first 1).
@@ -405,6 +357,85 @@ testNRQuery(636, [], select * from orte where [bevt in(select no from ten)]).
 testNRQuery(637, [], select * from orte where [bevt in(select no from ten where no=bevt)]).
 testNRQuery(638, [], select * from orte as o where [o:bevt in(select no from ten where no=o:bevt)]).
 
+testNRQuery(1000, [], select [o:bevth, (select * from o:subrel where kennzeichen="KLE") as sub] from orteh as o where [exists(select * from o:subrel where kennzeichen="KLE")] first 3).
+% whatever this means...
+testNRQuery(1001, [], select * from orteh orderby subrel last 2).
+
+% create table for nested relations.
+testNRQuery(1002, [preexecgoal(sql drop table crtest1;true)], create table crtest1 columns [att1: int]).
+testNRQuery(1003, [], insert into crtest1 select no from thousand).
+testNRQuery(1004, [], drop table crtest1).
+
+testNRQuery(1010, [preexecgoal(sql drop table crtest2);true], create table crtest2 columns [bevTH:int, ort:string]).
+testNRQuery(1011, [], drop table crtest2).
+
+testNRQuery(1020, [preexecgoal(sql drop table crtest3;true)], create table crtest3 columns [bevTH:int, ort:string, subrel:arel([kennzeichen:int])]).
+testNRQuery(1021, [], drop table crtest3).
+
+
+testNRQuery(1030, [preexecgoal(sql drop table crorteh;true)], create table crorteh columns [ bevTH: int, subRel:arel([kennzeichen: string, ort: string, vorwahl: string, bevT:int]) ]).
+testNRQuery(1031, [expectedResult(fail)], insert into crorteh select * from orteh).
+testNRQuery(1032, [], drop table crorteh).
+
+testNRQuery(1100, [], select [o:bevth, (select ort from o:subrel) as newsubrel] from orteh as o).
+testNRQuery(1101, [], select [o:bevth, (select ort from o:subrel where ort starts "B") as newsubrel] from orteh as o).
+testNRQuery(1102, [],  select * from orteh as o where [exists(select ort from o:subrel where ort starts "B")]).
+testNRQuery(1103, [], select [o:ort, (select * from plz where ort=o:ort) as newsubrel] from orte as o).
+
+testNRQuery(1107, [], select (select * from subrel as s) as sr from orteh).
+
+testNRQuery(1200, [], select * from orteh unnest subrel).
+testNRQuery(1201, [], select * from orteh unnest(subrel) as o).
+% Subrel is no longer avaiable
+testNRQuery(1202, [expectedResult(fail)], select [o:subrel] from orteh unnest (subrel) as o).
+testNRQuery(1203, [], select [o:bevth] from orteh unnest(subrel) as o).
+testNRQuery(1204, [], select [o:bevth, o:kennzeichen] from orteh unnest (subrel) as o).
+testNRQuery(1205, [], select * from (select * from orteh unnest subrel as o) as x).
+testNRQuery(1206, [], select x:kennzeichen from (select [o:bevt,o:kennzeichen] from orteh unnest subrel as o) as x).
+testNRQuery(1207, [], select * from orteh unnest(subrel) as o).
+testNRQuery(1208, [], select o:kennzeichen from orteh unnest subrel as o).
+testNRQuery(1209, [], select kennzeichen from orteh unnest subrel where kennzeichen="B").
+testNRQuery(1210, [], select ort from orteh unnest subrel where kennzeichen="B").
+testNRQuery(1211, [], select * from plz nest(ort, postleitzahlen) as o).
+testNRQuery(1212, [], select (select * from m:subm unnest(subh) as x) as r from ortem as m).
+testNRQuery(1213, [], select * from orte nest(o:bevt, subrel)).
+testNRQuery(1214, [], select * from orte nest(o:bevt, subrel) as t).
+testNRQuery(1215, [], select * from (orte as t) nest(o:bevt, subrel)).
+testNRQuery(1216, [], select * from (orte as t) nest(o:bevt, subrel) as x).
+testNRQuery(1217, [], select * from (select * from orte) nest(o:bevt, subrel)).
+testNRQuery(1218, [], select * from (select * from orte as o) nest(o:bevt, subrel)).
+testNRQuery(1219, [], select * from orte nest(bevt, subrel) where bevt=3410).
+testNRQuery(1220, [], select * from (ortem unnest(subm)) unnest(subh)).
+testNRQuery(1221, [], select * from (ortem unnest(subm)) unnest(subh) where bevt>3000).
+testNRQuery(1222, [], select ort from (ortem unnest(subm)) unnest(subh) where bevt>3000).
+testNRQuery(1223, [], select p:plz from [(ortem unnest(subm)) unnest(subh), plz as p] where [bevt>3000, p:ort=ort]).
+testNRQuery(1224, [], select * from ortem unnest(subm) unnest(subh) nest(bevth, newsubr)).
+testNRQuery(1225, [], select * from (select * from ortem unnest(subm) unnest(subh)) nest(bevth, subr)).
+testNRQuery(1226, [], select * from (select [bevt div 100 as bevth, ort, kennzeichen, vorwahl] from orte) nest(bevth, subRel)).
+testNRQuery(1227, [], select * from orteh unnest subrel).
+testNRQuery(1228, [], select * from (select [bevt div 100 as bevth, bevt, ort, kennzeichen, vorwahl] from orte) nest(bevth, subRel)).
+testNRQuery(1229, [], select * from (select [bevt div 100 as bevth, bevt, ort, kennzeichen, vorwahl] from orte) nest(bevth, subRel) where [bevth>30]).
+testNRQuery(1230, [], select [ort, (select count(*) from plz as p where p:ort=ort) as sr] from orte).
+testNRQuery(1231, [], select [o:bevth, (select ort from o:subrel where ort starts "B") as newsubrel]from (select * from (select [bevt div 100 as bevth, bevt, ort, kennzeichen, vorwahl] from orte) nest(bevth, subRel)) as o where [exists(select ort from o:subrel where[ort starts "B"])]).
+testNRQuery(1232, [], select count(*) from ortem2 unnest(subm)).
+% Special alias resolve (skips one level)
+testNRQuery(1233, [], select [(select [(select * from o:subrel first 1) as rr] from ten) as abc] from orteh as o first 1).
+% Same case, but without using an alias.
+testNRQuery(1234, [], select [(select [(select * from subrel first 1) as rr] from ten) as abc] from orteh  first 1).
+testNRQuery(1235, [], select [(select o:bevth as ttt from o:subrel as s) as xy] from orteh as o).
+testNRQuery(1236, [], select * from orteh unnest(subrel) nest(bevth, subrel2) unnest(subrel2)).
+% fix columnname count!
+testNRQuery(1237, [], select count from (select count(*) from orteh) first 1).
+testNRQuery(1238, [], select x:count from (select count(*) from orteh where bevth=3) as x first 1).
+testNRQuery(1239, [], select x:count from [(select count(*) from orteh where bevth=3) as x, ten]).
+testNRQuery(1240, [], select x:count from [(select count(*) from orteh where bevth=3) as x, ten] where x:count=no).
+testNRQuery(1241, [], select value*100 as result from (select sum(bevth) from orteh)).
+
+
+
+
+testNRQuery(1300, [], insert into plz values [99999, "fake city"]).
+testNRQuery(1301, [], delete from plz where [plz=99999, ort="fake city"]).
 
 % Queries on database literature
 % May reveal some more cases to take care about.
@@ -434,6 +465,8 @@ testNRQuery(3007, [], select * from (select * from (select * from trains where i
 testNRQuery(3008, [], select x2:id from (select * from (select * from (select * from trains where id=531)  unnest(trip) as t2) nest([t2:id,t2:line,t2:up], trips) as x) as x2).
 % join it agin with the trains table.
 testNRQuery(3008, [], select * from [(select * from (select * from (select * from trains where id=531)  unnest(trip) as t2) nest([t2:id,t2:line,t2:up], trips) as x) as x2, trains as t4] where t4:id=x2:id).
+testNRQuery(3009, [], select count(*) from trains unnest(trip)).
+testNRQuery(3010, [], select * from (select * from trains unnest(trip) where id=531) nest([id,line,up], trips) as x).
 
 % some cases to test some other stuff, but for relations with moving or spatial
 % objects, it 's uncertain how far all this works.
@@ -444,6 +477,7 @@ testNRQuery(3102, [], select * from trains where [not(isempty(deftime(intersecti
 testNRQuery(3103, [], select [id, intersection(trip, msnow) as insnow] from trains where [not(isempty(deftime(intersection(trip, msnow))))]).
 
 
+
 % Returns by backtracking the subqueries test examples 
 testNRQuery(NoNew, [database(opt)], Query) :-
 	testQuery(No, Query), 
@@ -452,7 +486,7 @@ testNRQuery(NoNew, [database(opt)], Query) :-
 	NoNew is No + 10000.
 
 % open database optext again because i mostly work there
-testNRQuery(100000, [database(optext)], select * from orteh).
+testNRQuery(100000, [database(optext)], select * from orteh first 1).
 
 testNRQuery(No, Q) :-
 	testNRQuery(No, _, Q).
@@ -479,9 +513,13 @@ testNR(No, _) :-
 	testResult/5,
 	testRunning/0.
 
+% Support nasty source code reloading in my test enviroment.
+:- multifile reload/0.
+reload.
+
 testNR :-
 	reload, % this is to simplify my testings, but when using this, the 
-	% catalogs should be reloaded.
+	% catalogs needs be reloaded.
 	retractall(testResult(_, _, _, _, _)),
 	retractall(testRunning),
 	asserta(testRunning),
@@ -492,6 +530,7 @@ testNR :-
 		processProperties(Properties),
 		% So we check if this is provable, not if the result is correct.
 		% That that sql catches exceptions, otherwise more must be done here.
+		write_list(['\n\nRun query: ', Query, '\n']),
 		(getTime(sql(Query), TimeMS) ->
 			addResult(Properties, No, TimeMS, ok)
 		;
