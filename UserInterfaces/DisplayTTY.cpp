@@ -1053,14 +1053,14 @@ struct DisplayRect : DisplayFunction {
         {
           cout << coordValue[2*i];
           if( i < 2 - 1 )
-            cout << ",";
+            cout << ", ";
         }
         cout << ") - (";
         for( unsigned i = 0; i < 2; i++ )
         {
           cout << coordValue[2*i+1];
           if( i < 2 - 1 )
-            cout << ",";
+            cout << ", ";
         }
         cout << ") )";
       }
@@ -2804,8 +2804,7 @@ struct DisplayJRouteInterval : DisplayFunction {
       nl->ReadFromString("jdirection", subtype);
       cout<< "road " << nl->IntValue(nl->First(value))
       << " from " << nl->RealValue(nl->Second(value))
-      << " to " << nl->RealValue(nl->Third(value))
-      << " direction ";
+      << " to " << nl->RealValue(nl->Third(value));
       DisplayTTY::GetInstance().DisplayResult(subtype, nl->Fourth(value));
     }
   }
@@ -3193,8 +3192,8 @@ struct DisplayRegEx : DisplayFunction{
          cout << "Source : " << nl->Text2String(srcList) << endl;
        }
      }
-    
-     
+
+
      int numStates = nl->IntValue(nl->First(value));
      ListExpr transitions = nl->Second(value);
      ListExpr finalStates = nl->Third(value);
@@ -3281,7 +3280,7 @@ struct DisplayRegEx : DisplayFunction{
                  }
               }
               ss << "]";
-            }  
+            }
           }
 
           cout << (srcfinal?"*":" ") << src << " - "
@@ -3297,17 +3296,17 @@ struct DisplayRegEx : DisplayFunction{
         if(isPrintable(c)){
           h << (char)c;
           return h.str();
-        } 
+        }
         if(c==9){
           return "\\t";
         }
         if(c==10){
           return "\\n";
-          
-        } 
+
+        }
         if(c==13){
            return "\\r";
-        } 
+        }
 
         h << "(" << c << ")";
         return h.str();
