@@ -607,19 +607,22 @@ bool JRouteInterval::Contains(const RouteLocation& rloc) const
 {
   return (IsDefined() && rloc.IsDefined() &&
           rid == rloc.GetRouteId() &&
-          startpos <= rloc.GetPosition() &&
-          rloc.GetPosition() <= endpos &&
+          (startpos < rloc.GetPosition() ||
+                        AlmostEqual(startpos, rloc.GetPosition())) &&
+          (rloc.GetPosition() < endpos ||
+                        AlmostEqual(endpos, rloc.GetPosition())) &&
           side.SameSide(rloc.GetSide(),false));
 }
 
 bool JRouteInterval::Contains(const RouteLocation& rloc,
                               const double tolerance) const
 {
-  return (IsDefined() && rloc.IsDefined() && rid == rloc.GetRouteId() &&
-          (
-            (startpos < rloc.GetPosition() && rloc.GetPosition() < endpos) ||
-            AlmostEqualAbsolute(startpos, rloc.GetPosition(), tolerance) ||
-            AlmostEqualAbsolute(endpos, rloc.GetPosition(), tolerance)) &&
+  return (IsDefined() && rloc.IsDefined() &&
+          rid == rloc.GetRouteId() &&
+          (startpos < rloc.GetPosition() ||
+              AlmostEqualAbsolute(startpos, rloc.GetPosition(), tolerance)) &&
+          (rloc.GetPosition() < endpos ||
+              AlmostEqualAbsolute(endpos, rloc.GetPosition(), tolerance)) &&
             side.SameSide(rloc.GetSide(),false));
 }
 

@@ -378,12 +378,15 @@ Instant* Endtime() const;
 /*
 1.1.1.1 GetUnitPosForTime
 
-Searches binary for the position of the JUnit including the given time interval.
+Searches binary for the position of the JUnit including the start of the
+given time interval.
 
 */
 
-int GetUnitPosForTime(const Instant* time, const int spos, const int epos)
-  const;
+int GetUnitPosForTime(const Interval<Instant>& time,
+                      const int spos, const int epos) const;
+int GetUnitPosForTime(const Instant& time,
+                      const int spos, const int epos) const;
 
 /*
 1.1.1.1 Refinement

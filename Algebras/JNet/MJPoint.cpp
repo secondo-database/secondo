@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JRITree.h"
 #include "ManageJNet.h"
 #include "IJPoint.h"
+#include "JNetUtil.h"
 
 /*
 1 Helpful Operations
@@ -169,7 +170,7 @@ void MJPoint::Trajectory(JLine* result) const
   if (IsDefined())
   {
     result->SetNetworkId(nid);
-    result->SetRouteIntervals(trajectory);
+    result->SetSortedRouteIntervals(trajectory);
   }
 }
 
@@ -182,30 +183,16 @@ Rectangle< 3 > MJPoint::BoundingBox() const
 {
   if (IsDefined() && GetNoComponents() > 0)
   {
-    JNetwork* jnet = ManageJNet::GetNetwork(*GetNetworkId());
-    JRouteInterval actRint;
-    int i = 0;
-    trajectory.Get(i,actRint);
-    Rectangle<2> tmpres = jnet->BoundingBox(actRint);
-    while (i < trajectory.Size())
-    {
-      trajectory.Get(i,actRint);
-      Rectangle<2> actRect = jnet->BoundingBox(actRint);
-      if (actRect.IsDefined())
-        tmpres.Union(actRect);
-      i++;
-    }
-    ManageJNet::CloseNetwork(jnet);
     Instant* startTime = Starttime();
     Instant* endTime = Endtime();
     double mintime = startTime->ToDouble();
     double maxtime = endTime->ToDouble();
     startTime->DeleteIfAllowed();
     endTime->DeleteIfAllowed();
-    return Rectangle<3> (true,
-                         tmpres.MinD(0), tmpres.MaxD(0),
-                         tmpres.MinD(1), tmpres.MaxD(1),
-                         mintime, maxtime);
+    JNetwork* jnet = ManageJNet::GetNetwork(*GetNetworkId());
+    Rectangle<3> result = jnet->BoundingBox(trajectory, mintime, maxtime);
+    ManageJNet::CloseNetwork(jnet);
+    return Rectangle<3> (result);
   }
   else
     return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
@@ -753,8 +740,8 @@ IJPoint MJPoint::AtInstant(const Instant* time) const
 {
   if (IsDefined() && !IsEmpty() && time != 0 && time->IsDefined())
   {
-    int pos = GetUnitPosForTime(time, 0, GetNoComponents()-1);
-    if (pos > -1)
+    int pos = GetUnitPosForTime(*time, 0, GetNoComponents()-1);
+    if (pos > -1 && pos < GetNoComponents())
     {
       JUnit ju;
       Get(pos, ju);
@@ -785,17 +772,14 @@ bool MJPoint::Present(const Periods* per) const
       per->Get(timeIndex, actTimeInterval);
       if (actTimeInterval.IsDefined())
       {
-        if (!(actTimeInterval.start > unitEnd.GetTimeInterval().end ||
-              actTimeInterval.end < unitStart.GetTimeInterval().start))
+        if (!(unitEnd.GetTimeInterval().Before(actTimeInterval) ||
+              actTimeInterval.Before(unitStart.GetTimeInterval())))
         {
-          if (actTimeInterval.start <= unitEnd.GetTimeInterval().start &&
-              actTimeInterval.end >= unitStart.GetTimeInterval().end)
-            return true;
-          unitIndex = GetUnitPosForTime(&actTimeInterval.start,
+          unitIndex = GetUnitPosForTime(actTimeInterval,
                                         0, GetNoComponents()-1);
           if (-1 < unitIndex && unitIndex < GetNoComponents())
             return true;
-          unitIndex = GetUnitPosForTime(&actTimeInterval.end,
+          unitIndex = GetUnitPosForTime(actTimeInterval,
                                         0, GetNoComponents()-1);
           if (-1 < unitIndex && unitIndex < GetNoComponents())
             return true;
@@ -819,7 +803,7 @@ bool MJPoint::Present(const Instant* inst) const
 {
   if (IsDefined() && !IsEmpty() && inst != 0 && inst->IsDefined())
   {
-    int pos = GetUnitPosForTime(inst,0,GetNoComponents()-1);
+    int pos = GetUnitPosForTime(*inst, 0, GetNoComponents()-1);
     return (pos > -1);
   }
   return false;
@@ -852,33 +836,28 @@ void MJPoint::AtPeriods(const Periods* times, MJPoint& result) const
       if (++timeIndex < times->GetNoComponents())
         times->Get(timeIndex, actTimeInterval);
     }
+
     //Find first unit of mjpoint intersecting the current time interval
     if (actUnit.GetTimeInterval().Before(actTimeInterval))
     {
-      unitIndex = GetUnitPosForTime(&actTimeInterval.start,
+      unitIndex = GetUnitPosForTime(actTimeInterval,
                                     0, GetNoComponents()-1);
-      if (unitIndex < 0)
-      {
-        unitIndex = GetNoComponents();
-        result.SetDefined(false);
-      }
       if (unitIndex < 0)
           unitIndex = 0;
       if (unitIndex < GetNoComponents())
         Get(unitIndex, actUnit);
     }
-
     while (timeIndex < times->GetNoComponents() &&
            unitIndex < GetNoComponents())
     {
-      if (actUnit.GetTimeInterval().end < actTimeInterval.start)
+      if (actUnit.GetTimeInterval().Before(actTimeInterval))
       {
         if (++unitIndex < GetNoComponents())
           Get(unitIndex,actUnit);
       }
       else
       {
-        if (actUnit.GetTimeInterval().start > actTimeInterval.end)
+        if (actTimeInterval.Before(actUnit.GetTimeInterval()))
         {
           if (++timeIndex < times->GetNoComponents())
             times->Get(timeIndex,actTimeInterval);
@@ -897,17 +876,17 @@ void MJPoint::AtPeriods(const Periods* times, MJPoint& result) const
                                     actTimeInterval.start);
             Instant endtime = min(actUnit.GetTimeInterval().end,
                                   actTimeInterval.end);
-            bool lc, rc;
+            bool lc = nextlc;
+            bool rc = false;
             if (starttime == endtime)
             {
-              lc = true;
               rc = true;
               nextlc = false;
             }
             else
             {
               lc = actUnit.GetTimeInterval().lc && actTimeInterval.lc &&
-                   nextlc;
+                   lc;
               rc = actUnit.GetTimeInterval().rc && actTimeInterval.rc;
               nextlc = true;
             }
@@ -915,9 +894,9 @@ void MJPoint::AtPeriods(const Periods* times, MJPoint& result) const
             double startpos = actUnit.PosAtTime(&starttime);
             double endpos = actUnit.PosAtTime(&endtime);
             JUnit res(Interval<Instant>(starttime, endtime, lc, rc),
-                      JRouteInterval(
-                        actUnit.GetRouteInterval().GetRouteId(),
-                                     startpos, endpos,
+                      JRouteInterval(actUnit.GetRouteInterval().GetRouteId(),
+                                     min(startpos, endpos),
+                                     max(startpos, endpos),
                                      actUnit.GetRouteInterval().GetSide()));
             result.Add(res);
             if (actTimeInterval.end < actUnit.GetTimeInterval().end)
@@ -974,36 +953,34 @@ IJPoint MJPoint::Initial() const
 
 bool MJPoint::Passes(const JPoint* jp) const
 {
-  if (IsDefined() && !IsEmpty() && jp != 0 && jp->IsDefined())
-  {
-    JLine* tmp = new JLine(0);
-    Trajectory(tmp);
-    if (tmp->Contains(jp))
-    {
-      tmp->Destroy();
-      tmp->DeleteIfAllowed();
-      return true;
-    }
-    tmp->Destroy();
-    tmp->DeleteIfAllowed();
-  }
-  return false;
+  if (IsDefined() && !IsEmpty() && jp != 0 && jp->IsDefined()  &&
+      strcmp(nid,*jp->GetNetworkId()) == 0)
+    return (JNetUtil::GetIndexOfJRouteIntervalForRLoc(trajectory,
+                                                      jp->GetLocation(),
+                                                      0,
+                                                      trajectory.Size()-1)
+              > -1);
+  else
+    return false;
 }
 
 bool MJPoint::Passes(const JLine* jl) const
 {
-  if (IsDefined() && !IsEmpty() && jl != 0 && jl->IsDefined() && !jl->IsEmpty())
+  if (IsDefined() && !IsEmpty() &&
+      jl != 0 && jl->IsDefined() && !jl->IsEmpty() &&
+      strcmp(nid, *jl->GetNetworkId()) == 0)
   {
-    JLine* tmp = new JLine(0);
-    Trajectory(tmp);
-    if (tmp->Intersects(jl))
+    int i = 0;
+    JRouteInterval actInt;
+    while (i < jl->GetNoComponents())
     {
-      tmp->Destroy();
-      tmp->DeleteIfAllowed();
-      return true;
+      jl->Get(i, actInt);
+      if (JNetUtil::GetIndexOfJRouteIntervalForJRInt(trajectory, actInt,
+                                                     0, trajectory.Size()-1)
+             > -1)
+        return true;
+      i++;
     }
-    tmp->Destroy();
-    tmp->DeleteIfAllowed();
   }
   return false;
 }
@@ -1053,7 +1030,7 @@ void MJPoint::At(const JLine* jl, MJPoint& result) const
     result.SetNetworkId(nid);
     result.StartBulkload();
     bool lastrc = false;
-    JUnit ju;
+    JUnit ju(false);
     JRouteInterval* rint = 0;
     for (int i = 0; i < GetNoComponents(); i++)
     {
@@ -1080,6 +1057,7 @@ void MJPoint::At(const JLine* jl, MJPoint& result) const
   else
     result.SetDefined(false);
 }
+
 /*
 1.1.1 ~Intersects~
 
@@ -1155,39 +1133,41 @@ bool MJPoint::CheckSorted() const
 
 bool MJPoint::Simplify()
 {
-  JRITree* tree = new JRITree(0);
-  DbArray<JUnit>* simpleUnits = new DbArray<JUnit>(0);
-  JUnit actNewUnit(false), actOldUnit(false);
-  if (units.Size() > 0)
-    Get(0,actOldUnit);
-  actNewUnit = actOldUnit;
-  int i = 1;
-  bool sorted = true;
-  while (i < units.Size() && sorted)
+  if (IsDefined() && units.Size() > 0)
   {
-    Get(i,actNewUnit);
-    sorted = sorted && checkNextUnit(actNewUnit, actOldUnit);
-    if (!actOldUnit.ExtendBy(actNewUnit))
+    JRITree* tree = new JRITree(0);
+    DbArray<JUnit>* simpleUnits = new DbArray<JUnit>(0);
+    JUnit actNewUnit(false), actOldUnit(false);
+    Get(0,actOldUnit);
+    actNewUnit = actOldUnit;
+    int i = 1;
+    bool sorted = true;
+    while (i < units.Size() && sorted)
     {
-      simpleUnits->Append(actOldUnit);
-      lenth += actOldUnit.GetLength();
-      actOldUnit = actNewUnit;
-      tree->Insert(actOldUnit.GetRouteInterval());
+      Get(i,actNewUnit);
+      sorted = sorted && checkNextUnit(actNewUnit, actOldUnit);
+      if (!actOldUnit.ExtendBy(actNewUnit))
+      {
+        simpleUnits->Append(actOldUnit);
+        lenth += actOldUnit.GetLength();
+        tree->Insert(actOldUnit.GetRouteInterval());
+        actOldUnit = actNewUnit;
+      }
+          i++;
     }
-    i++;
+    simpleUnits->Append(actOldUnit);
+    lenth += actOldUnit.GetLength();
+    tree->Insert(actOldUnit.GetRouteInterval());
+    simpleUnits->TrimToSize();
+    units.clean();
+    units.copyFrom(*simpleUnits);
+    delete simpleUnits;
+    tree->TreeToDbArray(&trajectory,0);
+    tree->Destroy();
+    delete tree;
+    return sorted;
   }
-  simpleUnits->Append(actOldUnit);
-  tree->Insert(actOldUnit.GetRouteInterval());
-  lenth += actOldUnit.GetLength();
-  simpleUnits->TrimToSize();
-  units.clean();
-  units.copyFrom(*simpleUnits);
-  simpleUnits->Destroy();
-  tree->TreeToDbArray(&trajectory,0);
-  tree->Destroy();
-  delete tree;
-  delete simpleUnits;
-  return sorted;
+  return false;
 }
 
 /*
@@ -1204,7 +1184,8 @@ void MJPoint::Append(const MJPoint* in)
     for (int j = 0; j < in->GetNoComponents(); j++)
     {
       in->Get(j,curUnit);
-      Add(curUnit);
+      if (curUnit.IsDefined())
+        Add(curUnit);
     }
   }
 }
@@ -1256,23 +1237,40 @@ Instant* MJPoint::Endtime() const
 
 */
 
-int MJPoint::GetUnitPosForTime(const Instant* time, const int spos,
+int MJPoint::GetUnitPosForTime(const Interval<Instant>& time, const int spos,
                                const int epos) const
 {
-  if (!IsDefined() || IsEmpty() ||
-      time == 0 || !time->IsDefined() ||
-      spos < 0 || epos > GetNoComponents()-1 || epos < spos)
+  return GetUnitPosForTime(time.start, spos, epos);
+}
+
+int MJPoint::GetUnitPosForTime(const Instant& time,
+                               const int spos, const int epos) const
+{
+  if (!IsDefined() || IsEmpty() || !time.IsDefined() ||
+    spos < 0 || epos > GetNoComponents()-1 || epos < spos)
     return -1;
   int mid = (epos + spos) / 2;
   JUnit ju;
   Get(mid, ju);
-  if (ju.GetTimeInterval().end < *time)
-    return GetUnitPosForTime(time, mid+1, epos);
+  if (time > ju.GetTimeInterval().end)
+  {
+    if (mid != spos)
+      return GetUnitPosForTime(time, mid, epos);
+    else
+      return GetUnitPosForTime(time,mid+1,epos);
+  }
   else
-    if (ju.GetTimeInterval().start > *time)
-      return GetUnitPosForTime(time, spos, mid-1);
+  {
+    if (time < ju.GetTimeInterval().start)
+    {
+      if (mid != epos)
+        return GetUnitPosForTime(time, spos, mid);
+      else
+        return GetUnitPosForTime(time, spos, mid-1);
+    }
     else
       return mid;
+  }
 }
 
 /*
@@ -1357,7 +1355,6 @@ void MJPoint::Refinement(const MJPoint* in2, MJPoint* out1, MJPoint* out2) const
     out2->EndBulkload();
   }
 }
-
 
 /*
 1 Overwrite output operator

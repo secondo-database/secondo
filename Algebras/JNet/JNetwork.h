@@ -323,6 +323,8 @@ Returns true if the given position(s) exist in the network.
 
 Rectangle<3> BoundingBox(const JUnit& ju) const;
 Rectangle<2> BoundingBox(const JRouteInterval& rint) const;
+Rectangle<3> BoundingBox(const DbArray<JRouteInterval>& traj,
+                         const double mintime, const double maxtime) const;
 
 /*
 1.1.1 ~SimulateTrip~
@@ -694,6 +696,7 @@ Returns the spatial position of the given rloc in the network.
 
 */
 
+Point* GetSpatialValueOf(const RouteLocation& rloc) const;
 Point* GetSpatialValueOf(const RouteLocation& rloc,
                          const JListInt* routeSectList) const;
 Point* GetSpatialValueOf(const RouteLocation& rloc, int& curRid,

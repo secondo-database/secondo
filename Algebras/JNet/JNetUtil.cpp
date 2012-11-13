@@ -1,0 +1,140 @@
+/*
+This file is part of SECONDO.
+
+Copyright (C) 2011, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+2012, November Simone Jandt
+
+1 Defines and Includes
+
+*/
+
+#include "JNetUtil.h"
+#include "RouteLocation.h"
+#include "JRouteInterval.h"
+
+/*
+1 Implementation of class ~JNetUtil~
+
+*/
+
+int JNetUtil::GetIndexOfJRouteIntervalForJRInt(
+    const DbArray< JRouteInterval >& list, const JRouteInterval rint,
+    const int startindex, const int endindex)
+{
+  if (rint.IsDefined() && startindex > -1 && endindex < list.Size() &&
+      startindex <= endindex)
+  {
+    JRouteInterval ri;
+    int mid = (endindex + startindex)/ 2;
+    list.Get(mid, ri);
+    if (ri.Overlaps(rint, false))
+    {
+      return mid;
+    }
+    else
+    {
+      switch(ri.Compare(rint))
+      {
+        case -1:
+        {
+          if (mid != startindex)
+            return JNetUtil::GetIndexOfJRouteIntervalForJRInt(list,rint, mid,
+                                                              endindex);
+          else
+            return JNetUtil::GetIndexOfJRouteIntervalForJRInt(list,rint, mid+1,
+                                                              endindex);
+          break;
+        }
+
+        case 1:
+        {
+          if (mid != endindex)
+            return JNetUtil::GetIndexOfJRouteIntervalForJRInt(list,rint,
+                                                              startindex, mid);
+          else
+            return JNetUtil::GetIndexOfJRouteIntervalForJRInt(list,rint,
+                                                              startindex,
+                                                              mid-1);
+
+          break;
+        }
+
+        default: //should never been reached
+        {
+          assert(false);
+          return -1;
+          break;
+        }
+      }
+    }
+  }
+  return -1;
+}
+
+int JNetUtil::GetIndexOfJRouteIntervalForRLoc(
+    const DbArray< JRouteInterval >& list, const RouteLocation& rloc,
+    const int startindex, const int endindex)
+{
+  if (rloc.IsDefined() && startindex > -1 && endindex < list.Size() &&
+    startindex <= endindex)
+  {
+    JRouteInterval ri;
+    int mid = (startindex + endindex)/ 2;
+    list.Get(mid, ri);
+    if (ri.Contains(rloc))
+    {
+      return mid;
+    }
+    else
+    {
+      switch(ri.Compare(rloc))
+      {
+        case -1:
+        {
+          if (mid != startindex)
+            return JNetUtil::GetIndexOfJRouteIntervalForRLoc(list,rloc,
+                                                              mid, endindex);
+          else
+            return JNetUtil::GetIndexOfJRouteIntervalForRLoc(list,rloc,
+                                                             mid+1, endindex);
+          break;
+        }
+
+        case 1:
+        {
+          if (mid != endindex)
+            return JNetUtil::GetIndexOfJRouteIntervalForRLoc(list,rloc,
+                                                             startindex, mid);
+          else
+            return JNetUtil::GetIndexOfJRouteIntervalForRLoc(list,rloc,
+                                                             startindex, mid-1);
+          break;
+        }
+
+        default: //should never been reached
+        {
+          assert(false);
+          return -1;
+          break;
+        }
+      }
+    }
+  }
+  return -1;
+}

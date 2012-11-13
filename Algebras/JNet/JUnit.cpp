@@ -41,10 +41,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
   {}
 
   JUnit::JUnit(const bool def) :
-    Attribute(def), routeInter(def)
+      Attribute(def), routeInter(def)
   {}
 
-  JUnit::JUnit(const JUnit& other) : Attribute(other.IsDefined())
+  JUnit::JUnit(const JUnit& other) :
+      Attribute(other.IsDefined())
   {
     if (other.IsDefined())
     {
@@ -177,7 +178,7 @@ double JUnit::GetLength() const
       {
         os << "time: ";
         timeInter.Print(os);
-        os << "positons: ";
+        os << "positions: ";
         routeInter.Print(os);
       }
       else
@@ -481,7 +482,7 @@ Rectangle<2> JUnit::NetBox() const
 IJPoint JUnit::AtInstant(const Instant* inst, const string netId) const
 {
   if (!IsDefined() || inst == 0 || !inst->IsDefined() ||
-      !timeInter.Contains(*inst))
+      !timeInter.Contains(*inst,true))
     return IJPoint(false);
   else
   {

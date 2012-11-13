@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 #include "JRITree.h"
 #include "ManageJNet.h"
+#include "JNetUtil.h"
 
 /*
 1 Implementation of class JLine
@@ -110,6 +111,12 @@ void JLine::SetRouteIntervals(const DbArray<JRouteInterval>& setri)
   routeintervals.copyFrom(setri);
   sorted = false;
   Sort();
+}
+
+void JLine::SetSortedRouteIntervals(const DbArray<JRouteInterval>& setri)
+{
+  routeintervals.copyFrom(setri);
+  sorted = true;
 }
 
 /*
@@ -630,13 +637,14 @@ bool JLine::Intersects(const JLine* other) const
     {
       if (IsSorted() && !other->IsSorted())
       {
-        int j = -1;
         JRouteInterval ri;
         for (int i = 0; i < other->GetNoComponents(); i++)
         {
           other->Get(i,ri);
-          j = GetOverlappingPos(ri, 0, GetNoComponents()-1);
-          if (j > -1)
+          if (JNetUtil::GetIndexOfJRouteIntervalForJRInt(routeintervals, ri,
+                                                         0,
+                                                         GetNoComponents()-1)
+              > -1)
             return true;
         }
       }
@@ -644,13 +652,13 @@ bool JLine::Intersects(const JLine* other) const
       {
         if (!IsSorted() && other->IsSorted())
         {
-          int i = -1;
           JRouteInterval ri;
           for (int j = 0; j < GetNoComponents(); j++)
           {
             Get(j,ri);
-            i = other->GetOverlappingPos(ri, 0, other->GetNoComponents()-1);
-            if (i > -1)
+            if (JNetUtil::GetIndexOfJRouteIntervalForJRInt(
+                                          other->GetRouteIntervals(), ri,
+                                          0, GetNoComponents()-1)  > -1)
               return true;
           }
         }
@@ -685,7 +693,10 @@ JRouteInterval* JLine::Intersection(const JRouteInterval& rint) const
   {
      if (IsSorted())
     {
-      int j = GetOverlappingPos(rint, 0, GetNoComponents()-1);
+      int j = JNetUtil::GetIndexOfJRouteIntervalForJRInt(routeintervals,
+                                                         rint,
+                                                         0,
+                                                         GetNoComponents()-1);
       if (j > -1)
       {
         JRouteInterval actInt;
@@ -719,7 +730,11 @@ JRouteInterval* JLine::Intersection(const JRouteInterval& rint) const
 bool JLine::Contains(const JPoint* jp) const
 {
   if (IsDefined() && !IsEmpty() && jp != 0 && jp->IsDefined())
-    return (GetOverlappingPos(jp->GetLocation(), 0, GetNoComponents()-1) > -1);
+    return (JNetUtil::GetIndexOfJRouteIntervalForRLoc(routeintervals,
+                                                      jp->GetLocation(),
+                                                      0,
+                                                      GetNoComponents()-1)
+              > -1);
   else
     return false;
 }
@@ -842,94 +857,6 @@ bool JLine::IsSorted() const
   else
     return false;
 }
-
-/*
-1.1.1 GetOverlappingPos
-
-*/
-
-int JLine::GetOverlappingPos(const JRouteInterval& rint, int spos, int epos)
-const
-{
-  if (IsDefined() && !IsEmpty() && IsSorted() && rint.IsDefined() &&
-    spos > -1 && epos < GetNoComponents() && spos <= epos)
-  {
-    JRouteInterval ri;
-    int mid = (epos + spos)/ 2;
-    Get(mid, ri);
-    if (ri.Overlaps(rint, false))
-    {
-      return mid;
-    }
-    else
-    {
-      switch(ri.Compare(rint))
-      {
-        case -1:
-        {
-          return GetOverlappingPos(rint, mid+1, epos);
-          break;
-        }
-
-        case 1:
-        {
-          return GetOverlappingPos(rint, spos, mid-1);
-          break;
-        }
-
-        default: //should never been reached
-        {
-          assert(false);
-          return -1;
-          break;
-        }
-      }
-    }
-  }
-  return -1;
-}
-
-int JLine::GetOverlappingPos(const RouteLocation& rloc, int spos, int epos)
-const
-{
-  if (IsDefined() && !IsEmpty() && IsSorted() && rloc.IsDefined() &&
-    spos > -1 && epos < GetNoComponents() && spos <= epos)
-  {
-    JRouteInterval ri;
-    int mid = (epos + spos)/ 2;
-    Get(mid, ri);
-    if (ri.Contains(rloc))
-    {
-      return mid;
-    }
-    else
-    {
-      switch(ri.Compare(rloc))
-      {
-        case -1:
-        {
-          return GetOverlappingPos(rloc, mid+1, epos);
-          break;
-        }
-
-        case 1:
-        {
-          return GetOverlappingPos(rloc, spos, mid-1);
-          break;
-        }
-
-        default: //should never been reached
-        {
-          assert(false);
-          return -1;
-          break;
-        }
-      }
-    }
-  }
-  return -1;
-}
-
 
 /*
 1 Overwrite output operator

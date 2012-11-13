@@ -76,6 +76,7 @@ public:
 
   void SetNetworkId(const STRING_T& nid);
   void SetRouteIntervals(const DbArray<JRouteInterval>& setri);
+  void SetSortedRouteIntervals(const DbArray<JRouteInterval>& setri);
 
 /*
 1.1.1 Override Methods from Attribute
@@ -296,18 +297,6 @@ RouteIntervals which are not in the network.
 
 void FillIntervalList(const DbArray<JRouteInterval>* rintList,
                       const JNetwork* jnet);
-
-/*
-1.1.1.1 GetOverlappingPos
-
-Searches binary in the list of sorted intervallist if a overlapping route
-interval for rint or rloc exists. If an overlapping route interval exists the
-position of this interval is returned. Otherwise -1 is returned.
-
-*/
-
-int GetOverlappingPos(const JRouteInterval& rint, int spos, int epos) const;
-int GetOverlappingPos(const RouteLocation& rloc, int spos, int epos) const;
 
 };
 
