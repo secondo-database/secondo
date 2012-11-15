@@ -27,6 +27,10 @@ let MF = 3.35;
 
 # build some relations
 
+let fifty = thousand feed filter[.No <= 50] consume
+
+let hundred = thousand feed filter[.No <= 100] consume
+
 # plzbig has 2000000 tuples
 let plzbig = plz feed head[40000] fifty feed product consume; 
 
@@ -1617,10 +1621,6 @@ delete x6;
 delete uExtendStream;
 delete vExtendStream;
 delete wExtendStream;
-
-let fifty = thousand feed filter[.No <= 50] consume
-
-let hundred = thousand feed filter[.No <= 100] consume
 
 let Trains100 = Trains feed hundred feed product extend[N: randint(999999)] sortby[N asc] remove[N] consume
 
