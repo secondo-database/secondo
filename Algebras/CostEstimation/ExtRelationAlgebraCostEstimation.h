@@ -426,9 +426,11 @@ double calculateSufficientMemory(size_t NoTuples1,
   size_t sizeOfTuple2) const {
 
   // Space for placing all tuples in memory
-  return ceil((NoTuples1 * sizeOfTuple1 
+  double suffMemory = ceil((NoTuples1 * sizeOfTuple1 
     + NoTuples2 * sizeOfTuple2) / (1024 * 1024));
 
+  // At least 16 mb are required
+  return max(16.0, suffMemory);
 }
 
 /*

@@ -323,7 +323,10 @@ double calculateSufficientMemory(size_t NoTuples1, size_t sizeOfTuple1) const {
    
    size_t memory = NoTuples1 * sizePerTupleReal;
 
-   return ceil(memory / (1024 * 1024));
+   double suffMemory = ceil(memory / (1024 * 1024));
+   
+   // At least 16 mb are required
+   return max(16.0, suffMemory);
 }
 
 /*
