@@ -169,7 +169,8 @@ void calculateXPoints(double sufficentPoint, double &x1,
   double &x2) const{
 
     x1 = 16;
-    x2 = sufficentPoint * 0.8;
+    //x2 = sufficentPoint * 0.8;
+    x2 = sufficentPoint - 1;
 }
 
 /*
