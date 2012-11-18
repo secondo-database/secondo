@@ -690,7 +690,7 @@ let plz10Odd15Attrs = plz10Odd feed extend[
 
 query plz10Even15Attrs feed {p1} plz10Even feed {p2} sortmergejoin_old[PLZE_p1, PLZE_p2] head[1] count
 
-query plz10Even15Attrs feed {p1} plz10Even feed {p2} sortmergejoini_old[PLZE_p1, PLZE_p2] head[1] count
+query plz10Even15Attrs feed {p1} plz10Even feed {p2} sortmergejoin_old[PLZE_p1, PLZE_p2] head[1] count
 
 query plz10Even15Attrs feed {p1} plz10Even feed {p2} sortmergejoin_old[PLZE_p1, PLZE_p2] head[1] count
 
