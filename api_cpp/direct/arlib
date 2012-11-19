@@ -45,26 +45,16 @@ L=$(expr $L - 2)
 SHLIB=$(expr substr $TARGET 1 $L).so
 
 
-
-echo "Create shared library $SHLIB"
-echo "SRCOBJ = $SRCOBJECTS"
-
-echo
-echo
-
-echo "Other Objects : $OBJ "
-
-
-
-
-gcc -shared -Wl,-soname,libsecondo.so -o $SHLIB $SRCOBJECTS  $OBJ
-
-if [ $? != 0 ]; then
-echo "Error in creating share lib"
-exit 1
+if [ "$SECONDO_PLATFORM" != "win32" ]; then
+  echo "create shared library" 
+  gcc -shared -Wl,-soname,libsecondo.so -o $SHLIB $SRCOBJECTS  $OBJ 
+  if [ $? != 0 ]; then
+     echo "Error in creating share lib"
+     exit 1
+  fi
+  echo "shared lib created" 
 fi
 
-echo "shared lib created" 
 
 
 cd ..
