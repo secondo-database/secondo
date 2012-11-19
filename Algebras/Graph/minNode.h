@@ -22,11 +22,17 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "GraphAlgebra.h"
-#include "minNode.h"
 
+class MinNode {
 
-MinNode::MinNode(Edge nelem) { elem = nelem; }
+    public:
 
-Edge MinNode::getElem() { return elem; }
+        MinNode(Edge nelem);
 
+        Edge getElem();
+
+    private:
+
+        Edge elem;
+};
 

@@ -86,12 +86,8 @@ in SECONDO to get more informations about these operators.
 #include "GraphAlgebra.h"
 #include "RelationAlgebra.h"
 #include "ListUtils.h"
-#include "tree.cpp"
-#include "vertex.cpp"
-#include "edge.cpp"
-#include "graph.cpp"
-#include "path.cpp"
 #include "Symbols.h"
+#include "PlaceNodesHelper.h"
 
 /*
 4 Creating Operators
@@ -1766,6 +1762,1286 @@ Operator equalop (
   EqualSelect,
   EqualTypeMap
 );
+
+/*
+4 operators
+
+*/
+
+
+ListExpr EdgeIntTypeMap(ListExpr args)
+{
+  if (nl->ListLength(args) == 1)
+  {
+    ListExpr arg = nl->First(args);
+    if (nl->IsEqual(arg, "edge"))
+    {
+      return nl->SymbolAtom(CcInt::BasicType());
+    }
+    else
+    {
+      ErrorReporter::ReportError(
+        "Type mapping function got paramater of type " +
+        nl->ToString(arg));
+    }
+  }
+  else
+  {
+    ErrorReporter::ReportError(
+      "Type mapping function got a parameter of length != 1.");
+  }
+  return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+ListExpr EdgeRealTypeMap(ListExpr args)
+{
+  if (nl->ListLength(args) == 1)
+  {
+    ListExpr arg = nl->First(args);
+    if (nl->IsEqual(arg, "edge"))
+    {
+      return nl->SymbolAtom(CcReal::BasicType());
+    }
+    else
+    {
+      ErrorReporter::ReportError(
+        "Type mapping function got paramater of type " +
+        nl->ToString(arg));
+    }
+  }
+  else
+  {
+    ErrorReporter::ReportError(
+      "Type mapping function got a parameter of length != 1.");
+  }
+  return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+
+int graphsource(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Edge const * pEdge = static_cast<Edge const *>(args[0].addr);
+  result = qp->ResultStorage(s);
+  CcInt* pRet = static_cast<CcInt *>(result.addr);
+  pRet->Set(true, pEdge->GetSource());
+
+  return 0;
+}
+
+
+int graphtarget(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Edge const * pEdge = static_cast<Edge const *>(args[0].addr);
+  result = qp->ResultStorage(s);
+  CcInt* pRet = static_cast<CcInt *>(result.addr);
+  pRet->Set(true, pEdge->GetTarget());
+
+  return 0;
+}
+
+int graphcost(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Edge const * pEdge = static_cast<Edge const *>(args[0].addr);
+  result = qp->ResultStorage(s);
+  CcReal* pRet = static_cast<CcReal *>(result.addr);
+  pRet->Set(true, pEdge->GetCost());
+
+  return 0;
+}
+
+string const sourceSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "( <text>edge -> int</text--->"
+   "<text>get_source ( _ )</text--->"
+   "<text>the source vertex of the edge</text--->"
+   "<text>get_source(e1)</text---> ) )";
+
+
+string const targetSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>edge -> int</text--->"
+  "<text>get_target ( _ )</text--->"
+  "<text>the target vertex of the edge</text--->"
+  "<text>get_target(e1)</text---> ) )";
+
+
+string const costSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>edge -> real</text--->"
+  "<text>get_cost ( _ )</text--->"
+  "<text>the cost of the edge</text--->"
+  "<text>get_cost(e1)</text---> ) )";
+
+
+
+/*
+4.1 operator source
+
+returns the key of the source vertex
+
+*/
+Operator graph_source("get_source", sourceSpec, graphsource,
+  Operator::SimpleSelect, EdgeIntTypeMap);
+
+/*
+4.2 operator target
+
+returns the key of the target vertex
+
+*/
+Operator graph_target("get_target", targetSpec, graphtarget,
+  Operator::SimpleSelect, EdgeIntTypeMap);
+
+/*
+4.3 operator cost
+
+returns the cost of the edge
+
+*/
+Operator graph_cost("get_cost", costSpec, graphcost,
+  Operator::SimpleSelect, EdgeRealTypeMap);
+
+
+/*
+4 operators on edges
+
+*/
+
+ListExpr VertexIntTypeMap(ListExpr args)
+{
+    if (nl->ListLength(args) == 1)
+    {
+        ListExpr arg = nl->First(args);
+        if (nl->IsEqual(arg, Vertex::BasicType()))
+        {
+            return nl->SymbolAtom(CcInt::BasicType());
+        }
+        else
+        {
+            ErrorReporter::ReportError(
+                "Type mapping function got paramater of type " +
+                nl->ToString(arg));
+        }
+    }
+    else
+    {
+        ErrorReporter::ReportError(
+            "Type mapping function got a parameter of length != 1.");
+    }
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+
+ListExpr VertexPointTypeMap(ListExpr args)
+{
+    if (nl->ListLength(args) == 1)
+    {
+        ListExpr arg = nl->First(args);
+        if (nl->IsEqual(arg, Vertex::BasicType()))
+        {
+            return nl->SymbolAtom(Point::BasicType());
+        }
+        else
+        {
+            ErrorReporter::ReportError(
+                "Type mapping function got paramater of type " +
+                nl->ToString(arg));
+        }
+    }
+    else
+    {
+        ErrorReporter::ReportError(
+            "Type mapping function got a parameter of length != 1.");
+    }
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+
+int graphkey(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+    Vertex const * pVertex = static_cast<Vertex const *>(args[0].addr);
+    result = qp->ResultStorage(s);
+    CcInt* pRet = static_cast<CcInt *>(result.addr);
+    pRet->Set(true, pVertex->GetKey());
+
+    return 0;
+}
+
+
+int graphpos(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+    Vertex const * pVertex = static_cast<Vertex const *>(args[0].addr);
+    result = qp->ResultStorage(s);
+    Point* pRet = static_cast<Point *>(result.addr);
+    pRet->CopyFrom(&pVertex->GetPos());
+
+    return 0;
+}
+
+
+string const keySpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>vertex -> int</text--->"
+    "<text>get_key ( _ )</text--->"
+    "<text>the key of the vertex</text--->"
+    "<text>get_key(v1)</text---> ) )";
+
+string const posSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>vertex -> point</text--->"
+    "<text>get_pos ( _ )</text--->"
+    "<text>the position of the vertex</text--->"
+    "<text>get_pos(v1)</text---> ) )";
+
+
+/*
+4.1 operator key
+
+returns the key of the vertex
+
+*/
+Operator graph_key("get_key", keySpec, graphkey, Operator::SimpleSelect,
+    VertexIntTypeMap);
+
+/*
+4.2 operator pos
+
+returns the position of the vertex
+
+*/
+
+Operator graph_pos("get_pos", posSpec, graphpos, Operator::SimpleSelect,
+    VertexPointTypeMap);
+
+
+/*
+4 Implementation of the ~graph~ type constructor
+
+*/
+
+
+/*
+4.10 Function describing the signature of the type constructor
+
+*/
+ListExpr GraphProperty() {
+
+   return (
+     nl->TwoElemList(
+         nl->FiveElemList(
+             nl->StringAtom("Signature"),
+             nl->StringAtom("Example Type List"),
+             nl->StringAtom("List Rep"),
+             nl->StringAtom("Example List"),
+             nl->StringAtom("Remarks")
+             ),
+         nl->FiveElemList(
+             nl->StringAtom("-> DATA"),
+             nl->StringAtom("graph"),
+             nl->TextAtom("((<vertex>*) (<edge>*))"),
+             nl->TextAtom("(((2 (2.0 -3.5)) (5 (-1.2 5.0)))"
+                          " ((2 2 4.2) (5 2 0.2)))"),
+             nl->TextAtom("The vertices must have unique keys, the edges use"
+                          " source and target keys from the vertex list, the"
+                          " edge costs must be positive and "
+                          "there are no parallel edges.")
+             )
+         )
+     );
+}
+
+
+/*
+4.1 List Representation
+
+The list representation of a graph is
+
+----  ((vertex*) (edge*))
+----
+
+conditions: vertex keys are unique, no parallel edges, source and target
+keys of the edges exist in the vertex list
+
+4.2 ~Out~-function
+
+*/
+ListExpr OutGraph( ListExpr typeInfo, Word value ) {
+
+
+   Graph* graph = (Graph*)(value.addr);
+
+   if( !graph->IsDefined() )
+     return nl->SymbolAtom(Symbol::UNDEFINED());
+
+   // create ListExpr for vertices
+
+   vector<Vertex>* v = graph->GetVertices(true);
+   ListExpr last;
+   ListExpr verticesList;
+   Point p;
+
+   if ((*v).size() > 0) {
+     p = (*v)[0].GetPos();
+     verticesList =
+       nl->OneElemList(
+           nl->TwoElemList(
+               nl->IntAtom((*v)[0].GetKey()),
+               OutPoint( nl->TheEmptyList(), SetWord( (void*)(&p)))
+           )
+       );
+
+    last = verticesList;
+    for (unsigned int i=1;i<(*v).size();i++) {
+       p = (*v)[i].GetPos();
+       last =
+         nl->Append(
+             last,
+             nl->TwoElemList(
+                 nl->IntAtom((*v)[i].GetKey()),
+                 OutPoint( nl->TheEmptyList(), SetWord( (void*)(&p)))
+            )
+         );
+     }
+   }
+   else
+     verticesList = nl->TheEmptyList();
+   delete v;
+   v = 0;
+
+   // create ListExpr for edges
+
+   vector<Edge>* e = graph->GetEdges(true);
+   ListExpr edgesList;
+
+   if (e->size() > 0) {
+
+     edgesList =
+       nl->OneElemList(
+           nl->ThreeElemList(
+               nl->IntAtom((*e)[0].GetSource()),
+               nl->IntAtom((*e)[0].GetTarget()),
+               nl->RealAtom((*e)[0].GetCost())
+           )
+       );
+
+     last = edgesList;
+     for (unsigned int i=1;i<(*e).size();i++) {
+       last =
+         nl->Append(
+             last,
+             nl->ThreeElemList(
+               nl->IntAtom((*e)[i].GetSource()),
+               nl->IntAtom((*e)[i].GetTarget()),
+               nl->RealAtom((*e)[i].GetCost())
+             )
+         );
+     }
+   }
+   else{
+     edgesList = nl->TheEmptyList();
+   }
+   delete e;
+
+   return (nl->TwoElemList(verticesList,edgesList));
+}
+
+/*
+4.3 ~In~-function
+
+*/
+Word InGraph( const ListExpr typeInfo, const ListExpr instance,
+          const int errorPos, ListExpr& errorInfo, bool& correct ) {
+
+   Graph* graph;
+   graph = new Graph(true);
+
+   correct = false;
+
+   if (nl->ListLength(instance) == 2) {
+
+     ListExpr verticesList = nl->First(instance);
+     ListExpr edgesList = nl->Second(instance);
+
+     if (!(nl->IsAtom(verticesList) || nl->IsAtom(edgesList))) {
+
+       correct = true;
+       Point* p;
+       ListExpr first, second, third;
+       ListExpr firstElem = nl->Empty();
+       ListExpr rest = verticesList;
+
+       // parse values of vertices
+       while (correct && !nl->IsEmpty(rest)) {
+         firstElem = nl->First(rest);
+         rest = nl->Rest(rest);
+
+         if (nl->ListLength(firstElem) != 2)
+           correct = false;
+         else {
+           first = nl->First(firstElem);
+           second = nl->Second(firstElem);
+
+           if (!(nl->IsAtom(first) && (nl->AtomType(first) == IntType)))
+             correct = false;
+           else {
+             p = (Point*)InPoint( nl->TheEmptyList(),
+                                  second, 0, errorInfo, correct ).addr;
+             if (correct) {
+               correct = graph->AddVertex(nl->IntValue(first),*p);
+               delete p;
+             }
+           }
+         }
+       }
+
+       // parse values of edges
+       firstElem = nl->Empty();
+       rest = edgesList;
+
+       while (correct && !nl->IsEmpty(rest)) {
+         firstElem = nl->First(rest);
+         rest = nl->Rest(rest);
+
+         if (nl->ListLength(firstElem) != 3)
+           correct = false;
+         else {
+           first = nl->First(firstElem);
+           second = nl->Second(firstElem);
+           third = nl->Third(firstElem);
+
+           if (!(nl->IsAtom(first) && (nl->AtomType(first) == IntType)
+                && nl->IsAtom(second) && (nl->AtomType(second) == IntType)
+                && nl->IsAtom(third) && (nl->AtomType(third) == RealType) &&
+                   (nl->RealValue(third) >= 0)))
+             correct = false;
+           else
+             correct = graph->AddEdge(nl->IntValue(first),
+                                      nl->IntValue(second),
+                                      nl->RealValue(third));
+         }
+       }
+
+       if (!correct)
+         cout << "Graph is invalid!" << endl;
+     }
+
+   }
+   else if (listutils::isSymbolUndefined(instance)) {
+
+     graph->SetDefined(false);
+     correct = true;
+   }
+
+   if (correct)
+     return SetWord(graph);
+
+   delete graph;
+   return SetWord(Address(0));
+}
+
+/*
+4.5 ~Create~-function
+
+*/
+Word CreateGraph( const ListExpr typeInfo ) {
+
+    return SetWord(new Graph(true));
+}
+
+
+/*
+4.6 ~Delete~-function
+
+*/
+void DeleteGraph( const ListExpr typeInfo, Word& w ) {
+
+   Graph* graph = (Graph*)w.addr;
+
+   graph->Destroy();
+   graph->DeleteIfAllowed(false);
+   w.addr = 0;
+}
+
+/*
+4.7 ~Close~-function
+
+*/
+void CloseGraph( const ListExpr typeInfo, Word& w ) {
+
+  ((Graph*)w.addr)->DeleteIfAllowed();
+  w.addr = 0;
+}
+
+/*
+4.8 ~Clone~-function
+
+*/
+Word CloneGraph( const ListExpr typeInfo, const Word& w ) {
+
+   return SetWord( ((Graph*)w.addr)->Clone() );
+}
+
+/*
+4.9 ~SizeOf~-function
+
+*/
+int SizeOfGraph() {
+
+   return sizeof(Graph);
+}
+
+/*
+4.11 Kind Checking Function
+
+This function checks whether the type constructor is applied correctly. Since
+type constructor ~graph~ does not have arguments, this is trivial.
+
+*/
+
+bool CheckGraph( ListExpr type, ListExpr& errorInfo ) {
+
+   return (nl->IsEqual(type,"graph"));
+}
+/*
+4.12 ~Cast~-function
+
+*/
+void* CastGraph (void* addr) {
+
+   return (new (addr) Graph);
+}
+
+/*
+4.13 ~Open~-function
+
+*/
+bool
+    OpenGraph( SmiRecord& valueRecord,
+                    size_t& offset,
+                    const ListExpr typeInfo,
+                    Word& value )
+{
+  // This Open function is implemented in the Attribute class
+  // and uses the same method of the Tuple manager to open objects
+  Graph *bf =
+      (Graph*)Attribute::Open( valueRecord, offset, typeInfo );
+  value.setAddr( bf );
+  return true;
+}
+
+/*
+4.14 ~Save~-function
+
+*/
+bool
+    SaveGraph( SmiRecord& valueRecord,
+                    size_t& offset,
+                    const ListExpr typeInfo,
+                    Word& value )
+{
+  Graph *bf = (Graph *)value.addr;
+
+  // This Save function is implemented in the Attribute class
+  // and uses the same method of the Tuple manager to save objects
+  Attribute::Save( valueRecord, offset, typeInfo, bf );
+  return true;
+}
+
+
+TypeConstructor graphCon(
+    "graph",              //name
+    GraphProperty,               //property function describing signature
+    OutGraph, InGraph,            //Out and In functions
+    0, 0,                      //SaveToList and RestoreFromList functions
+    CreateGraph, DeleteGraph,      //object creation and deletion
+    OpenGraph, SaveGraph, CloseGraph, CloneGraph,
+                                    //^^^ object open, save, close, and clone
+    CastGraph,              //cast function
+    SizeOfGraph,           //sizeof function
+    CheckGraph                    //kind checking function
+);
+
+/*
+Type constructor Path
+
+*/
+
+void* CastPath (void* addr)
+{
+    return (new (addr) Path);
+}
+
+ListExpr OutPath( ListExpr typeInfo, Word value )
+{
+    Path const * pPath = static_cast<Path const *>(value.addr);
+    if (pPath->IsDefined())
+    {
+        int nCount = pPath->GetNoPathStructs();
+        if (nCount == 0)
+        {
+            return nl->TheEmptyList();
+        }
+        else
+        {
+
+            pathStruct pStruct = pPath->GetPathStruct(0);
+            ListExpr result;
+            if (pStruct.pos.IsDefined())
+            {
+                result = nl->OneElemList(nl->TwoElemList(
+                    nl->IntAtom(pStruct.key), nl->TwoElemList(
+                    nl->RealAtom(pStruct.pos.GetX()),
+                    nl->RealAtom(pStruct.pos.GetY()))));
+            }
+            else
+            {
+                result = nl->OneElemList(nl->TwoElemList(
+                    nl->IntAtom(pStruct.key),
+                                          nl->SymbolAtom(Symbol::UNDEFINED())));
+            }
+
+            ListExpr last = result;
+            for (int i = 1; i < nCount; ++i)
+            {
+                last = nl->Append(last, nl->RealAtom(pStruct.cost));
+                pStruct = pPath->GetPathStruct(i);
+                if (pStruct.pos.IsDefined())
+                {
+                    last = nl->Append(last, nl->TwoElemList(
+                        nl->IntAtom(pStruct.key), nl->TwoElemList(
+                        nl->RealAtom(pStruct.pos.GetX()),
+                        nl->RealAtom(pStruct.pos.GetY()))));
+                }
+                else
+                {
+                    last = nl->Append(last, nl->TwoElemList(
+                        nl->IntAtom(pStruct.key),
+                                          nl->SymbolAtom(Symbol::UNDEFINED())));
+                }
+            }
+
+            return result;
+        }
+    }
+    else
+    {
+        return nl->SymbolAtom(Symbol::UNDEFINED());
+    }
+
+}
+
+Word InPath( const ListExpr typeInfo, const ListExpr instance,
+          const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+    Path* pPath = new Path(true);
+    correct = true;
+    if (listutils::isSymbolUndefined(instance))
+    {
+        pPath->SetDefined(false);
+    }
+    else if (!nl->IsEmpty(instance))
+    {
+        map<EdgeDirection, float> mapUsedEdges;
+        map<int, Point> mapUsedVertices;
+
+        pathStruct ps;
+        ListExpr first = nl->First(instance);
+        ListExpr rest = nl->Rest(instance);
+
+        if (nl->ListLength(first) == 2)
+        {
+            ListExpr First = nl->First(first);
+            ListExpr Second = nl->Second(first);
+            if (nl->IsAtom(First) && nl->AtomType(First) == IntType)
+            {
+                ps.key = nl->IntValue(First);
+                if (nl->ListLength(Second) == 2)
+                {
+                    First = nl->First(Second);
+                    Second = nl->Second(Second);
+                    if (nl->IsAtom(First)
+                        && nl->AtomType(First) == RealType &&
+                        nl->IsAtom(Second) &&
+                        nl->AtomType(Second) == RealType)
+                    {
+                        ps.pos = Point(true, nl->RealValue(First),
+                            nl->RealValue(Second));
+                    }
+                    else
+                    {
+                        correct = false;
+                    }
+                }
+                else if (listutils::isSymbolUndefined(Second))
+                {
+                    ps.pos = Point(false);
+                }
+                else
+                {
+                    correct = false;
+                }
+            }
+            else
+            {
+                correct = false;
+            }
+        }
+        else
+        {
+            correct = false;
+        }
+
+        mapUsedVertices.insert(pair<int, Point>(ps.key, ps.pos));
+
+        while (!nl->IsEmpty(rest) && correct)
+        {
+            first = nl->First(rest);
+            rest = nl->Rest(rest);
+
+            if (nl->IsAtom(first) && nl->AtomType(first) == RealType &&
+                !nl->IsEmpty(rest))
+            {
+                ps.cost = nl->RealValue(first);
+                pPath->Append(ps);
+            }
+            else
+            {
+                correct = false;
+            }
+
+            if (ps.cost < 0.0)
+            {
+                cout << "Negative costs are not allowed!" << endl;
+                correct = false;
+            }
+
+            if (correct)
+            {
+                first = nl->First(rest);
+                rest = nl->Rest(rest);
+                if (nl->ListLength(first) == 2)
+                {
+                    ListExpr First = nl->First(first);
+                    ListExpr Second = nl->Second(first);
+                    if (nl->IsAtom(First) && nl->AtomType(First) == IntType)
+                    {
+                        int nLastKey = ps.key;
+                        ps.key = nl->IntValue(First);
+                        EdgeDirection edge(nLastKey, ps.key);
+                        map<EdgeDirection, float>::const_iterator itEdge =
+                            mapUsedEdges.find(edge);
+                        if (itEdge == mapUsedEdges.end())
+                        {
+                            mapUsedEdges.insert(
+                                pair<EdgeDirection, float>(edge, ps.cost));
+                        }
+                        else if (ps.cost != (*itEdge).second)
+                        {
+                            cout << "Parallel borders are not allowed" << endl;
+                            correct = false;
+                        }
+
+                        if (nl->ListLength(Second) == 2)
+                        {
+                            First = nl->First(Second);
+                            Second = nl->Second(Second);
+                            if (nl->IsAtom(First) &&
+                                nl->AtomType(First) == RealType &&
+                                nl->IsAtom(Second) &&
+                                nl->AtomType(Second) == RealType)
+                            {
+                                ps.pos = Point(true, nl->RealValue(First),
+                                    nl->RealValue(Second));
+                            }
+                            else
+                            {
+                                correct = false;
+                            }
+                        }
+                        else if (listutils::isSymbolUndefined(Second))
+                        {
+                            ps.pos = Point(false);
+                        }
+                        else
+                        {
+                            correct = false;
+                        }
+
+                        if (correct)
+                        {
+                            map<int, Point>::const_iterator itVertex =
+                                mapUsedVertices.find(ps.key);
+                            if (itVertex == mapUsedVertices.end())
+                            {
+                                mapUsedVertices.insert(
+                                    pair<int, Point>(ps.key, ps.pos));
+                            }
+                            else
+                            {
+                                Point const & rPos2 = (*itVertex).second;
+                                if (ps.pos.IsDefined())
+                                {
+                                    if (rPos2.IsDefined())
+                                    {
+                                        correct = ps.pos == rPos2;
+                                    }
+                                    else
+                                    {
+                                        correct = false;
+                                    }
+                                }
+                                else if (rPos2.IsDefined())
+                                {
+                                    correct = false;
+                                }
+                                if (!correct)
+                                {
+                                    cout << "Vertex " << ps.key <<
+                                        " mustn't have different positions!"
+                                        << endl;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        correct = false;
+                    }
+                }
+                else
+                {
+                    correct = false;
+                }
+            }
+        }
+
+        //Append the last vertex with cost 0.0
+        ps.cost = 0.0;
+        pPath->Append(ps);
+    }
+
+    if (!correct)
+    {
+        delete pPath;
+        pPath = NULL;
+    }
+
+    return SetWord(pPath);
+}
+
+ListExpr PathProperty()
+{
+    return (nl->TwoElemList(
+        nl->FiveElemList(nl->StringAtom("Signature"),
+            nl->StringAtom("Example Type List"),
+            nl->StringAtom("List Rep"),
+            nl->StringAtom("Example List"),
+            nl->StringAtom("Remarks")),
+        nl->FiveElemList(nl->StringAtom("-> DATA"),
+            nl->StringAtom("path"),
+            nl->StringAtom("(<fromV> <cost> <toV> ... <cost> <toV>)"),
+            nl->StringAtom("((1 (1.0 2.0)) 0.5 (2 (2.0 3.0)))"),
+            nl->StringAtom("fromV, toV: vertex, cost: float"))));
+}
+
+Word CreatePath( const ListExpr typeInfo )
+{
+    return SetWord(new Path(true));
+}
+
+void DeletePath( const ListExpr typeInfo, Word& w )
+{
+    Path * pPath = static_cast<Path *>(w.addr);
+    pPath->Destroy();
+    pPath->DeleteIfAllowed(false);
+    w.addr = 0;
+
+}
+
+void ClosePath( const ListExpr typeInfo, Word& w )
+{
+    static_cast<Path *>(w.addr)->DeleteIfAllowed();
+    w.addr = 0;
+
+}
+
+Word ClonePath( const ListExpr typeInfo, const Word& w )
+{
+    return SetWord((static_cast<Path const *>(w.addr))->Clone());
+}
+
+int SizeofPath()
+{
+    return sizeof(Path);
+}
+
+
+bool CheckPath( ListExpr type, ListExpr& errorInfo )
+{
+    return (nl->IsEqual(type, "path"));
+}
+
+bool OpenPath(SmiRecord& valueRecord, size_t& offset,
+    const ListExpr typeInfo, Word& value)
+{
+    value.setAddr(Attribute::Open(valueRecord, offset, typeInfo));
+    return true;
+}
+
+
+bool SavePath( SmiRecord& valueRecord, size_t& offset,
+    const ListExpr typeInfo, Word& value)
+{
+    Attribute::Save(valueRecord, offset, typeInfo,
+        static_cast<Attribute*>(value.addr));
+    return true;
+}
+
+
+
+TypeConstructor pathCon(
+    "path",                 //name
+    PathProperty,           //property function describing signature
+    OutPath, InPath,        //Out and In functions
+    0, 0,                   //SaveToList and RestoreFromList functions
+    CreatePath, DeletePath, //object creation and deletion
+    OpenPath, SavePath,     //object open, save
+    ClosePath, ClonePath,   //object close, and clone
+    CastPath,               //cast function
+    SizeofPath,             //sizeof function
+    CheckPath);             //kind checking function
+
+
+/*
+3 Type Constructor edge
+
+*/
+
+void* CastEdge (void* addr)
+{
+  return (new (addr) Edge);
+}
+
+ListExpr OutEdge( ListExpr typeInfo, Word value )
+{
+  Edge const * pEdge = static_cast<Edge const *>(value.addr);
+  if (pEdge->IsDefined())
+  {
+    return nl->ThreeElemList(nl->IntAtom(pEdge->GetSource()),
+      nl->IntAtom(pEdge->GetTarget()),
+      nl->RealAtom(pEdge->GetCost()));
+  }
+  else
+  {
+    return nl->SymbolAtom("undef");
+  }
+}
+
+Word InEdge( const ListExpr typeInfo, const ListExpr instance,
+          const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+  if (nl->ListLength(instance) == 3)
+  {
+    ListExpr first = nl->First(instance);
+    ListExpr second = nl->Second(instance);
+    ListExpr third = nl->Third(instance);
+
+    if (nl->IsAtom(first) && nl->AtomType(first) == IntType &&
+      nl->IsAtom(second) && nl->AtomType(second) == IntType &&
+      nl->IsAtom(third) && nl->AtomType(third) == RealType)
+    {
+      float fCost = nl->RealValue(third);
+      if (fCost >= 0.0)
+      {
+        correct = true;
+        return SetWord(new Edge(nl->IntValue(first),
+          nl->IntValue(second), fCost));
+      }
+      else
+      {
+        cout << "Negative costs are not allowed!" << endl;
+      }
+    }
+    else
+    {
+      correct = false;
+    }
+  }
+  else if (nl->AtomType(instance) == SymbolType &&
+    nl->SymbolValue(instance) == "undef")
+  {
+    correct = true;
+    Edge* pEdge = new Edge;
+    pEdge->SetDefined(false);
+    return SetWord(pEdge);
+  }
+
+  correct = false;
+  return SetWord(Address(0));
+}
+
+ListExpr EdgeProperty()
+{
+  return (nl->TwoElemList(
+      nl->FiveElemList(nl->StringAtom("Signature"),
+        nl->StringAtom("Example Type List"),
+      nl->StringAtom("List Rep"),
+      nl->StringAtom("Example List"),
+      nl->StringAtom("Remarks")),
+    nl->FiveElemList(nl->StringAtom("-> DATA"),
+        nl->StringAtom("edge"),
+      nl->StringAtom("(<source> <target> <cost>)"),
+      nl->StringAtom("(1 2 1.0)"),
+      nl->StringAtom("source, target: int; cost: float."))));
+}
+
+Word
+CreateEdge( const ListExpr typeInfo )
+{
+    return SetWord(new Vertex(0, 0, 1.0));
+}
+
+void
+DeleteEdge( const ListExpr typeInfo, Word& w )
+{
+  static_cast<Edge *>(w.addr)->DeleteIfAllowed();
+  w.addr = 0;
+}
+
+void
+CloseEdge( const ListExpr typeInfo, Word& w )
+{
+  DeleteEdge(typeInfo, w);
+}
+
+Word
+CloneEdge( const ListExpr typeInfo, const Word& w )
+{
+  return SetWord((static_cast<Edge const *>(w.addr))->Clone());
+}
+
+int
+SizeofEdge()
+{
+  return sizeof(Edge);
+}
+
+
+bool
+CheckEdge( ListExpr type, ListExpr& errorInfo )
+{
+  return (nl->IsEqual(type, "edge"));
+}
+
+
+bool OpenEdge( SmiRecord& valueRecord,
+  size_t& offset, const ListExpr typeInfo, Word& value )
+{
+  value = SetWord(Attribute::Open(valueRecord, offset, typeInfo));
+  return true;
+}
+
+
+bool SaveEdge( SmiRecord& valueRecord,
+  size_t& offset, const ListExpr typeInfo, Word& value )
+{
+  Attribute::Save(valueRecord, offset, typeInfo,
+    static_cast<Attribute*>(value.addr));
+  return true;
+}
+
+
+TypeConstructor edgeCon(
+  "edge",                 //name
+  EdgeProperty,          //property function describing signature
+    OutEdge, InEdge,        //Out and In functions
+    0, 0,                   //SaveToList and RestoreFromList functions
+  CreateEdge, DeleteEdge, //object creation and deletion
+    OpenEdge, SaveEdge,     //object open, save
+  CloseEdge, CloneEdge,   //object close, and clone
+  CastEdge,               //cast function
+    SizeofEdge,             //sizeof function
+  CheckEdge);             //kind checking function
+
+
+/*
+Type constructor vertex
+
+*/
+
+void* CastVertex (void* addr)
+{
+    return (new (addr) Vertex);
+}
+
+ListExpr OutVertex( ListExpr typeInfo, Word value )
+{
+    Vertex const * pVertex = static_cast<Vertex const *>(value.addr);
+    if (pVertex->IsDefined())
+    {
+        if (pVertex->GetPos().IsDefined())
+        {
+            return nl->TwoElemList(nl->IntAtom(pVertex->GetKey()),
+                nl->TwoElemList(nl->RealAtom(pVertex->GetPos().GetX()),
+                nl->RealAtom(pVertex->GetPos().GetY())));
+        }
+        else
+        {
+            return nl->TwoElemList(nl->IntAtom(pVertex->GetKey()),
+                nl->SymbolAtom(Symbol::UNDEFINED()));
+
+        }
+    }
+    else
+    {
+        return nl->SymbolAtom(Symbol::UNDEFINED());
+    }
+}
+
+Word InVertex( const ListExpr typeInfo, const ListExpr instance,
+          const int errorPos, ListExpr& errorInfo, bool& correct )
+{
+    if (nl->ListLength(instance) == 2)
+    {
+        ListExpr first = nl->First(instance);
+        ListExpr second = nl->Second(instance);
+
+        correct = true;
+        int nKey = 0;
+        if (nl->IsAtom(first) && nl->AtomType(first) == IntType)
+        {
+            nKey = nl->IntValue(first);
+        }
+        else
+        {
+            correct = false;
+        }
+
+        Coord coordX = 0.0;
+        Coord coordY = 0.0;
+        if (!nl->IsAtom(second) && nl->ListLength(second) == 2)
+        {
+            first = nl->First(second);
+            second = nl->Second(second);
+            if (nl->IsAtom(first) && nl->AtomType(first) == RealType &&
+                nl->IsAtom(second) && nl->AtomType(second) == RealType)
+            {
+                coordX = nl->RealValue(first);
+                coordY = nl->RealValue(second);
+            }
+            else
+            {
+                correct = false;
+            }
+            if (correct)
+            {
+                return SetWord(new Vertex(nKey, coordX, coordY));
+            }
+        }
+        else if (listutils::isSymbolUndefined(second))
+        {
+            if (correct)
+            {
+                Point pnt = Point(false);
+                return SetWord(new Vertex(nKey, pnt));
+            }
+        }
+        else
+        {
+            correct = false;
+        }
+    }
+    else if (listutils::isSymbolUndefined(instance))
+    {
+        correct = true;
+        Vertex* pVertex = new Vertex;
+        pVertex->SetDefined(false);
+        return SetWord(pVertex);
+    }
+
+    correct = false;
+    return SetWord(Address(0));
+}
+
+ListExpr VertexProperty()
+{
+    return (nl->TwoElemList(
+        nl->FiveElemList(nl->StringAtom("Signature"),
+            nl->StringAtom("Example Type List"),
+            nl->StringAtom("List Rep"),
+            nl->StringAtom("Example List"),
+            nl->StringAtom("Remarks")),
+        nl->FiveElemList(nl->StringAtom("-> DATA"),
+            nl->StringAtom(Vertex::BasicType()),
+            nl->StringAtom("(key (<x> <y>))"),
+            nl->StringAtom("(1 (-3.0 15.3))"),
+            nl->StringAtom("key: int; x, y: float."))));
+}
+
+Word CreateVertex( const ListExpr typeInfo )
+{
+    return SetWord(new Vertex(0, 0.0, 0.0));
+}
+
+void DeleteVertex( const ListExpr typeInfo, Word& w )
+{
+    static_cast<Vertex *>(w.addr)->DeleteIfAllowed();
+    w.addr = 0;
+}
+
+void CloseVertex( const ListExpr typeInfo, Word& w )
+{
+    DeleteVertex(typeInfo, w);
+}
+
+Word CloneVertex( const ListExpr typeInfo, const Word& w )
+{
+    return SetWord((static_cast<Vertex const *>(w.addr))->Clone());
+}
+
+int SizeofVertex()
+{
+    return sizeof(Vertex);
+}
+
+
+bool CheckVertex( ListExpr type, ListExpr& errorInfo )
+{
+    return (nl->IsEqual(type, Vertex::BasicType()));
+}
+
+
+bool OpenVertex( SmiRecord& valueRecord,
+    size_t& offset, const ListExpr typeInfo, Word& value )
+{
+    value.setAddr(Attribute::Open(valueRecord, offset, typeInfo));
+    return true;
+}
+
+
+bool SaveVertex( SmiRecord& valueRecord,
+    size_t& offset, const ListExpr typeInfo, Word& value )
+{
+    Attribute::Save(valueRecord, offset, typeInfo,
+        static_cast<Attribute*>(value.addr));
+    return true;
+}
+
+
+TypeConstructor vertexCon(
+    Vertex::BasicType(),                   //name
+    VertexProperty,             //property function describing signature
+    OutVertex, InVertex,        //Out and In functions
+    0, 0,                       //SaveToList and RestoreFromList functions
+    CreateVertex, DeleteVertex, //object creation and deletion
+    OpenVertex, SaveVertex,     //object open and save
+    CloseVertex, CloneVertex,   //object close, and clone
+    CastVertex,                 //cast function
+    SizeofVertex,               //sizeof function
+    CheckVertex);               //kind checking function
+
+
+
 
 /*
 5 Creating the Algebra

@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "GraphAlgebra.h"
 #include "cmath"
+#include "binNode.h"
 
 using namespace std; 
 
@@ -34,34 +35,6 @@ the depth of the nodes actual. At final destruction a method delNode runs
 throw the tree and deletes the nodes from the leaves up to the root.
 
 */
-class BinNode {
-
-    public:
-
-        BinNode();
-        ~BinNode();
-        BinNode(BinNode* left, BinNode* right, Edge elem);
-
-        bool insertElem(Edge elem);
-        float getCostOfEdge(int at);
-        Edge getElemAt(int at);
-        void delNode();
-
-    private:
-
-        BinNode* right;
-        BinNode* left;
-        Edge elem;
-        int depth;
-
-        void deepen();
-
-        void balance();
-        void balanceRight();
-        void balanceInnerRight();
-        void balanceLeft();
-        void balanceInnerLeft();
-};
 
 BinNode::BinNode() {}
 

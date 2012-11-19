@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "GraphAlgebra.h"
-#include "binNode.cpp"
+#include "binTree.h"
 
 /*
 This class stores edges in an AVL tree. To shorten the sourcecode this class
@@ -31,23 +31,6 @@ destructor, which delete all nodes and the tree himself. It is used in the graph
 
 */
 
-class BinTree {
-
-    public:
-
-        BinTree();
-        ~BinTree();
-
-        bool insertElem(Edge elem);
-
-        float getCostOfEdge(int at);
-
-        Edge getElemAT(int at);
-
-    private:
-
-        BinNode* root;
-};
 
 BinTree::BinTree() { root = NULL; }
 

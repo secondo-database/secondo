@@ -22,11 +22,30 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 #include "GraphAlgebra.h"
-#include "minNode.h"
+#include "binNode.h"
 
+/*
+This class stores edges in an AVL tree. To shorten the sourcecode this class
+can only insert and give back edges or the cost of an edge. It have a special
+destructor, which delete all nodes and the tree himself. It is used in the graphalgebra by the shortestpath operator
 
-MinNode::MinNode(Edge nelem) { elem = nelem; }
+*/
 
-Edge MinNode::getElem() { return elem; }
+class BinTree {
 
+    public:
+
+        BinTree();
+        ~BinTree();
+
+        bool insertElem(Edge elem);
+
+        float getCostOfEdge(int at);
+
+        Edge getElemAT(int at);
+
+    private:
+
+        BinNode* root;
+};
 

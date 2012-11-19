@@ -42,8 +42,8 @@ functions and classes for the registration of the ~graph~ type constructor.
 #include "PlaceNodesHelper.h"
 #include "GraphAlgebra.h"
 
-#include "binTree.cpp"
-#include "minTree.cpp"
+#include "binTree.h"
+#include "minTree.h"
 #include <vector>
 
 /*
@@ -73,7 +73,7 @@ Graph::Graph(const Graph& g) :
 Graph::~Graph() { }
 
 
-inline void Graph::Clear() {
+void Graph::Clear() {
 
    vertices.clean();
    adjlist.clean();
@@ -123,7 +123,7 @@ bool Graph::EqualsWith(const Graph* other) const
     return res;
 }
 
-inline int Graph::GetNumVertices() const {
+int Graph::GetNumVertices() const {
 
    assert(IsDefined());
 
@@ -131,7 +131,7 @@ inline int Graph::GetNumVertices() const {
 }
 
 
-inline int Graph::GetNumEdges() const {
+int Graph::GetNumEdges() const {
 
    assert(IsDefined());
 
@@ -139,7 +139,7 @@ inline int Graph::GetNumEdges() const {
 }
 
 
-inline bool Graph::IsEmpty() const {
+bool Graph::IsEmpty() const {
 
    assert(IsDefined());
 
@@ -204,19 +204,19 @@ bool Graph::AddVertex (const int key, const Point &pos) {
 }
 
 
-inline bool Graph::Add(const Vertex& v) {
+bool Graph::Add(const Vertex& v) {
 
    return AddVertex(v.GetKey(),v.GetPos());
 }
 
 
-inline bool Graph::Add(const Edge& e) {
+bool Graph::Add(const Edge& e) {
 
    return AddEdge(e.GetSource(),e.GetTarget(),e.GetCost());
 }
 
 
-inline bool Graph::HasEdge(const int sourceKey, const int targetKey) const {
+bool Graph::HasEdge(const int sourceKey, const int targetKey) const {
 
    assert(IsDefined());
 
@@ -231,7 +231,7 @@ inline bool Graph::HasEdge(const int sourceKey, const int targetKey) const {
 }
 
 
-inline bool Graph::HasVertex(const int key) const {
+bool Graph::HasVertex(const int key) const {
 
    assert(IsDefined());
 
@@ -417,13 +417,13 @@ bool Graph::DeleteVertex (const int key) {
 }
 
 
-inline bool Graph::Delete(const Vertex& v) {
+bool Graph::Delete(const Vertex& v) {
 
    return DeleteVertex(v.GetKey());
 }
 
 
-inline bool Graph::Delete(const Edge& e) {
+bool Graph::Delete(const Edge& e) {
 
    return DeleteEdge(e.GetSource(),e.GetTarget());
 }
@@ -482,7 +482,7 @@ vector<Edge>* Graph::GetEdges(const bool opt) const {
 }
 
 
-inline int Graph::GetInDegFrom(const int key) const {
+int Graph::GetInDegFrom(const int key) const {
 
    assert(IsDefined());
 
@@ -496,7 +496,7 @@ inline int Graph::GetInDegFrom(const int key) const {
 }
 
 
-inline int Graph::GetOutDegFrom(const int key) const {
+int Graph::GetOutDegFrom(const int key) const {
 
    assert(IsDefined());
 
@@ -510,7 +510,7 @@ inline int Graph::GetOutDegFrom(const int key) const {
 }
 
 
-inline int Graph::GetMaxDeg(const bool out) const {
+int Graph::GetMaxDeg(const bool out) const {
 
    assert(IsDefined());
 
@@ -528,7 +528,7 @@ inline int Graph::GetMaxDeg(const bool out) const {
 }
 
 
-inline int Graph::GetMinDeg(const bool out) const {
+int Graph::GetMinDeg(const bool out) const {
 
    assert(IsDefined());
 
@@ -546,7 +546,7 @@ inline int Graph::GetMinDeg(const bool out) const {
 }
 
 
-inline bool Graph::SetCost(const int sourceKey,
+bool Graph::SetCost(const int sourceKey,
                            const int targetKey,
                            const float cost) {
 
@@ -593,19 +593,19 @@ bool Graph::SetPos(const int key, const Point& pos) {
 }
 
 
-inline bool Graph::Update(const Vertex& v) {
+bool Graph::Update(const Vertex& v) {
 
    return SetPos(v.GetKey(),v.GetPos());
 }
 
 
-inline bool Graph::Update(const Edge& e) {
+bool Graph::Update(const Edge& e) {
 
    return SetCost(e.GetSource(),e.GetTarget(),e.GetCost());
 }
 
 
-inline Vertex Graph::GetVertex(const int key) const {
+Vertex Graph::GetVertex(const int key) const {
 
    assert(IsDefined());
 
@@ -618,7 +618,7 @@ inline Vertex Graph::GetVertex(const int key) const {
    return Vertex(v.key,v.elem.pos);
 }
 
-inline Edge Graph::GetEdge(const int sourceKey, const int targetKey) const {
+Edge Graph::GetEdge(const int sourceKey, const int targetKey) const {
 
    assert(IsDefined());
 
@@ -1298,7 +1298,7 @@ bool Graph::PartOf(const Graph* part) const {
     return true;
 }
 
-inline void Graph::Minimize() {
+void Graph::Minimize() {
 
    assert(IsDefined());
 
@@ -1376,359 +1376,10 @@ Flob* Graph::GetFLOB(const int i) {
 }
 
 
-inline void Graph::Destroy() {
+void Graph::Destroy() {
 
    vertices.Destroy();
    adjlist.Destroy();
 }
 
 
-/*
-4 Implementation of the ~graph~ type constructor
-
-*/
-
-
-
-/*
-4.1 List Representation
-
-The list representation of a graph is
-
-----  ((vertex*) (edge*))
-----
-
-conditions: vertex keys are unique, no parallel edges, source and target
-keys of the edges exist in the vertex list
-
-4.2 ~Out~-function
-
-*/
-ListExpr OutGraph( ListExpr typeInfo, Word value ) {
-
-
-   Graph* graph = (Graph*)(value.addr);
-
-   if( !graph->IsDefined() )
-     return nl->SymbolAtom(Symbol::UNDEFINED());
-
-   // create ListExpr for vertices
-
-   vector<Vertex>* v = graph->GetVertices(true);
-   ListExpr last;
-   ListExpr verticesList;
-   Point p;
-
-   if ((*v).size() > 0) {
-     p = (*v)[0].GetPos();
-     verticesList =
-       nl->OneElemList(
-           nl->TwoElemList(
-               nl->IntAtom((*v)[0].GetKey()),
-               OutPoint( nl->TheEmptyList(), SetWord( (void*)(&p)))
-           )
-       );
-
-    last = verticesList;
-    for (unsigned int i=1;i<(*v).size();i++) {
-       p = (*v)[i].GetPos();
-       last =
-         nl->Append(
-             last,
-             nl->TwoElemList(
-                 nl->IntAtom((*v)[i].GetKey()),
-                 OutPoint( nl->TheEmptyList(), SetWord( (void*)(&p)))
-            )
-         );
-     }
-   }
-   else
-     verticesList = nl->TheEmptyList();
-   delete v;
-   v = 0;
-
-   // create ListExpr for edges
-
-   vector<Edge>* e = graph->GetEdges(true);
-   ListExpr edgesList;
-
-   if (e->size() > 0) {
-
-     edgesList =
-       nl->OneElemList(
-           nl->ThreeElemList(
-               nl->IntAtom((*e)[0].GetSource()),
-               nl->IntAtom((*e)[0].GetTarget()),
-               nl->RealAtom((*e)[0].GetCost())
-           )
-       );
-
-     last = edgesList;
-     for (unsigned int i=1;i<(*e).size();i++) {
-       last =
-         nl->Append(
-             last,
-             nl->ThreeElemList(
-               nl->IntAtom((*e)[i].GetSource()),
-               nl->IntAtom((*e)[i].GetTarget()),
-               nl->RealAtom((*e)[i].GetCost())
-             )
-         );
-     }
-   }
-   else{
-     edgesList = nl->TheEmptyList();
-   }
-   delete e;
-
-   return (nl->TwoElemList(verticesList,edgesList));
-}
-
-/*
-4.3 ~In~-function
-
-*/
-Word InGraph( const ListExpr typeInfo, const ListExpr instance,
-          const int errorPos, ListExpr& errorInfo, bool& correct ) {
-
-   Graph* graph;
-   graph = new Graph(true);
-
-   correct = false;
-
-   if (nl->ListLength(instance) == 2) {
-
-     ListExpr verticesList = nl->First(instance);
-     ListExpr edgesList = nl->Second(instance);
-
-     if (!(nl->IsAtom(verticesList) || nl->IsAtom(edgesList))) {
-
-       correct = true;
-       Point* p;
-       ListExpr first, second, third;
-       ListExpr firstElem = nl->Empty();
-       ListExpr rest = verticesList;
-
-       // parse values of vertices
-       while (correct && !nl->IsEmpty(rest)) {
-         firstElem = nl->First(rest);
-         rest = nl->Rest(rest);
-
-         if (nl->ListLength(firstElem) != 2)
-           correct = false;
-         else {
-           first = nl->First(firstElem);
-           second = nl->Second(firstElem);
-
-           if (!(nl->IsAtom(first) && (nl->AtomType(first) == IntType)))
-             correct = false;
-           else {
-             p = (Point*)InPoint( nl->TheEmptyList(),
-                                  second, 0, errorInfo, correct ).addr;
-             if (correct) {
-               correct = graph->AddVertex(nl->IntValue(first),*p);
-               delete p;
-             }
-           }
-         }
-       }
-
-       // parse values of edges
-       firstElem = nl->Empty();
-       rest = edgesList;
-
-       while (correct && !nl->IsEmpty(rest)) {
-         firstElem = nl->First(rest);
-         rest = nl->Rest(rest);
-
-         if (nl->ListLength(firstElem) != 3)
-           correct = false;
-         else {
-           first = nl->First(firstElem);
-           second = nl->Second(firstElem);
-           third = nl->Third(firstElem);
-
-           if (!(nl->IsAtom(first) && (nl->AtomType(first) == IntType)
-                && nl->IsAtom(second) && (nl->AtomType(second) == IntType)
-                && nl->IsAtom(third) && (nl->AtomType(third) == RealType) &&
-                   (nl->RealValue(third) >= 0)))
-             correct = false;
-           else
-             correct = graph->AddEdge(nl->IntValue(first),
-                                      nl->IntValue(second),
-                                      nl->RealValue(third));
-         }
-       }
-
-       if (!correct)
-         cout << "Graph is invalid!" << endl;
-     }
-
-   }
-   else if (listutils::isSymbolUndefined(instance)) {
-
-     graph->SetDefined(false);
-     correct = true;
-   }
-
-   if (correct)
-     return SetWord(graph);
-
-   delete graph;
-   return SetWord(Address(0));
-}
-
-/*
-4.5 ~Create~-function
-
-*/
-Word CreateGraph( const ListExpr typeInfo ) {
-
-    return SetWord(new Graph(true));
-}
-
-
-/*
-4.6 ~Delete~-function
-
-*/
-void DeleteGraph( const ListExpr typeInfo, Word& w ) {
-
-   Graph* graph = (Graph*)w.addr;
-
-   graph->Destroy();
-   graph->DeleteIfAllowed(false);
-   w.addr = 0;
-}
-
-/*
-4.7 ~Close~-function
-
-*/
-void CloseGraph( const ListExpr typeInfo, Word& w ) {
-
-  ((Graph*)w.addr)->DeleteIfAllowed();
-  w.addr = 0;
-}
-
-/*
-4.8 ~Clone~-function
-
-*/
-Word CloneGraph( const ListExpr typeInfo, const Word& w ) {
-
-   return SetWord( ((Graph*)w.addr)->Clone() );
-}
-
-/*
-4.9 ~SizeOf~-function
-
-*/
-int SizeOfGraph() {
-
-   return sizeof(Graph);
-}
-/*
-4.10 Function describing the signature of the type constructor
-
-*/
-ListExpr GraphProperty() {
-
-   return (
-     nl->TwoElemList(
-         nl->FiveElemList(
-             nl->StringAtom("Signature"),
-             nl->StringAtom("Example Type List"),
-             nl->StringAtom("List Rep"),
-             nl->StringAtom("Example List"),
-             nl->StringAtom("Remarks")
-             ),
-         nl->FiveElemList(
-             nl->StringAtom("-> DATA"),
-             nl->StringAtom("graph"),
-             nl->TextAtom("((<vertex>*) (<edge>*))"),
-             nl->TextAtom("(((2 (2.0 -3.5)) (5 (-1.2 5.0)))"
-                          " ((2 2 4.2) (5 2 0.2)))"),
-             nl->TextAtom("The vertices must have unique keys, the edges use"
-                          " source and target keys from the vertex list, the"
-                          " edge costs must be positive and "
-                          "there are no parallel edges.")
-             )
-         )
-     );
-}
-
-/*
-4.11 Kind Checking Function
-
-This function checks whether the type constructor is applied correctly. Since
-type constructor ~graph~ does not have arguments, this is trivial.
-
-*/
-
-bool CheckGraph( ListExpr type, ListExpr& errorInfo ) {
-
-   return (nl->IsEqual(type,"graph"));
-}
-/*
-4.12 ~Cast~-function
-
-*/
-void* CastGraph (void* addr) {
-
-   return (new (addr) Graph);
-}
-
-/*
-4.13 ~Open~-function
-
-*/
-bool
-    OpenGraph( SmiRecord& valueRecord,
-                    size_t& offset,
-                    const ListExpr typeInfo,
-                    Word& value )
-{
-  // This Open function is implemented in the Attribute class
-  // and uses the same method of the Tuple manager to open objects
-  Graph *bf =
-      (Graph*)Attribute::Open( valueRecord, offset, typeInfo );
-  value.setAddr( bf );
-  return true;
-}
-
-/*
-4.14 ~Save~-function
-
-*/
-bool
-    SaveGraph( SmiRecord& valueRecord,
-                    size_t& offset,
-                    const ListExpr typeInfo,
-                    Word& value )
-{
-  Graph *bf = (Graph *)value.addr;
-
-  // This Save function is implemented in the Attribute class
-  // and uses the same method of the Tuple manager to save objects
-  Attribute::Save( valueRecord, offset, typeInfo, bf );
-  return true;
-}
-
-
-/*
-4.15 Creation of the type constructor instance
-
-*/
-TypeConstructor graphCon(
-    "graph",              //name
-    GraphProperty,               //property function describing signature
-    OutGraph, InGraph,            //Out and In functions
-    0, 0,                      //SaveToList and RestoreFromList functions
-    CreateGraph, DeleteGraph,      //object creation and deletion
-    OpenGraph, SaveGraph, CloseGraph, CloneGraph,
-                                    //^^^ object open, save, close, and clone
-    CastGraph,              //cast function
-    SizeOfGraph,           //sizeof function
-    CheckGraph                    //kind checking function
-);

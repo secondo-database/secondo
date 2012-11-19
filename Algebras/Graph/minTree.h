@@ -23,10 +23,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 #include "GraphAlgebra.h"
 #include "minNode.h"
+#include "vector"
 
+class MinTree {
 
-MinNode::MinNode(Edge nelem) { elem = nelem; }
+    public:
 
-Edge MinNode::getElem() { return elem; }
+        MinTree();
 
+        void put(Edge elem);
+        Edge pull();
+
+    private:
+
+        vector<MinNode> dynamic;
+
+        void orderPull(int pos);
+        void orderPut(int pos);
+        void rochade(int pos);
+        int compare(Edge a, Edge b);
+};
 
