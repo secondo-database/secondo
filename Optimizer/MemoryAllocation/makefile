@@ -124,7 +124,7 @@ clean:
 
 CCFLAGS += $(DEFAULTCCFLAGS)
 
-# NVK ADDED
+# NVK ADDED MA
 MEMORY_ALLOCATION := true
 ifdef MEMORY_ALLOCATION
 APPLOBJECTS += MemoryOptimization.$(OBJEXT) 
@@ -136,7 +136,7 @@ MemoryOptimization.$(OBJEXT): MemoryOptimization.$(OBJEXT)
 MemoryOptimization.$(OBJEXT): MemoryOptimization.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) $(MAFLAGS)
 endif
-# NVK ADDED END
+# NVK ADDED MA END
 
 MainTTYCS.$(OBJEXT): MainTTY.$(OBJEXT)
 MainTTYCS.$(OBJEXT): MainTTY.cpp

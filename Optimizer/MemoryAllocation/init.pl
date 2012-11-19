@@ -9,20 +9,21 @@ initMA :-
 	L='Assign memory to operators.',
   % assert now non-multifile facts.
 	assertz(optimizerOptionInfo(memoryAllocation, none, no, L, loadMA, true)),
+
 	assertz(optDebugLevel(ma)),
 	% This is a more detailed log level.
 	assertz(optDebugLevel(ma3)),
 	% This is a very detailed log level for the callback predicates.
 	assertz(optDebugLevel(ma6)). 
 
-% Needs to be delcared here (used within optimizer.pl)
+% Needs to be declared here (used within optimizer.pl)
 :- dynamic useModifiedDijkstra/0.
 
 :- initMA.
 
 loadMA :-
 
-	(current_functor(memoryOptimization, 5) ->
+	(current_functor(memoryOptimization, 6) ->
 		true
 	;	
 		(
@@ -52,11 +53,15 @@ loadMA :-
 	% Load new cost functions
 	['MemoryAllocation/ma_improvedcosts.pl'],
 
+	['MemoryAllocation/blockingops.pl'],
+	['MemoryAllocation/madata.pl'],
 	['MemoryAllocation/ma.pl'],
 	['MemoryAllocation/differential_calculus.pl'],
 
 	% loading the testing files, can safly removed if not needed.
 	['MemoryAllocation/test.pl'], 
-	['MemoryAllocation/testdc.pl'].
+	['MemoryAllocation/testdc.pl'],
+	
+	maSelfCheck.
 
 % eof

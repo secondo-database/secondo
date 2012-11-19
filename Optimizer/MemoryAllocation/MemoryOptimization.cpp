@@ -3,8 +3,8 @@
 $Header$
 @author Nikolai van Kempen
 
-Provides the non linear algorithm to optimize a fomula that represents a memory
-assignment.
+Provides the nonlinear algorithm to optimize a fomula that represents a cost
+function that is aware of the memory dependet costs.
 
 See \$SECONDO\_HOME/Optimizer/MemoryAllocation/ for more information.
 
@@ -21,13 +21,9 @@ See \$SECONDO\_HOME/Optimizer/MemoryAllocation/ for more information.
 
 using namespace std; 
 
-struct ConstraintData {
-  int maxMemoryInMiB;
-};
-
 struct OpMemoryConstraint {
   int dimension;
-  int sufficientMemory;
+  double sufficientMemory;
 };
 
 /*
@@ -120,36 +116,50 @@ double objectiveFunction(unsigned n, const double *x, double *grad, void *data)
 /*
 The constraint function form within nlopt is always c(x)<=0
   
-Max memory is limited by the maximum memory values, configured within secondo.
+Max memory is limited by the maximum memory value within a shelf.
+
+A shelf decriptons contains within the data vector:
+- The first element that is amount of memory that can be assigned to a shelf.
+- The next n elements contains either a 0 or a 1.
+	- 0 means: This operator is not of any interest here. But the operator
+							MUST exists with a 1 in another data vector.
+	- 1 means: This operator is within this shelf and needs memory.
   
 */
-double maxMemoryConstraint(unsigned n, const double *x, double *grad, 
-    void *data) {
-  ConstraintData *d = (ConstraintData *) data;
-  int maxMem = d->maxMemoryInMiB;
+double maxMemoryConstraint(unsigned n, const double *x, double *grad,
+    void *dataptr) {
+  std::vector<int> data = *(std::vector<int>*) dataptr;
   int i=0;
   if (grad) {
     for(i=0; i<n; i++) {
-      grad[i] = 1;
+			if (data[i+1] > 0)
+      	grad[i] = 1;
+			else
+      	grad[i] = 0;
     }
   }
-  int rc=-maxMem;
+	//count << "Shelf-Memory: " << data[0] << endl;
+  int rc=-1 * data[0]; // Contains the max memory for this shelf
   for(i=0; i<n; i++) {
-    rc=rc+x[i];
+		if (data[i+1] > 0)
+    	rc=rc+x[i];
   }
   return rc;
 }
 
+
 /*
-We could do this, as with the objective and derivate functions, with prolog
-predicates, but this functions stays that simple, even if the other both 
-metioned functions will be more complex.
+This could be done in the same way as with the objective and derivate functions,
+with prolog predicates, but this functions stays that simple, even if the 
+other both metioned functions will be more complex.
+
+Limits the memory assignments for one operator to it's sufficientMemory value.
 
 */
 double sufficientMemoryConstraint(unsigned n, const double *x, double *grad, 
     void *data) {
   OpMemoryConstraint* d = (OpMemoryConstraint*) data;
-  int suffMem = d->sufficientMemory;
+  double suffMem = d->sufficientMemory;
   int dim=d->dimension;
   if (grad) {
     for(int i=0; i<n; i++) {
@@ -157,11 +167,12 @@ double sufficientMemoryConstraint(unsigned n, const double *x, double *grad,
     }
     grad[dim] = 1;
   }
-   double result= -suffMem + x[dim];
+  double result= -suffMem + x[dim];
   return result;
 }
 
-OptimizeResult minimize(int minOpMemory, int maxMemoryInMiB, int dimension, 
+OptimizeResult minimize(int minOpMemory, int maxMemoryInMiB, 
+		std::vector< std::vector<int> > vConstraints, int dimension, 
     std::vector<int> vSufficientMemoryInMiB) {
   /*
     Check out 
@@ -180,24 +191,22 @@ OptimizeResult minimize(int minOpMemory, int maxMemoryInMiB, int dimension,
   nlopt::opt opt(nlopt::LD_MMA, dimension);
 
   /*
-    At least we can assign 1 mib memory, because we have to to pass
-    an integer value to the Secondo kernal and 0 would mean 'distribute
-    the entire free amount of memory over all operators'.
+	The lower and upper bounds are the search area.
+  The minimum is the minimum amount of memory that should be assigned to 
+	an operator.
   */
   int lowerBound = minOpMemory;
   std::vector<double> lb(dimension);
   for(int i=0;i<dimension;i++) {
-    lb[i]=lowerBound; // 1 MiB minimum memory per operator
+    lb[i]=lowerBound; // minimum memory per operator
   }
   opt.set_lower_bounds(lb);
   
   /*
-    The maximum amount of memory we can assign to an operator 
-    is the global memory property from the secondo config file.
-    Note that this is guranteed by the linear constraint function.
-    But the global memory algorithm may still need this values, so 
-    for this cases, we setup here the upper bounds in case we need
-    them in the future.
+  The maximum amount of memory that can assigned to an operator 
+  is the global memory property from the secondo config file.
+  Note that this is guranteed by the linear constraint function, this 
+	is just to limit the search area.
   */
   std::vector<double> ub(dimension);
   for(int i=0;i<dimension;i++) {
@@ -205,41 +214,38 @@ OptimizeResult minimize(int minOpMemory, int maxMemoryInMiB, int dimension,
   }
   opt.set_upper_bounds(lb);
 
-  // Pass the function to minimize to ne NLopt library.
+  // Predicate references 
   FData fd;
   fd.pF = PL_predicate("objectiveFunction", 2, "optopmem");
   fd.pD = PL_predicate("derivativeFunction", 3, "optopmem");
 
+	// Setup the objective funtion
   opt.set_min_objective(objectiveFunction, &fd);
 
   OptimizeResult oResult;
   if (maxMemoryInMiB < minOpMemory) {
     cout << "Error: maxMemoryInMiB can't be below minOpMemory. Abort." << endl;
-    //return -1;
     oResult.rc=-1;
     return oResult;
   }
 
-  // The precision is algorithm dependent!
+  // The precision is algorithm dependent.
   // Because the result is round up, a small percision should be good enough.
   // But still note that a precision with 1 MiB means not that the result
   // will differ not more that 1 MiB from the optimal result. It still
   // depends on the algorithm how the precision is handeld.
-  double precision=1; // 1e-8
+  double precision=0.25d; // 1e-8
+  double precisionConstr=0.1d; // constraint precision
 
-  // Ensure the total amount of memory won't be crossed.
-  // Just passing the maximum memory property to the constraint function.
-  ConstraintData cdata;  
-  cdata.maxMemoryInMiB = maxMemoryInMiB;
-  opt.add_inequality_constraint(maxMemoryConstraint, &cdata, precision);
+  // Ensure the total amount of memory within a shelf won't be crossed.
+  for(int i=0;i<vConstraints.size();i++) {
+    opt.add_inequality_constraint(maxMemoryConstraint, &vConstraints[i],
+      precisionConstr);
+  }
 
   // Limit the operators assigned memory to the sufficient memory.
-  // With our "simple" objective function this is really important
-  // because otherwise the algorithm thinks it might be better
-  // to grant more memory because the function decreases faster 
-  // than another function, but the mistake is that the operator
-  // can't realize the profit because he simply dosen't need
-  // more memory.
+	// Because after this sufficient memory value, it is not possible to
+	// realize the profit that may indicates by the cost function.
   std::vector<OpMemoryConstraint> opcdata(dimension);
   for(int i=0;i<vSufficientMemoryInMiB.size();i++) {
     int suffOpMem=vSufficientMemoryInMiB[i];
@@ -248,15 +254,20 @@ OptimizeResult minimize(int minOpMemory, int maxMemoryInMiB, int dimension,
     // if there is no room for double optimization, this would result in 
     // long or even endless search for a valid result, so give the algortihm 
     // some room where the algorithm can find a solution.
-    if (opcdata[i].sufficientMemory <= lowerBound)
-      opcdata[i].sufficientMemory=lowerBound+1;
+    //cout << "sufficientMemory:" << opcdata[i].sufficientMemory;
+    if (opcdata[i].sufficientMemory <= lowerBound+0.9d) {
+    	//cout << "Modify sufficientMemory:" << opcdata[i].sufficientMemory;
+      opcdata[i].sufficientMemory=lowerBound+0.9d;
+    	//cout << " to:" << opcdata[i].sufficientMemory << endl;
+		}
 
     opt.add_inequality_constraint(sufficientMemoryConstraint, &opcdata[i],
-      precision);
+      precisionConstr);
   }
 
   // Stopping criteria
-  //opt.set_xtol_rel(precision);
+ 	//opt.set_xtol_rel(precision);
+	//opt.set_ftol_abs(0.00001d);
   opt.set_xtol_abs(precision);
 
   // Set the initial guess. This could be improved, of course
@@ -274,9 +285,12 @@ OptimizeResult minimize(int minOpMemory, int maxMemoryInMiB, int dimension,
 
 /*
 
+Does some simple checks and transforms between prolog terms and the c values.
+
 */
 foreign_t pl_memoryOptimization(term_t t_minOpMemory, term_t t_maxMemory,
-    term_t t_dimension, term_t sufficientMemory, term_t memoryAssignments) {
+    term_t t_constraints, term_t t_dimension, term_t sufficientMemory, 
+		term_t memoryAssignments) {
 
   int memoryMiB, dimension, minOpMemoryMiB;  
   if (!PL_get_integer(t_minOpMemory, &minOpMemoryMiB)) {
@@ -291,19 +305,62 @@ foreign_t pl_memoryOptimization(term_t t_minOpMemory, term_t t_maxMemory,
     cerr << "dimension parameter is not an integer" << endl;
     PL_fail;
   }
-  std::vector<int> vSufficientMemoryInMiB(dimension);
-  
+
+  if (!PL_is_list(t_constraints)) {
+    cerr << "The constraints parameter is not a list. Abort." << endl;
+    PL_fail;
+  }
+
+	// t_constraint is a list of lists, refer to the ma.pl.
+  int constraints=0; // Number of max memory constraints
+  term_t l = PL_copy_term_ref(t_constraints);
+  term_t h = PL_new_term_ref();
+  while(PL_get_list(l, h, l)) {
+  	constraints++;
+	}
+
+  std::vector< std::vector<int> > vConstraints(constraints, 
+		vector<int>(dimension+1));
+
+  l = PL_copy_term_ref(t_constraints);
+  h = PL_new_term_ref();
+  int i=0;
+  while(PL_get_list(l, h, l)) {
+		int c=0;
+  	term_t hi = PL_new_term_ref();
+  	term_t li = PL_copy_term_ref(h);
+  	while(PL_get_list(li, hi, li)) {
+    	int intValue;
+    	PL_get_integer(hi, &intValue);
+    	vConstraints[i][c] = intValue;
+			c++;
+		}
+  	if (c!=dimension+1) {
+    	cerr << "constraint parameter don't contain " << dimension+1
+      	<< " values. Abort." << endl;
+    	PL_fail;
+  	}
+    i++;
+  }
+  if (i==0) {
+		// otherwiese the amount of memory is unristricted.
+   	cerr << "Error: No constraint list provided. ";
+		cerr << "At least one constraint list is needed. " << endl;
+   	PL_fail;
+ 	}
+
   if (!PL_is_list(sufficientMemory)) {
     cerr << "sufficientMemory parameter is not a list. Abort." << endl;
     PL_fail;
   }
 
-  term_t head = PL_new_term_ref();
-  term_t list = PL_copy_term_ref(sufficientMemory);
-  int i=0;
-  while(PL_get_list(list, head, list)) {
+  std::vector<int> vSufficientMemoryInMiB(dimension);
+  l = PL_copy_term_ref(sufficientMemory);
+  h = PL_new_term_ref();
+  i=0;
+  while(PL_get_list(l, h, l)) {
     int intValue;
-    PL_get_integer(head, &intValue);
+    PL_get_integer(h, &intValue);
     vSufficientMemoryInMiB[i] = intValue; 
     i++;
   }
@@ -315,7 +372,7 @@ foreign_t pl_memoryOptimization(term_t t_minOpMemory, term_t t_maxMemory,
 
   OptimizeResult oResult;
   try {
-    oResult=minimize(minOpMemoryMiB, memoryMiB, dimension, 
+    oResult=minimize(minOpMemoryMiB, memoryMiB, vConstraints, dimension, 
       vSufficientMemoryInMiB);
   }
   catch(std::exception &e) {

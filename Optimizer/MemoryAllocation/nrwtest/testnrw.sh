@@ -1,20 +1,32 @@
 #!/bin/bash
+# $Header$
+# @author Nikolai van Kempen
+#
 
-P=http://download.geofabrik.de/osm/europe/germany/
+#old: P=http://download.geofabrik.de/osm/europe/germany/
+P=http://download.geofabrik.de/openstreetmap/europe/germany/
 F=nordrhein-westfalen.shp.zip
 PF=$P$F
-wget "$PF" || return 1
 
-T=$SECONDO_BUILD_DIR/bin/nrw
+T=$SECONDO_BUILD_DIR/bin/nrw/
 [ -d $T ] || mkdir $T || return 2
 
-mv $F $T/
+cd $T || return 4
 
-cd $T
-unzip $F
+if [ ! -f "$F" ]; then
+	wget "$PF" || return 1
+fi
 
-echo "Please make sure the secondo server proccess is running and press return."read trash
+unzip $F #&& rm $F
 
+echo "Using now SecondoBDB, please make sure no secondo server proccess is running and press return."
+read trash
+
+cd $SECONDO_BUILD_DIR/bin
+SecondoBDB <<<"delete database nrw2;"
+
+# The author of this script is unkown
 SCMDF=$SECONDO_BUILD_DIR/Optimizer/MemoryAllocation/nrwtest/nrwImportShape.SEC
-SecondoCS < $SCMDF
+SecondoBDB < $SCMDF
 
+# eof

@@ -1,8 +1,10 @@
 /*
-The returned function can have only one free variable, coz over
-this function we want to optimize the memory allocation. But we 
-can have multiple variables to optimize for every memory consuming
-operator.
+
+$Header$
+@author Nikolai van Kempen
+
+The returned function can have only one free variable, because over
+this function we want to optimize the memory allocation.
 */
 costFunction(Op, Type, [X1], F) :-
   getOpIndexes(Op, Type, ResultType, AlgID, OpID, FunID),
@@ -52,3 +54,4 @@ costFunctionExample(MiB) :-
   ResultS is Result / 1000,
   write('Costs: '), write(ResultS), write('s'), nl.
 
+% eof

@@ -3,6 +3,7 @@ $Header$
 @author Nikolai van Kempen
 
 Testing file for derivation examples.
+
 */
 testDC(1,    1, _).
 testDC(2,  100, _).
@@ -37,3 +38,4 @@ testDC :-
 	testDC(_),
 	fail.
 
+% eof

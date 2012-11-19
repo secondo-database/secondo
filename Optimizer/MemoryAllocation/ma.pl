@@ -11,7 +11,7 @@ Provides a extension to the secondo optimizer to optimize the memory allocation 
 :- dynamic costEdge/6. 
 
 /*
-This predicate makes the GlobalMemory property from the SecondoConfig.ini available within prolog.
+This predicate makes the GlobalMemory property from the SecondoConfig.ini available within the prolog enviroment.
 Unit: MiB
 secondoGlobalMemory(?Memory)
 */
@@ -24,42 +24,74 @@ secondoGlobalMemory(Memory) :-
 secondoGlobalMemory(512).
 
 /*
-Every operator gains at least this amount of memory. But this extension is able to compute solutions for other values. But the absolute lowest values is one MiB, refer to other comments why this lower limit can't be less then one megabyte.
+Every operator gains at least this amount of memory. But this extension is able to compute solutions for other values. But the lowest value is one MiB, refer to other comments why this lower limit can't be less then one megabyte.
 Unit: MiB
 */
 minimumOperatorMemory(16).
 
 /*
-We can find a good memory-optmized plan with different stategies.
+Some strategies are implemented to get a memory-optimized plan.
+
+Strategy 'staticEqual':
+Tries to emulate the default strategy when this extension is disabled, but with computed costs by the ~CostEstimation~ implementations.
 
 Strategy 'static':
-The simplest one is to give every operator a fixed amount of memory.
-This no real optimisation strategy, but allows comparsions to the normal behaviour. Note that there is still a difference between the usauall behaviour and the current version because the cost will be calulated by the CostEstimation class.
+The simplest one is to give every operator a fixed amount of memory and after the computes ssp within the pog the execution plan ist optimized for the memory distribution.
 
 Strategy 'staticDiv':
-A little smarter is now to distriubute the entire memory over all memory consuming operators. Note that this number of memory consuming operators is only a estimated value because we don't now that the path the shorted will be, one path may have more memory consuming opertors as another path.
+Distriubutes the entire memory equal over all memory consuming operators. Note that this number of memory consuming operators is calculated very expensive.
 
-Choose a path on the upper strategies and then try optimize it with there memory-depending cost functions.
+Strategy 'enumerate':
+Enumerates all available path within the POG and optimizes every path.
+
+Strategy 'modifiedDijkstra':
+Based on the POG dijkstra algorithm, but avoid to optimize many path. This is mor a heurisk because this algoritm does not guarantee to output the best result.
+
+Open issue: a more suitable algorithm to find a shorted path within a graph with nonlineare cost functions, constraints and variables that resprestens a consume.
 
 */
-
 setMAStrategies(List) :-
 	retractall(maStrategiesToEval(_)),
 	asserta(maStrategiesToEval(List)).
 
-:- 
-	dynamic(maStrategiesToEval/1),
+createExtendedEvalList(List) :-
 	secondoGlobalMemory(Max), % This is secondo default value
 	List=[
+ 		% No optimation, assign maxMemory/memory operators within the plan.
+		staticEqual(16),
+
+		% 2-phase approach
 		static(16), 
 		static(Max), 
-		modifiedDijkstra,
 		% These are totally unsuitable for more then 5 predicates and a high
 		% number of paths. They are just implemented to evaluate results.
 		staticMaxDivOpCount,
+
+		% Divides the global memory by the pog height (=number of predicates).
+		% The differences to the staticMaxDivOpCount method is, that this
+		% values can be computed very fast.
+		staticMaxDivPOG,
+
+		% 1-phase approach
+		modifiedDijkstra,
  		enumeratePaths
-	],
+	], 
+	!.
+
+% Evaluation mode
+maEval :-
+	createExtendedEvalList(List),
 	setMAStrategies(List).
+
+%  Default mode
+maNoEval :-
+	setMAStrategies([enumerate]).
+
+:- 
+	dynamic(maStrategiesToEval/1),
+	dynamic(maCurrentBestPlan/3),
+	dynamic(maNLOPTResult/1),
+	maEval.
 
 /*
 Returns the amount of memory that is used to compute the costs for memory
@@ -70,11 +102,12 @@ Unit: MiB
 staticMemory(16).
 
 getStaticMemory(MiB) :-
-	staticMemory(MiB), !.
+	staticMemory(MiB), 
+	!.
 
 getStaticMemory(MiB) :-
 	!, 
-	Msg='The staticMemory fact is missing',
+	Msg='The staticMemory fact is missing.',
 	throw(error_Internal(ma_getStaticMemory(MiB)::Msg)).
 
 setStaticMemory(MiB) :-
@@ -84,28 +117,10 @@ setStaticMemory(MiB) :-
 
 /*
 Choose an appropriate amount of memory that is assigned to every operator. The idea behind this is to find, with this memory assignment, a path that is after the memory optimization the shortes path.
-Precodition: A already created POG.
 */
 getMemoryTestList(MList) :-
   maStrategiesToEval(List),
-	
-  findall(MiB, (member(A, List), A=static(MiB)), MList1),
-
-	(testStrategy(staticMaxDivOpCount) ->
-		(
-  		assignCosts, % Even if we recall this later, we need this now.
-			% could improved, but it doens't seems worth it.
-			write('Compute max memory consuming operators, this may take a while...'),
-			nl,
-			getMaxMemoryConsumingOperatorsFromPOG(OPCount),
-			write_list(['getMaxMemoryConsumingOperatorsFromPOG: ', OPCount]), nl,
-			secondoGlobalMemory(GMemory),
-		 	Memory is integer(GMemory / OPCount),
-			append(MList1, [Memory], MList)
-		)
-	; 
-		MList=MList1
-	).
+  findall(MiB, (member(A, List), A=static(MiB)), MList).
 
 /*
 Provable if strategy S should be evaluated.
@@ -115,111 +130,142 @@ testStrategy(S) :-
 	member(S, List).
 
 /*
-Here we try to find the best plan regarding the optimal memory allocation for the memory using operators. This is not a simple task at all because there sees to be no such algorithm that computes the shortest path for edges with nonlinear cost functions.
+This predicates tries to find the best plan regarding the optimal memory allocation for the memory using operators. To find this plan, some algorithm are evaluated here and the cheapest in returned to the calling predicate.
 
 */
 maBestPlan(Path, Costs) :-
-	retractall(maResult(_, _, _, _)),
-	retractall(useModifiedDijkstra),
+	retractall(maResult(_, _, _, _, _)),
+	retractall(maCurrentBestPlan(_, _, _)),
+	retractall(maNLOPTResult(_)),
+	retractall(useModifiedDijkstra), % Just to be sure
 
 	getMemoryTestList(MemoryList),
-	maBestPlan(MemoryList, Path1, Costs1),
-	getMemoryValues(MemoryValues1),
-
-	(testStrategy(modifiedDijkstra) ->
-		(
-			asserta(useModifiedDijkstra),
-			maBestPlan(MemoryList, Path2, Costs2),
-			retractall(useModifiedDijkstra),
-			chooseShorterResult(Costs2, Costs1, Path2, Path1, MemoryValues1, 
-				Costs3, Path3)
-		)
+	(MemoryList \= [] ->
+		maBestPlan(MemoryList, _, _)	
 	;
-		(Costs3=Costs1, Path3=Path1)
+		true	
 	),
-
-	(testStrategy(enumeratePaths) ->
-		(
-			ensure((
-				getTime((bestPathByEnumeration ; true), OptTime),
-				currentShortestPath(SPath, SCosts, MemoryValues),
-				clearMemoryValues, 
-				assertzall(MemoryValues),
-				assertz(maResult(enumerate, SPath, SCosts, OptTime)),
-				Path=SPath,
-				Costs=SCosts, 
-				getCounter(maPathCounter, PC),
-				getCounter(maOptPathCounter, OPC),
-  			dm(ma, ['\n', PC, ' paths enumerated and ', OPC, ' optimized.'])
-			))
-			% Note that we don't need to check if the upper paths are better, the
-			% best plan is always under the enumerated paths.
-		)
+  (testStrategy(staticMaxDivOpCount) ->
+		evalBestPathByStaticMaxDivOpCount(_, _)
 	;
-		(
-			Path=Path3,
-			Costs=Costs3
-		)
+		true
+	),
+  (testStrategy(staticMaxDivPOG) ->
+		evalBestPathByStaticMaxDivPOG(_, _)
+	;
+		true
+	),
+	(testStrategy(modifiedDijkstra) ->
+		evalBestPathByModifiedDijkstra(_, _)
+	;
+		true
+	),
+  (testStrategy(staticEqual(SEMiB)) ->
+    evalBestPathByStaticEqual(SEMiB, _, _)
+  ;
+    true
+  ),
+	% Note that we don't need to check if the upper paths are better, the
+	% best plan is always within the enumerated paths.
+	(testStrategy(enumeratePaths) ->
+		ensure(evalBestPathByEnumeration(_, _))
+	;
+		true
 	),
 	ensure((
+		% obtain & set the best path
+	 	maCurrentBestPlan(Path, Costs, MemoryValues),
+		clearMemoryValues,
+		assertzall(MemoryValues),
 		ground(Path),
 		writeMaResults
 	)).
 
 /*
-C1/C2: The Costs
-P1/P2: The Paths
-Chooses the shorter path, C2/P2/MemoryValues2 need always to be the previoues stored path because only for the P2 the memory values are restored.
-chooseShorterResult(+C1, +C2, +P1, +P2, +MemoryValues2, ?RC, ?RP)
+Precodition: A already created POG.
 */
-chooseShorterResult(C1, C2, P1, _ /*P2*/, MemoryValues2, RC, RP) :-
-	C1 < C2,
-	RC=C1,
-	RP=P1,
-	clearMemoryValues, 
-	assertzall(MemoryValues2).
-
-chooseShorterResult(C1, C2, _, P2, _, RC, RP) :-
-	C1 >= C2,
-	RC=C2,
-	RP=P2.
-
-chooseShorterResult(C1, C2, P1, P2, MemoryValues2, RC, RP) :-
-  Msg='Failed to choose the shorter path',
-  throw(error_Internal(ma_chooseShorterResult(C1, C2, P1, P2, MemoryValues2, 
-		RC, RP)::Msg)).
+evalBestPathByStaticMaxDivOpCount(RPath, NewCosts) :-
+  assignCosts, % The costEdges are needed right now.
+  write('Compute the max amount of memory consuming operators, '),
+  write('this may take a while...\n'),
+  getTime(getMaxMemoryConsumingOperatorsFromPOG(OPCount), Time1),
+  write_list(['getMaxMemoryConsumingOperatorsFromPOG: ', OPCount]), nl,
+  secondoGlobalMemory(GMemory),
+  MiB is integer(GMemory / OPCount),
+  write_list(['Memory/Operator: ', MiB]), nl,
+	!,
+	getTime(maBestPlanStatic(MiB, RPath, NewCosts), Time2),
+	Time is Time1+Time2,
+	setBestPlanIfCheaper(RPath, NewCosts),
+	term_list_concat([staticMaxDivOpCount(OPCount), ' ', MiB, ' MiB'], '', Label),
+  maLogResult(Label, RPath, NewCosts, Time).
 
 /*
-The results of the different strategies are collected within the maResult facts.
+Precodition: A already created POG.
 */
-:- dynamic maResult/4.
-writeMaResults :-
-	write('\nMemory allocation results:\n'),
-	findall([A, B], (
-			maResult(A, _, B, Time), 
-			write_list(['\n', A, '\t', B, '\t', Time, 'ms'])
-		), _).
+evalBestPathByStaticMaxDivPOG(RPath, NewCosts) :-
+	highNode(H), 
+	X is integer(log(H+1)/log(2)), % refer to the pog creation predicates
+  write_list(['Path length within the pog: ', X, '\n']),
+  secondoGlobalMemory(GMemory),
+  MiB is integer(GMemory / X),
+  write_list(['Memory/Operator: ', MiB]), nl,
+  !,
+  getTime(maBestPlanStatic(MiB, RPath, NewCosts), Time),
+  setBestPlanIfCheaper(RPath, NewCosts),
+  term_list_concat([staticMaxDivPOG(X), ' ', MiB, ' MiB'], '', Label),
+  maLogResult(Label, RPath, NewCosts, Time).
+
+evalBestPathByModifiedDijkstra(Path, Costs) :-
+  getTime(bestPathByModifiedDijkstra(Path, Costs), Time),
+  maLogResult(modifiedDijkstra, Path, Costs, Time),
+	setBestPlanIfCheaper(Path, Costs),
+	!.
+
+evalBestPathByStaticEqual(MiB, Path, Costs) :-
+  getTime(maBestPathByStaticEqual(MiB, Path, Costs), Time),
+  maLogResult(staticEqual, Path, Costs, Time),
+	setBestPlanIfCheaper(Path, Costs),
+	!.
+
+evalBestPathByEnumeration(SPath, SCosts) :-
+  getTime((once(bestPathByEnumeration) ; true), OptTime),
+  currentShortestPath(SPath, SCosts, MemoryValues, Formula), % Obtain path
+
+	% Restore for debug processing within test.pl
+	retractall(formulaList(_)), 
+	assertz(formulaList(Formula)),
+
+  clearMemoryValues,
+  assertzall(MemoryValues),
+  maLogResult(enumerate, SPath, SCosts, OptTime),
+  getCounter(maPathCounter, PC),
+  getCounter(maOptPathCounter, OPC),
+  dm(ma, ['\n', PC, ' paths enumerated and ', OPC, ' optimized.']),
+	setBestPlanIfCheaper(SPath, SCosts),
+	!.
 
 /*
-Just write some information about the optimizing process.
+Save the path if this path is cheaper.
 */
-maInfo :-
-  write('*** FACTS ***\n'),
-	writefacts(memoryValue),
-	writefacts(maStrategiesToEval),
-	writefacts(staticMemory),
-	writefacts(maFormula),
-	writefacts(maDerivativeFormula).
+setBestPlanIfCheaper(Path, Costs) :-
+	\+ maCurrentBestPlan(_, _, _),
+	!,
+	getMemoryValues(MemoryValues),
+	assertz(maCurrentBestPlan(Path, Costs, MemoryValues)).
 
-/*
-Writes all operators to stdout that have a CostEstimation implementation.
-*/
-maOpInfo :-
-	findall(_, (
-			operatorMemSpec(OpName, _, Sig),
-  		getOpIndexes(OpName, Sig, _, _, _, _),	
-			write_list(['\nOperator: ', OpName, '\n\tSignature: ', Sig])
-		), _).
+setBestPlanIfCheaper(Path, Costs) :-
+	maCurrentBestPlan(_CPath, CCosts, _CMemoryValues),
+	(Costs < CCosts ->
+		(
+			getMemoryValues(MemoryValues),
+			retractall(maCurrentBestPlan(_, _, _)),
+			assertz(maCurrentBestPlan(Path, Costs, MemoryValues))
+		)
+	;
+		true
+	),
+	!.
 
 /*
 Returns a list with all current memoryValue facts.
@@ -231,22 +277,25 @@ getMemoryValues(MemoryValues) :-
 		), MemoryValues).
 
 /*
-
+Runs the regular dijkstra algorithm for different initial memory values and chooses the shortest path.
 */
 maBestPlan([MiB], RPath, NewCosts) :-
-	getTime(maBestPlan2([MiB], RPath, NewCosts), Time),
-	atomic_list_concat([static, ' ', MiB, ' MiB'], '', Label),
-	assertz(maResult(Label, RPath, NewCosts, Time)).
-
-maBestPlan([MiB|Rest], Path, Cost) :-
 	!,
-	maBestPlan([MiB], Path1, Cost1),
-	getMemoryValues(MemoryValues1),
-	maBestPlan(Rest, Path2, Cost2),
-	% Choose now the shorter path
-	chooseShorterResult(Cost2, Cost1, Path2, Path1, MemoryValues1, Cost, Path).
+	getTime(maBestPlanStatic(MiB, RPath, NewCosts), Time),
+	setBestPlanIfCheaper(RPath, NewCosts),
+	atomic_list_concat([static, ' ', MiB, ' MiB'], '', Label),
+  maLogResult(Label, RPath, NewCosts, Time).
 
-maBestPlan2([MiB], RPath, NewCosts) :-
+maBestPlan([MiB|Rest], Path, Costs) :-
+	!,
+	maBestPlan([MiB], _Path1, _Cost1),
+	%getMemoryValues(MemoryValues1),
+	maBestPlan(Rest, _Path2, _Cost2),
+	% Return now the shorter path, this works here only because there
+	% are no previous evaluations.
+	maCurrentBestPlan(Path, Costs, _MemoryValues).
+
+maBestPlanStatic(MiB, RPath, NewCosts) :-
   % SSP=single shortest path
   dm(ma, ['\nCompute SSP with ', MiB, ' MiB Memory per Operator...']),
   setStaticMemory(MiB),
@@ -259,15 +308,87 @@ maBestPlan2([MiB], RPath, NewCosts) :-
   	dm(ma, ['\n\tCosts before memory optimisation: ', Cost]),
   	% Note: At this point, we might have more memory granted as we have.
   	% The following memory optimisation process will correct this. 
-  	optimizeMemoryInPath(Path, RPath),
+  	pathMemoryOptimization(Path, RPath),
 		% Not implement here is to stop the search for a optimum path if 
 		% there is a path that has enough memory. But this can only be done
-		% if the assigned memory is nenver small within the path as the
+		% if the assigned memory is never smaller within the path as the
 		% sufficient memory value.
   	getCostsFromPath(RPath, NewCosts),
   	dm(ma, ['\n\tCosts after memory optimisation: ', NewCosts]),
   	dm(ma, ['\n\tPath: ', RPath])
 	)).
+
+bestPathByModifiedDijkstra(RPath, NewCosts) :-
+  % The MiB Value is not really needed, it is just used
+  % during the costEdge creating phase to supply a value.
+	MiB=16, 
+  asserta(useModifiedDijkstra),
+  dm(ma, ['\nCompute SSP:Modified Dijkstra with ', MiB, 
+		' MiB Memory per Operator...']),
+  setStaticMemory(MiB),
+  clearMemoryValues,
+  assignCosts,
+  !,
+  highNode(N),
+  dijkstra(0, N, Path, Cost),
+	% Reoptimize the path to include the blocking operators
+  retractall(useModifiedDijkstra),
+  ensure((
+    dm(ma, ['\n\tCosts before memory optimisation: ', Cost]),
+    % Note: At this point, we might have more memory granted as we have.
+    % The following memory optimisation process will correct this. 
+    pathMemoryOptimization(Path, RPath),
+    % Not implement here is to stop the search for a optimum path if 
+    % there is a path that has enough memory. But this can only be done
+    % if the assigned memory is never smaller within the path as the
+    % sufficient memory value.
+    getCostsFromPath(RPath, NewCosts),
+    dm(ma, ['\n\tCosts after memory optimisation: ', NewCosts]),
+    dm(ma, ['\n\tPath: ', RPath])
+  )).
+
+/*
+Strategy to "compare" some results.
+Tries to adopt the strategy that the entire memory is distributed equally
+over all memory using operators. 
+This is needed because within the standard costs and improved costs
+are the costs for some operators not available (itHashJoin etc.).
+*/
+maBestPathByStaticEqual(MiB, PathNew, CostsNew) :-
+  % SSP=single shortest path
+  dm(ma, ['\nCompute SSP with ', MiB, ' MiB Memory per Operator...']),
+  setStaticMemory(MiB),
+  clearMemoryValues,
+  assignCosts,
+  !,
+  highNode(N),
+  dijkstra(0, N, Path, Costs),
+  ensure((
+  	dm(ma, ['\nCompute Memory distribution...']),
+		newOpt,
+		analyzePath(Path), % Just a dirty solution to get knowledge about	
+		% memory using operators.
+		formulaList(FList),
+		length(FList, Ops),
+		(Ops > 0 ->
+			(
+				secondoGlobalMemory(GMemory),
+ 				minimumOperatorMemory(MinOpMem),
+				OPMem is ceiling(max(MinOpMem, GMemory/Ops)),
+				listFix(Ops, OPMem, AMem),
+				assignMemory(AMem),
+ 				% recompute and get the new costs
+				recomputePathCosts(Path, PathNew),
+    		getCostsFromPath(PathNew, CostsNew),
+				dm(ma, ['\n\tMemory values: ', AMem, ' Costs: ', CostsNew])
+			)
+		;
+			(
+				PathNew=Path,
+				CostsNew=Costs
+			)
+		)
+  )).
 
 /*
 Path enumeration strategy
@@ -279,13 +400,13 @@ bestPathByEnumeration :-
 	resetCounter(maOptPathCounter),
 	secondoGlobalMemory(GMemory),
 /* 
-Just set a value, dosn't matter what value because the later optimization if we try all possibilities. But we try a little smarter strategy to avoid optimizing every path. If the costs are calulated with giving every operator the maximum amount of memory, we can't find a better plan thourgh optimizing if the best costs are already higher than costs of the so far found best path. 
+Just set a value, dosn't matter what value because the later optimization if we try all possibilities. 
 */
   setStaticMemory(GMemory),
   clearMemoryValues,
   assignCosts, 
   highNode(N), 
-	retractall(currentShortestPath(_, _, _)),
+	retractall(currentShortestPath(_, _, _, _)),
 	!,
 	enumeratePaths(Path, N, Cost),
 	% The other ensure predicates are more or less for error tracking
@@ -294,7 +415,7 @@ Just set a value, dosn't matter what value because the later optimization if we 
 	% sequence would most likely occur for every loop. So error tacking
 	% would be very difficult if no exception is thrown here in case of 
 	% an error.
-	ensure(processResult(Path, Cost)),
+	ensure(once(processResult(Path, Cost))),
 
 	% If here a path is found that has enough memory, we still need to 
 	% continue the search. This is differently as when we use the
@@ -305,27 +426,24 @@ Just set a value, dosn't matter what value because the later optimization if we 
 processResult(Path, Costs) :-
 	nextCounter(maPathCounter, _),
   dm(ma3, ['\n\tCosts before memory optimization: ', Costs]),
+	% Note: At this point, we might have more memory granted as we have.
+ 	% The following memory optimisation process will correct this. 
+	nextCounter(maOptPathCounter, _),
+ 	pathMemoryOptimization(Path, RPath),
+ 	getCostsFromPath(RPath, NewCosts),
+ 	dm(ma3, ['\n\tCosts after memory optimization: ', NewCosts]),
+ 	dm(ma3, ['\n\tPath: ', RPath]),
+ 	storePathIfNeeded(RPath, NewCosts).
 
-	(isShorter(Costs) -> 
-		(
-  		% Note: At this point, we might have more memory granted as we have.
-  		% The following memory optimisation process will correct this. 
-			nextCounter(maOptPathCounter, _),
-  		optimizeMemoryInPath(Path, RPath),
-  		getCostsFromPath(RPath, NewCosts),
-  		dm(ma3, ['\n\tCosts after memory optimization: ', NewCosts]),
-  		dm(ma3, ['\n\tPath: ', RPath]),
-  		storePathIfNeeded(RPath, NewCosts)
-		)
-	;
-		true
-	).
-
+/*
+This predicates are enumeration related, it is not the same
+as setBestPlanIfCheaper/2.
+*/
 isShorter(Costs) :-
-	currentShortestPath(_, SCosts, _),
+	currentShortestPath(_, SCosts, _, _),
 	Costs < SCosts.
 isShorter(_) :-
-	\+ currentShortestPath(_, _, _).
+	\+ currentShortestPath(_, _, _, _).
 
 /*
 Used to maintain the results after backtracking.
@@ -335,20 +453,25 @@ storePathIfNeeded(Path, Costs) :-
 		(
 			% The new path is shorter as the current stored path or there
 			% is no stored path yet.
-			retractall(currentShortestPath(_, _, _)),
-			findall(A, (memoryValue(B,C,D), A=memoryValue(B,C,D)), MemoryValues),
-			asserta(currentShortestPath(Path, Costs, MemoryValues))
+			retractall(currentShortestPath(_, _, _, _)),
+			getMemoryValues(MemoryValues),
+			formulaList(Formula), % Store for debugging
+			asserta(currentShortestPath(Path, Costs, MemoryValues, Formula))
 		)
 	;
-		true % this path is not shorter to try the next one.
+		true % the given path is not shorter, try the next one.
 	).
 
 % Contains the so far shortest path.
-:- dynamic currentShortestPath/3.
+:- dynamic currentShortestPath/4.
 
 
 /*
 Enumerates all costEdge paths within the POG trough backtracking.
+
+If you want to see the enumerated paths, normally this can be done after a sql statement was executed:
+highNode(N), enumeratePaths(Path, N, Costs), (plan(Path, Plan)-> plan_to_atom(Plan, A);true), write_list(['\n: ', Costs, ' -> ', A]), fail.
+If you remove the ->, you need at least to used once/1 to avoid nasty backtracking.
 */
 enumeratePaths(Path, N, Costs) :-
 	enumeratePaths([], 0, N, Path, Costs).
@@ -362,14 +485,12 @@ enumeratePaths(PartPath, Node, N, RPath, RCosts) :-
 	append(PartPath, [E], Path),
 	enumeratePaths(Path, Target1, N, RPath, Costs),
 	RCosts is ECosts + Costs.
-		
-/*
-This is done distribute the entire memory over all memory consuming operators.  Due to different paths, with differnt numbers of memory consuming operators, within the POG this not that simple. So in absent of a good strategy to get a good gussed value, all paths are enumerated. Note that this value is just a maximum, not every path will use this number of memory consuming operators. Due to the enumeration of every path, this is just more to evaluate the different possible strategy, if this strategy is ever considerd to be a good one, this really needs to be optimized.
 
-NOTE: If you are confused why this return for example x and you don't see a optimization with x variables, this is very likely okay. The path with x memory variables is just so bad that it is never considerd to be worth it to be optimized.
+/*
+This is done to distribute the entire memory equally over all memory consuming operators.  Due to different paths, with differnt numbers of memory consuming operators, within the POG this not that simple. So in absent of a good strategy to get a good gussed value, all paths are enumerated. Note that this value is just a maximum, not every path will use this number of memory consuming operators. Due to the enumeration of every path, this is just more to evaluate the different possible strategy, if this strategy is ever considerd to be a good one, this really needs to be optimized.
 */
 getMaxMemoryConsumingOperatorsFromPOG(OPCount) :-
-	resetCounter(maxMemoryOp),
+	resetCounter(maxMemoryUsingOperators),
 	(getMaxMemoryConsumingOperatorsFromPOG2;true), 
 	% Note that this memoryUsingOperator couter is just added because
 	% it is a little complicate to compute the number of memory using
@@ -395,102 +516,78 @@ getMaxMemoryConsumingOperatorsFromPOG2 :-
 
 /*
 
-*/
-operatorMemSpec(sort,		[t], 	[[stream,[tuple,[[a,int]]]]]).
-operatorMemSpec(sortby,	[t,f], [[stream,[tuple,[[a,int]]]]]).
-operatorMemSpec(sortmergejoin, 	[t,t,f,f], 
-	[[stream, [tuple, [[a, int]]]], [stream, [tuple, [[b, int]]]], a, b]).
-operatorMemSpec(hashjoin, 	[t,t,f,f], 
-	[[stream, [tuple, [[a, int]]]], [stream, [tuple, [[b, int]]]], a, b]).
-operatorMemSpec(mergejoin, 	[t,t,f,f], 
-	[[stream, [tuple, [[a, int]]]], [stream, [tuple, [[b, int]]]], a, b]).
-operatorMemSpec(loopjoin, 	[t,t], 
-	[[stream,[tuple, [[a, int]]]], [map,[tuple,[[a, int]]],
-		[stream,[tuple,[[b, int]]]]]]).
-operatorMemSpec(symmjoin, 	[t,t,f],
-	[[stream,[tuple,[[a,int]] ]], [stream,[tuple,[[b,int]]]], 
-		[map,[tuple,[[a,int]]],[tuple,[[b,int]]],bool]]).
-% Add more operators here if needed.
+ceCosts = CostEstimation Costs
 
-/*
-Determines if a operator is a blocking stream operator.
-isBlockingOperator(?OpName, ?Sig)
-*/
-isBlockingOperator(OpName, Sig) :-
-	opSignature(OpName, _, Sig, _, Attributes),
-	member(block, Attributes).
+Gets the costs from the CostEstimation implementation.
 
-isBlockingOperator(OpName, Sig) :-
-	% Note that this might return a incorrect result, even if this
-	% is very unlikly.
-	clause(opSignature(OpName, _, Sig, _, Attributes), _),
-	member(block, Attributes).
-
-/*
 This method with the alist is not very efficient, but it can easily extended without taken care about every predicates using this.
 	
-AList is a annotation list with some information we can use later, for example
-within the later optimization, then we don't need to requery this information, even if we store now more AList as we need...for the optimisation of the a given path is this to much, but for other alorotihm this might be better. 
-
-opCosts(+OpName, +CardX, +SizeX, +MiB, -CostsInMS, -AList)
+ceCosts(+OpName, +CardX, +SizeX, +MiB, -CostsInMS, -AList)
 */
-opCosts(OpName, CardX, SizeX, MiB, CostsInMS, AList) :-
+ceCosts(OpName, CardX, SizeX, MiB, CostsInMS, AList) :-
 	ensure((number(CardX), number(SizeX))),
 	% The getCosts API expects integer values.
 	ICardX is integer(CardX),
 	ISizeX is integer(SizeX),
   % Very nasty signature handling
-	% A operatoren is non-memory sensitiv if the operatorMemSpec fact 
+	% A operator is non-memory sensitiv if the maOpSig fact
 	% doesn't exisits or getOpIndexes fails.
-  operatorMemSpec(OpName, _, Sig),
+  maOpSig(OpName, Sig),
   getOpIndexes(OpName, Sig, _ResultType, AlgID, OpID, FunID),
   % Whatever amount of memory we choose here...we still need the values for
   % the plan generation.
   %getCosts(AlgID, OpID, FunID, ICardX, ISizeX, MiB, OpCostsInMS),
 
   getCostFun(AlgID, OpID, FunID, ICardX, ISizeX, FT, DList),
+	checkDList(DList),
 	AList=[functionType(FT), dlist(DList)],
+	% Store for debugging
+	PARAMS=params(cardX(CardX), sizeX(SizeX)),
+	AList=[functionType(FT), dlist(DList), PARAMS],
 
  	minimumOperatorMemory(MinOpMem),
 	DList=[SufficientMemoryInMiB|_],
+	buildFormulaByFT(FT, DList, CMiB, CostF),
   CMiB is max(MinOpMem, min(MiB, SufficientMemoryInMiB)),
-	buildFormulaByFT(FT, AList, CMiB, CostF),
-	CostsInMS is CostF.
+	CostsInMS is CostF,
+	checkOpCosts(CostsInMS).
 
-%opCosts(+OpName, +CardX, +SizeX, +CardY, +SizeY, +MiB, -CostsInMS, -AList)
-opCosts(OpName, CardX, SizeX, CardY, SizeY, MiB, CostsInMS, AList) :- 
+%ceCosts(+OpName, +CardX, +SizeX, +CardY, +SizeY, +MiB, -CostsInMS, -AList)
+ceCosts(OpName, CardX, SizeX, CardY, SizeY, MiB, CostsInMS, AList) :- 
 	ensure((number(CardX), number(SizeX), number(CardY), number(SizeY))),
 	% The getCosts API expects integer values.
 	ICardX is integer(CardX),
 	ISizeX is integer(SizeX),
 	ICardY is integer(CardY),
 	ISizeY is integer(SizeY),
-  % Very nasty signature handling
-  operatorMemSpec(OpName, _, Sig),
+  % Nasty signature handling
+  maOpSig(OpName, Sig),
   getOpIndexes(OpName, Sig, _ResultType, AlgID, OpID, FunID),
   % Whatever amount of memory we choose here...we still need the values for
   % the plan generation.
-  %getCosts(AlgID, OpID, FunID, ICardX, ISizeX, ICardY, ISizeY, MiB,OpCostsInMS),
-
   getCostFun(AlgID, OpID, FunID, ICardX, ISizeX, ICardY, ISizeY, FT, DList),
-	AList=[functionType(FT), dlist(DList)],
+	checkDList(DList),
+	% Store for debugging
+	PARAMS=params(cardX(CardX), sizeX(SizeX), cardY(CardY), sizeY(SizeY)),
+	AList=[functionType(FT), dlist(DList), PARAMS],
 
  	minimumOperatorMemory(MinOpMem),
 	DList=[SufficientMemoryInMiB|_],
+	buildFormulaByFT(FT, DList, CMiB, CostF),
   CMiB is max(MinOpMem, min(MiB, SufficientMemoryInMiB)),
-	buildFormulaByFT(FT, AList, CMiB, CostF),
-	CostsInMS is CostF.
+	CostsInMS is CostF,
+	checkOpCosts(CostsInMS).
 
 % Just for simulating some results because currently there are no cost 
 % functions implemented.
 /*
 fakedCosts(true).
 
-opCosts(OpName, CardX, SizeX, MiB, CostsInMS, AList) :-
+ceCosts(OpName, CardX, SizeX, MiB, CostsInMS, AList) :-
 	fakedCosts(true),
-	opCosts(OpName, CardX, SizeX, 0, 0, MiB, CostsInMS, AList).
+	ceCosts(OpName, CardX, SizeX, 0, 0, MiB, CostsInMS, AList).
 
-opCosts(OpName, CardX, SizeX, CardY, SizeY, MiB, CostsInMS, AList) :-
+ceCosts(OpName, CardX, SizeX, CardY, SizeY, MiB, CostsInMS, AList) :-
 	fakedCosts(true),
 	dm(ma6, ['\ngetCosts failed for op: ', OpName, ' returning simulated costs: ']), 
 	%FIX:
@@ -512,69 +609,208 @@ opCosts(OpName, CardX, SizeX, CardY, SizeY, MiB, CostsInMS, AList) :-
 */
 
 /*
-The nonlinear optimization.
+
+The opCosts predicate supports either to compute the costs on static
+memory values that is assigned to every memory consuming operator or
+based on a explict assigned memory amount. 
+
 */
-optimizeMemoryInPath(Path, RPath) :-
+% Non-join operator
+opCosts(MT, Term, [CardX, SizeX], OpCostsInMS, NewTerm) :-
+  var(MT),
+  Term=..[Op|_],
+  getStaticMemory(MiB),
+  ceCosts(Op, CardX, SizeX, MiB, OpCostsInMS, AList),
+  toMemoryTerm(Term, MiB, AList, NewTerm),
+  nextCounter(memoryUsingOperators, _).
+
+% Join operator
+opCosts(MT, Term, [CardX, SizeX, CardY, SizeY], OpCostsInMS, NewTerm) :-
+  var(MT),
+  Term=..[Op|_],
+  getStaticMemory(MiB),
+  ceCosts(Op, CardX, SizeX, CardY, SizeY, MiB, OpCostsInMS, AList),
+  toMemoryTerm(Term, MiB, AList, NewTerm),
+  nextCounter(memoryUsingOperators, _).
+
+% Second cost call with stored memory term.
+opCosts(MT, Term, _, OpCostsInMS, Term) :-
+  nonvar(MT),
+  % In this case, the cost were calculated at least on time before.
+  % The new memory value is obtained from the memoryValue term 
+  % and costs are recomputed.
+  % Of course, that the other variables, like row size and
+  % row cards, are non-chaging is assumed.
+  ensure((
+    MT=memory(_, MID, AList), % If not found, there is something wrong.
+    memoryValue(MID, MiB, _) % Calculate on the new given memory value.
+  ), 'Error: memoryValue missing'),
+  propertyValue(functionType, AList, FT),
+  propertyValue(dlist, AList, DList),
+  DList=[SuffMiB|_], % Don't use more memory as needed for the cost calculation.
+  minimumOperatorMemory(MinOpMem), % And not less than this value.
+  buildFormulaByFT(FT, DList, CMiB, CostF),
+  CMiB is max(MinOpMem, min(MiB, SuffMiB)),
+  OpCostsInMS is CostF,
+	checkOpCosts(OpCostsInMS),
+  dm(ma6, ['\nComputed costs: ', OpCostsInMS]),
+  nextCounter(memoryUsingOperators, _).
+
+opCosts(MT, Term, _, OpCostsInMS, NewTerm) :-
+  throw(error_Internal(ma_opCosts(MT, Term, _, OpCostsInMS, NewTerm)
+    ::'failed to compute the costs')).
+
+/*
+Due to frequent errors, some values are explicit checked here.
+*/
+checkOpCosts(OpCostsInMS) :-
+	(OpCostsInMS>=0 ->
+		true
+	;
+		(
+			atomic_list_concat(['Negative costs are not allowed, ', 
+				'but a function computed negative costs. ',
+				'There is something wrong.'], Msg),
+  		throw(error_Internal(ma_checkOpCosts(OpCostsInMS)::Msg)) 
+		)
+	).
+
+checkDList([]) :- 
+	!.
+
+checkDList([A|Rest]) :- 
+	checkDList(Rest),
+  (maIsNumber(A) ->
+    true
+  ;
+    (
+      atomic_list_concat(['A value within the dlist-list is not a number: ',
+				A, '. This is not allowed, there is something wrong.'], Msg),
+      throw(error_Internal(ma_checkDList([A|Rest])::Msg))
+    )
+  ).
+
+/*
+Checking a value for '$NaN' is a problem.
+number('$NaN') succeeds.
+Hence, the check is done with catch(_ is N+N, _, fail).
+
+refer to:
+http://comments.gmane.org/gmane.comp.ai.prolog.swi/7558
+*/
+maIsNumber(N) :-
+	number(N), 
+	catch(_ is N+N, _, fail).
+
+/*
+The idea is to change the assigned memory value dynamically because later changes within the path are much more expensive to perform.
+*/
+toMemoryTerm(Term, MiB, AList, NewTerm) :-
+  newMID(MID),
+  assertz(memoryValue(MID, MiB, AList)),
+  NewTerm=memory(Term, MID, AList).
+
+clearMemoryValues :-
+  retractall(memoryValue(_, _, _)).
+
+:-
+  dynamic maxMID/1,
+          memoryValue/3.
+maxMID(0).
+
+newMID(SMID) :-
+  retract(maxMID(CurrentMID)),
+  MID is CurrentMID+1,
+  asserta(maxMID(MID)),
+  atomic_concat('mid', MID, SMID).
+
+/*
+The nonlinear optimization for a given path.
+*/
+pathMemoryOptimization(Path, RPath) :-
 	ensure((
 		newOpt,
 		analyzePath(Path),
-
-		buildFormula(Vars, F, SufficientMemoryInMiB),
+		buildFormula(MIDS, Vars, F, SufficientMemoryInMiB),
+		createGlobalMemoryConstraints(MIDS, Path, CList),
 		setFormula(Vars, F),
 		dm(ma3, ['\nFormula: ', F]),
   	length(Vars, Len), % Len is the number of memory consuming operators.
-  	secondoGlobalMemory(Memory),
-		MemoryAvailable is Memory - Len, % Leave "some" space for rounding. 
-		% Note that an integer nonlinear problem is more complex and the 
-		% expected "integer error" shouldn't be that high.
-  	ensure(MemoryAvailable>=Len), % Should always be the case, but if not we 
-		% will
-		% raise a exception here because the optimization routine needs a start
-		% point with one MiB memory for every operator. This can be changed, of
-		% course, but a optmization makes not much sense with these values
-		% when we can at least assign one MiB memory to an operator.
-  	doMemoryOptimization(Path, MemoryAvailable, Len, SufficientMemoryInMiB, 
-			_ /*Result*/, RPath)
+  	secondoGlobalMemory(GlobalMemory),
+  	doMemoryOptimization(Path, GlobalMemory, CList, Len, 
+			SufficientMemoryInMiB, _Result, RPath)
 	)).
 
 /*
-doMemoryOptimization(+Path, +Memory, +Len, +SufficientMemoryInMiB, -Result, -RPath)
+doMemoryOptimization(+Path, +Memory, +MaxMemoryConstraints, +Len, 
+	+SufficientMemoryInMiB, -Result, -RPath)
 */
-doMemoryOptimization(Path, _, 0, _, _, Path) :-
+doMemoryOptimization(Path, _, _, 0, _, _, Path) :-
 	% Hence, there is nothing more to do
-	dm(ma3, ['\nNo memory optimisation needed.']).
+	dm(ma, ['\nNo memory optimisation needed: no memory using operators.']),
+	!.
 
-doMemoryOptimization(Path, Memory, Len, SufficientMemoryInMiB, Result, RPath) :-
+doMemoryOptimization(Path, Memory, CList, _Len, SufficientMemoryInMiB, 0, 
+		RPath) :-
+	minimumOperatorMemory(MinOpMem),
+	listMax(MinOpMem, SufficientMemoryInMiB, MemoryValues),
+	listSum(MemoryValues, Sum),
+	Sum =< Memory,
+	dm(ma, ['\nNo memory optimization needed: enough memory available.']),
+	dm(ma, ['\n\tMemory values: ', MemoryValues]),
+	restDistribution(CList, MemoryValues, ARResult),
+	assignMemory(ARResult),
+	recomputePathCosts(Path, RPath),
+	!.
+
+% Not implemented here is the case to avoid the nonlinear optimization
+% If the sufficient memory values sum is higher as the global memory but
+% with the blocking operators constraints there is enaugh memory. In this
+% case it would not needed to execute the optimization.
+
+
+doMemoryOptimization(Path, Memory, CList, Len, SufficientMemoryInMiB, ARResult, 
+		RPath) :-
 	Len > 0,
-	dm(ma, ['\nStart optimisation with Memory: ', Memory, ' MiB...']),
+	dm(ma, ['\nStart optimisation with max Memory bound: ', Memory, ' MiB...']),
 	dm(ma, ['\nSufficient memory values in MiB: ', SufficientMemoryInMiB]),
+	dm(ma, ['\nMax memory constraints: ', CList]),
 	minimumOperatorMemory(MinOpMem),
 	dm(ma, ['\nMinimum operator memory: ', MinOpMem]),
   getTime(
-		memoryOptimization(MinOpMem, Memory, Len, SufficientMemoryInMiB, Result), 
+		memoryOptimization(MinOpMem, Memory, CList, Len, SufficientMemoryInMiB, 
+			Result), % C predicate, see MemoryOptimization.cpp
 		TimeMS),
 	dm(ma, ['\nOptimization result: ', Result]),
 	dm(ma, ['\nComputed in: ', TimeMS, 'ms']),
+	
+	% Just store this result, but it is not needed for this program.	
+	retractall(maNLOPTResult(_)),
+	assertz(maNLOPTResult(Result)),
 
 	optimizeResultToAssignableResult(Result, AResult),
+	restDistribution(CList, AResult, ARResult), % This might happen when constant
+	% functions are involved.
 	% Assign the new memory values
-	assignMemory(AResult),
+	assignMemory(ARResult),
 	% and the costs are changed...
 	% So we need to update the costs within the costEdge facts of the given path.
 	% If you need the costs within the POG you need to call createCostEdges again.
-	recomputePathCosts(Path, RPath).
+	recomputePathCosts(Path, RPath),
+	!.
 
-doMemoryOptimization(Path, Memory, Len, SufficientMemoryInMiB, Result, Path) :-
+doMemoryOptimization(Path, Memory, CList, Len, SufficientMemoryInMiB, Result, 
+		Path) :-
 	Msg='Memory optimization failed.',
-	throw(error_Internal(ma_doMemoryOptimization(Path, Memory, Len, 
+	throw(error_Internal(ma_doMemoryOptimization(Path, Memory, CList, Len, 
 		SufficientMemoryInMiB, Result, Path)::Msg)).
 
 /*
 Rounding the Results because the secondo kernel expected integer values.
 The result in ~Result~ may assign a little more memory than allowed
 due to precision and the choosen algorithm. So either
-we allow this or we need to apply a algorithm to 
-correct this. For example we could subtract the to much
+this is allowed this or it is need to apply a algorithm to 
+correct this. For example is might be an option to subtract the too much
 assigned memory from the highest value. But currently it 
 no problem to grant a little bit more memory, the Secondo kernel
 won't forbid this.
@@ -583,7 +819,53 @@ optimizeResultToAssignableResult(OResult, AResult) :-
 	ceilingListToInts(OResult, AResult),
 	%roundListToInts(Result, CResult), % If it should be more accurate.
 	dm(ma, ['\nRounded result: ', AResult]).
-	% If needed, here can now the rest unused memory distributed.
+
+/*
+Distributes the unused memory equally over all operators.
+*/
+:- dynamic(restDistribution/1).
+restDistribution(equal).
+
+setRestDistribution(Mode) :-
+	member(Mode, [equal, none]),
+	retractall(restDistribution(_)),
+	assertz(restDistribution(Mode)).
+
+restDistribution(_CList, AResult, AResult) :-
+	restDistribution(none),
+	!.
+
+restDistribution(CList, AResult, ARResult) :-
+	restDistribution(equal),
+	!,
+	(CList = [_] ->
+		true
+	;
+		% This is that easy, because a operator at a edge may occur
+		% within other shelfs. Experience shows that the only blocking
+		% operator sortmergejoin is nearly never used. Hence, i did
+		% not implemented this. Nevertheless...rest distribution is just
+		% for error fixing all the previous assumptions and approximations.
+		% But if ever needed, this should be integrated into the nonlinear
+		% optimization problem.
+		dm(ma, ['\nMulit-shelf rest distribution currently not implemented.'])
+	),
+  formulaList(List),
+	listSum(AResult, Sum),
+	secondoGlobalMemory(GMemory),
+	length(AResult, OpCount),
+	Rest is floor((GMemory - Sum) / OpCount), % equal distribution
+	(Rest > 0 ->
+		restDistribution(Rest, List, AResult, ARResult)
+	;
+		AResult=ARResult
+	),
+	dm(ma, ['\nRest distribution result: ', ARResult]).
+
+restDistribution(_, [], [], []).
+restDistribution(Memory, [_E|Rest], [MiB1|MRest1], [MiB|MRest]) :-
+	restDistribution(Memory, Rest, MRest1, MRest),
+	MiB is MiB1 + Memory.
 
 /*
 Determines the costs from a given path.
@@ -640,19 +922,22 @@ assignMemory(A, B) :-
 Remove the different stored facts.
 */	
 newOpt :-
+	retractall(maConstraint(_, _)),
 	retractall(maFormula(_, _)),
 	retractall(maDerivativeFormula(_, _, _)),
 	retractall(formulaList(_)),
+	retractall(maNLOPTResult(_)),
 	asserta(formulaList([])).
 
 /*
-
+This method inspects the path recursivly, during this for all operators
+with a CostEstimation implementaion the objective function etc. facts will be
+added.
 */
 analyzePath([Edge]) :- 
 	!,
-	%Edge=costEdge(Source, Target, Term, Result, Size, Cost),
 	Edge=costEdge(_, _, Term, _, _, _),
-	% terms are in need to be views in reverse order.
+	% terms are in need to be viewed in reverse order.
 	analyzeTerm(Edge, Term).
 
 analyzePath([Edge|Rest]) :- 
@@ -682,23 +967,13 @@ analyzeTerm(Edge, Term) :-
 	Args=[SubTerm, MID, AList],
 	% 
 	SubTerm=..[OpFunctor|OpArgs],
-	% This ansumption is based on how the terms are constructed and plans 
+	% This asumption is based on how the terms are constructed and plans 
 	% are generated.
-	operatorMemSpec(OpFunctor, Map, _),
-
+	opMap(OpFunctor, Map),
 	addFormulaByAList(_MIDVAR, MID, AList),
-
-	(isBlockingOperator(OpFunctor, _) ->
-		% how to create the shelf constraints? first, we need to bring the
-		% terms in order.
-		true
-	;
-		true
-	),
-	% Just finding the SubTerms to inspect.
+	% Just finding the streams to inspect further.
 	mapArguments(Map, OpArgs, MappedOpArgs),
 	analyzeListTerm(Edge, MappedOpArgs).
-	%analyzeTerm(Edge, SubTerm).
 	
 analyzeTerm(Edge, Term) :-
 	compound(Term),
@@ -739,16 +1014,16 @@ addFormulaByAList(MIDVAR, MID, AList) :-
 	asserta(formulaList(NewList)).
 
 /*
-Based on the formulas for every memory consuming operator, we build the cost formula for the entire path. Note that we optimize just the memory using operators, because the total costs are additive, this is so far correct, but the computed value that is the "optimum", is not the values of our total costs.
+Based on the formulas for every memory consuming operator, the cost formula for the entire path is build here. Note that only the memory using operators are optmized here, because the total costs are additive, this is so far correct, but the computed value that is the "optimum", is not the values of our total costs.
 
 Note that all cost functions of the nodes are additive, 
 when we compute the derivatives, we can do this seperatly for every operator.
 It is not needed to compute the derivative of the entire total cost function.
-buildFormula(-AllVars, -Formula, -SufficientMemory) :-
+buildFormula(-MIDS, -AllVars, -Formula, -SufficientMemory) :-
 */
-buildFormula(AllVars, F, SufficientMemory) :-
+buildFormula(MIDS, AllVars, F, SufficientMemory) :-
 	formulaList(List),
-	getAllVars(List, AllVars),
+	getAllVars(List, MIDS, AllVars),
 	buildFormula(List, AllVars, 0, F, SufficientMemory).
 	
 buildFormula([], _, _, 0, []) :- !.
@@ -760,9 +1035,9 @@ buildFormula([E], AllVars, Dimension, F, [SufficientMemoryInMiB]) :-
 	propertyValue(midVar, E, MVar),
 	buildFormulaByFT(FT, AList, MVar, F),
 	AList=[DSufficientMemoryInMiB|_],
-	% AList conts double values, we could compute the result 
-	% with double values, but later we can only assign integer values.
-	% so we need to retrict the allowed value to the next integer value.
+	% AList conts double values, it is possible to continue with this values, but
+	% in the end, only integer values can be assigend to a plan.
+	% Hence, the value is already here retricted to the nest integer value.
 	SufficientMemoryInMiB is ceiling(DSufficientMemoryInMiB),
 	% Note: See the differential_calculus.pl for limitations.
 	ensure((
@@ -780,13 +1055,14 @@ buildFormula([E|Rest], AllVars, Dimension, F, SufficientMemoryInMiB) :-
 	append(SM, SMR, SufficientMemoryInMiB).
 
 /*
-Returns a list of all variables we are using for the optimization.
+Returns a list of all variables that are used by the optimization.
 getAllVars(+, -)
 */
-getAllVars([], []).
-getAllVars([E|ERest], [MVar|MRest]) :-
+getAllVars([], [], []).
+getAllVars([E|ERest], [MID|MIDRest], [MVar|MRest]) :-
 	propertyValue(midVar, E, MVar),
-	getAllVars(ERest, MRest).
+	propertyValue(mid, E, MID),
+	getAllVars(ERest, MIDRest, MRest).
 
 /*
 Following, the differnt function types based on the returned values of the getCostFun predicate. Note that this done this way because returning arbitrary formula's from the C++ enviroment isn't that easy as within prolog. At least it was the first idea to support more complex cost functions, even if now from the C++ CostEstimation class just simple function will be deliverd. But with the below predicates, much more complex functions are supported as long these are strict and decreasing, more exact, all function that the choosen optimize algorihm can handle.
@@ -794,34 +1070,136 @@ buildFormulaByFT(+FunctionType, +DList, +MVar, ?Out)
 
 Parameter MVar:
 Allowed values are all values between the minimum operator memory(>=1) and the sufficient memory value. Don't call this with other memory values.
+But don't pass MVar to this predicate! It is paramter, but not one with 
+a value.
 */
-buildFormulaByFT(1, DList, MVar, Out) :- 
-	!,
-	DList=[_, _, TimeAt16MB, A|_], % Vars names as within the CostEstimation.h.
- 	% The memory can be the only free variable.
-	ensure((number(TimeAt16MB), number(A))),
-  % This approximation is	dangerous if the calculation is enabled for 
-	% memory assigments below 16 MiB. Because when we approach 1 MiB the 
-	% difference to the real costs might be getting huge (if the costs are not
-	% really linear).
-	TimeAt0MB is TimeAt16MB+(16*A),
-	Out=TimeAt0MB-(MVar*A).
 
-buildFormulaByFT(2, DList, MVar, Out) :- 
-	!,
-	DList=[_, _, _, A|_], % Vars names as within the CostEstimation.h.
-	ensure(number(A)), % The memory can be the only free variable.
-	Out=A/MVar. % MVar will bound to a values below 1.
+buildFormulaByFT(1, DList, MVar, Out2) :-
+  !,
+	ensure(var(MVar), 'Error: Parameter MVar is a bounded variable.'),
+  % Vars names as within the CostEstimation.h.
+  DList=[SufficientMemory, TimeAtSuffMemory, TimeAt16MB|_],
+  % The memory can be the only free variable.
+  ensure((number(SufficientMemory), number(TimeAtSuffMemory), 
+		number(TimeAt16MB))),
+  % This approximation is dangerous if the calculation is enabled for 
+  % memory assigments below 16 MiB. Because when we approach 1 MiB the 
+  % difference to the real costs might be getting huge (if the costs are not
+  % really linear) and this is not respected within the CostEstimation 
+	% implementations that return type 1 functions.
+	(SufficientMemory =\= 16 ->
+		Gradient is (TimeAt16MB-TimeAtSuffMemory)/(SufficientMemory-16)
+	;
+		Gradient = 0 % Actually in this case it would be better to remove
+								 % this operator from the optimization process, but it
+								 % would make the entire code more complex and i want to 
+								 % avoid that.
+	),
+  TimeAt0MB is TimeAt16MB+(16*Gradient),
+  Out=TimeAt0MB-(MVar*Gradient),
 
-buildFormulaByFT(3, DList, MVar, Out) :- 
-	!,
-	DList=[_, _, _, A, B|_], % Vars names as within the CostEstimation.h.
+	% Some checks...
+	minimumOperatorMemory(MinM),
+  ((Gradient =:= 0, SufficientMemory > MinM, maWarn(constant)) ->
+		% this might be okay, but in general this is not correct.
+		write_list(['\n(ma.pl) WARNING: constant memory dependent cost ',
+      'function detected: ', Out,
+      '. Results may wrong. Please check the cost functions.'])
+  ;
+    true
+  ),
+	(Gradient < 0 ->
+		(
+			(maWarn(increasing) ->
+				(
+					write_list(['\n(ma.pl) WARNING: increasing memory dependent cost ',
+						'function detected: ', Out, '. Fallback to constant fuction. ',
+						'Results may wrong. Please check the cost function.']),
+					maWarnSleep(1)
+				)
+			;
+				true
+			),
+			% Fallback to this constant function to allow still a correct
+			% optimization.
+      Out2=TimeAt16MB
+    )
+  ;
+    Out2=Out
+	),
+	checkNegative(Out, MVar, SufficientMemory).
+
+buildFormulaByFT(2, DList, MVar, Out2) :- 
+	!, 
+	ensure(var(MVar), 'Error: Parameter MVar is a bounded variable.'),
+	% Vars names as within the CostEstimation.h.
+	DList=[SufficientMemory, _TimeAtSuffMemory, TimeAt16MB, A, B|_],
+	% Note: _TimeAtSuffMemory = (A/_SufficientMemory)+B is not
+	% always true due some complications within the cost estimation
+	% implementation. But it should always be "near" the value that is
+	% indicated by the cost function. The value is ignored, because
+	% nonlinear optimization for non static function are not solvable in general
+	% as far as i know.
 	ensure((number(A), number(B))), % The memory can be the only free variable.
-	Out=A-(MVar*B).
+	Out=(A/MVar)+B, % MVar will be bound to a value greater or equal MinOpMem.
+
+	% Some checks...
+	minimumOperatorMemory(MinM),
+  ((A =:= 0, SufficientMemory > MinM, maWarn(constant)) ->
+    % this might be okay, but in general this is not correct.
+    write_list(['\n(ma.pl) WARNING: constant memory dependent cost ',
+      'function detected: ', Out,
+      '. Results may wrong. Please check the cost functions.'])
+  ;
+    true
+  ),
+  (A < 0 ->
+    (
+      (maWarn(increasing) ->
+        (
+          write_list(['\n(ma.pl) WARNING: increasing memory dependent cost ',
+            'function detected: ', Out, '. Fallback to constant fuction. ',
+            'Results may wrong. Please check the cost function.']),
+          maWarnSleep(1)
+        )
+      ;
+        true
+      ),
+      % Fallback to this constant function to allow still a correct
+      % optimization.
+      Out2=TimeAt16MB
+    )
+  ;
+    Out2=Out
+  ),
+	checkNegative(Out, MVar, SufficientMemory).
 
 buildFormulaByFT(FT, DList, MVar, Out) :-
 	Msg='Can\'t build formula.',
 	throw(error_Internal(ma_buildFormulaByFT(FT, DList, MVar, Out)::Msg)).
+
+/*
+Validates if the function may return a negativ cost value because this
+is not valid.
+*/
+checkNegative(Out, MVar, SufficientMemory) :-
+  secondoGlobalMemory(GMemory),
+	TestMem is min(GMemory, SufficientMemory),
+	% This is very important because it is not allowed to bind MVar to
+	% a value. I think there is a better way to this...
+	replaceVar(Out, MVar, X, OutR),
+	X=TestMem,  % MVar=TestMem is not allowed.
+	CostsAtMax is OutR,
+	((CostsAtMax < 0, maWarn(negative)) ->
+		(
+			write_list(['\n(ma.pl) WARNING: memory dependent cost function ',
+				'with potentially negative costs detected: ', Out, 
+				'. Results may wrong. Please check the cost functions.']),
+			maWarnSleep(1)
+		)
+	;
+		true
+	).
 
 /*
 Return which plan arguments are streams.
@@ -840,7 +1218,8 @@ Map = [t].
 Map = [t, t, f, f].
 */
 opMap(Op, Map) :-
-  opSigMap(Op, Map).
+  opSigMap(Op, Map),
+	!.
 
 /*
 This won't work for some operators because often PSig can't be a variable.
@@ -848,12 +1227,14 @@ That the reason why for these operators the opSigMap facts must be added manuall
 */
 opMap(Op, Map) :-
 	opSignature(Op, _, PSig, _, _),
-	analyzeOpSig(PSig, Map).
+	analyzeOpSig(PSig, Map),
+	!.
 
 opMap(Op, Map) :-
 	% try harder...
 	clause(opSignature(Op, _, PSig, _, _), _),
-	analyzeOpSig(PSig, Map).
+	analyzeOpSig(PSig, Map),
+	!.
 
 /*
 An error is thrown if there is nothing found for the operator, it might sometimes appropriate to assume false, but i assume the error rate is higher if there is no exception thrown.
@@ -864,29 +1245,12 @@ opMap(Op, Map) :-
 
 analyzeOpSig([P|PRest], [t|Map]) :-
 	nonvar(P), % Because P may be a variable, see the hashjoin signature.
-	P=[stream|_], !,
+	P=[stream|_], 
+	!,
 	analyzeOpSig(PRest, Map).
 analyzeOpSig([_|PRest], [f|Map]) :- !,
 	analyzeOpSig(PRest, Map).
 analyzeOpSig([], []).
-
-:- dynamic opSigMap/2.
-% Refer to the cost functions about these operators.
-opSigMap(sortLeftThenMergejoin,  [t,t,f,f]).
-opSigMap(sortRightThenMergejoin, [t,t,f,f]).
-% Overwritten because the opSignature result would't recognise the secondo argument as a stream:
-opSigMap(res, 					[f]).   % not known as a plan term.
-opSigMap(loopjoin, 			[t,t]). % differs from the plan terms.
-
-/*
-opSigMap(rename, 				[t]).
-opSigMap(remove, 				[t]).
-opSigMap(filter, 				[t,f]).
-opSigMap(project,				[t,f]).
-opSigMap(feedproject,		[f,f]).
-opSigMap(afeed,					[f]).
-opSigMap(extend,				[t,f]).
-*/
 
 /*
 Extract only the relevant arguments depending on the given map. A t means true and the argument is taken into the result map. A f means false and, of course, then the argument is not taken into the result. t/f is just used because it is shorter as true and fail/false.
@@ -945,7 +1309,7 @@ setDerivative(Dimension, VarList, Formula) :-
 /*
 Callback predicate from MemoryOptimization.cpp to compute the costs for given vector of memory assignments.
 	
-Note that the objective function is stored here as a fact, so we don't need to loopthrough it into the c++ runtime, even if it might not be very efficient. This idea behind this is mainly that we don't want to pass the formula as a string to C++ enviroment to evalute it there coz this not that simple and we might need another library to do this. On the onther hand, it was at the beginning not very clear how complex the cost functions will be. However, with these predicates, even more complex cost functions could be optimized.
+Note that the objective function is stored here as a fact, so there is no need to loopthrough it into the c++ runtime, even if it might not be very efficient. This idea behind this is mainly that we don't want to pass the formula as a string to the C++ enviroment to evalute it there, because this is not that simple and it might need another library to do this. On the onther hand, it was at the beginning not very clear how complex the cost functions will be. However, with these predicates, even more complex cost functions could be optimized.
 */
 objectiveFunction(Vars, Result) :-
 	dm(ma6, ['\nCompute objectiveFunction: Vars: ', Vars]),
@@ -964,39 +1328,173 @@ derivativeFunction(Dimension, Vars, Result) :-
 	dm(ma6, ['\nCompute derivativeFunction: Result: ', Result]).
 
 /*
-I don't know how to call this...it is something between a ugly hack and a feature. Here a new node is created behind the last node and a new edge, planEdge and costEdge is created. It is used to optimize the memory allocation with the sort operator because the sort operator has currently no cost edge. But the POG is mainly for predicates and what predicates are evalualated, hence we misuse the POG a little bit.
+
 */
-addNewHighNode(N, Term) :-
-  highNode(N),
-  NewN is N + 1,
-  retractall(highNode(_)),
-  asserta(highNode(NewN)),
-
-  node(N, NPreds, NPartition),
-  NewNode=node(NewN, NPreds, NPartition),
-  assertz(NewNode),
-
-  % Unlike a planEdge or costEdge, there is always just one plan edge from
-  % one node to another node.
-  assertz(edgeSelectivity(N, NewN, 1)),
-  assertz(edge(N, NewN, Term, NewN, NewNode, NewNode)),
-  Term => Plan, % For now, i just need one translation.
-  assert(planEdge(N, NewN, Plan, NewN)),
-	!.
-
-addNewHighNode(N, Term) :-
-	throw(error_Internal(ma_addNewHighNode(N, Term)::failed)).
-
-
 extractPredFromEdgeTerm(EdgeTerm, Pred) :-
   EdgeTerm = select(_, Pred).
 extractPredFromEdgeTerm(EdgeTerm, Pred) :-
   EdgeTerm = join(_, _, Pred).
 extractPredFromEdgeTerm(EdgeTerm, Pred) :-
   EdgeTerm = sortedjoin(_, _, Pred, _, _).
-extractPredFromEdgeTerm(EdgeTerm, Pred) :-
-  EdgeTerm = sortby(_, _),
-  % There is no predicate for the sort edge.
-  Pred = pr(fakePred(1,1,0,0)).
+
+/*
+
+*/
+maSelfCheck :-
+  write('\nSelf-Check...'),
+  (maOpInfo(quit) ->
+    write('passed\n')
+  ;
+    (
+      write('\nFAILED! Please enter \'maOpInfo.\' to track the error\n'),
+      sleep(5),
+    	delOption(memoryAllocation)
+    )
+  ).
+
+maWrite(gossipy, List) :-
+	!,
+	write_list(List).
+maWrite(Mode, _List) :- 
+	Mode \= gossipy,
+	!.
+
+/*
+The results of the different strategies are collected within the maResult facts.
+*/
+:- dynamic maResult/5.
+
+maLogResult(Type, Path, Costs, Time) :-
+  plan(Path, Plan),
+ 	plan_to_atom(consume(Plan), PlanAtom),
+  assertz(maResult(Type, Path, PlanAtom, Costs, Time)).
+
+writeMaResults :-
+	write('\nMemory allocation results:\n'),
+	FH='~w~30+ ~` t~w~20+ ~` t~w~10+ ~n',
+	format(FH, ['Algorithm', 'Costs', 'Time']),
+	findall([A, B], (
+			maResult(A, _, _, B, Time), 
+			F='~w~30+ ~` t~f~20+ ~` t~d~10+ms ~n',
+			format(F, [A, B, Time])
+		), _).
+
+/*
+Just write some information about the optimizing process.
+*/
+maInfo :-
+  write('*** FACTS ***\n'),
+	writefacts(maConstraint),
+	writefacts(memoryValue),
+	writefacts(formulaList),
+	writefacts(maStrategiesToEval),
+	writefacts(staticMemory),
+	writefacts(maFormula),
+	writefacts(maDerivativeFormula).
+
+maDebug :-
+	debugLevel(ma),
+	debugLevel(ma3).
+	
+/*
+Writes some operators to stdout that have a CostEstimation implementation.
+*/
+maOpInfo :-
+	maOpInfo(gossipy).
+
+maOpInfo(Mode) :-
+	maOpSig(OpName, Sig),
+	ensure(opMap(OpName, Map)),
+	maWrite(Mode, ['\n\nOperator: ', OpName, '\n\tSignature: ', Sig, 
+		'\n\tMap: ', Map]),
+	(isBlockingOperator(OpName, Sig) ->
+		maWrite(Mode, ['\nBlocking op: yes'])
+	;
+		maWrite(Mode, ['\nBlocking op: no'])
+	),
+ 	(getOpIndexes(OpName, Sig, _ResultType, AlgID, OpID, FunID) ->
+		(getCostFun(AlgID, OpID, FunID, 1000000, 100, 2000000, 250, FT, DList) ->
+			(
+				maWrite(Mode, ['\nFunction type: ', FT, ' DList: ', DList])
+			)
+		;
+			(
+				maWrite(Mode, ['\nWARNING: failed to receive cost function.']),
+				nextCounter(maFailedOps, _)
+			)
+		)
+	;
+		(
+			maWrite(Mode, ['\nWARNING: failed to receive OpIndexes.']),
+			nextCounter(maFailedOps, _)
+		)
+	),
+	fail.
+
+maOpInfo(_Mode) :-
+	getCounter(maFailedOps, FailedOps),
+	resetCounter(maFailedOps),
+	FailedOps=0.
+
+/*
+Constructs a list that show the sufficient memory value and the assigned
+memory values.
+The result list is in the same order as the constructed formula.
+*/
+maMemoryInfo(InfoTerm) :-
+	formulaList(F),
+	% warning: this might come from another optimization.
+	% it is needed to check here manually if this belongs to "this" 
+	% optimization.
+	(maNLOPTResult(OPT) -> true ; (length(F, FLen), length(OPT, FLen))),
+	maMemoryInfo(F, OPT, InfoTerm),
+	!.
+	
+maMemoryInfo([], [], []) :-
+	!.
+
+maMemoryInfo([F|FRest], [O|OPTRest], [I|IRest]) :-
+	maMemoryInfo(FRest, OPTRest, IRest),
+	member(mid(MID), F),
+	member(dlist(DList), F),
+	DList=[SuffMemory|_],
+  memoryValue(MID, Memory, _),
+	I=[SuffMemory, O, Memory],
+	!.
+
+cListSum([], [], 0) :-
+	!.
+cListSum([_MiB|Rest], [0|CRest], Sum) :-
+	!,
+	cListSum(Rest, CRest, Sum).
+cListSum([MiB|Rest], [1|CRest], Sum2) :-
+	!,
+	cListSum(Rest, CRest, Sum),
+	Sum2 is MiB+Sum.
+
+/*
+Disables or enables the warnings because for big pog's the amount of
+displayed warnings can be huge. The same thing is the case for the sleep
+thing below.
+*/
+maWarnMode(fail).
+
+maWarn(_Type) :-
+	maWarnMode(R),
+	!,
+	R.
+
+/*
+
+*/
+warnSleep(no).
+
+maWarnSleep(_S) :-
+	warnSleep(no), 
+	!.
+
+maWarnSleep(S) :-
+	sleep(S),
+	!.
 
 % eof

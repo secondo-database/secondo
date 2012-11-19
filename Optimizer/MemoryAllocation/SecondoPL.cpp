@@ -621,7 +621,8 @@ static foreign_t getOperatorIndexes(
      cout << "cannot convert name" << endl;
      PL_fail;
    }
-   //cout << "name = '" << nameC << "'" << endl; // NVK
+	 // NVK REMOVED MA: to much output
+   //cout << "name = '" << nameC << "'" << endl;
    // convert argument list from prolog to C++
    bool error = false;
    ListExpr argListC = TermToListExpr(argList, si->GetNestedList(), error);
@@ -1220,7 +1221,7 @@ PL_extension predicates[] =
   // NVK ADDED MA
 #ifdef SECONDO_USE_MEMORY_ALLOCATION
   { "secondo_global_memory", 1, (void*)pl_global_memory, 0 },
-  { "memoryOptimization", 5, (void*)pl_memoryOptimization, 0 },
+  { "memoryOptimization", 6, (void*)pl_memoryOptimization, 0 },
 #endif
   // NVK ADDED MA END
 

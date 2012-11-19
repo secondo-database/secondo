@@ -92,38 +92,4 @@ sameVar(X1, X2) :-
   X1=X2, 
 	!.
 
-/*
-Utility functions
-*/
-
-/*
-xInF tests if the variable X is used within Y.
-*/
-xInF(X, Y) :-
-	var(Y), 
-	!,
-	sameVar(X, Y).
-
-xInF(X, Y) :-
-	\+ is_list(Y),
-	sameVar(X, Y), 
-	!.
-
-xInF(X, [F]) :- 
-	!,
-	xInF(X, F).
-
-xInF(X, [F|Rest]) :- 
-	!,
-	(xInF(X, Rest) -> 
-		true
-	;
-		xInF(X, F)
-	).
-
-xInF(X, F) :-
-	compound(F), 
-	!,
-	F =.. [_|Params],
-	xInF(X, Params).
-	
+% eof
