@@ -34,31 +34,7 @@ SECLIBS+=$(LIB2)
 
 # define object files
 SECOBJ:=$(LIBD)/SecondoInterface.o
-SECOBJ+=$(LIBD)/SecondoInterfaceGeneral.o
-SECOBJ+=$(LIBD)/SecondoInterface.o
-SECOBJ+=$(BD)/Tools/NestedLists/NestedList.o
-SECOBJ+=$(BD)/Tools/Utilities/*.o
-SECOBJ+=$(BD)/UserInterfaces/cmsg.o
-SECOBJ+=$(BD)/Tools/NestedLists/NList.o
-SECOBJ+=$(BD)/StorageManager/*.o
-SECOBJ+=$(BD)/ClientServer/SocketIO.o
-SECOBJ+=$(BD)/Tools/NestedLists/NLParser.o
-SECOBJ+=$(BD)/Tools/NestedLists/NLScanner.o
-SECOBJ+=$(BD)/Tools/NestedLists/NLLex.o
-SECOBJ+=$(BD)/Tools/NestedLists/NLParser.tab.o
-SECOBJ+=$(BD)/Tools/Flob/FlobManager.o
-SECOBJ+=$(BD)/Tools/Flob/PersistentFlobCache.o
-SECOBJ+=$(BD)/QueryProcessor/*.o
-SECOBJ+=$(BD)/Algebras/Management/AlgebraManager.o
-SECOBJ+=$(BD)/Algebras/Management/Algebra.o
-SECOBJ+=$(BD)//Tools/Parser/*.o
-SECOBJ+=$(BD)/Tools/Parser/SpecParser/NestedText.o
-SECOBJ+=$(BD)/./Tools/NestedLists/ListUtils.o
 SECOBJ+=$(BD)/lib/AlgebraList.o
-
-
-
-
 
 .PHONY: all
 all: api
@@ -86,7 +62,7 @@ lib:
 
 lib/libsecondo.$(LIBEXT): $(SECLIBS)
 	ar -rs  lib/libsecondo.$(LIBEXT) $(SECOBJ) 
-	@arlib $$PWD/lib/libsecondo.$(LIBEXT) $(SECLIBS)
+	@arlib $$PWD/lib/libsecondo.$(LIBEXT) $(SECOBJ)  $(SECLIBS)
 
 
 .PHONY:clean

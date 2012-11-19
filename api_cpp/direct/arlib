@@ -9,29 +9,63 @@ fi
 TARGET=$1
 shift
 
+
 SOURCES=$*
 
-# for S in $SOURCES; do
-#  ar t $S | while read O; do ar x $S "$O"; ar rs $TARGET "$O"; rm "$O";  done
-# done
+SRCOBJECTS=""
+
+
 
 rm -rf temp
 mkdir temp
 cd temp
 i=1
 for S in $SOURCES; do
-  DIRNAME=lib_$i
-  mkdir  $DIRNAME 
-  cd $DIRNAME 
-  ar x $S
-  cd ..
-  i=$(expr $i + 1 )
+  if [[ "$S" == *.o ]]; then
+    SRCOBJECTS+=" $S"
+  else
+    DIRNAME=lib_$i
+    mkdir  $DIRNAME 
+    cd $DIRNAME 
+    ar x $S
+    cd ..
+    i=$(expr $i + 1 )
+  fi
 done
 
 
 OBJ=$(find . -iname "*.o" )
 
 ar -qs $TARGET $OBJ
+
+# create a shared library
+
+L=${#TARGET}
+L=$(expr $L - 2)
+SHLIB=$(expr substr $TARGET 1 $L).so
+
+
+
+echo "Create shared library $SHLIB"
+echo "SRCOBJ = $SRCOBJECTS"
+
+echo
+echo
+
+echo "Other Objects : $OBJ "
+
+
+
+
+gcc -shared -Wl,-soname,libsecondo.so -o $SHLIB $SRCOBJECTS  $OBJ
+
+if [ $? != 0 ]; then
+echo "Error in creating share lib"
+exit 1
+fi
+
+echo "shared lib created" 
+
 
 cd ..
 

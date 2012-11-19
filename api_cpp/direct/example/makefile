@@ -30,6 +30,11 @@ ALGDEPFLAGS=$(addprefix -l, $(ALGEBRA_DEPS))
 
 LDFLAGS:=-L../lib/ -lsecondo  -lfl -ly  -lstdc++ $(ALGDEPFLAGS)  -lpthread $(DEFAULTLIB)
 
+ifeq ($(readline),true)
+  LDFLAGS+=-lreadline 
+endif
+
+
 
 ifneq ($(SECONDO_PLATFORM),win32)
   LDFLAGS+=-ldl
