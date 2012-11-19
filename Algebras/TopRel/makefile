@@ -49,20 +49,20 @@ else
 endif
 
 TreeParser.o: TreeParser.y.c
-	$(CC) -c -o TreeParser.o TreeParser.y.c
+	$(CC) -fPIC -c -o TreeParser.o TreeParser.y.c
 
 
 TreeParser.y.c: TreeParser.y
 	$(YACC) -d -o TreeParser.y.c TreeParser.y
 
 TreeLex.o: TreeLex.c
-	$(CC) -c -o TreeLex.o TreeLex.c
+	$(CC) -fPIC -c -o TreeLex.o TreeLex.c
 
 TreeLex.c: TreeLex.l TreeParser.y.c
 	$(LEX) -oTreeLex.c TreeLex.l
 
 Tree.o: Tree.c Tree.h makefile
-	$(CC) -c -o Tree.o Tree.c
+	$(CC) -fPIC -c -o Tree.o Tree.c
 
 
 

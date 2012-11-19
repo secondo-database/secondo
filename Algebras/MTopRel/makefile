@@ -49,7 +49,7 @@ NFATest: NFATest.o Scanner.o RegExParser.o  ../FText/Functions.o
 	$(CC) -o NFATest  NFATest.o  RegExParser.o Scanner.o ../FText/Functions.o  -lstdc++ -lfl
 
 NFATest.o: NFATest.cpp 
-	$(CC) -c -o  NFATest.o -I../FText  NFATest.cpp
+	$(CC) -fPIC -c -o  NFATest.o -I../FText  NFATest.cpp
 
 ../FText/Functions.o: ../FText/Functions.h ../FText/Functions.cpp
 	make -C ../FText
@@ -80,14 +80,14 @@ else
 endif
 
 RegExParser.o: RegExParser.y.c
-	$(CC) -x c++ -I../FText -c -o RegExParser.o RegExParser.y.c 
+	$(CC) -fPIC -x c++ -I../FText -c -o RegExParser.o RegExParser.y.c 
 
 
 RegExParser.y.c: RegExParser.y ../FText/Nfa.h
 	$(YACC) -d -o RegExParser.y.c RegExParser.y
 
 Scanner.o: Scanner.c
-	$(CC) -c -o Scanner.o Scanner.c
+	$(CC) -fPIC -c -o Scanner.o Scanner.c
 
 Scanner.c: Scanner.l RegExParser.y.c
 	$(LEX) -o Scanner.c Scanner.l

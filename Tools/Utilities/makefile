@@ -31,7 +31,7 @@ CCFLAGS = $(PICFLAG) $(DEFAULTCCFLAGS)
 all:  Crypt.o $(OBJECTS)
 
 Crypt.o: Crypt.cpp
-	$(CC) -c -I ../../include -Wall -o Crypt.o $<
+	$(CC) -fPIC -c -I ../../include -Wall -o Crypt.o $<
 
 ifneq ($(MAKECMDGOALS),clean)
 include $(DEP_FILES)
