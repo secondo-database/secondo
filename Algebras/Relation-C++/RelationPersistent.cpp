@@ -1460,6 +1460,7 @@ bool TupleFile::Open()
   {
     cerr << "TupleFile::Open(): Cannot open file '"
          << pathName << "'!\n" << endl;
+    cerr << "TupleCount: " << tupleCount << endl;
     return false;
   }
 
