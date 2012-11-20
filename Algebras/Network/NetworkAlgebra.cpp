@@ -4796,7 +4796,7 @@ void Network::GetPointOnRoute ( const GPoint* in_pGPoint, Point*& res )const
     pos = 0.0;
   else 
    if (pos > pLine->Length())
-	     pos = pLine->Length();
+     pos = pLine->Length();
   pLine->AtPosition ( pos, startSmaller, *res );
   pRoute->DeleteIfAllowed();
   delete pRoutesIter;
