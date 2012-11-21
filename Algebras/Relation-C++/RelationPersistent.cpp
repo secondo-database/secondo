@@ -502,8 +502,9 @@ void Tuple::WriteToBlock(char* buf,
                fid = tupleFile->GetFileId();
                isTemp = tupleFile->IsTemp();
             }
+            char mode = isTemp?1:0;
             Flob newFlob = Flob::createFrom(fid, tupleId,
-                lobOffset, isTemp, flobsz);
+                lobOffset, mode, flobsz);
 
             // change flob header
             *tmpFlob = newFlob;
@@ -525,8 +526,9 @@ void Tuple::WriteToBlock(char* buf,
              fid = tupleFile->GetFileId();
              isTemp = tupleFile->IsTemp();
           }
+          char mode = isTemp?1:0;
           Flob newFlob = Flob::createFrom( fid, tupleId,
-                         extOffset, isTemp, flobsz );
+                         extOffset, mode, flobsz );
 
           // change flob header
           *tmpFlob = newFlob;
@@ -2618,7 +2620,8 @@ void Relation::DeleteAndTruncate()
   tupleFile.Remove();
   tupleFile.Drop();
   if(relDesc.lobFileId){
-    Flob::dropFile(relDesc.lobFileId, relDesc.isTemp);
+    char mode = relDesc.isTemp?1:0;
+    Flob::dropFile(relDesc.lobFileId, mode);
     SmiRecordFile rf(false,0, relDesc.isTemp);
     rf.Open(relDesc.lobFileId);
     rf.Close();

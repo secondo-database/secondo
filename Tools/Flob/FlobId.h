@@ -30,21 +30,30 @@ class FlobId{
  friend class FlobCache;
  friend class NativeFlobCache;
  friend class NativeCacheEntry;
- public: 
-   FlobId(){} // makes nothing to support cast function
+ public:
+
+  
+
+ 
+   FlobId(){} // does  nothing to support cast function
+
+
 
    ~FlobId(){}
+
+
+
 
    FlobId(const FlobId& src): fileId(src.fileId),
                               recordId(src.recordId), 
                               offset(src.offset),
-                              isTemp(src.isTemp){}
+                              mode(src.mode){}
 
    FlobId& operator=(const FlobId& src){
      fileId = src.fileId;
      recordId = src.recordId;
      offset = src.offset;
-     isTemp = src.isTemp;
+     mode = src.mode;
      return *this;
    }
 
@@ -52,7 +61,7 @@ class FlobId{
      os << "id(file = "<< fileId << ", "
         << "rec = " << recordId << ", "
         << "offset = " << offset << ", "
-        << "isTemp = " << (isTemp?"true":"false") << ")";
+        << "mode = " << (int) mode;
      return os;
    }    
 
@@ -60,21 +69,21 @@ class FlobId{
      return fileId == fid.fileId &&
             recordId == fid.recordId &&
             offset   == fid.offset &&
-            isTemp == fid.isTemp;
+            mode == fid.mode;
    }
    
    inline bool operator!=(const FlobId& fid) const{
      return fileId != fid.fileId ||
             recordId != fid.recordId ||
             offset   != fid.offset ||
-            isTemp != fid.isTemp;
+            mode != fid.mode;
    }
 
    
  
    inline bool operator>(const FlobId& fid) const{
-      if(isTemp && !fid.isTemp) return false;
-      if(!isTemp && fid.isTemp) return true;
+      if( mode > fid.mode) return true;
+      if( mode < fid.mode) return false;
       if( fileId > fid.fileId) return true;
       if( fileId < fid.fileId) return false;
       if( recordId > fid.recordId) return true;
@@ -83,8 +92,8 @@ class FlobId{
       return false;
    } 
    inline bool operator<(const FlobId& fid) const{
-      if(isTemp && !fid.isTemp) return true;
-      if(!isTemp && fid.isTemp) return false;
+      if( mode < fid.mode) return true;
+      if( mode > fid.mode) return false;
       if( fileId < fid.fileId) return true;
       if( fileId > fid.fileId) return false;
       if( recordId < fid.recordId) return true;
@@ -94,7 +103,7 @@ class FlobId{
    } 
 
    inline size_t hashValue() const{
-      size_t t = isTemp?1:0;
+      size_t t = mode;
       return (size_t)(fileId + recordId + offset + t); 
    }
 
@@ -119,14 +128,25 @@ class FlobId{
    SmiFileId   fileId;  
    SmiRecordId recordId;
    SmiSize     offset;
-   bool        isTemp;
+   char        mode;  
+
+/*
+The mode has following meaning
+
+0 : Flob data in a normal berkeley db file
+1 : Flob data in a temporarly berkeley db file
+2 : Flob data in a local file (outside berkeley db)
+3 : Flob data in a remote file  
+
+*/ 
 
 
-   FlobId(const SmiFileId fid, 
-          const SmiRecordId rid,
-          const SmiSize os,
-          const bool tmp) : fileId(fid), recordId(rid), 
-                            offset(os),isTemp(tmp){}
+  /*  Constructor */
+
+
+   FlobId(const SmiFileId _fid, const SmiRecordId _rid, 
+          const SmiSize _offset, const char _mode):
+        fileId(_fid), recordId(_rid), offset(_offset), mode(_mode){}
 
 
 

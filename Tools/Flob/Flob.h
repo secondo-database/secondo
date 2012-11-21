@@ -137,9 +137,9 @@ Constructs a Flob from a given position.
     inline Flob(const SmiFileId& fileId,
                 const SmiRecordId& recordId,
                 const SmiSize& offset,
-                const bool isTemp) : id(), size( 0 ), dataPointer(0){
+                const char mode) : id(), size( 0 ), dataPointer(0){
          FlobManager::getInstance().create(fileId, recordId,
-                                           offset, isTemp,
+                                           offset, mode,
                                            size, *this);
     };
 
@@ -348,10 +348,10 @@ tuple file. In this case, we speak of a FAKED LOB (or FLOB).
     inline bool saveToFile(const SmiFileId& fid,
                           const SmiRecordId& rid,
                           const SmiSize& offset,
-                          const bool isTemp,
+                          const char mode,
                           Flob& result) const{
       return FlobManager::getInstance().saveTo(*this, fid, rid, offset,
-                                               isTemp, result);
+                                               mode, result);
     };
 
 /*
@@ -384,9 +384,9 @@ in parameter ~result~. The data is stored in a new record with offset zero.
 
 */
     inline bool saveToFile(const SmiFileId& fid,
-                           const bool isTemp,
+                           const char mode ,
                           Flob& result) const{
-      return FlobManager::getInstance().saveTo(*this, fid, isTemp, result);
+      return FlobManager::getInstance().saveTo(*this, fid, mode, result);
     };
 
 
@@ -435,10 +435,10 @@ small Flob data within the tuple itself.
     inline static Flob createFrom( const SmiFileId& fid,
                                    const SmiRecordId& rid,
                                    const SmiSize& offset,
-                                   const bool isTemp,
+                                   const char mode,
                                    const SmiSize& size    ) {
       return  FlobManager::getInstance().createFrom(fid, rid, offset,
-                                                    isTemp,size);
+                                                    mode,size);
     };
 
 
@@ -573,8 +573,8 @@ is not longer possible.
 Gives up the FlobManager's control over the specific file.
 
 */
-  inline static bool dropFile(const SmiFileId& id, const bool isTemp){
-    return FlobManager::getInstance().dropFile(id, isTemp);
+  inline static bool dropFile(const SmiFileId& id, const char mode){
+    return FlobManager::getInstance().dropFile(id, mode);
   }
 
   inline static bool dropFiles(){

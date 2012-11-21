@@ -124,9 +124,11 @@ and the nativFlobFile is deleted.
      }
 
 
-SmiRecordFile* FlobManager::getFile(const SmiFileId& fileId, bool isTemp) {
+SmiRecordFile* FlobManager::getFile(const SmiFileId& fileId, const char mode) {
  __TRACE_ENTER__
 
+   assert( (mode==0) || (mode == 1));
+   bool isTemp = mode==1;
    if(fileId==nativeFlobs && isTemp){
      return nativeFlobFile;
    }
@@ -157,7 +159,12 @@ the flobmanger has to give up the control over that file.
 This can be realized by calling the ~dropFile~ function.
 
 */
-  bool FlobManager::dropFile(const SmiFileId& id, const bool isTemp){
+  bool FlobManager::dropFile(const SmiFileId& id, const char mode){
+     if( (mode==2) || (mode==3)){
+        return false; // never drop non berkeley db files
+     }
+
+     bool isTemp = mode==1; 
      __TRACE_ENTER__
      if(isTemp && id==nativeFlobs){ //never give up the control of native flobs
         return false; 
@@ -259,16 +266,19 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize,
     }
 
 
+
     if(newSize==flob.size){
        return true;
     }
 
     assert(!flob.id.isDestroyed());
     FlobId id = flob.id;
+    assert( (id.mode==0) || (id. mode==1));  // don't allow resizing of 
+                                             // non berkeley db flobs
     SmiFileId   fileId =  id.fileId;
     SmiRecordId recordId = id.recordId;
     SmiSize     offset = id.offset;
-    bool        isTemp = id.isTemp;
+    bool        isTemp = id.mode == 1;
 
     if(!isTemp || (fileId != nativeFlobs)){
       // the allocated memory for the slot may be too small now
@@ -282,7 +292,7 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize,
 
     // resize the record containing the flob
     SmiRecord record;
-    SmiRecordFile* file = getFile(fileId,isTemp);
+    SmiRecordFile* file = getFile(fileId,id.mode);
 
 
     bool ok = file->SelectRecord(recordId, record, SmiFile::Update);
@@ -336,16 +346,21 @@ bool FlobManager::getData(
  }
 
 
- assert(!flob.id.isDestroyed());
+  assert(!flob.id.isDestroyed());
 
   FlobId id = flob.id;
+  // access data from non bekeley db flobs not implemented yet
+  assert((id.mode==0) || (id.mode==1));
+
+
+
   SmiFileId   fileId =  id.fileId;
 
 
-
+  bool isTemp = id.mode==1;
 
   if(!ignoreCache){
-    if(fileId!=nativeFlobs || !id.isTemp){
+    if(fileId!=nativeFlobs || !isTemp){
        return persistentFlobCache->getData(flob,dest,offset,size);
     } else {
        return nativeFlobCache->getData(flob, dest, offset, size);
@@ -356,7 +371,7 @@ bool FlobManager::getData(
   SmiRecordId recordId = id.recordId;
   SmiSize     floboffset = id.offset;
   SmiRecord record;
-  SmiRecordFile* file = getFile(fileId,id.isTemp);
+  SmiRecordFile* file = getFile(fileId,id.mode);
 
   SmiSize recOffset = floboffset + offset;
 
@@ -403,10 +418,17 @@ bool FlobManager::destroy(Flob& victim) {
       return true; 
     }
 
+    FlobId id = victim.id;
+    if( (id.mode==2) || (id.mode == 3)){
+        // do not destroy flob data within non berkeley db files.
+        victim.id.destroy();
+        return true;
+    }
+
 
     assert(!victim.id.isDestroyed());
-
-   if(victim.id.fileId == nativeFlobs && victim.id.isTemp){
+   bool isTemp = id.mode == 1;
+   if(victim.id.fileId == nativeFlobs && isTemp){
       nativeFlobCache->erase(victim); // delete from cache
       DestroyedFlobs->push(victim);
      // if(DestroyedFlobs->getSize() > 64000){
@@ -417,7 +439,6 @@ bool FlobManager::destroy(Flob& victim) {
    }
 
 
-   FlobId id = victim.id;
    SmiSize size = victim.getSize();
    SmiRecordId recordId = id.recordId;
    SmiSize offset = id.offset;
@@ -426,7 +447,7 @@ bool FlobManager::destroy(Flob& victim) {
    // or wait until cache is removed automatically = current state
 
 
-   SmiRecordFile* file = getFile(id.fileId,id.isTemp);
+   SmiRecordFile* file = getFile(id.fileId,id.mode);
    SmiRecord record;
    bool ok = file->SelectRecord(recordId, record, SmiFile::Update);  
    if(!ok){ // record not found in file
@@ -438,7 +459,7 @@ bool FlobManager::destroy(Flob& victim) {
      return false; 
    }
    
-   if(id.fileId == nativeFlobs && id.isTemp){
+   if(id.fileId == nativeFlobs && isTemp){
       // each native flob is exlusive owner of an record
       nativeFlobCache->erase(victim);
       file->DeleteRecord(recordId);
@@ -479,7 +500,7 @@ bool FlobManager::destroy(Flob& victim) {
 
 
 bool FlobManager::destroyIfNonPersistent(Flob& victim) {
-   if(victim.id.fileId == nativeFlobs && victim.id.isTemp){
+   if(victim.id.fileId == nativeFlobs && victim.id.mode == 1){
       return destroy(victim);
    }
    return true;
@@ -501,13 +522,14 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
        const SmiFileId fileId,  // target file id
        const SmiRecordId recordId, // target record id
        const SmiSize offset,
-       const bool isTemp,
+       const char mode,
        Flob& result)  {   // offset within the record  
 
  __TRACE_ENTER__
    assert(fileId != nativeFlobs);
+   assert((mode==0) || (mode==1)); // no non-berkeley files 
 
-   SmiRecordFile* file = getFile(fileId, isTemp);
+   SmiRecordFile* file = getFile(fileId, mode);
    return saveTo(src, file, recordId, offset, result);
 
 }
@@ -544,8 +566,10 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
    bool ok = file->Write(recordId, buffer, src.size, offset, written);
    assert(ok);
    delete[] buffer;
-   
-   FlobId id(file->GetFileId(), recordId, offset, file->IsTemp());
+  
+
+   char mode = file->IsTemp()?1:0; 
+   FlobId id(file->GetFileId(), recordId, offset, mode);
    result.id = id;
    result.size = src.size;  
    if(result.dataPointer){
@@ -572,10 +596,11 @@ Must be changed to support real large Flobs
  bool FlobManager::saveTo(
              const Flob& src,             // flob to save
              const SmiFileId fileId,      // target file
-             const bool isTemp,           // environment
+             const char mode,           // environment
              Flob& result){         // result
-    assert(fileId != nativeFlobs); 
-    SmiRecordFile* file = getFile(fileId,isTemp);
+    assert(fileId != nativeFlobs);
+    assert( (mode==0) || (mode==1)); 
+    SmiRecordFile* file = getFile(fileId,mode);
     return saveTo(src, file, result);
 }
 
@@ -607,7 +632,9 @@ Must be changed to support real large Flobs
     rec.Write(buffer, src.size,0);
     delete [] buffer;
     rec.Finish();
-    FlobId fid(file->GetFileId(), recId,0,file->IsTemp());
+    char mode = file->IsTemp()?1:0;
+
+    FlobId fid(file->GetFileId(), recId,0,mode);
     result.id = fid;
     result.size = src.size;
     if(result.dataPointer){
@@ -645,8 +672,13 @@ bool FlobManager::putData(Flob& dest,         // destination flob
   assert(targetoffset + length <= dest.size);
 
 
+  // do not allow putting data into non berkeley db flobs
+  assert((id.mode==0) || (id.mode==1));
+
+  bool isTemp = id.mode == 1;
+
   if(!ignoreCache){
-    if(fileId!=nativeFlobs || !id.isTemp){
+    if(fileId!=nativeFlobs || !isTemp){
       cerr << "Warning maipulate a perisistent Flob" << endl;
       return persistentFlobCache->putData(dest, buffer, targetoffset, length);
     } else {
@@ -655,7 +687,7 @@ bool FlobManager::putData(Flob& dest,         // destination flob
   }
 
   // put data to disk
-  SmiRecordFile* file = getFile(fileId,id.isTemp);
+  SmiRecordFile* file = getFile(fileId,id.mode);
   SmiSize written;
   bool ok = file->Write(recordId, buffer, length, 
                         offset+targetoffset, written); 
@@ -676,8 +708,10 @@ bool FlobManager::putData(const FlobId& id,         // destination flob
   SmiRecordId recordId = id.recordId;
   SmiSize     offset = id.offset;
 
-  
-  SmiRecordFile* file = getFile(fileId,id.isTemp);
+  // avoid putting data into non-berkeley db flobs
+  assert((id.mode==0) || (id.mode) ==1);
+   
+  SmiRecordFile* file = getFile(fileId,id.mode);
   SmiSize written;
   bool ok = file->Write(recordId, buffer, length , 
                         offset + targetoffset , written);
@@ -717,7 +751,7 @@ Warning: this function does not change the dataPointer.
       return false;
    }
 
-   FlobId fid(nativeFlobs, recId, 0,true);
+   FlobId fid(nativeFlobs, recId, 0,1);
    result.id = fid;
    result.size = size;
 
@@ -742,19 +776,22 @@ must exists.
  bool FlobManager::create(const SmiFileId& fileId,        // target file
              const SmiRecordId& recordId,    // target record id
              const SmiSize& offset,      // offset within the record
-             const bool isTemp,
+             const char mode,
              const SmiSize& size,
              Flob& result){       // initial size of the Flob
 
  __TRACE_ENTER__
+   assert((mode==0) || (mode==1));
+
+   bool isTemp = mode==1;
    assert(fileId != nativeFlobs || !isTemp);
-   SmiRecordFile* file = getFile(fileId, isTemp);
+   SmiRecordFile* file = getFile(fileId, mode);
    SmiRecord record;
    if(!file->SelectRecord(recordId,record)){
      __TRACE_LEAVE__
      return false;
    } 
-   FlobId fid(fileId, recordId, offset, isTemp);
+   FlobId fid(fileId, recordId, offset, mode);
    result.id = fid;
    result.size = size;
    if(result.dataPointer){
@@ -797,11 +834,11 @@ return a Flob with persistent storage allocated and defined elsewhere
       Flob FlobManager::createFrom( const SmiFileId& fid,
                                     const SmiRecordId& rid,
                                     const SmiSize& offset,
-                                    const bool isTemp, 
+                                    const char mode, 
                                     const SmiSize& size) {
         //assert(fid!=nativeFlobs);
         Flob flob;
-        FlobId flob_id(fid, rid, offset,isTemp);
+        FlobId flob_id(fid, rid, offset,mode);
         flob.id = flob_id;
         flob.size = size;          
         flob.dataPointer = 0;

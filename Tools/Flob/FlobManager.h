@@ -95,7 +95,7 @@ argument's content stored within the given file.
                   const SmiFileId fileId,  // target file id
                   const SmiRecordId recordId, // target record id
                   const SmiSize offset,       // offset within the record
-                  const bool isTemp,          // environment
+                  const char mode,          // environment
                   Flob& result);    // offset within the record
 
 
@@ -116,7 +116,7 @@ data is created which is the result of this function.
 
       bool saveTo(const Flob& src,             // flob to save
                   const SmiFileId fileId,      // target file id
-                  const bool isTemp,           // target environment
+                  const char mode,           // target environment
                   Flob& result);  // target file id
 
 
@@ -171,7 +171,7 @@ Creates a new, empty Flob with given file and position.
       bool create(const SmiFileId& fileId,        // target file
                   const SmiRecordId& recordId,    // target record id
                   const SmiSize& offset,      // offset within the record
-                  const bool isTemp,              // environment
+                  const char mode,              // environment
                   const SmiSize& size,
                   Flob& result);       // initial size of the Flob
 
@@ -185,7 +185,7 @@ Returns a Flob with persistent storage allocated and defined elsewhere.
       static Flob createFrom( const SmiFileId& fid,
                               const SmiRecordId& rid,
                               const SmiSize& offset,
-                              const bool isTemp,
+                              const char mode,
                               const SmiSize& size);
 
 
@@ -229,7 +229,7 @@ the FlobManger has to give up the control over that file.
 This can be realized by calling the ~dropFile~ function.
 
 */
-     bool dropFile(const SmiFileId& id, const bool isTemp);
+     bool dropFile(const SmiFileId& id, const char mode);
 
 /*
 ~dropFiles~
@@ -326,7 +326,7 @@ This map is used to manage all file ids and files opened by the FlobManager.
 Return the file belonging to a given fileid;
 
 */
-   SmiRecordFile* getFile(const SmiFileId& fileId, const bool isTemp);
+   SmiRecordFile* getFile(const SmiFileId& fileId, const char mode);
 
 /*
 ~createFromBlock~
