@@ -169,7 +169,7 @@ public class OptTest {
                                 // reset optcommand
                                 optcommand = "";
                             } else {
-                                optcommand += currentline;
+                                optcommand += currentline + " ";
                                 //System.out.println("INFO : changing state to APPENDTOCOMMAND");
                                 setupstate = APPENDTOCOMMAND;
                             }
@@ -186,7 +186,7 @@ public class OptTest {
                                 optcommand = "";
                                 break;
                             } else {
-                                optcommand += currentline;
+                                optcommand += currentline + " ";
                             }
                         }
                     }
@@ -297,7 +297,7 @@ public class OptTest {
                             //System.out.println("INFO : changing teststate to NEXTCOMMAND");
                             testcasestate = NEXTCOMMAND;
                         } else {
-                            optcommand += currentline;
+                            optcommand += currentline + " ";
                             //System.out.println("INFO : changing teststate to APPENDTOCOMMAND");
                             testcasestate = APPENDTOCOMMAND;
                         }
@@ -352,7 +352,7 @@ public class OptTest {
                         }
                         optcommand = "";
                     } else {
-                        optcommand += currentline;
+                        optcommand += currentline + " ";
                     }
                     break;
                 }
@@ -588,7 +588,7 @@ public class OptTest {
                                 return false;
                             }
                         } else {
-                            optcommand += currentline;
+                            optcommand += currentline + " ";
                         }
                     }
                     break;
@@ -708,7 +708,7 @@ public class OptTest {
                             return false;
                         }
                     } else {
-                        optcommand += currentline;
+                        optcommand += currentline + " ";
                     }
                     break;
                 }
