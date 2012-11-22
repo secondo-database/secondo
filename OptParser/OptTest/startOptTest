@@ -1,8 +1,14 @@
 
 
+CLASSPATH=.
+if [ "$JPL_JAR" != "" ]; then
+  CLASSPATH=$CLASSPATH:$JPL_JAR;
+else
+  CLASSPATH=../../Jpl/lib/classes:$CLASSPATH
+fi
 
 
-java -Djava.library.path=.:$PL_DLL_DIR OptTest $*
+java -Djava.library.path=.:$PL_DLL_DIR -cp $CLASSPATH OptTest $*
 
 
 
