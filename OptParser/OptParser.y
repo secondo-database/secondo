@@ -40,8 +40,8 @@
 #include "Types.h"
 
 
-#define YYDEBUG 1
-#define YYERROR_VERBOSE 1
+#define YYDEBUG 0
+#define YYERROR_VERBOSE 0
 
 
 int optlex(); 
@@ -77,7 +77,8 @@ For further checks, we have to extend this definition.
 
 */
 
-%verbose
+/*%verbose */
+
 %locations
 %union 
 {
@@ -112,7 +113,7 @@ start : sqlclause
               {
                    opterror(errormessages.c_str());
               }
-              $1->dumpAllInfo();
+              //$1->dumpAllInfo();
          }
 ;
 aggregation : aggregationoperator TOKEN_OPEN_BRACKET groupbyattribute TOKEN_CLOSE_BRACKET asclause
@@ -668,7 +669,7 @@ predicatelist : predicate
 query : TOKEN_SELECT distinct selclause TOKEN_FROM relclause whereclause groupbyclause orderbyclause firstclause
         { 
           // merge all OptParseStructs
-          $7->dumpAllInfo();
+          //$7->dumpAllInfo();
           $7->mergeStruct($8);          
           $6->mergeStruct($7);
           $3->mergeStruct($6);                    
@@ -676,7 +677,7 @@ query : TOKEN_SELECT distinct selclause TOKEN_FROM relclause whereclause groupby
           $5->checkAttributes();
           $5->checkOperators();
           $5->checkAggregation();
-          $5->dumpAllInfo();
+          //$5->dumpAllInfo();
           $$ = $5;
         }
 ;
@@ -761,7 +762,7 @@ result : attribute
          {
            $$ = $1;
            $$->addUsedAlias($3);           
-           $1->dumpAllInfo();
+           //$1->dumpAllInfo();
          }
        | aggregation
          { 
@@ -786,19 +787,19 @@ resultlist : result
 selclause : TOKEN_STAR 
             {
                // debug
-               cout << "selclause: TOKEN_STAR " << endl;
+               //cout << "selclause: TOKEN_STAR " << endl;
                $$ = new OptParseStruct();
             }
             | result
               {
                // debug
-               cout << "selclause: result" << endl;
+               //cout << "selclause: result" << endl;
                $$ = $1;
               }             
             | TOKEN_SQOPEN_BRACKET resultlist TOKEN_SQCLOSE_BRACKET
              {
                // debug
-               cout << "selclause: TOKEN_SQOPEN_BRACKET resultlist TOKEN_SQCLOSE_BRACKET" << endl;
+               //cout << "selclause: TOKEN_SQOPEN_BRACKET resultlist TOKEN_SQCLOSE_BRACKET" << endl;
                $$ = $2;
              }
             | TOKEN_SQOPEN_BRACKET resultlist
@@ -909,12 +910,12 @@ value : TOKEN_INT
 whereclause : TOKEN_WHERE predicate
              { 
                // debug
-               cout << "whereclause : TOKEN_WHERE predicate" << endl;
+               //cout << "whereclause : TOKEN_WHERE predicate" << endl;
                $$ = $2; 
              }
              | TOKEN_WHERE TOKEN_SQOPEN_BRACKET predicatelist TOKEN_SQCLOSE_BRACKET
                { 
-                    cout << "whereclause : TOKEN_WHERE TOKEN_SQOPEN_BRACKET predicatelist TOKEN_SQCLOSE_BRACKET" << endl;               
+                    //cout << "whereclause : TOKEN_WHERE TOKEN_SQOPEN_BRACKET predicatelist TOKEN_SQCLOSE_BRACKET" << endl;               
                     $$ = $3;
                }
              | TOKEN_WHERE TOKEN_SQOPEN_BRACKET predicatelist
@@ -979,7 +980,7 @@ success is being set false within the ~opterror~ method to indicate if an error 
 */
 
 bool checkOptimizerQuery(const char* argument, char*& errmsg) {
-	optdebug = 1;
+	// optdebug = 1;
      try 
      {
           string dbname;
@@ -1006,7 +1007,7 @@ bool checkOptimizerQuery(const char* argument, char*& errmsg) {
 				     free( err_message);
 				     err_message = 0;
 			     }
-			cout << "Query was accepted" << endl;
+			//cout << "Query was accepted" << endl;
 			return true;
 		}
 		if (err_message == 0) 
@@ -1015,7 +1016,7 @@ bool checkOptimizerQuery(const char* argument, char*& errmsg) {
 		}
 		errmsg = err_message;
 		err_message = 0;
-		cout << "Query was not accepted" << endl;
+		//cout << "Query was not accepted" << endl;
 		return false;	} 
 	catch (...) 
 	{

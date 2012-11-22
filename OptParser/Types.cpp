@@ -30,7 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 1 Overview
 
-This is the source code of the data structure passed up in the bison parser tree.
+This is the source code of the data structure passed up in the 
+bison parser tree.
 
 2 Includes and defines
 
@@ -52,7 +53,8 @@ OptParseStruct::~OptParseStruct()
 /*
 ~mergeOptParseStruct~
 
-The method ~mergeStruct~ joins two OptParseStruct classes so the data can be passed up in the Parsertree.
+The method ~mergeStruct~ joins two OptParseStruct classes so the data 
+can be passed up in the Parsertree.
 
 */
 
@@ -142,8 +144,8 @@ void OptParseStruct::addRelation(std::string relationname,
   }
   else
   {
-    cout << "*** Object " << string(relationname)
-        << " is known in the database \n" << endl;
+    //cout << "*** Object " << string(relationname)
+    //    << " is known in the database \n" << endl;
   }
 
   if (!optutils::isRelDescription(type, "rel"))
@@ -154,8 +156,8 @@ void OptParseStruct::addRelation(std::string relationname,
   }
   else
   {
-    cout << "*** Object " << string(relationname) << " is is a relation \n"
-        << endl;
+    //cout << "*** Object " << string(relationname) << " is is a relation \n"
+    //    << endl;
   }
   myRelations.insert(std::pair<std::string, std::string>(relationname,
       relationalias));
@@ -169,7 +171,8 @@ void OptParseStruct::addRelation(std::string relationname)
 /*
 ~addGroupClauseAttribute~
 
-Adds the name and the alias of an groupattribute in the groupbyclause to the OptParseStruct.
+Adds the name and the alias of an groupattribute in the 
+groupbyclause to the OptParseStruct.
 
 */
 void OptParseStruct::addGroupClauseAttribute(std::string attributename, 
@@ -230,8 +233,8 @@ void OptParseStruct::addAttribute(std::string attributename,
     string type = optutils::getOperatorType(attributename, parameters);
     myOperators.push(type.substr(1, type.length() - 2));
 
-    cout << "**** OptParseStruct::addAttribute pushed to operatorstack : "
-        << type << endl;
+    //cout << "**** OptParseStruct::addAttribute pushed to operatorstack : "
+    //    << type << endl;
   }
   else
   {
@@ -246,9 +249,9 @@ void OptParseStruct::addAttribute(std::string attributename,
     {
       opstack = "attribute:" + attributename;
     }
-    std::cout
-        << "**** OptParseStruct::addAttribute pushed to operatorstack : "
-        << opstack << endl;
+    //std::cout
+    //    << "**** OptParseStruct::addAttribute pushed to operatorstack : "
+    //    << opstack << endl;
 
     myOperators.push(opstack);
   }
@@ -261,21 +264,22 @@ void OptParseStruct::addAttribute(std::string attributename)
 /*
 ~addUsedAlias~
 
-This methods adds aliases to the usedAlias set and generates an error if the alias was already used.
+This methods adds aliases to the usedAlias set and generates an error 
+if the alias was already used.
 
 */
 
 void OptParseStruct::addUsedAlias(string aliasname)
 {
   //debug
-  for (std::set<std::string>::iterator it = usedAliases.begin(); it
-      != usedAliases.end(); it++)
-  {
-    std::cout << "------ usedAliases : " << *it << std::endl;
-  }
+  //for (std::set<std::string>::iterator it = usedAliases.begin(); it
+  //    != usedAliases.end(); it++)
+  //{
+    //std::cout << "------ usedAliases : " << *it << std::endl;
+  //}
 
-  std::cout << "*** OptParseStruct::addUsedAlias : aliasname " << aliasname
-      << endl;
+  //std::cout << "*** OptParseStruct::addUsedAlias : aliasname " << aliasname
+  //    << endl;
   //debug end
 
   if (usedAliases.find(aliasname) != usedAliases.end())
@@ -293,7 +297,8 @@ void OptParseStruct::addUsedAlias(string aliasname)
 /*
 ~addToOpStack~
 
-Takes a string and checks if it is an operator an adds it to myOpStack, if op does exist.
+Takes a string and checks if it is an operator an adds it to myOpStack, 
+if op does exist.
 
 */
 
@@ -301,8 +306,8 @@ void OptParseStruct::addToOpStack(string opStackEntry)
 {
   if (optutils::strequal(opStackEntry.substr(0, 8), "attribute:", true))
   {
-    std::cout << "adding attribute " << opStackEntry
-        << " to operatorstack " << std::endl;
+    //std::cout << "adding attribute " << opStackEntry
+    //    << " to operatorstack " << std::endl;
     myOperators.push(opStackEntry);
   }
   else
@@ -311,13 +316,13 @@ void OptParseStruct::addToOpStack(string opStackEntry)
     {
       string op = "operator:" + opStackEntry;
       myOperators.push(op);
-      std::cout << "Found operator " + opStackEntry << std::endl;
+      //std::cout << "Found operator " + opStackEntry << std::endl;
     }
     else
     // else it must be a type
     {
-      std::cout << "adding type " << opStackEntry << " to operatorstack "
-          << std::endl;
+      //std::cout << "adding type " << opStackEntry << " to operatorstack "
+      //    << std::endl;
       myOperators.push(opStackEntry);
     }
   }
@@ -340,11 +345,11 @@ void OptParseStruct::checkAttributes()
     set<string> attributeNameList;
     optutils::getAttributeNames((*it).first, attributeNameList);
     //debug
-    for (set<std::string>::iterator itCheck = attributeNameList.begin(); itCheck
-        != attributeNameList.end(); itCheck++)
-    {
-      std::cout << (*itCheck) << std::endl;
-    }
+  //for (set<std::string>::iterator itCheck = attributeNameList.begin(); itCheck
+    //    != attributeNameList.end(); itCheck++)
+   // {
+    //  std::cout << (*itCheck) << std::endl;
+   // }
     // debug end
     string relationname = (*it).first;
     dbAttributeNames.insert(std::pair<std::string, std::set<std::string> >(
@@ -356,58 +361,58 @@ void OptParseStruct::checkAttributes()
       myAttributes.begin(); attributeIT != myAttributes.end(); attributeIT++)
   {
     string attributename = (*attributeIT).first;
-    std::cout << "*** checking OptParseStruct::checkAttributes() "
-        << attributename << std::endl;
+    //std::cout << "*** checking OptParseStruct::checkAttributes() "
+    //    << attributename << std::endl;
 
     //  check if attributename is an objectname
     if (dbObjectNames.find(attributename) != dbObjectNames.end())
     {
       string errormessage = attributename
           + " is an objectname. ";
-      std::cout << errormessage << std::endl;
+      //std::cout << errormessage << std::endl;
       addErrorMessage(errormessage);
     }
 
     // check if alias is an objectname
     string aliasname = (*attributeIT).second;
-    std::cout << "*** checking OptParseStruct::checkAttributes() "
-        << aliasname << std::endl;
+    //std::cout << "*** checking OptParseStruct::checkAttributes() "
+        //<< aliasname << std::endl;
     if (aliasname.size() > 0 and dbObjectNames.find(aliasname)
         != dbObjectNames.end())
     {
       string errormessage = "Alias " + aliasname
           + " is an objectname which cannot be used. ";
-      std::cout << errormessage << std::endl;
+      //std::cout << errormessage << std::endl;
       addErrorMessage(errormessage);
     }
 
     // check if attribute has an alias
     if (!aliasname.size() > 0)
     {
-      std::cout << "*** checkAttributes " << std::endl;
+      //std::cout << "*** checkAttributes " << std::endl;
       bool foundInRelWithoutAlias = false;
       // check in all relations without an alias if 
       // there is an attribute with this name
       for (map<string, set<std::string> >::iterator it =
           dbAttributeNames.begin(); it != dbAttributeNames.end(); it++)
       {
-        std::cout << "*** checkAttributes : Relation  " << (*it).first
-            << "-- Attribute : " << attributename
-            << " in relation " << std::endl;
+        //std::cout << "*** checkAttributes : Relation  " << (*it).first
+        //    << "-- Attribute : " << attributename
+        //    << " in relation " << std::endl;
         //debug
-        std::cout << "*** Attributes in " << (*it).first << " : "
-            << std::endl;
-        for (set<std::string>::iterator itCheck = (*it).second.begin(); itCheck
-            != (*it).second.end(); itCheck++)
-        {
-          std::cout << (*itCheck) << std::endl;
-        }
+        //std::cout << "*** Attributes in " << (*it).first << " : "
+        //    << std::endl;
+      //for (set<std::string>::iterator itCheck = (*it).second.begin(); itCheck
+        //    != (*it).second.end(); itCheck++)
+        //{
+        //  std::cout << (*itCheck) << std::endl;
+        //}
         // debug end
 
         if ((*it).second.find(attributename) != (*it).second.end())
         {
-          std::cout << "*** checkAttributes : found attribute "
-              << attributename << " in relation " << std::endl;
+          //std::cout << "*** checkAttributes : found attribute "
+          //    << attributename << " in relation " << std::endl;
 
           // found relation with attribute, but now there is 
           // need to check if it has got an alias
@@ -418,13 +423,13 @@ void OptParseStruct::checkAttributes()
           for (std::multimap<std::string, std::string>::iterator
               itRel = rangepair.first; itRel != rangepair.second; itRel++)
           {
-            cout << " Alias : " << (*itRel).second << std::endl;
+            //cout << " Alias : " << (*itRel).second << std::endl;
             if (!(*itRel).second.size() > 0)
             {
 
-              std::cout << "found " << attributename
-                  << " in Relation " << (*it).first
-                  << std::endl;
+              //std::cout << "found " << attributename
+              //    << " in Relation " << (*it).first
+              //    << std::endl;
               foundInRelWithoutAlias = true;
             }
           }
@@ -501,7 +506,8 @@ void OptParseStruct::checkAttributes()
 /*
 ~appendToOperators~
 
-This method takes a stack<string> and appends it to the bottom of the local Operators stack.
+This method takes a stack<string> and appends it to the bottom of the 
+local Operators stack.
 
 */
 void OptParseStruct::appendToOpStack(stack<string> append)
@@ -594,7 +600,7 @@ string OptParseStruct::checkOpStack(stack<string> operators)
     {
       operatorname = element.substr(9);
       type = optutils::getOperatorType(operatorname, parameters);
-      cout << "Type by getOperatorType = " << type << endl;
+      //cout << "Type by getOperatorType = " << type << endl;
       if (type.find("undefined") != std::string::npos)
       {
         string errormessage = " Operator " + operatorname
@@ -638,7 +644,8 @@ string OptParseStruct::checkOpStack(stack<string> operators)
 /*
 ~getAttributeType~
 
-This method tries to determine the type of the attribute by checking the given relations.
+This method tries to determine the type of the attribute by 
+checking the given relations.
 
 */
 
@@ -651,8 +658,8 @@ string OptParseStruct::getAttributeType(string attribute)
   {
     alias = attribute.substr(0, int(colonpos) - 1);
     attributename = attribute.substr(int(colonpos));
-    std::cout << "alias : " << alias << std::endl;
-    std::cout << "attributename : " << attributename << std::endl;
+    //std::cout << "alias : " << alias << std::endl;
+    //std::cout << "attributename : " << attributename << std::endl;
     // search for alias in myRelations
     string relation;
     for (std::multimap<std::string, std::string>::iterator opIT =
@@ -688,7 +695,7 @@ string OptParseStruct::getAttributeType(string attribute)
     for (set<std::string>::iterator itCheck = attributeNameList.begin(); itCheck
           != attributeNameList.end(); itCheck++)
       {
-        std::cout << (*itCheck) << std::endl;
+        //std::cout << (*itCheck) << std::endl;
         if (optutils::strequal((*itCheck), attributename, false)
             and (!(*it).second.size() > 0))
         {
@@ -712,8 +719,10 @@ string OptParseStruct::getAttributeType(string attribute)
 /*
 ~checkOperators~
 
-This method is being called to check the myOperators stack if it does return one valid type. Calls the recursive ~checkOpStack~
-method to check for nested Operators. Is being called in the Optparser.y when given relations are available.
+This method is being called to check the myOperators stack if it does return 
+one valid type. Calls the recursive ~checkOpStack~
+method to check for nested Operators. Is being called in the Optparser.y when 
+given relations are available.
 
 */
 void OptParseStruct::checkOperators()
@@ -778,7 +787,7 @@ void OptParseStruct::checkOperators()
   }
   else
   {
-    std::cout << "No Operators to check. " << std::endl;
+    //std::cout << "No Operators to check. " << std::endl;
   }
 }
 
@@ -807,8 +816,8 @@ aliases for aggregation.");
   // if there is a groupby clause, at least one aggregationoperator
   if(groupbyclause && !aggregationoperator)
   {
-     addErrorMessage("If a groupby clause is used, you must use at least\\
- one aggregationoperator.");
+     addErrorMessage("If a groupby clause is used, you must use at least"
+                     " one aggregationoperator.");
   }
   
 }
