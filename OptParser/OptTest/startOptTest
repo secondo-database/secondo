@@ -1,0 +1,9 @@
+
+
+
+
+java -Djava.library.path=.:$PL_DLL_DIR OptTest $*
+
+
+
+
