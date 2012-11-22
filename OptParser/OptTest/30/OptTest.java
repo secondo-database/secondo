@@ -271,7 +271,7 @@ public class OptTest {
                             //System.out.println("INFO : changing teststate to NEXTCOMMAND");
                             testcasestate = NEXTCOMMAND;
                         } else {
-                            optcommand = currentline;
+                            optcommand = currentline + " ";
                             //System.out.println("INFO : changing teststate to APPENDTOCOMMAND");
                             testcasestate = APPENDTOCOMMAND;
                         }
