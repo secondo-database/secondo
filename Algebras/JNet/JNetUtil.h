@@ -73,6 +73,8 @@ public:
                                        const int startindex,
                                        const int endindex);
 
+  static bool ArrayContainIntersections (const DbArray<JRouteInterval>& lhs,
+                                         const DbArray<JRouteInterval>& rhs);
 
 private:
 

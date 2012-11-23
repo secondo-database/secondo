@@ -969,20 +969,10 @@ bool MJPoint::Passes(const JLine* jl) const
   if (IsDefined() && !IsEmpty() &&
       jl != 0 && jl->IsDefined() && !jl->IsEmpty() &&
       strcmp(nid, *jl->GetNetworkId()) == 0)
-  {
-    int i = 0;
-    JRouteInterval actInt;
-    while (i < jl->GetNoComponents())
-    {
-      jl->Get(i, actInt);
-      if (JNetUtil::GetIndexOfJRouteIntervalForJRInt(trajectory, actInt,
-                                                     0, trajectory.Size()-1)
-             > -1)
-        return true;
-      i++;
-    }
-  }
-  return false;
+    return JNetUtil::ArrayContainIntersections(jl->GetRouteIntervals(),
+                                               trajectory);
+  else
+    return false;
 }
 
 /*

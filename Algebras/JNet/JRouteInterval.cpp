@@ -290,11 +290,18 @@ int JRouteInterval::Compare(const JRouteInterval& in) const
   if (IsDefined() && !in.IsDefined()) return 1;
   if (rid < in.GetRouteId()) return -1;
   if (rid > in.GetRouteId()) return 1;
-  if (startpos < in.GetFirstPosition()) return -1;
-  if (startpos > in.GetFirstPosition()) return 1;
-  if (endpos < in.GetLastPosition()) return -1;
-  if (endpos > in.GetLastPosition()) return 1;
-  return side.Compare(in.GetSide());
+  int test = side.Compare(in.GetSide());
+  if (test == 0)
+  {
+    if (endpos < in.GetFirstPosition()) return -1;
+    if (startpos > in.GetLastPosition()) return 1;
+    if (startpos < in.GetFirstPosition()) return -1;
+    if (startpos > in.GetFirstPosition()) return 1;
+    if (endpos < in.GetLastPosition()) return -1;
+    if (endpos > in.GetLastPosition()) return 1;
+    return 0;
+  }
+  return test;
 }
 
 int JRouteInterval::Compare(const RouteLocation& rloc) const
@@ -304,9 +311,23 @@ int JRouteInterval::Compare(const RouteLocation& rloc) const
   if (IsDefined() && !rloc.IsDefined()) return 1;
   if (rid < rloc.GetRouteId()) return -1;
   if (rid > rloc.GetRouteId()) return 1;
-  if (endpos < rloc.GetPosition()) return -1;
-  if (startpos > rloc.GetPosition()) return 1;
-  return side.Compare(rloc.GetSide());
+  if (Contains(rloc)) return 0;
+  Direction boDir(Both);
+  int test = side.Compare(rloc.GetSide());
+  if (side != boDir)
+  {
+    if (test == 0)
+    {
+      if (endpos < rloc.GetPosition()) return -1;
+      if (startpos > rloc.GetPosition()) return 1;
+    }
+    return test;
+  }
+  else
+  {
+    if (startpos > rloc.GetPosition()) return 1;
+    return -2; //might be special case for search in sorted list of jrint
+  }
 }
 
 size_t JRouteInterval::Sizeof() const

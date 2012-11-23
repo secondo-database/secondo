@@ -198,5 +198,5 @@ private:
 
 */
 
-ostream& operator<< (const ostream& os, const JPoint& jp);
+ostream& operator<< (ostream& os, const JPoint& jp);
 #endif // JPOINT_H

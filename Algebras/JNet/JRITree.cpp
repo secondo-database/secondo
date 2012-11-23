@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "JRITree.h"
 
+
 /*
 1 Implementation of class JRITree
 
@@ -96,65 +97,70 @@ ostream& JRITree::Print(ostream& os) const
 
 void JRITree::Insert(const JRouteInterval ri, int pos /*=0*/)
 {
-  if (IsEmpty())
+  if (ri.IsDefined())
   {
-    tree.Put(firstFree, JRITreeElement(ri, -1,-1));
-    firstFree++;
-  }
-  else
-  {
-    JRITreeElement testRI;
-    tree.Get(pos, testRI);
-    double test;
-    if (ri.Overlaps(testRI.GetRouteInterval()))
+    if (IsEmpty())
     {
-      if (ri.GetFirstPosition() < testRI.GetRouteInterval().GetFirstPosition())
-      {
-        testRI.SetRouteIntervalStart(ri.GetFirstPosition());
-        tree.Put(pos, testRI);
-        if (testRI.GetLeftSon() > -1)
-        {
-          test = CheckTree(testRI, pos, testRI, testRI.GetLeftSon(), true);
-          testRI.SetRouteIntervalStart(test);
-          tree.Put(pos, testRI);
-        }
-      }
-      if (testRI.GetRouteInterval().GetLastPosition() < ri.GetLastPosition())
-      {
-        testRI.SetRouteIntervalEnd(ri.GetLastPosition());
-        tree.Put(pos,testRI);
-        if (testRI.GetRightSon() > -1)
-        {
-          test = CheckTree(testRI, pos, testRI, testRI.GetRightSon(), false);
-          testRI.SetRouteIntervalEnd(test);
-          tree.Put(pos, testRI);
-        }
-      }
+      tree.Put(firstFree, JRITreeElement(ri, -1,-1));
+      firstFree++;
     }
     else
     {
-      switch(ri.Compare(testRI.GetRouteInterval()))
+      assert(pos > -1 && pos < firstFree);
+      JRITreeElement testRI;
+      tree.Get(pos, testRI);
+      double test;
+      if (ri.Overlaps(testRI.GetRouteInterval()))
       {
-        case -1:
+        if (ri.GetFirstPosition() <
+              testRI.GetRouteInterval().GetFirstPosition())
         {
+          testRI.SetRouteIntervalStart(ri.GetFirstPosition());
+          tree.Put(pos, testRI);
           if (testRI.GetLeftSon() > -1)
-            Insert(ri, testRI.GetLeftSon());
-          else
-            Insert(true, pos, testRI, ri);
-          break;
+          {
+            test = CheckTree(testRI, pos, testRI, testRI.GetLeftSon(), true);
+            testRI.SetRouteIntervalStart(test);
+            tree.Put(pos, testRI);
+          }
         }
-
-        case 1:
+        if (testRI.GetRouteInterval().GetLastPosition() < ri.GetLastPosition())
         {
+          testRI.SetRouteIntervalEnd(ri.GetLastPosition());
+          tree.Put(pos,testRI);
           if (testRI.GetRightSon() > -1)
-            Insert(ri, testRI.GetRightSon());
-          else
-            Insert(false, pos, testRI, ri);
-          break;
+          {
+            test = CheckTree(testRI, pos, testRI, testRI.GetRightSon(), false);
+            testRI.SetRouteIntervalEnd(test);
+            tree.Put(pos, testRI);
+          }
         }
+      }
+      else
+      {
+        switch(ri.Compare(testRI.GetRouteInterval()))
+        {
+          case -1:
+          {
+            if (testRI.GetLeftSon() > -1)
+              Insert(ri, testRI.GetLeftSon());
+            else
+              Insert(true, pos, testRI, ri);
+            break;
+          }
 
-        default: //should never been reached
-          assert(false);
+          case 1:
+          {
+            if (testRI.GetRightSon() > -1)
+              Insert(ri, testRI.GetRightSon());
+            else
+              Insert(false, pos, testRI, ri);
+            break;
+          }
+
+          default: //should never been reached
+            assert(false);
+        }
       }
     }
   }
@@ -301,6 +307,7 @@ bool JRITree::IsEmpty() const
 {
   return (firstFree == 0);
 }
+
 
 /*
 1 Overwrite output operator
