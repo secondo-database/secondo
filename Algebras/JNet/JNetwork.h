@@ -400,24 +400,6 @@ therefore declared to be private.
 JNetwork();
 
 /*
-1.1.1 Descriptors of tuples, relations and indexes
-
-*/
-static string sectionsTupleTypeInfo;
-static string junctionsTupleTypeInfo;
-static string routesTupleTypeInfo;
-static string netdistancesTupleTypeInfo;
-static string sectionsRelationTypeInfo;
-static string junctionsRelationTypeInfo;
-static string routesRelationTypeInfo;
-static string netdistancesRelationTypeInfo;
-static string sectionsBTreeTypeInfo;
-static string sectionsRTreeTypeInfo;
-static string junctionsBTreeTypeInfo;
-static string junctionsRTreeTypeInfo;
-static string routesBTreeTypeInfo;
-
-/*
 1.1.1 Enumerations of coloumns of internal relations
 
 */

@@ -788,7 +788,9 @@ const string createjnetSpec =
   "<sections relation> , <routes relation> ) </text--->"
   "<text>If the id is a possible object name in the database the operation"
   "creates the " + JNetwork::BasicType() + " with given data and object name "+
-  "id and returns true, false otherwise.</text--->"
+  "id and returns true, false otherwise. The " + CcReal::BasicType() +
+  "is the tolerance value factor for map matching. It depends on the " +
+  "spatial values of the network which factor is senseful.</text--->"
   "<text>query createjnet(testnet, 0.01, juncrel, sectrel, " +
   "routerel)</text--->))";
 

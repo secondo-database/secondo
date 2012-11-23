@@ -61,18 +61,58 @@ class JNetUtil
 
 */
 public:
+
+/*
+1.1.1 Some Functions returning often used string constants
+
+*/
+
+static string GetSectionsTupleTypeInfo();
+static string GetJunctionsTupleTypeInfo();
+static string GetRoutesTupleTypeInfo();
+static string GetNetdistancesTupleTypeInfo();
+static string GetSectionsRelationTypeInfo();
+static string GetJunctionsRelationTypeInfo();
+static string GetRoutesRelationTypeInfo();
+static string GetNetdistancesRelationTypeInfo();
+static string GetSectionsBTreeTypeInfo();
+static string GetSectionsRTreeTypeInfo();
+static string GetJunctionsBTreeTypeInfo();
+static string GetJunctionsRTreeTypeInfo();
+static string GetRoutesBTreeTypeInfo();
+
+/*
+1.1.1 Methods on DbArrays
+
+1.1.1.1 GetIndexOfJRouteIntervalForRLoc
+
+Returns the index in list where rloc is contained in the JRouteInterval.
+
+*/
   static int GetIndexOfJRouteIntervalForRLoc(
                                       const DbArray<JRouteInterval>& list,
                                       const RouteLocation& rloc,
                                       const int startindex,
                                       const int endindex);
 
+/*
+1.1.1.1 GetIndexOfJRouteIntervalForRLoc
+
+Returns the index in list where rint is overlapped by jrint of list.
+
+*/
   static int GetIndexOfJRouteIntervalForJRInt(
                                        const DbArray<JRouteInterval>& list,
                                        const JRouteInterval rint,
                                        const int startindex,
                                        const int endindex);
 
+/*
+1.1.1.1 GetIndexOfJRouteIntervalForRLoc
+
+Returns true if at least one pair of jrint one of lhs and one of rhs intersects.
+
+*/
   static bool ArrayContainIntersections (const DbArray<JRouteInterval>& lhs,
                                          const DbArray<JRouteInterval>& rhs);
 

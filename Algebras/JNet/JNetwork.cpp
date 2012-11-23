@@ -39,6 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "MJPoint.h"
 #include "JUnit.h"
 #include "JRITree.h"
+#include "JNetUtil.h"
 
 extern NestedList* nl;
 
@@ -377,9 +378,11 @@ JNetwork::JNetwork(const string nid, const double t,
                    const Relation* injunctions, const Relation* insections,
                    const Relation* inroutes) :
   defined(true), tolerance(t),
-  junctions(getRelationCopy(junctionsRelationTypeInfo, injunctions)),
-  sections(getRelationCopy(sectionsRelationTypeInfo, insections)),
-  routes(getRelationCopy(routesRelationTypeInfo, inroutes)),
+  junctions(getRelationCopy(JNetUtil::GetJunctionsRelationTypeInfo(),
+                            injunctions)),
+  sections(getRelationCopy(JNetUtil::GetSectionsRelationTypeInfo(),
+                           insections)),
+  routes(getRelationCopy(JNetUtil::GetRoutesRelationTypeInfo(), inroutes)),
   netdistances(0), junctionsBTree(0), junctionsRTree(0), sectionsBTree(0),
   sectionsRTree(0), routesBTree(0)
 {
@@ -392,10 +395,13 @@ JNetwork::JNetwork(const string nid, const double t,
                    const Relation* injunctions, const Relation* insections,
                    const Relation* inroutes, OrderedRelation* inDist) :
   defined(true), tolerance(t),
-  junctions(getRelationCopy(junctionsRelationTypeInfo, injunctions)),
-  sections(getRelationCopy(sectionsRelationTypeInfo, insections)),
-  routes(getRelationCopy(routesRelationTypeInfo, inroutes)),
-  netdistances(getRelationCopy(netdistancesRelationTypeInfo, inDist)),
+  junctions(getRelationCopy(JNetUtil::GetJunctionsRelationTypeInfo(),
+                            injunctions)),
+  sections(getRelationCopy(JNetUtil::GetSectionsRelationTypeInfo(),
+                           insections)),
+  routes(getRelationCopy(JNetUtil::GetRoutesRelationTypeInfo(), inroutes)),
+  netdistances(getRelationCopy(JNetUtil::GetNetdistancesRelationTypeInfo(),
+                               inDist)),
   junctionsBTree(0), junctionsRTree(0), sectionsBTree(0),
   sectionsRTree(0), routesBTree(0)
 {
@@ -444,40 +450,46 @@ JNetwork::JNetwork(SmiRecord& valueRecord, size_t& offset,
   }
 
   if (ok)
-    ok = openRelation(junctions, junctionsRelationTypeInfo, valueRecord,
+    ok = openRelation(junctions, JNetUtil::GetJunctionsRelationTypeInfo(),
+                      valueRecord, offset);
+
+  if (ok)
+    ok = openRelation(sections, JNetUtil::GetSectionsRelationTypeInfo(),
+                      valueRecord, offset);
+
+  if (ok)
+    ok = openRelation(routes, JNetUtil::GetRoutesRelationTypeInfo(),
+                      valueRecord, offset);
+
+  if (ok)
+    ok = openRelation(netdistances, JNetUtil::GetNetdistancesRelationTypeInfo(),
+                      valueRecord,
                       offset);
 
   if (ok)
-    ok = openRelation(sections, sectionsRelationTypeInfo, valueRecord, offset);
+    ok = openBTree(junctionsBTree, JNetUtil::GetJunctionsBTreeTypeInfo(),
+                   valueRecord, offset);
 
   if (ok)
-    ok = openRelation(routes, routesRelationTypeInfo, valueRecord, offset);
+    ok = openBTree(sectionsBTree, JNetUtil::GetSectionsBTreeTypeInfo(),
+                   valueRecord, offset);
 
   if (ok)
-    ok = openRelation(netdistances, netdistancesRelationTypeInfo, valueRecord,
-                      offset);
-
-  if (ok)
-    ok = openBTree(junctionsBTree, junctionsBTreeTypeInfo, valueRecord,
-                   offset);
-
-  if (ok)
-    ok = openBTree(sectionsBTree, sectionsBTreeTypeInfo, valueRecord, offset);
-
-  if (ok)
-    ok = openBTree(routesBTree, routesBTreeTypeInfo, valueRecord, offset);
+    ok = openBTree(routesBTree, JNetUtil::GetRoutesBTreeTypeInfo(),
+                   valueRecord, offset);
 
   Word wTree;
 
   if (ok)
-    ok = junctionsRTree->Open(valueRecord, offset, junctionsRTreeTypeInfo,
-                              wTree);
+    ok = junctionsRTree->Open(valueRecord, offset,
+                              JNetUtil::GetJunctionsRTreeTypeInfo(), wTree);
 
   if (ok)
     junctionsRTree = (R_Tree<2,TupleId>*) wTree.addr;
 
   if (ok)
-    ok = sectionsRTree->Open(valueRecord, offset, sectionsRTreeTypeInfo, wTree);
+    ok = sectionsRTree->Open(valueRecord, offset,
+                             JNetUtil::GetSectionsRTreeTypeInfo(), wTree);
 
   if (ok)
     sectionsRTree = (R_Tree<2,TupleId>*) wTree.addr;
@@ -582,21 +594,22 @@ double JNetwork::GetTolerance() const
 
 string JNetwork::GetJunctionsRelationType()
 {
-  return junctionsRelationTypeInfo;
+  return JNetUtil::GetJunctionsRelationTypeInfo();
 }
 
 string JNetwork::GetSectionsRelationType()
 {
-  return sectionsRelationTypeInfo;
+  return JNetUtil::GetSectionsRelationTypeInfo();
 }
 
 string JNetwork::GetRoutesRelationType()
 {
-  return routesRelationTypeInfo;
+  return JNetUtil::GetRoutesRelationTypeInfo();
 }
+
 string JNetwork::GetNetdistancesRelationType()
 {
-  return netdistancesRelationTypeInfo;
+  return JNetUtil::GetNetdistancesRelationTypeInfo();
 }
 
 Relation* JNetwork::GetJunctionsCopy() const
@@ -616,7 +629,8 @@ Relation* JNetwork::GetSectionsCopy() const
 
 OrderedRelation* JNetwork::GetNetdistancesCopy() const
 {
-  return getRelationCopy(netdistancesRelationTypeInfo, netdistances);
+  return getRelationCopy(JNetUtil::GetNetdistancesRelationTypeInfo(),
+                         netdistances);
 }
 
 void JNetwork::SetDefined(const bool def)
@@ -678,16 +692,17 @@ Word JNetwork::In(const ListExpr typeInfo, const ListExpr instance,
       ListExpr tolList = nl->Second(instance);
       double tol = nl->RealValue(tolList);
       Relation* juncRel = relationFromList(nl->Third(instance),
-                                           junctionsRelationTypeInfo,
+                                      JNetUtil::GetJunctionsRelationTypeInfo(),
                                            errorPos, errorInfo, correct);
       Relation* sectRel = relationFromList(nl->Fourth(instance),
-                                           sectionsRelationTypeInfo,
+                                        JNetUtil::GetSectionsRelationTypeInfo(),
                                            errorPos, errorInfo, correct);
       Relation* routeRel = relationFromList(nl->Fifth(instance),
-                                            routesRelationTypeInfo,
+                                        JNetUtil::GetRoutesRelationTypeInfo(),
                                             errorPos, errorInfo, correct);
       OrderedRelation* distRel =
-        ordRelationFromList(nl->Sixth(instance), netdistancesRelationTypeInfo,
+        ordRelationFromList(nl->Sixth(instance),
+                            JNetUtil::GetNetdistancesRelationTypeInfo(),
                             errorPos, errorInfo, correct);
       if (!correct){
         if (juncRel != 0) juncRel->Delete();
@@ -801,27 +816,32 @@ bool JNetwork::Save(SmiRecord& valueRecord, size_t& offset,
   }
 
   if (ok)
-    ok = saveRelation(junctionsRelationTypeInfo, junctions, valueRecord,
-                      offset);
+    ok = saveRelation(JNetUtil::GetJunctionsRelationTypeInfo(), junctions,
+                      valueRecord, offset);
 
   if (ok)
-    ok = saveRelation(sectionsRelationTypeInfo, sections, valueRecord, offset);
+    ok = saveRelation(JNetUtil::GetSectionsRelationTypeInfo(), sections,
+                      valueRecord, offset);
 
   if (ok)
-    ok = saveRelation(routesRelationTypeInfo, routes, valueRecord, offset);
+    ok = saveRelation(JNetUtil::GetRoutesRelationTypeInfo(), routes,
+                      valueRecord, offset);
 
   if (ok)
-    ok = saveRelation(netdistancesRelationTypeInfo, netdistances, valueRecord,
-                      offset);
+    ok = saveRelation(JNetUtil::GetNetdistancesRelationTypeInfo(),
+                      netdistances, valueRecord, offset);
 
   if (ok)
-    ok = saveBTree(junctionsBTreeTypeInfo, junctionsBTree, valueRecord, offset);
+    ok = saveBTree(JNetUtil::GetJunctionsBTreeTypeInfo(), junctionsBTree,
+                   valueRecord, offset);
 
   if (ok)
-    ok = saveBTree(sectionsBTreeTypeInfo, sectionsBTree, valueRecord, offset);
+    ok = saveBTree(JNetUtil::GetSectionsBTreeTypeInfo(), sectionsBTree,
+                   valueRecord, offset);
 
   if (ok)
-    ok = saveBTree(routesBTreeTypeInfo, routesBTree, valueRecord, offset);
+    ok = saveBTree(JNetUtil::GetRoutesBTreeTypeInfo(), routesBTree,
+                   valueRecord, offset);
 
   if (ok)
     ok = junctionsRTree->Save(valueRecord, offset);
@@ -850,9 +870,11 @@ ListExpr JNetwork::Property()
     nl->FourElemList(
       nl->StringAtom("-> " + Kind::JNETWORK()),
       nl->StringAtom(BasicType()),
-      nl->TextAtom("(" + CcString::BasicType() + " " + CcReal::BasicType() + " "
-        + junctionsRelationTypeInfo + " " + sectionsRelationTypeInfo + " " +
-        routesRelationTypeInfo +" " + netdistancesRelationTypeInfo + "), the" +
+      nl->TextAtom("(" + CcString::BasicType() + " " + CcReal::BasicType() +
+        " " + JNetUtil::GetJunctionsRelationTypeInfo() + " " +
+        JNetUtil::GetSectionsRelationTypeInfo() + " " +
+        JNetUtil::GetRoutesRelationTypeInfo() + " " +
+        JNetUtil::GetNetdistancesRelationTypeInfo() + "), the" +
         " string defines the name of the network, it is followed by the " +
         "tolerance value for the network representation used in map matching "+
         "algorithms, and the network data for junctions, sections, routes and "+
@@ -1946,62 +1968,6 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
   return res;
 }
 
-/*
-1.1 Relation Descriptors
-
-*/
-
-string JNetwork::junctionsTupleTypeInfo = Tuple::BasicType() + "((Id " +
-  CcInt::BasicType() + ") (Pos " + Point::BasicType() + ") (Listjuncpos " +
-  JListRLoc::BasicType() + ") (Listinsections " + JListInt::BasicType() +
-  ") (Listoutsections " + JListInt::BasicType() + "))";
-
-string JNetwork::sectionsTupleTypeInfo =  Tuple::BasicType() + "((Id " +
-  CcInt::BasicType() + ") (Curve " + SimpleLine::BasicType() +
-  ") (StartJunctionId " + CcInt::BasicType() + ") (EndJunctionId " +
-  CcInt::BasicType() + ") (Direction " + Direction::BasicType() +
-  ") (VMax " + CcReal::BasicType() + ") (Lenth " + CcReal::BasicType() +
-  ") (ListSectRouteIntervals " +  JListRInt::BasicType() +
-  ") (ListAdjSectUp " + JListInt::BasicType() +
-  ") (ListAdjSectDown " + JListInt::BasicType() + ") (ListRevAdjSectUp " +
-  JListInt::BasicType() + ") (ListRevAdjSectDown " + JListInt::BasicType() +
-  "))";
-
-string JNetwork::routesTupleTypeInfo = Tuple::BasicType() + "((Id " +
-  CcInt::BasicType() + ") (ListJunctions " + JListInt::BasicType() +
-  ") (ListSections " + JListInt::BasicType() + ") (Lenth " +
-  CcReal::BasicType() + "))";
-
-string JNetwork::junctionsRelationTypeInfo = "("+ Relation::BasicType() + "(" +
-  junctionsTupleTypeInfo + "))";
-
-string JNetwork::sectionsRelationTypeInfo = "("+ Relation::BasicType() + "(" +
-  sectionsTupleTypeInfo + "))";
-
-string JNetwork::routesRelationTypeInfo = "("+ Relation::BasicType() + "(" +
-  routesTupleTypeInfo + "))";
-
-string JNetwork::netdistancesRelationTypeInfo = "("+
-  OrderedRelation::BasicType() + "("+ Tuple::BasicType() +
-  "((Source " + CcInt::BasicType() + ")(Target " + CcInt::BasicType() +
-  ")(NextJunct " + CcInt::BasicType() + ")(ViaSect " + CcInt::BasicType() +
-  ")(NetDist " + CcReal::BasicType() + "))) (Source))";
-
-string JNetwork::junctionsBTreeTypeInfo = "("+ BTree::BasicType() + "(" +
-  junctionsTupleTypeInfo + ")" + CcInt::BasicType() + ")";
-
-string JNetwork::junctionsRTreeTypeInfo = "("+ R_Tree<2,TupleId>::BasicType() +
-  "(" + junctionsTupleTypeInfo + ")" + Point::BasicType() + " FALSE)";
-
-string JNetwork::sectionsBTreeTypeInfo = "("+ BTree::BasicType() + "(" +
-  sectionsTupleTypeInfo + ")" + CcInt::BasicType() + ")";
-
-string JNetwork::sectionsRTreeTypeInfo = "("+ R_Tree<2, TupleId>::BasicType() +
- "(" + sectionsTupleTypeInfo + ")" + SimpleLine::BasicType() + " FALSE)";
-
-string JNetwork::routesBTreeTypeInfo = "("+ BTree::BasicType() + "(" +
-  routesTupleTypeInfo + ")" + CcInt::BasicType() + ")";
-
 
 /*
 1.1 Private functions
@@ -2012,22 +1978,23 @@ string JNetwork::routesBTreeTypeInfo = "("+ BTree::BasicType() + "(" +
 
 ListExpr JNetwork::JunctionsToList() const
 {
-  return relationToList(junctions, junctionsRelationTypeInfo);
+  return relationToList(junctions, JNetUtil::GetJunctionsRelationTypeInfo());
 }
 
 ListExpr JNetwork::SectionsToList() const
 {
-  return relationToList(sections, sectionsRelationTypeInfo);
+  return relationToList(sections, JNetUtil::GetSectionsRelationTypeInfo());
 }
 
 ListExpr JNetwork::RoutesToList() const
 {
-  return relationToList(routes, routesRelationTypeInfo);
+  return relationToList(routes, JNetUtil::GetRoutesRelationTypeInfo());
 }
 
 ListExpr JNetwork::NetdistancesToList() const
 {
-  return relationToList(netdistances, netdistancesRelationTypeInfo);
+  return relationToList(netdistances,
+                        JNetUtil::GetNetdistancesRelationTypeInfo());
 }
 
 
@@ -2038,11 +2005,16 @@ ListExpr JNetwork::NetdistancesToList() const
 
 void JNetwork::CreateTrees()
 {
-  junctionsBTree = createBTree(junctions, junctionsRelationTypeInfo, "Id");
-  junctionsRTree = createRTree(junctions, junctionsRelationTypeInfo, "Pos");
-  sectionsBTree = createBTree(sections, sectionsRelationTypeInfo, "Id");
-  sectionsRTree = createRTree(sections, sectionsRelationTypeInfo, "Curve");
-  routesBTree = createBTree(routes, routesRelationTypeInfo,"Id");
+  junctionsBTree = createBTree(junctions,
+                               JNetUtil::GetJunctionsRelationTypeInfo(), "Id");
+  junctionsRTree = createRTree(junctions,
+                               JNetUtil::GetJunctionsRelationTypeInfo(), "Pos");
+  sectionsBTree = createBTree(sections,
+                              JNetUtil::GetSectionsRelationTypeInfo(), "Id");
+  sectionsRTree = createRTree(sections,
+                              JNetUtil::GetSectionsRelationTypeInfo(), "Curve");
+  routesBTree = createBTree(routes,
+                            JNetUtil::GetRoutesRelationTypeInfo(),"Id");
 }
 
 /*
@@ -2053,7 +2025,7 @@ void JNetwork::CreateTrees()
 void JNetwork::InitNetdistances()
 {
   ListExpr relType;
-  nl->ReadFromString(netdistancesRelationTypeInfo, relType);
+  nl->ReadFromString(JNetUtil::GetNetdistancesRelationTypeInfo(), relType);
   ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType ( relType );
   netdistances = new OrderedRelation(relNumType);
   GenericRelationIterator* it = sections->MakeScan();
@@ -2114,7 +2086,7 @@ void JNetwork::InsertNetdistanceTuple(const int fromjid, const int tojid,
   if (existingTuple == 0)
   {
     ListExpr relType;
-    nl->ReadFromString(netdistancesRelationTypeInfo, relType);
+    nl->ReadFromString(JNetUtil::GetNetdistancesRelationTypeInfo(), relType);
     ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType ( relType );
     Tuple* insertTuple = new Tuple(nl->Second(relNumType));
     insertTuple->PutAttribute(NETDIST_FROM_JID, new CcInt(true, fromjid));
@@ -2292,12 +2264,12 @@ Tuple* JNetwork::GetSectionTupleFor(const Point* p, double& pos) const
           actCurve->Get ( i, hs );
           left = hs.GetLeftPoint();
           right = hs.GetRightPoint();
-          Coord xl = left.GetX(),
-                yl = left.GetY(),
-                xr = right.GetX(),
-                yr = right.GetY(),
-                x = p->GetX(),
-                y = p->GetY();
+          double xl = left.GetX();
+          double yl = left.GetY();
+          double xr = right.GetX();
+          double yr = right.GetY();
+          double x = p->GetX();
+          double y = p->GetY();
           if((AlmostEqualAbsolute(x, xl, tolerance) &&
               AlmostEqualAbsolute(y, yl, tolerance)) ||
              (AlmostEqualAbsolute(x, xr, tolerance) &&
