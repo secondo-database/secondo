@@ -456,7 +456,6 @@ let TBAJNres015 =
   product
   loopsel[fun(t:TUPLE) dataMJtrip_BoxNet_timespace windowintersectsS[box3d(attr(t,NBox_p), attr(t,Period_t))]
   sort rdup dataMJtrip gettuples
-  filter[.Trip passes attr(t,Pos_p)]
   filter[(.Trip atperiods (attr(t,Period_t))) passes attr(t,Pos_p)]
   projectextend [Moid;Period: attr(t,Period_t), Id: attr(t,Id_p)]]{a}
   loopjoin[dataMcar_Moid_btree dataMcar exactmatch [.Moid_a]]

@@ -145,9 +145,9 @@ query now();
 let OBAJNres006 =
   OBAJNres006tmp1 feed {a}
   OBAJNres006tmp1 feed {b}
-  itSpatialJoin[Box_a, Box_b, 4, 8]
-  filter [(.Licence_a < .Licence_b) and
-          (everNearerThan(.Ptrip_a, .Ptrip_b, 10.0))]
+  symmjoin[(.Box_a intersects ..Box_b) and
+           (.Licence_a < ..Licence_b) and
+           (everNearerThan(.Ptrip_a, ..Ptrip_b, 10.0))]
   project [Licence_a, Licence_b]
   sortby [Licence_a asc, Licence_b asc]
   krdup [Licence_a, Licence_b]
