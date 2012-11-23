@@ -39,4 +39,3 @@ save TBACRres017 to 'results/TBACRres017';
 save QRT_BMOD_TBA to 'results/QUERYRUNTIMES_BERLINMOD_TBA';
 
 close database;
-quit;

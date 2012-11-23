@@ -509,5 +509,3 @@ let QRT_BMOD_OBA = SEC2COMMANDS feed consume;
 #save EVAL_SEC2COMMANDS_BERLINMODOBA to 'BerlinMODNNNOBARunTimesRunX.DAT';
 
 close database;
-
-quit;

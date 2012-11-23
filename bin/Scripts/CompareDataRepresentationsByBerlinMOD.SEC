@@ -1,0 +1,54 @@
+#########################################
+# Use BerlinMOD to compare spatial, JNetwork
+# and Network data representation
+#########################################
+# Build BerlinMOD database for
+###########################################
+
+@Scripts/BerlinMOD_DataGenerator.SEC;
+
+########################################
+# Create Objects 
+#######################################
+
+@Scripts/BerlinMOD_CreateObjects.SEC;
+
+@Scripts/JNetwork_CreateBMODObjects.SEC;
+
+@Scripts/Network_CreateObjects.SEC;
+
+##########################################
+# Run Queries
+#########################################
+
+@Scripts/BerlinMOD_OBA-Queries.SEC;
+
+@Scripts/JNetwork_OBA-Queries.SEC;
+
+@Scripts/Network_OBA-Queries.SEC;
+
+@Scripts/BerlinMOD_TBA-Queries.SEC;
+
+@Scripts/JNetwork_TBA-Queries.SEC;
+
+@Scripts/Network_TBA-Queries.SEC;
+
+############################################
+# Save results
+#########################################
+
+@Scripts/BerlinMOD_SaveQueryResults.SEC;
+
+@Scripts/JNetwork_SaveQueryResults.SEC;
+
+@Scripts/Network_SaveQueryResults.SEC;
+
+##########################################
+# Delete query results
+############################################
+
+# @Scripts/BerlinMOD_DeleteQueryResults.SEC;
+
+# @Scripts/JNetwork_DeleteQueryResults.SEC;
+
+# @Scripts/Network_DeleteQueryResults.SEC;

@@ -39,4 +39,5 @@ delete TBAJNres017;
 delete QRT_JNET_TBA;
 
 close database;
-quit;
+
+

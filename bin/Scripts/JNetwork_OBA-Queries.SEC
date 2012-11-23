@@ -177,6 +177,7 @@ let OBAJNres007tmp1 =
     dataSJcar_TrajBoxNet windowintersectsS[attr(t,NBox)]
     sort rdup dataSJcar gettuples
     filter [.Type = "passenger"]
+    filter [.Trip passes attr(t,Pos)]
     projectextend[Licence; Id: attr(t,Id) ,
                            Instant: inst(initial(.Trip at attr(t,Pos)))]]
   filter[not(isempty(.Instant))]
@@ -292,6 +293,7 @@ let OBAJNres011 =
   loopsel[fun(t:TUPLE)
     dataSJcar_TrajBoxNet windowintersectsS[attr(t,NBox)]
     sort rdup dataSJcar gettuples
+    filter [.Trip passes attr(t,Pos)]
     projectextend[Licence; Id: (attr(t,Id)), TripN: .Trip at attr(t,Pos)]]
   QueryInstant1 feed {i}
   symmjoin[.TripN present ..Instant_i]
@@ -399,19 +401,20 @@ query now();
 ################################################################################
 
 let OBAJNres015 =
-  QueryPoints1JNetAll feed
+  QueryPoints1JNetAll feed 
     extend[Prect: netbox(.Pos)]
     projectextend[Id, Pos; NBox: rectangle2(minD(.Prect,1), maxD(.Prect, 1),
                                             minD(.Prect,2) - 0.00001,
                                             maxD(.Prect,2) + 0.00001)] {p}
-  QueryPeriods1 feed
+  QueryPeriods1 feed 
     filter[not(isempty(.Period))] {t}
   product
   projectextend[Id_p, Pos_p, Period_t; Box: box3d(.NBox_p, .Period_t)]
   loopsel [fun(t:TUPLE)
     dataSJcar_BoxNet_timespace windowintersectsS[attr(t, Box)]
     sort rdup dataSJcar gettuples
-    filter[(.Trip atperiods (attr(t,Period_t))) passes (attr(t,Pos_p))]
+    filter[.Trip passes attr(t,Pos_p)]
+    filter[(.Trip atperiods (attr(t,Period_t))) passes attr(t,Pos_p)]
     projectextend[; Id: attr(t,Id_p), Period: attr(t,Period_t), Licence: .Licence]]
   sortby [Id asc, Period asc, Licence asc]
   krdup [Id, Period, Licence]
@@ -509,5 +512,3 @@ let QRT_JNET_OBA = SEC2COMMANDS feed consume;
 #save EVAL_SEC2COMMANDS_BERLINMOD_OBA_JNET to 'BerlinMODOBAJNetRunTimesRunX.DAT';
 
 close database;
-
-quit;

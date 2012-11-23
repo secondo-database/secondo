@@ -281,10 +281,10 @@ let TBACRres009 =
     dataMCtrip_Trip_tmpuni windowintersectsS[ attr(t,PeriodBox) ] sort rdup
     dataMCtrip gettuples
     projectextend[Moid; TripOdo:
-      round(length(.Trip atperiods attr(t,Period)),3)]
+      length(.Trip atperiods attr(t,Period))]
     filter[.TripOdo > 0]
     sortby[Moid asc]
-    groupby[Moid; Length: group feed sum[TripOdo]]
+    groupby[Moid; Length: round(group feed sum[TripOdo],3)]
   ]
   groupby[Moid, Period; Dist: group feed max[Length]]
   project[Period, Dist]
@@ -637,4 +637,3 @@ let QRT_BMOD_TBA = SEC2COMMANDS feed consume;
 
 close database;
 
-quit;

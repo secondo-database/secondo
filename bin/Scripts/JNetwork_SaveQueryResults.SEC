@@ -39,4 +39,3 @@ save TBAJNres017 to 'results/TBAJNres017';
 save QRT_JNET_TBA to 'results/QUERYRUNTIMES_JNETWORK_TBA';
 
 close database;
-quit;

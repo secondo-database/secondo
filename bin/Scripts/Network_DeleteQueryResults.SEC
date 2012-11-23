@@ -39,4 +39,4 @@ delete TBANres017;
 delete QUERYRUNTIMES_NETWOK_TBA;
 
 close database;
-quit;
+

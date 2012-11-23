@@ -39,4 +39,4 @@ save TBANres017 to  'results/TBANres017';
 save QRT_NET_TBA to  'results/QUERYRUNTIMES_NETWORK_TBA';
 
 close database;
-quit;
+

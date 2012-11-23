@@ -444,4 +444,3 @@ let QueryRegions1JNet = QueryRegionsJNet feed head[10] consume;
 
 close database;
 
-quit

@@ -39,4 +39,4 @@ delete TBACRres017;
 delete QUERYRUNTIMES_BERLINMOD_TBA;
 
 close database;
-quit;
+

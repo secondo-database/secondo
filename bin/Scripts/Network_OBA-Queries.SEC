@@ -484,5 +484,3 @@ let QRT_NET_OBA = SEC2COMMANDS feed consume;
 ################################################################################
 
 close database;
-
-quit;

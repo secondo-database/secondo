@@ -1,0 +1,142 @@
+
+################################################################################
+## File: CreateNetwork Objects #################################################
+################################################################################
+##  This file is part of SECONDO.                                             ##
+##                                                                            ##
+##  Copyright (C) 2010, University in Hagen, Faculty of Mathematics and       ##
+##  Computer Science, Database Systems for New Applications.                  ##
+##                                                                            ##
+##  SECONDO is free software; you can redistribute it and/or modify           ##
+##  it under the terms of the GNU General Public License as published by      ##
+##  the Free Software Foundation; either version 2 of the License, or         ##
+##  (at your option) any later version.                                       ##
+##                                                                            ##
+##  SECONDO is distributed in the hope that it will be useful,                ##
+##  but WITHOUT ANY WARRANTY; without even the implied warranty of            ##
+##  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             ##
+##  GNU General Public License for more details.                              ##
+##                                                                            ##
+##  You should have received a copy of the GNU General Public License         ##
+##  along with SECONDO; if not, write to the Free Software                    ##
+##  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA ##
+################################################################################
+
+# This file performs translates the spatial and spatio-temporal data objects   #
+# of the BerlinMOD benchmark in the Secondo DBMS into their network data       #
+# model representation and builds the aCCording indexes.                       #
+#                                                                              #
+# It is assumed that there is a database berlinmod with the data objects       #
+# created by the BerlinMOD_DataGenerator.SEC script.                           #
+#                                                                              #
+################################################################################
+#                                                                              #
+# Open Database Berlinmod                                                      #
+#                                                                              #
+################################################################################
+
+open database berlinmod;
+
+################################################################################
+#                                                                              #
+# Delete Objects Created by JNetwork_CreateObjectsBMOD.SEC                     #
+#                                                                              #
+################################################################################
+
+delete RoadsTmp;
+
+delete RoadEndPoints;
+
+delete RoadCrossings;
+
+delete JunctionsTmp;
+
+delete RoadsTmp2;
+
+delete RoadsTmp3;
+
+delete RoadsTmp4;
+
+delete RoadsTmp5;
+
+delete RoadJuncList;
+
+delete JuncRLocList;
+
+delete SectTmp;
+
+delete RoadSectList;
+
+delete SectRouteIntervals;
+
+delete JuncInAndOutList;
+
+delete InJunc;
+
+delete InSect;
+
+delete InRoad;
+
+delete JBNet;
+
+delete QueryPointsJNet;
+
+delete QueryPointsJNetAll;
+
+delete QueryPoints1JNet;
+
+delete QueryPoints1JNetAll;
+
+delete dataSJcar;
+
+delete dataMJtrip;
+
+delete routeslinej;
+
+delete QRlinesj;
+
+delete QueryRegionsJNet;
+
+delete dataSJcar_Licence_btree;
+
+# delete dataMcar_Licence_btree = dataMcar createbtree[Licence];
+
+# delete dataMcar_Moid_btree = dataMcar createbtree[Moid];
+
+delete dataMJtrip_Moid_btree;
+
+delete dataSJcar_BoxNet_timespace;
+
+delete dataMJtrip_BoxNet_timespace;
+
+delete dataSJcar_BoxNet;
+
+delete dataMJtrip_BoxNet;
+
+delete dataSJcar_TrajBoxNet;
+
+delete dataMJtrip_TrajBoxNet;
+
+delete dataMJtrip_SpatioTemp;
+
+#delete dataMNtrip_SpatioTempUnits;
+
+#delete  QueryLicences1;
+
+#delete QueryLicences2;
+
+# delete QueryPeriods1;
+
+# delete QueryInstant1;
+
+delete QueryRegions1JNet;
+
+################################################################################
+#                                                                              #
+# Finished Close Database                                                      #
+#                                                                              #
+################################################################################
+
+close database;
+
+
