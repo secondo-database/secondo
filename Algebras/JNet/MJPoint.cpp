@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ManageJNet.h"
 #include "IJPoint.h"
 #include "JNetUtil.h"
+#include <sys/socket.h>
 
 /*
 1 Helpful Operations
@@ -671,15 +672,8 @@ void MJPoint::ToSpatial(MPoint& result) const
   if (IsDefined() && !IsEmpty())
   {
     JNetwork* jnet = ManageJNet::GetNetwork(nid);
-    MPoint* tmp = jnet->GetSpatialValueOf(this);
+    jnet->GetSpatialValueOf(this, result);
     ManageJNet::CloseNetwork(jnet);
-    if (tmp != 0)
-    {
-      result.CopyFrom(tmp);
-      tmp->DeleteIfAllowed();
-    }
-    else
-      result.SetDefined(false);
   }
   else
     result.SetDefined(false);
@@ -843,7 +837,7 @@ void MJPoint::AtPeriods(const Periods* times, MJPoint& result) const
       unitIndex = GetUnitPosForTime(actTimeInterval,
                                     0, GetNoComponents()-1);
       if (unitIndex < 0)
-          unitIndex = 0;
+          unitIndex = GetNoComponents();
       if (unitIndex < GetNoComponents())
         Get(unitIndex, actUnit);
     }
@@ -1230,7 +1224,49 @@ Instant* MJPoint::Endtime() const
 int MJPoint::GetUnitPosForTime(const Interval<Instant>& time, const int spos,
                                const int epos) const
 {
-  return GetUnitPosForTime(time.start, spos, epos);
+
+  if (!IsDefined() || IsEmpty() || !time.IsDefined() ||
+    spos < 0 || epos > GetNoComponents()-1 || epos < spos)
+    return -1;
+  else
+  {
+    int mid = (epos + spos) / 2;
+    JUnit ju;
+    Get(mid, ju);
+    if (ju.GetTimeInterval().Before(time))
+    {
+      if (mid != spos)
+        return GetUnitPosForTime(time, mid, epos);
+      else
+        return GetUnitPosForTime(time, mid+1,epos);
+    }
+    else
+    {
+      if (time.Before(ju.GetTimeInterval()))
+      {
+        if (mid != epos)
+          return GetUnitPosForTime(time, spos, mid);
+        else
+          return GetUnitPosForTime(time, spos, mid-1);
+      }
+      else
+      {
+        if (ju.GetTimeInterval().Contains(time.start))
+          return mid;
+        else
+        {
+          while (ju.GetTimeInterval().start > time.start &&
+                 mid > 0)
+          {
+            mid--;
+            Get(mid, ju);
+          }
+          return mid;
+        }
+      }
+    }
+  }
+  //return GetUnitPosForTime(time.start, spos, epos);
 }
 
 int MJPoint::GetUnitPosForTime(const Instant& time,
@@ -1239,27 +1275,30 @@ int MJPoint::GetUnitPosForTime(const Instant& time,
   if (!IsDefined() || IsEmpty() || !time.IsDefined() ||
     spos < 0 || epos > GetNoComponents()-1 || epos < spos)
     return -1;
-  int mid = (epos + spos) / 2;
-  JUnit ju;
-  Get(mid, ju);
-  if (time > ju.GetTimeInterval().end)
-  {
-    if (mid != spos)
-      return GetUnitPosForTime(time, mid, epos);
-    else
-      return GetUnitPosForTime(time,mid+1,epos);
-  }
   else
   {
-    if (time < ju.GetTimeInterval().start)
+    int mid = (epos + spos) / 2;
+    JUnit ju;
+    Get(mid, ju);
+    if (time > ju.GetTimeInterval().end)
     {
-      if (mid != epos)
-        return GetUnitPosForTime(time, spos, mid);
+      if (mid != spos)
+        return GetUnitPosForTime(time, mid, epos);
       else
-        return GetUnitPosForTime(time, spos, mid-1);
+        return GetUnitPosForTime(time,mid+1,epos);
     }
     else
-      return mid;
+    {
+      if (time < ju.GetTimeInterval().start)
+      {
+        if (mid != epos)
+          return GetUnitPosForTime(time, spos, mid);
+        else
+          return GetUnitPosForTime(time, spos, mid-1);
+      }
+      else
+        return mid;
+    }
   }
 }
 

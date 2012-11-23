@@ -314,7 +314,7 @@ Returns true if the given position(s) exist in the network.
 
   Point* GetSpatialValueOf(const JPoint& jp) const;
   void GetSpatialValueOf(const JLine* jl, Line& result) const;
-  MPoint* GetSpatialValueOf(const MJPoint* mjp) const;
+  void GetSpatialValueOf(const MJPoint* mjp, MPoint& result) const;
 
 /*
 1.1.1 Spatial and Spatio-Temporal BoundingBoxes of Network DataTypes
@@ -670,10 +670,10 @@ Returns the corresponding spatial mpoint representation of the junit.
 
 */
 
-MPoint* SplitJUnit(const JUnit& ju, int& curRid, JRouteInterval*& lastRint,
-                   JListInt*& routeSectList, int& lastRouteSecListIndex,
-                   bool& endTimeCorrected, Instant& lastEnd,
-                   SimpleLine*& lastCurve) const;
+void SplitJUnit(const JUnit& ju, int& curRid, JRouteInterval*& lastRint,
+                JListInt*& routeSectList, int& lastRouteSecListIndex,
+                bool& endTimeCorrected, Instant& lastEnd,
+                SimpleLine*& lastCurve, MPoint& result) const;
 
 /*
 1.1.1.1 CheckTupleForRLoc
@@ -705,11 +705,12 @@ Point* GetSpatialValueOf(const RouteLocation& rloc, int& curRid,
                          SimpleLine*& lastCurve) const;
 Point* GetSpatialValueOf(const RouteLocation& rloc, double relpos,
                         const Tuple* actSect)const;
-SimpleLine* GetSpatialValueOf(const JRouteInterval& rint) const;
-SimpleLine* GetSpatialValueOf(const JRouteInterval& rint,
-                              const JListInt* sectList,
-                              const int fromIndex,
-                              const int toIndex) const;
+void GetSpatialValueOf(const JRouteInterval& rint, SimpleLine& result) const;
+void GetSpatialValueOf(const JRouteInterval& rint,
+                       const JListInt* sectList,
+                       const int fromIndex,
+                       const int toIndex,
+                       SimpleLine& result) const;
 };
 
 /*
