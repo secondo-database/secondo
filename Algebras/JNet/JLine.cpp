@@ -577,13 +577,8 @@ void JLine::ToSpatial(Line& result) const
   if (IsDefined() && !IsEmpty())
   {
     JNetwork* jnet = ManageJNet::GetNetwork(nid);
-    Line* tmp = jnet->GetSpatialValueOf(this);
+    jnet->GetSpatialValueOf(this, result);
     ManageJNet::CloseNetwork(jnet);
-    if (tmp != 0)
-    {
-      result = *tmp;
-      tmp->DeleteIfAllowed();
-    }
   }
   else
     result.SetDefined(false);

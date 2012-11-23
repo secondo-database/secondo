@@ -313,7 +313,7 @@ Returns true if the given position(s) exist in the network.
 */
 
   Point* GetSpatialValueOf(const JPoint& jp) const;
-  Line* GetSpatialValueOf(const JLine* jl) const;
+  void GetSpatialValueOf(const JLine* jl, Line& result) const;
   MPoint* GetSpatialValueOf(const MJPoint* mjp) const;
 
 /*

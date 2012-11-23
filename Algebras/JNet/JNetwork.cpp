@@ -1250,11 +1250,12 @@ Point* JNetwork::GetSpatialValueOf(const JPoint& jp) const
   return res;
 }
 
-Line* JNetwork::GetSpatialValueOf(const JLine* jl) const
+void JNetwork::GetSpatialValueOf(const JLine* jl, Line& result) const
 {
   if (jl != 0 && jl->IsDefined() && !jl->IsEmpty())
   {
-    Line* res = new Line(0);
+    result.Clear();
+    result.StartBulkLoad();;
     JRouteInterval rint;
     for (int i = 0; i < jl->GetNoComponents(); i++)
     {
@@ -1264,20 +1265,21 @@ Line* JNetwork::GetSpatialValueOf(const JLine* jl) const
       {
         if (tmp->IsDefined() && !tmp->IsEmpty())
         {
-          Line* tmp1 = new Line(0);
-          res->Union(*tmp, *tmp1);
-          *res = *tmp1;
-          tmp1->DeleteIfAllowed();
+          HalfSegment hs;
+          for (int i = 0; i < tmp->Size(); i++)
+          {
+            tmp->Get(i,hs);
+            result += hs;
+          }
         }
         tmp->DeleteIfAllowed();
         tmp = 0;
       }
     }
-    return res;
+    result.EndBulkLoad();
   }
   else
-    return new Line(false);
-
+    result.SetDefined(false);
 }
 
 MPoint* JNetwork::GetSpatialValueOf(const MJPoint* mjp) const
@@ -1369,9 +1371,10 @@ SimpleLine* JNetwork::GetSpatialValueOf(const JRouteInterval& rint,
   if (sectList != 0 &&
       0 <= fromIndex && fromIndex < sectList->GetNoOfComponents())
   {
-    SimpleLine* result = 0;
-    Line* res = new Line(0);
-    res->SetDefined(true);
+    SimpleLine* result = new SimpleLine(0);
+    result->Clear();
+    result->StartBulkLoad();
+    HalfSegment hs;
     CcInt sidC;
     bool dirChanged = false;
     if (fromIndex > toIndex)
@@ -1397,10 +1400,14 @@ SimpleLine* JNetwork::GetSpatialValueOf(const JRouteInterval& rint,
           {
             SimpleLine* actCurve = GetSectionCurve(sid);
             j = rintList->GetNoOfComponents();
-            Line* l = new Line(0);
-            l->SetDefined(true);
             if (actInt.Inside(rint))
-              res->Union(*actCurve, *l);
+            {
+              for (int i = 0; i < actCurve->Size(); i++)
+              {
+                actCurve->Get(i,hs);
+                result->operator+=(hs);
+              }
+            }
             else
             {
               SimpleLine* sl = new SimpleLine(0);
@@ -1432,22 +1439,21 @@ SimpleLine* JNetwork::GetSpatialValueOf(const JRouteInterval& rint,
                 }
               }
               if (sl != 0 && sl->IsDefined() && !sl->IsEmpty())
-                res->Union(*sl, *l);
+              {
+                for (int i = 0; i < sl->Size(); i++)
+                {
+                  sl->Get(i,hs);
+                  result->operator+=(hs);
+                }
+              }
               if (sl != 0)
               {
                 sl->Destroy();
                 sl->DeleteIfAllowed();
               }
             }
-            if (l != 0 && l->IsDefined() && !l->IsEmpty())
-              *res = *l;
             actCurve->DeleteIfAllowed();
             actCurve = 0;
-            if (l != 0)
-            {
-              l->Destroy();
-              l->DeleteIfAllowed();
-            }
           }
           j++;
         }
@@ -1457,14 +1463,13 @@ SimpleLine* JNetwork::GetSpatialValueOf(const JRouteInterval& rint,
       }
       actindex++;
     }
-    result = new SimpleLine(*res);
-    res->Destroy();
-    res->DeleteIfAllowed();
+    result->EndBulkLoad();;
     if (dirChanged)
       result->SetStartSmaller(!result->StartsSmaller());
     return result;
   }
-  return 0;
+  else
+    return 0;
 }
 
 Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc, int& curRid,
