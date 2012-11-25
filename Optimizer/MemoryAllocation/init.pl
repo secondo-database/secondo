@@ -46,6 +46,7 @@ loadMA :-
 	% See ma_improvedcosts.pl for more information.
 	delOption(improvedcosts),
 	delOption(nawracosts),
+	delOption(nestedRelations),
 	
 	% dependent files...
 	['NestedRelations/util.pl'],

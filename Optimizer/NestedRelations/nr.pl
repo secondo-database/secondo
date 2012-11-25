@@ -2,7 +2,7 @@
 $Header$
 @author Nikolai van Kempen
 
-This files provides different functions to work with nested relations within the optimizer.
+This file provides different functions to work with nested relations within the optimizer.
 
 Open issues: optimization of such queries, selectivities, cards 
 */
@@ -16,8 +16,8 @@ is_nrel(DCRel) :-
   secondoCatalogInfo(DCRel, _, _, [[nrel, _]]).
 
 /*
-Builds a atom that applies a sequence of unnest operations.
-The list elements needs to be in external spelling.
+Builds an atom that applies a sequence of ~unnest~ operations.
+The listed elements need to be in external spelling.
 
 getArelUnnestAtom(+ARelListInExternalSpelling, ?UnnestAtom)
 */
@@ -41,7 +41,7 @@ concatAttributes([A|REST], OUT) :-
   OUT=AttrDC:ROUT.
 
 /*
-Atts has to be append this way or the operator type has to be changed from xfy to yfx, but this wouldn't be good. Then it is no longer possible we separate the elements from left to right. You can do this: a:b or a:(b:c) but NOT: (a:b):c. Then we can't obtain the first element with A : _. Note that we consider a "x:y..."-builded term as a list from left to right and not as a tree!
+Attributes has to be appended this way or the operator type has to be changed from xfy to yfx, but this wouldn't be so good. It is then no longer possible to separate the elements from left to right. We can do this: a:b or a:(b:c) but at no way: (a:b):c. We then can't obtain the first element with A : _. Note that we consider a "x:y..."-built term as a list from left to right and not as a tree!
 ---- 
 appendAttribute(+A1, +A2, ?T)
 ----
@@ -84,7 +84,8 @@ lastAttribute(A, A) :-
 	atomic(A).
 
 lastAttribute(A:B, Result) :-
-	% If this failed, A is something like x:y, note that (x:y):b is not allowed.
+	% If this fails, ~A~ is something like ~x:y~, note that (x:y):b is 
+	% not allowed.
 	assertion(atomic(A)),
 	lastAttribute(B, Result).
 
@@ -114,7 +115,7 @@ downcaseAttributeList(A1:B1, A2:B2) :-
 downcaseAttributeList(A, B) :-
 	applyOnAttributeList(downcase_atom, A, B).
 
-% Eval's a predicate P/2 on every list element.
+% Eval a predicate P/2 on every list element.
 applyOnAttributeList(P, A1:B1, A2:B2) :-
 	call(P, A1, A2),!,
 	applyOnAttributeList(P, B1, B2).
@@ -129,7 +130,7 @@ downcaseList([A|RA], [B|RB]) :-
   downcaseList(RA, RB).
 
 /*
-Returns in $Result the first element in $List that unifies with $S.
+Returns $Result of the first element into $List that unifies with $S.
 findfirst(+S,+List,-Result)
 */
 findfirst(X, [X|_], X) :- !.
@@ -147,11 +148,11 @@ atomicCheck([A|Rest]) :-
   atomicCheck(Rest).
 
 /*
-Determine the cardinality for arel attributes.
-Needed if a arel relation apears within the from clause of a subquery.
-Because there is no exact cardinality for arel attributes, and
-this needed cardinality depending on the selectivitiy of the 
-outer query, implemented ist just the very simple approximation
+Determines the cardinality for arel attributes.
+Needed if a arel relation appears within the from clause of a subquery.
+There is no exact cardinality for arel attributes in general and
+the required cardinality depends on the selectivitiy of the 
+outer query. Implemented is the very simple approximation
 that the cardinality is the number of all rows within the arel
 relation divided by the rows of all outer arels/nrels.
 */
@@ -161,8 +162,8 @@ Just return the stored size.
 nrCard(irrel(_, _, _, Card, _, _, _), Card) :- 
 	!.
 
-% open issue
-% how to estimate the card size for arels that are created on the fly?
+% open issue:
+% how to estimate the card size for arels which are created on the fly?
 nrCard(fqn(no), 10) :-
 	!. 
 
@@ -173,9 +174,9 @@ nrCard(FQN, Card) :-
 	!.
 
 /*
-The the average numer of rows within the arel relation. 
+The average number of rows within the arel relation. 
 Note that the variation to the real cardinality may be huge,
-what is totally different from the cardinalty for the top level relation.
+which is totally different to the cardinality of the top level relation.
 */
 cardByFQN(DB, DCFQN, Size) :-
 	DCFQN=Outer:_,
@@ -194,7 +195,7 @@ Just return here pre-stored tuple sizes.
 */
 nrTupleSizeSplit(irrel(_, _, _, _, TupleSize, _, _), TupleSize).
 
-% Fix that some predicates are not registered yet as dynamic.
+% Quote that some predicates are not registered yet as dynamic.
 :- dynamic 
 	node/3,
 	edge/6,
@@ -226,7 +227,7 @@ nrInfo :-
 		queryRel, variable, usedAttr, queryAttr, aliasBySQID],
 	forAllIn(writefacts, FList).
 
-% Should be called before a totally new query will be processed.
+% Should be called before a totally new query is processed.
 % But NOT before subqueries are processed.
 totalNewQuery :-
   retractall(currentLevel(_)), % see the comments within subqueries.pl
@@ -245,10 +246,10 @@ totalNewQuery :-
 
 
 /*
-0 is the top level query and at this time, the optimizer is not in the lookup
-of a subquery.
+SQID 0 is the top level query and at this point, the optimizer is not in the 
+lookup of a subquery.
 
-During the lookup phase, these are node numbers of the subquery ~tree~. These are also stored within the subquery(_, _, _) terms to generate a identifer for the subqueries. This is needed to be able to identify a subquery within the plan_to_atom phase.
+During the lookup phase, these returned number are node numbers of the subquery ~tree~. These are also stored within the subquery(_, _, _) terms to generate a identifier for the subqueries. This is neccessary to be able to identify a subquery within the plan_to_atom phase.
 */
 getSubqueryCurrent(N1) :-
   subqueryCurrent(N2),
@@ -263,7 +264,7 @@ setSubqueryCurrent(N) :-
   assertz(subqueryCurrent(N)).
 
 /*
-Stores the current enviroment and restores the enviroment given by the parameter. This is not needed during the lookup, but later within the plan generation by the subquery extension.
+Stores the current environment and restores the environment given by the parameter. This is not needed during the lookup, but later within the plan generation of the subquery extension.
 */
 restoreSQID(_SQID) :-
   \+ optimizerOption(nestedRelations). 
@@ -319,7 +320,7 @@ restoreCurrentQueryInfos(SQID) :-
   assertzall(L5).
 
 /*
-The stored facts about the subquery could be deleted now. But for error tracking the are kept and only removed if a totaly new query will be looked up.
+The stored facts of the subquery could be deleted now. But for error tracking they should be kept and only removed if a totally new query is looked up.
 */
 leaveSubquery :-
   \+ optimizerOption(nestedRelations), 
@@ -339,8 +340,11 @@ leaveSubquery :-
   throw(error_Internal(nestedrelations_leaveSubquery::invalidState)).
 
 /*
-Assertz's usedAttr facts to the surrounding query if attributes are
-used of the outer query. 
+Assertz usedAttr facts to the surrounding query if attributes are
+used from the outer query. 
+
+This is very important for some kind of queries. Otherwise attribute
+are not available within subqueries.
 */
 injectUsedAttrToPreviousSQID(SQID) :-
   subqueryDFSLabel(PreviousSQID, SQID, _),
@@ -364,7 +368,7 @@ createUsedAttrFromARelList(SQID, [RelT|Rest], [A|ARel]) :-
 	createUsedAttrFromARelList(SQID, Rest, ARel),	
 	RelT=rel(Rel, _),
 	% The following task of rebuilding the attribute label is based on how it is
-	% done within the nrLookupRel predicates that handels the arel access.
+	% done within the nrLookupRel predicates which handles the arel access.
 	Rel=irrel(arel, _, _, _, _, _, arel(_, _, Attr2, Case, SourceRelT)),
 	((Attr2=Pre:RestAttr, ground(Pre));RestAttr=Attr2),
 	ensure(ground(RestAttr)),
@@ -386,8 +390,8 @@ getCurrentARels(CurrentARelList) :-
 	append(L1, L2, CurrentARelList).
 
 /*
-Returns all rels used in the query with the given SQID, works not
-for the current query.
+Returns all rels used in the query with the given SQID, but does not work 
+with the current query.
 */
 getRelsBySQID(SQID, Rels) :-
   variablesBySQID(SQID, L1),
@@ -415,9 +419,9 @@ enterSubquery(_Type) :-
 enterSubquery(Type) :-
   optimizerOption(nestedRelations),
   dm(nr, ['\nenterSubquery']),
-  % Just ennumerate the subquries coz we have currently to other way to 
-  % identify a query. In particular i'm interested in the parent queries to 
-  % get some knowledge about these query variable bindings.
+  % Just ennumerate the subqueries because there is so far, no other way 
+	% implemented to identify a query. In particular we are interested in the
+	% parent queries to get some knowledge about variable bindings.
   getSubqueryCurrent(SQID),
   (retract(subqueryMaxLabel(Max)) ->
     true
@@ -431,7 +435,7 @@ enterSubquery(Type) :-
   assertz(subqueryDFSLabel(SQID, NewSQID, Type)),
 
   storeCurrentQueryInfos(SQID), % To restore the current lookup process 
-  % after a subquery was processed.
+  % after a subquery has been processed.
   newQuery,
   !.
 
@@ -439,7 +443,7 @@ enterSubquery(Type) :-
   throw(error_Internal(nestedrelations_enterSubquery(Type)::invalidState)).
 
 /*
-If not bounded to the current query, it is necessary to look into the variable bindings of the outer queries. Note that that some outer queries maybe skipped coz the variable isn't used there.
+If not bounded to the current query, it is necessary to look into the variable bindings of the outer queries. Note that some outer queries maybe skipped because the variable isn't used there.
 */
 findBinding(Var, Result, SQID) :-
   variable(Var, rel(Rel, Var)),
@@ -463,7 +467,7 @@ findBinding(SQID, Var, Result, SQIDFound) :-
   ).
 
 /*
-Like findBinding, but searches only in the direct outer query.
+Like findBinding, but only searches in the direct outer query.
 */
 findParentBinding(SQID, Var, Result, SQIDFound) :-
   subqueryDFSLabel(PrevSQID, SQID, _),
@@ -519,7 +523,7 @@ getSelectFromQuery(Query, Select) :-
   throw(error_Internal(nr_getSelectFromQuery(Query, Select)::ErrMsg)).
 
 /*
-Recognize terms as queries (even if the query themselves is not valid)
+Recognizes terms as queries (even if the query itselve is not valid)
 */
 simplifiedIsQuery(Query orderby _) :-
   simplifiedIsQuery(Query).
@@ -551,21 +555,21 @@ reduceToARel(AttrList, ARelPath, AttrListOut) :-
     ), AttrListOut).
 
 /*
-Not a very efficent version.
+Not a very efficient version.
 Example:
 ?- getRelDesc(orteh, X).
 X = reldesc([[bevth, bevTH, u, orteh:bevth, int, noarel, sizeTerm(12, 5.0, 0)], [subrel, subRel, u, orteh:subrel, arel, areldesc([[kennzeichen, kennzeichen, u, orteh:subrel:kennzeichen, string, noarel, sizeTerm(60, 8.320158102766799, 0)], [ort, ort, u, orteh:subrel:ort, string, noarel, sizeTerm(60, 18.1600790513834, 0)], [vorwahl, vorwahl, u, orteh:subrel:vorwahl, string, noarel, sizeTerm(60, 10.725296442687746, 0)], [bevt, bevT, u, orteh:subrel:bevt, int, noarel, sizeTerm(12, 5.0, 0)]], sizeTerm(192, 42.20553359683794, 0)), sizeTerm(60, 90.9090909090909, 153.0909090909091)]], sizeTerm(72, 95.9090909090909, 153.0909090909091)).
 
-It work's like getRelAttrList/3, but here the spelling is stored, too.
+It works like getRelAttrList/3, but here the spelling is stored, too.
 
-The list that is describing a attribute has the following format:
+The list which describes an attribute has the following format:
 
 Attr = [DCAttr, AttrMod, DCFQN, Type, ARelTerm, AST],
-DCAttr: The attribute name as it is, this will not change by the renaming.
-AttrMod: the modified attribute name that is changing more or less often due to renaming. Except the case, this is how the attribute name will apear within the stream.
+DCAttr: The attribute name is as it is, this will not be changed by renaming. This is used within the lookup to find attributes.
+AttrMod: the modified attribute name which changes more or less often due to renaming (except the case). This is how the attribute name will appear within the stream.
 Case: u/l for AttrMode as usual
-DCFQN: The full qualified identifier, only is the source is a field from a relation. var(DCFQN) otherwise.
-TYPE: the attributes data type
+DCFQN: The full qualified identifier, only set if it is a field of a relation. otherwise.
+TYPE: the attribute's data type
 ARelTerm: recursive decription of arel relations.
 AST=The sizeTerm.
 
@@ -620,8 +624,8 @@ getRelDesc2(DB, DCRel, ARelPath, AllAtts, [DCAttr|AttrList1],
 	;
 		ARelTerm=noarel % not available
 	),
-	ensure(atomic(DCAttr)), % Can be removed...but to be clear
-	% DCFQN is only set if it is a real attributes, e.g. read from a relation.
+	ensure(atomic(DCAttr)), % Can be removed...but to be sure.
+	% DCFQN is only set if it is a real attribute, e.g. read from a relation.
   ResAttr = [DCAttr, SP2, Case, DCFQN, Type, ARelTerm, AST],
   addSizeTerms([TupleSize1, AST], TupleSize),
   !.
@@ -738,10 +742,10 @@ applyTOP(nest(Attrs3, LA, _), _, AttrList, AttrList4) :-
 	% himself is added.
 	ARelD=areldesc(AttrList3, CSZ),
 	FQN=fqn(no), % Just building a term that indicates that this attribute
-	% is not comming from the database, i can't pass just no because it
-	% might be confusing, so i return this compounded term. To pass a variable
-	% is not possible because the subquery extension does some ground(_) checks,
-	% and these would fail then.
+	% is not coming from the database. I can't pass just ~no~ because it
+	% might be confusing. I rather return this compounded term. To pass a variable
+	% is not possible because the subquery extension does some ground/1 checks,
+	% and they would fail then.
   AD=[DCAttr, NewLabel, Case, FQN, arel, ARelD, CSZ],
 	append(Removed, [AD], AttrList4),
   !.
@@ -762,11 +766,11 @@ nrRemoveAttrs([Attr|Rest], AttrList, AttrList3, RemovedNew) :-
 	append([A], Removed, RemovedNew).
 
 /*
-The three cases that a relation can be occur within the from list:
+The three cases that a relation can occur within the from list:
 - a relation
-- a arel attribut
+- a arel attribute
 - a query
-So for a isStartQuery, all attributes needs to be collected.
+So for a isStartQuery, all attributes need to be collected.
 
 attsFromRels(+SQID, +TOP, +RelList, -AttrList, -SizeTermResult)
 */
@@ -806,8 +810,8 @@ attsFromFacts(_SQID, LQuery, _TOP, _RelList, AttrList3, SizeTermResult) :-
 % The problem here is to obtain the appropriate sizeTerm for an
 % expression.	
 attsFromFacts(_SQID, LQuery, _TOP, _RelList, AttrList3, SizeTermResult) :-
-	isAggrQuery(LQuery), % This works also for already looked-up queries.
-	% In this case, the size Term is may not correct.
+	isAggrQuery(LQuery), % This also works for already looked-up queries.
+	% In this case, the size Term may not be correct.
 	AttrList3=[[value, value, u, fqn(no), unknown, noarel, sizeTerm(16, 5, 0)]],
   recomputeSizeTerm(AttrList3, SizeTermResult),
   !.
@@ -828,15 +832,15 @@ attsFromFacts(SQID, LQuery, TOP, RelList, AttrList3, SizeTermResult) :-
   nrRemoveUnusedAttrs(L1, AttrList1, AttrList2),
 
 
-	% Currently, queryAttr are only possible if this query is NOT a isStarQuery.
+	% Currently, queryAttr are only possible if this query is NOT an isStarQuery.
   queryAttrsBySQID(SQID, L2),
   addQueryAttr(SQID, L2, AttrList2, AttrList3),
   recomputeSizeTerm(AttrList3, SizeTermResult),
   !.
 
 /*
-All other entries within the select clause are queryAttr terms used in combination with the as xy term.
-Note too: when a groupby is used, every column with a aggregate function need to get a name and then they are handley with the queryAttr case.
+All other entries within the select clause are queryAttr terms used in combination with the ~as xy~ term.
+Note, too: when a groupby is used, every column with an aggregate function needs to get a name and then they are handled with the queryAttr case.
 */
 onlyAttr([], []).
 onlyAttr([attr(Name, Index, Case)|Rest], [attr(Name, Index, Case)|Rest2]) :-
@@ -848,13 +852,13 @@ onlyAttr([A|Rest], Rest2) :-
 	onlyAttr(Rest, Rest2).
 	
 /*
-Find a attribute by it's simple name that was never renamed.
-This supports to write queries without manually add all renaming labels.
+Find an attribute by it's simple name which was never renamed.
+This supports to write queries without manually adding all renamed labels.
 
 Note that this is only syntatic sugar and might return a wrong result.
 But still it is much better as to manually adopt the renaming process during writing a query.
-Another option is to extend the duplicate check method to even avoid this
-name conflicts.
+Another option is to extend the duplicate check method to avoid 
+name conflicts (what was implemented in the meantime).
 */
 nrSimpleFindAttribute(AttrDC, [AL|_], AL) :-
   AL=[AttrDC|_]. % See getRelDesc for a structure description
@@ -889,7 +893,7 @@ addVar(A, Var, AV) :-
 	appendAttribute(Var, A, AV).
 
 /*
-Provable if the attribute A1 is in the list,
+Provable if the attribute ~A1~ is in the list,
 */
 nrContainsAttribute(A1, [L1|_]) :-
   L1=usedAttr(RelT, attr(Attr, _, _)),
@@ -949,9 +953,9 @@ getQueryResultSize(Query first _, Size, TupleSize) :-
   getQueryResultSize(Query, Size, TupleSize).
 getQueryResultSize(Query orderby _, Size, TupleSize) :-
   getQueryResultSize(Query, Size, TupleSize).
-% I found no clues that for this case there is any estimation implemended,
-% so i make only a worst case estimation. It might be possible to calculate
-% a appropriate values based on the stored selectivities.
+% I found no clues for this case that there is any estimation implemented,
+% I make make a worst case estimation. It might be possible to calculate
+% appropriate values based on the stored selectivities.
 getQueryResultSize(Query groupby _, Size, TupleSize) :-
   getQueryResultSize(Query, Size, TupleSize).
 
@@ -977,7 +981,7 @@ getQueryResultSize(select _ from RelT, Size, sizeTerm(0, 0, 0)) :-
 
 /*
 In this case we can obtain the values from the pog optimization. (because a where condition is within the query)
-Note that with is not available for the standard costs (but nested relations works only with these standard cost). But i added it anyway if later needed.
+Note that this is not available for the standard costs (but nested relations only works with these standard cost). But I added it already, if later needed.
 */
 getQueryResultSize(_, Size, TupleSize) :-
   highNode(N),
@@ -1007,11 +1011,11 @@ addUsedAttrIfNeeded(RelT, Attr) :-
 	!.
 
 /*
-If the attriubte origin is a outer query, then it is needed to extract
+If the attribute origin is an outer query, then it is needed to extract
 the attribute from the tuple alias that is generated by the subqueries
 extension.
-Note: This can only be used with the "as Alias" term, otherwise it will handeld
-wrong withint he selectClause predicate within the optimizer.pl file.
+Note: This can only be used with the "as Alias" term, otherwise it will be 
+handled wrong within the selectClause predicate within the optimizer.pl file.
 */
 adjustAttrTerm(AttrTerm, SQID, AttrTerm) :-
   getSubqueryCurrent(SQID),
@@ -1081,7 +1085,7 @@ nrLookupAttr(Query as Name, OutQuery) :-
 
 /*
 A query within the attribute list may return an atomic value or a arel relation.
-Simple aggregation queries delivers a atomic value because they are handely by the rewiring rules of the subqueries extension.
+Simple aggregation queries deliver an atomic value because they are handled by the rewiring rules of the subqueries extension.
 */
 nrLookupSubqueryAttr(Query as Name, OutQuery as attr(Name, 0, u)) :-
   \+ queryAttr(attr(Name, 0, u)), % Not already used
@@ -1093,7 +1097,7 @@ nrLookupSubqueryAttr(Query as Name, OutQuery as attr(Name, 0, u)) :-
 
   TOP=notop,
   createAttrListFromQuery(Query2, SQID, TOP, AttrList1, _),
-  % Surrounding Rel2 with a subquery(_) term makes the a later check with 
+  % Surrounding Rel2 with a subquery(_) term makes a later check with 
   % simplifiedIsQuery expendable.
   OutQuery2 = subquery(SQID, Query2, [], AttrList1),
   getSubqueryCurrent(CSQID), % Remember the query node for later use.
@@ -1146,16 +1150,16 @@ nrLookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
 /*
 intermediate result relation-lookup
 
-Note that here only the queryRel and variable facts are added.
+Note that only here the queryRel and variable facts are added.
 */
 nrLookupRel(Term, RelT) :-
 	nrLookupIRRel(Term, RelT),
 	RelT=rel(_, Var),
 	nrAssertRelTerm(Var, RelT),
-	nrDuplicateAttrCheck. % A variable may not avoid in every case a duplicate 
-	% attribute name. Even if within attributes the user avoided to use _ within
+	nrDuplicateAttrCheck. % A variable may not avoid a duplicate of an 
+	% attribute name in every case. Even if the user avoids to use _ within
 	% attirubtes names, because of nested relations and subqueries, this
-	% might happen nevertheless. 
+	% might happen anyway.
 	% Example: 
 	% select * 
 	% from [(select * from orte as x first 1),
@@ -1175,13 +1179,13 @@ nrAssertRelTerm(Var, RRel) :-
 	throw(error_Internal(nr_nrAssertRelTerm(Var, RRel)::failed)).
 
 /*
-Checks if a attribute name apears more than one time within the stream.
+Checks if an attribute name appears more than one time within the stream.
 */
 nrDuplicateAttrCheck :-
   getSubqueryCurrent(SQID),
 	%member(_Type1, [relation, attribute, predicate]),
 	% Note that findAttrLists may generate more entries than needed because
-	% of the type, but that dosen't affect the correctness.
+	% of the type, but that doesn't affect the correctness.
 	Type=attribute, % to check for conflicts, this is enaugh.
   findAttrLists(Type, SQID, _RelVar1, RelT1, AttrDescList1),
   findAttrLists(Type, SQID, _RelVar2, RelT2, AttrDescList2),
@@ -1203,7 +1207,7 @@ nrDuplicateAttrCheck :-
 
 /*
 Simple irrel lookup for a regular relation, used for later post processing.
-for examle within unnest terms.
+for example within unnest terms.
 */
 nrLookupIRRel(Rel as Var, IRRel) :-
   atomic(Rel),
@@ -1214,9 +1218,9 @@ nrLookupIRRel(Rel, IRRel) :-
 
 /*
 Possible within attribute queries or within predicate queries.
-Not within the from clause queries (direct, of course, within the from query, attributes or predicates may contain queries with a valid call of this predicate).
+Not within the from clause queries (directly, of course, within the from query, attributes or predicates may contain queries with a valid call of this predicate).
 
-Handels the four from <arel> cases:
+Handle the four from <arel> cases:
 var:arel 
 var:arel as label
 arel
@@ -1261,7 +1265,7 @@ nrLookupIRRel(SrcRel unnest(Attr) as Var, RelT) :-
 	!.
 nrLookupIRRel(SrcRel unnest(Attr), RelT) :-
 	% This is the reason for the nrLookupRel2 predicates,
-	% otherwise the as * term will, of course, produce a infinite loop.
+	% otherwise the as * term will, of course, produce an infinite loop.
 	nrLookupIRRel2(SrcRel unnest(Attr) as *, RelT),
 	!.
 
@@ -1277,7 +1281,7 @@ nrLookupIRRel(Query as Var, RelT) :-
 % Top-level Rel lookup
 % rel -> irrel
 % nrel -> irrel
-% Note that this case happens only iff after this a nest or unnest will follow.
+% Note that this case only occurs iff a nest or unnest will follows.
 nrLookupIRRel2(Rel as Var, IRRel) :-
   atomic(Rel),
   downcase_atom(Rel, RelDCName),
@@ -1304,22 +1308,22 @@ nrLookupIRRel2(RelVar:ARel as Var, RelT) :-
 
   ((RelVar \= *, Type \= arel) ->
     (
-      ErrMsg='Source attribute has not the type arel. This is not allowed',
+      ErrMsg='Source attribute has not the arel type. This is not allowed',
       throw(error_Internal(nr_nrLookupRel(RelVar:ARel as Var, RelT))::ErrMsg)
     )
   ;
     Type=arel % Just fail silently if RelVar=*...maybe ARel is
-    % a regular relation and should be handeld by the other predicate.
-    % if not, the user will see a default error message, wich maybe
-    % hard to track it is a error within the program. Then it should
+    % a regular relation and should be handled by the other predicate.
+    % If not, the user will see a default error message, wich maybe
+    % hard to track as it is an error within the programme. It should then be
     % tried again with label.
   ),
   !,
   ARelTerm=areldesc(AttrList, ST1),
   nrRenameAttrList(AttrList, Var, AttrListR),
 	
-	% This is the lookup phase, but nevertheless is the plan generated here
-	% Otherwise nested pog optimizatios can occur when the plan is created.
+	% This is the lookup phase, but nevertheless the plan is generated here
+	% Otherwise nested pog optimizations can occur when the plan is created.
 	% (this is the case for subqueries, but both cases are treated equally).
 	getAlias(SRCSQID, Alias),
 	Stream = afeed(attribute(Alias, a(Attr2, 0, Case))),
@@ -1393,8 +1397,8 @@ nrLookupIRRel2(Query as Var, RelT) :-
   lookupSubquery(Query, Query2),
 
   % immediately create the plan.
-  % Note that if a optimzation will performed, at every time only one optimize
-  % process will be in progress.
+  % Note that if an optimzation is performed, only one optimize
+  % process will be in progress at every time.
 	nrSubqueryToStream(Query2, Stream, _Costs),
   getQueryResultSize(Query2, Card, _),
 
@@ -1403,8 +1407,8 @@ nrLookupIRRel2(Query as Var, RelT) :-
   createAttrListFromQuery(Query2, SQID, TOP, AttrList1, TupleSize),
   nrRenameAttrList(AttrList1, Var, AttrList2),
 
-  % Surrounding Rel2 with a subquery(_) term makes the a later check with 
-  % simplifiedIsQuery expendable.
+  % Surrounding Rel2 with a subquery(_) term makes a later check with 
+  % simplifiedIsQuery(Term) expendable.
   ExSpec=query(Query2, SQID),
  	RelT=rel(irrel(query, Stream, TOP, Card, TupleSize, AttrList2, ExSpec), Var),	
 	!.
@@ -1431,11 +1435,11 @@ lookupAD([Attr|ARest], AL, [A2|ARest2]) :-
 	A2=attr(Attr2, 0, Case).
 
 /*
-For count queries, here is fixed that within the secondo the sql dialect fulfills not the closure property. Within secondo, a count query returns a single value and not a relation. Here the value is transformed into a tuple stream.
-This is just a work around, i think it would be better to implement a new count operator that returns a tuple stream (with one tuple) as a result that can be consumed.
-The same is the case for max/min/avg etc.
+For ~count~ queries, it is fixed that within the secondo the sql dialect does not fulfill the closure property. Within secondo, a count query returns a single value and not a relation. Here the value is transformed into a tuple stream.
+This is just a work around, maybe it would be better to implement a new count operator that returns a tuple stream (with one tuple) as a result that can be consumed.
+The same cases are for max/min/avg etc.
 
-Another extension would be nice, too. If count produces a tule stream, labeling a the attribute should be possible:
+Another extension would be nice, too. If count produces a tuple stream, the labeling of attributes should be possible:
 select count(*) as anzahl from orte.
 
 nrSubqueryToStream(+Query, ?Stream, ?Costs) 
@@ -1464,14 +1468,13 @@ nrSubqueryToStream(Query, Stream, Costs) :-
 
 nrSubqueryToStream(Query, Stream, Costs) :-
 	isAggrQuery(Query), 
-	% if addTmpVariables(Stream2, StreamOut), is used there, it won't work 
-	% this way.
+	% if addTmpVariables(Stream2, StreamOut) is used there, this won't work.
   queryToPlan(Query, Stream1, Costs), 
 	Attr=attr(value, 0, u),
 	atomicValueToTupleStream(Stream1, Attr, Stream).
 
-% implement more rules for sum, min etc. 
-% Note that then the createAttrListFromQuery predicates needs to be modified, 
+% implements more rules for sum, min etc.
+% Note that then the createAttrListFromQuery predicates need to be modified, 
 % too.
 nrSubqueryToStream(Query, Stream, Costs) :-
   queryToStream(Query, Stream, Costs).
@@ -1485,7 +1488,7 @@ atomicValueToTupleStream(StreamIn, Attr, StreamOut) :-
 
 /*
 Special version for the lookupAttr phase.
-In this case, of course, the attrlist can't be reduces based on the
+In this case, of course, the attrlist can't be reduced, based on the
 usedAttr facts.
 getCurrentAttrList(+SQID, ?Var, ?RelT, -AttrList) 
 */
@@ -1548,9 +1551,8 @@ reverseTraversePath(SQID, PrevPrevSQID) :-
 	reverseTraversePath(PrevSQID, PrevPrevSQID).
 
 /*
-With the lookup of attribute, the attribute may come from the attribute
-gather together within the from clause.
-Of course, lookups for outer query attribute may usefull and possible,
+Within the lookup of attributes, the attribute may come from the relations within the from clause.
+Of course, lookups for outer query attribute may be usefull and possible,
 but this is not implemented.
 findAttrLists(+Mode, ?SQID, ?Var, -RelT, -AttrList)
 */
@@ -1561,16 +1563,17 @@ findAttrLists(Mode, SQID, Var, RelT, AttrList) :-
 
 /*
 Case: relation
-A arel attribute can only obtained from the sourrounding query.
+A arel attribute can only be obtained from the sourrounding query.
 
 Either with just the name, or by dereferencing a variable like var:arel.
 
-RelVar has always to be a term hat isn't confusing prolog, so e.g. starts not with uppercase letters.
+RelVar always has to be a term while dosen't confuse prolog, e.g. doesn't starts with uppercase letters.
 
 Case: predicate
-For predicates, one more this must be allowed, it is to
-reference a outer query attribute.
+For predicates, one more must be allowed. It is to
+reference an outer query attribute.
 
+Note that this lookup stuff is limited here, because the subquery extension can't handle more levels.
 */
 findAttrLists(Mode, FoundSQID, Var, RelT, AttrList) :-
   getSubqueryCurrent(SQID),
@@ -1605,8 +1608,8 @@ Extract the attribute list if the list is stored within the rel term.
 extractAttrList(rel(irrel(_, _, _, _, _, AttrList, _), _), AttrList).
 
 /*
-A new variable may overwrite a variable in a outer query, so then the previous defined variable is not visible under this query anymore.
-Two variables with the same name on the same deep within different subqueries is not a problem.
+A new variable may overwrite a variable in an outer query, so then the previous defined variable is not visible under this query anymore.
+Two variables with the same name on the same level within different subqueries are not a problem.
 */
 checkVarIsFree(Var) :-
   variable(Var, _),
@@ -1673,7 +1676,7 @@ addTransformationOperator(StreamIn, TOP, StreamOut) :-
 		::failed)).
 
 /*
-Add the rename operator only if neede to the stream.
+Add the rename operator only if needed to the stream.
 */
 addRenameOperator(Stream, *, Stream) :-
 	!.
@@ -1695,7 +1698,7 @@ nrRestoreSort(StreamIn, SortAttrs, StreamOut) :-
 	StreamOut=sortby(StreamIn, SortAttrs).
 
 /*
-This is used within the statistics.pl to identfy relation term that
+This is used within the statistics.pl to identify relation term that
 are not working currently with statistics.
 */
 nrRel(Rel) :-
@@ -1744,8 +1747,8 @@ nrSelectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   !.
 
 /*
-The assignment of an alias is to late for this extension within the subquery extension, so this is behaviour was changed. The new strategy is to assgin an alias
-name if the lookup of a query is done. When to plan is generated, the newAlias predicate of the subquery extension returns this stored value and not a new alias.
+The assignment of an alias is too late for this extension within the subquery extension. This is was changed. The new strategy is to assign an alias
+name if the lookup of a query is done. When the plan is generated, the newAlias predicate of the subquery extension returns the stored value and not a new alias.
 */
 nrAssignAlias :-
   \+ optimizerOption(nestedRelations).
@@ -1761,7 +1764,7 @@ nrAssignAlias :-
 	throw(error_Internal(nr_nrAssignAlias::failed)).
 
 /*
-nrIsStar is used to support backtracking without var is bounded to a ground term. This is done here because Var \= * returns false if var(Var) is true and (var(X) ; Var \= *) is not a good alternative(backtracking).
+nrIsStar is used to support backtracking without a var is bounded to a ground term. This is done here because Var \= * returns false if var(Var) is true and (var(X) ; Var \= *) is not a good alternative(backtracking).
 */
 nrIsStar(X) :-
 	var(X), 
@@ -1772,8 +1775,8 @@ nrIsStar(*) :-
 	!.
 
 /*
-Recognize simple aggr queries
-Works even if Query is a alreday looked-up query.
+Recognizes simple aggr queries
+Works even if Query is already a looked-up query.
 */
 isAggrQuery(Query) :-
 	catch(aggrQuery(Query, _, _, _), error_SQL(optimizer_aggrQuery(_, undefined, 

@@ -298,7 +298,6 @@ maBestPlan([MiB], RPath, NewCosts) :-
 maBestPlan([MiB|Rest], Path, Costs) :-
 	!,
 	maBestPlan([MiB], _Path1, _Cost1),
-	%getMemoryValues(MemoryValues1),
 	maBestPlan(Rest, _Path2, _Cost2),
 	% Return now the shorter path, this works here only because there
 	% are no previous evaluations.
@@ -746,7 +745,6 @@ doMemoryOptimization(Path, Memory, CList, _Len, SufficientMemoryInMiB, 0,
 % If the sufficient memory values sum is higher as the global memory but
 % with the blocking operators constraints there is enaugh memory. In this
 % case it would not needed to execute the optimization.
-
 
 doMemoryOptimization(Path, Memory, CList, Len, SufficientMemoryInMiB, ARResult, 
 		RPath) :-

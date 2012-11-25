@@ -3,13 +3,13 @@ $Header$
 @author Nikolai van Kempen
 
 Following some stuff used from auxiliary.pl to display nrel types in the way
-it is done within the SecondoBDB.
+it is done within the SecondoBDB etc.
 
 */
 
 
 /*
-This is now for nested relations. Like the algebra display function 4 blanks are added when the predicate runs into a arel relation.
+This is for nested relations. Like the algebra display function 4 blanks are added when the predicate runs into a arel relation.
 */
 max_attr_length_nrel([], _, R, R).
 
@@ -25,7 +25,7 @@ max_attr_length_nrel([[Name, Type] | AttrDescription], Deep, IN, OUT) :-
       OUT2=IN
   ),
   max_attr_length_nrel(AttrDescription, Deep, OUT2, M1OUT),
-  % NVK NOTE: The arel attribute name is not indended.
+  % The arel attribute name is not indented.
   atom_length(Name, M2),
   % Unfortunately this is a little bit nasty, but every nested relation 
   % within the deep x should be layouted at the same position.
@@ -33,7 +33,10 @@ max_attr_length_nrel([[Name, Type] | AttrDescription], Deep, IN, OUT) :-
   M is max(INDEND, M2),
   setx(M1OUT, Deep, M, OUT).
 
-% Create a new list where the element a position x in the first list will be T. 
+/*
+Create a new list where the element at position ~Index~ in the first list will be ~Element~.
+setx(+List, +Index, +Element, -NewList)
+*/
 setx([_], 0, T, [T]).
 setx([_|REST], 0, T, [T|REST]).
 setx([A|REST], Deep, T, [A|OUT]) :-
@@ -55,8 +58,8 @@ nr_display([Rel, [tuple, Attrs]], Tuples) :-
   nl,
   max_attr_length_nrel(Attrs, 0, [0], AttrLengths),
   % We should ensure this or otherwise the layout might be confusing
-  % during shorter name in a inner relation.
-  % max_attr_length_nrel calculates just for every deep the need lengths.
+  % during shorter names in an inner relation.
+  % max_attr_length_nrel calculates just for every deep needed lengths.
   makeIncreasingList(AttrLengths, AttrLengths2),
   displayTuplesNrel(Attrs, 0, Tuples, AttrLengths2).
 
@@ -75,7 +78,7 @@ Display function for nested relations, kept here separated, too. But if needed, 
 */
 displayTuplesNrel(_, _, [], _).
 
-% just avoids to much nl calls. It would result into a nasty layout.
+% just avoids too much nl calls. It would result into a nasty layout.
 displayTuplesNrel(Attrs, Deep, [Tuple], AttrLength) :-
   displayTupleNrel(Attrs, Deep, Tuple, AttrLength).
 
@@ -96,7 +99,7 @@ displayTupleNrel([[Name, Type] | Attrs], Deep, [Value | Values],
   ( Type = [arel,[tuple,ArelDef]]
     -> nl,
       NewDeep is Deep + 1,
-      % Note: The first element is a internal reference used by the 
+      % Note: The first element is an internal reference used by the 
       % nested relation algebra.
       Value = [_|DValue],
       displayTuplesNrel(ArelDef, NewDeep, DValue, RestLength)

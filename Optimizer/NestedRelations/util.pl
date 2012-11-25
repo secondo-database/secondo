@@ -58,7 +58,7 @@ roundListToInts([F|FRest], [I|IRest]) :-
   I is round(F),
   roundListToInts(FRest, IRest).
 
-%roundListToInts(+FloatList, -IntegerList)
+%ceilingListToInts(+FloatList, -IntegerList)
 ceilingListToInts([], []).
 ceilingListToInts([F|FRest], [I|IRest]) :-
   I is ceiling(F),
@@ -281,5 +281,33 @@ split_at_index([Head|Tail], Index, [Head|HeadList], TailList) :-
 	!,
   NewIndex is Index - 1,
   split_at_index(Tail, NewIndex, HeadList, TailList).
+
+/*
+Replaces a variable within an arbitrary term.
+replaceVar(+TermIn, +VarOld, +VarNew, -TermOut)
+*/
+replaceVar(Term, _VarOld, _VarNew, Term) :-
+	\+ compound(Term),
+	nonvar(Term).
+
+replaceVar(Term, VarOld, VarNew, VarNew) :-
+	var(Term),
+	Term == VarOld.
+replaceVar(Term, VarOld, _VarNew, Term) :-
+	var(Term),
+	Term \== VarOld.
+
+replaceVar([], _VarOld, _VarNew, []) :-
+	!.
+replaceVar([A|Rest], VarOld, VarNew, [AT|RestT]) :-
+	replaceVar(A, VarOld, VarNew, AT),
+	replaceVar(Rest, VarOld, VarNew, RestT),
+	!.
+replaceVar(TermIn, VarOld, VarNew, TermOut) :-
+	compound(TermIn),
+	TermIn =..[F|List],
+	replaceVar(List, VarOld, VarNew, ListNew),
+	TermOut =..[F|ListNew],
+	!.
 
 % eof

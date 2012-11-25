@@ -2,7 +2,8 @@
 $Header$
 @author Nikolai van Kempen
 
-Mainfile to load the other nested relations files if the option is enabled.
+Mainfile, to load the other nested relations files if the option is enabled.
+
 */
 
 initNR :-
@@ -15,8 +16,8 @@ initNR :-
 		assertz(optDebugLevel(nr))
 	),
 
-	% Note that this files must be loaded, regardless if the nestedRelations 
-	% option is enabled or not.
+	% Note that these files must be loaded, regardless if the nestedRelations 
+	% option are enabled or not.
 	['nr.pl'],
 	['nr_auxiliary.pl'],
 
@@ -28,15 +29,15 @@ initNR :-
 :- initNR.
 
 loadNR :-
-	% This extension relies heaviliy onto the subqueries extension, so this won't 
-	% work without the enabled subqueries extension.
+	% This extension relies heavily on the subquerie's extension. This won't 
+	% work without the enabled subquerie's extension.
 	(optimizerOption(subqueries) ->
 		true
 	; 
 		setOption(subqueries)
 	),
  	delOption(determinePredSig), % incompatible
-	% This is not implemented and not checked how nested relations affects
+	% This is not implemented and not checked how nested relations affect
 	% the subquery unnesting capabilities.
 	delOption(subqueryUnnesting),
 	nrSelfCheck.

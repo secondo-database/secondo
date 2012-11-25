@@ -2,12 +2,12 @@
 $Header$
 @author Nikolai van Kempen
 
-Note: the test run only tests if the goal is provable, not if the result is correct. 
+Note: the test run only tests if the goal is provable and not wheather the result is correct. 
 	
-Before you are able to run the test, it is needed to create and prepare the test databases, so please make sure you created the test databases with testdbs/recreate.sh.
+Before you are able to run the test, you have to create and prepare the test databases. Please make sure you created the test databases with testdbs/recreate.sh.
 */
 
-% Just some simple queries that don't work with nested relations, just to test if i haven't damaged something because subquery-error-tracking is much more complex as for non-subquery queries.
+% Just some simple queries that don't work with nested relations, just to test if I haven't damaged something because subquery-error-tracking is much more complex as for non-subquery queries.
 testNRQuery(1, [database(opt)], select * from orte).
 testNRQuery(2, [], select bevt from orte).
 testNRQuery(3, [], select [bevt, kennzeichen] from orte).
@@ -31,7 +31,7 @@ testNRQuery(17, [], union[select * from orte, select * from orte]).
 %return true but the result is crap:
 %testNRQuery(131, [], sql union[select count(*) from orte, select count(*) from orte]).
 testNRQuery(30, [expectedResult(fail)], select (select count(*) from orte) as label from orte where label=10 first 1).
-% Works, but see the comments of the lookupAttr(Query as Var, ...) for more
+% Works, but look at the comments of the lookupAttr(Query as Var, ...) for more
 % infomation.
 testNRQuery(31, [], select (select count(*) from orte) as label from orte first 1).
 
@@ -51,7 +51,7 @@ testNRQuery(108, [], select subrel from orteh where bevth=34).
 testNRQuery(109, [], select o:subrel from orteh as o where o:bevth=34).
 
 % This is currently not possible because the POG can't handle this.
-% This works now, see comments within the subqueries.pl file.
+% This works now, look at the comments within the subqueries.pl file.
 % predicate: correlationsRels/2.
 testNRQuery(110, [], select * from orteh as o where [exists(select * from o:subrel as p)]).
 
@@ -93,7 +93,7 @@ testNRQuery(151, [], select * from orteh as o where [o:bevth<199, 10 <=(all(sele
 testNRQuery(152, [expectedResult(fail)], select * from orteh as o where [o:bevth<199, 10 =(all(select p:bevt from o:subrel as p where [p:bevt>o:bevth,p:bevt>1]))]).
 testNRQuery(153, [expectedResult(fail)], select * from orteh as o where [o:bevth<199, o:bevth =(all(select p:bevt from o:subrel as p where [p:bevt>o:bevth,p:bevt>1]))]).
 
-% Expected not to work, no preTransformNestedPredicate predicates are 
+% Is not expected to work, no preTransformNestedPredicate predicates are 
 % defined for this.
 %testNRQuery(39, select * from orteh as o where [o:bevth<199, o:bevth >(some(select p:bevt from o:subrel as p where [p:bevt>o:bevth,p:bevt>1]))]).
 testNRQuery(154, [], select * from orteh as o where [o:bevth<199, o:bevth >(any(select p:bevt from o:subrel as p where [p:bevt>o:bevth,p:bevt>1]))]).
@@ -249,7 +249,7 @@ testNRQuery(491, [], select [count(*) as count] from [(select [ort, plz, min(plz
 testNRQuery(492, [], select distinct(s:ort) from [(select [ort, plz, min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz] from plz where ort="Berlin" groupby[ort, plz]) as s, (select * from orteh) unnest(subrel) as oh] where [s:ort="Berlin", s:ort=oh:ort]).
 
 /*
-Works, but the result is not correct. This is not possible in this way because a count(*) does not return a tuple stream. So there is not natural straight forward implementation possible, more is to done manullay to reconvert the result into a tuple stream.
+Works, but the result is not correct. It can not be possible in this way because a count(*) does not return a tuple stream.
 See the comments of the nrSubqueryToStream/3 predicate for more information.
 Update: Now this works
 */
@@ -438,9 +438,7 @@ testNRQuery(1300, [], insert into plz values [99999, "fake city"]).
 testNRQuery(1301, [], delete from plz where [plz=99999, ort="fake city"]).
 
 % Queries on database literature
-% May reveal some more cases to take care about.
-% Sometimes the secondo kernel crashes here during computing the 
-% catalog informations and destroys the database...don't know why.
+% May reveal some more cases to take care of.
 /*
 testNRQuery(2000, [database(literature)], select * from authordoc first 1).
 testNRQuery(2001, [], select * from authordoc as a where [a:name="A. Bar-Hen"]).
@@ -469,7 +467,7 @@ testNRQuery(3009, [], select count(*) from trains unnest(trip)).
 testNRQuery(3010, [], select * from (select * from trains unnest(trip) where id=531) nest([id,line,up], trips) as x).
 
 % some cases to test some other stuff, but for relations with moving or spatial
-% objects, it 's uncertain how far all this works.
+% objects. It's uncertain how far everthing works.
 testNRQuery(3100, [], select count(*) from trains where trip passes mehringdamm).
 
 testNRQuery(3101, [preexecgoal((secondo('let seven05 = theInstant(2003,11,20,7,5);true')))], select [id, line, up, val(trip atinstant seven05) as pos] from trains where [trip passes mehringdamm, trip present seven05]).
@@ -485,7 +483,7 @@ testNRQuery(NoNew, [database(opt)], Query) :-
 	((No > 3, No < 8) ; member(No, [47])),
 	NoNew is No + 10000.
 
-% open database optext again because i mostly work there
+% open database optext again because I mostly work there
 testNRQuery(100000, [database(optext)], select * from orteh first 1).
 
 testNRQuery(No, Q) :-
@@ -513,7 +511,7 @@ testNR(No, _) :-
 	testResult/5,
 	testRunning/0.
 
-% Support nasty source code reloading in my test enviroment.
+% Supports nasty source code reloading in my test environment.
 :- multifile reload/0.
 reload.
 
@@ -528,8 +526,9 @@ testNR :-
 	(
 		testNRQuery(No, Properties, Query),
 		processProperties(Properties),
-		% So we check if this is provable, not if the result is correct.
-		% That that sql catches exceptions, otherwise more must be done here.
+		% We check whether this is provable and not if the result is correct or not.
+		% The sql predicates catches exceptions. Otherwise more must be done at
+		% this point.
 		write_list(['\n\nRun query: ', Query, '\n']),
 		(getTime(sql(Query), TimeMS) ->
 			addResult(Properties, No, TimeMS, ok)
@@ -605,7 +604,7 @@ openDatabaseP(Properties) :-
 	openDatabaseD(DB).
 
 openDatabaseP(Properties) :-
-	% not really recommended, but for tests runs ~in order~, this works.
+	% not really recommended, but for test runs ~in order~, this works.
 	\+ member(database(_), Properties),
 	!.
 

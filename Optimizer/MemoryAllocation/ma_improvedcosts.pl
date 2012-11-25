@@ -582,12 +582,12 @@ cost(sortby(X, Y), Sel, Pred, _MT, ResAttrList, ResTupleSize, ResCard, Cost,
 NVK ADDED NR
 I don't have any costs for these operations.
 TODO: ResAttrList modifications.
-*/
 cost(unnest(X, Attr), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, unnest(NewTermX, Attr)) :-
   cost(X, Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, NewTermX),!.
 
 cost(nest(X, Attr, NewLabel), Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, nest(NewTermX, Attr, NewLabel)) :-
   cost(X, Sel, Pred, _, ResAttrList, ResTupleSize, ResCard, Cost, NewTermX),!.
+*/
 % NVK ADDED END NR
 
 
@@ -652,8 +652,8 @@ cost(gracehashjoin(X, Y, AX, AY, Buckets), Sel, Pred, MT, ResAttrList,
   ),
   ResCard is ResCardX * ResCardY * Sel,
 
-  ResTupleSizeX = sizeTerm(MemSizeX,_,_), % still correct?
-  ResTupleSizeY = sizeTerm(MemSizeY,_,_), % still correct?
+  ResTupleSizeX = sizeTerm(MemSizeX,_,_), 
+  ResTupleSizeY = sizeTerm(MemSizeY,_,_), 
   Sizes=[ResCardX, MemSizeX, ResCardY, MemSizeY],
   NewTerm=gracehashjoin(NewTermX, NewTermY, AX, AY, Buckets),
   opCosts(MT, NewTerm, Sizes, OpCostsInMS, NewTerm2),
@@ -674,8 +674,8 @@ cost(hybridhashjoin(X, Y, AX, AY, Buckets), Sel, Pred, MT, ResAttrList,
   ),
   ResCard is ResCardX * ResCardY * Sel,
 
-  ResTupleSizeX = sizeTerm(MemSizeX,_,_), % still correct?
-  ResTupleSizeY = sizeTerm(MemSizeY,_,_), % still correct?
+  ResTupleSizeX = sizeTerm(MemSizeX,_,_), 
+  ResTupleSizeY = sizeTerm(MemSizeY,_,_),
   %ResTupleSizeX = sizeTerm(_,ExtSizeX,_), % That should be whatn within the
   %ResTupleSizeY = sizeTerm(_,ExtSizeY,_), % C env is the equivalent to 
 																					% getMemSize()
@@ -700,8 +700,8 @@ cost(itHashJoin(X, Y, AX, AY), Sel, Pred, MT, ResAttrList,
   ),
   ResCard is ResCardX * ResCardY * Sel,
 
-  ResTupleSizeX = sizeTerm(MemSizeX,_,_), % still correct?
-  ResTupleSizeY = sizeTerm(MemSizeY,_,_), % still correct?
+  ResTupleSizeX = sizeTerm(MemSizeX,_,_),
+  ResTupleSizeY = sizeTerm(MemSizeY,_,_),
   Sizes=[ResCardX, MemSizeX, ResCardY, MemSizeY],
   NewTerm=itHashJoin(NewTermX, NewTermY, AX, AY),
   opCosts(MT, NewTerm, Sizes, OpCostsInMS, NewTerm2),
