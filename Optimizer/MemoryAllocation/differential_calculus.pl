@@ -4,7 +4,7 @@ $Header$
 
 Predicates to compute the derivate of a given function.
 
-Currently supported is to only to derivate formulas with one variable because this is all that is needed for the memory optimization.
+Currently supported is only to derivate formulas with one variable because this is all that is needed for the memory optimization.
 */
 
 
@@ -25,8 +25,8 @@ derivate(X1, _, 0) :-
 	constant(X1),
 	!.
 
-% In this case X is the variable himself.
-% Allowed is the direct usage of a prolog variable.
+% In this case X is the variable itself.
+% The direct usage of a prolog variable is allowed.
 derivate(X1, X2, 1) :- 
 	sameVar(X1, X2), 
 	!.
@@ -76,7 +76,7 @@ isVar(X) :-
 /*
 We consider a variable identical if 
 a) two free variables are the	same variable
-b) two atomic values are identical that are not constants.
+b) two atomic values are identical if they are not constants.
 */	
 sameVar(X1, X2) :-
   X1==X2,

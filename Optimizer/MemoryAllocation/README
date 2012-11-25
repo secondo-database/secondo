@@ -1,13 +1,13 @@
 #!/bin/bash
 #
-# This extension has to be bind with the NLopt library.
+# This extension needs the NLopt library.
 #
-# NLopt can obtained from
+# NLopt can be obtained from
 #
 # http://ab-initio.mit.edu/wiki/index.php/NLopt
 #
 #
-# To activate this extensions, some things needs to be done:
+# To activate this extension, some procedures need to be done:
 #
 # 1)
 # The NLopt library needs to be installed, either manually or with the
@@ -24,7 +24,7 @@ cp MemoryOptimization.h $SECONDO_BUILD_DIR/include/
 
 # 3)
 # The steps described in $SECONDO_BUILD_DIR/Optimizer/NestedRelations/README 
-# needs to be done, too.
+# need to be done, too.
 
 # 4)
 # The last step is now to recompile secondo:
