@@ -2,7 +2,7 @@
 $Header$
 @author Nikolai van Kempen
 
-- Utility predicates of my evaluation...probably not  useful for anybody else.
+- My personal evaluation predicates. I have some doubts whether they are of much use for anyone else. Thaty why I put them here.
 
 */
 
