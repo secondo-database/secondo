@@ -273,15 +273,15 @@ Word IJPoint::In(const ListExpr typeInfo, const ListExpr instance,
       if( correct  )
       {
         IJPoint* out = new IJPoint(*t,*j);
-        delete t;
-        delete j;
+        t->DeleteIfAllowed();
+        j->DeleteIfAllowed();
         return SetWord(out);
       }
       else
       {
         cmsg.inFunError("Invalid jpoint.");
-        delete t;
-        delete j;
+        t->DeleteIfAllowed();
+        j->DeleteIfAllowed();
       }
     }
   }

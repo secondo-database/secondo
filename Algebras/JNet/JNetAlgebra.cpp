@@ -963,9 +963,7 @@ int createjpointsVM( Word* args, Word& result, int message, Word& local,
   if (jnet != 0 && jnet->IsDefined() &&
     lrloc != 0 && lrloc->IsDefined())
   {
-    JPoints* jps = new JPoints(jnet, lrloc);
-    *res = *jps;
-    jps->DeleteIfAllowed();
+    res->SetJPoints(jnet, *lrloc);
   }
   else
     res->SetDefined(false);
@@ -1555,7 +1553,7 @@ int unitsVM ( Word* args, Word& result, int message, Word& local,
       li = (locInfoUnits<InClass>*) local.addr;
       if (0 <= li->index && li->index < li->in->GetNoComponents())
       {
-        OutClass elem;
+        OutClass elem(false);
         (li->in)->Get(li->index, elem);
         li->index++;
         result = SetWord(new OutClass(elem));

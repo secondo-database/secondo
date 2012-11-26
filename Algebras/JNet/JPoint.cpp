@@ -294,8 +294,9 @@ Word JPoint::In(const ListExpr typeInfo, const ListExpr instance,
         cmsg.inFunError("Second Element must be RouteLocation");
         return SetWord(Address(0));
       }
-      RouteLocation rloc(*(RouteLocation*) w.addr);
-      JPoint* res = new JPoint(netId, rloc);
+      RouteLocation* rloc = (RouteLocation*) w.addr;
+      JPoint* res = new JPoint(netId, *rloc);
+      rloc->DeleteIfAllowed();
       return SetWord(res);
     }
   }

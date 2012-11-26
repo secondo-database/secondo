@@ -62,7 +62,6 @@ public:
 
   explicit JPoints(const bool defined);
   JPoints(const string netId, const DbArray<RouteLocation>& rlocList);
-  JPoints(const JNetwork* jnet, const JListRLoc* rlocList);
   JPoints(const JPoints& other);
 
   ~JPoints();
@@ -77,6 +76,7 @@ public:
 
   void SetNetworkId(STRING_T& nid);
   void SetRouteIntervals(DbArray<RouteLocation>& setrlocs);
+  void SetJPoints(JNetwork* jnet, const JListRLoc& rlocs);
 
 /*
 1.1.1 Override Methods from Attribute
@@ -251,7 +251,7 @@ out of the network are ignored.
 
 */
 
-  void FillLocationList(const DbArray<RouteLocation>* locList,
+  void FillLocationList(const DbArray<RouteLocation>& locList,
                         const JNetwork* jnet);
 };
 

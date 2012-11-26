@@ -56,23 +56,8 @@ JPoints::JPoints(const string netId, const DbArray<RouteLocation>& rlocList) :
   {
     JNetwork* jnet = (JNetwork*) value.addr;
     strcpy(nid, *jnet->GetId());
-    FillLocationList(&rlocList, jnet);
+    FillLocationList(rlocList, jnet);
     sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), value);
-  }
-}
-
-JPoints::JPoints(const JNetwork* jnet, const JListRLoc* rlocList) :
-    Attribute(true),routelocations(rlocList->GetNoOfComponents())
-{
-  if (!rlocList->IsDefined() || !jnet->IsDefined())
-  {
-    SetDefined(false);
-  }
-  else
-  {
-    strcpy(nid, *jnet->GetId());
-    DbArray<RouteLocation> rlist = rlocList->GetList();
-    FillLocationList(&rlist, jnet);
   }
 }
 
@@ -118,6 +103,19 @@ void JPoints::SetRouteIntervals(DbArray<RouteLocation>& setri)
   sorted = false;
   Sort();
 }
+
+void JPoints::SetJPoints(JNetwork* jnet, const JListRLoc& rlocs)
+{
+  if (jnet != 0 && jnet->IsDefined())
+  {
+    SetDefined(true);
+    strcpy(nid, *jnet->GetId());
+    FillLocationList(rlocs.GetList(),jnet);
+  }
+  else
+    SetDefined(false);
+}
+
 
 /*
 1.1 Override Methods from Attribute
@@ -303,7 +301,9 @@ ListExpr JPoints::Out(ListExpr typeInfo, Word value)
     return nl->SymbolAtom(Symbol::UNDEFINED());
   else
   {
-    NList nList(*out->GetNetworkId(),true, false);
+
+    NList nList((string)*out->GetNetworkId(), true, false);
+
 
     NList rlocList(nl->TheEmptyList());
     RouteLocation rl(false);
@@ -474,6 +474,7 @@ void JPoints::StartBulkload()
 {
   SetDefined(true);
   activBulkload = true;
+  sorted = false;
   routelocations.clean();
   routelocations.TrimToSize();
 }
@@ -541,17 +542,18 @@ bool JPoints::IsSorted() const
   return (IsDefined() && sorted);
 }
 
-void JPoints::FillLocationList(const DbArray<RouteLocation>* locList,
+void JPoints::FillLocationList(const DbArray<RouteLocation>& locList,
                                const JNetwork* jnet)
 {
-  RouteLocation actInt;
   StartBulkload();
-  for (int i = 0; i < locList->Size(); i++)
+  if (locList.Size() > 0)
   {
-    locList->Get(i,actInt);
-    if (jnet->Contains(&actInt))
+    RouteLocation actInt;
+    for (int i = 0; i < locList.Size(); i++)
     {
-      Add(actInt);
+      locList.Get(i,actInt);
+      if (jnet->Contains(&actInt))
+        Add(actInt);
     }
   }
   EndBulkload();

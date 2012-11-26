@@ -176,9 +176,11 @@ int RouteLocation::Compare(const RouteLocation& in) const
   if (IsDefined() && !in.IsDefined()) return 1;
   if (rid < in.GetRouteId()) return -1;
   if (rid > in.GetRouteId()) return 1;
+  int test = side.Compare(in.GetSide());
+  if (test != 0) return test;
   if (pos < in.GetPosition()) return -1;
   if (pos > in.GetPosition()) return 1;
-  return side.Compare(in.GetSide());
+  return test;
 }
 
 size_t RouteLocation::Sizeof() const

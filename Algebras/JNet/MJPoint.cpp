@@ -636,6 +636,7 @@ void MJPoint::Get(const int i, UJPoint& up) const
   assert(IsDefined()&& 0 <= i && i < units.Size());
   JUnit ju;
   units.Get(i,ju);
+  up.SetDefined(true);
   up.SetNetworkId(nid);
   up.SetUnit(ju);
 }
@@ -653,7 +654,10 @@ void MJPoint::FromSpatial(JNetwork* jnet, const MPoint* in)
   {
     MJPoint* tmp = jnet->GetNetworkValueOf(in);
     if (tmp != 0)
+    {
       *this = *tmp;
+      tmp->DeleteIfAllowed();
+    }
     else
       SetDefined(false);
   }

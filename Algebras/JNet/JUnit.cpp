@@ -633,6 +633,12 @@ JUnit* JUnit::AtRint(const JRouteInterval* rint, bool& lastrc) const
             startdist = fabs(startpos - routeInter.GetEndPosition());
             startTime = TimeAtPos(startdist);
           }
+          else
+          {
+            assert(false); //should never been reached
+            startpos = 0.0;
+            endpos = 0.0;
+          }
         }
       }
     }

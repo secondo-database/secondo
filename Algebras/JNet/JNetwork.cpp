@@ -2179,6 +2179,7 @@ Tuple* JNetwork::GetNetdistanceTupleFor(const int fid, const int tid) const
     }
     else
     {
+      res->DeleteIfAllowed();
       res = it->GetNextTuple();
     }
   }
@@ -2187,6 +2188,7 @@ Tuple* JNetwork::GetNetdistanceTupleFor(const int fid, const int tid) const
   maxNodeId->DeleteIfAllowed();
   attributes.clear();
   kElems.clear();
+  delete it;
   return res;
 }
 
