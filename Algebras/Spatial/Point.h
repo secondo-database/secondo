@@ -92,7 +92,7 @@ The second one receives a point ~p~ as argument and creates a point that is a
 copy of ~p~.
 
 */
-    inline Point( const Point& p );
+    Point( const Point& p );
 /*
 The destructor.
 
@@ -127,17 +127,17 @@ Returns the point's bounding box which is a rectangle with (almost) no extension
 Sets the value of the point object.
 
 */
-    inline void Set( const Coord& x, const Coord& y );
-    inline void Set( const Point& p);
+    void Set( const Coord& x, const Coord& y );
+    void Set( const Point& p);
 /*
 Operators redefinition.
 
 */
     inline Point& operator=( const Point& p );
     inline bool operator<=( const Point& p ) const;
-    inline bool operator<( const Point& p ) const;
+    bool operator<( const Point& p ) const;
     inline bool operator>=( const Point& p ) const;
-    inline bool operator>( const Point& p ) const;
+    bool operator>( const Point& p ) const;
     inline Point operator+( const Point& p ) const;
     inline Point operator-( const Point& p ) const;
     inline Point operator*( const double d ) const;
