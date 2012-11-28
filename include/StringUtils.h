@@ -167,6 +167,15 @@ Converts an int into a string
 */
 std::string int2str(int a);
 
+
+/*
+~ld~ computes the levensthein distance for two strings.
+
+*/
+
+int ld(const std::string& source, const std::string& target);
+
+
 } // end of namespace stringutils
 #endif
 

@@ -205,6 +205,59 @@ bool startsWith(const std::string& a1, const std::string& a2){
     return a1.substr(0,len2)==a2;  
 }
 
+/*
+4.15 Computes the Levenshtein distance between two strings.
+
+This distance is defined by the minimum count of operators in
+
+  * add character
+
+  * remove character
+
+  * replace character
+
+to get the __target__ from the __source__.
+
+The complexity is source.length [*] target.length.
+
+*/
+int ld(const std::string& source, const std::string& target){
+  int n = source.length();
+  int m = target.length();
+  if(n==0){
+     return m;
+  }
+  if(m==0){
+     return n;
+  }
+  n++; 
+  m++; 
+  int matrix[n][m];
+  // initialize
+  for(int i=0;i<n;i++){
+    matrix[i][0] = i; 
+  }
+  for(int i=0;i<m;i++){
+    matrix[0][i] = i; 
+  }
+  int cost;
+  for(int i=1;i<n;i++){
+     for(int j=1;j<m;j++){
+        cost = source[i-1]==target[j-1]?0:1;
+        matrix[i][j] = std::min(matrix[i-1][j]+1,
+                           std::min(matrix[i][j-1]+1,
+                           matrix[i-1][j-1]+cost));
+     }
+  }
+  int res = matrix[n-1][m-1];
+  return res;
+}
+
+
+
+
+
+
 
 
 } // end of namespace stringutils
