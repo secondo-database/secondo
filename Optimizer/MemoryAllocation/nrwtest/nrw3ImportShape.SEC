@@ -1,0 +1,24 @@
+# Importing NRW Data
+
+close database
+
+create database nrw3
+
+open database nrw3
+
+let Roads = dbimport2('../bin/nrw/roads.dbf') addcounter[No, 1] shpimport2('../bin/nrw/roads.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] filter[isdefined(bbox(.GeoData))] consume
+
+let Waterways = dbimport2('../bin/nrw/waterways.dbf') addcounter[No, 1] shpimport2('../bin/nrw/waterways.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] filter[isdefined(bbox(.GeoData))] consume
+
+let Railways = dbimport2('../bin/nrw/railways.dbf') addcounter[No, 1] shpimport2('../bin/nrw/railways.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] filter[isdefined(bbox(.GeoData))] consume
+
+let Points = dbimport2('../bin/nrw/points.dbf') addcounter[No, 1] shpimport2('../bin/nrw/points.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] filter[isdefined(bbox(.GeoData))] consume
+
+let Places = dbimport2('../bin/nrw/places.dbf') addcounter[No, 1] shpimport2('../bin/nrw/places.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] filter[isdefined(bbox(.GeoData))] consume
+
+let Natural = dbimport2('../bin/nrw/natural.dbf') addcounter[No, 1] shpimport2('../bin/nrw/natural.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] filter[isdefined(bbox(.GeoData))] consume
+
+let Buildings = dbimport2('../bin/nrw/buildings.dbf') addcounter[No, 1] shpimport2('../bin/nrw/buildings.shp') namedtransformstream[GeoData] addcounter[No2, 1] mergejoin[No, No2] filter[isdefined(bbox(.GeoData))] consume
+
+
+

@@ -1477,7 +1477,7 @@ Disables or enables the warnings because for big pog's the amount of
 displayed warnings can be huge. The same thing is the case for the sleep
 thing below.
 */
-maWarnMode(fail).
+maWarnMode(true).
 
 maWarn(_Type) :-
 	maWarnMode(R),
