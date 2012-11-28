@@ -26,7 +26,8 @@ delete database upd_test;
 #setup
 create database upd_test;
 open database upd_test;
-restore Staedte from 'staedte.obj';
+restore Staedte from '$(SECONDO_BUILD_DIR)/Tests/Testspecs/staedte.obj';
+
 
 let Staedte2 = Staedte feed head[0] consume;
 let Staedte3 = Staedte feed head[0] consume;
