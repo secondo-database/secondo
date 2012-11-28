@@ -1821,17 +1821,34 @@ let vFeed = x4 * MF
 
 query ProgressConstants inserttuple["Relation-C++", "feed", "vFeed", vFeed, "msecs per attribute in input tuple", ""] consume
 
-##### uFeed: time per input tuple (disregarding size)
+##### uFeed: time per input tuple
 
-let x5 = x1 - ((x2 - x1) / 9)
+delete x1;
+delete x2;
+delete x3;
+delete x4;
+delete x5;
+delete x6;
 
-# query x5 = 1.8284533333 secs
-#
-# this is the time for processing the tuples
+# plzbig has 2.000.000 tuples
+# plzsmall has 1.000.000 tuples
+query plzbig feed count;
+query plzbig feed count;
+query plzbig feed count;
+query plzbig feed count;
+let x1 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
 
-let x6 = (x5 / (plz50 count)) * 1000
+query plzsmall feed count;
+query plzsmall feed count;
+query plzsmall feed count;
+query plzsmall feed count;
+let x2 = SEC2COMMANDS feed tail[3] avg[ElapsedTime]
 
-# query x6 = 0.0008861576 msecs
+# Time difference for processing 1.000.000 tuples more
+let x3 = x1 - x2; 
+
+# this is the time for processing one tuple
+let x6 = (x3 / 1000000) * 1000
 
 let uFeed = x6 * MF
 
@@ -1852,6 +1869,9 @@ delete x3;
 delete x4;
 delete x5;
 delete x6;
+delete x10;
+delete x11;
+delete x12;
 
 # consume ###########################################################
 #
@@ -1952,6 +1972,7 @@ query ProgressConstants inserttuple["Relation-C++", "consume", "uConsume", uCons
 
 delete x7;
 delete x8;
+delete x9;
 
 query Trains100 feed project[Id, Line, Up] consume count;
 query Trains100 feed project[Id, Line, Up] consume count;
