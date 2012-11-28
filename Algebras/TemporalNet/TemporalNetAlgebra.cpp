@@ -10803,7 +10803,11 @@ class TemporalNetAlgebra : public Algebra
   }
 
 
-  ~TemporalNetAlgebra() {delete netList;};
+  ~TemporalNetAlgebra()
+  {
+    delete netList;
+    netList = 0;
+  };
 };
 
 /*
