@@ -51,7 +51,7 @@ Constructor
 
 */
      Stream(Word& s):source(s.addr),
-                        opened(false){ }
+                        opened(false),returned(0){ }
 
      Stream(void* s):source(s), opened(false){ }
 
@@ -114,6 +114,7 @@ the result is 0.
         return 0;
       } else {
          T* tres = static_cast<T*>(res.addr);
+         returned++;
          return tres;
       }
     }
@@ -157,11 +158,16 @@ Close Progress
    }
 
 
+   size_t getCount(){
+      return returned;
+   }
+
 
   private:
     Stream() {}
     void* source;
     bool opened;
+    size_t returned;
 
 };
 
