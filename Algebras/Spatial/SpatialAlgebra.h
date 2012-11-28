@@ -1584,7 +1584,9 @@ Constructs a ~SimpleLine~ from a complex one.
 */
   SimpleLine(const SimpleLine& src):
     StandardSpatialAttribute<2>(src.IsDefined()),
-    segments(src.Size()),lrsArray(src.Size()){
+    segments(src.Size()),lrsArray(src.Size()/2), startSmaller(true),
+    isCycle(false), isOrdered(true), length(0.0), bbox(false), currentHS(-1)
+  {
     Equalize(src);
   }
 
@@ -1960,8 +1962,7 @@ The following functions are needed to act as an attribute type.
   }
 
   virtual SimpleLine* Clone() const{
-     SimpleLine* res =  new SimpleLine(*this);
-     return  res;
+     return new SimpleLine(*this);
   }
 
   ostream& Print(ostream& os) const;
@@ -4474,7 +4475,7 @@ if halfsegments overlap, only one of the segments left. If halfsegments are cros
 or touching at their interior, their are split.
 
 */
-DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments, 
+DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments,
                                  const bool forceThrow= false,
                                  const bool robust = false);
 
@@ -4485,7 +4486,7 @@ This function is similar to Realminize. In contrast to that function, segments c
 same space left instead to replace by a single segment.
 
 */
-DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments, 
+DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments,
                             const bool forceThrow = false);
 
 /*

@@ -7349,7 +7349,10 @@ the defined flag is set to false;
 
 */
 SimpleLine::SimpleLine(const Line& src):
-     StandardSpatialAttribute<2>(src.IsDefined()),segments(0),lrsArray(0){
+     StandardSpatialAttribute<2>(src.IsDefined()), segments(0),lrsArray(0),
+     startSmaller(true), isCycle(false),isOrdered(true),length(0.0),
+     bbox(false),currentHS(-1)
+{
   fromLine(src);
 }
 
