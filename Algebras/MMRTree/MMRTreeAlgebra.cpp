@@ -28,6 +28,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 
+#include <limits>
+
 #include "MMRTreeAlgebra.h"
 #include "MMRTree.h"
 
@@ -36,9 +38,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
 #include "FTextAlgebra.h"
+#include "StringUtils.h"
 
 #include "Progress.h"
 #include "../CostEstimation/MMRTreeAlgebraCostEstimation.h"
+
+#include "Point.h"
+#include "MMMTree.h"
 
 /*
 1.1 Auxiliary Functions
@@ -1224,7 +1230,697 @@ Operator itSpatialJoin(
 
 
 
+/*
+1.6 Similarity Join
 
+1.6.1  Type Mapping
+
+  stream(tuple(A)) x stream(tuple(B)) x a[_]i x b[_]j x real x  [ x  int x int]
+
+*/
+template<bool usefun>
+ListExpr SimJoinTM(ListExpr args){
+
+   string err = "stream(tuple(A)) x stream(tuple(B)) "
+                "x a_i x b_j x real [x int x int] expected";
+   
+   int len = nl->ListLength(args);
+   int reqargs = usefun?6:5;
+
+   if( (len !=reqargs) && (len != (reqargs+2))){
+     return listutils::typeError(err);
+   }
+   ListExpr stream1 = nl->First(args);
+   if(!Stream<Tuple>::checkType(stream1)){
+     return listutils::typeError("first arg is not a tuple stream");
+   }  
+   ListExpr stream2 = nl->Second(args);
+   if(!Stream<Tuple>::checkType(stream2)){
+     return listutils::typeError("second arg is not a tuple stream");
+   }  
+   ListExpr aname1 = nl->Third(args);
+   if(!listutils::isSymbol(aname1)){
+     return listutils::typeError("third arg is not an attribute name");
+   }
+   ListExpr aname2 = nl->Fourth(args);
+   if(!listutils::isSymbol(aname2)){
+     return listutils::typeError("fourth arg is not an attribute name");
+   }
+   
+   if(!CcReal::checkType(nl->Fifth(args))){
+     return listutils::typeError("ffth arg is not a real");
+   }
+
+
+   ListExpr attrList1 = nl->Second(nl->Second(stream1));
+   ListExpr attrType1;
+   int attrindex1 = listutils::findAttribute(attrList1, 
+                                  nl->SymbolValue(aname1),attrType1);
+   if(attrindex1 == 0){
+      return listutils::typeError("Attribute " + nl->SymbolValue(aname1) +
+                                  " not known in first stream");
+   }
+   ListExpr attrList2 = nl->Second(nl->Second(stream2));
+   ListExpr attrType2;
+   int attrindex2 = listutils::findAttribute(attrList2, 
+                                  nl->SymbolValue(aname2),attrType2);
+   if(attrindex2 == 0){
+      return listutils::typeError("Attribute " + nl->SymbolValue(aname2) +
+                                  " not known in second stream");
+   }
+
+   ListExpr resAttrList = listutils::concat(attrList1 , attrList2);
+
+
+   if(!listutils::isAttrList(resAttrList)){
+     return listutils::typeError("naming conflicts detected ");
+   }
+
+   if(usefun){ // the 6th argument must be a function 
+      ListExpr funList = nl->Sixth(args);
+      args = nl->Rest(nl->Rest(nl->Rest(nl->Rest(nl->Rest(nl->Rest(args))))));
+      if(!listutils::isMap<2>(funList)){
+          return listutils::typeError("sixth element must be a function");
+      }
+      ListExpr farg1 = nl->Second(funList);
+      ListExpr farg2 = nl->Third(funList);
+      ListExpr fres = nl->Fourth(funList);
+      if(!CcReal::checkType(fres)){
+         return listutils::typeError("Function result not of type double");
+      }
+      if(!nl->Equal(farg1,farg2)){
+         return listutils::typeError("Function arguments differ");
+      }
+      if(!nl->Equal(attrType1,attrType2)){
+         return listutils::typeError("Type confliuct in stream attributes");
+      }
+      if(!nl->Equal(attrType1,farg1)){
+         return listutils::typeError("Type conflict between stream "
+                                     "attribute and function argument");
+      }
+      // map is ok
+   } else {
+      args = nl->Rest(nl->Rest(nl->Rest(nl->Rest(nl->Rest(args)))));
+   }
+
+
+   if(len==(reqargs+2)){
+      if(!CcInt::checkType(nl->First(args))){
+          return listutils::typeError("next to last element is not an int");
+      }
+      if(!CcInt::checkType(nl->Second(args))){
+          return listutils::typeError("last element is not an int");
+      }
+   }
+   // build result
+   ListExpr appendList;
+   if(len==(reqargs+2)){
+      appendList = nl->TwoElemList(nl->IntAtom(attrindex1-1), 
+                                   nl->IntAtom(attrindex2-1));
+   } else { // use standard values for min and max
+      appendList = nl->FourElemList(nl->IntAtom(4),
+                                   nl->IntAtom(8),
+                                   nl->IntAtom(attrindex1-1),
+                                   nl->IntAtom(attrindex2-1));
+   }
+   ListExpr resType = nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                                       nl->TwoElemList(
+                                           listutils::basicSymbol<Tuple>(),
+                                           resAttrList));
+   ListExpr result = nl->ThreeElemList(
+                             nl->SymbolAtom(Symbols::APPEND()),
+                             appendList,
+                             resType);
+
+   if(usefun){
+        return result;
+   }
+ 
+   // check for valid attribute types
+   if(CcInt::checkType(attrType1) && CcInt::checkType(attrType2)){
+      return result;
+   } 
+   if(Point::checkType(attrType1) && Point::checkType(attrType2)){
+      return result;
+   }
+   if(CcString::checkType(attrType1) && CcString::checkType(attrType2)){
+      return result;
+   }
+   return listutils::typeError("Unsupported attributes");
+}
+
+/*
+1.6.2 Some distance functors
+
+*/
+
+class DistCount{
+  public: 
+     DistCount(){
+         cnt = 0;
+     }
+     void reset(){
+        cnt =0;
+     }
+
+     size_t getCount() {
+        return cnt;
+     }
+
+  protected:
+     size_t cnt;
+
+};
+
+
+class IntDist: public DistCount{
+  public:
+
+    double operator()(const pair<CcInt*,int>& p1, const pair<CcInt*,int>& p2){
+        DistCount::cnt++;
+        assert(p1.first);
+        assert(p2.first);
+        if(!p1.first->IsDefined() && !p2.first->IsDefined()){
+          return 0;
+        }
+        if(!p1.first->IsDefined() || !p2.first->IsDefined()){
+           return numeric_limits<double>::max();
+        }
+        int i1 = p1.first->GetValue();
+        int i2 = p2.first->GetValue();
+        int c = i1-i2;
+        return c<0?-c:c;
+    }
+
+    ostream& print(const pair<CcInt*,int>& p, ostream& o){
+         o << *(p.first);
+         return o;
+    }
+};
+
+class PointDist: public DistCount{
+  public:
+    double operator()(const pair<Point*,int>& p1, const pair<Point*,int>& p2){
+        cnt++;
+        assert(p1.first);
+        assert(p2.first);
+        if(!p1.first->IsDefined() && !p2.first->IsDefined()){
+          return 0;
+        }
+        if(!p1.first->IsDefined() || !p2.first->IsDefined()){
+           return numeric_limits<double>::max();
+        }
+        return p1.first->Distance(*(p2.first));
+    }
+    
+    ostream& print(const pair<Point*,int>& p, ostream& o){
+        o << *(p.first);
+        return o;
+    }
+};
+
+class StringDist: public DistCount{
+  public:
+    double operator()(const pair<CcString*,int>& p1, 
+                      const pair<CcString*,int>& p2){
+        cnt++;
+        assert(p1.first);
+        assert(p2.first);
+        if(!p1.first->IsDefined() && !p2.first->IsDefined()){
+          return 0;
+        }
+        if(!p1.first->IsDefined() || !p2.first->IsDefined()){
+           return numeric_limits<double>::max();
+        }
+        return stringutils::ld(p1.first->GetValue(), p2.first->GetValue());
+    }
+    
+    ostream& print(const pair<CcString*,int>& p, ostream& o){
+        o << *(p.first);
+        return o;
+    }
+};
+
+
+
+/*
+1.6.2 LocalInfo Class
+
+*/
+template<class T, class DistComp>
+class SimJoinLocalInfo{
+public:
+   SimJoinLocalInfo( Word _stream1, Word _stream2,
+                     const double _epsilon,
+                     const int _min, const int _max, // parameters for the tree
+                     const int _a1, const int _a2, // attribute indexes
+                     const size_t _maxMem, ListExpr resType,
+                     DistComp& _dc):
+                     stream1(_stream1), stream2(_stream2),
+                     epsilon(_epsilon),
+                     min(_min), max(_max),
+                     a1(_a1), a2(_a2), 
+                     tt(0), tree(0), buffer_stream1(0),
+                     it1(0), stream1Finished(false), stream2Finished(false),
+                     maxMem(_maxMem), buffer_stream2(0), it2(0), current(0),
+                     dc(_dc), 
+                     partitions(0),max_elems(0), comparisons(0){
+
+         tt = new TupleType(resType);
+         stream1.open();
+         stream2.open();
+         readNextPartition();
+         current = getNextTuple();
+         if(current){ // case of empty second stream
+             T key = (T) current->GetAttribute(a2);
+             pair<T,int> p(key,0);
+             it1 = tree->rangeSearch(p, epsilon);
+         }
+   }
+
+   ~SimJoinLocalInfo(){
+
+       cout << "Join finsihed with " << partitions 
+            << " scans of the second stream" << endl;
+       cout << "The maximum number of elements within the index was " 
+            << max_elems << endl;
+
+       if(it1){
+          comparisons += it1->noComparisons();
+       }
+
+       cout << "no Comparisons : " << comparisons << endl;
+
+       tt->DeleteIfAllowed();
+       stream1.close();
+       stream2.close();
+       removePartition();
+       if(it1){
+          //cout << "Comparisons for scan : " << it1->noComparisons() << endl;
+          //cout << "Processed stream1 : " << stream1.getCount() << endl;
+          //cout << "Processed stream2 : " << stream2.getCount() << endl;
+          delete it1;
+       }
+       if(it2){
+         delete it2;
+       }
+       if(buffer_stream2){
+          delete buffer_stream2;
+       }
+    }
+                      
+    Tuple* next(){
+        while(it1){ // range iterator initialized
+          if(it1->hasNext()){
+            pair<T,int> p = *(it1->next());
+            Tuple* t1 = (*buffer_stream1)[p.second];
+            Tuple* res = new Tuple(tt);
+            Concat(t1,current,res);
+            return res;  
+          } else { // range iterator exhausted
+            current->DeleteIfAllowed();
+            current = getNextTuple();
+            //cout << "Comparisons for scan : " << it1->noComparisons() << endl;
+            //cout << "Processed stream1 : " << stream1.getCount() << endl;
+            //cout << "Processed stream2 : " << stream2.getCount() << endl;
+            comparisons += it1->noComparisons();
+            delete it1;
+            it1 = 0;
+            if(!current){
+                if(stream1Finished){
+                  return 0;
+                } else {
+                  readNextPartition();
+                  if(it2){
+                    delete it2;
+                    it2 = 0;
+                  } 
+                  current = getNextTuple();
+                }
+            }
+            if(!current){
+               return 0;
+            }
+            T key = (T) current->GetAttribute(a2);
+            pair<T,int> p(key,0);
+
+            it1 = tree->rangeSearch(p, epsilon);
+          }
+        }
+        return 0;
+    }
+   
+
+private:
+    Stream<Tuple> stream1;
+    Stream<Tuple> stream2;
+    double epsilon;
+    int min;
+    int max;
+    int a1;
+    int a2;
+    TupleType* tt; 
+    MMMTree<pair<T,int>, DistComp >* tree;
+    vector<Tuple*>*  buffer_stream1;
+    RangeIterator<pair<T,int>,DistComp >*  it1;
+    bool stream1Finished;
+    bool stream2Finished;
+    size_t maxMem;
+    Relation* buffer_stream2;
+    GenericRelationIterator* it2;
+    Tuple* current; // current tuple of stream 2
+    DistComp dc;
+    size_t partitions;
+    size_t max_elems;
+    size_t comparisons;
+
+
+    // replaces the current partition by the next one
+    void readNextPartition(){
+      partitions++;
+      removePartition();
+      if(stream1Finished){
+         return;
+      }
+
+      buffer_stream1 = new vector<Tuple*>();
+      tree = new MMMTree<pair<T,int>,DistComp> (min,max,dc);
+      size_t usedSize = 0;
+      Tuple* t = stream1.request();
+
+      stream1Finished = t==0;
+      size_t nodesize = sizeof(MTreeNode<pair<T,int>,DistComp >);
+
+      size_t cnt = 0;
+
+      while(t){
+         cnt++;
+         T key = (T)  t->GetAttribute(a1);
+         int pos = buffer_stream1->size();
+         buffer_stream1->push_back(t);
+         pair<T,int> p(key,pos);
+         tree->insert(p);
+         usedSize = usedSize + nodesize + t->GetMemSize();
+         if(usedSize < maxMem){
+            t = stream1.request();
+            if(t==0){
+               stream1Finished = true;
+            }
+         } else {
+            t = 0;
+         }
+      }
+
+      //cout << "tree created" << endl;
+      //cout << "comparisons required : " << tree->noComparisons() << endl;
+      //cout << cnt << " elements inserted" << endl;
+      comparisons += tree->noComparisons();
+
+      if(cnt > max_elems){
+          max_elems = cnt;
+      }
+    }
+
+    // removes the currently buffered  partition
+    void removePartition(){
+       if(tree==0){
+         return;
+       }
+       delete tree;
+       for(size_t i=0;i<buffer_stream1->size();i++){
+          (*buffer_stream1)[i]->DeleteIfAllowed();
+       }
+       delete buffer_stream1;
+       buffer_stream1 = 0;
+       tree = 0;
+    }
+
+
+   
+    // returns the next tuple of stream 2
+    Tuple* getNextTuple(){
+        Tuple* res = 0;
+        if(!stream2Finished){
+           // read from stream
+           res = stream2.request(); 
+           if(res){
+              if(!stream1Finished){
+                 if(!buffer_stream2){
+                     buffer_stream2 = new Relation(res->GetTupleType(),true);
+                 }                 
+                 buffer_stream2->AppendTuple(res);
+              } 
+              return res;
+           } else {
+              stream2Finished = true;
+              return 0;
+           }
+        }
+        assert(buffer_stream2);
+        if(!it2){
+           it2 = buffer_stream2->MakeScan();
+        }
+        return it2->GetNextTuple(); 
+    }
+};
+
+
+/*
+1.6.3 Value Mapping
+
+
+*/
+
+template <class T, class DistComp>
+int SimJoinVMT( Word* args, Word& result, int message,
+               Word& local, Supplier s ) {
+
+  SimJoinLocalInfo<T,DistComp>* li = (SimJoinLocalInfo<T,DistComp>*) local.addr;
+
+   switch(message){
+      case OPEN: {
+            if(li){
+               delete li;
+               local.addr = 0;
+            }
+            CcInt* Min = (CcInt*) args[5].addr;
+            CcInt* Max = (CcInt*) args[6].addr;
+            int min = 4;
+            int max = 8;
+            if(Min->IsDefined() && Max->IsDefined()){
+                int m1 = Min->GetValue();  
+                int m2 = Max->GetValue();
+                if((m1 >= 2) && (m2>= 2* m1)){
+                   min = m1;
+                   max = m2;
+                }
+            } 
+            CcReal* eps = (CcReal*) args[4].addr;
+            if(!eps->IsDefined()){
+               return 0;
+            }
+            double epsilon = eps->GetValue();
+            if(epsilon < 0){
+               return 0;
+            }
+            int a1 = ((CcInt*)args[7].addr)->GetValue();
+            int a2 = ((CcInt*)args[8].addr)->GetValue();
+            size_t memSize = qp->GetMemorySize(s) * 1024 * 1024;
+            ListExpr resType = nl->Second(GetTupleResultType(s));
+            DistComp dc;
+            local.addr = new SimJoinLocalInfo<T,DistComp>(args[0], args[1],
+                                              epsilon, min, max, a1, a2,
+                                              memSize,
+                                              resType, dc);
+            return 0;
+      }
+      case REQUEST: {
+            result.addr = li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+      }
+      case CLOSE: {
+          if(li){
+             delete li;
+             local.addr = 0;
+          }
+          return 0;
+
+      }
+
+   }
+   return 0;
+}
+
+/*
+1.6.4 Specification
+
+*/
+
+OperatorSpec SimJoinSpec(
+  " stream(tuple(A)) x stream(tuple(B)) x a_i x b_j "
+  "x real  [ x int x int ] -> stream (tuple(AB))",
+  " _ _ simJoin [ a_i, b_j, epsilon, min, max] ",
+  "Similariry join based on predefined distance functions",
+  " query Orte feed Orte feed {o} simJoin[ Name, Name_o, 4.0] count" 
+);
+
+
+/*
+1.6.5 Value Mapping array and selection function
+
+*/
+ValueMapping SimJoinVM[] = {
+     SimJoinVMT<CcInt*,IntDist>,
+     SimJoinVMT<Point*,PointDist>,
+     SimJoinVMT<CcString*,StringDist>
+};
+
+int SimJoinSelect(ListExpr args){
+   ListExpr s1 = nl->First(args);
+   string aname = nl->SymbolValue(nl->Third(args));
+   ListExpr type;
+   listutils::findAttribute(nl->Second(nl->Second(s1)), aname, type);
+   if(CcInt::checkType(type)){
+     return 0;
+   }
+   if(Point::checkType(type)){
+      return 1;
+   }
+   if(CcString::checkType(type)){
+      return 2;
+   }
+   return -1; 
+};
+
+/*
+1.6.6 Operator instance
+
+*/
+Operator SimJoinOp(
+  "simJoin",
+  SimJoinSpec.getStr(),
+  3,
+  SimJoinVM,
+  SimJoinSelect,
+  SimJoinTM<false>
+);
+
+
+class FunDistComp: public DistCount{
+  public:
+    FunDistComp(ArgVectorPointer _funargs, QueryProcessor* _qp, Word _fun):
+      funargs(_funargs), qp(_qp), fun(_fun) { }
+
+
+    double operator()(const pair<Attribute*, int>& p1, 
+                      const pair<Attribute*, int>& p2){
+        cnt++;
+        assert(p1.first);
+        assert(p2.first);
+
+        (*funargs)[0] = p1.first;
+        (*funargs)[1] = p2.first;
+        Word res;
+        qp->Request(fun.addr,res);
+        CcReal* r = (CcReal*) res.addr;
+        if(!r->IsDefined()){
+           return numeric_limits<double>::max();
+        }     
+        double rd = r->GetValue();
+        return rd<0?-rd:rd;  
+    }
+    
+    ostream& print(const pair<Word,int>& p, ostream& o){
+        return o;
+    }
+
+   private:
+     ArgVectorPointer funargs;
+     QueryProcessor* qp;
+     Word fun;
+};
+
+int SimJoinFunVM( Word* args, Word& result, int message,
+               Word& local, Supplier s ) {
+
+  SimJoinLocalInfo<Attribute*,FunDistComp>* li = 
+            (SimJoinLocalInfo<Attribute*, FunDistComp>*) local.addr;
+
+   switch(message){
+      case OPEN: {
+            if(li){
+               delete li;
+               local.addr = 0;
+            }
+            CcInt* Min = (CcInt*) args[6].addr;
+            CcInt* Max = (CcInt*) args[7].addr;
+            int min = 4;
+            int max = 8;
+            if(Min->IsDefined() && Max->IsDefined()){
+                int m1 = Min->GetValue();  
+                int m2 = Max->GetValue();
+                if((m1 >= 2) && (m2>= 2* m1)){
+                   min = m1;
+                   max = m2;
+                }
+            } 
+            CcReal* eps = (CcReal*) args[4].addr;
+            if(!eps->IsDefined()){
+               return 0;
+            }
+            double epsilon = eps->GetValue();
+            if(epsilon < 0){
+               return 0;
+            }
+            int a1 = ((CcInt*)args[8].addr)->GetValue();
+            int a2 = ((CcInt*)args[9].addr)->GetValue();
+            size_t memSize = qp->GetMemorySize(s) * 1024 * 1024;
+            ListExpr resType = nl->Second(GetTupleResultType(s));
+            // create distcomp from function (arg[6])
+            ArgVectorPointer funargs = qp->Argument(args[5].addr);
+            Word fun = args[5];
+            FunDistComp dc(funargs,qp,fun);
+            local.addr = new SimJoinLocalInfo<Attribute*, FunDistComp>(
+                            args[0], args[1],
+                            epsilon, min, max, a1, a2,
+                            memSize,
+                            resType, dc);
+            return 0;
+      }
+      case REQUEST: {
+            result.addr = li?li->next():0;
+            return result.addr?YIELD:CANCEL;
+      }
+      case CLOSE: {
+          if(li){
+             delete li;
+             local.addr = 0;
+          }
+          return 0;
+
+      }
+
+   }
+   return 0;
+}
+
+
+OperatorSpec SimJoinFunSpec(
+  " stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x "
+  "real x (fun: t_i x t_j -> real) [ x int x int ] -> stream (tuple(AB))",
+  " _ _ simJoin [ a_i, b_j, epsilon, distfun, min, max] ",
+  "Similariry join based on user defined distance functions",
+  " query Orte feed Orte feed {o} simJoin[ Name, Name_o, 4.0, "
+  "fun(a:string, b: string) 1.0*(length(a)-length(b) ] count" 
+);
+
+Operator SimJoinFunOp(
+  "simjoinfun",
+  SimJoinFunSpec.getStr(),
+  SimJoinFunVM,
+  Operator::SimpleSelect,
+  SimJoinTM<true>
+);
 
 
 
@@ -1253,6 +1949,12 @@ class MMRTreeAlgebra : public Algebra {
       AddOperator(&itSpatialJoin);
         itSpatialJoin.SetUsesMemory();
 
+
+      AddOperator(&SimJoinOp);
+      SimJoinOp.SetUsesMemory();
+
+      AddOperator(&SimJoinFunOp);
+      SimJoinFunOp.SetUsesMemory();
    }
 };
 

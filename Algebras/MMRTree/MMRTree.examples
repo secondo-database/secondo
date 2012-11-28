@@ -161,3 +161,18 @@ Number   : 1
 Signature:  stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x int x int x int  -> stream(tuple(A o B)) 
 Example  : query (units(train7) namedtransformstream[U1]   units(train7) namedtransformstream[U2]  itSpatialJoin[U1,U2,4,8, 512] count) =  (units(train7) namedtransformstream[U1] extend[B1 : bbox(.U1)] units(train7) namedtransformstream[U2] extend[B2 : bbox(.U2)]  spatialjoin0[B1,B2] count)
 Result   : TRUE 
+
+
+Operator  : simJoin
+Number    : 1
+Signature : stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x real [ x int x int] -> stream(tuple(A o B))
+Example   : query ten feed ten feed {a} simJoin [ No, No_a, 1.5] count
+Result    : 28
+
+
+Operator  : simjoinfun
+Number    : 1
+Signature : stream(tuple(A)) x stream(tuple(B)) x a_i x b_j x real x (t_i x t_i -> real) [ x int x int] -> stream(tuple(A o B))
+Example   : query ten feed ten feed {a} simjoinfun [ No, No_a, 1.5, fun(a:int, b:int) 1.0*(a-b)] count
+Result    : 28
+

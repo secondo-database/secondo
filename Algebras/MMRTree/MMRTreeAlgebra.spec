@@ -9,3 +9,9 @@ operator insertMMRTree    alias   INSERTMMRTREE  pattern _ op [ _, _ ]
 
 operator itSpatialJoin    alias   ITSPATIALJOIN  pattern _ _ op [ _, _ ,_,_]
 
+
+operator simJoin alias SIMJOIN pattern _ _ op [_,_,_]
+operator simjoinfun alias SIMJOINFUN pattern _ _ op [_,_,_,_]
+
+
+
