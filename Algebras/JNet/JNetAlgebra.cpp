@@ -1555,8 +1555,8 @@ int unitsVM ( Word* args, Word& result, int message, Word& local,
       {
         OutClass elem(false);
         (li->in)->Get(li->index, elem);
-        li->index++;
         result = SetWord(new OutClass(elem));
+        li->index++;
         return YIELD;
       }
       else
@@ -1667,16 +1667,15 @@ int altrlocsVM ( Word* args, Word& result, int message, Word& local,
 
     case REQUEST:
     {
-      result = qp->ResultStorage(s);
       if (local.addr == 0) return CANCEL;
       li = (altrlocsLocInfo*) local.addr;
       if (li->list->IsDefined() &&
           0 <= li->it && li->it < li->list->GetNoOfComponents())
       {
-        RouteLocation elem;
-        li->list->Get(li->it,elem);
+        RouteLocation rloc(false);
+        li->list->Get(li->it, rloc);
         li->it = li->it + 1;
-        result = SetWord(new JPoint(li->jnetId, elem));
+        result = SetWord ( new JPoint(li->jnetId, rloc));
         return YIELD;
       }
       else

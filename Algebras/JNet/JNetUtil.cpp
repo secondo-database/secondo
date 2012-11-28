@@ -43,87 +43,86 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 string JNetUtil::GetJunctionsBTreeTypeInfo()
 {
-  return "("+ BTree::BasicType() + "(" +
-         JNetUtil::GetJunctionsTupleTypeInfo() + ")" + CcInt::BasicType() + ")";
+  return "("+ BTree::BasicType() + JNetUtil::GetJunctionsTupleTypeInfo() +
+         CcInt::BasicType() + ")";
 }
 
 string JNetUtil::GetJunctionsRelationTypeInfo()
 {
-  return "("+ Relation::BasicType() + "(" +
-         JNetUtil::GetJunctionsTupleTypeInfo() + "))";
+  return "("+ Relation::BasicType() +
+         JNetUtil::GetJunctionsTupleTypeInfo() + ")";
 }
 
 string JNetUtil::GetJunctionsRTreeTypeInfo()
 {
-  return "("+ R_Tree<2,TupleId>::BasicType() + "(" +
-         JNetUtil::GetJunctionsTupleTypeInfo() + ")" + Point::BasicType() +
+  return "("+ R_Tree<2,TupleId>::BasicType() +
+         JNetUtil::GetJunctionsTupleTypeInfo() + Point::BasicType() +
          " FALSE)";
 }
 
 string JNetUtil::GetJunctionsTupleTypeInfo()
 {
-  return Tuple::BasicType() + "((Id " + CcInt::BasicType() + ") (Pos " +
+  return "(" + Tuple::BasicType() + "((Id " + CcInt::BasicType() + ") (Pos " +
          Point::BasicType() + ") (Listjuncpos " +  JListRLoc::BasicType() +
          ") (Listinsections " + JListInt::BasicType() + ") (Listoutsections " +
-         JListInt::BasicType() + "))";
+         JListInt::BasicType() + ")))";
 }
 
 string JNetUtil::GetNetdistancesRelationTypeInfo()
 {
-  return "("+ OrderedRelation::BasicType() + "("+
-         JNetUtil::GetNetdistancesTupleTypeInfo() +") (Source))";
+  return "("+ OrderedRelation::BasicType() +
+         JNetUtil::GetNetdistancesTupleTypeInfo() +" (Source))";
 }
 
 string JNetUtil::GetNetdistancesTupleTypeInfo()
 {
-  return  Tuple::BasicType() + "((Source " + CcInt::BasicType() + ")(Target " +
-          CcInt::BasicType() + ")(NextJunct " + CcInt::BasicType() +
-          ")(ViaSect " + CcInt::BasicType() + ")(NetDist " +
-          CcReal::BasicType() +"))";
+  return  "("+ Tuple::BasicType() + "((Source " + CcInt::BasicType() +
+          ")(Target " + CcInt::BasicType() + ")(NextJunct " +
+          CcInt::BasicType() + ")(ViaSect " + CcInt::BasicType() +
+          ")(NetDist " + CcReal::BasicType() +")))";
 }
 
 string JNetUtil::GetRoutesBTreeTypeInfo()
 {
-  return "("+ BTree::BasicType() + "(" + JNetUtil::GetRoutesTupleTypeInfo() +
-         ")" + CcInt::BasicType() + ")";
+  return "("+ BTree::BasicType() + JNetUtil::GetRoutesTupleTypeInfo() +
+         CcInt::BasicType() + ")";
 }
 
 string JNetUtil::GetRoutesRelationTypeInfo()
 {
-  return "("+ Relation::BasicType() + "(" +
-         JNetUtil::GetRoutesTupleTypeInfo() + "))";
+  return "("+ Relation::BasicType() + JNetUtil::GetRoutesTupleTypeInfo() + ")";
 }
 
 string JNetUtil::GetRoutesTupleTypeInfo()
 {
-  return Tuple::BasicType() + "((Id " + CcInt::BasicType() +
+  return "(" + Tuple::BasicType() + "((Id " + CcInt::BasicType() +
          ") (ListJunctions " + JListInt::BasicType() + ") (ListSections " +
-         JListInt::BasicType() + ") (Lenth " + CcReal::BasicType() + "))";
+         JListInt::BasicType() + ") (Lenth " + CcReal::BasicType() + ")))";
 }
 
 string JNetUtil::GetSectionsBTreeTypeInfo()
 {
-  return "("+ BTree::BasicType() + "(" +
-         JNetUtil::GetSectionsTupleTypeInfo() + ")" + CcInt::BasicType() + ")";
+  return "("+ BTree::BasicType() + JNetUtil::GetSectionsTupleTypeInfo() +
+          CcInt::BasicType() + ")";
 
 }
 
 string JNetUtil::GetSectionsRelationTypeInfo()
 {
-  return "("+ Relation::BasicType() + "(" +
-         JNetUtil::GetSectionsTupleTypeInfo() + "))";
+  return "("+ Relation::BasicType() + JNetUtil::GetSectionsTupleTypeInfo() +
+         ")";
 }
 
 string JNetUtil::GetSectionsRTreeTypeInfo()
 {
-  return  "("+ R_Tree<2, TupleId>::BasicType() + "(" +
-          JNetUtil::GetSectionsTupleTypeInfo() + ")" +
-          SimpleLine::BasicType() + " FALSE)";
+  return  "("+ R_Tree<2, TupleId>::BasicType() +
+          JNetUtil::GetSectionsTupleTypeInfo() + SimpleLine::BasicType() +
+          " FALSE)";
 }
 
 string JNetUtil::GetSectionsTupleTypeInfo()
 {
-  return Tuple::BasicType() + "((Id " + CcInt::BasicType() + ") (Curve " +
+  return "(" + Tuple::BasicType() + "((Id " + CcInt::BasicType() + ") (Curve " +
          SimpleLine::BasicType() + ") (StartJunctionId " + CcInt::BasicType() +
          ") (EndJunctionId " + CcInt::BasicType() + ") (Direction " +
          Direction::BasicType() + ") (VMax " + CcReal::BasicType() +
@@ -131,7 +130,7 @@ string JNetUtil::GetSectionsTupleTypeInfo()
          JListRInt::BasicType() + ") (ListAdjSectUp " + JListInt::BasicType() +
          ") (ListAdjSectDown " + JListInt::BasicType() +
          ") (ListRevAdjSectUp " + JListInt::BasicType() +
-         ") (ListRevAdjSectDown " + JListInt::BasicType() + "))";
+         ") (ListRevAdjSectDown " + JListInt::BasicType() + ")))";
 }
 
 /*

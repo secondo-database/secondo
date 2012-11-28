@@ -612,6 +612,12 @@ string JNetwork::GetNetdistancesRelationType()
   return JNetUtil::GetNetdistancesRelationTypeInfo();
 }
 
+string JNetwork::GetNetdistancesTupleType()
+{
+  return JNetUtil::GetNetdistancesTupleTypeInfo();
+}
+
+
 Relation* JNetwork::GetJunctionsCopy() const
 {
   return junctions->Clone();
@@ -2025,8 +2031,9 @@ void JNetwork::CreateTrees()
 void JNetwork::InitNetdistances()
 {
   ListExpr relType;
-  nl->ReadFromString(JNetUtil::GetNetdistancesRelationTypeInfo(), relType);
-  ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType ( relType );
+  nl->ReadFromString(GetNetdistancesRelationType(), relType);
+  ListExpr relNumType =
+    SecondoSystem::GetCatalog()->NumericType(relType);
   netdistances = new OrderedRelation(relNumType);
   GenericRelationIterator* it = sections->MakeScan();
   Tuple* actTuple = 0;
@@ -2085,10 +2092,11 @@ void JNetwork::InsertNetdistanceTuple(const int fromjid, const int tojid,
   Tuple* existingTuple = GetNetdistanceTupleFor(fromjid, tojid);
   if (existingTuple == 0)
   {
-    ListExpr relType;
-    nl->ReadFromString(JNetUtil::GetNetdistancesRelationTypeInfo(), relType);
-    ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType ( relType );
-    Tuple* insertTuple = new Tuple(nl->Second(relNumType));
+    ListExpr tupType;
+    nl->ReadFromString(GetNetdistancesRelationType(), tupType);
+    ListExpr tupNumType =
+      SecondoSystem::GetCatalog()->NumericType(nl->Second(tupType));
+    Tuple* insertTuple = new Tuple(tupNumType);
     insertTuple->PutAttribute(NETDIST_FROM_JID, new CcInt(true, fromjid));
     insertTuple->PutAttribute(NETDIST_TO_JID, new CcInt(true, tojid));
     insertTuple->PutAttribute(NETDIST_NEXT_JID, new CcInt(true, viajid));

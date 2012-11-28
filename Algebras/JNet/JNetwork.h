@@ -227,6 +227,7 @@ Returns the tolerance value of the network for map matching.
  static string GetSectionsRelationType();
  static string GetRoutesRelationType();
  static string GetNetdistancesRelationType();
+ static string GetNetdistancesTupleType();
 
 /*
 1.1.1.1 ~SetDefined~
