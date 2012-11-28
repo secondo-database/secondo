@@ -26,8 +26,10 @@ evalQuery(2000, [database(nrw3)], select * from [buildings as b, roads as r] whe
 % case 3
 evalQuery(2002, [database(nrw3)], select * from [buildings as b, roads as r, points as p] where[b:no=r:no,r:no=p:no]).
 
-evalQuery(8000, [database(nrw3)], select * from [points as p1, points as p2, points as p3, points as p4, points as p5] where[p1:no=p2:no,p2:no=p3:no,p3:no=p4:no,p4:no=p5:no]).
-evalQuery(8001, [database(nrw3)], select * from [points as r1, buildings200k as r2, roads200k as r3, roads200k as r4, roads300k as r5] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no]).
+% 4374 cost edge paths for 6 pog paths:
+% 2003
+evalQuery(2003, [database(nrw3)], select * from [buildings as b, roads as r, points as p, natural as n] where[b:no=r:no,r:no=p:no,p:no=n:no]).
+
 evalQuery(8002, [database(nrw3)], select * from [points as r1, buildings300k as r2, roads300k as r3, roads300k as r4, buildings200k as r5] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no]).
 evalQuery(8003, [database(nrw3)], select * from [points as r1, buildings300k as r2, roads300k as r3, roads400k as r4, buildings400k as r5] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no]).
 
@@ -38,30 +40,8 @@ evalQuery(8004, [database(nrw3)], select * from [roads300k as r1, roads400k as r
 % 7085880 cost edge paths for 120 pog paths:
 % standard costs path count: 29160
 evalQuery(8005, [database(nrw3)], select * from [roads300k as r1, roads400k as r2, roads500k as r3, buildings300k as r4, buildings400k as r5, buildings500k as r6] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no, r5:no=r6:no]).
+evalQuery(8001, [database(nrw3)], select * from   [points as r1, buildings200k as r2, roads200k as r3, roads200k as r4, roads300k as r5] where  [r1:no=r2:no, r2:no=r3:no, r3:no=r4:no, r4:no=r5:no]).
 
-evalQuery(8006, [database(nrw3)], select * from [roads as r1, roads700k as r2, roads600k as r3, buildings as r4, buildings600k as r5, buildings500k as r6] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no, r5:no=r6:no]).
-
-
-evalQuery(8010, [database(nrw3)], select * from [points as r1, roads500k as r2, buildings300k as r3, roads300k as r4, roads400k as r5, roads300k as r6] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no,r5:no=r6:no]).
-
-evalQuery(8011, [database(nrw3)], select * from [points as r1, roads as r2, roads100k as r3, roads200k as r4, roads300k as r5, roads400k as r6] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no, r5:no=r6:no]).
-
-evalQuery(2013, [database(nrw3)], select * from [buildings as b, roads as r, natural as n] where[b:no=r:no,r:no=p:no]).
-
-% 162 cost edge paths for 2 pog paths:
-evalQuery(2014, [database(nrw3)], select * from [buildings as b, roads as r, roads as r2] where[b:no=r:no,b:no=r2:no]).
-
-% 4374 cost edge paths for 6 pog paths:
-% 2003
-evalQuery(2003, [database(nrw3)], select * from [buildings as b, roads as r, points as p, natural as n] where[b:no=r:no,r:no=p:no,p:no=n:no]).
-
-evalQuery(2004, [database(nrw3)], select * from [buildings as b, roads as r, points as p, natural as n, buildings as b2] where[b:no=r:no,r:no=p:no,p:no=n:no, b2:no=n:no]).
-% 157464  cost edge paths for 24 pog paths:
-evalQuery(2005, [database(nrw3)], select * from [buildings as b, roads as r, points as p, natural as n, buildings as b2] where[b:no=b2:no,b:no=r:no,r:no=p:no,p:no=n:no]).
-
-% 7085880 cost edge paths for 120 pog paths:
-% without new translation rules: 29160
-evalQuery(2006, [database(nrw3)], select * from [buildings as b, roads as r, points as p, roads as r2, natural as n, buildings as b2] where[b:no=b2:no,b:no=r:no,r:no=p:no,r2:no=p:no,p:no=n:no]).
 
 createTestFiles :-
   testMAByID(8005, 1, 4, 2), % Case 7
@@ -69,8 +49,9 @@ createTestFiles :-
 	testMAByID(2000, 4, 4, 2), % Case 2
 	testMAByID(2002, 4, 4, 2), % Case 3
 	testMAByID(2003, 4, 4, 2), % Case 4
-  testMAByID(8003, 4, 4, 2), % Case 5
+  testMAByID(8003, 4, 4, 2), 
   testMAByID(8002, 4, 4, 2), % Case 6
+  testMAByID(8001, 4, 4, 2), % Case 5
   testMAByID(8004, 4, 4, 2),
   testMAByID(8006, 1, 1, 2),
   testMAByID(8013, 1, 1, 2),
