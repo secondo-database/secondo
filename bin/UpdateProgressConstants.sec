@@ -1223,7 +1223,7 @@ delete x6;
 
 
 ##
-# measure time for processing one byte in input (uFeedProject)
+# measure time for processing one byte in input (vFeedProject)
 #
 # Create two relations, each with 2.000.000 tuples and 2 attributes
 # The attributes have different sizes. So we can measure the processing 
@@ -1292,7 +1292,7 @@ delete x6;
 
 
 ##
-# measure time for processing one attr (uFeedProject)
+# measure time for processing one attr (wFeedProject)
 ##
 
 # measure time for processing 1000000 tuples with 20 attributes
