@@ -2305,7 +2305,7 @@ plan_to_atom(Term, Result) :-
   plan_to_atom(Arg1, Res1),
   concat_atom([Op, '(', Res1, ')'], '', Result), !,
   write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for unary',
-              'prefix operator ',Op, '/1. Please add the folling fact to file ',
+              'prefix operator ',Op, '/1. Please add the following fact to file ',
               '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', prefix, 1).\n']), !.
 
 /* 2 arguments: infix */
@@ -2318,7 +2318,7 @@ plan_to_atom(Term, Result) :-
   plan_to_atom(Arg2, Res2),
   concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result), !,
   write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for ',
-              'infix operator ', Op, '/2. Please add the folling fact to file ',
+              'infix operator ', Op, '/2. Please add the following fact to file ',
               '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', infix, 2).\n']), !.
 
 /* 3+ arguments: prefix */
@@ -2332,7 +2332,7 @@ plan_to_atom(InTerm,OutTerm) :-
   concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm), !,
   write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for ',
               N,'-ary prefix operator ', Op, '/',N,
-              '. Please add the folling fact to file ',
+              '. Please add the following fact to file ',
               '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', infix, ',N,').\n']), !.
 
 /* Standard translation of atomic terms */
