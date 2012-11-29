@@ -119,6 +119,21 @@ the limit. In this case, the node must be splitted.
 
 
 /*
+~incraseRadius~
+
+Increases the radius of this node in that way to include the 
+argument objects.
+
+*/
+     inline void increaseRadius(const T& o, DistComp& dc){
+         double d = dc(routingObject,o);
+         if(d>radius){
+           radius = d;
+         }
+     }
+
+
+/*
 ~getCount~
 
 Returns the number of entries (sons or objects) of this node.
@@ -379,23 +394,32 @@ Adds a new subtree to this node.
 
 */
    void store(MTreeNode<T,DistComp>* node, DistComp& di){
-        sons[MTreeNode<T,DistComp>::count] = node;
-        MTreeNode<T,DistComp>::count++; 
-        double dist = this->distance(node, di);
 
-        //cout << "called store" << endl;
-        //cout << " Father : "; this->print(cout,di) << endl;
-        //cout << " new son : " ; node->print(cout,di) << endl;
-        //cout << " dist = " << dist << endl;
+       //cout << "store called" << endl;
+       //cout << "Routing Object is "; 
+       //di.print(MTreeNode<T,DistComp>::routingObject,cout) << endl;
+       //cout << "radius is " << MTreeNode<T,DistComp>::radius << endl;
 
-        double rad = dist + node->getRadius() + this->getRadius();
+       //cout << "noderoutingobject is "; 
+       // di.print(*node->getRoutingObject(),cout) << endl;
+       //cout << "node radius is " << node->getRadius() << endl;
 
-        //cout << "new rad candidate is" << rad << endl;
 
-        if(rad  > MTreeNode<T,DistComp>::radius){
-           MTreeNode<T,DistComp>::radius = rad;
-        } 
-        node->setParent(this, di);
+       // compute new radius from this and the new node
+       double dist = di(MTreeNode<T,DistComp>::routingObject, 
+                        *node->getRoutingObject());;
+
+       //cout << " dist = " << dist << endl;
+
+       double rad = max(this->getRadius() , dist + node->getRadius());
+
+
+       //cout << "new radius is " << rad << endl;
+
+       MTreeNode<T,DistComp>::radius = rad;
+       sons[MTreeNode<T,DistComp>::count] = node;
+       MTreeNode<T,DistComp>::count++; 
+       node->setParent(this, di);
    }
 
 
@@ -424,11 +448,8 @@ Replaces the entry at position ~index~ by ~replacement~.
    void replace(MTreeNode<T,DistComp>* replacement, int index, DistComp& di){
       sons[index] = replacement;
       double dist = this->distance(replacement, di);
-      if(dist + max(replacement->getRadius(),this->getRadius()) > 
-         MTreeNode<T,DistComp>::radius){
-         MTreeNode<T,DistComp>::radius = dist + 
-                       this->getRadius() + replacement->getRadius(); 
-      } 
+      double rad = max(this->getRadius(), dist + replacement->getRadius());
+      MTreeNode<T,DistComp>::radius =  rad;
       replacement->setParent(this, di); 
    } 
 
@@ -1039,6 +1060,7 @@ parameter.
                                        DistComp& di){
      MTreeNode<T,DistComp>* son = root;
       while(!son->isLeaf()){
+         son->increaseRadius(o,di);
          son = ((MTreeInnerNode<T,DistComp>*)son)->getBestSon(o, di);
       }
       ((MTreeLeafNode<T,DistComp>*)son)->store(o,di);
@@ -1053,7 +1075,8 @@ parameter.
 
 */
 
-   static std::pair<int,int> selectSeeds(MTreeNode<T,DistComp>* node){
+   static std::pair<int,int> selectSeeds(MTreeNode<T,DistComp>* node,
+                                         DistComp& dc){
      //variants
      // 1: use two random numbers
      // 2: use one random number and the entry with maximum distance to it
@@ -1061,12 +1084,50 @@ parameter.
            // with minium overlapping area
 
      // temporarly use the first variant
+     //int seed1 = std::rand()%node->getCount();
+     //int seed2 = std::rand()%(node->getCount()-1);
+     //if(seed2>=seed1){
+     //  seed2++;
+     //}     
+     //return std::pair<int,int>(seed1,seed2);
+
+     // second variant
      int seed1 = std::rand()%node->getCount();
-     int seed2 = std::rand()%(node->getCount()-1);
-     if(seed2>=seed1){
-       seed2++;
-     }     
-     return std::pair<int,int>(seed1,seed2);
+     int seed2 = seed1;   
+     double dist = 0;
+
+     if(node->isLeaf()){
+        MTreeLeafNode<T,DistComp>* node1 = (MTreeLeafNode<T,DistComp>*) node;
+        const T* ro = node1->getObject(seed1);
+        for(int i=0;i<node1->getCount();i++){
+           if(i!=seed1){
+              const T* ro2 = node1->getObject(i); 
+              double d2 = dc(*ro,*ro2);
+              if((seed1==seed2) || d2>dist){
+                  dist = d2;
+                  seed2 = i;
+              }
+           }
+        }
+     } else {
+        MTreeInnerNode<T,DistComp>* node1 = (MTreeInnerNode<T,DistComp>*) node;
+        const T* ro = node1->getSon(seed1)->getRoutingObject();
+        for(int i=0;i<node1->getCount();i++){
+           if(i!=seed1){
+              const T* ro2 = node1->getSon(i)->getRoutingObject(); 
+              double d2 = dc(*ro,*ro2);
+              if((seed1==seed2) || d2>dist){
+                  dist = d2;
+                  seed2 = i;
+              }
+           }
+        }
+     }
+     pair<int,int> res(seed1,seed2);
+     return res;
+     
+
+
    }
 
 /*
@@ -1149,18 +1210,19 @@ Performs a split up to the root of this tree.
                                        DistComp& di){
 
        while((currentNode!=0) && currentNode->isOverflow()){
-          std::pair<int,int> seeds = selectSeeds(currentNode);
+          std::pair<int,int> seeds = selectSeeds(currentNode,di);
           std::pair<MTreeNode<T,DistComp>*,MTreeNode<T,DistComp>*> part = 
                          createPartition(currentNode,seeds.first, 
                                          seeds.second, di);
-
+          
           if(currentNode->getParent()==0){ // splitted root
-
+              const T* ro = rand()%1>0?part.first->getRoutingObject()
+                                :part.second->getRoutingObject();
               MTreeInnerNode<T,DistComp>* root2 = 
                           new MTreeInnerNode<T,DistComp>(
                                    currentNode->getMinEntries(), 
                                    currentNode->getMaxEntries(),
-                                     *(currentNode->getRoutingObject()));
+                                     *ro);
               currentNode->clear(currentNode->isLeaf());
               delete currentNode;
               currentNode = 0;
