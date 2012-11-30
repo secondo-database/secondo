@@ -607,6 +607,7 @@ public class CommandPanel extends JScrollPane {
 
   /** optimizes a command if optimizer is enabled */
   private String optimize(String command){
+
    IntObj Err = new IntObj();
 
    // look for insert into, delete from and update rename 
@@ -614,7 +615,7 @@ public class CommandPanel extends JScrollPane {
    boolean isSelect = true;
    boolean catChanged = false;
 
-   if(command.startsWith("sql ")){
+   if(command.trim().startsWith("sql ") || command.trim().startsWith("sql\n")){
       isOptUpdateCommand = true;
    } else if( command.matches("insert +into.*")){
       isOptUpdateCommand = true;
@@ -638,9 +639,6 @@ public class CommandPanel extends JScrollPane {
       isOptUpdateCommand = true;
    } 
    
- 
-
-
    if(isOptUpdateCommand){
      if(!useOptimizer()){ // error select clause found but no optimizer enabled
         appendText("optimizer not available");
