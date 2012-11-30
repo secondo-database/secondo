@@ -117,33 +117,8 @@ static const unsigned short EB = 2;
 static const unsigned short EE = 1;
 
 
-const unsigned char emptyBlock[]={ (char)0, (char)0, (char)0,
-    (char)0, (char)0, (char)0, (char)0, (char)0, (char)0, (char)0,
-    (char)0, (char)0, (char)0, (char)0, (char)0, (char)0, (char)0,
-    (char)0, (char)0, (char)0, (char)0, (char)0, (char)0, (char)0,
-    (char)0, (char)0, (char)0, (char)0, (char)0, (char)0, (char)0,
-    (char)0, (char)0, (char)0, (char)0, (char)0, (char)0, (char)0,
-    (char)0, (char)0, (char)0, (char)0, (char)0, (char)0, (char)0,
-    (char)0, (char)0, (char)0, (char)0, (char)0, (char)0, (char)0,
-    (char)0, (char)0, (char)0, (char)0, (char)0, (char)0, (char)0,
-    (char)0, (char)0, (char)0, (char)0, (char)0};
-
-
-
-const unsigned char fullBlock[]={ (char)255, (char)255, (char)255,
-    (char)255, (char)255, (char)255, (char)255, (char)255, (char)255,
-    (char)255, (char)255, (char)255, (char)255, (char)255, (char)255,
-    (char)255, (char)255, (char)255, (char)255, (char)255, (char)255,
-    (char)255, (char)255, (char)255, (char)255, (char)255, (char)255,
-    (char)255, (char)255, (char)255, (char)255, (char)255, (char)255,
-    (char)255, (char)255, (char)255, (char)255, (char)255, (char)255,
-    (char)255, (char)255, (char)255, (char)255, (char)255, (char)255,
-    (char)255, (char)255, (char)255, (char)255, (char)255, (char)255,
-    (char)255, (char)255, (char)255, (char)255, (char)255, (char)255,
-    (char)255, (char)255, (char)255, (char)255, (char)255, (char)255,
-    (char)255};
-
-
+const unsigned char* getEmptyBlock();
+const unsigned char* getFullBlock(); 
 
 /*
 2.1 The Data Type ~Int9M~
@@ -589,9 +564,10 @@ This standard constructor should only be used in the cast function.
       Cluster(){} 
 
 
-      Cluster(int dummy) : Attribute(true){
-        memcpy(BitVector,emptyBlock,64);
-        memcpy(BitVectorT,emptyBlock,64);
+      Cluster(int dummy) : Attribute(true),
+        boxchecks(0), boxchecksT(0), boxchecksok(false){
+        memcpy(BitVector,getEmptyBlock(),64);
+        memcpy(BitVectorT,getEmptyBlock(),64);
         memset(name,'\0',MAX_STRINGSIZE + 1);
         strcpy(name,"empty");
         updateBoxChecks();
@@ -605,17 +581,18 @@ making this constructor different to the standard constructor and is
 ignored.
 
 */
-      Cluster(const bool all, const bool updateBC = true) : Attribute(true){
+      Cluster(const bool all, const bool updateBC = true) : Attribute(true),
+          boxchecks(0), boxchecksT(0), boxchecksok(false) {
           //for(int i=0;i<64;i++)
           //    BitVector[i]=0;
           memset(name,'\0',MAX_STRINGSIZE + 1 );
           if(all){
-             memcpy(BitVector,fullBlock,64);
-             memcpy(BitVectorT,fullBlock,64);
+             memset(BitVector,(unsigned char) 255, 64);
+             memset(BitVectorT,(unsigned char) 255, 64);
              strcpy(name,"empty");
           } else {
-             memcpy(BitVector,emptyBlock,64);
-             memcpy(BitVectorT,emptyBlock,64);
+             memset(BitVector,(unsigned char) 0, 64);
+             memset(BitVectorT,(unsigned char) 0, 64);
              strcpy(name,"complete");
           }
           if(updateBC){
@@ -804,8 +781,8 @@ This function removes all matrices from this cluster.
       void MakeEmpty(const bool updateBC = true){
           //for(int i=0;i<64;i++)
           //    BitVector[i] = 0;
-          memcpy(BitVector,emptyBlock,64);
-          memcpy(BitVectorT,emptyBlock,64);
+          memcpy(BitVector,getEmptyBlock(),64);
+          memcpy(BitVectorT,getEmptyBlock(),64);
           if(updateBC) {
              updateBoxChecks();
           }
@@ -821,8 +798,8 @@ The MakeFull function changes this cluster to contain all
       void MakeFull(const bool updateBC = true){
          //for(int i=0;i<64;i++)
          //     BitVector[i] = 255;
-         memcpy(BitVector,fullBlock,64);
-         memcpy(BitVectorT,fullBlock,64);
+         memcpy(BitVector,getFullBlock(),64);
+         memcpy(BitVectorT,getFullBlock(),64);
          if(updateBC){
             updateBoxChecks();
          }
@@ -835,7 +812,7 @@ This function checks whether this cluster is empty.
 */
 
    bool IsEmpty() const{
-           return (memcmp(BitVector,emptyBlock,64)==0);
+           return (memcmp(BitVector,getEmptyBlock(),64)==0);
         }
 
 
@@ -847,7 +824,7 @@ possible matrices.
 
 */
      bool IsComplete() const{
-       return (memcmp(BitVector,fullBlock,64)==0);
+       return (memcmp(BitVector,getFullBlock(),64)==0);
      }
 
 
@@ -1088,8 +1065,8 @@ empty checks. The function has the follwing return values:
   * 3 : from the arguments we cannot derive a result
 
 */
-  int checkBoxes( const Rectangle<2> box1, const bool empty1,
-                  const Rectangle<2> box2, const bool empty2) const;
+  int checkBoxes( const Rectangle<2>& box1, const bool empty1,
+                  const Rectangle<2>& box2, const bool empty2) const;
 
 
 /*

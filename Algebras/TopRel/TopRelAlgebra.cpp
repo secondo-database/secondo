@@ -93,6 +93,77 @@ static const int O1_INNER = 64;
 static const int O2_INNER = 128;
 
 
+
+
+const unsigned char* getEmptyBlock(){
+
+   static const unsigned char emptyBlock[]={ (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0,
+    (const unsigned char)0, (const unsigned char)0, (const unsigned char)0};
+   return emptyBlock;
+}
+
+
+const unsigned char* getFullBlock(){
+  static const unsigned char fullBlock[]={
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255,
+    (const unsigned char)255, (const unsigned char)255};
+   return fullBlock;
+}
+
+
+
+
+
 // The name of the unspecified cluster
 static const STRING_T UNSPECIFIED = "unspecified";
 
@@ -616,7 +687,7 @@ bool Cluster::ReadFrom(const ListExpr LE,const ListExpr typeInfo){
    // initialize the temporary bitvector
    //for(int i=0;i<64;i++)
    //   TMP[i]=0;
-   memcpy(TMP,emptyBlock,64);
+   memcpy(TMP,getEmptyBlock(),64);
 
    bool correct = true;
    ListExpr scan = LE;
@@ -761,7 +832,7 @@ variable. The information is coded as
 
 */
 
-void Cluster::updateBoxChecks(const unsigned char bitvector[],
+void Cluster::updateBoxChecks(const unsigned char* bitvector,
                               int& boxchecks){
   boxchecks = 0;
   Int9M m1(1,1,0,1,1,0,0,0,0);
@@ -835,8 +906,8 @@ void Cluster::updateBoxChecks(){
 2.2.7 checkBoxes
 
 */
-int Cluster::checkBoxes(const Rectangle<2> box1, const bool empty1,
-               const Rectangle<2> box2, const bool empty2) const{
+int Cluster::checkBoxes(const Rectangle<2>& box1, const bool empty1,
+               const Rectangle<2>& box2, const bool empty2) const{
   if(!boxchecksok){
       cout << "checkBoxes called but info is not up to date" << endl;
       return 3;
@@ -1118,15 +1189,14 @@ matrices is added.
 */
 PredicateGroup::PredicateGroup( const int size ) :
      Attribute(true),
-     theClusters( size ),
+     theClusters( 0 ),
      canDelete( false ),
      sorted(true),
-     unSpecified(false)
+     unSpecified(true)
      {
    // at this point, we defined a single
    // clusters 'unspecified containing all
    // possible 9 intersection matrices
-   unSpecified.Invert();
    unSpecified.SetName(&UNSPECIFIED);
 }
 
