@@ -1,6 +1,12 @@
 Database: symtraj
 Restore : No
 
+Operator : topattern
+Number   : 1
+Signature: text -> pattern
+Example  : query '(_ "Borsigplatz") * (_ "Strobelallee")' topattern
+Result   : (_ "Borsigplatz") * (_ "Strobelallee")
+
 Operator : matches
 Number   : 1
 Signature: mlabel x text -> bool

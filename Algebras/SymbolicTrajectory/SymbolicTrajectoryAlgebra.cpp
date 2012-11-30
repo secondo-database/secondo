@@ -551,7 +551,8 @@ Rewrites a moving label using another moving label and a vector.
 */
 void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
                      vector<Assign> assigns, map<string, int> varPosInSeq) {
-  if (!checkRewriteSeq(seq, ml.GetNoComponents(), false)) {
+  if (!checkRewriteSeq(seq, ml.GetNoComponents(), false) ||
+    (seq.first.empty() && seq.second.empty())) {
     this->SetDefined(false);
     return;
   }
@@ -673,7 +674,7 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
       seqPos = seqPos + 2;
     }
   }
-  ccstring->DeleteIfAllowed();
+//   ccstring->DeleteIfAllowed();
   per->DeleteIfAllowed();
   inst->DeleteIfAllowed();
   iv->DeleteIfAllowed();
@@ -1297,11 +1298,11 @@ Returns the pattern text as specified by the user.
 
 */
 string Pattern::GetText() const {
-  return text;
+  return text.substr(0, text.length() - 1);
 }
 
 /*
-4.2 Function ~BasicType~
+\subsection{Function ~BasicType~}
 
 */
 const string Pattern::BasicType() {
@@ -1309,7 +1310,7 @@ const string Pattern::BasicType() {
 }
 
 /*
-4.3 Function ~checkType~
+\subsection{Function ~checkType~}
 
 */
 const bool Pattern::checkType(const ListExpr type){
@@ -1317,7 +1318,7 @@ const bool Pattern::checkType(const ListExpr type){
 }
 
 /*
-4.4 Function ~In~
+\subsection{Function ~In~}
 
 */
 Word Pattern::In(const ListExpr typeInfo, const ListExpr instance,
@@ -1328,9 +1329,9 @@ Word Pattern::In(const ListExpr typeInfo, const ListExpr instance,
   if (list.isAtom()) {
     if (list.isText()) {
       string text = list.str();
-      Pattern *pattern = 0;
-      text += "\n";
-      pattern = stj::parseString(text.c_str());
+      Pattern *pattern = new Pattern();
+      pattern = getPattern(text);
+//       pattern->buildNFA();
       if (pattern) {
         correct = true;
         result.addr = pattern;
@@ -1343,7 +1344,7 @@ Word Pattern::In(const ListExpr typeInfo, const ListExpr instance,
     else {
       correct = false;
       cmsg.inFunError("Expecting a text!");
-    }      
+    }
   }
   else {
     correct = false;
@@ -1353,7 +1354,7 @@ Word Pattern::In(const ListExpr typeInfo, const ListExpr instance,
 }
 
 /*
-4.5 Function ~Out~
+\subsection{Function ~Out~}
 
 */
 ListExpr Pattern::Out(ListExpr typeInfo, Word value) {
@@ -1363,7 +1364,7 @@ ListExpr Pattern::Out(ListExpr typeInfo, Word value) {
 }
 
 /*
-4.6 Function ~Create~
+\subsection{Function ~Create~}
 
 */
 Word Pattern::Create(const ListExpr typeInfo) {
@@ -1371,7 +1372,7 @@ Word Pattern::Create(const ListExpr typeInfo) {
 }
 
 /*
-4.7 Function ~Delete~
+\subsection{Function ~Delete~}
 
 */
 void Pattern::Delete(const ListExpr typeInfo, Word& w) {
@@ -1380,7 +1381,7 @@ void Pattern::Delete(const ListExpr typeInfo, Word& w) {
 }
 
 /*
-4.8 Function ~Close~
+\subsection{Function ~Close~}
 
 */
 void Pattern::Close(const ListExpr typeInfo, Word& w) {
@@ -1389,7 +1390,7 @@ void Pattern::Close(const ListExpr typeInfo, Word& w) {
 }
 
 /*
-4.9 Function ~Clone~
+\subsection{Function ~Clone~}
 
 */
 Word Pattern::Clone(const ListExpr typeInfo, const Word& w) {
@@ -1398,7 +1399,143 @@ Word Pattern::Clone(const ListExpr typeInfo, const Word& w) {
 }
 
 /*
-4.10 Function ~SizeOfObj~
+\subsection{Function ~Open~}
+
+*/
+bool Pattern::Open(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value) {
+  int size;
+  valueRecord.Read(&size, sizeof(int), offset); // read patterns.size
+  offset += sizeof(int);
+  cout << "patterns.size " << size << " read" << endl;
+  UPat upat;
+  vector<UPat> patterns;
+  for (int i = 0; i < size; i++) {
+    valueRecord.Read(&upat, sizeof(UPat), offset); // read unit patterns
+    cout << "unit pattern " << i << " read" << endl;
+    patterns.push_back(upat);
+    cout << " and pushed back" << endl;
+    offset += sizeof(UPat);
+  }
+  valueRecord.Read(&size, sizeof(int), offset); // read assigns.size
+  offset += sizeof(int);
+  Assign assign;
+  vector<Assign> assigns;
+  for (int i = 0; i < size; i++) {
+    valueRecord.Read(&assign, sizeof(Assign), offset); // read assignments
+    assigns.push_back(assign);
+    offset += sizeof(Assign);
+  }
+  valueRecord.Read(&size, sizeof(int), offset); // read conditions.size
+  offset += sizeof(int);
+  Condition cond;
+  vector<Condition> conds;
+  for (int i = 0; i < size; i++) {
+    valueRecord.Read(&cond, sizeof(Condition), offset); // read conditions
+    conds.push_back(cond);
+    offset += sizeof(Condition);
+  }
+  string text;
+  char onechar;
+  valueRecord.Read(&size, sizeof(int), offset); // read text.size
+  offset += sizeof(int);
+  for (int i = 0; i < size; i++) {
+    valueRecord.Read(&onechar, sizeof(char), offset); // read text
+    text.append(1, onechar);
+    offset += sizeof(char);
+  }
+  valueRecord.Read(&size, sizeof(int), offset); // read delta.size
+  offset += sizeof(int);
+  map<int, set<int> > onemap;
+  set<int> oneset;
+  int oneint, key, mapsize, setsize;
+  map<int, set<int> > *delta = new map<int, set<int> >[size];
+  for (int i = 0; i < size; i++) {
+    valueRecord.Read(&mapsize, sizeof(int), offset);
+    offset += sizeof(int);
+    for (int j = 0; j < mapsize; j++) {
+      valueRecord.Read(&key, sizeof(int), offset);
+      offset += sizeof(int);
+      valueRecord.Read(&setsize, sizeof(int), offset);
+      offset += sizeof(int);
+      for (int k = 0; k < setsize; k++) {
+        valueRecord.Read(&oneint, sizeof(int), offset);
+        oneset.insert(oneint);
+        offset += sizeof(int);
+      }
+      onemap.insert(pair<int, set<int> >(key, oneset));
+      oneset.clear();
+    }
+    delta[i] = onemap;
+    onemap.clear();
+  }
+  bool verified;
+  valueRecord.Read(&verified, sizeof(bool), offset); // read verified
+  offset += sizeof(bool);
+  Pattern* p = new Pattern(patterns, assigns, conds, text, delta, verified);
+  value.setAddr(p);
+  return true;
+}
+
+/*
+\subsection{Function ~Save~}
+
+*/
+bool Pattern::Save(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value) {
+  Pattern* p = (Pattern*)value.addr;
+  int size = p->patterns.size();
+  valueRecord.Write(&size, sizeof(int), offset);
+  offset += sizeof(int);
+  for (int i = 0; i < size; i++) {
+    valueRecord.Write(&p->patterns[i], sizeof(UPat), offset);
+    offset += sizeof(UPat);
+  }
+  size = p->assigns.size();
+  valueRecord.Write(&size, sizeof(int), offset);
+  offset += sizeof(int);
+  for (int i = 0; i < size; i++) {
+    valueRecord.Write(&p->assigns[i], sizeof(Assign), offset);
+    offset += sizeof(Assign);
+  }
+  size = p->conds.size();
+  valueRecord.Write(&size, sizeof(int), offset);
+  offset += sizeof(int);
+  for (int i = 0; i < size; i++) {
+    valueRecord.Write(&p->conds[i], sizeof(Condition), offset);
+    offset += sizeof(Condition);
+  }
+  size = p->text.length();
+  valueRecord.Write(&size, sizeof(int), offset);
+  offset += sizeof(int);
+  for (int i = 0; i < size; i++) {
+    valueRecord.Write(&p->text[i], sizeof(char), offset); // text
+    offset += sizeof(char);
+  }
+  size = p->patterns.size();
+  valueRecord.Write(&size, sizeof(int), offset); // delta.size
+  offset += sizeof(int);
+  int mapsize, setsize;
+  set<int>::iterator k;
+  for (int i = 0; i < size; i++) {
+    mapsize = p->delta[i].size();
+    valueRecord.Write(&mapsize, sizeof(int), offset); //mapsize
+    offset += sizeof(int);
+    for (int j = 0; j < mapsize; j++) {
+      setsize = p->delta[i][j].size();
+      valueRecord.Write(&setsize, sizeof(int), offset);//setsize
+      offset += sizeof(int);
+      for (k = p->delta[i][j].begin(); k != p->delta[i][j].end(); k++) {
+        valueRecord.Write(&(*k), sizeof(int), offset);
+        offset += sizeof(int);
+      }
+    }
+  }
+  return true;
+}
+
+/*
+\subsection{Function ~SizeOfObj~}
 
 */
 int Pattern::SizeOfObj() {
@@ -1406,12 +1543,48 @@ int Pattern::SizeOfObj() {
 }
 
 /*
-4.11 Function ~KindCheck~
+\subsection{Function ~KindCheck~}
 
 */
 bool Pattern::KindCheck(ListExpr type, ListExpr& errorInfo) {
   return (nl->IsEqual(type, Pattern::BasicType()));
 }
+
+/*
+\subsection{Function ~Property~}
+
+Describes the signature of the type constructor.
+
+*/
+ListExpr Pattern::Property() {
+  return (nl->TwoElemList(
+    nl->FiveElemList(nl->StringAtom("Signature"),
+       nl->StringAtom("Example Type List"),
+       nl->StringAtom("List Rep"),
+       nl->StringAtom("Example List"),
+       nl->StringAtom("Remarks")),
+    nl->FiveElemList(nl->StringAtom("-> DATA"),
+       nl->StringAtom(Pattern::BasicType()),
+       nl->StringAtom("<pattern>"),
+       nl->TextAtom("\' (monday at_home) X () // X.start = 2011-01-01 \'"),
+       nl->StringAtom("<pattern> must be a text."))));
+}
+
+/*
+\subsection{Creation of the Type Constructor Instance}
+
+*/
+TypeConstructor patternTC(
+  Pattern::BasicType(),               // name of the type in SECONDO
+  Pattern::Property,                // property function describing signature
+  Pattern::Out, Pattern::In,         // Out and In functions
+  0, 0,                            // SaveToList, RestoreFromList functions
+  Pattern::Create, Pattern::Delete,  // object creation and deletion
+  0, 0,                            // object open, save
+  Pattern::Close, Pattern::Clone,    // close, and clone
+  0,                               // cast function
+  Pattern::SizeOfObj,               // sizeof function
+  Pattern::KindCheck );             // kind checking function
 
 /*
 \subsection{Function ~verifyPattern~}
@@ -1420,7 +1593,7 @@ Loops through the unit patterns and checks whether every specified interval
 is valid and whether the variables are unique.
 
 */
-bool Pattern::verifyPattern() {
+bool Pattern::verifyPattern() const {
   set<string>::iterator it;
   SecInterval iv;
   set<string> vars, ivs;
@@ -1457,7 +1630,7 @@ correct boolean expression. If there is an invalid condition, the user input
 is rejected.
 
 */
-bool Pattern::verifyConditions() {
+bool Pattern::verifyConditions() const {
   for (int i = 0; i < (int)conds.size(); i++) {
     CcBool* ccbool = static_cast<CcBool*>(evaluate(conds[i].getSubst()).addr);
     if (!ccbool->IsDefined()) {
@@ -1530,8 +1703,9 @@ Calls the parser.
 
 */
 Pattern* Pattern::getPattern(string input) {
-  input.append("\n");
-//   cout << input << endl;
+  if (input.find('\n') == string::npos) {
+    input.append("\n");
+  }
   const char *patternChar = input.c_str();
   return parseString(patternChar);
 }
@@ -1543,14 +1717,17 @@ Checks the pattern and the condition and (if no problem occurs) invokes the NFA
 construction and the matching procedure.
 
 */
-bool Pattern::matches(MString const &ml) {
-  if (!verifyPattern() || !verifyConditions()) {
-    return false;
+bool Pattern::matches(MString const &ml) const {
+  if (!isVerified()) {
+    if (!verifyPattern() || !verifyConditions()) {
+      return false;
+    }
   }
-  NFA *nfa = new NFA(patterns.size() + 1);
-  nfa->buildNFA(*this);
-  bool result = nfa->matches(ml);
-  delete nfa;
+/*  cout << nfa2String() << endl;*/
+  Match *match = new Match(patterns.size() + 1);
+  match->copyFromPattern(*this);
+  bool result = match->matches(ml);
+  delete match;
   return result;
 }
 
@@ -1564,32 +1741,37 @@ Performs a match and returns the set of matching sequences for the operator
 set<pair<vector<size_t>, vector<size_t> > > Pattern::
                                             getRewriteSeqs(MLabel const &ml) {
   set<pair<vector<size_t>, vector<size_t> > > result;
-  if (!verifyPattern() || !verifyConditions()) {
-    cout << "Error: Invalid pattern/condition." << endl;
-    return result;
+  if (!isVerified()) {
+    if (!verifyPattern() || !verifyConditions()) {
+      cout << "Error: Invalid pattern/condition." << endl;
+      return result;
+    }
+    if (!checkAssignTypes()) {
+      return result;
+    }
+    delta = new map<int, set<int> >[patterns.size()];
+    buildNFA();
   }
   if (!hasAssigns()) {
     cout << "No result specified." << endl;
     return result;
   }
-  if (!checkAssignTypes()) {
+  Match *match = new Match(patterns.size() + 1);
+  match->copyFromPattern(*this);
+  match->setAssVars(this->getAssVars());
+  match->setVarPos(this->getVarPos());
+//   cout << nfa2String() << endl;
+  if (!match->matches(ml, true)) {
+    delete match;
     return result;
   }
-  NFA *nfa = new NFA(patterns.size() + 1);
-  nfa->buildNFA(*this);
-  nfa->setAssVars(this->getAssVars());
-  nfa->setVarPos(this->getVarPos());
-  if (!nfa->matches(ml, true)) {
-    delete nfa;
-    return result;
-  }
-  nfa->computeResultVars(this->assigns);
-  nfa->buildSequences();
-//   nfa->printSequences(300);
-  nfa->filterSequences(ml);
-//   nfa->printRewriteSeqs(50);
-  result = nfa->getRewriteSeqs();
-  delete nfa;
+  match->computeResultVars(this->assigns);
+  match->buildSequences();
+//   match->printSequences(300);
+  match->filterSequences(ml);
+//   match->printRewriteSeqs(50);
+  result = match->getRewriteSeqs();
+  delete match;
   return result;
 }
 
@@ -1617,7 +1799,7 @@ Computes a mapping containing the positions of the unit patterns the result
 variables belong to.
 
 */
-void NFA::computeResultVars(vector<Assign> assigns) {
+void Match::computeResultVars(vector<Assign> assigns) {
   for (int i = 0; i < (int)assigns.size(); i++) {
     resultVars[i] = assigns[i].getPatternPos();
   }
@@ -1630,7 +1812,7 @@ Searches for sequences which fulfill all conditions and stores their relevant
 parts for rewriting.
 
 */
-void NFA::filterSequences(MString const &ml) {
+void Match::filterSequences(MString const &ml) {
   set<multiset<size_t> >::iterator it;
   for (it = sequences.begin(); it != sequences.end(); it++) {
     for (int i = 0; i < (int)conds.size(); i++) {
@@ -1652,7 +1834,7 @@ void NFA::filterSequences(MString const &ml) {
   }
 }
 
-void NFA::buildRewriteSeq(multiset<size_t> sequence) {
+void Match::buildRewriteSeq(multiset<size_t> sequence) {
   vector<size_t> seq(sequence.begin(), sequence.end());
   vector<size_t> rewriteSeq, assignedSeq;
   pair<vector<size_t>, vector<size_t> > completeSeq;
@@ -1683,54 +1865,13 @@ void NFA::buildRewriteSeq(multiset<size_t> sequence) {
 }
 
 /*
-\subsection{Function ~Property~}
-
-Describes the signature of the type constructor.
-
-*/
-ListExpr Pattern::Property() {
-  return (nl->TwoElemList(
-    nl->FiveElemList(nl->StringAtom("Signature"),
-       nl->StringAtom("Example Type List"),
-       nl->StringAtom("List Rep"),
-       nl->StringAtom("Example List"),
-       nl->StringAtom("Remarks")),
-    nl->FiveElemList(nl->StringAtom("-> DATA"),
-       nl->StringAtom(Pattern::BasicType()),
-       nl->StringAtom("<pattern>"),
-       nl->TextAtom("\' (monday at_home) X (_ _) // X.start = 2011-01-01 \'"),
-       nl->StringAtom("<pattern> must be a text."))));
-}
-
-/*
-\subsection{Creation of the Type Constructor Instance}
-
-*/
-TypeConstructor patternTC(
-  Pattern::BasicType(),               // name of the type in SECONDO
-  Pattern::Property,                // property function describing signature
-  Pattern::Out, Pattern::In,         // Out and In functions
-  0, 0,                            // SaveToList, RestoreFromList functions
-  Pattern::Create, Pattern::Delete,  // object creation and deletion
-  0, 0,                            // object open, save
-  Pattern::Close, Pattern::Clone,    // close, and clone
-  0,                               // cast function
-  Pattern::SizeOfObj,               // sizeof function
-  Pattern::KindCheck );             // kind checking function
-
-//**********************************************************************
-/*
-\section{NFA}
-*/
-
-/*
 \subsection{Function ~buildNFA~}
 
 Reads the pattern and generates the delta function.
 
 */
-void NFA::buildNFA(Pattern p) {
-  copyFromPattern(p);
+void Pattern::buildNFA() {
+  int f = (int)patterns.size();
   int prev[3] = {-1, -1, -1}; // prevStar, prevNotStar, secondPrevNotStar
   for (int i = 0; i < f; i++) {
     delta[i][i].insert(i + 1); // state i, read pattern i => new state i+1
@@ -1786,6 +1927,7 @@ void NFA::buildNFA(Pattern p) {
   if (patterns[f - 1].getW()) { // '... #*' or '... #+'
     delta[f - 1][f - 1].insert(f - 1);
   }
+  setVerified(true);
 }
 
 /*
@@ -1797,7 +1939,7 @@ the loop. If ~rewrite~ is true (which happens in case of the operator ~rewrite~)
 the matching procedure ends after the unit pattern test.
 
 */
-bool NFA::matches(MString const &ml, bool rewrite) {
+bool Match::matches(MString const &ml, bool rewrite) {
   numOfLabels = (size_t)ml.GetNoComponents();
   for (size_t i = 0; i < numOfLabels; i++) {
     ml.Get(i, ul);
@@ -1837,16 +1979,18 @@ bool NFA::matches(MString const &ml, bool rewrite) {
 }
 
 /*
-\subsection{Function ~toString~}
+\subsection{Function ~nfa2String~}
 
 Returns a string displaying the information stored in the NFA.
 
 */
-string NFA::toString() {
+string Pattern::nfa2String() const {
   stringstream nfa;
   set<int>::iterator k;
-  for (int i = 0; i < f; i++) {
-    for (int j = i; j < f; j++) {
+  for (int i = 0; i < (int)patterns.size(); i++) {
+    for (int j = i; j < (int)patterns.size(); j++) {
+      cout << "delta[" << i << "][" << j << "].size()" << endl;
+      cout << "= " << delta[i][j].size() << endl;
       if (delta[i][j].size() > 0) {
         nfa << "state " << i << " | upat #" << j << " | new states {";
         if (delta[i][j].size() == 1) {
@@ -1871,7 +2015,7 @@ string NFA::toString() {
 Prints the set of currently active states.
 
 */
-void NFA::printCurrentStates() {
+void Match::printCurrentStates() {
   if (!currentStates.empty()) {
     set<int>::iterator it = currentStates.begin();
     cout << "after ULabel # " << ulId << ", active states are {" << *it;
@@ -1894,7 +2038,7 @@ Prints the ulabels matched by every unit pattern. Subsequently, the possible
 cardinalities for every unit pattern are displayed.
 
 */
-void NFA::printCards() {
+void Match::printCards() {
   set<size_t>::iterator it;
   for (int j = 0; j < f; j++) {
     cout << "upat " << j << " matches ulabels ";
@@ -1920,7 +2064,7 @@ Displays the possible cardinality sequences. As the number of sequences may
 be very high, only the first ~max~ sequences are printed.
 
 */
-void NFA::printSequences(size_t max) {
+void Match::printSequences(size_t max) {
   set<multiset<size_t> >::iterator it1;
   set<size_t>::iterator it2;
   unsigned int seqCount = 0;
@@ -1944,7 +2088,7 @@ Displays the sequences for rewriting. As the number of sequences may be very
 high, only the first ~max~ sequences are printed.
 
 */
-void NFA::printRewriteSeqs(size_t max) {
+void Match::printRewriteSeqs(size_t max) {
   set<pair<vector<size_t>, vector<size_t> > >::iterator it;
   unsigned int seqCount = 0;
   it = rewriteSeqs.begin();
@@ -1967,7 +2111,7 @@ Displays the possible condition matching sequences. As the number of sequences
 may be very high, only the first ~max~ sequences are printed.
 
 */
-void NFA::printCondMatchings(size_t max) {
+void Match::printCondMatchings(size_t max) {
   set<vector<size_t> >::iterator it;
   unsigned int count = 0;
   it = condMatchings.begin();
@@ -1990,7 +2134,7 @@ Further functions are invoked to decide which transition can be applied to
 which current state. The set of current states is updated.
 
 */
-void NFA::updateStates() {
+void Match::updateStates() {
   set<int> newStates;
   set<int>::iterator i, k;
   map<int, set<int> >::iterator j;
@@ -2005,8 +2149,7 @@ void NFA::updateStates() {
       }
     }
   }
-  currentStates = newStates;
-//   printCurrentStates();
+  currentStates = newStates;  
 }
 
 /*
@@ -2016,7 +2159,7 @@ Computes the set of possible cardinalities for sequence patterns in double
 parentheses and stores their positions into a set.
 
 */
-void NFA::processDoublePars(int pos) {
+void Match::processDoublePars(int pos) {
   set<size_t>::iterator j;
   size_t last = -2;
   size_t count = 0;
@@ -2041,7 +2184,7 @@ void NFA::processDoublePars(int pos) {
 Computes the set of possible cardinalities for every state.
 
 */
-void NFA::computeCardsets() {
+void Match::computeCardsets() {
   set<size_t>::iterator j, k;
   int prev = -1; // previous matching position
   int numOfNonStars = 0;
@@ -2055,8 +2198,10 @@ void NFA::computeCardsets() {
       if (prev == i - 2) {
         if (prev > -1) { // '(1 a) +|* #(2 b)'
           for (j = match[i - 2].begin(); j != match[i - 2].end(); j++) {
-            for (k = match[i].begin(); (k != match[i].end() && *k > *j); k++) {
-              cardsets[i - 1].insert(*k - *j - 1);
+            for (k = match[i].begin(); k != match[i].end(); k++) {
+              if  (*k > *j) {
+                cardsets[i - 1].insert(*k - *j - 1);
+              }
             }
           }
         }
@@ -2114,7 +2259,7 @@ threshold (which depends on the number of non-asterisk units in the pattern)
 are erased.
 
 */
-void NFA::correctCardsets(int nonStars) {
+void Match::correctCardsets(int nonStars) {
   set<size_t>::iterator j;
   for (int i = 0; i < f; i++) { // correct zeros
     if (patterns[i].getW() == STAR) {
@@ -2139,7 +2284,7 @@ enclosed by every interval of the unit pattern at position pos. If no pattern
 interval is specified, the result is true.
 
 */
-bool NFA::timesMatch(int pos) {
+bool Match::timesMatch(int pos) {
   bool result(true), elementOk(false);
   set<int>::iterator i;
   set<string>::iterator j;
@@ -2201,7 +2346,7 @@ labels at position pos. If no label is specified in the pattern, ~true~ is
 returned.
 
 */
-bool NFA::labelsMatch(int pos) {
+bool Match::labelsMatch(int pos) {
   bool result = true;
   set<string>::iterator i;
   set<string> lbs = patterns[pos].getL();
@@ -2224,7 +2369,7 @@ sequences with length ~numOfLabels~ are accepted. This function is necessary
 for ~rewrite~. For ~matches~, see ~getNextSeq~.
 
 */
-void NFA::buildSequences() {
+void Match::buildSequences() {
   multiset<size_t> seq;
   vector<size_t> cards;
   set<size_t>::iterator it;
@@ -2281,7 +2426,7 @@ Checks the correctness of a sequence concerning double parentheses. Therefore,
 a comparison with the contents of the respective matchings set is performed.
 
 */
-bool NFA::checkDoublePars(multiset<size_t> sequence) {
+bool Match::checkDoublePars(multiset<size_t> sequence) {
   vector<size_t> seq(sequence.begin(), sequence.end());
   size_t max = -1;
   for (int i = 0; i < (int)seq.size(); i++) {
@@ -2310,7 +2455,7 @@ and only if there is (at least) one cardinality sequence that matches every
 condition.
 
 */
-bool NFA::conditionsMatch(MString const &ml) {
+bool Match::conditionsMatch(MString const &ml) {
   bool proceed(false);
   multiset<size_t>::iterator it;
   if (conds.empty()) {
@@ -2393,7 +2538,7 @@ Computes the order in which the sequences will be built. More exactly, the
 sequences will first differ in the positions having variables.
 
 */
-void NFA::computeSeqOrder() {
+void Match::computeSeqOrder() {
   set<int> used;
   int k = 0;
   for (int i = 0; i < (int)conds.size(); i++) {
@@ -2420,7 +2565,7 @@ Computes and returns the (maximal) number of relevant combinations, depending
 on the types of the occurring conditions and their number.
 
 */
-size_t NFA::getRelevantCombs() {
+size_t Match::getRelevantCombs() {
   map<int, size_t> factors;
   map<int, size_t>::iterator it;
   int key, pos;
@@ -2463,7 +2608,7 @@ second parameter) is fixed by non-wildcard unit patterns, e.g., for () () X +,
 the first unit label matching X is always the same, so isFixed(2, true) = true.
 
 */
-bool NFA::isFixed(int pos, bool start) {
+bool Match::isFixed(int pos, bool start) {
   int a = (start ? 0 : pos + 1);
   int b = (start ? pos : f);
   for (int i = a; i < b; i++) {
@@ -2484,7 +2629,7 @@ the sequences are needed. (2) The order of the sequences depends on whether a
 unit pattern is referred to in the conditions.
 
 */
-multiset<size_t> NFA::getNextSeq() {
+multiset<size_t> Match::getNextSeq() {
   multiset<size_t> result;
   size_t cardSum, partSum, j;
   set<size_t>::iterator it;
@@ -2538,7 +2683,7 @@ components). A match is possible for a pattern like 'X [*] Y [*]' and conditions
 X.card = 0, X.card = Y.card [*] 7. Time or label constraints are invalid.
 
 */
-bool NFA::evaluateEmptyML() {
+bool Match::evaluateEmptyML() {
   for (int i = 0; i < (int)conds.size(); i++) {
     conds[i].resetSubst();
     for (int j = 0; j < conds[i].getKeysSize(); j++) {
@@ -2566,7 +2711,7 @@ For one condition and one cardinality sequence, a set of possible matching
 sequences is built if necessary, i.e., if the condition contains a label.
 
 */
-void NFA::buildCondMatchings(int cId, multiset<size_t> sequence) {
+void Match::buildCondMatchings(int cId, multiset<size_t> sequence) {
   bool necessary(false);
   condMatchings.clear();
   int pId;
@@ -2607,7 +2752,7 @@ This function is invoked by ~conditionsMatch~ and checks whether a sequence of
 possible cardinalities matches a certain condition.
 
 */
-bool NFA::evaluateCond(MString const &ml, int cId, multiset<size_t> sequence) {
+bool Match::evaluateCond(MString const &ml, int cId, multiset<size_t> sequence){
   conds[cId].resetSubst();
   bool success(false), replaced(false);
   string condStrCardTime, subst;
@@ -2775,7 +2920,7 @@ limits ~from~ and ~to~, the respective time information is retrieved from the
 MLabel and returned as a string.
 
 */
-string NFA::getTimeSubst(MString const &ml, int key, size_t from, size_t to) {
+string Match::getTimeSubst(MString const &ml, int key, size_t from, size_t to) {
   stringstream result;
   if ((from < 0) || (to >= numOfLabels)) {
     cout << "ULabel #" << (from < 0 ? from : to) << " does not exist." << endl;
@@ -2834,7 +2979,7 @@ string NFA::getTimeSubst(MString const &ml, int key, size_t from, size_t to) {
 The label substitution is found and returned.
 
 */
-string NFA::getLabelSubst(MString const &ml, int pos) {
+string Match::getLabelSubst(MString const &ml, int pos) {
   stringstream result;
   set<vector<size_t> >::iterator it = condMatchings.begin();
   ml.Get((*it)[pos], ul);
@@ -2850,14 +2995,14 @@ string NFA::getLabelSubst(MString const &ml, int pos) {
 }
 
 /*
-\section{Operator ~stjpattern~}
+\section{Operator ~topattern~}
 
 \subsection{Type Mapping}
 
 */
-ListExpr textToPatternMap(ListExpr args) {
-  if(!nl->HasLength(args,1)){
-    return listutils::typeError("expected text");
+ListExpr topatternTypeMap(ListExpr args) {
+  if (!nl->HasLength(args, 1)) {
+    return listutils::typeError("one argument expected");
   }
   NList type(args);
   if (type.first() == NList(FText::BasicType())) {
@@ -2870,22 +3015,36 @@ ListExpr textToPatternMap(ListExpr args) {
 \subsection{Value Mapping}
 
 */
-int patternFun(Word* args, Word& result, int message, Word& local, Supplier s) {
+int topatternFun(Word* args, Word& result, int message, Word& local,
+                 Supplier s) {
   FText* patternText = static_cast<FText*>(args[0].addr);
   result = qp->ResultStorage(s);
-  Pattern* pattern = static_cast<Pattern*>(result.addr);
-  cout << "parse with new pattern" << endl;
-  Pattern* p = 0;
+  Pattern* p = static_cast<Pattern*>(result.addr);
+  Pattern* pattern = 0;
   if (patternText->IsDefined()) {
-    p = Pattern::getPattern(patternText->toText());
-  }
-  if (p) {
-    (*pattern) = (*p);
-    delete p;
-    // TODO store pattern into database
+    pattern = Pattern::getPattern(patternText->toText());
   }
   else {
-    cout << "failed" << endl;
+    cout << "undefined text" << endl;
+    return 0;
+  }
+  if (pattern) {
+    (*p) = (*pattern);
+    if (!p->verifyPattern() || !p->verifyConditions()) {
+      
+      return 0;
+    }
+    if (p->hasAssigns()) {
+      if (!p->checkAssignTypes()) {
+        return 0;
+      }
+    }
+//     p->buildNFA();
+    cout << (p->isVerified() ? "verified" : "not verified") << endl;
+    delete pattern;
+  }
+  else {
+    cout << "invalid pattern" << endl;
   }
   return 0;
 }
@@ -2894,11 +3053,11 @@ int patternFun(Word* args, Word& result, int message, Word& local, Supplier s) {
 \subsection{Operator Info}
 
 */
-struct patternInfo : OperatorInfo {
-  patternInfo() {
-    name      = "stjpattern";
+struct topatternInfo : OperatorInfo {
+  topatternInfo() {
+    name      = "topattern";
     signature = " Text -> " + Pattern::BasicType();
-    syntax    = "_ stjpattern";
+    syntax    = "_ topattern";
     meaning   = "Creates a Pattern from a Text.";
   }
 };
@@ -2910,15 +3069,17 @@ struct patternInfo : OperatorInfo {
 
 */
 ListExpr matchesTypeMap(ListExpr args) {
+  if (!nl->HasLength(args, 2)) {
+    return NList::typeError("Two arguments expected");
+  }
   NList type(args);
-  const string errMsg = "Expecting a mlabel and a text or a mstring and a text";
   if ((type == NList(MLabel::BasicType(), Pattern::BasicType()))
    || (type == NList(MLabel::BasicType(), FText::BasicType()))
    || (type == NList(MString::BasicType(), Pattern::BasicType()))
    || (type == NList(MString::BasicType(), FText::BasicType()))) {
     return NList(CcBool::BasicType()).listExpr();
   }
-  return NList::typeError(errMsg);
+  return NList::typeError("Expecting a mlabel/mstring and a text/pattern");
 }
 
 /*
@@ -2934,14 +3095,19 @@ int matchesSelect(ListExpr args) {
 \subsection{Value Mapping (for a Pattern)}
 
 */
-int matchesFun_MP (Word* args, Word& result, int message,
-                   Word& local, Supplier s) {
-//   MLabel* mlabel = static_cast<MLabel*>(args[0].addr);
-//   Pattern* pattern = static_cast<Pattern*>(args[1].addr);
-//   result = qp->ResultStorage(s);
-//   CcBool* b = static_cast<CcBool*>(result.addr);
-//   bool res = (pattern->TotalMatch(*mlabel));
-//   b->Set(true, res);
+int matchesFun_MP(Word* args, Word& result, int message,
+                  Word& local, Supplier s) {
+  MString* mstring = static_cast<MString*>(args[0].addr);
+  const Pattern* p = static_cast<Pattern*>(args[1].addr);
+  if (!p) {
+    cout << "Invalid Pattern." << endl;
+    delete mstring;
+    return 0;
+  }
+  result = qp->ResultStorage(s);
+  CcBool* b = static_cast<CcBool*>(result.addr);
+  bool match = p->matches(*mstring);
+  b->Set(true, match);
   return 0;
 }
 
@@ -3027,16 +3193,19 @@ class FilterMatchesLI {
  public:
   FilterMatchesLI(Word _stream, int _attrIndex, FText* text):
       stream(_stream), attrIndex(_attrIndex) {
-    Pattern *pattern = Pattern::getPattern(text->GetValue());
-    if (pattern->verifyPattern() && pattern->verifyConditions()) {
-      nfa = new NFA(pattern->getPats().size() + 1);
-      nfa->buildNFA(*pattern);
+    Pattern *p = Pattern::getPattern(text->GetValue());
+    p->setVerified(false);
+    if (p->verifyPattern() && p->verifyConditions()) {
+      match = new Match(p->getPats().size() + 1);
+      p->buildNFA();
+      p->setVerified(true);
+      match->copyFromPattern(*p);
       stream.open();
     }
   }
 
   ~FilterMatchesLI() {
-    delete nfa;
+    delete match;
     stream.close();
   }
 
@@ -3044,9 +3213,9 @@ class FilterMatchesLI {
     Tuple* cand = stream.request();
     while (cand) {
       MString* mstring = (MString*)cand->GetAttribute(attrIndex);
-      bool match = nfa->matches(*mstring);
-      nfa->resetStates();
-      if (match) {
+      bool matching = match->matches(*mstring);
+      match->resetStates();
+      if (matching) {
         return cand;
       }
       cand->DeleteIfAllowed();
@@ -3058,7 +3227,7 @@ class FilterMatchesLI {
  private:
   Stream<Tuple> stream;
   int attrIndex;
-  NFA* nfa;
+  Match* match;
 };
 
 /*
@@ -3226,7 +3395,71 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
 */
 int rewriteFun_MP(Word* args, Word& result, int message, Word& local,
                   Supplier s) {
-  return 0;
+  MLabel* mlabel = 0;
+  MLabel* ml = 0;
+  Pattern *p = 0;
+  RewriteResult *rr = 0;
+  switch (message) {
+    case OPEN: {
+      mlabel = static_cast<MLabel*>(args[0].addr);
+      if (!mlabel->IsDefined()) {
+        cout << "Error: undefined MLabel." << endl;
+        return 0;
+      }
+      p = static_cast<Pattern*>(args[1].addr);
+      if (!p) {
+        cout << "Error: pattern not initialized." << endl;
+      }
+      else {
+        p->setVerified(true);
+        MLabel* mlNew = mlabel->compress();
+        set<pair<vector<size_t>, vector<size_t> > > rewriteSeqs =
+                                                    p->getRewriteSeqs(*mlNew);
+        map<string, int> varPosInSeq = p->getVarPosInSeq();
+        rr = new RewriteResult(rewriteSeqs, mlNew, p->getAssigns(),
+                               varPosInSeq);
+      }
+      local.addr = rr;
+      return 0;
+    }
+    case REQUEST: {
+      if (!local.addr) {
+        result.addr = 0;
+        return CANCEL;
+      }
+      rr = ((RewriteResult*)local.addr);
+      if (rr->finished()) {
+        result.addr = 0;
+        return CANCEL;
+      }
+      ml = new MLabel(1);
+      do {
+        ml->rewrite(rr->getML(), rr->getCurrentSeq(), rr->getAssignments(),
+                    rr->getVarPosInSeq());
+        rr->next();
+      } while (!ml->IsDefined() && !rr->finished());
+      if (ml->IsDefined()) {
+        result.addr = ml;
+        return YIELD;
+      }
+      else {
+        result.addr = 0;
+        return CANCEL;
+      }
+    }
+    case CLOSE: {
+      if (local.addr) {
+        rr = ((RewriteResult*)local.addr);
+        if (rr->getML().IsDefined()) {
+          rr->killMLabel();
+        }
+        delete rr;
+      }
+      return 0;
+    }
+    default:
+      return -1;
+  }
 }
 /*
 \subsection{Operator Info}
@@ -3657,8 +3890,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddTypeConstructor(&labelsTC);
       AddTypeConstructor(&patternTC);
 
-      AddOperator(&temporalatinstantext);
-      AddOperator(patternInfo(), patternFun, textToPatternMap);
+//       AddOperator(&temporalatinstantext);
+      
+      AddOperator(topatternInfo(), topatternFun, topatternTypeMap);
 
       ValueMapping matchesFuns[] = {matchesFun_MT, matchesFun_MP, 0};
       AddOperator(matchesInfo(), matchesFuns, matchesSelect, matchesTypeMap);
@@ -3687,7 +3921,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddOperator(createmlrelationInfo(), createmlrelationFun,
                   createmlrelationTypeMap);
 
-      AddOperator(indexInfo(), indexFun, indexTypeMap);
+//       AddOperator(indexInfo(), indexFun, indexTypeMap);
 
     }
     ~SymbolicTrajectoryAlgebra() {}

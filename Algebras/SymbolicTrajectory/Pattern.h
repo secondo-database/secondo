@@ -257,9 +257,25 @@ class Pattern {
   string text;
   map<string, int> varPos;
   set<string> assignedVars; // variables on the right side of an assignment
-
+  map<int, set<int> > *delta; // array pos: old state;
+                              // first: unit pattern id; second: new state.
+  bool verified;
  public:
   Pattern() {}
+
+  Pattern(vector<UPat> ps, vector<Assign> as, vector<Condition> cs, string t,
+          map<int, set<int> > *d, bool v) {
+    patterns = ps;
+    assigns = as;
+    conds = cs;
+    text = t;
+    delta = d;
+    verified = v;
+    collectAssVars();
+    for (int i = 0; i < (int)patterns.size(); i++) {
+      addVarPos(convert(patterns[i].getV()), i);
+    }
+  }
 
   Pattern(const Pattern& rhs) {
     patterns = rhs.patterns;
@@ -268,6 +284,8 @@ class Pattern {
     text = rhs.text;
     varPos = rhs.varPos;
     assignedVars = rhs.assignedVars;
+    delta = rhs.delta;
+    verified = rhs.verified;
   }
 
   Pattern& operator=(const Pattern& rhs){
@@ -277,6 +295,8 @@ class Pattern {
     text = rhs.text;
     varPos = rhs.varPos;
     assignedVars = rhs.assignedVars;
+    delta = rhs.delta;
+    verified = rhs.verified;
     return (*this);
   }  
 
@@ -292,28 +312,35 @@ class Pattern {
   static void     Delete(const ListExpr typeInfo, Word& w);
   static void     Close(const ListExpr typeInfo, Word& w);
   static Word     Clone(const ListExpr typeInfo, const Word& w);
+  static bool     Open(SmiRecord& valueRecord, size_t& offset,
+                       const ListExpr typeInfo, Word& value);
+  static bool     Save(SmiRecord& valueRecord, size_t& offset,
+                       const ListExpr typeInfo, Word& value);
   static bool     KindCheck(ListExpr type, ListExpr& errorInfo);
   static int      SizeOfObj();
   static ListExpr Property();
   // other functions
   static const string BasicType();
   static const bool checkType(const ListExpr type);
-  bool verifyConditions();
+  bool verifyConditions() const;
   static Pattern* getPattern(string input);
-  bool matches(MString const &ml);
-  bool verifyPattern();
+  bool matches(MString const &ml) const;
+  bool verifyPattern() const;
   set<pair<vector<size_t>, vector<size_t> > > getRewriteSeqs(MLabel const &ml);
   map<string, int> getVarPosInSeq();
   int getResultPos(const string v);
   void collectAssVars();
   int getPatternPos(const string v);
   bool checkAssignTypes();
+  void buildNFA();
+  string nfa2String() const;
 
   vector<UPat>      getPats()               {return patterns;}
   vector<Condition> getConds()              {return conds;}
   vector<Assign>    getAssigns()            {return assigns;}
-  UPat              getPat(int pos)         {return patterns[pos];}
-  Assign            getAssign(int pos)      {return assigns[pos];}
+  UPat              getPat(int pos) const   {return patterns[pos];}
+  Condition         getCond(int pos) const  {return conds[pos];}
+  Assign           getAssign(int pos) const {return assigns[pos];}
   bool              hasAssigns()            {return !assigns.empty();}
   void              addUPat(UPat upat)      {patterns.push_back(upat);}
   void              addCond(Condition cond) {conds.push_back(cond);}
@@ -330,6 +357,11 @@ class Pattern {
   void addAssignRight(int pos, int key, pair<string, int> varKey)
                                            {assigns[pos].addRight(key, varKey);}
   void        substAssign(int pos, int key) {assigns[pos].substitute(key);}
+  bool              isVerified() const      {return verified;}
+  void              setVerified(bool v)     {verified = v;}
+  map<int, set<int> >* getDelta() const     {return delta;}
+  void              initDelta()             {delta = new map<int, set<int> >
+                                                         [patterns.size()];}
 };
 
 struct DoubleParsInfo {
@@ -338,10 +370,9 @@ struct DoubleParsInfo {
   size_t length;
 };
 
-class NFA {
+class Match {
  private:
-  map<int, set<int> > *delta; // array pos: old state;
-                           // first: unit pattern id; second: new state.
+  map<int, set<int> > *delta;
   set<int> currentStates;
   vector<UPat> patterns;
   vector<Condition> conds;
@@ -361,23 +392,23 @@ class NFA {
   map<pair<size_t, size_t>, string> knownPers; // periods string history
 
  public:
-  NFA(const int size) {
+  Match(const int size) {
     f = size - 1;
-    delta = new map<int, set<int> >[f];
+    numOfLabels = 0;
     currentStates.insert(0);
+    delta = new map<int, set<int> >[f];
     match = new set<size_t>[f];
     cardsets = new set<size_t>[f];
     seqOrder = new int[f];
   }
 
-  ~NFA() {
+  ~Match() {
     delete[] delta;
     delete[] match;
     delete[] cardsets;
     delete[] seqOrder;
   }
 
-  void buildNFA(Pattern p);
   bool matches(MString const &ml, bool rewrite = false);
   void printCurrentStates();
   void printCards();
@@ -412,8 +443,12 @@ class NFA {
   void setAssVars(set<string> aV) {assignedVars = aV;}
   void setVarPos(map<string, int> vP) {varPos = vP;}
   map<string, int> getVarPosInSeq() {return varPosInSeq;}
-  string toString();
   void copyFromPattern(Pattern p) {
+    delete[] delta;
+    delta = new map<int, set<int> >[p.getPats().size() + 1];
+    for (unsigned int i = 0; i < p.getPats().size(); i++) {
+      delta[i] = p.getDelta()[i];
+    }
     patterns = p.getPats();
     conds = p.getConds();
     assignedVars = p.getAssVars(); // TODO why is it empty?

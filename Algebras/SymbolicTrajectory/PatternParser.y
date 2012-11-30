@@ -435,6 +435,9 @@ Pattern* stj::parseString(const char* input) {
   }
   uPat.clearL();
   uPat.clearI();
+  result->setVerified(false);
+  result->initDelta();
+  result->buildNFA();
   return result;
 }
 

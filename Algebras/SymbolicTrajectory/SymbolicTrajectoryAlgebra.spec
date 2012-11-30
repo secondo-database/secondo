@@ -1,4 +1,4 @@
-
+operator topattern alias TOPATTERN pattern _ op
 operator matches alias MATCHES pattern _ infixop _
 operator filterMatches alias FILTERMATCHES pattern _ op [ _ , _ ]
 operator rewrite alias REWRITE pattern _ infixop _
