@@ -1,0 +1,97 @@
+diff -u -r -N ZThread-2.3.2//include/zthread/Guard.h ZThread-2.3.2.patch/include/zthread/Guard.h
+--- ZThread-2.3.2//include/zthread/Guard.h	2005-03-13 03:10:09.000000000 +0100
++++ ZThread-2.3.2.patch/include/zthread/Guard.h	2010-10-02 16:36:14.000000000 +0200
+@@ -491,7 +491,8 @@
+     
+   try {
+     
+-    if(!isDisabled())
++    if(!LockHolder<LockType>::isDisabled())
++    
+       LockingPolicy::destroyScope(*this);
+     
+   } catch (...) { /* ignore */ }  
+diff -u -r -N ZThread-2.3.2//src/MutexImpl.h ZThread-2.3.2.patch/src/MutexImpl.h
+--- ZThread-2.3.2//src/MutexImpl.h	2005-03-13 04:59:15.000000000 +0100
++++ ZThread-2.3.2.patch/src/MutexImpl.h	2010-10-02 16:38:34.000000000 +0200
+@@ -153,7 +153,7 @@
+ 
+       _owner = self;
+ 
+-      ownerAcquired(self);
++      Behavior::ownerAcquired(self);
+       
+     }
+ 
+@@ -164,7 +164,7 @@
+       _waiters.insert(self);
+       m.acquire();
+ 
+-      waiterArrived(self);
++      Behavior::waiterArrived(self);
+ 
+       {        
+       
+@@ -173,7 +173,7 @@
+       
+       }
+ 
+-      waiterDeparted(self);
++      Behavior::waiterDeparted(self);
+ 
+       m.release();
+         
+@@ -192,7 +192,7 @@
+           assert(_owner == 0);
+           _owner = self;    
+ 
+-          ownerAcquired(self);
++          Behavior::ownerAcquired(self);
+ 
+           break;
+         
+@@ -236,7 +236,7 @@
+ 
+       _owner = self;
+ 
+-      ownerAcquired(self);
++      Behavior::ownerAcquired(self);
+       
+     }
+ 
+@@ -253,7 +253,7 @@
+       
+         m.acquire();
+ 
+-        waiterArrived(self);
++        Behavior::waiterArrived(self);
+       
+         {
+         
+@@ -262,7 +262,7 @@
+         
+         }
+ 
+-        waiterDeparted(self);
++        Behavior::waiterDeparted(self);
+       
+         m.release();
+         
+@@ -284,7 +284,7 @@
+           assert(0 == _owner);
+           _owner = self;
+ 
+-          ownerAcquired(self);
++          Behavior::ownerAcquired(self);
+         
+           break;
+         
+@@ -326,7 +326,7 @@
+ 
+     _owner = 0;
+ 
+-    ownerReleased(impl);
++    Behavior::ownerReleased(impl);
+   
+     // Try to find a waiter with a backoff & retry scheme
+     for(;;) {
