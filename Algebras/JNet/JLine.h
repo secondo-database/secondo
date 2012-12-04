@@ -38,6 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SpatialAlgebra.h"
 #include "JPoint.h"
 
+namespace jnetwork {
 /*
 1 class JLine
 
@@ -46,6 +47,7 @@ Consists of a network id and a set of ~JRouteIntervals~ describing an part of a
 and start and end positions and are compressed as far as possible.
 
 */
+
 
 class JLine : public Attribute
 {
@@ -300,10 +302,15 @@ void FillIntervalList(const DbArray<JRouteInterval>* rintList,
 
 };
 
+} // end of namespace jnetwork
+
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<<(ostream& os, const JLine& l);
+using namespace jnetwork;
+ostream& operator<<(ostream& os, const jnetwork::JLine& l);
+
+
 #endif // JLINE_H

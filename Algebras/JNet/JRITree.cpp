@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "JRITree.h"
 
+using namespace jnetwork;
 
 /*
 1 Implementation of class JRITree
@@ -319,4 +320,3 @@ ostream& operator<<(ostream& os, const JRITree& in)
   in.Print(os);
   return os;
 }
-

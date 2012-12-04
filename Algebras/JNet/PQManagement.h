@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../Tools/Flob/DbArray.h"
 #include "JTreeElement.h"
 
+namespace jnetwork{
+
 /*
 1 class ~PQManagement~
 
@@ -240,11 +242,14 @@ void CorrectPositionDown(JPQEntryTreeElement& newElem, int& pos);
 
 };
 
+} // end of namespace jnetwork
+
 /*
 1 Overload output operator
 
 */
 
-ostream& operator<<(ostream& os, const PQManagement& dir);
+using namespace jnetwork;
+ostream& operator<<(ostream& os, const jnetwork::PQManagement& dir);
 
 #endif // PQMANAGEMENT_H

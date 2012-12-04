@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Direction.h"
 #include "RectangleAlgebra.h"
 
+namespace jnetwork{
+
 /*
 1 ~class RouteLocation~
 
@@ -193,11 +195,15 @@ private:
 
 };
 
+} // end of namespace jnetwork
+
 /*
 1 Overload output operator
 
 */
 
-ostream& operator<<(ostream& os, const RouteLocation& dir);
+using namespace jnetwork;
+
+ostream& operator<<(ostream& os, const jnetwork::RouteLocation& dir);
 
 #endif // JRLOC_H

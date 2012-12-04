@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "../../Tools/Flob/DbArray.h"
 
+namespace jnetwork {
 /*
 1 Forward Declarations
 
@@ -116,8 +117,9 @@ Returns true if at least one pair of jrint one of lhs and one of rhs intersects.
   static bool ArrayContainIntersections (const DbArray<JRouteInterval>& lhs,
                                          const DbArray<JRouteInterval>& rhs);
 
-private:
-
 };
+
+
+} // end of namespace jnetwork
 
 #endif // JNETUTIL_H

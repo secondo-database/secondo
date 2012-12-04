@@ -27,6 +27,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "JNetwork.h"
 
+namespace jnetwork{
+
 /*
 1. ~ManageJNet~
 
@@ -42,5 +44,7 @@ public:
   static void CloseNetwork(JNetwork* jnet);
 
 };
+
+} // end of namespace jnetwork
 
 #endif // MANAGEJNET_H

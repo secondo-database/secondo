@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Symbols.h"
 #include "ManageJNet.h"
 
-
+using namespace jnetwork;
 /*
 1 Implementation of class ~JPoint~
 
@@ -452,4 +452,3 @@ ostream& operator<<(ostream& os, const JPoint& jp)
   jp.Print(os);
   return os;
 }
-

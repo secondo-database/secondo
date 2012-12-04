@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
+namespace jnetwork{
+
 /*
 1 class VisitedJunction
 
@@ -90,11 +92,16 @@ private:
 
 };
 
+} //end of namespace jnetwork
+
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<< (ostream& os, const VisitedJunction elem);
+using namespace jnetwork;
+
+ostream& operator<< (ostream& os, const jnetwork::VisitedJunction elem);
+
 
 #endif //VISITEDJUNCTION_H

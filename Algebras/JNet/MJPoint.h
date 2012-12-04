@@ -38,6 +38,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JNetwork.h"
 #include "JLine.h"
 
+namespace jnetwork{
+
 /*
 1 class ~MJPoint~
 
@@ -401,11 +403,14 @@ void Refinement(const MJPoint* in2, MJPoint* out1, MJPoint* out2) const;
 
 };
 
+} // end of namespace jnetwork
+
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<< (ostream& os, const MJPoint& jp);
+using namespace jnetwork;
+ostream& operator<< (ostream& os, const jnetwork::MJPoint& jp);
 
 #endif // MJPOINT_H

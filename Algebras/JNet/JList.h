@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RouteLocation.h"
 #include "NetDistanceGroup.h"
 
-
+namespace jnetwork {
 /*
 1 class ~List~
 
@@ -280,7 +280,6 @@ typedef JList<CcInt> JListInt;
 typedef JList<JRouteInterval> JListRInt;
 typedef JList<RouteLocation> JListRLoc;
 typedef JList<NetDistanceGroup> JListNDG;
-
 
 /*
 1 Implementation of class ~JList~
@@ -1102,17 +1101,22 @@ JList<ListElem>& JList<ListElem>::Restrict(const JList<ListElem>& sub)
   return *this;
 }
 
+} // end of namespace jnetwork
+
 /*
 1 Overwrite output operator
 
 */
 
+using namespace jnetwork;
+
 template<class ListElem>
-ostream& operator<<(ostream& os, const JList<ListElem>& l)
+ostream& operator<<(ostream& os, const jnetwork::JList<ListElem>& l)
 {
   l.Print(os);
   return os;
 }
+
 
 #endif // JLIST_H
 

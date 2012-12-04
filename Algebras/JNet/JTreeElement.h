@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "VisitedJunction.h"
 #include "JPQEntry.h"
 
+namespace jnetwork {
+
 /*
 1 class JTreeElement
 
@@ -208,17 +210,21 @@ int JTreeElement<TreeElem>::Compare(const TreeElem& other) const
   return value.Compare(other);
 }
 
-
+} // end of namespace jnetwork
 /*
 1 Overwrite output operator
 
 */
 
+using namespace jnetwork;
+
 template <class TreeElem>
-ostream& operator<< (ostream& os, const JTreeElement<TreeElem>& elem)
+ostream& operator<< (ostream& os, const jnetwork::JTreeElement<TreeElem>& elem)
 {
   elem.Print(os);
   return os;
 }
+
+
 
 #endif //JTREEELEMENT_H

@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Attribute.h"
 #include "StandardTypes.h"
 
+namespace jnetwork{
+
 /*
 1. class ~NetDistanceGroup~
 
@@ -176,11 +178,14 @@ private:
                       // junction
 };
 
+} // end of namespace jnetwork
+
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<< (ostream& os, const NetDistanceGroup& ndg);
+using namespace jnetwork;
+ostream& operator<< (ostream& os, const jnetwork::NetDistanceGroup& ndg);
 
 #endif // NETDISTANCEGROUP_H

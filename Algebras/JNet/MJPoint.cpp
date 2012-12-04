@@ -35,7 +35,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ManageJNet.h"
 #include "IJPoint.h"
 #include "JNetUtil.h"
-#include <sys/socket.h>
+
+using namespace jnetwork;
 
 /*
 1 Helpful Operations
@@ -647,20 +648,10 @@ void MJPoint::Get(const int i, UJPoint& up) const
 */
 void MJPoint::FromSpatial(JNetwork* jnet, const MPoint* in)
 {
-  Clear();
   SetDefined(in->IsDefined());
   if (jnet != 0 && jnet->IsDefined() &&
       in != 0 && in->IsDefined())
-  {
-    MJPoint* tmp = jnet->GetNetworkValueOf(in);
-    if (tmp != 0)
-    {
-      *this = *tmp;
-      tmp->DeleteIfAllowed();
-    }
-    else
-      SetDefined(false);
-  }
+    SetDefined(jnet->GetNetworkValueOf(in, this));
   else
     SetDefined(false);
 }

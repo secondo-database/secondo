@@ -43,6 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JList.h"
 #include "PQManagement.h"
 
+namespace jnetwork {
 
 /*
 1 Forward declarations of network data types
@@ -230,6 +231,15 @@ Returns the tolerance value of the network for map matching.
  static string GetNetdistancesTupleType();
 
 /*
+1.1.1.1 ~GetBoundingBox~
+
+Returns the bounding box of the network.
+
+*/
+
+ Rectangle<2> GetBoundingBox() const;
+
+/*
 1.1.1.1 ~SetDefined~
 
 Sets the defined flag.
@@ -301,13 +311,16 @@ Returns true if the given position(s) exist in the network.
 
   RouteLocation* GetNetworkValueOf(const Point* p) const;
   JRouteInterval* GetNetworkValueOf(const HalfSegment& hs) const;
-  DbArray<JRouteInterval>* GetNetworkValueOf(const Line* in) const;
-  MJPoint* GetNetworkValueOf(const MPoint* in);
+  bool GetNetworkValueOf(const Line* in, JLine* result) const;
+  bool GetNetworkValueOf(const MPoint* in, MJPoint* result);
   JListRLoc* GetNetworkValuesOf(const Point* p) const;
   JListRLoc* GetNetworkValuesOf(const RouteLocation& rloc) const;
   JListRLoc* GetNetworkValuesOf(const Tuple* actSect,
                                 const double distStart) const;
 
+  //used for mapmatching adapter
+  void GetSectionTuplesFor(const Rectangle<2> bbox,
+                           vector<TupleId>& listSectTupIds) const;
 /*
 1.1.1 Operation for Translation from network data types into spatial data types
 
@@ -336,13 +349,18 @@ the algorithm, which might change the netdistances relation.
 
 */
 
-MJPoint* SimulateTrip(const RouteLocation& source, const RouteLocation& target,
-                      const Point* targetPos,
-                      const Instant& starttime, const Instant& endtime,
-                      const bool& lc, const bool& rc,
-                      const Tuple* startSectTup, const Tuple* endSectTup,
-                      const double distSourceStartSect,
-                      const double distTargetStartSect);
+void SimulateTrip(const RouteLocation& source, const RouteLocation& target,
+                  const Point* targetPos,
+                  const Instant& starttime, const Instant& endtime,
+                  const bool& lc, const bool& rc,
+                  const Tuple* startSectTup, const Tuple* endSectTup,
+                  const double distSourceStartSect,
+                  const double distTargetStartSect, MJPoint* result);
+
+void SimulateTrip(const RouteLocation& source, const RouteLocation& target,
+                  const Point* sourcePos, const Point* targetPos,
+                  const Instant& starttime, const Instant& endtime,
+                  MJPoint* result);
 
 /*
 1.1.1 ~ShortestPath~
@@ -362,113 +380,6 @@ DbArray<JRouteInterval>* ShortestPath(const RouteLocation& source,
                                       const double distSourceStartSect,
                                       const double distTargetStartSect);
 
-/*
-1.1 Private declarations
-
-*/
-
-private:
-
-/*
-1.1.1 Attributes of Network Object
-
-*/
-  bool defined;           //defined Flag
-  double tolerance;        //Accectable derivation for map matching algorithms
-  STRING_T id;              //network identifier
-  Relation* junctions;    //data of street crossings and death ends
-  Relation* sections;     //data of connections between junctions
-  Relation* routes;       //semantic connection of sections and junctions for
-                          //street networks
-  OrderedRelation* netdistances; //stores the network distances between the
-                          //junctions
-  BTree* junctionsBTree;  //supports fast access to junctions by junction id
-  R_Tree<2,TupleId>* junctionsRTree;  //supports fast access to junction by
-                                      //spatial input
-  BTree* sectionsBTree;   //supports fast access to sections by sections id
-  R_Tree<2,TupleId>* sectionsRTree;   //supports fast access to sections by
-                                      //spatial input
-  BTree* routesBTree;     //supports fast access to routes by route id
-
-/*
-1.1.1 Default Constructor
-
-The default constructor should only be used in the cast function and is
-therefore declared to be private.
-
-*/
-
-JNetwork();
-
-/*
-1.1.1 Enumerations of coloumns of internal relations
-
-*/
-  enum PositionsJunctionsRelation {
-    JUNC_ID = 0,
-    JUNC_POS,
-    JUNC_LIST_ROUTEPOSITIONS,
-    JUNC_LIST_INSECTIONS,
-    JUNC_LIST_OUTSECTIONS
-  };
-
-  enum PositionsSectionsRelation {
-    SEC_ID = 0,
-    SEC_CURVE,
-    SEC_STARTNODE_ID,
-    SEC_ENDNODE_ID,
-    SEC_DIRECTION,
-    SEC_VMAX,
-    SEC_LENGTH,
-    SEC_LIST_ROUTEINTERVALS,
-    SEC_LIST_ADJ_SECTIONS_UP,
-    SEC_LIST_ADJ_SECTIONS_DOWN,
-    SEC_LIST_REV_ADJ_SECTIONS_UP,
-    SEC_LIST_REV_ADJ_SECTIONS_DOWN
-  };
-
-  enum PositionsRoutesRelation {
-    ROUTE_ID = 0,
-    ROUTE_LIST_JUNCTIONS,
-    ROUTE_LIST_SECTIONS,
-    ROUTE_LENGTH
-  };
-
-  enum PositionsNetdistancesRelation {
-    NETDIST_FROM_JID = 0,
-    NETDIST_TO_JID,
-    NETDIST_NEXT_JID,
-    NETDIST_NEXT_SID,
-    NETDIST_DIST
-  };
-
-/*
-1.1.1 Return list representation of internal relations
-
-*/
-
-  ListExpr JunctionsToList() const;
-  ListExpr SectionsToList() const;
-  ListExpr RoutesToList() const;
-  ListExpr NetdistancesToList() const;
-
-/*
-1.1.1 create internal trees
-
-*/
-
-  void CreateTrees();
-
-/*
-1.1.1 Initialize netdistances relation by section lengths between junctions
-
-*/
-
-  void InitNetdistances();
-  void InsertNetdistanceTuple(const int fromjid, const JPQEntry* entry);
-  void InsertNetdistanceTuple(const int fromjid, const int tojid,
-                              const int viajid, const int viasid,
-                              const double dist);
 
 /*
 1.1.1 Tuple Access on internal relations
@@ -492,6 +403,7 @@ The returned tuple must be deleted by the caller.
 */
 
   Tuple* GetSectionTupleFor(const Point* p, double& pos) const;
+
 
 /*
 1.1.1.1 By Single Network Postion
@@ -546,17 +458,24 @@ The returned tuple must be deleted by the caller.
   Tuple* GetSectionStartJunctionTuple(const Tuple* sectTuple) const;
   Tuple* GetSectionEndJunctionTuple(const Tuple* sectTuple) const;
 
-  JListRLoc* GetSectionStartJunctionRLoc(const Tuple* sectTuple) const;
-  JListRLoc* GetSectionEndJunctionRLoc(const Tuple* sectTuple) const;
+  JListRLoc* GetSectionStartJunctionRLocs(const Tuple* sectTuple) const;
+  JListRLoc* GetSectionEndJunctionRLocs(const Tuple* sectTuple) const;
 
   int GetSectionStartJunctionID (const Tuple* sectTuple) const;
   int GetSectionEndJunctionID(const Tuple* sectTuple) const;
+
+  Point* GetSectionStartPoint(const Tuple* sectTuple) const;
+  Point* GetSectionEndPoint(const Tuple* sectTuple) const;
+
+  double GetSectionMaxSpeed(const Tuple* sectTuple) const;
 
   double GetSectionLength(const Tuple* sectTuple) const;
 
   Direction* GetSectionDirection(const Tuple* sectTuple) const;
 
   int GetSectionId(const Tuple* sectTuple) const;
+
+
 
 /*
 1.1.1.1 Attributes of Junctions Relation
@@ -570,14 +489,125 @@ The returned tuple must be deleted by the caller.
   JListInt* GetJunctionInSectionList(const Tuple* juncTup) const;
 
 /*
+1.1.1 Enumerations of coloumns of internal relations
+
+*/
+
+  enum PositionsJunctionsRelation {
+     JUNC_ID = 0,
+     JUNC_POS,
+     JUNC_LIST_ROUTEPOSITIONS,
+     JUNC_LIST_INSECTIONS,
+     JUNC_LIST_OUTSECTIONS
+   };
+
+   enum PositionsSectionsRelation {
+     SEC_ID = 0,
+     SEC_CURVE,
+     SEC_STARTNODE_ID,
+     SEC_ENDNODE_ID,
+     SEC_DIRECTION,
+     SEC_VMAX,
+     SEC_LENGTH,
+     SEC_LIST_ROUTEINTERVALS,
+     SEC_LIST_ADJ_SECTIONS_UP,
+     SEC_LIST_ADJ_SECTIONS_DOWN,
+     SEC_LIST_REV_ADJ_SECTIONS_UP,
+     SEC_LIST_REV_ADJ_SECTIONS_DOWN
+   };
+
+   enum PositionsRoutesRelation {
+     ROUTE_ID = 0,
+     ROUTE_LIST_JUNCTIONS,
+     ROUTE_LIST_SECTIONS,
+     ROUTE_LENGTH
+   };
+
+   enum PositionsNetdistancesRelation {
+     NETDIST_FROM_JID = 0,
+     NETDIST_TO_JID,
+     NETDIST_NEXT_JID,
+     NETDIST_NEXT_SID,
+     NETDIST_DIST
+   };
+
+
+/*
+1.1 Private declarations
+
+*/
+
+ private:
+
+/*
+1.1.1 Attributes of Network Object
+
+*/
+   bool defined;        //defined Flag
+   double tolerance;    //Accectable derivation for map matching algorithms
+   STRING_T id;         //network identifier
+   Relation* junctions; //data of street crossings and death ends
+   Relation* sections;  //data of connections between junctions
+   Relation* routes;    //semantic connection of sections and junctions for
+                        //street networks
+   OrderedRelation* netdistances; //stores the network distances between the
+                                  //junctions
+   BTree* junctionsBTree; //supports fast access to junctions by junction id
+   R_Tree<2,TupleId>* junctionsRTree;  //supports fast access to junction by
+                                       //spatial input
+   BTree* sectionsBTree;  //supports fast access to sections by sections id
+   R_Tree<2,TupleId>* sectionsRTree;   //supports fast access to sections by
+                                       //spatial input
+   BTree* routesBTree; //supports fast access to routes by route id
+
+/*
+1.1.1 Default Constructor
+
+The default constructor should only be used in the cast function and is
+therefore declared to be private.
+
+*/
+
+JNetwork();
+
+
+/*
+1.1.1 Return list representation of internal relations
+
+*/
+
+   ListExpr JunctionsToList() const;
+   ListExpr SectionsToList() const;
+   ListExpr RoutesToList() const;
+   ListExpr NetdistancesToList() const;
+
+/*
+1.1.1 create internal trees
+
+*/
+
+  void CreateTrees();
+
+/*
+1.1.1 Initialize netdistances relation by section lengths between junctions
+
+*/
+
+   void InitNetdistances();
+   void InsertNetdistanceTuple(const int fromjid, const JPQEntry* entry);
+   void InsertNetdistanceTuple(const int fromjid, const int tojid,
+                               const int viajid, const int viasid,
+                               const double dist);
+
+/*
 1.1.1.1 Attributes of Netdistance Relation
 
 */
 
- int GetNetdistanceNextSID(const Tuple* actNetDistTup) const;
- bool ExistsNetworkdistanceFor(const int startPathJID,
-                               const DbArray<pair<int, double> >* endJunctions,
-                               int& endPathJID) const;
+   int GetNetdistanceNextSID(const Tuple* actNetDistTup) const;
+   bool ExistsNetworkdistanceFor(const int startPathJID,
+                                const DbArray<pair<int, double> >* endJunctions,
+                                 int& endPathJID) const;
 
 /*
 1.1.1.1 DirectConnectionExists
@@ -589,13 +619,14 @@ the connecting route interval is returned as result.
 
 */
 
-bool DirectConnectionExists(const int startSID, const int endSID,
-                            const Tuple* sourceSectTup,
-                            const Tuple* targetSectTup,
-                            const RouteLocation& source,
-                            const RouteLocation& target,
-                            DbArray<JRouteInterval>* res,
-                            double& length) const;
+ bool DirectConnectionExists(const int startSID, const int endSID,
+                             const Tuple* sourceSectTup,
+                             const Tuple* targetSectTup,
+                             const RouteLocation& source,
+                             const RouteLocation& target,
+                             DbArray<JRouteInterval>* res,
+                             double& length) const;
+
 /*
 1.1.1.1 AddAdjacentSections
 
@@ -604,10 +635,10 @@ Adds the sections with id from listSID to priority queue.
 */
 
 void AddAdjacentSections(PQManagement* pq, JPQEntry curEntry,
-                         const Point* targetPos);
+                        const Point* targetPos);
 
 void AddAdjacentSections(PQManagement* pq, const JListInt* listSID,
-                         JPQEntry curEntry, const Point* targetPos);
+                        JPQEntry curEntry, const Point* targetPos);
 
 /*
 1.1.1.1 WriteShortestPath
@@ -618,12 +649,12 @@ Uses netdistance table.
 */
 
 void WriteShortestPath(const RouteLocation& source,
-                       const double distSourceStartSect,
-                       const RouteLocation& target,
-                       const double distTargetStartSect,
-                       const Tuple* startSectTup, const Tuple* endSectTup,
-                       const int startPathJID, const int endPathJID,
-                       DbArray<JRouteInterval>* res, double& length) const;
+                      const double distSourceStartSect,
+                      const RouteLocation& target,
+                      const double distTargetStartSect,
+                      const Tuple* startSectTup, const Tuple* endSectTup,
+                      const int startPathJID, const int endPathJID,
+                      DbArray<JRouteInterval>* res, double& length) const;
 
 /*
 1.1.1.1 ExistsCommonRoute
@@ -644,7 +675,7 @@ interval actInt.
 */
 
 RouteLocation* GetRLocOfPosOnRouteInterval(
-  const JRouteInterval* actInt, const double pos) const;
+const JRouteInterval* actInt, const double pos) const;
 
 /*
 1.1.1.1 SplitJunit
@@ -654,9 +685,9 @@ Returns the corresponding spatial mpoint representation of the junit.
 */
 
 void SplitJUnit(const JUnit& ju, int& curRid, JRouteInterval*& lastRint,
-                JListInt*& routeSectList, int& lastRouteSecListIndex,
-                bool& endTimeCorrected, Instant& lastEnd,
-                SimpleLine*& lastCurve, MPoint& result) const;
+    JListInt*& routeSectList, int& lastRouteSecListIndex,
+    bool& endTimeCorrected, Instant& lastEnd,
+    SimpleLine*& lastCurve, MPoint& result) const;
 
 /*
 1.1.1.1 CheckTupleForRLoc
@@ -696,11 +727,15 @@ void GetSpatialValueOf(const JRouteInterval& rint,
                        SimpleLine& result) const;
 };
 
+} // end of namespace jnetwork
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<< (ostream& os, const JNetwork& n);
+using namespace jnetwork;
+ostream& operator<< (ostream& os, const jnetwork::JNetwork& n);
+
+
 
 #endif // JNETWORK_H

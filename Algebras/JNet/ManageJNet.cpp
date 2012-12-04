@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "ManageJNet.h"
 
+using namespace jnetwork;
 /*
 1. Implementation of ~ManageJNet~
 
@@ -49,3 +50,4 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
     Word w(jnet);
     sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), w);
   }
+

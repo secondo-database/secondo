@@ -38,6 +38,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JUnit.h"
 #include "JNetwork.h"
 
+namespace jnetwork{
+
 /*
 1 class ~UJPoint~
 
@@ -167,10 +169,17 @@ private:
                  //time interval
 };
 
+} //end of namespace jnetwork
+
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<< (const ostream& os, const UJPoint& jp);
+using namespace jnetwork;
+
+ostream& operator<< (const ostream& os, const jnetwork::UJPoint& jp);
+
+
+
 #endif // UJPOINT_H

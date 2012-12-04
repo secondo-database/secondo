@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JRouteInterval.h"
 #include "JLine.h"
 
+namespace jnetwork {
+
 /*
 1 class JRITree
 
@@ -145,11 +147,15 @@ Returns true if the tree is empty, false otherwise.
 bool IsEmpty() const;
 };
 
+} // end of namespace jnetwork
+
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<<(ostream& os, const JRITree& in);
+ostream& operator<<(ostream& os, const jnetwork::JRITree& in);
+
+
 
 #endif //JRITREE_H

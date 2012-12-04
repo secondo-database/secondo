@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 extern NestedList* nl;
 
+using namespace jnetwork;
 /*
 1 Implementation of class ~Direction~
 
@@ -41,6 +42,7 @@ extern NestedList* nl;
 The default constructor should only be used in the Cast-Function.
 
 */
+
 
 Direction::Direction():Attribute()
 {}

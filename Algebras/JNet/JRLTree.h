@@ -30,6 +30,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../../Tools/Flob/DbArray.h"
 #include "JTreeElement.h"
 
+namespace jnetwork {
+
 /*
 1 class JRLTree
 
@@ -130,11 +132,16 @@ Returns true if the tree is empty, false otherwise.
 bool IsEmpty() const;
 };
 
+} // end of namespace jnetwork
+
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<<(ostream& os, const JRLTree& in);
+using namespace jnetwork;
+ostream& operator<<(ostream& os, const jnetwork::JRLTree& in);
+
+
 
 #endif //JRLTREE_H

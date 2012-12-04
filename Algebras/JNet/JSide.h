@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef JSIDE_H
 #define JSIDE_H
 
+namespace jnetwork {
+
 /*
 1. ~Side~
 
@@ -36,5 +38,7 @@ side a network location is reachable from, resp. the side a section is usable.
 */
 
 enum JSide {Up, Down, Both};
+
+} // end of namespace jnetwork
 
 #endif // JSIDE_H

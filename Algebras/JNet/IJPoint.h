@@ -42,7 +42,7 @@ It represents the position of an ~MJPoint~ in the ~JNetwork~ at this time
 instant.
 
 */
-
+namespace jnetwork {
 class IJPoint : public Attribute
 {
 
@@ -155,10 +155,17 @@ declared to be private.
   IJPoint();
 };
 
+} // end of namespace jnetwork
+
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<< (const ostream& os, const IJPoint& jp);
+using namespace jnetwork;
+
+ostream& operator<< (const ostream& os, const jnetwork::IJPoint& jp);
+
+
+
 #endif // IJPOINT_H

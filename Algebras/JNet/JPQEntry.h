@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
+namespace jnetwork {
 /*
 1 class JPQEntry
 
@@ -116,11 +117,17 @@ void SetDirection(const Direction& dir);
 
 };
 
+} // end of namespace jnetwork
+
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<< (ostream& os, const JPQEntry elem);
+using namespace jnetwork;
+
+ostream& operator<< (ostream& os, const jnetwork::JPQEntry elem);
+
+
 
 #endif //JPQUENTRY_H

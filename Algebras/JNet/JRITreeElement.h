@@ -29,6 +29,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "JRouteInterval.h"
 
+namespace jnetwork {
+
 /*
 1 class JRITreeElement
 
@@ -96,11 +98,16 @@ private:
 
 };
 
+} // end of namespace jnetwork
+
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<< (ostream& os, const JRITreeElement elem);
+using namespace jnetwork;
+ostream& operator<< (ostream& os, const jnetwork::JRITreeElement elem);
+
+
 
 #endif //JRITREEELEMENT_H

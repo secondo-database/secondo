@@ -39,6 +39,7 @@ defining sections. Therefore it implements the secondo interface for
 ~Attributes~.
 
 */
+namespace jnetwork{
 
 class Direction : public Attribute
 {
@@ -158,11 +159,17 @@ private:
 
 };
 
+} //end of namespace jnetwork
+
 /*
 1 Overload output operator
 
 */
 
-ostream& operator<<(ostream& os, const Direction& dir);
+using namespace jnetwork;
+
+ostream& operator<<(ostream& os, const jnetwork::Direction& dir);
+
+
 
 #endif // DIRECTION_H

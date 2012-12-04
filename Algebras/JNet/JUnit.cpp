@@ -25,14 +25,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "JUnit.h"
-#include <X11/X.h>
+
+using namespace jnetwork;
+
 
 /*
 1 Implementation of class JUnit
 
-*/
-
-/*
 1.1 Constructors and Deconstructors
 
 */

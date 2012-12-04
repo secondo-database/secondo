@@ -36,6 +36,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JList.h"
 #include "JNetwork.h"
 
+namespace jnetwork {
+
 /*
 1 class JPoints
 
@@ -255,10 +257,18 @@ out of the network are ignored.
                         const JNetwork* jnet);
 };
 
+} // end of namespace jnetwork
+
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<<(ostream& os, const JPoints l);
+
+
+using namespace jnetwork;
+
+ostream& operator<<(ostream& os, const jnetwork::JPoints l);
+
+
 #endif // JPOINTS_H

@@ -37,6 +37,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RouteLocation.h"
 #include "IJPoint.h"
 
+namespace jnetwork{
+
 class JNetwork;
 
 /*
@@ -271,14 +273,16 @@ both units is the same.
 
 bool CanBeExtendedBy(const JUnit& other) const;
 
-
 };
+
+} // end of namespace jnetwork
 
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<< (ostream& os, const JUnit& jp);
+using namespace jnetwork;
+ostream& operator<< (ostream& os, const jnetwork::JUnit& jp);
 
 #endif // JUNIT_H

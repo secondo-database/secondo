@@ -31,13 +31,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ManageJNet.h"
 #include "JNetUtil.h"
 
+using namespace jnetwork;
 /*
 1 Implementation of class JLine
 
 1.1 Constructors and Deconstructor
 
 */
-
 JLine::JLine() : Attribute()
 {}
 
@@ -551,18 +551,7 @@ void JLine::FromSpatial(const JNetwork* jnet, const Line* in)
   routeintervals.clean();
   if (jnet != NULL && jnet->IsDefined() &&
       in != NULL && in->IsDefined())
-  {
-    SetDefined(true);
-    strcpy(nid,*jnet->GetId());
-    DbArray<JRouteInterval>* tmp = jnet->GetNetworkValueOf(in);
-    if (tmp != 0)
-    {
-      routeintervals.copyFrom(*tmp);
-      tmp->Destroy();
-      delete tmp;
-    }
-    sorted = true;
-  }
+    SetDefined(jnet->GetNetworkValueOf(in, this));
   else
     SetDefined(false);
 }

@@ -34,6 +34,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RectangleAlgebra.h"
 #include "SpatialAlgebra.h"
 
+namespace jnetwork {
+
 class JNetwork;
 
 /*
@@ -306,12 +308,15 @@ compressing the JRouteInterval sets in the JLine data type. Using JRITree.
     friend class JRITreeElement;
 };
 
+} // end of namespace jnetwork
+
 /*
 1 Overwrite output operator
 
 */
 
-ostream& operator<<(ostream& os, const JRouteInterval& jir);
+using namespace jnetwork;
+ostream& operator<<(ostream& os, const jnetwork::JRouteInterval& jir);
 
 
 #endif // JROUTEINTERVAL_H

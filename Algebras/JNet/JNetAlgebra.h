@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Algebra.h"
 
-
+namespace jnetwork {
 /*
 2 Class JNetAlgebra
 
@@ -43,4 +43,5 @@ public:
     ~JNetAlgebra();
 };
 
+} // end of namespace jnetwork
 #endif // JNETALGEBRA_H

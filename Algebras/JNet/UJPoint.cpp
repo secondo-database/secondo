@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JNetwork.h"
 #include "ManageJNet.h"
 
+using namespace jnetwork;
 
 /*
 1 Implementation of class ~UJPoint~
@@ -454,4 +455,3 @@ ostream& operator<<(ostream& os, const UJPoint& up)
   up.Print(os);
   return os;
 }
-
