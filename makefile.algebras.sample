@@ -328,6 +328,9 @@ ALGEBRAS     += MMRTreeAlgebra
 #ALGEBRA_DIRS  += HadoopParallel
 #ALGEBRAS     += HadoopParallelAlgebra
 
+#ALGEBRA_DIRS += JNet
+#ALGEBRAS     += JNetAlgebra
+
 # JNI Algebras - Java code will be called from C++ code.
 
 #JNI_ALGEBRA_DIRS := Fuzzy
