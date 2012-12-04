@@ -44,14 +44,9 @@ This header file contains utilities for map matching
 #include <vector>
 
 #include "MapMatchingNetworkInterface.h"
+#include "SpatialAlgebra.h"
+#include "NetworkAlgebra.h"
 
-class Region;
-class SimpleLine;
-class GLine;
-class HalfSegment;
-class Point;
-class Geoid;
-class Network;
 class DirectedNetworkSection;
 
 namespace datetime
@@ -110,8 +105,8 @@ public:
                                const double dScale);
 
     // Calculates the length of the GLine in meters
-    static double CalcLengthCurve(const GLine* pCurve,
-                                  const Network* pNetwork,
+    static double CalcLengthCurve(const network::GLine* pCurve,
+                                  const network::Network* pNetwork,
                                   const double dScale);
 
     // Calculates the length of the SimpleLine in meters

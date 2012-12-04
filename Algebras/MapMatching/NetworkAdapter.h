@@ -42,12 +42,15 @@ This header file contains the class ~NetworkAdapter~
 #define __NETWORKADAPTER_H_
 
 #include "MapMatchingNetworkInterface.h"
-#include <RectangleAlgebra.h>
+#include "RectangleAlgebra.h"
+#include "NetworkAlgebra.h"
 
-class Network;
+using namespace network;
+
 class NetworkRoute;
 class DirectedNetworkSection;
 class Region;
+
 
 
 namespace mapmatch {
@@ -60,7 +63,8 @@ namespace mapmatch {
 class NetworkAdapter : public IMMNetwork
 {
 public:
-    NetworkAdapter(Network* pNetwork = NULL, double dNetworkScale = 1.0);
+    NetworkAdapter(network::Network* pNetwork = NULL,
+                   double dNetworkScale = 1.0);
     NetworkAdapter(const NetworkAdapter& rNetworkAdapter);
 
     virtual ~NetworkAdapter();
@@ -77,7 +81,7 @@ public:
 
     virtual bool CanGetRoadType(void) const;
 
-    const Network* GetNetwork(void) const {return m_pNetwork;}
+    const network::Network* GetNetwork(void) const {return m_pNetwork;}
 
 private:
 
@@ -86,7 +90,7 @@ private:
                 const Region& rRegion,
                 std::vector<shared_ptr<IMMNetworkSection> >& rVecSectRes) const;
 
-    Network* m_pNetwork;
+    network::Network* m_pNetwork;
     double m_dNetworkScale;
 };
 

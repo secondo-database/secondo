@@ -45,7 +45,7 @@ This implementation file contains the implementation of the class
 #include "../Network/NetworkAlgebra.h"
 #include "MapMatchingUtil.h"
 using namespace mapmatch;
-
+using namespace network;
 
 /*
 3 class NetworkSection

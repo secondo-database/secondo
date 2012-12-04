@@ -43,6 +43,7 @@ This implementation file contains the implementation of the class
 #include "NetworkRoute.h"
 #include "../Network/NetworkAlgebra.h"
 
+using namespace network;
 
 /*
 3 class NetworkRoute

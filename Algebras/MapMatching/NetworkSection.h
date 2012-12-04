@@ -41,14 +41,14 @@ This header file contains the convenience-class ~NetworkSection~
 #define __NETWORK_SECTION_H__
 
 class Tuple;
-class Network;
 class SimpleLine;
 class TupleIdentifier;
 
 #include <stdio.h>
 #include <Point.h>
+#include "NetworkAlgebra.h"
 
-
+using namespace network;
 
 /*
 3 class NetworkSection
@@ -60,7 +60,7 @@ class NetworkSection
 public:
     NetworkSection();
     NetworkSection(Tuple* pTupleSection,
-                   const Network* pNetwork,
+                   const network::Network* pNetwork,
                    bool bIncReference = true);
     NetworkSection(const NetworkSection& rNetworkSection);
     virtual ~NetworkSection();
@@ -96,12 +96,14 @@ public:
 
     virtual Point GetEndPoint(void) const;
 
-    const Network* GetNetwork(void) const {return m_pNetwork;}
+    const network::Network* GetNetwork(void) const {return m_pNetwork;}
+
+
 
 private:
 
     Tuple* m_pTupleSection;
-    const Network* m_pNetwork;
+    const network::Network* m_pNetwork;
     mutable class NetworkRoute* m_pNetworkRoute;
     mutable double m_dCurveLength;
 };
@@ -126,7 +128,7 @@ public:
     DirectedNetworkSection();
 
     DirectedNetworkSection(Tuple* pTupleSection,
-                           const Network* pNetwork,
+                           const network::Network* pNetwork,
                            bool bIncReference = true,
                            const EDirection eDirection = DIR_NONE);
 

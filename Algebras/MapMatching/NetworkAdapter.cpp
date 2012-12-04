@@ -48,7 +48,7 @@ the classes ~NetworkAdapter~ and ~NetworkSectionAdapter~.
 #include "NetworkRoute.h"
 #include "NetworkSection.h"
 
-
+using namespace network;
 namespace mapmatch {
 
 
