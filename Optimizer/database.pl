@@ -3595,15 +3595,15 @@ updateDB(DB1) :-
   !.
 
 resetKnowledgeDB :-
-  delete_file('storedAttrSizes.pl'),
-  delete_file('storedCards.pl'),
-  delete_file('storedIndexes.pl'),
-  delete_file('storedOrderings.pl'),
-  delete_file('storedPETs.pl'),
-  delete_file('storedRels.pl'),
-  delete_file('storedSels.pl'),
-  delete_file('storedSpells.pl'),
-  delete_file('storedTupleSizes.pl'),
+  check_and_delete('storedAttrSizes.pl'),
+  check_and_delete('storedCards.pl'),
+  check_and_delete('storedIndexes.pl'),
+  check_and_delete('storedOrderings.pl'),
+  check_and_delete('storedPETs.pl'),
+  check_and_delete('storedRels.pl'),
+  check_and_delete('storedSels.pl'),
+  check_and_delete('storedSpells.pl'),
+  check_and_delete('storedTupleSizes.pl'),
   retractall(storedOrderings(_, _, _)),
   retractall(storedCard(_, _, _)),
   retractall(storedAttrSize(_, _, _, _, _, _, _)),
@@ -3619,6 +3619,14 @@ resetKnowledgeDB :-
   retractall(storedBBoxSize(_, _, _)),
   updateCatalog,
   write_list(['\nINFO: All information has been reset.']).
+
+check_and_delete(File) :-
+  exists_file(File),
+  !,
+  delete_file(File).
+
+check_and_delete(File) :-
+  write_list(['\nINFO: File \'', File, '\' does not exist.']).
 
 
 
