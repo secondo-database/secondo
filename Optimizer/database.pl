@@ -3594,6 +3594,32 @@ updateDB(DB1) :-
   ),
   !.
 
+resetKnowledgeDB :-
+  delete_file('storedAttrSizes.pl'),
+  delete_file('storedCards.pl'),
+  delete_file('storedIndexes.pl'),
+  delete_file('storedOrderings.pl'),
+  delete_file('storedPETs.pl'),
+  delete_file('storedRels.pl'),
+  delete_file('storedSels.pl'),
+  delete_file('storedSpells.pl'),
+  delete_file('storedTupleSizes.pl'),
+  retractall(storedOrderings(_, _, _)),
+  retractall(storedCard(_, _, _)),
+  retractall(storedAttrSize(_, _, _, _, _, _, _)),
+  retractall(storedTupleSize(_, _, _, _, _)),
+  retractall(storedSpell(_, _, _)),
+  retractall(storedRel(_, _, _)),
+  retractall(storedIndex(_, _, _, _, _)),
+  retractall(storedNoIndex(_, _, _)),
+  retractall(storedIndexStat(_, _, _, _, _)),
+  retractall(storedPET(_, _, _, _)),
+  retractall(storedSel(_, _, _)),
+  retractall(storedPredicateSignature(_, _, _)),
+  retractall(storedBBoxSize(_, _, _)),
+  updateCatalog,
+  write_list(['\nINFO: All information has been reset.']).
+
 
 
 /*
