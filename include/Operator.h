@@ -146,7 +146,7 @@ struct OperatorInfo {
 
  ostream& Print(ostream& o) const{
    o << "OperatorInfo[ "
-	   <<  name << ", "
+     <<  name << ", "
      <<  signature <<", "
      <<  syntax << ", "
      <<  meaning << ", "
@@ -515,10 +515,10 @@ Adds a value mapping function to the list of overloaded operator functions.
     TypeMapping    typeMap;
     bool           supportsProgress;  //Operator supports progress queries.
     bool           requestsArgs;	//operator explicitly asks for
-						//evaluation of its arguments
+                                  //evaluation of its arguments
     bool           usesArgsInTypeMapping;  // Operator needs arguments
-	                    // to be passed to its type mapping
-						// function
+                                  // to be passed to its type mapping
+                                  // function
     bool           usesMemory;     // Operator uses a large memory buffer
                                    // like a tuple buffer
     CreateCostEstimation* createCostEstimation; // array to creation
