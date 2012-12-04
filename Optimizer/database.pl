@@ -3625,8 +3625,7 @@ check_and_delete(File) :-
   !,
   delete_file(File).
 
-check_and_delete(File) :-
-  write_list(['\nINFO: File \'', File, '\' does not exist.']).
+check_and_delete(_).
 
 
 
