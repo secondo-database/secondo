@@ -235,7 +235,7 @@ public:
 
     operator Type*() const
     {
-    	return get();
+      return get();
     }
 
     Type* get(void) const

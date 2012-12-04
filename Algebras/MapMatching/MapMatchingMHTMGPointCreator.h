@@ -44,12 +44,12 @@ This header file essentially contains the definition of the class
 
 #include "MapMatchingMHT.h"
 #include "MHTRouteCandidate.h"
-#include <TemporalAlgebra.h>
+#include "TemporalAlgebra.h"
+#include "NetworkAlgebra.h"
+#include "TemporalNetAlgebra.h"
 
-class MGPoint;
-struct RITreeP;
-class GPoint;
-class UGPoint;
+using namespace network;
+using namespace temporalnet;
 
 namespace datetime
 {

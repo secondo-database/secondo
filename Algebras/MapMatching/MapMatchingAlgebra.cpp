@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [1] Implementation file of the MapMatching Algebra
 
 January-April 2012, Matthias Roth
+2012 November /December, Simone Jandt added mapmatching for jnetwork objects
 
 [TOC]
 
@@ -44,41 +45,42 @@ For more detailed information see MapMatchingAlgebra.h.
 
 */
 
-#include "MapMatchingAlgebra.h"
-#include <NestedList.h>
-#include <ListUtils.h>
-#include <NList.h>
-#include <LogMsg.h>
-#include <QueryProcessor.h>
-#include <ConstructorTemplates.h>
-#include <StandardTypes.h>
+#include <string>
+#include "NestedList.h"
+#include "ListUtils.h"
+#include "NList.h"
+#include "LogMsg.h"
+#include "QueryProcessor.h"
+#include "ConstructorTemplates.h"
+#include "StandardTypes.h"
+#include "TypeMapUtils.h"
+#include "Symbols.h"
 
-#include <NetworkAlgebra.h>
-#include <TemporalNetAlgebra.h>
-#include <OrderedRelationAlgebra.h>
-#include <FTextAlgebra.h>
+#include "MapMatchingAlgebra.h"
+#include "NetworkAlgebra.h"
+#include "TemporalNetAlgebra.h"
+#include "OrderedRelationAlgebra.h"
+#include "FTextAlgebra.h"
 #include "ONetwork.h"
 #include "ONetworkEdge.h"
-
-extern NestedList* nl;
-extern QueryProcessor *qp;
-
-#include <TypeMapUtils.h>
-#include <Symbols.h>
-
-#include <string>
-using namespace std;
-
 #include "MapMatchingMHT.h"
 #include "MapMatchingData.h"
 #include "GPXImporter.h"
 #include "NetworkAdapter.h"
+#include "JNetworkAdapter.h"
 #include "ONetworkAdapter.h"
 #include "MapMatchingMHTMGPointCreator.h"
 #include "MapMatchingMHTPointsCreator.h"
 #include "MapMatchingMHTOEdgeTupleStreamCreator.h"
 #include "MapMatchingMHTMPointCreator.h"
+#include "MapMatchingMHTMJPointCreator.h"
 
+extern NestedList* nl;
+extern QueryProcessor *qp;
+
+using namespace std;
+using namespace network;
+using namespace jnetwork;
 
 namespace mapmatch {
 
@@ -1459,7 +1461,208 @@ int OMapMatchMHTSelect(ListExpr args)
     return 0;
 }
 
+    /*
+1 mapmatchmht-operator
 
+1.1 Operator-Info
+
+
+struct JMapMatchMHTInfo : OperatorInfo
+{
+
+    JMapMatchMHTInfo()
+    {
+        name      = "jmapmatchmht";
+        signature = JNetwork::BasicType() + " x " +
+                    MPoint::BasicType() + " -> " +
+                    MJPoint::BasicType();
+
+        appendSignature(JNetwork::BasicType() + " x " +
+                        FText::BasicType()  + " -> " +
+                        MJPoint::BasicType());
+
+        appendSignature(Network::BasicType() + " x " +
+                        "(stream (tuple([Lat:real, Lon:real, Time:DateTime "
+                                        "[,Fix:int] [,Sat:int] [,Hdop : real]"
+                                        "[,Vdop:real] [,Pdop:real] "
+                                        "[,Course:real] [,Speed(m/s):real]])))"
+                        + " -> " +
+                        MJPoint::BasicType());
+
+        syntax    = "jmapmatchmht ( _ , _ )";
+        meaning   = "The operation maps the MPoint or "
+                    "the data of a gpx-file or "
+                    "the data of a tuple stream "
+                    "to the given jnetwork."
+                    "Result is a MJPoint.";
+        example   = "jmapmatchmht (DortmundJNet, 'Trk_Dortmund.gpx')";
+    }
+};
+
+
+
+1.1 Type-Mapping
+
+
+
+ListExpr OpJMapMatchingMHTTypeMap(ListExpr in_xArgs)
+{
+    NList param(in_xArgs);
+
+    if(param.length() != 2)
+        return listutils::typeError("two arguments expected");
+
+    if (!param.first().isSymbol(JNetwork::BasicType()))
+        return listutils::typeError("1st argument must be " +
+                                     JNetwork::BasicType());
+
+    if (!param.second().isSymbol(MPoint::BasicType()) &&
+        !param.second().isSymbol(FText::BasicType()) &&
+        !listutils::isTupleStream(param.second().listExpr()))
+    {
+        return listutils::typeError("2nd argument must be " +
+                                    MPoint::BasicType() + " or " +
+                                    FText::BasicType() + " or " +
+                                    "tuple stream");
+    }
+
+    if (listutils::isTupleStream(param.second().listExpr()))
+    {
+      ListExpr Ind = GetMMDataIndexesOfTupleStream(param.second().listExpr());
+
+      if(nl->Equal(Ind,nl->TypeError()))
+        return Ind;
+      else
+      {
+        // Add indexes
+        return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                 Ind,
+                                 nl->SymbolAtom(MJPoint::BasicType()));
+      }
+    }
+    else
+    {
+      return nl->SymbolAtom(MJPoint::BasicType());
+    }
+}
+
+
+3.3 Value-Mapping
+
+
+int OpJMapMatchingMHTMPointValueMapping(Word* args,
+                                        Word& result,
+                                        int message,
+                                        Word& local,
+                                        Supplier in_xSupplier)
+{
+    // cout << "OpMapMatchingMHTMPointValueMapping called" << endl;
+
+    // Initialize Result
+    result = qp->ResultStorage(in_xSupplier);
+    MJPoint* pRes = static_cast<MJPoint*>(result.addr);
+
+    // get Arguments
+    JNetwork *pNetwork = static_cast<JNetwork*>(args[0].addr);
+    MPoint *pMPoint = static_cast<MPoint*>(args[1].addr);
+
+    // Do Map Matching
+
+    JNetworkAdapter jnet(pNetwork);
+    MapMatchingMHT MapMatching(&jnet, pMPoint);
+
+    MJPointCreator Creator(&jnet, pRes);
+
+    if (!MapMatching.DoMatch(&Creator))
+    {
+        // Error
+    }
+
+    return 0;
+}
+
+int OpJMapMatchingMHTGPXValueMapping(Word* args,
+                                     Word& result,
+                                     int message,
+                                     Word& local,
+                                     Supplier in_xSupplier)
+{
+    cout << "OpJMapMatchingMHTGPXValueMapping called" << endl;
+
+    // Initialize Result
+    result = qp->ResultStorage(in_xSupplier);
+    MJPoint* pRes = static_cast<MJPoint*>(result.addr);
+
+    // get Arguments
+    JNetwork* pNetwork = static_cast<JNetwork*>(args[0].addr);
+    FText* pFileName = static_cast<FText*>(args[1].addr);
+    std::string strFileName = pFileName->GetValue();
+
+    // Do Map Matching
+
+    JNetworkAdapter jnet(pNetwork);
+    MapMatchingMHT MapMatching(&jnet, strFileName);
+
+    MJPointCreator Creator(&jnet, pRes);
+
+    if (!MapMatching.DoMatch(&Creator))
+    {
+      cout << "got: " << *pRes << endl;
+        assert(false);
+    }
+    cout << "got: " << *pRes << endl;
+    return 0;
+}
+
+int OpJMapMatchingMHTStreamValueMapping(Word* args,
+                                        Word& result,
+                                        int message,
+                                        Word& local,
+                                        Supplier in_xSupplier)
+{
+    // cout << "OpMapMatchingMHTStreamValueMapping called" << endl;
+
+    // Initialize Result
+    result = qp->ResultStorage(in_xSupplier);
+    MJPoint* pRes = static_cast<MJPoint*>(result.addr);
+
+    // get Arguments
+    JNetwork* pNetwork = static_cast<JNetwork*>(args[0].addr);
+
+    shared_ptr<MapMatchDataContainer> pContData =
+                                GetMMDataFromTupleStream(args[1].addr, args, 3);
+
+    // Matching
+
+    JNetworkAdapter jnet(pNetwork);
+    MapMatchingMHT MapMatching(&jnet, pContData);
+
+    MJPointCreator Creator(&jnet, pRes);
+
+    if (!MapMatching.DoMatch(&Creator))
+    {
+        // Error
+    }
+
+    return 0;
+}
+
+
+ 3.4 Selection Function
+
+
+int JMapMatchMHTSelect(ListExpr args)
+{
+  NList type(args);
+  if ((type.length() == 2) &&
+      type.first().isSymbol(JNetwork::BasicType()))
+  {
+    if (type.second().isSymbol(MPoint::BasicType())) return 0;
+    if (type.second().isSymbol(FText::BasicType()))  return 1;
+    if (listutils::isTupleStream(type.second().listExpr())) return 2;
+  }
+  return -1;
+} */
 
 /*
 5 omapmatchmht\_P-operator
@@ -1469,6 +1672,7 @@ int OMapMatchMHTSelect(ListExpr args)
     Result: Tuples of matched points on edges
 
 */
+
 struct OMapMatchMHT_PInfo : OperatorInfo
 {
 
@@ -1980,6 +2184,19 @@ MapMatchingAlgebra::MapMatchingAlgebra()
 8.2 Registration of Operators
 
 */
+    /*
+    //JMapMatchMHT
+    ValueMapping JMapMatchMHTFuns[] = {OpJMapMatchingMHTMPointValueMapping,
+                                       OpJMapMatchingMHTGPXValueMapping,
+                                       OpJMapMatchingMHTStreamValueMapping,
+                                       0
+    };
+
+    AddOperator(JMapMatchMHTInfo(),
+                JMapMatchMHTFuns,
+                JMapMatchMHTSelect,
+                OpJMapMatchingMHTTypeMap);
+    */
 
     // MapMatchMHT
     ValueMapping MapMatchMHTFuns[] = { OpMapMatchingMHTMPointValueMapping,

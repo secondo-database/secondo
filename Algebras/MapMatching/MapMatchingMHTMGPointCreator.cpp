@@ -48,7 +48,7 @@ the class ~MGPointCreator~.
 
 #include <LogMsg.h>
 
-
+using namespace network;
 namespace mapmatch {
 
 /*
