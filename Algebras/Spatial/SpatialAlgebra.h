@@ -1799,7 +1799,7 @@ Changes the capacities of the contained arrays to the required size.
 Returns true if SimpleLine start at smaller end point.
 
 */
-  inline bool StartsSmaller(){
+  inline bool StartsSmaller() const{
     return startSmaller;
   }
 
