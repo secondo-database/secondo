@@ -141,7 +141,7 @@ Operator::Operator( const string& nm,
   requestsArgs   = false;
   usesArgsInTypeMapping = false;
   usesMemory     = false;
-  
+
 
   for ( int i = 0; i < numOfFunctions; i++ ){
     calls[i] = 0;
@@ -270,7 +270,7 @@ Operator::Operator( const OperatorInfo& oi,
     calls[i] = 0;
     if(createCE){
        createCostEstimation[i] = createCE[i];
-       costEstimation[i] = createCE[i]?createCE[i]():0;   
+       costEstimation[i] = createCE[i]?createCE[i]():0;
     } else {
        createCostEstimation[i] = 0;
        costEstimation[i]=0;
@@ -431,6 +431,8 @@ TypeConstructor::TypeConstructor( const string& nm,
 
 TypeConstructor::~TypeConstructor()
 {
+  name.clear();
+  kinds.clear();
 }
 
 void

@@ -514,7 +514,7 @@ Adds a value mapping function to the list of overloaded operator functions.
     unsigned int*  calls;          // counter for each overloaded version
     TypeMapping    typeMap;
     bool           supportsProgress;  //Operator supports progress queries.
-    bool           requestsArgs;	//operator explicitly asks for
+    bool           requestsArgs;  //operator explicitly asks for
                                   //evaluation of its arguments
     bool           usesArgsInTypeMapping;  // Operator needs arguments
                                   // to be passed to its type mapping
