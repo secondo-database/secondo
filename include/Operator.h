@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -20,8 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-April 2006, M. Spiekermann. The file Algebra.h need to be divided into Operators.h. TypeConstructors.h, 
-AlgebraClassDef.h and AlgebraInit.h   
+April 2006, M. Spiekermann. The file Algebra.h need to be divided into Operators.h. TypeConstructors.h,
+AlgebraClassDef.h and AlgebraInit.h
 
 */
 
@@ -30,6 +30,7 @@ AlgebraClassDef.h and AlgebraInit.h
 
 #include <string>
 #include <vector>
+#include <stdlib.h>
 
 #include "NestedList.h"
 #include "NList.h"
@@ -81,39 +82,39 @@ struct OperatorInfo {
   bool requestsArgs;
   bool usesArgsInTypeMapping;
   bool usesMemory;
-   
+
   OperatorInfo() :
-    name(""),  
-    signature(""),  
+    name(""),
+    signature(""),
     syntax(""),
     meaning(""),
     example(""),
     remark(""),
-    supportsProgress(false),	
+    supportsProgress(false),
     requestsArgs(false),
     usesArgsInTypeMapping(false),
-    usesMemory(false)	
+    usesMemory(false)
   {}
 
   OperatorInfo(const OperatorInfo& o) :
-    name(o.name),  
-    signature(o.signature),  
+    name(o.name),
+    signature(o.signature),
     syntax(o.syntax),
     meaning(o.meaning),
     example(o.example),
     remark(o.remark),
-    supportsProgress(o.supportsProgress),	
+    supportsProgress(o.supportsProgress),
     requestsArgs(o.requestsArgs),
     usesArgsInTypeMapping(o.usesArgsInTypeMapping),
-    usesMemory(o.usesMemory)	
+    usesMemory(o.usesMemory)
   {}
 
   OperatorInfo( const string& _name,
-                const string& _signature, 
-                const string& _syntax, 
-                const string& _meaning, 
+                const string& _signature,
+                const string& _syntax,
+                const string& _meaning,
                 const string& _example )
- { 
+ {
    name = _name;
    signature = _signature;
    syntax = _syntax;
@@ -124,9 +125,18 @@ struct OperatorInfo {
    requestsArgs = false;
    usesArgsInTypeMapping = false;
    usesMemory = false;
- } 
+ }
 
  OperatorInfo( const string& opName, const string& specStr);
+
+ ~OperatorInfo(){
+   name.clear();
+   signature.clear();
+   syntax.clear();
+   meaning.clear();
+   example.clear();
+   remark.clear();
+}
 
  const string str() const;
  const ListExpr list() const;
@@ -135,8 +145,8 @@ struct OperatorInfo {
 
 
  ostream& Print(ostream& o) const{
-   o << "OperatorInfo[ " 
-	   <<  name << ", " 
+   o << "OperatorInfo[ "
+	   <<  name << ", "
      <<  signature <<", "
      <<  syntax << ", "
      <<  meaning << ", "
@@ -148,7 +158,7 @@ struct OperatorInfo {
      << "usesMemory = " <<  usesMemory << "]";
    return o;
  }
- 
+
 };
 
 ostream& operator<<(ostream& o, const OperatorInfo& oi);
@@ -176,7 +186,7 @@ class OperatorSpec{
           const string& _meaning,
           const string _example,
           const string& _remark = "") {
-         
+
           stringstream ss;
           ss << "( ( "
              << "\"Signature\""
@@ -186,7 +196,7 @@ class OperatorSpec{
           if(_remark.length()==0){
              ss << "\"Comment\"";
           }
-          ss << ")" << endl; 
+          ss << ")" << endl;
           ss << "(";
           ss << "<text>" << _signature << "</text--->" << endl;
           ss << "<text>" << _syntax  << "</text--->" << endl;
@@ -201,7 +211,15 @@ class OperatorSpec{
 
       string getStr(){
         return getListString(signature,syntax,meaning,example,remark);
-      } 
+      }
+
+      ~OperatorSpec() {
+        signature.clear();
+        syntax.clear();
+        meaning.clear();
+        example.clear();
+        remark.clear();
+      }
 
   private:
      string signature;
@@ -256,7 +274,7 @@ Versions using ~OperatorInfo~.
 
 */
 
-  
+
 
   virtual ~Operator()
   {
@@ -277,6 +295,8 @@ Versions using ~OperatorInfo~.
       }
       delete[] costEstimation;
     }
+    name.clear();
+    specString.clear();
   }
 /*
 Destroys an operator instance.
@@ -286,7 +306,7 @@ Destroys an operator instance.
 Returns the operator specification as a string.
 
 */
-  inline int Select( ListExpr argtypes ) const 
+  inline int Select( ListExpr argtypes ) const
   {
     return ((*selectFunc)( argtypes ));
   }
@@ -316,7 +336,7 @@ the argument types ~argtypes~.
 /*
 ~getCreateCostEstimation~
 
-Returns the Function pointer for creating a cost estimation for the 
+Returns the Function pointer for creating a cost estimation for the
 specified value mapping. Returns null if this value mapping has no
 CreateCostEstimation function.
 
@@ -335,7 +355,7 @@ value mapping. If there is nothing, null is returned.
   CostEstimation* getCostEstimation(const int index){
      return costEstimation?costEstimation[index]:0;
   }
-  
+
 /*
 Calls the value mapping function of the operator.
 
@@ -366,15 +386,15 @@ as a nested list expression or as a string.
 
 */
 
-  OperatorInfo  GetOpInfo() const 
-  { 
-    return OperatorInfo(name, specString); 
+  OperatorInfo  GetOpInfo() const
+  {
+    return OperatorInfo(name, specString);
   }
-  
-  void SetOpInfo(const OperatorInfo& oi) 
-  { 
+
+  void SetOpInfo(const OperatorInfo& oi)
+  {
      spec = oi;
-     specString = oi.str(); 
+     specString = oi.str();
   }
 
 /*
@@ -494,14 +514,14 @@ Adds a value mapping function to the list of overloaded operator functions.
     unsigned int*  calls;          // counter for each overloaded version
     TypeMapping    typeMap;
     bool           supportsProgress;  //Operator supports progress queries.
-    bool           requestsArgs;	//operator explicitly asks for 
+    bool           requestsArgs;	//operator explicitly asks for
 						//evaluation of its arguments
     bool           usesArgsInTypeMapping;  // Operator needs arguments
-	                    // to be passed to its type mapping 
-						// function 
+	                    // to be passed to its type mapping
+						// function
     bool           usesMemory;     // Operator uses a large memory buffer
-                                   // like a tuple buffer	
-    CreateCostEstimation* createCostEstimation; // array to creation 
+                                   // like a tuple buffer
+    CreateCostEstimation* createCostEstimation; // array to creation
                                                 //functions for
                                                 // dynamic progress estimation
     CostEstimation** costEstimation; // array of CostEstimation instances for

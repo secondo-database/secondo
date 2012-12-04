@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -20,8 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-April 2006, M. Spiekermann. The file Algebra.h need to be divided into Operators.h. TypeConstructors.h, 
-AlgebraClassDef.h and AlgebraInit.h   
+April 2006, M. Spiekermann. The file Algebra.h need to be divided into Operators.h. TypeConstructors.h,
+AlgebraClassDef.h and AlgebraInit.h
 
 */
 
@@ -30,6 +30,7 @@ AlgebraClassDef.h and AlgebraInit.h
 
 #include <string>
 #include <vector>
+#include <stdlib.h>
 
 #include "NestedList.h"
 #include "AlgebraTypes.h"
@@ -84,8 +85,8 @@ struct ConstructorInfo {
   string remarks;
 
   ConstructorInfo() :
-    name(""),  
-    signature(""),  
+    name(""),
+    signature(""),
     typeExample(""),
     listRep(""),
     valueExample(""),
@@ -93,9 +94,9 @@ struct ConstructorInfo {
   {}
 
   ConstructorInfo( const string& _name,
-                   const string& _signature, 
-                   const string& _typeExample, 
-                   const string& _listRep, 
+                   const string& _signature,
+                   const string& _typeExample,
+                   const string& _listRep,
                    const string& _valueExample,
                    const string& _remarks       )
   {
@@ -105,12 +106,12 @@ struct ConstructorInfo {
     listRep = _listRep;
     valueExample = _valueExample;
     remarks = _remarks;
-  }  
+  }
 
 
-  ConstructorInfo( const NList& typeInfo) : 
-    name(""),  
-    signature(""),  
+  ConstructorInfo( const NList& typeInfo) :
+    name(""),
+    signature(""),
     typeExample(""),
     listRep(""),
     valueExample(""),
@@ -119,37 +120,47 @@ struct ConstructorInfo {
     // note there was only made some convention
     // about the structure of a property list. Hence
     // we will be careful here.
-  
-    int len = typeInfo.length();
-    if (len >= 1)  
-      signature = typeInfo.elem(1).str();
-    if (len >= 2)  
-      typeExample = typeInfo.elem(2).str();
-    if (len >= 3)  
-      listRep = typeInfo.elem(3).str();
-    if (len >= 4)  
-      valueExample = typeInfo.elem(4).str();
-    if (len >= 5)  
-      remarks = typeInfo.elem(5).str();
-  }    
 
-    
-  const ListExpr list() const { 
-   
-     ListExpr headList = 
+    int len = typeInfo.length();
+    if (len >= 1)
+      signature = typeInfo.elem(1).str();
+    if (len >= 2)
+      typeExample = typeInfo.elem(2).str();
+    if (len >= 3)
+      listRep = typeInfo.elem(3).str();
+    if (len >= 4)
+      valueExample = typeInfo.elem(4).str();
+    if (len >= 5)
+      remarks = typeInfo.elem(5).str();
+  }
+
+
+  const ListExpr list() const {
+
+     ListExpr headList =
                nl->FiveElemList( nl->StringAtom("Signature"),
                                  nl->StringAtom("Example Type List"),
                                  nl->StringAtom("List Rep"),
                                  nl->StringAtom("Example List"),
                                  nl->StringAtom("Remarks") );
-     ListExpr specList = 
+     ListExpr specList =
                nl->FiveElemList( nl->TextAtom(signature),
                                  nl->TextAtom(typeExample),
                                  nl->TextAtom(listRep),
                                  nl->TextAtom(valueExample),
                                  nl->TextAtom(remarks) );
 
-    return nl->TwoElemList(headList, specList ); 
+    return nl->TwoElemList(headList, specList );
+  }
+
+  ~ConstructorInfo()
+  {
+    name.clear();
+    signature.clear();
+    typeExample.clear();
+    listRep.clear();
+    valueExample.clear();
+    remarks.clear();
   }
 };
 
@@ -177,11 +188,11 @@ class TypeConstructor
   template<class T>
   TypeConstructor( const ConstructorInfo ci,
                    ConstructorFunctions<T> cf  )
-  {  
+  {
     conInfo              = ci;
     name                 = ci.name;
     propFunc             = 0;
-    
+
     outFunc              = cf.out;
     inFunc               = cf.in;
     saveToListFunc       = cf.saveToList;
@@ -197,12 +208,14 @@ class TypeConstructor
     typeCheckFunc        = cf.kindCheck;
   }
 
-  
+
 /*
 Constructs a type constructor.
 
 */
-  virtual ~TypeConstructor();
+
+ virtual ~TypeConstructor();
+
 /*
 Destroys an instance of a type constructor.
 
@@ -215,7 +228,7 @@ Associates the kind ~kindName~ with this type constructor.
   ListExpr Property();
   static ListExpr Property(const ConstructorInfo& ci);
 /*
-Returns the properties of the type constructor or converts a 
+Returns the properties of the type constructor or converts a
 ConstructorInfo into a nested list representation.
 
 */
@@ -240,15 +253,15 @@ ConstructorInfo into a nested list representation.
                  size_t& offset,
                  const ListExpr typeInfo,
                  Word& value );
-  bool     Save( SmiRecord& valueRecord, 
-                 size_t& offset, 
+  bool     Save( SmiRecord& valueRecord,
+                 size_t& offset,
                  const ListExpr typeInfo,
                  Word& value );
   void     Close( const ListExpr typeInfo,
                   Word& w );
   Word     Clone( const ListExpr typeInfo,
                   const Word& w );
-  
+
   int        SizeOf();
   inline int SerializedFixSize() { return serializedFixSize; }
 
@@ -272,7 +285,7 @@ Are methods to manipulate objects according to the type constructor.
 /*
 Default methods for ~Open~ and ~Save~ functions if these are not provided.
 These methods use the ~RestoreFromList~ and ~SaveToList~ if provided, and
-~In~ and ~Out~ otherwise. 
+~In~ and ~Out~ otherwise.
 
 */
   static Word DummyCreate( const ListExpr typeInfo );
@@ -283,15 +296,15 @@ These methods use the ~RestoreFromList~ and ~SaveToList~ if provided, and
   static Word DummyClone( const ListExpr typeInfo,
                           const Word& w );
   static int  DummySizeOf();
-  
+
   inline bool TypeCheck( ListExpr type, ListExpr& errorInfo )
   {
     if (typeCheckFunc) {
       return (*typeCheckFunc)( type, errorInfo);
-    } 
-    else { 
+    }
+    else {
       return SimpleCheck( type, errorInfo );
-    }  
+    }
   }
 
   const vector<string>& GetKinds() { return kinds; }
@@ -308,7 +321,7 @@ Dummy methods used as placeholders for type constructor functions.
 
 */
  private:
- 
+
   inline bool SimpleCheck( ListExpr type, ListExpr& errorInfo )
   {
     return (nl->IsEqual( type, name ));
