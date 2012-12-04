@@ -40,6 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../RTree/RTreeAlgebra.h"
 #include "ListUtils.h"
 
+namespace network{
 
 /*
 2 Helpful Data Types and Data Structures
@@ -3729,6 +3730,6 @@ private:
   DbArray<GPoint> m_xGPoints;
 };
 
-
+} //end of namespace network
 
 #endif // __NETWORK_ALGEBRA_H__

@@ -68,6 +68,8 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 static map<int,string> *netList;
 
+using namespace network;
+
 /*
 1 Helping structs, methods and classes
 
@@ -4794,7 +4796,7 @@ void Network::GetPointOnRoute ( const GPoint* in_pGPoint, Point*& res )const
   double pos = in_pGPoint->GetPosition();
   if (pos < 0.0)
     pos = 0.0;
-  else 
+  else
    if (pos > pLine->Length())
      pos = pLine->Length();
   pLine->AtPosition ( pos, startSmaller, *res );

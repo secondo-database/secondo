@@ -38,6 +38,7 @@ Defines, includes, and constants
 Please include in *.cpp-File.
 #endif
 
+namespace network{
 /*
 "Static" class managing all networks in secondo.
 
@@ -61,5 +62,7 @@ Closes a network retrived via getNetwork.
 */
   static void CloseNetwork(Network* in_pNetwork);
 };
+
+} //end of namespace network
 
 #endif /*NETWORKMANAGER_H_*/
