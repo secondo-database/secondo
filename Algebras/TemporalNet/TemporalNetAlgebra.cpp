@@ -66,7 +66,7 @@ Defines, includes, and constants
 extern NestedList* nl;
 extern QueryProcessor* qp;
 map<int,string> *netList;
-
+using namespace temporalnet;
 
 /*
 

@@ -56,7 +56,9 @@ Please include in *.cpp-File.
 
 
 using namespace datetime;
+using namespace network;
 
+namespace temporalnet{
 /*
 Instant
 
@@ -990,5 +992,6 @@ Returns the sections passed by the ~mgpoint~
   Rectangle<3> m_bbox;
 };
 
+} // end of namespace temporalnet
 
 #endif // _TEMPORAL_NET_ALGEBRA_H_
