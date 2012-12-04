@@ -108,6 +108,10 @@ private JMenuItem MI_User;
 private JMenu OptimizerMenu;
 private JMenuItem MI_OptimizerEnable;
 private JMenuItem MI_OptimizerDisable;
+private JMenuItem MI_OptimizerUpdateCatalog;
+private JCheckBoxMenuItem MI_OptimizerAutoUpdateCatalog;
+private JMenuItem MI_OptimizerResetKnowledgeDB;
+
 private JMenu OptimizerCommandMenu;
 private JMenu UpdateRelationsMenu;
 private JMenu UpdateIndexMenu;
@@ -981,6 +985,33 @@ private void enableEntropy(boolean on){
 }
 
 
+private void updateCatalog(){
+  String command ="updateCatalog";
+  ComPanel.appendText("\noptimizer "+ command +"  ");
+  if(ComPanel.sendToOptimizer(command)==null){
+        ComPanel.appendText(" ... failed");
+  }else{
+        ComPanel.appendText(" ... successful");
+  }
+  ComPanel.showPrompt();
+}
+
+
+private void resetKnowledgeDB(){
+  String command ="resetKnowledgeDB";
+  ComPanel.appendText("\noptimizer "+ command +"  ");
+  if(ComPanel.sendToOptimizer(command)==null){
+        ComPanel.appendText(" ... failed");
+  }else{
+        ComPanel.appendText(" ... successful");
+  }
+  ComPanel.showPrompt();
+}
+
+
+
+
+
 /**  reconstructed the menu updateRelationMenu
   *  the values are given through the current ListOfObjects-Vector
   */
@@ -1049,9 +1080,12 @@ private void updateRelationList(){
 
       }
   }
-
-
 }
+
+
+
+
+
 
 
 /** send a viewerChanged Message to all
@@ -2643,6 +2677,27 @@ private void createMenuBar(){
    OptimizerCommandMenu.add(UpdateRelationsMenu);
    UpdateIndexMenu = new JMenu("Update Index");
    OptimizerCommandMenu.add(UpdateIndexMenu);
+   
+   MI_OptimizerUpdateCatalog = new JMenuItem("Update Catalog");
+   MI_OptimizerAutoUpdateCatalog = new JCheckBoxMenuItem("Auto Update Catalog");
+   MI_OptimizerAutoUpdateCatalog.setSelected(true);
+   ComPanel.setAutoUpdateCatalog(true);
+
+   MI_OptimizerAutoUpdateCatalog.addItemListener(new ItemListener(){
+     public void itemStateChanged(ItemEvent evt){
+         ComPanel.setAutoUpdateCatalog(MI_OptimizerAutoUpdateCatalog.isEnabled());
+     }
+
+   });
+
+
+   MI_OptimizerResetKnowledgeDB = new JMenuItem("Reset Optimizer's knowledge database");
+
+   OptimizerCommandMenu.add(MI_OptimizerUpdateCatalog);
+   OptimizerCommandMenu.add(MI_OptimizerAutoUpdateCatalog);
+   OptimizerCommandMenu.add(MI_OptimizerResetKnowledgeDB);
+
+
 
    MI_UpdateRelationList = UpdateRelationsMenu.add("Update List");
    ActionListener A = new ActionListener(){
@@ -2654,6 +2709,25 @@ private void createMenuBar(){
    MI_UpdateIndexList = UpdateIndexMenu.add("Update List");
    MI_UpdateRelationList.addActionListener(A);
    MI_UpdateIndexList.addActionListener(A);
+
+   ActionListener b = new ActionListener(){
+     public void actionPerformed(ActionEvent evt){
+        Object src = evt.getSource();
+        if(src==null){
+           return;
+        }
+        if(src.equals(MI_OptimizerUpdateCatalog)){
+           updateCatalog();
+        } 
+        if(src.equals(MI_OptimizerResetKnowledgeDB)){
+           resetKnowledgeDB();
+        }
+     }
+   };
+   MI_OptimizerUpdateCatalog.addActionListener(b);
+   MI_OptimizerResetKnowledgeDB.addActionListener(b);
+
+
 
    JMenu Entropy = new JMenu("Entropy");
    MI_EnableEntropy = Entropy.add("enable");

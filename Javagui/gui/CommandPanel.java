@@ -61,6 +61,9 @@ public class CommandPanel extends JScrollPane {
   private Object SyncObj = new Object();
   private boolean ignoreCaretUpdate=false;
 
+  private boolean autoUpdateCatalog = true;
+
+
   private StoredQueriesDialog favouredQueries = new StoredQueriesDialog(null);
 
   /**
@@ -88,12 +91,48 @@ public class CommandPanel extends JScrollPane {
     SystemArea.setCaretPosition(aktPos);
     setViewportView(SystemArea);
     SystemArea.setFont(new Font("Monospaced",Font.PLAIN,18));
+
+    // create a changelistener for autoupdatecatalog
+    SecondoChangeListener autoUpdateListener = new SecondoChangeListener(){
+        public void databasesChanged(){}
+        // deleted or created or updated object
+        public void objectsChanged(){
+            if(sendToOptimizer("updateCatalog")==null){
+               Reporter.writeError("updateCatalog failed");
+            }
+            //if(sendToOptimizer("closedb")==null){
+            //   Reporter.writeError("close database failed"); 
+            //} 
+        }
+        // deleted or create type
+        public void typesChanged(){
+            if(sendToOptimizer("updateCatalog")==null){
+               Reporter.writeError("updateCatalog failed");
+            } 
+        }
+         // a database is opened
+        public void databaseOpened(String DBName){}
+        // a database is closed
+        public void databaseClosed(){}
+        // the connection is opened
+        public void connectionOpened(){}
+         // the connection is closed
+        public void connectionClosed(){}
+        
+    };
+    addSecondoChangeListener(autoUpdateListener);
+
   }
 
   /** adds a new MessageListener **/
   public void addMessageListener(MessageListener ml){
     Secondointerface.addMessageListener(ml);
   }
+
+  public void setAutoUpdateCatalog(boolean auc){
+     autoUpdateCatalog = auc;
+  }
+
 
   /** Reopends the currently opened database.
    **/
@@ -605,6 +644,74 @@ public class CommandPanel extends JScrollPane {
 
 
 
+  private char toLower(char c){
+     if(c>='A' && c<='Z'){
+        return (char)(c - 'A' + 'a'); 
+     }
+     return c;
+  }
+
+  private boolean isLetter(char c){
+     return ((c>'A') && (c<'Z') ) || ((c>'A' && c<'z'));
+  }
+
+
+  /*
+   Changes the first letter of all words outside of quotes to a lower case. 
+  */
+
+  private  String varToLowerCase(String str){
+    StringBuffer buf = new StringBuffer();
+     int state = 0; //normal = 0, inDoublequotes = 1 in quotes = 2
+     int pos = 0;
+     int wordPos = 0;
+     for(int i=0;i<str.length();i++){
+        char c = str.charAt(i);
+        switch(state){
+          case 0: {
+             if(c=='"'){
+               state = 1;
+               wordPos = 0;
+               buf.append(c);
+             } else if(c=='\''){
+               state = 2;
+               wordPos=0;
+               buf.append(c); 
+             }  else if(isLetter(c)){
+                if(wordPos==0){
+                   wordPos++;    
+                   buf.append(toLower(c));
+                } else {
+                   buf.append(c);
+                }
+             } else {
+               wordPos = 0;
+               buf.append(c);
+             }
+             break;
+           }
+          case 1: {
+            if(c=='"'){
+               state = 0;
+               wordPos = 0;
+            }
+            buf.append(c);
+            break;
+          }
+          case 2: {
+            if(c=='\''){
+              state = 0;
+              wordPos = 0;
+            }
+            buf.append(c);
+          }
+        }
+     }
+     return buf.toString();
+  }
+
+
+
   /** optimizes a command if optimizer is enabled */
   private String optimize(String command){
 
@@ -645,6 +752,9 @@ public class CommandPanel extends JScrollPane {
         showPrompt();
         return "";
      }
+     //System.out.println(" Change command " + command);
+     command = varToLowerCase(command);
+     //System.out.println("to " + command);
      String opt = OptInt.optimize_execute(command,OpenedDatabase,Err,false);
      if(Err.value!=ErrorCodes.NO_ERROR){  // error in optimization
         appendText("\nerror in optimization of this query");
