@@ -301,7 +301,7 @@ ostream& Operator::Print(ostream& o) const{
      << "numOfFunctions = "   <<  numOfFunctions << ", "
      << "supportsProgress ="  <<  supportsProgress << ", "
      << "requestsArgs ="  <<     requestsArgs << ", "
-	 << "usesArgsInTypeMapping ="  <<     usesArgsInTypeMapping
+     << "usesArgsInTypeMapping ="  <<     usesArgsInTypeMapping
      << "]";
    return o;
 }
@@ -708,7 +708,7 @@ Algebra::AddOperator( OperatorInfo oi, ValueMapping vm, TypeMapping tm )
 
 Operator*
 Algebra::AddOperator( OperatorInfo oi, ValueMapping vms[],
-		      SelectFunction sf, TypeMapping tm   )
+                      SelectFunction sf, TypeMapping tm   )
 {
   Operator* newOp = new Operator(oi, vms, sf, tm);
   AddOperator(newOp, true);
