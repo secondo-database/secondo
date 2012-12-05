@@ -437,7 +437,9 @@ Pattern* stj::parseString(const char* input) {
   uPat.clearI();
   result->setVerified(false);
   result->initDelta();
-  result->buildNFA();
+  //if (description == "") { // If there is a description, a classification will
+    result->buildNFA();    // be performed, i.e., a multi NFA will be built
+  //}
   return result;
 }
 

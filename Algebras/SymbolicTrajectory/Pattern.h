@@ -254,7 +254,7 @@ class Pattern {
   vector<UPat> patterns;
   vector<Assign> assigns;
   vector<Condition> conds;
-  string text;
+  string text, description;
   map<string, int> varPos;
   set<string> assignedVars; // variables on the right side of an assignment
   map<int, set<int> > *delta; // array pos: old state;
@@ -286,6 +286,7 @@ class Pattern {
     assignedVars = rhs.assignedVars;
     delta = rhs.delta;
     verified = rhs.verified;
+    description = rhs.description;
   }
 
   Pattern& operator=(const Pattern& rhs){
@@ -297,6 +298,7 @@ class Pattern {
     assignedVars = rhs.assignedVars;
     delta = rhs.delta;
     verified = rhs.verified;
+    description = rhs.description;
     return (*this);
   }  
 
@@ -362,6 +364,8 @@ class Pattern {
   map<int, set<int> >* getDelta() const     {return delta;}
   void              initDelta()             {delta = new map<int, set<int> >
                                                          [patterns.size()];}
+  void              setDescr(string desc)   {description = desc;}
+  string            getDescr()              {return description;}
 };
 
 struct DoubleParsInfo {

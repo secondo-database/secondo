@@ -55,6 +55,7 @@ This algebra includes the operators ~matches~ and ~rewrite~.
 #include "Pattern.h"
 #include "TemporalUnitAlgebra.h"
 #include "RelationAlgebra.h"
+#include "FileSystem.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -1260,7 +1261,10 @@ Writes all pattern information into a string.
 */
 string Pattern::toString() const {
   stringstream str;
-  str << "=======pattern=======" << endl;
+  if (description != "") {
+    str << "=====description=====" << endl << description << endl;
+  }
+  str << "====unit patterns====" << endl;
   for (int i = 0; i < (int)patterns.size(); i++) {
     str << "[" << i << "] " << patterns[i].getV() << " | "
         << setToString(patterns[i].getI()) << " | "
@@ -2465,7 +2469,7 @@ bool Match::conditionsMatch(MString const &ml) {
     return evaluateEmptyML();
   }
   maxCardPos = 0;
-  for (int i = 0; i < f; i++) { // determine id of most cardinality candidates
+  for (int i = 0; i < f; i++) { // determine id of max. number of cardinalities
     if (cardsets[i].size() > cardsets[maxCardPos].size()) {
       maxCardPos = i;
     }
@@ -3161,7 +3165,7 @@ struct matchesInfo : OperatorInfo {
 
 */
 ListExpr filterMatchesTM(ListExpr args) {
-  string err = "the expected syntax is: stream(tuple) x attrname  x text";
+  string err = "the expected syntax is: stream(tuple) x attrname x text";
   if (!nl->HasLength(args, 3)) {
     return listutils::typeError(err + " (wrong number of arguments)");
   }
@@ -3182,7 +3186,7 @@ ListExpr filterMatchesTM(ListExpr args) {
     return listutils::typeError("attribute " + name + " not of type mlabel");
   }
   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                           nl->OneElemList(nl->IntAtom(index-1)), stream);
+                           nl->OneElemList(nl->IntAtom(index - 1)), stream);
 }
 
 /*
@@ -3243,8 +3247,8 @@ int filterMatchesVM(Word* args, Word& result, int message,
         delete li;
         local.addr = 0;
       }
-      int index = ((CcInt*) args[3].addr)->GetValue();
-      FText* text = (FText*) args[2].addr;
+      int index = ((CcInt*)args[3].addr)->GetValue();
+      FText* text = (FText*)args[2].addr;
       if (text->IsDefined()) {
         local.addr = new FilterMatchesLI(args[0], index, text);
       }
@@ -3468,12 +3472,192 @@ int rewriteFun_MP(Word* args, Word& result, int message, Word& local,
 struct rewriteInfo : OperatorInfo {
   rewriteInfo() {
     name      = "rewrite";
-    signature = "MLabel x Text -> stream(MLabel)";
-    appendSignature("MString x Text -> + stream(MString)");
+    signature = "MLabel x text -> stream(MLabel)";
+    appendSignature("MString x text -> + stream(MString)");
     syntax    = "_ rewrite _";
     meaning   = "Rewrite a mlabel.";
   }
 };
+
+/*
+\section{Operator ~classify~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr classifyTypeMap(ListExpr args) {
+  const string errMsg = "Expecting a stream(tuple(x, y)) with x,y in "
+             "{string, text} and a stream(z) with z in {MLabel, MString}.";
+  if (!nl->HasLength(args, 2)) {
+    return listutils::typeError(errMsg);
+  }
+  if (!Stream<Tuple>::checkType(nl->First(args))) {
+    return listutils::typeError(errMsg);
+  }
+  ListExpr dType, pType;
+  dType = nl->Second(nl->First(nl->Second(nl->Second(nl->First(args)))));
+  pType = nl->Second(nl->Second(nl->Second(nl->Second(nl->First(args)))));
+  if ((!CcString::checkType(dType) && !FText::checkType(dType))
+   || (!CcString::checkType(pType) && !FText::checkType(pType))) {
+     return listutils::typeError(errMsg);
+  }
+  ListExpr arg2 = nl->Second(args);
+  if (!Stream<MLabel>::checkType(arg2) && !Stream<MString>::checkType(arg2)) {
+    return listutils::typeError(errMsg);
+  }
+  ListExpr outputAttrs = nl->TwoElemList(
+              nl->TwoElemList(nl->SymbolAtom("Description"),
+                              nl->SymbolAtom(FText::BasicType())),
+              nl->TwoElemList(nl->SymbolAtom("Trajectory"), nl->Second(arg2)));
+  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                         nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                         outputAttrs));
+}
+
+class ClassifyLI {
+public:
+  ClassifyLI(Word _pstream, Word _mlstream) : mlStream(_mlstream) {
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    ListExpr resultTupleType = nl->TwoElemList(
+      nl->SymbolAtom(Tuple::BasicType()),
+      nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Description"),
+                                      nl->SymbolAtom(FText::BasicType())),
+                      nl->TwoElemList(nl->SymbolAtom("Trajectory"),
+                                      nl->SymbolAtom(MLabel::BasicType()))));
+    ListExpr numResultTupleType = sc->NumericType(resultTupleType);
+    classifyTT = new TupleType(numResultTupleType);
+    Stream<Tuple> pStream = (Stream<Tuple>)_pstream;
+    pStream.open();
+    Tuple* inputTuple = pStream.request();
+    while (inputTuple) {
+      if (!(CcString*)inputTuple->GetAttribute(0)->IsDefined()
+       || !(FText*)inputTuple->GetAttribute(1)->IsDefined()) {
+        cout << "undefined classification data" << endl;
+      }
+      else {
+        Pattern *p = Pattern::getPattern(
+                       ((FText*)inputTuple->GetAttribute(1))->GetValue());
+        p->setDescr(((CcString*)inputTuple->GetAttribute(0))->GetValue());
+        patterns.push_back(*p);
+        delete p;
+        inputTuple = pStream.request();
+      }
+    }
+    pStream.close();
+    if (!patterns.size()) {
+      cout << "no classification data specified" << endl;
+    }
+    else {
+      //buildMultiNFA();
+      mlStream.open();
+      processNextML = true;
+      currentML = new MLabel(1);
+      pos = 0;
+    }
+  }
+
+  ~ClassifyLI() {
+    mlStream.close();
+    delete classifyTT;
+    currentML->DeleteIfAllowed();
+  }
+
+  Tuple* nextResultTuple() {
+    MLabel *ml = new MLabel(1);
+    bool match = false;
+    while (!match) {
+      if (pos == patterns.size()) {
+        processNextML = true;
+        pos = 0;
+      }
+      if (processNextML) {
+        ml = (MLabel*)mlStream.request();
+        if (ml) {
+          *currentML = *ml;
+          pos = 0;
+          processNextML = false;
+        }
+        else {
+          return 0;
+        }
+      }
+      else {
+        *ml = *currentML;
+      }
+      if (!ml->IsDefined()) {
+        cout << "undefined moving label" << endl;
+        pos = 0;
+        processNextML = true;
+      }
+      else {
+        if (patterns[pos].matches(*ml)) {
+          Tuple *result = new Tuple(classifyTT);
+          result->PutAttribute(0, new FText(true, patterns[pos].getDescr()));
+          result->PutAttribute(1, ml);
+          pos++;
+          return result;
+        }
+        pos++;
+      }
+    }
+    return 0;
+  }
+
+private:
+  vector<Pattern> patterns;
+  Stream<MLabel> mlStream;
+  TupleType* classifyTT;
+  MLabel* currentML;
+  bool processNextML;
+  unsigned int pos;
+};
+
+/*
+\subsection{Value Mapping}
+
+*/
+
+int classifyFun(Word* args, Word& result, int message, Word& local, Supplier s){
+  ClassifyLI *li = (ClassifyLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      local.addr = new ClassifyLI(args[0], args[1]);
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextResultTuple() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct classifyInfo : OperatorInfo {
+  classifyInfo() {
+    name      = "classify";
+    signature = "text x stream(MLabel) -> stream(tuple(string, MLabel))";
+    appendSignature("text x stream(MString) -> stream(tuple(string, MString))");
+    syntax    = "_ classify _";
+    meaning   = "Classifies a stream of trajectories according to a set of "
+                "patterns and descriptions from a file";
+  }
+};
+
 
 /*
 \section{Operator ~compress~}
@@ -3903,6 +4087,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
                                     rewriteFun_MT<MString>,
                                     rewriteFun_MP, 0};
       AddOperator(rewriteInfo(), rewriteFuns, rewriteSelect, rewriteTypeMap);
+
+      AddOperator(classifyInfo(), classifyFun, classifyTypeMap);
 
       ValueMapping compressFuns[] = {compressFun_1<MLabel>,
                                      compressFun_1<MString>,

@@ -29,6 +29,9 @@ Started March 2012, Fabio Vald\'{e}s
 
 */
 #include "SymbolicTrajectoryTools.h"
+#include "SecondoCatalog.h"
+#include "RelationAlgebra.h"
+#include "FTextAlgebra.h"
 
 extern QueryProcessor *qp;
 
