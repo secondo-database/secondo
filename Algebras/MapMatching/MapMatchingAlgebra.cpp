@@ -67,20 +67,20 @@ For more detailed information see MapMatchingAlgebra.h.
 #include "MapMatchingData.h"
 #include "GPXImporter.h"
 #include "NetworkAdapter.h"
-#include "JNetworkAdapter.h"
+//#include "JNetworkAdapter.h"
 #include "ONetworkAdapter.h"
 #include "MapMatchingMHTMGPointCreator.h"
 #include "MapMatchingMHTPointsCreator.h"
 #include "MapMatchingMHTOEdgeTupleStreamCreator.h"
 #include "MapMatchingMHTMPointCreator.h"
-#include "MapMatchingMHTMJPointCreator.h"
+//#include "MapMatchingMHTMJPointCreator.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
 using namespace std;
 using namespace network;
-using namespace jnetwork;
+//using namespace jnetwork;
 
 namespace mapmatch {
 
