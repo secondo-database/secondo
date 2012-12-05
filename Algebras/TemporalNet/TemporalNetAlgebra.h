@@ -60,13 +60,11 @@ using namespace network;
 
 namespace temporalnet{
 /*
-Instant
+IGPointt
 
-This class represents a time instant, or a point in time. It will be
-used in the ~instant~ type constructor.
+This class represents an intime(GPoint) .
 
 */
-typedef DateTime Instant;
 typedef Intime<GPoint> IGPoint;
 
 /*
