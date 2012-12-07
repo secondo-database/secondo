@@ -1,0 +1,20 @@
+#!/bin/bash
+
+
+
+xterm -e "cd $SECONDO_BUILD_DIR/bin/; ./SecondoMonitor -s" &
+
+sleep 5
+
+xterm -e "cd $SECONDO_BUILD_DIR/Optimizer/; StartOptServer" &
+
+
+sleep 5 
+
+xterm -e "cd $SECONDO_BUILD_DIR/Javagui; ./sgui" &
+
+
+
+
+
+
