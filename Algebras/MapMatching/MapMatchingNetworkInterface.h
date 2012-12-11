@@ -146,12 +146,12 @@ public:
 
     virtual class ONetworkSectionAdapter* CastToONetworkSection(void)
     {return NULL;}
-    /*
+
    virtual const class JNetworkSectionAdapter* CastToJNetworkSection(void) const
    {return NULL;}
 
    virtual class JNetworkSectionAdapter* CastToJNetworkSection(void)
-   {return NULL;}*/
+   {return NULL;}
 };
 
 

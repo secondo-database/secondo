@@ -1680,10 +1680,6 @@ void JNetwork::SimulateTrip(const RouteLocation& source,
                             const Instant& endtime,
                             MJPoint* result)
 {
-  cout << "called simulate trip from:  " << source
-       << ", to: " << target
-       << ", starttime: " << starttime
-       << ", endtime: " << endtime << endl;
   bool lc = true;
   bool rc = (starttime == endtime);
   double distSourceStartSect = 0.0;

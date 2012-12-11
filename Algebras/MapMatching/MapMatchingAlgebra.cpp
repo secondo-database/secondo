@@ -67,20 +67,20 @@ For more detailed information see MapMatchingAlgebra.h.
 #include "MapMatchingData.h"
 #include "GPXImporter.h"
 #include "NetworkAdapter.h"
-//#include "JNetworkAdapter.h"
+#include "JNetworkAdapter.h"
 #include "ONetworkAdapter.h"
 #include "MapMatchingMHTMGPointCreator.h"
 #include "MapMatchingMHTPointsCreator.h"
 #include "MapMatchingMHTOEdgeTupleStreamCreator.h"
 #include "MapMatchingMHTMPointCreator.h"
-//#include "MapMatchingMHTMJPointCreator.h"
+#include "MapMatchingMHTMJPointCreator.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
 using namespace std;
 using namespace network;
-//using namespace jnetwork;
+using namespace jnetwork;
 
 namespace mapmatch {
 
@@ -1461,11 +1461,12 @@ int OMapMatchMHTSelect(ListExpr args)
     return 0;
 }
 
-    /*
-1 mapmatchmht-operator
+/*
+1 jmapmatchmht-operator
 
 1.1 Operator-Info
 
+*/
 
 struct JMapMatchMHTInfo : OperatorInfo
 {
@@ -1500,10 +1501,10 @@ struct JMapMatchMHTInfo : OperatorInfo
 };
 
 
-
+/*
 1.1 Type-Mapping
 
-
+*/
 
 ListExpr OpJMapMatchingMHTTypeMap(ListExpr in_xArgs)
 {
@@ -1546,9 +1547,10 @@ ListExpr OpJMapMatchingMHTTypeMap(ListExpr in_xArgs)
     }
 }
 
-
+/*
 3.3 Value-Mapping
 
+*/
 
 int OpJMapMatchingMHTMPointValueMapping(Word* args,
                                         Word& result,
@@ -1587,7 +1589,6 @@ int OpJMapMatchingMHTGPXValueMapping(Word* args,
                                      Word& local,
                                      Supplier in_xSupplier)
 {
-    cout << "OpJMapMatchingMHTGPXValueMapping called" << endl;
 
     // Initialize Result
     result = qp->ResultStorage(in_xSupplier);
@@ -1607,10 +1608,8 @@ int OpJMapMatchingMHTGPXValueMapping(Word* args,
 
     if (!MapMatching.DoMatch(&Creator))
     {
-      cout << "got: " << *pRes << endl;
         assert(false);
     }
-    cout << "got: " << *pRes << endl;
     return 0;
 }
 
@@ -1647,9 +1646,10 @@ int OpJMapMatchingMHTStreamValueMapping(Word* args,
     return 0;
 }
 
+/*
+3.4 Selection Function
 
- 3.4 Selection Function
-
+*/
 
 int JMapMatchMHTSelect(ListExpr args)
 {
@@ -1662,7 +1662,7 @@ int JMapMatchMHTSelect(ListExpr args)
     if (listutils::isTupleStream(type.second().listExpr())) return 2;
   }
   return -1;
-} */
+}
 
 /*
 5 omapmatchmht\_P-operator
@@ -2184,7 +2184,6 @@ MapMatchingAlgebra::MapMatchingAlgebra()
 8.2 Registration of Operators
 
 */
-    /*
     //JMapMatchMHT
     ValueMapping JMapMatchMHTFuns[] = {OpJMapMatchingMHTMPointValueMapping,
                                        OpJMapMatchingMHTGPXValueMapping,
@@ -2196,7 +2195,7 @@ MapMatchingAlgebra::MapMatchingAlgebra()
                 JMapMatchMHTFuns,
                 JMapMatchMHTSelect,
                 OpJMapMatchingMHTTypeMap);
-    */
+
 
     // MapMatchMHT
     ValueMapping MapMatchMHTFuns[] = { OpMapMatchingMHTMPointValueMapping,

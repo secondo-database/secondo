@@ -1,6 +1,27 @@
 Database : MapMatchTest
 Restore  : YES
 
+Operator : jmapmatchmht
+Number   : 1
+Signature: jnetwork x text -> mjpoint
+Example  : query jmapmatchmht(MHTTestJNetwork, 'Trk_MapMatchTest.gpx');
+Result   : file
+Tolerance: 0.01%
+
+Operator : jmapmatchmht
+Number   : 2
+Signature: jnetwork x stream(tuple(...)) -> mjpoint
+Example  : query jmapmatchmht(MHTTestJNetwork, gpximport('Trk_MapMatchTest.gpx'));
+Result   : file
+Tolerance: 0.01%
+
+Operator : jmapmatchmht
+Number   : 3
+Signature: jnetwork x mpoint -> mjpoint
+Example  : query DayTrips feed projectextend[;MatchedTrip: jmapmatchmht(MHTTestJNetwork, .DayTrip)] consume;
+Result   : file
+Tolerance: 0.01%:
+
 Operator : mapmatchmht
 Number   : 1
 Signature: network x text -> mgpoint
