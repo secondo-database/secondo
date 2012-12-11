@@ -248,6 +248,19 @@ query now();
 #                                                                              #
 ################################################################################
 
+let OBAJNres010tmp1 =
+   QueryLicences1 feed
+    loopsel[dataSJcar_Licence_btree dataSJcar exactmatch[.Licence]]
+    projectextend[Licence, Trip; TripA: fromnetwork(.Trip)]
+    extend [BBox: bbox(.TripA)]
+    projectextend [Licence, Trip, TripA; Box: rectangle2((minD(.BBox,1) - 1.5),
+                                                         (maxD(.BBox,1) + 1.5),
+                                                         (minD(.BBox,2) - 1.5),
+                                                         (maxD(.BBox,2) + 1.5))]
+consume;
+
+query now();
+
 let OBAJNres010 =
   dataSJcar feed
     projectextend[Licence; TripA: fromnetwork(.Trip)]
@@ -256,15 +269,8 @@ let OBAJNres010 =
                                                   (maxD(.BBox,1) + 1.5),
                                                   (minD(.BBox,2) - 1.5),
                                                   (maxD(.BBox,2) + 1.5))]{c1}
-  QueryLicences1 feed
-    loopsel[dataSJcar_Licence_btree dataSJcar exactmatch[.Licence]]
-    projectextend[Licence, Trip; TripA: fromnetwork(.Trip)]
-    extend [BBox: bbox(.TripA)]
-    projectextend [Licence, Trip, TripA; Box: rectangle2((minD(.BBox,1) - 1.5),
-                                                         (maxD(.BBox,1) + 1.5),
-                                                         (minD(.BBox,2) - 1.5),
-                                                         (maxD(.BBox,2) + 1.5))] {c2}
-  symmjoin[((.Box_c1 intersects ..Box_c2) and (.Licence_c1 # ..Licence_c2)) and
+  OBAJNres010tmp1 feed {c2}
+  symmjoin[(.Box_c1 intersects ..Box_c2) and (.Licence_c1 # ..Licence_c2) and
           (everNearerThan(.TripA_c1, ..TripA_c2, 3.0))]
   projectextend [Licence_c1, Licence_c2; Pos: .Trip_c2 atperiods deftime((distance(.TripA_c1, .TripA_c2) < 3.0) at TRUE)]
   filter [not(isempty(.Pos))]
@@ -273,6 +279,8 @@ let OBAJNres010 =
 consume;
 
 query now();
+
+delete OBAJNres010tmp1;
 
 ################################################################################
 #                                                                              #
