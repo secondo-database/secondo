@@ -30,6 +30,8 @@ ALGEBRA_DEPENDENCIES += RelationAlgebra
 ALGEBRA_DEPENDENCIES += BTreeAlgebra
 ALGEBRA_DEPENDENCIES += RTreeAlgebra
 ALGEBRA_DEPENDENCIES += SpatialAlgebra
+ALGEBRA_DEPENDENCIES += TemporalAlgebra
+ALGEBRA_DEPENDENCIES += OrderedRelatonAlgebra
 
 # include global definitions
 include ../../makefile.env

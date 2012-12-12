@@ -33,7 +33,7 @@ ALGEBRA_DEPENDENCIES += StandardAlgebra
 ALGEBRA_DEPENDENCIES += RectangleAlgebra
 ALGEBRA_DEPENDENCIES += SpatialAlgebra
 ALGEBRA_DEPENDENCIES += TemporalAlgebra
-
+ALGEBRA_DEPENDENCIES += JNetAlgebra
 
 # include global definitions
 include ../../makefile.env
