@@ -106,6 +106,7 @@ static {
        return true;
      } catch(Exception e){
           cout.println("Exception in initialization "+e);
+           e.printStackTrace();
           return false;
      }
     }
@@ -119,6 +120,7 @@ static {
           return res; 
        } catch(Exception e){
           System.err.println(" error in shutting down the prolog engine");
+          e.printStackTrace();
           return false;
        }
     }
@@ -182,8 +184,10 @@ static {
              return true;
         }
         } catch(Exception e){
-           if(trace)
+           if(trace){
               cout.println("exception in calling the "+pl_query.goal()+"-predicate"+e);
+              e.printStackTrace();
+           }
            return false;
         }
     }
@@ -228,6 +232,10 @@ static {
           }
           return res;
         } catch(Exception e){
+           if(trace){
+             cout.println("Exception occured " + e);
+             e.printStackTrace();
+           }
            return false; 
         }
      }
@@ -244,6 +252,14 @@ static {
           if(trace){
                cout.println("\n optimization-input : "+query+"\n");
           }
+
+          // switch off check for number of linebreaks
+          Query lb_query = new Query("style_check(-atom)");
+          while(lb_query.hasMoreSolutions()){
+             lb_query.nextSolution();  
+          } 
+
+
           String query2 = encode(query);
           Query pl_query = new Query("sqlToPlan('"+query2+"', X )");
 
@@ -293,8 +309,10 @@ static {
              return decode(ret);
           }
          } catch(Exception e){
-             if(trace)
+             if(trace) {
                 cout.println("\n Exception :"+e);
+                e.printStackTrace();
+             }
              showPrompt();
            return  query;
          }
@@ -566,7 +584,8 @@ static {
              cout.println("connection ended normally");
              showPrompt();
            }catch(IOException e){
-              cout.println("error in socket-communication");
+              cout.println("error in socket-communication" + e);
+               
               disconnect();
               showPrompt();
               return;
@@ -597,7 +616,7 @@ static {
           cout.println("check if the port "+PortNr+" is already in use");
           return false;
      } catch(Exception e){
-       cout.println("unable to create a ServerSocket");
+       cout.println("unable to create a ServerSocket" + e);
        e.printStackTrace();
        return false;
      }
@@ -621,7 +640,7 @@ static {
            }
            (new Server(S)).start();
           } catch(Exception e){
-         cout.println("error in communication");
+         cout.println("error in communication" + e);
          showPrompt();
        }
      }
@@ -698,6 +717,7 @@ static {
            } catch(Exception e){
               cout = System.out;
               cout.println("Problem in changing output encoding, use utg-8");
+              e.printStackTrace();
            }
        } 
 
