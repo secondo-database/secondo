@@ -215,6 +215,9 @@ ProgMesHandler::handleMsg(NList msgList)
       }
     }
 	  cout << "|" << endl;
+    if(s){
+      delete s;
+    }
     s = new StopWatch;  
     total = TotalValue;
     highest = -1; 
