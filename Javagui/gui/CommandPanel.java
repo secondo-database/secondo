@@ -818,6 +818,7 @@ public class CommandPanel extends JScrollPane {
      long starttime=0;
      if(tools.Environment.MEASURE_TIME)
         starttime = System.currentTimeMillis();
+     SelectClause = varToLowerCase(SelectClause);
      String opt = OptInt.optimize_execute(SelectClause,OpenedDatabase,Err,false);
      if(tools.Environment.MEASURE_TIME){
         Reporter.writeInfo("used time to optimize query: "+(System.currentTimeMillis()-starttime)+" ms");
