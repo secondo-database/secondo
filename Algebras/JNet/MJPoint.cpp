@@ -149,10 +149,7 @@ void MJPoint::SetUnits(const DbArray<JUnit>& upoints)
 {
   assert(upoints != 0);
   units.copyFrom(upoints);
-  if (!Simplify())
-  {
-    SetDefined(false);
-  }
+  SetDefined(Simplify());
 }
 
 void MJPoint::SetNetworkId(const STRING_T& id)
@@ -479,7 +476,7 @@ Word MJPoint::In(const ListExpr typeInfo, const ListExpr instance,
       }
       uList = nl->Rest( uList );
     }
-    res->EndBulkload();
+    res->EndBulkload(false);
     if (correct)
     {
       return SetWord(res);
@@ -558,18 +555,45 @@ void MJPoint::StartBulkload()
   activBulkload = true;
 }
 
-void MJPoint::EndBulkload()
+void MJPoint::EndBulkload(const bool simplify /*=true*/)
 {
   activBulkload = false;
-  if (!Simplify())
+  if (simplify)
   {
-    SetDefined(false);
-    Clear();
+    if(!Simplify())
+    {
+      SetDefined(false);
+      Clear();
+    }
+    else
+    {
+      units.TrimToSize();
+      trajectory.TrimToSize();
+    }
   }
   else
   {
-    units.TrimToSize();
-    trajectory.TrimToSize();
+    if (IsDefined() && units.Size() > 0)
+    {
+      JRITree* tree = new JRITree(0);
+      JUnit unit;
+      int i = 0;
+      while (i < units.Size())
+      {
+        Get(i,unit);
+        lenth += unit.GetLength();
+        tree->Insert(unit.GetRouteInterval());
+        i++;
+      }
+      tree->TreeToDbArray(&trajectory,0);
+      tree->Destroy();
+      delete tree;
+      SetDefined(true);
+      units.TrimToSize();
+      trajectory.TrimToSize();
+    }
+    else
+      SetDefined(false);
   }
 }
 
@@ -694,10 +718,20 @@ void MJPoint::Union(const MJPoint* other, MJPoint* result) const
           if (!other->IsEmpty())
           {
             result->StartBulkload();
-            result->Append(this);
-            result->Append(other);
-            result->units.Sort(JUnit::Compare);
-            result->EndBulkload();
+            JUnit a,b;
+            Get(0,a);
+            other->Get(0,b);
+            if (a <= b)
+            {
+              result->Append(this);
+              result->Append(other);
+            }
+            else
+            {
+              result->Append(other);
+              result->Append(this);
+            }
+            result->EndBulkload(true);
           }
           else
             *result = *this;
@@ -912,7 +946,7 @@ void MJPoint::AtPeriods(const Periods* times, MJPoint& result) const
         }
       }
     }
-    result.EndBulkload();
+    result.EndBulkload(false);
   }
   else
     result.SetDefined(false);
@@ -993,7 +1027,7 @@ void MJPoint::At(const JPoint* jp, MJPoint& result) const
         }
       }
     }
-    result.EndBulkload();
+    result.EndBulkload(false);
   }
   else
     result.SetDefined(false);
@@ -1031,7 +1065,7 @@ void MJPoint::At(const JLine* jl, MJPoint& result) const
         rint = 0;
       }
     }
-    result.EndBulkload();
+    result.EndBulkload(false);
   }
   else
     result.SetDefined(false);
@@ -1375,8 +1409,8 @@ void MJPoint::Refinement(const MJPoint* in2, MJPoint* out1, MJPoint* out2) const
         }
       }
     }
-    out1->EndBulkload();
-    out2->EndBulkload();
+    out1->EndBulkload(false);
+    out2->EndBulkload(false);
   }
 }
 

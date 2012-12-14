@@ -161,7 +161,7 @@ Rectangle<3> BoundingBox() const;
 */
 
   void StartBulkload();
-  void EndBulkload();
+  void EndBulkload(const bool simplify = true);
   MJPoint& Add(const JUnit& up);
 
 /*
