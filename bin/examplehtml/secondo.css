@@ -1,0 +1,179 @@
+
+/* the color rgb(184,0,0) the the rgb value from the secondo-logo */
+
+
+/* page format */
+body{
+   /* font-size:14pt; */
+   font-style:normal; 
+   font-weight:normal;
+   font-family:serif; 
+   color:black;
+   background-color:rgb(240,240,240);
+   text-align:justify;
+  /*background-image:url(/backgrounds/Back3.jpg);
+    background-repeat:repeat;
+    background-attachment:fixed;*/
+}
+
+.secondo{
+   font-variant:small-caps;
+}
+
+
+/* headlines */
+h1{ color:rgb(184,0,0);
+    text-align:center;
+    font-size:xx-large;
+    font-style:normal; 
+    font-weight:bold;
+    font-family:serif; }
+
+h2{ color:rgb(184,0,0);
+    font-size:x-large;
+    font-style:normal; 
+    font-weight:bold;
+    font-family:serif; }
+
+h3{ color:rgb(184,0,0);
+    font-size:large;
+    font-style:italic; 
+    font-weight:bold;
+    font-family:serif; }
+
+h4,h5,h6{ 
+    font-size:medium;
+    font-style:normal; 
+    font-weight:bold;
+    font-family:serif; }
+
+/* table content for navigation */
+td.navi{
+    background-color:rgb(184,0,0);
+    border-top-style:dashed;
+    border-top-width:1px;
+    border-top-color:white;
+    border-bottom-style:none;
+    border-bottom-width:0;
+    border-bottom-color:white;
+    margin:5pt;	
+    color:white;
+}
+td.navifirst{
+    font-size:large;
+    background-color:rgb(184,0,0);
+    border-top-style:none;
+    border-top-width:0;
+    border-top-color:white;
+    border-bottom-style:none;
+    border-bottom-width:0;
+    border-bottom-color:white;
+    color:white;
+}
+table.navi{
+   background-color:rgb(184,0,0);
+   border-style:none;
+   border-color:rgb(184,0,0);
+   padding:5pt;
+   font-size:large;
+}  
+
+
+ul{
+  list-style-type:square;
+  list-style-position:outside;
+}
+
+ul.algebra{
+   list-style-type:none;
+   list-style-image:url(images/bullet.gif);
+}
+
+
+
+
+/* Links  don't change the order of this definitions */
+/* not visited */
+a:link{ color:blue;
+        font-style:italic;
+        text-decoration:underline;
+        border-style:hidden;
+        padding:0pt;
+        margin:0pt;
+}
+
+a.navi{
+   font-weight:bolder;
+   font-style:italic;
+   color:white;
+   font-size:large;
+   text-decoration:none;
+}
+
+/*  visited*/
+a:visited{color:green;
+           font-style:italic;
+           text-decoration:underline;
+           border-style:hidden;
+           padding:0pt;
+           margin:0pt;
+}
+
+a.navi:visited{
+   font-weight:bolder;
+   color:rgb(220,220,220);
+   text-decoration:none;
+   font-size:large;
+}
+
+
+/* activ  */
+a:hover,a:focus{ color:rgb(184,0,0);
+                 font-family:serif;
+                 font-style:italic;
+                 text-decoration:underline;
+                 background-color:yellow;
+                 padding:0pt;
+                 margin:0pt;
+               }
+
+
+a.navi:hover,a.navi:focus{
+   font-weight:bolder;
+   color:green;
+   background-color:yellow;
+  text-decoration:none;
+  font-size:large;
+}
+
+img{ border-style:none;
+     padding:0pt;
+     margin:0pt;
+     }
+
+span.algebraname{
+    color:rgb(255,192,128);
+    font-weight:bolder;
+}
+
+div.short{
+     margin-left:1cm;
+     text-align:justify;
+     max-width:20cm;
+}
+
+div.paper{
+    font-style:italic;
+}
+
+div.comment{
+  color:gray;
+}
+
+div.footnote{
+ margin-top:15px;
+ border-top:1px;
+ border-top-style:solid;
+ padding-top:15px;
+ font-size:x-small;
+}
