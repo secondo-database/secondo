@@ -652,7 +652,7 @@ public class CommandPanel extends JScrollPane {
   }
 
   private boolean isLetter(char c){
-     return ((c>'A') && (c<'Z') ) || ((c>'A' && c<'z'));
+     return ((c>='A') && (c<='Z') ) || ((c>='a' && c<='z'));
   }
 
 
@@ -661,14 +661,16 @@ public class CommandPanel extends JScrollPane {
   */
 
   private  String varToLowerCase(String str){
-    StringBuffer buf = new StringBuffer();
+
+
+     StringBuffer buf = new StringBuffer();
      int state = 0; //normal = 0, inDoublequotes = 1 in quotes = 2
      int pos = 0;
      int wordPos = 0;
      for(int i=0;i<str.length();i++){
         char c = str.charAt(i);
         switch(state){
-          case 0: {
+          case 0: { // normal 
              if(c=='"'){
                state = 1;
                wordPos = 0;
@@ -677,7 +679,7 @@ public class CommandPanel extends JScrollPane {
                state = 2;
                wordPos=0;
                buf.append(c); 
-             }  else if(isLetter(c)){
+             } else if(isLetter(c)){
                 if(wordPos==0){
                    wordPos++;    
                    buf.append(toLower(c));
