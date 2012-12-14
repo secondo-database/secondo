@@ -1,0 +1,144 @@
+###########################################################################
+#
+# Formatting a relation in html. 
+# 
+# The script maps a given relation into one html file. It requires three pieces
+# of html code called prefix.html, row.html and postfix.html. Within the row 
+# file, attribute names of the relation may occur, enclosed in double angular 
+# brackets (called attribute marker). For example, for the plz relation of the 
+# opt database, <<PLZ>> and <<Ort>> may appear.
+#
+# The script will create for each tuple html code where the attribute marker 
+# is replaced by the respective attribute value. It will then concatenate all 
+# pieces in the order 
+#
+#	prefix
+#	code for tuple 1
+#	...	
+#	code for tuple n
+#	postfix
+#
+# The result is written to an output html file.
+#
+# The name of the relation is Table by default and the three html files are 
+# located in # directory ../secondo/bin/examplehtml. All the defaults can be 
+# changed in the first section below.
+#
+# Note that objects named PATH, PREFIX, ROW, POSTFIX, RESULT, TABLE or HTML_* 
+# should not be in the database before using the script; such objects will be 
+# overwritten.
+#
+###########################################################################
+#
+# Modify path, file or table names in this section, if desired.
+
+delete PATH; 
+
+delete PREFIX; 
+
+delete ROW; 
+
+delete POSTFIX; 
+
+delete RESULT;
+
+delete TABLE;
+
+let PATH = '../bin/examplehtml/'
+
+let PREFIX = 'prefix.html'
+
+let ROW = 'row.html'
+
+let POSTFIX = 'postfix.html'
+
+let RESULT = 'result.html'
+
+let TABLE = fun () Table feed consume
+
+###########################################################################
+
+# Determine attribute names of the table
+
+delete HTML_FieldNames 
+
+let HTML_FieldNames =
+  TABLE() feed addcounter[XXXNo, 1] toFields[XXXNo] project[Field] 
+  sort rdup consume
+
+# Find attribute markers in the file rowhtml. In the table Markups, create for 
+# each found attribute one row containing the html markup preceding it. Store 
+# the html code following the last attribute marker in FinalMarkup.
+
+delete HTML_rowhtml 
+
+let HTML_rowhtml = readFile(PATH + ROW)
+
+delete HTML_Markups 
+
+let HTML_Markups =
+    FieldNames feed 
+      extendstream[Start: find(rowhtml, "<<" + .Field + ">>")]
+      extend[End: .Start + length(.Field) + 3]
+    sortby[Start]
+    extend_last[StartMarkup: ..End + 1 :: 1] 
+    extend[EndMarkup: .Start - 1]
+    extend[Markup: subtext(rowhtml, .StartMarkup, .EndMarkup)]
+    project[Field, StartMarkup, EndMarkup, Start, End, Markup]
+    consume
+
+delete HTML_FinalMarkup
+
+let HTML_FinalMarkup = subtext(rowhtml, Markups feed max[End] + 1, length(rowhtml))
+
+# Create the output file. For each attribute (field), concatenate the markup 
+# with the field value. Then concatenate all pieces and append the FinalMarkup 
+# at the end.
+
+delete HTML_prefix 
+
+let HTML_prefix = readFile(PATH + PREFIX)
+
+delete HTML_postfix
+
+let HTML_postfix = readFile(PATH + POSTFIX)
+
+query TABLE() feed addcounter[XXXNo, 1]
+  toFields[XXXNo]
+  nest[XXXNo; Row]
+  extend[Page:
+    .Row afeed Markups feed {mu} hashjoin[Field, Field_mu]
+    sortby[StartMarkup_mu]
+    extend[Field2: .Markup_mu + .Value]
+    aggregateB[Field2; fun(t1: text, t2: text) t1 + t2; ''] + FinalMarkup]
+  aggregateB[Page; fun(t3: text, t4: text) t3 + t4; '']
+  within[writeFile(prefix + . + postfix, PATH + RESULT)]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
