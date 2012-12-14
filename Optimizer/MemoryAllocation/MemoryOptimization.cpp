@@ -241,8 +241,8 @@ OptimizeResult minimize(int minOpMemory, int maxMemoryInMiB,
   // enough. But still note that a precision with 1 MiB does not mean 
   // that the result will differ for more than 1 MiB from the optimal 
   // result. It still depends on the algorithm how the precision is handled.
-  double precision=0.25d; // 1e-8
-  double precisionConstr=0.1d; // constraint precision
+  double precision=0.25; // 1e-8
+  double precisionConstr=0.1; // constraint precision
 
   // Ensure the total amount of memory within a shelf which won't be crossed.
   for(int i=0;i<vConstraints.size();i++) {
@@ -262,9 +262,9 @@ OptimizeResult minimize(int minOpMemory, int maxMemoryInMiB,
     // long or even endless search for a valid result, so give the algortihm
     // some space where the algorithm can find a solution.
     //cout << "sufficientMemory:" << opcdata[i].sufficientMemory;
-    if (opcdata[i].sufficientMemory <= lowerBound+0.9d) {
+    if (opcdata[i].sufficientMemory <= lowerBound+0.9) {
       //cout << "Modify sufficientMemory:" << opcdata[i].sufficientMemory;
-      opcdata[i].sufficientMemory=lowerBound+0.9d;
+      opcdata[i].sufficientMemory=lowerBound+0.9;
       //cout << " to:" << opcdata[i].sufficientMemory << endl;
     }
 
