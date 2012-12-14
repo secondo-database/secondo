@@ -718,20 +718,30 @@ void MJPoint::Union(const MJPoint* other, MJPoint* result) const
           if (!other->IsEmpty())
           {
             result->StartBulkload();
-            JUnit a,b;
-            Get(0,a);
-            other->Get(0,b);
-            if (a <= b)
+            JUnit as, ae,bs, be;
+            Get(0,as);
+            other->Get(0,bs);
+            Get(GetNoComponents()-1,ae);
+            other->Get(other->GetNoComponents()-1,be);
+            if (ae <= bs)
             {
               result->Append(this);
               result->Append(other);
+              result->EndBulkload(true);
+            }
+            else if(be <= as)
+            {
+              result->Append(other);
+              result->Append(this);
+              result->EndBulkload(true);
             }
             else
             {
               result->Append(other);
               result->Append(this);
+              result->units.Sort(JUnit::Compare);
+              result->EndBulkload(false);
             }
-            result->EndBulkload(true);
           }
           else
             *result = *this;
