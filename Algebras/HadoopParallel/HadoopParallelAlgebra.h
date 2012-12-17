@@ -351,6 +351,12 @@ public:
   clusterInfo(clusterInfo& rhg);
 //  clusterInfo(NList& instance);
 
+  ~clusterInfo(){
+      if(dataServers){
+         delete dataServers;
+      }
+   }
+
   string getRemotePath(size_t loc,
       bool includeMaster = true,
       bool round = false,

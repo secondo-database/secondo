@@ -1541,6 +1541,7 @@ the master node.
 clusterInfo::clusterInfo() :
     ps_master("PARALLEL_SECONDO_MASTER"),
     ps_slaves("PARALLEL_SECONDO_SLAVES"),
+    dataServers(0),
     localNode(-1), masterNode(0)
 {
   available = false;
@@ -1671,11 +1672,13 @@ clusterInfo::clusterInfo(clusterInfo& rhg):
     masterNode(rhg.masterNode)
 {
   dataServers = new vector<dservDesc>();
-  vector<dservDesc>::iterator iter = rhg.dataServers->begin();
-  while (iter != rhg.dataServers->end()){
-    dataServers->push_back(dservDesc(iter->first,
-      pair<string, int>(iter->second.first, iter->second.second)));
-    iter++;
+  if(rhg.dataServers){
+     vector<dservDesc>::iterator iter = rhg.dataServers->begin();
+     while (iter != rhg.dataServers->end()){
+       dataServers->push_back(dservDesc(iter->first,
+         pair<string, int>(iter->second.first, iter->second.second)));
+       iter++;
+     }
   }
 }
 
