@@ -368,7 +368,8 @@ patternsequence : variable unitpattern {
                     $$ = wholepat;
                     uPat.createUnit($1, $2);
                     wholepat->addUPat(uPat);
-                    wholepat->addVarPos($1, wholepat->getSize() - 1);
+                    string var($1);
+                    wholepat->addVarPos(var, wholepat->getSize() - 1);
                     free($1);
                     free($2);
                     //cout << "pattern #" << wholepat->getPats().size() << endl;
@@ -377,7 +378,8 @@ patternsequence : variable unitpattern {
                     $$ = wholepat;
                     uPat.createUnit($2, $3);
                     wholepat->addUPat(uPat);
-                    wholepat->addVarPos($2, wholepat->getSize() - 1);
+                    string var($2);
+                    wholepat->addVarPos(var, wholepat->getSize() - 1);
                     free($2);
                     free($3);
                     //cout << "pattern #" << wholepat->getPats().size() << endl;
@@ -413,7 +415,7 @@ function ~parseString~
 This function is the only one called by the algebra.
 
 */
-Pattern* stj::parseString(const char* input) {
+Pattern* stj::parseString(const char* input, bool classify = false) {
   wholepat = new Pattern();
   patternFlushBuffer();
   pattern_scan_string(input);
@@ -436,10 +438,10 @@ Pattern* stj::parseString(const char* input) {
   uPat.clearL();
   uPat.clearI();
   result->setVerified(false);
-  result->initDelta();
-  //if (description == "") { // If there is a description, a classification will
-    result->buildNFA();    // be performed, i.e., a multi NFA will be built
-  //}
+  if (!classify) { //classification => no single NFA needed
+    result->initDelta();
+    result->buildNFA();
+  }
   return result;
 }
 

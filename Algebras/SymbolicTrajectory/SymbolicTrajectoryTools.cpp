@@ -489,7 +489,7 @@ bool checkRewriteSeq(pair<vector<size_t>, vector<size_t> > seq, size_t maxSize,
 }
 
 /*
-\subsection{Function ~evaluateAssign~}
+\subsection{Function ~evaluate~}
 
 The string ~input~ is evaluated by Secondo. The result is returned as a Word.
 

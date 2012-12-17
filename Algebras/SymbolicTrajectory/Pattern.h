@@ -40,6 +40,8 @@ This is the header file for the Symbolic Trajectory Algebra.
 #include "StandardTypes.h"
 #include "TemporalAlgebra.h"
 #include "ListUtils.h"
+#include "RelationAlgebra.h"
+#include "Stream.h"
 #include <string>
 #include <set>
 
@@ -55,11 +57,12 @@ namespace stj {
 class Pattern;
 class UPat;
 class Assign;
+class ClassifyLI;
   
 enum Wildcard {NO, STAR, PLUS};
 //enum Operations {EQUALS, IN, CONTAINS};
 
-Pattern* parseString(const char* input);
+Pattern* parseString(const char* input, bool classify);
 void patternFlushBuffer();
 
 struct CharLink {
@@ -86,7 +89,7 @@ class MLabel : public MString {
  public:
   MLabel() {}
   MLabel(int i): MString(i) {}
-//   MLabel(int i): MString(i), hasIndex(false), links(i), positions(i) {}
+  
   ~MLabel() {}
 
   static const string BasicType() {return "mlabel";}
@@ -257,14 +260,14 @@ class Pattern {
   string text, description;
   map<string, int> varPos;
   set<string> assignedVars; // variables on the right side of an assignment
-  map<int, set<int> > *delta; // array pos: old state;
-                              // first: unit pattern id; second: new state.
+  vector<map<int, set<int> > > delta; // vector pos: old state;
+                        // map.first: unit pattern id; map.second: new state.
   bool verified;
  public:
   Pattern() {}
 
   Pattern(vector<UPat> ps, vector<Assign> as, vector<Condition> cs, string t,
-          map<int, set<int> > *d, bool v) {
+          vector<map<int, set<int> > > d, bool v) {
     patterns = ps;
     assigns = as;
     conds = cs;
@@ -273,7 +276,7 @@ class Pattern {
     verified = v;
     collectAssVars();
     for (int i = 0; i < (int)patterns.size(); i++) {
-      addVarPos(convert(patterns[i].getV()), i);
+      addVarPos(patterns[i].getV(), i);
     }
   }
 
@@ -325,7 +328,7 @@ class Pattern {
   static const string BasicType();
   static const bool checkType(const ListExpr type);
   bool verifyConditions() const;
-  static Pattern* getPattern(string input);
+  static Pattern* getPattern(string input, bool classify = false);
   bool matches(MString const &ml) const;
   bool verifyPattern() const;
   set<pair<vector<size_t>, vector<size_t> > > getRewriteSeqs(MLabel const &ml);
@@ -348,7 +351,7 @@ class Pattern {
   void              addCond(Condition cond) {conds.push_back(cond);}
   void              addAssign(Assign ass)   {assigns.push_back(ass);}
   void              setText(string newText) {text = newText;}
-  void       addVarPos(char* var, int pos)  {varPos[convert(var)] = pos;}
+  void       addVarPos(string var, int pos) {varPos[var] = pos;}
   int               getVarPos(string var)   {return varPos[var];}
   int               getSize()               {return patterns.size();}
   map<string, int>  getVarPos()             {return varPos;}
@@ -361,9 +364,12 @@ class Pattern {
   void        substAssign(int pos, int key) {assigns[pos].substitute(key);}
   bool              isVerified() const      {return verified;}
   void              setVerified(bool v)     {verified = v;}
-  map<int, set<int> >* getDelta() const     {return delta;}
-  void              initDelta()             {delta = new map<int, set<int> >
-                                                         [patterns.size()];}
+  vector<map<int, set<int> > > getDelta() const     {return delta;}
+  void              initDelta()             {map<int, set<int> > emptyMapping;
+                         for (unsigned int i = 0; i <= patterns.size(); i++) {
+                                               delta.push_back(emptyMapping);
+                                             }
+                                            }
   void              setDescr(string desc)   {description = desc;}
   string            getDescr()              {return description;}
 };
@@ -376,11 +382,11 @@ struct DoubleParsInfo {
 
 class Match {
  private:
-  map<int, set<int> > *delta;
+  vector<map<int, set<int> > > delta;
   set<int> currentStates;
   vector<UPat> patterns;
   vector<Condition> conds;
-  int maxCardPos, f; // number of the final state
+  int maxCardPos, numOfW, f; // number of the final state
   ULabel ul;
   size_t ulId, numOfLabels, seqCounter, seqMax, numOfNegEvals;
   set<size_t> *match, *cardsets;
@@ -392,7 +398,7 @@ class Match {
   map<string, int> varPos, varPosInSeq;
   set<int> doublePars; // positions of nonempty patterns in double parentheses
   int *seqOrder;
-  map<string, bool> knownEval; // condition evaluation history
+  map<string, bool> knownEval; // secondo evaluation history
   map<pair<size_t, size_t>, string> knownPers; // periods string history
 
  public:
@@ -400,14 +406,16 @@ class Match {
     f = size - 1;
     numOfLabels = 0;
     currentStates.insert(0);
-    delta = new map<int, set<int> >[f];
+    map<int, set<int> > emptyMapping;
+    for (int i = 0; i < f; i++) {
+      delta.push_back(emptyMapping);
+    }
     match = new set<size_t>[f];
     cardsets = new set<size_t>[f];
     seqOrder = new int[f];
   }
 
   ~Match() {
-    delete[] delta;
     delete[] match;
     delete[] cardsets;
     delete[] seqOrder;
@@ -420,8 +428,8 @@ class Match {
   void printRewriteSeqs(size_t max);
   void printCondMatchings(size_t max);
   void updateStates();
-  bool labelsMatch(int pos);
-  bool timesMatch(int pos);
+  bool labelsMatch(int pos, ClassifyLI* c = 0, int pat = -1);
+  bool timesMatch(int pos, ClassifyLI* c = 0, int pat = -1);
   void computeCardsets();
   void correctCardsets(int nonStars);
   void processDoublePars(int pos);
@@ -448,11 +456,7 @@ class Match {
   void setVarPos(map<string, int> vP) {varPos = vP;}
   map<string, int> getVarPosInSeq() {return varPosInSeq;}
   void copyFromPattern(Pattern p) {
-    delete[] delta;
-    delta = new map<int, set<int> >[p.getPats().size() + 1];
-    for (unsigned int i = 0; i < p.getPats().size(); i++) {
-      delta[i] = p.getDelta()[i];
-    }
+    delta = p.getDelta();
     patterns = p.getPats();
     conds = p.getConds();
     assignedVars = p.getAssVars(); // TODO why is it empty?
@@ -462,6 +466,9 @@ class Match {
     currentStates.clear();
     currentStates.insert(0);
   }
+  void buildMultiNFA(ClassifyLI* c);
+  void printMultiNFA();
+  vector<int> applyMultiNFA(ClassifyLI* c);
 };
 
 class RewriteResult {
@@ -491,6 +498,33 @@ class RewriteResult {
   void             next()           {it++;}
   map<string, int> getVarPosInSeq() {return varPosInSeq;}
   pair<vector<size_t>, vector<size_t> > getCurrentSeq() {return *it;}
+};
+
+class ClassifyLI {
+
+friend class Match;
+
+public:
+  ClassifyLI(Word _pstream, Word _mlstream);
+
+  ~ClassifyLI();
+
+  static TupleType* getTupleType();
+  Tuple* nextResultTuple();
+  void computeCardsets();
+  void printMatches();
+
+private:
+  vector<Pattern*> pats;
+  Stream<MLabel> mlStream;
+  TupleType* classifyTT;
+  map<int, int> start2pat, end2pat, pat2start;
+  set<int> initialStates;
+  vector<int> matched;
+  int numOfStates;
+  MLabel* currentML;
+  Match* mainMatch;
+  map<int, vector<set<size_t> > > matches;//pattern_id -> (upat -> set(ulabel))
 };
 
 }

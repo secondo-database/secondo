@@ -54,8 +54,6 @@ This algebra includes the operators ~matches~ and ~rewrite~.
 #include "SecParser.h"
 #include "Pattern.h"
 #include "TemporalUnitAlgebra.h"
-#include "RelationAlgebra.h"
-#include "FileSystem.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -1453,7 +1451,7 @@ bool Pattern::Open(SmiRecord& valueRecord, size_t& offset,
   map<int, set<int> > onemap;
   set<int> oneset;
   int oneint, key, mapsize, setsize;
-  map<int, set<int> > *delta = new map<int, set<int> >[size];
+  vector<map<int, set<int> > > delta;
   for (int i = 0; i < size; i++) {
     valueRecord.Read(&mapsize, sizeof(int), offset);
     offset += sizeof(int);
@@ -1470,7 +1468,7 @@ bool Pattern::Open(SmiRecord& valueRecord, size_t& offset,
       onemap.insert(pair<int, set<int> >(key, oneset));
       oneset.clear();
     }
-    delta[i] = onemap;
+    delta.push_back(onemap);
     onemap.clear();
   }
   bool verified;
@@ -1706,12 +1704,12 @@ bool Pattern::checkAssignTypes() {
 Calls the parser.
 
 */
-Pattern* Pattern::getPattern(string input) {
+Pattern* Pattern::getPattern(string input, bool classify) {
   if (input.find('\n') == string::npos) {
     input.append("\n");
   }
   const char *patternChar = input.c_str();
-  return parseString(patternChar);
+  return parseString(patternChar, classify);
 }
 
 /*
@@ -1753,7 +1751,7 @@ set<pair<vector<size_t>, vector<size_t> > > Pattern::
     if (!checkAssignTypes()) {
       return result;
     }
-    delta = new map<int, set<int> >[patterns.size()];
+    initDelta();
     buildNFA();
   }
   if (!hasAssigns()) {
@@ -1871,11 +1869,11 @@ void Match::buildRewriteSeq(multiset<size_t> sequence) {
 /*
 \subsection{Function ~buildNFA~}
 
-Reads the pattern and generates the delta function.
+Reads the pattern and generates the delta function
 
 */
 void Pattern::buildNFA() {
-  int f = (int)patterns.size();
+  int f = patterns.size();
   int prev[3] = {-1, -1, -1}; // prevStar, prevNotStar, secondPrevNotStar
   for (int i = 0; i < f; i++) {
     delta[i][i].insert(i + 1); // state i, read pattern i => new state i+1
@@ -1894,7 +1892,7 @@ void Pattern::buildNFA() {
             }
           }
         } 
-        if (prev[1] > -1) { // match before current pattern
+        if (prev[1] >= 0) { // match before current pattern
           for (int j = prev[1] + 1; j <= i; j++) {
             delta[prev[1]][prev[1]].insert(j); // step 2
           }
@@ -1993,16 +1991,16 @@ string Pattern::nfa2String() const {
   set<int>::iterator k;
   for (int i = 0; i < (int)patterns.size(); i++) {
     for (int j = i; j < (int)patterns.size(); j++) {
-      cout << "delta[" << i << "][" << j << "].size()" << endl;
-      cout << "= " << delta[i][j].size() << endl;
-      if (delta[i][j].size() > 0) {
+      map<int, set<int> > tempmap = delta[i];
+      set<int> tempset = tempmap[j];
+      if (tempset.size() > 0) {
         nfa << "state " << i << " | upat #" << j << " | new states {";
-        if (delta[i][j].size() == 1) {
-          nfa << *(delta[i][j].begin());
+        if (tempset.size() == 1) {
+          nfa << *(tempset.begin());
         }
         else {
-          for (k = delta[i][j].begin();
-               k != delta[i][j].end(); k++) {
+          for (k = tempset.begin();
+               k != tempset.end(); k++) {
             nfa << *k << " ";
           }
         }
@@ -2285,10 +2283,11 @@ void Match::correctCardsets(int nonStars) {
 
 Checks whether the time interval of the current unit label is completely
 enclosed by every interval of the unit pattern at position pos. If no pattern
-interval is specified, the result is true.
+interval is specified, the result is true. The other parameters are necessary
+for a classification.
 
 */
-bool Match::timesMatch(int pos) {
+bool Match::timesMatch(int pos, ClassifyLI* c/*=0*/, int pat/*=-1*/) {
   bool result(true), elementOk(false);
   set<int>::iterator i;
   set<string>::iterator j;
@@ -2296,9 +2295,9 @@ bool Match::timesMatch(int pos) {
   Instant *pEnd = new DateTime(instanttype);
   SecInterval *pIv = new SecInterval(0);
   SecInterval *uIv = new SecInterval(ul.timeInterval);
-  set<string> ivs;
-  if (!patterns[pos].getI().empty()) {
-    ivs = patterns[pos].getI();
+  set<string> ivs = (pat > -1 ? c->pats[pat]->getPat(pos).getI()
+                              : patterns[pos].getI());
+  if (!ivs.empty()) {
     for (j = ivs.begin(); j != ivs.end(); j++) {
       if (((*j)[0] > 96) && ((*j)[0] < 123)) { // 1st case: semantic date/time
         elementOk = checkSemanticDate(*j, *uIv, true);
@@ -2347,13 +2346,14 @@ bool Match::timesMatch(int pos) {
 
 Checks whether the label of the current ULabel matches one of the unit pattern
 labels at position pos. If no label is specified in the pattern, ~true~ is
-returned.
+returned. The other parameters are necessary for a classification.
 
 */
-bool Match::labelsMatch(int pos) {
+bool Match::labelsMatch(int pos, ClassifyLI* c/*=0*/, int pat/*=-1*/) {
   bool result = true;
   set<string>::iterator i;
-  set<string> lbs = patterns[pos].getL();
+  set<string> lbs = (pat > -1 ? c->pats[pat]->getPat(pos).getL()
+                              : patterns[pos].getL());
   if (!lbs.empty()) {
     result = false;
     for (i = lbs.begin(); i != lbs.end(); i++) {
@@ -2480,7 +2480,6 @@ bool Match::conditionsMatch(MString const &ml) {
       seqMax *= cardsets[i].size();
     }
   }
-//   cout << "seqMax = " << seqMax << endl;
   seqCounter = 0;
   computeSeqOrder();
   multiset<size_t> seq = getNextSeq();
@@ -2931,7 +2930,7 @@ string Match::getTimeSubst(MString const &ml, int key, size_t from, size_t to) {
     return "error";
   }
   if (from > to) {
-    cout << "[" << from << ", " << to << "] is an invalid interval." << endl;
+    //cout << "[" << from << ", " << to << "] is an invalid interval." << endl;
     return "error";
   }
   pair<size_t, size_t> from_to;
@@ -2999,6 +2998,188 @@ string Match::getLabelSubst(MString const &ml, int pos) {
 }
 
 /*
+\subsection{Function ~buildMultiNFA~}
+
+
+
+*/
+void Match::buildMultiNFA(ClassifyLI* c) {
+  int start = 0;
+  for (unsigned int p = 0; p < c->pats.size(); p++) {
+    int f = start + c->pats[p]->getSize();
+    int prev[3] = {start - 1, start - 1, start - 1}; // prevStar, prevNotStar,
+    for (int i = start; i < f; i++) {                // secondPrevNotStar
+      delta[i][i - start].insert(i + 1);//state i,read pattern i =>new state i+1
+      UPat u = c->pats[p]->getPat(i - start);//next line: any pattern except +,*
+      if (!u.getW() || !u.getI().empty() || !u.getL().empty() || (i == f - 1)) {
+        if ((prev[0] == i - 1) || (i == f - 1)) { //last pat or'...* #(1 a)...'
+          for (int j = prev[1] + 1; j < i; j++) {
+            delta[j][i - start].insert(i + 1); // '* * * #(1 a ) ...'
+            for (int k = j; k <= i; k++) {
+              delta[j][k - start].insert(j);
+              for (int m = j; m <= i; m++) {
+                delta[j][k - start].insert(m); // step 1
+              }
+              if ((u.getW() == STAR) && (i == f - 1)) { // end
+                delta[j][k - start].insert(f);
+              }
+            }
+          }
+          if (prev[1] >= start) { // match before current pattern
+            for (int j = prev[1] + 1; j <= i; j++) {
+              delta[prev[1]][prev[1] - start].insert(j); // step 2
+            }
+            if ((u.getW() == STAR) && (i == f - 1)) { // end
+              delta[prev[1]][prev[1] - start].insert(f);
+            }
+          }
+          if (prev[2] < prev[1] - 1) { // '* ... * (1 a) * ... * #(2 b) ...'
+            for (int j = prev[2] + 1; j < prev[1]; j++){
+              for (int k = prev[1] + 1; k <= i; k++) {
+                delta[j][prev[1] - start].insert(k); // step 3
+              }
+              if ((u.getW() == STAR) && (i == f - 1)) { // end
+                delta[j][prev[1] - start].insert(f);
+              }
+            }
+          }
+        }
+        if (u.getW() == PLUS) {
+          delta[i][i - start].insert(i);
+        }
+        prev[2] = prev[1];
+        prev[1] = i;
+      }
+      else if (u.getW() == STAR) { // reading '*'
+        prev[0] = i;
+      }
+      else if (u.getW() == PLUS) { // reading '+'
+        delta[i][i - start].insert(i);
+        prev[2] = prev[1];
+        prev[1] = i;
+      }
+    }
+    if (c->pats[p]->getPat(f - 1 - start).getW()) { // '... #*' or '... #+'
+      delta[f - 1][f - 1 - start].insert(f - 1);
+    }
+    start += c->pats[p]->getSize() + 1;
+  }
+}
+
+/*
+\subsection{Function ~printMultiNFA~}
+
+Prints a multiNFA.
+
+*/
+void Match::printMultiNFA() {
+  set<int>::iterator k;
+  for (unsigned int i = 0; i < delta.size(); i++) {
+    for (unsigned int j = 0; j < delta.size(); j++) {
+      if (delta[i][j].size() > 0) {
+        cout << "state " << i << " | upat #" << j << " | new states {";
+        if (delta[i][j].size() == 1) {
+          cout << *(delta[i][j].begin());
+        }
+        else {
+          for (k = delta[i][j].begin();
+               k != delta[i][j].end(); k++) {
+            cout << *k << " ";
+          }
+        }
+        cout << "}" << endl;
+      }
+    }
+  }
+}
+
+/*
+\subsection{Function ~applyMultiNFA~}
+
+Applies a multiNFA and returns the set of numbers referring to the matching
+patterns.
+
+*/
+vector<int> Match::applyMultiNFA(ClassifyLI* c) {
+  currentStates = c->initialStates;
+  set<int>::iterator i;
+  vector<int> result, temp;
+  map<int, set<int> >::iterator j;
+  int state(0), activePat(0), numOfStates(0);
+  bool found;
+  ulId = 0;
+  for (int m = 0; m < c->currentML->GetNoComponents(); m++) {
+    c->currentML->Get(m, ul);
+    set<int> newStates;
+    for (i = currentStates.begin(); (i != currentStates.end() && *i < f); i++) {
+      state = *i; // find corresponding pattern
+      found = false;
+      if (*i < c->pat2start[1]) {
+        activePat = 0;
+        found = true;
+      }
+      while (!found) {
+        activePat = c->start2pat[state];
+        if (!activePat) {
+          state--;
+        }
+        else {
+          found = true;
+        }
+      }
+      for (j = delta[*i].begin(); j != delta[*i].end(); j++) {
+        if (j->second.size()) {
+          if (labelsMatch(j->first, c, activePat)
+            && timesMatch(j->first, c, activePat)) {
+            newStates.insert(j->second.begin(), j->second.end());
+            if (!c->pats[activePat]->getConds().empty()) {
+              UPat u = c->pats[activePat]->getPat(j->first); //store matches now
+              if (!u.getW() || !u.getI().empty() || !u.getL().empty()) {//(_ a)
+                c->matches[activePat][j->first].insert(ulId);//((1 _)),() or sim
+              }
+            }
+          }
+        }
+      }
+    }
+    currentStates = newStates;
+    ulId++;
+  } // translate active states to matched patterns
+  if (currentStates.count(c->pat2start[1] - 1)) {
+    temp.push_back(0);
+  }
+  for (i = currentStates.begin(); i != currentStates.end(); i++) {
+    if (c->end2pat[*i]) {
+      temp.push_back(c->end2pat[*i]);
+    }
+  }
+  for (unsigned int k = 0; k < temp.size(); k++) {
+    if (c->pats[temp[k]]->getConds().empty()) {
+      result.push_back(temp[k]);
+    }
+    else {
+      patterns = c->pats[temp[k]]->getPats();
+      conds = c->pats[temp[k]]->getConds();
+      numOfStates = f;
+      f = patterns.size();
+      for (int ii = 0; ii < f; ii++) {
+        match[ii] = c->matches[temp[k]][ii];
+        cardsets[ii].clear();
+      }
+      numOfLabels = c->currentML->GetNoComponents();
+      computeCardsets();
+      if (conditionsMatch(*c->currentML)) {
+        result.push_back(temp[k]);
+      }
+      f = numOfStates;
+    }
+  }
+  return result;
+}
+
+
+
+/*
 \section{Operator ~topattern~}
 
 \subsection{Type Mapping}
@@ -3035,7 +3216,6 @@ int topatternFun(Word* args, Word& result, int message, Word& local,
   if (pattern) {
     (*p) = (*pattern);
     if (!p->verifyPattern() || !p->verifyConditions()) {
-      
       return 0;
     }
     if (p->hasAssigns()) {
@@ -3043,7 +3223,6 @@ int topatternFun(Word* args, Word& result, int message, Word& local,
         return 0;
       }
     }
-//     p->buildNFA();
     cout << (p->isVerified() ? "verified" : "not verified") << endl;
     delete pattern;
   }
@@ -3134,6 +3313,7 @@ int matchesFun_MT (Word* args, Word& result, int message,
   }
   else {
     bool res = pattern->matches(*mstring);
+    
     delete pattern;
     b->Set(true, res);
   }
@@ -3514,109 +3694,139 @@ ListExpr classifyTypeMap(ListExpr args) {
                                          outputAttrs));
 }
 
-class ClassifyLI {
-public:
-  ClassifyLI(Word _pstream, Word _mlstream) : mlStream(_mlstream) {
-    SecondoCatalog* sc = SecondoSystem::GetCatalog();
-    ListExpr resultTupleType = nl->TwoElemList(
-      nl->SymbolAtom(Tuple::BasicType()),
-      nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Description"),
-                                      nl->SymbolAtom(FText::BasicType())),
-                      nl->TwoElemList(nl->SymbolAtom("Trajectory"),
-                                      nl->SymbolAtom(MLabel::BasicType()))));
-    ListExpr numResultTupleType = sc->NumericType(resultTupleType);
-    classifyTT = new TupleType(numResultTupleType);
-    Stream<Tuple> pStream = (Stream<Tuple>)_pstream;
-    pStream.open();
-    Tuple* inputTuple = pStream.request();
-    while (inputTuple) {
-      if (!(CcString*)inputTuple->GetAttribute(0)->IsDefined()
-       || !(FText*)inputTuple->GetAttribute(1)->IsDefined()) {
-        cout << "undefined classification data" << endl;
-      }
-      else {
-        Pattern *p = Pattern::getPattern(
-                       ((FText*)inputTuple->GetAttribute(1))->GetValue());
-        p->setDescr(((CcString*)inputTuple->GetAttribute(0))->GetValue());
-        patterns.push_back(*p);
-        delete p;
-        inputTuple = pStream.request();
-      }
-    }
-    pStream.close();
-    if (!patterns.size()) {
-      cout << "no classification data specified" << endl;
+/*
+\subsection{Constructor for class ~ClassifyLI~}
+
+*/
+ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream) : mlStream(_mlstream),
+     currentML(0), mainMatch(0) {
+  classifyTT = getTupleType();
+  Stream<Tuple> pStream(_pstream);
+  pStream.open();
+  Tuple* inputTuple = pStream.request();
+  int startPos = 0;
+  set<size_t> emptyset;
+  while (inputTuple) {
+    if (!(CcString*)inputTuple->GetAttribute(0)->IsDefined()
+     || !(FText*)inputTuple->GetAttribute(1)->IsDefined()) {
+      cout << "undefined classification data" << endl;
     }
     else {
-      //buildMultiNFA();
-      mlStream.open();
-      processNextML = true;
-      currentML = new MLabel(1);
-      pos = 0;
+      Pattern *p = Pattern::getPattern(
+                  ((FText*)inputTuple->GetAttribute(1))->GetValue(), true);
+      p->setDescr(((CcString*)inputTuple->GetAttribute(0))->GetValue());
+      start2pat[startPos] = pats.size();
+      pat2start[pats.size()] = startPos;
+      initialStates.insert(startPos);
+      startPos += p->getSize() + 1;
+      end2pat[startPos - 1] = pats.size();
+      if (!p->getConds().empty()) {
+        for (int i = 0; i < p->getSize(); i++) {
+          matches[pats.size()].push_back(emptyset);
+        }
+      }
+      pats.push_back(p);
     }
+    inputTuple->DeleteIfAllowed();
+    inputTuple = pStream.request();
   }
+  pStream.close();
+  if (!pats.size()) {
+    cout << "no classification data specified" << endl;
+  }
+  else {
+    numOfStates = startPos;
+    mainMatch = new Match(numOfStates);
+    mainMatch->buildMultiNFA(this);
+    mainMatch->printMultiNFA();
+    mlStream.open();
+  }
+}
 
-  ~ClassifyLI() {
-    mlStream.close();
-    delete classifyTT;
+/*
+\subsection{Destructor for class ~ClassifyLI~}
+
+*/
+ClassifyLI::~ClassifyLI() {
+  mlStream.close();
+  delete classifyTT;
+  if (currentML) {
     currentML->DeleteIfAllowed();
   }
-
-  Tuple* nextResultTuple() {
-    MLabel *ml = new MLabel(1);
-    bool match = false;
-    while (!match) {
-      if (pos == patterns.size()) {
-        processNextML = true;
-        pos = 0;
-      }
-      if (processNextML) {
-        ml = (MLabel*)mlStream.request();
-        if (ml) {
-          *currentML = *ml;
-          pos = 0;
-          processNextML = false;
-        }
-        else {
-          return 0;
-        }
-      }
-      else {
-        *ml = *currentML;
-      }
-      if (!ml->IsDefined()) {
-        cout << "undefined moving label" << endl;
-        pos = 0;
-        processNextML = true;
-      }
-      else {
-        if (patterns[pos].matches(*ml)) {
-          Tuple *result = new Tuple(classifyTT);
-          result->PutAttribute(0, new FText(true, patterns[pos].getDescr()));
-          result->PutAttribute(1, ml);
-          pos++;
-          return result;
-        }
-        pos++;
-      }
-    }
-    return 0;
+  if (mainMatch) {
+    delete mainMatch;
   }
+  map<int, set<size_t>* >::iterator i;
+  vector<Pattern*>::iterator ip;
+  for (ip = pats.begin(); ip != pats.end(); ip++) {
+    delete (*ip);
+  }
+  pats.clear();
+}
 
-private:
-  vector<Pattern> patterns;
-  Stream<MLabel> mlStream;
-  TupleType* classifyTT;
-  MLabel* currentML;
-  bool processNextML;
-  unsigned int pos;
-};
+/*
+\subsection{Function ~getTupleType~}
+
+*/
+TupleType* ClassifyLI::getTupleType() {
+  SecondoCatalog* sc = SecondoSystem::GetCatalog();
+  ListExpr resultTupleType = nl->TwoElemList(
+    nl->SymbolAtom(Tuple::BasicType()),
+    nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("Description"),
+                                    nl->SymbolAtom(FText::BasicType())),
+                    nl->TwoElemList(nl->SymbolAtom("Trajectory"),
+                                    nl->SymbolAtom(MLabel::BasicType()))));
+  ListExpr numResultTupleType = sc->NumericType(resultTupleType);
+  return new TupleType(numResultTupleType);
+}
+
+/*
+\subsection{Function ~printMatches~}
+
+*/
+void ClassifyLI::printMatches() {
+  set<size_t>::iterator it;
+  for (unsigned int i = 0; i < pats.size(); i++) {
+    cout << "--===-- Pattern " << i << " --===--" << endl;
+    for (unsigned int j = 0; j < matches[i].size(); j++) {
+      cout << "upat " << j << " matches ulabels ";
+      for (it = matches[i][j].begin(); it != matches[i][j].end(); it++) {
+        cout << *it << ", ";
+      }
+      cout << endl;
+    }
+  }
+}
+
+/*
+\subsection{Function ~nextResultTuple~}
+
+*/
+Tuple* ClassifyLI::nextResultTuple() {
+  while (matched.empty()) {
+    if (currentML) {
+       currentML->DeleteIfAllowed();
+    }
+    currentML = (MLabel*)mlStream.request();
+    if (!currentML) { // stream finished
+      return 0;
+    }
+    if (currentML->IsDefined()) {
+      matched = mainMatch->applyMultiNFA(this);
+    }
+  }
+  Tuple *result = new Tuple(classifyTT);
+  result->PutAttribute(0, new FText(true, pats[matched.back()]->getDescr()));
+  MLabel *ml = (MLabel*)currentML->Copy();
+  result->PutAttribute(1, ml);
+  matched.pop_back();
+  return result;
+}
 
 /*
 \subsection{Value Mapping}
 
 */
-
 int classifyFun(Word* args, Word& result, int message, Word& local, Supplier s){
   ClassifyLI *li = (ClassifyLI*)local.addr;
   switch (message) {
