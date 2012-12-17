@@ -5372,6 +5372,7 @@ class RelationAlgebra : public Algebra
     cf.out = OutTmpRel;
     cf.create = CreateTmpRel;
     cf.deletion = DeleteTmpRel;
+    cf.close = DeleteTmpRel;
     cf.kindCheck = TRelKindCheck;
 
     ConstructorInfo ci;
