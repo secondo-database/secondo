@@ -40,14 +40,20 @@ Result   : 1
 Operator : classify
 Number   : 1
 Signature: stream(tuple(text, string)) x stream(mlabel) -> stream(tuple(string, mlabel))
-Example  : query patterns1 classify Nussi feed projecttransformstream[Trajectory] count
+Example  : query patterns3 classify Nussi feed projecttransformstream[Trajectory] count
 Result   : 361
 
 Operator : classify
 Number   : 2
 Signature: stream(tuple(text, string)) x stream(mstring) -> stream(tuple(string, mstring))
-Example  : query patterns2 classify SymbolicTripsTiny feed projecttransformstream[Symtrip] count
+Example  : query patterns4 classify SymbolicTripsTiny feed projecttransformstream[Symtrip] count
 Result   : 23
+
+Operator : rewrite
+Number   : 3
+Signature: stream(text) x stream(mlabel) -> stream(mlabel)
+Example  : query rewrite1 rewrite SymbolicTripsTiny feed projecttransformstream[Symtrip] count
+Result   : 12
 
 Operator : compress
 Number   : 1

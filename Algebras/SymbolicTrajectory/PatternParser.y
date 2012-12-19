@@ -437,10 +437,12 @@ Pattern* stj::parseString(const char* input, bool classify = false) {
   }
   uPat.clearL();
   uPat.clearI();
-  result->setVerified(false);
-  if (!classify) { //classification => no single NFA needed
-    result->initDelta();
-    result->buildNFA();
+  if (result) {
+    result->setVerified(false);
+    if (!classify) { //classification => no single NFA needed
+      result->initDelta();
+      result->buildNFA();
+    }
   }
   return result;
 }

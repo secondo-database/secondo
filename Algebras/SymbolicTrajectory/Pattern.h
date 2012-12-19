@@ -454,6 +454,7 @@ class Match {
   set<string> getAssVars() {return assignedVars;}
   void setAssVars(set<string> aV) {assignedVars = aV;}
   void setVarPos(map<string, int> vP) {varPos = vP;}
+  void setFinalState(int final) {f = final;}
   map<string, int> getVarPosInSeq() {return varPosInSeq;}
   void copyFromPattern(Pattern p) {
     delta = p.getDelta();
@@ -468,7 +469,9 @@ class Match {
   }
   void buildMultiNFA(ClassifyLI* c);
   void printMultiNFA();
-  vector<int> applyMultiNFA(ClassifyLI* c);
+  vector<int> applyMultiNFA(ClassifyLI* c, bool rewrite = false);
+  vector<int> applyConditions(ClassifyLI* c);
+  vector<MLabel*> multiRewrite(ClassifyLI* c);
 };
 
 class RewriteResult {
@@ -506,11 +509,13 @@ friend class Match;
 
 public:
   ClassifyLI(Word _pstream, Word _mlstream);
+  ClassifyLI(Word _pstream, Word _mlstream, bool rewrite); // dummy parameter
 
   ~ClassifyLI();
 
   static TupleType* getTupleType();
   Tuple* nextResultTuple();
+  MLabel* nextResultML();
   void computeCardsets();
   void printMatches();
 
@@ -525,6 +530,7 @@ private:
   MLabel* currentML;
   Match* mainMatch;
   map<int, vector<set<size_t> > > matches;//pattern_id -> (upat -> set(ulabel))
+  vector<MLabel*> rewritten;
 };
 
 }
