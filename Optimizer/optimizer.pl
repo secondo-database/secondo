@@ -1529,7 +1529,7 @@ plan_to_atom(value_expr(bool,X), Result) :-
   ( X = true
     -> Result = ' TRUE '
     ;  ( X = false
-         -> ' FALSE '
+         -> Result = ' FALSE '
          ;  ( X = undefined
               -> nullValue(bool,undefined,Result)
               ; (concat_atom(['Invalid bool constant: ',X],ErrMsg),
