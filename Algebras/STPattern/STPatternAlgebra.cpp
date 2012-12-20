@@ -1215,9 +1215,16 @@ A typemap helper function. It accepts the signature (tuple (attrs)).
 */
 bool IsTupleExpr(ListExpr args, bool WithUserArgs=false)
 {
-  ListExpr tuple = WithUserArgs? nl->First(args): args;
-  return ((nl->ListLength(tuple) == 2) &&
-      nl->IsEqual(nl->First(tuple), Tuple::BasicType()));
+  ListExpr tuple;
+  if(WithUserArgs){
+    if(nl->IsAtom(args) || nl->IsEmpty(args)){
+       return false;
+    } 
+    tuple = nl->First(args);
+  } else {
+     tuple = args;
+  }
+  return Tuple::checkType(tuple);
 }
 
 /*
@@ -1227,9 +1234,16 @@ A typemap helper function. It accepts the signature (stream streamElems).
 */
 bool IsTupleStream(ListExpr args, bool WithUserArgs=false)
 {
-  ListExpr stream = WithUserArgs? nl->First(args): args;
-  return (nl->ListLength(stream)== 2 &&
-      listutils::isTupleStream(stream));
+  ListExpr stream;
+  if(WithUserArgs){
+    if(nl->IsAtom(args) || nl->IsEmpty(args)){
+       return false;
+    } 
+    stream = nl->First(args);
+  } else {
+    stream = args;
+  }
+  return Stream<Tuple>::checkType(stream);
 }
 
 /*
