@@ -52,6 +52,7 @@ extern int patternlex();
 extern FILE* patternin;
 extern void pattern_scan_string(const char* yystr);
 extern void deleteCurrentBuffer();
+void deleteCurrentPatternBuffer();
 bool parseSuccess = true;
 void patternerror(const char* s) {
   cerr << endl << s << endl << endl;
@@ -444,6 +445,7 @@ Pattern* stj::parseString(const char* input, bool classify = false) {
       result->buildNFA();
     }
   }
+  deleteCurrentPatternBuffer();
   return result;
 }
 

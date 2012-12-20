@@ -38,6 +38,10 @@ Algebra.
 #include <string>
 using namespace std;
 
+void deleteCurrentPatternBuffer() {
+    yy_delete_buffer(YY_CURRENT_BUFFER);
+}
+
 %}
 %option prefix="pattern"
 %option nounput

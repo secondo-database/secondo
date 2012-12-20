@@ -471,7 +471,7 @@ class Match {
   void printMultiNFA();
   vector<int> applyMultiNFA(ClassifyLI* c, bool rewrite = false);
   vector<int> applyConditions(ClassifyLI* c);
-  vector<MLabel*> multiRewrite(ClassifyLI* c);
+  void multiRewrite(ClassifyLI* c);
 };
 
 class RewriteResult {

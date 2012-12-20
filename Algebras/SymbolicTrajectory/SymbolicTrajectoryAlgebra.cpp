@@ -558,11 +558,11 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
   ULabel ul(1), uls(1);
   int seqPos(0);
   string newL;
-  Word queryResult;
+  Word queryResult(Address(0));
   CcString *ccstring = 0;
-  Periods *per = new Periods(0);
-  Instant *inst = new DateTime(instanttype);
-  SecInterval *iv = new SecInterval(0);
+  Periods *per =0 ;
+  Instant *inst = 0;
+  SecInterval *iv =0;
   for (int i = 0; i < (int)assigns.size(); i++) {
     if (assigns[i].getPatternPos() == -1) { // A does not occur in the pattern
       if (assigns[i].getText(0).empty() || (assigns[i].getText(1).empty() &&
@@ -576,8 +576,10 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
             if (!assigns[i].prepareRewrite(key, seq.second, varPosInSeq, ml)) {
               this->SetDefined(false);
             }
+            cout << "EXECUTE " << assigns[i].getSubst(key) << endl;
             queryResult = evaluate(assigns[i].getSubst(key));
             if (key == 0) {
+              deleteIfAllowed(ccstring);
               ccstring = static_cast<CcString*>(queryResult.addr);
               if (ccstring->IsDefined()) {
                 ul.constValue.Set(true, eraseQM(ccstring->GetValue()));
@@ -585,6 +587,7 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
             }
             else { // key > 0
               if (key == 1) {
+                deleteIfAllowed(per);
                 per = static_cast<Periods*>(queryResult.addr);
                 if (per->IsDefined() && (per->GetNoComponents() == 1)) {
                   per->Get(0, *iv);
@@ -592,6 +595,7 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
                 } // time assigned now
               }
               else {
+                deleteIfAllowed(inst);
                 inst = static_cast<Instant*>(queryResult.addr);
                 if (inst->IsDefined()) {
                   if (key == 2) {
@@ -616,6 +620,7 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
             this->SetDefined(false);
           }
           queryResult = evaluate(assigns[i].getSubst(0));
+          deleteIfAllowed(ccstring);
           ccstring = static_cast<CcString*>(queryResult.addr);
           if (ccstring->IsDefined()) {
             ul.constValue.Set(true, eraseQM(ccstring->GetValue()));
@@ -631,6 +636,7 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
               this->SetDefined(false);
             }
             queryResult = evaluate(assigns[i].getSubst(1));
+            deleteIfAllowed(per);
             per = static_cast<Periods*>(queryResult.addr);
             if (per->IsDefined() && (per->GetNoComponents() == 1)) {
               per->Get(0, *iv);
@@ -651,6 +657,7 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
           if (!assigns[i].prepareRewrite(2, seq.second, varPosInSeq, ml)) {
             this->SetDefined(false);
           }
+          deleteIfAllowed(inst);
           queryResult = evaluate(assigns[i].getSubst(2));
           inst = static_cast<Instant*>(queryResult.addr);
           if (inst->IsDefined()) {
@@ -673,10 +680,10 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
       seqPos = seqPos + 2;
     }
   }
-//   ccstring->DeleteIfAllowed();
-  per->DeleteIfAllowed();
-  inst->DeleteIfAllowed();
-  iv->DeleteIfAllowed();
+  deleteIfAllowed(ccstring);
+  deleteIfAllowed(per);
+  deleteIfAllowed(inst);
+  deleteIfAllowed(iv);
   if (!this->IsValid()) {
     this->SetDefined(false);
   }
@@ -1637,10 +1644,10 @@ bool Pattern::verifyConditions() const {
     CcBool* ccbool = static_cast<CcBool*>(evaluate(conds[i].getSubst()).addr);
     if (!ccbool->IsDefined()) {
       cout << "condition \'" << conds[i].getSubst() << "\' is invalid." << endl;
-      ccbool->DeleteIfAllowed();
+      deleteIfAllowed(ccbool);
       return false;
     }
-    ccbool->DeleteIfAllowed();
+    deleteIfAllowed(ccbool);
   }
   return true;
 }
@@ -1665,8 +1672,8 @@ bool Pattern::checkAssignTypes() {
           case 0: {
             ccstr = static_cast<CcString*>(evaluate(assign.getSubst(0)).addr);
             if (!ccstr->IsDefined()) {
-              ccstr->DeleteIfAllowed();
-              cout << assign.getSubst(0) << " is not a string" << endl;
+              deleteIfAllowed(ccstr);
+              cout << assign.getSubst(0) << " is invalid" << endl;
               return false;
             }
             ccstr->DeleteIfAllowed();
@@ -1675,8 +1682,8 @@ bool Pattern::checkAssignTypes() {
           case 1: {
             per = static_cast<Periods*>(evaluate(assign.getSubst(1)).addr);
             if (!per->IsDefined()) {
-              per->DeleteIfAllowed();
-              cout << assign.getSubst(1) << " is not a period" << endl;
+              deleteIfAllowed(per);
+              cout << assign.getSubst(1) << " is invalid" << endl;
               return false;
             }
             per->DeleteIfAllowed();
@@ -1685,8 +1692,8 @@ bool Pattern::checkAssignTypes() {
           default: {
             inst = static_cast<Instant*>(evaluate(assign.getSubst(j)).addr);
             if (!inst->IsDefined()) {
-              inst->DeleteIfAllowed();
-              cout << assign.getSubst(j) << " is not an instant" << endl;
+              deleteIfAllowed(inst);
+              cout << assign.getSubst(j) << " is invalid" << endl;
               return false;
             }
             inst->DeleteIfAllowed();
@@ -3197,8 +3204,7 @@ vector<int> Match::applyConditions(ClassifyLI* c) {
 Computes a multiple rewrite result, i.e., a vector of MLabels.
 
 */
-vector<MLabel*> Match::multiRewrite(ClassifyLI* c) {
-  vector<MLabel*> result;
+void Match::multiRewrite(ClassifyLI* c) {
   MLabel *ml = 0;
   int numOfStates = 0;
   set<pair<vector<size_t>, vector<size_t> > >::iterator it;
@@ -3225,15 +3231,18 @@ vector<MLabel*> Match::multiRewrite(ClassifyLI* c) {
     buildSequences();
     filterSequences(*(c->currentML));
     while (!rewriteSeqs.empty()) {
+      cout << "start while loop" << endl;
       it = rewriteSeqs.begin();
+      cout << "create ml" << endl;
       ml = new MLabel(1);
+      cout << "created" << endl;
       ml->rewrite(*(c->currentML), *it, c->pats[c->matched[i]]->getAssigns(),
                   c->pats[c->matched[i]]->getVarPosInSeq());
       rewriteSeqs.erase(it);
-      result.push_back(ml);
+      c->rewritten.push_back(ml);
+      ml = 0;
     }
   }
-  return result;
 }
 
 /*
@@ -3853,7 +3862,7 @@ ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream) :
     numOfStates = startPos;
     mainMatch = new Match(numOfStates);
     mainMatch->buildMultiNFA(this);
-    mainMatch->printMultiNFA();
+//     mainMatch->printMultiNFA();
     mlStream.open();
   }
 }
@@ -4004,7 +4013,7 @@ This function is used for the operator ~rewrite~.
 
 */
 MLabel* ClassifyLI::nextResultML() {
-  MLabel *result = new MLabel(1);
+  MLabel *result = 0;
   while (rewritten.empty()) {
     if (currentML) {
       currentML->DeleteIfAllowed();
@@ -4016,12 +4025,13 @@ MLabel* ClassifyLI::nextResultML() {
     if (currentML->IsDefined()) {
       matched = mainMatch->applyMultiNFA(this, true);
       if (!matched.empty()) {
-        rewritten = mainMatch->multiRewrite(this);
+        mainMatch->multiRewrite(this);
         mainMatch->setFinalState(numOfStates - 1);
       }
     }
   }
-  result = (MLabel*)rewritten.back()->Copy();
+//   result = (MLabel*)rewritten.back()->Copy();
+  result = rewritten.back();
   rewritten.pop_back();
   return result;
 }
