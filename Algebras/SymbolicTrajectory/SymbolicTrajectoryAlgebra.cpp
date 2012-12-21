@@ -3790,6 +3790,10 @@ ListExpr classifyTypeMap(ListExpr args) {
     return listutils::typeError(errMsg);
   }
   ListExpr dType, pType;
+  // ensure to have at least two attributes
+  if(nl->ListLength(nl->Second(nl->Second(nl->First(args)))) < 2){
+    return listutils::typeError("tuple has not enough attributes");
+  } 
   dType = nl->Second(nl->First(nl->Second(nl->Second(nl->First(args)))));
   pType = nl->Second(nl->Second(nl->Second(nl->Second(nl->First(args)))));
   if ((!CcString::checkType(dType) && !FText::checkType(dType))
