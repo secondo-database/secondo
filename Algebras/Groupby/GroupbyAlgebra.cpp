@@ -173,6 +173,10 @@ ListExpr groupby2TypeMap(ListExpr args)
   lastlistp = nl->TheEmptyList();
   firstcall = true;
 
+  if(nl->IsAtom(rest)){
+    return listutils::typeError("AttributeList is an atom");
+  }
+
   while (!nl->IsEmpty(rest))
   {
     attrtype = nl->TheEmptyList();

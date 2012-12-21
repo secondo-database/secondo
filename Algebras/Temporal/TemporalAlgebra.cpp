@@ -10380,11 +10380,15 @@ This type mapping function is used for the ~translate~ operator.
 ListExpr MPointTypeMapTranslate( ListExpr args )
 {
   ListExpr arg1, arg2;
+  string err = "mpoint x (duration x real x real) expected";
 
   if ( nl->ListLength( args ) == 2 )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
+    if(!nl->HasLength(arg2,3)){
+       return listutils::typeError(err);
+    }
 
     if( nl->IsEqual( arg1, MPoint::BasicType() ) &&
         nl->IsEqual(nl->First( arg2 ), Duration::BasicType()) &&
@@ -10392,7 +10396,7 @@ ListExpr MPointTypeMapTranslate( ListExpr args )
         nl->IsEqual(nl->Third( arg2 ), CcReal::BasicType())) {
       return (nl->SymbolAtom( MPoint::BasicType() )); }
   }
-  return nl->SymbolAtom( Symbol::TYPEERROR() );
+  return listutils::typeError(err);
 }
 
 /*

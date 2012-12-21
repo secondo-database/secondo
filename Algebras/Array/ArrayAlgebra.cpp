@@ -1482,6 +1482,10 @@ distributeTypeMap( ListExpr inArgs )
       ListExpr tupleDesc = streamDesc.second().listExpr();
       string attrName = nl->SymbolValue(attrNameLE);
 
+      if(!Tuple::checkType(tupleDesc)){
+          return nl->TypeError();
+      }
+
       if (nl->IsEqual(nl->First(tupleDesc), Tuple::BasicType())
           && (nl->ListLength(tupleDesc) == 2))
       {
@@ -2122,6 +2126,13 @@ loopswitchTypeMap( ListExpr args )
   {
     ListExpr arrayDesc = nl->First(args);
     ListExpr funlist = nl->Second(args);
+
+    if(nl->IsAtom(funlist)){
+       return nl->SymbolAtom(Symbol::TYPEERROR());
+    }
+    if(nl->IsEmpty(funlist)){
+       return nl->SymbolAtom(Symbol::TYPEERROR());
+    }
 
     if ((nl->ListLength(arrayDesc) == 2)
         && (nl->IsEqual(nl->First(arrayDesc), Array::BasicType())))
