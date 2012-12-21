@@ -576,7 +576,6 @@ void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
             if (!assigns[i].prepareRewrite(key, seq.second, varPosInSeq, ml)) {
               this->SetDefined(false);
             }
-            cout << "EXECUTE " << assigns[i].getSubst(key) << endl;
             queryResult = evaluate(assigns[i].getSubst(key));
             if (key == 0) {
               deleteIfAllowed(ccstring);
@@ -3231,11 +3230,8 @@ void Match::multiRewrite(ClassifyLI* c) {
     buildSequences();
     filterSequences(*(c->currentML));
     while (!rewriteSeqs.empty()) {
-      cout << "start while loop" << endl;
       it = rewriteSeqs.begin();
-      cout << "create ml" << endl;
       ml = new MLabel(1);
-      cout << "created" << endl;
       ml->rewrite(*(c->currentML), *it, c->pats[c->matched[i]]->getAssigns(),
                   c->pats[c->matched[i]]->getVarPosInSeq());
       rewriteSeqs.erase(it);
@@ -3548,14 +3544,16 @@ ListExpr rewriteTypeMap(ListExpr args) {
     return nl->TwoElemList(nl->SymbolAtom(Stream<Attribute>::BasicType()),
                            nl->First(args));
   }
-  ListExpr trajType = nl->Second(args);
-  ListExpr textType = nl->First(args);
-  if (nl->IsEqual(nl->First(trajType), Stream<MLabel>::BasicType())
-   && nl->IsEqual(nl->First(textType), Stream<FText>::BasicType())
-   && (nl->IsEqual(nl->Second(trajType), MLabel::BasicType())
-       || nl->IsEqual(nl->Second(trajType), MString::BasicType()))
-   && nl->IsEqual(nl->Second(textType), FText::BasicType())) {
-    return trajType;
+  if (nl->HasLength(args, 2)) {
+    ListExpr trajType = nl->Second(args);
+    ListExpr textType = nl->First(args);
+    if (nl->IsEqual(nl->First(trajType), Stream<MLabel>::BasicType())
+     && nl->IsEqual(nl->First(textType), Stream<FText>::BasicType())
+     && (nl->IsEqual(nl->Second(trajType), MLabel::BasicType())
+         || nl->IsEqual(nl->Second(trajType), MString::BasicType()))
+     && nl->IsEqual(nl->Second(textType), FText::BasicType())) {
+      return trajType;
+    }
   }
   return NList::typeError(errMsg);
 }

@@ -28,31 +28,31 @@ Result   : 3273
 Operator : rewrite
 Number   : 1
 Signature: mlabel x text -> stream(mlabel)
-Example  : query [const mlabel value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))] rewrite 'X () => X // X.label := "at_work"' count
+Example  : query [const mlabel value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))] 'X () => X // X.label := "at_work"' rewrite count
 Result   : 1
 
 Operator : rewrite
 Number   : 2
 Signature: mstring x text -> stream(mstring)
-Example  : query [const mstring value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))] rewrite 'X () => X // X.label := "at_work"' count
+Example  : query [const mstring value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))] 'X () => X // X.label := "at_work"' rewrite count
 Result   : 1
 
 Operator : classify
 Number   : 1
 Signature: stream(tuple(text, string)) x stream(mlabel) -> stream(tuple(string, mlabel))
-Example  : query (patterns3 classify Nussi feed projecttransformstream[Trajectory]) count
+Example  : query (patterns3 feed Nussi feed projecttransformstream[Trajectory] classify) count
 Result   : 361
 
 Operator : classify
 Number   : 2
 Signature: stream(tuple(text, string)) x stream(mstring) -> stream(tuple(string, mstring))
-Example  : query (patterns4 classify SymbolicTripsTiny feed projecttransformstream[Symtrip]) count
+Example  : query (patterns4 feed SymbolicTripsTiny feed projecttransformstream[SymTrip] classify) count
 Result   : 49
 
 Operator : rewrite
 Number   : 3
 Signature: stream(text) x stream(mlabel) -> stream(mlabel)
-Example  : query (rewrite3 feed projecttransformstream[Pattern] rewrite SymbolicTripsTiny feed projecttransformstream[Symtrip]) count
+Example  : query (rewrite3 feed projecttransformstream[Pattern] SymbolicTripsTiny feed projecttransformstream[SymTrip] rewrite) count
 Result   : 88
 
 Operator : compress
