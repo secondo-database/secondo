@@ -40,6 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Record.h"
 #include "ListIterator.h"
+#include "Stream.h"
 
 //#define RECORD_DEBUG
 #undef RECORD_DEBUG
@@ -368,36 +369,21 @@ each record contains attributes of tuple
 
 ListExpr transformT2RstreamTypeMap(ListExpr args)
 {
-  char firstchar;
   if(nl->ListLength(args)!=1){
     ErrorReporter::ReportError("one argument expected");
     return nl->TypeError();
   }
+  ListExpr arg = nl->First(args);
 
-  ListExpr first = nl->First(args);
-
-  if(!listutils::isTupleStream(first)){
-    ErrorReporter::ReportError("stream(tuple(...)) expected");
+  if(!Stream<Tuple>::checkType(arg)){
+    ErrorReporter::ReportError("stream(tuple) expected");
     return nl->TypeError();
   }
-  first = nl->First(nl->Rest(first));
-  ListExpr rec = nl->OneElemList(nl->SymbolAtom(Record::BasicType()));
-  ListExpr last = rec;
-  first = nl->Second(first);
-  while( !nl->IsEmpty( first ) ){
-    ListExpr cur = nl->First( first );
-    first = nl->Rest( first );
-    firstchar = nl->ToString(nl->First(cur)).at(0);
-    if (toupper(firstchar) != firstchar){
-      ErrorReporter::ReportError("Record elemens names must start"
-                                 " with a capital letter");
-      return nl->TypeError();
-    }
-    last = nl->Append(last, cur);
-  }
-  first =  nl->Cons(nl->SymbolAtom(Symbol::STREAM()),
-       nl->OneElemList(rec));
-  return first;
+  ListExpr attrList = nl->Second(nl->Second(arg));
+  return nl->TwoElemList(nl->SymbolAtom(Stream<Record>::BasicType()),
+                         nl->Cons( nl->SymbolAtom(Record::BasicType()),
+                                          attrList));
+
 }
 
 
@@ -504,30 +490,17 @@ ListExpr transformR2TstreamTypeMap(ListExpr args)
     ErrorReporter::ReportError("one argument expected");
     return nl->TypeError();
   }
-
-  ListExpr first = nl->First(args);
-
-  if(nl->ListLength(first)!=2){
-     ErrorReporter::ReportError("stream(record(...)) expected");
-     return nl->TypeError();
+  if(!Stream<Record>::checkType(nl->First(args))){
+    ErrorReporter::ReportError("stream(record(X)) expected");
+    return nl->TypeError();
   }
 
-  if(!nl->IsEqual(nl->First(first),Symbol::STREAM())){
-     ErrorReporter::ReportError("stream(record(...)) expected");
-     return nl->TypeError();
-  }
+  ListExpr attrList = nl->Rest(nl->Second(nl->First(args)));
+  return nl->TwoElemList(nl->SymbolAtom( Stream<Tuple>::BasicType()),
+                  nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                         attrList));
 
-  first = nl->Second(first);
 
-  if(!nl->IsEqual(nl->First(first),Record::BasicType())){
-     ErrorReporter::ReportError("stream(record) expected");
-     return nl->TypeError();
-  }
-
-  first = nl->Cons(nl->SymbolAtom(Symbol::STREAM()), nl->OneElemList(
-     nl->Cons(nl->SymbolAtom(Tuple::BasicType()),
-              nl->OneElemList(nl->Rest(first)))));
-  return first;
 }
 
 /*
