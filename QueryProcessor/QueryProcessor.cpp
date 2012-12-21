@@ -4789,7 +4789,8 @@ QueryProcessor::GetNoSons( const Supplier s )
   else
   {
     cerr << "Error - GetNoSons: not an operator node. " << endl;
-    exit ( 0 );
+    assert(false);
+    exit(0);
   }
 }
 
