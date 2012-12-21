@@ -14302,6 +14302,9 @@ SpatialTranslateMap( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
+    if(!nl->HasLength(arg2,2)){
+       return listutils::typeError("Invalid number of parameter");
+    }
 
     if( SpatialTypeOfSymbol( arg1 ) == stregion &&
         nl->IsEqual(nl->First( arg2 ), CcReal::BasicType()) &&
@@ -15030,11 +15033,11 @@ Type Mapping for ~collect\_line~ and ~collect\_sline~
 
 */
 ListExpr SpatialCollectLineTypeMap(ListExpr args){
-  if( nl->IsEmpty(args) || nl->IsAtom(args) || !nl->ListLength(args) == 2){
+  if( nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 2){
     return listutils::typeError("Expects exactly 2 arguments.");
   }
   ListExpr stream = nl->First(args);
-  if(!listutils::isDATAStream(stream)){
+  if(!Stream<Attribute>::checkType(stream)){
     return listutils::typeError("Expects a DATA stream.");
   }
   ListExpr T = nl->Second(stream);
@@ -15048,14 +15051,14 @@ ListExpr SpatialCollectLineTypeMap(ListExpr args){
                                 "{point, sline, line}.");
   }
   ListExpr arg2 = nl->Second(args);
-  if(!listutils::isSymbol(arg2,CcBool::BasicType())){
+  if(!CcBool::checkType(arg2)){
     return listutils::typeError("Second argument must be bool.");
   }
   return nl->SymbolAtom(Line::BasicType());
 }
 
 ListExpr SpatialCollectSLineTypeMap(ListExpr args){
-  if( nl->IsEmpty(args) || nl->IsAtom(args) || !nl->ListLength(args) == 2){
+  if( nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 2){
     return listutils::typeError("Expects exactly 2 arguments.");
   }
   ListExpr stream = nl->First(args);
