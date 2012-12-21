@@ -71,6 +71,8 @@ for query processing.
 #include "SystemInfoRel.h"
 #include "Environment.h"
 #include "Symbols.h"
+#include "Stream.h"
+#include "ListUtils.h"
 
 /*
 Dependencies with other algebras: RelationAlgebra, StandardAlgebra
@@ -2904,24 +2906,18 @@ static ListExpr shuffle_tm(ListExpr args)
 
 static ListExpr shuffle2_tm(ListExpr args)
 {
-  NList l(args);
-
   static const string e1 = expects( Symbol::STREAM(), Tuple::BasicType() );
   string err1 = "expecting (" + e1 + " x int)";
-
-  if ( !checkLength(l, 2, err1) )
-    return l.typeError( err1 );
-
-  //cout << l.first() << endl;
-
-  NList attrs;
-  if ( checkStreamTuple( l.first(), attrs)
-       && l.second().str() == CcInt::BasicType() )
-  {
-    return l.first().listExpr();
+ 
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError(err1);
   }
+  if(!Stream<Tuple>::checkType(nl->First(args)) ||
+     !CcInt::checkType(nl->Second(args))){
+    return listutils::typeError(err1);
+  }
+  return nl->First(args);
 
-  return l.typeError( argNotCorrect(1) + err1);
 }
 
 

@@ -429,6 +429,24 @@ TypeMapUse2( ListExpr args )
   sarg2 = nl->Second( args );
   map   = nl->Third( args );
 
+  // check basics
+  if(!Stream<Tuple>::checkType(sarg1) && !Stream<Attribute>::checkType(sarg1) &&
+     !Attribute::checkType(sarg1)){
+     return listutils::typeError("first argument has to be a tuple stream, "
+                                  "a data stream or an attribute");
+  }
+
+  if(!Stream<Tuple>::checkType(sarg2) && !Stream<Attribute>::checkType(sarg2) &&
+     !Attribute::checkType(sarg2)){
+     return listutils::typeError("second argument has to be a tuple stream, "
+                                  "a data stream or an attribute");
+  }
+  if(!listutils::isMap<2>(map)){
+    return listutils::typeError("third argument is not a map having 2" 
+                               " arguments");
+  }
+
+
   // 2. First argument
   // check sarg1 for being a stream
   if( nl->IsAtom( sarg1 )

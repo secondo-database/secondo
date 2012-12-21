@@ -1221,6 +1221,9 @@ X          | Y
 
 ListExpr createlistTM (ListExpr args)
 {
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("stream(data) expected");
+  }
   ListExpr stream = nl->First(args);
   if(!listutils::isDATAStream(stream)){
     return listutils::typeError("Expects a DATA stream.");

@@ -2144,179 +2144,183 @@ struct FConsumeInfo : OperatorInfo {
 */
 ListExpr FConsumeTypeMap(ListExpr args)
 {
-  NList l(args);
-  string lengthErr =
-      "ERROR!Operator fconsume expects 4 parameter groups, "
-      "separated by semicolons";
-  string typeErr = "ERROR!Operator fconsume expects "
-               "(stream(tuple(...)) "
-               "fileName: string, filePath: text, "
-               "[rowNum: int] x [fileSuffix: int]; "
-               "[typeNodeIndex: int] [typeNodeIndex2: int]; "
-               "[targetNodeIndex: int, duplicateTimes: int])";
-  string typeErr2 =
-      "ERROR!The basic parameters expects "
-      "[fileName: string, filePath: text, "
-      "[rowNum: int], [fileSuffix: int]]";
-  string typeErr3 = "ERROR!Type remote nodes expects "
-      "[[typeNodeIndex: int], [typeNodeIndex2: int]]";
-  string typeErr4 = "ERROR!Data remote nodes expects "
-      "[targetNode:int, duplicateTimes: int]";
-  string err1 = "ERROR!The file name should NOT be empty!";
-  string err2 = "ERROR!Cannot create type file: \n";
-  string err3 = "ERROR!Infeasible evaluation in TM for attribute: ";
-  string err4 = "ERROR!Expect the file name and path.";
-  string err5 = "ERROR!Expect the file suffix.";
-  string err6 = "ERROR!Expect the target index and dupTimes.";
-  string err7 = "ERROR!Remote node for type file is out of range";
-  string err8 = "ERROR!Building up master and slave list fails, "
-      "is $PARALLEL_SECONDO_SLAVES and $PARALLEL_SECONDO_MASTERS "
-      "correctly set up ?";
-  string err9 = "ERROR!Remote copy type file fail.";
-
-  int len = l.length();
-  if ( len != 4)
-    return l.typeError(lengthErr);
-
-  string filePreName, filePath;
-  bool trMode, drMode;
-  drMode = trMode = false;
-  int tNode[2] = {-1, -1};
-
-  NList tsList = l.first(); //input tuple stream
-  NList bsList = l.second(); //basic parameters
-  NList trList = l.third();  //type remote parameters
-  NList drList = l.fourth(); //data remote parameters
-
-  NList attr;
-  if(!tsList.first().checkStreamTuple(attr) )
-    return l.typeError(typeErr);
-
-  //Basic parameters
-  //The first list contains all parameters' types
-  NList pType = bsList.first();
-  //The second list contains all parameter's values
-  NList pValue = bsList.second();
-  if (pType.length() < 2 || pType.length() > 4)
-    return l.typeError(typeErr2);
-
-  if (pType.first().isSymbol(CcString::BasicType()) &&
-      pType.second().isSymbol(FText::BasicType()))
-  {
-    if (pType.length() > 2)
-    {
-      if (!pType.third().isSymbol(CcInt::BasicType()))
-        return l.typeError(err5);
-
-      if ((4 == pType.length()) &&
-          !pType.fourth().isSymbol(CcInt::BasicType()))
-        return l.typeError(err5);
-    }
-
-    NList fnList;
-    if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fnList))
-      return l.typeError(err3 + "file prefix name");
-    filePreName = fnList.str();
-    if (0 == filePreName.length())
-      return l.typeError(err1);
-    NList fpList;
-    if (!QueryProcessor::GetNLArgValueInTM(pValue.second(), fpList))
-      return l.typeError(err3 + "filePath");
-    filePath = fpList.str();
+  try{
+     NList l(args);
+     string lengthErr =
+         "ERROR!Operator fconsume expects 4 parameter groups, "
+         "separated by semicolons";
+     string typeErr = "ERROR!Operator fconsume expects "
+                  "(stream(tuple(...)) "
+                  "fileName: string, filePath: text, "
+                  "[rowNum: int] x [fileSuffix: int]; "
+                  "[typeNodeIndex: int] [typeNodeIndex2: int]; "
+                  "[targetNodeIndex: int, duplicateTimes: int])";
+     string typeErr2 =
+         "ERROR!The basic parameters expects "
+         "[fileName: string, filePath: text, "
+         "[rowNum: int], [fileSuffix: int]]";
+     string typeErr3 = "ERROR!Type remote nodes expects "
+         "[[typeNodeIndex: int], [typeNodeIndex2: int]]";
+     string typeErr4 = "ERROR!Data remote nodes expects "
+         "[targetNode:int, duplicateTimes: int]";
+     string err1 = "ERROR!The file name should NOT be empty!";
+     string err2 = "ERROR!Cannot create type file: \n";
+     string err3 = "ERROR!Infeasible evaluation in TM for attribute: ";
+     string err4 = "ERROR!Expect the file name and path.";
+     string err5 = "ERROR!Expect the file suffix.";
+     string err6 = "ERROR!Expect the target index and dupTimes.";
+     string err7 = "ERROR!Remote node for type file is out of range";
+     string err8 = "ERROR!Building up master and slave list fails, "
+         "is $PARALLEL_SECONDO_SLAVES and $PARALLEL_SECONDO_MASTERS "
+         "correctly set up ?";
+     string err9 = "ERROR!Remote copy type file fail.";
+   
+     int len = l.length();
+     if ( len != 4)
+       return l.typeError(lengthErr);
+   
+     string filePreName, filePath;
+     bool trMode, drMode;
+     drMode = trMode = false;
+     int tNode[2] = {-1, -1};
+   
+     NList tsList = l.first(); //input tuple stream
+     NList bsList = l.second(); //basic parameters
+     NList trList = l.third();  //type remote parameters
+     NList drList = l.fourth(); //data remote parameters
+   
+     NList attr;
+     if(!tsList.first().checkStreamTuple(attr) )
+       return l.typeError(typeErr);
+   
+     //Basic parameters
+     //The first list contains all parameters' types
+     NList pType = bsList.first();
+     //The second list contains all parameter's values
+     NList pValue = bsList.second();
+     if (pType.length() < 2 || pType.length() > 4)
+       return l.typeError(typeErr2);
+   
+     if (pType.first().isSymbol(CcString::BasicType()) &&
+         pType.second().isSymbol(FText::BasicType()))
+     {
+       if (pType.length() > 2)
+       {
+         if (!pType.third().isSymbol(CcInt::BasicType()))
+           return l.typeError(err5);
+   
+         if ((4 == pType.length()) &&
+             !pType.fourth().isSymbol(CcInt::BasicType()))
+           return l.typeError(err5);
+       }
+   
+       NList fnList;
+       if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fnList))
+         return l.typeError(err3 + "file prefix name");
+       filePreName = fnList.str();
+       if (0 == filePreName.length())
+         return l.typeError(err1);
+       NList fpList;
+       if (!QueryProcessor::GetNLArgValueInTM(pValue.second(), fpList))
+         return l.typeError(err3 + "filePath");
+       filePath = fpList.str();
+     }
+     else
+       return l.typeError(err4);
+   
+     pType = trList.first();
+     if (!pType.isEmpty())
+     {
+       if (pType.length() > 2)
+         return l.typeError(typeErr3);
+       while (!pType.isEmpty())
+       {
+         if (!pType.first().isSymbol(CcInt::BasicType()))
+           return l.typeError(typeErr3);
+         pType.rest();
+       }
+   
+       pValue = trList.second();
+       trMode = true;
+       int cnt = 0;
+       while (!pValue.isEmpty())
+       {
+         NList nList;
+         if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), nList))
+           return l.typeError(err3 + " type node index");
+         tNode[cnt++] = nList.intval();
+         pValue.rest();
+       }
+     }
+   
+     pType = drList.first();
+     if (!pType.isEmpty())
+     {
+       if (pType.length() != 2)
+         return l.typeError(err6);
+       if (!pType.first().isSymbol(CcInt::BasicType()) ||
+           !pType.second().isSymbol(CcInt::BasicType()))
+         return l.typeError(typeErr4);
+       drMode = true;
+     }
+   
+     //Type Checking is done, create the type file.
+     filePath = getLocalFilePath(filePath, filePreName, "_type");
+     if (filePath.length() == 0)
+       return l.typeError(err2 +
+         "Type file path is unavailable, check the SecondoConfig.ini.");
+     ofstream typeFile(filePath.c_str());
+     NList resultList = NList(NList(Relation::BasicType()),
+                              tsList.first().second());
+     if (typeFile.good())
+     {
+       typeFile << resultList.convertToString() << endl;
+       typeFile.close();
+       cerr << "Type file: " << filePath << " is created. " << endl;
+     }
+     else
+       return l.typeError(
+           err2 + "Type file path is unavailable: " + filePath);
+   
+     //Verify the existence of the PARALLEL\_SECONDO\_SLAVES file
+     if (trMode || drMode)
+     {
+       clusterInfo *ci = new clusterInfo();
+   
+       if (!ci->isOK())
+         return l.typeError(err8);
+       int sLen = ci->getSlaveSize();
+       //Copy type files to remote location
+       for (int i = 0; i < 2; i++)
+       {
+         if (tNode[i] >= 0)
+         {
+           if ( tNode[i] > sLen )
+           {
+             ci->print();
+             return l.typeError(err7);
+           }
+           else
+           {
+   /*
+   Copy the type file to a remote path without changing the file name.
+   The master node is also included.
+   
+   */
+             string rPath = ci->getRemotePath(tNode[i]);
+             cerr << "Copy type file to -> \t" << rPath << endl;
+             if ( 0 != (system
+                 ((scpCommand + filePath + " " + rPath).c_str())))
+               return l.typeError(err9);
+           }
+         }
+       }
+     }
+   
+     return NList(NList(CcBool::BasicType())).listExpr();
+  } catch(...){
+      return listutils::typeError("invalid input");
   }
-  else
-    return l.typeError(err4);
-
-  pType = trList.first();
-  if (!pType.isEmpty())
-  {
-    if (pType.length() > 2)
-      return l.typeError(typeErr3);
-    while (!pType.isEmpty())
-    {
-      if (!pType.first().isSymbol(CcInt::BasicType()))
-        return l.typeError(typeErr3);
-      pType.rest();
-    }
-
-    pValue = trList.second();
-    trMode = true;
-    int cnt = 0;
-    while (!pValue.isEmpty())
-    {
-      NList nList;
-      if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), nList))
-        return l.typeError(err3 + " type node index");
-      tNode[cnt++] = nList.intval();
-      pValue.rest();
-    }
-  }
-
-  pType = drList.first();
-  if (!pType.isEmpty())
-  {
-    if (pType.length() != 2)
-      return l.typeError(err6);
-    if (!pType.first().isSymbol(CcInt::BasicType()) ||
-        !pType.second().isSymbol(CcInt::BasicType()))
-      return l.typeError(typeErr4);
-    drMode = true;
-  }
-
-  //Type Checking is done, create the type file.
-  filePath = getLocalFilePath(filePath, filePreName, "_type");
-  if (filePath.length() == 0)
-    return l.typeError(err2 +
-      "Type file path is unavailable, check the SecondoConfig.ini.");
-  ofstream typeFile(filePath.c_str());
-  NList resultList = NList(NList(Relation::BasicType()),
-                           tsList.first().second());
-  if (typeFile.good())
-  {
-    typeFile << resultList.convertToString() << endl;
-    typeFile.close();
-    cerr << "Type file: " << filePath << " is created. " << endl;
-  }
-  else
-    return l.typeError(
-        err2 + "Type file path is unavailable: " + filePath);
-
-  //Verify the existence of the PARALLEL\_SECONDO\_SLAVES file
-  if (trMode || drMode)
-  {
-    clusterInfo *ci = new clusterInfo();
-
-    if (!ci->isOK())
-      return l.typeError(err8);
-    int sLen = ci->getSlaveSize();
-    //Copy type files to remote location
-    for (int i = 0; i < 2; i++)
-    {
-      if (tNode[i] >= 0)
-      {
-        if ( tNode[i] > sLen )
-        {
-          ci->print();
-          return l.typeError(err7);
-        }
-        else
-        {
-/*
-Copy the type file to a remote path without changing the file name.
-The master node is also included.
-
-*/
-          string rPath = ci->getRemotePath(tNode[i]);
-          cerr << "Copy type file to -> \t" << rPath << endl;
-          if ( 0 != (system
-              ((scpCommand + filePath + " " + rPath).c_str())))
-            return l.typeError(err9);
-        }
-      }
-    }
-  }
-
-  return NList(NList(CcBool::BasicType())).listExpr();
 }
 
 
@@ -2735,137 +2739,144 @@ struct FFeedInfo : OperatorInfo {
 
 ListExpr FFeedTypeMap(ListExpr args)
 {
-  NList l(args);
-  NList pType, pValue;
-  bool haveIndex, trMode, drMode;
-  haveIndex = trMode = drMode = false;
-
-  string lenErr = "ERROR! Operator ffeed expects "
-      "four parts parameters, separated by semicolons";
-  string typeErr = "ERROR! Operator ffeed expects "
-      "fileName: string, filePath: text, "
-      "[rowNum: int] [fileSuffix: int]; "
-      "[typeNodeIndex: int]; "
-      "[producerIndex: int, targetIndex: int, attemptTimes: int]";
-  string err1 = "ERROR! File name should NOT be empty!";
-  string err2 = "ERROR! Type file is NOT exist!\n";
-  string err3 = "ERROR! A tuple relation type list is "
-      "NOT contained in file: ";
-  string err4 = "ERROR! Infeasible evaluation in TM for attribute ";
-  string err5 = "ERROR! Prefix parameter expects fileName: string";
-  string err6 = "ERROR! Basic parameters expect "
-      "filePath: text, [rowNum: int] [fileSuffix: int] ";
-  string err7 = "ERROR! Type remote parameter expects "
-      "[typeNodeIndex: int]; ";
-  string err8 = "ERROR! Remote node for type file is out of range.";
-  string err9 = "ERROR! Data remote parameters expect "
-      "[producerIndex: int, targetIndex: int, attemptTimes: int]";
-  string err10 = "ERROR! The slave list file does not exist."
-      "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
-  string err11 = "ERROR! Copy remote type file fail.";
-
-
-  if (l.length() != 4)
-    return l.typeError(lenErr);
-
-  NList fn = l.first();
-  pType = fn.first();
-  pValue = fn.second();
-  if (!pType.isSymbol(CcString::BasicType()))
-    return l.typeError(err5);
-  NList fnList;
-  if (!QueryProcessor::GetNLArgValueInTM(pValue, fnList))
-    return l.typeError(err4 + "fileName");
-  string fileName = fnList.str();
-  if (0 == fileName.length())
-    return l.typeError(err1);
-
-  NList bp = l.second();  //basic parameters
-  pType = bp.first();
-  pValue = bp.second();
-  int bpLen = pType.length();
-  if (bpLen < 1 || bpLen > 3)
-    return l.typeError(err6);
-  if (!pType.first().isSymbol(FText::BasicType()))
-    return l.typeError(err6);
-  if (bpLen > 1)
-  {
-    if (!pType.second().isSymbol(CcInt::BasicType()))
-      return l.typeError(err6);
-    if (bpLen == 3 &&
-        !pType.third().isSymbol(CcInt::BasicType()))
-      return l.typeError(err6);
+  try{
+     NList l(args);
+     NList pType, pValue;
+     bool haveIndex, trMode, drMode;
+     haveIndex = trMode = drMode = false;
+   
+     string lenErr = "ERROR! Operator ffeed expects "
+         "four parts parameters, separated by semicolons";
+     string typeErr = "ERROR! Operator ffeed expects "
+         "fileName: string, filePath: text, "
+         "[rowNum: int] [fileSuffix: int]; "
+         "[typeNodeIndex: int]; "
+         "[producerIndex: int, targetIndex: int, attemptTimes: int]";
+     string err1 = "ERROR! File name should NOT be empty!";
+     string err2 = "ERROR! Type file is NOT exist!\n";
+     string err3 = "ERROR! A tuple relation type list is "
+         "NOT contained in file: ";
+     string err4 = "ERROR! Infeasible evaluation in TM for attribute ";
+     string err5 = "ERROR! Prefix parameter expects fileName: string";
+     string err6 = "ERROR! Basic parameters expect "
+         "filePath: text, [rowNum: int] [fileSuffix: int] ";
+     string err7 = "ERROR! Type remote parameter expects "
+         "[typeNodeIndex: int]; ";
+     string err8 = "ERROR! Remote node for type file is out of range.";
+     string err9 = "ERROR! Data remote parameters expect "
+         "[producerIndex: int, targetIndex: int, attemptTimes: int]";
+     string err10 = "ERROR! The slave list file does not exist."
+         "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
+     string err11 = "ERROR! Copy remote type file fail.";
+   
+   
+     if (l.length() != 4)
+       return l.typeError(lenErr);
+   
+     NList fn = l.first();
+     pType = fn.first();
+     pValue = fn.second();
+     if (!pType.isSymbol(CcString::BasicType()))
+       return l.typeError(err5);
+     NList fnList;
+     if (!QueryProcessor::GetNLArgValueInTM(pValue, fnList))
+       return l.typeError(err4 + "fileName");
+     string fileName = fnList.str();
+     if (0 == fileName.length())
+       return l.typeError(err1);
+   
+     NList bp = l.second();  //basic parameters
+     pType = bp.first();
+     pValue = bp.second();
+     int bpLen = pType.length();
+     if (bpLen < 1 || bpLen > 3)
+       return l.typeError(err6);
+     if (!pType.first().isSymbol(FText::BasicType()))
+       return l.typeError(err6);
+     if (bpLen > 1)
+     {
+       if (!pType.second().isSymbol(CcInt::BasicType()))
+         return l.typeError(err6);
+       if (bpLen == 3 &&
+           !pType.third().isSymbol(CcInt::BasicType()))
+         return l.typeError(err6);
+     }
+   
+     NList fpList;
+     if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fpList))
+       return l.typeError(err4 + "filePath");
+     string filePath = fpList.str();
+     filePath = getLocalFilePath(filePath, fileName, "_type");
+   
+   
+     NList tr = l.third();
+     pType = tr.first();
+     int tnIndex = -1;
+     if (!pType.isEmpty())
+     {
+       if (pType.length() > 1 ||
+           !pType.first().isSymbol(CcInt::BasicType()))
+         return l.typeError(err7);
+       trMode = true;
+       pValue = tr.second();
+       tnIndex = pValue.first().intval();
+     }
+   
+     NList dr = l.fourth();
+     pType = dr.first();
+     if (!pType.isEmpty())
+     {
+       if (pType.length() != 3)
+         return l.typeError(err9);
+       if (!pType.first().isSymbol(CcInt::BasicType()) ||
+           !pType.second().isSymbol(CcInt::BasicType()) ||
+           !pType.third().isSymbol(CcInt::BasicType()))
+         return l.typeError(err9);
+       drMode = true;
+     }
+   
+     if (tnIndex >= 0)
+     {
+       //copy the type file from remote to here
+       clusterInfo *ci = new clusterInfo();
+       if (!ci->isOK())
+         return l.typeError(err10);
+   
+       int sLen = ci->getSlaveSize();
+       if (tnIndex > sLen)
+       {
+         ci->print();
+         return l.typeError(err8);
+       }
+   
+       string rPath = ci->getRemotePath(tnIndex, true, false, true,
+           true, (fileName + "_type"));
+       //put the type file into a temporary file
+       filePath = FileSystem::MakeTemp(filePath);
+       cerr << "Copy the type file " << filePath
+           << " from <-" << "\t" << rPath << endl;
+       if (0 != system((scpCommand + rPath + " " + filePath).c_str()))
+         return l.typeError(err11);
+     }
+   
+     ListExpr relType;
+     if (!nl->ReadFromFile(filePath, relType))
+       return l.typeError(err2 + filePath);
+     //Read type file of DLF flist
+     if (!(listutils::isRelDescription(relType)
+       || listutils::isTupleStream(relType)))
+       return l.typeError(err3 + filePath);
+     NList streamType =
+         NList(NList(Symbol::STREAM()),
+         NList(NList(relType).second()));
+   
+     return streamType.listExpr();
+   
+  } catch(...){
+    return listutils::typeError("invalid input");
   }
 
-  NList fpList;
-  if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fpList))
-    return l.typeError(err4 + "filePath");
-  string filePath = fpList.str();
-  filePath = getLocalFilePath(filePath, fileName, "_type");
 
-
-  NList tr = l.third();
-  pType = tr.first();
-  int tnIndex = -1;
-  if (!pType.isEmpty())
-  {
-    if (pType.length() > 1 ||
-        !pType.first().isSymbol(CcInt::BasicType()))
-      return l.typeError(err7);
-    trMode = true;
-    pValue = tr.second();
-    tnIndex = pValue.first().intval();
-  }
-
-  NList dr = l.fourth();
-  pType = dr.first();
-  if (!pType.isEmpty())
-  {
-    if (pType.length() != 3)
-      return l.typeError(err9);
-    if (!pType.first().isSymbol(CcInt::BasicType()) ||
-        !pType.second().isSymbol(CcInt::BasicType()) ||
-        !pType.third().isSymbol(CcInt::BasicType()))
-      return l.typeError(err9);
-    drMode = true;
-  }
-
-  if (tnIndex >= 0)
-  {
-    //copy the type file from remote to here
-    clusterInfo *ci = new clusterInfo();
-    if (!ci->isOK())
-      return l.typeError(err10);
-
-    int sLen = ci->getSlaveSize();
-    if (tnIndex > sLen)
-    {
-      ci->print();
-      return l.typeError(err8);
-    }
-
-    string rPath = ci->getRemotePath(tnIndex, true, false, true,
-        true, (fileName + "_type"));
-    //put the type file into a temporary file
-    filePath = FileSystem::MakeTemp(filePath);
-    cerr << "Copy the type file " << filePath
-        << " from <-" << "\t" << rPath << endl;
-    if (0 != system((scpCommand + rPath + " " + filePath).c_str()))
-      return l.typeError(err11);
-  }
-
-  ListExpr relType;
-  if (!nl->ReadFromFile(filePath, relType))
-    return l.typeError(err2 + filePath);
-  //Read type file of DLF flist
-  if (!(listutils::isRelDescription(relType)
-    || listutils::isTupleStream(relType)))
-    return l.typeError(err3 + filePath);
-  NList streamType =
-      NList(NList(Symbol::STREAM()),
-      NList(NList(relType).second()));
-
-  return streamType.listExpr();
 }
 
 /*
@@ -3399,131 +3410,136 @@ struct HdpJoinInfo : OperatorInfo {
 
 ListExpr hdpJoinTypeMap(ListExpr args)
 {
-  string lengErr = "Operator hadoopjoin expects a list "
-      "of seven arguments. ";
-  string typeErr = "operator hadoopjoin expects "
-      "(stream(tuple(T1)), stream(tuple(T2)), "
-      "[rel(tuple(int, text))] "
-      "partAttr1, partAttr2, int, string, "
-      "(map (stream(tuple(T1))) stream(tuple(T2)) "
-      "  stream(tuple(T1 T2))) )";
-  string err1 =
-      "ERROR! Infeasible evaluation in TM for attribute ";
-
-  NList l(args);
-  bool dre = true;  // Dataloc Relation Exist
-  if (l.length() != 8)
-    return l.typeError(lengErr);
-
-  string ss[2] = {"", ""};  // nested list of input streams
-  string an[2] = {"", ""};  // attribute name
-  int attrOffset = 2;       //The offset of argument parameter
-  //Check both input are tuple streams,
-  //and the partition attribute is included in respective stream
-  for (int argIndex = 1; argIndex <= 2; argIndex++)
-  {
-    NList attrList;
-    NList streamList = l.elem(argIndex).first();
-    if (!streamList.checkStreamTuple(attrList))
-      return l.typeError(typeErr);
-
-    NList partAttr = l.elem(argIndex + attrOffset).first();
-    if (!partAttr.isAtom())
-      return l.typeError(typeErr);
-
-    ListExpr attrType;
-    string attrName = partAttr.str();
-    int attrIndex = listutils::findAttribute(
-        attrList.listExpr(), attrName, attrType);
-    if (attrIndex <= 0)
-      return l.typeError(typeErr);
-
-    ss[argIndex - 1] = l.elem(argIndex).second().convertToString();
-    an[argIndex - 1] = attrName;
-  }
-
-  // Partition scale number
-  if (!l.fifth().first().isSymbol(CcInt::BasicType()))
-    return l.typeError(typeErr);
-
-  // Result file name
-  if (!l.sixth().first().isSymbol(CcString::BasicType()))
-    return l.typeError(typeErr);
-
-  NList rnList;
-  if (!QueryProcessor::GetNLArgValueInTM(
-        l.sixth().second(), rnList))
-    return l.typeError(err1 + " resultName");
-  string resultName = rnList.str();
-
-  // Check for the data location
-  NList drList = l.elem(7).first();
-  if (!drList.isEmpty())
-  {
-    // Check the dataLocRel
-    dre = true;
-    NList drType = drList.first();
-    NList drAttrList;
-    if (!drType.checkRel(drAttrList)){
-      return l.typeError(typeErr);
-    }
-
-    if (!(drAttrList.first().second().isSymbol(CcInt::BasicType())
-       && drAttrList.second().second().isSymbol(FText::BasicType())))
-    {
-      return l.typeError(typeErr);
-    }
-  }
-
-  string mapStr = l.elem(8).second().fourth().convertToString();
-  NList mapList = l.elem(8).first();
-
-  NList attrAB;
-  if (! (mapList.first().isSymbol(Symbol::MAP())
-      && mapList.fourth().checkStreamTuple(attrAB)))
-    return l.typeError(typeErr);
-
-    // Write the join result type into local default path,
-    // in case the following operators need.
-    NList joinResult =
-        NList(NList(Relation::BasicType()),
-              NList(NList(Tuple::BasicType()), NList(attrAB)));
-    string typeFileName =
-        getLocalFilePath("", resultName, "_type", true);
-    ofstream typeFile(typeFileName.c_str());
-    if (!typeFile.good())
-      cerr << "Create typeInfo file Result_type "
-          "in default parallel path error!" << endl;
-    else
-    {
-      //The accepted input is a stream tuple
-      typeFile << joinResult.convertToString() << endl;
-      typeFile.close();
-    }
-    cerr << "\nSuccess created type file: "
-        << typeFileName << endl;
-
-    // result type
-    NList a1(NList("MIndex"), NList(CcInt::BasicType()));
-    NList a2(NList("PIndex"), NList(CcInt::BasicType()));
-
-    NList result(
-        NList(Symbols::STREAM()),
-          NList(NList(Tuple::BasicType()),
-            NList(
-              NList(NList("MIndex"), NList(CcInt::BasicType())),
-              NList(NList("PIndex"), NList(CcInt::BasicType())))));
-
-    NList appList;
-    appList.append(NList(ss[0], true, true));
-    appList.append(NList(ss[1], true, true));
-    appList.append(NList(mapStr, true, true));
-    appList.append(NList(an[0], true, false));
-    appList.append(NList(an[1], true, false));
-    appList.append(NList(dre, false));
-
-    return NList(NList(Symbol::APPEND()),
-                 appList, result).listExpr();
+  try{
+     string lengErr = "Operator hadoopjoin expects a list "
+         "of seven arguments. ";
+     string typeErr = "operator hadoopjoin expects "
+         "(stream(tuple(T1)), stream(tuple(T2)), "
+         "[rel(tuple(int, text))] "
+         "partAttr1, partAttr2, int, string, "
+         "(map (stream(tuple(T1))) stream(tuple(T2)) "
+         "  stream(tuple(T1 T2))) )";
+     string err1 =
+         "ERROR! Infeasible evaluation in TM for attribute ";
+   
+     NList l(args);
+     bool dre = true;  // Dataloc Relation Exist
+     if (l.length() != 8)
+       return l.typeError(lengErr);
+   
+     string ss[2] = {"", ""};  // nested list of input streams
+     string an[2] = {"", ""};  // attribute name
+     int attrOffset = 2;       //The offset of argument parameter
+     //Check both input are tuple streams,
+     //and the partition attribute is included in respective stream
+     for (int argIndex = 1; argIndex <= 2; argIndex++)
+     {
+       NList attrList;
+       NList streamList = l.elem(argIndex).first();
+       if (!streamList.checkStreamTuple(attrList))
+         return l.typeError(typeErr);
+   
+       NList partAttr = l.elem(argIndex + attrOffset).first();
+       if (!partAttr.isAtom())
+         return l.typeError(typeErr);
+   
+       ListExpr attrType;
+       string attrName = partAttr.str();
+       int attrIndex = listutils::findAttribute(
+           attrList.listExpr(), attrName, attrType);
+       if (attrIndex <= 0)
+         return l.typeError(typeErr);
+   
+       ss[argIndex - 1] = l.elem(argIndex).second().convertToString();
+       an[argIndex - 1] = attrName;
+     }
+   
+     // Partition scale number
+     if (!l.fifth().first().isSymbol(CcInt::BasicType()))
+       return l.typeError(typeErr);
+   
+     // Result file name
+     if (!l.sixth().first().isSymbol(CcString::BasicType()))
+       return l.typeError(typeErr);
+   
+     NList rnList;
+     if (!QueryProcessor::GetNLArgValueInTM(
+           l.sixth().second(), rnList))
+       return l.typeError(err1 + " resultName");
+     string resultName = rnList.str();
+   
+     // Check for the data location
+     NList drList = l.elem(7).first();
+     if (!drList.isEmpty())
+     {
+       // Check the dataLocRel
+       dre = true;
+       NList drType = drList.first();
+       NList drAttrList;
+       if (!drType.checkRel(drAttrList)){
+         return l.typeError(typeErr);
+       }
+   
+       if (!(drAttrList.first().second().isSymbol(CcInt::BasicType())
+          && drAttrList.second().second().isSymbol(FText::BasicType())))
+       {
+         return l.typeError(typeErr);
+       }
+     }
+   
+     string mapStr = l.elem(8).second().fourth().convertToString();
+     NList mapList = l.elem(8).first();
+   
+     NList attrAB;
+     if (! (mapList.first().isSymbol(Symbol::MAP())
+         && mapList.fourth().checkStreamTuple(attrAB)))
+       return l.typeError(typeErr);
+   
+       // Write the join result type into local default path,
+       // in case the following operators need.
+       NList joinResult =
+           NList(NList(Relation::BasicType()),
+                 NList(NList(Tuple::BasicType()), NList(attrAB)));
+       string typeFileName =
+           getLocalFilePath("", resultName, "_type", true);
+       ofstream typeFile(typeFileName.c_str());
+       if (!typeFile.good())
+         cerr << "Create typeInfo file Result_type "
+             "in default parallel path error!" << endl;
+       else
+       {
+         //The accepted input is a stream tuple
+         typeFile << joinResult.convertToString() << endl;
+         typeFile.close();
+       }
+       cerr << "\nSuccess created type file: "
+           << typeFileName << endl;
+   
+       // result type
+       NList a1(NList("MIndex"), NList(CcInt::BasicType()));
+       NList a2(NList("PIndex"), NList(CcInt::BasicType()));
+   
+       NList result(
+           NList(Symbols::STREAM()),
+             NList(NList(Tuple::BasicType()),
+               NList(
+                 NList(NList("MIndex"), NList(CcInt::BasicType())),
+                 NList(NList("PIndex"), NList(CcInt::BasicType())))));
+   
+       NList appList;
+       appList.append(NList(ss[0], true, true));
+       appList.append(NList(ss[1], true, true));
+       appList.append(NList(mapStr, true, true));
+       appList.append(NList(an[0], true, false));
+       appList.append(NList(an[1], true, false));
+       appList.append(NList(dre, false));
+   
+       return NList(NList(Symbol::APPEND()),
+                    appList, result).listExpr();
+   
+   }catch(...){
+      return listutils::typeError("invalid input");
+   }
 }
 
 /*
@@ -3813,231 +3829,234 @@ struct FDistributeInfo : OperatorInfo {
 8.1 Type mapping
 
 */
-ListExpr FDistributeTypeMap(ListExpr args)
-{
-  NList l(args);
-  string lenErr = "ERROR!Operator expects 5 parts arguments.";
-  string typeErr = "ERROR!Operator expects "
-      "(stream(tuple(a1, a2, ..., an))) "
-      "x string x text x ai x [int] x [int] x [bool] "
-      "x [int] x [int] x [ int x int ] ";
-  string attErr = "ERROR!Operator cannot find the "
-      "partition attribute: ";
-  string err4 = "ERROR!Basic arguments expect "
-      "fileName: string, filePath: text, attrName: ai"
-      "[rowNum: int]";
-  string err11 = "ERROR!Parition mode expects "
-      "{nBuckets: int}, {keepPartAttr: bool}";
-  string err5 = "ERROR!Type remote nodes expects "
-      "[[typeNodeIndex: int], [typeNodeIndex2: int]]";
-  string err6 = "ERROR!Data remote nodes expects "
-        "[targetNode:int, duplicateTimes: int]";
-
-  string err1 = "ERROR!Infeasible evaluation in TM for attribute ";
-  string err2 = "ERROR!The file name should NOT be empty!";
-  string err3 = "ERROR!Fail by openning file: ";
-  string err7 = "ERROR!Infeasible evaluation in TM for attribute: ";
-  string err8 = "ERROR!The slave list file does not exist."
-        "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
-  string err9 = "ERROR!Remote node for type file is out of range";
-  string err10 = "ERROR!Remote duplicate type file fail.";
-
-  if (l.length() != 5)
-    return l.typeError(lenErr);
-
-  NList pType, pValue;
-
-  //First part argument (including stream(tuple(...)) )
-  NList attrsList;
-  if (!l.first().first().checkStreamTuple(attrsList))
-    return l.typeError(typeErr);
-
-  NList bpList = l.second();
-  //Basic parameters (including string, text, symbol, [int])
-  pType = bpList.first();
-  pValue = bpList.second();
-  int bpLen = pType.length();
-
-  if (bpLen < 3 || bpLen > 4)
-    return l.typeError(err4);
-
-  // File name
-  if (!pType.first().isSymbol(CcString::BasicType()))
-    return l.typeError(err4);
-  NList fnList;
-  if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fnList))
-    return l.typeError(err1 + "fileName");
-  string filePrefix = fnList.str();
-  if (0 == filePrefix.length())
-    return l.typeError(err2);
-
-  // File path
-  if (!pType.second().isSymbol(FText::BasicType()))
-    return l.typeError(err4);
-  NList fpList;
-  if (!QueryProcessor::GetNLArgValueInTM(pValue.second(), fpList))
-    return l.typeError(err1 + "filePath");
-  string filePath = fpList.str();
-
-  // Partition attribute
-  if (!pType.third().isSymbol())
-    return l.typeError(typeErr + "\n" + err4);
-  string attrName = pValue.third().convertToString();
-  ListExpr attrType;
-  int attrIndex = listutils::findAttribute(
-      attrsList.listExpr(), attrName, attrType);
-  if (attrIndex < 1)
-    return l.typeError(attErr + attrName);
-
-  //Optional row number
-  if ( bpLen == 4 )
-    if (!pType.fourth().isSymbol(CcInt::BasicType()))
-      return l.typeError(err4);
-
-  bool evenMode = false;
-  bool setKPA = false, KPA = false;
-  NList pmList = l.third();
-  //Partition mode (including [nBuckets], [KPA])
-  pType = pmList.first();
-  pValue = pmList.second();
-  int pmLen = pType.length();
-  if (pmLen < 0 || pmLen > 2)
-    return l.typeError(err11);
-  if (1 == pmLen)
-  {
-    if (pType.first().isSymbol(CcInt::BasicType()))
-      evenMode = true;
-    else if (pType.first().isSymbol(CcBool::BasicType()))
-    {
-      setKPA = true;
-      KPA = pValue.first().boolval();
-    }
-    else
-      return l.typeError(err11);
+ListExpr FDistributeTypeMap(ListExpr args){
+  try{
+     NList l(args);
+     string lenErr = "ERROR!Operator expects 5 parts arguments.";
+     string typeErr = "ERROR!Operator expects "
+         "(stream(tuple(a1, a2, ..., an))) "
+         "x string x text x ai x [int] x [int] x [bool] "
+         "x [int] x [int] x [ int x int ] ";
+     string attErr = "ERROR!Operator cannot find the "
+         "partition attribute: ";
+     string err4 = "ERROR!Basic arguments expect "
+         "fileName: string, filePath: text, attrName: ai"
+         "[rowNum: int]";
+     string err11 = "ERROR!Parition mode expects "
+         "{nBuckets: int}, {keepPartAttr: bool}";
+     string err5 = "ERROR!Type remote nodes expects "
+         "[[typeNodeIndex: int], [typeNodeIndex2: int]]";
+     string err6 = "ERROR!Data remote nodes expects "
+           "[targetNode:int, duplicateTimes: int]";
+   
+     string err1 = "ERROR!Infeasible evaluation in TM for attribute ";
+     string err2 = "ERROR!The file name should NOT be empty!";
+     string err3 = "ERROR!Fail by openning file: ";
+     string err7 = "ERROR!Infeasible evaluation in TM for attribute: ";
+     string err8 = "ERROR!The slave list file does not exist."
+           "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
+     string err9 = "ERROR!Remote node for type file is out of range";
+     string err10 = "ERROR!Remote duplicate type file fail.";
+   
+     if (l.length() != 5)
+       return l.typeError(lenErr);
+   
+     NList pType, pValue;
+   
+     //First part argument (including stream(tuple(...)) )
+     NList attrsList;
+     if (!l.first().first().checkStreamTuple(attrsList))
+       return l.typeError(typeErr);
+   
+     NList bpList = l.second();
+     //Basic parameters (including string, text, symbol, [int])
+     pType = bpList.first();
+     pValue = bpList.second();
+     int bpLen = pType.length();
+   
+     if (bpLen < 3 || bpLen > 4)
+       return l.typeError(err4);
+   
+     // File name
+     if (!pType.first().isSymbol(CcString::BasicType()))
+       return l.typeError(err4);
+     NList fnList;
+     if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), fnList))
+       return l.typeError(err1 + "fileName");
+     string filePrefix = fnList.str();
+     if (0 == filePrefix.length())
+       return l.typeError(err2);
+   
+     // File path
+     if (!pType.second().isSymbol(FText::BasicType()))
+       return l.typeError(err4);
+     NList fpList;
+     if (!QueryProcessor::GetNLArgValueInTM(pValue.second(), fpList))
+       return l.typeError(err1 + "filePath");
+     string filePath = fpList.str();
+   
+     // Partition attribute
+     if (!pType.third().isSymbol())
+       return l.typeError(typeErr + "\n" + err4);
+     string attrName = pValue.third().convertToString();
+     ListExpr attrType;
+     int attrIndex = listutils::findAttribute(
+         attrsList.listExpr(), attrName, attrType);
+     if (attrIndex < 1)
+       return l.typeError(attErr + attrName);
+   
+     //Optional row number
+     if ( bpLen == 4 )
+       if (!pType.fourth().isSymbol(CcInt::BasicType()))
+         return l.typeError(err4);
+   
+     bool evenMode = false;
+     bool setKPA = false, KPA = false;
+     NList pmList = l.third();
+     //Partition mode (including [nBuckets], [KPA])
+     pType = pmList.first();
+     pValue = pmList.second();
+     int pmLen = pType.length();
+     if (pmLen < 0 || pmLen > 2)
+       return l.typeError(err11);
+     if (1 == pmLen)
+     {
+       if (pType.first().isSymbol(CcInt::BasicType()))
+         evenMode = true;
+       else if (pType.first().isSymbol(CcBool::BasicType()))
+       {
+         setKPA = true;
+         KPA = pValue.first().boolval();
+       }
+       else
+         return l.typeError(err11);
+     }
+     else if (2 == pmLen)
+     {
+       if (!pType.first().isSymbol(CcInt::BasicType()) ||
+           !pType.second().isSymbol( CcBool::BasicType()))
+         return l.typeError(err11);
+       else
+       {
+         evenMode = true;
+         setKPA = true;
+         KPA = pValue.second().boolval();
+       }
+     }
+   
+     //Remove the attribute used for partition the relation
+     NList newAL; //new attribute list
+     if (KPA)
+       newAL = attrsList;
+     else
+     {
+       NList rest = attrsList;
+       while (!rest.isEmpty())
+       {
+         NList elem = rest.first();
+         rest.rest();
+         if (elem.first().str() != attrName)
+           newAL.append(elem);
+       }
+     }
+   
+     //Create the type file in local disk
+     string typeFileName = filePrefix + "_type";
+     filePath = getLocalFilePath(filePath, typeFileName, "");
+     ofstream typeFile(filePath.c_str());
+     NList resultList =
+             NList(NList(Relation::BasicType()),
+                   NList(NList(Tuple::BasicType()), newAL));
+     if (!typeFile.good())
+       return l.typeError(err3 + filePath);
+     else
+     {
+       typeFile << resultList.convertToString() << endl;
+       cerr << "Created type file " << filePath << endl;
+     }
+     typeFile.close();
+   
+     clusterInfo* ci = 0;
+     NList trList = l.fourth();
+     pType = trList.first();
+     int tNode[2] = {-1, -1};
+     if (!pType.isEmpty())
+     {
+       ci = new clusterInfo();
+       if (!ci->isOK())
+         return l.typeError(err8);
+   
+       //Get the type index and duplicate the type file.
+       if (pType.length() > 2)
+         return l.typeError(err5);
+       while (!pType.isEmpty())
+       {
+         if (!pType.first().isSymbol(CcInt::BasicType()))
+           return l.typeError(err5);
+         pType.rest();
+       }
+   
+       pValue = trList.second();
+       int cnt = 0;
+       while(!pValue.isEmpty())
+       {
+         NList nList;
+         if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), nList))
+           return l.typeError( err7 + " type node index");
+         tNode[cnt++] = nList.intval();
+         pValue.rest();
+       }
+   
+       //scp filePath .. IP:loc/typeFileName
+       int sLen = ci->getSlaveSize();
+       for (int i = 0; i < 2; i++)
+       {
+         if (tNode[i] >= 0)
+         {
+           if (tNode[i] > sLen)
+           {
+             ci->print();
+             return l.typeError(err9);
+           }
+           else
+           {
+             string rPath = ci->getRemotePath(tNode[i]);
+             cerr << "Copy the type file to -> \t" << rPath << endl;
+             if (0 != system(
+                  (scpCommand + filePath + " " + rPath).c_str()))
+               return l.typeError(err10);
+           }
+         }
+       }
+     }
+   
+     NList drList = l.fifth();
+     pType = drList.first();
+     if (!pType.isEmpty())
+     {
+       if(pType.length() != 2)
+         return l.typeError(err6);
+       if (!pType.first().isSymbol(CcInt::BasicType()) ||
+           !pType.second().isSymbol(CcInt::BasicType()))
+         return l.typeError(err6);
+     }
+   
+     NList outAttrList =
+              NList(NList(NList("Suffix"), NList(CcInt::BasicType())),
+                    NList(NList("TupNum"), NList(CcInt::BasicType())));
+     NList outList = NList().tupleStreamOf(outAttrList);
+   
+     return NList(NList(Symbol::APPEND()),
+                  NList(
+                    NList(attrIndex),
+                    NList(
+                      NList(NList(
+                        Tuple::BasicType()), newAL).convertToString(),
+                        true, true)),
+                  outList).listExpr();
+  }catch(...){
+    return  listutils::typeError("invalid input");
   }
-  else if (2 == pmLen)
-  {
-    if (!pType.first().isSymbol(CcInt::BasicType()) ||
-        !pType.second().isSymbol( CcBool::BasicType()))
-      return l.typeError(err11);
-    else
-    {
-      evenMode = true;
-      setKPA = true;
-      KPA = pValue.second().boolval();
-    }
-  }
-
-  //Remove the attribute used for partition the relation
-  NList newAL; //new attribute list
-  if (KPA)
-    newAL = attrsList;
-  else
-  {
-    NList rest = attrsList;
-    while (!rest.isEmpty())
-    {
-      NList elem = rest.first();
-      rest.rest();
-      if (elem.first().str() != attrName)
-        newAL.append(elem);
-    }
-  }
-
-  //Create the type file in local disk
-  string typeFileName = filePrefix + "_type";
-  filePath = getLocalFilePath(filePath, typeFileName, "");
-  ofstream typeFile(filePath.c_str());
-  NList resultList =
-          NList(NList(Relation::BasicType()),
-                NList(NList(Tuple::BasicType()), newAL));
-  if (!typeFile.good())
-    return l.typeError(err3 + filePath);
-  else
-  {
-    typeFile << resultList.convertToString() << endl;
-    cerr << "Created type file " << filePath << endl;
-  }
-  typeFile.close();
-
-  clusterInfo* ci = 0;
-  NList trList = l.fourth();
-  pType = trList.first();
-  int tNode[2] = {-1, -1};
-  if (!pType.isEmpty())
-  {
-    ci = new clusterInfo();
-    if (!ci->isOK())
-      return l.typeError(err8);
-
-    //Get the type index and duplicate the type file.
-    if (pType.length() > 2)
-      return l.typeError(err5);
-    while (!pType.isEmpty())
-    {
-      if (!pType.first().isSymbol(CcInt::BasicType()))
-        return l.typeError(err5);
-      pType.rest();
-    }
-
-    pValue = trList.second();
-    int cnt = 0;
-    while(!pValue.isEmpty())
-    {
-      NList nList;
-      if (!QueryProcessor::GetNLArgValueInTM(pValue.first(), nList))
-        return l.typeError( err7 + " type node index");
-      tNode[cnt++] = nList.intval();
-      pValue.rest();
-    }
-
-    //scp filePath .. IP:loc/typeFileName
-    int sLen = ci->getSlaveSize();
-    for (int i = 0; i < 2; i++)
-    {
-      if (tNode[i] >= 0)
-      {
-        if (tNode[i] > sLen)
-        {
-          ci->print();
-          return l.typeError(err9);
-        }
-        else
-        {
-          string rPath = ci->getRemotePath(tNode[i]);
-          cerr << "Copy the type file to -> \t" << rPath << endl;
-          if (0 != system(
-               (scpCommand + filePath + " " + rPath).c_str()))
-            return l.typeError(err10);
-        }
-      }
-    }
-  }
-
-  NList drList = l.fifth();
-  pType = drList.first();
-  if (!pType.isEmpty())
-  {
-    if(pType.length() != 2)
-      return l.typeError(err6);
-    if (!pType.first().isSymbol(CcInt::BasicType()) ||
-        !pType.second().isSymbol(CcInt::BasicType()))
-      return l.typeError(err6);
-  }
-
-  NList outAttrList =
-           NList(NList(NList("Suffix"), NList(CcInt::BasicType())),
-                 NList(NList("TupNum"), NList(CcInt::BasicType())));
-  NList outList = NList().tupleStreamOf(outAttrList);
-
-  return NList(NList(Symbol::APPEND()),
-               NList(
-                 NList(attrIndex),
-                 NList(
-                   NList(NList(
-                     Tuple::BasicType()), newAL).convertToString(),
-                     true, true)),
-               outList).listExpr();
 }
 
 /*
