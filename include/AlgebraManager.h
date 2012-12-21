@@ -213,6 +213,7 @@ overloaded, identity (on the numbers) is sufficient.
 
 #include <map>
 #include <vector>
+#include <queue>
 
 #include "AlgebraTypes.h"
 #include "NestedList.h"
@@ -514,6 +515,7 @@ for further details, if required.
 vector< pair< pair<int,int>, ListExpr> >
         matchingOperators(const ListExpr arguments);
 
+
 /*
 This functions returns the same information, but restricts its search to the
 algebra specified by the given algebra id ~algId~.
@@ -525,6 +527,18 @@ The results are appended to the reference argument vector.
 */
 void matchingOperators(const int algId, const ListExpr arguments,
                        vector< pair< pair<int,int>, ListExpr> >& result);
+
+
+/*
+~findTMExceptions~
+
+This operator stores all operators (AlgName, OpName) into q which
+throw an expection if their type mapping ist called with argList.
+
+*/
+void findTMExceptions(const ListExpr argList, queue<pair<string,string> >& q,
+                      const bool print);
+
 
 /*
 ~findOperator~

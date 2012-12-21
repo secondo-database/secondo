@@ -495,7 +495,6 @@ void AlgebraManager::matchingOperators(const int algId,
     for(int o=0 ; o<alg->GetNumOps() ; o++){
       Operator* op = alg->GetOperator(o);
       try{
-          //cout << "CHeck Operator " << op->GetName() << " in " << GetAlgebraName(algId) << endl;
           ListExpr res = op->CallTypeMapping(arguments);
          // cout << "Check finished" << endl << endl;
           if(!nl->Equal(res,typeError)){
@@ -512,6 +511,34 @@ void AlgebraManager::matchingOperators(const int algId,
     }
   }
 }
+
+void AlgebraManager::findTMExceptions(const ListExpr argList,
+                                      queue<pair<string,string> >& q,
+                                      const bool print) {
+
+
+   for(unsigned int a=1 ; a<algebra.size() ; a++){ // algId=0 is prohibited
+     Algebra* alg = algebra[a];
+     if(alg!=0){
+        if(print){
+            cout << "process algebra" << GetAlgebraName(a) << endl;
+        }
+        for(int o=0;o<alg->GetNumOps(); o++){
+           Operator* op = alg->GetOperator(o);
+           if(print){
+             cout << "process operator " << op->GetName() << endl; 
+           }  
+           try{
+             op->CallTypeMapping(argList);
+           } catch(...){
+             pair<string,string> p(GetAlgebraName(a), op->GetName());
+             q.push(p);  
+           }
+        }
+     }    
+   }
+}
+
 
 bool AlgebraManager::findOperator(const string& name,
                                   const ListExpr argList,
