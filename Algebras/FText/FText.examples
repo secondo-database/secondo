@@ -1094,5 +1094,12 @@ Signature : DATA -> int
 Example : query sizeOf(1) > 0
 Result : TRUE
 
+Operator : tmcheck
+Number   : 1 
+Signature: text -> stream(tuple([Algname: string, OpName: string, ArgList : text]))
+Example : query 'query ten feed filter[.No > 3] count' tmcheck[FALSE]  count
+Result   : 0
+
+
 
 

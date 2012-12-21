@@ -104,4 +104,6 @@ operator findPattern alias FINDPATTERN pattern op(_,_)
 operator createRegEx alias CREATEREGEX pattern op(_)
 operator createRegEx2 alias CREATEREGEX2 pattern op(_)
 
+operator tmcheck alias TMCHECK pattern _ op [_]
+
 

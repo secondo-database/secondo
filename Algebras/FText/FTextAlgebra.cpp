@@ -33,7 +33,8 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 level remains. Models are also removed from type constructors.
 
 April 2006, M. Spiekermann. Output format of type text changed!
-Now it will be only a text atom instead of a one element list containing a text atom.
+Now it will be only a text atom instead of a one element list 
+containing a text atom.
 
 The algebra ~FText~ provides the type constructor ~text~ and two operators:
 
@@ -921,7 +922,8 @@ ListExpr FTextTypeMapPlus( ListExpr args )
 
 
 /*
-Type Mapping Function for comparison predicates ~$<$, $<=$, $=$, $>=$, $>$, $\neq$~
+Type Mapping Function for comparison predicates 
+~$<$, $<=$, $=$, $>=$, $>$, $\neq$~
 
 ----
     <, <=, =, >=, >, #: {string|text} x {string|text} --> bool
@@ -1789,8 +1791,10 @@ ListExpr stringORtext2intTM(ListExpr args){
 ----  string x any x any x any ... -> text
 ----
 
-Checks whether an operator exists having the name given as the first argument and whether this
-operator can applied to the remaining arguments. The result contains the result type of the
+Checks whether an operator exists having the name given as the first 
+argument and whether this
+operator can applied to the remaining arguments. The result contains 
+the result type of the
 first applyable operator or is undefined if no such operator exists.
 
 */
@@ -1817,9 +1821,12 @@ ListExpr CheckOperatorTypeMapTM(ListExpr args){
 ----  string x text | string x string -> text
 ----
 
-Checks whether an operator exists having the name given as the first argument and whether this
-operator can be applied to the type given as a nested list within a string or text.
-The result contains the result type of the first applyable operator or is undefined if no
+Checks whether an operator exists having the name given as the first 
+argument and whether this
+operator can be applied to the type given as a nested list within a 
+string or text.
+The result contains the result type of the first applyable operator or 
+is undefined if no
 such operator exists.
 
 */
@@ -6270,7 +6277,8 @@ int trimAllSelect(ListExpr args){
 /*
 3.4 Definition of Operators
 
-Used to explain signature, syntax and meaning of the operators of the type ~text~.
+Used to explain signature, syntax and meaning of the operators 
+of the type ~text~.
 
 */
 
@@ -8915,7 +8923,8 @@ Operator startsReg(
 
 4.30.1 TypeMapping
 
-Signature: {text,string} x {regex,regex2} -> stream(tuple( (P1 : int), (P2 : int)))
+Signature: {text,string} x {regex,regex2} -> 
+stream(tuple( (P1 : int), (P2 : int)))
 
 */
 
@@ -9367,6 +9376,418 @@ Operator sizeOf(
     sizeOfTM 
   );
 
+
+/*
+4.36 Operator tmcheck
+
+This operator is for finding error within type map functions. 
+It takes a text representing a valid query. If the query is not 
+valid, the result stream will be empty. If the text represents a
+valid query, the operator tree is built. After that, for each operator 
+node in the tree, all matching operators are searched. If an expection 
+occurs, the appropriate operator together with the input list will be 
+put into the output stream. In case of an assertion, Secondo will crash. 
+
+
+4.36.1 Type Mapping
+
+The signature is: 
+
+ text -> stream(tuple([AlgName: string, OpName : string, Input : text]))
+
+*/
+
+ListExpr tmcheckTM(ListExpr args){
+   if(!nl->HasLength(args,1)&&!nl->HasLength(args,2)){
+      return listutils::typeError("expected 1 or two argument");
+   }
+   if(!FText::checkType(nl->First(args)) &&
+      !Stream<FText>::checkType(nl->First(args))){
+      return listutils::typeError("expected text or "
+                               "stream(text) as first argument");
+   }
+   ListExpr resType= nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
+                nl->TwoElemList( listutils::basicSymbol<Tuple>(),
+                  nl->ThreeElemList(
+                        nl->TwoElemList( nl->SymbolAtom("AlgName"),
+                                 listutils::basicSymbol<CcString>()),
+                        nl->TwoElemList( nl->SymbolAtom("OpName"),
+                                 listutils::basicSymbol<CcString>()),
+                        nl->TwoElemList( nl->SymbolAtom("Input"),
+                                 listutils::basicSymbol<FText>()))));
+   if(nl->HasLength(args,2)){
+     if(!CcBool::checkType(nl->Second(args))){
+        return listutils::typeError(" text [ x bool ] expected");
+     }
+     return resType;
+   }
+   return nl->ThreeElemList(
+               nl->SymbolAtom(Symbol::APPEND()),
+               nl->OneElemList(nl->BoolAtom(false)),
+               resType);
+}
+
+
+/*
+4.36.2 tmcheckLocalInfo
+
+
+*/
+class tmcheckLocalInfo{
+
+   public:
+
+/*
+~Constructor~
+
+*/
+      tmcheckLocalInfo(FText* text, CcBool* p, ListExpr resType){
+        currentNL = nl->TheEmptyList();
+        tt = new TupleType(resType);
+        qpp = new QueryProcessor(nl,am);
+        print = p && p->IsDefined() && p->GetValue();
+        if(text && text->IsDefined()){
+          findInputLists(text->GetValue());
+        }
+      }
+
+/*
+~Destructor~
+
+*/
+      ~tmcheckLocalInfo(){
+          tt->DeleteIfAllowed();
+          delete qpp;
+       }
+
+
+/*
+~next~
+
+Returns the next pair of operator name and input list
+throwing an exception during type mapping of the operator.
+
+*/
+      Tuple* next(){
+       if(!failedOperators.empty()){
+         return createTuple();
+       }
+       while(!inputLists.empty()){
+          ListExpr list = inputLists.front();
+          inputLists.pop();
+          findFailures(list);
+          if(!failedOperators.empty()){
+            currentNL = nl->ToString(list);
+            return createTuple();
+          }
+       }
+       return 0;
+      }
+
+
+
+   protected:
+     queue<ListExpr> inputLists;
+     string currentNL;
+     queue<pair<string,string> > failedOperators;
+     TupleType* tt;
+     bool print;
+     QueryProcessor* qpp;
+
+
+/*
+Creates a new result typle from ~currentNL~ and 
+the top of the failedOperators queue.
+
+*/
+
+   Tuple* createTuple(){
+      Tuple* res = new Tuple(tt);
+      string algName = failedOperators.front().first;
+      string opName = failedOperators.front().second;
+      failedOperators.pop();
+      res->PutAttribute(0, new CcString(true,algName));
+      res->PutAttribute(1, new CcString(true,opName));
+      res->PutAttribute(2, new FText(true,currentNL));
+      return res;
+   } 
+
+
+
+/*
+~findInputLists~
+
+Builds an operator tree from a command and stores all
+argumentslists of all operator nodes within the tree 
+into inputLists.
+
+*/
+
+   void findInputLists(string query){
+
+     try{
+       // first, build the nested list query from query string
+       SecParser parser;
+       string queryListText;
+       ListExpr queryList;
+       if(parser.Text2List(query,queryListText)!=0){
+          cerr << "error in parsing query" << endl;
+          return;
+       }
+       if(!nl->ReadFromString(queryListText, queryList)){
+         cerr << "SecParser has produced an invalid list" << endl;
+         return;
+       }
+  
+  
+       if(!nl->HasLength(queryList,2)){  // ( query <expr> )
+          cerr << "invalid command" << endl; 
+          return;
+       }
+       ListExpr exprList = nl->Second(queryList);
+       // construct the operator tree
+       OpTree tree = 0;
+       bool correct,evaluable,defined,isFun;
+       ListExpr resType;
+       qpp->Construct(exprList, correct, evaluable, defined, 
+                      isFun,tree,resType);
+       if(!correct || !evaluable){
+         cerr << " not a valid expression" << endl;
+         //if(tree){
+           // qpp->Destroy(tree,true);
+         //}
+         return;
+       } 
+       findInputLists(tree);
+       //qpp->Destroy(tree,true);
+     } catch(...){
+         cerr << "Error occurred" << endl;
+     }
+   }
+
+
+/*
+~findInputLists~
+
+Traverses the operator tree rooted by s and stores the arguments 
+of all operator nodes to inputLists.
+
+*/
+   void findInputLists(Supplier s){
+     if(qpp->IsOperatorNode(s)){
+        addList(s);
+        for(int i=0;i<qpp->GetNoSons(s); i++){
+           findInputLists(qpp->GetSon(s,i));
+        }
+     }
+   }
+
+
+/*
+~addList~
+
+Concatenates the type lists of all sons of __s__ and stores the 
+result into inputLists.
+
+*/
+
+   void addList(Supplier s){
+      if(qpp->GetNoSons(s)==0){
+         inputLists.push(nl->TheEmptyList());
+      } else {
+        ListExpr r = nl->OneElemList( qpp->GetType(qpp->GetSon(s,0)));
+        ListExpr last = r;
+        for(int i=1;i<qpp->GetNoSons(s);i++){
+           last = nl->Append(last, qpp->GetType(qpp->GetSon(s,1)));
+        }
+        inputLists.push(r);
+      }
+   }
+
+/*
+~findFailures~
+
+
+
+*/
+void findFailures(ListExpr args){
+  am->findTMExceptions(args,failedOperators, print);
+}
+
+};
+
+
+class tmcheckLocalInfoStream: public  tmcheckLocalInfo{
+
+public:
+   tmcheckLocalInfoStream(Word _stream, CcBool* print, ListExpr typeExpr): 
+          tmcheckLocalInfo(0,print,typeExpr),
+          stream(_stream) {
+              stream.open();
+          }
+
+   ~tmcheckLocalInfoStream(){
+        stream.close();
+    }
+
+
+    Tuple* next(){
+       if(!failedOperators.empty()){
+         return createTuple();
+       }
+       while(!inputLists.empty()){
+          ListExpr list = inputLists.front();
+          inputLists.pop();
+          findFailures(list);
+          if(!failedOperators.empty()){
+            currentNL = nl->ToString(list);
+            return createTuple();
+          }
+       }
+       FText* text;
+       while( (text = stream.request())!=0){
+          if(text->IsDefined()){
+             findInputLists(text->GetValue());
+             text->DeleteIfAllowed();
+             while(!inputLists.empty()){
+                 ListExpr list = inputLists.front();
+                 inputLists.pop();
+                 findFailures(list);
+                 if(!failedOperators.empty()){
+                    currentNL = nl->ToString(list);
+                    return createTuple();
+                 }
+              }
+          } else {
+             text->DeleteIfAllowed();
+          }
+       }
+       return 0;
+    }
+
+
+
+private:
+   Stream<FText> stream;
+
+};
+
+
+
+/*
+4.36.3 Value Mapping
+
+*/
+
+int tmcheckVM1( Word* args, Word& result, int message,
+               Word& local, Supplier s ){
+   tmcheckLocalInfo* li = (tmcheckLocalInfo*) local.addr;
+   switch(message){
+     case OPEN: { if(li){
+                     delete li;
+                     local.addr = 0;
+                  }
+                  local.addr = new tmcheckLocalInfo((FText*)args[0].addr,
+                                     (CcBool*) args[1].addr,
+                                     nl->Second(GetTupleResultType(s)));
+                  return 0;
+                 } 
+     case REQUEST: {
+                     result.addr = li?li->next():0;
+                     return result.addr?YIELD:CANCEL;
+                  }
+     case CLOSE: {
+                    if(li){
+                       delete li;
+                       local.addr = 0;
+                    }
+                    return 0;
+                 }
+   }
+   return -1;
+}
+
+
+int tmcheckVM2( Word* args, Word& result, int message,
+               Word& local, Supplier s ){
+   tmcheckLocalInfoStream* li = (tmcheckLocalInfoStream*) local.addr;
+   switch(message){
+     case OPEN: { if(li){
+                     delete li;
+                     local.addr = 0;
+                  }
+                  local.addr = new tmcheckLocalInfoStream(args[0],
+                                     (CcBool*) args[1].addr,
+                                     nl->Second(GetTupleResultType(s)));
+                  return 0;
+                 } 
+     case REQUEST: {
+                     result.addr = li?li->next():0;
+                     return result.addr?YIELD:CANCEL;
+                  }
+     case CLOSE: {
+                    if(li){
+                       delete li;
+                       local.addr = 0;
+                    }
+                    return 0;
+                 }
+   }
+   return -1;
+}
+
+
+
+
+
+/*
+4.36.4 Specification
+
+*/
+OperatorSpec tmcheckSpec(
+           "{text, stream(text)}  [x bool ] -> strean(tuple([OpName : "
+           "string, Input: text]))",
+           "_ tmcheck[_]",
+           "Calls matching operators for each operatornode of the  "
+           " operator tree build by the query in the argument. "
+           " All typemappings throwing an exception are put into "
+           "the output stream together with the input which leads to"
+           "that exception.",
+           "query tmcheck('thecenter feed count') count = 0");
+
+
+/*
+4.36.5 ValueMapping array and selectionFunction
+
+*/
+int tmcheckSelect(ListExpr args){
+   return FText::checkType(nl->First(args))?0:1;
+}
+
+ValueMapping tmcheckVM[]={tmcheckVM1,tmcheckVM2};
+
+
+
+/*
+4.36.6 Operator instance
+
+*/
+
+
+
+
+Operator tmcheckOp(
+    "tmcheck",
+    tmcheckSpec.getStr(),
+    2,
+    tmcheckVM, 
+    tmcheckSelect,
+    tmcheckTM 
+  );
+
+
+
+
   /*
   5 Creating the algebra
 
@@ -9476,9 +9897,12 @@ Operator sizeOf(
       AddOperator(&flobSize);
       AddOperator(&flobMemSize);
       AddOperator(&sizeOf);
-
+      AddOperator(&tmcheckOp);
       
-       AddOperator(&pointerTest);
+      AddOperator(&pointerTest);
+      
+      
+
 
 #ifdef RECODE
       AddOperator(&recode);
