@@ -68,7 +68,8 @@ need to be considered:
 
   * Object's pieces are kept in Secondo databases, with a same name.
 
-  * Object's pieces are kept in a series of binary files, start with a same name.
+  * Object's pieces are kept in a series of binary files, start with a 
+same name.
 
 The fList is used to process both situations.
 
@@ -98,7 +99,8 @@ then all these partition file names start with this value.
   * objectType. The schema of this distributed Secondo Object.
 At present, it must be a relation.
 
-  * nodesList. Indicate the locations of slaves where the data are distributed on.
+  * nodesList. Indicate the locations of slaves where the data are 
+    distributed on.
 It's used to be set by user manually, but now can be read from
 the PARALLEL\_SECONDO\_SLAVES list when the fList is built up at the first time,
 and then is kept independently in the fList.
@@ -109,16 +111,20 @@ The master node doesn't take part in the distribution of data.
 
   * fileLocList. Indicate the location of the objects.
 
-    * [<] READ DB / [>] : Here indicate the object is distributed as Secondo Objects in every slave Secondo databases.
+    * [<] READ DB / [>] : Here indicate the object is distributed as Secondo 
+      Objects in every slave Secondo databases.
 
-    * [<] file path [>] : Here indicate the file location of a partition file, and it must be a absolute file path.
+    * [<] file path [>] : Here indicate the file location of a partition file, 
+      and it must be a absolute file path.
 
-    * null value : Here indicate the partition file is kept in the default file path, which is defined in master or slave list.
+    * null value : Here indicate the partition file is kept in the default file
+       path, which is defined in master or slave list.
 
   * duplicateTimes. Indicate the duplication times for each partition file.
 If data are distributed as Secondo objects, then this value must be 1.
 
-  * Available. Denotes whether the last operator which created this list is successfully performed.
+  * Available. Denotes whether the last operator which created this 
+    list is successfully performed.
 
   * Distributed. A boolean used to indicate whether data are distributed.
 
@@ -134,9 +140,11 @@ a fList object should be used to describe three different kinds of objects:
 
   * DGO : Distributed global object. Its value is kept on the master node only.
 
-  * DLO : Distributed local object. Its value is distributed on slaves, as Secondo objects.
+  * DLO : Distributed local object. Its value is distributed on slaves, 
+    as Secondo objects.
 
-  * DLF : Distributed local file list. Its value is distributed on slaves, as disk files, only for relation.
+  * DLF : Distributed local file list. Its value is distributed on slaves, 
+    as disk files, only for relation.
 
 Update at 19th Mar. 2012
 
@@ -145,7 +153,8 @@ only for pointing out some objects that have already been created is a flist.
 Besides, I also need to remove two useless attributes from the value list:
 
   * available:  when the objectKind field is set as UNDEF kind
-or the distributed field is set as false, then available is false, or else it is true.
+or the distributed field is set as false, then available is false, or else 
+it is true.
 
   * inDB: it can be replaced by the objectKind too.
 
@@ -255,7 +264,8 @@ Hence it may looks like:
 The above example also shows a 4x5 matrix relation,
 distributed on a cluster at least has 4 nodes.
 Each row data has been partitioned into at most 5 pieces.
-The 2th node has two rows partition files, while the 3th node doesn't have any one of it.
+The 2th node has two rows partition files, while the 3th node doesn't have
+ any one of it.
 And in the 1th node, the third and fourth column partition files don't exist.
 The first row partition files are kept in the 2th node,
 while the third row partition files are kept in the 1th node.
@@ -506,7 +516,8 @@ by checking following conditions:
   * data path is set as [<]READ DB\/[>] while the data are not in database,
 or the other way round.
 
-Check the available of a file location list, also get the maximum row and column number.
+Check the available of a file location list, also get the maximum row 
+and column number.
 
 */
 bool fList::verifyLocList()
@@ -714,20 +725,23 @@ All duplicated files are kepts in nodes' default paths.
 
 By default, a tuple stream is divided into ~sn~ * 1 partition files,
 based on the value of the indispensable parameter ~ai~.
-The ~sn~ is the number of slave nodes indicated in the PARALLEL\_SECONDO\_SLAVES.
-The partition attribute ~ai~ will be removed after the operation, except the ~keepAI~ is set as true.
+The ~sn~ is the number of slave nodes indicated in the
+ PARALLEL\_SECONDO\_SLAVES.
+The partition attribute ~ai~ will be removed after the operation, except 
+the ~keepAI~ is set as true.
 
 
 The ~sn~ can also be replaced by the optional parameter ~scale~ parameter,
 and files of each row are distributed into a slave node,
 based on the order denoted in the PARALLEL\_SECONDO\_SLAVES.
 
-On each row, the data can be further divided into several column partition files,
-if the second key-attribute ~aj~ is given.
+On each row, the data can be further divided into several column partition 
+files, if the second key-attribute ~aj~ is given.
 The ~aj~ must be different from ~ai~, to avoid producing empty partition files.
 The number of columns is decided by the number of values of ~aj~,
 and also can be indicated by the optional parameter ~scale2~.
-~aj~ also will be removed by default after the operation, except the ~keepAJ~ is set as true.
+~aj~ also will be removed by default after the operation, except the ~keepAJ~
+ is set as true.
 
 
 */
@@ -775,11 +789,14 @@ _ op[ list;list;list]
 ----
 
 The first list denotes the fileName and filePath, and the optional ~dupTime~.
-The second list denotes the first keyAttribute, together with its optional scale.
-The third list denotes the optional second keyAttribute, together with its optional scale.
+The second list denotes the first keyAttribute, together with its 
+optional scale.
+The third list denotes the optional second keyAttribute, together with 
+its optional scale.
 
 The type mapping function produces the text type file for the result files,
-and duplicate it to every node's default pathlisted in PARALLEL\_SECONDO\_SLAVES\/MASTER.
+and duplicate it to every node's default pathlisted in 
+PARALLEL\_SECONDO\_SLAVES\/MASTER.
 
 21th Mar. 2012
 Set the file name and path as optional parameters too,
@@ -801,155 +818,113 @@ x [aj] x [int] x [bool]
 */
 
 ListExpr SpreadTypeMap(ListExpr args){
-
-  NList l(args);
-  string err[] = {
-      // 0
-      "ERROR! Operator expects 4 lists arguments.",
-
-      "ERROR! Operator expects (stream(tuple(a1, a2, ..., an)))"
-      "x ( [string] x [text] x [int] ) "
-      "x ( ai x [int] x [bool] ) "
-      "x ( [aj] x [int] x [bool] )",
-
-      "ERROR! Infeasible evaluation in TM for attribute: ",
-
-      "ERROR! Unavailable file name: ",
-
-      "ERROR! Operator cannot find the dividing attribute: ",
-
-      // 5
-      "ERROR! Two keyAttributes must be different from each other.",
-
-      "ERROR! The result stream tuple type cannot be empty.",
-
-      "ERROR! Cannot create homonymous flists. ",
-
-      "ERROR! Cannot open file at ",
-
-      "ERROR! PARALLEL_SECONDO_SLAVES/MASTER is not set up. ",
-
-      // 10
-      "ERROR! Remote copy fails to path: ",
-
-      "ERROR! This Secondo database is not listed inside "
-      "PARALLEL_SECONDO_SLAVES/MASTER "
-  };
-  bool keepAI = false, keepAJ = false;
-
-  if (l.length() != 4)
-    return l.typeError(err[0]);
-
-  NList pType, pValue;
-
-  //First list, stream(tuple())
-  string fileName = "", filePath = "";
-  NList attrList;
-  if (!l.first().first().checkStreamTuple(attrList)){
-    return l.typeError(err[1]);
-  }
-  NList inStream = l.first().second();
-
-  //Second list, ([string] [text] [int] )
-  NList bpList = l.second();  //basic parameters
-  pType = bpList.first();
-  pValue = bpList.second();
-  if (pType.length() > 3){
-    return l.typeError(err[1]);
-  }
-
-  int len = pType.length();
-  for (int i = 1 ; i <= len ; i++)
-  {
-    NList pp = pType.elem(i);
-    NList pv = pValue.elem(i);
-
-    if (pp.isSymbol(CcString::BasicType()))
+  try{
+    NList l(args);
+    string err[] = {
+        // 0
+        "ERROR! Operator expects 4 lists arguments.",
+  
+        "ERROR! Operator expects (stream(tuple(a1, a2, ..., an)))"
+        "x ( [string] x [text] x [int] ) "
+        "x ( ai x [int] x [bool] ) "
+        "x ( [aj] x [int] x [bool] )",
+  
+        "ERROR! Infeasible evaluation in TM for attribute: ",
+  
+        "ERROR! Unavailable file name: ",
+  
+        "ERROR! Operator cannot find the dividing attribute: ",
+  
+        // 5
+        "ERROR! Two keyAttributes must be different from each other.",
+  
+        "ERROR! The result stream tuple type cannot be empty.",
+  
+        "ERROR! Cannot create homonymous flists. ",
+  
+        "ERROR! Cannot open file at ",
+  
+        "ERROR! PARALLEL_SECONDO_SLAVES/MASTER is not set up. ",
+  
+        // 10
+        "ERROR! Remote copy fails to path: ",
+  
+        "ERROR! This Secondo database is not listed inside "
+        "PARALLEL_SECONDO_SLAVES/MASTER "
+    };
+    bool keepAI = false, keepAJ = false;
+  
+    if (l.length() != 4)
+      return l.typeError(err[0]);
+  
+    NList pType, pValue;
+  
+    //First list, stream(tuple())
+    string fileName = "", filePath = "";
+    NList attrList;
+    if (!l.first().first().checkStreamTuple(attrList)){
+      return l.typeError(err[1]);
+    }
+    NList inStream = l.first().second();
+  
+    //Second list, ([string] [text] [int] )
+    NList bpList = l.second();  //basic parameters
+    pType = bpList.first();
+    pValue = bpList.second();
+    if (pType.length() > 3){
+      return l.typeError(err[1]);
+    }
+  
+    int len = pType.length();
+    for (int i = 1 ; i <= len ; i++)
     {
-      //Set the file name
-      NList fnList;
-      if (!QueryProcessor::GetNLArgValueInTM(pv, fnList)){
-        return l.typeError(err[2] + "fileName");
+      NList pp = pType.elem(i);
+      NList pv = pValue.elem(i);
+  
+      if (pp.isSymbol(CcString::BasicType()))
+      {
+        //Set the file name
+        NList fnList;
+        if (!QueryProcessor::GetNLArgValueInTM(pv, fnList)){
+          return l.typeError(err[2] + "fileName");
+        }
+        fileName = fnList.str();
       }
-      fileName = fnList.str();
-    }
-    else if (pp.isSymbol(FText::BasicType()))
-    {
-      //Set the file path
-      NList fpList;
-      if (!QueryProcessor::GetNLArgValueInTM(pv, fpList)){
-        return l.typeError(err[2] + "filePath");
+      else if (pp.isSymbol(FText::BasicType()))
+      {
+        //Set the file path
+        NList fpList;
+        if (!QueryProcessor::GetNLArgValueInTM(pv, fpList)){
+          return l.typeError(err[2] + "filePath");
+        }
+        filePath = fpList.str();
       }
-      filePath = fpList.str();
+      else if (!pp.isSymbol(CcInt::BasicType())){
+        return l.typeError(err[1]);
+      }
     }
-    else if (!pp.isSymbol(CcInt::BasicType())){
+  
+    //Third list, (keyAttr1 [int] [bool])
+    NList scList1 = l.third(); //scale list 1
+    pType = scList1.first();
+    pValue= scList1.second();
+    if (pType.length() < 1 || pType.length() > 3){
       return l.typeError(err[1]);
     }
-  }
-
-  //Third list, (keyAttr1 [int] [bool])
-  NList scList1 = l.third(); //scale list 1
-  pType = scList1.first();
-  pValue= scList1.second();
-  if (pType.length() < 1 || pType.length() > 3){
-    return l.typeError(err[1]);
-  }
-  if (!pType.first().isSymbol()){
-    return l.typeError(err[1]);
-  }
-  string keyAI = pType.first().convertToString();
-  ListExpr attrType;
-  int attrIndex1 =
-    listutils::findAttribute(attrList.listExpr(), keyAI, attrType);
-  if (attrIndex1 < 1){
-    return l.typeError(err[4] + keyAI);
-  }
-
-  if (pType.length() == 2){
-    if (pType.second().isSymbol(CcBool::BasicType())){
-      keepAI = pValue.second().boolval();
-    }
-    else if (!pType.second().isSymbol(CcInt::BasicType())){
-      return l.typeError(err[1]);
-    }
-  }
-  else if (pType.length() == 3){
-    if (pType.second().isSymbol(CcInt::BasicType())
-        && pType.third().isSymbol(CcBool::BasicType())){
-      keepAI = pValue.third().boolval();
-    }
-    else{
-      return l.typeError(err[1]);
-    }
-  }
-
-  //Fourth list, ([keyAttr2] [int] [bool])
-  NList scList2 = l.fourth(); //scale list 1
-  pType = scList2.first();
-  pValue= scList2.second();
-  string keyAJ = "";
-  int attrIndex2 = -1;
-  if (pType.length() > 3){
-    return l.typeError(err[1]);
-  }
-  if (pType.length() > 0){
-
     if (!pType.first().isSymbol()){
       return l.typeError(err[1]);
     }
-    keyAJ = pType.first().convertToString();
-    attrIndex2 =
-      listutils::findAttribute(attrList.listExpr(), keyAJ, attrType);
-    if (attrIndex2 < 1){
-      return l.typeError(err[4] + keyAJ);
+    string keyAI = pType.first().convertToString();
+    ListExpr attrType;
+    int attrIndex1 =
+      listutils::findAttribute(attrList.listExpr(), keyAI, attrType);
+    if (attrIndex1 < 1){
+      return l.typeError(err[4] + keyAI);
     }
-    else if (attrIndex2 == attrIndex1){
-      return l.typeError(err[5]);
-    }
-
+  
     if (pType.length() == 2){
       if (pType.second().isSymbol(CcBool::BasicType())){
-        keepAJ = pValue.second().boolval();
+        keepAI = pValue.second().boolval();
       }
       else if (!pType.second().isSymbol(CcInt::BasicType())){
         return l.typeError(err[1]);
@@ -958,90 +933,135 @@ ListExpr SpreadTypeMap(ListExpr args){
     else if (pType.length() == 3){
       if (pType.second().isSymbol(CcInt::BasicType())
           && pType.third().isSymbol(CcBool::BasicType())){
-        keepAJ = pValue.third().boolval();
+        keepAI = pValue.third().boolval();
       }
       else{
         return l.typeError(err[1]);
       }
     }
-  }
-
-  NList newAttrList;
-  if (keepAI && keepAJ){
-    newAttrList = attrList;
-  }
-  else{
-    NList rest = attrList;
-    while (!rest.isEmpty()){
-      NList elem = rest.first();
-      if (   ((elem.first().str() != keyAI) || (keepAI))
-          && ((elem.first().str() != keyAJ) || (keepAJ)) ){
-        newAttrList.append(elem);
-      }
-      rest.rest();
+  
+    //Fourth list, ([keyAttr2] [int] [bool])
+    NList scList2 = l.fourth(); //scale list 1
+    pType = scList2.first();
+    pValue= scList2.second();
+    string keyAJ = "";
+    int attrIndex2 = -1;
+    if (pType.length() > 3){
+      return l.typeError(err[1]);
     }
-  }
-  if (newAttrList.length() == 0){
-    return l.typeError(err[6]);
-  }
-  //Create the type file
-  if (fileName.length() == 0)
-    fileName = fList::tempName(false);
-  NList resultList =
-      NList(NList(fList::BasicType(),
-            NList(NList(Stream<Tuple>::BasicType()),
-            NList(NList(Tuple::BasicType()), newAttrList))));
-  filePath = getLocalFilePath(filePath,
-      (fileName + "_type"), "", true);
-  if (FileSystem::FileOrFolderExists(filePath)){
-    ListExpr exeType;
-    bool ok = false;
-    if (nl->ReadFromFile(filePath, exeType)){
-      if (listutils::isTupleStream(exeType)){
-        if (nl->Equal(exeType, nl->Second(resultList.listExpr()))){
-          ok = true;
+    if (pType.length() > 0){
+  
+      if (!pType.first().isSymbol()){
+        return l.typeError(err[1]);
+      }
+      keyAJ = pType.first().convertToString();
+      attrIndex2 =
+        listutils::findAttribute(attrList.listExpr(), keyAJ, attrType);
+      if (attrIndex2 < 1){
+        return l.typeError(err[4] + keyAJ);
+      }
+      else if (attrIndex2 == attrIndex1){
+        return l.typeError(err[5]);
+      }
+  
+      if (pType.length() == 2){
+        if (pType.second().isSymbol(CcBool::BasicType())){
+          keepAJ = pValue.second().boolval();
+        }
+        else if (!pType.second().isSymbol(CcInt::BasicType())){
+          return l.typeError(err[1]);
+        }
+      }
+      else if (pType.length() == 3){
+        if (pType.second().isSymbol(CcInt::BasicType())
+            && pType.third().isSymbol(CcBool::BasicType())){
+          keepAJ = pValue.third().boolval();
+        }
+        else{
+          return l.typeError(err[1]);
         }
       }
     }
-    if (!ok)
-      return l.typeError(err[7] + filePath);
-  }
-  else{
-    ListExpr expList = nl->Second(resultList.listExpr());
-    if (!nl->WriteToFile(filePath, expList)){
-      return l.typeError(err[8] + filePath);
+  
+    NList newAttrList;
+    if (keepAI && keepAJ){
+      newAttrList = attrList;
     }
-  }
-
-  //Duplicate the type to master and all slave nodes
-  clusterInfo* ci = new clusterInfo();
-  if (!ci->isOK()){
-    return l.typeError(err[9]);
-  }
-  if (ci->getLocalNode() < 0){
-    return l.typeError(err[11]);
-  }
-  string masterPath;
-  if (!ci->isLocalTheMaster()){
-    masterPath = ci->getRemotePath(0);
-    if ( 0 != system(
-        (scpCommand + filePath + " " + masterPath).c_str())){
-      return l.typeError(err[10] + masterPath);
+    else{
+      NList rest = attrList;
+      while (!rest.isEmpty()){
+        NList elem = rest.first();
+        if (   ((elem.first().str() != keyAI) || (keepAI))
+            && ((elem.first().str() != keyAJ) || (keepAJ)) ){
+          newAttrList.append(elem);
+        }
+        rest.rest();
+      }
     }
-  }
-  for (size_t i = 1; i <= ci->getSlaveSize(); i++){
-    //Copy the type file to every slave
-    string rPath = ci->getRemotePath(i, false);
-    if ( 0 != system(
-        (scpCommand + filePath + " " + rPath).c_str())){
-      return l.typeError(err[10] + rPath);
+    if (newAttrList.length() == 0){
+      return l.typeError(err[6]);
     }
+    //Create the type file
+    if (fileName.length() == 0)
+      fileName = fList::tempName(false);
+    NList resultList =
+        NList(NList(fList::BasicType(),
+              NList(NList(Stream<Tuple>::BasicType()),
+              NList(NList(Tuple::BasicType()), newAttrList))));
+    filePath = getLocalFilePath(filePath,
+        (fileName + "_type"), "", true);
+    if (FileSystem::FileOrFolderExists(filePath)){
+      ListExpr exeType;
+      bool ok = false;
+      if (nl->ReadFromFile(filePath, exeType)){
+        if (listutils::isTupleStream(exeType)){
+          if (nl->Equal(exeType, nl->Second(resultList.listExpr()))){
+            ok = true;
+          }
+        }
+      }
+      if (!ok)
+        return l.typeError(err[7] + filePath);
+    }
+    else{
+      ListExpr expList = nl->Second(resultList.listExpr());
+      if (!nl->WriteToFile(filePath, expList)){
+        return l.typeError(err[8] + filePath);
+      }
+    }
+  
+    //Duplicate the type to master and all slave nodes
+    clusterInfo* ci = new clusterInfo();
+    if (!ci->isOK()){
+      return l.typeError(err[9]);
+    }
+    if (ci->getLocalNode() < 0){
+      return l.typeError(err[11]);
+    }
+    string masterPath;
+    if (!ci->isLocalTheMaster()){
+      masterPath = ci->getRemotePath(0);
+      if ( 0 != system(
+          (scpCommand + filePath + " " + masterPath).c_str())){
+        return l.typeError(err[10] + masterPath);
+      }
+    }
+    for (size_t i = 1; i <= ci->getSlaveSize(); i++){
+      //Copy the type file to every slave
+      string rPath = ci->getRemotePath(i, false);
+      if ( 0 != system(
+          (scpCommand + filePath + " " + rPath).c_str())){
+        return l.typeError(err[10] + rPath);
+      }
+    }
+    return NList(NList(Symbol::APPEND()),
+                 NList(NList(attrIndex1),
+                       NList(attrIndex2),
+                       NList(fileName,true, false)),
+                 resultList).listExpr();
+  } catch(...){
+     return listutils::typeError("invalid input");
   }
-  return NList(NList(Symbol::APPEND()),
-               NList(NList(attrIndex1),
-                     NList(attrIndex2),
-                     NList(fileName,true, false)),
-               resultList).listExpr();
 }
 
 /*
@@ -1049,20 +1069,24 @@ ListExpr SpreadTypeMap(ListExpr args){
 
 Each partition inside the flist produced by ~spread~ operator
 is also composed by two files, the type file and the data file.
-All partition files in a same row, i.e. kept in a same slave node, share a same type file.
+All partition files in a same row, i.e. kept in a same slave node, 
+share a same type file.
 
-Both kinds files are as same as the files created by ~fconsume~ or ~fdistribute~ files,
+Both kinds files are as same as the files created by ~fconsume~ or 
+~fdistribute~ files,
 so that they can be read by using ~ffeed~ operator as normal.
 The reason is that, during the parallel processing,
 the slave nodes don't contain the flist object,
 but only read files from their local or neighbors' disks.
 
 The master node deonted by PARALLEL\_SECONDO\_MASTER must contain the type file,
-in order to avoid dirty data by checking these type files' names on the master node.
-Every slave node has one type file. If one slave node has several rows partition files,
-then all rows share a same type file.
+in order to avoid dirty data by checking these type files' names on the 
+master node.
+Every slave node has one type file. If one slave node has several rows partition
+ files, then all rows share a same type file.
 
-where to put the data file? Partition files are produced at the disk where the spread operation is executed,
+where to put the data file? Partition files are produced at the disk where the
+ spread operation is executed,
 and then is copied to target after the production is finished.
 
 */
@@ -1429,7 +1453,8 @@ Operator spreadOp(SpreadInfo(), SpreadValueMap, SpreadTypeMap);
 /*
 5 Operator ~collect~
 
-This operator is used to collect the data from the partition files denoted by the given flist.
+This operator is used to collect the data from the partition files denoted
+ by the given flist.
 
 ----
 flist(tuple) x [row] x [column] -> stream(tuple)
@@ -1483,76 +1508,86 @@ ListExpr CollectTypeMap(ListExpr args)
       "ERROR! Operator expects row and column numbers "
       "are non-negative values.",
   };
-  NList pType, pValue;
-
-  if (l.length() != 2)
-    return l.typeError(err[0]);
-
-  //First flist
-  pType = l.first().first();
-  pValue = l.first().second();
-  if (!isFListStreamDescription(pType)){
-    return l.typeError(err[0]);
-  }
-  NList tupleType = pType.second().second();
-
-  //Optional parameters
-  pType = l.second().first();
-  pValue = l.second().second();
-  if (pType.length() > 2){
-    return l.typeError(err[0]);
-  }
-  else if (pType.length() > 0){
-    if (!pType.first().isSymbol(CcInt::BasicType())){
+  try{
+    NList pType, pValue;
+  
+    if (l.length() != 2)
+      return l.typeError(err[0]);
+  
+    //First flist
+    pType = l.first().first();
+    pValue = l.first().second();
+    if (!isFListStreamDescription(pType)){
       return l.typeError(err[0]);
     }
-
-    NList opVal;
-    if (!qp->GetNLArgValueInTM(pValue.first(), opVal)){
-      return l.typeError(err[1]);
-    }else{
-      int rowNum = opVal.intval();
-      if (rowNum < 0){
-        return l.typeError(err[2]);
-      }
+    NList tupleType = pType.second().second();
+  
+    //Optional parameters
+    pType = l.second().first();
+    pValue = l.second().second();
+    if (pType.length() > 2){
+      return l.typeError(err[0]);
     }
-
-    if (pType.length() > 1){
+    else if (pType.length() > 0){
       if (!pType.first().isSymbol(CcInt::BasicType())){
         return l.typeError(err[0]);
       }
-      if (!qp->GetNLArgValueInTM(pValue.second(), opVal)){
+  
+      NList opVal;
+      if (!qp->GetNLArgValueInTM(pValue.first(), opVal)){
         return l.typeError(err[1]);
       }else{
-        int columnNum = opVal.intval();
-        if (columnNum < 0){
+        int rowNum = opVal.intval();
+        if (rowNum < 0){
           return l.typeError(err[2]);
         }
       }
+  
+      if (pType.length() > 1){
+        if (!pType.first().isSymbol(CcInt::BasicType())){
+          return l.typeError(err[0]);
+        }
+        if (!qp->GetNLArgValueInTM(pValue.second(), opVal)){
+          return l.typeError(err[1]);
+        }else{
+          int columnNum = opVal.intval();
+          if (columnNum < 0){
+            return l.typeError(err[2]);
+          }
+        }
+      }
     }
+  
+    NList streamType =
+        NList(NList(Symbol::STREAM()),
+                NList(tupleType));
+  
+    return streamType.listExpr();
+  } catch(...){
+      return listutils::typeError(err[0]);
   }
-
-  NList streamType =
-      NList(NList(Symbol::STREAM()),
-              NList(tupleType));
-
-  return streamType.listExpr();
 }
 
 /*
 
 5.2 Value Mapping
 
-By default, it reads all partition files denoted in the given flist, and returns the tuples in a stream.
-If the optional parameters are given, then this operator only reads part partition files.
-For any partition files listed a flist, both it's row and column numbers are non-zero positive integer numbers.
-If the row number is 0, then it denotes a complete row partition files, while a complete column part files are denoted when the column number is 0. E.g,
+By default, it reads all partition files denoted in the given flist, and 
+returns the tuples in a stream.
+If the optional parameters are given, then this operator only reads 
+part partition files.
+For any partition files listed a flist, both it's row and column numbers are
+ non-zero positive integer numbers.
+If the row number is 0, then it denotes a complete row partition files, while
+ a complete column part files are denoted when the column number is 0. E.g,
 
-  * collect[1] or collect[1,0]  means to collect all partitions files in the first row,
+  * collect[1] or collect[1,0]  means to collect all partitions files 
+    in the first row,
 
   * collect[0,2] means to collect all partition files in the second column,
 
-  * collect[1,2] means to collect one partition file in the 1th row and 2th column,
+  * collect[1,2] means to collect one partition file in the 1th row 
+    and 2th column,
 
   * collect[0,0] means to collect all files inside the matrix.
 
@@ -2224,24 +2259,28 @@ struct TParaInfo : OperatorInfo
 
 ListExpr TParaTypeMapping( ListExpr args)
 {
-  NList l(args);
+  try{
+    NList l(args);
 
-  if (l.length() < 1){
-    return l.typeError("Expect at least one argument.");
-  }
-  NList ffListType = l.first();
-
-  if (ffListType.isAtom()){
-    return ffListType.listExpr();
-  }
-  else
-  {
-    if (ffListType.first().isSymbol(fList::BasicType())){
-      return ffListType.second().listExpr();
+    if (l.length() < 1){
+      return l.typeError("Expect at least one argument.");
     }
-    else{
+    NList ffListType = l.first();
+
+    if (ffListType.isAtom()){
       return ffListType.listExpr();
     }
+    else
+    {
+      if (ffListType.first().isSymbol(fList::BasicType())){
+        return ffListType.second().listExpr();
+      }
+      else{
+        return ffListType.listExpr();
+      }
+    }
+  } catch(...){
+     return listutils::typeError("invalid input");
   }
 
 }
@@ -2261,23 +2300,27 @@ struct TPara2Info : OperatorInfo
 
 ListExpr TPara2TypeMapping( ListExpr args)
 {
-  NList l(args);
+  try{
+    NList l(args);
 
-  if (l.length() < 2)
-    return l.typeError("Expect at least two arguments.");
-  NList sfListType = l.second();
+    if (l.length() < 2)
+      return l.typeError("Expect at least two arguments.");
+    NList sfListType = l.second();
 
-  if (sfListType.isAtom()){
-    return sfListType.listExpr();
-  }
-  else
-  {
-    if (sfListType.first().isSymbol(fList::BasicType())){
-      return sfListType.second().listExpr();
-    }
-    else{
+    if (sfListType.isAtom()){
       return sfListType.listExpr();
     }
+    else
+    {
+      if (sfListType.first().isSymbol(fList::BasicType())){
+        return sfListType.second().listExpr();
+      }
+      else{
+        return sfListType.listExpr();
+      }
+    }
+  } catch(...){
+    return listutils::typeError("invalid input");
   }
 
 }
@@ -2341,158 +2384,162 @@ struct pffeedInfo : OperatorInfo
 
 ListExpr pffeedTypeMap(ListExpr args)
 {
-  NList l(args);
-
-  string lenErr = "ERROR! Operator pffeed expects 3 argument lists. ";
-  string inSTErr = "ERROR! Operator pffeed expects a "
-      "stream(tuple()) as input";
-  string firstPLErr = "ERROR! Operator pffeed expects first list as "
-      "aR x aC x aD x fileName x [filePath] x [attemptTimes]";
-  string rcdErr = "ERROR! aR, aC and aD do not exist or "
-      "are not int attributes.";
-  string secondPLErr = "ERROR! Operator pffeed expects second list as"
-      " [int] x [int]";
-  string atrErr = "ERROR! Required attribute is not found in the "
-      "given tuple stream";
-  string tpeErr = "ERROR! The type file is not found.";
-  string ifeErr = "ERROR! Parameter cannot be evaluated: ";
-  string ntfErr = "ERROR! No exist type file: ";
-  string ntrErr = "ERROR! A tuple relation type list is "
-        "NOT contained in file: ";
-  string nslErr = "ERROR! The slave list file does not exist."
-      "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
-  string norErr = "ERROR! Remote node for type file is out of range.";
-  string ctfErr = "ERROR! Copy remote type file fail.";
-  string iatErr = "ERROR! Infeasible attempt times.";
-
-  string fileName, filePath;
-  NList pType, pValue;
-  int attTimes = 1;
-
-  if (l.length() != 3)
-    return l.typeError(lenErr);
-
-  //1th stream(tuple())
-  pType = l.first().first();
-  NList attrsList;
-  if (!pType.checkStreamTuple(attrsList))
-    return l.typeError(inSTErr);
-
-  //2th aR x aC x aD x fileName x [filePath] x [attemptTimes]
-  pType = l.second().first();
-  pValue = l.second().second();
-  string attrNam[3];
-  int attrPos[3];
-  for (int i = 1; i <= 3; i++)
-  {
-    if (!pType.elem(i).isSymbol())
-      return l.typeError(firstPLErr);
-    attrNam[(i-1)] = pType.elem(i).convertToString();
-    ListExpr attrType;
-    attrPos[(i-1)] = listutils::findAttribute(attrsList.listExpr(),
-        attrNam[(i-1)], attrType);
-    if (attrPos[(i-1)] < 1)
-      return l.typeError(rcdErr);
-    if (!NList(attrType).isSymbol(CcInt::BasicType()))
-      return l.typeError(rcdErr);
+  try{
+     NList l(args);
+   
+     string lenErr = "ERROR! Operator pffeed expects 3 argument lists. ";
+     string inSTErr = "ERROR! Operator pffeed expects a "
+         "stream(tuple()) as input";
+     string firstPLErr = "ERROR! Operator pffeed expects first list as "
+         "aR x aC x aD x fileName x [filePath] x [attemptTimes]";
+     string rcdErr = "ERROR! aR, aC and aD do not exist or "
+         "are not int attributes.";
+     string secondPLErr = "ERROR! Operator pffeed expects second list as"
+         " [int] x [int]";
+     string atrErr = "ERROR! Required attribute is not found in the "
+         "given tuple stream";
+     string tpeErr = "ERROR! The type file is not found.";
+     string ifeErr = "ERROR! Parameter cannot be evaluated: ";
+     string ntfErr = "ERROR! No exist type file: ";
+     string ntrErr = "ERROR! A tuple relation type list is "
+           "NOT contained in file: ";
+     string nslErr = "ERROR! The slave list file does not exist."
+         "Is $PARALLEL_SECONDO_SLAVES correctly set up ?";
+     string norErr = "ERROR! Remote node for type file is out of range.";
+     string ctfErr = "ERROR! Copy remote type file fail.";
+     string iatErr = "ERROR! Infeasible attempt times.";
+   
+     string fileName, filePath;
+     NList pType, pValue;
+     int attTimes = 1;
+   
+     if (l.length() != 3)
+       return l.typeError(lenErr);
+   
+     //1th stream(tuple())
+     pType = l.first().first();
+     NList attrsList;
+     if (!pType.checkStreamTuple(attrsList))
+       return l.typeError(inSTErr);
+   
+     //2th aR x aC x aD x fileName x [filePath] x [attemptTimes]
+     pType = l.second().first();
+     pValue = l.second().second();
+     string attrNam[3];
+     int attrPos[3];
+     for (int i = 1; i <= 3; i++)
+     {
+       if (!pType.elem(i).isSymbol())
+         return l.typeError(firstPLErr);
+       attrNam[(i-1)] = pType.elem(i).convertToString();
+       ListExpr attrType;
+       attrPos[(i-1)] = listutils::findAttribute(attrsList.listExpr(),
+           attrNam[(i-1)], attrType);
+       if (attrPos[(i-1)] < 1)
+         return l.typeError(rcdErr);
+       if (!NList(attrType).isSymbol(CcInt::BasicType()))
+         return l.typeError(rcdErr);
+     }
+     if (!pType.fourth().isSymbol(CcString::BasicType()))
+       return l.typeError(firstPLErr);
+     NList fnList;
+     if (!QueryProcessor::GetNLArgValueInTM(pValue.fourth(), fnList))
+       return l.typeError(ifeErr + "fileName");
+     fileName = fnList.str();
+     // text, int, or text x int
+     Cardinal opIdx = 5;
+     while (opIdx <= pType.length())
+     {
+       if (pType.elem(opIdx).isSymbol(FText::BasicType()))
+       {
+         NList fpList;
+         if (!QueryProcessor::GetNLArgValueInTM(
+               pValue.elem(opIdx), fpList))
+           return l.typeError(ifeErr + "filePath");
+         filePath = fpList.str();
+       }
+       else if (pType.elem(opIdx).isSymbol(CcInt::BasicType()))
+       {
+         NList atList;
+         if (!QueryProcessor::GetNLArgValueInTM(
+               pValue.elem(opIdx), atList))
+           return l.typeError(ifeErr + "attemptTimes");
+         attTimes = atList.intval();
+         if (attTimes < 1)
+           return l.typeError(iatErr);
+       }
+       else
+         return l.typeError(firstPLErr);
+       opIdx++;
+     }
+     filePath = getLocalFilePath(filePath, fileName, "_type");
+   
+     //3th [int] x [int]
+     pType = l.third().first();
+     pValue = l.third().second();
+     int typeNode[2] = { -1, -1};
+     Cardinal pIdx = 0;
+     while ( pIdx < pType.length())
+     {
+       if (!pType.elem(pIdx + 1).isSymbol(CcInt::BasicType()))
+         return l.typeError(secondPLErr);
+       NList tnList;
+       if (!QueryProcessor::GetNLArgValueInTM(pValue.elem(pIdx + 1),
+           tnList))
+         return l.typeError(ifeErr + "type node");
+       typeNode[pIdx] = tnList.intval();
+       pIdx++;
+     }
+   
+     for (int i = 0; i < 2; i++)
+     {
+       if (typeNode[i] >= 0)
+       {
+         clusterInfo *ci = new clusterInfo();
+         if (!ci->isOK())
+           return l.typeError(nslErr);
+         if (typeNode[i] > (int)ci->getClusterSize())
+         {
+           ci->print();
+           return l.typeError(norErr);
+         }
+   
+         string rPath = ci->getRemotePath(typeNode[i], true, false, true,
+             true, (fileName + "_type"));
+         filePath = FileSystem::MakeTemp(filePath);
+         cerr << "Copy the type file " << filePath
+             << " from <-" << "\t" << rPath << endl;
+         if (0 != system((scpCommand + rPath + " " + filePath).c_str()))
+           return l.typeError(ctfErr);
+         else
+           break;
+       }
+     }
+   
+     ListExpr relType;
+     if (!nl->ReadFromFile(filePath, relType))
+       return l.typeError(ntfErr + filePath);
+     if (!(listutils::isRelDescription(relType)
+         || listutils::isTupleStream(relType)))
+         return l.typeError(ntrErr + filePath);
+   
+     NList streamType =
+           NList(NList(Symbol::STREAM()),
+           NList(NList(relType).second()));
+   
+     //Remove the type file name
+     filePath = filePath.substr(0, filePath.find_last_of("/"));
+   
+     return NList(NList(Symbol::APPEND()),
+             NList(NList(attrPos[0]),
+               NList(attrPos[1]),
+               NList(attrPos[2]),
+               NList(filePath, true, true),
+               NList(attTimes)),
+             streamType).listExpr();
+  } catch(...){
+     return listutils::typeError("invalid input");
   }
-  if (!pType.fourth().isSymbol(CcString::BasicType()))
-    return l.typeError(firstPLErr);
-  NList fnList;
-  if (!QueryProcessor::GetNLArgValueInTM(pValue.fourth(), fnList))
-    return l.typeError(ifeErr + "fileName");
-  fileName = fnList.str();
-  // text, int, or text x int
-  Cardinal opIdx = 5;
-  while (opIdx <= pType.length())
-  {
-    if (pType.elem(opIdx).isSymbol(FText::BasicType()))
-    {
-      NList fpList;
-      if (!QueryProcessor::GetNLArgValueInTM(
-            pValue.elem(opIdx), fpList))
-        return l.typeError(ifeErr + "filePath");
-      filePath = fpList.str();
-    }
-    else if (pType.elem(opIdx).isSymbol(CcInt::BasicType()))
-    {
-      NList atList;
-      if (!QueryProcessor::GetNLArgValueInTM(
-            pValue.elem(opIdx), atList))
-        return l.typeError(ifeErr + "attemptTimes");
-      attTimes = atList.intval();
-      if (attTimes < 1)
-        return l.typeError(iatErr);
-    }
-    else
-      return l.typeError(firstPLErr);
-    opIdx++;
-  }
-  filePath = getLocalFilePath(filePath, fileName, "_type");
-
-  //3th [int] x [int]
-  pType = l.third().first();
-  pValue = l.third().second();
-  int typeNode[2] = { -1, -1};
-  Cardinal pIdx = 0;
-  while ( pIdx < pType.length())
-  {
-    if (!pType.elem(pIdx + 1).isSymbol(CcInt::BasicType()))
-      return l.typeError(secondPLErr);
-    NList tnList;
-    if (!QueryProcessor::GetNLArgValueInTM(pValue.elem(pIdx + 1),
-        tnList))
-      return l.typeError(ifeErr + "type node");
-    typeNode[pIdx] = tnList.intval();
-    pIdx++;
-  }
-
-  for (int i = 0; i < 2; i++)
-  {
-    if (typeNode[i] >= 0)
-    {
-      clusterInfo *ci = new clusterInfo();
-      if (!ci->isOK())
-        return l.typeError(nslErr);
-      if (typeNode[i] > (int)ci->getClusterSize())
-      {
-        ci->print();
-        return l.typeError(norErr);
-      }
-
-      string rPath = ci->getRemotePath(typeNode[i], true, false, true,
-          true, (fileName + "_type"));
-      filePath = FileSystem::MakeTemp(filePath);
-      cerr << "Copy the type file " << filePath
-          << " from <-" << "\t" << rPath << endl;
-      if (0 != system((scpCommand + rPath + " " + filePath).c_str()))
-        return l.typeError(ctfErr);
-      else
-        break;
-    }
-  }
-
-  ListExpr relType;
-  if (!nl->ReadFromFile(filePath, relType))
-    return l.typeError(ntfErr + filePath);
-  if (!(listutils::isRelDescription(relType)
-      || listutils::isTupleStream(relType)))
-      return l.typeError(ntrErr + filePath);
-
-  NList streamType =
-        NList(NList(Symbol::STREAM()),
-        NList(NList(relType).second()));
-
-  //Remove the type file name
-  filePath = filePath.substr(0, filePath.find_last_of("/"));
-
-  return NList(NList(Symbol::APPEND()),
-          NList(NList(attrPos[0]),
-            NList(attrPos[1]),
-            NList(attrPos[2]),
-            NList(filePath, true, true),
-            NList(attTimes)),
-          streamType).listExpr();
 }
 
 int pffeedValueMap(Word* args, Word& result,
@@ -2809,7 +2856,8 @@ It is not necessary to indicate name to created sub-objects or sub-files,
 which can be set by the system.
 However, for DLF kind flist, it is better to keep the tridition.
 Therefore, file name and file path is prepared as optional argument.
-Also, an optional symbol is prepared, used to indicate the kind of the result flist.
+Also, an optional symbol is prepared, used to indicate the kind of the
+ result flist.
 By default, it is DLO, but also can be set as DLF.
 I didn't use an integer or a bool for this value,
 since it is possible for us to create more kinds for the flist.
@@ -2893,194 +2941,197 @@ flist(T) x [string] x [text] x [(DLO):DLF] x [int] x [bool]
 */
 
 ListExpr hadoopMapTypeMap(ListExpr args){
-  NList l(args);
-
-  string lenErr = "ERROR! Operator hadoopMap expects 3 argument lists. ";
-  string typErr = "ERROR! Operator hadoopMap expects "
-      "flist(T) x [string] x [text] x [(DLO):DLF] x [int] x [bool] "
-      "x (map T T1))";
-
-  string ifaErr = "ERROR! Infeasible evaluation in TM of attribute:";
-  string mtnErr = "ERROR! Expect a positive map task number. ";
-  string umnErr = "ERROR! It is not allowed to produce a DLO kind flist, "
-      "with a row number that is larger than the slave scale.";
-  string nprErr = "ERROR! Operator hadoopMap expects "
-      "creating a new DLO or DLF kind flist.";
-  string onmErr = "ERROR! Operator hadoopMap expects the created "
-      "object name starts with upper case. ";
-  string uafErr = "ERROR!! The internal function is unavailable.";
-  string hnmErr = "ERROR! Exists homonymous flist type file in: ";
-  string fwtErr = "ERROR! Failed writing type into file: ";
-  string expErr = "ERROR! Improper output type for DLF flist";
-  string udnErr = "ERROR! Long database name is set.";
-  string uewErr = "ERROR! An unexecuted flist must be DLF type.";
-
-  string objName, filePath, qStr;
-  fListKind kind = DLO;
-  bool executed = true;
-
-  if (l.length() != 3)
-    return l.typeError(lenErr);
-
-  //The input must be a flist type data.
-  NList inputType = l.first().first();
-  if (inputType.isSymbol("typeerror") || inputType.length() != 2 ){
-    return l.typeError(typErr);
+  try{
+     NList l(args);
+   
+     string lenErr = "ERROR! Operator hadoopMap expects 3 argument lists. ";
+     string typErr = "ERROR! Operator hadoopMap expects "
+         "flist(T) x [string] x [text] x [(DLO):DLF] x [int] x [bool] "
+         "x (map T T1))";
+   
+     string ifaErr = "ERROR! Infeasible evaluation in TM of attribute:";
+     string mtnErr = "ERROR! Expect a positive map task number. ";
+     string umnErr = "ERROR! It is not allowed to produce a DLO kind flist, "
+         "with a row number that is larger than the slave scale.";
+     string nprErr = "ERROR! Operator hadoopMap expects "
+         "creating a new DLO or DLF kind flist.";
+     string onmErr = "ERROR! Operator hadoopMap expects the created "
+         "object name starts with upper case. ";
+     string uafErr = "ERROR!! The internal function is unavailable.";
+     string hnmErr = "ERROR! Exists homonymous flist type file in: ";
+     string fwtErr = "ERROR! Failed writing type into file: ";
+     string expErr = "ERROR! Improper output type for DLF flist";
+     string udnErr = "ERROR! Long database name is set.";
+     string uewErr = "ERROR! An unexecuted flist must be DLF type.";
+   
+     string objName, filePath, qStr;
+     fListKind kind = DLO;
+     bool executed = true;
+   
+     if (l.length() != 3)
+       return l.typeError(lenErr);
+   
+     //The input must be a flist type data.
+     NList inputType = l.first().first();
+     if (inputType.isSymbol("typeerror") || inputType.length() != 2 ){
+       return l.typeError(typErr);
+     }
+   
+     if (!inputType.first().isSymbol(fList::BasicType())){
+       return l.typeError(typErr);
+     }
+   
+     //Optional parameters
+     int len = l.second().first().length();
+     clusterInfo ci;
+     size_t mapTaskNum = ci.getSlaveSize();
+     if (len > 0)
+     {
+       if ( len > 3 )
+         return l.typeError(typErr);
+   
+       for (int i = 1; i <= len; i++)
+       {
+         NList pp = l.second().first().elem(i);
+         NList pv = l.second().second().elem(i);
+   
+         if (pp.isSymbol(CcString::BasicType()))
+         {
+           //ObjectName defined.
+           NList fnList;
+           if (!QueryProcessor::GetNLArgValueInTM(pv, fnList)){
+             return l.typeError(ifaErr + "objName");
+           }
+           objName = fnList.str();
+         }
+         else if (pp.isSymbol(FText::BasicType()))
+         {
+           //FilePath defined
+           NList fpList;
+           if (!QueryProcessor::GetNLArgValueInTM(pv, fpList)){
+             return l.typeError(ifaErr + "filePath");
+           }
+           filePath = fpList.str();
+         }
+         else if (pp.isSymbol(CcInt::BasicType()))
+         {
+           //mapTaskNum
+           NList mtnList;
+           if (!QueryProcessor::GetNLArgValueInTM(pv, mtnList)){
+             return l.typeError(ifaErr + "mapTaskNum");
+           }
+           mapTaskNum = mtnList.intval();
+         }
+         else if (pp.isSymbol("DLF")){
+           kind = DLF;
+         }
+         else if (pp.isSymbol("DLO")){
+           kind = DLO;
+         }
+         else if (pp.isSymbol(CcBool::BasicType())){
+           NList etList;
+           if (!QueryProcessor::GetNLArgValueInTM(pv, etList)){
+             return l.typeError(ifaErr + "executed");
+           }
+           executed = etList.boolval();
+         }
+         else{
+           return l.typeError(typErr);
+         }
+       }
+     }
+   
+     if (!executed && (kind != DLF)){
+       return l.typeError(uewErr);
+     }
+   
+     if (mapTaskNum <= 0){
+       return l.typeError(mtnErr);
+     } else if ((kind == DLO) && (mapTaskNum > ci.getSlaveSize())){
+       return l.typeError(umnErr);
+     }
+   
+   
+     //Encapsulated object type
+     NList coType = l.third().first().third();   //Create Type
+     NList coQuery = l.third().second().third(); //Create Query
+     NList coBType;                              //Create Base Type
+     if (coType.isAtom()){
+       coBType = coType;
+     }
+     else{
+       coBType = coType.first();
+     }
+     if (coBType.isEqual("typeerror"))
+       return l.typeError(uafErr);
+     qStr = coQuery.convertToString();
+   
+     //Query Parameter
+     string coParaName = l.third().second().second().first().str();
+   
+     //If it is a DLF, then the output type must be a tuple stream
+     if (kind == DLF && !listutils::isTupleStream(coType.listExpr())){
+       return l.typeError(expErr);
+     }
+   
+     NList resultType = NList(NList(fList::BasicType()), NList(coType));
+     if (objName.length() == 0)
+       objName = fList::tempName(false);
+     else
+     {
+       char f = objName[0];
+       if (f<'A' || f>'Z'){
+         return l.typeError(onmErr);
+       }
+       //If the name of sub-objects or sub-files are denoted by users,
+       //Then it must be kept in a text type file,
+       //in case of the homonymous problem
+       //also this file must be kept in the default file path.
+   
+       string filePath =
+           getLocalFilePath("", (objName + "_type"),"", true);
+       if (FileSystem::FileOrFolderExists(filePath)){
+         ListExpr exeType;
+         bool ok = false;
+         if (nl->ReadFromFile(filePath, exeType)){
+           //TODO Need to be more compatible with file-related operators
+             if (nl->Equal(nl->Second(exeType),
+                 resultType.second().second().listExpr())){
+               ok = true;
+             }
+         }
+         if (!ok)
+           return l.typeError(hnmErr + filePath);
+       }
+       else{
+         ListExpr expList = nl->Second(resultType.listExpr());
+         if (nl->IsAtom(expList)){
+           expList = nl->OneElemList(expList);
+         }
+         if (!nl->WriteToFile(filePath, expList)){
+           return l.typeError(fwtErr + filePath);
+         }
+       }
+     }
+   
+     //Check the length of the database name
+     string dbName = fList::tempName(true);
+     if (dbName.length() >= 16){
+       //16 is the maximum length that a database name can be
+       return l.typeError(udnErr);
+     }
+   
+   
+     return NList(NList(Symbol::APPEND()),
+         NList(NList(qStr, true, true),
+               NList(objName, true, false),
+               NList((int)kind),
+               NList(coParaName, true, false),
+               NList(dbName, true, false)),
+         resultType).listExpr();
+  } catch(...){
+    return listutils::typeError("invalid input");
   }
-
-  if (!inputType.first().isSymbol(fList::BasicType())){
-    return l.typeError(typErr);
-  }
-
-  //Optional parameters
-  int len = l.second().first().length();
-  clusterInfo ci;
-  size_t mapTaskNum = ci.getSlaveSize();
-  if (len > 0)
-  {
-    if ( len > 3 )
-      return l.typeError(typErr);
-
-    for (int i = 1; i <= len; i++)
-    {
-      NList pp = l.second().first().elem(i);
-      NList pv = l.second().second().elem(i);
-
-      if (pp.isSymbol(CcString::BasicType()))
-      {
-        //ObjectName defined.
-        NList fnList;
-        if (!QueryProcessor::GetNLArgValueInTM(pv, fnList)){
-          return l.typeError(ifaErr + "objName");
-        }
-        objName = fnList.str();
-      }
-      else if (pp.isSymbol(FText::BasicType()))
-      {
-        //FilePath defined
-        NList fpList;
-        if (!QueryProcessor::GetNLArgValueInTM(pv, fpList)){
-          return l.typeError(ifaErr + "filePath");
-        }
-        filePath = fpList.str();
-      }
-      else if (pp.isSymbol(CcInt::BasicType()))
-      {
-        //mapTaskNum
-        NList mtnList;
-        if (!QueryProcessor::GetNLArgValueInTM(pv, mtnList)){
-          return l.typeError(ifaErr + "mapTaskNum");
-        }
-        mapTaskNum = mtnList.intval();
-      }
-      else if (pp.isSymbol("DLF")){
-        kind = DLF;
-      }
-      else if (pp.isSymbol("DLO")){
-        kind = DLO;
-      }
-      else if (pp.isSymbol(CcBool::BasicType())){
-        NList etList;
-        if (!QueryProcessor::GetNLArgValueInTM(pv, etList)){
-          return l.typeError(ifaErr + "executed");
-        }
-        executed = etList.boolval();
-      }
-      else{
-        return l.typeError(typErr);
-      }
-    }
-  }
-
-  if (!executed && (kind != DLF)){
-    return l.typeError(uewErr);
-  }
-
-  if (mapTaskNum <= 0){
-    return l.typeError(mtnErr);
-  } else if ((kind == DLO) && (mapTaskNum > ci.getSlaveSize())){
-    return l.typeError(umnErr);
-  }
-
-
-  //Encapsulated object type
-  NList coType = l.third().first().third();   //Create Type
-  NList coQuery = l.third().second().third(); //Create Query
-  NList coBType;                              //Create Base Type
-  if (coType.isAtom()){
-    coBType = coType;
-  }
-  else{
-    coBType = coType.first();
-  }
-  if (coBType.isEqual("typeerror"))
-    return l.typeError(uafErr);
-  qStr = coQuery.convertToString();
-
-  //Query Parameter
-  string coParaName = l.third().second().second().first().str();
-
-  //If it is a DLF, then the output type must be a tuple stream
-  if (kind == DLF && !listutils::isTupleStream(coType.listExpr())){
-    return l.typeError(expErr);
-  }
-
-  NList resultType = NList(NList(fList::BasicType()), NList(coType));
-  if (objName.length() == 0)
-    objName = fList::tempName(false);
-  else
-  {
-    char f = objName[0];
-    if (f<'A' || f>'Z'){
-      return l.typeError(onmErr);
-    }
-    //If the name of sub-objects or sub-files are denoted by users,
-    //Then it must be kept in a text type file,
-    //in case of the homonymous problem
-    //also this file must be kept in the default file path.
-
-    string filePath =
-        getLocalFilePath("", (objName + "_type"),"", true);
-    if (FileSystem::FileOrFolderExists(filePath)){
-      ListExpr exeType;
-      bool ok = false;
-      if (nl->ReadFromFile(filePath, exeType)){
-        //TODO Need to be more compatible with file-related operators
-          if (nl->Equal(nl->Second(exeType),
-              resultType.second().second().listExpr())){
-            ok = true;
-          }
-      }
-      if (!ok)
-        return l.typeError(hnmErr + filePath);
-    }
-    else{
-      ListExpr expList = nl->Second(resultType.listExpr());
-      if (nl->IsAtom(expList)){
-        expList = nl->OneElemList(expList);
-      }
-      if (!nl->WriteToFile(filePath, expList)){
-        return l.typeError(fwtErr + filePath);
-      }
-    }
-  }
-
-  //Check the length of the database name
-  string dbName = fList::tempName(true);
-  if (dbName.length() >= 16){
-    //16 is the maximum length that a database name can be
-    return l.typeError(udnErr);
-  }
-
-
-  return NList(NList(Symbol::APPEND()),
-      NList(NList(qStr, true, true),
-            NList(objName, true, false),
-            NList((int)kind),
-            NList(coParaName, true, false),
-            NList(dbName, true, false)),
-      resultType).listExpr();
-
 }
 
 int hadoopMapValueMap(Word* args, Word& result,
@@ -3339,16 +3390,19 @@ Operator hadoopMapOP(
 Create at 11th Apr. 2012
 Jiamin
 
-As the hadoop operator needs us to change the QueryProcessor, which may takes a while.
+As the hadoop operator needs us to change the QueryProcessor, which 
+may takes a while.
 I started to create another new operator, named ~hadoopReduce~.
 This is mainly used to process the reduce step of the precast Hadoop job.
 
 It also creates both DLO and DLF kind flist.
-This one provides the unary operation, while the binary operator will be implemented later.
+This one provides the unary operation, while the binary operator will be 
+implemented later.
 
 Update 22th Aug. 2012 by Jiamin
 Make it possible to accept intermediate flist object as the input parameter.
-All flist objects used in its argument functions cannot be in intermediate status.
+All flist objects used in its argument functions cannot be in intermediate 
+status.
 
 */
 struct hadoopReduceInfo : OperatorInfo
@@ -3381,13 +3435,15 @@ T is rel(tuple) or stream(tuple)
 
 Comparing with the ~hadoopMap~ operator, an additional argument partAttribute
 is required to redistribute the input flist over the cluster.
-Therefore, the input flist must be a DLF kind, or a DLO kind contains relation type.
+Therefore, the input flist must be a DLF kind, or a DLO kind contains relation
+ type.
 
 The syntax is:
 
 ----
 flist(T) x partAttribute
-  x [objectName: string] x [objectPath: text] x [(DLO):DLF] x [reduceTaskNum: int]
+  x [objectName: string] x [objectPath: text] x [(DLO):DLF] x
+  [reduceTaskNum: int]
   x ( interFunc: map ( T \to T1) )
 \to flist(T1)
 
@@ -3397,7 +3453,8 @@ T is rel(tuple) or stream(tuple)
 
 The reduceTaskNum is used to denote the scale of the parallelism.
 The number of map tasks is denoted by the input flist.
-If the operator creates a DLO kind flist, then the reduceTaskNum cannot be larger
+If the operator creates a DLO kind flist, then the reduceTaskNum 
+cannot be larger
 than the amount of data servers, since one data server can only keep at most
 one sub-object of a DLO flist.
 However, if the created flist belong to DLF kind, then the reduceTaskNum can be
@@ -3407,194 +3464,198 @@ set to arbitrary values.
 */
 
 ListExpr hadoopReduceTypeMap(ListExpr args){
-  NList l(args);
-
-  string lenErr = "ERROR! Operator hadoopReduce expects 3 argument lists. ";
-  string typErr = "ERROR! Operator hadoopReduce expects "
-      "flist(T) x partAttr x [string] x [text] x [(DLO):DLF] x [int] "
-      "x (map T T1))";
-  string ifsErr = "ERROR! Operator hadoopReduce expects the input flist "
-      "contains either a tuple stream or a tuple relation. ";
-  string upaErr = "ERROR! The partition attribute "
-      "is not found in the input flist";
-  string ernErr = "ERROR! The reduceTaskNum cannot be larger than the cluster "
-      "scale while producing a DLO flist object.";
-  string onmErr = "ERROR! Operator hadoopMap expects the created "
-      "object name starts with upper case. ";
-  string ifaErr = "ERROR! Infeasible evaluation in TM of attribute:";
-  string nprErr = "ERROR! Operator hadoopReduce expects "
-      "creating a new DLO or DLF kind flist.";
-  string uafErr = "ERROR!! The internal function is unavailable.";
-  string expErr = "ERROR! Improper output type for DLF flist";
-  string fwtErr = "ERROR! Failed writing type into file: ";
-  string hnmErr = "ERROR! Exists homonymous flist type file in: ";
-  string udnErr = "ERROR! Long database name is set.";
-
-  string objName, filePath, qStr;
-  fListKind kind = DLO;
-  clusterInfo ci;
-  int reduceTaskNum = ci.getSlaveSize();
-
-  if (l.length() != 3)
-    return l.typeError(lenErr);
-
-  //The first flist type data.
-  NList inputType = l.first().first();
-  if (inputType.isSymbol("typeerror") || inputType.length() != 2 ){
-    return l.typeError(typErr);
+  try{
+     NList l(args);
+   
+     string lenErr = "ERROR! Operator hadoopReduce expects 3 argument lists. ";
+     string typErr = "ERROR! Operator hadoopReduce expects "
+         "flist(T) x partAttr x [string] x [text] x [(DLO):DLF] x [int] "
+         "x (map T T1))";
+     string ifsErr = "ERROR! Operator hadoopReduce expects the input flist "
+         "contains either a tuple stream or a tuple relation. ";
+     string upaErr = "ERROR! The partition attribute "
+         "is not found in the input flist";
+     string ernErr = "ERROR! The reduceTaskNum cannot be larger than the"
+                     " cluster scale while producing a DLO flist object.";
+     string onmErr = "ERROR! Operator hadoopMap expects the created "
+         "object name starts with upper case. ";
+     string ifaErr = "ERROR! Infeasible evaluation in TM of attribute:";
+     string nprErr = "ERROR! Operator hadoopReduce expects "
+         "creating a new DLO or DLF kind flist.";
+     string uafErr = "ERROR!! The internal function is unavailable.";
+     string expErr = "ERROR! Improper output type for DLF flist";
+     string fwtErr = "ERROR! Failed writing type into file: ";
+     string hnmErr = "ERROR! Exists homonymous flist type file in: ";
+     string udnErr = "ERROR! Long database name is set.";
+   
+     string objName, filePath, qStr;
+     fListKind kind = DLO;
+     clusterInfo ci;
+     int reduceTaskNum = ci.getSlaveSize();
+   
+     if (l.length() != 3)
+       return l.typeError(lenErr);
+   
+     //The first flist type data.
+     NList inputType = l.first().first();
+     if (inputType.isSymbol("typeerror") || inputType.length() != 2 ){
+       return l.typeError(typErr);
+     }
+     if (!inputType.first().isSymbol(fList::BasicType())){
+       return l.typeError(typErr);
+     }
+     if (!listutils::isRelDescription(inputType.second().listExpr()) &&
+         !listutils::isTupleStream(inputType.second().listExpr())){
+       return l.typeError(ifsErr);
+     }
+   
+   
+     //The second list: partAttribute x [string] x [text] x [(DLO):DLF]
+     int len = l.second().first().length();
+     string PAName = "";
+     int PAIndex = 0;
+     ListExpr PAType;
+     if (len < 1 || len > 5 )
+       return l.typeError(typErr);
+     else
+     {
+       //The first argument in this list must be the partition attribute name
+       NList pType = l.second().first();
+       NList pValue = l.second().second();
+       PAName = pType.first().str();
+   
+       ListExpr AttrList = inputType.second().second().second().listExpr();
+       PAIndex = listutils::findAttribute(AttrList, PAName, PAType);
+       if (PAIndex <= 0)
+         return l.typeError(upaErr);
+   
+       if (len > 1)
+       {
+         for (int i = 2; i <= len; i++)
+         {
+           NList pp = pType.elem(i);
+           NList pv = pValue.elem(i);
+   
+           if (pp.isSymbol(CcString::BasicType()))
+           {
+             //ObjectName defined.
+             NList fnList;
+             if (!QueryProcessor::GetNLArgValueInTM(pv, fnList)){
+               return l.typeError(ifaErr + "objName");
+             }
+             objName = fnList.str();
+           }
+           else if (pp.isSymbol(FText::BasicType()))
+           {
+             //FilePath defined
+             NList fpList;
+             if (!QueryProcessor::GetNLArgValueInTM(pv, fpList)){
+               return l.typeError(ifaErr + "filePath");
+             }
+             filePath = fpList.str();
+           }
+           else if (pp.isSymbol(CcInt::BasicType())){
+             NList rnList;
+             if (!QueryProcessor::GetNLArgValueInTM(pv, rnList)){
+               return l.typeError(ifaErr + "objName");
+             }
+             reduceTaskNum = rnList.intval();
+           }
+           else if (pp.isSymbol("DLF")){
+             kind = DLF;
+           }
+           else if (!pp.isSymbol("DLO")){
+             return l.typeError(nprErr);
+           }
+         }
+       }
+     }
+     if (kind == DLO && reduceTaskNum > (int)ci.getSlaveSize()){
+       return l.typeError(ernErr);
+     }
+   
+     //The third map list
+     NList mapType = l.third().first();
+     NList mapValue = l.third().second();
+     NList coType = mapType.third();             //Create Type
+     NList coQuery = mapValue.third();           //Create Query
+     NList coBType;                              //Create Base Type
+     if (coType.isAtom()){
+       coBType = coType;
+     }
+     else{
+       coBType = coType.first();
+     }
+     if (coBType.isEqual("typeerror"))
+       return l.typeError(uafErr);
+     qStr = coQuery.convertToString();
+   
+     //Query Parameter
+     string coParaName = mapValue.second().first().str();
+   
+     //Check the type for output flist
+     //If it is a DLF, then the output type must be a tuple stream
+     if (kind == DLF && !listutils::isTupleStream(coType.listExpr())){
+       return l.typeError(expErr);
+     }
+   
+     NList resultType = NList(NList(fList::BasicType()), NList(coType));
+     if (objName.length() == 0)
+       objName = fList::tempName(false);
+     else
+     {
+       char f = objName[0];
+       if (f<'A' || f>'Z'){
+         return l.typeError(onmErr);
+       }
+       //If the name of sub-objects or sub-files are denoted by users,
+       //Then it must be kept in a text type file,
+       //in case of the homonymous problem
+       //also this file must be kept in the default file path.
+   
+       string filePath =
+           getLocalFilePath("", (objName + "_type"),"", true);
+       if (FileSystem::FileOrFolderExists(filePath)){
+         ListExpr exeType;
+         bool ok = false;
+         if (nl->ReadFromFile(filePath, exeType)){
+           //TODO Need to be more compatible with file-related operators
+             if (nl->Equal(nl->Second(exeType),
+                 resultType.second().second().listExpr())){
+               ok = true;
+             }
+         }
+         if (!ok)
+           return l.typeError(hnmErr + filePath);
+       }
+       else{
+         ListExpr expList = nl->Second(resultType.listExpr());
+         if (nl->IsAtom(expList)){
+           expList = nl->OneElemList(expList);
+         }
+         if (!nl->WriteToFile(filePath, expList)){
+           return l.typeError(fwtErr + filePath);
+         }
+       }
+     }
+   
+     //Check the length of the database name
+     string dbName = fList::tempName(true);
+     if (dbName.length() >= 16){
+       //16 is the maximum length that a database name can be
+       return l.typeError(udnErr);
+     }
+   
+     return NList(NList(Symbol::APPEND()),
+         NList(NList(qStr, true, true),
+               NList(objName, true, false),
+               NList((int)kind),
+               NList(coParaName, true, false),
+               NList(dbName, true, false)),
+         resultType).listExpr();
+  } catch(...){
+    return listutils::typeError("invalid input");
   }
-  if (!inputType.first().isSymbol(fList::BasicType())){
-    return l.typeError(typErr);
-  }
-  if (!listutils::isRelDescription(inputType.second().listExpr()) &&
-      !listutils::isTupleStream(inputType.second().listExpr())){
-    return l.typeError(ifsErr);
-  }
-
-
-  //The second list: partAttribute x [string] x [text] x [(DLO):DLF]
-  int len = l.second().first().length();
-  string PAName = "";
-  int PAIndex = 0;
-  ListExpr PAType;
-  if (len < 1 || len > 5 )
-    return l.typeError(typErr);
-  else
-  {
-    //The first argument in this list must be the partition attribute name
-    NList pType = l.second().first();
-    NList pValue = l.second().second();
-    PAName = pType.first().str();
-
-    ListExpr AttrList = inputType.second().second().second().listExpr();
-    PAIndex = listutils::findAttribute(AttrList, PAName, PAType);
-    if (PAIndex <= 0)
-      return l.typeError(upaErr);
-
-    if (len > 1)
-    {
-      for (int i = 2; i <= len; i++)
-      {
-        NList pp = pType.elem(i);
-        NList pv = pValue.elem(i);
-
-        if (pp.isSymbol(CcString::BasicType()))
-        {
-          //ObjectName defined.
-          NList fnList;
-          if (!QueryProcessor::GetNLArgValueInTM(pv, fnList)){
-            return l.typeError(ifaErr + "objName");
-          }
-          objName = fnList.str();
-        }
-        else if (pp.isSymbol(FText::BasicType()))
-        {
-          //FilePath defined
-          NList fpList;
-          if (!QueryProcessor::GetNLArgValueInTM(pv, fpList)){
-            return l.typeError(ifaErr + "filePath");
-          }
-          filePath = fpList.str();
-        }
-        else if (pp.isSymbol(CcInt::BasicType())){
-          NList rnList;
-          if (!QueryProcessor::GetNLArgValueInTM(pv, rnList)){
-            return l.typeError(ifaErr + "objName");
-          }
-          reduceTaskNum = rnList.intval();
-        }
-        else if (pp.isSymbol("DLF")){
-          kind = DLF;
-        }
-        else if (!pp.isSymbol("DLO")){
-          return l.typeError(nprErr);
-        }
-      }
-    }
-  }
-  if (kind == DLO && reduceTaskNum > (int)ci.getSlaveSize()){
-    return l.typeError(ernErr);
-  }
-
-  //The third map list
-  NList mapType = l.third().first();
-  NList mapValue = l.third().second();
-  NList coType = mapType.third();             //Create Type
-  NList coQuery = mapValue.third();           //Create Query
-  NList coBType;                              //Create Base Type
-  if (coType.isAtom()){
-    coBType = coType;
-  }
-  else{
-    coBType = coType.first();
-  }
-  if (coBType.isEqual("typeerror"))
-    return l.typeError(uafErr);
-  qStr = coQuery.convertToString();
-
-  //Query Parameter
-  string coParaName = mapValue.second().first().str();
-
-  //Check the type for output flist
-  //If it is a DLF, then the output type must be a tuple stream
-  if (kind == DLF && !listutils::isTupleStream(coType.listExpr())){
-    return l.typeError(expErr);
-  }
-
-  NList resultType = NList(NList(fList::BasicType()), NList(coType));
-  if (objName.length() == 0)
-    objName = fList::tempName(false);
-  else
-  {
-    char f = objName[0];
-    if (f<'A' || f>'Z'){
-      return l.typeError(onmErr);
-    }
-    //If the name of sub-objects or sub-files are denoted by users,
-    //Then it must be kept in a text type file,
-    //in case of the homonymous problem
-    //also this file must be kept in the default file path.
-
-    string filePath =
-        getLocalFilePath("", (objName + "_type"),"", true);
-    if (FileSystem::FileOrFolderExists(filePath)){
-      ListExpr exeType;
-      bool ok = false;
-      if (nl->ReadFromFile(filePath, exeType)){
-        //TODO Need to be more compatible with file-related operators
-          if (nl->Equal(nl->Second(exeType),
-              resultType.second().second().listExpr())){
-            ok = true;
-          }
-      }
-      if (!ok)
-        return l.typeError(hnmErr + filePath);
-    }
-    else{
-      ListExpr expList = nl->Second(resultType.listExpr());
-      if (nl->IsAtom(expList)){
-        expList = nl->OneElemList(expList);
-      }
-      if (!nl->WriteToFile(filePath, expList)){
-        return l.typeError(fwtErr + filePath);
-      }
-    }
-  }
-
-  //Check the length of the database name
-  string dbName = fList::tempName(true);
-  if (dbName.length() >= 16){
-    //16 is the maximum length that a database name can be
-    return l.typeError(udnErr);
-  }
-
-  return NList(NList(Symbol::APPEND()),
-      NList(NList(qStr, true, true),
-            NList(objName, true, false),
-            NList((int)kind),
-            NList(coParaName, true, false),
-            NList(dbName, true, false)),
-      resultType).listExpr();
 
 }
 
@@ -3880,15 +3941,17 @@ T1 and T2 are either rel(tuple) or stream(tuple)
 
 ----
 
-Similar as the above unary hadoopReduce operator, this one expects two input flists,
-also two partition attributes, each one corresponding to one input flist, respectively.
+Similar as the above unary hadoopReduce operator, this one expects two 
+input flists, also two partition attributes, each one corresponding to 
+one input flist, respectively.
 
 The syntax is:
 
 ----
 flist(T1) x flist(T2)
   x partAttr1 x partAttr2
-  x [objectName: string] x [objectPath: text] x [(DLO):DLF] x [reduceTaskNum: int]
+  x [objectName: string] x [objectPath: text] x [(DLO):DLF] 
+  x [reduceTaskNum: int]
   x ( interFunc: map ( T1 x T2 \to T1) )
 \to flist(T3)
 
@@ -3920,215 +3983,219 @@ By default, the ~isHDJ~ parameter is false.
 */
 
 ListExpr hadoopReduce2TypeMap(ListExpr args){
-  NList l(args);
-
-  string lenErr = "ERROR! Operator hadoopReduce expects 4 argument lists. ";
-  string typErr = "ERROR! Operator hadoopReduce expects "
-      "flist(T1) x flist(T2) "
-      "x partAttr1 x partAttr2 x [string] x [text] x [(DLO):DLF] "
-      "x [int] x [bool] x ( map (T1 T2) T3 ) -> flist(T3)";
-  string ifsErr = "ERROR! Operator hadoopReduce expects the input flist "
-      "contains either a tuple stream or a tuple relation. ";
-  string upaErr = "ERROR! The partition attribute "
-      "is not found in the corresponding input flist";
-  string ifaErr = "ERROR! Infeasible evaluation in TM of attribute:";
-  string nprErr = "ERROR! Operator hadoopReduce expects "
-      "creating a new DLO or DLF kind flist.";
-  string ernErr = "ERROR! The reduceTaskNum cannot be larger than the cluster "
-      "scale while producing a DLO flist object.";
-  string onmErr = "ERROR! Operator hadoopMap expects the created "
-      "object name starts with upper case. ";
-  string uafErr = "ERROR!! The internal function is unavailable.";
-  string expErr = "ERROR! Improper output type for DLF flist";
-  string fwtErr = "ERROR! Failed writing type into file: ";
-  string hnmErr = "ERROR! Exists homonymous flist type file in: ";
-  string udnErr = "ERROR! Long database name is set.";
-
-
-  string objName, filePath, qStr;
-  fListKind kind = DLO;
-  clusterInfo ci;
-  int reduceTaskNum = ci.getSlaveSize();
-
-  int argIndex = 1;
-
-  if (l.length() != 4)
-    return l.typeError(lenErr);
-
-  //The first two flist arguments
-  NList inputType[2];
-  for (; argIndex <= 2; argIndex++){
-    int lc = argIndex - 1;
-    inputType[lc] = l.elem(argIndex).first();
-    if (inputType[lc].isSymbol("typeerror") || inputType[lc].length() != 2 ){
-      return l.typeError(typErr);
-    }
-    if (!inputType[lc].first().isSymbol(fList::BasicType())){
-      return l.typeError(typErr);
-    }
-    if (!listutils::isRelDescription(inputType[lc].second().listExpr()) &&
-        !listutils::isTupleStream(inputType[lc].second().listExpr())){
-      return l.typeError(ifsErr);
-    }
+  try{
+     NList l(args);
+   
+     string lenErr = "ERROR! Operator hadoopReduce expects 4 argument lists. ";
+     string typErr = "ERROR! Operator hadoopReduce expects "
+         "flist(T1) x flist(T2) "
+         "x partAttr1 x partAttr2 x [string] x [text] x [(DLO):DLF] "
+         "x [int] x [bool] x ( map (T1 T2) T3 ) -> flist(T3)";
+     string ifsErr = "ERROR! Operator hadoopReduce expects the input flist "
+         "contains either a tuple stream or a tuple relation. ";
+     string upaErr = "ERROR! The partition attribute "
+         "is not found in the corresponding input flist";
+     string ifaErr = "ERROR! Infeasible evaluation in TM of attribute:";
+     string nprErr = "ERROR! Operator hadoopReduce expects "
+         "creating a new DLO or DLF kind flist.";
+     string ernErr = "ERROR! The reduceTaskNum cannot be larger than the"
+                    " cluster scale while producing a DLO flist object.";
+     string onmErr = "ERROR! Operator hadoopMap expects the created "
+         "object name starts with upper case. ";
+     string uafErr = "ERROR!! The internal function is unavailable.";
+     string expErr = "ERROR! Improper output type for DLF flist";
+     string fwtErr = "ERROR! Failed writing type into file: ";
+     string hnmErr = "ERROR! Exists homonymous flist type file in: ";
+     string udnErr = "ERROR! Long database name is set.";
+   
+   
+     string objName, filePath, qStr;
+     fListKind kind = DLO;
+     clusterInfo ci;
+     int reduceTaskNum = ci.getSlaveSize();
+   
+     int argIndex = 1;
+   
+     if (l.length() != 4)
+       return l.typeError(lenErr);
+   
+     //The first two flist arguments
+     NList inputType[2];
+     for (; argIndex <= 2; argIndex++){
+       int lc = argIndex - 1;
+       inputType[lc] = l.elem(argIndex).first();
+       if (inputType[lc].isSymbol("typeerror") || inputType[lc].length() != 2 ){
+         return l.typeError(typErr);
+       }
+       if (!inputType[lc].first().isSymbol(fList::BasicType())){
+         return l.typeError(typErr);
+       }
+       if (!listutils::isRelDescription(inputType[lc].second().listExpr()) &&
+           !listutils::isTupleStream(inputType[lc].second().listExpr())){
+         return l.typeError(ifsErr);
+       }
+     }
+   
+     //The third argument list
+     NList pType   = l.elem(argIndex).first();
+     NList pValue  = l.elem(argIndex).second();
+     int len = pType.length();
+     if (len < 2 || len > 6)
+       return l.typeError(typErr);
+   
+     string    PAName[2] = { pType.first().str(), pType.second().str()};
+     int       PAIndex[2]= {0,0};
+     ListExpr  PAType[2];
+     bool      isHDJ = false;
+     for (int inc = 0; inc < 2; inc++){
+       ListExpr attrList = inputType[inc].second().second().second().listExpr();
+       PAIndex[inc] = listutils::findAttribute(attrList, 
+                                               PAName[inc], PAType[inc]);
+       if (PAIndex[inc] <= 0)
+         return l.typeError(upaErr);
+     }
+     for (int oac = 3; oac <= len; oac++)
+     {
+       //Check other optional arguments in this list
+       NList pp = pType.elem(oac);
+       NList pv = pValue.elem(oac);
+   
+       if (pp.isSymbol(CcString::BasicType()))
+       {
+         //ObjectName defined.
+         NList fnList;
+         if (!QueryProcessor::GetNLArgValueInTM(pv, fnList)){
+           return l.typeError(ifaErr + "objName");
+         }
+         objName = fnList.str();
+       }
+       else if (pp.isSymbol(FText::BasicType()))
+       {
+         //FilePath defined
+         NList fpList;
+         if (!QueryProcessor::GetNLArgValueInTM(pv, fpList)){
+           return l.typeError(ifaErr + "filePath");
+         }
+         filePath = fpList.str();
+       }
+       else if (pp.isSymbol(CcInt::BasicType())){
+         NList rnList;
+         if (!QueryProcessor::GetNLArgValueInTM(pv, rnList)){
+           return l.typeError(ifaErr + "objName");
+         }
+         reduceTaskNum = rnList.intval();
+       }
+       else if (pp.isSymbol(CcBool::BasicType())){
+         NList ihList;
+         if (!QueryProcessor::GetNLArgValueInTM(pv, ihList)){
+           return l.typeError(ifaErr + "isHDJ");
+         }
+         isHDJ = ihList.boolval();
+       }
+       else if (pp.isSymbol("DLF")){
+         kind = DLF;
+       }
+       else if (!pp.isSymbol("DLO")){
+         return l.typeError(nprErr);
+       }
+     }
+     if (kind == DLO && reduceTaskNum > (int)ci.getSlaveSize()){
+       return l.typeError(ernErr);
+     }
+   
+     argIndex++;
+     //The fourth inter-query function
+     NList mapType = l.elem(argIndex).first();
+     NList mapValue = l.elem(argIndex).second();
+     if (mapType.length() != 4)
+       return l.typeError(uafErr);
+   
+     NList coType = mapType.fourth();             //Create Type
+     NList coQuery = mapValue.fourth();          //Create Query
+     NList coBType;                              //Create Base Type
+     if (coType.isAtom()){
+       coBType = coType;
+     }
+     else{
+       coBType = coType.first();
+     }
+     if (coBType.isEqual("typeerror"))
+       return l.typeError(uafErr);
+     qStr = coQuery.convertToString();
+   
+     //Query Parameter
+     string coParaName[2] = {
+         mapValue.second().first().str(),
+         mapValue.third().first().str()};
+   
+     //Check the type for output flist
+     //If it is a DLF, then the output type must be a tuple stream
+     if (kind == DLF && !listutils::isTupleStream(coType.listExpr())){
+       return l.typeError(expErr);
+     }
+     NList resultType = NList(NList(fList::BasicType()), NList(coType));
+   
+     if (objName.length() == 0)
+       objName = fList::tempName(false);
+     else
+     {
+       char f = objName[0];
+       if (f<'A' || f>'Z'){
+         return l.typeError(onmErr);
+       }
+       //If the name of sub-objects or sub-files are denoted by users,
+       //Then it must be kept in a text type file,
+       //in case of the homonymous problem
+       //also this file must be kept in the default file path.
+   
+       string filePath =
+           getLocalFilePath("", (objName + "_type"),"", true);
+       if (FileSystem::FileOrFolderExists(filePath)){
+         ListExpr exeType;
+         bool ok = false;
+         if (nl->ReadFromFile(filePath, exeType)){
+           //TODO Need to be more compatible with file-related operators
+             if (nl->Equal(nl->Second(exeType),
+                 resultType.second().second().listExpr())){
+               ok = true;
+             }
+         }
+         if (!ok)
+           return l.typeError(hnmErr + filePath);
+       }
+       else{
+         ListExpr expList = nl->Second(resultType.listExpr());
+         if (nl->IsAtom(expList)){
+           expList = nl->OneElemList(expList);
+         }
+         if (!nl->WriteToFile(filePath, expList)){
+           return l.typeError(fwtErr + filePath);
+         }
+       }
+     }
+   
+     //Check the length of the database name
+     string dbName = fList::tempName(true);
+     if (dbName.length() >= 16){
+       //16 is the maximum length that a database name can be
+       return l.typeError(udnErr);
+     }
+   
+     NList appendList;
+     appendList.append(NList(qStr, true, true));
+     appendList.append(NList(objName, true, false));
+     appendList.append(NList((int)kind));
+     appendList.append(NList(coParaName[0], true, false));
+     appendList.append(NList(coParaName[1], true, false));
+     appendList.append(NList(dbName, true, false));
+     appendList.append(NList(isHDJ));
+   
+     return NList(NList(Symbol::APPEND()),
+         appendList,
+         resultType).listExpr();
+  } catch(...){
+    return listutils::typeError("invalid input");
   }
-
-  //The third argument list
-  NList pType   = l.elem(argIndex).first();
-  NList pValue  = l.elem(argIndex).second();
-  int len = pType.length();
-  if (len < 2 || len > 6)
-    return l.typeError(typErr);
-
-  string    PAName[2] = { pType.first().str(), pType.second().str()};
-  int       PAIndex[2]= {0,0};
-  ListExpr  PAType[2];
-  bool      isHDJ = false;
-  for (int inc = 0; inc < 2; inc++){
-    ListExpr attrList = inputType[inc].second().second().second().listExpr();
-    PAIndex[inc] = listutils::findAttribute(attrList, PAName[inc], PAType[inc]);
-    if (PAIndex[inc] <= 0)
-      return l.typeError(upaErr);
-  }
-  for (int oac = 3; oac <= len; oac++)
-  {
-    //Check other optional arguments in this list
-    NList pp = pType.elem(oac);
-    NList pv = pValue.elem(oac);
-
-    if (pp.isSymbol(CcString::BasicType()))
-    {
-      //ObjectName defined.
-      NList fnList;
-      if (!QueryProcessor::GetNLArgValueInTM(pv, fnList)){
-        return l.typeError(ifaErr + "objName");
-      }
-      objName = fnList.str();
-    }
-    else if (pp.isSymbol(FText::BasicType()))
-    {
-      //FilePath defined
-      NList fpList;
-      if (!QueryProcessor::GetNLArgValueInTM(pv, fpList)){
-        return l.typeError(ifaErr + "filePath");
-      }
-      filePath = fpList.str();
-    }
-    else if (pp.isSymbol(CcInt::BasicType())){
-      NList rnList;
-      if (!QueryProcessor::GetNLArgValueInTM(pv, rnList)){
-        return l.typeError(ifaErr + "objName");
-      }
-      reduceTaskNum = rnList.intval();
-    }
-    else if (pp.isSymbol(CcBool::BasicType())){
-      NList ihList;
-      if (!QueryProcessor::GetNLArgValueInTM(pv, ihList)){
-        return l.typeError(ifaErr + "isHDJ");
-      }
-      isHDJ = ihList.boolval();
-    }
-    else if (pp.isSymbol("DLF")){
-      kind = DLF;
-    }
-    else if (!pp.isSymbol("DLO")){
-      return l.typeError(nprErr);
-    }
-  }
-  if (kind == DLO && reduceTaskNum > (int)ci.getSlaveSize()){
-    return l.typeError(ernErr);
-  }
-
-  argIndex++;
-  //The fourth inter-query function
-  NList mapType = l.elem(argIndex).first();
-  NList mapValue = l.elem(argIndex).second();
-  if (mapType.length() != 4)
-    return l.typeError(uafErr);
-
-  NList coType = mapType.fourth();             //Create Type
-  NList coQuery = mapValue.fourth();          //Create Query
-  NList coBType;                              //Create Base Type
-  if (coType.isAtom()){
-    coBType = coType;
-  }
-  else{
-    coBType = coType.first();
-  }
-  if (coBType.isEqual("typeerror"))
-    return l.typeError(uafErr);
-  qStr = coQuery.convertToString();
-
-  //Query Parameter
-  string coParaName[2] = {
-      mapValue.second().first().str(),
-      mapValue.third().first().str()};
-
-  //Check the type for output flist
-  //If it is a DLF, then the output type must be a tuple stream
-  if (kind == DLF && !listutils::isTupleStream(coType.listExpr())){
-    return l.typeError(expErr);
-  }
-  NList resultType = NList(NList(fList::BasicType()), NList(coType));
-
-  if (objName.length() == 0)
-    objName = fList::tempName(false);
-  else
-  {
-    char f = objName[0];
-    if (f<'A' || f>'Z'){
-      return l.typeError(onmErr);
-    }
-    //If the name of sub-objects or sub-files are denoted by users,
-    //Then it must be kept in a text type file,
-    //in case of the homonymous problem
-    //also this file must be kept in the default file path.
-
-    string filePath =
-        getLocalFilePath("", (objName + "_type"),"", true);
-    if (FileSystem::FileOrFolderExists(filePath)){
-      ListExpr exeType;
-      bool ok = false;
-      if (nl->ReadFromFile(filePath, exeType)){
-        //TODO Need to be more compatible with file-related operators
-          if (nl->Equal(nl->Second(exeType),
-              resultType.second().second().listExpr())){
-            ok = true;
-          }
-      }
-      if (!ok)
-        return l.typeError(hnmErr + filePath);
-    }
-    else{
-      ListExpr expList = nl->Second(resultType.listExpr());
-      if (nl->IsAtom(expList)){
-        expList = nl->OneElemList(expList);
-      }
-      if (!nl->WriteToFile(filePath, expList)){
-        return l.typeError(fwtErr + filePath);
-      }
-    }
-  }
-
-  //Check the length of the database name
-  string dbName = fList::tempName(true);
-  if (dbName.length() >= 16){
-    //16 is the maximum length that a database name can be
-    return l.typeError(udnErr);
-  }
-
-  NList appendList;
-  appendList.append(NList(qStr, true, true));
-  appendList.append(NList(objName, true, false));
-  appendList.append(NList((int)kind));
-  appendList.append(NList(coParaName[0], true, false));
-  appendList.append(NList(coParaName[1], true, false));
-  appendList.append(NList(dbName, true, false));
-  appendList.append(NList(isHDJ));
-
-  return NList(NList(Symbol::APPEND()),
-      appendList,
-      resultType).listExpr();
-
 }
 
 
@@ -4445,16 +4512,20 @@ ListExpr createFListTypeMap(ListExpr args){
   }
 
   NList pType, pValue;
-  pType = l.first().first();
-  pValue = l.first().second();
+  try{
+     pType = l.first().first();
+     pValue = l.first().second();
 
-  string objName = pValue.str();
-  if (!SecondoSystem::GetCatalog()->IsObjectName(objName))
-    return l.typeError("Object doesn't exist");
+     string objName = pValue.str();
+     if (!SecondoSystem::GetCatalog()->IsObjectName(objName))
+       return l.typeError("Object doesn't exist");
 
-  NList resultType = NList(NList(fList::BasicType()), pType);
+     NList resultType = NList(NList(fList::BasicType()), pType);
 
-  return resultType.listExpr();
+     return resultType.listExpr();
+  } catch(...){
+    return l.typeError(tpeErr);
+  }
 
 }
 
@@ -4525,8 +4596,8 @@ this value should be re-distributed and be replaced in the map step.
 Update at 30th Apr. Jiamin
 Rename to replaceDLOF, mark on not only DLF, but also DLO flist,
 and returns location information of both kinds flists.
-Therefore, if a sub-object of a DLO flist doesn't exist on one slave data server,
-no map task is deployed.
+Therefore, if a sub-object of a DLO flist doesn't exist on one slave data 
+server, no map task is deployed.
 
 Update at 22th Aug. Jiamin
 Add the boolean parameter ua (Unavailable Allowed).
@@ -4683,8 +4754,8 @@ ListExpr replaceParaOp(
 /*
 Find all DELIEVERABLE Secondo objects, and substitute it with its nested-list
 expression instead of its name.
-With this function, there is no need to add ~para~ operator for these symbol objects,
-which was designed as DGO flist.
+With this function, there is no need to add ~para~ operator for these symbol 
+objects, which was designed as DGO flist.
 
 */
 ListExpr replaceSecObj(ListExpr createQuery)
