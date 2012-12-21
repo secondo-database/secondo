@@ -91,6 +91,7 @@ let OBAJNres004 =
   loopjoin[
     dataSJcar_TrajBoxNet windowintersectsS[.NBox]
     sort rdup dataSJcar gettuples]
+  filter [.Trip passes .Pos]
   project[Id, Licence]
   sortby[Id asc, Licence asc]
   krdup[Id, Licence]
@@ -145,9 +146,9 @@ query now();
 let OBAJNres006 =
   OBAJNres006tmp1 feed {a}
   OBAJNres006tmp1 feed {b}
-  symmjoin[(.Box_a intersects ..Box_b) and
-           (.Licence_a < ..Licence_b) and
-           (everNearerThan(.Ptrip_a, ..Ptrip_b, 10.0))]
+  symmjoin[.Box_a intersects ..Box_b] and
+  filter[.Licence_a < .Licence_b]
+  filter[everNearerThan(.Ptrip_a, .Ptrip_b, 10.0)]
   project [Licence_a, Licence_b]
   sortby [Licence_a asc, Licence_b asc]
   krdup [Licence_a, Licence_b]
@@ -270,8 +271,9 @@ let OBAJNres010 =
                                                   (minD(.BBox,2) - 1.5),
                                                   (maxD(.BBox,2) + 1.5))]{c1}
   OBAJNres010tmp1 feed {c2}
-  symmjoin[(.Box_c1 intersects ..Box_c2) and (.Licence_c1 # ..Licence_c2) and
-          (everNearerThan(.TripA_c1, ..TripA_c2, 3.0))]
+  symmjoin[.Box_c1 intersects ..Box_c2]
+  filter[.Licence_c1 # .Licence_c2]
+  filter[everNearerThan(.TripA_c1, .TripA_c2, 3.0)]
   projectextend [Licence_c1, Licence_c2; Pos: .Trip_c2 atperiods deftime((distance(.TripA_c1, .TripA_c2) < 3.0) at TRUE)]
   filter [not(isempty(.Pos))]
   project [Licence_c2, Licence_c1, Pos]
@@ -384,19 +386,16 @@ query now();
 ################################################################################
 
 let OBAJNres014 =
-  QueryRegions1JNet feed
-    filter[not(isempty(.Region))]
-    projectextendstream[Id, Region; UReg: units(.Region)]
-    extend[Brect: netbox(.UReg)] {r}
-  QueryInstant1 feed {i}
+  dataSJcar feed
+  QueryInstant1 feed
   product
-  projectextend[Id_r, Region_r, Instant_i; Box: box3d(.Brect_r, .Instant_i)]
-  loopsel[fun(t:TUPLE) dataSJcar_BoxNet_timespace windowintersectsS[attr(t,Box)]
-  sort rdup dataSJcar gettuples
-  filter[(val(.Trip atinstant (attr(t,Instant_i)))) inside (attr(t,Region_r))]
-  projectextend [;Id: attr(t,Id_r), Instant: attr(t,Instant_i), License: .Licence]]
-  sortby [Id asc, Instant asc, License asc]
-  krdup[Id, Instant, License]
+  projectextend[Licence, Instant; PosX: val(.Trip atinstant .Instant)]
+  projectextendstream[Licence, Instant; Pos: altrlocs(.PosX)]
+  QueryRegions1Net feed filter[not(isempty(.Region))]
+  symmjoin[.Pos inside ..Region]
+  project[Id, Instant, Licence]
+  sortby [Id asc, Instant asc, Licence asc]
+  krdup[Id, Instant, Licence]
 consume;
 
 query now();
