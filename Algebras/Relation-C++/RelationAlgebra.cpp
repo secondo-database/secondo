@@ -1037,6 +1037,22 @@ struct FeedProjectInfo : OperatorInfo {
 
 ListExpr feedproject_tm(ListExpr args)
 {
+
+  if(!nl->HasLength(args,2)){
+    return listutils::typeError("rel(tuple(X)) x attrlist expected");
+  }
+
+  ListExpr rel = nl->First(args);
+  ListExpr attrList = nl->Second(args);
+
+  if(!Relation::checkType(rel)){
+    return listutils::typeError("first argument is not a relation");
+  }
+  if((nl->AtomType(attrList)!=NoAtom)  || nl->IsEmpty(attrList)){
+    return listutils::typeError("invalid list of attribute names");
+  }
+
+
   NList l(args);
 
   const string opName = "feedproject";

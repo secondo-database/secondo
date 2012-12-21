@@ -2040,7 +2040,7 @@ ListExpr OpGPXImportTypeMap(ListExpr in_xArgs)
 {
     NList param(in_xArgs);
 
-    if( param.length() > 2)
+    if( (param.length() !=1) && (param.length()!=2))
         return listutils::typeError("one or two arguments expected");
 
     if (!param.first().isSymbol(FText::BasicType()))
