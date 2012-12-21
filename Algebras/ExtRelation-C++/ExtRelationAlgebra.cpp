@@ -7881,6 +7881,10 @@ ListExpr SlidingWindowTypeMap(ListExpr args)
   // Check the last argument
   ListExpr rest = fourth;
 
+  if(nl->IsAtom(rest)){
+    return listutils::typeError("fourth arg must be a list");
+  }
+
   while (!(nl->IsEmpty(rest))) // check functions y1 .. ym
   {
       // iterate over elements of the 3rd input list
