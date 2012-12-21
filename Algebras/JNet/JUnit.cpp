@@ -486,17 +486,20 @@ IJPoint JUnit::AtInstant(const Instant* inst, const string netId) const
   else
   {
     if (*inst == timeInter.start)
-      return IJPoint(*inst, JPoint(netId, routeInter.GetStartLocation()));
+      return IJPoint(*inst, JPoint(netId, routeInter.GetStartLocation(),
+                                   false));
     else
     {
       if (*inst == timeInter.end)
-        return IJPoint(*inst, JPoint(netId, routeInter.GetEndLocation()));
+        return IJPoint(*inst, JPoint(netId, routeInter.GetEndLocation(),
+                                     false));
       else
         return IJPoint(*inst,
                        JPoint(netId,
                               RouteLocation(routeInter.GetRouteId(),
                                             PosAtTime(inst),
-                                            routeInter.GetSide())));
+                                            routeInter.GetSide()),
+                              false));
     }
   }
 }
@@ -510,7 +513,7 @@ IJPoint JUnit::Initial(const string netId) const
 {
   if (IsDefined())
     return IJPoint(timeInter.start,
-                   JPoint(netId, routeInter.GetStartLocation()));
+                   JPoint(netId, routeInter.GetStartLocation(), false));
   else
     return IJPoint(false);
 }

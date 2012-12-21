@@ -68,6 +68,7 @@ MJPoint::MJPoint(const bool def) :
     Attribute(def), units(0), trajectory(0), activBulkload(false), lenth(0.0)
 {}
 
+
 MJPoint::MJPoint(const MJPoint& other) :
     Attribute(other.IsDefined()), units(0), trajectory(0), activBulkload(false),
     lenth(0.0)
@@ -81,6 +82,7 @@ MJPoint::MJPoint(const MJPoint& other) :
   }
 }
 
+  /*
 MJPoint::MJPoint(const string netId, const DbArray<JUnit>& upoints) :
   Attribute(true), units(0), trajectory(0), activBulkload(false), lenth(0.0)
 {
@@ -97,7 +99,7 @@ MJPoint::MJPoint(const string netId, const DbArray<JUnit>& upoints) :
     units.copyFrom(upoints);
     SetDefined(Simplify());
   }
-}
+}*/
 
 MJPoint::MJPoint(const UJPoint* u) :
   Attribute(true), units(0), trajectory(0), activBulkload(false), lenth(0.0)
@@ -144,13 +146,13 @@ double MJPoint::Length() const
   return lenth;
 }
 
-
+  /*
 void MJPoint::SetUnits(const DbArray<JUnit>& upoints)
 {
   assert(upoints != 0);
   units.copyFrom(upoints);
   SetDefined(Simplify());
-}
+}*/
 
 void MJPoint::SetNetworkId(const STRING_T& id)
 {
@@ -169,7 +171,7 @@ void MJPoint::Trajectory(JLine* result) const
   if (IsDefined())
   {
     result->SetNetworkId(nid);
-    result->SetSortedRouteIntervals(trajectory);
+    result->SetRouteIntervals(trajectory, false, true);
   }
 }
 
@@ -555,7 +557,8 @@ void MJPoint::StartBulkload()
   activBulkload = true;
 }
 
-void MJPoint::EndBulkload(const bool simplify /*=true*/)
+void MJPoint::EndBulkload(const bool simplify /*=true*/,
+                          const bool buildtraj /*=true*/)
 {
   activBulkload = false;
   if (simplify)
@@ -573,27 +576,30 @@ void MJPoint::EndBulkload(const bool simplify /*=true*/)
   }
   else
   {
-    if (IsDefined() && units.Size() > 0)
+    if (buildtraj)
     {
-      JRITree* tree = new JRITree(0);
-      JUnit unit;
-      int i = 0;
-      while (i < units.Size())
+      if (IsDefined() && units.Size() > 0)
       {
-        Get(i,unit);
-        lenth += unit.GetLength();
-        tree->Insert(unit.GetRouteInterval());
-        i++;
+        JRITree* tree = new JRITree(0);
+        JUnit unit;
+        int i = 0;
+        while (i < units.Size())
+        {
+          Get(i,unit);
+          lenth += unit.GetLength();
+          tree->Insert(unit.GetRouteInterval());
+          i++;
+        }
+        tree->TreeToDbArray(&trajectory,0);
+        tree->Destroy();
+        delete tree;
+        SetDefined(true);
+        units.TrimToSize();
+        trajectory.TrimToSize();
       }
-      tree->TreeToDbArray(&trajectory,0);
-      tree->Destroy();
-      delete tree;
-      SetDefined(true);
-      units.TrimToSize();
-      trajectory.TrimToSize();
+      else
+        SetDefined(false);
     }
-    else
-      SetDefined(false);
   }
 }
 
@@ -663,7 +669,7 @@ void MJPoint::Get(const int i, UJPoint& up) const
   units.Get(i,ju);
   up.SetDefined(true);
   up.SetNetworkId(nid);
-  up.SetUnit(ju);
+  up.SetUnit(ju, false);
 }
 
 /*
@@ -801,28 +807,29 @@ bool MJPoint::Present(const Periods* per) const
     Get(GetNoComponents()-1, unitEnd);
     while(timeIndex < per->GetNoComponents())
     {
-      int  unitIndex = -1;
       per->Get(timeIndex, actTimeInterval);
       if (actTimeInterval.IsDefined())
       {
-        if (!(unitEnd.GetTimeInterval().Before(actTimeInterval) ||
-              actTimeInterval.Before(unitStart.GetTimeInterval())))
+        if (unitEnd.GetTimeInterval().Before(actTimeInterval))
+          return false;
+        if (!actTimeInterval.Before(unitStart.GetTimeInterval()))
         {
-          unitIndex = GetUnitPosForTime(actTimeInterval,
-                                        0, GetNoComponents()-1);
-          if (-1 < unitIndex && unitIndex < GetNoComponents())
-            return true;
-          unitIndex = GetUnitPosForTime(actTimeInterval,
-                                        0, GetNoComponents()-1);
-          if (-1 < unitIndex && unitIndex < GetNoComponents())
-            return true;
-          unitIndex = 0;
-          while (unitIndex < GetNoComponents())
+          int first = 0;
+          int last = GetNoComponents()-1;
+          while (first <= last)
           {
-            Get(unitIndex, actUnit);
-            if (actUnit.GetTimeInterval().Intersects(actTimeInterval))
-              return true;
-            unitIndex++;
+            int mid = (first + last) /2;
+            if (mid < 0 || mid >= GetNoComponents()) break;
+            Get( mid, actUnit);
+            if (actUnit.GetTimeInterval().Before(actTimeInterval))
+              first = mid + 1;
+            else
+            {
+              if (actTimeInterval.Before(actUnit.GetTimeInterval()))
+                last = mid - 1;
+              else
+                return true;
+            }
           }
         }
       }
@@ -836,8 +843,14 @@ bool MJPoint::Present(const Instant* inst) const
 {
   if (IsDefined() && !IsEmpty() && inst != 0 && inst->IsDefined())
   {
-    int pos = GetUnitPosForTime(*inst, 0, GetNoComponents()-1);
-    return (pos > -1);
+    JUnit first, last;
+    Get(0,first);
+    Get(GetNoComponents()-1,last);
+    if (*inst < first.GetTimeInterval().start ||
+         last.GetTimeInterval().end < *inst)
+      return false;
+    else
+      return (-1 < GetUnitPosForTime(*inst, 0, GetNoComponents()-1));
   }
   return false;
 }
@@ -1320,24 +1333,11 @@ int MJPoint::GetUnitPosForTime(const Instant& time,
     JUnit ju;
     Get(mid, ju);
     if (time > ju.GetTimeInterval().end)
-    {
-      if (mid != spos)
-        return GetUnitPosForTime(time, mid, epos);
-      else
-        return GetUnitPosForTime(time,mid+1,epos);
-    }
+      return GetUnitPosForTime(time,mid+1,epos);
+    else if (time < ju.GetTimeInterval().start)
+      return GetUnitPosForTime(time, spos, mid-1);
     else
-    {
-      if (time < ju.GetTimeInterval().start)
-      {
-        if (mid != epos)
-          return GetUnitPosForTime(time, spos, mid);
-        else
-          return GetUnitPosForTime(time, spos, mid-1);
-      }
-      else
-        return mid;
-    }
+      return mid;
   }
 }
 
@@ -1419,8 +1419,8 @@ void MJPoint::Refinement(const MJPoint* in2, MJPoint* out1, MJPoint* out2) const
         }
       }
     }
-    out1->EndBulkload(false);
-    out2->EndBulkload(false);
+    out1->EndBulkload(false, false);
+    out2->EndBulkload(false, false);
   }
 }
 

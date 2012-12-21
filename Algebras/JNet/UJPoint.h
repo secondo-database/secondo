@@ -69,11 +69,11 @@ It can not be private because UJPoint is used as part of MJPoint.
   UJPoint();
   explicit UJPoint(const bool def);
   UJPoint(const UJPoint& other);
-  UJPoint(const string id, const JUnit& u);
+  UJPoint(const string id, const JUnit& u, const bool check = true);
   UJPoint(const string id, const Interval<Instant>& inst,
-          const JRouteInterval& r);
+          const JRouteInterval& r, const bool check = true);
   UJPoint(const JNetwork* jnet, const JRouteInterval* jrint,
-          const Interval<Instant>* timeInter);
+          const Interval<Instant>* timeInter, const bool check = true);
 
   ~UJPoint();
 
@@ -86,7 +86,8 @@ It can not be private because UJPoint is used as part of MJPoint.
   JUnit GetUnit() const;
 
   void SetNetworkId(const STRING_T& id);
-  void SetUnit (const JUnit& j);
+  void SetUnit (const JUnit& j, const bool check = true,
+                const JNetwork* jnet = 0);
 
 /*
 1.1.1 Override Methods from Attribute

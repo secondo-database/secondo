@@ -301,8 +301,8 @@ Returns true if the given position(s) exist in the network.
 
 */
 
-  bool Contains(const RouteLocation* rloc) const;
-  bool Contains(const JRouteInterval* rint) const;
+  bool Contains(const RouteLocation& rloc) const;
+  bool Contains(const JRouteInterval& rint) const;
 
 /*
 1.1.1 Operations for Translation from Spatial Data Types into Network Data Types
@@ -329,6 +329,8 @@ Returns true if the given position(s) exist in the network.
   Point* GetSpatialValueOf(const JPoint& jp) const;
   void GetSpatialValueOf(const JLine* jl, Line& result) const;
   void GetSpatialValueOf(const MJPoint* mjp, MPoint& result) const;
+
+  void GetSpatialValueOf(const JRouteInterval& rint, SimpleLine& result) const;
 
 /*
 1.1.1 Spatial and Spatio-Temporal BoundingBoxes of Network DataTypes
@@ -358,9 +360,13 @@ void SimulateTrip(const RouteLocation& source, const RouteLocation& target,
                   const double distTargetStartSect, MJPoint* result);
 
 void SimulateTrip(const RouteLocation& source, const RouteLocation& target,
-                  const Point* sourcePos, const Point* targetPos,
-                  const Instant& starttime, const Instant& endtime,
-                  MJPoint* result);
+                  const Point* targetPos, const Instant& starttime,
+                  const Instant& endtime, MJPoint* result);
+
+void ComputeAndAddUnits(const DbArray<JRouteInterval>* path,
+                        const Instant& startime, const Instant& endtime,
+                        const bool lc, const bool rc, double length,
+                        MJPoint* result) const;
 
 /*
 1.1.1 ~ShortestPath~
@@ -380,6 +386,10 @@ DbArray<JRouteInterval>* ShortestPath(const RouteLocation& source,
                                       const double distSourceStartSect,
                                       const double distTargetStartSect);
 
+DbArray<JRouteInterval>* ShortestPath(const RouteLocation& source,
+                                      const RouteLocation& target,
+                                      const Point* targetPos,
+                                      double& length);
 
 /*
 1.1.1 Tuple Access on internal relations
@@ -392,6 +402,7 @@ The returned tuple must be deleted by the caller.
 
   Tuple* GetRouteTupleWithId(const int rid) const;
   Tuple* GetSectionTupleWithId(const int sid) const;
+  Tuple* GetSectionTupleWithTupleId(const TupleId tid) const;
   Tuple* GetJunctionTupleWithId(const int jid) const;
   Tuple* GetTupleWithId(BTree* tree, const Relation* rel,
                         const int id) const;
@@ -606,8 +617,8 @@ JNetwork();
 
    int GetNetdistanceNextSID(const Tuple* actNetDistTup) const;
    bool ExistsNetworkdistanceFor(const int startPathJID,
-                                const DbArray<pair<int, double> >* endJunctions,
-                                 int& endPathJID) const;
+                                const vector<pair<int, double> >* endJunctions,
+                                 int& endPathJID, double& distTarget) const;
 
 /*
 1.1.1.1 DirectConnectionExists
@@ -654,6 +665,7 @@ void WriteShortestPath(const RouteLocation& source,
                       const double distTargetStartSect,
                       const Tuple* startSectTup, const Tuple* endSectTup,
                       const int startPathJID, const int endPathJID,
+                      const double distTarget,
                       DbArray<JRouteInterval>* res, double& length) const;
 
 /*
@@ -719,7 +731,7 @@ Point* GetSpatialValueOf(const RouteLocation& rloc, int& curRid,
                          SimpleLine*& lastCurve) const;
 Point* GetSpatialValueOf(const RouteLocation& rloc, double relpos,
                         const Tuple* actSect)const;
-void GetSpatialValueOf(const JRouteInterval& rint, SimpleLine& result) const;
+
 void GetSpatialValueOf(const JRouteInterval& rint,
                        const JListInt* sectList,
                        const int fromIndex,

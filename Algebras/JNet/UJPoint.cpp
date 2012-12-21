@@ -60,78 +60,75 @@ UJPoint::UJPoint(const UJPoint& other) :
   }
 }
 
-UJPoint::UJPoint(const string id, const JUnit& u) :
+UJPoint::UJPoint(const string id, const JUnit& u, const bool check/*=true*/) :
   Attribute(true), unit(u)
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  Word value;
-  bool valDefined = false;
-  if (sc->IsObjectName(id) &&
-      sc->GetObject(id, value, valDefined) &&
-            valDefined)
+  strcpy(nid, id.c_str());
+  if (check)
   {
-    JNetwork* jnet = (JNetwork*) value.addr;
-    JRouteInterval rint(u.GetRouteInterval());
-    if (jnet->Contains(&rint))
-      strcpy(nid, id.c_str());
-    else
-      SetDefined(false);
-    sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), value);
+    JNetwork* j = ManageJNet::GetNetwork(id);
+    SetDefined(j->Contains(u.GetRouteInterval()));
+    ManageJNet::CloseNetwork(j);
   }
 }
 
 UJPoint::UJPoint(const string id, const Interval<Instant>& inst,
-                 const JRouteInterval& r) :
+                 const JRouteInterval& r, const bool check /*=true*/) :
   Attribute(true), unit(true)
 {
+  strcpy(nid, id.c_str());
   if (inst.IsDefined() && r.IsDefined())
   {
-    SecondoCatalog* sc = SecondoSystem::GetCatalog();
-    Word value;
-    bool valDefined = false;
-    if (sc->IsObjectName(id) &&
-        sc->GetObject(id, value, valDefined) &&
-        valDefined)
+    if (check)
     {
-      JNetwork* jnet = (JNetwork*) value.addr;
-      if (jnet->Contains(&r))
+      JNetwork* j = ManageJNet::GetNetwork(id);
+      if (j->Contains(r))
       {
-        strcpy(nid, id.c_str());
         unit.SetTimeInterval(inst);
         unit.SetRouteInterval(r);
       }
       else
-      {
         SetDefined(false);
-      }
-      sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), value);
+      ManageJNet::CloseNetwork(j);
     }
     else
     {
-      SetDefined(false);
+      unit.SetTimeInterval(inst);
+      unit.SetRouteInterval(r);
     }
   }
   else
-  {
     SetDefined(false);
-  }
 }
 
 UJPoint::UJPoint(const JNetwork* jnet, const JRouteInterval* jrint,
-                 const Interval<Instant>* timeInter) :
+                 const Interval<Instant>* timeInter,
+                 const bool check /*=true*/) :
   Attribute(true), unit(true)
 {
-  if (jnet->IsDefined() && jrint->IsDefined() && jnet->Contains(jrint) &&
-      timeInter->IsDefined())
+  if (jnet != 0&& jnet->IsDefined() &&
+      jrint != 0 && jrint->IsDefined() &&
+      timeInter != 0 && timeInter->IsDefined())
   {
     strcpy(nid, *jnet->GetId());
-    unit.SetTimeInterval(*timeInter);
-    unit.SetRouteInterval(*jrint);
+    if (check)
+    {
+      if (jnet->Contains(*jrint))
+      {
+        unit.SetTimeInterval(*timeInter);
+        unit.SetRouteInterval(*jrint);
+      }
+      else
+        SetDefined(false);
+    }
+    else
+    {
+      unit.SetTimeInterval(*timeInter);
+      unit.SetRouteInterval(*jrint);
+    }
   }
   else
-  {
     SetDefined(false);
-  }
 }
 
 UJPoint::~UJPoint()
@@ -159,9 +156,27 @@ void UJPoint::SetNetworkId(const STRING_T& id)
 }
 
 
-void UJPoint::SetUnit(const JUnit& j)
+void UJPoint::SetUnit(const JUnit& j, const bool check /*=true*/,
+                      const JNetwork* jnet /*=0*/)
 {
-  unit = j;
+  if (check)
+  {
+    if (jnet == 0)
+    {
+      JNetwork* jn = ManageJNet::GetNetwork(nid);
+      if (jn->Contains(j.GetRouteInterval()))
+        unit = j;
+      else
+        SetDefined(false);
+      ManageJNet::CloseNetwork(jn);
+    }
+    else if (jnet->Contains(j.GetRouteInterval()))
+      unit = j;
+    else
+      SetDefined(false);
+  }
+  else
+    unit = j;
 }
 
 /*

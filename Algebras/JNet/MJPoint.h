@@ -63,7 +63,8 @@ public:
 
   explicit MJPoint(const bool def);
   explicit MJPoint(const MJPoint& other);
-  explicit MJPoint(const string netid, const DbArray<JUnit>& upoints);
+  /*explicit MJPoint(const string netid, const DbArray<JUnit>& upoints,
+                   const bool check = true, const bool simplify = true);*/
   explicit MJPoint(const UJPoint* u);
 
   ~MJPoint();
@@ -79,7 +80,7 @@ public:
   double Length() const;
 
   void SetNetworkId(const STRING_T& id);
-  void SetUnits(const DbArray<JUnit>& junits);
+  /*void SetUnits(const DbArray<JUnit>& junits);*/
 
 /*
 1.1.1.1 Trajectory
@@ -161,7 +162,8 @@ Rectangle<3> BoundingBox() const;
 */
 
   void StartBulkload();
-  void EndBulkload(const bool simplify = true);
+  void EndBulkload(const bool simplify = true,
+                   const bool buildtrajectory = true);
   MJPoint& Add(const JUnit& up);
 
 /*

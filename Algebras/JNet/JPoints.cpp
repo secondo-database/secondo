@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Symbols.h"
 #include "StandardTypes.h"
 #include "JRLTree.h"
+#include "ManageJNet.h"
 
 using namespace jnetwork;
 
@@ -46,20 +47,23 @@ JPoints::JPoints(const bool def) :
     activBulkload(false)
 {}
 
-JPoints::JPoints(const string netId, const DbArray<RouteLocation>& rlocList) :
-    Attribute(true), routelocations(rlocList)
+JPoints::JPoints(const string netId, const DbArray<RouteLocation>& rlocList,
+                 const bool check /*=true*/, const bool issorted /*=false*/) :
+    Attribute(true), routelocations(0)
 {
-  SecondoCatalog* sc = SecondoSystem::GetCatalog();
-  Word value;
-  bool valDefined = false;
-  if (sc->IsObjectName(netId) &&
-      sc->GetObject(netId, value, valDefined) &&
-      valDefined)
+  if (check)
   {
-    JNetwork* jnet = (JNetwork*) value.addr;
+    JNetwork* jnet = ManageJNet::GetNetwork(netId);
     strcpy(nid, *jnet->GetId());
     FillLocationList(rlocList, jnet);
-    sc->CloseObject(nl->SymbolAtom(JNetwork::BasicType()), value);
+    ManageJNet::CloseNetwork(jnet);
+  }
+  else
+  {
+    strcpy(nid, netId.c_str());
+    routelocations.copyFrom(rlocList);
+    if (!issorted)
+      Sort();
   }
 }
 
@@ -93,29 +97,61 @@ const DbArray<RouteLocation>& JPoints::GetRouteLocations() const
   return routelocations;
 }
 
-void JPoints::SetNetworkId(STRING_T& id)
+void JPoints::SetNetworkId(const STRING_T& id)
 {
   strcpy(nid, id);
 }
 
-void JPoints::SetRouteIntervals(DbArray<RouteLocation>& setri)
+void JPoints::SetRouteLocations(const DbArray<RouteLocation>& setri,
+                                const bool check /*= true*/,
+                                const bool issorted /*=false*/,
+                                const JNetwork* jnet /*=0*/)
 {
-  assert(setri != 0);
-  routelocations.copyFrom(setri);
-  sorted = false;
-  Sort();
-}
-
-void JPoints::SetJPoints(JNetwork* jnet, const JListRLoc& rlocs)
-{
-  if (jnet != 0 && jnet->IsDefined())
+  routelocations.clean();
+  sorted = issorted;
+  if (check)
   {
-    SetDefined(true);
-    strcpy(nid, *jnet->GetId());
-    FillLocationList(rlocs.GetList(),jnet);
+    if(jnet != 0)
+      FillLocationList(setri, jnet);
+    else
+    {
+      JNetwork* j = ManageJNet::GetNetwork(nid);
+      FillLocationList(setri, j);
+      ManageJNet::CloseNetwork(j);
+    }
   }
   else
-    SetDefined(false);
+  {
+    routelocations.copyFrom(setri);
+    if (!issorted)
+      Sort();
+  }
+}
+
+void JPoints::SetRouteLocations(const JListRLoc& rlocs,
+                         const bool check /*=true*/,
+                         const bool issorted /*=false*/,
+                         const JNetwork* jnet /*=0*/)
+{
+  routelocations.clean();
+  sorted = issorted;
+  if (check)
+  {
+    if (jnet != 0)
+      FillLocationList(rlocs.GetList(), jnet);
+    else
+    {
+      JNetwork* j = ManageJNet::GetNetwork(nid);
+      FillLocationList(rlocs.GetList(), j);
+      ManageJNet::CloseNetwork(j);
+    }
+  }
+  else
+  {
+    routelocations.copyFrom(rlocs.GetList());
+    if (!issorted)
+      Sort();
+  }
 }
 
 
@@ -554,7 +590,7 @@ void JPoints::FillLocationList(const DbArray<RouteLocation>& locList,
     for (int i = 0; i < locList.Size(); i++)
     {
       locList.Get(i,actInt);
-      if (jnet->Contains(&actInt))
+      if (jnet->Contains(actInt))
         Add(actInt);
     }
   }

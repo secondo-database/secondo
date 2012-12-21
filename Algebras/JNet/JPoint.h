@@ -64,8 +64,10 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
   JPoint();
   explicit JPoint(const bool def);
   JPoint(const JPoint& other);
-  JPoint(const string netId, const RouteLocation& rloc);
-  JPoint(const JNetwork* jnet, const RouteLocation* rloc);
+  JPoint(const string netId, const RouteLocation& rloc,
+         const bool check = true);
+  JPoint(const JNetwork* jnet, const RouteLocation* rloc,
+         const bool check = true);
 
   ~JPoint();
 
@@ -78,7 +80,8 @@ declared to be private because ~jpoint~ is used as attribute by other datatypes.
   RouteLocation GetLocation() const;
 
   void SetNetId(const STRING_T& netId);
-  void SetPosition(const RouteLocation& rloc);
+  void SetPosition(const RouteLocation& rloc, const bool check = true,
+                   const JNetwork* jnet = 0);
 
 /*
 1.1.1 Override Methods from Attribute

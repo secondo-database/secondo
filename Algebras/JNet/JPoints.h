@@ -63,7 +63,8 @@ public:
 */
 
   explicit JPoints(const bool defined);
-  JPoints(const string netId, const DbArray<RouteLocation>& rlocList);
+  JPoints(const string netId, const DbArray<RouteLocation>& rlocList,
+          const bool check = true, const bool issorted = false);
   JPoints(const JPoints& other);
 
   ~JPoints();
@@ -76,9 +77,15 @@ public:
   const STRING_T* GetNetworkId() const;
   const DbArray<RouteLocation>& GetRouteLocations() const;
 
-  void SetNetworkId(STRING_T& nid);
-  void SetRouteIntervals(DbArray<RouteLocation>& setrlocs);
-  void SetJPoints(JNetwork* jnet, const JListRLoc& rlocs);
+  void SetNetworkId(const STRING_T& nid);
+  void SetRouteLocations(const DbArray<RouteLocation>& setri,
+                                const bool check = true,
+                                const bool issorted = false,
+                                const JNetwork* jnet = 0);
+  void SetRouteLocations(const JListRLoc& rlocs,
+                         const bool check =true,
+                         const bool issorted =false,
+                         const JNetwork* jnet =0);
 
 /*
 1.1.1 Override Methods from Attribute

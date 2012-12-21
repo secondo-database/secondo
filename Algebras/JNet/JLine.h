@@ -62,8 +62,10 @@ public:
 */
 
   explicit JLine(const bool defined);
-  explicit JLine(const string netId, const DbArray<JRouteInterval>& rintList);
-  explicit JLine(const JNetwork* jnet, const JListRInt* rintList);
+  explicit JLine(const string netId, const DbArray<JRouteInterval>& rintList,
+                 const bool check = true, const bool issorted = false);
+  explicit JLine(const JNetwork* jnet, const JListRInt* rintList,
+                 const bool check = true);
   explicit JLine(const JLine& other);
 
   ~JLine();
@@ -77,8 +79,10 @@ public:
   const DbArray<JRouteInterval>& GetRouteIntervals() const;
 
   void SetNetworkId(const STRING_T& nid);
-  void SetRouteIntervals(const DbArray<JRouteInterval>& setri);
-  void SetSortedRouteIntervals(const DbArray<JRouteInterval>& setri);
+  void SetRouteIntervals(const DbArray<JRouteInterval>& setri,
+                         const bool check = true,
+                         const bool issorted = false,
+                         const JNetwork* jnet = 0);
 
 /*
 1.1.1 Override Methods from Attribute

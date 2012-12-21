@@ -53,6 +53,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "UJPoint.h"
 #include "MJPoint.h"
 #include "RelationAlgebra.h"
+#include "JList.h"
 
 using namespace std;
 using namespace mappings;
@@ -602,8 +603,8 @@ int createndgVM( Word* args, Word& result, int message, Word& local,
     NetDistanceGroup* t = new NetDistanceGroup(tsource->GetIntval(),
                                                ttarget->GetIntval(),
                                                tnextjunc->GetIntval(),
-                                                 tnextsect->GetIntval(),
-                                                 tnetdist->GetRealval());
+                                               tnextsect->GetIntval(),
+                                               tnetdist->GetRealval());
     *res = *t;
     t->DeleteIfAllowed();
   }
@@ -830,11 +831,11 @@ int createjpointVM( Word* args, Word& result, int message, Word& local,
   RouteLocation* rloc = (RouteLocation*) args[1].addr;
 
   if (jnet != 0 && jnet->IsDefined() &&
-    rloc != 0 && rloc->IsDefined())
+      rloc != 0 && rloc->IsDefined())
   {
-    JPoint* jp = new JPoint(jnet, rloc);
-    *res = *jp;
-    jp->DeleteIfAllowed();
+    res->SetDefined(true);
+    res->SetNetId(*jnet->GetId());
+    res->SetPosition(*rloc,true,jnet);
   }
   else
     res->SetDefined(false);
@@ -898,9 +899,9 @@ int createjlineVM( Word* args, Word& result, int message, Word& local,
   if (jnet != 0 && jnet->IsDefined() &&
     lrint != 0 && lrint->IsDefined())
   {
-    JLine* jl = new JLine(jnet, lrint);
-    *res = *jl;
-    jl->DeleteIfAllowed();
+    res->Clear();
+    res->SetNetworkId(*jnet->GetId());
+    res->SetRouteIntervals(lrint->GetList(), true, false, jnet);
   }
   else
     res->SetDefined(false);
@@ -961,9 +962,10 @@ int createjpointsVM( Word* args, Word& result, int message, Word& local,
   JListRLoc* lrloc = (JListRLoc*) args[1].addr;
 
   if (jnet != 0 && jnet->IsDefined() &&
-    lrloc != 0 && lrloc->IsDefined())
+      lrloc != 0 && lrloc->IsDefined())
   {
-    res->SetJPoints(jnet, *lrloc);
+    res->SetNetworkId(*jnet->GetId());
+    res->SetRouteLocations(lrloc->GetList(), true, false, jnet);
   }
   else
     res->SetDefined(false);
@@ -1023,11 +1025,11 @@ int createijpointVM( Word* args, Word& result, int message, Word& local,
   Instant* time = (Instant*) args[1].addr;
 
   if (jp != 0 && jp->IsDefined() &&
-    time != 0 && time->IsDefined())
+      time != 0 && time->IsDefined())
   {
-    IJPoint* ijp = new IJPoint(*time, *jp);
-    *res = *ijp;
-    ijp->DeleteIfAllowed();
+    res->SetDefined(true);
+    res->SetInstant(*time);
+    res->SetPoint(*jp);
   }
   else
     res->SetDefined(false);
@@ -1098,13 +1100,12 @@ int createujpointVM( Word* args, Word& result, int message, Word& local,
       lc != 0 && lc->IsDefined() &&
       rc != 0 && rc->IsDefined())
   {
-    Interval<Instant> time(Interval<Instant>(*starttime,
-                                             *endtime,
-                                             lc->GetBoolval(),
-                                             rc->GetBoolval()));
-    UJPoint* ujp = new UJPoint(jnet, rint, &time);
-    *res = *ujp;
-    ujp->DeleteIfAllowed();
+    res->SetDefined(true);
+    res->SetNetworkId(*jnet->GetId());
+    res->SetUnit(JUnit(Interval<Instant> (*starttime, *endtime,
+                                          lc->GetBoolval(), rc->GetBoolval()),
+                       *rint),
+                 true, jnet);
   }
   else
     res->SetDefined(false);
@@ -1169,9 +1170,11 @@ int createmjpointVM( Word* args, Word& result, int message, Word& local,
   UJPoint* u = (UJPoint*) args[0].addr;
   if (u != 0 && u->IsDefined())
   {
-    MJPoint* m = new MJPoint(u);
-    *res = *m;
-    m->DeleteIfAllowed();
+    res->SetDefined(true);
+    res->SetNetworkId(*u->GetNetworkId());
+    res->StartBulkload();
+    res->Add(u->GetUnit());
+    res->EndBulkload(false,true);
   }
   else
     res->SetDefined(false);
@@ -1527,17 +1530,16 @@ struct locInfoUnits {
   int index;
 };
 
-template<class InClass, class OutClass>
-int unitsVM ( Word* args, Word& result, int message, Word& local,
-              Supplier s )
+int unitsMJPointVM ( Word* args, Word& result, int message, Word& local,
+                     Supplier s )
 {
-  locInfoUnits<InClass>* li = 0;
+  locInfoUnits<MJPoint>* li = 0;
   switch(message)
   {
     case OPEN:
     {
-      li = new locInfoUnits<InClass>();
-      InClass* in = (InClass*) args[0].addr;
+      li = new locInfoUnits<MJPoint>();
+      MJPoint* in = (MJPoint*) args[0].addr;
       if (in != 0 && in->IsDefined())
         li->in = in;
       li->index = 0;
@@ -1550,12 +1552,12 @@ int unitsVM ( Word* args, Word& result, int message, Word& local,
     {
       result = qp->ResultStorage(s);
       if (local.addr == 0) return CANCEL;
-      li = (locInfoUnits<InClass>*) local.addr;
+      li = (locInfoUnits<MJPoint>*) local.addr;
       if (0 <= li->index && li->index < li->in->GetNoComponents())
       {
-        OutClass elem(false);
+        JUnit elem(false);
         (li->in)->Get(li->index, elem);
-        result = SetWord(new OutClass(elem));
+        result = SetWord(new UJPoint(*li->in->GetNetworkId(), elem, false));
         li->index++;
         return YIELD;
       }
@@ -1570,7 +1572,66 @@ int unitsVM ( Word* args, Word& result, int message, Word& local,
     {
       if (local.addr)
       {
-        li = (locInfoUnits<InClass>*) local.addr;
+        li = (locInfoUnits<MJPoint>*) local.addr;
+        delete li;
+      }
+      li = 0;
+      local.addr = 0;
+      return 0;
+      break;
+    }
+
+    default:
+    {
+      return CANCEL; // Should never been reached
+      break;
+    }
+  }
+}
+
+int unitsJLineVM ( Word* args, Word& result, int message, Word& local,
+              Supplier s )
+{
+  locInfoUnits<JLine>* li = 0;
+  switch(message)
+  {
+    case OPEN:
+    {
+      li = new locInfoUnits<JLine>();
+      JLine* in = (JLine*) args[0].addr;
+      if (in != 0 && in->IsDefined())
+        li->in = in;
+      li->index = 0;
+      local.addr = li;
+      return 0;
+      break;
+    }
+
+    case REQUEST:
+    {
+      result = qp->ResultStorage(s);
+      if (local.addr == 0) return CANCEL;
+      li = (locInfoUnits<JLine>*) local.addr;
+      if (0 <= li->index && li->index < li->in->GetNoComponents())
+      {
+        JRouteInterval elem(false);
+        (li->in)->Get(li->index, elem);
+        result = SetWord(new JRouteInterval(elem));
+        li->index++;
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+      break;
+    }
+
+    case CLOSE:
+    {
+      if (local.addr)
+      {
+        li = (locInfoUnits<JLine>*) local.addr;
         delete li;
       }
       li = 0;
@@ -1589,8 +1650,8 @@ int unitsVM ( Word* args, Word& result, int message, Word& local,
 
 ValueMapping unitsMap [] =
 {
-  unitsVM<MJPoint, UJPoint>,
-  unitsVM<JLine, JRouteInterval>
+  unitsMJPointVM,
+  unitsJLineVM
 };
 
 
@@ -1675,7 +1736,7 @@ int altrlocsVM ( Word* args, Word& result, int message, Word& local,
         RouteLocation rloc(false);
         li->list->Get(li->it, rloc);
         li->it = li->it + 1;
-        result = SetWord ( new JPoint(li->jnetId, rloc));
+        result = SetWord ( new JPoint(li->jnetId, rloc, false));
         return YIELD;
       }
       else
@@ -3045,7 +3106,9 @@ int valVM ( Word* args, Word& result, int message, Word& local,
   IJPoint *in = ( IJPoint* ) args[0].addr;
   JPoint* jp = static_cast<JPoint* > (result.addr);
   if (in != NULL && in->IsDefined())
+  {
     *jp = in->GetPoint();
+  }
   else
      jp->SetDefined(false);
   return 0;

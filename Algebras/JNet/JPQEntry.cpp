@@ -51,7 +51,7 @@ JPQEntry::JPQEntry(const Direction dir, const int sect,
                    const int startPathJunc, const int startNextJunc,
                    const int startNextSect, const int startPartJunc,
                    const int endPartJunc, const double dist, const double prio)
-: movDir(dir), sid(sect), startPathJID(startPartJunc),
+: movDir(dir), sid(sect), startPathJID(startPathJunc),
   startNextJID(startNextJunc), startNextSID(startNextSect),
   startPartJID(startPartJunc), endPartJID(endPartJunc),  distFromStart(dist),
   prioval(prio)

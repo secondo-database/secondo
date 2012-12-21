@@ -46,16 +46,30 @@ JLine::JLine(const bool def) :
     activBulkload(false)
 {}
 
-JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList) :
-    Attribute(true), routeintervals(0), sorted(false), activBulkload(false)
+JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList,
+             const bool check /*=true*/,  const bool issorted /*=false*/) :
+    Attribute(true), routeintervals(0), sorted(issorted), activBulkload(false)
 {
-  JNetwork* jnet = ManageJNet::GetNetwork(netId);
-  strcpy(nid, netId.c_str());
-  FillIntervalList(&rintList, jnet);
-  ManageJNet::CloseNetwork(jnet);
+  if (check)
+  {
+    JNetwork* jnet = ManageJNet::GetNetwork(netId);
+    strcpy(nid, netId.c_str());
+    FillIntervalList(&rintList, jnet);
+    ManageJNet::CloseNetwork(jnet);
+  }
+  else
+  {
+    strcpy(nid,netId.c_str());
+    routeintervals.copyFrom(rintList);
+    if(!issorted)
+      Sort();
+    routeintervals.TrimToSize();
+  }
+
 }
 
-JLine::JLine(const JNetwork* jnet, const JListRInt* rintList) :
+JLine::JLine(const JNetwork* jnet, const JListRInt* rintList,
+             const bool check/*=true*/) :
     Attribute(true),routeintervals(0), sorted(false), activBulkload(false)
 {
   if (!rintList->IsDefined() || !jnet->IsDefined())
@@ -66,7 +80,16 @@ JLine::JLine(const JNetwork* jnet, const JListRInt* rintList) :
   {
     strcpy(nid, *jnet->GetId());
     DbArray<JRouteInterval> rlist = rintList->GetList();
-    FillIntervalList(&rlist, jnet);
+    if (check)
+    {
+      FillIntervalList(&rlist, jnet);
+    }
+    else
+    {
+      routeintervals.copyFrom(rlist);
+      Sort();
+      routeintervals.TrimToSize();
+    }
   }
 }
 
@@ -106,17 +129,33 @@ void JLine::SetNetworkId(const STRING_T& id)
   strcpy(nid, id);
 }
 
-void JLine::SetRouteIntervals(const DbArray<JRouteInterval>& setri)
+void JLine::SetRouteIntervals(const DbArray<JRouteInterval>& setri,
+                              const bool check /*=true*/,
+                              const bool issorted /*=false*/,
+                              const JNetwork* jnet /*=0*/)
 {
-  routeintervals.copyFrom(setri);
-  sorted = false;
-  Sort();
-}
-
-void JLine::SetSortedRouteIntervals(const DbArray<JRouteInterval>& setri)
-{
-  routeintervals.copyFrom(setri);
-  sorted = true;
+  if (check)
+  {
+    if (jnet != 0)
+      FillIntervalList(&setri, jnet);
+    else
+    {
+      JNetwork* j = ManageJNet::GetNetwork(nid);
+      FillIntervalList(&setri, j);
+      ManageJNet::CloseNetwork(j);
+    }
+  }
+  else
+  {
+    routeintervals.clean();
+    routeintervals.copyFrom(setri);
+    if (!issorted)
+    {
+      sorted = false;
+      Sort();
+    }
+    routeintervals.TrimToSize();
+  }
 }
 
 /*
@@ -266,6 +305,7 @@ JLine& JLine::operator=(const JLine& other)
     strcpy(nid, *other.GetNetworkId());
     routeintervals.copyFrom(other.GetRouteIntervals());
     sorted = other.IsSorted();
+    activBulkload = false;
   }
   return *this;
 }
@@ -642,7 +682,7 @@ bool JLine::Intersects(const JLine* other) const
             Get(j,ri);
             if (JNetUtil::GetIndexOfJRouteIntervalForJRInt(
                                           other->GetRouteIntervals(), ri,
-                                          0, GetNoComponents()-1)  > -1)
+                                          0, other->GetNoComponents()-1)  > -1)
               return true;
           }
         }
@@ -654,7 +694,7 @@ bool JLine::Intersects(const JLine* other) const
             Get(i,ri1);
             for (int j = 0; j < other->GetNoComponents(); j++)
             {
-              Get(j,ri2);
+              other->Get(j,ri2);
               if (ri1.Overlaps(ri2, false))
                 return true;
             }
@@ -677,11 +717,11 @@ JRouteInterval* JLine::Intersection(const JRouteInterval& rint) const
   {
      if (IsSorted())
     {
-      int j = JNetUtil::GetIndexOfJRouteIntervalForJRInt(routeintervals,
-                                                         rint,
-                                                         0,
-                                                         GetNoComponents()-1);
-      if (j > -1)
+      int j= JNetUtil::GetIndexOfJRouteIntervalForJRInt(routeintervals,
+                                                        rint,
+                                                        0,
+                                                        GetNoComponents()-1);
+      if (-1 < j)
       {
         JRouteInterval actInt;
         Get(j,actInt);
@@ -695,10 +735,8 @@ JRouteInterval* JLine::Intersection(const JRouteInterval& rint) const
       while (j < GetNoComponents())
       {
         Get(j,actInt);
-         if (actInt.Overlaps(rint, false))
-        {
+        if (actInt.Overlaps(rint, false))
           return actInt.Intersection(rint);
-        }
         j++;
       }
     }
@@ -714,11 +752,10 @@ JRouteInterval* JLine::Intersection(const JRouteInterval& rint) const
 bool JLine::Contains(const JPoint* jp) const
 {
   if (IsDefined() && !IsEmpty() && jp != 0 && jp->IsDefined())
-    return (JNetUtil::GetIndexOfJRouteIntervalForRLoc(routeintervals,
-                                                      jp->GetLocation(),
-                                                      0,
-                                                      GetNoComponents()-1)
-              > -1);
+    return (-1 < JNetUtil::GetIndexOfJRouteIntervalForRLoc(routeintervals,
+                                                           jp->GetLocation(),
+                                                           0,
+                                                         GetNoComponents()-1));
   else
     return false;
 }
@@ -780,12 +817,11 @@ void JLine::FillIntervalList(const DbArray<JRouteInterval>* rintList,
 {
   JRouteInterval actInt;
   StartBulkload();
-  for (int i = 0; i < rintList->Size(); i++){
+  for (int i = 0; i < rintList->Size(); i++)
+  {
     rintList->Get(i,actInt);
-    if (jnet->Contains(&actInt))
-    {
+    if (jnet->Contains(actInt))
       Add(actInt);
-    }
   }
   EndBulkload();
 }
