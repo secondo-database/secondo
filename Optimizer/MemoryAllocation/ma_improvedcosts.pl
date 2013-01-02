@@ -609,7 +609,7 @@ cost(mergejoin(X, Y, A3, A4), Sel, Pred, MT, ResAttrList, ResTupleSize,
   ResTupleSizeY = sizeTerm(MemSizeY,_,_),
   Sizes=[ResCardX, MemSizeX, ResCardY, MemSizeY],
   NewTerm=mergejoin(NewTermX, NewTermY, A3, A4),
-  opCosts(MT, NewTerm, Sizes, OpCostsInMS, NewTerm2),
+  opCosts(MT, NewTerm, Sizes, Sel, ResAttrList, OpCostsInMS, NewTerm2),
   Cost is CostX + CostY + OpCostsInMS,
 	!.
 
@@ -632,7 +632,9 @@ cost(sortmergejoin(X, Y, AX, AY), Sel, Pred, MT, ResAttrList, ResTupleSize,
   ResTupleSizeY = sizeTerm(MemSizeY,_,_),
   Sizes=[ResCardX, MemSizeX, ResCardY, MemSizeY],
   NewTerm=sortmergejoin(NewTermX, NewTermY, AX, AY),
-  opCosts(MT, NewTerm, Sizes, OpCostsInMS, NewTerm2),
+  opCosts(MT, NewTerm, Sizes, Sel, ResAttrList, OpCostsInMS, NewTerm2),
+	%OpCostsInMS is 1000,
+	%NewTerm2=NewTerm,
   Cost is CostX + CostY + OpCostsInMS,
 	!.
 
@@ -656,7 +658,7 @@ cost(gracehashjoin(X, Y, AX, AY, Buckets), Sel, Pred, MT, ResAttrList,
   ResTupleSizeY = sizeTerm(MemSizeY,_,_), 
   Sizes=[ResCardX, MemSizeX, ResCardY, MemSizeY],
   NewTerm=gracehashjoin(NewTermX, NewTermY, AX, AY, Buckets),
-  opCosts(MT, NewTerm, Sizes, OpCostsInMS, NewTerm2),
+  opCosts(MT, NewTerm, Sizes, Sel, ResAttrList, OpCostsInMS, NewTerm2),
   Cost is CostX + CostY + OpCostsInMS,
   !.
 
@@ -682,7 +684,7 @@ cost(hybridhashjoin(X, Y, AX, AY, Buckets), Sel, Pred, MT, ResAttrList,
   Sizes=[ResCardX, MemSizeX, ResCardY, MemSizeY],
   %Sizes=[ResCardX, ExtSizeX, ResCardY, ExtSizeY],
   NewTerm=hybridhashjoin(NewTermX, NewTermY, AX, AY, Buckets),
-  opCosts(MT, NewTerm, Sizes, OpCostsInMS, NewTerm2),
+  opCosts(MT, NewTerm, Sizes, Sel, ResAttrList, OpCostsInMS, NewTerm2),
   Cost is CostX + CostY + OpCostsInMS,
   !.
 
@@ -704,7 +706,7 @@ cost(itHashJoin(X, Y, AX, AY), Sel, Pred, MT, ResAttrList,
   ResTupleSizeY = sizeTerm(MemSizeY,_,_),
   Sizes=[ResCardX, MemSizeX, ResCardY, MemSizeY],
   NewTerm=itHashJoin(NewTermX, NewTermY, AX, AY),
-  opCosts(MT, NewTerm, Sizes, OpCostsInMS, NewTerm2),
+  opCosts(MT, NewTerm, Sizes, Sel, ResAttrList, OpCostsInMS, NewTerm2),
   Cost is CostX + CostY + OpCostsInMS,
   !.
 
@@ -747,7 +749,7 @@ cost(symmjoin(X, Y, A3), Sel, Pred, MT, ResAttrList, ResTupleSize, ResCard,
   ResTupleSizeY = sizeTerm(MemSizeY,_,_),
   Sizes=[ResCardX, MemSizeX, ResCardY, MemSizeY],
   NewTerm=symmjoin(NewTermX, NewTermY, A3),
-  opCosts(MT, NewTerm, Sizes, OpCostsInMS, NewTerm2),
+  opCosts(MT, NewTerm, Sizes, Sel, ResAttrList, OpCostsInMS, NewTerm2),
   Cost is CostX + CostY + OpCostsInMS,
 	!.
 
@@ -1241,12 +1243,14 @@ Determine the assessed costs of an input term using rules ~cost/8~.
 costterm(+Term, +Source, +Target, +Result, +Sel, +Pred, -Card, -Cost, -NewTerm)
 */
 costterm(Term, Source, Target, Result, Sel, Pred, Card, Cost, NewTerm) :-
-  ( optimizerOption(memoryAllocation)
-   -> ( cost(Term, Sel, Pred, _MT, ResAttrList, TupleSize, Card, Cost, NewTerm),
-        setNodeResAttrList(Result, ResAttrList),
-        setNodeTupleSize(Result, TupleSize)
-      )
-   ;  throw(error_Internal(ma_improvedcosts_costterm(Term, Source, Target, 
+  (optimizerOption(memoryAllocation) -> 
+		( 
+			cost(Term, Sel, Pred, _MT, ResAttrList, TupleSize, Card, Cost, NewTerm),
+      setNodeResAttrList(Result, ResAttrList),
+      setNodeTupleSize(Result, TupleSize)
+    )
+  ;  
+		throw(error_Internal(ma_improvedcosts_costterm(Term, Source, Target, 
 				Result, Sel, Pred, Card, Cost)::
 				should_not_be_called_without_option_memoryAllocation))
   ),

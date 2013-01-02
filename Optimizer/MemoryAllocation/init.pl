@@ -58,11 +58,12 @@ loadMA :-
 	['MemoryAllocation/madata.pl'],
 	['MemoryAllocation/ma.pl'],
 	['MemoryAllocation/differential_calculus.pl'],
+	['MemoryAllocation/progressconstants.pl'],
 
 	% loading the testing files, can safly removed if not needed.
 	['MemoryAllocation/test.pl'], 
 	['MemoryAllocation/testdc.pl'],
-	%['MemoryAllocation/eval.pl'],
+	['MemoryAllocation/eval.pl'],
 	
 	maSelfCheck.
 

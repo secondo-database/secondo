@@ -3,20 +3,27 @@
 $Header$
 @author Nikolai van Kempen
 
-Provides access to the ProgressConstants.csv values.
+Provides access to the ../bin/ProgressConstants.csv values.
 
 Note: Won't distinguishing between the standalone and the client/server mode.
 
 */
 
-:- dynamic pcInit/1.
 
+/*
+Reads the csv file when
+- getProgressConstant is called the first time
+- after reloading this file and the first getProgressConsant call.
+*/
+:- dynamic pcInit/1.
 pcInit(true).
 
 pcInit :-
 	File='../bin/ProgressConstants.csv',
-	csv_read_file(File, Rows, []),
-	assertProgressConstants(Rows),
+	csv_read_file(File, Rows, [strip(true)]),
+	retractall(progressConstant(_, _, _, _, _)),
+	Rows=[_HeaderRow|Rest],
+	assertProgressConstants(Rest),
 	retractall(pcInit(_)).
 
 assertProgressConstants([]) :-
@@ -29,14 +36,14 @@ assertProgressConstants([R|Rest]) :-
 	asserta(progressConstant(Algebra, Operator, Constant, Value, Unit)),
 	!.
 
-getProgressConstant(_, _) :-
+getProgressConstant(_, _, _, _) :-
 	pcInit(true),
-	pcInit,
+	ensure(pcInit, 'failed to load the progressConstants'),
 	retractall(pcInit(true)),
 	fail.
 
-getProgressConstant(Constant, Value) :-
-	progressConstant(_, _, Constant, Value, _),
+getProgressConstant(Algebra, Operator, Constant, Value) :-
+	progressConstant(Algebra, Operator, Constant, Value, _),
 	!.
 
 % eof

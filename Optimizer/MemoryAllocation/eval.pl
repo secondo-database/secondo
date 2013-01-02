@@ -11,6 +11,7 @@ reloadMA :-
   ['MemoryAllocation/madata.pl'],
   ['MemoryAllocation/ma_improvedcosts.pl'],
   ['MemoryAllocation/test.pl'],
+  ['MemoryAllocation/progressconstants.pl'],
   ['MemoryAllocation/eval.pl'].
 
 
@@ -33,7 +34,7 @@ evalQuery(2003, [database(nrw3)], select * from [buildings as b, roads as r, poi
 evalQuery(8002, [database(nrw3)], select * from [points as r1, buildings300k as r2, roads300k as r3, roads300k as r4, buildings200k as r5] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no]).
 evalQuery(8003, [database(nrw3)], select * from [points as r1, buildings300k as r2, roads300k as r3, roads400k as r4, buildings400k as r5] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no]).
 
-evalQuery(8013, [database(nrw3), maEval(staticEqual(16),static(16),static(256),staticMaxDivOpCount,staticMaxDivPOG,modifiedDijkstra)], select * from [roads500k as r1, roads400k as r2, buildings400k as r3, buildings500k as r4] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r1:no>0,r2:no>0,r3:no>0]).
+evalQuery(8013, [database(nrw3), maEval([staticEqual(16),static(16),static(256),staticMaxDivOpCount,staticMaxDivPOG,modifiedDijkstra])], select * from [roads500k as r1, roads400k as r2, buildings400k as r3, buildings500k as r4] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r1:no>0,r2:no>0,r3:no>0]).
 
 evalQuery(8004, [database(nrw3)], select * from [roads300k as r1, roads400k as r2, roads500k as r3, roads600k as r4, roads700k as r5] where[r1:no=r2:no,r2:no=r3:no,r3:no=r4:no,r4:no=r5:no]).
 
@@ -43,18 +44,70 @@ evalQuery(8005, [database(nrw3)], select * from [roads300k as r1, roads400k as r
 evalQuery(8001, [database(nrw3)], select * from   [points as r1, buildings200k as r2, roads200k as r3, roads200k as r4, roads300k as r5] where  [r1:no=r2:no, r2:no=r3:no, r3:no=r4:no, r4:no=r5:no]).
 
 
+
+optEval :-
+	maCreateTestSels,
+
+	retractall(maUseNewTranslationRules(_)),
+	asserta(maUseNewTranslationRules(true)),
+	retractall(useCostEstimation(_)),
+	asserta(useCostEstimation(true)),
+	optEvalRun,
+  with_output_to(atom(A1), findall(_, (
+    sum(A, B, C),
+    write_list([A, ' & \\numtwo{', B, '} & \\numtwo{', C, '} \\\\\n'])
+    ), _)),
+
+  retractall(maUseNewTranslationRules(_)),
+	asserta(maUseNewTranslationRules(false)),
+  retractall(useCostEstimation(_)),
+  asserta(useCostEstimation(true)),
+  optEvalRun,
+  with_output_to(atom(A2), findall(_, (
+    sum(A, B, C),
+    write_list([A, ' & \\numtwo{', B, '} & \\numtwo{', C, '} \\\\\n'])
+    ), _)),
+	retractall(useCostEstimation(_)),
+	asserta(useCostEstimation(mixed)),
+	optEvalRun,
+  with_output_to(atom(A3), findall(_, (
+    sum(A, B, C),
+    write_list([A, ' & \\numtwo{', B, '} & \\numtwo{', C, '} \\\\\n'])
+    ), _)),
+
+	write_list(['\nNew Operators + CostEstimation\n', A1]),
+	write_list(['\nCostEstimation\n', A2]),
+	write_list(['\nProlog Cost predicates\n', A3]),
+	true.
+
+
+optEvalRun :-
+	!,
+  retractall(sum(_, _, _)),
+	Runs=4,
+  testMAByID(2001, Runs, 4, 2), % Case 1
+  testMAByID(2000, Runs, 4, 2), % Case 2
+  testMAByID(2002, Runs, 4, 2), % Case 3
+  testMAByID(2003, Runs, 4, 2), % Case 4
+  testMAByID(8001, Runs, 4, 2), % Case 5
+  testMAByID(8002, Runs, 4, 2), % Case 6
+  testMAByID(8005, Runs, 4, 2), % Case 7
+
+  %testMAByID(8003, 4, 4, 2), 
+  %testMAByID(8004, 4, 4, 2),
+  %testMAByID(8006, 1, 1, 2),
+  %testMAByID(8013, 1, 1, 2),
+  true.
+
+
 createTestFiles :-
-  testMAByID(8005, 1, 4, 2), % Case 7
 	testMAByID(2001, 4, 4, 2), % Case 1
 	testMAByID(2000, 4, 4, 2), % Case 2
 	testMAByID(2002, 4, 4, 2), % Case 3
 	testMAByID(2003, 4, 4, 2), % Case 4
-  testMAByID(8003, 4, 4, 2), 
-  testMAByID(8002, 4, 4, 2), % Case 6
   testMAByID(8001, 4, 4, 2), % Case 5
-  testMAByID(8004, 4, 4, 2),
-  testMAByID(8006, 1, 1, 2),
-  testMAByID(8013, 1, 1, 2),
+  testMAByID(8002, 4, 4, 2), % Case 6
+  testMAByID(8005, 4, 4, 2), % Case 7
 	true.
 
 /*
@@ -92,7 +145,7 @@ testMAByID(No, CO, CQ, Sleep) :-
 	runMATest(Properties, No, tmode(opt(CO), query(CQ), sleep(Sleep)), Query).
 
 runMATest(Properties, No, TMode, Query) :-
-	maCreateTestSels,
+	%maCreateTestSels,
 	!,
 	(member(maEval(Strats), Properties) ->
 		% Test only selected strategies...
@@ -100,8 +153,11 @@ runMATest(Properties, No, TMode, Query) :-
 	;
 		% Test all strategies...
 		(
-			createExtendedEvalList(TList),
-			setMAStrategies(TList)
+			%createExtendedEvalList(TList),
+			%setMAStrategies(TList),
+			% currently i want to check only these strategies
+			TList=[staticEqual(16),static(16),static(256),
+				staticMaxDivPOG,modifiedDijkstra]
 		)
 	),
 	testStrategies(No, TMode, Query, TList, L),
@@ -188,6 +244,35 @@ reprocessResults3(ID) :-
 	close(FD),
 	processResults3(_, Term).
 
+reprocessResults4(ID) :-
+	atomic_list_concat(['MemoryAllocation/test/',ID,'.term'], FileName),
+	open(FileName, read, FD),
+	read(FD, Term),
+	close(FD),
+	processResults3(_, Term).
+
+
+:- dynamic sum/3.
+addSum(Label, C, O) :-
+	\+ sum(Label, _, _),
+	assertz(sum(Label, C, O)).
+addSum(Label, C, O) :-
+	retract(sum(Label, C1, O1)),
+	C2 is C1+C,
+	O2 is O1+O,
+	assertz(sum(Label, C2, O2)).
+
+labelToStrat(T, Strat) :-
+	Strat=staticMaxDivOpCount,
+	sub_atom(T, 0, 19, _POS, Strat),
+	!.
+labelToStrat(T, Strat) :-
+	Strat=staticMaxDivPOG,
+	sub_atom(T, 0, 15, _POS, Strat),
+	!.
+labelToStrat(T, T) :-
+	!.
+
 processResults3(Query, LNew) :-
   write_list(['\nQuery: ', Query]), nl,
   FH='~w~30+ &~` t~w~9+ &~` t~w~11+   &~` t~w~12+   &~w \\\\ ~n',
@@ -203,6 +288,8 @@ processResults3(Query, LNew) :-
       ;
         MInfo=[MI|_]
       ),
+			labelToStrat(T, Strat),
+			addSum(Strat, C, OT),
       %DATA=[T, ICosts, OT, ET, MI],
       %format(F, DATA),
     	F='~w~30+ &~` t~w~9+ &~` t~w~10+ &~` t~d~12+ &~w &~w \\\\~n',

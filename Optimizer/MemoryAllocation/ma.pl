@@ -10,6 +10,20 @@ Provides a extension to the secondo optimizer to optimize the memory allocation 
 % Not declared as dynamic within the optimizer.
 :- dynamic costEdge/6. 
 
+% By default this extension uses the operators 
+% - gracehashjoin
+% - hybridhashjoin
+% - itHashJoin
+% see optimizer.pl
+:- 
+	dynamic(maUseNewTranslationRules/1),
+	multifile(maUseNewTranslationRules/1),
+	(maUseNewTranslationRules(_) -> % support reloading
+		true
+	;
+		asserta(maUseNewTranslationRules(true)) % default
+	).
+
 /*
 This predicate returns the GlobalMemory property from the SecondoConfig.ini file. 
 Unit: MiB
@@ -523,16 +537,29 @@ getMaxMemoryConsumingOperatorsFromPOG2 :-
 	fail.
 
 /*
+Controls if the cost functions will be obtained from the CostEstimation implementations(true) or weather the prolog costs function should be used (mixed) if available.
+*/
+:-
+  dynamic(useCostEstimation/1),
+  (useCostEstimation(_) -> % support reloading without overwriting the current 
+		% fact.
+    true
+  ;
+    asserta(useCostEstimation(true)) % default
+  ).
+
+/*
 
 ceCosts = CostEstimation Costs
 
-Gets the costs from the CostEstimation implementation.
+Gets the memory dependent cost function from the CostEstimation implementation.
 
 This method with the alist is not very efficient, but it can be easily extended without taken care of every predicates using it.
 	
-ceCosts(+OpName, +CardX, +SizeX, +MiB, -CostsInMS, -AList)
+ceCosts(+OpName, +CardX, +SizeX, +Sel, +ResAttrList, +MiB, -CostsInMS, -AList)
 */
-ceCosts(OpName, CardX, SizeX, MiB, CostsInMS, AList) :-
+ceCosts(OpName, CardX, SizeX, _Sel, _ResAttrList, MiB, CostsInMS, AList) :-
+	(useCostEstimation(true) ; useCostEstimation(mixed)),
 	ensure((number(CardX), number(SizeX))),
 	% The getCosts API expects integer values.
 	ICardX is round(CardX),
@@ -560,8 +587,49 @@ ceCosts(OpName, CardX, SizeX, MiB, CostsInMS, AList) :-
 	CostsInMS is CostF,
 	checkOpCosts(CostsInMS).
 
-%ceCosts(+OpName, +CardX, +SizeX, +CardY, +SizeY, +MiB, -CostsInMS, -AList)
-ceCosts(OpName, CardX, SizeX, CardY, SizeY, MiB, CostsInMS, AList) :- 
+/*
+Special predicate to evaluate the cost difference when this is
+done by the CostEstimation interface or with prolog predicates.
+*/
+ceCosts(sortmergejoin, CardX, SizeX, CardY, SizeY, Sel, ResAttrList, MiB, 
+		CostsInMS, AList) :-
+	useCostEstimation(mixed),
+  ensure((number(CardX), number(SizeX), number(CardY), number(SizeY))),
+	FT=1,
+
+	getProgressConstant(_, _, uSortBy, USortBy),
+	getProgressConstant(_, _, wMergeJoin, WMergeJoin),
+	getProgressConstant(_, _, yMergeJoin, YMergeJoin),
+	maResAttributeCount(ResAttrList, AttrsCount),
+
+	% calculation as within the bachelor thesis Nidzwetzki:
+	SufficientMemory is (((CardX*SizeX) + (CardY*SizeY)) * 1.2) / 1024**2, 
+	Csortmergejoin is CardX * CardY * Sel,
+	CostsInMSAtSuff is (CardX*SizeX*USortBy)
+											+ (CardY*SizeY*USortBy)
+											+ (CardX*SizeX + CardY*SizeY) * WMergeJoin
+											+ Csortmergejoin * AttrsCount * YMergeJoin,
+	% There are still no real memory dependant cost functions for the
+	% sortmergejoin operator available:
+	DList=[SufficientMemory, CostsInMSAtSuff, CostsInMSAtSuff, 0,0,0,0],
+  % Store for debugging
+  PARAMS=params(cardX(CardX), sizeX(SizeX), cardY(CardY), sizeY(SizeY)),
+  AList=[functionType(FT), dlist(DList), PARAMS],
+
+  minimumOperatorMemory(MinOpMem),
+  DList=[SufficientMemoryInMiB|_],
+  buildFormulaByFT(FT, DList, CMiB, CostF),
+  CMiB is max(MinOpMem, min(MiB, SufficientMemoryInMiB)),
+  CostsInMS is CostF,
+  checkOpCosts(CostsInMS),
+	!.
+
+/*
+ceCosts(+OpName, +CardX, +SizeX, +CardY, +SizeY, +Sel, +ResAttrList, +MiB, 
+	-CostsInMS, -AList)	
+*/
+ceCosts(OpName, CardX, SizeX, CardY, SizeY, _Sel, _ResAttrList, MiB, CostsInMS, AList) :- 
+	(useCostEstimation(true) ; useCostEstimation(mixed)),
 	ensure((number(CardX), number(SizeX), number(CardY), number(SizeY))),
 	% The getCosts API expects integer values.
 	ICardX is round(CardX),
@@ -590,29 +658,33 @@ ceCosts(OpName, CardX, SizeX, CardY, SizeY, MiB, CostsInMS, AList) :-
 
 The opCosts predicate supports either to compute the costs on static
 memory values which are assigned to every memory consuming operator or
-based on an explicit assigned memory amount. 
+based on an explicit assigned memory amount. Hence, the task is separated,
+first the memory dependent cost function is determined, but later this
+deteremined function is used to compute the costs for different amounts of memory.
 
 */
 % Non-join operator
-opCosts(MT, Term, [CardX, SizeX], OpCostsInMS, NewTerm) :-
+opCosts(MT, Term, [CardX, SizeX], Sel, ResAttrList, OpCostsInMS, NewTerm) :-
   var(MT),
   Term=..[Op|_],
   getStaticMemory(MiB),
-  ceCosts(Op, CardX, SizeX, MiB, OpCostsInMS, AList),
+  ceCosts(Op, CardX, SizeX, Sel, ResAttrList, MiB, OpCostsInMS, AList),
   toMemoryTerm(Term, MiB, AList, NewTerm),
   nextCounter(memoryUsingOperators, _).
 
 % Join operator
-opCosts(MT, Term, [CardX, SizeX, CardY, SizeY], OpCostsInMS, NewTerm) :-
+opCosts(MT, Term, [CardX, SizeX, CardY, SizeY], Sel, ResAttrList, OpCostsInMS, 
+		NewTerm) :-
   var(MT),
   Term=..[Op|_],
   getStaticMemory(MiB),
-  ceCosts(Op, CardX, SizeX, CardY, SizeY, MiB, OpCostsInMS, AList),
+  ceCosts(Op, CardX, SizeX, CardY, SizeY, Sel, ResAttrList, MiB, OpCostsInMS, 
+		AList),
   toMemoryTerm(Term, MiB, AList, NewTerm),
   nextCounter(memoryUsingOperators, _).
 
 % Second cost call with stored memory term.
-opCosts(MT, Term, _, OpCostsInMS, Term) :-
+opCosts(MT, Term, _, _Sel, _ResAttrList, OpCostsInMS, Term) :-
   nonvar(MT),
   % In this case, the costs were calculated at least one time earlier.
   % The new memory value is obtained from the memoryValue term 
@@ -627,16 +699,29 @@ opCosts(MT, Term, _, OpCostsInMS, Term) :-
   propertyValue(dlist, AList, DList),
   DList=[SuffMiB|_], % Don't use more memory as needed for the cost calculation.
   minimumOperatorMemory(MinOpMem), % And not less than this value.
-  buildFormulaByFT(FT, DList, CMiB, CostF),
+  buildFormulaByFT(FT, DList, CMiB, CostF), % Could be cached, too. But
+		% the performance is here not an issue.
   CMiB is max(MinOpMem, min(MiB, SuffMiB)),
   OpCostsInMS is CostF,
 	checkOpCosts(OpCostsInMS),
   dm(ma6, ['\nComputed costs: ', OpCostsInMS]),
   nextCounter(memoryUsingOperators, _).
 
-opCosts(MT, Term, _, OpCostsInMS, NewTerm) :-
-  throw(error_Internal(ma_opCosts(MT, Term, _, OpCostsInMS, NewTerm)
-    ::'failed to compute the costs')).
+opCosts(MT, Term, _, Sel, ResAttrList, OpCostsInMS, NewTerm) :-
+  throw(error_Internal(ma_opCosts(MT, Term, _, Sel, ResAttrList, OpCostsInMS, 
+		NewTerm)::'failed to compute the costs')).
+
+/*
+ResAttrList may set to 'ignore'. See ~ma_improvedcosts.pl~ for more
+information.
+*/
+maResAttributeCount(ResAttrList, AttrsCount) :- 
+	is_list(ResAttrList),
+  length(ResAttrList, AttrsCount),
+	!.
+
+maResAttributeCount(_, 1) :- 
+	!.
 
 /*
 Due to frequent errors, some values are explicit checked here.
@@ -1477,7 +1562,7 @@ Disables or enables the warnings because for big pog's the amount of
 displayed warnings can be huge. The same thing is the case for the sleep
 thing below.
 */
-maWarnMode(true).
+maWarnMode(fail).
 
 maWarn(_Type) :-
 	maWarnMode(R),
