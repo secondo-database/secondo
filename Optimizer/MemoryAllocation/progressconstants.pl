@@ -20,10 +20,13 @@ pcInit(true).
 
 pcInit :-
 	File='../bin/ProgressConstants.csv',
+	% With the options functor(progressConsant), arity(5), match_arity(false)
+	% it is possible to assert the facts directly, but then you need to 
+	% retract the header value...
 	csv_read_file(File, Rows, [strip(true)]),
 	retractall(progressConstant(_, _, _, _, _)),
 	Rows=[_HeaderRow|Rest],
-	assertProgressConstants(Rest),
+	assertProgressConstants(Rest), 
 	retractall(pcInit(_)).
 
 assertProgressConstants([]) :-
@@ -31,7 +34,7 @@ assertProgressConstants([]) :-
 
 assertProgressConstants([R|Rest]) :-
 	assertProgressConstants(Rest),
-	R=..[row|Args],
+	R=..[_|Args],
 	Args=[Algebra, Operator, Constant, Value, Unit|_],
 	asserta(progressConstant(Algebra, Operator, Constant, Value, Unit)),
 	!.
