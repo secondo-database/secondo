@@ -5,7 +5,7 @@ $Header$
 
 Provides access to the ../bin/ProgressConstants.csv values.
 
-Note: Won't distinguishing between the standalone and the client/server mode.
+Note: Won't distinguishing between the standalone and the client/server mode (but intendedly!).
 
 */
 
