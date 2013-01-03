@@ -745,5 +745,18 @@ The generalized output operator
 */
 ostream& operator<<(ostream& os, const Attribute& attr);
 
+/*
+Pointer save DeleteIfAllowed Function
+
+*/
+template<class T>
+void deleteIfAllowed(T*& victim){
+  if(victim){
+     victim->DeleteIfAllowed();
+     victim = 0;
+  }
+}
+
+
 #endif
 
