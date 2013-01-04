@@ -40,6 +40,7 @@ December 2007, S.H[oe]cher,M.H[oe]ger,A.Belz,B.Poneleit
 #include "../Algebras/ExtRelation-C++/Tupleorder.h"
 #include "AlmostEqual.h"
 #include "Symbols.h"
+#include "Stream.h"
 
 using namespace std;
 
@@ -1395,28 +1396,14 @@ pages 80-83, Aarhus, Denmark, June 2002.
 */
   ListExpr SetHistogram2dTypeMap(ListExpr args)
   {
-    NList list(args);
-    string errMsg = "Operator set_histogram2d "
-      "expects a list of length two.";
-
-    if (list.length() != 2)
-      return list.typeError(errMsg);
-
-    errMsg = "Operator set_histogram2d "
-      "expects as first and second argument "
-      "a list with structure: (stream real).";
-
-    NList arg1 = list.first();
-    NList arg2 = list.second();
-
-    // (stream real) x (stream real) -> histogram2d
-    if (arg1.first().isSymbol(Symbol::STREAM()) &&
-      arg1.second().isSymbol(CcReal::BasicType()) &&
-        arg2.first().isSymbol(Symbol::STREAM()) &&
-        arg2.second().isSymbol(CcReal::BasicType()) )
-      return NList(Histogram2d::BasicType()).listExpr();
-
-    return list.typeError(errMsg);
+    if(!nl->HasLength(args,2)){
+      return listutils::typeError("2 arguments expected");
+    }
+    if(!Stream<CcReal>::checkType(nl->First(args)) ||
+       !Stream<CcReal>::checkType(nl->Second(args))){
+      return listutils::typeError("stream(real) x stream(real) expected");
+    }
+    return listutils::basicSymbol<Histogram2d>();
   }
 
   int SetHistogram2dFun(Word* args, Word& result, int message, Word& local,
