@@ -8,7 +8,7 @@ Mainfile to load the other memory allocation optimization files if the option is
 initMA :-
 	L='Assign memory to operators.',
   % assert now non-multifile facts.
-	assertz(optimizerOptionInfo(memoryAllocation, none, no, L, loadMA, true)),
+	assertz(optimizerOptionInfo(memoryAllocation, none, yes, L, loadMA, true)),
 
 	assertz(optDebugLevel(ma)),
 	% This is a more detailed log level.

@@ -21,7 +21,7 @@ initNR :-
 	['nr.pl'],
 	['nr_auxiliary.pl'],
 
-	['nvkutil.pl'],
+	%['nvkutil.pl'],
 	['util.pl'],
 	['tutil.pl'],
 	['test.pl'].
