@@ -2,6 +2,7 @@
 
 WD=$PWD
 
+cp nrdemo $SECONDO_BUILD_DIR/bin/
 cd $SECONDO_BUILD_DIR/bin
 F=$WD/createtestdbs.stext
 

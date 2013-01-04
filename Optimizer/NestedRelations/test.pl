@@ -307,6 +307,7 @@ testNRQuery(577, [], select [o:bevt, o:bevth, o:kennzeichen] from (select [x:bev
 testNRQuery(578, [], select * from (select [x:bevth,x:subrel] from orteh as x) unnest(x:subrel) as o where o:kennzeichen="B" orderby [o:kennzeichen] first 1).
 testNRQuery(579, [], select * from (select * from orteh as x) unnest(x:subrel) as o where o:kennzeichen="B" orderby [o:kennzeichen] first 1).
 testNRQuery(580, [], select * from [(select * from orteh as x) as o] where [o:bevth=10] first 1).
+testNRQuery(581, [], select * from [(select [bevt div 100 as bevth, bevt, ort, kennzeichen, vorwahl] from   orte) nest(bevth, subRel) as x1, (select [bevt div 100 as bevth,bevt, ort, kennzeichen, vorwahl]  from   orte) nest(bevth, subRel) as x2] where x1:bevth=x2:bevth).
 
 % joins
 testNRQuery(590, [], select * from [(select * from orteh as x) as o1, (select * from orteh as x) as o2] where [o1:bevth=10,o1:bevth=o2:bevth] first 1).

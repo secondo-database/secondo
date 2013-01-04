@@ -3741,9 +3741,12 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg2S, Arg1S,
   isOfSecond(Attr2, X, Y).
 
 % NVK ADDED MA
+:- dynamic(maUseNewTranslationRules/1).
+
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => gracehashjoin(Arg1S, Arg2S,
 		attrname(Attr1), attrname(Attr2), 99997) :-
   optimizerOption(memoryAllocation),
+	maUseNewTranslationRules(true),
   \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
@@ -3751,6 +3754,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => gracehashjoin(Arg1S, Arg2S,
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => gracehashjoin(Arg2S, Arg1S,
 		attrname(Attr2), attrname(Attr1), 99997) :-
   optimizerOption(memoryAllocation),
+	maUseNewTranslationRules(true),
   \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
@@ -3758,6 +3762,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => gracehashjoin(Arg2S, Arg1S,
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hybridhashjoin(Arg1S, Arg2S,
     attrname(Attr1), attrname(Attr2), 99997) :-
   optimizerOption(memoryAllocation),
+	maUseNewTranslationRules(true),
   \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
@@ -3765,6 +3770,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hybridhashjoin(Arg1S, Arg2S,
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hybridhashjoin(Arg2S, Arg1S,
     attrname(Attr2), attrname(Attr1), 99997) :-
   optimizerOption(memoryAllocation),
+	maUseNewTranslationRules(true),
   \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
@@ -3772,6 +3778,7 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hybridhashjoin(Arg2S, Arg1S,
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg1S, Arg2S,
     attrname(Attr1), attrname(Attr2)) :-
   optimizerOption(memoryAllocation),
+	maUseNewTranslationRules(true),
   \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
@@ -3779,10 +3786,10 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg1S, Arg2S,
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => itHashJoin(Arg2S, Arg1S,
     attrname(Attr2), attrname(Attr1)) :-
   optimizerOption(memoryAllocation),
+	maUseNewTranslationRules(true),
   \+ optimizerOption(noHashjoin),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
-
 
 % NVK ADDED MA END
 

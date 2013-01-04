@@ -12,7 +12,7 @@ initNR :-
 	;
 		L='Support for nested relations.',
 		% assert now non-multifile facts.
-		assertz(optimizerOptionInfo(nestedRelations, none, no, L, loadNR, true)),
+		assertz(optimizerOptionInfo(nestedRelations, none, yes, L, loadNR, true)),
 		assertz(optDebugLevel(nr))
 	),
 
@@ -21,7 +21,7 @@ initNR :-
 	['nr.pl'],
 	['nr_auxiliary.pl'],
 
-	%['nvkutil.pl'],
+	['nvkutil.pl'],
 	['util.pl'],
 	['tutil.pl'],
 	['test.pl'].
