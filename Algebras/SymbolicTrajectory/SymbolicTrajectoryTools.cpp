@@ -495,12 +495,12 @@ The string ~input~ is evaluated by Secondo. The result is returned as a Word.
 
 */
 Word evaluate(string input) {
-  SecParser assignParser;
+  SecParser qParser;
   string query, queryStr;
   ListExpr queryList;
   Word queryResult;
   input.insert(0, "query ");
-  if (!assignParser.Text2List(input, queryStr)) {
+  if (!qParser.Text2List(input, queryStr)) {
     if (nl->ReadFromString(queryStr, queryList)) {
       if (!nl->IsEmpty(nl->Rest(queryList))) {
         query = nl->ToString(nl->First(nl->Rest(queryList)));
@@ -517,7 +517,7 @@ Word evaluate(string input) {
 \subsection{Function ~createTrajectory~}
 
 Creates a vector of string containing districts of Dortmund in a random but
-correct order.
+sensible order.
 
 */
 vector<string> createTrajectory(int size) {

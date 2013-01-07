@@ -400,6 +400,8 @@ class Match {
   int *seqOrder;
   map<string, bool> knownEval; // secondo evaluation history
   map<pair<size_t, size_t>, string> knownPers; // periods string history
+  pair<vector<OpTree*>, vector<OpTree*> > opTrees; // for each cond, each assign
+  pair<vector<vector<void*> >, vector<vector<void*> > > ptrs; //for X.card exprs
 
  public:
   Match(const int size) {
@@ -472,6 +474,7 @@ class Match {
   vector<int> applyMultiNFA(ClassifyLI* c, bool rewrite = false);
   vector<int> applyConditions(ClassifyLI* c);
   void multiRewrite(ClassifyLI* c);
+  bool initOpTrees();
 };
 
 class RewriteResult {

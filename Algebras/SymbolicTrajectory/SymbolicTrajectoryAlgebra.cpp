@@ -3165,6 +3165,42 @@ vector<int> Match::applyMultiNFA(ClassifyLI* c, bool rewrite /*=false*/) {
 }
 
 /*
+\subsection{Function ~initOpTrees~}
+
+For a pattern with conditions and/or assignments, an operator tree structure
+is prepared.
+
+*/
+bool Match::initOpTrees() {
+  QueryProcessor* qpp = 0;
+  SecParser parser;
+  string q, qStr;
+  ListExpr qList, resultType;
+  bool correct, evaluable, defined, isFunction;
+  for (unsigned int i = 0; i < conds.size(); i++) {
+    for (int j = 0; j < conds[i].getKeysSize(); j++) {
+      // init pointers
+    }
+    q = "query ";
+    q.append(conds[i].getText());
+    if (parser.Text2List(q, qStr)) {
+      cout << "Text2List(" << q << ") failed" << endl;
+      return false;
+    }
+    if (!nl->ReadFromString(qStr, qList)) {
+      cout << "ReadFromString(" << qStr << ") failed" << endl;
+      return false;
+    }
+    OpTree tree = 0;
+    qpp = new QueryProcessor(nl, SecondoSystem::GetAlgebraManager());
+    qpp->Construct(qList, correct, evaluable, defined, isFunction, tree,
+		   resultType);
+
+  }
+  return true;
+}
+
+/*
 \subsection{Function ~applyConditions~}
 
 Applies conditions from a set of patterns (for the operator ~classify~).
@@ -3182,6 +3218,11 @@ vector<int> Match::applyConditions(ClassifyLI* c) {
       conds = c->pats[c->matched[i]]->getConds();
       numOfStates = f;
       f = patterns.size();
+//       if (!initOpTrees()) {
+//         cout << "Operator trees could not be initialized" << endl;
+// 	result.clear();
+// 	return result;
+//       }
       for (int j = 0; j < f; j++) {
         match[j] = c->matches[c->matched[i]][j];
         cardsets[j].clear();
@@ -3205,13 +3246,14 @@ Computes a multiple rewrite result, i.e., a vector of MLabels.
 */
 void Match::multiRewrite(ClassifyLI* c) {
   MLabel *ml = 0;
-  int numOfStates = 0;
+//  int numOfStates = 0;
   set<pair<vector<size_t>, vector<size_t> > >::iterator it;
   for (unsigned int i = 0; i < c->matched.size(); i++) {
     rewriteSeqs.clear();
     patterns = c->pats[c->matched[i]]->getPats();
     conds = c->pats[c->matched[i]]->getConds();
-    numOfStates = f;
+    // TODO initialize OpTrees and Pointers for Assignments
+    //numOfStates = f;
     f = patterns.size();
     for (int j = 0; j < f; j++) {
       if ((int)c->matches.size() > 0) {
@@ -3824,6 +3866,7 @@ ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream) :
   classifyTT = getTupleType();
   Stream<Tuple> pStream(_pstream);
   pStream.open();
+  mlStream.open();
   Tuple* inputTuple = pStream.request();
   int startPos = 0;
   set<size_t> emptyset;
@@ -3865,7 +3908,6 @@ ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream) :
     mainMatch = new Match(numOfStates);
     mainMatch->buildMultiNFA(this);
 //     mainMatch->printMultiNFA();
-    mlStream.open();
   }
 }
 
@@ -3880,6 +3922,7 @@ ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, bool rewrite) :
   classifyTT = 0;
   Stream<FText> pStream(_pstream);
   pStream.open();
+  mlStream.open();
   FText* inputText = pStream.request();
   int startPos = 0;
   set<size_t> emptyset;
@@ -3921,7 +3964,6 @@ ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, bool rewrite) :
     mainMatch = new Match(numOfStates);
     mainMatch->buildMultiNFA(this);
     //mainMatch->printMultiNFA();
-    mlStream.open();
   }
 }
 
@@ -3987,6 +4029,9 @@ This function is used for the operator ~classify~.
 
 */
 Tuple* ClassifyLI::nextResultTuple() {
+  if (!pats.size()) {
+    return 0;
+  }
   while (matched.empty()) {
     if (currentML) {
       currentML->DeleteIfAllowed();
@@ -4015,6 +4060,9 @@ This function is used for the operator ~rewrite~.
 
 */
 MLabel* ClassifyLI::nextResultML() {
+  if (!pats.size()) {
+    return 0;
+  }
   MLabel *result = 0;
   while (rewritten.empty()) {
     if (currentML) {
