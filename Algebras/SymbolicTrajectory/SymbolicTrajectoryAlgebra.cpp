@@ -3589,12 +3589,10 @@ ListExpr rewriteTypeMap(ListExpr args) {
   if (nl->HasLength(args, 2)) {
     ListExpr trajType = nl->Second(args);
     ListExpr textType = nl->First(args);
-    if (nl->IsEqual(nl->First(trajType), Stream<MLabel>::BasicType())
-     && nl->IsEqual(nl->First(textType), Stream<FText>::BasicType())
-     && (nl->IsEqual(nl->Second(trajType), MLabel::BasicType())
-         || nl->IsEqual(nl->Second(trajType), MString::BasicType()))
-     && nl->IsEqual(nl->Second(textType), FText::BasicType())) {
-      return trajType;
+    if( Stream<FText>::checkType(textType) &&
+        ( Stream<MLabel>::checkType(trajType) ||
+          Stream<MString>::checkType(trajType))) {
+       return trajType;
     }
   }
   return NList::typeError(errMsg);
