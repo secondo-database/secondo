@@ -232,11 +232,14 @@ Array::Array()
   size = 0;
   elemAlgId = 0;
   elemTypeId = 0;
+  array = 0;
 }
 
 Array::~Array()
 {
-  delete [] array;
+  if(array){
+     delete [] array;
+  }
 }
 
 void
