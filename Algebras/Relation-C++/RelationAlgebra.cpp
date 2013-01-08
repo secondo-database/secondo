@@ -3705,9 +3705,6 @@ Operator relalgtuplesize (
 
 */
 ListExpr memtuplesizeTM(ListExpr args){
-
-   cout << "MemtupleSizeTM called " << endl;
-
   string err ="tuple expected";
   if(!nl->HasLength(args,1)){
     return listutils::typeError("one argument expected");
@@ -4252,7 +4249,7 @@ static ListExpr sizecounters_tm(ListExpr args)
 
   const string opName = "sizecounters";
   string err1 = opName + "expects (stream(tuple(...)) string)!";
-  cout << opName << ": " << l << endl;
+  //cout << opName << ": " << l << endl;
 
   if ( !l.checkLength(2, err1) )
     return l.typeError( err1 );
