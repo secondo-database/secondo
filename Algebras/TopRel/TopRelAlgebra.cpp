@@ -1819,7 +1819,6 @@ ListExpr CreateValidPGroupTM(ListExpr args){
        ErrorReporter::ReportError("At Least one element required");
        return nl->TypeError();
    }
-   nl->WriteListExpr(args);
    while(!nl->IsEmpty(args)){
       ListExpr current = nl->First(args);
       if(!nl->IsEqual(current,"cluster")){
