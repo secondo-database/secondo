@@ -384,7 +384,7 @@ JNetwork::JNetwork(const bool def) :
 JNetwork::JNetwork(const string nid, const double t,
                    const Relation* injunctions, const Relation* insections,
                    const Relation* inroutes) :
-  defined(true), tolerance(t), 
+  defined(true), tolerance(t),
   junctions(getRelationCopy(JNetUtil::GetJunctionsRelationTypeInfo(),
                             injunctions)),
   sections(getRelationCopy(JNetUtil::GetSectionsRelationTypeInfo(),
@@ -401,7 +401,7 @@ JNetwork::JNetwork(const string nid, const double t,
 JNetwork::JNetwork(const string nid, const double t,
                    const Relation* injunctions, const Relation* insections,
                    const Relation* inroutes, OrderedRelation* inDist) :
-  defined(true), tolerance(t), 
+  defined(true), tolerance(t),
   junctions(getRelationCopy(JNetUtil::GetJunctionsRelationTypeInfo(),
                             injunctions)),
   sections(getRelationCopy(JNetUtil::GetSectionsRelationTypeInfo(),
@@ -833,7 +833,7 @@ bool JNetwork::Save(SmiRecord& valueRecord, size_t& offset,
   numId = SecondoSystem::GetCatalog()->NumericType(idLE);
   Attribute::Save(valueRecord, offset, numId, tol);
   tol->DeleteIfAllowed();
-  
+
   bool ok = saveRelation(JNetUtil::GetJunctionsRelationTypeInfo(), junctions,
                       valueRecord, offset);
 
@@ -1516,7 +1516,7 @@ Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc, int& curRid,
     {
       lastRint->DeleteIfAllowed();
       lastRint = 0;
-    } 
+    }
     routeSectList->Get(index, cSid);
     if (cSid.IsDefined())
     {
@@ -1552,7 +1552,7 @@ Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc, int& curRid,
         sectTup = GetSectionTupleWithId(cSid.GetIntval());
         if (sectTup != 0)
           lastRint = GetSectionRouteIntervalForRLoc(rloc, sectTup);
-      }   
+      }
       if (lastRint == 0)
         index--;
       else
@@ -1755,11 +1755,6 @@ void JNetwork::SimulateTrip(const RouteLocation& source,
   }
 }
 
-/*
-1.1.1 ShortestPath
-
-*/
-
 void JNetwork::ComputeAndAddUnits(const DbArray< JRouteInterval >* sp,
                                   const Instant& starttime,
                                   const Instant& endtime,
@@ -1769,32 +1764,39 @@ void JNetwork::ComputeAndAddUnits(const DbArray< JRouteInterval >* sp,
   JRouteInterval actInt;
   Instant unitstart = starttime;
   bool unitlc = lc;
-  Instant unitend = unitstart;
+  Instant unitend = endtime;
   bool unitrc = rc;
   for (int i = 0; i < sp->Size(); i++)
   {
     sp->Get(i,actInt);
-    if (i == sp->Size()-1)
+    if (actInt.GetLength() != 0.0)
     {
+      if (i == sp->Size()-1)
+      {
+        unitend = endtime;
+        unitrc = rc;
+      }
+      else
+      {
+        unitend = unitstart +
+                  ((endtime - starttime) * (actInt.GetLength() / length));
+      }
+      JUnit actUnit(JUnit(Interval<Instant>(unitstart, unitend,
+                                            unitlc, unitrc),
+                          actInt));
+      result->Add(actUnit);
+      unitstart = unitend;
+      unitlc = !unitrc;
+      unitrc = !unitlc;
       unitend = endtime;
-      unitrc = rc;
     }
-    else
-    {
-      unitend = unitstart +
-                ((endtime - starttime) * (actInt.GetLength() / length));
-    }
-
-    JUnit actUnit(JUnit(Interval<Instant>(unitstart, unitend,
-                                          unitlc, unitrc),
-                        actInt));
-    result->Add(actUnit);
-    unitstart = unitend;
-    unitlc = !unitrc;
-    unitrc = !unitlc;
-    unitend = unitstart;
   }
 }
+
+/*
+1.1.1 ShortestPath
+
+*/
 
 DbArray< JRouteInterval >* JNetwork::ShortestPath(
                                         const jnetwork::RouteLocation& source,
@@ -3153,7 +3155,7 @@ bool JNetwork::ExistsCommonRoute(RouteLocation& src, RouteLocation& tgt) const
 {
   if (!src.IsDefined() || !tgt.IsDefined())
   {
-    return false;  
+    return false;
   }
   if (src.IsOnSameRoute(tgt)) {
     return true;
