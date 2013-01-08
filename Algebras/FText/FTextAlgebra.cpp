@@ -9393,12 +9393,13 @@ put into the output stream. In case of an assertion, Secondo will crash.
 
 The signature is: 
 
- text -> stream(tuple([AlgName: string, OpName : string, Input : text]))
+ {text,stream(text)} x string [x bool] -> stream(tuple([AlgName: string, OpName : string, Input : text]))
 
 */
 
 ListExpr tmcheckTM(ListExpr args){
-   if(!nl->HasLength(args,1)&&!nl->HasLength(args,2)){
+   if(    ! nl->HasLength(args,2)
+       && !nl->HasLength(args,3)){
       return listutils::typeError("expected 1 or two argument");
    }
    if(!FText::checkType(nl->First(args)) &&
@@ -9406,6 +9407,10 @@ ListExpr tmcheckTM(ListExpr args){
       return listutils::typeError("expected text or "
                                "stream(text) as first argument");
    }
+   if(!CcString::checkType(nl->Second(args))){
+      return listutils::typeError("second argument must be a string");
+   }
+
    ListExpr resType= nl->TwoElemList( listutils::basicSymbol<Stream<Tuple> >(),
                 nl->TwoElemList( listutils::basicSymbol<Tuple>(),
                   nl->ThreeElemList(
@@ -9415,12 +9420,16 @@ ListExpr tmcheckTM(ListExpr args){
                                  listutils::basicSymbol<CcString>()),
                         nl->TwoElemList( nl->SymbolAtom("Input"),
                                  listutils::basicSymbol<FText>()))));
-   if(nl->HasLength(args,2)){
-     if(!CcBool::checkType(nl->Second(args))){
-        return listutils::typeError(" text [ x bool ] expected");
-     }
-     return resType;
+
+   if(nl->HasLength(args,2)){ // optional bool missing
+     return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                nl->OneElemList(nl->BoolAtom(false)), 
+                resType);
    }
+   if(!CcBool::checkType(nl->Third(args))){
+     return listutils::typeError("third argument must be of type bool");
+   }
+
    return nl->ThreeElemList(
                nl->SymbolAtom(Symbol::APPEND()),
                nl->OneElemList(nl->BoolAtom(false)),
@@ -9441,13 +9450,17 @@ class tmcheckLocalInfo{
 ~Constructor~
 
 */
-      tmcheckLocalInfo(FText* text, CcBool* p, ListExpr resType){
+      tmcheckLocalInfo(FText* text, CcString* _algName, 
+                       CcBool* p, ListExpr resType){
         currentNL = nl->TheEmptyList();
         tt = new TupleType(resType);
-        qpp = new QueryProcessor(nl,am);
         print = p && p->IsDefined() && p->GetValue();
         if(text && text->IsDefined()){
           findInputLists(text->GetValue());
+        }
+        this->algName = "";
+        if(_algName && _algName->IsDefined()){
+          this->algName = _algName->GetValue();
         }
       }
 
@@ -9457,7 +9470,6 @@ class tmcheckLocalInfo{
 */
       ~tmcheckLocalInfo(){
           tt->DeleteIfAllowed();
-          delete qpp;
        }
 
 
@@ -9492,7 +9504,7 @@ throwing an exception during type mapping of the operator.
      queue<pair<string,string> > failedOperators;
      TupleType* tt;
      bool print;
-     QueryProcessor* qpp;
+     string algName;
 
 
 /*
@@ -9525,6 +9537,11 @@ into inputLists.
 
    void findInputLists(string query){
 
+
+     if(print){
+        cout << "process query :" + query << endl;
+     }
+
      try{
        // first, build the nested list query from query string
        SecParser parser;
@@ -9549,21 +9566,27 @@ into inputLists.
        OpTree tree = 0;
        bool correct,evaluable,defined,isFun;
        ListExpr resType;
-       qpp->Construct(exprList, correct, evaluable, defined, 
+       QueryProcessor qpp(nl,am);
+       qpp.Construct(exprList, correct, evaluable, defined, 
                       isFun,tree,resType);
        if(!correct || !evaluable){
          cerr << " not a valid expression" << endl;
-         //if(tree){
-           // qpp->Destroy(tree,true);
-         //}
+         if(tree){
+            qpp.Destroy(tree,true);
+         }
          return;
        } 
-       findInputLists(tree);
-       //qpp->Destroy(tree,true);
+       if(tree){
+         findInputLists(tree,qpp);
+         qpp.Destroy(tree,true);
+       }
+     } catch(runtime_error err) {
+        cerr << "ERROR" << err.what() << endl;
      } catch(...){
-         cerr << "Error occurred" << endl;
+        cerr << "Error occurred" << endl;
+        cerr << "Query is " << query << endl;
      }
-   }
+  }
 
 
 /*
@@ -9573,11 +9596,11 @@ Traverses the operator tree rooted by s and stores the arguments
 of all operator nodes to inputLists.
 
 */
-   void findInputLists(Supplier s){
-     if(qpp->IsOperatorNode(s)){
-        addList(s);
-        for(int i=0;i<qpp->GetNoSons(s); i++){
-           findInputLists(qpp->GetSon(s,i));
+   void findInputLists(Supplier s, QueryProcessor& qpp){
+     if(qpp.IsOperatorNode(s)){
+        addList(s,qpp);
+        for(int i=0;i<qpp.GetNoSons(s); i++){
+           findInputLists(qpp.GetSon(s,i),qpp);
         }
      }
    }
@@ -9591,14 +9614,14 @@ result into inputLists.
 
 */
 
-   void addList(Supplier s){
-      if(qpp->GetNoSons(s)==0){
+   void addList(Supplier s, QueryProcessor& qpp){
+      if(qpp.GetNoSons(s)==0){
          inputLists.push(nl->TheEmptyList());
       } else {
-        ListExpr r = nl->OneElemList( qpp->GetType(qpp->GetSon(s,0)));
+        ListExpr r = nl->OneElemList( qpp.GetType(qpp.GetSon(s,0)));
         ListExpr last = r;
-        for(int i=1;i<qpp->GetNoSons(s);i++){
-           last = nl->Append(last, qpp->GetType(qpp->GetSon(s,1)));
+        for(int i=1;i<qpp.GetNoSons(s);i++){
+           last = nl->Append(last, qpp.GetType(qpp.GetSon(s,1)));
         }
         inputLists.push(r);
       }
@@ -9611,7 +9634,7 @@ result into inputLists.
 
 */
 void findFailures(ListExpr args){
-  am->findTMExceptions(args,failedOperators, print);
+  am->findTMExceptions(algName, args,failedOperators, print);
 }
 
 };
@@ -9620,8 +9643,9 @@ void findFailures(ListExpr args){
 class tmcheckLocalInfoStream: public  tmcheckLocalInfo{
 
 public:
-   tmcheckLocalInfoStream(Word _stream, CcBool* print, ListExpr typeExpr): 
-          tmcheckLocalInfo(0,print,typeExpr),
+   tmcheckLocalInfoStream(Word _stream, CcString* _algName,
+                          CcBool* print, ListExpr typeExpr): 
+          tmcheckLocalInfo(0,_algName, print,typeExpr),
           stream(_stream) {
               stream.open();
           }
@@ -9688,7 +9712,8 @@ int tmcheckVM1( Word* args, Word& result, int message,
                      local.addr = 0;
                   }
                   local.addr = new tmcheckLocalInfo((FText*)args[0].addr,
-                                     (CcBool*) args[1].addr,
+                                     (CcString*) args[1].addr,
+                                     (CcBool*) args[2].addr,
                                      nl->Second(GetTupleResultType(s)));
                   return 0;
                  } 
@@ -9717,7 +9742,8 @@ int tmcheckVM2( Word* args, Word& result, int message,
                      local.addr = 0;
                   }
                   local.addr = new tmcheckLocalInfoStream(args[0],
-                                     (CcBool*) args[1].addr,
+                                     (CcString*) args[1].addr,
+                                     (CcBool*) args[2].addr,
                                      nl->Second(GetTupleResultType(s)));
                   return 0;
                  } 
@@ -9745,14 +9771,17 @@ int tmcheckVM2( Word* args, Word& result, int message,
 
 */
 OperatorSpec tmcheckSpec(
-           "{text, stream(text)}  [x bool ] -> strean(tuple([OpName : "
+           "{text, stream(text)} x string  [x bool ] -> strean(tuple([OpName : "
            "string, Input: text]))",
            "_ tmcheck[_]",
-           "Calls matching operators for each operatornode of the  "
+           "Calls matching operators for each operator  node of the  "
            " operator tree build by the query in the argument. "
            " All typemappings throwing an exception are put into "
            "the output stream together with the input which leads to"
-           "that exception.",
+           "that exception. The second argument specified a certain algebra"
+           " for which the oprrators should be checks. If the value is undefined"
+           " or empty, all algebras are checked. The third (optionally) argument"
+           "specified if the currently processed operator should be printed out.",
            "query tmcheck('thecenter feed count') count = 0");
 
 

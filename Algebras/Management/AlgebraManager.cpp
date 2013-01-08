@@ -512,30 +512,56 @@ void AlgebraManager::matchingOperators(const int algId,
   }
 }
 
-void AlgebraManager::findTMExceptions(const ListExpr argList,
+void AlgebraManager::findTMExceptions(const string& algName,
+                                      const ListExpr argList,
                                       queue<pair<string,string> >& q,
                                       const bool print) {
 
-
-   for(unsigned int a=1 ; a<algebra.size() ; a++){ // algId=0 is prohibited
-     Algebra* alg = algebra[a];
-     if(alg!=0){
+   if(algName.size()==0){
+     for(unsigned int a=1 ; a<algebra.size() ; a++){ // algId=0 is prohibited
+       Algebra* alg = algebra[a];
+       if(alg!=0){
+          if(print){
+              cout << "process algebra" << GetAlgebraName(a) << endl;
+          }
+          for(int o=0;o<alg->GetNumOps(); o++){
+             Operator* op = alg->GetOperator(o);
+             if(print){
+               cout << "process operator " << op->GetName() << endl; 
+             }  
+             try{
+               op->CallTypeMapping(argList);
+             } catch(...){
+               pair<string,string> p(GetAlgebraName(a), op->GetName());
+               q.push(p);  
+             }
+          }
+       }    
+     }
+   } else {
+     int a = GetAlgebraId(algName);
+     if(a<1){
         if(print){
-            cout << "process algebra" << GetAlgebraName(a) << endl;
+          cout << "Algebra " << algName << " not found" << endl;
         }
-        for(int o=0;o<alg->GetNumOps(); o++){
-           Operator* op = alg->GetOperator(o);
-           if(print){
-             cout << "process operator " << op->GetName() << endl; 
-           }  
-           try{
-             op->CallTypeMapping(argList);
-           } catch(...){
-             pair<string,string> p(GetAlgebraName(a), op->GetName());
-             q.push(p);  
-           }
+        return;
+     }
+     if(print){
+         cout << "process algebra" << GetAlgebraName(a) << endl;
+     }
+     Algebra* alg = algebra[a];
+     for(int o=0;o<alg->GetNumOps(); o++){
+        Operator* op = alg->GetOperator(o);
+        if(print){
+          cout << "process operator " << op->GetName() << endl; 
+        }  
+        try{
+          op->CallTypeMapping(argList);
+        } catch(...){
+          pair<string,string> p(GetAlgebraName(a), op->GetName());
+          q.push(p);  
         }
-     }    
+     }
    }
 }
 

@@ -536,7 +536,9 @@ This operator stores all operators (AlgName, OpName) into q which
 throw an expection if their type mapping ist called with argList.
 
 */
-void findTMExceptions(const ListExpr argList, queue<pair<string,string> >& q,
+void findTMExceptions(const string& algName,
+                      const ListExpr argList, 
+                      queue<pair<string,string> >& q,
                       const bool print);
 
 
