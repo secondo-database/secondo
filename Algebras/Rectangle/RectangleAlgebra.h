@@ -75,7 +75,7 @@ template <unsigned dim>
 class StandardSpatialAttribute : public Attribute
 {
   public:
-    StandardSpatialAttribute() {}
+    StandardSpatialAttribute() : Attribute() {}
     StandardSpatialAttribute(bool defined):Attribute(defined) {}
 
     virtual const Rectangle<dim> BoundingBox(const Geoid* geoid = 0) const = 0;

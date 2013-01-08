@@ -44,7 +44,9 @@ JLine::JLine() : Attribute()
 JLine::JLine(const bool def) :
     Attribute(def), routeintervals(0), sorted(false),
     activBulkload(false)
-{}
+{
+  strcpy(nid, "");
+}
 
 JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList,
              const bool check /*=true*/,  const bool issorted /*=false*/) :
@@ -65,7 +67,6 @@ JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList,
       Sort();
     routeintervals.TrimToSize();
   }
-
 }
 
 JLine::JLine(const JNetwork* jnet, const JListRInt* rintList,
@@ -74,6 +75,7 @@ JLine::JLine(const JNetwork* jnet, const JListRInt* rintList,
 {
   if (!rintList->IsDefined() || !jnet->IsDefined())
   {
+    strcpy(nid, "");
     SetDefined(false);
   }
   else
@@ -104,6 +106,8 @@ JLine::JLine(const JLine& other) :
     sorted = other.IsSorted();
     activBulkload = false;
   }
+  else
+    strcpy(nid, "");
 }
 
 JLine::~JLine()

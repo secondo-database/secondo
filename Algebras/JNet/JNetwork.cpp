@@ -40,6 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JUnit.h"
 #include "JRITree.h"
 #include "JNetUtil.h"
+#include "RTreeAlgebra.h"
 
 extern NestedList* nl;
 
@@ -376,12 +377,14 @@ JNetwork::JNetwork(const bool def) :
   defined(def), tolerance(0.0), junctions(0), sections(0), routes(0),
   netdistances(0), junctionsBTree(0), junctionsRTree(0), sectionsBTree(0),
   sectionsRTree(0), routesBTree(0)
-{}
+{
+  strcpy(id,"");
+}
 
 JNetwork::JNetwork(const string nid, const double t,
                    const Relation* injunctions, const Relation* insections,
                    const Relation* inroutes) :
-  defined(true), tolerance(t),
+  defined(true), tolerance(t), 
   junctions(getRelationCopy(JNetUtil::GetJunctionsRelationTypeInfo(),
                             injunctions)),
   sections(getRelationCopy(JNetUtil::GetSectionsRelationTypeInfo(),
@@ -398,7 +401,7 @@ JNetwork::JNetwork(const string nid, const double t,
 JNetwork::JNetwork(const string nid, const double t,
                    const Relation* injunctions, const Relation* insections,
                    const Relation* inroutes, OrderedRelation* inDist) :
-  defined(true), tolerance(t),
+  defined(true), tolerance(t), 
   junctions(getRelationCopy(JNetUtil::GetJunctionsRelationTypeInfo(),
                             injunctions)),
   sections(getRelationCopy(JNetUtil::GetSectionsRelationTypeInfo(),
@@ -431,6 +434,10 @@ JNetwork::JNetwork(SmiRecord& valueRecord, size_t& offset,
     CcString* stn = (CcString*)w.addr;
     strcpy(id, stn->GetValue().c_str());
     stn->DeleteIfAllowed();
+  }
+  else
+  {
+    strcpy(id,"");
   }
 
 
@@ -802,39 +809,32 @@ bool JNetwork::Save(SmiRecord& valueRecord, size_t& offset,
   }
   else
   {
-    Word w;
-    w.setAddr(new CcString(true,Symbol::UNDEFINED()));
+    CcString* stn = new CcString(true,Symbol::UNDEFINED());
     ListExpr idLE;
     nl->ReadFromString(CcString::BasicType(), idLE);
     ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    return SaveAttribute<CcString>(valueRecord, offset, numId, w);
+    Attribute::Save(valueRecord, offset, numId, stn);
+    return true;
   }
 }
 
 bool JNetwork::Save(SmiRecord& valueRecord, size_t& offset,
                     const ListExpr  typeInfo)
 {
-  Word w;
   CcString* stn = new CcString(true, id);
-  w.setAddr(stn);
   ListExpr idLE;
   nl->ReadFromString(CcString::BasicType(), idLE);
   ListExpr numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-  bool ok = SaveAttribute<CcString>(valueRecord, offset, numId, w);
+  Attribute::Save(valueRecord, offset, numId, stn);
   stn->DeleteIfAllowed();
 
-  if (ok)
-  {
-    CcReal* tol = new CcReal(true, tolerance);
-    w.setAddr(tol);
-    nl->ReadFromString(CcReal::BasicType(), idLE);
-    numId = SecondoSystem::GetCatalog()->NumericType(idLE);
-    ok = SaveAttribute<CcReal>(valueRecord, offset, numId, w);
-    tol->DeleteIfAllowed();
-  }
-
-  if (ok)
-    ok = saveRelation(JNetUtil::GetJunctionsRelationTypeInfo(), junctions,
+  CcReal* tol = new CcReal(true, tolerance);
+  nl->ReadFromString(CcReal::BasicType(), idLE);
+  numId = SecondoSystem::GetCatalog()->NumericType(idLE);
+  Attribute::Save(valueRecord, offset, numId, tol);
+  tol->DeleteIfAllowed();
+  
+  bool ok = saveRelation(JNetUtil::GetJunctionsRelationTypeInfo(), junctions,
                       valueRecord, offset);
 
   if (ok)
@@ -1153,7 +1153,8 @@ bool JNetwork::GetNetworkValueOf(const MPoint* in, MJPoint* result)
             i++;
         }
         if (startPos != 0 &&  startPos->IsDefined() &&
-             endPos != 0 && endPos->IsDefined())
+            endPos != 0 && endPos->IsDefined() && actSource.p1.IsDefined() &&
+            startSectTup != 0 && endSectTup != 0)
         { // got valid RouteLocations and
           SimulateTrip(*startPos, *endPos,
                        &actSource.p1,
@@ -1245,7 +1246,8 @@ JRouteInterval* JNetwork::GetNetworkValueOf(const HalfSegment& hs) const
   JListRLoc* leftrlocs = GetNetworkValuesOf(&lp);
   JListRLoc* rightrlocs = GetNetworkValuesOf(&rp);
   res = GetRouteIntervalFor(leftrlocs, rightrlocs, true);
-  res->SetSide((Direction) Both);
+  if (res != 0 && res->IsDefined())
+    res->SetSide((Direction) Both);
   rightrlocs->DeleteIfAllowed();
   leftrlocs->DeleteIfAllowed();
   return res;
@@ -1503,18 +1505,27 @@ Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc, int& curRid,
   CcInt cSid;
   bool found = false;
   Tuple* sectTup = 0;
-  while(index < routeSectList->GetNoOfComponents() && !found)
+  while(0 <= index && index < routeSectList->GetNoOfComponents() && !found)
   {
-    routeSectList->Get(index, cSid);
     if (sectTup != 0)
+    {
       sectTup->DeleteIfAllowed();
-    sectTup = GetSectionTupleWithId(cSid.GetIntval());
+      sectTup = 0;
+    }
     if (lastRint != 0)
     {
       lastRint->DeleteIfAllowed();
       lastRint = 0;
+    } 
+    routeSectList->Get(index, cSid);
+    if (cSid.IsDefined())
+    {
+      sectTup = GetSectionTupleWithId(cSid.GetIntval());
+      if (sectTup != 0)
+      {
+        lastRint = GetSectionRouteIntervalForRLoc(rloc, sectTup);
+      }
     }
-    lastRint = GetSectionRouteIntervalForRLoc(rloc, sectTup);
     if (lastRint == 0)
       index++;
     else
@@ -1523,18 +1534,25 @@ Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc, int& curRid,
   if (!found)
   {
     index = routeSectList->GetNoOfComponents() -1;
-    while (index >= 0 && !found)
+    while (index >= 0 && index < routeSectList->GetNoOfComponents() && !found)
     {
-      routeSectList->Get(index, cSid);
       if (sectTup != 0)
+      {
         sectTup->DeleteIfAllowed();
-      sectTup = GetSectionTupleWithId(cSid.GetIntval());
+        sectTup = 0;
+      }
       if (lastRint != 0)
       {
         lastRint->DeleteIfAllowed();
         lastRint = 0;
       }
-      lastRint = GetSectionRouteIntervalForRLoc(rloc, sectTup);
+      routeSectList->Get(index, cSid);
+      if (cSid.IsDefined())
+      {
+        sectTup = GetSectionTupleWithId(cSid.GetIntval());
+        if (sectTup != 0)
+          lastRint = GetSectionRouteIntervalForRLoc(rloc, sectTup);
+      }   
       if (lastRint == 0)
         index--;
       else
@@ -1549,7 +1567,7 @@ Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc, int& curRid,
     if (sectTup != 0)
       sectTup->DeleteIfAllowed();
     double pos = correctedPos(fabs(rloc.GetPosition() -
-                                     lastRint->GetFirstPosition()),
+                                   lastRint->GetFirstPosition()),
                               lastCurve->Length(), tolerance);
     Point* result = new Point(true);
     lastCurve->AtPosition(pos, *result);
@@ -1806,16 +1824,16 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
                                               const double distSourceStartSect,
                                               const double distTargetStartSect)
 {
-  assert(targetPos != 0 && targetPos->IsDefined() &&
-         startSectTup != 0  && endSectTup != 0 &&
-         source.IsDefined() && target.IsDefined());
+  if (!source.IsDefined() || !target.IsDefined() || targetPos == 0 ||
+      !targetPos->IsDefined()  || startSectTup == 0 || endSectTup == 0)
+    return 0;
   Direction compD(Down);
   int startSectId = GetSectionId(startSectTup);
   int endSectId = GetSectionId(endSectTup);
-  DbArray<JRouteInterval>* res = new DbArray<JRouteInterval> (0);
   length = 0.0;
   RouteLocation src(source);
   RouteLocation tgt(target);
+  DbArray<JRouteInterval>* res = new DbArray<JRouteInterval> (0);
   if ((startSectId == endSectId || ExistsCommonRoute(src, tgt)) &&
        DirectConnectionExists(startSectId, endSectId, startSectTup, endSectTup,
                               src, tgt, res, length))
@@ -2329,81 +2347,85 @@ Tuple* JNetwork::GetSectionTupleFor(const Point* p, double& pos) const
           actCurve->Get ( i, hs );
           left = hs.GetLeftPoint();
           right = hs.GetRightPoint();
-          double xl = left.GetX();
-          double yl = left.GetY();
-          double xr = right.GetX();
-          double yr = right.GetY();
-          double x = p->GetX();
-          double y = p->GetY();
-          if((AlmostEqualAbsolute(x, xl, tolerance) &&
-              AlmostEqualAbsolute(y, yl, tolerance)) ||
-             (AlmostEqualAbsolute(x, xr, tolerance) &&
-              AlmostEqualAbsolute(y, yr, tolerance)))
+          if (left.IsDefined() && right.IsDefined())
           {
-            diff = 0.0;
-            found = true;
-          }
-          else
-          {
-            if ( xl != xr && xl != x )
+
+            double xl = left.GetX();
+            double yl = left.GetY();
+            double xr = right.GetX();
+            double yr = right.GetY();
+            double x = p->GetX();
+            double y = p->GetY();
+            if((AlmostEqualAbsolute(x, xl, tolerance) &&
+                AlmostEqualAbsolute(y, yl, tolerance)) ||
+              (AlmostEqualAbsolute(x, xr, tolerance) &&
+                AlmostEqualAbsolute(y, yr, tolerance)))
             {
-              k1 = ( y - yl ) / ( x - xl );
-              k2 = ( yr - yl ) / ( xr - xl );
-              if ((( xl < xr &&
-                   ( x > xl || AlmostEqualAbsolute(x, xl, tolerance)) &&
-                   ( x < xr || AlmostEqualAbsolute(x, xr, tolerance))) ||
-                   (xl > xr &&
-                   ( x < xl || AlmostEqualAbsolute(x, xl, tolerance)) &&
-                   ( x > xr || AlmostEqualAbsolute(x, xr, tolerance)))) &&
-                  ((( yl < yr || AlmostEqualAbsolute(yl, yr, tolerance)) &&
-                    ( y > yl || AlmostEqualAbsolute(y, yl, tolerance)) &&
-                    ( y < yr || AlmostEqualAbsolute(y, yr, tolerance))) ||
-                    ( yl > yr &&
-                    ( y < yl || AlmostEqualAbsolute(y, yl, tolerance)) &&
-                    ( y > yr || AlmostEqualAbsolute(y, yr, tolerance)))))
-              {
-                diff = fabs ( k1-k2 );
-                found = true;
-              }
-              else
-              {
-                found = false;
-              }
+              diff = 0.0;
+              found = true;
             }
             else
             {
-              if((AlmostEqualAbsolute(xl, xr, tolerance) &&
-                  AlmostEqualAbsolute(xl, x, tolerance)) &&
-                 ((( yl < yr || AlmostEqualAbsolute(yl, yr, tolerance)) &&
-                   ( yl < y || AlmostEqualAbsolute(yl, y , tolerance)) &&
-                   ( y < yr || AlmostEqualAbsolute(y, yr, tolerance))) ||
-                   ( yl > yr  &&
-                   ( yl > y || AlmostEqualAbsolute(yl, y, tolerance)) &&
-                   ( y > yr || AlmostEqualAbsolute(y, yr, tolerance)))))
+              if ( xl != xr && xl != x )
               {
-                diff = 0.0;
-                found = true;
+                k1 = ( y - yl ) / ( x - xl );
+                k2 = ( yr - yl ) / ( xr - xl );
+                if ((( xl < xr &&
+                    ( x > xl || AlmostEqualAbsolute(x, xl, tolerance)) &&
+                    ( x < xr || AlmostEqualAbsolute(x, xr, tolerance))) ||
+                    (xl > xr &&
+                    ( x < xl || AlmostEqualAbsolute(x, xl, tolerance)) &&
+                    ( x > xr || AlmostEqualAbsolute(x, xr, tolerance)))) &&
+                    ((( yl < yr || AlmostEqualAbsolute(yl, yr, tolerance)) &&
+                      ( y > yl || AlmostEqualAbsolute(y, yl, tolerance)) &&
+                      ( y < yr || AlmostEqualAbsolute(y, yr, tolerance))) ||
+                      ( yl > yr &&
+                      ( y < yl || AlmostEqualAbsolute(y, yl, tolerance)) &&
+                      ( y > yr || AlmostEqualAbsolute(y, yr, tolerance)))))
+                {
+                  diff = fabs ( k1-k2 );
+                  found = true;
+                }
+                else
+                {
+                  found = false;
+                }
               }
               else
               {
-                found = false;
+                if((AlmostEqualAbsolute(xl, xr, tolerance) &&
+                    AlmostEqualAbsolute(xl, x, tolerance)) &&
+                  ((( yl < yr || AlmostEqualAbsolute(yl, yr, tolerance)) &&
+                    ( yl < y || AlmostEqualAbsolute(yl, y , tolerance)) &&
+                    ( y < yr || AlmostEqualAbsolute(y, yr, tolerance))) ||
+                    ( yl > yr  &&
+                    ( yl > y || AlmostEqualAbsolute(yl, y, tolerance)) &&
+                    ( y > yr || AlmostEqualAbsolute(y, yr, tolerance)))))
+                {
+                  diff = 0.0;
+                  found = true;
+                }
+                else
+                {
+                  found = false;
+                }
               }
             }
-          }
-          if ( found )
-          {
-            LRS lrs;
-            actCurve->Get ( hs.attr.edgeno, lrs );
-            actCurve->Get ( lrs.hsPos, hs );
-            pos = lrs.lrsPos + p->Distance(hs.GetDomPoint());
-            if(!actCurve->GetStartSmaller())
-              pos = actCurve->Length() - pos;
-            if ( pos < 0.0 || AlmostEqualAbsolute( pos, 0.0, tolerance))
-              pos = 0.0;
-            else if ( pos > actCurve->Length() ||
-              AlmostEqualAbsolute(pos, actCurve->Length(), tolerance))
-              pos = actCurve->Length();
-            break;
+            if ( found )
+            {
+              LRS lrs;
+              actCurve->Get ( hs.attr.edgeno, lrs );
+              actCurve->Get ( lrs.hsPos, hs );
+              pos = lrs.lrsPos + p->Distance(hs.GetDomPoint());
+              if(!actCurve->GetStartSmaller())
+                pos = actCurve->Length() - pos;
+              if ( pos < 0.0 || AlmostEqualAbsolute( pos, 0.0, tolerance))
+                pos = 0.0;
+              else if ( pos > actCurve->Length() ||
+                AlmostEqualAbsolute(pos, actCurve->Length(), tolerance))
+                pos = actCurve->Length();
+              break;
+            }
           }
         }
       }
@@ -3129,6 +3151,10 @@ void JNetwork::WriteShortestPath(const RouteLocation& source,
 
 bool JNetwork::ExistsCommonRoute(RouteLocation& src, RouteLocation& tgt) const
 {
+  if (!src.IsDefined() || !tgt.IsDefined())
+  {
+    return false;  
+  }
   if (src.IsOnSameRoute(tgt)) {
     return true;
   }
@@ -3136,30 +3162,40 @@ bool JNetwork::ExistsCommonRoute(RouteLocation& src, RouteLocation& tgt) const
   {
     JListRLoc* left = GetNetworkValuesOf(src);
     JListRLoc* right = GetNetworkValuesOf(tgt);
-    int i = 0;
-    while (i < left->GetNoOfComponents())
+    if (left != 0 && left->GetNoOfComponents() > 0 &&
+        right != 0 && right->GetNoOfComponents() > 0)
     {
-      left->Get(i,src);
-      int j = 0;
-      while (j < right->GetNoOfComponents())
+      int i = 0;
+      while (i < left->GetNoOfComponents())
       {
-        right->Get(j,tgt);
-        if (src.IsOnSameRoute(tgt))
+        left->Get(i,src);
+        int j = 0;
+        while (j < right->GetNoOfComponents())
         {
-          left->Destroy();
-          left->DeleteIfAllowed();
-          right->Destroy();
-          right->DeleteIfAllowed();
-          return true;
+          right->Get(j,tgt);
+          if (src.IsOnSameRoute(tgt))
+          {
+            left->Destroy();
+            left->DeleteIfAllowed();
+            right->Destroy();
+            right->DeleteIfAllowed();
+            return true;
+          }
+          j++;
         }
-        j++;
+        i++;
       }
-      i++;
     }
-    left->Destroy();
-    left->DeleteIfAllowed();
-    right->Destroy();
-    right->DeleteIfAllowed();
+    if (left != 0)
+    {
+      left->Destroy();
+      left->DeleteIfAllowed();
+    }
+    if (right != 0)
+    {
+      right->Destroy();
+      right->DeleteIfAllowed();
+    }
     return false;
   }
 }
@@ -3264,7 +3300,7 @@ void JNetwork::SplitJUnit(const JUnit& ju, int& curRid,
       {
         endTimeCorrected = false;
         instInter1 = lastEnd;
-        if (instInter1 > instInter2)
+        if (instInter1 >= instInter2)
         {
           endTimeCorrected = true;
           instInter2 = instInter1 + TIMECORRECTION;
@@ -3299,7 +3335,7 @@ void JNetwork::SplitJUnit(const JUnit& ju, int& curRid,
               instInter2 = ju.TimeAtPos(actDist);
               if (endTimeCorrected && instInter1 < instInter2)
                 endTimeCorrected = false;
-              if (instInter1 == instInter2)
+              if (instInter1 >= instInter2)
               {
                 instInter2 = instInter2 + TIMECORRECTION;
                 endTimeCorrected = true;
@@ -3332,7 +3368,7 @@ void JNetwork::SplitJUnit(const JUnit& ju, int& curRid,
                 instInter2 = ju.TimeAtPos(resLine.Length() - actDist);
                 if (endTimeCorrected && instInter1 < instInter2)
                   endTimeCorrected = false;
-                if (instInter1 == instInter2)
+                if (instInter1 >= instInter2)
                 {
                   instInter2 = instInter2 + TIMECORRECTION;
                   endTimeCorrected = true;
@@ -3348,8 +3384,15 @@ void JNetwork::SplitJUnit(const JUnit& ju, int& curRid,
             }
           }
         }
-        else
+        else if(resLine.IsDefined() && !resLine.IsEmpty())
         {
+          if (endTimeCorrected && instInter1 < instInter2)
+                  endTimeCorrected = false;
+          if (instInter1 >= instInter2)
+          {
+            instInter2 = instInter2 + TIMECORRECTION;
+            endTimeCorrected = true;
+          }
           result.Add(UPoint(Interval<Instant> (instInter1, instInter2,
                                              true, false),
                             *startP, *endP));

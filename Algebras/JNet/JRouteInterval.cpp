@@ -83,13 +83,13 @@ JRouteInterval::JRouteInterval(const int routeid, const double from,
 }
 
 JRouteInterval::JRouteInterval(const bool defined) :
-    Attribute(defined), rid(0), startpos(0.0), endpos(0.0), side(defined)
+    Attribute(defined), rid(0), startpos(0.0), endpos(0.0), side(Both)
 {}
 
 JRouteInterval::JRouteInterval(const RouteLocation& from,
                                const RouteLocation& to,
                                const bool allowResetSide /*false*/) :
-  Attribute(true)
+  Attribute(true), rid(0), startpos(0.0), endpos(0.0), side(Both)
 {
   if (from.IsDefined() && to.IsDefined() &&
       from.GetRouteId() == to.GetRouteId() &&
@@ -111,10 +111,6 @@ JRouteInterval::JRouteInterval(const RouteLocation& from,
   else
   {
     SetDefined(false);
-    rid = 0;
-    startpos = 0.0;
-    endpos = 0.0;
-    side = (Direction) Both;
   }
 }
 

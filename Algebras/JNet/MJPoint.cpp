@@ -65,13 +65,16 @@ MJPoint::MJPoint(): Attribute()
 {}
 
 MJPoint::MJPoint(const bool def) :
-    Attribute(def), units(0), trajectory(0), activBulkload(false), lenth(0.0)
-{}
+    Attribute(def), units(0), trajectory(0), activBulkload(false),
+    lenth(0.0)
+{
+  strcpy(nid,"");
+}
 
 
 MJPoint::MJPoint(const MJPoint& other) :
-    Attribute(other.IsDefined()), units(0), trajectory(0), activBulkload(false),
-    lenth(0.0)
+    Attribute(other.IsDefined()), units(0), trajectory(0),
+    activBulkload(false), lenth(0.0)
 {
   if (other.IsDefined())
   {
@@ -80,15 +83,21 @@ MJPoint::MJPoint(const MJPoint& other) :
     trajectory.copyFrom(other.GetTrajectory());
     lenth = other.Length();
   }
+  else
+  {
+    strcpy(nid, "");
+  }
 }
 
   /*
 MJPoint::MJPoint(const string netId, const DbArray<JUnit>& upoints) :
-  Attribute(true), units(0), trajectory(0), activBulkload(false), lenth(0.0)
+  Attribute(true), units(0), trajectory(0), activBulkload(false),
+  lenth(0.0)
 {
   JNetwork* jnet = ManageJNet::GetNetwork(netId);
   if (jnet == 0)
   {
+    strcpy(nid,"");
     SetDefined(false);
   }
   else
@@ -102,9 +111,10 @@ MJPoint::MJPoint(const string netId, const DbArray<JUnit>& upoints) :
 }*/
 
 MJPoint::MJPoint(const UJPoint* u) :
-  Attribute(true), units(0), trajectory(0), activBulkload(false), lenth(0.0)
+  Attribute(u != 0 && u->IsDefined()), units(0), trajectory(0),
+  activBulkload(false), lenth(0.0)
 {
-  if (u->IsDefined())
+  if (u != 0 && u->IsDefined())
   {
     strcpy(nid, *u->GetNetworkId());
     units.Append(u->GetUnit());
@@ -112,9 +122,7 @@ MJPoint::MJPoint(const UJPoint* u) :
     trajectory.Append(u->GetUnit().GetRouteInterval());
   }
   else
-  {
-    SetDefined(false);
-  }
+    strcpy(nid, "");
 }
 
 

@@ -932,23 +932,19 @@ int JList<ListElem>::GetNoOfComponents()const
 template<class ListElem>
 void JList<ListElem>::Get(const int i, ListElem& res) const
 {
-  if (!IsDefined() || IsEmpty()) res.SetDefined(false);
+  if (!IsDefined() || IsEmpty() || i < 0  || i>= elemlist.Size())
+    res.SetDefined(false);
   else
-  {
-    assert (0 <= i && i < elemlist.Size());
     elemlist.Get(i, res);
-  }
 }
 
 template<class ListElem>
 void JList<ListElem>::Get(const int i, ListElem* res) const
 {
-  if (!IsDefined() || IsEmpty()) res->SetDefined(false);
+  if (!IsDefined() || IsEmpty() || i < 0 || i >= elemlist.Size())
+    res->SetDefined(false);
   else
-  {
-    assert (0 <= i && i < elemlist.Size());
     elemlist.Get(i, res);
-  }
 }
 
 template<class ListElem>

@@ -45,22 +45,23 @@ JPoints::JPoints() : Attribute()
 JPoints::JPoints(const bool def) :
     Attribute(def), routelocations(0), sorted(false),
     activBulkload(false)
-{}
+{
+  strcpy(nid, "");
+}
 
 JPoints::JPoints(const string netId, const DbArray<RouteLocation>& rlocList,
                  const bool check /*=true*/, const bool issorted /*=false*/) :
     Attribute(true), routelocations(0)
 {
+  strcpy(nid, netId.c_str());
   if (check)
   {
     JNetwork* jnet = ManageJNet::GetNetwork(netId);
-    strcpy(nid, *jnet->GetId());
     FillLocationList(rlocList, jnet);
     ManageJNet::CloseNetwork(jnet);
   }
   else
   {
-    strcpy(nid, netId.c_str());
     routelocations.copyFrom(rlocList);
     if (!issorted)
       Sort();
@@ -68,7 +69,8 @@ JPoints::JPoints(const string netId, const DbArray<RouteLocation>& rlocList,
 }
 
 JPoints::JPoints(const JPoints& other) :
-  Attribute(other.IsDefined())
+  Attribute(other.IsDefined()),  routelocations(0), sorted(false),
+  activBulkload(false)
 {
   if (other.IsDefined())
   {
@@ -77,6 +79,8 @@ JPoints::JPoints(const JPoints& other) :
     sorted = other.IsSorted();
     activBulkload = false;
   }
+  else
+    strcpy(nid, "");
 }
 
 JPoints::~JPoints()

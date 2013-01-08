@@ -1621,7 +1621,17 @@ int unitsJLineVM ( Word* args, Word& result, int message, Word& local,
         (li->in)->Get(li->index, elem);
         result = SetWord(new JRouteInterval(elem));
         li->index++;
-        return YIELD;
+        while (!elem.IsDefined() &&
+               li->index < li->in->GetNoComponents())
+        {
+          (li->in)->Get(li->index, elem);
+          li->index++;
+        }
+        result = SetWord(elem.Clone());
+        if (!elem.IsDefined())
+          return CANCEL;
+        else
+          return YIELD;
       }
       else
       {
@@ -1645,6 +1655,7 @@ int unitsJLineVM ( Word* args, Word& result, int message, Word& local,
 
     default:
     {
+      assert(false);
       return CANCEL; // Should never been reached
       break;
     }
@@ -3010,6 +3021,11 @@ int distancesVM ( Word* args, Word& result, int message, Word& local,
   JNetwork *jnet = ( JNetwork* ) args[0].addr;
   if (jnet != NULL && jnet->IsDefined())
   {
+    result = qp->ResultStorage(s).addr;
+    ListExpr typList;
+    nl->ReadFromString(jnet->GetNetdistancesRelationType(),typList);
+    ListExpr numType = SecondoSystem::GetCatalog()->NumericType(typList);
+    OrderedRelation::Close(numType, result);
     result = SetWord ( jnet->GetNetdistancesCopy());
     qp->ChangeResultStorage ( s, result );
   }

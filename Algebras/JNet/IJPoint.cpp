@@ -61,13 +61,17 @@ IJPoint::IJPoint(const IJPoint& other) :
 }
 
 IJPoint::IJPoint(const Instant& inst, const JPoint& jp) :
-  Attribute(true)
+  Attribute(inst.IsDefined() && jp.IsDefined())
 {
-  if (inst.IsDefined() && jp.IsDefined()){
+  if (inst.IsDefined() && jp.IsDefined())
+  {
     time = inst;
     point = jp;
-  } else {
-    SetDefined(false);
+  }
+  else
+  {
+    time.SetDefined(false);
+    point.SetDefined(false);
   }
 }
 

@@ -61,7 +61,11 @@ NetDistanceGroup::NetDistanceGroup ( const NetDistanceGroup& other ) :
     netdistance = other.GetNetdistance();
   }
   assert(source >= 0 && target >= 0 && nextJunction >= 0 && nextSection >= 0 &&
-         netdistance >= 0.0);
+        netdistance >= 0.0);
+  if (!(source >= 0 && target >= 0 && nextJunction >= 0 && nextSection >= 0 &&
+        netdistance >= 0.0))
+    SetDefined(false);
+  
 }
 
 NetDistanceGroup::NetDistanceGroup(const int sourc,
@@ -72,8 +76,12 @@ NetDistanceGroup::NetDistanceGroup(const int sourc,
   Attribute(true), source(sourc), target(targe), nextJunction(nextJunct),
   nextSection(nextSect), netdistance(netdist)
 {
+
   assert(source >= 0 && target >= 0 && nextJunction >= 0 && nextSection >= 0 &&
-         netdistance >= 0.0);
+        netdistance >= 0.0);
+  if (!(source >= 0 && target >= 0 && nextJunction >= 0 && nextSection >= 0 &&
+        netdistance >= 0.0))
+    SetDefined(false);
 }
 
 NetDistanceGroup::~NetDistanceGroup()

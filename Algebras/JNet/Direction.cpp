@@ -50,16 +50,15 @@ Direction::Direction():Attribute()
 Direction::Direction(const bool defined): Attribute(defined), side(Both)
 {}
 
-Direction::Direction(const Direction& other) : Attribute(other.IsDefined())
+Direction::Direction(const Direction& other) : Attribute(other.IsDefined()),
+                                               side(Both)
 {
   if (other.IsDefined())
     side = other.GetDirection();
 }
 
-Direction::Direction(const JSide inside) : Attribute(true)
-{
-  side = inside;
-}
+Direction::Direction(const JSide inside) : Attribute(true), side(inside)
+{ }
 
 Direction::~Direction()
 {}
@@ -197,7 +196,7 @@ const bool Direction::checkType(const ListExpr type)
 Direction& Direction::operator=(const Direction& other)
 {
   SetDefined(other.IsDefined());
-  if (IsDefined()) side = other.GetDirection();
+  if (other.IsDefined()) side = other.GetDirection();
   return *this;
 }
 

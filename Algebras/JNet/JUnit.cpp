@@ -28,7 +28,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace jnetwork;
 
-
 /*
 1 Implementation of class JUnit
 
@@ -40,11 +39,15 @@ using namespace jnetwork;
   {}
 
   JUnit::JUnit(const bool def) :
-      Attribute(def), routeInter(def)
+      Attribute(def),
+      timeInter(Interval<Instant>(instanttype,instanttype,false,false)),
+      routeInter(false)
   {}
 
   JUnit::JUnit(const JUnit& other) :
-      Attribute(other.IsDefined())
+      Attribute(other.IsDefined()),
+      timeInter(Interval<Instant>(instanttype,instanttype,false,false)),
+      routeInter(false)
   {
     if (other.IsDefined())
     {
@@ -54,8 +57,16 @@ using namespace jnetwork;
   }
 
   JUnit::JUnit(const Interval<Instant>& inst, const JRouteInterval& rint) :
-    Attribute(true), timeInter(inst), routeInter(rint)
-  {}
+    Attribute(inst.IsDefined() && rint.IsDefined()),
+    timeInter(Interval<Instant>(instanttype,instanttype,false,false)),
+    routeInter(false)
+  {
+    if (inst.IsDefined() && rint.IsDefined())
+    {
+      timeInter = inst;
+      routeInter = rint;
+    }
+  }
 
   JUnit::~JUnit()
   {}

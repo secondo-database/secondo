@@ -47,21 +47,26 @@ UJPoint::UJPoint(): Attribute()
 {}
 
 UJPoint::UJPoint(const bool def) :
-    Attribute(def), unit(def)
-{}
+    Attribute(def), unit(false)
+{
+  strcpy(nid," ");
+}
 
 UJPoint::UJPoint(const UJPoint& other) :
-    Attribute(other.IsDefined())
+    Attribute(other.IsDefined()), unit(other.GetUnit())
 {
   if (other.IsDefined())
   {
     strcpy(nid, *other.GetNetworkId());
     unit = other.GetUnit();
   }
+  else
+    strcpy(nid,"");
 }
 
 UJPoint::UJPoint(const string id, const JUnit& u, const bool check/*=true*/) :
   Attribute(true), unit(u)
+
 {
   strcpy(nid, id.c_str());
   if (check)
@@ -106,7 +111,7 @@ UJPoint::UJPoint(const JNetwork* jnet, const JRouteInterval* jrint,
                  const bool check /*=true*/) :
   Attribute(true), unit(true)
 {
-  if (jnet != 0&& jnet->IsDefined() &&
+  if (jnet != 0 && jnet->IsDefined() &&
       jrint != 0 && jrint->IsDefined() &&
       timeInter != 0 && timeInter->IsDefined())
   {

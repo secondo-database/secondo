@@ -44,14 +44,21 @@ JPoint::JPoint(): Attribute()
 
 JPoint::JPoint(const bool def) :
     Attribute(def), npos(def)
-{}
+{
+  strcpy(nid,"");
+}
 
 JPoint::JPoint(const JPoint& other) :
-    Attribute(other.IsDefined()), npos(other.GetLocation())
+    Attribute(other.IsDefined()), npos(false)
 {
   if (other.IsDefined())
   {
     strcpy(nid, *other.GetNetworkId());
+    npos = other.GetLocation();
+  }
+  else
+  {
+    strcpy(nid, "");
   }
 }
 
@@ -59,34 +66,35 @@ JPoint::JPoint(const string netId, const RouteLocation& rloc,
                const bool check /*=true*/) :
   Attribute(rloc.IsDefined()), npos(rloc)
 {
+   strcpy(nid, netId.c_str());
   if (check)
   {
     JNetwork* jnet = ManageJNet::GetNetwork(netId);
     if (jnet != 0)
     {
-      strcpy(nid, *jnet->GetId());
       SetDefined(jnet->Contains(rloc));
       ManageJNet::CloseNetwork(jnet);
     }
     else
       SetDefined(false);
-  }
-  else
-    strcpy(nid, netId.c_str());
+  }   
 }
 
 JPoint::JPoint(const JNetwork* jnet, const RouteLocation* rloc,
                const bool check /*=true*/) :
   Attribute(true), npos(*rloc)
 {
-  if (!rloc->IsDefined() || !jnet->IsDefined())
-    SetDefined(false);
-  else
+  if (jnet != 0 && rloc != 0 && jnet->IsDefined() && rloc->IsDefined())
   {
     strcpy(nid, *jnet->GetId());
     if (check)
       SetDefined(jnet->Contains(*rloc));
   }
+  else
+  {
+    SetDefined(false);
+    strcpy(nid, "");
+  }   
 }
 
 JPoint::~JPoint()
@@ -172,15 +180,29 @@ bool JPoint::Adjacent(const Attribute* attrib) const
 
 int JPoint::Compare(const void* l, const void* r)
 {
-  JPoint lp(*(JPoint*) l);
-  JPoint rp(*(JPoint*) r);
-  return lp.Compare(rp);
-
+  if (l != 0 && r != 0)
+  {
+    JPoint lp(*(JPoint*) l);
+    JPoint rp(*(JPoint*) r);
+    return lp.Compare(rp);
+  }
+  else if ( l != 0 && r == 0)
+    return 1;
+  else if (l == 0 && r != 0)
+    return -1;
+  else
+    return 0;
 }
+
 int JPoint::Compare(const Attribute* rhs) const
 {
-  JPoint in(*(JPoint*) rhs);
-  return Compare(in);
+  if (rhs != 0)
+  {
+    JPoint in(*(JPoint*) rhs);
+    return Compare(in);
+  }
+  else
+    return 1;
 }
 
 int JPoint::Compare(const JPoint& rhs) const
@@ -279,7 +301,7 @@ bool JPoint::operator>=(const JPoint& other) const
 ListExpr JPoint::Out(ListExpr typeInfo, Word value)
 {
   JPoint* in = (JPoint*) value.addr;
-  if (!in->IsDefined())
+  if (in == 0 || !in->IsDefined())
   {
     return nl->SymbolAtom(Symbol::UNDEFINED());
   }

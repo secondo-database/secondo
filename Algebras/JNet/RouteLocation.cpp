@@ -46,34 +46,33 @@ RouteLocation::RouteLocation(): Attribute()
 {}
 
 RouteLocation::RouteLocation(const RouteLocation& other) :
-  Attribute(other.IsDefined())
+  Attribute(other.IsDefined()), rid(0), pos(0.0), side(Both)
 {
   if (other.IsDefined()){
     rid = other.GetRouteId();
     pos = other.GetPosition();
     side = other.GetSide();
-  } else {
-    rid = 0;
-    pos = 0.0;
-    side = (Direction) Both;
   }
 }
 
 RouteLocation::RouteLocation(const bool defined) :
-  Attribute(defined), rid(0), pos(0.0), side(defined)
+  Attribute(defined), rid(0), pos(0.0), side(Both)
 {}
 
 RouteLocation::RouteLocation(const int routeId, const double position,
                              const Direction sideofroad) :
   Attribute(true), rid(routeId),  pos(position),  side(sideofroad)
 {
-  if(rid < 0 || pos < 0.0) SetDefined(false);
+  assert(rid >= 0 && pos >= 0.0);
+  if(rid < 0 || pos < 0.0)
+    SetDefined(false);
 }
 
 RouteLocation::RouteLocation(const int routeId, const double position,
                              const JSide sideofroad) :
   Attribute(true), rid(routeId), pos(position), side(Direction(sideofroad))
 {
+  assert(rid >= 0 && pos >= 0.0);
   if(!(rid >= 0 && pos >= 0.0)) SetDefined(false);
 }
 
