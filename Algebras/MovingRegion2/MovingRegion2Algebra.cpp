@@ -69,7 +69,7 @@ very verbose and has significant negative input on the algebra's performance.
 Only enable debug output if you know what you are doing!
 
 */
-const bool MR2_DEBUG = true;
+const bool MR2_DEBUG = false;
 
 /*
 ~eps2~ is used for comparison of two double values.
