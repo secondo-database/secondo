@@ -1823,7 +1823,6 @@ ListExpr CreateValidPGroupTM(ListExpr args){
       ListExpr current = nl->First(args);
       if(!nl->IsEqual(current,"cluster")){
          ErrorReporter::ReportError("only clusters are allowed\n");
-         nl->WriteListExpr(current);
          return nl->TypeError();
       }
       args = nl->Rest(args);

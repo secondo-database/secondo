@@ -2334,7 +2334,6 @@ ListExpr krduphTM(ListExpr args){
    bool appendInit = false;
    if(positions.empty()){ // use all attributes
       for(int i=0;i<nl->ListLength(attrList);i++){
-         cout << "add Position "  << "to vector" << endl;
          positions.push_back(i);
       }
       // append dummy parameters 
