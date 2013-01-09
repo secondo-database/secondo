@@ -1087,6 +1087,11 @@ Forces the deletion of non required log files. Disables catastropic recovery.
 
 */
 
+  static const string Err2Msg( SmiError code );
+/*
+Translate an SMI error code into a message!
+
+*/
  
  private:
 
@@ -1159,11 +1164,6 @@ or if the application runs in single user mode.
   static void SetSmiError( const SmiError smiErr,
       const string& errMsg, const string& file, int pos );
 
-  static const string Err2Msg( SmiError code );
-/*
-Translate an SMI error code into a message!
-
-*/
   static bool CallRegistrar( const string& dbname, 
       const string& cmd, string& answer );
 
