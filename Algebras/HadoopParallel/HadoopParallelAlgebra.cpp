@@ -1560,17 +1560,17 @@ clusterInfo::clusterInfo() :
         getenv(ps_slaves.c_str());
 
     if ( 0 == ev ){
-      cerr << "Environment variable "
-           << ( isMaster ? ps_master : ps_slaves )
-           << " is not correctly defined." << endl;
+      //cerr << "Environment variable "
+      //     << ( isMaster ? ps_master : ps_slaves )
+      //     << " is not correctly defined." << endl;
       return;
     }
 
     string fileName = string(ev);
     if (fileName.length() == 0){
-        cerr << "Environment variable "
-             << (isMaster ? ps_master : ps_slaves)
-             << " is set as empty." << endl;
+       // cerr << "Environment variable "
+       //      << (isMaster ? ps_master : ps_slaves)
+       //      << " is set as empty." << endl;
       return;
     }
     else if (
