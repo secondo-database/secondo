@@ -269,78 +269,137 @@ SmiEnvironment::Err2Msg( SmiError code)
 {
   if( !errorMapInitialized )
   {
-    errorMap[E_SMI_OK] = "Ok!";
-    errorMap[E_SMI_BDB] = "[Berkeley-DB Error]";
-    errorMap[E_SMI_STARTUP] = "E_SMI_STARTUP";
-    errorMap[E_SMI_SHUTDOWN] = "E_SMI_SHUTDOWN";
-    errorMap[E_SMI_DB_CREATE] = "E_SMI_DB_CREATE";
-    errorMap[E_SMI_DB_OPEN] = "E_SMI_DB_OPEN";
-    errorMap[E_SMI_DB_CLOSE] = "E_SMI_DB_CLOSE";
-    errorMap[E_SMI_DB_ERASE] = "E_SMI_DB_ERASE";
-    errorMap[E_SMI_DB_NOTOPEN] = "E_SMI_DB_NOTOPEN";
-    errorMap[E_SMI_DB_NOTCLOSED] = "E_SMI_DB_NOTCLOSED";
-    errorMap[E_SMI_DB_INVALIDNAME] = 
-     "A database name must have less than 16 characters.";
-    errorMap[E_SMI_DB_EXISTING] = "The database is already known.";
-    errorMap[E_SMI_DB_NOTEXISTING] = "The database is unknown.";
-    errorMap[E_SMI_DB_LOOKUP] = "E_SMI_DB_LOOKUP";
-    errorMap[E_SMI_DB_INSERT_CATALOG] = "E_SMI_DB_INSERT_CATALOG";
-    errorMap[E_SMI_DB_DELETE_CATALOG] = "E_SMI_DB_DELETE_CATALOG";
-    errorMap[E_SMI_DB_UPDATE_CATALOG] = "E_SMI_DB_UPDATE_CATALOG";
-    errorMap[E_SMI_DB_NOTFOUND] = "E_SMI_DB_NOTFOUND";
-    errorMap[E_SMI_DB_NOTLOCKED] = "E_SMI_DB_NOTLOCKED";
-    errorMap[E_SMI_DB_REGISTER] = "E_SMI_DB_REGISTER";
-    errorMap[E_SMI_DB_UNREGISTER] = "E_SMI_DB_UNREGISTER";
-    errorMap[E_SMI_DB_LOCK] = "E_SMI_DB_LOCK";
-    errorMap[E_SMI_DB_UNLOCK] = "E_SMI_DB_UNLOCK";
 
-    errorMap[E_SMI_TXN_BEGIN] = "E_SMI_TXN_BEGIN";
-    errorMap[E_SMI_TXN_COMMIT] = "E_SMI_TXN_COMMIT";
-    errorMap[E_SMI_TXN_ABORT] = "E_SMI_TXN_ABORT";
-    errorMap[E_SMI_TXN_RUNNING] = "E_SMI_TXN_RUNNING";
-    errorMap[E_SMI_TXN_NOTRUNNING] = "E_SMI_TXN_NOTRUNNING";
-
-    errorMap[E_SMI_CATALOG_LOOKUP] = "E_SMI_CATALOG_LOOKUP";
-    errorMap[E_SMI_CATALOG_INSERT] = "E_SMI_CATALOG_INSERT";
-    errorMap[E_SMI_CATALOG_DELETE] = "E_SMI_CATALOG_DELETE";
-    errorMap[E_SMI_CATALOG_KEYEXIST] = "E_SMI_CATALOG_KEYEXIST";
-    errorMap[E_SMI_CATALOG_NOTFOUND] = "E_SMI_CATALOG_NOTFOUND";
-
-    errorMap[E_SMI_FILE_INVALIDNAME] = "E_SMI_FILE_INVALIDNAME";
-    errorMap[E_SMI_FILE_NOFILEID] = "E_SMI_FILE_NOFILEID";
-    errorMap[E_SMI_FILE_BADCONTEXT] = "E_SMI_FILE_BADCONTEXT";
-    errorMap[E_SMI_FILE_CREATE] = "E_SMI_FILE_CREATE";
-    errorMap[E_SMI_FILE_OPEN] = "E_SMI_FILE_OPEN";
-    errorMap[E_SMI_FILE_CLOSE] = "E_SMI_FILE_CLOSE";
-    errorMap[E_SMI_FILE_KEYEXIST] = "E_SMI_FILE_KEYEXIST";
-    errorMap[E_SMI_FILE_ISTEMP] = "E_SMI_FILE_ISTEMP";
-
-    errorMap[E_SMI_RECORD_NOTINIT] = "E_SMI_RECORD_NOTINIT";
-    errorMap[E_SMI_RECORD_READ] = "E_SMI_RECORD_READ";
-    errorMap[E_SMI_RECORD_WRITE] = "E_SMI_RECORD_WRITE";
-    errorMap[E_SMI_RECORD_SELECT] = "E_SMI_RECORD_SELECT";
-    errorMap[E_SMI_RECORD_APPEND] = "E_SMI_RECORD_APPEND";
-    errorMap[E_SMI_RECORD_DELETE] = "E_SMI_RECORD_DELETE";
-    errorMap[E_SMI_RECORD_SELECTALL] = "E_SMI_RECORD_SELECTALL";
-    errorMap[E_SMI_RECORD_INSERT] = "E_SMI_RECORD_INSERT";
-    errorMap[E_SMI_RECORD_TRUNCATE] = "E_SMI_RECORD_TRUNCATE";
-    errorMap[E_SMI_RECORD_READONLY] = "E_SMI_RECORD_READONLY";
-    errorMap[E_SMI_RECORD_FINISH] = "E_SMI_RECORD_FINISH";
-
-    errorMap[E_SMI_CURSOR_NOTOPEN] = "E_SMI_CURSOR_NOTOPEN";
-    errorMap[E_SMI_CURSOR_NEXT] = "E_SMI_CURSOR_NEXT";
-    errorMap[E_SMI_CURSOR_ENDOFSCAN] = "E_SMI_CURSOR_ENDOFSCAN";
-    errorMap[E_SMI_CURSOR_DELETE] = "E_SMI_CURSOR_DELETE";
-    errorMap[E_SMI_CURSOR_FINISH] = "E_SMI_CURSOR_FINISH";
-
-    errorMap[E_SMI_CURSOR_NOTOPEN] = "E_SMI_CURSOR_NOTOPEN";
-    errorMap[E_SMI_CURSOR_NEXT] = "E_SMI_CURSOR_NEXT";
-    errorMap[E_SMI_CURSOR_ENDOFSCAN] = "E_SMI_CURSOR_ENDOFSCAN";
-    errorMap[E_SMI_CURSOR_DELETE] = "E_SMI_CURSOR_DELETE";
-    errorMap[E_SMI_CURSOR_FINISH] = "E_SMI_CURSOR_FINISH";
-
-    errorMap[E_SMI_PREFETCH_RANGE] = 
-	         "Call to PrefetchIterator::Next() exceeds range";
+    errorMap[ ERR_NO_ERROR ] = "ERR_NO_ERROR";
+    errorMap[ ERR_CMD_NOT_RECOGNIZED ] = "ERR_CMD_NOT_RECOGNIZED";
+    errorMap[ ERR_IN_QUERY_EXPR ] = "ERR_IN_QUERY_EXPR";
+    errorMap[ ERR_EXPR_NOT_EVALUABLE ] = "ERR_EXPR_NOT_EVALUABLE";
+    errorMap[ ERR_NO_OBJ_CREATED ] = "ERR_NO_OBJ_CREATED";
+    errorMap[ ERR_NO_TYPE_DEFINED ] = "ERR_NO_TYPE_DEFINED";
+    errorMap[ ERR_NO_DATABASE_OPEN ] = "ERR_NO_DATABASE_OPEN";
+    errorMap[ ERR_DATABASE_OPEN ] = "ERR_DATABASE_OPEN";
+    errorMap[ ERR_CREATE_DATABASE ] = "ERR_CREATE_DATABASE";
+    errorMap[ ERR_DELETE_DATABASE ] = "ERR_DELETE_DATABASE";
+    errorMap[ ERR_UNDEF_OBJ_VALUE ] = "ERR_UNDEF_OBJ_VALUE";
+    errorMap[ ERR_SYNTAX_ERROR ] = "ERR_SYNTAX_ERROR";
+ 
+    errorMap[ ERR_IDENT_USED ] = "ERR_IDENT_USED";
+    errorMap[ ERR_IDENT_UNKNOWN_TYPE ] = "ERR_IDENT_UNKNOWN_TYPE";
+    errorMap[ ERR_IDENT_UNKNOWN_OBJ ] = "ERR_IDENT_UNKNOWN_OBJ";
+    errorMap[ ERR_EXPR_TYPE_NEQ_OBJ_TYPE ] = "ERR_EXPR_TYPE_NEQ_OBJ_TYPE";
+    errorMap[ ERR_TYPE_NAME_USED_BY_OBJ ] = "ERR_TYPE_NAME_USED_BY_OBJ";
+    errorMap[ ERR_IDENT_RESERVED ] = "ERR_IDENT_RESERVED";
+    errorMap[ ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED ] = "ERR_UPDATE_FOR_DERIVED_OBJ_UNSUPPORTED";
+ 
+    errorMap[ ERR_TRANSACTION_ACTIVE ] = "ERR_TRANSACTION_ACTIVE"; 
+    errorMap[ ERR_NO_TRANSACTION_ACTIVE ] = "ERR_NO_TRANSACTION_ACTIVE"; 
+    errorMap[ ERR_BEGIN_TRANSACTION_FAILED ] = "ERR_BEGIN_TRANSACTION_FAILED"; 
+    errorMap[ ERR_COMMIT_OR_ABORT_FAILED ] = "ERR_COMMIT_OR_ABORT_FAILED";
+    errorMap[ ERR_IN_DEFINITIONS_FILE ] = "ERR_IN_DEFINITIONS_FILE";
+    errorMap[ ERR_IDENT_UNKNOWN_DB_NAME ] = "ERR_IDENT_UNKNOWN_DB_NAME";
+    errorMap[ ERR_PROBLEM_IN_WRITING_TO_FILE ] = "ERR_PROBLEM_IN_WRITING_TO_FILE";
+    errorMap[ ERR_DB_NAME_NEQ_IDENT ] = "ERR_DB_NAME_NEQ_IDENT";
+    errorMap[ ERR_PROBLEM_IN_READING_FILE ] = "ERR_PROBLEM_IN_READING_FILE";
+    errorMap[ ERR_IN_LIST_STRUCTURE_IN_FILE ] = "ERR_IN_LIST_STRUCTURE_IN_FILE";
+ 
+    errorMap[ ERR_CMD_NOT_YET_IMPL ] = "ERR_CMD_NOT_YET_IMPL";
+    errorMap[ ERR_CMD_LEVEL_NOT_YET_IMPL ] = "ERR_CMD_LEVEL_NOT_YET_IMPL";
+    errorMap[ ERR_CMD_NOT_IMPL_AT_THIS_LEVEL ] = "ERR_CMD_NOT_IMPL_AT_THIS_LEVEL";
+ 
+    errorMap[ ERR_IN_TYPE_DEFINITION ] = "ERR_IN_TYPE_DEFINITION";  
+    errorMap[ ERR_NAME_DOUBLY_DEFINED ] = "ERR_NAME_DOUBLY_DEFINED";
+    errorMap[ ERR_IN_TYPE_EXPRESSION ] = "ERR_IN_TYPE_EXPRESSION";
+   
+    errorMap[ ERR_IN_OBJ_DEFINITION ] = "ERR_IN_OBJ_DEFINITION";
+    errorMap[ ERR_OBJ_NAME_DOUBLY_DEFINED ] = "ERR_OBJ_NAME_DOUBLY_DEFINED";
+    errorMap[ ERR_WRONG_TYPE_EXPR_FOR_OBJ ] = "ERR_WRONG_TYPE_EXPR_FOR_OBJ";
+    errorMap[ ERR_WRONG_LIST_REP_FOR_OBJ ] = "ERR_WRONG_LIST_REP_FOR_OBJ";
+ 
+    errorMap[ ERR_KIND_DOES_NOT_MATCH_TYPE_EXPR ] = "ERR_KIND_DOES_NOT_MATCH_TYPE_EXPR";
+    errorMap[ ERR_SPECIFIC_KIND_CHECKING_ERROR ] = "ERR_SPECIFIC_KIND_CHECKING_ERROR";
+ 
+    errorMap[ ERR_IN_VALUELIST_TC_V ] = "ERR_IN_VALUELIST_TC_V";
+    errorMap[ ERR_SPECIFIC_FOR_TYPE_CONSTRUCTOR ] = "ERR_SPECIFIC_FOR_TYPE_CONSTRUCTOR";
+    errorMap[ ERR_IN_VALUELIST_TC ] = "ERR_IN_VALUELIST_TC";
+    errorMap[ ERR_AT_POS_IN_VALUELIST ] = "ERR_AT_POS_IN_VALUELIST";
+ 
+    errorMap[ ERR_IN_SECONDO_PROTOCOL ] = "ERR_IN_SECONDO_PROTOCOL";
+    errorMap[ ERR_CONNECTION_TO_SERVER_LOST ] = "ERR_CONNECTION_TO_SERVER_LOST";
+    errorMap[ ERR_IDENT_UNKNOWN_DB_OBJECT ] = "ERR_IDENT_UNKNOWN_DB_OBJECT";
+    errorMap[ ERR_OBJ_NAME_IN_FILE_NEQ_IDENT ] = "ERR_OBJ_NAME_IN_FILE_NEQ_IDENT";
+    errorMap[ ERR_IDENT_ALREADY_KNOWN_IN_DB ] = "ERR_IDENT_ALREADY_KNOWN_IN_DB";
+    errorMap[ ERR_ALGEBRA_UNKNOWN ] = "ERR_ALGEBRA_UNKNOWN";
+ 
+    errorMap[ ERR_SYSTEM_ERROR ] = "ERR_SYSTEM_ERROR";
+ 
+    errorMap[ ERR_UNKNOWN_RETURN_CODE ] = "ERR_UNKNOWN_RETURN_CODE";
+ 
+    errorMap[ E_SMI_BDB               ] = "E_SMI_BDB";
+ 
+    errorMap[ E_SMI_STARTUP           ] = "E_SMI_STARTUP";
+    errorMap[ E_SMI_SHUTDOWN          ] = "E_SMI_SHUTDOWN";
+    errorMap[ E_SMI_DB_CREATE         ] = "E_SMI_DB_CREATE";
+    errorMap[ E_SMI_DB_OPEN           ] = "E_SMI_DB_OPEN";
+    errorMap[ E_SMI_DB_CLOSE          ] = "E_SMI_DB_CLOSE";
+    errorMap[ E_SMI_DB_ERASE          ] = "E_SMI_DB_ERASE";
+    errorMap[ E_SMI_DB_NOTOPEN        ] = "E_SMI_DB_NOTOPEN";
+    errorMap[ E_SMI_DB_NOTCLOSED      ] = "E_SMI_DB_NOTCLOSED";
+    errorMap[ E_SMI_DB_INVALIDNAME    ] = "E_SMI_DB_INVALIDNAME";
+    errorMap[ E_SMI_DB_EXISTING       ] = "E_SMI_DB_EXISTING";
+    errorMap[ E_SMI_DB_NOTEXISTING    ] = "E_SMI_DB_NOTEXISTING";
+    errorMap[ E_SMI_DB_LOOKUP         ] = "E_SMI_DB_LOOKUP";
+    errorMap[ E_SMI_DB_INSERT_CATALOG ] = "E_SMI_DB_INSERT_CATALOG";
+    errorMap[ E_SMI_DB_DELETE_CATALOG ] = "E_SMI_DB_DELETE_CATALOG";
+    errorMap[ E_SMI_DB_UPDATE_CATALOG ] = "E_SMI_DB_UPDATE_CATALOG";
+    errorMap[ E_SMI_DB_NOTFOUND       ] = "E_SMI_DB_NOTFOUND";
+    errorMap[ E_SMI_DB_NOTLOCKED      ] = "E_SMI_DB_NOTLOCKED";
+    errorMap[ E_SMI_DB_REGISTER       ] = "E_SMI_DB_REGISTER";
+    errorMap[ E_SMI_DB_UNREGISTER     ] = "E_SMI_DB_UNREGISTER";
+    errorMap[ E_SMI_DB_LOCK           ] = "E_SMI_DB_LOCK";
+    errorMap[ E_SMI_DB_UNLOCK         ] = "E_SMI_DB_UNLOCK";
+    errorMap[ E_SMI_DB_LOCK_DEADLOCK  ] = "E_SMI_DB_LOCK_DEADLOCK";
+ 
+    errorMap[ E_SMI_TXN_BEGIN         ] = "E_SMI_TXN_BEGIN";
+    errorMap[ E_SMI_TXN_COMMIT        ] = "E_SMI_TXN_COMMIT";
+    errorMap[ E_SMI_TXN_ABORT         ] = "E_SMI_TXN_ABORT";
+    errorMap[ E_SMI_TXN_RUNNING       ] = "E_SMI_TXN_RUNNING";
+    errorMap[ E_SMI_TXN_NOTRUNNING    ] = "E_SMI_TXN_NOTRUNNING";
+ 
+    errorMap[ E_SMI_CATALOG_LOOKUP    ] = "E_SMI_CATALOG_LOOKUP";
+    errorMap[ E_SMI_CATALOG_INSERT    ] = "E_SMI_CATALOG_INSERT";
+    errorMap[ E_SMI_CATALOG_DELETE    ] = "E_SMI_CATALOG_DELETE";
+    errorMap[ E_SMI_CATALOG_KEYEXIST  ] = "E_SMI_CATALOG_KEYEXIST";
+    errorMap[ E_SMI_CATALOG_NOTFOUND  ] = "E_SMI_CATALOG_NOTFOUND";
+ 
+    errorMap[ E_SMI_FILE_INVALIDNAME  ] = "E_SMI_FILE_INVALIDNAME";
+    errorMap[ E_SMI_FILE_NOFILEID     ] = "E_SMI_FILE_NOFILEID";
+    errorMap[ E_SMI_FILE_BADCONTEXT   ] = "E_SMI_FILE_BADCONTEXT";
+    errorMap[ E_SMI_FILE_CREATE       ] = "E_SMI_FILE_CREATE";
+    errorMap[ E_SMI_FILE_OPEN         ] = "E_SMI_FILE_OPEN";
+    errorMap[ E_SMI_FILE_CLOSE        ] = "E_SMI_FILE_CLOSE";
+    errorMap[ E_SMI_FILE_KEYEXIST     ] = "E_SMI_FILE_KEYEXIST";
+    errorMap[ E_SMI_FILE_ISTEMP       ] = "E_SMI_FILE_ISTEMP";
+ 
+    errorMap[ E_SMI_RECORD_NOTINIT    ] = "E_SMI_RECORD_NOTINIT";
+    errorMap[ E_SMI_RECORD_READ       ] = "E_SMI_RECORD_READ";
+    errorMap[ E_SMI_RECORD_WRITE      ] = "E_SMI_RECORD_WRITE";
+    errorMap[ E_SMI_RECORD_SELECT     ] = "E_SMI_RECORD_SELECT";
+    errorMap[ E_SMI_RECORD_APPEND     ] = "E_SMI_RECORD_APPEND";
+    errorMap[ E_SMI_RECORD_DELETE     ] = "E_SMI_RECORD_DELETE";
+    errorMap[ E_SMI_RECORD_SELECTALL  ] = "E_SMI_RECORD_SELECTALL";
+    errorMap[ E_SMI_RECORD_INSERT     ] = "E_SMI_RECORD_INSERT";
+    errorMap[ E_SMI_RECORD_TRUNCATE   ] = "E_SMI_RECORD_TRUNCATE";
+    errorMap[ E_SMI_RECORD_READONLY   ] = "E_SMI_RECORD_READONLY";
+    errorMap[ E_SMI_RECORD_FINISH     ] = "E_SMI_RECORD_FINISH";
+ 
+    errorMap[ E_SMI_CURSOR_NOTOPEN    ] = "E_SMI_CURSOR_NOTOPEN";
+    errorMap[ E_SMI_CURSOR_NEXT       ] = "E_SMI_CURSOR_NEXT";
+    errorMap[ E_SMI_CURSOR_ENDOFSCAN  ] = "E_SMI_CURSOR_ENDOFSCAN";
+    errorMap[ E_SMI_CURSOR_DELETE     ] = "E_SMI_CURSOR_DELETE";
+    errorMap[ E_SMI_CURSOR_FINISH     ] = "E_SMI_CURSOR_FINISH";
+ 
+    errorMap[ E_SMI_PREFETCH_RANGE    ] = "E_SMI_PREFETCH_RANGE";
+ 
     errorMapInitialized = true;
   }
 
@@ -349,8 +408,7 @@ SmiEnvironment::Err2Msg( SmiError code)
   {
      return it->second;
   } 
-  cerr  << " Unknown Error! No message for error code No. "
-        << code << "found.";
-  assert(false);
-  return "";
+  stringstream ss;
+  ss << "error code " << code << " not known " << endl;
+  return ss.str();
 }
