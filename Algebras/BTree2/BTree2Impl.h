@@ -633,12 +633,17 @@ BTree2Impl<KEYTYPE,VALUETYPE>::BTree2Impl(const string& _keytype,
   keyTypeListExpr = SecondoSystem::GetCatalog()->NumericType(nlkey);
   ListExpr nlvalue = nl->SymbolAtom(_valuetype);
   valueTypeListExpr = SecondoSystem::GetCatalog()->NumericType(nlvalue);
+  temporary = false;
+  extendedKeysFileId=0;
+  extendedValuesFileId=0;
 }
 
 template <typename KEYTYPE,typename VALUETYPE>
 BTree2Impl<KEYTYPE,VALUETYPE>::~BTree2Impl() {
   // Write information about cache
-  cache.Write(header.cacheFileId,temporary);
+  if(file){
+    cache.Write(header.cacheFileId,temporary);
+  }
   // Clean up remaining nodes (write changes of nodes to disk)
   cache.clear();
 
@@ -646,10 +651,12 @@ BTree2Impl<KEYTYPE,VALUETYPE>::~BTree2Impl() {
 
   if (hasValidBTreeFile()) {
     if (temporary) {
-      if (file->IsOpen()) {
-        file->Drop();
+      if(file){
+        if (file->IsOpen()) {
+          file->Drop();
+        }
+        cache.DropFile(header.cacheFileId,temporary);  
       }
-      cache.DropFile(header.cacheFileId,temporary);  
       if ((extendedKeysFile != 0) && (extendedKeysFile->IsOpen())) {
         extendedKeysFile->Drop();
       }
@@ -657,9 +664,11 @@ BTree2Impl<KEYTYPE,VALUETYPE>::~BTree2Impl() {
         extendedValuesFile->Drop();
       }
     } else { 
-      if (file->IsOpen()) {
-        WriteHeader();
-        file->Close();
+      if(file){
+        if (file->IsOpen()) {
+          WriteHeader();
+          file->Close();
+        }
       }
       if ((extendedKeysFile != 0) && (extendedKeysFile->IsOpen())) {
         extendedKeysFile->Close();
@@ -668,7 +677,9 @@ BTree2Impl<KEYTYPE,VALUETYPE>::~BTree2Impl() {
         extendedValuesFile->Close();
       }
     }
-    delete file;
+    if(file){
+      delete file;
+    }
     if (extendedKeysFile != 0) delete extendedKeysFile;
     if (extendedValuesFile != 0) delete extendedValuesFile;
   }

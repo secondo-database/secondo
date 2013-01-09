@@ -82,7 +82,6 @@ TypeConstructor BTree2::typeConstructor(
 BTree2::BTree2() {
                header.treeHeight = 0;
                header.multiplicity = multiple;
-               file = 0;
                header.leafNodeCount = 0;
                header.internalNodeCount = 0;
                header.leafEntryCount = 0;
@@ -90,6 +89,17 @@ BTree2::BTree2() {
                header.nodesVisitedCounter = 0;
                header.maxKeysize = defaultMaxKeysize;
                header.maxValuesize = defaultMaxValuesize;
+
+               keytype="";
+               valuetype="";
+               recordSize=0;
+               file=0;
+               headerId=0;
+               maxNodesInMemory=0;
+               extendedKeysFile=0;
+               extendedValuesFile=0;
+               keyTypeListExpr = nl->TheEmptyList();
+               valueTypeListExpr= nl->TheEmptyList();
              }
 
 BTree2* BTree2::Factory(const string& keyTypeString,
