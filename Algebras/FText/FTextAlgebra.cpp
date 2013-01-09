@@ -9538,6 +9538,11 @@ into inputLists.
    void findInputLists(string query){
 
 
+     stringutils::trim(query);
+     if(query.size()==0){ //empty
+        return; 
+     }
+
      if(print){
         cout << "process query :" + query << endl;
      }
@@ -9548,29 +9553,33 @@ into inputLists.
        string queryListText;
        ListExpr queryList;
        if(parser.Text2List(query,queryListText)!=0){
-          cerr << "error in parsing query" << endl;
+          cerr << "error in parsing query:" << query << endl;
           return;
        }
        if(!nl->ReadFromString(queryListText, queryList)){
-         cerr << "SecParser has produced an invalid list" << endl;
+         cerr << "SecParser has produced an invalid listi for query " 
+              << query << endl;
          return;
        }
   
   
        if(!nl->HasLength(queryList,2)){  // ( query <expr> )
-          cerr << "invalid command" << endl; 
+          cerr << "invalid command:" << query << endl; 
           return;
        }
        ListExpr exprList = nl->Second(queryList);
        // construct the operator tree
        OpTree tree = 0;
-       bool correct,evaluable,defined,isFun;
+       bool correct = false;
+       bool evaluable = false;
+       bool defined= false;
+       bool isFun = false;
        ListExpr resType;
        QueryProcessor qpp(nl,am);
        qpp.Construct(exprList, correct, evaluable, defined, 
                       isFun,tree,resType);
        if(!correct || !evaluable){
-         cerr << " not a valid expression" << endl;
+         cerr << " not a valid expression:" << query << endl;
          if(tree){
             qpp.Destroy(tree,true);
          }
@@ -9582,6 +9591,10 @@ into inputLists.
        }
      } catch(runtime_error err) {
         cerr << "ERROR" << err.what() << endl;
+        cerr << "Query : " << query << endl << " --- " << endl;
+     } catch(SI_Error err){
+        cerr << "SI ERROR: " << SmiEnvironment::Err2Msg(err) << endl;
+        cerr << "Query : " << query << endl << " --- " << endl;
      } catch(...){
         cerr << "Error occurred" << endl;
         cerr << "Query is " << query << endl;
