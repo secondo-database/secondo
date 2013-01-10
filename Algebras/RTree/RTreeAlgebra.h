@@ -3389,7 +3389,7 @@ bool R_Tree<dim, LeafInfo>::Remove( const R_TreeLeafEntry<dim,
 
     while( currLevel > 0 )
     {
-      int underflow = nodePtr->EntryCount() < MinEntries( currEntry );
+      int underflow = nodePtr->EntryCount() < MinEntries( currLevel );
 
       if( underflow )
       { // Current node has underflow. Save it for later reinsertion
@@ -3403,6 +3403,8 @@ bool R_Tree<dim, LeafInfo>::Remove( const R_TreeLeafEntry<dim,
         nodePtr->Clear();
         int RecordDeleted = file->DeleteRecord( path[ currLevel ] );
         assert( RecordDeleted );
+        delete nodePtr;  // destroy in memory node
+        nodePtr = 0; // avoid flushing node durcing UpLevel
       }
       else
         sonBox = nodePtr->BoundingBox();
