@@ -23,7 +23,7 @@ Operator : filterMatches
 Number   : 1
 Signature: stream(tuple(X)) x IDENT x text -> stream(tuple(X))
 Example  : query Nussi feed filterMatches[Trajectory, '(_ "Lütgendortmund") *'] count
-Result   : 3273
+Result   : 662
 
 Operator : rewrite
 Number   : 1
@@ -41,7 +41,7 @@ Operator : classify
 Number   : 1
 Signature: stream(tuple(text, string)) x stream(mlabel) -> stream(tuple(string, mlabel))
 Example  : query (patterns3 feed Nussi feed projecttransformstream[Trajectory] classify) count
-Result   : 361
+Result   : 82
 
 Operator : classify
 Number   : 2

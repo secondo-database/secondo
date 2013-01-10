@@ -168,6 +168,8 @@ class Condition {
   int     getPId(unsigned int pos) {return (pos < pIds.size() ?
                                                   pIds[pos] : -1);}
   void    clearVectors()           {vars.clear(); keys.clear(); pIds.clear();}
+  string  getVar(unsigned int pos) {return (pos < vars.size() ?
+                                                  vars[pos] : "");}
 //   string  getSubst(int pos)        {return subst[pos];}
 };
 
@@ -400,8 +402,10 @@ class Match {
   int *seqOrder;
   map<string, bool> knownEval; // secondo evaluation history
   map<pair<size_t, size_t>, string> knownPers; // periods string history
-  pair<vector<OpTree*>, vector<OpTree*> > opTrees; // for each cond, each assign
-  pair<vector<vector<void*> >, vector<vector<void*> > > ptrs; //for X.card exprs
+  vector<pair<QueryProcessor*, OpTree> > cOpTrees; // for each condition
+  vector<pair<QueryProcessor*, OpTree> > aOpTrees; // for each assignment
+  vector<vector<Attribute*> > cPointers; // for each expression like X.card
+  vector<Attribute*> aPointers; // ... in conditions / assignments
 
  public:
   Match(const int size) {
@@ -475,6 +479,8 @@ class Match {
   vector<int> applyConditions(ClassifyLI* c);
   void multiRewrite(ClassifyLI* c);
   bool initOpTrees();
+  void deleteOpTrees();
+  void deletePointers();
 };
 
 class RewriteResult {

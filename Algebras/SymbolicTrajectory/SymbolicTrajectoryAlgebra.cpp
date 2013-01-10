@@ -57,6 +57,7 @@ This algebra includes the operators ~matches~ and ~rewrite~.
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
+extern AlgebraManager *am;
 
 #include <string>
 #include <vector>
@@ -1980,6 +1981,7 @@ bool Match::matches(MString const &ml, bool rewrite) {
   if (conds.size()) {
     computeCardsets();
 //     printCards();
+    initOpTrees();
     if (!conditionsMatch(ml)) {
       return false;
     }
@@ -3172,32 +3174,120 @@ is prepared.
 
 */
 bool Match::initOpTrees() {
-  QueryProcessor* qpp = 0;
+  QueryProcessor* qp0 = 0;
+  OpTree tree = 0;
   SecParser parser;
-  string q, qStr;
-  ListExpr qList, resultType;
+  string q(""), part, qParsed, toReplace("");
+  ListExpr qList, rType;
   bool correct, evaluable, defined, isFunction;
-  for (unsigned int i = 0; i < conds.size(); i++) {
-    for (int j = 0; j < conds[i].getKeysSize(); j++) {
-      // init pointers
+  vector<Attribute*> ptrs;
+  for (unsigned int i = 0; i < conds.size(); i++) { // opTrees for conditions
+    q = "query " + conds[i].getText();
+    for (int j = 0; j < conds[i].getKeysSize(); j++) { // init pointers
+      switch (conds[i].getKey(j)) {
+        case 0: { // label, type ccstring
+          CcString *label = new CcString(false, "");
+          part = "[const string pointer "
+               + nl->ToString(listutils::getPtrList(label)) + "]";
+          ptrs.push_back(label);
+          break;
+        }
+        case 1: { // time, type periods
+          Periods *time = new Periods(1);
+          part = "[const periods pointer "
+               + nl->ToString(listutils::getPtrList(time)) + "]";
+          ptrs.push_back(time);
+          break;
+        }
+        case 2:
+        case 3: { // start/end, type instant
+          Instant *startend = new DateTime(instanttype);
+          part = "[const instant pointer "
+               + nl->ToString(listutils::getPtrList(startend)) + "]";
+          ptrs.push_back(startend);
+          break;
+        }
+        default: { // card, type ccint
+          CcInt *card = new CcInt(false);
+          part = "[const int pointer "
+               + nl->ToString(listutils::getPtrList(card)) + "]";
+          ptrs.push_back(card);
+        }
+      }
+      toReplace = conds[i].getVar(j) + Condition::getType(conds[i].getKey(j));
+      cout << toReplace << endl;
+      q.replace(q.find(toReplace), toReplace.length(), part);
+      cout << q << endl;
     }
-    q = "query ";
-    q.append(conds[i].getText());
-    if (parser.Text2List(q, qStr)) {
+    if (parser.Text2List(q, qParsed)) {
       cout << "Text2List(" << q << ") failed" << endl;
       return false;
     }
-    if (!nl->ReadFromString(qStr, qList)) {
-      cout << "ReadFromString(" << qStr << ") failed" << endl;
+    cout << "Text2List ok" << endl;
+    if (!nl->ReadFromString(qParsed, qList)) {
+      cout << "ReadFromString(" << qParsed << ") failed" << endl;
       return false;
     }
-    OpTree tree = 0;
-    qpp = new QueryProcessor(nl, SecondoSystem::GetAlgebraManager());
-    qpp->Construct(qList, correct, evaluable, defined, isFunction, tree,
-		   resultType);
-
+    cout << "ReadFromString ok" << endl;
+    
+    qp0 = new QueryProcessor(nl, am);
+    qp0->Construct(nl->Second(qList), correct, evaluable, defined, isFunction, tree, rType);
+    cout << "constructed" << endl;
+    if (!correct || !evaluable || !defined) {
+      cout << "correct:   " << (correct ? "TRUE" : "FALSE") << endl
+           << "evaluable: " << (evaluable ? "TRUE" : "FALSE") << endl
+           << "defined:   " << (correct ? "TRUE" : "FALSE") << endl;
+      return false;
+    }
+    cout << nl->ToString(rType) << endl;
+    cOpTrees.push_back(make_pair(qp0, tree));
+    cPointers.push_back(ptrs);
+    cout << "CONDITION " << i << " OK" << endl << endl;
   }
+  cout << "OpTrees initialized" << endl;
   return true;
+}
+
+/*
+\subsection{Function ~deleteOpTrees~}
+
+Removes the corresponding structures.
+
+*/
+void Match::deleteOpTrees() {
+  for (unsigned int i = 0; i < cOpTrees.size(); i++) {
+    if (cOpTrees[i].first) {
+      if (cOpTrees[i].second) {
+        cOpTrees[i].first->Destroy(cOpTrees[i].second, true);
+      }
+      delete cOpTrees[i].first;
+    }
+  }
+  for (unsigned int i = 0; i < aOpTrees.size(); i++) {
+    if (aOpTrees[i].first) {
+      if (aOpTrees[i].second) {
+        aOpTrees[i].first->Destroy(aOpTrees[i].second, true);
+      }
+      delete aOpTrees[i].first;
+    }
+  }
+}
+
+/*
+\subsection{Function ~deletePointers~}
+
+Removes the corresponding structures.
+
+*/
+void Match::deletePointers(){
+  for (unsigned int i = 0; i < cPointers.size(); i++) {
+    for (unsigned int j = 0; j < cPointers[i].size(); j++) {
+      deleteIfAllowed(cPointers[i][j]);
+    }
+  }
+  for (unsigned int i = 0; i < aPointers.size(); i++) {
+    deleteIfAllowed(aPointers[i]);
+  }
 }
 
 /*
@@ -3218,11 +3308,13 @@ vector<int> Match::applyConditions(ClassifyLI* c) {
       conds = c->pats[c->matched[i]]->getConds();
       numOfStates = f;
       f = patterns.size();
-//       if (!initOpTrees()) {
-//         cout << "Operator trees could not be initialized" << endl;
-// 	result.clear();
-// 	return result;
-//       }
+      if (!initOpTrees()) {
+        cout << "Operator trees could not be initialized" << endl;
+        deleteOpTrees();
+        deletePointers();
+        result.clear();
+        return result;
+      }
       for (int j = 0; j < f; j++) {
         match[j] = c->matches[c->matched[i]][j];
         cardsets[j].clear();
