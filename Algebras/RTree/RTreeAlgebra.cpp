@@ -4690,6 +4690,11 @@ Supplier s)
       // will register them.
   msg->Send(msgList);
   rtree->SwitchHeader(rtree_in1);
+
+  result = qp->ResultStorage(s);
+  R_Tree<dim, TupleId> *rtree_rs = (R_Tree<dim, TupleId>*) result.addr;
+  delete rtree_rs; 
+
   result.setAddr(rtree);
   return 0;
 }
