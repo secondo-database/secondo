@@ -216,7 +216,7 @@ conditionsequence : condition
 
 condition : expressionlist {
               cond.setText(exprList.toString());
-              cond.substitute();
+              //cond.substitute();
               wholepat->addCond(cond);
               exprList.exprs.clear();
               cond.clearVectors();
@@ -224,7 +224,7 @@ condition : expressionlist {
           ;
 
 expression : ZZVAR_DOT_TYPE {
-               if (cond.convertVarKey($1) == 5) {
+               if (cond.convertVarKey($1) == -1) {
                  string varDotType($1);
                  errMsg = convert("error: " + varDotType + " not accepted");
                  yyerror(errMsg);
@@ -607,6 +607,10 @@ int Condition::convertVarKey(const char *varKey) {
     if (!varInput.compare((wholepat->getPat(i)).getV())) {
       var.assign(varInput);
       key = ::getKey(kInput);
+      if (!key && wholepat->getPat(i).getW()) {
+        cout << "\"label\" condition not allowed with wildcard" << endl;
+        return -1;
+      }
       vars.push_back(var);
       keys.push_back(key);
       pIds.push_back(i);
@@ -614,7 +618,7 @@ int Condition::convertVarKey(const char *varKey) {
     }
   }
   cout << "variable " << varInput << " does not exist in the pattern" << endl;
-  return 5;
+  return -1;
 }
 
 void Assign::convertVarKey(const char *varKey) {

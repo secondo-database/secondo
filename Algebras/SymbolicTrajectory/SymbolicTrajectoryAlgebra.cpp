@@ -768,6 +768,18 @@ Operator temporalatinstantext(
 
 //**********************************************************************
 
+int CompareLabels(const void *a, const void *b) {
+  const Label *label1 = (const Label*)a;
+  const Label *label2 = (const Label*)b;
+  if (label1->GetText().compare(label2->GetText()) > 0) {
+    return 1;
+  }
+  if (label1->GetText().compare(label2->GetText()) < 0) {
+    return -1;
+  }
+  return 0;
+}
+
 enum LabelsState {partial, complete};
 
 class Labels : public Attribute {
@@ -820,6 +832,14 @@ class Labels : public Attribute {
     static const    bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
+    DbArray<Label> GetDbArray() {return labels;}
+    void Sort() {labels.Sort(CompareLabels);}
+    void Clean() {
+      if (labels.Size()) {
+        labels.clean();
+      }
+      state = partial;
+    }
 
   private:
     Labels() {} // this constructor is reserved for the cast function.
@@ -848,7 +868,7 @@ ostream& operator<<(ostream& os, const Labels& lbs) {
 /*
 2.3.1 Constructors.
 
-This first constructor creates a new polygon.
+This first constructor creates a new Labels object.
 
 */
 Labels::Labels(const int n, const Label *lb) :
@@ -1015,7 +1035,8 @@ labels DBArray.
 
 */
 void Labels::Destroy() {
-  assert( state == complete );
+  state = complete;
+  // assert( state == complete );
   labels.destroy();
 }
 
@@ -1125,6 +1146,7 @@ Word Labels::In(const ListExpr typeInfo, const ListExpr instance,
     }
     list.rest();
   }
+  labels->labels.Sort(CompareLabels);
   labels->Complete();  
   result.addr = labels;
   return result;
@@ -1252,6 +1274,53 @@ TypeConstructor labelsTC(
         Labels::Cast,                      //cast function
         Labels::SizeOfObj,                 //sizeof function
         Labels::KindCheck );               //kind checking function
+
+/*
+\section{Operator ~contains~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr containsTypeMap(ListExpr args) {
+  const string errMsg = "Expecting a labels and a string.";
+  if (nl->ListLength(args) != 2) {
+    return listutils::typeError("Two arguments expected.");
+  }
+  if (Labels::checkType(nl->First(args))
+   && CcString::checkType(nl->Second(args))) {
+    return nl->SymbolAtom(CcBool::BasicType());
+  }
+  return NList::typeError(errMsg);
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int containsFun(Word* args, Word& result, int message, Word& local, Supplier s){
+  Labels *labels = static_cast<Labels*>(args[0].addr);
+  CcString* ccstr = static_cast<CcString*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  CcBool* ccbool = static_cast<CcBool*>(result.addr);
+  Label *label = new Label(ccstr->GetValue());
+  int pos;
+  bool res = labels->GetDbArray().Find(label, CompareLabels, pos);
+  ccbool->Set(true, res);
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct containsInfo : OperatorInfo {
+  containsInfo() {
+    name      = "contains";
+    signature = "labels x string -> bool";
+    syntax    = "_ contains _;";
+    meaning   = "Checks whether a Labels object contains a string.";
+  }
+};
 
 
 //**********************************************************************
@@ -1632,27 +1701,6 @@ bool Pattern::verifyPattern() const {
 }
 
 /*
-\subsection{Function ~verifyConditions~}
-
-Loops through the conditions and checks whether each one is a syntactically
-correct boolean expression. If there is an invalid condition, the user input
-is rejected.
-
-*/
-bool Pattern::verifyConditions() const {
-  for (int i = 0; i < (int)conds.size(); i++) {
-    CcBool* ccbool = static_cast<CcBool*>(evaluate(conds[i].getSubst()).addr);
-    if (!ccbool->IsDefined()) {
-      cout << "condition \'" << conds[i].getSubst() << "\' is invalid." << endl;
-      deleteIfAllowed(ccbool);
-      return false;
-    }
-    deleteIfAllowed(ccbool);
-  }
-  return true;
-}
-
-/*
 \subsection{Function ~checkAssignTypes~}
 
 Loops through the assignments and checks whether the data types are compatible.
@@ -1728,7 +1776,8 @@ construction and the matching procedure.
 */
 bool Pattern::matches(MString const &ml) const {
   if (!isVerified()) {
-    if (!verifyPattern() || !verifyConditions()) {
+    if (!verifyPattern()) {
+      cout << "Error: Invalid pattern." << endl;
       return false;
     }
   }
@@ -1750,21 +1799,6 @@ Performs a match and returns the set of matching sequences for the operator
 set<pair<vector<size_t>, vector<size_t> > > Pattern::
                                             getRewriteSeqs(MLabel const &ml) {
   set<pair<vector<size_t>, vector<size_t> > > result;
-  if (!isVerified()) {
-    if (!verifyPattern() || !verifyConditions()) {
-      cout << "Error: Invalid pattern/condition." << endl;
-      return result;
-    }
-    if (!checkAssignTypes()) {
-      return result;
-    }
-    initDelta();
-    buildNFA();
-  }
-  if (!hasAssigns()) {
-    cout << "No result specified." << endl;
-    return result;
-  }
   Match *match = new Match(patterns.size() + 1);
   match->copyFromPattern(*this);
   match->setAssVars(this->getAssVars());
@@ -1826,10 +1860,6 @@ void Match::filterSequences(MString const &ml) {
   set<multiset<size_t> >::iterator it;
   for (it = sequences.begin(); it != sequences.end(); it++) {
     for (int i = 0; i < (int)conds.size(); i++) {
-//       cout << "processing cond #" << i << endl;
-      if (conds[i].getKeysSize()) {
-        buildCondMatchings(i, *it);
-      }
       if (!evaluateCond(ml, i, *it)) {
 //         cout << "mismatch at #" << i << endl;
         i = conds.size(); // continue with next sequence
@@ -1975,12 +2005,11 @@ bool Match::matches(MString const &ml, bool rewrite) {
       return false;
     }
     computeCardsets();
-//     printCards();
+    initOpTrees();
     return true;
   }
   if (conds.size()) {
     computeCardsets();
-//     printCards();
     initOpTrees();
     if (!conditionsMatch(ml)) {
       return false;
@@ -2113,29 +2142,6 @@ void Match::printRewriteSeqs(size_t max) {
     seqCount++;
   }
   cout << "there are " << rewriteSeqs.size() << " result sequences" << endl;
-}
-
-/*
-\subsection{Function ~printCondMatchings~}
-
-Displays the possible condition matching sequences. As the number of sequences
-may be very high, only the first ~max~ sequences are printed.
-
-*/
-void Match::printCondMatchings(size_t max) {
-  set<vector<size_t> >::iterator it;
-  unsigned int count = 0;
-  it = condMatchings.begin();
-  while ((count < max) && (it != condMatchings.end())) {
-    cout << "cm_" << (count < 9 ? "0" : "") << count  + 1 << " | ";
-    for (unsigned int i = 0; i < (*it).size(); i++) {
-      cout << (*it)[i] << ", ";
-    }
-    cout << endl;
-    it++;
-    count++;
-  }
-  cout << condMatchings.size() << " possible condition matchings." << endl;
 }
 
 /*
@@ -2498,9 +2504,6 @@ bool Match::conditionsMatch(MString const &ml) {
     for (int i = 0; i < (int)conds.size(); i++) {
       do {
         proceed = false;
-        if (conds[i].getKeysSize()) {
-          buildCondMatchings(i, seq);
-        }
         if (!evaluateCond(ml, i, seq)) {
           seq = getNextSeq();
           i = 0; // in case of a mismatch, return to the first condition
@@ -2519,9 +2522,6 @@ bool Match::conditionsMatch(MString const &ml) {
     for (int i = 0; i < (int)conds.size(); i++) {
       do {
         proceed = false;
-        if (conds[i].getKeysSize()) {
-          buildCondMatchings(i, seq);
-        }
         if (!evaluateCond(ml, i, seq)) {
 //           if (numOfNegEvals % 10 == 0) {
 //             cout << numOfNegEvals << " negative evaluations now." << endl;
@@ -2718,47 +2718,6 @@ bool Match::evaluateEmptyML() {
 }
 
 /*
-\subsection{Function ~buildCondMatchings~}
-
-For one condition and one cardinality sequence, a set of possible matching
-sequences is built if necessary, i.e., if the condition contains a label.
-
-*/
-void Match::buildCondMatchings(int cId, multiset<size_t> sequence) {
-  bool necessary(false);
-  condMatchings.clear();
-  int pId;
-  size_t totalSize = 1;
-  vector<size_t> condMatching;
-  vector<size_t> seq(sequence.begin(), sequence.end());
-  set<int> consideredIds;
-  set<int>::iterator it;
-  size_t size;
-  seq.push_back(numOfLabels); // easier for last pattern
-  for (int i = 0; i < conds[cId].getKeysSize(); i++) {
-    pId = conds[cId].getPId(i);
-    if (!conds[cId].getKey(i) && !consideredIds.count(pId)) { //no doubles
-      totalSize *= seq[pId + 1] - seq[pId];
-      consideredIds.insert(pId);
-      necessary = true;
-    }
-  }
-  if (necessary) {
-    for (size_t j = 0; j < totalSize; j++) {
-      size_t k = j;
-      condMatching.clear();
-      for (it = consideredIds.begin(); it != consideredIds.end(); it++) {
-        size = seq[*it + 1] - seq[*it];
-        condMatching.push_back(seq[*it] + k % size);
-        k /= size;
-      }
-      condMatchings.insert(condMatching);
-    }
-//     printCondMatchings(5);
-  }
-}
-
-/*
 \subsection{Function ~evaluateCond~}
 
 This function is invoked by ~conditionsMatch~ and checks whether a sequence of
@@ -2766,100 +2725,55 @@ possible cardinalities matches a certain condition.
 
 */
 bool Match::evaluateCond(MString const &ml, int cId, multiset<size_t> sequence){
-  conds[cId].resetSubst();
-  bool success(false), replaced(false);
-  string condStrCardTime, subst;
   vector<size_t> seq(sequence.begin(), sequence.end());
-  for (int j = 0; j < conds[cId].getKeysSize(); j++) {
-    int pId = conds[cId].getPId(j);
-    if (conds[cId].getKey(j) == 4) { // card
-      if (pId == f - 1) {
-        subst.assign(int2Str(numOfLabels - seq[pId]));
+  Word qResult;
+  ULabel ul;
+  for (int i = 0; i < conds[cId].getKeysSize(); i++) {
+    int pId = conds[cId].getPId(i);
+    size_t max = (pId == f - 1 ? numOfLabels - 1 : seq[pId + 1] - 1);
+    switch (conds[cId].getKey(i)) {
+      case 0: { // label
+        ml.Get(seq[pId], ul);
+        ((CcString*)cPointers[cId][i])->Set(true, ul.constValue.GetValue());
+        break;
       }
-      else {
-        subst.assign(int2Str(seq[pId + 1] - seq[pId]));
+      case 1: { // time
+        ((Periods*)cPointers[cId][i])->Clear();
+        for (size_t j = seq[pId]; j <= max; j++) {
+          ml.Get(j, ul);
+          ((Periods*)cPointers[cId][i])->MergeAdd(ul.timeInterval);
+        }
+        break;
       }
-    }
-    else if (conds[cId].getKey(j) > 0) { // time, start, end
-      size_t from = seq[pId];
-      size_t to = (pId == f - 1 ? numOfLabels - 1 : seq[pId + 1] - 1);
-      subst.assign(getTimeSubst(ml, conds[cId].getKey(j), from, to));
-      if (!subst.compare("error")) {
-        return false;
-      }
-    }
-    if (conds[cId].getKey(j) > 0) { // time, start, end, card
-      conds[cId].substitute(j, subst);
-      if (conds[cId].getSubst().compare("error")) {
-        replaced = true;
-      }
-      else {
-        return false;
-      }
-    }
-  } // cardinality and time substitutions completed
-  condStrCardTime.assign(conds[cId].getSubst()); // save status
-  if (condMatchings.empty() && replaced) {
-    if (knownEval.count(condStrCardTime)) {
-      return knownEval[condStrCardTime];
-    }
-    else {
-      CcBool* ccbool = static_cast<CcBool*>(evaluate(condStrCardTime).addr);
-      if (!ccbool->IsDefined() || !ccbool->GetValue()) {
-        ccbool->DeleteIfAllowed();
-        knownEval[condStrCardTime] = false;
-//         cout << "false expression: " << condStrCardTime << endl;
-        numOfNegEvals++;
-        return false;
-      }
-      else {
-        ccbool->DeleteIfAllowed();
-        knownEval[condStrCardTime] = true;
-        return true;
-      }
-    }
-  }
-  while (!condMatchings.empty()) {
-    conds[cId].setSubst(condStrCardTime);
-    int pos = 0;
-    for (int j = 0; j < conds[cId].getKeysSize(); j++) {
-      if (!conds[cId].getKey(j)) { // label
-        subst.assign(getLabelSubst(ml, pos));
-        conds[cId].substitute(j, subst);
-        if (conds[cId].getSubst().compare("error")) {
-          replaced = true;
+      case 2: // start
+      case 3: { // end
+        ml.Get(max, ul);
+        if (conds[cId].getKey(i) == 2) {
+          *((Instant*)cPointers[cId][i]) = ul.timeInterval.start;
         }
         else {
-          return false;
+          *((Instant*)cPointers[cId][i]) = ul.timeInterval.end;
         }
-        pos++;
+        break;
       }
-    }
-    if (knownEval.count(conds[cId].getSubst())) {
-      if (knownEval[conds[cId].getSubst()]) {
-        success = true;
+      case 4: { // card
+        ((CcInt*)cPointers[cId][i])->Set(true, max + 1 - seq[pId]);
+        break;
       }
-      else {
-        return false;
-      }
-    }
-    else {
-      CcBool* ccb = static_cast<CcBool*>(evaluate(conds[cId].getSubst()).addr);
-      if (!ccb->IsDefined() || !ccb->GetValue()) {
-        ccb->DeleteIfAllowed();
-        knownEval[conds[cId].getSubst()] = false;
-//         cout << "false expression: " << conds[cId].getSubst() << endl;
-        numOfNegEvals++;
-        return false; // one false evaluation is enough to yield ~false~
-      }
-      else {
-        ccb->DeleteIfAllowed();
-        knownEval[conds[cId].getSubst()] = true;
-        success = true;
+      default: { // labels
+        ((Labels*)cPointers[cId][i])->Clean();
+        for (size_t j = seq[pId]; j <= max; j++) {
+          ml.Get(j, ul);
+          Label *label = new Label(ul.constValue.GetValue());
+          ((Labels*)cPointers[cId][i])->Append(*label);
+        }
+        ((Labels*)cPointers[cId][i])->Complete();
+        ((Labels*)cPointers[cId][i])->Sort();
       }
     }
   }
-  return success;
+  cOpTrees[cId].first->EvalS(cOpTrees[cId].second, qResult, OPEN);
+  return ((CcBool*)qResult.addr)->GetValue();
 }
 
 /*
@@ -2889,6 +2803,7 @@ string Condition::getType(int t) {
     case 2: return ".start";
     case 3: return ".end";
     case 4: return ".card";
+    case 5: return ".labels";
     default: return ".ERROR";
   }
 }
@@ -2923,88 +2838,6 @@ string Assign::getDataType(int key) {
     case 3: return "instant";
     default: return "error";
   }
-}
-
-/*
-\subsection{Function ~getTimeSubst~}
-
-Depending on the key (~time~, ~start~, or ~end~ are possible here) and on the
-limits ~from~ and ~to~, the respective time information is retrieved from the
-MLabel and returned as a string.
-
-*/
-string Match::getTimeSubst(MString const &ml, int key, size_t from, size_t to) {
-  stringstream result;
-  if ((from < 0) || (to >= numOfLabels)) {
-    cout << "ULabel #" << (from < 0 ? from : to) << " does not exist." << endl;
-    return "error";
-  }
-  if (from > to) {
-    //cout << "[" << from << ", " << to << "] is an invalid interval." << endl;
-    return "error";
-  }
-  pair<size_t, size_t> from_to;
-  Periods per(0);
-  SecInterval iv(0);
-  switch (key) {
-    case 1: // time
-      from_to = make_pair(from, to);
-      if (knownPers.count(from_to)) {
-        return knownPers[from_to];
-      }
-      else {
-        result << "[const periods value("; // build string
-        for (size_t i = from; i <= to; i++) {
-          ml.Get(i, ul);
-          per.MergeAdd(ul.timeInterval);
-        }
-        for (size_t i = 0; i < (size_t)per.GetNoComponents(); i++) {
-          per.Get(i, iv);
-          result << "(\"" << iv.start.ToString() << "\" \""
-                 << iv.end.ToString() << "\" "
-                 << (iv.lc ? "TRUE " : "FALSE ")
-                 << (iv.rc ? "TRUE" : "FALSE") << ")"
-                 << (i == to ? "" : " ");
-        }
-        result << ")]";
-        knownPers[from_to] = result.str();
-      }
-      break;
-    case 2: // start
-      ml.Get(from, ul);
-      result << "[const instant value \"" << ul.timeInterval.start.ToString()
-             << "\"]";
-      break;
-    case 3: // end
-      ml.Get(to, ul);
-      result << "[const instant value \"" << ul.timeInterval.end.ToString()
-             << "\"]";
-      break;
-    default: // should not occur
-      result << "error";
-  }
-  return result.str();
-}
-
-/*
-\subsection{Function ~getLabelSubst~}
-
-The label substitution is found and returned.
-
-*/
-string Match::getLabelSubst(MString const &ml, int pos) {
-  stringstream result;
-  set<vector<size_t> >::iterator it = condMatchings.begin();
-  ml.Get((*it)[pos], ul);
-  if ((*it)[pos] >= numOfLabels) {
-    cout << "Error: " << (*it)[pos] << " >= " << numOfLabels << endl;
-    return "error";
-  }
-  if (pos == (int)(*it).size() - 1) {
-    condMatchings.erase(it);
-  }
-  result << "\"" << ul.constValue.GetValue() << "\"";
-  return result.str();
 }
 
 /*
@@ -3167,6 +3000,50 @@ vector<int> Match::applyMultiNFA(ClassifyLI* c, bool rewrite /*=false*/) {
 }
 
 /*
+\subsection{Function ~getPointer~}
+
+Invoked by ~initOpTrees~
+
+*/
+pair<string, Attribute*> Match::getPointer(int key) {
+  pair<string, Attribute*> result;
+  switch (key) {
+    case 0: { // label, type CcString
+      result.second = new CcString(false, "");
+      result.first = "[const string pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      break;
+    }
+    case 1: { // time, type Periods
+      result.second = new Periods(1);
+      result.first = "[const periods pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      break;
+    }
+    case 2:
+    case 3: { // start/end, type Instant
+      result.second = new DateTime(instanttype);
+      result.first = "[const instant pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      break;
+    }
+    case 4: { // card, type CcInt
+      result.second = new CcInt(false);
+      result.first = "[const int pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      break;
+    }
+    default: { // labels, type Labels
+      result.second = new Labels(0);
+      result.first = "[const labels pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      break;
+    }
+  }
+  return result;
+}
+
+/*
 \subsection{Function ~initOpTrees~}
 
 For a pattern with conditions and/or assignments, an operator tree structure
@@ -3180,71 +3057,40 @@ bool Match::initOpTrees() {
   string q(""), part, qParsed, toReplace("");
   ListExpr qList, rType;
   bool correct, evaluable, defined, isFunction;
+  pair<string, Attribute*> strAttr;
   vector<Attribute*> ptrs;
   for (unsigned int i = 0; i < conds.size(); i++) { // opTrees for conditions
     q = "query " + conds[i].getText();
     for (int j = 0; j < conds[i].getKeysSize(); j++) { // init pointers
-      switch (conds[i].getKey(j)) {
-        case 0: { // label, type ccstring
-          CcString *label = new CcString(false, "");
-          part = "[const string pointer "
-               + nl->ToString(listutils::getPtrList(label)) + "]";
-          ptrs.push_back(label);
-          break;
-        }
-        case 1: { // time, type periods
-          Periods *time = new Periods(1);
-          part = "[const periods pointer "
-               + nl->ToString(listutils::getPtrList(time)) + "]";
-          ptrs.push_back(time);
-          break;
-        }
-        case 2:
-        case 3: { // start/end, type instant
-          Instant *startend = new DateTime(instanttype);
-          part = "[const instant pointer "
-               + nl->ToString(listutils::getPtrList(startend)) + "]";
-          ptrs.push_back(startend);
-          break;
-        }
-        default: { // card, type ccint
-          CcInt *card = new CcInt(false);
-          part = "[const int pointer "
-               + nl->ToString(listutils::getPtrList(card)) + "]";
-          ptrs.push_back(card);
-        }
-      }
+      strAttr = getPointer(conds[i].getKey(j));
+      ptrs.push_back(strAttr.second);
       toReplace = conds[i].getVar(j) + Condition::getType(conds[i].getKey(j));
-      cout << toReplace << endl;
-      q.replace(q.find(toReplace), toReplace.length(), part);
-      cout << q << endl;
+      q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
     }
     if (parser.Text2List(q, qParsed)) {
       cout << "Text2List(" << q << ") failed" << endl;
       return false;
     }
-    cout << "Text2List ok" << endl;
     if (!nl->ReadFromString(qParsed, qList)) {
       cout << "ReadFromString(" << qParsed << ") failed" << endl;
       return false;
     }
-    cout << "ReadFromString ok" << endl;
-    
     qp0 = new QueryProcessor(nl, am);
     qp0->Construct(nl->Second(qList), correct, evaluable, defined, isFunction, tree, rType);
-    cout << "constructed" << endl;
     if (!correct || !evaluable || !defined) {
       cout << "correct:   " << (correct ? "TRUE" : "FALSE") << endl
            << "evaluable: " << (evaluable ? "TRUE" : "FALSE") << endl
            << "defined:   " << (correct ? "TRUE" : "FALSE") << endl;
       return false;
     }
-    cout << nl->ToString(rType) << endl;
+    if (nl->ToString(rType) != "bool") {
+      cout << "incorrect result type: " << nl->ToString(rType) << endl;
+      return false;
+    }
     cOpTrees.push_back(make_pair(qp0, tree));
     cPointers.push_back(ptrs);
-    cout << "CONDITION " << i << " OK" << endl << endl;
+    ptrs.clear();
   }
-  cout << "OpTrees initialized" << endl;
   return true;
 }
 
@@ -3264,11 +3110,13 @@ void Match::deleteOpTrees() {
     }
   }
   for (unsigned int i = 0; i < aOpTrees.size(); i++) {
-    if (aOpTrees[i].first) {
-      if (aOpTrees[i].second) {
-        aOpTrees[i].first->Destroy(aOpTrees[i].second, true);
+    for (int j = 0; j < 4; j++) {
+      if (aOpTrees[i][j].first) {
+        if (aOpTrees[i][j].second) {
+          aOpTrees[i][j].first->Destroy(aOpTrees[i][j].second, true);
+        }
+        delete aOpTrees[i][j].first;
       }
-      delete aOpTrees[i].first;
     }
   }
 }
@@ -3285,9 +3133,13 @@ void Match::deletePointers(){
       deleteIfAllowed(cPointers[i][j]);
     }
   }
-  for (unsigned int i = 0; i < aPointers.size(); i++) {
-    deleteIfAllowed(aPointers[i]);
-  }
+//   for (unsigned int i = 0; i < aPointers.size(); i++) {
+//     for (int j = 0; j < 4; j++) {
+//       for (unsigned int k = 0; k < aPointers[i][j].size(); k++) {
+//         deleteIfAllowed(aPointers[i][j][k]);
+//       }
+//     }
+//   }
 }
 
 /*
@@ -3310,8 +3162,6 @@ vector<int> Match::applyConditions(ClassifyLI* c) {
       f = patterns.size();
       if (!initOpTrees()) {
         cout << "Operator trees could not be initialized" << endl;
-        deleteOpTrees();
-        deletePointers();
         result.clear();
         return result;
       }
@@ -3338,14 +3188,12 @@ Computes a multiple rewrite result, i.e., a vector of MLabels.
 */
 void Match::multiRewrite(ClassifyLI* c) {
   MLabel *ml = 0;
-//  int numOfStates = 0;
   set<pair<vector<size_t>, vector<size_t> > >::iterator it;
   for (unsigned int i = 0; i < c->matched.size(); i++) {
     rewriteSeqs.clear();
     patterns = c->pats[c->matched[i]]->getPats();
     conds = c->pats[c->matched[i]]->getConds();
     // TODO initialize OpTrees and Pointers for Assignments
-    //numOfStates = f;
     f = patterns.size();
     for (int j = 0; j < f; j++) {
       if ((int)c->matches.size() > 0) {
@@ -3411,7 +3259,7 @@ int topatternFun(Word* args, Word& result, int message, Word& local,
   }
   if (pattern) {
     (*p) = (*pattern);
-    if (!p->verifyPattern() || !p->verifyConditions()) {
+    if (!p->verifyPattern()) {
       return 0;
     }
     if (p->hasAssigns()) {
@@ -3575,7 +3423,7 @@ class FilterMatchesLI {
       stream(_stream), attrIndex(_attrIndex) {
     Pattern *p = Pattern::getPattern(text->GetValue());
     p->setVerified(false);
-    if (p->verifyPattern() && p->verifyConditions()) {
+    if (p->verifyPattern()) {
       match = new Match(p->getPats().size() + 1);
       p->buildNFA();
       p->setVerified(true);
@@ -3734,12 +3582,31 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
         cout << "Error: pattern not initialized." << endl;
       }
       else {
-        MLabel* mlNew = mlabel->compress();
-        set<pair<vector<size_t>, vector<size_t> > > rewriteSeqs =
-                                                    p->getRewriteSeqs(*mlNew);
-        map<string, int> varPosInSeq = p->getVarPosInSeq();
-        rr = new RewriteResult(rewriteSeqs, mlNew, p->getAssigns(),
-                               varPosInSeq);
+        if (!p->isVerified()) {
+          if (!p->verifyPattern()) {
+            cout << "Error: Invalid pattern." << endl;
+          }
+          else if (!p->checkAssignTypes()) {
+            cout << "Invalid assignment types." << endl;
+          }
+          else {
+            p->setVerified(true);
+            p->initDelta();
+            p->buildNFA();
+          }
+        }
+        if (!p->hasAssigns()) {
+          cout << "No result specified." << endl;
+        }
+        else {
+          MLabel* mlNew = new MLabel(1);
+          *mlNew = *mlabel;
+          set<pair<vector<size_t>, vector<size_t> > > rewriteSeqs =
+                                                      p->getRewriteSeqs(*mlNew);
+          map<string, int> varPosInSeq = p->getVarPosInSeq();
+          rr = new RewriteResult(rewriteSeqs, mlNew, p->getAssigns(),
+                                 varPosInSeq);
+        }
       }
       delete p;
       local.addr = rr;
@@ -3779,7 +3646,7 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
         delete rr;
       }
       return 0;
-    }  
+    }
     default:
       return -1;
   }
@@ -4638,6 +4505,8 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddTypeConstructor(&patternTC);
 
 //       AddOperator(&temporalatinstantext);
+
+      AddOperator(containsInfo(), containsFun, containsTypeMap);
       
       AddOperator(topatternInfo(), topatternFun, topatternTypeMap);
 

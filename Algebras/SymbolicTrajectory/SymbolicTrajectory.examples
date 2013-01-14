@@ -1,6 +1,12 @@
 Database: symtraj
 Restore : No
 
+Operator : contains
+Number   : 1
+Signature: labels x string -> bool
+Example  : query [const labels value ("hummels" "götze")] contains "götze"
+Result   : TRUE
+
 Operator : topattern
 Number   : 1
 Signature: text -> pattern

@@ -58,32 +58,11 @@ class Pattern;
 class UPat;
 class Assign;
 class ClassifyLI;
-  
+
 enum Wildcard {NO, STAR, PLUS};
-//enum Operations {EQUALS, IN, CONTAINS};
 
 Pattern* parseString(const char* input, bool classify);
 void patternFlushBuffer();
-
-struct CharLink {
-  CharLink() {}
-  CharLink(char symbol, int cf, int ct, int f, int t) :
-           c(symbol), charFrom(cf), charTo(ct), posFrom(f), posTo(t) {}
-
-  void set(char symbol, int cf, int ct, int pf, int pt) {
-    c = symbol;
-    charFrom = cf;
-    charTo = ct;
-    posFrom = pf;
-    posTo = pt;
-  }
-
-  char c;
-  int charFrom;
-  int charTo;
-  int posFrom;
-  int posTo;
-};
 
 class MLabel : public MString {
  public:
@@ -329,7 +308,6 @@ class Pattern {
   // other functions
   static const string BasicType();
   static const bool checkType(const ListExpr type);
-  bool verifyConditions() const;
   static Pattern* getPattern(string input, bool classify = false);
   bool matches(MString const &ml) const;
   bool verifyPattern() const;
@@ -393,7 +371,6 @@ class Match {
   size_t ulId, numOfLabels, seqCounter, seqMax, numOfNegEvals;
   set<size_t> *match, *cardsets;
   set<multiset<size_t> > sequences; // all possible matching sequences
-  set<vector<size_t> > condMatchings; // for condition evaluation
   set<pair<vector<size_t>, vector<size_t> > > rewriteSeqs; // rewrite sequences
   map<int, int> resultVars; // (0,3) means: 0th result var occurs in 3rd unit p.
   set<string> assignedVars;
@@ -403,9 +380,9 @@ class Match {
   map<string, bool> knownEval; // secondo evaluation history
   map<pair<size_t, size_t>, string> knownPers; // periods string history
   vector<pair<QueryProcessor*, OpTree> > cOpTrees; // for each condition
-  vector<pair<QueryProcessor*, OpTree> > aOpTrees; // for each assignment
+  vector<pair<QueryProcessor*, OpTree>[4] > aOpTrees; // for each assignment
   vector<vector<Attribute*> > cPointers; // for each expression like X.card
-  vector<Attribute*> aPointers; // ... in conditions / assignments
+  vector<vector<Attribute*> > aPointers; // ... in conditions / assignments
 
  public:
   Match(const int size) {
@@ -425,6 +402,8 @@ class Match {
     delete[] match;
     delete[] cardsets;
     delete[] seqOrder;
+    deleteOpTrees();
+    deletePointers();
   }
 
   bool matches(MString const &ml, bool rewrite = false);
@@ -432,7 +411,6 @@ class Match {
   void printCards();
   void printSequences(size_t max);
   void printRewriteSeqs(size_t max);
-  void printCondMatchings(size_t max);
   void updateStates();
   bool labelsMatch(int pos, ClassifyLI* c = 0, int pat = -1);
   bool timesMatch(int pos, ClassifyLI* c = 0, int pat = -1);
@@ -452,10 +430,7 @@ class Match {
   size_t getRelevantCombs();
   bool isFixed(int pos, bool start);
   bool evaluateEmptyML();
-  void buildCondMatchings(int condId, multiset<size_t> sequence);
   bool evaluateCond(MString const &ml, int cId, multiset<size_t> sequence);
-  string getLabelSubst(MString const &ml, int pos);
-  string getTimeSubst(MString const &ml, int key, size_t from, size_t to);
   set<multiset<size_t> > getSequences() {return sequences;}
   set<string> getAssVars() {return assignedVars;}
   void setAssVars(set<string> aV) {assignedVars = aV;}
@@ -478,6 +453,7 @@ class Match {
   vector<int> applyMultiNFA(ClassifyLI* c, bool rewrite = false);
   vector<int> applyConditions(ClassifyLI* c);
   void multiRewrite(ClassifyLI* c);
+  pair<string, Attribute*> getPointer(int key);
   bool initOpTrees();
   void deleteOpTrees();
   void deletePointers();

@@ -66,7 +66,7 @@ contents {intervalset}[\ ]+{labelset}
 contents_result {interval}[\ ]+{label}
 variable [A-Z]{1,2}[0-9]*
 doubleslash \/{2}
-conditiontype label|time|start|end|card
+conditiontype label|time|start|end|card|labels
 vardottype {variable}\.{conditiontype}
 rightarrow =>
 const_op ([^A-Z\(\)\[\]\,\t\n ][^\(\)\[\]\,\t\n ]*)|TRUE|FALSE|\"[a-zA-Z0-9\. \ß\ä\ö\ü\Ä\Ö\Ü\/\(\)\[\]\{\}_\-]*\"

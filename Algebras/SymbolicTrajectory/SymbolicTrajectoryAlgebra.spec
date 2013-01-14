@@ -1,3 +1,4 @@
+operator contains alias CONTAINS pattern _ infixop _
 operator topattern alias TOPATTERN pattern _ op
 operator matches alias MATCHES pattern _ infixop _
 operator filterMatches alias FILTERMATCHES pattern _ op [ _ , _ ]
