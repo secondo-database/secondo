@@ -101,7 +101,8 @@ This operator sorts a stream of tuples lexicographically.
 
 Type mapping for ~sort~ is
 
-----  (stream (tuple ((x1 t1)...(xn tn))))  -> ((stream (tuple ((x1 t1)...(xn tn))))
+----  (stream (tuple ((x1 t1)...(xn tn))))  
+          -> ((stream (tuple ((x1 t1)...(xn tn))))
               APPEND (n i1 true i2 true ... in true))
 ----
 
@@ -1803,7 +1804,8 @@ selected attributes must be the same and all attribute names must differ.
 
 */
 ListExpr itHashJoinTM(ListExpr args){
-  string err = "stream(tuple) x stream(tuple) x attr1 x attr2 [int] expected";
+  string err = "stream(tuple) x stream(tuple) x attr1 x "
+               "attr2 [ x int] [x bool] expected";
   if(!nl->HasLength(args,4) && !nl->HasLength(args,5)){
     return listutils::typeError(err);
   }
@@ -1855,17 +1857,43 @@ ListExpr itHashJoinTM(ListExpr args){
   }
 
   ListExpr indexList;
-  if(nl->HasLength(args,5)){
+  if(nl->HasLength(args,6)){ // number of buckets and arg switch given
     ListExpr buckNum = nl->Fifth(args);
     if(!CcInt::checkType(buckNum)){
-      return listutils::typeError("last arg is not an int");
+      return listutils::typeError("5th arg is not an int");
+    }
+    ListExpr switchArgs = nl->Sixth(args);
+    if(!CcBool::checkType(switchArgs)){
+      return listutils::typeError("6th arg is not a bool");
     }
     indexList = nl->TwoElemList(
                             nl->IntAtom(index1-1),
                             nl->IntAtom(index2-1));
-  } else {
-    indexList = nl->ThreeElemList(
+  } else if(nl->HasLength(args,5)){
+    // only one optional argument is given
+    ListExpr optArg = nl->Fifth(args);
+    if(CcInt::checkType(optArg)){
+       // number of buckets given
+       indexList = nl->ThreeElemList(nl->BoolAtom(false),
+                                      nl->IntAtom(index1-1),
+                                      nl->IntAtom(index2-1));
+    } else if(CcBool::checkType(optArg)){
+       // switchArgs is given
+       // we append  (-1, TRUE, index, index)
+       // the true parameter ist just to tell the value mapping
+       // that the optional parameters are in wrong order
+       indexList = nl->FourElemList( nl->IntAtom(-1),
+                                     nl->BoolAtom(true),
+                                     nl->IntAtom(index1-1),
+                                     nl->IntAtom(index2-1));
+    } else {
+       return listutils::typeError("last arg must be of "
+                                   "type int or of type bool");
+    }
+  } else { // len==4, no optional parameter is given
+    indexList = nl->FourElemList(
                             nl->IntAtom(-1),
+                            nl->BoolAtom(false),
                             nl->IntAtom(index1-1),
                             nl->IntAtom(index2-1));
   }
@@ -1894,14 +1922,16 @@ Constructor
                 const ListExpr _resType,
                 const size_t _maxMem,
                 const size_t _buckNum, 
-                ItHashJoinCostEstimation* _costEstimation): 
+                ItHashJoinCostEstimation* _costEstimation,
+                const bool _argsSwitched): 
                 stream1(_stream1), stream2(_stream2), 
                 index1(_index1), index2(_index2), 
                 hashTable(0), tt(0), maxMem(_maxMem), 
                 buffer(0),it(0), 
                 usedMem(0), currentTuple(0), bucket(0), bucketPos(0),
                 s1finished(false), scans(0), buckNum(_buckNum),
-                costEstimation(_costEstimation) {
+                costEstimation(_costEstimation),
+                argsSwitched(_argsSwitched) {
 
          size_t tableSize = sizeof(void*) * buckNum;
          if(tableSize > maxMem / 5){
@@ -1971,7 +2001,11 @@ can be created.
           if(equal(tuple1, currentTuple)){
             // hit
             Tuple* res = new Tuple(tt);
-            Concat(tuple1,currentTuple,res);
+            if(argsSwitched){
+               Concat(currentTuple,tuple1,res);
+            } else {
+                Concat(tuple1,currentTuple,res);
+            }
             return res;           
           }
        }       
@@ -1998,6 +2032,8 @@ can be created.
 
      // cost estimation
      ItHashJoinCostEstimation* costEstimation;
+     // is set to be true, if the arguments are in switched order
+     bool argsSwitched;
 
 
 
@@ -2160,7 +2196,8 @@ removes all Tuple from the current table
        }
     
        costEstimation -> readPartitionDone();
-	 }
+ }
+
 };
 
 /*
@@ -2180,21 +2217,49 @@ int itHashJoinVM( Word* args, Word& result,
                   if(mem<1024){
                      mem = 1024;
                   }
-                  int buckets = 999997;
-                  CcInt* b = (CcInt*) args[4].addr;
-                  if(b->IsDefined() && b->GetValue()>=3){
-                      buckets = b->GetValue();
-                  }
 
                   ItHashJoinCostEstimation* costEstimation =
                     (ItHashJoinCostEstimation*) qp->getCostEstimation(s);
 
                   costEstimation -> init(NULL, NULL);
+                  int ibuck,iswitch,iindex1,iindex2;
+                  int is1 = 0;  // position of streams in args
+                  int is2 = 1;
+                  if(qp->GetNoSons(s)==8){
+                    ibuck = 4;
+                    iswitch = 5;
+                    iindex1 = 6;
+                    iindex2 = 7; 
+                  } else { 
+                     assert(qp->GetNoSons(s)==9);
+                     ibuck = 5;
+                     iswitch = 4;
+                     iindex1 = 7;
+                     iindex2 = 8; 
+                  }
 
-                  local.addr = new ItHashJoinDInfo(args[0],args[1], 
-                                          ((CcInt*)args[5].addr)->GetValue(),
-                                          ((CcInt*)args[6].addr)->GetValue(),
-                                          ttype,mem, buckets, costEstimation);
+                  int buckets = 999997;
+                  CcInt* b = (CcInt*) args[ibuck].addr;
+                  if(b->IsDefined() && b->GetValue()>=3){
+                      buckets = b->GetValue();
+                  }
+                  bool argswitch = false;
+                  CcBool* s = (CcBool*) args[iswitch].addr;
+                  if(s->IsDefined()){
+                     argswitch = s->GetValue();
+                  } 
+                  if(argswitch){ // switch arguments
+                     int tmp = iindex1;
+                     iindex1 = iindex2;
+                     iindex2 = tmp;
+                     is1 = 1;
+                     is2 = 0;
+                  } 
+
+                  local.addr = new ItHashJoinDInfo(args[is1],args[is2], 
+                               ((CcInt*)args[iindex1].addr)->GetValue(),
+                               ((CcInt*)args[iindex2].addr)->GetValue(),
+                               ttype,mem, buckets, costEstimation, argswitch);
                   return 0;
                 }
      case REQUEST: { if(!li){
@@ -2223,10 +2288,13 @@ int itHashJoinVM( Word* args, Word& result,
 const string itHashJoinSpec  = 
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
       "  ( <text>stream(tuple(X)) x stream(tuple(Y)) "
-          "  x a1 x a2 -> stream(tuple(XY))"
+          "  x a1 x a2 [x int] [x bool]-> stream(tuple(XY))"
       "    </text--->"
-      "   <text> _ _ itHashJoinD [_ _] </text--->"
-      "   <text> Computes a hash join of two streams </text--->"
+      "   <text> _ _ itHashJoinD [_ _ _ _ ] </text--->"
+      "   <text> Computes a hash join of two streams. The optional "
+      " integer argument  determines the number of buckets. If the "
+      " boolean argument is present and has value TRUE, the "
+      " input streams are switched in processing.  </text--->"
       "   <text> query ten feed thousand feed {b} itHashJoinD[No, No_b] count"
       "   </text--->))";
 
