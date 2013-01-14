@@ -259,12 +259,19 @@ Returns the estimated time in ms for given arguments.
 
 */
 virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
+                      const size_t noAttributes1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
+                      const size_t noAttributes2,
+                      const double selectivity,
                       const double memoryMB, double &costs) const{
 
  // Init calculation
  size_t maxmem = memoryMB * 1024 * 1024;
  // Read variables
+
+  cerr << __PRETTY_FUNCTION__ << endl
+       << "TODO: use of noAttributes and selectivity" << endl;
+
  
  // Time for processing one tuple in stream 2 (partitions = 1)
  static const double uItHashJoin = 
@@ -359,8 +366,11 @@ function. Allowed types are:
 
 */
    virtual bool getFunction(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
+            const size_t NoTuples1, const size_t sizeOfTuple1, 
+            const size_t noAttributes1,
+            const size_t NoTuples2, const size_t sizeOfTuple2,
+            const size_t noAttributes2,
+            const double selectivity,
             int& functionType,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB,
@@ -380,26 +390,34 @@ function. Allowed types are:
       calculateXPoints(sufficientMemory, point1, point2);
 
       // Calculate costs for first point
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        point1, timeAtPoint1);
+      getCosts(NoTuples1, sizeOfTuple1, noAttributes1, 
+               NoTuples2, sizeOfTuple2, noAttributes2,
+               selectivity,
+               point1, timeAtPoint1);
 
       // Calculate costs for second point
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        point2, timeAtPoint2);
+      getCosts(NoTuples1, sizeOfTuple1, noAttributes1, 
+               NoTuples2, sizeOfTuple2, noAttributes2,
+               selectivity,
+               point2, timeAtPoint2);
 
       // Calculate a and b for function f(x) = a/x+b 
       resolveInverseProportionality(point1, timeAtPoint1, point2, 
         timeAtPoint2, a, b);
       
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        sufficientMemory, timeAtSuffMemory);
+      getCosts(NoTuples1, sizeOfTuple1, noAttributes1,
+               NoTuples2, sizeOfTuple2, noAttributes2,
+               selectivity,
+               sufficientMemory, timeAtSuffMemory);
 
       // is point1 at 16mb? => We have already costs for 16mb
       if(point1 == 16) {
          timeAt16MB = timeAtPoint1;
       } else {
-         getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-           16, timeAt16MB);
+         getCosts(NoTuples1, sizeOfTuple1, noAttributes1,
+                  NoTuples2, sizeOfTuple2, noAttributes2,
+                  selectivity,
+                  16, timeAt16MB);
       }
 
       return true;
@@ -692,8 +710,14 @@ Returns the estimated time in ms for given arguments.
 
 */
 virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
+                      const size_t noAttributes1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
+                      const size_t noAttributes2,
+                      const double selectivity,
                       const double memoryMB, double &costs) const{
+
+     cerr << __PRETTY_FUNCTION__ << endl
+          << "TODO: implement use of noAttributes and selectivity" << endl;
 
      double uHashJoin = 
         ProgressConstants::getValue("ExtRelation2Algebra", 
@@ -767,19 +791,26 @@ timeAt16MB - Time for the calculation with 16MB Memory
 
 */
    virtual bool getLinearParams(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
+            const size_t NoTuples1, const size_t sizeOfTuple1,
+            const size_t noAttributes1,
+            const size_t NoTuples2, const size_t sizeOfTuple2,
+            const size_t noAttributes2,
+            const double selectivity,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB )  const { 
       
       sufficientMemory=calculateSufficientMemory(NoTuples1, sizeOfTuple1,
         NoTuples2, sizeOfTuple2);
       
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        sufficientMemory, timeAtSuffMemory);
+      getCosts(NoTuples1, sizeOfTuple1, noAttributes1,
+               NoTuples2, sizeOfTuple2, noAttributes2,
+               selectivity,    
+               sufficientMemory, timeAtSuffMemory);
 
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        16, timeAt16MB);
+      getCosts(NoTuples1, sizeOfTuple1, noAttributes1,
+               NoTuples2, sizeOfTuple2, noAttributes2,
+               selectivity,
+               16, timeAt16MB);
       
       return true;
    }
@@ -794,17 +825,25 @@ function. Allowed types are:
 2: a / x
 
 */
-   virtual bool getLinearParams(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
+   virtual bool getFunction(
+            const size_t NoTuples1, const size_t sizeOfTuple1, 
+            const size_t noAttributes1,
+            const size_t NoTuples2, const size_t sizeOfTuple2,
+            const size_t noAttributes2,
+            const double selectivity,
             int& functionType,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB,
             double& a, double& b, double& c, double& d) const {
+
+       cout << __PRETTY_FUNCTION__ << endl
+            << "TODO : use of noAttributes and selectivity" << endl;
+
        functionType=1;
        a=0;b=0;c=0;d=0;
-       return getLinearParams(NoTuples1, sizeOfTuple1,
-                              NoTuples2, sizeOfTuple2,
+       return getLinearParams(NoTuples1, sizeOfTuple1, noAttributes1,
+                              NoTuples2, sizeOfTuple2, noAttributes2,
+                              selectivity,
                               sufficientMemory, timeAtSuffMemory, 
                               timeAt16MB);  
   }  
@@ -899,8 +938,14 @@ Returns the estimated time in ms for given arguments.
 
 */
 virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
+                      const size_t noAttributes1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
+                      const size_t noAttributes2,
+                      const double selectivity,
                       const double memoryMB, double &costs) const{
+
+     cerr << __PRETTY_FUNCTION__ << endl
+          << "TODO: implement use of noAttributes and selectivity" << endl;
 
      double uHashJoin = 
         ProgressConstants::getValue("ExtRelation2Algebra", 
@@ -982,19 +1027,26 @@ timeAt16MB - Time for the calculation with 16MB Memory
 
 */
    virtual bool getLinearParams(
-            size_t NoTuples1, size_t sizeOfTuple1,
+            const size_t NoTuples1, const size_t sizeOfTuple1,
+            const size_t noAttributes1,
             size_t NoTuples2, size_t sizeOfTuple2,
+            const size_t noAttributes2,
+            const double selectivity,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB )  const { 
       
       sufficientMemory=calculateSufficientMemory(NoTuples1, sizeOfTuple1,
         NoTuples2, sizeOfTuple2);
       
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        sufficientMemory, timeAtSuffMemory);
+      getCosts(NoTuples1, sizeOfTuple1, noAttributes1, 
+               NoTuples2, sizeOfTuple2, noAttributes2,
+               selectivity,
+               sufficientMemory, timeAtSuffMemory);
 
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        16, timeAt16MB);
+      getCosts(NoTuples1, sizeOfTuple1, noAttributes1,
+               NoTuples2, sizeOfTuple2, noAttributes2,
+               selectivity,
+               16, timeAt16MB);
       
       return true;
    }
@@ -1194,8 +1246,14 @@ Returns the estimated time in ms for given arguments.
 
 */
 virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
+                      const size_t noAttributes1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
+                      const size_t noAttributes2,
+                      const double selectivity,
                       const double memoryMB, double &costs) const{
+
+      cerr << __PRETTY_FUNCTION__ << endl
+           << "TODO: implement use of noAttributes and selectivity" << endl;
  
      //millisecs per byte read in sort step
      static const double uSortBy =
@@ -1250,19 +1308,26 @@ timeAt16MB - Time for the calculation with 16MB Memory
 
 */
    virtual bool getLinearParams(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
+            const size_t NoTuples1, const size_t sizeOfTuple1,
+            const size_t noAttributes1,
+            const size_t NoTuples2, const size_t sizeOfTuple2,
+            const size_t noAttributes2,
+            const double selectivity,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB )  const { 
       
       sufficientMemory=calculateSufficientMemory(NoTuples1, sizeOfTuple1, 
          NoTuples2, sizeOfTuple2);
       
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        sufficientMemory, timeAtSuffMemory);
+      getCosts(NoTuples1, sizeOfTuple1, noAttributes1,
+               NoTuples2, sizeOfTuple2, noAttributes2,
+               selectivity,   
+               sufficientMemory, timeAtSuffMemory);
 
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        16, timeAt16MB);
+      getCosts(NoTuples1, sizeOfTuple1, noAttributes1,
+               NoTuples2, sizeOfTuple2, noAttributes2,
+               selectivity,
+               16, timeAt16MB);
       
       return true;
    }
@@ -1277,17 +1342,21 @@ function. Allowed types are:
 2: a / x
 
 */
-   virtual bool getLinearParams(
-            size_t NoTuples1, size_t sizeOfTuple1,
+   virtual bool getFunction(
+            const size_t NoTuples1, const size_t sizeOfTuple1,
+            const size_t noAttributes1,
             size_t NoTuples2, size_t sizeOfTuple2,
+            const size_t noAttributes2,
+            const double selectivity,
             int& functionType,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB,
             double& a, double& b, double& c, double& d) const {
        functionType=1;
        a=0;b=0;c=0;d=0;
-       return getLinearParams(NoTuples1, sizeOfTuple1,
-                              NoTuples2, sizeOfTuple2,
+       return getLinearParams(NoTuples1, sizeOfTuple1, noAttributes1,
+                              NoTuples2, sizeOfTuple2, noAttributes2,
+                              selectivity,
                               sufficientMemory, timeAtSuffMemory, 
                               timeAt16MB);  
   }  

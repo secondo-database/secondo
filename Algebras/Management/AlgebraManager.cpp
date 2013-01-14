@@ -20,8 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-August 2004, M. Spiekermann. This comment was inserted to make it a PD-File. Moreover,
-implementation of ~GetAlgebraName~ was done.
+August 2004, M. Spiekermann. This comment was inserted to make it a PD-File.
+Moreover, implementation of ~GetAlgebraName~ was done.
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
 (~executable~, ~descriptive~, and ~hybrid~). Only the executable
@@ -123,7 +123,7 @@ AlgebraManager::GetAlgebraId(const string& algName)
       if ( (*getAlgebraEntry)( j ).algebraInit != 0 )
       {
         if ( !(algName.compare( (*getAlgebraEntry)( j ).algebraName )) )
-	        return (*getAlgebraEntry)( j ).algebraId;
+           return (*getAlgebraEntry)( j ).algebraId;
       }
     }
   }
@@ -200,8 +200,8 @@ AlgebraManager::LoadAlgebras()
         tc = algebra[(*getAlgebraEntry)( j ).algebraId]
                                                    ->GetTypeConstructor( k );
 
-	NList::setNLRef(nl);
-	//tc ->initKindDataProperties();
+        NList::setNLRef(nl);
+        //tc ->initKindDataProperties();
         for ( vector<string>::size_type idx = 0;
               idx < tc->kinds.size(); idx++      )
         {
@@ -647,19 +647,19 @@ the return value is false.
 
 */
 
-bool AlgebraManager::getCosts(const int algId,
-              const int opId,
-              const int funId,
-              const size_t noTuples,
-              const size_t sizeOfTuple,
-              const size_t memoryMB,
-              size_t& costs){
+bool AlgebraManager::getCosts(
+              const int algId, const int opId, const int funId,
+              const size_t noTuples, const size_t sizeOfTuple, 
+              const size_t noAttributes,
+              const double selectivity, const size_t memoryMB, size_t& costs){
 
 
    CostEstimation* ce = getCostEstimation(algId,opId,funId);
    costs = 0;
    double mem=memoryMB; double co=0;
-   bool res = ce?ce->getCosts(noTuples,sizeOfTuple,mem,co):false;
+   bool res = ce?ce->getCosts(noTuples,sizeOfTuple,noAttributes, 
+                              selectivity, mem,co)
+                :false;
    if(co>0 && co <1){
      costs = 1;
    } else {
@@ -674,16 +674,20 @@ bool AlgebraManager::getCosts(const int algId,
               const int funId,
               const size_t noTuples1,
               const size_t sizeOfTuple1,
+              const size_t noAttributes1,
               const size_t noTuples2,
               const size_t sizeOfTuple2,
+              const size_t noAttributes2,
+              const double selectivity,
               const size_t memoryMB,
               size_t& costs) {
    CostEstimation* ce = getCostEstimation(algId,opId,funId);
    costs = 0;
    double mem = memoryMB;
    double co=0;
-   bool res = ce?ce->getCosts(noTuples1,sizeOfTuple1,
-                          noTuples2,sizeOfTuple2,mem,co)
+   bool res = ce?ce->getCosts(noTuples1,sizeOfTuple1,noAttributes1,
+                          noTuples2,sizeOfTuple2,noAttributes2,
+                          selectivity, mem,co)
             :false;
    if(co>0 && co <1){
      costs = 1;
@@ -705,6 +709,8 @@ bool AlgebraManager::getLinearParams( const int algId,
                       const int funId,
                       const size_t noTuples1,
                       const size_t sizeOfTuple1,
+                      const size_t noAttributes1,
+                      const double selectivity,
                       double& sufficientMemory,
                       double& timeAtSuffMemory,
                       double& timeAt16MB) {
@@ -713,8 +719,10 @@ bool AlgebraManager::getLinearParams( const int algId,
    sufficientMemory = 0;
    timeAtSuffMemory = 0; 
    timeAt16MB = 0;
-   return ce?ce->getLinearParams(noTuples1,sizeOfTuple1,
-                                 sufficientMemory,timeAtSuffMemory,timeAt16MB)
+   return ce?ce->getLinearParams(noTuples1, sizeOfTuple1, noAttributes1,
+                                 selectivity,
+                                 sufficientMemory, timeAtSuffMemory,
+                                 timeAt16MB)
             :false;
 }
 
@@ -724,8 +732,11 @@ bool AlgebraManager::getLinearParams( const int algId,
                       const int funId,
                       const size_t noTuples1,
                       const size_t sizeOfTuple1,
+                      const size_t noAttributes1,
                       const size_t noTuples2,
                       const size_t sizeOfTuple2,
+                      const size_t noAttributes2,
+                      const double selectivity,
                       double& sufficientMemory,
                       double& timeAtSuffMemory,
                       double& timeAt16MB){
@@ -733,8 +744,11 @@ bool AlgebraManager::getLinearParams( const int algId,
    sufficientMemory = 0;
    timeAtSuffMemory = 0; 
    timeAt16MB = 0;
-   return ce?ce->getLinearParams(noTuples1,sizeOfTuple1,noTuples2,sizeOfTuple2,
-                                 sufficientMemory,timeAtSuffMemory,timeAt16MB)
+   return ce?ce->getLinearParams(noTuples1, sizeOfTuple1, noAttributes1,
+                                 noTuples2, sizeOfTuple2, noAttributes2,
+                                 selectivity,
+                                 sufficientMemory, timeAtSuffMemory,
+                                 timeAt16MB)
             :false;
 }
 
@@ -751,6 +765,8 @@ bool AlgebraManager::getFunction(
                  const int funId,
                  const size_t noTuples,
                  const size_t sizeOfTuple,
+                 const size_t noAttributes1,
+                 const double selectivity,
                  int& funType,
                  double& sufficientMemory,
                  double& timeAtSuffMemory,
@@ -763,7 +779,8 @@ bool AlgebraManager::getFunction(
    timeAtSuffMemory = 0; 
    timeAt16MB = 0;
    a = b = c = d = 0;
-   return ce?ce->getFunction(noTuples, sizeOfTuple,
+   return ce?ce->getFunction(noTuples, sizeOfTuple, noAttributes1,
+                             selectivity,
                              funType, sufficientMemory,
                              timeAtSuffMemory, timeAt16MB,
                              a,b,c,d)
@@ -777,8 +794,11 @@ bool AlgebraManager::getFunction(const int algId,
                  const int funId,
                  const size_t noTuples1,
                  const size_t sizeOfTuple1,
+                 const size_t noAttributes1,
                  const size_t noTuples2,
                  const size_t sizeOfTuple2,
+                 const size_t noAttributes2,
+                 const double selectivity,
                  int& funType,
                  double& sufficientMemory,
                  double& timeAtSuffMemory,
@@ -791,8 +811,9 @@ bool AlgebraManager::getFunction(const int algId,
    timeAtSuffMemory = 0; 
    timeAt16MB = 0;
    a = b = c = d = 0;
-   return ce?ce->getFunction(noTuples1, sizeOfTuple1,
-                             noTuples2, sizeOfTuple2,
+   return ce?ce->getFunction(noTuples1, sizeOfTuple1,noAttributes1,
+                             noTuples2, sizeOfTuple2,noAttributes2,
+                             selectivity,
                              funType, sufficientMemory,
                              timeAtSuffMemory, timeAt16MB,
                              a,b,c,d)

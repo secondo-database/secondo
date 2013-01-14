@@ -2493,10 +2493,14 @@ bool SecondoInterface::getCosts(const int algId,
               const int funId,
               const size_t noTuples,
               const size_t sizeOfTuple,
+              const size_t noAttributes,
+              const double selectivity,
               const size_t memoryMB,
               size_t& costs){
    return SecondoSystem::GetAlgebraManager()->getCosts(
-                   algId,opId,funId,noTuples,sizeOfTuple,memoryMB,costs);
+                   algId,opId,funId,
+                   noTuples,sizeOfTuple,noAttributes, 
+                   selectivity,memoryMB,costs);
 }
 
 
@@ -2505,13 +2509,18 @@ bool SecondoInterface::getCosts(const int algId,
               const int funId,
               const size_t noTuples1,
               const size_t sizeOfTuple1,
+              const size_t noAttributes1,
               const size_t noTuples2,
               const size_t sizeOfTuple2,
+              const size_t noAttributes2,
+              const double selectivity,
               const size_t memoryMB,
               size_t& costs) {
    return SecondoSystem::GetAlgebraManager()->getCosts(
-                   algId,opId,funId,noTuples1,sizeOfTuple2,
-                   noTuples2,sizeOfTuple2,memoryMB,costs);
+                   algId, opId, funId,
+                   noTuples1, sizeOfTuple2,noAttributes1,
+                   noTuples2, sizeOfTuple2, noAttributes2,
+                   selectivity, memoryMB, costs);
 
 }
 
@@ -2527,11 +2536,15 @@ bool SecondoInterface::getLinearParams( const int algId,
                       const int funId,
                       const size_t noTuples1,
                       const size_t sizeOfTuple1,
+                      const size_t noAttributes1,
+                      const double selectivity,
                       double& sufficientMemory,
                       double& timeAtSuffMemory,
                       double& timeAt16MB) {
     return SecondoSystem::GetAlgebraManager()->getLinearParams(
-                algId,opId,funId,noTuples1,sizeOfTuple1,
+                algId,opId,funId,
+                noTuples1,sizeOfTuple1,noAttributes1,
+                selectivity,
                 sufficientMemory,timeAtSuffMemory,timeAt16MB);
 }
 
@@ -2541,14 +2554,19 @@ bool SecondoInterface::getLinearParams( const int algId,
                       const int funId,
                       const size_t noTuples1,
                       const size_t sizeOfTuple1,
+                      const size_t noAttributes1,
                       const size_t noTuples2,
                       const size_t sizeOfTuple2,
+                      const size_t noAttributes2,
+                      const double selectivity,
                       double& sufficientMemory,
                       double& timeAtSuffMemory,
                       double& timeAt16MB) {
     return SecondoSystem::GetAlgebraManager()->getLinearParams(
-                algId,opId,funId,noTuples1,sizeOfTuple1, 
-                noTuples2,sizeOfTuple2,
+                algId, opId, funId,
+                noTuples1, sizeOfTuple1, noAttributes1,
+                noTuples2, sizeOfTuple2, noAttributes2,
+                selectivity,
                 sufficientMemory,timeAtSuffMemory,timeAt16MB);
 }
 
@@ -2564,13 +2582,17 @@ bool SecondoInterface::getFunction(const int algId,
                  const int funId,
                  const size_t noTuples,
                  const size_t sizeOfTuple,
+                 const size_t noAttributes,
+                 const double selectivity,
                  int& funType,
                  double& sufficientMemory,
                  double& timeAtSuffMemory,
                  double& timeAt16MB,
                  double& a, double& b, double&c, double& d) {
    return SecondoSystem::GetAlgebraManager()->getFunction(
-           algId,opId,funId,noTuples,sizeOfTuple,
+           algId, opId, funId,
+           noTuples, sizeOfTuple, noAttributes,
+           selectivity,
            funType,sufficientMemory,timeAtSuffMemory,timeAt16MB,
            a,b,c,d);
 
@@ -2583,8 +2605,11 @@ bool SecondoInterface::getFunction(const int algId,
                  const int funId,
                  const size_t noTuples1,
                  const size_t sizeOfTuple1,
+                 const size_t noAttributes1,
                  const size_t noTuples2,
                  const size_t sizeOfTuple2,
+                 const size_t noAttributes2,
+                 const double selectivity,
                  int& funType,
                  double& sufficientMemory,
                  double& timeAtSuffMemory,
@@ -2592,8 +2617,11 @@ bool SecondoInterface::getFunction(const int algId,
                  double& a, double& b, double&c, double& d) {
 
    return SecondoSystem::GetAlgebraManager()->getFunction(
-           algId,opId,funId,noTuples1,sizeOfTuple1,noTuples2,sizeOfTuple2,
-           funType,sufficientMemory,timeAtSuffMemory,timeAt16MB,
+           algId, opId, funId,
+           noTuples1, sizeOfTuple1, noAttributes1,
+           noTuples2, sizeOfTuple2, noAttributes2,
+           selectivity,
+           funType, sufficientMemory, timeAtSuffMemory, timeAt16MB,
            a,b,c,d);
 }
 

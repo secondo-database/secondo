@@ -84,7 +84,7 @@ void handle_exit(void) {
   /* PROLOG interpreter has terminated, shutdown Secondo */
   if(si != 0)
   {
-    try {	  
+    try {  
       si->Terminate();
       delete si;
       si = 0;
@@ -92,7 +92,7 @@ void handle_exit(void) {
     catch (SecondoException e)
     {
        cerr << e.msg() << endl;    
-    }	    
+    }    
   };
 
 }
@@ -645,6 +645,43 @@ static foreign_t getOperatorIndexes(
    PL_succeed;
 }
 
+/*
+~readIntList~
+
+if ~t~ is a list consisting of size integer values, these integer 
+values are written into the buffer res which must have enough space 
+for these integers. If this is successful, true is returns, 
+false otherwise.
+
+*/
+
+static bool readIntList(term_t t, int* res,size_t size){
+
+  if(!PL_is_list(t)){
+     return false;
+  }
+  term_t head = PL_new_term_ref();
+  term_t list = PL_copy_term_ref(t);
+  size_t pos = 0;
+  while(PL_get_list(list,head,list )){
+     if(pos>size){
+        cerr << "list has more than " << size << " elements" << endl;
+        return false;;
+     }
+     if(!PL_get_integer(head, &res[pos])){
+        cerr << "element " << pos << " is not an integer" << endl;
+        return false;;
+     }
+     pos++;
+  }
+  if(pos<size){
+     cerr << "list has less than " << size << " elements" << endl;
+     return false;
+  }
+  return true;
+}
+
+
 
 /*
 ~getCosts~
@@ -654,45 +691,61 @@ and size of a single tuple is given. If the operator does not provide a
 cost estimation function or the getCost function is not implemented,
 the return value is false.
 
+The arguments of this functions are:
+
+  ( [ algId, opId, funId ] ,
+    [ noTuples, sizeOfTuple, noAttributes ],
+    selectivity, memoryMB, costs )
+
+Where costs is a return parameter. The first arguments are coded in a list
+because prolog supports only 10 arguments for foreign functions. For this 
+functions this limits will be sufficient, but for versions using two input 
+streams not. For compability with other functions, we also here use lists
+of integer values.
+
 */
 
-static foreign_t  getCosts7(
-              term_t algId,
-              term_t opId,
-              term_t funId,
-              term_t noTuples,
-              term_t sizeOfTuple,
+
+
+
+static foreign_t  getCosts5(
+              term_t VM_descr,
+              term_t stream1_descr,
+              term_t selectivity,
               term_t memoryMB,
               term_t costs) {
    // convert arguments to C
-   int algIdC,opIdC,funIdC,noTuplesC,sizeOfTupleC,memoryMBC;
+   int memoryMBC;
+   double selectivityC;
    size_t costsC = 0;
-   if(!PL_get_integer(algId, &algIdC)){
-     cerr << "algId is not an integer" << endl;
+   int VM_descrC[3];
+   int stream1_descrC[3];
+
+   if(!readIntList(VM_descr,VM_descrC,3)){
+     cerr << " invalid [algid, opid, vmid] list " << endl;
+     PL_fail;
+   } 
+   if(!readIntList(stream1_descr,stream1_descrC,3)){
+     cerr << "invalid stream description" << endl;
+     cerr << "must be [noTuples, sizeOfTuple, noAttributes] " << endl;
      PL_fail;
    }
-   if(!PL_get_integer(opId, &opIdC)){
-     cerr << "opId is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(funId, &funIdC)){
-     cerr << "funId is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(noTuples, &noTuplesC)){
-     cerr << "noTuples is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(sizeOfTuple, &sizeOfTupleC)){
-     cerr << "sizeOfTuple is not an integer" << endl;
-     PL_fail;
+
+   if(!PL_get_float(selectivity,&selectivityC)){
+     cerr << "selectivity is not a float" << endl;
+     PL_fail;   
    }
    if(!PL_get_integer(memoryMB, &memoryMBC)){
-     cerr << "sizeOfTuple is not an integer" << endl;
+     cerr << "memoryMB is not an integer" << endl;
      PL_fail;
    }
-   if(!si->getCosts(algIdC,opIdC,funIdC,
-                     (size_t) noTuplesC, (size_t) sizeOfTupleC,
+   if(!si->getCosts( (size_t) VM_descrC[0], 
+                     (size_t) VM_descrC[1],
+                     (size_t) VM_descrC[2],
+                     (size_t) stream1_descrC[0], 
+                     (size_t) stream1_descrC[1], 
+                     (size_t) stream1_descrC[2], 
+                     selectivityC,
                      (size_t) memoryMBC, costsC)){
       PL_fail;
    }  else {
@@ -703,56 +756,53 @@ static foreign_t  getCosts7(
 }
 
 
-static foreign_t getCosts9(
-              term_t algId,
-              term_t opId,
-              term_t funId,
-              term_t noTuples1,
-              term_t sizeOfTuple1,
-              term_t noTuples2,
-              term_t sizeOfTuple2,
+static foreign_t getCosts6(
+              term_t VM_descr,
+              term_t stream1_descr,
+              term_t stream2_descr,
+              term_t selectivity,
               term_t memoryMB,
               term_t costs) {
-   // convert arguments to C
-   int algIdC,opIdC,funIdC,noTuples1C,sizeOfTuple1C,
-       noTuples2C,sizeOfTuple2C,memoryMBC;
+
+   int memoryMBC;
+   double selectivityC;
    size_t costsC = 0;
-   if(!PL_get_integer(algId, &algIdC)){
-     cerr << "algId is not an integer" << endl;
+   int VM_descrC[3];
+   int stream1_descrC[3];
+   int stream2_descrC[3];
+
+   if(!readIntList(VM_descr,VM_descrC,3)){
+     cerr << " invalid [algid, opid, vmid] list " << endl;
+     PL_fail;
+   } 
+   if(!readIntList(stream1_descr,stream1_descrC,3)){
+     cerr << "invalid stream1 description" << endl;
+     cerr << "must be [noTuples, sizeOfTuple, noAttributes] " << endl;
      PL_fail;
    }
-   if(!PL_get_integer(opId, &opIdC)){
-     cerr << "opId is not an integer" << endl;
+   if(!readIntList(stream2_descr,stream1_descrC,3)){
+     cerr << "invalid stream2 description" << endl;
+     cerr << "must be [noTuples, sizeOfTuple, noAttributes] " << endl;
      PL_fail;
    }
-   if(!PL_get_integer(funId, &funIdC)){
-     cerr << "funId is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(noTuples1, &noTuples1C)){
-     cerr << "noTuples1 is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(sizeOfTuple1, &sizeOfTuple1C)){
-     cerr << "sizeOfTuple1 is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(noTuples2, &noTuples2C)){
-     cerr << "noTuples2 is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(sizeOfTuple2, &sizeOfTuple2C)){
-     cerr << "sizeOfTuple2 is not an integer" << endl;
+
+   if(!PL_get_float(selectivity,&selectivityC)){
+     cerr << "selectivity in not an float" << endl;
      PL_fail;
    }
    if(!PL_get_integer(memoryMB, &memoryMBC)){
      cerr << "sizeOfTuple is not an integer" << endl;
      PL_fail;
    }
-   if(!si->getCosts(algIdC,opIdC,funIdC,
-                     (size_t) noTuples1C, (size_t) sizeOfTuple1C,
-                     (size_t) noTuples2C, (size_t) sizeOfTuple2C,
-                     (size_t) memoryMBC, costsC)){
+   if(!si->getCosts(
+          (size_t) VM_descrC[0], (size_t) VM_descrC[1], (size_t) VM_descrC[2],
+          (size_t) stream1_descrC[0], 
+          (size_t) stream1_descrC[1], 
+          (size_t) stream1_descrC[2], 
+          (size_t) stream2_descrC[0], 
+          (size_t) stream2_descrC[1], 
+          (size_t) stream2_descrC[2], 
+           selectivity, (size_t) memoryMBC, costsC)){
       PL_fail;
    }  else {
       int intCosts = (int) costsC;
@@ -768,42 +818,36 @@ Retrieves the parameters for estimating the cost function of an operator
 in a linear way.
 
 */
-static foreign_t getLinearParams8( 
-                      term_t algId,
-                      term_t opId,
-                      term_t funId,
-                      term_t noTuples1,
-                      term_t sizeOfTuple1,
+static foreign_t getLinearParams6( 
+                      term_t VM_descr,
+                      term_t stream1_descr,
+                      term_t selectivity,
                       term_t sufficientMemory,
                       term_t timeAtSuffMemory,
                       term_t timeAt16MB) {
     
-   int algIdC,opIdC,funIdC,noTuples1C,sizeOfTuple1C;
-   if(!PL_get_integer(algId, &algIdC)){
-     cerr << "algId is not an integer" << endl;
+   int VM_descrC[3];
+   if(!readIntList(VM_descr,VM_descrC,3)){
+      cerr << "invalid [algId, opId, funId] list" << endl;
+      PL_fail;
+   }   
+   int stream1_descrC[3];
+   if(!readIntList(stream1_descr,stream1_descrC,3)){
+     cerr << "invalid [noTuples, sizeOfTuples, noAttribute] list" << endl;
      PL_fail;
    }
-   if(!PL_get_integer(opId, &opIdC)){
-     cerr << "opId is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(funId, &funIdC)){
-     cerr << "funId is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(noTuples1, &noTuples1C)){
-     cerr << "noTuples1 is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(sizeOfTuple1, &sizeOfTuple1C)){
-     cerr << "sizeOfTuple1 is not an integer" << endl;
+   double selectivityC;
+   if(!PL_get_float(selectivity, &selectivityC)){
+     cerr << "selectivity is not a float" << endl;
      PL_fail;
    }
    double sufficientMemoryC = 0;
    double timeAtSuffMemoryC = 0;
    double timeAt16MBC = 0;
-   if(!si->getLinearParams(algIdC,opIdC,funIdC,noTuples1C,sizeOfTuple1C,
-                           sufficientMemoryC,timeAtSuffMemoryC,timeAt16MBC)){
+   if(!si->getLinearParams(
+       VM_descrC[0], VM_descrC[1], VM_descrC[2],
+       stream1_descrC[0], stream1_descrC[1], stream1_descrC[2],
+       selectivity, sufficientMemoryC,timeAtSuffMemoryC,timeAt16MBC)){
       PL_fail;
    } else {
       PL_unify_float(sufficientMemory,sufficientMemoryC);
@@ -814,54 +858,43 @@ static foreign_t getLinearParams8(
 }
 
 
-static foreign_t getLinearParams10( 
-          term_t algId,
-          term_t opId,
-          term_t funId,
-          term_t noTuples1,
-          term_t sizeOfTuple1,
-          term_t noTuples2,
-          term_t sizeOfTuple2,
+static foreign_t getLinearParams7( 
+          term_t VM_descr,
+          term_t stream1_descr,
+          term_t stream2_descr,
+          term_t selectivity,
           term_t sufficientMemory,
           term_t timeAtSuffMemory,
           term_t timeAt16MB) {
 
-   int algIdC, opIdC, funIdC, noTuples1C, noTuples2C, 
-       sizeOfTuple2C, sizeOfTuple1C;
-   if(!PL_get_integer(algId, &algIdC)){
-     cerr << "algId is not an integer" << endl;
+   int VM_descrC[3];
+   if(!readIntList(VM_descr, VM_descrC, 3)){
+     cerr << "invalid [algId, opId, funId] list" << endl;
      PL_fail;
    }
-   if(!PL_get_integer(opId, &opIdC)){
-     cerr << "opId is not an integer" << endl;
+   int stream1_descrC[3];
+   if(!readIntList(stream1_descr, stream1_descrC,3)){
+     cerr << "invalid [noTuples1, tupleSize1, noAttributes1 ] list" << endl;
      PL_fail;
    }
-   if(!PL_get_integer(funId, &funIdC)){
-     cerr << "funId is not an integer" << endl;
+   int stream2_descrC[3];
+   if(!readIntList(stream2_descr, stream2_descrC,3)){
+     cerr << "invalid [noTuples2, tupleSize2, noAttributes2 ] list" << endl;
      PL_fail;
    }
-   if(!PL_get_integer(noTuples1, &noTuples1C)){
-     cerr << "noTuples1 is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(sizeOfTuple1, &sizeOfTuple1C)){
-     cerr << "sizeOfTuple1 is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(noTuples2, &noTuples2C)){
-     cerr << "noTuples2 is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(sizeOfTuple2, &sizeOfTuple2C)){
-     cerr << "sizeOfTuple2 is not an integer" << endl;
+   double selectivityC;
+   if(!PL_get_float(selectivity, &selectivityC)){
+     cerr << "selectivity  is not a float" << endl;
      PL_fail;
    }
    double sufficientMemoryC = 0;
    double timeAtSuffMemoryC = 0;
    double timeAt16MBC = 0;
-   if(!si->getLinearParams(algIdC,opIdC,funIdC,noTuples1C,
-                          sizeOfTuple1C,noTuples2C,sizeOfTuple2C,
-                           sufficientMemoryC,timeAtSuffMemoryC,timeAt16MBC)){
+   if(!si->getLinearParams(
+      VM_descrC[0], VM_descrC[1], VM_descrC[2],
+      stream1_descrC[0], stream1_descrC[1], stream1_descrC[2],
+      stream2_descrC[0], stream2_descrC[1], stream2_descrC[2],
+      selectivityC, sufficientMemoryC,timeAtSuffMemoryC,timeAt16MBC)){
       PL_fail;
    } else {
       PL_unify_float(sufficientMemory,sufficientMemoryC);
@@ -882,34 +915,26 @@ dlist will be a list containing 7 double values
 
 
 */
-static foreign_t getFunction7(
-                 term_t algId,
-                 term_t opId,
-                 term_t funId,
-                 term_t noTuples1,
-                 term_t sizeOfTuple1,
+static foreign_t getFunction5(
+                 term_t VM_descr,
+                 term_t stream1_descr,
+                 term_t selectivity,
                  term_t funType,
                  term_t dlist) {
 
-   int algIdC,opIdC,funIdC,noTuples1C,sizeOfTuple1C;
-   if(!PL_get_integer(algId, &algIdC)){
-     cerr << "algId is not an integer" << endl;
-     PL_fail;
+   int VM_descrC[3];
+   if(!readIntList(VM_descr, VM_descrC, 3)){
+      cerr << "invalid [algId, opId, funId] list" << endl;
+      PL_fail;
    }
-   if(!PL_get_integer(opId, &opIdC)){
-     cerr << "opId is not an integer" << endl;
-     PL_fail;
+   int stream1_descrC[3];
+   if(!readIntList(stream1_descr, stream1_descrC,3)){
+      cerr << "invalid [noTuples1, noTuples1, noAttributes1 ] list" << endl;
+      PL_fail;
    }
-   if(!PL_get_integer(funId, &funIdC)){
-     cerr << "funId is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(noTuples1, &noTuples1C)){
-     cerr << "noTuples1 is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(sizeOfTuple1, &sizeOfTuple1C)){
-     cerr << "sizeOfTuple1 is not an integer" << endl;
+   double selectivityC;
+   if(!PL_get_float(selectivity, &selectivityC)){
+     cerr << "selectivity is not a float" << endl;
      PL_fail;
    }
    int funTypeC = -1;
@@ -919,9 +944,12 @@ static foreign_t getFunction7(
    double aC,bC,cC,dC;
    aC = bC = cC = dC = 0;
 
-   if(!si->getFunction(algIdC,opIdC,funIdC,noTuples1C,sizeOfTuple1C,
-              funTypeC, sufficientMemoryC,timeAtSuffMemoryC,timeAt16MBC,
-              aC,bC,cC,dC)){
+   if(!si->getFunction(
+            VM_descrC[0], VM_descrC[1], VM_descrC[2],
+            stream1_descrC[0], stream1_descrC[1], stream1_descrC[2],
+            selectivityC, 
+            funTypeC, sufficientMemoryC,timeAtSuffMemoryC,timeAt16MBC,
+            aC,bC,cC,dC)){
       PL_fail;
    } else {
       PL_unify_integer(funType,funTypeC);
@@ -940,44 +968,32 @@ static foreign_t getFunction7(
 }
                       
 
-static foreign_t getFunction9(
-                 term_t algId,
-                 term_t opId,
-                 term_t funId,
-                 term_t noTuples1,
-                 term_t sizeOfTuple1,
-                 term_t noTuples2,
-                 term_t sizeOfTuple2,
+static foreign_t getFunction6(
+                 term_t VM_descr,
+                 term_t stream1_descr,
+                 term_t stream2_descr,
+                 term_t selectivity,
                  term_t funType,
                  term_t dlist ){
 
-   int algIdC,opIdC,funIdC,noTuples1C,sizeOfTuple1C,noTuples2C,sizeOfTuple2C;
-   if(!PL_get_integer(algId, &algIdC)){
-     cerr << "algId is not an integer" << endl;
+   int VM_descrC[3];
+   if(!readIntList(VM_descr,VM_descrC,3)){
+     cerr << "invalid [algId, opId, funId] list" << endl;
      PL_fail;
    }
-   if(!PL_get_integer(opId, &opIdC)){
-     cerr << "opId is not an integer" << endl;
+   int stream1_descrC[3];
+   if(!readIntList(stream1_descr, stream1_descrC, 3)){
+     cerr << "invalid [noTuples1, noTuples1, noAttributes1] list" << endl;
      PL_fail;
    }
-   if(!PL_get_integer(funId, &funIdC)){
-     cerr << "funId is not an integer" << endl;
+   int stream2_descrC[3];
+   if(!readIntList(stream2_descr, stream2_descrC, 3)){
+     cerr << "invalid [noTuples2, noTuples2, noAttributes2] list" << endl;
      PL_fail;
    }
-   if(!PL_get_integer(noTuples1, &noTuples1C)){
-     cerr << "noTuples1 is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(sizeOfTuple1, &sizeOfTuple1C)){
-     cerr << "sizeOfTuple1 is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(noTuples2, &noTuples2C)){
-     cerr << "noTuples2 is not an integer" << endl;
-     PL_fail;
-   }
-   if(!PL_get_integer(sizeOfTuple2, &sizeOfTuple2C)){
-     cerr << "sizeOfTuple2 is not an integer" << endl;
+   double selectivityC;
+   if(!PL_get_float(selectivity, &selectivityC)){
+     cerr << "selectivity  is not a float" << endl;
      PL_fail;
    }
    int funTypeC = -1;
@@ -987,8 +1003,11 @@ static foreign_t getFunction9(
    double aC,bC,cC,dC;
    aC = bC = cC = dC = 0;
 
-   if(!si->getFunction(algIdC,opIdC,funIdC,noTuples1C,sizeOfTuple1C, 
-              noTuples2C, sizeOfTuple2C,
+   if(!si->getFunction(
+             VM_descrC[0], VM_descrC[1], VM_descrC[2],
+             stream1_descrC[0], stream1_descrC[1], stream1_descrC[2],
+             stream2_descrC[0], stream2_descrC[1], stream2_descrC[2],
+             selectivity,
               funTypeC, sufficientMemoryC,timeAtSuffMemoryC,timeAt16MBC,
               aC,bC,cC,dC)){
       PL_fail;
@@ -1067,8 +1086,8 @@ pl_check_syntax(term_t command, term_t result)
 
 
 /*
-Transfers an option the the sql checker parser. fails if the option is unknown. Or
-one of the arguments could not be evaluated
+Transfers an option the the sql checker parser. fails if the option is unknown
+or one of the arguments could not be evaluated.
 
 */
 
@@ -1168,12 +1187,12 @@ PL_extension predicates[] =
   { "check_syntax",2, (void*)pl_check_syntax,0},
   { "set_sql_check_option",2,(void*)pl_set_sql_check_option,0},
   { "getOpIndexes",6,(void*)getOperatorIndexes,0},
-  { "getCosts",7,(void*)getCosts7,0},
-  { "getCosts",9,(void*)getCosts9,0},
-  { "getLinearCostFun",8,(void*)getLinearParams8,0},
-  { "getLinearCostFun",10,(void*)getLinearParams10,0},
-  { "getCostFun",7,(void*)getFunction7,0},
-  { "getCostFun",9,(void*)getFunction9,0},
+  { "getCosts",5,(void*)getCosts5,0},
+  { "getCosts",6,(void*)getCosts6,0},
+  { "getLinearCostFun",6,(void*)getLinearParams6,0},
+  { "getLinearCostFun",7,(void*)getLinearParams7,0},
+  { "getCostFun",5,(void*)getFunction5,0},
+  { "getCostFun",6,(void*)getFunction6,0},
 #ifdef SECONDO_USE_ENTROPY
   { "maximize_entropy", 3, (void*)pl_maximize_entropy, 0 },
 #endif

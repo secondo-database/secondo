@@ -771,11 +771,14 @@ the return value is false.
 
 */
 
-bool SecondoInterface::getCosts(const int algId,
+bool SecondoInterface::getCosts(
+              const int algId,
               const int opId,
               const int funId,
               const size_t noTuples,
               const size_t sizeOfTuple,
+              const size_t noAttributes,
+              const double selectivity,
               const size_t memoryMB,
               size_t& costs) {
     iostream& iosock = server->GetSocketStream();
@@ -786,6 +789,8 @@ bool SecondoInterface::getCosts(const int algId,
     iosock << funId << endl;
     iosock << noTuples << endl;
     iosock << sizeOfTuple << endl;
+    iosock << noAttributes<< endl;
+    iosock << selectivity << endl;
     iosock << memoryMB << endl;
     iosock << "</GETCOSTS>" << endl;
 
@@ -818,8 +823,11 @@ bool SecondoInterface::getCosts(const int algId,
               const int funId,
               const size_t noTuples1,
               const size_t sizeOfTuple1,
+              const size_t noAttributes1,
               const size_t noTuples2,
               const size_t sizeOfTuple2,
+              const size_t noAttributes2,
+              const double selectivity,
               const size_t memoryMB,
               size_t& costs){
     iostream& iosock = server->GetSocketStream();
@@ -830,8 +838,11 @@ bool SecondoInterface::getCosts(const int algId,
     iosock << funId << endl;
     iosock << noTuples1 << endl;
     iosock << sizeOfTuple1 << endl;
+    iosock << noAttributes1 << endl;
     iosock << noTuples2 << endl;
     iosock << sizeOfTuple2 << endl;
+    iosock << noAttributes2 << endl;
+    iosock << selectivity << endl;
     iosock << memoryMB << endl;
     iosock << "</GETCOSTS>" << endl;
     string line;
@@ -869,6 +880,8 @@ bool SecondoInterface::getLinearParams( const int algId,
                       const int funId,
                       const size_t noTuples1,
                       const size_t sizeOfTuple1,
+                      const size_t noAttributes1,
+                      const double selectivity,
                       double& sufficientMemory,
                       double& timeAtSuffMemory,
                       double& timeAt16MB) {
@@ -881,6 +894,8 @@ bool SecondoInterface::getLinearParams( const int algId,
     iosock << funId << endl;
     iosock << noTuples1 << endl;
     iosock << sizeOfTuple1 << endl;
+    iosock << noAttributes1 << endl;
+    iosock << selectivity << endl;
     iosock << "</GETLINEARCOSTFUN>" << endl;
     string line;
     getline(iosock,line);
@@ -915,8 +930,11 @@ bool SecondoInterface::getLinearParams( const int algId,
                       const int funId,
                       const size_t noTuples1,
                       const size_t sizeOfTuple1,
+                      const size_t noAttributes1,
                       const size_t noTuples2,
                       const size_t sizeOfTuple2,
+                      const size_t noAttributes2,
+                      const double selectivity,
                       double& sufficientMemory,
                       double& timeAtSuffMemory,
                       double& timeAt16MB) {
@@ -928,8 +946,11 @@ bool SecondoInterface::getLinearParams( const int algId,
     iosock << funId << endl;
     iosock << noTuples1 << endl;
     iosock << sizeOfTuple1 << endl;
+    iosock << noAttributes1 << endl;
     iosock << noTuples2 << endl;
     iosock << sizeOfTuple2 << endl;
+    iosock << noAttributes2 << endl;
+    iosock << selectivity << endl;
     iosock << "</GETLINEARCOSTFUN>" << endl;
     string line;
     getline(iosock,line);
@@ -970,6 +991,8 @@ bool SecondoInterface::getFunction(const int algId,
                  const int funId,
                  const size_t noTuples1,
                  const size_t sizeOfTuple1,
+                 const size_t noAttributes1,
+                 const double selectivity,
                  int& funType,
                  double& sufficientMemory,
                  double& timeAtSuffMemory,
@@ -983,6 +1006,8 @@ bool SecondoInterface::getFunction(const int algId,
     iosock << funId << endl;
     iosock << noTuples1 << endl;
     iosock << sizeOfTuple1 << endl;
+    iosock << noAttributes1 << endl;
+    iosock << selectivity << endl;
     iosock << "</GETCOSTFUN>" << endl;
     string line;
     getline(iosock,line);
@@ -1026,8 +1051,11 @@ bool SecondoInterface::getFunction(const int algId,
                  const int funId,
                  const size_t noTuples1,
                  const size_t sizeOfTuple1,
+                 const size_t noAttributes1,
                  const size_t noTuples2,
                  const size_t sizeOfTuple2,
+                 const size_t noAttributes2,
+                 const double selectivity,
                  int& funType,
                  double& sufficientMemory,
                  double& timeAtSuffMemory,
@@ -1042,8 +1070,11 @@ bool SecondoInterface::getFunction(const int algId,
     iosock << funId << endl;
     iosock << noTuples1 << endl;
     iosock << sizeOfTuple1 << endl;
+    iosock << noAttributes1 << endl;
     iosock << noTuples2 << endl;
     iosock << sizeOfTuple2 << endl;
+    iosock << noAttributes2 << endl;
+    iosock << selectivity << endl;
     iosock << "</GETCOSTFUN>" << endl;
     string line;
     getline(iosock,line);

@@ -355,8 +355,14 @@ Returns the estimated time in ms for given arguments.
 
 */
 virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
+                      const size_t noAttributes1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
+                      const size_t noAttributes2,
+                      const double selectivity,
                       const double memoryMB, double &costs) const{
+
+         cerr << __PRETTY_FUNCTION__ << endl
+              << "TODO: use of noAttributes and selectivity" << endl;
 
         // millisecs per tuple pair (0.2)
         static const double uSymmJoin =
@@ -449,19 +455,26 @@ timeAt16MB - Time for the calculation with 16MB Memory
 
 */
    virtual bool getLinearParams(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
+            const size_t NoTuples1, const size_t sizeOfTuple1,
+            const size_t noAttributes1,
+            const size_t NoTuples2, const size_t sizeOfTuple2,
+            const size_t noAttributes2,
+            const double selectivity,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB )  const { 
       
       sufficientMemory=calculateSufficientMemory(NoTuples1, sizeOfTuple1,
          NoTuples2, sizeOfTuple2);
       
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        sufficientMemory, timeAtSuffMemory);
+      getCosts(NoTuples1, sizeOfTuple1, noAttributes1, 
+               NoTuples2, sizeOfTuple2, noAttributes2,
+               selectivity,
+               sufficientMemory, timeAtSuffMemory);
 
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        16, timeAt16MB);
+      getCosts(NoTuples1, sizeOfTuple1,noAttributes1,
+                NoTuples2, sizeOfTuple2, noAttributes2,
+                selectivity,
+                16, timeAt16MB);
       
       return true;
    }
@@ -695,8 +708,14 @@ Returns the estimated time in ms for given arguments.
 
 */
 virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
+                      const size_t noAttributes1,
                       const size_t NoTuples2, const size_t sizeOfTuple2,
+                      const size_t noAttributes2,
+                      const double selectivity,
                       const double memoryMB, double &costs) const{
+
+   cerr << __PRETTY_FUNCTION__ << endl
+        << "TODO: use of noAttributes and selectivity" << endl;
 
    // Cost Estimation is only implemented for mergejoin
    if ( expectSorted ) {
@@ -732,8 +751,11 @@ timeAt16MB - Time for the calculation with 16MB Memory
 
 */
    virtual bool getLinearParams(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
+            const size_t NoTuples1, const size_t sizeOfTuple1,
+            const size_t noAttributes1,
+            const size_t NoTuples2, const size_t sizeOfTuple2,
+            const size_t noAttributes2,
+            const double selectivity,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB )  const { 
   
@@ -742,11 +764,15 @@ timeAt16MB - Time for the calculation with 16MB Memory
      
         sufficientMemory = 16;
 
-        getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-          sufficientMemory, timeAtSuffMemory);
+        getCosts(NoTuples1, sizeOfTuple1, noAttributes1, 
+                NoTuples2, sizeOfTuple2, noAttributes2,
+                selectivity,
+                sufficientMemory, timeAtSuffMemory);
 
-        getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-          16, timeAt16MB);
+        getCosts(NoTuples1, sizeOfTuple1, noAttributes1,
+                 NoTuples2, sizeOfTuple2, noAttributes2,
+                 selectivity,
+                 16, timeAt16MB);
       
         return true;
       }

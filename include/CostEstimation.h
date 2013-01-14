@@ -80,14 +80,21 @@ version of this function.
 */
 
     virtual bool getCosts(const size_t NoTuples, const size_t sizeOfTuple,
+                          const size_t noAttributes, const double selectivity,
                           const double memoryMB, double& costs) const{
          costs = 0;
          return false;
     }
     
-    virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
-                          const size_t NoTuples2, const size_t sizeOfTuple2,
-                          const double memoryMB, double &costs) const{
+    virtual bool getCosts(const size_t NoTuples1, 
+                          const size_t sizeOfTuple1,
+                          const size_t noAttributes1,
+                          const size_t NoTuples2, 
+                          const size_t sizeOfTuple2, 
+                          const size_t noAttributes2,
+                          const double selectivity, 
+                          const double memoryMB, 
+                          double &costs) const{
          costs = 0;
          return false;
     }
@@ -100,8 +107,12 @@ time at 16 MB available memory.
 
 */
    virtual bool getLinearParams(
-            const size_t NoTuples, const size_t sizeOfTuple,
-            double& sufficientMemory, double& timeAtSuffMemory,
+            const size_t NoTuples, 
+            const size_t sizeOfTuple, 
+            const size_t noAttributes,
+            const double selectivity,
+            double& sufficientMemory, 
+            double& timeAtSuffMemory,
             double& timeAt16MB ) const { 
       sufficientMemory=0;
       timeAtSuffMemory=0;
@@ -110,9 +121,15 @@ time at 16 MB available memory.
    }
 
    virtual bool getLinearParams(
-            const size_t NoTuples1, const size_t sizeOfTuple1,
-            const size_t NoTuples2, const size_t sizeOfTuple2,
-            double& sufficientMemory, double& timeAtSuffMemory,
+            const size_t NoTuples1, 
+            const size_t sizeOfTuple1,
+            const size_t noAttributes1,
+            const size_t NoTuples2, 
+            const size_t sizeOfTuple2,
+            const size_t noAttributes2,
+            const double selectivity,
+            double& sufficientMemory,
+            double& timeAtSuffMemory,
             double& timeAt16MB ) const{ 
       sufficientMemory=0;
       timeAtSuffMemory=0;
@@ -131,29 +148,39 @@ function. Allowed types are:
 
 */
    virtual bool getFunction(
-            const size_t NoTuples, const size_t sizeOfTuple,
+            const size_t NoTuples, 
+            const size_t sizeOfTuple,
+            const size_t noAttributes,
+            const double selectivity,
             int& functionType,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB,
             double& a, double& b, double& c, double& d) const{
        functionType=1;
        a=0;b=0;c=0;d=0;
-       return getLinearParams(NoTuples, sizeOfTuple,
+       return getLinearParams(NoTuples, sizeOfTuple, noAttributes,
+                              selectivity, 
                               sufficientMemory, timeAtSuffMemory, 
                               timeAt16MB);  
   }  
             
    virtual bool getFunction(
-            const size_t NoTuples1, const size_t sizeOfTuple1,
-            const size_t NoTuples2, const size_t sizeOfTuple2,
+            const size_t NoTuples1, 
+            const size_t sizeOfTuple1,
+            const size_t noAttributes1,
+            const size_t NoTuples2, 
+            const size_t sizeOfTuple2,
+            const size_t noAttributes2,
+            const double selectivity,
             int& functionType,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB,
             double& a, double& b, double& c, double& d) const{
        functionType=1;
        a=0;b=0;c=0;d=0;
-       return getLinearParams(NoTuples1, sizeOfTuple1,
-                              NoTuples2, sizeOfTuple2,
+       return getLinearParams(NoTuples1, sizeOfTuple1, noAttributes1,
+                              NoTuples2, sizeOfTuple2, noAttributes2,
+                              selectivity,
                               sufficientMemory, timeAtSuffMemory, 
                               timeAt16MB);  
   }  

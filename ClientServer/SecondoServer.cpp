@@ -305,19 +305,10 @@ void SecondoServer::CallGetCosts(){
 
    AlgebraManager* am = SecondoSystem::GetAlgebraManager();
    iostream& iosock = client->GetSocketStream();
-   int noStreams;
-   int algId;
-   int opId;
-   int funId;
-   int noTuples1;
-   int sizeOfTuple1;
-   int noTuples2;
-   int sizeOfTuple2;
-   int memoryMB;
    string line;
    getline(iosock,line);
 
-   noStreams = atoi(line.c_str());
+   int noStreams = atoi(line.c_str());
    if((noStreams!=1) && (noStreams!=2)){
     iosock << "<SecondoError>" << endl
            << "SECONDO-0080 Protocol error: getCosts "
@@ -325,29 +316,48 @@ void SecondoServer::CallGetCosts(){
            << "</SecondoError>" << endl;
      return;
    }
+   // operator identifier
    getline(iosock,line);
-   algId = atoi(line.c_str());
+   int algId = atoi(line.c_str());
    getline(iosock,line);
-   opId = atoi(line.c_str());
+   int opId = atoi(line.c_str());
    getline(iosock,line);
-   funId = atoi(line.c_str());
+   int funId = atoi(line.c_str());
+   // informations about the first tuple stream
+   // there is at least one
    getline(iosock,line);
-   noTuples1 =  atoi(line.c_str());
+   int noTuples1 =  atoi(line.c_str());
    getline(iosock,line);
-   sizeOfTuple1 = atoi(line.c_str());
+   int sizeOfTuple1 = atoi(line.c_str());
    getline(iosock,line);
-   memoryMB = atoi(line.c_str());
+   int noAttributes1 = atoi(line.c_str());
    size_t costs;
    bool ok;
-   if(noStreams==1){
-      ok = am->getCosts(algId,opId,funId,noTuples1,sizeOfTuple1,memoryMB,costs);
+   if(noStreams==1){ // there is only 1 stream
+      getline(iosock,line);
+      double selectivity = atof(line.c_str());
+      getline(iosock,line);
+      int memoryMB = atoi(line.c_str());
+      ok = am->getCosts(algId,opId,funId,
+                        noTuples1,sizeOfTuple1, noAttributes1, 
+                        selectivity,memoryMB,costs);
    } else {
+      // get information about stream 2
       getline(iosock,line);
-      noTuples2 = atoi(line.c_str());
+      int noTuples2 = atoi(line.c_str());
       getline(iosock,line);
-      sizeOfTuple2 = atoi(line.c_str());
-      ok = am->getCosts(algId,opId,funId,noTuples1,sizeOfTuple1,
-                        noTuples2,sizeOfTuple2,memoryMB,costs);
+      int sizeOfTuple2 = atoi(line.c_str());
+      getline(iosock,line);
+      int noAttributes2 = atof(line.c_str());
+      getline(iosock,line);
+      double selectivity = atof(line.c_str());
+      getline(iosock,line);
+      int memoryMB = atoi(line.c_str());
+
+      ok = am->getCosts(algId,opId,funId,
+                        noTuples1,sizeOfTuple1, noAttributes1,
+                        noTuples2,sizeOfTuple2, noAttributes2,
+                        selectivity, memoryMB, costs);
    }
  
     
@@ -374,17 +384,10 @@ void SecondoServer::CallGetLinearCostFun(){
    
    AlgebraManager* am = SecondoSystem::GetAlgebraManager();
    iostream& iosock = client->GetSocketStream();
-   int noStreams;
-   int algId;
-   int opId;
-   int funId;
-   int noTuples1;
-   int sizeOfTuple1;
-   int noTuples2;
-   int sizeOfTuple2;
+   
    string line;
    getline(iosock,line);
-   noStreams = atoi(line.c_str());
+   int noStreams = atoi(line.c_str());
    if((noStreams!=1) && (noStreams!=2)){
     iosock << "<SecondoError>" << endl
            << "SECONDO-0080 Protocol error: getCosts "
@@ -393,29 +396,48 @@ void SecondoServer::CallGetLinearCostFun(){
      return;
    }
    getline(iosock,line);
-   algId = atoi(line.c_str());
+   int algId = atoi(line.c_str());
    getline(iosock,line);
-   opId = atoi(line.c_str());
+   int opId = atoi(line.c_str());
    getline(iosock,line);
-   funId = atoi(line.c_str());
+   int funId = atoi(line.c_str());
    getline(iosock,line);
-   noTuples1 =  atoi(line.c_str());
+   int noTuples1 =  atoi(line.c_str());
    getline(iosock,line);
-   sizeOfTuple1 = atoi(line.c_str());
+   int sizeOfTuple1 = atoi(line.c_str());
+   getline(iosock,line);
+   int noAttributes1 = atoi(line.c_str());
+   
+   
+
+
+
+
    bool ok;
    double sufficientMemory;
    double timeAtSuffMemory;
    double timeAt16MB;
    if(noStreams==1){
-      ok = am->getLinearParams(algId,opId,funId,noTuples1,sizeOfTuple1,
+      getline(iosock,line);
+      double selectivity = atof(line.c_str());
+      ok = am->getLinearParams(algId,opId,funId,
+                               noTuples1,sizeOfTuple1, noAttributes1,
+                                selectivity,
                                sufficientMemory,timeAtSuffMemory,timeAt16MB);
    } else {
       getline(iosock,line);
-      noTuples2 = atoi(line.c_str());
+      int noTuples2 = atoi(line.c_str());
       getline(iosock,line);
-      sizeOfTuple2 = atoi(line.c_str());
-      ok = am->getLinearParams(algId,opId,funId,noTuples1,sizeOfTuple1,
-                               noTuples2, sizeOfTuple2,
+      int sizeOfTuple2 = atoi(line.c_str());
+      getline(iosock,line);
+      int noAttributes2 = atoi(line.c_str());
+      getline(iosock,line);
+      double selectivity = atof(line.c_str());
+
+      ok = am->getLinearParams(algId, opId, funId,
+                               noTuples1, sizeOfTuple1, noAttributes1,
+                               noTuples2, sizeOfTuple2, noAttributes2,
+                               selectivity,
                                sufficientMemory,timeAtSuffMemory,timeAt16MB);
    }
    getline(iosock,line);
@@ -443,17 +465,9 @@ void SecondoServer::CallGetCostFun(){
    
    AlgebraManager* am = SecondoSystem::GetAlgebraManager();
    iostream& iosock = client->GetSocketStream();
-   int noStreams;
-   int algId;
-   int opId;
-   int funId;
-   int noTuples1;
-   int sizeOfTuple1;
-   int noTuples2;
-   int sizeOfTuple2;
    string line;
    getline(iosock,line);
-   noStreams = atoi(line.c_str());
+   int noStreams = atoi(line.c_str());
    if((noStreams!=1) && (noStreams!=2)){
     iosock << "<SecondoError>" << endl
            << "SECONDO-0080 Protocol error: getCosts "
@@ -462,15 +476,17 @@ void SecondoServer::CallGetCostFun(){
      return;
    }
    getline(iosock,line);
-   algId = atoi(line.c_str());
+   int algId = atoi(line.c_str());
    getline(iosock,line);
-   opId = atoi(line.c_str());
+   int opId = atoi(line.c_str());
    getline(iosock,line);
-   funId = atoi(line.c_str());
+   int funId = atoi(line.c_str());
    getline(iosock,line);
-   noTuples1 =  atoi(line.c_str());
+   int noTuples1 =  atoi(line.c_str());
    getline(iosock,line);
-   sizeOfTuple1 = atoi(line.c_str());
+   int sizeOfTuple1 = atoi(line.c_str());
+   getline(iosock,line);
+   int noAttributes1 = atoi(line.c_str());
    bool ok;
    int funType;
    double sufficientMemory;
@@ -481,16 +497,27 @@ void SecondoServer::CallGetCostFun(){
    double c;
    double d;
    if(noStreams==1){
-      ok = am->getFunction(algId,opId,funId,noTuples1,sizeOfTuple1,
+      getline(iosock,line);
+      double selectivity  =  atof(line.c_str());
+      ok = am->getFunction(algId, opId, funId,
+                           noTuples1, sizeOfTuple1, noAttributes1,
+                           selectivity,
                            funType,sufficientMemory,timeAtSuffMemory,timeAt16MB,
                            a,b,c,d);
-   } else {
+   } else { // nostreams ==2
       getline(iosock,line);
-      noTuples2 = atoi(line.c_str());
+      int noTuples2 = atoi(line.c_str());
       getline(iosock,line);
-      sizeOfTuple2 = atoi(line.c_str());
-      ok = am->getFunction(algId,opId,funId,noTuples1,sizeOfTuple1,
-                           noTuples2, sizeOfTuple2,
+      int sizeOfTuple2 = atoi(line.c_str());
+      getline(iosock,line);
+      int noAttributes2 = atoi(line.c_str());
+      getline(iosock,line);
+      double selectivity = atof(line.c_str()); 
+
+      ok = am->getFunction(algId, opId, funId,
+                           noTuples1, sizeOfTuple1, noAttributes1,
+                           noTuples2, sizeOfTuple2, noAttributes2,
+                           selectivity,
                            funType,sufficientMemory,timeAtSuffMemory,timeAt16MB,
                            a,b,c,d);
    }

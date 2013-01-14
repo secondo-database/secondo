@@ -259,9 +259,16 @@ public:
 Returns the estimated time in ms for given arguments.
 
 */
-virtual bool getCosts(const size_t NoTuples1, const size_t sizeOfTuple1,
-                      const size_t NoTuples2, const size_t sizeOfTuple2,
-                      const double memoryMB, double &costs) const{
+virtual bool getCosts( const size_t NoTuples1, const size_t sizeOfTuple1, 
+                       const size_t noAttributes1,
+                       const size_t NoTuples2, const size_t sizeOfTuple2,
+                       const size_t noAttributes2,
+                       const double selectivity,
+                       const double memoryMB, double &costs) const{
+
+
+      cerr << "TODO: use of parameters noAttributes and selectivity " 
+           << " for estimation of costs" << endl;
      
       // Init calculation
      size_t maxmem = memoryMB * 1024 * 1024;
@@ -340,8 +347,11 @@ function. Allowed types are:
 
 */
    virtual bool getFunction(
-            size_t NoTuples1, size_t sizeOfTuple1,
-            size_t NoTuples2, size_t sizeOfTuple2,
+            const size_t NoTuples1, 
+            const size_t sizeOfTuple1, const size_t noAttributes1,
+            const size_t NoTuples2, const size_t sizeOfTuple2,
+            const size_t noAttributes2,
+            const double selectivity,
             int& functionType,
             double& sufficientMemory, double& timeAtSuffMemory,
             double& timeAt16MB,
@@ -361,26 +371,32 @@ function. Allowed types are:
       calculateXPoints(sufficientMemory, point1, point2);
 
       // Calculate costs for first point
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        point1, timeAtPoint1);
+      getCosts(NoTuples1, sizeOfTuple1, noAttributes1, 
+               NoTuples2, sizeOfTuple2, noAttributes2,
+               selectivity, point1, timeAtPoint1);
 
       // Calculate costs for second point
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        point2, timeAtPoint2);
+      getCosts(NoTuples1, sizeOfTuple1, noAttributes1,
+               NoTuples2, sizeOfTuple2, noAttributes2,
+               selectivity, point2, timeAtPoint2);
 
       // Calculate a and b for function f(x) = a/x+b 
       resolveInverseProportionality(point1, timeAtPoint1, point2, 
         timeAtPoint2, a, b);
 
-      getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-        sufficientMemory, timeAtSuffMemory);
+      getCosts(NoTuples1, sizeOfTuple1, noAttributes1,
+               NoTuples2, sizeOfTuple2, noAttributes2,
+               selectivity,
+               sufficientMemory, timeAtSuffMemory);
 
       // is point1 at 16mb? => We have already costs for 16mb
       if(point1 == 16) {
          timeAt16MB = timeAtPoint1;
       } else {
-         getCosts(NoTuples1, sizeOfTuple1, NoTuples2, sizeOfTuple2, 
-           16, timeAt16MB);
+         getCosts(NoTuples1, sizeOfTuple1, noAttributes1,
+                  NoTuples2, sizeOfTuple2, noAttributes2,
+                  selectivity,
+                  16, timeAt16MB);
       }
 
       return true;
