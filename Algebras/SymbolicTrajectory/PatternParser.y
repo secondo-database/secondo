@@ -216,7 +216,6 @@ conditionsequence : condition
 
 condition : expressionlist {
               cond.setText(exprList.toString());
-              //cond.substitute();
               wholepat->addCond(cond);
               exprList.exprs.clear();
               cond.clearVectors();

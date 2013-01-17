@@ -484,8 +484,9 @@ void MLabel::create(int size, bool text, double rate = 1.0) {
 \subsubsection{Function ~prepareRewrite~}
 
 */
-bool Assign::prepareRewrite(int key, vector<size_t> assSeq,
-                            map<string, int> varPosInSeq, MLabel const &ml) {
+bool Assign::prepareRewrite(int key, const vector<size_t> &assSeq,
+                            map<string, int> &varPosInSeq,
+                            MLabel const &ml) {
   string varKey, newSubst, subst;
   unsigned int vkPos;
   int varPos(-1);
@@ -549,8 +550,10 @@ bool Assign::prepareRewrite(int key, vector<size_t> assSeq,
 Rewrites a moving label using another moving label and a vector.
 
 */
-void MLabel::rewrite(MLabel const &ml, pair<vector<size_t>,vector<size_t> > seq,
-                     vector<Assign> assigns, map<string, int> varPosInSeq) {
+void MLabel::rewrite(MLabel const &ml,
+                     const pair<vector<size_t>,vector<size_t> > &seq,
+                     vector<Assign> assigns,
+                     map<string, int> varPosInSeq) {
   if (!checkRewriteSeq(seq, ml.GetNoComponents(), false) ||
     (seq.first.empty() && seq.second.empty())) {
     this->SetDefined(false);
@@ -1861,7 +1864,6 @@ void Match::filterSequences(MString const &ml) {
   for (it = sequences.begin(); it != sequences.end(); it++) {
     for (int i = 0; i < (int)conds.size(); i++) {
       if (!evaluateCond(ml, i, *it)) {
-//         cout << "mismatch at #" << i << endl;
         i = conds.size(); // continue with next sequence
       }
       else if (i == (int)conds.size() - 1) { // all conditions are fulfilled
@@ -2005,12 +2007,12 @@ bool Match::matches(MString const &ml, bool rewrite) {
       return false;
     }
     computeCardsets();
-    initOpTrees();
+    initCondOpTrees();
     return true;
   }
   if (conds.size()) {
     computeCardsets();
-    initOpTrees();
+    initCondOpTrees();
     if (!conditionsMatch(ml)) {
       return false;
     }
@@ -2734,14 +2736,15 @@ bool Match::evaluateCond(MString const &ml, int cId, multiset<size_t> sequence){
     switch (conds[cId].getKey(i)) {
       case 0: { // label
         ml.Get(seq[pId], ul);
-        ((CcString*)cPointers[cId][i])->Set(true, ul.constValue.GetValue());
+        conds[cId].setLabelPtr(i, ul.constValue.GetValue());
         break;
       }
       case 1: { // time
-        ((Periods*)cPointers[cId][i])->Clear();
+
+        conds[cId].clearTimePtr(i);
         for (size_t j = seq[pId]; j <= max; j++) {
           ml.Get(j, ul);
-          ((Periods*)cPointers[cId][i])->MergeAdd(ul.timeInterval);
+          conds[cId].mergeAddTimePtr(i, ul.timeInterval);
         }
         break;
       }
@@ -2749,30 +2752,29 @@ bool Match::evaluateCond(MString const &ml, int cId, multiset<size_t> sequence){
       case 3: { // end
         ml.Get(max, ul);
         if (conds[cId].getKey(i) == 2) {
-          *((Instant*)cPointers[cId][i]) = ul.timeInterval.start;
+          conds[cId].setStartEndPtr(i, ul.timeInterval.start);
         }
         else {
-          *((Instant*)cPointers[cId][i]) = ul.timeInterval.end;
+          conds[cId].setStartEndPtr(i, ul.timeInterval.end);
         }
         break;
       }
       case 4: { // card
-        ((CcInt*)cPointers[cId][i])->Set(true, max + 1 - seq[pId]);
+        conds[cId].setCardPtr(i, max + 1 - seq[pId]);
         break;
       }
       default: { // labels
-        ((Labels*)cPointers[cId][i])->Clean();
+        conds[cId].cleanLabelsPtr(i);
         for (size_t j = seq[pId]; j <= max; j++) {
           ml.Get(j, ul);
           Label *label = new Label(ul.constValue.GetValue());
-          ((Labels*)cPointers[cId][i])->Append(*label);
+          conds[cId].appendToLabelsPtr(i, *label);
         }
-        ((Labels*)cPointers[cId][i])->Complete();
-        ((Labels*)cPointers[cId][i])->Sort();
+        conds[cId].completeLabelsPtr(i);
       }
     }
   }
-  cOpTrees[cId].first->EvalS(cOpTrees[cId].second, qResult, OPEN);
+  conds[cId].getQP()->EvalS(conds[cId].getOpTree(), qResult, OPEN);
   return ((CcBool*)qResult.addr)->GetValue();
 }
 
@@ -2828,6 +2830,48 @@ string Condition::toString() const {
            << pIds[j] << endl;
   }
   return result.str();
+}
+
+void Condition::setLabelPtr(unsigned int pos, string value) {
+  if (pos < pointers.size()) {
+    ((CcString*)pointers[pos])->Set(true, value);
+  }
+}
+void  Condition::clearTimePtr(unsigned int pos) {
+   if (pos < pointers.size()) {
+    ((Periods*)pointers[pos])->Clear();
+  }
+}
+void  Condition::mergeAddTimePtr(unsigned int pos, SecInterval value) {
+  if (pos < pointers.size()) {
+    ((Periods*)pointers[pos])->MergeAdd(value);
+  }
+}
+void  Condition::setStartEndPtr(unsigned int pos, Instant value) {
+  if (pos < pointers.size()) {
+    *((Instant*)pointers[pos]) = value;
+  }
+}
+void  Condition::setCardPtr(unsigned int pos, int value) {
+  if (pos < pointers.size()) {
+    ((CcInt*)pointers[pos])->Set(true, value);
+  }
+}
+void  Condition::cleanLabelsPtr(unsigned int pos) {
+  if (pos < pointers.size()) {
+    ((Labels*)pointers[pos])->Clean();
+  }
+}
+void  Condition::appendToLabelsPtr(unsigned int pos, Label value) {
+  if (pos < pointers.size()) {
+    ((Labels*)pointers[pos])->Append(value);
+  }
+}
+void  Condition::completeLabelsPtr(unsigned int pos) {
+  if (pos < pointers.size()) {
+    ((Labels*)pointers[pos])->Complete();
+    ((Labels*)pointers[pos])->Sort();
+  }
 }
 
 string Assign::getDataType(int key) {
@@ -3002,10 +3046,10 @@ vector<int> Match::applyMultiNFA(ClassifyLI* c, bool rewrite /*=false*/) {
 /*
 \subsection{Function ~getPointer~}
 
-Invoked by ~initOpTrees~
+Static function invoked by ~initCondOpTrees~ or ~initAssignOpTrees~
 
 */
-pair<string, Attribute*> Match::getPointer(int key) {
+pair<string, Attribute*> Pattern::getPointer(int key) {
   pair<string, Attribute*> result;
   switch (key) {
     case 0: { // label, type CcString
@@ -3044,51 +3088,70 @@ pair<string, Attribute*> Match::getPointer(int key) {
 }
 
 /*
+\subsection{Function ~processQueryStr~}
+
+Invoked by ~initOpTrees~
+
+*/
+pair<QueryProcessor*, OpTree> Match::processQueryStr(string query, string type){
+  pair<QueryProcessor*, OpTree> result;
+  result.first = 0;
+  result.second = 0;
+  SecParser parser;
+  string qParsed;
+  ListExpr qList, rType;
+  bool correct, evaluable, defined, isFunction;
+  if (parser.Text2List(query, qParsed)) {
+    cout << "Text2List(" << query << ") failed" << endl;
+    return result;
+  }
+  if (!nl->ReadFromString(qParsed, qList)) {
+    cout << "ReadFromString(" << qParsed << ") failed" << endl;
+    return result;
+  }
+  result.first = new QueryProcessor(nl, am);
+  result.first->Construct(nl->Second(qList), correct, evaluable, defined,
+                          isFunction, result.second, rType);
+  if (!correct || !evaluable || !defined) {
+    cout << "correct:   " << (correct ? "TRUE" : "FALSE") << endl
+         << "evaluable: " << (evaluable ? "TRUE" : "FALSE") << endl
+         << "defined:   " << (correct ? "TRUE" : "FALSE") << endl;
+    result.first = 0;
+    return result;
+  }
+  if (nl->ToString(rType) != type) {
+    cout << "incorrect result type: " << nl->ToString(rType) << endl;
+    result.first = 0;
+  }
+  return result;
+}
+
+/*
 \subsection{Function ~initOpTrees~}
 
 For a pattern with conditions and/or assignments, an operator tree structure
 is prepared.
 
 */
-bool Match::initOpTrees() {
-  QueryProcessor* qp0 = 0;
-  OpTree tree = 0;
-  SecParser parser;
-  string q(""), part, qParsed, toReplace("");
-  ListExpr qList, rType;
-  bool correct, evaluable, defined, isFunction;
+bool Match::initCondOpTrees() {
+  string q(""), part, toReplace("");
   pair<string, Attribute*> strAttr;
   vector<Attribute*> ptrs;
   for (unsigned int i = 0; i < conds.size(); i++) { // opTrees for conditions
     q = "query " + conds[i].getText();
     for (int j = 0; j < conds[i].getKeysSize(); j++) { // init pointers
-      strAttr = getPointer(conds[i].getKey(j));
+      strAttr = Pattern::getPointer(conds[i].getKey(j));
       ptrs.push_back(strAttr.second);
       toReplace = conds[i].getVar(j) + Condition::getType(conds[i].getKey(j));
       q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
     }
-    if (parser.Text2List(q, qParsed)) {
-      cout << "Text2List(" << q << ") failed" << endl;
+    pair<QueryProcessor*, OpTree> qp_optree
+                                     = processQueryStr(q, CcBool::BasicType());
+    if (!qp_optree.first) {
       return false;
     }
-    if (!nl->ReadFromString(qParsed, qList)) {
-      cout << "ReadFromString(" << qParsed << ") failed" << endl;
-      return false;
-    }
-    qp0 = new QueryProcessor(nl, am);
-    qp0->Construct(nl->Second(qList), correct, evaluable, defined, isFunction, tree, rType);
-    if (!correct || !evaluable || !defined) {
-      cout << "correct:   " << (correct ? "TRUE" : "FALSE") << endl
-           << "evaluable: " << (evaluable ? "TRUE" : "FALSE") << endl
-           << "defined:   " << (correct ? "TRUE" : "FALSE") << endl;
-      return false;
-    }
-    if (nl->ToString(rType) != "bool") {
-      cout << "incorrect result type: " << nl->ToString(rType) << endl;
-      return false;
-    }
-    cOpTrees.push_back(make_pair(qp0, tree));
-    cPointers.push_back(ptrs);
+    conds[i].setOpTree(qp_optree);
+    conds[i].setPointers(ptrs);
     ptrs.clear();
   }
   return true;
@@ -3101,45 +3164,10 @@ Removes the corresponding structures.
 
 */
 void Match::deleteOpTrees() {
-  for (unsigned int i = 0; i < cOpTrees.size(); i++) {
-    if (cOpTrees[i].first) {
-      if (cOpTrees[i].second) {
-        cOpTrees[i].first->Destroy(cOpTrees[i].second, true);
-      }
-      delete cOpTrees[i].first;
-    }
+  for (unsigned int i = 0; i < conds.size(); i++) {
+    conds[i].deleteOpTree();
+    conds[i].deletePointers();
   }
-  for (unsigned int i = 0; i < aOpTrees.size(); i++) {
-    for (int j = 0; j < 4; j++) {
-      if (aOpTrees[i][j].first) {
-        if (aOpTrees[i][j].second) {
-          aOpTrees[i][j].first->Destroy(aOpTrees[i][j].second, true);
-        }
-        delete aOpTrees[i][j].first;
-      }
-    }
-  }
-}
-
-/*
-\subsection{Function ~deletePointers~}
-
-Removes the corresponding structures.
-
-*/
-void Match::deletePointers(){
-  for (unsigned int i = 0; i < cPointers.size(); i++) {
-    for (unsigned int j = 0; j < cPointers[i].size(); j++) {
-      deleteIfAllowed(cPointers[i][j]);
-    }
-  }
-//   for (unsigned int i = 0; i < aPointers.size(); i++) {
-//     for (int j = 0; j < 4; j++) {
-//       for (unsigned int k = 0; k < aPointers[i][j].size(); k++) {
-//         deleteIfAllowed(aPointers[i][j][k]);
-//       }
-//     }
-//   }
 }
 
 /*
@@ -3160,7 +3188,7 @@ vector<int> Match::applyConditions(ClassifyLI* c) {
       conds = c->pats[c->matched[i]]->getConds();
       numOfStates = f;
       f = patterns.size();
-      if (!initOpTrees()) {
+      if (!initCondOpTrees()) {
         cout << "Operator trees could not be initialized" << endl;
         result.clear();
         return result;
@@ -3180,6 +3208,8 @@ vector<int> Match::applyConditions(ClassifyLI* c) {
   return result;
 }
 
+
+
 /*
 \subsection{Function ~multiRewrite~}
 
@@ -3193,7 +3223,6 @@ void Match::multiRewrite(ClassifyLI* c) {
     rewriteSeqs.clear();
     patterns = c->pats[c->matched[i]]->getPats();
     conds = c->pats[c->matched[i]]->getConds();
-    // TODO initialize OpTrees and Pointers for Assignments
     f = patterns.size();
     for (int j = 0; j < f; j++) {
       if ((int)c->matches.size() > 0) {
@@ -3211,6 +3240,10 @@ void Match::multiRewrite(ClassifyLI* c) {
     computeCardsets();
     buildSequences();
     filterSequences(*(c->currentML));
+    if (!c->pats[c->matched[i]]->initAssignOpTrees()) {
+      return;
+    }
+    // TODO initialize OpTrees and Pointers for Assignments
     while (!rewriteSeqs.empty()) {
       it = rewriteSeqs.begin();
       ml = new MLabel(1);
@@ -3554,6 +3587,26 @@ int rewriteSelect(ListExpr args) {
 }
 
 /*
+\subsection{Function ~initOpTrees~}
+
+Necessary for the operator ~rewrite~
+
+*/
+bool Assign::initOpTrees() {
+  cout << "AssignOpTrees initialized" << endl;
+  return true;
+}
+
+bool RewriteResult::initAssignOpTrees() {
+  for (unsigned int i = 0; i < assigns.size(); i++) {
+    if (!assigns[i].initOpTrees()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/*
 \subsection{Value Mapping (for a text)}
 
 */
@@ -3623,6 +3676,9 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
         return CANCEL;
       }
       ml = new MLabel(1);
+      if (!rr->initAssignOpTrees()) { // TODO: ...
+        return CANCEL;
+      }
       do {
         ml->rewrite(rr->getML(), rr->getCurrentSeq(), rr->getAssignments(),
                     rr->getVarPosInSeq());
@@ -3675,7 +3731,8 @@ int rewriteFun_MP(Word* args, Word& result, int message, Word& local,
       }
       else {
         p->setVerified(true);
-        MLabel* mlNew = mlabel->compress();
+        MLabel* mlNew = new MLabel(1);
+        *mlNew = *mlabel;
         set<pair<vector<size_t>, vector<size_t> > > rewriteSeqs =
                                                     p->getRewriteSeqs(*mlNew);
         map<string, int> varPosInSeq = p->getVarPosInSeq();
@@ -4041,6 +4098,22 @@ MLabel* ClassifyLI::nextResultML() {
   result = rewritten.back();
   rewritten.pop_back();
   return result;
+}
+
+/*
+\subsection{Function ~initAssignOpTrees~}
+
+Invoked by the value mapping of the operator ~rewrite~.
+
+*/
+bool Pattern::initAssignOpTrees() {
+  for (unsigned int i = 0; i < assigns.size(); i++) {
+    if (!assigns[i].initOpTrees()) {
+      cout << "Error at assignment #" << i << endl;
+      return false;
+    }
+  }
+  return true;
 }
 
 /*

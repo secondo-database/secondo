@@ -58,6 +58,7 @@ class Pattern;
 class UPat;
 class Assign;
 class ClassifyLI;
+class Label;
 
 enum Wildcard {NO, STAR, PLUS};
 
@@ -86,7 +87,8 @@ class MLabel : public MString {
 //   bool buildIndex(MLabel const &source);
   MLabel* compress();
   void create(int size, bool text, double rate);
-  void rewrite(MLabel const &ml, pair<vector<size_t>, vector<size_t> > seq,
+  void rewrite(MLabel const &ml,
+               const pair<vector<size_t>, vector<size_t> > &seq,
                vector<Assign> assigns, map<string, int> varPos);
 
 //  private:
@@ -123,9 +125,11 @@ class Condition {
   vector<int> keys;
   vector<string> vars;
   vector<int> pIds;
+  pair<QueryProcessor*, OpTree> opTree;
+  vector<Attribute*> pointers; // for each expression like X.card
 
  public:
-  Condition() {}
+  Condition() {pointers.clear();}
   ~Condition() {}
   
   string toString() const;
@@ -149,7 +153,24 @@ class Condition {
   void    clearVectors()           {vars.clear(); keys.clear(); pIds.clear();}
   string  getVar(unsigned int pos) {return (pos < vars.size() ?
                                                   vars[pos] : "");}
-//   string  getSubst(int pos)        {return subst[pos];}
+  void    setOpTree(pair<QueryProcessor*, OpTree> qp_op) {opTree = qp_op;}
+  void    setPointers(vector<Attribute*> ptrs)           {pointers = ptrs;}
+  void    setLabelPtr(unsigned int pos, string value);
+  void    clearTimePtr(unsigned int pos);
+  void    mergeAddTimePtr(unsigned int pos, SecInterval value);
+  void    setStartEndPtr(unsigned int pos, Instant value);
+  void    setCardPtr(unsigned int pos, int value);
+  void    cleanLabelsPtr(unsigned int pos);
+  void    appendToLabelsPtr(unsigned int pos, Label value);
+  void    completeLabelsPtr(unsigned int pos);
+  QueryProcessor* getQP()          {return opTree.first;}
+  OpTree  getOpTree()              {return opTree.second;}
+  void    deleteOpTree()           {if (opTree.first) {
+                                     opTree.first->Destroy(opTree.second, true);
+                                     delete opTree.first;}}
+  void    deletePointers() {for (unsigned int i = 0; i < pointers.size(); i++) {
+                              deleteIfAllowed(pointers[i]);
+                           }}
 };
 
 class UPat {
@@ -193,6 +214,8 @@ class Assign {
   string textSubst[4];
   string var;
   vector<pair<string, int> > right[5]; // a list of vars and keys for every type
+  //pair<QueryProcessor*, OpTree> opTree[4];
+  //vector<Attribute*> pointers[4]; // for each expression like X.card
 
  public:
   Assign() {}
@@ -208,8 +231,9 @@ class Assign {
   static string getDataType(int key);
   void convertVarKey(const char* vk);
   void substitute(int key);
-  bool prepareRewrite(int key, vector<size_t> assSeq,
-                      map<string, int> varPosInSeq, MLabel const &ml);
+  bool prepareRewrite(int key, const vector<size_t> &assSeq,
+                      map<string, int> &varPosInSeq, MLabel const &ml);
+  bool initOpTrees();
 
   void    init(string v, int pp)             {clear(); var=v; patternPos=pp;}
   int     getResultPos() const               {return resultPos;}
@@ -319,10 +343,12 @@ class Pattern {
   bool checkAssignTypes();
   void buildNFA();
   string nfa2String() const;
+  static pair<string, Attribute*> getPointer(int key);
+  bool initAssignOpTrees();
 
   vector<UPat>      getPats()               {return patterns;}
   vector<Condition> getConds()              {return conds;}
-  vector<Assign>    getAssigns()            {return assigns;}
+  vector<Assign>&   getAssigns()            {return assigns;}
   UPat              getPat(int pos) const   {return patterns[pos];}
   Condition         getCond(int pos) const  {return conds[pos];}
   Assign           getAssign(int pos) const {return assigns[pos];}
@@ -377,12 +403,6 @@ class Match {
   map<string, int> varPos, varPosInSeq;
   set<int> doublePars; // positions of nonempty patterns in double parentheses
   int *seqOrder;
-  map<string, bool> knownEval; // secondo evaluation history
-  map<pair<size_t, size_t>, string> knownPers; // periods string history
-  vector<pair<QueryProcessor*, OpTree> > cOpTrees; // for each condition
-  vector<pair<QueryProcessor*, OpTree>[4] > aOpTrees; // for each assignment
-  vector<vector<Attribute*> > cPointers; // for each expression like X.card
-  vector<vector<Attribute*> > aPointers; // ... in conditions / assignments
 
  public:
   Match(const int size) {
@@ -403,7 +423,6 @@ class Match {
     delete[] cardsets;
     delete[] seqOrder;
     deleteOpTrees();
-    deletePointers();
   }
 
   bool matches(MString const &ml, bool rewrite = false);
@@ -436,7 +455,7 @@ class Match {
   void setAssVars(set<string> aV) {assignedVars = aV;}
   void setVarPos(map<string, int> vP) {varPos = vP;}
   void setFinalState(int final) {f = final;}
-  map<string, int> getVarPosInSeq() {return varPosInSeq;}
+  map<string, int>& getVarPosInSeq() {return varPosInSeq;}
   void copyFromPattern(Pattern p) {
     delta = p.getDelta();
     patterns = p.getPats();
@@ -454,7 +473,8 @@ class Match {
   vector<int> applyConditions(ClassifyLI* c);
   void multiRewrite(ClassifyLI* c);
   pair<string, Attribute*> getPointer(int key);
-  bool initOpTrees();
+  pair<QueryProcessor*, OpTree> processQueryStr(string query, string type);
+  bool initCondOpTrees();
   void deleteOpTrees();
   void deletePointers();
 };
@@ -478,6 +498,8 @@ class RewriteResult {
   }
 
   ~RewriteResult() {}
+
+  bool initAssignOpTrees();
 
   bool             finished()       {return (it == sequences.end());}
   void             killMLabel()     {delete inputML; inputML = 0;}
