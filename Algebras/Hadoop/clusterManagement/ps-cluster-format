@@ -547,19 +547,19 @@ function formatNode
   nodeIP=${node%%:*}
   dataServers=($(echo ${node#*:} | tr ':' ' '))
   nodeRCFile=$PSDKLOC/parasecrc_${nodeIP}
-  scp $nodeRCFile $nodeIP:$RCFILENAME
-  
+  scp -o LogLevel=quiet $nodeRCFile $nodeIP:$RCFILENAME
+
   # Delete exist commands if necessary
-  ssh $nodeIP "sed $(PSEDOPT) \"s/^source [\\\$A-Z_.\\\/]*$RCFILENAME//\" \$HOME/.bashrc "
+  ssh -o LogLevel=quiet $nodeIP "sed $(PSEDOPT) \"s/^source [\\\$A-Z_.\\\/]*$RCFILENAME//\" \$HOME/.bashrc "
   #source .parasecrc file in the .bashrc, to set all required environment
   case ${curPlat} in
   # Process linux and linux64 with same statements
     linux )
       # Execute the .parasecrc directly after processing .secondorc
-      ssh $nodeIP "sed -i \"s/source [\\\$A-Z_.\\\/]*secondorc/&\nsource \\\$HOME\/$RCFILENAME/\" \$HOME/.bashrc"
+      ssh -o LogLevel=quiet $nodeIP "sed -i \"s/source [\\\$A-Z_.\\\/]*secondorc/&\nsource \\\$HOME\/$RCFILENAME/\" \$HOME/.bashrc"
     ;;
     mac_osx )
-      ssh $nodeIP "echo \"source \\\$HOME/$RCFILENAME\" >> \$HOME/.bashrc"
+      ssh -o LogLevel=quiet $nodeIP "echo \"source \\\$HOME/$RCFILENAME\" >> \$HOME/.bashrc"
       echo "${WARNINFO}The $HOME/.bashrc file must be executed in Mac OS X shell prompt" >&2
       echo "This step has to be done manually by users." >&2
     ;;
@@ -568,7 +568,7 @@ function formatNode
   declare -i sidx=0
   for dserv in ${dataServers[*]}; do
     dserv="$dserv/$USER" #Use $USER to different users' data servers on a same cluster node
-    ssh $nodeIP "mkdir -p $dserv"
+    ssh -o LogLevel=quiet $nodeIP "mkdir -p $dserv"
     
     if [ $sidx -eq 0 ]; then
       # This is the main data server on the current node
@@ -578,15 +578,15 @@ function formatNode
       ARVPATH=${SDSFLODER}
     fi
     ARVNAME=${ARVPATH##*/}
-    scp ${ARVPATH}.tar.gz $nodeIP:$dserv
-    ssh $nodeIP "tar -xf $dserv/${ARVNAME}.tar.gz -C $dserv/ --strip=$SLEVEL"
+    scp -o LogLevel=quiet ${ARVPATH}.tar.gz $nodeIP:$dserv
+    ssh -o LogLevel=quiet $nodeIP "tar -xf $dserv/${ARVNAME}.tar.gz -C $dserv/ --strip=$SLEVEL"
     
     #Copy SecondoConfig.ini files
     if [ $sidx -eq 0 ]; then
       FILES=($(ls $PSDKLOC/$DBCONFILE.$nodeIP.*))
       for file in ${FILES[*]}; do
         port=${file##*.}
-        scp $PSDKLOC/$DBCONFILE.$nodeIP.$port $nodeIP:$dserv/conf/${DBCONFILE}.$port
+        scp -o LogLevel=quiet $PSDKLOC/$DBCONFILE.$nodeIP.$port $nodeIP:$dserv/conf/${DBCONFILE}.$port
       done  
     fi
     
@@ -608,8 +608,8 @@ aJobs=()
 echo "Start to distribute data servers on the cluster ..."
 for ((NDIDX=0;NDIDX<$NDNUM;));do
   node=${ANODES[$NDIDX]}
-  for ((token=1;token=$PS_PIPE_Width;toekn++));do
-    if [ $NDIDX -gt  $NDNUM ];then
+  for ((token=1;token<=$PS_PIPE_Width;toekn++));do
+    if [ $NDIDX -ge  $NDNUM ];then
       break
     fi
     
