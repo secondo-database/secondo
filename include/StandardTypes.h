@@ -847,6 +847,12 @@ class CcString : public Attribute
     stringsCreated++;
   }
 
+  inline CcString(const bool d): Attribute(d){
+    Set(d,"");
+    stringsCreated++;    
+  }
+
+
   inline ~CcString()
   {
     stringsDeleted++;
@@ -1118,6 +1124,12 @@ class CcString : public Attribute
   {
     Set(d, v);
     //cout << "Cc2" << endl;
+    stringsCreated++;
+  }
+
+  explicit inline CcString( const bool d) : Attribute(d)
+  {
+    Set(d, "");
     stringsCreated++;
   }
 

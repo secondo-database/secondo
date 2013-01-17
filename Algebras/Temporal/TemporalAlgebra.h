@@ -150,6 +150,9 @@ class Interval
 The simple constructor. This constructor should not be used.
 
 */
+  explicit Interval(bool dummy):
+    start(instanttype), end(instanttype), lc(true), rc(true){}
+
 
   Interval( const Interval<Alpha>& interval );
 /*
@@ -1088,6 +1091,7 @@ class TemporalUnit
 The simple constructor. This constructor should not be used.
 
 */
+  TemporalUnit(bool defined): timeInterval(defined) {}
 
 
 /*
@@ -1348,7 +1352,8 @@ The simple constructor. This constructor should not be used.
 
 */
 
-    StandardTemporalUnit( bool is_defined):Attribute(is_defined)
+    StandardTemporalUnit( bool is_defined):Attribute(is_defined),
+                                           TemporalUnit<Alpha>(is_defined)
      {}
 
 /*
@@ -1636,7 +1641,8 @@ class ConstTemporalUnit : public StandardTemporalUnit<Alpha>
 */
   ConstTemporalUnit() {}
 
-  ConstTemporalUnit(bool is_defined):StandardTemporalUnit<Alpha>(is_defined)
+  ConstTemporalUnit(bool is_defined):StandardTemporalUnit<Alpha>(is_defined),
+                                     constValue(is_defined)
   { }
 
   ConstTemporalUnit( const Interval<Instant>& _interval, const Alpha& a ):
