@@ -1,0 +1,11 @@
+Database: T
+Restore : No
+
+Operator : geocode
+Number   : 1
+Signature: (string, int, int, string) -> point
+Example  : query geocode ("Universitätsstraße", 11, 58097, "Hagen")
+Result   : 51.3766200, 7.4939500
+
+
+
