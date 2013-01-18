@@ -5539,8 +5539,9 @@ public:
  ~ImportHGT1Local(){
      if(f){
        f->close();
+       delete f;
+       f = 0;
      }
-     delete f;
      tt->DeleteIfAllowed();
   }
 
