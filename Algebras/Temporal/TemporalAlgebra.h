@@ -213,7 +213,7 @@ Returns ~true~ if this interval is different to the interval ~i~ and ~false~ if 
 /*
 Returns always true, because it is not an attribute data type.
 Required e.g., for RefinementStream for Periods values.
-   
+
 */
   bool IsDefined() const{
     return true;
@@ -1589,7 +1589,7 @@ Constructors
 
 */
   Periods() {}
-  
+
 /*
 The constructor. Initializes space for ~n~ elements.
 
@@ -1603,16 +1603,16 @@ The ~contains~ functions
 
 */
   const bool Contains(const SecInterval& si) const;
-  
+
   const bool Contains(const Periods& per) const;
-  
+
   inline bool Contains(const Instant& a) const{
     return Range<Instant>::Contains(a);
   }
-  
+
   inline bool Contains(const Interval<Instant>& iv,
                        const bool ignoreCloseness = false ) const {
-    return Range<Instant>::Contains(iv,ignoreCloseness);                   
+    return Range<Instant>::Contains(iv,ignoreCloseness);
   }
 
 };
@@ -2804,7 +2804,7 @@ Computes all events created by a UPoint moving across a regular grid.
   {
     UPoint* up = (UPoint*) arg;
     if(timeInterval.end == up->timeInterval.start){ // up after this
-       return AlmostEqual(p1, up->p0) && 
+       return AlmostEqual(p1, up->p0) &&
              (timeInterval.rc || up->timeInterval.lc);
     }
     if(up->timeInterval.end == timeInterval.start){
@@ -3315,11 +3315,11 @@ and ~m~ is the number of intervals of the periods ~Y~
 3.10.5.4 Operator compress
 
 Creates a compressed version of this mapping.
- 
+
 */
    Mapping<Unit,Alpha>* compress() const;
 
-    
+
 
 /*
 3.10.5.3 Operation ~passes~
@@ -3848,8 +3848,8 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 
 */
     void BreakPoints(Points& result, const DateTime& dur) const;
-    void BreakPoints(Points& result, const DateTime& dur, 
-                     const CcReal& epsilon, 
+    void BreakPoints(Points& result, const DateTime& dur,
+                     const CcReal& epsilon,
                      const Geoid* geoid=0) const;
 
 /*
@@ -3858,9 +3858,9 @@ If invalid geographic coordinates are found, the result is UNDEFINED.
 This function computes the timeIntervalls for Breaks
 
 */
- 
-    void Breaks(Periods& result, const DateTime& dur, 
-                const CcReal& epsilon, 
+
+    void Breaks(Periods& result, const DateTime& dur,
+                const CcReal& epsilon,
                 const Geoid* geoid=0) const;
 
 
@@ -4120,9 +4120,6 @@ bool Interval<Alpha>::IsValid() const
 template <class Alpha>
 Interval<Alpha>& Interval<Alpha>::operator=( const Interval<Alpha>& i )
 {
-  //if(!i.IsValid()){
-  //  cout << "invalid interval : " << i << endl;
-  //}
   assert( i.IsValid() );
 
   start.CopyFrom( &i.start );
@@ -4906,8 +4903,8 @@ bool Range<Alpha>::Intersects( const Range<Alpha>& r ) const
 template <class Alpha>
 bool Range<Alpha>::Intersects( const Interval<Alpha>& iv ) const
 {
-    if(IsEmpty()){
-       return;
+    if(!IsDefined() || IsEmpty()){
+       return false;
     }
 
     // TODO: Use binary search to accelerate computations
@@ -4915,7 +4912,7 @@ bool Range<Alpha>::Intersects( const Interval<Alpha>& iv ) const
     Interval<Alpha> this_iv;
     for(int i=0;i<GetNoComponents();i++){
         Get(i,this_iv);
-        if(iv.intersects(this_iv)){
+        if(iv.Intersects(this_iv)){
           return true;
         }
     }
@@ -5123,7 +5120,7 @@ void Range<Alpha>::Intersection( const Range<Alpha>& r,
   }
   result.SetDefined( true );
   if( (GetNoComponents()==0) || (r.GetNoComponents()==0)){
-     return; 
+     return;
   }
 
   Interval<Alpha> thisInterval, interval;
@@ -6597,7 +6594,7 @@ Mapping<Unit,Alpha>* Mapping<Unit,Alpha>::compress() const{
     for(int i=0;i<GetNoComponents();i++){
        Get(i,u);
        result->MergeAdd(u);
-    }  
+    }
     return result;
 }
 
@@ -6952,7 +6949,7 @@ void Mapping<Unit, Alpha>::ExtendDefTime(Unit u,
 }
 
 template<class Unit, class Alpha>
-void Mapping<Unit,Alpha>::timeMove(const DateTime& duration, 
+void Mapping<Unit,Alpha>::timeMove(const DateTime& duration,
                                    Mapping<Unit,Alpha>& result) const{
   assert(duration.GetType()==datetime::durationtype);
   if(!IsDefined()){
@@ -6973,7 +6970,7 @@ void Mapping<Unit,Alpha>::timeMove(const DateTime& duration,
 
 
 template<class Unit, class Alpha>
-void Mapping<Unit,Alpha>::moveTo(const DateTime& instant, 
+void Mapping<Unit,Alpha>::moveTo(const DateTime& instant,
                                  Mapping<Unit,Alpha>& result) const{
 
   assert(instant.GetType()==datetime::instanttype);
