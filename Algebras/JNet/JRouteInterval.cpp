@@ -648,8 +648,10 @@ bool JRouteInterval::Contains(const RouteLocation& rloc,
 bool JRouteInterval::Contains(const JRouteInterval& other) const
 {
   return (IsDefined() && other.IsDefined() && rid == other.GetRouteId() &&
-          startpos <= other.GetFirstPosition() &&
-          other.GetLastPosition()<= endpos &&
+          (startpos < other.GetFirstPosition() ||
+            AlmostEqual(startpos, other.GetFirstPosition())) &&
+          (other.GetLastPosition()< endpos ||
+            AlmostEqual(endpos, other.GetLastPosition())) &&
           side.SameSide(other.GetSide(), false));
 }
 
@@ -658,9 +660,12 @@ bool JRouteInterval::Contains(const JRouteInterval& other) const
 
 */
 
-JRouteInterval& JRouteInterval::Extend(const JRouteInterval& rint)
+JRouteInterval& JRouteInterval::Extend(const JRouteInterval& rint,
+                                       const bool strict /*= true*/
+)
 {
-  if (IsDefined() && rint.IsDefined() && Adjacent(&rint))
+  if (IsDefined() && rint.IsDefined() &&
+      ((strict && Adjacent(rint)) || !strict))
   {
     startpos = min(startpos, rint.GetFirstPosition());
     endpos = max(endpos, rint.GetLastPosition());
@@ -676,9 +681,11 @@ JRouteInterval& JRouteInterval::Extend(const JRouteInterval& rint)
 bool JRouteInterval::Between(const RouteLocation& left,
                              const RouteLocation& right) const
 {
+  double rlmin = min(left.GetPosition(),right.GetPosition());
+  double rlmax = max(left.GetPosition(),right.GetPosition());
   return (rid == left.GetRouteId() && rid == right.GetRouteId() &&
-          startpos >= min(left.GetPosition(),right.GetPosition()) &&
-          max(left.GetPosition(),right.GetPosition()) >= endpos);
+          (startpos > rlmin || AlmostEqual(startpos, rlmin)) &&
+          (rlmax > endpos || AlmostEqual(endpos, rlmax)));
 }
 
 /*
@@ -688,8 +695,11 @@ bool JRouteInterval::Between(const RouteLocation& left,
 
 bool JRouteInterval::Inside(const JRouteInterval& other) const
 {
-  return (rid == other.GetRouteId() && startpos >= other.GetFirstPosition() &&
-          endpos <= other.GetLastPosition());
+  return (rid == other.GetRouteId() &&
+         (startpos > other.GetFirstPosition() ||
+             AlmostEqual(startpos,other.GetFirstPosition()))&&
+         (endpos < other.GetLastPosition() ||
+           AlmostEqual(endpos, other.GetLastPosition())));
 }
 
 /*

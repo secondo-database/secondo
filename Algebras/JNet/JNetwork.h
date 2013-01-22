@@ -42,6 +42,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TemporalAlgebra.h"
 #include "JList.h"
 #include "PQManagement.h"
+#include "RectangleAlgebra.h"
 
 namespace jnetwork {
 
@@ -463,6 +464,8 @@ The returned tuple must be deleted by the caller.
                                       const bool allowResetSide) const;
 
   JRouteInterval* GetSectionFirstRouteInterval(const Tuple* sectTuple) const;
+  JRouteInterval* GetSectionRouteIntervalForRID(int rid,
+                                                const Tuple* sectTup) const;
   JRouteInterval* GetSectionRouteIntervalForRLoc(const RouteLocation& rloc,
                                                  const Tuple* sectTup) const;
 
@@ -696,6 +699,11 @@ Returns the corresponding spatial mpoint representation of the junit.
 
 */
 
+void SplitJUnit(const JUnit& ju, JRouteInterval*& lastRint,
+                SimpleLine*& lastCurve, bool& endTimeCorrected,
+                Instant& lastEndTime, Point*& lastEndPoint, LRS& lrs,
+                int& lrspos, MPoint& result) const;
+
 void SplitJUnit(const JUnit& ju, int& curRid, JRouteInterval*& lastRint,
     JListInt*& routeSectList, int& lastRouteSecListIndex,
     bool& endTimeCorrected, Instant& lastEnd,
@@ -729,6 +737,15 @@ Point* GetSpatialValueOf(const RouteLocation& rloc, int& curRid,
                          JListInt*& routeSectList,
                          int& index, JRouteInterval*& lastRint,
                          SimpleLine*& lastCurve) const;
+Point* GetSpatialValueOf(const RouteLocation& rloc,
+                         JRouteInterval*& routeRint,
+                         SimpleLine*& routeCurve,
+                         LRS& lrs, int& lrspos) const;
+Point* GetSpatialValueOf(const RouteLocation& rloc, int& curRid,
+                         JListInt*& routeSectList, int& index,
+                         JRouteInterval*& lastRint,
+                         SimpleLine*& lastCurve,
+                         LRS& lrs, int& lrspos) const;
 Point* GetSpatialValueOf(const RouteLocation& rloc, double relpos,
                         const Tuple* actSect)const;
 

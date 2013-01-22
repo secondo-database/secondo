@@ -944,7 +944,6 @@ void MJPoint::AtPeriods(const Periods* times, MJPoint& result) const
               rc = actUnit.GetTimeInterval().rc && actTimeInterval.rc;
               nextlc = true;
             }
-
             double startpos = actUnit.PosAtTime(&starttime);
             double endpos = actUnit.PosAtTime(&endtime);
             JUnit res(Interval<Instant>(starttime, endtime, lc, rc),

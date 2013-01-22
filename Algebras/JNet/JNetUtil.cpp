@@ -198,81 +198,57 @@ int JNetUtil::GetIndexOfJRouteIntervalForRLoc(
     const DbArray< JRouteInterval >& list, const RouteLocation& rloc,
     const int startindex, const int endindex)
 {
-  if (rloc.IsDefined() && startindex > -1 && endindex < list.Size() &&
-    startindex <= endindex)
+  if (!rloc.IsDefined() || startindex < 0 || endindex > list.Size()-1 ||
+      startindex > endindex)
+    return -1;
+  else
   {
     JRouteInterval ri;
     int mid = (startindex + endindex)/ 2;
     list.Get(mid, ri);
-    if (ri.Contains(rloc))
+    if (ri.GetRouteId() < rloc.GetRouteId())
     {
-      return mid;
+      return JNetUtil::GetIndexOfJRouteIntervalForRLoc(list, rloc,
+                                                       mid+1,endindex);
+    }
+    else if (ri.GetRouteId() > rloc.GetRouteId())
+    {
+      return JNetUtil::GetIndexOfJRouteIntervalForRLoc(list, rloc,
+                                                       startindex, mid-1);
     }
     else
     {
-      switch(ri.Compare(rloc))
+      int testmid = mid;
+      while (testmid < list.Size() && testmid > -1)
       {
-        case -1:
+        list.Get(testmid, ri);
+        if (ri.GetRouteId() == rloc.GetRouteId())
         {
-          if (mid != startindex  && startindex < endindex)
-            return JNetUtil::GetIndexOfJRouteIntervalForRLoc(list,rloc,
-                                                             mid, endindex);
-            else
-              return JNetUtil::GetIndexOfJRouteIntervalForRLoc(list,rloc,
-                                                               mid+1, endindex);
-          break;
-        }
-
-        case 1:
-        {
-          if (mid != endindex  && startindex < endindex)
-            return JNetUtil::GetIndexOfJRouteIntervalForRLoc(list,rloc,
-                                                             startindex, mid);
+          if (ri.Contains(rloc))
+            return testmid;
           else
-            return JNetUtil::GetIndexOfJRouteIntervalForRLoc(list,rloc,
-                                                             startindex, mid-1);
-          break;
+            testmid++;
         }
-
-        default:
-        {
-          int testmid = mid;
-          while (testmid < list.Size())
-          {
-            list.Get(testmid,ri);
-            if (ri.GetRouteId() == rloc.GetRouteId())
-            {
-              if(rloc.GetPosition() < ri.GetFirstPosition())
-                testmid = list.Size();
-              else
-                if (rloc.GetPosition() > ri.GetLastPosition())
-                  testmid++;
-                else
-                  return testmid;
-            }
-            else
-              testmid = list.Size();
-          }
-          testmid = mid;
-          while (testmid > -1)
-          {
-            list.Get(testmid,ri);
-            if (ri.GetRouteId() == rloc.GetRouteId())
-            {
-              if(ri.Compare(rloc) == 0)
-                return testmid;
-              else
-                testmid--;
-            }
-            else
-              testmid = -1;
-          }
-          break;
-        }
+        else
+          testmid = list.Size();
       }
+      testmid = mid;
+      while (testmid > -1 && testmid < list.Size())
+      {
+        list.Get(testmid, ri);
+        if (ri.GetRouteId() == rloc.GetRouteId())
+        {
+          if (ri.Contains(rloc))
+            return testmid;
+          else
+            testmid--;
+        }
+        else
+          testmid = -1;
+      }
+      return -1;
     }
   }
-  return -1;
 }
 
 bool JNetUtil::ArrayContainIntersections(const DbArray< JRouteInterval >& lhs,

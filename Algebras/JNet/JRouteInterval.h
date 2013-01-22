@@ -251,7 +251,7 @@ Extends the current RouteInterval to enlcose also the given RouteInterval.
 
 */
 
-JRouteInterval& Extend(const JRouteInterval& rint);
+JRouteInterval& Extend(const JRouteInterval& rint, const bool strict = true);
 
 /*
 1.1.1.1 Between
