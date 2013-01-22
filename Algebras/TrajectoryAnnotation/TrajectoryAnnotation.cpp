@@ -238,7 +238,7 @@ hostent* phe = gethostbyname("maps.googleapis.com");
 
 
 
-    ofstream fout("/home/secondo/secondo/bin/output.xml"); 
+    ofstream fout("../bin/output.xml"); 
 	
 
  
@@ -280,7 +280,7 @@ xmlNodePtr subcur;
 xmlNodePtr subsubcur;
 xmlNodePtr subsubsubcur;
 //doc = xmlParseFile("/home/secondo/output.xml");
-doc = xmlParseFile("/home/secondo/secondo/bin/output.xml");
+doc = xmlParseFile("../bin/output.xml");
 cur = xmlDocGetRootElement(doc);
 
 cur = cur->children;
@@ -310,6 +310,7 @@ double ausg2;
 				    val2 = xmlNodeListGetString(doc, subsubsubcur->children, 1);
 				    ausg2= OsmImportOperator::convStrToDbl((const char *)val2);
 				    //((CcReal*)result.addr)->Set(true, ausg);
+
 
 				    xmlFree(val2);
 				  }
@@ -421,7 +422,7 @@ hostent* phe = gethostbyname("maps.googleapis.com");
 
 
 
-ofstream fout("/home/secondo/secondo/bin/output.xml"); 
+ofstream fout("../bin/output.xml"); 
 	
 
 int n = 0;
@@ -462,7 +463,7 @@ xmlNodePtr subcur;
 xmlNodePtr subsubcur;
 xmlNodePtr subsubsubcur;
 //doc = xmlParseFile("/home/secondo/output.xml");
-doc = xmlParseFile("/home/secondo/secondo/bin/output.xml");
+doc = xmlParseFile("../bin/output.xml");
 cur = xmlDocGetRootElement(doc);
 
 cur = cur->children;
