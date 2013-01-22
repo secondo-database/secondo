@@ -49,7 +49,6 @@ namespace mapmatch{
 bool  MJPointCreator::CreateResult(
   const std::vector< MHTRouteCandidate* >& rvecRouteCandidates)
 {
-  resMJPoint->Clear();
   if (jnet == NULL || !Init())
   {
     return false;
@@ -62,10 +61,11 @@ bool  MJPointCreator::CreateResult(
   for (size_t i = 0; i < rvecRouteCandidates.size(); ++i)
   {
     bool bCalcShortestPath = ((i > 0) && !bPrevCandidateFailed);
-
     MHTRouteCandidate* pCandidate = rvecRouteCandidates[i];
+    //cout << "rvecRouteCandiate:" << i << endl;
     if (pCandidate != NULL)
     {
+      //pCandidate->Print(cout);
       bPrevCandidateFailed = pCandidate->GetFailed();
 
       MHTRouteCandidate::PointDataIterator itData =
@@ -78,7 +78,7 @@ bool  MJPointCreator::CreateResult(
       AttributePtr<RouteLocation> pRLStart(NULL);
       while(itData != itDataEnd &&
             (pData1 == NULL ||
-            !(pRLStart = GetRLoc(pData1, jnet->GetTolerance()))))
+            !(pRLStart = GetRLoc(pData1, 1.0))))
       {
         pData1 = *itData;
         ++itData;
@@ -92,70 +92,70 @@ bool  MJPointCreator::CreateResult(
 
         while (itData != itDataEnd &&
                (pData2 == NULL ||
-                  !(pRLEnd = GetRLoc(pData2, jnet->GetTolerance()))))
+                  !(pRLEnd = GetRLoc(pData2, 1.0))))
         {
           pData2 = *itData;
           ++itData;
         }
-        if (bCalcShortestPath && pLastPointOfPrevSection != NULL)
-        {
-          // Calculate ShortestPath between last point of previous
-          // candidate and first point of this candidate
-
-          // ShortestPath calculation only when time difference
-          // is less than 4 minutes
-          const DateTime MaxTimeDiff(durationtype, 240000);
-
-          if (pData1->GetTime() - pLastPointOfPrevSection->GetTime() <
-              MaxTimeDiff)
-          {
-            AttributePtr<RouteLocation>
-              pPrevEnd(GetRLoc(pLastPointOfPrevSection,
-                               jnet->GetTolerance()));
-            jnet->SimulateTrip(*pPrevEnd, *pRLStart,
-                                pLastPointOfPrevSection->GetPointProjection(),
-                                pData1->GetPointProjection(),
-                                pLastPointOfPrevSection->GetTime(),
-                                pData1->GetTime(), resMJPoint);
-          }
-          bCalcShortestPath = false;
-        }
-
         if (pData2 != NULL && pRLEnd)
         {
-           jnet->SimulateTrip(*pRLStart, *pRLEnd, pData1->GetPointProjection(),
-                               pData2->GetPointProjection(),
-                               pData1->GetTime(), pData2->GetTime(),
-                               resMJPoint);
-           pLastPointOfPrevSection = pData2;
-        }
+          if (bCalcShortestPath && pLastPointOfPrevSection != NULL)
+          {
+            // Calculate ShortestPath between last point of previous
+            // candidate and first point of this candidate
 
-        pData1 = pData2;
-        pRLStart = pRLEnd;
+            // ShortestPath calculation only when time difference
+            // is less than 4 minutes
+            const DateTime MaxTimeDiff(durationtype, 240000);
+
+            if (pData1->GetTime() - pLastPointOfPrevSection->GetTime() <
+                MaxTimeDiff)
+            {
+              AttributePtr<RouteLocation>
+                pPrevEnd(GetRLoc(pLastPointOfPrevSection, 1.0));
+              CalcShortestPath(*pPrevEnd, *pRLStart,
+                               pLastPointOfPrevSection, pData1);
+            }
+            bCalcShortestPath = false;
+          }
+
+          if (pData2 != NULL && pRLEnd)
+          {
+            CalcShortestPath(*pRLStart, *pRLEnd, pData1, pData2);
+            pLastPointOfPrevSection = pData2;
+          }
+
+          pData1 = pData2;
+          pRLStart = pRLEnd;
+        }
       }
     }
   }
   Finalize();
-  return true;
+  return resMJPoint->IsDefined();
 }
 
 bool  MJPointCreator::Init()
 {
   if (resMJPoint == NULL || jnet == NULL || !jnet->IsDefined())
+  {
+    //cout << "initialisation failed in init of mjpoint creator" << endl;
     return false;
+  }
   else
   {
     resMJPoint->Clear();
     resMJPoint->SetDefined(true); // always defined
     resMJPoint->SetNetworkId(*jnet->GetId());
     resMJPoint->StartBulkload();
+    //cout << "initialisation of result mjpoint in mjpoint creator successful" << endl;
     return true;
   }
 }
 
 void  MJPointCreator::Finalize()
 {
-    resMJPoint->EndBulkload();
+    resMJPoint->EndBulkload(false);
 }
 
 const mapmatch::AttributePtr< RouteLocation >
@@ -163,19 +163,18 @@ const mapmatch::AttributePtr< RouteLocation >
       const mapmatch::MHTRouteCandidate::PointDataPtr& pData,
       const double& dNetworkScale) const
 {
+  //cout << "Called GetRLoc for" << endl;
   if (pData == NULL)
     return NULL;
 
   const shared_ptr<IMMNetworkSection>& pSection = pData->GetSection();
   if (pSection == NULL)
     return NULL;
-
   const JNetworkSectionAdapter* pAdapter = pSection->CastToJNetworkSection();
   if (pAdapter == NULL)
     return NULL;
-
   const Point* pPointProjection = pData->GetPointProjection();
-
+  //cout <<  "Point: " << *pPointProjection << endl;
   if (pPointProjection == NULL || !pPointProjection->IsDefined())
   {
     return NULL;
@@ -185,17 +184,19 @@ const mapmatch::AttributePtr< RouteLocation >
   const SimpleLine* pSectCurve(pAdapter->GetCurve());
   double dPos = 0.0;
   if (pSectCurve != NULL &&
-    MMUtil::GetPosOnSimpleLine(*pSectCurve,
-                               *pPointProjection,
-                               RouteStartsSmaller,
-                               dNetworkScale,
-                               dPos))
-    //pRouteCurve->AtPoint(*pPointProjection, RouteStartsSmaller, dPos))
+      MMUtil::GetPosOnSimpleLine(*pSectCurve,
+                                 *pPointProjection,
+                                 RouteStartsSmaller,
+                                 dNetworkScale,
+                                 dPos))
   {
+    //cout << "found: " << dPos << endl;
+    Direction dir(Both);
     RouteLocation* rlocStart = pAdapter->GetSectionStartRLoc();
+    //cout << "startLocationOfSection: " << *rlocStart << endl;
     AttributePtr<RouteLocation> res(new RouteLocation(rlocStart->GetRouteId(),
                                                rlocStart->GetPosition() + dPos,
-                                               rlocStart->GetSide()));
+                                               dir));
     return res;
   }
   else
@@ -206,5 +207,53 @@ const mapmatch::AttributePtr< RouteLocation >
   }
 }
 
+bool MJPointCreator::CalcShortestPath(const jnetwork::RouteLocation& from,
+                                      const jnetwork::RouteLocation& to,
+                                  const MHTRouteCandidate::PointDataPtr ptrFrom,
+                                  const MHTRouteCandidate::PointDataPtr ptrTo)
+    const
+{
+  if (!from.IsDefined() || !to.IsDefined() || !ptrFrom || !ptrTo)
+    return false;
+
+  double length = 0.0;
+  DbArray<JRouteInterval>* sp =
+    jnet->ShortestPath(from, to, ptrTo->GetPointProjection(), length);
+  if (sp == 0)
+    return false;
+  if (sp->Size() <= 0)
+  {
+    sp->Destroy();
+    delete sp;
+    return false;
+  }
+  double lengthmeter = CalcLengthCurveMeter(sp);
+  if (!MMUtil::CheckSpeed(lengthmeter,
+                          ptrFrom->GetTime(), ptrTo->GetTime(),
+                          *ptrFrom->GetPointProjection(),
+                          *ptrTo->GetPointProjection(),
+                          ptrFrom->GetSection()->GetRoadType(),
+                       max(ptrFrom->GetSection()->GetMaxSpeed(),
+                           ptrTo->GetSection()->GetMaxSpeed())))
+    return false;
+  jnet->ComputeAndAddUnits(sp, ptrFrom->GetTime(), ptrTo->GetTime(), true,
+                           false, length, resMJPoint);
+  return true;
+}
+
+double MJPointCreator::CalcLengthCurveMeter(const DbArray<JRouteInterval>* path)
+    const
+{
+  double result = 0.0;
+  JRouteInterval rint;
+  SimpleLine* sline = new SimpleLine(0);
+  for (int i = 0; i < path->Size(); i++)
+  {
+    path->Get(i,rint);
+    jnet->GetSpatialValueOf(rint, *sline);
+    result += MMUtil::CalcLengthCurve( sline, 1.0);
+  }
+  return result;
+}
 
 } // end of namespace mapmatch

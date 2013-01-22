@@ -309,7 +309,7 @@ void MPointCreator::ProcessPoints(
 
             DateTime TimeEnd(rData1.GetTime());
 
-            if (pSubline1 == NULL ||
+            if (!pSubline1 ||
                 AlmostEqual(dLenCurve1, 0.0))
             {
                 Interval<Instant> TimeInterval(rData1.GetTime(),
@@ -360,7 +360,7 @@ void MPointCreator::ProcessPoints(
 
             // Process last curve
 
-            if (pSubline2 == NULL ||
+            if (!pSubline2 ||
                 AlmostEqual(dLenCurve2, 0.0))
             {
                 DateTime TimeStart = TimeEnd;

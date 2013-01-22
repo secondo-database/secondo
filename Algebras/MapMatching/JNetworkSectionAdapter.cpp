@@ -39,17 +39,30 @@ namespace mapmatch{
 
 
 JNetworkSectionAdapter::JNetworkSectionAdapter(JNetwork* jnet,
-                                               const TupleId stid):
-  IMMNetworkSection(),
-  pJNet(jnet),
-  sectTup((jnet != 0 && jnet->IsDefined())?jnet->GetSectionTupleWithId(stid):0)
-{}
+                                               const TupleId stid) :
+  IMMNetworkSection(),  pJNet(jnet),
+  sectTup((jnet != 0 && jnet->IsDefined())?
+           jnet->GetSectionTupleWithTupleId(stid):0)
+{
+  if (sectTup != 0)
+  {
+    Direction sDir =
+      *(Direction*) sectTup->GetAttribute(JNetwork::SEC_DIRECTION);
+    Direction cDir(Down);
+    int test = sDir.Compare(cDir);
+    if (test < 0)
+      driveDir = DIR_UP;
+    else if (test == 0)
+      driveDir = DIR_DOWN;
+    else
+      driveDir = DIR_NONE;
+  }
+}
 
 JNetworkSectionAdapter::JNetworkSectionAdapter(JNetwork* jnet,
-                                               Tuple* tup) :
-  IMMNetworkSection(),
-  pJNet(jnet),
-  sectTup(tup)
+                                               Tuple* tup,
+                                               const EDirection dDir):
+  IMMNetworkSection(), pJNet(jnet), sectTup(tup), driveDir(dDir)
 {}
 
 JNetworkSectionAdapter::~JNetworkSectionAdapter()
@@ -63,16 +76,27 @@ JNetworkSectionAdapter::~JNetworkSectionAdapter()
 bool JNetworkSectionAdapter::GetAdjacentSections(const bool bUpDown,
                   vector< shared_ptr< IMMNetworkSection > >& vecSections) const
 {
+  //cout << "get Adjacent Sections: ";
   if (sectTup != 0)
   {
+    int idEndNode = -1;
+    //cout << bUpDown << ", of: "  << pJNet->GetSectionId(sectTup) << endl;
     vecSections.clear();
     JListInt* listSID = 0;
     if (bUpDown)
+    {
       listSID =
         (JListInt*) sectTup->GetAttribute(JNetwork::SEC_LIST_ADJ_SECTIONS_UP);
+      idEndNode =
+        ((CcInt*)sectTup->GetAttribute(JNetwork::SEC_ENDNODE_ID))->GetIntval();
+    }
     else
+    {
       listSID =
         (JListInt*) sectTup->GetAttribute(JNetwork::SEC_LIST_ADJ_SECTIONS_DOWN);
+      idEndNode =
+       ((CcInt*)sectTup->GetAttribute(JNetwork::SEC_STARTNODE_ID))->GetIntval();
+    }
     if (listSID != 0 && listSID->IsDefined())
     {
       Tuple* curSectTup = 0;
@@ -83,8 +107,23 @@ bool JNetworkSectionAdapter::GetAdjacentSections(const bool bUpDown,
         curSectTup = pJNet->GetSectionTupleWithId(nextSID.GetIntval());
         if (curSectTup != 0)
         {
+          EDirection driveDir(DIR_NONE);
+          if (idEndNode ==
+              ((CcInt*)curSectTup->GetAttribute(
+                  JNetwork::SEC_STARTNODE_ID))->GetIntval())
+            driveDir = DIR_UP;
+          else if (idEndNode ==
+              ((CcInt*)curSectTup->GetAttribute(
+                  JNetwork::SEC_ENDNODE_ID))->GetIntval())
+            driveDir = DIR_DOWN;
+          else if (!bUpDown)
+            driveDir = DIR_DOWN;
+          else
+            driveDir = DIR_UP;
           shared_ptr<IMMNetworkSection>
-          insSect(new JNetworkSectionAdapter(pJNet, curSectTup->Clone()));
+          insSect(new JNetworkSectionAdapter(pJNet, curSectTup->Clone(),
+                                             driveDir));
+          //cout << "insSect: " ; insSect->PrintIdentifier(cout);
           vecSections.push_back(insSect);
           curSectTup->DeleteIfAllowed();
           curSectTup = 0;
@@ -125,18 +164,9 @@ bool JNetworkSectionAdapter::GetCurveStartsSmaller() const
 IMMNetworkSection::EDirection JNetworkSectionAdapter::GetDirection() const
 {
   if (IsDefined())
-  {
-    Direction* dir =
-      (Direction*) sectTup->GetAttribute(JNetwork::SEC_DIRECTION);
-    Direction compD(Down);
-    int test = compD.Compare(dir);
-    if ( test == 0)
-      return DIR_DOWN;
-    else
-      if (test < 0)
-        return DIR_UP;
-  }
-  return DIR_NONE;
+    return driveDir;
+  else
+    return DIR_NONE;
 }
 
 Point JNetworkSectionAdapter::GetStartPoint() const
@@ -202,22 +232,11 @@ bool JNetworkSectionAdapter::operator==(const
                                 mapmatch::IMMNetworkSection& rSection) const
 {
   const JNetworkSectionAdapter* other = rSection.CastToJNetworkSection();
-  if (sectTup != 0 && other != 0 &&
-      sectTup->GetNoAttributes() == other->sectTup->GetNoAttributes())
-  {
-    Attribute* lhs;
-    Attribute* rhs;
-    for (int i = 0; i < sectTup->GetNoAttributes(); i++)
-    {
-      lhs = sectTup->GetAttribute(i);
-      rhs = other->sectTup->GetAttribute(i);
-      if (lhs->Compare(rhs) != 0)
-        return false;
-    }
-    return true;
-  }
-  else
-    return false;
+  return (sectTup != 0 && other != 0 &&
+          sectTup->GetNoAttributes() == other->sectTup->GetNoAttributes() &&
+          driveDir == other->driveDir &&
+        ((CcInt*)sectTup->GetAttribute(JNetwork::SEC_ID))->GetIntval() ==
+        ((CcInt*)other->sectTup->GetAttribute(JNetwork::SEC_ID))->GetIntval());
 }
 
 RouteLocation* JNetworkSectionAdapter::GetSectionStartRLoc() const

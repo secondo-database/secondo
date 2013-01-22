@@ -232,6 +232,7 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
     // Steps 2-5
     std::vector<MHTRouteCandidate*> vecRouteSegments;
 
+    cout << "Trip segmented into: " << vecTripSegments.size() << " pieces." << endl;
     for (vector<shared_ptr<MapMatchDataContainer> >::iterator
                                                    it = vecTripSegments.begin();
          it != vecTripSegments.end();
@@ -255,11 +256,16 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
                                                            nIdxFirstComponent,
                                                            vecRouteCandidates);
 
+            TraceRouteCandidates(vecRouteCandidates,
+                                 "#### InitialRouteCandidates ####");
+
             // Step 4 - Route developement
             nIdxFirstComponent = DevelopRoutes(pContMMData.get(),
                                                nIdxFirstComponent,
                                                vecRouteCandidates);
 
+            TraceRouteCandidates(vecRouteCandidates,
+                                 "#####After Develop Routes ####");
             // Step 5 - Selection of most likely candidate
             MHTRouteCandidate* pBestCandidate = DetermineBestRouteCandidate(
                                                             vecRouteCandidates);
@@ -654,7 +660,7 @@ void MapMatchingMHT::GetInitialRouteCandidates(const Point& rPoint,
     //      315 +---------+
     //          |\        |
     //          |  \  125 |
-    //      270 -----*----- 90
+    //      270 ---------- 90
     //          | 125  \  |
     //          |        \|
     //          +---------+  135
@@ -1127,16 +1133,18 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
             if (pSection->GetDirection() == IMMNetworkSection::DIR_UP)
             {
                 if (AlmostEqual(PointProjection, ptEnd))
-                    bIsEndPoint = true;
+                  bIsEndPoint = true;
             }
             else if (pSection->GetDirection() == IMMNetworkSection::DIR_DOWN)
             {
                 if (AlmostEqual(PointProjection, ptStart))
-                    bIsEndPoint = true;
+                  bIsEndPoint = true;
             }
             else
             {
-                assert(false);
+              if (AlmostEqual(PointProjection, ptEnd) ||
+                  AlmostEqual(PointProjection, ptStart))
+                bIsEndPoint = true;
             }
 
             if (bIsEndPoint)
@@ -1160,6 +1168,10 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
                 if (AlmostEqual(PointProjection, ptEnd))
                     return false;
             }
+            else
+              if (AlmostEqual(PointProjection, ptStart) ||
+                  AlmostEqual(PointProjection, ptEnd))
+                return false;
         }
 
         bool bLookAtAdjacent = bIsEndPoint;
@@ -1206,6 +1218,15 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
                                                           m_dNetworkScale);
             }
 
+            else if (pFirstProjectedPoint != NULL)
+            {
+              dDistanceTravelled += max(MMUtil::CalcDistance(ptEnd,
+                                                          *pFirstProjectedPoint,
+                                                          m_dNetworkScale),
+                                        MMUtil::CalcDistance(ptStart,
+                                                          *pFirstProjectedPoint,
+                                                          m_dNetworkScale));
+            }
             /*if (pFirstProjectedPoint != NULL)
             {
                 dDistanceTravelled += MMUtil::CalcDistance(
@@ -1222,7 +1243,7 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
             bLookAtAdjacent = dDistanceTravelled > (dLenCurve / 100. * 80.);
         }
 
-//#define CHECK_HEADING_DIFF
+#define CHECK_HEADING_DIFF
 #ifdef CHECK_HEADING_DIFF
         if (!bLookAtAdjacent && pMMData->m_dCourse >= 0.0 /* Course defined */)
         {
@@ -1255,7 +1276,8 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
             if ((pSection->GetDirection() == IMMNetworkSection::DIR_UP &&
                  eNext != CANDIDATES_UP) ||
                 (pSection->GetDirection() == IMMNetworkSection::DIR_DOWN &&
-                 eNext != CANDIDATES_DOWN))
+                 eNext != CANDIDATES_DOWN) ||
+                (pSection->GetDirection() == IMMNetworkSection::DIR_NONE))
             {
                 eNext = CANDIDATES_UP_DOWN;
             }

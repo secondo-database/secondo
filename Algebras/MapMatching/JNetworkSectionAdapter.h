@@ -53,7 +53,8 @@ public:
 */
 
    JNetworkSectionAdapter(JNetwork* jnet, const TupleId sectTupId);
-   JNetworkSectionAdapter(JNetwork* jnet, Tuple* tup);
+   JNetworkSectionAdapter(JNetwork* jnet, Tuple* tup,
+                          const EDirection dDir);
    virtual ~JNetworkSectionAdapter();
 
 /*
@@ -108,6 +109,7 @@ public:
 private:
   JNetwork* pJNet;
   Tuple* sectTup;
+  EDirection driveDir;
 
 };
 

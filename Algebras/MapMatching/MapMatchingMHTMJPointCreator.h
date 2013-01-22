@@ -64,6 +64,9 @@ public:
 
 private:
 
+  JNetwork* jnet;
+  MJPoint* resMJPoint;
+
   bool Init(void);
   void Finalize(void);
 
@@ -71,8 +74,12 @@ private:
                                 const MHTRouteCandidate::PointDataPtr& pData,
                                 const double& dNetworkScale) const;
 
-  JNetwork* jnet;
-  MJPoint* resMJPoint;
+  bool CalcShortestPath(const RouteLocation& from,
+                        const RouteLocation& to,
+                        MHTRouteCandidate::PointDataPtr ptrFrom,
+                        MHTRouteCandidate::PointDataPtr ptrTo) const;
+
+  double CalcLengthCurveMeter(const DbArray<JRouteInterval>* path) const;
 
 };
 
