@@ -58,8 +58,8 @@ Result   : 49
 Operator : rewrite
 Number   : 3
 Signature: stream(text) x stream(mlabel) -> stream(mlabel)
-Example  : query (rewrite3 feed projecttransformstream[Pattern] SymbolicTripsTiny feed projecttransformstream[SymTrip] rewrite) count
-Result   : 88
+Example  : query (rewrite1 feed projecttransformstream[Pattern] SymbolicTripsTiny feed projecttransformstream[SymTrip] rewrite) count
+Result   : 18
 
 Operator : compress
 Number   : 1

@@ -139,6 +139,7 @@ class Condition {
   void substitute(int pos, string subst);
   static string getType(int t);
   static string getSubst(int s);
+  void deleteOpTree();
   
   string  getText() const          {return text;}
   void    setText(string newText)  {text = newText;}
@@ -165,12 +166,7 @@ class Condition {
   void    completeLabelsPtr(unsigned int pos);
   QueryProcessor* getQP()          {return opTree.first;}
   OpTree  getOpTree()              {return opTree.second;}
-  void    deleteOpTree()           {if (opTree.first) {
-                                     opTree.first->Destroy(opTree.second, true);
-                                     delete opTree.first;}}
-  void    deletePointers() {for (unsigned int i = 0; i < pointers.size(); i++) {
-                              deleteIfAllowed(pointers[i]);
-                           }}
+  int     getPointersSize()        {return pointers.size();}
 };
 
 class UPat {
@@ -214,19 +210,12 @@ class Assign {
   string textSubst[4];
   string var;
   vector<pair<string, int> > right[5]; // a list of vars and keys for every type
-  //pair<QueryProcessor*, OpTree> opTree[4];
-  //vector<Attribute*> pointers[4]; // for each expression like X.card
+  pair<QueryProcessor*, OpTree> opTree[4];
+  vector<Attribute*> pointers[4]; // for each expression like X.card
 
  public:
   Assign() {}
   ~Assign() {}
-
-  void clear() {
-    resultPos = -1;
-    for (int i = 0; i < 4; i++) {
-      text[i].clear(); textSubst[i].clear(); right[i].clear();
-    }
-  }
 
   static string getDataType(int key);
   void convertVarKey(const char* vk);
@@ -234,7 +223,13 @@ class Assign {
   bool prepareRewrite(int key, const vector<size_t> &assSeq,
                       map<string, int> &varPosInSeq, MLabel const &ml);
   bool initOpTrees();
-
+  void clear();
+  void deleteOpTrees();
+  void setLabelPtr(unsigned int pos, string value);
+  void setTimePtr(unsigned int pos, SecInterval value);
+  void setStartPtr(unsigned int pos, Instant value);
+  void setEndPtr(unsigned int pos, Instant value);
+  
   void    init(string v, int pp)             {clear(); var=v; patternPos=pp;}
   int     getResultPos() const               {return resultPos;}
   void    setResultPos(int p)                {resultPos = p;}
@@ -255,6 +250,12 @@ class Assign {
   void    addRight(int key,
                pair<string, int> newRight)   {right[key].push_back(newRight);}
   void    removeUnordered()                  {right[4].pop_back();}
+  QueryProcessor* getQP(unsigned int key)    {if (key < 4) {
+                                                return opTree[key].first;}
+                                              else return 0;}
+  OpTree  getOpTree(unsigned int key)        {if (key < 4) {
+                                                return opTree[key].second;}
+                                              else return 0;}
 };
 
 class Pattern {
@@ -345,6 +346,7 @@ class Pattern {
   string nfa2String() const;
   static pair<string, Attribute*> getPointer(int key);
   bool initAssignOpTrees();
+  void deleteAssignOpTrees(bool conds);
 
   vector<UPat>      getPats()               {return patterns;}
   vector<Condition> getConds()              {return conds;}
@@ -355,7 +357,7 @@ class Pattern {
   bool              hasAssigns()            {return !assigns.empty();}
   void              addUPat(UPat upat)      {patterns.push_back(upat);}
   void              addCond(Condition cond) {conds.push_back(cond);}
-  void              addAssign(Assign ass)   {assigns.push_back(ass);}
+  void              addAssign(Assign ass)  {assigns.push_back(ass);}
   void              setText(string newText) {text = newText;}
   void       addVarPos(string var, int pos) {varPos[var] = pos;}
   int               getVarPos(string var)   {return varPos[var];}
@@ -378,6 +380,8 @@ class Pattern {
                                             }
   void              setDescr(string desc)   {description = desc;}
   string            getDescr()              {return description;}
+  void deleteAssignOpTrees()   {for (unsigned int i = 0;i < assigns.size();i++){
+                                  assigns[i].deleteOpTrees();}}
 };
 
 struct DoubleParsInfo {
@@ -422,7 +426,6 @@ class Match {
     delete[] match;
     delete[] cardsets;
     delete[] seqOrder;
-    deleteOpTrees();
   }
 
   bool matches(MString const &ml, bool rewrite = false);
@@ -473,10 +476,9 @@ class Match {
   vector<int> applyConditions(ClassifyLI* c);
   void multiRewrite(ClassifyLI* c);
   pair<string, Attribute*> getPointer(int key);
-  pair<QueryProcessor*, OpTree> processQueryStr(string query, string type);
+  static pair<QueryProcessor*, OpTree> processQueryStr(string query, int type);
   bool initCondOpTrees();
-  void deleteOpTrees();
-  void deletePointers();
+  void deleteCondOpTrees();
 };
 
 class RewriteResult {
@@ -497,7 +499,11 @@ class RewriteResult {
     varPosInSeq = vPIS;
   }
 
-  ~RewriteResult() {}
+  ~RewriteResult() {
+    for (unsigned int i = 0; i < assigns.size(); i++) {
+      assigns[i].deleteOpTrees();
+    }
+  }
 
   bool initAssignOpTrees();
 

@@ -661,6 +661,7 @@ void Pattern::collectAssVars() {
       }
     }
   }
+  assign.clear();
 }
 
 int Pattern::getPatternPos(const string var) {
