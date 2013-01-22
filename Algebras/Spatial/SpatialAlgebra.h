@@ -744,6 +744,7 @@ struct LRS
   int hsPos;
 };
 
+
 /*
 6 Class Line
 
@@ -2034,6 +2035,26 @@ The following functions are needed to act as an attribute type.
     return listutils::isSymbol(type, BasicType());
   }
 
+   bool Find( const LRS& lrs, int& pos ) const {
+   assert( IsOrdered() );
+
+   if( IsEmpty() ){ // subsumes !IsDefined()
+     return false;
+   }
+
+   if( lrs.lrsPos < 0 && !AlmostEqual( lrs.lrsPos, 0 ) &&
+       lrs.lrsPos > Length() && !AlmostEqual( lrs.lrsPos, Length() ) ){
+     return false;
+   }
+
+   lrsArray.Find( &lrs, LRSCompare, pos );
+   if( pos > 0 ){
+     pos--;
+   }
+
+   return true;
+ }
+
   private:
     DbArray<HalfSegment> segments;
     DbArray<LRS> lrsArray;
@@ -2077,25 +2098,6 @@ bool Find( const Point& p, int& pos, const bool& exact = false ) const {
   }
 }
 
- bool Find( const LRS& lrs, int& pos ) const {
-   assert( IsOrdered() );
-
-   if( IsEmpty() ){ // subsumes !IsDefined()
-     return false;
-   }
-
-   if( lrs.lrsPos < 0 && !AlmostEqual( lrs.lrsPos, 0 ) &&
-       lrs.lrsPos > Length() && !AlmostEqual( lrs.lrsPos, Length() ) ){
-     return false;
-   }
-
-   lrsArray.Find( &lrs, LRSCompare, pos );
-   if( pos > 0 ){
-     pos--;
-   }
-
-   return true;
- }
 
 /*
 ~Sort~
