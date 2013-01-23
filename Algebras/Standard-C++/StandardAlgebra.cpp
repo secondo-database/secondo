@@ -5303,6 +5303,202 @@ Operator ccbinands("binands", CCBinAndSSpec, CCBinAndSVM,
 
 
 /*
+5.98 Operator switch
+
+THis operator simulates a switch case statement.
+
+5.98.1 TypeMapping
+
+*/
+ListExpr switchTM(ListExpr args){
+
+  int len = nl->ListLength(args);
+  if(len < 4){
+     return listutils::typeError("at least four arguments required");
+  }
+
+  bool isEven = (len & 1)==0;
+
+  if(!isEven){
+    return listutils::typeError("even number of arguments required");
+  }
+
+  ListExpr firstArg = nl->First(args);
+
+  if(!listutils::isDATA(firstArg)){
+     return listutils::typeError("first argument must be in kind data");
+  }
+
+  ListExpr rest = nl->Rest(args);
+  bool isFirst = true;
+  ListExpr resType = nl->TheEmptyList();
+  bool odd = true;
+  int no = 1;
+  while(!nl->IsEmpty(rest)){
+     ListExpr first = nl->First(rest);
+     rest = nl->Rest(rest);    
+     no++;
+     if(odd && (no!=len)){ // switch type
+       if(!nl->Equal(firstArg,first)){
+          return listutils::typeError("One of the Cases has different "
+                                      "type to first argument");
+       }
+     } else { // result type
+        if(isFirst){
+           resType = first;
+           if(!listutils::isDATA(resType) && !listutils::isStream(resType)){
+              return listutils::typeError(nl->ToString(resType) + 
+                                       " is not in Kind Data");
+           }
+        } else {
+           if(!nl->Equal(resType,first)){
+             return listutils::typeError("Different result types detected");
+           }
+        }
+     }
+     odd = !odd;
+ }
+ return resType;
+}
+
+
+/*
+5.98.2 Value Mapping
+
+*/
+
+int switchVM0 (Word* args, Word& result, int message, 
+              Word& local, Supplier s ) {
+
+   Attribute* sw = (Attribute*) args[0].addr;
+   int noArgs = qp->GetNoSons(s);
+   int index = noArgs - 1; // the default value
+   // try to find a better index
+   bool found = false;
+   for(int i=1;i<noArgs-1 && ! found; i += 2){
+      Attribute* v = (Attribute*) args[i].addr;
+      int cmp = sw->Compare(v);
+      if(cmp==0){
+        found = true;
+        index = i+1;
+      }
+   }
+   result = qp->ResultStorage(s);
+   Attribute* res = (Attribute*) result.addr;
+   res->CopyFrom((Attribute*) args[index].addr);
+   return 0;
+}
+
+
+int switchVM1 (Word* args, Word& result, int message, 
+              Word& local, Supplier s ) {
+
+   int* li = (int*) local.addr;
+   switch(message){
+       case OPEN: {
+           if(li){
+              delete li;
+           }
+           Attribute* sw = (Attribute*) args[0].addr;
+           int noArgs = qp->GetNoSons(s);
+           int index = noArgs - 1; // the default value
+           // try to find a better index
+           bool found = false;
+           for(int i=1;i<noArgs-1 && ! found; i += 2){
+               Attribute* v = (Attribute*) args[i].addr;
+               int cmp = sw->Compare(v);
+               if(cmp==0){
+                  found = true;
+                  index = i+1;
+               }
+           }
+           qp->Open(args[index].addr);
+           local.addr = new int(index);
+           return 0;
+       }
+       case REQUEST: {
+         if(!li){
+            result.addr = 0;
+            return CANCEL;
+         }
+         Word w;
+         qp->Request(args[*li].addr,w);
+         if(qp->Received(args[*li].addr)){
+            result = w;
+            return YIELD;
+         } else {
+            result.addr = 0;
+            return CANCEL;
+         }
+       }
+       case CLOSE: {
+         if(li){
+           qp->Close(args[*li].addr);
+           delete li;
+           local.addr = 0;
+         }
+         return 0;
+       }
+   }
+   return -1;
+}
+
+/*
+1.98.3 Selection function
+
+*/
+int switchSelect(ListExpr args){
+  int len = nl->ListLength(args);
+  ListExpr resType;
+  if(len==2){
+    resType = nl->Second(args);
+  } else {
+    resType = nl->Third(args);
+  }
+  if(listutils::isDATA(resType)){
+     return 0;
+  } else {
+     return 1;
+  }
+}
+
+/*
+1.98.4 Value Mapping array
+
+*/
+
+ValueMapping switchVM[]={
+   switchVM0,
+   switchVM1
+};
+
+/*
+1.98.5 Specification
+
+*/
+
+OperatorSpec switchSpec(
+  "t x (t x r)* x r -> r. with t in DATA, r in DATA U STREAM",
+  " switchvalue switch[ case1 , res1; case2 , res2 ; ... ; default] ",
+  " Returns the res_i fow what holds case_i = switchvalue. If no such"
+  " case exists, default is returned",
+  " query randint(2) switch[ 0 , 'Null'; 1, 'One'; 2 , 'Two'; 'Unknown']"
+);
+
+/*
+1.98.6 Operator instance
+
+*/
+Operator switchOp(
+   "switch",
+   switchSpec.getStr(),
+   2,
+   switchVM,
+   switchSelect,
+   switchTM);
+
+
+/*
 6 Class ~CcAlgebra~
 
 The last steps in adding an algebra to the Secondo system are
@@ -5438,6 +5634,8 @@ class CcAlgebra1 : public Algebra
 
     AddOperator (&ccbinand);
     AddOperator( &ccbinands);
+
+    AddOperator (&switchOp);
 
 #ifdef USE_PROGRESS
     ccopifthenelse.EnableProgress();

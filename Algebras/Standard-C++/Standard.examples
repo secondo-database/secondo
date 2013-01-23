@@ -677,3 +677,20 @@ Number   : 2
 Signature: stream(int) -> int
 Example  : query intstream(1,5) filter[(. mod 2) = 1] binands
 Result   : 1
+
+
+Operator  : switch
+Number    : 1 
+Signature : d x (d x r)* x r -> r, d in DATA, r in DATA
+Example   : query 2 switch [ 0, "Zero"; 1 , "One"; 2 , "Two"; 3, "Three"; "Too big"]
+Result    : "Two"
+
+Operator  : switch
+Number    : 2 
+Signature : d x (d x r)* x r -> r, d in DATA, r in STREAM
+Example   : query "ten" switch [ "ten", ten feed; "thousand", thousand feed; intstream(0,0) namedtransformstream[No]  ] count
+Result    : 10
+
+
+
+

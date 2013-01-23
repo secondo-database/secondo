@@ -108,3 +108,7 @@ operator seqnext alias SEQNEXT pattern op( _ )
 
 operator binand alias BINAND pattern _ infixop _
 operator binands alias BINANDS pattern _ op
+
+operator switch alias SWITCH pattern _ op[ _; _ ; _]
+
+
