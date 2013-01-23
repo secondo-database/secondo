@@ -34,6 +34,13 @@ Signature : rel(tuple(a_1 t1)..(a_n t_n)) x text x int x string x string -> stre
 Example   : query ten csvimport['ten2.csv',1,"",";"] count
 Result    : 10
 
+Operator  : csvimport2
+Number    : 1
+Signature : text x int x string x string x bool x bool -> stream(tuple(...)), 
+Example   : query csvimport2('ten.csv',1,"","",FALSE,FALSE) count
+Result    : 10
+
+
 Operator : db3export
 Number   : 1
 Signature: stream(tuple) x text -> stream(tuple)

@@ -446,15 +446,17 @@ Operator csvexport( "csvexport",
   optional bool   : if set to true, ignore separators within quotes, 
                     for example,
                     treat "hello, hello" as a single item , default is false
+  optional bool : multiline. If set to true, values within quotes can contain 
+                  linebreaks
 
 */
 
 ListExpr csvimportTM(ListExpr args){
   string err = " rel(tuple(a_1 : t_1)...(a_n : t_n)) x "
-               " text x int x string [x string [x bool]] expected";
+               " text x int x string [x string [x bool [ x bool]]] expected";
 
   int len = nl->ListLength(args);
-  if((len!=4) && (len!=5) && (len !=6)){
+  if((len!=4) && (len!=5) && (len !=6) && (len !=7)){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
@@ -488,8 +490,9 @@ ListExpr csvimportTM(ListExpr args){
 
 
   if(len==4){ // append two default values
-     ListExpr defaults = nl->TwoElemList(
+     ListExpr defaults = nl->ThreeElemList(
                               nl->StringAtom(","),
+                              nl->BoolAtom(false),
                               nl->BoolAtom(false)
                             );
      return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
@@ -502,17 +505,28 @@ ListExpr csvimportTM(ListExpr args){
     return listutils::typeError(err);
   }
 
-  if(len==5){ // set the optional boolean to be false 
-     ListExpr defaults = nl->OneElemList(nl->BoolAtom(false));
+  if(len==5){ // set the optional booleans to be false 
+     ListExpr defaults = nl->TwoElemList(nl->BoolAtom(false),
+                                             nl->BoolAtom(false));
 
      return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
                                defaults, resList);
   }
 
-  // len == 6: no defaults, check sixth element
-  if(!CcBool::checkType(nl->Sixth(args))){
-    return listutils::typeError(err);
+  if(len==6){
+    if(!CcBool::checkType(nl->Sixth(args))){
+      return listutils::typeError(err);
+    }
+    ListExpr defaults = nl->OneElemList(nl->BoolAtom(false));
+   return nl->ThreeElemList( nl->SymbolAtom(Symbols::APPEND()),
+                               defaults, resList);
   }
+
+  // len = 7, no defaults
+  if(!CcBool::checkType(nl->Seventh(args))){
+    return listutils::typeError("7th attribute must be of type bool");
+  }
+
   return resList;
 }
 
@@ -528,7 +542,8 @@ const string csvimportSpec  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
    "( <text>rel(tuple(...) x text x int x string [x string [x bool]] "
    "-> stream (tuple(...))</text--->"
-   "<text>Rel csvimport[ FileName, HeaderSize, Comment, Separator, quotes]"
+   "<text>Rel csvimport[ FileName, HeaderSize, Comment, Separator, "
+   "quotes, multiline]"
    " </text--->"
    "<text> Returns the content of the CSV (Comma Separated Value) file "
    "'FileName' as a stream of tuples. The types are defined by the first "
@@ -538,7 +553,8 @@ const string csvimportSpec  =
    "lines within the textfile. 'Separator' defines the character that is "
    "expected to separate the fields within each line of the textfile (default "
    "is \",\"."
-   "quotes means that separators within quotes are ignored."
+   "quotes means that separators within quotes are ignored. If multiline is set"
+   "to true, attributes within quotes can span more than 1 line.   "
    "</text--->"
    "<text> not tested !!!</text--->"
    ") )";
@@ -551,7 +567,9 @@ public:
   CsvImportInfo(ListExpr type, FText* filename,
                 CcInt* hSize , CcString* comment,
                 CcString* separator,
-                CcBool* quotes){
+                CcBool* quotes,
+                CcBool* multiline = 0
+                ){
 
       this->separator = ",";
       this->quotes = false;
@@ -579,6 +597,9 @@ public:
          defined = false;
          return;
       }
+      file.seekg(0,ios::end);
+      fileSize = file.tellg();
+      file.seekg(0,ios::beg);
       // skip header
       int skip = hSize->GetIntval();
       string buffer;
@@ -589,6 +610,14 @@ public:
         defined=false;
         return;
       }
+ 
+      this->multiLine = false;
+      if(multiline && multiline->IsDefined()){
+         this->multiLine = multiline->GetBoolval();
+      }      
+      bufferPos = 0;
+      bufferFill = 0;
+
       this->comment = comment->GetValue();
       useComment = this->comment.size()>0;
       ListExpr numType = nl->Second(
@@ -647,16 +676,21 @@ public:
      if(!file.good() || file.eof()){
         return 0;
      }
+
+     if(multiLine){
+       return getNextMultiLine();
+     }
+
      string buf;
      do{
        getline(file,buf);
      } while(file.good() && !file.eof() && isComment(buf));
      if(file.good()){
-        return createTuple(buf);
+        Tuple* res =  createTuple(buf);
+        return res;
      }
      return 0;
    }
-
 
 private:
   bool defined;
@@ -668,6 +702,96 @@ private:
   vector<Attribute*> instances;
   string separator;
   bool quotes;
+  streampos fileSize;
+  // support of multiline mode
+  bool multiLine;
+  uint16_t bufferPos;
+  uint16_t bufferFill;
+  char buffer[1024];
+
+
+  Tuple* getNextMultiLine(){
+    if((file.tellg()>=fileSize) || !file.good()){
+       return 0;
+    }
+    bool ok = true;
+    Tuple* res = new Tuple(tupleType);
+    for(unsigned int i=0;i<instances.size();i++){
+        string nextAttr = getNextAttrString(ok);
+        if(ok){
+            Attribute* a = instances[i]->Clone();
+            a->ReadFromString(nextAttr);
+            res->PutAttribute(i,a);
+        } else {
+           // error within this mode
+           cerr << "Error in reading csv file" << endl;
+           res->DeleteIfAllowed();
+           return 0;
+        }
+    }
+    // read until the line end
+    char c = buffer[bufferPos-1]; // get the last processed char
+    while((c!='\n') && (bufferFill>0)){
+       c = buffer[bufferPos]; // get current char
+       bufferPos++;
+       if(bufferFill==bufferPos){
+          bufferFill = min((size_t)1024,(size_t) ( fileSize - file.tellg()));
+          if(bufferFill>0){
+             file.read(buffer,bufferFill);
+          }
+          bufferPos = 0;
+       } 
+    }
+    return res;
+  }
+
+
+  string getNextAttrString(bool ok){
+     if(fileSize <= file.tellg()){
+        ok = false;
+        return "";
+     }
+     bool done = false;
+     int mode = 0; // normal mode
+     stringstream ss;
+     while(!done){
+        if(bufferFill==bufferPos){
+           // buffer empty, fillup
+           bufferFill = min((size_t)1024,(size_t) ( fileSize - file.tellg()));
+           file.read(buffer, bufferFill); 
+           if(!file.good()){
+              ok = false;
+              return "";
+           }
+           bufferPos = 0;
+        }
+        char c = buffer[bufferPos];
+        bufferPos++;
+        if(mode==0){ // normalMode
+           if((separator.find(c)!=string::npos) 
+               || (c == '\n')){ // end 
+             ok = true;
+             done = true;
+           } else if(c=='"'){ // switch to quoted mode
+             mode = 1;
+           } else if(c!=0){
+              ss << c;
+           }
+          } else {  // quoted mode
+           if(c=='"'){
+              mode = 0;
+           } else {
+              if(c!=0){
+                 ss << c; 
+              }
+           }
+        }
+     }
+     ok = true;
+     return ss.str();
+  }
+
+
 
 
   string getNextElem(const string& line, size_t& pos, bool& ok){
@@ -727,12 +851,15 @@ private:
 
 
   Tuple* createTuple(string line){
+      static char c = 0;
+      static string nullstr( &c,1);
       Tuple* result = BasicTuple->Clone();
       size_t lastPos = 0;
       for(unsigned int i=0;i<instances.size();i++){
          Attribute* attr = instances[i]->Clone();
          bool ok = true;
          string next = getNextElem(line, lastPos, ok);
+         next = stringutils::replaceAll(next,nullstr,"");
          if(ok){
             attr->ReadFromString(next);
          } else {
@@ -758,11 +885,12 @@ int csvimportVM(Word* args, Word& result,
       CcString* comment = static_cast<CcString*>(args[3].addr);
       CcString* separator = static_cast<CcString*>(args[4].addr);
       CcBool* quotes = static_cast<CcBool*>(args[5].addr);
+      CcBool* multiline =  static_cast<CcBool*>(args[5].addr);
       if(info){
         delete info;
       }
       local.setAddr(new CsvImportInfo(type,fname,skip,comment,separator, 
-                                      quotes));
+                                      quotes,multiline));
       return 0;
     }
     case REQUEST: {
@@ -798,6 +926,248 @@ Operator csvimport( "csvimport",
                     csvimportTM);
 
 
+
+/*
+1.5 Operator csvimport2
+
+This operator does the same thing as the csv import operator.
+The difference is that this version of the operator does not require
+the relation scheme. Instead, the names of the attributes are read form the 
+first line of the csv file and all elements are assumed to be of type string.
+
+1.5.1 Type Mapping
+
+The signature is:
+
+    ftext x int x string x string x bool -> stream(tuple( (X string) (Y string) ...))
+
+    filename, headersize, comment, separator, uses quotes, multiline
+
+*/
+
+
+
+ListExpr csvimport2TM(ListExpr args){
+   string err = "ftext x int x string x string x bool  x bool expected";
+   if(!nl->HasLength(args,6)){
+      return listutils::typeError(err + " (wrong number of args)");
+   }
+   // this operator uses the arg evaluation within type mappings
+ 	// thus, each argument is a two elem list (type value)
+  ListExpr tmp = args;
+  while(!nl->IsEmpty(tmp)){
+    if(!nl->HasLength(nl->First(tmp),2)){
+       return listutils::typeError("expected (type value)");
+    }
+    tmp = nl->Rest(tmp);
+  }
+  // now, check the types
+  if(!FText::checkType(nl->First(nl->First(args)))){
+      return listutils::typeError(err + " (1st is not a text)");
+  } 
+
+  if(!CcInt::checkType(nl->First(nl->Second(args)))){
+      return listutils::typeError(err + " (2nd is not an int)");
+  } 
+  if(!CcString::checkType(nl->First(nl->Third(args)))){
+      return listutils::typeError(err + " (3th is not a string)");
+  } 
+  if(!CcString::checkType(nl->First(nl->Fourth(args)))){
+      return listutils::typeError(err + " (4th is not a string)");
+  } 
+  if(!CcBool::checkType(nl->First(nl->Fifth(args)))){
+      return listutils::typeError(err + " (5th is not a bool)");
+  } 
+  if(!CcBool::checkType(nl->First(nl->Sixth(args)))){
+      return listutils::typeError(err + " (6th is not a bool)");
+  } 
+  // ok, the types are fine, now, we have to evaluate the filename
+  // as well as the separator
+  string filenameExpr = nl->ToString(nl->Second(nl->First(args)));
+  Word res;
+  bool fnok = QueryProcessor::ExecuteQuery(filenameExpr,res);
+  if(!fnok){
+     return listutils::typeError("Could not get filename from expression");
+  }
+  FText* fn = (FText*) res.addr;
+  if(!fn->IsDefined()){
+     fn->DeleteIfAllowed();
+     return listutils::typeError("filename is undefined");
+  }
+  string filename = fn->GetValue();
+  fn->DeleteIfAllowed();
+  fn = 0;
+  res.setAddr(0);
+  // get the separator 
+  string separatorExpr = nl->ToString(nl->Second(nl->Fourth(args)));
+  if(!QueryProcessor::ExecuteQuery(separatorExpr,res)){
+     return listutils::typeError("separator string could not be evaluated");
+  }
+  CcString* ccseparators = (CcString*) res.addr;
+  string separators = ","; // standard separator
+  if(ccseparators->IsDefined() && ccseparators->GetValue().size()>0){
+    separators = ccseparators->GetValue();
+  }
+  ccseparators->DeleteIfAllowed();
+  ccseparators = 0;
+
+  // get the first Line from the file
+  ifstream file(filename.c_str());
+  if(!file){
+     return listutils::typeError("could not open file " + filename);
+  } 
+  string line;
+  getline(file,line);
+  if(!file.good()){
+     return listutils::typeError("could not read the first line of " 
+                                 + filename);
+  }
+  file.close();
+   
+  stringutils::StringTokenizer st(line,separators);
+  int count = 0;
+  set<string> tokens;
+
+  ListExpr attrList= nl->TheEmptyList();
+  ListExpr last = attrList;
+  char c1 = 0;
+  string nullstr(&c1,1);;
+
+  while(st.hasNextToken()){
+    string token = st.nextToken();
+    stringutils::trim(token);
+    token = stringutils::replaceAll(token,nullstr,"");
+    if(token.size()<1){
+      stringstream ss;
+      ss << "Unknown" << count;
+      token = ss.str();
+    } else {
+      // convert token into a valid symbol
+      char f = token[0];
+      if(!stringutils::isLetter(f)){
+         token = "A_"+token;
+      } else {
+         token[0] = toupper(token[0]);
+      }
+      for(size_t i=1;i<token.size();i++){
+         char c = token[i];
+         if(!stringutils::isLetter(c) && !stringutils::isDigit(c)){
+             token[i] = '_';
+         }
+      }
+   }
+   string err;
+   if(!SecondoSystem::GetCatalog()->IsValidIdentifier(token,
+                                                      error)){
+      stringstream ss;
+      ss << token << count;
+      token = ss.str();
+   }
+
+   // if there is a sequence of underlines within token,
+   // replace it by a single underline
+   while(token.find("__")!=string::npos){
+     token = stringutils::replaceAll(token,"__","_");
+   }
+
+
+   // avoid double names
+   int c2 = 0;
+   string t = token;
+   while( tokens.find(token)!=tokens.end()){
+      stringstream ss;
+      ss << t << "_" << c2;
+      c2++;
+      token = ss.str();   
+   }
+   tokens.insert(token);
+
+   token = token.substr(0,MAX_STRINGSIZE);
+   ListExpr attr = nl->TwoElemList( nl->SymbolAtom(token), 
+                                    listutils::basicSymbol<FText>());
+   if(count == 0){
+     attrList = nl->OneElemList( attr );
+     last = attrList;
+   } else {
+      last = nl->Append(last,attr);
+   }
+   count++; 
+  } 
+
+  return nl->TwoElemList(
+            listutils::basicSymbol<Stream<Tuple> >(),
+            nl->TwoElemList(
+                  listutils::basicSymbol<Tuple>(),
+                   attrList)); 
+}
+
+
+int csvimport2VM(Word* args, Word& result,
+                 int message, Word& local, Supplier s){
+
+  
+  CsvImportInfo* li = (CsvImportInfo*) local.addr;
+  switch(message){
+     case OPEN: {
+        if(li){
+          delete li;
+        }
+        local.addr = new CsvImportInfo( qp->GetType(s),
+                                        (FText*) args[0].addr,
+                                        (CcInt*) args[1].addr,
+                                        (CcString*) args[2].addr,
+                                        (CcString*) args[3].addr,
+                                        (CcBool*) args[4].addr,
+                                        (CcBool*) args[5].addr);
+        return 0;
+     }
+     case REQUEST :{
+         result.addr=li?li->getNext():0;
+         return result.addr?YIELD:CANCEL;
+     }
+     case CLOSE: {
+         if(li){
+           delete li;
+           local.addr=0;  
+         }
+         return 0;
+     }
+  }
+  return -1; 
+
+
+}
+
+/*
+1.5.3 Specification
+
+*/
+
+OperatorSpec csvimport2Spec(
+  "ftext x int x string x string string x bool -> stream(tuple(...))",
+  "csvimport2(filename, headersize, comment, separator, quotes)",
+  "csvimport2 imports the csvfile given by filename into a relation"
+  " having string attributes exclusively. The file must contain "
+  " the attribute names within its first row separated by the same "
+  " character as the values. The second argument defined the size of"
+  " the header, this means the given number of row is omitted from "
+  " the file. This number should be 1 at least. "
+  "  Each line of the file starting with comment is ignored also."
+  " Sometime, the values are given in quotes (for example because "
+  " a string contains the separator char). If so,just set the "
+  " quotes argument to TRUE",
+  "query csvimport2('kinos.csv',1,\"\",\",\",FALSE)");
+
+
+/*
+1.4 Operator Instance
+
+*/
+Operator csvimport2( "csvimport2",
+                    csvimport2Spec.getStr(),
+                    csvimport2VM,
+                    Operator::SimpleSelect,
+                    csvimport2TM);
 
 
 /*
@@ -5684,6 +6054,8 @@ public:
     dbimport2.SetUsesArgsInTypeMapping();
     AddOperator( &saveObject);
     AddOperator( &csvimport);
+    AddOperator( &csvimport2);
+    csvimport2.SetUsesArgsInTypeMapping();
     AddOperator( &isFile);
     AddOperator( &removeFile);
     AddOperator( &createDirectory);
