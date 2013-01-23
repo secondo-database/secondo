@@ -10,32 +10,32 @@ Result   : TRUE
 Operator : topattern
 Number   : 1
 Signature: text -> pattern
-Example  : query '(_ "Borsigplatz") * (_ "Strobelallee")' topattern
-Result   : (_ "Borsigplatz") * (_ "Strobelallee")
+Example  : query michael matches ('(_ at_home) * (_ at_home)' topattern)
+Result   : TRUE
 
 Operator : matches
 Number   : 1
 Signature: mlabel x text -> bool
-Example  : query [const mlabel value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))] matches '()'
-Result   : TRUE
+Example  : query michael matches '()'
+Result   : FALSE
 
 Operator : matches
 Number   : 2
 Signature: mstring x text -> bool
-Example  : query [const mstring value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))] matches '()'
+Example  : query [const mstring value ((("2013-01-01" "2013-01-02" TRUE FALSE) "at_home"))] matches '()'
 Result   : TRUE
 
 Operator : filterMatches
 Number   : 1
 Signature: stream(tuple(X)) x IDENT x text -> stream(tuple(X))
-Example  : query Nussi feed filterMatches[Trajectory, '(_ "Lütgendortmund") *'] count
-Result   : 662
+Example  : query SymbolicTripsTiny feed filterMatches[SymTrip, '(_ "Alte Teichstraße") * (_ "Alte Teichstraße")'] count
+Result   : 14
 
 Operator : rewrite
 Number   : 1
 Signature: mlabel x text -> stream(mlabel)
-Example  : query [const mlabel value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))] 'X () => X // X.label := "at_work"' rewrite count
-Result   : 1
+Example  : query michael '* () Z * => Z' rewrite count
+Result   : 62
 
 Operator : rewrite
 Number   : 2
@@ -46,14 +46,8 @@ Result   : 1
 Operator : classify
 Number   : 1
 Signature: stream(tuple(text, string)) x stream(mlabel) -> stream(tuple(string, mlabel))
-Example  : query (patterns3 feed Nussi feed projecttransformstream[Trajectory] classify) count
-Result   : 82
-
-Operator : classify
-Number   : 2
-Signature: stream(tuple(text, string)) x stream(mstring) -> stream(tuple(string, mstring))
 Example  : query (patterns4 feed SymbolicTripsTiny feed projecttransformstream[SymTrip] classify) count
-Result   : 49
+Result   : 51
 
 Operator : rewrite
 Number   : 3
@@ -64,38 +58,32 @@ Result   : 18
 Operator : compress
 Number   : 1
 Signature: mlabel -> mlabel
-Example  : query compress([const mlabel value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))])
-Result   : 1
+Example  : query compress([const mlabel value ((("2013-01-01" "2013-01-02" TRUE FALSE) "at_home") (("2013-01-02" "2013-01-03" TRUE FALSE) "at_home"))])
+Result   : (mlabel ((("2013-01-01" "2013-01-03" TRUE FALSE) "at_home")))
 
 Operator : compress
 Number   : 2
 Signature: mstring -> mstring
-Example  : query compress([const mstring value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))])
-Result   : 1
+Example  : query compress([const mstring value ((("2013-01-01" "2013-01-02" TRUE FALSE) "at_home") (("2013-01-02" "2013-01-03" TRUE FALSE) "at_home"))])
+Result   : (mstring ((("2013-01-01" "2013-01-03" TRUE FALSE) "at_home")))
 
 Operator : compress
 Number   : 3
 Signature: stream(mlabel) -> stream(mlabel)
-Example  : query compress(Nussi feed head[5] projecttransformstream[Trajectory]) = Nussi feed projecttransformstream[Trajectory]
-Result   : TRUE
-
-Operator : compress
-Number   : 4
-Signature: stream(mstring) -> stream(mstring)
-Example  : query compress(SymbolicTripsTiny feed projecttransformstream[Symtrip]) = SymbolicTripsTiny feed projecttransformstream[Symtrip]
+Example  : query compress(SymbolicTripsTiny feed head[1] projecttransformstream[SymTrip]) = (SymbolicTripsTiny feed head[1] projecttransformstream[SymTrip])
 Result   : FALSE
 
 Operator : fillgaps
 Number   : 1
 Signature: mstring -> mstring
 Example  : query fillgaps([const mstring value ((("2012-10-01" "2012-10-02-05:00:00" TRUE FALSE) "at_home") (("2012-10-02-05:00:58" "2012-10-02-07:00:00" TRUE FALSE) "at_home"))], 60000)
-Result   : ((("2012-10-01" "2012-10-02-07:00:00" TRUE FALSE) "at_home"))
+Result   : (mstring ((("2012-10-01" "2012-10-02-07:00" TRUE FALSE) "at_home")))
 
 Operator : fillgaps
 Number   : 2
 Signature: stream(mstring) -> stream(mstring)
-Example  : query fillgaps(Nussi feed head[1] projecttransformstream[Trajectory], 1000) count
-Result   : 1
+Example  : query fillgaps(SymbolicTripsTiny feed head[1] projecttransformstream[SymTrip], 10000) = (SymbolicTripsTiny feed head[1] projecttransformstream[SymTrip])
+Result   : FALSE
 
 Operator : createml
 Number   : 1
@@ -106,5 +94,5 @@ Result   : TRUE
 Operator : createmlrelation
 Number   : 1
 Signature: int x int x string -> bool
-Example  : query createmlrelation(100, 500, Test1)
+Example  : query createmlrelation(100, 500, "Test1")
 Result   : TRUE
