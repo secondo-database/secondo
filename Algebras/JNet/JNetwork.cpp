@@ -404,7 +404,7 @@ Point* getPointFromCurveForPosFromLRS(double pos,
     pos = curve->Length() - pos;
   HalfSegment hs;
   curve->Get( lrs.hsPos, hs );
-  return new Point(hs.AtPosition( pos));
+  return new Point(hs.AtPosition(pos-lrs.lrsPos));
 }
 
 void addSimulatedTrip(const JUnit& ju,
@@ -423,7 +423,7 @@ void addSimulatedTrip(const JUnit& ju,
   bool end = false;
   if (up)
   {
-    while (!end && lrspos < lastCurve->Size()/2 - 1)
+    while (!end && lrspos < lastCurve->Size()/2)
     {
       lrspos++;
       lastCurve->Get(lrspos, lrs);
@@ -533,16 +533,15 @@ void addUnitsToResult(const JUnit& ju, SimpleLine*& routeCurve,
   else
   {
     int lrsnext = lrspos;
-    if (lrsnext < routeCurve->Size()/2 -1) lrsnext++;
+    if (lrsnext < routeCurve->Size()/2) lrsnext++;
     LRS lrsX;
     routeCurve->Get(lrsnext, lrsX);
-    if (lrs.lrsPos == lrsX.lrsPos ||
-        (epos >= lrs.lrsPos && epos < lrsX.lrsPos))
+    if (epos <= lrsX.lrsPos)
     {
       Point* endP = getPointFromCurveForPosFromLRS(epos, routeCurve,
                                                    lrs);
       checkEndTimeCorrected (endTimeCorrected, instInter1,
-                                   instInter2, TIMECORRECTION);
+                             instInter2, TIMECORRECTION);
       result.Add(UPoint(Interval<Instant> (instInter1, instInter2,
                                           jutime.lc, jutime.rc),
                         *lastEndPoint, *endP));
