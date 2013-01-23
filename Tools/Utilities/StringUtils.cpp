@@ -254,6 +254,22 @@ int ld(const std::string& source, const std::string& target){
 }
 
 
+/*
+~isLetter~ checks whether an character is a letter
+
+*/
+bool isLetter(const char c){
+   return ((c>='A') && (c<='Z')) || ((c>='a' && c<='z'));
+}
+
+/*
+~isDigit~ checks whether a character is a digit
+
+*/
+bool isDigit(const char c) {
+  return (c>='0') && (c<='9');
+}
+
 
 
 

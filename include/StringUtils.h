@@ -176,6 +176,19 @@ std::string int2str(int a);
 int ld(const std::string& source, const std::string& target);
 
 
+/*
+~isLetter~ checks whether an character is a letter
+
+*/
+bool isLetter(const char c);
+
+/*
+~isDigit~ checks whether a character is a digit
+
+*/
+bool isDigit(const char c);
+
+
 } // end of namespace stringutils
 #endif
 
