@@ -133,12 +133,9 @@ query now();
 let OBAJNres006tmp1 =
   dataSJcar feed 
   filter [.Type = "truck"]
-  projectextend [Licence; Ptrip: fromnetwork(.Trip)]
-  extend[BBox: bbox(.Ptrip)]
-  projectextend [Licence, Ptrip; Box: rectangle2(minD(.BBox,1) - 5.0,
-                                                 maxD(.BBox,1) + 5.0,
-                                                 minD(.BBox,2) - 5.0,
-                                                 maxD(.BBox,2) + 5.0)]
+  projectextend [Licence; Ptrip: fromnetwork(.Trip), BBox: bbox(.Trip)]
+  extend [Box: rectangle2(minD(.BBox,1) - 5.0, maxD(.BBox,1) + 5.0,
+                          minD(.BBox,2) - 5.0, maxD(.BBox,2) + 5.0)]
  consume;
 
 query now();
@@ -146,9 +143,7 @@ query now();
 let OBAJNres006 =
   OBAJNres006tmp1 feed {a}
   OBAJNres006tmp1 feed {b}
-  symmjoin[.Box_a intersects ..Box_b] and
-  filter[.Licence_a < .Licence_b]
-  filter[everNearerThan(.Ptrip_a, .Ptrip_b, 10.0)]
+  symmjoin[(.Box_a intersects ..Box_b) and (.Licence_a < ..Licence_b) and (everNearerThan(.Ptrip_a, ..Ptrip_b, 10.0))]
   project [Licence_a, Licence_b]
   sortby [Licence_a asc, Licence_b asc]
   krdup [Licence_a, Licence_b]
@@ -252,20 +247,18 @@ query now();
 let OBAJNres010tmp1 =
    QueryLicences1 feed
     loopsel[dataSJcar_Licence_btree dataSJcar exactmatch[.Licence]]
-    projectextend[Licence, Trip; TripA: fromnetwork(.Trip)]
-    extend [BBox: bbox(.TripA)]
-    projectextend [Licence, Trip, TripA; Box: rectangle2((minD(.BBox,1) - 1.5),
-                                                         (maxD(.BBox,1) + 1.5),
-                                                         (minD(.BBox,2) - 1.5),
-                                                         (maxD(.BBox,2) + 1.5))]
+    projectextend[Licence, Trip; TripA: fromnetwork(.Trip), BBox: bbox(.Trip)]
+    projectextend[Licence, Trip, TripA; Box: rectangle2((minD(.BBox,1) - 1.5),
+                                                        (maxD(.BBox,1) + 1.5),
+                                                        (minD(.BBox,2) - 1.5),
+                                                        (maxD(.BBox,2) + 1.5))]
 consume;
 
 query now();
 
 let OBAJNres010 =
   dataSJcar feed
-    projectextend[Licence; TripA: fromnetwork(.Trip)]
-    extend[BBox: bbox(.TripA)]
+    projectextend[Licence; TripA: fromnetwork(.Trip), BBox: bbox(.Trip)]
     projectextend[Licence, TripA ;Box: rectangle2((minD(.BBox,1) - 1.5),
                                                   (maxD(.BBox,1) + 1.5),
                                                   (minD(.BBox,2) - 1.5),
@@ -386,16 +379,20 @@ query now();
 ################################################################################
 
 let OBAJNres014 =
-  dataSJcar feed
-  QueryInstant1 feed
+  QueryRegions1JNet feed
+    filter [not(isempty(.Region))]
+    projectextendstream[Id, Region; Box: units(.Region)]
+    projectextend[Id, Region; BBox: netbox(.Box)]{r}
+  QueryInstant1 feed {i}
   product
-  projectextend[Licence, Instant; PosX: val(.Trip atinstant .Instant)]
-  projectextendstream[Licence, Instant; Pos: altrlocs(.PosX)]
-  QueryRegions1Net feed filter[not(isempty(.Region))]
-  symmjoin[.Pos inside ..Region]
-  project[Id, Instant, Licence]
-  sortby [Id asc, Instant asc, Licence asc]
-  krdup[Id, Instant, Licence]
+  loopsel [fun (t:TUPLE)
+    dataSJcar_BoxNet_timespace windowintersectsS[box3d(attr(t,BBox_r), attr(t,Instant_i))]
+    sort rdup dataSJcar gettuples
+    filter[val(.Trip atinstant attr(t,Instant_i)) inside attr(t,Region_r)]
+    projectextend[Licence; Instant: attr(t,Instant_i), Id_r: attr(t,Id_r)]]
+  sortby[Id_r, Instant, Licence]
+  krdup[Id_r, Instant, Licence]
+  project[Id_r, Instant, Licence]
 consume;
 
 query now();
@@ -425,6 +422,26 @@ let OBAJNres015 =
   sortby[Id_p asc, Period asc, Licence_p asc]
   krdup[Id_p, Period, Licence_p]
 consume;
+
+let OBAJNres015Test =
+  QueryPoints1JNetAll feed
+    extend[Prect: netbox(.Pos)]
+    projectextend[Id, Pos; NBox: rectangle2(minD(.Prect,1), maxD(.Prect, 1),
+                                            minD(.Prect,2) - 0.00001,
+                                            maxD(.Prect,2) + 0.00001)] {p}
+  QueryPeriods1 feed filter [not(isempty(.Period))] {t}
+  product
+  loopsel[fun(t:TUPLE)
+    dataSJcar_BoxNet_timespace windowintersectsS[box3d(attr(t,NBox_p), attr(t,Period_t))]
+    sort rdup dataSJcar gettuples
+    filter [.Trip passes attr(t,Pos_p)]
+    filter [(.Trip at attr(t,Pos_p)) present attr(t,Period_t)]
+    projectextend[Licence; Id_pos: attr(t,Id_p), Times: attr(t,Period_t)]]
+  project[Id_pos, Times, Licence]
+  sortby[Id_pos asc, Times asc, Licence asc]
+  krdup[Id_pos, Times, Licence]
+consume;
+
 
 query now();
 

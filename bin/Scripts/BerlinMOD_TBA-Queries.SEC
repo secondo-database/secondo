@@ -286,9 +286,9 @@ let TBACRres009 =
     sortby[Moid asc]
     groupby[Moid; Length: round(group feed sum[TripOdo],3)]
   ]
-  groupby[Moid, Period; Dist: group feed max[Length]]
-  project[Period, Dist]
-  sortby[Period, Dist]
+  groupby[Id, Period; Dist: group feed max[Length]]
+  project[Period, Dist] 
+  sortby [Period, Dist]
 consume;
 
 query now();

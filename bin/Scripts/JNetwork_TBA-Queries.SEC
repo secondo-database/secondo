@@ -426,8 +426,7 @@ let TBAJNres014 =
     extend[Brect: netbox(.UReg)]{r}
   QueryInstant1 feed {i}
   product
-  projectextend[Id_r, Region_r, Instant_i; Box: box3d(.Brect_r, .Instant_i)]
-  loopsel[fun(t:TUPLE) dataMJtrip_BoxNet_timespace windowintersectsS[attr(t,Box)]
+  loopsel[fun(t:TUPLE) dataMJtrip_BoxNet_timespace windowintersectsS[box3d(attr(t,Brect_r),attr(t,Instant_i))]
   sort rdup dataMJtrip gettuples
   filter[(val(.Trip atinstant (attr(t,Instant_i)))) inside (attr(t,Region_r))]
   projectextend [Moid;Instant: attr(t,Instant_i), Id: attr(t,Id_r)]]{a}
