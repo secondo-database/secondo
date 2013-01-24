@@ -8435,20 +8435,21 @@ struct hpelem{
     return true;
 
   }
-  hpelem(){}
+
   hpelem(const hpelem& le)
   :movdist(le.movdist),tid(le.tid),dataup(le.dataup),
    mind(le.mind),maxd(le.maxd),nodeid(le.nodeid),
-   nodets(le.nodets),nodete(le.nodete)
+   next(le.next), nodets(le.nodets),nodete(le.nodete)
    {
-      next = le.next;
-//      printf("%.16f %.16f\n",nodets,nodete);
       assert(nodets<=nodete);
    }
+
+
   hpelem(TupleId id1,double d1,double d2,long id2)
-  :tid(id1),mind(d1),maxd(d2),nodeid(id2){
-    next = NULL;
+  :tid(id1),mind(d1),maxd(d2),nodeid(id2),next(0), 
+   nodets(0),nodete(0){
   }
+
   inline hpelem& operator=(const hpelem& le);
   inline void AssignURUP(UReal* movdist,UPoint* dataup);
   inline void MyTemporalFunction(double& t,Point& result);
@@ -8456,6 +8457,7 @@ struct hpelem{
   inline void URealMax(double& start);
   inline void URealTranslate(double& start);
 };
+
 inline hpelem& hpelem::operator=(const hpelem& le)
 {
     tid = le.tid;
