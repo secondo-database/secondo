@@ -1144,19 +1144,25 @@ int csvimport2VM(Word* args, Word& result,
 */
 
 OperatorSpec csvimport2Spec(
-  "ftext x int x string x string string x bool -> stream(tuple(...))",
-  "csvimport2(filename, headersize, comment, separator, quotes)",
-  "csvimport2 imports the csvfile given by filename into a relation"
-  " having string attributes exclusively. The file must contain "
+  "ftext x int x string x string x bool x bool-> stream(tuple(...))",
+  "csvimport2(filename, headersize, comment, separator, quotes, multilines)",
+  "csvimport2 imports the csv file given by filename into a relation"
+  " having text attributes exclusively. The file must contain "
   " the attribute names within its first row separated by the same "
-  " character as the values. The second argument defined the size of"
-  " the header, this means the given number of row is omitted from "
+  " character as the values. The second argument defines the size of"
+  " the header, this means the given number of rows is omitted from "
   " the file. This number should be 1 at least. "
-  "  Each line of the file starting with comment is ignored also."
-  " Sometime, the values are given in quotes (for example because "
+  "  Each line of the file starting with the string comment is ignored also."
+  " All characters within the separator argument are treat as attribute"
+  " separators. If this string is empty or undefined, a comma is used as "
+  "separator."
+  " Sometimes, the values are given in quotes (for example because "
   " a string contains the separator char). If so,just set the "
-  " quotes argument to TRUE",
-  "query csvimport2('kinos.csv',1,\"\",\",\",FALSE)");
+  " quotes argument to TRUE. "
+  " The parameter multilines can be used if attributes span more than 1 line."
+  "These attributes must be included in double quotes. If the multilines"
+  "argument is set to true, also the quotes argument is true.",
+  "query csvimport2('kinos.csv',1,\"\",\",\",TRUE,TRUE)");
 
 
 /*
