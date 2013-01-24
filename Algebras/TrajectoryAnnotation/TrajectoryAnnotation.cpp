@@ -279,9 +279,12 @@ xmlNodePtr check;
 xmlNodePtr subcur;
 xmlNodePtr subsubcur;
 xmlNodePtr subsubsubcur;
-//doc = xmlParseFile("/home/secondo/output.xml");
 doc = xmlParseFile("../bin/output.xml");
 cur = xmlDocGetRootElement(doc);
+
+//neu
+if ( cur == NULL){
+return 0;}
 
 cur = cur->children;
 check = cur->children;
@@ -327,6 +330,7 @@ double ausg2;
 	  
 	  }
 	cur = cur->next;
+        usleep(100);
 	}
 	
 xmlFreeDoc(doc);
@@ -462,14 +466,18 @@ xmlNodePtr check;
 xmlNodePtr subcur;
 xmlNodePtr subsubcur;
 xmlNodePtr subsubsubcur;
-//doc = xmlParseFile("/home/secondo/output.xml");
 doc = xmlParseFile("../bin/output.xml");
 cur = xmlDocGetRootElement(doc);
+//neu
+if ( cur == NULL){
+return 0;}
 
 cur = cur->children;
 check = cur->children;
 double ausg1;
 double ausg2;
+
+
 
 	while (cur != NULL) {
 		if ((xmlStrcmp(cur->name, (const xmlChar *)"result"))==0){
@@ -508,6 +516,7 @@ double ausg2;
 	  
 	  }
 	cur = cur->next;
+	usleep(100);
 	}
 	
 xmlFreeDoc(doc);
@@ -518,7 +527,7 @@ xmlFreeDoc(doc);
 ((Point*)result.addr)->Set(ausg2, ausg1);
 return 0;
 }
- return 0; 
+return 0; 
 }
 
 
