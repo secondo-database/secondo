@@ -7502,7 +7502,7 @@ Word InConstTemporalUnit( const ListExpr typeInfo,
 template <class Alpha>
 Word CreateConstTemporalUnit( const ListExpr typeInfo )
 {
-  return (SetWord( new ConstTemporalUnit<Alpha>() ));
+  return (SetWord( new ConstTemporalUnit<Alpha>(false) ));
 }
 
 /*
