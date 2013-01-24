@@ -125,5 +125,6 @@ Result   : 562
 Operator : randomshiftdelay
 Number   : 1
 Signature: mpoint x duration x real x real -> mpoint
-Example  : query randomdelay(train7, create_duration(0, 13000), 20.5, 50.0 ) 
-Result   : file
+Example  : query randomshiftdelay(train7, create_duration(0, 13000), 20.5, 50.0 ) 
+Result   : unpredictable
+Remark   : Use of random numbers within operator
