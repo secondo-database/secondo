@@ -310,6 +310,7 @@ public class OptTest {
                                     .indexOf(" "));
                             //System.out.println("Info : Changing state to TESTCASE.");
                             testcasestate = AWAITINGYIELD;
+                            System.out.println();
                             System.out.println("Testcasename : "
                                     + currentline.trim().substring(
                                             currentline.indexOf(" ")));

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cp 30/dmltest.tspec /home/secondo/secondo/OptParser/OptTest
-cd /home/secondo/secondo/OptParser/OptTest
+cp 30/dmltest.tspec $HOME/secondo/OptParser/OptTest
+cd $HOME/secondo/OptParser/OptTest
 make
 StartTest -c dmltest.tspec

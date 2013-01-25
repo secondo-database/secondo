@@ -1,5 +1,6 @@
 #!/bin/bash
 
-cd /home/secondo/secondo/OptParser/OptTest
+cd $HOME/secondo/OptParser/OptTest
 make
-StartTest sqltest.test
+# StartTest sqltest.test
+startOptTest sqltest.test
