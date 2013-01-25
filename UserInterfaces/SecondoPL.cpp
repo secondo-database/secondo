@@ -48,6 +48,14 @@ support for calling Secondo from PROLOG.
 
 using namespace std;
 
+// NVK ADDED
+#ifdef SECONDO_USE_MEMORY_ALLOCATION
+#include "MemoryOptimization.h"
+//#include "QueryProcessor.h"
+#endif
+// NVK ADDED END
+
+
 #include "NestedList.h"
 #include "SecondoInterface.h"
 #include "Profiles.h"
@@ -616,7 +624,7 @@ static foreign_t getOperatorIndexes(
      cout << "cannot convert name" << endl;
      PL_fail;
    }
-   cout << "name = '" << nameC << "'" << endl;
+
    // convert argument list from prolog to C++
    bool error = false;
    ListExpr argListC = TermToListExpr(argList, si->GetNestedList(), error);
@@ -624,7 +632,6 @@ static foreign_t getOperatorIndexes(
      cout << "cannot convert arglist" << endl;
      PL_fail;    
    }
-   cout << "arglist = " << si->GetNestedList()->ToString(argListC) << endl;
    int algIdC;
    int opIdC;
    int funIdC;
@@ -633,7 +640,7 @@ static foreign_t getOperatorIndexes(
    bool ok = si->getOperatorIndexes(nameC, argListC, resListC, 
                                     algIdC, opIdC, funIdC,si->GetNestedList()); 
    if(!ok){
-      cout << "OPerator not available for arguments" << endl;
+      //cout << "OPerator not available for arguments" << endl;
       PL_fail;
    }
    // convert results back to prolog terms
@@ -1179,6 +1186,40 @@ pl_maximize_entropy(term_t predicates, term_t probabilities, term_t result)
 
 #endif
 
+/*
+NVK ADDED MA
+Forwards the GlobalMemory property to the prolog environment.
+
+This should be improved by someone who is more familiar with secondo's kernel.
+The code in comments won't work, as soon as i include the QueryProcessor.h, secondo won't compile successfully anymore.
+Note that GetGlobalMemory function needs to be implemented fist within QueryProcessor.cpp and QueryProcessor.h.
+
+*/
+static foreign_t pl_global_memory(term_t value) {
+  string sbd = getenv("SECONDO_BUILD_DIR");
+  int globalMem = 512; // Unit: MiB
+  if(sbd.length()>0) {
+    globalMem = SmiProfile::GetParameter("QueryProcessor", "GlobalMemory", 512,
+      sbd + "/bin/SecondoConfig.ini");
+  }
+  else
+    PL_fail;
+  /*
+  QueryProcessor& qp = *SecondoSystem::GetQueryProcessor();
+  size_t globalMem=qp.GetGlobalMemory();
+  */
+  int unify1 = PL_unify_integer(value, globalMem);
+  if(unify1 != 0) {
+    PL_succeed;
+  }
+  else {
+    PL_fail;
+  }
+}
+// NVK ADDED MA END
+
+
+
 PL_extension predicates[] =
 {
   { "secondo", 2, (void*)pl_call_secondo, 0 },
@@ -1196,6 +1237,12 @@ PL_extension predicates[] =
 #ifdef SECONDO_USE_ENTROPY
   { "maximize_entropy", 3, (void*)pl_maximize_entropy, 0 },
 #endif
+  // NVK ADDED MA
+#ifdef SECONDO_USE_MEMORY_ALLOCATION
+  { "secondo_global_memory", 1, (void*)pl_global_memory, 0 },
+  { "memoryOptimization", 6, (void*)pl_memoryOptimization, 0 },
+#endif
+  // NVK ADDED MA END
   { 0, 0, 0, 0 } /* terminating line */
 };
 
