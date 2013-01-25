@@ -249,31 +249,64 @@ represented by this automaton.
    }
 
 
-   bool starts2(const std::string& text, const int offset, int& length){
-      length=0;
+/*
+1.8 starts2
+
+This function checks whether text at position offset starts with
+this pattern. The length of the substring is returned.
+
+*/
+   bool starts2(const string& text, const int offset, int& length, 
+                const bool findMax, const bool allowEmpty){
        if(!IsDefined()){
          return false;
        }  
       if((finalStates.size()==0) || (numOfStates==0)){
         return false;
       }
-      if(offset>=(int)text.length()){
-          return false;
-      }
+      length=0;
       int state = 0;
+      bool isFinal;
+      int  lastFinal = -1;
       for(size_t i=offset; i<text.length();i++){
-          if(finalStates[state]){
-            return true;
+          isFinal = finalStates[state];
+          if(isFinal){
+            if(findMax){
+              lastFinal = length;
+            } else if((length>0) || allowEmpty){
+                return true;
+            }
           }
           state = transitions[state*NUMCHARS+(unsigned char)text[i]];
           length++;
           if(state<0){
-             return false;
+             if(findMax){
+               if((lastFinal>0) || ((lastFinal>=0) && allowEmpty)){
+                 length = lastFinal;
+                 return true;
+               } else {
+                 return false;
+               }
+             } else {
+                 return false;
+             }
           }  
-      }
-      return finalStates[state];
-   }
+      } // end of text reached
 
+      isFinal = finalStates[state];
+      if(findMax){
+          if(isFinal){
+            return   allowEmpty || (length>0);
+          } else if((lastFinal>0) || ((lastFinal>=0)&&allowEmpty)){
+             length = lastFinal;
+             return true;  
+          } else {
+             return false;
+          }
+      } else {
+         return isFinal && ((length>0) || allowEmpty);
+      }
+   }
 
 /*
 1.10 readFrom

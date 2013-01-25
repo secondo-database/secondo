@@ -1055,6 +1055,20 @@ Number   : 1
 Signature: text x regex -> stream(tuple((P1 int, P2 int)))
 Example  : query findPattern('Secondo',[const regex value 'o']) count
 Result   : 2
+Remark   : find pattern regex in text with minimum length, the empty word is ignored
+
+Operator : findPattern
+Number   : 2
+Signature: text x regex x bool -> stream(tuple((P1 int, P2 int)))
+Example  : query findPattern('Secondo',[const regex value 'o'],TRUE) count
+Result   : 2
+Remark   : if the boolean parameter is set to TRUE, pattern with maximum length are searched, the empty word is ignored
+
+Operator : findPattern
+Number   : 3
+Signature: text x regex x bool x bool -> stream(tuple((P1 int, P2 int)))
+Example  : query findPattern('Secondo',[const regex value 'o'],FALSE, TRUE) count
+Result   : 2
 
 
 Operator : createRegEx

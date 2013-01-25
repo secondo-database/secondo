@@ -8923,14 +8923,15 @@ Operator startsReg(
 
 4.30.1 TypeMapping
 
-Signature: {text,string} x {regex,regex2} -> 
+Signature: {text,string} x {regex,regex2} [ x bool] -> 
 stream(tuple( (P1 : int), (P2 : int)))
 
 */
 
 ListExpr findPatternTM(ListExpr args){
-  string err = "{string,text} x {regex, regex2} expected";
-  if(!nl->HasLength(args,2)){
+  string err = "{string,text} x {regex, regex2} [x bool [x bool]] expected";
+  int len = nl->ListLength(args);
+  if((len!=2) && (len!=3) && (len!=4)){
      return listutils::typeError(err);
   }
   if(!RegExPattern::checkType(nl->Second(args)) &&
@@ -8946,11 +8947,37 @@ ListExpr findPatternTM(ListExpr args){
                                listutils::basicSymbol<CcInt>()),
               nl->TwoElemList( nl->SymbolAtom("P2"),
                                listutils::basicSymbol<CcInt>()));
-  return nl->TwoElemList(
+
+  ListExpr reslist = nl->TwoElemList(
              listutils::basicSymbol<Stream<Tuple> >(),
              nl->TwoElemList(
                   listutils::basicSymbol<Tuple>(),
                    attrList));
+
+  if(len == 2){
+    // use FALSE, FALSE  as default values for boolean Params
+    return nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
+                            nl->TwoElemList(nl->BoolAtom(false),
+                                            nl->BoolAtom(false)),
+                            reslist);
+
+  }
+
+  if(!CcBool::checkType(nl->Third(args))){ // check 1 optional arg
+     return listutils::typeError("third argument must be of type bool");
+  }
+  if(len==3){
+    return nl->ThreeElemList( nl->SymbolAtom(Symbol::APPEND()),
+                            nl->OneElemList(nl->BoolAtom(false)),
+                            reslist);
+  }
+  // len == 4
+  if(!CcBool::checkType(nl->Fourth(args))){ // check 1 optional arg
+     return listutils::typeError("fourth argument must be of type bool");
+  }
+  return reslist;  
+
+ 
 }
 
 /*
@@ -8961,7 +8988,10 @@ template<class T, class P>
 class FindPatternInfo{
 
  public:
-    FindPatternInfo( T* t, P* p, ListExpr tupleType){
+    FindPatternInfo( T* t, P* p,      // text, pattern
+                     CcBool* findMaxLength, // search for maximum length?
+                     CcBool* allowEmpty, // allow empty matches
+                     ListExpr tupleType){
       if(!t->IsDefined() || !p->IsDefined()){
          text = "";
          pattern = 0;
@@ -8973,6 +9003,8 @@ class FindPatternInfo{
          pos = 0;
          tt = new TupleType(tupleType);
       }
+      findMax = (findMaxLength->IsDefined() && findMaxLength->GetBoolval());
+      this->allowEmpty = (allowEmpty->IsDefined() && allowEmpty->GetBoolval());    
     }
 
    ~FindPatternInfo(){
@@ -8988,7 +9020,7 @@ class FindPatternInfo{
       }
       int length;
       while(pos < text.length()){
-         if(pattern->starts2(text,pos,length)){
+         if(pattern->starts2(text,pos,length, findMax,allowEmpty)){
             Tuple* res = new Tuple(tt);
             res->PutAttribute( 0 , new CcInt(true,pos));
             res->PutAttribute( 1 , new CcInt(true,pos+length));
@@ -9010,6 +9042,8 @@ class FindPatternInfo{
    P* pattern;
    unsigned int pos;
    TupleType* tt;
+   bool findMax;
+   bool allowEmpty;
 };
 
 template<class T, class P>
@@ -9023,6 +9057,8 @@ int findPatternVM( Word* args, Word& result, int message,
           }
           local.addr = new FindPatternInfo<T,P> ( (T*) args[0].addr,
                                           (P*) args[1].addr,
+                                          (CcBool*) args[2].addr,
+                                          (CcBool*) args[3].addr,
                                           nl->Second(GetTupleResultType(s)));
           return 0;  
       }
@@ -9068,10 +9104,16 @@ int findPatternSelect(ListExpr args){
 
 
 OperatorSpec findPatternSpec(
-           "{string,text} x {regex,regex2} -> "
+           "{string,text} x {regex,regex2} [ x bool [x bool]] -> "
            "stream(tuple((P1 : int, P2: int)))",
-           " findPattern(_,_)",
-           " Returns all positions of regex in text ",
+           " findPattern(text,pattern, findMax, allowEmpty)",
+           " Returns all positions of regex in text. P1 ist the index where"
+           " matched part of the string starts, P2 is the position after the"
+           "matched pattern ends."
+           "If the optional  parameter findMax is set to TRUE (default false)",
+           ", patterns of maximum lengths are searched, pattern of minimum "
+           " length otherwise. The boolean parameter allowEmpty controls "
+           "whether finding the empty word holds a match.",
            " query findPattern('Secondo', [const regex2 value 'o']) count");
 
 /*

@@ -326,7 +326,8 @@ This function checks whether text at position offset starts with
 this pattern. The length of the substring is returned.
 
 */
-   bool starts2(const string& text, const int offset, int& length){
+   bool starts2(const string& text, const int offset, int& length, 
+                const bool findMax, bool allowEmpty ){
        if(!IsDefined()){
          return false;
        }  
@@ -336,20 +337,47 @@ this pattern. The length of the substring is returned.
       length=0;
       int state = 0;
       bool isFinal;
+      int  lastFinal = -1;
       for(size_t i=offset; i<text.length();i++){
           finalStates.Get(state,isFinal);
           if(isFinal){
-            return true;
+            if(findMax){
+              lastFinal = length;
+            } else if((length>0) || allowEmpty){
+                return true;
+            }
           }
           state = nextState(state, (unsigned char) text[i]);
           length++;
           if(state<0){
-             return false;
+             if(findMax){
+               if((lastFinal>0) || ((lastFinal>=0) && allowEmpty) ){
+                 length = lastFinal;
+                 return true;
+               } else {
+                 return false;
+               }
+             } else {
+                 return false;
+             }
           }  
       }
       finalStates.Get(state,isFinal);
-      return isFinal;
+      if(findMax){
+          if(isFinal){
+            return   allowEmpty || (length>0);
+          } else if((lastFinal>0) || ((lastFinal>=0)&&allowEmpty) ){
+             length = lastFinal;
+             return true;  
+          } else {
+             return false;
+          }
+      } else {
+         return isFinal && ((length>0) || allowEmpty);
+      }
    }
+
+
 
 
    void SetDefined(bool defined){
