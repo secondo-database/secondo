@@ -61,3 +61,45 @@ bool checkRewriteSeq(pair<vector<size_t>, vector<size_t> > seq, size_t maxSize,
 Word evaluate(string input);
 vector<string> createTrajectory(int size);
 void fillML(const MString& source, MString& result, DateTime* duration);
+
+struct TrieNode;
+
+struct NodePointer {
+  TrieNode* nextNode;
+  int nextDbIndex; // position of the pointed node in Nodes
+};
+
+struct TrieNode {
+  NodePointer content[256];
+  set<unsigned int> positions;
+};
+
+struct NodeRef {
+  unsigned int firstCont;
+  unsigned int lastCont;
+  unsigned int firstIndex;
+  unsigned int lastIndex;
+};
+
+struct NodeContent {
+  char character;
+  unsigned int nextNodeIndex;
+};
+
+class LabelTrie {
+public:
+  LabelTrie() {}
+  LabelTrie(DbArray<NodeRef>* n, DbArray<NodeContent>* nC, DbArray<size_t>* lI);
+
+  ~LabelTrie() {}
+
+  bool insert(string label, size_t pos);
+  bool makePersistent(); // stores main memory tree structure into DbArrays
+  bool removeTrie(); // removes main memory tree structure
+  set<int> find(string label); // returns the position(s) where label occurs
+
+private:
+  DbArray<NodeRef> nodes;
+  DbArray<NodeContent> nodeContents;
+  DbArray<size_t> labelIndex;
+};

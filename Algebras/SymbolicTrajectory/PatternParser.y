@@ -44,6 +44,7 @@ Algebra.
 #include <set>
 #include <map>
 #include "Pattern.h"
+#include "SymbolicTrajectoryTools.h"
 
 using namespace std;
 using namespace stj;
@@ -446,6 +447,17 @@ Pattern* stj::parseString(const char* input, bool classify = false) {
   }
   deleteCurrentPatternBuffer();
   return result;
+}
+
+/*
+Constructor for class ~UPat~
+
+*/
+UPat::UPat(const string v, const string i, const string l, const Wildcard w) {
+  var = v;
+  ivs = stringToSet(i);
+  lbs = stringToSet(l);
+  wc = w;
 }
 
 /*

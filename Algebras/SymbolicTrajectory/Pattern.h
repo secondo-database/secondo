@@ -36,7 +36,7 @@ This is the header file for the Symbolic Trajectory Algebra.
 
 */
 #include "NestedList.h"
-#include "SymbolicTrajectoryTools.h"
+// #include "SymbolicTrajectoryTools.h"
 #include "StandardTypes.h"
 #include "TemporalAlgebra.h"
 #include "ListUtils.h"
@@ -78,23 +78,11 @@ class MLabel : public MString {
   }
   static ListExpr MLabelProperty();
   static bool CheckMLabel(ListExpr type, ListExpr& errorInfo);
-//   int NumOfFLOBs() const;
-//   Flob* GetFLOB(const int i);
-//   CharLink getCharLink(const int index) const;
-//   int getPosition(const int index) const;
-//   void destroyIndex();
-//   bool indexExists() {return hasIndex;}
-//   bool buildIndex(MLabel const &source);
   MLabel* compress();
   void create(int size, bool text, double rate);
   void rewrite(MLabel const &ml,
                const pair<vector<size_t>, vector<size_t> > &seq,
                vector<Assign> assigns, map<string, int> varPos);
-
-//  private:
-//   bool hasIndex;
-//   DbArray<CharLink> links;
-//   DbArray<int> positions;
 };
 
 class ULabel : public UString {
@@ -178,14 +166,8 @@ class UPat {
 
  public:
   UPat() {}
+  UPat(const string v, const string i, const string l, const Wildcard w);
   ~UPat() {}
-
-  UPat(const string v, const string i, const string l, const Wildcard w){
-    var = v;
-    ivs = stringToSet(i);
-    lbs = stringToSet(l);
-    wc = w;
-  }
 
   void setUnit(const char *v, const char *i, const char *l, const char *w);
   void getUnit(const char *v, bool assignment);

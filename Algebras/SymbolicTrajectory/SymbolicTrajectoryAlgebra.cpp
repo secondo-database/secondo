@@ -98,8 +98,6 @@ class Label {
   }
 
  private:
-//  Label() {}
-
   char text[MAX_STRINGSIZE+1];
 };
 
@@ -603,8 +601,8 @@ void MLabel::rewrite(MLabel const &ml,
       end = *((Instant*)qResult.addr);
     } // information from assignment i collected
     if (assigns[i].getPatternPos() > -1) { // variable occurs in p
-      ml.Get(seq.first[seqPos], uls);
       if (seq.first[seqPos] + 1 == seq.first[seqPos + 1]) { // 1 source ul
+        ml.Get(seq.first[seqPos], uls);
         if (!assigns[i].getText(0).empty()) {
           uls.constValue.Set(true, label);
         }

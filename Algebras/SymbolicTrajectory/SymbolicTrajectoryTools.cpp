@@ -596,3 +596,14 @@ void fillML(const MString& source, MString& result, DateTime* duration) {
   }
   result.MergeAdd(last);
 }
+
+LabelTrie::LabelTrie(DbArray<NodeRef>* n, DbArray<NodeContent>* nC,
+                     DbArray<size_t>* lI) {
+  nodes = *n;
+  nodeContents = *nC;
+  labelIndex = *lI;
+}
+
+bool LabelTrie::insert(string label, size_t pos) {
+  return true;
+}
