@@ -1460,7 +1460,19 @@ moved to separate functions. This kind of functions should be named Command\_<na
     {
       errorCode =  SecondoInterface::Command_Sequence( list,
                                        resultList,
-                                       errorMessage );
+                                       errorMessage,
+                                       true );
+    }
+    else if ( nl->IsEqual( first, "beginseq2" ) &&
+                (length == 3) &&
+                !nl->IsAtom( nl->Nth(2, list) ) &&
+                nl->IsEqual( nl->Nth(3, list), "endseq2" )
+            )
+    {
+      errorCode =  SecondoInterface::Command_Sequence( list,
+                                       resultList,
+                                       errorMessage,
+                                       false );
     }
 
     // --- while-do loop: (while <p> do <c> endwhile)
@@ -2203,7 +2215,8 @@ SecondoInterface::Command_Conditional( const ListExpr list,
 SI_Error
 SecondoInterface::Command_Sequence( const ListExpr  list,
                                     ListExpr       &resultList,
-                                    string         &errorMessage )
+                                    string         &errorMessage,
+                                    bool           ignoreError )
 {
   SI_Error errorCode  = ERR_NO_ERROR;
   int errorPos        = 0;
@@ -2215,7 +2228,7 @@ SecondoInterface::Command_Sequence( const ListExpr  list,
   resultList          = nl->TheEmptyList();
   errorMessage        = "";
 
-  while( (errorCode == ERR_NO_ERROR) && (i<=no_commands) ){
+  while( ((errorCode == ERR_NO_ERROR) || ignoreError) && (i<=no_commands) ){
     stringstream out;
     out << i;
     string i_s = out.str();
@@ -2234,10 +2247,6 @@ SecondoInterface::Command_Sequence( const ListExpr  list,
                            errorMessage,
                            "SecondoQPResult_tmp",
                            false);         // execute ii
-//     cmsg.info() << endl << "Result List for command " << i << "/"
-//                 << no_commands << ": "
-//                 << nl->ToString(cresult) << endl;
-//     cmsg.send();
     // append result to result list
     if(nl->IsEmpty(resultList)){ // create OneElemList;
       resultList = nl->OneElemList(cresult);

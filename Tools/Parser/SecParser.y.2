@@ -105,7 +105,10 @@ whilecommand  :  ZZWHILE valueexpr ZZDO command ZZENDWHILE
     }
    ;
 
-commandblock  :  '{' commandseq '}'
+commandblock : commandblock1 | commandblock2
+             ;
+
+commandblock1  :  '{' commandseq '}'
     { CLEAR();
       PRINTF("(beginseq (");
       PRINT($2);
@@ -115,6 +118,20 @@ commandblock  :  '{' commandseq '}'
     |  '{' '}'
     { CLEAR();
       PRINTF("(beginseq () endseq)\n");
+      $$ = NestedText::AtomC(yacc_outtext->c_str());
+    }
+    ;
+
+commandblock2  :  OPENDOUBLEBRACE commandseq CLOSEDOUBLEBRACE
+    { CLEAR();
+      PRINTF("(beginseq2 (");
+      PRINT($2);
+      PRINTF(") endseq2)\n");
+      $$ = NestedText::AtomC(yacc_outtext->c_str());
+    }
+    |  '{' '}'
+    { CLEAR();
+      PRINTF("(beginseq2 () endseq2)\n");
       $$ = NestedText::AtomC(yacc_outtext->c_str());
     }
     ;

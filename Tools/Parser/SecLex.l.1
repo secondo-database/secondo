@@ -158,6 +158,8 @@ endif		{yylval = NestedText::Atom( yytext, yyleng ); return ZZENDIF;}
 while   {yylval = NestedText::Atom( yytext, yyleng ); return ZZWHILE;}
 do   {yylval = NestedText::Atom( yytext, yyleng ); return ZZDO;}
 endwhile   {yylval = NestedText::Atom( yytext, yyleng ); return ZZENDWHILE;}
+"{{"       { return OPENDOUBLEBRACE; }
+"}}"       { return CLOSEDOUBLEBRACE; }
 {naming} { 
          
          string value(yytext);

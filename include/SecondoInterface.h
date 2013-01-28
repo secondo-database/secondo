@@ -1080,7 +1080,8 @@ bool getFunction(const int algId,
 
   SI_Error Command_Sequence( const ListExpr list,
                              ListExpr &resultList,
-                             string &errorMessage );
+                             string &errorMessage,
+                             bool conjunct );
 
   SI_Error Command_WhileDoLoop( const ListExpr list,
                                 ListExpr &resultList,
