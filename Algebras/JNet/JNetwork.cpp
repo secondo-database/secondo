@@ -671,8 +671,7 @@ JNetwork::JNetwork(SmiRecord& valueRecord, size_t& offset,
 
   if (ok)
     ok = openRelation(netdistances, JNetUtil::GetNetdistancesRelationTypeInfo(),
-                      valueRecord,
-                      offset);
+                      valueRecord, offset);
 
   if (ok)
     ok = openBTree(junctionsBTree, JNetUtil::GetJunctionsBTreeTypeInfo(),
@@ -1729,6 +1728,10 @@ Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc,
           sectCurve->Get(i,hs);
           routeCurve->operator+=(hs);
         }
+        curRint->DeleteIfAllowed();
+        curRint = 0;
+        sectCurve->DeleteIfAllowed();
+        sectCurve = 0;
         sectTup->DeleteIfAllowed();
         sectTup = 0;
       }
@@ -1741,6 +1744,7 @@ Point* JNetwork::GetSpatialValueOf(const RouteLocation& rloc,
   else routeCurve->SetStartSmaller(true);
   double pos = correctedPos(rloc.GetPosition(), routeCurve->Length(),
                             tolerance);
+  routeSectList->DeleteIfAllowed();
   return getPointFromCurveForPosRememberLRSPos(pos, routeCurve, lrs, lrspos);
 }
 
