@@ -418,8 +418,6 @@ class Match {
                                               {return rewriteSeqs;}
   bool conditionsMatch(MString const &ml);
   void computeSeqOrder();
-  size_t getRelevantCombs();
-  bool isFixed(int pos, bool start);
   bool evaluateEmptyML();
   bool evaluateCond(MString const &ml, int cId, multiset<size_t> sequence);
   set<multiset<size_t> > getSequences() {return sequences;}

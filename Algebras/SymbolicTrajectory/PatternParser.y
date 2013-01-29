@@ -649,8 +649,6 @@ int Pattern::getPatternPos(const string var) {
 
 void Condition::clear() {
   text.clear();
-  textSubst.clear();
-  subst.clear();
   keys.clear();
   vars.clear();
   pIds.clear();

@@ -2440,31 +2440,6 @@ bool Match::conditionsMatch(MString const &ml) {
       return false;
     }
   }
-  
-//   else { // accelerated case
-//     numOfNegEvals = 0;
-//     for (int i = 0; i < (int)conds.size(); i++) {
-//       do {
-//         proceed = false;
-//         if (!evaluateCond(ml, i, seq)) {
-// //           if (numOfNegEvals % 10 == 0) {
-// //             cout << numOfNegEvals << " negative evaluations now." << endl;
-// //           }
-//           if (numOfNegEvals == numOfRelCombs) { // relevant sequences tested
-//             return false;
-//           }
-//           seq = getNextSeq();
-//           i = 0; // in case of a mismatch, return to the first condition
-//         }
-//         else {
-//           proceed = true;
-//         }
-//       } while (!seq.empty() && !proceed);
-//       if (!proceed) { // no matching sequence found
-//         return false;
-//       }
-//     }
-//   }
   return true;
 }
 
@@ -2493,67 +2468,6 @@ void Match::computeSeqOrder() {
       k++;
     }
   }
-}
-
-/*
-\subsection{Function ~getRelevantCombs~}
-
-Computes and returns the (maximal) number of relevant combinations, depending
-on the types of the occurring conditions and their number.
-
-*/
-size_t Match::getRelevantCombs() {
-  map<int, size_t> factors;
-  map<int, size_t>::iterator it;
-  int key, pos;
-  size_t result, factor;
-  for (int i = 0; i < (int)conds.size(); i++) {
-    for (int j = 0; j < (int)conds[i].getKeysSize(); j++) {
-      pos = conds[i].getPId(j);
-      key = conds[i].getKey(j);
-      if (((key == 2) && isFixed(pos, true))
-       || ((key == 3) && isFixed(pos, false))) {
-        factor = 1; // unique substitution possibility for these cases
-      }
-      else if ((key == 4) || !pos || (pos == f - 1)) { // card or border
-        factor = cardsets[pos].size();
-      }
-      else if ((key > 1) || !patterns[pos].getW()) { // start/end or no wildcard
-        factor = cardsets[maxCardPos].size(); // numOfLabels
-      }
-      else {
-        factor = (numOfLabels * numOfLabels);
-      }
-      if ((factors.find(pos) == factors.end()) || (factors[pos] < factor)) {
-        factors[pos] = factor; // new or update
-      }
-    }
-  }
-  result = 1;
-  for (it = factors.begin(); it != factors.end(); it++) {
-    result *= (*it).second;
-  }
-//   cout << "there are " << result << " relevant combinations" << endl;
-  return result;
-}
-
-/*
-\subsection{Function ~isFixed~}
-
-Returns true if and only if the start or the end of matching (depending on the
-second parameter) is fixed by non-wildcard unit patterns, e.g., for () () X +,
-the first unit label matching X is always the same, so isFixed(2, true) = true.
-
-*/
-bool Match::isFixed(int pos, bool start) {
-  int a = (start ? 0 : pos + 1);
-  int b = (start ? pos : f);
-  for (int i = a; i < b; i++) {
-    if (patterns[i].getW()) {
-      return false;
-    }
-  }
-  return true;
 }
 
 /*
