@@ -108,8 +108,6 @@ class ExprList {
 class Condition {
  private:
   string text;
-  string textSubst; // the condition after replacing, see maps below
-  map<int, string> subst;
   vector<int> keys;
   vector<string> vars;
   vector<int> pIds;
@@ -123,17 +121,11 @@ class Condition {
   string toString() const;
   int convertVarKey(const char *varKey);
   void clear();
-  void substitute();
-  void substitute(int pos, string subst);
   static string getType(int t);
-  static string getSubst(int s);
   void deleteOpTree();
   
   string  getText() const          {return text;}
   void    setText(string newText)  {text = newText;}
-  string  getSubst() const         {return textSubst;}
-  void    resetSubst()             {textSubst = text;}
-  void    setSubst(string newSub)  {textSubst = newSub;}
   int     getKeysSize() const      {return keys.size();}
   int     getKey(unsigned int pos) {return (pos < keys.size() ?
                                                   keys[pos] : -1);}
@@ -189,7 +181,6 @@ class Assign {
   int resultPos;
   int patternPos; // -1 if ~var~ does not occur in the pattern
   string text[4]; // one for label, one for time, one for start, one for end
-  string textSubst[4];
   string var;
   vector<pair<string, int> > right[5]; // a list of vars and keys for every type
   pair<QueryProcessor*, OpTree> opTree[4];
@@ -201,7 +192,6 @@ class Assign {
 
   static string getDataType(int key);
   void convertVarKey(const char* vk);
-  void substitute(int key);
   bool prepareRewrite(int key, const vector<size_t> &assSeq,
                       map<string, int> &varPosInSeq, MLabel const &ml);
   bool initOpTrees();
@@ -221,8 +211,6 @@ class Assign {
   void    setText(int key, string newText)   {if (!text[key].empty()) {
                                                right[key].clear();}
                                               text[key] = newText;}
-  string  getSubst(int key) const            {return textSubst[key];}
-  void    setSubst(int key, string newSubst) {textSubst[key] = newSubst;}
   int     getRightSize(int key) const        {return right[key].size();}
   string  getV() const                       {return var;}
   int     getRightKey(int lkey, int j) const {return right[lkey][j].second;}
@@ -351,7 +339,6 @@ class Pattern {
             assigns[posR].setText(key, arg); assigns[posR].setPatternPos(posP);}
   void addAssignRight(int pos, int key, pair<string, int> varKey)
                                            {assigns[pos].addRight(key, varKey);}
-  void        substAssign(int pos, int key) {assigns[pos].substitute(key);}
   bool              isVerified() const      {return verified;}
   void              setVerified(bool v)     {verified = v;}
   vector<map<int, set<int> > > getDelta() const     {return delta;}

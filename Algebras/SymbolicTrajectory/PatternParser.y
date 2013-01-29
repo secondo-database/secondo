@@ -131,7 +131,6 @@ assignment : ZZVAR_DOT_TYPE ZZASSIGN assignment_expressionlist {
                    wholepat->addAssignRight(posR, getKey(type), varKey);
                    assign.removeUnordered();
                  }
-                 wholepat->substAssign(posR, getKey(type));
                }
                else {
                  errMsg = convert("type \"" + type + "\" is invalid");
@@ -584,25 +583,6 @@ void UPat::createUnit(const char *varP, const char *pat) {
 }
 
 /*
-function ~substitute~
-variable.type is substituted by a value of the same type in order to be able
-to test-execute the condition as a query.
-
-*/
-void Condition::substitute() {
-  string varKey;
-  unsigned int i = 0;
-  textSubst.assign(text);
-  while (i < keys.size()) {
-    varKey.assign(vars[i]);
-    varKey.append(getType(keys[i]));
-    int pos = textSubst.find(varKey);
-    textSubst.replace(pos, varKey.size(), getSubst(keys[i]));
-    i++;
-  }
-}
-
-/*
 function ~convertVarKey~
 Checks whether the variable var occurs in the pattern and whether the key k
 is valid; returns the recognized key.
@@ -644,24 +624,6 @@ void Assign::convertVarKey(const char *varKey) {
       right.second = getKey(kInput);
       addRight(4, right); // assign to 0, 1, 2 or 3 afterwards
     }
-  }
-}
-
-void Assign::substitute(int key) {
-  string varKey;
-  bool substituted = false;
-  textSubst[key] = text[key];
-  for (int i = 0; i < (int)right[key].size(); i++) {
-    varKey = right[key][i].first;
-    varKey.append(Condition::getType(right[key][i].second));
-    size_t pos = textSubst[key].find(varKey);
-    if (pos != string::npos) {
-      textSubst[key].replace(pos, varKey.size(), Condition::getSubst(right[key][i].second));
-      substituted = true;
-    }
-  }
-  if (!substituted) { // no substitution necessary, e.g., 2012-05-12-20:00
-    textSubst[key].clear();
   }
 }
 

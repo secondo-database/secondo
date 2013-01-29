@@ -1333,7 +1333,7 @@ string Pattern::toString() const {
   for (int i = 0; i < (int)assigns.size(); i++) {
     str << "[" << i << "] " << assigns[i].getV() << " | ";
     for (int j = 0; j < 4; j++) {
-      str << assigns[i].getText(j) << " - " << assigns[i].getSubst(j) << "; ";
+      str << assigns[i].getText(j) << "; ";
       for (int k = 0; k < assigns[i].getRightSize(j); k++) {
         str << "(" << assigns[i].getVarKey(j, k).first << ", "
             << assigns[i].getVarKey(j, k).second << ") ";
@@ -1673,59 +1673,6 @@ bool Pattern::verifyPattern() const {
       }
       else {
         vars.insert(patterns[i].getV());
-      }
-    }
-  }
-  return true;
-}
-
-/*
-\subsection{Function ~checkAssignTypes~}
-
-Loops through the assignments and checks whether the data types are compatible.
-In case of an invalid assignment, the function returns ~false~.
-
-*/
-bool Pattern::checkAssignTypes() {
-  Assign assign;
-  Instant *inst = new DateTime(instanttype);
-  Periods *per = new Periods(0);
-  CcString *ccstr = 0;
-  for (int i = 0; i < (int)assigns.size(); i++) {
-    assign = assigns[i];
-    for (int j = 0; j < 4; j++) {
-      if (!assign.getSubst(j).empty()) {
-        switch (j) {
-          case 0: {
-            ccstr = static_cast<CcString*>(evaluate(assign.getSubst(0)).addr);
-            if (!ccstr->IsDefined()) {
-              deleteIfAllowed(ccstr);
-              cout << assign.getSubst(0) << " is invalid" << endl;
-              return false;
-            }
-            ccstr->DeleteIfAllowed();
-            break;
-          }
-          case 1: {
-            per = static_cast<Periods*>(evaluate(assign.getSubst(1)).addr);
-            if (!per->IsDefined()) {
-              deleteIfAllowed(per);
-              cout << assign.getSubst(1) << " is invalid" << endl;
-              return false;
-            }
-            per->DeleteIfAllowed();
-            break;
-          }
-          default: {
-            inst = static_cast<Instant*>(evaluate(assign.getSubst(j)).addr);
-            if (!inst->IsDefined()) {
-              deleteIfAllowed(inst);
-              cout << assign.getSubst(j) << " is invalid" << endl;
-              return false;
-            }
-            inst->DeleteIfAllowed();
-          }
-        }
       }
     }
   }
@@ -2478,48 +2425,46 @@ bool Match::conditionsMatch(MString const &ml) {
   seqCounter = 0;
   computeSeqOrder();
   multiset<size_t> seq = getNextSeq();
-  size_t numOfRelCombs = getRelevantCombs();
-  if (seqMax <= numOfRelCombs) { // standard case
-    for (int i = 0; i < (int)conds.size(); i++) {
-      do {
-        proceed = false;
-        if (!evaluateCond(ml, i, seq)) {
-          seq = getNextSeq();
-          i = 0; // in case of a mismatch, return to the first condition
-        }
-        else {
-          proceed = true;
-        }
-      } while (!seq.empty() && !proceed);
-      if (!proceed) { // no matching sequence found
-        return false;
+  for (int i = 0; i < (int)conds.size(); i++) {
+    do {
+      proceed = false;
+      if (!evaluateCond(ml, i, seq)) {
+        seq = getNextSeq();
+        i = 0; // in case of a mismatch, return to the first condition
       }
+      else {
+        proceed = true;
+      }
+    } while (!seq.empty() && !proceed);
+    if (!proceed) { // no matching sequence found
+      return false;
     }
   }
-  else { // accelerated case
-    numOfNegEvals = 0;
-    for (int i = 0; i < (int)conds.size(); i++) {
-      do {
-        proceed = false;
-        if (!evaluateCond(ml, i, seq)) {
-//           if (numOfNegEvals % 10 == 0) {
-//             cout << numOfNegEvals << " negative evaluations now." << endl;
+  
+//   else { // accelerated case
+//     numOfNegEvals = 0;
+//     for (int i = 0; i < (int)conds.size(); i++) {
+//       do {
+//         proceed = false;
+//         if (!evaluateCond(ml, i, seq)) {
+// //           if (numOfNegEvals % 10 == 0) {
+// //             cout << numOfNegEvals << " negative evaluations now." << endl;
+// //           }
+//           if (numOfNegEvals == numOfRelCombs) { // relevant sequences tested
+//             return false;
 //           }
-          if (numOfNegEvals == numOfRelCombs) { // relevant sequences tested
-            return false;
-          }
-          seq = getNextSeq();
-          i = 0; // in case of a mismatch, return to the first condition
-        }
-        else {
-          proceed = true;
-        }
-      } while (!seq.empty() && !proceed);
-      if (!proceed) { // no matching sequence found
-        return false;
-      }
-    }
-  }
+//           seq = getNextSeq();
+//           i = 0; // in case of a mismatch, return to the first condition
+//         }
+//         else {
+//           proceed = true;
+//         }
+//       } while (!seq.empty() && !proceed);
+//       if (!proceed) { // no matching sequence found
+//         return false;
+//       }
+//     }
+//   }
   return true;
 }
 
@@ -2676,23 +2621,20 @@ X.card = 0, X.card = Y.card [*] 7. Time or label constraints are invalid.
 
 */
 bool Match::evaluateEmptyML() {
+  Word res;
   for (int i = 0; i < (int)conds.size(); i++) {
-    conds[i].resetSubst();
     for (int j = 0; j < conds[i].getKeysSize(); j++) {
       if (conds[i].getKey(j) != 4) { // only card conditions possible
         cout << "Error: Only cardinality conditions allowed" << endl;
         return false;
       }
-      conds[i].substitute(j, "0");
+      conds[i].setCardPtr(j, 0);
     }
-    CcBool* cc = static_cast<CcBool*>(evaluate(conds[i].getSubst()).addr);
-    if (!cc->IsDefined() || !cc->GetValue()) {
-      cc->DeleteIfAllowed();
+    conds[i].getQP()->EvalS(conds[i].getOpTree(), res, OPEN);
+    if (!((CcBool*)res.addr)->IsDefined() || !((CcBool*)res.addr)->GetValue()) {
       return false;
     }
-    cc->DeleteIfAllowed();
   }
-  cout << "conditions ok" << endl;
   return true;
 }
 
@@ -2754,26 +2696,6 @@ bool Match::evaluateCond(MString const &ml, int cId, multiset<size_t> sequence){
   return ((CcBool*)qResult.addr)->GetValue();
 }
 
-/*
-\subsection{Function ~substitute~}
-
-Searches a string like ~X.label~ in the ~textSubst~ of a condition and replaces
-it by the parameter ~subst~.
-
-*/
-void Condition::substitute(int pos, string subst) {
-  string varKey(vars[pos]);
-  varKey.append(getType(keys[pos]));
-  size_t varKeyPos = textSubst.find(varKey);
-  if (varKeyPos == string::npos) {
-    cout << "var.key " << varKey << " not found in " << textSubst << endl;
-    textSubst.assign("error");
-  }
-  else {
-    textSubst.replace(varKeyPos, varKey.size(), subst);
-  }
-}
-
 string Condition::getType(int t) {
   switch (t) {
     case 0: return ".label";
@@ -2783,18 +2705,6 @@ string Condition::getType(int t) {
     case 4: return ".card";
     case 5: return ".labels";
     default: return ".ERROR";
-  }
-}
-
-string Condition::getSubst(int s) {
-  switch (s) {
-    case 0: return "\"a\"";
-    case 1: return "[const periods value ((\"2003-11-20-07:01:40\" "
-                   "\"2003-11-20-07:45\" TRUE TRUE))]";
-    case 2: return "[const instant value \"1909-12-19\"]";
-    case 3: return "[const instant value \"2012-05-12\"]";
-    case 4: return "1";
-    default: return "";
   }
 }
 
@@ -3277,11 +3187,6 @@ int topatternFun(Word* args, Word& result, int message, Word& local,
     if (!p->verifyPattern()) {
       return 0;
     }
-    if (p->hasAssigns()) {
-      if (!p->checkAssignTypes()) {
-        return 0;
-      }
-    }
     cout << (p->isVerified() ? "verified" : "not verified") << endl;
     delete pattern;
   }
@@ -3372,7 +3277,6 @@ int matchesFun_MT (Word* args, Word& result, int message,
   }
   else {
     bool res = pattern->matches(*mstring);
-    
     delete pattern;
     b->Set(true, res);
   }
@@ -3616,7 +3520,6 @@ void Assign::clear() {
   resultPos = -1;
   for (int i = 0; i < 4; i++) {
     text[i].clear();
-    textSubst[i].clear();
     right[i].clear();
   }
 }
@@ -3687,9 +3590,6 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
         if (!p->isVerified()) {
           if (!p->verifyPattern()) {
             cout << "Error: Invalid pattern." << endl;
-          }
-          else if (!p->checkAssignTypes()) {
-            cout << "Invalid assignment types." << endl;
           }
           else {
             p->setVerified(true);
