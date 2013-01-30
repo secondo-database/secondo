@@ -233,7 +233,7 @@ no = replaceinString(no, " ", "%20");
   request += no+ "+"   +postcode;
   request +=  "+"   +newc7+ post;
 
-usleep(100000);  //wait because only 10 request per sec allowed
+usleep(120000);  //wait because only 10 request per sec allowed
   
 hostent* phe = gethostbyname("maps.googleapis.com"); 
 
@@ -314,7 +314,7 @@ int n = 0;
 }
 else
 {	
-	usleep(100000);	
+	usleep(120000);	
 	if (fout.good()==true)
 	{	
 		int n = 0;
@@ -472,7 +472,7 @@ string newc7 = replaceinString(newc6, "Ü", "Ue");
   request += number+ "+"   +postcode;
   request +=  "+"   +newc7+ post;
 
-usleep(100000);  //wait because only 10 request per sec allowed
+usleep(120000);  //wait because only 10 request per sec allowed
   
 hostent* phe = gethostbyname("maps.googleapis.com"); 
 // host not found
@@ -547,7 +547,7 @@ int n = 0;
 }
 else
 {	
-	usleep(100000);	
+	usleep(120000);	
 	if (fout.good()==true)
 	{	
 		int n = 0;
@@ -732,7 +732,7 @@ no = replaceinString(no, " ", "%20");
   request += no+ "+"   +postcode;
   request +=  "+"   +newc7+ post;
 
-usleep(100000);  //wait because only 10 request per sec allowed
+usleep(120000);  //wait because only 10 request per sec allowed
   
 hostent* phe = gethostbyname("maps.googleapis.com"); 
 
@@ -813,7 +813,7 @@ int n = 0;
 }
 else
 {	
-	usleep(100000);	
+	usleep(120000);	
 	if (fout.good()==true)
 	{	
 		int n = 0;
