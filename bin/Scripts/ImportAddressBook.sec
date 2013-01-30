@@ -1,0 +1,34 @@
+# Importing an address book, e.g. from Google, into Secondo, and 
+# assigning spatial locations (points) to contacts.
+#
+# First, export Google contacts into a file google.csv. 
+# Move this file into the secondo/bin directory.
+# 
+# In the first let command, attributes can be given other names or more attributes
+# provided in google.csv may be selected.
+#
+# The TrajectoryAnnotationAlgebra, which provides operator geocode, must be activated. 
+# Operator csvimport2 is from the ImExAlgebra.
+
+let Kontakte = csvimport2('google.csv', 1, "", "", TRUE, TRUE) projectextend[
+  ; Name: .A_Name,
+    Vorname: .Given_Name,
+    Nachname: .Family_Name,
+    Geburtstag: str2date(tostring(.Birthday)),
+    Strasse: tostring(.Address_1_Street),
+    PLZ: str2int(.Address_1_Postal_Code),
+    Ort: tostring(.Address_1_City),
+    Tel1: .Phone_1_Value,
+    Tel2: .Phone_2_Value,
+    Email1: .E_mail_1_Value,
+    Email2: .E_mail_2_Value]
+  consume
+
+let Kontakte2 = Kontakte feed
+  extendstream[Pos: find(.Strasse, " ") transformstream tail[1] transformstream]
+  extend[Length: length(.Strasse)]
+  extend[Strassenname: substr(.Strasse, 1, .Pos),
+    Nr: substr(.Strasse, .Pos + 1, .Length)]
+  remove[Pos, Length]
+  extend[Position: geocode(.Strassenname, .Nr, .PLZ, .Ort)]
+  consume
