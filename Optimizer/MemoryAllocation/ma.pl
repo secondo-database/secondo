@@ -1649,7 +1649,7 @@ But, currently you can't see if the substreams are from the first oder second su
 maQueryInfo :-
 	\+ path(_),
 	!,
-	write('\nThere is current path available.'),
+	write('\nThere is no path available.'),
 	write('\nPlease execute a query before you call this predicate\n').
 
 maQueryInfo :-
