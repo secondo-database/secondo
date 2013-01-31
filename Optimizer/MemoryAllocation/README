@@ -18,7 +18,9 @@
 # 2) 
 # Replace/add some files:
 cp MemoryOptimization.cpp $SECONDO_BUILD_DIR/UserInterfaces/
-cp SecondoPL.cpp $SECONDO_BUILD_DIR/UserInterfaces/
+# 2013-01-29: merged into the $SECONDO_BUILD_DIR/UserInterfaces/SecondoPL.cpp
+# -> not needed anymore
+#cp SecondoPL.cpp $SECONDO_BUILD_DIR/UserInterfaces/
 cp makefile $SECONDO_BUILD_DIR/UserInterfaces/
 cp MemoryOptimization.h $SECONDO_BUILD_DIR/include/
 

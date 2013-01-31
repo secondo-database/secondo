@@ -209,7 +209,7 @@ maBestPlan(Path, Costs) :-
 Precodition: A already created POG.
 */
 evalBestPathByStaticMaxDivOpCount(RPath, NewCosts) :-
-  assignCosts, % The costEdges are needed right now.
+  maAssignCosts, % The costEdges are needed right now.
   write('Computes the max amount of memory consuming operators, '),
   write('this may take a while...\n'),
   getTime(getMaxMemoryConsumingOperatorsFromPOG(OPCount), Time1),
@@ -322,7 +322,7 @@ maBestPlanStatic(MiB, RPath, NewCosts) :-
   dm(ma, ['\nCompute SSP with ', MiB, ' MiB Memory per Operator...']),
   setStaticMemory(MiB),
   clearMemoryValues,
-  assignCosts, 
+  maAssignCosts, 
 	!,
   highNode(N),
   dijkstra(0, N, Path, Cost),
@@ -349,7 +349,7 @@ bestPathByModifiedDijkstra(RPath, NewCosts) :-
 		' MiB Memory per Operator...']),
   setStaticMemory(MiB),
   clearMemoryValues,
-  assignCosts,
+  maAssignCosts,
   !,
   highNode(N),
   dijkstra(0, N, Path, Cost),
@@ -381,7 +381,7 @@ maBestPathByStaticEqual(MiB, PathNew, CostsNew) :-
   dm(ma, ['\nCompute SSP with ', MiB, ' MiB Memory per Operator...']),
   setStaticMemory(MiB),
   clearMemoryValues,
-  assignCosts,
+  maAssignCosts,
   !,
   highNode(N),
   dijkstra(0, N, Path, Costs),
@@ -426,7 +426,7 @@ Just set a value, no matter which value as the later optimization tries every po
 */
   setStaticMemory(GMemory),
   clearMemoryValues,
-  assignCosts, 
+  maAssignCosts, 
   highNode(N), 
 	retractall(currentShortestPath(_, _, _, _)),
 	!,
@@ -509,6 +509,25 @@ enumeratePaths(PartPath, Node, N, RPath, RCosts) :-
 	RCosts is ECosts + Costs.
 
 /*
+Like assignCosts but resets the counter to count the error within 
+the memory dependet costs functions.
+Search for 'DebugMode' within this file if you want to know more about
+these problems.
+*/
+maAssignCosts :-
+	resetCounter(maFErrCounter),
+	assignCosts,
+	getCounter(maFErrCounter, FErr),
+	((number(FErr), FErr > 0) ->
+		write_list(['\n',
+			'WARNING: ', FErr, ' problems detected within the memory ',
+			'dependent cost functions.\n',
+			'         Use setWarnMode(true) to obtain more information.\n'])
+	;
+		true
+	).
+
+/*
 This is done to distribute the entire memory equally over all memory consuming operators. Due to different paths, with differnt numbers of memory consuming operators, within the POG, this is not that simple. So in absent of a good strategy to get a good gussed value, all paths are enumerated. Note that this value is just a maximum. Not every path uses this number of memory consuming operators. Due to the enumeration of every path, which is to evaluate the various possible strategies.
 */
 getMaxMemoryConsumingOperatorsFromPOG(OPCount) :-
@@ -556,9 +575,10 @@ Gets the memory dependent cost function from the CostEstimation implementation.
 
 This method with the alist is not very efficient, but it can be easily extended without taken care of every predicates using it.
 	
-ceCosts(+OpName, +CardX, +SizeX, +Sel, +ResAttrList, +MiB, -CostsInMS, -AList)
+ceCosts(+OpName, [+CardX, +SizeX, +AttrCountX], +Sel, +ResAttrList, +MiB, -CostsInMS, -AList)
 */
-ceCosts(OpName, CardX, SizeX, _Sel, _ResAttrList, MiB, CostsInMS, AList) :-
+ceCosts(OpName, [CardX, SizeX, AttrCountX], Sel, _ResAttrList, MiB, CostsInMS, 
+		AList) :-
 	(useCostEstimation(true) ; useCostEstimation(mixed)),
 	ensure((number(CardX), number(SizeX))),
 	% The getCosts API expects integer values.
@@ -571,18 +591,17 @@ ceCosts(OpName, CardX, SizeX, _Sel, _ResAttrList, MiB, CostsInMS, AList) :-
   getOpIndexes(OpName, Sig, _ResultType, AlgID, OpID, FunID),
   % Whatever amount of memory we choose here...we still need the values for
   % the plan generation.
-  %getCosts(AlgID, OpID, FunID, ICardX, ISizeX, MiB, OpCostsInMS),
-
-  getCostFun(AlgID, OpID, FunID, ICardX, ISizeX, FT, DList),
+	Stream1C=[ICardX, ISizeX, AttrCountX], % stream characteristics
+  getCostFun([AlgID, OpID, FunID], Stream1C, Sel, FT, DList),
 	checkDList(DList),
 	AList=[functionType(FT), dlist(DList)],
 	% Store for debugging
-	PARAMS=params(cardX(CardX), sizeX(SizeX)),
+	PARAMS=params(streamX(ICardX, ISizeX, AttrCountX)),
 	AList=[functionType(FT), dlist(DList), PARAMS],
 
  	minimumOperatorMemory(MinOpMem),
 	DList=[SufficientMemoryInMiB|_],
-	buildFormulaByFT(FT, DList, CMiB, CostF),
+	buildFormulaByFT(FT, true, DList, CMiB, CostF),
   CMiB is max(MinOpMem, min(MiB, SufficientMemoryInMiB)),
 	CostsInMS is CostF,
 	checkOpCosts(CostsInMS).
@@ -591,8 +610,8 @@ ceCosts(OpName, CardX, SizeX, _Sel, _ResAttrList, MiB, CostsInMS, AList) :-
 Special predicate to evaluate the cost difference when this is
 done by the CostEstimation interface or with prolog predicates.
 */
-ceCosts(sortmergejoin, CardX, SizeX, CardY, SizeY, Sel, ResAttrList, MiB, 
-		CostsInMS, AList) :-
+ceCosts(sortmergejoin, [CardX, SizeX, AttrCountX], [CardY, SizeY, AttrCountY], 
+		Sel, _ResAttrList, MiB, CostsInMS, AList) :-
 	useCostEstimation(mixed),
   ensure((number(CardX), number(SizeX), number(CardY), number(SizeY))),
 	FT=1,
@@ -600,7 +619,7 @@ ceCosts(sortmergejoin, CardX, SizeX, CardY, SizeY, Sel, ResAttrList, MiB,
 	getProgressConstant(_, _, uSortBy, USortBy),
 	getProgressConstant(_, _, wMergeJoin, WMergeJoin),
 	getProgressConstant(_, _, yMergeJoin, YMergeJoin),
-	maResAttributeCount(ResAttrList, AttrsCount),
+	AttrsCount is AttrCountX+AttrCountY,
 
 	% calculation as within the bachelor thesis Nidzwetzki:
 	SufficientMemory is (((CardX*SizeX) + (CardY*SizeY)) * 1.2) / 1024**2, 
@@ -613,22 +632,24 @@ ceCosts(sortmergejoin, CardX, SizeX, CardY, SizeY, Sel, ResAttrList, MiB,
 	% sortmergejoin operator available:
 	DList=[SufficientMemory, CostsInMSAtSuff, CostsInMSAtSuff, 0,0,0,0],
   % Store for debugging
-  PARAMS=params(cardX(CardX), sizeX(SizeX), cardY(CardY), sizeY(SizeY)),
+	PARAMS=params(streamX(CardX, SizeX, AttrCountY), 
+		streamY(CardY, SizeY, AttrCountY)),
   AList=[functionType(FT), dlist(DList), PARAMS],
 
   minimumOperatorMemory(MinOpMem),
   DList=[SufficientMemoryInMiB|_],
-  buildFormulaByFT(FT, DList, CMiB, CostF),
+  buildFormulaByFT(FT, true, DList, CMiB, CostF),
   CMiB is max(MinOpMem, min(MiB, SufficientMemoryInMiB)),
   CostsInMS is CostF,
   checkOpCosts(CostsInMS),
 	!.
 
 /*
-ceCosts(+OpName, +CardX, +SizeX, +CardY, +SizeY, +Sel, +ResAttrList, +MiB, 
-	-CostsInMS, -AList)	
+ceCosts(+OpName, [+CardX, +SizeX, +AttrCountX], [+CardY, +SizeY, +AttrCountY], 
+	+Sel, +ResAttrList, +MiB, -CostsInMS, -AList)	
 */
-ceCosts(OpName, CardX, SizeX, CardY, SizeY, _Sel, _ResAttrList, MiB, CostsInMS, AList) :- 
+ceCosts(OpName, [CardX, SizeX, AttrCountX], [CardY, SizeY, AttrCountY], Sel,
+		_ResAttrList, MiB, CostsInMS, AList) :-
 	(useCostEstimation(true) ; useCostEstimation(mixed)),
 	ensure((number(CardX), number(SizeX), number(CardY), number(SizeY))),
 	% The getCosts API expects integer values.
@@ -641,15 +662,17 @@ ceCosts(OpName, CardX, SizeX, CardY, SizeY, _Sel, _ResAttrList, MiB, CostsInMS, 
   getOpIndexes(OpName, Sig, _ResultType, AlgID, OpID, FunID),
   % Whatever amount of memory we choose here...we still need the values for
   % the plan generation.
-  getCostFun(AlgID, OpID, FunID, ICardX, ISizeX, ICardY, ISizeY, FT, DList),
+	StreamXC=[ICardX, ISizeX, AttrCountX], % left stream characteristics
+	StreamYC=[ICardY, ISizeY, AttrCountY], % right stream characteristics
+  getCostFun([AlgID, OpID, FunID], StreamXC, StreamYC, Sel, FT, DList),
 	checkDList(DList),
 	% Store for debugging
-	PARAMS=params(cardX(CardX), sizeX(SizeX), cardY(CardY), sizeY(SizeY)),
+	PARAMS=params(streamX(StreamXC), streamY(StreamYC)),
 	AList=[functionType(FT), dlist(DList), PARAMS],
 
  	minimumOperatorMemory(MinOpMem),
 	DList=[SufficientMemoryInMiB|_],
-	buildFormulaByFT(FT, DList, CMiB, CostF),
+	buildFormulaByFT(FT, true, DList, CMiB, CostF),
   CMiB is max(MinOpMem, min(MiB, SufficientMemoryInMiB)),
 	CostsInMS is CostF,
 	checkOpCosts(CostsInMS).
@@ -664,29 +687,29 @@ deteremined function is used to compute the costs for different amounts of memor
 
 */
 % Non-join operator
-opCosts(MT, Term, [CardX, SizeX], Sel, ResAttrList, OpCostsInMS, NewTerm) :-
+opCosts(MT, Term, [StreamXC], Sel, ResAttrList, OpCostsInMS, NewTerm) :-
   var(MT),
   Term=..[Op|_],
   getStaticMemory(MiB),
-  ceCosts(Op, CardX, SizeX, Sel, ResAttrList, MiB, OpCostsInMS, AList),
+  ceCosts(Op, StreamXC, Sel, ResAttrList, MiB, OpCostsInMS, 
+		AList),
   toMemoryTerm(Term, MiB, AList, NewTerm),
   nextCounter(memoryUsingOperators, _).
 
 % Join operator
-opCosts(MT, Term, [CardX, SizeX, CardY, SizeY], Sel, ResAttrList, OpCostsInMS, 
+opCosts(MT, Term, [StreamXC, StreamYC], Sel, ResAttrList, OpCostsInMS,
 		NewTerm) :-
   var(MT),
   Term=..[Op|_],
   getStaticMemory(MiB),
-  ceCosts(Op, CardX, SizeX, CardY, SizeY, Sel, ResAttrList, MiB, OpCostsInMS, 
-		AList),
+  ceCosts(Op, StreamXC, StreamYC, Sel, ResAttrList, MiB, OpCostsInMS, AList),
   toMemoryTerm(Term, MiB, AList, NewTerm),
   nextCounter(memoryUsingOperators, _).
 
 % Second cost call with stored memory term.
 opCosts(MT, Term, _, _Sel, _ResAttrList, OpCostsInMS, Term) :-
   nonvar(MT),
-  % In this case, the costs were calculated at least one time earlier.
+  % In this case, the costs were calculated at least one time before.
   % The new memory value is obtained from the memoryValue term 
   % and costs are recomputed.
   % Of course, the other variables like row size and
@@ -699,8 +722,9 @@ opCosts(MT, Term, _, _Sel, _ResAttrList, OpCostsInMS, Term) :-
   propertyValue(dlist, AList, DList),
   DList=[SuffMiB|_], % Don't use more memory as needed for the cost calculation.
   minimumOperatorMemory(MinOpMem), % And not less than this value.
-  buildFormulaByFT(FT, DList, CMiB, CostF), % Could be cached, too. But
+  buildFormulaByFT(FT, false, DList, CMiB, CostF), % Could be cached, too. But
 		% the performance is here not an issue.
+		% DebugMode set to fail because the messagte was displayed already.
   CMiB is max(MinOpMem, min(MiB, SuffMiB)),
   OpCostsInMS is CostF,
 	checkOpCosts(OpCostsInMS),
@@ -712,15 +736,15 @@ opCosts(MT, Term, _, Sel, ResAttrList, OpCostsInMS, NewTerm) :-
 		NewTerm)::'failed to compute the costs')).
 
 /*
-ResAttrList may set to 'ignore'. See ~ma_improvedcosts.pl~ for more
+AttrList may set to 'ignore'. See ~ma_improvedcosts.pl~ for more
 information.
 */
-maResAttributeCount(ResAttrList, AttrsCount) :- 
-	is_list(ResAttrList),
-  length(ResAttrList, AttrsCount),
+maAttributeCount(AttrList, AttrsCount) :- 
+	is_list(AttrList),
+  length(AttrList, AttrsCount),
 	!.
 
-maResAttributeCount(_, 1) :- 
+maAttributeCount(_, 1) :-  % Return a default value.
 	!.
 
 /*
@@ -1112,7 +1136,7 @@ buildFormula([E], AllVars, Dimension, F, [SufficientMemoryInMiB]) :-
 	propertyValue(functionType, E, FT),
 	propertyValue(dlist, E, AList),
 	propertyValue(midVar, E, MVar),
-	buildFormulaByFT(FT, AList, MVar, F),
+	buildFormulaByFT(FT, false, AList, MVar, F),
 	AList=[DSufficientMemoryInMiB|_],
 	% AList contains double values. It is possible to continue with these values,
 	% but in the end, only integer values can be assigend to a plan.
@@ -1148,7 +1172,7 @@ getAllVars([E|ERest], [MID|MIDRest], [MVar|MRest]) :-
 
 /*
 Following, the differnt function types based on the returned values of the getCostFun predicate. Note that, it is done this way because returning arbitrary formula's from the C++ environment isn't that easy as within prolog. At least it was the first idea to support more complex cost functions, even as only simple function will be delivered from the C++ CostEstimation class. But with the below predicates, much more complex functions are supported as long as these are strict and decreasing, more exact, all functions which the choosen optimize algorihm can handle.
-buildFormulaByFT(+FunctionType, +DList, +MVar, ?Out)
+buildFormulaByFT(+FunctionType, +DebugMode, +DList, +MVar, ?Out)
 
 Parameter MVar:
 Allowed values are all values between the minimum operator memory(>=1) and the sufficient memory value. Don't call this predicate with other memory values.
@@ -1156,7 +1180,7 @@ But don't pass MVar to this predicate! It is paramter, but not one with
 a value.
 */
 
-buildFormulaByFT(1, DList, MVar, Out2) :-
+buildFormulaByFT(1, DebugMode, DList, MVar, Out2) :-
   !,
 	ensure(var(MVar), 'Error: Parameter MVar is a bounded variable.'),
   % Vars names as within the CostEstimation.h.
@@ -1182,7 +1206,11 @@ buildFormulaByFT(1, DList, MVar, Out2) :-
 
 	% Some checks...
 	minimumOperatorMemory(MinM),
-  ((Gradient =:= 0, SufficientMemory > MinM, maWarn(constant)) ->
+  ((Gradient =:= 0, 
+			SufficientMemory > MinM, % Then, of course, a constant function is ok.
+			DebugMode, 
+			nextCounter(maFErrCounter, _), % always provable
+			maWarn(constant)) ->
 		% this might be okay, but in general this is not correct.
 		write_list(['\n(ma.pl) WARNING: constant memory dependent cost ',
       'function detected: ', Out,
@@ -1192,7 +1220,9 @@ buildFormulaByFT(1, DList, MVar, Out2) :-
   ),
 	(Gradient < 0 ->
 		(
-			(maWarn(increasing) ->
+			(DebugMode, 
+			 nextCounter(maFErrCounter, _),
+			 maWarn(increasing) ->
 				(
 					write_list(['\n(ma.pl) WARNING: increasing memory dependent cost ',
 						'function detected: ', Out, '. Fallback to constant fuction. ',
@@ -1203,15 +1233,16 @@ buildFormulaByFT(1, DList, MVar, Out2) :-
 				true
 			),
 			% Fallback to this constant function to allow still a correct
-			% optimization.
+			% optimization. Currently the nonlinear optimization is limited to
+			% convex optimization.
       Out2=TimeAt16MB
     )
   ;
     Out2=Out
 	),
-	checkNegative(Out, MVar, SufficientMemory).
+	checkNegative(DebugMode, Out, MVar, SufficientMemory).
 
-buildFormulaByFT(2, DList, MVar, Out2) :- 
+buildFormulaByFT(2, DebugMode, DList, MVar, Out2) :- 
 	!, 
 	ensure(var(MVar), 'Error: Parameter MVar is a bounded variable.'),
 	% Vars names as within the CostEstimation.h.
@@ -1227,17 +1258,22 @@ buildFormulaByFT(2, DList, MVar, Out2) :-
 
 	% Some checks...
 	minimumOperatorMemory(MinM),
-  ((A =:= 0, SufficientMemory > MinM, maWarn(constant)) ->
+  ((A =:= 0, SufficientMemory > MinM, 
+			DebugMode, 
+		 	nextCounter(maFErrCounter, _),
+			maWarn(constant)) ->
     % this might be okay, but in general this is not correct.
     write_list(['\n(ma.pl) WARNING: constant memory dependent cost ',
       'function detected: ', Out,
-      '. Results may wrong. Please check the cost functions.'])
+      '. Results may wrong. Please check the cost functions.\n'])
   ;
     true
   ),
   (A < 0 ->
     (
-      (maWarn(increasing) ->
+      (DebugMode, 
+		 		nextCounter(maFErrCounter, _),
+			 	maWarn(increasing) ->
         (
           write_list(['\n(ma.pl) WARNING: increasing memory dependent cost ',
             'function detected: ', Out, '. Fallback to constant fuction. ',
@@ -1254,17 +1290,18 @@ buildFormulaByFT(2, DList, MVar, Out2) :-
   ;
     Out2=Out
   ),
-	checkNegative(Out, MVar, SufficientMemory).
+	checkNegative(DebugMode, Out, MVar, SufficientMemory).
 
-buildFormulaByFT(FT, DList, MVar, Out) :-
+buildFormulaByFT(FT, DebugMode, DList, MVar, Out) :-
 	Msg='Can\'t build formula.',
-	throw(error_Internal(ma_buildFormulaByFT(FT, DList, MVar, Out)::Msg)).
+	throw(error_Internal(ma_buildFormulaByFT(FT, DebugMode, DList, MVar, Out)
+		::Msg)).
 
 /*
 Validates if the function may return a negativ cost value because this
 is not valid.
 */
-checkNegative(Out, MVar, SufficientMemory) :-
+checkNegative(DebugMode, Out, MVar, SufficientMemory) :-
   secondoGlobalMemory(GMemory),
 	TestMem is min(GMemory, SufficientMemory),
 	% This is very important because it is not allowed to bind MVar to
@@ -1272,7 +1309,9 @@ checkNegative(Out, MVar, SufficientMemory) :-
 	replaceVar(Out, MVar, X, OutR),
 	X=TestMem,  % MVar=TestMem is not allowed.
 	CostsAtMax is OutR,
-	((CostsAtMax < 0, maWarn(negative)) ->
+	((CostsAtMax < 0, DebugMode, 
+		nextCounter(maFErrCounter, _),
+		maWarn(negative)) ->
 		(
 			write_list(['\n(ma.pl) WARNING: memory dependent cost function ',
 				'with potentially negative costs detected: ', Out, 
@@ -1420,11 +1459,20 @@ extractPredFromEdgeTerm(EdgeTerm, Pred) :-
   EdgeTerm = sortedjoin(_, _, Pred, _, _).
 
 /*
-
+Just test if some simple basic operations are working. 
 */
 maSelfCheck :-
   write('\nSelf-Check...'),
-  (maOpInfo(quit) ->
+  (catch(maOpInfo(quit), Exc, 
+       (
+          write('\nException: '),
+          write_term(Exc, []),
+          write('\n'),
+					!,
+					fail
+				)
+
+		) ->
     write('passed\n')
   ;
     (
@@ -1495,7 +1543,11 @@ maOpInfo(Mode) :-
 		maWrite(Mode, ['\nBlocking op: no'])
 	),
  	(getOpIndexes(OpName, Sig, _ResultType, AlgID, OpID, FunID) ->
-		(getCostFun(AlgID, OpID, FunID, 1000000, 100, 2000000, 250, FT, DList) ->
+		(
+			Stream1=[1000000, 100, 10],
+			Stream2=[2000000, 250, 20],
+			Sel=0.5,
+			getCostFun([AlgID, OpID, FunID], Stream1, Stream2, Sel, FT, DList) ->
 			(
 				maWrite(Mode, ['\nFunction type: ', FT, ' DList: ', DList])
 			)
@@ -1562,12 +1614,17 @@ Disables or enables the warnings because for big pog's the amount of
 displayed warnings can be huge. The same thing is the case for the sleep
 thing below.
 */
+:- dynamic maWarnMode/1.
 maWarnMode(fail).
 
 maWarn(_Type) :-
 	maWarnMode(R),
 	!,
 	R.
+
+setWarnMode(Mode) :-
+	retractall(maWarnMode(_)),
+	asserta(maWarnMode(Mode)).
 
 /*
 
