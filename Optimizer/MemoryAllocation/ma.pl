@@ -596,7 +596,7 @@ ceCosts(OpName, [CardX, SizeX, AttrCountX], Sel, _ResAttrList, MiB, CostsInMS,
 	checkDList(DList),
 	AList=[functionType(FT), dlist(DList)],
 	% Store for debugging
-	PARAMS=params(streamX(ICardX, ISizeX, AttrCountX)),
+	PARAMS=params([streamX(ICardX, ISizeX, AttrCountX)]),
 	AList=[functionType(FT), dlist(DList), PARAMS],
 
  	minimumOperatorMemory(MinOpMem),
@@ -632,8 +632,8 @@ ceCosts(sortmergejoin, [CardX, SizeX, AttrCountX], [CardY, SizeY, AttrCountY],
 	% sortmergejoin operator available:
 	DList=[SufficientMemory, CostsInMSAtSuff, CostsInMSAtSuff, 0,0,0,0],
   % Store for debugging
-	PARAMS=params(streamX(CardX, SizeX, AttrCountY), 
-		streamY(CardY, SizeY, AttrCountY)),
+	PARAMS=params([streamX(CardX, SizeX, AttrCountY), 
+		streamY(CardY, SizeY, AttrCountY)]),
   AList=[functionType(FT), dlist(DList), PARAMS],
 
   minimumOperatorMemory(MinOpMem),
@@ -667,7 +667,7 @@ ceCosts(OpName, [CardX, SizeX, AttrCountX], [CardY, SizeY, AttrCountY], Sel,
   getCostFun([AlgID, OpID, FunID], StreamXC, StreamYC, Sel, FT, DList),
 	checkDList(DList),
 	% Store for debugging
-	PARAMS=params(streamX(StreamXC), streamY(StreamYC)),
+	PARAMS=params([streamX(StreamXC), streamY(StreamYC)]),
 	AList=[functionType(FT), dlist(DList), PARAMS],
 
  	minimumOperatorMemory(MinOpMem),
@@ -1638,5 +1638,83 @@ maWarnSleep(_S) :-
 maWarnSleep(S) :-
 	sleep(S),
 	!.
+
+/*
+If you already executed a query, this prediacte delivers some useful 
+information about memory allocation specific data.
+
+The output is build like a tree to see the basic structure of the plan. 
+But, currently you can't see if the substreams are from the first oder second substream. This problem can be resolved easily, but the stream information are then torn apart. 
+*/
+maQueryInfo :-
+	\+ path(_),
+	!,
+	write('\nThere is current path available.'),
+	write('\nPlease execute a query before you call this predicate\n').
+
+maQueryInfo :-
+	path(P),
+	plan(P, Plan),
+	%write_list(['\nPlan: ']),
+	%write_term(Plan, []),
+	!,
+	maInfoPlan('', Plan).
+
+maInfoPlan(In, Plan) :-
+  Plan=memory(Term, _MID, AList),
+  !,
+	Term=..[Op|_],
+	write_list(['\n', In, 'Operator: ', Op]),
+	member(functionType(FT), AList),
+	member(dlist(DList), AList),
+	member(params(PARAMS), AList),
+  buildFormulaByFT(FT, false, DList, MiB, CostF),
+	replaceVar(CostF, MiB, ' X ', CostF2), % just increase readability
+	write_list(['\n', In, '  CostFunction: ']),
+	write_term(CostF2, []),
+	DList=[Suff|_],
+	write_list(['\n', In, '  SufficientMemory in MiB: ', Suff]),
+	atomic_list_concat([In, ' >'], '', NewIn),
+	maStreamInfo(In, streamX, PARAMS),
+	maStreamInfo(In, streamY, PARAMS),
+  maInfoPlan(NewIn, Term), 
+	write_list(['\n', In, '<']).
+
+maInfoPlan(In, Plan) :-
+  compound(Plan),
+	!,
+  Plan=..[Functor|OpArgs],
+  opMap(Functor, Map),
+  mapArguments(Map, OpArgs, MappedOpArgs),
+  % analyze sub streams
+	maInfoPlanList(In, MappedOpArgs).
+
+maInfoPlan(In, Plan) :-
+  \+ compound(Plan),
+  !.
+
+maInfoPlanList(In, []) :-
+	!.
+maInfoPlanList(In, [Plan|Rest]) :-
+  maInfoPlan(In, Plan),
+  maInfoPlanList(In, Rest),	
+	!.
+
+maStreamInfo(In, Functor, PARAMS) :-
+	Term=..[Functor, XL],
+  (member(Term, PARAMS) ->
+    (
+      XL=[Tuple, TupleSize, AttrCount],
+			MiBData is integer(Tuple*TupleSize/1024**2),
+      write_list(['\n', In, '  ', Functor, 
+				': Tuples: ', Tuple, 
+				' TupleSize in Memory: ', TupleSize, 'b', 
+				' Amount of Data: ', MiBData, ' MiB', % estimated amount of memory
+				% usage
+				' No. of Attributes: ', AttrCount])
+    )
+  ;
+    true
+  ).
 
 % eof
