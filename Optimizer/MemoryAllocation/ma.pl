@@ -596,7 +596,7 @@ ceCosts(OpName, [CardX, SizeX, AttrCountX], Sel, _ResAttrList, MiB, CostsInMS,
 	checkDList(DList),
 	AList=[functionType(FT), dlist(DList)],
 	% Store for debugging
-	PARAMS=params([streamX(ICardX, ISizeX, AttrCountX)]),
+	PARAMS=params([sel(Sel), streamX(ICardX, ISizeX, AttrCountX)]),
 	AList=[functionType(FT), dlist(DList), PARAMS],
 
  	minimumOperatorMemory(MinOpMem),
@@ -632,7 +632,7 @@ ceCosts(sortmergejoin, [CardX, SizeX, AttrCountX], [CardY, SizeY, AttrCountY],
 	% sortmergejoin operator available:
 	DList=[SufficientMemory, CostsInMSAtSuff, CostsInMSAtSuff, 0,0,0,0],
   % Store for debugging
-	PARAMS=params([streamX(CardX, SizeX, AttrCountY), 
+	PARAMS=params([sel(Sel), streamX(CardX, SizeX, AttrCountY), 
 		streamY(CardY, SizeY, AttrCountY)]),
   AList=[functionType(FT), dlist(DList), PARAMS],
 
@@ -667,7 +667,7 @@ ceCosts(OpName, [CardX, SizeX, AttrCountX], [CardY, SizeY, AttrCountY], Sel,
   getCostFun([AlgID, OpID, FunID], StreamXC, StreamYC, Sel, FT, DList),
 	checkDList(DList),
 	% Store for debugging
-	PARAMS=params([streamX(StreamXC), streamY(StreamYC)]),
+	PARAMS=params([sel(Sel), streamX(StreamXC), streamY(StreamYC)]),
 	AList=[functionType(FT), dlist(DList), PARAMS],
 
  	minimumOperatorMemory(MinOpMem),
@@ -1661,19 +1661,24 @@ maQueryInfo :-
 	maInfoPlan('', Plan).
 
 maInfoPlan(In, Plan) :-
-  Plan=memory(Term, _MID, AList),
+  Plan=memory(Term, MID, AList),
   !,
 	Term=..[Op|_],
 	write_list(['\n', In, 'Operator: ', Op]),
 	member(functionType(FT), AList),
 	member(dlist(DList), AList),
 	member(params(PARAMS), AList),
+	member(sel(Sel), PARAMS),
   buildFormulaByFT(FT, false, DList, MiB, CostF),
 	replaceVar(CostF, MiB, ' X ', CostF2), % just increase readability
 	write_list(['\n', In, '  CostFunction: ']),
 	write_term(CostF2, []),
 	DList=[Suff|_],
+	memoryValue(MID, AMiB, _),
+	write_list(['\n', In, '  Assigned memory in MiB: ', AMiB]),
 	write_list(['\n', In, '  SufficientMemory in MiB: ', Suff]),
+	write_list(['\n', In, '  Selectivity: ']),
+	format('~f', [Sel]), % output in in non-exponential notation
 	atomic_list_concat([In, ' >'], '', NewIn),
 	maStreamInfo(In, streamX, PARAMS),
 	maStreamInfo(In, streamY, PARAMS),
@@ -1689,11 +1694,11 @@ maInfoPlan(In, Plan) :-
   % analyze sub streams
 	maInfoPlanList(In, MappedOpArgs).
 
-maInfoPlan(In, Plan) :-
+maInfoPlan(_In, Plan) :-
   \+ compound(Plan),
   !.
 
-maInfoPlanList(In, []) :-
+maInfoPlanList(_In, []) :-
 	!.
 maInfoPlanList(In, [Plan|Rest]) :-
   maInfoPlan(In, Plan),
