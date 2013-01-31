@@ -421,9 +421,8 @@ bestPathByEnumeration :-
 	resetCounter(maPathCounter),
 	resetCounter(maOptPathCounter),
 	secondoGlobalMemory(GMemory),
-/* 
-Just set a value, no matter which value as the later optimization tries every possibilities. 
-*/
+	% Just set a value, no matter which value as the later optimization tries 
+	% every possibilities. 
   setStaticMemory(GMemory),
   clearMemoryValues,
   maAssignCosts, 
@@ -594,7 +593,6 @@ ceCosts(OpName, [CardX, SizeX, AttrCountX], Sel, _ResAttrList, MiB, CostsInMS,
 	Stream1C=[ICardX, ISizeX, AttrCountX], % stream characteristics
   getCostFun([AlgID, OpID, FunID], Stream1C, Sel, FT, DList),
 	checkDList(DList),
-	AList=[functionType(FT), dlist(DList)],
 	% Store for debugging
 	PARAMS=params([sel(Sel), streamX(ICardX, ISizeX, AttrCountX)]),
 	AList=[functionType(FT), dlist(DList), PARAMS],
