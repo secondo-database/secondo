@@ -72,7 +72,6 @@ extern QueryProcessor *qp;
 using namespace std;
 using namespace mappings;
 
-
 //3 methodes for creation of the socket
 std::runtime_error CreateSocketError() 
 {
@@ -112,117 +111,31 @@ void GetLine(int socket, std::stringstream& line)
 	throw CreateSocketError(); 
 }
 
-//methodes for replacing special characters in the url
-string replaceinString(
-	std::string str, std::string tofind, std::string toreplace)
-{
-        size_t position = 0;
-        for ( position = str.find(tofind); 
-	position != std::string::npos; 
-	position = str.find(tofind,position) )
-        {
-                str.replace(position ,1, toreplace);
-        }
-        return(str);
-} 
 
-//int to string
-std::string itoa(int n)
-{
-	std::stringstream stream;
-	stream <<n;
-	return stream.str();
-}
-
-
-
-/*
-4 Implementation of Algebra TrajectoryAnnotation in namespace tann
-
-4.1 Implementation of operator geocode
-
-Typemapping and Selection Funktion for geocode
-
-*/
-
-namespace tann {
-
-const string maps_geocode[2][5] =
-{
-{CcString::BasicType(), CcString::BasicType(),CcInt::BasicType(),
- CcString::BasicType(), Point::BasicType()},
-{CcString::BasicType(), CcInt::BasicType(),CcInt::BasicType(),
- CcString::BasicType(), Point::BasicType()}
-};
-
-ListExpr
-GeoCodeTypeMap( ListExpr args )
-{
-return SimpleMaps<2,5>(maps_geocode, args);
-}
-
-int
-GeoCodeSelect( ListExpr args )
-{
-return SimpleSelect<2,5>(maps_geocode, args);
-}
-
-//Typemapping and Selection Funktion for geocode2
-const string maps_geocode2[1][4] =
-{
-{CcString::BasicType(),CcInt::BasicType(),CcString::BasicType(), 
- Point::BasicType()}
-};
-
-ListExpr
-GeoCodeTypeMap2( ListExpr args )
-{
-return SimpleMaps<1,4>(maps_geocode2, args);
-}
-
-int
-GeoCodeSelect2( ListExpr args )
-{
-return SimpleSelect<1,4>(maps_geocode2, args);
-}
-
-// Map Value
-int
-GeoCodessis (Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-
-  string st = (string)(char*)((CcString*) args[0].addr )->GetStringval();
-  string no = (string)(char*)((CcString*) args[1].addr )->GetStringval();
-  int plz = ((CcInt*) args[2].addr )->GetIntval();
-  string postcode= itoa(plz);
-  string c = (string)(char*)((CcString*) args[3].addr) ->GetStringval(); 
-
+void askGoogle(const string& street, const string& no, 
+const string& postcode,const string& ci, Point& result) {
   //Check of spaces and special characters in URL
+string newSt = stringutils::replaceAll(street, " ", "%20");
+string newSt1 = stringutils::replaceAll(newSt, "ß", "ss");
+string newSt2 = stringutils::replaceAll(newSt1, "ä", "ae");
+string newSt3 = stringutils::replaceAll(newSt2, "ö", "oe");
+string newSt4 = stringutils::replaceAll(newSt3, "ü", "ue");
+string newSt5 = stringutils::replaceAll(newSt4, "Ä", "Ae");
+string newSt6 = stringutils::replaceAll(newSt5, "Ö", "Oe");
+string newSt7 = stringutils::replaceAll(newSt6, "Ü", "Ue");
 
-string newSt = replaceinString(st, " ", "%20");
-string newSt1 = replaceinString(newSt, "ß", "ss");
-string newSt2 = replaceinString(newSt1, "ä", "ae");
-string newSt3 = replaceinString(newSt2, "ö", "oe");
-string newSt4 = replaceinString(newSt3, "ü", "ue");
-string newSt5 = replaceinString(newSt4, "Ä", "Ae");
-string newSt6 = replaceinString(newSt5, "Ö", "Oe");
-string newSt7 = replaceinString(newSt6, "Ü", "Ue");
+string newc = stringutils::replaceAll(ci, " ", "%20");
+string newc1 = stringutils::replaceAll(newc, "ß", "ss");
+string newc2 = stringutils::replaceAll(newc1, "ä", "ae");
+string newc3 = stringutils::replaceAll(newc2, "ö", "oe");
+string newc4 = stringutils::replaceAll(newc3, "ü", "ue");
+string newc5 = stringutils::replaceAll(newc4, "Ä", "Ae");
+string newc6 = stringutils::replaceAll(newc5, "Ö", "Oe");
+string newc7 = stringutils::replaceAll(newc6, "Ü", "Ue");
 
-string newc = replaceinString(c, " ", "%20");
-string newc1 = replaceinString(newc, "ß", "ss");
-string newc2 = replaceinString(newc1, "ä", "ae");
-string newc3 = replaceinString(newc2, "ö", "oe");
-string newc4 = replaceinString(newc3, "ü", "ue");
-string newc5 = replaceinString(newc4, "Ä", "Ae");
-string newc6 = replaceinString(newc5, "Ö", "Oe");
-string newc7 = replaceinString(newc6, "Ü", "Ue");
-
-no = replaceinString(no, " ", "%20");
+string no1 = stringutils::replaceAll(no, " ", "%20");
   
-  result = qp->ResultStorage(s);
-                                //query processor has provided
-                                //a point instance for the result
+  
   //constant values of url	
   string pre="GET /maps/api/geocode/xml?address=";	
   string post="+CA&sensor=false HTTP/1.1\r\n;";
@@ -230,8 +143,9 @@ no = replaceinString(no, " ", "%20");
   //create url			
   string request("");
   request += pre+ newSt7+  "+";
-  request += no+ "+"   +postcode;
+  request += no1+ "+"   +postcode;
   request +=  "+"   +newc7+ post;
+
 
 usleep(120000);  //wait because only 10 request per sec allowed
   
@@ -240,16 +154,16 @@ hostent* phe = gethostbyname("maps.googleapis.com");
     //if host not found
     if(phe == NULL) 
     { 
-       ((Point*) result.addr)->SetDefined(false); 
-        return 0; 
+       result.SetDefined(false); 
+       // return 0; 
     } 
 
     int Socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); 
     //error while craeating socket
     if(Socket == -1) 
     { 
-        ((Point*) result.addr)->SetDefined(false); 
-        return 0; 
+        result.SetDefined(false); 
+        //eturn 0; 
     } 
 
     sockaddr_in service; 
@@ -262,507 +176,8 @@ hostent* phe = gethostbyname("maps.googleapis.com");
     { 
         if(*p == NULL) 
         { 
-            ((Point*) result.addr)->SetDefined(false); 
-            return 0; 
-        } 
-
-        service.sin_addr.s_addr = *reinterpret_cast<unsigned long*>(*p); 
-        ++p; 
-        resulte = 
-	connect(Socket, reinterpret_cast<sockaddr*>(&service), sizeof(service));
-     } 
-    while(resulte == -1); 
-
-
-	
-	
-SendAll(Socket, request.c_str(), request.size());
-
-
-
-ofstream fout("../bin/output.xml", ios::trunc);  
-	
-
- 
-
-  
-if (fout.good()==true)
-{	
-int n = 0;
-  
-    while(!fout.eof()) 
-    { 
-        stringstream line; 
-	
-        try 
-        { 
-	    GetLine(Socket, line);
-        } 
-        catch(exception& e) // Ein Fehler oder Verbindungsabbruch 
-        { 
-            break; // Schleife verlassen 
-        } 
-        if (n>11)
-	{
-
-	fout << line.str() << endl; // Zeile in die Datei schreiben. 
-        }
-	else 
-	{n++;}
-
-  }
-}
-else
-{	
-	usleep(120000);	
-	if (fout.good()==true)
-	{	
-		int n = 0;
-  
-   		 while(!fout.eof()) 
-    		{ 
-        		stringstream line; 
-	
-        		try 
-        		{ 
-	    		GetLine(Socket, line);
-        		} 
-        		catch(exception& e) 
-        		{ 
-            		break; // Schleife verlassen 
-        		} 
-        		if (n>11)
-			{
-				fout << line.str() << endl; 
-				// Zeile in die Datei schreiben. 
-        		}
-			else 
-			{n++;}
-
-  		}
-	}
-	else
-	{	
-		((Point*) result.addr)->SetDefined(false);   
-         	return 0; 
-	}
-}
-
-//Close connection
-close(Socket); 
- 
-
-
-//xml-Parser
-
-xmlDocPtr doc;
-xmlNodePtr cur;
-xmlNodePtr check;
-xmlNodePtr subcur;
-xmlNodePtr subsubcur;
-xmlNodePtr subsubsubcur;
-doc = xmlParseFile("../bin/output.xml");
-cur = xmlDocGetRootElement(doc);
-
-//check if Parentnode is available
-if ( cur == NULL){
-((Point*) result.addr)->SetDefined(false); 
-return 0;}
-
-cur = cur->children;
-check = cur->children;
-double ausg1;
-double ausg2;
-
-while (cur != NULL) {
-   if ((xmlStrcmp(cur->name, (const xmlChar *)"result"))==0){
-	subcur = cur->children;
-     while (subcur != NULL) {
-	if ((xmlStrcmp(subcur->name, (const xmlChar *)"geometry"))==0) {
-	     subsubcur = subcur->children;
-	while (subsubcur != NULL) {
-	   if ((xmlStrcmp(subsubcur->name,(const xmlChar *)"location"))==0)
-	     {
-	     subsubsubcur = subsubcur->children;
-		while (subsubsubcur != NULL) {
-		   if 
-		   ((xmlStrcmp(subsubsubcur->name,(const xmlChar *)"lat"))==0) {
-		     xmlChar *val1;
-		     val1 =xmlNodeListGetString(doc,subsubsubcur->children,1);
-		     ausg1=OsmImportOperator::convStrToDbl((const char *)val1);
-		     xmlFree(val1);
-		   }
-		   if 
-		   ((xmlStrcmp(subsubsubcur->name,(const xmlChar *)"lng"))==0) {
-		   xmlChar *val2;
-		   val2 = xmlNodeListGetString(doc, subsubsubcur->children, 1);
-		   ausg2= OsmImportOperator::convStrToDbl((const char *)val2);
-		   xmlFree(val2);
-		   }
-				  
-		subsubsubcur = subsubsubcur->next;
-		}
-	     }
-	subsubcur = subsubcur->next;
- 	}
-      }
-			  
-   subcur = subcur->next;
-  }
- }
-cur = cur->next;
-}
-	
-xmlFreeDoc(doc);
-
-
-
-if (ausg2>0){
-((Point*)result.addr)->Set(ausg2, ausg1);
-return 0;
-}
-
- ((Point*) result.addr)->SetDefined(false); 
- return 0; 
-
-}
-
-int
-GeoCodesiis (Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-
-  string st = (string)(char*)((CcString*) args[0].addr )->GetStringval();
-  int no = ((CcInt*) args[1].addr )->GetIntval();
-  string number= itoa (no);
-  int plz = ((CcInt*) args[2].addr )->GetIntval();
-  string postcode = itoa (plz);
-  string c = (string)(char*)((CcString*) args[3].addr) ->GetStringval(); 
-
-  //Check of spaces and special characters in URL
-
-string newSt = replaceinString(st, " ", "%20");
-string newSt1 = replaceinString(newSt, "ß", "ss");
-string newSt2 = replaceinString(newSt1, "ä", "ae");
-string newSt3 = replaceinString(newSt2, "ö", "oe");
-string newSt4 = replaceinString(newSt3, "ü", "ue");
-string newSt5 = replaceinString(newSt4, "Ä", "Ae");
-string newSt6 = replaceinString(newSt5, "Ö", "Oe");
-string newSt7 = replaceinString(newSt6, "Ü", "Ue");
-
-string newc = replaceinString(c, " ", "%20");
-string newc1 = replaceinString(newc, "ß", "ss");
-string newc2 = replaceinString(newc1, "ä", "ae");
-string newc3 = replaceinString(newc2, "ö", "oe");
-string newc4 = replaceinString(newc3, "ü", "ue");
-string newc5 = replaceinString(newc4, "Ä", "Ae");
-string newc6 = replaceinString(newc5, "Ö", "Oe");
-string newc7 = replaceinString(newc6, "Ü", "Ue");
-  
-  result = qp->ResultStorage(s);
-                                //query processor has provided
-                                //a point instance for the result
-  //constant part of url	
-  string pre="GET /maps/api/geocode/xml?address=";	
-  string post="+CA&sensor=false HTTP/1.1\r\n;";
-  post +="Host: maps.googleapis.com\r\nConnection: close\r\n\r\n";
-  //crate URL				
-  string request("");
-  request += pre+ newSt7+  "+";
-  request += number+ "+"   +postcode;
-  request +=  "+"   +newc7+ post;
-
-usleep(120000);  //wait because only 10 request per sec allowed
-  
-hostent* phe = gethostbyname("maps.googleapis.com"); 
-// host not found
-    if(phe == NULL) 
-    { 
-	((Point*) result.addr)->SetDefined(false);         
-	return 0; 
-    } 
-
-
-
-    int Socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); 
-    if(Socket == -1) 
-    { 
-	((Point*) result.addr)->SetDefined(false);         
-	return 0; 
-    } 
-
-    sockaddr_in service; 
-    service.sin_family = AF_INET; 
-    service.sin_port = htons(80); // HTTP-Protocol use Port 80 
-
-    char** p = phe->h_addr_list; 
-    int resulte; 
-    do 
-    { 
-      if(*p == NULL) 
-      { 
-         ((Point*) result.addr)->SetDefined(false);   
-         return 0; 
-      } 
-
-      service.sin_addr.s_addr = *reinterpret_cast<unsigned long*>(*p); 
-      ++p; 
-      resulte = 
-      connect(Socket, reinterpret_cast<sockaddr*>(&service), sizeof(service));
-     } 
-    while(resulte == -1); 
-	
-	
-    SendAll(Socket, request.c_str(), request.size());
-
-
-
-ofstream fout("../bin/output.xml", ios::trunc); 
-
-if (fout.good()==true)
-{	
-int n = 0;
-  
-    while(!fout.eof()) 
-    { 
-        stringstream line; 
-	
-        try 
-        { 
-	    GetLine(Socket, line);
-        } 
-        catch(exception& e) // Ein Fehler oder Verbindungsabbruch 
-        { 
-            break; // Schleife verlassen 
-        } 
-        if (n>11)
-	{
-
-	fout << line.str() << endl; // Zeile in die Datei schreiben. 
-        }
-	else 
-	{n++;}
-
-  }
-}
-else
-{	
-	usleep(120000);	
-	if (fout.good()==true)
-	{	
-		int n = 0;
-  
-   		 while(!fout.eof()) 
-    		{ 
-        		stringstream line; 
-	
-        		try 
-        		{ 
-	    		GetLine(Socket, line);
-        		} 
-        		catch(exception& e) 
-        		{ 
-            		break; // Schleife verlassen 
-        		} 
-        		if (n>11)
-			{
-				fout << line.str() << endl; 
-				// Zeile in die Datei schreiben. 
-        		}
-			else 
-			{n++;}
-
-  		}
-	}
-	else
-	{	
-		((Point*) result.addr)->SetDefined(false);   
-         	return 0; 
-	}
-}
-
-
-//close connection
-close(Socket); 
- 
-
-
-//xml-Parser
-
-xmlDocPtr doc;
-xmlNodePtr cur;
-xmlNodePtr check;
-xmlNodePtr subcur;
-xmlNodePtr subsubcur;
-xmlNodePtr subsubsubcur;
-doc = xmlParseFile("../bin/output.xml");
-cur = xmlDocGetRootElement(doc);
-
-//check if Parentnode is available
-if ( cur == NULL){
-((Point*) result.addr)->SetDefined(false); 
-return 0;}
-
-cur = cur->children;
-check = cur->children;
-double ausg1;
-double ausg2;
-
-while (cur != NULL) {
-   if ((xmlStrcmp(cur->name, (const xmlChar *)"result"))==0){
-	subcur = cur->children;
-     while (subcur != NULL) {
-	if ((xmlStrcmp(subcur->name, (const xmlChar *)"geometry"))==0) {
-	     subsubcur = subcur->children;
-	while (subsubcur != NULL) {
-	   if ((xmlStrcmp(subsubcur->name,(const xmlChar *)"location"))==0)
-	     {
-	     subsubsubcur = subsubcur->children;
-		while (subsubsubcur != NULL) {
-		   if 
-		   ((xmlStrcmp(subsubsubcur->name,(const xmlChar *)"lat"))==0) {
-		     xmlChar *val1;
-		     val1 =xmlNodeListGetString(doc,subsubsubcur->children,1);
-		     ausg1=OsmImportOperator::convStrToDbl((const char *)val1);
-		     xmlFree(val1);
-		   }
-		   if 
-		   ((xmlStrcmp(subsubsubcur->name,(const xmlChar *)"lng"))==0) {
-		   xmlChar *val2;
-		   val2 = xmlNodeListGetString(doc, subsubsubcur->children, 1);
-		   ausg2= OsmImportOperator::convStrToDbl((const char *)val2);
-		   xmlFree(val2);
-		   }
-				  
-		subsubsubcur = subsubsubcur->next;
-		}
-	     }
-	subsubcur = subsubcur->next;
- 	}
-      }
-			  
-   subcur = subcur->next;
-  }
- }
-cur = cur->next;
-}
-	
-xmlFreeDoc(doc);
-
-
-
-  if (ausg2>0){
-((Point*)result.addr)->Set(ausg2, ausg1);
-return 0;
-}
-((Point*) result.addr)->SetDefined(false); 
-return 0; 
-}
-
-
-//Geocode2
-
-int
-GeoCode2 (Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-
-  string st = (string)(char*)((CcString*) args[0].addr )->GetStringval();
-  int plz = ((CcInt*) args[1].addr )->GetIntval();
-  string postcode= itoa(plz);
-  string c = (string)(char*)((CcString*) args[2].addr) ->GetStringval(); 
-
-//search for the beginning of the housenumber
-
-    size_t pos = st.find_last_of("0123456789");
-    string street;
-    string no;
-
-    if(pos==string::npos){
-       // Fehler: keine Ziffer enthalten
-       ((Point*) result.addr)->SetDefined(false); 
-       return 0;
-    }  else {
-      while((pos>0) && (st[pos]>='0') &&  (st[pos]<='9')){
-          pos--;
-      }
-    }
-    if( (pos>0) || ((st[pos]>='0') && (st[pos]<='0'))){
-       street = st.substr(0,pos+1);
-       no = st.substr(pos+1);
-    } else {
-      ((Point*) result.addr)->SetDefined(false); 
-       return 0;
-    }
-
-
-
-  //Check of spaces and special characters in URL
-
-string newSt = replaceinString(street, " ", "%20");
-string newSt1 = replaceinString(newSt, "ß", "ss");
-string newSt2 = replaceinString(newSt1, "ä", "ae");
-string newSt3 = replaceinString(newSt2, "ö", "oe");
-string newSt4 = replaceinString(newSt3, "ü", "ue");
-string newSt5 = replaceinString(newSt4, "Ä", "Ae");
-string newSt6 = replaceinString(newSt5, "Ö", "Oe");
-string newSt7 = replaceinString(newSt6, "Ü", "Ue");
-
-string newc = replaceinString(c, " ", "%20");
-string newc1 = replaceinString(newc, "ß", "ss");
-string newc2 = replaceinString(newc1, "ä", "ae");
-string newc3 = replaceinString(newc2, "ö", "oe");
-string newc4 = replaceinString(newc3, "ü", "ue");
-string newc5 = replaceinString(newc4, "Ä", "Ae");
-string newc6 = replaceinString(newc5, "Ö", "Oe");
-string newc7 = replaceinString(newc6, "Ü", "Ue");
-
-no = replaceinString(no, " ", "%20");
-  
-  result = qp->ResultStorage(s);
-                                //query processor has provided
-                                //a point instance for the result
-  //constant values of url	
-  string pre="GET /maps/api/geocode/xml?address=";	
-  string post="+CA&sensor=false HTTP/1.1\r\n;";
-  post +="Host: maps.googleapis.com\r\nConnection: close\r\n\r\n";	
-  //create url			
-  string request("");
-  request += pre+ newSt7+  "+";
-  request += no+ "+"   +postcode;
-  request +=  "+"   +newc7+ post;
-
-usleep(120000);  //wait because only 10 request per sec allowed
-  
-hostent* phe = gethostbyname("maps.googleapis.com"); 
-
-    //if host not found
-    if(phe == NULL) 
-    { 
-       ((Point*) result.addr)->SetDefined(false); 
-        return 0; 
-    } 
-
-    int Socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); 
-    //error while craeating socket
-    if(Socket == -1) 
-    { 
-        ((Point*) result.addr)->SetDefined(false); 
-        return 0; 
-    } 
-
-    sockaddr_in service; 
-    service.sin_family = AF_INET; 
-    service.sin_port = htons(80); // HTTP-Protocol use Port 80 
-
-    char** p = phe->h_addr_list; 
-    int resulte; 
-    do 
-    { 
-        if(*p == NULL) 
-        { 
-            ((Point*) result.addr)->SetDefined(false); 
-            return 0; 
+            result.SetDefined(false); 
+            //return 0; 
         } 
 
         service.sin_addr.s_addr = *reinterpret_cast<unsigned long*>(*p); 
@@ -842,14 +257,12 @@ else
 	}
 	else
 	{	
-		((Point*) result.addr)->SetDefined(false);   
-         	return 0; 
+		result.SetDefined(false);   
+         	//return 0; 
 	}
 }
 //Close connection
 close(Socket); 
- 
-
 
 //xml-Parser
 
@@ -865,8 +278,9 @@ cur = xmlDocGetRootElement(doc);
 //check if Parentnode is available
 
 if ( cur == NULL){
-((Point*) result.addr)->SetDefined(false); 
-return 0;}
+result.SetDefined(false); 
+//return 0;
+}
 
 cur = cur->children;
 check = cur->children;
@@ -916,48 +330,237 @@ xmlFreeDoc(doc);
 
 
 if (ausg2>0){
-((Point*)result.addr)->Set(ausg2, ausg1);
-return 0;
+result.Set(ausg2, ausg1);
 }
-
- ((Point*) result.addr)->SetDefined(false); 
- return 0; 
-
+else{
+ result.SetDefined(false); 
 }
 
 
+}
 
-//Operator descrition geocode1
+/*
+4 Implementation of Algebra TrajectoryAnnotation in namespace tann
 
-struct GeoCodeInfo : OperatorInfo {
+4.1 Implementation of operator geocode
 
-  GeoCodeInfo()
-  {
-    name      = "geocode";
-    signature = CcString::BasicType() + " x " + CcString::BasicType()
-    + " x " + CcInt::BasicType() + " x "+ CcString::BasicType() 
-    +" -> " + Point::BasicType();
-    appendSignature( CcString::BasicType() + " x " + CcInt::BasicType()
-    + " x " + CcInt::BasicType() + " x "+ CcString::BasicType() 
-    +" -> " + Point::BasicType() );
-    appendSignature( CcString::BasicType() + " x " + CcInt::BasicType() 
-    + " x "+ CcString::BasicType() +" -> " + Point::BasicType() );
-    syntax    = "geocode (_, _, _, _) or geocode (_,_,_)";
-    meaning   = "The operator geocode returns the point to an address. "
-		"The address has to be entered in the form: street, number, plz"
-		", city or streetaddress (street and number), plz, city.";
-  }
+Typemapping and Selection Funktion for geocode
 
-}; // Don't forget the semicolon here. Otherwise the compiler
-   // returns strange error messages
+*/
+
+namespace tann {
+
+
+ListExpr geocodeTM(ListExpr args){
+int len = nl->ListLength(args);
+string err = "(string x string x int x string) or "
+"(string x int x int x string) or (string x int x string) expected";
+if((len!=3) && (len !=4)){ // 3 oder 4 argumente
+	return listutils::typeError(err);
+}
+
+if(len == 3){
+	if( !CcString::checkType(nl->First(args)) || 
+	!CcInt::checkType(nl->Second(args)) ||
+	!CcString::checkType(nl->Third(args))){
+	return listutils::typeError(err);
+	} else {
+	return listutils::basicSymbol<Point>();
+	}
+}
+
+if(len == 4){
+	if( !CcString::checkType(nl->First(args)) || 
+	(!CcString::checkType(nl->Second(args)) &&
+	!CcInt::checkType(nl->Second(args))) ||
+	!CcInt::checkType(nl->Third(args)) ||
+	!CcString::checkType(nl->Fourth(args))){
+	 return listutils::typeError(err);
+ 	} else {
+	return listutils::basicSymbol<Point>();
+ 	}
+}
+
+else {return listutils::typeError(err);}
+}
+
+int geocodeSelect(ListExpr args){
+int len = nl->ListLength(args);
+if(len == 3){ // string x int x string
+	return 0; // index in umVM
+	} 
+if (len ==4) { // point x text x int
+  if(CcString::checkType(nl->Second(args))) {
+	return 1;
+	}
+  if (CcInt::checkType(nl->Second(args))){
+	return 2;}
+  else {
+	return listutils::basicSymbol<Point>();
+ 	}
+
+}
+else {
+	return listutils::basicSymbol<Point>();
+ 	}
+}
+
+
+// Map Value
+
+//Liste aus drei Elementen
+
+int
+geocodeVM0 (Word* args, Word& result, int message,
+             Word& local, Supplier s)
+{
+
+CcString* st = (CcString*)args[0].addr;
+CcInt* plz = (CcInt*) args[1].addr;
+CcString* c = (CcString*) args[2].addr;
+
+
+result = qp->ResultStorage(s);
+Point* res = (Point*) result.addr;
+                                //query processor has provided
+                                //a point instance for the result
+
+
+if(st->IsDefined() && plz->IsDefined() && c->IsDefined()){
+
+   string str=(string)(char*)(st)->GetStringval();
+   int co = (plz)->GetIntval();
+   string ci=(string)(char*)(c)->GetStringval();
+   string postcode = stringutils::int2str(co);
+
+   //search for the beginning of the housenumber
+   size_t pos = str.find_last_of("0123456789");
+    string street;
+    string no;
+
+    if(pos==string::npos){
+       // Fehler: keine Ziffer enthalten
+       res->SetDefined(false); 
+       return 0;
+    }  else {
+      while((pos>0) && (str[pos]>='0') &&  (str[pos]<='9')){
+          pos--;
+      }
+      }
+    if( (pos>0) || ((str[pos]>='0') && (str[pos]<='0'))){
+       street = str.substr(0,pos+1);
+       no = str.substr(pos+1);
+    } else {
+      res->SetDefined(false); 
+       return 0;
+      }
+
+askGoogle(street, no, postcode, ci, *res);
+}
+
+else {
+ res->SetDefined(false);
+ }
+ return 0;
+}
+
+//Liste aus vier Elementen
+int
+geocodeVM1 (Word* args, Word& result, int message,
+             Word& local, Supplier s)
+{
+CcString* st = (CcString*)args[0].addr;
+CcString* no= (CcString*) args[1].addr;
+CcInt* plz = (CcInt*) args[2].addr;
+CcString* c = (CcString*) args[3].addr;
+
+
+result = qp->ResultStorage(s);
+Point* res = (Point*) result.addr;
+
+
+if(st->IsDefined() && no->IsDefined() && plz->IsDefined() && c->IsDefined()){
+
+   string street=(string)(char*)(st)->GetStringval();
+   string number=(string)(char*)(no)->GetStringval();
+   int co = (plz)->GetIntval();
+   string ci=(string)(char*)(c)->GetStringval();
+   string postcode = stringutils::int2str(co);
+
+
+askGoogle(street, number, postcode, ci, *res);
+}
+
+else {
+ res->SetDefined(false);
+ }
+ return 0;
+}
+
+
+int
+geocodeVM2 (Word* args, Word& result, int message,
+             Word& local, Supplier s)
+{
+CcString* st = (CcString*)args[0].addr;
+CcInt* no= (CcInt*) args[1].addr;
+CcInt* plz = (CcInt*) args[2].addr;
+CcString* c = (CcString*) args[3].addr;
+
+
+result = qp->ResultStorage(s);
+Point* res = (Point*) result.addr;
+
+
+if(st->IsDefined() && no->IsDefined() && plz->IsDefined() && c->IsDefined()){
+
+   string street=(string)(char*)(st)->GetStringval();
+   int number=(no)->GetIntval();
+   int co = (plz)->GetIntval();
+   string ci=(string)(char*)(c)->GetStringval();
+   string postcode = stringutils::int2str(co);
+   string nr = stringutils::int2str(number);
+
+askGoogle(street, nr, postcode, ci, *res);
+}
+
+else {
+ res->SetDefined(false);
+ }
+ return 0;
+}
+
+
 
 
 //5 Definition of operator geocode
-ValueMapping GeoCodeFun[] =
-        { GeoCodessis, GeoCodesiis, 0};
+ValueMapping geocodeVM[] = {
+geocodeVM0,
+geocodeVM1,
+geocodeVM2
+};
 
-ValueMapping GeoCodeFun2[] =
-        { GeoCode2, 0};
+//Spezizikation
+const string geocodeSpec  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+        "( <text>(string x int x string) -> point or "
+	"(string x [string|int] x int x string) -> point</text--->"
+        "<text>geocode(_,_,_,_)</text--->"
+        "<text>Point to an address</text--->"
+        "<text>query geocode('Universitätsstr.', 11, 58097, 'Hagen')</text--->"
+        ") )";
+
+
+
+
+Operator geocodeOp(
+ "geocode", // Name des Operators
+geocodeSpec, // Spezifikation
+ 3, // Anzahl ValueMappings
+geocodeVM, // Array von ValueMappings
+geocodeSelect, // Selection Funktion
+geocodeTM // TypeMapping
+ );
 
 /*
 5 Implementation of the Algebra Class
@@ -975,8 +578,7 @@ class TrajectoryAnnotationAlgebra : public Algebra
 
 */
 
-    AddOperator( GeoCodeInfo(), GeoCodeFun,  GeoCodeSelect, GeoCodeTypeMap);
-    AddOperator( GeoCodeInfo(), GeoCodeFun2,  GeoCodeSelect2, GeoCodeTypeMap2);
+    AddOperator( &geocodeOp);
 
   }
   ~TrajectoryAnnotationAlgebra() {};
