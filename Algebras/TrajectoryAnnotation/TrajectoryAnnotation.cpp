@@ -155,7 +155,7 @@ hostent* phe = gethostbyname("maps.googleapis.com");
     if(phe == NULL) 
     { 
        result.SetDefined(false); 
-       // return 0; 
+       return;  
     } 
 
     int Socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP); 
@@ -163,7 +163,7 @@ hostent* phe = gethostbyname("maps.googleapis.com");
     if(Socket == -1) 
     { 
         result.SetDefined(false); 
-        //eturn 0; 
+        return; 
     } 
 
     sockaddr_in service; 
@@ -177,7 +177,7 @@ hostent* phe = gethostbyname("maps.googleapis.com");
         if(*p == NULL) 
         { 
             result.SetDefined(false); 
-            //return 0; 
+            return;  
         } 
 
         service.sin_addr.s_addr = *reinterpret_cast<unsigned long*>(*p); 
@@ -258,7 +258,7 @@ else
 	else
 	{	
 		result.SetDefined(false);   
-         	//return 0; 
+         	return;  
 	}
 }
 //Close connection
@@ -279,7 +279,7 @@ cur = xmlDocGetRootElement(doc);
 
 if ( cur == NULL){
 result.SetDefined(false); 
-//return 0;
+return; 
 }
 
 cur = cur->children;
@@ -334,6 +334,7 @@ result.Set(ausg2, ausg1);
 }
 else{
  result.SetDefined(false); 
+ return; 
 }
 
 
