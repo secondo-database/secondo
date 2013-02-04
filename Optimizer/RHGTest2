@@ -1,4 +1,5 @@
-#SecondoPL
+#SecondoPL (manual test)
+
 open database opt.
 
 sql select count(*) from [orte as o, plz as p] where [o:bevt < 500, o:ort = p:ort].
@@ -28,3 +29,5 @@ where [
 	p3:plz = p2:plz + 40]
 
 writeSizes.
+
+
