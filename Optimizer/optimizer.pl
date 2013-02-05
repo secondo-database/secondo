@@ -3326,7 +3326,9 @@ join(Arg1, Arg2, pr(Pred, R1, R2)) => JoinPlan :-
       )
   ),
   X = attr(_, _, _),
-  Y = attr(_, _, _), !, % perhaps, this cut is the reason to the ^^^problem
+  Y = attr(_, _, _), % !, % perhaps, this cut is the reason to the ^^^problem
+                     % indeed, prevented the use of symmjoin for bbox operators.
+                     % RHG 5.2.2013
   Arg1 => Arg1S,
   Arg2 => Arg2S,
   join00(Arg1S, Arg2S, pr(Pred, R1, R2)) => JoinPlan.
