@@ -1,0 +1,389 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2004, University in Hagen, Department of Computer Science,
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/ or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESSFOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+# An example test spec for the Secondo TestRunner
+# run it with :
+#
+# TestRunner -i example.test
+#
+# By default a temporary database directory will be created. If you
+# want to use existing databases run
+#
+# TestRunner --no-tmp -i < file>
+#
+# If one of your tests (say number N ) reports an error you can run
+# it directly by
+#
+# TestRunner -i < file> -num N
+#
+# this is useful for debugging
+# A test specification consists of initial commands, a section of commands
+# setting up the test, a sequence of test cases, and a section of commands
+# cleaning up. The TestRunner uses directives to specify these sections.
+# directives are specified in comment lines, all comment lines beginning with a
+# directive are interpreted as commands to the TestRunner, non-comment lines are
+# passed to Secondo. The possible directives are SETUP, TESTCASE, YIELDSand
+# TEARDOWN (here i have written the directives in upper case to avoid confusion,
+# the real directives must be written in lower case). The meanings of those
+# directives are explained the following commented examples.
+
+# before the SETUP directive one can place Secondo commands
+# which may or may not succeed
+delete database mytestdb;
+# the SETUP directive may specify the name of the test and a
+# some algebra modules which are needed for it.
+# the SETUP directive must appear exactly once in a test spec
+#setup exampletest StandardAlgebra RelationAlgebra
+# if a command between the SETUP directive and the first
+# TESTCASE directive fails, then the whole test has failed
+# and we immediately skip to the teardown
+# (the whole test does not make sense anymore if the
+# SETUP has failed)
+create database mytestdb;
+open database mytestdb;
+let Cluster = [const rel(tuple([Server: string, Port: int]))
+value (
+("132.176.69.182" 22234)
+("132.176.69.183" 22234)
+("132.176.69.185" 22234)
+("132.176.69.186" 22234)
+("132.176.69.181" 24322)
+("132.176.69.182" 24322)
+("132.176.69.183" 24322)
+("132.176.69.185" 24322)
+("132.176.69.186" 24322)
+)]
+let ClusterERR = [const rel(tuple([Server: string, Port: int]))
+value (
+("132.176.69.181" 666)
+("132.176.69.182" 22234)
+("132.176.69.183" 22234)
+("132.176.69.185" 22234)
+("132.176.69.186" 22234)
+("132.176.69.181" 24322)
+("132.176.69.182" 24322)
+("132.176.69.183" 24322)
+("132.176.69.185" 24322)
+("132.176.69.186" 24322)
+)]
+restore roads from roads10_ts;
+restore ClusterPerf from ClusterPerf_ts;
+let ClusterRed = ClusterPerf feed filter [ not (.Server contains "132.176.69.184") ] consume;
+
+query ClusterRed feed extend[Stopped: shutdown (.Server, .Port)] consume;
+
+
+let Running = ClusterRed feed extend[Started: startup(.Server, .Port, .SecConf, TRUE)] consume;
+
+let runok = Running feed check_workers consume;
+let roads5 = roads feed extend[Box: bbox(.Elem)] extendstream[Cell: cellnumber(.Box, 5.5, 50.0,
+0.2, 0.2, 50)] extend[Partition: .Cell mod 5] consume;
+let roads10 = roads feed extend[Box: bbox(.Elem)] extendstream[Cell: cellnumber(.Box, 5.5, 50.0,
+0.2, 0.2, 50)] extend[Partition: .Cell mod 10] consume;
+let roads20 = roads feed extend[Box: bbox(.Elem)] extendstream[Cell: cellnumber(.Box, 5.5, 50.0,
+0.2, 0.2, 50)] extend[Partition: .Cell mod 20] consume;
+let updaterel = [const rel(tuple([Osm_id: int, Name: string, Ref:string, Type: string, Oneway: int,
+Bridge:int, Maxspeed:int, No:int, Elem: line, Box: rect, Cell:int]))
+value ((403006 "TEST ROAD
+" undefined "residential " 0 0 0 1 ((7.2314824
+51.5329649 7.232731 51.5318179)) (7.231482327685176 7.232731072327311 51.53181789
+51.53296491) 359))]
+let loop_cmd = '. feed {r1} . feed {r2} parajoin2[Cell_r1, Cell_r2; . .. symmjoin[(.No_r1 < ..No_r2) and
+gridintersects(5.5, 50.0, 0.2, 0.2, 50,bbox(.Elem_r1), bbox(..Elem_r2), .Cell_r1) and (.Elem_r1
+intersects ..Elem_r2)]] count';
+let loopa_cmd = 'calculates road intersections!';
+let roads_sm = roads feed head [10] consume;
+# a TESTCASE consists of a TESTCASE declarative followed
+# by a YIELDS declarative followed by a command.
+# multiple or no commands after a YIELD directive
+# will confuse the TestRunner
+# the expected output specified by the YIELD declarative
+# is converted to a ListExpr and the TestRunner compares
+# it to Secondo's actual output by calling
+# NestedList-> Equal. You can specifiy results in 4 ways:
+#
+# 1. a list expression
+# 2. in a separate file
+# 3. as a database object
+# 4. a simple check for "error" or "success"
+#
+# See below for examples.
+##############
+# check setup
+##############
+#testcase countRoads
+#yields (int 10000)
+query roads feed count;
+#testcase precheck
+#yields (int 4339)
+query roads10 feed {r1} roads10 feed {r2} parajoin2[Cell_r1, Cell_r2; . .. symmjoin[(.No_r1 <
+..No_r2) and gridintersects(5.5, 50.0, 0.2, 0.2, 50,bbox(.Elem_r1), bbox(..Elem_r2), .Cell_r1) and
+(.Elem_r1 intersects ..Elem_r2)]] count
+
+#testcase checkworker
+#yields ((rel (tuple ((Server string) (Port int) (Status string)))) (("132.176.69.182" 22234 "OK")
+("132.176.69.183" 22234 "OK") ("132.176.69.185" 22234 "OK") ("132.176.69.186" 22234 "OK")
+("132.176.69.181" 24322 "OK") ("132.176.69.182" 24322 "OK") ("132.176.69.183" 24322 "OK")
+("132.176.69.185" 24322 "OK") ("132.176.69.186" 24322 "OK")))
+query runok;
+##############
+# ddistribute
+##############
+#testcase ddistribute1
+#yields success
+let drds_10_1 = roads feed head [10] extend [N: 1] ddistribute [N, 1, ClusterRed];
+#testcase ddistribute2
+#yields success
+let drds_10_2 = roads feed head [10] extend [N: randint(2)] ddistribute [N, 2, ClusterRed];
+#testcase ddistribute3
+#yields success
+let drds_10_5 = roads5 feed ddistribute [Partition, 5, ClusterRed];
+#testcase ddistribute4
+#yields success
+let drds_10_10 = roads10 feed ddistribute [Partition, 10, ClusterRed];
+#testcase ddistribute5
+#yields success
+let drds_10_20 = roads20 feed ddistribute [Partition, 20, ClusterRed];
+##############
+# dsummarize
+##############
+#testcase dsummarize_1
+#yields (int 10)
+query drds_10_1 dsummarize count;
+#testcase dsummarize_2
+#yields (int 10)
+query drds_10_2 dsummarize count;
+#testcase dsummarize_3
+#yields (int 10236)
+query drds_10_5 dsummarize count;
+#testcase dsummarize_4
+#yields (int 10236)
+query drds_10_10 dsummarize count;
+#testcase dsummarize_5
+#yields (int 10236)
+query drds_10_20 dsummarize count;
+##############
+# makeDarray
+##############
+#testcase guetting1_2
+#yields success
+let Control36 = makeDarray( Cluster,
+
+1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36);
+#testcase gueting1_3
+#yields ((darray int) ((("132.176.69.182" 22234) ("132.176.69.183" 22234) ("132.176.69.185"
+22234) ("132.176.69.186" 22234) ("132.176.69.181" 24322) ("132.176.69.182" 24322)
+("132.176.69.183" 24322) ("132.176.69.185" 24322) ("132.176.69.186" 24322)) 1 2 3 4 5 6 7 8 9
+10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36))
+query Control36;
+let darr_roads = makeDarray( Cluster, roads_sm, roads_sm, roads_sm, roads_sm, roads_sm,
+roads_sm, roads_sm, roads_sm);
+#testcase darr_rel_1
+#yields (int 80)
+query darr_roads dloop [. count] dtie [. + ..];
+##############
+# dloop
+##############
+#testcase dloop_1
+#yields ((darray int) ((("132.176.69.182" 22234) ("132.176.69.183" 22234) ("132.176.69.185"
+22234) ("132.176.69.186" 22234) ("132.176.69.181" 24322) ("132.176.69.182" 24322)
+("132.176.69.183" 24322) ("132.176.69.185" 24322) ("132.176.69.186" 24322)) 2 4 6 8 10 12 14
+16 18 20 22 24 26 28 30 32 34 36 38 40 42 44 46 48 50 52 54 56 58 60 62 64 66 68 70 72))
+query Control36 dloop [. + .];
+#testcase dloop_2
+#yields ((darray int) ((("132.176.69.182" 22234) ("132.176.69.183" 22234) ("132.176.69.185"
+22234) ("132.176.69.186" 22234) ("132.176.69.181" 24322) ("132.176.69.182" 24322)
+("132.176.69.183" 24322) ("132.176.69.185" 24322) ("132.176.69.186" 24322)) 10))
+query drds_10_1 dloop [. count];
+#testcase dloop_3
+#yields ((darray int) ((("132.176.69.182" 22234) ("132.176.69.183" 22234) ("132.176.69.185"
+22234) ("132.176.69.186" 22234) ("132.176.69.181" 24322) ("132.176.69.182" 24322)
+("132.176.69.183" 24322) ("132.176.69.185" 24322) ("132.176.69.186" 24322)) 1118 2277 1618
+2811 2412))
+query drds_10_5 dloop [. count];
+#testcase dloop_4
+#yields ((darray int) ((("132.176.69.182" 22234) ("132.176.69.183" 22234) ("132.176.69.185"
+22234) ("132.176.69.186" 22234) ("132.176.69.181" 24322) ("132.176.69.182" 24322)
+("132.176.69.183" 24322) ("132.176.69.185" 24322) ("132.176.69.186" 24322)) 567 1394 637
+1303 1178))
+query drds_10_5 dloop [. feed {r1} . feed {r2} parajoin2[Cell_r1, Cell_r2; . .. symmjoin[(.No_r1 <
+..No_r2) and gridintersects(5.5, 50.0, 0.2, 0.2, 50,bbox(.Elem_r1), bbox(..Elem_r2), .Cell_r1) and
+(.Elem_r1 intersects ..Elem_r2)]] count];
+##############
+# dloopa
+##############
+#testcase dloopa_1
+#yields ((darray int) ((("132.176.69.182" 22234) ("132.176.69.183" 22234) ("132.176.69.185"
+22234) ("132.176.69.186" 22234) ("132.176.69.181" 24322) ("132.176.69.182" 24322)
+("132.176.69.183" 24322) ("132.176.69.185" 24322) ("132.176.69.186" 24322)) 2 4 6 8 10 12 14
+16 18 20 22 24 26 28 30 32 34 36 38 40 42 44 46 48 50 52 54 56 58 60 62 64 66 68 70 72))
+query Control36 Control36 dloopa [. + ..];
+
+
+#testcase dloopa_2
+#yields ((darray int) ((("132.176.69.182" 22234) ("132.176.69.183" 22234) ("132.176.69.185"
+22234) ("132.176.69.186" 22234) ("132.176.69.181" 24322) ("132.176.69.182" 24322)
+("132.176.69.183" 24322) ("132.176.69.185" 24322) ("132.176.69.186" 24322)) 567 1394 637
+1303 1178))
+query drds_10_5 drds_10_5 dloopa [. feed {r1} .. feed {r2} parajoin2[Cell_r1, Cell_r2; . ..
+symmjoin[(.No_r1 < ..No_r2) and gridintersects(5.5, 50.0, 0.2, 0.2, 50,bbox(.Elem_r1),
+bbox(..Elem_r2), .Cell_r1) and (.Elem_r1 intersects ..Elem_r2)]] count];
+##############
+# dtie
+##############
+#testcase dtie_1
+#yields (int 666)
+query Control36 dtie [.. + .];
+##############
+# get / put
+##############
+#testcase get_1
+#yields (int 15)
+query get(Control36, 14);
+#testcase put_1
+#yields success
+let Control36_a = put(Control36, 3, 14);
+#testcase get_2
+#yields (int 3)
+query get(Control36_a, 14);
+#testcase get_3
+#yields ((trel (tuple ((Name string)))) (("In dem Breil
+query get(drds_10_10, 9) feed head[1] project [Name] tconsume;
+
+")))
+
+#testcase put_2
+#yields success
+let drds_10_10_a = put(drds_10_10, updaterel, 9);
+#testcase get_4
+#yields ((trel (tuple ((Osm_id int) (Name string) (Ref string) (Type string) (Oneway int) (Bridge
+int) (Maxspeed int) (No int) (Elem line) (Box rect) (Cell int)))) ((403006 "TEST ROAD
+" undefined "residential " 0 0 0 1 ((7.2314824 51.5329649 7.232731 51.5318179))
+(7.231482327685176 7.232731072327311 51.53181789 51.53296491) 359)))
+query get(drds_10_10_a, 9) feed tconsume;
+#testcase get_3_elim_darray_index
+#yields error
+query get(drds_10_10, 8) feed head[1] project [Partition] count;
+
+##############
+# dshuffle
+##############
+#testcase dshuffle1_1
+#yields (int 10236)
+query drds_10_20 dshuffle1[(randint(20) + d_idx()) mod 20] dloop [. count] dtie [. + ..];
+
+
+#testcase dshuffle2_1
+#yields ((darray int) ((("132.176.69.182" 22234) ("132.176.69.183" 22234) ("132.176.69.185"
+22234) ("132.176.69.186" 22234) ("132.176.69.181" 24322) ("132.176.69.182" 24322)
+("132.176.69.183" 24322) ("132.176.69.185" 24322) ("132.176.69.186" 24322)) 10236))
+query drds_10_20 dshuffle2[0, 1] dloop [. count];
+#testcase dshuffle2_2
+#yields ((darray int) ((("132.176.69.182" 22234) ("132.176.69.183" 22234) ("132.176.69.185"
+22234) ("132.176.69.186" 22234) ("132.176.69.181" 24322) ("132.176.69.182" 24322)
+("132.176.69.183" 24322) ("132.176.69.185" 24322) ("132.176.69.186" 24322)) 5314 4922))
+query drds_10_20 dshuffle2[d_idx() mod 2, 2] dloop [. count];
+#testcase dshuffle2_3
+#yields ((darray int) ((("132.176.69.182" 22234) ("132.176.69.183" 22234) ("132.176.69.185"
+22234) ("132.176.69.186" 22234) ("132.176.69.181" 24322) ("132.176.69.182" 24322)
+("132.176.69.183" 24322) ("132.176.69.185" 24322) ("132.176.69.186" 24322)) 3017 4669
+2550))
+query drds_10_20 dshuffle2[d_idx() mod 3, 3] dloop [. count];
+#testcase dshuffle2_4
+#yields ((darray int) ((("132.176.69.182" 22234) ("132.176.69.183" 22234) ("132.176.69.185"
+22234) ("132.176.69.186" 22234) ("132.176.69.181" 24322) ("132.176.69.182" 24322)
+("132.176.69.183" 24322) ("132.176.69.185" 24322) ("132.176.69.186" 24322)) 2934 1855 2380
+3067))
+query drds_10_20 dshuffle2[d_idx() mod 4, 4] dloop [. count];
+#testcase dshuffle2_5
+#yields ((darray int) ((("132.176.69.182" 22234) ("132.176.69.183" 22234) ("132.176.69.185"
+22234) ("132.176.69.186" 22234) ("132.176.69.181" 24322) ("132.176.69.182" 24322)
+("132.176.69.183" 24322) ("132.176.69.185" 24322) ("132.176.69.186" 24322)) 1118 2277 1618
+2811 2412))
+query drds_10_20 dshuffle2[d_idx() mod 5, 5] dloop [. count];
+#testcase dshuffle2_6
+#yields ((darray int) ((("132.176.69.182" 22234) ("132.176.69.183" 22234) ("132.176.69.185"
+22234) ("132.176.69.186" 22234) ("132.176.69.181" 24322) ("132.176.69.182" 24322)
+("132.176.69.183" 24322) ("132.176.69.185" 24322) ("132.176.69.186" 24322)) 2452 2681 874
+565 1988 1676))
+query drds_10_20 dshuffle2[d_idx() mod 6, 6] dloop [. count];
+#testcase dshuffle3_1
+#yields (int 10236)
+query drds_10_20 dshuffle[(d_idx() mod 24), 24, Cluster] dloop [. count] dtie [. + ..];
+##############
+# errors
+##############
+#testcase darray_fail_1
+#yields success
+let Control36_err = makeDarray( ClusterERR, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
+19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36);
+#testcase darray_fail_1a
+#yields ((darray int) undefined)
+query Control36_err
+#testcase ddistr_fail_1
+#yields success
+let drds_10_2_err = roads feed head [10] extend [N: randint(2)] ddistribute [N, 2, ClusterERR];
+
+
+#testcase ddistr_fail_1a
+#yields ((darray (rel (tuple ((Osm_id int) (Name string) (Ref string) (Type string) (Oneway int)
+(Bridge int) (Maxspeed int) (No int) (Elem line))))) undefined)
+query drds_10_2_err
+##############
+# delete all
+##############
+#testcase delete_1
+#yields success
+delete Control36
+#testcase delete_1
+#yields ()
+delete Control36_err
+#testcase delete_2
+#yields success
+delete drds_10_1
+#testcase delete_3
+#yields success
+delete drds_10_2
+#testcase delete_4
+#yields success
+delete drds_10_5
+#testcase delete_5
+#yields success
+delete drds_10_10
+#testcase delete_6
+#yields success
+delete drds_10_20
+#testcase delete_7
+#yields ()
+delete drds_10_2_err
+
+#testcase delete_8
+#yields success
+delete drds_10_10_a
+#testcase delete_9
+#yields success
+delete Control36_a
+# the TEARDOWN directive is followed by commands which
+# should be executed after the execution of all TESTCASES
+#teardown
+
+close database;
+
