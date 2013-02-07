@@ -6262,8 +6262,8 @@ struct networkInfo:ConstructorInfo{
     name = Network::BasicType();
     signature = "-> NETWORK";
     typeExample = Network::BasicType();
-    listRep = "(<id> <routes-relation><junctions-relation>)";
-    valueExample = "(1 (rel()) (rel()))";
+    listRep = "(<id> <scale> <routes-relation><junctions-relation>)";
+    valueExample = "(1 1.0 (rel()) (rel()))";
     remarks = "Datatype containing all network information.";
   }
 };
@@ -10585,7 +10585,7 @@ struct gpointsInfo:ConstructorInfo{
     typeExample = GPoints::BasicType();
     listRep = "(<gpoint1> <gpoint2> ...)";
     valueExample = "((1 34 235.65 1)(1 98 234.1 0))";
-    remarks = "Set of network positions.";
+    remarks = "Set of gpoint values.";
   }
 };
 
@@ -11469,18 +11469,21 @@ int OpNetworkTheNetworkValueMapping ( Word* args, Word& result,
 
 const string TheNetworkSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "(<text>" + CcInt::BasicType() + " X " + CcReal::BasicType() + "X " +
+  "(<text>" + CcInt::BasicType() + " X " + CcReal::BasicType() + " X " +
   Relation::BasicType() + " X " + Relation::BasicType() + " -> " +
   Network::BasicType() + "</text--->"
   "<text> thenetwork( <id> , <scaleinformation> , <roadsrel> , "+
   "<crossings> ) </text--->"
   "<text> Creates the network with identifier id, from the informations in "+
-  "the roads relation and crossings relation. The scaleinformation is used"+
-  "within map matching operations. It tells the system where how much it must"+
-  "scale the given coordinates to get meter values for distances. Because we" +
-  "the tolerance value of map matching computations must be given relativ to" +
-  "the data format.</text--->"
-  "<text> query getfirstelem(1, 1.0, roads, crossings)</text--->))";
+  "the roads relation and crossings relation. The scaleinformation is used "+
+  "within map matching operations. It tells the system how much it must"+
+  "scale the given coordinates to get meter values for distances. Because " +
+  "the tolerance value of map matching computations must be given relativ to " +
+  "the data format. The input relations are expected to have tuples of type " +
+  "(int, real, sline, bool, bool) and (int, real, int, real, int) with "+
+  "meaning (rid, length, curve, dual, startssmaller) and (rid1, r1dist, rid2 " +
+  ", r1dist, connectivity code)</text--->"
+  "<text> query thenetwork(1, 1.0, roads, crossings)</text--->))";
 
   Operator theNetwork(
     "thenetwork",
@@ -11761,7 +11764,7 @@ struct polygpointsInfo:OperatorInfo{
     name = "polygpoints";
     signature = "gpoint X network -> stream(gpoint)";
     syntax = "polygpoints(gpoint, network)";
-    meaning = "Returns all gpoints with the network position of gpoint.";
+    meaning = "Return gpoints with same position in space.";
   }
 };
 
@@ -12351,7 +12354,7 @@ struct getBGPInfo:OperatorInfo{
     name = "getBGP";
     signature = "gline -> gpoints";
     syntax = "getBGP (_)";
-    meaning = "Returns the bounding GPoints of gline.";
+    meaning = "Returns the set of bounding gpoint of gline.";
   }
 };
 
@@ -12908,7 +12911,7 @@ int OpShortestpathtreeSelect ( ListExpr args )
 struct shortestpathtreeInfo:OperatorInfo{
   shortestpathtreeInfo():OperatorInfo(){
     name = "shortestpathtree";
-    signature = "gpoint X network -> stream(tupel((int)(real)))";
+    signature = "gpoint X network -> stream(tupel((int)(real)(bool)))";
     syntax = "shortestpathtree(_,_)";
     meaning = "Returns the shortestpathtree from source.";
   }

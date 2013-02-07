@@ -7657,7 +7657,7 @@ struct mgp2mgpsecunitsInfo : OperatorInfo {
     name      = "mgp2mgpsecunits";
     signature = "rel x attr x net x real->stream(mgpsecunit)";
     syntax    = "_ mgp2mgpsecunits[_,_,_]";
-    meaning   = "Builds a stream of mgpsecunits from mgpoint.";
+    meaning   = "Stream of mgpsecunits from mgpoint attr in rel.";
   }
 };
 
@@ -10408,8 +10408,8 @@ struct mgpsu2tupleInfo : OperatorInfo {
     name      = "mgpsu2tuple";
     signature = Symbol::STREAM() + "("+ MGPSecUnit::BasicType() + ") -> " +
                 mgpSecTypeInfo;
-    syntax    = "_ mgp2mgpsecunits3 ( _ ) ";
-    meaning   = "Builds a stream of mgpsecunits from a stream of mgpoint.";
+    syntax    = "_ mgpsu2tuple ( _ ) ";
+    meaning   = "Transforms stream of mgpsecunits to tuplestream.";
   }
 };
 
