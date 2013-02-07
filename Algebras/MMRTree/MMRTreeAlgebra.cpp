@@ -121,20 +121,25 @@ ListExpr realJoinMMRTreeTM(ListExpr args){
 
 
   string err = "stream(tuple(A)) x stream(tuple(B)) x"
-               " a_i x b_i x int x int [x int] expected";
+               " a_i x b_i x [int x int [x int]] expected";
    int len = nl->ListLength(args);
-   if((len!=6) && (len!=7)){
+   if((len!=4) && (len!=6) && (len!=7)){
      return listutils::typeError(err);
    }
 
    if(!Stream<Tuple>::checkType(nl->First(args)) ||
       !Stream<Tuple>::checkType(nl->Second(args)) ||
       !listutils::isSymbol(nl->Third(args)) ||
-      !listutils::isSymbol(nl->Fourth(args))  ||
-      !CcInt::checkType(nl->Fifth(args)) ||
-      !CcInt::checkType(nl->Sixth(args))){
+      !listutils::isSymbol(nl->Fourth(args)) ) {
      return listutils::typeError(err);
    }
+   if( (len>4) && 
+       (!CcInt::checkType(nl->Fifth(args)) ||
+        !CcInt::checkType(nl->Sixth(args)))){
+      return listutils::typeError(err + 
+                                " ( 5th or 6th element not of type int)");
+   }
+
 
    if( (len==7) && ! CcInt::checkType(nl->Sixth(nl->Rest((args))))){
      return listutils::typeError(err);
@@ -210,8 +215,18 @@ ListExpr realJoinMMRTreeTM(ListExpr args){
                                      nl->IntAtom(index2-1),
                                      nl->BoolAtom(rect1),
                                      nl->BoolAtom(rect2));
-   } else {
+   } else if(len==6) {
       appendList =   nl->FiveElemList(
+                                     nl->IntAtom(-1),
+                                     nl->IntAtom(index1-1), 
+                                     nl->IntAtom(index2-1),
+                                     nl->BoolAtom(type1),
+                                     nl->BoolAtom(type2));
+   } else { // len == 4
+      // use (4,8) as default parameter of the rtree
+      appendList = listutils::xElemList(7,
+                                     nl->IntAtom(4),
+                                     nl->IntAtom(8),
                                      nl->IntAtom(-1),
                                      nl->IntAtom(index1-1), 
                                      nl->IntAtom(index2-1),
