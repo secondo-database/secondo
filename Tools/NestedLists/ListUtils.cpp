@@ -43,6 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <set>
 #include <string>
+#include <stdarg.h>
 
 extern NestedList* nl;
 
@@ -783,6 +784,23 @@ Checks whether the list represents a stream.
    }
    return ""; 
 
+ }
+
+ ListExpr xElemList(int count, ...){
+    if(count <= 0){
+        return nl->TheEmptyList();
+    }
+    va_list ap;
+    va_start(ap,count);
+    
+    ListExpr first = nl->OneElemList(va_arg(ap,ListExpr));
+    ListExpr last = first;
+    for(int i=1;i<count;i++){
+       last = nl->Append(last, va_arg(ap,ListExpr));
+    }
+
+    va_end(ap);
+    return first;
  }
 
 

@@ -323,6 +323,15 @@ Precondition: isAttrList(list)
 
   ListExpr concat(ListExpr l1, ListExpr l2);
 
+/*
+~xElemList~
+
+Create a ListExpr from the arguments. The first parameter must be the 
+number of lists.
+
+*/
+  ListExpr xElemList(int num, ...);
+
 
 /*
 Replaces the attributenames in attrlist according to the map and stores the
