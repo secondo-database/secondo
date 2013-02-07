@@ -558,7 +558,7 @@ The returned tuple must be deleted by the caller.
 
 */
    bool defined;        //defined Flag
-   double tolerance;    //Accectable derivation for map matching algorithms
+   double tolerance;    //Accectable deviation for map matching algorithms
    STRING_T id;         //network identifier
    Relation* junctions; //data of street crossings and death ends
    Relation* sections;  //data of connections between junctions

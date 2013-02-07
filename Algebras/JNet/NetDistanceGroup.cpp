@@ -65,7 +65,7 @@ NetDistanceGroup::NetDistanceGroup ( const NetDistanceGroup& other ) :
   if (!(source >= 0 && target >= 0 && nextJunction >= 0 && nextSection >= 0 &&
         netdistance >= 0.0))
     SetDefined(false);
-  
+
 }
 
 NetDistanceGroup::NetDistanceGroup(const int sourc,
@@ -462,7 +462,7 @@ ListExpr NetDistanceGroup::Property()
     nl->FourElemList(
       nl->StringAtom("-> " + Kind::DATA()),
       nl->StringAtom(BasicType()),
-      nl->TextAtom("("+ CcInt::BasicType() + CcInt::BasicType() + " " +
+      nl->TextAtom("("+ CcInt::BasicType()+ " " + CcInt::BasicType() + " " +
             CcInt::BasicType() + " " +  CcInt::BasicType() + " " +
             CcReal::BasicType() + "), identifying source junction, target "+
             " junction, next junction and next section on the way to target " +
@@ -477,7 +477,7 @@ ListExpr NetDistanceGroup::Property()
 
 string NetDistanceGroup::Example()
 {
-  return "(34 25 64 18.5)";
+  return "(34 25 64 12 18.5)";
 }
 
 /*

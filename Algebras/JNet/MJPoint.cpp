@@ -732,30 +732,59 @@ void MJPoint::Union(const MJPoint* other, MJPoint* result) const
           if (!other->IsEmpty())
           {
             result->StartBulkload();
-            JUnit as, ae,bs, be;
-            Get(0,as);
-            other->Get(0,bs);
-            Get(GetNoComponents()-1,ae);
-            other->Get(other->GetNoComponents()-1,be);
-            if (ae <= bs)
+            JUnit a(false);
+            JUnit b(false);
+            int i = 0;
+            int j = 0;
+            while (i < GetNoComponents() && j < other->GetNoComponents())
             {
-              result->Append(this);
-              result->Append(other);
-              result->EndBulkload(true);
+              Get(i,a);
+              other->Get(j,b);
+              Instant bt = b.GetTimeInterval().start;
+              int test =
+                a.GetTimeInterval().end.CompareTo(&bt);
+              if (test < 1)
+              {
+                result->Add(a);
+                i++;
+              }
+              else
+              {
+                bt = b.GetTimeInterval().end;
+                test = a.GetTimeInterval().start.CompareTo(&bt);
+                if (test > -1)
+                {
+                  result->Add(b);
+                  j++;
+                }
+                else if (a.Compare(b) == 0)
+                {
+                  result->Add(a);
+                  i++;
+                  j++;
+                }
+                else
+                {
+                  result->EndBulkload(false,false);
+                  result->SetDefined(false);
+                  i = GetNoComponents();
+                  j = other->GetNoComponents();
+                }
+              }
             }
-            else if(be <= as)
+            while (i < GetNoComponents())
             {
-              result->Append(other);
-              result->Append(this);
-              result->EndBulkload(true);
+              Get(i,a);
+              result->Add(a);
+              i++;
             }
-            else
+            while (j < other->GetNoComponents())
             {
-              result->Append(other);
-              result->Append(this);
-              result->units.Sort(JUnit::Compare);
-              result->EndBulkload(false);
+              other->Get(j,b);
+              result->Add(b);
+              j++;
             }
+            result->EndBulkload();
           }
           else
             *result = *this;

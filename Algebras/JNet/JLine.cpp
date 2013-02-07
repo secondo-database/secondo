@@ -506,7 +506,7 @@ void JLine::StartBulkload()
   routeintervals.TrimToSize();
 }
 
-void JLine::EndBulkload()
+void JLine::EndBulkload(const bool sort /*=true*/)
 {
   activBulkload = false;
   Sort();
@@ -784,9 +784,86 @@ void JLine::Union(const JLine* other, JLine* result) const
           if (!other->IsEmpty())
           {
             result->StartBulkload();
-            result->Append(this);
-            result->Append(other);
-            result->EndBulkload();
+            int i = 0;
+            int j = 0;
+            JRouteInterval ri1(false);
+            JRouteInterval ri2(false);
+            while (i < GetNoComponents() && j < other->GetNoComponents())
+            {
+              Get(i,ri1);
+              other->Get(j,ri2);
+              if (ri1.GetRouteId() < ri2.GetRouteId())
+              {
+                result->Add(ri1);
+                i++;
+              }
+              else if (ri1.GetRouteId() > ri2.GetRouteId())
+              {
+                result->Add(ri2);
+                j++;
+              }
+              else if (ri1.Overlaps(ri2))
+              {
+                JRouteInterval nri(ri1.GetRouteId(),
+                                   min(ri1.GetFirstPosition(),
+                                       ri2.GetFirstPosition()),
+                                   max(ri1.GetLastPosition(),
+                                       ri2.GetLastPosition()),
+                                   ri1.GetSide());
+                i++;
+                j++;
+                bool ready = false;
+                while (!ready &&
+                       i < GetNoComponents() &&
+                       j < other->GetNoComponents())
+                {
+                  Get(i,ri1);
+                  other->Get(j,ri2);
+                  if (ri1.Overlaps(nri))
+                  {
+                    nri.SetInterval(min(nri.GetFirstPosition(),
+                                        ri1.GetFirstPosition()),
+                                    max(nri.GetLastPosition(),
+                                        ri1.GetLastPosition()));
+                    i++;
+                  }
+                  else if (ri2.Overlaps(nri))
+                  {
+                    nri.SetInterval(min(nri.GetFirstPosition(),
+                                        ri2.GetFirstPosition()),
+                                    max(nri.GetLastPosition(),
+                                        ri2.GetLastPosition()));
+                    j++;
+                  }
+                  else
+                    ready = true;
+                }
+                result->Add(nri);
+              }
+              else if (ri1.GetFirstPosition() < ri2.GetFirstPosition())
+              {
+                result->Add(ri1);
+                i++;
+              }
+              else
+              {
+                result->Add(ri2);
+                j++;
+              }
+            }
+            while (i < GetNoComponents())
+            {
+              Get(i,ri1);
+              result->Add(ri1);
+              i++;
+            }
+            while (j < other->GetNoComponents())
+            {
+              other->Get(j,ri2);
+              result->Add(ri2);
+              j++;
+            }
+            result->EndBulkload(false);
           }
           else
             *result = *this;

@@ -1093,7 +1093,7 @@ ListExpr JNetwork::Property()
         "tolerance value for the network representation used in map matching "+
         "algorithms, and the network data for junctions, sections, routes and "+
         "network distances in nested list format."),
-      nl->TextAtom("(netname junctionsrel sectionsrel routesrel distrel)")));
+      nl->StringAtom("(name tol junctions sections routes dist)")));
 }
 
 /*

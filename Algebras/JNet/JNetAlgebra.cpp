@@ -627,7 +627,7 @@ const string createndgSpec =
   "<text>createndg( <jid> , <jid> , <jid> , <sectid>, <netdist>) </text--->"
   "<text>Creates a " + NetDistanceGroup::BasicType() + " from the " +
   "identifiers of the source, the target, the next junction, the identifier "
-  "of the next section and the network distance from source to target"+
+  "of the next section and the network distance from source to target "+
   "junction.</text--->"
   "<text>query createndg(sourcejid, targetjid, nextjid, nextsectid, netdist)"+
   "</text--->))";
@@ -3779,7 +3779,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddOperator(&netboxJNet);
   AddOperator(&bboxJNet);
 /*
-1.1.1.1 Extend Datatypes
+1.1.1.1 Merge Datatypes
 
 */
 

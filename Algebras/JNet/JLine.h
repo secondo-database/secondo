@@ -142,7 +142,7 @@ public:
 */
 
   void StartBulkload();
-  void EndBulkload();
+  void EndBulkload(const bool sort = true);
 
   JLine& Add(const JRouteInterval& rint);
 
