@@ -1768,6 +1768,10 @@ static ListExpr sendTypeMap( ListExpr args )
    //Always return int
    //Hostname and Port are appended for the value-mapping
 
+   int len = nl->ListLength(args);
+   if(len < 2){
+     return listutils::typeError("at least two arguments required");
+   }
    ListExpr ret = 
      nl->ThreeElemList(
       nl->SymbolAtom(Symbol::APPEND()),
@@ -1968,6 +1972,12 @@ Internal Usage for Data Transfer between Master and Worker
 
 static ListExpr receiveTypeMap( ListExpr args )
 {
+
+   int len = nl->ListLength(args);
+   if(len < 2){
+     return listutils::typeError("at least 2 args required");
+   }
+
    string host = nl->ToString(nl->First(args));
    string port = nl->ToString(nl->Second(args));
    string line;
@@ -2201,6 +2211,10 @@ Operator receiveA(
 
 static ListExpr receiverelTypeMap( ListExpr args )
 {
+
+   if(nl->ListLength(args) < 2){
+      return listutils::typeError("at least two elements required");
+   }
    string host = nl->ToString(nl->First(args));
    string port = nl->ToString(nl->Second(args));
    string line;
@@ -2452,6 +2466,11 @@ Internal Usage for Data Transfer between Master and Worker
 
 static ListExpr sendrelTypeMap( ListExpr args )
 {
+
+   if(nl->ListLength(args) < 2){
+     return listutils::typeError("at least two arguments required");
+   }
+
    return nl->ThreeElemList(
                   nl->SymbolAtom(Symbol::APPEND()),
                   nl->TwoElemList(
@@ -2562,6 +2581,10 @@ static ListExpr receiveShuffleTypeMap( ListExpr args )
   cout << "ReceiveShuffleTM:"
        << myAargs.convertToString() << endl;
 #endif
+
+   if(nl->ListLength(args) < 2){
+     return listutils::typeError("at least 2 arguments required");
+   } 
 
    string host = nl->ToString(nl->First(args));
    string port = nl->ToString(nl->Second(args));
