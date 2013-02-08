@@ -1772,11 +1772,18 @@ static ListExpr sendTypeMap( ListExpr args )
    if(len < 2){
      return listutils::typeError("at least two arguments required");
    }
+   string s1 = nl->ToString(nl->First(args));
+   string s2 = nl->ToString(nl->Second(args));
+
+   if(s1.size()>MAX_STRINGSIZE || s2.size()>MAX_STRINGSIZE){
+      return listutils::typeError("type is too long");
+   }
+
    ListExpr ret = 
      nl->ThreeElemList(
       nl->SymbolAtom(Symbol::APPEND()),
-      nl->TwoElemList(nl->StringAtom(nl->ToString(nl->First(args))),
-                  nl->StringAtom(nl->ToString(nl->Second(args)))),
+      nl->TwoElemList(nl->StringAtom(s1),
+                      nl->StringAtom(s2)),
       nl->SymbolAtom(CcInt::BasicType()));
   return ret;
 }
@@ -2018,12 +2025,18 @@ static ListExpr receiveTypeMap( ListExpr args )
 
    delete callBack;
 
+
+   string s1 = nl->ToString(nl->First(args));
+   string s2 = nl->ToString(nl->Second(args));
+   if(s1.size() > MAX_STRINGSIZE || s2.size() > MAX_STRINGSIZE){
+     return listutils::typeError("arguments types too long");
+   }
    return
      nl->ThreeElemList(
         nl->SymbolAtom(Symbol::APPEND()),
           nl->TwoElemList(
-                nl->StringAtom(nl->ToString(nl->First(args))),
-                nl->StringAtom(nl->ToString(nl->Second(args)))),
+                nl->StringAtom(s1),
+                nl->StringAtom(s2)),
           convertType(type));
 
 }
@@ -2258,7 +2271,14 @@ static ListExpr receiverelTypeMap( ListExpr args )
 #ifdef RECEIVE_REL_MAP_DEBUG
    cout <<  "receiverelTypeMap - done " << endl;
 #endif
-   
+  
+   string s1 = nl->ToString(nl->First(args));
+   string s2 = nl->ToString(nl->Second(args));
+
+   if((s1.size()>MAX_STRINGSIZE) || (s2.size()>MAX_STRINGSIZE)){
+     return listutils::typeError("argument types too long");
+   }
+ 
    return nl->ThreeElemList(
           nl->SymbolAtom(Symbol::APPEND()),
           nl->TwoElemList(
@@ -2471,11 +2491,16 @@ static ListExpr sendrelTypeMap( ListExpr args )
      return listutils::typeError("at least two arguments required");
    }
 
+   string s1 = nl->ToString(nl->First(args));
+   string s2 = nl->ToString(nl->Second(args));
+   if(s1.size()>MAX_STRINGSIZE || s2.size()>MAX_STRINGSIZE){
+      return listutils::typeError("arguments too long");
+   }
    return nl->ThreeElemList(
                   nl->SymbolAtom(Symbol::APPEND()),
                   nl->TwoElemList(
-                  nl->StringAtom(nl->ToString(nl->First(args))),
-                  nl->StringAtom(nl->ToString(nl->Second(args)))),
+                  nl->StringAtom(s1),
+                  nl->StringAtom(s2)),
                   nl->SymbolAtom(CcInt::BasicType()));
 
 }
@@ -2637,11 +2662,16 @@ static ListExpr receiveShuffleTypeMap( ListExpr args )
 
    ListExpr typeLE = convertType(type);
 
+   string s1 = nl->ToString(nl->First(args));
+   string s2 = nl->ToString(nl->Second(args));
+   if(s1.size()>MAX_STRINGSIZE || s2.size()>MAX_STRINGSIZE){
+      return listutils::typeError("arguments too long");
+   }
    ListExpr res =  nl->ThreeElemList(
                 nl->SymbolAtom(Symbol::APPEND()),
                   nl->TwoElemList(
-                   nl->StringAtom(nl->ToString(nl->First(args))),
-                   nl->StringAtom(nl->ToString(nl->Second(args)))),
+                   nl->StringAtom(s1),
+                   nl->StringAtom(s2)),
                 typeLE);
 
    //cout << nl -> ToString(res) << endl;
@@ -2937,13 +2967,18 @@ static ListExpr sendShuffleTypeMap( ListExpr inArgs )
         ("Function return type must be of type <int>!!");
       return errLE;
     }
+   
+   string s1 = args.third().convertToString();
+   string s2 = args.fourth().convertToString();
+   if(s1.size()>MAX_STRINGSIZE || s2.size()>MAX_STRINGSIZE){
+      return listutils::typeError("arguments too long");
+   }
     
    ListExpr ret = nl->ThreeElemList(
                   nl->SymbolAtom(Symbol::APPEND()),
                   nl->TwoElemList(
-                     nl->StringAtom(args.third().convertToString()),
-                     nl->StringAtom(args.fourth().convertToString())
-                                  ),
+                     nl->StringAtom(s1),
+                     nl->StringAtom(s2)),
                   nl->SymbolAtom(CcInt::BasicType()));
                   
 #ifdef SEND_SHUFFLE_MAP_DEBUG
