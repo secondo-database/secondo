@@ -597,13 +597,211 @@ void fillML(const MString& source, MString& result, DateTime* duration) {
   result.MergeAdd(last);
 }
 
-LabelTrie::LabelTrie(DbArray<NodeRef>* n, DbArray<NodeContent>* nC,
+LabelTrie::LabelTrie(DbArray<NodeRef>* n, DbArray<NodeLink>* nL,
                      DbArray<size_t>* lI) {
   nodes = *n;
-  nodeContents = *nC;
+  nodeLinks = *nL;
   labelIndex = *lI;
 }
 
+// TrieNode::~TrieNode() {
+//   for (int i = 1; i < 256; i++) {
+//     if (content[i].nextNode) {
+//       cout << "delete nextNode of \'" << i << "\'" << endl;
+//       delete content[i].nextNode;
+//       cout << "done" << endl;
+//     }
+//   }
+// //  delete content;
+// //   cout << "delete this" << endl;
+// //   delete this;
+// //   cout << "this deleted" << endl;
+// }
+
 bool LabelTrie::insert(string label, size_t pos) {
+  if (!root) {
+    root = new TrieNode();
+//     cout << "root created" << endl;
+    nodeCounter++;
+  }
+  TrieNode *ptr = root;
+  unsigned char c;
+  unsigned int i = 0;
+  while (i <= label.length()) {
+    c = label[i];
+    if (!ptr->content[c].nextNode) { // successor node has to be created
+      if (i == label.length()) { // after last character
+        ptr->positions.insert(pos);
+//    cout << "position " << pos << " inserted for \'" << label << "\'" << endl;
+      }
+      else {
+        ptr->content[c].nextNode = new TrieNode();
+        nodeCounter++;
+//         cout << "successor of \'" << c << "\' created; ";
+        ptr = ptr->content[c].nextNode;
+//         cout << "pointer moved to child of \'" << c << "\'" << endl;
+      }
+    }
+    else { // path exists
+      ptr = ptr->content[c].nextNode;
+//       cout << "pointer moved to next level after \'" << c << "\'" << endl;
+    }
+    i++;
+  }
   return true;
+}
+
+set<size_t> LabelTrie::find(string label) {
+  set<size_t> emptyset;
+  if (!root) {
+//     cout << "trie is empty" << endl;
+    return emptyset;
+  }
+  if (!label.length()) { // empty label
+    return root->positions;
+  }
+  TrieNode *ptr = root;
+  unsigned int i = 0;
+  unsigned char c;
+  while (i <= label.length()) {
+    if (i == label.length()) { // last character
+      return ptr->positions;
+    }
+    c = label[i];
+    if (ptr->content[c].nextNode) { // path exists
+      ptr = ptr->content[c].nextNode;
+    }
+    else { // path does not exist
+//       cout << "path to \'" << c << "\' does not exist" << endl;
+      return emptyset;
+    }
+    i++;
+  }
+  return emptyset; // should not occur
+}
+
+void LabelTrie::makePersistent() {
+  if (!root) {
+//     cout << "trie is empty" << endl;
+  }
+  else {
+//     cout << "continue with root" << endl;
+    makePersistent(root);
+  }
+}
+
+void LabelTrie::makePersistent(TrieNode* ptr) {
+  pair<unsigned int, vector<char> > childs = ptr->getChilds();
+  NodeRef nRef;
+  nRef.firstCont = (childs.first ? nodeLinks.Size() : -1);
+  nRef.lastCont = (childs.first ? nodeLinks.Size() + childs.first - 1 : -1);
+  nRef.firstIndex = (ptr->positions.size() ? labelIndex.Size() : -1);
+  nRef.lastIndex = (ptr->positions.size() ?
+                   labelIndex.Size() + ptr->positions.size() - 1 : -1);
+  nodes.Append(nRef);
+//   cout << "Node [" << nRef.firstCont << ", " << nRef.lastCont << "; "
+//        << nRef.firstIndex << ", " << nRef.lastIndex << "] inserted at pos "
+//        << nodes.Size() - 1 << endl;
+  NodeLink nLink;
+  if (childs.first) {
+    nLink.character = childs.second.back();
+    nLink.nextNode = nodes.Size();
+    nodeLinks.Append(nLink);
+    childs.second.pop_back();
+    stack<unsigned int> missingIndexes;
+    for (int i = nRef.firstCont + 1; i <= nRef.lastCont; i++) {
+      NodeLink nLink;
+      nLink.character = childs.second.back();
+      nodeLinks.Append(nLink);
+      missingIndexes.push(nodeLinks.Size() - 1);
+      childs.second.pop_back();
+    }
+    while (missingIndexes.size()) {
+      nodeIndexStack.push(missingIndexes.top());
+      missingIndexes.pop();
+    }
+  }
+  else if (nodeIndexStack.size()) {
+    nodeLinks.Get(nodeIndexStack.top(), nLink);
+    nLink.nextNode = nodes.Size();
+    nodeLinks.Put(nodeIndexStack.top(), nLink);
+    nodeIndexStack.pop();
+  }
+  for (set<size_t>::iterator it = ptr->positions.begin();
+                                   it != ptr->positions.end(); it++) {
+    labelIndex.Append(*it);
+//     cout << *it << " appended at position " << labelIndex.Size() - 1 << endl;
+  }
+  bool successor = false;
+  for (int i = 0; i < 256; i++) {
+    if (ptr->content[i].nextNode) {
+      successor = true;
+//       cout << "continue with " << (char)i << "\'s successor" << endl;
+      makePersistent(ptr->content[i].nextNode);
+    }
+  }
+  if (!successor) {
+//     cout << "no successor" << endl;
+  }
+}
+
+void LabelTrie::removeTrie() {
+  if (!root) {
+    cout << "nothing to remove" << endl;
+  }
+  for (int i = 0; i < 256; i++) {
+    if (root->content[i].nextNode) {
+      remove(root, i);
+    }
+  }
+  delete root;
+  nodeCounter--;
+  root = 0;
+}
+
+void LabelTrie::remove(TrieNode* ptr1, unsigned char c) {
+  TrieNode* ptr2 = ptr1->content[c].nextNode;
+  for (int i = 0; i < 256; i++) {
+    if (ptr2->content[i].nextNode) { // successor of ~i~ exists
+      remove(ptr2, i);
+    }
+  } // all successors removed now
+  delete ptr2;
+  nodeCounter--;
+}
+
+pair<unsigned int, vector<char> > TrieNode::getChilds() {
+  unsigned int number = 0;
+  vector<char> characters;
+  for (unsigned int i = 0; i < 256; i++) {
+    if (content[255 - i].nextNode) {
+      number++;
+      characters.push_back((char)(255 - i));
+    }
+  }
+  return make_pair(number, characters);
+}
+
+void LabelTrie::printDbArrays() {
+  stringstream ss;
+  ss << "Nodes" << endl << "=====" << endl;
+  NodeRef nRef;
+  for (int i = 0; i < nodes.Size(); i++) {
+    nodes.Get(i, nRef);
+    ss << i << "  [" << nRef.firstCont << ", " << nRef.lastCont << "] ["
+       << nRef.firstIndex << ", " << nRef.lastIndex << "]" << endl;
+  }
+  ss << endl << "NodeContent" << endl << "============" << endl;
+  NodeLink nLink;
+  for (int i = 0; i < nodeLinks.Size(); i++) {
+    nodeLinks.Get(i, nLink);
+    ss << i << "  \'" << nLink.character << "\'  " << nLink.nextNode << endl;
+  }
+  ss << endl << "LabelIndex" << endl << "==========" << endl;
+  size_t index;
+  for (int i = 0; i < labelIndex.Size(); i++) {
+    labelIndex.Get(i, index);
+    ss << i << "  " << index << endl;
+  }
+  cout << ss.str() << endl;
 }

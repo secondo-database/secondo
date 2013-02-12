@@ -48,7 +48,7 @@ string setToString(set<string> input);
 int prefixCount(string str, set<string> strings);
 vector<string> splitPattern(string input);
 char* convert(string arg);
-string eraseQM(string arg);
+string eraseQM(string arg); // QM = quotation marks
 string addQM(string arg);
 int getKey(string type);
 string extractVar(string input);
@@ -70,36 +70,50 @@ struct NodePointer {
 };
 
 struct TrieNode {
+  pair<unsigned int, vector<char> > getChilds();
   NodePointer content[256];
-  set<unsigned int> positions;
+  set<size_t> positions;
 };
 
 struct NodeRef {
-  unsigned int firstCont;
-  unsigned int lastCont;
-  unsigned int firstIndex;
-  unsigned int lastIndex;
+  int firstCont;
+  int lastCont;
+  int firstIndex;
+  int lastIndex;
 };
 
-struct NodeContent {
+struct NodeLink {
   char character;
-  unsigned int nextNodeIndex;
+  unsigned int nextNode;
 };
 
 class LabelTrie {
 public:
-  LabelTrie() {}
-  LabelTrie(DbArray<NodeRef>* n, DbArray<NodeContent>* nC, DbArray<size_t>* lI);
+  LabelTrie() : nodes(0), nodeLinks(0), labelIndex(0) {
+    root = 0;
+    nodeCounter = 0;
+  }
+  
+  LabelTrie(DbArray<NodeRef>* n, DbArray<NodeLink>* nL, DbArray<size_t>* lI);
 
-  ~LabelTrie() {}
+  ~LabelTrie() {
+    removeTrie();
+  }
 
   bool insert(string label, size_t pos);
-  bool makePersistent(); // stores main memory tree structure into DbArrays
-  bool removeTrie(); // removes main memory tree structure
-  set<int> find(string label); // returns the position(s) where label occurs
+  set<size_t> find(string label); // returns the position(s) of label
+  void makePersistent(); // stores main memory tree structure into DbArrays
+  void makePersistent(TrieNode* ptr); // help function
+  void removeTrie(); // removes main memory tree structure
+  void remove(TrieNode* ptr, unsigned char c); // help function for recursion
+  int getNumberOfNodes() {return nodeCounter;}
+  void printDbArrays();
 
 private:
   DbArray<NodeRef> nodes;
-  DbArray<NodeContent> nodeContents;
+  DbArray<NodeLink> nodeLinks;
   DbArray<size_t> labelIndex;
+  TrieNode* root;
+  unsigned int nodeCounter;
+  stack<unsigned int> nodeIndexStack;
 };

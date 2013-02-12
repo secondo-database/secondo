@@ -2639,7 +2639,9 @@ void Condition::setLabelPtr(unsigned int pos, string value) {
 }
 void  Condition::clearTimePtr(unsigned int pos) {
   if (pos < pointers.size()) {
-    ((Periods*)pointers[pos])->Clear();
+    if (((Periods*)pointers[pos])->IsDefined()) {
+      ((Periods*)pointers[pos])->Clear();
+    }
   }
 }
 void  Condition::mergeAddTimePtr(unsigned int pos, SecInterval value) {
@@ -2939,21 +2941,27 @@ bool Match::initCondOpTrees() {
   pair<string, Attribute*> strAttr;
   vector<Attribute*> ptrs;
   for (unsigned int i = 0; i < conds.size(); i++) { // opTrees for conditions
-    q = "query " + conds[i].getText();
-    for (int j = 0; j < conds[i].getKeysSize(); j++) { // init pointers
-      strAttr = Pattern::getPointer(conds[i].getKey(j));
-      ptrs.push_back(strAttr.second);
-      toReplace = conds[i].getVar(j) + Condition::getType(conds[i].getKey(j));
-      q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
+    if (!conds[i].isTreeOk()) {
+      q = "query " + conds[i].getText();
+      for (int j = 0; j < conds[i].getKeysSize(); j++) { // init pointers
+        strAttr = Pattern::getPointer(conds[i].getKey(j));
+        ptrs.push_back(strAttr.second);
+        toReplace = conds[i].getVar(j) + Condition::getType(conds[i].getKey(j));
+        q.replace(q.find(toReplace), toReplace.length(), strAttr.first);
+      }
+      pair<QueryProcessor*, OpTree> qp_optree = processQueryStr(q, -1);
+      if (!qp_optree.first) {
+        cout << "Operator tree for condition " << i << " uninitialized" << endl;
+        return false;
+      }
+      conds[i].setOpTree(qp_optree);
+      conds[i].setPointers(ptrs);
+      ptrs.clear();
+      conds[i].setTreeOk(true);
     }
-    pair<QueryProcessor*, OpTree> qp_optree = processQueryStr(q, -1);
-    if (!qp_optree.first) {
-      cout << "Operator tree for condition " << i << " uninitialized" << endl;
-      return false;
+    else {
+      cout << "not necessary" << endl;
     }
-    conds[i].setOpTree(qp_optree);
-    conds[i].setPointers(ptrs);
-    ptrs.clear();
   }
   return true;
 }
@@ -3393,6 +3401,9 @@ Necessary for the operator ~rewrite~
 
 */
 bool Assign::initOpTrees() {
+  if (treesOk && opTree[0].second) {
+    return true;
+  }
   for (int i = 0; i < 4; i++) {
     if (pointers[i].size() > 0) { // pointers already initialized
       return true;
@@ -3422,11 +3433,16 @@ bool Assign::initOpTrees() {
       }
       opTree[i] = Match::processQueryStr(q, i);
       if (!opTree[i].first) {
-        cout << "qp pointer not initialized" << endl;
+        cout << "pointer not initialized" << endl;
+        return false;
+      }
+      if (!opTree[i].second) {
+        cout << "opTree not initialized" << endl;
         return false;
       }
     }
   }
+  treesOk = true;
   return true;
 }
 
@@ -3527,7 +3543,7 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
       delete p;
       local.addr = rr;
       return 0;
-    }  
+    }
     case REQUEST: {
       if (!local.addr) {
         result.addr = 0;
@@ -4334,19 +4350,24 @@ int createmlrelationFun(Word* args, Word& result, int message, Word& local,
   CcInt* ccint2 = static_cast<CcInt*>(args[1].addr);
   CcString* ccstring = static_cast<CcString*>(args[2].addr);
   int number, size;
-  string relName;
+  string relName, errMsg;
   result = qp->ResultStorage(s);
   CcBool* res = (CcBool*)result.addr;
-  if (ccint1->IsDefined() && ccint2->IsDefined() && ccstring->IsDefined()) {
+  if (ccstring->IsDefined() && ccint1->IsDefined() && ccint2->IsDefined()) {
+    SecondoCatalog* sc = SecondoSystem::GetCatalog();
+    relName = ccstring->GetValue();
+    if (!sc->IsValidIdentifier(relName, errMsg, true)) { // check relation name
+      cout << "Error: " << errMsg << endl;
+      res->Set(true, false);
+      return 0;
+    }
     number = ccint1->GetValue();
     size = ccint2->GetValue();
-    relName = ccstring->GetValue();
-    SecondoCatalog* sc = SecondoSystem::GetCatalog();
     ListExpr typeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
         nl->TwoElemList(nl->TwoElemList(nl->SymbolAtom("No"),
                                         nl->SymbolAtom(CcInt::BasicType())),
                         nl->TwoElemList(nl->SymbolAtom("Trajectory"),
-                                        nl->SymbolAtom(MLabel::BasicType()))));
+                                       nl->SymbolAtom(MLabel::BasicType()))));
     ListExpr numTypeInfo = sc->NumericType(typeInfo);
     TupleType* type = new TupleType(numTypeInfo);
     Relation* rel = new Relation(type, false);
@@ -4366,7 +4387,7 @@ int createmlrelationFun(Word* args, Word& result, int message, Word& local,
     Word relWord;
     relWord.setAddr(rel);
     sc->InsertObject(relName, "", nl->TwoElemList
-             (nl->SymbolAtom(Relation::BasicType()), typeInfo), relWord, true);
+            (nl->SymbolAtom(Relation::BasicType()), typeInfo), relWord, true);
     res->Set(true, true);
     type->DeleteIfAllowed();
   }
@@ -4404,7 +4425,7 @@ ListExpr indexTypeMap(ListExpr args) {
   if (nl->IsEqual(args, MLabel::BasicType())) {
     return listutils::typeError("Argument type must be MLabel.");
   }
-  return nl->SymbolAtom(MLabel::BasicType());
+  return nl->SymbolAtom(CcBool::BasicType());
 }
 
 /*
@@ -4412,14 +4433,34 @@ ListExpr indexTypeMap(ListExpr args) {
 
 */
 int indexFun(Word* args, Word& result, int message, Word& local, Supplier s) {
-//   MLabel* source = (MLabel*)(args[0].addr);
-//   MLabel* res = new MLabel(1);
-//   if (!res->buildIndex(*source)) {
-//     cout << "index construction failed" << endl;
-//     result.addr = 0;
-//     return 0;
-//   }
-//   result.addr = res;
+  MLabel* source = (MLabel*)(args[0].addr);
+  result = qp->ResultStorage(s);
+  CcBool* b = static_cast<CcBool*>(result.addr);
+  ULabel ul;
+  set<string> labels;
+  LabelTrie *lt = new LabelTrie();
+  for (size_t i = 0; i < (size_t)source->GetNoComponents(); i++) {
+    source->Get(i, ul);
+    labels.insert(ul.constValue.GetValue());
+    if (!lt->insert(ul.constValue.GetValue(), i)) {
+      cout << "Error: insert() returns FALSE" << endl;
+      b->Set(true, false);
+      return 0;
+    }
+  }
+//   cout << lt->getNumberOfNodes() << " nodes created" << endl;
+  for (set<string>::iterator it1 = labels.begin(); it1 != labels.end(); it1++) {
+    set<size_t> p = lt->find(*it1);
+    cout << "\"" << *it1 << "\" found at pos:" << (p.size() > 1 ? "s " : " ");
+    for (set<size_t>::iterator it = p.begin(); it != p.end(); it++) {
+      cout << *it << " ";
+    }
+    cout << endl;
+  }
+  lt->makePersistent();
+  lt->printDbArrays();
+  delete lt;
+  b->Set(true, true);
   return 0;
 }
 
@@ -4490,7 +4531,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddOperator(createmlrelationInfo(), createmlrelationFun,
                   createmlrelationTypeMap);
 
-//       AddOperator(indexInfo(), indexFun, indexTypeMap);
+      AddOperator(indexInfo(), indexFun, indexTypeMap);
 
     }
     ~SymbolicTrajectoryAlgebra() {}

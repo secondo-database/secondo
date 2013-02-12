@@ -113,9 +113,10 @@ class Condition {
   vector<int> pIds;
   pair<QueryProcessor*, OpTree> opTree;
   vector<Attribute*> pointers; // for each expression like X.card
+  bool treeOk;
 
  public:
-  Condition() {pointers.clear();}
+  Condition() {pointers.clear(); treeOk = false;}
   ~Condition() {}
   
   string toString() const;
@@ -147,6 +148,8 @@ class Condition {
   QueryProcessor* getQP()          {return opTree.first;}
   OpTree  getOpTree()              {return opTree.second;}
   int     getPointersSize()        {return pointers.size();}
+  bool    isTreeOk()               {return treeOk;}
+  void    setTreeOk(bool value)    {treeOk = value;}
 };
 
 class UPat {
@@ -185,9 +188,10 @@ class Assign {
   vector<pair<string, int> > right[5]; // a list of vars and keys for every type
   pair<QueryProcessor*, OpTree> opTree[4];
   vector<Attribute*> pointers[4]; // for each expression like X.card
+  bool treesOk;
 
  public:
-  Assign() {}
+  Assign() {treesOk = false;}
   ~Assign() {}
 
   static string getDataType(int key);
@@ -226,6 +230,8 @@ class Assign {
   OpTree  getOpTree(unsigned int key)        {if (key < 4) {
                                                 return opTree[key].second;}
                                               else return 0;}
+  bool    areTreesOk()                       {return treesOk;}
+  void    setTreesOk(bool value)             {treesOk = value;}
 };
 
 class Pattern {

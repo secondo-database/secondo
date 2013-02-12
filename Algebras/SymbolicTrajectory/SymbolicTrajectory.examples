@@ -96,3 +96,9 @@ Number   : 1
 Signature: int x int x string -> bool
 Example  : query createmlrelation(100, 500, "Test1")
 Result   : TRUE
+
+Operator : index
+Number   : 1
+Signature: mlabel -> bool
+Example  : query index([const mlabel value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))])
+Result   : TRUE

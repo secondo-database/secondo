@@ -163,6 +163,7 @@ assignment_expressionlist : expression {
 
 resultsequence : result
                | resultsequence result
+               | /* empty */
                ;
 
 result : ZZVARIABLE unitpattern_result {
@@ -176,11 +177,14 @@ result : ZZVARIABLE unitpattern_result {
            else {
              uPat.createUnit($1, $2);
              assign.init(var, wholepat->getPatternPos(var));
+             string newText;
              if (!uPat.getI().empty()) {
-               assign.setText(1, *uPat.getI().begin());
+               newText = *(uPat.getI().begin());
+               assign.setText(1, newText);
              }
              if (!uPat.getL().empty()) {
-               assign.setText(0, *uPat.getL().begin());
+               newText = "\"" + *(uPat.getL().begin()) + "\"";
+               assign.setText(0, newText);
              }
              wholepat->addAssign(assign);
 /*              cout << "result for result variable " << assign.getV() << " added" << endl; */
