@@ -483,6 +483,33 @@ Inserts the words contained within ~text~ into this inverted file.
 
 
 /*
+~insert String~
+
+This operator inserts a single word at a specific position.
+
+
+*/
+   void insertString(TupleId tid, const string& word,
+                     const wordPosType wp, const charPosType cp,
+                     appendcache::RecordAppendCache* cache=0,
+                     TrieNodeCacheType* triecache = 0){
+       if(word.size() < minWordLength){
+          // word too short
+          return;
+       }
+       string copy = word;
+       if(ignoreCase){
+          stringutils::toLower(copy);
+       }
+       if(memStopWords==0 ||
+          !memStopWords->contains(copy)){
+          insert(copy,tid, wp, cp, cache, triecache);
+       }
+   }
+
+
+
+/*
 ~getListFileId~
 
 Returns the fileId of the file containing the inverted lists.
