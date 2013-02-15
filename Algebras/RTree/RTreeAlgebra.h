@@ -2324,6 +2324,8 @@ reportLevel( -1 ),
 searchBox( false ),
 searchBoxSet(),
 searchType( NoSearch ),
+bulkMode(false),
+bli(0),
 nodeIdCounter( 0 )
 {
 //  cout<<"111"<<endl;
@@ -2366,6 +2368,8 @@ reportLevel( -1 ),
 searchBox( false ),
 searchBoxSet(),
 searchType( NoSearch ),
+bulkMode(false),
+bli(0),
 nodeIdCounter( 0 )
 {
 //  cout<<"222"<<endl;
@@ -2524,8 +2528,17 @@ R_Tree<dim, LeafInfo>::~R_Tree()
     if( fileOwner )
       file->Close();
   }
-  if( fileOwner )
+  
+  if(fileOwner)
+  {
     delete file;
+  }
+  
+  if(bli != NULL)
+  {
+    delete bli;
+    bli = NULL;
+  }
 }
 
 /*
@@ -3518,10 +3531,12 @@ bool R_Tree<dim, LeafInfo>::InitializeBulkLoad(const bool &leafSkipping)
 {
   assert( NodeCount() == 1 );
 
-  if( bulkMode || bli != NULL )
+  if(bulkMode ||
+     bli != NULL)
   {
     return false;
   }
+  
   bulkMode = true;
   bli = new BulkLoadInfo<dim, LeafInfo>(leafSkipping);
   return true;
@@ -4551,6 +4566,7 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
       bli->node[i] = NULL;
     }
   } // end for
+  
   delete bli;
   bli = NULL;
 
@@ -4896,10 +4912,21 @@ return true;
 template <unsigned dim, class LeafInfo>
 bool R_Tree<dim,LeafInfo>::InitializeBLI(const bool& leafSkipping)
 {
-    if(bulkMode)cout<<"bulkMode"<<endl;
-    if(bli)cout<<"bli"<<endl;
+    if(bulkMode)
+    {
+      cout << "bulkMode" << endl;
+    }
+    
+    if(bli != NULL)
+    {
+      cout << "bli" << endl;
+      delete bli;
+      bli = NULL;
+    }
+    
 //    if(bulkMode || bli != NULL)
 //      return false;
+
     bulkMode = true;
     bli = new BulkLoadInfo<dim,LeafInfo>(leafSkipping);
     return true;

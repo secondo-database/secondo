@@ -4690,11 +4690,6 @@ Supplier s)
       // will register them.
   msg->Send(msgList);
   rtree->SwitchHeader(rtree_in1);
-
-  result = qp->ResultStorage(s);
-  R_Tree<dim, TupleId> *rtree_rs = (R_Tree<dim, TupleId>*) result.addr;
-  delete rtree_rs; 
-
   result.setAddr(rtree);
   return 0;
 }
@@ -6447,9 +6442,9 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
   }
 
   // Create an instant object for systemTime
-  Instant* systemTime = new DateTime(0,0,instanttype);
-  systemTime->Now();
-  int32_t startTime = systemTime->GetAllMilliSeconds();
+  Instant systemTime(0,0,instanttype);
+  systemTime.Now();
+  int32_t startTime = systemTime.GetAllMilliSeconds();
 
   Word wTuple;
   qp->Open(args[0].addr);
@@ -6461,8 +6456,8 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
     int attrIndex = ((CcInt*)args[5].addr)->GetIntval() - 1;
     int tidIndex = ((CcInt*)args[6].addr)->GetIntval() - 1;
 
-    systemTime->Now();
-    if ( systemTime->GetAllMilliSeconds() > (startTime + cycleTime))
+    systemTime.Now();
+    if ( systemTime.GetAllMilliSeconds() > (startTime + cycleTime))
     {
       // Insert units into RTree (Z-Order)
       InsertUnits(numCells, splits, splits, rtree);
@@ -6493,8 +6488,8 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
         mp->Get(i, u.up);
 
         // Insert upoint into cell, sorted by start time
-        systemTime->Now();
-        if ( u.up.timeInterval.end < *systemTime &&
+        systemTime.Now();
+        if ( u.up.timeInterval.end < systemTime &&
              u.up.p0.GetX() > area.x1 && u.up.p0.GetX() < area.x2 &&
              u.up.p1.GetX() > area.x1 && u.up.p1.GetX() < area.x2 &&
              u.up.p0.GetY() > area.y1 && u.up.p0.GetY() < area.y2 &&
@@ -6519,8 +6514,8 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
       u.up = *up;
 
       // Insert upoint into cell, sorted by start time
-      systemTime->Now();
-      if ( u.up.timeInterval.end < *systemTime &&
+      systemTime.Now();
+      if ( u.up.timeInterval.end < systemTime &&
            u.up.p0.GetX() > area.x1 && u.up.p0.GetX() < area.x2 &&
            u.up.p1.GetX() > area.x1 && u.up.p1.GetX() < area.x2 &&
            u.up.p0.GetY() > area.y1 && u.up.p0.GetY() < area.y2 &&
@@ -6551,7 +6546,6 @@ int CyclicBulkloadVM(Word* args, Word& result, int message,
 
   // Finalize bulk load
   int FinalizedBulkLoad = rtree->FinalizeBulkLoad();
-  delete systemTime;
   assert(FinalizedBulkLoad);
   return 0;
 }
