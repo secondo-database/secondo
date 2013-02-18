@@ -722,11 +722,11 @@ milliseconds.
     TimeType type;
     int64_t value;
     // a few functions for internal use
-    int32_t ToJulian(const int year, const int month,const int day) const;
-    void ToGregorian(const int32_t Julian, int32_t  &year,
+    int64_t ToJulian(const int64_t year, const int month,const int day) const;
+    void ToGregorian(const int64_t Julian, int64_t  &year,
                      int32_t &month, int32_t &day) const;
 
-    void ToGregorian(int32_t  &year, int32_t &month, int32_t &day) const;
+    void ToGregorian(int64_t  &year, int32_t &month, int32_t &day) const;
 };
 
 Word InInstant( const ListExpr typeInfo, const ListExpr instance,

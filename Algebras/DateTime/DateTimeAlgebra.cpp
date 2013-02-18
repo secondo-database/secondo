@@ -131,6 +131,8 @@ static string end_of_time="end of time";
 static int64_t MAX_REPRESENTABLE = ((int64_t)2450000) * (int64_t)MILLISECONDS;
 static int64_t MIN_REPRESENTABLE = ((int64_t)-2450000) * (int64_t)MILLISECONDS;
 
+//static int64_t MAX_REPRESENTABLE = max_VALUE;
+//static int64_t MIN_REPRESENTABLE = min_VALUE;
 
 namespace datetime{
 
@@ -393,21 +395,24 @@ This functions cannot applied to durations.
 
 int32_t DateTime::GetGregDay()const{
     assert(type != (durationtype));
-    int32_t y,m,d;
+    int64_t y; 
+    int32_t m,d;
     ToGregorian(y,m,d);
     return d;
 }
 
 int DateTime::GetMonth()const{
    assert(type !=(durationtype));
-   int32_t y,m,d;
+   int64_t y;
+   int32_t m,d;
    ToGregorian(y,m,d);
    return m;
 }
 
 int32_t DateTime::GetYear()const{
    assert(type != (durationtype));
-   int32_t y,m,d;
+   int64_t y;
+   int32_t m,d;
    ToGregorian(y,m,d);
    return y;
 }
@@ -459,10 +464,23 @@ This algorithm is from Press et al., Numerical Recipes
 in C, 2nd ed., Cambridge University Press 1992
 
 */
-int32_t DateTime::ToJulian(const int32_t year,
+
+  // computes floor(a/b) 
+int64_t intfloor(int64_t a, int64_t b){
+   assert(b>0);
+   if(a>=0){
+       return a / b;
+   } else {
+       int64_t c = (a - b) + 1;
+       int64_t res = c / b;
+       return res;
+   }
+}
+
+int64_t DateTime::ToJulian(const int64_t year,
                            const int32_t month,
                            const int32_t day) const{
-  int32_t jy = year;
+  int64_t jy = year;
   if (year < 0)
      jy++;
   int32_t jm = month;
@@ -472,16 +490,23 @@ int32_t DateTime::ToJulian(const int32_t year,
      jy--;
      jm += 13;
   }
+ 
+  //int32_t jul1 = (int32_t)(floor(365.25 * jy) + floor(30.6001*jm)
+  //                + day + 1720995.0);
 
-  int32_t jul = (int32_t)(floor(365.25 * jy) + floor(30.6001*jm)
-                  + day + 1720995.0);
+  int64_t jul = intfloor(1461*jy,4) + intfloor(306001*jm,10000) 
+                + day + 1720995; 
+
   int32_t IGREG = 15 + 31*(10+12*1582);
   // Gregorian Calendar adopted Oct. 15, 1582
+
   if (day + 31 * (month + 12 * year) >= IGREG){
      // change over to Gregorian calendar
-     int32_t ja = (int32_t)(0.01 * jy);
-     jul += 2 - ja + (int32_t)(0.25 * ja);
+
+     int64_t ja =(jy/100);
+     jul += 2 - ja + ja/4;
   }
+
   return jul-NULL_DAY;
 }
 
@@ -494,57 +519,56 @@ This algorithm is from Press et al., Numerical Recipes
 in C, 2nd ed., Cambridge University Press 1992
 
 */
-void DateTime::ToGregorian(const int32_t Julian, int32_t &year,
+void DateTime::ToGregorian(const int64_t Julian, int64_t &year,
                            int32_t &month, int32_t &day) const{
-  int32_t j=(int32_t)(Julian+NULL_DAY);
-   int32_t ja = j;
-   int32_t JGREG = 2299161;
-   /* the Julian date of the adoption of the Gregorian
-      calendar
-   */
-    if (j >= JGREG){
+  int64_t j=(int64_t)(Julian+NULL_DAY);
+  int64_t ja = j;
+  static int64_t JGREG = 2299161;
+  /* the Julian date of the adoption of the Gregorian
+     calendar
+  */
+  if (j >= JGREG){
     /* cross-over to Gregorian Calendar produces this
        correction
     */
-       int32_t jalpha = (int32_t)(((float)(j - 1867216) - 0.25)/36524.25);
-       ja += 1 + jalpha - (int32_t)(0.25 * jalpha);
-    }
-    int32_t jb = ja + 1524;
-    int32_t jc = (int32_t)(6680.0 + ((float)(jb-2439870) - 122.1)/365.25);
-    int32_t jd = (int32_t)(365 * jc + (0.25 * jc));
-    int32_t je = (int32_t)((jb - jd)/30.6001);
-    day = jb - jd - (int32_t)(30.6001 * je);
-    month = je - 1;
-    if (month > 12) month -= 12;
-    year = jc - 4715;
-    if (month > 2) --year;
-    if (year <= 0) --year;
+
+    // int64_t jalpha = (int64_t)(((double)(j - 1867216) - 0.25)/36524.25);
+     static int64_t c1 = 7468865;
+     static int64_t c2 = 146097;
+     int64_t jalpha= (4*j - c1) / c2;
+     ja += 1 + jalpha - ( jalpha / 4);
+   }
+
+   int64_t jb = ja + 1524;
+  
+   // int64_t jc = (int64_t)(6680.0 + ((double)(jb-2439870) - 122.1)/365.25);
+   
+   int64_t cx = (20*(jb-2439870) - 2442);
+
+   if(cx<0){
+       cx -= 7304;
+   } 
+   
+   int64_t jc  = 6680 + cx/7305;
 
 
-// the followingcode is converted from the fre pascal compiler unixutils.pp
-   /*    long long D0   =   1461;
-     long long D1   = 146097;
-     long long D2   =1721119;
-     long long JulianDN = (long long)Julian+(long long)NULL_DAY;
-     long long  Temp =((JulianDN-D2) << 2ll)-1ll;
-     JulianDN = Temp / D1;
-     long long  XYear=(Temp % D1) |  3ll;
-     long long  YYear=(XYear / D0);
-     Temp=((((XYear % D0)+4ll) >> 2ll)*5ll)-3ll;
-     long long  Day=((Temp % 153ll)+5ll) / 5ll;
-     long long  TempMonth=Temp / 153ll;
-     if(TempMonth>=10ll){
-           YYear++;
-           TempMonth-=12ll;
-     }
-     TempMonth+=3ll;
-     month = TempMonth;
-     year=YYear+(JulianDN*100ll);
-     day = Day;
-   */
+   int64_t jd = (365 * jc + (jc/4));
+ 
+
+   //int64_t je = (int64_t)((jb - jd)/30.6001);
+   int64_t je = ((jb-jd)*10000) / 306001;
+
+   day = jb - jd - (306001 * je)/10000;
+   month = je - 1;
+   if (month > 12) month -= 12;
+   year = jc - 4715;
+   if (month > 2) --year;
+   if (year <= 0) --year;
+
+
 }
 
-void DateTime::ToGregorian(int32_t &year,
+void DateTime::ToGregorian(int64_t &year,
                            int32_t &month, int32_t &day) const{
    ToGregorian(GetDay(),year,month,day);
 }
@@ -591,7 +615,7 @@ string DateTime::ToString(const bool sql92conform /*=false*/ ) const{
     }
 
     int32_t day,month;
-    int32_t year;
+    int64_t year;
     ToGregorian(year,month,day);
     if(!(day>0 && month>0 && month<13 && day<32)){
        cmsg.error() << "error in ToString function of instant detected \n"
@@ -681,7 +705,7 @@ indicates optional parts. This function is not defined for durations.
 
 */
 bool DateTime::ReadFrom(const string Time1){
-   
+ 
   string Time = Time1;
   stringutils::trim(Time);
   SetDefined(true);
@@ -741,17 +765,21 @@ bool DateTime::ReadFrom(const string Time1){
         pos++;
         day = day*10+digit;
         if(pos==len){ // we allow pure date string without any hour
-          if(!IsValid(year,month,day))
+          if(!IsValid(year,month,day)) {
               return false;
+          }
           value = ((int64_t)ToJulian(year,month,day))*MILLISECONDS;
           SetDefined(true);
           return true;
         }
     }
+     
     pos++; // read over '-' or ' '
     if(pos==len) return false;
-    if(!IsValid(year,month,day))
+
+    if(!IsValid(year,month,day)){
         return false;
+    }
     // read the hour
     int32_t hour = 0;
     while(Time[pos]!=':'){
@@ -923,10 +951,6 @@ bool DateTime::readFrom(const string& value, const string& format){
     } 
   }
 
-  //cout << "Vector is " << endl;
-  //for(unsigned int i=0;i<f.size();i++) cout << f[i] << endl;
-
-  // check vector
   
   bool year = false;
   bool month = false;
@@ -1023,11 +1047,6 @@ bool DateTime::readFrom(const string& value, const string& format){
       } 
    }
 
-   //cout << "res = " << Year << "-" << Month << "-" << Day <<"-"
-   //     << Hour << ":" << Minute << ":" << Second << "."
-   //     << Milli << endl;
-
-
    Set(Year, Month, Day, Hour, Minute, Second, Milli);
    return true;
 }
@@ -1070,9 +1089,11 @@ or the day is not included in the given month/year.
 bool DateTime::IsValid(const int32_t year,
                        const int32_t month,
                        const int32_t day)const {
-   int32_t jday = ToJulian(year,month,day);
+
+
+   int64_t jday = ToJulian(year,month,day);
    int m=0,d=0;
-   int32_t y = 0;
+   int64_t y = 0;
    ToGregorian(jday,y,m,d);
    return year==y && month==m && day==d;
 }
