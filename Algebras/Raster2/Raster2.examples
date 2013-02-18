@@ -1,0 +1,159 @@
+Database : raster2test
+Restore  : NO
+
+Operator : atlocation
+Number   : 1
+Signature: xT x point -> T
+Example  : query [const sint value ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))] atlocation [const point value (1.5 1.5)]
+Result   : -3
+
+Operator : atinstant
+Number   : 1
+Signature: msT x instant -> isT
+Example  : query [const msint value ((0.0 0.0 1.0 2.0) (2 2 2) (1 1 1 (1 2 3 4 5 6 7 8)) (3 3 1 (undefined -1 -2 -3 -4 -5 -6 -7)))] atinstant create_instant(2.0)
+Result   : (isint ((instant "2000-01-05")((0.0 0.0 1.0) (1 1) (1 1 (1)) (2 1 (2)) (1 2 (3)) (2 2 (4)) (4 3 (-1)) (3 4 (-2)) (4 4 (-3)))))
+
+Operator : CELL1
+Number   : 1
+Signature: rT x ... -> T
+Example  : query [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (1)))] map [fun(n: CELL1) n * 2]
+Result   : (sint ((0.0 0.0 1.0) (1 1) (0 0 (2))))
+
+Operator : CELL2
+Number   : 1
+Signature: rT x rV x ... -> V
+Example  : query [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (1)))] [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (2)))] map2 [fun(n: int, m: CELL2) n + m]
+Result   : (sint ((0.0 0.0 1.0) (1 1) (0 0 (3))))
+
+Operator : CELLS
+Number   : 1
+Signature: rT x ... -> rel(tuple([Elem: T]))
+Example  : query [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (3)))] matchgrid[[const grid2 value (0.0 0.0 0.5)], fun(c: CELLS) c feed avg[Elem], FALSE]
+Result   : (sreal ((0.0 0.0 0.5) (1 1) (1 0 (3.0)) (0 1 (3.0)) (1 1 (3.0))))
+
+Operator : inst
+Number   : 1
+Signature: isT -> instant
+Example  : query inst([const isint value ((instant "2012-12-12") ((0.0 0.0 1.0) (2 2) (-2 -2 (1 -1 undefined 1)) (0 0 (-1 undefined 1 -1))))])
+Result   : (instant "2012-12-12")
+
+Operator : val
+Number   : 1
+Signature: isT -> sT
+Example  : query val([const isint value ((instant "2012-12-12") ((0.0 0.0 1.0) (2 2) (-2 -2 (1 -1 undefined 1)) (0 0 (-1 undefined 1 -1))))])
+Result   : (sint ((0.0 0.0 1.0) (1 1) (-2 -2 (1)) (-1 -2 (-1)) (-1 -1 (1)) (0 0 (-1)) (0 1 (1)) (1 1 (-1))))
+
+Operator : atrange
+Number   : 1
+Signature: xT x rect -> xT
+Example  : query [const sint value ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))] atrange [[const rect value (-10.0 -6.0 -10.0 -6.0)]]
+Result   : (sint ((0.0 0.0 1.0) (1 1)))
+
+Operator : deftime
+Number   : 1
+Signature: msT -> periods
+Example  : query deftime([const msint value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1)) (0 0 2 (1)))])
+Result   : (periods (("2000-01-03" "2000-01-04" TRUE FALSE) ("2000-01-05" "2000-01-06" TRUE FALSE)))
+
+Operator : atperiods
+Number   : 1
+Signature: msT x periods -> msT
+Example  : query [const msint value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1)) (0 0 2 (1)))] atperiods [const periods value ((0.0 1.0 TRUE FALSE) (2.0 3.0 TRUE FALSE))]
+Result   : (msint ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1)) (0 0 2 (1))))
+
+Operator : compose
+Number   : 1
+Signature: mpoint x sT -> mT
+Example  : query [const mpoint value ((("2000-01-03" "2000-01-05" TRUE FALSE) (-0.5 -0.5 -1.0 -1.0)) (("2000-01-05" "2000-01-07" TRUE FALSE) (-1.0 -1.0 1.8 1.2)) (("2000-01-07" "2000-01-09" TRUE FALSE) (1.8 1.2 1.0 1.0)))] compose [const sint value ((0.0 0.0 1.0) (2 2) (-2 -2 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))]
+Result   : (mint ((("2000-01-03" "2000-01-05-17:08:34.286" TRUE FALSE) 4) (("2000-01-06-10:17:08.571" "2000-01-07" TRUE FALSE) -1) (("2000-01-07" "2000-01-09" TRUE FALSE) -3)))
+
+Operator : bbox
+Number   : 1
+Signature: xT -> rect
+Example  : query bbox([const sint value ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))])
+Result   : (rect (-5.0 2.0 -5.0 2.0))
+
+Operator : minimum
+Number   : 1
+Signature: xT -> T
+Example  : query minimum([const sint value ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))])
+Result   : -3
+
+Operator : map2
+Number   : 1
+Signature: sT x sU x (sT x sU -> xV) -> sV
+Example  : query [const sint value ((0.0 0.0 1.0) (2 2) (0 0 (3 4 5 6)))] [const sreal value ((0.0 0.0 1.0) (2 2) (0 0 (6.0 5.0 4.0 3.0)))] map2[fun(a:int, b:real) a < b]
+Result   : (sbool ((0.0 0.0 1.0) (1 1) (0 0 (TRUE)) (1 0 (TRUE)) (0 1 (FALSE)) (1 1 (FALSE))))
+
+Operator : matchgrid
+Number   : 1
+Signature: sT x grid2 x (rel(tuple(T: Elem))-> U) x bool -> sU
+Example  : query [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (3)))] matchgrid[[const grid2 value (0.0 0.0 0.5)], fun(cell: rel(tuple([Elem: int]))) cell feed avg[Elem], FALSE]
+Result   : (sreal ((0.0 0.0 0.5) (1 1) (1 0 (3.0)) (0 1 (3.0)) (1 1 (3.0))))
+
+Operator : maximum
+Number   : 1
+Signature: xT -> T
+Example  : query maximum([const sint value ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))])
+Result   : 4
+
+Operator : fromregion
+Number   : 1
+Signature: region x grid2 -> sbool
+Example  : query fromregion([const region value ((((3.0 4.0) (7.0 20.0) (26.0 30.0) (20.0 -5.0))((6.0 5.0) (8.0 7.0) (9.0 5.0))) (((60.0 60.0)(64.0 66.0)(68.0 68.0))))], [const grid2 value (0.0 0.0 1.0)])
+Result   : file
+
+Operator : toregion
+Number   : 1
+Signature: sbool -> region
+Example  : query toregion([const sbool value ((0.0 0.0 1.0) (3 3) (1 1 (FALSE TRUE TRUE TRUE TRUE TRUE FALSE FALSE TRUE)))])
+Result   : (region ((((1.0 2.0) (2.0 2.0) (2.0 1.0) (3.0 1.0) (4.0 1.0) (4.0 2.0) (4.0 3.0) (4.0 4.0) (3.0 4.0) (3.0 3.0) (2.0 3.0) (1.0 3.0)))))
+
+Operator : s2ms
+Number   : 1
+Signature: sint x duration x instant x instant -> msint
+Example  : query s2ms([const sint value ((0.0 0.0 1.0) (1 1) (0 0 (1)))], [const duration value (1 0)], [const instant value "2000-01-03"], [const instant value "2000-01-04"])
+Result   : (msint ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1))))
+
+Operator : getgrid
+Number   : 1
+Signature: sT -> grid2
+Example  : query getgrid([const sint value ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))])
+Result   : (grid2 (0.0 0.0 1.0))
+
+Operator : getgrid
+Number   : 2
+Signature: msT -> grid3
+Example  : query getgrid([const msbool value ((0.0 0.0 3.0 3.0) (2 1 2) (1 1 1 (TRUE TRUE TRUE TRUE)))])
+Result   : (grid3 (0.0 0.0 3.0 (duration (3 0))))
+
+Operator : importHgt
+Number   : 1
+Signature: (stream text) -> sint
+Example  : query '../Data/Raster2/N51E007.hgt' feed importHgt
+Result   : file
+
+Operator : importEsriGrid
+Number   : 1
+Signature: text -> sint
+Example  : query importEsriGrid("../Data/Raster2/esrigrid/tmin_1")
+Result   : file
+
+Operator : importEsriRaster
+Number   : 1
+Signature: (stream text) -> sreal
+Example  : query '../Data/Raster2/N52E006.asc' feed importEsriRaster
+Result   : file
+
+Operator : fromline
+Number   : 1
+Signature: line x grid2 -> sbool
+Example  : query fromline([const line value ((24 13.2 30 15.3) (24 13.2 1 15) (1 15 24 63))], [const grid2 value (0.0 0.0 1.0)])
+Result   : file
+
+Operator : map
+Number   : 1
+Signature: xT x (T -> U) -> xU
+Example  : query [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (1)))] map [. * 2]
+Result   : (sint ((0.0 0.0 1.0) (1 1) (0 0 (2))))
+

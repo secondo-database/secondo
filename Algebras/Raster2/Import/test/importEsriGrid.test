@@ -1,0 +1,41 @@
+#
+# Test for Raster2 importEsriGrid operation
+#
+# Run the test it with: 
+#
+# TestRunner -i importEsriGrid
+#
+# By default a temporary database directory will be created. 
+# If you want to use existing databases run:
+#
+# fapra@linux-3vdv:~/secondo/bin> TestRunner --no-tmp -i ../Algebras/Raster2/Import/test/importEsriGrid.test
+#
+
+delete database raster2test;
+
+#setup raster2test StandardAlgebra Raster2Algebra
+
+# if a command between the SETUP directive and the first
+# TESTCASE directive fails, then the whole test has failed 
+# and we immediately skip to the teardown
+# (the whole test does not make sense anymore if the 
+# SETUP has failed)
+
+create database raster2test;
+open database raster2test;
+
+# some sample objects
+#let Grid1 = ([const grid2 value(1.0 1.0 2.0)]);
+#let Sint1 = ([const sint value ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))]);
+#let uniquestringarray1 = ([const uniquestringarray value ("Raster" "Daten")]);
+#let uniquestringarray2 = ([const uniquestringarray value ("Raster" "Daten" "Raster")]);
+
+
+
+# the TEARDOWN directive is followed by commands which
+# should be executed after the execution of all TESTCASES
+# teardown
+
+close database;
+# TODO test runner does not end, if database gets deleted in teardown?
+# delete database raster2test;

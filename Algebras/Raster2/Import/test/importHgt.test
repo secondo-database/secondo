@@ -1,0 +1,80 @@
+#
+# Test for Raster2 importHgt operation
+#
+# Run the test it with: 
+#
+# TestRunner -i importHgt
+#
+# By default a temporary database directory will be created. 
+# If you want to use existing databases run:
+#
+# fapra@linux-3vdv:~/secondo/bin> TestRunner --no-tmp -i ../Algebras/Raster2/Import/test/importHgt
+#
+
+delete database raster2test;
+
+#setup raster2test StandardAlgebra Raster2Algebra
+
+# if a command between the SETUP directive and the first
+# TESTCASE directive fails, then the whole test has failed 
+# and we immediately skip to the teardown
+# (the whole test does not make sense anymore if the 
+# SETUP has failed)
+
+create database raster2test;
+open database raster2test;
+
+# some sample objects
+#let Grid1 = ([const grid2 value(1.0 1.0 2.0)]);
+#let Sint1 = ([const sint value ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))]);
+#let uniquestringarray1 = ([const uniquestringarray value ("Raster" "Daten")]);
+#let uniquestringarray2 = ([const uniquestringarray value ("Raster" "Daten" "Raster")]);
+
+# TODO
+# testcase one single hgt file
+
+# TODO
+# testcase two hgt files
+
+# TODO error behavior to be implemented
+# testcase empty string as directory parameter
+# yields error 
+# query getDirectory("") filter [. endsWith "hgt"] importHgt;
+
+# TODO error behavior to be implemented
+# testcase current but empty directory
+# yields error 
+#query getDirectory(".") importHgt;
+
+# TODO error behavior to be implemented
+# testcase current directory with any files but no hgt files
+# yields error 
+#query getDirectory(".") importHgt;
+
+# testcase wrong type argument to getDirectory()
+#yields error 
+query getDirectory(wrong-argument-type) importHgt;
+
+# testcase missing stream argument
+#yields error 
+query importHgt;
+
+# testcase stream argument at wrong position after operator
+#yields error 
+query importHgt getDirectory(".");
+
+# testcase invalid stream argument of integers
+#yields error 
+query intstream (1, 10) importHgt;
+
+# testcase invalid stream argument of strings by keywords operator
+#yields error 
+query "this will be transformed to a stream of strings" keywords importHgt;
+
+
+# the TEARDOWN directive is followed by commands which
+# should be executed after the execution of all TESTCASES
+#teardown
+
+close database;
+
