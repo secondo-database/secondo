@@ -150,6 +150,9 @@ ALGEBRAS     += TemporalUnitAlgebra
 ALGEBRA_DIRS += DateTime
 ALGEBRAS     += DateTimeAlgebra
 
+ALGEBRA_DIRS += Raster2
+ALGEBRAS     += Raster2Algebra
+
 #ALGEBRA_DIRS += Network
 #ALGEBRAS     += NetworkAlgebra
 

@@ -82,6 +82,12 @@ which will be read.
 #include "NList.h"
 #include "Symbols.h"
 
+#include "../Algebras/Raster2/DisplaySType.h"
+#include "../Algebras/Raster2/Displaymstype.h"
+#include "../Algebras/Raster2/Displayistype.h"
+#include "../Algebras/Raster2/Displaygrid2.h"
+#include "../Algebras/Raster2/Displaygrid3.h"
+
 /*
 Auxiliary global variables and functions
 
@@ -1053,14 +1059,14 @@ struct DisplayRect : DisplayFunction {
         {
           cout << coordValue[2*i];
           if( i < 2 - 1 )
-            cout << ", ";
+            cout << ",";
         }
         cout << ") - (";
         for( unsigned i = 0; i < 2; i++ )
         {
           cout << coordValue[2*i+1];
           if( i < 2 - 1 )
-            cout << ", ";
+            cout << ",";
         }
         cout << ") )";
       }
@@ -2804,7 +2810,8 @@ struct DisplayJRouteInterval : DisplayFunction {
       nl->ReadFromString("jdirection", subtype);
       cout<< "road " << nl->IntValue(nl->First(value))
       << " from " << nl->RealValue(nl->Second(value))
-      << " to " << nl->RealValue(nl->Third(value));
+      << " to " << nl->RealValue(nl->Third(value))
+      << " direction ";
       DisplayTTY::GetInstance().DisplayResult(subtype, nl->Fourth(value));
     }
   }
@@ -3192,8 +3199,8 @@ struct DisplayRegEx : DisplayFunction{
          cout << "Source : " << nl->Text2String(srcList) << endl;
        }
      }
-
-
+    
+     
      int numStates = nl->IntValue(nl->First(value));
      ListExpr transitions = nl->Second(value);
      ListExpr finalStates = nl->Third(value);
@@ -3280,7 +3287,7 @@ struct DisplayRegEx : DisplayFunction{
                  }
               }
               ss << "]";
-            }
+            }  
           }
 
           cout << (srcfinal?"*":" ") << src << " - "
@@ -3296,17 +3303,17 @@ struct DisplayRegEx : DisplayFunction{
         if(isPrintable(c)){
           h << (char)c;
           return h.str();
-        }
+        } 
         if(c==9){
           return "\\t";
         }
         if(c==10){
           return "\\n";
-
-        }
+          
+        } 
         if(c==13){
            return "\\r";
-        }
+        } 
 
         h << "(" << c << ")";
         return h.str();
@@ -3417,7 +3424,6 @@ must be added below.
 
 */
 
-
 void
 DisplayTTY::Initialize()
 {
@@ -3508,6 +3514,22 @@ DisplayTTY::Initialize()
   d.Insert( "mjpoint", new DisplayMJPoint());
   d.Insert( "regex", new DisplayRegEx());
   d.Insert( "regex2", new DisplayRegEx());
+
+  // Raster2Algebra
+  d.Insert("sbool", new raster2::DisplaySType());
+  d.Insert("sint", new raster2::DisplaySType());
+  d.Insert("sreal", new raster2::DisplaySType());
+  d.Insert("sstring", new raster2::DisplaySType());
+  d.Insert("msbool", new raster2::Displaymstype());
+  d.Insert("msint", new raster2::Displaymstype());
+  d.Insert("msreal", new raster2::Displaymstype());
+  d.Insert("msstring", new raster2::Displaymstype());
+  d.Insert("isbool", new raster2::Displayistype());
+  d.Insert("isint", new raster2::Displayistype());
+  d.Insert("isreal", new raster2::Displayistype());
+  d.Insert("isstring", new raster2::Displayistype());
+  d.Insert("grid2", new raster2::Displaygrid2());
+  d.Insert("grid3", new raster2::Displaygrid3());
 }
 
 /*
