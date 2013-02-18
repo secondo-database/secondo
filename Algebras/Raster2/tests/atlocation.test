@@ -1,0 +1,165 @@
+#
+# Tests for the atlocation operator of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+let SInt = [const sint value ((0.0 0.0 1.0) (3 3) (-1 -1 (1 1 1 1 2 1 1 1 1)))];
+let SReal = [const sreal value ((0.2 0.3 0.7) (3 3) (-1 -1 (1.0 1.0 1.0 1.0 2.0 1.0 1.0 1.0 1.0)))];
+let SBool = [const sbool value ((0.0 0.0 1.0) (3 3) (-1 -1 (FALSE FALSE FALSE FALSE TRUE FALSE FALSE FALSE FALSE)))];
+let SString = [const sstring value ((0.0 0.0 1.0) (3 3) (-1 -1 ("Foo" "Foo" "Foo" "Foo" "Bar" "Foo" "Foo" "Foo" "Foo")))];
+let MSInt = [const msint value ((0.0 0.0 1.0 1.0) (2 2 2) (-5 -5 -5 (1 2 3 4 5 6 7 8)) (0 0 0 (undefined -1 -2 -3 -4 -5 -6 -7)))];
+#let MSReal = [const msreal value ((0.0 0.0 1.0 30.12000) (2 1 2) (1 1 1 (1.2 5.3 3.12 4.23)) (4 4 4 (undefined -3.2 -2.0 12.0)))];
+#let MSBool = [const msbool value ((0.0 0.0 1.0 5.0) (1 2 2) (1 1 1 (TRUE TRUE FALSE FALSE)) (4 4 4 (undefined TRUE TRUE undefined)))];
+#let MSString = [const msstring value ((0.0 0.0 1.0 2.0) (2 1 2) (1 1 1 ("Eins" "Zwei" "Eins" "Drei")))];
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#######################################
+# SInt                                #
+#######################################
+
+#testcase SInt atlocation with undefined point
+#yields (int undefined)
+query SInt atlocation [const point value undefined]
+
+#testcase SInt atlocation at center of cell
+#yields (int 2)
+query SInt atlocation [const point value (0.5 0.5)]
+
+#testcase SInt atlocation at left edge of cell
+#yields (int 2)
+query SInt atlocation [const point value (0 0.5)]
+
+#testcase SInt atlocation at bottom edge of cell
+#yields (int 2)
+query SInt atlocation [const point value (0.5 0)]
+
+#testcase SInt atlocation at top edge of cell
+#yields (int 1)
+query SInt atlocation [const point value (0.5 1)]
+
+#testcase SInt atlocation at right edge of cell
+#yields (int 1)
+query SInt atlocation [const point value (1 0.5)]
+
+#testcase SInt atlocation outside bbox
+#yields (int undefined)
+query SInt atlocation [const point value (2.01 0.5)]
+
+#######################################
+# SReal                               #
+#######################################
+
+#testcase SReal atlocation with undefined point
+#yields (real undefined)
+query SReal atlocation [const point value undefined]
+
+#testcase SReal atlocation at center of cell
+#yields (real 2.0)
+query SReal atlocation [const point value (0.55 0.65)]
+
+#testcase SReal atlocation at left edge of cell
+#yields (real 2.0)
+query SReal atlocation [const point value (0.2 0.65)]
+
+#testcase SReal atlocation at bottom edge of cell
+#yields (real 2.0)
+query SReal atlocation [const point value (0.55 0.3)]
+
+#testcase SReal atlocation at top edge of cell
+#yields (real 1.0)
+query SReal atlocation [const point value (0.55 1.0)]
+
+#testcase SReal atlocation at right edge of cell
+#yields (real 1.0)
+query SReal atlocation [const point value (0.9 0.65)]
+
+#testcase SReal atlocation outside bbox
+#yields (real undefined)
+query SReal atlocation [const point value (1.601 0.65)]
+
+#######################################
+# SBool                               #
+#######################################
+
+#testcase SBool atlocation with undefined point
+#yields (bool undefined)
+query SBool atlocation [const point value undefined]
+
+#testcase SBool atlocation at center of cell
+#yields (bool TRUE)
+query SBool atlocation [const point value (0.5 0.5)]
+
+#testcase SBool atlocation at left edge of cell
+#yields (bool TRUE)
+query SBool atlocation [const point value (0 0.5)]
+
+#testcase SBool atlocation at bottom edge of cell
+#yields (bool TRUE)
+query SBool atlocation [const point value (0.5 0)]
+
+#testcase SBool atlocation at top edge of cell
+#yields (bool FALSE)
+query SBool atlocation [const point value (0.5 1)]
+
+#testcase SBool atlocation at right edge of cell
+#yields (bool FALSE)
+query SBool atlocation [const point value (1 0.5)]
+
+#testcase SBool atlocation outside bbox
+#yields (bool undefined)
+query SBool atlocation [const point value (2.01 0.5)]
+
+#######################################
+# SString                             #
+#######################################
+
+#testcase SString atlocation with undefined point
+#yields (string undefined)
+query SString atlocation [const point value undefined]
+
+#testcase SString atlocation at center of cell
+#yields (string "Bar")
+query SString atlocation [const point value (0.5 0.5)]
+
+#testcase SString atlocation at left edge of cell
+#yields (string "Bar")
+query SString atlocation [const point value (0 0.5)]
+
+#testcase SString atlocation at bottom edge of cell
+#yields (string "Bar")
+query SString atlocation [const point value (0.5 0)]
+
+#testcase SString atlocation at top edge of cell
+#yields (string "Foo")
+query SString atlocation [const point value (0.5 1)]
+
+#testcase SString atlocation at right edge of cell
+#yields (string "Foo")
+query SString atlocation [const point value (1 0.5)]
+
+#testcase SString atlocation outside bbox
+#yields (string undefined)
+query SString atlocation [const point value (2.01 0.5)]
+
+#######################################
+# MSInt                             #
+#######################################
+
+#testcase MSInt atlocation with defined point
+#yields (mint  ((("2000-01-04-00:00:00.001" "2000-01-05-00:00:00.001" TRUE TRUE) -7) (("2000-01-03-00:00:00.001" "2000-01-04-00:00:00.001" TRUE TRUE) -3)) )
+query MSInt atlocation [const point value (1.5 1.5)]
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

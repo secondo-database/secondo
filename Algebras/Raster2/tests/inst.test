@@ -1,0 +1,41 @@
+#
+# Tests for the inst operator of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+let ISInt = ([const isint value ((instant "2012-12-21")((0.0 0.0 1.0) (2 2) (-31 -31 (1 2 3 4))))]);
+let ISReal = ([const isreal value ((instant "2012-12-22")((0.0 0.0 1.0) (2 2) (-31 -31 (1.5 2.5 3.5 4.5))))]);
+let ISBool = ([const isbool value ((instant "2012-12-23")((0.0 0.0 1.0) (2 2) (-31 -31 (FALSE TRUE TRUE FALSE))))]);
+let ISString = ([const isstring value ((instant "2012-12-24")((0.0 0.0 1.0) (2 2) (-31 -31 ("Eins" "Zwei" "Eins" "Drei"))))]);
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#testcase query inst for type isint
+#yields (instant "2012-12-21")
+query inst(ISInt);
+
+#testcase query inst for type isreal
+#yields (instant "2012-12-22")
+query inst(ISReal);
+
+#testcase query inst for type isbool
+#yields (instant "2012-12-23")
+query inst(ISBool);
+
+#testcase query inst for type isstring
+#yields (instant "2012-12-24")
+query inst(ISString);
+
+################################################################################
+# Clean up #####################################################################
+################################################################################

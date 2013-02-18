@@ -1,0 +1,57 @@
+# check Raster2 operations
+
+delete database raster2test;
+
+#setup raster2test StandardAlgebra Raster2Algebra
+
+# if a command between the SETUP directive and the first
+# TESTCASE directive fails, then the whole test has failed 
+# and we immediately skip to the teardown
+# (the whole test does not make sense anymore if the 
+# SETUP has failed)
+
+create database raster2test;
+open database raster2test;
+
+# TODO test breaks, but it works in SecondoTTYBDB?
+# testcase list algebra Raster2Algebra
+# yields success 
+# list algebra Raster2Algebra;
+
+
+let elevation = getDirectory("height") filter [. endsWith "hgt"] importHgt;
+
+let snow = getDirectory("snow") filter [. endsWith "hgt"] importHgt;
+
+query snow atlocation makepoint(65.0, -154.7);
+
+query temperature atlocation makepoint(65.0, -154.7);
+
+query val(temperature atinstant [const instant value "2012-11-08-09:56"]);
+
+query deftime(temperature);
+
+update temperature := temperature atperiods [const periods value (("2012-11-08" "2012-11-09" TRUE FALSE))];
+
+update snow := snow atrange [const rect value (62 64 -155 -153)];
+
+query bbox(temperature);
+
+query minimum(temperature);
+
+query maximum(snow);
+
+query snow map[. > 3.0] toregion;
+
+query map2(elevation, matchgrid(snow, getgrid(elevation), cell feed max[Elem], FALSE), fun(e:real, h:real), e+h) atlocation makepoint(65.0, -154.7);
+
+query Klara snow compose;
+
+
+# the TEARDOWN directive is followed by commands which
+# should be executed after the execution of all TESTCASES
+# teardown
+
+close database;
+# TODO test runner does not end, if database gets deleted in teardown?
+# delete database raster2test;

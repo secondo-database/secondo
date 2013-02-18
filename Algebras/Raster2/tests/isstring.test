@@ -1,0 +1,57 @@
+#
+# Tests for the ISString type of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Valid ISString Objects                 #
+########################################
+
+#testcase Parse ISString
+#yields (isstring ((instant "2012-12-12") ((0.0 0.0 1.0) (1 1) (-2 -2 ("TRUE")) (-1 -2 ("FALSE")) (-1 -1 ("TRUE")) (0 0 ("FALSE")) (0 1 ("TRUE")) (1 1 ("FALSE")))))
+query [const isstring value ((instant "2012-12-12") ((0.0 0.0 1.0) (2 2) (-2 -2 ("TRUE" "FALSE" undefined "TRUE")) (0 0 ("FALSE" undefined "TRUE" "FALSE"))))];
+
+########################################
+# Invalid ISString Objects               #
+########################################
+
+#testcase Parse ISString with undefined Instant
+#yields error
+query [const isstring value ((instant undefined) ((0.0 0.0 1.0) (2 2) (-2 -2 ("TRUE" "FALSE" undefined "TRUE")) (0 0 ("FALSE" undefined "TRUE" "FALSE"))))];
+
+#testcase Parse ISString from Atom
+#yields error
+query [const isstring value "ISString"];
+
+#testcase Parse ISString from short list (1)
+#yields error
+query [const isstring value ()];
+
+#testcase Parse ISString from short list (2)
+#yields error
+query [const isstring value ((instant undefined))];
+
+#testcase Parse ISString with Type mismatch in instant
+#yields error
+query [const isstring value ("Instant" ((0.0 0.0 1.0) (2 2) (-2 -2 ("TRUE" "FALSE" undefined "TRUE")) (0 0 ("FALSE" undefined "TRUE" "FALSE"))))];
+
+#testcase Parse ISString with type mismatch in sbool
+#yields error
+query [const isstring value ((instant undefined) "Foo")];
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

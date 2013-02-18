@@ -1,0 +1,74 @@
+#
+# Tests for the importHgt operator of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+let N51E007 = '../Data/Raster2/N51E007.hgt' feed importHgt;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#testcase get specific values from N51E007
+#yields (int 122)
+query N51E007 atlocation [const point value (7.5 51.5)];
+#yields (int 60)
+query N51E007 atlocation [const point value (7.9 51.9)];
+#yields (int 430)
+query N51E007 atlocation [const point value (7.9 51.1)];
+#yields (int 74)
+query N51E007 atlocation [const point value (7.1 51.9)];
+
+#testcase get minimum and maximum value from N51E007
+#yields (int 7)
+query minimum(N51E007);
+#yields (int 673)
+query maximum(N51E007);
+
+#tolerance_real 0.0000009
+#testcase get bbox from N51E007
+#yields (rect (6.999583333333334 8.000416666666666 50.99958333333333 52.00041666666667))
+query bbox(N51E007)
+
+
+#testcase wrong path returns an empty sint
+#yields (sint ((0.0 0.0 1.0) (1 1)))
+query getDirectory(".") filter [. endsWith "hgt"] importHgt;
+
+#testcase wrong endsWith filter returns an empty sint (Wrong grid extend)
+#yields (sint ((0.0 0.0 1.0) (1 1)))
+query getDirectory("../Data/Raster2/") filter [. endsWith "asc"] importHgt;
+
+#testcase generate typemapping errors
+#yields error
+query getDirectory("../Data/Raster2/") filter [. endsWith "hgt"] transformstream importHgt;
+#yields error
+query getDirectory("../Data/Raster2/") filter [. endsWith "hgt"] feed importHgt;
+#yields error
+query intstream (1,10) importHgt;
+#yields error
+query '../Data/Raster2/N51E007.hgt' importHgt;
+#yields error
+query "../Data/Raster2/N51E007.hgt" feed importHgt;
+
+#testcase generate syntax errors
+#yields error
+query getDirectory("../Data/Raster2/") filter [. endsWith "hgt"] importHgt option;
+#yields error
+query importHgt;
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+#teardown
+#~tolerance_real 0.0~
+close database;
+delete database raster2test;

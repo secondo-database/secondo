@@ -1,0 +1,57 @@
+#
+# Tests for the ISInt type of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Valid ISInt Objects                 #
+########################################
+
+#testcase Parse ISInt
+#yields (isint ((instant "2012-12-12") ((0.0 0.0 1.0) (1 1) (-2 -2 (1)) (-1 -2 (-1)) (-1 -1 (1)) (0 0 (-1)) (0 1 (1)) (1 1 (-1)))))
+query [const isint value ((instant "2012-12-12") ((0.0 0.0 1.0) (2 2) (-2 -2 (1 -1 undefined 1)) (0 0 (-1 undefined 1 -1))))];
+
+########################################
+# Invalid ISInt Objects               #
+########################################
+
+#testcase Parse ISInt with undefined Instant
+#yields error
+query [const isint value ((instant undefined) ((0.0 0.0 1.0) (2 2) (-2 -2 (1 -1 undefined 1)) (0 0 (-1 undefined 1 -1))))];
+
+#testcase Parse ISInt from Atom
+#yields error
+query [const isint value "ISInt"];
+
+#testcase Parse ISInt from short list (1)
+#yields error
+query [const isint value ()];
+
+#testcase Parse ISInt from short list (2)
+#yields error
+query [const isint value ((instant undefined))];
+
+#testcase Parse ISInt with Type mismatch in instant
+#yields error
+query [const isint value ("Instant" ((0.0 0.0 1.0) (2 2) (-2 -2 (1 -1 undefined 1)) (0 0 (-1 undefined 1 -1))))];
+
+#testcase Parse ISInt with type mismatch in sbool
+#yields error
+query [const isint value ((instant undefined) "Foo")];
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

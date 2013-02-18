@@ -1,0 +1,190 @@
+#
+# Tests for the Grid2 and Grid3 types of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Grid2 Objects                        #
+########################################
+
+###
+# Valid Grid2 Objects
+###
+
+#testcase Parse Grid2
+#yields (grid2 (1.2 3.4 5.6))
+query [const grid2 value (1.2 3.4 5.6)];
+
+###
+# Invalid Grid2 Objects
+###
+
+#
+# Grid2 Objects with wrong List Type
+#
+
+#testcase Parse Grid2 from Atom
+#yields error
+query [const grid2 value "Foo"];
+
+#
+# Grid2 Objects with wrong Length Value
+#
+
+#testcase Parse Grid2 with zero Length
+#yields error
+query [const grid2 value (1.2 3.4 0.0)];
+
+#testcase Parse Grid2 with negative Length
+#yields error
+query [const grid2 value (1.2 3.4 -10.0)];
+
+#
+# Grid2 Objects with undefined Values
+#
+
+#testcase Parse Grid2 with undefined Values (1)
+#yields error
+query [const grid2 value (undefined 3.4 5.6)];
+
+#testcase Parse Grid2 with undefined Values (2)
+#yields error
+query [const grid2 value (1.2 undefined 5.6)];
+
+#testcase Parse Grid2 with undefined Values (3)
+#yields error
+query [const grid2 value (1.2 3.4 undefined)];
+
+#
+# Grid2 Objects with Type Errors
+#
+
+#testcase Parse Grid2 with Type Error (1)
+#yields error
+query [const grid2 value ("Foo" 3.4 5.6)];
+
+#testcase Parse Grid2 with Type Error (2)
+#yields error
+query [const grid2 value (1.2 "Foo" 5.6)];
+
+#testcase Parse Grid2 with Type Error (3)
+#yields error
+query [const grid2 value (1.2 3.4 "Foo")];
+
+#
+# Grid2 Objects with wrong List Length
+#
+
+#testcase Parse Grid2 with short List
+#yields error
+query [const grid2 value (1.2 3.4)];
+
+#testcase Parse Grid2 with long List
+#yields error
+query [const grid2 value (1.2 3.4 5.6 7.8)];
+
+
+########################################
+# Grid3 Objects                        #
+########################################
+
+###
+# Valid Grid3 Objects
+###
+
+#testcase Parse Grid3
+#yields (grid3 (1.2 3.4 5.6 (duration (1 0))))
+query [const grid3 value (1.2 3.4 5.6 (duration (1 0)))];
+
+###
+# Invalid Grid3 Objects
+###
+
+#
+# Grid3 Objects with wrong List Type
+#
+
+#testcase Parse Grid3 from Atom
+#yields error
+query [const grid3 value "Foo"];
+
+#
+# Grid2 Objects with wrong Length Value
+#
+
+#testcase Parse Grid3 with zero Length
+#yields error
+query [const grid3 value (1.2 3.4 0.0 (duration (1 0)))];
+
+#testcase Parse Grid3 with negative Length
+#yields error
+query [const grid3 value (1.2 3.4 -10.0 (duration (1 0)))];
+
+#
+# Grid3 Objects with undefined Values
+#
+
+#testcase Parse Grid3 with undefined Values (1)
+#yields error
+query [const grid3 value (undefined 3.4 5.6 (duration (1 0)))];
+
+#testcase Parse Grid3 with undefined Values (2)
+#yields error
+query [const grid3 value (1.2 undefined 5.6 (duration (1 0)))];
+
+#testcase Parse Grid3 with undefined Values (3)
+#yields error
+query [const grid3 value (1.2 3.4 undefined (duration (1 0)))];
+
+#testcase Parse Grid3 with undefined Values (4)
+#yields error
+query [const grid3 value (1.2 3.4 5.6 undefined)];
+
+#
+# Grid3 Objects with Type Errors
+#
+
+#testcase Parse Grid3 with Type Error (1)
+#yields error
+query [const grid3 value ("Foo" 3.4 5.6 (duration (1 0)))];
+
+#testcase Parse Grid3 with Type Error (2)
+#yields error
+query [const grid3 value (1.2 "Foo" 5.6 (duration (1 0)))];
+
+#testcase Parse Grid3 with Type Error (3)
+#yields error
+query [const grid3 value (1.2 3.4 "Foo" (duration (1 0)))];
+
+#testcase Parse Grid3 with Type Error (4)
+#yields error
+query [const grid3 value (1.2 3.4 5.6 "Foo")];
+
+#
+# Grid3 Objects with wrong List Length
+#
+
+#testcase Parse Grid3 with short List
+#yields error
+query [const grid3 value (1.2 3.4 5.6)];
+
+#testcase Parse Grid3 with long List
+#yields error
+query [const grid3 value (1.2 3.4 5.6 (duration (1 0)) (duration (1 0)))];
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

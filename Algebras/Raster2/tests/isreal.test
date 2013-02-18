@@ -1,0 +1,61 @@
+#
+# Tests for the ISreal type of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Valid ISreal Objects                 #
+########################################
+
+#testcase Parse ISreal
+#yields (isreal ((instant "2012-12-12") ((0.0 0.0 1.0) (1 1) (-2 -2 (1.5)) (-1 -2 (-0.5)) (-1 -1 (1.5)) (0 0 (-0.5)) (0 1 (1.5)) (1 1 (-0.5)))))
+query [const isreal value ((instant "2012-12-12") ((0.0 0.0 1.0) (2 2) (-2 -2 (1.5 -0.5 undefined 1.5)) (0 0 (-0.5 undefined 1.5 -0.5))))];
+
+#testcase Parse ISreal with int values
+#yields (isreal ((instant "2012-12-12") ((0.0 0.0 1.0) (1 1) (-5 -5 (1.0)) (-4 -5 (2.0)) (-5 -4 (3.0)) (-4 -4 (4.0)))))
+query [const isreal value ((instant "2012-12-12") ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4))))];
+
+########################################
+# Invalid ISreal Objects               #
+########################################
+
+#testcase Parse ISreal with undefined Instant
+#yields error
+query [const isreal value ((instant undefined) ((0.0 0.0 1.0) (2 2) (-2 -2 (1.5 -0.5 undefined 1.5)) (0 0 (-0.5 undefined 1.5 -0.5))))];
+
+#testcase Parse ISreal from Atom
+#yields error
+query [const isreal value "ISreal"];
+
+#testcase Parse ISreal from short list (1)
+#yields error
+query [const isreal value ()];
+
+#testcase Parse ISreal from short list (2)
+#yields error
+query [const isreal value ((instant undefined))];
+
+#testcase Parse ISreal with Type mismatch in instant
+#yields error
+query [const isreal value ("Instant" ((0.0 0.0 1.0) (2 2) (-2 -2 (1.5 -0.5 undefined 1.5)) (0 0 (-0.5 undefined 1.5 -0.5))))];
+
+#testcase Parse ISreal with type mismatch in sbool
+#yields error
+query [const isreal value ((instant undefined) "Foo")];
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

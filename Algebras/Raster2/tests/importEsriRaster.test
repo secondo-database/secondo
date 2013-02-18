@@ -1,0 +1,71 @@
+#
+# Tests for the importEsriRaster operator of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+let N52E006 = '../Data/Raster2/N52E006.asc' feed importEsriRaster;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#testcase get specific values from N52E006
+#yields (real 10.0)
+query N52E006 atlocation [const point value (6.5 52.5)];
+#yields (real 6.0)
+query N52E006 atlocation [const point value (6.9 52.9)];
+#yields (real 58.0)
+query N52E006 atlocation [const point value (6.9 52.1)];
+#yields (real 1.0)
+query N52E006 atlocation [const point value (6.1 52.9)];
+
+#testcase get minimum and maximum value from N51E007
+#yields (real -32.0)
+query minimum(N52E006);
+#yields (real 113.0)
+query maximum(N52E006);
+
+#testcase get bbox from N52E006
+#yields (rect (5.999583333333 7.000416666266 51.999583333333 53.000416666266))
+query bbox(N52E006)
+
+#testcase wrong path returns an empty sreal
+#yields (sreal ((0.0 0.0 1.0) (1 1)))
+query getDirectory(".") filter [. endsWith "asc"] importEsriRaster;
+
+#testcase wrong endsWith filter returns an empty sreal (Wrong header information)
+#yields (sreal ((0.0 0.0 1.0) (1 1)))
+query getDirectory("../Data/Raster2/") filter [. endsWith "hgt"] importEsriRaster;
+
+#testcase generate typemapping errors
+#yields error
+query getDirectory("../Data/Raster2/") filter [. endsWith "asc"] transformstream importEsriRaster;
+#yields error
+query getDirectory("../Data/Raster2/") filter [. endsWith "asc"] feed importEsriRaster;
+#yields error
+query intstream (1,10) importEsriRaster;
+#yields error
+query '../Data/Raster2/N52E006.asc' importEsriRaster;
+#yields error
+query "../Data/Raster2/N52E006.asc" feed importEsriRaster;
+
+#testcase generate syntax errors
+#yields error
+query getDirectory("../Data/Raster2/") filter [. endsWith "asc"] importEsriRaster option;
+#yields error
+query importEsriRaster;
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+#teardown
+close database;
+delete database raster2test;

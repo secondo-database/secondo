@@ -1,0 +1,104 @@
+#
+# Tests for the atinstant operator of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#######################################
+# MSInt                              #
+#######################################
+
+#testcase atinstant msint instant undefined
+#yields error
+query [const msint value ((0.0 0.0 1.0 2.0) (2 2 2) (-5 -5 1 (1 2 3 4 5 6 7 8)) (3 3 1 (undefined -1 -2 -3 -4 -5 -6 -7)))] atinstant [const instant value undefined];
+
+#testcase atinstant msint instant outside deftime
+#yields (isint ((instant "2000-01-04-21:36") ((0.0 0.0 1.0) (1 1))))
+query [const msint value ((0.0 0.0 1.0 2.0) (2 2 2) (-5 -5 1 (1 2 3 4 5 6 7 8)) (3 3 1 (undefined -1 -2 -3 -4 -5 -6 -7)))] atinstant create_instant(1.9);
+
+#testcase atinstant msint instant 3.9
+#yields (isint ((instant "2000-01-06-21:36") ( (0.0 0.0 1.0) (1 1) (-5 -5 (1)) (-4 -5 (2)) (-5 -4 (3)) (-4 -4 (4)) (4 3 (-1)) (3 4 (-2)) (4 4 (-3)))))
+query [const msint value ((0.0 0.0 1.0 2.0) (2 2 2) (-5 -5 1 (1 2 3 4 5 6 7 8)) (3 3 1 (undefined -1 -2 -3 -4 -5 -6 -7)))] atinstant create_instant(3.9);
+
+#testcase atinstant msint instant outside deftime
+#yields (isint ((instant "2000-01-08-07:12") ((0.0 0.0 1.0) (1 1) (3 3 (-4)) (4 3 (-5)) (3 4 (-6)) (4 4 (-7)))))
+query [const msint value ((0.0 0.0 1.0 2.0) (2 2 2) (-5 -5 0 (1 2 3 4 5 6 7 8)) (3 3 1 (undefined -1 -2 -3 -4 -5 -6 -7)))] atinstant create_instant(5.3);
+
+
+#######################################
+# MSBool                              #
+#######################################
+
+#testcase atinstant msbool instant undefined
+#yields error
+query [const msbool value ((0.0 0.0 1.0 2.0) (2 2 2) (1 1 1 (TRUE FALSE FALSE TRUE FALSE FALSE TRUE FALSE)) (3 3 1 (TRUE TRUE FALSE TRUE FALSE FALSE FALSE TRUE)))] atinstant [const instant value undefined];
+
+#testcase atinstant msbool instant outside deftime
+#yields (isbool ((instant "2000-01-15") ((0.0 0.0 1.0) (1 1))))
+query [const msbool value ((0.0 0.0 1.0 2.0) (2 2 2) (1 1 1 (TRUE FALSE FALSE TRUE FALSE FALSE TRUE FALSE)) (3 3 1 (TRUE TRUE FALSE TRUE FALSE FALSE FALSE TRUE)))] atinstant create_instant(12.0);
+
+#testcase atinstant msbool instant 2.0
+#yields (isbool ((instant "2000-01-05") ( (0.0 0.0 1.0) (1 1) (1 1 (TRUE)) (2 1 (FALSE)) (1 2 (FALSE)) (2 2 (TRUE)) (3 3 (TRUE)) (4 3 (TRUE)) (3 4 (FALSE)) (4 4 (TRUE)))))
+query [const msbool value ((0.0 0.0 1.0 2.0) (2 2 2) (1 1 1 (TRUE FALSE FALSE TRUE FALSE FALSE TRUE FALSE)) (3 3 1 (TRUE TRUE FALSE TRUE FALSE FALSE FALSE TRUE)))] atinstant create_instant(2.0);
+
+#testcase atinstant msbool instant 2.1
+#yields (isbool ((instant "2000-01-05-02:24") ( (0.0 0.0 1.0) (1 1) (1 1 (FALSE)) (2 1 (FALSE)) (1 2 (TRUE)) (2 2 (FALSE)) (3 3 (FALSE)) (4 3 (FALSE)) (3 4 (FALSE)) (4 4 (TRUE)))))
+query [const msbool value ((0.0 0.0 1.0 1.0) (2 2 2) (1 1 1 (TRUE FALSE FALSE TRUE FALSE FALSE TRUE FALSE)) (3 3 1 (TRUE TRUE FALSE TRUE FALSE FALSE FALSE TRUE)))] atinstant create_instant(2.1);
+
+#######################################
+# MSReal                              #
+#######################################
+
+#testcase atinstant msreal instant undefined
+#yields error
+query [const msreal value ((0.0 0.0 1.0 2.0) (2 2 2) (1 1 1 (1.1 2.2 3.3 4.4 5.5 6.6 7.7 8.8)) (3 3 1 (undefined -1.0 -2.0 -3.0 -4.0 -5.0 -6.0 -7.0)))] atinstant [const instant value undefined];
+
+#testcase atinstant msreal instant outside deftime
+#yields (isreal ((instant "2000-01-04") ((0.0 0.0 1.0) (1 1))))
+query [const msreal value ((0.0 0.0 1.0 2.0) (2 2 2) (1 1 1 (1.1 2.2 3.3 4.4 5.5 6.6 7.7 8.8)) (3 3 1 (undefined -1.0 -2.0 -3.0 -4.0 -5.0 -6.0 -7.0)))] atinstant create_instant(1.0);
+
+#testcase atinstant msreal instant 2.0
+#yields (isreal ((instant "2000-01-05") ( (0.0 0.0 1.0) (1 1) (1 1 (1.1)) (2 1 (2.2)) (1 2 (3.3)) (2 2 (4.4)) (4 3 (-1.0)) (3 4 (-2.0)) (4 4 (-3.0)))))
+query [const msreal value ((0.0 0.0 1.0 2.0) (2 2 2) (1 1 1 (1.1 2.2 3.3 4.4 5.5 6.6 7.7 8.8)) (3 3 1 (undefined -1.0 -2.0 -3.0 -4.0 -5.0 -6.0 -7.0)))] atinstant create_instant(2.0);
+
+#testcase atinstant msreal instant -6.0
+#yields (isreal ((instant "1999-12-28-00:00:00.001") ( (0.0 0.0 1.0) (1 1) (4 3 (-1.0)) (3 4 (-2.0)) (4 4 (-3.0)))))
+query [const msreal value ((0.0 0.0 1.0 2.0) (2 2 2) (1 1 -2 (1.1 2.2 3.3 4.4 5.5 6.6 7.7 8.8)) (3 3 -3 (undefined -1.0 -2.0 -3.0 -4.0 -5.0 -6.0 -7.0)))] atinstant create_instant(-6.0);
+
+#######################################
+# MSString                            #
+#######################################
+
+#testcase atinstant msstring instant undefined
+#yields error
+query [const msstring value ((0.0 0.0 1.0 2.0) (2 2 2) (-2 -2 0 ("Eins" "Zwei" undefined "Vier" "1" "2" "3" "4")) (0 0 1 ("Fuenf" undefined "Sieben" "Acht" "5" "6" "7" "8")))] atinstant [const instant value undefined];
+
+#testcase atinstant msstring instant outside deftime
+#yields (isstring ((instant "2000-01-11") ((0.0 0.0 1.0) (1 1))))
+query [const msstring value ((0.0 0.0 1.0 2.0) (2 2 2) (-2 -2 0 ("Eins" "Zwei" undefined "Vier" "1" "2" "3" "4")) (0 0 1 ("Fuenf" undefined "Sieben" "Acht" "5" "6" "7" "8")))] atinstant create_instant(8.0);
+
+#testcase atinstant msstring instant 3.9
+#yields (isstring ((instant "2000-01-06-21:36") ( (0.0 0.0 1.0) (1 1) (-2 -2 ("1")) (-1 -2 ("2")) (-2 -1 ("3")) (-1 -1 ("4")) (0 0 ("Fuenf")) (0 1 ("Sieben")) (1 1 ("Acht")))))
+query [const msstring value ((0.0 0.0 1.0 2.0) (2 2 2) (-2 -2 0 ("Eins" "Zwei" undefined "Vier" "1" "2" "3" "4")) (0 0 1 ("Fuenf" undefined "Sieben" "Acht" "5" "6" "7" "8")))] atinstant create_instant(3.9);
+
+#testcase atinstant msstring instant 5.9
+#yields (isstring ((instant "2000-01-08-21:36") ( (0.0 0.0 1.0) (1 1) (0 0 ("5")) (1 0 ("6")) (0 1 ("7")) (1 1 ("8")))))
+query [const msstring value ((0.0 0.0 1.0 2.0) (2 2 2) (-2 -2 0 ("Eins" "Zwei" undefined "Vier" "1" "2" "3" "4")) (0 0 1 ("Fuenf" undefined "Sieben" "Acht" "5" "6" "7" "8")))] atinstant create_instant(5.9);
+
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

@@ -1,0 +1,128 @@
+#
+# Tests for the SString type of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Valid SString Objects                #
+########################################
+
+#testcase Parse SString
+#yields (sstring ((0.0 0.0 1.0) (1 1) (-2 -2 ("One")) (-1 -2 ("Two")) (-2 -1 ("Three")) (-1 -1 ("Four")) (1 0 ("Eno")) (0 1 ("Owt")) (1 1 ("Eerht"))))
+query [const sstring value ((0.0 0.0 1.0) (2 2) (-2 -2 ("One" "Two" "Three" "Four")) (0 0 (undefined "Eno" "Owt" "Eerht")))];
+
+#testcase Parse SString without Entries
+#yields (sstring ((0.0 0.0 1.0) (1 1)))
+query [const sstring value ((0.0 0.0 1.0) (1 1))];
+
+#testcase Parse SString without Tile Size
+#yields (sstring ((0.0 0.0 1.0) (1 1)))
+query [const sstring value ((0.0 0.0 1.0))];
+
+########################################
+# Invalid List Type                    #
+########################################
+
+#testcase Parse SString from Atom
+#yields error
+query [const sstring value "Foo"];
+
+
+########################################
+# Invalid Grid Lists                   #
+########################################
+
+#testcase Parse SString with Grid2 List too short
+#yields error
+query [const sstring value ((0.0 1.0) (2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+#testcase Parse SString with Grid2 List too long
+#yields error
+query [const sstring value ((0.0 0.0 1.0 1.0) (2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+#testcase Parse SString with Grid2 List of zero Grid Length
+#yields error
+query [const sstring value ((0.0 0.0 0.0) (2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+#testcase Parse SString with Grid2 List of negative Grid Length
+#yields error
+query [const sstring value ((0.0 0.0 -1.0) (2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+#testcase Parse SString with Type Mismatch in Grid2 X-Origin 
+#yields error
+query [const sstring value ((undefined 0.0 1.0) (2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+#testcase Parse SString with Type Mismatch in Grid2 Y-Origin
+#yields error
+query [const sstring value ((0.0 undefined 1.0) (2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+#testcase Parse SString with Type Mismatch in Grid2 Length
+#yields error
+query [const sstring value ((0.0 0.0 undefined) (2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+#testcase Parse SString with Type Mismatch in Tile Size Row Count
+#yields error
+query [const sstring value ((0.0 0.0 1.0) (undefined 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+#testcase Parse SString with Type Mismatch in Tile Size Column Count
+#yields error
+query [const sstring value ((0.0 0.0 1.0) (2 undefined) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+
+########################################
+# Invalid Tile Size List               #
+########################################
+
+#testcase Parse SString with Tile Size List too short
+#yields error
+query [const sstring value ((0.0 0.0 1.0) (2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+#testcase Parse SString with Tile Size List too long
+#yields error
+query [const sstring value ((0.0 0.0 1.0) (2 2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+#testcase Parse SString with Type Mismatch in Tile Size List (1)
+#yields error
+query [const sstring value ((0.0 0.0 1.0) (undefined 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+#testcase Parse SString with Type Mismatch in Tile Size List (1)
+#yields error
+query [const sstring value ((0.0 0.0 1.0) (2 undefined) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+
+########################################
+# Invalid Tile Specification           #
+########################################
+
+#testcase Parse SString with Tile Specification too large
+#yields error
+query [const sstring value ((0.0 0.0 1.0) (1 1) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+#testcase Parse SString with Tile Specification too small
+#yields error
+query [const sstring value ((0.0 0.0 1.0) (3 3) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+#testcase Parse SString with Type Mismatch in Row Number of Tile Specification   
+#yields error
+query [const sstring value ((0.0 0.0 1.0) (2 2) (undefined 0 ("Zero" "Zero" "Zero" "Zero")))];
+
+#testcase Parse SString with Type Mismatch in Column Number of Tile Specification   
+#yields error
+query [const sstring value ((0.0 0.0 1.0) (2 2) (0 undefined ("Zero" "Zero" "Zero" "Zero")))];
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

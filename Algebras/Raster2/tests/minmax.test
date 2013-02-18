@@ -1,0 +1,182 @@
+#
+# Tests for the minimum and maximum operators of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+let SInt = [const sint value ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))];
+let SReal = [const sreal value ((0.0 0.0 1.0) (2 2) (1 1 (1.2 5.3 3.12 4.23)) (4 4 (undefined -1.2 -2.0 1.0)))];
+let SBool = [const sbool value ((2.0 2.0 1.0) (2 2) (1 1 (TRUE TRUE FALSE FALSE)) (4 4 (undefined TRUE TRUE undefined)))];
+let SString = [const sstring value ((0.0 0.0 1.0) (2 2) (-31 -31 ("Eins" "Zwei" "Eins" "Drei")))];
+let MSInt = [const msint value ((2.0 2.0 1.0 2.0) (2 2 1) (-5 -5 -5 (1 2 -5 4)) (0 0 0 (undefined -1 -2 -3)))];
+let MSReal = [const msreal value ((0.0 0.0 1.0 30.12000) (2 1 2) (1 1 1 (1.2 5.3 3.12 4.23)) (4 4 4 (undefined -3.2 -2.0 12.0)))];
+let MSBool = [const msbool value ((0.0 0.0 1.0 5.0) (1 2 2) (1 1 1 (TRUE TRUE FALSE FALSE)) (4 4 4 (undefined TRUE TRUE undefined)))];
+let MSString = [const msstring value ((0.0 0.0 1.0 2.0) (2 1 2) (1 1 1 ("Eins" "Zwei" "Eins" "Drei")))];
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+###########
+# Minimum #
+###########
+
+#
+# Filled objects
+#
+
+#testcase query minimum for type sint
+#yields (int -3)
+query minimum(SInt)
+
+#testcase query minimum for type sreal
+#yields (real -2.0)
+query minimum(SReal)
+
+#testcase query minimum for type sbool
+#yields (bool FALSE)
+query minimum(SBool);
+
+#testcase query minimum for type sstring
+#yields (string "Drei")
+query minimum(SString);
+
+#testcase query minimum for type msint
+#yields (int -5)
+query minimum(MSInt)
+
+#testcase query minimum for type msreal
+#yields (real -3.2)
+query minimum(MSReal)
+
+#testcase query minimum for type msbool
+#yields (bool FALSE)
+query minimum(MSBool);
+
+#testcase query minimum for type msstring
+#yields (string "Drei")
+query minimum(MSString);
+
+#
+# Empty objects
+#
+
+#testcase query minimum for empty type sint
+#yields (int undefined)
+query minimum([const sint value ((0.0 0.0 1.0))])
+
+#testcase query minimum for empty type sreal
+#yields (real undefined)
+query minimum([const sreal value ((0.0 0.0 1.0))])
+
+#testcase query minimum for empty type sbool
+#yields (bool undefined)
+query minimum([const sbool value ((0.0 0.0 1.0))])
+
+#testcase query minimum for empty type sstring
+#yields (string undefined)
+query minimum([const sstring value ((0.0 0.0 1.0))])
+
+#testcase query minimum for empty type msint
+#yields (int undefined)
+query minimum([const msint value ((0.0 0.0 1.0 1.0))])
+
+#testcase query minimum for empty type msreal
+#yields (real undefined)
+query minimum([const msreal value ((0.0 0.0 1.0 1.0))])
+
+#testcase query minimum for empty type msbool
+#yields (bool undefined)
+query minimum([const msbool value ((0.0 0.0 1.0 1.0))])
+
+#testcase query minimum for empty type msstring
+#yields (string undefined)
+query minimum([const msstring value ((0.0 0.0 1.0 1.0))])
+
+###########
+# Maximum #
+###########
+
+#
+# Filled objects
+#
+
+#testcase query maximum for type sint
+#yields (int 4)
+query maximum(SInt)
+
+#testcase query maximum for type sreal
+#yields (real 5.3)
+query maximum(SReal)
+
+#testcase query maximum for type sbool
+#yields (bool TRUE)
+query maximum(SBool);
+
+#testcase query maximum for type sstring
+#yields (string "Zwei")
+query maximum(SString);
+
+#testcase query maximum for type msint
+#yields (int 4)
+query maximum(MSInt)
+
+#testcase query maximum for type msreal
+#yields (real 12.0)
+query maximum(MSReal)
+
+#testcase query maximum for type msbool
+#yields (bool TRUE)
+query maximum(MSBool)
+
+#testcase query maximum for type msstring
+#yields (string "Zwei")
+query maximum(MSString);
+
+#
+# Empty objects
+#
+
+#testcase query maximum for empty type sint
+#yields (int undefined)
+query maximum([const sint value ((0.0 0.0 1.0))])
+
+#testcase query maximum for empty type sreal
+#yields (real undefined)
+query maximum([const sreal value ((0.0 0.0 1.0))])
+
+#testcase query maximum for empty type sbool
+#yields (bool undefined)
+query maximum([const sbool value ((0.0 0.0 1.0))])
+
+#testcase query maximum for empty type sstring
+#yields (string undefined)
+query maximum([const sstring value ((0.0 0.0 1.0))])
+
+#testcase query maximum for empty type msint
+#yields (int undefined)
+query maximum([const msint value ((0.0 0.0 1.0 1.0))])
+
+#testcase query maximum for empty type msreal
+#yields (real undefined)
+query maximum([const msreal value ((0.0 0.0 1.0 1.0))])
+
+#testcase query maximum for empty type msbool
+#yields (bool undefined)
+query maximum([const msbool value ((0.0 0.0 1.0 1.0))])
+
+#testcase query maximum for empty type msstring
+#yields (string undefined)
+query maximum([const msstring value ((0.0 0.0 1.0 1.0))])
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

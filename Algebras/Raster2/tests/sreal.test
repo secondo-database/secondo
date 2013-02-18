@@ -1,0 +1,133 @@
+#
+# Tests for the SReal type of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Valid SReal Objects                  #
+########################################
+
+#testcase Parse SReal
+#yields (sreal ((0.0 0.0 1.0) (1 1) (-2 -2 (1.0)) (-1 -2 (2.1)) (-2 -1 (3.2)) (-1 -1 (4.3)) (1 0 (-1.4)) (0 1 (-2.5)) (1 1 (-3.6))))
+query [const sreal value ((0.0 0.0 1.0) (2 2) (-2 -2 (1.0 2.1 3.2 4.3)) (0 0 (undefined -1.4 -2.5 -3.6)))];
+
+#testcase Parse SReal without Entries
+#yields (sreal ((0.0 0.0 1.0) (1 1)))
+query [const sreal value ((0.0 0.0 1.0) (1 1))];
+
+#testcase Parse SReal without Tile Size
+#yields (sreal ((0.0 0.0 1.0) (1 1)))
+query [const sreal value ((0.0 0.0 1.0))];
+
+#testcase Parse SReal with int values
+#yields (sreal ((0.0 0.0 1.0) (1 1) (-5 -5 (1.0)) (-4 -5 (2.0)) (-5 -4 (3.0)) (-4 -4 (4.0))))
+query [const sreal value ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4)))]
+
+
+########################################
+# Invalid List Type                    #
+########################################
+
+#testcase Parse SReal from Atom
+#yields error
+query [const sreal value "Foo"];
+
+
+########################################
+# Invalid Grid Lists                   #
+########################################
+
+#testcase Parse SReal with Grid2 List too short
+#yields error
+query [const sreal value ((0.0 1.0) (2 2) (0 0 (0.0 0.0 0.0 0.0)))];
+
+#testcase Parse SReal with Grid2 List too long
+#yields error
+query [const sreal value ((0.0 0.0 1.0 1.0) (2 2) (0 0 (0.0 0.0 0.0 0.0)))];
+
+#testcase Parse SReal with Grid2 List of zero Grid Length
+#yields error
+query [const sreal value ((0.0 0.0 0.0) (2 2) (0 0 (0.0 0.0 0.0 0.0)))];
+
+#testcase Parse SReal with Grid2 List of negative Grid Length
+#yields error
+query [const sreal value ((0.0 0.0 -1.0) (2 2) (0 0 (0.0 0.0 0.0 0.0)))];
+
+#testcase Parse SReal with Type Mismatch in Grid2 X-Origin 
+#yields error
+query [const sreal value ((undefined 0.0 1.0) (2 2) (0 0 (0.0 0.0 0.0 0.0)))];
+
+#testcase Parse SReal with Type Mismatch in Grid2 Y-Origin
+#yields error
+query [const sreal value ((0.0 undefined 1.0) (2 2) (0 0 (0.0 0.0 0.0 0.0)))];
+
+#testcase Parse SReal with Type Mismatch in Grid2 Length
+#yields error
+query [const sreal value ((0.0 0.0 undefined) (2 2) (0 0 (0.0 0.0 0.0 0.0)))];
+
+#testcase Parse SReal with Type Mismatch in Tile Size Row Count
+#yields error
+query [const sreal value ((0.0 0.0 1.0) (undefined 2) (0 0 (0.0 0.0 0.0 0.0)))];
+
+#testcase Parse SReal with Type Mismatch in Tile Size Column Count
+#yields error
+query [const sreal value ((0.0 0.0 1.0) (2 undefined) (0 0 (0.0 0.0 0.0 0.0)))];
+
+
+########################################
+# Invalid Tile Size List               #
+########################################
+
+#testcase Parse SReal with Tile Size List too short
+#yields error
+query [const sreal value ((0.0 0.0 1.0) (2) (0 0 (0.0 0.0 0.0 0.0)))];
+
+#testcase Parse SReal with Tile Size List too long
+#yields error
+query [const sreal value ((0.0 0.0 1.0) (2 2 2) (0 0 (0.0 0.0 0.0 0.0)))];
+
+#testcase Parse SReal with Type Mismatch in Tile Size List (1)
+#yields error
+query [const sreal value ((0.0 0.0 1.0) (undefined 2) (0 0 (0.0 0.0 0.0 0.0)))];
+
+#testcase Parse SReal with Type Mismatch in Tile Size List (1)
+#yields error
+query [const sreal value ((0.0 0.0 1.0) (2 undefined) (0 0 (0.0 0.0 0.0 0.0)))];
+
+
+########################################
+# Invalid Tile Specification           #
+########################################
+
+#testcase Parse SReal with Tile Specification too large
+#yields error
+query [const sreal value ((0.0 0.0 1.0) (1 1) (0 0 (0.0 0.0 0.0 0.0)))];
+
+#testcase Parse SReal with Tile Specification too small
+#yields error
+query [const sreal value ((0.0 0.0 1.0) (3 3) (0 0 (0.0 0.0 0.0 0.0)))];
+
+#testcase Parse SReal with Type Mismatch in Row Number of Tile Specification   
+#yields error
+query [const sreal value ((0.0 0.0 1.0) (2 2) (undefined 0 (0.0 0.0 0.0 0.0)))];
+
+#testcase Parse SReal with Type Mismatch in Column Number of Tile Specification   
+#yields error
+query [const sreal value ((0.0 0.0 1.0) (2 2) (0 undefined (0.0 0.0 0.0 0.0)))];
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

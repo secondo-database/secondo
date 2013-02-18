@@ -1,0 +1,186 @@
+#
+# Tests for the atperiods operator of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+let SInt = [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (1)))];
+
+let MSInt = ([const msint value ((2.0 2.0 1.0 2.0) (2 2 1) (-5 -5 -5 (1 2 -5 4)) (0 0 0 (undefined -1 -2 -3)))]);
+let MSReal = ([const msreal value ((2.0 2.0 1.0 2.0) (2 2 1) (-5 -5 -5 (1.2 5.3 3.12 4.23)) (0 0 0 (undefined -3.2 -2.0 12.0)))]);
+let MSBool = ([const msbool value ((2.0 2.0 1.0 2.0) (2 2 1) (-5 -5 -5 (TRUE TRUE FALSE FALSE)) (0 0 0 (undefined TRUE TRUE undefined)))]);
+let MSString = ([const msstring value ((2.0 2.0 1.0 2.0) (2 2 1) (-5 -5 -5 ("Eins" "Zwei" "Eins" "Drei")) (0 0 0 ("Eins" "Zwei" "Eins" "Drei")))]);
+
+let OneFineDay = [const duration value (1 0)];
+let TwelveHoursLater = [const duration value (0 43200000)];
+let SixSecondsAway = [const duration value (0 6000)];
+
+let TheBigBang = [const instant value "2000-01-03"];
+let TheDayAfter = [const instant value "2000-01-04"];
+let HalveAMinute = [const instant value "2000-01-03 00:00:30.0"];
+
+let PeriodInside = [const periods value (("2000-01-03" "2000-01-05" TRUE FALSE))];
+let PeriodOutside = [const periods value (("2012-01-03" "2012-01-04" TRUE FALSE))];
+let PeriodBoth = [const periods value (("2000-01-03" "2000-01-07" TRUE FALSE))];
+let PeriodMidday = [const periods value (("2000-01-03 12:00:00" "2000-01-03 12:00:06" TRUE FALSE))];
+let PeriodTwoSeconds = [const periods value (("2000-01-03 00:00:00" "2000-01-03 00:00:04" TRUE FALSE))];
+let PeriodTwelveSeconds = [const periods value (("2000-01-03 00:00:00" "2000-01-03 00:00:12" TRUE FALSE))];
+let PeriodInBetween = [const periods value (("2000-01-03 00:03:00" "2000-01-03 00:09:00" TRUE FALSE))];
+
+let populatedTest = s2ms(SInt, SixSecondsAway, TheBigBang, HalveAMinute);
+# let populatedTestTwo = s2ms(SInt, SixSecondsAway, TheBigBang, TheDayAfter);
+let bbox1 = bbox(populatedTest);
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+
+# TODO testcase MSInt atperiods with undefined perdiod
+
+#testcase can query populated
+#yields success
+query populatedTest
+
+# testcase can query populatedTwo
+# ields success
+# query populatedTestTwo
+
+#testcase can query populatedTwo with atperiods
+#yields success
+query populatedTest atperiods PeriodMidday
+
+#testcase can query the bbox -> returns 36 seconds
+#yields (rect3 (0.0 1.0 0.0 1.0 0.0 0.0004166666666666667))
+query bbox1
+
+#testcase can query populatedTwo with atperiods outside of 
+#yields (rect3 (0.0 0.0 0.0 0.0 0.0 0.0))
+query bbox(populatedTest atperiods PeriodMidday)
+
+#testcase can query populatedTwo with atperiods and PeriodTwoSeconds -> 12 seconds
+#yields (rect3 (0.0 1.0 0.0 1.0 0.0 0.00006944444444444444))
+query bbox(populatedTest atperiods PeriodTwoSeconds)
+
+#testcase can query populatedTwo with atperiods and PeriodFourSeconds
+#yields (rect3 (0.0 1.0 0.0 1.0 0.0 0.0001388888888888889))
+query bbox(populatedTest atperiods PeriodTwelveSeconds)
+
+#######################################
+# Periods
+#######################################
+
+#testcase can query PeriodInside
+#yields success
+query PeriodInside 
+
+#testcase can query PeriodOutside
+#yields success
+query PeriodOutside 
+
+#testcase can query PeriodBoth
+#yields success
+query PeriodBoth 
+
+
+#######################################
+# MSInt                               #
+#######################################
+
+#testcase query the MSInt
+#yields (msint ((2.0 2.0 1.0 2.0) (1 1 1) (-5 -5 -5 (1)) (-4 -5 -5 (2)) (-5 -4 -5 (-5)) (-4 -4 -5 (4)) (1 0 0 (-1)) (0 1 0 (-2)) (1 1 0 (-3))))
+query MSInt
+
+#testcase MSInt atperiods with periods defined in MSInt
+#yields (msint ((2.0 2.0 1.0 2.0) (1 1 1) (1 0 0 (-1)) (0 1 0 (-2)) (1 1 0 (-3))))
+query MSInt atperiods PeriodInside
+
+#testcase MSInt atperiods with periods not defined MSInt
+#yields (msint ((2.0 2.0 1.0 2.0) (1 1 1)))
+query MSInt atperiods PeriodOutside
+
+#testcase MSInt atperiods with periods inside and outside of MSInt
+#yields (msint ((2.0 2.0 1.0 2.0) (1 1 1) (1 0 0 (-1)) (0 1 0 (-2)) (1 1 0 (-3))))
+query MSInt atperiods PeriodBoth
+
+
+#######################################
+# MSReal                              #
+#######################################
+
+#testcase query the MSReal
+#yields success
+query MSReal
+
+# TODO testcase MSReal atperiods with undefined perdiod
+# ields error
+# query MSReal atperiods [const periods value undefined]
+
+#testcase MSReal atperiods with periods defined in MSReal
+#yields success
+query MSReal atperiods PeriodInside
+
+#testcase MSReal atperiods with periods not defined MSReal
+#yields (msreal ((2.0 2.0 1.0 2.0) (1 1 1)))
+query MSReal atperiods PeriodOutside
+
+# TODO does not work
+#testcase MSReal atperiods with periods inside and outside of MSReal
+#yields (msreal ((2.0 2.0 1.0 2.0) (1 1 1) (1 0 0 (-3.2)) (0 1 0 (-2.0)) (1 1 0 (12.0))))
+query MSReal atperiods PeriodBoth
+
+
+#######################################
+# MSBool                              #
+#######################################
+
+#testcase query the MSBool
+#yields (msbool ((2.0 2.0 1.0 2.0) (1 1 1) (-5 -5 -5 (TRUE)) (-4 -5 -5 (TRUE)) (-5 -4 -5 (FALSE)) (-4 -4 -5 (FALSE)) (1 0 0 (TRUE)) (0 1 0 (TRUE))))
+query MSBool
+
+#testcase MSBool atperiods with periods defined in MSBool
+#yields (msbool ((2.0 2.0 1.0 2.0) (1 1 1) (1 0 0 (TRUE)) (0 1 0 (TRUE))))
+query MSBool atperiods PeriodInside
+
+#testcase MSBool atperiods with periods not defined MSBool
+#yields (msbool ((2.0 2.0 1.0 2.0) (1 1 1)))
+query MSBool atperiods PeriodOutside
+
+# TODO does not work
+#testcase MSBool atperiods with periods inside and outside of MSBool
+#yields (msbool ((2.0 2.0 1.0 2.0) (1 1 1) (1 0 0 (TRUE)) (0 1 0 (TRUE))))
+query MSBool atperiods PeriodBoth
+
+
+#######################################
+# MSString                             #
+#######################################
+
+#testcase query the MSString
+#yields success
+query MSString
+
+#testcase MSString atperiods with periods defined in MSString
+#yields success
+query MSString atperiods PeriodInside
+
+#testcase MSString atperiods with periods not defined MSString
+#yields (msstring ((2.0 2.0 1.0 2.0) (1 1 1)))
+query MSString atperiods PeriodOutside
+
+#testcase MSString atperiods with periods inside and outside of MSString
+#yields (msstring ((2.0 2.0 1.0 2.0) (1 1 1) (0 0 0 ("Eins")) (1 0 0 ("Zwei")) (0 1 0 ("Eins")) (1 1 0 ("Drei"))))
+query MSString atperiods PeriodBoth
+
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

@@ -1,0 +1,150 @@
+#
+# Tests for the MSReal type of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Valid MSReal Objects                 #
+########################################
+
+#testcase Parse MSReal
+#yields (msreal ((0.0 0.0 1.0 1.0) (1 1 1) (-2 -2 0 (33.3)) (-1 -2 0 (15.5)) (-1 -1 0 (33.3)) (0 0 1 (15.5)) (0 1 1 (33.3)) (1 1 1 (15.5))))
+query [const msreal value ((0.0 0.0 1.0 1.0) (2 2 1) (-2 -2 0 (33.3 15.5 undefined 33.3)) (0 0 1 (15.5 undefined 33.3 15.5)))];
+
+#testcase Parse MSReal without Entries
+#yields (msreal ((0.0 0.0 1.0 1.0) (1 1 1)))
+query [const msreal value ((0.0 0.0 1.0 1.0) (1 1 1))];
+
+#testcase Parse MSReal without Tile Size
+#yields (msreal ((0.0 0.0 1.0 1.0) (1 1 1)))
+query [const msreal value ((0.0 0.0 1.0 1.0))];
+
+#testcase Parse MSReal with int values
+#yields (msreal ((0.0 0.0 1.0 1.0) (1 1 1) (-2 -2 0 (1.0)) (-1 -2 0 (2.0)) (-2 -1 0 (3.0)) (-1 -1 0 (4.0))))
+query [const msreal value ((0.0 0.0 1.0 1.0) (2 2 1) (-2 -2 0 (1 2 3 4)))];
+
+
+########################################
+# Invalid List Type                    #
+########################################
+
+#testcase Parse MSReal from Atom
+#yields error
+query [const msreal value "Foo"];
+
+
+########################################
+# Invalid Grid Lists                   #
+########################################
+
+#testcase Parse MSReal with Grid3 List too short
+#yields error
+query [const msreal value ((0.0 0.0 1.0) (1 1 1) (0 0 0 (15.5)))];
+
+#testcase Parse MSReal with Grid3 List too long
+#yields error
+query [const msreal value ((0.0 0.0 1.0 1.0 1.0) (1 1 1) (0 0 0 (15.5)))];
+
+#testcase Parse MSReal with Grid3 List of zero Grid Length
+#yields error
+query [const msreal value ((0.0 0.0 0.0 1.0) (1 1 1) (0 0 0 (15.5)))];
+
+#testcase Parse MSReal with Grid3 List of zero Duration
+#yields error
+query [const msreal value ((0.0 0.0 1.0 0.0) (1 1 1) (0 0 0 (15.5)))];
+
+#testcase Parse MSReal with Grid3 List of negative Grid Length
+#yields error
+query [const msreal value ((0.0 0.0 -1.0 1.0) (1 1 1) (0 0 0 (15.5)))];
+
+#testcase Parse MSReal with Grid3 List of negative Duration
+#yields error
+query [const msreal value ((0.0 0.0 1.0 -1.0) (1 1 1) (0 0 0 (15.5)))];
+
+#testcase Parse MSReal with Type Mismatch in Grid3 X-Origin 
+#yields error
+query [const msreal value ((undefined 0.0 1.0 1.0) (1 1 1) (0 0 0 (15.5)))];
+
+#testcase Parse MSReal with Type Mismatch in Grid3 Y-Origin
+#yields error
+query [const msreal value ((0.0 undefined 1.0 1.0) (1 1 1) (0 0 0 (15.5)))];
+
+#testcase Parse MSReal with Type Mismatch in Grid3 Length
+#yields error
+query [const msreal value ((0.0 0.0 undefined 1.0) (1 1 1) (0 0 0 (15.5)))];
+
+#testcase Parse MSReal with Type Mismatch in Grid3 Duration
+#yields error
+query [const msreal value ((0.0 0.0 1.0 undefined) (1 1 1) (0 0 0 (15.5)))];
+
+
+########################################
+# Invalid Tile Size List               #
+########################################
+
+#testcase Parse MSReal with Tile Size List too short
+#yields error
+query [const msreal value ((0.0 0.0 1.0 1.0) (1 1) (0 0 0 (15.5)))];
+
+#testcase Parse MSReal with Tile Size List too long
+#yields error
+query [const msreal value ((0.0 0.0 1.0 1.0) (1 1 1 1) (0 0 0 (15.5)))];
+
+#testcase Parse MSReal with Type Mismatch in Tile Size List (1)
+#yields error
+query [const msreal value ((0.0 0.0 1.0 1.0) (undefined 1 1) (0 0 0 (15.5)))];
+
+#testcase Parse MSReal with Type Mismatch in Tile Size List (2)
+#yields error
+query [const msreal value ((0.0 0.0 1.0 1.0) (1 undefined 1) (0 0 0 (15.5)))];
+
+#testcase Parse MSReal with Type Mismatch in Tile Size List (3)
+#yields error
+query [const msreal value ((0.0 0.0 1.0 1.0) (1 1 undefined) (0 0 0 (15.5)))];
+
+
+########################################
+# Invalid Tile Specification           #
+########################################
+
+#testcase Parse MSReal with Tile Specification too large
+#yields error
+query [const msreal value ((0.0 0.0 1.0 1.0) (2 1 1) (0 0 0 (15.5)))];
+
+#testcase Parse MSReal with Tile Specification too small
+#yields error
+query [const msreal value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (15.5 15.5)))];
+
+#testcase Parse MSReal with Type Mismatch in Column Number of Tile Specification   
+#yields error
+query [const msreal value ((0.0 0.0 1.0 1.0) (1 1 1) (undefined 0 0 (15.5)))];
+
+#testcase Parse MSReal with Type Mismatch in Row Number of Tile Specification   
+#yields error
+query [const msreal value ((0.0 0.0 1.0 1.0) (1 1 1) (0 undefined 0 (15.5)))];
+
+#testcase Parse MSReal with Type Mismatch in Instant of Tile Specification   
+#yields error
+query [const msreal value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 undefined (15.5)))];
+
+#testcase Parse MSReal with Type Mismatch in Tile Value   
+#yields error
+query [const msreal value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 ("15.5")))];
+
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

@@ -1,0 +1,41 @@
+#
+# Tests for the inst operator of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+let ISInt = ([const isint value ((instant "2012-12-21")((0.0 0.0 1.0) (2 2) (-31 -31 (1 2 3 4))))]);
+let ISReal = ([const isreal value ((instant "2012-12-22")((0.0 0.0 1.0) (2 2) (-31 -31 (1.5 2.5 3.5 4.5))))]);
+let ISBool = ([const isbool value ((instant "2012-12-23")((0.0 0.0 1.0) (2 2) (-31 -31 (FALSE TRUE TRUE FALSE))))]);
+let ISString = ([const isstring value ((instant "2012-12-24")((0.0 0.0 1.0) (2 2) (-31 -31 ("Eins" "Zwei" "Eins" "Drei"))))]);
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#testcase query val for type isint
+#yields (sint ((0.0 0.0 1.0) (1 1) (-31 -31 (1)) (-30 -31 (2)) (-31 -30 (3)) (-30 -30 (4))))
+query val(ISInt);
+
+#testcase query val for type isreal
+#yields (sreal ((0.0 0.0 1.0) (1 1) (-31 -31 (1.5)) (-30 -31 (2.5)) (-31 -30 (3.5)) (-30 -30 (4.5))))
+query val(ISReal);
+
+#testcase query val for type isbool
+#yields (sbool ((0.0 0.0 1.0) (1 1) (-31 -31 (FALSE)) (-30 -31 (TRUE)) (-31 -30 (TRUE)) (-30 -30 (FALSE))))
+query val(ISBool);
+
+#testcase query val for type isstring
+#yields (sstring ((0.0 0.0 1.0) (1 1) (-31 -31 ("Eins")) (-30 -31 ("Zwei")) (-31 -30 ("Eins")) (-30 -30 ("Drei"))))
+query val(ISString);
+
+################################################################################
+# Clean up #####################################################################
+################################################################################

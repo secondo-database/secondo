@@ -1,0 +1,146 @@
+#
+# Tests for the MSString type of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Valid MSString Objects               #
+########################################
+
+#testcase Parse MSString
+#yields (msstring ((0.0 0.0 1.0 1.0) (1 1 1) (-2 -2 0 ("TRUE")) (-1 -2 0 ("FALSE")) (-1 -1 0 ("TRUE")) (0 0 1 ("FALSE")) (0 1 1 ("TRUE")) (1 1 1 ("FALSE"))))
+query [const msstring value ((0.0 0.0 1.0 1.0) (2 2 1) (-2 -2 0 ("TRUE" "FALSE" undefined "TRUE")) (0 0 1 ("FALSE" undefined "TRUE" "FALSE")))];
+
+#testcase Parse MSString without Entries
+#yields (msstring ((0.0 0.0 1.0 1.0) (1 1 1)))
+query [const msstring value ((0.0 0.0 1.0 1.0) (1 1 1))];
+
+#testcase Parse MSString without Tile Size
+#yields (msstring ((0.0 0.0 1.0 1.0) (1 1 1)))
+query [const msstring value ((0.0 0.0 1.0 1.0))];
+
+
+########################################
+# Invalid List Type                    #
+########################################
+
+#testcase Parse MSString from Atom
+#yields error
+query [const msstring value "Foo"];
+
+
+########################################
+# Invalid Grid Lists                   #
+########################################
+
+#testcase Parse MSString with Grid3 List too short
+#yields error
+query [const msstring value ((0.0 0.0 1.0) (1 1 1) (0 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Grid3 List too long
+#yields error
+query [const msstring value ((0.0 0.0 1.0 1.0 1.0) (1 1 1) (0 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Grid3 List of zero Grid Length
+#yields error
+query [const msstring value ((0.0 0.0 0.0 1.0) (1 1 1) (0 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Grid3 List of zero Duration
+#yields error
+query [const msstring value ((0.0 0.0 1.0 0.0) (1 1 1) (0 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Grid3 List of negative Grid Length
+#yields error
+query [const msstring value ((0.0 0.0 -1.0 1.0) (1 1 1) (0 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Grid3 List of negative Duration
+#yields error
+query [const msstring value ((0.0 0.0 1.0 -1.0) (1 1 1) (0 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Type Mismatch in Grid3 X-Origin 
+#yields error
+query [const msstring value ((undefined 0.0 1.0 1.0) (1 1 1) (0 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Type Mismatch in Grid3 Y-Origin
+#yields error
+query [const msstring value ((0.0 undefined 1.0 1.0) (1 1 1) (0 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Type Mismatch in Grid3 Length
+#yields error
+query [const msstring value ((0.0 0.0 undefined 1.0) (1 1 1) (0 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Type Mismatch in Grid3 Duration
+#yields error
+query [const msstring value ((0.0 0.0 1.0 undefined) (1 1 1) (0 0 0 ("FALSE")))];
+
+
+########################################
+# Invalid Tile Size List               #
+########################################
+
+#testcase Parse MSString with Tile Size List too short
+#yields error
+query [const msstring value ((0.0 0.0 1.0 1.0) (1 1) (0 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Tile Size List too long
+#yields error
+query [const msstring value ((0.0 0.0 1.0 1.0) (1 1 1 1) (0 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Type Mismatch in Tile Size List (1)
+#yields error
+query [const msstring value ((0.0 0.0 1.0 1.0) (undefined 1 1) (0 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Type Mismatch in Tile Size List (2)
+#yields error
+query [const msstring value ((0.0 0.0 1.0 1.0) (1 undefined 1) (0 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Type Mismatch in Tile Size List (3)
+#yields error
+query [const msstring value ((0.0 0.0 1.0 1.0) (1 1 undefined) (0 0 0 ("FALSE")))];
+
+
+########################################
+# Invalid Tile Specification           #
+########################################
+
+#testcase Parse MSString with Tile Specification too large
+#yields error
+query [const msstring value ((0.0 0.0 1.0 1.0) (2 1 1) (0 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Tile Specification too small
+#yields error
+query [const msstring value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 ("FALSE" "FALSE")))];
+
+#testcase Parse MSString with Type Mismatch in Column Number of Tile Specification   
+#yields error
+query [const msstring value ((0.0 0.0 1.0 1.0) (1 1 1) (undefined 0 0 ("FALSE")))];
+
+#testcase Parse MSString with Type Mismatch in Row Number of Tile Specification   
+#yields error
+query [const msstring value ((0.0 0.0 1.0 1.0) (1 1 1) (0 undefined 0 ("FALSE")))];
+
+#testcase Parse MSString with Type Mismatch in Instant of Tile Specification   
+#yields error
+query [const msstring value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 undefined ("FALSE")))];
+
+#testcase Parse MSString with Type Mismatch in Tile Value   
+#yields error
+query [const msstring value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (FALSE)))];
+
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

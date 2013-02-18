@@ -1,0 +1,224 @@
+#
+# Tests whether STypes, MSTypes and ISTypes can be cloned
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+let SInt1 = [const sint value ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))];
+let SReal1 = [const sreal value ((0.0 0.0 1.0) (2 2) (1 1 (1.2 5.3 3.12 4.23)) (4 4 (undefined -1.2 -2.0 1.0)))];
+let SBool1 = [const sbool value ((2.0 2.0 1.0) (2 2) (1 1 (TRUE TRUE FALSE FALSE)) (4 4 (undefined TRUE TRUE undefined)))];
+let SString1 = [const sstring value ((0.0 0.0 1.0) (2 2) (-31 -31 ("Eins" "Zwei" "Eins" "Drei")))];
+
+let MSInt1 = [const msint value ((2.0 2.0 1.0 2.0) (2 2 1) (-5 -5 -5 (1 2 -5 4)) (0 0 0 (undefined -1 -2 -3)))];
+let MSReal1 = [const msreal value ((0.0 0.0 1.0 30.12000) (2 1 2) (1 1 1 (1.2 5.3 3.12 4.23)) (4 4 4 (undefined -3.2 -2.0 12.0)))];
+let MSBool1 = [const msbool value ((0.0 0.0 1.0 5.0) (1 2 2) (1 1 1 (TRUE TRUE FALSE FALSE)) (4 4 4 (undefined TRUE TRUE undefined)))];
+let MSString1 = [const msstring value ((0.0 0.0 1.0 2.0) (2 1 2) (1 1 1 ("Eins" "Zwei" "Eins" "Drei")))];
+
+let ISInt1 = ([const isint value ((instant "2012-12-21")((0.0 0.0 1.0) (2 2) (-31 -31 (1 2 3 4))))]);
+let ISReal1 = ([const isreal value ((instant "2012-12-22")((0.0 0.0 1.0) (2 2) (-31 -31 (1.5 2.5 3.5 4.5))))]);
+let ISBool1 = ([const isbool value ((instant "2012-12-23")((0.0 0.0 1.0) (2 2) (-31 -31 (FALSE TRUE TRUE FALSE))))]);
+let ISString1 = ([const isstring value ((instant "2012-12-24")((0.0 0.0 1.0) (2 2) (-31 -31 ("Eins" "Zwei" "Eins" "Drei"))))]);
+
+let SInt2 = SInt1;
+let SReal2 = SReal1;
+let SBool2 = SBool1;
+let SString2 = SString1;
+
+let MSInt2 = MSInt1;
+let MSReal2 = MSReal1;
+let MSBool2 = MSBool1;
+let MSString2 = MSString1;
+
+let ISInt2 = ISInt1;
+let ISReal2 = ISReal1;
+let ISBool2 = ISBool1;
+let ISString2 = ISString1;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# SType Objects                        #
+########################################
+
+##
+# SInt
+##
+
+#testcase Copy SInt
+#yields (sint ((0.0 0.0 1.0) (1 1) (-5 -5 (1)) (-4 -5 (2)) (-5 -4 (3)) (-4 -4 (4)) (1 0 (-1)) (0 1 (-2)) (1 1 (-3))))
+query SInt2
+
+#testcase Query Minimum of SInt Copy
+#yields (int -3)
+query minimum(SInt2)
+
+#testcase Query Maximum of SInt Copy
+#yields (int 4)
+query maximum(SInt2)
+
+##
+# SReal
+##
+
+#testcase Copy SReal
+#yields (sreal ((0.0 0.0 1.0) (1 1) (1 1 (1.2)) (2 1 (5.3)) (1 2 (3.12)) (2 2 (4.23)) (5 4 (-1.2)) (4 5 (-2.0)) (5 5 (1.0))))
+query SReal2
+
+#testcase Query Minimum of SReal Copy
+#yields (real -2.0)
+query minimum(SReal2)
+
+#testcase Query Maximum of SReal Copy
+#yields (real 5.3)
+query maximum(SReal2)
+
+##
+# SBool
+##
+
+#testcase Copy SBool
+#yields (sbool ((2.0 2.0 1.0) (1 1) (1 1 (TRUE)) (2 1 (TRUE)) (1 2 (FALSE)) (2 2 (FALSE)) (5 4 (TRUE)) (4 5 (TRUE))))
+query SBool2
+
+#testcase Query Minimum of SBool Copy
+#yields (bool FALSE)
+query minimum(SBool2)
+
+#testcase Query Maximum of SBool Copy
+#yields (bool TRUE)
+query maximum(SBool2)
+
+##
+# SBool
+##
+
+#testcase Copy SString
+#yields (sstring ((0.0 0.0 1.0) (1 1) (-31 -31 ("Eins")) (-30 -31 ("Zwei")) (-31 -30 ("Eins")) (-30 -30 ("Drei"))))
+query SString2
+
+#testcase Query Minimum of SString Copy
+#yields (string "Drei")
+query minimum(SString2)
+
+#testcase Query Maximum of SString Copy
+#yields (string "Zwei")
+query maximum(SString2)
+
+
+########################################
+# MSType Objects                       #
+########################################
+
+##
+# MSInt
+##
+
+#testcase Copy MSInt
+#yields (msint ((2.0 2.0 1.0 2.0) (1 1 1) (-5 -5 -5 (1)) (-4 -5 -5 (2)) (-5 -4 -5 (-5)) (-4 -4 -5 (4)) (1 0 0 (-1)) (0 1 0 (-2)) (1 1 0 (-3))))
+query MSInt2
+
+#testcase Query Minimum of MSInt Copy
+#yields (int -5)
+query minimum(MSInt2)
+
+#testcase Query Maximum of MSInt Copy
+#yields (int 4)
+query maximum(MSInt2)
+
+##
+# MSReal
+##
+
+#testcase Copy MSReal
+#yields (msreal ((0.0 0.0 1.0 30.12) (1 1 1) (1 1 1 (1.2)) (2 1 1 (5.3)) (1 1 2 (3.12)) (2 1 2 (4.23)) (5 4 4 (-3.2)) (4 4 5 (-2.0)) (5 4 5 (12.0))))
+query MSReal2
+
+#testcase Query Minimum of MSReal Copy
+#yields (real -3.2)
+query minimum(MSReal2)
+
+#testcase Query Maximum of MSReal Copy
+#yields (real 12.0)
+query maximum(MSReal2)
+
+##
+# MSBool
+##
+
+#testcase Copy MSBool
+#yields (msbool ((0.0 0.0 1.0 5.0) (1 1 1) (1 1 1 (TRUE)) (1 2 1 (TRUE)) (1 1 2 (FALSE)) (1 2 2 (FALSE)) (4 5 4 (TRUE)) (4 4 5 (TRUE))))
+query MSBool2
+
+#testcase Query Minimum of MSBool Copy
+#yields (bool FALSE)
+query minimum(MSBool2)
+
+#testcase Query Maximum of MSBool Copy
+#yields (bool TRUE)
+query maximum(MSBool2)
+
+##
+# MSString
+##
+
+#testcase Copy MSString
+#yields (msstring ((0.0 0.0 1.0 2.0) (1 1 1) (1 1 1 ("Eins")) (2 1 1 ("Zwei")) (1 1 2 ("Eins")) (2 1 2 ("Drei"))))
+query MSString2
+
+#testcase Query Minimum of MSString Copy
+#yields (string "Drei")
+query minimum(MSString2)
+
+#testcase Query Maximum of MSString Copy
+#yields (string "Zwei")
+query maximum(MSString2)
+
+
+########################################
+# ISType Objects                       #
+########################################
+
+##
+# ISInt
+##
+
+#testcase Copy ISInt
+#yields (isint ((instant "2012-12-21") ((0.0 0.0 1.0) (1 1) (-31 -31 (1)) (-30 -31 (2)) (-31 -30 (3)) (-30 -30 (4)))))
+query ISInt2
+
+##
+# ISReal
+##
+
+#testcase Copy ISReal
+#yields (isreal ((instant "2012-12-22") ((0.0 0.0 1.0) (1 1) (-31 -31 (1.5)) (-30 -31 (2.5)) (-31 -30 (3.5)) (-30 -30 (4.5)))))
+query ISReal2
+
+##
+# ISBool
+##
+
+#testcase Copy ISBool
+#yields (isbool ((instant "2012-12-23") ((0.0 0.0 1.0) (1 1) (-31 -31 (FALSE)) (-30 -31 (TRUE)) (-31 -30 (TRUE)) (-30 -30 (FALSE)))))
+query ISBool2
+
+##
+# ISString
+##
+
+#testcase Copy ISString
+#yields (isstring ((instant "2012-12-24") ((0.0 0.0 1.0) (1 1) (-31 -31 ("Eins")) (-30 -31 ("Zwei")) (-31 -30 ("Eins")) (-30 -30 ("Drei")))))
+query ISString2
+
+################################################################################
+# Clean up #####################################################################
+################################################################################

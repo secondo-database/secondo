@@ -1,0 +1,210 @@
+#
+# Tests whether STypes, MSTypes and ISTypes can be cloned
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+let SInt1 = [const sint value ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))];
+let SReal1 = [const sreal value ((0.0 0.0 1.0) (2 2) (1 1 (1.2 5.3 3.12 4.23)) (4 4 (undefined -1.2 -2.0 1.0)))];
+let SBool1 = [const sbool value ((2.0 2.0 1.0) (2 2) (1 1 (TRUE TRUE FALSE FALSE)) (4 4 (undefined TRUE TRUE undefined)))];
+let SString1 = [const sstring value ((0.0 0.0 1.0) (2 2) (-31 -31 ("Eins" "Zwei" "Eins" "Drei")))];
+
+let MSInt1 = [const msint value ((2.0 2.0 1.0 2.0) (2 2 1) (-5 -5 -5 (1 2 -5 4)) (0 0 0 (undefined -1 -2 -3)))];
+let MSReal1 = [const msreal value ((0.0 0.0 1.0 30.12000) (2 1 2) (1 1 1 (1.2 5.3 3.12 4.23)) (4 4 4 (undefined -3.2 -2.0 12.0)))];
+let MSBool1 = [const msbool value ((0.0 0.0 1.0 5.0) (1 2 2) (1 1 1 (TRUE TRUE FALSE FALSE)) (4 4 4 (undefined TRUE TRUE undefined)))];
+let MSString1 = [const msstring value ((0.0 0.0 1.0 2.0) (2 1 2) (1 1 1 ("Eins" "Zwei" "Eins" "Drei")))];
+
+let ISInt1 = ([const isint value ((instant "2012-12-21")((0.0 0.0 1.0) (2 2) (-31 -31 (1 2 3 4))))]);
+let ISReal1 = ([const isreal value ((instant "2012-12-22")((0.0 0.0 1.0) (2 2) (-31 -31 (1.5 2.5 3.5 4.5))))]);
+let ISBool1 = ([const isbool value ((instant "2012-12-23")((0.0 0.0 1.0) (2 2) (-31 -31 (FALSE TRUE TRUE FALSE))))]);
+let ISString1 = ([const isstring value ((instant "2012-12-24")((0.0 0.0 1.0) (2 2) (-31 -31 ("Eins" "Zwei" "Eins" "Drei"))))]);
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# SType Objects                        #
+########################################
+
+##
+# SInt
+##
+
+#testcase Load SInt
+#yields (sint ((0.0 0.0 1.0) (1 1) (-5 -5 (1)) (-4 -5 (2)) (-5 -4 (3)) (-4 -4 (4)) (1 0 (-1)) (0 1 (-2)) (1 1 (-3))))
+query SInt1
+
+#testcase Query Minimum of SInt
+#yields (int -3)
+query minimum(SInt1)
+
+#testcase Query Maximum of SInt
+#yields (int 4)
+query maximum(SInt1)
+
+##
+# SReal
+##
+
+#testcase Load SReal
+#yields (sreal ((0.0 0.0 1.0) (1 1) (1 1 (1.2)) (2 1 (5.3)) (1 2 (3.12)) (2 2 (4.23)) (5 4 (-1.2)) (4 5 (-2.0)) (5 5 (1.0))))
+query SReal1
+
+#testcase Query Minimum of SReal
+#yields (real -2.0)
+query minimum(SReal1)
+
+#testcase Query Maximum of SReal
+#yields (real 5.3)
+query maximum(SReal1)
+
+##
+# SBool
+##
+
+#testcase Load SBool
+#yields (sbool ((2.0 2.0 1.0) (1 1) (1 1 (TRUE)) (2 1 (TRUE)) (1 2 (FALSE)) (2 2 (FALSE)) (5 4 (TRUE)) (4 5 (TRUE))))
+query SBool1
+
+#testcase Query Minimum of SBool
+#yields (bool FALSE)
+query minimum(SBool1)
+
+#testcase Query Maximum of SBool
+#yields (bool TRUE)
+query maximum(SBool1)
+
+##
+# SBool
+##
+
+#testcase Load SString
+#yields (sstring ((0.0 0.0 1.0) (1 1) (-31 -31 ("Eins")) (-30 -31 ("Zwei")) (-31 -30 ("Eins")) (-30 -30 ("Drei"))))
+query SString1
+
+#testcase Query Minimum of SString
+#yields (string "Drei")
+query minimum(SString1)
+
+#testcase Query Maximum of SString
+#yields (string "Zwei")
+query maximum(SString1)
+
+
+########################################
+# MSType Objects                       #
+########################################
+
+##
+# MSInt
+##
+
+#testcase Load MSInt
+#yields (msint ((2.0 2.0 1.0 2.0) (1 1 1) (-5 -5 -5 (1)) (-4 -5 -5 (2)) (-5 -4 -5 (-5)) (-4 -4 -5 (4)) (1 0 0 (-1)) (0 1 0 (-2)) (1 1 0 (-3))))
+query MSInt1
+
+#testcase Query Minimum of MSInt
+#yields (int -5)
+query minimum(MSInt1)
+
+#testcase Query Maximum of MSInt
+#yields (int 4)
+query maximum(MSInt1)
+
+##
+# MSReal
+##
+
+#testcase Load MSReal
+#yields (msreal ((0.0 0.0 1.0 30.12) (1 1 1) (1 1 1 (1.2)) (2 1 1 (5.3)) (1 1 2 (3.12)) (2 1 2 (4.23)) (5 4 4 (-3.2)) (4 4 5 (-2.0)) (5 4 5 (12.0))))
+query MSReal1
+
+#testcase Query Minimum of MSReal
+#yields (real -3.2)
+query minimum(MSReal1)
+
+#testcase Query Maximum of MSReal
+#yields (real 12.0)
+query maximum(MSReal1)
+
+##
+# MSBool
+##
+
+#testcase Load MSBool
+#yields (msbool ((0.0 0.0 1.0 5.0) (1 1 1) (1 1 1 (TRUE)) (1 2 1 (TRUE)) (1 1 2 (FALSE)) (1 2 2 (FALSE)) (4 5 4 (TRUE)) (4 4 5 (TRUE))))
+query MSBool1
+
+#testcase Query Minimum of MSBool
+#yields (bool FALSE)
+query minimum(MSBool1)
+
+#testcase Query Maximum of MSBool
+#yields (bool TRUE)
+query maximum(MSBool1)
+
+##
+# MSString
+##
+
+#testcase Load MSString
+#yields (msstring ((0.0 0.0 1.0 2.0) (1 1 1) (1 1 1 ("Eins")) (2 1 1 ("Zwei")) (1 1 2 ("Eins")) (2 1 2 ("Drei"))))
+query MSString1
+
+#testcase Query Minimum of MSString
+#yields (string "Drei")
+query minimum(MSString1)
+
+#testcase Query Maximum of MSString
+#yields (string "Zwei")
+query maximum(MSString1)
+
+
+########################################
+# ISType Objects                       #
+########################################
+
+##
+# ISInt
+##
+
+#testcase Load ISInt
+#yields (isint ((instant "2012-12-21") ((0.0 0.0 1.0) (1 1) (-31 -31 (1)) (-30 -31 (2)) (-31 -30 (3)) (-30 -30 (4)))))
+query ISInt1
+
+##
+# ISReal
+##
+
+#testcase Load ISReal
+#yields (isreal ((instant "2012-12-22") ((0.0 0.0 1.0) (1 1) (-31 -31 (1.5)) (-30 -31 (2.5)) (-31 -30 (3.5)) (-30 -30 (4.5)))))
+query ISReal1
+
+##
+# ISBool
+##
+
+#testcase Load ISBool
+#yields (isbool ((instant "2012-12-23") ((0.0 0.0 1.0) (1 1) (-31 -31 (FALSE)) (-30 -31 (TRUE)) (-31 -30 (TRUE)) (-30 -30 (FALSE)))))
+query ISBool1
+
+##
+# ISString
+##
+
+#testcase Load ISString
+#yields (isstring ((instant "2012-12-24") ((0.0 0.0 1.0) (1 1) (-31 -31 ("Eins")) (-30 -31 ("Zwei")) (-31 -30 ("Eins")) (-30 -30 ("Drei")))))
+query ISString1
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

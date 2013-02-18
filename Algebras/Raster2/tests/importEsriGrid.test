@@ -1,0 +1,142 @@
+#
+# Tests for the importEsriRaster operator of the Raster2 Algebra
+#
+
+# Run the test manually with: 
+#
+# TestRunner -i importEsriGrid
+#
+# By default a temporary database directory will be created. 
+# If you want to use existing databases run:
+#
+# fapra@linux-3vdv:~/secondo/bin> TestRunner --no-tmp -i ../Algebras/Raster2/Import/test/importEsriGrid.test
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+delete database raster2testdb;
+create database raster2testdb;
+open database raster2testdb;
+
+# initial import
+let importEsriGridData = importEsriGrid("../Data/Raster2/esrigrid/tmin_1")
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################
+# success tests
+########################
+
+# testcase atlocation test 1
+#yields (int 138)
+query importEsriGridData atlocation [const point value (13 11)];
+
+# testcase atlocation test 2
+#yields (int 157)
+query importEsriGridData atlocation [const point value (12 10)];
+
+# testcase atlocation test 3
+#yields (int 212)
+query importEsriGridData atlocation [const point value (133 -23)];
+
+# testcase atlocation test 4
+#yields (int -123)
+query importEsriGridData atlocation [const point value (-102 44)];
+
+# testcase atlocation test 5
+#yields (int -407)
+query importEsriGridData atlocation [const point value (155 64)];
+
+# testcase test with minimum value
+#yields (int -547)
+query minimum(importEsriGridData);
+
+# testcase test with maximum value
+#yields (int 266)
+query maximum(importEsriGridData);
+
+# testcase test with bbox, original from file: ((-180, -60) -> (180, 90))
+#yields (rect (-180.0 180.0000187754631 -59.33333329856396 83.83334083482623))
+query bbox(importEsriGridData)
+
+# testcase with correct input parameter with single quotes instead of double quotes
+#yields success
+let importVar1 = importEsriGrid('../Data/Raster2/esrigrid/tmin_1')
+
+# testcase with correct input parameter and Slash at the end of the input path
+#yields success
+let importVar2 = importEsriGrid("../Data/Raster2/esrigrid/tmin_1/")
+
+########################
+# failure tests
+########################
+
+# testcase with wrong path
+#yields error 
+query importEsriGrid("/path/to/nowhere")
+
+# testcase with correct input parameter but with direct reference to data file w001001.adf
+#yields error 
+query importEsriGrid("../Data/Raster2/esrigrid/tmin_1/w001001.adf")
+
+# testcase with correct input parameter but without double quotes
+#yields error 
+query importEsriGrid(../Data/Raster2/esrigrid/tmin_1)
+
+# testcase wrong directory parameter with correct path but only one double quote
+#yields error 
+query importEsriGrid("../Data/Raster2/esrigrid/tmin_1)
+
+# testcase with empty string as directory parameter
+#yields error 
+query importEsriGrid("")
+
+# testcase with empty string as directory parameter
+#yields error 
+query importEsriGrid('')
+
+# testcase with missing directory parameter
+#yields error 
+query importEsriGrid()
+
+# testcase wrong directory parameter
+#yields error 
+query importEsriGrid(asdfdsafdsafasfd)
+
+# testcase wrong directory parameter
+#yields error 
+query importEsriGrid("asdfdsafdsafasfd")
+
+# testcase wrong directory parameter with special characters
+#yields error 
+query importEsriGrid("#~*?´`§³[]\/{}=&+-_';:,.°^ß²)
+
+# testcase import operator with correct directory parameter but with leading output stream
+#yields error 
+query intstream (1,10) importEsriGrid("../Data/Raster2/esrigrid/tmin_1")
+
+# testcase import operator with correct directory parameter but with senseless string value after it 
+#yields error 
+query importEsriGrid("../Data/Raster2/esrigrid/tmin_1") afdasdfdsaf
+
+# testcase import operator with correct directory parameter but with not allowed operation after it 
+#yields error 
+query importEsriGrid("../Data/Raster2/esrigrid/tmin_1") count
+
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+
+#teardown
+
+delete importVar1;
+delete importVar2;
+
+close database;
+delete database raster2testdb;

@@ -1,0 +1,129 @@
+#
+# Tests for the SInt type of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Valid SInt Objects                   #
+########################################
+
+#testcase Parse SInt
+#yields (sint ((0.0 0.0 1.0) (1 1) (-2 -2 (1)) (-1 -2 (2)) (-2 -1 (3)) (-1 -1 (4)) (1 0 (-1)) (0 1 (-2)) (1 1 (-3))))
+query [const sint value ((0.0 0.0 1.0) (2 2) (-2 -2 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))];
+
+#testcase Parse SInt without Entries
+#yields (sint ((0.0 0.0 1.0) (1 1)))
+query [const sint value ((0.0 0.0 1.0) (1 1))];
+
+#testcase Parse Sint without Tile Size
+#yields (sint ((0.0 0.0 1.0) (1 1)))
+query [const sint value ((0.0 0.0 1.0))];
+
+
+########################################
+# Invalid List Type                    #
+########################################
+
+#testcase Parse SSint from Atom
+#yields error
+query [const ssint value "Foo"];
+
+
+########################################
+# Invalid Grid Lists                   #
+########################################
+
+#testcase Parse SInt with Grid2 List too short
+#yields error
+query [const sint value ((0.0 1.0) (2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse SInt with Grid2 List too long
+#yields error
+query [const sint value ((0.0 0.0 1.0 1.0) (2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse SInt with Grid2 List of zero Grid Length
+#yields error
+query [const sint value ((0.0 0.0 0.0) (2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse SInt with Grid2 List of negative Grid Length
+#yields error
+query [const sint value ((0.0 0.0 -1.0) (2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse SInt with Type Mismatch in Grid2 X-Origin 
+#yields error
+query [const sint value ((undefined 0.0 1.0) (2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse SInt with Type Mismatch in Grid2 Y-Origin
+#yields error
+query [const sint value ((0.0 undefined 1.0) (2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse SInt with Type Mismatch in Grid2 Length
+#yields error
+query [const sint value ((0.0 0.0 undefined) (2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse SInt with Type Mismatch in Tile Size Row Count
+#yields error
+query [const sint value ((0.0 0.0 1.0) (undefined 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse SInt with Type Mismatch in Tile Size Column Count
+#yields error
+query [const sint value ((0.0 0.0 1.0) (2 undefined) (0 0 (0 0 0 0)))];
+
+
+########################################
+# Invalid Tile Size List               #
+########################################
+
+#testcase Parse SInt with Tile Size List too short
+#yields error
+query [const sint value ((0.0 0.0 1.0) (2) (0 0 (0 0 0 0)))];
+
+#testcase Parse SInt with Tile Size List too long
+#yields error
+query [const sint value ((0.0 0.0 1.0) (2 2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse SInt with Type Mismatch in Tile Size List (1)
+#yields error
+query [const sint value ((0.0 0.0 1.0) (undefined 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse SInt with Type Mismatch in Tile Size List (1)
+#yields error
+query [const sint value ((0.0 0.0 1.0) (2 undefined) (0 0 (0 0 0 0)))];
+
+
+########################################
+# Invalid Tile Specification           #
+########################################
+
+#testcase Parse SInt with Tile Specification too large
+#yields error
+query [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (0 0 0 0)))];
+
+#testcase Parse SInt with Tile Specification too small
+#yields error
+query [const sint value ((0.0 0.0 1.0) (3 3) (0 0 (0 0 0 0)))];
+
+#testcase Parse SInt with Type Mismatch in Row Number of Tile Specification   
+#yields error
+query [const sint value ((0.0 0.0 1.0) (2 2) (undefined 0 (0 0 0 0)))];
+
+#testcase Parse SInt with Type Mismatch in Column Number of Tile Specification   
+#yields error
+query [const sint value ((0.0 0.0 1.0) (2 2) (0 undefined (0 0 0 0)))];
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

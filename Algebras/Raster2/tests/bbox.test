@@ -1,0 +1,62 @@
+#
+# Tests for the inst operator of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+
+let SInt = ([const sint value ((1.1 2.2 1.0) (2 2) (-5 -10 (1 2 3 4)) (0 1 (undefined -1 -2 -3)))]);
+let SReal = ([const sreal value ((-12.0 -12.0 1.0) (2 2) (1 1 (1.2 5.3 3.12 4.23)) (4 4 (undefined -1.2 -2.0 1.0)))]);
+let SBool = ([const sbool value ((2.0 2.0 1.0) (2 2) (1 1 (TRUE TRUE FALSE FALSE)) (4 4 (undefined TRUE TRUE undefined)))]);
+let SString = ([const sstring value ((0.0 0.0 1.0) (2 2) (-31 -31 ("Eins" "Zwei" "Eins" "Drei")))]);
+let MSInt = ([const msint value ((2.0 2.0 1.0 2.0) (2 2 1) (-5 -5 -5 (1 2 -5 4)) (0 0 0 (undefined -1 -2 -3)))]);
+let MSReal = ([const msreal value ((0.0 0.0 1.0 30.12000) (2 1 2) (1 1 1 (1.2 5.3 3.12 4.23)) (4 4 4 (undefined -3.2 -2.0 12.0)))]);
+let MSBool = ([const msbool value ((0.0 0.0 1.0 5.0) (1 2 2) (1 1 1 (TRUE TRUE FALSE FALSE)) (4 4 4 (undefined TRUE TRUE undefined)))]);
+let MSString = ([const msstring value ((0.0 0.0 1.0 2.0) (2 1 2) (1 1 1 ("Eins" "Zwei" "Eins" "Drei")))]);
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#testcase query bbox for type sint
+#yields (rect (-3.9 3.1 -7.8 5.2))
+query bbox(SInt);
+
+#testcase query bbox for type sreal
+#yields (rect (-11.0 -6.0 -11.0 -6.0))
+query bbox(SReal);
+
+#testcase query bbox for type sbool
+#yields (rect (3.0 8.0 3.0 8.0))
+query bbox(SBool);
+
+#testcase query bbox for type sstring
+#yields (rect (-31.0 -29.0 -31.0 -29.0))
+query bbox(SString);
+
+#testcase query bbox for msint
+#yields (rect3 (-3.0 4.0 -3.0 4.0 -10.0 2.0))
+query bbox(MSInt);
+
+#testcase query bbox for msreal
+#yields (rect3 (1.0 6.0 1.0 5.0 30.12 180.72))
+query bbox(MSReal);
+
+#testcase query bbox for msbool
+#yields (rect3 (1.0 5.0 1.0 6.0 5.0 30.0))
+query bbox(MSBool);
+
+#testcase query bbox for type msstring
+#yields (rect3 (1.0 3.0 1.0 2.0 2.0 6.0))
+query bbox(MSString);
+
+################################################################################
+# Clean up #####################################################################
+################################################################################

@@ -1,0 +1,57 @@
+#
+# Tests for the ISBool type of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Valid ISBool Objects                 #
+########################################
+
+#testcase Parse ISBool
+#yields (isbool ((instant "2012-12-12") ((0.0 0.0 1.0) (1 1) (-2 -2 (TRUE)) (-1 -2 (FALSE)) (-1 -1 (TRUE)) (0 0 (FALSE)) (0 1 (TRUE)) (1 1 (FALSE)))))
+query [const isbool value ((instant "2012-12-12") ((0.0 0.0 1.0) (2 2) (-2 -2 (TRUE FALSE undefined TRUE)) (0 0 (FALSE undefined TRUE FALSE))))];
+
+########################################
+# Invalid ISBool Objects               #
+########################################
+
+#testcase Parse ISBool with undefined Instant
+#yields error
+query [const isbool value ((instant undefined) ((0.0 0.0 1.0) (2 2) (-2 -2 (TRUE FALSE undefined TRUE)) (0 0 (FALSE undefined TRUE FALSE))))];
+
+#testcase Parse ISBool from Atom
+#yields error
+query [const isbool value "ISBool"];
+
+#testcase Parse ISBool from short list (1)
+#yields error
+query [const isbool value ()];
+
+#testcase Parse ISBool from short list (2)
+#yields error
+query [const isbool value ((instant undefined))];
+
+#testcase Parse ISBool with Type mismatch in instant
+#yields error
+query [const isbool value ("Instant" ((0.0 0.0 1.0) (2 2) (-2 -2 (TRUE FALSE undefined TRUE)) (0 0 (FALSE undefined TRUE FALSE))))];
+
+#testcase Parse ISBool with type mismatch in sbool
+#yields error
+query [const isbool value ((instant undefined) "Foo")];
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

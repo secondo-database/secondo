@@ -1,0 +1,45 @@
+#
+# Tests for the UniqueStringArray type of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Valid UniqueStringArray Objects      #
+########################################
+
+#testcase UniqueStringArray
+#yields (uniquestringarray ("Raster" "Daten"))
+query [const uniquestringarray value ("Raster" "Daten")];
+
+#testcase UniqueStringArray with Duplicates in Input
+#yields (uniquestringarray ("Raster" "Daten"))
+query [const uniquestringarray value ("Raster" "Daten" "Raster")];
+
+#testcase UniqueStringArray with Type Error in element
+#yields (uniquestringarray ("Raster" "Daten"))
+query [const uniquestringarray value (1 "Raster" 2 "Daten")];
+
+#testcase UniqueStringArray with Atom as Expression
+#yields (uniquestringarray ())
+query [const uniquestringarray value "Rasterdaten"];
+
+#testcase UniqueStringArray with undefined Value
+#yields (uniquestringarray ())
+query [const uniquestringarray value undefined];
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

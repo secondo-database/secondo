@@ -1,0 +1,147 @@
+#
+# Tests for the s2ms operator of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+
+let OneFineDay = [const duration value (1 0)];
+let TwelveHoursLater = [const duration value (0 43200000)];
+let SevenSecondsAway = [const duration value (0 7000)];
+
+let TheBigBang = [const instant value "2000-01-03"];
+let TheDayAfter = [const instant value "2000-01-04"];
+let HalveAMinute = [const instant value "2000-01-03 00:00:30.0"];
+
+let SInt = [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (1)))];
+let SReal = [const sreal value ((0.0 0.0 1.0) (1 1) (0 0 (1.0)))];
+let SBool = [const sbool value ((0.0 0.0 1.0) (1 1) (0 0 (TRUE)))];
+let SString = [const sstring value ((0.0 0.0 1.0) (1 1) (0 0 ("Foo")))];
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#######################################
+# SInt                                #
+#######################################
+
+#testcase SInt s2ms over one day with one day duration
+#yields (msint ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1)) (0 0 1 (1))))
+query s2ms(SInt, OneFineDay, TheBigBang, TheDayAfter)
+
+#testcase SInt s2ms over one day with 12 hours duration
+#yields (msint ((0.0 0.0 1.0 0.5) (1 1 1) (0 0 0 (1)) (0 0 1 (1)) (0 0 2 (1))))
+query s2ms(SInt, TwelveHoursLater, TheBigBang, TheDayAfter)
+
+#testcase SInt s2ms over thirty seconds with 7 seconds duration
+#yields (msint ((0.0 0.0 1.0 0.00008101851851851852) (1 1 1) (0 0 0 (1)) (0 0 1 (1)) (0 0 2 (1)) (0 0 3 (1)) (0 0 4 (1))))
+query s2ms(SInt, SevenSecondsAway, TheBigBang, HalveAMinute)
+
+#testcase SInt s2ms with undefined duration
+#yields error
+query s2ms(SInt, [const duration value undefined], TheBigBang, HalveAMinute)
+
+#testcase SInt s2ms with undefined start
+#yields error
+query s2ms(SInt, SevenSecondsAway, [const instant value undefined], TheBigBang)
+
+#testcase SInt s2ms with undefined end
+#yields error
+query s2ms(SInt, SevenSecondsAway, TheBigBang, [const instant value undefined])
+
+#######################################
+# SReal                               #
+#######################################
+
+#testcase SReal s2ms over one day with one day duration
+#yields (msreal ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1.0)) (0 0 1 (1.0))))
+query s2ms(SReal, OneFineDay, TheBigBang, TheDayAfter)
+
+#testcase SReal s2ms over one day with 12 hours duration
+#yields (msreal ((0.0 0.0 1.0 0.5) (1 1 1) (0 0 0 (1.0)) (0 0 1 (1.0)) (0 0 2 (1.0))))
+query s2ms(SReal, TwelveHoursLater, TheBigBang, TheDayAfter)
+
+#testcase SReal s2ms over thirty seconds with 7 seconds duration
+#yields (msreal ((0.0 0.0 1.0 0.00008101851851851852) (1 1 1) (0 0 0 (1.0)) (0 0 1 (1.0)) (0 0 2 (1.0)) (0 0 3 (1.0)) (0 0 4 (1.0))))
+query s2ms(SReal, SevenSecondsAway, TheBigBang, HalveAMinute)
+
+#testcase SReal s2ms with undefined duration
+#yields error
+query s2ms(SReal, [const duration value undefined], TheBigBang, HalveAMinute)
+
+#testcase SReal s2ms with undefined start
+#yields error
+query s2ms(SReal, SevenSecondsAway, [const instant value undefined], TheBigBang)
+
+#testcase SReal s2ms with undefined end
+#yields error
+query s2ms(SReal, SevenSecondsAway, TheBigBang, [const instant value undefined])
+
+#######################################
+# SBool                               #
+#######################################
+
+#testcase SBool s2ms over one day with one day duration
+#yields (msbool ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (TRUE)) (0 0 1 (TRUE))))
+query s2ms(SBool, OneFineDay, TheBigBang, TheDayAfter)
+
+#testcase SBool s2ms over one day with 12 hours duration
+#yields (msbool ((0.0 0.0 1.0 0.5) (1 1 1) (0 0 0 (TRUE)) (0 0 1 (TRUE)) (0 0 2 (TRUE))))
+query s2ms(SBool, TwelveHoursLater, TheBigBang, TheDayAfter)
+
+#testcase SBool s2ms over thirty seconds with 7 seconds duration
+#yields (msbool ((0.0 0.0 1.0 0.00008101851851851852) (1 1 1) (0 0 0 (TRUE)) (0 0 1 (TRUE)) (0 0 2 (TRUE)) (0 0 3 (TRUE)) (0 0 4 (TRUE))))
+query s2ms(SBool, SevenSecondsAway, TheBigBang, HalveAMinute)
+
+#testcase SBool s2ms with undefined duration
+#yields error
+query s2ms(SBool, [const duration value undefined], TheBigBang, HalveAMinute)
+
+#testcase SBool s2ms with undefined start
+#yields error
+query s2ms(SBool, SevenSecondsAway, [const instant value undefined], TheBigBang)
+
+#testcase SBool s2ms with undefined end
+#yields error
+query s2ms(SBool, SevenSecondsAway, TheBigBang, [const instant value undefined])
+
+#######################################
+# SString                             #
+#######################################
+
+#testcase SString s2ms over one day with one day duration
+#yields (msstring ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 ("Foo")) (0 0 1 ("Foo"))))
+query s2ms(SString, OneFineDay, TheBigBang, TheDayAfter)
+
+#testcase SString s2ms over one day with 12 hours duration
+#yields (msstring ((0.0 0.0 1.0 0.5) (1 1 1) (0 0 0 ("Foo")) (0 0 1 ("Foo")) (0 0 2 ("Foo"))))
+query s2ms(SString, TwelveHoursLater, TheBigBang, TheDayAfter)
+
+#testcase SInt s2ms over thirty seconds with 7 seconds duration
+#yields (msstring ((0.0 0.0 1.0 0.00008101851851851852) (1 1 1) (0 0 0 ("Foo")) (0 0 1 ("Foo")) (0 0 2 ("Foo")) (0 0 3 ("Foo")) (0 0 4 ("Foo"))))
+query s2ms(SString, SevenSecondsAway, TheBigBang, HalveAMinute)
+
+#testcase SString s2ms with undefined duration
+#yields error
+query s2ms(SString, [const duration value undefined], TheBigBang, HalveAMinute)
+
+#testcase SString s2ms with undefined start
+#yields error
+query s2ms(SString, SevenSecondsAway, [const instant value undefined], TheBigBang)
+
+#testcase SString s2ms with undefined end
+#yields error
+query s2ms(SString, SevenSecondsAway, TheBigBang, [const instant value undefined])
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

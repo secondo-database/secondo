@@ -1,0 +1,129 @@
+#
+# Tests for the SBool type of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Valid SBool Objects                  #
+########################################
+
+#testcase Parse SBool
+#yields (sbool ((0.0 0.0 1.0) (1 1) (-2 -2 (TRUE)) (-1 -2 (FALSE)) (-1 -1 (TRUE)) (0 0 (FALSE)) (0 1 (TRUE)) (1 1 (FALSE))))
+query [const sbool value ((0.0 0.0 1.0) (2 2) (-2 -2 (TRUE FALSE undefined TRUE)) (0 0 (FALSE undefined TRUE FALSE)))];
+
+#testcase Parse SBool without Entries
+#yields (sbool ((0.0 0.0 1.0) (1 1)))
+query [const sbool value ((0.0 0.0 1.0) (1 1))];
+
+#testcase Parse SBool without Tile Size
+#yields (sbool ((0.0 0.0 1.0) (1 1)))
+query [const sbool value ((0.0 0.0 1.0))];
+
+
+########################################
+# Invalid List Type                    #
+########################################
+
+#testcase Parse SBool from Atom
+#yields error
+query [const sbool value "Foo"];
+
+
+########################################
+# Invalid Grid Lists                   #
+########################################
+
+#testcase Parse SBool with Grid2 List too short
+#yields error
+query [const sbool value ((0.0 1.0) (2 2) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+#testcase Parse SBool with Grid2 List too long
+#yields error
+query [const sbool value ((0.0 0.0 1.0 1.0) (2 2) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+#testcase Parse SBool with Grid2 List of zero Grid Length
+#yields error
+query [const sbool value ((0.0 0.0 0.0) (2 2) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+#testcase Parse SBool with Grid2 List of negative Grid Length
+#yields error
+query [const sbool value ((0.0 0.0 -1.0) (2 2) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+#testcase Parse SBool with Type Mismatch in Grid2 X-Origin 
+#yields error
+query [const sbool value ((undefined 0.0 1.0) (2 2) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+#testcase Parse SBool with Type Mismatch in Grid2 Y-Origin
+#yields error
+query [const sbool value ((0.0 undefined 1.0) (2 2) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+#testcase Parse SBool with Type Mismatch in Grid2 Length
+#yields error
+query [const sbool value ((0.0 0.0 undefined) (2 2) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+#testcase Parse SBool with Type Mismatch in Tile Size Row Count
+#yields error
+query [const sbool value ((0.0 0.0 1.0) (undefined 2) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+#testcase Parse SBool with Type Mismatch in Tile Size Column Count
+#yields error
+query [const sbool value ((0.0 0.0 1.0) (2 undefined) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+
+########################################
+# Invalid Tile Size List               #
+########################################
+
+#testcase Parse SBool with Tile Size List too short
+#yields error
+query [const sbool value ((0.0 0.0 1.0) (2) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+#testcase Parse SBool with Tile Size List too long
+#yields error
+query [const sbool value ((0.0 0.0 1.0) (2 2 2) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+#testcase Parse SBool with Type Mismatch in Tile Size List (1)
+#yields error
+query [const sbool value ((0.0 0.0 1.0) (undefined 2) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+#testcase Parse SBool with Type Mismatch in Tile Size List (1)
+#yields error
+query [const sbool value ((0.0 0.0 1.0) (2 undefined) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+
+########################################
+# Invalid Tile Specification           #
+########################################
+
+#testcase Parse SBool with Tile Specification too large
+#yields error
+query [const sbool value ((0.0 0.0 1.0) (1 1) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+#testcase Parse SBool with Tile Specification too small
+#yields error
+query [const sbool value ((0.0 0.0 1.0) (3 3) (0 0 (FALSE FALSE FALSE FALSE)))];
+
+#testcase Parse SBool with Type Mismatch in Row Number of Tile Specification   
+#yields error
+query [const sbool value ((0.0 0.0 1.0) (2 2) (undefined 0 (FALSE FALSE FALSE FALSE)))];
+
+#testcase Parse SBool with Type Mismatch in Column Number of Tile Specification   
+#yields error
+query [const sbool value ((0.0 0.0 1.0) (2 2) (0 undefined (FALSE FALSE FALSE FALSE)))];
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

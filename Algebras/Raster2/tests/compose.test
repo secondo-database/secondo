@@ -1,0 +1,144 @@
+#
+# Tests for the compose operator of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+let SInt = [const sint value ((0.0 0.0 1.0) (2 2) (-2 -2 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))];
+let SInt2 = [const sint value ((0.0 0.0 1.0) (2 2) (0 0 (1 2 3 4)))];
+let SReal = [const sreal value ((0.0 0.0 1.0) (2 2) (-2 -2 (1.0 2.0 3.0 4.0)) (0 0 (undefined -1.0 -2.0 -3.0)))];
+let SBool = [const sbool value ((0.0 0.0 1.0) (2 2) (-2 -2 (TRUE FALSE TRUE FALSE)) (0 0 (undefined TRUE FALSE TRUE)))];
+let SString = [const sstring value ((0.0 0.0 1.0) (2 2) (-2 -2 ("Foo" "Bar" "Elmo" "Grobi")) (0 0 ("Bart" "Homer" "Lisa" "Marge")))];
+
+let mpSimple = [const mpoint value ((("2000-01-03-00:00:00.000" "2000-01-05-00:00:00.000" TRUE FALSE) (0.0 0.0 2.0 2.0)) )];
+let mpInside = [const mpoint value ((("2000-01-03-00:00:00.000" "2000-01-05-00:00:00.000" TRUE FALSE) (-0.5 -0.5 -1.0 -1.0)) (("2000-01-05-00:00:00.000" "2000-01-07-00:00:00.000" TRUE FALSE) (-1.0 -1.0 1.8 1.2)) (("2000-01-07-00:00:00.000" "2000-01-09-00:00:00.000" TRUE FALSE) (1.8 1.2 1.0 1.0)))];
+let mpOutside = [const mpoint value ((("2000-01-03-00:00:00.000" "2000-01-05-00:00:00.000" TRUE FALSE) (2.5 2.5 3.5 4.5)) (("2000-01-05-00:00:00.000" "2000-01-07-00:00:00.000" TRUE FALSE) (3.5 2.5 5.0 6.0)) (("2000-01-07-00:00:00.000" "2000-01-09-00:00:00.000" TRUE FALSE) (7.0 8.0 9.5 2.5)))];
+let mpBoth = [const mpoint value ((("2000-01-03-00:00:00.000" "2000-01-05-00:00:00.000" TRUE FALSE) (0.5 0.5 1.5 1.5)) (("2000-01-05-00:00:00.000" "2000-01-07-00:00:00.000" TRUE FALSE) (10.5 10.5 10.0 10.0)) (("2000-01-07-00:00:00.000" "2000-01-09-00:00:00.000" TRUE FALSE) (1.0 1.0 0.5 0.5)))];
+let mpBigRange = [const mpoint value ((("2000-01-03-00:00:00.000" "2000-03-15-00:00:00.000" TRUE FALSE) (0.5 0.5 1.5 1.5)) )];
+let mpVertical = [const mpoint value ((("2000-01-03-00:00:00.000" "2000-03-15-00:00:00.000" TRUE FALSE) (0.5 0.5 0.5 12.5)) )];
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+
+#######################################
+# MPoint
+#######################################
+
+#testcase can query mpInside
+#yields success
+query mpInside
+
+#testcase can query mpOutside
+#yields success
+query mpOutside
+
+#testcase can query mpBoth
+#yields success
+query mpBoth
+
+#testcase can query mpBigRange
+#yiels success
+query mpBigRange
+
+#######################################
+# SInt                                #
+#######################################
+
+#testcase query the SInt
+#yields success
+query SInt
+
+#testcase SInt compose with invalid types
+#yields error
+query mpOutSide compose SInt
+
+# testcase SInt compose with undefined mpoint
+# yields (mint undefined)
+query [const mpoint value undefined] compose SInt 
+
+#testcase SInt compose with mpoint only points defined in SInt
+# yields (mint ((("2000-01-03" "2000-01-05-17:08:34.286" TRUE FALSE) 4) (("2000-01-06-10:17:08.571" "2000-01-06-19:38:10.909" TRUE FALSE) -1) (("2000-01-06-19:38:10.909" "2000-01-09" TRUE FALSE) -3)))
+query mpInside compose SInt
+
+#testcase SInt compose with mpoint only points not defined in SInt
+# yields (mint ())
+query mpOutside compose SInt
+
+#testcase SInt compose with mpoint points in and out of SInt
+#yields (mint ((("2000-01-04" "2000-01-05" TRUE FALSE) -3) (("2000-01-07" "2000-01-09" TRUE FALSE) -3)))
+query mpBoth compose SInt
+
+#testcase SInt compose with mpoint big range
+#yields success
+query mpBigRange compose SInt
+
+#testcase SInt compose with mpoint of vertical line
+#yields (mint ((("2000-01-06" "2000-01-12" TRUE FALSE) -2)))
+query mpVertical compose SInt
+
+#testcase SInt2 compose with mpSimple
+#yields (mint ((("2000-01-03" "2000-01-04" TRUE FALSE) 1) (("2000-01-04" "2000-01-05" TRUE FALSE) 4)))
+query mpSimple compose SInt2
+
+
+#######################################
+# SReal                               #
+#######################################
+
+#testcase SReal compose with mpoint only points defined in SReal
+# yields (mreal ((("2000-01-03" "2000-01-05-17:08:34.286" TRUE FALSE) (0.0 0.0 4.0 FALSE)) (("2000-01-06-10:17:08.571" "2000-01-06-19:38:10.909" TRUE FALSE) (0.0 0.0 -1.0 FALSE)) (("2000-01-06-19:38:10.909" "2000-01-09" TRUE FALSE) (0.0 0.0 -3.0 FALSE))))
+query mpInside compose SReal
+
+#testcase SReal compose with mpoint only points not defined in SReal
+# yields (mreal ())
+query mpOutside compose SReal
+
+#testcase SReal compose with mpoint points in and out of SReal
+#yields (mreal ((("2000-01-04" "2000-01-05" TRUE FALSE) (0.0 0.0 -3.0 FALSE)) (("2000-01-07" "2000-01-09" TRUE FALSE) (0.0 0.0 -3.0 FALSE))))
+query mpBoth compose SReal
+
+#######################################
+# SBool                               #
+#######################################
+
+#testcase SBool compose with mpoint only points defined in SBool
+# yields (mbool ((("2000-01-03" "2000-01-05-17:08:34.286" TRUE FALSE) FALSE) (("2000-01-06-10:17:08.571" "2000-01-09" TRUE FALSE) TRUE)))
+query mpInside compose SBool
+
+#testcase SBool compose with mpoint only points not defined in SBool
+# yields (mbool ())
+query mpOutside compose SBool
+
+#testcase SBool compose with mpoint points in and out of SBool
+#yields (mbool ((("2000-01-04" "2000-01-05" TRUE FALSE) TRUE) (("2000-01-07" "2000-01-09" TRUE FALSE) TRUE)))
+query mpBoth compose SBool
+
+#######################################
+# SString                             #
+#######################################
+
+#testcase SString compose with mpoint only points defined in SString
+#yields (mstring ((("2000-01-03" "2000-01-05-17:08:34.286" TRUE FALSE) "Grobi") (("2000-01-05-21:49:05.455" "2000-01-06-10:17:08.571" TRUE FALSE) "Bart") (("2000-01-06-10:17:08.571" "2000-01-06-19:38:10.909" TRUE FALSE) "Homer") (("2000-01-06-19:38:10.909" "2000-01-09" TRUE FALSE) "Marge")))
+query mpInside compose SString
+
+#testcase SString compose with mpoint only points not defined in SString
+# yields (mstring ())
+query mpOutside compose SString
+
+#testcase SString compose with mpoint points in and out of SString
+# yields (mstring ((("2000-01-03" "2000-01-04" TRUE FALSE) "Bart") (("2000-01-04" "2000-01-05" TRUE FALSE) "Marge") (("2000-01-07" "2000-01-09" TRUE FALSE) "Marge")))
+query mpBoth compose SString
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

@@ -1,0 +1,103 @@
+#
+# Tests for the deftime operator of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#######################################
+# MSInt                              #
+#######################################
+
+#testcase MSInt deftime of empty object
+#yields (periods ()) 
+query deftime([const msint value ((0.0 0.0 1.0 1.0))])
+
+#testcase MSInt deftime of single cell object
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE))) 
+query deftime([const msint value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1)))])
+
+#testcase MSInt deftime two consecutive cells
+#yields (periods (("2000-01-03" "2000-01-05" TRUE FALSE))) 
+query deftime([const msint value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1)) (100 100 1 (1)))])
+
+#testcase MSInt deftime non-consecutive cells
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE) ("2000-01-05" "2000-01-06" TRUE FALSE))) 
+query deftime([const msint value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1)) (100 100 2 (1)))])
+
+#######################################
+# MSBool                              #
+#######################################
+
+#testcase MSBool deftime of empty object
+#yields (periods ()) 
+query deftime([const msbool value ((0.0 0.0 1.0 1.0))])
+
+#testcase MSBool deftime of single cell object
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE))) 
+query deftime([const msbool value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (TRUE)))])
+
+#testcase MSBool deftime two consecutive cells
+#yields (periods (("2000-01-03" "2000-01-05" TRUE FALSE))) 
+query deftime([const msbool value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (TRUE)) (100 100 1 (TRUE)))])
+
+#testcase MSBool deftime non-consecutive cells
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE) ("2000-01-05" "2000-01-06" TRUE FALSE))) 
+query deftime([const msbool value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (TRUE)) (100 100 2 (TRUE)))])
+
+#######################################
+# MSReal                              #
+#######################################
+
+#testcase MSReal deftime of empty object
+#yields (periods ()) 
+query deftime([const msreal value ((0.0 0.0 1.0 1.0))])
+
+#testcase MSReal deftime of single cell object
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE))) 
+query deftime([const msreal value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1.0)))])
+
+#testcase MSReal deftime two consecutive cells
+#yields (periods (("2000-01-03" "2000-01-05" TRUE FALSE))) 
+query deftime([const msreal value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1.0)) (100 100 1 (1.0)))])
+
+#testcase MSReal deftime non-consecutive cells
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE) ("2000-01-05" "2000-01-06" TRUE FALSE))) 
+query deftime([const msreal value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1.0)) (100 100 2 (1.0)))])
+
+#######################################
+# MSString                              #
+#######################################
+
+#testcase MSString deftime of empty object
+#yields (periods ()) 
+query deftime([const msstring value ((0.0 0.0 1.0 1.0))])
+
+#testcase MSString deftime of single cell object
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE))) 
+query deftime([const msstring value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 ("Foo")))])
+
+#testcase MSString deftime two consecutive cells
+#yields (periods (("2000-01-03" "2000-01-05" TRUE FALSE))) 
+query deftime([const msstring value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 ("Foo")) (100 100 1 ("Foo")))])
+
+#testcase MSString deftime non-consecutive cells
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE) ("2000-01-05" "2000-01-06" TRUE FALSE))) 
+query deftime([const msstring value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 ("Foo")) (100 100 2 ("Foo")))])
+
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

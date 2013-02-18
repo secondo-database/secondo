@@ -1,0 +1,146 @@
+#
+# Tests for the MSInt type of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Valid MSInt Objects                  #
+########################################
+
+#testcase Parse MSInt
+#yields (msint ((0.0 0.0 1.0 1.0) (1 1 1) (-2 -2 0 (30)) (-1 -2 0 (15)) (-1 -1 0 (30)) (0 0 1 (15)) (0 1 1 (30)) (1 1 1 (15))))
+query [const msint value ((0.0 0.0 1.0 1.0) (2 2 1) (-2 -2 0 (30 15 undefined 30)) (0 0 1 (15 undefined 30 15)))];
+
+#testcase Parse MSInt without Entries
+#yields (msint ((0.0 0.0 1.0 1.0) (1 1 1)))
+query [const msint value ((0.0 0.0 1.0 1.0) (1 1 1))];
+
+#testcase Parse MSInt without Tile Size
+#yields (msint ((0.0 0.0 1.0 1.0) (1 1 1)))
+query [const msint value ((0.0 0.0 1.0 1.0))];
+
+
+########################################
+# Invalid List Type                    #
+########################################
+
+#testcase Parse MSint from Atom
+#yields error
+query [const msint value "Foo"];
+
+
+########################################
+# Invalid Grid Lists                   #
+########################################
+
+#testcase Parse MSInt with Grid3 List too short
+#yields error
+query [const msint value ((0.0 0.0 1.0) (1 1 1) (0 0 0 (15)))];
+
+#testcase Parse MSInt with Grid3 List too long
+#yields error
+query [const msint value ((0.0 0.0 1.0 1.0 1.0) (1 1 1) (0 0 0 (15)))];
+
+#testcase Parse MSInt with Grid3 List of zero Grid Length
+#yields error
+query [const msint value ((0.0 0.0 0.0 1.0) (1 1 1) (0 0 0 (15)))];
+
+#testcase Parse MSInt with Grid3 List of zero Duration
+#yields error
+query [const msint value ((0.0 0.0 1.0 0.0) (1 1 1) (0 0 0 (15)))];
+
+#testcase Parse MSInt with Grid3 List of negative Grid Length
+#yields error
+query [const msint value ((0.0 0.0 -1.0 1.0) (1 1 1) (0 0 0 (15)))];
+
+#testcase Parse MSInt with Grid3 List of negative Duration
+#yields error
+query [const msint value ((0.0 0.0 1.0 -1.0) (1 1 1) (0 0 0 (15)))];
+
+#testcase Parse MSInt with Type Mismatch in Grid3 X-Origin 
+#yields error
+query [const msint value ((undefined 0.0 1.0 1.0) (1 1 1) (0 0 0 (15)))];
+
+#testcase Parse MSInt with Type Mismatch in Grid3 Y-Origin
+#yields error
+query [const msint value ((0.0 undefined 1.0 1.0) (1 1 1) (0 0 0 (15)))];
+
+#testcase Parse MSInt with Type Mismatch in Grid3 Length
+#yields error
+query [const msint value ((0.0 0.0 undefined 1.0) (1 1 1) (0 0 0 (15)))];
+
+#testcase Parse MSInt with Type Mismatch in Grid3 Duration
+#yields error
+query [const msint value ((0.0 0.0 1.0 undefined) (1 1 1) (0 0 0 (15)))];
+
+
+########################################
+# Invalid Tile Size List               #
+########################################
+
+#testcase Parse MSInt with Tile Size List too short
+#yields error
+query [const msint value ((0.0 0.0 1.0 1.0) (1 1) (0 0 0 (15)))];
+
+#testcase Parse MSInt with Tile Size List too long
+#yields error
+query [const msint value ((0.0 0.0 1.0 1.0) (1 1 1 1) (0 0 0 (15)))];
+
+#testcase Parse MSInt with Type Mismatch in Tile Size List (1)
+#yields error
+query [const msint value ((0.0 0.0 1.0 1.0) (undefined 1 1) (0 0 0 (15)))];
+
+#testcase Parse MSInt with Type Mismatch in Tile Size List (2)
+#yields error
+query [const msint value ((0.0 0.0 1.0 1.0) (1 undefined 1) (0 0 0 (15)))];
+
+#testcase Parse MSInt with Type Mismatch in Tile Size List (3)
+#yields error
+query [const msint value ((0.0 0.0 1.0 1.0) (1 1 undefined) (0 0 0 (15)))];
+
+
+########################################
+# Invalid Tile Specification           #
+########################################
+
+#testcase Parse MSInt with Tile Specification too large
+#yields error
+query [const msint value ((0.0 0.0 1.0 1.0) (2 1 1) (0 0 0 (15)))];
+
+#testcase Parse MSInt with Tile Specification too small
+#yields error
+query [const msint value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (15 15)))];
+
+#testcase Parse MSInt with Type Mismatch in Column Number of Tile Specification   
+#yields error
+query [const msint value ((0.0 0.0 1.0 1.0) (1 1 1) (undefined 0 0 (15)))];
+
+#testcase Parse MSInt with Type Mismatch in Row Number of Tile Specification   
+#yields error
+query [const msint value ((0.0 0.0 1.0 1.0) (1 1 1) (0 undefined 0 (15)))];
+
+#testcase Parse MSInt with Type Mismatch in Instant of Tile Specification   
+#yields error
+query [const msint value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 undefined (15)))];
+
+#testcase Parse MSInt with Type Mismatch in Tile Value   
+#yields error
+query [const msint value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 ("15")))];
+
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+

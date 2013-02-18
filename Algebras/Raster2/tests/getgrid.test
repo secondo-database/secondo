@@ -1,0 +1,61 @@
+#
+# Tests for the inst operator of the Raster2 Algebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup raster2test
+
+create database raster2test;
+open database raster2test;
+
+let SInt = ([const sint value ((0.0 0.0 1.0) (2 2) (-5 -10 (1 2 3 4)) (0 1 (undefined -1 -2 -3)))]);
+let SReal = ([const sreal value ((0.0 0.0 1.0) (2 2) (1 1 (1.2 5.3 3.12 4.23)) (4 4 (undefined -1.2 -2.0 1.0)))]);
+let SBool = ([const sbool value ((2.0 2.0 1.0) (2 2) (1 1 (TRUE TRUE FALSE FALSE)) (4 4 (undefined TRUE TRUE undefined)))]);
+let SString = ([const sstring value ((0.0 0.0 1.0) (2 2) (-31 -31 ("Eins" "Zwei" "Eins" "Drei")))]);
+let MSInt = ([const msint value ((2.0 2.0 1.0 2.0) (2 2 1) (-5 -5 -5 (1 2 -5 4)) (0 0 0 (undefined -1 -2 -3)))]);
+let MSReal = ([const msreal value ((0.0 0.0 1.0 30.12000) (2 1 2) (1 1 1 (1.2 5.3 3.12 4.23)) (4 4 4 (undefined -3.2 -2.0 12.0)))]);
+let MSBool = ([const msbool value ((0.0 0.0 1.0 5.0) (1 2 2) (1 1 1 (TRUE TRUE FALSE FALSE)) (4 4 4 (undefined TRUE TRUE undefined)))]);
+let MSString = ([const msstring value ((0.0 0.0 1.0 2.0) (2 1 2) (1 1 1 ("Eins" "Zwei" "Eins" "Drei")))]);
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#testcase query getgrid for type sint
+#yields (grid2 (0.0 0.0 1.0))
+query getgrid(SInt);
+
+#testcase query getgrid for type sreal
+#yields (grid2 (0.0 0.0 1.0))
+query getgrid(SReal);
+
+#testcase query getgrid for type sbool
+#yields (grid2 (2.0 2.0 1.0))
+query getgrid(SBool);
+
+#testcase query getgrid for type sstring
+#yields (grid2 (0.0 0.0 1.0))
+query getgrid(SString);
+
+#testcase query getgrid for type msint
+#yields (grid3 (2.0 2.0 1.0 (duration (2 0))))
+query getgrid(MSInt);
+
+#testcase query getgrid for type msreal
+#yields (grid3 (0.0 0.0 1.0 (duration (30 10368000))))
+query getgrid(MSReal);
+
+#testcase query getgrid for type msbool
+#yields (grid3 (0.0 0.0 1.0 (duration (5 0))))
+query getgrid(MSBool);
+
+#testcase query getgrid for type msstring
+#yields (grid3 (0.0 0.0 1.0 (duration (2 0))))
+query getgrid(MSString);
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
