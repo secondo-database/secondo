@@ -62,6 +62,7 @@ public class TimePanel extends javax.swing.JPanel               // implements Va
       long t = drawHere.x*TimeperPixel + TimeBoundsStart;
       DateLabel.setText(LEUtils.convertTimeToString(((double)t)/1440).substring(0, 
           10));
+      DateLabel.setToolTipText(LEUtils.convertTimeToString(((double)t)/1440));
       for (int d = drawHere.x; d < drawHere.x + drawHere.width; d++) {
         t = d*TimeperPixel + TimeBoundsStart;
         if ((t%bigdivision) == 0) {
