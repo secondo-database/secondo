@@ -311,6 +311,7 @@ member variables are provided for convenience.
       public:
         static TypeConstructor getTypeConstructor();
         static std::string BasicType();
+        static bool checkType(const ListExpr e);
         static bool Open(SmiRecord& valueRecord, size_t& offset,
                          const ListExpr typeInfo, Word& value );
         static bool Save(SmiRecord& valueRecord, size_t& offset,
@@ -543,6 +544,11 @@ member variables are provided for convenience.
     template <typename T, typename Helper>
     std::string stype<T, Helper>::BasicType() {
         return Helper::name;
+    }
+
+    template <typename T, typename Helper>
+    bool stype<T, Helper>::checkType(const ListExpr e) {
+        return listutils::isSymbol(e,BasicType());
     }
 
     template <typename T, typename Helper>
