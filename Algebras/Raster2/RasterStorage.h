@@ -86,6 +86,7 @@ in cell indices.
     public:
       RasterIndex();
       RasterIndex(const int (&)[dim]);
+      RasterIndex(const int*);
 
       int& operator[] (int);
       int  operator[] (int) const;
@@ -807,6 +808,12 @@ deleting the pointed to object.
     RasterIndex<dim>::RasterIndex(const int (&ri)[dim])
     {
       std::memcpy(&index, &ri, dim*sizeof(int));
+    }
+
+    template <int dim> inline
+    RasterIndex<dim>::RasterIndex(const int* ri)
+    {
+      std::memcpy(&index, ri, dim*sizeof(int));
     }
 
     template <int dim> inline int&

@@ -304,7 +304,7 @@ std::pair<grid2::index_type, grid2::index_type > grid2::intersect
   // figure out which one is the one that the segment comes from and which one
   // is the one that the segment goes to.
   if (!intersections.empty()) {
-    index_type* other;
+    index_type* other=0;
     if (intersections.find(Top) != intersections.end()) {
       if (from.GetY() > to.GetY()) {
         result.first = Top;

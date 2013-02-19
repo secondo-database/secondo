@@ -187,7 +187,7 @@ namespace raster2 {
             for (RasterIndex<2> index = current, e = current + region_size; 
                                 index < e; index.increment(current, e))
             {
-              typename msstring::index_type i2 = 
+              msstring::index_type i2 = 
                                  (int[]){index[0], index[1], msfrom[2]};
               values->set(index, msin->get(i2));
             }
