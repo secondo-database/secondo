@@ -231,9 +231,9 @@ grids of the operator arguments are compatible.
           qp->Request(function, fresult);
 
           // Set result
-          typename Result::wrapper_type& mapped =
-              *static_cast<typename Result::wrapper_type*>(result.addr);
-          r->set(i1, Result::unwrap(mapped));
+          typename Result::wrapper_type* mapped =
+              static_cast<typename Result::wrapper_type*>(fresult.addr);
+          r->set(i1, Result::unwrap(*mapped));
         }
       }
     }
