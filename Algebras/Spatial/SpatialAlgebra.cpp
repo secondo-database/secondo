@@ -23828,6 +23828,436 @@ Operator crossings_rob(
 
 
 
+
+class LineSplitIterator{
+
+public:
+
+  LineSplitIterator(Line* line){
+    theLine=line;
+    if(!line->IsDefined() || (line->Size() == 0)){
+       theLine = 0;
+       used = 0;
+       return;
+    }
+    size = line->Size();
+    theLine = line;
+    used = new bool[size];
+    memset(used,0,size*sizeof(bool));
+    position = 0;
+    start = 0;
+    searchStart();
+  }
+
+  ~LineSplitIterator(){
+      if(used){
+         delete[] used;
+      }
+   }
+
+
+  bool next(HalfSegment& nextHs, bool& newStart){
+     if(position>=size){
+        return false;
+     }
+     theLine->Get(position,nextHs); // get HalfSegment
+     newStart = (position==start);
+     gotoNext();
+     return true;
+  }
+
+private:
+   Line* theLine;
+   bool* used;
+   uint32_t position;
+   uint32_t start;
+   uint32_t size;
+
+
+   void gotoNext(){
+     HalfSegment hs;
+     theLine->Get(position,hs);
+     used[position] = true;
+     // goto Partnerhs
+     uint32_t partnerNo =   hs.attr.partnerno;
+     used[partnerNo] = true;
+     int x = getExtension(partnerNo);
+     if(x!=0){
+        position = partnerNo+x;
+        return;
+     } 
+     searchStart();
+   }
+
+   // returns 0 if there is no extension
+   // returns x != 0 if (pos+x) is an unused extension
+   int getExtension(int pos){
+     HalfSegment hs;
+     theLine->Get(pos,hs);
+     Point dp = hs.GetDomPoint();
+     HalfSegment cand;
+     // search left
+     int pos2 = pos - 1;
+     while(pos2>0){
+        if(used[pos2]){
+          pos2--;
+        } else {
+          theLine->Get(pos2,cand);
+          if(AlmostEqual(dp,cand.GetDomPoint())){
+             return pos2-pos;
+          } else {
+            pos2 = -1;
+          }
+        }
+     }
+     // search right
+     pos2 = pos+1;
+     while(pos2<(int)size){
+       if(used[pos2]){
+          pos2++;
+       } else {
+          theLine->Get(pos2,cand);
+          if(AlmostEqual(dp,cand.GetDomPoint())){
+             return pos2-pos;
+          } else {
+              pos2 = size;
+          }
+       }
+     }
+     return 0;
+   }
+
+
+   void searchStart(){
+
+     start = 0;
+     while( (start<size) && used[start]){
+        start++;
+     }
+     if(start>=size){
+        position = start;
+        return;
+     }
+     int start2 = start;
+     int x;
+     x = getExtension(start2);
+     HalfSegment n;
+     bool* used2 = new bool[size];
+     memset(used2,0,size*sizeof(bool));
+     used2[start] = true;
+     while(x){
+        theLine->Get(start2 + x,n);
+         
+         start2 = n.attr.partnerno;     
+         x = getExtension(start2);
+         if(used2[start2]){ // cycle
+            position = start2;
+            start = start2;
+            delete[] used2;
+            return;
+         }
+         used2[start2] = true;
+     } 
+     delete[] used2;
+     start = start2;
+     position = start;
+   }
+};
+
+
+/*
+10.9.81 Operator ~linesplit~
+
+This operator splits a line into pieces of equal length
+
+*/
+
+ListExpr splitlineTM(ListExpr args){
+
+   int len = nl->ListLength(args);
+   if((len<2) || (len>4) ){
+     return listutils::typeError("2, 3, or 4  args required");
+   }
+   string err = "line x real [x geoid [xreal]] expected";
+   if(!Line::checkType(nl->First(args)) ||
+      !CcReal::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+   }
+   if((len>2) &&
+      !Geoid::checkType(nl->Third(args))){
+     return listutils::typeError(err);
+   }
+   if( (len>3 ) &&
+       !CcReal::checkType(nl->Fourth(args))){
+     return listutils::typeError(err);
+   }
+
+   ListExpr res = nl->TwoElemList(
+                         listutils::basicSymbol<Stream<Line> >(),
+                         listutils::basicSymbol<Line>() );
+   if(len==4){ // all arguments come form user
+      return res;
+   }
+   ListExpr gl = nl->TheEmptyList();
+   if(len == 3) { // scaleFactor not present
+     gl = nl->OneElemList(nl->RealAtom(1.0));
+   } else {
+     assert(len==2);
+     gl = nl->TwoElemList( 
+                    nl->TwoElemList( 
+                      listutils::basicSymbol<Geoid>(),
+                      nl->SymbolAtom(Symbol::UNDEFINED())),
+                    nl->RealAtom(1.0));
+   }
+   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                           gl,
+                           res);
+
+}
+
+
+
+class SplitLineInfo{
+
+
+  public:
+     SplitLineInfo(Line* _line, CcReal* _dist, Geoid* _geoid, 
+                   CcReal* _scale){
+         if(!_line->IsDefined() || !_dist->IsDefined() ){
+           it=0;
+           return;
+         } 
+         dist = _dist->GetValue(); 
+         if((_line->Size()==0) || dist<0 || AlmostEqual(dist,0)){
+            it = 0;
+            return;
+         }
+         if(!_scale->IsDefined()){
+            scale = 1.0;
+         } else {
+            scale = _scale->GetValue();
+         }
+         if(AlmostEqual(scale,0) || scale < 0){
+            it = 0;
+            return;
+         }
+         it = new LineSplitIterator(_line);
+         hasLastHs = false;
+         geoid = _geoid->IsDefined()?_geoid:0;
+     }
+
+     ~SplitLineInfo(){
+        if(it){
+          delete it;
+        }
+     }
+
+
+    // debug code
+    Line* next1(){
+       static uint32_t count = 0;
+
+       count++;
+       HalfSegment hs;
+       bool newStart;
+       bool hn = it->next(hs, newStart);
+       if(!hn){
+          return 0;
+       }
+       Line* res = new Line(2);
+       res->StartBulkLoad() ;
+       (*res) += hs;
+       hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+       (*res) += hs;
+       res->EndBulkLoad();
+       return res;  
+        
+    }
+    // debug code
+
+     Line* next(){
+        Line* res = new Line(10);
+        res->StartBulkLoad();
+        double length = 0;
+        bool done = false;
+        if(hasLastHs){
+          done = appendHs(res,lastHs, length);
+        }
+
+        HalfSegment hs;
+        bool newStart;
+        while(!done){
+          bool nextHs = it->next(hs , newStart);
+          if(!nextHs){
+            done = true;
+          } else {
+             if(newStart){
+               if(res->Size()==0){
+                 done = appendHs(res,hs,length);
+               } else {
+                 done = true;
+                 lastHs = hs;
+                 hasLastHs = true; 
+              }
+             } else {
+                done = appendHs(res,hs,length);
+             }
+          }
+        }      
+
+
+ 
+        res->EndBulkLoad();
+        if(res->Size()==0){
+          delete res;
+          res = 0;
+        }
+        return res;
+
+     }
+
+  private: 
+    LineSplitIterator* it;
+    HalfSegment lastHs;
+    bool hasLastHs;
+    double dist;
+    Geoid* geoid;
+    double scale;
+
+
+   bool appendHs(Line*& res, HalfSegment& hs, double& length){
+
+       Point p1 = hs.GetDomPoint();
+       Point p2 = hs.GetSecPoint();
+       p1.Scale(1.0/scale);
+       p2.Scale(1.0/scale);
+
+       //cout << "compute distance between " << p1 << " and " << p2 << endl; 
+
+       double hsl = p1.Distance(p2, geoid);
+
+       if(((length + hsl)  <= dist) || AlmostEqual(length+hsl,dist)){ 
+         // append complete hs
+          (*res) += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          (*res) += hs;
+          hasLastHs = false;
+          length += hsl;
+          return AlmostEqual(dist,length+hsl);
+       } 
+       // append only a part of hs
+       double rest = dist - length;
+       assert(rest>0);
+       double delta = rest/hsl;
+
+       assert(delta > 0);
+       assert(delta < 1);
+       Point dp = hs.GetDomPoint();
+       Point sp = hs.GetSecPoint();
+       double x1 = dp.GetX();
+       double x2 = sp.GetX();
+       double xs = x1 + delta*(x2-x1);
+       double y1 = dp.GetY();
+       double y2 = sp.GetY();
+       double ys = y1 + delta*(y2-y1);
+       Point ps(true,xs,ys);
+
+       if(AlmostEqual(dp,ps)){
+         // nothing to append
+         lastHs.Set(true,dp,sp);
+         hasLastHs = true;
+         return true;
+       }
+       if(AlmostEqual(ps,sp)){
+          // append nearly all
+          (*res) += hs;
+          hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+          (*res) += hs;
+          hasLastHs = false;
+          length += hsl;
+          return true;
+       }
+       // real split
+       HalfSegment hs1(true, dp, ps);
+       HalfSegment hs2(true, ps, sp);
+
+       lastHs = hs2;
+       hasLastHs = true;
+       (*res) += hs1;
+       hs1.SetLeftDomPoint(false);
+       (*res) += hs1;
+       length += rest;
+       return true;
+   }
+
+
+};
+
+
+
+int splitlineVM(Word* args, Word& result, int message, Word& local,
+               Supplier s ){
+
+  
+  SplitLineInfo* li = (SplitLineInfo*) local.addr;
+  switch(message){
+    case OPEN: {
+        if(li){
+          delete li;
+        }
+        local.addr = new SplitLineInfo((Line*) args[0].addr,
+                                       (CcReal*) args[1].addr,
+                                       (Geoid*) args[2].addr,
+                                       (CcReal*) args[3].addr);
+        return 0;
+  
+   }
+   case REQUEST: {
+       result.addr = li?li->next():0;
+       return result.addr?YIELD:CANCEL;
+   }
+   case CLOSE : {
+        if(li){
+           delete li;
+           local.addr = 0;
+        }
+   }
+
+  } 
+  return -1;
+
+
+}
+
+
+
+OperatorSpec splitlineSpec (
+    " line x real [x geoid [x real]] -> points",
+    " linesplit(line, length, geoid, scalefactor)",
+    " Splits a line into pieces of a given length. "
+    " if geoid is given, the distance computations are"
+    " done using this geoid. For scaled up geodata, the "
+    "optional argument scalefactor can be used. All coordinates"
+    " are divided by this factor befor the distance is computed",
+    " query splitline(BGrenzenLine) count "
+  );
+
+
+/*
+1.44.4 Operator instance
+
+*/
+Operator splitline(
+   "splitline",
+   splitlineSpec.getStr(),
+   splitlineVM,
+   Operator::SimpleSelect,
+   splitlineTM
+);
+
+
+
+
 /*
 11 Creating the Algebra
 
@@ -23970,6 +24400,8 @@ class SpatialAlgebra : public Algebra
     AddOperator(&checkRealmOp);
     AddOperator(&badRealmOp);
     AddOperator(&crossings_rob);
+
+    AddOperator(&splitline);
 
 
 

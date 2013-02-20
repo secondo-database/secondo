@@ -1178,4 +1178,10 @@ Signature: line x line -> points
 Example  : query crossings_rob(BGrenzenLine,BGrenzenLine);
 Result : (points ())
 
+Operator  : splitline
+Number    : 1
+Signature : line x real [x geoid] -> stream(line)
+Example   : query ( splitline(BGrenzenLine,25.0) count) =   ((real2int(size(BGrenzenLine)) div 25) + 1)
+Result    : TRUE 
+
 
