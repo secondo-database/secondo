@@ -1118,6 +1118,7 @@ deleting the pointed to object.
         assert(writable);
         if (buffer == 0) {
           buffer = smi_record->GetData(length);
+          assert(buffer); // force a result
         }
         T* current = reinterpret_cast<T*>(buffer + offset);
         if ((Undef(*current) ^ Undef(value)) ||
