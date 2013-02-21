@@ -292,8 +292,8 @@ let TBAJNres010 =
     dataMcar_Licence_btree dataMcar exactmatch[attr(t,Licence_V1)]
     project[Moid]
     loopjoin[dataMJtrip_Moid_btree dataMJtrip exactmatch[.Moid] remove[Moid]] {V3}
+    extend[T3bbx: bbox(.Trip_V3)]
     extend[PtripA: fromnetwork(.Trip_V3)]
-    extend[T3bbx: bbox(.PtripA)]
     loopjoin[ fun(u:TUPLE)
       dataMJtrip_SpatioTemp
       windowintersectsS[rectangle3(

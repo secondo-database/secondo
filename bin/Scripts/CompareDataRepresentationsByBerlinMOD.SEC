@@ -21,17 +21,17 @@
 # Run Queries
 #########################################
 
-@Scripts/BerlinMOD_OBA-Queries.SEC;
-
 @Scripts/JNetwork_OBA-Queries.SEC;
-
-@Scripts/Network_OBA-Queries.SEC;
-
-@Scripts/BerlinMOD_TBA-Queries.SEC;
 
 @Scripts/JNetwork_TBA-Queries.SEC;
 
+@Scripts/Network_OBA-Queries.SEC;
+
 @Scripts/Network_TBA-Queries.SEC;
+
+@Scripts/BerlinMOD_OBA-Queries.SEC;
+
+@Scripts/BerlinMOD_TBA-Queries.SEC;
 
 ############################################
 # Save results

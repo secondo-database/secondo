@@ -149,7 +149,7 @@ sortby[Licence1, Licence2]
 query now();
 
 delete TBACRres005tmp1;
-delete TBACRres005Tmp2;
+delete TBACRres005tmp2;
 
 query now();
 

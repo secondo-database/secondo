@@ -119,6 +119,7 @@ let OBACRres005 = OBACRres005tmp1 feed {V1} OBACRres005tmp2 feed {V2}
   sort rdup consume;
 
 query now();
+
 delete OBACRres005tmp1;
 delete OBACRres005tmp2;
 

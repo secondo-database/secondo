@@ -17,7 +17,7 @@ delete OBACRres014;
 delete OBACRres015;
 delete OBACRres016;
 delete OBACRres017;
-delete QUERYRUNTIMES_BERLINMOD_OBA;
+delete QRT_BMOD_OBA;
 
 delete TBACRres001;
 delete TBACRres002;
@@ -36,7 +36,7 @@ delete TBACRres014;
 delete TBACRres015;
 delete TBACRres016;
 delete TBACRres017;
-delete QUERYRUNTIMES_BERLINMOD_TBA;
+delete QRT_BMOD_TBA;
 
 close database;
 

@@ -80,7 +80,7 @@ restore workRegions from 'data/workRegions.data';
 
 # === The Scalefactor ===
 # Use SCALEFACTOR = 1.0 for the full-scaled benchmark
-let SCALEFACTOR = 0.005;
+let SCALEFACTOR = 5.0;
 
 
 #========================================================================

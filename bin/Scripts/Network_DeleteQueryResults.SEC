@@ -17,7 +17,7 @@ delete OBANres014;
 delete OBANres015;
 delete OBANres016;
 delete OBANres017;
-delete QUERYRUNTIMES_NETWOK_OBA;
+delete QRT_NET_OBA;
 
 delete TBANres001;
 delete TBANres002;
@@ -36,7 +36,7 @@ delete TBANres014;
 delete TBANres015;
 delete TBANres016;
 delete TBANres017;
-delete QUERYRUNTIMES_NETWOK_TBA;
+delete QRT_NET_TBA;
 
 close database;
 
