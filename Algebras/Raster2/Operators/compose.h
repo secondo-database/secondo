@@ -31,33 +31,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../sstring.h"
 #include "TemporalAlgebra.h"
 #include "RTreeAlgebra.h"
+#include "CellIterator.h"
 
 namespace raster2 {
-    extern ValueMapping composeFuns[];
-    ListExpr composeTypeMap(ListExpr args);
-    int composeSelectFun(ListExpr args);
-
-double round(double r);
-
-bool compareVals (double i, double j);
-
-double calculateSlope(double startX,
-                      double startY,
-                      double endX,
-                      double endY);
-
-vector<Point> calculatePoints(double startX,
-                               double startY,
-                               double endX,
-                               double endY,
-                               double originX,
-                               double originY,
-                               double length);
+  extern ValueMapping composeFuns[];
+  ListExpr composeTypeMap(ListExpr args);
+  int composeSelectFun(ListExpr args);
 
   template <typename T, typename Helper>
   int composeFun
       (Word* args, Word& result, int message, Word& local, Supplier s)
   {
+
       // storage for the result
       result = qp->ResultStorage(s);
       
@@ -65,7 +50,7 @@ vector<Point> calculatePoints(double startX,
       MPoint* movingPoint = static_cast<MPoint*>(args[0].addr);
       
       // the sT object
-      typename Helper::implementation_type* pImplementationType =
+      typename Helper::implementation_type* raster =
           static_cast<typename Helper::implementation_type*>(args[1].addr);
 
       // The result of the compose
@@ -82,89 +67,56 @@ vector<Point> calculatePoints(double startX,
       // get the number of components
       int num = movingPoint->GetNoComponents();
 
+      UPoint unit(0);
+      grid2 grid = raster->getGrid();
+      grid2::index_type cell1;
+      grid2::index_type cell2;
+
       for (int i = 0; i < num; i++)
       {
-          UPoint u = UPoint(0);
-          movingPoint->Get(i, u);
+          movingPoint->Get(i, unit);
           
           // get the coordinates
-          double xStart = u.p0.GetX();
-          double yStart = u.p0.GetY();
-          double xEnd = u.p1.GetX();
-          double yEnd = u.p1.GetY();
-          
-          double originX = pImplementationType->getGrid().getOriginX();
-          double originY = pImplementationType->getGrid().getOriginY();
-          double gridLen = pImplementationType->getGrid().getLength();
-          
-          // get the length of the UPoint
-          double len = u.p0.Distance(u.p1);
-          
-          // get the intersection points of movement with the grid
-          vector<Point> points = calculatePoints(xStart,yStart,xEnd,yEnd,
-                                                   originX, originY, gridLen);
+          double xStart = unit.p0.GetX();
+          double yStart = unit.p0.GetY();
+          double xEnd = unit.p1.GetX();
+          double yEnd = unit.p1.GetY();
 
-          vector<Point>::iterator it = points.begin();
-          
-          if (it != points.end())
-          {
-              it++;  
-          }
-          
-          // calculate for each point the date, where the intersection occurs
-          while (it != points.end())
-          {
-              Point startPoint = *(it - 1);
-              Point currentPoint = *it;
-              
-              if (currentPoint != startPoint)
-              {
-                  double lenStart = u.p0.Distance(startPoint);
-                  double lenEnd = u.p0.Distance(currentPoint);
-                  
-                  Instant startPosition = u.getTimeInterval().start;
-                  double startValue = startPosition.ToDouble();
-                  Instant endPosition = u.getTimeInterval().end;
-                  double endValue = startPosition.ToDouble();
+          cell1 = grid.getIndex(xStart,yStart);
+          cell2 = grid.getIndex(xEnd, yEnd);
 
-                  double lenOfTime = endPosition.ToDouble()
-                                     - startPosition.ToDouble();
-                 
-                  // the start in time is the start of the movement
-                  // plus the time to reach the first intersection point
-                  startValue = startPosition.ToDouble()
-                               + lenOfTime * lenStart / len;
-                  // the end in time is the start of the movement
-                  // plus the time to reach the last intersection point
-                  endValue = startPosition.ToDouble()
-                             + lenOfTime * lenEnd / len;
-
-                  Instant startOfInterval = startPosition;
-                  startOfInterval.ReadFrom(startValue);
-
-                  Instant endOfInterval = startPosition;
-                  endOfInterval.ReadFrom(endValue);
-
-                  // the last intersection point is _not_ contained in the cell
-                  // so we take the values from the first intersection point
-                  T value = pImplementationType->atlocation(startPoint.GetX(),
-                                                            startPoint.GetY());
-
-                  // TODO: the check with endValue and startValue is a hack!
-                  if (!pImplementationType->isUndefined(value)
-				      && endValue > startValue)
-                  {
-                      typename Helper::wrapper_type v(true,value);
-                      Interval<Instant> iv(startOfInterval,
-                                           endOfInterval,
-                                           true,
-                                           false);
-                      // use merge add, to avoid the same value
-                      // over and over again
-                      pResult->MergeAdd(typename Helper::unit_type(iv,v,v));
+          if(cell1==cell2){ // only a constant unit in result
+            T v = raster->atlocation(xStart,yStart);  
+            if(!raster->isUndefined(v)){  
+                typename Helper::wrapper_type v1(true,v);
+                pResult->MergeAdd(typename Helper::unit_type(
+                                   unit.timeInterval,v1,v1));
+            }
+          } else {
+            DateTime t1 = unit.timeInterval.start;
+            DateTime t2 = unit.timeInterval.end;
+            DateTime dur = t2 - t1;
+            CellIterator it(grid,xStart,yStart,xEnd,yEnd);
+            double dx = xEnd - xStart;
+            double dy = yEnd - yStart; 
+            while(it.hasNext()){
+               pair<double,double> p = it.next();
+               DateTime s = t1 + (dur*p.first);
+               DateTime e = t1 + (dur*p.second);
+               if(e>s){
+                  Interval<Instant> iv(s,e,true,false);
+		  double delta  =(p.first + p.second) / 2.0;
+                  double x = xStart + delta*dx;
+                  double y = yStart + delta*dy;
+                  T v = raster->atlocation(x,y);  
+                  if(!raster->isUndefined(v)){  
+                     typename Helper::wrapper_type v1(true,v);
+                     pResult->MergeAdd(typename Helper::unit_type(iv,v1,v1));
                   }
-              }
-              it++;
+               } else {
+                  assert(e==s);
+               } 
+            }  
           }
       }
        
@@ -172,6 +124,7 @@ vector<Point> calculatePoints(double startX,
 
     return 0;
   }
+
 
     struct composeInfo : OperatorInfo 
     {
