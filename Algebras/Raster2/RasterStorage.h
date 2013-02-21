@@ -723,6 +723,7 @@ deleting the pointed to object.
                     (undef, index, record, file, &cache, true, true);
             } else {
                 item = new RasterCacheItem<T, dim, Undef>(undef, index);
+                delete record;
             }
             cache.cacheItem(index, item);
         }
@@ -1102,8 +1103,12 @@ deleting the pointed to object.
     {
         flush();
         // SmiRecord::GetData() calls DB::get() with the DB_DBT_MALLOC flag set.
-        std::free(buffer);
-        delete smi_record;
+        if(buffer){
+           std::free(buffer);
+        }
+        if(smi_record){
+            delete smi_record;
+        }
     }
 
     template <class T, int dim, bool Undef(const T&)> inline bool
