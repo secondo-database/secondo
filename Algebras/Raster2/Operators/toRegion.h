@@ -41,7 +41,7 @@ namespace raster2 {
             name      = "toregion";
             signature = sbool::BasicType() + " toregion  -> " 
                                                  + Region::BasicType();
-            syntax    = "toregion(_)";
+            syntax    = "_ toregion";
             meaning   = "Maps sbool to region";
         }
     };

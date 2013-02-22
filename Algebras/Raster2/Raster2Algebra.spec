@@ -32,7 +32,7 @@ operator map alias MAP pattern _ op [fun ]
 operator map2 alias MAP2 pattern _ _ op [fun]
          implicit parameters elem1, elem2 types CELL1, CELL2
 operator fromregion alias FROMREGION pattern op(_,_)
-operator toregion alias TOREGION pattern op(_)
+operator toregion alias TOREGION pattern _ op
 operator s2ms alias STOMS pattern  op(_,_,_,_)
 operator compose  alias COMPOSE pattern _ infixop _
 operator matchgrid alias MATCHGRID pattern _ op [_,fun,_]

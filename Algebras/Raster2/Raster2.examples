@@ -107,7 +107,7 @@ Result   : file
 Operator : toregion
 Number   : 1
 Signature: sbool -> region
-Example  : query toregion([const sbool value ((0.0 0.0 1.0) (3 3) (1 1 (FALSE TRUE TRUE TRUE TRUE TRUE FALSE FALSE TRUE)))])
+Example  : query [const sbool value ((0.0 0.0 1.0) (3 3) (1 1 (FALSE TRUE TRUE TRUE TRUE TRUE FALSE FALSE TRUE)))] toregion
 Result   : (region ((((1.0 2.0) (2.0 2.0) (2.0 1.0) (3.0 1.0) (4.0 1.0) (4.0 2.0) (4.0 3.0) (4.0 4.0) (3.0 4.0) (3.0 3.0) (2.0 3.0) (1.0 3.0)))))
 
 Operator : s2ms
