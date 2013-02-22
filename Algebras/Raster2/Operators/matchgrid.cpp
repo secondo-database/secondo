@@ -203,6 +203,9 @@ namespace raster2
     ArgVector& arguments = *qp->Argument(function);
     Word function_result;
 
+    size_t maxMem = qp->GetMemorySize(tree);
+
+
     while (r_start < end) {
       index_type r_end = r_start + size;
       Rectangle<2> bb_current = g_new.getBBox(r_start, r_end);
@@ -213,7 +216,9 @@ namespace raster2
         {
           BBox<2> bb_cell = g_new.getCell(i);
           region_type rg_cell = g_old.getRegion(bb_cell);
-          Relation rel(relation_description, true);
+          //Relation rel(relation_description, true);
+          TupleBuffer rel(maxMem);
+          rel.Clear();
           for (index_type j = rg_cell.Min;
                j < rg_cell.Max;
                j.increment(rg_cell.Min, rg_cell.Max))
@@ -230,6 +235,7 @@ namespace raster2
 
               t->PutAttribute(0, attr);
               rel.AppendTuple(t);
+              t->DeleteIfAllowed();
             }
           }
           arguments[0].setAddr(&rel);
