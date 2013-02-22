@@ -160,19 +160,14 @@ namespace raster2
     grid2& g_new = *static_cast<grid2*>(args[1].addr);
     Address function = args[2].addr;
     CcBool& use_weight = *static_cast<CcBool*>(args[3].addr);
-    CcString& attr_name = *static_cast<CcString*>(args[4].addr);
     CcInt& attr_algebraId = *static_cast<CcInt*>(args[5].addr);
     CcInt& attr_typeId = *static_cast<CcInt*>(args[6].addr);
 
-
-    SecondoCatalog();
-
-    ListExpr relation_description = NList(
-        NList("rel"),
+    ListExpr tuple_type = NList(
         NList(
             NList("tuple"),
             NList(
-                NList(attr_name.toText()),
+                NList("Elem"),
                 NList(
                     NList(attr_algebraId.GetIntval()),
                     NList(attr_typeId.GetIntval())
@@ -180,7 +175,9 @@ namespace raster2
             ).enclose()
         )
     ).listExpr();
-    ListExpr tuple_type = NList(relation_description).second().listExpr();
+
+
+    TupleType* tt = new TupleType(tuple_type);
 
     if (!use_weight.IsDefined()) {
       use_weight.Set(true, false);
@@ -205,6 +202,8 @@ namespace raster2
 
     size_t maxMem = qp->GetMemorySize(tree);
 
+    TupleBuffer rel(maxMem);
+    arguments[0].setAddr(&rel);
 
     while (r_start < end) {
       index_type r_end = r_start + size;
@@ -216,8 +215,6 @@ namespace raster2
         {
           BBox<2> bb_cell = g_new.getCell(i);
           region_type rg_cell = g_old.getRegion(bb_cell);
-          //Relation rel(relation_description, true);
-          TupleBuffer rel(maxMem);
           rel.Clear();
           for (index_type j = rg_cell.Min;
                j < rg_cell.Max;
@@ -229,7 +226,7 @@ namespace raster2
                 Rectangle<2> overlap = bb_cell.Intersection(g_old.getCell(j));
                 Traits::weight(value, overlap.Area() / area);
               }
-              Tuple* t = new Tuple(tuple_type);
+              Tuple* t = new Tuple(tt);
               typename SIn::wrapper_type* attr =
                   new typename SIn::wrapper_type(SIn::wrap(s.get(j)));
 
@@ -238,7 +235,6 @@ namespace raster2
               t->DeleteIfAllowed();
             }
           }
-          arguments[0].setAddr(&rel);
           qp->Request(function, function_result);
 
           typename SOut::wrapper_type& matched =
@@ -256,7 +252,7 @@ namespace raster2
         }
       }
     }
-
+    tt->DeleteIfAllowed();
     return 0;
   }
 
