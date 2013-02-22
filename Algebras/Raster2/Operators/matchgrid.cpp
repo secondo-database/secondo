@@ -190,7 +190,7 @@ namespace raster2
     double area = g_old.getLength() * g_old.getLength();
 
 
-    const index_type& size = SOut::riter_type::region_size;
+    //const index_type& size = SOut::riter_type::region_size;
 
     Rectangle<2>  bbox = s.bbox();
     index_type   start = g_new.getIndex(bbox.MinD(0), bbox.MinD(1));
@@ -202,56 +202,75 @@ namespace raster2
 
     size_t maxMem = qp->GetMemorySize(tree);
 
+    // create temporarly relation
     TupleBuffer rel(maxMem);
     arguments[0].setAddr(&rel);
 
-    while (r_start < end) {
-      index_type r_end = r_start + size;
-      Rectangle<2> bb_current = g_new.getBBox(r_start, r_end);
-      region_type rg_current = g_old.getRegion(bb_current);
-      if (s.iterate_regions(rg_current.Min, rg_current.Max) != s.end_regions())
-      {
-        for (index_type i = r_start; i < r_end; i.increment(r_start, r_end))
-        {
-          BBox<2> bb_cell = g_new.getCell(i);
-          region_type rg_cell = g_old.getRegion(bb_cell);
-          rel.Clear();
-          for (index_type j = rg_cell.Min;
-               j < rg_cell.Max;
-               j.increment(rg_cell.Min, rg_cell.Max))
-          {
-            typename SIn::cell_type value = s.get(j);
-            if (!SIn::isUndefined(value)) {
-              if (Traits::can_weight && use_weight.GetValue()) {
-                Rectangle<2> overlap = bb_cell.Intersection(g_old.getCell(j));
+    cout << "To Process : " 
+         << (((end[0] - r_start[0])+1) * ((end[1]-r_start[1])))
+         << " cells" << endl;
+
+    size_t count = 0;
+
+    while (r_start <= end) { // iterate over all cells in g_new
+                            // inside the bbox of s
+
+      cout << " \rprocess cell " << count++ ;
+      
+      Rectangle<2> bb_current = g_new.getBBox(r_start,r_start);
+      region_type s_reg =  g_old.getRegion(bb_current);
+      
+      // iterate over all overlaped cells from the original raster
+      index_type s_start = s_reg.Min;
+      index_type s_current = s_start;
+      index_type s_end = s_reg.Max;
+      rel.Clear();
+      while(s_current<= s_end){
+         typename SIn::cell_type value = s.get(s_current);
+         if(!SIn::isUndefined(value)){
+            // weight if required
+            if (Traits::can_weight && use_weight.GetValue()) {
+                Rectangle<2> sc_bb = g_old.getBBox(s_current,s_current);
+                Rectangle<2> overlap = bb_current.Intersection(sc_bb); 
                 Traits::weight(value, overlap.Area() / area);
-              }
-              Tuple* t = new Tuple(tt);
-              typename SIn::wrapper_type* attr =
-                  new typename SIn::wrapper_type(SIn::wrap(s.get(j)));
-
-              t->PutAttribute(0, attr);
-              rel.AppendTuple(t);
-              t->DeleteIfAllowed();
-            }
-          }
-          qp->Request(function, function_result);
-
-          typename SOut::wrapper_type& matched =
-              *static_cast<typename SOut::wrapper_type*>(function_result.addr);
-          r.set(i, SOut::unwrap(matched));
+            }  
+            typename SIn::wrapper_type* attr =
+                new typename SIn::wrapper_type(SIn::wrap(value));
+            Tuple* t = new Tuple(tt);
+            t->PutAttribute(0,attr);
+            rel.AppendTuple(t);
+            t->DeleteIfAllowed();
+         }
+        // goto next cell
+        if(s_current[0] < s_end[0]){
+           s_current[0]++;
+        } else { // new row
+           s_current[1]++;
+           if(s_current[1] < s_end[1]){
+              s_current[0] = s_start[0]; 
+           } 
         }
       }
+      // evaluate function
+      qp->Request(function, function_result);
 
-      r_start[0] += size[0];
-      if (r_start[0] >= end[0]) {
-        r_start[0] = start[0];
-        r_start[1] += size[1];
-        if (r_start[1] >= end[1]) {
-          r_start[0] = end[0];
-        }
+      typename SOut::wrapper_type& matched =
+          *static_cast<typename SOut::wrapper_type*>(function_result.addr);
+      if(matched.IsDefined()){
+          r.set(r_start,SOut::unwrap(matched));
+      }
+
+      // goto next cell
+      if(r_start[0] < end[0]){
+         r_start[0]++;
+      } else { // new row
+         r_start[1]++;
+         if(r_start[1] < end[1]){
+            r_start[0] = start[0]; 
+         } 
       }
     }
+
     tt->DeleteIfAllowed();
     return 0;
   }

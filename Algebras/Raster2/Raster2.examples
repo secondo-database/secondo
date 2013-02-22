@@ -29,7 +29,7 @@ Operator : CELLS
 Number   : 1
 Signature: rT x ... -> rel(tuple([Elem: T]))
 Example  : query [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (3)))] matchgrid[[const grid2 value (0.0 0.0 0.5)], fun(c: CELLS) c feed avg[Elem], FALSE]
-Result   : (sreal ((0.0 0.0 0.5) (1 1) (1 0 (3.0)) (0 1 (3.0)) (1 1 (3.0))))
+Result   : (sreal ((0.0 0.0 0.5) (1 1) (0 0 (3.0)) (1 0 (3.0)) (0 1 (3.0)) (1 1 (3.0))))
 
 Operator : inst
 Number   : 1
@@ -90,7 +90,8 @@ Operator : matchgrid
 Number   : 1
 Signature: sT x grid2 x (rel(tuple(T: Elem))-> U) x bool -> sU
 Example  : query [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (3)))] matchgrid[[const grid2 value (0.0 0.0 0.5)], fun(cell: rel(tuple([Elem: int]))) cell feed avg[Elem], FALSE]
-Result   : (sreal ((0.0 0.0 0.5) (1 1) (1 0 (3.0)) (0 1 (3.0)) (1 1 (3.0))))
+Result   : (sreal ((0.0 0.0 0.5) (1 1) (0 0 (3.0)) (1 0 (3.0)) (0 1 (3.0)) (1 1 (3.0))))
+
 
 Operator : maximum
 Number   : 1
