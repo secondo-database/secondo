@@ -135,6 +135,9 @@ the lowest cell and the highest cell.
       RasterIndex<dim> Max;
   };
 
+  template <int dim> inline 
+  std::ostream& operator<<(std::ostream&, const RasterRegion<dim>&);
+
 /*
 1.4 Class Template ~RasterValueProxy~
 
@@ -593,9 +596,16 @@ The following functions deal with managing the files associated with a
         cache.flush();
         RasterRegion<dim> result;
         BBox<dim> bbox(tree->Root().BoundingBox());
-        for (int i = 0; i < dim; ++i) {
-            result.Min[i] = int(bbox.MinD(i));
-            result.Max[i] = int(bbox.MaxD(i));
+        if(bbox.IsDefined() && !bbox.IsEmpty()){
+           for (int i = 0; i < dim; ++i) {
+              result.Min[i] = int(bbox.MinD(i));
+              result.Max[i] = int(bbox.MaxD(i));
+           }
+        }else {
+           for (int i = 0; i < dim; ++i) {
+              result.Min[i] = 0;
+              result.Max[i] = 0;
+           }
         }
         return result;
     }
@@ -968,6 +978,12 @@ deleting the pointed to object.
         return false;
       else
         return Max < rhs.Max;
+    }
+    
+    template <int dim>
+    std::ostream& operator<<(std::ostream& os, const RasterRegion<dim>& rr) {
+        os << "RR:[Min = " << rr.Min << " ; Max = " << rr.Max << "]";
+        return os;
     }
 
 /*
