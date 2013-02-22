@@ -42,6 +42,7 @@ the size of a raster cell.
   class grid2
   {
     public:
+
       typedef RasterIndex<2> index_type;
       typedef RasterRegion<2> region_type;
 
@@ -55,6 +56,8 @@ the size of a raster cell.
       double getOriginX() const;
       double getOriginY() const;
       double getLength() const;
+
+      std::ostream& print(ostream& os) const;
       void Reset();
 
       index_type getIndex(double xcoord, double ycoord) const;
@@ -109,6 +112,10 @@ The following functions are used to integrate the ~grid2~ datatype into secondo.
 
       double length;
   };
+
+  std::ostream& operator<<(std::ostream& os, const grid2& grid);
 }
+
+
 
 #endif // RASTER2_GRID2_H

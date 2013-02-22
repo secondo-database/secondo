@@ -509,3 +509,16 @@ ListExpr grid2::Property() {
 
     return property.listExpr();
 }
+
+ ostream& grid2::print(ostream& os)const{
+   os << "[grid [ x= " << x << ", <y = " << y 
+       << ", length = " << length << "]";
+   return os;
+ } 
+
+
+namespace raster2{
+ std::ostream& operator<<(std::ostream& os, const grid2& grid){
+    return grid.print(os);
+ }
+}
