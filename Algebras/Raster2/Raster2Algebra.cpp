@@ -121,8 +121,10 @@ Raster2Algebra::Raster2Algebra()
   AddOperator(s2msInfo(), s2msFuns, s2msSelectFun, s2msTypeMap)
       ->SetUsesArgsInTypeMapping();
   AddOperator(composeInfo(), composeFuns, composeSelectFun, composeTypeMap);
-  AddOperator(matchgridInfo(), matchgridFuns, matchgridSelectFun,
-              matchgridTypeMap);
+
+  Operator* mgop = AddOperator(matchgridInfo(), matchgridFuns, 
+                               matchgridSelectFun, matchgridTypeMap);
+  mgop->SetUsesMemory();
   AddOperator(getgridInfo(), getgridFuns, getgridSelectFun, getgridTypeMap);
   AddOperator(importHgtInfo(), importHgtFun, importHgtTypeMap);
   AddOperator(importEsriGridInfo(), importEsriGridFuns,

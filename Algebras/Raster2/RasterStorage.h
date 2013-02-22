@@ -786,7 +786,7 @@ deleting the pointed to object.
 
         RasterCacheItem<T, dim, Undef>* item = getRecord(key, grid, true);
         assert(item != 0); // record should have been created on demand
-        return item->set(pos, value);
+        item->set(pos, value);
     }
 
     template <class T, int dim, bool Undef(const T&)>
