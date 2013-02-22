@@ -57,6 +57,8 @@ namespace raster2 {
       typename Helper::moving_type* pResult =
             static_cast<typename Helper::moving_type*>(result.addr);
 
+      pResult->Clear();
+
       if (!movingPoint->IsDefined()) {
         pResult->SetDefined(false);
         return 0;
