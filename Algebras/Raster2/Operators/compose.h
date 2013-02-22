@@ -147,7 +147,7 @@ namespace raster2 {
             + sstring::BasicType() + "-> " 
             + MString::BasicType());
 
-        syntax    = "compose(_)";
+        syntax    = "_ compose _";
         meaning   = "merges mpoint and sT into mT";
       }          
     };
