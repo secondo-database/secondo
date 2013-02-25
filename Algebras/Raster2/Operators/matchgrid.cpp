@@ -156,13 +156,14 @@ namespace raster2
 
     result = qp->ResultStorage(tree);
 
-    SIn& s = *static_cast<SIn*>(args[0].addr);
-    grid2& g_new = *static_cast<grid2*>(args[1].addr);
+    SIn& src = *static_cast<SIn*>(args[0].addr);
+    grid2& g_res = *static_cast<grid2*>(args[1].addr);
     Address function = args[2].addr;
-    CcBool& use_weight = *static_cast<CcBool*>(args[3].addr);
-    CcInt& attr_algebraId = *static_cast<CcInt*>(args[5].addr);
-    CcInt& attr_typeId = *static_cast<CcInt*>(args[6].addr);
+    CcBool& use_weightS = *static_cast<CcBool*>(args[3].addr);
+    CcInt&  attr_algebraId = *static_cast<CcInt*>(args[5].addr);
+    CcInt&  attr_typeId = *static_cast<CcInt*>(args[6].addr);
 
+    // create tuple type fpr temporary relation
     ListExpr tuple_type = NList(
         NList(
             NList("tuple"),
@@ -179,23 +180,26 @@ namespace raster2
 
     TupleType* tt = new TupleType(tuple_type);
 
-    if (!use_weight.IsDefined()) {
-      use_weight.Set(true, false);
+    bool use_weight = false;
+    if (use_weightS.IsDefined() && use_weightS.GetValue()) {
+      use_weight = true;
     }
 
-    SOut& r = *static_cast<SOut*>(result.addr);
-    r.setGrid(g_new);
+    SOut& res = *static_cast<SOut*>(result.addr);
+    res.setGrid(g_res);
 
-    grid2 g_old = s.getGrid();
-    double area = g_old.getLength() * g_old.getLength();
-
+    grid2 g_src = src.getGrid();
+    // compute area of a single cell in source for weighting
+    double area = g_src.getLength() * g_src.getLength();
 
     //const index_type& size = SOut::riter_type::region_size;
 
-    Rectangle<2>  bbox = s.bbox();
-    index_type   start = g_new.getIndex(bbox.MinD(0), bbox.MinD(1));
-    index_type     end = g_new.getIndex(bbox.MaxD(0), bbox.MaxD(1));
-    index_type r_start = start;
+    Rectangle<2>  bbox_src    = src.bbox();
+    index_type   start_res    = g_res.getIndex(bbox_src.MinD(0), 
+                                               bbox_src.MinD(1));
+    index_type   end_res      = g_res.getIndex(bbox_src.MaxD(0), 
+                                               bbox_src.MaxD(1));
+    index_type   current_res  = start_res;
 
     ArgVector& arguments = *qp->Argument(function);
     Word function_result;
@@ -207,30 +211,31 @@ namespace raster2
     arguments[0].setAddr(&rel);
 
     cout << "To Process : " 
-         << (((end[0] - r_start[0])+1) * ((end[1]-r_start[1])))
+         << (((end_res[0] - start_res[0])+1) * ((end_res[1]-start_res[1])))
          << " cells" << endl;
 
     size_t count = 0;
 
-    while (r_start <= end) { // iterate over all cells in g_new
+    while (current_res <= end_res) { // iterate over all cells in g_new
                             // inside the bbox of s
 
       cout << " \rprocess cell " << count++ ;
       
-      Rectangle<2> bb_current = g_new.getBBox(r_start,r_start);
-      region_type s_reg =  g_old.getRegion(bb_current);
+      Rectangle<2> bb_current = g_res.getBBox(current_res,current_res);
+      region_type reg_src =  g_src.getRegion(bb_current);
       
       // iterate over all overlaped cells from the original raster
-      index_type s_start = s_reg.Min;
-      index_type s_current = s_start;
-      index_type s_end = s_reg.Max;
+      index_type start_src = reg_src.Min;
+      index_type current_src = start_src;
+      index_type end_src = reg_src.Max;
       rel.Clear();
-      while(s_current<= s_end){
-         typename SIn::cell_type value = s.get(s_current);
+
+      while(current_src <= end_src){
+         typename SIn::cell_type value = src.get(current_src);
          if(!SIn::isUndefined(value)){
             // weight if required
-            if (Traits::can_weight && use_weight.GetValue()) {
-                Rectangle<2> sc_bb = g_old.getBBox(s_current,s_current);
+            if (Traits::can_weight && use_weight) {
+                Rectangle<2> sc_bb = g_src.getBBox(current_src,current_src);
                 Rectangle<2> overlap = bb_current.Intersection(sc_bb); 
                 Traits::weight(value, overlap.Area() / area);
             }  
@@ -242,12 +247,12 @@ namespace raster2
             t->DeleteIfAllowed();
          }
         // goto next cell
-        if(s_current[0] < s_end[0]){
-           s_current[0]++;
+        if(current_src[0] < end_src[0]){
+           current_src[0]++;
         } else { // new row
-           s_current[1]++;
-           if(s_current[1] < s_end[1]){
-              s_current[0] = s_start[0]; 
+           current_src[1]++;
+           if(current_src[1] < end_src[1]){
+              current_src[0] = start_src[0]; 
            } 
         }
       }
@@ -257,16 +262,16 @@ namespace raster2
       typename SOut::wrapper_type& matched =
           *static_cast<typename SOut::wrapper_type*>(function_result.addr);
       if(matched.IsDefined()){
-          r.set(r_start,SOut::unwrap(matched));
+          res.set(current_res,SOut::unwrap(matched));
       }
 
       // goto next cell
-      if(r_start[0] < end[0]){
-         r_start[0]++;
+     if(current_res[0] < end_res[0]){
+         current_res[0]++;
       } else { // new row
-         r_start[1]++;
-         if(r_start[1] < end[1]){
-            r_start[0] = start[0]; 
+         current_res[1]++;
+         if(current_res[1] < end_res[1]){
+            current_res[0] = start_res[0]; 
          } 
       }
     }
