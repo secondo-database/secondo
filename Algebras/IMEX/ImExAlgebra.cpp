@@ -939,9 +939,9 @@ first line of the csv file and all elements are assumed to be of type string.
 
 The signature is:
 
-    ftext x int x string x string x bool -> stream(tuple( (X string) (Y string) ...))
+ ftext x int x string x string x bool -> stream(tuple( (X string) (Y string) ...))
 
-    filename, headersize, comment, separator, uses quotes, multiline
+ filename, headersize, comment, separator, uses quotes, multiline
 
 */
 
@@ -2886,7 +2886,7 @@ class shpimportInfo{
           rpoints++;
        }
      }
-     line->EndBulkLoad();
+     line->EndBulkLoad(true,true,true);//sort, realminize, robust
      if(!file.good()){
        cerr << "SHPIMPORT: Error in reading file " << filename << endl;
        delete line;
