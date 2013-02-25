@@ -24069,7 +24069,7 @@ class SplitLineInfo{
        (*res) += hs;
        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
        (*res) += hs;
-       res->EndBulkLoad();
+       res->EndBulkLoad(true,true,true);
        return res;  
         
     }
@@ -24107,7 +24107,7 @@ class SplitLineInfo{
 
 
  
-        res->EndBulkLoad();
+        res->EndBulkLoad(true,true,true);
         if(res->Size()==0){
           delete res;
           res = 0;
