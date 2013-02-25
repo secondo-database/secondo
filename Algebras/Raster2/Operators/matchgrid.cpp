@@ -232,17 +232,11 @@ namespace raster2
 
     arguments[0].setAddr(&rel);
 
-    cout << "To Process : " 
-         << (((end_res[0] - start_res[0])+1) * ((end_res[1]-start_res[1])))
-         << " cells" << endl;
-
     size_t count = 0;
 
     while (current_res <= end_res) { // iterate over all cells in g_new
                             // inside the bbox of s
 
-      cout << " \rprocess cell " << count++ ;
-      
       Rectangle<2> bb_current = g_res.getBBox(current_res,current_res);
       region_type reg_src =  g_src.getRegion(bb_current);
       
@@ -273,7 +267,7 @@ namespace raster2
            current_src[0]++;
         } else { // new row
            current_src[1]++;
-           if(current_src[1] < end_src[1]){
+           if(current_src[1] <= end_src[1]){
               current_src[0] = start_src[0]; 
            } 
         }
@@ -292,7 +286,7 @@ namespace raster2
          current_res[0]++;
       } else { // new row
          current_res[1]++;
-         if(current_res[1] < end_res[1]){
+         if(current_res[1] <= end_res[1]){
             current_res[0] = start_res[0]; 
          } 
       }
