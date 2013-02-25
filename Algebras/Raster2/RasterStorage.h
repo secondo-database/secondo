@@ -383,6 +383,7 @@ The ~RasterStorageFile~ class is derived from ~SmiKeyedFile~, because
 
       public:
         typedef RasterIndex<dim> index_type;
+        typedef RasterCache<T, dim, Undef> cache_type;
 
         static const int tile_size;
         static const int cell_count;
