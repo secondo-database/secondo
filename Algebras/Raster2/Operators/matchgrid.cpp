@@ -190,7 +190,7 @@ namespace raster2
 
     grid2 g_src = src.getGrid();
     // compute area of a single cell in source for weighting
-    double area = g_src.getLength() * g_src.getLength();
+    double area_src = g_src.getLength() * g_src.getLength();
 
     //const index_type& size = SOut::riter_type::region_size;
 
@@ -204,10 +204,32 @@ namespace raster2
     ArgVector& arguments = *qp->Argument(function);
     Word function_result;
 
-    size_t maxMem = qp->GetMemorySize(tree);
+    size_t maxMem = qp->GetMemorySize(tree)*1024*1024; // in byte
+
+    // compute, how many tuples must be stored in TupleBuffer
+    int noCells = ((int) ceil(g_src.getLength() / g_res.getLength()) ) + 1;
+    int noTuples = noCells * noCells;
+    int tupleSize = 200; 
+
+    size_t cacheItemSize = 
+             sizeof(typename SIn::storage_type::cache_type::Item) 
+           + sizeof(size_t) * 8;
+
+
+
+    size_t tupleBufferSize = tupleSize * noTuples;
+    if(tupleBufferSize > maxMem/2){
+       tupleBufferSize = maxMem/2; 
+    } 
 
     // create temporarly relation
-    TupleBuffer rel(maxMem);
+    TupleBuffer rel(tupleBufferSize);
+
+    size_t cacheSize = (maxMem - tupleBufferSize) / cacheItemSize;
+
+    src.setCacheSize(cacheSize / 2);
+    res.setCacheSize(cacheSize / 2);
+
     arguments[0].setAddr(&rel);
 
     cout << "To Process : " 
@@ -237,7 +259,7 @@ namespace raster2
             if (Traits::can_weight && use_weight) {
                 Rectangle<2> sc_bb = g_src.getBBox(current_src,current_src);
                 Rectangle<2> overlap = bb_current.Intersection(sc_bb); 
-                Traits::weight(value, overlap.Area() / area);
+                Traits::weight(value, overlap.Area() / area_src);
             }  
             typename SIn::wrapper_type* attr =
                 new typename SIn::wrapper_type(SIn::wrap(value));
