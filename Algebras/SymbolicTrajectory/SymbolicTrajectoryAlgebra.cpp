@@ -54,7 +54,6 @@ This algebra includes the operators ~matches~ and ~rewrite~.
 #include "SecParser.h"
 #include "Pattern.h"
 #include "TemporalUnitAlgebra.h"
-#include "InvertedFile.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -1377,7 +1376,7 @@ ListExpr containsTypeMap(ListExpr args) {
 \subsection{Value Mapping}
 
 */
-int containsFun(Word* args, Word& result, int message, Word& local, Supplier s){
+int containsVM(Word* args, Word& result, int message, Word& local, Supplier s) {
   Labels *labels = static_cast<Labels*>(args[0].addr);
   CcString* ccstr = static_cast<CcString*>(args[1].addr);
   result = qp->ResultStorage(s);
@@ -3291,7 +3290,7 @@ ListExpr topatternTypeMap(ListExpr args) {
 \subsection{Value Mapping}
 
 */
-int topatternFun(Word* args, Word& result, int message, Word& local,
+int topatternVM(Word* args, Word& result, int message, Word& local,
                  Supplier s) {
   FText* patternText = static_cast<FText*>(args[0].addr);
   result = qp->ResultStorage(s);
@@ -3367,7 +3366,7 @@ int matchesSelect(ListExpr args) {
 \subsection{Value Mapping (for a Pattern)}
 
 */
-int matchesFun_PatML(Word* args, Word& result, int message,
+int matchesVM_PatML(Word* args, Word& result, int message,
                      Word& local, Supplier s) {
   MLabel* ml = static_cast<MLabel*>(args[0].addr);
   const Pattern* p = static_cast<Pattern*>(args[1].addr);
@@ -3386,7 +3385,7 @@ int matchesFun_PatML(Word* args, Word& result, int message,
   return 0;
 }
 
-int matchesFun_PatMS(Word* args, Word& result, int message,
+int matchesVM_PatMS(Word* args, Word& result, int message,
                      Word& local, Supplier s) {
   MString* ms = static_cast<MString*>(args[0].addr);
   MLabel* ml = 0;
@@ -3409,7 +3408,7 @@ int matchesFun_PatMS(Word* args, Word& result, int message,
 \subsection{Value Mapping (for a text)}
 
 */
-int matchesFun_TextML(Word* args, Word& result, int message,
+int matchesVM_TextML(Word* args, Word& result, int message,
                       Word& local, Supplier s) {
   MLabel* ml = static_cast<MLabel*>(args[0].addr);
   FText* patternText = static_cast<FText*>(args[1].addr);
@@ -3435,7 +3434,7 @@ int matchesFun_TextML(Word* args, Word& result, int message,
   return 0;
 }
 
-int matchesFun_TextMS(Word* args, Word& result, int message,
+int matchesVM_TextMS(Word* args, Word& result, int message,
                       Word& local, Supplier s) {
   MString* ms = static_cast<MString*>(args[0].addr);
   MLabel* ml = 0;
@@ -3473,10 +3472,10 @@ struct matchesInfo : OperatorInfo {
     name      = "matches";
     signature = MLabel::BasicType() + " x " + Pattern::BasicType() + " -> "
                                     + CcBool::BasicType();
-    appendSignature(MLabel::BasicType() + " x Text -> " + CcBool::BasicType());
+    appendSignature(MLabel::BasicType() + " x text -> " + CcBool::BasicType());
     appendSignature(MString::BasicType() +" x " + Pattern::BasicType() + " -> "
                                          + CcBool::BasicType());
-    appendSignature(MString::BasicType() + " x Text -> " + CcBool::BasicType());
+    appendSignature(MString::BasicType() + " x text -> " + CcBool::BasicType());
     syntax    = "_ matches _";
     meaning   = "Match predicate.";
   }
@@ -3618,7 +3617,7 @@ struct filterMatchesInfo : OperatorInfo {
 ListExpr rewriteTypeMap(ListExpr args) {
   NList type(args);
   const string errMsg = "Expecting a mlabel and a text or a mstring and a text"
-                        " or a Stream<FText> and a Stream<MLabel>";
+                        " or a stream<text> and a stream<mlabel>";
   if ((type == NList(MLabel::BasicType(), Pattern::BasicType()))
    || (type == NList(MLabel::BasicType(), FText::BasicType()))
    || (type == NList(MString::BasicType(), Pattern::BasicType()))
@@ -3752,7 +3751,7 @@ bool RewriteResult::initAssignOpTrees() {
 
 */
 template<class T>
-int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
+int rewriteVM_MT(Word* args, Word& result, int message, Word& local,
                   Supplier s) {
   MLabel* mlabel = 0;
   MLabel* ml = 0;
@@ -3768,7 +3767,7 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
         return 0;
       }
       if (!mlabel->IsDefined()) {
-        cout << "Error: undefined MLabel." << endl;
+        cout << "Error: undefined mlabel." << endl;
         return 0;
       }
       p = Pattern::getPattern(pText->toText());
@@ -3850,7 +3849,7 @@ int rewriteFun_MT(Word* args, Word& result, int message, Word& local,
 \subsection{Value Mapping (for a Pattern)}
 
 */
-int rewriteFun_MP(Word* args, Word& result, int message, Word& local,
+int rewriteVM_MP(Word* args, Word& result, int message, Word& local,
                   Supplier s) {
   MLabel* mlabel = 0;
   MLabel* ml = 0;
@@ -3860,7 +3859,7 @@ int rewriteFun_MP(Word* args, Word& result, int message, Word& local,
     case OPEN: {
       mlabel = static_cast<MLabel*>(args[0].addr);
       if (!mlabel->IsDefined()) {
-        cout << "Error: undefined MLabel." << endl;
+        cout << "Error: undefined mlabel." << endl;
         return 0;
       }
       p = static_cast<Pattern*>(args[1].addr);
@@ -3927,7 +3926,7 @@ int rewriteFun_MP(Word* args, Word& result, int message, Word& local,
 \subsection{Value Mapping (for a stream of patterns and a stream of mlabels)}
 
 */
-int rewriteFun_Stream(Word* args, Word& result, int message, Word& local,
+int rewriteVM_Stream(Word* args, Word& result, int message, Word& local,
                   Supplier s) {
   ClassifyLI *li = (ClassifyLI*)local.addr;
   switch (message) {
@@ -3937,7 +3936,7 @@ int rewriteFun_Stream(Word* args, Word& result, int message, Word& local,
         local.addr = 0;
       }
       bool dummy = false;
-      local.addr = new ClassifyLI(args[0], args[1], dummy);
+      local.addr = new ClassifyLI(args[0], args[1], 0, dummy);
       return 0;
     }
     case REQUEST: {
@@ -3962,10 +3961,10 @@ int rewriteFun_Stream(Word* args, Word& result, int message, Word& local,
 struct rewriteInfo : OperatorInfo {
   rewriteInfo() {
     name      = "rewrite";
-    signature = "MLabel x text -> stream(MLabel)";
-    appendSignature("MString x text -> + stream(MString)");
-    appendSignature("stream(text) x stream(MLabel) -> stream(MLabel)");
-    appendSignature("stream(text) x stream(MString) -> stream(MLabel)");
+    signature = "mlabel x text -> stream(mlabel)";
+    appendSignature("mstring x text -> + stream(mstring)");
+    appendSignature("stream(text) x stream(mlabel) -> stream(mlabel)");
+    appendSignature("stream(text) x stream(mstring) -> stream(mlabel)");
     syntax    = "_ rewrite _";
     meaning   = "Rewrite a mlabel or a stream of them.";
   }
@@ -3979,35 +3978,44 @@ struct rewriteInfo : OperatorInfo {
 */
 ListExpr classifyTypeMap(ListExpr args) {
   const string errMsg = "Expecting a stream(tuple(x, y)) with x,y in "
-             "{string, text} and a stream(z) with z in {MLabel, MString}.";
-  if (!nl->HasLength(args, 2)) {
-    return listutils::typeError(errMsg);
-  }
-  if (!Stream<Tuple>::checkType(nl->First(args))) {
-    return listutils::typeError(errMsg);
-  }
-  ListExpr dType, pType;
-  // ensure to have at least two attributes
-  if(nl->ListLength(nl->Second(nl->Second(nl->First(args)))) < 2){
-    return listutils::typeError("tuple has not enough attributes");
-  } 
-  dType = nl->Second(nl->First(nl->Second(nl->Second(nl->First(args)))));
-  pType = nl->Second(nl->Second(nl->Second(nl->Second(nl->First(args)))));
-  if ((!CcString::checkType(dType) && !FText::checkType(dType))
-   || (!CcString::checkType(pType) && !FText::checkType(pType))) {
-     return listutils::typeError(errMsg);
-  }
-  ListExpr arg2 = nl->Second(args);
-  if (!Stream<MLabel>::checkType(arg2) && !Stream<MString>::checkType(arg2)) {
-    return listutils::typeError(errMsg);
-  }
-  ListExpr outputAttrs = nl->TwoElemList(
+             "{string, text} and a stream(z) with z in {mlabel, mstring}. "
+             "An invfile may be used as third argument.";
+  if (nl->HasLength(args, 2) || nl->HasLength(args, 3)) {
+    if (Stream<Tuple>::checkType(nl->First(args))) {
+      ListExpr dType, pType;
+      if(nl->ListLength(nl->Second(nl->Second(nl->First(args)))) < 2){
+        return listutils::typeError("tuple has not enough attributes");
+      }
+      dType = nl->Second(nl->First(nl->Second(nl->Second(nl->First(args)))));
+      pType = nl->Second(nl->Second(nl->Second(nl->Second(nl->First(args)))));
+      if ((CcString::checkType(dType) || FText::checkType(dType))
+       && (CcString::checkType(pType) || FText::checkType(pType))) {
+        ListExpr arg2 = nl->Second(args);
+        if (Stream<MLabel>::checkType(arg2)
+         || Stream<MString>::checkType(arg2)) {
+          ListExpr outputAttrs = nl->TwoElemList(
               nl->TwoElemList(nl->SymbolAtom("Description"),
                               nl->SymbolAtom(FText::BasicType())),
               nl->TwoElemList(nl->SymbolAtom("Trajectory"), nl->Second(arg2)));
-  return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                         nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-                                         outputAttrs));
+          if (nl->HasLength(args, 2) || (nl->HasLength(args, 3)
+           && InvertedFile::checkType(nl->Third(args)))) {
+            return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                             nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                             outputAttrs));
+          }
+        }
+      }
+    }
+  }
+  return listutils::typeError(errMsg);
+}
+
+/*
+\subsection{Selection Function}
+
+*/
+int classifySelect(ListExpr args) {
+  return (nl->HasLength(args, 2) ? 0 : 1);
 }
 
 /*
@@ -4016,8 +4024,10 @@ ListExpr classifyTypeMap(ListExpr args) {
 This constructor is used for the operator ~classify~.
 
 */
-ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream) :
+ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, InvertedFile* inv) :
                        mlStream(_mlstream), currentML(0), mainMatch(0) {
+  invFile = inv;
+  
   classifyTT = getTupleType();
   Stream<Tuple> pStream(_pstream);
   pStream.open();
@@ -4072,8 +4082,28 @@ ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream) :
 This constructor is used for the operator ~rewrite~.
 
 */
-ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, bool rewrite) :
+ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, InvertedFile* inv,
+                       bool rewrite) :
                        mlStream(_mlstream), currentML(0), mainMatch(0) {
+  invFile = inv;
+  
+//   TupleId id;
+//   wordPosType wc;
+//   charPosType cc;
+//   InvertedFile::exactIterator* it = inv->getExactIterator("Huckarde", 4096);
+//   while (it->next(id, wc, cc)) {
+//     cout << "Huckarde: " << id << " " << wc << " " << cc << endl;
+//   }
+//   it = inv->getExactIterator("Innenstadt-Nord", 4096);
+//   while (it->next(id, wc, cc)) {
+//     cout << "Innenstadt-Nord: " << id << " " << wc << " " << cc << endl;
+//   }
+//   it = inv->getExactIterator("Mengede", 4096);
+//   while (it->next(id, wc, cc)) {
+//     cout << "Mengede: " << id << " " << wc << " " << cc << endl;
+//   }
+
+  
   classifyTT = 0;
   Stream<FText> pStream(_pstream);
   pStream.open();
@@ -4269,10 +4299,10 @@ void Pattern::deleteAssignOpTrees(bool deleteConds) {
 }
 
 /*
-\subsection{Value Mapping}
+\subsection{Value Mapping without index}
 
 */
-int classifyFun(Word* args, Word& result, int message, Word& local, Supplier s){
+int classifyVM(Word* args, Word& result, int message, Word& local, Supplier s){
   ClassifyLI *li = (ClassifyLI*)local.addr;
   switch (message) {
     case OPEN: {
@@ -4280,7 +4310,39 @@ int classifyFun(Word* args, Word& result, int message, Word& local, Supplier s){
         delete li;
         local.addr = 0;
       }
-      local.addr = new ClassifyLI(args[0], args[1]);
+      local.addr = new ClassifyLI(args[0], args[1], 0);
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextResultTuple() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Value Mapping with index}
+
+*/
+int classifyIndexVM(Word* args, Word& result, int message, Word& local,
+                    Supplier s){
+  ClassifyLI *li = (ClassifyLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
+      local.addr = new ClassifyLI(args[0], args[1], inv);
       return 0;
     }
     case REQUEST: {
@@ -4305,8 +4367,8 @@ int classifyFun(Word* args, Word& result, int message, Word& local, Supplier s){
 struct classifyInfo : OperatorInfo {
   classifyInfo() {
     name      = "classify";
-    signature = "text x stream(MLabel) -> stream(tuple(string, MLabel))";
-    appendSignature("text x stream(MString) -> stream(tuple(string, MString))");
+    signature = "text x stream(mlabel) -> stream(tuple(string, mlabel))";
+    appendSignature("text x stream(mstring) -> stream(tuple(string, mstring))");
     syntax    = "_ classify _";
     meaning   = "Classifies a stream of trajectories according to a set of "
                 "patterns and descriptions from a file";
@@ -4352,7 +4414,7 @@ int compressSelect(ListExpr args) {
 
 */
 template<class T>
-int compressFun_1(Word* args, Word& result, int message, Word& local,
+int compressVM_1(Word* args, Word& result, int message, Word& local,
                   Supplier s){
   T* mlabel = static_cast<T*>(args[0].addr);
   result = qp->ResultStorage(s);
@@ -4368,7 +4430,7 @@ int compressFun_1(Word* args, Word& result, int message, Word& local,
 
 */
 template<class T>
-int compressFun_Str(Word* args, Word& result, int message, Word& local,
+int compressVM_Str(Word* args, Word& result, int message, Word& local,
                   Supplier s){
   switch (message) {
     case OPEN: {
@@ -4402,10 +4464,10 @@ int compressFun_Str(Word* args, Word& result, int message, Word& local,
 struct compressInfo : OperatorInfo {
   compressInfo() {
     name      = "compress";
-    signature = "MLabel -> MLabel";
-    appendSignature("MString -> MString");
-    appendSignature("stream(MLabel) -> stream(MLabel)");
-    appendSignature("stream(MString) -> stream(MString)");
+    signature = "mlabel -> mlabel";
+    appendSignature("mstring -> mstring");
+    appendSignature("stream(mlabel) -> stream(mlabel)");
+    appendSignature("stream(mstring) -> stream(mstring)");
     syntax    = "compress(_)";
     meaning   = "Unites temporally subsequent units with the same label.";
   }
@@ -4453,7 +4515,7 @@ int fillgapsSelect(ListExpr args) {
 
 */
 template<class T>
-int fillgapsFun_1(Word* args, Word& result, int message, Word& local,
+int fillgapsVM_1(Word* args, Word& result, int message, Word& local,
                   Supplier s) {
   T* source = (T*)(args[0].addr);
   CcInt* ccDur = (CcInt*)(args[1].addr);
@@ -4470,7 +4532,7 @@ int fillgapsFun_1(Word* args, Word& result, int message, Word& local,
 
 */
 template<class T>
-int fillgapsFun_Str(Word* args, Word& result, int message, Word& local,
+int fillgapsVM_Str(Word* args, Word& result, int message, Word& local,
                     Supplier s){
   CcInt* ccInt = 0;
   switch (message) {
@@ -4515,10 +4577,10 @@ int fillgapsFun_Str(Word* args, Word& result, int message, Word& local,
 struct fillgapsInfo : OperatorInfo {
   fillgapsInfo() {
     name      = "fillgaps";
-    signature = "MLabel -> MLabel";
-    appendSignature("MString -> MString");
-    appendSignature("stream(MLabel) -> stream(MLabel)");
-    appendSignature("stream(MString) -> stream(MString)");
+    signature = "mlabel -> mlabel";
+    appendSignature("mstring -> mstring");
+    appendSignature("stream(mlabel) -> stream(mlabel)");
+    appendSignature("stream(mstring) -> stream(mstring)");
     syntax    = "fillgaps(_)";
     meaning   = "Fills temporal gaps between two (not temporally) subsequent "
                 "units inside the moving label if the labels coincide";
@@ -4549,7 +4611,7 @@ ListExpr createmlTypeMap(ListExpr args) {
 \subsection{Value Mapping}
 
 */
-int createmlFun(Word* args, Word& result, int message, Word& local, Supplier s){
+int createmlVM(Word* args, Word& result, int message, Word& local, Supplier s){
   CcInt* ccint = static_cast<CcInt*>(args[0].addr);
   CcReal* ccreal = static_cast<CcReal*>(args[1].addr);
   int size;
@@ -4575,7 +4637,7 @@ int createmlFun(Word* args, Word& result, int message, Word& local, Supplier s){
 struct createmlInfo : OperatorInfo {
   createmlInfo() {
     name      = "createml";
-    signature = "int x real -> MLabel";
+    signature = "int x real -> mlabel";
     syntax    = "createml(_,_)";
     meaning   = "Creates an MLabel, the size being determined by the first"
                 "parameter. The second one is the rate of different entries.";
@@ -4604,7 +4666,7 @@ ListExpr createmlrelationTypeMap(ListExpr args) {
 \subsection{Value Mapping}
 
 */
-int createmlrelationFun(Word* args, Word& result, int message, Word& local,
+int createmlrelationVM(Word* args, Word& result, int message, Word& local,
                         Supplier s) {
   CcInt* ccint1 = static_cast<CcInt*>(args[0].addr);
   CcInt* ccint2 = static_cast<CcInt*>(args[1].addr);
@@ -4617,7 +4679,7 @@ int createmlrelationFun(Word* args, Word& result, int message, Word& local,
     SecondoCatalog* sc = SecondoSystem::GetCatalog();
     relName = ccstring->GetValue();
     if (!sc->IsValidIdentifier(relName, errMsg, true)) { // check relation name
-      cout << "Error: " << errMsg << endl;
+      cout << "Relation Error: " << errMsg << endl;
       res->Set(true, false);
       return 0;
     }
@@ -4692,7 +4754,7 @@ ListExpr createindexTypeMap(ListExpr args) {
 \subsection{Value Mapping}
 
 */
-int createindexFun(Word* args, Word& result, int message, Word& local,
+int createindexVM(Word* args, Word& result, int message, Word& local,
                    Supplier s) {
   MLabel* source = (MLabel*)(args[0].addr);
   MLabel* res = new MLabel(1);
@@ -4767,8 +4829,8 @@ ListExpr createrelindexTypeMap(ListExpr args) {
 \subsection{Value Mapping}
 
 */
-int createrelindexFun(Word* args, Word& result, int message, Word& local,
-                      Supplier s) {
+int createrelindexVM(Word* args, Word& result, int message, Word& local,
+                     Supplier s) {
   Relation *rel = (Relation*)(args[0].addr);
   Tuple *tuple = 0;
   MLabel *ml = 0;
@@ -4801,21 +4863,6 @@ int createrelindexFun(Word* args, Word& result, int message, Word& local,
                         trieCache);
     }
   }
-//   TupleId id;
-//   wordPosType wc;
-//   charPosType cc;
-//   InvertedFile::exactIterator* it = inv->getExactIterator("Huckarde", 4096);
-//   while (it->next(id, wc, cc)) {
-//     cout << "Huckarde: " << id << " " << wc << " " << cc << endl;
-//   }
-//   it = inv->getExactIterator("Innenstadt-Nord", 4096);
-//   while (it->next(id, wc, cc)) {
-//     cout << "Innenstadt-Nord: " << id << " " << wc << " " << cc << endl;
-//   }  
-//   it = inv->getExactIterator("Mengede", 4096);
-//   while (it->next(id, wc, cc)) {
-//     cout << "Mengede: " << id << " " << wc << " " << cc << endl;
-//   }
   return 0;
 }
 
@@ -4853,46 +4900,49 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
 //       AddOperator(&temporalatinstantext);
 
-      AddOperator(containsInfo(), containsFun, containsTypeMap);
+      AddOperator(containsInfo(), containsVM, containsTypeMap);
       
-      AddOperator(topatternInfo(), topatternFun, topatternTypeMap);
+      AddOperator(topatternInfo(), topatternVM, topatternTypeMap);
 
-      ValueMapping matchesFuns[] = {matchesFun_TextML,
-                                    matchesFun_PatML,
-                                    matchesFun_TextMS,
-                                    matchesFun_PatMS, 0};
-      AddOperator(matchesInfo(), matchesFuns, matchesSelect, matchesTypeMap);
+      ValueMapping matchesVMs[] = {matchesVM_TextML,
+                                   matchesVM_PatML,
+                                   matchesVM_TextMS,
+                                   matchesVM_PatMS, 0};
+      AddOperator(matchesInfo(), matchesVMs, matchesSelect, matchesTypeMap);
 
       AddOperator(filterMatchesInfo(), filterMatchesVM, filterMatchesTM);
       
-      ValueMapping rewriteFuns[] = {rewriteFun_MT<MLabel>,
-                                    rewriteFun_MT<MString>,
-                                    rewriteFun_MP,
-                                    rewriteFun_Stream, 0};
-      AddOperator(rewriteInfo(), rewriteFuns, rewriteSelect, rewriteTypeMap);
+      ValueMapping rewriteVMs[] = {rewriteVM_MT<MLabel>,
+                                   rewriteVM_MT<MString>,
+                                   rewriteVM_MP,
+                                   rewriteVM_Stream, 0};
+      AddOperator(rewriteInfo(), rewriteVMs, rewriteSelect, rewriteTypeMap);
 
-      AddOperator(classifyInfo(), classifyFun, classifyTypeMap);
+      ValueMapping classifyVMs[] = {classifyVM,
+                                    classifyIndexVM, 0};
+      
+      AddOperator(classifyInfo(), classifyVMs, classifySelect, classifyTypeMap);
 
-      ValueMapping compressFuns[] = {compressFun_1<MLabel>,
-                                     compressFun_1<MString>,
-                                     compressFun_Str<MLabel>,
-                                     compressFun_Str<MString>, 0};
-      AddOperator(compressInfo(), compressFuns, compressSelect,compressTypeMap);
+      ValueMapping compressVMs[] = {compressVM_1<MLabel>,
+                                    compressVM_1<MString>,
+                                    compressVM_Str<MLabel>,
+                                    compressVM_Str<MString>, 0};
+      AddOperator(compressInfo(), compressVMs, compressSelect,compressTypeMap);
 
-      ValueMapping fillgapsFuns[] = {fillgapsFun_1<MLabel>,
-                                     fillgapsFun_1<MString>,
-                                     fillgapsFun_Str<MLabel>,
-                                     fillgapsFun_Str<MString>, 0};
-      AddOperator(fillgapsInfo(), fillgapsFuns, fillgapsSelect,fillgapsTypeMap);
+      ValueMapping fillgapsVMs[] = {fillgapsVM_1<MLabel>,
+                                    fillgapsVM_1<MString>,
+                                    fillgapsVM_Str<MLabel>,
+                                    fillgapsVM_Str<MString>, 0};
+      AddOperator(fillgapsInfo(), fillgapsVMs, fillgapsSelect,fillgapsTypeMap);
 
-      AddOperator(createmlInfo(), createmlFun, createmlTypeMap);
+      AddOperator(createmlInfo(), createmlVM, createmlTypeMap);
 
-      AddOperator(createmlrelationInfo(), createmlrelationFun,
+      AddOperator(createmlrelationInfo(), createmlrelationVM,
                   createmlrelationTypeMap);
 
-      AddOperator(createindexInfo(), createindexFun, createindexTypeMap);
+      AddOperator(createindexInfo(), createindexVM, createindexTypeMap);
 
-      AddOperator(createrelindexInfo(),createrelindexFun,createrelindexTypeMap);
+      AddOperator(createrelindexInfo(),createrelindexVM,createrelindexTypeMap);
 
     }
     ~SymbolicTrajectoryAlgebra() {}

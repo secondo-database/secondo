@@ -42,6 +42,7 @@ This is the header file for the Symbolic Trajectory Algebra.
 #include "ListUtils.h"
 #include "RelationAlgebra.h"
 #include "Stream.h"
+#include "InvertedFile.h"
 #include <string>
 #include <set>
 
@@ -510,8 +511,8 @@ class ClassifyLI {
 friend class Match;
 
 public:
-  ClassifyLI(Word _pstream, Word _mlstream);
-  ClassifyLI(Word _pstream, Word _mlstream, bool rewrite); // dummy parameter
+  ClassifyLI(Word _pstream, Word _mlstream, InvertedFile* inv);
+  ClassifyLI(Word _pstream, Word _mlstream, InvertedFile* inv, bool rewrite);
 
   ~ClassifyLI();
 
@@ -533,6 +534,7 @@ private:
   Match* mainMatch;
   map<int, vector<set<size_t> > > matches;//pattern_id -> (upat -> set(ulabel))
   vector<MLabel*> rewritten;
+  InvertedFile* invFile;
 };
 
 }
