@@ -811,9 +811,12 @@ Returns the size of attribute i including its extension part.
 
    // returns the size in memory of attribute i
    inline size_t  GetMemSize(int i) const {
-      size_t attrMemSize = GetRootSize(i) +
-                           attributes[i]->getUncontrolledFlobSize();
-      return attrMemSize;
+      if(attributes[i]){
+       return GetRootSize(i) +
+              attributes[i]->getUncontrolledFlobSize();
+      } else {
+          return 0;
+      }
    }
 
 
