@@ -42,7 +42,7 @@ Number   : 2
 Signature: mstring x text -> stream(mstring)
 Example  : query [const mstring value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))] 'X () => X // X.label := "at_work"' rewrite count
 Result   : 1
-
+ 
 Operator : classify
 Number   : 1
 Signature: stream(tuple(text, string)) x stream(mlabel) -> stream(tuple(string, mlabel))
@@ -97,8 +97,14 @@ Signature: int x int x string -> bool
 Example  : query createmlrelation(100, 500, "Test1")
 Result   : TRUE
 
-Operator : index
+Operator : createindex
 Number   : 1
-Signature: mlabel -> bool
-Example  : query index([const mlabel value ((("2000-01-01" "2000-01-02" TRUE FALSE) "at_home"))])
+Signature: mlabel -> mlabel
+Example  : query createindex(michael) matches '* (_ at_home)'
 Result   : TRUE
+
+Operator : createrelindex
+Number   : 1
+Signature: rel(tuple(int, mlabel)) -> invfile
+Example  : query createrelindex(Dotraj)
+Result   : file

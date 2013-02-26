@@ -597,32 +597,17 @@ void fillML(const MString& source, MString& result, DateTime* duration) {
   result.MergeAdd(last);
 }
 
-LabelTrie::LabelTrie(DbArray<NodeRef>* n, DbArray<NodeLink>* nL,
-                     DbArray<size_t>* lI) {
-  nodes = *n;
-  nodeLinks = *nL;
-  labelIndex = *lI;
+MLabelIndex::MLabelIndex(DbArray<NodeRef> n, DbArray<NodeLink> nL,
+                     DbArray<size_t> lI) {
+  nodes = n;
+  nodeLinks = nL;
+  labelIndex = lI;
+  root = 0;
 }
 
-// TrieNode::~TrieNode() {
-//   for (int i = 1; i < 256; i++) {
-//     if (content[i].nextNode) {
-//       cout << "delete nextNode of \'" << i << "\'" << endl;
-//       delete content[i].nextNode;
-//       cout << "done" << endl;
-//     }
-//   }
-// //  delete content;
-// //   cout << "delete this" << endl;
-// //   delete this;
-// //   cout << "this deleted" << endl;
-// }
-
-bool LabelTrie::insert(string label, size_t pos) {
+void MLabelIndex::insert(string label, set<size_t> pos) {
   if (!root) {
     root = new TrieNode();
-//     cout << "root created" << endl;
-    nodeCounter++;
   }
   TrieNode *ptr = root;
   unsigned char c;
@@ -631,31 +616,25 @@ bool LabelTrie::insert(string label, size_t pos) {
     c = label[i];
     if (!ptr->content[c].nextNode) { // successor node has to be created
       if (i == label.length()) { // after last character
-        ptr->positions.insert(pos);
-//    cout << "position " << pos << " inserted for \'" << label << "\'" << endl;
+        ptr->positions.insert(pos.begin(), pos.end());
       }
       else {
         ptr->content[c].nextNode = new TrieNode();
-        nodeCounter++;
-//         cout << "successor of \'" << c << "\' created; ";
         ptr = ptr->content[c].nextNode;
-//         cout << "pointer moved to child of \'" << c << "\'" << endl;
       }
     }
     else { // path exists
       ptr = ptr->content[c].nextNode;
-//       cout << "pointer moved to next level after \'" << c << "\'" << endl;
     }
     i++;
   }
-  return true;
 }
 
-set<size_t> LabelTrie::find(string label) {
-  set<size_t> emptyset;
+set<size_t> MLabelIndex::find(string label) {
+  set<size_t> result;
   if (!root) {
-//     cout << "trie is empty" << endl;
-    return emptyset;
+    result = findInDbArrays(label);
+    return result;
   }
   if (!label.length()) { // empty label
     return root->positions;
@@ -672,25 +651,78 @@ set<size_t> LabelTrie::find(string label) {
       ptr = ptr->content[c].nextNode;
     }
     else { // path does not exist
-//       cout << "path to \'" << c << "\' does not exist" << endl;
-      return emptyset;
+      result = findInDbArrays(label);
+      return result;
     }
     i++;
   }
-  return emptyset; // should not occur
+  return result; // should not occur
 }
 
-void LabelTrie::makePersistent() {
+set<size_t> MLabelIndex::findInDbArrays(string label) {
+  set<size_t> result;
+  if (!nodes.Size()) {
+    return result;
+  }
+  NodeRef nRef = getNodeRef(0);
+  unsigned int i(0);
+  int nodeRefPos(0);
+  bool found = false;
+  while (i < label.length()) {
+    if ((nRef.firstCont == -1) || (nRef.lastCont == -1)) {
+      return result;
+    }
+    found = false;
+    if (nRef.lastCont < nodeLinks.Size()) {
+      for (int j = nRef.firstCont; (j <= nRef.lastCont && !found); j++) {
+        if (getNodeLink(j).character == label[i]) {
+          found = true;
+          nodeRefPos = getNodeLink(j).nextNode;
+        }
+      }
+      if (!found) {
+        return result;
+      }
+    }
+    else {
+      cout << "NL Error:" << nRef.lastCont << ">=" << nodeLinks.Size() << endl;
+      return result;
+    }
+    if (nodeRefPos < nodes.Size()) {
+      nRef = getNodeRef(nodeRefPos);
+    }
+    else {
+      cout << "Nodes Error: " << nodeRefPos << " >= " << nodes.Size() << endl;
+      return result;
+    }
+    i++;
+  }
+  if ((nRef.firstIndex > -1) && (nRef.lastIndex > -1)) {
+    if (nRef.lastIndex < labelIndex.Size()) {
+      for (int k = nRef.firstIndex; k <= nRef.lastIndex; k++) {
+        result.insert(getLabelIndex(k));
+      }
+    }
+    else {
+      cout << "LI Err:" << nRef.lastIndex << ">=" << labelIndex.Size() << endl;
+      return result;
+    }
+  }
+  insert(label, result);
+  return result;
+}
+
+void MLabelIndex::makePersistent() {
   if (!root) {
-//     cout << "trie is empty" << endl;
   }
   else {
-//     cout << "continue with root" << endl;
-    makePersistent(root);
+    stack<unsigned int> nodeIndexes;
+    makePersistent(root, nodeIndexes);
   }
 }
 
-void LabelTrie::makePersistent(TrieNode* ptr) {
+void MLabelIndex::makePersistent(TrieNode* ptr,
+                                 stack<unsigned int>& nodeIndexes) {
   pair<unsigned int, vector<char> > childs = ptr->getChilds();
   NodeRef nRef;
   nRef.firstCont = (childs.first ? nodeLinks.Size() : -1);
@@ -699,9 +731,6 @@ void LabelTrie::makePersistent(TrieNode* ptr) {
   nRef.lastIndex = (ptr->positions.size() ?
                    labelIndex.Size() + ptr->positions.size() - 1 : -1);
   nodes.Append(nRef);
-//   cout << "Node [" << nRef.firstCont << ", " << nRef.lastCont << "; "
-//        << nRef.firstIndex << ", " << nRef.lastIndex << "] inserted at pos "
-//        << nodes.Size() - 1 << endl;
   NodeLink nLink;
   if (childs.first) {
     nLink.character = childs.second.back();
@@ -717,37 +746,30 @@ void LabelTrie::makePersistent(TrieNode* ptr) {
       childs.second.pop_back();
     }
     while (missingIndexes.size()) {
-      nodeIndexStack.push(missingIndexes.top());
+      nodeIndexes.push(missingIndexes.top());
       missingIndexes.pop();
     }
   }
-  else if (nodeIndexStack.size()) {
-    nodeLinks.Get(nodeIndexStack.top(), nLink);
+  else if (nodeIndexes.size()) {
+    nodeLinks.Get(nodeIndexes.top(), nLink);
     nLink.nextNode = nodes.Size();
-    nodeLinks.Put(nodeIndexStack.top(), nLink);
-    nodeIndexStack.pop();
+    nodeLinks.Put(nodeIndexes.top(), nLink);
+    nodeIndexes.pop();
   }
   for (set<size_t>::iterator it = ptr->positions.begin();
                                    it != ptr->positions.end(); it++) {
     labelIndex.Append(*it);
-//     cout << *it << " appended at position " << labelIndex.Size() - 1 << endl;
   }
-  bool successor = false;
   for (int i = 0; i < 256; i++) {
     if (ptr->content[i].nextNode) {
-      successor = true;
-//       cout << "continue with " << (char)i << "\'s successor" << endl;
-      makePersistent(ptr->content[i].nextNode);
+      makePersistent(ptr->content[i].nextNode, nodeIndexes);
     }
-  }
-  if (!successor) {
-//     cout << "no successor" << endl;
   }
 }
 
-void LabelTrie::removeTrie() {
+void MLabelIndex::removeTrie() {
   if (!root) {
-    cout << "nothing to remove" << endl;
+    return;
   }
   for (int i = 0; i < 256; i++) {
     if (root->content[i].nextNode) {
@@ -755,11 +777,10 @@ void LabelTrie::removeTrie() {
     }
   }
   delete root;
-  nodeCounter--;
   root = 0;
 }
 
-void LabelTrie::remove(TrieNode* ptr1, unsigned char c) {
+void MLabelIndex::remove(TrieNode* ptr1, unsigned char c) {
   TrieNode* ptr2 = ptr1->content[c].nextNode;
   for (int i = 0; i < 256; i++) {
     if (ptr2->content[i].nextNode) { // successor of ~i~ exists
@@ -767,7 +788,6 @@ void LabelTrie::remove(TrieNode* ptr1, unsigned char c) {
     }
   } // all successors removed now
   delete ptr2;
-  nodeCounter--;
 }
 
 pair<unsigned int, vector<char> > TrieNode::getChilds() {
@@ -782,7 +802,7 @@ pair<unsigned int, vector<char> > TrieNode::getChilds() {
   return make_pair(number, characters);
 }
 
-void LabelTrie::printDbArrays() {
+void MLabelIndex::printDbArrays() {
   stringstream ss;
   ss << "Nodes" << endl << "=====" << endl;
   NodeRef nRef;
@@ -791,17 +811,53 @@ void LabelTrie::printDbArrays() {
     ss << i << "  [" << nRef.firstCont << ", " << nRef.lastCont << "] ["
        << nRef.firstIndex << ", " << nRef.lastIndex << "]" << endl;
   }
-  ss << endl << "NodeContent" << endl << "============" << endl;
+  ss << endl << "NodeLinks" << endl << "=========" << endl;
   NodeLink nLink;
   for (int i = 0; i < nodeLinks.Size(); i++) {
     nodeLinks.Get(i, nLink);
     ss << i << "  \'" << nLink.character << "\'  " << nLink.nextNode << endl;
   }
-  ss << endl << "LabelIndex" << endl << "==========" << endl;
+  ss << endl << "LabelIndexes" << endl << "============" << endl;
   size_t index;
   for (int i = 0; i < labelIndex.Size(); i++) {
     labelIndex.Get(i, index);
     ss << i << "  " << index << endl;
   }
   cout << ss.str() << endl;
+}
+
+NodeRef MLabelIndex::getNodeRef(int pos) const {
+  assert((0 <= pos) && (pos < getNodeRefSize()));
+  NodeRef nRef;
+  cout << "try to get nodeRef #" << pos;
+  nodes.Get(pos, nRef);
+  cout << "   .............. successful." << endl;
+  return nRef;
+}
+
+NodeLink MLabelIndex::getNodeLink(int pos) const {
+  assert((0 <= pos) && (pos < getNodeLinkSize()));
+  NodeLink nLink;
+  nodeLinks.Get(pos, nLink);
+  return nLink;
+}
+
+size_t MLabelIndex::getLabelIndex(int pos) const {
+  assert((0 <= pos) && (pos < getLabelIndexSize()));
+  size_t index;
+  labelIndex.Get(pos, index);
+  return index;
+}
+
+void MLabelIndex::destroyDbArrays() {
+  nodes.Destroy();
+  nodeLinks.Destroy();
+  labelIndex.Destroy();
+}
+
+void MLabelIndex::copyFrom(const MLabelIndex& source) {
+  root = 0;
+  nodes.copyFrom(source.getNodeRefs());
+  nodeLinks.copyFrom(source.getNodeLinks());
+  labelIndex.copyFrom(source.getLabelIndex());
 }

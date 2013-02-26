@@ -54,6 +54,7 @@ This algebra includes the operators ~matches~ and ~rewrite~.
 #include "SecParser.h"
 #include "Pattern.h"
 #include "TemporalUnitAlgebra.h"
+#include "InvertedFile.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -372,9 +373,15 @@ For example:
         )
 ----
 
-\subsubsection{function Describing the Signature of the Type Constructor}
-
 */
+MLabel::MLabel(MString* ms): MString(1), index(0) {
+  ULabel ul(1);
+  for (int i = 0; i < ms->GetNoComponents(); i++) {
+    ms->Get(i, ul);
+    Add(ul);
+  }
+}
+
 ListExpr MLabel::MLabelProperty() {
     return (nl->TwoElemList(
             nl->FourElemList(nl->StringAtom("Signature"),
@@ -396,6 +403,98 @@ This function checks whether the type constructor is applied correctly.
 bool MLabel::CheckMLabel(ListExpr type, ListExpr& errorInfo) {
   return (nl->IsEqual(type, MLabel::BasicType()));
 }
+
+Word MLabel::Create(const ListExpr typeInfo) {
+  MLabel* ml = new MLabel(0);
+  return (SetWord(ml));
+}
+
+void MLabel::Close(const ListExpr typeInfo, Word& w) {
+  delete static_cast<MLabel*>(w.addr);
+  w.addr = 0;
+}
+
+MLabel* MLabel::Clone() const {
+  MLabel* result = new MLabel(1);
+  *result = *this;
+  cout << "result has " << result->GetNoComponents() << " units" << endl;
+  result->index.copyFrom(this->index);
+  cout << result->index.getNodeRefSize() << " nodes copied" << endl;
+  return result;
+}
+
+int MLabel::Compare(const Attribute * arg) const {
+  if(!IsDefined() && !arg->IsDefined()) {
+    return 0;
+  }
+  if(!IsDefined()) {
+    return -1;
+  }
+  if(!arg->IsDefined()) {
+    return 1;
+  }
+  const MLabel* ml = (const MLabel*)(arg);
+  if (GetNoComponents() != ml->GetNoComponents()) {
+    return (GetNoComponents() > ml->GetNoComponents() ? 1 : -1);
+  }
+  ULabel ul1(1), ul2(1);
+  for (int i = 0; i < GetNoComponents(); i++) {
+    Get(i, ul1);
+    ml->Get(i, ul2);
+    if (ul1.constValue.GetValue().compare(ul2.constValue.GetValue())) {
+      return ul1.constValue.GetValue().compare(ul2.constValue.GetValue());
+    }
+    if (ul1.timeInterval != ul2.timeInterval) {
+      if (ul1.timeInterval.start < ul2.timeInterval.start) {
+        return 1;
+      }
+      else if (ul1.timeInterval.start > ul2.timeInterval.start) {
+        return -1;
+      }
+      if (ul1.timeInterval.end < ul2.timeInterval.end) {
+        return -1;
+      }
+      else if (ul1.timeInterval.end > ul2.timeInterval.end) {
+        return 1;
+      }
+      if (ul1.timeInterval.lc < ul2.timeInterval.lc) {
+        return -1;
+      }
+      else if (ul1.timeInterval.lc > ul2.timeInterval.lc) {
+        return 1;
+      }
+      if (ul1.timeInterval.rc < ul2.timeInterval.rc) {
+        return -1;
+      }
+      else if (ul1.timeInterval.rc > ul2.timeInterval.rc) {
+        return 1;
+      }
+    }
+  }
+  return 0;
+}
+
+void MLabel::CopyFrom(const Attribute* right) {
+  *this = *((MLabel*)right);
+  const MLabel* source = (const MLabel*)right;
+  index.copyFrom(source->index);
+}
+
+int MLabel::NumOfFLOBs() const {
+  return 4; // one for the time intervals, three for the index
+}
+
+Flob* MLabel::GetFLOB(const int i) {
+  assert((0 <= i) && (i < 4));
+  switch (i) {
+    case 0: return &units;
+    case 1: return index.getNodeRefsPtr();
+    case 2: return index.getNodeLinksPtr();
+    default: return index.getLabelIndexPtr();
+  }
+}
+
+
 
 /*
 \subsubsection{Function ~compress~}
@@ -434,7 +533,9 @@ contain only numbers between 1 and size[*]rate; rate being the number of
 different labels divided by the size.
 
 */
-void MLabel::create(int size, bool text, double rate = 1.0) {
+void MLabel::createML(int size, bool text, double rate = 1.0) {
+  index.initRoot();
+  index.cleanDbArrays();
   if ((size > 0) && (rate > 0) && (rate <= 1)) {
     int max = size * rate;
     MLabel* newML = new MLabel(1);
@@ -451,7 +552,7 @@ void MLabel::create(int size, bool text, double rate = 1.0) {
         ul.constValue.Set(true, trajectory[i]);
         iv->Set(*start, *end, true, false);
         ul.timeInterval = *iv;
-        newML->MergeAdd(ul);
+        newML->Add(ul);
         start->Add(halfHour);
         end->Add(halfHour);
       }
@@ -463,7 +564,7 @@ void MLabel::create(int size, bool text, double rate = 1.0) {
         end->Add(halfHour);
         iv->Set(*start, *end, true, false);
         ul.timeInterval = *iv;
-        newML->MergeAdd(ul);
+        newML->Add(ul);
       }
     }
     *this = *newML;
@@ -679,18 +780,18 @@ TypeConstructor movinglabel(
     MLabel::BasicType(), // name
     MLabel::MLabelProperty,    //property function describing signature
     //Out and In functions
-    OutMapping<MString, UString, OutConstTemporalUnit<CcString, OutCcString> >,
-    InMapping<MString, UString, InConstTemporalUnit<CcString, InCcString> >,
+    OutMapping<MLabel, UString, OutConstTemporalUnit<CcString, OutCcString> >,
+    InMapping<MLabel, UString, InConstTemporalUnit<CcString, InCcString> >,
     0,
     0,  //SaveToList and RestoreFromList functions
-    CreateMapping<MString>,
-    DeleteMapping<MString>,     //object creation and deletion
-    0,
-    0,  // object open and save
-    CloseMapping<MString>,
-    CloneMapping<MString>,  //object close and clone
-    CastMapping<MString>,   //cast function
-    SizeOfMapping<MString>, //sizeof function
+    CreateMapping<MLabel>,
+    DeleteMapping<MLabel>,     //object creation and deletion
+    OpenAttribute<MLabel>,
+    SaveAttribute<MLabel>,  // object open and save
+    CloseMapping<MLabel>,
+    CloneMapping<MLabel>,  //object close and clone
+    CastMapping<MLabel>,   //cast function
+    SizeOfMapping<MLabel>, //sizeof function
     MLabel::CheckMLabel    //kind checking function
 );
 
@@ -1700,7 +1801,7 @@ Checks the pattern and the condition and (if no problem occurs) invokes the NFA
 construction and the matching procedure.
 
 */
-bool Pattern::matches(MString const &ml) const {
+bool Pattern::matches(MLabel &ml) const {
   if (!isVerified()) {
     if (!verifyPattern()) {
       cout << "Error: Invalid pattern." << endl;
@@ -1711,6 +1812,7 @@ bool Pattern::matches(MString const &ml) const {
   Match *match = new Match(patterns.size() + 1);
   match->copyFromPattern(*this);
   bool result = match->matches(ml);
+  ml.index.removeTrie();
   delete match;
   return result;
 }
@@ -1723,7 +1825,7 @@ Performs a match and returns the set of matching sequences for the operator
 
 */
 set<pair<vector<size_t>, vector<size_t> > > Pattern::
-                                            getRewriteSeqs(MLabel const &ml) {
+                                            getRewriteSeqs(MLabel &ml) {
   set<pair<vector<size_t>, vector<size_t> > > result;
   Match *match = new Match(patterns.size() + 1);
   match->copyFromPattern(*this);
@@ -1783,7 +1885,7 @@ Searches for sequences which fulfill all conditions and stores their relevant
 parts for rewriting.
 
 */
-void Match::filterSequences(MString const &ml) {
+void Match::filterSequences(MLabel const &ml) {
   set<multiset<size_t> >::iterator it;
   for (it = sequences.begin(); it != sequences.end(); it++) {
     for (int i = 0; i < (int)conds.size(); i++) {
@@ -1905,25 +2007,42 @@ the loop. If ~rewrite~ is true (which happens in case of the operator ~rewrite~)
 the matching procedure ends after the unit pattern test.
 
 */
-bool Match::matches(MString const &ml, bool rewrite) {
-  numOfLabels = (size_t)ml.GetNoComponents();
-  for (size_t i = 0; i < numOfLabels; i++) {
-    ml.Get(i, ul);
-    ulId = i;
-    updateStates();
-    if (currentStates.empty()) {
+bool Match::matches(MLabel &ml, bool rewrite) {
+  cout << "index has " << ml.index.getNodeRefSize() << " nodes" << endl;
+  if (ml.index.getNodeRefSize()) { // use index
+    ml.index.initRoot();
+    set<size_t> positions;
+    positions.insert(0);
+    for (int i = 0; i < f; i++) {
+      positions = updatePositionsIndex(ml, i, positions);
+      if (positions.empty()) {
+        return false;
+      }
+    }
+    if (!positions.count(ml.GetNoComponents())) { // final ml position inactive?
       return false;
     }
   }
-  if (!numOfLabels) { // empty MLabel
-    int pos = 0;
-    while (patterns[pos].getW() == STAR) {
-      currentStates.insert(pos + 1);
-      pos++;
+  else { // no index => process whole mlabel
+    numOfLabels = (size_t)ml.GetNoComponents();
+    for (size_t i = 0; i < numOfLabels; i++) {
+      ml.Get(i, ul);
+      ulId = i;
+      updateStates();
+      if (currentStates.empty()) {
+        return false;
+      }
     }
-  }
-  if (!currentStates.count(f)) { // is the final state active?
-    return false;
+    if (!numOfLabels) { // empty MLabel
+      int pos = 0;
+      while (patterns[pos].getW() == STAR) {
+        currentStates.insert(pos + 1);
+        pos++;
+      }
+    }
+    if (!currentStates.count(f)) { // is the final state inactive?
+      return false;
+    }
   }
   if (rewrite) {
     if (!numOfLabels) {
@@ -2093,6 +2212,87 @@ void Match::updateStates() {
     }
   }
   currentStates = newStates;  
+}
+
+/*
+\subsection{Function ~updatePositionsIndex~}
+
+*/
+set<size_t> Match::updatePositionsIndex(MLabel &ml, int patpos,
+                                        set<size_t> mlpos) {
+  set<size_t> result, foundpos;
+  set<size_t>::iterator j;
+  set<string> labels = patterns[patpos].getL();;
+  set<string>::iterator i = labels.begin();
+  Wildcard w = patterns[patpos].getW();
+  if (*(mlpos.rbegin()) == (size_t)ml.GetNoComponents()) {
+    mlpos.erase(*(mlpos.rbegin()));
+  }
+  if (w == NO) { // (...)
+    while (i != labels.end()) {
+      foundpos = ml.index.find(*i);
+      for (j = foundpos.begin(); j != foundpos.end(); j++) {
+        ml.Get(*j, ul);
+        if (mlpos.count(*j) && timesMatch(patpos)) {
+          result.insert(*j + 1);
+          match[patpos].insert(*j);
+        }
+      }
+      i++;
+    }
+    if (labels.empty()) {
+      for (j = mlpos.begin(); j != mlpos.end(); j++) {
+        ml.Get(*j + 1, ul);
+        if (timesMatch(patpos)) {
+          result.insert(*j + 1);
+          match[patpos].insert(*j);
+        }
+      }
+    }
+  }
+  else if (labels.empty() && patterns[patpos].getI().empty()) { // +, * or (())
+    j = result.begin();
+    for (size_t k = (w == STAR ? *(mlpos.begin()) : *(mlpos.begin()) + 1);
+           (int)k <= ml.GetNoComponents(); k++) {
+      result.insert(j, k); // efficient insertion
+      j++;
+    }
+  }
+  else { // ((...)), non-empty
+    bool ok = true;
+    size_t k;
+    while (i != labels.end()) {
+      foundpos = ml.index.find(*i);
+      for (j = foundpos.begin(); j != foundpos.end(); j++) {
+        ml.Get(*j, ul);
+        if (timesMatch(patpos) && (mlpos.count(*j) || result.count(*j))) {
+          result.insert(*j + 1);
+        }
+      }
+      i++;
+    }
+    if (labels.empty()) {
+      j = mlpos.begin();
+      ok = true;
+      while (j != mlpos.end()) {
+        k = *j;
+        while (ok && (k < (size_t)ml.GetNoComponents())) {
+          ml.Get(k, ul);
+          if (timesMatch(patpos)) {
+            result.insert(k + 1);
+            k++;
+          }
+          else {
+            ok = false;
+          }
+        }
+        do { // find next relevant position
+          j++;
+        } while ((j != mlpos.end()) && (*j <= k));
+      }
+    }
+  }
+  return result;
 }
 
 /*
@@ -2401,7 +2601,7 @@ and only if there is (at least) one cardinality sequence that matches every
 condition.
 
 */
-bool Match::conditionsMatch(MString const &ml) {
+bool Match::conditionsMatch(MLabel const &ml) {
   bool proceed(false);
   multiset<size_t>::iterator it;
   if (conds.empty()) {
@@ -2559,7 +2759,7 @@ This function is invoked by ~conditionsMatch~ and checks whether a sequence of
 possible cardinalities matches a certain condition.
 
 */
-bool Match::evaluateCond(MString const &ml, int cId, multiset<size_t> sequence){
+bool Match::evaluateCond(MLabel const &ml, int cId, multiset<size_t> sequence){
   vector<size_t> seq(sequence.begin(), sequence.end());
   Word qResult;
   ULabel ul;
@@ -3157,25 +3357,50 @@ ListExpr matchesTypeMap(ListExpr args) {
 */
 int matchesSelect(ListExpr args) {
   NList type(args);
-  return (type.second().isSymbol(Pattern::BasicType())) ? 1 : 0;
+  if (type.first().isSymbol(MLabel::BasicType())) {
+    return (type.second().isSymbol(Pattern::BasicType())) ? 1 : 0;
+  }
+  return (type.second().isSymbol(Pattern::BasicType())) ? 3 : 2;
 }
 
 /*
 \subsection{Value Mapping (for a Pattern)}
 
 */
-int matchesFun_MP(Word* args, Word& result, int message,
-                  Word& local, Supplier s) {
-  MString* mstring = static_cast<MString*>(args[0].addr);
+int matchesFun_PatML(Word* args, Word& result, int message,
+                     Word& local, Supplier s) {
+  MLabel* ml = static_cast<MLabel*>(args[0].addr);
   const Pattern* p = static_cast<Pattern*>(args[1].addr);
   if (!p) {
     cout << "Invalid Pattern." << endl;
-    delete mstring;
+    delete ml;
     return 0;
   }
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>(result.addr);
-  bool match = p->matches(*mstring);
+  if (ml->index.getNodeRefSize()) {
+    cout << "The mlabel has an index." << endl;
+  }
+  bool match = p->matches(*ml);
+  b->Set(true, match);
+  return 0;
+}
+
+int matchesFun_PatMS(Word* args, Word& result, int message,
+                     Word& local, Supplier s) {
+  MString* ms = static_cast<MString*>(args[0].addr);
+  MLabel* ml = 0;
+  const Pattern* p = static_cast<Pattern*>(args[1].addr);
+  if (!p) {
+    cout << "Invalid Pattern." << endl;
+    delete ms;
+    return 0;
+  }
+  result = qp->ResultStorage(s);
+  CcBool* b = static_cast<CcBool*>(result.addr);
+  ml = new MLabel(ms);
+  bool match = p->matches(*ml);
+  delete ml;
   b->Set(true, match);
   return 0;
 }
@@ -3184,9 +3409,9 @@ int matchesFun_MP(Word* args, Word& result, int message,
 \subsection{Value Mapping (for a text)}
 
 */
-int matchesFun_MT (Word* args, Word& result, int message,
-                   Word& local, Supplier s) {
-  MString* mstring = static_cast<MString*>(args[0].addr);
+int matchesFun_TextML(Word* args, Word& result, int message,
+                      Word& local, Supplier s) {
+  MLabel* ml = static_cast<MLabel*>(args[0].addr);
   FText* patternText = static_cast<FText*>(args[1].addr);
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>(result.addr);
@@ -3194,11 +3419,45 @@ int matchesFun_MT (Word* args, Word& result, int message,
   if (patternText->IsDefined()) {
     pattern = Pattern::getPattern(patternText->toText());
   }
+  else {
+    cout << "Undefined pattern text." << endl;
+    b->SetDefined(false);
+    return 0;
+  }
   if (!pattern) {
     b->SetDefined(false);
   }
   else {
-    bool res = pattern->matches(*mstring);
+    bool res = pattern->matches(*ml);
+    delete pattern;
+    b->Set(true, res);
+  }
+  return 0;
+}
+
+int matchesFun_TextMS(Word* args, Word& result, int message,
+                      Word& local, Supplier s) {
+  MString* ms = static_cast<MString*>(args[0].addr);
+  MLabel* ml = 0;
+  FText* patternText = static_cast<FText*>(args[1].addr);
+  result = qp->ResultStorage(s);
+  CcBool* b = static_cast<CcBool*>(result.addr);
+  Pattern *pattern = 0;
+  if (patternText->IsDefined()) {
+    pattern = Pattern::getPattern(patternText->toText());
+  }
+  else {
+    cout << "Undefined pattern text." << endl;
+    b->SetDefined(false);
+    return 0;
+  }
+  if (!pattern) {
+    b->SetDefined(false);
+  }
+  else {
+    ml = new MLabel(ms);
+    bool res = pattern->matches(*ml);
+    delete ml;
     delete pattern;
     b->Set(true, res);
   }
@@ -3281,8 +3540,8 @@ class FilterMatchesLI {
   Tuple* next() {
     Tuple* cand = stream.request();
     while (cand) {
-      MString* mstring = (MString*)cand->GetAttribute(attrIndex);
-      bool matching = match->matches(*mstring);
+      MLabel* ml = (MLabel*)cand->GetAttribute(attrIndex);
+      bool matching = match->matches(*ml);
       match->resetStates();
       if (matching) {
         return cand;
@@ -4202,6 +4461,7 @@ int fillgapsFun_1(Word* args, Word& result, int message, Word& local,
   T* res = (T*)result.addr;
   DateTime* dur = new DateTime(0, ccDur->GetValue(), durationtype);
   fillML(*source, *res, dur);
+  dur->DeleteIfAllowed();
   return 0;
 }
 
@@ -4298,7 +4558,7 @@ int createmlFun(Word* args, Word& result, int message, Word& local, Supplier s){
   if (ccint->IsDefined() && ccreal->IsDefined()) {
     size = ccint->GetValue();
     rate = ccreal->GetValue();
-    ml->create(size, false, rate);
+    ml->createML(size, false, rate);
   }
   else {
 //     cout << "Error: undefined value." << endl;
@@ -4377,7 +4637,7 @@ int createmlrelationFun(Word* args, Word& result, int message, Word& local,
     for (int i = 0; i < number; i++) {
       tuple = new Tuple(type);
       ml = new MLabel(1);
-      ml->create(size, true);
+      ml->createML(size, true);
       tuple->PutAttribute(0, new CcInt(true, i));
       tuple->PutAttribute(1, ml);
       rel->AppendTuple(tuple);
@@ -4418,49 +4678,50 @@ struct createmlrelationInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr indexTypeMap(ListExpr args) {
+ListExpr createindexTypeMap(ListExpr args) {
   if (nl->ListLength(args) != 1) {
     return listutils::typeError("One argument expected.");
-  }
-  if (nl->IsEqual(args, MLabel::BasicType())) {
+  }  
+  if (!MLabel::checkType(nl->First(args))) {
     return listutils::typeError("Argument type must be MLabel.");
   }
-  return nl->SymbolAtom(CcBool::BasicType());
+  return nl->SymbolAtom(MLabel::BasicType());
 }
 
 /*
 \subsection{Value Mapping}
 
 */
-int indexFun(Word* args, Word& result, int message, Word& local, Supplier s) {
+int createindexFun(Word* args, Word& result, int message, Word& local,
+                   Supplier s) {
   MLabel* source = (MLabel*)(args[0].addr);
-  result = qp->ResultStorage(s);
-  CcBool* b = static_cast<CcBool*>(result.addr);
-  ULabel ul;
-  set<string> labels;
-  LabelTrie *lt = new LabelTrie();
-  for (size_t i = 0; i < (size_t)source->GetNoComponents(); i++) {
+  MLabel* res = new MLabel(1);
+//   result = qp->ResultStorage(s);
+//   MLabel* res = static_cast<MLabel*>(result.addr);
+/*  res->CopyFrom(source);*/
+  ULabel ul(1);
+//   set<string> labels;
+  set<size_t> positions;
+  for (int i = 0; i < source->GetNoComponents(); i++) {
     source->Get(i, ul);
-    labels.insert(ul.constValue.GetValue());
-    if (!lt->insert(ul.constValue.GetValue(), i)) {
-      cout << "Error: insert() returns FALSE" << endl;
-      b->Set(true, false);
-      return 0;
-    }
+//     labels.insert(ul.constValue.GetValue());
+    positions.insert(i);
+    res->index.insert(ul.constValue.GetValue(), positions);
+    positions.clear();
+    res->Add(ul);
   }
-//   cout << lt->getNumberOfNodes() << " nodes created" << endl;
-  for (set<string>::iterator it1 = labels.begin(); it1 != labels.end(); it1++) {
-    set<size_t> p = lt->find(*it1);
-    cout << "\"" << *it1 << "\" found at pos:" << (p.size() > 1 ? "s " : " ");
+/*for (set<string>::iterator it1 = labels.begin(); it1 != labels.end(); it1++) {
+    set<size_t> p = res->index.find(*it1);
+    cout << "\"" << *it1 << "\" found at pos: ";
     for (set<size_t>::iterator it = p.begin(); it != p.end(); it++) {
       cout << *it << " ";
     }
     cout << endl;
-  }
-  lt->makePersistent();
-  lt->printDbArrays();
-  delete lt;
-  b->Set(true, true);
+  }*/
+  res->index.makePersistent();
+  res->index.removeTrie();
+//   res->index.printDbArrays();
+  result.addr = res;
   return 0;
 }
 
@@ -4468,14 +4729,109 @@ int indexFun(Word* args, Word& result, int message, Word& local, Supplier s) {
 \subsection{Operator Info}
 
 */
-struct indexInfo : OperatorInfo {
-  indexInfo() {
-    name      = "index";
+struct createindexInfo : OperatorInfo {
+  createindexInfo() {
+    name      = "createindex";
     signature = "mlabel -> mlabel";
-    syntax    = "index(_)";
+    syntax    = "createindex(_)";
     meaning   = "Builds an index for a moving label.";
   }
 };
+
+/*
+\section{Operator ~createrelindex~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr createrelindexTypeMap(ListExpr args) {
+  if (nl->ListLength(args) != 1) {
+    return listutils::typeError("One argument expected.");
+  }
+  if (Relation::checkType(nl->First(args))) {
+    if (Tuple::checkType(nl->First(nl->Rest(nl->First(args))))) {
+      ListExpr attrList =
+               nl->First(nl->Rest(nl->First(nl->Rest(nl->First(args)))));
+      if (nl->ListLength(attrList) == 2) {
+        if (CcInt::checkType(nl->First(nl->Rest(nl->First(attrList))))
+         && MLabel::checkType(nl->First(nl->Rest(nl->Second(attrList))))) {
+           return nl->SymbolAtom(InvertedFile::BasicType());
+        }
+      }
+    }
+  }
+  return listutils::typeError("Argument type must be rel(tuple(int, mlabel))");
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int createrelindexFun(Word* args, Word& result, int message, Word& local,
+                      Supplier s) {
+  Relation *rel = (Relation*)(args[0].addr);
+  Tuple *tuple = 0;
+  MLabel *ml = 0;
+  CcInt* tid = 0;
+  ULabel ul(1);
+  result = qp->ResultStorage(s);
+  InvertedFile* inv = (InvertedFile*)result.addr;
+  inv->setParams(false, 1, "");
+  size_t maxMem = 0;/*qp->GetMemorySize(s) * 1024 * 1024*/
+  size_t trieCacheSize = maxMem / 20;
+  if (trieCacheSize < 4096) {
+    trieCacheSize = 4096;
+  }
+  size_t invCacheSize;
+  if (trieCacheSize + 4096 > maxMem) {
+    invCacheSize = 4096;
+  }
+  else {
+    invCacheSize = maxMem - trieCacheSize;
+  }
+  appendcache::RecordAppendCache* cache = inv->createAppendCache(invCacheSize);
+  TrieNodeCacheType* trieCache = inv->createTrieCache(trieCacheSize);
+  for (int i = 1; i <= rel->GetNoTuples(); i++) {
+    tuple = rel->GetTuple(i, false);
+    tid = (CcInt*)tuple->GetAttribute(0);
+    ml = (MLabel*)tuple->GetAttribute(1);
+    for (int j = 0; j < ml->GetNoComponents(); j++) {
+      ml->Get(j, ul);
+      inv->insertString(tid->GetValue(), ul.constValue.GetValue(), j, 0, cache,
+                        trieCache);
+    }
+  }
+//   TupleId id;
+//   wordPosType wc;
+//   charPosType cc;
+//   InvertedFile::exactIterator* it = inv->getExactIterator("Huckarde", 4096);
+//   while (it->next(id, wc, cc)) {
+//     cout << "Huckarde: " << id << " " << wc << " " << cc << endl;
+//   }
+//   it = inv->getExactIterator("Innenstadt-Nord", 4096);
+//   while (it->next(id, wc, cc)) {
+//     cout << "Innenstadt-Nord: " << id << " " << wc << " " << cc << endl;
+//   }  
+//   it = inv->getExactIterator("Mengede", 4096);
+//   while (it->next(id, wc, cc)) {
+//     cout << "Mengede: " << id << " " << wc << " " << cc << endl;
+//   }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct createrelindexInfo : OperatorInfo {
+  createrelindexInfo() {
+    name      = "createrelindex";
+    signature = "(rel (tuple ( (int) (mlabel) ) ) ) -> invfile";
+    syntax    = "createrelindex(_)";
+    meaning   = "Builds an index for a relation of numbered moving labels.";
+  }
+};
+
 
 //***********************************************************************//
 
@@ -4501,7 +4857,10 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       
       AddOperator(topatternInfo(), topatternFun, topatternTypeMap);
 
-      ValueMapping matchesFuns[] = {matchesFun_MT, matchesFun_MP, 0};
+      ValueMapping matchesFuns[] = {matchesFun_TextML,
+                                    matchesFun_PatML,
+                                    matchesFun_TextMS,
+                                    matchesFun_PatMS, 0};
       AddOperator(matchesInfo(), matchesFuns, matchesSelect, matchesTypeMap);
 
       AddOperator(filterMatchesInfo(), filterMatchesVM, filterMatchesTM);
@@ -4531,7 +4890,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
       AddOperator(createmlrelationInfo(), createmlrelationFun,
                   createmlrelationTypeMap);
 
-      AddOperator(indexInfo(), indexFun, indexTypeMap);
+      AddOperator(createindexInfo(), createindexFun, createindexTypeMap);
+
+      AddOperator(createrelindexInfo(),createrelindexFun,createrelindexTypeMap);
 
     }
     ~SymbolicTrajectoryAlgebra() {}

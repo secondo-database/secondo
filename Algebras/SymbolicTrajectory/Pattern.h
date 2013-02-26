@@ -68,7 +68,8 @@ void patternFlushBuffer();
 class MLabel : public MString {
  public:
   MLabel() {}
-  MLabel(int i): MString(i) {}
+  MLabel(int i): MString(i), index(0) {}
+  MLabel(MString* ms);
   
   ~MLabel() {}
 
@@ -78,18 +79,32 @@ class MLabel : public MString {
   }
   static ListExpr MLabelProperty();
   static bool CheckMLabel(ListExpr type, ListExpr& errorInfo);
+
+  Word Create(const ListExpr typeInfo);
+  void Close(const ListExpr typeInfo, Word& w);
+  MLabel* Clone() const;
+  int Compare(const Attribute * arg) const;
+  void CopyFrom(const Attribute* right);
+  int NumOfFLOBs() const;
+  Flob* GetFLOB(const int i);
+
+  void Initialize() {index.initRoot();}
+  void Finalize() {index.initRoot();}
+  
   MLabel* compress();
-  void create(int size, bool text, double rate);
+  void createML(int size, bool text, double rate);
   void rewrite(MLabel const &ml,
                const pair<vector<size_t>, vector<size_t> > &seq,
                vector<Assign> assigns, map<string, int> varPos);
+
+  MLabelIndex index;
 };
 
 class ULabel : public UString {
  public:
   ULabel() {}
   ULabel(int i): UString(i) {}
-  
+
   static const string BasicType() {return "ulabel";}
   static ListExpr ULabelProperty();
   static bool CheckULabel(ListExpr type, ListExpr& errorInfo);
@@ -310,9 +325,9 @@ class Pattern {
   static const string BasicType();
   static const bool checkType(const ListExpr type);
   static Pattern* getPattern(string input, bool classify = false);
-  bool matches(MString const &ml) const;
+  bool matches(MLabel &ml) const;
   bool verifyPattern() const;
-  set<pair<vector<size_t>, vector<size_t> > > getRewriteSeqs(MLabel const &ml);
+  set<pair<vector<size_t>, vector<size_t> > > getRewriteSeqs(MLabel &ml);
   map<string, int> getVarPosInSeq();
   int getResultPos(const string v);
   void collectAssVars();
@@ -403,12 +418,13 @@ class Match {
     delete[] seqOrder;
   }
 
-  bool matches(MString const &ml, bool rewrite = false);
+  bool matches(MLabel &ml, bool rewrite = false);
   void printCurrentStates();
   void printCards();
   void printSequences(size_t max);
   void printRewriteSeqs(size_t max);
   void updateStates();
+  set<size_t> updatePositionsIndex(MLabel &ml, int pos, set<size_t> positions);
   bool labelsMatch(int pos, ClassifyLI* c = 0, int pat = -1);
   bool timesMatch(int pos, ClassifyLI* c = 0, int pat = -1);
   void computeCardsets();
@@ -417,15 +433,15 @@ class Match {
   bool checkDoublePars(multiset<size_t> sequence);
   void buildSequences(); // for rewrite, every sequence must be built
   multiset<size_t> getNextSeq(); // for matches, we just need the next sequence
-  void filterSequences(MString const &ml);
+  void filterSequences(MLabel const &ml);
   void buildRewriteSeq(multiset<size_t> sequence);
   void computeResultVars(vector<Assign> assigns);
   set<pair<vector<size_t>, vector<size_t> > > getRewriteSeqs()
                                               {return rewriteSeqs;}
-  bool conditionsMatch(MString const &ml);
+  bool conditionsMatch(MLabel const &ml);
   void computeSeqOrder();
   bool evaluateEmptyML();
-  bool evaluateCond(MString const &ml, int cId, multiset<size_t> sequence);
+  bool evaluateCond(MLabel const &ml, int cId, multiset<size_t> sequence);
   set<multiset<size_t> > getSequences() {return sequences;}
   set<string> getAssVars() {return assignedVars;}
   void setAssVars(set<string> aV) {assignedVars = aV;}

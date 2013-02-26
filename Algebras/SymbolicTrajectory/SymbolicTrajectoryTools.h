@@ -71,11 +71,16 @@ struct NodePointer {
 
 struct TrieNode {
   pair<unsigned int, vector<char> > getChilds();
+
   NodePointer content[256];
   set<size_t> positions;
 };
 
 struct NodeRef {
+  NodeRef() {}
+  NodeRef(int fc, int lc, int fi, int li) :
+          firstCont(fc), lastCont(lc), firstIndex(fi), lastIndex(li) {}
+
   int firstCont;
   int lastCont;
   int firstIndex;
@@ -83,37 +88,58 @@ struct NodeRef {
 };
 
 struct NodeLink {
+  NodeLink() {}
+  NodeLink(int ch, int next) : character((char)ch), nextNode(next) {}
+  
   char character;
   unsigned int nextNode;
 };
 
-class LabelTrie {
+class MLabelIndex {
 public:
-  LabelTrie() : nodes(0), nodeLinks(0), labelIndex(0) {
+  MLabelIndex() {}
+  
+  MLabelIndex(int n) : nodes(0), nodeLinks(0), labelIndex(0) {
     root = 0;
-    nodeCounter = 0;
   }
   
-  LabelTrie(DbArray<NodeRef>* n, DbArray<NodeLink>* nL, DbArray<size_t>* lI);
+  MLabelIndex(DbArray<NodeRef> n, DbArray<NodeLink> nL, DbArray<size_t> lI);
 
-  ~LabelTrie() {
+  ~MLabelIndex() {
     removeTrie();
   }
 
-  bool insert(string label, size_t pos);
+  void initRoot() {root = 0;}
+  void cleanDbArrays() {nodes.clean(); nodeLinks.clean(); labelIndex.clean();}
+  void insert(string label, set<size_t> pos);
   set<size_t> find(string label); // returns the position(s) of label
+  set<size_t> findInDbArrays(string label);
   void makePersistent(); // stores main memory tree structure into DbArrays
-  void makePersistent(TrieNode* ptr); // help function
+  void makePersistent(TrieNode* ptr, stack<unsigned int>& nodeIndexes);
   void removeTrie(); // removes main memory tree structure
   void remove(TrieNode* ptr, unsigned char c); // help function for recursion
-  int getNumberOfNodes() {return nodeCounter;}
   void printDbArrays();
-
+  void appendNodeRef(NodeRef nRef)    {nodes.Append(nRef);}
+  void appendNodeLink(NodeLink nLink) {nodeLinks.Append(nLink);}
+  void appendLabelIndex(size_t index) {labelIndex.Append(index);}
+  int getNodeRefSize() const          {return nodes.Size();}
+  int getNodeLinkSize() const         {return nodeLinks.Size();}
+  int getLabelIndexSize() const       {return labelIndex.Size();}
+  NodeRef getNodeRef(int pos) const;
+  NodeLink getNodeLink(int pos) const;
+  size_t getLabelIndex(int pos) const;
+  DbArray<NodeRef> getNodeRefs() const   {return nodes;}
+  DbArray<NodeLink> getNodeLinks() const {return nodeLinks;}
+  DbArray<size_t> getLabelIndex() const  {return labelIndex;}
+  DbArray<NodeRef>* getNodeRefsPtr()   {return &nodes;}
+  DbArray<NodeLink>* getNodeLinksPtr() {return &nodeLinks;}
+  DbArray<size_t>* getLabelIndexPtr()  {return &labelIndex;}
+  void destroyDbArrays(); // removes persistent structure
+  void copyFrom(const MLabelIndex& source);
+  
 private:
   DbArray<NodeRef> nodes;
   DbArray<NodeLink> nodeLinks;
   DbArray<size_t> labelIndex;
   TrieNode* root;
-  unsigned int nodeCounter;
-  stack<unsigned int> nodeIndexStack;
 };
