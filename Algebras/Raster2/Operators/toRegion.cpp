@@ -236,6 +236,9 @@ namespace raster2 {
                 }
                 
                 cycles.push_back(cycle);
+                if(buildRegionResult){
+                  delete buildRegionResult;
+                }
                 buildRegionResult = buildRegion(cycles);
               }
             }
@@ -429,6 +432,9 @@ namespace raster2 {
                 }
                 
                 holes.push_back(cycle);
+                if(buildHolesResult){
+                   delete buildHolesResult;
+                }
                 buildHolesResult = buildRegion(holes);
 
                 if(getDir(cycle))
@@ -437,6 +443,9 @@ namespace raster2 {
                 }
                 
                 cycles.push_back(cycle);
+                if(buildRegionResult){
+                  delete buildRegionResult;
+                }
                 buildRegionResult = buildRegion(cycles);
               }
            }
