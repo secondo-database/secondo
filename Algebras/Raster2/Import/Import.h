@@ -924,7 +924,7 @@ public:
 
 		size_t header = 0;
 		size_t valuepos;
-		char *buffer = new char[1000];
+		char buffer[1000];
 
 		//initialize data structs
 		if(init)

@@ -1387,6 +1387,7 @@ deleting the pointed to object.
             ++it)
         {
           it->second.first->discard();
+          delete it->second.first;
         }
         size = 0;
         cache.clear();
