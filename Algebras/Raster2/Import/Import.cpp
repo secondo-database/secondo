@@ -443,9 +443,9 @@ int RasterData::processFile(const string HGTFile) {
 	int Xoffset = getXOffset();
 	int Yoffset = getYOffset();
 	long fromX = Xoffset * (ImportHGTExtend-1);
-	long toX = (Xoffset * (ImportHGTExtend-1)) + (ImportHGTExtend - 2);
+	//long toX = (Xoffset * (ImportHGTExtend-1)) + (ImportHGTExtend - 2);
 	long fromY = (Yoffset * (ImportHGTExtend-1));
-	long toY = (Yoffset * (ImportHGTExtend-1)) + (ImportHGTExtend - 2);
+	//long toY = (Yoffset * (ImportHGTExtend-1)) + (ImportHGTExtend - 2);
 
 	int16_t* buffer = getHGTData(HGTFile);
 
