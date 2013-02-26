@@ -36,6 +36,39 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace raster2
 {
+
+ void deleteGrid(string grid_type, void*& grid){
+    if(!grid){
+        return;
+    }
+
+    if(grid_type==sint::BasicType()){
+       delete   (sint*) grid;  
+    } else if(grid_type ==sbool::BasicType()) {
+       delete (sbool*) grid;
+    } else if(grid_type==sreal::BasicType()){
+       delete (sreal*) grid;
+    } else if(grid_type==sstring::BasicType()){
+       delete (sstring*) grid;
+    } else if(grid_type==msint::BasicType()){
+       delete   (msint*) grid;  
+    } else if(grid_type ==msbool::BasicType()) {
+       delete (msbool*) grid;
+    } else if(grid_type==msreal::BasicType()){
+       delete (msreal*) grid;
+    } else if(grid_type==msstring::BasicType()){
+       delete (msstring*) grid;
+    } else {
+        bool knowntype = false;
+        assert(knowntype);
+        return;
+    }
+    grid = 0;
+
+ }
+
+
+
 /*
 The following declarations are used by the type mapping to check whether the
 grids of the operator arguments are compatible.
@@ -51,6 +84,12 @@ grids of the operator arguments are compatible.
     NList first;
     NList second;
 
+    Word result_first((void*)0);
+    Word result_second((void*)0);
+    std::string first_type="";
+    std::string second_type="";
+    
+
     try {
       if(types.length() != 3) {
         throw util::parse_error("Operator map2 requires three arguments.");
@@ -59,7 +98,7 @@ grids of the operator arguments are compatible.
       second  = types.second().first();
       NList function = types.third().first();
 
-      std::string first_type = first.convertToString();
+      first_type = first.convertToString();
       if (!first.isSymbol() ||
           (!util::isMSType(first_type) && !util::isSType(first_type)))
       {
@@ -67,7 +106,7 @@ grids of the operator arguments are compatible.
             ("First argument must be a (moving) spatial type.");
       };
 
-      std::string second_type = second.convertToString();
+      second_type = second.convertToString();
       if (   !second.isSymbol()
           || (!util::isMSType(second_type) && !util::isSType(second_type)))
       {
@@ -112,8 +151,6 @@ grids of the operator arguments are compatible.
             ("Parameter function must have int, real, bool or string result.");
       }
 
-      Word result_first;
-      Word result_second;
       bool ok = QueryProcessor::ExecuteQuery
           (types.first().second().convertToString(), result_first);
       if (!ok) {
@@ -129,9 +166,20 @@ grids of the operator arguments are compatible.
       // The following call must throw util::parse_error if the grids are not
       // compatible.
       callback(result_first, result_second);
-
     } catch (util::parse_error& e) {
+      if(result_first.addr){
+         deleteGrid(first_type,result_first.addr);
+      }
+      if(result_second.addr){
+         deleteGrid(second_type,result_second.addr);
+      }
       return NList::typeError(e.what());
+    }
+    if(result_first.addr){
+       deleteGrid(first_type,result_first.addr);
+    }
+    if(result_second.addr){
+       deleteGrid(second_type,result_second.addr);
     }
 
     return NList(map2_result_type).listExpr();

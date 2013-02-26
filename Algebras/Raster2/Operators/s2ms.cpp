@@ -99,13 +99,19 @@ namespace raster2 {
                 if (ok) {
                     value = static_cast<DateTime*>(result.addr);
                     if (!value->IsDefined()) {
+                        delete value;
                         error << "Argument " << i << " cannot be undefined.";
                         throw util::parse_error(error.str());
                     }
+                    delete value;
                 } else {
+                    if(value){
+                      delete value;
+                    }   
                     error << "Argument " << i << " cannot be evaluated.";
                     throw util::parse_error(error.str());
                 }
+                value = 0;
             }
 
             if(nlist.first().first() == NList(sint::BasicType())) {

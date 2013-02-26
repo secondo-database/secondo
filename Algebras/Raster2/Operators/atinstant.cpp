@@ -88,25 +88,28 @@ namespace raster2 {
 
             bool ok;
             Word result;
-            DateTime* value;
+            DateTime* value=0;
             
             ok = QueryProcessor::ExecuteQuery
                         (types.elem(2).second().convertToString(), result);
 
-            if (ok) 
-            {
+            if (ok) {
                 value = static_cast<DateTime*>(result.addr);
                 if (!value->IsDefined()) 
                 {
+                    delete value;
                     error << "Argument 2 cannot be undefined.";
                     throw util::parse_error(error.str());
                 }
-            } 
-            else 
-            {
+                delete value;
+            } else {
+                if(value){
+                   delete value;
+                }
                 error << "Argument 2 cannot be evaluated.";
                 throw util::parse_error(error.str());
             }
+            value = 0;
 
             if (types.second().first() == NList(DateTime::BasicType())) 
             {
