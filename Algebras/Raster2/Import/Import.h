@@ -1127,7 +1127,7 @@ public:
 		long unit = allValues/100;
 
 		double* buffer = new double[allValues];
-		char *value = new char[50];
+		char value[50];
 
 		f->seekg(currentEsriHDR.posValues, ios::beg);
 
