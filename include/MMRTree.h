@@ -889,30 +889,30 @@ returns the next index for the quadratic split algorithm.
 
 */
 pair<unsigned int,unsigned int>
- pickNext(const Node* grp1,const Node* grp2) const{
+ pickNext(const Node* grpone,const Node* grptwo) const{
     assert(count>0);
-    double d1 = sons[0]->box.Union(grp1->box).Area();
-    double d2 = sons[0]->box.Union(grp2->box).Area();
+    double d1 = sons[0]->box.Union(grpone->box).Area();
+    double d2 = sons[0]->box.Union(grptwo->box).Area();
     unsigned int index = 0;
     unsigned int bestgrp = -1;
     double d = abs(d1-d2);
     for(int i=1;i<count;i++){
-        d1 = sons[i]->box.Union(grp1->box).Area();
-        d2 = sons[i]->box.Union(grp2->box).Area();
+        d1 = sons[i]->box.Union(grpone->box).Area();
+        d2 = sons[i]->box.Union(grptwo->box).Area();
         double d3 = abs(d1-d2);
         if(d3>d){
            d = d3;
            index = i;
-           double a1 = grp1->box.Area();
-           double a2 = grp2->box.Area();
+           double a1 = grpone->box.Area();
+           double a2 = grptwo->box.Area();
            d1 = d1 - a1;
            d2 = d2 - a2;
            if(d1!=d2){
              bestgrp = d1<d2?1:2;
            } else if(a1!=a2){
              bestgrp = a1<a2?1:2;
-           } else if(grp1->count!=grp2->count){
-             bestgrp = grp1->count<grp2->count? 1:2;
+           } else if(grpone->count!=grptwo->count){
+             bestgrp = grpone->count<grptwo->count? 1:2;
            } else { // all criterions failed
              bestgrp = 1;
            }
