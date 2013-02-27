@@ -444,8 +444,9 @@ void addRegion2(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
     reg->StartBulkLoad();
     for(unsigned int j=0;j<cycle.size()-1;j++){
        Point lp,rp;
-       bool small = cycle[j] < cycle[j+1];
-       if(small){
+       bool smallb;
+       smallb = (cycle[j] < cycle[j+1]);
+       if(smallb){
          lp = cycle[j];
          rp = cycle[j+1];
        } else {
@@ -454,7 +455,7 @@ void addRegion2(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
        }
        HalfSegment hs(true,lp,rp);
        hs.attr.edgeno = j;
-       hs.attr.insideAbove = (cw && !small) || (!cw && small);
+       hs.attr.insideAbove = (cw && !smallb) || (!cw && smallb);
        hs.attr.faceno=0;
        hs.attr.cycleno = 0;
        hs.attr.coverageno = 0;

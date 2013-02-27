@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include "importEsriRaster.h"
+#include <math.h>
 
 namespace raster2
 {
@@ -204,7 +205,8 @@ namespace raster2
 			   EsriRasterData->currentEsriHDR.ncols) + col];
 
 	    if(v != EsriRasterData->currentEsriHDR.nodata_value){
-         if(isnan(rs[ri])){
+         T v = rs[ri];
+         if(isnan(v)){
           rs[ri] = v;
 
           if(v < minimum)

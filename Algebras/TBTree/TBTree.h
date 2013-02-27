@@ -763,7 +763,9 @@ class QNodeSplitter{
 
   private:
 
-  pair<unsigned int,unsigned  int> pickSeeds(const Node<Dim, Info>& n) const{
+  typedef Node<Dim,Info> node_type;
+
+  pair<unsigned int,unsigned  int> pickSeeds(const node_type& n) const{
      pair<int, int> res;
      double d = 0;
      for(int i=0;i<n.entryCount();i++){
@@ -786,16 +788,16 @@ class QNodeSplitter{
    }
 
    pair<unsigned int,unsigned int>
-   pickNext(const Node<Dim,Info>* source,
-            const Node<Dim, Info>* grp1,
-            const Node<Dim,Info>* grp2) const{
-    double d1 = source->getEntry(0)->getBox().Union(grp1->getBox()).Area();
-    double d2 = source->getEntry(0)->getBox().Union(grp2->getBox()).Area();
+   pickNext(const node_type* source,
+            const node_type* grpone,
+            const node_type* grptwo) const{
+    double d1 = source->getEntry(0)->getBox().Union(grpone->getBox()).Area();
+    double d2 = source->getEntry(0)->getBox().Union(grptwo->getBox()).Area();
     unsigned int index = 0;
     unsigned int bestgrp = -1;
     double d = abs(d1-d2);
-    Rectangle<Dim> b1 = grp1->getBox();
-    Rectangle<Dim> b2 = grp2->getBox();
+    Rectangle<Dim> b1 = grpone->getBox();
+    Rectangle<Dim> b2 = grptwo->getBox();
     double a1 = b1.Area();
     double a2 = b2.Area();
 
@@ -812,8 +814,8 @@ class QNodeSplitter{
              bestgrp = d1<d2?1:2;
            } else if(a1!=a2){
              bestgrp = a1<a2?1:2;
-           } else if(grp1->entryCount()!=grp2->entryCount()){
-             bestgrp = grp1->entryCount()<grp2->entryCount()? 1:2;
+           } else if(grpone->entryCount()!=grptwo->entryCount()){
+             bestgrp = grpone->entryCount()<grptwo->entryCount()? 1:2;
            } else { // all criterions failed
              bestgrp = 1;
            }
