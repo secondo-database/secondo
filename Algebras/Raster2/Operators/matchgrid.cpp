@@ -158,6 +158,15 @@ namespace raster2
 
     SIn& src = *static_cast<SIn*>(args[0].addr);
     grid2& g_res = *static_cast<grid2*>(args[1].addr);
+    SOut& res = *static_cast<SOut*>(result.addr);
+
+    if(!src.isDefined() || (g_res.getLength()<=0)){
+       res.setDefined(false);
+       return 0;   
+    }
+
+    res.clear();
+
     Address function = args[2].addr;
     CcBool& use_weightS = *static_cast<CcBool*>(args[3].addr);
     CcInt&  attr_algebraId = *static_cast<CcInt*>(args[5].addr);
@@ -185,7 +194,6 @@ namespace raster2
       use_weight = true;
     }
 
-    SOut& res = *static_cast<SOut*>(result.addr);
     res.setGrid(g_res);
 
     grid2 g_src = src.getGrid();
@@ -231,8 +239,6 @@ namespace raster2
     res.setCacheSize(cacheSize / 2);
 
     arguments[0].setAddr(&rel);
-
-    size_t count = 0;
 
     while (current_res <= end_res) { // iterate over all cells in g_new
                             // inside the bbox of s
@@ -312,9 +318,14 @@ namespace raster2
     CcString& attr_name = *static_cast<CcString*>(args[4].addr);
     CcInt& attr_algebraId = *static_cast<CcInt*>(args[5].addr);
     CcInt& attr_typeId = *static_cast<CcInt*>(args[6].addr);
+    MSOut& r = *static_cast<MSOut*>(result.addr);
 
+     if(!s.isDefined()){
+       r.setDefined(false);
+       return 0;
+     }
 
-    SecondoCatalog();
+     r.clear();
 
     ListExpr relation_description = NList(
         NList("rel"),
@@ -335,7 +346,6 @@ namespace raster2
       use_weight.Set(true, false);
     }
 
-    MSOut& r = *static_cast<MSOut*>(result.addr);
     r.setGrid(g_new);
 
     grid3 g_old = s.getGrid();

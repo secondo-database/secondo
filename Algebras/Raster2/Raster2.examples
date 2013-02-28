@@ -159,3 +159,18 @@ Signature: xT x (T -> U) -> xU
 Example  : query [const sint value ((0.0 0.0 1.0) (1 1) (0 0 (1)))] map [. * 2]
 Result   : (sint ((0.0 0.0 1.0) (1 1) (0 0 (2))))
 
+
+Operator : isdefined
+Number   : 1
+Signature: rastertype -> bool
+Example  : query isdefined([const msbool value ((0.0 0.0 3.0 3.0) (2 1 2) (1 1 1 (TRUE TRUE TRUE TRUE)))])
+Result   : TRUE
+
+Operator : isdefined
+Number   : 2
+Signature: rastertype -> bool
+Example  : query isdefined([const sbool value undef])
+Result   : FALSE
+
+
+

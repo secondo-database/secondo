@@ -344,6 +344,7 @@ The ~RasterCache<T, dim, Undef>~ class template manages the cache for a
         void discard();
         void setSize(size_t s);
         void ensureSize(size_t s);
+        void clear(const bool flush);
 
         void insertRectangle(const Index& i, const TreeEntry& b);
         void removeRectangle(const Index& i, const TreeEntry& b);
@@ -417,6 +418,9 @@ The ~RasterStorageFile~ class is derived from ~SmiKeyedFile~, because
         RasterStorageRegionIterator<T, dim, Undef> iterate_regions
             (const index_type& from, const index_type& to);
         static RasterIndex<dim> getRegion(const RasterIndex<dim>& i);
+
+
+        void clear();
 
       private:
         void set(const index_type& index, const T& value);
@@ -646,6 +650,16 @@ The following functions deal with managing the files associated with a
     {
         return RasterStorageRegionIterator<T, dim, Undef>(from, to, this->tree);
     }
+
+
+    template <class T, int dim, bool Undef(const T&)>
+    void 
+    RasterStorage<T, dim, Undef>::clear(){
+       file->Truncate();
+       tree->Clear();
+       cache.clear(false);
+    }
+
 
     template <class T, int dim, bool Undef(const T&)>
     RasterStorageRegionIterator<T, dim, Undef>
@@ -1396,6 +1410,26 @@ deleting the pointed to object.
         tree_remove.clear();
         tree = 0;
     }
+
+
+    template <class T, int dim, bool Undef(const T&)> void
+    RasterCache<T, dim, Undef>::clear(const bool _flush) {
+        if(_flush){
+           flush();
+        }
+        for(typename DataCache::iterator it = cache.begin();
+            it != cache.end();
+            ++it)
+        {
+          it->second.first->discard();
+          delete it->second.first;
+        }
+        cache.clear();
+        history.clear();
+        tree_insert.clear();
+        tree_remove.clear();
+    }
+
 
     template <class T, int dim, bool Undef(const T&)> void
     RasterCache<T, dim, Undef>::setSize(size_t s) {

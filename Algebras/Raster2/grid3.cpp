@@ -95,6 +95,25 @@ Rectangle<3> grid3::getBBox(const index_type& from, const index_type& to) const
       from[2] * m_Duration.ToDouble(), (1 + to[2]) * m_Duration.ToDouble());
 }
 
+bool grid3::matches(const grid3& g2) const{
+  if(m_Duration != g2.m_Duration){
+      return false;
+  }
+  return grid2::matches(g2);
+}
+
+bool grid3::matches(const grid2& g2) const{
+  return grid2::matches(g2);
+}
+
+void grid3::set(const double ax, const double ay, const double alength, 
+         const datetime::DateTime& dt){
+
+   grid2::set(ax,ay,alength);
+   m_Duration = dt;
+}
+
+
 std::string grid3::BasicType()
 {
   return "grid3";

@@ -31,102 +31,59 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../sbool.h"
 #include "../msbool.h"
 #include "../msstring.h"
+#include "../util/types.h"
 
 namespace raster2 {
-    int atlocationFunSString(Word*, Word&, int, Word&, Supplier);
-
-    ValueMapping atlocationFuns[] = {
-        atlocationFun<int, stype_helper<int> >,
-        atlocationFun<double, stype_helper<double> >,
-        atlocationFun<char, sbool_helper >,
-        atlocationFunSString,
-        atlocationFunMType<msint, MInt, int>,
-//        atlocationFunMType<double, mstype_helper<double> >,
-//        atlocationFunMType<char, msbool_helper >,
-//        atlocationFunMType<std::string, mstype_helper<string> >,
-        0
-    };
-
-    int atlocationSelectFun(ListExpr args) {
-        NList type(args);
-
-        // The selection function should not have been called if the second
-        // argument does not meet the criteria in the type mapping
-        assert(type.second().isSymbol(Point::BasicType()));
-
-        if (type.first().isSymbol(sint::BasicType())) {
-            return 0;
-        }
-        else if (type.first().isSymbol(sreal::BasicType())) {
-            return 1;
-        }
-        else if (type.first().isSymbol(sbool::BasicType())) {
-            return 2;
-        }
-        else if(type.first().isSymbol(sstring::BasicType())) {
-            return 3;
-        }
-        else if (type.first().isSymbol(msint::BasicType())) {
-            return 4;
-        }
-//        else if (type.first().isSymbol(msreal::BasicType())) {
-//            return 5;
-//        }
-//        else if (type.first().isSymbol(msbool::BasicType())) {
-//            return 6;
-//        }
-//        else if (type.first().isSymbol(msstring::BasicType())) {
-//            return 7;
-//        }
 
 
-        return 5;
-    }
+  template <typename T>
+  int atlocationSFun(Word* args, Word& result, 
+                     int message, Word& local, Supplier s)
+  {
+      result = qp->ResultStorage(s);
+      typename T::wrapper_type* pResult = 
+          static_cast<typename T::wrapper_type*>(result.addr);
 
-    ListExpr atlocationTypeMap(ListExpr args)
-    {
-        NList types(args);
+      typename T::this_type* praster =
+          static_cast<typename T::this_type*>(args[0].addr);
 
-        if (types.second() == NList(Point::BasicType())) {
-            if(types.first() == NList(sint::BasicType())) {
-                return NList(sint::wrapper_type::BasicType()).listExpr();
-            }
-            else if(types.first() == NList(sreal::BasicType())) {
-                return NList
-                    (sreal::wrapper_type::BasicType()).listExpr();
-            }
-            else if(types.first() == NList(sbool::BasicType())) {
-                return NList
-                    (sbool::wrapper_type::BasicType()).listExpr();
-            }
-            else if(types.first() == NList(sstring::BasicType())) {
-                return NList
-                    (CcString::BasicType()).listExpr();
-            }
-            else if(types.first() == NList(msint::BasicType())) {
-                return NList(MInt::BasicType()).listExpr();
-            }
-            else if(types.first() == NList(msreal::BasicType())) {
-                return NList(MReal::BasicType()).listExpr();
-            }
-            else if(types.first() == NList(msbool::BasicType())) {
-                return NList(MBool::BasicType()).listExpr();
-            }
-//          else if(types.first() == NList(msstring::BasicType())) {
-//          return NList(mstype_helper<string>::wrapper_type::BasicType()).
-//                  listExpr();
-//          }
+      Point* pPoint = static_cast<Point*>(args[1].addr);
 
-        }
-        return NList::typeError
-                ("Expecting an sType or msType and a " +
-                       Point::BasicType() + ".");
-    
+      if(!pPoint->IsDefined() || !praster->isDefined()){
+         pResult->SetDefined(false);
+      } else {
+        (*pResult) = T::wrap(praster->atlocation(pPoint->GetX(),
+                                                 pPoint->GetY()));
+      }
+    return 0;
+  }
 
-      
-    }
+  template <typename T>
+  int atlocationMSFun(Word* args, Word& result, 
+                      int message, Word& local, Supplier s)
+  {
+      result = qp->ResultStorage(s);
+      typename T::moving_type* pResult = 
+          static_cast<typename T::moving_type*>(result.addr);
 
-    int atlocationFunSString
+      typename T::this_type* praster =
+          static_cast<typename T::this_type*>(args[0].addr);
+
+      Point* pPoint = static_cast<Point*>(args[1].addr);
+
+      if(!pPoint->IsDefined() || !praster->isDefined()){
+         pResult->SetDefined(false);
+      } else {
+        typename T::moving_type* tmp = 
+             praster->atlocation(pPoint->GetX(), pPoint->GetY());
+         std::swap(tmp,pResult);
+         delete tmp;
+      }
+    return 0;
+  }
+
+
+    int atlocationSStringFun
         (Word* args, Word& result, int message, Word& local, Supplier s)
     {
       sstring* pSString = static_cast<sstring*>(args[0].addr);
@@ -148,4 +105,66 @@ namespace raster2 {
 
       return 0;
     }
+
+
+    int atlocationMSStringFun
+        (Word* args, Word& result, int message, Word& local, Supplier s)
+    {
+      result = qp->ResultStorage(s);
+      MString* pResult = static_cast<MString*>(result.addr);
+      cout << "AtLOCATION not implemented for msstring" << endl;
+      pResult->SetDefined(false);
+      return 0;
+    }
+
+
+    ValueMapping atlocationFuns[] = {
+       atlocationSFun<sbool>,
+       atlocationSFun<sint>,
+       atlocationSFun<sreal>,
+       atlocationSStringFun,
+       atlocationMSFun<msbool>,
+       atlocationMSFun<msint>,
+       atlocationMSFun<msreal>,
+       atlocationMSStringFun,
+       0
+    };
+
+    int atlocationSelectFun(ListExpr args) {
+       string rtype = nl->ToString(nl->First(args));
+       int offset = util::isSType(rtype)?0:4;
+       string vtype = util::getValueBasicType(rtype);
+       int pos = 0;
+       if(vtype==CcBool::BasicType()){
+          pos = 0;
+       } else if(vtype==CcInt::BasicType()){
+          pos = 1;
+       } else if(vtype==CcReal::BasicType()){
+          pos = 2;
+       } else if(vtype==CcString::BasicType()){
+          pos = 3;
+       }
+       return offset + pos;
+    }
+
+    ListExpr atlocationTypeMap(ListExpr args)
+    {
+        string err = "rastertype x point expected";
+        if(!nl->HasLength(args,2)){
+           return listutils::typeError("two arguments required");
+        }     
+        if(!Point::checkType(nl->Second(args))){
+          return listutils::typeError(err);
+        }
+        string raster = nl->ToString(nl->First(args));
+        if(util::isSType(raster)){
+          return nl->SymbolAtom(util::getValueBasicType(raster));
+        }
+        if(util::isMSType(raster)){
+          return nl->SymbolAtom(util::getMovingBasicType(raster));
+        }
+        return listutils::typeError(err);
+
+    }
+
 }

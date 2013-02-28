@@ -197,6 +197,12 @@ Secondo operators.
         void setCacheSize(size_t size);
         void flushCache();
 
+        void clear();
+
+        bool isDefined() const;
+
+        void setDefined(const bool _defined);
+
 
 /*
 Internally, an ~mstype$<$T, Helper$>$~ object consists of the grid definition
@@ -211,6 +217,7 @@ member variables are provided for convenience.
         T minimum;
         T maximum;
         storage_type* storage;
+        bool defined;
 
       public:
         static TypeConstructor getTypeConstructor();
@@ -247,7 +254,8 @@ member variables are provided for convenience.
     mstype<T, Helper>::mstype
       (const grid3& g, SmiFileId r, SmiFileId t, const T& min, const T& max)
       : tmp(false), grid(g), minimum(min), maximum(max),
-        storage(new storage_type (Helper::getUndefined(),r , t))
+        storage(new storage_type (Helper::getUndefined(),r , t)),
+        defined(true)
     {}
 
     template <typename T, typename Helper>
@@ -255,7 +263,8 @@ member variables are provided for convenience.
       : tmp(false), grid(0.0, 0.0, 1.0, 1.0),
         minimum(Helper::getUndefined()),
         maximum(Helper::getUndefined()),
-        storage(new storage_type(Helper::getUndefined()))
+        storage(new storage_type(Helper::getUndefined())),
+        defined(true)
     {}
 
     template <typename T, typename Helper>
@@ -548,6 +557,9 @@ member variables are provided for convenience.
     
     template <typename T, typename Helper>
     inline Rectangle<3> mstype<T, Helper>::bbox() const {
+        if(!isDefined()){
+           return Rectangle<3>(false,0,0,0,0,0,0);
+        }
         RasterRegion<3> bbox = (*storage).bbox();
         double min[3] = {
             bbox.Min[0] * grid.getLength() + grid.getOriginX(),
@@ -563,10 +575,24 @@ member variables are provided for convenience.
     }
     
     template <typename T, typename Helper>
-    inline const T& mstype<T, Helper>::getMinimum() const { return minimum; };
+    inline const T& mstype<T, Helper>::getMinimum() const { 
+       if(isDefined()){
+         return minimum;
+       } else {
+         static T undef = Helper::getUndefined();
+         return undef;
+       }
+    };
     
     template <typename T, typename Helper>
-    inline const T& mstype<T, Helper>::getMaximum() const { return maximum; };
+    inline const T& mstype<T, Helper>::getMaximum() const { 
+       if(isDefined()){
+          return maximum;
+       } else {
+          static T undef = Helper::getUndefined();
+          return undef;
+       }
+    };
     
     template <typename T, typename Helper>
     inline grid3 mstype<T, Helper>::getGrid() const { return grid; };
@@ -630,6 +656,31 @@ member variables are provided for convenience.
     void mstype<T, Helper>::flushCache() {
         storage->flushCache();
     }
+
+    template <typename T, typename Helper>
+    void mstype<T, Helper>::clear() {
+        storage->clear();
+        minimum = maximum = Helper::getUndefined();
+        defined = true; 
+    }
+
+    template <typename T, typename Helper>
+    bool mstype<T, Helper>::isDefined() const {
+      return defined;
+    }
+    
+
+    template <typename T, typename Helper>
+    void mstype<T, Helper>::setDefined(const bool _defined) {
+      if(defined != _defined){
+         defined = _defined;
+         if(!defined){
+            clear();
+            defined = false;
+         }
+      }
+    }
+
 
 /*
 4.3 Static Member Functions for use by Secondo
@@ -722,6 +773,15 @@ member variables are provided for convenience.
                    const int errorPos, ListExpr& errorInfo,
                    bool& correct )
     {
+
+        if(listutils::isSymbolUndefined(instance)){
+           this_type* p_mstype = new this_type();
+           p_mstype->setDefined(false);
+           correct = true;
+           return Word(p_mstype);
+        }
+
+
         NList nlist(instance);
 
         grid3 grid;
@@ -853,6 +913,10 @@ member variables are provided for convenience.
     ListExpr mstype<T, Helper>::Out(ListExpr typeInfo, Word value)
     {
         this_type* p_mstype = static_cast<this_type*>(value.addr);
+
+        if(!p_mstype->isDefined()){
+           return nl->SymbolAtom(Symbol::UNDEFINED());
+        } 
 
         NList result;
 

@@ -62,9 +62,10 @@ namespace raster2
 
    	 //get handle to result object (sint)
    	 result = qp->ResultStorage(s);
+     sint* sintObject = static_cast<sint*>(result.addr);
+     sintObject->clear();
 
    	 if(Files.size() > 0) {
-   	  sint* sintObject = static_cast<sint*>(result.addr);
    	  RasterData *HGTRasterData = new RasterData(false);
 
    	  //get raster storage

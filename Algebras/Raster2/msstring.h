@@ -38,6 +38,8 @@ namespace raster2
       typedef msint::riter_type riter_type;
       typedef CcString wrapper_type;
       typedef std::string cell_type;
+      typedef MString moving_type;
+      typedef msstring this_type;
 
     private:
     /*
@@ -101,6 +103,12 @@ namespace raster2
 
     void setCacheSize(size_t size);
     void flushCache();
+
+    void clear();
+    bool isDefined() const;
+    void setDefined(const bool _defined);
+
+
     /*
     The following functions are used to integrate the ~sstring~ datatype
     into secondo.

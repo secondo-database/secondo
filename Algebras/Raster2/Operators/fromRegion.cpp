@@ -89,6 +89,14 @@ namespace raster2 {
         sbool* ergebnis = static_cast<sbool*>(result.addr);
         Region* region = static_cast<Region*>(args[0].addr);
         grid2* grid = static_cast<grid2*>(args[1].addr);   
+
+        if(!region->IsDefined() || 
+           grid->getLength()<=0){
+           ergebnis->setDefined(false);
+           return 0; 
+        } 
+
+        ergebnis->clear();
                                                                        
         double gridOriginX = grid->getOriginX();
         double gridOriginY = grid->getOriginY();
@@ -813,17 +821,14 @@ namespace raster2 {
     
     ListExpr fromRegionTypeMap(ListExpr args)
     {
-        NList type(args);
-
-        if (type.length() != 2)
-            return type.typeError("Expect two arguments.");
-
-        if ( type == NList(Region::BasicType(), grid2::BasicType()) )
-        {
-            return NList(sbool::BasicType()).listExpr();
+        if(!nl->HasLength(args,2)){
+          return listutils::typeError("2 arguments expected");
         }
+        if(!Region::checkType(nl->First(args)) ||
+           !grid2::checkType(nl->Second(args))){
+          return listutils::typeError("region x grid2 expected");
+        }
+        return listutils::basicSymbol<sbool>();
 
-        return NList::typeError
-            ("Expecting a region and a grid2.");
     }
 }

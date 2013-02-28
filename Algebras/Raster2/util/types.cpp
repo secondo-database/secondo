@@ -21,6 +21,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 #include <StandardTypes.h>
+#include "NestedList.h"
+
 
 #include "types.h"
 
@@ -32,12 +34,31 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../msreal.h"
 #include "../msbool.h"
 #include "../msstring.h"
+#include "../isint.h"
+#include "../isreal.h"
+#include "../isbool.h"
+#include "../isstring.h"
 
+extern NestedList* nl;
 
 namespace raster2
 {
   namespace util
   {
+
+
+    bool isSType(const ListExpr list) {
+      bool res = isSType(nl->ToString(list));
+      return res;
+    }
+    bool isMSType(const ListExpr list){
+      return isMSType(nl->ToString(list));
+    }
+    bool isISType(const ListExpr list){
+      return isISType(nl->ToString(list));
+    }
+
+
     bool isMSType(const std::string& type) {
       return type == msint::BasicType()
           || type == msreal::BasicType()
@@ -51,19 +72,58 @@ namespace raster2
           || type == sbool::BasicType()
           || type == sstring::BasicType();
     }
+    
+    bool isISType(const std::string& type) {
+      return type == isint::BasicType()
+          || type == isreal::BasicType()
+          || type == isbool::BasicType()
+          || type == isstring::BasicType();
+    }
 
     std::string getValueBasicType(const std::string& type) {
-      if (type == sint::BasicType() || type == msint::BasicType()) {
+      if (    type == sint::BasicType() 
+           || type == msint::BasicType() 
+           || type == isint::BasicType()) {
         return CcInt::BasicType();
       }
-      if (type == sreal::BasicType() || type == msreal::BasicType()) {
+      if (    type == sreal::BasicType() 
+           || type == msreal::BasicType()
+           || type == isreal::BasicType() ) {
         return CcReal::BasicType();
       }
-      if (type == sbool::BasicType() || type == msbool::BasicType()) {
+      if (    type == sbool::BasicType() 
+           || type == msbool::BasicType()
+           || type == isbool::BasicType()) {
         return CcBool::BasicType();
       }
-      if (type == sstring::BasicType() || type == msstring::BasicType()) {
+      if (    type == sstring::BasicType() 
+           || type == msstring::BasicType()
+           || type == isstring::BasicType()) {
         return CcString::BasicType();
+      }
+      return "";
+    }
+    
+    std::string getMovingBasicType(const std::string& type) {
+      if (    type == sint::BasicType() 
+           || type == msint::BasicType() 
+           || type == isint::BasicType()) {
+        return MInt::BasicType();
+      }
+      if (    type == sreal::BasicType() 
+           || type == msreal::BasicType()
+           || type == isreal::BasicType() ) {
+        return MReal::BasicType();
+      }
+      if (    type == sbool::BasicType() 
+           || type == msbool::BasicType()
+           || type == isbool::BasicType()) {
+        return MBool::BasicType();
+      }
+      if (    type == sstring::BasicType() 
+           || type == msstring::BasicType()
+           || type == isstring::BasicType()) {
+        return MString::BasicType();
       }
       return "";
     }
@@ -99,5 +159,23 @@ namespace raster2
       }
       return "";
     }
+
+
+    std::string getInstantSpatialBasicType(const std::string& type) {
+      if (type == CcInt::BasicType()) {
+        return isint::BasicType();
+      }
+      if (type == CcReal::BasicType()) {
+        return isreal::BasicType();
+      }
+      if (type == CcBool::BasicType()) {
+        return isbool::BasicType();
+      }
+      if (type == CcString::BasicType()) {
+        return isstring::BasicType();
+      }
+      return "";
+    }
+
   }
 }

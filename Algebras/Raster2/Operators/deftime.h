@@ -43,8 +43,12 @@ namespace raster2 {
         result = qp->ResultStorage(s);
         Periods* pResult = static_cast<Periods*>(result.addr);
         MSType* ms = static_cast<MSType*>(args[0].addr);
-
-        ms->getDefinedPeriods(*pResult);
+        if(ms->isDefined()){
+             pResult->Clear();
+             ms->getDefinedPeriods(*pResult);
+        } else {
+           pResult->SetDefined(false);
+        }
 
         return 0;
     }

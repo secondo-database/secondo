@@ -34,6 +34,13 @@ namespace raster2 {
         Region* re = static_cast<Region*>(result.addr);
         sbool* sbool1 = static_cast<sbool*>(args[0].addr);
 
+        if(!sbool1->isDefined()){
+          re->SetDefined(false);
+          return 0;
+        }
+
+        re->Clear();
+
         grid2 grid = sbool1->getGrid();
 
         double length = grid.getLength();

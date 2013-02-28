@@ -43,17 +43,19 @@ namespace raster2 {
     typename Helper::implementation_type* pImplementationType =
       static_cast<typename Helper::implementation_type*>(args[0].addr);
     Periods* periods = static_cast<Periods*>(args[1].addr);
+    result = qp->ResultStorage(s);
 
-    if(pImplementationType != 0)
+    typename Helper::implementation_type* pResult =
+          static_cast<typename Helper::implementation_type*>(result.addr);
+
+    if((pImplementationType != 0) &&
+       pImplementationType->isDefined() &&
+       periods->IsDefined())
     {
-      result = qp->ResultStorage(s);
-
-      typename Helper::implementation_type* pResult =
-            static_cast<typename Helper::implementation_type*>(result.addr);
 
       if(pResult != 0)
       {
-
+        
         typename Helper::implementation_type* patperiodsResult = 
           pImplementationType->atperiods(*periods);
           
@@ -63,6 +65,8 @@ namespace raster2 {
             delete patperiodsResult;
         }
       }
+    } else {
+        pResult->setDefined(false);
     }
 
     return 0;

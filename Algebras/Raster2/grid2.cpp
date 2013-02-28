@@ -95,6 +95,40 @@ Rectangle<2> grid2::getBBox(const index_type& from, const index_type& to) const
       from[0] * length + x,            (1 + to[0]) * length + x,
       from[1] * length + y,            (1 + to[1]) * length + y);
 }
+
+bool grid2::matches(const grid2& g2) const{
+    if (length != g2.length) {
+       return false;
+    }   
+
+    // Calculate difference between the origins. The difference between the
+    // the origins should roughly be a whole multiple of the grid length.
+    double dx = (this->getOriginX() - g2.getOriginX()) / length;
+    double dy = (this->getOriginY() - g2.getOriginY()) / length;
+
+    int dc = dx + 0.5;
+    int dr = dy + 0.5;
+
+    if (!AlmostEqual(dx, dc) || !AlmostEqual(dy, dr)) {
+      return false;
+    }   
+    return true;
+}
+
+void grid2::set(const double ax, const double ay, const double alength){
+  
+   if(alength<=0){
+     length = 0;
+   } else {
+     length = alength;
+   }
+   x = ax;
+   y = ay;
+}
+
+
+
+
 /*
 The function ~intersect~ takes a line segment and a raster cell (given by its
 index) and determines the offsets of the raster cells that the line segment
@@ -401,6 +435,12 @@ TypeConstructor grid2::getTypeConstructor() {
 std::string grid2::BasicType() {
     return "grid2";
 }
+
+bool grid2::checkType(ListExpr t){
+  return listutils::isSymbol(t,BasicType());
+}
+
+
 
 /*
 List expression of ~grid2~ is (x y l) where ~x~ is the first coordinate

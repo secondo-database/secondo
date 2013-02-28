@@ -53,16 +53,19 @@ namespace raster2
   {
     istype<T, Helper>* pistype = static_cast<istype<T, Helper>*>(args[0].addr);
 
-    if(pistype != 0)
-    {
-      result = qp->ResultStorage(s);
+    result = qp->ResultStorage(s);
 
-      DateTime* pResult = static_cast<DateTime*>(result.addr);
+    DateTime* pResult = static_cast<DateTime*>(result.addr);
+
+    if((pistype != 0) && pistype->isDefined())
+    {
 
       if(pResult != 0)
       {
         *pResult = pistype->inst();
       }
+    } else {
+      pResult->SetDefined(false);
     }
     return 0;
   }

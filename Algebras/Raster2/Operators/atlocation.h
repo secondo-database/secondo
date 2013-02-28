@@ -44,57 +44,8 @@ namespace raster2
     }
   };
 
-  template <typename T, typename Helper>
-  int atlocationFun
-      (Word* args, Word& result, int message, Word& local, Supplier s)
-  {
-      result = qp->ResultStorage(s);
-
-      typename Helper::wrapper_type* pResult =
-        static_cast<typename Helper::wrapper_type*>(result.addr);
-
-      typename Helper::implementation_type* pSobject =
-        static_cast<typename Helper::implementation_type*>(args[0].addr);
-
-      Point* pPoint = static_cast<Point*>(args[1].addr);
-
-      if (pPoint->IsDefined()) {
-          *pResult = Helper::wrap(
-                  pSobject->atlocation(pPoint->GetX(), pPoint->GetY()));
-      } else {
-          *pResult = Helper::wrap(Helper::getUndefined());
-      }
-
-    return 0;
-  }
-
-  template <typename MSType, typename MType, typename Type>
-  int atlocationFunMType
-    (Word* args, Word& result, int message, Word& local, Supplier s)
-  {
-      MSType* msin = static_cast<MSType*>(args[0].addr);
-      Point* pPoint = static_cast<Point*>(args[1].addr);
-      if(pPoint != 0)
-      {
-          result = qp->ResultStorage(s);
-          MType* res = static_cast<MType*>(result.addr);
-          MType* mout = msin->atlocation(pPoint->GetX(),
-                                         pPoint->GetY());
-
-          if(mout->IsDefined())
-          {
-              std::swap(*res, *mout);
-              delete mout;
 
 
-
-
-
-          }
-      }
-
-      return 0;
-  }
 }
 
 #endif /* #define RASTER2_ATLOCATION_H */

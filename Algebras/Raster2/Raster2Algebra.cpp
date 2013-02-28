@@ -62,6 +62,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operators/CELL2.h"
 #include "Operators/CELLS.h"
 #include "Operators/fromLine.h"
+#include "Operators/isdefined.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -98,28 +99,27 @@ Raster2Algebra::Raster2Algebra()
   AddTypeConstructor(new TypeConstructor(grid3::getTypeConstructor()),true);
   AddTypeConstructor(new TypeConstructor(
                          UniqueStringArray::getTypeConstructor()),true);
+
+
  
   AddOperator(atlocationInfo(), atlocationFuns, atlocationSelectFun,
               atlocationTypeMap);
   AddOperator(atinstantInfo(), atinstantFuns, atinstantSelectFun,
-              atinstantTypeMap)
-              ->SetUsesArgsInTypeMapping();
+              atinstantTypeMap)->SetUsesMemory();
   AddOperator(instInfo(), instFuns, instSelectFun, instTypeMap);
   AddOperator(valInfo(), valFuns, valSelectFun, valTypeMap);
   AddOperator(atperiodsInfo(), atperiodsFuns, atperiodsSelectFun,
-              atperiodsTypeMap);
+              atperiodsTypeMap)->SetUsesMemory();
   AddOperator(atrangeInfo(), atrangeFuns, atrangeSelectFun, atrangeTypeMap);
   AddOperator(deftimeInfo(), deftimeFuns, deftimeSelectFun, deftimeTypeMap);
   AddOperator(bboxInfo(), bboxFuns, bboxSelectFun, bboxTypeMap);
   AddOperator(minimumInfo(), minimumFuns, minimumSelectFun, minimumTypeMap);
   AddOperator(maximumInfo(), maximumFuns, maximumSelectFun, maximumTypeMap);
   AddOperator(mapInfo(), mapFuns, mapSelectFun, mapTypeMap);
-  AddOperator(map2Info(), map2Funs, map2SelectFun, map2TypeMap)
-              ->SetUsesArgsInTypeMapping();
+  AddOperator(map2Info(), map2Funs, map2SelectFun, map2TypeMap);
   AddOperator(fromRegionInfo(), fromRegionFun, fromRegionTypeMap);
   AddOperator(toRegionInfo(), toRegionFun, toRegionTypeMap);
-  AddOperator(s2msInfo(), s2msFuns, s2msSelectFun, s2msTypeMap)
-      ->SetUsesArgsInTypeMapping();
+  AddOperator(s2msInfo(), s2msFuns, s2msSelectFun, s2msTypeMap);
   AddOperator(composeInfo(), composeFuns, composeSelectFun, composeTypeMap);
 
   Operator* mgop = AddOperator(matchgridInfo(), matchgridFuns, 
@@ -137,6 +137,7 @@ Raster2Algebra::Raster2Algebra()
   AddOperator(cell2Info(), 0, cell2TypeMap);
   AddOperator(cellsInfo(), 0, cellsTypeMap);
   AddOperator(fromLineInfo(), fromLineFun, fromLineTypeMap);
+  AddOperator(isdefinedInfo(), isdefinedFuns, isdefinedSelectFun, isdefinedTM);
 }
 
 Raster2Algebra::~Raster2Algebra()

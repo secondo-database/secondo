@@ -343,6 +343,29 @@ void msstring::flushCache() {
     m_pmsint->flushCache();
 }
 
+void msstring::clear(){
+   m_pmsint->clear();
+   m_pUniqueStringArray->clear();
+   m_minimum = m_maximum = UNDEFINED_STRING_INDEX;
+}
+
+bool msstring::isDefined()const{
+   return m_pmsint->isDefined();
+}
+
+void msstring::setDefined(const bool _defined){
+  if(_defined != isDefined()){
+    m_pmsint->setDefined(_defined);
+    if(!_defined){
+      m_pUniqueStringArray->clear();
+      m_minimum = m_maximum = UNDEFINED_STRING_INDEX;
+    }
+  }
+}
+
+
+
+
 const string msstring::BasicType()
 { 
   return TYPE_NAME_MSSTRING;
@@ -453,6 +476,14 @@ Word msstring::In(const ListExpr typeInfo,
                   ListExpr& errorInfo,
                   bool& correct)
 { 
+
+  if(listutils::isSymbolUndefined(instance)){
+    msstring* res = new msstring();
+    res->setDefined(false);
+    correct = true;
+    return Word(res);
+  }
+
   Word w = SetWord(Address(0));
 
   NList nlist(instance);
@@ -750,11 +781,18 @@ bool msstring::Save(SmiRecord& valueRecord,
 ListExpr msstring::Out(ListExpr typeInfo,
                        Word value)
 { 
+
+
+  msstring* pmsstring = static_cast<msstring*>(value.addr);
+
+  if(!pmsstring->isDefined()){
+     return nl->SymbolAtom(Symbol::UNDEFINED());  
+  }
+
   ListExpr pListExpr = 0;
   
   if(nl != 0)
   {  
-    msstring* pmsstring = static_cast<msstring*>(value.addr);
     
     if(pmsstring != 0)
     {

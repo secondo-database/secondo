@@ -64,9 +64,10 @@ namespace raster2
 
      //get handle to result object (sint)
      result = qp->ResultStorage(s);
+  	 sreal* srealObject = static_cast<sreal*>(result.addr);
+     srealObject->clear();
 
      if(Files.size() > 0) {
-   	  sreal* srealObject = static_cast<sreal*>(result.addr);
    	  RasterData *EsriRasterData = new RasterData(false);
 
    	  //get raster storage
@@ -205,8 +206,9 @@ namespace raster2
 			   EsriRasterData->currentEsriHDR.ncols) + col];
 
 	    if(v != EsriRasterData->currentEsriHDR.nodata_value){
-         T v = rs[ri];
-         if(isnan(v)){
+         const T& v1 = rs[ri];
+
+         if(isnan(v1)){
           rs[ri] = v;
 
           if(v < minimum)

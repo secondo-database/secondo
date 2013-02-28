@@ -111,8 +111,15 @@ namespace raster2
     result = qp->ResultStorage(s);
 
     S* sArg = static_cast<S*>(args[0].addr);
-    Address function = args[1].addr;
     Result* r = static_cast<Result*>(result.addr);
+
+    if(!sArg->isDefined()){
+       r->setDefined(false);
+       return 0;
+    }
+    r->clear();
+
+    Address function = args[1].addr;
 
     grid2 grid = sArg->getGrid();
     
@@ -171,6 +178,12 @@ namespace raster2
     M* mArg = static_cast<M*>(args[0].addr);
     Address function = args[1].addr;
     Result* r = static_cast<Result*>(result.addr);
+
+    if(!mArg->isDefined()){
+        r->setDefined(false);
+        return 0;
+    }
+    r->clear();
 
     grid3 grid = mArg->getGrid();
     

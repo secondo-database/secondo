@@ -32,7 +32,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../msbool.h"
 #include "../msreal.h"
 #include "../msstring.h"
-#include "../util/parse_error.h"
+#include "../util/types.h"
+
 
 #include "s2ms.h"
 
@@ -46,92 +47,41 @@ namespace raster2 {
     };
 
     int s2msSelectFun(ListExpr args) {
-        NList type(args);
+        ListExpr a1 = nl->First(args);;
 
-        if (type.first().isSymbol(sint::BasicType())) {
+        if (sint::checkType(a1)) {
             return 0;
-        } else if (type.first().isSymbol(sreal::BasicType())) {
+        } else if (sreal::checkType(a1)) {
             return 1;
-        } else if (type.first().isSymbol(sbool::BasicType())) {
+        } else if (sbool::checkType(a1)) {
             return 2;
-        } else if (type.first().isSymbol(sstring::BasicType())) {
+        } else if (sstring::checkType(a1)) {
             return 3;
-        } else {
-            return 4;
+        } else { // invalid type
+            return -1;
         }
     }
 
     ListExpr s2msTypeMap(ListExpr args) {
-        NList nlist(args);
-
-        std::ostringstream error;
-
-        try {
-            if (nlist.length() != 4) {
-                error << "Expected 4 arguments, got " << nlist.length() << ".";
-                throw util::parse_error(error.str());
-            }
-            if (nlist.second().first() != NList(Duration::BasicType())) {
-                error << "Expected " << Duration::BasicType()
-                      << " as argument 2, got " << nlist.second().first().str()
-                      << ".";
-                throw util::parse_error(error.str());
-            }
-            if (nlist.third().first() != NList(Instant::BasicType())) {
-                error << "Expected " << Instant::BasicType()
-                      << " as argument 3, got " << nlist.third().first().str()
-                      << ".";
-                throw util::parse_error(error.str());
-            }
-            if (nlist.fourth().first() != NList(Instant::BasicType())) {
-                error << "Expected " << Instant::BasicType()
-                      << " as argument 4, got " << nlist.fourth().first().str()
-                      << ".";
-                throw util::parse_error(error.str());
-            }
-
-            bool ok;
-            Word result;
-            DateTime* value;
-            for (Cardinal i = 2; i <= 4; ++i) {
-                ok = QueryProcessor::ExecuteQuery
-                        (nlist.elem(i).second().convertToString(), result);
-                if (ok) {
-                    value = static_cast<DateTime*>(result.addr);
-                    if (!value->IsDefined()) {
-                        delete value;
-                        error << "Argument " << i << " cannot be undefined.";
-                        throw util::parse_error(error.str());
-                    }
-                    delete value;
-                } else {
-                    if(value){
-                      delete value;
-                    }   
-                    error << "Argument " << i << " cannot be evaluated.";
-                    throw util::parse_error(error.str());
-                }
-                value = 0;
-            }
-
-            if(nlist.first().first() == NList(sint::BasicType())) {
-              return NList(msint::BasicType()).listExpr();
-            } else if(nlist.first().first() == NList(sreal::BasicType())) {
-              return NList(msreal::BasicType()).listExpr();
-            } else if(nlist.first().first() == NList(sbool::BasicType())) {
-              return NList(msbool::BasicType()).listExpr();
-            } else if(nlist.first().first() == NList(sstring::BasicType())) {
-              return NList(msstring::BasicType()).listExpr();
-            } else {
-                error << "Expected sType as argument 1, "
-                        "got " << nlist.first().first().str() << ".";
-                throw util::parse_error(error.str());
-            }
-        } catch (util::parse_error& e) {
-            return NList::typeError(e.what());
+        if(!nl->HasLength(args,4)){
+          return listutils::typeError("4 arguments expeted");
         }
+        string err = "stype x duration x instant x instant expected";
+        ListExpr stype = nl->First(args);
+        ListExpr dur = nl->Second(args);
+        ListExpr start = nl->Third(args);
+        ListExpr end = nl->Fourth(args);
 
-        return 0;
+        if(   !util::isSType(stype) 
+           || !Duration::checkType(dur) 
+           || !DateTime::checkType(start)
+           || !DateTime::checkType(end)){
+         return listutils::typeError(err);
+       }
+       std::string st = nl->SymbolValue(stype);
+       std::string ct = util::getValueBasicType(st);
+       std::string mt = util::getMovingSpatialBasicType(ct);
+       return  nl->SymbolAtom(mt); 
     }
 }
 

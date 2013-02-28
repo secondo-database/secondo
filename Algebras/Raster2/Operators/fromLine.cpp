@@ -41,6 +41,12 @@ namespace raster2 {
 
     sb->setGrid(*grid);
 
+    if(!line->IsDefined() || grid->getLength()<=0){
+        sb->setDefined(false);
+        return 0;
+    }
+    sb->clear();
+
     int lineLength = line->Size();
 
     HalfSegment hs;

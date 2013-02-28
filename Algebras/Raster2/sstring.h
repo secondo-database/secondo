@@ -36,6 +36,9 @@ namespace raster2
       typedef sint::riter_type riter_type;
       typedef CcString wrapper_type;
       typedef std::string cell_type;
+      typedef sstring this_type;
+      typedef MString moving_type;
+      typedef UString unit_type;
       typedef sint::storage_type storage_type;
 
     public:
@@ -65,6 +68,11 @@ namespace raster2
     functions
     
     */
+
+    void clear();
+    void setDefined(const bool _defined);
+    bool isDefined() const;
+
     void destroy();
     sint::storage_type& getStorage();
     string atlocation(double x, double y) const;

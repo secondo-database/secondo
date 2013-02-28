@@ -63,6 +63,8 @@ class UniqueStringArray : public Attribute
   functions
   
   */
+
+  void clear(); 
   
   bool GetUniqueString(int nIndex, string& rString) const;
   list<string> GetUniqueStringArray() const;

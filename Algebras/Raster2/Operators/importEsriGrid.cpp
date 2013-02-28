@@ -1086,13 +1086,13 @@ namespace raster2
 
        if(EsriRasterData->CellTypeReal()) {
         sreal* esriObject = static_cast<sreal*>(result.addr);
-
+        esriObject->clear();
         //only testdata, will later be filled with real data
         esriObject->importEsriGridFile(EsriRasterData);
        }
        else {
         sint* esriObject = static_cast<sint*>(result.addr);
-
+        esriObject->clear();
         //only testdata, will later be filled with real data
         esriObject->importEsriGridFile(EsriRasterData);
        }

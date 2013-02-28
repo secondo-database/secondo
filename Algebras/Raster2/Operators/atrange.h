@@ -51,14 +51,14 @@ namespace raster2
     typename Helper::implementation_type* pImplementationType =
       static_cast<typename Helper::implementation_type*>(args[0].addr);
     Rect* pRect = static_cast<Rect*>(args[1].addr);
-
-    if(pImplementationType != 0 &&
-       pRect != 0)
-    {
-      result = qp->ResultStorage(s);
-
-      typename Helper::implementation_type* pResult =
+    result = qp->ResultStorage(s);
+    typename Helper::implementation_type* pResult =
         static_cast<typename Helper::implementation_type*>(result.addr);
+
+    if((pImplementationType != 0) &&
+       (pRect != 0) && 
+        pImplementationType->isDefined() &&
+        pRect->IsDefined()) {
 
       if(pResult != 0)
       {
@@ -72,6 +72,8 @@ namespace raster2
           delete patrangeResult;
         }
       }
+    } else {
+       pResult->setDefined(false);
     }
 
     return 0;
@@ -86,15 +88,27 @@ namespace raster2
       Rect* pRect = static_cast<Rect*>(args[1].addr);
       Instant* start = static_cast<Instant*>(args[2].addr);
       Instant* end = static_cast<Instant*>(args[3].addr);
-      Interval<DateTime> lookupinterval(*start, *end, true, false);
+
       MSType* res = static_cast<MSType*>(result.addr);
+
+      if(   !msin.isDefined()
+         || !pRect->IsDefined()
+         || !start->IsDefined()
+         || !end->IsDefined()){
+        res->setDefined(false);
+        return 0;
+      }
+
+
+      Interval<DateTime> lookupinterval(*start, *end, true, false);
 
       if(!lookupinterval.IsValid()) {
        if(end->CompareTo(start) < 0) {
-        cout << "Wrong interval." << endl;
+        res->setDefined(false);
         return 0;
        }
       }
+      res->clear();
 
       //Correct time offset when using negative instant values
       const DateTime* mSec = new DateTime(0.00000001);

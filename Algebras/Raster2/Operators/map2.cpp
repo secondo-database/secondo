@@ -37,36 +37,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace raster2
 {
 
- void deleteGrid(string grid_type, void*& grid){
-    if(!grid){
-        return;
-    }
-
-    if(grid_type==sint::BasicType()){
-       delete   (sint*) grid;  
-    } else if(grid_type ==sbool::BasicType()) {
-       delete (sbool*) grid;
-    } else if(grid_type==sreal::BasicType()){
-       delete (sreal*) grid;
-    } else if(grid_type==sstring::BasicType()){
-       delete (sstring*) grid;
-    } else if(grid_type==msint::BasicType()){
-       delete   (msint*) grid;  
-    } else if(grid_type ==msbool::BasicType()) {
-       delete (msbool*) grid;
-    } else if(grid_type==msreal::BasicType()){
-       delete (msreal*) grid;
-    } else if(grid_type==msstring::BasicType()){
-       delete (msstring*) grid;
-    } else {
-        bool knowntype = false;
-        assert(knowntype);
-        return;
-    }
-    grid = 0;
-
- }
-
 
 
 /*
@@ -74,115 +44,69 @@ The following declarations are used by the type mapping to check whether the
 grids of the operator arguments are compatible.
 
 */
-  typedef void (*GridChecker)(Word, Word);
-  extern GridChecker map2CheckGridsFuns[64];
-  int map2SelectCheckGridsFun(const std::string&, const std::string&);
-
   ListExpr map2TypeMap(ListExpr args) {
-    NList types(args);
-    std::string map2_result_type;
-    NList first;
-    NList second;
 
-    Word result_first((void*)0);
-    Word result_second((void*)0);
-    std::string first_type="";
-    std::string second_type="";
+     if(!nl->HasLength(args,3)){
+       return listutils::typeError("3 arguments expected");  
+     } 
+     ListExpr arg1 = nl->First(args);
+     ListExpr arg2 = nl->Second(args);
+     ListExpr arg3 = nl->Third(args);
+
+     //cout << "args = " << nl->ToString(args) << endl;
+     //cout << "arg1 = " << nl->ToString(arg1) << endl;
+     //cout << "arg2 = " << nl->ToString(arg2) << endl;
+     //cout << "arg3 = " << nl->ToString(arg3) << endl;
+
+
     
+     string err = "raster x raster x fun expected" ;
 
-    try {
-      if(types.length() != 3) {
-        throw util::parse_error("Operator map2 requires three arguments.");
-      }
-      first = types.first().first();
-      second  = types.second().first();
-      NList function = types.third().first();
+     if(!util::isSType(arg1) && !util::isMSType(arg1)){
+        return listutils::typeError(  err 
+                                    + " (first arg is not a raster type)");
+     }
+     if(!util::isSType(arg2) && !util::isMSType(arg2)){
+        return listutils::typeError(  err
+                                    + " (second arg is not a raster type)");
+     }
+     if(!listutils::isMap<2>(arg3)){
+        return listutils::typeError(  err 
+                       + " (third arg is not a function with 2 arguments)");
+     }   
+     bool static1 = util::isSType(arg1);
+     bool static2 = util::isSType(arg2);
 
-      first_type = first.convertToString();
-      if (!first.isSymbol() ||
-          (!util::isMSType(first_type) && !util::isSType(first_type)))
-      {
-        throw util::parse_error
-            ("First argument must be a (moving) spatial type.");
-      };
+   //     if(static1!=static2){
+   //     return listutils::typeError("mix of static and moving "
+   //                                 "rasters not allowed");
+   //  }
 
-      second_type = second.convertToString();
-      if (   !second.isSymbol()
-          || (!util::isMSType(second_type) && !util::isSType(second_type)))
-      {
-        throw util::parse_error
-            ("Second argument must be a (moving) spatial type.");
-      }
+     string bt1 = util::getValueBasicType(nl->ToString(arg1));
+     string bt2 = util::getValueBasicType(nl->ToString(arg2));
 
-      if (!listutils::isMap<2>(function.listExpr())) {
-        throw util::parse_error
-            ("Third argument must be a function of two parameters.");
-      }
-
-      NList ffirst = function.second();
-      NList fsecond  = function.third();
-      NList fresult  = function.fourth();
-
-      std::string ffirst_type = ffirst.convertToString();
-      if (!ffirst.isSymbol() ||
-          util::getValueBasicType(first_type) != ffirst_type)
-      {
-        throw util::parse_error("Parameter function requires a "  +
-            util::getValueBasicType(first_type) + " as first argument.");
-      }
-
-      std::string fsecond_type = fsecond.convertToString();
-      if (!fsecond.isSymbol() ||
-          util::getValueBasicType(second_type) != fsecond_type)
-      {
-        throw util::parse_error("Parameter function requires a "  +
-            util::getValueBasicType(second_type) + " as second argument.");
-      }
-
-      std::string fresult_type = fresult.convertToString();
-      if (util::isMSType(first_type) || util::isMSType(second_type)) {
-        map2_result_type = util::getMovingSpatialBasicType(fresult_type);
-      } else {
-        map2_result_type = util::getSpatialBasicType(fresult_type);
-      }
-      if (!fresult.isSymbol() || map2_result_type.empty())
-      {
-        throw util::parse_error
-            ("Parameter function must have int, real, bool or string result.");
-      }
-
-      bool ok = QueryProcessor::ExecuteQuery
-          (types.first().second().convertToString(), result_first);
-      if (!ok) {
-          throw util::parse_error("Argument 1 cannot be evaluated.");
-      }
-      ok = QueryProcessor::ExecuteQuery
-          (types.second().second().convertToString(), result_second);
-      if (!ok) {
-          throw util::parse_error("Argument 2 cannot be evaluated.");
-      }
-      int callback_id = map2SelectCheckGridsFun(first_type, second_type);
-      GridChecker callback = map2CheckGridsFuns[callback_id];
-      // The following call must throw util::parse_error if the grids are not
-      // compatible.
-      callback(result_first, result_second);
-    } catch (util::parse_error& e) {
-      if(result_first.addr){
-         deleteGrid(first_type,result_first.addr);
-      }
-      if(result_second.addr){
-         deleteGrid(second_type,result_second.addr);
-      }
-      return NList::typeError(e.what());
-    }
-    if(result_first.addr){
-       deleteGrid(first_type,result_first.addr);
-    }
-    if(result_second.addr){
-       deleteGrid(second_type,result_second.addr);
-    }
-
-    return NList(map2_result_type).listExpr();
+     ListExpr funarg1 = nl->Second(arg3);
+     ListExpr funarg2 = nl->Third(arg3);
+     ListExpr funres = nl->Fourth(arg3);
+     if(!listutils::isSymbol(funarg1,bt1)){
+       return listutils::typeError("fun argument 1 and raster 1 " 
+                                   "type does not match");
+     }
+     if(!listutils::isSymbol(funarg2,bt2)){
+       return listutils::typeError("fun argument 2 and raster 2 " 
+                                   "type does not match");
+     }
+     string restype="";
+     if(static1 && static2){
+        restype=util::getSpatialBasicType(nl->ToString(funres));
+     } else {
+        restype = util::getMovingSpatialBasicType(nl->ToString(funres));
+     }
+     if(restype==""){
+        return listutils::typeError("Functionresult does not corresponds"
+                                    " to a raster type");
+     }
+     return nl->SymbolAtom(restype);
   }
 
   int map2SelectFun(ListExpr args) {
@@ -229,8 +153,21 @@ grids of the operator arguments are compatible.
     Address function = args[2].addr;
     Result* r = static_cast<Result*>(result.addr);
 
+    if(!s1->isDefined() || !s2->isDefined()){
+      r->setDefined(false);
+      return 0;
+    }
+
     grid2 g1 = s1->getGrid();
     grid2 g2 = s2->getGrid();
+
+    if(!g1.matches(g2)){
+      r->setDefined(false);
+      return 0;
+    }    
+
+    r->clear();
+
 
     double dx = (g1.getOriginX() - g2.getOriginX()) / g1.getLength();
     double dy = (g1.getOriginY() - g2.getOriginY()) / g1.getLength();
@@ -301,6 +238,13 @@ grids of the operator arguments are compatible.
 
     grid2 g1 = sobj->getGrid();
     grid3 g2 = mobj->getGrid();
+
+    if(!g2.matches(g1)){
+        r->setDefined(false);
+        return 0;
+    }
+
+    r->clear();
 
     double dx = (g1.getOriginX() - g2.getOriginX()) / g1.getLength();
     double dy = (g1.getOriginY() - g2.getOriginY()) / g1.getLength();
@@ -375,6 +319,14 @@ grids of the operator arguments are compatible.
     grid3 g1 = mobj->getGrid();
     grid2 g2 = sobj->getGrid();
 
+    if(!g1.matches(g2)){
+       r->setDefined(false);
+       return 0;
+    }
+
+    r->clear();
+
+
     double dx = (g1.getOriginX() - g2.getOriginX()) / g1.getLength();
     double dy = (g1.getOriginY() - g2.getOriginY()) / g1.getLength();
     int dc = dx + 0.5;
@@ -447,6 +399,12 @@ grids of the operator arguments are compatible.
 
     grid3 g1 = m1->getGrid();
     grid3 g2 = m2->getGrid();
+
+    if(!g1.matches(g2)){
+       r->setDefined(false);
+       return 0;
+    }
+    r->clear();
 
     double dx = (g1.getOriginX() - g2.getOriginX()) / g1.getLength();
     double dy = (g1.getOriginY() - g2.getOriginY()) / g1.getLength();
@@ -779,190 +737,5 @@ grids of the operator arguments are compatible.
       0
   };
 
-  int map2SelectCheckGridsFun(const std::string& type1,
-                              const std::string& type2)
-  {
-    int offset = 0;
-    int i;
 
-    std::string idf = type1.substr(type1.length()-2, 2);
-    std::string ids = type2.substr(type2.length()-2, 2);
-
-    if (idf == "nt")      i = 0;
-    else if (idf == "ol") i = 1;
-    else if (idf == "al") i = 2;
-    else                  i = 3;
-    offset += util::isSType(type1) ?  8 * i : 8 * i + 32;
-
-    if (ids == "nt")      i = 0;
-    else if (ids == "ol") i = 1;
-    else if (ids == "al") i = 2;
-    else                  i = 3;
-    offset += util::isSType(type2) ? i : i + 4;
-
-    return offset;
-  }
-
-  template <typename S1, typename S2>
-  void map2CheckGridsFunSS(Word arg1, Word arg2)
-  {
-    S1* s1 = static_cast<S1*>(arg1.addr);
-    S2* s2 = static_cast<S2*>(arg2.addr);
-
-    grid2 g1 = s1->getGrid();
-    grid2 g2 = s2->getGrid();
-
-    // The grid lengths need to match exactly, because otherwise the difference
-    // in grid lengths will eventually become significant.
-    if (g1.getLength() != g2.getLength()) {
-      throw util::parse_error("Grid lengths are not compatible.");
-    }
-
-    // Calculate difference between the origins. The difference between the
-    // the origins should roughly be a whole multiple of the grid length.
-    double dx = (g1.getOriginX() - g2.getOriginX()) / g1.getLength();
-    double dy = (g1.getOriginY() - g2.getOriginY()) / g1.getLength();
-
-    int dc = dx + 0.5;
-    int dr = dy + 0.5;
-
-    if (!AlmostEqual(dx, dc) || !AlmostEqual(dy, dr)) {
-      throw util::parse_error("Grids do not match.");
-    }
-  }
-
-  template <typename S, typename M>
-  void map2CheckGridsFunSM(Word arg1, Word arg2)
-  {
-    S* sobj = static_cast<S*>(arg1.addr);
-    M* mobj = static_cast<M*>(arg2.addr);
-
-    grid2 gs = sobj->getGrid();
-    grid3 gm = mobj->getGrid();
-
-    // The grid lengths need to match exactly, because otherwise the difference
-    // in grid lengths will eventually become significant.
-    if (gs.getLength() != gm.getLength()) {
-      throw util::parse_error("Grid lengths are not compatible.");
-    }
-
-    // Calculate difference between the origins. The difference between the
-    // the origins should roughly be a whole multiple of the grid length.
-    double dx = (gs.getOriginX() - gm.getOriginX()) / gs.getLength();
-    double dy = (gs.getOriginY() - gm.getOriginY()) / gs.getLength();
-
-    int dc = dx + 0.5;
-    int dr = dy + 0.5;
-
-    if (!AlmostEqual(dx, dc) || !AlmostEqual(dy, dr)) {
-      throw util::parse_error("Grids do not match.");
-    }
-  }
-
-  template <typename M, typename S>
-  void map2CheckGridsFunMS(Word arg1, Word arg2)
-  {
-    map2CheckGridsFunMS<S, M>(arg2, arg1);
-  }
-
-  template <typename M1, typename M2>
-  void map2CheckGridsFunMM(Word arg1, Word arg2)
-  {
-    M1* m1 = static_cast<M1*>(arg1.addr);
-    M2* m2 = static_cast<M2*>(arg2.addr);
-
-    grid3 g1 = m1->getGrid();
-    grid3 g2 = m2->getGrid();
-
-    // The grid lengths need to match exactly, because otherwise the difference
-    // in grid lengths will eventually become significant.
-    if (g1.getLength() != g2.getLength()) {
-      throw util::parse_error("Grid lengths are not compatible.");
-    }
-
-    // The duration needs to match exactly, because otherwise the difference
-    // in durations will eventually become significant.
-    if (g1.getDuration() != g2.getDuration()) {
-      throw util::parse_error("Durations are not equal.");
-    }
-
-    // Calculate difference between the origins. The difference between the
-    // the origins should roughly be a whole multiple of the grid length.
-    double dx = (g1.getOriginX() - g2.getOriginX()) / g1.getLength();
-    double dy = (g1.getOriginY() - g2.getOriginY()) / g1.getLength();
-
-    int dc = dx + 0.5;
-    int dr = dy + 0.5;
-
-    if (!AlmostEqual(dx, dc) || !AlmostEqual(dy, dr)) {
-      throw util::parse_error("Grids do not match.");
-    }
-  }
-
-  GridChecker map2CheckGridsFuns[64] = {
-      map2CheckGridsFunSS<sint, sint>,
-      map2CheckGridsFunSS<sint, sbool>,
-      map2CheckGridsFunSS<sint, sreal>,
-      map2CheckGridsFunSS<sint, sstring>,
-      map2CheckGridsFunSM<sint, msint>,
-      map2CheckGridsFunSM<sint, msreal>,
-      map2CheckGridsFunSM<sint, msbool>,
-      map2CheckGridsFunSM<sint, msstring>,
-      map2CheckGridsFunSS<sbool, sint>,
-      map2CheckGridsFunSS<sbool, sbool>,
-      map2CheckGridsFunSS<sbool, sreal>,
-      map2CheckGridsFunSS<sbool, sstring>,
-      map2CheckGridsFunSM<sbool, msint>,
-      map2CheckGridsFunSM<sbool, msbool>,
-      map2CheckGridsFunSM<sbool, msreal>,
-      map2CheckGridsFunSM<sbool, msstring>,
-      map2CheckGridsFunSS<sreal, sint>,
-      map2CheckGridsFunSS<sreal, sbool>,
-      map2CheckGridsFunSS<sreal, sreal>,
-      map2CheckGridsFunSS<sreal, sstring>,
-      map2CheckGridsFunSM<sreal, msint>,
-      map2CheckGridsFunSM<sreal, msbool>,
-      map2CheckGridsFunSM<sreal, msreal>,
-      map2CheckGridsFunSM<sreal, msstring>,
-      map2CheckGridsFunSS<sstring, sint>,
-      map2CheckGridsFunSS<sstring, sbool>,
-      map2CheckGridsFunSS<sstring, sreal>,
-      map2CheckGridsFunSS<sstring, sstring>,
-      map2CheckGridsFunSM<sstring, msint>,
-      map2CheckGridsFunSM<sstring, msbool>,
-      map2CheckGridsFunSM<sstring, msreal>,
-      map2CheckGridsFunSM<sstring, msstring>,
-      map2CheckGridsFunMS<msint, sint>,
-      map2CheckGridsFunMS<msint, sbool>,
-      map2CheckGridsFunMS<msint, sreal>,
-      map2CheckGridsFunMS<msint, sstring>,
-      map2CheckGridsFunMM<msint, msint>,
-      map2CheckGridsFunMM<msint, msbool>,
-      map2CheckGridsFunMM<msint, msreal>,
-      map2CheckGridsFunMM<msint, msstring>,
-      map2CheckGridsFunMS<msbool, sint>,
-      map2CheckGridsFunMS<msbool, sbool>,
-      map2CheckGridsFunMS<msbool, sreal>,
-      map2CheckGridsFunMS<msbool, sstring>,
-      map2CheckGridsFunMM<msbool, msint>,
-      map2CheckGridsFunMM<msbool, msbool>,
-      map2CheckGridsFunMM<msbool, msreal>,
-      map2CheckGridsFunMM<msbool, msstring>,
-      map2CheckGridsFunMS<msreal, sint>,
-      map2CheckGridsFunMS<msreal, sbool>,
-      map2CheckGridsFunMS<msreal, sreal>,
-      map2CheckGridsFunMS<msreal, sstring>,
-      map2CheckGridsFunMM<msreal, msint>,
-      map2CheckGridsFunMM<msreal, msbool>,
-      map2CheckGridsFunMM<msreal, msreal>,
-      map2CheckGridsFunMM<msreal, msstring>,
-      map2CheckGridsFunMS<msstring, sint>,
-      map2CheckGridsFunMS<msstring, sbool>,
-      map2CheckGridsFunMS<msstring, sreal>,
-      map2CheckGridsFunMS<msstring, sstring>,
-      map2CheckGridsFunMM<msstring, msint>,
-      map2CheckGridsFunMM<msstring, msbool>,
-      map2CheckGridsFunMM<msstring, msreal>,
-      map2CheckGridsFunMM<msstring, msstring>,
-  };
 }

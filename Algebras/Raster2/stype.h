@@ -138,6 +138,8 @@ names.
         typedef RasterStorageIterator<T, 2, Helper::isUndefined> iter_type;
         typedef RasterStorageRegionIterator<T, 2, Helper::isUndefined>
           riter_type;
+        typedef typename Helper::moving_type moving_type;
+        typedef typename Helper::unit_type unit_type;
 
         static bool isUndefined(const T& t) {
           return Helper::isUndefined(t);
@@ -190,6 +192,12 @@ Secondo operators.
         T getMaximum() const;
         grid2 getGrid() const;
         void setGrid(const grid2& rGrid);
+
+        void clear();
+
+        void setDefined(const bool defined);
+        bool isDefined() const;
+
         int importHgtFile(const char *currentHGTFile,
                           RasterData *HGTRasterData,
                           bool init, storage_type& rs);
@@ -307,6 +315,7 @@ member variables are provided for convenience.
         T minimum;
         T maximum;
         storage_type* storage;
+        bool defined;
 
       public:
         static TypeConstructor getTypeConstructor();
@@ -340,7 +349,8 @@ member variables are provided for convenience.
     stype<T, Helper>::stype
       (const grid2& g, SmiFileId r, SmiFileId t, const T& min, const T& max)
       : tmp(false), grid(g), minimum(min), maximum(max),
-        storage(new storage_type(Helper::getUndefined(), r, t))
+        storage(new storage_type(Helper::getUndefined(), r, t)),
+        defined(true)
     {
 
     }
@@ -350,7 +360,8 @@ member variables are provided for convenience.
       : tmp(false), grid(0.0, 0.0, 1.0),
         minimum(Helper::getUndefined()),
         maximum(Helper::getUndefined()),
-        storage(new storage_type(Helper::getUndefined()))
+        storage(new storage_type(Helper::getUndefined())),
+        defined(true)
     {
 
     }
@@ -488,6 +499,10 @@ member variables are provided for convenience.
 
     template <typename T, typename Helper>
     inline Rect stype<T, Helper>::bbox() const {
+        if(!isDefined()){
+           return Rect(false,0,0,0,0);
+        } 
+
         RasterRegion<2> bbox = (*storage).bbox();
         double min[2] = {
             bbox.Min[0] * grid.getLength() + grid.getOriginX(),
@@ -501,10 +516,22 @@ member variables are provided for convenience.
     }
 
     template <typename T, typename Helper>
-    inline T stype<T, Helper>::getMinimum() const { return minimum; };
+    inline T stype<T, Helper>::getMinimum() const { 
+      if(isDefined()){
+          return minimum; 
+      } else {
+          return Helper::getUndefined();
+      }
+    };
 
     template <typename T, typename Helper>
-    inline T stype<T, Helper>::getMaximum() const { return maximum; };
+    inline T stype<T, Helper>::getMaximum() const { 
+       if(isDefined()){
+          return maximum; 
+       } else {
+          return Helper::getUndefined();
+       }
+    };
 
     template <typename T, typename Helper>
     inline grid2 stype<T, Helper>::getGrid() const { return grid; };
@@ -514,6 +541,37 @@ member variables are provided for convenience.
     {
       grid = rGrid;
     }
+
+
+
+    template <typename T, typename Helper>
+    void stype<T, Helper>::clear()
+    {
+       storage->clear();
+       minimum = Helper::getUndefined();
+       maximum = Helper::getUndefined();
+       defined = true; 
+    }
+
+    template <typename T, typename Helper>
+    void stype<T, Helper>::setDefined(const bool _defined){
+       if(defined != _defined){
+          defined = _defined;
+          if(!defined){
+            clear();
+            defined = false;
+          }
+       }
+    }
+
+   
+    template <typename T, typename Helper>
+    bool stype<T, Helper>::isDefined() const{
+      return defined;
+    }
+
+
+
 /*
 4.3 Static Member Functions for use by Secondo
 
@@ -605,11 +663,21 @@ member variables are provided for convenience.
                    const int errorPos, ListExpr& errorInfo,
                    bool& correct )
     {
+
+
+          
         NList nlist(instance);
 
         grid2 grid;
         std::pair<int, int> sizes;
         this_type* p_stype = new this_type();
+
+        if(listutils::isSymbolUndefined(instance)){
+            p_stype->setDefined(false);
+            correct = true;
+            return Word(p_stype);
+        }
+
 
         try {
             if (nlist.isAtom()) {
@@ -719,6 +787,13 @@ member variables are provided for convenience.
     ListExpr stype<T, Helper>::Out(ListExpr typeInfo, Word value)
     {
         this_type* p_stype = static_cast<this_type*>(value.addr);
+
+
+        if(!p_stype->isDefined()){
+
+           cout << "undefined stype " << endl; 
+           return nl->SymbolAtom(Symbol::UNDEFINED());
+        }
 
         NList result;
 

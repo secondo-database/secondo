@@ -60,6 +60,17 @@ namespace raster2
         Instant& finish = *static_cast<Instant*>(args[3].addr);
         MSType& msout = *static_cast<MSType*>(result.addr);
 
+        if(!sin.isDefined() ||
+           !duration.IsDefined() ||
+           !start.IsDefined() ||
+           !finish.IsDefined()){
+           msout.setDefined(false); 
+        }
+        msout.clear();
+
+
+
+
         grid3 g(sin.getGrid().getOriginX(),
                 sin.getGrid().getOriginY(),
                 sin.getGrid().getLength(),

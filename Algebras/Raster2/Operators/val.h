@@ -52,12 +52,13 @@ namespace raster2
   {
     istype<T, Helper>* pistype = static_cast<istype<T, Helper>*>(args[0].addr);
 
-    if(pistype != 0)
-    {
-      result = qp->ResultStorage(s);
+    result = qp->ResultStorage(s);
 
-      typename Helper::spatial_type* pResult =
+    typename Helper::spatial_type* pResult =
         static_cast<typename Helper::spatial_type*>(result.addr);
+
+    if((pistype != 0) && pistype->isDefined())
+    {
 
       if(pResult != 0)
       {
@@ -70,6 +71,8 @@ namespace raster2
           delete pvalResult;
         }
       }
+    } else {
+       pResult->setDefined(false);  
     }
     
     return 0;

@@ -36,7 +36,6 @@ sstring::sstring()
       m_pUniqueStringArray(new UniqueStringArray(true)),
       m_minimum(UNDEFINED_STRING_INDEX),
       m_maximum(UNDEFINED_STRING_INDEX)
-
 {}
 
 sstring::sstring(sint* psint, UniqueStringArray* pUniqueStringArray,
@@ -57,6 +56,30 @@ sstring::~sstring()
     delete m_psint;
     delete m_pUniqueStringArray;
 }
+
+void sstring::clear(){
+   m_psint->clear();
+   m_pUniqueStringArray->clear();
+   m_minimum=UNDEFINED_STRING_INDEX;
+   m_maximum=UNDEFINED_STRING_INDEX;
+}
+
+bool sstring::isDefined() const{
+   return m_psint->isDefined();
+}
+
+void sstring::setDefined( const bool _defined){
+  if(_defined != isDefined()){
+     m_psint->setDefined(_defined);
+     if(!_defined){
+        m_pUniqueStringArray->clear();
+        m_minimum=UNDEFINED_STRING_INDEX;
+        m_maximum=UNDEFINED_STRING_INDEX;
+     }
+  } 
+}
+
+
 
 void sstring::destroy() {
     m_bDelete = true;
@@ -130,7 +153,7 @@ Rect sstring::bbox() const
 {
   Rect boundingBox(false);
   
-  if(m_psint != 0)
+  if((m_psint != 0) && isDefined())
   {
     boundingBox = m_psint->bbox();
   }
@@ -141,7 +164,7 @@ Rect sstring::bbox() const
 string sstring::getMinimum() const
 {
   std::string result = UNDEFINED_STRING;
-  if (m_minimum != UNDEFINED_STRING_INDEX) {
+  if ( (m_minimum != UNDEFINED_STRING_INDEX) && isDefined()) {
     m_pUniqueStringArray->GetUniqueString(m_minimum, result);
   }
   return result;
@@ -150,7 +173,7 @@ string sstring::getMinimum() const
 string sstring::getMaximum() const
 {
   std::string result = UNDEFINED_STRING;
-  if (m_maximum != UNDEFINED_STRING_INDEX) {
+  if ((m_maximum != UNDEFINED_STRING_INDEX) && isDefined()) {
     m_pUniqueStringArray->GetUniqueString(m_maximum, result);
   }
   return result;
@@ -361,8 +384,15 @@ Word sstring::In(const ListExpr typeInfo,
                  ListExpr& errorInfo,
                  bool& correct)
 { 
+ 
+  if(listutils::isSymbolUndefined(instance)){
+     correct = true;
+     sstring* res = new sstring();
+     res->setDefined(false);
+     return Word(res);
+  }
+ 
   Word w = SetWord(Address(0));
-  
 
   NList nlist(instance);
   NList sintList;
@@ -644,11 +674,16 @@ bool sstring::Save(SmiRecord& valueRecord,
 ListExpr sstring::Out(ListExpr typeInfo,
                       Word value)
 { 
+  sstring* psstring = static_cast<sstring*>(value.addr);
+
+  if(!psstring->isDefined()){
+     return nl->SymbolAtom(Symbol::UNDEFINED());
+  }
+
   ListExpr pListExpr = 0;
   
   if(nl != 0)
   {  
-    sstring* psstring = static_cast<sstring*>(value.addr);
     
     if(psstring != 0)
     {

@@ -52,6 +52,8 @@ the size of a raster cell.
       grid2(const grid2& rgrid2);
 
       ~grid2();
+
+      void set(const double ax, const double ay, const double alength);
       
       double getOriginX() const;
       double getOriginY() const;
@@ -65,6 +67,8 @@ the size of a raster cell.
       Rectangle<2> getCell(const index_type& i) const;
       Rectangle<2> getBBox(const region_type& r) const;
       Rectangle<2> getBBox(const index_type& from, const index_type& to) const;
+
+      bool matches(const grid2& g2) const;
 
 /*
 The function ~intersect~ calculates the edges of a cell, over which a line
@@ -83,6 +87,8 @@ The following functions are used to integrate the ~grid2~ datatype into secondo.
       static TypeConstructor getTypeConstructor();
 
       static std::string BasicType();
+      
+      static bool checkType(ListExpr t);
 
       static Word In(const ListExpr typeInfo, const ListExpr instance,
                      const int errorPos, ListExpr& errorInfo,

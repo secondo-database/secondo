@@ -55,8 +55,15 @@ UniqueStringArray::UniqueStringArray
 
 UniqueStringArray::~UniqueStringArray()
 {
-  
+  m_StringData.clean();
+  m_StringFlob.clean();
+  SetDefined(true);  
 }
+
+void UniqueStringArray::clear(){
+
+}
+
 
 UniqueStringArray& UniqueStringArray::operator =
                   (const UniqueStringArray& rUniqueStringArray)

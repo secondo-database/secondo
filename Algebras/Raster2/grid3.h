@@ -67,6 +67,14 @@ class grid3 : public grid2
   Rectangle<3> getBBox(const region_type&) const;
   Rectangle<3> getBBox(const index_type&, const index_type&) const;
 
+  bool matches(const grid3& g2) const; 
+
+  bool matches(const grid2& g2) const; 
+
+  void set(const double ax, const double ay, const double alength, 
+           const datetime::DateTime& dt);
+
+
   /*
   The following functions are used to integrate the ~grid3~ datatype
   into secondo.

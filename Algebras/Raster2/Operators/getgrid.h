@@ -52,16 +52,18 @@ namespace raster2
     typename Helper::implementation_type* pImplementationType =
       static_cast<typename Helper::implementation_type*>(args[0].addr);
 
-    if(pImplementationType != 0)
+    result = qp->ResultStorage(s);
+      
+    grid2* pResult = static_cast<grid2*>(result.addr);
+    if((pImplementationType != 0) && pImplementationType->isDefined())
     {
-      result = qp->ResultStorage(s);
-
-      grid2* pResult = static_cast<grid2*>(result.addr);
 
       if(pResult != 0)
       {
         *pResult = pImplementationType->getGrid();
       }
+    } else {
+        pResult->set(0,0,1);
     }
 
     return 0;
@@ -74,16 +76,19 @@ namespace raster2
     typename Helper::implementation_type* pImplementationType =
       static_cast<typename Helper::implementation_type*>(args[0].addr);
 
-    if(pImplementationType != 0)
+    result = qp->ResultStorage(s);
+
+    grid3* pResult = static_cast<grid3*>(result.addr);
+
+    if((pImplementationType != 0) && pImplementationType->isDefined())
     {
-      result = qp->ResultStorage(s);
-
-      grid3* pResult = static_cast<grid3*>(result.addr);
-
       if(pResult != 0)
       {
         *pResult = pImplementationType->getGrid();
       }
+    } else {
+        datetime::DateTime dt(datetime::durationtype);
+        pResult->set(0,0,1,dt);
     }
 
     return 0;

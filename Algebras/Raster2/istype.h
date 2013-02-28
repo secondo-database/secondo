@@ -133,6 +133,10 @@ namespace raster2
                     const ListExpr typeInfo,
                     Word& value);
     static int SizeOfObj();
+
+    void clear();
+    bool isDefined() const;
+    void setDefined(const bool defined);
   
     private:
     /*
@@ -369,6 +373,14 @@ namespace raster2
                              ListExpr& errorInfo,
                              bool& correct)
   { 
+
+    if(listutils::isSymbolUndefined(instance)){
+       istype<T, Helper>* is = new istype<T, Helper>();
+       is->setDefined(false);
+       correct = true;
+       return Word(is);
+    }
+
     NList nlist(instance);
 
     typename Helper::spatial_type* psT = 0;
@@ -476,6 +488,10 @@ namespace raster2
   { 
     istype<T, Helper>* pistype = static_cast<istype<T, Helper>*>(value.addr);
 
+    if(!pistype->isDefined()){
+      return nl->SymbolAtom(Symbol::UNDEFINED());
+    }
+
     NList InstantList;
     if (pistype->m_pInstant->IsDefined()) {
         InstantList = NList(pistype->m_pInstant->ToListExpr(true));
@@ -554,6 +570,35 @@ namespace raster2
   { 
     return sizeof(istype<T, Helper>);
   }
+
+
+  template <typename T, typename Helper>
+  void istype<T, Helper>::clear() {
+      if(m_psT){
+        m_psT->clear();
+      } 
+      if(m_pInstant){
+         m_pInstant->SetDefined(true);
+      } 
+  }
+
+  template <typename T, typename Helper>
+  bool istype<T, Helper>::isDefined()const {
+      return m_psT && m_psT->isDefined();
+  }
+
+
+  template <typename T, typename Helper>
+  void istype<T, Helper>::setDefined(const bool defined) {
+      if(m_psT){
+         m_psT->setDefined(defined);
+      } 
+      if(m_pInstant){
+        m_pInstant->SetDefined(defined);
+      }
+  }
+  
+
 
   template <typename T, typename Helper>
   void istype<T, Helper>::Delete()

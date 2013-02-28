@@ -23,16 +23,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define RASTER2_UTIL_TYPES_H
 
 #include <string>
+#include <NestedList.h>
 
 namespace raster2
 {
   namespace util
   {
+    bool isSType(const ListExpr list);
+    bool isMSType(const ListExpr list);
+    bool isISType(const ListExpr list);
+
     bool isSType(const std::string&);
     bool isMSType(const std::string&);
+    bool isISType(const std::string&);
     std::string getValueBasicType(const std::string& type);
+    std::string getMovingBasicType(const std::string& type);
     std::string getSpatialBasicType(const std::string& type);
     std::string getMovingSpatialBasicType(const std::string& type);
+    std::string getInstantSpatialBasicType(const std::string& type);
   }
 }
 
