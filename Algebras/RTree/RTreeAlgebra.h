@@ -1644,6 +1644,9 @@ Opens an existing R-tree.
     R_Tree( const SmiFileId fileId,bool update );
 /////////////////////////////////////////////////////////////////////////////
     R_Tree( const SmiFileId fileid,const int);
+    
+    void Clear();
+
     void OpenFile(const SmiFileId fileid){file->Open(fileid);}
     void CloseFile(){file->Close();}
     void SwitchHeader(R_Tree<dim,LeafInfo>*);
@@ -2238,6 +2241,74 @@ R_Tree<dim, LeafInfo>::R_Tree( const int pageSize ) :
 
   currLevel = 0;
 }
+
+template<unsigned dim, class LeafInfo>
+void R_Tree<dim,LeafInfo>::Clear(){
+  assert(file);
+  file->Truncate(); // delete all stuff in file
+  // reset header entries which depend on entries
+  header.nodeCount = 0;
+  header.entryCount = 0;
+  header.height = 0;
+  header.second_head_id = 0;
+  header.path_rec_id = 0;
+  header.share = 0;
+  currLevel = -1;
+  currEntry = -1;
+  reportLevel = -1;
+  searchBoxSet.Clear();
+  searchBox.SetDefined(false);
+  searchType = NoSearch;
+  bulkMode = false;
+  if(bli) {
+     delete bli;
+     bli = 0;
+  }
+  nodeIdCounter = 0;
+
+  // NNpriority queue is managed from outside
+  distanceFlag = false;
+  noentrynode = 0; 
+
+  // initialize member arrays
+  // should be replaced by memset
+  for( int i = 0; i < MAX_PATH_SIZE; i++ )
+  {
+    overflowFlag[ i ] = 0;
+    nodeId[ i ] = 0;
+    path[i] = 0;
+    pathEntry[i] = 0;
+  }
+
+  if(nodePtr){
+      delete nodePtr;
+  }
+  
+  nodePtr = new R_TreeNode<dim, LeafInfo>( true,
+                                           MinEntries( 0 ),
+                                           MaxEntries( 0 ) );
+
+  // Creating a new page for the R-Tree header.
+  SmiRecord headerRecord;
+  int AppendedRecord = file->AppendRecord( header.headerRecordId,
+                                           headerRecord );
+
+  assert( AppendedRecord );
+  assert( header.headerRecordId == 1 );
+
+  // Creating the root node.
+  SmiRecordId rootRecno;
+  SmiRecord rootRecord;
+  AppendedRecord = file->AppendRecord( rootRecno, rootRecord );
+  assert( AppendedRecord );
+  header.rootRecordId = path[ 0 ] = rootRecno;
+  header.nodeCount = 1;
+  nodePtr->Write( rootRecord );
+  currLevel = 0;
+
+};
+
+
 
 template <unsigned dim, class LeafInfo>
 R_Tree<dim, LeafInfo>::R_Tree( SmiRecordFile *file ) :
