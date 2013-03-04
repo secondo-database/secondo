@@ -556,7 +556,7 @@ function formatNode
   # Process linux and linux64 with same statements
     linux )
       # Execute the .parasecrc directly after processing .secondorc
-      ssh -o LogLevel=quiet $nodeIP "sed -i \"s/source [\\\$A-Z_.\\\/]*secondorc/&\nsource \\\$HOME\/$RCFILENAME/\" \$HOME/.bashrc"
+      ssh -o LogLevel=quiet $nodeIP "sed -i \"s/source [\\\$A-Z_.\\\/]*secondorc [\\\$a-zA-Z_.\\\/]*/&\nsource \\\$HOME\/$RCFILENAME/\" \$HOME/.bashrc"
     ;;
     mac_osx )
       ssh -o LogLevel=quiet $nodeIP "echo \"source \\\$HOME/$RCFILENAME\" >> \$HOME/.bashrc"
