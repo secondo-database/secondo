@@ -132,9 +132,7 @@ namespace raster2 {
 
       
       size_t maxMem = qp->GetMemorySize(s)*1024*1024; // in byte
-      size_t cacheItemSize = 
-             sizeof(typename sstring::storage_type::cache_type::Item) 
-           + sizeof(size_t) * 8;
+      size_t cacheItemSize = WinUnix::getPageSize() + sizeof(size_t) * 8;
 
        size_t cs = maxMem / cacheItemSize;
 
