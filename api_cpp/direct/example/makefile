@@ -28,7 +28,7 @@ Config.ini: $(SECONDO_BUILD_DIR)/bin/SecondoConfig.ini
 
 ALGDEPFLAGS=$(addprefix -l, $(ALGEBRA_DEPS))
 
-LDFLAGS:=-L../lib/ -lsecondo  -lfl -ly  -lstdc++ $(ALGDEPFLAGS)  -lpthread $(DEFAULTLIB)
+LDFLAGS:=-L../lib/ -lsecondo  -lfl -ly  -lstdc++ $(ALGDEPFLAGS)  $(DEFAULTLIB)
 
 ifeq ($(readline),true)
   LDFLAGS+=-lreadline 
@@ -48,6 +48,7 @@ else
   LDFLAGS+=-l$(BERKELEY_DB_LIB)
 endif
 
+LDFLAGS += -lpthread
 
 
 
