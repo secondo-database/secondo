@@ -34,6 +34,7 @@ namespace raster2
     public:
       typedef sint::index_type index_type;
       typedef sint::riter_type riter_type;
+      typedef sint::iter_type iter_type;
       typedef CcString wrapper_type;
       typedef std::string cell_type;
       typedef sstring this_type;

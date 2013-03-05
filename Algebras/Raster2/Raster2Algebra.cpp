@@ -63,6 +63,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operators/CELLS.h"
 #include "Operators/fromLine.h"
 #include "Operators/isdefined.h"
+#include "Operators/addLayer.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -137,7 +138,10 @@ Raster2Algebra::Raster2Algebra()
   AddOperator(cell2Info(), 0, cell2TypeMap);
   AddOperator(cellsInfo(), 0, cellsTypeMap);
   AddOperator(fromLineInfo(), fromLineFun, fromLineTypeMap);
+  AddOperator(addLayerInfo(), addLayerFuns, 
+              addLayerSelectFun, addLayerTM)->SetUsesMemory();
   AddOperator(isdefinedInfo(), isdefinedFuns, isdefinedSelectFun, isdefinedTM);
+
 }
 
 Raster2Algebra::~Raster2Algebra()

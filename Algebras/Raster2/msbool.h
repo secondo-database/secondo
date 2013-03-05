@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define RASTER2_MSBOOL_H_
 
 #include "mstype.h"
+#include "sbool.h"
 
 namespace raster2 {
 
@@ -36,6 +37,7 @@ namespace raster2 {
         typedef MBool moving_type;
         typedef CcBool wrapper_type;
         typedef UBool unit_type;
+        typedef sbool spatial_type;
         static const char* name;
         static bool check(const NList& nl) { return nl.isBool(); }
         static char parse(const NList& nl) { return char(nl.boolval()); }

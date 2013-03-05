@@ -97,21 +97,24 @@ Rectangle<2> grid2::getBBox(const index_type& from, const index_type& to) const
 }
 
 bool grid2::matches(const grid2& g2) const{
+
+
     if (length != g2.length) {
        return false;
     }   
 
-    // Calculate difference between the origins. The difference between the
-    // the origins should roughly be a whole multiple of the grid length.
-    double dx = (this->getOriginX() - g2.getOriginX()) / length;
-    double dy = (this->getOriginY() - g2.getOriginY()) / length;
+    double fx = (g2.x - x)/length;
+    double fy = (g2.y - y)/length;
 
-    int dc = dx + 0.5;
-    int dr = dy + 0.5;
+    // fx and fy must be integer values
 
-    if (!AlmostEqual(dx, dc) || !AlmostEqual(dy, dr)) {
-      return false;
-    }   
+    if( !AlmostEqual(fx,round(fx)) || 
+        !AlmostEqual(fy,round(fy))){
+        return false;
+    }
+
+
+
     return true;
 }
 

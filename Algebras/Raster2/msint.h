@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define RASTER2_MSINT_H
 
 #include "mstype.h"
+#include "sint.h"
 
 namespace raster2 
 {
@@ -37,6 +38,7 @@ namespace raster2
         typedef MInt moving_type;
         typedef CcInt wrapper_type;
         typedef UInt unit_type;
+        typedef sint spatial_type;
         static const char* name;
         static bool check(const NList& nl) { return nl.isInt(); }
         static int parse(const NList& nl) { return nl.intval(); }

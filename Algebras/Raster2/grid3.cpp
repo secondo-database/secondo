@@ -106,6 +106,11 @@ bool grid3::matches(const grid2& g2) const{
   return grid2::matches(g2);
 }
 
+grid2 grid3::project() const{
+  return *this;
+}
+
+
 void grid3::set(const double ax, const double ay, const double alength, 
          const datetime::DateTime& dt){
 

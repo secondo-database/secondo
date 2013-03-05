@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define RASTER2_MSREAL_H
 
 #include "mstype.h"
+#include "sreal.h"
 
 namespace raster2 
 {
@@ -36,6 +37,7 @@ namespace raster2
         typedef MReal moving_type;
         typedef CcReal wrapper_type;
         typedef UReal unit_type;
+        typedef sreal spatial_type;
         static const char* name;
         static bool check(const NList& nl)
         {

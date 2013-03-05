@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "util/noncopyable.h"
 #include "msint.h"
 #include "UniqueStringArray.h"
+#include "sstring.h"
 
 namespace raster2
 {
@@ -40,6 +41,7 @@ namespace raster2
       typedef std::string cell_type;
       typedef MString moving_type;
       typedef msstring this_type;
+      typedef sstring spatial_type;
 
     private:
     /*

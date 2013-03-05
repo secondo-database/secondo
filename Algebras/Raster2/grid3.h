@@ -71,6 +71,8 @@ class grid3 : public grid2
 
   bool matches(const grid2& g2) const; 
 
+  grid2 project() const;
+
   void set(const double ax, const double ay, const double alength, 
            const datetime::DateTime& dt);
 

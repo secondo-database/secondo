@@ -41,3 +41,7 @@ operator getgrid alias GETGRID pattern op(_)
 operator importHgt alias IMPORTHGT pattern _ op
 operator importEsriGrid alias IMPORTESRIGRID pattern op(_)
 operator importEsriRaster alias IMPORTESRIRASTER pattern _ op
+
+operator addLayer alias ADDLAYER pattern _ op[_,_]
+
+

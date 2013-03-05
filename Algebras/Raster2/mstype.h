@@ -73,6 +73,7 @@ template argument to the ~mstype$<$T, Helper$>$~ class template.
         typedef T implementation_type;
         typedef T wrapper_type;
         typedef T moving_type;
+        typedef T spatial_type;
         static const char* name;
         static bool check(const NList& nl);
         static T parse(const NList& nl);
@@ -133,6 +134,7 @@ names.
         typedef T cell_type;
         typedef typename Helper::wrapper_type wrapper_type;
         typedef typename Helper::moving_type moving_type;
+        typedef typename Helper::spatial_type spatial_type;
         typedef RasterStorage<T, 3, Helper::isUndefined> storage_type;
         typedef RasterIndex<3> index_type;
         typedef RasterStorageIterator<T, 3, Helper::isUndefined> iter_type;
