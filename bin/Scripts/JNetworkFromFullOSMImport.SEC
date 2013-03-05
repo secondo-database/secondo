@@ -1577,7 +1577,7 @@ let InSections =
   rdup
 consume;
 
-query createjnet("DO", InJunctions, InSections, InRoutes);
+query createjnet("DO", 0.0001, InJunctions, InSections, InRoutes);
 
 close database;
 
