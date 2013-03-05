@@ -24,7 +24,7 @@
 ############################################################
 
 # System dependent default libraries
-DEFAULTLIB = -lws2_32 -lm -lstdc++
+DEFAULTLIB = -lws2_32 -lm -lstdc++ -lpthread
 
 EXEEXT = .exe
 
