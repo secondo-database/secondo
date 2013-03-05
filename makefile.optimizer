@@ -56,7 +56,7 @@ AUXLIBS := $(SECONDO_SDK)/auxtools/lib
 
 # compilation options for the PROLOG shell
 ifeq ($(platform),win32)
-PLLDFLAGS := -L$(PL_DLL_DIR) -lpl -lm
+PLLDFLAGS := -L$(PL_DLL_DIR) -l$(PL_LIB) -lm
 endif
 
 platform2 := $(subst 64,,$(platform))
