@@ -64,6 +64,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operators/fromLine.h"
 #include "Operators/isdefined.h"
 #include "Operators/addLayer.h"
+#include "Operators/createRaster.h"
+#include "Operators/createGrid3.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -142,6 +144,11 @@ Raster2Algebra::Raster2Algebra()
               addLayerSelectFun, addLayerTM)->SetUsesMemory();
   AddOperator(isdefinedInfo(), isdefinedFuns, isdefinedSelectFun, isdefinedTM);
 
+  AddOperator(createRasterInfo(), createRasterFuns, createRasterSelectFun,
+              createRasterTM);
+
+  AddOperator(createGrid3Info(), createGrid3Funs, createGrid3SelectFun,
+              createGrid3TM);
 }
 
 Raster2Algebra::~Raster2Algebra()

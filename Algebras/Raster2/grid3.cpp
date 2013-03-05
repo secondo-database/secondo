@@ -124,6 +124,11 @@ std::string grid3::BasicType()
   return "grid3";
 }
 
+bool grid3::checkType(ListExpr t){
+  return nl->IsEqual(t,BasicType());
+}
+
+
 void* grid3::Cast(void* pVoid)
 {
   return new (pVoid) grid3;
@@ -283,6 +288,9 @@ bool grid3::KindCheck(ListExpr type, ListExpr& errorInfo)
 {
   return NList(type).isSymbol(grid3::BasicType());
 }
+
+
+
 
 ListExpr grid3::Out(ListExpr typeInfo, Word value)
 { 

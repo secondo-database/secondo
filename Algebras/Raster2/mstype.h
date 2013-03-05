@@ -140,6 +140,7 @@ names.
         typedef RasterStorageIterator<T, 3, Helper::isUndefined> iter_type;
         typedef RasterStorageRegionIterator<T, 3, Helper::isUndefined>
           riter_type;
+        typedef grid3 grid_type;
 
         static bool isUndefined(const T& t) {
           return Helper::isUndefined(t);

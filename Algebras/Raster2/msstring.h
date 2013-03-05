@@ -42,6 +42,7 @@ namespace raster2
       typedef MString moving_type;
       typedef msstring this_type;
       typedef sstring spatial_type;
+      typedef grid3 grid_type;
 
     private:
     /*

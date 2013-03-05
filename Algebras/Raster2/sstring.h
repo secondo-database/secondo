@@ -41,6 +41,7 @@ namespace raster2
       typedef MString moving_type;
       typedef UString unit_type;
       typedef sint::storage_type storage_type;
+      typedef grid2 grid_type;
 
     public:
     /*

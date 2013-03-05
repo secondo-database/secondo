@@ -103,6 +103,8 @@ class grid3 : public grid2
   static ListExpr Property();
   static int SizeOfObj();
 
+  static bool checkType(ListExpr args);
+
   private:
   /*
   members

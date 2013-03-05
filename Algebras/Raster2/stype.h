@@ -140,6 +140,7 @@ names.
           riter_type;
         typedef typename Helper::moving_type moving_type;
         typedef typename Helper::unit_type unit_type;
+        typedef grid2 grid_type;
 
         static bool isUndefined(const T& t) {
           return Helper::isUndefined(t);

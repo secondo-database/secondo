@@ -180,6 +180,33 @@ Example   : query [const msbool value ((0.0 0.0 3.0 3.0) (2 1 2) (1 1 1 (TRUE TR
 Result    : TRUE
 
 
+Operator  : createRaster
+Number    : 1
+Signature : T x grid2 -> sT
+Example   : query createRaster(1,[const grid2 value (0.0 0.0 1.0)])
+Result    : (sint ((0.0 0.0 1.0) (1 1)))
+
+
+Operator  : createRaster
+Number    : 2
+Signature : T x grid3 -> msT
+Example   : query createRaster(1,[const grid3 value (0.0 0.0 1.0 (duration (1 0)))])
+Result    : (msint ((0.0 0.0 1.0 1.0) (1 1 1))) 
+
+
+Operator  : createGrid3
+Number    : 1
+Signature : grid2 x duration -> grid3
+Example  : query createGrid3([const grid2 value (0.0 0.0 1.0)], [const duration value 1.0])
+Result    : (grid3 (0.0 0.0 1.0 (duration (1 0))))
+
+Operator  : createGrid3
+Number    : 2
+Signature : grid2 x real -> grid3
+Example  : query createGrid3([const grid2 value (0.0 0.0 1.0)], 1.0)
+Result    : (grid3 (0.0 0.0 1.0 (duration (1 0))))
+
+
 
 
 
