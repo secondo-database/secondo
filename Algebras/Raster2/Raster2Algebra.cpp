@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#include "Operators/map.h"
 #include "Algebra.h"
 #include "Raster2Algebra.h"
 #include "sint.h"
@@ -47,7 +48,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Operators/bbox.h"
 #include "Operators/minimum.h"
 #include "Operators/maximum.h"
-#include "Operators/map.h"
 #include "Operators/map2.h"
 #include "Operators/fromRegion.h"
 #include "Operators/toRegion.h"
