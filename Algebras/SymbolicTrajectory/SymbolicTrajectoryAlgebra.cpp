@@ -2227,7 +2227,7 @@ set<size_t> Match::updatePositionsIndex(MLabel &ml, int patpos,
   if (*(mlpos.rbegin()) == (size_t)ml.GetNoComponents()) {
     mlpos.erase(*(mlpos.rbegin()));
   }
-  if (w == NO) { // (...)
+  if (w == NO) { // (...), non-empty
     while (i != labels.end()) {
       foundpos = ml.index.find(*i);
       for (j = foundpos.begin(); j != foundpos.end(); j++) {
@@ -3936,7 +3936,7 @@ int rewriteVM_Stream(Word* args, Word& result, int message, Word& local,
         local.addr = 0;
       }
       bool dummy = false;
-      local.addr = new ClassifyLI(args[0], args[1], 0, dummy);
+      local.addr = new ClassifyLI(args[0], args[1], dummy);
       return 0;
     }
     case REQUEST: {
@@ -3978,9 +3978,8 @@ struct rewriteInfo : OperatorInfo {
 */
 ListExpr classifyTypeMap(ListExpr args) {
   const string errMsg = "Expecting a stream(tuple(x, y)) with x,y in "
-             "{string, text} and a stream(z) with z in {mlabel, mstring}. "
-             "An invfile may be used as third argument.";
-  if (nl->HasLength(args, 2) || nl->HasLength(args, 3)) {
+             "{string, text} and a stream(z) with z in {mlabel, mstring}. ";
+  if (nl->HasLength(args, 2)) {
     if (Stream<Tuple>::checkType(nl->First(args))) {
       ListExpr dType, pType;
       if(nl->ListLength(nl->Second(nl->Second(nl->First(args)))) < 2){
@@ -3997,12 +3996,9 @@ ListExpr classifyTypeMap(ListExpr args) {
               nl->TwoElemList(nl->SymbolAtom("Description"),
                               nl->SymbolAtom(FText::BasicType())),
               nl->TwoElemList(nl->SymbolAtom("Trajectory"), nl->Second(arg2)));
-          if (nl->HasLength(args, 2) || (nl->HasLength(args, 3)
-           && InvertedFile::checkType(nl->Third(args)))) {
-            return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+          return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                              nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
                                              outputAttrs));
-          }
         }
       }
     }
@@ -4011,23 +4007,13 @@ ListExpr classifyTypeMap(ListExpr args) {
 }
 
 /*
-\subsection{Selection Function}
-
-*/
-int classifySelect(ListExpr args) {
-  return (nl->HasLength(args, 2) ? 0 : 1);
-}
-
-/*
 \subsection{Constructor for class ~ClassifyLI~}
 
 This constructor is used for the operator ~classify~.
 
 */
-ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, InvertedFile* inv) :
+ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream) :
                        mlStream(_mlstream), currentML(0), mainMatch(0) {
-  invFile = inv;
-  
   classifyTT = getTupleType();
   Stream<Tuple> pStream(_pstream);
   pStream.open();
@@ -4082,28 +4068,8 @@ ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, InvertedFile* inv) :
 This constructor is used for the operator ~rewrite~.
 
 */
-ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, InvertedFile* inv,
-                       bool rewrite) :
+ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, bool rewrite) :
                        mlStream(_mlstream), currentML(0), mainMatch(0) {
-  invFile = inv;
-  
-//   TupleId id;
-//   wordPosType wc;
-//   charPosType cc;
-//   InvertedFile::exactIterator* it = inv->getExactIterator("Huckarde", 4096);
-//   while (it->next(id, wc, cc)) {
-//     cout << "Huckarde: " << id << " " << wc << " " << cc << endl;
-//   }
-//   it = inv->getExactIterator("Innenstadt-Nord", 4096);
-//   while (it->next(id, wc, cc)) {
-//     cout << "Innenstadt-Nord: " << id << " " << wc << " " << cc << endl;
-//   }
-//   it = inv->getExactIterator("Mengede", 4096);
-//   while (it->next(id, wc, cc)) {
-//     cout << "Mengede: " << id << " " << wc << " " << cc << endl;
-//   }
-
-  
   classifyTT = 0;
   Stream<FText> pStream(_pstream);
   pStream.open();
@@ -4158,7 +4124,9 @@ ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, InvertedFile* inv,
 */
 ClassifyLI::~ClassifyLI() {
   mlStream.close();
-  delete classifyTT;
+  if (classifyTT) {
+    delete classifyTT;
+  }
   if (currentML) {
     currentML->DeleteIfAllowed();
   }
@@ -4310,39 +4278,7 @@ int classifyVM(Word* args, Word& result, int message, Word& local, Supplier s){
         delete li;
         local.addr = 0;
       }
-      local.addr = new ClassifyLI(args[0], args[1], 0);
-      return 0;
-    }
-    case REQUEST: {
-      result.addr = li ? li->nextResultTuple() : 0;
-      return result.addr ? YIELD : CANCEL;
-    }
-    case CLOSE: {
-      if (li) {
-        delete li;
-        local.addr = 0;
-      }
-      return 0;
-    }
-  }
-  return 0;
-}
-
-/*
-\subsection{Value Mapping with index}
-
-*/
-int classifyIndexVM(Word* args, Word& result, int message, Word& local,
-                    Supplier s){
-  ClassifyLI *li = (ClassifyLI*)local.addr;
-  switch (message) {
-    case OPEN: {
-      if (li) {
-        delete li;
-        local.addr = 0;
-      }
-      InvertedFile *inv = static_cast<InvertedFile*>(args[2].addr);
-      local.addr = new ClassifyLI(args[0], args[1], inv);
+      local.addr = new ClassifyLI(args[0], args[1]);
       return 0;
     }
     case REQUEST: {
@@ -4369,12 +4305,243 @@ struct classifyInfo : OperatorInfo {
     name      = "classify";
     signature = "text x stream(mlabel) -> stream(tuple(string, mlabel))";
     appendSignature("text x stream(mstring) -> stream(tuple(string, mstring))");
-    syntax    = "_ classify _";
+    syntax    = "_ _ classify";
     meaning   = "Classifies a stream of trajectories according to a set of "
                 "patterns and descriptions from a file";
   }
 };
 
+/*
+\section{Operator ~indexclassify~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr indexclassifyTypeMap(ListExpr args) {
+  const string errMsg = "Expecting a stream(tuple(x, y)) with x,y in "
+             "{string, text}, a Relation with a {mlabel, mstring} attribute, "
+             "and an invfile";
+  if (nl->HasLength(args, 3)) {
+    if (Stream<Tuple>::checkType(nl->First(args))) {
+      ListExpr dType, pType;
+      if(nl->ListLength(nl->Second(nl->Second(nl->First(args)))) != 2){
+        return listutils::typeError("tuples must have two attributes");
+      }
+      dType = nl->Second(nl->First(nl->Second(nl->Second(nl->First(args)))));
+      pType = nl->Second(nl->Second(nl->Second(nl->Second(nl->First(args)))));
+      if ((CcString::checkType(dType) || FText::checkType(dType))
+       && (CcString::checkType(pType) || FText::checkType(pType))) {
+        if (Relation::checkType(nl->Second(args))) {
+          ListExpr first = nl->TheEmptyList();
+          ListExpr rest = nl->First
+                              (nl->Rest(nl->First(nl->Rest(nl->Second(args)))));
+          bool found = false;
+          int pos = -1;
+          while (!nl->IsEmpty(rest) && !found) {
+            first = nl->First(rest);
+            rest = nl->Rest(rest);
+            pos++;
+            if (MLabel::checkType(nl->Second(first))
+             || MString::checkType(nl->Second(first))) {
+               found = true;
+            }
+          }
+          if (found && InvertedFile::checkType(nl->Third(args))) {
+            ListExpr outputAttrs = nl->TwoElemList(
+              nl->TwoElemList(nl->SymbolAtom("Description"),
+                              nl->SymbolAtom(FText::BasicType())),
+              nl->TwoElemList(nl->SymbolAtom("Trajectory"), nl->Second(first)));
+            return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                             nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                             outputAttrs));
+          }
+        }
+      }
+    }
+  }
+  return listutils::typeError(errMsg);
+}
+
+/*
+\subsection{Constructor for class ~IndexClassifyLI~}
+
+This constructor is used for the operator ~indexclassify~.
+
+*/
+IndexClassifyLI::IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv) :
+                                 pStream(_pstream), p(0), match(0) {
+  mlRel = (Relation*)_mlrel.addr;
+  invFile = static_cast<InvertedFile*>(_inv.addr);
+  classifyTT = ClassifyLI::getTupleType();
+  pStream.open();
+}
+
+/*
+\subsection{Function ~match~}
+
+*/
+set<TupleId> IndexClassifyLI::applyPattern() {
+  set<TupleId> result;
+  set<pair<TupleId, size_t> > positions;
+  TupleId id;
+  wordPosType wc;
+  charPosType cc;
+  string label = *(p->getPat(1).getL().begin());
+  cout << "label=" << label << endl;
+  InvertedFile::exactIterator* it = invFile->getExactIterator(label, 4096);
+  cout << "got exactIterator" << endl;
+  while (it->next(id, wc, cc)) {
+    cout << label << ": " << id << " " << wc << " " << cc << endl;
+    result.insert(id);
+  }
+  if (it) {
+    delete it;
+  }
+  return result;
+  
+//   for (int i = 1; i < p->getSize(); i++) {
+//     positions = updatePositions(i, positions);
+//     if (positions.empty()) {
+//       return false;
+//     }
+//   }
+//   if (!positions.count(ml.GetNoComponents())) {// final ml position inactive?
+//     return false;
+//   }
+}
+
+/*
+\subsection{Function ~applyConditions~}
+
+*/
+void IndexClassifyLI::applyConditions(set<TupleId> tupleIds) {
+  for (set<TupleId>::iterator i = tupleIds.begin(); i != tupleIds.end(); i++) {
+    classification.push(make_pair(p->getDescr(), *i + 1));
+  }
+}
+
+/*
+\subsection{Function ~nextResultTuple~}
+
+This function is used for the operator ~indexclassify~.
+
+*/
+Tuple* IndexClassifyLI::nextResultTuple() {
+  if (!mlRel->GetNoTuples()) { // no mlabel => no result
+    return 0;
+  }
+  pair<string, TupleId> onePair;
+  Tuple* pTuple;
+  while (classification.empty()) {
+    if (p) {
+      delete p;
+      p = 0;
+    }
+    pTuple = pStream.request();
+    if (!pTuple) { // stream finished
+      return 0;
+    }
+    if (!(CcString*)pTuple->GetAttribute(0)->IsDefined()
+     || !(FText*)pTuple->GetAttribute(1)->IsDefined()) {
+      cout << "undefined pattern data" << endl;
+      pTuple->DeleteIfAllowed();
+      return 0;
+    }
+    else {
+      p = Pattern::getPattern(
+                   ((FText*)pTuple->GetAttribute(1))->GetValue(), true);
+      if (p) {
+        p->setDescr(((CcString*)pTuple->GetAttribute(0))->GetValue());
+        cout << "::::::::::::" << p->getDescr() << endl;
+        cout << p->GetText() << endl;
+        // TODO: find all mlabels matching p's unit patterns with an array of
+        // pair<TupleId, size_t> representing the Tuple and the unit
+        set<TupleId> matchingMLs = applyPattern();
+
+        // TODO: apply conditions and insert results into classification
+        applyConditions(matchingMLs);
+      }
+    }
+    pTuple->DeleteIfAllowed();
+    pTuple = 0;
+  }
+  MLabel* ml = 0;
+  onePair = classification.front();
+  Tuple *result = new Tuple(classifyTT);
+  result->PutAttribute(0, new FText(true, onePair.first));
+  Tuple* tuple = mlRel->GetTuple(onePair.second, false);
+  cout << "Attribute 1 of Tuple " << onePair.second << " ...";
+  ml = (MLabel*)tuple->GetAttribute(1)->Copy();
+  cout << " has " << ml->GetNoComponents() << " components" << endl;
+  result->PutAttribute(1, ml);
+  classification.pop();
+  tuple->DeleteIfAllowed();
+  return result;
+}
+
+/*
+\subsection{Destructor for class ~IndexClassifyLI~}
+
+*/
+IndexClassifyLI::~IndexClassifyLI() {
+  if (classifyTT) {
+    delete classifyTT;
+    classifyTT = 0;
+  }
+  if (match) {
+    delete match;
+    match = 0;
+  }
+  if (p) {
+    delete p;
+    p = 0;
+  }
+  pStream.close();
+}
+
+/*
+\subsection{Value Mapping with index}
+
+*/
+int indexclassifyVM(Word* args, Word& result, int message, Word& local,
+                    Supplier s){
+  IndexClassifyLI *li = (IndexClassifyLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      local.addr = new IndexClassifyLI(args[0], args[1], args[2]);
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextResultTuple() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+struct indexclassifyInfo : OperatorInfo {
+  indexclassifyInfo() {
+    name      = "indexclassify";
+    signature =
+             "text x stream(mlabel) x invfile -> stream(tuple(string, mlabel))";
+    appendSignature(
+          "text x stream(mstring) x invfile -> stream(tuple(string, mstring))");
+    syntax    = "_ _ indexclassify [_]";
+    meaning   = "Classifies an indexed stream of trajectories according to a "
+                " set of patterns and descriptions from a file";
+  }
+};
 
 /*
 \section{Operator ~compress~}
@@ -4834,7 +5001,6 @@ int createrelindexVM(Word* args, Word& result, int message, Word& local,
   Relation *rel = (Relation*)(args[0].addr);
   Tuple *tuple = 0;
   MLabel *ml = 0;
-  CcInt* tid = 0;
   ULabel ul(1);
   result = qp->ResultStorage(s);
   InvertedFile* inv = (InvertedFile*)result.addr;
@@ -4855,12 +5021,11 @@ int createrelindexVM(Word* args, Word& result, int message, Word& local,
   TrieNodeCacheType* trieCache = inv->createTrieCache(trieCacheSize);
   for (int i = 1; i <= rel->GetNoTuples(); i++) {
     tuple = rel->GetTuple(i, false);
-    tid = (CcInt*)tuple->GetAttribute(0);
     ml = (MLabel*)tuple->GetAttribute(1);
     for (int j = 0; j < ml->GetNoComponents(); j++) {
       ml->Get(j, ul);
-      inv->insertString(tid->GetValue(), ul.constValue.GetValue(), j, 0, cache,
-                        trieCache);
+      inv->insertString(tuple->GetTupleId(), ul.constValue.GetValue(), j, 0,
+                        cache, trieCache);
     }
   }
   return 0;
@@ -4918,10 +5083,9 @@ class SymbolicTrajectoryAlgebra : public Algebra {
                                    rewriteVM_Stream, 0};
       AddOperator(rewriteInfo(), rewriteVMs, rewriteSelect, rewriteTypeMap);
 
-      ValueMapping classifyVMs[] = {classifyVM,
-                                    classifyIndexVM, 0};
-      
-      AddOperator(classifyInfo(), classifyVMs, classifySelect, classifyTypeMap);
+      AddOperator(classifyInfo(), classifyVM, classifyTypeMap);
+
+      AddOperator(indexclassifyInfo(), indexclassifyVM, indexclassifyTypeMap);
 
       ValueMapping compressVMs[] = {compressVM_1<MLabel>,
                                     compressVM_1<MString>,

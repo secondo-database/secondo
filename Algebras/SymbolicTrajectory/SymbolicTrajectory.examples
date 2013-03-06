@@ -45,8 +45,8 @@ Result   : 51
 
 Operator : indexclassify
 Number   : 1
-Signature: stream(tuple(string, text)) x stream(mlabel) x invfile -> stream(tuple(string, mlabel))
-Example  : query (patterns1 feed Dotrajsmall feed projecttransformstream[Trajectory] indexclassify [Doindexsmall]) count
+Signature: stream(tuple(string, text)) x relation(..., mlabel, ...) x invfile -> stream(tuple(string, mlabel))
+Example  : query (patterns1 feed indexclassify [Dotrajsmall, Doindexsmall]) count
 Result   : unpredictable
 Remark   : not finished yet
 

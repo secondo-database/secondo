@@ -72,7 +72,7 @@ class MLabel : public MString {
   MLabel(int i): MString(i), index(0) {}
   MLabel(MString* ms);
   
-  ~MLabel() {}
+  ~MLabel() {void destroyDbArrays(); index.removeTrie(); index.initRoot();}
 
   static const string BasicType() {return "mlabel";}
   static bool checkType(ListExpr t) {
@@ -511,8 +511,8 @@ class ClassifyLI {
 friend class Match;
 
 public:
-  ClassifyLI(Word _pstream, Word _mlstream, InvertedFile* inv);
-  ClassifyLI(Word _pstream, Word _mlstream, InvertedFile* inv, bool rewrite);
+  ClassifyLI(Word _pstream, Word _mlstream);
+  ClassifyLI(Word _pstream, Word _mlstream, bool rewrite);
 
   ~ClassifyLI();
 
@@ -534,7 +534,31 @@ private:
   Match* mainMatch;
   map<int, vector<set<size_t> > > matches;//pattern_id -> (upat -> set(ulabel))
   vector<MLabel*> rewritten;
+};
+
+class IndexClassifyLI {
+
+friend class Match;
+
+public:
+  IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv);
+  IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv, bool rew);
+
+  ~IndexClassifyLI();
+
+  Tuple* nextResultTuple();
+  set<TupleId> applyPattern(); // apply unit patterns of p to mlRel
+  void applyConditions(set<TupleId> matchingMLs); // filter set
+
+private:
+  Stream<Tuple> pStream;
+  Relation *mlRel;
+  queue<pair<string, TupleId> > classification;
+  TupleType* classifyTT;
+  Pattern* p;
+  Match* match;
   InvertedFile* invFile;
+  int attrNr;
 };
 
 }
