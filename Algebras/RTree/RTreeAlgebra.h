@@ -1198,9 +1198,14 @@ void R_TreeNode<dim, LeafInfo>::Split( R_TreeNode<dim,
   assert( EntryCount() == MaxEntries() + 1 );
     // Make sure this node is ready to be split
 
+
   assert( n1.EntryCount() == 0 && n2.EntryCount() == 0  );
+
   assert( n1.MinEntries() == MinEntries() && n1.MaxEntries() == MaxEntries() );
+
   assert( n2.MinEntries() == MinEntries() && n2.MaxEntries() == MaxEntries() );
+
+
     // Make sure n1 and n2 are ok
 
   if( do_axis_split )
@@ -1504,15 +1509,16 @@ template<unsigned dim, class LeafInfo>
 void R_TreeNode<dim, LeafInfo>::Read( SmiRecord& record )
 {
   int offset = 0;
-  char buffer[Size() + 1];
-  memset( buffer, 0, Size() + 1 );
-
-  SmiSize readed = record.Read( buffer, Size(), offset );
+  size_t readed;
+  char* buffer = record.GetData(readed);
 
   // Reads leaf, count
   memcpy( &leaf, buffer + offset, sizeof( leaf ) );
+  
   offset += sizeof( leaf );
+
   memcpy( &count, buffer + offset, sizeof( count ) );
+
   offset += sizeof( count );
 
   assert( count <= maxEntries );
@@ -1528,6 +1534,7 @@ void R_TreeNode<dim, LeafInfo>::Read( SmiRecord& record )
     entries[ i ]->Read( buffer, offset );
   }
 
+  free(buffer);
   assert(offset<=(int)readed); // otherwise some entries will be uninitialized
   modified = false;
 }
@@ -1933,6 +1940,10 @@ Implemented by NearestNeighborAlgebra.
   bool InitializeBLI(const bool& leafSkipping=BULKLOAD_LEAF_SKIPPING);
 
 
+  ostream& printHeader(ostream& o) const{
+      return header.print(o);
+  }
+
 ///////////
   private:
     bool fileOwner;
@@ -1980,6 +1991,25 @@ The record file of the R-Tree.
         entryCount( entryCount ),
         height( height ), share(s)
         {}
+
+      ostream& print(ostream& o) const{
+       o << "RTreeHeader["
+         << "headerRecordId = " <<  headerRecordId
+         << ", rootRecordId = " <<  rootRecordId
+         << ", minLeafEntries = " <<  minLeafEntries
+         << ", maxLeafEntries = " << maxLeafEntries
+         << ", minInternalEntries = " << minInternalEntries
+         << ", maxInternalEntries = " << maxInternalEntries
+         << ", nodeCount = " << nodeCount
+         << ", entryCount = " << entryCount
+         << ", height = " << height
+         << ", second_head_id = " <<  second_head_id
+         << ", path_rec_id = " << path_rec_id
+         << ", share = " << share
+         << "]";
+        return o;
+      }
+
     } header;
 
 /*
@@ -2902,10 +2932,10 @@ void R_Tree<dim, LeafInfo>::InsertEntry( const R_TreeEntry<dim>& entry )
     { // Node splitting is necessary
       R_TreeNode<dim, LeafInfo> *n1 =
         new R_TreeNode<dim, LeafInfo>
-            (nodePtr->IsLeaf(), MinEntries(currLevel), MaxEntries(currLevel) );
+            (nodePtr->IsLeaf(), nodePtr->MinEntries(), nodePtr->MaxEntries());
       R_TreeNode<dim, LeafInfo> *n2 =
         new R_TreeNode<dim, LeafInfo>
-            (nodePtr->IsLeaf(), MinEntries(currLevel), MaxEntries(currLevel) );
+            (nodePtr->IsLeaf(), nodePtr->MinEntries(), nodePtr->MaxEntries() );
 
       nodePtr->Split( *n1, *n2 );
 
