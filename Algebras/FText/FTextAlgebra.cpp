@@ -4906,6 +4906,10 @@ int ftextletObjectVM( Word* args, Word& result, int message,
     Res->Set(true, "ERROR: Object name identifier "
                       + ObjNameString + " is already used.");
     return 0;
+  } else if(!ctlg->IsValidIdentifier(ObjNameString)){
+    Res->Set(true, "ERROR: Object name " + ObjNameString +
+                   " is not a valid identifier");
+    return 0;
   }
 
   // try to create the value from the valeNL/valueText
@@ -4925,6 +4929,8 @@ int ftextletObjectVM( Word* args, Word& result, int message,
   } else {// Command is already a nested-list-string: just copy
     querystringParsed = querystring;
   }
+
+
   // read nested list: transform nested-list-string to nested list
   if (!nl->ReadFromString(querystringParsed, parsedCommand) ) {
     Res->Set(true, "ERROR: Value text does not produce a "
@@ -4952,13 +4958,15 @@ int ftextletObjectVM( Word* args, Word& result, int message,
 //     return 0;
 //   };
   QueryProcessor *qpp = new QueryProcessor( nl, am );
+
   try{
     bool correct        = false;
     bool evaluable      = false;
     bool defined        = false;
     bool isFunction     = false;
     Word qresult;
-    cerr << __PRETTY_FUNCTION__ << "Trying to build the operator tree" << endl;
+    //cerr <<  "Trying to build the operator tree" << endl;
+    //cerr << " from " << nl->ToString(parsedCommand) << endl << endl;
     qpp->Construct( parsedCommand,
                    correct,
                    evaluable,
@@ -4972,20 +4980,29 @@ int ftextletObjectVM( Word* args, Word& result, int message,
       return 0;
     }
     typestring = nl->ToString(resultType);
-    if ( evaluable || isFunction ){
-      string typeName = "";
-      ctlg->CreateObject(ObjNameString, typeName, resultType, 0);
+
+    //cerr << "typeString is " << typestring << endl;
+    if(!evaluable && !isFunction){
+      Res->Set(true, "ERROR: Expression not evaluable and not a function");
+      if(tree){
+        qpp->Destroy(tree,true);
+        tree = 0;
+      }
+      return 0;
     }
-    if ( evaluable ){
+
+    if ( evaluable && !isFunction){
       qpp->EvalS( tree, qresult, 1 );
       if( IsRootObject( tree ) && !IsConstantObject( tree ) ){
         ctlg->CloneObject( ObjNameString, qresult );
         qpp->Destroy( tree, true );
       } else {
-        ctlg->UpdateObject( ObjNameString, qresult );
+        ctlg->InsertObject( ObjNameString, "",resultType,qresult,true);
         qpp->Destroy( tree, false );
       }
+      tree = 0;
     } else if ( isFunction ) { // abstraction or function object
+      ctlg->CreateObject(ObjNameString, "", resultType, 0);
       if ( nl->IsAtom( parsedCommand ) ) { // function object
         ListExpr functionList = ctlg->GetObjectValue(
                 nl->SymbolValue( parsedCommand ) );
@@ -4998,6 +5015,7 @@ int ftextletObjectVM( Word* args, Word& result, int message,
         tree = 0;
       }
     }
+    ctlg->CleanUp(false);
   } catch(SI_Error err) {
     if(tree) {
       qpp->Destroy( tree, true );
@@ -5025,6 +5043,7 @@ int ftextletObjectVM( Word* args, Word& result, int message,
   // Create object descriptor for the result FText
   string restring = "(OBJECT " + ObjNameString + " () (" + typestring + "))";
   Res->Set(true, restring);
+
   return 0;
 }
 
@@ -9004,7 +9023,7 @@ class FindPatternInfo{
          tt = new TupleType(tupleType);
       }
       findMax = (findMaxLength->IsDefined() && findMaxLength->GetBoolval());
-      this->allowEmpty = (allowEmpty->IsDefined() && allowEmpty->GetBoolval());    
+      this->allowEmpty = (allowEmpty->IsDefined() && allowEmpty->GetBoolval());
     }
 
    ~FindPatternInfo(){
@@ -9435,7 +9454,8 @@ put into the output stream. In case of an assertion, Secondo will crash.
 
 The signature is: 
 
- {text,stream(text)} x string [x bool] -> stream(tuple([AlgName: string, OpName : string, Input : text]))
+ {text,stream(text)} x string [x bool] -> 
+stream(tuple([AlgName: string, OpName : string, Input : text]))
 
 */
 
@@ -9826,18 +9846,18 @@ int tmcheckVM2( Word* args, Word& result, int message,
 
 */
 OperatorSpec tmcheckSpec(
-           "{text, stream(text)} x string  [x bool ] -> strean(tuple([OpName : "
-           "string, Input: text]))",
-           "_ tmcheck[_]",
-           "Calls matching operators for each operator  node of the  "
-           " operator tree build by the query in the argument. "
-           " All typemappings throwing an exception are put into "
-           "the output stream together with the input which leads to"
-           "that exception. The second argument specified a certain algebra"
-           " for which the oprrators should be checks. If the value is undefined"
-           " or empty, all algebras are checked. The third (optionally) argument"
-           "specified if the currently processed operator should be printed out.",
-           "query tmcheck('thecenter feed count') count = 0");
+         "{text, stream(text)} x string  [x bool ] -> strean(tuple([OpName : "
+         "string, Input: text]))",
+         "_ tmcheck[_]",
+         "Calls matching operators for each operator  node of the  "
+         " operator tree build by the query in the argument. "
+         " All typemappings throwing an exception are put into "
+         "the output stream together with the input which leads to"
+         "that exception. The second argument specified a certain algebra"
+         " for which the oprrators should be checks. If the value is undefined"
+         " or empty, all algebras are checked. The third (optionally) argument"
+         "specified if the currently processed operator should be printed out.",
+         "query tmcheck('thecenter feed count') count = 0");
 
 
 /*
