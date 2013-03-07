@@ -112,8 +112,8 @@ intstreamType( ListExpr args ) {
   if(!nl->HasLength(args,2)){
     return listutils::typeError(err);
   }
-  if(!listutils::isSymbol(nl->First(args)) ||
-     !listutils::isSymbol(nl->Second(args))){
+  if(!CcInt::checkType(nl->First(args)) ||
+     !CcInt::checkType(nl->Second(args))){
     return listutils::typeError(err);
   }  
   return nl->TwoElemList(nl->SymbolAtom(Stream<CcInt>::BasicType()),
