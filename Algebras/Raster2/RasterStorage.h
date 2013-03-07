@@ -422,6 +422,8 @@ The ~RasterStorageFile~ class is derived from ~SmiKeyedFile~, because
 
         void clear();
 
+        const R_Tree<dim, index_type >* getTree();
+
       private:
         void set(const index_type& index, const T& value);
         T get(const index_type& index) const;
@@ -658,6 +660,13 @@ The following functions deal with managing the files associated with a
        file->Truncate();
        tree->Clear();
        cache.clear(false);
+    }
+
+
+    template <class T, int dim, bool Undef(const T&)>
+    const R_Tree<dim, RasterIndex<dim> >* 
+    RasterStorage<T, dim, Undef>::getTree(){
+       return tree;
     }
 
 
@@ -1363,7 +1372,9 @@ deleting the pointed to object.
       tree_remove.clear();
 
       if (!tree_insert.empty()) {
-          if (tree->NodeCount() == 1 && tree->EntryCount() == 0 &&
+          // note: avoid bulkloading tree 
+          // to do this, the elements must be sorted by z_order 
+          if (false && tree->NodeCount() == 1 && tree->EntryCount() == 0  &&
               tree->InitializeBulkLoad(false))
           {
               rslog << tree->FileId() << " BBBBB.\n";
