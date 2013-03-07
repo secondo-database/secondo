@@ -76,7 +76,7 @@ namespace raster2 {
       } else {
         typename T::moving_type* tmp = 
              praster->atlocation(pPoint->GetX(), pPoint->GetY());
-         std::swap(tmp,pResult);
+         pResult->CopyFrom(tmp);
          delete tmp;
       }
     return 0;

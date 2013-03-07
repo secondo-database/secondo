@@ -539,9 +539,9 @@ member variables are provided for convenience.
       for (Instant tact = tmin; tact < tmax; tact += grid.getDuration())
       {
         T value = (*storage)[grid.getIndex(x, y, tact.ToDouble())];
-        if (value != Helper::getUndefined()) {
+        if (!Helper::isUndefined(value)) {
             Interval<Instant> iv(
-                    tact, tact + grid.getDuration(), true, true);
+                    tact, tact + grid.getDuration(), true, false);
             wrapper_type v(true,value);
             ret->Add(typename Helper::unit_type(iv,v,v));
         }
