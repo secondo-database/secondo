@@ -378,6 +378,7 @@ secondoOp( makeline,          prefix, 2).
 secondoOp( makesline,         prefix, 2).
 secondoOp( makearray,         prefix, 1).
 secondoOp( makemvalue,        postfixbrackets, 1).
+secondoOp( matches,           infix, 2).
 secondoOp( max,               postfixbrackets, 1).
 secondoOp( maxD,              prefix, 2).
 secondoOp( maxdegree,         prefix, 2).
