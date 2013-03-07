@@ -46,6 +46,7 @@ SHLIB=$(expr substr $TARGET 1 $L).so
 
 
 if [ "$SECONDO_PLATFORM" != "win32" ]; then
+ if [ "$SECONDO_PLATFORM" != "mac_osx" ]; then
   echo "create shared library" 
   gcc -shared -Wl,-soname,libsecondo.so -o $SHLIB $SRCOBJECTS  $OBJ 
   if [ $? != 0 ]; then
@@ -53,6 +54,7 @@ if [ "$SECONDO_PLATFORM" != "win32" ]; then
      exit 1
   fi
   echo "shared lib created" 
+ fi
 fi
 
 
