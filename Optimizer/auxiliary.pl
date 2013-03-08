@@ -146,6 +146,12 @@ pretty_print([[RelType, [tuple, AttrDescription]], Tuples]) :-
   max_attr_length(AttrDescription, AttrLength),
   write_tuples(AttrDescription, Tuples, AttrLength).
 
+% NVK ADDED NR: Support for nested relations.
+pretty_print([[nrel, [tuple, AttrDescription]], Tuples]) :-
+  nr_pretty_print([[nrel, [tuple, AttrDescription]], Tuples]),
+  !.
+% NVK ADDED NR END
+
 pretty_print(L) :-
   write_element(L, 0).
 
@@ -225,6 +231,21 @@ display([Rel, [tuple, Attrs]], Tuples) :-
   nl,
   max_attr_length(Attrs, AttrLength),
   displayTuples(Attrs, Tuples, AttrLength).
+
+% NVK ADDED NR: Support for nested relations.
+display([Rel, [tuple, Attrs]], Tuples) :-
+  nr_display([Rel, [tuple, Attrs]], Tuples),
+  !.
+
+% Just write the terms to stdout to avoid the 'There is no specific display'
+% message.
+display(upoint, UPoint) :-
+  write_term(UPoint, []),
+  !.
+display(mpoint, MPoint) :-
+  write_element(MPoint, 0),
+  !.
+% NVK ADDED END
 
 display(duration, [0, MSec]) :-
   MSec > 3600000,
