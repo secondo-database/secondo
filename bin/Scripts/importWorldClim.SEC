@@ -1,0 +1,128 @@
+
+
+# By using this script, it is possible to import temperature data
+# from http://www.worldclim.org/current
+# first, you have to download the data from the website
+# in Esri-Grid format.
+
+# After that unpack the data into a directory of your choice.
+
+# Change this script accorsing to your data
+
+# This affects three lines of this script
+
+
+# the first one is the line
+
+# let basedir = ....
+
+# change the text to the directory where the data are stored,
+# (this directory contains some subdirectories ending with _1 .. _12)
+# the directory can be given as an absolute pathname or
+# as an relative path from Secondo's bin directory
+
+# the second line to change is
+
+# let datakind = ...
+
+# Set this value according to the data you want to import
+# e.g. tmean, tmin, tmax 
+
+# the third line change the name of the created object
+# this is useful if more than one moving rasters 
+# should be create within the same database
+#
+
+
+
+
+# Note: The time information in this script are for
+# the tmean dataset
+
+
+create database worldclim
+
+open database worldclim
+
+# set directory of the data
+
+let basedir =  'prec'
+
+# set kind of data
+
+let datakind = 'prec'
+
+# set the name of the msint
+
+let msintname = "precipitation"
+
+
+# after that, no changes are required
+
+let tmpname = msintname +"_tmp";
+
+
+# import the first raster (required to extract the spatial grid information) 
+
+query letObject(tmpname, 'importEsriGrid( basedir + \'/\' + datakind + \'_1\')', FALSE)
+
+
+
+
+# 2 seconds at resolution of 10 arc minutes
+# 8:40 min at  resolution  of 30 arc seconds
+
+# create a duration of about 1 month
+
+let onemonth = [const duration value (30 0)]
+
+
+# create the 3D grid for the time depending raster
+
+query letObject("g3", 'createGrid3(getgrid('+tmpname+'),onemonth)',FALSE) 
+
+# create an empty moving raster, 
+# data coming from worldclim are always integer raster, thus the raster must be an msint
+
+query letObject(msintname, "createRaster(1,g3)", FALSE)
+
+# create an instant at the first of january.
+# the year does not play a role because the value on worldclim are
+# the mean over 50 years
+
+let inst1 = [const instant value "2000-1-1-12:00"]
+
+
+# add the january raster to the moving raster
+
+query evaluate(msintname + ' addLayer[' + tmpname + ', inst1 + onemonth * 0.0 ]',FALSE) count
+
+
+
+# 40:13 min at resolution of 30 arc seconds
+
+# the main part of this script:
+# imports the months february - december into the moving raster
+
+query intstream(2,12) 
+      namedtransformstream[Month] 
+      extend[ Q : msintname +' addLayer[ importEsriGrid(\''+basedir+'/'+datakind+'_' + num2string(.Month) + '\') , inst1 + onemonth * ' + num2string(.Month - 1) + '.0]'] 
+      extend[ Success : evaluate(.Q,FALSE) extract[Success] ]
+      consume
+
+
+# 45 seconds for a resolution of 10 arc minutes without transaction control
+# 407:13 minutes at resolution 30 arc seconds
+
+# Note:  the moving raster is a big structure.
+# If you want to display the complete raster in the Javagui 
+# even for the resolution of 10 arc minutes, the JVM heap space of the
+# Javagui must be increased to 4 GB (change the -xMx option within the sgui script)
+# Displaying of the complete grid in best resolution is not an option.
+
+
+
+
+
+
+
