@@ -5,24 +5,26 @@ open database berlintest
 # create a 6 x 4 raster of squares of size 5000
 # lower left corner at (-4000, 1000)
 
-delete r1
+if isDBObject("r1") then delete r1 endif
 
 let r1 = [const rect value (-4000.0 1000.0 1000.0 6000.0)] 
   rect2region
 
-delete raster
+if isDBObject("raster") then delete raster endif
 
 let raster = r1 feed transformstream 
-  ten feed filter[.no < 7] {t1} 
-  ten feed filter[.no < 5] {t2} 
+  ten feed filter[.No < 7] {t1} 
+  ten feed filter[.No < 5] {t2} 
   product product
   addcounter[No, 1]
   projectextend[No;  
-    Field: .elem translate[(.no_t1 - 1) * 5000.0, 
-      (.no_t2 - 1) * 5000.0] ]   
+    Field: .Elem translate[(.No_t1 - 1) * 5000.0, 
+      (.No_t2 - 1) * 5000.0] ]   
   consume
 
 query raster
+
+# for the following use reference dependent rendering by field Occupation
 
 query Trains feed filter[.Line < 5] 
   raster feed  
@@ -35,6 +37,10 @@ query Trains feed filter[.Line < 5]
       aggregate[Time; fun(m1:mint, m2:mint) m1 + m2; zero()]
   ]
 consume
+
+query Trains feed filter[.Line < 5] consume
+
+close database
 
 
 

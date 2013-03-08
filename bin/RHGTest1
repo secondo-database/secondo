@@ -1,19 +1,30 @@
 #SecondoTTYBDB
+
 list databases
+
 list algebras
+
 list algebra RTreeAlgebra
-open database opt
+
+{close database | open database opt}
+
 query 3 * 5
 
-create x: int
+
+
+{delete x | create x: int}
 
 update x := 7
 
-delete inc
 
-let inc = fun(n:int) n + 1
+
+{delete inc | let inc = fun(n:int) n + 1}
 
 query inc(inc(7))
+
+
+
+
 
 query Orte
 

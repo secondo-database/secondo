@@ -1,24 +1,35 @@
 #Javagui
+
 open database berlintest
+
 query UBahn
+
 query train7
+
 query trajectory(train7)
+
 query deftime(train7)
 
 query train7 atinstant six30
+
 query val(train7 atinstant six30)
+
 query theminute(2003,11,20,6,25)
+
 query train7 atperiods 
 	theperiod(theminute(2003,11,20,6,25), theminute(2003,11,20,6,39))
+
 query thecenter
+
 query train7 at thecenter
+
 query deftime(train7 at thecenter)
 
 query mrain
 
 query msnow
 
-delete train453
+if isDBObject("train453") then delete train453 endif
 
 let train453 = Trains feed filter[.Id = 453] extract[Trip]
 
@@ -34,16 +45,20 @@ query distance(train7, mehringdamm) > 3000.0
 # sets of objects
 
 query Trains count
+
 query Trains feed filter[.Trip present eight] consume
 
 #[start optimizer server]
 
 query mehringdamm
+
 select * from trains 
 	where [trip present eight, trip passes mehringdamm]
 
 select [val(trip atinstant eight) as ateight] from trains 
 	where [trip present eight, trip passes mehringdamm]
+
+close database
 
 
 
