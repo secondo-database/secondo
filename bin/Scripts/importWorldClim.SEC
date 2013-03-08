@@ -40,21 +40,20 @@
 # the tmean dataset
 
 
-create database worldclim
+{create database worldclim |  open database worldclim}
 
-open database worldclim
 
 # set directory of the data
 
-let basedir =  'prec'
+let basedir =  'tmean_10arc'
 
 # set kind of data
 
-let datakind = 'prec'
+let datakind = 'tmean'
 
 # set the name of the msint
 
-let msintname = "precipitation"
+let msintname = "mtmean10a"
 
 
 # after that, no changes are required
@@ -114,12 +113,31 @@ query intstream(2,12)
 # 45 seconds for a resolution of 10 arc minutes without transaction control
 # 407:13 minutes at resolution 30 arc seconds
 
+# clean up temporary objects
+
+delete basedir
+
+delete datakind
+
+delete inst1
+
+delete g3
+
+delete onemonth
+
+query deleteObject(tmpname)
+
+delete tmpname
+
+delete msintname
+
+
+
 # Note:  the moving raster is a big structure.
 # If you want to display the complete raster in the Javagui 
 # even for the resolution of 10 arc minutes, the JVM heap space of the
 # Javagui must be increased to 4 GB (change the -xMx option within the sgui script)
 # Displaying of the complete grid in best resolution is not an option.
-
 
 
 
