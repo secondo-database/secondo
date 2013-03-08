@@ -97,6 +97,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, intersects_new).
 :- op(800, xf , isgrayscale).
 :- op(800, xf , isportrait).
+:- op(800, xfx, matches).
 :- op(800, xf , getHeight).
 :- op(800, xf , leapyear).
 :- op(800, xf , line2region).
@@ -410,6 +411,7 @@ secondoOp( maxD,              prefix, 2).
 secondoOp( maxdegree,         prefix, 2).
 secondoOp( maxDuration,       prefix , 0).
 secondoOp( maxInstant,        prefix , 0).
+secondoOp( matches,           infix , 2).
 secondoOp( memshuffle,        postfix, 1).
 secondoOp( merge,             prefix, 2).
 secondoOp( mergediff,         postfix, 2).
