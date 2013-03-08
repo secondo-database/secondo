@@ -101,9 +101,6 @@ public abstract class DisplayRaster2ms extends DisplayRaster2 implements Timed
   {
     Double timeCoord = Math.floor(pTime / this.getGrid().getDuration());
 //     Double timeCoord = Math.floor((pTime - this.getBoundingInterval().getStart()) / this.getGrid().getDuration());
-//     Reporter.debug("computeTimeIndex uses startTime " + this.getBoundingInterval().getStart());
-    Reporter.debug("computeTimeIndex uses duration " + this.getGrid().getDuration());                   
-    Reporter.debug("computeTimeIndex for time " + pTime + " returns index: " + timeCoord.intValue() );                   
     return timeCoord.intValue();
   } 
 
@@ -120,7 +117,6 @@ public abstract class DisplayRaster2ms extends DisplayRaster2 implements Timed
   @Override
   protected void ScanValue(ListExpr le)
   {
-//     Reporter.debug("start ScanValue; parsing msType object from list expression: " + f.ListExprToString(le));
 
     // Check if the list expression contains anything at all,  
     // if grid and tile dimensions are defined and
@@ -130,7 +126,7 @@ public abstract class DisplayRaster2ms extends DisplayRaster2 implements Timed
       || le.second() == null
       || le.third() == null)
     {
-      Reporter.writeError("No valid list expression for msType: " + f.ListExprToString(le));
+      Reporter.writeError("No valid list expression for msType: " );
       err = true;
       return;
     }
@@ -155,7 +151,6 @@ public abstract class DisplayRaster2ms extends DisplayRaster2 implements Timed
     // set flag so list expression will be scanned only once
     this.isScanned = true;
     
-    Reporter.debug("end ScanValue");
   }
       
   /**
@@ -200,7 +195,6 @@ public abstract class DisplayRaster2ms extends DisplayRaster2 implements Timed
   */
   public Vector getIntervals()
   {
-    Reporter.debug("getIntervals returns " + this.intervals.size() + " intervals. ");                   
     return this.intervals;
   }
   
@@ -215,8 +209,6 @@ public abstract class DisplayRaster2ms extends DisplayRaster2 implements Timed
     
     if (intervals == null)
       return  null;
-    
-    Reporter.debug("intervals: " + this.intervals);                   
     
     ListIterator li = intervals.listIterator();
     while (li.hasNext()) {
@@ -250,7 +242,6 @@ public abstract class DisplayRaster2ms extends DisplayRaster2 implements Timed
   */
   protected void scanValueGridDef(ListExpr leGridDef)
   {
-    Reporter.debug("start ScanValueGridDef with list expression: " + f.ListExprToString(leGridDef));
 
     // Check number and type of list elements,       
     if (leGridDef.listLength() != 4 
@@ -259,7 +250,7 @@ public abstract class DisplayRaster2ms extends DisplayRaster2 implements Timed
         || leGridDef.third().atomType() != ListExpr.REAL_ATOM
         || leGridDef.fourth().atomType() != ListExpr.REAL_ATOM)
     {
-      Reporter.writeError("No correct list expression for msType grid: " + f.ListExprToString(leGridDef));
+      Reporter.writeError("No correct list expression for msType grid: " );
       err = true;
       return;
     }
@@ -277,7 +268,6 @@ public abstract class DisplayRaster2ms extends DisplayRaster2 implements Timed
   */
   protected void scanValueTileDef(ListExpr leTileDef)
   {    
-    Reporter.debug("start ScanValueTileDef with list expression: " + f.ListExprToString(leTileDef));
 
     // Check number and type of list elements,       
     if (leTileDef.listLength() != 3
@@ -285,7 +275,7 @@ public abstract class DisplayRaster2ms extends DisplayRaster2 implements Timed
         || leTileDef.second().atomType() != ListExpr.INT_ATOM
         || leTileDef.third().atomType() != ListExpr.INT_ATOM)
     {
-      Reporter.writeError("No correct list expression for msType tile definition: " + f.ListExprToString(leTileDef));
+      Reporter.writeError("No correct list expression for msType tile definition: " );
       err = true;
       return;
     }
@@ -303,14 +293,12 @@ public abstract class DisplayRaster2ms extends DisplayRaster2 implements Timed
   */
   protected void scanValueTile(ListExpr leTile)
   {
-      Reporter.debug("Parsing tile (partial grid) from list expression: " + f.ListExprToString(leTile));
-      
       if (leTile.listLength() != 4
         || leTile.first().atomType() != ListExpr.INT_ATOM
         || leTile.second().atomType() != ListExpr.INT_ATOM
         || leTile.third().atomType() != ListExpr.INT_ATOM)
       {
-        Reporter.writeError("No correct list expression for msType tile: " + f.ListExprToString(leTile));
+        Reporter.writeError("No correct list expression for msType tile: " );
         err = true;
         return;
       }
@@ -324,8 +312,6 @@ public abstract class DisplayRaster2ms extends DisplayRaster2 implements Timed
       // index signifying start
       Integer tileIndexTime = leTile.third().intValue();
       
-      Reporter.debug("read cell index east/west: " + tileIndexX + ", north/south: " + tileIndexY + ", time: " + tileIndexTime);
-            
       //*************************************************************************************
       // scan all cell values in a partial raster
       //*************************************************************************************
@@ -383,7 +369,6 @@ public abstract class DisplayRaster2ms extends DisplayRaster2 implements Timed
         {
           // store value array and indices of lower left cell in map
           this.setRasterValuesPartial(tileValues, new Point(tileIndexX, tileIndexY), timeSliceIndex);
-          Reporter.debug("Buffering time slice " + tileIndexTime + " of tile (" + tileIndexX + "," + tileIndexY + ") ");                   
         
           // store interval of the time slice
           double start = timeSliceIndex*duration;
@@ -404,13 +389,11 @@ public abstract class DisplayRaster2ms extends DisplayRaster2 implements Timed
     {
       if (pInterval.connected((Interval)interval))
       {
-        Reporter.debug("Merged new interval " + pInterval + " with existing interval " + (Interval)interval);                   
         ((Interval)interval).unionInternal(pInterval);
         return;
       }
     }
     this.intervals.add(pInterval);
-    Reporter.debug("Added new interval: " + pInterval);                   
   }
 
 }

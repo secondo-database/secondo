@@ -46,7 +46,6 @@ public abstract class DisplayRaster2is extends DisplayRaster2s
   protected void ScanValue(ListExpr le)
   {
     StandardFormatter f = new StandardFormatter();
-    Reporter.debug("start ScanValue; parsing isType object from list expression: " + f.ListExprToString(le));
 
     // Check if the list expression contains anything at all,  
     // if grid and tile dimensions are defined and
@@ -55,7 +54,7 @@ public abstract class DisplayRaster2is extends DisplayRaster2s
        le.first() == null || 
        le.second() == null)
     {
-      Reporter.writeError("No valid list expression for isType: " + f.ListExprToString(le));
+      Reporter.writeError("No valid list expression for isType: " );
       err = true;
       return;
     }

@@ -155,21 +155,17 @@ public abstract class DisplayRaster2 extends DisplayGraph
   @Override
   public void init(String name, int nameWidth,  int indent, ListExpr type, ListExpr value, QueryResult qr)
   {
-    Reporter.debug("start init ");
         
     AttrName = extendString(name, nameWidth, indent);
     this.typeName = this.extractTypeName(name);
     
     if (!isScanned)
     {
-      Reporter.debug("object was not yet read => executing ScanValue");
-
       ScanValue(value);
     }
 
     if (err)
     {
-      Reporter.writeError("Error in ListExpr :parsing aborted");
       qr.addEntry(new String(AttrName + ": parse error"));
       bounds =null;
       return;
@@ -188,7 +184,6 @@ public abstract class DisplayRaster2 extends DisplayGraph
     
     this.computeBounds();
     
-    Reporter.debug(this.getInfo());
   }
 
    /**
@@ -285,9 +280,6 @@ public abstract class DisplayRaster2 extends DisplayGraph
   */
   public void draw(Graphics g, double time, AffineTransform at)
   {
-    Reporter.debug("start draw"); 
-    Reporter.debug("drawing with AffineTransform at, TranslateX=" + at.getTranslateX() + ", TranslateY=" + at.getTranslateY());
- 
     this.currentTimeIndex = this.computeTimeIndex(time);
     
     Map<Point,BufferedImage> images = this.getRasterImage();
@@ -297,7 +289,6 @@ public abstract class DisplayRaster2 extends DisplayGraph
       this.drawRaster(images, g, at);
     }
         
-    Reporter.debug("end draw");
   }
   
    
@@ -334,7 +325,6 @@ public abstract class DisplayRaster2 extends DisplayGraph
       
     this.bounds.setRect(x, y, width, height); 
       
-    Reporter.debug("getBounds returns " + this.bounds.toString());
   }
   
 
@@ -376,9 +366,7 @@ public abstract class DisplayRaster2 extends DisplayGraph
           // symbol "undefined" is a valid cell value and does not cause error message.
         }
       default:
-//         Reporter.debug("No correct list expression for value type. Cell value will be left undefined. ");
     }
-    //     Reporter.writeInfo("read " + valueLe.atomType() + " value: " + val);
     
     if (val != null){
       this.valueSet.add(val);
@@ -648,8 +636,6 @@ public abstract class DisplayRaster2 extends DisplayGraph
   */
   public boolean isEmpty()
   {
-    Reporter.debug("start isEmpty; cellCount=" + this.cellCount);
-
     return (this.cellCount==0);
   }
  

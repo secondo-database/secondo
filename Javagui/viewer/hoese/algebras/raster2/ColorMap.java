@@ -48,7 +48,6 @@ public class ColorMap
   */
   public ColorMap(TreeSet<Comparable> pValueSet, Category pCategory)
   {
-    Reporter.debug("start new ColorMap");
     
     setMinimumValue(pValueSet.first());
     setMaximumValue(pValueSet.last());
@@ -56,7 +55,6 @@ public class ColorMap
     // If other than default Category was picked, get gradient colors from Category.
     if (!pCategory.getName().toLowerCase().equals("default"))
     {   
-      Reporter.debug("new ColorMap: evaluating Category " + pCategory.getName());
 
       GradientPaint fillStyle = this.getGradientPaint(pCategory);
       if (fillStyle != null)
@@ -87,7 +85,6 @@ public class ColorMap
         this.mapValueColor.put(value, this.computeColorForValue(value));
     }
 
-    Reporter.debug(this.toString());
   }
   
   /**
@@ -201,7 +198,6 @@ public class ColorMap
   */
   public GradientPaint getGradientPaint(Category pCategory)
   {
-    Reporter.debug("start getGradientPaint");
 
     GradientPaint result = null;
     Paint fillStyle = pCategory.getFillStyle(null, 0);
@@ -291,7 +287,6 @@ public class ColorMap
         else
         { 
           colpos = ((pValue - this.minValue) * this.gradientImage.getWidth() / (valuerange));
-  //       Reporter.writeInfo("computeColorForDouble: value=" + pValue + ", colpos=" + colpos); 
           if (colpos.intValue() == this.gradientImage.getWidth() ){
                   colpos = colpos-1; 
           }
@@ -302,8 +297,6 @@ public class ColorMap
     int rgb = this.gradientImage.getRGB(index,0);
     result = new Color(rgb);
     
-    Reporter.debug("computeColorForInteger returns RGB = " 
-          + result.getRed() + ", "+ result.getGreen() + ", "+ result.getBlue());    
     
     return result;
   }
@@ -316,7 +309,6 @@ public class ColorMap
   */
   private Color computeColorForDouble(Double pValue)
   { 
-    Reporter.debug("computeColorForDouble: value=" + pValue); 
     Color result = null;
 
     if(minValue != null &&
@@ -343,7 +335,6 @@ public class ColorMap
         else
         { 
           colpos = ((pValue - this.minValue) * this.gradientImage.getWidth() / (valuerange));
-  //       Reporter.writeInfo("computeColorForDouble: value=" + pValue + ", colpos=" + colpos); 
           if (colpos.intValue() == this.gradientImage.getWidth() ){
                   colpos = colpos-1; 
           }
@@ -454,8 +445,6 @@ public class ColorMap
   */
   private void computeGradientImage()
   {
-      Reporter.debug("start computeGradientImage");    
-
       Graphics2D g2;      
       
       // if only few values, map values directly to colors
@@ -554,7 +543,6 @@ public class ColorMap
       }
       
     g2.dispose();
-    Reporter.debug("end computeGradientImage");    
   }
   
   

@@ -71,10 +71,7 @@ public class Grid3 extends Grid2
 //       this.offsetY[i] = i % this.tileSizeY;
       this.offsetTime[i] = i / (this.tileSizeX * this.tileSizeY);
       
-      Reporter.debug("Grid3.setTileDefinition(): computed offsets (X, Y, Time) for sequence no. " 
-        + i + ": (" + offsetX[i] + ", " + offsetY[i] + ", " + offsetTime[i] + ")");
     }
-    Reporter.debug(this.getInfo());
   }
    
   public double getDuration()

@@ -53,7 +53,6 @@ public abstract class DisplayRaster2s extends DisplayRaster2
   protected void ScanValue(ListExpr le)
   {
     StandardFormatter f = new StandardFormatter();
-//     Reporter.debug("start ScanValue; parsing sType object from list expression: " + f.ListExprToString(le));
 
     // Check if the list expression contains anything at all,  
     // if grid and tile dimensions are defined and
@@ -63,7 +62,7 @@ public abstract class DisplayRaster2s extends DisplayRaster2
       || le.second() == null
       || le.third() == null)
     {
-      Reporter.writeError("No valid list expression for sType: " + f.ListExprToString(le));
+      Reporter.writeError("No valid list expression for sType: " );
       err = true;
       return;
     }
@@ -79,8 +78,6 @@ public abstract class DisplayRaster2s extends DisplayRaster2
     while (!leTiles.isEmpty())
     {
       ListExpr leNextTile = leTiles.first();
-      Reporter.debug("Parsing tile (partial grid) from list expression: " + f.ListExprToString(leNextTile));     
-      
       // scan single tile
       scanValueTile(leNextTile);
       leTiles = leTiles.rest();
@@ -99,7 +96,6 @@ public abstract class DisplayRaster2s extends DisplayRaster2
   */
   protected void scanValueGridDef(ListExpr leGridDef)
   {
-    Reporter.debug("start ScanValueGridDef with list expression: " + f.ListExprToString(leGridDef));
 
     // Check number and type of list elements,       
     if (leGridDef.listLength() != 3 
@@ -107,7 +103,7 @@ public abstract class DisplayRaster2s extends DisplayRaster2
         || leGridDef.second().atomType() != ListExpr.REAL_ATOM
         || leGridDef.third().atomType() != ListExpr.REAL_ATOM)
     {
-      Reporter.writeError("No correct list expression for grid: " + f.ListExprToString(leGridDef));
+      Reporter.writeError("No correct list expression for grid: " );
       err = true;
       return;
     }
@@ -124,14 +120,13 @@ public abstract class DisplayRaster2s extends DisplayRaster2
   */
   protected void scanValueTileDef(ListExpr leTileDef)
   {    
-    Reporter.debug("start ScanValueTileDef with list expression: " + f.ListExprToString(leTileDef));
 
     // Check number and type of list elements,       
     if (leTileDef.listLength() != 2
         || leTileDef.first().atomType() != ListExpr.INT_ATOM
         || leTileDef.second().atomType() != ListExpr.INT_ATOM)
     {
-      Reporter.writeError("No correct list expression for tile definition: " + f.ListExprToString(leTileDef));
+      Reporter.writeError("No correct list expression for tile definition: " );
       err = true;
       return;
     }
@@ -148,13 +143,13 @@ public abstract class DisplayRaster2s extends DisplayRaster2
   */
   protected void scanValueTile(ListExpr leTile)
   {
-      Reporter.debug("Parsing tile (partial grid) from list expression: " + f.ListExprToString(leTile));
+      Reporter.debug("Parsing tile (partial grid) from list expression: " );
       
       if (leTile.listLength() != 3
         || leTile.first().atomType() != ListExpr.INT_ATOM
         || leTile.second().atomType() != ListExpr.INT_ATOM)
       {
-        Reporter.writeError("No correct list expression for tile: " + f.ListExprToString(leTile));
+        Reporter.writeError("No correct list expression for tile: " );
         err = true;
         return;
       }
