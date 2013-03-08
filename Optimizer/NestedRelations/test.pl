@@ -19,9 +19,7 @@ testNRQuery(8, [], select * from [orte as o, plz as p] where o:ort=p:ort).
 testNRQuery(9, [],  select [ort, min(plz) as minplz, max(plz) as maxplz,  count(*) as cntplz] from plz where plz > 40000 groupby ort).
 testNRQuery(10, [], select [ort, plz] from plz orderby [ort asc, plz desc]).
 testNRQuery(11, [], select [ort, plz] from plz where ort="Berlin" orderby [ort asc, plz desc]).
-% Error reported: var1 does not fit Secondo's names conventions
-% But seems to be a problem not related to my work.
-testNRQuery(12, [expectedResult(fail)], select aggregate((distinct b:no*1), (*), 'int', [const,int,value,0] ) as fac from [ten as a, ten as b] where [a:no < b:no] groupby a:no).
+testNRQuery(12, [], select aggregate((distinct b:no*1), (*), 'int', [const,int,value,0] ) as fac from [ten as a, ten as b] where [a:no < b:no] groupby a:no).
 testNRQuery(13, [], select [ort, min(plz) as minplz, max(plz) as maxplz, count(distinct *) as cntplz] from plz where plz > 40000 groupby ort orderby cntplz desc first 2).
 testNRQuery(14, [], select [min(plz) as minplz, max(plz) as maxplz, avg(plz) as avgplz, count(distinct ort) as ortcnt] from plz groupby []).  
 testNRQuery(15, [], select sum(no) from ten).
@@ -463,9 +461,9 @@ testNRQuery(3007, [], select * from (select * from (select * from trains where i
 % and now get only the id...
 testNRQuery(3008, [], select x2:id from (select * from (select * from (select * from trains where id=531)  unnest(trip) as t2) nest([t2:id,t2:line,t2:up], trips) as x) as x2).
 % join it agin with the trains table.
-testNRQuery(3008, [], select * from [(select * from (select * from (select * from trains where id=531)  unnest(trip) as t2) nest([t2:id,t2:line,t2:up], trips) as x) as x2, trains as t4] where t4:id=x2:id).
-testNRQuery(3009, [], select count(*) from trains unnest(trip)).
-testNRQuery(3010, [], select * from (select * from trains unnest(trip) where id=531) nest([id,line,up], trips) as x).
+testNRQuery(3009, [], select * from [(select * from (select * from (select * from trains where id=531)  unnest(trip) as t2) nest([t2:id,t2:line,t2:up], trips) as x) as x2, trains as t4] where t4:id=x2:id).
+testNRQuery(3010, [], select count(*) from trains unnest(trip)).
+testNRQuery(3011, [], select * from (select * from trains unnest(trip) where id=531) nest([id,line,up], trips) as x).
 
 % some cases to test some other stuff, but for relations with moving or spatial
 % objects. It's uncertain how far everthing works.
@@ -494,7 +492,7 @@ traceNR(No) :-
 	tracegoal(testNR(No)).
 
 testNR(No) :- 
-	testNRQuery(No, _, Q), !, sql(Q).
+	testNRQuery(No, _, Q), !, write(Q), sql(Q).
 
 testNR(No, Option) :- 
 	member(Option, [trace, t]),!,
@@ -525,7 +523,7 @@ testNR :-
 	delOption(memoryAllocation), % incompatible
   setOption(nestedRelations),
 	(
-		testNRQuery(No, Properties, Query),
+		testNRQuery(No, Properties, Query), 
 		processProperties(Properties),
 		% We check whether this is provable and not if the result is correct or not.
 		% The sql predicates catches exceptions. Otherwise more must be done at
@@ -543,6 +541,44 @@ testNR :-
 	!,
 	retractall(testRunning),
 	showTestResults.
+
+
+% Test queries within a given range of query numbers. 3rd argument not needed.
+
+
+testNR(Nmin, Nmax, _) :-
+	reload, % this is to simplify my testings, but when using this, the 
+	% catalogs needs be reloaded.
+	retractall(testResult(_, _, _, _, _)),
+	retractall(testRunning),
+	asserta(testRunning),
+	delOption(memoryAllocation), % incompatible
+  setOption(nestedRelations),
+	(
+		testNRQuery(No, Properties, Query), No >= Nmin, No =< Nmax,
+		processProperties(Properties),
+		% We check whether this is provable and not if the result is correct or not.
+		% The sql predicates catches exceptions. Otherwise more must be done at
+		% this point.
+		write_list(['\n\nRun query: ', Query, '\n']),
+		(getTime(sql(Query), TimeMS) ->
+			addResult(Properties, No, TimeMS, ok)
+		;
+			addResult(Properties, No, -1, failed)
+		),
+		fail
+	).
+
+testNR(_, _, _) :- 
+	!,
+	retractall(testRunning),
+	showTestResults.
+
+
+
+
+
+
 
 processProperties(Properties) :-
 	openDatabaseP(Properties),
