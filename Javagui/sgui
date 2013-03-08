@@ -21,5 +21,18 @@ echo classpath= $CP
 LIBPATH=lib$S$JAVA3DLIB
 
 
-$JAVA  -Xmx2048M -Djava.library.path=$LIBPATH  $FEF -classpath $CP gui.MainWindow $* 
+if [ -n "$SECONDO_GUI_HEAPSPACE" ]; then
+  M=M
+  HEAP=-Xmx$SECONDO_GUI_HEAPSPACE$M 
+else 
+  HEAP=-Xmx1024M
+fi
+
+
+cmd="$JAVA  $HEAP -Djava.library.path=$LIBPATH  $FEF -classpath $CP gui.MainWindow $* "
+
+echo $cmd
+
+
+$cmd
 
