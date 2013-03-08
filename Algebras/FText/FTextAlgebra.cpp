@@ -9889,6 +9889,168 @@ Operator tmcheckOp(
     tmcheckTM 
   );
 
+/*
+4.37 Operator ~getObject~
+
+This operator provides the database object given by its name
+as a result.
+
+4.37.1 ~getObject~ TypeMapping
+
+Signature is:  {string,text} -> X where X depends on the 
+type of the object named by the argument stored in the database.
+
+*/
+
+ListExpr getObjectTM(ListExpr args){
+
+  if(!nl->HasLength(args,1)){
+     return listutils::typeError("one argument expected");
+  }
+  ListExpr first = nl->First(args);
+  if(!nl->HasLength(first,2)){
+     return listutils::typeError("invalid ListStructure for an operator"
+               "using evaluation in TypeMapping");
+  }
+  ListExpr type = nl->First(first);
+  ListExpr query = nl->Second(first);
+  string err = " string or text expected";
+
+  if( !CcString::checkType(type) &&
+      !FText::checkType(type)){
+     return listutils::typeError(err);
+  }
+
+  // try to get the string value
+  Word res; 
+  bool success = QueryProcessor::ExecuteQuery(nl->ToString(query),res);
+  if(!success){
+     return listutils::typeError("could not evaluate the value of  " +
+                                  nl->ToString(query) );
+  }
+  string objName = "";
+
+  if(FText::checkType(first)){
+     FText* resText = static_cast<FText*>(res.addr);
+     if(!resText->IsDefined()){
+         return listutils::typeError("ObjectName is undefined");
+     }   
+     objName = resText->GetValue();
+     delete resText;
+  } else { // a string
+     CcString* resText = static_cast<CcString*>(res.addr);
+     if(!resText->IsDefined()){
+         return listutils::typeError("ObjectName is undefined");
+     }   
+     objName = resText->GetValue();
+     delete resText;
+  }
+  // try to find the dataabase object
+  SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+  if(!ctlg->IsObjectName(objName)){
+     return listutils::typeError("'"+objName+"' is not a database object");
+  }
+  return ctlg->GetObjectTypeExpr(objName);
+}
+
+/*
+4.37.2 Value Mapping
+
+*/
+template<class T>
+int getObjectVM1( Word* args, Word& result, int message,
+                  Word& local, Supplier s ){
+
+   T* arg = static_cast<T*>(args[0].addr);
+   if(!arg->IsDefined()){
+      // should never happen, check in Type Mapping
+      return 0;
+   }
+   string name = arg->GetValue();
+   SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
+   if(!ctlg->IsObjectName(name)){
+      // should never happen
+      return 0;
+   }
+   Word value;
+   bool defined;
+   ctlg->GetObject(name,value,defined);
+   if(!defined){
+      return 0;
+   }
+   // remove the old stuff within the ResultStorage
+   qp->DeleteResultStorage(s);
+
+   // clone the object because now it's a result of an operator
+   // first get algId and typeId 
+   int algId = 0;
+   int typeId = 0;
+   ListExpr rtype = qp->GetType(s);
+   string basicType;
+   bool ok = ctlg->LookUpTypeExpr(rtype, basicType,algId,typeId);
+   if(!ok){
+       cerr << "Problem in LookUp TypeExpr";
+       return 0;
+   }
+
+   AlgebraManager* am = SecondoSystem::GetAlgebraManager();
+   Word valueClone =  am->CloneObj(algId,typeId)(rtype,value); 
+   am->CloseObj(algId,typeId)(rtype,value);
+   qp->ChangeResultStorage(s,valueClone);
+   result = qp->ResultStorage(s);
+   return 0;
+}
+
+/*
+4.37.3 Value Mapping Array
+
+*/
+ValueMapping getObjectVM[] = {
+  getObjectVM1<CcString>,
+  getObjectVM1<FText>
+};
+
+/*
+4.37.4 Selection function 
+
+*/
+int getObjectSelect(ListExpr args){
+
+  return CcString::checkType(nl->First(args))?0:1;
+}
+
+/*
+4.37.5 Specification
+
+*/
+OperatorSpec getObjectSpec(
+  "{string,text} -> X ",
+  "getObject(_)",
+  "retrieves an Object from the database.",
+  "query getObject('ten') feed count"
+);
+
+
+/*
+4.37.6 Operator instance
+
+*/
+Operator getObjectOP(
+  "getObject",
+  getObjectSpec.getStr(),
+  2,
+  getObjectVM,
+  getObjectSelect,
+  getObjectTM
+);
+
+
+
+
+
+
+
+
 
 
 
@@ -10005,7 +10167,8 @@ Operator tmcheckOp(
       
       AddOperator(&pointerTest);
       
-      
+      AddOperator(&getObjectOP);
+      getObjectOP.SetUsesArgsInTypeMapping();     
 
 
 #ifdef RECODE

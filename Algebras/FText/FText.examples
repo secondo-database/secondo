@@ -1115,6 +1115,12 @@ Example : query 'query ten feed filter[.No > 3] count' tmcheck["FTextAlgebra",FA
 Result   : 0
 Remark   : string is the algebra name, if empty or undefined, all algebras are checked, bool argument enables verbose mode
 
+Operator  : getObject
+Number    : 1 
+Signature : {string, text} -> X
+Example   : query getObject("ten") feed count
+Result    : 10
+
 
 
 
