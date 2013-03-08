@@ -1536,7 +1536,7 @@ plan_to_atom(value_expr(bool,X), Result) :-
   ( X = true
     -> Result = ' TRUE '
     ;  ( X = false
-         -> ' FALSE '
+         -> Result = ' FALSE '
          ;  ( X = undefined
               -> nullValue(bool,undefined,Result)
               ; (concat_atom(['Invalid bool constant: ',X],ErrMsg),
@@ -1919,6 +1919,9 @@ R = Subrel_o_p.
 
 Note that the case is only related to the last element (in the example this is subrel).
 */
+
+/*
+
 plan_to_atom(a(A:B:C, _, l), Result) :-
   optimizerOption(nestedRelations),
   attributeTermToList(A:B:C, LST),
@@ -1926,7 +1929,9 @@ plan_to_atom(a(A:B:C, _, l), Result) :-
   atomic_list_concat(RLST, '_', Result),
   !.
 
-plan_to_atom(a(A:B:C, _, u), Result) :-
+*/
+
+plan_to_atom(a(A:B:C, _, _), Result) :-
   optimizerOption(nestedRelations),
   attributeTermToList(A:B:C, LST),
   reverse(LST, [F|RList]),
@@ -1935,19 +1940,19 @@ plan_to_atom(a(A:B:C, _, u), Result) :-
   !.
 % NVK ADDED NR END
 
-plan_to_atom(a(A:B, _, l), Result) :-
-  concat_atom([B, '_', A], '', Result),
-  !.
+% plan_to_atom(a(A:B, _, l), Result) :-
+%   concat_atom([B, '_', A], '', Result),
+%   !.
 
-plan_to_atom(a(A:B, _, u), Result) :-
+plan_to_atom(a(A:B, _, _), Result) :-
   upper(B, B2),
   concat_atom([B2, '_', A], Result),
   !.
 
-plan_to_atom(a(X, _, l), X) :-
-  !.
+% plan_to_atom(a(X, _, l), X) :-
+%   !.
 
-plan_to_atom(a(X, _, u), X2) :-
+plan_to_atom(a(X, _, _), X2) :-
   upper(X, X2),
   !.
 
@@ -2377,7 +2382,7 @@ plan_to_atom(Term, Result) :-
   plan_to_atom(Arg1, Res1),
   concat_atom([Op, '(', Res1, ')'], '', Result), !,
   write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for unary',
-              'prefix operator ',Op, '/1. Please add the folling fact to file ',
+              'prefix operator ',Op, '/1. Please add the following fact to file ',
               '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', prefix, 1).\n']), !.
 
 /* 2 arguments: infix */
@@ -2390,7 +2395,7 @@ plan_to_atom(Term, Result) :-
   plan_to_atom(Arg2, Res2),
   concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result), !,
   write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for ',
-              'infix operator ', Op, '/2. Please add the folling fact to file ',
+              'infix operator ', Op, '/2. Please add the following fact to file ',
               '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', infix, 2).\n']), !.
 
 /* 3+ arguments: prefix */
@@ -2404,7 +2409,7 @@ plan_to_atom(InTerm,OutTerm) :-
   concat_atom([Op, '(', ArgsOutAtom, ')'], '', OutTerm), !,
   write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for ',
               N,'-ary prefix operator ', Op, '/',N,
-              '. Please add the folling fact to file ',
+              '. Please add the following fact to file ',
               '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', infix, ',N,').\n']), !.
 
 /* Standard translation of atomic terms */
@@ -3498,7 +3503,8 @@ join(Arg1, Arg2, pr(Pred, R1, R2)) => JoinPlan :-
   ),
   X = attr(_, _, _),
   Y = attr(_, _, _), %!, % perhaps, this cut is the reason to the ^^^problem
-                     % indeed, the cut prevented use of symmjoin. RHG
+                     % indeed, the cut prevented use of symmjoin for bbox operators. 
+                     % RHG 5.2.2013
   Arg1 => Arg1S,
   Arg2 => Arg2S,
   join00(Arg1S, Arg2S, pr(Pred, R1, R2)) => JoinPlan.
