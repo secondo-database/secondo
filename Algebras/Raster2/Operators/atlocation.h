@@ -39,7 +39,9 @@ namespace raster2
       name      = "atlocation";
       signature = "sType x " + Point::BasicType() + " -> Type";
       appendSignature("msType x " + Point::BasicType() + " -> mType");
-      syntax    = "_ atlocation _";
+      appendSignature("msType x " + Point::BasicType() + " x " +
+                      DateTime::BasicType() + " -> Type");
+      syntax    = "_ atlocation [_, _]";
       meaning   = "Returns the value at location point.";
     }
   };

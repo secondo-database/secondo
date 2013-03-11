@@ -186,27 +186,45 @@ string msstring::atlocation(double x, double y, double t) const
   return value;
 }
 
-string msstring::atlocation(double x, double y) const
+MString* msstring::atlocation(double x, double y) const
 {
-  string value = UNDEFINED_STRING;
+
+
+  MString* res = new MString(0);
   
   if(m_pmsint != 0 &&
      m_pUniqueStringArray != 0)
   {
-    /*
-      * * TODO:
-      */
-    // MInt movingInt = m_pmsint->atlocation(x, y);
-    int nLocationIndex = 0;
-
-    if(nLocationIndex >= 0)
-    {
-      bool bOK = m_pUniqueStringArray->GetUniqueString(nLocationIndex, value);
-      assert(bOK);
-    }
+     MInt* mint = m_pmsint->atlocation(x,y);
+     if(!mint->IsDefined()){
+       res->SetDefined(false);
+     } else {
+       res->SetDefined(true);
+       res->Clear();
+       int size = mint->GetNoComponents();
+       UInt unit_int;
+       for(int i=0;i<size;i++){
+          mint->Get(i,unit_int);
+          if(unit_int.constValue.IsDefined()){
+            int pos = unit_int.constValue.GetValue();
+            if(!sint::isUndefined(pos)){
+               string s;
+               if(m_pUniqueStringArray->GetUniqueString(pos,s)){
+                  if(!sstring::isUndefined(s)){
+                     CcString s2(true,s);
+                     UString unit_string(unit_int.timeInterval,s2);
+                     res->Add(unit_string); 
+                  }      
+               }
+            }
+          }
+       }
+     }
+     delete mint;
+  } else {
+     res->SetDefined(false);
   }
-  
-  return value;
+  return res;
 }
 
 Rectangle<3> msstring::bbox() const

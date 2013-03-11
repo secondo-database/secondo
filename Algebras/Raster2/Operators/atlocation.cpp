@@ -62,71 +62,51 @@ namespace raster2 {
   int atlocationMSFun(Word* args, Word& result, 
                       int message, Word& local, Supplier s)
   {
+      
       result = qp->ResultStorage(s);
-      typename T::moving_type* pResult = 
-          static_cast<typename T::moving_type*>(result.addr);
-
+      Point* pPoint = static_cast<Point*>(args[1].addr);
       typename T::this_type* praster =
           static_cast<typename T::this_type*>(args[0].addr);
 
-      Point* pPoint = static_cast<Point*>(args[1].addr);
+      if(qp->GetNoSons(s)==2){
+         typename T::moving_type* pResult = 
+             static_cast<typename T::moving_type*>(result.addr);
 
-      if(!pPoint->IsDefined() || !praster->isDefined()){
-         pResult->SetDefined(false);
-      } else {
-        typename T::moving_type* tmp = 
-             praster->atlocation(pPoint->GetX(), pPoint->GetY());
-         pResult->CopyFrom(tmp);
-         delete tmp;
-      }
-    return 0;
+         if(!pPoint->IsDefined() || !praster->isDefined()){
+            pResult->SetDefined(false);
+         } else {
+           typename T::moving_type* tmp = 
+                praster->atlocation(pPoint->GetX(), pPoint->GetY());
+            pResult->CopyFrom(tmp);
+            delete tmp;
+         }
+     } else {
+         typename T::wrapper_type* pResult = 
+             static_cast<typename T::wrapper_type*>(result.addr);
+         DateTime* instant = static_cast<DateTime*>(args[2].addr);
+         if(    !pPoint->IsDefined() || !praster->isDefined() 
+             || !instant->IsDefined()){
+            pResult->SetDefined(false);
+         } else {
+           typename T::cell_type  tmp = 
+                praster->atlocation(pPoint->GetX(), pPoint->GetY(),
+                              instant->ToDouble());
+            (*pResult) = T::wrap(tmp);
+         }
+     }
+     return 0;
   }
-
-
-    int atlocationSStringFun
-        (Word* args, Word& result, int message, Word& local, Supplier s)
-    {
-      sstring* pSString = static_cast<sstring*>(args[0].addr);
-      Point* pPoint = static_cast<Point*>(args[1].addr);
-      result = qp->ResultStorage(s);
-      CcString* pResult = static_cast<CcString*>(result.addr);
-
-      assert(pSString != 0);
-      assert(pPoint != 0);
-      assert(pResult != 0);
-
-      pResult->SetDefined(false);
-
-      if (pPoint->IsDefined()) {
-          std::string value =
-                  pSString->atlocation(pPoint->GetX(), pPoint->GetY());
-          pResult->Set(UNDEFINED_STRING != value, value);
-      }
-
-      return 0;
-    }
-
-
-    int atlocationMSStringFun
-        (Word* args, Word& result, int message, Word& local, Supplier s)
-    {
-      result = qp->ResultStorage(s);
-      MString* pResult = static_cast<MString*>(result.addr);
-      cout << "AtLOCATION not implemented for msstring" << endl;
-      pResult->SetDefined(false);
-      return 0;
-    }
 
 
     ValueMapping atlocationFuns[] = {
        atlocationSFun<sbool>,
        atlocationSFun<sint>,
        atlocationSFun<sreal>,
-       atlocationSStringFun,
+       atlocationSFun<sstring>,
        atlocationMSFun<msbool>,
        atlocationMSFun<msint>,
        atlocationMSFun<msreal>,
-       atlocationMSStringFun,
+       atlocationMSFun<msstring>,
        0
     };
 
@@ -149,8 +129,9 @@ namespace raster2 {
 
     ListExpr atlocationTypeMap(ListExpr args)
     {
-        string err = "rastertype x point expected";
-        if(!nl->HasLength(args,2)){
+        string err = "{stype, mstype} x point  "
+                     "or mstype x point x instant expected";
+        if(!nl->HasLength(args,2) && !nl->HasLength(args,3)){
            return listutils::typeError("two arguments required");
         }     
         if(!Point::checkType(nl->Second(args))){
@@ -158,10 +139,20 @@ namespace raster2 {
         }
         string raster = nl->ToString(nl->First(args));
         if(util::isSType(raster)){
+          if(!nl->HasLength(args,2)){
+            return listutils::typeError(err);
+          }
           return nl->SymbolAtom(util::getValueBasicType(raster));
         }
         if(util::isMSType(raster)){
-          return nl->SymbolAtom(util::getMovingBasicType(raster));
+          if(nl->HasLength(args,2)){
+             return nl->SymbolAtom(util::getMovingBasicType(raster));
+          } else { // three arguments
+             if(!DateTime::checkType(nl->Third(args))){
+                return listutils::typeError(err);
+             }
+             return nl->SymbolAtom(util::getValueBasicType(raster));
+          }
         }
         return listutils::typeError(err);
 

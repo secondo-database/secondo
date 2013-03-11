@@ -4,7 +4,7 @@ Restore  : NO
 Operator : atlocation
 Number   : 1
 Signature: xT x point -> T
-Example  : query [const sint value ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))] atlocation [const point value (1.5 1.5)]
+Example  : query [const sint value ((0.0 0.0 1.0) (2 2) (-5 -5 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))] atlocation [ [const point value (1.5 1.5)] ]
 Result   : -3
 
 Operator : atinstant

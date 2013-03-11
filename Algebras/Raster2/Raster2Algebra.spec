@@ -17,7 +17,7 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator atlocation alias ATLOCATION pattern _ infixop _
+operator atlocation alias ATLOCATION pattern _ op [_,_]
 operator atinstant alias ATINSTANT pattern _ infixop _
 operator inst alias INST pattern op(_)
 operator val alias VAL pattern op(_)

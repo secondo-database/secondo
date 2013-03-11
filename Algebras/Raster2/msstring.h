@@ -81,7 +81,7 @@ namespace raster2
     */
     void destroy();
     string atlocation(double x, double y, double t) const;
-    string atlocation(double x, double y) const;
+    MString*  atlocation(double x, double y) const;
     // isstring atinstant(Instant instant) const;
     // msstring atperiods(Periods periods) const;
     msstring* atperiods(const Periods& periods);
