@@ -40,6 +40,7 @@ namespace raster2
       typedef CcString wrapper_type;
       typedef std::string cell_type;
       typedef MString moving_type;
+      typedef UString unit_type;
       typedef msstring this_type;
       typedef sstring spatial_type;
       typedef grid3 grid_type;

@@ -22,6 +22,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "compose.h"
 #include "../util/types.h"
+#include "../msint.h"
+#include "../msbool.h"
+#include "../msreal.h"
+#include "../msstring.h"
 
 namespace raster2 {
 
@@ -117,12 +121,110 @@ namespace raster2 {
   }
 
 
+  template <typename T>
+  int composeFunMS
+      (Word* args, Word& result, int message, Word& local, Supplier s)
+  {
+
+      // storage for the result
+      result = qp->ResultStorage(s);
+      
+      // the moving point
+      MPoint* movingPoint = static_cast<MPoint*>(args[0].addr);
+      
+      // the msT object
+      typename T::this_type* raster =
+          static_cast<typename T::this_type*>(args[1].addr);
+
+      // The result of the compose
+      typename T::moving_type* pResult =
+            static_cast<typename T::moving_type*>(result.addr);
+
+
+      if (!movingPoint->IsDefined() || !raster->isDefined()) {
+        pResult->SetDefined(false);
+        return 0;
+      }
+
+      pResult->Clear();
+      pResult->StartBulkLoad();
+
+      // get the number of components
+      int num = movingPoint->GetNoComponents();
+
+      UPoint unit(0);
+      grid3 grid = raster->getGrid();
+      grid3::index_type cell1;
+      grid3::index_type cell2;
+
+      for (int i = 0; i < num; i++)
+      {
+          movingPoint->Get(i, unit);
+          
+          // get the coordinates
+          double xStart = unit.p0.GetX();
+          double yStart = unit.p0.GetY();
+          double xEnd = unit.p1.GetX();
+          double yEnd = unit.p1.GetY();
+          double tStart = unit.timeInterval.start.ToDouble();
+          double tEnd = unit.timeInterval.end.ToDouble();
+
+          cell1 = grid.getIndex(xStart,yStart,tStart);
+          cell2 = grid.getIndex(xEnd, yEnd, tEnd);
+
+          if(cell1==cell2){ // only a constant unit in result
+            typename T::cell_type v = raster->atlocation(xStart,yStart,tStart);
+            if(!raster->isUndefined(v)){  
+                typename T::wrapper_type v1(true,v);
+                pResult->MergeAdd(typename T::unit_type(
+                                   unit.timeInterval,v1,v1));
+            }
+          } else {
+            DateTime t1 = unit.timeInterval.start;
+            DateTime t2 = unit.timeInterval.end;
+            DateTime dur = t2 - t1;
+            CellIterator3 it(grid,xStart,yStart,xEnd,yEnd, 
+                                  t1.ToDouble(), t2.ToDouble());
+            double dx = xEnd - xStart;
+            double dy = yEnd - yStart;
+            while(it.hasNext()){
+               pair<double,double> p = it.next();
+               DateTime s = t1 + (dur*p.first);
+               DateTime e = t1 + (dur*p.second);
+               if(e>s){
+                  Interval<Instant> iv(s,e,true,false);
+                  double delta  =(p.first + p.second) / 2.0;
+                  double x = xStart + delta*dx;
+                  double y = yStart + delta*dy;
+                  double t = tStart + delta * dur.ToDouble();
+                  typename T::cell_type v = raster->atlocation(x,y,t);  
+                  if(!raster->isUndefined(v)){  
+                     typename T::wrapper_type v1(true,v);
+                     pResult->MergeAdd(typename T::unit_type(iv,v1,v1));
+                  }
+               } else {
+                  assert(e==s);
+               } 
+            }  
+          }
+      }
+       
+      pResult->EndBulkLoad();
+
+    return 0;
+  }
+
+
   ValueMapping composeFuns[] =
   {
     composeFun<sint>,
     composeFun<sreal>,
     composeFun<sbool>,
     composeFun<sstring>,
+    composeFunMS<msint>,
+    composeFunMS<msreal>,
+    composeFunMS<msbool>,
+    composeFunMS<msstring>,
     0
   };
 
@@ -134,13 +236,13 @@ namespace raster2 {
      ListExpr arg1 = nl->First(args);
      ListExpr arg2 = nl->Second(args);
  
-     string err = "mpoint x stype expected";
+    string err = "mpoint x stype expected";
     if(!MPoint::checkType(arg1)){
         return listutils::typeError(err + " (first arg is not an mpoint)");
     }
-     if(!util::isSType(arg2)){
+    if(!util::isSType(arg2) && !util::isMSType(arg2)){
         return listutils::typeError(err + " (second arg is not an stype)");
-     }
+    }
 
     std::string vname = nl->SymbolValue(arg2);
     std::string mname = util::getMovingBasicType(vname);
@@ -167,7 +269,21 @@ namespace raster2 {
         if(type.second().isSymbol(sstring::BasicType())) {
             return 3;
         }
+        if (type.second().isSymbol(msint::BasicType())) {
+            return 4;
+        }
         
+        if (type.second().isSymbol(msreal::BasicType())) {
+            return 5;
+        }
+        
+        if (type.second().isSymbol(msbool::BasicType())) {
+            return 6;
+        }
+        
+        if(type.second().isSymbol(msstring::BasicType())) {
+            return 7;
+        }
         return -1;
     }
 

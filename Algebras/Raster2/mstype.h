@@ -135,6 +135,7 @@ names.
         typedef typename Helper::wrapper_type wrapper_type;
         typedef typename Helper::moving_type moving_type;
         typedef typename Helper::spatial_type spatial_type;
+        typedef typename Helper::unit_type unit_type;
         typedef RasterStorage<T, 3, Helper::isUndefined> storage_type;
         typedef RasterIndex<3> index_type;
         typedef RasterStorageIterator<T, 3, Helper::isUndefined> iter_type;
