@@ -7,7 +7,7 @@
 
 # After that unpack the data into a directory of your choice.
 
-# Change this script accorsing to your data
+# Change this script according to your data
 
 # This affects three lines of this script
 
@@ -28,15 +28,15 @@
 # Set this value according to the data you want to import
 # e.g. tmean, tmin, tmax 
 
-# the third line change the name of the created object
-# this is useful if more than one moving rasters 
-# should be create within the same database
+# in the third line change the name of the created object
+# this is useful if more than one moving raster 
+# should be created within the same database
 #
 
 
 
 
-# Note: The time information in this script are for
+# Note: The time informations in this script are for
 # the tmean dataset
 
 
@@ -45,15 +45,15 @@
 
 # set directory of the data
 
-let basedir =  'tmean_10arc'
+let basedir =  'prec'
 
 # set kind of data
 
-let datakind = 'tmean'
+let datakind = 'prec'
 
 # set the name of the msint
 
-let msintname = "mtmean10a"
+let msintname = "precipitation"
 
 
 # after that, no changes are required
