@@ -57,7 +57,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
 :- op(800, xf , ++).
-:- op(200, xfx, :).
+%:- op(200, xfx, :).
+% NVK MODIFIED for nested relations support
+% With xfy tests for nested relations like A:_ and X:Y:_ are supported.
+% But note: (a:b):c is not valid. The ~:~ is used like a list, hence a
+% predicate like the ~append/3~ for lists is needed to add an attribute to a
+% existing x:y term.
+:- op(200, xfy, :).
+% NVK MODIFIED END
 :- op(800, xfx, =>).
 :- op(800, xfx, ==).
 :- op(800, xfx, <=).
@@ -90,6 +97,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, intersects_new).
 :- op(800, xf , isgrayscale).
 :- op(800, xf , isportrait).
+:- op(800, xfx, matches).
 :- op(800, xf , getHeight).
 :- op(800, xf , leapyear).
 :- op(800, xf , line2region).
@@ -112,6 +120,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, touchpoints).
 :- op(800, xfx, union).
 :- op(800, xfx, when).
+ 
+% NVK ADDED NR 
+:- op(799, yfx, unnest),
+   op(799, yfx, nest).
+% NVK ADDED NR END
+
 
 % Section:Start:opSyntaxPreference_3_e
 % Section:End:opSyntaxPreference_3_e
@@ -305,11 +319,25 @@ secondoOp( exactmatchS,       postfixbrackets, 1).
 secondoOp( export,            postfix, 1).
 secondoOp( extattrsize,       postfixbrackets, 1).
 secondoOp( extend,            postfixbrackets, 1).
-secondoOp( extendstream,      special, 1).
+%secondoOp( extendstream,      special, 1). NVK REMOVED because there is no such rule?!?. Added below with the type postfixbrackets.
 secondoOp( extenddeftime,     prefix, 2).
 secondoOp( extract,           postfixbrackets, 1).
 secondoOp( exttuplesize,      postfix, 1).
 secondoOp( feed,              postfix, 1).
+secondoOp( units, 						prefix, 1).
+% NVK ADDED NR
+secondoOp( afeed,             postfix, 1).
+secondoOp( aconsume,          postfix, 1).
+secondoOp( nest,              special, 2).
+secondoOp( unnest,            special, 1). % currently like postfixbrackets
+secondoOp( renameattr,        postfixbrackets, 1). % missing
+secondoOp( extendstream,      postfixbrackets, 1). % missing
+% NVK ADDED NR END
+% NVK ADDED MA
+secondoOp( gracehashjoin,     postfixbrackets, 2).
+secondoOp( hybridhashjoin,    postfixbrackets, 2).
+secondoOp( itHashJoin,        postfixbrackets, 2).
+% NVK ADDED MA END
 secondoOp( fileSize,          prefix,  1).
 secondoOp( filter,            postfixbrackets, 1).
 secondoOp( find,              prefix, 2).
@@ -378,12 +406,12 @@ secondoOp( makeline,          prefix, 2).
 secondoOp( makesline,         prefix, 2).
 secondoOp( makearray,         prefix, 1).
 secondoOp( makemvalue,        postfixbrackets, 1).
-secondoOp( matches,           infix, 2).
 secondoOp( max,               postfixbrackets, 1).
 secondoOp( maxD,              prefix, 2).
 secondoOp( maxdegree,         prefix, 2).
 secondoOp( maxDuration,       prefix , 0).
 secondoOp( maxInstant,        prefix , 0).
+secondoOp( matches,           infix , 2).
 secondoOp( memshuffle,        postfix, 1).
 secondoOp( merge,             prefix, 2).
 secondoOp( mergediff,         postfix, 2).
@@ -400,7 +428,9 @@ secondoOp( mirror,            postfixbrackets, 1).
 secondoOp((mod),              infix, 2).
 secondoOp( move,              prefix, 2).
 secondoOp( multiintersection, prefix, 2).
-secondoOp( nanmedtransformstream,postfixbrackets, 1).
+%secondoOp( nanmedtransformstream,postfixbrackets, 1).
+% NVK MODIFID: spelling corrected:
+secondoOp( namedtransformstream,postfixbrackets, 1).
 secondoOp((never),            infix, 2).
 secondoOp( not,               prefix, 1).
 secondoOp( now,               prefix, 0).

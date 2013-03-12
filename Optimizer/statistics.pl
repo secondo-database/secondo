@@ -108,6 +108,37 @@ is transformed into
 
 */
 
+% NVK ADDED NR
+% Reflect the nested relations
+simple(attr(Attr, Index, _), RelList, rel(RelT, Var):Attr2) :-
+  optimizerOption(nestedRelations),
+  (Index=0 -> I2=1 ; I2 is Index),
+  memberchk((I2,rel(RelT, Var)),RelList),
+  RelT=..[irrel|_],
+  downcaseAttributeList(Attr, Attr2), !.
+
+simple(rel(RelT, Var), _, rel(RelT, Var)) :-
+  RelT=..[irrel|_].
+simple(attr(Var:Attr, 0, _), RelList, Rel2:Attr2) :-
+  optimizerOption(nestedRelations),
+  memberchk((1,rel(Rel, Var)),RelList),
+  downcaseAttributeList(Rel,Rel2), downcaseAttributeList(Attr,Attr2), !.
+simple(attr(Attr, 0, _), RelList, Rel2:Attr2) :-
+  optimizerOption(nestedRelations),
+  memberchk((1,rel(Rel, *)),RelList),
+  downcaseAttributeList(Rel,Rel2), downcaseAttributeList(Attr,Attr2), !.
+
+simple(attr(Var:Attr, ArgNo, _), RelList, Rel2:Attr2) :-
+  optimizerOption(nestedRelations),
+  memberchk((ArgNo,rel(Rel, Var)),RelList),
+  downcaseAttributeList(Rel,Rel2), downcaseAttributeList(Attr,Attr2), !.
+simple(attr(Attr, ArgNo, _), RelList, Rel2:Attr2) :-
+  optimizerOption(nestedRelations),
+  memberchk((ArgNo,rel(Rel, *)),RelList),
+  downcaseAttributeList(Rel,Rel2), downcaseAttributeList(Attr,Attr2), !.
+% NVK ADDED NR END
+
+
 simple(attr(Var:Attr, 0, _), RelList, Rel2:Attr2) :-
   memberchk((1,rel(Rel, Var)),RelList),
   downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
@@ -255,12 +286,48 @@ sampleNameSmall(lc(Name), lc(Small)) :-
 sampleNameSmall(Name, Small) :-
   atom_concat(Name, '_small', Small), !.
 
+% NVK ADDED
+feedOp(RelT, afeed) :-
+  RelT = rel(Term, _),
+	compound(Term),
+  Term =.. [irrel,arel|_], 
+	!.
+
+feedOp(_RelT, feed) :-
+	!.
+/*
+feedOp(RelT, afeed) :-
+  RelT = rel(Term, _),
+  Term =.. [irrel,arel|_], !.
+
+feedOp(RelT, feed) :-
+  RelT = rel(Term, _),
+  \+ Term =.. [irrel,arel|_], !.
+*/
 possiblyRename(Rel, Renamed) :-
+  optimizerOption(nestedRelations),
+  Rel = rel(_, *),
+  !,
+  feedOp(Rel, Op),
+  Renamed =.. [Op, Rel].
+
+possiblyRename(Rel, Renamed) :-
+  optimizerOption(nestedRelations),
+  Rel = rel(_, Name),
+  feedOp(Rel, Op),
+  Renamed1 =.. [Op, Rel],
+  Renamed = rename(Renamed1, Name).
+
+% NVK ADDED END
+
+possiblyRename(Rel, Renamed) :-
+  \+ optimizerOption(nestedRelations), % NVK ADDED
   Rel = rel(_, *),
   !,
   Renamed = feed(Rel).
 
 possiblyRename(Rel, Renamed) :-
+  \+ optimizerOption(nestedRelations), % NVK ADDED
   Rel = rel(_, Name),
   Renamed = rename(feed(Rel), Name).
 
@@ -1087,6 +1154,20 @@ selectivity(pr(Pred, Rel, Rel), Sel, CalcPET, ExpPET) :-
 selectivity(P, Sel, CalcPET, ExpPET) :-
   simplePred(P, PSimple),
   sels(PSimple, Sel, CalcPET, ExpPET), !.
+
+/*
+NVK ADDED NR
+*/
+selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
+  optimizerOption(nestedRelations),
+	nrSelectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET),
+	!.
+
+selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
+  optimizerOption(nestedRelations),
+	nrSelectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET),	
+	!.
+% NVK ADDED NR END
 
 % query for join-selectivity (static samples case)
 selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
