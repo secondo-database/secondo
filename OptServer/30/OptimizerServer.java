@@ -258,16 +258,45 @@ static {
           while(lb_query.hasMoreSolutions()){
              lb_query.nextSolution();  
           } 
-
-
+          if(trace){
+             cout.println("style check switched off successfully");
+          }
+           
           String query2 = encode(query);
-          Query pl_query = new Query("sqlToPlan('"+query2+"', X )");
 
-          String ret ="";
+          if(trace) {
+             System.out.println("encoded Query: " + query2);
+             if(query.equals(query2)){
+                cout.println("original query and encoded query are equal");
+             } else {
+                cout.println("encoded query and original one differ");
+             }
+          }
+          Query pl_query=null;
+          try{
+             query2 = query2.replaceAll("'","\\\\'");
+             pl_query = new Query("sqlToPlan('"+query2+"', X )");
+          } catch(Exception e){
+              if(trace){
+                 cout.println("Could not translate query");
+                 cout.println(e);
+              }
+              return "";
+          }
+
+          if(trace){
+              System.out.println("text could be translated into a query"); 
+          }
+
+          String ret1 = "";
+          String allret  = "";
           int number =0;
 
           while(pl_query.hasMoreSolutions()){
                 number++;
+                if(number > 1){
+                   allret += "\n";
+                }
                 Hashtable solution = pl_query.nextSolution();
                 if(solution.size()!=1){
                    if(trace){
@@ -277,14 +306,27 @@ static {
                 }
                 Enumeration e = solution.keys();
                 while(e.hasMoreElements()){
-                  ret = "" + solution.get(e.nextElement());
+                  allret += "" + solution.get(e.nextElement());
                 }
+                if(number==1){
+                   ret1 = allret;
+                } 
           }
           if(number>1){
              if(trace){
                 cout.println("Error: optimization returns more than one solution");
+                cout.println("Solutions are \n" + allret);
              }
-             return query;
+             ret1 = ret1.trim();
+             if(ret1.startsWith("'")  && ret1.endsWith("'")){
+                 if(ret1.length()==2){
+                   ret1 = "";
+                 } else{
+                    ret1 = ret1.substring(1,ret1.length()-1);
+                 }
+             }
+
+             return decode(ret1);
           }
 
           if(number==0){
@@ -294,19 +336,19 @@ static {
           }
           else{ 
              if(trace)
-                 cout.println("\n optimization-result : "+ret+"\n");
+                 cout.println("\n optimization-result : "+allret+"\n");
              
              // free ret from enclosing ''
-             ret = ret.trim();
-             if(ret.startsWith("'")  && ret.endsWith("'")){
-                 if(ret.length()==2){
-                   ret = "";
+             allret = allret.trim();
+             if(allret.startsWith("'")  && allret.endsWith("'")){
+                 if(allret.length()==2){
+                   allret = "";
                  } else{
-                    ret = ret.substring(1,ret.length()-1);
+                    allret = allret.substring(1,allret.length()-1);
                  }
              }
 
-             return decode(ret);
+             return decode(allret);
           }
          } catch(Exception e){
              if(trace) {
