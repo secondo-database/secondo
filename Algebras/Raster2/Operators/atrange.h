@@ -79,50 +79,52 @@ namespace raster2
     return 0;
   }
 
-  template <typename MSType, typename T>
+  template <typename MSType>
   int atrangeMFun
       (Word* args, Word& result, int message, Word& local, Supplier s)
   {
       result = qp->ResultStorage(s);
       MSType& msin = *static_cast<MSType*>(args[0].addr);
       Rect* pRect = static_cast<Rect*>(args[1].addr);
-      Instant* start = static_cast<Instant*>(args[2].addr);
-      Instant* end = static_cast<Instant*>(args[3].addr);
-
       MSType* res = static_cast<MSType*>(result.addr);
 
       if(   !msin.isDefined()
-         || !pRect->IsDefined()
-         || !start->IsDefined()
-         || !end->IsDefined()){
+         || !pRect->IsDefined() ){
         res->setDefined(false);
         return 0;
       }
 
 
-      Interval<DateTime> lookupinterval(*start, *end, true, false);
+      MSType* msout =0;
+      if(qp->GetNoSons(s) == 4){
+         Instant* start = static_cast<Instant*>(args[2].addr);
+         Instant* end = static_cast<Instant*>(args[3].addr);
+         if( !start->IsDefined() || !end->IsDefined()){
+            res->setDefined(false);
+            return 0;
+         }
+         Interval<DateTime> lookupinterval(*start, *end, true, false);
 
-      if(!lookupinterval.IsValid()) {
-       if(end->CompareTo(start) < 0) {
-        res->setDefined(false);
-        return 0;
-       }
+         if(!lookupinterval.IsValid()) {
+            res->setDefined(false);
+            return 0;
+         }
+         //Correct time offset when using negative instant values
+         const DateTime* mSec = new DateTime(0.00000001);
+
+         if(start->LessThanZero())
+           start->Minus(mSec);
+
+         if(end->LessThanZero())
+           end->Minus(mSec);
+
+         delete mSec;
+         mSec = 0;
+         res->clear();
+         msout = msin.atrange(*pRect, *start, *end);
+      } else {
+         msout = msin.atrange(*pRect);
       }
-      res->clear();
-
-      //Correct time offset when using negative instant values
-      const DateTime* mSec = new DateTime(0.00000001);
-
-      if(start->LessThanZero())
-       start->Minus(mSec);
-
-      if(end->LessThanZero())
-       end->Minus(mSec);
-
-      delete mSec;
-      mSec = 0;
-
-      MSType* msout = msin.atrange(*pRect, *start, *end);
 
       if(msout != 0)
       {

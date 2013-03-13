@@ -176,6 +176,9 @@ Secondo operators.
         storage_type& getStorage();
         void getDefinedPeriods(Periods& result) const;
         this_type* atperiods(const Periods& periods);
+        this_type* atrange(const Rect& pRect);
+        this_type* atrange(const Rect& pRect, const double& instFrom,
+                           const double& instTo);
         this_type* atrange(const Rect& pRect, const Instant& start,
                            const Instant& end);
         T atlocation(double x, double y, double t) const;
@@ -473,17 +476,33 @@ member variables are provided for convenience.
 
         return result;
     }
-    
+
+
+   
+
+    template <typename T, typename Helper>
+    inline mstype<T, Helper>* mstype<T, Helper>::atrange(
+            const Rect& pRect) {
+        Rectangle<3> box = this->bbox();
+        return atrange(pRect, box.MinD(2)-1.0, box.MaxD(2) + 1.0);
+    }
+
+
     template <typename T, typename Helper>
     inline mstype<T, Helper>* mstype<T, Helper>::atrange(
             const Rect& pRect, const Instant& start,
             const Instant& end)
     {
+       return atrange(pRect, start.ToDouble(), end.ToDouble());
+    }
+
+    
+    template <typename T, typename Helper>
+    inline mstype<T, Helper>* mstype<T, Helper>::atrange(
+            const Rect& pRect, const double& instFrom,
+            const double& instTo)
+    {
         this_type* result = new this_type();
-
-        double instFrom = start.ToDouble();
-        double instTo = end.ToDouble();
-
         grid3 copy(grid.getOriginX(),
                    grid.getOriginY(),
                    grid.getLength(),

@@ -114,6 +114,25 @@ msstring* msstring::atperiods(const Periods& periods)
     return result;
 }
 
+
+msstring* msstring::atrange(const Rect& pRect, const double& instFrom,
+                            const double& instTo)
+{
+   datetime::DateTime start(datetime::instanttype);
+   datetime::DateTime end(datetime::instanttype);
+   start.ReadFrom(instFrom);
+   end.ReadFrom(instTo);
+   return atrange(pRect,start,end);
+}
+
+
+msstring* msstring::atrange(const Rect& pRect)
+{
+   Rectangle<3> box = bbox();
+   return atrange(pRect, box.MinD(2)-1.0, box.MaxD(2)+1.0);
+}
+
+
 msstring* msstring::atrange(const Rect& pRect, const Instant& start,
                             const Instant& end)
 {

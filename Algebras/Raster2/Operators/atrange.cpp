@@ -41,10 +41,10 @@ namespace raster2
     atrangeFun<double, stype_helper<double> >,
     atrangeFun<char, sbool_helper>,
     atrangeFun<string, stype_helper<string> >,
-    atrangeMFun<msint, int>,
-    atrangeMFun<msreal, double>,
-    atrangeMFun<msbool, bool>,
-    atrangeMFun<msstring, string>,
+    atrangeMFun<msint>,
+    atrangeMFun<msreal>,
+    atrangeMFun<msbool>,
+    atrangeMFun<msstring>,
     0
   };
 

@@ -86,6 +86,9 @@ namespace raster2
     // isstring atinstant(Instant instant) const;
     // msstring atperiods(Periods periods) const;
     msstring* atperiods(const Periods& periods);
+    msstring* atrange(const Rect& rRect);
+    msstring* atrange(const Rect& rRect, const double& instFrom,
+                      const double& instTo);
     msstring* atrange(const Rect& rRect, const Instant& start,
                       const Instant& end);
     void getDefinedPeriods(Periods& result) const;
