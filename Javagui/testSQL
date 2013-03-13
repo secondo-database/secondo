@@ -1,0 +1,1723 @@
+# Optimizer test for Javagui, derived from testNR in secondo/Optimizer/NestedRelations.
+# You can create this file by writing 
+#
+#  writeTestNR.
+# 
+# in SecondoPL. Databases opt, optext, and berlintest must be available. Databases can be created by 
+# calling secondo/Optimizer/NestedRelations/testdbs/recreate.sh
+#
+# In the optimizer, the option NestedRelations must be activated.
+
+# Query No 1:
+
+{close database | open database opt}
+
+query 1
+
+select*from orte
+
+# Query No 2:
+
+query 2
+
+select bevt from orte
+
+# Query No 3:
+
+query 3
+
+select[bevt, kennzeichen]from orte
+
+# Query No 4:
+
+query 4
+
+select*from orte as oXy
+
+# Query No 5:
+
+query 5
+
+select oXy:bevt from orte as oXy
+
+# Query No 6:
+
+query 6
+
+select[oXy:bevt, oXy:kennzeichen]from orte as oXy
+
+# Query No 7:
+
+query 7
+
+select[oXy:bevt, oXy:kennzeichen]from orte as oXy where [oXy:bevt>10, oXy:bevt<1000]
+
+# Query No 8:
+
+query 8
+
+select*from[orte as o, plz as p]where o:ort=p:ort
+
+# Query No 9:
+
+query 9
+
+select[ort, min(plz)as minplz, max(plz)as maxplz, count(*)as cntplz]from plz where plz>40000 groupby ort
+
+# Query No 10:
+
+query 10
+
+select[ort, plz]from plz orderby [ort asc, plz desc]
+
+# Query No 11:
+
+query 11
+
+select[ort, plz]from plz where ort=[66, 101, 114, 108, 105, 110]orderby[ort asc, plz desc]
+
+# Query No 12:
+
+query 12
+
+select aggregate(distinct b:no*1, *, int, [const, int, value, 0])as fac from [ten as a, ten as b]where[a:no<b:no]groupby a:no
+
+# Query No 13:
+
+query 13
+
+select[ort, min(plz)as minplz, max(plz)as maxplz, count(distinct*)as cntplz]from plz where plz>40000 groupby ort orderby cntplz desc first 2
+
+# Query No 14:
+
+query 14
+
+select[min(plz)as minplz, max(plz)as maxplz, avg(plz)as avgplz, count(distinct ort)as ortcnt]from plz groupby []
+
+# Query No 15:
+
+query 15
+
+select sum(no)from ten
+
+# Query No 16:
+
+query 16
+
+select avg(distinct no)from ten where no>5
+
+# Query No 17:
+
+query 17
+
+# union[select*from orte, select*from orte]
+
+# Query No 30:
+
+# known to fail
+
+# Query No 31:
+
+query 31
+
+select (select count(*)from orte)as label from orte first 1
+
+# Query No 100:
+
+{close database | open database optext}
+
+query 100
+
+select*from orteh
+
+# Query No 101:
+
+query 101
+
+select*from orteh as o
+
+# Query No 102:
+
+query 102
+
+select*from orteh as oXXXXX
+
+# Query No 103:
+
+query 103
+
+select*from orteh as oXyZ
+
+# Query No 104:
+
+query 104
+
+select bevth from orteh
+
+# Query No 105:
+
+query 105
+
+select o:bevth from orteh as o
+
+# Query No 106:
+
+query 106
+
+select oXXXXX:bevth from orteh as oXXXXX
+
+# Query No 107:
+
+query 107
+
+select oXyZ:bevth from orteh as oXyZ
+
+# Query No 108:
+
+query 108
+
+select subrel from orteh where bevth=34
+
+# Query No 109:
+
+query 109
+
+select o:subrel from orteh as o where o:bevth=34
+
+# Query No 110:
+
+query 110
+
+select*from orteh as o where [exists(select*from o:subrel as p)]
+
+# Query No 111:
+
+query 111
+
+select*from orteh as o where [exists(select*from o:subrel as p where p:bevt>o:bevth)]
+
+# Query No 112:
+
+query 112
+
+select*from orteh as o where [o:bevth>10, exists(select*from o:subrel as p where p:bevt>o:bevth)]
+
+# Query No 113:
+
+query 113
+
+select*from orteh as oAB where [oAB:bevth>10, exists(select*from oAB:subrel as pZxY where pZxY:bevt>oAB:bevth)]
+
+# Query No 114:
+
+query 114
+
+select*from orteh as o where [exists(select*from o:subrel where bevt>o:bevth)]
+
+# Query No 115:
+
+query 115
+
+select*from orteh as o where [o:bevth>10, exists(select*from o:subrel where bevt>o:bevth)]
+
+# Query No 116:
+
+query 116
+
+select*from orteh as o where [o:bevth>10, exists(select bevt from o:subrel where bevt>o:bevth)]
+
+# Query No 117:
+
+query 117
+
+select o:bevth from orteh as o where [o:bevth>10, exists(select bevt from o:subrel where bevt>o:bevth)]
+
+# Query No 118:
+
+query 118
+
+select[o:bevth, o:subrel]from orteh as o where [o:bevth>10, exists(select bevt from o:subrel where bevt>o:bevth)]
+
+# Query No 119:
+
+query 119
+
+select*from orteh as o where [o:bevth>10, exists(select p:bevt from o:subrel as p where p:bevt>o:bevth)]
+
+# Query No 120:
+
+query 120
+
+select*from orteh as o where [o:bevth>10, exists(select[p:bevt, p:kennzeichen]from o:subrel as p where p:bevt>o:bevth)]
+
+# Query No 121:
+
+query 121
+
+select*from orteh as o where [o:bevth>10, not exists(select[p:bevt, p:kennzeichen]from o:subrel as p where p:bevt>o:bevth)]
+
+# Query No 122:
+
+query 122
+
+select*from orteh as o where [o:bevth in (select p:bevt from o:subrel as p where p:bevt>o:bevth)]
+
+# Query No 123:
+
+query 123
+
+select*from orteh as o where [o:bevth not in(select p:bevt from o:subrel as p where p:bevt>o:bevth)]
+
+# Query No 140:
+
+query 140
+
+select*from orteh as o where [exists(select*from o:subrel as p where [p:bevt>o:bevth, p:bevt>100000])]
+
+# Query No 141:
+
+query 141
+
+select*from orteh as o where [o:bevth<99, exists(select*from o:subrel as p where [p:bevt>o:bevth, p:bevt<1000000])]
+
+# Query No 141:
+
+query 141
+
+select*from orteh as o where [exists(select*from o:subrel as p where [p:bevt>1000])]
+
+# Query No 142:
+
+query 142
+
+select*from orteh as o where [o:bevth<99, exists(select*from o:subrel as p where [p:bevt>o:bevth, p:bevt<1000000])]
+
+# Query No 143:
+
+query 143
+
+select*from orteh as o where [o:bevth<99, exists(select*from o:subrel as p where [p:bevt>o:bevth, p:kennzeichen=[72], p:bevt<1000000])]
+
+# Query No 144:
+
+query 144
+
+select*from orteh as o where [o:bevth<99, not exists(select*from o:subrel as p where [p:bevt>o:bevth, p:kennzeichen=[72], p:bevt<1000000])]
+
+# Query No 145:
+
+query 145
+
+select[o:bevth, o:subrel]from orteh as o where [o:bevth<99, exists(select*from o:subrel as p where [p:bevt>o:bevth, p:kennzeichen=[72], p:bevt<1000000])]
+
+# Query No 146:
+
+query 146
+
+select*from orteh as o where [o:bevth<199, o:bevth in (select p:bevt from o:subrel as p where p:bevt>o:bevth)]
+
+# Query No 147:
+
+query 147
+
+select*from orteh as o where [o:bevth<199, o:bevth in (select p:bevt from o:subrel as p where [p:bevt>o:bevth, p:bevt>1])]
+
+# Query No 148:
+
+query 148
+
+select*from orteh as o where [o:bevth<199, o:bevth> (all (select p:bevt from o:subrel as p where [p:bevt>o:bevth, p:bevt>1]))]
+
+# Query No 149:
+
+query 149
+
+select*from orteh as o where [o:bevth<199, o:bevth=any(select p:bevt from o:subrel as p where [p:bevt>o:bevth, p:bevt>1])]
+
+# Query No 150:
+
+query 150
+
+select*from orteh as o where [o:bevth<199, 10> (all (select p:bevt from o:subrel as p where [p:bevt>o:bevth, p:bevt>1]))]
+
+# Query No 151:
+
+query 151
+
+select*from orteh as o where [o:bevth<199, 10<= (all (select p:bevt from o:subrel as p where [p:bevt>o:bevth, p:bevt>1]))]
+
+# Query No 152:
+
+# known to fail
+
+# Query No 153:
+
+# known to fail
+
+# Query No 154:
+
+query 154
+
+select*from orteh as o where [o:bevth<199, o:bevth>any(select p:bevt from o:subrel as p where [p:bevt>o:bevth, p:bevt>1])]
+
+# Query No 200:
+
+query 200
+
+select*from orteh as o where [o:bevth>10, exists(select p:bevt from o:subrel as p where p:bevt>o:bevth), exists(select p2:kennzeichen from o:subrel as p2 where [p2:bevt>o:bevth]), exists(select pABC3:vorwahl from o:subrel as pABC3 where pABC3:bevt>o:bevth)]
+
+# Query No 201:
+
+query 201
+
+select*from orteh as o where [o:bevth>10, exists(select bevt from o:subrel where bevt>o:bevth), exists(select kennzeichen from o:subrel where [bevt>o:bevth, bevt=3410]), exists(select vorwahl from o:subrel where bevt>o:bevth)]
+
+# Query No 202:
+
+query 202
+
+select*from orte as o where [exists(select*from ten as t where [t:no<5, t:no=o:bevt, exists(select*from thousand as t2 where t2:no=t:no)])]
+
+# Query No 203:
+
+query 203
+
+select*from orte as o where [exists(select*from ten as t where [t:no<5, t:no=o:bevt, exists(select*from thousand as t2 where t2:no=t:no)]), exists(select*from ten as t1 where [t1:no<5, t1:no=o:bevt, exists(select*from thousand as t2 where t2:no=t1:no)]), exists(select*from ten as t2 where [t2:no<5, t2:no=o:bevt, exists(select*from thousand as t3 where t3:no=t2:no)])]
+
+# Query No 204:
+
+# known to fail
+
+# Query No 205:
+
+# known to fail
+
+# Query No 250:
+
+query 250
+
+select*from orteh as o where [exists(select*from[o:subrel as p, plz as p2]where[p:bevt<o:bevth, p:ort=p2:ort])]
+
+# Query No 251:
+
+query 251
+
+select*from orteh as o where [exists(select*from[plz as p2, o:subrel as p]where[p:bevt<o:bevth, p2:ort=p:ort])]
+
+# Query No 252:
+
+query 252
+
+select*from orteh as o where [exists(select*from[plz as p2, o:subrel as p]where[p:bevt<o:bevth+5, p2:ort=p:ort])]
+
+# Query No 253:
+
+# known to fail
+
+# Query No 254:
+
+# known to fail
+
+# Query No 300:
+
+# known to fail
+
+# Query No 301:
+
+# known to fail
+
+# Query No 302:
+
+query 302
+
+select[o:bevth, (select*from o:subrel)as sub]from orteh as o
+
+# Query No 310:
+
+query 310
+
+select[bevth, (select*from subrel)as sr1]from orteh
+
+# Query No 320:
+
+query 320
+
+select[o:bevth, (select s:kennzeichen from o:subrel as s)as sub]from orteh as o
+
+# Query No 321:
+
+query 321
+
+select[o:bevth, o:subrel, (select s:kennzeichen from o:subrel as s)as sub]from orteh as o
+
+# Query No 322:
+
+query 322
+
+select[o:bevth, (select s:kennzeichen from o:subrel as s where [s:kennzeichen=[66]])as sub]from orteh as o
+
+# Query No 323:
+
+query 323
+
+select[o:bevth, o:subrel, (select s:kennzeichen from o:subrel as s where [s:kennzeichen=[66]])as sub]from orteh as o where [exists(select*from o:subrel as s where [s:kennzeichen=[66], s:bevt=o:bevth])]
+
+# Query No 324:
+
+# known to fail
+
+# Query No 325:
+
+query 325
+
+select[o:bevth, o:subrel, (select s:kennzeichen from o:subrel as s where [s:kennzeichen=[66]])as sub]from orteh as o where [exists(select*from o:subrel as s where [s:kennzeichen=[66], s:bevt=o:bevth])]
+
+# Query No 326:
+
+query 326
+
+select[o:bevth, o:subrel, (select sX:kennzeichen from o:subrel as sX where [sX:kennzeichen=[66]])as sub]from orteh as o where [exists(select sY:kennzeichen from o:subrel as sY where [sY:kennzeichen=[66], sY:bevt=o:bevth])]
+
+# Query No 326:
+
+query 326
+
+select[o:bevth, (select*from o:subrel where [kennzeichen=[66]])as newSubRel]from orteh as o where [exists(select kennzeichen from o:subrel where [kennzeichen=[66]])]
+
+# Query No 327:
+
+query 327
+
+select[o:bevth, o:subrel, (select s:kennzeichen from o:subrel as s where [s:kennzeichen=[66]])as sub]from orteh as o where [exists(select*from o:subrel as s where [s:kennzeichen=[66]])]
+
+# Query No 328:
+
+query 328
+
+select[o:bevth, o:subrel, (select count(*)from o:subrel as sX where [sX:kennzeichen=[66]])as sub]from orteh as o where [exists(select sY:kennzeichen from o:subrel as sY where [sY:kennzeichen=[66], sY:bevt=o:bevth])]
+
+# Query No 329:
+
+query 329
+
+select[o:bevth, o:subrel, (select count(distinct*)from o:subrel as sX where [sX:kennzeichen=[66]])as sub]from orteh as o where [exists(select sY:kennzeichen from o:subrel as sY where [sY:kennzeichen=[66], sY:bevt=o:bevth])]
+
+# Query No 330:
+
+query 330
+
+select[o:bevth, o:subrel, (select[sX:kennzeichen, count(*)as countlabel]from o:subrel as sX where [sX:kennzeichen=[66]]groupby sX:kennzeichen)as sub]from orteh as o where [exists(select sY:kennzeichen from o:subrel as sY where [sY:kennzeichen=[66], sY:bevt=o:bevth])]
+
+# Query No 331:
+
+query 331
+
+select ort from (select[ort, min(plz)as minplz, max(plz)as maxplz, count(*)as cntplz]from plz where plz>40000 groupby ort)
+
+# Query No 332:
+
+query 332
+
+select[minplz, ort]from (select[ort, min(plz)as minplz, max(plz)as maxplz, count(*)as cntplz]from plz where plz>40000 groupby ort)
+
+# Query No 333:
+
+query 333
+
+select[minplz, ox]from (select[ort as ox, min(plz)as minplz, max(plz)as maxplz, count(*)as cntplz]from plz where plz>40000 groupby ort)
+
+# Query No 334:
+
+query 334
+
+select[y:minplz, y:ox as os]from (select[ort as ox, min(plz)as minplz, max(plz)as maxplz, count(*)as cntplz]from plz where plz>40000 groupby ort)as y first 1
+
+# Query No 340:
+
+query 340
+
+select[o:bevth, (select*from[o:subrel as s, plz as p]where[s:ort=p:ort])as sub]from orteh as o
+
+# Query No 341:
+
+# known to fail
+
+# Query No 342:
+
+# known to fail
+
+# Query No 343:
+
+# known to fail
+
+# Query No 344:
+
+query 344
+
+select[o:bevth, o:sub]from (select[o1:bevth, (select*from[o1:subrel])as sub]from orteh as o1)as o where [exists(select s2:kennzeichen from o:sub as s2 where [s2:kennzeichen=[66], s2:bevt=o:bevth])]
+
+# Query No 345:
+
+query 345
+
+select[o:bevth, o:sub]from (select[o1:bevth, (select*from[o1:subrel])as sub]from orteh as o1)as o where [exists(select*from o:sub as s2)]
+
+# Query No 346:
+
+query 346
+
+select[o:bevth, o:sub]from (select[o1:bevth, (select bevt from [o1:subrel])as sub]from orteh as o1)as o where [exists(select*from o:sub)]
+
+# Query No 345:
+
+query 345
+
+select[o:bevth, (select*from[o:subrel as s, plz as p]where[s:ort=p:ort])as sub]from orteh as o where [exists(select s:kennzeichen from o:subrel as s where [s:kennzeichen=[66], s:bevt=o:bevth])]
+
+# Query No 346:
+
+query 346
+
+select[ (select[ (select*from ten as t3 first 1)as bl]from ten as t2 first 1)as x]from ten as t first 1
+
+# Query No 400:
+
+query 400
+
+select*from (select*from orteh)as o
+
+# Query No 401:
+
+query 401
+
+select*from (select bevth from orteh)as o
+
+# Query No 402:
+
+query 402
+
+select*from (select[bevth]from orteh)as o
+
+# Query No 403:
+
+query 403
+
+select*from (select[bevth, subrel]from orteh)as o
+
+# Query No 404:
+
+query 404
+
+select*from (select[xy:bevth, xy:subrel]from orteh as xy)as o
+
+# Query No 405:
+
+query 405
+
+select[o:bevth]from (select[xy:bevth, xy:subrel]from orteh as xy)as o
+
+# Query No 406:
+
+query 406
+
+select[o:bevth]from (select[xy:bevth, xy:subrel]from orteh as xy)unnest xy:subrel as o
+
+# Query No 407:
+
+# known to fail
+
+# Query No 408:
+
+query 408
+
+select[o:kennzeichen]from (select[xy:subrel]from orteh as xy)unnest xy:subrel as o
+
+# Query No 408:
+
+query 408
+
+select*from (select*from orteh)unnest subrel as o
+
+# Query No 430:
+
+query 430
+
+select*from (select*from orte as x)nest (x:bevt, subrel)as o first 1
+
+# Query No 431:
+
+query 431
+
+select[o:bevt]from (select*from orte as x)nest (x:bevt, subrel)as o
+
+# Query No 432:
+
+query 432
+
+select[o:bevt, o:subrel]from (select*from orte as x)nest (x:bevt, subrel)as o
+
+# Query No 433:
+
+query 433
+
+select[o:bevt, o:subrel]from (select[x:bevt, x:kennzeichen]from orte as x)nest (x:bevt, subrel)as o
+
+# Query No 434:
+
+query 434
+
+select[o:bevt, o:subREL]from (select[x:bevt, x:kennzeichen]from orte as x)nest (x:bevt, subREL)as o
+
+# Query No 435:
+
+query 435
+
+select[o:bevt, o:subREL]from (select[x:bevt, x:kennzeichen, x:vorwahl]from orte as x)nest (x:bevt, subREL)as o
+
+# Query No 450:
+
+query 450
+
+select*from (select*from (select*from orte)as o1)as o2 first 1
+
+# Query No 451:
+
+query 451
+
+select*from (select*from (select*from (select*from orte)as o0)as o1)as o2 first 1
+
+# Query No 452:
+
+query 452
+
+select*from (select*from (select*from (select*from orteh)as o0)as o1)as o2 first 1
+
+# Query No 453:
+
+query 453
+
+select*from (select*from (select*from (select*from orte as oh where [oh:kennzeichen=[66]])as o0)as o1)as o2
+
+# Query No 454:
+
+query 454
+
+select*from (select*from (select*from (select*from (select*from orte)as oh where [oh:kennzeichen=[66]])as o0)as o1)as o2
+
+# Query No 455:
+
+query 455
+
+select*from (select*from (select*from (select*from (select kennzeichen from orte)as oh where [oh:kennzeichen=[66]])as o0)as o1)as o2
+
+# Query No 456:
+
+query 456
+
+select*from (select*from (select*from (select*from (select[bevt, vorwahl]from orte orderby vorwahl desc)as oh where [oh:bevt=10])as o0)as o1)as o2
+
+# Query No 457:
+
+query 457
+
+select*from (select o1:vorwahl from (select*from (select*from (select[bevt, vorwahl]from orte orderby vorwahl desc)as oh where [oh:bevt=10])as o0)as o1)as o2
+
+# Query No 458:
+
+query 458
+
+select o1:vorwahl from (select[bevt, vorwahl]from orte orderby vorwahl desc)as o1
+
+# Query No 459:
+
+query 459
+
+select o1:vorwahl from (select[o0:bevt, o0:vorwahl]from orte as o0 orderby o0:vorwahl desc)as o1
+
+# Query No 470:
+
+query 470
+
+select*from (select*from orte as o)nest (o:bevt, subRel)as o1
+
+# Query No 470:
+
+query 470
+
+select*from (select*from orte)nest (bevt, subRel)as o1
+
+# Query No 471:
+
+query 471
+
+select*from (select[o:bevt, o:kennzeichen]from orte as o)nest (o:bevt, subRel)as o1
+
+# Query No 471:
+
+query 471
+
+select*from (select[bevt div 100 as bevth, ort, kennzeichen, vorwahl]from orte)nest (bevth, subRel)as o1
+
+# Query No 472:
+
+query 472
+
+select o1:subrel from (select[o:bevt, o:kennzeichen]from orte as o)nest (o:bevt, subrel)as o1
+
+# Query No 473:
+
+query 473
+
+select*from (select o1:subrel from (select[o:bevt, o:kennzeichen]from orte as o)nest (o:bevt, subrel)as o1)as o2
+
+# Query No 474:
+
+query 474
+
+select*from (select*from orte as o)nest ([o:bevt, o:vorwahl, o:kennzeichen], subRel)as o1
+
+# Query No 475:
+
+query 475
+
+select*from (select*from staedtenested as s1)nest ([s1:sname], sub2)as s2
+
+# Query No 480:
+
+query 480
+
+select*from (select[min(plz)as minplz, max(plz)as maxplz, avg(plz)as avgplz, count(distinct ort)as ortcnt]from plz groupby [])as subrel
+
+# Query No 481:
+
+query 481
+
+select s:minplz from (select[min(plz)as minplz, max(plz)as maxplz, avg(plz)as avgplz, count(distinct ort)as ortcnt]from plz groupby [])as s
+
+# Query No 482:
+
+query 482
+
+select*from (select[ort, min(plz)as minplz, max(plz)as maxplz, avg(plz)as avgplz]from plz groupby [ort])as x
+
+# Query No 483:
+
+query 483
+
+select x:ort from (select[ort, min(plz)as minplz, max(plz)as maxplz, avg(plz)as avgplz]from plz groupby [ort])as x
+
+# Query No 484:
+
+query 484
+
+select[count(*)as countattr]from (select[ort, min(plz)as minplz, max(plz)as maxplz, avg(plz)as avgplz]from plz groupby [ort])as x groupby []
+
+# Query No 485:
+
+query 485
+
+select[x:ort, count(*)as countattr]from (select[ort, min(plz)as minplz, max(plz)as maxplz, avg(plz)as avgplz]from plz groupby [ort])as x groupby [x:ort]
+
+# Query No 486:
+
+query 486
+
+select[s:ort, count(*)as count]from (select[ort, min(plz)as minplz, max(plz)as maxplz, avg(plz)as avgplz]from plz groupby [ort])as s groupby [s:ort]
+
+# Query No 487:
+
+query 487
+
+select[s:ort, count(*)as count]from (select[ort, min(plz)as minplz, max(plz)as maxplz, avg(plz)as avgplz]from plz where ort=[66, 101, 114, 108, 105, 110]groupby[ort])as s where s:ort=[66, 101, 114, 108, 105, 110]groupby[s:ort]
+
+# Query No 488:
+
+query 488
+
+select[s:ort, s:plz, count(*)as count]from (select[ort, plz, min(plz)as minplz, max(plz)as maxplz, avg(plz)as avgplz]from plz where ort=[66, 101, 114, 108, 105, 110]groupby[ort, plz])as s where s:ort=[66, 101, 114, 108, 105, 110]groupby[s:ort, s:plz]
+
+# Query No 489:
+
+query 489
+
+select[s:ort, s:plz, count(*)as count]from[ (select[ort, plz, min(plz)as minplz, max(plz)as maxplz, avg(plz)as avgplz]from plz where ort=[66, 101, 114, 108, 105, 110]groupby[ort, plz])as s, (select*from orteh)unnest subrel as oh]where[s:ort=[66, 101, 114, 108, 105, 110], s:ort=oh:ort]groupby[s:ort, s:plz]
+
+# Query No 490:
+
+query 490
+
+select[s:ort, s:plz, oh:kennzeichen, count(*)as count]from[ (select[ort, plz, min(plz)as minplz, max(plz)as maxplz, avg(plz)as avgplz]from plz where ort=[66, 101, 114, 108, 105, 110]groupby[ort, plz])as s, (select*from orteh)unnest subrel as oh]where[s:ort=[66, 101, 114, 108, 105, 110], s:ort=oh:ort]groupby[s:ort, s:plz, oh:kennzeichen]
+
+# Query No 491:
+
+query 491
+
+select[count(*)as count]from[ (select[ort, plz, min(plz)as minplz, max(plz)as maxplz, avg(plz)as avgplz]from plz where ort=[66, 101, 114, 108, 105, 110]groupby[ort, plz])as s, (select*from orteh)unnest subrel as oh]where[s:ort=[66, 101, 114, 108, 105, 110], s:ort=oh:ort]groupby[]
+
+# Query No 492:
+
+query 492
+
+select distinct s:ort from [ (select[ort, plz, min(plz)as minplz, max(plz)as maxplz, avg(plz)as avgplz]from plz where ort=[66, 101, 114, 108, 105, 110]groupby[ort, plz])as s, (select*from orteh)unnest subrel as oh]where[s:ort=[66, 101, 114, 108, 105, 110], s:ort=oh:ort]
+
+# Query No 500:
+
+# known to fail
+
+# Query No 501:
+
+query 501
+
+select*from (select count(*)from orte as o0)as o1
+
+# Query No 502:
+
+query 502
+
+select*from (select count(distinct kennzeichen)from orte)as o1
+
+# Query No 507:
+
+query 507
+
+select[kennzeichen, sum(bevt)as x]from orte groupby kennzeichen
+
+# Query No 508:
+
+query 508
+
+select*from (select[kennzeichen, sum(bevt)as x]from orte groupby kennzeichen)as oOOOo
+
+# Query No 509:
+
+query 509
+
+select*from (select[kennzeichen, sum(bevt)as sumEinwohner]from orte groupby kennzeichen)as y where y:kennzeichen=[66]
+
+# Query No 510:
+
+# known to fail
+
+# Query No 511:
+
+query 511
+
+select[x:bevt, (select o:kennzeichen from orte as o where o:bevt=x:bevt)as subrel]from orte as x
+
+# Query No 530:
+
+query 530
+
+select*from (select*from orte)as o
+
+# Query No 531:
+
+query 531
+
+select*from (select*from orte)
+
+# Query No 532:
+
+query 532
+
+select*from (select*from orte)as o first 1
+
+# Query No 533:
+
+query 533
+
+select*from (select*from orte)as o orderby o:bevt first 1
+
+# Query No 534:
+
+query 534
+
+select o:bevt from (select*from orte)as o
+
+# Query No 535:
+
+query 535
+
+select o:bevt from (select bevt from orte)as o
+
+# Query No 536:
+
+query 536
+
+select o:bevt from (select x:bevt from orte as x)as o first 1
+
+# Query No 550:
+
+query 550
+
+select o:bevt from (select subrel from orteh)unnest subrel as o first 1
+
+# Query No 551:
+
+query 551
+
+select[o:bevth, o:bevt]from (select*from orteh)unnest subrel as o first 1
+
+# Query No 552:
+
+query 552
+
+select[o:bevth, o:bevt, o:kennzeichen]from (select*from orteh)unnest subrel as o orderby [o:kennzeichen]first 1
+
+# Query No 553:
+
+query 553
+
+select*from (select subrel from orteh)unnest subrel as o orderby [o:kennzeichen]first 1
+
+# Query No 554:
+
+query 554
+
+select*from (select x:subrel from orteh as x)unnest x:subrel as o orderby [o:kennzeichen]first 1
+
+# Query No 555:
+
+query 555
+
+select[o:bevt, o:bevth, o:kennzeichen]from (select[x:bevth, x:subrel]from orteh as x)unnest x:subrel as o orderby [o:kennzeichen]first 1
+
+# Query No 556:
+
+query 556
+
+select[o:bevt, o:bevth, o:kennzeichen]from (select*from orteh as x)unnest x:subrel as o orderby [o:kennzeichen]first 1
+
+# Query No 570:
+
+query 570
+
+select*from (select*from orte as x)nest (x:bevt, subrel)as o first 1
+
+# Query No 571:
+
+query 571
+
+select*from (select*from orte as x)nest x:bevt as subrel as o first 1
+
+# Query No 572:
+
+# known to fail
+
+# Query No 573:
+
+# known to fail
+
+# Query No 574:
+
+query 574
+
+select*from (select[x:bevt div 100 as bevth, x:kennzeichen, x:ort, x:vorwahl, x:bevt]from orte as x)nest x:bevt as subrel as o first 1
+
+# Query No 575:
+
+query 575
+
+select*from (select[x:bevt div 100 as bevth, x:kennzeichen, x:ort, x:vorwahl, x:bevt]from orte as x)nest bevth as subrel as o first 1
+
+# Query No 576:
+
+query 576
+
+select[o:bevt, o:kennzeichen]from (select x:subrel from orteh as x)unnest x:subrel as o where o:kennzeichen=[66]orderby[o:kennzeichen]first 1
+
+# Query No 577:
+
+query 577
+
+select[o:bevt, o:bevth, o:kennzeichen]from (select[x:bevth, x:subrel]from orteh as x)unnest x:subrel as o where o:kennzeichen=[66]orderby[o:kennzeichen]first 1
+
+# Query No 578:
+
+query 578
+
+select*from (select[x:bevth, x:subrel]from orteh as x)unnest x:subrel as o where o:kennzeichen=[66]orderby[o:kennzeichen]first 1
+
+# Query No 579:
+
+query 579
+
+select*from (select*from orteh as x)unnest x:subrel as o where o:kennzeichen=[66]orderby[o:kennzeichen]first 1
+
+# Query No 580:
+
+query 580
+
+select*from[ (select*from orteh as x)as o]where[o:bevth=10]first 1
+
+# Query No 581:
+
+query 581
+
+select*from[ (select[bevt div 100 as bevth, bevt, ort, kennzeichen, vorwahl]from orte)nest (bevth, subRel)as x1, (select[bevt div 100 as bevth, bevt, ort, kennzeichen, vorwahl]from orte)nest (bevth, subRel)as x2]where x1:bevth=x2:bevth
+
+# Query No 590:
+
+query 590
+
+select*from[ (select*from orteh as x)as o1, (select*from orteh as x)as o2]where[o1:bevth=10, o1:bevth=o2:bevth]first 1
+
+# Query No 591:
+
+query 591
+
+select*from[ (select*from orteh as x)as o1, (select*from orteh as x)as o2]where[o1:bevth=10, o1:bevth=o2:bevth-1]first 1
+
+# Query No 592:
+
+query 592
+
+select*from[ (select*from orteh as x)unnest x:subrel as o1, (select*from orteh as x)as o2]where[o1:kennzeichen=[66], o1:bevth=o2:bevth]orderby[o1:vorwahl]first 1
+
+# Query No 593:
+
+query 593
+
+select*from[ (select*from orteh as x)unnest x:subrel as o1, (select[x:bevt div 100 as bevth, x:kennzeichen, x:ort, x:vorwahl, x:bevt]from orte as x)nest bevth as subrel as o2]where[o1:kennzeichen=[66], o1:bevth=o2:bevth]orderby[o1:vorwahl]first 1
+
+# Query No 594:
+
+# known to fail
+
+# Query No 595:
+
+query 595
+
+select*from[ (select*from orteh as x)unnest x:subrel as o1, (select[x:kennzeichen, x:ort, x:vorwahl, x:bevt]from orte as x)nest x:bevt as subrel as o2]where[o1:kennzeichen=[66], o1:bevth=o2:bevt]orderby[o1:vorwahl]first 1
+
+# Query No 596:
+
+query 596
+
+select*from[ (select*from orteh as x)unnest x:subrel as o1, (select[x:kennzeichen, x:ort, x:vorwahl, x:bevt]from orte as x)nest[x:bevt, x:vorwahl]as subrel as o2]where[o1:kennzeichen=[66], o1:bevth=o2:bevt]orderby[o1:vorwahl]first 1
+
+# Query No 597:
+
+query 597
+
+select*from[ (select*from orteh as x)unnest x:subrel as o1, (select[x:bevt div 100 as bevth, x:kennzeichen, x:ort, x:vorwahl, x:bevt]from orte as x)nest[bevth, x:bevt]as subrel as o2]where[o1:bevth=o2:bevt]orderby[o1:vorwahl]first 1
+
+# Query No 600:
+
+query 600
+
+select (select*from ortem2 where bevm=3)as ortem from ten first 1
+
+# Query No 601:
+
+query 601
+
+select (select*from (select*from ortem2)as xy)as m from ten first 1
+
+# Query No 602:
+
+query 602
+
+select (select*from (select*from ortem2 first 1)unnest subm as xy)as m from ten first 1
+
+# Query No 603:
+
+query 603
+
+select (select*from (select[t:bevm, t:subm]from ortem2 as t where t:bevm=3 first 1)unnest t:subm as xy)as m from ten first 1
+
+# Query No 604:
+
+query 604
+
+select[ (select*from (select[t:bevm, t:subm]from ortem2 as t where t:bevm=3 first 1)unnest t:subm as xy)as m, (select*from orteh)as as2, (select*from (select*from orteh)unnest subrel as r3)as as3]from ten first 1
+
+# Query No 605:
+
+query 605
+
+select[ (select*from (select[t:bevm, t:subm]from ortem2 as t where t:bevm=3 first 1)unnest t:subm as xy)as m, (select*from orteh)as as2, (select*from (select*from orte)nest (bevt, subrel3)as r3)as as3]from ten first 1
+
+# Query No 606:
+
+query 606
+
+select[ (select*from (select[t:bevm, t:subm]from ortem2 as t where t:bevm=3 first 1)unnest t:subm as xy)as m, (select*from orteh)as as2, (select*from (select*from orte)nest (bevt, subrel3)as r3)as as3]from ortem2 as om2 where om2:bevm=3 first 1
+
+# Query No 607:
+
+query 607
+
+select[ (select*from (select[t:bevm, t:subm]from ortem2 as t where t:bevm=3 first 1)unnest t:subm as xy)as m, (select*from orteh)as as2, (select*from (select*from orte)nest (bevt, subrel3)as r3)as as3, (select*from (select*from (select*from orteh)unnest subrel as r5)nest (r5:bevt, subrel4)as r4)as as4]from ortem2 as om2 where om2:bevm=3 first 1
+
+# Query No 608:
+
+query 608
+
+select[ (select*from (select[t:bevm, t:subm]from ortem2 as t where t:bevm=3 first 1)unnest t:subm as xy)as m, (select*from orteh)as as2, (select*from (select*from orte)nest (bevt, subrel3)as r3)as as3, (select*from (select*from (select*from orteh)unnest subrel as r5)nest (r5:bevt, subrel4)as r4)as as4, (select plz from plz where ort=[66, 101, 114, 108, 105, 110])as aberlin]from ortem2 as om2 where om2:bevm=3 first 1
+
+# Query No 609:
+
+query 609
+
+select[ (select*from (select[t:bevm, t:subm]from ortem2 as t where t:bevm=3 first 1)unnest t:subm as xy)as m, (select*from orteh)as as2, (select*from (select*from orte)nest (bevt, subrel3)as r3)as as3, (select*from (select*from (select*from orteh)unnest subrel as r5)nest (r5:bevt, subrel4)as r4)as as4, (select plz from plz where ort=[66, 101, 114, 108, 105, 110])as aberlin, (select*from orteh as oh where exists(select*from oh:subrel where kennzeichen=[66]))as abkennzeichen]from ortem2 as om2 where om2:bevm=3 first 1
+
+# Query No 610:
+
+query 610
+
+select[ (select*from (select[t:bevm, t:subm]from ortem2 as t where t:bevm=3 first 1)unnest t:subm as xy)as m, (select*from orteh)as as2, (select*from (select*from orte)nest (bevt, subrel3)as r3)as as3, (select*from (select*from (select*from orteh)unnest subrel as r5)nest (r5:bevt, subrel4)as r4)as as4, (select plz from plz where ort=[66, 101, 114, 108, 105, 110])as aberlin, (select*from orteh as oh where exists(select[vorwahl]from oh:subrel where kennzeichen=[66]))as abkennzeichen]from[ortem2 as om2, ten as tentable]where[om2:bevm=3, om2:bevm=tentable:no]first 1
+
+# Query No 611:
+
+query 611
+
+select[om2:subm, (select*from (select[t:bevm, t:subm]from ortem2 as t where t:bevm=3 first 1)unnest t:subm as xy)as m, (select*from orteh)as as2, (select*from (select*from orte)nest (bevt, subrel3)as r3)as as3, (select*from (select*from (select*from orteh)unnest subrel as r5)nest (r5:bevt, subrel4)as r4)as as4, (select plz from plz where ort=[66, 101, 114, 108, 105, 110])as aberlin, (select*from orteh as oh where exists(select[vorwahl]from oh:subrel where kennzeichen=[66]))as abkennzeichen]from[ortem2 as om2, ten as tentable]where[om2:bevm=3, om2:bevm=tentable:no, exists(select*from om2:subm), exists(select*from[om2:subm, orte as o8]where[o8:bevt=bevth]), om2:bevm in (select no from ten)]first 1
+
+# Query No 612:
+
+query 612
+
+select[om2:subm, (select*from (select[t:bevm, t:subm]from ortem2 as t where t:bevm=3 first 1)unnest t:subm as xy)as m, (select*from orteh)as as2, (select*from (select*from orte)nest (bevt, subrel3)as r3)as as3, (select*from (select*from (select*from orteh)unnest subrel as r5)nest (r5:bevt, subrel4)as r4)as as4, (select plz from plz where ort=[66, 101, 114, 108, 105, 110])as aberlin, (select*from orteh as oh where exists(select[vorwahl]from oh:subrel where kennzeichen=[66]))as abkennzeichen]from[ortem2 as om2, ten as tentable]where[om2:bevm=3, om2:bevm=tentable:no, exists(select*from om2:subm), exists(select*from[om2:subm, orte as o8]where[o8:bevt=bevth]), om2:bevm in (select no from ten), exists(select (select*from r10:subh as r20 where r20:ort=[66, 101, 114, 108, 105, 110])as attr11 from om2:subm as r10)]first 1
+
+# Query No 613:
+
+query 613
+
+select[om2:subm, (select*from (select[t:bevm, t:subm]from ortem2 as t where t:bevm=3 first 1)unnest t:subm as xy)as m, (select*from orteh)as as2, (select*from (select*from orte)nest (bevt, subrel3)as r3)as as3, (select*from (select*from (select*from orteh)unnest subrel as r5)nest (r5:bevt, subrel4)as r4)as as4, (select plz from plz where ort=[66, 101, 114, 108, 105, 110])as aberlin, (select*from orteh as oh where exists(select[vorwahl]from oh:subrel where kennzeichen=[66]))as abkennzeichen]from[ortem2 as om2, ten as tentable]where[om2:bevm=3, om2:bevm=tentable:no, exists(select*from om2:subm), exists(select*from[om2:subm, orte as o8]where[o8:bevt=bevth]), om2:bevm in (select no from ten), exists(select*from om2:subm as r10 where exists(select vorwahl from r10:subh))]first 1
+
+# Query No 614:
+
+query 614
+
+select[om2:subm, (select*from (select[t:bevm, t:subm]from ortem2 as t where t:bevm=3 first 1)unnest t:subm as xy)as m, (select*from orteh)as as2, (select*from (select*from orte)nest (bevt, subrel3)as r3)as as3, (select*from (select*from (select*from orteh)unnest subrel as r5)nest (r5:bevt, subrel4)as r4)as as4, (select plz from plz where ort=[66, 101, 114, 108, 105, 110])as aberlin, (select*from orteh as oh where exists(select[vorwahl]from oh:subrel where kennzeichen=[66]))as abkennzeichen]from (select*from[ortem2, ten]where[bevm=no])as om2 where [om2:bevm=3, exists(select*from om2:subm), exists(select*from[om2:subm, orte as o8]where[o8:bevt=bevth]), om2:bevm in (select tenvar:no from ten as tenvar), exists(select*from om2:subm as r10 where exists(select vorwahl from r10:subh))]first 1
+
+# Query No 620:
+
+query 620
+
+select*from ortem2 as o where [exists(select*from o:subm as r where exists(select*from r:subh))]
+
+# Query No 621:
+
+query 621
+
+select*from ortem2 as o where [exists(select[r:bevth, r:subh]from o:subm as r where exists(select*from r:subh))]
+
+# Query No 630:
+
+query 630
+
+select[o:bevm, o:subm]from ortem2 as o where [exists(select*from o:subm as r)]
+
+# Query No 631:
+
+query 631
+
+select o:bevm from ortem2 as o where [exists(select*from o:subm as r)]
+
+# Query No 632:
+
+query 632
+
+select o:bevt from orte as o where [o:bevt=105, exists(select*from orte as o2 where o:vorwahl=o2:vorwahl)]
+
+# Query No 633:
+
+query 633
+
+select[o:bevt, o:vorwahl]from orte as o where [o:bevt=105, exists(select*from orte as o2 where o:vorwahl=o2:vorwahl)]
+
+# Query No 634:
+
+query 634
+
+select*from (select*from[ortem2, ten]where[bevm=no])as om2 where [om2:bevm=3]first 1
+
+# Query No 635:
+
+query 635
+
+select[om2:bevm]from (select*from[ortem2, ten]where[bevm=no])as om2 where [om2:bevm in (select no from ten)]first 1
+
+# Query No 636:
+
+query 636
+
+select*from orte where [bevt in (select no from ten)]
+
+# Query No 637:
+
+query 637
+
+select*from orte where [bevt in (select no from ten where no=bevt)]
+
+# Query No 638:
+
+query 638
+
+select*from orte as o where [o:bevt in (select no from ten where no=o:bevt)]
+
+# Query No 1000:
+
+query 1000
+
+select[o:bevth, (select*from o:subrel where kennzeichen=[75, 76, 69])as sub]from orteh as o where [exists(select*from o:subrel where kennzeichen=[75, 76, 69])]first 3
+
+# Query No 1001:
+
+query 1001
+
+select*from orteh orderby subrel last 2
+
+# Query No 1002:
+
+query 1002
+
+create table crtest1 columns [att1:int]
+
+# Query No 1003:
+
+query 1003
+
+insert into crtest1 select no from thousand
+
+# Query No 1004:
+
+query 1004
+
+drop table crtest1
+
+# Query No 1010:
+
+query 1010
+
+create table crtest2 columns [bevTH:int, ort:string]
+
+# Query No 1011:
+
+query 1011
+
+drop table crtest2
+
+# Query No 1020:
+
+query 1020
+
+create table crtest3 columns [bevTH:int, ort:string, subrel:arel([kennzeichen:int])]
+
+# Query No 1021:
+
+query 1021
+
+drop table crtest3
+
+# Query No 1030:
+
+query 1030
+
+create table crorteh columns [bevTH:int, subRel:arel([kennzeichen:string, ort:string, vorwahl:string, bevT:int])]
+
+# Query No 1031:
+
+# known to fail
+
+# Query No 1032:
+
+query 1032
+
+drop table crorteh
+
+# Query No 1100:
+
+query 1100
+
+select[o:bevth, (select ort from o:subrel)as newsubrel]from orteh as o
+
+# Query No 1101:
+
+query 1101
+
+select[o:bevth, (select ort from o:subrel where ort starts [66])as newsubrel]from orteh as o
+
+# Query No 1102:
+
+query 1102
+
+select*from orteh as o where [exists(select ort from o:subrel where ort starts [66])]
+
+# Query No 1103:
+
+query 1103
+
+select[o:ort, (select*from plz where ort=o:ort)as newsubrel]from orte as o
+
+# Query No 1107:
+
+query 1107
+
+select (select*from subrel as s)as sr from orteh
+
+# Query No 1200:
+
+query 1200
+
+select*from orteh unnest subrel
+
+# Query No 1201:
+
+query 1201
+
+select*from orteh unnest subrel as o
+
+# Query No 1202:
+
+# known to fail
+
+# Query No 1203:
+
+query 1203
+
+select[o:bevth]from orteh unnest subrel as o
+
+# Query No 1204:
+
+query 1204
+
+select[o:bevth, o:kennzeichen]from orteh unnest subrel as o
+
+# Query No 1205:
+
+query 1205
+
+select*from (select*from orteh unnest subrel as o)as x
+
+# Query No 1206:
+
+query 1206
+
+select x:kennzeichen from (select[o:bevt, o:kennzeichen]from orteh unnest subrel as o)as x
+
+# Query No 1207:
+
+query 1207
+
+select*from orteh unnest subrel as o
+
+# Query No 1208:
+
+query 1208
+
+select o:kennzeichen from orteh unnest subrel as o
+
+# Query No 1209:
+
+query 1209
+
+select kennzeichen from orteh unnest subrel where kennzeichen=[66]
+
+# Query No 1210:
+
+query 1210
+
+select ort from orteh unnest subrel where kennzeichen=[66]
+
+# Query No 1211:
+
+query 1211
+
+select*from plz nest (ort, postleitzahlen)as o
+
+# Query No 1212:
+
+query 1212
+
+select (select*from m:subm unnest subh as x)as r from ortem as m
+
+# Query No 1213:
+
+query 1213
+
+select*from orte nest (o:bevt, subrel)
+
+# Query No 1214:
+
+query 1214
+
+select*from orte nest (o:bevt, subrel)as t
+
+# Query No 1215:
+
+query 1215
+
+select*from (orte as t)nest (o:bevt, subrel)
+
+# Query No 1216:
+
+query 1216
+
+select*from (orte as t)nest (o:bevt, subrel)as x
+
+# Query No 1217:
+
+query 1217
+
+select*from (select*from orte)nest (o:bevt, subrel)
+
+# Query No 1218:
+
+query 1218
+
+select*from (select*from orte as o)nest (o:bevt, subrel)
+
+# Query No 1219:
+
+query 1219
+
+select*from orte nest (bevt, subrel)where bevt=3410
+
+# Query No 1220:
+
+query 1220
+
+select*from ortem unnest subm unnest subh
+
+# Query No 1221:
+
+query 1221
+
+select*from ortem unnest subm unnest subh where bevt>3000
+
+# Query No 1222:
+
+query 1222
+
+select ort from ortem unnest subm unnest subh where bevt>3000
+
+# Query No 1223:
+
+query 1223
+
+select p:plz from [ortem unnest subm unnest subh, plz as p]where[bevt>3000, p:ort=ort]
+
+# Query No 1224:
+
+query 1224
+
+select*from ortem unnest subm unnest subh nest (bevth, newsubr)
+
+# Query No 1225:
+
+query 1225
+
+select*from (select*from ortem unnest subm unnest subh)nest (bevth, subr)
+
+# Query No 1226:
+
+query 1226
+
+select*from (select[bevt div 100 as bevth, ort, kennzeichen, vorwahl]from orte)nest (bevth, subRel)
+
+# Query No 1227:
+
+query 1227
+
+select*from orteh unnest subrel
+
+# Query No 1228:
+
+query 1228
+
+select*from (select[bevt div 100 as bevth, bevt, ort, kennzeichen, vorwahl]from orte)nest (bevth, subRel)
+
+# Query No 1229:
+
+query 1229
+
+select*from (select[bevt div 100 as bevth, bevt, ort, kennzeichen, vorwahl]from orte)nest (bevth, subRel)where[bevth>30]
+
+# Query No 1230:
+
+query 1230
+
+select[ort, (select count(*)from plz as p where p:ort=ort)as sr]from orte
+
+# Query No 1231:
+
+query 1231
+
+select[o:bevth, (select ort from o:subrel where ort starts [66])as newsubrel]from (select*from (select[bevt div 100 as bevth, bevt, ort, kennzeichen, vorwahl]from orte)nest (bevth, subRel))as o where [exists(select ort from o:subrel where [ort starts [66]])]
+
+# Query No 1232:
+
+query 1232
+
+select count(*)from ortem2 unnest subm
+
+# Query No 1233:
+
+query 1233
+
+select[ (select[ (select*from o:subrel first 1)as rr]from ten)as abc]from orteh as o first 1
+
+# Query No 1234:
+
+query 1234
+
+select[ (select[ (select*from subrel first 1)as rr]from ten)as abc]from orteh first 1
+
+# Query No 1235:
+
+query 1235
+
+select[ (select o:bevth as ttt from o:subrel as s)as xy]from orteh as o
+
+# Query No 1236:
+
+query 1236
+
+select*from orteh unnest subrel nest (bevth, subrel2)unnest subrel2
+
+# Query No 1237:
+
+query 1237
+
+select count from (select count(*)from orteh)first 1
+
+# Query No 1238:
+
+query 1238
+
+select x:count from (select count(*)from orteh where bevth=3)as x first 1
+
+# Query No 1239:
+
+query 1239
+
+select x:count from [ (select count(*)from orteh where bevth=3)as x, ten]
+
+# Query No 1240:
+
+query 1240
+
+select x:count from [ (select count(*)from orteh where bevth=3)as x, ten]where x:count=no
+
+# Query No 1241:
+
+query 1241
+
+select value*100 as result from (select sum(bevth)from orteh)
+
+# Query No 1300:
+
+query 1300
+
+insert into plz values [99999, [102, 97, 107, 101, 32, 99, 105, 116, 121]]
+
+# Query No 1301:
+
+query 1301
+
+delete from plz where [plz=99999, ort=[102, 97, 107, 101, 32, 99, 105, 116, 121]]
+
+# Query No 3000:
+
+{close database | open database berlintest}
+
+query 3000
+
+select*from trains first 1
+
+# Query No 3001:
+
+query 3001
+
+select*from trains where id=531
+
+# Query No 3002:
+
+query 3002
+
+select[t:id, t:trip]from trains as t where t:id=531
+
+# Query No 3003:
+
+query 3003
+
+select*from (select[t:id, t:trip]from trains as t where t:id=531)as t2
+
+# Query No 3004:
+
+query 3004
+
+select*from (select[t:id, t:trip]from trains as t where t:id=531)unnest t:trip as t2
+
+# Query No 3005:
+
+query 3005
+
+select*from (select[t:id, t:trip]from trains as t where t:id=531)unnest t:trip as t2 first 1
+
+# Query No 3006:
+
+query 3006
+
+select*from (select[id, trip]from trains where id=531)unnest trip as t2 first 1
+
+# Query No 3007:
+
+query 3007
+
+select*from (select*from (select*from trains where id=531)unnest trip as t2)nest ([t2:id, t2:line, t2:up], trips)as x
+
+# Query No 3008:
+
+query 3008
+
+select x2:id from (select*from (select*from (select*from trains where id=531)unnest trip as t2)nest ([t2:id, t2:line, t2:up], trips)as x)as x2
+
+# Query No 3009:
+
+query 3009
+
+select*from[ (select*from (select*from (select*from trains where id=531)unnest trip as t2)nest ([t2:id, t2:line, t2:up], trips)as x)as x2, trains as t4]where t4:id=x2:id
+
+# Query No 3010:
+
+query 3010
+
+select count(*)from trains unnest trip
+
+# Query No 3011:
+
+query 3011
+
+select*from (select*from trains unnest trip where id=531)nest ([id, line, up], trips)as x
+
+# Query No 3100:
+
+query 3100
+
+select count(*)from trains where trip passes mehringdamm
+
+# Query No 3101:
+
+query 3101
+
+select[id, line, up, val(trip atinstant seven05)as pos]from trains where [trip passes mehringdamm, trip present seven05]
+
+# Query No 3102:
+
+query 3102
+
+select*from trains where [not isempty(deftime(trip intersection msnow))]
+
+# Query No 3103:
+
+query 3103
+
+select[id, trip intersection msnow as insnow]from trains where [not isempty(deftime(trip intersection msnow))]
+
+
+
+
