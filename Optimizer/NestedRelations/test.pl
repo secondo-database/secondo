@@ -574,7 +574,30 @@ testNR(_, _, _) :-
 	retractall(testRunning),
 	showTestResults.
 
+writeTestNR :-
+  testNRQuery(_, [expectedResult(fail)], _),
+  fail.
 
+writeTestNR :-
+  testNRQuery(No, Properties, Query),
+  No < 10000,
+  write('# Query No '), write(No), write(':'), nl, nl, 
+  ( Properties = [database(DB)] -> 
+      write('{close database | open database '), write(DB), write('}'), nl, nl
+  ;
+      write('')
+  ),
+  ( Properties = [expectedResult(fail)] -> 
+      write('# known to fail'), nl, nl
+  ;
+      ( write('query '), write(No), nl, nl,
+        write(Query), nl, nl
+      )
+  ),
+  fail.
+
+writeTestNR.
+  
 
 
 
