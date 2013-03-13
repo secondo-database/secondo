@@ -49,7 +49,6 @@ This algebra includes the operators ~matches~ and ~rewrite~.
 #include "FTextAlgebra.h"
 #include "DateTime.h"
 #include "CharTransform.h"
-#include "SymbolicTrajectoryTools.h"
 #include "Stream.h"
 #include "SecParser.h"
 #include "Pattern.h"
@@ -613,7 +612,7 @@ Rewrites a moving label using another moving label and a vector.
 
 */
 void MLabel::rewrite(MLabel const &ml,
-                     const pair<vector<size_t>, vector<size_t> > &seq,
+                   const pair<vector<unsigned int>, vector<unsigned int> > &seq,
                      vector<Assign> assigns, map<string, int> varPosInSeq) {
   if (!checkRewriteSeq(seq, ml.GetNoComponents(), false) ||
     (seq.first.empty() && seq.second.empty())) {
@@ -1823,9 +1822,9 @@ Performs a match and returns the set of matching sequences for the operator
 ~rewrite~.
 
 */
-set<pair<vector<size_t>, vector<size_t> > > Pattern::
+set<pair<vector<unsigned int>, vector<unsigned int> > > Pattern::
                                             getRewriteSeqs(MLabel &ml) {
-  set<pair<vector<size_t>, vector<size_t> > > result;
+  set<pair<vector<unsigned int>, vector<unsigned int> > > result;
   Match *match = new Match(patterns.size() + 1);
   match->copyFromPattern(*this);
   match->setAssVars(this->getAssVars());
@@ -1863,6 +1862,19 @@ map<string, int> Pattern::getVarPosInSeq() {
   return result;
 }
 
+Match::Match(IndexClassifyLI* li, TupleId tId) {
+  patterns = li->p->getPats();
+  f = patterns.size();
+  conds = li->p->getConds();
+  match = new set<unsigned int>[f];
+  cardsets = new set<unsigned int>[f];
+  seqOrder = new int[f];
+  numOfLabels = li->getMLsize(tId);
+  for (int i = 0; i < f; i++) {
+    match[i] = li->matches[tId - 1][i];
+  }
+}
+
 /*
 \subsection{Function ~computeResultVars~}
 
@@ -1885,13 +1897,13 @@ parts for rewriting.
 
 */
 void Match::filterSequences(MLabel const &ml) {
-  set<multiset<size_t> >::iterator it;
+  set<multiset<unsigned int> >::iterator it;
   for (it = sequences.begin(); it != sequences.end(); it++) {
-    for (int i = 0; i < (int)conds.size(); i++) {
+    for (unsigned int i = 0; i < conds.size(); i++) {
       if (!evaluateCond(ml, i, *it)) {
         i = conds.size(); // continue with next sequence
       }
-      else if (i == (int)conds.size() - 1) { // all conditions are fulfilled
+      else if (i == conds.size() - 1) { // all conditions are fulfilled
         buildRewriteSeq(*it);
       }
     }
@@ -1901,14 +1913,14 @@ void Match::filterSequences(MLabel const &ml) {
   }
 }
 
-void Match::buildRewriteSeq(multiset<size_t> sequence) {
-  vector<size_t> seq(sequence.begin(), sequence.end());
-  vector<size_t> rewriteSeq, assignedSeq;
-  pair<vector<size_t>, vector<size_t> > completeSeq;
-  for (int j = 0; j < (int)resultVars.size(); j++) {
+void Match::buildRewriteSeq(multiset<unsigned int> sequence) {
+  vector<unsigned int> seq(sequence.begin(), sequence.end());
+  vector<unsigned int> rewriteSeq, assignedSeq;
+  pair<vector<unsigned int>, vector<unsigned int> > completeSeq;
+  for (unsigned int j = 0; j < resultVars.size(); j++) {
     if (resultVars[j] > -1) {
       rewriteSeq.push_back(seq[resultVars[j]]); // begin
-      if (resultVars[j] < f - 1) {
+      if (resultVars[j] < (int)(f - 1)) {
         rewriteSeq.push_back(seq[resultVars[j] + 1]); // end
       }
       else { // last state
@@ -2123,7 +2135,7 @@ cardinalities for every unit pattern are displayed.
 
 */
 void Match::printCards() {
-  set<size_t>::iterator it;
+  set<unsigned int>::iterator it;
   for (int j = 0; j < f; j++) {
     cout << "upat " << j << " matches ulabels ";
     for (it = match[j].begin(); it != match[j].end(); it++) {
@@ -2131,7 +2143,6 @@ void Match::printCards() {
     }
     cout << endl;
   }
-  set<int>::iterator j;
   for (int i = 0; i < f; i++) {
     cout << i << " | ";
     for (it = cardsets[i].begin(); it != cardsets[i].end(); it++) {
@@ -2148,9 +2159,9 @@ Displays the possible cardinality sequences. As the number of sequences may
 be very high, only the first ~max~ sequences are printed.
 
 */
-void Match::printSequences(size_t max) {
-  set<multiset<size_t> >::iterator it1;
-  set<size_t>::iterator it2;
+void Match::printSequences(unsigned int max) {
+  set<multiset<unsigned int> >::iterator it1;
+  set<unsigned int>::iterator it2;
   unsigned int seqCount = 0;
   it1 = sequences.begin();
   while ((seqCount < max) && (it1 != sequences.end())) {
@@ -2172,8 +2183,8 @@ Displays the sequences for rewriting. As the number of sequences may be very
 high, only the first ~max~ sequences are printed.
 
 */
-void Match::printRewriteSeqs(size_t max) {
-  set<pair<vector<size_t>, vector<size_t> > >::iterator it;
+void Match::printRewriteSeqs(unsigned int max) {
+  set<pair<vector<unsigned int>, vector<unsigned int> > >::iterator it;
   unsigned int seqCount = 0;
   it = rewriteSeqs.begin();
   while ((seqCount < max) && (it != rewriteSeqs.end())) {
@@ -2201,7 +2212,8 @@ void Match::updateStates() {
   map<int, set<int> >::iterator j;
   for (i = currentStates.begin(); (i != currentStates.end() && *i < f); i++) {
     for (j = delta[*i].begin(); j != delta[*i].end(); j++) {
-      if (labelsMatch(j->first) && timesMatch(j->first)) {
+      if (labelsMatch(ul.constValue.GetValue(), patterns[j->first].getL())
+       && timesMatch(&ul.timeInterval, patterns[j->first].getI())) {
         if (!patterns[j->first].getW() || !patterns[j->first].getI().empty()
          || !patterns[j->first].getL().empty()) {//(_ a), ((1 _)), () or similar
           match[j->first].insert(ulId);
@@ -2217,24 +2229,24 @@ void Match::updateStates() {
 \subsection{Function ~updatePositionsIndex~}
 
 */
-set<size_t> Match::updatePositionsIndex(MLabel &ml, int patpos,
-                                        set<size_t> mlpos) {
+set<size_t> Match::updatePositionsIndex(MLabel &ml, int pPos,set<size_t> mlpos){
   set<size_t> result, foundpos;
   set<size_t>::iterator j;
-  set<string> labels = patterns[patpos].getL();;
+  set<string> labels = patterns[pPos].getL();;
   set<string>::iterator i = labels.begin();
-  Wildcard w = patterns[patpos].getW();
-  if (*(mlpos.rbegin()) == (size_t)ml.GetNoComponents()) {
+  Wildcard w = patterns[pPos].getW();
+  if (*(mlpos.rbegin()) == (size_t)ml.GetNoComponents()) { // erase final state
     mlpos.erase(*(mlpos.rbegin()));
   }
-  if (w == NO) { // (...), non-empty
+  if (w == NO) { // () or (...)
     while (i != labels.end()) {
       foundpos = ml.index.find(*i);
       for (j = foundpos.begin(); j != foundpos.end(); j++) {
         ml.Get(*j, ul);
-        if (mlpos.count(*j) && timesMatch(patpos)) {
+        if (mlpos.count(*j)
+         && timesMatch(&ul.timeInterval, patterns[pPos].getI())) {
           result.insert(*j + 1);
-          match[patpos].insert(*j);
+          match[pPos].insert(*j);
         }
       }
       i++;
@@ -2242,14 +2254,14 @@ set<size_t> Match::updatePositionsIndex(MLabel &ml, int patpos,
     if (labels.empty()) {
       for (j = mlpos.begin(); j != mlpos.end(); j++) {
         ml.Get(*j + 1, ul);
-        if (timesMatch(patpos)) {
+        if (timesMatch(&ul.timeInterval, patterns[pPos].getI())) {
           result.insert(*j + 1);
-          match[patpos].insert(*j);
+          match[pPos].insert(*j);
         }
       }
     }
   }
-  else if (labels.empty() && patterns[patpos].getI().empty()) { // +, * or (())
+  else if (labels.empty() && patterns[pPos].getI().empty()) { // +, * or (())
     j = result.begin();
     for (size_t k = (w == STAR ? *(mlpos.begin()) : *(mlpos.begin()) + 1);
            (int)k <= ml.GetNoComponents(); k++) {
@@ -2264,7 +2276,8 @@ set<size_t> Match::updatePositionsIndex(MLabel &ml, int patpos,
       foundpos = ml.index.find(*i);
       for (j = foundpos.begin(); j != foundpos.end(); j++) {
         ml.Get(*j, ul);
-        if (timesMatch(patpos) && (mlpos.count(*j) || result.count(*j))) {
+        if (timesMatch(&ul.timeInterval, patterns[pPos].getI())
+         && (mlpos.count(*j) || result.count(*j))) {
           result.insert(*j + 1);
         }
       }
@@ -2277,7 +2290,7 @@ set<size_t> Match::updatePositionsIndex(MLabel &ml, int patpos,
         k = *j;
         while (ok && (k < (size_t)ml.GetNoComponents())) {
           ml.Get(k, ul);
-          if (timesMatch(patpos)) {
+          if (timesMatch(&ul.timeInterval, patterns[pPos].getI())) {
             result.insert(k + 1);
             k++;
           }
@@ -2302,7 +2315,7 @@ parentheses and stores their positions into a set.
 
 */
 void Match::processDoublePars(int pos) {
-  set<size_t>::iterator j;
+  set<unsigned int>::iterator j;
   size_t last = -2;
   size_t count = 0;
   for (j = match[pos].begin(); j != match[pos].end(); j++) {
@@ -2327,9 +2340,9 @@ Computes the set of possible cardinalities for every state.
 
 */
 void Match::computeCardsets() {
-  set<size_t>::iterator j, k;
+  set<unsigned int>::iterator j, k;
   int prev = -1; // previous matching position
-  int numOfNonStars = 0;
+  int numOfNonStars(0), numOfW(0);
   size_t limit;
   for (int i = 0; i < f; i++) {
     if (match[i].size()) {
@@ -2388,8 +2401,11 @@ void Match::computeCardsets() {
     if (patterns[i].getW() != STAR) {
       numOfNonStars++;
     }
+    if (patterns[i].getW() != NO) {
+      numOfW++;
+    }
   }
-  correctCardsets(numOfNonStars);
+  correctCardsets(numOfNonStars, numOfW);
 }
 
 /*
@@ -2401,14 +2417,16 @@ threshold (which depends on the number of non-asterisk units in the pattern)
 are erased.
 
 */
-void Match::correctCardsets(int nonStars) {
-  set<size_t>::iterator j;
-  for (int i = 0; i < f; i++) { // correct zeros
-    if (patterns[i].getW() == STAR) {
-      cardsets[i].insert(0);
-    }
-    else {
-      cardsets[i].erase(0);
+void Match::correctCardsets(int nonStars, int wildcards) {
+  set<unsigned int>::iterator j;
+  for (int i = 0; i < f; i++) {
+    if (wildcards > 1) { // correct zeros for more than one star
+      if (patterns[i].getW() == STAR) {
+        cardsets[i].insert(0);
+      }
+      else {
+        cardsets[i].erase(0);
+      }
     }
     int k = (patterns[i].getW() == STAR ? 1 : 2);
     if ((j = cardsets[i].lower_bound(numOfLabels - nonStars + k))
@@ -2416,93 +2434,6 @@ void Match::correctCardsets(int nonStars) {
       cardsets[i].erase(j, cardsets[i].end());
     }
   }
-}
-
-/*
-\subsection{Function ~timesMatch~}
-
-Checks whether the time interval of the current unit label is completely
-enclosed by every interval of the unit pattern at position pos. If no pattern
-interval is specified, the result is true. The other parameters are necessary
-for a classification.
-
-*/
-bool Match::timesMatch(int pos, ClassifyLI* c/*=0*/, int pat/*=-1*/) {
-  bool result(true), elementOk(false);
-  set<int>::iterator i;
-  set<string>::iterator j;
-  Instant *pStart = new DateTime(instanttype);
-  Instant *pEnd = new DateTime(instanttype);
-  SecInterval *pIv = new SecInterval(0);
-  SecInterval *uIv = new SecInterval(ul.timeInterval);
-  set<string> ivs = (pat > -1 ? c->pats[pat]->getPat(pos).getI()
-                              : patterns[pos].getI());
-  if (!ivs.empty()) {
-    for (j = ivs.begin(); j != ivs.end(); j++) {
-      if (((*j)[0] > 96) && ((*j)[0] < 123)) { // 1st case: semantic date/time
-        elementOk = checkSemanticDate(*j, *uIv, true);
-      }
-      else if (((*j).find('-') == string::npos) // 2nd case: 19:09~22:00
-            && (((*j).find(':') < (*j).find('~')) // on each side of [~],
-                || ((*j)[0] == '~')) // there has to be either xx:yy or nothing
-            && (((*j).find(':', (*j).find('~')) != string::npos)
-                || (*j)[(*j).size() - 1] == '~')) {
-        elementOk = checkDaytime(*j, *uIv);
-      }
-      else {
-        if ((*j)[0] == '~') { // 3rd case: ~2012-05-12
-          pStart->ToMinimum();
-          pEnd->ReadFrom(extendDate((*j).substr(1), false));
-        }
-        else if ((*j)[(*j).size() - 1] == '~') { // 4th case: 2011-04-02-19:09~
-          pStart->ReadFrom(extendDate((*j).substr(0, (*j).size() - 1), true));
-          pEnd->ToMaximum();
-        }
-        else if (((*j).find('~')) == string::npos) { // 5th case: no [~] found
-          pStart->ReadFrom(extendDate(*j, true));
-          pEnd->ReadFrom(extendDate(*j, false));
-        }
-        else { // sixth case: 2012-05-12-20:00~2012-05-12-22:00
-          pStart->ReadFrom(extendDate((*j).substr(0, (*j).find('~')), true));
-          pEnd->ReadFrom(extendDate((*j).substr((*j).find('~') + 1), false));
-        }
-        pIv->Set(*pStart, *pEnd, true, true);
-        elementOk = pIv->Contains(*uIv);
-      }
-      if (!elementOk) { // all intervals have to match
-        result = false;
-      }
-    }
-  }
-  uIv->DeleteIfAllowed();
-  pIv->DeleteIfAllowed();
-  pStart->DeleteIfAllowed();
-  pEnd->DeleteIfAllowed();
-  return result;
-}
-
-/*
-\subsection{Function ~labelsMatch~}
-
-Checks whether the label of the current ULabel matches one of the unit pattern
-labels at position pos. If no label is specified in the pattern, ~true~ is
-returned. The other parameters are necessary for a classification.
-
-*/
-bool Match::labelsMatch(int pos, ClassifyLI* c/*=0*/, int pat/*=-1*/) {
-  bool result = true;
-  set<string>::iterator i;
-  set<string> lbs = (pat > -1 ? c->pats[pat]->getPat(pos).getL()
-                              : patterns[pos].getL());
-  if (!lbs.empty()) {
-    result = false;
-    for (i = lbs.begin(); i != lbs.end(); i++) {
-      if (!ul.constValue.GetValue().compare(*i)) { // look for a matching label
-        result = true;
-      }
-    }
-  }
-  return result;
 }
 
 /*
@@ -2515,12 +2446,12 @@ for ~rewrite~. For ~matches~, see ~getNextSeq~.
 */
 void Match::buildSequences() {
   sequences.clear();
-  multiset<size_t> seq;
-  vector<size_t> cards;
-  set<size_t>::iterator it;
+  multiset<unsigned int> seq;
+  vector<unsigned int> cards;
+  set<unsigned int>::iterator it;
   int maxNumber = 0;
   size_t totalSize = 1;
-  size_t j, cardSum, partSum;
+  unsigned int j, cardSum, partSum;
   for (int i = 0; i < f; i++) { // determine id of most cardinality candidates
     if (cardsets[i].size() > cardsets[maxNumber].size()) {
       maxNumber = i;
@@ -2571,18 +2502,18 @@ Checks the correctness of a sequence concerning double parentheses. Therefore,
 a comparison with the contents of the respective matchings set is performed.
 
 */
-bool Match::checkDoublePars(multiset<size_t> sequence) {
-  vector<size_t> seq(sequence.begin(), sequence.end());
-  size_t max = -1;
-  for (int i = 0; i < (int)seq.size(); i++) {
+bool Match::checkDoublePars(multiset<unsigned int> sequence) {
+  vector<unsigned int> seq(sequence.begin(), sequence.end());
+  unsigned int max = -1;
+  for (unsigned int i = 0; i < seq.size(); i++) {
     if (doublePars.count(i)) {
-      if (i < (int)seq.size() - 1) {
+      if (i < seq.size() - 1) {
         max = seq[i + 1] - 1;
       }
       else {
         max = numOfLabels - 1;
       }  
-      for (size_t j = seq[i]; j <= max; j++) {
+      for (unsigned int j = seq[i]; j <= max; j++) {
         if (!match[i].count(j)) {
           return false;
         }
@@ -2602,7 +2533,7 @@ condition.
 */
 bool Match::conditionsMatch(MLabel const &ml) {
   bool proceed(false);
-  multiset<size_t>::iterator it;
+  multiset<unsigned int>::iterator it;
   if (conds.empty()) {
     return true;
   }
@@ -2623,7 +2554,7 @@ bool Match::conditionsMatch(MLabel const &ml) {
   }
   seqCounter = 0;
   computeSeqOrder();
-  multiset<size_t> seq = getNextSeq();
+  multiset<unsigned int> seq = getNextSeq();
   for (int i = 0; i < (int)conds.size(); i++) {
     do {
       proceed = false;
@@ -2679,16 +2610,16 @@ the sequences are needed. (2) The order of the sequences depends on whether a
 unit pattern is referred to in the conditions.
 
 */
-multiset<size_t> Match::getNextSeq() {
-  multiset<size_t> result;
-  size_t cardSum, partSum, j;
-  set<size_t>::iterator it;
-  multiset<size_t>::iterator m;
+multiset<unsigned int> Match::getNextSeq() {
+  multiset<unsigned int> result;
+  unsigned int cardSum, partSum, j;
+  set<unsigned int>::iterator it;
+  multiset<unsigned>::iterator m;
   while (seqCounter < seqMax) {
     j = seqCounter;
     cardSum = 0;
     partSum = 0;
-    size_t cards[f];
+    unsigned int cards[f];
     result.clear();
     for (int i = 0; i < f; i++) {
       if (seqOrder[i] != maxCardPos) {
@@ -2758,8 +2689,8 @@ This function is invoked by ~conditionsMatch~ and checks whether a sequence of
 possible cardinalities matches a certain condition.
 
 */
-bool Match::evaluateCond(MLabel const &ml, int cId, multiset<size_t> sequence){
-  vector<size_t> seq(sequence.begin(), sequence.end());
+bool Match::evaluateCond(MLabel const &ml, int cId, multiset<unsigned int> sq){
+  vector<size_t> seq(sq.begin(), sq.end());
   Word qResult;
   ULabel ul;
   for (int i = 0; i < conds[cId].getKeysSize(); i++) {
@@ -3018,8 +2949,10 @@ vector<int> Match::applyMultiNFA(ClassifyLI* c, bool rewrite /*=false*/) {
       }
       for (j = delta[*i].begin(); j != delta[*i].end(); j++) {
         if (j->second.size()) {
-          if (labelsMatch(j->first, c, activePat)
-            && timesMatch(j->first, c, activePat)) {
+          if (labelsMatch(ul.constValue.GetValue(),
+                          c->pats[activePat]->getPat(j->first).getL())
+           && timesMatch(&ul.timeInterval,
+                         c->pats[activePat]->getPat(j->first).getI())) {
             newStates.insert(j->second.begin(), j->second.end());
             if (!c->pats[activePat]->getConds().empty() || rewrite) {
               UPat u = c->pats[activePat]->getPat(j->first); //store matches now
@@ -3225,7 +3158,7 @@ Computes a multiple rewrite result, i.e., a vector of MLabels.
 */
 void Match::multiRewrite(ClassifyLI* c) {
   MLabel *ml = 0;
-  set<pair<vector<size_t>, vector<size_t> > >::iterator it;
+  set<pair<vector<unsigned int>, vector<unsigned int> > >::iterator it;
   for (unsigned int i = 0; i < c->matched.size(); i++) {
     rewriteSeqs.clear();
     patterns = c->pats[c->matched[i]]->getPats();
@@ -3791,7 +3724,7 @@ int rewriteVM_MT(Word* args, Word& result, int message, Word& local,
         else {
           MLabel* mlNew = new MLabel(1);
           *mlNew = *mlabel;
-          set<pair<vector<size_t>, vector<size_t> > > rewriteSeqs =
+          set<pair<vector<unsigned int>, vector<unsigned int> > > rewriteSeqs =
                                                       p->getRewriteSeqs(*mlNew);
           map<string, int> varPosInSeq = p->getVarPosInSeq();
           rr = new RewriteResult(rewriteSeqs, mlNew, p->getAssigns(),
@@ -3870,7 +3803,7 @@ int rewriteVM_MP(Word* args, Word& result, int message, Word& local,
         p->setVerified(true);
         MLabel* mlNew = new MLabel(1);
         *mlNew = *mlabel;
-        set<pair<vector<size_t>, vector<size_t> > > rewriteSeqs =
+        set<pair<vector<unsigned int>, vector<unsigned int> > > rewriteSeqs =
                                                     p->getRewriteSeqs(*mlNew);
         map<string, int> varPosInSeq = p->getVarPosInSeq();
         rr = new RewriteResult(rewriteSeqs, mlNew, p->getAssigns(),
@@ -4020,7 +3953,7 @@ ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream) :
   mlStream.open();
   Tuple* inputTuple = pStream.request();
   int startPos = 0;
-  set<size_t> emptyset;
+  set<unsigned int> emptyset;
   while (inputTuple) {
     if (!(CcString*)inputTuple->GetAttribute(0)->IsDefined()
      || !(FText*)inputTuple->GetAttribute(1)->IsDefined()) {
@@ -4076,7 +4009,7 @@ ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, bool rewrite) :
   mlStream.open();
   FText* inputText = pStream.request();
   int startPos = 0;
-  set<size_t> emptyset;
+  set<unsigned int> emptyset;
   while (inputText) {
     if (!inputText->IsDefined()) {
       cout << "undefined input" << endl;
@@ -4162,7 +4095,7 @@ TupleType* ClassifyLI::getTupleType() {
 
 */
 void ClassifyLI::printMatches() {
-  set<size_t>::iterator it;
+  set<unsigned int>::iterator it;
   for (unsigned int i = 0; i < pats.size(); i++) {
     cout << "--===-- Pattern " << i << " --===--" << endl;
     for (unsigned int j = 0; j < matches[i].size(); j++) {
@@ -4369,7 +4302,7 @@ This constructor is used for the operator ~indexclassify~.
 
 */
 IndexClassifyLI::IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv) :
-                                 pStream(_pstream), p(0), match(0) {
+                                                pStream(_pstream), p(0) {
   mlRel = (Relation*)_mlrel.addr;
   invFile = static_cast<InvertedFile*>(_inv.addr);
   classifyTT = ClassifyLI::getTupleType();
@@ -4377,37 +4310,136 @@ IndexClassifyLI::IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv) :
 }
 
 /*
-\subsection{Function ~match~}
+\subsection{Function ~updatePositionsMultiIndex~}
+
+*/
+set<pair<TupleId, unsigned int> > IndexClassifyLI::updatePositionsMultiIndex(
+                          int pPos, set<pair<TupleId, unsigned int> > oldPos) {
+  set<pair<TupleId, unsigned int> > result;
+  Wildcard w = p->getPat(pPos).getW();
+  set<string> labels = p->getPat(pPos).getL();;
+  set<string>::iterator i = labels.begin();
+  set<pair<TupleId, unsigned int> >::iterator it, it2;
+  InvertedFile::exactIterator* eit = 0;
+  TupleId id;
+  wordPosType wc;
+  charPosType cc;
+  ULabel ul(1);
+  if (w == NO) { // () or (...)
+    while (i != labels.end()) {
+      eit = invFile->getExactIterator(*i, 4096);
+      while (eit->next(id, wc, cc)) {
+        ul = getUL(id, wc);
+        if (oldPos.count(make_pair(id, wc))
+         && timesMatch(&ul.timeInterval, p->getPat(pPos).getI())) {
+          result.insert(make_pair(id, wc + 1));
+          matches[id - 1][pPos].insert(wc);
+        }
+      }
+      i++;
+    }
+    if (labels.empty()) {
+      if (p->getPat(pPos).getI().empty()) { // no time interval
+        for (it = oldPos.begin(); it != oldPos.end(); it++) {
+          result.insert(make_pair(it->first, it->second + 1));
+          matches[it->first - 1][pPos].insert(it->second);
+        }
+      }
+      else { // check time intervals
+        for (it = oldPos.begin(); it != oldPos.end(); it++) {
+          ul = getUL(id, wc);
+          if (timesMatch(&ul.timeInterval, p->getPat(pPos).getI())) {
+            result.insert(make_pair(it->first, it->second + 1));
+            matches[it->first - 1][pPos].insert(it->second);
+          }
+        }
+      }
+    }
+  }
+  else if (labels.empty() && p->getPat(pPos).getI().empty()) { // +, * or (())
+    it2 = result.begin();
+    for (it = oldPos.begin(); it != oldPos.end(); it++) {
+      for (int j = (w == STAR ? it->second : it->second + 1);
+           j <= getMLsize(it->first); j++) {
+        result.insert(it2, make_pair(it->first, j));
+        it2++;
+      }
+    }
+  }
+  else { // ((...)), non-empty
+    bool ok = true;
+    while (i != labels.end()) {
+      eit = invFile->getExactIterator(*i, 4096);
+      while (eit->next(id, wc, cc)) {
+        ul = getUL(id, wc);
+        if ((oldPos.count(make_pair(id, wc)) || result.count(make_pair(id, wc)))
+         && timesMatch(&ul.timeInterval, p->getPat(pPos).getI())) {
+          result.insert(make_pair(id, wc + 1));
+          matches[id - 1][pPos].insert(wc);
+        }
+      }
+      i++;
+    }
+    if (labels.empty()) {
+      it = oldPos.begin();
+      ok = true;
+      while (it != oldPos.end()) {
+        unsigned int k = it->second;
+        while (ok && (k < (unsigned int)getMLsize(it->first))) {
+          ul = getUL(it->first, k);
+          if (timesMatch(&ul.timeInterval, p->getPat(pPos).getI())) {
+            result.insert(make_pair(it->first, k + 1));
+            matches[it->first - 1][pPos].insert(wc);
+            k++;
+          }
+          else {
+            ok = false;
+          }
+        }
+        do { // find next relevant position
+          it++;
+        } while ((it != oldPos.end()) && (it->second <= k));
+      }
+    }
+  }
+  if (eit) {
+    delete eit;
+  }
+  return result;
+}
+
+/*
+\subsection{Function ~applyPattern~}
 
 */
 set<TupleId> IndexClassifyLI::applyPattern() {
   set<TupleId> result;
-  set<pair<TupleId, size_t> > positions;
-  TupleId id;
-  wordPosType wc;
-  charPosType cc;
-  string label = *(p->getPat(1).getL().begin());
-  cout << "label=" << label << endl;
-  InvertedFile::exactIterator* it = invFile->getExactIterator(label, 4096);
-  cout << "got exactIterator" << endl;
-  while (it->next(id, wc, cc)) {
-    cout << label << ": " << id << " " << wc << " " << cc << endl;
-    result.insert(id);
+  set<pair<TupleId, unsigned int> > positions;
+  for (int i = 1; i <= mlRel->GetNoTuples(); i++) { // initialization
+    positions.insert(make_pair(i, 0)); 
   }
-  if (it) {
-    delete it;
+  for (int i = 0; i < p->getSize(); i++) { // iterate over unit patterns
+    positions = updatePositionsMultiIndex(i, positions);
+    if (positions.empty()) {
+      return result;
+    }
+  }
+  if ((int)positions.size() > mlRel->GetNoTuples()) { // choose efficient method
+    for (int i = 0; i < mlRel->GetNoTuples(); i++) {
+      if (positions.count(make_pair(i + 1, getMLsize(i + 1)))) {
+        result.insert(i + 1);
+      }
+    }
+  }
+  else {
+    for (set<pair<TupleId, unsigned int> >::iterator it = positions.begin();
+                                                  it != positions.end(); it++) {
+      if ((int)it->second == getMLsize(it->first)) {
+        result.insert(it->first);
+      }
+    }
   }
   return result;
-  
-//   for (int i = 1; i < p->getSize(); i++) {
-//     positions = updatePositions(i, positions);
-//     if (positions.empty()) {
-//       return false;
-//     }
-//   }
-//   if (!positions.count(ml.GetNoComponents())) {// final ml position inactive?
-//     return false;
-//   }
 }
 
 /*
@@ -4415,9 +4447,50 @@ set<TupleId> IndexClassifyLI::applyPattern() {
 
 */
 void IndexClassifyLI::applyConditions(set<TupleId> tupleIds) {
-  for (set<TupleId>::iterator i = tupleIds.begin(); i != tupleIds.end(); i++) {
-    classification.push(make_pair(p->getDescr(), *i + 1));
+  if (p->getConds().empty()) { // no condition
+    for (set<TupleId>::iterator i = tupleIds.begin(); i != tupleIds.end(); i++){
+      classification.push(make_pair(p->getDescr(), *i));
+    }
   }
+  else {
+    for (set<TupleId>::iterator i = tupleIds.begin(); i != tupleIds.end(); i++){
+      if (tupleIds.count(*i)) {
+        Match* m = new Match(this, *i);
+        m->computeCardsets();
+        m->initCondOpTrees();
+        Tuple* tuple = mlRel->GetTuple(*i, false);
+        if (m->conditionsMatch((MLabel*)tuple->GetAttribute(1))) {
+          classification.push(make_pair(p->getDescr(), *i));
+        }
+        deleteIfAllowed(tuple);
+        m->deleteCondOpTrees();
+        delete m;
+      }
+    }
+  }
+}
+
+/*
+\subsection{Function ~getMLsize~}
+
+*/
+int IndexClassifyLI::getMLsize(TupleId tId) {
+  Tuple* tuple = mlRel->GetTuple(tId, false);
+  int result = ((MLabel*)tuple->GetAttribute(1))->GetNoComponents();
+  deleteIfAllowed(tuple);
+  return result;
+}
+
+/*
+\subsection{Function ~getUL~}
+
+*/
+ULabel IndexClassifyLI::getUL(TupleId tId, unsigned int ulId) {
+  ULabel result(1);
+  Tuple* tuple = mlRel->GetTuple(tId, false);
+  ((MLabel*)tuple->GetAttribute(1))->Get(ulId, result);
+  deleteIfAllowed(tuple);
+  return result;
 }
 
 /*
@@ -4452,14 +4525,13 @@ Tuple* IndexClassifyLI::nextResultTuple() {
                    ((FText*)pTuple->GetAttribute(1))->GetValue(), true);
       if (p) {
         p->setDescr(((CcString*)pTuple->GetAttribute(0))->GetValue());
-        cout << "::::::::::::" << p->getDescr() << endl;
-        cout << p->GetText() << endl;
-        // TODO: find all mlabels matching p's unit patterns with an array of
-        // pair<TupleId, size_t> representing the Tuple and the unit
+        matches = new vector<set<unsigned int> >[mlRel->GetNoTuples()];
+        for (int i = 0; i < mlRel->GetNoTuples(); i++) {
+          matches[i].resize(p->getSize());
+        }
         set<TupleId> matchingMLs = applyPattern();
-
-        // TODO: apply conditions and insert results into classification
         applyConditions(matchingMLs);
+        delete[] matches;
       }
     }
     pTuple->DeleteIfAllowed();
@@ -4470,9 +4542,7 @@ Tuple* IndexClassifyLI::nextResultTuple() {
   Tuple *result = new Tuple(classifyTT);
   result->PutAttribute(0, new FText(true, onePair.first));
   Tuple* tuple = mlRel->GetTuple(onePair.second, false);
-  cout << "Attribute 1 of Tuple " << onePair.second << " ...";
   ml = (MLabel*)tuple->GetAttribute(1)->Copy();
-  cout << " has " << ml->GetNoComponents() << " components" << endl;
   result->PutAttribute(1, ml);
   classification.pop();
   tuple->DeleteIfAllowed();
@@ -4487,10 +4557,6 @@ IndexClassifyLI::~IndexClassifyLI() {
   if (classifyTT) {
     delete classifyTT;
     classifyTT = 0;
-  }
-  if (match) {
-    delete match;
-    match = 0;
   }
   if (p) {
     delete p;
@@ -5019,8 +5085,8 @@ int createrelindexVM(Word* args, Word& result, int message, Word& local,
   }
   appendcache::RecordAppendCache* cache = inv->createAppendCache(invCacheSize);
   TrieNodeCacheType* trieCache = inv->createTrieCache(trieCacheSize);
-  for (int i = 1; i <= rel->GetNoTuples(); i++) {
-    tuple = rel->GetTuple(i, false);
+  for (int i = 0; i < rel->GetNoTuples(); i++) {
+    tuple = rel->GetTuple(i + 1, false);
     ml = (MLabel*)tuple->GetAttribute(1);
     for (int j = 0; j < ml->GetNoComponents(); j++) {
       ml->Get(j, ul);

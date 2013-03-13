@@ -454,13 +454,91 @@ bool checkDaytime(const string text, const SecInterval uIv) {
 }
 
 /*
+\subsection{Function ~timesMatch~}
+
+Checks whether the time interval ~uIv~ is completely enclosed by each of the
+intervals specified in ~ivs~. If ~ivs~ is empty, the result is ~true~.
+
+*/
+bool timesMatch(Interval<DateTime>* iv, set<string> ivs) {
+  bool result(true), elementOk(false);
+  set<string>::iterator j;
+  Instant *pStart = new DateTime(instanttype);
+  Instant *pEnd = new DateTime(instanttype);
+  SecInterval *pIv = new SecInterval(0);
+  SecInterval uIv(*iv);
+  if (!ivs.empty()) {
+    for (j = ivs.begin(); j != ivs.end(); j++) {
+      if (((*j)[0] > 96) && ((*j)[0] < 123)) { // 1st case: semantic date/time
+        elementOk = checkSemanticDate(*j, uIv, true);
+      }
+      else if (((*j).find('-') == string::npos) // 2nd case: 19:09~22:00
+            && (((*j).find(':') < (*j).find('~')) // on each side of [~],
+                || ((*j)[0] == '~')) // there has to be either xx:yy or nothing
+            && (((*j).find(':', (*j).find('~')) != string::npos)
+                || (*j)[(*j).size() - 1] == '~')) {
+        elementOk = checkDaytime(*j, uIv);
+      }
+      else {
+        if ((*j)[0] == '~') { // 3rd case: ~2012-05-12
+          pStart->ToMinimum();
+          pEnd->ReadFrom(extendDate((*j).substr(1), false));
+        }
+        else if ((*j)[(*j).size() - 1] == '~') { // 4th case: 2011-04-02-19:09~
+          pStart->ReadFrom(extendDate((*j).substr(0, (*j).size() - 1), true));
+          pEnd->ToMaximum();
+        }
+        else if (((*j).find('~')) == string::npos) { // 5th case: no [~] found
+          pStart->ReadFrom(extendDate(*j, true));
+          pEnd->ReadFrom(extendDate(*j, false));
+        }
+        else { // sixth case: 2012-05-12-20:00~2012-05-12-22:00
+          pStart->ReadFrom(extendDate((*j).substr(0, (*j).find('~')), true));
+          pEnd->ReadFrom(extendDate((*j).substr((*j).find('~') + 1), false));
+        }
+        pIv->Set(*pStart, *pEnd, true, true);
+        elementOk = pIv->Contains(uIv);
+      }
+      if (!elementOk) { // all intervals have to match
+        result = false;
+      }
+    }
+  }
+  pIv->DeleteIfAllowed();
+  pStart->DeleteIfAllowed();
+  pEnd->DeleteIfAllowed();
+  return result;
+}
+
+/*
+\subsection{Function ~labelsMatch~}
+
+Checks whether the string ~label~ matches one of the strings from the set ~lbs~.
+If ~lbs~ is empty, ~true~ is returned.
+
+*/
+bool labelsMatch(string label, set<string> lbs) {
+  bool result = true;
+  set<string>::iterator i;
+  if (!lbs.empty()) {
+    result = false;
+    for (i = lbs.begin(); i != lbs.end(); i++) {
+      if (!label.compare(*i)) { // look for a matching label
+        result = true;
+      }
+    }
+  }
+  return result;
+}
+
+/*
 function ~checkAndPrintSeq~
 
 Checks a rewrite sequence and prints it
 
 */
-bool checkRewriteSeq(pair<vector<size_t>, vector<size_t> > seq, size_t maxSize,
-                     bool print) {
+bool checkRewriteSeq(pair<vector<unsigned int>, vector<unsigned int> > seq,
+                     unsigned int maxSize, bool print) {
   for (int i = 0; i < (int)seq.second.size(); i = i + 2) {
     if ((seq.second[i] < 0) || (seq.second[i] > maxSize)
      || (seq.second[i] >= seq.second[i + 1])) {

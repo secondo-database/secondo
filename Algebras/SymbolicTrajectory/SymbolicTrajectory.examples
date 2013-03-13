@@ -47,8 +47,7 @@ Operator : indexclassify
 Number   : 1
 Signature: stream(tuple(string, text)) x relation(..., mlabel, ...) x invfile -> stream(tuple(string, mlabel))
 Example  : query (patterns1 feed indexclassify [Dotrajsmall, Doindexsmall]) count
-Result   : unpredictable
-Remark   : not finished yet
+Result   : 3
 
 Operator : rewrite
 Number   : 3

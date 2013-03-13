@@ -44,7 +44,6 @@ Algebra.
 #include <set>
 #include <map>
 #include "Pattern.h"
-#include "SymbolicTrajectoryTools.h"
 
 using namespace std;
 using namespace stj;

@@ -36,7 +36,7 @@ This is the header file for the Symbolic Trajectory Algebra.
 
 */
 #include "NestedList.h"
-// #include "SymbolicTrajectoryTools.h"
+#include "SymbolicTrajectoryTools.h"
 #include "StandardTypes.h"
 #include "TemporalAlgebra.h"
 #include "ListUtils.h"
@@ -60,6 +60,7 @@ class UPat;
 class Assign;
 class ClassifyLI;
 class Label;
+class IndexClassifyLI;
 
 enum Wildcard {NO, STAR, PLUS};
 
@@ -95,7 +96,7 @@ class MLabel : public MString {
   MLabel* compress();
   void createML(int size, bool text, double rate);
   void rewrite(MLabel const &ml,
-               const pair<vector<size_t>, vector<size_t> > &seq,
+               const pair<vector<unsigned int>, vector<unsigned int> > &seq,
                vector<Assign> assigns, map<string, int> varPos);
 
   MLabelIndex index;
@@ -328,7 +329,8 @@ class Pattern {
   static Pattern* getPattern(string input, bool classify = false);
   bool matches(MLabel &ml) const;
   bool verifyPattern() const;
-  set<pair<vector<size_t>, vector<size_t> > > getRewriteSeqs(MLabel &ml);
+  set<pair<vector<unsigned int>, vector<unsigned int> > > getRewriteSeqs
+                                                                   (MLabel &ml);
   map<string, int> getVarPosInSeq();
   int getResultPos(const string v);
   void collectAssVars();
@@ -390,9 +392,9 @@ class Match {
   int maxCardPos, numOfW, f; // number of the final state
   ULabel ul;
   size_t ulId, numOfLabels, seqCounter, seqMax, numOfNegEvals;
-  set<size_t> *match, *cardsets;
-  set<multiset<size_t> > sequences; // all possible matching sequences
-  set<pair<vector<size_t>, vector<size_t> > > rewriteSeqs; // rewrite sequences
+  set<unsigned int> *match, *cardsets;
+  set<multiset<unsigned int> > sequences; // all possible matching sequences
+  set<pair<vector<unsigned int>, vector<unsigned int> > > rewriteSeqs;
   map<int, int> resultVars; // (0,3) means: 0th result var occurs in 3rd unit p.
   set<string> assignedVars;
   map<string, int> varPos, varPosInSeq;
@@ -408,10 +410,12 @@ class Match {
     for (int i = 0; i < f; i++) {
       delta.push_back(emptyMapping);
     }
-    match = new set<size_t>[f];
-    cardsets = new set<size_t>[f];
+    match = new set<unsigned int>[f];
+    cardsets = new set<unsigned int>[f];
     seqOrder = new int[f];
   }
+
+  Match(IndexClassifyLI* li, TupleId tId);
 
   ~Match() {
     delete[] match;
@@ -422,28 +426,26 @@ class Match {
   bool matches(MLabel &ml, bool rewrite = false);
   void printCurrentStates();
   void printCards();
-  void printSequences(size_t max);
-  void printRewriteSeqs(size_t max);
+  void printSequences(unsigned int max);
+  void printRewriteSeqs(unsigned int max);
   void updateStates();
   set<size_t> updatePositionsIndex(MLabel &ml, int pos, set<size_t> positions);
-  bool labelsMatch(int pos, ClassifyLI* c = 0, int pat = -1);
-  bool timesMatch(int pos, ClassifyLI* c = 0, int pat = -1);
   void computeCardsets();
-  void correctCardsets(int nonStars);
+  void correctCardsets(int nonStars, int wildcards);
   void processDoublePars(int pos);
-  bool checkDoublePars(multiset<size_t> sequence);
+  bool checkDoublePars(multiset<unsigned int> sequence);
   void buildSequences(); // for rewrite, every sequence must be built
-  multiset<size_t> getNextSeq(); // for matches, we just need the next sequence
+  multiset<unsigned int> getNextSeq(); // for matches, we just need the next seq
   void filterSequences(MLabel const &ml);
-  void buildRewriteSeq(multiset<size_t> sequence);
+  void buildRewriteSeq(multiset<unsigned int> sequence);
   void computeResultVars(vector<Assign> assigns);
-  set<pair<vector<size_t>, vector<size_t> > > getRewriteSeqs()
+  set<pair<vector<unsigned int>, vector<unsigned int> > > getRewriteSeqs()
                                               {return rewriteSeqs;}
   bool conditionsMatch(MLabel const &ml);
   void computeSeqOrder();
   bool evaluateEmptyML();
-  bool evaluateCond(MLabel const &ml, int cId, multiset<size_t> sequence);
-  set<multiset<size_t> > getSequences() {return sequences;}
+  bool evaluateCond(MLabel const &ml, int cId, multiset<unsigned int> sequence);
+  set<multiset<unsigned int> > getSequences() {return sequences;}
   set<string> getAssVars() {return assignedVars;}
   void setAssVars(set<string> aV) {assignedVars = aV;}
   void setVarPos(map<string, int> vP) {varPos = vP;}
@@ -473,15 +475,15 @@ class Match {
 
 class RewriteResult {
  private:
-  set<pair<vector<size_t>, vector<size_t> > > sequences; // matching sequences
-  set<pair<vector<size_t>, vector<size_t> > >::iterator it;
+  set<pair<vector<unsigned int>, vector<unsigned int> > > sequences; //matching
+  set<pair<vector<unsigned int>, vector<unsigned int> > >::iterator it;
   MLabel *inputML;
   vector<Assign> assigns;
   map<string, int> varPosInSeq;
   
  public:
-  RewriteResult(set<pair<vector<size_t>, vector<size_t> > > seqs, MLabel *ml,
-                vector<Assign> assigns, map<string, int> vPIS){
+  RewriteResult(set<pair<vector<unsigned int>, vector<unsigned int> > > seqs,
+                MLabel *ml, vector<Assign> assigns, map<string, int> vPIS){
     sequences = seqs;
     it = sequences.begin();
     inputML = ml;
@@ -503,7 +505,7 @@ class RewriteResult {
   vector<Assign>   getAssignments() {return assigns;}
   void             next()           {it++;}
   map<string, int> getVarPosInSeq() {return varPosInSeq;}
-  pair<vector<size_t>, vector<size_t> > getCurrentSeq() {return *it;}
+  pair<vector<unsigned int>, vector<unsigned int> > getCurrentSeq(){return *it;}
 };
 
 class ClassifyLI {
@@ -532,7 +534,7 @@ private:
   int numOfStates;
   MLabel* currentML;
   Match* mainMatch;
-  map<int, vector<set<size_t> > > matches;//pattern_id -> (upat -> set(ulabel))
+  map<int, vector<set<unsigned int> > > matches;//patternid->(upat->set(ulabel))
   vector<MLabel*> rewritten;
 };
 
@@ -547,18 +549,23 @@ public:
   ~IndexClassifyLI();
 
   Tuple* nextResultTuple();
+  set<pair<TupleId, unsigned int> > updatePositionsMultiIndex(int pPos,
+                              set<pair<TupleId, unsigned int> > oldPos);
   set<TupleId> applyPattern(); // apply unit patterns of p to mlRel
   void applyConditions(set<TupleId> matchingMLs); // filter set
+  int getMLsize(TupleId tId);
+  ULabel getUL(TupleId tId, unsigned int ulId);
 
 private:
   Stream<Tuple> pStream;
   Relation *mlRel;
   queue<pair<string, TupleId> > classification;
+  vector<set<unsigned int> >* matches; // TupleId, unit pattern, unit label
   TupleType* classifyTT;
   Pattern* p;
-  Match* match;
   InvertedFile* invFile;
   int attrNr;
+  size_t maxMLsize;
 };
 
 }
