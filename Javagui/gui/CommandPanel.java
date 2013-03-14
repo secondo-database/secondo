@@ -137,6 +137,7 @@ public class CommandPanel extends JScrollPane {
   /** Reopends the currently opened database.
    **/
   private boolean reopenDatabase(){
+    System.out.println("reopen database called");
     if(OpenedDatabase.length()==0){
       return false;
     }
@@ -146,6 +147,37 @@ public class CommandPanel extends JScrollPane {
     }
     return execUserCommand("open database " + db);
   }
+
+
+   /* retrieves the name of the currently open database
+    * directly from Secondo. If Secondo is not available or 
+    * no database is open, null is returned.
+    */
+   public String retrieveDBName(){
+      if(!Secondointerface.isInitialized()){
+         return null;
+      }
+      ListExpr resultList = new ListExpr();
+      IntByReference errorCode = new IntByReference(0);
+      IntByReference errorPos = new IntByReference(0);
+      StringBuffer errorMessage = new StringBuffer();
+      Secondointerface.secondo("query getDatabaseName()",
+                                   resultList,
+                                   errorCode, errorPos, errorMessage);
+       if(errorCode.value!=0){
+          return null;
+       }
+       if(resultList.listLength()!=2){
+          return null;
+       }
+       if(resultList.second().atomType() != ListExpr.STRING_ATOM){
+          return null;
+       }  
+       String name = resultList.second().stringValue().trim();
+       return name.isEmpty()?null:name;  
+
+   } 
+
 
 
 
@@ -1011,7 +1043,9 @@ public class CommandPanel extends JScrollPane {
             RV.processResult(command,resultList,errorCode,
                              errorPos,errorMessage);
            boolean succ = errorCode.value==0;
-           if(succ){
+           String tcommand = command.trim();
+           boolean isSequence = tcommand.startsWith("{") && tcommand.endsWith("}");
+           if(succ || isSequence){
                informListeners(command);
             }
             else if(!Secondointerface.isConnected()){ // connection lost
@@ -1117,7 +1151,9 @@ public class CommandPanel extends JScrollPane {
     }
 
     int res = errorCode.value;
-    if(res==0)
+    String tcommand = command.trim();
+    boolean  isSequence = tcommand.startsWith("{") && tcommand.endsWith("}");
+    if(res==0 || isSequence)
        informListeners(command);
     else if(!Secondointerface.isConnected()) // connection lost
        informListeners("disconnect");
@@ -1150,8 +1186,12 @@ public class CommandPanel extends JScrollPane {
     if(tools.Environment.MEASURE_TIME){
        Reporter.writeInfo("used time for query: "+(System.currentTimeMillis()-starttime)+" ms");
     }
-
+    String tcommand = command.trim();
+    boolean isSequence = tcommand.startsWith("{") && tcommand.endsWith("}");
     if(errorCode.value!=0){
+       if(isSequence){
+         informListeners(command);
+       }
        if(!Secondointerface.isConnected())
           informListeners("disconnect");
        return  null;
@@ -1299,6 +1339,43 @@ public class CommandPanel extends JScrollPane {
   /** informs all SecondoChangeListeners about changes in Secondo */
   private void informListeners(String cmd){
     cmd = cmd.trim();
+
+
+
+    if(cmd.startsWith("{") && cmd.endsWith("}")){
+
+       for(int i=0;i<ChangeListeners.size();i++){
+       SecondoChangeListener SCL = (SecondoChangeListener) ChangeListeners.get(i);
+         // a sequence command, it's not clear what all happened during this command
+         // may be some of the subcommands failed, other was successful
+         String newDBName = retrieveDBName();
+         if(OpenedDatabase!=null && !OpenedDatabase.isEmpty()){
+            if(newDBName!=null){
+                SCL.databaseOpened(newDBName);
+                OpenedDatabase = newDBName;
+            } else { // database was closed and is closed after that command sequence
+               OpenedDatabase = "";
+            }
+         }  else{
+            if(newDBName==null){ // no open database
+                OpenedDatabase="";
+                SCL.databaseClosed();
+            } else if(!newDBName.equals(OpenedDatabase)){
+                // another database was opened
+                SCL.databaseClosed();
+                OpenedDatabase = newDBName;
+                SCL.databaseOpened(newDBName);
+            } else { // the same database
+                SCL.objectsChanged(); // may be some objects are deleted, inserted or modified
+                SCL.databasesChanged(); // may be a database is created, removed
+            }
+         }
+         
+      }
+      return;
+   }
+
+
     if(cmd.startsWith("("))
        cmd = cmd.substring(1).trim();
 
@@ -1313,34 +1390,27 @@ public class CommandPanel extends JScrollPane {
       else
       if(cmd.indexOf(" database ")>=0 && cmd.startsWith("open")){
          int index = cmd.lastIndexOf(" ");
-	 String DBName = cmd.substring(index+1);
+         String DBName = cmd.substring(index+1);
          SCL.databaseOpened(DBName);
-	 OpenedDatabase=DBName;
-      }
-      else
-      if(cmd.startsWith("restore") && cmd.indexOf(" database ")>0){
+         OpenedDatabase=DBName;
+      } else if(cmd.startsWith("restore") && cmd.indexOf(" database ")>0){
          int index1 = cmd.indexOf("database")+9;
          int index2 = cmd.indexOf("from")-1;
-	 if(index1<0 | index2<0)
-	    return;
-	 String DBName = cmd.substring(index1,index2).trim();
-	SCL.databaseOpened(DBName);
-	OpenedDatabase=DBName;
-      }
-      else
-      if(cmd.endsWith(" database") && cmd.startsWith("close")){
+         if(index1<0 | index2<0)
+      	    return;
+         String DBName = cmd.substring(index1,index2).trim();
+         SCL.databaseOpened(DBName);
+         OpenedDatabase=DBName;
+      } else if(cmd.endsWith(" database") && cmd.startsWith("close")){
          OpenedDatabase="";
          SCL.databaseClosed();
-      }
-      else
-      if(cmd.startsWith("create ") || cmd.startsWith("delete ") || cmd.startsWith("let ") ||
+      } else if(cmd.startsWith("create ") || cmd.startsWith("delete ") || cmd.startsWith("let ") ||
          cmd.startsWith("update "))
-	 SCL.objectsChanged();
-      else
-      if(cmd.equals("connect"))
+         SCL.objectsChanged();
+      else if(cmd.equals("connect"))
           SCL.connectionOpened();
-      if(cmd.equals("disconnect"))
-          SCL.connectionClosed();
+          if(cmd.equals("disconnect"))
+             SCL.connectionClosed();
     }
   }
 
