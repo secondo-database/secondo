@@ -4252,9 +4252,9 @@ struct classifyInfo : OperatorInfo {
 */
 ListExpr indexclassifyTypeMap(ListExpr args) {
   const string errMsg = "Expecting a stream(tuple(x, y)) with x,y in "
-             "{string, text}, a Relation with a {mlabel, mstring} attribute, "
-             "and an invfile";
-  if (nl->HasLength(args, 3)) {
+             "{string, text}, a relation, the name of an {mlabel, mstring} "
+             "attribute of that relation, and an invfile";
+  if (nl->HasLength(args, 4)) {
     if (Stream<Tuple>::checkType(nl->First(args))) {
       ListExpr dType, pType;
       if(nl->ListLength(nl->Second(nl->Second(nl->First(args)))) != 2){
@@ -4265,28 +4265,33 @@ ListExpr indexclassifyTypeMap(ListExpr args) {
       if ((CcString::checkType(dType) || FText::checkType(dType))
        && (CcString::checkType(pType) || FText::checkType(pType))) {
         if (Relation::checkType(nl->Second(args))) {
-          ListExpr first = nl->TheEmptyList();
-          ListExpr rest = nl->First
-                              (nl->Rest(nl->First(nl->Rest(nl->Second(args)))));
-          bool found = false;
-          int pos = -1;
-          while (!nl->IsEmpty(rest) && !found) {
-            first = nl->First(rest);
-            rest = nl->Rest(rest);
-            pos++;
-            if (MLabel::checkType(nl->Second(first))
-             || MString::checkType(nl->Second(first))) {
-               found = true;
+          if (Tuple::checkType(nl->First(nl->Rest(nl->Second(args))))
+           && listutils::isSymbol(nl->Third(args))) {
+            ListExpr attrType;
+            ListExpr attrList =
+                              nl->Second(nl->First(nl->Rest(nl->Second(args))));
+            string attrName = nl->SymbolValue(nl->Third(args));
+            int i = listutils::findAttribute(attrList, attrName, attrType);
+            if (i == 0) {
+              return listutils::typeError(attrName + " not found");
             }
-          }
-          if (found && InvertedFile::checkType(nl->Third(args))) {
-            ListExpr outputAttrs = nl->TwoElemList(
-              nl->TwoElemList(nl->SymbolAtom("Description"),
-                              nl->SymbolAtom(FText::BasicType())),
-              nl->TwoElemList(nl->SymbolAtom("Trajectory"), nl->Second(first)));
-            return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                             nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-                                             outputAttrs));
+            if (!MLabel::checkType(attrType) && !MString::checkType(attrType)) {
+              return listutils::typeError
+                     ("type " + nl->ToString(attrType) + " is an invalid type");
+            }
+            if (InvertedFile::checkType(nl->Fourth(args))) {
+              ListExpr outputAttrs = nl->TwoElemList(
+                            nl->TwoElemList(nl->SymbolAtom("Description"),
+                                            nl->SymbolAtom(FText::BasicType())),
+                            nl->TwoElemList(nl->SymbolAtom("Trajectory"),
+                                            attrType));
+              return nl->ThreeElemList(
+                nl->SymbolAtom(Symbol::APPEND()),
+                nl->OneElemList(nl->IntAtom(i)),
+                nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                            nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                            outputAttrs)));
+            }
           }
         }
       }
@@ -4301,10 +4306,11 @@ ListExpr indexclassifyTypeMap(ListExpr args) {
 This constructor is used for the operator ~indexclassify~.
 
 */
-IndexClassifyLI::IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv) :
-                                                pStream(_pstream), p(0) {
+IndexClassifyLI::IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv,
+                                 Word _attrNr) : pStream(_pstream), p(0) {
   mlRel = (Relation*)_mlrel.addr;
   invFile = static_cast<InvertedFile*>(_inv.addr);
+  attrNr = ((CcInt*)_attrNr.addr)->GetIntval() - 1;
   classifyTT = ClassifyLI::getTupleType();
   pStream.open();
 }
@@ -4459,7 +4465,7 @@ void IndexClassifyLI::applyConditions(set<TupleId> tupleIds) {
         m->computeCardsets();
         m->initCondOpTrees();
         Tuple* tuple = mlRel->GetTuple(*i, false);
-        if (m->conditionsMatch((MLabel*)tuple->GetAttribute(1))) {
+        if (m->conditionsMatch((MLabel*)tuple->GetAttribute(attrNr))) {
           classification.push(make_pair(p->getDescr(), *i));
         }
         deleteIfAllowed(tuple);
@@ -4476,7 +4482,7 @@ void IndexClassifyLI::applyConditions(set<TupleId> tupleIds) {
 */
 int IndexClassifyLI::getMLsize(TupleId tId) {
   Tuple* tuple = mlRel->GetTuple(tId, false);
-  int result = ((MLabel*)tuple->GetAttribute(1))->GetNoComponents();
+  int result = ((MLabel*)tuple->GetAttribute(attrNr))->GetNoComponents();
   deleteIfAllowed(tuple);
   return result;
 }
@@ -4488,7 +4494,7 @@ int IndexClassifyLI::getMLsize(TupleId tId) {
 ULabel IndexClassifyLI::getUL(TupleId tId, unsigned int ulId) {
   ULabel result(1);
   Tuple* tuple = mlRel->GetTuple(tId, false);
-  ((MLabel*)tuple->GetAttribute(1))->Get(ulId, result);
+  ((MLabel*)tuple->GetAttribute(attrNr))->Get(ulId, result);
   deleteIfAllowed(tuple);
   return result;
 }
@@ -4542,7 +4548,7 @@ Tuple* IndexClassifyLI::nextResultTuple() {
   Tuple *result = new Tuple(classifyTT);
   result->PutAttribute(0, new FText(true, onePair.first));
   Tuple* tuple = mlRel->GetTuple(onePair.second, false);
-  ml = (MLabel*)tuple->GetAttribute(1)->Copy();
+  ml = (MLabel*)tuple->GetAttribute(attrNr)->Copy();
   result->PutAttribute(1, ml);
   classification.pop();
   tuple->DeleteIfAllowed();
@@ -4578,7 +4584,7 @@ int indexclassifyVM(Word* args, Word& result, int message, Word& local,
         delete li;
         local.addr = 0;
       }
-      local.addr = new IndexClassifyLI(args[0], args[1], args[2]);
+      local.addr = new IndexClassifyLI(args[0], args[1], args[3], args[4]);
       return 0;
     }
     case REQUEST: {
@@ -4599,12 +4605,12 @@ int indexclassifyVM(Word* args, Word& result, int message, Word& local,
 struct indexclassifyInfo : OperatorInfo {
   indexclassifyInfo() {
     name      = "indexclassify";
-    signature =
-             "text x stream(mlabel) x invfile -> stream(tuple(string, mlabel))";
-    appendSignature(
-          "text x stream(mstring) x invfile -> stream(tuple(string, mstring))");
-    syntax    = "_ _ indexclassify [_]";
-    meaning   = "Classifies an indexed stream of trajectories according to a "
+    signature = "stream(tuple(string, text)) x rel(tuple(..., mlabel, ...)) x "
+                "attrname x invfile -> stream(tuple(string, mlabel))";
+    appendSignature("stream(tuple(string, text)) x rel(tuple(..., mstring, ...)"
+                ") x attrname x invfile -> stream(tuple(string, mstring))");
+    syntax    = "_ indexclassify [_ , _ , _]";
+    meaning   = "Classifies an indexed relation of trajectories according to a "
                 " set of patterns and descriptions from a file";
   }
 };
@@ -5040,22 +5046,25 @@ struct createindexInfo : OperatorInfo {
 
 */
 ListExpr createrelindexTypeMap(ListExpr args) {
-  if (nl->ListLength(args) != 1) {
-    return listutils::typeError("One argument expected.");
+  if (nl->ListLength(args) != 2) {
+    return listutils::typeError("Two arguments expected.");
   }
   if (Relation::checkType(nl->First(args))) {
     if (Tuple::checkType(nl->First(nl->Rest(nl->First(args))))) {
       ListExpr attrList =
                nl->First(nl->Rest(nl->First(nl->Rest(nl->First(args)))));
-      if (nl->ListLength(attrList) == 2) {
-        if (CcInt::checkType(nl->First(nl->Rest(nl->First(attrList))))
-         && MLabel::checkType(nl->First(nl->Rest(nl->Second(attrList))))) {
-           return nl->SymbolAtom(InvertedFile::BasicType());
-        }
+      ListExpr attrType;
+      string attrName = nl->SymbolValue(nl->Second(args));
+      int i = listutils::findAttribute(attrList, attrName, attrType);
+      if (MLabel::checkType(attrType) || MString::checkType(attrType)) {
+        return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                                 nl->OneElemList(nl->IntAtom(i)),
+                                 nl->SymbolAtom(InvertedFile::BasicType()));
       }
     }
   }
-  return listutils::typeError("Argument type must be rel(tuple(int, mlabel))");
+  return listutils::typeError
+             ("Argument types must be rel(tuple(..., mlabel, ...)) x attrname");
 }
 
 /*
@@ -5087,7 +5096,7 @@ int createrelindexVM(Word* args, Word& result, int message, Word& local,
   TrieNodeCacheType* trieCache = inv->createTrieCache(trieCacheSize);
   for (int i = 0; i < rel->GetNoTuples(); i++) {
     tuple = rel->GetTuple(i + 1, false);
-    ml = (MLabel*)tuple->GetAttribute(1);
+    ml = (MLabel*)tuple->GetAttribute(((CcInt*)args[2].addr)->GetIntval() - 1);
     for (int j = 0; j < ml->GetNoComponents(); j++) {
       ml->Get(j, ul);
       inv->insertString(tuple->GetTupleId(), ul.constValue.GetValue(), j, 0,
@@ -5104,8 +5113,8 @@ int createrelindexVM(Word* args, Word& result, int message, Word& local,
 struct createrelindexInfo : OperatorInfo {
   createrelindexInfo() {
     name      = "createrelindex";
-    signature = "(rel (tuple ( (int) (mlabel) ) ) ) -> invfile";
-    syntax    = "createrelindex(_)";
+    signature = "rel(tuple(..., mlabel, ...)) x attrname -> invfile";
+    syntax    = "_ createrelindex [ _ ]";
     meaning   = "Builds an index for a relation of numbered moving labels.";
   }
 };

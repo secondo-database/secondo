@@ -45,8 +45,8 @@ Result   : 51
 
 Operator : indexclassify
 Number   : 1
-Signature: stream(tuple(string, text)) x relation(..., mlabel, ...) x invfile -> stream(tuple(string, mlabel))
-Example  : query (patterns1 feed indexclassify [Dotrajsmall, Doindexsmall]) count
+Signature: stream(tuple(string, text)) x rel(tuple(..., mlabel, ...)) x attrname x invfile -> stream(tuple(string, mlabel))
+Example  : query (patterns1 feed indexclassify [Dotrajsmall, Trajectory, Doindexsmall]) count
 Result   : 3
 
 Operator : rewrite
@@ -105,7 +105,7 @@ Result   : TRUE
 
 Operator : createrelindex
 Number   : 1
-Signature: rel(tuple(int, mlabel)) -> invfile
-Example  : query createrelindex(Dotrajsmall)
+Signature: rel(tuple(..., mlabel, ...)) x attrname -> invfile
+Example  : query Dotrajsmall createrelindex[Trajectory]
 Result   : unpredictable
 Remark   : A InvFile has not out function

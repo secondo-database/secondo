@@ -543,8 +543,8 @@ class IndexClassifyLI {
 friend class Match;
 
 public:
-  IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv);
-  IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv, bool rew);
+  IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv, Word _attrNr);
+  IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv, Word _attrNr,bool rew);
 
   ~IndexClassifyLI();
 
