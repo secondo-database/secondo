@@ -379,7 +379,9 @@ static {
        
        Query Q_open = new Query("secondo('open database "+Name+"')");
        showPrompt();
-       return command(Q_open,null);
+       boolean res = command(Q_open,null);
+       openedDatabase = res?Name:"";
+       return res;
    }
 
 
