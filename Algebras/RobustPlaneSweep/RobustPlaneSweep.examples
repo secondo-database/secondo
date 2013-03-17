@@ -1,0 +1,11 @@
+Database: berlintest
+Restore : No
+
+
+Operator : trajectory2
+Number   : 1
+Signature: mpoint -> line
+Example  : query trajectory2(train7)
+Result   : file
+
+
