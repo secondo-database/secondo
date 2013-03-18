@@ -549,12 +549,14 @@ public:
   ~IndexClassifyLI();
 
   Tuple* nextResultTuple();
-  set<pair<TupleId, unsigned int> > updatePositionsMultiIndex(int pPos,
-                              set<pair<TupleId, unsigned int> > oldPos);
-  set<TupleId> applyPattern(); // apply unit patterns of p to mlRel
-  void applyConditions(set<TupleId> matchingMLs); // filter set
+  void applyUnitPattern(int pPos, vector<int>& prev, Wildcard& wc,
+                        vector<bool>& active);
+  vector<TupleId> applyPattern(); // apply unit patterns of p to mlRel
+  void applyConditions(vector<TupleId> matchingMLs); // filter vector
   int getMLsize(TupleId tId);
   ULabel getUL(TupleId tId, unsigned int ulId);
+  bool timesMatch(TupleId tId, unsigned int ulId, set<string> ivs);
+  set<unsigned int>::iterator initIterator(int tId, int pPos);
 
 private:
   Stream<Tuple> pStream;

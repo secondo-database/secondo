@@ -41,13 +41,13 @@ Operator : classify
 Number   : 1
 Signature: stream(tuple(string, text)) x stream(mlabel) -> stream(tuple(string, mlabel))
 Example  : query (patterns4 feed SymbolicTripsTiny feed projecttransformstream[SymTrip] classify) count
-Result   : 51
+Result   : 50
 
 Operator : indexclassify
 Number   : 1
 Signature: stream(tuple(string, text)) x rel(tuple(..., mlabel, ...)) x attrname x invfile -> stream(tuple(string, mlabel))
 Example  : query (patterns1 feed indexclassify [Dotrajsmall, Trajectory, Doindexsmall]) count
-Result   : 3
+Result   : 2
 
 Operator : rewrite
 Number   : 3
