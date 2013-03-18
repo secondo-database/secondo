@@ -142,8 +142,20 @@ class DLine : public Attribute{
 
      void append(const SimpleSegment& s) {
         segments.Append(s);
-     } 
-    
+     }
+
+     void get(size_t index, SimpleSegment& s) const{
+        segments.Get(index,s);
+     }
+ 
+     void set(size_t index, const SimpleSegment& s){
+        segments.Put(index,s);
+     }    
+
+     void resize(size_t newSize){
+       segments.resize(newSize);
+     }
+
      
      ListExpr ToListExpr(ListExpr typeInfo) const {
         if(segments.Size()<1){
