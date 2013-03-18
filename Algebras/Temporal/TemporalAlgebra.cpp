@@ -123,6 +123,7 @@ extern QueryProcessor* qp;
 #include "GenericTC.h"
 #include "GenOps.h"
 #include "Stream.h"
+#include "DLine.h"
 
 
 
@@ -18568,7 +18569,79 @@ Operator components(
            getIntervalsVM<true>,
            Operator::SimpleSelect,
            componentsTM);
+
+
+
+/*
+5.2.7 Operator trajectory3
+
+5.2.7.1 Type Mapping
+
+*/
+
+ListExpr trajectory3TM(ListExpr args){
+   if(!nl->HasLength(args,1)){
+       return listutils::typeError("one argument expected");
+   }
+   string err = "Mpoint expected";
+   if(!MPoint::checkType(nl->First(args))){
+      return listutils::typeError(err);
+   }
+   return listutils::basicSymbol<DLine>();
+
+}
+
+/*
+5.2.7.2 Value Mapping 
+
+*/
+
+int trajectory3VM( Word* args, Word& result, int message, Word&
+                   local, Supplier s ){
+   MPoint* arg = (MPoint*) args[0].addr;
+   result= qp->ResultStorage(s);
+   DLine* res = (DLine*) result.addr;
+   if(!arg->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }
+   res->clear();
+   UPoint unit;
+   for(int i=0;i<arg->GetNoComponents();i++){
+      arg->Get(i,unit);
+      SimpleSegment s(unit.p0.GetX(), unit.p0.GetY(),
+                      unit.p1.GetX(), unit.p1.GetY());
+      res->append(s);
+   }
+   return 0;
+}
+
+/*
+5.2.7.3 Specification
+
+*/
+const string trajectory3Spec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> mpoint -> dline"
+    "</text---> "
+    "<text> trajectory3(_) </text--->"
+    "<text>Computes the trajectory of a moving point as a dline "
+    "</text--->"
+    "<text>query trajectory3(train7) "
+    " </text--->"
+    ") )";
   
+/*
+5.2.6.4 Operator instance
+
+*/
+Operator trajectory3(
+           "trajectory3",
+           trajectory3Spec,
+           trajectory3VM,
+           Operator::SimpleSelect,
+           trajectory3TM);
+
 /*
 6 Creating the Algebra
 
@@ -18740,6 +18813,8 @@ class TemporalAlgebra : public Algebra
     
     AddOperator(&getIntervals);
     AddOperator(&components);
+    
+    AddOperator(&trajectory3);
 
 
 #ifdef USE_PROGRESS

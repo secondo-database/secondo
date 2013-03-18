@@ -722,3 +722,13 @@ Number    : 1
 Signature : periods -> stream(interval)
 Example   : query components(deftime(train7 when[speed(train7) > 10.0])) count
 Result    : 22
+
+Operator  : trajectory3
+Number    : 1
+Signature : mpoint -> dline
+Example   : query trajectory3(train7) feed count
+Result    : 1 
+
+
+
+
