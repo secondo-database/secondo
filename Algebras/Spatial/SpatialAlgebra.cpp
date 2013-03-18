@@ -91,6 +91,8 @@ using namespace std;
 
 #include "RobustSetOps.h"
 
+#include "DLine.h"
+
 
 #ifndef M_PI
 const double M_PI = acos( -1.0 );
@@ -24256,6 +24258,12 @@ Operator splitline(
 );
 
 
+/*
+2 Type Constructor dline
+
+*/
+
+GenTC<DLine> dline;
 
 
 /*
@@ -24274,12 +24282,15 @@ class SpatialAlgebra : public Algebra
     AddTypeConstructor( &region );
 
     AddTypeConstructor( &sline);
+    AddTypeConstructor( &dline);
 
     point.AssociateKind(Kind::DATA());
     points.AssociateKind(Kind::DATA());
     line.AssociateKind(Kind::DATA());
     region.AssociateKind(Kind::DATA());
     sline.AssociateKind(Kind::DATA());
+    dline.AssociateKind(Kind::DATA());
+    
 
 
     point.AssociateKind(Kind::SPATIAL2D());
