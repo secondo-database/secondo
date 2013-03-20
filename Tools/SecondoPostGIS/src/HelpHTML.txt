@@ -1,0 +1,16 @@
+<html>
+<div style="color:blue">
+  <h1>SecondoPostGIS</h1>
+</div>
+<br>
+<b><i>Developed by Daniel Walther - Munich</i></b>
+<br>
+<br>
+It's only a short instruction to start with SecondoPostGIS. You get here no information over the function. You will show it here, if implementation is finished.
+<br>
+<h2>Start</h2>
+At the first start SecondPostGIS asked you, to enter the connection parameters for both databases. This question only come back, if SecondoPostGIS can't find the “.hjort.cfg”.
+<br>
+<br>
+The connection parameters to the databases can edit in the “.hjort.cfg” file. You can find this file in your home directory in folder “.Hjort”. For Example /home/username/.Hjort/.hjort.cfg
+</html>
