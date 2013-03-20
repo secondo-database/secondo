@@ -1,6 +1,20 @@
 Database : MapMatchTest
 Restore  : YES
 
+Operator : gpximport
+Number   : 1
+Signature: string -> stream(tuple(...))
+Example  : query gpximport('Trk_MapMatchTest.gpx') count;
+Result   : 140
+Tolerance: 0.01%
+
+Operator : gpximport
+Number   : 2
+Signature: string x real -> stream(tuple(...))
+Example  : query gpximport('Trk_MapMatchTest.gpx', 1.0) count;
+Result   : 140
+Tolerance: 0.01%
+
 Operator : jmapmatchmht
 Number   : 1
 Signature: jnetwork x text -> mjpoint
@@ -125,18 +139,4 @@ Number   : 3
 Signature: orel x rtree x rel x mpoint -> mpoint
 Example  : query DayTrips feed projectextend[;MatchedTrip: omapmatchmht_mpoint(Edges, EdgeIndex_Box_rtree, EdgeIndex, .DayTrip)] consume;
 Result   : file
-Tolerance: 0.01%
-
-Operator : gpximport
-Number   : 1
-Signature: string -> stream(tuple(...))
-Example  : query gpximport('Trk_MapMatchTest.gpx') count;
-Result   : 140
-Tolerance: 0.01%
-
-Operator : gpximport
-Number   : 2
-Signature: string x real -> stream(tuple(...))
-Example  : query gpximport('Trk_MapMatchTest.gpx', 1.0) count;
-Result   : 140
 Tolerance: 0.01%

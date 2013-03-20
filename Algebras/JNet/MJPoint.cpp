@@ -835,42 +835,48 @@ IJPoint MJPoint::AtInstant(const Instant* time) const
 bool MJPoint::Present(const Periods* per) const
 {
   if (IsDefined() && !IsEmpty() &&
-      per != NULL && per->IsDefined() && !per->IsEmpty())
+      per != 0 && per->IsDefined() && !per->IsEmpty())
   {
     Interval<Instant> actTimeInterval;
-    JUnit actUnit, unitStart, unitEnd;
+    JUnit actUnit;
     int timeIndex = 0;
-    Get(0,unitStart);
-    Get(GetNoComponents()-1, unitEnd);
-    while(timeIndex < per->GetNoComponents())
+    per->Get(timeIndex, actTimeInterval);
+    int unitIndex = 0;
+    Get(unitIndex, actUnit);
+    //determine first timeinterval of periods not ending before mjpoint starts
+    while (actTimeInterval.Before(actUnit.GetTimeInterval()))
     {
-      per->Get(timeIndex, actTimeInterval);
-      if (actTimeInterval.IsDefined())
+      if (++timeIndex < per->GetNoComponents())
+        per->Get(timeIndex, actTimeInterval);
+    }
+
+    //Find first unit of mjpoint intersecting the current time interval
+    if (actUnit.GetTimeInterval().Before(actTimeInterval))
+    {
+      unitIndex = GetUnitPosForTime(actTimeInterval,
+                                    0, GetNoComponents()-1);
+      if (unitIndex < 0)
+          unitIndex = GetNoComponents();
+      if (unitIndex < GetNoComponents())
+        Get(unitIndex, actUnit);
+    }
+    while (timeIndex < per->GetNoComponents() &&
+           unitIndex < GetNoComponents())
+    {
+      if (actUnit.GetTimeInterval().Before(actTimeInterval))
       {
-        if (unitEnd.GetTimeInterval().Before(actTimeInterval))
-          return false;
-        if (!actTimeInterval.Before(unitStart.GetTimeInterval()))
-        {
-          int first = 0;
-          int last = GetNoComponents()-1;
-          while (first <= last)
-          {
-            int mid = (first + last) /2;
-            if (mid < 0 || mid >= GetNoComponents()) break;
-            Get( mid, actUnit);
-            if (actUnit.GetTimeInterval().Before(actTimeInterval))
-              first = mid + 1;
-            else
-            {
-              if (actTimeInterval.Before(actUnit.GetTimeInterval()))
-                last = mid - 1;
-              else
-                return true;
-            }
-          }
-        }
+        if (++unitIndex < GetNoComponents())
+          Get(unitIndex,actUnit);
       }
-      timeIndex++;
+      else if (actTimeInterval.Before(actUnit.GetTimeInterval()))
+      {
+        if (++timeIndex < per->GetNoComponents())
+          per->Get(timeIndex,actTimeInterval);
+      }
+      else
+      {
+        return true;
+      }
     }
   }
   return false;

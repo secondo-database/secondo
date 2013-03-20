@@ -459,7 +459,7 @@ static shared_ptr<MapMatchDataContainer> GetMMDataFromTupleStream(
                                                                 Word* args,
                                                                 int nOffset)
 {
-
+    //cout << "Get Data from Tuple Stream" << endl;
     // see also GetMMDataIndexesOfTupleStream
 
     shared_ptr<MapMatchDataContainer> pContData(new MapMatchDataContainer);
@@ -541,6 +541,7 @@ static shared_ptr<MapMatchDataContainer> GetMMDataFromTupleStream(
         if (pLat != NULL && pLon != NULL && pTime != NULL &&
             pLat->IsDefined() && pLon->IsDefined() && pTime->IsDefined())
         {
+          //cout << "found valid data point" << endl;
             MapMatchData Data(pLat->GetValue(),
                               pLon->GetValue(),
                               pTime->millisecondsToNull());
@@ -1482,7 +1483,7 @@ struct JMapMatchMHTInfo : OperatorInfo
                         FText::BasicType()  + " -> " +
                         MJPoint::BasicType());
 
-        appendSignature(Network::BasicType() + " x " +
+        appendSignature(JNetwork::BasicType() + " x " +
                         "(stream (tuple([Lat:real, Lon:real, Time:DateTime "
                                         "[,Fix:int] [,Sat:int] [,Hdop : real]"
                                         "[,Vdop:real] [,Pdop:real] "
@@ -1558,17 +1559,17 @@ int OpJMapMatchingMHTMPointValueMapping(Word* args,
                                         Word& local,
                                         Supplier in_xSupplier)
 {
-    // cout << "OpMapMatchingMHTMPointValueMapping called" << endl;
+    cout << "OpJMapMatchingMHTMPointValueMapping called" << endl;
 
-    // Initialize Result
+    // cout << "Initialize Result" << endl;
     result = qp->ResultStorage(in_xSupplier);
     MJPoint* pRes = static_cast<MJPoint*>(result.addr);
 
-    // get Arguments
+    //cout << "get Arguments" << endl;
     JNetwork *pNetwork = static_cast<JNetwork*>(args[0].addr);
     MPoint *pMPoint = static_cast<MPoint*>(args[1].addr);
 
-    // Do Map Matching
+    //cout << "Do Map Matching" << endl;
 
     JNetworkAdapter jnet(pNetwork);
     MapMatchingMHT MapMatching(&jnet, pMPoint);
@@ -1577,7 +1578,7 @@ int OpJMapMatchingMHTMPointValueMapping(Word* args,
 
     if (!MapMatching.DoMatch(&Creator))
     {
-        // Error
+        assert(false);
     }
 
     return 0;
@@ -1589,7 +1590,7 @@ int OpJMapMatchingMHTGPXValueMapping(Word* args,
                                      Word& local,
                                      Supplier in_xSupplier)
 {
-
+    //cout << "OpJMapMatchingMHTGPXValueMapping called" << endl;
     // Initialize Result
     result = qp->ResultStorage(in_xSupplier);
     MJPoint* pRes = static_cast<MJPoint*>(result.addr);
@@ -1619,19 +1620,19 @@ int OpJMapMatchingMHTStreamValueMapping(Word* args,
                                         Word& local,
                                         Supplier in_xSupplier)
 {
-    // cout << "OpMapMatchingMHTStreamValueMapping called" << endl;
+    //cout << "OpJMapMatchingMHTStreamValueMapping called" << endl;
 
-    // Initialize Result
+    //cout << "Initialize Result" << endl;
     result = qp->ResultStorage(in_xSupplier);
     MJPoint* pRes = static_cast<MJPoint*>(result.addr);
 
-    // get Arguments
+    //cout << " get Arguments " << endl;
     JNetwork* pNetwork = static_cast<JNetwork*>(args[0].addr);
 
     shared_ptr<MapMatchDataContainer> pContData =
-                                GetMMDataFromTupleStream(args[1].addr, args, 3);
+                                GetMMDataFromTupleStream(args[1].addr, args, 2);
 
-    // Matching
+    //cout << " Matching" << endl;
 
     JNetworkAdapter jnet(pNetwork);
     MapMatchingMHT MapMatching(&jnet, pContData);
@@ -1640,7 +1641,7 @@ int OpJMapMatchingMHTStreamValueMapping(Word* args,
 
     if (!MapMatching.DoMatch(&Creator))
     {
-        // Error
+        assert(false);
     }
 
     return 0;
@@ -2016,7 +2017,7 @@ struct GPXImportInfo : OperatorInfo
                                   "Vdop: CcReal, Pdop: CcReal, Course: CcReal, "
                                   "Speed: CcReal]))";
 
-        appendSignature(FText::BasicType() +
+        appendSignature(FText::BasicType() + " X " +
                         CcReal::BasicType() + " -> " +
                         "stream(tuple([Time: DateTime, Lat: CcReal, "
                         "Lon: CcReal, Fix: CcInt, Sat: CcInt, Hdop: CcReal, "

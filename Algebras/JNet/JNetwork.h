@@ -311,6 +311,8 @@ Returns true if the given position(s) exist in the network.
 */
 
   RouteLocation* GetNetworkValueOf(const Point* p) const;
+  RouteLocation* GetNetworkValueOfOn(const Point* p,
+                                     const Tuple* sectTup) const;
   JRouteInterval* GetNetworkValueOf(const HalfSegment& hs) const;
   bool GetNetworkValueOf(const Line* in, JLine* result) const;
   bool GetNetworkValueOf(const MPoint* in, MJPoint* result);
@@ -754,6 +756,7 @@ void GetSpatialValueOf(const JRouteInterval& rint,
                        const int fromIndex,
                        const int toIndex,
                        SimpleLine& result) const;
+
 };
 
 } // end of namespace jnetwork

@@ -1585,12 +1585,15 @@ Constructs a ~SimpleLine~ from a complex one.
 */
   SimpleLine(const SimpleLine& src):
     StandardSpatialAttribute<2>(src.IsDefined()),
-    segments(src.Size()),lrsArray(src.Size()/2),
+    segments(src.Size()),lrsArray(src.Size()),
     startSmaller(src.GetStartSmaller()), isCycle(src.IsCycle()),
     isOrdered(src.IsOrdered()), length(src.Length()), bbox(src.BoundingBox()),
-    currentHS(-1)
+    currentHS(src.currentHS)
   {
-    Equalize(src);
+    segments.copyFrom(src.segments);
+    lrsArray.copyFrom(src.lrsArray);
+    lrsArray.TrimToSize();
+    //Equalize(src);
   }
 
 /*
@@ -2066,7 +2069,6 @@ The following functions are needed to act as an attribute type.
     int currentHS;
 
     void Equalize(const SimpleLine& src){
-        HalfSegment seg;
         segments.copyFrom(src.segments);
         lrsArray.copyFrom(src.lrsArray);
         this->SetDefined( src.IsDefined() );

@@ -18576,25 +18576,33 @@ int SpatialCollect_slineVMLinestream(Word* args, Word& result, int message,
    while ( qp->Received(args[0].addr) ){
     line = static_cast<StreamLineType*>(elem.addr);
     assert( line != 0 );
-    if(!ignore && !line->IsDefined()){
-       qp->Close(args[0].addr);
-       L->Clear();
-       L->SetDefined(false);
-       if(line){
+    if(!line->IsDefined())
+    {
+      if (!ignore)
+      {
+         qp->Close(args[0].addr);
+         L->Clear();
+         L->SetDefined(false);
          line->DeleteIfAllowed();
-         line = 0;}
-       return 0;
+         line = 0;
+         return 0;
+      }
     }
-    if (first && line->IsDefined()) {
-       firstPoint = new Point(line->StartPoint());
-       lastPoint = new Point(line->EndPoint());
-       first = false;
-       append(*L, *line);
-    }
-    if (!first && line->IsDefined()) {
-      lastPoint->DeleteIfAllowed();
-      lastPoint = new Point(line->EndPoint());
-      append(*L, *line);
+    else
+    {
+      if (first)
+      {
+         firstPoint = new Point(line->StartPoint());
+         lastPoint = new Point(line->EndPoint());
+         first = false;
+         append(*L, *line);
+      }
+      else
+      {
+        lastPoint->DeleteIfAllowed();
+        lastPoint = new Point(line->EndPoint());
+        append(*L, *line);
+      }
     }
     line->DeleteIfAllowed();
     line = 0;
@@ -18610,12 +18618,6 @@ int SpatialCollect_slineVMLinestream(Word* args, Word& result, int message,
   firstPoint->DeleteIfAllowed();
   return 0;
 }
-
-
-
-
-
-
 
 int SpatialVMSetStartSmaller(Word* args, Word& result, int message,
                              Word& local, Supplier s){
@@ -23887,7 +23889,7 @@ private:
      if(x!=0){
         position = partnerNo+x;
         return;
-     } 
+     }
      searchStart();
    }
 
@@ -23949,8 +23951,8 @@ private:
      used2[start] = true;
      while(x){
         theLine->Get(start2 + x,n);
-         
-         start2 = n.attr.partnerno;     
+
+         start2 = n.attr.partnerno;
          x = getExtension(start2);
          if(used2[start2]){ // cycle
             position = start2;
@@ -23959,7 +23961,7 @@ private:
             return;
          }
          used2[start2] = true;
-     } 
+     }
      delete[] used2;
      start = start2;
      position = start;
@@ -24005,8 +24007,8 @@ ListExpr splitlineTM(ListExpr args){
      gl = nl->OneElemList(nl->RealAtom(1.0));
    } else {
      assert(len==2);
-     gl = nl->TwoElemList( 
-                    nl->TwoElemList( 
+     gl = nl->TwoElemList(
+                    nl->TwoElemList(
                       listutils::basicSymbol<Geoid>(),
                       nl->SymbolAtom(Symbol::UNDEFINED())),
                     nl->RealAtom(1.0));
@@ -24023,13 +24025,13 @@ class SplitLineInfo{
 
 
   public:
-     SplitLineInfo(Line* _line, CcReal* _dist, Geoid* _geoid, 
+     SplitLineInfo(Line* _line, CcReal* _dist, Geoid* _geoid,
                    CcReal* _scale){
          if(!_line->IsDefined() || !_dist->IsDefined() ){
            it=0;
            return;
-         } 
-         dist = _dist->GetValue(); 
+         }
+         dist = _dist->GetValue();
          if((_line->Size()==0) || dist<0 || AlmostEqual(dist,0)){
             it = 0;
             return;
@@ -24072,8 +24074,8 @@ class SplitLineInfo{
        hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
        (*res) += hs;
        res->EndBulkLoad(true,true,true);
-       return res;  
-        
+       return res;
+
     }
     // debug code
 
@@ -24099,16 +24101,16 @@ class SplitLineInfo{
                } else {
                  done = true;
                  lastHs = hs;
-                 hasLastHs = true; 
+                 hasLastHs = true;
               }
              } else {
                 done = appendHs(res,hs,length);
              }
           }
-        }      
+        }
 
 
- 
+
         res->EndBulkLoad(true,true,true);
         if(res->Size()==0){
           delete res;
@@ -24118,7 +24120,7 @@ class SplitLineInfo{
 
      }
 
-  private: 
+  private:
     LineSplitIterator* it;
     HalfSegment lastHs;
     bool hasLastHs;
@@ -24134,11 +24136,11 @@ class SplitLineInfo{
        p1.Scale(1.0/scale);
        p2.Scale(1.0/scale);
 
-       //cout << "compute distance between " << p1 << " and " << p2 << endl; 
+       //cout << "compute distance between " << p1 << " and " << p2 << endl;
 
        double hsl = p1.Distance(p2, geoid);
 
-       if(((length + hsl)  <= dist) || AlmostEqual(length+hsl,dist)){ 
+       if(((length + hsl)  <= dist) || AlmostEqual(length+hsl,dist)){
          // append complete hs
           (*res) += hs;
           hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
@@ -24146,7 +24148,7 @@ class SplitLineInfo{
           hasLastHs = false;
           length += hsl;
           return AlmostEqual(dist,length+hsl);
-       } 
+       }
        // append only a part of hs
        double rest = dist - length;
        assert(rest>0);
@@ -24200,7 +24202,7 @@ class SplitLineInfo{
 int splitlineVM(Word* args, Word& result, int message, Word& local,
                Supplier s ){
 
-  
+
   SplitLineInfo* li = (SplitLineInfo*) local.addr;
   switch(message){
     case OPEN: {
@@ -24212,7 +24214,7 @@ int splitlineVM(Word* args, Word& result, int message, Word& local,
                                        (Geoid*) args[2].addr,
                                        (CcReal*) args[3].addr);
         return 0;
-  
+
    }
    case REQUEST: {
        result.addr = li?li->next():0;
@@ -24225,7 +24227,7 @@ int splitlineVM(Word* args, Word& result, int message, Word& local,
         }
    }
 
-  } 
+  }
   return -1;
 
 
@@ -24290,7 +24292,7 @@ class SpatialAlgebra : public Algebra
     region.AssociateKind(Kind::DATA());
     sline.AssociateKind(Kind::DATA());
     dline.AssociateKind(Kind::DATA());
-    
+
 
 
     point.AssociateKind(Kind::SPATIAL2D());

@@ -41,32 +41,42 @@ namespace mapmatch{
 JNetworkSectionAdapter::JNetworkSectionAdapter(JNetwork* jnet,
                                                const TupleId stid) :
   IMMNetworkSection(),  pJNet(jnet),
-  sectTup((jnet != 0 && jnet->IsDefined())?
-           jnet->GetSectionTupleWithTupleId(stid):0)
+  sectTup(0)
 {
+  if (jnet != 0 && jnet->IsDefined())
+    sectTup = jnet->GetSectionTupleWithTupleId(stid);
   if (sectTup != 0)
   {
-    Direction sDir =
-      *(Direction*) sectTup->GetAttribute(JNetwork::SEC_DIRECTION);
+    Direction* sDir = pJNet->GetSectionDirection(sectTup);
     Direction cDir(Down);
-    int test = sDir.Compare(cDir);
+    int test = sDir->Compare(cDir);
     if (test < 0)
       driveDir = DIR_UP;
     else if (test == 0)
       driveDir = DIR_DOWN;
     else
       driveDir = DIR_NONE;
+    sDir->DeleteIfAllowed();
   }
 }
 
 JNetworkSectionAdapter::JNetworkSectionAdapter(JNetwork* jnet,
                                                Tuple* tup,
                                                const EDirection dDir):
-  IMMNetworkSection(), pJNet(jnet), sectTup(tup), driveDir(dDir)
-{}
+  IMMNetworkSection(), pJNet(jnet), sectTup(0), driveDir(dDir)
+{
+  if (tup != 0)
+  {
+    sectTup = tup;
+    sectTup->IncReference();
+  }
+
+}
 
 JNetworkSectionAdapter::~JNetworkSectionAdapter()
-{}
+{
+  sectTup->DeleteIfAllowed();
+}
 
 /*
 1.1. Get JNetworkSectionInformation
@@ -85,17 +95,13 @@ bool JNetworkSectionAdapter::GetAdjacentSections(const bool bUpDown,
     JListInt* listSID = 0;
     if (bUpDown)
     {
-      listSID =
-        (JListInt*) sectTup->GetAttribute(JNetwork::SEC_LIST_ADJ_SECTIONS_UP);
-      idEndNode =
-        ((CcInt*)sectTup->GetAttribute(JNetwork::SEC_ENDNODE_ID))->GetIntval();
+      listSID = pJNet->GetSectionListAdjSectionsUp(sectTup);
+      idEndNode = pJNet->GetSectionEndJunctionID(sectTup);
     }
     else
     {
-      listSID =
-        (JListInt*) sectTup->GetAttribute(JNetwork::SEC_LIST_ADJ_SECTIONS_DOWN);
-      idEndNode =
-       ((CcInt*)sectTup->GetAttribute(JNetwork::SEC_STARTNODE_ID))->GetIntval();
+      listSID = pJNet->GetSectionListAdjSectionsDown(sectTup);
+      idEndNode = pJNet->GetSectionStartJunctionID(sectTup);
     }
     if (listSID != 0 && listSID->IsDefined())
     {
@@ -107,28 +113,25 @@ bool JNetworkSectionAdapter::GetAdjacentSections(const bool bUpDown,
         curSectTup = pJNet->GetSectionTupleWithId(nextSID.GetIntval());
         if (curSectTup != 0)
         {
-          EDirection driveDir(DIR_NONE);
-          if (idEndNode ==
-              ((CcInt*)curSectTup->GetAttribute(
-                  JNetwork::SEC_STARTNODE_ID))->GetIntval())
-            driveDir = DIR_UP;
-          else if (idEndNode ==
-              ((CcInt*)curSectTup->GetAttribute(
-                  JNetwork::SEC_ENDNODE_ID))->GetIntval())
-            driveDir = DIR_DOWN;
+          EDirection drDir(DIR_NONE);
+          if (idEndNode == pJNet->GetSectionStartJunctionID(curSectTup))
+            drDir = DIR_UP;
+          else if (idEndNode == pJNet->GetSectionEndJunctionID(curSectTup))
+            drDir = DIR_DOWN;
           else if (!bUpDown)
-            driveDir = DIR_DOWN;
+            drDir = DIR_DOWN;
           else
-            driveDir = DIR_UP;
+            drDir = DIR_UP;
           shared_ptr<IMMNetworkSection>
-          insSect(new JNetworkSectionAdapter(pJNet, curSectTup->Clone(),
-                                             driveDir));
-          //cout << "insSect: " ; insSect->PrintIdentifier(cout);
+            insSect(new JNetworkSectionAdapter(pJNet, curSectTup->Clone(),
+                                               drDir));
           vecSections.push_back(insSect);
           curSectTup->DeleteIfAllowed();
           curSectTup = 0;
         }
       }
+      listSID->DeleteIfAllowed();
+      listSID = 0;
       return true;
     }
   }
@@ -139,7 +142,7 @@ SimpleLine* JNetworkSectionAdapter::GetCurve() const
 {
   if (sectTup != 0)
   {
-    return (SimpleLine*) sectTup->GetAttribute(JNetwork::SEC_CURVE)->Copy();
+    return pJNet->GetSectionCurve(sectTup);
   }
   else
     return 0;
@@ -148,17 +151,21 @@ SimpleLine* JNetworkSectionAdapter::GetCurve() const
 double JNetworkSectionAdapter::GetCurveLength(const double dScale) const
 {
   if (sectTup != 0)
-    return ((CcReal*)sectTup->GetAttribute(JNetwork::SEC_LENGTH))->GetRealval();
+    return pJNet->GetSectionLength(sectTup);
   else
     return 0.0;
 }
 
 bool JNetworkSectionAdapter::GetCurveStartsSmaller() const
 {
-  if (IsDefined())
-    return GetCurve()->StartsSmaller();
-  else
-    return true;
+  bool result = false;
+  SimpleLine* sectCurve = GetCurve();
+  if (sectCurve != 0)
+  {
+    result = sectCurve->GetStartSmaller();
+    sectCurve->DeleteIfAllowed();
+  }
+  return result;
 }
 
 IMMNetworkSection::EDirection JNetworkSectionAdapter::GetDirection() const
@@ -174,9 +181,12 @@ Point JNetworkSectionAdapter::GetStartPoint() const
   if (IsDefined())
   {
     Point* res = pJNet->GetSectionStartPoint(sectTup);
-    Point result(*res);
-    res->DeleteIfAllowed();
-    return Point(result);
+    if (res != 0)
+    {
+      Point result(*res);
+      res->DeleteIfAllowed();
+      return Point(result);
+    }
   }
   return Point(false);
 }
@@ -186,9 +196,12 @@ Point JNetworkSectionAdapter::GetEndPoint() const
   if (IsDefined())
   {
     Point* res = pJNet->GetSectionEndPoint(sectTup);
-    Point result(*res);
-    res->DeleteIfAllowed();
-    return Point(result);
+     if (res != 0)
+    {
+      Point result(*res);
+      res->DeleteIfAllowed();
+      return Point(result);
+    }
   }
   return Point(false);
 }
@@ -196,9 +209,9 @@ Point JNetworkSectionAdapter::GetEndPoint() const
 double JNetworkSectionAdapter::GetMaxSpeed() const
 {
   if (sectTup != 0)
-    return ((CcReal*) sectTup->GetAttribute(JNetwork::SEC_VMAX))->GetRealval();
+    return pJNet->GetSectionMaxSpeed(sectTup);
   else
-    return 0.1;
+    return 0.0;
 }
 
 string JNetworkSectionAdapter::GetRoadName() const
@@ -233,45 +246,38 @@ bool JNetworkSectionAdapter::operator==(const
 {
   const JNetworkSectionAdapter* other = rSection.CastToJNetworkSection();
   return (sectTup != 0 && other != 0 &&
-          sectTup->GetNoAttributes() == other->sectTup->GetNoAttributes() &&
-          driveDir == other->driveDir &&
-        ((CcInt*)sectTup->GetAttribute(JNetwork::SEC_ID))->GetIntval() ==
-        ((CcInt*)other->sectTup->GetAttribute(JNetwork::SEC_ID))->GetIntval());
-}
-
-RouteLocation* JNetworkSectionAdapter::GetSectionStartRLoc() const
-{
-  JRouteInterval* rint = pJNet->GetSectionFirstRouteInterval(sectTup);
-  if (rint != NULL)
-  {
-    JListRLoc* list = pJNet->GetSectionStartJunctionRLocs(sectTup);
-    if (list != 0)
-    {
-      int i = 0;
-      RouteLocation rloc;
-      while ( i < list->GetNoOfComponents())
-      {
-        list->Get(i,rloc);
-        if (rint->Contains(rloc))
-        {
-          rint->DeleteIfAllowed();
-          list->DeleteIfAllowed();
-          return new RouteLocation(rloc);
-        }
-        i++;
-      }
-      list->DeleteIfAllowed();
-      list = 0;
-    }
-    rint->DeleteIfAllowed();
-    rint = 0;
-  }
-  return 0;
+          pJNet->GetSectionId(sectTup) == pJNet->GetSectionId(other->sectTup) &&
+          driveDir == other->driveDir);
 }
 
 void JNetworkSectionAdapter::PrintIdentifier(ostream& os) const
 {
-  sectTup->Print(os);
+  JRouteInterval* jrint = pJNet->GetSectionFirstRouteInterval(sectTup);
+  os << "sid: " << pJNet->GetSectionId(sectTup)
+     << ", RouteInterval: " << *jrint
+     << ", driveDir: ";
+  if (driveDir == DIR_NONE) os << "None" << endl;
+  else if (driveDir == DIR_UP) os << "Up" << endl;
+  else os << "Down" << endl;
+  jrint->DeleteIfAllowed();
+}
+
+RouteLocation* JNetworkSectionAdapter::GetRouteLocation(const Point*& p) const
+{
+  if (IsDefined() && p != 0 && p->IsDefined())
+    return pJNet->GetNetworkValueOfOn(p,sectTup);
+  else
+    return 0;
+}
+
+Direction JNetworkSectionAdapter::GetSide() const
+{
+  if (driveDir == DIR_DOWN)
+    return Direction(Down);
+  else if (driveDir == DIR_UP)
+    return Direction(Up);
+  else
+    return Direction(Both);
 }
 
 } // end of namespace maptmatch

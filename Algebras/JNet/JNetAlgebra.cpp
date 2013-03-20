@@ -1270,9 +1270,15 @@ int createlistVM ( Word* args, Word& result, int message, Word& local,
   while (qp->Received(args[0].addr))
   {
     curElem = (CListElem*) curAddr.addr;
-    if (curElem != 0 && curElem->IsDefined())
-      createRes->operator+=(*curElem);
-    curElem->DeleteIfAllowed();
+    if (curElem != 0)
+    {
+      if (curElem->IsDefined())
+      {
+        createRes->operator+=(*curElem);
+      }
+      curElem->DeleteIfAllowed();
+      curElem = 0;
+    }
     qp->Request(args[0].addr, curAddr);
   }
   qp->Close(args[0].addr);

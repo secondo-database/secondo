@@ -626,9 +626,9 @@ bool JRouteInterval::Contains(const RouteLocation& rloc) const
 {
   return (IsDefined() && rloc.IsDefined() &&
           rid == rloc.GetRouteId() &&
-          (startpos < rloc.GetPosition() ||
+          (startpos <= rloc.GetPosition() ||
                         AlmostEqual(startpos, rloc.GetPosition())) &&
-          (rloc.GetPosition() < endpos ||
+          (rloc.GetPosition() <= endpos ||
                         AlmostEqual(endpos, rloc.GetPosition())) &&
           side.SameSide(rloc.GetSide(),false));
 }
@@ -638,9 +638,9 @@ bool JRouteInterval::Contains(const RouteLocation& rloc,
 {
   return (IsDefined() && rloc.IsDefined() &&
           rid == rloc.GetRouteId() &&
-          (startpos < rloc.GetPosition() ||
+          (startpos <= rloc.GetPosition() ||
               AlmostEqualAbsolute(startpos, rloc.GetPosition(), tolerance)) &&
-          (rloc.GetPosition() < endpos ||
+          (rloc.GetPosition() <= endpos ||
               AlmostEqualAbsolute(endpos, rloc.GetPosition(), tolerance)) &&
             side.SameSide(rloc.GetSide(),false));
 }

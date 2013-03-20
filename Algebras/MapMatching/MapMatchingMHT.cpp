@@ -223,16 +223,15 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
         return false;
     }
 
-    // Step 1 - Subdividing trip
+    //cout << "Step 1 - Subdividing trip" << endl;
     // Detect spatial and temporal gaps in input-data
     // Check quality of input-data
     vector<shared_ptr<MapMatchDataContainer> > vecTripSegments;
     TripSegmentation(vecTripSegments);
 
-    // Steps 2-5
+    //cout << "Steps 2-5" << endl;
     std::vector<MHTRouteCandidate*> vecRouteSegments;
 
-    cout << "Trip segmented into: " << vecTripSegments.size() << " pieces." << endl;
     for (vector<shared_ptr<MapMatchDataContainer> >::iterator
                                                    it = vecTripSegments.begin();
          it != vecTripSegments.end();
@@ -242,7 +241,7 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
         if (pContMMData == NULL)
             continue;
 
-        // Step 2 - calculate missing attributes (heading, speed)
+     //cout << "Step 2 - calculate missing attributes (heading, speed)" << endl;
         CompleteData(pContMMData.get());
 
         size_t nIdxFirstComponent = 0;
@@ -250,23 +249,23 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
         while(nIdxFirstComponent >= 0 &&
               nIdxFirstComponent < pContMMData->Size())
         {
-            // Step 3 - Determination of initial route/segment candidates
+ //cout << "Step 3 - Determination of initial route/segment candidates" << endl;
             std::vector<MHTRouteCandidate*> vecRouteCandidates;
             nIdxFirstComponent = GetInitialRouteCandidates(pContMMData.get(),
                                                            nIdxFirstComponent,
                                                            vecRouteCandidates);
-
+//#define TRACE_ROUTE_CANDIDATES
             TraceRouteCandidates(vecRouteCandidates,
                                  "#### InitialRouteCandidates ####");
 
-            // Step 4 - Route developement
+            //cout << " Step 4 - Route developement" << endl;
             nIdxFirstComponent = DevelopRoutes(pContMMData.get(),
                                                nIdxFirstComponent,
                                                vecRouteCandidates);
-
+//#define TRACE_ROUTE_CANDIDATES
             TraceRouteCandidates(vecRouteCandidates,
                                  "#####After Develop Routes ####");
-            // Step 5 - Selection of most likely candidate
+            //cout << " Step 5 - Selection of most likely candidate " << endl;
             MHTRouteCandidate* pBestCandidate = DetermineBestRouteCandidate(
                                                             vecRouteCandidates);
             if (pBestCandidate != NULL)
@@ -291,7 +290,7 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
 #endif
             }
 
-            // cleanup
+            //cout << "cleanup" << endl;
             while (vecRouteCandidates.size() > 0)
             {
                 MHTRouteCandidate* pCandidate = vecRouteCandidates.back();
@@ -302,11 +301,13 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
         }
     }
 
-    // Step 6 - Treatment of gaps between trip segments
+    //cout << "Step 6 - Treatment of gaps between trip segments" << endl;
     //          Create result
+//#define TRACE_ROUTE_CANDIDATES
+    TraceRouteCandidates(vecRouteSegments, "##### BestCandidate ######");
     CreateCompleteRoute(vecRouteSegments);
 
-    // cleanup
+    //cout << "cleanup" << endl;
     while (vecRouteSegments.size() > 0)
     {
         MHTRouteCandidate* pCandidate = vecRouteSegments.back();
@@ -463,7 +464,7 @@ void MapMatchingMHT::TripSegmentation(
         if (!CheckQualityOfGPSFix(*pActData))
         {
             // bad quality of GPS fix
-//#define TRACE_BAD_DATA
+#define TRACE_BAD_DATA
 #ifdef TRACE_BAD_DATA
             std::ostream& rStream = cmsg.file("MMBadData.log");
             pActData->Print(rStream);
@@ -730,12 +731,13 @@ int MapMatchingMHT::DevelopRoutes(const MapMatchDataContainer* pContMMData,
 
             ptPrev = pActData->GetPoint();
             timePrev = pActData->m_Time;
-
+//#define TRACE_ROUTE_CANDIDATES
             TraceRouteCandidates(rvecRouteCandidates,
                                  "##### Nach DevelopRoutes #####");
 
             // Reduce Routes
             ReduceRouteCandidates(rvecRouteCandidates);
+//#define TRACE_ROUTE_CANDIDATES
             TraceRouteCandidates(rvecRouteCandidates,
                                  "##### Nach Reduce #####");
         }
@@ -923,12 +925,12 @@ void MapMatchingMHT::DevelopRoutes(const MapMatchData* pMMData,
                     continue;
                 }
 
-                const bool bStartsSmaller = pSection->GetCurveStartsSmaller();
-                const Point& rPtStart = pCurve->StartPoint(bStartsSmaller);
-                const Point& rPtEnd = pCurve->EndPoint(bStartsSmaller);
+                //const bool bStartsSmaller = pSection->GetCurveStartsSmaller();
+                //const Point& rPtStart = pCurve->StartPoint(bStartsSmaller);
+                //const Point& rPtEnd = pCurve->EndPoint(bStartsSmaller);
 
-                //const Point& rPtStart = pSection->GetStartPoint();
-                //const Point& rPtEnd = pSection->GetEndPoint();
+                const Point& rPtStart = pSection->GetStartPoint();
+                const Point& rPtEnd = pSection->GetEndPoint();
 
                 if (!rPtStart.IsDefined() || !rPtEnd.IsDefined())
                 {
@@ -1118,12 +1120,12 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
     if (PointProjection.IsDefined())
     {
         // Check if the startpoint or endpoint has been reached.
-        const bool bStartsSmaller = pSection->GetCurveStartsSmaller();
-        const Point ptStart = pCurve->StartPoint(bStartsSmaller);
-        const Point ptEnd = pCurve->EndPoint(bStartsSmaller);
+        //const bool bStartsSmaller = pSection->GetCurveStartsSmaller();
+        //const Point ptStart = pCurve->StartPoint(bStartsSmaller);
+        //const Point ptEnd = pCurve->EndPoint(bStartsSmaller);
 
-        //const Point ptStart = pSection->GetStartPoint();
-        //const Point ptEnd = pSection->GetEndPoint();
+        const Point ptStart = pSection->GetStartPoint();
+        const Point ptEnd = pSection->GetEndPoint();
 
         bool bIsEndPoint = false;
 
@@ -1320,7 +1322,7 @@ static bool LastPointsEqual(const MHTRouteCandidate* pRouteCandidate1,
     MHTRouteCandidate::PointDataIterator itData  =
                                             pRouteCandidate1->PointDataRBegin();
     MHTRouteCandidate::PointDataIterator itDataEnd =
-                                              pRouteCandidate2->PointDataREnd();
+                                              pRouteCandidate1->PointDataREnd();
     MHTRouteCandidate::PointDataIterator itData2 =
                                             pRouteCandidate2->PointDataRBegin();
     MHTRouteCandidate::PointDataIterator itData2End =
@@ -1357,24 +1359,6 @@ void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
     if (rvecRouteCandidates.size() == 0)
             return;
 
-    std::sort(rvecRouteCandidates.begin(),
-              rvecRouteCandidates.end(),
-              RouteCandidateScoreCompare);
-
-    const bool bInInitPhase = (rvecRouteCandidates[0]->GetCountPoints() < 5);
-
-    if (bInInitPhase && rvecRouteCandidates.size() < 20)
-        return;
-
-    // maximum 20
-    while (rvecRouteCandidates.size() > 20)
-    {
-        MHTRouteCandidate* pCandidate = rvecRouteCandidates.back();
-        rvecRouteCandidates.pop_back();
-        if (pCandidate != NULL)
-            delete pCandidate;
-    }
-
     // Find duplicates
     size_t nCandidates = rvecRouteCandidates.size();
     for (size_t i = 0; i < nCandidates; ++i)
@@ -1398,13 +1382,11 @@ void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
                                              pRouteCandidate2->GetLastSection();
             if (pLastSection2 == NULL)
                 continue;
-
-            if (!bInInitPhase &&
-                 *pLastSection1 == *pLastSection2 &&
+            if (*pLastSection1 == *pLastSection2 &&
                 LastPointsEqual(pRouteCandidate1, pRouteCandidate2, 4))
             {
-                rvecRouteCandidates[j] = NULL;
-                delete pRouteCandidate2;
+              rvecRouteCandidates[j] = NULL;
+              delete pRouteCandidate2;
             }
         }
     }
@@ -1423,19 +1405,31 @@ void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
         }
         else
         {
-            const MHTRouteCandidate::PointDataPtr& pDataLastPt =
-                                                     pCandidate->GetLastPoint();
+          const MHTRouteCandidate::PointDataPtr& pDataLastPt =
+                                                 pCandidate->GetLastPoint();
 
-            if (pDataLastPt != NULL && pDataLastPt->GetDistance() > 200.)
-            {
-                // Too far away -> remove
-                delete pCandidate;
-                rvecRouteCandidates.pop_back();
-            }
-            else
-            {
-                break;
-            }
+          if (pDataLastPt != NULL && pDataLastPt->GetDistance() > 200.)
+          {
+            // Too far away -> remove
+            delete pCandidate;
+            rvecRouteCandidates.pop_back();
+          }
+          else
+          {
+            break;
+          }
+        }
+    }
+
+    // maximum 20
+    while (rvecRouteCandidates.size() > 20)
+    {
+        MHTRouteCandidate* pCandidate = rvecRouteCandidates.back();
+        rvecRouteCandidates.pop_back();
+        if (pCandidate != NULL)
+        {
+          delete pCandidate;
+          pCandidate = NULL;
         }
     }
 }
@@ -1487,10 +1481,11 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
                                 bool& rbCorrectUTurn,
                                 double& rdAdditionalUTurnScore)
 {
+  //cout << "CheckUTurn" << endl;
     if (pCandidate == NULL || pCandidate->GetCountRouteSegments() <= 1)
     {
-        // First section -> do not assign adjacent sections (No U-Turn)
-        return false;
+      //cout <<"1.sect->do not assign adjacent sections (No U-Turn)" << endl;
+      return false;
     }
 
     const shared_ptr<IMMNetworkSection>& pSection =
@@ -1502,19 +1497,19 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
 
     if (nPointsOfLastSection == 0)
     {
-        // No points assigned
+        //cout << "No points assigned" << endl;
         return false;
     }
     else if (nPointsOfLastSection == 1)
     {
-        // U-Turn and only one assigned point to last section
+        //cout << "U-Turn and only one assigned point to last section" << endl;
 
         //rbCorrectUTurn = true;
         return false;
     }
     else if (nPointsOfLastSection == 2)
     {
-        // U-Turn and only two assigned points to last section
+        //cout << "U-Turn and only two assigned points to last section" << endl;
         // -> Remove last points and assign these points to
         // endpoint of previous section
 
@@ -1522,8 +1517,7 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
     }
     else if (nPointsOfLastSection <= 10)
     {
-        // more than 2 points ->
-        // check distance between projected points
+      //cout << "more than 2 pts -> check dist between projected points"<< endl;
 
         const std::vector<MHTRouteCandidate::PointDataPtr>& rvecPoints =
                                            pCandidate->GetPointsOfLastSection();
@@ -1594,7 +1588,7 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
                         double dDist = MMUtil::CalcDistance(rPt1, rPt2,
                                                             m_dNetworkScale);
 
-                        if (dDist > dMaxDistance)
+                        if (dDist > dMaxDistanceGPS)
                         {
                             dMaxDistanceGPS = dDist;
 
@@ -1699,14 +1693,12 @@ void MapMatchingMHT::AddAdjacentSections(
     if ((pSection->GetDirection() == IMMNetworkSection::DIR_UP && !bUpDown) ||
         (pSection->GetDirection() == IMMNetworkSection::DIR_DOWN && bUpDown))
     {
-        // U-Turn
-
         bUTurn = true;
-
+        // cout << "found possible uturn " << endl;
         if (!CheckUTurn(pCandidate, bUpDown,
                         bCorrectUTurn, dAdditionalUTurnScore))
         {
-            return;
+          return;
         }
     }
 
@@ -1736,7 +1728,6 @@ void MapMatchingMHT::AddAdjacentSections(
             }
         }
 
-#if 1
         if (bCorrectUTurn)
         {
             // Assign to end node of previous section
@@ -1767,7 +1758,7 @@ void MapMatchingMHT::AddAdjacentSections(
             }
         }
         else
-#endif
+
         if (bUTurn)
         {
 
@@ -1844,7 +1835,6 @@ void MapMatchingMHT::TraceRouteCandidates(
                           const std::vector<MHTRouteCandidate*>& rvecCandidates,
                           const char* pszText) const
 {
-//#define TRACE_ROUTE_CANDIDATES
 #ifdef TRACE_ROUTE_CANDIDATES
     std::ostream& rStream = cmsg.file("RouteCandidates.txt");
 

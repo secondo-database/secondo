@@ -104,7 +104,8 @@ public:
 
  virtual JNetworkSectionAdapter* CastToJNetworkSection();
 
- RouteLocation* GetSectionStartRLoc() const;
+ RouteLocation* GetRouteLocation(const Point*& p) const;
+ Direction GetSide() const;
 
 private:
   JNetwork* pJNet;

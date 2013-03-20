@@ -70,16 +70,8 @@ private:
   bool Init(void);
   void Finalize(void);
 
-  const AttributePtr<RouteLocation> GetRLoc(
-                                const MHTRouteCandidate::PointDataPtr& pData,
-                                const double& dNetworkScale) const;
-
-  bool CalcShortestPath(const RouteLocation& from,
-                        const RouteLocation& to,
-                        MHTRouteCandidate::PointDataPtr ptrFrom,
-                        MHTRouteCandidate::PointDataPtr ptrTo) const;
-
-  double CalcLengthCurveMeter(const DbArray<JRouteInterval>* path) const;
+  RouteLocation* GetRouteLocation(const MHTRouteCandidate::PointDataPtr pData)
+                                                                        const;
 
 };
 
