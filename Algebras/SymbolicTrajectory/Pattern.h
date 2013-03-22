@@ -60,7 +60,7 @@ class UPat;
 class Assign;
 class ClassifyLI;
 class Label;
-class IndexClassifyLI;
+class IndexLI;
 
 enum Wildcard {NO, STAR, PLUS};
 
@@ -415,7 +415,7 @@ class Match {
     seqOrder = new int[f];
   }
 
-  Match(IndexClassifyLI* li, TupleId tId);
+  Match(IndexLI* li, TupleId tId);
 
   ~Match() {
     delete[] match;
@@ -538,30 +538,34 @@ private:
   vector<MLabel*> rewritten;
 };
 
-class IndexClassifyLI {
+class IndexLI {
 
 friend class Match;
 
 public:
-  IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv, Word _attrNr);
-  IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv, Word _attrNr,bool rew);
+  IndexLI(Word _pstream, Word _mlrel, Word _inv, Word _attrNr);
+  IndexLI(Word _mlrel, Word _inv, Word _attrNr, Pattern* _p);
+  IndexLI(Word _pstream, Word _mlrel, Word _inv, Word _attrNr,bool rew);
 
-  ~IndexClassifyLI();
+  ~IndexLI();
 
   Tuple* nextResultTuple();
+  MLabel* nextResultML();
   void applyUnitPattern(int pPos, vector<int>& prev, Wildcard& wc,
                         vector<bool>& active);
   vector<TupleId> applyPattern(); // apply unit patterns of p to mlRel
-  void applyConditions(vector<TupleId> matchingMLs); // filter vector
+  void applyConditions(vector<TupleId> matchingMLs, bool classify);//filter vec
   int getMLsize(TupleId tId);
   ULabel getUL(TupleId tId, unsigned int ulId);
   bool timesMatch(TupleId tId, unsigned int ulId, set<string> ivs);
   set<unsigned int>::iterator initIterator(int tId, int pPos);
+  void closeStream() {pStream.close();}
 
 private:
   Stream<Tuple> pStream;
   Relation *mlRel;
   queue<pair<string, TupleId> > classification;
+  queue<TupleId> resultIds;
   vector<set<unsigned int> >* matches; // TupleId, unit pattern, unit label
   TupleType* classifyTT;
   Pattern* p;

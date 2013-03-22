@@ -1359,7 +1359,7 @@ TypeConstructor labelsTC(
 \subsection{Type Mapping}
 
 */
-ListExpr containsTypeMap(ListExpr args) {
+ListExpr containsTM(ListExpr args) {
   const string errMsg = "Expecting a labels and a string.";
   if (nl->ListLength(args) != 2) {
     return listutils::typeError("Two arguments expected.");
@@ -1862,7 +1862,7 @@ map<string, int> Pattern::getVarPosInSeq() {
   return result;
 }
 
-Match::Match(IndexClassifyLI* li, TupleId tId) {
+Match::Match(IndexLI* li, TupleId tId) {
   patterns = li->p->getPats();
   f = patterns.size();
   conds = li->p->getConds();
@@ -1968,7 +1968,7 @@ void Pattern::buildNFA() {
               delta[j][k].insert(f);
             }
           }
-        } 
+        }
         if (prev[1] >= 0) { // match before current pattern
           for (int j = prev[1] + 1; j <= i; j++) {
             delta[prev[1]][prev[1]].insert(j); // step 2
@@ -2019,8 +2019,8 @@ the matching procedure ends after the unit pattern test.
 
 */
 bool Match::matches(MLabel &ml, bool rewrite) {
-  cout << "index has " << ml.index.getNodeRefSize() << " nodes" << endl;
-  if (ml.index.getNodeRefSize()) { // use index
+  if (ml.index.getNodeRefSize() && ml.index.getNodeLinkSize()
+      && ml.index.getLabelIndexSize()) { // use index
     ml.index.initRoot();
     set<size_t> positions;
     positions.insert(0);
@@ -3091,9 +3091,6 @@ bool Match::initCondOpTrees() {
       ptrs.clear();
       conds[i].setTreeOk(true);
     }
-    else {
-      cout << "not necessary" << endl;
-    }
   }
   return true;
 }
@@ -3208,7 +3205,7 @@ void Match::multiRewrite(ClassifyLI* c) {
 \subsection{Type Mapping}
 
 */
-ListExpr topatternTypeMap(ListExpr args) {
+ListExpr topatternTM(ListExpr args) {
   if (!nl->HasLength(args, 1)) {
     return listutils::typeError("one argument expected");
   }
@@ -3269,7 +3266,7 @@ struct topatternInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr matchesTypeMap(ListExpr args) {
+ListExpr matchesTM(ListExpr args) {
   if (!nl->HasLength(args, 2)) {
     return NList::typeError("Two arguments expected");
   }
@@ -3415,6 +3412,124 @@ struct matchesInfo : OperatorInfo {
 };
 
 /*
+\section{Operator ~indexmatches~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr indexmatchesTM(ListExpr args) {
+  const string errMsg = "Expecting a relation, the name of an {mlabel, mstring}"
+             " attribute of that relation, an invfile, and a text";
+  if (nl->HasLength(args, 4)) {
+    if (FText::checkType(nl->Fourth(args))) {
+      if (Relation::checkType(nl->First(args))) {
+        if (Tuple::checkType(nl->First(nl->Rest(nl->First(args))))
+         && listutils::isSymbol(nl->Second(args))) {
+          ListExpr attrType;
+          ListExpr attrList = nl->Second(nl->First(nl->Rest(nl->First(args))));
+          string attrName = nl->SymbolValue(nl->Second(args));
+          int i = listutils::findAttribute(attrList, attrName, attrType);
+          if (i == 0) {
+            return listutils::typeError(attrName + " not found");
+          }
+          if (!MLabel::checkType(attrType) && !MString::checkType(attrType)) {
+            return listutils::typeError
+                   ("type " + nl->ToString(attrType) + " is an invalid type");
+          }
+          if (InvertedFile::checkType(nl->Third(args))) {
+            return nl->ThreeElemList(
+              nl->SymbolAtom(Symbol::APPEND()),
+              nl->OneElemList(nl->IntAtom(i)),
+              nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), attrType));
+          }
+        }
+      }
+    }
+  }
+  return listutils::typeError(errMsg);
+}
+
+IndexLI::IndexLI(Word _mlrel, Word _inv, Word _attrNr, Pattern* _p):pStream(0) {
+  mlRel = (Relation*)_mlrel.addr;
+  invFile = static_cast<InvertedFile*>(_inv.addr);
+  attrNr = ((CcInt*)_attrNr.addr)->GetIntval() - 1;
+  p = _p;
+  classifyTT = 0;
+  matches = new vector<set<unsigned int> >[mlRel->GetNoTuples()];
+  for (int i = 0; i < mlRel->GetNoTuples(); i++) {
+    matches[i].resize(p->getSize());
+  }
+  vector<TupleId> matchingMLs = applyPattern();
+  applyConditions(matchingMLs, false);
+  delete[] matches;
+}
+
+MLabel* IndexLI::nextResultML() {
+  if (!mlRel->GetNoTuples() || resultIds.empty()) { // no mlabel => no result
+    return 0;
+  }
+  Tuple* tuple = mlRel->GetTuple(resultIds.front(), false);
+  resultIds.pop();
+  MLabel* result = (MLabel*)tuple->GetAttribute(attrNr)->Copy();
+  tuple->DeleteIfAllowed();
+  return result;
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int indexmatchesVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s){
+  IndexLI *li = (IndexLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      FText *pText = static_cast<FText*>(args[3].addr);
+      Pattern* p = 0;
+      if (pText->IsDefined()) {
+        p = Pattern::getPattern(pText->GetValue(), true);
+      }
+      if (p) {
+        local.addr = new IndexLI(args[0], args[2], args[4], p);
+      }
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->nextResultML() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct indexmatchesInfo : OperatorInfo {
+  indexmatchesInfo() {
+    name      = "indexmatches";
+    signature = "rel(tuple(..., mlabel, ...)) x attrname x invfile x text "
+                "-> stream(mlabel)";
+    syntax    = "_ indexmatches [ _ , _ , _ ]";
+    meaning   = "Filters a relation containing a mlabel attribute, passing "
+                "only those moving labels matching the pattern on "
+                "to the output stream.";
+  }
+};
+
+/*
 \section{Operator ~filterMatches~}
 
 \subsection{Type Mapping}
@@ -3454,22 +3569,34 @@ class FilterMatchesLI {
   FilterMatchesLI(Word _stream, int _attrIndex, FText* text):
       stream(_stream), attrIndex(_attrIndex) {
     Pattern *p = Pattern::getPattern(text->GetValue());
-    p->setVerified(false);
-    if (p->verifyPattern()) {
-      match = new Match(p->getPats().size() + 1);
-      p->buildNFA();
-      p->setVerified(true);
-      match->copyFromPattern(*p);
-      stream.open();
+    if (p) {
+      p->setVerified(false);
+      if (p->verifyPattern()) {
+        match = new Match(p->getPats().size() + 1);
+        p->buildNFA();
+        p->setVerified(true);
+        match->copyFromPattern(*p);
+        stream.open();
+        streamOpened = true;
+      }
+    }
+    else {
+      match = 0;
+      streamOpened = false;
     }
   }
 
   ~FilterMatchesLI() {
     delete match;
-    stream.close();
+    if (streamOpened) {
+      stream.close();
+    }
   }
 
   Tuple* next() {
+    if (!match) {
+      return 0;
+    }
     Tuple* cand = stream.request();
     while (cand) {
       MLabel* ml = (MLabel*)cand->GetAttribute(attrIndex);
@@ -3488,6 +3615,7 @@ class FilterMatchesLI {
   Stream<Tuple> stream;
   int attrIndex;
   Match* match;
+  bool streamOpened;
 };
 
 /*
@@ -3547,7 +3675,7 @@ struct filterMatchesInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr rewriteTypeMap(ListExpr args) {
+ListExpr rewriteTM(ListExpr args) {
   NList type(args);
   const string errMsg = "Expecting a mlabel and a text or a mstring and a text"
                         " or a stream<text> and a stream<mlabel>";
@@ -3909,7 +4037,7 @@ struct rewriteInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr classifyTypeMap(ListExpr args) {
+ListExpr classifyTM(ListExpr args) {
   const string errMsg = "Expecting a stream(tuple(x, y)) with x,y in "
              "{string, text} and a stream(z) with z in {mlabel, mstring}. ";
   if (nl->HasLength(args, 2)) {
@@ -4250,7 +4378,7 @@ struct classifyInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr indexclassifyTypeMap(ListExpr args) {
+ListExpr indexclassifyTM(ListExpr args) {
   const string errMsg = "Expecting a stream(tuple(x, y)) with x,y in "
              "{string, text}, a relation, the name of an {mlabel, mstring} "
              "attribute of that relation, and an invfile";
@@ -4301,13 +4429,13 @@ ListExpr indexclassifyTypeMap(ListExpr args) {
 }
 
 /*
-\subsection{Constructor for class ~IndexClassifyLI~}
+\subsection{Constructor for class ~IndexLI~}
 
 This constructor is used for the operator ~indexclassify~.
 
 */
-IndexClassifyLI::IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv,
-                                 Word _attrNr) : pStream(_pstream), p(0) {
+IndexLI::IndexLI(Word _pstream, Word _mlrel, Word _inv, Word _attrNr) :
+                 pStream(_pstream), p(0) {
   mlRel = (Relation*)_mlrel.addr;
   invFile = static_cast<InvertedFile*>(_inv.addr);
   attrNr = ((CcInt*)_attrNr.addr)->GetIntval() - 1;
@@ -4319,7 +4447,7 @@ IndexClassifyLI::IndexClassifyLI(Word _pstream, Word _mlrel, Word _inv,
 \subsection{Function ~timesMatch~}
 
 */
-bool IndexClassifyLI::timesMatch(TupleId tId,unsigned int ulId,set<string> ivs){
+bool IndexLI::timesMatch(TupleId tId,unsigned int ulId,set<string> ivs) {
   if (ivs.empty()) {
     return true;
   }
@@ -4331,7 +4459,7 @@ bool IndexClassifyLI::timesMatch(TupleId tId,unsigned int ulId,set<string> ivs){
 \subsection{Function ~initIterator~}
 
 */
-set<unsigned int>::iterator IndexClassifyLI::initIterator(int tId, int pPos) {
+set<unsigned int>::iterator IndexLI::initIterator(int tId, int pPos) {
   set<unsigned int>::iterator it = matches[tId - 1][pPos].end();
   if (it != matches[tId - 1][pPos].begin()) {
     it--;
@@ -4343,8 +4471,8 @@ set<unsigned int>::iterator IndexClassifyLI::initIterator(int tId, int pPos) {
 \subsection{Function ~applyUnitPattern~}
 
 */
-void IndexClassifyLI::applyUnitPattern(int pPos, vector<int>& prev,
-                                       Wildcard& wild, vector<bool>& active) {
+void IndexLI::applyUnitPattern(int pPos, vector<int>& prev,
+                               Wildcard& wild, vector<bool>& active) {
   InvertedFile::exactIterator* eit = 0;
   TupleId id;
   wordPosType wc;
@@ -4460,12 +4588,11 @@ void IndexClassifyLI::applyUnitPattern(int pPos, vector<int>& prev,
 \subsection{Function ~applyPattern~}
 
 */
-vector<TupleId> IndexClassifyLI::applyPattern() {
+vector<TupleId> IndexLI::applyPattern() {
   vector<TupleId> result;
   Wildcard wild = NO;
   vector<int> prev(mlRel->GetNoTuples(), -1);
   vector<bool> active(mlRel->GetNoTuples(), true);
-  cout << "process pattern \'" << p->GetText() << "\'" << endl;
   for (int i = 0; i < p->getSize(); i++) { // iterate over unit patterns
     applyUnitPattern(i, prev, wild, active);
   }
@@ -4483,33 +4610,56 @@ vector<TupleId> IndexClassifyLI::applyPattern() {
 \subsection{Function ~applyConditions~}
 
 */
-void IndexClassifyLI::applyConditions(vector<TupleId> tupleIds) {
+void IndexLI::applyConditions(vector<TupleId> tupleIds, bool classify) {
   if (p->getConds().empty()) { // no condition
-    for (unsigned int i = 0; i < tupleIds.size(); i++){
-      classification.push(make_pair(p->getDescr(), tupleIds[i]));
+    if (classify) {
+      for (unsigned int i = 0; i < tupleIds.size(); i++){
+        classification.push(make_pair(p->getDescr(), tupleIds[i]));
+      }
+    }
+    else {
+      for (unsigned int i = 0; i < tupleIds.size(); i++){
+        resultIds.push(tupleIds[i]);
+      }
     }
   }
   else {
-    for (unsigned int i = 0; i < tupleIds.size(); i++){
-      Match* m = new Match(this, tupleIds[i]);
-      m->computeCardsets();
-      m->initCondOpTrees();
-      Tuple* tuple = mlRel->GetTuple(tupleIds[i], false);
-      if (m->conditionsMatch((MLabel*)tuple->GetAttribute(attrNr))) {
-        classification.push(make_pair(p->getDescr(), tupleIds[i]));
+    if (classify) {
+      for (unsigned int i = 0; i < tupleIds.size(); i++){
+        Match* m = new Match(this, tupleIds[i]);
+        m->computeCardsets();
+        m->initCondOpTrees();
+        Tuple* tuple = mlRel->GetTuple(tupleIds[i], false);
+        if (m->conditionsMatch((MLabel*)tuple->GetAttribute(attrNr))) {
+          classification.push(make_pair(p->getDescr(), tupleIds[i]));
+        }
+        deleteIfAllowed(tuple);
+        m->deleteCondOpTrees();
+        delete m;
       }
-      deleteIfAllowed(tuple);
-      m->deleteCondOpTrees();
-      delete m;
+    }
+    else {
+      for (unsigned int i = 0; i < tupleIds.size(); i++){
+        Match* m = new Match(this, tupleIds[i]);
+        m->computeCardsets();
+        m->initCondOpTrees();
+        Tuple* tuple = mlRel->GetTuple(tupleIds[i], false);
+        if (m->conditionsMatch((MLabel*)tuple->GetAttribute(attrNr))) {
+          resultIds.push(tupleIds[i]);
+        }
+        deleteIfAllowed(tuple);
+        m->deleteCondOpTrees();
+        delete m;
+      }
     }
   }
-}
+} 
 
 /*
 \subsection{Function ~getMLsize~}
 
 */
-int IndexClassifyLI::getMLsize(TupleId tId) {
+int IndexLI::getMLsize(TupleId tId) {
   Tuple* tuple = mlRel->GetTuple(tId, false);
   int result = ((MLabel*)tuple->GetAttribute(attrNr))->GetNoComponents();
   deleteIfAllowed(tuple);
@@ -4520,7 +4670,7 @@ int IndexClassifyLI::getMLsize(TupleId tId) {
 \subsection{Function ~getUL~}
 
 */
-ULabel IndexClassifyLI::getUL(TupleId tId, unsigned int ulId) {
+ULabel IndexLI::getUL(TupleId tId, unsigned int ulId) {
   ULabel result(1);
   Tuple* tuple = mlRel->GetTuple(tId, false);
   ((MLabel*)tuple->GetAttribute(attrNr))->Get(ulId, result);
@@ -4534,7 +4684,7 @@ ULabel IndexClassifyLI::getUL(TupleId tId, unsigned int ulId) {
 This function is used for the operator ~indexclassify~.
 
 */
-Tuple* IndexClassifyLI::nextResultTuple() {
+Tuple* IndexLI::nextResultTuple() {
   if (!mlRel->GetNoTuples()) { // no mlabel => no result
     return 0;
   }
@@ -4565,7 +4715,7 @@ Tuple* IndexClassifyLI::nextResultTuple() {
           matches[i].resize(p->getSize());
         }
         vector<TupleId> matchingMLs = applyPattern();
-        applyConditions(matchingMLs);
+        applyConditions(matchingMLs, true);
         delete[] matches;
       }
     }
@@ -4585,19 +4735,18 @@ Tuple* IndexClassifyLI::nextResultTuple() {
 }
 
 /*
-\subsection{Destructor for class ~IndexClassifyLI~}
+\subsection{Destructor for class ~IndexLI~}
 
 */
-IndexClassifyLI::~IndexClassifyLI() {
+IndexLI::~IndexLI() {
   if (classifyTT) {
     delete classifyTT;
-    classifyTT = 0;
+    classifyTT = 0; 
   }
   if (p) {
     delete p;
     p = 0;
   }
-  pStream.close();
 }
 
 /*
@@ -4606,14 +4755,14 @@ IndexClassifyLI::~IndexClassifyLI() {
 */
 int indexclassifyVM(Word* args, Word& result, int message, Word& local,
                     Supplier s){
-  IndexClassifyLI *li = (IndexClassifyLI*)local.addr;
+  IndexLI *li = (IndexLI*)local.addr;
   switch (message) {
     case OPEN: {
       if (li) {
         delete li;
         local.addr = 0;
       }
-      local.addr = new IndexClassifyLI(args[0], args[1], args[3], args[4]);
+      local.addr = new IndexLI(args[0], args[1], args[3], args[4]);
       return 0;
     }
     case REQUEST: {
@@ -4622,6 +4771,7 @@ int indexclassifyVM(Word* args, Word& result, int message, Word& local,
     }
     case CLOSE: {
       if (li) {
+        li->closeStream();
         delete li;
         local.addr = 0;
       }
@@ -4650,7 +4800,7 @@ struct indexclassifyInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr compressTypeMap(ListExpr args) {
+ListExpr compressTM(ListExpr args) {
   const string errMsg
           = "Expecting mlabel or mstring or stream(mlabel) or stream(mstring).";
   if (!nl->HasLength(args, 1)) {
@@ -4748,7 +4898,7 @@ struct compressInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr fillgapsTypeMap(ListExpr args) {
+ListExpr fillgapsTM(ListExpr args) {
   string errMsg = "Expecting one argument of type mlabel or mstring and one of"
                   " type integer.";
   if (nl->ListLength(args) != 2) {
@@ -4862,7 +5012,7 @@ struct fillgapsInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr createmlTypeMap(ListExpr args) {
+ListExpr createmlTM(ListExpr args) {
   const string errMsg = "Expecting an integer and a real.";
   if (nl->ListLength(args) != 2) {
     return listutils::typeError("Two arguments expected.");
@@ -4918,7 +5068,7 @@ struct createmlInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr createmlrelationTypeMap(ListExpr args) {
+ListExpr createmlrelationTM(ListExpr args) {
   if (nl->ListLength(args) != 3) {
     return listutils::typeError("Three arguments expected.");
   }
@@ -5008,7 +5158,7 @@ struct createmlrelationInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr createindexTypeMap(ListExpr args) {
+ListExpr createindexTM(ListExpr args) {
   if (nl->ListLength(args) != 1) {
     return listutils::typeError("One argument expected.");
   }  
@@ -5074,7 +5224,7 @@ struct createindexInfo : OperatorInfo {
 \subsection{Type Mapping}
 
 */
-ListExpr createrelindexTypeMap(ListExpr args) {
+ListExpr createrelindexTM(ListExpr args) {
   if (nl->ListLength(args) != 2) {
     return listutils::typeError("Two arguments expected.");
   }
@@ -5169,15 +5319,17 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
 //       AddOperator(&temporalatinstantext);
 
-      AddOperator(containsInfo(), containsVM, containsTypeMap);
+      AddOperator(containsInfo(), containsVM, containsTM);
       
-      AddOperator(topatternInfo(), topatternVM, topatternTypeMap);
+      AddOperator(topatternInfo(), topatternVM, topatternTM);
 
       ValueMapping matchesVMs[] = {matchesVM_TextML,
                                    matchesVM_PatML,
                                    matchesVM_TextMS,
                                    matchesVM_PatMS, 0};
-      AddOperator(matchesInfo(), matchesVMs, matchesSelect, matchesTypeMap);
+      AddOperator(matchesInfo(), matchesVMs, matchesSelect, matchesTM);
+
+      AddOperator(indexmatchesInfo(), indexmatchesVM, indexmatchesTM);
 
       AddOperator(filterMatchesInfo(), filterMatchesVM, filterMatchesTM);
       
@@ -5185,32 +5337,32 @@ class SymbolicTrajectoryAlgebra : public Algebra {
                                    rewriteVM_MT<MString>,
                                    rewriteVM_MP,
                                    rewriteVM_Stream, 0};
-      AddOperator(rewriteInfo(), rewriteVMs, rewriteSelect, rewriteTypeMap);
+      AddOperator(rewriteInfo(), rewriteVMs, rewriteSelect, rewriteTM);
 
-      AddOperator(classifyInfo(), classifyVM, classifyTypeMap);
+      AddOperator(classifyInfo(), classifyVM, classifyTM);
 
-      AddOperator(indexclassifyInfo(), indexclassifyVM, indexclassifyTypeMap);
+      AddOperator(indexclassifyInfo(), indexclassifyVM, indexclassifyTM);
 
       ValueMapping compressVMs[] = {compressVM_1<MLabel>,
                                     compressVM_1<MString>,
                                     compressVM_Str<MLabel>,
                                     compressVM_Str<MString>, 0};
-      AddOperator(compressInfo(), compressVMs, compressSelect,compressTypeMap);
+      AddOperator(compressInfo(), compressVMs, compressSelect,compressTM);
 
       ValueMapping fillgapsVMs[] = {fillgapsVM_1<MLabel>,
                                     fillgapsVM_1<MString>,
                                     fillgapsVM_Str<MLabel>,
                                     fillgapsVM_Str<MString>, 0};
-      AddOperator(fillgapsInfo(), fillgapsVMs, fillgapsSelect,fillgapsTypeMap);
+      AddOperator(fillgapsInfo(), fillgapsVMs, fillgapsSelect,fillgapsTM);
 
-      AddOperator(createmlInfo(), createmlVM, createmlTypeMap);
+      AddOperator(createmlInfo(), createmlVM, createmlTM);
 
       AddOperator(createmlrelationInfo(), createmlrelationVM,
-                  createmlrelationTypeMap);
+                  createmlrelationTM);
 
-      AddOperator(createindexInfo(), createindexVM, createindexTypeMap);
+      AddOperator(createindexInfo(), createindexVM, createindexTM);
 
-      AddOperator(createrelindexInfo(),createrelindexVM,createrelindexTypeMap);
+      AddOperator(createrelindexInfo(),createrelindexVM,createrelindexTM);
 
     }
     ~SymbolicTrajectoryAlgebra() {}

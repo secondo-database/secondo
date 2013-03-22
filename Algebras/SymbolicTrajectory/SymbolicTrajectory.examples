@@ -25,11 +25,17 @@ Signature: mstring x text -> bool
 Example  : query [const mstring value ((("2013-01-01" "2013-01-02" TRUE FALSE) "at_home"))] matches '()'
 Result   : TRUE
 
+Operator : indexmatches
+Number   : 1
+Signature: rel(tuple(..., mlabel, ...)) x attrname x invfile x text -> stream(mlabel)
+Example  : query Dotraj indexmatches[Trajectory, Dotrajindex, '(_ "Innenstadt-Ost") X * (_ "Innenstadt-Ost") // X.labels contains "Brackel"'] count
+Result   : 130
+
 Operator : filterMatches
 Number   : 1
 Signature: stream(tuple(X)) x IDENT x text -> stream(tuple(X))
 Example  : query SymbolicTripsTiny feed filterMatches[SymTrip, '(_ "Alte Teichstraße") * (_ "Alte Teichstraße")'] count
-Result   : 14
+Result   : 13
 
 Operator : rewrite
 Number   : 1
@@ -41,7 +47,7 @@ Operator : classify
 Number   : 1
 Signature: stream(tuple(string, text)) x stream(mlabel) -> stream(tuple(string, mlabel))
 Example  : query (patterns4 feed SymbolicTripsTiny feed projecttransformstream[SymTrip] classify) count
-Result   : 50
+Result   : 49
 
 Operator : indexclassify
 Number   : 1
@@ -50,7 +56,7 @@ Example  : query (patterns1 feed indexclassify [Dotrajsmall, Trajectory, Doindex
 Result   : 2
 
 Operator : rewrite
-Number   : 3
+Number   : 2
 Signature: stream(text) x stream(mlabel) -> stream(mlabel)
 Example  : query (rewrite1 feed projecttransformstream[Pattern] SymbolicTripsTiny feed projecttransformstream[SymTrip] rewrite) count
 Result   : 18
