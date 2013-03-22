@@ -1405,7 +1405,8 @@ bool SpreadLocalInfo::closeAllPartFiles()
               (scpCommand + filePaths + " " + remotePath).c_str())
               != 0 ){
             cerr << "Warning! Duplicate files "
-                << filePaths << " fails. "
+                << filePaths << " to " << endl
+                << remotePath << " fails. " << endl
                 << strerror(error) << endl;
           }
           else
