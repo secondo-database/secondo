@@ -601,8 +601,11 @@ public:
 
     //The tuple written to the file need remove the key attribute
     Tuple* newTuple;
-    if (kai && kaj)
+    bool keepAll = ((ai >= 0) ? kai : true) && ((aj >= 0) ? kaj : true);
+
+    if (keepAll){
       newTuple = tuple;
+    }
     else
     {
       newTuple = new Tuple(exTupleType);
@@ -624,7 +627,7 @@ public:
                          extensionSize, flobSize);
     blockFile.write(tBlock, tupleBlockSize);
     free(tBlock);
-    if (!kai || !kaj)
+    if (!keepAll)
       newTuple->DeleteIfAllowed();
     lastTupleIndex = tupleIndex + 1;
     cnt++;
