@@ -252,8 +252,6 @@ public:
     itrA(0),
     tbB(0),
     itrB(0),
-//    tpIndex_A(-1),
-//    tpIndex_B(-1),
     maxMem(mem),
     endOfStream(false),
     isBufferFilled(false)
@@ -349,7 +347,6 @@ class clusterInfo
 public:
   clusterInfo();
   clusterInfo(clusterInfo& rhg);
-//  clusterInfo(NList& instance);
 
   ~clusterInfo(){
       if(dataServers){

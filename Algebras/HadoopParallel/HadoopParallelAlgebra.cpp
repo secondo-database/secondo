@@ -162,7 +162,7 @@ ListExpr doubleExportTypeMap(ListExpr args)
       return nl->TypeError();
     }
 
-    ListExpr tupListB = nl->Second(nl->Second(nl->Second(args)));
+    ListExpr tupListB = nl->Second(tupTypeB);
     string attrBName = nl->SymbolValue(nl->Fourth(args));
     int attrBIndex =
         listutils::findAttribute(tupListB,attrBName,attrTypeB);
@@ -2742,8 +2742,8 @@ ListExpr FFeedTypeMap(ListExpr args)
   try{
      NList l(args);
      NList pType, pValue;
-     bool haveIndex, trMode, drMode;
-     haveIndex = trMode = drMode = false;
+     bool trMode, drMode;
+     trMode = drMode = false;
    
      string lenErr = "ERROR! Operator ffeed expects "
          "four parts parameters, separated by semicolons";
@@ -3660,7 +3660,6 @@ int hdpJoinValueMap(Word* args, Word& result,
 
       FILE *fs;
       char buf[MAX_STRINGSIZE];
-//      fs = popen("cat pjResult", "r");  //Used for debug only
       fs = popen("hadoop dfs -cat OUTPUT/part*", "r");
       if (NULL != fs)
       {
