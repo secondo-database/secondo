@@ -618,9 +618,6 @@ then the other mappers should indicate that as an empty row.
 			}
 			
 			if (replaced){
-//				System.out.println("In loc2Ffeed, queryList: " + queryList.toString());
-//				System.out.println("In loc2Ffeed, fileNameList: " + fileNameList.toString());
-//				System.out.println("In loc2Ffeed, inputStreamList: " + inputStreamList.toString());
 				queryList = ExtListExpr.replace(queryList, fileNameList, inputStreamList);
 			}
 			else{

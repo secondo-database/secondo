@@ -218,16 +218,9 @@ This method replaces a pattern list with a new list
 		
 		if (input.listLength() == pattern.listLength())
 		{
-/*			
- 			System.err.println("+++++++++++++++++++++++");
-			System.err.println("receive: " + input.toString());
-			System.err.println("pattern: " + pattern.toString());
-			System.err.println("equal? : " + input.equals(pattern));
-*/			
 			if (input.equals(pattern)){
 				return newList;
 			}
-//			System.err.println("+++++++++++++++++++++++\n\n");
 		}
 
 		if (input.listLength() > 0)

@@ -103,17 +103,12 @@ or ~FALSE~ if it's the last socket of the current tuple buffer.
         		+ "\t while expect " + sock_ID);
       
       //Read the sock_Num ...
-      int sock_Num = inSocketStream.readInt();
-//      System.err.println("remotestream get sock_id: " + get_SockID 
-//      	  + " with sock_num: " + sock_Num);
-      
-//      System.err.println("to read socket from " + offset + " with " + SOCKTUP_SIZE);
+      int sock_Num = inSocketStream.readInt();      
       //Read the left bytes of Socket into ~buf~
       int readCount = 0;
       while (readCount < SOCKTUP_SIZE){
       	readCount += inSocketStream.read(buf, offset + readCount, SOCKTUP_SIZE - readCount);
       }
-//      System.err.println("read result: " + readCount);
 
       sock_ID++;
       outSocketStream.writeInt(sock_ID);
@@ -146,11 +141,6 @@ or ~FALSE~ if it's the last socket of the current tuple buffer.
       offset += SOCKTUP_SIZE;
     }
     
-    /*    sock_Num = (int)Math.ceil((double)curPos / SOCKTUP_SIZE);
-    if (sock_Num != sentSok_Num)
-      System.err.println("Should send: " + sock_Num 
-          + "but sent: " + sentSok_Num);
-    */
     return sentSok_Num;
   }
   
@@ -216,14 +206,7 @@ or ~FALSE~ if it's the last socket of the current tuple buffer.
     throws IOException, InterruptedException{
     
     if (initialized){
-      //try {
         connected = open(hostName, port);
-      /*} catch (Exception e) {
-        System.err.println("Error while accessing " + hostName 
-            + " in port: " + port);
-        e.printStackTrace();
-        connected = false;
-      }*/
     }else{
       throw new IOException("Uninitialized RemoteStream Object");
     }
@@ -242,9 +225,7 @@ or ~FALSE~ if it's the last socket of the current tuple buffer.
       if (socket.isConnected()){
         socket.setKeepAlive(true);
         socket.setSoTimeout(0);
-//        socket.setSendBufferSize(1024);
-//        socket.setReceiveBufferSize(1024);
-        //socket.setReuseAddress(true);
+
         //Use self-defined DataInputStream, to transport data with 
         //little-endian bytes ordering
         inSocketStream = new RMDataInputStream(
@@ -270,14 +251,11 @@ or ~FALSE~ if it's the last socket of the current tuple buffer.
             		"Error: Can't connect to server [" + hostName 
             		+ "] on port: " + pt);
           
-          //socket = new Socket(hostName, pt);
           InetSocketAddress srv = new InetSocketAddress(hostName, pt);
           socket = new Socket();
           socket.connect(srv, 0);
           socket.setKeepAlive(true);
           socket.setSoTimeout(0);
-//          socket.setSendBufferSize(1024);
-//          socket.setReceiveBufferSize(1024);
         }catch (ConnectException e){
           socket = null;
           Thread.sleep(500);
@@ -361,14 +339,11 @@ or ~FALSE~ if it's the last socket of the current tuple buffer.
     //int len = 4;
     int res = 0, tmp;
     //According to Little-endian ordering
-    //System.out.print("Byte2Int: [");
     for (int i = 3; i >= 0; i--) {
       res <<= 8;
       tmp = value[i + offset] & 0xFF;
-      //System.out.print(toHex(value[i + offset]));
       res |= tmp;
     }
-    //System.out.println("]");
     return res;
   }
   
@@ -379,13 +354,6 @@ or ~FALSE~ if it's the last socket of the current tuple buffer.
   
   synchronized static String Byte2String(byte[] value, int offset, int len) throws IOException
   {
-/*    if (len < 10){
-    System.out.print("Byte2String("+ len + "): [");
-    for(int i=0; i < 20; i++)
-      System.out.print(toHex(value[offset+i]));
-    System.out.println("]");
-    }*/
-    
     return new String(value, offset, len - 1);      
   }
   

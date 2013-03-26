@@ -40,8 +40,6 @@ public class PS_HadoopMap_Map
 		fpList.readFromString(CreateFilePath);
 		CreateFilePath = fpList.first().textValue();
 		
-//		int secondoSlaveIdx  = slaveIdx + 1;
-		
 		FListKind outputKind = FListKind.values()[Integer.parseInt(parameters[9])];
 		
 		ListExpr fileNameList = new ListExpr(), fileLocList = new ListExpr();
@@ -108,14 +106,9 @@ public class PS_HadoopMap_Map
 							ListExpr.theEmptyList()));
 			}
 			
-//			System.out.println("comMapQuery: " + queryList.toString());
-//			System.out.println("fileNameList: " + fileNameList.toString());
-//			System.out.println("fileLocList: " + fileLocList.toString());
 			queryList = HPA_AuxFunctions.loc2Ffeed(
 					queryList, fileNameList, fileLocList, duplicateTimes);
 			boolean replaced = (!queryList.isEmpty());
-//			System.out.println("--------------------------------------------");
-//			System.out.println("After comMapQuery: " + queryList.toString());
 						
 			secEntity.open(mapperIPAddr, databaseName, mapperPortNum, true);
 			if (replaced)
