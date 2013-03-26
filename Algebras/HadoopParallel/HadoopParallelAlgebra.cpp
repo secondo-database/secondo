@@ -2742,8 +2742,6 @@ ListExpr FFeedTypeMap(ListExpr args)
   try{
      NList l(args);
      NList pType, pValue;
-     bool trMode, drMode;
-     trMode = drMode = false;
    
      string lenErr = "ERROR! Operator ffeed expects "
          "four parts parameters, separated by semicolons";
@@ -2817,7 +2815,6 @@ ListExpr FFeedTypeMap(ListExpr args)
        if (pType.length() > 1 ||
            !pType.first().isSymbol(CcInt::BasicType()))
          return l.typeError(err7);
-       trMode = true;
        pValue = tr.second();
        tnIndex = pValue.first().intval();
      }
@@ -2832,7 +2829,6 @@ ListExpr FFeedTypeMap(ListExpr args)
            !pType.second().isSymbol(CcInt::BasicType()) ||
            !pType.third().isSymbol(CcInt::BasicType()))
          return l.typeError(err9);
-       drMode = true;
      }
    
      if (tnIndex >= 0)
@@ -3909,8 +3905,7 @@ ListExpr FDistributeTypeMap(ListExpr args){
        if (!pType.fourth().isSymbol(CcInt::BasicType()))
          return l.typeError(err4);
    
-     bool evenMode = false;
-     bool setKPA = false, KPA = false;
+     bool /*evenMode = false, setKPA = false, */ KPA = false;
      NList pmList = l.third();
      //Partition mode (including [nBuckets], [KPA])
      pType = pmList.first();
@@ -3920,15 +3915,17 @@ ListExpr FDistributeTypeMap(ListExpr args){
        return l.typeError(err11);
      if (1 == pmLen)
      {
-       if (pType.first().isSymbol(CcInt::BasicType()))
-         evenMode = true;
-       else if (pType.first().isSymbol(CcBool::BasicType()))
+//       if (pType.first().isSymbol(CcInt::BasicType()))
+//         evenMode = true;
+/*       else*/
+       if (pType.first().isSymbol(CcBool::BasicType()))
        {
-         setKPA = true;
+//         setKPA = true;
          KPA = pValue.first().boolval();
        }
-       else
+       else if (!pType.first().isSymbol(CcInt::BasicType())){
          return l.typeError(err11);
+       }
      }
      else if (2 == pmLen)
      {
@@ -3937,8 +3934,8 @@ ListExpr FDistributeTypeMap(ListExpr args){
          return l.typeError(err11);
        else
        {
-         evenMode = true;
-         setKPA = true;
+//         evenMode = true;
+//         setKPA = true;
          KPA = pValue.second().boolval();
        }
      }
@@ -4090,7 +4087,7 @@ int FDistributeValueMap(Word* args, Word& result,
         rowNum = ((CcInt*)qp->Request(
             qp->GetSupplier(bspList,3)).addr)->GetValue();
 
-      bool evenMode = false, kpa = false;
+      bool /*evenMode = false,*/ kpa = false;
       int nBucket = 0;
       int ptmLen = qp->GetNoSons(ptmList);
       if (1 == ptmLen)
@@ -4101,14 +4098,14 @@ int FDistributeValueMap(Word* args, Word& result,
               qp->GetSupplierSon(ptmList,0)).addr)->GetValue();
         else
         {
-          evenMode = true;
+//          evenMode = true;
           nBucket = ((CcInt*)qp->Request(
               qp->GetSupplierSon(ptmList,0)).addr)->GetValue();
         }
       }
       else if (2 == ptmLen)
       {
-        evenMode = true;
+//        evenMode = true;
         nBucket = ((CcInt*)qp->Request(
             qp->GetSupplierSon(ptmList,0)).addr)->GetValue();
         kpa = ((CcBool*)qp->Request(
