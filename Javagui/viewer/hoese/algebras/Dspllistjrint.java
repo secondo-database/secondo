@@ -36,12 +36,15 @@ public class Dspllistjrint extends DsplGeneric {
                     ListExpr value, QueryResult qr)  {
      String T = name;
      T=extendString(T,nameWidth, indent);
-     qr.addEntry(T + " : ");
+     String Entry = T + ": ";
      while(!value.isEmpty()){
        JRouteInterval rint = new JRouteInterval(value.first());
        value = value.rest();
-       qr.addEntry(rint.toString() + ", ");
+       Entry = Entry + rint.toString();
+       if (!value.isEmpty())
+         Entry = Entry + ", ";
      }
+     qr.addEntry(Entry);
      return;
   }
 

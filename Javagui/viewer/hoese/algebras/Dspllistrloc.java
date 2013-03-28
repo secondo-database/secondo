@@ -36,12 +36,15 @@ public class Dspllistrloc extends DsplGeneric {
                     ListExpr value, QueryResult qr)  {
      String T = name;
      T=extendString(T,nameWidth, indent);
-     qr.addEntry(T + " : ");
+     String Entry = T + ": ";
      while(!value.isEmpty()){
        RouteLocation rloc = new RouteLocation(value.first());
        value = value.rest();
-       qr.addEntry(rloc.toString() + ", ");
+       Entry = Entry + rloc.toString();
+       if (!value.isEmpty())
+         Entry = Entry + ", ";
      }
+     qr.addEntry(Entry);
      return;
   }
 

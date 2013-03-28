@@ -36,12 +36,15 @@ public class Dspllistint extends DsplGeneric {
                     ListExpr value, QueryResult qr)  {
      String T = name;
      T=extendString(T,nameWidth, indent);
-     qr.addEntry(T + " : ");
+     String Entry = T + ": ";
      while(!value.isEmpty()){
        Integer number = value.first().intValue();
        value = value.rest();
-       qr.addEntry(number.toString() + ", ");
+       Entry = Entry + number.toString();
+       if (!value.isEmpty())
+        Entry = Entry + ", ";
      }
+     qr.addEntry(Entry);
      return;
   }
 
