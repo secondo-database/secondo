@@ -4097,7 +4097,7 @@ indexselectLifted(arg(N), Pred ) =>
 
 % general rules for liftedRightRangeQueries
 % constuni(btree) index, no rename
-indexselectLifted(arg(N), Pred ) =>
+indexselectLifted(arg(N), Pred ) /*=>*/
   gettuples(rdup(sort(rightrangeS(dbobject(IndexName), rel(Name, *), Y))), rel(Name, *))
   :-
   Pred =..[Op, Arg1, Arg2],
@@ -4209,6 +4209,18 @@ End of Goehr's extension
 
 */
 
+/*
+Apply an invfile for a relation containing moving labels (symbolic trajectories)
+
+*/
+%relationmatches(rel(Name, *), Attr, Text)
+               %=> indexmatches(rel(Name, *), Attr, dbobject(IndexName), Text) :-
+  %hasIndex(rel(Name, *), attr(Attr, Arg, AttrCase), DCindex, IndexType),
+  %IndexType = invfile,
+  %dcName2externalName(DCindex, IndexName), !.
+
+%relationmatches(rel(Name, *), Attr, Text)
+                               %=> filtermatches(feed(rel(Name, *)), Attr, Text).
 /*
 6 Creating Query Plan Edges
 
@@ -7209,6 +7221,11 @@ lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
   dcName2externalName(TermDC,Term),
   secondoCatalogInfo(TermDC,_,_,_),
   !.
+
+% Primitive: text-atom.
+lookupPred1(Term, value_expr(text,Term), RelsBefore, RelsBefore) :-
+  atom(Term),
+  not(is_list(Term)), !.
 
 lookupPred1(Term, Term, Rels, Rels) :-
  atom(Term),
