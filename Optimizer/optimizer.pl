@@ -4097,7 +4097,7 @@ indexselectLifted(arg(N), Pred ) =>
 
 % general rules for liftedRightRangeQueries
 % constuni(btree) index, no rename
-indexselectLifted(arg(N), Pred ) /*=>*/
+indexselectLifted(arg(N), Pred ) =>
   gettuples(rdup(sort(rightrangeS(dbobject(IndexName), rel(Name, *), Y))), rel(Name, *))
   :-
   Pred =..[Op, Arg1, Arg2],
