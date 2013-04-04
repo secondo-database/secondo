@@ -104,6 +104,9 @@ void insert(AVLSegment* x, AVLSegment*& pred, AVLSegment*& suc);
 			mpq_class& preciseXPos,
 			AVLSegment*& pred, AVLSegment*& suc);
 
+	void removeInvalidSegment(AVLSegment* x, int gridXPos,
+			mpq_class& preciseXPos);
+
 /*
 	 ~getPredecessor~
 
@@ -268,6 +271,10 @@ public:
 	AVLNode* removeGetNeighbor2(AVLSegment* x, int gridXPos,
 			mpq_class preciseXPos,
 				AVLSegment*& pred, AVLSegment*& suc);
+
+	AVLNode* removeInvalidSegment(AVLSegment* x, int gridXPos,
+			mpq_class preciseXPos,
+				bool& found);
 
 	int getHeight() {
 		return height;
@@ -448,8 +455,6 @@ protected:
 */
 	bool computePreciseYCoordInPos(mpq_class& pos, mpq_class& result);
 
-	int compare(const AVLSegment& s)const;
-
 	int compareBackward(const AVLSegment& s)const;
 
 	int comparePoints(const AVLSegment& s)const;
@@ -553,20 +558,6 @@ public:
 	void incrementNumberOfChanges();
 
 /*
-	 Comparison operators
-
-*/
-	bool operator==(const AVLSegment& s)const;
-
-	bool operator<(const AVLSegment& s) const;
-
-	bool operator<=(const AVLSegment& s) const;
-
-	bool operator>(const AVLSegment& s) const;
-
-	bool operator>=(const AVLSegment& s) const;
-
-/*
 	 ~print~
 
 */
@@ -591,6 +582,8 @@ public:
 	bool isLeftPointOf(AVLSegment& s);
 
 	bool isRightPointOf(AVLSegment& s);
+
+	bool hasEqualLeftEndpointAs(AVLSegment& s);
 
 /*
 	 ~isValid~
@@ -840,7 +833,8 @@ public:
 
 /*
 	 ~getGridX~
-	 X is the grid value of the 'time' in which the event need to be processed.
+	 X is the grid value of the 'time' in which the event need to be
+	 processed.
 
 */
 	int getGridX() const;
