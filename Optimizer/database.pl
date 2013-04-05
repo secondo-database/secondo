@@ -1685,7 +1685,7 @@ createSampleS(DCRel) :-
          secOptConstant(sampleSelMaxCard, CardMax),
          secOptConstant(sampleSelMinCard, CardMin),
          ( ( \+optimizerOption(autoSamples) ,
-             CardStd >= CardMin , CardStd =< CardMax , MemStd =< MemMax )
+             CardStd =< CardMax , MemStd =< MemMax )
            -> ( SampleCard is CardStd, SampleSize is MemStd,
                 write_list(['\tStandard selection sample size of ',
                             SampleCard,' (',SampleSize,' KB) is used.']),nl
