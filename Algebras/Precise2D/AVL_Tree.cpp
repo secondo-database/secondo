@@ -4098,7 +4098,7 @@ void intersectionTestForRealminize(AVLSegment* left,
  ~intersectionTestForSetOp~
 
 */
-void intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
+bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
 		priority_queue<Event, vector<Event>, greater<Event> >& q,
 		bool leftIsSmaller) {
 
@@ -4186,8 +4186,10 @@ void intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
 					delete right;
 				}
 			}
+			return true;
 		}
 	}
+	return false;
 }
 
 /*
@@ -4926,10 +4928,10 @@ void SetOp(const Line2& line1, const Line2& line2, Line2& result,
 	}
 	delete event;
 	result.EndBulkLoad(true, false);
-} // setop line x line -> line
+} // setop line2 x line2 -> line2
 
 /*
- ~intersect~
+ ~intersects~
 
  ~line2~ x ~line2~ -$>$ ~bool~
 
@@ -4962,13 +4964,12 @@ bool intersects(const Line2& line1, const Line2& line2,
 	AVLTree sss;
 	int pos1 = 0;
 	int pos2 = 0;
-	AVLSegment nextHs;
 
-	AVLSegment* current;
+	AVLSegment* current = NULL;
 	AVLSegment* pred = NULL;
 	AVLSegment* suc = NULL;
-
-	AVLSegment left1, right1, common1, left2, right2;
+	AVLSegment* left = NULL;
+	AVLSegment* right = NULL;
 
 	Event* event = new Event();
 
@@ -4979,60 +4980,90 @@ bool intersects(const Line2& line1, const Line2& line2,
 					line2, pos2, q, *event)) != none)) {
 		if (event->isLeftEndpointEvent()) {
 			if (p2d_debug) {
+				cout << "leftendpointevent:" << event << endl;
 				event->print();
 			}
 			current = event->getSegment();
 			sss.insert(current, pred, suc);
+
 			mpq_class v = current->getPreciseXL();
 			if (pred) {
-				if (current->mightIntersect(*pred)) {
-					if (current->intersect(*pred)) {
+				if (intersectionTestForSetOp(current,
+						pred, event, q, false)){
+          if ((pred->getOwner()!=current->getOwner())){
 						intersect = true;
 					}
 				}
-
 			}
 
-			if (suc) {
-				if (current->mightIntersect(*suc)) {
-					if (current->intersect(*suc)) {
-						intersect = true;
+       if (!current->isValid()) {
+				sss.removeInvalidSegment(current,
+						event->getGridX(), v);
+			} else {
+				if (suc) {
+					if (intersectionTestForSetOp(current,
+							suc, event, q, true)){
+            if ((suc->getOwner()!=current->getOwner())){
+							intersect = true;
+						}
+					}
+					if (!current->isValid()) {
+            sss.removeInvalidSegment(current,
+                event->getGridX(), v);
 					}
 				}
-
 			}
-			if (!(current->getOwner() == both)) {
-				Event e(rightEndpoint, current);
-				q.push(e);
+			if (current->isValid()
+					&& !(current->getOwner() == both)) {
+				Event re(rightEndpoint, current);
+				q.push(re);
 				if (p2d_debug) {
+					cout << "new re for current";
 					current->print();
-					cout << "new rep for current: "
-							<< e.getNoOfChanges()
-							<< endl;
 				}
 			}
+
 			if (p2d_debug) {
 				cout << "aktuelle Siuation:" << endl;
 				sss.inorder();
 			}
 		} else {
 			if (event->isRightEndpointEvent()) {
-				current = event->getSegment();
 				if (p2d_debug) {
 					event->print();
 				}
+				current = event->getSegment();
 				if (event->isValid()) {
+					if (current->isValid()) {
 
-					mpq_class v1 = current->getPreciseXR();
-          sss.removeGetNeighbor(current, pred, suc);
-					if (pred && suc) {
-            if (pred->mightIntersect(*suc)) {
-              if (pred->intersect(*suc)) {
-                intersect = true;
+						sss.removeGetNeighbor(current,
+								pred, suc);
+						current->changeValidity(false);
+						if (pred && suc) {
+              if(intersectionTestForSetOp(pred, suc,
+                 event, q, true)){
+                if ((pred->getOwner()!=suc->getOwner())){
+                  intersect = true;
+								}
 							}
+
+						}
+
+					} else {
+						mpq_class v1 =
+                event->getPreciseX();
+						sss.removeGetNeighbor2(current,
+                event->getGridX(), v1,
+								pred, suc);
+						if (pred && suc) {
+              if (intersectionTestForSetOp(pred, suc,
+                event, q, true)){
+                if (pred->getOwner()!=suc->getOwner()){
+      						intersect = true;
+      					}
+              }
 						}
 					}
-
 				}
 				if (event->getNoOfChanges() == 0) {
 					//this is the last event with ~current~
@@ -5042,12 +5073,92 @@ bool intersects(const Line2& line1, const Line2& line2,
 					cout << "der aktuelle Baum:" << endl;
 					sss.inorder();
 				}
+			} else {
+				//intersection Event
+				if (event->isValid()) {
+					if (p2d_debug) {
+						cout << "intersection event:"
+                 << event << endl;
+						event->print();
+					}
+					mpq_class v1 = event->getPreciseX();
+					mpq_class v2 = event->getPreciseY();
+					vector<AVLSegment*>* segmentVector =
+             new vector<AVLSegment*>();
+
+					size_t predIndex = 0;
+					size_t sucIndex = 0;
+					bool inversionNecessary = false;
+
+          collectSegmentsForInverting(*segmentVector,
+							*event, q,
+							predIndex, sucIndex,
+							inversionNecessary);
+
+					if (inversionNecessary) {
+						left = segmentVector->at(0);
+						right = segmentVector->back();
+            sss.invertSegments(*segmentVector,
+                event->getGridX(),
+                v1, event->getGridY(), v2,
+								pred, predIndex,
+								suc, sucIndex);
+
+						if (p2d_debug) {
+              cout << "vorgaenger-intersection-Test "
+                   "fuer right:";
+							right->print();
+							cout << " und " << endl;
+							if (pred) {
+								pred->print();
+							} else {
+                cout << "kein Vorgaenger"
+                     << endl;
+							}
+						}
+						if (pred) {
+              if (intersectionTestForSetOp(pred, right,
+                  event, q, true)){
+              	if (pred->getOwner()!=right->getOwner()){
+              		intersect=true;
+              	}
+              }
+						}
+						if (p2d_debug) {
+              cout << "nachfolger-intersection-Test "
+	                "fuer left";
+							left->print();
+							cout << " und " << endl;
+							if (suc) {
+								suc->print();
+							} else {
+                cout << "kein Nachfolger"
+                     << endl;
+							}
+						}
+						if (suc) {
+              if (intersectionTestForSetOp(left, suc,
+                event, q, true)){
+              	if (suc->getOwner()!=left->getOwner()){
+              		intersect=true;
+              	}
+              }
+						}
+
+						if (p2d_debug) {
+              cout << "der aktuelle Baum:"
+									<< endl;
+							sss.inorder();
+						}
+					}
+				}
 			}
 		}
 
 	}
+	delete event;
 	return intersect;
-} // intersect line x line -> bool
+} // intersects line2 x line2 -> bool
 
 /*
 
@@ -5268,7 +5379,10 @@ void crossings(const Line2& line1, const Line2& line2, Points2& result,
 	}
 
 	delete event;
-} // crossings line x line -> points
+} // crossings line2 x line2 -> points2
+
+
+
 
 } //end of p2d
 

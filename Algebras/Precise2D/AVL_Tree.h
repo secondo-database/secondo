@@ -1001,7 +1001,7 @@ void intersectionTestForRealminize(AVLSegment* left,
 		priority_queue<Event, vector<Event>, greater<Event> >& q,
 		bool leftIsSmaller);
 
-void intersectionTestForSetOp(AVLSegment* left, AVLSegment* right, Event* event,
+bool intersectionTestForSetOp(AVLSegment* left, AVLSegment* right, Event* event,
 		priority_queue<Event, vector<Event>, greater<Event> >& q,
 		bool leftIsSmaller);
 
