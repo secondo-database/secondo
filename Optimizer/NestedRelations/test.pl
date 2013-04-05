@@ -72,6 +72,17 @@ testNRQuery(121, [], select * from orteh as o where [o:bevth>10, not exists(sele
 testNRQuery(122, [], select * from orteh as o where [o:bevth in (select p:bevt from o:subrel as p where p:bevt>o:bevth)]).
 testNRQuery(123, [], select * from orteh as o where [o:bevth not in(select p:bevt from o:subrel as p where p:bevt>o:bevth)]).
 
+% The subquery extends demands atomic value OP query and NOT
+% allows query OP atomic value. Refer to lookupSubqueryPred within
+% the subqueries.pl
+testNRQuery(130, [expectedResult(fail)], select * from orteh where (select count(*) from subrel)>10).
+testNRQuery(131, [], select * from orteh where 10<(select count(*) from subrel)).
+testNRQuery(132, [expectedResult(fail)], select * from orteh as o where (select count(*) from o:subrel)>10).
+testNRQuery(133, [], select * from orteh as o where 10<(select count(*) from o:subrel)).
+
+% this is in general not supported by the subquery extension.
+testNRQuery(134, [expectedResult(fail)], select * from orteh as o where (select count(*) from o:subrel) >= (select count(*) from o:subrel)).
+
 % selections
 testNRQuery(140, [], select * from orteh as o where [exists(select * from o:subrel as p where [p:bevt>o:bevth, p:bevt>100000])]).
 testNRQuery(141, [], select * from orteh as o where [o:bevth < 99, exists(select * from o:subrel as p where [p:bevt>o:bevth, p:bevt<1000000])]).
