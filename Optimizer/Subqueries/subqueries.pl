@@ -2095,11 +2095,17 @@ correlationRels(Query, OuterRels) :-
   Query =.. [from, _, Where],
   Where =.. [where, InnerRels, _],
   findall(Rel, ( member(Rel, Rels), not(member(Rel, InnerRels)) ), OuterRels),
-  dm(subqueryDebug, ['\ncorrelationRels_OuterRels: ', OuterRels]).
+  dm(subqueryDebug, ['\ncorrelationRels_OuterRels: ', OuterRels]),
+	!. % NVK ADDED NR
+
+correlationRels(select _ from InnerRels, InnerRels) :-
+  \+ optimizerOption(nestedRelations),
+  not(InnerRels =.. [where | _ ]),
+	!. % NVK ADDED NR
 
 /*
 NVK ADDED NR
-Replaced to reflect that a subquery can kown be a correlated predicates if the 
+Replaced to reflect that a subquery can now be a correlated predicates if the 
 from clause contains a attribute from the outer query. Otherwiese queries like test query no. 9 would not be possible with the current pog optimizer.
 */
 correlationRels(Query, OuterRels3) :-
@@ -2129,11 +2135,9 @@ correlationRels(Query, OuterRels3) :-
       toParentQueryRel(Rel2, ParentQueryRel)
     ), OuterRels2),
   append(OuterRels, OuterRels2, OuterRels3),
-  dm(subqueryDebug, ['\ncorrelationRels_OuterRels: ', OuterRels3]).
+  dm(subqueryDebug, ['\ncorrelationRels_OuterRels 1: ', OuterRels3]),
+	!.
 % NVK ADDED NR END
-
-correlationRels(select _ from InnerRels, InnerRels) :-
-  not(InnerRels =.. [where | _ ]).
 
 correlationRels(all(Query), OuterRels) :-
   correlationRels(Query, OuterRels).
@@ -2151,7 +2155,22 @@ toParentQueryRel(Rel, ParentQueryRel) :-
   Rel=rel(T, _),
   T=irrel(_, _, _, _, _, _, TypeSpec),
 	TypeSpec=arel(RelVar:_, _, _, _, _), 
-  findBinding(RelVar, variable(RelVar, ParentQueryRel), _).
+  findBinding(RelVar, variable(RelVar, ParentQueryRel), _),
+	!.
+
+
+toParentQueryRel(Rel, ParentQueryRel) :-
+  Rel=rel(T, _),
+  T=irrel(_, _, _, _, _, _, TypeSpec),
+	TypeSpec=arel((*):AttrDC, _, _, _, _), 
+
+  findAttrLists(attribute, SRCSQID, *, Rel2, AttrDesc),
+  nrSimpleFindAttribute(AttrDC, AttrDesc, AD),
+	Rel2=ParentQueryRel, !.
+
+toParentQueryRel(Rel, ParentQueryRel) :-
+	!,
+  throw(error_Internal(subqueries_toParentQueryRel(Rel, ParentQueryRel)::failed)).
 % NVK ADDED NR END
 
 /*
