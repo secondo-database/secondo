@@ -703,11 +703,11 @@ public class CommandPanel extends JScrollPane {
         char c = str.charAt(i);
         switch(state){
           case 0: { // normal 
-             if(c=='"'){
+             if(c=='"'){ // begin of a string constant
                state = 1;
                wordPos = 0;
                buf.append(c);
-             } else if(c=='\''){
+             } else if(c=='\''){ //begin of a text constant
                state = 2;
                wordPos=0;
                buf.append(c); 
@@ -716,7 +716,7 @@ public class CommandPanel extends JScrollPane {
                    wordPos++;    
                    buf.append(toLower(c));
                 } else {
-                   buf.append(c);
+                   buf.append(toLower(c));
                 }
              } else {
                wordPos = 0;
