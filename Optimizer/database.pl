@@ -2435,6 +2435,8 @@ indexType( rtree4, [[rtree4|_]] ).
 indexType( rtree8, [[rtree8|_]] ).
 indexType( mtree,  [mtree]      ).
 indexType( xtree,  [xtree]      ).
+indexType( invfile,[invfile]    ).
+
 
 % Section:Start:indexType_2_e
 % Section:End:indexType_2_e
@@ -2669,6 +2671,10 @@ logicalIndexType(constuni, constuni(btree), btree,
     undefined,
     undefined,
     undefined).
+
+logicalIndexType(invfile, invfile, invfile, [rel|[tuple|_]],
+    ['__REL__', 'createtrie[', '__ATTR__', ']'],
+    undefined, undefined, undefined).
 
 % Section:Start:logicalIndexType_8_e
 % Section:End:logicalIndexType_8_e
@@ -3739,6 +3745,32 @@ retractStoredInformation(DCrel) :-
   write_list(['\nINFO:\tRetracted all information on relation \'', DCrel,
               '\' and ', 'all according small and sample objects.']),nl,
   !.
+
+resetKnowledgeDB :-
+  check_and_delete('storedAttrSizes.pl'),
+  check_and_delete('storedCards.pl'),
+  check_and_delete('storedIndexes.pl'),
+  check_and_delete('storedOrderings.pl'),
+  check_and_delete('storedPETs.pl'),
+  check_and_delete('storedRels.pl'),
+  check_and_delete('storedSels.pl'),
+  check_and_delete('storedSpells.pl'),
+  check_and_delete('storedTupleSizes.pl'),
+  retractall(storedOrderings(_, _, _)),
+  retractall(storedCard(_, _, _)),
+  retractall(storedAttrSize(_, _, _, _, _, _, _)),
+  retractall(storedTupleSize(_, _, _, _, _)),
+  retractall(storedSpell(_, _, _)),
+  retractall(storedRel(_, _, _)),
+  retractall(storedIndex(_, _, _, _, _)),
+  retractall(storedNoIndex(_, _, _)),
+  retractall(storedIndexStat(_, _, _, _, _)),
+  retractall(storedPET(_, _, _, _)),
+  retractall(storedSel(_, _, _)),
+  retractall(storedPredicateSignature(_, _, _)),
+  retractall(storedBBoxSize(_, _, _)),
+  updateCatalog,
+  write_list(['\nINFO: All information has been reset.']), nl.
 
 updateRel(Rel) :-
   ( not( (ground(Rel), atomic(Rel)) )
