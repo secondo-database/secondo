@@ -49,6 +49,13 @@ public static boolean TTY_STYLED_SCRIPT = true;
 public static boolean TTY_STYLED_COMMAND = false;
 
 
+/*
+Name of the testOptimizer Script
+*/
+public static String testOptimizerConfigFile = "testOptimizer.cfg";
+
+
+
 /** inserts a tab-extension **/
 public static void insertExtension(String word){
    extensions.insert(word);
@@ -67,6 +74,8 @@ public static Vector getExtensions(String prefix){
 
 private static Runtime rt = Runtime.getRuntime();
 private static Trie extensions = new Trie();
+
+
 
 
 

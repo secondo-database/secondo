@@ -140,6 +140,10 @@ SCRIPT_STYLE TTY
 COMMAND_STYLE GUI
 
 
+# specify the name for the  testOptimizer configuration file
+TESTOPTFILE testOptimizer.cfg
+
+
 # Specify the encoding 
 # be carefully in using this option
 ENCODING ISO-8859-1

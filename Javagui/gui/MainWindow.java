@@ -109,6 +109,7 @@ private JMenu OptimizerMenu;
 private JMenuItem MI_OptimizerEnable;
 private JMenuItem MI_OptimizerDisable;
 private JMenuItem MI_OptimizerUpdateCatalog;
+private JMenuItem MI_OptimizerTestOptimizer;
 private JCheckBoxMenuItem MI_OptimizerAutoUpdateCatalog;
 private JMenuItem MI_OptimizerResetKnowledgeDB;
 
@@ -334,6 +335,12 @@ public MainWindow(String Title,String user,String passwd){
         }
      }
      UseFormattedText=null;
+
+     String TestOptimizerConfig = Config.getProperty("TESTOPTFILE");
+     if(TestOptimizerConfig!=null){
+          gui.Environment.testOptimizerConfigFile = TestOptimizerConfig;
+     }
+     TestOptimizerConfig = null;
 
 
      LAF = Config.getProperty("LAF");
@@ -770,10 +777,10 @@ public MainWindow(String Title,String user,String passwd){
       Reporter.writeInfo("execute "+StartScript);
       if (StartScript.endsWith("-i") ){
          StartScript = StartScript.substring(0,StartScript.length()-2).trim();
-         executeFile(StartScript,true);
+         executeFile(StartScript,true, false);
       }
       else{ // ignore errors in StartScript in testmode
-         executeFile(StartScript,tools.Environment.TESTMODE!=tools.Environment.NO_TESTMODE);
+         executeFile(StartScript,tools.Environment.TESTMODE!=tools.Environment.NO_TESTMODE, false);
       }
    }
 
@@ -994,6 +1001,18 @@ private void updateCatalog(){
         ComPanel.appendText(" ... successful");
   }
   ComPanel.showPrompt();
+}
+
+private void testOptimizer(){
+   OptimizerTest ot = new OptimizerTest(ComPanel,this);
+   ComPanel.appendText("\n test optimizer \n");
+   int errors = ot.testOptimizer();
+   if(errors>0){
+      ComPanel.appendText("test Optimizer failed with " + errors + " errors");
+   } else {
+      ComPanel.appendText("test optimizer successful");
+   }
+   ComPanel.showPrompt();
 }
 
 
@@ -1423,9 +1442,9 @@ public boolean execGuiCommand(String command){
     String crest = command.substring(11).trim();
     int errors = 0;
     if (crest.startsWith("-i"))
-       errors = executeFile(crest.substring(2).trim(),true);
+       errors = executeFile(crest.substring(2).trim(),true, false);
     else
-       errors = executeFile(crest,false);
+       errors = executeFile(crest,false, false);
     if(errors>0){
        ComPanel.appendText("there are "+errors+" errors");
        success=false;
@@ -1624,11 +1643,11 @@ public boolean execGuiCommand(String command){
   * @param fileName name of the file to process
   * @param ignoreErrors stop if an errors is detected and the value is false
   * @return number of errors occured*/
-public int executeFile(String fileName, boolean ignoreErrors){
+public int executeFile(String fileName, boolean ignoreErrors, boolean showProgress){
   if(gui.Environment.TTY_STYLED_SCRIPT){
-     return executeTTYScript(fileName,ignoreErrors);
+     return executeTTYScript(fileName,ignoreErrors, showProgress);
   }else{
-     return executeSimpleFile(fileName,ignoreErrors);
+     return executeSimpleFile(fileName,ignoreErrors,showProgress);
  }
 
 }
@@ -1638,10 +1657,17 @@ public int executeFile(String fileName, boolean ignoreErrors){
 /** executes all commands contained in a file
   * each command is given within a single line
   **/
-private int executeSimpleFile(String FileName,boolean ignoreErrors){
+private int executeSimpleFile(String FileName,boolean ignoreErrors, boolean showProgress){
   BufferedReader BR = null;
   try{
-     BR = new BufferedReader(new FileReader(FileName));
+     if(!showProgress){
+        BR = new BufferedReader(new FileReader(FileName));
+     } else {
+        BR = new BufferedReader(
+                 new InputStreamReader(
+                     new ProgressMonitorInputStream(null, "Processing " + FileName,
+                         new FileInputStream(FileName))));
+     }
   }
   catch(Exception e){
     ComPanel.appendText("File \""+FileName+"\" not found\n");
@@ -1656,7 +1682,7 @@ private int executeSimpleFile(String FileName,boolean ignoreErrors){
        ComPanel.appendText(Line+"\n");
        if (!ComPanel.execUserCommand(Line)){
           errors++;
-          if(!ignoreErrors)
+          if(!ignoreErrors || !ComPanel.isConnected())
              ok=false;
        }
        Line = BR.readLine();
@@ -1724,11 +1750,18 @@ private String getNextCommand(BufferedReader in) throws IOException{
   *                     when an error occurs
   * @return number of errors occured during processing of this file
   **/
-private int  executeTTYScript(String fileName, boolean ignoreErrors){
+private int  executeTTYScript(String fileName, boolean ignoreErrors, boolean showProgress){
    // open file for processing
    BufferedReader in = null;
    try{
-     in = new BufferedReader(new FileReader(fileName));
+     if(!showProgress){
+        in = new BufferedReader(new FileReader(fileName));
+     } else {
+        in = new BufferedReader(
+                 new InputStreamReader(
+                     new ProgressMonitorInputStream(null, "Processing " + fileName,
+                         new FileInputStream(fileName))));
+     }
    }catch(Exception e){
      ComPanel.appendText("error in opening file \""+fileName+"\" \n");
      return 1;
@@ -1741,7 +1774,7 @@ private int  executeTTYScript(String fileName, boolean ignoreErrors){
         if(cmd.length()>0){
            if(cmd.startsWith("@")){
              String subFileName = cmd.substring(1,cmd.length()-1);
-             errors += executeTTYScript(subFileName.trim(),ignoreErrors);
+             errors += executeTTYScript(subFileName.trim(),ignoreErrors, false);
              if(!ignoreErrors && errors>0){
                  done = true;
              }
@@ -1750,7 +1783,7 @@ private int  executeTTYScript(String fileName, boolean ignoreErrors){
              if(!ComPanel.execUserCommand(cmd)){
                 Reporter.debug("error during process command " + cmd);
                 errors++;
-                if(!ignoreErrors){
+                if(!ignoreErrors || !ComPanel.isConnected()){
                    done = true;
                 }
              }
@@ -2191,7 +2224,7 @@ public static void main(String[] args){
   // simple testmode
   if(tools.Environment.TESTMODE == tools.Environment.SIMPLE_TESTMODE && testfile!=null){
      Reporter.writeInfo("Run Testfile");
-     SecGui.executeFile(testfile.getAbsolutePath(),true);
+     SecGui.executeFile(testfile.getAbsolutePath(),true, false);
   }
 
 
@@ -2515,9 +2548,9 @@ private void createMenuBar(){
          if(FC_ExecuteFile.showOpenDialog(MainWindow.this)==JFileChooser.APPROVE_OPTION){
             Object Source = evt.getSource();
             if(Source.equals(MI_ExecuteFile_HaltOnError)){
-                executeFile(FC_ExecuteFile.getSelectedFile().getPath(),false);
+                executeFile(FC_ExecuteFile.getSelectedFile().getPath(),false, false);
             } else {
-                executeFile(FC_ExecuteFile.getSelectedFile().getPath(),true);
+                executeFile(FC_ExecuteFile.getSelectedFile().getPath(),true, false);
 
             }
          }
@@ -2679,6 +2712,7 @@ private void createMenuBar(){
    OptimizerCommandMenu.add(UpdateIndexMenu);
    
    MI_OptimizerUpdateCatalog = new JMenuItem("Update Catalog");
+   MI_OptimizerTestOptimizer = new JMenuItem("Test Optimizer");
    MI_OptimizerAutoUpdateCatalog = new JCheckBoxMenuItem("Auto Update Catalog");
    MI_OptimizerAutoUpdateCatalog.setSelected(true);
    ComPanel.setAutoUpdateCatalog(true);
@@ -2696,6 +2730,8 @@ private void createMenuBar(){
    OptimizerCommandMenu.add(MI_OptimizerUpdateCatalog);
    OptimizerCommandMenu.add(MI_OptimizerAutoUpdateCatalog);
    OptimizerCommandMenu.add(MI_OptimizerResetKnowledgeDB);
+   OptimizerCommandMenu.addSeparator();
+   OptimizerCommandMenu.add(MI_OptimizerTestOptimizer);
 
 
 
@@ -2722,9 +2758,13 @@ private void createMenuBar(){
         if(src.equals(MI_OptimizerResetKnowledgeDB)){
            resetKnowledgeDB();
         }
+        if(src.equals(MI_OptimizerTestOptimizer)){
+             testOptimizer();
+        }
      }
    };
    MI_OptimizerUpdateCatalog.addActionListener(b);
+   MI_OptimizerTestOptimizer.addActionListener(b);
    MI_OptimizerResetKnowledgeDB.addActionListener(b);
 
 
@@ -3577,6 +3617,20 @@ class Command_Listener implements ActionListener{
       }
   }
 }
+
+public void setTestMode(int tm){
+  tools.Environment.TESTMODE=tm;
+  boolean isTest = tm!=tools.Environment.NO_TESTMODE;
+  for(int i=0;i<AllViewers.size();i++){
+     ((SecondoViewer)AllViewers.get(i)).enableTestmode(isTest);
+  }
+}
+
+public int getTestMode(){
+  return tools.Environment.TESTMODE;
+}
+
+
 
 public int execCommand(String cmd){
    return ComPanel.internCommand(cmd);
