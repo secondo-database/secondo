@@ -62,7 +62,9 @@ AttributeRelation::AttributeRelation( ListExpr typeInfo, bool nrel,
  tupleIds( n ),
  arelType( typeInfo ),
  partOfNrel( nrel ),
- relDelete( false )
+ relDelete( false ),
+ rel(0),
+ relId(0)
 {
    if (!(nl->IsEmpty( typeInfo )))
       {
@@ -71,12 +73,11 @@ AttributeRelation::AttributeRelation( ListExpr typeInfo, bool nrel,
 In this case nrel has added the SmiFileId of the corresponding relation
 
 */
-
       {
          relId = nl->IntValue (nl -> Third( typeInfo ));
          rel = Relation::GetRelation( relId );
-      }
-   }
+      } 
+   } 
 }
 
 AttributeRelation::AttributeRelation( const SmiFileId id, const ListExpr
@@ -85,7 +86,9 @@ AttributeRelation::AttributeRelation( const SmiFileId id, const ListExpr
    tupleIds( n ),
    arelType( typeInfo ),
    partOfNrel( true ),
-   relDelete( false )
+   relDelete( false ),
+   rel(0),
+   relId(0)
 {
    setRelId(id);
 }
@@ -346,6 +349,7 @@ Word AttributeRelation::In(const ListExpr typeInfo, const ListExpr
                     value, const int errorPos, ListExpr& errorInfo,
                     bool& correct)
 {
+
    Word result = SetWord( Address(0) );
    correct = true;
    AttributeRelation* arel = 0;
@@ -749,6 +753,7 @@ void NestedRelation::append (SubRelation* srel)
 
 void NestedRelation::setTupleTypeInfo( ListExpr typeInfo )
 {
+
    int nrelAlgId = am->GetAlgebraId("NestedRelationAlgebra");
    int arelId = getTypeId(nrelAlgId, AttributeRelation::BasicType());
 
