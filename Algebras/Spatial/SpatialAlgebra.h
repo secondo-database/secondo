@@ -1585,7 +1585,7 @@ Constructs a ~SimpleLine~ from a complex one.
 */
   SimpleLine(const SimpleLine& src):
     StandardSpatialAttribute<2>(src.IsDefined()),
-    segments(src.Size()),lrsArray(src.Size()),
+    segments(src.Size()+1),lrsArray(src.Size()/2 + 2),
     startSmaller(src.GetStartSmaller()), isCycle(src.IsCycle()),
     isOrdered(src.IsOrdered()), length(src.Length()), bbox(src.BoundingBox()),
     currentHS(src.currentHS)
@@ -1593,6 +1593,7 @@ Constructs a ~SimpleLine~ from a complex one.
     segments.copyFrom(src.segments);
     lrsArray.copyFrom(src.lrsArray);
     lrsArray.TrimToSize();
+    segments.TrimToSize();
     //Equalize(src);
   }
 
