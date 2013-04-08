@@ -2356,8 +2356,6 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
   //process priority queue
   while (!found && !pq->IsEmpty())
   {
-    if (curPQElement != 0)
-      delete curPQElement;
     curPQElement = pq->GetAndDeleteMin();
     //cout << "cur pq-Element: " << *curPQElement << endl;
     InsertNetdistanceTuple(curPQElement->GetStartPathJID(), curPQElement);
@@ -2376,7 +2374,6 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
         JPQEntry* test = 0;
         while (!testedOtherEnd && !pq->IsEmpty())
         {
-          if (test != 0) delete test;
           test = pq->GetAndDeleteMin();
           //cout << "test pq-Element: " << *test << endl;
           InsertNetdistanceTuple(test->GetStartPathJID(), test);
@@ -2385,11 +2382,13 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
             double testDistLastJuncEndPoint;
             if (reachedEndpoint(test, endJunctions, testDistLastJuncEndPoint))
             {
-              if (minDist > test->GetDistFromStart() + testDistLastJuncEndPoint)
+              double nDist= test->GetDistFromStart() + testDistLastJuncEndPoint;
+              if (minDist > nDist)
               {
-                delete curPQElement;
+                if(curPQElement != 0)
+                  delete curPQElement;
                 curPQElement = test;
-                minDist = test->GetDistFromStart() + testDistLastJuncEndPoint;
+                minDist = nDist;
               }
             }
             else
@@ -2397,6 +2396,12 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
           }
           else
             testedOtherEnd = true;
+          if (test != 0)
+          {
+            if (test != curPQElement)
+              delete test;
+            test = 0;
+          }
         }
       }
       int endPathJID = -1;
@@ -2409,6 +2414,11 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
                           curPQElement->GetStartPathJID(), endPathJID,
                           distTarget, res, length);
         cleanShortestPathMemory(endJunctions, pq, curJunc, pqEntry);
+        if (curPQElement != 0)
+        {
+          delete curPQElement;
+          curPQElement = 0;
+        }
         return res;
       }
     }
@@ -2416,6 +2426,11 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
     {
       //cout << "add adjacent sections" << endl;
       AddAdjacentSections(pq, *curPQElement, targetPos);
+    }
+    if (curPQElement != 0)
+    {
+      delete curPQElement;
+      curPQElement = 0;
     }
   }
   cleanShortestPathMemory(endJunctions, pq, curJunc, pqEntry);
@@ -2990,17 +3005,23 @@ JListRInt* JNetwork::GetSectionListRouteIntervals(const Tuple* sectTuple) const
 JRouteInterval* JNetwork::GetSectionFirstRouteInterval(const Tuple* sectTuple)
 const
 {
+  JRouteInterval* result = 0;
   if (sectTuple != 0)
   {
-    JRouteInterval res;
     JListRInt* rintList = GetSectionListRouteIntervals(sectTuple);
-    rintList->Get(0,res);
-    rintList->DeleteIfAllowed();
-    return new JRouteInterval(res);
+    if(rintList != 0)
+    {
+      if (!rintList->IsEmpty())
+      {
+        JRouteInterval res;
+        rintList->Get(0,res);
+        result = new JRouteInterval(res);
+      }
+      rintList->DeleteIfAllowed();
+      rintList = 0;
+    }
   }
-  else
-    return 0;
-
+  return result;
 }
 
 JRouteInterval* JNetwork::GetSectionRouteIntervalForRID(int rid,
@@ -3669,7 +3690,10 @@ void JNetwork::WriteShortestPath(const RouteLocation& source,
         curSectTup->DeleteIfAllowed();
       curSectTup = GetSectionTupleWithId(GetNetdistanceNextSID(actNetDistTup));
       if (curRint != 0)
+      {
         curRint->DeleteIfAllowed();
+        curRint = 0;
+      }
       curRint = GetSectionFirstRouteInterval(curSectTup);
       if (curStartJID == GetSectionStartJunctionID(curSectTup))
       {
@@ -3688,6 +3712,11 @@ void JNetwork::WriteShortestPath(const RouteLocation& source,
       result->Append(*curRint);
       length += curRint->GetLength();
       if (endPathJID == curStartJID) found = true;
+    }
+    if (curRint != 0)
+    {
+      curRint->DeleteIfAllowed();
+      curRint = 0;
     }
     curRint = GetSectionFirstRouteInterval(endSectTup);
     //write last part
@@ -3710,9 +3739,21 @@ void JNetwork::WriteShortestPath(const RouteLocation& source,
     }
     result->Append(*curRint);
     length += curRint->GetLength();
-    if (actNetDistTup != 0) actNetDistTup->DeleteIfAllowed();
-    if (curSectTup != 0) curSectTup->DeleteIfAllowed();
-    if (curRint != 0) curRint->DeleteIfAllowed();
+    if (actNetDistTup != 0)
+    {
+      actNetDistTup->DeleteIfAllowed();
+      actNetDistTup = 0;
+    }
+    if (curSectTup != 0)
+    {
+      curSectTup->DeleteIfAllowed();
+      curSectTup = 0;
+    }
+    if (curRint != 0)
+    {
+      curRint->DeleteIfAllowed();
+      curRint = 0;
+    }
   }
 }
 
