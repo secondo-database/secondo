@@ -1539,7 +1539,7 @@
         (OBJECT MHTTestJNetwork 
             () 
             jnet 
-            ("MHTTestJNetwork" 0.0001 
+            ("MHTTestJNetwork" 0.000001 
                 (
                     (1 
                         (7.8287956 49.4747988) 

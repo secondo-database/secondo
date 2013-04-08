@@ -1641,7 +1641,7 @@ let InSections =
   rdup
 consume;
 
-query createjnet("MHTTestJNetwork", 0.0001, InJunctions, InSections, InRoutes);
+query createjnet("MHTTestJNetwork", 0.000001, InJunctions, InSections, InRoutes);
 
 close database;
 
