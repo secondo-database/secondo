@@ -95,42 +95,47 @@ bool JNetworkSectionAdapter::GetAdjacentSections(const bool bUpDown,
     JListInt* listSID = 0;
     if (bUpDown)
     {
-      listSID = pJNet->GetSectionListAdjSectionsUp(sectTup);
-      idEndNode = pJNet->GetSectionEndJunctionID(sectTup);
+      listSID =
+        (JListInt*)sectTup->GetAttribute(JNetwork::SEC_LIST_ADJ_SECTIONS_UP);
+      idEndNode =
+        ((CcInt*)sectTup->GetAttribute(JNetwork::SEC_ENDNODE_ID))->GetIntval();
     }
     else
     {
-      listSID = pJNet->GetSectionListAdjSectionsDown(sectTup);
-      idEndNode = pJNet->GetSectionStartJunctionID(sectTup);
+      listSID =
+        (JListInt*)sectTup->GetAttribute(JNetwork::SEC_LIST_ADJ_SECTIONS_DOWN);
+      idEndNode =
+       ((CcInt*)sectTup->GetAttribute(JNetwork::SEC_STARTNODE_ID))->GetIntval();
     }
-    if (listSID != 0 && listSID->IsDefined())
+    if (listSID != 0)
     {
-      Tuple* curSectTup = 0;
-      CcInt nextSID;
-      for (int i = 0; i < listSID->GetNoOfComponents(); i++)
+      if (listSID->IsDefined() && listSID->GetNoOfComponents() > 0)
       {
-        listSID->Get(i,nextSID);
-        curSectTup = pJNet->GetSectionTupleWithId(nextSID.GetIntval());
-        if (curSectTup != 0)
+        Tuple* curSectTup = 0;
+        CcInt nextSID;
+        for (int i = 0; i < listSID->GetNoOfComponents(); i++)
         {
-          EDirection drDir(DIR_NONE);
-          if (idEndNode == pJNet->GetSectionStartJunctionID(curSectTup))
-            drDir = DIR_UP;
-          else if (idEndNode == pJNet->GetSectionEndJunctionID(curSectTup))
-            drDir = DIR_DOWN;
-          else if (!bUpDown)
-            drDir = DIR_DOWN;
-          else
-            drDir = DIR_UP;
-          shared_ptr<IMMNetworkSection>
-            insSect(new JNetworkSectionAdapter(pJNet, curSectTup->Clone(),
-                                               drDir));
-          vecSections.push_back(insSect);
-          curSectTup->DeleteIfAllowed();
-          curSectTup = 0;
+          listSID->Get(i,nextSID);
+          curSectTup = pJNet->GetSectionTupleWithId(nextSID.GetIntval());
+          if (curSectTup != 0)
+          {
+            EDirection drDir(DIR_NONE);
+            if (idEndNode == pJNet->GetSectionStartJunctionID(curSectTup))
+              drDir = DIR_UP;
+            else if (idEndNode == pJNet->GetSectionEndJunctionID(curSectTup))
+              drDir = DIR_DOWN;
+            else if (!bUpDown)
+              drDir = DIR_DOWN;
+            else
+              drDir = DIR_UP;
+            shared_ptr<IMMNetworkSection>
+              insSect(new JNetworkSectionAdapter(pJNet, curSectTup, drDir));
+            vecSections.push_back(insSect);
+            curSectTup->DeleteIfAllowed();
+            curSectTup = 0;
+          }
         }
       }
-      listSID->DeleteIfAllowed();
       listSID = 0;
       return true;
     }
@@ -142,7 +147,7 @@ SimpleLine* JNetworkSectionAdapter::GetCurve() const
 {
   if (sectTup != 0)
   {
-    return pJNet->GetSectionCurve(sectTup);
+    return (SimpleLine*) sectTup->GetAttribute(JNetwork::SEC_CURVE);
   }
   else
     return 0;
@@ -151,7 +156,7 @@ SimpleLine* JNetworkSectionAdapter::GetCurve() const
 double JNetworkSectionAdapter::GetCurveLength(const double dScale) const
 {
   if (sectTup != 0)
-    return pJNet->GetSectionLength(sectTup);
+    return ((CcReal*)sectTup->GetAttribute(JNetwork::SEC_LENGTH))->GetRealval();
   else
     return 0.0;
 }
@@ -163,7 +168,6 @@ bool JNetworkSectionAdapter::GetCurveStartsSmaller() const
   if (sectCurve != 0)
   {
     result = sectCurve->GetStartSmaller();
-    sectCurve->DeleteIfAllowed();
   }
   return result;
 }
@@ -209,7 +213,7 @@ Point JNetworkSectionAdapter::GetEndPoint() const
 double JNetworkSectionAdapter::GetMaxSpeed() const
 {
   if (sectTup != 0)
-    return pJNet->GetSectionMaxSpeed(sectTup);
+    return ((CcReal*)sectTup->GetAttribute(JNetwork::SEC_VMAX))->GetRealval();
   else
     return 0.0;
 }

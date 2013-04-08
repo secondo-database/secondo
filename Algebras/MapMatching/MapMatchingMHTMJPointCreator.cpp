@@ -39,7 +39,7 @@ namespace mapmatch{
 
  MJPointCreator::MJPointCreator(JNetworkAdapter* pJNetAdapter,
                                 MJPoint* pResMJPoint) :
-    jnet(pJNetAdapter->GetNetwork()),
+    jnet(pJNetAdapter != 0 ? pJNetAdapter->GetNetwork() : 0),
     resMJPoint(pResMJPoint)
 {}
 
@@ -49,10 +49,7 @@ namespace mapmatch{
 bool  MJPointCreator::CreateResult(
   const std::vector< MHTRouteCandidate* >& rvecRouteCandidates)
 {
-  if (jnet == NULL || !Init())
-  {
-    return false;
-  }
+  if (jnet == NULL || !Init()) return false;
 
   for (size_t i = 0; i < rvecRouteCandidates.size(); ++i)
   {
@@ -107,6 +104,11 @@ bool  MJPointCreator::CreateResult(
           endRLoc = 0;
         }
       }
+      if (startRLoc != 0)
+      {
+        startRLoc->DeleteIfAllowed();
+        startRLoc = 0;
+      }
     }
   }
   Finalize();
@@ -133,7 +135,7 @@ bool  MJPointCreator::Init()
 
 void  MJPointCreator::Finalize()
 {
-    resMJPoint->EndBulkload(false);
+    resMJPoint->EndBulkload();
 }
 
 RouteLocation* MJPointCreator::GetRouteLocation(
@@ -149,7 +151,9 @@ RouteLocation* MJPointCreator::GetRouteLocation(
       JNetworkSectionAdapter* pJNetSect = pSect->CastToJNetworkSection();
       result = pJNetSect->GetRouteLocation(p);
       if (result != 0)
+      {
         result->SetSide(pJNetSect->GetSide());
+      }
     }
   }
   return result;

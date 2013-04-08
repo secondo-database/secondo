@@ -1559,7 +1559,7 @@ int OpJMapMatchingMHTMPointValueMapping(Word* args,
                                         Word& local,
                                         Supplier in_xSupplier)
 {
-    cout << "OpJMapMatchingMHTMPointValueMapping called" << endl;
+    //cout << "OpJMapMatchingMHTMPointValueMapping called" << endl;
 
     // cout << "Initialize Result" << endl;
     result = qp->ResultStorage(in_xSupplier);

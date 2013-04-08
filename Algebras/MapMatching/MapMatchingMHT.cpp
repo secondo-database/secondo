@@ -241,7 +241,7 @@ bool MapMatchingMHT::DoMatch(IMapMatchingMHTResultCreator* pResCreator)
         if (pContMMData == NULL)
             continue;
 
-     //cout << "Step 2 - calculate missing attributes (heading, speed)" << endl;
+//cout << "Step 2 - calculate missing attributes (heading, speed)" << endl;
         CompleteData(pContMMData.get());
 
         size_t nIdxFirstComponent = 0;
@@ -1144,9 +1144,7 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
             }
             else
             {
-              if (AlmostEqual(PointProjection, ptEnd) ||
-                  AlmostEqual(PointProjection, ptStart))
-                bIsEndPoint = true;
+              assert(false);
             }
 
             if (bIsEndPoint)
@@ -1170,10 +1168,6 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
                 if (AlmostEqual(PointProjection, ptEnd))
                     return false;
             }
-            else
-              if (AlmostEqual(PointProjection, ptStart) ||
-                  AlmostEqual(PointProjection, ptEnd))
-                return false;
         }
 
         bool bLookAtAdjacent = bIsEndPoint;
@@ -1220,15 +1214,6 @@ bool MapMatchingMHT::AssignPoint(MHTRouteCandidate* pCandidate,
                                                           m_dNetworkScale);
             }
 
-            else if (pFirstProjectedPoint != NULL)
-            {
-              dDistanceTravelled += max(MMUtil::CalcDistance(ptEnd,
-                                                          *pFirstProjectedPoint,
-                                                          m_dNetworkScale),
-                                        MMUtil::CalcDistance(ptStart,
-                                                          *pFirstProjectedPoint,
-                                                          m_dNetworkScale));
-            }
             /*if (pFirstProjectedPoint != NULL)
             {
                 dDistanceTravelled += MMUtil::CalcDistance(
@@ -1353,14 +1338,36 @@ Route reduction - removes unlikely routes
 
 */
 
+
 void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
                                                             rvecRouteCandidates)
 {
     if (rvecRouteCandidates.size() == 0)
             return;
 
+    std::sort(rvecRouteCandidates.begin(), rvecRouteCandidates.end(),
+             RouteCandidateScoreCompare);
+
+    const bool bInInitPhase =
+      (rvecRouteCandidates[0]->GetCountPoints() < 5);
+
+      if (bInInitPhase && rvecRouteCandidates.size() < 20)
+        return;
+
+    while (rvecRouteCandidates.size() > 20)
+    {
+        MHTRouteCandidate* pCandidate = rvecRouteCandidates.back();
+        rvecRouteCandidates.pop_back();
+        if (pCandidate != NULL)
+        {
+          delete pCandidate;
+          pCandidate = NULL;
+        }
+    }
+
     // Find duplicates
     size_t nCandidates = rvecRouteCandidates.size();
+
     for (size_t i = 0; i < nCandidates; ++i)
     {
         MHTRouteCandidate* pRouteCandidate1 = rvecRouteCandidates[i];
@@ -1382,7 +1389,8 @@ void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
                                              pRouteCandidate2->GetLastSection();
             if (pLastSection2 == NULL)
                 continue;
-            if (*pLastSection1 == *pLastSection2 &&
+            if (!bInInitPhase &&
+                *pLastSection1 == *pLastSection2 &&
                 LastPointsEqual(pRouteCandidate1, pRouteCandidate2, 4))
             {
               rvecRouteCandidates[j] = NULL;
@@ -1418,18 +1426,6 @@ void MapMatchingMHT::ReduceRouteCandidates(std::vector<MHTRouteCandidate*>&
           {
             break;
           }
-        }
-    }
-
-    // maximum 20
-    while (rvecRouteCandidates.size() > 20)
-    {
-        MHTRouteCandidate* pCandidate = rvecRouteCandidates.back();
-        rvecRouteCandidates.pop_back();
-        if (pCandidate != NULL)
-        {
-          delete pCandidate;
-          pCandidate = NULL;
         }
     }
 }
@@ -1504,7 +1500,7 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
     {
         //cout << "U-Turn and only one assigned point to last section" << endl;
 
-        //rbCorrectUTurn = true;
+        rbCorrectUTurn = true;
         return false;
     }
     else if (nPointsOfLastSection == 2)
@@ -1588,7 +1584,7 @@ bool MapMatchingMHT::CheckUTurn(const MHTRouteCandidate* pCandidate,
                         double dDist = MMUtil::CalcDistance(rPt1, rPt2,
                                                             m_dNetworkScale);
 
-                        if (dDist > dMaxDistanceGPS)
+                        if (dDist > dMaxDistance)
                         {
                             dMaxDistanceGPS = dDist;
 
