@@ -572,27 +572,6 @@ The LOB's file identification.
 ostream& operator<<(ostream& o, const RelationDescriptor& rd);
 
 
-/*
-4.2 Class ~RelationDescriptorCompare~
-
-*/
-class RelationDescriptorCompare
-{
-  public:
-    inline bool operator()( const RelationDescriptor& d1,
-                            const RelationDescriptor d2 )
-    {
-      if( d1.tupleFileId < d2.tupleFileId )
-        return true;
-      else if( d1.tupleFileId == d2.tupleFileId &&
-               d1.lobFileId == d2.lobFileId )
-        return true;
-      else
-        return false;
-    }
-};
-
-
 class TupleFile;
 class TupleFileIterator;
 
@@ -2603,8 +2582,6 @@ To get the type name of a temporary relation, use TempRelation::BasicType().
       return listutils::isRelDescription(type);
     }
 
-    static Relation *GetRelation( const RelationDescriptor& d );
-
     static Relation *GetRelation (const SmiFileId fileId );
     SmiFileId GetFileId() { return tupleFile.GetFileId(); }
 /*
@@ -2789,11 +2766,10 @@ Stores a handle to the tuple file.
 The private attributes of the class ~Relation~.
 
 */
-    static map<RelationDescriptor, Relation*,
-               RelationDescriptorCompare> pointerTable;
+    static map<SmiFileId, Relation*> pointerTable;
 /*
-A table containing all opened relations indexed by relation
-descriptors.
+A table containing all opened relations indexed by 
+fileId.
 
 */
 };

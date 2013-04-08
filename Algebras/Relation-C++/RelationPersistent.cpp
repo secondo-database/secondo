@@ -2383,8 +2383,7 @@ This class implements the persistent representation of the type
 constructor ~rel~.
 
 */
-map<RelationDescriptor, Relation*, RelationDescriptorCompare>
-Relation::pointerTable;
+map<SmiFileId,Relation*> Relation::pointerTable;
 
 
 void
@@ -2407,9 +2406,9 @@ Relation::InitFiles( bool open /*= false */) {
   relDesc.tupleFileId = tupleFile.GetFileId();
 
 
-  if( pointerTable.find( relDesc ) ==
+  if( pointerTable.find( relDesc.tupleFileId ) ==
                          pointerTable.end() )
-    pointerTable.insert( make_pair( relDesc,
+    pointerTable.insert( make_pair( relDesc.tupleFileId,
                                     this ) );
 
   // init LOB File
@@ -2452,15 +2451,6 @@ Relation::~Relation()
   tupleFile.Close();
 }
 
-Relation *Relation::GetRelation( const RelationDescriptor& d )
-{
-  map<RelationDescriptor, Relation*>::iterator
-    i = pointerTable.find( d );
-  if( i == pointerTable.end() )
-    return 0;
-  else
-    return i->second;
-}
 
 Relation *
 Relation::RestoreFromList( ListExpr typeInfo, ListExpr value,
@@ -2587,11 +2577,21 @@ Relation::Save( SmiRecord& valueRecord, size_t& offset,
 
 void Relation::ErasePointer()
 {
-  if( pointerTable.find( relDesc ) !=
+  if( pointerTable.find( relDesc.tupleFileId ) !=
                          pointerTable.end() )
-  {
-    pointerTable.erase( relDesc );
+  { 
+    pointerTable.erase( relDesc.tupleFileId );
+  } else {
+    map<SmiFileId, Relation*>::iterator it;
+    for (it=pointerTable.begin(); it != pointerTable.end(); it++) {
+       cout << "ErasePointer hotfix" << endl;
+       if(it->second == this){
+           pointerTable.erase(it);
+           return;
+       }
+    }
   }
+  
 }
 
 void Relation::Close()
@@ -2879,14 +2879,13 @@ bool Relation::GetLOBFileStats( SmiStatResultType &result )
 
 Relation *Relation::GetRelation (const SmiFileId fileId )
 {
-
-   map<RelationDescriptor, Relation*>::iterator it;
-   for (it=pointerTable.begin(); it != pointerTable.end(); it++)
-   {
-       if (((*it).first.tupleFileId == fileId))
-         return (*it).second;
+   map<SmiFileId, Relation*>::iterator it = 
+      pointerTable.find(fileId);
+   if(it!=pointerTable.end()){
+      return it->second;
+   } else {
+      return 0;
    }
-   return 0;
 }
 
 
