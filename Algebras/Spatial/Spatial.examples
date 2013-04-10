@@ -1185,3 +1185,10 @@ Example   : query ( splitline(BGrenzenLine,25.0) count) =   ((real2int(size(BGre
 Result    : TRUE 
 
 
+Operator  : computeDRM
+Number    : 1
+Signature : SPATIAL2D x SPATIAL2D -> drm
+Example   : query computeDRM(mehringdamm,BGrenzenLine)
+Result    : (drm 16)
+
+ 

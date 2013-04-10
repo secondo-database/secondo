@@ -93,6 +93,8 @@ using namespace std;
 
 #include "DLine.h"
 
+#include "DRM.h"
+
 
 #ifndef M_PI
 const double M_PI = acos( -1.0 );
@@ -24267,6 +24269,77 @@ Operator splitline(
 
 GenTC<DLine> dline;
 
+/*
+Type Constructor DRM
+
+*/
+GenTC<DRM> drm;
+
+
+
+/*
+Operator ~computeDRM~
+
+Computes the direction relation matrix for 2 elements in Spatial2D.
+
+*/
+
+ListExpr computeDRMTM(ListExpr args){
+  string err="SPATIAL2D x SPATIAL2D expected"; 
+  if(!nl->HasLength(args,2)){
+      return listutils::typeError(err);
+  }
+  if(!listutils::isKind(nl->First(args),Kind::SPATIAL2D()) ||
+     !listutils::isKind(nl->Second(args),Kind::SPATIAL2D() )){
+      return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<DRM>();    
+}
+
+
+/*
+Value Mapping
+
+*/
+
+int computeDRMVM(Word* args, Word& result, int message, Word& local,
+               Supplier s ){
+
+    StandardSpatialAttribute<2>* a =
+                       (StandardSpatialAttribute<2>*) args[0].addr;
+    StandardSpatialAttribute<2>* b =
+                       (StandardSpatialAttribute<2>*) args[1].addr;
+    result = qp->ResultStorage(s);
+    DRM* res = (DRM*) result.addr;
+    res->computeFrom(a->BoundingBox(),b->BoundingBox());
+    return 0;
+}
+
+/*
+
+Specification
+
+*/
+OperatorSpec computeDRMSpec (
+    " SPATIAL2D x SPATIAL2D -> drm",
+    " computeDRM(_,_)",
+    " Computes the direction relation matrix for two "
+    " spatial objects.",
+    " query computeDRM(BGrenzenline, mehringdamm)  "
+  );
+
+/*
+Operator instance
+
+*/
+Operator computeDRM(
+   "computeDRM",
+   computeDRMSpec.getStr(),
+   computeDRMVM,
+   Operator::SimpleSelect,
+   computeDRMTM
+);
+
 
 /*
 11 Creating the Algebra
@@ -24286,12 +24359,15 @@ class SpatialAlgebra : public Algebra
     AddTypeConstructor( &sline);
     AddTypeConstructor( &dline);
 
+    AddTypeConstructor( &drm);
+
     point.AssociateKind(Kind::DATA());
     points.AssociateKind(Kind::DATA());
     line.AssociateKind(Kind::DATA());
     region.AssociateKind(Kind::DATA());
     sline.AssociateKind(Kind::DATA());
     dline.AssociateKind(Kind::DATA());
+    drm.AssociateKind(Kind::DATA());
 
 
 
@@ -24415,6 +24491,7 @@ class SpatialAlgebra : public Algebra
     AddOperator(&crossings_rob);
 
     AddOperator(&splitline);
+    AddOperator(&computeDRM);
 
 
 
