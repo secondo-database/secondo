@@ -55,7 +55,7 @@ opt_earlyExit="no"
 
 # options for automatic mails  
 LU_SENDMAIL="true"
-LU_SENDMAIL_FROM="spieker@bassi"
+LU_SENDMAIL_FROM="simone.jandt@fernuni-hagen.de"
 failedBuild_DefaultRecipients="spieker@bassi behr@bassi valdes@bassi duentgen@bassi jandt@bassi"
 newTarFile_MailRecipients="spieker@bassi jandt@bassi"
 
@@ -633,7 +633,7 @@ $(find $opt_logRoot -name "_failed_*" -exec cat {} \;)
     # clean up
     rm -rf $cbuildDir
     rm -rf $tmpDir
-    rm -rf /tmp/make-$USER
+    #  rm -rf /tmp/make-$USER
   fi
 
   echo "*** The regression test finished with  $errors errors ***"

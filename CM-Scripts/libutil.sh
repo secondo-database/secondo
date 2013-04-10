@@ -527,14 +527,14 @@ function sendMail() {
   reclist=${reclist%,*}
 
   if [ "$LU_SENDMAIL_FROM" != "" ]; then
-    local ropt="-r$LU_SENDMAIL_FROM"
+    local ropt="-r $LU_SENDMAIL_FROM"
   fi      
 
   # send mail
   if [ "$LU_SENDMAIL" == "true" ]; then
 
     printf "%s\n"   "${FUNCNAME}:  mail $ropt -s \"$subject\" $attachOpt \"$reclist\" <body>"
-    mail $ropt -s"$subject" ${attachOpt} "$reclist" <<-EOFM
+    mail -r $LU_SENDMAIL_FROM $ropt -s"$subject" ${attachOpt} "$reclist" <<-EOFM
 $body
 EOFM
  
@@ -547,7 +547,7 @@ EOFM
        # redirect stdout   
        exec 6>&1
        exec >> "$backupDir/Mails.txt"
-
+echo -e "Sender : $LU_SENDMAIL_FROM"
        echo -e "Subject    : $subject"
        echo -e "Recipients : $reclist"
        if [ "$attachFile" != "" ]; then

@@ -49,5 +49,7 @@ chgrp -fR cvs-dipl $lockRoot/students
 chgrp -fR cvs-dipl $lockRoot/secondo-data
 #chgrp -fR cvs-dipl $cvsHome/secondo-data
 
+chgrp -fR cvs-dipl $lockRoot/secondo_WHoff
+
 # allow write access for group members
 chmod -fR g+w $lockRoot

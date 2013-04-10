@@ -76,14 +76,14 @@ export PD_HEADER="$pdDir/pd.header"
 
 files=$(find $PWD -path "*CVS" -prune -o -type f -print)
 
-textFiles=$(find $PWD -name "*.txt")
-for f in $textFiles; do
-  linecheck $f;
-  rc=$?
-  if [ $rc -ne 0 ]; then
-    exit $rc
-  fi
-done
+#textFiles=$(find $PWD -name "*.txt")
+#for f in $textFiles; do
+#  linecheck $f;
+#  rc=$?
+#  if [ $rc -ne 0 ]; then
+#    exit $rc
+#  fi
+#done
 
 
 ## for test purposes
