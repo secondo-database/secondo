@@ -174,7 +174,7 @@ public class CommandPanel extends JScrollPane {
           return null;
        }  
        String name = resultList.second().stringValue().trim();
-       return name.isEmpty()?null:name;  
+       return name.length()==0?null:name;  
 
    } 
 
@@ -1349,7 +1349,7 @@ public class CommandPanel extends JScrollPane {
          // a sequence command, it's not clear what all happened during this command
          // may be some of the subcommands failed, other was successful
          String newDBName = retrieveDBName();
-         if(OpenedDatabase!=null && !OpenedDatabase.isEmpty()){
+         if(OpenedDatabase!=null && OpenedDatabase.length()!=0){
             if(newDBName!=null){
                 SCL.databaseOpened(newDBName);
                 OpenedDatabase = newDBName;
