@@ -412,6 +412,12 @@ protected:
 
 	bool defined;
 
+	bool insideAbove;
+
+	int conAbove;
+
+	int conBelow;
+
 	AVLSegment(int gridX, mpq_class pX, int gridY, mpq_class pY);
 
 /*
@@ -556,6 +562,36 @@ public:
 
 */
 	void incrementNumberOfChanges();
+
+/*
+ ~getInsideAbove~
+
+*/
+bool getInsideAbove();
+
+/*
+ ~getConBelow~
+
+*/
+int getConBelow();
+
+/*
+ ~getConAbove~
+
+*/
+int getConAbove();
+
+/*
+ ~setConBelow~
+
+*/
+void setConBelow(int i);
+
+/*
+ ~setConAbove~
+
+*/
+void setConAbove(int i);
 
 /*
 	 ~print~
@@ -1032,3 +1068,4 @@ void crossings(const Line2& line1, const Line2& line2,
 } //end of p2d
 
 #endif /* AVL_TREE_H_ */
+

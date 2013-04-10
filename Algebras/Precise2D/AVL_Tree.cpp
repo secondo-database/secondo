@@ -1327,7 +1327,8 @@ AVLSegment::AVLSegment(const Flob* preciseData,
 		gridXR( sd->GetSecGridXCoord()), gridYR(sd->GetSecGridYCoord()),
 		flob(preciseData), originalData(sd),
 		pxl(0), pyl(0), pxr(0), pyr(0), owner(o), valid(true),
-		isNew(false), noOfChanges(0), defined(true) {
+		isNew(false), noOfChanges(0), defined(true),
+		insideAbove(sd->GetInsideAbove()), conAbove(0), conBelow(0){
 }
 
 AVLSegment::AVLSegment(const AVLSegment& s) :
@@ -1336,7 +1337,8 @@ AVLSegment::AVLSegment(const AVLSegment& s) :
 		flob(s.flob), originalData(s.originalData),
 		pxl( s.pxl), pyl(s.pyl), pxr(s.pxr), pyr(s.pyr),
 		owner(s.owner), valid(s.isValid()), isNew(s.isNew),
-		noOfChanges(s.noOfChanges), defined(true) {
+		noOfChanges(s.noOfChanges), defined(true),
+    insideAbove(s.insideAbove), conAbove(s.conAbove), conBelow(s.conBelow){
 }
 
 AVLSegment::AVLSegment(int gridX, mpq_class px,
@@ -1510,6 +1512,46 @@ void AVLSegment::setNumberOfChanges(int i) {
 */
 void AVLSegment::incrementNumberOfChanges() {
 	noOfChanges++;
+}
+
+/*
+ ~getInsideAbove~
+
+*/
+bool AVLSegment::getInsideAbove(){
+	return insideAbove;
+}
+
+/*
+ ~getConBelow~
+
+*/
+int AVLSegment::getConBelow(){
+	return conBelow;
+}
+
+/*
+ ~getConAbove~
+
+*/
+int AVLSegment::getConAbove(){
+	return conAbove;
+}
+
+/*
+ ~setConBelow~
+
+*/
+void AVLSegment::setConBelow(int i){
+	conBelow = i;
+}
+
+/*
+ ~setConAbove~
+
+*/
+void AVLSegment::setConAbove(int i){
+	conAbove = i;
 }
 
 
@@ -1735,6 +1777,10 @@ AVLSegment& AVLSegment::operator=(const AVLSegment& s) {
 	valid = s.isValid();
 	isNew = s.isNew;
 	noOfChanges = s.getNumberOfChanges();
+	insideAbove = s.insideAbove;
+	conAbove = s.conAbove;
+	conBelow = s.conBelow;
+
 	if (!flob) {
 		pxl = s.getPreciseXL();
 		pyl = s.getPreciseYL();
@@ -2709,7 +2755,17 @@ bool AVLSegment::intersect(AVLSegment& seg) {
 		//~this~ segments is vertical
 		if (cmp(segXL, thisXL) <= 0 && cmp(thisXL, segXR) <= 0) {
 			//~this~ runs through ~segXL~ and ~segXR~
-			return true;
+			mpq_class segSlope = (segYR - segYL) / (segXR - segXL);
+			mpq_class segB = segYL - segSlope * segXL;
+
+			mpq_class yValue = thisXL * segSlope + segB;
+
+      if (((cmp(thisYL, yValue)<=0) && (cmp(yValue, thisYR)<=0))
+          || ((cmp(thisYR, yValue)<=0) && (cmp(yValue, thisYL)<=0))){
+				return true;
+			} else {
+				return false;
+			}
 		} else {
 			//~this~ runs more left/right than ~seg~
 			return false;
@@ -2720,7 +2776,17 @@ bool AVLSegment::intersect(AVLSegment& seg) {
 		//~seg~ is vertical
 		if (cmp(thisXL, segXL) <= 0 && cmp(segXL, thisXR) <= 0) {
 			//~seg~ runs through ~thisXL~ and ~thisXR~
-			return true;
+      mpq_class thisSlope = (thisYR - thisYL) / (thisXR - thisXL);
+			mpq_class thisB = thisYL - thisSlope * thisXL;
+
+			mpq_class yValue = segXL * thisSlope + thisB;
+
+			if (((cmp(segYL, yValue)<=0) && (cmp(yValue, segYR)<=0))
+          || ((cmp(segYR, yValue)<=0) && (cmp(yValue, segYL)<=0))){
+				return true;
+			} else {
+				return false;
+			}
 		} else {
 			//~this~ runs more left/right than ~seg~
 			return false;
@@ -3421,17 +3487,11 @@ bool Event::isValid() const {
 	}
 	if (seg->isValid()) {
 		if (this->isRightEndpointEvent()){
-			if (getGridX()<seg->getGridXR()){
+			if (seg->getNumberOfChanges()== noOfChangesSeg){
+				return true;
+			} else {
 				return false;
 			}
-			int cmpPXR = cmp(getPreciseX(), seg->getPreciseXR());
-			if (cmpPXR<0){
-				return false;
-			}
-			if (getGridY()<seg->getGridYR()){
-				return false;
-			}
-			return (cmp(getPreciseY(), seg->getPreciseYR())>=0);
 		} else {
 			return true;
 		}
@@ -3935,14 +3995,14 @@ bool mergeNeighbors(AVLSegment* current, AVLSegment* neighbor) {
 		return false;
 
 	} else {
-		AVLSegment* newNeighbour = new AVLSegment(neighbor->getGridXL(),
+		AVLSegment* newNeighbor = new AVLSegment(neighbor->getGridXL(),
 				neighbor->getGridYL(), current->getGridXR(),
 				current->getGridYR(), neighbor->getPreciseXL(),
         neighbor->getPreciseYL(), current->getPreciseXR(),
 				current->getPreciseYR(), neighbor->getOwner());
 
-    newNeighbour->setNumberOfChanges(neighbor->getNumberOfChanges() + 1);
-		*neighbor = *newNeighbour;
+    newNeighbor->setNumberOfChanges(neighbor->getNumberOfChanges() + 1);
+		*neighbor = *newNeighbor;
 
 		return true;
 	}
@@ -4057,7 +4117,7 @@ void intersectionTestForRealminize(AVLSegment* left,
 		AVLSegment* overlappingSegment = new AVLSegment();
 		if (left->intersect(*right, *overlappingSegment)) {
 			if (p2d_debug) {
-				cout << "Schnittpunkt in le with pred:";
+				cout << "Schnittpunkt mit:";
 				overlappingSegment->print();
 			}
 			if (overlappingSegment->isPoint()) {
@@ -4471,14 +4531,7 @@ void Realminize(const Line2& src, Line2& result,
 						if (p2d_debug) {
               cout << "neues Segment in Line einfuegen" << endl;
 
-              cout << current->getGridXL() << " "
-                  << current->getGridYL() << " "
-                  << current->getGridXR() << " "
-                  << current->getGridYR() << " "
-                  << current->getPreciseXL().get_d() << " "
-                  << current->getPreciseYL().get_d() << " "
-                  << current->getPreciseXR().get_d() << " "
-                  << current->getPreciseYR().get_d() << endl;
+              current->print();
 						}
             result.addSegment(true, current->getGridXL(),
                 current->getGridYL(), current->getGridXR(),
