@@ -5,6 +5,9 @@ Implementation of DRM class
 
 */
 
+#include <algorithm>
+#include <vector>
+
 #include "DRM.h"
 #include "Attribute.h"
 #include "RectangleAlgebra.h"
@@ -207,3 +210,223 @@ ostream& DRM::Print( ostream& os ) const {
   return os;
 }
 
+
+/*
+2 Implementaion of objects interaction matrix
+
+*/
+
+OIM::OIM(bool def) : Attribute(def){
+   count = (3 << 4) + 3; // 3 x 3 matrix
+   uint8_t tmp[] = {0,0,0,0,0,0,0,0,0};
+   memcpy(values,tmp,9*sizeof(uint8_t));
+}
+
+OIM::OIM(const OIM& src) : Attribute(src.IsDefined()){
+  count = src.count;
+  memcpy(values, src.values, 9*sizeof(uint8_t));
+}
+
+OIM& OIM::operator=(const OIM& src) {
+  SetDefined(src.IsDefined());
+  count = src.count;
+  memcpy(values, src.values, 9*sizeof(uint8_t));
+  return *this;
+}
+
+ListExpr OIM::ToListExpr(ListExpr typeInfo) {
+  ListExpr valueList = nl->OneElemList(nl->IntAtom(values[0]));
+  ListExpr last = valueList;
+  int rows = (count & 0xF0) >> 4;
+  int cols = count & 0x0F;
+  for(int i=1;i<rows*cols;i++){
+    last = nl->Append(last, nl->IntAtom(values[i]));
+  }
+  return nl->ThreeElemList( 
+               nl->IntAtom(rows),
+               nl->IntAtom(cols),
+               valueList);
+}
+
+ bool OIM::ReadFrom(ListExpr value, ListExpr typeInfo) {
+   if(!nl->HasLength(value,3)){
+      return false;
+   }
+   if( (nl->AtomType(nl->First(value))!= IntType) ||
+       (nl->AtomType(nl->Second(value))!=IntType) ||
+       (nl->AtomType(nl->Third(value)) != NoAtom) ) {
+     return false;
+   }
+   int rows = nl->IntValue(nl->First(value));
+   if(rows<1 || rows > 3){
+      return false;
+   }
+   int cols = nl->IntValue(nl->Second(value));
+   if(cols<1 || cols>3){
+     return false;
+   }
+   ListExpr vl = nl->Third(value);
+   if(!nl->HasLength(vl,rows*cols)){
+      return false;
+   }
+   uint8_t tmp[9];
+   memset(tmp,0,9*sizeof(uint8_t));
+
+   for(int i=0;i<rows*cols;i++){
+     ListExpr f = nl->First(vl);
+     vl = nl->Rest(vl);
+     if(nl->AtomType(f)!=IntType){
+        return false;
+     }
+     int t = nl->IntValue(f);
+     if((t<0) || (t>3)){
+        return false;
+     }
+     tmp[i] = (uint8_t) t;
+   }
+
+   count = cols;
+   count = count |  (((uint8_t)rows) << 4);
+   memcpy(values,tmp,9*sizeof(uint8_t));
+   return true;
+ }
+
+
+int OIM::Compare(const Attribute* rhs) const {
+  int cmp = Attribute::CompareDefs(rhs);
+  if(cmp!=0 || !IsDefined()){
+      return cmp;
+  }
+  OIM* oim = (OIM*) rhs;
+  if(count < oim->count) return -1;
+  if(count > oim->count) return 1;
+  int rows = (count & 0xF0 )>> 4;
+  int cols = (count & 0x0F);
+  for(int i=0;i<rows*cols;i++){
+    if(values[i] <oim->values[i]) return -1;
+    if(values[i] >oim->values[i]) return 1;
+  }
+  return 0;
+}
+    
+size_t OIM::HashValue() const {
+  int rows = (count & 0xF0 )>> 4;
+  int cols = (count & 0x0F);
+  size_t res = 0;
+  for(int i=0;i<cols*rows;i++){
+    res =  (res << 3) | values[i];
+  }
+  return res;
+}
+
+ void OIM::CopyFrom(const Attribute* rhs){
+    *this = *( (OIM*)rhs);
+ }
+
+ ostream& OIM::Print( ostream& os ) const{
+    int rows = (count & 0xF0 )>> 4;
+    int cols = (count & 0x0F);
+    for(int i=0;i<rows;i++){
+      for(int j=0;j<cols;j++){
+        os << values[i*cols+j] << " ";
+      }
+      os << endl;
+    }
+    return os;
+ }
+
+ void OIM::computeFrom(const StandardSpatialAttribute<2>& a, 
+                     const StandardSpatialAttribute<2>& b){
+
+    if(!a.IsDefined() || !b.IsDefined()){
+      SetDefined(false);
+      return;
+    }
+
+    Rectangle<2> abox = a.BoundingBox();
+    Rectangle<2> bbox = b.BoundingBox();
+
+    if(!abox.IsDefined() || !bbox.IsDefined()){
+       // empty objects
+       count = (3 << 4 ) | 3;
+       memset(values,0,9*sizeof(uint8_t));
+       return;
+    }
+
+    // compute grid
+    // process X
+    vector<double> Lx1;
+    Lx1.push_back(abox.MinD(0));
+    Lx1.push_back(abox.MaxD(0)); 
+    Lx1.push_back(bbox.MinD(0));
+    Lx1.push_back(bbox.MaxD(0)); 
+ 
+    sort(Lx1.begin(),Lx1.end());
+
+    vector<double> Lx;
+    Lx.push_back(Lx1[0]);
+    double last = Lx1[0];
+
+    for(int i=1;i<4;i++){
+      double next = Lx1[i];
+      if(!AlmostEqual(last,next)){
+         Lx.push_back(next);
+         last = next;
+      }
+    }
+
+
+    // process Y
+    vector<double> Ly1;
+    Ly1.push_back(abox.MinD(1));
+    Ly1.push_back(abox.MaxD(1)); 
+    Ly1.push_back(bbox.MinD(1));
+    Ly1.push_back(bbox.MaxD(1)); 
+ 
+    sort(Ly1.begin(),Ly1.end());
+
+    vector<double> Ly;
+    Ly.push_back(Ly1[0]);
+    last = Ly1[0];
+
+    for(int i=1;i<4;i++){
+      double next = Ly1[i];
+      if(!AlmostEqual(last,next)){
+         Ly.push_back(next);
+         last = next;
+      }
+    }
+    // now the grid is given by Lx and Ly
+
+    uint8_t cols = (uint8_t)Lx.size() -1;
+    uint8_t rows = (uint8_t)Ly.size() -1;
+
+    assert(cols>0 && cols <4);
+    assert(rows>0 && rows <4);
+
+    count = (rows << 4) | cols;
+
+    double minD[2] = {0,0};
+    double maxD[2] = {0,0};
+
+    Rectangle<2> r(true,minD,maxD);
+
+    for(int y = 0; y<rows;y++){
+      for(int x = 0;x<cols;x++){
+         minD[0] = Lx[x];
+         maxD[0] = Lx[x+1];
+         minD[1] = Ly[rows-(2+y)];
+         maxD[1] = Ly[rows-(1+y)];
+
+         r.Set(true,minD,maxD);
+         int entry = 0;
+         if(a.Intersects(r)){
+           entry++;
+         } 
+         if(b.Intersects(r)){
+           entry += 2;
+         }
+         values[y*cols+x]=entry;
+      }
+    }
+ }

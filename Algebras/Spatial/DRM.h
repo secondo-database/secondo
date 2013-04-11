@@ -98,6 +98,65 @@ class DRM : public Attribute{
     uint16_t value;
 };
 
+
+
+class OIM : public Attribute{
+ 
+  public:
+    OIM() {}
+    OIM(bool def);
+    OIM(const OIM& src);
+
+    ~OIM() {}
+
+    OIM& operator=(const OIM& src);
+
+    void computeFrom(const StandardSpatialAttribute<2>& a, 
+                     const StandardSpatialAttribute<2>& b);
+
+    ListExpr ToListExpr(ListExpr typeInfo);
+
+    bool ReadFrom(ListExpr value, ListExpr typeInfo);
+
+    int Compare(const Attribute* rhs) const;
+    
+    bool Adjacent(const Attribute*) const {return false;}
+
+    size_t HashValue() const;
+
+    void CopyFrom(const Attribute* rhs);
+
+    OIM* Clone() const{ return new OIM(*this); }
+
+    size_t Sizeof() const { return sizeof(*this); }
+
+    virtual ostream& Print( ostream& os ) const;
+
+    static string BasicType(){ return "oim"; }
+
+    static const bool checkType(const ListExpr type){
+        return listutils::isSymbol(type, BasicType());
+    }
+
+   static ListExpr Property(){
+        return gentc::GenProperty("-> DATA",
+                           BasicType(),
+                          "int <intlist>",
+                          "3 1 2 1 1 3 1 2 2 2");
+    }
+
+   static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+        return nl->IsEqual(type,BasicType());
+   }
+
+  private:
+    uint8_t count; //numrows, numcols, each 4 bit
+    uint8_t values[9]; // matrix values 
+
+};
+
+
+
 #endif
 
 
