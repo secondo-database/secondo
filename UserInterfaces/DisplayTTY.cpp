@@ -773,6 +773,30 @@ struct DisplayInt : DisplayFunction {
 
 };
 
+struct DisplayDRM : DisplayFunction {
+
+  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  {
+    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
+    {
+      cout << Symbol::UNDEFINED();
+    }
+    else
+    { // an INT value
+      int v = nl->IntValue(value);
+      int pos=1;
+      for(int i=0;i<9;i++){
+         if(i>0) cout << " ";
+         cout << ((v&pos)>0?1:0);
+         pos = pos << 1; 
+      }
+    }
+  }
+};
+
+
+
 
 struct DisplayReal : DisplayFunction {
 
@@ -3477,6 +3501,9 @@ DisplayTTY::Initialize()
 
   d.Insert( "flist", new DisplayFileList() );
 
+  d.Insert( "drm", new DisplayDRM());
+
+
   // Chess Algebra 07/08
 #ifndef ChessB
   d.Insert( "position", new DisplayPosition() );
@@ -3530,6 +3557,7 @@ DisplayTTY::Initialize()
   d.Insert("isstring", new raster2::Displayistype());
   d.Insert("grid2", new raster2::Displaygrid2());
   d.Insert("grid3", new raster2::Displaygrid3());
+
 }
 
 /*
