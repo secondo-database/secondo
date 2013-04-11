@@ -119,8 +119,9 @@ public class JNetwork{
         int sid = secIds.get(i++);
         JSection curSect = (JSection)sections.get(sid-1);
         int pos = curSect.contains(rloc, tolerance);
-        if (pos > -1)
-          return curSect.getPosition(rloc, pos, tolerance);
+        if (pos > -1) {
+            return curSect.getPosition(rloc, pos, tolerance);
+        }
       }
     }
     return null;
@@ -137,15 +138,16 @@ public class JNetwork{
     Point2D.Double p2 = new Point2D.Double(0.0,0.0);
     Point2D.Double startpoint = new Point2D.Double(0.0,0.0);
     Point2D.Double endpoint =  new Point2D.Double(0.0,0.0);
-    boolean hasArrow = (rint.getDir().toString().compareTo("Both") != 0);
+    boolean hasArrow = (rint.getDir().compareTo("Both", true) != 0);
     boolean drawArrow = false;
-    boolean up = (rint.getDir().toString().compareTo("Up") == 0);
-    boolean first = true;
+    boolean up = (rint.getDir().compareTo("Down", true) != 0);
+    boolean startSmaller = true;
     if (secIds != null) {
       int i = 0;
       while (i < secIds.size()){
         int sid = secIds.get(i++);
         JSection curSect = (JSection) sections.get(sid-1);
+        startSmaller = curSect.getStartSmaller();
         boolean addResult = false;
         int pos = curSect.isCompletelyInside(rint, tolerance);
         if (pos > -1){
@@ -197,37 +199,47 @@ public class JNetwork{
           it.currentSegment(coords1);
           it.next();
           it.currentSegment(coords2);
-          if (up){
-            it.next();
-            while (!it.isDone()){
-              coords1[0] = coords2[0];
-              coords1[1] = coords2[1];
-              it.currentSegment(coords2);
+          if (startSmaller)
+          {
+            if (up){
               it.next();
+              while (!it.isDone()){
+                coords1[0] = coords2[0];
+                coords1[1] = coords2[1];
+                it.currentSegment(coords2);
+                it.next();
+              }
             }
+            p1 = new Point2D.Double(coords1[0], coords1[1]);
+            p2 = new Point2D.Double(coords2[0], coords2[1]);
+          } else {
+            if (!up){
+              it.next();
+              while (!it.isDone()){
+                coords1[0] = coords2[0];
+                coords1[1] = coords2[1];
+                it.currentSegment(coords2);
+                it.next();
+              }
+            }
+            p1 = new Point2D.Double(coords2[0], coords2[1]);
+            p2 = new Point2D.Double(coords1[0], coords1[1]);
           }
-          p1 = new Point2D.Double(coords1[0], coords1[1]);
-          p2 = new Point2D.Double(coords2[0], coords2[1]);
           drawArrow = false;
         }
         if (addResult && curSectRenderedPath != null){
           curveRendered.append(curSectRenderedPath,false);
           curve.append(curSectPath, false);
-          if (!first)
-            bounds.add(curSectRenderedPath.getBounds2D());
-          else{
-            first = false;
-            bounds = new Rectangle2D.Double(0.0,0.0,0.0,0.0);
-            bounds.setRect(curSectRenderedPath.getBounds2D());
-          }
           curSectRenderedPath = null;
           curSectPath = null;
           addResult = false;
         }
       }
-      boolean startSmaller = (startpoint.x < endpoint.x ||
-                               (startpoint.x == endpoint.x &&
-                                startpoint.y <= endpoint.y));
+      if (curveRendered != null){
+         bounds = new Rectangle2D.Double(0.0,0.0,0.0,0.0);
+         bounds.setRect(curveRendered.getBounds2D());
+      }
+      startSmaller = startPointIsNotBigger(startpoint, endpoint);
       return new JSection(rint, p1, p2, curve, curveRendered, hasArrow, bounds,
                           startSmaller);
     }
@@ -267,6 +279,12 @@ public class JNetwork{
 
   private Vector<Integer> getSids(int rid){
     return ((JRoute)routes.get(rid-1)).getSids();
+  }
+
+  private boolean startPointIsNotBigger(Point2D.Double startpoint,
+                                        Point2D.Double endpoint){
+    return (startpoint.x < endpoint.x ||
+           (startpoint.x == endpoint.x && startpoint.y <= endpoint.y));
   }
 
 }

@@ -55,7 +55,7 @@ public class JSection{
     if (value.listLength() == 12){
       sid = value.first().intValue();
       dir = new JDirection(value.fifth());
-      if (dir.toString().compareTo("Both") != 0){
+      if (dir.compareTo("Both", true) != 0){
         isArrow = true;
       } else {
         isArrow = false;
@@ -85,11 +85,15 @@ public class JSection{
     return sid;
   }
 
+  public double getLength(){
+    return lenth;
+  }
+
   public Shape getRenderObject(int i, AffineTransform af, double pointSize){
     if (i == 0){
       return curveRendered;
     } else if (isArrow){
-      if (dir.toString().compareTo("Up") == 0){
+      if (dir.compareTo("Up", true) == 0){
         return getArrow(af, p1, p2, pointSize);
       } else {
         return getArrow(af, p2, p1, pointSize);
@@ -109,19 +113,8 @@ public class JSection{
 
   public Point2D.Double getPosition(RouteLocation rloc, int pos, double tolerance){
     JRouteInterval curInt = routeIntervals.get(pos);
-    double distFromStartOfSection =
-      rloc.getPos() - curInt.getStartPos();
+    double distFromStartOfSection = rloc.getPos() - curInt.getStartPos();
     return getPoint(distFromStartOfSection, tolerance);
-  }
-
-  public Point2D.Double getPosition(double pos, double tolerance){
-    JRouteInterval curInt = routeIntervals.get(0);
-    double distFromStartOfSection = pos - curInt.getStartPos();
-    return getPoint(distFromStartOfSection, tolerance);
-  }
-
-  public Point2D.Double getPosition(double pos){
-    return getPosition(pos, 0.0);
   }
 
   public int contains(RouteLocation rloc, double tolerance){
@@ -489,10 +482,10 @@ private static void reverse(Vector<Point2D.Double >  v){
     }
   }
 
-  private Point2D.Double getPoint(double pos, double tolerance){
-    if (!startSmaller){
+  private Point2D.Double getPoint(double inpos, double tolerance){
+    double pos = inpos;
+    if (!startSmaller)
       pos = lenth - pos;
-    }
     PathIterator pi = curve.getPathIterator(null, 0.0);
     double[] coordsFrom = new double[6];
     double[] coordsTo = new double[6];
@@ -532,9 +525,6 @@ private static void reverse(Vector<Point2D.Double >  v){
   private GeneralPath getCurveFrom(double pos, boolean rendered){
     GeneralPath gp = new GeneralPath();
     Point2D.Double rendRes = new Point2D.Double(0.0,0.0);
-    if (!startSmaller){
-      pos = lenth - pos;
-    }
     PathIterator pi = curve.getPathIterator(null, 0.0);
     double[] coordsFrom = new double[6];
     double[] coordsTo = new double[6];
@@ -600,9 +590,6 @@ private static void reverse(Vector<Point2D.Double >  v){
   private GeneralPath getCurveTo(double pos, boolean rendered){
     GeneralPath gp = new GeneralPath();
     Point2D.Double rendRes = new Point2D.Double(0.0,0.0);
-    if (!startSmaller){
-      pos = lenth - pos;
-    }
     PathIterator pi = curve.getPathIterator(null, 0.0);
     double[] coordsFrom = new double[6];
     double[] coordsTo = new double[6];
@@ -656,12 +643,16 @@ private static void reverse(Vector<Point2D.Double >  v){
     return gp;
   }
 
-  private GeneralPath getCurve(double from , double to, boolean rendered) {
+  private GeneralPath getCurve(double infrom , double into, boolean rendered) {
     GeneralPath gp = new GeneralPath();
     Point2D.Double rendRes = new Point2D.Double(0.0,0.0);
-    if (!startSmaller){
-      from = lenth - from;
-      to = lenth - to;
+    double from = infrom;
+    double to = into;
+    if (from > to)
+    {
+      double help = from;
+      from = to;
+      to = help;
     }
     PathIterator pi = curve.getPathIterator(null, 0.0);
     double[] coordsFrom = new double[6];

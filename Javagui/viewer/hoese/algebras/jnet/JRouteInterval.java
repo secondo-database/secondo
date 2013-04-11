@@ -117,11 +117,17 @@ public class JRouteInterval{
   }
 
   public RouteLocation getStartRLoc(){
-    return new RouteLocation(rid, spos, dir);
+    if (dir.compareTo("Down", true) == 0)
+      return new RouteLocation(rid, epos, dir);
+    else
+      return new RouteLocation(rid, spos, dir);
   }
 
   public RouteLocation getEndRLoc(){
-    return new RouteLocation(rid, epos, dir);
+    if (dir.compareTo("Down", true) == 0)
+      return new RouteLocation(rid, spos, dir);
+    else
+      return new RouteLocation(rid, epos, dir);
   }
 
   private static boolean almostEqual(double a, double b){

@@ -42,7 +42,6 @@ public class UJPoint{
    private JSection sect;
    private Interval time;
 
-
   public UJPoint(ListExpr value) throws JNetworkNotAvailableException {
     if (value.listLength() == 2){
       netId = value.first().stringValue();
@@ -96,18 +95,18 @@ public class UJPoint{
     double t2 = time.getEnd();
     double timeDelta = (actTime-t1)/(t2-t1);
     double distOnRoute;
-    if (sect.getStartSmaller()){
-      if (rint.getDir().toString().compareTo("Down") != 0 )
-        distOnRoute = rint.getStartPos() + rint.getLength() * timeDelta;
-      else
-        distOnRoute = rint.getEndPos() - rint.getLength() * timeDelta;
-    } else {
-      if (rint.getDir().toString().compareTo("Down") != 0 )
-        distOnRoute = rint.getEndPos() - rint.getLength() * timeDelta;
-      else
-        distOnRoute = rint.getStartPos() + rint.getLength() * timeDelta;
+    if (rint.getDir().compareTo("Down", true) != 0 )
+      distOnRoute = rint.getStartPos() + rint.getLength() * timeDelta;
+    else
+      distOnRoute = rint.getEndPos() - rint.getLength() * timeDelta;
+    try{
+      JNetwork jnet = JNetworkManager.getInstance().getNetwork(netId);
+      return jnet.getPosition(new RouteLocation(rint.getRid(),
+                                              distOnRoute,
+                                              rint.getDir()));
+    } catch (Exception ex) {
+      return null;
     }
-    return sect.getPosition(distOnRoute);
   }
 
   public Interval getBoundingInterval (){
