@@ -55,7 +55,10 @@ class DRM : public Attribute{
      DRM& operator=(const DRM& src);
 
 
-    void computeFrom(const Rectangle<2>& r1, const Rectangle<2>& r2);
+    void computeFromR(const Rectangle<2>& r1, const Rectangle<2>& r2);
+
+    void computeFrom(const StandardSpatialAttribute<2>& a, 
+                     const StandardSpatialAttribute<2>& b);
 
     ListExpr ToListExpr(ListExpr typeInfo);
     bool ReadFrom(ListExpr value, ListExpr typeInfo);
