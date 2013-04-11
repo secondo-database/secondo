@@ -1542,6 +1542,13 @@ The destructor.
     static const bool checkType(const ListExpr type){
       return listutils::isSymbol(type, BasicType());
     }
+
+    bool Intersects(const Rectangle<3>& rect, const Geoid* geoid=0) const{
+     assert(false); // not implemented yet
+     return false;
+    }
+
+
 };
 
 /*
