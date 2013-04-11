@@ -174,7 +174,7 @@ function get_secPort
     fi
     echo $portNum
   else
-    echo "The Secondo configure file \`$1' doesn't exit"
+    echo "The Secondo configure file \`$1' doesn't exit" >&2
     echo 0
   fi
 }
