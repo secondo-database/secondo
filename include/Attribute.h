@@ -368,6 +368,16 @@ virtual ~Equal~ or ~Less~ functions in the derived classes.
         return (rDef && !lDef);
     }
 
+
+    int CompareDefs(const Attribute* rhs) const{
+       if(IsDefined()==rhs->IsDefined()){
+           return 0;
+       }
+       return IsDefined()?1:-1;
+    }
+
+
+
     virtual bool Adjacent( const Attribute *attrib ) const = 0;
 /*
 This function checks if two attributes are adjacent. As an example,
