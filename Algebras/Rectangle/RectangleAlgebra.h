@@ -81,6 +81,10 @@ class StandardSpatialAttribute : public Attribute
     virtual const Rectangle<dim> BoundingBox(const Geoid* geoid = 0) const = 0;
     virtual double Distance(const Rectangle<dim>& rect,
                             const Geoid* geoid=0) const = 0;
+    
+    virtual bool Intersects(const Rectangle<dim>& rect,
+                            const Geoid* geoid=0 ) const = 0;
+
     virtual bool IsEmpty() const = 0;
 };
 
@@ -143,6 +147,7 @@ Checks if the rectangle contains the rectangle ~r~.
 
 */
     inline bool Contains( const Rectangle<dim>& r, const Geoid* geoid=0 ) const;
+    
 
 /*
 Checks if the rectangle intersects with rectangle ~r~. Both rectangles

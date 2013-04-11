@@ -1013,6 +1013,17 @@ The assignment operator
      }
 
    }
+   
+   bool Intersects(const Rectangle<3>& rect, const Geoid* geoid = 0) const{
+     cerr << "Warning URegion::Distance(rect) not implemented. "
+          << "Using Rectangle<3>::Distance(Rectangle<3>) instead!" << endl;
+     if(!IsDefined()){
+        return -1;
+     } else {
+       return BoundingBox(geoid).Intersects(rect,geoid);
+     }
+
+   }
 
    virtual bool IsEmpty() const{
      return !IsDefined();

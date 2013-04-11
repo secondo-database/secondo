@@ -1126,6 +1126,17 @@ double Point::Distance( const Rectangle<2>& r, const Geoid* geoid/*=0*/ ) const
   return sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
 }
 
+bool Point::Intersects(const Rectangle<2>& r, const Geoid* geoid/*=0*/) const{
+  assert(IsDefined());
+  assert(r.IsDefined());
+  assert(!geoid); // not implemented yet
+  return     (x>=r.MinD(0) ) && (x<=r.MaxD(0)) 
+          && (y>=r.MinD(1) ) && (y<=r.MaxD(1)); 
+
+}
+
+
+
   // calculate the enclosed angle between (a,b) and (b,c) in degrees
 double Point::calcEnclosedAngle( const Point &a,
         const Point &b,
@@ -2982,6 +2993,25 @@ double Points::Distance( const Rectangle<2>& r, const Geoid* geoid/*=0*/ ) const
   return result;
 }
 
+bool Points::Intersects( const Rectangle<2>& r, const Geoid* geoid/*=0*/ ) const
+{
+  assert( IsDefined() );
+  assert( !IsEmpty() );
+  assert( r.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+  if(!BoundingBox().Intersects(r,geoid)){
+     return false;
+  }
+  Point pi;
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, pi );
+    if(pi.Intersects(r,geoid)){
+      return true;
+    } 
+  }
+  return false;
+}
 
 void Points::Translate( const Coord& x, const Coord& y, Points& result ) const
 {
@@ -4677,6 +4707,38 @@ double HalfSegment::Distance(const Rectangle<2>& rect,
   return dist;
 }
 
+
+
+bool HalfSegment::Intersects(const Rectangle<2>& rect,
+                             const Geoid* geoid/*=0*/) const{
+  if(!rect.IsDefined()){
+     return false;
+  }
+  if(rect.IsEmpty()){
+     return false;
+  }
+  if(lp.Intersects(rect,geoid)) return true;
+  if(rp.Intersects(rect,geoid)) return true;
+  // check for intersection of the 4   
+  // segments of the rectangle
+  Point p1(true, rect.MinD(0), rect.MinD(1));
+  Point p2(true, rect.MaxD(0), rect.MinD(1));
+  Point p3(true, rect.MaxD(0), rect.MaxD(1));
+  Point p4(true, rect.MinD(0), rect.MaxD(1));
+
+  HalfSegment hs1(true,p1,p2);
+  if(Intersects(hs1)) return true;
+  HalfSegment hs2(true,p2,p3);
+  if(Intersects(hs2)) return true;
+  HalfSegment hs3(true,p3,p4);
+  if(Intersects(hs3)) return true;
+  HalfSegment hs4(true,p4,p1);
+  if(Intersects(hs4)) return true;
+  return false;
+
+}
+
+
 double HalfSegment::MaxDistance(const Rectangle<2>& rect,
                                 const Geoid* geoid /*=0*/) const{
 
@@ -5762,6 +5824,32 @@ double Line::Distance( const Rectangle<2>& r,
   return dist;
 }
 
+bool Line::Intersects( const Rectangle<2>& r,
+                       const Geoid* geoid /*=0*/ ) const {
+  assert( !IsEmpty() ); // includes !undef
+  assert( IsOrdered() );
+  assert( r.IsDefined() );
+  assert( !geoid || geoid->IsDefined() );
+  if(!BoundingBox().Intersects(r,geoid)){
+     return false;
+  }
+
+  if(geoid){
+    cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+         <<endl;
+    assert(false); // TODO: Implement spherical geometry case.
+  }
+  HalfSegment hs;
+  for(int i=0;i<line.Size();i++){
+    line.Get(i,hs);
+    if(hs.IsLeftDomPoint()){
+       if(hs.Intersects(r,geoid)){
+         return true;
+       }
+    }
+  }
+  return false;
+}
 double Line::MaxDistance( const Rectangle<2>& r,
                           const Geoid* geoid /*=0*/ ) const
 {
@@ -7756,6 +7844,26 @@ double SimpleLine::Distance(const Rectangle<2>& r,
   return sll.Distance( r, geoid );
 }
 
+bool SimpleLine::Intersects(const Rectangle<2>& r,
+                            const Geoid* geoid ) const{
+
+  if(!IsDefined() || !r.IsDefined()){
+    return false;
+  }
+  if(!BoundingBox().Intersects(r,geoid)){
+     return false;
+  }
+  HalfSegment hs;
+  for( int i = 0; i < Size(); i++ ) {
+    Get( i, hs);
+    if(hs.Intersects(r,geoid)){
+      return true;
+    } 
+  }
+  return false;
+}
+
+
 bool SimpleLine::AtPosition( double pos,
                              Point& p,
                              const Geoid* geoid /* = 0 */) const {
@@ -9647,6 +9755,44 @@ double Region::Distance( const Rectangle<2>& r,
   }
   return mindist;
 }
+
+
+bool Region::Intersects( const Rectangle<2>& r,
+                         const Geoid* geoid /*=0*/ ) const{
+
+   if(!IsDefined() || !r.IsDefined()){
+     return false;
+   }
+   if(IsEmpty() || r.IsEmpty()){
+     return false;
+   }
+   // either, the rectangle is contained in the region
+   // or one of the halfsegments of the region
+   // intersects the rectangle
+   
+   Point p1(true,r.MinD(0),r.MinD(1));
+   Point p2(true,r.MaxD(0),r.MinD(1));
+   Point p3(true,r.MaxD(0),r.MaxD(1));
+   Point p4(true,r.MinD(0),r.MaxD(1));
+
+   if(Contains(p1,geoid)) return true;
+   if(Contains(p2,geoid)) return true;
+   if(Contains(p3,geoid)) return true;
+   if(Contains(p4,geoid)) return true;
+
+   HalfSegment hs; 
+   for(int i=0;i<region.Size(); i++){
+     Get(i,hs);
+     if(hs.IsLeftDomPoint()){
+       if(hs.Intersects(r,geoid)){
+          return true;
+       }
+     }
+   }
+   return false;
+}
+
+
 
 
 double Region::Area(const Geoid* geoid/*=0*/) const
@@ -24311,7 +24457,7 @@ int computeDRMVM(Word* args, Word& result, int message, Word& local,
                        (StandardSpatialAttribute<2>*) args[1].addr;
     result = qp->ResultStorage(s);
     DRM* res = (DRM*) result.addr;
-    res->computeFrom(a->BoundingBox(),b->BoundingBox());
+    res->computeFrom(*a,*b);
     return 0;
 }
 

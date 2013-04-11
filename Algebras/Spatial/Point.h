@@ -266,6 +266,9 @@ If ~geoid~ is NULL, euclidean geometry is used, otherwise spherical geometry.
     double Distance( const Rectangle<2>& r, const Geoid* geoid=0 ) const;
 
 
+    bool Intersects(const Rectangle<2>& r, const Geoid* geoid=0) const;
+
+
 /*
 4.1 Spherical geometry operations
 

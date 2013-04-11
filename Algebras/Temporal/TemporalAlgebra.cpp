@@ -2090,6 +2090,15 @@ double UPoint::Distance(const Rectangle<3>& rect,
   return BoundingBox().Distance(rect,geoid);
 }
 
+bool UPoint::Intersects(const Rectangle<3>& rect,
+                          const Geoid* geoid) const{
+
+   bool implemented = false; // not implemented yet
+   assert(implemented);
+   return false;
+}
+
+
 void UPoint::Distance( const UPoint& up,
                        UReal& result,
                        const Geoid* geoid ) const

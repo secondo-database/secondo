@@ -483,6 +483,11 @@ the size of ~U~ and ~m~ is the size of ~V~.
 */
   double Distance( const Rectangle<2>& r, const Geoid* geoid=0 ) const;
 
+
+  bool Intersects( const Rectangle<2>& r, const Geoid* geoid=0 ) const;
+  
+
+
 /*
 4.3.14 Operation ~translate~
 
@@ -1140,6 +1145,8 @@ points where more than 2 segments have a common endpoint.
 
 */
   double Distance( const Rectangle<2>& r, const Geoid* geoid=0 ) const;
+  
+  bool Intersects( const Rectangle<2>& r, const Geoid* geoid=0 ) const;
 
 
 /*
@@ -1867,6 +1874,7 @@ geometry.
 
   double Distance(const Rectangle<2>& r, const Geoid* geoid=0) const;
 
+  bool Intersects(const Rectangle<2>& r, const Geoid* geoid=0) const;
 
 /*
 ~SetStartSmaller~
@@ -2542,6 +2550,9 @@ Assignement operator redefinition.
   *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~.
 
 */
+
+  bool Intersects(const Rectangle<2>&r, const Geoid* geoid=0) const;
+
 
 /*
 6.4.4 Operation ~components~

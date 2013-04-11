@@ -400,6 +400,7 @@ Compares two half segments according to their attribute values (~attr~).
 */
 
     double Distance(const Rectangle<2>& rect, const Geoid* geoid=0) const;
+    bool Intersects(const Rectangle<2>& rect, const Geoid* geoid=0) const;
     double MaxDistance(const Rectangle<2>& rect, const Geoid* geoid=0) const;
     int LogicCompare( const HalfSegment& hs ) const;
 /*

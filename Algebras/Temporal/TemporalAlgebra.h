@@ -2960,6 +2960,8 @@ that unit and the rectangle.
 */
 virtual double Distance(const Rectangle<3>& rect, const Geoid* geoid=0) const;
 
+virtual bool Intersects(const Rectangle<3>& rect, const Geoid* geoid=0) const;
+
 
   virtual bool IsEmpty() const{
     return !IsDefined();
