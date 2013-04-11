@@ -289,6 +289,8 @@ CheckTuple(ListExpr type, ListExpr& errorInfo)
    }
 
    if(!listutils::checkAttrListForNamingConventions(nl->Second(type))){
+     cmsg.typeError("Attribute names do not fit Secondo's name conventions\n"
+                    "(an attribute name must start with a capital letter.)\n");
      return false;
    }
    return true;
