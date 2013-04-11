@@ -149,6 +149,16 @@ function setSecConf
   " $DSDBCONF
 }
 
+# Check the existence of specific utility
+function isExist
+{
+  UName=$1
+  UPath=$(which ${UName})
+  if [ ! -f "$UPath" ]; then
+    echo "${ERRORINFO}The utility ${UName} is not installed" >&2
+    exit -1
+  fi
+}
 
 
 ### ----------------------------------------------------------------------------------------
@@ -231,6 +241,12 @@ if [ ! -f ${bin}/$MDSBINLIST ]; then
   exit -1
 fi
 
+# f. Check prerequisites on the current computer, includes:
+# passphraseless ssh, screen, ifconfig, etc 
+$(isExist ssh)
+$(isExist screen)
+$(isExist ifconfig)
+
 # 2. Unpack the Hadoop distribution, and set its configurations based on the ParallelSecondoConfig.ini
 # Set Hadoop configurations based on the current node.
 # The configuration files of Hadoop includes:
@@ -295,6 +311,12 @@ if [ $(echo $MasterDS | grep -o ":" | wc -l) -ne 2 ]; then
 fi
 MIP=$(echo $MasterDS | cut -d':' -f1)
 echo $MIP > $HPMaster
+# check the passphraseless ssh to the master
+MHost=$(ssh -q -o PasswordAuthentication=no $MIP hostname)
+if [ "${MHost}" = "" ]; then
+  echo "${ERRORINFO}Can't ssh to ${MIP} without a passphrase."
+  exit -1
+fi
 
 OLDIFS=$IFS
 IFS=$'\n'
@@ -318,6 +340,16 @@ if [ ! -s $HPSlaves ]; then
   echo "Installation for Parallel Secondo Fails. "
   exit -1
 fi
+
+# check the passphraseless ssh to slaves
+while read Slave; do
+  SIP=$(echo $Slave | cut -d':' -f1)
+  SHost=$(ssh -q -o PasswordAuthentication=no $SIP hostname)
+  if [ "${SHost}" = "" ]; then
+    echo "${ERRORINFO}Can't ssh to ${SIP} without a passphrase."
+    exit -1
+  fi
+done < $HPSlaves
 
 # Get all configurations about Hadoop
 OLDIFS=$IFS
@@ -635,7 +667,6 @@ NS4Master=($(readPSConf "Options" "NS4Master" "="))
 NS4Master=$(trim ${NS4Master[0]})
 IFS=$OLDIFS
 if [ "$NS4Master" = "true" ]; then
-   
   # Ensure the current node is the master node
   LIP=$(trim $(get_localIP))
   if [ "$LIP" != "$MIP" ]; then
@@ -691,6 +722,13 @@ if [ "$NS4Master" = "true" ]; then
   ln -s $SECONDO_BUILD_DIR $MMSECLOC
   echo "The $SECONDO_BUILD_DIR is used to be the master mini Secondo of the parallel Secondo."
 fi
+
+echo -e "\n\n\n\n"
+#Set the environment variables in .parasecrc
+source $HOME/.bashrc
+
+#Format the namenode of Hadoop
+hadoop namenode -format
 
 
 echo -e "\n\n\n************************************************"
