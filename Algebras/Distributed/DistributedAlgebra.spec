@@ -20,8 +20,6 @@
 # Begin DestributedAlgebra.spec
 
 
-operator test alias TEST pattern _ op
-
 operator makeDarray alias MAKEDARRAY pattern op (_, _ )
 
 operator get alias GET pattern op ( _, _ )
