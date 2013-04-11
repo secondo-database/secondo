@@ -54,8 +54,6 @@ void DRM::computeFromR(const Rectangle<2>& r1, const Rectangle<2>& r2){
     }
     cout << endl;  
 
-    cout << "value bfore setting" << value << endl;
-
     if(rows[0] && cols[0] ) value |=1;
     if(rows[0] && cols[1] ) value |=2;
     if(rows[0] && cols[2] ) value |=4;
@@ -65,8 +63,6 @@ void DRM::computeFromR(const Rectangle<2>& r1, const Rectangle<2>& r2){
     if(rows[2] && cols[0] ) value |=64;
     if(rows[2] && cols[1] ) value |=128;
     if(rows[2] && cols[2] ) value |=256;
-
-    cout << "value after setting" << value << endl;
 
   }
 }
