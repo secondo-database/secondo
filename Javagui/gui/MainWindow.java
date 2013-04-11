@@ -2277,8 +2277,11 @@ public static void main(String[] args){
 public void processResult(String command,ListExpr ResultList,IntByReference ErrorCode,
                         IntByReference ErrorPos,StringBuffer ErrorMessage){
   if (ErrorCode.value!=0){
-    ComPanel.appendText("Error: " + ErrorMessage);
-    ComPanel.appendText(ServerErrorCodes.getErrorMessageText(ErrorCode.value));
+    ComPanel.appendText("\nError: \n" + ErrorMessage);
+    String errorCodeMsg = ServerErrorCodes.getErrorMessageText(ErrorCode.value);
+    if(!ErrorMessage.toString().contains(errorCodeMsg.trim())){
+       ComPanel.appendText("\n"+errorCodeMsg);
+    }
     if (ErrorCode.value==5){
        StringBuffer SB=new StringBuffer();
        if (ResultList.writeToString(SB)==0)
