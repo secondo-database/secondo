@@ -24421,6 +24421,7 @@ Type Constructor DRM
 */
 GenTC<DRM> drm;
 
+GenTC<OIM> oim;
 
 
 /*
@@ -24488,6 +24489,73 @@ Operator computeDRM(
 
 
 /*
+Operator ~computeOIM~
+
+Computes the objects interaction matrix for 2 elements in Spatial2D.
+
+*/
+
+ListExpr computeOIMTM(ListExpr args){
+  string err="SPATIAL2D x SPATIAL2D expected"; 
+  if(!nl->HasLength(args,2)){
+      return listutils::typeError(err);
+  }
+  if(!listutils::isKind(nl->First(args),Kind::SPATIAL2D()) ||
+     !listutils::isKind(nl->Second(args),Kind::SPATIAL2D() )){
+      return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<OIM>();    
+}
+
+
+/*
+Value Mapping
+
+*/
+
+int computeOIMVM(Word* args, Word& result, int message, Word& local,
+               Supplier s ){
+
+    StandardSpatialAttribute<2>* a =
+                       (StandardSpatialAttribute<2>*) args[0].addr;
+    StandardSpatialAttribute<2>* b =
+                       (StandardSpatialAttribute<2>*) args[1].addr;
+    result = qp->ResultStorage(s);
+    OIM* res = (OIM*) result.addr;
+    res->computeFrom(*a,*b);
+    return 0;
+}
+
+/*
+
+Specification
+
+*/
+OperatorSpec computeOIMSpec (
+    " SPATIAL2D x SPATIAL2D -> oim",
+    " computeOIM(_,_)",
+    " Computes the objects interaction matrix for two "
+    " spatial objects.",
+    " query computeOIM(BGrenzenline, mehringdamm)  "
+  );
+
+/*
+Operator instance
+
+*/
+Operator computeOIM(
+   "computeOIM",
+   computeOIMSpec.getStr(),
+   computeOIMVM,
+   Operator::SimpleSelect,
+   computeOIMTM
+);
+
+
+
+
+
+/*
 11 Creating the Algebra
 
 */
@@ -24506,6 +24574,7 @@ class SpatialAlgebra : public Algebra
     AddTypeConstructor( &dline);
 
     AddTypeConstructor( &drm);
+    AddTypeConstructor( &oim);
 
     point.AssociateKind(Kind::DATA());
     points.AssociateKind(Kind::DATA());
@@ -24514,6 +24583,7 @@ class SpatialAlgebra : public Algebra
     sline.AssociateKind(Kind::DATA());
     dline.AssociateKind(Kind::DATA());
     drm.AssociateKind(Kind::DATA());
+    oim.AssociateKind(Kind::DATA());
 
 
 
@@ -24638,6 +24708,7 @@ class SpatialAlgebra : public Algebra
 
     AddOperator(&splitline);
     AddOperator(&computeDRM);
+    AddOperator(&computeOIM);
 
 
 
