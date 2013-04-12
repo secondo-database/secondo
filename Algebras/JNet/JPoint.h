@@ -197,6 +197,17 @@ private:
   STRING_T nid;         // network id of the network the point belongs to.
   RouteLocation npos; //position in this network.
 
+/*
+1.1.1 Private Methods
+
+1.1.1.1 PosExists
+
+Returns true if the rloc is in the given jnet false otherwise.
+
+*/
+
+bool PosExists(const JNetwork* jnet = 0) const;
+
 };
 
 } // end of namespace jnetwork

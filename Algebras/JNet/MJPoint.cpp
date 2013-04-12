@@ -89,27 +89,6 @@ MJPoint::MJPoint(const MJPoint& other) :
   }
 }
 
-  /*
-MJPoint::MJPoint(const string netId, const DbArray<JUnit>& upoints) :
-  Attribute(true), units(0), trajectory(0), activBulkload(false),
-  lenth(0.0)
-{
-  JNetwork* jnet = ManageJNet::GetNetwork(netId);
-  if (jnet == 0)
-  {
-    strcpy(nid,"");
-    SetDefined(false);
-  }
-  else
-  {
-    ManageJNet::CloseNetwork(jnet);
-    strcpy(nid, netId.c_str());
-    SetDefined(true);
-    units.copyFrom(upoints);
-    SetDefined(Simplify());
-  }
-}*/
-
 MJPoint::MJPoint(const UJPoint* u) :
   Attribute(u != 0 && u->IsDefined()), units(0), trajectory(0),
   activBulkload(false), lenth(0.0)
@@ -153,14 +132,6 @@ double MJPoint::Length() const
 {
   return lenth;
 }
-
-  /*
-void MJPoint::SetUnits(const DbArray<JUnit>& upoints)
-{
-  assert(upoints != 0);
-  units.copyFrom(upoints);
-  SetDefined(Simplify());
-}*/
 
 void MJPoint::SetNetworkId(const STRING_T& id)
 {
@@ -460,40 +431,48 @@ Word MJPoint::In(const ListExpr typeInfo, const ListExpr instance,
       return SetWord(Address(0));
     }
     else
-      ManageJNet::CloseNetwork(jnet);
-    MJPoint* res = new MJPoint(true);
-    res->SetNetworkId(netId);
-    res->StartBulkload();
-    ListExpr actUP = nl->TheEmptyList();
-    JUnit lastUP;
-    correct = true;
-    while( !nl->IsEmpty( uList ) && correct)
     {
-      actUP = nl->First( uList );
-      Word w = JUnit::In(nl->TheEmptyList(), actUP, errorPos,
-                         errorInfo, correct);
+      MJPoint* res = new MJPoint(true);
+      res->SetNetworkId(netId);
+      res->StartBulkload();
+      ListExpr actUP = nl->TheEmptyList();
+      JUnit lastUP;
+      correct = true;
+      while( !nl->IsEmpty( uList ) && correct)
+      {
+        actUP = nl->First( uList );
+        Word w = JUnit::In(nl->TheEmptyList(), actUP, errorPos,
+                           errorInfo, correct);
+        if (correct)
+        {
+          JUnit* actU = (JUnit*) w.addr;
+          if (actU != 0)
+          {
+            if (jnet->Contains(actU->GetRouteInterval()))
+              res->Add(*actU);
+            actU->DeleteIfAllowed();
+            actU = 0;
+          }
+        }
+        else
+        {
+          cmsg.inFunError("Error in list of " + JUnit::BasicType() +
+          " at " + nl->ToString(actUP));
+        }
+        uList = nl->Rest( uList );
+      }
+      res->EndBulkload(false);
+      ManageJNet::CloseNetwork(jnet);
       if (correct)
       {
-        JUnit* actU = (JUnit*) w.addr;
-        res->Add(*actU);
-        actU->DeleteIfAllowed();
-        actU = 0;
+        return SetWord(res);
       }
       else
       {
-        cmsg.inFunError("Error in list of " + JUnit::BasicType() +
-        " at " + nl->ToString(actUP));
+        res->Destroy();
+        delete res;
+        return SetWord(Address(0));
       }
-      uList = nl->Rest( uList );
-    }
-    res->EndBulkload(false);
-    if (correct)
-    {
-      return SetWord(res);
-    }
-    else
-    {
-      return SetWord(Address(0));
     }
   }
 }
@@ -582,32 +561,29 @@ void MJPoint::EndBulkload(const bool simplify /*=true*/,
       trajectory.TrimToSize();
     }
   }
-  else
+  if (buildtraj)
   {
-    if (buildtraj)
+    if (IsDefined() && units.Size() > 0)
     {
-      if (IsDefined() && units.Size() > 0)
+      JRITree* tree = new JRITree(0);
+      JUnit unit;
+      int i = 0;
+      while (i < units.Size())
       {
-        JRITree* tree = new JRITree(0);
-        JUnit unit;
-        int i = 0;
-        while (i < units.Size())
-        {
-          Get(i,unit);
-          lenth += unit.GetLength();
-          tree->Insert(unit.GetRouteInterval());
-          i++;
-        }
-        tree->TreeToDbArray(&trajectory,0);
-        tree->Destroy();
-        delete tree;
-        SetDefined(true);
-        units.TrimToSize();
-        trajectory.TrimToSize();
+        Get(i,unit);
+        lenth += unit.GetLength();
+        tree->Insert(unit.GetRouteInterval());
+        i++;
       }
-      else
-        SetDefined(false);
+      tree->TreeToDbArray(&trajectory,0);
+      tree->Destroy();
+      delete tree;
+      SetDefined(true);
+      units.TrimToSize();
+      trajectory.TrimToSize();
     }
+    else
+      SetDefined(false);
   }
 }
 
@@ -1272,7 +1248,9 @@ void MJPoint::Append(const JUnit ju)
 {
   assert(activBulkload);
   if (ju.IsDefined())
+  {
     units.Append(ju);
+  }
 }
 
 

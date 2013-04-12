@@ -1233,13 +1233,16 @@ bool JNetwork::GetNetworkValueOf(const Line* in, JLine* result) const
     for (int i = 0; i < in->Size(); i++)
     {
       in->Get(i,hs);
-      JRouteInterval* actInt = GetNetworkValueOf(hs);
-      if (actInt != NULL)
+      if (hs.IsLeftDomPoint())
       {
-        if (actInt->IsDefined())
-          result->Add(*actInt);
-        actInt->DeleteIfAllowed();
-        actInt = 0;
+        JRouteInterval* actInt = GetNetworkValueOf(hs);
+        if (actInt != NULL)
+        {
+          if (actInt->IsDefined())
+            result->Add(*actInt);
+          actInt->DeleteIfAllowed();
+          actInt = 0;
+        }
       }
     }
     result->EndBulkload();
@@ -2056,12 +2059,18 @@ Checks if the given position(s) exist in the network.
 */
 
 bool JNetwork::Contains(const RouteLocation& rloc) const {
-  return (rloc.GetPosition() <= GetRouteLength(rloc.GetRouteId()));
+  return ((rloc.GetPosition() >= 0.0 &&
+          rloc.GetPosition() <= GetRouteLength(rloc.GetRouteId())) ||
+          AlmostEqualAbsolute(rloc.GetPosition(), 0.0, tolerance) ||
+          AlmostEqualAbsolute(rloc.GetPosition(),0.0, tolerance));
 }
 
 bool JNetwork::Contains(const JRouteInterval& rint) const{
-  return (rint.GetFirstPosition() >= 0.0 &&
-          rint.GetLastPosition()<= GetRouteLength(rint.GetRouteId()));
+  return ((rint.GetFirstPosition() >= 0.0 &&
+          rint.GetLastPosition()<= GetRouteLength(rint.GetRouteId()))||
+          AlmostEqualAbsolute(rint.GetFirstPosition(),0.0,tolerance) ||
+          AlmostEqualAbsolute(rint.GetLastPosition(), 0.0,
+                              GetRouteLength(rint.GetRouteId())));
 }
 
 /*

@@ -71,9 +71,7 @@ UJPoint::UJPoint(const string id, const JUnit& u, const bool check/*=true*/) :
   strcpy(nid, id.c_str());
   if (check)
   {
-    JNetwork* j = ManageJNet::GetNetwork(id);
-    SetDefined(j->Contains(u.GetRouteInterval()));
-    ManageJNet::CloseNetwork(j);
+    SetDefined(CheckJNetContains(u.GetRouteInterval(), 0));
   }
 }
 
@@ -86,15 +84,13 @@ UJPoint::UJPoint(const string id, const Interval<Instant>& inst,
   {
     if (check)
     {
-      JNetwork* j = ManageJNet::GetNetwork(id);
-      if (j->Contains(r))
+      if (CheckJNetContains(r,0))
       {
         unit.SetTimeInterval(inst);
         unit.SetRouteInterval(r);
       }
       else
         SetDefined(false);
-      ManageJNet::CloseNetwork(j);
     }
     else
     {
@@ -118,7 +114,7 @@ UJPoint::UJPoint(const JNetwork* jnet, const JRouteInterval* jrint,
     strcpy(nid, *jnet->GetId());
     if (check)
     {
-      if (jnet->Contains(*jrint))
+      if (CheckJNetContains(*jrint, jnet))
       {
         unit.SetTimeInterval(*timeInter);
         unit.SetRouteInterval(*jrint);
@@ -166,22 +162,9 @@ void UJPoint::SetUnit(const JUnit& j, const bool check /*=true*/,
 {
   if (check)
   {
-    if (jnet == 0)
-    {
-      JNetwork* jn = ManageJNet::GetNetwork(nid);
-      if (jn->Contains(j.GetRouteInterval()))
-        unit = j;
-      else
-        SetDefined(false);
-      ManageJNet::CloseNetwork(jn);
-    }
-    else if (jnet->Contains(j.GetRouteInterval()))
-      unit = j;
-    else
-      SetDefined(false);
+    SetDefined(CheckJNetContains(j.GetRouteInterval(),jnet));
   }
-  else
-    unit = j;
+  unit = j;
 }
 
 /*
@@ -463,6 +446,31 @@ Rectangle< 2 > UJPoint::NetBox() const
     return unit.NetBox();
   else
     return Rectangle<2> (false, 0.0, 0.0, 0.0, 0.0 );
+}
+
+/*
+1 Private Operations
+
+1.1 CheckJNetContains
+
+*/
+
+bool UJPoint::CheckJNetContains(const JRouteInterval jrint,
+                                const JNetwork* jnet /*= 0*/) const
+{
+  bool result = false;
+  if (jnet != 0)
+    result = jnet->Contains(jrint);
+  else
+  {
+    JNetwork* j = ManageJNet::GetNetwork(nid);
+    if (j != 0)
+    {
+      result = j->Contains(jrint);
+      ManageJNet::CloseNetwork(j);
+    }
+  }
+  return result;
 }
 
 /*

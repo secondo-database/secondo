@@ -304,6 +304,16 @@ RouteIntervals which are not in the network.
 void FillIntervalList(const DbArray<JRouteInterval>* rintList,
                       const JNetwork* jnet);
 
+/*
+1.1.1.1 CheckAndFillIntervallList
+
+Calls FillIntervalList if jnet is 0 the jnetwork is opened and closed around
+the FillIntervalList call.
+
+*/
+
+void CheckAndFillIntervallList(const DbArray<JRouteInterval>* setri,
+                                     const JNetwork* jnet /*= 0*/);
 };
 
 } // end of namespace jnetwork

@@ -52,21 +52,17 @@ JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList,
              const bool check /*=true*/,  const bool issorted /*=false*/) :
     Attribute(true), routeintervals(0), sorted(issorted), activBulkload(false)
 {
+  strcpy(nid, netId.c_str());
   if (check)
   {
-    JNetwork* jnet = ManageJNet::GetNetwork(netId);
-    strcpy(nid, netId.c_str());
-    FillIntervalList(&rintList, jnet);
-    ManageJNet::CloseNetwork(jnet);
+    CheckAndFillIntervallList(&rintList, 0);
   }
   else
   {
-    strcpy(nid,netId.c_str());
     routeintervals.copyFrom(rintList);
-    if(!issorted)
-      Sort();
-    routeintervals.TrimToSize();
   }
+  if(!issorted) Sort();
+  routeintervals.TrimToSize();
 }
 
 JLine::JLine(const JNetwork* jnet, const JListRInt* rintList,
@@ -81,17 +77,16 @@ JLine::JLine(const JNetwork* jnet, const JListRInt* rintList,
   else
   {
     strcpy(nid, *jnet->GetId());
-    DbArray<JRouteInterval> rlist = rintList->GetList();
+    DbArray<JRouteInterval> tmp = rintList->GetList();
     if (check)
     {
-      FillIntervalList(&rlist, jnet);
+      CheckAndFillIntervallList(&tmp, jnet);
     }
     else
     {
-      routeintervals.copyFrom(rlist);
-      Sort();
-      routeintervals.TrimToSize();
+      routeintervals.copyFrom(tmp);
     }
+    routeintervals.TrimToSize();
   }
 }
 
@@ -140,26 +135,19 @@ void JLine::SetRouteIntervals(const DbArray<JRouteInterval>& setri,
 {
   if (check)
   {
-    if (jnet != 0)
-      FillIntervalList(&setri, jnet);
-    else
-    {
-      JNetwork* j = ManageJNet::GetNetwork(nid);
-      FillIntervalList(&setri, j);
-      ManageJNet::CloseNetwork(j);
-    }
+    CheckAndFillIntervallList (&setri, jnet);
   }
   else
   {
     routeintervals.clean();
     routeintervals.copyFrom(setri);
-    if (!issorted)
-    {
-      sorted = false;
-      Sort();
-    }
-    routeintervals.TrimToSize();
   }
+  if (!issorted)
+  {
+    sorted = false;
+    Sort();
+  }
+  routeintervals.TrimToSize();
 }
 
 /*
@@ -393,23 +381,19 @@ Word JLine::In(const ListExpr typeInfo, const ListExpr instance,
     if (nl->ListLength(instance) == 2)
     {
       ListExpr netId = nl->First(instance);
-      STRING_T nid;
-      strcpy(nid, nl->StringValue(netId).c_str());
-      JLine* res = new JLine(true);
-      res->SetNetworkId(nid);
-      res->StartBulkload();
       ListExpr rintList = nl->Second(instance);
-       ListExpr actRint = nl->TheEmptyList();
+      ListExpr actRint = nl->TheEmptyList();
       correct = true;
+      DbArray<JRouteInterval>* tmp = new DbArray<JRouteInterval>(0);
       while( !nl->IsEmpty( rintList ) && correct)
       {
         actRint = nl->First( rintList );
-         Word w = JRouteInterval::In(nl->TheEmptyList(), actRint, errorPos,
+        Word w = JRouteInterval::In(nl->TheEmptyList(), actRint, errorPos,
                                     errorInfo, correct);
         if (correct)
         {
           JRouteInterval* actInt = (JRouteInterval*) w.addr;
-          res->Add(*actInt);
+          tmp->Append(*actInt);
           actInt->DeleteIfAllowed();
           actInt = 0;
         }
@@ -420,15 +404,14 @@ Word JLine::In(const ListExpr typeInfo, const ListExpr instance,
         }
         rintList = nl->Rest( rintList );
       }
-      res->EndBulkload();
+      JLine* res = 0;
       if (correct)
       {
-        return SetWord(res);
+        res = new JLine(nl->StringValue(netId), *tmp);
       }
-      else
-      {
-        return SetWord(Address(0));
-      }
+      tmp->Destroy();
+      delete tmp;
+      return SetWord(res);
     }
   }
   correct = false;
@@ -501,7 +484,7 @@ void JLine::StartBulkload()
 {
   SetDefined(true);
   activBulkload = true;
-  sorted = false;
+  sorted = true;
   routeintervals.clean();
   routeintervals.TrimToSize();
 }
@@ -509,7 +492,7 @@ void JLine::StartBulkload()
 void JLine::EndBulkload(const bool sort /*=true*/)
 {
   activBulkload = false;
-  Sort();
+  if (sort) Sort();
   routeintervals.TrimToSize();
 }
 
@@ -902,9 +885,27 @@ void JLine::FillIntervalList(const DbArray<JRouteInterval>* rintList,
   {
     rintList->Get(i,actInt);
     if (jnet->Contains(actInt))
+    {
       Add(actInt);
+    }
   }
   EndBulkload();
+}
+
+void JLine::CheckAndFillIntervallList(const DbArray<JRouteInterval>* setri,
+                                     const JNetwork* jnet /*= 0*/)
+{
+  if (jnet != 0)
+    FillIntervalList(setri, jnet);
+  else
+  {
+    JNetwork* net = ManageJNet::GetNetwork(nid);
+    if (net != 0)
+    {
+      FillIntervalList(setri, net);
+      ManageJNet::CloseNetwork(net);
+    }
+  }
 }
 
 /*
@@ -918,11 +919,11 @@ void JLine::Sort()
   {
     if (!IsEmpty())
     {
-      JRITree* sorted = new JRITree(&routeintervals);
+      JRITree* sortTree = new JRITree(&routeintervals);
       routeintervals.clean();
-      sorted->TreeToDbArray(&routeintervals);
-      sorted->Destroy();
-      delete sorted;
+      sortTree->TreeToDbArray(&routeintervals);
+      sortTree->Destroy();
+      delete sortTree;
     }
     sorted = true;
   }

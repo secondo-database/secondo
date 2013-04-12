@@ -174,7 +174,6 @@ Appends the units of the in MJPoint to the current mjpoint.
 */
 
   void Append(const MJPoint* in);
-  void Append(const JUnit ju);
 
 /*
 1.1.1 Other Operations
@@ -402,6 +401,17 @@ deftime.
 */
 
 void Refinement(const MJPoint* in2, MJPoint* out1, MJPoint* out2) const;
+
+/*
+1.1.1.1 Append
+
+Appends the junit to the current mjpoint. Declared as private because it should
+only be used if it is ensured that ju is part of the jnetwork of mjpoint. Used
+by private Method Refinement.
+
+*/
+
+void Append(const JUnit ju);
 
 };
 

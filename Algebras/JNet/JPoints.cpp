@@ -56,16 +56,13 @@ JPoints::JPoints(const string netId, const DbArray<RouteLocation>& rlocList,
   strcpy(nid, netId.c_str());
   if (check)
   {
-    JNetwork* jnet = ManageJNet::GetNetwork(netId);
-    FillLocationList(rlocList, jnet);
-    ManageJNet::CloseNetwork(jnet);
+    CheckAndFillLocationList(&rlocList, 0);
   }
   else
   {
     routelocations.copyFrom(rlocList);
-    if (!issorted)
-      Sort();
   }
+  if (!issorted) Sort();
 }
 
 JPoints::JPoints(const JPoints& other) :
@@ -115,21 +112,13 @@ void JPoints::SetRouteLocations(const DbArray<RouteLocation>& setri,
   sorted = issorted;
   if (check)
   {
-    if(jnet != 0)
-      FillLocationList(setri, jnet);
-    else
-    {
-      JNetwork* j = ManageJNet::GetNetwork(nid);
-      FillLocationList(setri, j);
-      ManageJNet::CloseNetwork(j);
-    }
+    CheckAndFillLocationList(&setri, jnet);
   }
   else
   {
     routelocations.copyFrom(setri);
-    if (!issorted)
-      Sort();
   }
+  if (!issorted) Sort();
 }
 
 void JPoints::SetRouteLocations(const JListRLoc& rlocs,
@@ -139,23 +128,16 @@ void JPoints::SetRouteLocations(const JListRLoc& rlocs,
 {
   routelocations.clean();
   sorted = issorted;
+  DbArray<RouteLocation> tmp = rlocs.GetList();
   if (check)
   {
-    if (jnet != 0)
-      FillLocationList(rlocs.GetList(), jnet);
-    else
-    {
-      JNetwork* j = ManageJNet::GetNetwork(nid);
-      FillLocationList(rlocs.GetList(), j);
-      ManageJNet::CloseNetwork(j);
-    }
+    CheckAndFillLocationList (&tmp, jnet);
   }
   else
   {
-    routelocations.copyFrom(rlocs.GetList());
-    if (!issorted)
-      Sort();
+    routelocations.copyFrom(tmp);
   }
+  if (!issorted) Sort();
 }
 
 
@@ -381,13 +363,9 @@ Word JPoints::In(const ListExpr typeInfo, const ListExpr instance,
     if (nl->ListLength(instance) == 2)
     {
       ListExpr netId = nl->First(instance);
-      STRING_T nids;
-      strcpy(nids, nl->StringValue(netId).c_str());
-      JPoints* res = new JPoints(true);
-      res->SetNetworkId(nids);
-      res->StartBulkload();
       ListExpr rlocList = nl->Second(instance);
       ListExpr actRLoc = nl->TheEmptyList();
+      DbArray<RouteLocation>* tmp = new DbArray<RouteLocation>(0);
       correct = true;
       while( !nl->IsEmpty( rlocList ) && correct)
       {
@@ -397,7 +375,7 @@ Word JPoints::In(const ListExpr typeInfo, const ListExpr instance,
         if (correct)
         {
           RouteLocation* actInt = (RouteLocation*) w.addr;
-          res->Add(*actInt);
+          tmp->Append(*actInt);
           actInt->DeleteIfAllowed();
           actInt = 0;
         }
@@ -408,15 +386,14 @@ Word JPoints::In(const ListExpr typeInfo, const ListExpr instance,
         }
         rlocList = nl->Rest( rlocList );
       }
-      res->EndBulkload();
+      JPoints* res = 0;
       if (correct)
       {
-        return SetWord(res);
+        res = new JPoints(nl->StringValue(netId), *tmp);
       }
-      else
-      {
-        return SetWord(Address(0));
-      }
+      tmp->Destroy();
+      delete tmp;
+      return SetWord(res);
     }
   }
   correct = false;
@@ -599,6 +576,22 @@ void JPoints::FillLocationList(const DbArray<RouteLocation>& locList,
     }
   }
   EndBulkload();
+}
+
+void JPoints::CheckAndFillLocationList(const DbArray<RouteLocation>* setri,
+                             const JNetwork* jnet)
+{
+  if(jnet != 0)
+    FillLocationList(*setri, jnet);
+  else
+  {
+    JNetwork* j = ManageJNet::GetNetwork(nid);
+    if (j != 0)
+    {
+      FillLocationList(*setri, j);
+      ManageJNet::CloseNetwork(j);
+    }
+  }
 }
 
 /*

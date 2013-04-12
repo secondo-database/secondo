@@ -168,6 +168,19 @@ private:
   STRING_T nid;  //network identifier
   JUnit    unit; //time interval and route interval passed within this
                  //time interval
+
+/*
+1.1.1 Methods
+
+1.1.1.1 CheckJNetContains
+
+Checks if the jrint is part of the given jnetwork.
+
+*/
+
+  bool CheckJNetContains(const JRouteInterval jrint,
+                         const JNetwork* jnet = 0) const;
+
 };
 
 } //end of namespace jnetwork

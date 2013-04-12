@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "ManageJNet.h"
 
 using namespace jnetwork;
+
 /*
 1 Implementation of class ~JPoint~
 
@@ -67,17 +68,7 @@ JPoint::JPoint(const string netId, const RouteLocation& rloc,
   Attribute(rloc.IsDefined()), npos(rloc)
 {
    strcpy(nid, netId.c_str());
-  if (check)
-  {
-    JNetwork* jnet = ManageJNet::GetNetwork(netId);
-    if (jnet != 0)
-    {
-      SetDefined(jnet->Contains(rloc));
-      ManageJNet::CloseNetwork(jnet);
-    }
-    else
-      SetDefined(false);
-  }   
+  if (check) SetDefined(PosExists(0));
 }
 
 JPoint::JPoint(const JNetwork* jnet, const RouteLocation* rloc,
@@ -87,14 +78,13 @@ JPoint::JPoint(const JNetwork* jnet, const RouteLocation* rloc,
   if (jnet != 0 && rloc != 0 && jnet->IsDefined() && rloc->IsDefined())
   {
     strcpy(nid, *jnet->GetId());
-    if (check)
-      SetDefined(jnet->Contains(*rloc));
+    if (check) SetDefined(PosExists(jnet));
   }
   else
   {
     SetDefined(false);
     strcpy(nid, "");
-  }   
+  }
 }
 
 JPoint::~JPoint()
@@ -126,17 +116,7 @@ void JPoint::SetPosition(const RouteLocation& rloc, const bool check /*=true*/,
   npos = rloc;
   if (check)
   {
-    if (jnet != 0 && jnet->IsDefined())
-      SetDefined(jnet->Contains(rloc));
-    else
-    {
-      JNetwork* j = ManageJNet::GetNetwork(nid);
-      if (j != 0)
-      {
-        SetDefined(j->Contains(rloc));
-        ManageJNet::CloseNetwork(j);
-      }
-    }
+    SetDefined(PosExists(jnet));
   }
 }
 
@@ -486,6 +466,31 @@ JListRLoc* JPoint::OtherNetworkPositions() const
   ManageJNet::CloseNetwork(jnet);
   return result;
 }
+
+/*
+1.1 Private Methods
+
+1.1.1 PosExists
+
+*/
+
+bool JPoint::PosExists(const JNetwork* jnet /*=0*/) const
+{
+  bool result = false;
+  if (jnet != 0)
+    result = jnet->Contains(npos);
+  else
+  {
+    JNetwork* net = ManageJNet::GetNetwork(nid);
+    if (net != 0)
+    {
+      result = net->Contains(npos);
+      ManageJNet::CloseNetwork(net);
+    }
+  }
+  return result;
+}
+
 
 
 /*

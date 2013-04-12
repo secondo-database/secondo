@@ -262,6 +262,17 @@ out of the network are ignored.
 
   void FillLocationList(const DbArray<RouteLocation>& locList,
                         const JNetwork* jnet);
+
+/*
+1.1.1.1.1 CheckAndFillLocationList
+
+For jnet != 0 FillLocationList is called. For jnet == 0 the jnetwork is opened
+before call of FillLocationList and closed after that.
+
+*/
+
+void CheckAndFillLocationList(const DbArray<RouteLocation>* setri,
+                    const JNetwork* jnet = 0);
 };
 
 } // end of namespace jnetwork
