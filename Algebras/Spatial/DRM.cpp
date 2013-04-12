@@ -44,19 +44,6 @@ void DRM::computeFromR(const Rectangle<2>& r1, const Rectangle<2>& r2){
     rows[1] = r1.MinD(1) < r2.MaxD(1) && r1.MaxD(1) > r1.MinD(1);
     rows[0] = r1.MaxD(1) > r2.MaxD(1);
 
-
-
-    cout << "cols : " ;
-    for( int i=0;i<3;i++){
-      cout << cols[i] << " ";
-    }
-    cout << endl;  
-    cout << "rows: " ;
-    for( int i=0;i<3;i++){
-      cout << rows[i] << " ";
-    }
-    cout << endl;  
-
     if(rows[0] && cols[0] ) value |=1;
     if(rows[0] && cols[1] ) value |=2;
     if(rows[0] && cols[2] ) value |=4;
@@ -335,6 +322,16 @@ size_t OIM::HashValue() const {
     return os;
  }
 
+ bool checkProper(double* minD, double* maxD){
+    for(int i=0;i<2;i++){
+       if(minD[i] > maxD[i]){
+         return false;
+       }
+    }
+    return true;
+ }
+
+
  void OIM::computeFrom(const StandardSpatialAttribute<2>& a, 
                      const StandardSpatialAttribute<2>& b){
 
@@ -401,6 +398,7 @@ size_t OIM::HashValue() const {
     uint8_t cols = (uint8_t)Lx.size() -1;
     uint8_t rows = (uint8_t)Ly.size() -1;
 
+
     assert(cols>0 && cols <4);
     assert(rows>0 && rows <4);
 
@@ -415,10 +413,12 @@ size_t OIM::HashValue() const {
       for(int x = 0;x<cols;x++){
          minD[0] = Lx[x];
          maxD[0] = Lx[x+1];
-         minD[1] = Ly[rows-(2+y)];
-         maxD[1] = Ly[rows-(1+y)];
+         minD[1] = Ly[rows-(1+y)];
+         maxD[1] = Ly[rows-(0+y)];
 
+         assert(checkProper(minD,maxD));
          r.Set(true,minD,maxD);
+
          int entry = 0;
          if(a.Intersects(r)){
            entry++;

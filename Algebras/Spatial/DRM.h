@@ -141,8 +141,8 @@ class OIM : public Attribute{
    static ListExpr Property(){
         return gentc::GenProperty("-> DATA",
                            BasicType(),
-                          "int <intlist>",
-                          "3 1 2 1 1 3 1 2 2 2");
+                          "int int <intlist>",
+                          "(3 3 (1 1 1 1 3 1 1 1 1))");
     }
 
    static bool CheckKind(ListExpr type, ListExpr& errorInfo){
