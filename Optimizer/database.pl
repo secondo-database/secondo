@@ -3776,7 +3776,7 @@ resetKnowledgeDB :-
   retractall(storedSel(_, _, _)),
   retractall(storedPredicateSignature(_, _, _)),
   retractall(storedBBoxSize(_, _, _)),
-  updateCatalog,
+  (databaseName(_) -> updateCatalog ; true),
   write_list(['\nINFO: All information has been reset.']), nl.
 
 updateRel(Rel) :-
