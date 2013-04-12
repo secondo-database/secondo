@@ -2717,7 +2717,7 @@ private void createMenuBar(){
    
    MI_OptimizerUpdateCatalog = new JMenuItem("Update Catalog");
    MI_OptimizerTestOptimizer = new JMenuItem("Test Optimizer");
-   MI_OptimizerReconnectWhenOpenDB = new JCheckBoxMenuItem("Auto reconnect");
+   MI_OptimizerReconnectWhenOpenDB = new JCheckBoxMenuItem("Auto Reconnect");
    MI_OptimizerReconnectWhenOpenDB.setSelected(true);
    MI_OptimizerAutoUpdateCatalog = new JCheckBoxMenuItem("Auto Update Catalog");
    MI_OptimizerAutoUpdateCatalog.setSelected(true);
@@ -2731,7 +2731,7 @@ private void createMenuBar(){
    });
 
 
-   MI_OptimizerResetKnowledgeDB = new JMenuItem("Reset Optimizer's knowledge database");
+   MI_OptimizerResetKnowledgeDB = new JMenuItem("Reset Optimizer's Knowledge Database");
 
    OptimizerCommandMenu.add(MI_OptimizerUpdateCatalog);
    OptimizerCommandMenu.add(MI_OptimizerAutoUpdateCatalog);
@@ -3415,9 +3415,7 @@ public void objectsChanged(){
 public void typesChanged(){}
 
 public void databaseOpened(String DBName){
-  if(MI_OptimizerReconnectWhenOpenDB.isSelected()){
-      ComPanel.reconnectOptimizer();
-  }
+
   MI_ListTypes.setEnabled(true);
   MI_ListObjects.setEnabled(true);
   MI_CloseDatabase.setEnabled(true);
@@ -3436,6 +3434,10 @@ public void databaseOpened(String DBName){
 }
 
 public void databaseClosed(){
+  if(MI_OptimizerReconnectWhenOpenDB.isSelected()){
+      Reporter.writeError("HOtfix reconnect optimizer");
+      ComPanel.reconnectOptimizer();
+  }
   MI_ListTypes.setEnabled(false);
   MI_ListObjects.setEnabled(false);
   MI_CloseDatabase.setEnabled(false);
