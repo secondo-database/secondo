@@ -1404,30 +1404,11 @@ AVLSegment::~AVLSegment() {
 */
 void AVLSegment::set(mpq_class xl, mpq_class yl,
 		mpq_class xr, mpq_class yr, Owner o) {
-	if (cmp(xl, 0) <= 0) {
-		gridXL = 0;
-		pxl = xl;
-	} else {
 		prepareData(gridXL, pxl, xl);
-	}
-	if (cmp(yl, 0) <= 0) {
-		gridYL = 0;
-		pyl = yl;
-	} else {
 		prepareData(gridYL, pyl, yl);
-	}
-	if (cmp(xr, 0) <= 0) {
-		gridXR = 0;
-		pxr = xr;
-	} else {
 		prepareData(gridXR, pxr, xr);
-	}
-	if (cmp(yr, 0) <= 0) {
-		gridYR = 0;
-		pyr = yr;
-	} else {
 		prepareData(gridYR, pyr, yr);
-	}
+
 	owner = o;
 	isNew = true;
 	valid = true;
@@ -3067,6 +3048,8 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
             // the vertical segment lay between XL and XR
             int numerator = second.getYR() - second.getYL();
             int denominator = second.getXR() - second.getXL();
+            cout <<"numerator: "<<numerator<<endl;
+            cout <<"denominator: "<<denominator<<endl;
             if ((numerator > 0 && denominator > 0)
                 || (numerator < 0 && denominator < 0)) {
               /* second has a positiv slope
@@ -3123,8 +3106,9 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
                       + second.getYL() * denominator
                       - numerator * second.getXL())
                       / denominator;
+                  cout <<"yValue: "<<yValue<<endl;
                   if (((vertical.getYL() <= yValue
-                      && yValue < vertical.getYR())
+                      && yValue <= vertical.getYR())
                       || (vertical.getYR() <= yValue
                          && yValue
                               <= vertical.getYL()))
@@ -3166,7 +3150,7 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
 						//the segments are parallel
             if ((isBottom(i) && bs.isBottom(j))
                 || (isTop(i) && bs.isTop(j))) {
-              //compare the intersection with the y-coordiate
+              //compare the intersection with the y-coordinate
               //(~thisB~ and ~segB~). If they are equal, both
               //segments run on the same line and intersect if they
 							//overlap
@@ -3195,6 +3179,9 @@ bool BoundingSegments::intersect(BoundingSegments& bs) {
             int xDenominator = (thisNum * bsDenom
                 - thisDenom * bsNum);
             int gridX = xNumerator / xDenominator;
+            cout <<"xNumerator:"<<xNumerator<<endl;
+            cout <<"xDenominator:"<<xDenominator<<endl;
+            cout <<"gridX: "<<gridX<<endl;
             if ((segments[i].getXL() <= gridX
                 && gridX < segments[i].getXR())
                 && (bs.segments[j].getXL() <= gridX
@@ -4050,6 +4037,9 @@ void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
         overlappingSegment->getPreciseYR(), neighbor->getPreciseXR(),
         neighbor->getPreciseYR(), neighbor->getOwner());
 
+		r->setConAbove(neighbor->getConAbove());
+		r->setConBelow(neighbor->getConBelow());
+
 	} else {
 		r = new AVLSegment(overlappingSegment->getGridXR(),
         overlappingSegment->getGridYR(), current->getGridXR(),
@@ -4076,6 +4066,17 @@ void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
 				overlappingSegment->getPreciseYL(),
 				overlappingSegment->getPreciseXR(),
 				overlappingSegment->getPreciseYR(), both);
+		/*
+    if(this->owner==first){
+      common.insideAbove_first  = insideAbove_first;
+      common.insideAbove_second = s.insideAbove_second;
+    } else {
+      common.insideAbove_first = s.insideAbove_first;
+      common.insideAbove_second = insideAbove_second;
+    }*/
+    newNeighbor->setConAbove(current->getConAbove()+neighbor->getConAbove());
+    newNeighbor->setConBelow(current->getConBelow()+current->getConBelow());
+
 		newNeighbor->setNumberOfChanges(
 				neighbor->getNumberOfChanges() + 1);
 		*neighbor = *newNeighbor;
@@ -4090,12 +4091,18 @@ void splitNeighbors(AVLSegment* current, AVLSegment* neighbor,
         overlappingSegment->getPreciseXR(),
         overlappingSegment->getPreciseYR(), both);
 
+    newCurrent->setConAbove(current->getConAbove());
+    newCurrent->setConBelow(current->getConBelow());
+
     *current = *newCurrent;
 		AVLSegment* newNeighbor = new AVLSegment(neighbor->getGridXL(),
         neighbor->getGridYL(), overlappingSegment->getGridXL(),
         overlappingSegment->getGridYL(), neighbor->getPreciseXL(),
         neighbor->getPreciseYL(), overlappingSegment->getPreciseXL(),
         overlappingSegment->getPreciseYL(), neighbor->getOwner());
+
+    newNeighbor->setConAbove(neighbor->getConAbove());
+    newNeighbor->setConBelow(neighbor->getConBelow());
 
 		newNeighbor->setNumberOfChanges(
 				neighbor->getNumberOfChanges() + 1);
@@ -4161,6 +4168,105 @@ void intersectionTestForRealminize(AVLSegment* left,
 bool intersectionTestForSetOp(AVLSegment* s1, AVLSegment* s2, Event* event,
 		priority_queue<Event, vector<Event>, greater<Event> >& q,
 		bool leftIsSmaller) {
+
+	if (s1->mightIntersect(*s2)) {
+		AVLSegment* overlappingSegment = new AVLSegment();
+		cout << "mightIntersect" << endl;
+		if (s1->intersect(*s2, *overlappingSegment)) {
+			if (p2d_debug) {
+				cout << "s1: ";
+				s1->print();
+				cout << "s2: ";
+				s2->print();
+				cout << "Schnittpunkt :";
+				overlappingSegment->print();
+			}
+			if (overlappingSegment->isPoint()) {
+				if (!overlappingSegment->isLeftOf(*event)) {
+					if (leftIsSmaller) {
+            Event ie(intersectionPoint, s1, s2, overlappingSegment);
+						q.push(ie);
+					} else {
+            Event ie(intersectionPoint, s2, s1, overlappingSegment);
+						q.push(ie);
+					}
+					if (p2d_debug) {
+						cout << "new ie with" << endl;
+						s1->print();
+						s2->print();
+					}
+				}
+			} else {
+				AVLSegment* right = new AVLSegment();
+        splitNeighbors(s1, s2, overlappingSegment, right);
+
+				if (s1->getOwner() == both) {
+
+					Event e1(rightEndpoint, s1);
+					q.push(e1);
+					if (p2d_debug) {
+						cout << "new re for:";
+						s1->print();
+					}
+				}
+				if (leftIsSmaller) {
+          Event ie2(overlappingSegment->getGridXL(),
+              overlappingSegment->getGridYL(),
+              overlappingSegment->getPreciseXL(),
+              overlappingSegment->getPreciseYL(), s1, s2);
+					q.push(ie2);
+					if (p2d_debug) {
+						cout << "new ie with" << endl;
+						s1->print();
+						s2->print();
+					}
+				} else {
+          Event ie2(overlappingSegment->getGridXL(),
+              overlappingSegment->getGridYL(),
+              overlappingSegment->getPreciseXL(),
+              overlappingSegment->getPreciseYL(), s2, s1);
+					q.push(ie2);
+					if (p2d_debug) {
+						cout << "new ie with" << endl;
+						s2->print();
+						s1->print();
+					}
+				}
+
+				Event e2(rightEndpoint, s2);
+				q.push(e2);
+				if (p2d_debug) {
+					cout << "new re for:";
+					s2->print();
+				}
+
+				if (!right->isPoint()) {
+					Event e3(leftEndpoint, right);
+					q.push(e3);
+
+					if (p2d_debug) {
+						cout << "new le for:";
+						right->print();
+					}
+				} else {
+
+					delete right;
+				}
+			}
+			return true;
+		}
+	}
+	return false;
+}
+
+/*
+ ~intersectionTestForSetOpRegion~
+
+*/
+bool intersectionTestForSetOpRegion(AVLSegment* s1, AVLSegment* s2,
+    Event* event,
+    priority_queue<Event, vector<Event>, greater<Event> >& q,
+    bool leftIsSmaller) {
 
 	if (s1->mightIntersect(*s2)) {
 		AVLSegment* overlappingSegment = new AVLSegment();
@@ -4401,6 +4507,7 @@ void createNewSegments(AVLSegment& s, Line2& result, int& edgeno,
 	}
 }
 
+
 /*
  ~createNewSegments~
 
@@ -4450,6 +4557,8 @@ void createNewSegments(vector<AVLSegment*>& segmentVector,
 		}
 	}
 }
+
+
 
 /*
  ~Realminize~
