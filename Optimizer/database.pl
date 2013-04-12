@@ -3746,6 +3746,13 @@ retractStoredInformation(DCrel) :-
               '\' and ', 'all according small and sample objects.']),nl,
   !.
 
+check_and_delete(File) :-
+  exists_file(File),
+  !,
+  delete_file(File).
+
+check_and_delete(_).
+
 resetKnowledgeDB :-
   check_and_delete('storedAttrSizes.pl'),
   check_and_delete('storedCards.pl'),
