@@ -190,6 +190,15 @@ public class CommandPanel extends JScrollPane {
      OptInt.setPort(Port);
   }
 
+  /** Disconnects and connects to the optimizer if already connected **/
+  public void reconnectOptimizer(){
+     if(OptInt.isConnected()){
+         OptInt.disconnect();
+         OptInt.connect(); 
+     }
+  }
+
+
 
   /** set a new FontSize for this CommanPanel;
     * the Size should be in [6,50]
