@@ -483,6 +483,10 @@ protected:
 	void set(mpq_class xl, mpq_class yl, mpq_class xr,
 			mpq_class yr, Owner o);
 
+	void set(int gxl, int gyl, int gxr, int gyr,
+      mpq_class xl, mpq_class yl, mpq_class xr,
+      mpq_class yr, Owner o);
+
 public:
 	AVLSegment();
 
@@ -1068,4 +1072,5 @@ void crossings(const Line2& line1, const Line2& line2,
 } //end of p2d
 
 #endif /* AVL_TREE_H_ */
+
 

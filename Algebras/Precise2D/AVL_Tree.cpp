@@ -1414,6 +1414,24 @@ void AVLSegment::set(mpq_class xl, mpq_class yl,
 	valid = true;
 }
 
+void AVLSegment::set(int gxl, int gyl, int gxr, int gyr,
+    mpq_class xl, mpq_class yl, mpq_class xr,
+    mpq_class yr, Owner o){
+	gridXL = gxl;
+	gridYL = gyl;
+	gridXR = gxr;
+	gridYR = gyr;
+
+	pxl = xl;
+	pyl = yl;
+	pxr = xr;
+	pyr = yr;
+
+	owner = o;
+	isNew = true;
+	valid = true;
+}
+
 /*
  ~prepareData~
 
@@ -1423,12 +1441,23 @@ void AVLSegment::set(mpq_class xl, mpq_class yl,
 void AVLSegment::prepareData(int& resultGridX, mpq_class& resultPX,
 		mpq_class& value) {
 	mpz_class numerator = value.get_num();
-	mpz_class denumerator = value.get_den();
-	mpz_class gridX = numerator / denumerator;
+	mpz_class denominator = value.get_den();
+	mpz_class gridX = numerator / denominator;
 
 	resultGridX = (int) gridX.get_d();
-	resultPX = value - resultGridX;
-
+	int cmpValue = cmp(value,resultGridX);
+	if (cmpValue!=0){
+		//value is not an integer
+		if (cmpValue<0){
+			//value is a rational number less 0
+			//the grid value is the next integer less than value
+			resultGridX--;
+		}
+		resultPX =value - resultGridX;
+	} else {
+		//value is an integer
+		resultPX = 0;
+	}
 }
 
 /*
@@ -2570,19 +2599,26 @@ bool AVLSegment::intersect(AVLSegment& seg, AVLSegment& result) {
 						return true;
 					} else {
             //overlapping segment ends in (segXL, thisYR)
-            result.set(segXL, segYL, segXL, thisYR, both);
-						return true;
+            result.set(seg.getGridXL(), seg.getGridYL(),
+                seg.getGridXL(), getGridYR(),
+                seg.getPreciseXL(), seg.getPreciseYL(),
+                seg.getPreciseXL(), getPreciseYR(), both);
+            return true;
 					}
 				} else {
           //overlapping segment starts in (thisXL, thisYL)
 					if (cmp(segYR, thisYR) <= 0) {
             //overlapping segment ends in (segXL, segYR)
-            result.set(thisXL, thisYL, thisXL, segYR, both);
-						return true;
+            result.set(getGridXL(), getGridYL(), getGridXL(), seg.getGridYR(),
+                getPreciseXL(), getPreciseYL(),
+                getPreciseXL(), seg.getPreciseYR(), both);
+            return true;
 					} else {
             //overlapping segment ends in (segXL, thisYR)
-            result.set(thisXL, thisYL, thisXL, thisYR, both);
-						return true;
+            result.set(getGridXL(), getGridYL(), getGridXL(), getGridYR(),
+                getPreciseXL(), getPreciseYL(),
+                getPreciseXL(), getPreciseYR(), both);
+            return true;
 					}
 				}
 
@@ -2596,13 +2632,9 @@ bool AVLSegment::intersect(AVLSegment& seg, AVLSegment& result) {
 		if (cmp(segXL, thisXL) <= 0 && cmp(thisXL, segXR) <= 0) {
 			//this runs through segXL and segXR
 			mpq_class segSlope = (segYR - segYL) / (segXR - segXL);
-			segSlope.canonicalize();
-
 			mpq_class segB = segYL - segSlope * segXL;
-			segB.canonicalize();
-
 			mpq_class yValue = segSlope * thisXL + segB;
-			yValue.canonicalize();
+
       if ((cmp(thisYL, yValue) <= 0 && cmp(yValue, thisYR) <= 0)
           || (cmp(thisYR, yValue) <= 0 && cmp(yValue, thisYL) <= 0)) {
         result.set(thisXL, yValue, thisXL, yValue, both);
@@ -2621,13 +2653,9 @@ bool AVLSegment::intersect(AVLSegment& seg, AVLSegment& result) {
 		if (cmp(thisXL, segXL) <= 0 && cmp(segXL, thisXR) <= 0) {
 			//seg runs through thisXL and thisXR
       mpq_class thisSlope = (thisYR - thisYL) / (thisXR - thisXL);
-			thisSlope.canonicalize();
-
 			mpq_class thisB = thisYL - thisSlope * thisXL;
-			thisB.canonicalize();
-
 			mpq_class yValue = thisSlope * segXL + thisB;
-			yValue.canonicalize();
+
 			if ((cmp(segYL, yValue) <= 0 && cmp(yValue, segYR) <= 0)
           || (cmp(segYR, yValue) <= 0 && cmp(yValue, segYL) <= 0)) {
 				result.set(segXL, yValue, segXL, yValue, both);
@@ -2642,20 +2670,12 @@ bool AVLSegment::intersect(AVLSegment& seg, AVLSegment& result) {
 	}
 
 	mpq_class thisSlope = (thisYR - thisYL) / (thisXR - thisXL);
-	thisSlope.canonicalize();
-
 	mpq_class segSlope = (segYR - segYL) / (segXR - segXL);
-	segSlope.canonicalize();
-
 	mpq_class thisB = thisYL - thisSlope * thisXL;
-	thisB.canonicalize();
-
 	mpq_class segB = segYL - segSlope * segXL;
-	segB.canonicalize();
 
 	if (cmp(thisSlope, segSlope) != 0) {
 		mpq_class xValue = (segB - thisB) / (thisSlope - segSlope);
-		xValue.canonicalize();
 		if (cmp(segXL, xValue) <= 0 && cmp(xValue, segXR) <= 0
         && cmp(thisXL, xValue) <= 0 && cmp(xValue, thisXR) <= 0) {
 			mpq_class yValue = segSlope * xValue + segB;
