@@ -4213,14 +4213,18 @@ End of Goehr's extension
 Apply an invfile for a relation containing moving labels (symbolic trajectories)
 
 */
-%relationmatches(rel(Name, *), Attr, Text)
-               %=> indexmatches(rel(Name, *), Attr, dbobject(IndexName), Text) :-
-  %hasIndex(rel(Name, *), attr(Attr, Arg, AttrCase), DCindex, IndexType),
-  %IndexType = invfile,
-  %dcName2externalName(DCindex, IndexName), !.
+matches(rel(Name, *), Attr, Text)
+               => indexmatches(rel(Name, *), Attr, dbobject(IndexName), Text) :-
+  writeln('start indexmatches'),
+  hasIndex(rel(Name, *), attr(Attr, Arg, AttrCase), DCindex, IndexType),
+  !,
+  IndexType = invfile,
+  dcName2externalName(DCindex, IndexName).
 
-%relationmatches(rel(Name, *), Attr, Text)
-                               %=> filtermatches(feed(rel(Name, *)), Attr, Text).
+matches(rel(Name, *), Attr, Text)
+                             => filtermatches(feed(rel(Name, *)), Attr, Text) :-
+  writeln('start filtermatches').
+
 /*
 6 Creating Query Plan Edges
 
@@ -5259,6 +5263,30 @@ cost(createtmpbtree(rel(Rel, _), _), _, _, RelSize,
   card(Rel, RelSize),
   Cost is C * RelSize * log(RelSize + 1).
 
+/*
+For matching a collection of symbolic trajectories (mlabel or mstring)
+
+*/
+cost(matches(rel(Rel, _), _, _), Sel, _, Size, Cost) :-
+  card(Rel, RelSize),
+  write('matches: size of relation is '),
+  writeln(RelSize),
+  Size is RelSize * Sel,
+  Cost is 0.5 * Size.
+
+cost(filtermatches(rel(Rel, _), _, _), Sel, _, Size, Cost) :-
+  card(Rel, RelSize),
+  write('filtermatches: size of relation is '),
+  writeln(RelSize),
+  Size is RelSize * Sel,
+  Cost is 0.5 * Size.
+
+cost(indexmatches(rel(Rel, _), _, _, _), Sel, _, Size, Cost) :-
+  card(Rel, RelSize),
+  write('indexmatches: size of relation is '),
+  writeln(RelSize),
+  Size is RelSize * Sel,
+  Cost is 0.5 * Size.
 
 % Section:Start:cost_5_e
 % Section:End:cost_5_e
@@ -6634,12 +6662,19 @@ lookupRel((Rel) as Var, (Rel2) as Var) :-
   lookupSubquery(Rel, Rel2).
 
 lookupRel(X,Y) :- !,
-  term_to_atom(X,XA),
-  concat_atom(['Unknown relation: \'',XA,'\'.'],'',ErrMsg),
-  write_list(['\nERROR:\t',ErrMsg]), nl,
-  throw(error_SQL(optimizer_lookupRel(X,Y)::unknownRelation::ErrMsg)),
-  fail.
-
+  (isDatabaseOpen
+   -> ( term_to_atom(X,XA),
+        concat_atom(['Unknown relation: \'',XA,'\'.'],'',ErrMsg),
+        write_list(['\nERROR:\t',ErrMsg]), nl,
+        throw(error_SQL(optimizer_lookupRel(X,Y)::unknownRelation::ErrMsg)),
+        fail
+      )
+   ;  ( concat_atom(['No database open'], '', ErrMsg),
+        write_list(['\nERROR:\t', ErrMsg]), nl,
+        throw(error_SQL(optimizer_lookupRel(X,Y)::noDatabaseOpen::ErrMsg)),
+        fail
+      )
+  ).
 
 /*
 ----    lookupRelNoDblCheck(+Rel, -Rel2) :-
