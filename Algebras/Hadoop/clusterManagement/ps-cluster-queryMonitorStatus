@@ -27,7 +27,7 @@ while [ $numOfArgs -ne $OPTIND ]; do
 done
 
 aJobs=()
-Status="/tmp/.ps-cluster-queryMonitorStatus.data"
+Status="/tmp/.ps-cluster-queryMonitorStatus-${USER}.data"
 cat /dev/null > $Status
 
 function checkNode
