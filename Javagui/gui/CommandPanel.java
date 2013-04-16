@@ -802,6 +802,11 @@ public class CommandPanel extends JScrollPane {
      //System.out.println(" Change command " + command);
      command = varToLowerCase(command);
      //System.out.println("to " + command);
+     if(OpenedDatabase.length()==0){
+        appendText("\nno database open");
+        showPrompt();
+        return "";
+     }
      String opt = OptInt.optimize_execute(command,OpenedDatabase,Err,false);
      if(Err.value!=ErrorCodes.NO_ERROR){  // error in optimization
         appendText("\nerror in optimization of this query");
@@ -866,6 +871,11 @@ public class CommandPanel extends JScrollPane {
      if(tools.Environment.MEASURE_TIME)
         starttime = System.currentTimeMillis();
      SelectClause = varToLowerCase(SelectClause);
+     if(OpenedDatabase.length()==0){
+       appendText("\nno database open");
+       showPrompt();
+       return "";
+     }
      String opt = OptInt.optimize_execute(SelectClause,OpenedDatabase,Err,false);
      if(tools.Environment.MEASURE_TIME){
         Reporter.writeInfo("used time to optimize query: "+(System.currentTimeMillis()-starttime)+" ms");
