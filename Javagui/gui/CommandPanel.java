@@ -681,7 +681,7 @@ public class CommandPanel extends JScrollPane {
     errmsg = errmsg.replaceAll("\\\\t","\t");
     errmsg = errmsg.replaceAll("\\\\'","'");
     if(errmsg.startsWith("'") && errmsg.endsWith("'") && errmsg.length()>1){
-       errmsg = errmsg.substring(1,errmsg.length()-2);
+       errmsg = errmsg.substring(1,errmsg.length()-1);
     }
     errmsg=errmsg.replaceAll("''","\"");
     return errmsg;
