@@ -2168,11 +2168,11 @@ ListExpr CreateDurationTM(ListExpr args){
   if(nl->ListLength(args)==2){
     if(!CcInt::checkType(nl->First(args))){
       return listutils::typeError("first arg is not an int");
-    }	    
+    }
     if(!CcInt::checkType(nl->Second(args)) &&
        !CcString::checkType(nl->Second(args))){
       return listutils::typeError("second arg not of int or string");
-    }	    
+    }
     return listutils::basicSymbol<Duration>();
   }
   ErrorReporter::ReportError("One or two arguments required\n");
@@ -2513,7 +2513,7 @@ int DivFun2(Word* args, Word& result, int message, Word& local, Supplier s){
   if(!T1->IsDefined() || !T2->IsDefined()){
      res->SetDefined(false);
      return 0;
-  }	 
+  }
   int value = T2->GetValue();
   if(value==0){
     res->SetDefined(false);
