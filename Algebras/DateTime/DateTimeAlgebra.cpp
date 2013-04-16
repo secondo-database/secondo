@@ -2166,13 +2166,14 @@ ListExpr CreateDurationTM(ListExpr args){
     }
   }
   if(nl->ListLength(args)==2){
-    if(nl->IsEqual(nl->First(args),CcInt::BasicType()) &&
-       nl->IsEqual(nl->Second(args),CcInt::BasicType())) {
-      return nl->SymbolAtom(Duration::BasicType());
-    } else {
-          ErrorReporter::ReportError("two int values expected\n");
-          return nl->SymbolAtom(Symbol::TYPEERROR());
-    }
+    if(!CcInt::checkType(nl->First(args))){
+      return listutils::typeError("first arg is not an int");
+    }	    
+    if(!CcInt::checkType(nl->Second(args)) &&
+       !CcString::checkType(nl->Second(args))){
+      return listutils::typeError("second arg not of int or string");
+    }	    
+    return listutils::basicSymbol<Duration>();
   }
   ErrorReporter::ReportError("One or two arguments required\n");
   return nl->SymbolAtom(Symbol::TYPEERROR());
@@ -2625,6 +2626,42 @@ int CreateDurationFromIntIntFun(Word* args, Word& result, int message,
     return 0;
 }
 
+int CreateDurationFromIntStringFun(Word* args, Word& result, int message,
+                                Word& local, Supplier s){
+    result = qp->ResultStorage(s);
+    CcInt* value = (CcInt*) args[0].addr;
+    CcString* unit = (CcString*) args[1].addr;
+    DateTime* res = (DateTime*)result.addr;
+
+    if(!value->IsDefined() || !unit->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+    }
+    string u = unit->GetValue();
+    int factor = 1;
+    int64_t v = value->GetIntval();
+    if(u=="ms"){
+       factor = 1;
+    } else if(u=="s"){
+       factor=1000;
+    } else if(u=="min"){
+       factor=60000;
+    } else if(u=="h"){
+       factor=3600000;
+    } else if(u=="d"){
+       factor = 86400000;
+    } else {
+       res->SetDefined(false);
+       return 0;
+    }
+    res->ReadFrom(v*factor);
+    return 0;
+}
+
+
+
+
+
 int CreateInstantFromRealFun(Word* args, Word& result, int message,
                               Word& local, Supplier s){
     result = qp->ResultStorage(s);
@@ -2901,10 +2938,13 @@ const string Instant2RealSpec =
 
 const string CreateDurationSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"(real) -> duration\n(int int) -> duration \""
+   " ( '(real) -> duration\n(int int) -> duration\nint x string ->duration '"
    "\"create_duration( _ )\ncreate_duration( _ , _ )\" "
-   "'Create a duration value from a real (days) or a pair of int "
-   "(days, milliseconds). Parameter milliseconds must be >=0'  "
+   "'Create a duration value from a real (days) or a pair of int."
+   "(days, milliseconds). Parameter milliseconds must be >=0.\n " 
+   " For the"
+   " int x string argument types, the string denotes the unit in "
+   "{ms, s, min, h,d}. '"
    "\"query create_duration(10, 5) \" ))";
 
 const string CreateInstantSpec =
@@ -2946,7 +2986,8 @@ ValueMapping TheInstantValueMap[] = {
 
 ValueMapping CreateDurationValueMap[] = {
         CreateDurationFromRealFun,
-        CreateDurationFromIntIntFun };
+        CreateDurationFromIntIntFun,
+        CreateDurationFromIntStringFun};
 
 ValueMapping CreateInstantValueMap[] = {
         CreateInstantFromRealFun,
@@ -2974,6 +3015,14 @@ ValueMapping str2instantvm[] = {
 
 static int TheInstantSelect(ListExpr args){
   return nl->ListLength(args)-1;
+}
+
+
+static int create_durationSelect(ListExpr args){
+  if(nl->HasLength(args,1)){
+    return 0;
+  }
+  return CcInt::checkType(nl->Second(args))?1:2;
 }
 
 static int InstantOrDurationIntSelect(ListExpr args){
@@ -3188,9 +3237,9 @@ Operator dt_instant2real(
 Operator dt_create_duration(
        "create_duration",          // name
        CreateDurationSpec,         // specification
-       2,                          // number of functions
+       3,                          // number of functions
        CreateDurationValueMap,
-       TheInstantSelect,
+       create_durationSelect,
        CreateDurationTM);
 
 Operator dt_create_instant(
