@@ -18651,6 +18651,152 @@ Operator trajectory3(
            Operator::SimpleSelect,
            trajectory3TM);
 
+
+
+/*
+5.2.7 Operator createPeriods
+
+5.2.7.1 Type Mapping
+
+*/
+
+ListExpr createPeriodsTM(ListExpr args){
+  string err = "instant x {instant, duration} x bool x bool expected";
+  if(!nl->HasLength(args,4)){
+     return listutils::typeError(err);
+  }
+  if(!Instant::checkType(nl->First(args))){
+     return listutils::typeError(err);
+  }
+  if(!Instant::checkType(nl->Second(args)) &&
+     !Duration::checkType(nl->Second(args))){
+     return listutils::typeError(err);
+  }
+  if(!CcBool::checkType(nl->Third(args))){
+     return listutils::typeError(err);
+  }
+  if(!CcBool::checkType(nl->Fourth(args))){
+     return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<Periods>();
+}
+
+/*
+5.2.7.2 Value Mappings
+
+*/
+
+int createPeriodsVMinstant( Word* args, Word& result, int message, Word&
+                   local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   Periods* res = (Periods*) result.addr;
+   Instant* i1 = (Instant*) args[0].addr;
+   Instant* i2 = (Instant*) args[1].addr;
+   CcBool* lc = (CcBool*) args[2].addr;
+   CcBool* rc = (CcBool*) args[3].addr;
+
+   if(!i1->IsDefined() || !i2->IsDefined() || 
+      !lc->IsDefined() || !rc->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }   
+   res->Clear();
+   res->SetDefined(true);
+
+   DateTime dur = (*i2) - (*i1);
+
+   if(dur.LessThanZero() ||
+      (dur.IsZero() && !( lc->GetBoolval() && rc->GetBoolval()))){
+     // invalid interval
+     res->SetDefined(false);
+     return 0;
+   }
+   Interval<Instant> iv(*i1, ((*i1)+dur), lc->GetBoolval(), rc->GetBoolval());
+   res->Add(iv);
+   return 0;
+}
+
+
+int createPeriodsVMduration( Word* args, Word& result, int message, Word&
+                   local, Supplier s ){
+
+   result = qp->ResultStorage(s);
+   Periods* res = (Periods*) result.addr;
+   Instant* i1 = (Instant*) args[0].addr;
+   DateTime* dur2 = (DateTime*) args[1].addr;
+   CcBool* lc = (CcBool*) args[2].addr;
+   CcBool* rc = (CcBool*) args[3].addr;
+
+   if(!i1->IsDefined() || !dur2->IsDefined() || 
+      !lc->IsDefined() || !rc->IsDefined()){
+      res->SetDefined(false);
+      return 0;
+   }   
+   res->Clear();
+   res->SetDefined(true);
+
+   DateTime dur = *dur2;
+
+   if(dur.LessThanZero() ||
+      (dur.IsZero() && !( lc->GetBoolval() && rc->GetBoolval()))){
+     // invalid interval
+     res->SetDefined(false);
+     return 0;
+   }
+   Interval<Instant> iv(*i1, (*i1)+dur, lc->GetBoolval(), rc->GetBoolval());
+   res->Add(iv);
+   return 0;
+}
+
+/*
+ValueMappingarray and Selection function
+
+*/
+
+ValueMapping createPeriodsVM[] = {
+     createPeriodsVMinstant,
+     createPeriodsVMduration
+        };
+
+int createPeriodsSelect(ListExpr args){
+  return Instant::checkType(nl->Second(args))?0:1;
+}
+
+
+/*
+Specification
+
+*/
+
+const string createPeriodsSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> instant x {instant,duration} x bool x bool -> periods"
+    "</text---> "
+    "<text> createPeriods(_,_,_,_) </text--->"
+    "<text>Computes a periods value containing a single interval "
+    "</text--->"
+    "<text>query createPeriods( [const instant value \"2013-04-18\"],"
+    " [const duration value (1 0), TRUE, FALSE "
+    " </text--->"
+    ") )";
+
+/*
+Operator instance
+
+*/
+
+Operator createPeriodsOp(
+   "createPeriods",
+   createPeriodsSpec,
+   2,
+   createPeriodsVM,
+   createPeriodsSelect,
+   createPeriodsTM 
+);
+
+
+
 /*
 6 Creating the Algebra
 
@@ -18824,6 +18970,8 @@ class TemporalAlgebra : public Algebra
     AddOperator(&components);
     
     AddOperator(&trajectory3);
+
+    AddOperator(&createPeriodsOp);
 
 
 #ifdef USE_PROGRESS

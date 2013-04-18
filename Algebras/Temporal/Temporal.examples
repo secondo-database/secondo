@@ -729,6 +729,16 @@ Signature : mpoint -> dline
 Example   : query trajectory3(train7) feed count
 Result    : 1 
 
+Operator : createPeriods
+Number   : 1
+Signature : instant x instant x bool x bool -> periods
+Example   : query createPeriods( [const instant value "2013-04-18"], [const instant value "2013-04-19"], TRUE, FALSE)
+Result    : (periods (("2013-04-18" "2013-04-19" TRUE FALSE)))
 
+Operator : createPeriods
+Number   : 2
+Signature : instant x duration x bool x bool -> periods
+Example   : query createPeriods( [const instant value "2013-04-18"], [const duration value (1 0)], TRUE, FALSE)
+Result    : (periods (("2013-04-18" "2013-04-19" TRUE FALSE)))
 
 
