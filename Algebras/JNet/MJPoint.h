@@ -392,6 +392,17 @@ int GetUnitPosForTime(const Instant& time,
                       const int spos, const int epos) const;
 
 /*
+1.1.1.1 ~findFirstUnit~
+
+Searches for first unit of mjp with biggest time Interval before start of
+actTimeInterval.
+
+*/
+
+void FindFirstUnit(const Interval<Instant>& actTimeInterval,
+                   int& unitIndex, JUnit& actUnit) const;
+
+/*
 1.1.1.1 Refinement
 
 Converts the two given ~mjpoint~ into two ~mjpoint~ with identic time intervals.

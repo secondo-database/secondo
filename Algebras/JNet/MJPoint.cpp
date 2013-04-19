@@ -55,6 +55,28 @@ bool checkNextUnit(JUnit u, JUnit lastUP)
 }
 
 /*
+1.1. ~skipTimeIntervalsBefore~
+
+Searches in per for the first timeInterval not before the time interval of
+actUnit.
+
+*/
+
+void skipTimeIntervalsBefore(const JUnit& actUnit,
+                             const Periods* per,
+                             int& timeIndex,
+                             Interval<Instant>& actTimeInterval)
+{
+  while (actTimeInterval.Before(actUnit.GetTimeInterval()) &&
+         timeIndex < per->GetNoComponents())
+  {
+    if (++timeIndex < per->GetNoComponents()){
+      per->Get(timeIndex, actTimeInterval);
+    }
+  }
+}
+
+/*
 1 Implementation of class ~MJPoint~
 
 1.1 Constructors and Deconstructors
@@ -448,8 +470,7 @@ Word MJPoint::In(const ListExpr typeInfo, const ListExpr instance,
           JUnit* actU = (JUnit*) w.addr;
           if (actU != 0)
           {
-            if (jnet->Contains(actU->GetRouteInterval()))
-              res->Add(*actU);
+            res->Add(*actU);
             actU->DeleteIfAllowed();
             actU = 0;
           }
@@ -590,7 +611,9 @@ void MJPoint::EndBulkload(const bool simplify /*=true*/,
 MJPoint& MJPoint::Add(const JUnit& up)
 {
   if (IsDefined() && up.IsDefined() && activBulkload)
+  {
     units.Append(up);
+  }
   return *this;
 }
 
@@ -820,22 +843,9 @@ bool MJPoint::Present(const Periods* per) const
     int unitIndex = 0;
     Get(unitIndex, actUnit);
     //determine first timeinterval of periods not ending before mjpoint starts
-    while (actTimeInterval.Before(actUnit.GetTimeInterval()))
-    {
-      if (++timeIndex < per->GetNoComponents())
-        per->Get(timeIndex, actTimeInterval);
-    }
-
+    skipTimeIntervalsBefore(actUnit, per, timeIndex, actTimeInterval);
     //Find first unit of mjpoint intersecting the current time interval
-    if (actUnit.GetTimeInterval().Before(actTimeInterval))
-    {
-      unitIndex = GetUnitPosForTime(actTimeInterval,
-                                    0, GetNoComponents()-1);
-      if (unitIndex < 0)
-          unitIndex = GetNoComponents();
-      if (unitIndex < GetNoComponents())
-        Get(unitIndex, actUnit);
-    }
+    FindFirstUnit(actTimeInterval, unitIndex, actUnit);
     while (timeIndex < per->GetNoComponents() &&
            unitIndex < GetNoComponents())
     {
@@ -896,22 +906,10 @@ void MJPoint::AtPeriods(const Periods* times, MJPoint& result) const
     int unitIndex = 0;
     Get(unitIndex, actUnit);
     //determine first timeinterval of periods not ending before mjpoint starts
-    while (actTimeInterval.Before(actUnit.GetTimeInterval()))
-    {
-      if (++timeIndex < times->GetNoComponents())
-        times->Get(timeIndex, actTimeInterval);
-    }
+    skipTimeIntervalsBefore (actUnit, times, timeIndex, actTimeInterval);
 
     //Find first unit of mjpoint intersecting the current time interval
-    if (actUnit.GetTimeInterval().Before(actTimeInterval))
-    {
-      unitIndex = GetUnitPosForTime(actTimeInterval,
-                                    0, GetNoComponents()-1);
-      if (unitIndex < 0)
-          unitIndex = GetNoComponents();
-      if (unitIndex < GetNoComponents())
-        Get(unitIndex, actUnit);
-    }
+    FindFirstUnit(actTimeInterval, unitIndex, actUnit);
     while (timeIndex < times->GetNoComponents() &&
            unitIndex < GetNoComponents())
     {
@@ -987,7 +985,7 @@ void MJPoint::AtPeriods(const Periods* times, MJPoint& result) const
         }
       }
     }
-    result.EndBulkload(false);
+    result.EndBulkload(false, true);
   }
   else
     result.SetDefined(false);
@@ -1062,13 +1060,14 @@ void MJPoint::At(const JPoint* jp, MJPoint& result) const
         JUnit* entry = ju.AtPos(jp);
         if (entry != 0)
         {
-          result.Add(*entry);
+          if (entry->IsDefined())
+            result.Add(*entry);
           entry->DeleteIfAllowed();
           entry = 0;
         }
       }
     }
-    result.EndBulkload(false);
+    result.EndBulkload(false, true);
   }
   else
     result.SetDefined(false);
@@ -1106,7 +1105,7 @@ void MJPoint::At(const JLine* jl, MJPoint& result) const
         rint = 0;
       }
     }
-    result.EndBulkload(false);
+    result.EndBulkload(false, true);
   }
   else
     result.SetDefined(false);
@@ -1358,6 +1357,26 @@ int MJPoint::GetUnitPosForTime(const Instant& time,
       return GetUnitPosForTime(time, spos, mid-1);
     else
       return mid;
+  }
+}
+
+/*
+1.1.1 ~findFirstUnit~
+
+*/
+
+void MJPoint::FindFirstUnit(const Interval<Instant>& actTimeInterval,
+                            int& unitIndex,
+                            JUnit& actUnit) const
+{
+  if (actUnit.GetTimeInterval().Before(actTimeInterval))
+  {
+    unitIndex = GetUnitPosForTime(actTimeInterval,
+                                  0, GetNoComponents()-1);
+    if (unitIndex < 0)
+        unitIndex = GetNoComponents();
+    if (unitIndex < GetNoComponents())
+      Get(unitIndex, actUnit);
   }
 }
 
