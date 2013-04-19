@@ -720,6 +720,42 @@ Example  : query fromnetwork(tonetwork(testjnet, [const mpoint value((("2000-01-
 Result   : (mpoint((("2000-01-03-09:36" "2000-01-03-10:48" TRUE FALSE)(7.4801436 51.3596479 7.4804329 51.3595782))))
 Tolerance: 0.01%
 
+Operator : getAdjacentSections
+Number   : 1
+Signature: jnet x int x jdirection -> jlistint
+Example  : query getAdjacentSections(testjnet, 2, [const jdirection value("Up")])
+Result   : (listint(1 2 7))
+
+Operator : getAdjacentSections
+Number   : 2
+Signature: jnet x int x jdirection -> jlistint
+Example  : query getAdjacentSections(testjnet, 2, [const jdirection value("Down")])
+Result   : (listint(2 4 6))
+
+Operator : getAdjacentSections
+Number   : 3
+Signature: jnet x int x jdirection -> jlistint
+Example  : query getAdjacentSections(testjnet, 2, [const jdirection value("Both")])
+Result   : (listint(1 2 4 6 7))
+
+Operator : getReverseAdjacentSections
+Number   : 1
+Signature: jnet x int x jdirection -> jlistint
+Example  : query getReverseAdjacentSections(testjnet, 2, [const jdirection value("Down")])
+Result   : (listint(1 2 7))
+
+Operator : getReverseAdjacentSections
+Number   : 2
+Signature: jnet x int x jdirection -> jlistint
+Example  : query getReverseAdjacentSections(testjnet, 2, [const jdirection value("Up")])
+Result   : (listint(2 4 6))
+
+Operator : getReverseAdjacentSections
+Number   : 3
+Signature: jnet x int x jdirection -> jlistint
+Example  : query getReverseAdjacentSections(testjnet, 2, [const jdirection value("Both")])
+Result   : (listint(1 2 4 6 7))
+
 Operator : initial
 Number   : 1
 Signature: mjpoint -> ijpoint

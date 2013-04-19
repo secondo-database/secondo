@@ -453,6 +453,10 @@ The returned tuple must be deleted by the caller.
   JListRInt* GetSectionListRouteIntervals(const int sid) const;
   JListRInt* GetSectionListRouteIntervals(const Tuple* sectTuple) const;
 
+  void GetAdjacentSections(const int sid, const Direction* dir,
+                           JListInt* result) const;
+  void GetReverseAdjacentSections(const int sid, const Direction* dir,
+                                  JListInt* result) const;
   JListInt* GetSectionListAdjSectionsUp(const Tuple* sectTuple) const;
   JListInt* GetSectionListAdjSectionsDown(const Tuple* sectTuple) const;
   JListInt* GetSectionListReverseAdjSectionsUp(const Tuple* sectTuple) const;

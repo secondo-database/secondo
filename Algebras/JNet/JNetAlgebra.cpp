@@ -3509,7 +3509,114 @@ Operator insideJNet("inside", insideSpec, 1, insideMap, insideSelect,
 /*
 1.1 Network Operations
 
-1.1.1 ~netdistance~
+1.1.1 ~getAdjacentSections~ and ~getReverseAdjacentSections~
+
+Returns the (reverse) adjacent sections of a given section for the given
+direction.
+
+1.1.1.1 common definition part
+
+*/
+
+const string maps_adjacent[1][4] =
+{
+  {JNetwork::BasicType(), CcInt::BasicType(), Direction::BasicType(),
+   JListInt::BasicType()}
+};
+
+ListExpr adjacentTM(ListExpr args)
+{
+  return SimpleMaps<1,4>(maps_adjacent, args);
+}
+
+int adjacentSelect(ListExpr args)
+{
+  return SimpleSelect<1,4>(maps_adjacent, args);
+}
+
+template<bool reverse>
+int adjacent ( Word* args, Word& result, int message, Word& local,
+               Supplier s )
+{
+  result =  qp->ResultStorage(s);
+  JListInt* res = (JListInt*) result.addr;
+  res->Clear();
+  JNetwork* jnet = ( JNetwork* ) args[0].addr;
+  CcInt* sectId = (CcInt*) args[1].addr;
+  Direction* dir = (Direction*) args[2].addr;
+  if (jnet != NULL && jnet->IsDefined() &&
+      sectId != NULL && sectId->IsDefined() &&
+      dir != NULL && dir->IsDefined())
+  {
+    if (!reverse)
+      jnet->GetAdjacentSections(sectId->GetIntval(), dir, res);
+    else
+      jnet->GetReverseAdjacentSections(sectId->GetIntval(), dir, res);
+  }
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+/*
+1.1.1.1 ~getAdjacentSections~
+
+*/
+
+int adjacentVM ( Word* args, Word& result, int message, Word& local,
+               Supplier s )
+{
+  return adjacent<false>(args, result, message, local, s);
+}
+
+ValueMapping adjacentMap[] =
+{
+  adjacentVM
+};
+
+const string adjacentSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JNetwork::BasicType() + " x " + CcInt::BasicType() + " x " +
+  Direction::BasicType()+ " -> " + JListInt::BasicType() + "</text--->"
+  "<text>getAdjacentSections(jnet, sectionId, direction) </text--->"
+  "<text>Returns a "+ JListInt::BasicType() + " with the numbers of the "
+  "sections adjacent to sectionId in direction.</text--->"
+  "<text>query getAdjacentSections(testjnet, 13, Up) </text--->))";
+
+Operator adjacentJNet("getAdjacentSections", adjacentSpec, 1, adjacentMap,
+                      adjacentSelect, adjacentTM);
+
+/*
+1.1.1.1 ~getReverseAdjacentSections~
+
+*/
+
+int reverseAdjacentVM ( Word* args, Word& result, int message, Word& local,
+                        Supplier s )
+{
+  return adjacent<true>(args, result, message, local, s);
+}
+
+ValueMapping reverseAdjacentMap[] =
+{
+  reverseAdjacentVM
+};
+
+const string reverseAdjacentSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JNetwork::BasicType() + " x " + CcInt::BasicType() + " x " +
+  Direction::BasicType()+ " -> " + JListInt::BasicType() + "</text--->"
+  "<text>getReverseAdjacentSections(jnet, sectionId, direction) </text--->"
+  "<text>Returns a "+ JListInt::BasicType() + " with the numbers of the "
+  "sections reverse adjacent to sectionId in direction.</text--->"
+  "<text>query getReverseAdjacentSections(testjnet, 13, Up) </text--->))";
+
+Operator reverseAdjacentJNet("getReverseAdjacentSections", reverseAdjacentSpec,
+                             1, reverseAdjacentMap, adjacentSelect, adjacentTM);
+
+/*
 
 1.1 Translation beteween spatial(-temporal) and network(-temporal) data types
 
@@ -3866,9 +3973,22 @@ JNetAlgebra::JNetAlgebra():Algebra()
 /*
 1.1.1.1 Network Operations
 
-*/
+1.1.1.1.1 adjacent and reverse adjacent sections
 
+*/
+  AddOperator(&adjacentJNet);
+  AddOperator(&reverseAdjacentJNet);
+
+  //AddOperator(&getBGPJNet);
+  //AddOperator(&shortestPathJNet);
+  //AddOperator(&shortestPathTreeJNet);
+  //AddOperator(&spsearchvisitedJNet);
   //AddOperator(&netdistanceJNet);
+  //AddOperator(&circlenJNet);
+  //AddOperator(&in_circlenJNet);
+  //AddOperator(&out_circlenJNet);
+
+
 
 /*
 1.1.1.1 Translation between spatial(-temporal) and network(-temporal) data types

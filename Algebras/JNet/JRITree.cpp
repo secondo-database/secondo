@@ -289,11 +289,11 @@ double JRITree::CheckTree(JRITreeElement& father, const int posfather,
       }
 
       default: //should never been reached
-        {
-          assert(false);
-          return testRI.GetValue(bleft);
-          break;
-        }
+      {
+        assert(false);
+        return testRI.GetValue(bleft);
+        break;
+      }
     }
   }
 }

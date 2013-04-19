@@ -3206,6 +3206,86 @@ JRouteInterval* JNetwork::GetRouteIntervalFor(const RouteLocation& left,
   return res;
 }
 
+void JNetwork::GetAdjacentSections(const int sid,
+                                   const jnetwork::Direction* dir,
+                                   JListInt* result) const
+{
+  result->Clear();
+  Tuple* sectTuple = GetSectionTupleWithId(sid);
+  if (sectTuple != 0)
+  {
+    result->StartBulkload();
+    JListInt* tmp = 0;
+    Direction compD(Down);
+    int compResult = dir->Compare(compD);
+    if ( compResult > -1) //down or both
+    {
+      tmp = GetSectionListAdjSectionsDown(sectTuple);
+      if (tmp != 0)
+      {
+        result->operator+=(*tmp);
+        tmp->Destroy();
+        tmp->DeleteIfAllowed();
+        tmp = 0;
+      }
+    }
+    if (compResult != 0) //up or both
+    {
+      tmp = GetSectionListAdjSectionsUp(sectTuple);
+      if (tmp != 0)
+      {
+        result->operator+=(*tmp);
+        tmp->Destroy();
+        tmp->DeleteIfAllowed();
+        tmp = 0;
+      }
+    }
+    result->EndBulkload();
+    sectTuple->DeleteIfAllowed();
+    sectTuple = 0;
+  }
+}
+
+void JNetwork::GetReverseAdjacentSections(const int sid,
+                                   const jnetwork::Direction* dir,
+                                   JListInt* result) const
+{
+  result->Clear();
+  Tuple* sectTuple = GetSectionTupleWithId(sid);
+  if (sectTuple != 0)
+  {
+    result->StartBulkload();
+    JListInt* tmp = 0;
+    Direction compD(Down);
+    int compResult = dir->Compare(compD);
+    if ( compResult > -1) //down or both
+    {
+      tmp = GetSectionListReverseAdjSectionsDown(sectTuple);
+      if (tmp != 0)
+      {
+        result->operator+=(*tmp);
+        tmp->Destroy();
+        tmp->DeleteIfAllowed();
+        tmp = 0;
+      }
+    }
+    if (compResult != 0) //up or both
+    {
+      tmp = GetSectionListReverseAdjSectionsUp(sectTuple);
+      if (tmp != 0)
+      {
+        result->operator+=(*tmp);
+        tmp->Destroy();
+        tmp->DeleteIfAllowed();
+        tmp = 0;
+      }
+    }
+    result->EndBulkload();
+    sectTuple->DeleteIfAllowed();
+    sectTuple = 0;
+  }
+}
+
 JListInt* JNetwork::GetSectionListAdjSectionsUp(const Tuple* sectTuple) const
 {
   if (sectTuple != 0)
