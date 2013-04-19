@@ -1199,3 +1199,13 @@ Example   : query computeOIM(thecenter, mehringdamm)
 Result    : (oim (3 3 (1 1 1 1 3 1 1 1 1)))
 
 
+Operator  : collectDline
+Number    : 1
+Signature : stream(X) x bool -> dline , X in {point,line,dline)
+Example  : query no_segments(BGrenzenLine) = no_segments( BGrenzenLine feed collectDline[TRUE])
+Result    : TRUE
+
+
+
+
+

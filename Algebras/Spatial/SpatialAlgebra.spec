@@ -57,6 +57,7 @@ operator convexhull alias CONVEXHULL pattern op (_)
 operator realminize2 alias REALMINIZE2 pattern op(_)
 operator commonborder2 alias COMMONBORDER2  pattern _ infixop _
 operator collect_line alias COLLECTLINE pattern _ op [ _ ]
+operator collectDline alias COLLECTDLINE pattern _ op [ _ ]
 operator collect_sline alias COLLECTSLINE pattern _ op [ _ ]
 operator collect_points alias COLLECTPOINTS pattern _ op [ _ ]
 operator makepoint alias MAKEPOINT pattern op ( _  )

@@ -14247,11 +14247,11 @@ SpatialNoSegmentsMap( ListExpr args )
   if ( nl->ListLength( args ) == 1 )
   {
     arg1 = nl->First( args );
-
-    if ((SpatialTypeOfSymbol( arg1 ) == stline)||
-        (SpatialTypeOfSymbol( arg1 ) == stregion)||
-        (SpatialTypeOfSymbol(arg1) == stsline))
-        return (nl->SymbolAtom( CcInt::BasicType() ));
+    if (Line::checkType( arg1 ) ||
+        Region::checkType(arg1) ||
+        SimpleLine::checkType(arg1) ||
+        DLine::checkType(arg1))
+        return listutils::basicSymbol<CcInt>();
   }
   return listutils::typeError("");
 }
@@ -15757,17 +15757,11 @@ int
 SpatialSelectNoSegments( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
-
-  if (SpatialTypeOfSymbol( arg1 ) == stline)
-    return 0;
-
-  if (SpatialTypeOfSymbol( arg1 ) == stregion)
-    return 1;
-
-  if (SpatialTypeOfSymbol( arg1 ) == stsline)
-    return 2;
-
-  return -1; // This point should never be reached
+  if(Line::checkType(arg1) ) return 0;
+  if(Region::checkType(arg1)) return 1;
+  if(SimpleLine::checkType(arg1)) return 2;
+  if(DLine::checkType(arg1)) return 3;
+  return -1;
 }
 
 /*
@@ -16551,6 +16545,20 @@ SpatialNoSegments( Word* args, Word& result, int message,
   return 0;
 }
 
+int
+SpatialNoSegmentsDline( Word* args, Word& result, int message,
+                     Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  const DLine *dl=((const DLine*)args[0].addr);
+  CcInt* res = (CcInt*)   result.addr;
+  if(dl->IsDefined()){
+    res->Set(true,dl->getSize());
+  } else {
+     res->SetDefined(false);
+  }
+  return 0;
+}
 
 /*
 10.4.22 Value mapping functions of operator ~bbox~
@@ -19034,7 +19042,8 @@ ValueMapping spatialnocomponentsmap[] = {
 ValueMapping spatialnosegmentsmap[] = {
   SpatialNoSegments<Line>,
   SpatialNoSegments<Region>,
-  SpatialNoSegments<SimpleLine> };
+  SpatialNoSegments<SimpleLine>,
+  SpatialNoSegmentsDline };
 
 ValueMapping spatialbboxmap[] = {
   SpatialBBox<Point>,
@@ -19361,7 +19370,7 @@ const string SpatialSpecNocomponents  =
 
 const string SpatialSpecNoSegments  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>{line, region, sline} -> int</text--->"
+  "( <text>{line, region, sline, dline} -> int</text--->"
   "<text> no_segments( _ )</text--->"
   "<text>return the number of half segments of a region.</text--->"
   "<text>query no_segments(region)</text--->"
@@ -19994,7 +20003,7 @@ Operator spatialnocomponents (
 Operator spatialnosegments (
   "no_segments",
   SpatialSpecNoSegments,
-  3,
+  4,
   spatialnosegmentsmap,
   SpatialSelectNoSegments,
   SpatialNoSegmentsMap );
@@ -24551,7 +24560,218 @@ Operator computeOIM(
    computeOIMTM
 );
 
+/*
+Operator collectDline
 
+
+Type Mapping
+
+Signature: stream(point) x bool -> dline
+           stream(line)  x bool -> dline
+           stream(dline) x bool -> dline
+
+*/
+ListExpr collectDlineTM(ListExpr args){
+   string err = " stream(X) [x bool] expected, x in {point,line,dline) ";
+   if(!nl->HasLength(args,1) && !nl->HasLength(args,2)){
+      return listutils::typeError(err);
+   }
+   if(nl->HasLength(args,2) && !CcBool::checkType(nl->Second(args))){
+      return listutils::typeError(err);
+   }
+   ListExpr st = nl->First(args);
+   if( !Stream<Point>::checkType(st)
+       && !Stream<Line>::checkType(st) 
+       && !Stream<DLine>::checkType(st)){
+      return listutils::typeError(err);
+   }
+   if(nl->HasLength(args,2)){
+       return listutils::basicSymbol<DLine>();
+   } else {
+      return nl->ThreeElemList(
+                 nl->SymbolAtom(Symbols::APPEND()),
+                 nl->OneElemList(nl->BoolAtom(true)),
+                 listutils::basicSymbol<DLine>());
+   }
+}
+
+
+
+int collectDlineVMpoint(Word* args, Word& result, int message, Word& local,
+               Supplier s ){
+
+    Stream<Point> stream(args[0]);
+    bool stopUndef = false;
+    CcBool* ignoreUndef= (CcBool*) args[1].addr;
+    stopUndef = ignoreUndef->IsDefined() && !ignoreUndef->GetBoolval();
+    result = qp->ResultStorage(s);
+    DLine* res = (DLine*) result.addr;
+    res->clear();
+    res->SetDefined(true);
+  
+     stream.open();
+
+     Point* p = 0;
+     Point* lastP = 0;
+
+     while( (p = stream.request()) ){
+       if(!p->IsDefined()){
+          if(stopUndef){
+             res->clear();
+             res->SetDefined(false);
+             if(lastP){
+               lastP->DeleteIfAllowed();
+             }
+             p->DeleteIfAllowed();
+             stream.close();
+             return 0;
+          } else {
+            p->DeleteIfAllowed();
+          }
+        } else {
+            if(lastP){
+                SimpleSegment s(lastP->GetX(), lastP->GetY(), 
+                                p->GetX(), p->GetY());
+                res->append(s);
+                lastP->DeleteIfAllowed();
+            }
+            lastP = p;
+        }
+     }
+     if(lastP){
+        lastP->DeleteIfAllowed();
+     }
+     stream.close();  
+     return 0;
+}
+
+
+int collectDlineVMline(Word* args, Word& result, int message, Word& local,
+               Supplier s ){
+
+    Stream<Line> stream(args[0]);
+    bool stopUndef = false;
+    CcBool* ignoreUndef= (CcBool*) args[1].addr;
+    stopUndef = ignoreUndef->IsDefined() && !ignoreUndef->GetBoolval();
+    result = qp->ResultStorage(s);
+    DLine* res = (DLine*) result.addr;
+    res->clear();
+    res->SetDefined(true);
+  
+    stream.open();
+    Line* line;
+    while((line=stream.request())){
+       if(!line->IsDefined()){
+         if(stopUndef){
+           res->clear();
+           res->SetDefined(false);
+           line->DeleteIfAllowed();
+           stream.close();
+           return 0; 
+         } else {
+           line->DeleteIfAllowed();
+         }
+       } else {
+         HalfSegment hs;
+         for(int i=0;i<line->Size();i++){
+            line->Get(i,hs);
+            if(hs.IsLeftDomPoint()){
+              SimpleSegment s(hs);
+              res->append(s);
+            }
+         }
+         line->DeleteIfAllowed();
+       }
+    }
+    stream.close();
+    return 0;
+}
+
+int collectDlineVMdline(Word* args, Word& result, int message, Word& local,
+               Supplier s ){
+
+    Stream<DLine> stream(args[0]);
+    bool stopUndef = false;
+    CcBool* ignoreUndef= (CcBool*) args[1].addr;
+    stopUndef = ignoreUndef->IsDefined() && !ignoreUndef->GetBoolval();
+    result = qp->ResultStorage(s);
+    DLine* res = (DLine*) result.addr;
+    res->clear();
+    res->SetDefined(true);
+  
+    stream.open();
+    DLine* line;
+    while((line=stream.request())){
+       if(!line->IsDefined()){
+         if(stopUndef){
+           res->clear();
+           res->SetDefined(false);
+           line->DeleteIfAllowed();
+           stream.close();
+           return 0; 
+         } else {
+           line->DeleteIfAllowed();
+         }
+       } else {
+         SimpleSegment s;
+         for(int i=0;i<line->getSize();i++){
+            line->get(i,s);
+            res->append(s);
+         }
+         line->DeleteIfAllowed();
+       }
+    }
+    stream.close();
+    return 0;
+}
+
+/*
+ValueMapping Array and Select function
+
+*/
+
+ValueMapping collectDlineVM[] ={
+    collectDlineVMpoint,
+    collectDlineVMline,
+    collectDlineVMdline,
+ };
+
+int collectDlineSelect(ListExpr args){
+  ListExpr sa = nl->Second(nl->First(args));
+  if(Point::checkType(sa)) return 0;
+  if(Line::checkType(sa)) return 1;
+  if(DLine::checkType(sa)) return 2;
+  return -1;
+}
+
+
+/*
+
+Specification
+
+*/
+OperatorSpec collectDlineSpec (
+    " stream(X) x bool -> dline, X in {point,line,dline)",
+    " _ collectDline[_]",
+    " Collects the stream elements into a single dline value"
+    " If the boolean argument is true, undefined value in"
+    " the stream are ignored, otherwise the result is undefined if"
+    " there is any undefined stream element",
+    " query strassen feed projecttransformstream[Geodata] collectDline[TRUE] "
+  );
+
+/*
+Operator instance
+
+*/
+
+Operator collectDline(
+   "collectDline",
+   collectDlineSpec.getStr(),
+   3,
+   collectDlineVM,
+   collectDlineSelect,
+   collectDlineTM);
 
 
 
@@ -24592,6 +24812,7 @@ class SpatialAlgebra : public Algebra
     line.AssociateKind(Kind::SPATIAL2D());
     region.AssociateKind(Kind::SPATIAL2D());
     sline.AssociateKind(Kind::SPATIAL2D());
+    dline.AssociateKind(Kind::SPATIAL2D());
 
 
     point.AssociateKind(Kind::SHPEXPORTABLE());
@@ -24710,6 +24931,7 @@ class SpatialAlgebra : public Algebra
     AddOperator(&computeDRM);
     AddOperator(&computeOIM);
 
+    AddOperator(&collectDline);
 
 
   }
