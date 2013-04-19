@@ -39,6 +39,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "NestedList.h"
 #include "ListUtils.h"
 #include "GenericTC.h"
+#include "RectangleAlgebra.h"
+#include "HalfSegment.h"
 
 
 class SimpleSegment{
@@ -49,6 +51,26 @@ class SimpleSegment{
       SimpleSegment(const double& _x1, const double& _y1,
                     const double& _x2, const double& _y2):
                     x1(_x1), y1(_y1),x2(_x2),y2(_y2) {}
+
+      SimpleSegment(const HalfSegment& hs){
+        x1 = hs.GetDomPoint().GetX();
+        y1 = hs.GetDomPoint().GetY();
+        x2 = hs.GetSecPoint().GetX();
+        y2 = hs.GetSecPoint().GetY();
+
+      }
+
+
+      Rectangle<2> getBox() const{
+        double minD[2];
+        double maxD[2];
+        minD[0] = min(x1,x2);
+        minD[1] = min(y1,y2);
+        maxD[0] = max(x1,x2);
+        maxD[1] = max(y1,y1);
+        Rectangle<2> res(true, minD,maxD);
+        return res;
+      }
 
       double x1;
       double y1;
@@ -118,17 +140,42 @@ class SimpleSegment{
           return os;
       }
 
+      double Distance(const Rectangle<2>& r, const Geoid* geoid=0) const{
+         Point p1(true,x1,y1);
+         Point p2(true,x2,y2);
+         if(AlmostEqual(p1,p2)){
+             return p1.Distance(r,geoid);
+         } else {
+           HalfSegment hs(true,p1,p2);
+           return hs.Distance(r,geoid);
+         }
+      }
+
+      bool Intersects(const Rectangle<2>& r, const Geoid* geoid=0){
+         Point p1(true,x1,y1);
+         Point p2(true,x2,y2);
+         if(AlmostEqual(p1,p2)){
+             return r.Contains(p1.BoundingBox(),geoid);
+         } else {
+           HalfSegment hs(true,p1,p2);
+           return hs.Intersects(r,geoid);
+         }
+      }
+
+
 };
 
 
-class DLine : public Attribute{
+class DLine : public StandardSpatialAttribute<2>{
 
   public:
      DLine(){}
-     DLine(bool def): Attribute(def), segments(0) {}
+     DLine(bool def): StandardSpatialAttribute(def), 
+                      segments(0), bbox(false,0,0,0,0) {}
 
-     DLine(const DLine& s): Attribute(s.IsDefined()),
-                            segments(s.segments.Size()){
+     DLine(const DLine& s): StandardSpatialAttribute<2>(s.IsDefined()),
+                            segments(s.segments.Size()),
+                            bbox(s.bbox){
         segments.copyFrom(s.segments);
      }
 
@@ -138,10 +185,12 @@ class DLine : public Attribute{
      void clear(){
         SetDefined(true);
         segments.clean();
+        bbox.SetDefined(false);
      }
 
      void append(const SimpleSegment& s) {
         segments.Append(s);
+        bbox.Extend(s.getBox());
      }
 
      void get(size_t index, SimpleSegment& s) const{
@@ -150,6 +199,7 @@ class DLine : public Attribute{
  
      void set(size_t index, const SimpleSegment& s){
         segments.Put(index,s);
+        bbox.Extend(s.getBox());
      }    
 
      void resize(size_t newSize){
@@ -174,6 +224,7 @@ class DLine : public Attribute{
 
      bool ReadFrom(ListExpr LE, const ListExpr typeInfo) {
         segments.clean();
+        bbox.SetDefined(false);
         if(listutils::isSymbolUndefined(LE)){
           SetDefined(false);
           return true;
@@ -189,11 +240,73 @@ class DLine : public Attribute{
                return false; 
             }
             segments.Append(s);
+            bbox.Extend(s.getBox());
             LE = nl->Rest(LE);
         } 
         return true; 
      }
 
+    
+    // functions implementing StandardSpatialAttribute
+    virtual const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const{
+      return bbox;
+    }
+
+    virtual double Distance(const Rectangle<2>& rect,
+                            const Geoid* geoid=0) const{
+
+         assert(geoid==0); // not implemented case
+         if(!IsDefined() || !rect.IsDefined()){
+            return -1;
+         }
+         if(segments.Size()==0 || rect.IsEmpty()){
+            return -1;
+         }
+         SimpleSegment s;
+         segments.Get(0,s);
+         double dist = s.Distance(rect);
+         for(int i=1;i<segments.Size();i++){
+            segments.Get(i,s);
+            double d2 = s.Distance(rect);
+            if(d2<dist){
+               dist = d2;
+               if(AlmostEqual(dist,0)){
+                 return 0;
+               }
+            }
+         }
+         return dist;
+     }
+
+    virtual bool Intersects(const Rectangle<2>& rect,
+                            const Geoid* geoid=0 ) const{
+
+      if(!BoundingBox().Intersects(rect,geoid)){
+          return false;
+      }
+ 
+     if(geoid){
+       cout << __PRETTY_FUNCTION__ << ": Spherical geometry not implemented."
+            <<endl;
+       assert(false); // TODO: Implement spherical geometry case.
+     }
+     SimpleSegment ss;
+     for(int i=0;i<segments.Size();i++){
+       segments.Get(i,ss);
+       if(ss.Intersects(rect,geoid)){
+          return true;
+       }
+     }
+     return false;
+   }
+
+
+  
+    virtual bool IsEmpty() const{
+      return !IsDefined() || (segments.Size()==0);
+    }
+
+ 
 
      int Compare(const Attribute* rhs) const{
         if(!IsDefined()){
@@ -238,10 +351,12 @@ class DLine : public Attribute{
          segments.clean();
          if(!arg->IsDefined()){
              SetDefined(false);
-         }  
-         SetDefined(true);
+         } else { 
+            SetDefined(true);
+         }
          DLine* d = (DLine*) arg;
          segments.copyFrom(d->segments); 
+         bbox = d->bbox;
      }
 
      DLine* Clone() const {
@@ -280,13 +395,18 @@ class DLine : public Attribute{
                            "((14.0 18.0 16.0 15) )");
      }    
 
-       static bool CheckKind(ListExpr type, ListExpr& errorInfo){
-         return nl->IsEqual(type,BasicType());
-       }    
+     static bool CheckKind(ListExpr type, ListExpr& errorInfo){
+       return nl->IsEqual(type,BasicType());
+     }   
+
+     int getSize() const{
+       return segments.Size();
+     }
+ 
 
   private:
-     DbArray<SimpleSegment> segments;
-
+     DbArray<SimpleSegment> segments; 
+     Rectangle<2> bbox;
 
 
 };
