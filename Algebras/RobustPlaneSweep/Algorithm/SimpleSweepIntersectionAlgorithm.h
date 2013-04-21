@@ -39,8 +39,9 @@ namespace RobustPlaneSweep
     void DetermineIntersectionsInternal();
 
   public:
-    SimpleSweepIntersectionAlgorithm(IntersectionAlgorithmData* data) : 
-      SimpleIntersectionAlgorithm (data)
+    explicit SimpleSweepIntersectionAlgorithm(
+      IntersectionAlgorithmData* data) :
+    SimpleIntersectionAlgorithm(data)
     {
     }
   };

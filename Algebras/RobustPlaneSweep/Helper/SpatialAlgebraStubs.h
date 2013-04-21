@@ -24,42 +24,46 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #pragma once
 
-#include <stdarg.h> 
+#include <stdexcept>
+#include <stdarg.h>
 
 typedef double Coord;
 
-bool AlmostEqual(double d1,double d2);
+bool AlmostEqual(double d1, double d2);
 int CompareDouble(const double a, const double b);
 
 struct AttrType
 {
   inline AttrType() { }
 
-  explicit inline AttrType( int ) :
+  explicit inline AttrType(int) :
   faceno(-999999),
     cycleno(-999999),
     edgeno(-999999),
     coverageno(-999999),
     insideAbove(false),
-    partnerno(-999999){ }
+    partnerno(-999999)
+  {
+  }
 
   /*
   The simple constructor.
 
   */
-  inline AttrType( const AttrType& at ):
-  faceno( at.faceno ),
-    cycleno( at.cycleno ),
-    edgeno( at.edgeno ),
-    coverageno( at.coverageno ),
-    insideAbove( at.insideAbove ),
-    partnerno( at.partnerno )
-  {}
+  inline AttrType(const AttrType& at):
+  faceno(at.faceno),
+    cycleno(at.cycleno),
+    edgeno(at.edgeno),
+    coverageno(at.coverageno),
+    insideAbove(at.insideAbove),
+    partnerno(at.partnerno)
+  {
+  }
   /*
   The copy constructor.
 
   */
-  inline AttrType& operator=( const AttrType& at )
+  inline AttrType& operator=(const AttrType& at)
   {
     faceno = at.faceno;
     cycleno = at.cycleno;
@@ -116,7 +120,9 @@ public:
   This constructor should not be used:
 
   */
-  inline Point() {};
+  inline Point()
+  {
+  }
 
   /*
   There are two ways of constructing a point:
@@ -125,19 +131,21 @@ public:
   and two coordinate ~x~ and ~y~ values.
 
   */
-  explicit inline Point( const bool d, const Coord& x, const Coord& y ) :
+  explicit inline Point(const bool d, const Coord& x, const Coord& y) :
   isDefined(d),
-    x( x ),
-    y( y )
-  { }
+    x(x),
+    y(y)
+  {
+  }
 
   /*
   The second one receives a point ~p~ as argument and creates a point that is a
   copy of ~p~.
 
   */
-  inline Point( const Point& p ) : isDefined(p.IsDefined()), x( p.x ), y( p.y )
-  { }
+  inline Point(const Point& p) : isDefined(p.IsDefined()), x(p.x), y(p.y)
+  {
+  }
 
   /*
   The destructor.
@@ -165,72 +173,75 @@ public:
     return y;
   }
 
-  inline Point& operator=( const Point& p )
+  inline Point& operator=(const Point& p)
   {
-    SetDefined( p.IsDefined() );
-    if( IsDefined() ){
+    SetDefined(p.IsDefined());
+    if (IsDefined()) {
       x = p.x;
       y = p.y;
     }
     return *this;
   }
 
-  inline bool operator==( const Point& p ) const
+  inline bool operator==(const Point& p) const
   {
-    if(!IsDefined() && !p.IsDefined()){
+    if (!IsDefined() && !p.IsDefined()) {
       return true;
     }
-    if(!IsDefined() || !p.IsDefined()){
+    if (!IsDefined() || !p.IsDefined()) {
       return false;
     }
 
-    return AlmostEqual(x, p.x) && AlmostEqual(y, p.y); // changed by TB
-
+    return AlmostEqual(x, p.x) && AlmostEqual(y, p.y);  // changed by TB
   }
 
-  inline bool operator!=( const Point& p ) const
+  inline bool operator!=(const Point& p) const
   {
-    return !( *this == p );
+    return !(*this == p);
   }
 
-  inline bool operator<=( const Point& p ) const
+  inline bool operator<=(const Point& p) const
   {
-    return !( *this > p );
+    return !(*this > p);
   }
 
-  inline bool operator<( const Point& p ) const
+  inline bool operator<(const Point& p) const
   {
-    //assert( IsDefined() && p.IsDefined() );
-    if( !IsDefined() ){
+    // assert(IsDefined() && p.IsDefined());
+    if (!IsDefined()) {
       return p.IsDefined();
     }
-    if ( !p.IsDefined() ){
+
+    if (!p.IsDefined()) {
       return false;
     }
-    bool eqx = AlmostEqual(x,p.x);
-    return (!eqx && (x < p.x) ) ||
-      (eqx && !AlmostEqual(y,p.y) && (y < p.y));
+
+    bool eqx = AlmostEqual(x, p.x);
+    return (!eqx && (x < p.x)) ||
+      (eqx && !AlmostEqual(y, p.y) && (y < p.y));
     //  return x < p.x || (x == p.x && y < p.y); // changed by TB
   }
 
-  inline bool operator>=( const Point& p ) const
+  inline bool operator>=(const Point& p) const
   {
-    return !( *this < p );
+    return !(*this < p);
   }
 
-  inline bool operator>( const Point& p ) const
+  inline bool operator>(const Point& p) const
   {
-    //assert( IsDefined() && p.IsDefined() );
-    if( !p.IsDefined() ){
+    // assert(IsDefined() && p.IsDefined());
+    if (!p.IsDefined()) {
       return IsDefined();
     }
-    if ( !IsDefined() ){
+
+    if (!IsDefined()) {
       return false;
     }
-    bool eqx = AlmostEqual(x,p.x);
+
+    bool eqx = AlmostEqual(x, p.x);
     return (!eqx && (x > p.x)) ||
-      (eqx && !AlmostEqual(y,p.y) && (y>p.y));
-    //  return x > p.x || ( x == p.x && y > p.y ); // changed by TB
+      (eqx && !AlmostEqual(y, p.y) && (y > p.y));
+    //  return x > p.x || (x == p.x && y > p.y); // changed by TB
   }
 
   bool IsDefined() const
@@ -238,9 +249,9 @@ public:
     return isDefined;
   }
 
-  void SetDefined(bool value) 
+  void SetDefined(bool value)
   {
-    isDefined=value;
+    isDefined = value;
   }
 
 protected:
@@ -265,13 +276,12 @@ protected:
 class HalfSegment
 {
 public:
-
   /*
   5.1 Constructors and Destructor
 
-  A half segment is composed by two points which are called 
+  A half segment is composed by two points which are called
   ~left point~ (~lp~) and ~right point~ (~rp~),
-  $lp < rp$, and a flag ~ldp~ (~left dominating point~) which 
+  $lp < rp$, and a flag ~ldp~ (~left dominating point~) which
   tells whether the left point is the dominating
   point.
 
@@ -281,24 +291,27 @@ public:
 
   inline HalfSegment() {}
   /*
-  Creates a half segment receiving all attributes as arguments. 
-  The order between the left and right points is not important. 
+  Creates a half segment receiving all attributes as arguments.
+  The order between the left and right points is not important.
   If ~lp~ is bigger than ~rp~ their values are changed.
   */
 
-  inline HalfSegment( bool ldp,
+  inline HalfSegment(bool ldp,
     const Point& lp,
-    const Point& rp ):
-  ldp( ldp ),
-    lp( lp ),
-    rp( rp ),
+    const Point& rp):
+  ldp(ldp),
+    lp(lp),
+    rp(rp),
     attr(-99999)
   {
     // assert(lp.IsDefined());
     // assert(rp.IsDefined());
-    // assert( !AlmostEqual( lp, rp ) );
+    if (AlmostEqual(lp.GetX(), rp.GetX()) &&
+      AlmostEqual(lp.GetY(), rp.GetY())) {
+        throw new std::invalid_argument("rp");
+    }
 
-    if( lp > rp )
+    if (lp > rp)
     {
       this->lp = rp;
       this->rp = lp;
@@ -309,14 +322,14 @@ public:
 
   */
 
-  inline HalfSegment( const HalfSegment& hs ):
-  ldp( hs.ldp ),
-    lp( hs.lp ),
-    rp( hs.rp ),
-    attr( hs.attr )
+  inline HalfSegment(const HalfSegment& hs):
+  ldp(hs.ldp),
+    lp(hs.lp),
+    rp(hs.rp),
+    attr(hs.attr)
   {
-    //assert(lp.IsDefined());
-    //assert(rp.IsDefined());
+    // assert(lp.IsDefined());
+    // assert(rp.IsDefined());
   }
   /*
   The destructor.
@@ -347,15 +360,19 @@ public:
   */
   inline const Point& GetDomPoint() const
   {
-    if( ldp )
+    if (ldp) {
       return lp;
+    }
+
     return rp;
   }
 
   inline const Point&    GetSecPoint() const
   {
-    if( ldp )
+    if (ldp) {
       return rp;
+    }
+
     return lp;
   }
 
@@ -365,14 +382,14 @@ public:
   }
 
   /*
-  Returns the bounding box of the half segment. 
-  If ~geoid~ is not NULL, the geographic MBR is returned. 
+  Returns the bounding box of the half segment.
+  If ~geoid~ is not NULL, the geographic MBR is returned.
   If ~geoid~ is UNDEFINED, the result is UNDEFINED.
 
   */
   // inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
   /*
-  Returns the "attr" value associated with a half segment. 
+  Returns the "attr" value associated with a half segment.
   The "attr" value is useful when we process region values.
 
   */
@@ -382,17 +399,16 @@ public:
     return attr;
   }
 
-  inline void SetAttr( AttrType& attr )
+  inline void SetAttr(AttrType& attr)
   {
     this->attr = attr;
   }
-
 
   /*
   Sets the value of the dominating point flag of a half segment.
 
   */
-  inline void SetLeftDomPoint( bool ldp )
+  inline void SetLeftDomPoint(bool ldp)
   {
     this->ldp = ldp;
   }
@@ -404,11 +420,10 @@ public:
 
   inline bool IsVertical()const
   {
-    return AlmostEqual(lp.GetX(),rp.GetX());
+    return AlmostEqual(lp.GetX(), rp.GetX());
   }
 
-
-  HalfSegment& operator=( const HalfSegment& hs )
+  HalfSegment& operator=(const HalfSegment& hs)
   {
     ldp = hs.ldp;
     lp = hs.lp;
@@ -417,130 +432,124 @@ public:
     return *this;
   }
 
-  bool operator==( const HalfSegment& hs ) const
+  bool operator==(const HalfSegment& hs) const
   {
     return Compare(hs) == 0;
   }
 
-  bool operator!=( const HalfSegment& hs ) const
+  bool operator!=(const HalfSegment& hs) const
   {
-    return !( *this == hs );
+    return !(*this == hs);
   }
 
-  bool operator<( const HalfSegment& hs ) const
+  bool operator<(const HalfSegment& hs) const
   {
     return Compare(hs) == -1;
   }
 
-  bool operator>( const HalfSegment& hs ) const
+  bool operator>(const HalfSegment& hs) const
   {
     return Compare(hs) == 1;
   }
 
+  // bool operator<=(const HalfSegment& hs) const;
+  // bool operator>=(const HalfSegment& hs) const;
 
-  //bool operator<=(const HalfSegment& hs) const;
-  //bool operator>=(const HalfSegment& hs) const;
-
-  static bool Less( const HalfSegment& hs1,const HalfSegment& hs2) 
+  static bool Less(const HalfSegment& hs1, const HalfSegment& hs2)
   {
-    return hs1<hs2;
+    return hs1 < hs2;
   }
 
-  int Compare( const HalfSegment& hs ) const
+  int Compare(const HalfSegment& hs) const
   {
     const Point& dp = GetDomPoint(),
       sp = GetSecPoint(),
       DP = hs.GetDomPoint(),
       SP = hs.GetSecPoint();
     /*
-    if(dp.GetX()<DP.GetX()) {
+    if (dp.GetX()<DP.GetX()) {
     return -1;
-    } else if(dp.GetX()>DP.GetX()) {
+    } else if (dp.GetX()>DP.GetX()) {
     return 1;
     } else {
     return 0;
     }*/
 
-
-    if( dp < DP )
+    if (dp < DP) {
       return -1;
-    else if( dp > DP )
-      return 1;
-
-    if( ldp != hs.ldp )
-    {
-      if( ldp == false )
-        return -1;
+    } else if (dp > DP) {
       return 1;
     }
-    else
-    {
+
+    if (ldp != hs.ldp) {
+      if (ldp == false) {
+        return -1;
+      }
+
+      return 1;
+    } else {
       bool v1 = IsVertical();
       bool v2 = hs.IsVertical();
-      if( v1 && v2 ) // both are vertical
-      {
-        if(   (     (CompareDouble(sp.GetY(),dp.GetY())>0)
-          && ( CompareDouble(SP.GetY(),DP.GetY())>0)
-          )
+      if (v1 && v2) {  // both are vertical
+        if (((CompareDouble(sp.GetY(), dp.GetY()) > 0) &&
+          (CompareDouble(SP.GetY(), DP.GetY()) > 0))
           ||
-          (     (CompareDouble(sp.GetY(),dp.GetY())<0)
-          && (CompareDouble(SP.GetY(),DP.GetY())<0) ) )
+          ((CompareDouble(sp.GetY(), dp.GetY()) < 0) &&
+          (CompareDouble(SP.GetY(), DP.GetY()) < 0)))
         {
-          if( sp < SP )
+          if (sp < SP) {
             return -1;
-          if( sp > SP )
+          }
+
+          if (sp > SP) {
             return 1;
+          }
+
           return 0;
-        }
-        else if( CompareDouble(sp.GetY(),dp.GetY())>0)
-        {
-          if( ldp == true )
+        } else if (CompareDouble(sp.GetY(), dp.GetY()) > 0) {
+          if (ldp == true) {
             return 1;
+          }
+
           return -1;
-        }
-        else
-        {
-          if( ldp == true )
+        } else {
+          if (ldp == true) {
             return -1;
+          }
+
           return 1;
         }
-      }
-      else if( AlmostEqual(dp.GetX(),sp.GetX()) )
-      {
-        if( CompareDouble(sp.GetY(), dp.GetY())>0 )
-        {
-          if( ldp == true )
+      } else if (AlmostEqual(dp.GetX(), sp.GetX())) {
+        if (CompareDouble(sp.GetY(), dp.GetY()) > 0) {
+          if (ldp == true) {
             return 1;
+          }
+
           return -1;
-        }
-        else if( CompareDouble(sp.GetY(),dp.GetY())<0 )
-        {
-          if( ldp == true )
+        } else if (CompareDouble(sp.GetY(), dp.GetY()) < 0) {
+          if (ldp == true) {
             return -1;
+          }
+
           return 1;
         }
 
         return 0;
-      }
-      else if( AlmostEqual(DP.GetX(), SP.GetX()) )
-      {
-        if( CompareDouble(SP.GetY() , DP.GetY())>0 )
-        {
-          if( ldp == true )
+      } else if (AlmostEqual(DP.GetX(), SP.GetX())) {
+        if (CompareDouble(SP.GetY(), DP.GetY()) > 0) {
+          if (ldp == true) {
             return -1;
+          }
           return 1;
-        }
-        else if( CompareDouble(SP.GetY() , DP.GetY())<0 )
-        {
-          if( ldp == true )
+        } else if (CompareDouble(SP.GetY(), DP.GetY()) < 0) {
+          if (ldp == true) {
             return 1;
+          }
           return -1;
         }
 
         return 0;
-      }
-      else
-      {
+      } else {
         Coord xd = dp.GetX(), yd = dp.GetY(),
           xs = sp.GetX(), ys = sp.GetY(),
           Xd = DP.GetX(), Yd = DP.GetY(),
@@ -548,22 +557,28 @@ public:
         double k = (yd - ys) / (xd - xs),
           K= (Yd -Ys) / (Xd - Xs);
 
-        if( CompareDouble(k , K) <0 )
+        if (CompareDouble(k , K) < 0) {
           return -1;
-        if( CompareDouble( k,  K) > 0)
-          return 1;
+        }
 
-        if( sp < SP )
-          return -1;
-        if( sp > SP )
+        if (CompareDouble(k,  K) > 0) {
           return 1;
+        }
+
+        if (sp < SP) {
+          return -1;
+        }
+
+        if (sp > SP) {
+          return 1;
+        }
+
         return 0;
       }
     }
   }
 
 private:
-
   /*
   5.13 Attributes
 
@@ -582,7 +597,7 @@ private:
   */
 public:
   /*
-  This ~attribute~ property is useful if we process 
+  This ~attribute~ property is useful if we process
   region values in the way indicated in the ROSE paper.
 
   */
@@ -598,27 +613,25 @@ private:
   double max[dim];
 
 public:
-  inline Rectangle( const bool defined, ... )
+  inline Rectangle(const bool defined, ...)
   {
-    isDefined=defined;
+    isDefined = defined;
     va_list ap;
-    va_start( ap, defined );
-    for( unsigned i = 0; i < dim; i++ )
-    {
-      double d1 = va_arg( ap, double ), d2 = va_arg( ap, double );
+    va_start(ap, defined);
+    for (unsigned i = 0; i < dim; i++) {
+      double d1 = va_arg(ap, double), d2 = va_arg(ap, double);
       min[i] = d1;
       max[i] = d2;
     }
-    va_end( ap );
+    va_end(ap);
   }
 
-
-  inline const double MinD( int d ) const
+  inline const double MinD(int d) const
   {
     return min[d];
   }
 
-  inline const double MaxD( int d ) const
+  inline const double MaxD(int d) const
   {
     return max[d];
   }
@@ -627,6 +640,4 @@ public:
   {
     return isDefined;
   }
-
-
 };

@@ -32,32 +32,59 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
-  typedef int HalfSegmentIntersectionId; 
+  typedef int HalfSegmentIntersectionId;
+
+  class InternalAttribute;
+
+  enum IntersectionAlgorithmCalculationType
+  {
+    CalulationTypeNone = 0,
+    CalulationTypeLine = 1,
+    CalulationTypeRegion = 2,
+  };
 
   class IntersectionAlgorithmData
   {
   public:
-    virtual void InitializeFetch() = 0;
-    
-    virtual bool FetchInputHalfSegment(HalfSegment &segment) = 0;
-    
-    virtual HalfSegmentIntersectionId GetHalfSegmentId(
-      const HalfSegment& segment) = 0;
+    virtual IntersectionAlgorithmCalculationType GetCalculationType() = 0;
 
-    virtual void OutputHalfSegment(const HalfSegment& segment) = 0;
-    
+    virtual void InitializeFetch() = 0;
+
+    virtual bool FetchInputHalfSegment(
+      HalfSegment &segment,
+      bool &belongsToSecondGeometry) = 0;
+
+    virtual HalfSegmentIntersectionId GetHalfSegmentId(
+      const HalfSegment& /*segment*/)
+    {
+      return 0;
+    };
+
+    virtual void OutputHalfSegment(
+      const HalfSegment& segment,
+      const InternalAttribute& attribute) = 0;
+
     virtual const Rectangle<2> GetBoundingBox() = 0;
-    
-    virtual bool RemoveOverlappingSegments() = 0;
-    
-    virtual AttrType MergeAttributes(
-      const AttrType& a1,
-      const AttrType& a2) = 0; 
-    
+
     virtual bool IsInputOrderedByX() = 0;
-    
-    virtual int GetRoundToDecimals() = 0;
-    
+
+    virtual void GetRoundToDecimals(int& decimals, int& stepSize) = 0;
+
     virtual void OutputFinished() = 0;
+
+    virtual bool ReportIntersections()
+    {
+      return false;
+    }
+
+    virtual void ReportIntersection(
+      const Point& /*intersectionPoint*/,
+      const bool /*overlappingIntersection*/)
+    {
+    }
+
+    virtual ~IntersectionAlgorithmData()
+    {
+    }
   };
 }

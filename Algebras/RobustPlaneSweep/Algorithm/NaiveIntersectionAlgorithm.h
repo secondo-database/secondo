@@ -30,8 +30,6 @@ namespace RobustPlaneSweep
 {
   class NaiveIntersectionAlgorithm : public SimpleIntersectionAlgorithm
   {
-  private:
-
   protected:
     int GetInitialScaleFactor()
     {
@@ -41,8 +39,8 @@ namespace RobustPlaneSweep
     void DetermineIntersectionsInternal();
 
   public:
-    NaiveIntersectionAlgorithm(IntersectionAlgorithmData* data) : 
-      SimpleIntersectionAlgorithm (data)
+    explicit NaiveIntersectionAlgorithm(IntersectionAlgorithmData* data) :
+    SimpleIntersectionAlgorithm(data)
     {
     }
   };

@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-
 #pragma once
 
 #include <unordered_set>
@@ -31,7 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
-  class HobbyNaiveIntersectionAlgorithm : 
+  class HobbyNaiveIntersectionAlgorithm :
     public SimpleSweepIntersectionAlgorithm
   {
   private:
@@ -60,7 +59,7 @@ namespace RobustPlaneSweep
       int _squareY;
 
     public:
-      SweepEvent(int squareX, int squareY) : 
+      SweepEvent(int squareX, int squareY) :
         _spacing(0),
         _segment(NULL),
         _eventType(TolaranceSquare),
@@ -70,9 +69,9 @@ namespace RobustPlaneSweep
       }
 
       SweepEvent(
-        InternalLineSegment* segment, 
-        int spacing, 
-        bool isStart) : 
+        InternalLineSegment* segment,
+        int spacing,
+        bool isStart) :
       _spacing(spacing),
         _segment(segment),
         _eventType(isStart ? BeginSegment : EndSegment),
@@ -83,28 +82,28 @@ namespace RobustPlaneSweep
 
       EventType GetEventType() const { return _eventType; }
       InternalLineSegment* GetSegment() const { return _segment; }
-      int GetSquareX() const { return _squareX; } 
-      int GetSquareY() const { return _squareY; } 
+      int GetSquareX() const { return _squareX; }
+      int GetSquareY() const { return _squareY; }
 
     private:
       long long GetCompareValue() const
       {
-        switch(_eventType) {
+        switch (_eventType) {
         case BeginSegment:
-          return ( _segment->GetLeft().GetX()) - _spacing;
+          return (_segment->GetLeft().GetX()) - _spacing;
         case EndSegment:
           return (_segment->GetRight().GetX()) + _spacing;
         case TolaranceSquare:
           return _squareX;
         default:
-          throw new std::logic_error ("not supported event type!");
+          throw new std::logic_error("not supported event type!");
         }
       }
 
     public:
       bool operator<(const SweepEvent &y) const
       {
-        return GetCompareValue()<y.GetCompareValue();
+        return GetCompareValue() < y.GetCompareValue();
       }
     };
 
@@ -123,8 +122,8 @@ namespace RobustPlaneSweep
     void DetermineIntersectionsInternal();
 
   public:
-    HobbyNaiveIntersectionAlgorithm(IntersectionAlgorithmData* data) : 
-      SimpleSweepIntersectionAlgorithm(data), 
+    explicit HobbyNaiveIntersectionAlgorithm(IntersectionAlgorithmData* data) :
+    SimpleSweepIntersectionAlgorithm(data),
       _spacing(0)
     {
     }

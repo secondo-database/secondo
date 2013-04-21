@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-
 #pragma once
 
 #include <vector>
@@ -43,30 +42,32 @@ namespace RobustPlaneSweep
   {
   private:
     InternalPointTransformation* _transformation;
+    IntersectionAlgorithmCalculationType _calculationType;
     IntersectionAlgorithmData* _data;
 
     static bool OverlappingSegmentsSortComparer(
-      InternalResultLineSegment x, 
+      InternalResultLineSegment x,
       InternalResultLineSegment y);
 
   protected:
-    std::vector<InternalResultLineSegment>* 
+    std::vector<InternalResultLineSegment>*
       RemoveOverlappingSegments(
       std::vector<InternalResultLineSegment>& segments);
 
     void CreateTransformation();
 
-    IntersectionAlgorithm(IntersectionAlgorithmData* data) 
+    explicit IntersectionAlgorithm(IntersectionAlgorithmData* data)
     {
-      _data=data;
-      _transformation=NULL;
+      _data = data;
+      _calculationType = _data->GetCalculationType();
+      _transformation = NULL;
     }
 
     virtual ~IntersectionAlgorithm()
     {
-      if(_transformation!=NULL) {
+      if (_transformation != NULL) {
         delete _transformation;
-        _transformation=NULL;
+        _transformation = NULL;
       }
     }
 
@@ -80,6 +81,11 @@ namespace RobustPlaneSweep
     inline IntersectionAlgorithmData* GetData() const
     {
       return _data;
+    }
+
+    inline IntersectionAlgorithmCalculationType GetCalulcationType() const
+    {
+      return _calculationType;
     }
 
   public:

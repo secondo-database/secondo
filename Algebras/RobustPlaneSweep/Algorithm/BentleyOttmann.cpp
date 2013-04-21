@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
+#include <algorithm>
 
 #include "../Helper/LineIntersection.h"
 #include "BentleyOttmann.h"
@@ -45,7 +46,16 @@ namespace RobustPlaneSweep
       while (_nextHalfSegmentValid) {
         const Point& px = _nextHalfSegment.GetDomPoint();
 
-        if(isInputOrderedByX) {
+        if (isInputOrderedByX) {
+#ifndef USE_RIGHTDOM_HALFSEGMENT
+          if (!_nextHalfSegment.IsLeftDomPoint()) {
+            _nextHalfSegmentValid =
+              GetData()->FetchInputHalfSegment(
+              _nextHalfSegment,
+              _nextHalfSegmentBelongsToSecondGeometry);
+            continue;
+          }
+#endif
           int internalX = GetTransformation()->TransformToInternalX(px);
 
           if (isFirst) {
@@ -58,51 +68,57 @@ namespace RobustPlaneSweep
           }
         }
 
-        SweepEvent* newEvent=Create(_nextHalfSegment);
-        if(newEvent!=NULL) {
+        SweepEvent* newEvent = CreateEvent(
+          _nextHalfSegment,
+          _nextHalfSegmentBelongsToSecondGeometry);
+
+        if (newEvent != NULL) {
           list.push_back(newEvent);
         }
-        _nextHalfSegmentValid = 
-          GetData()->FetchInputHalfSegment(_nextHalfSegment);
-      } 
+        _nextHalfSegmentValid = GetData()->FetchInputHalfSegment(
+          _nextHalfSegment,
+          _nextHalfSegmentBelongsToSecondGeometry);
+      }
 
-      sort(list.begin(),list.end(),SweepEvent::SortComparer);
+      sort(list.begin(), list.end(), SweepEvent::SortComparer);
 
-      for(vector<SweepEvent*>::const_iterator 
-        i=list.begin();
-        i!=list.end();++i) {
+      for (vector<SweepEvent*>::const_iterator
+        i = list.begin();
+        i != list.end(); ++i) {
           _startEndEvents.push(*i);
       }
 
       _nextHalfSegmentSweepEvent = _startEndEvents.front();
       _startEndEvents.pop();
-
     } else {
       _nextHalfSegmentSweepEvent = NULL;
     }
   }
 
-  SweepEvent* BentleyOttmann::Create(const HalfSegment& halfSegment)
+  SweepEvent* BentleyOttmann::CreateEvent(
+    const HalfSegment& halfSegment,
+    const bool belongsToSecondGeometry)
   {
+#ifdef USE_RIGHTDOM_HALFSEGMENT
     InternalLineSegment *internalSegment;
-    HalfSegmentIntersectionId id=GetData()->GetHalfSegmentId(halfSegment);
+    HalfSegmentIntersectionId id = GetData()->GetHalfSegmentId(halfSegment);
 
-    unordered_map<int,InternalLineSegment*>::const_iterator findResult;
-    findResult=_activeSegments.find(id);
+    unordered_map<int, InternalLineSegment*>::const_iterator findResult;
+    findResult = _activeSegments.find(id);
 
-    if (findResult==_activeSegments.end()) {
-      internalSegment = 
+    if (findResult == _activeSegments.end()) {
+      internalSegment =
         new InternalLineSegment(*GetTransformation(), halfSegment);
 
-      if(InternalPoint::IsEqual(
+      if (InternalPoint::IsEqual(
         internalSegment->GetLeft(),
         internalSegment->GetRight())) {
           delete internalSegment;
           return NULL;
       }
-      _activeSegments[id]=internalSegment;
+      _activeSegments[id] = internalSegment;
     } else {
-      internalSegment=findResult->second;
+      internalSegment = findResult->second;
     }
 
     if (halfSegment.IsLeftDomPoint()) {
@@ -110,6 +126,29 @@ namespace RobustPlaneSweep
     } else {
       return SweepEvent::CreateEnd(internalSegment);
     }
+#else
+    if (!halfSegment.IsLeftDomPoint()) {
+      return NULL;
+    }
+
+    InternalLineSegment *internalSegment =
+      new InternalLineSegment(
+      *GetTransformation(),
+      halfSegment,
+      belongsToSecondGeometry,
+      GetCalulcationType() == CalulationTypeRegion);
+
+    if (InternalPoint::IsEqual(
+      internalSegment->GetLeft(),
+      internalSegment->GetRight())) {
+        delete internalSegment;
+        return NULL;
+    }
+
+    _intersectionEvents.push(SweepEvent::CreateEnd(internalSegment));
+
+    return SweepEvent::CreateStart(internalSegment);
+#endif
   }
 
   SweepEvent* BentleyOttmann::GetNextEvent()
@@ -121,7 +160,7 @@ namespace RobustPlaneSweep
       comparisionResult = 1;
     } else {
       comparisionResult = SweepEvent::Compare(
-        _nextHalfSegmentSweepEvent, 
+        _nextHalfSegmentSweepEvent,
         _intersectionEvents.top());
     }
 
@@ -130,55 +169,63 @@ namespace RobustPlaneSweep
     if (comparisionResult < 0) {
       result = _nextHalfSegmentSweepEvent;
       SetNextStartEndEvent();
-    } else if (comparisionResult > 0) {
-      result=_intersectionEvents.top();
-      _intersectionEvents.pop();
     } else {
-      throw new logic_error(
-        "start/end events and intersection events must not be equal!");
+      result = _intersectionEvents.top();
+      _intersectionEvents.pop();
     }
+
     return result;
   }
 
   void BentleyOttmann::FlushProcessedSegments()
   {
     vector<InternalResultLineSegment> lineSegmentsToFlush;
+    InternalPointTransformation* transformation = GetTransformation();
 
-    for(std::vector<InternalLineSegment*>::const_iterator 
-      i=_processedInternalSegments.begin();
-      i!=_processedInternalSegments.end();++i) {
-        (*i)->BreakupLines(lineSegmentsToFlush);
+    for (std::vector<InternalLineSegment*>::const_iterator
+      i = _processedInternalSegments.begin();
+      i != _processedInternalSegments.end(); ++i) {
+        (*i)->BreakupLines(*transformation, lineSegmentsToFlush);
         delete (*i);
     }
     _processedInternalSegments.clear();
 
     int breakupUntil = GetBreakupUntil();
-    for(std::unordered_map<int,InternalLineSegment*>::const_iterator 
-      i=_activeSegments.begin();
-      i!=_activeSegments.end();++i) {
-        i->second->BreakupLines(lineSegmentsToFlush, true, breakupUntil);
+#ifdef USE_RIGHTDOM_HALFSEGMENT
+    for (std::unordered_map<int, InternalLineSegment*>::const_iterator
+      i = _activeSegments.begin();
+      i != _activeSegments.end(); ++i) {
+        i->second->BreakupLines(
+          *transformation,
+          lineSegmentsToFlush,
+          true,
+          breakupUntil);
     }
+#else
+    for (std::unordered_set<InternalLineSegment*>::const_iterator
+      i = _activeSegments.begin();
+      i != _activeSegments.end(); ++i) {
+        (*i)->BreakupLines(
+          *transformation,
+          lineSegmentsToFlush,
+          true,
+          breakupUntil);
+    }
+#endif
 
-    if(!lineSegmentsToFlush.empty()) {
-      if(GetData()->RemoveOverlappingSegments()) {
-        vector<InternalResultLineSegment>* nonOverlappingLineSegments = 
-          RemoveOverlappingSegments(lineSegmentsToFlush);
+    if (!lineSegmentsToFlush.empty()) {
+      vector<InternalResultLineSegment>* nonOverlappingLineSegments =
+        RemoveOverlappingSegments(lineSegmentsToFlush);
 
-        for(vector<InternalResultLineSegment>::const_iterator 
-          i=nonOverlappingLineSegments->begin();
-          i!=nonOverlappingLineSegments->end();++i) {
-            GetData()->OutputHalfSegment(
-              i->GetRealLineSegment(GetTransformation()));
-        }
-        delete nonOverlappingLineSegments;
-      } else  {
-        for(vector<InternalResultLineSegment>::const_iterator 
-          i=lineSegmentsToFlush.begin();
-          i!=lineSegmentsToFlush.end();++i) {
-            GetData()->OutputHalfSegment(
-              i->GetRealLineSegment(GetTransformation()));
-        }
+      for (vector<InternalResultLineSegment>::const_iterator
+        i = nonOverlappingLineSegments->begin();
+        i != nonOverlappingLineSegments->end(); ++i) {
+          GetData()->OutputHalfSegment(
+            i->GetRealLineSegment(
+            GetTransformation()),
+            i->GetInternalAttribute());
       }
+      delete nonOverlappingLineSegments;
     }
   }
 
@@ -189,8 +236,10 @@ namespace RobustPlaneSweep
     }
 
     GetData()->InitializeFetch();
-    _nextHalfSegmentValid = GetData()->FetchInputHalfSegment(_nextHalfSegment);
-    _nextHalfSegmentSweepEvent=NULL;
+    _nextHalfSegmentValid = GetData()->FetchInputHalfSegment(
+      _nextHalfSegment,
+      _nextHalfSegmentBelongsToSecondGeometry);
+    _nextHalfSegmentSweepEvent = NULL;
     SetNextStartEndEvent();
 
     DetermineIntersectionsInternal();
@@ -205,44 +254,69 @@ namespace RobustPlaneSweep
 
     size_t addedIntersections = 0;
     SweepEvent* currentEvent;
+    bool reportIntersections = GetData()->ReportIntersections();
+
+    bool calculateRegionCoverage = false;
+    if (GetCalulcationType() == CalulationTypeRegion) {
+      calculateRegionCoverage = true;
+    }
+
+    _state->SetCurrentPoint(
+      InternalIntersectionPoint(std::numeric_limits<int>::min(), 0));
 
     while ((currentEvent = GetNextEvent()) != NULL) {
-      if (_state->GetCurrentPoint().GetX()!=currentEvent->GetPoint().GetX()) {
-        if(OnXChanged(
-          _state->GetCurrentPoint().GetX(), 
-          currentEvent->GetPoint().GetX())) {
-            if ((addedIntersections+_processedInternalSegments.size())>1000) {
-              FlushProcessedSegments();
-              addedIntersections = 0;
-            }
-        }
+      if (_state->GetCurrentPoint().GetX() !=
+        currentEvent->GetPoint().GetX()) {
+          if (OnXChanged(
+            _state->GetCurrentPoint().GetX(),
+            currentEvent->GetPoint().GetX())) {
+              if ((addedIntersections + _processedInternalSegments.size()) >
+                1000) {
+                  FlushProcessedSegments();
+                  addedIntersections = 0;
+              }
+          }
       }
       _state->SetCurrentPoint(currentEvent->GetPoint());
 
       BeforeProcessEvent(currentEvent);
       possibleIntersections.clear();
       if (currentEvent->GetEventType() == Start) {
-        _state->Add(currentEvent->GetSegment(), possibleIntersections);
+#ifndef USE_RIGHTDOM_HALFSEGMENT
+        _activeSegments.insert(currentEvent->GetSegment());
+#endif
+        _state->Add(
+          currentEvent->GetSegment(),
+          possibleIntersections,
+          calculateRegionCoverage);
       } else if (currentEvent->GetEventType() == End) {
         _state->Remove(currentEvent->GetSegment(), possibleIntersections);
+#ifdef USE_RIGHTDOM_HALFSEGMENT
         _activeSegments.erase(currentEvent->GetSegment()->GetAttr().edgeno);
+#else
+        _activeSegments.erase(currentEvent->GetSegment());
+#endif
         _processedInternalSegments.push_back(currentEvent->GetSegment());
-      } else if (currentEvent->GetEventType() == Intersection) {
-        _intersections.erase (currentEvent->GetPoint());
-        _state->Reorder(currentEvent, possibleIntersections);
-        ++_intersectionCount;
+      } else if (currentEvent->GetEventType() == Intersection ||
+        currentEvent->GetEventType() == TouchIntersection) {
+          _intersections.erase(currentEvent->GetPoint());
+          _state->Reorder(
+            currentEvent,
+            possibleIntersections,
+            calculateRegionCoverage);
+          ++_intersectionCount;
       } else {
         throw new logic_error("invalid eventtype!");
       }
 
       if (!possibleIntersections.empty()) {
-        for(vector<PossibleIntersectionPair>::const_iterator 
-          possibleIntersection=possibleIntersections.begin();
-          possibleIntersection!=possibleIntersections.end();
+        for (vector<PossibleIntersectionPair>::const_iterator
+          possibleIntersection = possibleIntersections.begin();
+          possibleIntersection != possibleIntersections.end();
         ++possibleIntersection) {
-          InternalPoint s0s(0,0), s0e(0,0);
-          InternalPoint s1s(0,0), s1e(0,0);
-          PossibleIntersectionPairType pairType = 
+          InternalPoint s0s(0, 0), s0e(0, 0);
+          InternalPoint s1s(0, 0), s1e(0, 0);
+          PossibleIntersectionPairType pairType =
             possibleIntersection->GetType();
 
           if (pairType == SegmentNode) {
@@ -255,7 +329,7 @@ namespace RobustPlaneSweep
             s0e = possibleIntersection->GetNode1()->GetMaxRight();
             s1s = possibleIntersection->GetNode2()->GetMinLeft();
             s1e = possibleIntersection->GetNode2()->GetMaxRight();
-          } else if (pairType == SegmentSegment || 
+          } else if (pairType == SegmentSegment ||
             pairType == SegmentSegmentOverlapping) {
               s0s = possibleIntersection->GetSegment1()->GetLeft();
               s0e = possibleIntersection->GetSegment1()->GetRight();
@@ -267,16 +341,27 @@ namespace RobustPlaneSweep
 
           InternalIntersectionPoint i0, i1;
           int c = LineIntersection::GetIntersections(
-            s0s, 
-            s0e, 
-            s1s, 
-            s1e, 
+            s0s,
+            s0e,
+            s1s,
+            s1e,
             false,
-            i0, 
+            i0,
             i1);
 
           if (c == 0) {
           } else if (c >= 1) {
+            bool touchIntersection = false;
+
+            if (calculateRegionCoverage && c == 1) {
+              if (InternalIntersectionPoint::IsEqual(i0, s0s) ||
+                InternalIntersectionPoint::IsEqual(i0, s0e) ||
+                InternalIntersectionPoint::IsEqual(i0, s1s) ||
+                InternalIntersectionPoint::IsEqual(i0, s1e)) {
+                  touchIntersection = true;
+              }
+            }
+
             for (int ii = 0; ii < c; ++ii) {
               InternalIntersectionPoint ip = (ii == 0 ? i0 : i1);
 
@@ -293,83 +378,87 @@ namespace RobustPlaneSweep
                 }
               }
 
-
               if (isInFuture || isCurrentPoint) {
+                if (reportIntersections) {
+                  GetData()->ReportIntersection(
+                    GetTransformation()->TransformToPoint(ip),
+                    c > 1);
+                }
                 ++addedIntersections;
                 SweepEvent* intersectionEvent = NULL;
-                if (pairType == SegmentSegment || 
+                if (pairType == SegmentSegment ||
                   pairType == SegmentSegmentOverlapping) {
-                    bool overlappingSegments = 
+                    bool overlappingSegments =
                       (pairType == SegmentSegmentOverlapping);
                     AddIntersection(
-                      GetTransformation(), 
-                      possibleIntersection->GetSegment1(), 
-                      overlappingSegments, 
-                      ip, 
-                      isCurrentPoint, 
-                      false, 
+                      possibleIntersection->GetSegment1(),
+                      overlappingSegments,
+                      ip,
+                      isCurrentPoint,
+                      false,
+                      touchIntersection,
                       intersectionEvent);
                     AddIntersection(
-                      GetTransformation(), 
-                      possibleIntersection->GetSegment2(), 
-                      overlappingSegments, 
-                      ip, 
-                      isCurrentPoint, 
-                      false, 
+                      possibleIntersection->GetSegment2(),
+                      overlappingSegments,
+                      ip,
+                      isCurrentPoint,
+                      false,
+                      touchIntersection,
                       intersectionEvent);
                 } else if (pairType == SegmentNode) {
                   AddIntersection(
-                    GetTransformation(), 
-                    possibleIntersection->GetSegment1(), 
-                    false, 
-                    ip, 
-                    isCurrentPoint, 
-                    false, 
+                    possibleIntersection->GetSegment1(),
+                    false,
+                    ip,
+                    isCurrentPoint,
+                    false,
+                    touchIntersection,
                     intersectionEvent);
-                  vector<InternalLineSegment*>* allSegments=
+                  vector<InternalLineSegment*>* allSegments =
                     possibleIntersection->GetNode2()->GetAllSegments();
-                  for(vector<InternalLineSegment*>::const_iterator 
-                    s1=allSegments->begin();
-                    s1!=allSegments->end();++s1) {
+                  for (vector<InternalLineSegment*>::const_iterator
+                    s1 = allSegments->begin();
+                    s1 != allSegments->end(); ++s1) {
                       AddIntersection(
-                        GetTransformation(), 
-                        *s1, 
-                        false, 
-                        ip, 
-                        isCurrentPoint, 
-                        true, 
+                        *s1,
+                        false,
+                        ip,
+                        isCurrentPoint,
+                        true,
+                        touchIntersection,
                         intersectionEvent);
                   }
                   delete allSegments;
                 } else if (pairType == NodeNode) {
-                  vector<InternalLineSegment*>* allSegments1=
+                  vector<InternalLineSegment*>* allSegments1 =
                     possibleIntersection->GetNode1()->GetAllSegments();
-                  for(vector<InternalLineSegment*>::const_iterator 
-                    s1=allSegments1->begin();
-                    s1!=allSegments1->end();++s1) {
+                  for (vector<InternalLineSegment*>::const_iterator
+                    s1 = allSegments1->begin();
+                    s1 != allSegments1->end(); ++s1) {
                       AddIntersection(
-                        GetTransformation(), 
-                        *s1, 
-                        false, 
-                        ip, 
-                        isCurrentPoint, 
-                        true, 
+                        *s1,
+                        false,
+                        ip,
+                        isCurrentPoint,
+                        true,
+                        touchIntersection,
                         intersectionEvent);
                   }
                   delete allSegments1;
 
-                  vector<InternalLineSegment*>* allSegments2=
+                  vector<InternalLineSegment*>* allSegments2 =
                     possibleIntersection->GetNode2()->GetAllSegments();
-                  for(vector<InternalLineSegment*>::const_iterator 
-                    s2=allSegments2->begin();
-                    s2!=allSegments2->end();++s2) {
+                  for (vector<InternalLineSegment*>::const_iterator
+                    s2 = allSegments2->begin();
+                    s2 != allSegments2->end(); ++s2) {
                       AddIntersection(
-                        GetTransformation(), 
-                        *s2, 
-                        false, 
-                        ip, 
-                        isCurrentPoint, 
-                        true, 
+                        *s2,
+                        false,
+                        ip,
+                        isCurrentPoint,
+                        true,
+                        touchIntersection,
                         intersectionEvent);
                   }
                   delete allSegments2;
@@ -394,56 +483,62 @@ namespace RobustPlaneSweep
   }
 
   void BentleyOttmann::AddIntersection(
-    const InternalPointTransformation* transformation, 
-    InternalLineSegment* l, 
-    bool overlappingSegments, 
-    InternalIntersectionPoint ip, 
-    bool isCurrentPoint, 
-    bool checkIntersectionPoint, 
+    InternalLineSegment* l,
+    bool overlappingSegments,
+    InternalIntersectionPoint ip,
+    bool isCurrentPoint,
+    bool checkIntersectionPoint,
+    bool touchIntersection,
     SweepEvent*& intersectionEvent)
   {
     if (checkIntersectionPoint) {
-      if (ip.GetX() < l->GetLeft().GetX() || ip.GetX() > l->GetRight().GetX()) {
-        return;
+      if (ip.GetX() < l->GetLeft().GetX() ||
+        ip.GetX() > l->GetRight().GetX()) {
+          return;
       }
-      int ly=l->GetLeft().GetY();
-      int ry=l->GetRight().GetY();
+      int ly = l->GetLeft().GetY();
+      int ry = l->GetRight().GetY();
 
-      if(ip.GetY() < (ly<ry?ly: ry) || ip.GetY() > (ly>ry?ly: ry)) {
-        return;
+      if (ip.GetY() < (ly < ry ? ly : ry) ||
+        ip.GetY() > (ly > ry ? ly : ry)) {
+          return;
       }
     }
 
     if (!l->IsStartEndPoint(ip)) {
-      l->AddIntersection(transformation, ip);
+      l->AddIntersection(ip);
 
       if (!overlappingSegments && !isCurrentPoint) {
-        if(intersectionEvent==NULL){
+        if (intersectionEvent == NULL) {
           unordered_map<
             InternalIntersectionPoint,
             SweepEvent*,
             InternalIntersectionPointComparer,
             InternalIntersectionPointComparer>
-            ::const_iterator findResult=_intersections.find(ip);
+            ::const_iterator findResult = _intersections.find(ip);
 
-          if (findResult==_intersections.end()) {
-            intersectionEvent = SweepEvent::CreateIntersection(ip);
-            _intersections[ip]=intersectionEvent;
+          if (findResult == _intersections.end()) {
+            if (touchIntersection) {
+              intersectionEvent = SweepEvent::CreateTouchIntersection(ip);
+            } else {
+              intersectionEvent = SweepEvent::CreateIntersection(ip);
+            }
+            _intersections[ip] = intersectionEvent;
+            intersectionEvent->GetIntersectedSegments()->insert(l);
             _intersectionEvents.push(intersectionEvent);
           } else {
-            intersectionEvent=findResult->second;
+            intersectionEvent = findResult->second;
+            intersectionEvent->GetIntersectedSegments()->insert(l);
           }
+        } else {
+          intersectionEvent->GetIntersectedSegments()->insert(l);
         }
-
-        intersectionEvent->GetIntersectedSegments()->insert(l);
       }
     }
-
   }
 
-
   PossibleIntersectionPair::PossibleIntersectionPair(
-    SweepStateData* node1, 
+    SweepStateData* node1,
     SweepStateData* node2)
   {
     if (node1->IsSingleSegment()) {
@@ -476,7 +571,7 @@ namespace RobustPlaneSweep
   }
 
   PossibleIntersectionPair::PossibleIntersectionPair(
-    InternalLineSegment* segment, 
+    InternalLineSegment* segment,
     SweepStateData* node)
   {
     if (node->IsSingleSegment()) {
@@ -495,8 +590,8 @@ namespace RobustPlaneSweep
   }
 
   PossibleIntersectionPair::PossibleIntersectionPair(
-    InternalLineSegment* segment1, 
-    InternalLineSegment* segment2, 
+    InternalLineSegment* segment1,
+    InternalLineSegment* segment2,
     PossibleIntersectionPairType type)
   {
     _type = type;

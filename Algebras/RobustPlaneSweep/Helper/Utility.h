@@ -34,9 +34,9 @@ namespace RobustPlaneSweep
     static const double Power10[12];
 
   public:
-    static double Round(const double value,const int digits) {
-      double factor=Power10[digits];
-      double result=floor((value*factor)+0.5)/factor;
+    static double Round(const double value, const int digits) {
+      double factor = Power10[digits];
+      double result = floor((value*factor)+0.5)/factor;
 
       return result;
     }

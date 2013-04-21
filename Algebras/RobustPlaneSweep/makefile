@@ -30,7 +30,7 @@ include ../../makefile.env
 # expand compile flags if necessary
 CCFLAGS += -std=c++0x -I Helper $(ALG_INC_DIRS)
 
-OBJECTS = RobustPlaneSweepAlgebra.o Algorithm/BentleyOttmann.o Algorithm/Hobby.o Algorithm/IntersectionAlgorithm.o Helper/InternalGeomtries.o Helper/Utility.o
+OBJECTS = RobustPlaneSweepAlgebra.o Algorithm/BentleyOttmann.o Algorithm/Hobby.o Algorithm/IntersectionAlgorithm.o Helper/InternalGeometries.o Helper/Utility.o
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 

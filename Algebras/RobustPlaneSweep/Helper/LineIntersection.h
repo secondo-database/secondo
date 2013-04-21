@@ -36,9 +36,9 @@ namespace RobustPlaneSweep
   {
   private:
     static bool IsPointOnLineHelper(
-      long long p, 
-      long long s0, 
-      long long s1, 
+      long long p,
+      long long s0,
+      long long s1,
       bool includePseudoIntersections)
     {
       if (includePseudoIntersections) {
@@ -62,8 +62,8 @@ namespace RobustPlaneSweep
       const InternalPoint& a1,
       const InternalPoint& b0,
       const InternalPoint& b1,
-      const bool includePseudoIntersections, 
-      InternalIntersectionPoint &i0, 
+      const bool includePseudoIntersections,
+      InternalIntersectionPoint &i0,
       InternalIntersectionPoint &i1)
     {
       long long ux = (a1.GetX() - a0.GetX());
@@ -121,7 +121,7 @@ namespace RobustPlaneSweep
           i0 = InternalIntersectionPoint(b0);
           return 1;
         } else {
-          SimpleRational t0(0,1), t1(0,1);
+          SimpleRational t0(0, 1), t1(0, 1);
           if (llabs(vx) > llabs(vy)) {
             t0 =  SimpleRational(wx, vx);
             t1 =  SimpleRational(a1.GetX()- b0.GetX(), vx);
@@ -167,12 +167,12 @@ namespace RobustPlaneSweep
           } else if (t0 == 0 && t1 == 1) {
             if (!includePseudoIntersections) {
               if (
-                a0.GetX() == b0.GetX() && a0.GetY() == b0.GetY() && 
+                a0.GetX() == b0.GetX() && a0.GetY() == b0.GetY() &&
                 a1.GetX() == b1.GetX() && a1.GetY() == b1.GetY()) {
                   return 0;
               }
               if (
-                a0.GetX() == b1.GetX() && a0.GetY() == b1.GetY() && 
+                a0.GetX() == b1.GetX() && a0.GetY() == b1.GetY() &&
                 a1.GetX() == b0.GetX() && a1.GetY() == b0.GetY()) {
                   return 0;
               }
@@ -183,20 +183,20 @@ namespace RobustPlaneSweep
           } else if (t0 == t1) {
             Rational ratt0 = (Rational)t0;
             i0 = InternalIntersectionPoint(
-              (ratt0 * (int)vx + b0.GetX()), 
+              (ratt0 * (int)vx + b0.GetX()),
               (ratt0 * (int)vy + b0.GetY()));
             return 1;
           } else {
             Rational ratt0 = (Rational)t0;
             Rational ratt1 = (Rational)t1;
-            
+
             i0 = InternalIntersectionPoint(
-              (ratt0 * (int)vx + b0.GetX()), 
+              (ratt0 * (int)vx + b0.GetX()),
               (ratt0 * (int)vy + b0.GetY()));
-            
+
             i1 = InternalIntersectionPoint(
-              (ratt1 * (int)vx + b0.GetX()), 
-              (ratt1 * (int)vy + b0.GetY())); ;
+              (ratt1 * (int)vx + b0.GetX()),
+              (ratt1 * (int)vy + b0.GetY()));
 
             return 2;
           }
@@ -212,7 +212,6 @@ namespace RobustPlaneSweep
         if (ti < 0 || ti > 1) {
           return 0;
         }
-
 
         if (si == 0) {
           if (!includePseudoIntersections && (ti == 0 || ti == 1)) {

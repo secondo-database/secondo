@@ -41,19 +41,21 @@ namespace RobustPlaneSweep
       const long long numerator,
       const long long denominator,
       const bool) :
-    _integerPart(integerPart),_numerator(numerator),_denominator(denominator)
+    _integerPart(integerPart),
+      _numerator(numerator),
+      _denominator(denominator)
     {
     }
 
   public:
     explicit Rational(const int value) :
-    _integerPart(value),_numerator(0),_denominator(1)
+    _integerPart(value), _numerator(0), _denominator(1)
     {
     }
 
     Rational(const long long numerator, const long long denominator)
     {
-      Init(0,numerator,denominator);
+      Init(0, numerator, denominator);
     }
 
     Rational(
@@ -61,7 +63,7 @@ namespace RobustPlaneSweep
       const long long numerator,
       const long long denominator)
     {
-      Init(integerPart,numerator,denominator);
+      Init(integerPart, numerator, denominator);
     }
 
     Rational operator *(const Rational& v) const
@@ -71,7 +73,7 @@ namespace RobustPlaneSweep
       } else if (_numerator == 0) {
         return v * _integerPart;
       } else {
-        throw new std::invalid_argument ("v2");
+        throw new std::invalid_argument("v2");
       }
     }
 
@@ -88,13 +90,13 @@ namespace RobustPlaneSweep
       }
 
       bool negateResult = false;
-      int factor=v;
+      int factor = v;
       if (factor < 0) {
         factor = -factor;
         negateResult = true;
       }
 
-      if (_numerator < std::numeric_limits<int>::max() && 
+      if (_numerator < std::numeric_limits<int>::max() &&
         factor < std::numeric_limits<int>::max()) {
           long long m = _numerator * factor;
           long long newNum = m % _denominator;
@@ -117,15 +119,15 @@ namespace RobustPlaneSweep
 
         while (a > 0) {
           long long c = b/a;
-          long long cm=b%a;
+          long long cm = b%a;
           if (cm != 0) {
             cm = a - cm;
             ++c;
           }
 
           long long dcm;
-          int dc=(int)(d/c);
-          dcm=d%c;
+          int dc = (int)(d/c);
+          dcm = d%c;
 
           intAdd += dc;
           newNumerator += dcm * a;
@@ -139,8 +141,8 @@ namespace RobustPlaneSweep
         }
 
         Rational result(
-          (int)(_integerPart * factor) + intAdd, 
-          newNumerator, 
+          (int)(_integerPart * factor) + intAdd,
+          newNumerator,
           (newNumerator != 0 ? _denominator : 1));
 
         if (negateResult) {
@@ -148,22 +150,21 @@ namespace RobustPlaneSweep
         }
         return result;
       }
-
     }
 
     Rational operator -() const
     {
       if (_numerator == 0) {
         return Rational(
-          -_integerPart, 
-          0, 
-          1, 
+          -_integerPart,
+          0,
+          1,
           true);
       } else {
         return Rational(
-          -_integerPart - 1, 
-          _denominator - _numerator, 
-          _denominator, 
+          -_integerPart - 1,
+          _denominator - _numerator,
+          _denominator,
           true);
       }
     }
@@ -171,9 +172,9 @@ namespace RobustPlaneSweep
     Rational operator -(const int v2) const
     {
       Rational  result =  Rational(
-        _integerPart - v2, 
-        _numerator, 
-        _denominator, 
+        _integerPart - v2,
+        _numerator,
+        _denominator,
         true);
       return result;
     }
@@ -181,9 +182,9 @@ namespace RobustPlaneSweep
     Rational operator +(const int v2) const
     {
       Rational result =  Rational(
-        _integerPart + v2, 
+        _integerPart + v2,
         _numerator,
-        _denominator, 
+        _denominator,
         true);
       return result;
     }
@@ -242,7 +243,6 @@ namespace RobustPlaneSweep
       return _integerPart != y || _numerator != 0;
     }
 
-
     bool operator <(const Rational& y) const
     {
       return Compare(*this, y) < 0;
@@ -299,18 +299,18 @@ namespace RobustPlaneSweep
           long long d2 = y._numerator;
           bool negateResult = true;
 
-          if (n1 < std::numeric_limits<int>::max()  && 
-            d1 < std::numeric_limits<int>::max() && 
-            n2 < std::numeric_limits<int>::max() && 
+          if (n1 < std::numeric_limits<int>::max()  &&
+            d1 < std::numeric_limits<int>::max() &&
+            n2 < std::numeric_limits<int>::max() &&
             d2 < std::numeric_limits<int>::max()) {
-              long long t1=(d1*n2);
-              long long t2=(d2*n1);
-              return (t1<t2?-1:(t1>t2?1:0));
+              long long t1 = (d1 * n2);
+              long long t2 = (d2*n1);
+              return (t1 < t2 ? -1 : (t1 > t2 ? 1 : 0));
           }
 
-          for(;;) {
-            long long div1=n1/d1, rem1=n1%d1;
-            long long div2=n2/d2, rem2=n2%d2;
+          for (;;) {
+            long long div1 = n1 / d1, rem1 = n1 % d1;
+            long long div2 = n2 / d2, rem2 = n2 % d2;
             if (div1 < div2) {
               return (negateResult ? 1 : -1);
             } else if (div1 > div2) {
@@ -335,7 +335,7 @@ namespace RobustPlaneSweep
       }
     }
 
-    static const Rational Max(const Rational& x,const  Rational& y)
+    static const Rational Max(const Rational& x, const Rational& y)
     {
       if (x > y) {
         return x;
@@ -344,7 +344,7 @@ namespace RobustPlaneSweep
       }
     }
 
-    static const Rational Min(const Rational& x,const  Rational& y)
+    static const Rational Min(const Rational& x, const  Rational& y)
     {
       if (x < y) {
         return x;
@@ -353,7 +353,7 @@ namespace RobustPlaneSweep
       }
     }
 
-    static int Round(const Rational& number,const int step)
+    static int Round(const Rational& number, const int step)
     {
       if (step == 1) {
         if (number._numerator == 0) {
@@ -361,7 +361,7 @@ namespace RobustPlaneSweep
         }
 
         long long d = number._denominator - number._numerator;
-        if (d < number._numerator || 
+        if (d < number._numerator ||
           (number._integerPart >= 0 && d == number._numerator)) {
             return number._integerPart + 1;
         } else {
@@ -377,12 +377,12 @@ namespace RobustPlaneSweep
 
   private:
     void Init(
-      const int integerPart, 
-      const long long numerator, 
+      const int integerPart,
+      const long long numerator,
       const long long denominator)
     {
       if (denominator == 0) {
-        throw new std::invalid_argument ("denominator");
+        throw new std::invalid_argument("denominator");
       }
 
       _integerPart = integerPart;
@@ -391,8 +391,8 @@ namespace RobustPlaneSweep
         _numerator = 0;
         _denominator = 1;
       } else {
-        long long num=numerator;
-        long long den=denominator;
+        long long num = numerator;
+        long long den = denominator;
 
         if (den < 0) {
           den = -den;
@@ -409,8 +409,8 @@ namespace RobustPlaneSweep
 
         if (num >= den) {
           int temp = (int)(num / den);
-          _numerator=num % den;
-          _integerPart = 
+          _numerator = num % den;
+          _integerPart =
             (numeratorNegative ? _integerPart - temp : _integerPart + temp);
           _denominator = den;
         } else {
@@ -426,7 +426,6 @@ namespace RobustPlaneSweep
         if (_numerator == 0) {
           _denominator = 1;
         }
-
       }
     }
   };
@@ -451,24 +450,24 @@ namespace RobustPlaneSweep
         _numerator = numerator;
         _denominator = denominator;
       }
-    }    
+    }
 
-    bool operator>(SimpleRational &y)
+    bool operator>(const SimpleRational &y)
     {
       if (_denominator == y._denominator) {
         return _numerator > y._numerator;
       } else {
         throw new std::invalid_argument("y");
-      } 
+      }
     }
 
-    bool operator<(SimpleRational &y)
+    bool operator<(const SimpleRational &y)
     {
       if (_denominator == y._denominator) {
         return _numerator < y._numerator;
       } else {
         throw new std::invalid_argument("y");
-      } 
+      }
     }
 
     bool operator>(int y)
@@ -477,7 +476,7 @@ namespace RobustPlaneSweep
         return _numerator > _denominator;
       } else {
         throw new std::invalid_argument("y");
-      } 
+      }
     }
 
     bool operator<(int y)
@@ -486,7 +485,7 @@ namespace RobustPlaneSweep
         return _numerator < 0;
       } else {
         throw new std::invalid_argument("y");
-      } 
+      }
     }
 
     bool operator==(int y)
@@ -497,10 +496,10 @@ namespace RobustPlaneSweep
         return _numerator == _denominator;
       } else {
         throw new std::invalid_argument("y");
-      } 
+      }
     }
 
-    bool operator ==(SimpleRational &y)
+    bool operator==(const SimpleRational &y)
     {
       if (_denominator == y._denominator) {
         return _numerator == y._numerator;
@@ -517,9 +516,9 @@ namespace RobustPlaneSweep
       }
     }
 
-    operator Rational() 
-    { 
-      return Rational(_numerator,_denominator ); 
+    operator Rational()
+    {
+      return Rational(_numerator, _denominator);
     }
   };
 }

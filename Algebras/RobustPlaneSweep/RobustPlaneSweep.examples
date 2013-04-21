@@ -1,6 +1,17 @@
 Database: berlintest
 Restore : No
 
+Operator : minus2
+Number   : 1
+Signature: line x line -> line
+Example  : query train7sections minus2 train7sections
+Result   : (line ())
+
+Operator : minus2
+Number   : 2
+Signature: region x region -> region
+Example  : query thecenter minus2 thecenter
+Result   : (region ())
 
 Operator : trajectory2
 Number   : 1
@@ -8,4 +19,39 @@ Signature: mpoint -> line
 Example  : query trajectory2(train7)
 Result   : file
 
+Operator : crossings2
+Number   : 1
+Signature: (line x line) -> points
+Example  : query strassen feed {s1} strassen feed {s2} spatialjoin[geoData_s1, geoData_s2] filter[.Name_s1 < .Name_s2] filter[.geoData_s1 intersects .geoData_s2] projectextendstream[Name_s1, Name_s2; Cross: components(crossings2(.geoData_s1, .geoData_s2))] project[Cross] consume
+Result   : bug
+Remark   : some points are in the result which are not crossings of streets
 
+Operator : toline
+Number   : 1
+Signature: dpoint -> line
+Example  : query toline(train7)
+Result   : file
+
+Operator : intersection2
+Number   : 1
+Signature: line x line
+Example  : query intersection2(train7sections, train7sections) = train7sections
+Result   : TRUE
+
+Operator : intersection2
+Number   : 2
+Signature: region x region
+Example  : query intersection2(thecenter, thecenter)= thecenter
+Result   : TRUE
+
+Operator : union2
+Number   : 1
+Signature: line x line -> line
+Example  : query (BGrenzenLine union2 train7sections) = (train7sections union2 BGrenzenLine)
+Result   : TRUE
+
+Operator : union2
+Number   : 2
+Signature: region x region -> region
+Example  : query (thecenter union2 tiergarten) = thecenter
+Result   : TRUE

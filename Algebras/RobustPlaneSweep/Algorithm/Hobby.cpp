@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-
 #include <algorithm>
 
 #include "Hobby.h"
@@ -38,17 +37,17 @@ namespace RobustPlaneSweep
     BentleyOttmann::DetermineIntersectionsInternal();
   }
 
-  AvlTreeNode<InternalLineSegment*, SweepStateData*>* 
+  AvlTreeNode<InternalLineSegment*, SweepStateData*>*
     Hobby::GetStartNode(Rational searchY)
   {
-    AvlTreeNode<InternalLineSegment*, SweepStateData*>* currentNode = 
+    AvlTreeNode<InternalLineSegment*, SweepStateData*>* currentNode =
       GetState()->GetTreeRoot();
 
     AvlTreeNode<InternalLineSegment*, SweepStateData*>* lastNode = NULL;
 
     while (currentNode != NULL) {
       lastNode = currentNode;
-      if (searchY < 
+      if (searchY <
         currentNode->Value->GetYValueAt(GetState()->GetCurrentPoint())) {
           currentNode = currentNode->Left;
       } else {
@@ -61,30 +60,30 @@ namespace RobustPlaneSweep
 
   void Hobby::AddEvents()
   {
-    for(unordered_set<InternalLineSegment*>::const_iterator 
+    for (unordered_set<InternalLineSegment*>::const_iterator
       segment =_openSegments.begin();
-      segment!=_openSegments.end();++segment) {
-        _events.push_back (
+      segment != _openSegments.end(); ++segment) {
+        _events.push_back(
           HobbyEvent(
-          SegmentExit, 
+          SegmentExit,
           (*segment)->GetYValueAt(
-          InternalIntersectionPoint(_currentHammockEnd, 0)), 
+          InternalIntersectionPoint(_currentHammockEnd, 0)),
           *segment));
     }
 
     InternalIntersectionPoint hammockStart(_currentHammockStart, 0);
-    InternalIntersectionPoint hammockEnd (_currentHammockEnd, 0);
+    InternalIntersectionPoint hammockEnd(_currentHammockEnd, 0);
 
     vector<int> squares;
-    for(unordered_set<int>::const_iterator 
+    for (unordered_set<int>::const_iterator
       i =_addedSquares.begin();
-      i!=_addedSquares.end();++i) {
+      i != _addedSquares.end(); ++i) {
         squares.push_back(*i);
     }
-    sort(squares.begin(),squares.end());
+    sort(squares.begin(), squares.end());
 
-    SweepState* state=GetState();
-    state->SetCurrentPoint( hammockEnd);
+    SweepState* state = GetState();
+    state->SetCurrentPoint(hammockEnd);
     state->SetAssumeYEqual(false);
 
     int spacing4 = _spacing * 4;
@@ -100,26 +99,26 @@ namespace RobustPlaneSweep
       int topSquareEdge = topSquare - _spacing;
       int bottomSquareEdge = bottomSquare + _spacing;
 
-      AvlTreeNode<InternalLineSegment*, SweepStateData*>* startNode=
+      AvlTreeNode<InternalLineSegment*, SweepStateData*>* startNode =
         GetStartNode(Rational(topSquareEdge));
 
       for (int direction = 0; direction < 2; ++direction) {
         AvlTreeNode<InternalLineSegment*, SweepStateData*>* node = startNode;
         bool loop = true;
         while (node != NULL && loop) {
-          vector<InternalLineSegment*>* segments=
+          vector<InternalLineSegment*>* segments =
             node->Value->GetAllSegments();
 
-          for(vector<InternalLineSegment*>::const_iterator segment=
+          for (vector<InternalLineSegment*>::const_iterator segment =
             segments->begin();
-            segment!=segments->end();++segment) {
-              if (_addedSegments.insert (*segment).second) {
+            segment != segments->end(); ++segment) {
+              if (_addedSegments.insert(*segment).second) {
                 Rational yEnter = (*segment)->GetYValueAt(hammockStart);
                 Rational yExit = (*segment)->GetYValueAt(hammockEnd);
                 _events.push_back(HobbyEvent(SegmentEnter, yEnter, *segment));
                 _events.push_back(HobbyEvent(SegmentExit, yExit, *segment));
 
-                if(direction==0) {
+                if (direction == 0) {
                   if (yEnter < topSquareEdge && yExit < topSquareEdge) {
                     loop =false;
                   }
@@ -139,7 +138,6 @@ namespace RobustPlaneSweep
     }
   }
 
-
   void Hobby::ProcessEvents()
   {
     if (_events.empty()) {
@@ -148,31 +146,34 @@ namespace RobustPlaneSweep
 
     AddEvents();
 
-    sort(_events.begin(),_events.end());
+    sort(_events.begin(), _events.end());
 
     unordered_set<InternalLineSegment*>  activeLineSegments;
 
     bool inToleranceSquare = false;
     int currentSquareY = 0;
-    for(vector<HobbyEvent>::const_iterator 
-      e=_events.begin();
-      e!=_events.end();++e) {
+    for (vector<HobbyEvent>::const_iterator
+      e = _events.begin();
+      e != _events.end(); ++e) {
         if (e->GetEventType() == BeginTolaranceSquare) {
           if (inToleranceSquare) {
-            throw new logic_error (
+            throw new logic_error(
               "wrong event order! (still in tolerance square)");
           }
           inToleranceSquare = true;
 
           currentSquareY = GetTransformation()->
-            RoundRational(e->GetY () + _spacing);
+            RoundRational(e->GetY() + _spacing);
 
-          for(unordered_set<InternalLineSegment*>::const_iterator 
-            s=activeLineSegments.begin();
-            s!=activeLineSegments.end();++s) {
-              (*s)->AddIntersection(
-                GetTransformation(), 
-                InternalIntersectionPoint(_currentHammock,  currentSquareY));
+          for (unordered_set<InternalLineSegment*>::const_iterator
+            s = activeLineSegments.begin();
+            s != activeLineSegments.end(); ++s) {
+              if (_ignoredIntersections.find(
+                std::make_pair(currentSquareY, *s)) ==
+                _ignoredIntersections.end()) {
+                  (*s)->AddHobbyIntersection(
+                    _currentHammock,  currentSquareY, _spacing);
+              }
           }
         } else if (e->GetEventType() == EndTolaranceSquare) {
           if (!inToleranceSquare) {
@@ -180,21 +181,23 @@ namespace RobustPlaneSweep
               "wrong event oder! (not in tolerance square)");
           }
 
-          for(unordered_set<InternalLineSegment*>::const_iterator 
-            s=activeLineSegments.begin();
-            s!=activeLineSegments.end();++s) {
-              (*s)->AddIntersection(
-                GetTransformation(), 
-                InternalIntersectionPoint(_currentHammock, currentSquareY));
+          for (unordered_set<InternalLineSegment*>::const_iterator
+            s = activeLineSegments.begin();
+            s != activeLineSegments.end(); ++s) {
+              if (_ignoredIntersections.find(
+                std::make_pair(currentSquareY, *s)) ==
+                _ignoredIntersections.end()) {
+                  (*s)->AddHobbyIntersection(
+                    _currentHammock, currentSquareY, _spacing);
+              }
           }
 
           inToleranceSquare = false;
-        } else if (e->GetEventType() == SegmentBegin || 
-          e->GetEventType() == SegmentEnd || 
-          e->GetEventType() == SegmentEnter || 
+        } else if (e->GetEventType() == SegmentBegin ||
+          e->GetEventType() == SegmentEnd ||
+          e->GetEventType() == SegmentEnter ||
           e->GetEventType() == SegmentExit) {
-
-            if (activeLineSegments.find(e->GetSegment())!=
+            if (activeLineSegments.find(e->GetSegment()) !=
               activeLineSegments.end()) {
                 activeLineSegments.erase(e->GetSegment());
             } else {
@@ -202,20 +205,22 @@ namespace RobustPlaneSweep
             }
 
             if (inToleranceSquare) {
-              e->GetSegment()->AddIntersection(
-                GetTransformation(), 
-                InternalIntersectionPoint(_currentHammock, currentSquareY));
+              if (_ignoredIntersections.find(
+                std::make_pair(currentSquareY, e->GetSegment())) ==
+                _ignoredIntersections.end()) {
+                  e->GetSegment()->AddHobbyIntersection(
+                    _currentHammock, currentSquareY, _spacing);
+              }
             }
-
         } else {
           throw new logic_error("not supported event type!");
         }
-
     }
 
     _events.clear();
     _addedSegments.clear();
     _openSegments.clear();
     _addedSquares.clear();
+    _ignoredIntersections.clear();
   }
 }

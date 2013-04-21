@@ -44,39 +44,37 @@ namespace RobustPlaneSweep
 
     std::unordered_map<
       double,
-      std::pair<std::vector<size_t>*,std::vector<size_t>*>>
+      std::pair<std::vector<size_t>*, std::vector<size_t>*>>
       _possiblePairs;
 
     void FindPossiblePairs();
 
   public:
-    template <class ForwardIterator0, class ForwardIterator1> 
+    template <class ForwardIterator0, class ForwardIterator1>
     LineSegmentComparer(
       ForwardIterator0 start0,
       ForwardIterator0 end0,
       ForwardIterator1 start1,
       ForwardIterator1 end1)
     {
-      for(ForwardIterator0 i=start0;i!=end0;++i) {
-        _segments0.push_back (*i);
+      for (ForwardIterator0 i = start0; i != end0; ++i) {
+        _segments0.push_back(*i);
       }
-      for(ForwardIterator1 i=start1;i!=end1;++i) {
-        _segments1.push_back (*i);
+      for (ForwardIterator1 i = start1; i != end1; ++i) {
+        _segments1.push_back(*i);
       }
-
     }
 
-    ~LineSegmentComparer() 
+    ~LineSegmentComparer()
     {
-      for(std::unordered_map<
+      for (std::unordered_map<
         double,
-        std::pair<std::vector<size_t>*,std::vector<size_t>*>>::const_iterator 
-        i=_possiblePairs.begin();
-        i!=_possiblePairs.end();++i) {
+        std::pair<std::vector<size_t>*, std::vector<size_t>*>>::const_iterator
+        i = _possiblePairs.begin();
+      i != _possiblePairs.end(); ++i) {
         delete i->second.first;
         delete i->second.second;
       }
-
     }
 
     bool IsEqual();

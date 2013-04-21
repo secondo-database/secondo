@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-
 #include <algorithm>
 
 #include "IntersectionAlgorithm.h"
@@ -32,26 +31,70 @@ using namespace std;
 namespace RobustPlaneSweep
 {
   bool IntersectionAlgorithm::OverlappingSegmentsSortComparer(
-    InternalResultLineSegment x, 
-    InternalResultLineSegment y)
+    InternalResultLineSegment s0,
+    InternalResultLineSegment s1)
   {
-    bool xReverseStartEnd = InternalPoint::Compare(x.GetStart(),x.GetEnd())<0;
-    bool yReverseStartEnd = InternalPoint::Compare(y.GetStart(),y.GetEnd())<0;
+    bool xReverseStartEnd, yReverseStartEnd;
+
+    xReverseStartEnd = InternalPoint::Compare(s0.GetStart(), s0.GetEnd()) < 0;
+    yReverseStartEnd = InternalPoint::Compare(s1.GetStart(), s1.GetEnd()) < 0;
 
     int result = InternalPoint::Compare(
-      (!xReverseStartEnd ? x.GetStart() : x.GetEnd()),
-      (!yReverseStartEnd ? y.GetStart() : y.GetEnd()));
+      (!xReverseStartEnd ? s0.GetStart() : s0.GetEnd()),
+      (!yReverseStartEnd ? s1.GetStart() : s1.GetEnd()));
 
     if (result == 0) {
       result = InternalPoint::Compare(
-        (!xReverseStartEnd ? x.GetEnd() : x.GetStart()),
-        (!yReverseStartEnd ? y.GetEnd() : y.GetStart()));
+        (!xReverseStartEnd ? s0.GetEnd() : s0.GetStart()),
+        (!yReverseStartEnd ? s1.GetEnd() : s1.GetStart()));
     }
 
-    return result<0;
+    if (result == 0) {
+      if (s0.GetStart().GetX() != s0.GetEnd().GetX()) {
+        int x = s0.GetStart().GetX() +
+          ((s0.GetEnd().GetX() - s0.GetStart().GetX()) / 2);
+
+        Rational s0a = Rational(
+          s0.GetOriginalStart().GetY() - s0.GetOriginalEnd().GetY(),
+          s0.GetOriginalStart().GetX() - s0.GetOriginalEnd().GetX());
+
+        Rational s1a = Rational(
+          s1.GetOriginalStart().GetY() - s1.GetOriginalEnd().GetY(),
+          s1.GetOriginalStart().GetX() - s1.GetOriginalEnd().GetX());
+
+        Rational p0 = s0a * (x - s0.GetOriginalStart().GetX()) +
+          s0.GetOriginalStart().GetY();
+
+        Rational p1 = s1a * (x - s1.GetOriginalStart().GetX()) +
+          s1.GetOriginalStart().GetY();
+
+        result = Rational::Compare(p0, p1);
+      } else {
+        int y = s0.GetStart().GetY() +
+          ((s0.GetEnd().GetY() - s0.GetStart().GetY()) / 2);
+
+        Rational s0a = Rational(
+          s0.GetOriginalStart().GetX() - s0.GetOriginalEnd().GetX(),
+          s0.GetOriginalStart().GetY() - s0.GetOriginalEnd().GetY());
+
+        Rational s1a = Rational(
+          s1.GetOriginalStart().GetX() - s1.GetOriginalEnd().GetX(),
+          s1.GetOriginalStart().GetY() - s1.GetOriginalEnd().GetY());
+
+        Rational p0 = s0a * (y - s0.GetOriginalStart().GetY()) +
+          s0.GetOriginalStart().GetX();
+
+        Rational p1 = s1a * (y - s1.GetOriginalStart().GetY()) +
+          s1.GetOriginalStart().GetX();
+
+        result = Rational::Compare(p0, p1);
+      }
+    }
+
+    return result < 0;
   }
 
-  vector<InternalResultLineSegment>* 
+  vector<InternalResultLineSegment>*
     IntersectionAlgorithm::RemoveOverlappingSegments(
     vector<InternalResultLineSegment>& segments)
   {
@@ -60,45 +103,40 @@ namespace RobustPlaneSweep
       segments.end(),
       IntersectionAlgorithm::OverlappingSegmentsSortComparer);
 
-    vector<InternalResultLineSegment>* result=
+    vector<InternalResultLineSegment>* result =
       new vector<InternalResultLineSegment>();
 
-    bool mergedSegmentSet=false;
+    bool mergedSegmentSet = false;
     InternalResultLineSegment mergedSegment(
       AttrType(0),
-      InternalPoint(0,0),
-      InternalPoint(0,0));
+      InternalPoint(0, 0),
+      InternalPoint(0, 0),
+      InternalPoint(0, 0),
+      InternalPoint(0, 0),
+      InternalAttribute());
 
-    for(vector<InternalResultLineSegment>::const_iterator 
-      segment=segments.begin();
-      segment!=segments.end();++segment) {
+    for (vector<InternalResultLineSegment>::const_iterator
+      segment = segments.begin();
+      segment != segments.end(); ++segment) {
         if (!mergedSegmentSet) {
           mergedSegment = *segment;
-          mergedSegmentSet=true;
+          mergedSegmentSet = true;
         } else {
           if ((InternalPoint::IsEqual(
-            segment->GetStart(), 
+            segment->GetStart(),
             mergedSegment.GetStart()) &&
             InternalPoint::IsEqual(
-            segment->GetEnd(), 
+            segment->GetEnd(),
             mergedSegment.GetEnd())) ||
             (InternalPoint::IsEqual(
-            segment->GetStart(), 
-            mergedSegment.GetEnd()) && 
+            segment->GetStart(),
+            mergedSegment.GetEnd()) &&
             InternalPoint::IsEqual(
-            segment->GetEnd(), 
+            segment->GetEnd(),
             mergedSegment.GetStart()))) {
-
-              AttrType mergedAttributes = 
-                _data->MergeAttributes(
-                mergedSegment.GetAttr(),
-                segment->GetAttr());
-
-              mergedSegment = InternalResultLineSegment(
-                mergedAttributes, 
-                mergedSegment.GetStart(), 
-                mergedSegment.GetEnd());
-
+              mergedSegment = InternalResultLineSegment::MergeSegments(
+                mergedSegment,
+                *segment);
           } else {
             result->push_back(mergedSegment);
             mergedSegment = *segment;
@@ -115,14 +153,15 @@ namespace RobustPlaneSweep
 
   void IntersectionAlgorithm::CreateTransformation()
   {
-    const Rectangle<2> boundingBox=_data->GetBoundingBox();
+    const Rectangle<2> boundingBox = _data->GetBoundingBox();
 
     if (!boundingBox.IsDefined()) {
       _transformation = new InternalPointTransformation(
         0,
-        0, 
+        0,
         GetInitialScaleFactor(),
-        0);
+        0,
+        1);
       return;
     }
 
@@ -132,9 +171,9 @@ namespace RobustPlaneSweep
     double maxY = boundingBox.MaxD(1);
 
     int maxValue = (int)ceil(std::max(
-      std::max(fabs(maxX), fabs(minX)), 
+      std::max(fabs(maxX), fabs(minX)),
       std::max(fabs(maxY), fabs(minY))));
-    
+
     int availableDigits = 14;
     while (maxValue > 0) {
       availableDigits--;
@@ -148,7 +187,7 @@ namespace RobustPlaneSweep
 
     int roundingDecimalPlaces = 0;
 
-    for (; ; ) {
+    for (;;) {
       maxExtent *= 10;
       if (maxExtent >= 1000000000 || scaleFactor >= 200000000) {
         break;
@@ -162,9 +201,18 @@ namespace RobustPlaneSweep
       roundingDecimalPlaces -= (-availableDigits);
     }
 
-    int roundToDecimals=_data->GetRoundToDecimals();
-    if (roundToDecimals >= 0 && roundToDecimals<roundingDecimalPlaces) {
+    int roundToDecimals, roundingDecimalSteps;
+    _data->GetRoundToDecimals(roundToDecimals, roundingDecimalSteps);
+
+    if ((10%roundingDecimalSteps) != 0) {
+      throw new std::logic_error(
+        "invalid step size! (only 1, 2 or 5 are allowed)");
+    }
+
+    if (roundToDecimals >= 0 && roundToDecimals < roundingDecimalPlaces) {
       roundingDecimalPlaces = roundToDecimals;
+    } else {
+      roundingDecimalSteps = 1;
     }
 
     int mod = scaleFactor;
@@ -183,9 +231,10 @@ namespace RobustPlaneSweep
     offsetY = offsetY - (offsetY % mod) - (offsetY < 0 ? mod : 0);
 
     _transformation = new InternalPointTransformation(
-      offsetX, 
-      offsetY, 
-      scaleFactor, 
-      roundingDecimalPlaces);
+      offsetX,
+      offsetY,
+      scaleFactor,
+      roundingDecimalPlaces,
+      roundingDecimalSteps);
   }
 }

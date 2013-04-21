@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
-  template<class TKey,class TValue> 
+  template<class TKey, class TValue>
   class AvlTreeNode
   {
   private:
@@ -37,15 +37,15 @@ namespace RobustPlaneSweep
     int _balance;
 
     static void SwapParentChildNode(
-      AvlTreeNode<TKey, TValue>* parent, 
+      AvlTreeNode<TKey, TValue>* parent,
       AvlTreeNode<TKey, TValue>* child)
     {
-      int heightTemp = parent->_height; 
-      parent->_height = child->_height; 
+      int heightTemp = parent->_height;
+      parent->_height = child->_height;
       child->_height = heightTemp;
 
-      int balanceTemp = parent->_balance; 
-      parent->_balance = child->_balance; 
+      int balanceTemp = parent->_balance;
+      parent->_balance = child->_balance;
       child->_balance = balanceTemp;
 
       AvlTreeNode<TKey, TValue>* childLeft = child->Left;
@@ -58,8 +58,8 @@ namespace RobustPlaneSweep
       child->Left = (parentLeft == child ? parent : parentLeft);
       child->Right = (parentRight == child ? parent : parentRight);
 
-      AvlTreeNode<TKey, TValue>* parentTemp = parent->Parent; 
-      parent->Parent = child->Parent; 
+      AvlTreeNode<TKey, TValue>* parentTemp = parent->Parent;
+      parent->Parent = child->Parent;
       child->Parent = parentTemp;
 
       if (parent->Left != NULL) { parent->Left->Parent = parent; }
@@ -68,12 +68,12 @@ namespace RobustPlaneSweep
       if (child->Right != NULL) { child->Right->Parent = child; }
 
       if (child->Parent != NULL) {
-        if (child->Parent->Left == parent) { 
-          child->Parent->Left = child; 
-        } else if (child->Parent->Right == parent) { 
-          child->Parent->Right = child; 
-        } else { 
-          throw new std::invalid_argument("child"); 
+        if (child->Parent->Left == parent) {
+          child->Parent->Left = child;
+        } else if (child->Parent->Right == parent) {
+          child->Parent->Right = child;
+        } else {
+          throw new std::invalid_argument("child");
         }
       }
     }
@@ -90,9 +90,9 @@ namespace RobustPlaneSweep
       return _key;
     }
 
-    void SetKey(const TKey &key) 
+    void SetKey(const TKey &key)
     {
-      _key=key;
+      _key = key;
     }
 
     int GetHeight() const
@@ -105,8 +105,8 @@ namespace RobustPlaneSweep
       return _balance;
     }
 
-    AvlTreeNode(const TKey &key) : 
-      _key(key),
+    explicit AvlTreeNode(const TKey &key) :
+    _key(key),
       _height(1),
       _balance(0),
       Value(NULL),
@@ -117,7 +117,7 @@ namespace RobustPlaneSweep
     }
 
     static void SwapNodes(
-      AvlTreeNode<TKey, TValue>* x, 
+      AvlTreeNode<TKey, TValue>* x,
       AvlTreeNode<TKey, TValue>* y)
     {
       if (x->Parent == y) {
@@ -125,8 +125,8 @@ namespace RobustPlaneSweep
       } else if (y->Parent == x) {
         SwapParentChildNode(x, y);
       } else {
-        int heightTemp = x->_height; 
-        x->_height = y->_height; 
+        int heightTemp = x->_height;
+        x->_height = y->_height;
         y->_height = heightTemp;
 
         int balanceTemp = x->_balance;
@@ -146,37 +146,37 @@ namespace RobustPlaneSweep
         y->Parent = parentTemp;
 
         if (x->Left != NULL) {
-          x->Left->Parent = x; 
+          x->Left->Parent = x;
         }
 
-        if (x->Right != NULL) { 
-          x->Right->Parent = x; 
+        if (x->Right != NULL) {
+          x->Right->Parent = x;
         }
 
-        if (y->Left != NULL) { 
-          y->Left->Parent = y; 
+        if (y->Left != NULL) {
+          y->Left->Parent = y;
         }
 
-        if (y->Right != NULL) { 
-          y->Right->Parent = y; 
+        if (y->Right != NULL) {
+          y->Right->Parent = y;
         }
 
         if (x->Parent != NULL) {
-          if (x->Parent->Left == y) { 
-            x->Parent->Left = x; 
-          } else if (x->Parent->Right == y) { 
-            x->Parent->Right = x; 
-          } else { 
-            throw new std::logic_error("tree inconsistent"); 
+          if (x->Parent->Left == y) {
+            x->Parent->Left = x;
+          } else if (x->Parent->Right == y) {
+            x->Parent->Right = x;
+          } else {
+            throw new std::logic_error("tree inconsistent");
           }
         }
         if (y->Parent != NULL) {
-          if (y->Parent->Left == x) { 
-            y->Parent->Left = y; 
-          } else if (y->Parent->Right == x) { 
-            y->Parent->Right = y; 
-          } else { 
-            throw new std::logic_error("tree inconsistent"); 
+          if (y->Parent->Left == x) {
+            y->Parent->Left = y;
+          } else if (y->Parent->Right == x) {
+            y->Parent->Right = y;
+          } else {
+            throw new std::logic_error("tree inconsistent");
           }
         }
       }
@@ -252,7 +252,6 @@ namespace RobustPlaneSweep
         return node;
       }
 
-
       AvlTreeNode<TKey, TValue>* lastNode = this;
       node = Parent;
       while (node != NULL && node->Left == lastNode) {
@@ -264,7 +263,7 @@ namespace RobustPlaneSweep
     }
   };
 
-  template<class TKey,class TValue, typename Comparision> 
+  template<class TKey, class TValue, typename Comparision>
   class AvlTree
   {
   private:
@@ -280,8 +279,8 @@ namespace RobustPlaneSweep
     Comparision* _comparisonObject;
 
     bool FindNode(
-      const TKey& key, 
-      AvlTreeNode<TKey, TValue>*& node, 
+      const TKey& key,
+      AvlTreeNode<TKey, TValue>*& node,
       AvlTreeNode<TKey, TValue>*& parentNode,
       Direction& parentNodeDirection)
     {
@@ -289,7 +288,7 @@ namespace RobustPlaneSweep
       AvlTreeNode<TKey, TValue>* lastNode = NULL;
       Direction lastNodeDirection = Undefined;
 
-      for(;;) {
+      for (;;) {
         if (currentNode == NULL) {
           node = NULL;
           parentNode = lastNode;
@@ -297,7 +296,7 @@ namespace RobustPlaneSweep
           return false;
         }
 
-        int compareResult = 
+        int compareResult =
           _comparisonObject->Compare(key, currentNode->GetKey());
         if (compareResult < 0) {
           lastNode = currentNode;
@@ -324,18 +323,18 @@ namespace RobustPlaneSweep
         AvlTreeNode<TKey, TValue>* parentNode = currentNode->Parent;
         if (currentNode->GetBalance() < -1) {
           if (currentNode->Right->GetBalance() <= 0) {
-            /* Einfache Linksrotation 
+            /* Einfache Linksrotation
             *  A
             *   \           B
             *    B    ->   / \
             *     \       A   C
             *      C
-            * 
+            *
             */
             Rotate(
-              parentNode, 
-              currentNode, 
-              currentNode->Right, 
+              parentNode,
+              currentNode,
+              currentNode->Right,
               Left);
           } else {
             /* Doppelte Rotation (erst rechts, dann links)
@@ -347,31 +346,31 @@ namespace RobustPlaneSweep
             *
             */
             Rotate(
-              currentNode, 
-              currentNode->Right, 
-              currentNode->Right->Left, 
+              currentNode,
+              currentNode->Right,
+              currentNode->Right->Left,
               Right);
 
             Rotate(
-              parentNode, 
-              currentNode, 
-              currentNode->Right, 
+              parentNode,
+              currentNode,
+              currentNode->Right,
               Left);
           }
         } else if (currentNode->GetBalance() > 1) {
           if (currentNode->Left->GetBalance() >= 0) {
-            /* Einfache Rechtsrotation 
+            /* Einfache Rechtsrotation
             *      C
             *     /         B
             *    B    ->   / \
             *   /         A   C
-            *  A   
+            *  A
             *
             */
             Rotate(
-              parentNode, 
-              currentNode, 
-              currentNode->Left, 
+              parentNode,
+              currentNode,
+              currentNode->Left,
               Right);
           } else {
             /* Doppelte Rotation (erst links, dann rechts)
@@ -380,18 +379,18 @@ namespace RobustPlaneSweep
             * A    ->    B    ->   / \
             *  \        /         A   C
             *   B      A
-            * 
+            *
             */
             Rotate(
-              currentNode, 
-              currentNode->Left, 
-              currentNode->Left->Right, 
+              currentNode,
+              currentNode->Left,
+              currentNode->Left->Right,
               Left);
-            
+
             Rotate(
-              parentNode, 
-              currentNode, 
-              currentNode->Left, 
+              parentNode,
+              currentNode,
+              currentNode->Left,
               Right);
           }
         }
@@ -401,9 +400,9 @@ namespace RobustPlaneSweep
     }
 
     void Rotate(
-      AvlTreeNode<TKey, TValue>* parentNode, 
-      AvlTreeNode<TKey, TValue>* rootNode, 
-      AvlTreeNode<TKey, TValue>* pivotNode, 
+      AvlTreeNode<TKey, TValue>* parentNode,
+      AvlTreeNode<TKey, TValue>* rootNode,
+      AvlTreeNode<TKey, TValue>* pivotNode,
       Direction direction)
     {
       AvlTreeNode<TKey, TValue>* temp;
@@ -439,14 +438,14 @@ namespace RobustPlaneSweep
     }
 
   public:
-    AvlTree(Comparision* comparisonObject)
+    explicit AvlTree(Comparision* comparisonObject)
     {
       _root = NULL;
-      _count=0;
-      _comparisonObject=comparisonObject;
+      _count = 0;
+      _comparisonObject = comparisonObject;
     }
 
-    bool TryAddNode(TKey& key, AvlTreeNode<TKey, TValue>*& node)
+    bool TryAddNode(const TKey& key, AvlTreeNode<TKey, TValue>*& node)
     {
       AvlTreeNode<TKey, TValue>* parentNode;
 
@@ -469,7 +468,6 @@ namespace RobustPlaneSweep
           if (parentNode->Parent != NULL) {
             Rebalance(parentNode->Parent);
           }
-
         } else {
           _root = node;
         }
@@ -484,7 +482,7 @@ namespace RobustPlaneSweep
       AvlTreeNode<TKey, TValue>* parentNode = node->Parent;
 
       if (node->Left == NULL || node->Right == NULL) {
-        AvlTreeNode<TKey, TValue>* newChild=
+        AvlTreeNode<TKey, TValue>* newChild =
           (node->Left == NULL ? node->Right : node->Left);
 
         if (newChild != NULL)
@@ -496,7 +494,7 @@ namespace RobustPlaneSweep
           } else if (parentNode->Right == node) {
             parentNode->Right = newChild;
           } else {
-            throw new std::logic_error ("tree inconsistent");
+            throw new std::logic_error("tree inconsistent");
           }
 
           AvlTreeNode<TKey, TValue>::CalculateHeightAndBalance(parentNode);
@@ -505,7 +503,6 @@ namespace RobustPlaneSweep
           _root = newChild;
         }
       } else {
-
         if (node->Right->Left != NULL) {
           AvlTreeNode<TKey, TValue>* nextGreaterNode = node->Right->Left;
           while (nextGreaterNode->Left != NULL) {
@@ -539,8 +536,6 @@ namespace RobustPlaneSweep
           Rebalance(tempParent);
           AvlTreeNode<TKey, TValue>::CalculateHeightAndBalance(nextGreaterNode);
           Rebalance(nextGreaterNode);
-
-
         } else {
           AvlTreeNode<TKey, TValue>* nextGreaterNode = node->Right;
 

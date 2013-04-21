@@ -32,36 +32,37 @@ namespace RobustPlaneSweep
   void LineSegmentComparer::FindPossiblePairs()
   {
     for (int list = 0; list < 2; ++list) {
-      vector<HalfSegment>::const_iterator begin=
-        (list==0?_segments0.begin():_segments1.begin());
+      vector<HalfSegment>::const_iterator begin =
+        (list == 0?_segments0.begin():_segments1.begin());
 
-      vector<HalfSegment>::const_iterator  end=
-        (list==0?_segments0.end():_segments1.end());
+      vector<HalfSegment>::const_iterator  end =
+        (list == 0?_segments0.end():_segments1.end());
 
-      size_t index=0;
-      for (vector<HalfSegment>::const_iterator i=begin;i!=end;++i,++index){
-        for (int se = 0; se < 2; ++se) {
-          Point p = (se == 0 ? i->GetLeftPoint():i->GetRightPoint());
-          double key=p.GetX()+p.GetY();
+      size_t index = 0;
+      for (vector<HalfSegment>::const_iterator
+        i = begin; i != end; ++i, ++index) {
+          for (int se = 0; se < 2; ++se) {
+            Point p = (se == 0 ? i->GetLeftPoint():i->GetRightPoint());
+            double key = p.GetX()+p.GetY();
 
-          pair<vector<size_t>*,vector<size_t>*> foundPair;
-          unordered_map<double,pair<vector<size_t>*,vector<size_t>*>>::
-            const_iterator findIterator=_possiblePairs.find(key);
+            pair<vector<size_t>*, vector<size_t>*> foundPair;
+            unordered_map<double, pair<vector<size_t>*, vector<size_t>*>>::
+              const_iterator findIterator = _possiblePairs.find(key);
 
-          if(findIterator!=_possiblePairs.end()) {
-            foundPair=findIterator->second;
-          } else {
-            foundPair=pair<vector<size_t>*,vector<size_t>*>(
-              new vector<size_t>,new vector<size_t>);
-            _possiblePairs[key]=foundPair;
+            if (findIterator != _possiblePairs.end()) {
+              foundPair = findIterator->second;
+            } else {
+              foundPair = pair<vector<size_t>*, vector<size_t>*>(
+                new vector<size_t>, new vector<size_t>);
+              _possiblePairs[key] = foundPair;
+            }
+
+            if (list == 0) {
+              foundPair.first->push_back(index);
+            } else {
+              foundPair.second->push_back(index);
+            }
           }
-
-          if(list==0) {
-            foundPair.first->push_back(index);
-          } else {
-            foundPair.second->push_back(index);
-          }
-        }
       }
     }
   }
@@ -76,52 +77,50 @@ namespace RobustPlaneSweep
     vector<bool> found0;
     vector<bool> found1;
 
-    for(size_t i=0;i<totalCount0;++i) {
+    for (size_t i = 0; i < totalCount0; ++i) {
       found0.push_back(false);
     }
 
-    for(size_t i=0;i<totalCount1;++i) {
+    for (size_t i = 0; i < totalCount1; ++i) {
       found1.push_back(false);
     }
 
-    for(unordered_map<double,pair<vector<size_t>*,vector<size_t>*>>::
-      const_iterator possiblePair=_possiblePairs.begin();
-      possiblePair!=_possiblePairs.end();++possiblePair) {
-
-      for(vector<size_t>::const_iterator 
-        i0=possiblePair->second.first->begin();
-        i0!=possiblePair->second.first->end();++i0) {
-
-        if (found0[*i0]) {
-          continue;
-        }
-
-        for(vector<size_t>::const_iterator 
-          i1=possiblePair->second.second->begin();
-          i1!=possiblePair->second.second->end();++i1) {
-          if (found0[*i0]) {
-            break;
-          }
-          if (found1[*i1]) {
-            continue;
-          }
-
-          // edgeno wird bei Ausgabe vergeben. 
-          // Unterschiedliche Algorithmen -> unterschiedliche edgeno
-          //if(_segments0[*i0].attr.edgeno==_segments1[*i1].attr.edgeno){
-          if(_segments0[*i0].GetLeftPoint()==_segments1[*i1].GetLeftPoint() &&
-            _segments0[*i0].GetRightPoint()==_segments1[*i1].GetRightPoint() &&
-            _segments0[*i0].IsLeftDomPoint()==_segments1[*i1].IsLeftDomPoint())
-          {
-            if (found0[*i0] || found1[*i1]) {
-              throw new logic_error ("loop break/continue missing or wrong!");
+    for (unordered_map<double, pair<vector<size_t>*, vector<size_t>*>>::
+      const_iterator possiblePair = _possiblePairs.begin();
+      possiblePair != _possiblePairs.end(); ++possiblePair) {
+        for (vector<size_t>::const_iterator
+          i0 = possiblePair->second.first->begin();
+          i0 != possiblePair->second.first->end(); ++i0) {
+            if (found0[*i0]) {
+              continue;
             }
-            found0[*i0] = true;
-            found1[*i1] = true;
-          }
-          //}
+
+            for (vector<size_t>::const_iterator
+              i1 = possiblePair->second.second->begin();
+              i1 != possiblePair->second.second->end(); ++i1) {
+                if (found0[*i0]) {
+                  break;
+                }
+                if (found1[*i1]) {
+                  continue;
+                }
+
+                if (_segments0[*i0].GetLeftPoint() ==
+                  _segments1[*i1].GetLeftPoint() &&
+                  _segments0[*i0].GetRightPoint() ==
+                  _segments1[*i1].GetRightPoint() &&
+                  _segments0[*i0].IsLeftDomPoint() ==
+                  _segments1[*i1].IsLeftDomPoint())
+                {
+                  if (found0[*i0] || found1[*i1]) {
+                    throw new logic_error(
+                      "loop break/continue missing or wrong!");
+                  }
+                  found0[*i0] = true;
+                  found1[*i1] = true;
+                }
+            }
         }
-      }
     }
 
     for (size_t i = 0; i < totalCount0; ++i) {

@@ -37,36 +37,35 @@ namespace RobustPlaneSweep
     double extentX,
     double extentY,
     unsigned count,
-    int roundToDecimals) 
+    int roundToDecimals)
   {
-    std::vector<HalfSegment>* segments=new std::vector<HalfSegment>();
+    std::vector<HalfSegment>* segments = new std::vector<HalfSegment>();
 
     srand(seed);
 
-    Point lastPoint = Point(true,offsetX, offsetY);
+    Point lastPoint = Point(true, offsetX, offsetY);
 
-    int index=0;
+    int index = 0;
     while ((unsigned int)index  < count) {
-      double rx=(rand()/(double)RAND_MAX)-0.5;
-      double ry=(rand()/(double)RAND_MAX)-0.5;
+      double rx = (rand()/(double)RAND_MAX)-0.5;
+      double ry = (rand()/(double)RAND_MAX)-0.5;
 
       Point point = Point(true,
-        Utility::Round(lastPoint.GetX() + extentX * rx, roundToDecimals), 
+        Utility::Round(lastPoint.GetX() + extentX * rx, roundToDecimals),
         Utility::Round(lastPoint.GetY() + extentY * ry, roundToDecimals));
-      if (point.GetX() != lastPoint.GetX() || 
-          point.GetY() != lastPoint.GetY()) {
+      if (point.GetX() != lastPoint.GetX() ||
+        point.GetY() != lastPoint.GetY()) {
+          HalfSegment h1(true, lastPoint, point); h1.attr.edgeno = index;
+          HalfSegment h2(false, lastPoint, point); h2.attr.edgeno = index;
 
-        HalfSegment h1(true,lastPoint,point); h1.attr.edgeno=index;
-        HalfSegment h2(false,lastPoint,point); h2.attr.edgeno=index;
-
-        segments->push_back (h1);
-        segments->push_back (h2);
-        lastPoint = point;
-        ++index;
+          segments->push_back(h1);
+          segments->push_back(h2);
+          lastPoint = point;
+          ++index;
       }
     }
 
-    sort(segments->begin(),segments->end(),HalfSegment::Less); 
+    sort(segments->begin(), segments->end(), HalfSegment::Less);
 
     return segments;
   }

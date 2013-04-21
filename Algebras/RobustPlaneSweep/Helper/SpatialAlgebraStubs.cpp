@@ -26,20 +26,22 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "SpatialAlgebraStubs.h"
 
-bool AlmostEqual(double d1,double d2)
+bool AlmostEqual(double d1, double d2)
 {
   double diff = fabs(d1-d2);
-  return ( diff < 0.00000001 );
+  return (diff < 0.00000001);
 }
 
-int CompareDouble(const double a, const double b){
-  if(AlmostEqual(a,b))
+int CompareDouble(const double a, const double b) {
+  if (AlmostEqual(a, b))
   {
     return 0;
   }
-  if(a<b)
+
+  if (a < b)
   {
     return -1;
   }
+
   return 1;
 }

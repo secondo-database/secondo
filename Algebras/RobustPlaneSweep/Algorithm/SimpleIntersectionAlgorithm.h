@@ -28,25 +28,31 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 namespace RobustPlaneSweep
 {
-  class SimpleIntersectionAlgorithm : public IntersectionAlgorithm 
+  class SimpleIntersectionAlgorithm : public IntersectionAlgorithm
   {
   private:
     std::vector<InternalLineSegment*>* _internalSegments;
 
     void CreateInternalLineSegments()
     {
-      _internalSegments=new std::vector<InternalLineSegment*>();
+      _internalSegments = new std::vector<InternalLineSegment*>();
 
       GetData()->InitializeFetch();
 
       HalfSegment segment;
-      while(GetData()->FetchInputHalfSegment(segment))
+      bool belongsToSecondGeometry;
+      while (GetData()->FetchInputHalfSegment(segment, belongsToSecondGeometry))
       {
-        if(segment.IsLeftDomPoint()) {
-          InternalLineSegment* internalSegment=
-            new InternalLineSegment(*GetTransformation(), segment);
+        if (segment.IsLeftDomPoint()) {
+          InternalLineSegment* internalSegment =
+            new InternalLineSegment(
+            *GetTransformation(),
+            segment,
+            belongsToSecondGeometry,
+            GetCalulcationType() == CalulationTypeRegion);
+
           if (!InternalPoint::IsEqual(
-            internalSegment->GetLeft(), 
+            internalSegment->GetLeft(),
             internalSegment->GetRight())) {
               _internalSegments->push_back(internalSegment);
           } else {
@@ -59,14 +65,13 @@ namespace RobustPlaneSweep
     void CreateResult();
 
   protected:
-
-    const std::vector<InternalLineSegment*>::const_iterator 
+    const std::vector<InternalLineSegment*>::const_iterator
       GetInputBegin() const
     {
       return _internalSegments->begin();
     }
 
-    const std::vector<InternalLineSegment*>::const_iterator 
+    const std::vector<InternalLineSegment*>::const_iterator
       GetInputEnd() const
     {
       return _internalSegments->end();
@@ -91,22 +96,22 @@ namespace RobustPlaneSweep
       GetData()->OutputFinished();
     }
 
-    SimpleIntersectionAlgorithm(IntersectionAlgorithmData* data) : 
-      IntersectionAlgorithm (data)
+    explicit SimpleIntersectionAlgorithm(IntersectionAlgorithmData* data) :
+    IntersectionAlgorithm(data)
     {
-      _internalSegments=NULL;
+      _internalSegments = NULL;
     }
 
-    ~SimpleIntersectionAlgorithm(){
-      if(_internalSegments!=NULL) {
-        for(std::vector<InternalLineSegment*>::const_iterator 
-          i=_internalSegments->begin();
-          i!=_internalSegments->end();++i){
+    ~SimpleIntersectionAlgorithm() {
+      if (_internalSegments != NULL) {
+        for (std::vector<InternalLineSegment*>::const_iterator
+          i = _internalSegments->begin();
+          i != _internalSegments->end(); ++i) {
             delete (*i);
         }
 
         delete _internalSegments;
-        _internalSegments=NULL;
+        _internalSegments = NULL;
       }
     }
   };
