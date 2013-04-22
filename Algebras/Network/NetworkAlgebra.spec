@@ -2,7 +2,7 @@ operator = alias EQUAL pattern _ infixop _
 operator at alias AT pattern _ infixop _
 operator atinstant alias ATINSTANT pattern _ infixop _
 operator atperiods alias ATPERIODS pattern _ infixop _
-operator bbox alias BBOX pattern op ( _ )
+operator bbox alias BBOX pattern op ( _ , _ )
 operator circlen alias CIRCLEN pattern op( _ , _ )
 operator distance alias DISTANCE pattern op ( _ , _ )
 operator getAdjacentSections alias GETADJACENTSECTIONS pattern op ( _ , _ , _ )
