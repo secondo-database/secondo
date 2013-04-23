@@ -95,6 +95,7 @@ Returns always the smaller distance from the start of the route.
 */
 
     double GetFirstPosition()const;
+    RouteLocation GetFirstLocation() const;
 
 /*
 Returns always the bigger distance from the start of the route.
@@ -102,7 +103,7 @@ Returns always the bigger distance from the start of the route.
 */
 
     double GetLastPosition()const;
-    RouteLocation GetStartLocation() const;
+    RouteLocation GetLastLocation() const;
 
 /*
 Returns the first point of the routeinterval respecting the direction of the
@@ -111,7 +112,8 @@ route interval on the road.
 */
 
     double GetStartPosition()const;
-    RouteLocation GetEndLocation() const;
+    RouteLocation GetStartLocation() const;
+
 /*
 Returns the last point of the routeinterval respecting the direction of the
 route interval on the road.
@@ -119,6 +121,7 @@ route interval on the road.
 */
 
     double GetEndPosition()const;
+    RouteLocation GetEndLocation() const;
 
     Direction GetSide() const;
 

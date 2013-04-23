@@ -132,9 +132,19 @@ JRouteInterval::~JRouteInterval()
   return startpos;
 }
 
+RouteLocation JRouteInterval::GetFirstLocation() const
+{
+  return RouteLocation(rid, startpos, side);
+}
+
   double JRouteInterval::GetLastPosition()const
 {
   return endpos;
+}
+
+RouteLocation JRouteInterval::GetLastLocation() const
+{
+  return RouteLocation(rid, endpos, side);
 }
 
 double JRouteInterval::GetStartPosition() const

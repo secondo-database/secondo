@@ -535,6 +535,29 @@ JPoints& JPoints::Add(const RouteLocation& rloc)
   return *this;
 }
 
+JPoints& JPoints::Add(const jnetwork::JListRLoc& rlocs)
+{
+  if (IsDefined() && rlocs.IsDefined())
+  {
+    if (activBulkload)
+    {
+      RouteLocation actRLoc(false);
+      for (int i = 0; i < rlocs.GetNoOfComponents(); i++)
+      {
+        rlocs.Get(i, actRLoc);
+        if (actRLoc.IsDefined())
+          routelocations.Append(actRLoc);
+      }
+    }
+    else
+    {
+      assert (false);
+    }
+  }
+  return *this;
+}
+
+
 /*
 1.1 Management of RouteIntervals
 

@@ -738,6 +738,13 @@ Signature: jnet x int x jdirection -> jlistint
 Example  : query getAdjacentSections(testjnet, 2, [const jdirection value("Both")])
 Result   : (listint(1 2 4 6 7))
 
+Operator : getBGP
+Number   : 1
+Signature: jline -> jpoints
+Example  : query getBGP(testjl)
+Result   : (jpoints("testjnet"((1 0 (Both))(1 0.002 (Both))(10 0 (Both))(10 0.0001 (Both))(11 0 (Both))(11 0.0001 (Both)))))
+Tolerance: 0.01%
+
 Operator : getReverseAdjacentSections
 Number   : 1
 Signature: jnet x int x jdirection -> jlistint

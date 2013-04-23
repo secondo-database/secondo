@@ -177,7 +177,7 @@ Returns the routeinterval at the given position
   void Get(const int i, RouteLocation& ri) const;
 
 /*
-1.1.1.1 Managing bulkload of routeintervals
+1.1.1.1 Managing routeintervals
 
 1.1.1.1.1 ~StartBulkload~
 
@@ -195,11 +195,13 @@ Returns the routeinterval at the given position
 /*
 1.1.1.1.1 ~Add~
 
-Adds the given RouteLocation to the set of routeintervals.
+Adds the given (set of) RouteLocation(s) to the set of routelocations, whereas
+sets of route locations can only can be added in activBulkload.
 
 */
 
  JPoints& Add(const RouteLocation& rint);
+ JPoints& Add(const JListRLoc& rlocs);
 
 /*
 

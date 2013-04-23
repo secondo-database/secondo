@@ -43,6 +43,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JList.h"
 #include "PQManagement.h"
 #include "RectangleAlgebra.h"
+#include "SectionInterval.h"
 
 namespace jnetwork {
 
@@ -427,6 +428,14 @@ The returned tuple must be deleted by the caller.
   Tuple* GetSectionTupleFor(const RouteLocation& rloc, double& pos) const;
   Tuple* GetSectionTupleFor(const RouteLocation& rloc, double& pos,
                             const JListInt* sectList, int& index) const;
+
+/*
+1.1.1.1 By parts of Network
+
+*/
+
+  void GetCoveredSections(const JRouteInterval& rint,
+                          DbArray<SectionInterval>* result) const;
 
 /*
 1.1.1 Access to tuple attributes of internal relations

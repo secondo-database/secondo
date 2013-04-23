@@ -37,6 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JNetwork.h"
 #include "SpatialAlgebra.h"
 #include "JPoint.h"
+#include "JPoints.h"
 
 namespace jnetwork {
 /*
@@ -238,6 +239,15 @@ Computes the union of the two given jline objects
 
 void Union(const JLine* other, JLine* result) const;
 
+/*
+1.1.1.1 ~GetBGP~
+
+Returns the bounding ~jpoints~ of the  ~jline~.
+
+*/
+
+void GetBGP(JPoints* result) const;
+
 private:
 
 /*
@@ -314,6 +324,29 @@ the FillIntervalList call.
 
 void CheckAndFillIntervallList(const DbArray<JRouteInterval>* setri,
                                      const JNetwork* jnet /*= 0*/);
+
+/*
+1.1.1.1 Intersects
+
+Returns true if the section intersects the jline, false elsewhere.
+
+*/
+
+bool Intersects(const int sid, const JNetwork* jnet) const;
+
+/*
+1.1.1.1 CheckAdjacent
+
+Used as helper in getBGP checkst if the adjacentSections to currsection in
+dir are all part of jline or not. If not the end of currSection in
+dir is added to the Bounding JPoints of the jline.
+
+*/
+
+void CheckAdjacent(const SectionInterval& currSection,
+                   const JNetwork* jnet,
+                   const Direction dir,
+                   JPoints* result) const;
 };
 
 } // end of namespace jnetwork

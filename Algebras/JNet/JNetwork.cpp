@@ -2921,6 +2921,66 @@ void JNetwork::GetSectionTuplesFor(const Rectangle<2> bbox,
 }
 
 /*
+1.1.1.1 By parts of Network
+
+*/
+
+void JNetwork::GetCoveredSections(const JRouteInterval& rint,
+                                  DbArray<SectionInterval>* result) const
+{
+  JListInt* sectList = GetRouteSectionList(rint.GetRouteId());
+  if (sectList != 0)
+  {
+    if (sectList->IsDefined() && !sectList->IsEmpty())
+    {
+       CcInt curSid(false);
+      for (int i = 0; i < sectList->GetNoOfComponents(); i++)
+      {
+        sectList->Get(i,curSid);
+         Tuple* sectTuple = GetSectionTupleWithId(curSid.GetIntval());
+        if(sectTuple != 0)
+        {
+           JListRInt* sectRis = GetSectionListRouteIntervals(sectTuple);
+          if (sectRis != 0)
+          {
+             JRouteInterval actInt(false);
+            int j = 0;
+            while (j < sectRis->GetNoOfComponents())
+            {
+              sectRis->Get(j,actInt);
+               if (rint.Overlaps(actInt, false))
+              {
+                 SectionInterval actSectInt(curSid.GetIntval(),
+                                       JRouteInterval(
+                                         rint.GetRouteId(),
+                                         max(rint.GetFirstPosition(),
+                                             actInt.GetFirstPosition()),
+                                         min(rint.GetLastPosition(),
+                                             actInt.GetLastPosition()),
+                                         actInt.GetSide()),
+                                        (actInt.GetFirstPosition() >=
+                                          rint.GetFirstPosition()),
+                                        (actInt.GetLastPosition() <=
+                                          rint.GetLastPosition()));
+                 result->Append(actSectInt);
+                j = sectRis->GetNoOfComponents();
+              }
+              j++;
+            }
+            sectRis->DeleteIfAllowed();
+            sectRis = 0;
+          }
+          sectTuple->DeleteIfAllowed();
+          sectTuple = 0;
+        }
+      }
+    }
+    sectList->DeleteIfAllowed();
+    sectList = 0;
+  }
+}
+
+/*
 1.1 Access to attributes of the relations
 
 1.1.1 Routes Relation Attributes

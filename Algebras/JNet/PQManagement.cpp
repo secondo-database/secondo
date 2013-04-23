@@ -266,6 +266,10 @@ bool PQManagement::FindVisited(const JPQEntry& e, int& visitedPos,
         break;
       }
     }
+    // should never been reached
+    assert(false);
+    visitedPos = -1;
+    return false;
   }
 }
 

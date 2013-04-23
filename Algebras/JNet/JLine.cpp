@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "JRITree.h"
 #include "ManageJNet.h"
 #include "JNetUtil.h"
+#include "SectionInterval.h"
 
 using namespace jnetwork;
 /*
@@ -870,6 +871,61 @@ void JLine::Union(const JLine* other, JLine* result) const
 }
 
 /*
+1.1.1 ~GetBGP~
+
+*/
+
+void JLine::GetBGP(JPoints* result) const
+{
+  if (result != 0)
+  {
+    result->SetNetworkId(nid);
+    result->StartBulkload();
+    if (IsDefined() && !IsEmpty())
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      if (jnet != 0)
+      {
+        JRouteInterval actRint(false);
+        for (int i = 0; i < GetNoComponents(); i++)
+        {
+          Get(i, actRint);
+           DbArray<SectionInterval>*
+            coveredSections = new DbArray<SectionInterval>(0);
+          jnet->GetCoveredSections(actRint, coveredSections);
+          SectionInterval currSection;
+          for (int j = 0 ; j < coveredSections->Size(); j++)
+          {
+            coveredSections->Get(j, currSection);
+            if (!currSection.GetStartIncluded())
+            {
+              result->Add(currSection.GetRouteInterval().GetFirstLocation());
+            }
+            else
+              CheckAdjacent(currSection, jnet, Direction(Down), result);
+            if (!currSection.GetEndIncluded())
+              result->Add(currSection.GetRouteInterval().GetLastLocation());
+            else
+              CheckAdjacent(currSection, jnet, Direction(Up), result);
+          }
+          coveredSections->Destroy();
+          delete coveredSections;
+          coveredSections = 0;
+        }
+        ManageJNet::CloseNetwork(jnet);
+      }
+      result->EndBulkload();
+    }
+    else
+    {
+      result->EndBulkload();
+      result->SetDefined(false);
+    }
+  }
+}
+
+
+/*
 1.1 private Methods
 
 1.1.1 FillIntervalList
@@ -906,6 +962,59 @@ void JLine::CheckAndFillIntervallList(const DbArray<JRouteInterval>* setri,
       ManageJNet::CloseNetwork(net);
     }
   }
+}
+
+/*
+1.1.1 Intersects
+
+*/
+
+bool JLine::Intersects(const int sid, const JNetwork* jnet) const
+{
+  JListRInt* rintList = jnet->GetSectionListRouteIntervals(sid);
+  if (rintList != 0)
+  {
+    int i = 0;
+    JRouteInterval actIntNet(false);
+    while (i < rintList->GetNoOfComponents())
+    {
+      rintList->Get(i, actIntNet);
+       if (actIntNet.IsDefined())
+      {
+        if (IsSorted())
+        {
+           if (JNetUtil::GetIndexOfJRouteIntervalForJRInt(routeintervals,
+                                                         actIntNet,
+                                                         0,
+                                                         GetNoComponents()-1)
+              > -1)
+          {
+            rintList->DeleteIfAllowed();
+            rintList = 0;
+            return true;
+          }
+        }
+        else
+        {
+          JRouteInterval actLineRint(false);
+          for (int j = 0; j < GetNoComponents(); j++)
+          {
+            Get(j, actLineRint);
+            if (actLineRint.Overlaps(actIntNet, false))
+            {
+              rintList->DeleteIfAllowed();
+              rintList = 0;
+              return true;
+            }
+          }
+        }
+      }
+      i++;
+    }
+    rintList->DeleteIfAllowed();
+    rintList = 0;
+  }
+  return false;
 }
 
 /*
@@ -958,6 +1067,40 @@ bool JLine::IsSorted() const
     return sorted;
   else
     return false;
+}
+
+/*
+1.1.1 ~CheckAdjacent~
+
+*/
+
+void JLine::CheckAdjacent(const SectionInterval& currSection,
+                          const JNetwork* jnet,
+                          const Direction dir,
+                          JPoints* result) const
+{
+  JListInt tmp(false);
+  jnet->GetAdjacentSections(currSection.GetSid(), &dir, &tmp);
+  if (tmp.IsDefined() && !tmp.IsEmpty())
+  {
+    CcInt ciSid(false);
+    int k = 0;
+    while(k < tmp.GetNoOfComponents())
+    {
+      tmp.Get(k, ciSid);
+      if (ciSid.IsDefined() && !Intersects(ciSid.GetIntval(), jnet))
+      {
+        int test = dir.Compare(Direction(Down));
+        if (test > -1)
+          result->Add(currSection.GetRouteInterval().GetFirstLocation());
+        if (test != 0)
+          result->Add(currSection.GetRouteInterval().GetLastLocation());
+        k = tmp.GetNoOfComponents();
+      }
+      else
+        k++;
+    }
+  }
 }
 
 /*

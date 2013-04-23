@@ -160,7 +160,7 @@ int JNetUtil::GetIndexOfJRouteIntervalForJRInt(
       {
         case -1:
         {
-          if (mid != startindex && startindex < endindex)
+          if (mid != startindex)
             return JNetUtil::GetIndexOfJRouteIntervalForJRInt(list,rint, mid,
                                                               endindex);
           else
@@ -171,7 +171,7 @@ int JNetUtil::GetIndexOfJRouteIntervalForJRInt(
 
         case 1:
         {
-          if (mid != endindex && startindex < endindex)
+          if (mid != endindex)
             return JNetUtil::GetIndexOfJRouteIntervalForJRInt(list,rint,
                                                               startindex, mid);
           else

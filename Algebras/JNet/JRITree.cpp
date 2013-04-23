@@ -295,6 +295,9 @@ double JRITree::CheckTree(JRITreeElement& father, const int posfather,
         break;
       }
     }
+    //should never been reached
+    assert(false);
+    return testRI.GetValue(bleft);
   }
 }
 

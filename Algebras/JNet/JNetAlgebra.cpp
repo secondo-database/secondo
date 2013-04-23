@@ -3617,6 +3617,59 @@ Operator reverseAdjacentJNet("getReverseAdjacentSections", reverseAdjacentSpec,
                              1, reverseAdjacentMap, adjacentSelect, adjacentTM);
 
 /*
+1.1.1 ~getBGP~
+
+Returns the bounding jpoints of a jline.
+
+*/
+
+const string maps_getBGP[1][2] =
+{
+  {JLine::BasicType(), JPoints::BasicType()}
+};
+
+ListExpr getBGPTM(ListExpr args)
+{
+  return SimpleMaps<1,2>(maps_getBGP, args);
+}
+
+int getBGPSelect(ListExpr args)
+{
+  return SimpleSelect<1,2>(maps_getBGP, args);
+}
+
+int getBGPVM( Word* args, Word& result, int message, Word& local,
+            Supplier s)
+{
+  result = qp->ResultStorage(s);
+  JPoints* res = static_cast<JPoints*> (result.addr);
+  JLine* jl = static_cast<JLine*> (args[0].addr);
+  if (jl != NULL && jl->IsDefined())
+    jl->GetBGP(res);
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping getBGPMap[] =
+{
+  getBGPVM
+};
+
+const string getBGPSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JLine::BasicType() + " -> " + JPoints::BasicType() +
+  "</text--->"
+  "<text>getBGP(<jline>) </text--->"
+  "<text>Returns the bounding "+ JPoints::BasicType() + " of the "  +
+  JLine::BasicType()+ ". Bounding points are the points that must be passed to"
+  " reach the interior of the given value.</text--->"
+  "<text>query getBGP(testjl)</text--->))";
+
+Operator getBGPJNet("getBGP", getBGPSpec, 1, getBGPMap, getBGPSelect, getBGPTM);
+
+/*
 
 1.1 Translation beteween spatial(-temporal) and network(-temporal) data types
 
@@ -3978,8 +4031,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
 */
   AddOperator(&adjacentJNet);
   AddOperator(&reverseAdjacentJNet);
-
-  //AddOperator(&getBGPJNet);
+  AddOperator(&getBGPJNet);
   //AddOperator(&shortestPathJNet);
   //AddOperator(&shortestPathTreeJNet);
   //AddOperator(&spsearchvisitedJNet);
