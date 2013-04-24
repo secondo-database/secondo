@@ -454,7 +454,7 @@ void ListToMemory(ListExpr list) {
 void updateTable() {
 
    Word result;
-   bool correct=false, defined=false;
+   bool correct=false;
    ListExpr newValue = MemoryToList();
 
    const int errorPos = 0;
@@ -464,7 +464,6 @@ void updateTable() {
                            errorInfo, correct );
    assert( correct );
 
-   defined = false;
    bool ok = false;
 
    ok = ctlg.UpdateObject(derivedObjRelName, result );
