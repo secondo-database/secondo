@@ -9974,6 +9974,12 @@ int getObjectVM1( Word* args, Word& result, int message,
    }
    Word value;
    bool defined;
+  // In windows.h GetObject is redefined.
+  // The next lines deactivate that
+#ifdef GetObject
+#undef GetObject
+#endif
+  
    ctlg->GetObject(name,value,defined);
    if(!defined){
       return 0;
