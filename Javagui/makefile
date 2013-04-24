@@ -38,7 +38,7 @@ demo:
 	@make -s
 	@rm -rf Demo Demotmp
 	@mkdir Demotmp
-	@find -maxdepth 1 -not -name . -not -name Demotmp -exec cp -r {} Demotmp \;
+	@find -maxdepth 1 -not -name . -not -name Demotmp -not -name tmp -exec cp -r {} Demotmp \;
 	@find Demotmp -type d -name CVS -exec rm -rf {} \; 2>/dev/null || echo ""
 	@find Demotmp -name "*java" -exec rm -f {} \;
 	@echo "extract third party jar files and SecondoInterface"
