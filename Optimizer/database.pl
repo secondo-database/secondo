@@ -1628,7 +1628,7 @@ createSampleJ(DCRel) :-
          write_list(['\nINFO:\tCreating Join-Sample for \'',ExtRel,'\'.']),nl,
          secOptConstant(sampleJoinMaxDiskSize, MemMax),
          secOptConstant(sampleJoinMaxCard, CardMax),
-         secOptConstant(sampleJoinMinCard, CardMin),
+         % secOptConstant(sampleJoinMinCard, CardMin),
          ( ( \+optimizerOption(autoSamples) ,
              CardStd =< CardMax , MemStd =< MemMax )
            -> ( SampleCard is CardStd, SampleSize is MemStd,
@@ -1689,7 +1689,7 @@ createSampleS(DCRel) :-
          nl,
          secOptConstant(sampleSelMaxDiskSize, MemMax),
          secOptConstant(sampleSelMaxCard, CardMax),
-         secOptConstant(sampleSelMinCard, CardMin),
+         % secOptConstant(sampleSelMinCard, CardMin),
          ( ( \+optimizerOption(autoSamples) ,
              CardStd =< CardMax , MemStd =< MemMax )
            -> ( SampleCard is CardStd, SampleSize is MemStd,
@@ -4006,15 +4006,26 @@ getTupleInfoQuery(ExtRel, ARelPath, ExtAttrList,DCAttrList, TupleInfoQuery):-
 		ExtAttrList,',', DCAttrList,',',TupleInfoQuery,').']),
   getTupleInfoQuery2(ExtRel, ARelPath, ExtAttrList,DCAttrList, ExtensionList),
   buildUnnestAtom(ARelPath, ARelUnnestAtom),
-  atomic_list_concat([ExtRel, ' feed ', ARelUnnestAtom], '', TupleFeed),
+  secondoCatalogInfo(_, ExtRel, _, Type),
+  ( Type = [[rel, _]]      % simple relation
+    -> ( TupleFeed = ExtRel, 
+         atomic_list_concat(
+           [ExtRel, ' sample[500; 0.000001] tconsume'], '', SmallRelation)
+       )
+    ;                      % nested relation
+       ( atomic_list_concat([ExtRel, ' feed ', ARelUnnestAtom], '', TupleFeed),
+         atomic_list_concat(
+           [TupleFeed, ' head[500] tconsume'], '', SmallRelation)
+       )
+  ),
   atomic_list_concat([
-    'query 1 feed transformstream projectextend[; ',
+    'query ', SmallRelation, ' within[fun(therelation: ANY)',
+    ' 1 feed transformstream projectextend[; ',
     'Cardi_nality: (',TupleFeed,' count), ',
-    'Tuple_TotalSize: (',TupleFeed,' tuplesize), ',
-    'Tuple_CoreSize: (',TupleFeed,' exttuplesize), ',
-    'Tuple_LOBSize: ((',TupleFeed,' tuplesize) - (',
-		TupleFeed,' exttuplesize)), ',
-    ExtensionList,' ] tconsume'], '', TupleInfoQuery),
+    'Tuple_TotalSize: (therelation feed tuplesize), ',
+    'Tuple_CoreSize: (therelation feed exttuplesize), ',
+    'Tuple_LOBSize: ((therelation feed tuplesize) - (therelation exttuplesize)), ',
+    ExtensionList,' ] tconsume ]'], '', TupleInfoQuery),
   write_list(['\n\nRES: ', getTupleInfoQuery(ExtRel,ARelPath, ExtAttrList,
 		DCAttrList,TupleInfoQuery),'\n\n']),
   !.
@@ -4051,12 +4062,11 @@ getTupleInfoQuery3(R,ARelPath, AttrList,AttrDClist, AttrExtensionList):-
 	downcaseList(ARelPath, DCARelPath),
   append(DCARelPath, [AttrDC], T),
   appendAttributeList(T, AttrDCPath),
-  buildUnnestAtom(ARelPath, ARelUnnestAtom),
-  atomic_list_concat([R, ' feed head[20]', ARelUnnestAtom], '', TupleFeed),
+  % buildUnnestAtom(ARelPath, ARelUnnestAtom),
+  % atomic_list_concat([R, ' feed', ARelUnnestAtom], '', TupleFeed),
   concat_atom([
-     A,'_c: (',TupleFeed,' extattrsize[',A,']), ',
-     A,'_l: ((',TupleFeed,' attrsize[',A,']) - (',TupleFeed,
-			' extattrsize[',A,']))'
+     A,'_c: (therelation feed extattrsize[',A,']), ',
+     A,'_l: ((therelation feed attrsize[',A,']) - (therelation feed extattrsize[',A,']))'
     ],'',AttrExtension),
   AttrDClist        = [AttrDCPath|MoreDCAttrs],
   AttrExtensionList = [AttrExtension|MoreAttrExtensions],
