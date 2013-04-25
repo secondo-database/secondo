@@ -4024,7 +4024,7 @@ getTupleInfoQuery(ExtRel, ARelPath, ExtAttrList,DCAttrList, TupleInfoQuery):-
     'Cardi_nality: (',TupleFeed,' count), ',
     'Tuple_TotalSize: (therelation feed tuplesize), ',
     'Tuple_CoreSize: (therelation feed exttuplesize), ',
-    'Tuple_LOBSize: ((therelation feed tuplesize) - (therelation exttuplesize)), ',
+    'Tuple_LOBSize: ((therelation feed tuplesize) - (therelation feed exttuplesize)), ',
     ExtensionList,' ] tconsume ]'], '', TupleInfoQuery),
   write_list(['\n\nRES: ', getTupleInfoQuery(ExtRel,ARelPath, ExtAttrList,
 		DCAttrList,TupleInfoQuery),'\n\n']),
