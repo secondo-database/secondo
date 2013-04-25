@@ -24,6 +24,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[>] [$>$]
 //[%] [\%]
 //[->] [$\rightarrow$]
+//[toc] [\tableofcontents]
+
+[toc]
 
 
 1 Database Dependent Information
@@ -150,9 +153,11 @@ InternalSpelling within the current database.
 /*
 NVK ADDED NR
 Nested relation support.
-Applies downcase_atom on every atom within the attribute list.
+Applies downcase\_atom on every atom within the attribute list.
 The other direction works fine with the standard predicate.
+
 */
+
 dcName2internalName(DC, Intern) :-
   ground(Intern),                % second arg instantiated
   Intern=_:_,
@@ -568,6 +573,7 @@ getAttributeNameConflicts2(_,[],[]) :- !.
 /* 
 NVK ADDED NR
 I don't know if that was really necessary, i was not able to create a relation that is violating this check.
+
 */
 getAttributeNameConflicts2(ExtRel,[[Attr,Type]|More], ConflictList) :-
 	optimizerOption(nestedRelations),
@@ -1860,6 +1866,7 @@ Example:
 A = [year, publications] .
 So returned are only the attributes of a arel relation and no attributes of 
 deeper arel relations.
+
 */
 relation(Rel:ARels, AttrList) :-
 	optimizerOption(nestedRelations),
@@ -2063,11 +2070,12 @@ getIntSpellingFromDCattrList(DCattr,[[_, _] | Rest], IntAttr) :-
 
 /*
 NVK ADDED NR
-Note that a attibute name is unique within a nrel relation.
+Note that an attribute name is unique within a nrel relation.
 If this assumption is no longer valid, this is no longer possible.
 Example:
 ?- spelling(orteh:subrel:kennzeichen, X).
 X = kennzeichen.
+
 */
 getIntSpellingFromDCattrList(FQN, [[_, Type] | _], IntAttr) :-
   optimizerOption(nestedRelations),
@@ -2091,6 +2099,7 @@ getIntSpellingFromDCattrList(FQN, [[ExtAttr, _] | _], IntAttr) :-
 
 /*
 Allows to execute ~spelling(orteh:subrel:ort, S)~ (result is S = ort) calls for nested relations.
+
 */
 spelling(Rel:Atts, Spelled) :-
   optimizerOption(nestedRelations),
@@ -2207,6 +2216,7 @@ inquires the cardinality and stores it in local memory.
 
 /*
 NVK ADDED NR
+
 */
 card(RelTerm, Size) :-
   optimizerOption(nestedRelations),
@@ -2280,6 +2290,7 @@ If the predicate fails, this means, that there is no such index.
 /*
 NVK ADDED NR
 Currently there are no indicies for arel attributes or for subqueries as far as i know. This predicates is necessary, calling the below predicates won't work because they may throwing a exception.
+
 */
 hasIndex(RelT, _, _, _) :-
   RelT=rel(Term, _),
@@ -3941,6 +3952,7 @@ Will inquire and assert size and type data on attributes.
 The DCattrList is no longer in order like within the catalog.
 This is because vor every arel and the top level attributes of the relation a
 ~TupleInfoQuery~ is executed. 
+
 */
 
 getTupleInfo2NR(DB, ExtRel, DCrel, ExtAttrList, DCattrList) :-
@@ -4040,7 +4052,7 @@ getTupleInfoQuery3(R,ARelPath, AttrList,AttrDClist, AttrExtensionList):-
   append(DCARelPath, [AttrDC], T),
   appendAttributeList(T, AttrDCPath),
   buildUnnestAtom(ARelPath, ARelUnnestAtom),
-  atomic_list_concat([R, ' feed ', ARelUnnestAtom], '', TupleFeed),
+  atomic_list_concat([R, ' feed head[20]', ARelUnnestAtom], '', TupleFeed),
   concat_atom([
      A,'_c: (',TupleFeed,' extattrsize[',A,']), ',
      A,'_l: ((',TupleFeed,' attrsize[',A,']) - (',TupleFeed,
@@ -4439,6 +4451,7 @@ size of data stored in the relation's LOB file.
 */
 /*
 NVK ADDED NR
+
 */
 tupleSizeSplit(RelTerm, TupleSize) :-
 	nrTupleSizeSplit(RelTerm, TupleSize).
