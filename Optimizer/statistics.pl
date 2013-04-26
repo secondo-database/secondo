@@ -295,15 +295,16 @@ feedOp(RelT, afeed) :-
 
 feedOp(_RelT, feed) :-
 	!.
-/*
-feedOp(RelT, afeed) :-
-  RelT = rel(Term, _),
-  Term =.. [irrel,arel|_], !.
 
-feedOp(RelT, feed) :-
-  RelT = rel(Term, _),
-  \+ Term =.. [irrel,arel|_], !.
-*/
+% feedOp(RelT, afeed) :-
+%   RelT = rel(Term, _),
+%   Term =.. [irrel,arel|_], !.
+% 
+% feedOp(RelT, feed) :-
+%   RelT = rel(Term, _),
+%  \+ Term =.. [irrel,arel|_], !.
+
+
 possiblyRename(Rel, Renamed) :-
   optimizerOption(nestedRelations),
   Rel = rel(_, *),
@@ -1157,6 +1158,7 @@ selectivity(P, Sel, CalcPET, ExpPET) :-
 
 /*
 NVK ADDED NR
+
 */
 selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   optimizerOption(nestedRelations),
