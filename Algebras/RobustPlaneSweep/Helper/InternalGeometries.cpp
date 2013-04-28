@@ -91,8 +91,7 @@ namespace RobustPlaneSweep
       bool b = s0.GetInternalAttribute().IsFirstBelow();
       bool c = s1.GetInternalAttribute().IsFirstAbove();
       bool d = s1.GetInternalAttribute().IsFirstBelow();
-      fa = (a && !b) || (a && c) || (!b && c);
-      fb = (!a && d) || (b && !c) || (b && d);
+      InternalAttribute::Merge(a, b, c, d, fa, fb);
     }
 
     {
@@ -100,8 +99,7 @@ namespace RobustPlaneSweep
       bool b = s0.GetInternalAttribute().IsSecondBelow();
       bool c = s1.GetInternalAttribute().IsSecondAbove();
       bool d = s1.GetInternalAttribute().IsSecondBelow();
-      sa = (a && !b) || (a && c) || (!b && c);
-      sb = (!a && d) || (b && !c) || (b && d);
+      InternalAttribute::Merge(a, b, c, d, sa, sb);
     }
 
     bool firstBorder =
@@ -122,6 +120,7 @@ namespace RobustPlaneSweep
       s1.GetStart(),
       s1.GetOriginalEnd(),
       s1.GetEnd(),
-      intAttr);
+      intAttr,
+      false);
   }
 }

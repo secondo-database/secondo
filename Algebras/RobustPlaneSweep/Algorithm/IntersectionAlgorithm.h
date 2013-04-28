@@ -90,5 +90,11 @@ namespace RobustPlaneSweep
 
   public:
     virtual void DetermineIntersections() = 0;
+
+    // This method is only useful for test cases. Do not use otherwise!
+    inline void SetTransformation(InternalPointTransformation *transformation)
+    {
+      _transformation = new InternalPointTransformation(*transformation);
+    }
   };
 }

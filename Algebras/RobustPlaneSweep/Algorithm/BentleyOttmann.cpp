@@ -349,18 +349,8 @@ namespace RobustPlaneSweep
             i0,
             i1);
 
-          if (c == 0) {
-          } else if (c >= 1) {
+          if (c >= 1) {
             bool touchIntersection = false;
-
-            if (calculateRegionCoverage && c == 1) {
-              if (InternalIntersectionPoint::IsEqual(i0, s0s) ||
-                InternalIntersectionPoint::IsEqual(i0, s0e) ||
-                InternalIntersectionPoint::IsEqual(i0, s1s) ||
-                InternalIntersectionPoint::IsEqual(i0, s1e)) {
-                  touchIntersection = true;
-              }
-            }
 
             for (int ii = 0; ii < c; ++ii) {
               InternalIntersectionPoint ip = (ii == 0 ? i0 : i1);
@@ -375,6 +365,21 @@ namespace RobustPlaneSweep
                   isInFuture = true;
                 } else if (ip.GetY() == currentEvent->GetPoint().GetY()) {
                   isCurrentPoint = true;
+                }
+              }
+
+              if (calculateRegionCoverage && c == 1) {
+                CheckTouchIntersection(i0, s0s, s0e, 0, *possibleIntersection,
+                  isCurrentPoint, isInFuture, touchIntersection);
+
+                CheckTouchIntersection(i0, s1s, s1e, 1, *possibleIntersection,
+                  isCurrentPoint, isInFuture, touchIntersection);
+
+                if (InternalIntersectionPoint::IsEqual(i0, s0s) ||
+                  InternalIntersectionPoint::IsEqual(i0, s0e) ||
+                  InternalIntersectionPoint::IsEqual(i0, s1s) ||
+                  InternalIntersectionPoint::IsEqual(i0, s1e)) {
+                    touchIntersection = true;
                 }
               }
 
@@ -480,6 +485,52 @@ namespace RobustPlaneSweep
       throw new logic_error("not all active segment processed!");
     }
     FlushProcessedSegments();
+  }
+
+  void BentleyOttmann::CheckTouchIntersection(
+    const InternalIntersectionPoint& intersectionPoint,
+    const InternalPoint& start,
+    const InternalPoint& end,
+    int segmentIndex,
+    const PossibleIntersectionPair& possibleIntersection,
+    bool& isCurrentPoint,
+    bool& isInFuture,
+    bool& touchIntersection)
+  {
+    if (InternalIntersectionPoint::IsEqual(intersectionPoint, start) ||
+      InternalIntersectionPoint::IsEqual(intersectionPoint, end)) {
+        touchIntersection = true;
+        if (isCurrentPoint) {
+          InternalLineSegment* s0;
+          InternalLineSegment* s1;
+          PossibleIntersectionPairType pairType =
+            possibleIntersection.GetType();
+
+          if (pairType == SegmentNode) {
+            s0 = possibleIntersection.GetSegment1();
+            s1 = possibleIntersection.GetNode2()->GetFirstSegment();
+          } else if (pairType == NodeNode) {
+            s0 = possibleIntersection.GetNode1()->GetFirstSegment();
+            s1 = possibleIntersection.GetNode2()->GetFirstSegment();
+          } else if (pairType == SegmentSegment ||
+            pairType == SegmentSegmentOverlapping) {
+              s0 = possibleIntersection.GetSegment1();
+              s1 = possibleIntersection.GetSegment2();
+          } else {
+            throw new logic_error("invalid pair type!");
+          }
+
+          int slopeCompareResult = InternalLineSegment::CompareSlope(s0, s1);
+          if (segmentIndex == 1) {
+            slopeCompareResult = -slopeCompareResult;
+          }
+
+          if (slopeCompareResult > 0) {
+            isCurrentPoint = false;
+            isInFuture = true;
+          }
+        }
+    }
   }
 
   void BentleyOttmann::AddIntersection(

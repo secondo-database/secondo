@@ -112,12 +112,15 @@ namespace RobustPlaneSweep
                   _segments0[*i0].IsLeftDomPoint() ==
                   _segments1[*i1].IsLeftDomPoint())
                 {
-                  if (found0[*i0] || found1[*i1]) {
-                    throw new logic_error(
-                      "loop break/continue missing or wrong!");
+                  if (_segments0[*i0].attr.insideAbove ==
+                    _segments1[*i1].attr.insideAbove) {
+                      if (found0[*i0] || found1[*i1]) {
+                        throw new logic_error(
+                          "loop break/continue missing or wrong!");
+                      }
+                      found0[*i0] = true;
+                      found1[*i1] = true;
                   }
-                  found0[*i0] = true;
-                  found1[*i1] = true;
                 }
             }
         }

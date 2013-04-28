@@ -126,7 +126,7 @@ namespace RobustPlaneSweep
       if (_eventType == TouchIntersection) {
         if (_intersectedSegments->size() != 1) {
           throw new std::logic_error(
-            "only one segment may be touch by one intersection");
+            "only one segment may be touched by one intersection");
         }
 
         return *(_intersectedSegments->begin());
@@ -175,15 +175,7 @@ namespace RobustPlaneSweep
             InternalLineSegment* sx = x->GetSegment();
             InternalLineSegment* sy = y->GetSegment();
 
-            if (sx->GetIsVertical() && sy->GetIsVertical()) {
-              result = 0;
-            } else if (sx->GetIsVertical()) {
-              result = 1;
-            } else if (sy->GetIsVertical()) {
-              result = -1;
-            } else {
-              result = Rational::Compare(sx->GetA(), sy->GetA());
-            }
+            return InternalLineSegment::CompareSlope(sx, sy);
           }
         }
       }
@@ -754,15 +746,7 @@ namespace RobustPlaneSweep
       }
 
       if (result == 0) {
-        if (x->GetIsVertical() && y->GetIsVertical()) {
-          result = 0;
-        } else if (x->GetIsVertical()) {
-          result = 1;
-        } else if (y->GetIsVertical()) {
-          result = -1;
-        } else {
-          result = Rational::Compare(x->GetA(), y->GetA());
-        }
+        result = InternalLineSegment::CompareSlope(x, y);
       }
 
       return result;
@@ -825,6 +809,16 @@ namespace RobustPlaneSweep
       const bool belongsToSecondGeometry);
 
     void FlushProcessedSegments();
+
+    void CheckTouchIntersection(
+      const InternalIntersectionPoint& intersectionPoint,
+      const InternalPoint& start,
+      const InternalPoint& end,
+      int segmentIndex,
+      const PossibleIntersectionPair& possibleIntersection,
+      bool& isCurrentPoint,
+      bool& isInFuture,
+      bool& touchIntersection);
 
     void AddIntersection(
       InternalLineSegment* l,

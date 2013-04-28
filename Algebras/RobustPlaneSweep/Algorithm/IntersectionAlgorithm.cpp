@@ -68,7 +68,7 @@ namespace RobustPlaneSweep
         Rational p1 = s1a * (x - s1.GetOriginalStart().GetX()) +
           s1.GetOriginalStart().GetY();
 
-        result = Rational::Compare(p0, p1);
+        result = -Rational::Compare(p0, p1);
       } else {
         int y = s0.GetStart().GetY() +
           ((s0.GetEnd().GetY() - s0.GetStart().GetY()) / 2);
@@ -113,7 +113,8 @@ namespace RobustPlaneSweep
       InternalPoint(0, 0),
       InternalPoint(0, 0),
       InternalPoint(0, 0),
-      InternalAttribute());
+      InternalAttribute(),
+      false);
 
     for (vector<InternalResultLineSegment>::const_iterator
       segment = segments.begin();

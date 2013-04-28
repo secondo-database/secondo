@@ -260,6 +260,9 @@ namespace RobustPlaneSweep
       _result(result),
       _outputSegments(0)
     {
+#ifdef OUTPUT_HALFSEGMENTS
+      cout.precision(15);
+#endif
     }
 
     ~RegionSetOp()
@@ -300,17 +303,29 @@ namespace RobustPlaneSweep
         return false;
       }
 
-#if OUTPUT_HALFSEGMENTS
+#ifdef OUTPUT_HALFSEGMENTS
       if (segment.IsLeftDomPoint()) {
-        cout << "I: " <<
-          (belongsToSecondGeometry?"1":"0") << " " <<
-          (segment.attr.edgeno) << " (" <<
-          segment.GetLeftPoint().GetX() << "," <<
-          segment.GetLeftPoint().GetY() << ") - (" <<
-          segment.GetRightPoint().GetX() << "," <<
-          segment.GetRightPoint().GetY() << ") " <<
-          (segment.attr.insideAbove?"Above":"Below") <<
-          "\n";
+        cout << "s.Add(new LineSegment(" <<
+             (belongsToSecondGeometry?"1":"0") << ", " <<
+             (segment.attr.edgeno) << ", " <<
+             " new Base.Point(" <<
+             segment.GetLeftPoint().GetX() << "," <<
+             segment.GetLeftPoint().GetY() << "), " <<
+             " new Base.Point(" <<
+             segment.GetRightPoint().GetX() << "," <<
+             segment.GetRightPoint().GetY() << "), " <<
+             (segment.attr.insideAbove?"true":"false") <<
+             "));\n";
+
+        // cout << "I: " <<
+        //   (belongsToSecondGeometry?"1":"0") << " " <<
+        //   (segment.attr.edgeno) << " (" <<
+        //   segment.GetLeftPoint().GetX() << "," <<
+        //   segment.GetLeftPoint().GetY() << ") - (" <<
+        //   segment.GetRightPoint().GetX() << "," <<
+        //   segment.GetRightPoint().GetY() << ") " <<
+        //   (segment.attr.insideAbove?"Above":"Below") <<
+        //   "\n";
       }
 #endif
 
@@ -326,63 +341,22 @@ namespace RobustPlaneSweep
 
       switch (_setOpType) {
       case SetOpType::SetOpUnion:
-        {
-          int coverageAbove = (a.IsFirstAbove()?1:0)+(a.IsSecondAbove()?1:0);
-          int coverageBelow = (a.IsFirstBelow()?1:0)+(a.IsSecondBelow()?1:0);
-
-          if (coverageAbove == 0 && coverageBelow > 0) {
-            insideAbove = false;
-            include= true;
-          } else if (coverageAbove > 0 && coverageBelow == 0) {
-            insideAbove = true;
-            include = true;
-          } else {
-            include = false;
-          }
-        }
+        include = a.IsInUnionRegion(insideAbove);
         break;
+
       case SetOpType::SetOpIntersection:
-        {
-          if (a.IsFirstAbove() && a.IsSecondAbove()) {
-            insideAbove = true;
-            include = true;
-          } else if (a.IsFirstBelow() && a.IsSecondBelow()) {
-            insideAbove = false;
-            include = true;
-          } else {
-            include = false;
-          }
-        }
+        include = a.IsInIntersectionRegion(insideAbove);
         break;
-      case SetOpType::SetOpMinus:
-        {
-          int coverageAbove = (a.IsFirstAbove()?1:0)+(a.IsSecondAbove()?1:0);
-          int coverageBelow = (a.IsFirstBelow()?1:0)+(a.IsSecondBelow()?1:0);
-          include = false;
 
-          if (a.IsBorderInBoth()) {
-            if (coverageAbove == 1 && coverageBelow == 1) {
-              insideAbove = a.IsFirstAbove();
-              include = true;
-            }
-          } else if (a.IsFirstBorder()) {
-            if ((coverageAbove + coverageBelow) == 1) {
-              insideAbove = a.IsFirstAbove();
-              include = true;
-            }
-          } else if (a.IsSecondBorder()) {
-            if ((coverageAbove + coverageBelow) == 3) {
-              insideAbove = a.IsSecondBelow();
-              include = true;
-            }
-          }
-        }
+      case SetOpType::SetOpMinus:
+        include = a.IsInMinusRegion(insideAbove);
         break;
+
       default:
         throw new std::logic_error("setOpType");
       }
 
-#if OUTPUT_HALFSEGMENTS
+#ifdef OUTPUT_HALFSEGMENTS
       cout << "O: " <<
         _outputSegments << " (" <<
         segment.GetLeftPoint().GetX() << "," <<

@@ -81,15 +81,15 @@ namespace RobustPlaneSweep
       _secondAbove(secondAbove),
       _secondBelow(secondBelow)
     {
-      if ((firstBorder && firstAbove && firstBelow) ||
-        (!firstBorder && (firstAbove ^ firstBelow))) {
-          throw new std::invalid_argument("firstBorder");
-      }
+      // if ((firstBorder && firstAbove && firstBelow) ||
+      //   (!firstBorder && (firstAbove ^ firstBelow))) {
+      //     throw new std::invalid_argument("firstBorder");
+      // }
 
-      if ((secondBorder && secondAbove && secondBelow) ||
-        (!secondBorder && (secondAbove ^ secondBelow))) {
-          throw new std::invalid_argument("secondBorder");
-      }
+      // if ((secondBorder && secondAbove && secondBelow) ||
+      //   (!secondBorder && (secondAbove ^ secondBelow))) {
+      //     throw new std::invalid_argument("secondBorder");
+      // }
     }
 
     bool IsDefined() const
@@ -132,6 +132,64 @@ namespace RobustPlaneSweep
       return IsFirstBorder() && IsSecondBorder();
     }
 
+    bool IsInUnionRegion(bool& insideAbove) const
+    {
+      int coverageAbove = (IsFirstAbove() ? 1 : 0) + (IsSecondAbove() ? 1 : 0);
+      int coverageBelow = (IsFirstBelow() ? 1 : 0) + (IsSecondBelow() ? 1 : 0);
+
+      if (coverageAbove == 0 && coverageBelow > 0) {
+        insideAbove = false;
+        return true;
+      } else if (coverageAbove > 0 && coverageBelow == 0) {
+        insideAbove = true;
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    bool IsInIntersectionRegion(bool& insideAbove) const
+    {
+      if (IsFirstAbove() && IsSecondAbove()) {
+        insideAbove = true;
+        return true;
+      } else if (IsFirstBelow() && IsSecondBelow()) {
+        insideAbove = false;
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    bool IsInMinusRegion(bool& insideAbove) const
+    {
+      int coverageAbove = (IsFirstAbove() ? 1 : 0) + (IsSecondAbove() ? 1 : 0);
+      int coverageBelow = (IsFirstBelow() ? 1 : 0) + (IsSecondBelow() ? 1 : 0);
+      bool belongsToFirst = (IsFirstAbove() != IsFirstBelow());
+      bool belongsToSecond = (IsSecondAbove() != IsSecondBelow());
+
+      if (belongsToFirst && belongsToSecond) {
+        if (coverageAbove == 1 && coverageBelow == 1) {
+          insideAbove = IsFirstAbove();
+          return true;
+        }
+      } else if (belongsToFirst) {
+        if ((coverageAbove + coverageBelow) == 1) {
+          insideAbove = IsFirstAbove();
+          return true;
+        }
+      } else if (belongsToSecond) {
+        if ((coverageAbove + coverageBelow) == 3) {
+          insideAbove = IsSecondBelow();
+          return true;
+        }
+      }
+
+      return false;
+    }
+
+
+
     static InternalAttribute Create(
       bool belongsToSecondGeometry,
       bool insideAbove,
@@ -151,6 +209,61 @@ namespace RobustPlaneSweep
         return InternalAttribute(
           !belongsToSecondGeometry, false, false,
           belongsToSecondGeometry, false, false);
+      }
+    }
+
+    static void Merge(
+      bool above1, bool below1,
+      bool above2, bool below2,
+      bool& newAbove, bool& newBelow)
+    {
+      if (!above1 && !below1) {
+        if (above2 && below2) {
+          throw new std::logic_error("");
+        }
+
+        newAbove = above2;
+        newBelow = below2;
+        return;
+      } else if (!above1 && below1) {
+        if (!above2 && !below2) {
+          newAbove = false;
+          newBelow = true;
+        } else if (!above2 && below2) {
+          throw new std::logic_error("");
+        } else if (above2 && !below2) {
+          newAbove = false;
+          newBelow = false;
+        } else /*(above2 && below2)*/ {
+          newAbove = false;
+          newBelow = true;
+        }
+      } else if (above1 && !below1) {
+        if (!above2 && !below2) {
+          newAbove = true;
+          newBelow = false;
+        } else if (!above2 && below2) {
+          newAbove = true;
+          newBelow = true;
+        } else if (above2 && !below2) {
+          throw new std::logic_error("");
+        } else /*(above2 && below2)*/ {
+          throw new std::logic_error("");
+        }
+      } else /*(above1 && below1)*/ {
+        if (!above2 && !below2) {
+          throw new std::logic_error("");
+        } else if (!above2 && below2) {
+          // overlapping
+          newAbove = false;
+          newBelow = true;
+        } else if (above2 && !below2) {
+          newAbove = true;
+          newBelow = false;
+        } else /*(above2 && below2)*/ {
+          newAbove = true;
+          newBelow = true;
+        }
       }
     }
   };
@@ -305,10 +418,6 @@ namespace RobustPlaneSweep
     int _roundResultToDecimals;
     int _roundingStep;
 
-    InternalPointTransformation(InternalPointTransformation&)
-    {
-    }
-
   public:
     InternalPointTransformation(
       const long long offsetX,
@@ -420,7 +529,8 @@ namespace RobustPlaneSweep
       const InternalPoint& start,
       const InternalPoint& originalEnd,
       const InternalPoint& end,
-      const InternalAttribute& internalAttribute)
+      const InternalAttribute& internalAttribute,
+      bool correctAttribute)
       : _attr(attr),
       _originalStart(originalStart),
       _start(start),
@@ -428,6 +538,25 @@ namespace RobustPlaneSweep
       _end(end),
       _internalAttribute(internalAttribute)
     {
+      if (correctAttribute &&
+          start.GetX() == end.GetX() &&
+          internalAttribute.IsDefined()) {
+        int dx, dy;
+        dx = _originalEnd.GetX() - _originalStart.GetX();
+        dy = _originalEnd.GetY() - _originalStart.GetY();
+
+        // segment is vertical after rounding, but was not so before ->
+        // adjust attributes if necessary
+        if ((dx > 0 && dy < 0) || (dx < 0 && dy > 0)) {
+          _internalAttribute = InternalAttribute(
+            _internalAttribute.IsFirstBorder(),
+            _internalAttribute.IsFirstBelow(),
+            _internalAttribute.IsFirstAbove(),
+            _internalAttribute.IsSecondBorder(),
+            _internalAttribute.IsSecondBelow(),
+            _internalAttribute.IsSecondAbove());
+        }
+      }
     }
 
     inline const AttrType& GetAttr() const
@@ -514,6 +643,44 @@ namespace RobustPlaneSweep
     {
     }
 
+    static bool GetInitialInsideAbove(
+      const Point& start,
+      const Point& end,
+      const InternalPoint& internalStart,
+      const InternalPoint& internalEnd,
+      bool insideAbove)
+    {
+      bool inputVertical = AlmostEqual(start.GetX(), end.GetX());
+      bool internalVertical = (internalStart.GetX() == internalEnd.GetX());
+
+      if (inputVertical == internalVertical) {
+        return insideAbove;
+      } else if (inputVertical) {
+        // !internalVertical
+
+        // not tested
+        int dx = internalEnd.GetX() - internalStart.GetX();
+        int dy = internalEnd.GetY() - internalStart.GetY();
+
+        if ((dx > 0 && dy < 0) || (dx < 0 && dy > 0)) {
+          return !insideAbove;
+        } else {
+          return insideAbove;
+        }
+      } else if (internalVertical) {
+        double dx = end.GetX() - start.GetX();
+        double dy = end.GetY() - start.GetY();
+
+        if ((dx > 0 && dy < 0) || (dx < 0 && dy > 0)) {
+          return !insideAbove;
+        } else {
+          return insideAbove;
+        }
+      } else {
+        throw new std::logic_error("not possible");
+      }
+    }
+
   public:
     InternalLineSegment(
       const InternalPointTransformation &transformation,
@@ -550,10 +717,19 @@ namespace RobustPlaneSweep
         _right = start;
       }
 
+      bool insideAbove = segment.attr.insideAbove;
+
+      if (calculateCoverage) {
+        insideAbove = GetInitialInsideAbove(
+          segment.GetLeftPoint(), segment.GetRightPoint(),
+          start, end,
+          insideAbove);
+      }
+
       _breakupStart = InternalIntersectionPoint(_left);
       _initialAttribute = InternalAttribute::Create(
         belongsToSecondGeometry,
-        segment.attr.insideAbove,
+        insideAbove,
         calculateCoverage);
 
       int dx = _right.GetX() - _left.GetX();
@@ -681,7 +857,8 @@ namespace RobustPlaneSweep
             start,
             _right,
             end,
-            _initialAttribute));
+            _initialAttribute,
+            true));
         }
         return;
       }
@@ -715,7 +892,8 @@ namespace RobustPlaneSweep
               currentPositionRounded,
               _right,
               roundedP,
-              currentAttribute));
+              currentAttribute,
+              true));
             currentPosition = p;
             currentPositionRounded = roundedP;
           }
@@ -749,7 +927,8 @@ namespace RobustPlaneSweep
             currentPositionRounded,
             _right,
             roundedRight,
-            currentAttribute));
+            currentAttribute,
+            true));
         }
       } else {
         if (!newBreakupStartSet) {
@@ -940,6 +1119,22 @@ namespace RobustPlaneSweep
       } else {
         AddAttributeEntry(point, newAttribute);
       }
+    }
+
+    int static CompareSlope(InternalLineSegment* x, InternalLineSegment* y) {
+      int result;
+
+      if (x->GetIsVertical() && y->GetIsVertical()) {
+        result = 0;
+      } else if (x->GetIsVertical()) {
+        result = 1;
+      } else if (y->GetIsVertical()) {
+        result = -1;
+      } else {
+        result = Rational::Compare(x->GetA(), y->GetA());
+      }
+
+      return result;
     }
   };
 }
