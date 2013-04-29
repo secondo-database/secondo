@@ -406,18 +406,18 @@ done
 
 # Connect to the master computer, in order to prepare its data server. 
 echo "Prepare the master node ... "
-ssh -q -i ${EC2_KeyPair} ${EC2_USER}@${MASTER_PD} echo
+ssh -q -i ${KeyPair} ${EC2_USER}@${MASTER_PD} echo
 # Afterward, copy the master and slave IP lists to the master node. 
 if [ -s ${INST_MIP_FILE} -o -s ${INST_SIP_FILE} ]; then
-  scp -q -i ${EC2_KeyPair} ${INST_MIP_FILE} ${EC2_USER}@${MASTER_PD}:'$PARALLEL_SECONDO_CONF/master.new'
-  scp -q -i ${EC2_KeyPair} ${INST_SIP_FILE} ${EC2_USER}@${MASTER_PD}:'$PARALLEL_SECONDO_CONF/slaves.new'
+  scp -q -i ${KeyPair} ${INST_MIP_FILE} ${EC2_USER}@${MASTER_PD}:'$PARALLEL_SECONDO_CONF/master.new'
+  scp -q -i ${KeyPair} ${INST_SIP_FILE} ${EC2_USER}@${MASTER_PD}:'$PARALLEL_SECONDO_CONF/slaves.new'
 else
   echo "${ERRORINFO}The master and slave lists are not correctly created. "
   exit -1
 fi
 
 echo -e "The initialization is finished, you can log into the master node with command:"
-echo "ssh -i ${EC2_KeyPair} ${EC2_USER}@${MASTER_PD}"
+echo "ssh -i ${KeyPair} ${EC2_USER}@${MASTER_PD}"
 
 # End of the script
 rm ${INST_INI_FILE} 2>/dev/null
