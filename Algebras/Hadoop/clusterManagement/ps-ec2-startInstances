@@ -37,9 +37,9 @@ source $bin/ps-functions
 WARNINFO="Warning !! "
 ERRORINFO="ERROR !! "
 
-# AMI-ID (ParallelSecondo_0_3)
-AMID="ami-cf86e5a6"
-AMIVersion="ParallelSecondo_0_8"
+# AMI-ID
+AMID="ami-0771136e"
+AMIVersion="ParallelSecondo_1_0"
 
 # Instance Number
 ITNum=1
@@ -256,9 +256,11 @@ else
   exit -1
 fi
 
-echo -e "About to start up ${ITNum} EC2 instances based on the AMI ${AMID}, \n \
-the security group is ${SGNAME} and the key pair is ${KPNAME}. \n \
-The availability zone is ${AVAZONE}, and the instance type is ${INSTYPE}. "
+echo -en "About to start up ${ITNum} EC2 instances based on the AMI ${AMID} (${AMIVersion}) ... \n \
+Security group \t: ${SGNAME} \n \
+Key pair \t: ${KPNAME} \n \
+Instance type \t: ${INSTYPE} \n\
+Availability zone \t: ${AVAZONE} \n"
 for ((i=0;i<3;i++));do
   echo -n "... "
   sleep 10
