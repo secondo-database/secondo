@@ -49,10 +49,10 @@ MNTag="Master"
 SNTag="Slaves"
 
 # Security Group 
-SGNAME="parallelSecondo"
+SGNAME=""
 
 # Key Pair
-KPNAME="dnaCloud"
+KPNAME="$EC2_KeyPair"
 
 # Instance type
 INSTYPE="t1.micro"
@@ -81,18 +81,6 @@ m3.xlarge   m3.2xlarge   c1.medium   c1.xlarge m2.xlarge   \
 m2.2xlarge   m2.4xlarge   cr1.8xlarge hi1.4xlarge   \
 hs1.8xlarge   cc1.4xlarge   cc2.8xlarge cg1.4xlarge)
 
-# Check the prerequisite
-if [ "${EC2_KeyPair}" == "" ]; then
-  echo "${ERRORINFO}The \${EC2_KeyPair} is not defined."
-  echo "It is an environment variable indicating the key pair for EC2."
-  exit -1
-elif [ ! -f ${EC2_KeyPair} ]; then	
-  echo "${ERRORINFO}The \${EC2_KeyPair} doesn't exist."
-  echo "It is an environment variable indicating the key pair for EC2."
-  exit -1
-fi
-
-
 # 0. Process the arguments.
 declare -i numOfArgs=$#
 let numOfArgs++
@@ -109,10 +97,10 @@ while [ $numOfArgs -ne $OPTIND ]; do
 		echo -en "\nUsage of ${0##*/}:\n\n"
 		echo -en "  -h Print this message and exit. \n\n"
 		echo -en "  -i Indicate a AMI ID. (${AMID}\t${AMIVersion}) \n\n"
-		echo -en "  -n * Number of instances. \n\n"
+		echo -en "  -n Number of instances. \n\n"
 		echo -en "  -m Master node's Name tag. (${MNTag}) \n\n"
 		echo -en "  -s Slave nodes' Name tag. (${SNTag}) \n\n"
-		echo -en "  -g Security group name. (${SGNAME}) \n\n"
+		echo -en "  -g * Security group name. (${SGNAME}) \n\n"
 		echo -en "  -k Key pair name. (${KPNAME}) \n\n"
 		echo -en "  -t Instance type. (${INSTYPE}) \n\n"
 		echo -en "  -z Availability zone. (${AVAZONE}) \n\n"
@@ -183,13 +171,34 @@ included in the valid instance type list. \n${VALIDINSTYPES[*]} \n\n"
   esac
 done
 
-#1. Start instances with EC2 command lines
+# 0. Check the prerequisite
 EC2PATH=$(which ec2-run-instances)
 if [ ! -f $EC2PATH ]; then
   echo "${ERRORINFO}The EC2 command lines are not installed. \
   Cannot found ec2-run-instances "
   exit -1
 fi
+
+if [ "${KPNAME}" == "" ]; then
+  echo "${ERRORINFO}The Key-Pair is not indicated."
+  echo "It can be set as an environment-variable named \$EC2_KeyPair"
+  exit -1
+elif [ ! -f ${KPNAME} ]; then	
+  echo "${ERRORINFO}The indicated \${KPNAME} ${KPNAME} doesn't exist."
+  exit -1
+fi
+
+if [ "${SGNAME}" == "" ]; then
+  echo "${ERRORINFO}The security group is not indicated."
+  exit -1
+fi
+ec2-describe-group ${SGNAME} 1>/dev/null
+if [ $? -ne 0 ]; then
+  echo "${ERRORINFO}The security group ${SGNAME} doesn't exist."
+  exit -1
+fi
+
+#1. Start instances with EC2 command lines
 
 # Check whether the master and slave tags are used by other instances. 
 MNUM=$(ec2-describe-tags --filter resource-type=instance --filter tag:Name=${MNTag} | wc -l)
