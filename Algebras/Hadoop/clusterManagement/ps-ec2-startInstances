@@ -52,7 +52,8 @@ SNTag="Slaves"
 SGNAME=""
 
 # Key Pair
-KPNAME="$EC2_KeyPair"
+KeyPair="$EC2_KeyPair"
+KPNAME="$(echo ${KeyPair##*/} | sed 's/.pem//')"
 
 # Instance type
 INSTYPE="t1.micro"
@@ -101,7 +102,7 @@ while [ $numOfArgs -ne $OPTIND ]; do
 		echo -en "  -m Master node's Name tag. (${MNTag}) \n\n"
 		echo -en "  -s Slave nodes' Name tag. (${SNTag}) \n\n"
 		echo -en "  -g * Security group name. (${SGNAME}) \n\n"
-		echo -en "  -k Key pair name. (${KPNAME}) \n\n"
+		echo -en "  -k Key pair. (${KeyPair}) \n\n"
 		echo -en "  -t Instance type. (${INSTYPE}) \n\n"
 		echo -en "  -z Availability zone. (${AVAZONE}) \n\n"
 		echo -en "  -o Additional options. \n"
@@ -135,7 +136,8 @@ while [ $numOfArgs -ne $OPTIND ]; do
         SGNAME="$OPTARG"
     ;;
     k)
-        KPNAME="$OPTARG"    
+        KeyPair="$OPTARG"
+        KPNAME="$(echo ${KeyPair##*/} | sed 's/.pem//')"
     ;;
     t)
     	INSTYPE="$OPTARG"
@@ -179,14 +181,20 @@ if [ ! -f $EC2PATH ]; then
   exit -1
 fi
 
-if [ "${KPNAME}" == "" ]; then
+if [ "${KeyPair}" == "" ]; then
   echo "${ERRORINFO}The Key-Pair is not indicated."
   echo "It can be set as an environment-variable named \$EC2_KeyPair"
   exit -1
-elif [ ! -f ${KPNAME} ]; then	
-  echo "${ERRORINFO}The indicated \${KPNAME} ${KPNAME} doesn't exist."
+elif [ ! -f ${KeyPair} ]; then
+  echo "${ERRORINFO}The indicated \${KeyPair} ${KeyPair} doesn't exist."
   exit -1
 fi
+ec2-describe-keypairs ${KPNAME} 1>/dev/null
+if [ $? -ne 0 ]; then
+  echo "${ERRORINFO}They key pair doesn't exist in the current AWS ccount."
+  exit -1
+fi
+
 
 if [ "${SGNAME}" == "" ]; then
   echo "${ERRORINFO}The security group is not indicated."
