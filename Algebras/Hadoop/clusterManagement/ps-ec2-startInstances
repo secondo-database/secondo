@@ -1,0 +1,415 @@
+#!/bin/bash
+
+bin=`dirname "$0"`
+bin=`cd "$bin"; pwd`
+source $bin/ps-functions
+
+# This script starts a set of EC2 instances, in order to build up a instance cluster. 
+# In total, N instances are started, one master node and N slaves. 
+# The master node is used as a slave as well by default. 
+# If the user would like to separate the master from slaves, 
+# then the option MasterIsSlave can be set as no, the default value is yes. 
+
+# Each instance has a name tag, with the key value of "Name". 
+# By default, the master's Name tag is set as "master-slave", 
+# or "master" if the MasterIsSlave is no. 
+# Meanwhile, the slaves' name tags are all set as "slaves". 
+# It also allow the user to set master and slaves' Name tags 
+# with other custom values. 
+
+# At present, a Parallel Secondo AMI is provided, with the version 0.5
+# Later, in case there publishes several Parallel Secondo images, 
+# the user can select any AMI by setting the -i option. 
+
+# The parameter list contains: 
+#   -i (AMI ID)
+#   -n (instance number N, 1 master + (N-1) slaves)
+#   -m (master Name tag value, default is master-slave or master)
+#   -s (slaves Name tag value, default is slaves)
+#   -o (Options) 
+#       MasterIsSlave=Yes/no
+
+# It includes the following steps: 
+# 	0.	Process the arguments.
+#	1.	Start instances with EC2 command lines
+#	2.	Check the availability of all computers. 
+
+WARNINFO="Warning !! "
+ERRORINFO="ERROR !! "
+
+# AMI-ID (ParallelSecondo_0_3)
+AMID="ami-cf86e5a6"
+AMIVersion="ParallelSecondo_0_8"
+
+# Instance Number
+ITNum=1
+
+# Name tag of the master and slaves
+MNTag="Master"
+SNTag="Slaves"
+
+# Security Group 
+SGNAME="parallelSecondo"
+
+# Key Pair
+KPNAME="dnaCloud"
+
+# Instance type
+INSTYPE="t1.micro"
+
+# Availability Zone
+AVAZONE="us-east-1a"
+
+# Option name and values
+OPNAME_1="master-is-slave"
+MIS=true  #Master Is Slave
+
+# EC2 parameters
+EC2_USER="ubuntu"
+
+# Constant values
+RSVT_IDS_FILE="${bin}/reservation_ids"
+INST_INI_FILE="${bin}/instances"
+INST_IDS_FILE="${bin}/instances_ids"
+RINST_IDS_FILE="${bin}/runningInstances_ids"
+PINST_IDS_FILE="${bin}/pendingInstances_ids"
+INST_MIP_FILE="${bin}/master_IP_list"
+INST_SIP_FILE="${bin}/slaves_IP_list"
+INST_INFO_FILE="${bin}/instances_info"
+VALIDINSTYPES=(t1.micro m1.small m1.medium m1.large m1.xlarge   \
+m3.xlarge   m3.2xlarge   c1.medium   c1.xlarge m2.xlarge   \
+m2.2xlarge   m2.4xlarge   cr1.8xlarge hi1.4xlarge   \
+hs1.8xlarge   cc1.4xlarge   cc2.8xlarge cg1.4xlarge)
+
+# Check the prerequisite
+if [ "${EC2_KeyPair}" == "" ]; then
+  echo "${ERRORINFO}The \${EC2_KeyPair} is not defined."
+  echo "It is an environment variable indicating the key pair for EC2."
+  exit -1
+elif [ ! -f ${EC2_KeyPair} ]; then	
+  echo "${ERRORINFO}The \${EC2_KeyPair} doesn't exist."
+  echo "It is an environment variable indicating the key pair for EC2."
+  exit -1
+fi
+
+
+# 0. Process the arguments.
+declare -i numOfArgs=$#
+let numOfArgs++
+
+while [ $numOfArgs -ne $OPTIND ]; do
+
+  getopts "hi:n:m:s:o:g:k:t:z:" optKey
+  if [ "$optKey" == "?" ]; then
+    optKey="h"
+  fi
+  
+  case $optKey in 
+    h)
+		echo -en "\nUsage of ${0##*/}:\n\n"
+		echo -en "  -h Print this message and exit. \n\n"
+		echo -en "  -i Indicate a AMI ID. (${AMID}\t${AMIVersion}) \n\n"
+		echo -en "  -n * Number of instances. \n\n"
+		echo -en "  -m Master node's Name tag. (${MNTag}) \n\n"
+		echo -en "  -s Slave nodes' Name tag. (${SNTag}) \n\n"
+		echo -en "  -g Security group name. (${SGNAME}) \n\n"
+		echo -en "  -k Key pair name. (${KPNAME}) \n\n"
+		echo -en "  -t Instance type. (${INSTYPE}) \n\n"
+		echo -en "  -z Availability zone. (${AVAZONE}) \n\n"
+		echo -en "  -o Additional options. \n"
+		echo -en "     ${OPNAME_1}=(Yes/no) Use the master as a slave. \n\n"
+		exit 0
+    ;;
+    i)
+    	AMID=$OPTARG
+    	if [ "${AMID%-*}" != "ami" ]; then 
+    	  echo "${ERRORINFO}The AMI ID ${AMID} is not correct."
+    	  exit -1
+    	fi
+    ;;
+    n)
+        ITNum=$OPTARG
+		if ! expr $ITNum + 1 >/dev/null 2>$1 ; then
+		  echo "${ERRORINFO}The instance number ${ITNum} must be an integer."
+		  exit -1
+		elif [ $ITNum -lt 1 ]; then
+          echo "${ERRORINFO}There must exist at least one node in the cluster."
+		  exit -1
+        fi
+    ;;
+    m)
+    	MNTag="$OPTARG"
+    ;;
+    s)
+    	SNTag="$OPTARG"
+    ;;
+    g)
+        SGNAME="$OPTARG"
+    ;;
+    k)
+        KPNAME="$OPTARG"    
+    ;;
+    t)
+    	INSTYPE="$OPTARG"
+		if [ $(echo ${VALIDINSTYPES[*]} | grep -w "${INSTYPE}" | wc -l) -eq 0 ]; then
+    	  echo -en "${ERRORINFO}The indicated instance type ${INSTYPE} is not \
+included in the valid instance type list. \n${VALIDINSTYPES[*]} \n\n"
+          exit -1
+		fi
+    ;;
+    z)
+    	AVAZONE="$OPTARG"
+    ;;
+    o)
+    	OPName="${OPTARG%=*}"
+    	OPValue="${OPTARG#*=}"
+    	case "${OPName}" in 
+    	  ${OPNAME_1})
+			OPValue="`echo ${OPValue} | tr '[A-Z]' '[a-z]'`"
+			if [ "${OPValue}" == "yes" ]; then
+			  MIS=true
+			elif [ "${OPValue}" == "no" ]; then
+			  MIS=false
+			else
+			  echo "${ERRORINFO}Unknown option value ${OPValue}. "
+			fi
+    	  ;;
+    	  *)
+			echo "${ERRORINFO}Unknown option name ${OPName}. "
+			exit -1
+		  ;;
+    	esac
+    ;;
+  esac
+done
+
+#1. Start instances with EC2 command lines
+EC2PATH=$(which ec2-run-instances)
+if [ ! -f $EC2PATH ]; then
+  echo "${ERRORINFO}The EC2 command lines are not installed. \
+  Cannot found ec2-run-instances "
+  exit -1
+fi
+
+# Check whether the master and slave tags are used by other instances. 
+MNUM=$(ec2-describe-tags --filter resource-type=instance --filter tag:Name=${MNTag} | wc -l)
+SNUM=$(ec2-describe-tags --filter resource-type=instance --filter tag:Name=${SNTag} | wc -l)
+if [ ${MNUM} -gt 0 -o ${SNUM} -gt 0 ]; then
+  echo "${ERRORINFO}The name tag ${MNTag} or ${SNTag} has been used by other instances."
+  exit -1
+fi
+
+cat /dev/null > ${INST_INI_FILE}
+cat /dev/null > ${RSVT_IDS_FILE}
+cat /dev/null > ${INST_IDS_FILE}
+cat /dev/null > ${INST_INFO_FILE}
+cat /dev/null > ${INST_MIP_FILE}
+cat /dev/null > ${INST_SIP_FILE}
+
+ec2-run-instances ${AMID} -n ${ITNum} \
+-k ${KPNAME} -g ${SGNAME} \
+-t ${INSTYPE} -z ${AVAZONE} \
+> ${INST_INI_FILE}
+
+# The prompt from ec2-run-instances only contain the instance ids. 
+# Others are useless to us. 
+# Therefore, I must first create a set of instances, 
+# then get their instance id. 
+# then attach tags on these instances. 
+# then scan the status again and again until the IP address is shown. 
+RESERVATION_ID=""
+INSTANCE_ID=""
+if [ -s ${INST_INI_FILE} ]; then
+  while read TITLE VALUE; do
+    case $TITLE in
+      "RESERVATION")
+        RESERVATION_ID=`echo -n "$VALUE" | awk -F"\t" '{print $1}'`
+        echo ${RESERVATION_ID} >> ${RSVT_IDS_FILE}
+      ;;
+      "INSTANCE" )
+      	INSTANCE_ID=`echo -n "$VALUE" | awk -F"\t" '{print $1}'`
+      	echo ${INSTANCE_ID} >> ${INST_IDS_FILE}
+      ;;
+      *)
+      ;;
+    esac
+  done < ${INST_INI_FILE}
+else
+  echo "${ERRORINFO}ec2-run-instances fails with empty response."
+  exit -1
+fi
+
+echo -e "About to start up ${ITNum} EC2 instances based on the AMI ${AMID}, \n \
+the security group is ${SGNAME} and the key pair is ${KPNAME}. \n \
+The availability zone is ${AVAZONE}, and the instance type is ${INSTYPE}. "
+for ((i=0;i<3;i++));do
+  echo -n "... "
+  sleep 10
+done
+echo ""
+
+# Check the status of all started instances. 
+while true ; do
+  # Check the status of all instances in the reservation list. 
+  cat /dev/null > ${RINST_IDS_FILE}
+  for reservation in $(cat ${RSVT_IDS_FILE}); do
+    ec2-describe-instances --filter reservation-id=${reservation} \
+      --filter instance-state-name=running | grep INSTANCE \
+      | awk '{print $2}' >> ${RINST_IDS_FILE}
+  done
+
+  declare -i RINum=$(cat ${RINST_IDS_FILE} | wc -l )  # Number of running instances.    
+  if [ ${RINum} -ne ${ITNum} ]; then
+    # Give three options   
+	# 1, Keep waiting 10s. 
+	# 2, Terminate unstarted instances, and start new one
+	# 3, Abort
+	
+	echo -en "Till now, ${RINum} instances are started, \
+and there are still $((${ITNum} - ${RINum})) instances pending. \n \
+Would you like to: \n \
+  1) Keep waiting for another ten seconds. \n \
+  2) Terminate all unstarted instances, and start new ones. \n \
+  3) Abort. (Note!! All started instances are not stopped.) \n"
+    
+    echo -n ": " ; read OPT
+    OPT=$(trim ${OPT})
+	case "$OPT" in 
+	  "" | "1")
+	    echo "..."
+		sleep 10
+	  ;;
+	  "2")
+	    cat /dev/null > ${PINST_IDS_FILE}
+		#terminate all unstarted instances. 
+		fgrep -vf ${RINST_IDS_FILE} ${INST_IDS_FILE} > ${PINST_IDS_FILE}
+		ec2-terminate-instances $(cat ${PINST_IDS_FILE} | tr "\n" ' ') 
+
+		#remove them from the instance list
+		mv ${RINST_IDS_FILE} ${INST_IDS_FILE}
+		
+		#start new instances, and add the reservation and instance ids to respective lists. 
+		INST_INI_TFILE="${bin}/tmp-instances"
+		cat /dev/null > ${INST_INI_TFILE}
+		declare -i LINSTNum=$((${ITNum} - ${RINum}))    #Left Instance Number
+		ec2-run-instances ${AMID} -n ${LINSTNum} -k ${KPNAME} -g ${SGNAME} \
+			-t ${INSTYPE} -z ${AVAZONE} > ${INST_INI_TFILE}
+		if [ -s ${INST_INI_TFILE} ]; then
+		  while read TITLE VALUE; do
+			case $TITLE in
+			  "RESERVATION")
+				RESERVATION_ID=`echo -n "$VALUE" | awk -F"\t" '{print $1}'`
+				echo ${RESERVATION_ID} >> ${RSVT_IDS_FILE}
+			  ;;
+			  "INSTANCE" )
+				INSTANCE_ID=`echo -n "$VALUE" | awk -F"\t" '{print $1}'`
+				echo ${INSTANCE_ID} >> ${INST_IDS_FILE}
+			  ;;
+			  *)
+			  ;;
+			esac
+		  done < ${INST_INI_TFILE}
+		else
+		  echo "${ERRORINFO}Starting partial instances fails."
+		  exit -1
+		fi
+	  ;;
+	  "3")
+	    echo -en "${WARNINFO}All your started instances are left running. \n \
+You can use the web interface of AWS EC2 to process them. \n\n"
+		exit 1
+	  ;;
+	  *)
+	    echo "Unrecognizable option, keep waiting for another ten seconds."
+	    echo "..."
+	    sleep 10
+	  ;;
+	esac
+  else
+    break
+  fi
+done
+
+# Add tags on instances
+ALLINSTANCES=($(cat ${INST_IDS_FILE} | tr '\n' ' '))
+ec2-create-tags ${ALLINSTANCES[0]} --tag Name=${MNTag} >/dev/null
+MINSTANCE=${ALLINSTANCES[0]}
+unset ALLINSTANCES[0]
+if [ ${#ALLINSTANCES[*]} -gt 0 ]; then
+  ec2-create-tags ${ALLINSTANCES[*]} --tag Name=${SNTag} >/dev/null
+fi
+
+# Get the IP addresses of all running instances, in lists 
+# ${INST_MIP_FILE} and ${INST_SIP_FILE}
+ec2-describe-instances > ${INST_INFO_FILE}
+PRIVATE_IP=""
+PUBLIC_IP=""
+PUBLIC_DNS="" 
+MASTER_PD=""  #The master's public DNS
+if [ -s ${INST_INFO_FILE} ]; then
+  while read TITLE VALUE; do
+    case "$TITLE" in 
+      "INSTANCE")
+		PUBLIC_DNS=`echo -n "$VALUE" | awk -F"\t" '{print $3}'`
+		PUBLIC_IP=`echo -n "$VALUE" | awk -F"\t" '{print $16}'`
+		PRIVATE_IP=`echo -n "$VALUE" | awk -F"\t" '{print $17}'`
+      ;;
+      "TAG")
+		ISMASTER=`echo -n "$VALUE" | awk '{print(index($0,"Name\t'${MNTag}'"))}'`
+        ISSLAVE=`echo -n "$VALUE" | awk '{print(index($0,"Name\t'${SNTag}'"))}'`
+        if [ $ISMASTER -gt 0 ]; then
+          # master node
+          echo ${PRIVATE_IP} >> ${INST_MIP_FILE}
+          MASTER_PD=$PUBLIC_DNS
+          if $MIS ; then
+            echo ${PRIVATE_IP} >> ${INST_SIP_FILE}
+          fi
+        else 
+          if [ $ISSLAVE -gt 0 ]; then
+            # slave nodes
+            echo $PRIVATE_IP >> ${INST_SIP_FILE}
+          fi
+        fi
+      ;;
+      *)
+      ;;      
+    esac
+  done < ${INST_INFO_FILE}
+else
+  echo "${ERRORINFO}The instance info file ${INST_INFO_FILE} is not correctly created. "
+  exit -1
+fi
+
+# At present, master and slaves IP addresses are fetched. 
+# Wait till the master instance is reachable. 
+while [ "$(ec2-describe-instance-status ${MINSTANCE} --filter instance-status.reachability=passed)" == "" ]; do
+#  echo "Waiting the master instance ${MINSTANCE} till it is reachable."
+  sleep 5
+done
+
+# Connect to the master computer, in order to prepare its data server. 
+echo "Prepare the master node ... "
+ssh -q -i ${EC2_KeyPair} ${EC2_USER}@${MASTER_PD} echo
+# Afterward, copy the master and slave IP lists to the master node. 
+if [ -s ${INST_MIP_FILE} -o -s ${INST_SIP_FILE} ]; then
+  scp -q -i ${EC2_KeyPair} ${INST_MIP_FILE} ${EC2_USER}@${MASTER_PD}:'$PARALLEL_SECONDO_CONF/master.new'
+  scp -q -i ${EC2_KeyPair} ${INST_SIP_FILE} ${EC2_USER}@${MASTER_PD}:'$PARALLEL_SECONDO_CONF/slaves.new'
+else
+  echo "${ERRORINFO}The master and slave lists are not correctly created. "
+  exit -1
+fi
+
+echo -e "The initialization is finished, you can log into the master node with command:"
+echo "ssh -i ${EC2_KeyPair} ${EC2_USER}@${MASTER_PD}"
+
+# End of the script
+rm ${INST_INI_FILE} 2>/dev/null
+rm ${RSVT_IDS_FILE} 2>/dev/null
+rm ${INST_INI_FILE} 2>/dev/null
+rm ${RINST_IDS_FILE} 2>/dev/null
+rm ${PINST_IDS_FILE} 2>/dev/null
+rm ${INST_MIP_FILE} 2>/dev/null
+rm ${INST_SIP_FILE} 2>/dev/null
+rm ${INST_INFO_FILE} 2>/dev/null
+
+exit 0

@@ -1,0 +1,220 @@
+#!/bin/bash
+
+bin=`dirname "$0"`
+bin=`cd "$bin"; pwd`
+source $bin/ps-functions
+
+# This script is used to initialize the Parallel Secondo on
+# either a single instance or a instance cluster of Amazon EC2. 
+# In the Amazon machine image (AMI) for Parallel Secondo, 
+# a Data Server has already been set. 
+# However, each time when the instance is started, 
+# its IP address is reassigned. 
+# therefore this script is prepared to adjust the IP-address-change 
+# of instances on EC2. 
+
+# Two scenarios are considered in this script, 
+#   * First, this script is used to prepare a single instance. 
+#   * Second, this script initialize the environment for a instance cluster. 
+# In both scenarios, this script is called when the user interact 
+# with the instance for the first time. 
+
+# It starts automatically, hence is invisible to the user, 
+# and that why its file name is started with an underline. 
+# In order to avoid repeated setting, 
+
+# a special mark file is set on every involved instance, 
+# located at /mnt/stamp. 
+# This file is created after the initialization finishes, 
+# indicating the character of the instance with a mark including: 
+# master, slave and master-slave. 
+# It is set at the ephemeral storage, 
+# hence it will be deleted automatically when the instance is stopped. 
+
+
+# # In this script, following steps are done: 
+# 1. Validate the existent of the mark file. 
+# 2. Distinguish the scenario. If the current computer is used as 
+#   the master in a instance cluster, then it must contain the 
+#   master and slaves lists, which are named 
+#   master.new and slaves.new, respectively. 
+#   Both files are prepared by another ps-ec2-startInstances, 
+#   being kept on the master node. 
+#   If these two files don't exist, then the current instance will 
+#   be processed as a single instance. 
+# 3. It happens that only several of tens or hundreds instances 
+#   cannot be started, thus cause whole cluster cannot be set up. 
+#   Therefore, if this script is  used for the second scenario, 
+#   then it must check the availability of every involved instance, 
+#   and then ask the user whether he want to continue. 
+# 4. At last, this script replaces the IP addresses on 
+#   Parallel Secondo Configuration files, including: 
+#		* $PARALLEL_SECONDO_DBCONFIG 
+#		* $PARALLEL_SECONDO_MASTER
+#		* $PARALLEL_SECONDO_SLAVES
+#		* $PARALLEL_SECONDO_MAINDS/hadoop/conf/master
+#		* $PARALLEL_SECONDO_MAINDS/hadoop/conf/slaves
+#		* $PARALLEL_SECONDO_MAINDS/hadoop/conf/core-site.xml
+#		* $PARALLEL_SECONDO_MAINDS/hadoop/conf/hdfs-site.xml
+#		* $PARALLEL_SECONDO_MAINDS/hadoop/conf/mapred-site.xml
+#   Note! The IP in $PARALLEL_SECONDO_DBCONFIG is the adress of the local instance. 
+
+# Note!!! 
+# Here we assume that only one instance is set on the Amazon instance.
+
+WARNINFO="Warning !! "
+ERRORINFO="ERROR !! "
+
+NewMaster=$PARALLEL_SECONDO_CONF/master.new
+NewSlaves=$PARALLEL_SECONDO_CONF/slaves.new
+if [ "$(df | grep /mnt)" != "" ]; then 
+  MARKFILE=/mnt/stamp
+else
+  MARKFILE=$HOME/stamp
+fi
+
+declare -a ALLCONFLIST=(
+  $PARALLEL_SECONDO_MASTER
+  $PARALLEL_SECONDO_SLAVES
+  $PARALLEL_SECONDO_MAINDS/hadoop/conf/masters
+  $PARALLEL_SECONDO_MAINDS/hadoop/conf/slaves
+  $PARALLEL_SECONDO_MAINDS/hadoop/conf/core-site.xml
+  $PARALLEL_SECONDO_MAINDS/hadoop/conf/hdfs-site.xml
+  $PARALLEL_SECONDO_MAINDS/hadoop/conf/mapred-site.xml
+)
+
+
+# 1. 
+if [ -s $MARKFILE ]; then 
+  exit 0
+fi
+
+# 2. 
+if [ ! -f $NewMaster -o ! -f $NewSlaves ]; then 
+  # The first scenario
+  echo "Initializing the single-computer Parallel Secondo ... "
+
+  OMIP=$(cat $PARALLEL_SECONDO_MASTER | cut -d':' -f1)
+  # Old Master IP
+  NMIP=$(get_localIP)
+  # Current and new IP 
+  
+  # Change the master IP 
+  for file in ${ALLCONFLIST[*]}; do
+    sed $(PSEDOPT) "s/$OMIP/$NMIP/" $file
+  done
+  
+  echo "master-slave" > $MARKFILE
+else
+  echo "Initializing Parallel Secondo on cluster ... "
+  # The second scenario
+  OMIP=$(cat $PARALLEL_SECONDO_MASTER | cut -d':' -f1)
+  # Old Master IP 
+  NMIP="$(cat ${NewMaster})"
+
+  # In those files, only the master IP needs to be changed. 
+  declare -a PARTCONFLIST=(
+  $PARALLEL_SECONDO_MASTER
+  $PARALLEL_SECONDO_MAINDS/hadoop/conf/masters
+  $PARALLEL_SECONDO_MAINDS/hadoop/conf/core-site.xml
+  $PARALLEL_SECONDO_MAINDS/hadoop/conf/hdfs-site.xml
+  $PARALLEL_SECONDO_MAINDS/hadoop/conf/mapred-site.xml
+  )
+  # Change the master IP 
+  for file in ${PARTCONFLIST[*]}; do
+    sed $(PSEDOPT) "s/$OMIP/$NMIP/" $file
+  done
+  
+  # Change the file involving slaves
+  cp ${NewSlaves} $PARALLEL_SECONDO_MAINDS/hadoop/conf/slaves
+  
+  PSSLAVES="$PARALLEL_SECONDO_CONF/slaves.tmp"
+  cat /dev/null > ${PSSLAVES}
+  DSPATH=$(cat $PARALLEL_SECONDO_SLAVES)
+  DSPATH=${DSPATH#*:}
+  while read slave; do
+    if [ "$(trim ${slave})" != "" ]; then
+      echo "${slave}:${DSPATH}" >> ${PSSLAVES}    
+    fi
+  done < ${NewSlaves}
+  mv ${PSSLAVES} ${PARALLEL_SECONDO_SLAVES}
+
+  # package all required files, all but the local SecondoConfig.ini
+  PSCCONF_PKG="$PARALLEL_SECONDO_CONF/clusterConf.tar.gz"
+  tar -czf ${PSCCONF_PKG} -C ${PARALLEL_SECONDO} \
+    $(echo ${ALLCONFLIST[*]} | sed "s:${PARALLEL_SECONDO}/::g") 
+  SLAVESTAMP="$PARALLEL_SECONDO_CONF/slaveStamp"
+  echo "slave" > ${SLAVESTAMP}
+
+  # Connect the slaves, and prepare their data servers.   
+  # Mark slaves' stamp files. 
+  # TODO use pipeline to replace the loop
+
+  declare -i PJNum=5  # Number of jobs run in parallel
+  declare -a jobs=()
+  
+function setSlave
+{
+  slave=$1
+  echo "Processing the slave ${slave} ... "
+  # Initialize the slave data server. 
+  ssh -q ${slave} echo
+  # Distribute and set cluster configuration
+  scp -q ${PSCCONF_PKG} ${slave}:"${PSCCONF_PKG}"
+  ssh -q ${slave} "tar -xzf ${PSCCONF_PKG} -C ${PARALLEL_SECONDO}"
+  # Set up the mark file on the slave
+  scp -q ${SLAVESTAMP} ${slave}:"${MARKFILE}"
+}
+  
+  while read slave; do
+    if [ "${slave}" == "" -o "${slave}" == "${NMIP}" ];then
+      continue
+    fi
+    declare -i aJob=0
+    while true ; do
+      if [ ${aJob} -eq ${PJNum} ]; then
+        aJob=0
+      fi
+
+      if [ ! "${jobs[${aJob}]}" ] || kill -0 ${jobs[${aJob}]} 2>/dev/null; then
+		setSlave ${slave} &
+		jobs[${aJob}]=$!
+		break;
+      fi
+      let aJob++
+    done
+  done < ${NewSlaves}
+  
+  #wait till all jobs are done
+  for((aJob=0;aJob<${PJNum};)); do
+    if ! kill -0 ${jobs[${aJob}]} 2>/dev/null; then
+	let aJob++
+    fi
+  done
+  
+#  while read slave; do
+#    if [ "${slave}" != "${NMIP}" ]; then
+#	  # Initialize the slave data server. 
+#      ssh -q ${slave} echo
+#      # Distribute and set cluster configuration
+#      scp -q ${PSCCONF_PKG} ${slave}:"${PSCCONF_PKG}"
+#      ssh ${slave} "tar -xzf ${PSCCONF_PKG} -C ${PARALLEL_SECONDO}"
+#      # Set up the mark file on the slave
+#      scp ${SLAVESTAMP} $slave:"${MARKFILE}"
+#    fi
+#  done < ${NewSlaves}
+  
+  #Mark the stamp on the master itself. 
+  if [ "$(grep -f ${NewMaster} ${NewSlaves})" != "" ]; then
+    echo "master-slave" > $MARKFILE
+  else
+    echo "master" > $MARKFILE
+  fi
+  
+  echo -en "\n\nThe cluster set up has finished.\n"
+  echo -en "This cluster is composed by:\n"
+  echo -en "Master: $(cat ${NewMaster})"
+  echo -en "--------------------------------------------"
+  echo -en "Slaves:\n$(cat ${NewSlaves})"
+  
+fi
