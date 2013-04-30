@@ -2,7 +2,7 @@
 
 bin=`dirname "$0"`
 bin=`cd "$bin"; pwd`
-source $bin/ps-functions
+# source $bin/ps-functions  # independent from other Parallel Secondo scripts 
 
 # This script starts a set of EC2 instances, in order to build up a instance cluster. 
 # In total, N instances are started, one master node and N slaves. 
@@ -38,8 +38,8 @@ WARNINFO="Warning !! "
 ERRORINFO="ERROR !! "
 
 # AMI-ID
-AMID="ami-0771136e"
-AMIVersion="ParallelSecondo_1_0"
+AMID="ami-cfbcdea6"
+AMIVersion="ParallelSecondo_1_1"
 
 # Instance Number
 ITNum=1
@@ -176,8 +176,8 @@ done
 # 0. Check the prerequisite
 EC2PATH=$(which ec2-run-instances)
 if [ ! -f $EC2PATH ]; then
-  echo "${ERRORINFO}The EC2 command lines are not installed. \
-  Cannot found ec2-run-instances "
+  echo "${ERRORINFO}The EC2 command lines are not installed, \
+  cannot found ec2-run-instances. "
   exit -1
 fi
 
@@ -256,7 +256,7 @@ else
   exit -1
 fi
 
-echo -en "About to start up ${ITNum} EC2 instances based on the AMI ${AMID} (${AMIVersion}) ... \n \
+echo -en "About to start up ${ITNum} EC2 instances based on the AMI ${AMID} ... \n \
 Security group \t: ${SGNAME} \n \
 Key pair \t: ${KPNAME} \n \
 Instance type \t: ${INSTYPE} \n\
@@ -292,7 +292,8 @@ Would you like to: \n \
   3) Abort. (Note!! All started instances are not stopped.) \n"
     
     echo -n ": " ; read OPT
-    OPT=$(trim ${OPT})
+	# Trim the input 
+    OPT=$(echo ${OPT} | sed 's/^ *//' | sed 's/ *$//')
 	case "$OPT" in 
 	  "" | "1")
 	    echo "..."
