@@ -757,9 +757,10 @@ selectivityQueryJoin(Pred,Rel1,Rel2,QueryTime1, BBoxResCard1,
          dynamicPossiblyRenameJ(Rel2, Rel2Query),
          ( optimizerOption(subqueries)
            -> % Old method uses faster loopjoin:
-              Query = count(timeout(filter(counter(loopjoin(Rel1Query,
+              Query = count(timeout(filter(counter(
+                      loopjoin(counter(Rel1Query, 1),
                       fun([param(txx1, tuple)], filter(
-                      counter(Rel2Query,1), Pred3))),2),Pred2),Timeout ))
+                      counter(Rel2Query, 2), Pred3))), 3), Pred2),Timeout ))
            ;  %  New version uses slower symmjoin to enable a balanced stream
               %  consumption within the timeout
               Query = count(timeout(filter(counter(
@@ -780,9 +781,9 @@ selectivityQueryJoin(Pred,Rel1,Rel2,QueryTime1, BBoxResCard1,
          ( optimizerOption(subqueries)
            -> % Old method uses faster loopjoin:
               Query = count(timeout(filter(counter(loopjoin(
-                      counter(Rel1Query,1),
+                      counter(Rel1Query, 1),
                       fun([param(txx1, tuple)],
-                      filter(Rel2Query, Pred3))),2), Pred2), Timeout ))
+                      filter(counter(Rel2Query, 2), Pred3))),3), Pred2), Timeout ))
            ; %  New version uses slower symmjoin to enable a balanced stream
              %  consumption within the timeout
               Query = count(timeout(filter(counter(
@@ -842,7 +843,12 @@ selectivityQueryJoin(Pred,Rel1,Rel2,QueryTime1, BBoxResCard1,
          fail
        )
   ),
-  InputCard is InputCardRel1 * InputCardRel2,
+  ( optimizerOption(subqueries) 
+    -> InputCard = InputCardRel2
+    ; InputCard is InputCardRel1 * InputCardRel2
+  ),
+  % InputCard is InputCardRel1 * InputCardRel2,
+       write_list(['InputCard = ', InputCard]), nl, 
   ( realJoinSize(Pred, S)
     -> ( FilterResCard1 is FilterResCard * JoinSize / S,
          QueryTime1 is QueryTime * JoinSize / S,
@@ -965,7 +971,12 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox,
          fail
        )
   ),
-  InputCard is InputCardRel1 * InputCardRel2,
+  ( optimizerOption(subqueries) 
+    -> InputCard = InputCardRel2
+    ; InputCard is InputCardRel1 * InputCardRel2
+  ),
+  % InputCard is InputCardRel1 * InputCardRel2,
+       write_list(['InputCard = ', InputCard]), nl, 
   ( realJoinSize(Pred, S)
     -> ( ResCard1 is ResCard * JoinSize / S,
          QueryTime1 is QueryTime * JoinSize / S,
