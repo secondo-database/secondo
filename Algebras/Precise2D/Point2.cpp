@@ -40,21 +40,17 @@
 #include <stdio.h>
 #include <iostream>
 
-
-extern int yylex(void);
-extern int yy_scan_string(string str);
-
 namespace p2d {
 
-
 PointData::PointData(const int xGrid, const int yGrid) :
-		x(xGrid), y(yGrid), xStartPos(0), yStartPos(0),
-		xNumOfChars(0), yNumOfChars(0) {}
+  x(xGrid), y(yGrid), xStartPos(0), yStartPos(0), xNumOfChars(0),
+  yNumOfChars(0) {
+}
 
 PointData::PointData(const PointData& pd) :
-		x(pd.x), y(pd.y),
-		xStartPos(pd.xStartPos), yStartPos(pd.yStartPos),
-		xNumOfChars(0), yNumOfChars(0) {}
+  x(pd.x), y(pd.y), xStartPos(pd.xStartPos), yStartPos(pd.yStartPos),
+  xNumOfChars(0), yNumOfChars(0) {
+}
 
 /*
  1.1.1 Read access methods
@@ -66,72 +62,65 @@ PointData::PointData(const PointData& pd) :
 
 */
 void PointData::getPreciseX(const Flob* preciseCoordinates,
-		mpq_class& result) const {
-	SmiSize sz = preciseCoordinates->getSize();
+  mpq_class& result) const {
+ SmiSize sz = preciseCoordinates->getSize();
 
-	char* s;
-	if (sz == 0) {
-		s = new char[1];
-		s[0] = 0;
-	} else {
-		s = new char[xNumOfChars+1];
+ char* s;
+ if (sz == 0) {
+  s = new char[1];
+  s[0] = 0;
+ } else {
+  s = new char[xNumOfChars + 1];
 
-		bool ok = preciseCoordinates->read(s, xNumOfChars, xStartPos);
-		assert(ok);
-		s[xNumOfChars] = 0;
-		//cout << "s wird gleich zu mpq_class: "<< s<<endl;
+  bool ok = preciseCoordinates->read(s, xNumOfChars, xStartPos);
+  assert(ok);
+  s[xNumOfChars] = 0;
 
-	}
-	mpq_class theValue(s);
-	result = theValue;
-	//cout << "s ist mpq"<<endl;
-	//delete s;
-	//return theValue;
+ }
+ mpq_class theValue(s);
+ result = theValue;
 }
 
 void PointData::getPreciseY(const Flob* preciseCoordinates,
-		mpq_class& result) const {
-	SmiSize sz = preciseCoordinates->getSize();
-	char* s;
-	if (sz == 0 || sz == yStartPos) {
-		s = new char[1];
-		s[0] = 0;
-	} else {
-		s = new char[yNumOfChars+1];
+  mpq_class& result) const {
+ SmiSize sz = preciseCoordinates->getSize();
+ char* s;
+ if (sz == 0 || sz == yStartPos) {
+  s = new char[1];
+  s[0] = 0;
+ } else {
+  s = new char[yNumOfChars + 1];
 
-		bool ok = preciseCoordinates->read(s, yNumOfChars, yStartPos);
-		assert(ok);
+  bool ok = preciseCoordinates->read(s, yNumOfChars, yStartPos);
+  assert(ok);
 
-		s[yNumOfChars] = 0;
-		//cout << "s wird gleich zu mpq_class: "<< s<<endl;
+  s[yNumOfChars] = 0;
 
-	}
-	mpq_class theValue(s);
-	result = theValue;
-	//delete s;
-	//return theValue;
+ }
+ mpq_class theValue(s);
+ result = theValue;
 }
 
 char* PointData::getPreciseXAsString(const Flob* preciseCoordinates) const {
-	size_t sz = preciseCoordinates->getSize();
-	assert (sz > xStartPos+xNumOfChars);
-	char* s = new char[xNumOfChars + 1];
-	s[xNumOfChars] = 0;
-	bool ok = preciseCoordinates->read(s, xNumOfChars, xStartPos);
-	assert(ok);
-	assert (s[xNumOfChars]==0);
-	return s;
+ size_t sz = preciseCoordinates->getSize();
+ assert(sz > xStartPos + xNumOfChars);
+ char* s = new char[xNumOfChars + 1];
+ s[xNumOfChars] = 0;
+ bool ok = preciseCoordinates->read(s, xNumOfChars, xStartPos);
+ assert(ok);
+ assert(s[xNumOfChars] == 0);
+ return s;
 }
 
 char* PointData::getPreciseYAsString(const Flob* preciseCoordinates) const {
-	size_t sz = preciseCoordinates->getSize();
-	assert (sz > yStartPos+yNumOfChars);
-	char* s = new char[yNumOfChars + 1];
-	s[yNumOfChars] = 0;
-	bool ok = preciseCoordinates->read(s, yNumOfChars, yStartPos);
-	assert(ok);
-	assert (s[yNumOfChars]==0);
-	return s;
+ size_t sz = preciseCoordinates->getSize();
+ assert(sz > yStartPos + yNumOfChars);
+ char* s = new char[yNumOfChars + 1];
+ s[yNumOfChars] = 0;
+ bool ok = preciseCoordinates->read(s, yNumOfChars, yStartPos);
+ assert(ok);
+ assert(s[yNumOfChars] == 0);
+ return s;
 }
 
 /*
@@ -140,11 +129,11 @@ char* PointData::getPreciseYAsString(const Flob* preciseCoordinates) const {
 */
 
 void PointData::SetGridX(int xp) {
-	x = xp;
+ x = xp;
 }
 
 void PointData::SetGridY(int yp) {
-	y = yp;
+ y = yp;
 }
 
 /*
@@ -155,238 +144,226 @@ void PointData::SetGridY(int yp) {
 
 */
 void PointData::SetPreciseX(Flob* preciseCoordinates, mpq_class x) {
-	SmiSize sz=preciseCoordinates->getSize();
-	stringstream theStream;
+ SmiSize sz = preciseCoordinates->getSize();
 
-	theStream << x;
-	theStream << '\0';
-	char* s = new char[theStream.width() + 1];
-	theStream >> s;
+ string str = x.get_str();
+ char* s = new char[str.length() + 1];
+ std::strcpy(s, str.c_str());
 
-	xNumOfChars = strlen(s);
+ xNumOfChars = strlen(s);
 
-	if (sz == 0) {
-		xStartPos=0;
-		// We have to allocate one byte for the ending-0 in the FLOB.
-		preciseCoordinates->resize(xNumOfChars+1);
-	} else {
-		xStartPos=sz-1;
-		// The FLOB already ends with 0.
-		preciseCoordinates->resize(sz+xNumOfChars);
-	}
-	bool ok=preciseCoordinates->write(s, xNumOfChars+1, xStartPos);
+ if (sz == 0) {
+  xStartPos = 0;
+  // We have to allocate one byte for the ending-0 in the FLOB.
+  preciseCoordinates->resize(xNumOfChars + 1);
+ } else {
+  xStartPos = sz - 1;
+  // The FLOB already ends with 0.
+  preciseCoordinates->resize(sz + xNumOfChars);
+ }
+ bool ok = preciseCoordinates->write(s, xNumOfChars + 1, xStartPos);
 
-	assert(ok);
+ assert(ok);
 }
 
 void PointData::SetPreciseY(Flob* preciseCoordinates, mpq_class y) {
 
+ SmiSize sz = preciseCoordinates->getSize();
 
-	SmiSize sz=preciseCoordinates->getSize();
+ string str = y.get_str();
+ char* s = new char[str.length() + 1];
+ std::strcpy(s, str.c_str());
 
-	stringstream theStream;
-	theStream << y;
-	theStream << '\0';
-	char* s = new char[theStream.width() + 1];
+ yNumOfChars = strlen(s);
 
-	theStream >> s;
-	yNumOfChars = strlen(s);
+ if (sz == 0) {
+  yStartPos = 0;
+  preciseCoordinates->resize(yNumOfChars + 1);
+ } else {
+  yStartPos = sz - 1;
+  preciseCoordinates->resize(sz + yNumOfChars);
+ }
 
-	if (sz == 0) {
-		yStartPos=0;
-		preciseCoordinates->resize(yNumOfChars+1);
-	} else {
-		yStartPos=sz-1;
-		preciseCoordinates->resize(sz+yNumOfChars);
-	}
+ bool ok = preciseCoordinates->write(s, yNumOfChars + 1, yStartPos);
 
-
-	bool ok = preciseCoordinates->write(s, yNumOfChars+1, yStartPos);
-
-	assert(ok);
+ assert(ok);
 }
 
-void PointData::CopyPreciseCoordinates(Point2* p, Flob* preciseCoordinates){
-	SmiSize sz = preciseCoordinates->getSize();
-	SmiSize newSize;
-	if (sz==0){
-		newSize = (p->GetFLOB(0))->getSize() + 1;
-	} else {
-		newSize = sz + (p->GetFLOB(0))->getSize();
-	}
-	preciseCoordinates->resize(newSize);
-	char* x=p->getPreciseXAsString();
-	xStartPos = sz;
-	xNumOfChars = strlen(x);
-	char* y=p->getPreciseYAsString();
-	yStartPos = xStartPos + xNumOfChars;
-	yNumOfChars = strlen(y);
-	preciseCoordinates->write(x, xNumOfChars, xStartPos);
-	preciseCoordinates->write(y, yNumOfChars, yStartPos);
+void PointData::CopyPreciseCoordinates(Point2* p, Flob* preciseCoordinates) {
+ SmiSize sz = preciseCoordinates->getSize();
+ SmiSize newSize;
+ if (sz == 0) {
+  newSize = (p->GetFLOB(0))->getSize() + 1;
+ } else {
+  newSize = sz + (p->GetFLOB(0))->getSize();
+ }
+ preciseCoordinates->resize(newSize);
+ char* x = p->getPreciseXAsString();
+ xStartPos = sz;
+ xNumOfChars = strlen(x);
+ char* y = p->getPreciseYAsString();
+ yStartPos = xStartPos + xNumOfChars;
+ yNumOfChars = strlen(y);
+ preciseCoordinates->write(x, xNumOfChars, xStartPos);
+ preciseCoordinates->write(y, yNumOfChars, yStartPos);
 }
 
-
-Point2::Point2(const bool def, const int xCoord, int yCoord,
-		mpq_class preciseX, mpq_class preciseY) :
-		StandardSpatialAttribute<2>(def), preciseCoordinates(0),
-		pointData(xCoord, yCoord) {
-	pointData.SetPreciseX(&preciseCoordinates, preciseX);
-	pointData.SetPreciseY(&preciseCoordinates, preciseY);
+Point2::Point2(const bool def, const int xCoord, int yCoord, mpq_class preciseX,
+  mpq_class preciseY) :
+  StandardSpatialAttribute<2>(def), preciseCoordinates(0), pointData(xCoord,
+    yCoord) {
+ pointData.SetPreciseX(&preciseCoordinates, preciseX);
+ pointData.SetPreciseY(&preciseCoordinates, preciseY);
 }
 
 Point2::Point2(const Point2& cp) :
-		StandardSpatialAttribute<2>(cp.IsDefined()), preciseCoordinates(
-				cp.preciseCoordinates.getSize()),
-				pointData(cp.pointData) {
-	preciseCoordinates.copyFrom(cp.preciseCoordinates);
+  StandardSpatialAttribute<2>(cp.IsDefined()), preciseCoordinates(
+    cp.preciseCoordinates.getSize()), pointData(cp.pointData) {
+ preciseCoordinates.copyFrom(cp.preciseCoordinates);
 }
 
 Point2::Point2(bool def) :
-		StandardSpatialAttribute<2>(def), preciseCoordinates(0),
-		pointData(0,0) {
+  StandardSpatialAttribute<2>(def), preciseCoordinates(0), pointData(0, 0) {
 }
 
 int Point2::getGridX() const {
-	return pointData.getGridX();
+ return pointData.getGridX();
 }
 
 int Point2::getGridY() const {
-	return pointData.getGridY();
+ return pointData.getGridY();
 }
 
-
-
 mpq_class& Point2::getPreciseX() const {
-	mpq_class* value = new mpq_class(0);
-	pointData.getPreciseX(&preciseCoordinates, *value);
-	return *value;
+ mpq_class* value = new mpq_class(0);
+ pointData.getPreciseX(&preciseCoordinates, *value);
+ return *value;
 }
 
 mpq_class& Point2::getPreciseY() const {
-	mpq_class* value = new mpq_class(0);
-	pointData.getPreciseY(&preciseCoordinates, *value);
-	return *value;
+ mpq_class* value = new mpq_class(0);
+ pointData.getPreciseY(&preciseCoordinates, *value);
+ return *value;
 }
 
 char* Point2::getPreciseXAsString() const {
-	return pointData.getPreciseXAsString(&preciseCoordinates);
+ return pointData.getPreciseXAsString(&preciseCoordinates);
 }
 
 char* Point2::getPreciseYAsString() const {
-	return pointData.getPreciseYAsString(&preciseCoordinates);
+ return pointData.getPreciseYAsString(&preciseCoordinates);
 }
 
-bool Point2::operator==( const Point2& p ) const{
-	if(!IsDefined() && !p.IsDefined()){
-	    return true;
-	}
-	if(!IsDefined() || !p.IsDefined()){
-	    return false;
-	}
-	if (getGridX()!=p.getGridX() ||
-			getGridY()!=p.getGridY()){
-		return false;
-	}
-	if (cmp(getPreciseX(),p.getPreciseX())!=0){
-		return false;
-	}
-	if (cmp(getPreciseY(),p.getPreciseY())!=0){
-		return false;
-	}
-	return true;
+bool Point2::operator==(const Point2& p) const {
+ if (!IsDefined() && !p.IsDefined()) {
+  return true;
+ }
+ if (!IsDefined() || !p.IsDefined()) {
+  return false;
+ }
+ if (getGridX() != p.getGridX() || getGridY() != p.getGridY()) {
+  return false;
+ }
+ if (cmp(getPreciseX(), p.getPreciseX()) != 0) {
+  return false;
+ }
+ if (cmp(getPreciseY(), p.getPreciseY()) != 0) {
+  return false;
+ }
+ return true;
 }
 
-bool Point2::operator<=( const Point2& p ) const{
-	if ( !IsDefined() ){
-		return true;
-	}
-	if( !p.IsDefined() ){
-		return !IsDefined();
-	}
-	if (getGridX() < p.getGridX() ){
-			return true;
-	} else {
-		if (getGridX() > p.getGridX()){
-			return false;
-		} else {
-			// both points have the same x-coordinate for the
-			// grid-value
-			mpq_class px1 = getPreciseX();
-			mpq_class px2 = p.getPreciseX();
-			int cmpX = cmp(px1,px2);
-			if (cmpX<0){
-				return true;
-			}
-			if (cmpX>0){
-				return false;
-			}
-			//both points have the same x-coordinate
-			if (getGridY() < p.getGridY()){
-				return true;
-			}
-			if (getGridY() > p.getGridY()){
-				return false;
-			}
-			// both points lay in the same grid-point
-			mpq_class py1 = getPreciseY();
-			mpq_class py2 = p.getPreciseY();
-			if (cmp(py1,py2)<=0){
-				return true;
-			}
-		}
-	}
-	return false;
+bool Point2::operator<=(const Point2& p) const {
+ if (!IsDefined()) {
+  return true;
+ }
+ if (!p.IsDefined()) {
+  return !IsDefined();
+ }
+ if (getGridX() < p.getGridX()) {
+  return true;
+ } else {
+  if (getGridX() > p.getGridX()) {
+   return false;
+  } else {
+   // both points have the same x-coordinate for the
+   // grid-value
+   mpq_class px1 = getPreciseX();
+   mpq_class px2 = p.getPreciseX();
+   int cmpX = cmp(px1, px2);
+   if (cmpX < 0) {
+    return true;
+   }
+   if (cmpX > 0) {
+    return false;
+   }
+   //both points have the same x-coordinate
+   if (getGridY() < p.getGridY()) {
+    return true;
+   }
+   if (getGridY() > p.getGridY()) {
+    return false;
+   }
+   // both points lay in the same grid-point
+   mpq_class py1 = getPreciseY();
+   mpq_class py2 = p.getPreciseY();
+   if (cmp(py1, py2) <= 0) {
+    return true;
+   }
+  }
+ }
+ return false;
 }
 
-bool Point2::operator<( const Point2& p ) const{
-	//assert( IsDefined() && p.IsDefined() );
-	if( !p.IsDefined() ){
-		return false;
-	}
-	if ( !IsDefined() ){
-		return p.IsDefined();
-	}
-	if (getGridX() < p.getGridX() ){
-				return true;
-		} else {
-			if (getGridX() > p.getGridX()){
-				return false;
-			} else {
-				// both points have the same gridX-value
-				mpq_class px1 = getPreciseX();
-				mpq_class px2 = p.getPreciseX();
-				int cmpX = cmp(px1,px2);
-				if (cmpX<0){
-					return true;
-				}
-				if (cmpX>0){
-					return false;
-				}
-				//both points have the same x-coordinate
-				if (getGridY() < p.getGridY()){
-					return true;
-				}
-				if (getGridY() > p.getGridY()){
-					return false;
-				}
-				// both points lay in the same grid-point
-				mpq_class py1 = getPreciseY();
-				mpq_class py2 = p.getPreciseY();
-				if (cmp(py1,py2)<0){
-					return true;
-				} else {
-					return false;
-				}
-			}
-		}
+bool Point2::operator<(const Point2& p) const {
+ //assert( IsDefined() && p.IsDefined() );
+ if (!p.IsDefined()) {
+  return false;
+ }
+ if (!IsDefined()) {
+  return p.IsDefined();
+ }
+ if (getGridX() < p.getGridX()) {
+  return true;
+ } else {
+  if (getGridX() > p.getGridX()) {
+   return false;
+  } else {
+   // both points have the same gridX-value
+   mpq_class px1 = getPreciseX();
+   mpq_class px2 = p.getPreciseX();
+   int cmpX = cmp(px1, px2);
+   if (cmpX < 0) {
+    return true;
+   }
+   if (cmpX > 0) {
+    return false;
+   }
+   //both points have the same x-coordinate
+   if (getGridY() < p.getGridY()) {
+    return true;
+   }
+   if (getGridY() > p.getGridY()) {
+    return false;
+   }
+   // both points lay in the same grid-point
+   mpq_class py1 = getPreciseY();
+   mpq_class py2 = p.getPreciseY();
+   if (cmp(py1, py2) < 0) {
+    return true;
+   } else {
+    return false;
+   }
+  }
+ }
 }
 
-bool Point2::operator>=( const Point2& p ) const{
-	return !(*this<p);
+bool Point2::operator>=(const Point2& p) const {
+ return !(*this < p);
 }
 
-bool Point2::operator>( const Point2& p ) const{
-	return !(*this<=p);
+bool Point2::operator>(const Point2& p) const {
+ return !(*this <= p);
 }
 
 /*
@@ -399,11 +376,11 @@ bool Point2::operator>( const Point2& p ) const{
 
 */
 int Point2::SizeOfPoint2() {
-	return sizeof(Point2);
+ return sizeof(Point2);
 }
 
 inline size_t Point2::Sizeof() const {
-	return (sizeof(*this));
+ return (sizeof(*this));
 }
 
 /*
@@ -411,14 +388,14 @@ inline size_t Point2::Sizeof() const {
 
 */
 inline void Point2::CopyFrom(const Attribute* right) {
-	const Point2* p = (const Point2*) right;
-	SetDefined(p->IsDefined());
-	if (IsDefined()) {
-		pointData.SetGridX(p->getGridX());
-		pointData.SetGridY(p->getGridY());
-		pointData.SetPreciseX(&preciseCoordinates, p->getPreciseX());
-		pointData.SetPreciseY(&preciseCoordinates, p->getPreciseY());
-	}
+ const Point2* p = (const Point2*) right;
+ SetDefined(p->IsDefined());
+ if (IsDefined()) {
+  pointData.SetGridX(p->getGridX());
+  pointData.SetGridY(p->getGridY());
+  pointData.SetPreciseX(&preciseCoordinates, p->getPreciseX());
+  pointData.SetPreciseY(&preciseCoordinates, p->getPreciseY());
+ }
 }
 
 /*
@@ -426,28 +403,26 @@ inline void Point2::CopyFrom(const Attribute* right) {
 
 */
 inline int Point2::Compare(const Attribute *arg) const {
-	const Point2* p = (const Point2*) arg;
-	if (!IsDefined() && !p->IsDefined())
-		return 0;
-	if (!IsDefined())
-		return -1;
-	if (!p->IsDefined())
-		return 1;
-	 if( *this > *p )
-	 return 1;
-	 if( *this < *p )
-	 return -1;
-	return 0;
+ const Point2* p = (const Point2*) arg;
+ if (!IsDefined() && !p->IsDefined())
+  return 0;
+ if (!IsDefined())
+  return -1;
+ if (!p->IsDefined())
+  return 1;
+ if (*this > *p)
+  return 1;
+ if (*this < *p)
+  return -1;
+ return 0;
 }
-
-
 
 /*
  4.8 ~Clone~-functions
 
 */
 Word Point2::ClonePoint2(const ListExpr typeInfo, const Word& w) {
-	return SetWord(new Point2(*((Point2 *) w.addr)));
+ return SetWord(new Point2(*((Point2 *) w.addr)));
 }
 
 /*
@@ -455,16 +430,15 @@ Word Point2::ClonePoint2(const ListExpr typeInfo, const Word& w) {
 
 */
 void* Point2::CastPoint2(void* addr) {
-	return (new (addr) Point2());
+ return (new (addr) Point2());
 }
-
 
 /*
  4.5 ~Create~-function
 
 */
 Word Point2::CreatePoint2(const ListExpr typeInfo) {
-	return SetWord(new Point2(false));
+ return SetWord(new Point2(false));
 }
 
 /*
@@ -472,11 +446,11 @@ Word Point2::CreatePoint2(const ListExpr typeInfo) {
 
 */
 void Point2::DeletePoint2(const ListExpr typeInfo, Word& w) {
-	Point2 *p = (Point2 *)w.addr;
-	  (p->GetFLOB(0))->destroy();
-	  p->SetDefined(false);
-	  delete p;
-	  w.addr = 0;
+ Point2 *p = (Point2 *) w.addr;
+ (p->GetFLOB(0))->destroy();
+ p->SetDefined(false);
+ delete p;
+ w.addr = 0;
 }
 
 /*
@@ -484,8 +458,8 @@ void Point2::DeletePoint2(const ListExpr typeInfo, Word& w) {
 
 */
 void Point2::ClosePoint2(const ListExpr typeInfo, Word& w) {
-	delete (Point2*) w.addr;
-	  w.addr = 0;
+ delete (Point2*) w.addr;
+ w.addr = 0;
 }
 
 /*
@@ -493,17 +467,14 @@ void Point2::ClosePoint2(const ListExpr typeInfo, Word& w) {
 
 */
 ListExpr Point2::Point2Property() {
-	return nl->TwoElemList(
-			nl->FourElemList(nl->StringAtom("Signature"),
-					nl->StringAtom("Example Type List"),
-					nl->StringAtom("List Rep"),
-					nl->StringAtom("Example List")),
-			nl->FourElemList(nl->StringAtom("-> DATA"),
-					nl->StringAtom(Point2::BasicType()),
-					nl->StringAtom
-					("(x y ( preciseX preciseY))"),
-					nl->StringAtom
-					("(10 5 ( '1/4' '1/4'))")));
+ return nl->TwoElemList(
+   nl->FourElemList(nl->StringAtom("Signature"),
+     nl->StringAtom("Example Type List"), nl->StringAtom("List Rep"),
+     nl->StringAtom("Example List")),
+   nl->FourElemList(nl->StringAtom("-> DATA"),
+     nl->StringAtom(Point2::BasicType()),
+     nl->StringAtom("(x y ( preciseX preciseY))"),
+     nl->StringAtom("(10 5 ( '1/4' '1/4'))")));
 }
 
 /*
@@ -511,7 +482,7 @@ ListExpr Point2::Point2Property() {
 
 */
 bool Point2::CheckPoint2(ListExpr type, ListExpr& errorInfo) {
-	return (nl->IsEqual(type, Point2::BasicType()));
+ return (nl->IsEqual(type, Point2::BasicType()));
 }
 
 /*
@@ -519,9 +490,9 @@ bool Point2::CheckPoint2(ListExpr type, ListExpr& errorInfo) {
 
 */
 double Point2::Distance(const Rectangle<2>& rect,
-		const Geoid* geoid/*=0*/) const {
-	//TODO Impl. Point2::Distance
-	return 0.0;
+  const Geoid* geoid/*=0*/) const {
+ //TODO Impl. Point2::Distance
+ return 0.0;
 }
 
 /*
@@ -530,16 +501,12 @@ double Point2::Distance(const Rectangle<2>& rect,
 */
 const Rectangle<2> Point2::BoundingBox(const Geoid* geoid /*= 0*/) const {
 
-	  if( IsDefined() ) {
-		  if(!geoid){
-	      return Rectangle<2>( true,
-	                          getGridX(),
-	                          getGridX(),
-	                          getGridY(),
-	                          getGridY() );
-	    }
-	  }
-	  return Rectangle<2>( false, 0.0, 0.0, 0.0, 0.0 );
+ if (IsDefined()) {
+  if (!geoid) {
+   return Rectangle<2>(true, getGridX(), getGridX(), getGridY(), getGridY());
+  }
+ }
+ return Rectangle<2>(false, 0.0, 0.0, 0.0, 0.0);
 
 }
 
@@ -548,9 +515,9 @@ const Rectangle<2> Point2::BoundingBox(const Geoid* geoid /*= 0*/) const {
 
 */
 bool Point2::IsEmpty() const {
-	return !IsDefined();
+ return !IsDefined();
 }
 
 } // end of namespace p2d
 
-#endif /* _POINT2_CPP */
+#endif /* _POINT2_CPP*/
