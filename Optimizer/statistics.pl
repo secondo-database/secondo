@@ -2488,6 +2488,7 @@ dcNList([X1|R1],[X2|R2]) :-
 
 /*
 Auxiliary predicate
+
 ----
 (1) nestedTypeExpr2valueTypeExprAtom(+Type,-TypeAtom)
 (2) valueTypeExpr2valueTypeExprAtom(+Type, -TypeAtom)
