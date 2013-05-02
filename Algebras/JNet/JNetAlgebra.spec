@@ -40,6 +40,7 @@ operator present alias PRESENT pattern _ infixop _
 operator restrict alias RESTRICT pattern op( _ , _ )
 operator routes alias ROUTES pattern op ( _ )
 operator sections alias SECTIONS pattern op ( _ )
+operator shortest_path alias SHORTEST_PATH pattern op( _ , _ )
 operator tempnetbox alias TEMPNETBOX pattern op ( _ )
 operator tonetwork alias TONETWORK pattern op ( _ , _ )
 operator trajectory alias TRAJECTORY pattern op ( _ )

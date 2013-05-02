@@ -742,7 +742,7 @@ Operator : getBGP
 Number   : 1
 Signature: jline -> jpoints
 Example  : query getBGP(testjl)
-Result   : (jpoints("testjnet"((1 0 (Both))(1 0.002 (Both))(10 0 (Both))(10 0.0001 (Both))(11 0 (Both))(11 0.0001 (Both)))))
+Result   : (jpoints("testjnet"((1 0.0 (Both))(1 0.002 (Both))(2 0.0 (Both))(2 0.002 (Both))(10 0.0 (Both))(10 0.0001 (Both))(11 0.0 (Both))(11 0.0001 (Both)))))
 Tolerance: 0.01%
 
 Operator : getReverseAdjacentSections
@@ -957,6 +957,13 @@ Number   : 1
 Signature: jnet -> rel
 Example  : query sections(testjnet);
 Result   : file
+Tolerance: 0.01%
+
+Operator : shortest_path
+Number   : 1
+Signature: jpoint x jpoint -> jpath
+Example  : query shortest_path([const jpoint value("testjnet" (1 0.001 (Up)))],[const jpoint value("testjnet" (2 0.003(Up)))])
+Result   : (jpath("testjnet" ((1 0.0 0.003 (Up)))))
 Tolerance: 0.01%
 
 Operator : tempnetbox

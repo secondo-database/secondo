@@ -2191,6 +2191,22 @@ void JNetwork::ComputeAndAddUnits(const DbArray< JRouteInterval >* sp,
 
 */
 
+void JNetwork::ShortestPath(const RouteLocation& source,
+                            const RouteLocation& target,
+                            JPath* result)
+{
+  double lenght = 0.0;
+  Point* tgtPos = GetSpatialValueOf(target);
+  result->Clear();
+  result->SetNetworkId(id);
+  double length = 0.0;
+  DbArray<JRouteInterval>* sp = ShortestPath(source, target, tgtPos, length);
+  result->SetPath(*sp, false, this);
+  sp->Destroy();
+  delete sp;
+  tgtPos->DeleteIfAllowed();
+}
+
 DbArray< JRouteInterval >* JNetwork::ShortestPath(
                                         const jnetwork::RouteLocation& source,
                                         const jnetwork::RouteLocation& target,
@@ -2230,17 +2246,14 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
   RouteLocation src(source);
   RouteLocation tgt(target);
   DbArray<JRouteInterval>* res = new DbArray<JRouteInterval> (0);
-  if (startSectId == endSectId || ExistsCommonRoute(src, tgt))
+  if (ExistsCommonRoute(src, tgt))
   {
-    //cout << "common route for src: " << src << "tgt: " << tgt << endl;
     if (DirectConnectionExists(startSectId, endSectId, startSectTup, endSectTup,
                                src, tgt, res, length))
     {
-      //cout << "direct connection exists" << endl;
       return res;
     }
   }
-  //cout << "no common route " << src << "tgt: " << tgt << endl;
   Direction curMoveDir(Both);
   vector<pair<int, double> >* endJunctions = new vector<pair<int, double> >(0);
   //compute (set) of junctions where computation ends
@@ -2445,7 +2458,6 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
   cleanShortestPathMemory(endJunctions, pq, curJunc, pqEntry);
   return res;
 }
-
 
 /*
 1.1 Private functions
@@ -3584,7 +3596,7 @@ bool JNetwork::DirectConnectionExists(const int startSID,
                                       DbArray<JRouteInterval>* res,
                                       double& length) const
 {
-  //cout << "check direct connection exists" << endl;
+  cout << "check direct connection exists" << endl;
   if (sourceSectTup != 0 && targetSectTup != 0)
   {
     if (source.GetRouteId() == target.GetRouteId())
@@ -3917,49 +3929,46 @@ bool JNetwork::ExistsCommonRoute(RouteLocation& src, RouteLocation& tgt) const
   {
     return false;
   }
-  if (src.IsOnSameRoute(tgt)) {
+  if (src.IsOnSameRoute(tgt))
+  {
     return true;
   }
   else
   {
     JListRLoc* left = GetNetworkValuesOf(src);
-    JListRLoc* right = GetNetworkValuesOf(tgt);
-    if (left != 0 && left->GetNoOfComponents() > 0 &&
-        right != 0 && right->GetNoOfComponents() > 0)
-    {
-      int i = 0;
-      while (i < left->GetNoOfComponents())
-      {
-        left->Get(i,src);
-        int j = 0;
-        //cout << "src: " << src << endl;
-        while (j < right->GetNoOfComponents())
-        {
-          right->Get(j,tgt);
-          //cout << "tgt: " << tgt << endl;
-          if (src.IsOnSameRoute(tgt))
-          {
-            //cout << "same route src " << src << "tgt" << tgt << endl;
-            left->Destroy();
-            left->DeleteIfAllowed();
-            right->Destroy();
-            right->DeleteIfAllowed();
-            return true;
-          }
-          j++;
-        }
-        i++;
-      }
-    }
     if (left != 0)
     {
+      JListRLoc* right = GetNetworkValuesOf(tgt);
+      if (right != 0)
+      {
+        if (left->GetNoOfComponents() > 0 && right->GetNoOfComponents() > 0)
+        {
+          int i = 0;
+          while (i < left->GetNoOfComponents())
+          {
+            left->Get(i,src);
+            int j = 0;
+            while (j < right->GetNoOfComponents())
+            {
+              right->Get(j,tgt);
+              if (src.IsOnSameRoute(tgt))
+              {
+                left->Destroy();
+                left->DeleteIfAllowed();
+                right->Destroy();
+                right->DeleteIfAllowed();
+                return true;
+              }
+              j++;
+            }
+            i++;
+          }
+        }
+        right->Destroy();
+        right->DeleteIfAllowed();
+      }
       left->Destroy();
       left->DeleteIfAllowed();
-    }
-    if (right != 0)
-    {
-      right->Destroy();
-      right->DeleteIfAllowed();
     }
     return false;
   }
@@ -3982,7 +3991,7 @@ RouteLocation* JNetwork::GetRLocOfPosOnRouteInterval(
                                actInt->GetSide());
     else
       return new RouteLocation(actInt->GetRouteId(),
-                               actInt->GetFirstPosition() - pos,
+                               actInt->GetLastPosition() - pos,
                                actInt->GetSide());
   }
   else

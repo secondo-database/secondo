@@ -54,6 +54,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "MJPoint.h"
 #include "RelationAlgebra.h"
 #include "JList.h"
+#include "JPath.h"
 
 using namespace std;
 using namespace mappings;
@@ -342,6 +343,29 @@ TypeConstructor jlineTC(
   JLine::Cast,
   JLine::SizeOf,
   JLine::KindCheck);
+
+/*
+1.1 ~jpath~
+
+Describes a path in the network. Consists of an ~string~ as network
+identifier and an set of ~pathentries~ describing the network part covered by
+path and the position in the path.
+
+*/
+
+TypeConstructor jpathTC(
+  JPath::BasicType(),
+  JPath::Property,
+  JPath::Out, JPath::In,
+  0, 0,
+  JPath::Create, JPath::Delete,
+  OpenAttribute<JPath>,
+  SaveAttribute<JPath>,
+  JPath::Close, JPath::Clone,
+  JPath::Cast,
+  JPath::SizeOf,
+  JPath::KindCheck);
+
 
 /*
 1.1 ~ijpoint~
@@ -3670,6 +3694,64 @@ const string getBGPSpec =
 Operator getBGPJNet("getBGP", getBGPSpec, 1, getBGPMap, getBGPSelect, getBGPTM);
 
 /*
+1.1.1 ~shortestpath~
+
+Returns the shortestpath from the first parameter to the
+second parameter as jpath.
+
+*/
+
+const string maps_shortestpath[1][3] =
+{
+  {JPoint::BasicType(), JPoint::BasicType(), JPath::BasicType()}
+};
+
+ListExpr shortestpathTM(ListExpr args)
+{
+  return SimpleMaps<1,3>(maps_shortestpath, args);
+}
+
+int shortestpathSelect(ListExpr args)
+{
+  return SimpleSelect<1,3>(maps_shortestpath, args);
+}
+
+template<class Source, class Target>
+int shortestpathVM( Word* args, Word& result, int message, Word& local,
+            Supplier s)
+{
+  result = qp->ResultStorage(s);
+  JPath* res = static_cast<JPath*> (result.addr);
+  Source* source = static_cast<Source*> (args[0].addr);
+  Target* target = static_cast<Target*> (args[1].addr);
+  if (source != NULL && source->IsDefined() &&
+      target != NULL && target->IsDefined())
+    source->ShortestPath(target, res);
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping shortestpathMap[] =
+{
+  shortestpathVM<JPoint, JPoint>
+};
+
+const string shortestpathSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JPoint::BasicType() + " X " + JPoint::BasicType() + " -> "
+  + JPath::BasicType() +
+  "</text--->"
+  "<text>shortest_path(<sourcepoint>, <targetpoint>) </text--->"
+  "<text>Returns the shortest path from the source to the target "+
+  " point.</text--->"
+  "<text>query shortest_path(jp1, jp2)</text--->))";
+
+Operator shortestpathJNet("shortest_path", shortestpathSpec, 1, shortestpathMap,
+                          shortestpathSelect, shortestpathTM);
+
+/*
 
 1.1 Translation beteween spatial(-temporal) and network(-temporal) data types
 
@@ -3878,6 +3960,9 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddTypeConstructor (&jlineTC);
   jlineTC.AssociateKind(Kind::DATA());
 
+  AddTypeConstructor (&jpathTC);
+  jpathTC.AssociateKind(Kind::DATA());
+
   AddTypeConstructor(&ijpointTC);
   ijpointTC.AssociateKind(Kind::DATA());
   ijpointTC.AssociateKind(Kind::TEMPORAL());
@@ -4032,7 +4117,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddOperator(&adjacentJNet);
   AddOperator(&reverseAdjacentJNet);
   AddOperator(&getBGPJNet);
-  //AddOperator(&shortestPathJNet);
+  AddOperator(&shortestpathJNet);
   //AddOperator(&shortestPathTreeJNet);
   //AddOperator(&spsearchvisitedJNet);
   //AddOperator(&netdistanceJNet);

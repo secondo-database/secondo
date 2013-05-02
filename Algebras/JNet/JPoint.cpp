@@ -468,6 +468,25 @@ JListRLoc* JPoint::OtherNetworkPositions() const
 }
 
 /*
+1.1.1 ShortestPath
+
+*/
+
+void JPoint::ShortestPath(const jnetwork::JPoint* target,
+                          JPath* result) const
+{
+  result->Clear();
+  if (IsDefined() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    result->SetNetworkId(nid);
+    JNetwork* jnet = ManageJNet::GetNetwork(nid);
+    jnet->ShortestPath(npos, target->GetLocation(), result);
+    ManageJNet::CloseNetwork(jnet);
+  }
+}
+
+/*
 1.1 Private Methods
 
 1.1.1 PosExists

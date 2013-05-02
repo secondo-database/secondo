@@ -54,6 +54,7 @@ namespace jnetwork {
 
 class JPoint;
 class JLine;
+class JPath;
 class JUnit;
 class MJPoint;
 
@@ -381,19 +382,9 @@ distances might be updated.
 
 */
 
-DbArray<JRouteInterval>* ShortestPath(const RouteLocation& source,
-                                      const RouteLocation& target,
-                                      const Point* targetPos,
-                                      double& length,
-                                      const Tuple* startSectTup,
-                                      const Tuple* endSectTup,
-                                      const double distSourceStartSect,
-                                      const double distTargetStartSect);
-
-DbArray<JRouteInterval>* ShortestPath(const RouteLocation& source,
-                                      const RouteLocation& target,
-                                      const Point* targetPos,
-                                      double& length);
+void ShortestPath(const RouteLocation& source,
+                  const RouteLocation& target,
+                  JPath* result);
 
 /*
 1.1.1 Tuple Access on internal relations
@@ -769,6 +760,29 @@ void GetSpatialValueOf(const JRouteInterval& rint,
                        const int fromIndex,
                        const int toIndex,
                        SimpleLine& result) const;
+
+/*
+1.1.1.1 ShortestPath
+
+Private Methods for shortest path computation used by public shortest
+path and simulate trip methods.
+
+*/
+
+DbArray<JRouteInterval>* ShortestPath(const RouteLocation& source,
+                                      const RouteLocation& target,
+                                      const Point* targetPos,
+                                      double& length);
+
+DbArray<JRouteInterval>* ShortestPath(const RouteLocation& source,
+                                      const RouteLocation& target,
+                                      const Point* targetPos,
+                                      double& length,
+                                      const Tuple* startSectTup,
+                                      const Tuple* endSectTup,
+                                      const double distSourceStartSect,
+                                      const double distTargetStartSect);
+
 
 };
 

@@ -32,6 +32,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Attribute.h"
 #include "StandardTypes.h"
 #include "RouteLocation.h"
+#include "JPath.h"
 #include "JNetwork.h"
 
 namespace jnetwork {
@@ -183,6 +184,15 @@ Returns a list of alternative route locations for this jpoint.
 JListRLoc* OtherNetworkPositions() const;
 
 /*
+1.1. ShortestPath
+
+Returns the shortest path from this to target as jpath.
+
+*/
+
+void ShortestPath(const JPoint* target, JPath* result) const;
+
+/*
 1.1 Private declarations
 
 */
@@ -218,7 +228,7 @@ bool PosExists(const JNetwork* jnet = 0) const;
 */
 
 using namespace jnetwork;
-ostream& operator<< (ostream& os, const jnetwork::JPoint& jp);
+ostream& operator<< (ostream& os, const JPoint& jp);
 
 
 #endif // JPOINT_H
