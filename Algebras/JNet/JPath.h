@@ -34,6 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../Tools/Flob/DbArray.h"
 #include "JNetwork.h"
 #include "SpatialAlgebra.h"
+#include "JLine.h"
 
 namespace jnetwork {
 
@@ -176,6 +177,14 @@ Returns the routeinterval at the given position
 */
 
   void Get(const int i, JRouteInterval& ri) const;
+
+/*
+1.1.1.1 ToJLine
+
+Builds a jline from the current object.
+
+*/
+  void ToJLine(JLine* result);
 
 private:
 

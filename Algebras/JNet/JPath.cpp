@@ -504,6 +504,17 @@ void JPath::Get(const int i, JRouteInterval& ri) const
   path.Get(i, ri);
 }
 
+
+void JPath::ToJLine(JLine* result)
+{
+  result->Clear();
+  if (IsDefined())
+  {
+    result->SetNetworkId(nid);
+    result->SetRouteIntervals(path, false);
+  }
+}
+
 /*
 1.1 private Methods
 

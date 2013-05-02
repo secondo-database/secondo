@@ -973,6 +973,13 @@ Example  : query tempnetbox([const ujpoint value("testjnet" (("2000-01-03-09:36"
 Result   : (rect3 (1.0 1.0 0.001 0.01 0.4 0.45))
 Tolerance: 0.01%;
 
+Operator : tojline
+Number   : 1
+Signature: jpath -> jline
+Example  : query tojline([const jpath value("testjnet"((1 0.0 0.003 (Up))))])
+Result   : (jline("testjnet" ((1 0.0 0.003 (Up)))))
+Tolerance: 0.01%
+
 Operator : tonetwork
 Number   : 1
 Signature: jnet x point -> jpoint

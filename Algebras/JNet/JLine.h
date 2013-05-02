@@ -258,7 +258,6 @@ private:
 */
   STRING_T nid; //network identifier
   DbArray<JRouteInterval> routeintervals; //sorted set of JRouteIntervals
-  bool sorted; //true if routeintervals are sorted and compressed
   bool activBulkload; //only true while bulkload of routeintervals runs
 
 /*
@@ -275,15 +274,6 @@ declare it to be private.
 /*
 1.1.1 Methods
 
-1.1.1.1 IsSorted
-
-Checks if the given set of JRouteIntervals is sorted.
-
-*/
-
-  bool IsSorted() const;
-
-/*
 1.1.1.1 Sort
 
 Sorts the given set of RouteIntervals ascending by route Identifier,

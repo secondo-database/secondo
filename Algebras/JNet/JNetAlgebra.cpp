@@ -3883,6 +3883,58 @@ Operator fromnetworkJNet("fromnetwork", fromnetworkSpec, 3, fromnetworkMap,
                          fromnetworkSelect, fromnetworkTM);
 
 /*
+1.1.1 ~tojline~
+
+Computes from a given jpath data type the corresponding jline data type.
+
+*/
+
+const string maps_tojline[1][2] =
+{
+  {JPath::BasicType(), JLine::BasicType()}
+};
+
+ListExpr tojlineTM (ListExpr args)
+{
+  return SimpleMaps<1,2>(maps_tojline, args);
+}
+
+int tojlineSelect(ListExpr args)
+{
+  return SimpleSelect<1,2>(maps_tojline, args);
+}
+
+int tojlineVM( Word* args, Word& result, int message, Word& local,
+               Supplier s)
+{
+  result = qp->ResultStorage(s);
+  JLine* jl = static_cast<JLine*> (result.addr);
+  JPath* jp = static_cast<JPath*> (args[0].addr);
+  if (jl != NULL && jp!= NULL && jp->IsDefined())
+    jp->ToJLine(jl);
+  else
+    jl->SetDefined(false);
+  return 0;
+}
+
+ValueMapping tojlineMap[] =
+{
+  tojlineVM
+};
+
+const string tojlineSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JPath::BasicType() + " -> " + JLine::BasicType() + "</text--->"
+  "<text>tojline(<jpath<)</text--->"
+  "<text>Transforms the "+ JPath::BasicType() +" into an corresponding " +
+  JLine::BasicType() +".</text--->"
+  "<text>query tojline(testjpath) </text--->))";
+
+Operator tojlineJNet("tojline", tojlineSpec, 1, tojlineMap, tojlineSelect,
+                     tojlineTM);
+
+/*
 1 Implementation of ~class JNetAlgebra~
 
 1.1 Constructor
@@ -4128,13 +4180,21 @@ JNetAlgebra::JNetAlgebra():Algebra()
 
 
 /*
-1.1.1.1 Translation between spatial(-temporal) and network(-temporal) data types
+1.1.1.1 Translation of data types
+
+1.1.1.1.1 spatial(-temporal) and network(-temporal) data types
 
 */
 
   AddOperator(&tonetworkJNet);
   AddOperator(&fromnetworkJNet);
 
+/*
+1.1.1.1.1 jpath to jline
+
+*/
+
+  AddOperator(&tojlineJNet);
 }
 
 /*

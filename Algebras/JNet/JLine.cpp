@@ -43,15 +43,14 @@ JLine::JLine() : Attribute()
 {}
 
 JLine::JLine(const bool def) :
-    Attribute(def), routeintervals(0), sorted(false),
-    activBulkload(false)
+    Attribute(def), routeintervals(0), activBulkload(false)
 {
   strcpy(nid, "");
 }
 
 JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList,
              const bool check /*=true*/,  const bool issorted /*=false*/) :
-    Attribute(true), routeintervals(0), sorted(issorted), activBulkload(false)
+    Attribute(true), routeintervals(0), activBulkload(false)
 {
   strcpy(nid, netId.c_str());
   if (check)
@@ -68,7 +67,7 @@ JLine::JLine(const string netId, const DbArray<JRouteInterval>& rintList,
 
 JLine::JLine(const JNetwork* jnet, const JListRInt* rintList,
              const bool check/*=true*/) :
-    Attribute(true),routeintervals(0), sorted(false), activBulkload(false)
+    Attribute(true),routeintervals(0), activBulkload(false)
 {
   if (!rintList->IsDefined() || !jnet->IsDefined())
   {
@@ -92,14 +91,12 @@ JLine::JLine(const JNetwork* jnet, const JListRInt* rintList,
 }
 
 JLine::JLine(const JLine& other) :
-  Attribute(other.IsDefined()), routeintervals(0), sorted(false),
-  activBulkload(false)
+  Attribute(other.IsDefined()), routeintervals(0), activBulkload(false)
 {
   if (other.IsDefined())
   {
     strcpy(nid, *other.GetNetworkId());
     routeintervals.copyFrom(other.routeintervals);
-    sorted = other.IsSorted();
     activBulkload = false;
   }
   else
@@ -145,7 +142,6 @@ void JLine::SetRouteIntervals(const DbArray<JRouteInterval>& setri,
   }
   if (!issorted)
   {
-    sorted = false;
     Sort();
   }
   routeintervals.TrimToSize();
@@ -265,7 +261,6 @@ void JLine::Clear()
 {
   routeintervals.clean();
   SetDefined(true);
-  sorted = true;
   activBulkload  = false;
   routeintervals.TrimToSize();
 }
@@ -297,7 +292,6 @@ JLine& JLine::operator=(const JLine& other)
   {
     strcpy(nid, *other.GetNetworkId());
     routeintervals.copyFrom(other.GetRouteIntervals());
-    sorted = other.IsSorted();
     activBulkload = false;
   }
   return *this;
@@ -485,7 +479,6 @@ void JLine::StartBulkload()
 {
   SetDefined(true);
   activBulkload = true;
-  sorted = true;
   routeintervals.clean();
   routeintervals.TrimToSize();
 }
@@ -611,81 +604,33 @@ bool JLine::Intersects(const JLine* other) const
   if (IsDefined() && !IsEmpty() &&
       other != 0 && other->IsDefined() && !other->IsEmpty())
   {
-    if (IsSorted() && other->IsSorted())
+    int i = 0;
+    int j = 0;
+    JRouteInterval ri1, ri2;
+    while (i < GetNoComponents() && j < other->GetNoComponents())
     {
-      int i = 0;
-      int j = 0;
-      JRouteInterval ri1, ri2;
-      while (i < GetNoComponents() && j < other->GetNoComponents())
-      {
-        Get(i, ri1);
-        Get(j, ri2);
-        if (ri1.Overlaps(ri2, false))
+      Get(i, ri1);
+      other->Get(j, ri2);
+      if (ri1.Overlaps(ri2, false))
           return true;
-        else
-        {
-          switch (ri1.Compare(ri2))
-          {
-            case -1:
-            {
-              i++;
-              break;
-            }
-            case 1:
-            {
-              j++;
-              break;
-            }
-            default: // should never been reached
-            {
-              assert(false);
-              break;
-            }
-          }
-        }
-      }
-    }
-    else
-    {
-      if (IsSorted() && !other->IsSorted())
-      {
-        JRouteInterval ri;
-        for (int i = 0; i < other->GetNoComponents(); i++)
-        {
-          other->Get(i,ri);
-          if (JNetUtil::GetIndexOfJRouteIntervalForJRInt(routeintervals, ri,
-                                                         0,
-                                                         GetNoComponents()-1)
-              > -1)
-            return true;
-        }
-      }
       else
       {
-        if (!IsSorted() && other->IsSorted())
+        switch (ri1.Compare(ri2))
         {
-          JRouteInterval ri;
-          for (int j = 0; j < GetNoComponents(); j++)
+          case -1:
           {
-            Get(j,ri);
-            if (JNetUtil::GetIndexOfJRouteIntervalForJRInt(
-                                          other->GetRouteIntervals(), ri,
-                                          0, other->GetNoComponents()-1)  > -1)
-              return true;
+            i++;
+            break;
           }
-        }
-        else
-        {
-          JRouteInterval ri1, ri2;
-          for (int i = 0; i < GetNoComponents(); i++)
+          case 1:
           {
-            Get(i,ri1);
-            for (int j = 0; j < other->GetNoComponents(); j++)
-            {
-              other->Get(j,ri2);
-              if (ri1.Overlaps(ri2, false))
-                return true;
-            }
+            j++;
+            break;
+          }
+          default: // should never been reached
+          {
+            assert(false);
+            break;
           }
         }
       }
@@ -703,30 +648,14 @@ JRouteInterval* JLine::Intersection(const JRouteInterval& rint) const
 {
   if (IsDefined() && !IsEmpty() && rint.IsDefined())
   {
-     if (IsSorted())
+    int j= JNetUtil::GetIndexOfJRouteIntervalForJRInt(routeintervals,
+                                                      rint, 0,
+                                                      GetNoComponents()-1);
+    if (-1 < j)
     {
-      int j= JNetUtil::GetIndexOfJRouteIntervalForJRInt(routeintervals,
-                                                        rint,
-                                                        0,
-                                                        GetNoComponents()-1);
-      if (-1 < j)
-      {
-        JRouteInterval actInt;
-        Get(j,actInt);
-        return actInt.Intersection(rint);
-      }
-    }
-    else
-    {
-      int j =  0;
       JRouteInterval actInt;
-      while (j < GetNoComponents())
-      {
-        Get(j,actInt);
-        if (actInt.Overlaps(rint, false))
-          return actInt.Intersection(rint);
-        j++;
-      }
+      Get(j,actInt);
+      return actInt.Intersection(rint);
     }
   }
   return  0;
@@ -979,34 +908,16 @@ bool JLine::Intersects(const int sid, const JNetwork* jnet) const
     while (i < rintList->GetNoOfComponents())
     {
       rintList->Get(i, actIntNet);
-       if (actIntNet.IsDefined())
+      if (actIntNet.IsDefined())
       {
-        if (IsSorted())
-        {
-           if (JNetUtil::GetIndexOfJRouteIntervalForJRInt(routeintervals,
-                                                         actIntNet,
-                                                         0,
-                                                         GetNoComponents()-1)
+        if (JNetUtil::GetIndexOfJRouteIntervalForJRInt(routeintervals,
+                                                       actIntNet, 0,
+                                                       GetNoComponents()-1)
               > -1)
-          {
-            rintList->DeleteIfAllowed();
-            rintList = 0;
-            return true;
-          }
-        }
-        else
         {
-          JRouteInterval actLineRint(false);
-          for (int j = 0; j < GetNoComponents(); j++)
-          {
-            Get(j, actLineRint);
-            if (actLineRint.Overlaps(actIntNet, false))
-            {
-              rintList->DeleteIfAllowed();
-              rintList = 0;
-              return true;
-            }
-          }
+          rintList->DeleteIfAllowed();
+          rintList = 0;
+          return true;
         }
       }
       i++;
@@ -1024,17 +935,13 @@ bool JLine::Intersects(const int sid, const JNetwork* jnet) const
 
 void JLine::Sort()
 {
-  if (IsDefined() && !IsSorted())
+  if (IsDefined() && !IsEmpty())
   {
-    if (!IsEmpty())
-    {
-      JRITree* sortTree = new JRITree(&routeintervals);
-      routeintervals.clean();
-      sortTree->TreeToDbArray(&routeintervals);
-      sortTree->Destroy();
-      delete sortTree;
-    }
-    sorted = true;
+    JRITree* sortTree = new JRITree(&routeintervals);
+    routeintervals.clean();
+    sortTree->TreeToDbArray(&routeintervals);
+    sortTree->Destroy();
+    delete sortTree;
   }
 }
 
@@ -1055,18 +962,6 @@ void JLine::Append(const JLine* other)
       Add(curInt);
     }
   }
-}
-
-/*
-1.1.1 IsSorted
-
-*/
-bool JLine::IsSorted() const
-{
-  if (IsDefined())
-    return sorted;
-  else
-    return false;
 }
 
 /*
