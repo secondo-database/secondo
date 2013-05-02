@@ -789,7 +789,7 @@ struct DisplayDRM : DisplayFunction {
       for(int i=0;i<9;i++){
          if(i>0) cout << " ";
          cout << ((v&pos)>0?1:0);
-         pos = pos << 1; 
+         pos = pos << 1;
       }
     }
   }
@@ -3223,8 +3223,8 @@ struct DisplayRegEx : DisplayFunction{
          cout << "Source : " << nl->Text2String(srcList) << endl;
        }
      }
-    
-     
+
+
      int numStates = nl->IntValue(nl->First(value));
      ListExpr transitions = nl->Second(value);
      ListExpr finalStates = nl->Third(value);
@@ -3311,7 +3311,7 @@ struct DisplayRegEx : DisplayFunction{
                  }
               }
               ss << "]";
-            }  
+            }
           }
 
           cout << (srcfinal?"*":" ") << src << " - "
@@ -3327,17 +3327,17 @@ struct DisplayRegEx : DisplayFunction{
         if(isPrintable(c)){
           h << (char)c;
           return h.str();
-        } 
+        }
         if(c==9){
           return "\\t";
         }
         if(c==10){
           return "\\n";
-          
-        } 
+
+        }
         if(c==13){
            return "\\r";
-        } 
+        }
 
         h << "(" << c << ")";
         return h.str();
@@ -3535,6 +3535,7 @@ DisplayTTY::Initialize()
   d.Insert( "jnet", new DisplayJNetwork());
   d.Insert( "jpoint", new DisplayJPoint());
   d.Insert( "jline", new DisplayJLine());
+  d.Insert( "jpath", new DisplayJLine());
   d.Insert( "jpoints", new DisplayJPoints());
   d.Insert( "ijpoint", new DisplayIJPoint());
   d.Insert( "ujpoint", new DisplayUJPoint());
