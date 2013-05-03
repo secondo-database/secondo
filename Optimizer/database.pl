@@ -4000,7 +4000,16 @@ getTupleInfo2(DB,ExtRel,DCrel, ExtARelPath, ExtAttrList, DCAttrList) :-
     ResultTupleAtts, ResultTuple),
   !.
 
-getTupleInfoQuery(ExtRel, ARelPath, ExtAttrList,DCAttrList, TupleInfoQuery):-
+/*
+---- getTupleInfoQuery(+ExtRel, +ARelPath, +ExtAttrList,-DCAttrList, 
+       -TupleInfoQuery)
+----
+
+Creates a complete tuple info query from an ExtensionListExpression
+
+*/
+
+getTupleInfoQuery(ExtRel, ARelPath, ExtAttrList, DCAttrList, TupleInfoQuery):-
   dm(dbhandling,['\nTry: getTupleInfoQuery(',ExtRel,',',ARelPath,',',
     ExtAttrList,',', DCAttrList,',',TupleInfoQuery,').']),
   getTupleInfoQuery2(ExtRel, ARelPath, ExtAttrList,DCAttrList, ExtensionList),
@@ -4072,6 +4081,29 @@ getTupleInfoQuery3(R,ARelPath, AttrList,AttrDClist, AttrExtensionList):-
   AttrDClist        = [AttrDCPath|MoreDCAttrs],
   AttrExtensionList = [AttrExtension|MoreAttrExtensions],
   !.
+
+
+
+/*
+---- analyseTupleInfoQueryResultList(+DB,+DCrel,+ExtAttrList, +ResultTuple)
+----
+
+This predicate will analyse ~ExtAttrList~ and ~ResultTuple~ (which is the result
+tuple of a TupleInfoQuery in Nested List format) in parallel and assert the
+facts concerning attribute types, attribute sizes, and attribute spelling.
+
+~ExtAttrList~ and ~ResultTuple~ need to cover the same sequence of attributes.
+For each element in ~ExtAttrList~, ~ResultTuple~ is required to contain 3
+elements for the CoreSize, InternalFlobSize and ExternalFlobSize
+(in that order).
+
+Facts are asserted *after* the query result was successfully scanned, such
+that when an error occurs, nothing gets (wrongly) asserted.
+
+Extended by further argumeents to be able to handle nested relations.
+
+*/
+
 
 analyseTupleInfoQueryResultList(DB,DCrel, ARelPath, ExtAttrList, ResListAtts, 
     ResList) :-
@@ -4192,188 +4224,8 @@ analyseTupleInfoQueryResultList2(DB,DCrel,X,Y,Z,G,Q):-
   !.
 % NVK ADDED NR END
 
-getTupleInfo2(DB,ExtRel,DCrel,ExtAttrList,DCAttrList) :-
-  dm(dbhandling,['\nTry: getTupleInfo2(',DB,',',ExtRel,',',DCrel,',',
-                  ExtAttrList,',',DCAttrList,').']),
-  getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery),
-  secondo(TupleInfoQuery,TupleInfoQueryResultList),
-  ( TupleInfoQueryResultList = [[trel, [tuple, _]], [ResultTuple]]
-    -> true
-    ;  ( write('TupleInfoQuery = '),
-         writeln(TupleInfoQuery),
-         write('TupleInfoQueryResultList = '),
-         writeln(TupleInfoQueryResultList),
-         concat_atom(['Wrong result list'],'',ErrMsg),
-         throw(error_Internal(database_getTupleInfo2(DB,ExtRel,DCrel,
-                                  ExtAttrList,DCAttrList)::wrongType::ErrMsg))
-       )
-  ),
-  analyseTupleInfoQueryResultList(DB,DCrel,ExtAttrList,ResultTuple),
-  !.
 
-/*
----- getTupleInfoQuery(+ExtRel,+ExtAttrList,-DCAttrList,-TupleInfoQuery)
-----
 
-Creates a complete tuple info query from an ExtensionListExpression
-
-*/
-getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery):-
-  dm(dbhandling,['\nTry: getTupleInfoQuery(',ExtRel,',',ExtAttrList,',',
-                 DCAttrList,',',TupleInfoQuery,').']),
-  getTupleInfoQuery2(ExtRel,ExtAttrList,DCAttrList,ExtensionList),
-  concat_atom([
-      'query 1 feed transformstream projectextend[; ',
-      'Cardi_nality: (',ExtRel,' count), ',
-      'Tuple_TotalSize: (',ExtRel,' tuplesize), ',
-      'Tuple_CoreSize: (',ExtRel,' exttuplesize), ',
-      'Tuple_LOBSize: ((',ExtRel,' tuplesize) - (',ExtRel,' exttuplesize)), ',
-      ExtensionList,' ] tconsume'], '', TupleInfoQuery),
-  write_list(['\n\nRES: ',
-      getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery),'\n\n']),
-  !.
-
-% getTupleInfoQuery2(+ExtRel,+ExtAttrList,-DCattrList,-Extension)
-% Concatenates an ExtensionList to an ExtensionListExpression
-%    getTupleInfoQuery2(+ExtRel,+ExtAttrList,-DCattrList,-Extension)
-getTupleInfoQuery2(ExtRel,ExtAttrList,DCattrList,Extension):-
-  dm(dbhandling,['\nTry: getTupleInfoQuery2(',ExtRel,',',ExtAttrList,',',
-                 DCattrList,',',Extension,').']),
-  getTupleInfoQuery3(ExtRel,ExtAttrList,DCattrList,ExtensionList),
-  concat_atom(ExtensionList,', ',Extension),
-  !.
-
-% getTupleInfoQuery(+ExtRel,+ExtAttrList,-DCattrList,-ExtensionList)
-% creates an ExtensionList from the ExtensionList.
-%   getTupleInfoQuery3(+ExtRel,+ExtAttrList,-AttrDClist,-AttrExtensionList)
-getTupleInfoQuery3(_,[],[],[]):- !.
-getTupleInfoQuery3(R,AttrList,AttrDClist,AttrExtensionList):-
-  dm(dbhandling,['\nTry: getTupleInfoQuery3(',R,',',AttrList,',',
-                                 AttrDClist,',',AttrExtensionList,')']),
-  AttrList          = [[A,_]|MoreAttrs],
-  getTupleInfoQuery3(R,MoreAttrs,MoreDCAttrs,MoreAttrExtensions),
-  dcName2externalName(AttrDC,A),
-  concat_atom([
-     A,'_c: (',R,' extattrsize[',A,']), ',
-     A,'_l: ((',R,' attrsize[',A,']) - (',R,' extattrsize[',A,']))'
-    ],'',AttrExtension),
-  AttrDClist        = [AttrDC|MoreDCAttrs],
-  AttrExtensionList = [AttrExtension|MoreAttrExtensions],
-  !.
-
-/*
----- analyseTupleInfoQueryResultList(+DB,+DCrel,+ExtAttrList, +ResultTuple)
-----
-
-This predicate will analyse ~ExtAttrList~ and ~ResultTuple~ (which is the result
-tuple of a TupleInfoQuery in Nested List format) in parallel and assert the
-facts concerning attribute types, attribute sizes, and attribute spelling.
-
-~ExtAttrList~ and ~ResultTuple~ need to cover the same sequence of attributes.
-For each element in ~ExtAttrList~, ~ResultTuple~ is required to contain 3
-elements for the CoreSize, InternalFlobSize and ExternalFlobSize
-(in that order).
-
-Facts are asserted *after* the query result was successfully scanned, such
-that when an error occurs, nothing gets (wrongly) asserted.
-
-*/
-
-analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
-  dm(dbhandling,['\nTry: analyseTupleInfoQueryResultList(',DB,',',DCrel,',',
-                                  ExtAttrList,',',ResList,').']),
-  ResList = [Card,
-             TupleTotalSize,
-             TupleSizeCore,
-             TupleSizeLOB|MoreInfos],
-  ( Card = undefined % Undefined cardinality - may not happen!
-    -> ( concat_atom(['Cardinality query for relation ',DCrel,
-                     ' has strange result: ',Card,'.'],'',ErrMsg),
-         write_list(['\nERROR:\t',ErrMsg]),nl,
-         throw(error_Internal(analyseTupleInfoQueryResultList(DB,DCrel,
-                                ExtAttrList,
-                                [Card,
-                                 TupleTotalSize,
-                                 TupleSizeCore,
-                                 TupleSizeLOB|MoreInfos]))::wrongType::ErrMsg),
-         fail
-       )
-    ;  true
-  ),
-  ( TupleTotalSize = undefined % some error may have occured
-    -> ( Card < 0.5        % special case for card=0
-         -> ( % undefined tuplesize due to empty relation
-              write_list(['\nWARNING:\Tuplesize for relation ',DCrel,
-                     ' is undefined due to a cardinality of ', Card,
-                     '\n--->\tTherefore, tuplesize is set to \'not a number\'',
-                     '(nAn).']),nl,
-              StoreCoreSize = nAn
-            )
-         ;  ( % Error! - should not happen!
-              concat_atom(['Tuplesize query for relation ',DCrel,
-                     ' has strange result: ',TupleTotalSize,'.'],'',ErrMsg),
-              write_list(['\nERROR:\t',ErrMsg]),nl,
-              throw(error_Internal(analyseTupleInfoQueryResultList(DB,DCrel,
-                                ExtAttrList,
-                                [Card,
-                                 TupleTotalSize,
-                                 TupleSizeCore,
-                                 TupleSizeLOB|MoreInfos]))::wrongType::ErrMsg),
-              fail
-            )
-       )
-    ; StoreCoreSize = TupleSizeCore % OK - no problem occured
-  ),
-  analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,MoreInfos,TupleMemSize),
-  assert(storedCard(DB, DCrel, Card)),
-  ( TupleSizeLOB = undefined
-    -> ( % undefined tuplesize due to empty relation
-              StoreLOBsize = nAn
-            )
-    ; StoreLOBsize is max(0,TupleSizeLOB) % avoid rounding errors
-  ),
-  assert(storedTupleSize(DB, DCrel, TupleMemSize, StoreCoreSize, StoreLOBsize)),
-  !.
-
-%   analyseTupleInfoQueryResultList2(+DB,+DCrel,+ExtAttrList,+InfoList)
-analyseTupleInfoQueryResultList2(_,_,[],[],0):- !.
-
-analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,InfoList,MemTotal):-
-  dm(dbhandling,['\nTry: analyseTupleInfoQueryResultList2(',DB,',',DCrel,',',
-                                  ExtAttrList,',',InfoList,').']),
-  ExtAttrList = [[ExtAttr,ExtType]|MoreAttrs],
-  InfoList  = [SizeCore,SizeExt|MoreInfos],
-  % take first elem from ExtAttrList, retrieve three entries from
-  % the InfoList and process the information.
-  dcName2externalName(DCType,ExtType),
-  dcName2externalName(DCAttr,ExtAttr),
-  internalName2externalName(IntAttr,ExtAttr),
-  % Use inquired average attribute sizes. Avoid problems with undefined
-  % sizes, which will occur for relations with cardinalit=0.
-  secDatatype(DCType, MemSize, _, _, _, _),
-  ( SizeCore = undefined
-    -> ( % Fallback: use typesize, but 1 byte at least
-         CoreAttrSize is max(1,MemSize)
-       )
-    ;  CoreAttrSize is max(0,SizeCore) % avoid rounding errors
-  ),
-  ( SizeExt = undefined
-    -> LOBSize is 0
-    ;  LOBSize is max(0,SizeExt) % avoid rounding errors
-  ),
-  LOBSize2 is max(0,LOBSize),    % avoid rounding errors
-  analyseTupleInfoQueryResultList2(DB,DCrel,MoreAttrs,MoreInfos,MoreMemTotal),
-  MemTotal is MemSize + MoreMemTotal,
-  assert(storedSpell(DB, DCrel:DCAttr, IntAttr)),
-  assert(storedAttrSize(DB,DCrel,DCAttr,DCType,MemSize,CoreAttrSize,LOBSize2)),
-  !.
-
-analyseTupleInfoQueryResultList2(DB,DCrel,X,Y):-
-  concat_atom(['Retrieval of tuple and attribute information failed.'],
-               '',ErrMsg),
-  throw(error_Internal(database_analyseTupleInfoQueryResultList(DB,DCrel,X,Y)
-                                                  ::unspecifiedError::ErrMsg)),
-  !.
 
 
 
