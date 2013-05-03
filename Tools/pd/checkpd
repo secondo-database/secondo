@@ -46,7 +46,8 @@ if [ -z "$ARGS" ]
 then
    FILESCPP=$(find $PWD -name '*.cpp')
    FILESH=$(find $PWD -name '*.h')
-   MYFILES="$FILESCPP $FILESH"
+   FILESPL=$(find $PWD -name '*.pl')
+   MYFILES="$FILESCPP $FILESH $FILESPL"
 else
    MYFILES=""
    for G in $ARGS
