@@ -145,6 +145,7 @@ message. It is likely, that you just miss-typed an identifier.
 
 ---- dcName2internalName(?DC,?Intern)
 ----
+
 Translate between a DownCasedSpelling identifier and the according
 InternalSpelling within the current database.
 
@@ -3929,19 +3930,9 @@ getTupleInfo(DCrel) :-
   retractall(storedSpell(DB, DCrel:_, _)), % spelling of attributes
   assert(storedSpell(DB,DCrel,IntRel)),    % XRIS: could be omitted!
   % query for new information
-  % NVK MODIFIED NR
-   (optimizerOption(nestedRelations) ->
-    getTupleInfo2NR(DB, ExtRel, DCrel, ExtAttrList, DCattrList)
-  ; 
-    (
-      ( systemTable(DCrel,_)                     % special case: trel objects
-        -> concat_atom([ExtRel,' feed'],'',UsedExtRel) % require an additional
-        ; UsedExtRel = ExtRel                          % 'feed'-operator!
-      ),
-      getTupleInfo2(DB, UsedExtRel, DCrel, ExtAttrList, DCattrList)
-    )
-  ),
-  % NVK MODIFIED END NR
+	% NVK MODIFIED NR 
+  	getTupleInfo2NR(DB, ExtRel, DCrel, ExtAttrList, DCattrList),
+	% NVK MODIFIED END NR
   assert(storedRel(DB,DCrel,DCattrList)),  % Doing this as the last step avoids
                                            % problems with missing data
   !.
@@ -4027,13 +4018,13 @@ getTupleInfoQuery(ExtRel, ARelPath, ExtAttrList,DCAttrList, TupleInfoQuery):-
        )
   ),
   atomic_list_concat([
-    'query ', SmallRelation, ' within[fun(therelation: ANY)',
-    ' 1 feed transformstream projectextend[; ',
+    '\nquery ', SmallRelation, ' within[fun(therelation: ANY)',
+    '\n  1 feed transformstream projectextend[; ',
     'Cardi_nality: (',TupleFeed,' count), ',
-    'Tuple_TotalSize: (therelation feed tuplesize), ',
-    'Tuple_CoreSize: (therelation feed exttuplesize), ',
-    'Tuple_LOBSize: ',
-    '((therelation feed tuplesize) - (therelation feed exttuplesize)), ',
+    '\n  Tuple_TotalSize: (therelation feed tuplesize), ',
+    '\n  Tuple_CoreSize: (therelation feed exttuplesize), ',
+    '\n  Tuple_LOBSize: ((therelation feed tuplesize)', 
+           ' - (therelation feed exttuplesize)), ',
     ExtensionList,' ] tconsume ]'], '', TupleInfoQuery),
   write_list(['\n\nRES: ', getTupleInfoQuery(ExtRel,ARelPath, ExtAttrList,
     DCAttrList,TupleInfoQuery),'\n\n']),
@@ -4074,9 +4065,9 @@ getTupleInfoQuery3(R,ARelPath, AttrList,AttrDClist, AttrExtensionList):-
   % buildUnnestAtom(ARelPath, ARelUnnestAtom),
   % atomic_list_concat([R, ' feed', ARelUnnestAtom], '', TupleFeed),
   concat_atom([
-     A,'_c: (therelation feed extattrsize[',A,']), ',
-     A,'_l: ((therelation feed attrsize[',
-     A,']) - (therelation feed extattrsize[',A,']))'
+     '\n  ', A,'_c: (therelation feed extattrsize[',A,']), ',
+     '\n  ', A,'_l: ((therelation feed attrsize[',A,
+          ']) - (therelation feed extattrsize[',A,']))'
     ],'',AttrExtension),
   AttrDClist        = [AttrDCPath|MoreDCAttrs],
   AttrExtensionList = [AttrExtension|MoreAttrExtensions],
