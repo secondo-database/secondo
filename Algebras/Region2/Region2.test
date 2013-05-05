@@ -1,0 +1,151 @@
+###############################################################################
+
+create database region2testDB;
+open database region2testDB;
+
+###############################################################################
+
+let reg21 = [const region2 value (2 (((
+                            (1 1 ()) 
+                            (0 3 ()) 
+                            (1 5 ()) 
+                            (3 5 ()) 
+                            (6 4 ()) 
+                            (5 2 ()) 
+                            (3 1 ())) 
+                            ((3 2 ())
+                            (1 2 ()) 
+                            (1 4 ()) 
+                            (3 4 ())))))] 
+
+let reg22 = [const region2 value (0 (
+                        ( ( (2 3 ()) 
+                            (1 3 ()) 
+                            (1 4 ()) 
+                            (2 4 ()))) 
+                        ( ( (3 1 ()) 
+                            (2 2 ()) 
+                            (3 3 ('1/2' '1/2')) 
+                            (5 3 ('0' '1/2')) 
+                            (4 2 ('1/2' '0'))))))]
+
+let reg23 = [const region2 value (3 (
+                        ( ( (2 1 ()) 
+                            (1 3 ()) 
+                            (1 6 ()) 
+                            (2 7 ()) 
+                            (6 7 ()) 
+                            (8 5 ()) 
+                            (9 3 ()) 
+                            (7 1 ())) 
+                          ( (3 2 ()) 
+                            (2 3 ()) 
+                            (2 6 ()) 
+                            (6 6 ()) 
+                            (6 3 ()) 
+                            (5 2 ()))) 
+                        ( ( (5 3 ()) 
+                            (3 3 ()) 
+                            (3 5 ()) 
+                            (5 5 ())))))]
+
+let reg24 = [const region2 value (0 ((
+                          ( (0 2 ('1/2' '0')) 
+                            (0 3 ('0' '1/2')) 
+                            (1 5 ()) 
+                            (3 5 ()) 
+                            (6 4 ()) 
+                            (5 2 ('1/2' '0')) 
+                            (3 0 ('1/2' '1/2')) 
+                            (4 2 ('1/2' '0')) 
+                            (5 3 ('0' '1/2')) 
+                            (3 3 ('1/2' '1/2')) 
+                            (2 2 ()) 
+                            (3 0 ('1/2' '1/2')) 
+                            (1 0 ('1/2' '1/2'))) 
+                          ( (2 3 ()) 
+                            (1 3 ()) 
+                            (1 4 ()) 
+                            (2 4 ())))))]
+
+###############################################################################
+
+#testcase "1 - setscalefactor"
+#yields (region2 (3 ((( (10 10 ()) (0 30 ()) (10 50 ()) (30 50 ()) (60 40 ()) (50 20 ()) (30 10 ())) ((30 20 ()) (10 20 ()) (10 40 ()) (30 40 ()))))))
+query setscalefactor(reg21, 3);
+
+#testcase "2 - setregion2outstyle"
+#yields (bool TRUE)
+query setregion2outstyle(0);
+
+#testcase "3 - isempty"
+#yields (bool FALSE)
+query isempty(reg21);
+
+#testcase "4 - intersects"
+#yields (bool TRUE)
+query reg22 intersects reg24;
+
+#testcase "5 - inside"
+#yields (bool FALSE)
+query reg21 inside reg22;
+
+#testcase "6 - adjacent"
+#yields (bool TRUE)
+query reg24 adjacent reg22;
+
+#testcase "7 - overlaps"
+#yields (bool FALSE)
+query reg21 overlaps reg22;
+
+#testcase "8 - no_components"
+#yields (int 2)
+query no_components(reg22);
+
+#testcase "9 - no_segments"
+#yields (int 36)
+query no_segments(reg23);
+
+#testcase "10 - bbox"
+#yields (rect (0.0 6.0 0.5 5.0))
+query bbox(reg24);
+
+#testcase "11 - translate"
+#yields (region2 (0 ((((12 18 ()) (11 18 ()) (11 19 ()) (12 19 ()))) (((13 16 ()) (12 17 ()) (13 18 ('1/2' '1/2')) (15 18 ('0' '1/2')) (14 17 ('1/2' '0')))))))
+query reg22 translate[10.0, 15.0];
+
+#testcase "12 - scale"
+#yields (region2 (2 ((((10 10 ()) (0 30 ()) (10 50 ()) (30 50 ()) (60 40 ()) (50 20 ()) (30 10 ())) ((30 20 ()) (10 20 ()) (10 40 ()) (30 40 ()))))))
+query reg21 scale[10.0];
+
+#testcase "13 - components"
+#yields (int 2)
+query components(reg22) count;
+
+#testcase "14 - getHoles"
+#yields (region2 (0 ((((2 3 ()) (1 3 ()) (1 4 ()) (2 4 ()))))))
+query getHoles(reg24);
+
+#testcase "15 - region2region2"
+#yields (region2 (0 ((((10 1 ('1/5' '3/4')) (3 0 ('1/2' '4/5')) (3 1 ('1/2' '3/4'))) ((5 1 ('9/20' '7/20')) (3 1 ('9/10' '1/10')) (3 1 ('9/10' '7/20')))))))
+query [const region value ((((3.5 0.8) (10.2 1.75) (3.5 1.75))((3.9 1.1) (5.45 1.35) (3.9 1.35))))] region2region2;
+
+#testcase "16 - rect2region2"
+#yields (region2 (0 ((((200 -50 ()) (-100 -50 ()) (-100 500 ()) (200 500 ()))))))
+query [const rect value (-100.0 200.0 -50.0 500.0)] rect2region2;
+
+#testcase "17 - size"
+#yields (real 14.25)
+query size(reg24);
+
+#testcase "18 - area"
+#yields (real 5.25)
+query area(reg22);
+
+
+
+###############################################################################
+
+#teardown
+close database;
+delete database region2testDB;
