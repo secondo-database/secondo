@@ -925,7 +925,7 @@ The simple constructor.
   Intime(const int i):instant((int64_t)i),value(i){}
 
   Intime( const Instant& _instant, const Alpha& alpha ):
-    instant( _instant )
+    instant( _instant ), value(false)
   {
     value.CopyFrom( &alpha );
     this->del.isDefined = instant.IsDefined();
