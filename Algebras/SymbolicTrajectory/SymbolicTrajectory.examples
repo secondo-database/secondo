@@ -4,7 +4,7 @@ Restore  : No
 Operator : contains
 Number   : 1
 Signature: labels x string -> bool
-Example  : query [const labels value ("hummels" "götze")] contains "götze"
+Example  : query [const labels value ("hummels" "bittencourt")] contains "bittencourt"
 Result   : TRUE
 
 Operator : topattern
@@ -29,7 +29,7 @@ Operator : indexmatches
 Number   : 1
 Signature: rel(tuple(X)) x IDENT x invfile x text -> stream(tuple(X))
 Example  : query Dotraj indexmatches[Trajectory, Dotrajindex, '(_ "Innenstadt-Ost") X * (_ "Innenstadt-Ost") // X.labels contains "Brackel"'] count
-Result   : 130
+Result   : 0
 
 Operator : filtermatches
 Number   : 1
@@ -47,13 +47,13 @@ Operator : classify
 Number   : 1
 Signature: stream(tuple(string, text)) x stream(mlabel) -> stream(tuple(string, mlabel))
 Example  : query (patterns4 feed SymbolicTripsTiny feed projecttransformstream[SymTrip] classify) count
-Result   : 50
+Result   : 63
 
 Operator : indexclassify
 Number   : 1
 Signature: stream(tuple(string, text)) x rel(tuple(..., mlabel, ...)) x attrname x invfile -> stream(tuple(string, mlabel))
-Example  : query (patterns1 feed indexclassify [Dotrajsmall, Trajectory, Doindexsmall]) count
-Result   : 2
+Example  : query (patterns1 feed indexclassify [Dotraj, Trajectory, Dotrajindex]) count
+Result   : 0
 
 Operator : rewrite
 Number   : 2
@@ -112,6 +112,6 @@ Result   : TRUE
 Operator : createtrie
 Number   : 1
 Signature: rel(tuple(..., mlabel, ...)) x attrname -> invfile
-Example  : query Dotrajsmall createtrie[Trajectory]
+Example  : query Dotraj createtrie[Trajectory]
 Result   : unpredictable
 Remark   : A InvFile has not out function
