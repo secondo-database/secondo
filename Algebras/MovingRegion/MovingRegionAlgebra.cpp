@@ -242,8 +242,8 @@ very verbose and has significant negative input on the algebra's performance.
 Only enable debug output if you know what you are doing!
 
 */
-//const bool MRA_DEBUG = false;
-const bool MRA_DEBUG = true;
+const bool MRA_DEBUG = false;
+//const bool MRA_DEBUG = true;
 
 //#define MRA_TRACE cerr << __PRETTY_FUNCTION__ << " called " << endl;
 #define MRA_TRACE
