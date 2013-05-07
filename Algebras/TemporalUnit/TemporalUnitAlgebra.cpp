@@ -10979,6 +10979,79 @@ Operator temporalcontains("contains",
                           containsTM);
 
 /*
+5.48 Operator ~swapcoord~
+
+----
+     mpoint -> mpoint
+----
+
+*/
+
+/*
+5.48.1 Type mapping function for ~swapcoord~
+
+*/
+ListExpr swapcoordTM(ListExpr args) {
+  if (nl->ListLength(args) != 1) {
+    return listutils::typeError("Exactly one argument required.");
+  }
+  if (!MPoint::checkType(nl->First(args))) {
+    return listutils::typeError("Type mpoint required.");
+  }
+  return nl->SymbolAtom(MPoint::BasicType());
+}
+
+/*
+5.48.2 Value mapping function for operator ~swapcoord~
+
+*/
+int swapcoordVM(Word* args, Word& result, int message, Word& local, Supplier s){
+  MPoint* source = static_cast<MPoint*>(args[0].addr);
+  result = qp->ResultStorage(s);
+  MPoint* res = (MPoint*)result.addr;
+  if (!source->IsDefined()) {
+    res->SetDefined(false);
+    return 0;
+  }
+  res->SetDefined(true);
+  res->Clear();
+  UPoint up(1);
+  Point p0, p1;
+  for (int i = 0; i < source->GetNoComponents(); i++) {
+    source->Get(i, up);
+    p0.Set(up.p0.GetY(), up.p0.GetX());
+    p1.Set(up.p1.GetY(), up.p1.GetX());
+    p0.SetDefined(true);
+    p1.SetDefined(true);
+    up.p0 = p0;
+    up.p1 = p1;
+    res->MergeAdd(up);
+  }
+  return 0;
+}
+
+/*
+5.48.3 Specification for operator ~swapcoord~
+
+*/
+const string swapcoordSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\") "
+  "( <text>mpoint -> mpoint</text--->"
+  "<text>swapcoord( _ )</text--->"
+  "<text>swaps the x and y coordinates of an mpoint</text--->"
+  "<text>swapcoord(mpoint1)</text--->) )";
+
+/*
+5.48.4 Definition of operator ~swapcoord~
+
+*/
+Operator temporalswapcoord("swapcoord",
+                           swapcoordSpec,
+                           swapcoordVM,
+                           Operator::SimpleSelect,
+                           swapcoordTM);
+
+/*
 6 Creating the Algebra
 
 */
@@ -11045,6 +11118,7 @@ public:
     AddOperator( &temporalunitcanmeet);
     AddOperator( &atRectU);
     AddOperator(&temporalcontains);
+    AddOperator(&temporalswapcoord);
   }
   ~TemporalUnitAlgebra() {};
 };

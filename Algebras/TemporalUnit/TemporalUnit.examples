@@ -715,6 +715,12 @@ Signature: periods x periods -> bool
 Example  : query [const periods value(("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE TRUE))] contains [const periods value(("2003-11-20-06:16" "2003-11-20-06:16:11.187" TRUE FALSE))]
 Result   : TRUE
 
+Operator : swapcoord
+Number   : 1
+Signature: mpoint -> mpoint
+Example  : query train7 = swapcoord(train7)
+Result   : FALSE
+
 Operator  : atRect
 Number    : 1
 Signature : upoint x rect -> upoint
