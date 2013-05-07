@@ -242,8 +242,12 @@ very verbose and has significant negative input on the algebra's performance.
 Only enable debug output if you know what you are doing!
 
 */
-const bool MRA_DEBUG = false;
-//const bool MRA_DEBUG = true;
+//const bool MRA_DEBUG = false;
+const bool MRA_DEBUG = true;
+
+//#define MRA_TRACE cerr << __PRETTY_FUNCTION__ << " called " << endl;
+#define MRA_TRACE
+
 
 /*
 Two floating point numbers are considered equal if their difference is
@@ -2648,7 +2652,7 @@ The class definition has been moved to ~MovingRegionAlgebra.h~.
 
 */
 IRegion::IRegion(bool dummy): Intime<Region>(0) {
-    if (MRA_DEBUG) cerr << "IRegion::IRegion() #2 called" << endl;
+   MRA_TRACE;
 
 /*
 This is quite ugly and may not work with other compilers than gcc.
@@ -2665,25 +2669,20 @@ no better solution right now to assure that ~value~ has a valid DBArray.
     SetDefined(true);
 }
 
-IRegion::IRegion(const IRegion& ir) : Intime<Region>(0) {
-    if (MRA_DEBUG) cerr << "IRegion::IRegion() #2 called" << endl;
-
-    instant = ir.instant;
-    del.isDefined = ir.del.isDefined;
-
-/*
-This is quite ugly and may not work with other compilers than gcc.
-Since the ~Intime<Alpha>()~ constructors do not properly initialise their
-~value~ attribute (which if of type ~Region~ in this case), there is
-no better solution right now to assure that ~value~ has a valid DBArray.
-
-*/
-    /*Region* tmp = new Region(0);
-    memcpy(&value, tmp, sizeof(*tmp));
-    delete(tmp);*/
-    value.SetEmpty();
-    if (ir.del.isDefined) value.CopyFrom(&ir.value);
+IRegion::IRegion(const IRegion& ir) : 
+   Intime<Region>(ir.instant, ir.value) {
+   MRA_TRACE;
+   if(!ir.IsDefined()){
+      SetDefined(false);
+      return;
+   }
 }
+
+IRegion::IRegion(const Instant& instant, const Region& region):
+       Intime<Region>(instant,region){}
+
+
+
 
 /*
 1.1.1 Methods for algebra integration
@@ -2692,8 +2691,7 @@ no better solution right now to assure that ~value~ has a valid DBArray.
 
 */
 IRegion* IRegion::Clone(void) const {
-    if (MRA_DEBUG) cerr << "IRegion::Clone() called" << endl;
-
+    MRA_TRACE;
     return new IRegion(*this);
 }
 
@@ -2701,15 +2699,17 @@ IRegion* IRegion::Clone(void) const {
 1.1.1.1 ~DBArray~ access
 
 */
-int IRegion::NumOfFLOBs(void) const {
-    if (MRA_DEBUG) cerr << "IRegion::NumOfFLOBs() called" << endl;
 
+int IRegion::NumOfFLOBs() const{
+    MRA_TRACE;
     return 1;
 }
 
-Flob* IRegion::GetFLOB(const int i) {
-    if (MRA_DEBUG) cerr << "IRegion::GetFLOB() called" << endl;
 
+
+
+Flob* IRegion::GetFLOB(const int i) {
+    MRA_TRACE;
     assert(i == 0);
     return value.GetFLOB(0);
 }
@@ -2721,7 +2721,7 @@ Flob* IRegion::GetFLOB(const int i) {
 
 */
 static ListExpr IRegionProperty() {
-    if (MRA_DEBUG) cerr << "IRegionProperty() called" << endl;
+    MRA_TRACE;
 
     ListExpr example = nl->TextAtom();
     nl->AppendText(example,
@@ -2747,7 +2747,7 @@ static ListExpr IRegionProperty() {
 
 */
 static bool CheckIRegion(ListExpr type, ListExpr& errorInfo) {
-    if (MRA_DEBUG) cerr << "CheckIRegion() called" << endl;
+  MRA_TRACE;
 
   return nl->IsEqual(type, IRegion::BasicType())
       || nl->IsEqual(type, "intimeregion"); // backward-compatibility!
@@ -2763,6 +2763,86 @@ static Word CreateIRegion(const ListExpr typeInfo) {
     return SetWord(new IRegion(false));
 }
 
+void*
+CastIRegion( void* addr )
+{
+  return (new (addr) IRegion);
+}
+
+int
+SizeOfIRegion()
+{
+  return sizeof(IRegion);
+}
+
+void DeleteIRegion(const ListExpr typeInfo, Word &w){
+   IRegion* ir = (IRegion*) w.addr;
+   delete ir;
+   w.addr=0;
+}
+
+void CloseIRegion(const ListExpr typeInfo, Word &w){
+   IRegion* ir = (IRegion*) w.addr;
+   delete ir;
+   w.addr=0;
+}
+
+Word CloneIRegion( const ListExpr typeInfo, const Word& w )
+{
+   return SetWord( new IRegion( * ((IRegion*)w.addr)));
+}
+
+Word InIRegion( 
+       const ListExpr typeInfo, const ListExpr instance,
+       const int errorPos, ListExpr& errorInfo, bool& correct ){
+
+   if(listutils::isSymbolUndefined( instance ) ){
+     IRegion* res = new IRegion(false);
+     res->SetDefined(false);
+     correct = true;
+     return SetWord(res);
+   }
+   if(!nl->HasLength(instance,2)){
+      correct = false;
+      return SetWord((void*)0); 
+   }
+   ListExpr inst = nl->First(instance);
+   ListExpr reg = nl->Second(instance);
+   Instant* instant = (Instant *)InInstant( nl->TheEmptyList(),
+                                inst,
+                                errorPos,
+                                errorInfo,
+                                correct ).addr;
+   if(!correct){
+      if(instant){
+         delete instant;
+      }
+      return SetWord((void*)0);
+   } 
+   Region* region = (Region*)InRegion(
+                               nl->TheEmptyList(),
+                               reg,
+                               errorPos,
+                               errorInfo,
+                               correct).addr;
+   if(!correct){
+       if(region){
+          delete region;
+       }
+       delete instant;
+       return SetWord((void*)0);
+   }
+   IRegion* res = new IRegion(*instant, *region);
+   delete instant;
+   delete region;
+   correct = true;
+   return SetWord(res); 
+
+
+}
+
+
+
 /*
 1.1.1 Type constructor ~intimeregion~
 
@@ -2771,16 +2851,16 @@ static TypeConstructor intimeregion(
     IRegion::BasicType(),
     IRegionProperty,
     OutIntime<Region, OutRegion>,
-    InIntime<Region, InRegion>,
+    InIRegion,
     0, 0, // SaveToList, RestoreFromList
     CreateIRegion,
-    DeleteIntime<Region>,
-    OpenAttribute<Intime<Region> >,
-    SaveAttribute<Intime<Region> >,  // object open and save
-    CloseIntime<Region>,
-    CloneIntime<Region>,
-    CastIntime<Region>,
-    SizeOfIntime<Region>,
+    DeleteIRegion,
+    OpenAttribute<IRegion>,
+    SaveAttribute<IRegion>,  // object open and save
+    CloseIRegion,
+    CloneIRegion,
+    CastIRegion,
+    SizeOfIRegion,
     CheckIRegion );
 
 /*

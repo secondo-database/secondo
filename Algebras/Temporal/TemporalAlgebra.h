@@ -928,7 +928,7 @@ The simple constructor.
     instant( _instant ), value(false)
   {
     value.CopyFrom( &alpha );
-    this->del.isDefined = instant.IsDefined();
+    SetDefined( instant.IsDefined());
   }
 /*
 The first constructor.

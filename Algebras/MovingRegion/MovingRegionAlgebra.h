@@ -329,7 +329,7 @@ public:
 The default constructor does nothing.
 
 */
-    IRegion(void) {}
+    IRegion() {}
 
 /*
 Create a new ~IRegion~ instance without setting attribute default values.
@@ -345,6 +345,8 @@ Create a new ~IRegion~ instance and initialize it with the value of ~ir~.
 */
     IRegion(const IRegion& ir);
 
+    IRegion(const Instant& instant, const Region& region);
+
 /*
 1.1 Methods for algebra integration
 
@@ -357,7 +359,8 @@ Clone this ~IRegion~ instance and return a pointer to the new instance.
 ~DBArray~ access methods. These do use the ~value~ attributes ~DBArray~.
 
 */
-    int NumOfFLOBs(void) const;
+    virtual int NumOfFLOBs() const;
+
     Flob* GetFLOB(const int i);
 };
 
