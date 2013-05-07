@@ -1,0 +1,121 @@
+\documentclass[a4paper,9pt,landscape]{scrartcl}
+\usepackage[top=1cm,bottom=1cm,left=2cm,right=1cm]{geometry}
+\usepackage[utf8x]{inputenc}
+\usepackage[ngerman]{babel}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{colortbl}
+\begin{document}
+\begin{table}
+  \caption{CVS-Zug\"ange f\"ur Studenten, Stand: \today}
+  \begin{tabularx}{\textwidth}{|l|l|l|l|l|X|l|l|}
+  \hline \hline
+\textbf{Linux-User}        &\textbf{CVS-User}        &\textbf{Student}&\textbf{E-Mail}   &\textbf{Verzeichnis}            &\textbf{von}&\textbf{bis}\\
+\hline
+\hline
+\rowcolor{yellow}\cellcolor{green}diplomand1 &rentergent&Lisa Rentergent &lisa@rentergent.de&Javagui/viewer/queryconstruction&16.4.12     &\\
+\cline{2-7}
+\cellcolor{green}           &uchdorf                  &Thomas Uchdorf  &                  &Algebras/OSM                    &8.2.11      &5.3.12\\
+\cline{2-7}
+\cellcolor{green}           &vjohn                    &Volker John     &                  &Algebras/OptAux                 &            &8.2.11\\
+\hline
+\hline
+\rowcolor{yellow}\cellcolor{green}diplomand2 & keberl    &Katharina Rieder&keberl@web.de&Algebras/TrajetoryAnnotation                       &16.4.12     &\\
+\cline{2-7}
+\cellcolor{green}           &fpanse                   &Frank Panse     &                  &Algebras/SymbolicTrajectory     &21.12.10    &5.3.12\\
+\cline{2-7}
+\cellcolor{green}           &nvoget                   &Nicolai Voget   &                  &Algebras/OrderedRelation        &            &21.12.10\\
+\hline
+\hline
+\rowcolor{yellow}\cellcolor{red}diplomand3   & eckebre   &Jens Eckebrecht &jens@eckebrecht.de&Algebras/RobustPlaneSweep       &21.12.12    & \\
+\cline{2-7}
+\cellcolor{red}             &kubusch                  &Rico Kubusch    &rico.kubusch@bka.bund.de&                          &21.6.11     &21.12.12\\
+\cline{2-7}
+\cellcolor{red}             &bponeleit                &Burkhard Poneleit&                  &Optimizer/Subqueries           &            &8.2.11\\
+\hline
+\hline
+\rowcolor{yellow}\cellcolor{red}diplomand4   & walther   &Daniel Walther  &Da.walther@gmx.de &Tools/SecondoPostGIS            &22.2.13     &\\
+\cline{2-7}
+\cellcolor{red}             &kkoch                    &Katja Koch      &katjakoch1@googlemail.com&Algebras/RobusGeometry   &2.1.12      &21.12.12\\
+\cline{2-7}
+\cellcolor{red}             &geduldig                 &Jochen Geduldig &                   &Algebras/NestedRelation2       &8.9.10      &2.1.12\\
+\cline{2-7}
+\cellcolor{red}             &kteufel                  &Klaus Teufel    &                   &Algebras/NestedRelation        &            &8.9.10\\
+\hline
+\hline
+\rowcolor{yellow}\cellcolor{red}diplomand5   & zacher    &Dirk Zacher     &dirk.zacher@fernuni-hagen.de&                      &18.4.13     &\cellcolor{red}Laptop\\
+\cline{2-7}
+\cellcolor{red}             &tachmann                 &Thomas Achmann  &t\_achmann@gmx.de  &Algebras/Distributed           &16.2.11     &21.12.12\\
+\cline{2-7}
+\cellcolor{red}             & totim     &Tobias Timmerscheidt&               &Algebras/DistributedRelation   &15.1.10     &16.2.11\\
+\hline
+\hline
+\rowcolor{yellow}\cellcolor{red}diplomand6   & floheinz &Florian Heinz    &fh@sysv.de         &Algebras/RegionInterpolation2 und Javagui/viewer/3d &26.4.13 &\\
+\cline{2-7}
+\cellcolor{red}             &srenner                 &Stefanie Renner  &stefanie.renner@gmx.de&Algebras/MovingRegion2      &9.11.11     &21.12.12\\
+\cline{2-7}
+\cellcolor{red}             &sjung                   &Sven Jungnickel  &                   &Algebras/ExtRelation2          &            &8.2.11\\
+\hline
+\hline
+\rowcolor{yellow}\cellcolor{red}diplomand7   & steigerk &Kristina Steiger  &tinasteiger@gmx.net&WebGui                         &6.5.13      &\\
+\cline{2-7}
+\cellcolor{red}             &geisbues                &Simon Geisbuesch  &simon.geisbuesch@o2online.de&Algebras/SpatialJoin2 &14.11.11    &21.12.12\\
+\cline{2-7}
+\cellcolor{red}             &zdahmen                 &Zoryana Dahmen-Lobur&                 &/DahmenLobur                  &20.10.10    &8.2.11\\
+\hline
+\hline
+\rowcolor{yellow}\cellcolor{red}diplomand8   & kuepper   &Michael K\"upper  &kuepper.michael@gmail.com&AndroidGui              &6.5.13      &\\
+\cline{2-7}
+\cellcolor{red}             &dcapek                   &Dieter Capek      &d007@capek.de      &Algebras/Groupby              &16.11.11    &21.12.12\\
+\cline{2-7}
+\cellcolor{red}             &linsenme                 &Linsenmeier       &                   &Algebras/SpatialJoin und Algebras/NearestNeighbour& &8.2.11\\
+\hline
+\hline
+\cellcolor{green}diplomand9 &mroth                    &Matthias Roth     &Fernstudium@planet-roth.de&Algebras/MapMatching   &21.11.11    &21.12.12\\
+\cline{2-7}
+\cellcolor{green}           &whoffmann                &Walter Hoffmann   &                    &secondo\_Whoff               &1.2.10      &8.2.11\\
+\hline
+\hline
+\cellcolor{green}diplomand10&willmes                  &Gero Willmes      &student@harpspieler.de&Optimizer/LargeQueries     &29.11.11     &21.12.12\\
+\cline{2-7}
+\cellcolor{green}           &herkert                  &A.Herkert         &                   &LargeQueries                  &1.3.10       &8.2.11\\
+\hline
+\hline
+\cellcolor{green}diplomand11&schrage                  &Michael Schrage   &schragman@googlemail.com&JDBC                     &23.12.11     &21.12.12\\
+\cline{2-7}
+\cellcolor{green}           &danbro                   &Daniel Brockmann  &                   &Algebras/UGrid                &14.4.10       &8.2.11\\
+\hline
+\hline
+\cellcolor{green}diplomand12&mtirtasana               &Matthias Tirtasana&matthias.tirtasana@science-computing.de&OptParser &5.3.12       &21.12.12\\
+\cline{2-7}
+\cellcolor{green}           &wrede                    &Nina Wrede        &                    &Algebras/Network2 und Algebras/TemporalNet2&15.6.10&2.1.12\\
+\hline
+\hline
+\rowcolor{yellow}\cellcolor{green}diplomand13& nidzwetzki&Jan Nidzwetzki    &nidzwetzki@gmx.de   &Algebras/CostEstimation        &18.4.12   &\\
+\hline
+\hline
+\cellcolor{green}diplomand14&flehmann                 &Frank Lehmann     &fraleco@gmx.de      &Algebras/SymbolicTrajectory2   &23.4.12   &12.12.12\\
+\hline
+\hline
+\rowcolor{yellow}\cellcolor{red}diplomand15  & nvkempen                 &Nicolai van Kempen&nikolaivank@googlemail.com&Optimizer/NestedRelations Optimizer/MemoryAllocation&24.4.12&\\
+\hline
+\hline
+\cellcolor{green}diplomand16&jmoeller                  &Jasmin Moeller    &JasminMoeller@gmx.de &Algebras/Cluster2      &28.6.12  &21.12.12\\
+\hline
+\hline
+\rowcolor{yellow}\cellcolor{red}diplomand17 &ofeuer                     &Oliver Feuer      &ofeuer\_informatik@yahoo.de&Algebras/Region2 und MovingRegion3&11.10.12&\cellcolor{red}Laptop\\
+\hline
+\hline
+\rowcolor{yellow}\cellcolor{red}diplomand18&sfuhs                       &Svenja Fuhs        &svenja.fuhs@t-online.de  &Algebras/Precise2D       &29.10.12&\\
+\hline
+\hline
+\rowcolor{yellow}\cellcolor{red}diplomand19&ehnes                       &J\"urgen Ehnes     &juergen@ehnes.eu         &                         &20.11.12&\\
+\hline
+\hline
+\cellcolor{green}diplomand20&                          &                   &                          &                        &         &\\
+\hline
+\hline
+  \end{tabularx}
+\end{table}
+\end{document}
