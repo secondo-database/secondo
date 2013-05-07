@@ -2019,6 +2019,7 @@ the matching procedure ends after the unit pattern test.
 
 */
 bool Match::matches(MLabel &ml, bool rewrite) {
+  numOfLabels = (size_t)ml.GetNoComponents();
   if (ml.index.getNodeRefSize() && ml.index.getNodeLinkSize()
       && ml.index.getLabelIndexSize()) { // use index
     ml.index.initRoot();
@@ -2035,7 +2036,6 @@ bool Match::matches(MLabel &ml, bool rewrite) {
     }
   }
   else { // no index => process whole mlabel
-    numOfLabels = (size_t)ml.GetNoComponents();
     for (size_t i = 0; i < numOfLabels; i++) {
       ml.Get(i, ul);
       ulId = i;
@@ -3423,10 +3423,11 @@ ListExpr indexmatchesTM(ListExpr args) {
   if (nl->HasLength(args, 4)) {
     if (FText::checkType(nl->Fourth(args))) {
       if (Relation::checkType(nl->First(args))) {
-        if (Tuple::checkType(nl->First(nl->Rest(nl->First(args))))
+        ListExpr tupleList = nl->First(nl->Rest(nl->First(args)));
+        if (Tuple::checkType(tupleList)
          && listutils::isSymbol(nl->Second(args))) {
           ListExpr attrType;
-          ListExpr attrList = nl->Second(nl->First(nl->Rest(nl->First(args))));
+          ListExpr attrList = nl->Second(tupleList);
           string attrName = nl->SymbolValue(nl->Second(args));
           int i = listutils::findAttribute(attrList, attrName, attrType);
           if (i == 0) {
@@ -3440,7 +3441,7 @@ ListExpr indexmatchesTM(ListExpr args) {
             return nl->ThreeElemList(
               nl->SymbolAtom(Symbol::APPEND()),
               nl->OneElemList(nl->IntAtom(i)),
-              nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), attrType));
+              nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()), tupleList));
           }
         }
       }
@@ -3462,17 +3463,6 @@ IndexLI::IndexLI(Word _mlrel, Word _inv, Word _attrNr, Pattern* _p):pStream(0) {
   vector<TupleId> matchingMLs = applyPattern();
   applyConditions(matchingMLs, false);
   delete[] matches;
-}
-
-MLabel* IndexLI::nextResultML() {
-  if (!mlRel->GetNoTuples() || resultIds.empty()) { // no mlabel => no result
-    return 0;
-  }
-  Tuple* tuple = mlRel->GetTuple(resultIds.front(), false);
-  resultIds.pop();
-  MLabel* result = (MLabel*)tuple->GetAttribute(attrNr)->Copy();
-  tuple->DeleteIfAllowed();
-  return result;
 }
 
 /*
@@ -3499,7 +3489,7 @@ int indexmatchesVM(Word* args, Word& result, int message, Word& local,
       return 0;
     }
     case REQUEST: {
-      result.addr = li ? li->nextResultML() : 0;
+      result.addr = li ? li->nextResultTuple(false) : 0;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {
@@ -3520,8 +3510,7 @@ int indexmatchesVM(Word* args, Word& result, int message, Word& local,
 struct indexmatchesInfo : OperatorInfo {
   indexmatchesInfo() {
     name      = "indexmatches";
-    signature = "rel(tuple(..., mlabel, ...)) x attrname x invfile x text "
-                "-> stream(mlabel)";
+    signature = "rel(tuple(X)) x IDENT x invfile x text -> stream(tuple(X))";
     syntax    = "_ indexmatches [ _ , _ , _ ]";
     meaning   = "Filters a relation containing a mlabel attribute, passing "
                 "only those moving labels matching the pattern on "
@@ -3530,13 +3519,13 @@ struct indexmatchesInfo : OperatorInfo {
 };
 
 /*
-\section{Operator ~filterMatches~}
+\section{Operator ~filtermatches~}
 
 \subsection{Type Mapping}
 
 */
-ListExpr filterMatchesTM(ListExpr args) {
-  string err = "the expected syntax is: stream(tuple) x attrname x text";
+ListExpr filtermatchesTM(ListExpr args) {
+  string err = "the expected syntax is: stream(tuple(X)) x attrname x text";
   if (!nl->HasLength(args, 3)) {
     return listutils::typeError(err + " (wrong number of arguments)");
   }
@@ -3554,19 +3543,20 @@ ListExpr filterMatchesTM(ListExpr args) {
     return listutils::typeError("attribute " + name + " not found in tuple");
   }
   if (!MLabel::checkType(type) && !MString::checkType(type)) {
-    return listutils::typeError("attribute " + name + " not of type mlabel");
+    return listutils::typeError("wrong type " + nl->ToString(type)
+                                + " of attritube " + name);
   }
   return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
                            nl->OneElemList(nl->IntAtom(index - 1)), stream);
 }
 
 /*
-\subsection{Class ~FilterMatchesLI~}
+\subsection{Class ~FiltermatchesLI~}
 
 */
-class FilterMatchesLI {
+class FiltermatchesLI {
  public:
-  FilterMatchesLI(Word _stream, int _attrIndex, FText* text):
+  FiltermatchesLI(Word _stream, int _attrIndex, FText* text):
       stream(_stream), attrIndex(_attrIndex) {
     Pattern *p = Pattern::getPattern(text->GetValue());
     if (p) {
@@ -3586,7 +3576,7 @@ class FilterMatchesLI {
     }
   }
 
-  ~FilterMatchesLI() {
+  ~FiltermatchesLI() {
     delete match;
     if (streamOpened) {
       stream.close();
@@ -3622,9 +3612,9 @@ class FilterMatchesLI {
 \subsection{Value Mapping}
 
 */
-int filterMatchesVM(Word* args, Word& result, int message,
+int filtermatchesVM(Word* args, Word& result, int message,
                     Word& local, Supplier s) {
-  FilterMatchesLI* li = (FilterMatchesLI*)local.addr;
+  FiltermatchesLI* li = (FiltermatchesLI*)local.addr;
   switch (message) {
     case OPEN: {
       if (li) {
@@ -3634,7 +3624,7 @@ int filterMatchesVM(Word* args, Word& result, int message,
       int index = ((CcInt*)args[3].addr)->GetValue();
       FText* text = (FText*)args[2].addr;
       if (text->IsDefined()) {
-        local.addr = new FilterMatchesLI(args[0], index, text);
+        local.addr = new FiltermatchesLI(args[0], index, text);
       }
       return 0;
     }
@@ -3657,12 +3647,12 @@ int filterMatchesVM(Word* args, Word& result, int message,
 \subsection{Operator Info}
 
 */
-struct filterMatchesInfo : OperatorInfo {
-  filterMatchesInfo() {
-    name      = "filterMatches";
+struct filtermatchesInfo : OperatorInfo {
+  filtermatchesInfo() {
+    name      = "filtermatches";
     signature = "stream(tuple(X)) x IDENT x text -> stream(tuple(X))";
-    syntax    = "_ filterMatches [ _ , _ ]";
-    meaning   = "Filters a stream of tuples containing moving labels, passing "
+    syntax    = "_ filtermatches [ _ , _ ]";
+    meaning   = "Filters a stream containing moving labels, passing "
                 "exactly the tuples whose moving labels match the pattern on "
                 "to the output stream.";
   }
@@ -4681,12 +4671,20 @@ ULabel IndexLI::getUL(TupleId tId, unsigned int ulId) {
 /*
 \subsection{Function ~nextResultTuple~}
 
-This function is used for the operator ~indexclassify~.
+This function is used for the operators ~indexclassify~ and ~indexmatches~.
 
 */
-Tuple* IndexLI::nextResultTuple() {
+Tuple* IndexLI::nextResultTuple(bool classify) {
   if (!mlRel->GetNoTuples()) { // no mlabel => no result
     return 0;
+  }
+  if (!classify) {
+    if (resultIds.empty()) { // no mlabel => no result
+      return 0;
+    }
+    Tuple* result = mlRel->GetTuple(resultIds.front(), false);
+    resultIds.pop();
+    return result;
   }
   pair<string, TupleId> onePair;
   Tuple* pTuple;
@@ -4766,7 +4764,7 @@ int indexclassifyVM(Word* args, Word& result, int message, Word& local,
       return 0;
     }
     case REQUEST: {
-      result.addr = li ? li->nextResultTuple() : 0;
+      result.addr = li ? li->nextResultTuple(true) : 0;
       return result.addr ? YIELD : CANCEL;
     }
     case CLOSE: {
@@ -5162,10 +5160,13 @@ ListExpr createindexTM(ListExpr args) {
   if (nl->ListLength(args) != 1) {
     return listutils::typeError("One argument expected.");
   }  
-  if (!MLabel::checkType(nl->First(args))) {
-    return listutils::typeError("Argument type must be MLabel.");
+  if (MLabel::checkType(nl->First(args))||MString::checkType(nl->First(args))) {
+    bool ml = MLabel::checkType(nl->First(args));
+    return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
+                             nl->OneElemList(nl->BoolAtom(ml)),
+                             nl->SymbolAtom(MLabel::BasicType()));
   }
-  return nl->SymbolAtom(MLabel::BasicType());
+  return listutils::typeError("Argument type must be MLabel or MString.");
 }
 
 /*
@@ -5174,33 +5175,38 @@ ListExpr createindexTM(ListExpr args) {
 */
 int createindexVM(Word* args, Word& result, int message, Word& local,
                    Supplier s) {
-  MLabel* source = (MLabel*)(args[0].addr);
+  MLabel* sourceML = 0;
+  MString* sourceMS = 0;
   MLabel* res = new MLabel(1);
-//   result = qp->ResultStorage(s);
-//   MLabel* res = static_cast<MLabel*>(result.addr);
-/*  res->CopyFrom(source);*/
   ULabel ul(1);
 //   set<string> labels;
   set<size_t> positions;
-  for (int i = 0; i < source->GetNoComponents(); i++) {
-    source->Get(i, ul);
-//     labels.insert(ul.constValue.GetValue());
-    positions.insert(i);
-    res->index.insert(ul.constValue.GetValue(), positions);
-    positions.clear();
-    res->Add(ul);
-  }
-/*for (set<string>::iterator it1 = labels.begin(); it1 != labels.end(); it1++) {
-    set<size_t> p = res->index.find(*it1);
-    cout << "\"" << *it1 << "\" found at pos: ";
-    for (set<size_t>::iterator it = p.begin(); it != p.end(); it++) {
-      cout << *it << " ";
+  if (((CcBool*)args[1].addr)->GetBoolval()) {
+    sourceML = (MLabel*)(args[0].addr);
+    for (int i = 0; i < sourceML->GetNoComponents(); i++) {
+      sourceML->Get(i, ul);
+//       labels.insert(ul.constValue.GetValue());
+      positions.insert(i);
+      res->index.insert(ul.constValue.GetValue(), positions);
+      positions.clear();
+      res->Add(ul);
     }
-    cout << endl;
-  }*/
+  }
+  else {
+    sourceMS = (MString*)(args[0].addr);
+    for (int i = 0; i < sourceMS->GetNoComponents(); i++) {
+      sourceMS->Get(i, ul);
+  //     labels.insert(ul.constValue.GetValue());
+      positions.insert(i);
+      res->index.insert(ul.constValue.GetValue(), positions);
+      positions.clear();
+      res->Add(ul);
+    }
+  }
   res->index.makePersistent();
   res->index.removeTrie();
 //   res->index.printDbArrays();
+//   res->index.printContents(labels);
   result.addr = res;
   return 0;
 }
@@ -5219,12 +5225,12 @@ struct createindexInfo : OperatorInfo {
 };
 
 /*
-\section{Operator ~createrelindex~}
+\section{Operator ~createtrie~}
 
 \subsection{Type Mapping}
 
 */
-ListExpr createrelindexTM(ListExpr args) {
+ListExpr createtrieTM(ListExpr args) {
   if (nl->ListLength(args) != 2) {
     return listutils::typeError("Two arguments expected.");
   }
@@ -5236,8 +5242,10 @@ ListExpr createrelindexTM(ListExpr args) {
       string attrName = nl->SymbolValue(nl->Second(args));
       int i = listutils::findAttribute(attrList, attrName, attrType);
       if (MLabel::checkType(attrType) || MString::checkType(attrType)) {
+        bool ml = MLabel::checkType(attrType);
         return nl->ThreeElemList(nl->SymbolAtom(Symbol::APPEND()),
-                                 nl->OneElemList(nl->IntAtom(i)),
+                                 nl->TwoElemList(nl->IntAtom(i),
+                                                 nl->BoolAtom(ml)),
                                  nl->SymbolAtom(InvertedFile::BasicType()));
       }
     }
@@ -5250,11 +5258,12 @@ ListExpr createrelindexTM(ListExpr args) {
 \subsection{Value Mapping}
 
 */
-int createrelindexVM(Word* args, Word& result, int message, Word& local,
+int createtrieVM(Word* args, Word& result, int message, Word& local,
                      Supplier s) {
   Relation *rel = (Relation*)(args[0].addr);
   Tuple *tuple = 0;
   MLabel *ml = 0;
+  MString *ms = 0;
   ULabel ul(1);
   result = qp->ResultStorage(s);
   InvertedFile* inv = (InvertedFile*)result.addr;
@@ -5275,11 +5284,21 @@ int createrelindexVM(Word* args, Word& result, int message, Word& local,
   TrieNodeCacheType* trieCache = inv->createTrieCache(trieCacheSize);
   for (int i = 0; i < rel->GetNoTuples(); i++) {
     tuple = rel->GetTuple(i + 1, false);
-    ml = (MLabel*)tuple->GetAttribute(((CcInt*)args[2].addr)->GetIntval() - 1);
-    for (int j = 0; j < ml->GetNoComponents(); j++) {
-      ml->Get(j, ul);
-      inv->insertString(tuple->GetTupleId(), ul.constValue.GetValue(), j, 0,
-                        cache, trieCache);
+    if (((CcBool*)args[3].addr)->GetBoolval()) {
+      ml = (MLabel*)tuple->GetAttribute(((CcInt*)args[2].addr)->GetIntval()-1);
+      for (int j = 0; j < ml->GetNoComponents(); j++) {
+        ml->Get(j, ul);
+        inv->insertString(tuple->GetTupleId(), ul.constValue.GetValue(), j, 0,
+                          cache, trieCache);
+      }
+    }
+    else {
+      ms = (MString*)tuple->GetAttribute(((CcInt*)args[2].addr)->GetIntval()-1);
+      for (int j = 0; j < ms->GetNoComponents(); j++) {
+        ms->Get(j, ul);
+        inv->insertString(tuple->GetTupleId(), ul.constValue.GetValue(), j, 0,
+                          cache, trieCache);
+      }
     }
   }
   return 0;
@@ -5289,11 +5308,11 @@ int createrelindexVM(Word* args, Word& result, int message, Word& local,
 \subsection{Operator Info}
 
 */
-struct createrelindexInfo : OperatorInfo {
-  createrelindexInfo() {
-    name      = "createrelindex";
+struct createtrieInfo : OperatorInfo {
+  createtrieInfo() {
+    name      = "createtrie";
     signature = "rel(tuple(..., mlabel, ...)) x attrname -> invfile";
-    syntax    = "_ createrelindex [ _ ]";
+    syntax    = "_ createtrie [ _ ]";
     meaning   = "Builds an index for a relation of numbered moving labels.";
   }
 };
@@ -5331,7 +5350,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
       AddOperator(indexmatchesInfo(), indexmatchesVM, indexmatchesTM);
 
-      AddOperator(filterMatchesInfo(), filterMatchesVM, filterMatchesTM);
+      AddOperator(filtermatchesInfo(), filtermatchesVM, filtermatchesTM);
       
       ValueMapping rewriteVMs[] = {rewriteVM_MT<MLabel>,
                                    rewriteVM_MT<MString>,
@@ -5347,13 +5366,13 @@ class SymbolicTrajectoryAlgebra : public Algebra {
                                     compressVM_1<MString>,
                                     compressVM_Str<MLabel>,
                                     compressVM_Str<MString>, 0};
-      AddOperator(compressInfo(), compressVMs, compressSelect,compressTM);
+      AddOperator(compressInfo(), compressVMs, compressSelect, compressTM);
 
       ValueMapping fillgapsVMs[] = {fillgapsVM_1<MLabel>,
                                     fillgapsVM_1<MString>,
                                     fillgapsVM_Str<MLabel>,
                                     fillgapsVM_Str<MString>, 0};
-      AddOperator(fillgapsInfo(), fillgapsVMs, fillgapsSelect,fillgapsTM);
+      AddOperator(fillgapsInfo(), fillgapsVMs, fillgapsSelect, fillgapsTM);
 
       AddOperator(createmlInfo(), createmlVM, createmlTM);
 
@@ -5362,7 +5381,7 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
       AddOperator(createindexInfo(), createindexVM, createindexTM);
 
-      AddOperator(createrelindexInfo(),createrelindexVM,createrelindexTM);
+      AddOperator(createtrieInfo(), createtrieVM, createtrieTM);
 
     }
     ~SymbolicTrajectoryAlgebra() {}

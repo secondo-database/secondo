@@ -904,6 +904,18 @@ void MLabelIndex::printDbArrays() {
   cout << ss.str() << endl;
 }
 
+void MLabelIndex::printContents(set<string> &labels) {
+  for (set<string>::iterator it1 = labels.begin(); it1 != labels.end(); it1++) {
+    set<size_t> p = find(*it1);
+    cout << "\"" << *it1 << "\" found at pos: ";
+    for (set<size_t>::iterator it = p.begin(); it != p.end(); it++) {
+      cout << *it << " ";
+    }
+    cout << endl;
+  }
+  cout << endl;
+}
+
 NodeRef MLabelIndex::getNodeRef(int pos) const {
   assert((0 <= pos) && (pos < getNodeRefSize()));
   NodeRef nRef;

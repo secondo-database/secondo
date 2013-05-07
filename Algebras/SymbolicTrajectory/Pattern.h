@@ -549,8 +549,7 @@ public:
 
   ~IndexLI();
 
-  Tuple* nextResultTuple();
-  MLabel* nextResultML();
+  Tuple* nextResultTuple(bool classify);
   void applyUnitPattern(int pPos, vector<int>& prev, Wildcard& wc,
                         vector<bool>& active);
   vector<TupleId> applyPattern(); // apply unit patterns of p to mlRel

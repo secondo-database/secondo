@@ -27,15 +27,15 @@ Result   : TRUE
 
 Operator : indexmatches
 Number   : 1
-Signature: rel(tuple(..., mlabel, ...)) x attrname x invfile x text -> stream(mlabel)
+Signature: rel(tuple(X)) x IDENT x invfile x text -> stream(tuple(X))
 Example  : query Dotraj indexmatches[Trajectory, Dotrajindex, '(_ "Innenstadt-Ost") X * (_ "Innenstadt-Ost") // X.labels contains "Brackel"'] count
 Result   : 130
 
-Operator : filterMatches
+Operator : filtermatches
 Number   : 1
 Signature: stream(tuple(X)) x IDENT x text -> stream(tuple(X))
-Example  : query SymbolicTripsTiny feed filterMatches[SymTrip, '(_ "Alte Teichstraße") * (_ "Alte Teichstraße")'] count
-Result   : 13
+Example  : query SymbolicTripsTiny feed filtermatches[SymTrip, '(_ "Alte Teichstraße") * (_ "Alte Teichstraße")'] count
+Result   : 14
 
 Operator : rewrite
 Number   : 1
@@ -47,7 +47,7 @@ Operator : classify
 Number   : 1
 Signature: stream(tuple(string, text)) x stream(mlabel) -> stream(tuple(string, mlabel))
 Example  : query (patterns4 feed SymbolicTripsTiny feed projecttransformstream[SymTrip] classify) count
-Result   : 49
+Result   : 50
 
 Operator : indexclassify
 Number   : 1
@@ -109,9 +109,9 @@ Signature: mlabel -> mlabel
 Example  : query createindex(michael) matches '* (_ at_home)'
 Result   : TRUE
 
-Operator : createrelindex
+Operator : createtrie
 Number   : 1
 Signature: rel(tuple(..., mlabel, ...)) x attrname -> invfile
-Example  : query Dotrajsmall createrelindex[Trajectory]
+Example  : query Dotrajsmall createtrie[Trajectory]
 Result   : unpredictable
 Remark   : A InvFile has not out function

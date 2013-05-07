@@ -121,6 +121,7 @@ public:
   void removeTrie(); // removes main memory tree structure
   void remove(TrieNode* ptr, unsigned char c); // help function for recursion
   void printDbArrays();
+  void printContents(set<string> &labels);
   void appendNodeRef(NodeRef nRef)    {nodes.Append(nRef);}
   void appendNodeLink(NodeLink nLink) {nodeLinks.Append(nLink);}
   void appendLabelIndex(size_t index) {labelIndex.Append(index);}
