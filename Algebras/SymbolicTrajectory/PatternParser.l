@@ -66,7 +66,7 @@ contents {intervalset}[\ ]+{labelset}
 contents_result {interval}[\ ]+{label}
 variable [A-Z]{1,2}[0-9]*
 doubleslash \/{2}
-conditiontype label|time|start|end|card|labels
+conditiontype label|time|start|end|card|labels|leftclosed|rightclosed
 assigntype label|time|start|end
 vardottype {variable}\.{conditiontype}
 vardottype2 {variable}\.{assigntype}

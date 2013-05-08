@@ -114,4 +114,4 @@ Number   : 1
 Signature: rel(tuple(..., mlabel, ...)) x attrname -> invfile
 Example  : query Dotraj createtrie[Trajectory]
 Result   : unpredictable
-Remark   : A InvFile has not out function
+Remark   : A InvFile has no out function

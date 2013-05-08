@@ -2710,22 +2710,21 @@ bool Match::evaluateCond(MLabel const &ml, int cId, multiset<unsigned int> sq){
         }
         break;
       }
-      case 2: // start
+      case 2: { // start
+        ml.Get(seq[pId], ul);
+        conds[cId].setStartEndPtr(i, ul.timeInterval.start);
+        break;
+      }
       case 3: { // end
         ml.Get(max, ul);
-        if (conds[cId].getKey(i) == 2) {
-          conds[cId].setStartEndPtr(i, ul.timeInterval.start);
-        }
-        else {
-          conds[cId].setStartEndPtr(i, ul.timeInterval.end);
-        }
+        conds[cId].setStartEndPtr(i, ul.timeInterval.end);
         break;
       }
       case 4: { // card
         conds[cId].setCardPtr(i, max + 1 - seq[pId]);
         break;
       }
-      default: { // labels
+      case 5: { // labels
         conds[cId].cleanLabelsPtr(i);
         for (size_t j = seq[pId]; j <= max; j++) {
           ml.Get(j, ul);
@@ -2733,6 +2732,15 @@ bool Match::evaluateCond(MLabel const &ml, int cId, multiset<unsigned int> sq){
           conds[cId].appendToLabelsPtr(i, *label);
         }
         conds[cId].completeLabelsPtr(i);
+      }
+      case 6: { // leftclosed
+        ml.Get(seq[pId], ul);
+        conds[cId].setLeftRightclosedPtr(i, ul.timeInterval.lc);
+        break;
+      }
+      default: { // rightclosed
+        ml.Get(max, ul);
+        conds[cId].setLeftRightclosedPtr(i, ul.timeInterval.rc);
       }
     }
   }
@@ -2748,6 +2756,8 @@ string Condition::getType(int t) {
     case 3: return ".end";
     case 4: return ".card";
     case 5: return ".labels";
+    case 6: return ".leftclosed";
+    case 7: return ".rightclosed";
     default: return ".ERROR";
   }
 }
@@ -2767,42 +2777,55 @@ void Condition::setLabelPtr(unsigned int pos, string value) {
     ((CcString*)pointers[pos])->Set(true, value);
   }
 }
-void  Condition::clearTimePtr(unsigned int pos) {
+
+void Condition::clearTimePtr(unsigned int pos) {
   if (pos < pointers.size()) {
     if (((Periods*)pointers[pos])->IsDefined()) {
       ((Periods*)pointers[pos])->Clear();
     }
   }
 }
-void  Condition::mergeAddTimePtr(unsigned int pos, SecInterval value) {
+
+void Condition::mergeAddTimePtr(unsigned int pos, SecInterval value) {
   if (pos < pointers.size()) {
     ((Periods*)pointers[pos])->MergeAdd(value);
   }
 }
-void  Condition::setStartEndPtr(unsigned int pos, Instant value) {
+
+void Condition::setStartEndPtr(unsigned int pos, Instant value) {
   if (pos < pointers.size()) {
     *((Instant*)pointers[pos]) = value;
   }
 }
-void  Condition::setCardPtr(unsigned int pos, int value) {
+
+void Condition::setCardPtr(unsigned int pos, int value) {
   if (pos < pointers.size()) {
     ((CcInt*)pointers[pos])->Set(true, value);
   }
 }
-void  Condition::cleanLabelsPtr(unsigned int pos) {
+
+void Condition::cleanLabelsPtr(unsigned int pos) {
   if (pos < pointers.size()) {
     ((Labels*)pointers[pos])->Clean();
   }
 }
-void  Condition::appendToLabelsPtr(unsigned int pos, Label value) {
+
+void Condition::appendToLabelsPtr(unsigned int pos, Label value) {
   if (pos < pointers.size()) {
     ((Labels*)pointers[pos])->Append(value);
   }
 }
-void  Condition::completeLabelsPtr(unsigned int pos) {
+
+void Condition::completeLabelsPtr(unsigned int pos) {
   if (pos < pointers.size()) {
     ((Labels*)pointers[pos])->Complete();
     ((Labels*)pointers[pos])->Sort();
+  }
+}
+
+void Condition::setLeftRightclosedPtr(unsigned int pos, bool value) {
+  if (pos < pointers.size()) {
+    ((CcBool*)pointers[pos])->Set(true, value);
   }
 }
 
@@ -2999,8 +3022,8 @@ pair<string, Attribute*> Pattern::getPointer(int key) {
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
       break;
     }
-    case 2:
-    case 3: { // start/end, type Instant
+    case 2:   // start, type Instant
+    case 3: { // end, type Instant
       result.second = new DateTime(instanttype);
       result.first = "[const instant pointer "
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
@@ -3012,11 +3035,17 @@ pair<string, Attribute*> Pattern::getPointer(int key) {
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
       break;
     }
-    default: { // labels, type Labels
+    case 5: { // labels, type Labels
       result.second = new Labels(0);
       result.first = "[const labels pointer "
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
       break;
+    }
+    case 6:    // leftclosed, type CcBool
+    default: { // rightclosed, type CcBool
+      result.second = new CcBool(false);
+      result.first = "[const bool pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
     }
   }
   return result;
@@ -5095,7 +5124,7 @@ int createmlrelationVM(Word* args, Word& result, int message, Word& local,
     SecondoCatalog* sc = SecondoSystem::GetCatalog();
     relName = ccstring->GetValue();
     if (!sc->IsValidIdentifier(relName, errMsg, true)) { // check relation name
-      cout << "Relation Error: " << errMsg << endl;
+      cout << "Invalid relation name \"" << relName << "\"; " << errMsg << endl;
       res->Set(true, false);
       return 0;
     }

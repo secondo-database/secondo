@@ -162,6 +162,7 @@ class Condition {
   void    cleanLabelsPtr(unsigned int pos);
   void    appendToLabelsPtr(unsigned int pos, Label value);
   void    completeLabelsPtr(unsigned int pos);
+  void    setLeftRightclosedPtr(unsigned int pos, bool value);
   QueryProcessor* getQP()          {return opTree.first;}
   OpTree  getOpTree()              {return opTree.second;}
   int     getPointersSize()        {return pointers.size();}

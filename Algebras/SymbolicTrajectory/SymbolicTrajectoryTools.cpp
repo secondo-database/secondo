@@ -208,12 +208,14 @@ string extractVar(string input) {
 }
 
 int getKey(string type) {
-  if (type == "label")  return 0;
-  if (type == "time")   return 1;
-  if (type == "start")  return 2;
-  if (type == "end")    return 3;
-  if (type == "card")   return 4;
-  if (type == "labels") return 5;
+  if (type == "label")       return 0;
+  if (type == "time")        return 1;
+  if (type == "start")       return 2;
+  if (type == "end")         return 3;
+  if (type == "card")        return 4;
+  if (type == "labels")      return 5;
+  if (type == "leftclosed")  return 6;
+  if (type == "rightclosed") return 7;
   else return -1; // should not occur
 }
 
