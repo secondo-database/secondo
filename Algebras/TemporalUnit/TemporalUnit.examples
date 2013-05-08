@@ -718,7 +718,7 @@ Result   : TRUE
 Operator : swapcoord
 Number   : 1
 Signature: mpoint -> mpoint
-Example  : query train7 = swapcoord(train7)
+Example  : query always(train7 = swapcoord(train7))
 Result   : FALSE
 
 Operator  : atRect
