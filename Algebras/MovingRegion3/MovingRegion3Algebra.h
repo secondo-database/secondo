@@ -294,34 +294,34 @@ class MSegmentData2 {
   * ~segmentno~: The number of the segment in its cycle.
 
   * ~insideAbove~: ~true~, if the region's interior is left or above of the
-	segment. Please note that this is independent of the degeneration 
-	status of the segment.
+        segment. Please note that this is independent of the degeneration 
+        status of the segment.
 
   * ~isBasicSegment~: ~true~, if the coordinates' representation on the integer
-  	grid is identical with their precise representation for all of the
-  	coordinates, and thus no additional precise information for this segment
-  	exist.
+          grid is identical with their precise representation for all of the
+          coordinates, and thus no additional precise information for this segment
+          exist.
 
   * ~degeneratedInitialInitial~, ~degeneratedFinalFinal~: Specifies whether
-	the segment degenerated in the initial or final instant. If so, these
-	attributes indicate too whether it is still border of any region area
-	even though it is degenerated.
+        the segment degenerated in the initial or final instant. If so, these
+        attributes indicate too whether it is still border of any region area
+        even though it is degenerated.
 
   * ~degeneratedInitialNext~, ~degeneratedFinalNext~: If segments merge into
-	a single segments due to degeneration, these attributes are the next
-	merged degenerated segments in the region unit's list of segments. The
-	last segment will have the value $-1$ in these attributes.
+        a single segments due to degeneration, these attributes are the next
+        merged degenerated segments in the region unit's list of segments. The
+        last segment will have the value $-1$ in these attributes.
 
   * ~initialStartX~, ~initialStartY~, ~initialEndX~, ~initialEndY~: The
-	coordinates of the segment's start and end points in the initial instant.
+        coordinates of the segment's start and end points in the initial instant.
 
   * ~finalStartX~, ~finalStartY~, ~finalEndX~, ~finalEndY~: The
-	coordinates of the segment's start and end points in the initial instant.
+        coordinates of the segment's start and end points in the initial instant.
 
   * ~pointInitial~, ~pointFinal~: A segment might be reduced to a point in the
-	initial or final instant (but not both). This is indicated by these
-	values of these two attributes. Please note that reduction of a segment
-	to a point and degeneration of a segment are different concepts.
+        initial or final instant (but not both). This is indicated by these
+        values of these two attributes. Please note that reduction of a segment
+        to a point and degeneration of a segment are different concepts.
 
 The constructor assures that the segment in initial and final instant is
 collinear.
@@ -360,7 +360,7 @@ bool pointFinal;
 The default constructors does nothing.
 
 */
-	MSegmentData2() { }
+        MSegmentData2() { }
 
 /*
 This constructor creates a basic segment in the integer grid. ~isBasicSegment~
@@ -902,32 +902,32 @@ get the minimum bounding box,
 get specified segment, write specified segment.
 
 */
-	int GetSegmentsNum(void) const;
-	const int GetStartPos() const;
-	void SetSegmentsNum(int i);
-	void SetStartPos(int i);
+        int GetSegmentsNum(void) const;
+        const int GetStartPos() const;
+        void SetSegmentsNum(int i);
+        void SetStartPos(int i);
 
-	void GetSegment(
-		const DbArray<MSegmentData2>* segments,
-		int pos,
-		MSegmentData2& dms) const;
-	void PutSegment(
-		DbArray<MSegmentData2>* segments,
-		int pos,
-		const MSegmentData2& dms,
-		const bool isNew = false);
-	void GetPreciseSegment(
-			const DbArray<PreciseMSegmentData>* preciseSegments,
-			int pos,
-			PreciseMSegmentData& pdms) const;
-	void PutPreciseSegment(
-			DbArray<PreciseMSegmentData>* preciseSegments,
-			int pos,
-			const PreciseMSegmentData& pdms);
-	void PutCoordinate(
-			DbArray<unsigned int>* coordinates,
-			int pos,
-			const int& coord);
+        void GetSegment(
+                const DbArray<MSegmentData2>* segments,
+                int pos,
+                MSegmentData2& dms) const;
+        void PutSegment(
+                DbArray<MSegmentData2>* segments,
+                int pos,
+                const MSegmentData2& dms,
+                const bool isNew = false);
+        void GetPreciseSegment(
+                        const DbArray<PreciseMSegmentData>* preciseSegments,
+                        int pos,
+                        PreciseMSegmentData& pdms) const;
+        void PutPreciseSegment(
+                        DbArray<PreciseMSegmentData>* preciseSegments,
+                        int pos,
+                        const PreciseMSegmentData& pdms);
+        void PutCoordinate(
+                        DbArray<unsigned int>* coordinates,
+                        int pos,
+                        const int& coord);
 
 
 
@@ -936,10 +936,10 @@ Set the value of the ~insideAbove~ attribut of segment as position ~pos~ to
 the value ~insideAbove~. This is required by function ~InURegionEmb2()~.
 
 */
-	void SetSegmentInsideAbove(
-		DbArray<MSegmentData2>* segments,
-		int pos,
-		bool insideAbove);
+        void SetSegmentInsideAbove(
+                DbArray<MSegmentData2>* segments,
+                int pos,
+                bool insideAbove);
 
 /*
 Adds a segment to this ~URegionEmb2~ instance.
@@ -968,21 +968,21 @@ in list representation, which will be added to the ~URegionEmb2~ instance
 description below for details.
 
 */
-	bool AddSegment(
-		DbArray<MSegmentData2>* segments,
-		DbArray<PreciseMSegmentData>* preciseSegments,
-		DbArray<unsigned int>* preciseCoordinates,
-		DbArray<unsigned int>* preciseInstants,
-		Region2& cr,
-		Region2& rDir,
-		unsigned int faceno,
-		unsigned int cycleno,
-		unsigned int segmentno,
-		unsigned int partnerno,
-		DateTime& intervalLen,
-		ListExpr start,
-		ListExpr end,
-		unsigned int scaleFactor);
+        bool AddSegment(
+                DbArray<MSegmentData2>* segments,
+                DbArray<PreciseMSegmentData>* preciseSegments,
+                DbArray<unsigned int>* preciseCoordinates,
+                DbArray<unsigned int>* preciseInstants,
+                Region2& cr,
+                Region2& rDir,
+                unsigned int faceno,
+                unsigned int cycleno,
+                unsigned int segmentno,
+                unsigned int partnerno,
+                DateTime& intervalLen,
+                ListExpr start,
+                ListExpr end,
+                unsigned int scaleFactor);
 
 
 
@@ -991,65 +991,65 @@ description below for details.
 
 */
 
-	unsigned int Plumbline(const DbArray<MSegmentData2>* segments, 
-			const DbArray<PreciseMSegmentData>* preciseSegments, 
-			const DbArray<unsigned int>* preciseCoordinates, 
-			const int scaleFactor, const UPoint& up, 
-			const precTimeInterval& iv) const;
-	void RestrictedIntersectionFind(
-			const DbArray<MSegmentData2>* segments, 
-			const DbArray<PreciseMSegmentData>* preciseSegments,
-			const DbArray<unsigned int>* preciseCoordinates, 
-			const DbArray<unsigned int>* preciseInstants, 
-			const int scaleFactor,
-			const UPoint& up, const precTimeInterval& iv,
- 			vector<TrapeziumSegmentIntersection2>& vtsi) const;
-	bool RestrictedIntersectionFix(
-		vector<TrapeziumSegmentIntersection2>& vtsi) const;
-	bool RestrictedIntersectionProcess(const UPoint& up, 
-			const precTimeInterval& iv, 
-			vector<TrapeziumSegmentIntersection2>& vtsi, 
-			vector<precUPoint>& vpup, 
-			vector<precUBool>& vpub) const;
-	void RestrictedIntersectionUP(const DbArray<MSegmentData2>* segments, 
-			const DbArray<PreciseMSegmentData>* preciseSegments,
-			const DbArray<unsigned int>* preciseCoordinates, 
-			const DbArray<unsigned int>* preciseInstants, 
-			const int scaleFactor,
-			const UPoint& up, const precTimeInterval& iv, 
-			vector<precUPoint>& vpup, 
-			vector<precUBool>& vpub) const;
+        unsigned int Plumbline(const DbArray<MSegmentData2>* segments, 
+                        const DbArray<PreciseMSegmentData>* preciseSegments, 
+                        const DbArray<unsigned int>* preciseCoordinates, 
+                        const int scaleFactor, const UPoint& up, 
+                        const precTimeInterval& iv) const;
+        void RestrictedIntersectionFind(
+                        const DbArray<MSegmentData2>* segments, 
+                        const DbArray<PreciseMSegmentData>* preciseSegments,
+                        const DbArray<unsigned int>* preciseCoordinates, 
+                        const DbArray<unsigned int>* preciseInstants, 
+                        const int scaleFactor,
+                        const UPoint& up, const precTimeInterval& iv,
+                         vector<TrapeziumSegmentIntersection2>& vtsi) const;
+        bool RestrictedIntersectionFix(
+                vector<TrapeziumSegmentIntersection2>& vtsi) const;
+        bool RestrictedIntersectionProcess(const UPoint& up, 
+                        const precTimeInterval& iv, 
+                        vector<TrapeziumSegmentIntersection2>& vtsi, 
+                        vector<precUPoint>& vpup, 
+                        vector<precUBool>& vpub) const;
+        void RestrictedIntersectionUP(const DbArray<MSegmentData2>* segments, 
+                        const DbArray<PreciseMSegmentData>* preciseSegments,
+                        const DbArray<unsigned int>* preciseCoordinates, 
+                        const DbArray<unsigned int>* preciseInstants, 
+                        const int scaleFactor,
+                        const UPoint& up, const precTimeInterval& iv, 
+                        vector<precUPoint>& vpup, 
+                        vector<precUBool>& vpub) const;
 
 /*
 1.1 Method for database operator setscalefactor
 
 */
 
-	void NewScale(int newscale, int oldscale, 
-		DbArray<MSegmentData2>* segments, 
-		DbArray<PreciseMSegmentData>* preciseSegments,
-		DbArray<unsigned int>* preciseCoordinates);
+        void NewScale(int newscale, int oldscale, 
+                DbArray<MSegmentData2>* segments, 
+                DbArray<PreciseMSegmentData>* preciseSegments,
+                DbArray<unsigned int>* preciseCoordinates);
 
 /*
 1.1 Methods for database operators
 
 */
 
-	void Transform(double deltaX, double deltaY,
-		DbArray<MSegmentData2>* segments, 
-		DbArray<PreciseMSegmentData>* preciseSegments,
-		DbArray<unsigned int>* preciseCoordinates);
-	void Scale(double deltaX, double deltaY,
-		DbArray<MSegmentData2>* segments, 
-		DbArray<PreciseMSegmentData>* preciseSegments,
-		DbArray<unsigned int>* preciseCoordinates);
+        void Transform(double deltaX, double deltaY,
+                DbArray<MSegmentData2>* segments, 
+                DbArray<PreciseMSegmentData>* preciseSegments,
+                DbArray<unsigned int>* preciseCoordinates);
+        void Scale(double deltaX, double deltaY,
+                DbArray<MSegmentData2>* segments, 
+                DbArray<PreciseMSegmentData>* preciseSegments,
+                DbArray<unsigned int>* preciseCoordinates);
 
-	bool Coarse(const DbArray<MSegmentData2>* segments,
-		const DbArray<PreciseMSegmentData>* preciseSegments,
-		const DbArray<unsigned int>* preciseInstants,
-		const int scaleFactor,
-		DbArray<MSegmentData>* coarseSegments,
-		URegionEmb& coarseUremb);
+        bool Coarse(const DbArray<MSegmentData2>* segments,
+                const DbArray<PreciseMSegmentData>* preciseSegments,
+                const DbArray<unsigned int>* preciseInstants,
+                const int scaleFactor,
+                DbArray<MSegmentData>* coarseSegments,
+                URegionEmb& coarseUremb);
 
 
 
@@ -1059,23 +1059,23 @@ in ~result~.
 
 */
 
-	void TemporalFunction(
-		const DbArray<MSegmentData2>* segments,
-		const DbArray<PreciseMSegmentData>* preciseSegments,
-		const DbArray<unsigned int>* preciseCoordinates,
-		const DbArray<unsigned int>* preciseInstants,
-		const Instant& t,
-		const mpq_class& pt,
-		const int scaleFactor,
-		Region2& result,
-		bool ignoreLimits = false) const;
+        void TemporalFunction(
+                const DbArray<MSegmentData2>* segments,
+                const DbArray<PreciseMSegmentData>* preciseSegments,
+                const DbArray<unsigned int>* preciseCoordinates,
+                const DbArray<unsigned int>* preciseInstants,
+                const Instant& t,
+                const mpq_class& pt,
+                const int scaleFactor,
+                Region2& result,
+                bool ignoreLimits = false) const;
 
 /*
 Return the bounding box of the region unit. This is an $O(1)$ operation
 since the bounding box is calculated when the region unit is created.
 
 */
-	const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const;
+        const Rectangle<3> BoundingBox(const Geoid* geoid = 0) const;
 
 /*
 Sets the bounding box.
@@ -1083,23 +1083,23 @@ Sets the bounding box.
 Use it carefully to avoid inconsistencies.
 
 */
-	void SetBBox(Rectangle<3> box) { bbox = box; }
+        void SetBBox(Rectangle<3> box) { bbox = box; }
 
 /*
 1.1 Methods to act as unit in ~Mapping~ template.
 
 */
-	bool IsValid(void) const;
+        bool IsValid(void) const;
 
-	bool Disjoint(const URegionEmb2& ur) const;
-	bool TU_Adjacent(const URegionEmb2& ur) const;
-	bool operator==(const URegionEmb2& ur) const;
-	bool Before(const URegionEmb2& ur) const;
+        bool Disjoint(const URegionEmb2& ur) const;
+        bool TU_Adjacent(const URegionEmb2& ur) const;
+        bool operator==(const URegionEmb2& ur) const;
+        bool Before(const URegionEmb2& ur) const;
 
-	bool EqualValue( const URegionEmb2& i )
-	{
-	  return false;
-	};
+        bool EqualValue( const URegionEmb2& i )
+        {
+          return false;
+        };
 
 /*
 This method is not implemented since it is not required by the current
@@ -1107,22 +1107,22 @@ version of the algebra but is required by the ~Mapping~ template.. Calls
 will run into a failed assertion.
 
 */
-	bool Compare(const URegionEmb2* ur) const;
+        bool Compare(const URegionEmb2* ur) const;
 
 
 /*
 The assignment operator
 
 */
-	URegionEmb2& operator=(const URegionEmb2&);
+        URegionEmb2& operator=(const URegionEmb2&);
 
-	ostream& Print(ostream &os) const
-	{
-	  os << "( URegionEmb2 NOT IMPLEMENTED YET )";
-	  return os;
-	};
+        ostream& Print(ostream &os) const
+        {
+          os << "( URegionEmb2 NOT IMPLEMENTED YET )";
+          return os;
+        };
 
-	size_t HashValue() const;
+        size_t HashValue() const;
 
 /*
 SetDefined is used within Mappings. Since Mappings may only contain defined
@@ -1130,9 +1130,9 @@ units and URegionEmb2 is only used within URegion2 and MRegion2 objects, we give
 dummy implementation:
 
 */
-	void SetDefined( const bool def ){
-	  return;
-	}
+        void SetDefined( const bool def ){
+          return;
+        }
 
 /*
 IsDefined is used within Mappings. Since Mappings may only contain defined
@@ -1140,9 +1140,9 @@ units and URegionEmb2 is only used within URegion2 and MRegion2 objects, we give
 dummy implementation:
 
 */
-	bool IsDefined() const {
-	  return true;
-	}
+        bool IsDefined() const {
+          return true;
+        }
 
 }; //end of class URegionEmb2
 
@@ -1229,9 +1229,9 @@ Set and get the ~uremb~ attribute. Required for function ~InURegion2()~.
 
 */
   void SetEmbedded(const URegionEmb2* p) {
-	uremb = *p;
-	uremb.pInterval = p->pInterval;
-	SetDefined( true );
+        uremb = *p;
+        uremb.pInterval = p->pInterval;
+        SetDefined( true );
   }
   URegionEmb2* GetEmbedded(void) { return &uremb; }
 
@@ -1244,8 +1244,8 @@ in ~result~.
 */
 
   virtual void TemporalFunction(const Instant& t,
-		Region2& result,
-		bool ignoreLimits = false) const;
+                Region2& result,
+                bool ignoreLimits = false) const;
 /*
 
 Adds the MovingSegment ~newSeg~ to the Union and cares for the BoundingBox
@@ -1277,19 +1277,19 @@ Return the internal arrays containing the moving segments for read-only access.
 
 */
   const DbArray<MSegmentData2>* GetMSegmentData2(){
-	 return &segments;
+         return &segments;
   }
 
   const DbArray<PreciseMSegmentData>* GetPreciseMSegmentData(){
-	  return &preciseSegments;
+          return &preciseSegments;
   }
 
   const DbArray<unsigned int>* GetPreciseCoordinates(){
-	  return &preciseCoordinates;
+          return &preciseCoordinates;
   }
 
   const DbArray<unsigned int>* GetPreciseInstants(){
-	  return &preciseInstants;
+          return &preciseInstants;
   }
 
   const int GetScaleFactor(void);
@@ -1321,10 +1321,10 @@ Returns the ~sizeof~ of a ~URegion2~ instance.
 
   virtual void SetDefined( bool Defined )
   {
-	this->del.isDefined = Defined;
-	if( !Defined ){
-	  segments.clean();
-	}
+        this->del.isDefined = Defined;
+        if( !Defined ){
+          segments.clean();
+        }
   }
 
 /*
@@ -1346,27 +1346,27 @@ Print method, primarly used for debugging purposes
 
 */
 
-	virtual ostream& Print( ostream &os ) const
-	{
-	  if( IsDefined() )
-		{
-		  os << "URegion2: " << "( (";
-		  os << timeInterval.start.ToString();
-		  os << " ";
-		  os << timeInterval.end.ToString();
-		  os<<" "<<(timeInterval.lc ? "TRUE " : "FALSE ");
-		  os<<" "<<(timeInterval.rc ? "TRUE) " : "FALSE) ");
-		  // print specific stuff:
-		  os << " SegStartPos=" << uremb.GetStartPos();
-		  os << " SegNum=" << uremb.GetSegmentsNum();
-		  os << " BBox=";
-		  uremb.BoundingBox().Print(os);
-		  os << " )" << endl;
-		  return os;
-		}
-	  else
-		return os << "URegion2: (undef)" << endl;
-	}
+        virtual ostream& Print( ostream &os ) const
+        {
+          if( IsDefined() )
+                {
+                  os << "URegion2: " << "( (";
+                  os << timeInterval.start.ToString();
+                  os << " ";
+                  os << timeInterval.end.ToString();
+                  os<<" "<<(timeInterval.lc ? "TRUE " : "FALSE ");
+                  os<<" "<<(timeInterval.rc ? "TRUE) " : "FALSE) ");
+                  // print specific stuff:
+                  os << " SegStartPos=" << uremb.GetStartPos();
+                  os << " SegNum=" << uremb.GetSegmentsNum();
+                  os << " BBox=";
+                  uremb.BoundingBox().Print(os);
+                  os << " )" << endl;
+                  return os;
+                }
+          else
+                return os << "URegion2: (undef)" << endl;
+        }
 
 /*
 The assignment operator
@@ -1381,10 +1381,10 @@ Distance function
 
 */
      double Distance(const Rectangle<3>& rect, const Geoid* geoid = 0) 
-		const{
+                const{
        cerr << "Warning URegion2::Distance(rect) not implemented. "
             << "Using Rectangle<3>::Distance(Rectangle<3>) instead!" 
-	    << endl;
+            << endl;
        if(!IsDefined()){
           return -1;
        } else {
@@ -1550,8 +1550,8 @@ Allow read-only access to DbArrays.
 ~DBArray~ access.
 
 */
-	int NumOfFLOBs(void) const;
-	Flob *GetFLOB(const int i);
+        int NumOfFLOBs(void) const;
+        Flob *GetFLOB(const int i);
 
 /*
 Clone ~MRegion2~ instance.
@@ -1563,7 +1563,7 @@ Clone ~MRegion2~ instance.
 Copy ~MRegion2~ instance.
 
 */
-	void CopyFrom(const Attribute* right);
+        void CopyFrom(const Attribute* right);
 
 /*
 Return the name of the Secondo type.
@@ -1571,7 +1571,7 @@ Return the name of the Secondo type.
 */
   static string BasicType(){ return "mregion2"; }
    static const bool checkType(const ListExpr type){
-	  return listutils::isSymbol(type, BasicType());
+          return listutils::isSymbol(type, BasicType());
    }
 
    
@@ -1582,11 +1582,11 @@ Friend access for ~InMRegion2()~ makes live easier.
 
 */
    friend Word InMRegion2(
-	   const ListExpr typeInfo,
-	   const ListExpr instance,
-	   const int errorPos,
-	   ListExpr& errorInfo,
-	   bool& correct);
+           const ListExpr typeInfo,
+           const ListExpr instance,
+           const int errorPos,
+           ListExpr& errorInfo,
+           bool& correct);
 
 }; //end of class MRegion2
 
