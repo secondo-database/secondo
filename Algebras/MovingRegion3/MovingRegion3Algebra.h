@@ -73,44 +73,44 @@ class BasicBBox2D {
 
 public:
 
-	int minX;
-	int maxX;
-	int minY;
-	int maxY;
+        int minX;
+        int maxX;
+        int minY;
+        int maxY;
 
-	BasicBBox2D(int minX, int minY, int maxX, int maxY);
-	bool overlapsWith (BasicBBox2D& other);
+        BasicBBox2D(int minX, int minY, int maxX, int maxY);
+        bool overlapsWith (BasicBBox2D& other);
 };
 
 class ProvisionalBBox2D {
 
 public:
 
-	double minX;
-	double maxX;
-	double minY;
-	double maxY;
+        double minX;
+        double maxX;
+        double minY;
+        double maxY;
+ 
+        ProvisionalBBox2D(double minX, double minY, double maxX, 
+                          double maxY);
 
-	ProvisionalBBox2D(double minX, double minY, double maxX, 
-		double maxY);
-
-	bool overlapsWith (BasicBBox2D& other);
-	bool overlapsWith (ProvisionalBBox2D& other);
+        bool overlapsWith (BasicBBox2D& other);
+        bool overlapsWith (ProvisionalBBox2D& other);
 };
 
 class PreciseBBox2D {
 
 public:
 
-	mpq_class minX;
-	mpq_class maxX;
-	mpq_class minY;
-	mpq_class maxY;
+        mpq_class minX;
+        mpq_class maxX;
+        mpq_class minY;
+        mpq_class maxY;
 
-	PreciseBBox2D(mpq_class minX, mpq_class minY, mpq_class maxX, 
-		mpq_class maxY);
+        PreciseBBox2D(mpq_class minX, mpq_class minY, mpq_class maxX, 
+                      mpq_class maxY);
 
-	bool overlapsWith (PreciseBBox2D& other);
+        bool overlapsWith (PreciseBBox2D& other);
 };
 
 /*
@@ -128,17 +128,17 @@ class GridPointSegment {
 
 public:
 
-	Reg2GridPoint point1;
-	Reg2GridPoint point2;
-	bool isBasic;
+Reg2GridPoint point1;
+Reg2GridPoint point2;
+bool isBasic;
 
-	GridPointSegment(Reg2GridPoint point1, Reg2GridPoint point2);
-	GridPointSegment(Reg2GridPoint point1, Reg2GridPoint point2, 
-		bool isBasic);
+GridPointSegment(Reg2GridPoint point1, Reg2GridPoint point2);
+GridPointSegment(Reg2GridPoint point1, Reg2GridPoint point2, 
+bool isBasic);
 
-	bool operator==(const GridPointSegment& other) const;
-	BasicBBox2D getBasicBbox2D();
-	ProvisionalSegment transformToProvisional();
+bool operator==(const GridPointSegment& other) const;
+BasicBBox2D getBasicBbox2D();
+ProvisionalSegment transformToProvisional();
 
 };
 
@@ -146,13 +146,13 @@ class ProvisionalSegment {
 
 public:
 
-	Reg2ProvisionalPoint point1;
-	Reg2ProvisionalPoint point2;
+Reg2ProvisionalPoint point1;
+Reg2ProvisionalPoint point2;
 
-	ProvisionalSegment(Reg2ProvisionalPoint point1, 
-			Reg2ProvisionalPoint point2);
+ProvisionalSegment(Reg2ProvisionalPoint point1, 
+                   Reg2ProvisionalPoint point2);
 
-	bool operator==(const ProvisionalSegment& other) const;
+bool operator==(const ProvisionalSegment& other) const;
 
 };
 
@@ -160,12 +160,12 @@ class PreciseSegment {
 
 public:
 
-	Reg2PrecisePoint point1;
-	Reg2PrecisePoint point2;
+Reg2PrecisePoint point1;
+Reg2PrecisePoint point2;
 
-	PreciseSegment(Reg2PrecisePoint point1, Reg2PrecisePoint point2);
+PreciseSegment(Reg2PrecisePoint point1, Reg2PrecisePoint point2);
 
-	bool operator==(const PreciseSegment& other) const;
+bool operator==(const PreciseSegment& other) const;
 
 };
 
@@ -173,20 +173,20 @@ class GridPointTrapezium {
 
 public:
 
-	GridPointSegment segment1;
-	GridPointSegment segment2;
-	bool isBasic;
+GridPointSegment segment1;
+GridPointSegment segment2;
+bool isBasic;
 
-	GridPointTrapezium(GridPointSegment segment1, 
-		GridPointSegment segment2);
-	GridPointTrapezium(GridPointSegment segment1, 
-		GridPointSegment segment2, bool isBasic);
+GridPointTrapezium(GridPointSegment segment1, 
+                   GridPointSegment segment2);
+GridPointTrapezium(GridPointSegment segment1, 
+                   GridPointSegment segment2, bool isBasic);
 
-	BasicBBox2D getBasicBbox2D();
-	GridPointSegment getConnectingSegment1();
-	GridPointSegment getConnectingSegment2();
+BasicBBox2D getBasicBbox2D();
+GridPointSegment getConnectingSegment1();
+GridPointSegment getConnectingSegment2();
 
-	bool operator==(const GridPointTrapezium& other) const;
+bool operator==(const GridPointTrapezium& other) const;
 
 };
 
@@ -194,17 +194,17 @@ class ProvisionalTrapezium {
 
 public:
 
-	ProvisionalSegment segment1;
-	ProvisionalSegment segment2;
+ProvisionalSegment segment1;
+ProvisionalSegment segment2;
 
-	ProvisionalTrapezium(ProvisionalSegment segment1, 
-		ProvisionalSegment segment2);
+ProvisionalTrapezium(ProvisionalSegment segment1, 
+                     ProvisionalSegment segment2);
 
-	ProvisionalBBox2D getProvisionalBbox2D();
-	ProvisionalSegment getConnectingSegment1();
-	ProvisionalSegment getConnectingSegment2();
+ProvisionalBBox2D getProvisionalBbox2D();
+ProvisionalSegment getConnectingSegment1();
+ProvisionalSegment getConnectingSegment2();
 
-	bool operator==(const ProvisionalTrapezium& other) const;
+bool operator==(const ProvisionalTrapezium& other) const;
 
 };
 
@@ -212,16 +212,16 @@ class PreciseTrapezium {
 
 public:
 
-	PreciseSegment segment1;
-	PreciseSegment segment2;
+PreciseSegment segment1;
+PreciseSegment segment2;
 
-	PreciseTrapezium(PreciseSegment segment1, PreciseSegment segment2);
+PreciseTrapezium(PreciseSegment segment1, PreciseSegment segment2);
 
-	PreciseBBox2D getPreciseBbox2D();
-	PreciseSegment getConnectingSegment1();
-	PreciseSegment getConnectingSegment2();
+PreciseBBox2D getPreciseBbox2D();
+PreciseSegment getConnectingSegment1();
+PreciseSegment getConnectingSegment2();
 
-	bool operator==(const PreciseTrapezium& other) const;
+bool operator==(const PreciseTrapezium& other) const;
 
 };
 
@@ -327,30 +327,30 @@ The constructor assures that the segment in initial and final instant is
 collinear.
 
 */
-	unsigned int faceno;
-	unsigned int cycleno;
-	unsigned int segmentno;
+unsigned int faceno;
+unsigned int cycleno;
+unsigned int segmentno;
 
-	bool insideAbove;
-	bool isBasicSegment;
+bool insideAbove;
+bool isBasicSegment;
 
-	int degeneratedInitialNext;
-	int degeneratedFinalNext;
-	DegenMode degeneratedInitial;
-	DegenMode degeneratedFinal;
+int degeneratedInitialNext;
+int degeneratedFinalNext;
+DegenMode degeneratedInitial;
+DegenMode degeneratedFinal;
 
-	int initialStartX;
-	int initialStartY;
-	int initialEndX;
-	int initialEndY;
+int initialStartX;
+int initialStartY;
+int initialEndX;
+int initialEndY;
 
-	int finalStartX;
-	int finalStartY;
-	int finalEndX;
-	int finalEndY;
+int finalStartX;
+int finalStartY;
+int finalEndX;
+int finalEndY;
 
-	bool pointInitial;
-	bool pointFinal;
+bool pointInitial;
+bool pointFinal;
 
  public:
 
@@ -382,19 +382,19 @@ It is assured that the segment is collinear in initial and final instant
 and an exception is thrown otherwise.
 
 */
-	MSegmentData2(
-		unsigned int fno,
-		unsigned int cno,
-		unsigned int sno,
-		bool ia,
-		int isx,
-		int isy,
-		int iex,
-		int iey,
-		int fsx,
-		int fsy,
-		int fex,
-		int fey);
+        MSegmentData2(
+                unsigned int fno,
+                unsigned int cno,
+                unsigned int sno,
+                bool ia,
+                int isx,
+                int isy,
+                int iex,
+                int iey,
+                int fsx,
+                int fsy,
+                int fex,
+                int fey);
 
 /*
 This constructor creates the basic part for a non-basic segment in the
@@ -416,21 +416,21 @@ It is assured that the segment is collinear in initial and final instant
 and an exception is thrown otherwise.
 
 */
-	MSegmentData2(
-			unsigned int fno,
-			unsigned int cno,
-			unsigned int sno,
-			bool ia,
-			int isx,
-			int isy,
-			int iex,
-			int iey,
-			int fsx,
-			int fsy,
-			int fex,
-			int fey,
-			PreciseMSegmentData& preciseSegment,
-			DbArray<unsigned int>* preciseCoordinates);
+        MSegmentData2(
+                        unsigned int fno,
+                        unsigned int cno,
+                        unsigned int sno,
+                        bool ia,
+                        int isx,
+                        int isy,
+                        int iex,
+                        int iey,
+                        int fsx,
+                        int fsy,
+                        int fex,
+                        int fey,
+                        PreciseMSegmentData& preciseSegment,
+                        DbArray<unsigned int>* preciseCoordinates);
 
 /*
 This constructor creates any kind of segment (basic or non-basic) from a pointer to an existing segment.
@@ -438,62 +438,62 @@ This constructor creates any kind of segment (basic or non-basic) from a pointer
 */
 
 
-	MSegmentData2(MSegmentData2* segmentPointer);
+        MSegmentData2(MSegmentData2* segmentPointer);
 
 /*
 1.1.1 Attribute read access methods
 
 */
-	unsigned int GetFaceNo(void) const { return faceno; }
-	unsigned int GetCycleNo(void) const { return cycleno; }
-	unsigned int GetSegmentNo(void) const { return segmentno; }
-	int GetInitialStartX(void) const { return initialStartX; }
-	int GetInitialStartY(void) const { return initialStartY; }
-	int GetInitialEndX(void) const { return initialEndX; }
-	int GetInitialEndY(void) const { return initialEndY; }
-	int GetFinalStartX(void) const { return finalStartX; }
-	int GetFinalStartY(void) const { return finalStartY; }
-	int GetFinalEndX(void) const { return finalEndX; }
-	int GetFinalEndY(void) const { return finalEndY; }
-	bool GetInsideAbove(void) const { return insideAbove; }
-	bool GetIsBasicSegment(void) const { return isBasicSegment; }
-	bool GetPointInitial(void) const { return pointInitial; }
-	bool GetPointFinal(void) const { return pointFinal; }
-	DegenMode GetDegeneratedInitial(void) const {
-		return degeneratedInitial; }
-	DegenMode GetDegeneratedFinal(void) const {
-		return degeneratedFinal; }
-	int GetDegeneratedInitialNext(void) const {
-		return degeneratedInitialNext; }
-	int GetDegeneratedFinalNext(void) const {
-		return degeneratedFinalNext; }
-	bool IsValid() const {
-		return true; }
+        unsigned int GetFaceNo(void) const { return faceno; }
+        unsigned int GetCycleNo(void) const { return cycleno; }
+        unsigned int GetSegmentNo(void) const { return segmentno; }
+        int GetInitialStartX(void) const { return initialStartX; }
+        int GetInitialStartY(void) const { return initialStartY; }
+        int GetInitialEndX(void) const { return initialEndX; }
+        int GetInitialEndY(void) const { return initialEndY; }
+        int GetFinalStartX(void) const { return finalStartX; }
+        int GetFinalStartY(void) const { return finalStartY; }
+        int GetFinalEndX(void) const { return finalEndX; }
+        int GetFinalEndY(void) const { return finalEndY; }
+        bool GetInsideAbove(void) const { return insideAbove; }
+        bool GetIsBasicSegment(void) const { return isBasicSegment; }
+        bool GetPointInitial(void) const { return pointInitial; }
+        bool GetPointFinal(void) const { return pointFinal; }
+        DegenMode GetDegeneratedInitial(void) const {
+                return degeneratedInitial; }
+        DegenMode GetDegeneratedFinal(void) const {
+                return degeneratedFinal; }
+        int GetDegeneratedInitialNext(void) const {
+                return degeneratedInitialNext; }
+        int GetDegeneratedFinalNext(void) const {
+                return degeneratedFinalNext; }
+        bool IsValid() const {
+                return true; }
 
 /*
 1.1.1 Attribute write access methods
 
 */
-	void SetFinalStartX(const int v) { finalStartX = v; }
-	void SetFinalStartY(const int v) { finalStartY = v; }
-	void SetFinalEndX(const int v) { finalEndX = v; }
-	void SetFinalEndY(const int v) { finalEndY = v; }
-	void SetInitialStartX(const int v) {initialStartX = v; }
-	void SetInitialStartY(const int v) {initialStartY = v; }
-	void SetInitialEndX(const int v) {initialEndX = v; }
-	void SetInitialEndY(const int v) {initialEndY = v; }
-	void SetInsideAbove(const bool ia) { insideAbove = ia; }
-	void SetIsBasicSegment(const bool ibs) { isBasicSegment = ibs; }
-	void SetPointInital(const bool p) { pointInitial = p; }
-	void SetPointFinal(const bool p) { pointFinal = p; }
-	void SetDegeneratedInitial(const DegenMode dm) {
-		degeneratedInitial = dm; }
-	void SetDegeneratedFinal(const DegenMode dm) {
-		degeneratedFinal = dm; }
-	void SetDegeneratedInitialNext(const int dn) {
-		degeneratedInitialNext = dn; }
-	void SetDegeneratedFinalNext(const int dn) {
-		degeneratedFinalNext = dn; }
+        void SetFinalStartX(const int v) { finalStartX = v; }
+        void SetFinalStartY(const int v) { finalStartY = v; }
+        void SetFinalEndX(const int v) { finalEndX = v; }
+        void SetFinalEndY(const int v) { finalEndY = v; }
+        void SetInitialStartX(const int v) {initialStartX = v; }
+        void SetInitialStartY(const int v) {initialStartY = v; }
+        void SetInitialEndX(const int v) {initialEndX = v; }
+        void SetInitialEndY(const int v) {initialEndY = v; }
+        void SetInsideAbove(const bool ia) { insideAbove = ia; }
+        void SetIsBasicSegment(const bool ibs) { isBasicSegment = ibs; }
+        void SetPointInital(const bool p) { pointInitial = p; }
+        void SetPointFinal(const bool p) { pointFinal = p; }
+        void SetDegeneratedInitial(const DegenMode dm) {
+                degeneratedInitial = dm; }
+        void SetDegeneratedFinal(const DegenMode dm) {
+                degeneratedFinal = dm; }
+        void SetDegeneratedInitialNext(const int dn) {
+                degeneratedInitialNext = dn; }
+        void SetDegeneratedFinalNext(const int dn) {
+                degeneratedFinalNext = dn; }
 
 /*
 1.1.1 Other methods
@@ -501,16 +501,16 @@ This constructor creates any kind of segment (basic or non-basic) from a pointer
 Generate new ~MSegmentData2~ instant in ~rDms~ from current instant, where the original interval ~origIv~ has been restricted to ~restrIv~.
 
 */
-	void restrictToInterval(
-		Interval<Instant> origIv,
-		Interval<Instant> restrIv,
-		MSegmentData2& rDms) const;
+        void restrictToInterval(
+                Interval<Instant> origIv,
+                Interval<Instant> restrIv,
+                MSegmentData2& rDms) const;
 
 /*
 Return ~string~ representation of moving segment.
 
 */
-	string ToString(void) const;
+        string ToString(void) const;
 };
 
 /*
@@ -537,39 +537,39 @@ class PreciseMSegmentData {
 
 */
 
-	int isxStartPos;
-	int isyStartPos;
-	int iexStartPos;
-	int ieyStartPos;
-	int fsxStartPos;
-	int fsyStartPos;
-	int fexStartPos;
-	int feyStartPos;
-	int isxNumOfChars;
-	int isyNumOfChars;
-	int iexNumOfChars;
-	int ieyNumOfChars;
-	int fsxNumOfChars;
-	int fsyNumOfChars;
-	int fexNumOfChars;
-	int feyNumOfChars;
-	
-	int isxdStartPos;
-	int isydStartPos;
-	int iexdStartPos;
-	int ieydStartPos;
-	int fsxdStartPos;
-	int fsydStartPos;
-	int fexdStartPos;
-	int feydStartPos;
-	int isxdNumOfChars;
-	int isydNumOfChars;
-	int iexdNumOfChars;
-	int ieydNumOfChars;
-	int fsxdNumOfChars;
-	int fsydNumOfChars;
-	int fexdNumOfChars;
-	int feydNumOfChars;
+        int isxStartPos;
+        int isyStartPos;
+        int iexStartPos;
+        int ieyStartPos;
+        int fsxStartPos;
+        int fsyStartPos;
+        int fexStartPos;
+        int feyStartPos;
+        int isxNumOfChars;
+        int isyNumOfChars;
+        int iexNumOfChars;
+        int ieyNumOfChars;
+        int fsxNumOfChars;
+        int fsyNumOfChars;
+        int fexNumOfChars;
+        int feyNumOfChars;
+
+        int isxdStartPos;
+        int isydStartPos;
+        int iexdStartPos;
+        int ieydStartPos;
+        int fsxdStartPos;
+        int fsydStartPos;
+        int fexdStartPos;
+        int feydStartPos;
+        int isxdNumOfChars;
+        int isydNumOfChars;
+        int iexdNumOfChars;
+        int ieydNumOfChars;
+        int fsxdNumOfChars;
+        int fsydNumOfChars;
+        int fexdNumOfChars;
+        int feydNumOfChars;
 
 public:
 
@@ -578,23 +578,23 @@ The default constructor does nothing
 
 */
 
-	PreciseMSegmentData() {}
+PreciseMSegmentData() {}
 
 /*
 Constructor that initializes all the indices.
 
 */
 
-	PreciseMSegmentData(int isxPos, int isyPos, int iexPos, int ieyPos, 
-		int fsxPos, int fsyPos, int fexPos, int feyPos,
-		int isxNum, int isyNum, int iexNum, int ieyNum, int fsxNum, 
-		int fsyNum, int fexNum, int feyNum,
-		int isxdPos, int isydPos, int iexdPos, int ieydPos, 
-		int fsxdPos, int fsydPos, int fexdPos, int feydPos,
-		int isxdNum, int isydNum, int iexdNum, int ieydNum, 
-		int fsxdNum, int fsydNum, int fexdNum, int feydNum);
+        PreciseMSegmentData(int isxPos, int isyPos, int iexPos, int ieyPos, 
+                            int fsxPos, int fsyPos, int fexPos, int feyPos,
+                            int isxNum, int isyNum, int iexNum, int ieyNum, 
+                            int fsxNum, int fsyNum, int fexNum, int feyNum,
+                            int isxdPos, int isydPos, int iexdPos, int ieydPos, 
+                            int fsxdPos, int fsydPos, int fexdPos, int feydPos,
+                            int isxdNum, int isydNum, int iexdNum, int ieydNum, 
+                            int fsxdNum, int fsydNum, int fexdNum, int feydNum);
 
-	PreciseMSegmentData(int startPos);
+        PreciseMSegmentData(int startPos);
 
 /*
 1.1.1 Attribute read access methods
@@ -603,22 +603,22 @@ All these methods fetch the chars representing the given coordinate from the DbA
 
 */
 
-	mpq_class GetInitialStartX(const 
-		DbArray<unsigned int>* preciseCoordinates) const;
-	mpq_class GetInitialStartY(const 
-		DbArray<unsigned int>* preciseCoordinates) const;
-	mpq_class GetInitialEndX(const 
-		DbArray<unsigned int>* preciseCoordinates) const;
-	mpq_class GetInitialEndY(const 
-		DbArray<unsigned int>* preciseCoordinates) const;
-	mpq_class GetFinalStartX(const 
-		DbArray<unsigned int>* preciseCoordinates) const;
-	mpq_class GetFinalEndX(const 
-		DbArray<unsigned int>* preciseCoordinates) const;
-	mpq_class GetFinalStartY(const 
-		DbArray<unsigned int>* preciseCoordinates) const;
-	mpq_class GetFinalEndY(const 
-		DbArray<unsigned int>* preciseCoordinates) const;
+        mpq_class GetInitialStartX(const 
+                DbArray<unsigned int>* preciseCoordinates) const;
+        mpq_class GetInitialStartY(const 
+                DbArray<unsigned int>* preciseCoordinates) const;
+        mpq_class GetInitialEndX(const 
+                DbArray<unsigned int>* preciseCoordinates) const;
+        mpq_class GetInitialEndY(const 
+                DbArray<unsigned int>* preciseCoordinates) const;
+        mpq_class GetFinalStartX(const 
+                DbArray<unsigned int>* preciseCoordinates) const;
+        mpq_class GetFinalEndX(const 
+                DbArray<unsigned int>* preciseCoordinates) const;
+        mpq_class GetFinalStartY(const 
+                DbArray<unsigned int>* preciseCoordinates) const;
+        mpq_class GetFinalEndY(const    
+                DbArray<unsigned int>* preciseCoordinates) const;
 
 /*
 1.1.1 Attribute write access methods
@@ -630,34 +630,34 @@ are of course also updated.
 
 */
 
-	void SetInitialStartX (mpq_class x, 
-		DbArray<unsigned int>* preciseCoordinates);
-	void SetInitialEndX (mpq_class x, 
-		DbArray<unsigned int>* preciseCoordinates);
-	void SetInitialStartY (mpq_class x, 
-		DbArray<unsigned int>* preciseCoordinates);
-	void SetInitialEndY (mpq_class x, 
-		DbArray<unsigned int>* preciseCoordinates);
-	void SetFinalStartX (mpq_class x, 
-		DbArray<unsigned int>* preciseCoordinates);
-	void SetFinalStartY (mpq_class x, 
-		DbArray<unsigned int>* preciseCoordinates);
-	void SetFinalEndX (mpq_class x, 
-		DbArray<unsigned int>* preciseCoordinates);
-	void SetFinalEndY (mpq_class x, 
-		DbArray<unsigned int>* preciseCoordinates);
+        void SetInitialStartX (mpq_class x, 
+                               DbArray<unsigned int>* preciseCoordinates);
+        void SetInitialEndX (mpq_class x, 
+                             DbArray<unsigned int>* preciseCoordinates);
+        void SetInitialStartY (mpq_class x, 
+                               DbArray<unsigned int>* preciseCoordinates);
+        void SetInitialEndY (mpq_class x, 
+                             DbArray<unsigned int>* preciseCoordinates);
+        void SetFinalStartX (mpq_class x, 
+                             DbArray<unsigned int>* preciseCoordinates);
+        void SetFinalStartY (mpq_class x, 
+                             DbArray<unsigned int>* preciseCoordinates);
+        void SetFinalEndX (mpq_class x, 
+                           DbArray<unsigned int>* preciseCoordinates);
+        void SetFinalEndY (mpq_class x, 
+                           DbArray<unsigned int>* preciseCoordinates);
 
-	void SetAll (mpq_class theValue, 
-		DbArray<unsigned int>* preciseCoordinates) {
-		SetInitialStartX (theValue, preciseCoordinates);
-		SetInitialStartY (theValue, preciseCoordinates);
-		SetInitialEndX (theValue, preciseCoordinates);
-		SetInitialEndY (theValue, preciseCoordinates);
-		SetFinalStartX (theValue, preciseCoordinates);
-		SetFinalStartY (theValue, preciseCoordinates);
-		SetFinalEndX (theValue, preciseCoordinates);
-		SetFinalEndY (theValue, preciseCoordinates);
-	}
+        void SetAll (mpq_class theValue, 
+                     DbArray<unsigned int>* preciseCoordinates) {
+                        SetInitialStartX (theValue, preciseCoordinates);
+                        SetInitialStartY (theValue, preciseCoordinates);
+                        SetInitialEndX (theValue, preciseCoordinates);
+                        SetInitialEndY (theValue, preciseCoordinates);
+                        SetFinalStartX (theValue, preciseCoordinates);
+                        SetFinalStartY (theValue, preciseCoordinates);
+                        SetFinalEndX (theValue, preciseCoordinates);
+                        SetFinalEndY (theValue, preciseCoordinates);
+        }
 };
 
 /*
@@ -679,15 +679,15 @@ this respective coordinate instance in the DbArray.
 
 */
 
-	int startStartPos;
-	int endStartPos;
-	int startNumOfChars;
-	int endNumOfChars;
+int startStartPos;
+int endStartPos;
+int startNumOfChars;
+int endNumOfChars;
 
-	int startdStartPos;
-	int enddStartPos;
-	int startdNumOfChars;
-	int enddNumOfChars;
+int startdStartPos;
+int enddStartPos;
+int startdNumOfChars;
+int enddNumOfChars;
 
 public:
 
@@ -696,17 +696,17 @@ The default constructor does nothing
 
 */
 
-	PreciseInterval() {}
+PreciseInterval() {}
 
 /*
 This constructors initializes the private attributes.
 
 */
 
-	PreciseInterval(int startPos, int endPos, int startNum, int endNum, 
-			int startdPos, int enddPos, int startdNum, 
-			int enddNum);
-	PreciseInterval(int pos);
+        PreciseInterval(int startPos, int endPos, int startNum, int endNum, 
+                        int startdPos, int enddPos, 
+                        int startdNum, int enddNum);
+        PreciseInterval(int pos);
 
 /*
 1.1.1 Attribute read and write access methods.
@@ -716,15 +716,15 @@ from class PreciseMSegmentData. Private attributes are used as indices to the gi
 
 */
 
-	mpq_class GetPreciseInitialInstant(const 
-		DbArray<unsigned int>* preciseInstants);
-	mpq_class GetPreciseFinalInstant(const 
-		DbArray<unsigned int>* preciseInstants);
+        mpq_class GetPreciseInitialInstant(const 
+                DbArray<unsigned int>* preciseInstants);
+        mpq_class GetPreciseFinalInstant(const 
+                DbArray<unsigned int>* preciseInstants);
 
-	void SetPreciseInitialInstant (mpq_class initial, 
-		DbArray<unsigned int>* preciseInstants);
-	void SetPreciseFinalInstant (mpq_class final, 
-		DbArray<unsigned int>* preciseInstants);
+        void SetPreciseInitialInstant (mpq_class initial, 
+                                       DbArray<unsigned int>* preciseInstants);
+        void SetPreciseFinalInstant (mpq_class final, 
+                                     DbArray<unsigned int>* preciseInstants);
 
 };
 
@@ -871,10 +871,10 @@ in the moving segments array.
 
 */
 
-	URegionEmb2(
-		const Interval<Instant>& tiv,
-		const PreciseInterval& pTiv,
-		unsigned int pos);
+        URegionEmb2(
+                const Interval<Instant>& tiv,
+                const PreciseInterval& pTiv,
+                unsigned int pos);
 
 /*
 Constructor which is called to construct a unit from an existing
@@ -882,17 +882,17 @@ MRegion unit (of previous implementation)
 
 */
 
-	URegionEmb2(
-			DbArray<MSegmentData2>* segments,
-			DbArray<PreciseMSegmentData>* preciseSegments,
-			DbArray<unsigned int>* preciseCoordinates,
-			DbArray<unsigned int>* preciseInstants,
-			const Interval<Instant>& iv,
-			PreciseInterval& piv,
-			const URegionEmb& origUremb,
-			const DbArray<MSegmentData>* origSegments,
-			unsigned int pos,
-			unsigned int scaleFactor);
+        URegionEmb2(
+                DbArray<MSegmentData2>* segments,
+                DbArray<PreciseMSegmentData>* preciseSegments,
+                DbArray<unsigned int>* preciseCoordinates,
+                DbArray<unsigned int>* preciseInstants,
+                const Interval<Instant>& iv,
+                PreciseInterval& piv,
+                const URegionEmb& origUremb,
+                const DbArray<MSegmentData>* origSegments,
+                unsigned int pos,
+                unsigned int scaleFactor);
 
 /*
 1.1 Moving segments access methods
