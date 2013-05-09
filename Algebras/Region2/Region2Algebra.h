@@ -26,15 +26,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Header File of the Spatial2 Algebra
 
-February, 2003 Victor Teixeira de Almeida
+May 2013, Oliver Feuer
 
-March-July, 2003 Zhiming DING
-
-January, 2005 Leonardo Guerreiro Azevedo
-
-December 2005, Victor Almeida deleted the deprecated algebra levels
-(~executable~, ~descriptive~, and ~hibrid~). Only the executable
-level remains. Models are also removed from type constructors.
 
 [TOC]
 
