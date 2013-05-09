@@ -122,22 +122,22 @@ class Reg2GridHalfSegment
 
 class Reg2PrecHalfSegment
 {
-	int lxNumPosition;
-	int lxDenPosition;
-	int lyNumPosition;
-	int lyDenPosition;
-	int rxNumPosition;
-	int rxDenPosition;
-	int ryNumPosition;
-	int ryDenPosition;
-	int lxNumInts;
-	int lxDenInts;
-	int lyNumInts;
-	int lyDenInts;
-	int rxNumInts;
-	int rxDenInts;
-	int ryNumInts;
-	int ryDenInts;
+        int lxNumPosition;
+        int lxDenPosition;
+        int lyNumPosition;
+        int lyDenPosition;
+        int rxNumPosition;
+        int rxDenPosition;
+        int ryNumPosition;
+        int ryDenPosition;
+        int lxNumInts;
+        int lxDenInts;
+        int lyNumInts;
+        int lyDenInts;
+        int rxNumInts;
+        int rxDenInts;
+        int ryNumInts;
+        int ryDenInts;
 
 public:
     inline Reg2PrecHalfSegment() {}
@@ -430,9 +430,9 @@ inline void Reg2PrecHalfSegment::SetrPointy (mpq_class y,
 }
 
 
-inline Reg2PreciseHalfSegment::Reg2PreciseHalfSegment( 	bool ldp,
-						const Reg2PrecisePoint& lp,
-						const Reg2PrecisePoint& rp ):
+inline Reg2PreciseHalfSegment::Reg2PreciseHalfSegment(         bool ldp,
+                                                const Reg2PrecisePoint& lp,
+                                                const Reg2PrecisePoint& rp ):
 ldp( ldp ),
 lp( lp ),
 rp( rp ),
@@ -573,9 +573,9 @@ inline void Reg2PreciseHalfSegment::SetAttr( AttrType& attr )
 int Reg2PreciseHalfSegment::Compare( const Reg2PreciseHalfSegment& hs ) const
 {
   const Reg2PrecisePoint& dp = GetDomPoint(),
-		      sp = GetSecPoint(),
-		      DP = hs.GetDomPoint(),
-		      SP = hs.GetSecPoint();
+                      sp = GetSecPoint(),
+                      DP = hs.GetDomPoint(),
+                      SP = hs.GetSecPoint();
 
   if ( dp < DP )
     return -1;
@@ -812,14 +812,14 @@ bool Reg2PreciseHalfSegment::Contains( const Reg2PrecisePoint& p ) const
 inline int Reg2PreciseHalfSegmentCompare(const void *a, const void *b)
 {
   const Reg2PreciseHalfSegment *hsa = (const Reg2PreciseHalfSegment *)a,
-			   *hsb = (const Reg2PreciseHalfSegment *)b;
+                           *hsb = (const Reg2PreciseHalfSegment *)b;
   return hsa->Compare( *hsb );
 }
 
 inline int Reg2PreciseHalfSegmentLogicCompare(const void *a, const void *b)
 {
   const Reg2PreciseHalfSegment *hsa = (const Reg2PreciseHalfSegment *)a,
-			   *hsb = (const Reg2PreciseHalfSegment *)b;
+                           *hsb = (const Reg2PreciseHalfSegment *)b;
 
   return hsa->LogicCompare( *hsb );
 }
