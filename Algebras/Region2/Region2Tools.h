@@ -38,7 +38,7 @@ Reads from inValue and stores its representation as TextType in resultList.
 
 */
 static void gmpTypeToTextType1
-	(const mpq_class& inValue, ListExpr& resultList) {
+        (const mpq_class& inValue, ListExpr& resultList) {
   stringstream theStream;
   theStream << inValue;
   resultList = nl->TextAtom();
@@ -71,63 +71,63 @@ Reads from inList and stores its representation as mpq\_class in outValue.
 
 */
 static void textTypeToGmpType1
-	(const ListExpr& inList, mpq_class& outValue) {
+        (const ListExpr& inList, mpq_class& outValue) {
 
-	TextScan theScan = nl->CreateTextScan(inList);
-	stringstream theStream;
+        TextScan theScan = nl->CreateTextScan(inList);
+        stringstream theStream;
 
-	char lastChar = '*'; //just a random initialization...
+        char lastChar = '*'; //just a random initialization...
 
 //cout << "Textscan: Länge=" << nl->TextLength(inList) << endl;
 //cout << "verbleibend: " ;
-	
-	for (unsigned int i = 0; i < nl->TextLength(inList); i++)
-	{
-	  string str = "";
-	  nl->GetText(theScan, 1, str);
+        
+        for (unsigned int i = 0; i < nl->TextLength(inList); i++)
+        {
+          string str = "";
+          nl->GetText(theScan, 1, str);
 //cout << "i="<< i << "/" << nl->TextLength(inList) << " ";
 
-	  //Checking for valid character
-	  if ((int)str[0] < 47 || (int)str[0] > 57
-		|| (i == 0 && (int)str[0] == 48
-				&& nl->TextLength(inList) > 1)
-		|| (lastChar == '/' && (int)str[0] == 48))
-	  {
-		stringstream message;
-		message << "Precise coordinate not valid: "
-		  << nl->ToString(inList)
-		  << endl << "Only characters 1, 2, 3, 4, 5, "
-			"6, 7, 8, 9, 0 and / allowed." << endl
-		  << "0 mustn't be leading "
-			"character when "
-			"more than one character "
-			"in total are given"
-		  << endl << ", and 0 is "
-			"not allowed directly after /";
-		throw invalid_argument(message.str());
-	  }
+          //Checking for valid character
+          if ((int)str[0] < 47 || (int)str[0] > 57
+                || (i == 0 && (int)str[0] == 48
+                                && nl->TextLength(inList) > 1)
+                || (lastChar == '/' && (int)str[0] == 48))
+          {
+                stringstream message;
+                message << "Precise coordinate not valid: "
+                  << nl->ToString(inList)
+                  << endl << "Only characters 1, 2, 3, 4, 5, "
+                        "6, 7, 8, 9, 0 and / allowed." << endl
+                  << "0 mustn't be leading "
+                        "character when "
+                        "more than one character "
+                        "in total are given"
+                  << endl << ", and 0 is "
+                        "not allowed directly after /";
+                throw invalid_argument(message.str());
+          }
 
-	  theStream.put(str[0]);
-	  lastChar = str[0];
-	}
+          theStream.put(str[0]);
+          lastChar = str[0];
+        }
 
-//cout << endl;	
-	theStream >> outValue;
+//cout << endl;        
+        theStream >> outValue;
 
-	outValue.canonicalize();
+        outValue.canonicalize();
 
 //cout << outValue << endl;;
-	//Checking the value - must be between 0 and 1
-	if (cmp(outValue, 1) >= 0 || cmp(outValue,0) < 0)
-	{
-	  stringstream message;
-	  message << "Precise coordinate not valid: "
-		<< nl->ToString(inList)
-		<< endl
-		<< "Resulting value is not between 0 and 1, "
-		"where 0 is allowed, but 1 is not.";
-	  throw invalid_argument(message.str());
-	}
+        //Checking the value - must be between 0 and 1
+        if (cmp(outValue, 1) >= 0 || cmp(outValue,0) < 0)
+        {
+          stringstream message;
+          message << "Precise coordinate not valid: "
+                << nl->ToString(inList)
+                << endl
+                << "Resulting value is not between 0 and 1, "
+                "where 0 is allowed, but 1 is not.";
+          throw invalid_argument(message.str());
+        }
 }
 
 
@@ -138,46 +138,46 @@ Reads from inList and stores its representation as mpq\_class in outValue.
 
 */
 static void textTypeToGmpType2
-	(const ListExpr& inList, mpq_class& outValue) {
+        (const ListExpr& inList, mpq_class& outValue) {
 
-	TextScan theScan = nl->CreateTextScan(inList);
-	stringstream numStream, denStream;
-	bool denStart = false;
-	denStream.put('1');
+        TextScan theScan = nl->CreateTextScan(inList);
+        stringstream numStream, denStream;
+        bool denStart = false;
+        denStream.put('1');
 
-	for (unsigned int i = 0; i < nl->TextLength(inList); i++)
-	{
-	  string str = "";
-	  nl->GetText(theScan, 1, str);
-	  //Checking for valid character
-	  // CHECK FOR  	+/- 3.4e +/- 38 (~7 digits)   ????
-	  if ( (int)str[0] < 43  || (int)str[0] > 57  
-	    || (int)str[0] == 47 || (int)str[0] == 44
-	    || ((i != 0 || nl->TextLength(inList) == 1) 
+        for (unsigned int i = 0; i < nl->TextLength(inList); i++)
+        {
+          string str = "";
+          nl->GetText(theScan, 1, str);
+          //Checking for valid character
+          // CHECK FOR          +/- 3.4e +/- 38 (~7 digits)   ????
+          if ( (int)str[0] < 43  || (int)str[0] > 57  
+            || (int)str[0] == 47 || (int)str[0] == 44
+            || ((i != 0 || nl->TextLength(inList) == 1) 
             && ((int)str[0] == 43 || (int)str[0] == 45)) )
-	  {
-		stringstream message;
-		message << "Precise coordinate not valid: "
-		  << nl->ToString(inList)
-		  << endl << "Only characters 1, 2, 3, 4, 5, "
-			"6, 7, 8, 9, 0 and . allowed." << endl
-		  << "+/- must be leading "
-			"character when "
-			"more than one character "
-			"in total are given" << endl;
-		throw invalid_argument(message.str());
-	  }
+          {
+                stringstream message;
+                message << "Precise coordinate not valid: "
+                  << nl->ToString(inList)
+                  << endl << "Only characters 1, 2, 3, 4, 5, "
+                        "6, 7, 8, 9, 0 and . allowed." << endl
+                  << "+/- must be leading "
+                        "character when "
+                        "more than one character "
+                        "in total are given" << endl;
+                throw invalid_argument(message.str());
+          }
 
-	  if (denStart) denStream.put('0');
-	  if ((int)str[0] != 46) numStream.put(str[0]);
-	  else
-	  {
-	    denStart = true;
-	  }
-	}
-	outValue = mpq_class(mpz_class(numStream.str()), 
+          if (denStart) denStream.put('0');
+          if ((int)str[0] != 46) numStream.put(str[0]);
+          else
+          {
+            denStart = true;
+          }
+        }
+        outValue = mpq_class(mpz_class(numStream.str()), 
                              mpz_class(denStream.str()));
-	outValue.canonicalize();
+        outValue.canonicalize();
 }
 
 
@@ -226,27 +226,27 @@ the number of used unsigned int-values
 static void SetValueX(mpz_class z, DbArray<unsigned int>* preciseValuesArray, 
                       int& startpos, int& numofInt) 
 {
-	if (cmp(z, 0) < 0) return;
+        if (cmp(z, 0) < 0) return;
   
-	if (startpos == -1) 
+        if (startpos == -1) 
                 startpos = preciseValuesArray->Size();
-	int index = startpos;
-	if (index >= preciseValuesArray->Size()) 
+        int index = startpos;
+        if (index >= preciseValuesArray->Size()) 
                 preciseValuesArray->resize(index+1);
-	numofInt = 0;
-	
-	mpz_class zdiv(numeric_limits<unsigned int>::max());
-	zdiv++;
-	mpz_class w(0);
-	while ( !(cmp(z, 0) == 0) )
-	{
-	  w = z%zdiv;
-	  unsigned int wert = (unsigned int)w.get_ui();
-	  preciseValuesArray->Put(index, wert);
-	  index++;
-	  numofInt++;
-	  z = z/zdiv;
-	}
+        numofInt = 0;
+        
+        mpz_class zdiv(numeric_limits<unsigned int>::max());
+        zdiv++;
+        mpz_class w(0);
+        while ( !(cmp(z, 0) == 0) )
+        {
+          w = z%zdiv;
+          unsigned int wert = (unsigned int)w.get_ui();
+          preciseValuesArray->Put(index, wert);
+          index++;
+          numofInt++;
+          z = z/zdiv;
+        }
 }
 
 
