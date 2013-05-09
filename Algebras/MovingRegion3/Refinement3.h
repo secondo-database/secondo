@@ -62,7 +62,7 @@ public:
       rc(t.rc) {}
 
   inline precTimeInterval(Interval<Instant> t, PreciseInterval p, 
-			  const DbArray<unsigned int>* preciseInstants): 
+                          const DbArray<unsigned int>* preciseInstants): 
       start(0),
       end(0),
       lc(t.lc),
@@ -80,7 +80,7 @@ public:
   inline bool operator==(precTimeInterval pti) const
   {
     return (lc==pti.lc) && (rc==pti.rc) 
-	    && (cmp(start, pti.start) == 0) && (cmp(end, pti.end) == 0);
+            && (cmp(start, pti.start) == 0) && (cmp(end, pti.end) == 0);
   }
 };
 
@@ -105,7 +105,7 @@ public:
       y1(0) { }
 
   inline precUPoint(precTimeInterval p, mpq_class px0, mpq_class py0, 
-		    mpq_class px1, mpq_class py1):
+                    mpq_class px1, mpq_class py1):
       pti(p.start, p.end, p.lc, p.rc),
       x0(px0),
       y0(py0),
@@ -113,7 +113,7 @@ public:
       y1(py1) { }
 
   inline precUPoint(mpq_class s, mpq_class e, bool l, bool r, mpq_class px0, 
-		    mpq_class py0, mpq_class px1, mpq_class py1):
+                    mpq_class py0, mpq_class px1, mpq_class py1):
       pti(s, e, l, r),
       x0(px0),
       y0(py0),
@@ -178,9 +178,9 @@ Private attributes:
 
 */
     void AddUnits(const precTimeInterval pti, const int urPos, 
-		  const int upPos);
+                  const int upPos);
     void AddUnits(const int urPos, const int upPos, const mpq_class start, 
-		  const mpq_class end, const bool lc, const bool rc);
+                  const mpq_class end, const bool lc, const bool rc);
 
 public:
 /*
@@ -227,7 +227,7 @@ unsigned int RefinementPartition2::Size(void)
 }
 
 void RefinementPartition2::Get(const unsigned int pos, precTimeInterval& civ, 
-			       int& ur, int& up)
+                               int& ur, int& up)
 {
   assert(pos < iv.size());
   civ = iv[pos];
@@ -236,7 +236,7 @@ void RefinementPartition2::Get(const unsigned int pos, precTimeInterval& civ,
 }
 
 void RefinementPartition2::AddUnits(const precTimeInterval pti, 
-				    const int urPos, const int upPos)
+                                    const int urPos, const int upPos)
 {
   assert(urPos!=-1 || upPos!=-1);
 
@@ -251,8 +251,8 @@ void RefinementPartition2::AddUnits(const precTimeInterval pti,
 }
 
 void RefinementPartition2::AddUnits(const int urPos, const int upPos, 
-				    const mpq_class start, const mpq_class end, 
-				    const bool lc, const bool rc)
+                                    const mpq_class start, const mpq_class end, 
+                                    const bool lc, const bool rc)
 {
   assert(urPos!=-1 || upPos!=-1);
 
@@ -269,7 +269,7 @@ void RefinementPartition2::AddUnits(const int urPos, const int upPos,
 }
 
 RefinementPartition2::RefinementPartition2( const MRegion2& m1, 
-					    const MPoint& m2 )
+                                            const MPoint& m2 )
 {
    assert( m1.IsDefined() );
    assert( m2.IsDefined() );
@@ -294,7 +294,7 @@ RefinementPartition2::RefinementPartition2( const MRegion2& m1,
      for(int i=0;i<no1;i++){
        m1.Get(i,u1);
        precTimeInterval pi(u1.timeInterval, u1.pInterval, 
-			   m1.GetPreciseInstants());
+                           m1.GetPreciseInstants());
        AddUnits(pi, i,-1);
      }
      return;
@@ -324,7 +324,7 @@ RefinementPartition2::RefinementPartition2( const MRegion2& m1,
    m2.Get(0,u2p);
    // create editable units from the constant ones
    precTimeInterval t1(u1p.timeInterval, u1p.pInterval, 
-		       m1.GetPreciseInstants());
+                       m1.GetPreciseInstants());
    precTimeInterval t2(u2p.timeInterval);
 
    int pos1 = 0;
@@ -351,7 +351,7 @@ RefinementPartition2::RefinementPartition2( const MRegion2& m1,
          if(pos1 < no1){
            m1.Get(pos1, u1p);
            t1 = precTimeInterval(u1p.timeInterval, u1p.pInterval, 
-				 m1.GetPreciseInstants());
+                                 m1.GetPreciseInstants());
          }
        } else if(cmp(t1.end, t2.start) > 0){
          REF_DEBUG("case 1.2: t1 ends after t2 starts" );
@@ -369,7 +369,7 @@ RefinementPartition2::RefinementPartition2( const MRegion2& m1,
            if(pos1 < no1){
              m1.Get(pos1,u1p);
              t1 = precTimeInterval(u1p.timeInterval, u1p.pInterval, 
-				   m1.GetPreciseInstants());
+                                   m1.GetPreciseInstants());
            }
          } else { // intervals have a common instant
            REF_DEBUG("case 1.3.2: t2 ends when t2 starts (common instant)");
@@ -425,7 +425,7 @@ RefinementPartition2::RefinementPartition2( const MRegion2& m1,
               if(pos1< no1){
                 m1.Get(pos1,u1p);
                 t1 = precTimeInterval(u1p.timeInterval, u1p.pInterval, 
-				      m1.GetPreciseInstants());
+                                      m1.GetPreciseInstants());
               }
             } else {
               t1.lc = false;
@@ -454,7 +454,7 @@ RefinementPartition2::RefinementPartition2( const MRegion2& m1,
             if(pos1<no1){
               m1.Get(pos1,u1p);
               t1 = precTimeInterval(u1p.timeInterval, u1p.pInterval, 
-				    m1.GetPreciseInstants());
+                                    m1.GetPreciseInstants());
             }
          } else if (cmp(t2.end, t1.end) < 0){
             REF_DEBUG("case 3.2.2: t2 ends before t1 ends" );
@@ -475,7 +475,7 @@ RefinementPartition2::RefinementPartition2( const MRegion2& m1,
               if(pos1 < no1){
                 m1.Get(pos1,u1p);
                 t1 = precTimeInterval(u1p.timeInterval, u1p.pInterval, 
-				      m1.GetPreciseInstants());
+                                      m1.GetPreciseInstants());
               }
               pos2++;
               if(pos2 < no2){
@@ -499,7 +499,7 @@ RefinementPartition2::RefinementPartition2( const MRegion2& m1,
                  if(pos1 < no1){
                    m1.Get(pos1,u1p);
                    t1 = precTimeInterval(u1p.timeInterval, u1p.pInterval, 
-					 m1.GetPreciseInstants());
+                                         m1.GetPreciseInstants());
                  }
                  t2.lc = true;
                  t2.start = t2.end;
@@ -519,7 +519,7 @@ RefinementPartition2::RefinementPartition2( const MRegion2& m1,
      if(pos1<no1){
        m1.Get(pos1,u1p);
        t1 = precTimeInterval(u1p.timeInterval, u1p.pInterval, 
-			     m1.GetPreciseInstants());
+                             m1.GetPreciseInstants());
      }
    }
    // process remainder of m2
