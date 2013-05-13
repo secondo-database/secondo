@@ -404,6 +404,12 @@ Example   : query (plz feed projecttransformstream[PLZ]) = (plz feed projecttran
 Result    : TRUE
 
 
+Operator : pfilter
+Number   : 1
+Signature : stream(tuple(X)) x (tuple(X) x tuple(X) -> bool) -> stream(tuple(X))
+Example   : query ten feed pfilter[ (.No - ..No) > 2 ] consume
+Result    : 4
+
 
 
 

@@ -12624,6 +12624,136 @@ Operator replaceAttr(
   );
 
 
+/*
+2.118 Operator ~pfilter~
+
+
+2.118.1 Type Mapping
+
+
+*/
+
+ListExpr pfilterTM(ListExpr args){
+
+  string err = "stream(tuple(X))  x ( (tuple(X) , tuple(X) -> bool) expected";
+
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+  }
+  ListExpr stream = nl->First(args);
+  ListExpr map = nl->Second(args);
+  if(!Stream<Tuple>::checkType(stream) ||
+     !listutils::isMap<2>(map)){
+    return listutils::typeError(err);
+  }
+  ListExpr m1 = nl->Second(map);
+  ListExpr m2 = nl->Third(map);
+  ListExpr mr = nl->Fourth(map);
+  ListExpr tuple = nl->Second(stream);
+  if(!nl->Equal(tuple,m1) || !nl->Equal(tuple,m2)){
+    return listutils::typeError("function arguments does not fi"
+                                 "t the tuple type");
+  }
+  if(!CcBool::checkType(mr)){
+    return listutils::typeError("function result not bool");
+  }
+  return stream;
+
+}
+
+int pfilterVM( Word* args, Word& result, int message,
+		   Word& local, Supplier s ) {
+
+  Tuple* lastTuple = (Tuple*) local.addr;
+  switch(message){
+    case OPEN: {
+        if(lastTuple){
+          lastTuple->DeleteIfAllowed();
+           local.addr = 0;  
+        }
+        qp->Open(args[0].addr);
+        return 0;
+    }
+    case REQUEST: {
+      if(!lastTuple){ // first tuple
+         Word tupleW;
+         qp->Request(args[0].addr, tupleW);
+         if(! qp->Received(args[0].addr)){
+            return CANCEL;
+         }
+         local.addr = tupleW.addr;
+         lastTuple = (Tuple*) local.addr;
+         lastTuple->IncReference();
+         result.addr = lastTuple;
+         return YIELD;   
+      }
+      ArgVectorPointer funargs = qp->Argument(args[1].addr);
+      while(1){ 
+         // get next tuple
+         Word tupleW;
+         qp->Request(args[0].addr, tupleW);
+         if(! qp->Received(args[0].addr)){
+            return CANCEL;
+         }
+         // evaluate function
+         (*funargs)[0] = tupleW;
+         (*funargs)[1].addr = lastTuple;
+         Word funres;   
+         qp->Request(args[1].addr, funres);
+         CcBool * res = (CcBool*) funres.addr;
+         if(res->IsDefined() && res->GetBoolval()){
+             lastTuple->DeleteIfAllowed();
+             lastTuple = (Tuple*) tupleW.addr;
+             lastTuple->IncReference();
+             result.addr = lastTuple;
+             local.addr = lastTuple;
+             return  YIELD;
+         } else {
+            (  (Tuple*) tupleW.addr) -> DeleteIfAllowed();
+         }
+      }
+    }
+
+    case CLOSE :{
+        if(lastTuple){
+           lastTuple->DeleteIfAllowed();
+            local.addr = 0;
+        }
+        return 0;
+    }
+
+  }
+
+  return -1;  
+
+
+}
+
+
+OperatorSpec pfilterSpec(
+    "stream(tuple(X)) x (tuple(X) x tuple(X) -> bool) -> stream(tuple(X))",
+    " _ pfilter [ fun ]  ",
+    " Returns the first tuple in the stream and all tuples fulfilling the"
+    " filter consition which uses the current and the last tuple",
+    " query ten feed pfilter[ (. - ..) > 3]  consume" );
+
+/*
+2.117.6 Operator instance
+
+*/
+Operator pfilter(
+     "pfilter",
+     pfilterSpec.getStr(),
+     pfilterVM,
+     Operator::SimpleSelect,
+     pfilterTM
+  );
+
+
+
+
+
+
 
 
 /*
@@ -12732,6 +12862,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&applyToAll);
     AddOperator(&equalStreams);
     AddOperator(&replaceAttr);
+    AddOperator(&pfilter);
 
 #ifdef USE_PROGRESS
 // support for progress queries

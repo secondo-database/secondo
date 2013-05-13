@@ -87,3 +87,5 @@ operator applyToAll alias APPLYTOALL pattern _ op [ _ ]
 
 operator replaceAttr alias REPLACEATTR  pattern _ op [ funlist ] implicit parameter tuple type TUPLE
 
+operator pfilter alias PFILTER pattern _ op [fun] implicit parameters currenttuple, lasttuple types TUPLE, TUPLE
+
