@@ -85,11 +85,11 @@ class Region2 : public StandardSpatialAttribute<2>
                                     const Reg2PrecisePoint& pl, 
                                     const Reg2PrecisePoint& pr);
     Region2& AddPreciseHalfsegment( const bool ldp, 
-				    const int xl, const mpq_class xlp, 
+                                    const int xl, const mpq_class xlp, 
                                     const int yl, const mpq_class ylp, 
-				    const int xr, const mpq_class xrp, 
+                                    const int xr, const mpq_class xrp, 
                                     const int yr, const mpq_class yrp, 
-				    const int scale = 0);
+                                    const int scale = 0);
 
     bool Intersects( const Region2& r ) const;
     bool Inside( const Region2& r ) const;
@@ -151,7 +151,7 @@ class Region2 : public StandardSpatialAttribute<2>
       if (gridCoordinates.Size() > 0)
         return gridCoordinates.Size();
       if (precHSvector.size() > 0)
-	return precHSvector.size();
+        return precHSvector.size();
       return 0;
     }
 
@@ -173,7 +173,7 @@ class Region2 : public StandardSpatialAttribute<2>
                         const int hsPosition, int &position, 
                         const int partnerno, const int partnernoP, 
                         Reg2PreciseHalfSegment& adjacentCHS, 
-			const Reg2PrecisePoint &adjacentPoint, 
+                        const Reg2PrecisePoint &adjacentPoint, 
                         Reg2PrecisePoint &newAdjacentPoint, bool *cycle, 
                         int step) const;
     int GetNewFaceNo(const Reg2PreciseHalfSegment& hsIn, 
@@ -234,12 +234,19 @@ class Region2 : public StandardSpatialAttribute<2>
       return bbox;
     }
 
-    double Distance( const Rectangle<2>& r, const Geoid* geoid = 0) const;
+    inline double Distance( const Rectangle<2>& r, 
+                            const Geoid* geoid = 0) const
+    {
+    //not yet implemented
+            return 0.0;
+    }
 
-    inline bool Intersects(const Rectangle<2>& rect, 
-                           const Geoid* geoid=0 ) const 
-    { return false; };
-
+    inline bool Intersects(const Rectangle<2>& r, 
+                           const Geoid* geoid=0 ) const
+    {
+    //not yet implemented
+            return false;
+    }
     
     inline void SetScaleFactor(int factor, bool buildDb = true)
     {
@@ -272,11 +279,11 @@ class Region2 : public StandardSpatialAttribute<2>
     {
       if (i >= 0 && i < precHSvector.size())
       {
-	hs = precHSvector[i];
-	return true;
+        hs = precHSvector[i];
+        return true;
       }
       else
-	return false;
+        return false;
     }
 
     const DbArray<Reg2GridHalfSegment>* getgridCoordinates() 
