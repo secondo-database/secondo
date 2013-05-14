@@ -407,7 +407,7 @@ Result    : TRUE
 Operator : pfilter
 Number   : 1
 Signature : stream(tuple(X)) x (tuple(X) x tuple(X) -> bool) -> stream(tuple(X))
-Example   : query ten feed pfilter[ (.No - ..No) > 2 ] consume
+Example   : query ten feed pfilter[ (.No - ..No) > 2 ] count
 Result    : 4
 
 
