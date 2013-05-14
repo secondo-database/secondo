@@ -4757,15 +4757,40 @@ a sequential number. It returns false, if the names does not start with an chara
 in a,...,z,A,...,Z. 
 
 */
+bool isValidSymbolChar(char f){
+   if(f>='A' && f <='Z'){
+       return true;
+   }
+   if(f>='a' && f <='z'){
+       return true;
+   }
+   if(f>='0' && f <='9'){
+       return true;
+   }
+   if(f=='_'){
+       return true;
+   }
+   return false;
+}
+
 bool validateName(string& name){
   char f = name[0];
-  if(f<'A' ||  f>'Z'){
+  // start with small letter
+  if( f>='a' && f<='z') {
      f = (f - 'a') + 'A';
+     name[0] = f;
   }
-  if(f<'A' || f>'Z'){
-     return false;
+  if(f<'A' || f>'Z'){ // start with a wrong character
+     name = "A_"+name;
   }
-  name[0] = f;
+  for(unsigned int i=1;i<name.size();i++){
+    f = name[i];
+    if(!isValidSymbolChar(f)){
+       f = '_';
+       name[i] = f;
+    }
+  }
+
   return true; 
 }
 
