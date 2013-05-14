@@ -184,10 +184,10 @@ public class Dsplregion2 extends DisplayGraph {
 	          double y1 = aPoint.y;
                   empty = false;
 	          if (isFirstPoint) {
-	            GP.moveTo(x1,y1);
+	            GP.moveTo((float)x1,(float)y1);
 		    isFirstPoint=false;
 	          } else {
-	            GP.lineTo(x1,y1);
+	            GP.lineTo((float)x1,(float)y1);
 	          }
 	        } 
               }catch(Exception e){
