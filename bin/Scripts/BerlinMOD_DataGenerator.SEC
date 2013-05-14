@@ -236,7 +236,7 @@ let P_EVENT_Acc    = 12.0;
 # Function ExtendRect3D(R:rect3, S:real, T:real): rect3
 # Function ExtendRect2D(R:rect,  S:real        ): rect
 #
-#   Extends the 3D/2D rectangle.'R' by the given parameters
+#   Extends the 3D/2D rectangle 'R' by the given parameters
 #   'S' is for spatial extension margin,
 #   'T' is for temporal extension margin
 
@@ -251,7 +251,7 @@ let ExtendRect2D = fun(R:rect, S:real)
     minD(R,1) - S, maxD(R,1) + S,
     minD(R,2) - S, maxD(R,2) + S);
 
-# (3.0.2) Initializint the GSL ans Simulation Algebra
+# (3.0.2) Initializing the GSL ans Simulation Algebra
 let P_MINPAUSE = create_duration(0,P_MINPAUSE_MS);
 let P_GPSINTERVAL = create_duration(0, P_GPSINTERVAL_MS);
 query sim_set_dest_params( P_DEST_ExpMu,
@@ -654,7 +654,7 @@ let neighbourhood = ifthenelse2(P_TRIP_DISTANCE = "Fastest Path",
 # (3.3.3) Build index to speed up processing
 derive neighbourhood_Key = neighbourhood createbtree[Key];
 
-# (3.3.4) Append HomeNode, WorkNode, number f Neighbours to vehicles
+# (3.3.4) Append HomeNode, WorkNode, number of Neighbours to vehicles
 let vehicle =
   neighbourhood feed
   groupby[Vehicle; NoNeighbours: group count]
