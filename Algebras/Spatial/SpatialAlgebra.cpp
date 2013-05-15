@@ -15083,7 +15083,8 @@ ListExpr gkTypeMap(ListExpr args){
   string t = nl->SymbolValue(arg);
   if(!( t==Point::BasicType() || t==Points::BasicType() ||
         t==Line::BasicType() || t==Region::BasicType() ||
-        t==SimpleLine::BasicType())){
+        t==SimpleLine::BasicType() ||
+        t==Rectangle<2>::BasicType())){
     return listutils::typeError(err);
   }
   if( (len==2) && listutils::isSymbol(nl->Second(args),CcInt::BasicType()) ){
@@ -15996,6 +15997,7 @@ int gkSelect(ListExpr args){
   if(t==Line::BasicType()) return 2;
   if(t==Region::BasicType()) return 3;
   if(t==SimpleLine::BasicType()) return 4;
+  if(t==Rectangle<2>::BasicType()) return 5;
   return -1;
 }
 
@@ -18223,6 +18225,44 @@ int gkVM_x(Word* args, Word& result, int message,
    return 0;
 }
 
+int gkVM_rect(Word* args, Word& result, int message,
+          Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   Rectangle<2>* r = static_cast<Rectangle<2>*>(args[0].addr);
+   CcInt* zone = static_cast<CcInt*>(args[1].addr);
+   Rectangle<2>* res = static_cast<Rectangle<2>*>(result.addr);
+   if(    !r->IsDefined() || !zone->IsDefined()
+       || zone->GetValue() < 0 || zone->GetValue() > 119){
+     res->SetDefined( false );
+     return 0;
+   }
+   WGSGK gk;
+   gk.setMeridian(zone->GetValue());
+   res->SetDefined( true );
+   double x1 = r->MinD(0);
+   double y1 = r->MinD(1);
+   double x2 = r->MaxD(0);
+   double y2 = r->MaxD(1);
+
+   Point p1(true,x1,y1);
+   Point p2(true,x2,y2);
+   Point p1p(true,0,0);
+   Point p2p(true,0,0);
+   if(!gk.project(p1,p1p) ||
+      !gk.project(p2,p2p)){
+      res->SetDefined(false);
+      return  0;
+   } 
+   double mind[2];
+   double maxd[2];
+   mind[0] = min(p1p.GetX(),p2p.GetX());
+   mind[1] = min(p1p.GetY(),p2p.GetY());
+   maxd[0] = max(p1p.GetX(),p2p.GetX());
+   maxd[1] = max(p1p.GetY(),p2p.GetY());
+   res->Set(true,mind,maxd);
+   return 0;
+}
 
 /*
 Reverse Gausss Krueger Projection.
@@ -19134,7 +19174,8 @@ ValueMapping gkVM[] = {
           gkVM_ps,
           gkVM_x<Line>,
           gkVM_x<Region>,
-          gkVM_x<SimpleLine>
+          gkVM_x<SimpleLine>,
+          gkVM_rect
       };
 
 
@@ -20298,7 +20339,7 @@ Operator utmOp (
 Operator gkOp (
   "gk",
    gkSpec,
-   5,
+   6,
    gkVM,
    gkSelect,
    gkTypeMap );
