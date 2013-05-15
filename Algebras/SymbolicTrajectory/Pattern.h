@@ -201,11 +201,11 @@ class Assign {
  private:
   int resultPos;
   int patternPos; // -1 if ~var~ does not occur in the pattern
-  string text[4]; // one for label, one for time, one for start, one for end
-  string var;
-  vector<pair<string, int> > right[5]; // a list of vars and keys for every type
-  pair<QueryProcessor*, OpTree> opTree[4];
-  vector<Attribute*> pointers[4]; // for each expression like X.card
+  string text[6]; // one for label, time, start, end, leftclosed, rightclosed
+  string var; // the assigned variable
+  vector<pair<string, int> > right[7]; // a list of vars and keys for every type
+  pair<QueryProcessor*, OpTree> opTree[6];
+  vector<Attribute*> pointers[6]; // for each expression like X.card
   bool treesOk;
 
  public:
@@ -213,7 +213,7 @@ class Assign {
   ~Assign() {}
 
   static string getDataType(int key);
-  void convertVarKey(const char* vk);
+  bool convertVarKey(const char* vk);
   bool prepareRewrite(int key, const vector<size_t> &assSeq,
                       map<string, int> &varPosInSeq, MLabel const &ml);
   bool initOpTrees();
@@ -223,6 +223,8 @@ class Assign {
   void setTimePtr(unsigned int pos, SecInterval value);
   void setStartPtr(unsigned int pos, Instant value);
   void setEndPtr(unsigned int pos, Instant value);
+  void setLeftclosedPtr(unsigned int pos, bool value);
+  void setRightclosedPtr(unsigned int pos, bool value);
   
   void    init(string v, int pp)             {clear(); var=v; patternPos=pp;}
   int     getResultPos() const               {return resultPos;}
@@ -241,11 +243,11 @@ class Assign {
   string  getRightVar(int lkey, int j) const {return right[lkey][j].first;}
   void    addRight(int key,
                pair<string, int> newRight)   {right[key].push_back(newRight);}
-  void    removeUnordered()                  {right[4].pop_back();}
-  QueryProcessor* getQP(unsigned int key)    {if (key < 4) {
+  void    removeUnordered()                  {right[6].pop_back();}
+  QueryProcessor* getQP(unsigned int key)    {if (key < 6) {
                                                 return opTree[key].first;}
                                               else return 0;}
-  OpTree  getOpTree(unsigned int key)        {if (key < 4) {
+  OpTree  getOpTree(unsigned int key)        {if (key < 6) {
                                                 return opTree[key].second;}
                                               else return 0;}
   bool    areTreesOk()                       {return treesOk;}

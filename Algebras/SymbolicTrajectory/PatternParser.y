@@ -84,7 +84,7 @@ char* errMsg;
              ZZRIGHTARROW ZZCONST_OP ZZCONTENTS_RESULT ZZVAR_DOT_LABEL
              ZZVAR_DOT_TIME ZZINTERVAL ZZASSIGN ZZLABEL ZZERROR
 %type<text> variable unitpattern conditionsequence condition expression
-            resultsequence result assignment unitpattern_result
+            resultsequence result assignment /*unitpattern_result*/
             results_assignments assignmentsequence
 %type<p> patternsequence
 %type<el> expressionlist expressionlistcomma expressionlistparentheses
@@ -120,20 +120,31 @@ assignment : ZZVAR_DOT_TYPE ZZASSIGN assignment_expressionlist {
                if (posR == -1) {
                  errMsg = convert("variable " + var + " not found in results");
                  yyerror(errMsg);
+                 free($1);
                  YYERROR;
                }
                int posP = wholepat->getPatternPos(var);
-               if (getKey(type) < 5) {
-                 wholepat->setAssign(posR, posP, getKey(type), arg);
-                 while (assign.getRightSize(4)) {
-                   varKey = assign.getVarKey(4);
-                   wholepat->addAssignRight(posR, getKey(type), varKey);
+               if (posP > -1) {
+                 if (wholepat->getPat(posP).getW()) {
+                   errMsg = convert("assignment for sequence not allowed");
+                   yyerror(errMsg);
+                   free($1);
+                   YYERROR;
+                 }
+               }
+               int key = getKey(type);
+               if (key < 6) {
+                 wholepat->setAssign(posR, posP, key, arg);
+                 while (assign.getRightSize(6)) {
+                   varKey = assign.getVarKey(6);
+                   wholepat->addAssignRight(posR, key, varKey);
                    assign.removeUnordered();
                  }
                }
                else {
                  errMsg = convert("type \"" + type + "\" is invalid");
                  yyerror(errMsg);
+                 free($1);
                  YYERROR;
                }
                assign.clear();
@@ -165,12 +176,14 @@ resultsequence : result
                | /* empty */
                ;
 
-result : ZZVARIABLE unitpattern_result {
+result : /*ZZVARIABLE unitpattern_result {
            assignNow = true;
            string var($1);
            if (resultVars.count(var)) {
              errMsg = convert("result variables must be unique");
              yyerror(errMsg);
+             free($1);
+             free($2);
              YYERROR;
            }
            else {
@@ -186,12 +199,12 @@ result : ZZVARIABLE unitpattern_result {
                assign.setText(0, newText);
              }
              wholepat->addAssign(assign);
-/*              cout << "result for result variable " << assign.getV() << " added" << endl; */
+             cout << "result for result variable " << assign.getV() << " added" << endl;
              free($1);
              free($2);
            }
          }
-       | ZZVARIABLE {
+       |*/ ZZVARIABLE {
            assignNow = true;
            string var($1);
            if (resultVars.count(var)) {
@@ -202,16 +215,16 @@ result : ZZVARIABLE unitpattern_result {
            else {
              assign.init(var, wholepat->getPatternPos(var));
              wholepat->addAssign(assign);
-/*              cout << "result variable " << assign.getV() << " added" << endl; */
+             resultVars.insert(var);
              free($1);
            }
          }
        ;
 
-unitpattern_result : '(' ZZCONTENTS_RESULT ')' {
+/*unitpattern_result : '(' ZZCONTENTS_RESULT ')' {
                        $$ = $2;
                      }
-                   ;
+                   ;*/
 
 conditionsequence : condition
                   | conditionsequence ',' condition
@@ -234,7 +247,13 @@ expression : ZZVAR_DOT_TYPE {
                  free($1);
                } else {
                  if (assignNow) {
-                   assign.convertVarKey($1);
+                   if (!assign.convertVarKey($1)) {
+                     string varDotType($1);
+                     errMsg = convert("error: " + varDotType + " not accepted");
+                     yyerror(errMsg);
+                     YYERROR;
+                     free($1);
+                   }
                  }
                  $$ = $1;
                }
@@ -424,6 +443,7 @@ Pattern* stj::parseString(const char* input, bool classify = false) {
   pattern_scan_string(input);
   Pattern* result = 0;
   cond.clear();
+  resultVars.clear();
   firstAssign = true;
   assignNow = false;
   if (patternparse() != 0) {
@@ -602,7 +622,7 @@ int Condition::convertVarKey(const char *varKey) {
       var.assign(varInput);
       key = ::getKey(kInput);
       if (!key && wholepat->getPat(i).getW()) {
-        cout << "\"label\" condition not allowed with wildcard" << endl;
+        cout << "\"label\" condition not allowed for sequences" << endl;
         return -1;
       }
       vars.push_back(var);
@@ -615,7 +635,7 @@ int Condition::convertVarKey(const char *varKey) {
   return -1;
 }
 
-void Assign::convertVarKey(const char *varKey) {
+bool Assign::convertVarKey(const char *varKey) {
   string input(varKey);
   int dotpos = input.find('.');
   string varInput(input.substr(0, dotpos));
@@ -625,14 +645,15 @@ void Assign::convertVarKey(const char *varKey) {
     if (!varInput.compare((wholepat->getPat(i)).getV())) {
       right.first = varInput;
       right.second = getKey(kInput);
-      addRight(4, right); // assign to 0, 1, 2 or 3 afterwards
+      addRight(6, right); // assign to n \in {0, 1, ..., 5} afterwards
     }
   }
+  return true;
 }
 
 void Pattern::collectAssVars() {
   for (int i = 0; i < (int)assigns.size(); i++) {
-    for (int j = 0; j < 4; j++) {
+    for (int j = 0; j < 6; j++) {
       for (int k = 0; k < assigns[i].getRightSize(j); k++) {
         assignedVars.insert(assigns[i].getRightVar(j, k));
       }

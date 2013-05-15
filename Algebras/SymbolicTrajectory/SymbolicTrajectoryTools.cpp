@@ -212,10 +212,10 @@ int getKey(string type) {
   if (type == "time")        return 1;
   if (type == "start")       return 2;
   if (type == "end")         return 3;
-  if (type == "card")        return 4;
-  if (type == "labels")      return 5;
-  if (type == "leftclosed")  return 6;
-  if (type == "rightclosed") return 7;
+  if (type == "leftclosed")  return 4;
+  if (type == "rightclosed") return 5;
+  if (type == "card")        return 6;
+  if (type == "labels")      return 7;
   else return -1; // should not occur
 }
 
@@ -921,9 +921,9 @@ void MLabelIndex::printContents(set<string> &labels) {
 NodeRef MLabelIndex::getNodeRef(int pos) const {
   assert((0 <= pos) && (pos < getNodeRefSize()));
   NodeRef nRef;
-  cout << "try to get nodeRef #" << pos;
+//   cout << "try to get nodeRef #" << pos;
   nodes.Get(pos, nRef);
-  cout << "   .............. successful." << endl;
+//   cout << "   .............. successful." << endl;
   return nRef;
 }
 

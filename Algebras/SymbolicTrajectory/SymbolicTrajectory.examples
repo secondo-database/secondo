@@ -47,7 +47,7 @@ Operator : classify
 Number   : 1
 Signature: stream(tuple(string, text)) x stream(mlabel) -> stream(tuple(string, mlabel))
 Example  : query (patterns4 feed SymbolicTripsTiny feed projecttransformstream[SymTrip] classify) count
-Result   : 63
+Result   : 50
 
 Operator : indexclassify
 Number   : 1

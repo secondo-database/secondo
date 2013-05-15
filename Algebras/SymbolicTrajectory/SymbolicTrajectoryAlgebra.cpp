@@ -605,6 +605,18 @@ void Assign::setEndPtr(unsigned int pos, Instant value) {
   }
 }
 
+void Assign::setLeftclosedPtr(unsigned int pos, bool value) {
+  if (pos < pointers[4].size()) {
+    ((CcBool*)pointers[4][pos])->Set(true, value);
+  }
+}
+
+void Assign::setRightclosedPtr(unsigned int pos, bool value) {
+  if (pos < pointers[5].size()) {
+    ((CcBool*)pointers[5][pos])->Set(true, value);
+  }
+}
+
 /*
 \subsection{Function ~rewrite~}
 
@@ -625,6 +637,7 @@ void MLabel::rewrite(MLabel const &ml,
   string label("");
   Instant start(instanttype), end(instanttype);
   SecInterval iv(1);
+  bool lc(false), rc(false);
   ULabel ul(1), uls(1);
 //   cout << "First: ";
 //   for (unsigned int i = 0; i < seq.first.size(); i++) {
@@ -636,25 +649,27 @@ void MLabel::rewrite(MLabel const &ml,
 //   }
 //   cout << endl;
   for (unsigned int i = 0; i < assigns.size(); i++) {
-    for (int j = 0; j < 4; j++) {
+    for (int j = 0; j < 6; j++) {
       if (!assigns[i].getText(j).empty()) {
         for (int k = 0; k < assigns[i].getRightSize(j); k++) {
           vPos = varPosInSeq[assigns[i].getRightVar(j, k)];
           switch (assigns[i].getRightKey(j, k)) {
-            case 0: {
+            case 0: { // label
               ml.Get(seq.second[vPos], ul);
               assigns[i].setLabelPtr(k, ul.constValue.GetValue());
               break;
             }
-            case 1: {
+            case 1: { // time
               ml.Get(seq.second[vPos], ul);
               iv.start = ul.timeInterval.start;
+              iv.lc = ul.timeInterval.lc;
               ml.Get(seq.second[vPos + 1] - 1, ul);
               iv.end = ul.timeInterval.end;
+              iv.rc = ul.timeInterval.rc;
               assigns[i].setTimePtr(k, iv);
               break;
             }
-            case 2: {
+            case 2: { // start
               ml.Get(seq.second[vPos], ul);
               if (j == 2) {
                 assigns[i].setStartPtr(k, ul.timeInterval.start);
@@ -664,7 +679,7 @@ void MLabel::rewrite(MLabel const &ml,
               }
               break;
             }
-            case 3: {
+            case 3: { // end
               ml.Get(seq.second[vPos + 1] - 1, ul);
               if (j == 2) {
                 assigns[i].setStartPtr(k, ul.timeInterval.end);
@@ -674,9 +689,29 @@ void MLabel::rewrite(MLabel const &ml,
               }
               break;
             }
+            case 4: { // leftclosed
+              ml.Get(seq.second[vPos], ul);
+              if (j == 4) {
+                assigns[i].setLeftclosedPtr(k, ul.timeInterval.lc);
+              }
+              else {
+                assigns[i].setRightclosedPtr(k, ul.timeInterval.lc);
+              }
+              break;
+            }
+            case 5: { // rightclosed
+              ml.Get(seq.second[vPos + 1] - 1, ul);
+              if (j == 4) {
+                assigns[i].setLeftclosedPtr(k, ul.timeInterval.rc);
+              }
+              else {
+                assigns[i].setRightclosedPtr(k, ul.timeInterval.rc);
+              }
+              break;
+            }
             default: { // cannot occur
               cout << "Error: assigns[" << i << "].getRightKey(" << j << ", "
-                   << k << " = " << assigns[i].getRightKey(j, k) << endl;
+                   << k << ") = " << assigns[i].getRightKey(j, k) << endl;
               return;
             }
           }
@@ -698,7 +733,16 @@ void MLabel::rewrite(MLabel const &ml,
     if (!assigns[i].getText(3).empty()) {
       assigns[i].getQP(3)->EvalS(assigns[i].getOpTree(3), qResult, OPEN);
       end = *((Instant*)qResult.addr);
-    } // information from assignment i collected
+    }
+    if (!assigns[i].getText(4).empty()) {
+      assigns[i].getQP(4)->EvalS(assigns[i].getOpTree(4), qResult, OPEN);
+      lc = ((CcBool*)qResult.addr)->GetValue();
+    }
+    if (!assigns[i].getText(5).empty()) {
+      assigns[i].getQP(5)->EvalS(assigns[i].getOpTree(5), qResult, OPEN);
+      rc = ((CcBool*)qResult.addr)->GetValue();
+    }
+     // information from assignment i collected
     if (assigns[i].getPatternPos() > -1) { // variable occurs in p
       if (seq.first[seqPos] + 1 == seq.first[seqPos + 1]) { // 1 source ul
         ml.Get(seq.first[seqPos], uls);
@@ -713,6 +757,12 @@ void MLabel::rewrite(MLabel const &ml,
         }
         if (!assigns[i].getText(3).empty()) {
           uls.timeInterval.end = end;
+        }
+        if (!assigns[i].getText(4).empty()) {
+          uls.timeInterval.lc = lc;
+        }
+        if (!assigns[i].getText(5).empty()) {
+          uls.timeInterval.rc = rc;
         }
         if (!uls.timeInterval.IsValid()) {
           uls.timeInterval.Print(cout);
@@ -748,6 +798,12 @@ void MLabel::rewrite(MLabel const &ml,
               return;
             }
           }
+          if ((m == seq.first[seqPos]) && !assigns[i].getText(4).empty()) {
+            uls.timeInterval.lc = lc;
+          }
+          if ((m == seq.first[seqPos+1] - 1) && !assigns[i].getText(5).empty()){
+            uls.timeInterval.rc = rc;
+          }
           this->MergeAdd(uls);
         }
       }
@@ -760,6 +816,12 @@ void MLabel::rewrite(MLabel const &ml,
       else {
         uls.timeInterval.start = start;
         uls.timeInterval.end = end;
+      }
+      if (!assigns[i].getText(4).empty()) {
+        uls.timeInterval.lc = lc;
+      }
+      if (!assigns[i].getText(5).empty()) {
+        uls.timeInterval.rc = rc;
       }
       this->MergeAdd(uls);
     }
@@ -2720,11 +2782,21 @@ bool Match::evaluateCond(MLabel const &ml, int cId, multiset<unsigned int> sq){
         conds[cId].setStartEndPtr(i, ul.timeInterval.end);
         break;
       }
-      case 4: { // card
+      case 4: { // leftclosed
+        ml.Get(seq[pId], ul);
+        conds[cId].setLeftRightclosedPtr(i, ul.timeInterval.lc);
+        break;
+      }
+      case 5: { // rightclosed
+        ml.Get(max, ul);
+        conds[cId].setLeftRightclosedPtr(i, ul.timeInterval.rc);
+        break;
+      }
+      case 6: { // card
         conds[cId].setCardPtr(i, max + 1 - seq[pId]);
         break;
       }
-      case 5: { // labels
+      default: { // labels
         conds[cId].cleanLabelsPtr(i);
         for (size_t j = seq[pId]; j <= max; j++) {
           ml.Get(j, ul);
@@ -2732,15 +2804,6 @@ bool Match::evaluateCond(MLabel const &ml, int cId, multiset<unsigned int> sq){
           conds[cId].appendToLabelsPtr(i, *label);
         }
         conds[cId].completeLabelsPtr(i);
-      }
-      case 6: { // leftclosed
-        ml.Get(seq[pId], ul);
-        conds[cId].setLeftRightclosedPtr(i, ul.timeInterval.lc);
-        break;
-      }
-      default: { // rightclosed
-        ml.Get(max, ul);
-        conds[cId].setLeftRightclosedPtr(i, ul.timeInterval.rc);
       }
     }
   }
@@ -2754,10 +2817,10 @@ string Condition::getType(int t) {
     case 1: return ".time";
     case 2: return ".start";
     case 3: return ".end";
-    case 4: return ".card";
-    case 5: return ".labels";
-    case 6: return ".leftclosed";
-    case 7: return ".rightclosed";
+    case 4: return ".leftclosed";
+    case 5: return ".rightclosed";
+    case 6: return ".card";
+    case 7: return ".labels";
     default: return ".ERROR";
   }
 }
@@ -2834,16 +2897,16 @@ string Assign::getDataType(int key) {
     case -1: return CcBool::BasicType();
     case 0: return CcString::BasicType();
     case 1: return SecInterval::BasicType();
-    case 2: return Instant::BasicType();
+    case 2: 
     case 3: return Instant::BasicType();
+    case 4:
+    case 5: return CcBool::BasicType();
     default: return "error";
   }
 }
 
 /*
 \subsection{Function ~buildMultiNFA~}
-
-
 
 */
 void Match::buildMultiNFA(ClassifyLI* c) {
@@ -3029,24 +3092,26 @@ pair<string, Attribute*> Pattern::getPointer(int key) {
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
       break;
     }
-    case 4: { // card, type CcInt
+    case 4:   // leftclosed, type CcBool
+    case 5: { // rightclosed, type CcBool
+      result.second = new CcBool(false);
+      result.first = "[const bool pointer "
+                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
+      break;
+    }
+    case 6: { // card, type CcInt
       result.second = new CcInt(false);
       result.first = "[const int pointer "
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
       break;
     }
-    case 5: { // labels, type Labels
+    default: { // labels, type Labels
       result.second = new Labels(0);
       result.first = "[const labels pointer "
                    + nl->ToString(listutils::getPtrList(result.second)) + "]";
       break;
     }
-    case 6:    // leftclosed, type CcBool
-    default: { // rightclosed, type CcBool
-      result.second = new CcBool(false);
-      result.first = "[const bool pointer "
-                   + nl->ToString(listutils::getPtrList(result.second)) + "]";
-    }
+    
   }
   return result;
 }
@@ -3064,7 +3129,7 @@ pair<QueryProcessor*, OpTree> Match::processQueryStr(string query, int type) {
   SecParser parser;
   string qParsed;
   ListExpr qList, rType;
-  bool correct, evaluable, defined, isFunction;
+  bool correct(false), evaluable(false), defined(false), isFunction(false);
   if (parser.Text2List(query, qParsed)) {
     cout << "Text2List(" << query << ") failed" << endl;
     return result;
@@ -3074,18 +3139,30 @@ pair<QueryProcessor*, OpTree> Match::processQueryStr(string query, int type) {
     return result;
   }
   result.first = new QueryProcessor(nl, am);
-  result.first->Construct(nl->Second(qList), correct, evaluable, defined,
-                          isFunction, result.second, rType);
+  try {
+    result.first->Construct(nl->Second(qList), correct, evaluable, defined,
+                            isFunction, result.second, rType);
+  }
+  catch (...) {
+    delete result.first;
+    result.first = 0;
+    result.second = 0;
+    return result;
+  }
   if (!correct || !evaluable || !defined) {
     cout << "correct:   " << (correct ? "TRUE" : "FALSE") << endl
          << "evaluable: " << (evaluable ? "TRUE" : "FALSE") << endl
          << "defined:   " << (correct ? "TRUE" : "FALSE") << endl;
+    delete result.first;
     result.first = 0;
+    result.second = 0;
     return result;
   }
   if (nl->ToString(rType) != Assign::getDataType(type)) {
     cout << "incorrect result type: " << nl->ToString(rType) << endl;
+    delete result.first;
     result.first = 0;
+    result.second = 0;
   }
   return result;
 }
@@ -3742,7 +3819,7 @@ bool Assign::initOpTrees() {
   if (treesOk && opTree[0].second) {
     return true;
   }
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 6; i++) {
     if (pointers[i].size() > 0) { // pointers already initialized
       return true;
     }
@@ -3754,7 +3831,7 @@ bool Assign::initOpTrees() {
   }
   string q(""), part, toReplace("");
   pair<string, Attribute*> strAttr;
-  for (int i = 0; i < 4; i++) { // label, time, start, end
+  for (int i = 0; i < 6; i++) { // label, time, start, end, leftclosed, rightcl.
     if (!text[i].empty()) {
       q = "query " + text[i];
       for (unsigned int j = 0; j < right[i].size(); j++) { // loop through keys
@@ -3786,14 +3863,15 @@ bool Assign::initOpTrees() {
 
 void Assign::clear() {
   resultPos = -1;
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 6; i++) {
     text[i].clear();
     right[i].clear();
   }
+  right[6].clear();
 }
 
 void Assign::deleteOpTrees() {
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 6; i++) {
     if (opTree[i].first) {
       opTree[i].first->Destroy(opTree[i].second, true);
       delete opTree[i].first;
@@ -3801,6 +3879,7 @@ void Assign::deleteOpTrees() {
     for (unsigned int j = 0; j < pointers[i].size(); j++) {
       if (pointers[i][j]) {
         deleteIfAllowed(pointers[i][j]);
+        pointers[i][j] = 0;
       }
     }
     pointers[i].clear();
