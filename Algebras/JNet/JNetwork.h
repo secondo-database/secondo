@@ -44,6 +44,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "PQManagement.h"
 #include "RectangleAlgebra.h"
 #include "SectionInterval.h"
+#include "PosJNetSpatial.h"
+#include "InterSP.h"
 
 namespace jnetwork {
 
@@ -376,14 +378,18 @@ void ComputeAndAddUnits(const DbArray<JRouteInterval>* path,
 /*
 1.1.1 ~ShortestPath~
 
-Returns the shortest path from source to target and the total length of the
-path. jnetwork is not const because the relation with the precomputed network
+Returns the shortest path from source to target. Operation leaves jnetwork
+not const, because the relation with the precomputed network
 distances might be updated.
 
 */
 
 void ShortestPath(const RouteLocation& source,
                   const RouteLocation& target,
+                  JPath* result);
+
+void ShortestPath(const DbArray<RouteLocation>* sources,
+                  const DbArray<RouteLocation>* targets,
                   JPath* result);
 
 /*
@@ -509,6 +515,13 @@ The returned tuple must be deleted by the caller.
   JListInt* GetJunctionInSectionList(const Tuple* juncTup) const;
 
 /*
+1.1.1.1 Attributes of Netdistance Relation
+
+*/
+
+  double GetNetdistanceDistance(const Tuple* netDistTup) const;
+
+/*
 1.1.1 Enumerations of coloumns of internal relations
 
 */
@@ -615,6 +628,8 @@ JNetwork();
 
    void InitNetdistances();
    void InsertNetdistanceTuple(const int fromjid, const JPQEntry* entry);
+   void InsertNetdistanceTuple(const int fromjid, const JPQEntry* entry,
+                               DbArray<InterSP>* wayEntries);
    void InsertNetdistanceTuple(const int fromjid, const int tojid,
                                const int viajid, const int viasid,
                                const double dist);
@@ -648,17 +663,30 @@ the connecting route interval is returned as result.
                              double& length) const;
 
 /*
+Returns the connecting route interval if an direct connection between source
+and target exists.
+
+*/
+ JRouteInterval* DirectConnection(const int sectId,
+                                  const RouteLocation& source,
+                                  const RouteLocation& target) const;
+
+/*
 1.1.1.1 AddAdjacentSections
 
 Adds the sections with id from listSID to priority queue.
 
 */
 
+template<class SpatialTarget>
 void AddAdjacentSections(PQManagement* pq, JPQEntry curEntry,
-                        const Point* targetPos);
+                        const SpatialTarget* targetPos);
 
+template<class SpatialTarget>
 void AddAdjacentSections(PQManagement* pq, const JListInt* listSID,
-                        JPQEntry curEntry, const Point* targetPos);
+                        JPQEntry curEntry, const SpatialTarget* targetPos);
+
+
 
 /*
 1.1.1.1 WriteShortestPath
@@ -676,6 +704,12 @@ void WriteShortestPath(const RouteLocation& source,
                       const int startPathJID, const int endPathJID,
                       const double distTarget,
                       DbArray<JRouteInterval>* res, double& length) const;
+
+void WriteShortestPath(const DbArray<PosJNetSpatial>* sources,
+                      const DbArray<PosJNetSpatial>* targets,
+                      const int srcStartPathJID, const int tgtPosInArray,
+                      const bool tgtOverStartJunction,
+                      DbArray<JRouteInterval>*& result);
 
 /*
 1.1.1.1 ExistsCommonRoute
@@ -783,6 +817,85 @@ DbArray<JRouteInterval>* ShortestPath(const RouteLocation& source,
                                       const double distSourceStartSect,
                                       const double distTargetStartSect);
 
+/*
+1.1.1.1.1 ConnectTargetsAndSpatialPositions
+
+Connects the route locations of targets with their spatial positions for
+A-Star Path Computing, and some other parameters used later in path computing.
+
+*/
+
+void ConnectSpatialPositions(const DbArray<RouteLocation>* targets,
+                            DbArray<PosJNetSpatial>* tgtEntries,
+                            Points* spatialPositions = 0);
+
+/*
+1.1.1.1.1 InitPriorityQueue
+
+Initializes the Priority Queue pqueue for shortest path computation with the
+values computed from sources. endPositions are needed to compute the priority
+value for shortest path computation.
+
+*/
+
+bool InitPriorityQueue(PQManagement* pqueue,
+                       const DbArray< PosJNetSpatial>* sources,
+                       const Points* endPositions);
+
+/*
+1.1.1.1.1 CheckForSameSections
+
+Checks if their are paris of sources and targets which are on the same section.
+If this is the case and a direct connection between the two places exists
+the shortest connection is selected, stored as JRouteInterval in sp and true
+returnes. Otherwise we return false.
+
+*/
+
+bool CheckForSameSections(const DbArray< PosJNetSpatial >* sources,
+                          const DbArray< PosJNetSpatial >* targets,
+                          DbArray< JRouteInterval >*& sp);
+
+/*
+Returns true if for each pair of srcEntries and tgtEntires a shortest path
+exists. The start and end values and the length of the shortest existing path
+is returned, independently from the boolean result.
+
+*/
+
+bool CheckForExistingNetdistance(const DbArray<PosJNetSpatial>* srcEntries,
+                                 const DbArray<PosJNetSpatial>* tgtEntries,
+                                 int& srcStartPathJID,
+                                 int& tgtPosInArray,
+                                 bool& tgtOverStartJunction,
+                                 double& minDist);
+
+bool ExistsNetdistancesFor(const PosJNetSpatial& start,
+                           const PosJNetSpatial& end,
+                           double& minDist,
+                           int& srcStartPathJID,
+                           bool& tgtOverStartJunction);
+
+bool ExistsNetdistanceFor(const int startjid, const double startdist,
+                          const int endjid, const double enddist,
+                          const bool endStartJunction,
+                          double& minDist,
+                          int& srcStartPathJID,
+                          bool& tgtOverStartJunction);
+
+/*
+Returns the shortest path given by the priority queue to the element of
+targets with the shortest distance between the sources of the priority queue
+as DbArray of jrint.
+
+*/
+bool ProcessPriorityQueue(PQManagement* pqueue,
+                                       const DbArray< PosJNetSpatial >* targets,
+                                       const Points* spatialPosTargets,
+                                       int& tgtPosInArray,
+                                       bool& tgtOverStartJunc,
+                                       int& srcStartPathJID,
+                                       double& minDist);
 
 };
 

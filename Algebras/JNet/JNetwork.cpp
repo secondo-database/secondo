@@ -330,6 +330,84 @@ bool reachedEndpoint(const JPQEntry* actEntry,
   return false;
 }
 
+bool reachedEndpoint(const JPQEntry* actEntry,
+                     const DbArray<PosJNetSpatial>* endJunctions,
+                     double& dist, int& tgtPosInArray, bool& tgtIsStartJunc,
+                     int& srcStartPathJID)
+{
+  PosJNetSpatial curEntry;
+  int i = 0;
+  double tmp = numeric_limits< double >::max();
+  while(i < endJunctions->Size())
+  {
+    endJunctions->Get(i,curEntry);
+    if (curEntry.GetStartJID() == actEntry->GetEndPartJID())
+    {
+      if (tmp > curEntry.GetDistFromStartJunction())
+      {
+
+        tmp = curEntry.GetDistFromStartJunction();
+        tgtPosInArray = i;
+        tgtIsStartJunc = true;
+        srcStartPathJID = actEntry->GetStartPathJID();
+      }
+    }
+    if (curEntry.GetEndJID() == actEntry->GetEndPartJID())
+    {
+      if (tmp > curEntry.GetDistFromEndJunction())
+      {
+        tmp = curEntry.GetDistFromEndJunction();
+        tgtPosInArray = i;
+        tgtIsStartJunc = false;
+        srcStartPathJID = actEntry->GetStartPathJID();
+      }
+    }
+    i++;
+  }
+  dist = tmp;
+  bool result = (tgtPosInArray > -1);
+  return result;
+}
+
+void getStartPosJNet(const DbArray<PosJNetSpatial>* srcEntries,
+                     const int srcStartPathJID,
+                     int& srcPosInArray,
+                     bool& srcOverStartJunc,
+                     PosJNetSpatial& start)
+{
+  if (srcEntries != NULL && srcEntries->Size() > 0)
+  {
+    double minDist = numeric_limits< double >::max();
+    int i = 0;
+    PosJNetSpatial tmp;
+    while (i < srcEntries->Size())
+    {
+      srcEntries->Get(i,tmp);
+      if (tmp.GetStartJID() == srcStartPathJID)
+      {
+        if (minDist > tmp.GetDistFromStartJunction())
+        {
+          minDist = tmp.GetDistFromStartJunction();
+          srcPosInArray = i;
+          srcOverStartJunc = true;
+          start = tmp;
+        }
+      }
+      if (tmp.GetEndJID() == srcStartPathJID)
+      {
+        if (minDist > tmp.GetDistFromEndJunction())
+        {
+          minDist = tmp.GetDistFromEndJunction();
+          srcPosInArray = i;
+          srcOverStartJunc = false;
+          start = tmp;
+        }
+      }
+      i++;
+    }
+  }
+}
+
 /*
 1.1 cleanSP
 
@@ -2195,16 +2273,92 @@ void JNetwork::ShortestPath(const RouteLocation& source,
                             const RouteLocation& target,
                             JPath* result)
 {
-  double lenght = 0.0;
-  Point* tgtPos = GetSpatialValueOf(target);
-  result->Clear();
-  result->SetNetworkId(id);
-  double length = 0.0;
-  DbArray<JRouteInterval>* sp = ShortestPath(source, target, tgtPos, length);
-  result->SetPath(*sp, false, this);
-  sp->Destroy();
-  delete sp;
-  tgtPos->DeleteIfAllowed();
+  DbArray<RouteLocation>* srcPositions = new DbArray<RouteLocation>(0);
+  srcPositions->Append(source);
+  DbArray<RouteLocation>* tgtPositions = new DbArray<RouteLocation>(0);
+  tgtPositions->Append(target);
+  ShortestPath(srcPositions, tgtPositions, result);
+  srcPositions->Destroy();
+  delete srcPositions;
+  tgtPositions->Destroy();
+  delete tgtPositions;
+}
+
+void JNetwork::ShortestPath(const DbArray<RouteLocation>* sources,
+                            const DbArray<RouteLocation>* targets,
+                            JPath* result)
+{
+  if (sources != NULL && targets != NULL && result != NULL &&
+      sources->Size() > 0 && targets->Size() > 0)
+  {
+    result->Clear();
+    result->SetNetworkId(id);
+    if (!JNetUtil::ArrayContainIntersections(*sources, *targets))
+    {
+      //Init Set of EndPoints
+      DbArray<PosJNetSpatial>* tgtEntries = new DbArray<PosJNetSpatial> (0);
+      Points* spatialEndPositions = new Points(0);
+      ConnectSpatialPositions(targets, tgtEntries, spatialEndPositions);
+      //Init Set of StartPoints
+      DbArray<PosJNetSpatial>* srcEntries = new DbArray<PosJNetSpatial> (0);
+      ConnectSpatialPositions(sources, srcEntries, 0);
+      DbArray<JRouteInterval>* sp = 0;
+      int tgtPosInArray = -1;
+      bool tgtOverStartJunction = false;
+      int srcStartPathJID = -1;
+      double minDist = numeric_limits< double >::max();
+      if (!CheckForSameSections(srcEntries,tgtEntries,sp))
+      {
+        if (!CheckForExistingNetdistance(srcEntries, tgtEntries,
+                                         srcStartPathJID, tgtPosInArray,
+                                         tgtOverStartJunction, minDist))
+        {
+          PQManagement* pqueue = new PQManagement();
+          if (InitPriorityQueue(pqueue, srcEntries, spatialEndPositions))
+          {
+            //Compute shortest path using A*-Algorithm
+            if (ProcessPriorityQueue(pqueue, tgtEntries, spatialEndPositions,
+                                     tgtPosInArray, tgtOverStartJunction,
+                                     srcStartPathJID, minDist))
+            {
+              sp = new DbArray<JRouteInterval>(0);
+              WriteShortestPath(srcEntries, tgtEntries, srcStartPathJID,
+                                tgtPosInArray, tgtOverStartJunction, sp);
+            }
+          }
+          pqueue->Destroy();
+          delete pqueue;
+        }
+        else
+        {
+          sp = new DbArray<JRouteInterval>(0);
+          WriteShortestPath(srcEntries, tgtEntries, srcStartPathJID,
+                            tgtPosInArray, tgtOverStartJunction, sp);
+        }
+      }
+      //If exists write result
+      if (sp != NULL)
+      {
+        result->SetPath(*sp, false, this);
+        result->SetDefined(true);
+        sp->Destroy();
+        delete sp;
+      }
+      else
+      {
+        result->SetDefined(false);
+      }
+      //Cleanup
+      tgtEntries->Destroy();
+      delete tgtEntries;
+      spatialEndPositions->Destroy();
+      delete spatialEndPositions;
+    }
+  }
+  else
+  {
+    result->SetDefined(false);
+  }
 }
 
 DbArray< JRouteInterval >* JNetwork::ShortestPath(
@@ -2326,7 +2480,7 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
                         GetJunctionId(curJunc), //end junction of part
                         0.0, //dist
                         curJuncPoint->Distance(*targetPos)); //prio
-    AddAdjacentSections(pq, outSect, *pqEntry, targetPos);
+    AddAdjacentSections<Point>(pq, outSect, *pqEntry, targetPos);
     curJuncPoint->DeleteIfAllowed();
     curJuncPoint = 0;
     outSect->Destroy();
@@ -2414,7 +2568,7 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
               }
             }
             else
-              AddAdjacentSections(pq, *test, targetPos);
+              AddAdjacentSections<Point>(pq, *test, targetPos);
           }
           else
             testedOtherEnd = true;
@@ -2447,7 +2601,7 @@ DbArray<JRouteInterval>* JNetwork::ShortestPath(const RouteLocation& source,
     else
     {
       //cout << "add adjacent sections" << endl;
-      AddAdjacentSections(pq, *curPQElement, targetPos);
+      AddAdjacentSections<Point>(pq, *curPQElement, targetPos);
     }
     if (curPQElement != 0)
     {
@@ -2563,53 +2717,97 @@ void JNetwork::InitNetdistances()
   delete it;
 }
 
+void JNetwork::InsertNetdistanceTuple(const int fromjid,
+                                      const JPQEntry* entry,
+                                      DbArray<InterSP>* wayEntries)
+{
+  if (entry != NULL)
+  {
+    InsertNetdistanceTuple(fromjid, entry);
+    if (wayEntries != NULL)
+    {
+      int i = 0;
+      int oldWayEntrySize = wayEntries->Size();
+      InterSP curSPEntry;
+      while (i < oldWayEntrySize)
+      {
+        wayEntries->Get(i,curSPEntry);
+        if (curSPEntry.GetOrigStartPathJID() == fromjid)
+        {
+          if (curSPEntry.GetNextJID() < 0)
+          {
+            curSPEntry.SetNextJID(entry->GetEndPartJID());
+            curSPEntry.SetNextSID(entry->GetSectionId());
+            wayEntries->Put(i, curSPEntry);
+          }
+          InsertNetdistanceTuple(curSPEntry.GetCurStartPathJID(),
+                                 entry->GetEndPartJID(),
+                                 curSPEntry.GetNextJID(),
+                                 curSPEntry.GetNextSID(),
+                                 entry->GetDistFromStart() -
+                                   curSPEntry.GetDistFromOrigStartPath());
+        }
+        i++;
+      }
+      wayEntries->Append(InterSP(fromjid, entry->GetEndPartJID(),
+                                 entry->GetDistFromStart(),
+                                 -1,-1));
+    }
+  }
+}
+
 void JNetwork::InsertNetdistanceTuple(const int fromjid, const JPQEntry* jp)
 {
   if (jp != 0 && jp->GetEndPartJID() > -1 && jp->GetStartNextJID() > -1 &&
       jp->GetStartNextSID() > -1 && jp->GetDistFromStart() >= 0.0 &&
-      jp->GetStartNextJID() != jp->GetEndPartJID());
-    InsertNetdistanceTuple(fromjid,jp->GetEndPartJID(),jp->GetStartNextJID(),
+      jp->GetStartNextJID() != jp->GetEndPartJID())
+  {
+    InsertNetdistanceTuple(fromjid, jp->GetEndPartJID(),jp->GetStartNextJID(),
                            jp->GetStartNextSID(), jp->GetDistFromStart());
+  }
 }
 
 void JNetwork::InsertNetdistanceTuple(const int fromjid, const int tojid,
                                       const int viajid, const int viasid,
                                       const double dist)
 {
-  Tuple* existingTuple = GetNetdistanceTupleFor(fromjid, tojid);
-  if (existingTuple == 0)
+  if (fromjid != tojid && viasid > -1)
   {
-    ListExpr tupType;
-    nl->ReadFromString(GetNetdistancesRelationType(), tupType);
-    ListExpr tupNumType =
-      SecondoSystem::GetCatalog()->NumericType(nl->Second(tupType));
-    Tuple* insertTuple = new Tuple(tupNumType);
-    insertTuple->PutAttribute(NETDIST_FROM_JID, new CcInt(true, fromjid));
-    insertTuple->PutAttribute(NETDIST_TO_JID, new CcInt(true, tojid));
-    insertTuple->PutAttribute(NETDIST_NEXT_JID, new CcInt(true, viajid));
-    insertTuple->PutAttribute(NETDIST_NEXT_SID, new CcInt(true, viasid));
-    insertTuple->PutAttribute(NETDIST_DIST, new CcReal(true, dist));
-    netdistances->AppendTuple(insertTuple);
-    insertTuple->DeleteIfAllowed();
-  }
-  else
-  {
-    if (((CcReal*)existingTuple->GetAttribute(NETDIST_DIST))->GetRealval()
-          > dist)
+    Tuple* existingTuple = GetNetdistanceTupleFor(fromjid, tojid);
+    if (existingTuple == 0)
     {
-      vector<int> indexes(0);
-      vector<Attribute *> attrs(0);
-      indexes.push_back(NETDIST_NEXT_JID);
-      attrs.push_back(new CcInt(true, viajid));
-      indexes.push_back(NETDIST_NEXT_SID);
-      attrs.push_back(new CcInt(true, viasid));
-      indexes.push_back(NETDIST_DIST);
-      attrs.push_back(new CcReal(true, dist));
-      netdistances->UpdateTuple(existingTuple, indexes, attrs);
-      indexes.clear();
-      attrs.clear();
+      ListExpr tupType;
+      nl->ReadFromString(GetNetdistancesRelationType(), tupType);
+      ListExpr tupNumType =
+        SecondoSystem::GetCatalog()->NumericType(nl->Second(tupType));
+      Tuple* insertTuple = new Tuple(tupNumType);
+      insertTuple->PutAttribute(NETDIST_FROM_JID, new CcInt(true, fromjid));
+      insertTuple->PutAttribute(NETDIST_TO_JID, new CcInt(true, tojid));
+      insertTuple->PutAttribute(NETDIST_NEXT_JID, new CcInt(true, viajid));
+      insertTuple->PutAttribute(NETDIST_NEXT_SID, new CcInt(true, viasid));
+      insertTuple->PutAttribute(NETDIST_DIST, new CcReal(true, dist));
+      netdistances->AppendTuple(insertTuple);
+      insertTuple->DeleteIfAllowed();
     }
-    existingTuple->DeleteIfAllowed();
+    else
+    {
+      if (((CcReal*)existingTuple->GetAttribute(NETDIST_DIST))->GetRealval()
+            > dist)
+      {
+        vector<int> indexes(0);
+        vector<Attribute *> attrs(0);
+        indexes.push_back(NETDIST_NEXT_JID);
+        attrs.push_back(new CcInt(true, viajid));
+        indexes.push_back(NETDIST_NEXT_SID);
+        attrs.push_back(new CcInt(true, viasid));
+        indexes.push_back(NETDIST_DIST);
+        attrs.push_back(new CcReal(true, dist));
+        netdistances->UpdateTuple(existingTuple, indexes, attrs);
+        indexes.clear();
+        attrs.clear();
+      }
+      existingTuple->DeleteIfAllowed();
+    }
   }
 }
 
@@ -2620,12 +2818,15 @@ void JNetwork::InsertNetdistanceTuple(const int fromjid, const int tojid,
 
 Tuple* JNetwork::GetRouteTupleWithId(const int rid) const
 {
-  return GetTupleWithId(routesBTree, routes, rid);
+  if (rid > -1)
+    return GetTupleWithId(routesBTree, routes, rid);
+  else
+    return 0;
 }
 
 Tuple* JNetwork::GetSectionTupleWithId(const int sid) const
 {
-  if (sid >= 0)
+  if (sid > -1)
     return GetTupleWithId(sectionsBTree, sections, sid);
   else
     return 0;
@@ -2638,7 +2839,10 @@ Tuple* JNetwork::GetSectionTupleWithTupleId(const TupleId tid) const
 
 Tuple* JNetwork::GetJunctionTupleWithId(const int jid) const
 {
-  return GetTupleWithId(junctionsBTree, junctions, jid);
+  if (jid > -1)
+    return GetTupleWithId(junctionsBTree, junctions, jid);
+  else
+    return 0;
 }
 
 Tuple* JNetwork::GetTupleWithId(BTree* tree, const Relation* rel,
@@ -3558,6 +3762,16 @@ int JNetwork::GetNetdistanceNextSID(const Tuple* actNetDistTup) const
     return -1;
 }
 
+double JNetwork::GetNetdistanceDistance(const Tuple* netDistTup) const
+{
+  if (netDistTup != NULL)
+  {
+    return ((CcReal*)netDistTup->GetAttribute(NETDIST_DIST))->GetRealval();
+  }
+  else
+    return numeric_limits< double >::max();
+}
+
 bool JNetwork::ExistsNetworkdistanceFor(const int startPathJID,
                               const vector<pair<int, double> >* endJunctions,
                               int& endPathJID, double& distTarget) const
@@ -3583,10 +3797,43 @@ bool JNetwork::ExistsNetworkdistanceFor(const int startPathJID,
   return found;
 }
 
+
 /*
 1.1 DirectConnectionExists
 
 */
+
+JRouteInterval* JNetwork::DirectConnection(const int sectId,
+                                           const RouteLocation& source,
+                                           const RouteLocation& target) const
+{
+  JRouteInterval* res = 0;
+  Tuple* sectTup = GetSectionTupleWithId(sectId);
+  if (sectTup != NULL)
+  {
+    Direction* sectDir = GetSectionDirection(sectTup);
+    if (sectDir != NULL)
+    {
+      Direction moveDir(Both);
+      if (source.GetRouteId() == target.GetRouteId())
+      {
+        if (source.GetPosition() <= target.GetPosition())
+          moveDir.SetDirection((Direction)Up);
+        else
+          moveDir.SetDirection((Direction)Down);
+        if (sectDir->SameSide(moveDir, false))
+        {
+          res = new JRouteInterval(source.GetRouteId(), source.GetPosition(),
+                                   target.GetPosition(), moveDir);
+        }
+      }
+      sectDir->DeleteIfAllowed();
+    }
+    sectTup->DeleteIfAllowed();
+  }
+  return res;
+}
+
 bool JNetwork::DirectConnectionExists(const int startSID,
                                       const int endSID,
                                       const Tuple* sourceSectTup,
@@ -3596,7 +3843,6 @@ bool JNetwork::DirectConnectionExists(const int startSID,
                                       DbArray<JRouteInterval>* res,
                                       double& length) const
 {
-  cout << "check direct connection exists" << endl;
   if (sourceSectTup != 0 && targetSectTup != 0)
   {
     if (source.GetRouteId() == target.GetRouteId())
@@ -3674,8 +3920,9 @@ bool JNetwork::DirectConnectionExists(const int startSID,
 
 */
 
+template <class SpatialPos>
 void JNetwork::AddAdjacentSections(PQManagement* pq, JPQEntry curEntry,
-                                   const Point* targetPos)
+                                   const SpatialPos* targetPos)
 {
   if (pq !=  0 && targetPos != 0)
   {
@@ -3691,7 +3938,7 @@ void JNetwork::AddAdjacentSections(PQManagement* pq, JPQEntry curEntry,
         listSID = GetSectionListAdjSectionsDown(pqSectTup);
       if (listSID != 0)
       {
-        AddAdjacentSections(pq, listSID, curEntry, targetPos);
+        AddAdjacentSections<SpatialPos>(pq, listSID, curEntry, targetPos);
         listSID->Destroy();
         listSID->DeleteIfAllowed();
         listSID = 0;
@@ -3703,66 +3950,66 @@ void JNetwork::AddAdjacentSections(PQManagement* pq, JPQEntry curEntry,
   }
 }
 
+template<class SpatialPos>
 void JNetwork::AddAdjacentSections(PQManagement* pq, const JListInt* listSID,
-                                   JPQEntry curEntry, const Point* targetPos)
+                                   JPQEntry curEntry,
+                                   const SpatialPos* targetPos)
 {
-  //cout << "AddAdjacentSections for : " << curEntry << endl;
   if (pq != 0 && listSID != 0 && targetPos != 0)
   {
     Tuple* curSectTup = 0;
     CcInt nextSID;
+    JPQEntry* tmpEntry= 0;
     for (int i = 0; i < listSID->GetNoOfComponents(); i++)
     {
       listSID->Get(i,nextSID);
       int curSID = nextSID.GetIntval();
-      //cout << "adjSect: " << curSID << endl;
+      tmpEntry = new JPQEntry(curEntry);
+      if (curEntry.GetSectionId() < 0 && curEntry.GetStartNextSID() < 0)
+      {
+        tmpEntry->SetSectionId(curSID);
+        tmpEntry->SetStartNextSID(curSID);
+      }
+      tmpEntry->SetSectionId(curSID);
       curSectTup = GetSectionTupleWithId(nextSID.GetIntval());
       if (curSectTup != 0)
       {
         int sectEndJuncId = GetSectionEndJunctionID(curSectTup);
         int sectStartJuncId = GetSectionStartJunctionID(curSectTup);
-        if (sectEndJuncId == curEntry.GetStartPartJID())
+        if (sectEndJuncId == tmpEntry->GetEndPartJID())
         {
-          curEntry.SetDirection((Direction) Down);
-          curEntry.SetStartNextJID(sectStartJuncId);
-          curEntry.SetStartPartJID(sectEndJuncId);
-          curEntry.SetEndPartJID(sectStartJuncId);
+          tmpEntry->SetDirection((Direction) Down);
+          tmpEntry->SetStartPartJID(sectEndJuncId);
+          tmpEntry->SetEndPartJID(sectStartJuncId);
         }
         else
         {
-          curEntry.SetDirection((Direction) Up);
-          curEntry.SetStartNextJID(sectEndJuncId);
-          curEntry.SetStartPartJID(sectStartJuncId);
-          curEntry.SetEndPartJID(sectEndJuncId);
+          tmpEntry->SetDirection((Direction) Up);
+          tmpEntry->SetStartPartJID(sectStartJuncId);
+          tmpEntry->SetEndPartJID(sectEndJuncId);
         }
-      }
-
-      Tuple* curJunc = GetJunctionTupleWithId(curEntry.GetEndPartJID());
-      if (curJunc != 0)
-      {
-        Point* curEndPoint = GetJunctionSpatialPos(curJunc);
-        if (curEndPoint != 0)
+        Tuple* curJunc = GetJunctionTupleWithId(tmpEntry->GetEndPartJID());
+        if (curJunc != 0)
         {
-          double curDist =
-          curEntry.GetDistFromStart() + GetSectionLength(curSectTup);
-          double prio = curDist + curEndPoint->Distance(*targetPos);
-          pq->Insert(JPQEntry(curEntry.GetDirection(),
-                              curSID,
-                              curEntry.GetStartPathJID(),
-                              curEntry.GetStartNextJID(),
-                              curEntry.GetStartNextSID(),
-                              curEntry.GetStartPartJID(),
-                              curEntry.GetEndPartJID(),
-                              curDist,
-                              prio));
-          curEndPoint->DeleteIfAllowed();
-          curEndPoint = 0;
+          Point* curEndPoint = GetJunctionSpatialPos(curJunc);
+          if (curEndPoint != 0)
+          {
+            double curDist = curEntry.GetDistFromStart() +
+                                      GetSectionLength(curSectTup);
+            tmpEntry->SetDistFromStart(curDist);
+            tmpEntry->SetPriority(curDist + targetPos->Distance(*curEndPoint));
+            pq->Insert(*tmpEntry);
+            curEndPoint->DeleteIfAllowed();
+            curEndPoint = 0;
+          }
+          curJunc->DeleteIfAllowed();
+          curJunc = 0;
         }
-        curJunc->DeleteIfAllowed();
-        curJunc = 0;
+        curSectTup->DeleteIfAllowed();
+        curSectTup = 0;
       }
-      curSectTup->DeleteIfAllowed();
-      curSectTup = 0;
+      delete tmpEntry;
+      tmpEntry = 0;
     }
   }
 }
@@ -3771,6 +4018,144 @@ void JNetwork::AddAdjacentSections(PQManagement* pq, const JListInt* listSID,
 1.1.1.1 WriteShortestPath
 
 */
+
+void JNetwork::WriteShortestPath(const DbArray< PosJNetSpatial >* sources,
+                                 const DbArray< PosJNetSpatial >* targets,
+                                 const int srcStartPathJID,
+                                 const int tgtPosInArray,
+                                 const bool tgtOverStartJunction,
+                                 DbArray<JRouteInterval>*& result)
+{
+  if (sources != NULL && targets != NULL && result != NULL &&
+      sources->Size() > 0 && targets->Size() > 0 &&
+      targets->Size() > tgtPosInArray)
+  {
+    JRouteInterval* curRint = 0;
+    JRouteInterval* tmp = 0;
+    int srcPosInArray(-1);
+    bool srcOverStartJunc(false);
+    PosJNetSpatial start, end;
+    Tuple* sectTup = 0;
+    getStartPosJNet(sources, srcStartPathJID, srcPosInArray, srcOverStartJunc,
+                    start);
+    int startJID = srcStartPathJID;
+    if (start.GetSectionId() > -1)
+    {
+      sectTup = GetSectionTupleWithId(start.GetSectionId());
+      if (sectTup != NULL)
+      {
+        curRint = GetSectionFirstRouteInterval(sectTup);
+        if (curRint != NULL)
+        {
+          if (srcOverStartJunc)
+          {
+            tmp = new JRouteInterval(curRint->GetRouteId(),
+                                     curRint->GetFirstPosition(),
+                                     curRint->GetFirstPosition() +
+                                     start.GetDistFromStartJunction(), Down);
+            startJID = start.GetStartJID();
+          }
+          else
+          {
+            tmp = new JRouteInterval(curRint->GetRouteId(),
+                                     curRint->GetLastPosition() -
+                                       start.GetDistFromEndJunction(),
+                                     curRint->GetLastPosition(), Up);
+            startJID = start.GetEndJID();
+          }
+          result->Append(*tmp);
+          curRint->DeleteIfAllowed();
+          curRint = 0;
+          tmp->DeleteIfAllowed();
+          tmp = 0;
+        }
+        sectTup->DeleteIfAllowed();
+        sectTup = 0;
+      }
+    }
+    //check if end is already reached
+    bool found = false;
+    targets->Get(tgtPosInArray,end);
+    if (srcStartPathJID == end.GetStartJID() ||
+        srcStartPathJID == end.GetEndJID())
+    {
+      found = true;
+    }
+    Tuple* netDistTup = 0;
+    int endPathJID;
+    if (tgtOverStartJunction)
+      endPathJID = end.GetStartJID();
+    else
+      endPathJID = end.GetEndJID();
+    while (!found)
+    {
+      netDistTup = GetNetdistanceTupleFor(startJID, endPathJID);
+      if (netDistTup != NULL)
+      {
+        sectTup = GetSectionTupleWithId(GetNetdistanceNextSID(netDistTup));
+        if (sectTup != NULL)
+        {
+          curRint = GetSectionFirstRouteInterval(sectTup);
+          if (curRint != NULL)
+          {
+            if (startJID == GetSectionStartJunctionID(sectTup))
+            {
+              curRint->SetSide((Direction) Up);
+              startJID = GetSectionEndJunctionID(sectTup);
+            }
+            else
+            {
+              curRint->SetSide((Direction) Down);
+              startJID = GetSectionStartJunctionID(sectTup);
+            }
+            result->Append(*curRint);
+            if (endPathJID == startJID)
+              found = true;
+            curRint->DeleteIfAllowed();
+            curRint = 0;
+          }
+          sectTup->DeleteIfAllowed();
+          sectTup = 0;
+        }
+        netDistTup->DeleteIfAllowed();
+        netDistTup = 0;
+      }
+    }
+    targets->Get(tgtPosInArray, end);
+    if (end.GetSectionId() > -1)
+    {
+      sectTup = GetSectionTupleWithId(end.GetSectionId());
+      if (sectTup != NULL)
+      {
+        curRint = GetSectionFirstRouteInterval(sectTup);
+        if (curRint != NULL)
+        {
+          if (tgtOverStartJunction)
+          {
+            tmp = new JRouteInterval(curRint->GetRouteId(),
+                                     curRint->GetFirstPosition(),
+                                     curRint->GetFirstPosition() +
+                                       end.GetDistFromStartJunction(), Up);
+          }
+          else
+          {
+            tmp = new JRouteInterval(curRint->GetRouteId(),
+                                     curRint->GetLastPosition(),
+                                     curRint->GetLastPosition() -
+                                       end.GetDistFromEndJunction(), Down);
+          }
+          result->Append(*tmp);
+          tmp->DeleteIfAllowed();
+          curRint->DeleteIfAllowed();
+          curRint = 0;
+        }
+        sectTup->DeleteIfAllowed();
+        sectTup = 0;
+      }
+    }
+  }
+}
+
 
 void JNetwork::WriteShortestPath(const RouteLocation& source,
                                  const double distSourceStartSect,
@@ -4264,11 +4649,491 @@ bool JNetwork::CheckTupleForRLoc(const Tuple* actSect,
   return false;
 }
 
+/*
+1.1.1. ConnectSpatialPositions
+
+*/
+
+void JNetwork::ConnectSpatialPositions(const DbArray<RouteLocation>* targets,
+                                      DbArray<PosJNetSpatial>* tgtEntries,
+                                      Points* spatialPositions /*=0*/)
+{
+  if (targets != NULL && tgtEntries != NULL && targets->Size() > 0)
+  {
+    tgtEntries->clean();
+    if (spatialPositions != 0)
+    {
+      spatialPositions->Clear();
+      spatialPositions->StartBulkLoad();
+    }
+    RouteLocation rloc;
+    for (int i = 0; i < targets->Size(); i ++)
+    {
+      targets->Get(i, rloc);
+      double distFromStart;
+      Tuple* sectTup = GetSectionTupleFor(rloc, distFromStart);
+      if (sectTup != NULL)
+      {
+        Point* p = GetSpatialValueOf(rloc, distFromStart, sectTup);
+        Direction* sectDir = GetSectionDirection(sectTup);
+        if (sectDir != NULL)
+        {
+          if (p != NULL)
+          {
+            switch(sectDir->GetDirection())
+            {
+              case Up:
+              {
+                if (spatialPositions != 0)
+                  spatialPositions->operator+=(*p);
+                tgtEntries->Append(PosJNetSpatial(rloc, p,
+                                           GetSectionId(sectTup),
+                                           GetSectionStartJunctionID(sectTup),
+                                           distFromStart,
+                                           -1,
+                                           -1000.0));
+                break;
+              }
+
+              case Down:
+              {
+                if (spatialPositions != 0)
+                  spatialPositions->operator+=(*p);
+                tgtEntries->Append(PosJNetSpatial(rloc, p,
+                                           GetSectionId(sectTup),
+                                           -1,
+                                           -1000.0,
+                                           GetSectionEndJunctionID(sectTup),
+                                           GetSectionLength(sectTup) -
+                                           distFromStart));
+                break;
+              }
+
+              case Both:
+              {
+                if (spatialPositions != 0)
+                  spatialPositions->operator+=(*p);
+                tgtEntries->Append(PosJNetSpatial(rloc, p,
+                                             GetSectionId(sectTup),
+                                             GetSectionStartJunctionID(sectTup),
+                                             distFromStart,
+                                             GetSectionEndJunctionID(sectTup),
+                                             GetSectionLength(sectTup) -
+                                             distFromStart));
+                break;
+              }
+
+              default:
+              {
+                break;
+              }
+            }
+            p->DeleteIfAllowed();
+            p = 0;
+          }
+          sectDir->DeleteIfAllowed();
+          sectDir = 0;
+        }
+        sectTup->DeleteIfAllowed();
+        sectTup = 0;
+      }
+    }
+    if (spatialPositions != NULL)
+      spatialPositions->EndBulkLoad();
+  }
+}
+
+/*
+1.1.1 InitPriorityQueue
+
+*/
+
+bool JNetwork::InitPriorityQueue(PQManagement* pqueue,
+                                 const DbArray<PosJNetSpatial>* sources,
+                                 const Points* endPositions)
+{
+  if (pqueue != NULL && sources != NULL && endPositions != NULL &&
+      sources->Size() > 0 && endPositions->Size() > 0)
+  {
+    PosJNetSpatial curSource;
+    Tuple *juncTup = 0;
+    JListInt* adjSectList = 0;
+    JPQEntry* pqEntry = 0;
+    Direction compD(Down);
+    int jid = -1;
+    for (int i = 0; i < sources->Size(); i++)
+    {
+      sources->Get(i, curSource);
+      if (AlmostEqual(curSource.GetDistFromStartJunction(), 0.0) ||
+          AlmostEqual(curSource.GetDistFromEndJunction(), 0.0))
+      {
+        jid = -1;
+        if (AlmostEqual(curSource.GetDistFromStartJunction(), 0.0))
+        {
+          jid = curSource.GetStartJID();
+          juncTup = GetJunctionTupleWithId(jid);
+        }
+        else
+        {
+          jid = curSource.GetEndJID();
+          juncTup = GetJunctionTupleWithId(jid);
+        }
+        if (juncTup != NULL)
+        {
+          adjSectList = GetJunctionOutSectionList(juncTup);
+          if (adjSectList != NULL)
+          {
+            pqEntry = new JPQEntry(curSource.GetNetworkPos().GetSide(), -1, jid,
+                                 jid, -1, jid, jid, 0.0,
+                            endPositions->Distance(curSource.GetSpatialPos()));
+            AddAdjacentSections<Points>(pqueue, adjSectList, *pqEntry,
+                                        endPositions);
+            delete pqEntry;
+            pqEntry = 0;
+            adjSectList->Destroy();
+            adjSectList->DeleteIfAllowed();
+          }
+          juncTup->DeleteIfAllowed();
+        }
+      }
+      else
+      {
+        Tuple* sectTup = GetSectionTupleWithId(curSource.GetSectionId());
+        if (sectTup != 0)
+        {
+          Direction* sectDir = GetSectionDirection(sectTup);
+          int test = sectDir->Compare(compD);
+          if (test != 0)
+          {
+            jid = curSource.GetEndJID();
+            juncTup = GetJunctionTupleWithId(jid);
+            if (juncTup != 0)
+            {
+              Point* curJuncPoint = GetJunctionSpatialPos(juncTup);
+              if (curJuncPoint != 0)
+              {
+                adjSectList = GetSectionListAdjSectionsUp(sectTup);
+                pqEntry = new JPQEntry((Direction) Up,
+                                       -1, jid, jid,
+                                       -1, jid, jid,
+                                       curSource.GetDistFromEndJunction(),
+                                       curSource.GetDistFromEndJunction() +
+                                        endPositions->Distance(*curJuncPoint));
+                AddAdjacentSections<Points>(pqueue, adjSectList, *pqEntry,
+                                            endPositions);
+                delete pqEntry;
+                pqEntry = 0;
+                adjSectList->Destroy();
+                adjSectList->DeleteIfAllowed();
+                curJuncPoint->DeleteIfAllowed();
+              }
+              juncTup->DeleteIfAllowed();
+            }
+          }
+          if (test >= 0)
+          {
+            jid = curSource.GetStartJID();
+            juncTup = GetJunctionTupleWithId(jid);
+            if (juncTup != 0)
+            {
+              Point* curJuncPoint = GetJunctionSpatialPos(juncTup);
+              if (curJuncPoint != 0)
+              {
+                adjSectList = GetSectionListAdjSectionsDown(sectTup);
+                pqEntry = new JPQEntry((Direction) Down,
+                                       -1, jid, jid,
+                                       -1, jid, jid,
+                                       curSource.GetDistFromStartJunction(),
+                                       curSource.GetDistFromStartJunction() +
+                                        endPositions->Distance(*curJuncPoint));
+                AddAdjacentSections<Points>(pqueue, adjSectList, *pqEntry,
+                                            endPositions);
+                delete pqEntry;
+                pqEntry = 0;
+                adjSectList->Destroy();
+                adjSectList->DeleteIfAllowed();
+                curJuncPoint->DeleteIfAllowed();
+              }
+              juncTup->DeleteIfAllowed();
+            }
+          }
+          sectTup->DeleteIfAllowed();
+          sectTup = 0;
+        }
+      }
+    }
+    return true;
+  }
+  else
+    return false;
+}
+
+bool JNetwork::CheckForSameSections(const DbArray< PosJNetSpatial >* sources,
+                                    const DbArray< PosJNetSpatial >* targets,
+                                    DbArray< JRouteInterval >*& sp)
+{
+  if (sources != NULL && targets != NULL && sources->Size() > 0 &&
+      targets->Size() > 0)
+  {
+    JRouteInterval* jri = 0;
+    JRouteInterval* tmp = 0;
+    PosJNetSpatial src, tgt;
+    for (int i = 0; i < sources->Size(); i++)
+    {
+      sources->Get(i, src);
+      for (int j = 0; j < targets->Size(); j++)
+      {
+        targets->Get(j,tgt);
+        if (src.GetSectionId() == tgt.GetSectionId())
+        {
+          RouteLocation sour = src.GetNetworkPos();
+          RouteLocation targ = tgt.GetNetworkPos();
+          if (ExistsCommonRoute(sour, targ))
+          {
+            tmp = DirectConnection(src.GetSectionId(), sour, targ);
+            if (jri != NULL)
+            {
+              if (jri->GetLength() > tmp->GetLength())
+              {
+                jri->DeleteIfAllowed();
+                jri = new JRouteInterval(*tmp);
+              }
+            }
+            else
+            {
+              jri = new JRouteInterval(*tmp);
+            }
+            tmp->DeleteIfAllowed();
+          }
+        }
+      }
+    }
+    if (jri != NULL)
+    {
+      sp = new DbArray<JRouteInterval>(0);
+      sp->Append(*jri);
+      jri->DeleteIfAllowed();
+    }
+  }
+  return (sp != NULL);
+}
+
+bool JNetwork::ProcessPriorityQueue(PQManagement* pqueue,
+                                    const DbArray< PosJNetSpatial >* targets,
+                                    const Points* spatialPosTargets,
+                                    int& tgtPosInArray,
+                                    bool& tgtIsStartJunction,
+                                    int& srcStartPathJID,
+                                    double& minDist)
+{
+  bool found = false;
+  JPQEntry* curPQElement = 0;
+  DbArray<InterSP>* wayEntries = new DbArray<InterSP>(0);
+  while(!found && !pqueue->IsEmpty())
+  {
+    curPQElement = pqueue->GetAndDeleteMin();
+     if (minDist >= curPQElement->GetPriority())
+    {
+      InsertNetdistanceTuple(curPQElement->GetStartPathJID(), curPQElement,
+                             wayEntries);
+      double distLastJuncEndPoint = -1.0;
+      if (reachedEndpoint(curPQElement, targets, distLastJuncEndPoint,
+                          tgtPosInArray, tgtIsStartJunction, srcStartPathJID))
+      {
+        found = true;
+        minDist = curPQElement->GetDistFromStart()+ distLastJuncEndPoint;
+        //check for shorter other end
+        bool testOther = false;
+        JPQEntry* test = 0;
+        while(!testOther && !pqueue->IsEmpty())
+        {
+          test = pqueue->GetAndDeleteMin();
+          if (test->GetPriority() < minDist)
+          {
+            double testDistLastJuncEndPoint = -1.0;
+            int testPosInArray = -1;
+            bool testIsStartJunction = false;
+            int testSrcStartPathJID = -1;
+            if (reachedEndpoint(test, targets, testDistLastJuncEndPoint,
+                                testPosInArray, testIsStartJunction,
+                                testSrcStartPathJID))
+            {
+              if (minDist > test->GetDistFromStart()+testDistLastJuncEndPoint)
+              {
+                if (curPQElement != 0)
+                  delete curPQElement;
+                curPQElement = test;
+                minDist = test->GetDistFromStart() + testDistLastJuncEndPoint;
+                tgtPosInArray = testPosInArray;
+                tgtIsStartJunction = testIsStartJunction;
+                srcStartPathJID = testSrcStartPathJID;
+              }
+            }
+            else
+            {
+              AddAdjacentSections<Points>(pqueue, *test, spatialPosTargets);
+            }
+          }
+          else
+          {
+            testOther = true;
+          }
+          if (test != NULL)
+          {
+            if (test != curPQElement)
+              delete test;
+            test = 0;
+          }
+        }
+      }
+      else
+      {
+        AddAdjacentSections<Points>(pqueue, *curPQElement, spatialPosTargets);
+      }
+    }
+    else
+    {
+      found = true;
+    }
+    if (curPQElement != NULL)
+      delete curPQElement;
+    curPQElement = 0;
+  }
+  return found;
+}
+
+bool JNetwork::CheckForExistingNetdistance(
+                                const DbArray< PosJNetSpatial >* srcEntries,
+                                const DbArray< PosJNetSpatial >* tgtEntries,
+                                int& srcStartPathJID, int& tgtPosInArray,
+                                bool& tgtOverStartJunction, double& minDist)
+{
+  bool result = false;
+  if (srcEntries != NULL && tgtEntries != NULL &&
+      srcEntries->Size() > 0 && tgtEntries->Size() > 0)
+  {
+    result = true;
+    PosJNetSpatial start, end;
+    double tmpMinDist = minDist;
+    int tmpSrcStartPathJID = srcStartPathJID;
+    bool tmpTgtOverStartJunction = tgtOverStartJunction;
+    for (int i = 0; i < srcEntries->Size(); i++)
+    {
+      srcEntries->Get(i,start);
+      for (int j = 0; j < tgtEntries->Size(); j++)
+      {
+        tgtEntries->Get(j,end);
+        if (ExistsNetdistancesFor(start, end, tmpMinDist, tmpSrcStartPathJID,
+                                  tmpTgtOverStartJunction))
+        {
+          if (tmpMinDist < minDist)
+          {
+            minDist = tmpMinDist;
+            srcStartPathJID = tmpSrcStartPathJID;
+            tgtPosInArray = j;
+            tgtOverStartJunction = tmpTgtOverStartJunction;
+          }
+        }
+        else
+          result = false;
+      }
+    }
+  }
+  return result;
+}
+
+bool JNetwork::ExistsNetdistancesFor(const PosJNetSpatial& start,
+                                     const PosJNetSpatial& end,
+                                     double& minDist,
+                                     int& srcStartPathJID,
+                                     bool& tgtOverStartJunction)
+{
+  bool result = true;
+  if (start.GetStartJID() > -1)
+  {
+    if (end.GetStartJID() > -1)
+    {
+      result = ExistsNetdistanceFor(start.GetStartJID(),
+                                    start.GetDistFromStartJunction(),
+                                    end.GetStartJID(),
+                                    end.GetDistFromStartJunction(),
+                                    true, minDist, srcStartPathJID,
+                                    tgtOverStartJunction)
+              && result;
+    }
+    if (end.GetEndJID() > -1)
+    {
+      result = ExistsNetdistanceFor(start.GetStartJID(),
+                                    start.GetDistFromStartJunction(),
+                                    end.GetEndJID(),
+                                    end.GetDistFromEndJunction(),
+                                    true, minDist, srcStartPathJID,
+                                    tgtOverStartJunction)
+              && result;
+    }
+  }
+  if (start.GetEndJID() > -1)
+  {
+    if (end.GetStartJID() > -1)
+    {
+      result = ExistsNetdistanceFor(start.GetEndJID(),
+                                    start.GetDistFromEndJunction(),
+                                    end.GetStartJID(),
+                                    end.GetDistFromStartJunction(),
+                                    true, minDist, srcStartPathJID,
+                                    tgtOverStartJunction)
+              && result;
+    }
+    if (end.GetEndJID() > -1)
+    {
+      result = ExistsNetdistanceFor(start.GetEndJID(),
+                                    start.GetDistFromEndJunction(),
+                                    end.GetEndJID(),
+                                    end.GetDistFromEndJunction(),
+                                    true, minDist, srcStartPathJID,
+                                    tgtOverStartJunction)
+              && result;
+    }
+  }
+  return result;
+}
+
+bool JNetwork::ExistsNetdistanceFor(const int startjid, const double startdist,
+                                    const int endjid, const double enddist,
+                                    const bool endStartJunction,
+                                    double& minDist,
+                                    int& srcStartPathJID,
+                                    bool& tgtOverStartJunction)
+{
+  Tuple* netDistTup = GetNetdistanceTupleFor(startjid, endjid);
+  if (netDistTup != 0)
+  {
+    double netDist = GetNetdistanceDistance(netDistTup);
+    if (netDist < numeric_limits< double >::max())
+    {
+      double tmpMinDist = startdist + netDist + enddist;
+      if (tmpMinDist < minDist)
+      {
+        minDist = tmpMinDist;
+        srcStartPathJID = startjid;
+        tgtOverStartJunction = enddist;
+      }
+    }
+    netDistTup->DeleteIfAllowed();
+    netDistTup = 0;
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
 
 /*
 1 Overwrite output operator
 
 */
+
 ostream& operator<< (ostream& os, const JNetwork& n)
 {
   n.Print(os);

@@ -443,13 +443,23 @@ bool RouteLocation::SameSide(const RouteLocation& rloc,
 /*
 1.1.1.1 ~IsOnSameRoute~
 
-Returns true if the rid is the same. Otherwise false.
-
 */
 
 bool RouteLocation::IsOnSameRoute(const RouteLocation& rloc) const
 {
   return rid == rloc.GetRouteId();
+}
+
+
+/*
+1.1.1.1 ~IsOnSamePlace~
+
+*/
+
+bool RouteLocation::IsOnSamePlace(const RouteLocation& rloc) const
+{
+  return (IsOnSameRoute(rloc) && SameSide(rloc,false) &&
+          pos == rloc.GetPosition());
 }
 
 /*

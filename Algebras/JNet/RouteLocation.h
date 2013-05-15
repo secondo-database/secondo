@@ -167,6 +167,16 @@ Returns true if the rid is the same. Otherwise false.
 bool IsOnSameRoute(const RouteLocation& rloc) const;
 
 /*
+1.1.1.1 ~IsOnSamePlace~
+
+Returns true if the rloc is on the same route at the same positon with lazy
+respect of side.
+
+*/
+
+bool IsOnSamePlace(const RouteLocation& rloc) const;
+
+/*
 1.1.1.1 NetBox
 
 Returns a 2 dimensional rectangle where x1 and x2 are identic and respresent

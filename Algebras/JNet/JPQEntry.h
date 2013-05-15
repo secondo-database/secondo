@@ -39,7 +39,7 @@ namespace jnetwork {
 Stores priority queue informations for shortest path resp. network distance
 computation within JNetAlgebra.
 
-It consist of the identifier of three junction identifiers, one for the
+It consist of three junction identifiers, one for the
 junction at the start of the shortest path, one for the junction currently
 reached and one for the junction before current junction, two double values
 one for the priority value and one for the network distance of the current

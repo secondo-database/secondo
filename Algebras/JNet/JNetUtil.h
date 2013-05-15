@@ -117,6 +117,9 @@ Returns true if at least one pair of jrint one of lhs and one of rhs intersects.
   static bool ArrayContainIntersections (const DbArray<JRouteInterval>& lhs,
                                          const DbArray<JRouteInterval>& rhs);
 
+  static bool ArrayContainIntersections (const DbArray<RouteLocation>& lhs,
+                                         const DbArray<RouteLocation>& rhs);
+
 };
 
 

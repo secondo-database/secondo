@@ -286,3 +286,20 @@ bool JNetUtil::ArrayContainIntersections(const DbArray< JRouteInterval >& lhs,
   }
   return false;
 }
+
+bool JNetUtil::ArrayContainIntersections(const DbArray< RouteLocation >& lhs,
+                                         const DbArray< RouteLocation >& rhs)
+{
+  RouteLocation lhsRLoc, rhsRLoc;
+  for (int i = 0; i < lhs.Size(); i++)
+  {
+    lhs.Get(i, lhsRLoc);
+    for (int j = 0; j < rhs.Size(); j++)
+    {
+      rhs.Get(j,rhsRLoc);
+      if (lhsRLoc.IsOnSamePlace(rhsRLoc))
+        return true;
+    }
+  }
+  return false;
+}

@@ -174,7 +174,7 @@ int JPQEntry::Compare(const JPQEntry& other) const
 
 ostream& JPQEntry::Print(ostream& os) const
 {
-  os << "Path from started at " << startPathJID
+  os << "Path started at " << startPathJID
      << ", first junction on way: " << startNextJID
      << ", reached via section: " << startNextSID
      << ", reached junction: " << endPartJID
