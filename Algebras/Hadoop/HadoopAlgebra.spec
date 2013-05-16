@@ -23,5 +23,5 @@ operator para alias PARA pattern op (_)
 operator hadoopMap alias HADOOPMAP pattern _ op [list; fun] implicit parameter lobject1 type TPARA
 operator hadoopReduce alias HADOOPREDUCE pattern _ op [list; fun] implicit parameter lobject1 type TPARA
 operator hadoopReduce2 alias HADOOPREDUCE2 pattern _ _ op [list; fun] implicit parameters lobject1, lobject2 types TPARA, TPARA2 
-operator createFList alias CREATEFLIST pattern op(_)
+operator createFList alias CREATEFLIST pattern _ op[_, _, _, _]
 operator pffeed alias PFFEED pattern _ op [list;list]

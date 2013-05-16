@@ -542,7 +542,7 @@ bool fList::verifyLocList()
         int nodeNum = aRow.first().intval();
         if (nodeNum >= (int)interCluster->getClusterSize())
         {
-          cerr << "Improper row number: " << nodeNum << endl;
+          cerr << "Improper data server number: " << nodeNum << endl;
           return false;
         }
         NList cfList = aRow.second();
@@ -4444,37 +4444,6 @@ Operator hadoopReduce2OP(
     hadoopReduce2Info(), hadoopReduce2ValueMap, hadoopReduce2TypeMap);
 
 
-
-
-
-
-/*
-6 Operator ~hadoop~
-
-This operator should performs various kinds of binary sequence
-operators in parallel. Its mapping is:
-
-----
-flist(T1) x flist(T2)
-x (map stream(T1) stream(T3(... ai ... )) )   # mapQuery 1
-x ai                                          # PartitionAttribute 1
-x (map stream(T2) stream(T4(... aj ... )) )   # mapQuery 2
-x aj                                          # PartitionAttribute 2
-x (map stream(T3) stream(T4) stream(T5))      # reduceQuery
-x string                                      # resultName
-x int                                         # reduce scale
--> flist(T5)
-----
-
-And its specification is:
-
-----
-_ _ hadoop[_, _;_,_;_;_,_]
-flist flist hadoop[map1, Part1; map2, Part2; reduce; result, scale]
-----
-
-*/
-
 /*
 4 Operator ~createFList~
 
@@ -4487,6 +4456,39 @@ I disable the In and Out function of the flist,
 like what BTree does, because we abandon the DGO kind object,
 hence it is impossible to create a flist without running a hadoop job.
 
+Update on 15th May 2013
+
+In some cases, like in the parallel generation of BerlinMOD data,
+data are created independently on all Data Servers.
+In order to access all data on the cluster,
+the ~createFList~ operator is extended.
+
+It accepts a schema relation, to indicate the type of the distributed data.
+Besides, it accepts several arguments to indicate the location of distributed data,
+and returns the flist at last.
+
+For DLF flist, this operator maps:
+
+----
+stream(tuple(T))
+  x ObjectName  : string
+  x LocRel      : rel(tuple((Row:int)(DS:int)(Column:int)(FilePath:text))))
+  x type        : DLF
+  x Distributed : bool
+\to flist(stream(tuple(T)))
+----
+
+For DLO flist, this operator maps:
+
+----
+T
+  x ObjectName  : string
+  x LocRel      : rel(tuple((Row:int)(DS:int)(Column:int)(FilePath:text))))
+  x type        : DLO
+  x Distributed : bool
+\to flist(T)
+----
+
 
 */
 struct createFListInfo : OperatorInfo
@@ -4494,8 +4496,10 @@ struct createFListInfo : OperatorInfo
   createFListInfo()
   {
     name = "createFList";
-    signature = "T -> flist";
-    meaning = "";
+    signature = "T x string x rel x DLO(DLF) x bool -> flist(T)";
+    meaning = "Create a flist object, "
+        "in case the data are already distributed on the cluster without "
+        "using the spread operator.";
   }
 };
 
@@ -4507,23 +4511,131 @@ ListExpr createFListTypeMap(ListExpr args){
 
   NList l(args);
   string tpeErr = "ERROR! createFList expects "
-    "T -> flist Debuging ... ";
-  if (l.length() != 1){
+      "T x string x rel x DLO(DLF) x bool";
+  string lorErr = "ERROR! The location relation excepts "
+      "rel(tuple((Row:int) (DS:int) (Column:int) (FilePath:text)))";
+  string ifaErr = "ERROR! Infeasible evaluation in TM of attribute:";
+  string onmErr = "ERROR! Operator createFList expects the created "
+      "object name starts with upper case. ";
+  string hnmErr = "ERROR! Exists homonymous flist type file in: ";
+  string fwtErr = "ERROR! Failed writing type into file: ";
+
+
+  if (l.length() != 5){
     return l.typeError(tpeErr);
   }
 
-  NList pType, pValue;
   try{
-     pType = l.first().first();
-     pValue = l.first().second();
+    NList pType, pValue;
+    fListKind kind = DLO;
 
-     string objName = pValue.str();
-     if (!SecondoSystem::GetCatalog()->IsObjectName(objName))
-       return l.typeError("Object doesn't exist");
+    //First argument
+    NList inputType = l.first().first();
 
-     NList resultType = NList(NList(fList::BasicType()), pType);
+    //Second argument : ObjectName
+    //If it is empty, then use the default temporal value
+    pType = l.second().first();
+    if (!pType.isSymbol(CcString::BasicType()))
+      return l.typeError(tpeErr);
 
-     return resultType.listExpr();
+    //Third argument : location relation
+    pType = l.third().first();
+    if (!listutils::isRelDescription(pType.listExpr()))
+      return l.typeError(tpeErr);
+    NList attrList = pType.second().second();
+    if (attrList.length() != 4)
+      return l.typeError(lorErr);
+    for (int i = 1; i < 4; i++)
+    {
+      if (!attrList.elem(i).second().isEqual(CcInt::BasicType()))
+        return l.typeError(lorErr);
+    }
+    if (!attrList.fourth().second().isEqual(FText::BasicType()))
+      return l.typeError(lorErr);
+
+    //Fourth argument
+    pType = l.fourth().first();
+    if (pType.isSymbol("DLF")){
+      kind = DLF;
+    }
+    else if (pType.isSymbol("DLO")){
+      kind = DLO;
+    }
+    else
+      return l.typeError(tpeErr);
+
+    //Fifth argument
+    pType = l.fifth().first();
+    if (!pType.isSymbol(CcBool::BasicType()))
+      return l.typeError(tpeErr);
+
+    if ( kind == DLF )
+    {
+      if (!listutils::isTupleStream(inputType.listExpr()))
+        return l.typeError(tpeErr);
+    }
+
+    //Create the type file
+    NList onList;
+    if (!QueryProcessor::GetNLArgValueInTM(l.second().second(), onList)){
+      return l.typeError(ifaErr + "ObjectName");
+    }
+    string objName = onList.str();
+    if (objName.length() == 0)
+      objName = fList::tempName(false);
+    else
+    {
+      //Prepare the type file if the ObjectName is indicated by the user
+      char f = objName[0];
+      if ( f < 'A' || f > 'Z'){
+        return l.typeError(onmErr);
+      }
+
+      string filePath = getLocalFilePath("", (objName + "_type"), "", true);
+      if (FileSystem::FileOrFolderExists(filePath))
+      {
+        ListExpr exeType; //The exist type
+        bool ok = false;
+        if (nl->ReadFromFile(filePath, exeType))
+        {
+          if (nl->Equal(exeType, inputType.listExpr())){
+            ok = true;
+          }
+          else
+          {
+            if (kind == DLF
+                && (listutils::isRelDescription(exeType)
+                  || listutils::isTupleStream(exeType))){
+              //Be more compatible with file-related operators,
+              //checks the stream tuple only
+              if (nl->Equal(nl->Second(inputType.listExpr()),
+                    nl->Second(exeType)))
+                ok = true;
+            }
+          }
+        }
+        if (!ok)
+          return l.typeError(hnmErr + filePath);
+      }
+      else
+      {
+        ListExpr expList = inputType.listExpr();
+        if (nl->IsAtom(expList)){
+          expList = nl->OneElemList(expList);
+        }
+        if (!nl->WriteToFile(filePath, expList)){
+          return l.typeError(fwtErr + filePath);
+        }
+      }
+    }
+
+    NList resultType = NList(NList(fList::BasicType()), inputType);
+
+    return NList(
+            NList(Symbol::APPEND()),
+            NList(NList(objName, true, false),
+                  NList((int)kind)),
+            resultType).listExpr();
   } catch(...){
     return l.typeError(tpeErr);
   }
@@ -4538,14 +4650,81 @@ int createFListValueMap(Word* args, Word& result,
     int message, Word& local, Supplier s){
 
   string dbName = fList::tempName(true);
-
-  string objName = fList::tempName(false);
+  string objName = ((CcString*)args[5].addr)->GetValue();
+  fListKind kind = (fListKind)((CcInt*)args[6].addr)->GetValue();
   NList resultType = NList(qp->GetType(s));
   clusterInfo* ci = new clusterInfo();
-  NList fileLocList = NList();
+  //TODO
   size_t dupTime = 1;
-  fList* rl =
+  bool distributed = ((CcBool*)args[4].addr)->GetValue();
+  NList fileLocList;
+
+  fList* emptyFlist =
       new fList(objName, resultType, ci, fileLocList, dupTime);
+
+  vector<pair<int, rowInLocRel> > locList;
+  GenericRelation* locRel = (GenericRelation*)(args[2].addr);
+  GenericRelationIterator* iter = locRel->MakeScan();
+  Tuple* nextTuple = iter->GetNextTuple();
+  while (!iter->EndOfScan()){
+    int row    = ((CcInt*)nextTuple->GetAttribute(0))->GetValue();
+    rowInLocRel r;
+    r.dsIndex = ((CcInt*)nextTuple->GetAttribute(1))->GetValue();
+    r.column  = ((CcInt*)nextTuple->GetAttribute(2))->GetValue();
+    r.filePath = ((FText*)nextTuple->GetAttribute(3))->GetValue();
+    locList.push_back(pair<int, rowInLocRel>(row, r));
+
+    nextTuple->DeleteIfAllowed();
+    nextTuple = iter->GetNextTuple();
+  }
+  sort(locList.begin(), locList.end(),rowRelInfo);
+
+  vector<pair<int, rowInLocRel> >::iterator llit = locList.begin();
+  int crow = 1;
+  while (llit != locList.end())
+  {
+    int row = llit->first;
+
+    if (crow < row){
+      for (; crow < row; crow++){
+        fileLocList.append(NList());
+      }
+    }
+    else if ( crow == row)
+    {
+      int dsIndex = llit->second.dsIndex;
+      string filePath = llit->second.filePath;
+      NList columnsList;
+      while (llit != locList.end())
+      {
+        if (llit->first != crow){
+          crow++;
+          break;
+        }
+        if (llit->second.dsIndex != dsIndex ||
+            llit->second.filePath.compare(filePath) != 0){
+          cerr <<
+              "ERROR! The format of the location relation is wrong." << endl;
+          result.setAddr(emptyFlist);
+          return 0;
+        }
+        columnsList.append(NList(llit->second.column));
+        llit++;
+      }
+      fileLocList.append(NList(NList(dsIndex), columnsList,
+          NList(filePath, true, true)));
+    }
+    else
+    {
+      // crow > crow
+      cerr << "ERROR! The format of the location relation is wrong." << endl;
+      result.setAddr(emptyFlist);
+      return 0;
+    }
+  }
+
+  fList* rl = new fList(objName, resultType, ci, fileLocList,
+      dupTime, distributed, kind);
 
   result.setAddr(rl);
   return 0;

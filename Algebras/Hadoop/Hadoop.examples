@@ -6,63 +6,63 @@ Number   : 1
 Signature:  
 Example  : let dis_file_list = plz feed spread["plz",'',1;PLZ,5,TRUE;Ort,10,TRUE] 
 Result   : crashes
-Remark   : There is a lack of parallel processing configurations normally
+Remark   : Lack of  Parallel Secondo installation. 
 
 Operator : collect
 Number   : 1
 Signature:  
 Example  : query dis_file_list collect[0,0] count
 Result   : crashes
-Remark   : There is a lack of parallel processing configurations normally
+Remark   : Lack of  Parallel Secondo installation. 
 
 Operator : para
 Number   : 1
 Signature:  
 Example  : query para(dis_file_list) 
 Result   : crashes
-Remark   : There is a lack of parallel processing configurations normally
+Remark   : Lack of  Parallel Secondo installation. 
 
 Operator: TPARA
 Number: 1
 Signature: ( flist(ANY) ) -> ANY
 Example  : query plz feed spread[ ; PLZ, 5, TRUE ; ] hadoopMap[ ; . consume];
 Result: crashes
-Remark   : There is a lack of parallel processing configurations normally
+Remark   : Lack of  Parallel Secondo installation. 
 
 Operator: TPARA2
 Number: 1
 Signature: ( ANY1 x flist(ANY2) ) -> ANY2
 Example  : let SubFileRel = plz feed spread[;PLZ,5,TRUE;]; query SubFileRel SubFileRel hadoopReduce2[ PLZ, PLZ, DLF, 5; . .. {n} hashjoin[PLZ, PLZ_n] ] collect[] count;
 Result: crashes
-Remark   : There is a lack of parallel processing configurations normally
+Remark   : Lack of  Parallel Secondo installation. 
 
 Operator : createFList
 Number   : 1
-Signature: T -> flist(T)
-Example  : let One = 1; query createFList(One);
+Signature: T x [string x rel x bool]-> flist(T)
+Example  : let locRel = [const rel(tuple([Row:int, DS:int, Column:int, Path:text])) value ()]; query plz feed createFList["", locRel, DLF, FALSE];
 Result   : crashes
-Remark   : There is a lack of parallel processing configurations normally
+Remark   : Lack of  Parallel Secondo installation. 
 
 Operator : hadoopMap
 Number   : 1
 Signature: flist(T) x [string] x [text] x [(DLO):DLF] x [bool] x ( map T T1 ) -> flist(T1)
 Example  : query plz feed spread[ ; PLZ, 5, TRUE ; ] hadoopMap[ ; . consume];
 Result   : crashes
-Remark   : There is a lack of parallel processing configurations normally
+Remark   : Lack of  Parallel Secondo installation. 
 
 Operator : hadoopReduce
 Number   : 1
 Signature: flist(T) x partAttr x [string] x [text] x [(DLO):DLF] x ( map T T1 ) -> flist(T1)
 Example  : query plz feed spread[ ; PLZ, 5, TRUE ; ] hadoopMap[ ; . consume] hadoopReduce[ Ort ; . feed consume];
 Result   : crashes
-Remark   : There is a lack of parallel processing configurations normally
+Remark   : Lack of  Parallel Secondo installation. 
 
 Operator : hadoopReduce2
 Number   : 1
 Signature: flist(T1) x flist(T2) x partAttr1 x partAttr2 x [string] x [text] x [(DLO):DLF] x [int] x ( map (T1 T2) T3 ) -> flist(T3)
 Example  : let SubFileRel = plz feed spread[;PLZ,5,TRUE;]; query SubFileRel SubFileRel hadoopReduce2[ PLZ, PLZ, DLF, 5; . .. {n} hashjoin[PLZ, PLZ_n] ] collect[] count;
 Result   : crashes
-Remark   : There is a lack of parallel processing configurations normally
+Remark   : Lack of  Parallel Secondo installation. 
 
 Operator : pffeed
 Number   : 1

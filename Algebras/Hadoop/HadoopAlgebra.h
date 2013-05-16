@@ -229,6 +229,25 @@ private:
 };
 
 /*
+1.6 RowInLocList structure
+
+It describes one row in the flistLoc list.
+
+*/
+
+typedef struct
+{
+  int dsIndex, column;
+  string filePath;
+
+}rowInLocRel;
+
+bool static rowRelInfo(pair<int, rowInLocRel> r1, pair<int, rowInLocRel> r2)
+{
+  return r1.first < r2.first;
+}
+
+/*
 1.7 SpreadLocalInfo class
 
 */
