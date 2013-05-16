@@ -42,7 +42,7 @@ while [ $numOfArgs -ne $OPTIND ]; do
 done
 
 aJobs=()
-Status="/tmp/.ps-start-AllMonitors.data"
+Status="/tmp/.${USER}_ps-start-AllMonitors.data"
 cat /dev/null > $Status
 
 function startNodeMonitors

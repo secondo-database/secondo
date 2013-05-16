@@ -142,7 +142,7 @@ fi
 # Also the master and slave lists
 RARVNAME="DTR_secondo.tar.gz"
 aJobs=()
-Status="/tmp/.ps-secondo-buildMini.data"
+Status="/tmp/.${USER}_ps-secondo-buildMini.data"
 cat /dev/null > $Status
 
 function buildNodeMiniSec
