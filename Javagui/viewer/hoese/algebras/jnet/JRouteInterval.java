@@ -96,6 +96,12 @@ public class JRouteInterval{
             dir.compareTo(rint.getDir().toString(), false) == 0);
   }
 
+  public boolean isStartOrEndOf(JRouteInterval rint, double tolerance){
+    return (rid.compareTo(rint.getRid()) == 0 &&
+            (almostEqual(spos , rint.getStartPos(), tolerance) ||
+             almostEqual(epos, rint.getEndPos(), tolerance)));
+  }
+
   public Integer getRid(){
     return rid;
   }

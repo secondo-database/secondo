@@ -154,6 +154,8 @@ public class JNetwork{
           curSectRenderedPath = curSect.getCurve(true);
           curSectPath = curSect.getCurve(false);
           addResult = true;
+          if (curSect.isStartOrEndOf(rint, tolerance))
+            drawArrow = hasArrow;
         } else {
           pos = curSect.contains(rint, tolerance);
           if (pos > -1){
@@ -163,7 +165,7 @@ public class JNetwork{
             startpoint = curSect.getPosition(rint.getStartRLoc(), pos,
                                              tolerance);
             endpoint = curSect.getPosition(rint.getEndRLoc(), pos, tolerance);
-            if (hasArrow) drawArrow = true;
+            drawArrow = hasArrow;
           } else {
             pos = curSect.contains(rint.getStartRLoc(), tolerance);
             if (pos > -1 &&
@@ -176,7 +178,7 @@ public class JNetwork{
               addResult = true;
               startpoint = curSect.getPosition(rint.getStartRLoc(), pos,
                                            tolerance);
-              if (hasArrow && !up) drawArrow = true;
+              drawArrow = (hasArrow && !up);
             } else {
               pos = curSect.contains(rint.getEndRLoc(), tolerance);
               if (pos > -1 &&
@@ -187,7 +189,7 @@ public class JNetwork{
                 addResult = true;
                 endpoint = curSect.getPosition(rint.getEndRLoc(), pos,
                                                tolerance);
-                if (hasArrow && up) drawArrow = true;
+                drawArrow = (hasArrow && up);
               }
             }
           }

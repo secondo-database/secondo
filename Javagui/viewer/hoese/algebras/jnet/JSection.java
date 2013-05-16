@@ -147,6 +147,16 @@ public class JSection{
     return -1;
   }
 
+  public boolean isStartOrEndOf(JRouteInterval rint, double tolerance){
+    for (int i = 0; i < routeIntervals.size(); i++){
+      JRouteInterval curInt = routeIntervals.get(i);
+      if (curInt.isStartOrEndOf(rint, tolerance)){
+        return true;
+      }
+    }
+    return false;
+  }
+
   public GeneralPath getCurve(boolean rendered){
     if (rendered)
       return curveRendered;
@@ -158,7 +168,17 @@ public class JSection{
     JRouteInterval curInt = routeIntervals.get(pos);
     double startpos = rint.getStartPos()- curInt.getStartPos();
     double endpos = rint.getEndPos() - curInt.getStartPos();
-    return getCurve(startpos, endpos, rendered);
+    if (startSmaller)
+      return getCurve(startpos, endpos, rendered);
+    else
+    {
+      startpos = lenth -startpos;
+      endpos = lenth - endpos;
+      if (startpos > endpos)
+        return getCurve(endpos, startpos, rendered);
+      else
+        return getCurve(startpos, endpos, rendered);
+    }
   }
 
   public GeneralPath getCurveFrom(RouteLocation rloc, int pos,
@@ -168,7 +188,7 @@ public class JSection{
     if (startSmaller)
       return getCurveFrom(distFromStartOfSection, rendered);
     else
-       return getCurveTo(distFromStartOfSection, rendered);
+      return getCurveTo(distFromStartOfSection, rendered);
   }
 
   public GeneralPath getCurveTo(RouteLocation rloc, int pos, boolean rendered){
