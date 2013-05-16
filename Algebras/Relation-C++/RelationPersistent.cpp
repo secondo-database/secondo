@@ -442,8 +442,8 @@ void Tuple::WriteToBlock(char* buf,
   SmiSize lobOffset = 0;
   if (containLOBs)
   {
-    lob = data + sizeof(dataSize) + coreSize + extensionSize;
     lobOffset = sizeof(dataSize) + coreSize + extensionSize;
+    lob = data + lobOffset;
   }
 
   // current position in the core part
@@ -477,7 +477,6 @@ void Tuple::WriteToBlock(char* buf,
       {
         Flob *tmpFlob = attributes[i]->GetFLOB(j);
         SmiSize flobsz = tmpFlob->getSize();
-
         attrFlobs.push_back(*tmpFlob);
 
         if(!ignoreLobs && (flobsz >= extensionLimit))
@@ -1154,8 +1153,8 @@ The head value of the block named ~blockSize~ is used to
 indicate the whole block's size
 
 ----
-blockSize = tupleSize + flobSize + sizeof(blockSize)
-tupleSize = coreSize + extensionSize + sizeof(tupleSize)
+blockSize = sizeof(blockSize) + tupleSize + flobSize
+tupleSize = sizeof(tupleSize) + coreSize + extensionSize
 ----
 
 */
@@ -1170,6 +1169,30 @@ void Tuple::WriteToBin(char* buf,
   WriteToBlock(buf + sizeof(u_int32_t),
       coreSize, extensionSize,
       false, 0, 0, true);
+}
+
+/*
+Put the tuple except its big flob data into an allocated memory buffer.
+However, it still follows the format of the block that contains the flob,
+therefore, the head value ~blockSize~ here is:
+
+----
+blockSize = sizeof(blockSize) + tupleSize
+tupleSize = sizeof(tupleSize) + coreSize + extensionSize
+----
+
+*/
+void Tuple::WriteTupleToBin(char* buf,
+      size_t coreSize, size_t extensionSize)
+{
+  u_int32_t blockSize =
+      sizeof(u_int32_t) + sizeof(u_int16_t)
+      + coreSize + extensionSize;
+  memcpy(buf, &blockSize, sizeof(blockSize));
+
+  WriteToBlock(buf + sizeof(u_int32_t),
+      coreSize, extensionSize,
+      true, 0, 0, false);
 }
 
 size_t Tuple::GetBlockSize( size_t& coreSize,
@@ -1221,12 +1244,22 @@ u_int32_t Tuple::ReadFromBin(char* buf, u_int32_t bSize/* = 0*/)
   {
     memcpy(&blockSize, buf, sizeof(blockSize));
     buf += sizeof(blockSize);
+
+    InitializeAttributes(buf, true);
+    return blockSize;
   }
   else
+  {
     blockSize = bSize;
+    u_int16_t tupleSize;
+    size_t offset = 0;
+    ReadVar<u_int16_t>(tupleSize, buf, offset);
+    bool containLOBs =
+        ( (u_int32_t)(tupleSize + sizeof(tupleSize)) != blockSize);
 
-  InitializeAttributes(buf, true);
-  return blockSize;
+    InitializeAttributes(buf, containLOBs);
+    return blockSize;
+  }
 }
 
 TupleFileIterator::TupleFileIterator(TupleFile& f)

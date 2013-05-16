@@ -1032,6 +1032,15 @@ the extended memory block is.
       size_t coreSize, size_t extensionSize, size_t flobSize);
 
 /*
+Write a tuple into an allocated binary blick,
+but without its big flob.
+Therefore, it has only one length heading.
+
+*/
+  void WriteTupleToBin(char* buf,
+      size_t coreSize, size_t extensionSize);
+
+/*
 Read a tuple from a binary block written by ~WriteToBin~.
 
 */
