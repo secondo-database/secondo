@@ -234,6 +234,15 @@ the FillIntervalList call.
 void CheckAndFillIntervallList(const DbArray<JRouteInterval>* setri,
                                      const JNetwork* jnet /*= 0*/);
 
+/*
+1.1.1.1 Compress
+
+Reduces number of route intervals if possible.
+
+*/
+
+ void Simplify();
+
 
 };
 

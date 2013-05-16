@@ -107,6 +107,7 @@ void JPath::SetPath(const DbArray<JRouteInterval>& in,
   {
     path.clean();
     path.copyFrom(in);
+    Simplify();
   }
   path.TrimToSize();
 }
@@ -449,7 +450,40 @@ void JPath::StartBulkload()
 void JPath::EndBulkload()
 {
   activBulkload = false;
+  Simplify();
   path.TrimToSize();
+}
+
+void JPath::Simplify()
+{
+  if (path.Size() > 1)
+  {
+    JRouteInterval curRint(false);
+    JRouteInterval lastRint(false);
+    DbArray<JRouteInterval>* tmp = new DbArray<JRouteInterval>(0);
+    path.Get(0,lastRint);
+    for (int i = 1; i < path.Size(); i++)
+    {
+      path.Get(i, curRint);
+      if (lastRint.Adjacent(curRint))
+      {
+        lastRint.SetInterval(min(lastRint.GetFirstPosition(),
+                                 curRint.GetFirstPosition()),
+                             max(lastRint.GetLastPosition(),
+                                 curRint.GetLastPosition()));
+      }
+      else
+      {
+        tmp->Append(lastRint);
+        lastRint = curRint;
+      }
+    }
+    tmp->Append(lastRint);
+    path.clean();
+    path.copyFrom(*tmp);
+    tmp->Destroy();
+    delete tmp;
+  }
 }
 
 JPath& JPath::Add(const JRouteInterval& pe)
@@ -525,17 +559,20 @@ void JPath::ToJLine(JLine* result)
 void JPath::FillIntervalList(const DbArray<JRouteInterval>* inList,
                              const JNetwork* jnet)
 {
-  JRouteInterval actEntry;
-  StartBulkload();
-  for (int i = 0; i < inList->Size(); i++)
+  if (inList != NULL && inList->Size() > 0)
   {
-    inList->Get(i,actEntry);
-    if (jnet->Contains(actEntry))
+    JRouteInterval actEntry;
+    StartBulkload();
+    for (int i = 0; i < inList->Size(); i++)
     {
-      Add(actEntry);
+      inList->Get(i,actEntry);
+      if (jnet->Contains(actEntry))
+      {
+        Add(actEntry);
+      }
     }
+    EndBulkload();
   }
-  EndBulkload();
 }
 
 void JPath::CheckAndFillIntervallList(const DbArray<JRouteInterval>* in,
