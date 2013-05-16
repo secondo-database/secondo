@@ -5080,11 +5080,7 @@ QueryProcessor::GetNLArgValueInTM(const NList& arg, NList& value,
       {
         ListExpr valueList = SecondoSystem::GetCatalog()
           ->OutObject(queryResType, queryresultword);
-        if (!SecondoSystem::GetCatalog()-> DeleteObj(queryResType,
-            queryresultword)) {
-          cerr << "ERROR! Problem in deleting queryresultword\n";
-          return false;
-        }
+        SecondoSystem::GetCatalog()->CloseObject(queryResType, queryresultword);
         value = NList(valueList);
         return true;
       }
