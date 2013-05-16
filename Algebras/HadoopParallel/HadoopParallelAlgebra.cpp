@@ -70,11 +70,14 @@ but includes tuples of different schemes.
 #include "StringUtils.h"
 #include "Symbols.h"
 #include "Application.h"
+#include "Attribute.h"
 
 using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
+extern AlgebraManager *am;
+
 
 /*
 2 Operator ~doubleexport~
@@ -773,7 +776,8 @@ ListExpr TUPSTREAMType( ListExpr args)
   if (nl->ListLength(args) < 1)
     return listutils::typeError("Expect one argument at least");
   ListExpr first = nl->First(args);
-  if (!listutils::isRelDescription(first) && !listutils::isTupleStream(first))
+  if (!listutils::isRelDescription(first)
+          && !listutils::isTupleStream(first))
     return listutils::typeError("rel(tuple(...)) expected");
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->Second(first));
@@ -813,7 +817,8 @@ ListExpr TUPSTREAM2Type( ListExpr args)
   if (nl->ListLength(args) < 2)
     return listutils::typeError("Expect two argument at least");
   ListExpr second = nl->Second(args);
-  if (!listutils::isRelDescription(second) && !listutils::isTupleStream(second))
+  if (!listutils::isRelDescription(second)
+          && !listutils::isTupleStream(second))
     return listutils::typeError("rel(tuple(...)) expected");
   return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
                          nl->Second(second));
@@ -2141,8 +2146,14 @@ struct FConsumeInfo : OperatorInfo {
 /*
 5.3 Type mapping
 
+On 02/05/2013, let ~fconsume~ and ~fconsume2~ share a same type mapping function.
+They are distinguished by the noFlob parameter.
+If it is set true, then for an attribute that contain FLOB data by its definition,
+its type A should be changed to incomplete(A).
+
+
 */
-ListExpr FConsumeTypeMap(ListExpr args)
+ListExpr FConsumeTypeMap(ListExpr args, bool noFlob)
 {
   try{
      NList l(args);
@@ -2174,7 +2185,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
          "is $PARALLEL_SECONDO_SLAVES and $PARALLEL_SECONDO_MASTERS "
          "correctly set up ?";
      string err9 = "ERROR!Remote copy type file fail.";
-   
+
      int len = l.length();
      if ( len != 4)
        return l.typeError(lengthErr);
@@ -2188,7 +2199,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
      NList bsList = l.second(); //basic parameters
      NList trList = l.third();  //type remote parameters
      NList drList = l.fourth(); //data remote parameters
-   
+
      NList attr;
      if(!tsList.first().checkStreamTuple(attr) )
        return l.typeError(typeErr);
@@ -2227,7 +2238,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
      }
      else
        return l.typeError(err4);
-   
+
      pType = trList.first();
      if (!pType.isEmpty())
      {
@@ -2252,7 +2263,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
          pValue.rest();
        }
      }
-   
+
      pType = drList.first();
      if (!pType.isEmpty())
      {
@@ -2263,17 +2274,57 @@ ListExpr FConsumeTypeMap(ListExpr args)
          return l.typeError(typeErr4);
        drMode = true;
      }
-   
+
      //Type Checking is done, create the type file.
      filePath = getLocalFilePath(filePath, filePreName, "_type");
      if (filePath.length() == 0)
        return l.typeError(err2 +
          "Type file path is unavailable, check the SecondoConfig.ini.");
      ofstream typeFile(filePath.c_str());
-     NList resultList = NList(NList(Relation::BasicType()),
-                              tsList.first().second());
      if (typeFile.good())
      {
+       NList resultList;
+       if (noFlob)
+       {
+         //Add incomplete term for attributes containing Flob.
+
+         SecondoCatalog* sc = SecondoSystem::GetCatalog();
+         NList newAttrList;
+         NList attrList = tsList.first().second().second();
+         NList rest = attrList;
+         while (!rest.isEmpty())
+         {
+           NList attr = rest.first();
+           NList name = attr.first();
+           NList type = attr.second();
+           string typeStr = type.str();
+
+           ListExpr nmType = sc->NumericType(type.listExpr());
+           int algId, typeId;
+           algId = nl->IntValue(nl->First(nmType));
+           typeId = nl->IntValue(nl->Second(nmType));
+           Attribute* elem = static_cast<Attribute*>
+                 ((am->CreateObj(algId, typeId))(nmType).addr);
+           if (elem->NumOfFLOBs() > 0)
+           {
+             newAttrList.append(
+                 NList(name, NList(NList("incomplete"),type)));
+           }
+           else
+           {
+             newAttrList.append(attr);
+           }
+           rest.rest();
+         }
+
+         resultList = NList(NList(Relation::BasicType()),
+             NList(NList(Tuple::BasicType(), newAttrList)));
+       }
+       else
+       {
+         resultList =
+             NList(NList(Relation::BasicType()), tsList.first().second());
+       }
        typeFile << resultList.convertToString() << endl;
        typeFile.close();
        cerr << "Type file: " << filePath << " is created. " << endl;
@@ -2281,7 +2332,7 @@ ListExpr FConsumeTypeMap(ListExpr args)
      else
        return l.typeError(
            err2 + "Type file path is unavailable: " + filePath);
-   
+
      //Verify the existence of the PARALLEL\_SECONDO\_SLAVES file
      if (trMode || drMode)
      {
@@ -2323,13 +2374,17 @@ ListExpr FConsumeTypeMap(ListExpr args)
   }
 }
 
+ListExpr FConsume1TypeMap(ListExpr args)
+{
+  return FConsumeTypeMap(args, false);
+}
 
 /*
 5.4 Value mapping
 
 */
 int FConsumeValueMap(Word* args, Word& result,
-    int message, Word& local, Supplier s)
+    int message, Word& local, Supplier s, bool noFlob)
 {
   fconsumeLocalInfo* fcli = 0;
 
@@ -2427,15 +2482,31 @@ int FConsumeValueMap(Word* args, Word& result,
       size_t flobSize = 0;
       size_t tupleBlockSize =
           t->GetBlockSize(coreSize, extensionSize, flobSize,
-                          &attrExtSize, &attrSize);
+                            &attrExtSize, &attrSize);
 
-      totalSize += (coreSize + extensionSize + flobSize);
-      totalExtSize += (coreSize + extensionSize);
+      if (noFlob)
+      {
+        //Prepare for fconsume2, only keep the core and extension of the tuple
+        totalSize     += (coreSize + extensionSize);
+        totalExtSize  += (coreSize + extensionSize);
 
-      char* tBlock = (char*)malloc(tupleBlockSize);
-      t->WriteToBin(tBlock, coreSize, extensionSize, flobSize);
-      blockFile.write(tBlock, tupleBlockSize);
-      free(tBlock);
+        tupleBlockSize -= flobSize;
+        char* tBlock = (char*)malloc(tupleBlockSize);
+        t->WriteTupleToBin(tBlock, coreSize, extensionSize);
+        blockFile.write(tBlock, tupleBlockSize);
+        free(tBlock);
+      }
+      else
+      {
+        //Prepare for fconsume, keeping Flob with tuple
+        totalSize += (coreSize + extensionSize + flobSize);
+        totalExtSize += (coreSize + extensionSize);
+
+        char* tBlock = (char*)malloc(tupleBlockSize);
+        t->WriteToBin(tBlock, coreSize, extensionSize, flobSize);
+        blockFile.write(tBlock, tupleBlockSize);
+        free(tBlock);
+      }
       count++;
       fcli->current++;
 
@@ -2615,8 +2686,14 @@ the target IP is appended, for using the scp command.
   return 0;
 }
 
+int FConsume1ValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+  return FConsumeValueMap(args, result, message, local, s, false);
+}
+
 Operator fconsumeOp(FConsumeInfo(),
-    FConsumeValueMap, FConsumeTypeMap);
+    FConsume1ValueMap, FConsume1TypeMap);
 
 /*
 6 Operator ~ffeed~
@@ -2701,7 +2778,7 @@ successive suffices. Now the operator maps
 fileName
 x path x [rowNum] x [fileIndex]     ;
 x [typeNodeIndex]                   ;
-x [targetNodeIndex x attemptTimes]  ;
+x [producerIndex x targetNodeIndex x attemptTimes]  ;
 ->stream(tuple(...))
 ----
 
@@ -2737,7 +2814,7 @@ struct FFeedInfo : OperatorInfo {
 
 */
 
-ListExpr FFeedTypeMap(ListExpr args)
+ListExpr FFeedTypeMap(ListExpr args, bool noFlob)
 {
   try{
      NList l(args);
@@ -2859,28 +2936,70 @@ ListExpr FFeedTypeMap(ListExpr args)
      if (!nl->ReadFromFile(filePath, relType))
        return l.typeError(err2 + filePath);
      //Read type file of DLF flist
-     if (!(listutils::isRelDescription(relType)
-       || listutils::isTupleStream(relType)))
-       return l.typeError(err3 + filePath);
-     NList streamType =
-         NList(NList(Symbol::STREAM()),
-         NList(NList(relType).second()));
-   
-     return streamType.listExpr();
+     NList resultType;
+     string ostStr, nstStr;
+     //ost: old stream type, type from the type file, no DS\_IDX
+     //nst: new stream type, for ffeed2, with DS\_IDX
+     if (noFlob)
+     {
+       //Ignore the incomplete term
+       int count = 0;
+       ListExpr realRelType = rmTermNL(relType, "incomplete", count);
+       if (!(listutils::isRelDescription(realRelType)
+              || listutils::isTupleStream(realRelType)))
+         return l.typeError(err3 + filePath);
+       NList osType = NList(NList(Symbol::STREAM()),
+                       NList(NList(realRelType).second()));
+       ostStr = osType.convertToString();
+
+       NList realAttrList = NList(nl->Second(nl->Second(realRelType)));
+       realAttrList.append(NList(NList("DS_IDX"), NList(CcInt::BasicType())));
+       NList nsType = NList(NList(Symbol::STREAM()),
+                           NList(NList(Tuple::BasicType()), realAttrList));
+       nstStr = nsType.convertToString();
+
+       //Add the DS\_IDX:int attribute
+       NList attrList = NList(nl->Second(nl->Second(relType)));
+       attrList.append(NList(NList("DS_IDX"), NList(CcInt::BasicType())));
+       resultType =
+           NList(NList(Symbol::STREAM()),
+               NList(NList(Tuple::BasicType()), attrList));
+       cerr << "The ostStr is : " << ostStr << endl;
+       cerr << "The nstStr is : " << nstStr << endl;
+       cerr << "The resultType is : " << resultType.convertToString() << endl;
+     }
+     else
+     {
+       if (!(listutils::isRelDescription(relType)
+         || listutils::isTupleStream(relType)))
+         return l.typeError(err3 + filePath);
+       resultType =
+           NList(NList(Symbol::STREAM()),
+           NList(NList(relType).second()));
+       nstStr = ostStr = resultType.convertToString();
+     }
+
+     return NList(NList(Symbol::APPEND()),
+                  NList(NList(ostStr, true, true), NList(nstStr, true, true)),
+                  resultType).listExpr();
    
   } catch(...){
     return listutils::typeError("invalid input");
   }
-
-
 }
+
+ListExpr FFeed1TypeMap(ListExpr args)
+{
+  return FFeedTypeMap(args, false);
+}
+
 
 /*
 6.4 Value mapping
 
 */
 int FFeedValueMap(Word* args, Word& result,
-    int message, Word& local, Supplier s)
+    int message, Word& local, Supplier s, bool noFlob)
 {
   string relName, path, fileSuffix = "";
   FFeedLocalInfo* ffli = 0;
@@ -2934,7 +3053,7 @@ int FFeedValueMap(Word* args, Word& result,
         delete ffli;
         ffli = 0;
       }
-      ffli = new FFeedLocalInfo(s);
+      ffli = new FFeedLocalInfo(s, noFlob, prdIndex);
       if (ffli->fetchBlockFile(
           relName , fileSuffix, filePath, s,
           prdIndex, tgtIndex, attTimes))
@@ -3030,8 +3149,13 @@ therefore it doesn't have any son operator.
   return 0;
 }
 
+int FFeed1ValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+  return FFeedValueMap(args, result, message, local, s, false);
+}
 
-Operator ffeedOp(FFeedInfo(), FFeedValueMap, FFeedTypeMap);
+Operator ffeedOp(FFeedInfo(), FFeed1ValueMap, FFeed1TypeMap);
 
 /*
 6.5 Implementation of FFeedLocalInfo methods
@@ -3195,7 +3319,7 @@ if the target machine is not the producer.
   }
 
   //Initialize the sizes of progress local info
-  noAttrs = tupleType->GetNoAttributes();
+  noAttrs = rcdTupleType->GetNoAttributes();
   total = descList.first().intval();
   attrSize = new double[noAttrs];
   attrSizeExt = new double[noAttrs];
@@ -3232,12 +3356,29 @@ Tuple* FFeedLocalInfo::getNextTuple(){
   {
     blockSize -= sizeof(blockSize);
     char *tupleBlock = new char[blockSize];
-//    TupleId tid = tupleBlockFile->tellg();
     tupleBlockFile->read(tupleBlock, blockSize);
 
-    t = new Tuple(tupleType);
-    t->ReadFromBin(tupleBlock, blockSize);
-//    t->SetTupleId(tid);
+    if (noFlob)
+    {
+      //read the tuple from the file, and add an attribute
+      Tuple* ot = new Tuple(rcdTupleType);
+      ot->ReadFromBin(tupleBlock, blockSize);
+
+      t = new Tuple(newTupleType);
+      int i;
+      for (i = 0; i < ot->GetNoAttributes(); i++)
+      {
+        t->CopyAttribute(i, ot, i);
+      }
+
+      t->PutAttribute(i, new CcInt(prdIndex));
+      ot->DeleteIfAllowed();
+    }
+    else
+    {
+      t = new Tuple(rcdTupleType);
+      t->ReadFromBin(tupleBlock, blockSize);
+    }
     delete[] tupleBlock;
   }
 
@@ -4425,6 +4566,543 @@ Operator fdistributeOp(FDistributeInfo(),
                        FDistributeTypeMap);
 
 
+/*
+5 Operator ~fconsume2~
+
+2th May 2013
+
+This is the first operator prepared for the distributed F\/R.
+This operator also export a tuple stream into two files, type and data.
+However, this time the Flob data are not exported,
+but still kept in their original Flob file.
+
+It takes the same arguments as the ~fconsume~ operator takes.
+However, I have to extend its type mapping function a little bit.
+If an attribute contains Flob data,
+then its type A is turned to incomplete(A).
+
+
+The signature of this operator is:
+
+---- (stream(tuple(...))
+      x fileName x filePath x [rowNum] x [fileSuffix] ;
+      x [typeLoc1] x [typeLoc2]                       ;
+      x [targetLoc x dupTimes])                       ;
+     -> bool
+----
+
+5.1 Specification
+
+*/
+
+struct FConsume2Info : OperatorInfo {
+  FConsume2Info() : OperatorInfo()
+  {
+    name = "fconsume2";
+    signature = "stream(tuple( ... )) "
+        "x string x text x [int] x [int]"
+        "x [ [int] x [int] ] "
+        "x [ int x int ] "
+        "-> bool";
+    syntax  = "stream(tuple( ... )) "
+        "fconsume[ fileName, filePath, [rowNum], [fileSuffix]; "
+        "[typeNode1] x [typeNode2]; "
+        "[targetIndex x dupTimes] ] ";
+    meaning =
+        "Export a stream of tuples into two files. "
+        "One is a text file, keeping the schema of relation, "
+        "the other is a binary file, keeping the binary tuple data. "
+        "Different from the previous fconsume operator, "
+        "this operator only exports a tuple's core and extension data "
+        "to the data file, and keeps the Flob untouched. "
+        "In the mean time, if an attribute belongs to a type that may contain "
+        "Flob data, then its type is then surround by a 'incomplete' term.";
+  }
+};
+
+/*
+5.2 Type mapping
+
+*/
+ListExpr FConsume2TypeMap(ListExpr args)
+{
+  return FConsumeTypeMap(args, true);
+}
+
+/*
+5.3 Value mapping
+
+*/
+int FConsume2ValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+  return FConsumeValueMap(args, result, message, local, s, true);
+}
+
+Operator fconsume2Op(FConsume2Info(), FConsume2ValueMap, FConsume2TypeMap);
+
+/*
+5 Operator ~ffeed2~
+
+3th May 2013
+
+This operator reads the files created by the ~fconsume~ or ~fconsume2~ operator.
+It accepts a relation schema that contains incomplete type,
+and adds an additional attribute DS\_IDX to the output schema,
+indicating the source Data Server that the tuple comes from.
+Now the operator maps
+
+----
+fileName
+x path x [rowNum] x [fileIndex]      ;
+x [typeNodeIndex]                   ;
+x [producerIndex x targetNodeIndex x attemptTimes]  ;
+->stream(tuple(...))
+----
+
+5.1 Specification
+
+*/
+
+struct FFeed2Info : OperatorInfo {
+
+  FFeed2Info() : OperatorInfo()
+  {
+    name =      "ffeed2";
+    signature = "string x text x [int] x [int] x [int] x [int x int x int]"
+        " -> stream(tuple(...))";
+    syntax  = "fileName ffeed[ filePath, [fileSuffix], ; "
+        "[remoteTypeNode]; "
+        "[producerIndex x targetIndex x attemptTimes] ]";
+    meaning =
+        "Restore a tuple stream from a pair of type and data files, "
+        "which are created by a fconsume or fconsume2 operator. "
+        "It accepts a relation type containing incomplete type, "
+        "and returns the relation by adding an attribute DS_IDX";
+  }
+};
+
+/*
+5.2 Type Mapping
+
+*/
+ListExpr FFeed2TypeMap(ListExpr args)
+{
+  return FFeedTypeMap(args, true);
+}
+
+/*
+5.3 Value Mapping
+
+*/
+int FFeed2ValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+  return FFeedValueMap(args, result, message, local, s, true);
+}
+
+Operator ffeed2Op(FFeed2Info(), FFeed2ValueMap, FFeed2TypeMap);
+
+
+/*
+
+4 Data Type ~incomplete~
+
+10th May 2013
+
+Here creates a data type, named ~incomplete~.
+It is used to encapsulate data types containing Flob,
+and is applied in the ~fconsume2~ operator.
+
+This data type is created only for passing the QueryProcessor,
+which needs to create storage space for the result.
+If the incomplete is not a data type,
+then the creation fails.
+
+*/
+
+ListExpr IncompleteProperty(){
+#ifdef DEBUGHEAD
+cout << "IncompleteProperty" << endl;
+#endif
+    return (nl->TwoElemList(
+            nl->FiveElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List"),
+                             nl->StringAtom("Remarks")),
+            nl->FiveElemList(nl->StringAtom("-> DATA"),
+                             nl->StringAtom("(" +
+                                 Incomplete::BasicType()+" text)"),
+                             nl->StringAtom("(elem)"),
+                             nl->StringAtom("('...')"),
+                             nl->StringAtom("The Flob may not be prepared"))));
+}
+
+Word Incomplete::In(const ListExpr typeInfo, const ListExpr instance,
+    const int errorPos, ListExpr& errorInfo, bool& correct)
+{
+  return SetWord(Address(0));
+}
+
+ListExpr Incomplete::Out(ListExpr typeInfo, Word value){
+  return nl->TheEmptyList();
+}
+
+Word Incomplete::Create(const ListExpr typeInfo)
+{
+  return SetWord(Address(0));
+}
+
+void Incomplete::Delete(const ListExpr typeInfo, Word& w)
+{
+  w.addr = 0;
+}
+
+void Incomplete::Close(const ListExpr typeInfo, Word& w)
+{
+  w.addr = 0;
+}
+
+Word Incomplete::Clone(const ListExpr typeInfo, const Word& w)
+{
+  return SetWord(Address(0));
+}
+
+bool Incomplete::KindCheck(ListExpr type, ListExpr& errorInfo)
+{
+  return nl->HasLength(type, 2)
+          && listutils::isSymbol(nl->First(type), BasicType())
+          && listutils::isDATA(nl->Second(type));
+}
+
+
+
+bool Incomplete::checkType(ListExpr list){
+    return nl->HasLength(list, 2)
+        && listutils::isSymbol(nl->First(list), BasicType())
+        && listutils::isDATA(nl->Second(list));
+}
+
+TypeConstructor IncompleteTC(
+    Incomplete::BasicType(), IncompleteProperty,
+    Incomplete::Out, Incomplete::In,
+    0,0,
+    Incomplete::Create, Incomplete::Delete,
+    Incomplete::Open, Incomplete::Save,
+    Incomplete::Close, Incomplete::Clone,
+    Incomplete::Cast, Incomplete::SizeOfObj,
+    Incomplete::KindCheck);
+
+
+/*
+5 Operator ~fetchFlob~
+
+7th May 2013
+
+This operator fetches Flob data, locally and also remotely over the cluster.
+The details of this operator are discussed in the attached readme file.
+
+It is often used after the ~ffeed2~ and ~pffeed2~ operator.
+If the flob are kept locally, it reads the Flob directly.
+If the remote Flob is required, FlobOrder is prepared and sent to producer DS,
+where needed Flobs are collected into a binary file, and then sent back.
+
+Note if a Flob attribute is not asked,
+it will be removed from the result stream,
+in order to let the output type list be accepted by other operators.
+
+It maps:
+
+----
+stream(tuple( ... incomplete(Ai) ... incomplete(Aj) ... DS\_IDX))
+  x list (Ai)
+\to stream(tuple( ... Ai ...))
+----
+
+5.1 Specification
+
+*/
+
+struct FetchFlobInfo : OperatorInfo{
+  FetchFlobInfo() : OperatorInfo()
+  {
+    name = "fetchFlob";
+    signature =
+        "stream(tuple( ... incomplete(Ai) ... incomplete(Aj) ... DS_IDX)) "
+        "x (Ai) -> stream(tuple( ... Ai ... )";
+    syntax = "";
+    meaning = "Retrieve the Flob data for incomplete attribute, "
+        "locally or remotely.";
+  }
+};
+
+/*
+5.2 Type Mapping
+
+*/
+ListExpr FetchFlobTypeMap(ListExpr args)
+{
+  try{
+    NList l(args);
+    NList pType, pValue;
+
+    string lenErr = "ERROR! Operator fetchFlob expects two elements. ";
+    string tpeErr = "ERROR! Operator fetchFlob expects "
+        "stream(tuple(uncomplete(Ai), DS_IDX)) and list(Ai)";
+    string nicErr = "ERROR! The input tuple stream doesn't "
+        "contain incomplete attribute. ";
+    string nfdErr = "ERROR! The input stream doesn't "
+        "contain one required attribute. ";
+    string ndiErr = "ERROR! The input stream doesn't contain DS_IDX attribute.";
+
+
+    if (l.length() != 2)
+      return l.typeError(lenErr);
+
+    NList first = l.first();
+    NList instream = first.first();
+    int count = 0;
+    ListExpr realType = rmTermNL(instream.listExpr(), "incomplete", count);
+    if (!listutils::isTupleStream(realType))
+      return l.typeError(tpeErr);
+    if (count < 1)
+      return l.typeError(nicErr);
+
+    //Collect the names of requited attributes
+    vector<string> raNames; //required attribute names
+    int raNum;              //required attribut number
+    NList raList = l.second().first();
+    while (!raList.isEmpty()){
+      NList attr = raList.first();
+      if (! attr.isAtom())
+        return l.typeError(tpeErr);
+
+      raNames.push_back(attr.str());
+      raList.rest();
+    }
+    raNum = raNames.size();
+
+    //Check whether the required attribute exist,
+    //if an attribute is incomplete and not asked, then remove it
+    NList raiList, daiList;
+    //Get the index for the asked attributes, and also the deleted attributes.
+    NList attrList = instream.second().second();
+    NList newAttrList;
+    int index = 0, dsiIndex = -1;
+    while (!attrList.isEmpty())
+    {
+      NList elem = attrList.first();
+      if (elem.second().isAtom())
+      {
+        if (elem.first().str().compare("DS_IDX") == 0)
+        {
+          //remove the DS\_IDX attribute
+          dsiIndex = index;
+        }
+        else
+          newAttrList.append(elem);
+      }
+      else
+      {
+        string aName = elem.first().str();
+        vector<string>::iterator found =
+            find(raNames.begin(), raNames.end(), aName);
+        if (found != raNames.end())
+        {
+          string aType = elem.second().second().str();
+          newAttrList.append(NList(NList(aName), NList(aType)));
+          raiList.append(NList(index));
+          raNum--;
+        }
+        else{
+          daiList.append(NList(index));
+        }
+      }
+      attrList.rest();
+      index++;
+    }
+    if (raNum > 0){
+      return l.typeError(nfdErr);
+    }
+    if (dsiIndex == -1)
+      return l.typeError(ndiErr);
+
+    NList resultType = NList(NList(Symbol::STREAM()),
+        NList(NList(Tuple::BasicType()), newAttrList));
+
+    cerr << "The result type is: " << resultType.convertToString() << endl;
+    cerr << "The asked attribute indices are : "
+        << raiList.convertToString() << endl;
+    cerr << "The deleted attribute indices are : "
+        << daiList.convertToString() << endl;
+    cerr << "The index of the DS_IDX is: " << dsiIndex << endl;
+
+    NList appList;
+    appList.append(NList(raiList.convertToString(), true, true));
+    appList.append(NList(daiList.convertToString(), true, true));
+    appList.append(NList(dsiIndex));
+
+    cerr << "The appList is: " << appList.convertToString() << endl;
+
+    return NList(NList(Symbols::APPEND()),
+                  appList,
+                  resultType).listExpr();
+
+  } catch(...){
+    return listutils::typeError("invalid input");
+  }
+}
+
+/*
+5.3 Value Mapping
+
+*/
+
+int FetchFlobValueMap(Word* args, Word& result,
+    int message, Word& local, Supplier s)
+{
+  FetchFlobLocalInfo* ffi;
+
+  switch(message)
+  {
+    case OPEN: {
+      NList resultType = qp->GetType(s);
+      string raiStr = ((FText*)args[2].addr)->GetValue(),
+             daiStr = ((FText*)args[3].addr)->GetValue();
+      int dsiIndex = ((CcInt*)args[4].addr)->GetValue();
+      ListExpr raiList, daiList;
+      nl->ReadFromString(raiStr, raiList);
+      nl->ReadFromString(daiStr, daiList);
+
+      ffi = (FetchFlobLocalInfo*)local.addr;
+      if (ffi)
+      {
+        delete ffi;
+        ffi = 0;
+      }
+      ffi =
+        new FetchFlobLocalInfo(resultType, NList(raiList),
+            NList(daiList), dsiIndex);
+
+      qp->Open(args[0].addr);
+      ffi->returned = 0;
+      local.setAddr(ffi);
+
+      return 0;
+    }
+    case REQUEST: {
+      ffi = (FetchFlobLocalInfo*)local.addr;
+      if (! ffi)
+        return CANCEL;
+
+      Tuple *t = ffi->getNextTuple(args[0].addr);
+      if ( 0 == t )
+        return CANCEL;
+      else
+      {
+        ffi->returned++;
+        result.setAddr(t);
+        return YIELD;
+      }
+      return 0;
+    }
+    case CLOSE: {
+      ffi = (FetchFlobLocalInfo*)local.addr;
+      if (!ffi)
+        return CANCEL;
+      qp->Close(args[0].addr);
+
+//      else
+//      {
+
+//      }
+
+      return 0; //must return
+    }
+    case CLOSEPROGRESS: {
+      ffi = (FetchFlobLocalInfo*)local.addr;
+      if (ffi)
+      {
+        delete ffi;
+        local.setAddr(0);
+      }
+      return 0;
+    }
+    case REQUESTPROGRESS: {
+
+      return 0;
+    }
+  }
+
+  return 0;
+}
+
+Operator fetchFLobOp(FetchFlobInfo(), FetchFlobValueMap, FetchFlobTypeMap);
+
+FetchFlobLocalInfo::FetchFlobLocalInfo(
+    NList resultTypeList, NList raList, NList daList, int _dsi):
+    dsIdx(_dsi)
+{
+  resultType = new TupleType(
+      SecondoSystem::GetCatalog()->NumericType(
+          resultTypeList.second().listExpr()));
+
+  raIndices = new vector<int>();
+  daIndices = new vector<int>();
+
+  NList rest = raList;
+  while (!rest.isEmpty())
+  {
+    raIndices->push_back(rest.first().intval());
+    rest.rest();
+  }
+
+  rest = daList;
+  while (!rest.isEmpty())
+  {
+    daIndices->push_back(rest.first().intval());
+    rest.rest();
+  }
+}
+
+Tuple* FetchFlobLocalInfo::getNextTuple(const Supplier s)
+{
+  Word t;
+  qp->Request(s, t);
+  if (qp->Received(s))
+  {
+    Tuple* tuple = (Tuple*)t.addr;
+    Tuple* newTuple = new Tuple(resultType);
+    int dsiValue = ((CcInt*)tuple->GetAttribute(dsIdx))->GetIntval();
+    if (dsiValue == -1)
+    {
+      //si: source index; di: destination index
+      int di = 0;
+      for (int si = 0; si < tuple->GetNoAttributes(); si++)
+      {
+        if (find(daIndices->begin(), daIndices->end(),si) == daIndices->end()
+            && si != dsIdx)
+        {
+          //Keep this attribute
+          newTuple->CopyAttribute(si, tuple, di++);
+        }
+      }
+      tuple->DeleteIfAllowed();
+      return newTuple;
+    }
+    //TODO else
+
+//    else
+//    {
+
+//    }
+
+
+  }
+  else
+    return 0;
+}
 
 /*
 6 Auxiliary functions
@@ -4668,6 +5346,47 @@ int getRoundRobinIndex(int row, int clusterSize)
 }
 
 /*
+remove a term from a given nested-list.
+e.g. if the given list is (a (b c)), and the term is b
+returns (a c)
+
+*/
+ListExpr rmTermNL(ListExpr list, string term, int& count)
+{
+  if (nl->IsEmpty(list)){
+    return list;
+  }
+
+  if (nl->IsAtom(list))
+  {
+    if (nl->IsEqual(list,term))
+    {
+      return nl->TheEmptyList();
+    }
+    else{
+      return list;
+    }
+  }
+  else
+  {
+    ListExpr first = nl->First(list);
+    if (nl->IsAtom(first))
+    {
+      if (nl->IsEqual(first, term))
+      {
+        count++;
+        ListExpr rest = rmTermNL(nl->Rest(list), term, count);
+        if (nl->ListLength(rest) == 1)
+          return nl->First(rest);
+      }
+    }
+  }
+
+  return (nl->Cons(rmTermNL(nl->First(list), term, count),
+    rmTermNL(nl->Rest(list), term, count)));
+}
+
+/*
 3 Class ~HadoopParallelAlgebra~
 
 A new subclass ~HadoopParallelAlgebra~ of class ~Algebra~ is declared.
@@ -4686,6 +5405,8 @@ public:
   HadoopParallelAlgebra() :
     Algebra()
   {
+    AddTypeConstructor(&IncompleteTC);
+
     AddOperator(doubleExportInfo(),
         doubleExportValueMap, doubleExportTypeMap);
 
@@ -4718,6 +5439,16 @@ public:
 
     AddOperator(&fdistributeOp);
     fdistributeOp.SetUsesArgsInTypeMapping();
+
+
+//    AddOperator(&fconsume2Op);
+//    fconsume2Op.SetUsesArgsInTypeMapping();
+//    AddOperator(&ffeed2Op);
+//    ffeed2Op.SetUsesArgsInTypeMapping();
+//    AddOperator(&fetchFLobOp);
+//    fetchFLobOp.SetUsesArgsInTypeMapping();
+
+
 
 
 

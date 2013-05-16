@@ -46,13 +46,13 @@ Result: 11
 
 Operator : fconsume
 Number   : 1
-Signature: stream(tuple(...)) x string x text x [int] x [string] x [string] x [ array(string) x int x int x int] -> bool
+Signature: stream(tuple(...)) x string x text x [int] x [int] x [ [int] x [int] ] x [ int x int ] -> bool
 Example  : query plz feed fconsume["plzComp", '', 1;;]
 Result   : TRUE
 
 Operator : ffeed
 Number   : 1
-Signature: string x string x [int] x [string] x [array(string) x int x int] -> rel(tuple(...))
+Signature: string x string x [int] x [int] x [int x int x int] -> stream(tuple(...))
 Example  : query "plzComp" ffeed[,'',1;;] count
 Result   : 41267
 
@@ -66,5 +66,23 @@ Operator : fdistribute
 Number   : 1
 Signature: stream(tuple((a1 t1) ... (ai ti) ... (an tm))) x string x text x ai x int -> stream(tuple((sufix int) (ai ti))) 
 Example  : query plz feed fdistribute["plz_dis", '', PLZ; 50, TRUE; ; ] loopsel["plz_dis" ffeed['',.Suffix; ; ]] count
+Result   : 41267
+
+Operator : fconsume2
+Number   : 1
+Signature: stream(tuple(...)) x string x text x [int] x [int] x [ [int] x [int] ] x [ int x int ] -> bool
+Example  : query plz feed extend[Ext: 'ExtendedText'] fconsume2["plzComp2", '', 1;;]
+Result   : TRUE
+
+Operator : ffeed2
+Number   : 1
+Signature: string x string x [int] x [int] x [int x int x int] -> stream(tuple(...))
+Example  : query "plzComp2" ffeed2[,'',1;;] fetchFlob[] count
+Result   : 41267
+
+Operator : fetchFlob
+Number   : 1
+Signature: string x string x [int] x [int] x [int x int x int] -> stream(tuple(...))
+Example  : query "plzComp2" ffeed2[,'',1;;] fetchFlob[] count
 Result   : 41267
 

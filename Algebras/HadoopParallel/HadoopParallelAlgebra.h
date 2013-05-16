@@ -79,6 +79,7 @@ ListExpr AntiNumericType(ListExpr numericType);
 int copyFile(string source, string dest, bool cfn = false);
 Tuple* readTupleFromFile(ifstream* file, TupleType* type);
 int getRoundRobinIndex(int row, int clusterSize);
+ListExpr rmTermNL(ListExpr list, string term, int& count);
 
 
 //Set up the remote copy command options uniformly.
@@ -446,12 +447,34 @@ Support progress estimation.
 class FFeedLocalInfo: public ProgressLocalInfo
 {
 public:
-  FFeedLocalInfo( Supplier s)
-  : tupleBlockFile(0), fileFound(false)
+  FFeedLocalInfo( Supplier s, bool _nf, int _prd)
+  : tupleBlockFile(0), fileFound(false), noFlob(_nf), prdIndex(_prd)
   {
-    ListExpr streamTypeList = qp->GetType(s);
-    tupleType = new TupleType(SecondoSystem::GetCatalog()
-                    ->NumericType(nl->Second(streamTypeList)));
+    if (noFlob)
+    {
+      string rtStr = ((FText*)qp->Request(
+          qp->GetSupplierSon(s, 4)).addr)->GetValue();
+      ListExpr rcdTypeList;
+      nl->ReadFromString(rtStr, rcdTypeList);
+      cerr << "The rcdTypeList is: " << nl->ToString(rcdTypeList) << endl;
+      rcdTupleType = new TupleType(SecondoSystem::GetCatalog()
+                      ->NumericType(nl->Second(rcdTypeList)));
+
+      string ntStr = ((FText*)qp->Request(
+          qp->GetSupplierSon(s, 5)).addr)->GetValue();
+      ListExpr newTypeList;
+      nl->ReadFromString(ntStr, newTypeList);
+      newTupleType = new TupleType(SecondoSystem::GetCatalog()
+                      ->NumericType(nl->Second(newTypeList)));
+
+    }
+    else
+    {
+      ListExpr streamTypeList = qp->GetType(s);
+      rcdTupleType = new TupleType(SecondoSystem::GetCatalog()
+                      ->NumericType(nl->Second(streamTypeList)));
+      newTupleType = rcdTupleType;
+    }
   }
 
   ~FFeedLocalInfo() {
@@ -460,8 +483,11 @@ public:
       delete tupleBlockFile;
       tupleBlockFile = 0;
     }
-    if (tupleType){
-      tupleType->DeleteIfAllowed();
+    if (rcdTupleType){
+      rcdTupleType->DeleteIfAllowed();
+    }
+    if (noFlob && newTupleType){
+      newTupleType->DeleteIfAllowed();
     }
   }
 
@@ -472,11 +498,21 @@ public:
   Tuple* getNextTuple();
 
   ifstream *tupleBlockFile;
-  TupleType* tupleType;
+  TupleType* rcdTupleType;  //The tuple type in the data file
+  TupleType* newTupleType;  //The output tuple type
+
+/*
+In ~ffeed~, the rcdTupleType and the newTupleType are the same.
+In ~ffeed2~, they are different, the newTupleType has
+an additional integer attribute DS\_IDX.
+
+*/
 
 private:
   bool isLocalFileExist(string filePath);
   bool fileFound;
+  bool noFlob;
+  int  prdIndex;  //The index of the produce DS
 };
 
 /*
@@ -764,5 +800,72 @@ public:
       exportTupleType->DeleteIfAllowed();
   }
 };
+
+/*
+1.8 FetchFlobLocalInfo class
+
+*/
+
+class FetchFlobLocalInfo : public ProgressLocalInfo
+{
+public:
+  FetchFlobLocalInfo(NList resultTypeList, NList raList,
+      NList daList, int dsIdx);
+
+  ~FetchFlobLocalInfo(){
+    delete raIndices;
+    delete daIndices;
+
+    if (resultType)
+      resultType->DeleteIfAllowed();
+  }
+
+  Tuple* getNextTuple(const Supplier s);
+
+private:
+  vector<int>* raIndices; //array of required attribute (need flob) indices.
+  vector<int>* daIndices; //array of deleted attribute indices.
+  int dsIdx;      //index of DS_IDX
+  TupleType* resultType;
+};
+
+/*
+1.9 Incomplete Type class
+
+*/
+class Incomplete : public Attribute
+{
+public:
+  static Word In(const ListExpr typeInfo, const ListExpr instance,
+      const int errorPos, ListExpr& errorInfo, bool& correct);
+
+  static ListExpr Out(ListExpr typeInfo, Word value);
+
+  static Word Create(const ListExpr typeInfo);
+  static void Delete(const ListExpr typeInfo, Word& w);
+  static void Close(const ListExpr typeInfo, Word& w);
+  static Word Clone(const ListExpr typeInfo, const Word& w);
+  static bool KindCheck(ListExpr type, ListExpr& errorInfo);
+
+  static const string BasicType() { return "incomplete"; }
+  static bool checkType(ListExpr list);
+
+  static int SizeOfObj(){ return sizeof(Incomplete); }
+
+  static bool Open(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value){
+    return false;
+  }
+  static bool Save(SmiRecord& valueRecord, size_t& offset,
+                   const ListExpr typeInfo, Word& value){
+    return false;
+  }
+  static void* Cast(void* addr){ return 0;}
+
+
+private:
+  Incomplete(){}
+};
+
 
 #endif /* HADOOPPARALLELALGEBRA_H_ */

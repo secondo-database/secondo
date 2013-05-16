@@ -25,3 +25,6 @@ operator fconsume alias FCONSUME pattern _ op [list; list; list]
 operator ffeed alias FFEED pattern _ op [list; list; list]
 operator hadoopjoin alias HADOOPJOIN pattern _ _ op [_, _, _, _; list; fun] implicit parameters stream1, stream2 types ANY, ANY2
 operator fdistribute alias FDISTRIBUTE pattern _ op [list; list; list; list]
+operator fconsume2 alias FCONSUME2 pattern _ op [list; list; list]
+operator ffeed2 alias FFEED2 pattern _ op [list; list; list]
+operator fetchFlob alias FETCHFLOB pattern _ op [list]
