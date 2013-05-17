@@ -3,13 +3,13 @@
 \usepackage[utf8x]{inputenc}
 \usepackage[ngerman]{babel}
 \usepackage{tabularx}
+\usepackage{longtable}
 \usepackage{graphicx}
 \usepackage{color}
 \usepackage{colortbl}
 \begin{document}
-\begin{table}
-  \caption{CVS-Zug\"ange f\"ur Studenten, Stand: \today}
-  \begin{tabularx}{\textwidth}{|l|l|l|l|l|X|l|l|}
+\section{CVS-Zug\"ange f\"ur Studenten, Stand: \today}
+\begin{longtable}{|l|l|l|l|l|l|l|l|}
   \hline \hline
 \textbf{Linux-User}        &\textbf{CVS-User}        &\textbf{Student}&\textbf{E-Mail}   &\textbf{Verzeichnis}            &\textbf{von}&\textbf{bis}\\
 \hline
@@ -44,7 +44,7 @@
 \cellcolor{red}             &kteufel                  &Klaus Teufel    &                   &Algebras/NestedRelation        &            &8.9.10\\
 \hline
 \hline
-\rowcolor{yellow}\cellcolor{red}diplomand5   & zacher    &Dirk Zacher     &dirk.zacher@fernuni-hagen.de&                      &18.4.13     &\cellcolor{red}Laptop\\
+\rowcolor{yellow}\cellcolor{red}diplomand5   & zacher    &Dirk Zacher     &dirk.zacher@fernuni-hagen.de&Algebras/Tile      &18.4.13     &\cellcolor{red}Laptop\\
 \cline{2-7}
 \cellcolor{red}             &tachmann                 &Thomas Achmann  &t\_achmann@gmx.de  &Algebras/Distributed           &16.2.11     &21.12.12\\
 \cline{2-7}
@@ -116,6 +116,5 @@
 \cellcolor{green}diplomand20&                          &                   &                          &                        &         &\\
 \hline
 \hline
-  \end{tabularx}
-\end{table}
+\end{longtable}
 \end{document}
