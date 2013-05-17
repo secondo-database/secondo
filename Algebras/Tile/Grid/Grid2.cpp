@@ -47,7 +47,7 @@ Grid2::Grid2(const double& rX,
        m_dY(rY),
        m_dLength(rLength)
 {
-  assert(m_dLength > 0);
+
 }
 
 Grid2::Grid2(const Grid2& rGrid2)
@@ -363,8 +363,8 @@ Word Grid2::In(const ListExpr typeInfo,
   if(instanceList.length() == 3)
   {
     if(instanceList.isReal(1) &&
-        instanceList.isReal(2) &&
-        instanceList.isReal(3))
+       instanceList.isReal(2) &&
+       instanceList.isReal(3))
     {
       Grid2* pGrid2 = new Grid2(instanceList.elem(1).realval(),
                                 instanceList.elem(2).realval(),
