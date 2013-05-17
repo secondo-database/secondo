@@ -1,0 +1,129 @@
+#
+# Tests for the tintFlob type of the TileAlgebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup TileAlgebraTest
+
+create database TileAlgebraTest;
+open database TileAlgebraTest;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Valid tintFlob Objects               #
+########################################
+
+#testcase Parse tintFlob
+#yields (tintFlob ((0.0 0.0 1.0) (1 1) (-2 -2 (1)) (-1 -2 (2)) (-2 -1 (3)) (-1 -1 (4)) (1 0 (-1)) (0 1 (-2)) (1 1 (-3))))
+query [const tintFlob value ((0.0 0.0 1.0) (2 2) (-2 -2 (1 2 3 4)) (0 0 (undefined -1 -2 -3)))];
+
+#testcase Parse tintFlob without Entries
+#yields (tintFlob ((0.0 0.0 1.0) (1 1)))
+query [const tintFlob value ((0.0 0.0 1.0) (1 1))];
+
+#testcase Parse tintFlob without Tile Size
+#yields (tintFlob ((0.0 0.0 1.0) (1 1)))
+query [const tintFlob value ((0.0 0.0 1.0))];
+
+
+########################################
+# Invalid List Type                    #
+########################################
+
+#testcase Parse tintFlob from Atom
+#yields error
+query [const tintFlob value "Foo"];
+
+
+########################################
+# Invalid Grid Lists                   #
+########################################
+
+#testcase Parse tintFlob with Grid2 List too short
+#yields error
+query [const tintFlob value ((0.0 1.0) (2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse tintFlob with Grid2 List too long
+#yields error
+query [const tintFlob value ((0.0 0.0 1.0 1.0) (2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse tintFlob with Grid2 List of zero Grid Length
+#yields error
+query [const tintFlob value ((0.0 0.0 0.0) (2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse tintFlob with Grid2 List of negative Grid Length
+#yields error
+query [const tintFlob value ((0.0 0.0 -1.0) (2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse tintFlob with Type Mismatch in Grid2 X-Origin 
+#yields error
+query [const tintFlob value ((undefined 0.0 1.0) (2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse tintFlob with Type Mismatch in Grid2 Y-Origin
+#yields error
+query [const tintFlob value ((0.0 undefined 1.0) (2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse tintFlob with Type Mismatch in Grid2 Length
+#yields error
+query [const tintFlob value ((0.0 0.0 undefined) (2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse tintFlob with Type Mismatch in Tile Size Row Count
+#yields error
+query [const tintFlob value ((0.0 0.0 1.0) (undefined 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse tintFlob with Type Mismatch in Tile Size Column Count
+#yields error
+query [const tintFlob value ((0.0 0.0 1.0) (2 undefined) (0 0 (0 0 0 0)))];
+
+
+########################################
+# Invalid Tile Size List               #
+########################################
+
+#testcase Parse tintFlob with Tile Size List too short
+#yields error
+query [const tintFlob value ((0.0 0.0 1.0) (2) (0 0 (0 0 0 0)))];
+
+#testcase Parse tintFlob with Tile Size List too long
+#yields error
+query [const tintFlob value ((0.0 0.0 1.0) (2 2 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse tintFlob with Type Mismatch in Tile Size List (1)
+#yields error
+query [const tintFlob value ((0.0 0.0 1.0) (undefined 2) (0 0 (0 0 0 0)))];
+
+#testcase Parse tintFlob with Type Mismatch in Tile Size List (1)
+#yields error
+query [const tintFlob value ((0.0 0.0 1.0) (2 undefined) (0 0 (0 0 0 0)))];
+
+
+########################################
+# Invalid Tile Specification           #
+########################################
+
+#testcase Parse tintFlob with Tile Specification too large
+#yields error
+query [const tintFlob value ((0.0 0.0 1.0) (1 1) (0 0 (0 0 0 0)))];
+
+#testcase Parse tintFlob with Tile Specification too small
+#yields error
+query [const tintFlob value ((0.0 0.0 1.0) (3 3) (0 0 (0 0 0 0)))];
+
+#testcase Parse tintFlob with Type Mismatch in Row Number of Tile Specification   
+#yields error
+query [const tintFlob value ((0.0 0.0 1.0) (2 2) (undefined 0 (0 0 0 0)))];
+
+#testcase Parse tintFlob with Type Mismatch in Column Number of Tile Specification   
+#yields error
+query [const tintFlob value ((0.0 0.0 1.0) (2 2) (0 undefined (0 0 0 0)))];
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+
