@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define TILEALGEBRA_TINTARRAY_H
 
 #include "Attribute.h"
+#include "../Constants.h"
 #include "../Grid/Grid2.h"
 
 namespace TileAlgebra
@@ -60,6 +61,7 @@ class tintArray : public Attribute
 
   */
 
+  void Load();
   bool SetGrid(const double& rX, const double& rY, const double& rLength);
   bool SetValue(int nIndex, int nValue);
 

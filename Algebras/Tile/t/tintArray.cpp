@@ -39,14 +39,17 @@ tintArray::tintArray(bool bDefined)
           :Attribute(bDefined),
            m_Grid(false)
 {
-  memset(m_Array, 0, 961 * sizeof(int));
+  for(int i = 0; i < TINTARRAY_SIZE; i++)
+  {
+    m_Array[i] = UNDEFINED_INT;
+  }
 }
 
 tintArray::tintArray(const tintArray& rtintArray)
           :Attribute(rtintArray.IsDefined())
 {
   m_Grid = rtintArray.m_Grid;
-  memcpy(m_Array, rtintArray.m_Array, 961 * sizeof(int));
+  memcpy(m_Array, rtintArray.m_Array, TINTARRAY_SIZE * sizeof(int));
 }
 
 tintArray::~tintArray()
@@ -59,10 +62,16 @@ tintArray& tintArray::operator=(const tintArray& rtintArray)
   if(this != &rtintArray)
   {
     SetDefined(rtintArray.IsDefined());
-    memcpy(m_Array, rtintArray.m_Array, 961 * sizeof(int));
+    m_Grid = rtintArray.m_Grid;
+    memcpy(m_Array, rtintArray.m_Array, TINTARRAY_SIZE * sizeof(int));
   }
   
   return *this;
+}
+
+void tintArray::Load()
+{
+
 }
 
 bool tintArray::SetGrid(const double& rX,
@@ -84,7 +93,8 @@ bool tintArray::SetValue(int nIndex, int nValue)
   bool bRetVal = false;
 
   if(IsDefined() &&
-     nIndex < 961)
+     nIndex >= 0 &&
+     nIndex < TINTARRAY_SIZE)
   {
     bRetVal = true;
     m_Array[nIndex] = nValue;
@@ -101,7 +111,7 @@ bool tintArray::Adjacent(const Attribute* pAttribute) const
 Attribute* tintArray::Clone() const
 {
   Attribute* pAttribute = new tintArray(*this);
-  assert(pAttribute != NULL);
+  assert(pAttribute != 0);
 
   return pAttribute;
 }
@@ -123,7 +133,8 @@ int tintArray::Compare(const Attribute* pAttribute) const
       {
         if(btintArrayIsDefined == true) // defined x defined
         {
-          nRetVal = memcmp(m_Array, ptintArray->m_Array, 961 * sizeof(int));
+          nRetVal = memcmp(m_Array, ptintArray->m_Array,
+                           TINTARRAY_SIZE * sizeof(int));
         }
         
         else // defined x undefined
@@ -312,28 +323,29 @@ Word tintArray::In(const ListExpr typeInfo,
                 {
                   int sizeX = sizeList.elem(1).intval();
                   int sizeY = sizeList.elem(2).intval();
+                  Cardinal valueListLength = static_cast<Cardinal>
+                                             (sizeX * sizeY);
 
                   instanceList.rest();
 
-                  tintArray* ptintArray = new tintArray(true);
-
-                  if(ptintArray != 0)
+                  while(bOK &&
+                        instanceList.isEmpty() == false)
                   {
-                    while(bOK &&
-                          instanceList.isEmpty() == false)
+                    NList pageList = instanceList.first();
+
+                    if(pageList.length() == 3)
                     {
-                      NList pageList = instanceList.first();
-
-                      if(pageList.length() == 3)
+                      if(pageList.isInt(1) &&
+                         pageList.isInt(2))
                       {
-                        if(pageList.isInt(1) &&
-                           pageList.isInt(2))
-                        {
-                          int indexX = pageList.elem(1).intval();
-                          int indexY = pageList.elem(2).intval();
-                          Cardinal valueListLength = (Cardinal)
-                                                     (indexX * indexY);
+                        int indexX = pageList.elem(1).intval();
+                        int indexY = pageList.elem(2).intval();
 
+                        if(indexX >= 0 &&
+                           indexX <= TINTARRAY_DIMENSION_SIZE - sizeX &&
+                           indexY >= 0 &&
+                           indexY <= TINTARRAY_DIMENSION_SIZE - sizeY)
+                        {
                           pageList.rest();
                           pageList.rest();
 
@@ -345,21 +357,18 @@ Word tintArray::In(const ListExpr typeInfo,
                             {
                               for(int column = 0; column < sizeX; column++)
                               {
-                                int index = row * sizeX + column + 1;
-                                int value = 0;
+                                int listIndex = row * sizeX + column + 1;
+                                int arrayIndex = (indexY + row) *
+                                                 TINTARRAY_DIMENSION_SIZE +
+                                                 (indexX + column);
+                                int value = UNDEFINED_INT;
 
-                                if(valueList.elem(index).
-                                   isSymbol(Symbol::UNDEFINED()))
+                                if(valueList.elem(listIndex).
+                                   isSymbol(Symbol::UNDEFINED()) == false)
                                 {
-                                  value = UNDEFINED_INT;
-                                }
-
-                                else
-                                {
-                                  if(valueList.elem(index).isInt())
+                                  if(valueList.elem(listIndex).isInt())
                                   {
-                                    value = valueList.elem(index).intval();
-                                    ptintArray->SetValue(index, value);
+                                    value = valueList.elem(listIndex).intval();
                                   }
 
                                   else
@@ -371,6 +380,8 @@ Word tintArray::In(const ListExpr typeInfo,
                                                     "wrong type.");
                                   }
                                 }
+
+                                ptintArray->SetValue(arrayIndex, value);
                               }
                             }
 
@@ -390,8 +401,8 @@ Word tintArray::In(const ListExpr typeInfo,
                         {
                           bOK = false;
                           cmsg.inFunError("Type mismatch: "
-                                          "partial grid content must start "
-                                          "with two integers.");
+                                          "page list index is "
+                                          "out of valid range.");
                         }
                       }
 
@@ -399,11 +410,20 @@ Word tintArray::In(const ListExpr typeInfo,
                       {
                         bOK = false;
                         cmsg.inFunError("Type mismatch: "
-                                        "partial grid content must contain "
-                                        "three elements.");
+                                        "partial grid content must start "
+                                        "with two integers.");
                       }
                     }
+
+                    else
+                    {
+                      bOK = false;
+                      cmsg.inFunError("Type mismatch: "
+                                      "partial grid content must contain "
+                                      "three elements.");
+                    }
                   }
+
                 }
 
                 else
@@ -433,6 +453,7 @@ Word tintArray::In(const ListExpr typeInfo,
           if(bOK)
           {
             word.setAddr(ptintArray);
+            rCorrect = true;
           }
 
           else
@@ -520,8 +541,8 @@ ListExpr tintArray::Out(ListExpr typeInfo,
         instanceList.append(gridList);
 
         NList sizeList;
-        sizeList.append(31);
-        sizeList.append(31);
+        sizeList.append(TINTARRAY_DIMENSION_SIZE);
+        sizeList.append(TINTARRAY_DIMENSION_SIZE);
         instanceList.append(sizeList);
 
         NList tintList;
@@ -530,13 +551,23 @@ ListExpr tintArray::Out(ListExpr typeInfo,
 
         NList valueList;
 
-        for(int i = 0; i < 961; i++)
+        for(int i = 0; i < TINTARRAY_SIZE; i++)
         {
-          valueList.append(ptintArray->m_Array[i]);
+          if(ptintArray->m_Array[i] == UNDEFINED_INT)
+          {
+            valueList.append(NList(Symbol::UNDEFINED()));
+          }
+
+          else
+          {
+            valueList.append(ptintArray->m_Array[i]);
+          }
         }
 
         tintList.append(valueList);
         instanceList.append(tintList);
+
+        pListExpr = instanceList.listExpr();
       }
       
       else
