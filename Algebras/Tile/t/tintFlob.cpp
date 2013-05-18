@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */ 
 
+#include "../Constants.h"
 #include "tintFlob.h"
 #include "TypeConstructor.h"
 #include "Symbols.h"
@@ -36,13 +37,18 @@ tintFlob::tintFlob()
   
 tintFlob::tintFlob(bool bDefined)
          :Attribute(bDefined),
-          m_Flob(0)
+          m_Grid(false),
+          m_Flob(TINTFLOB_SIZE)
 {
-  
+  for(int i = 0; i < TINTFLOB_ELEMENTS; i++)
+  {
+    SetValue(i, UNDEFINED_INT);
+  }
 }
 
 tintFlob::tintFlob(const tintFlob& rtintFlob)
                   :Attribute(rtintFlob.IsDefined()),
+                   m_Grid(rtintFlob.m_Grid),
                    m_Flob(rtintFlob.m_Flob)
 {
   
@@ -57,6 +63,9 @@ tintFlob& tintFlob::operator=(const tintFlob& rtintFlob)
 {
   if(this != &rtintFlob)
   {
+    SetDefined(rtintFlob.IsDefined());
+    m_Grid=rtintFlob.m_Grid;
+
     bool bOK = false;
 
     bOK = m_Flob.clean();
@@ -73,6 +82,41 @@ void tintFlob::Destroy()
   m_Flob.destroy();
 }
 
+void tintFlob::Load()
+{
+
+}
+
+bool tintFlob::SetGrid(const double& rX,
+                       const double& rY,
+                       const double& rLength)
+{
+  bool bRetVal = true;
+
+  m_Grid.SetDefined(true);
+  bRetVal &= m_Grid.SetX(rX);
+  bRetVal &= m_Grid.SetY(rY);
+  bRetVal &= m_Grid.SetLength(rLength);
+
+  return bRetVal;
+}
+
+bool tintFlob::SetValue(int nIndex, int nValue)
+{
+  bool bRetVal = false;
+
+  if(IsDefined() &&
+     nIndex >= 0 &&
+     nIndex < TINTFLOB_ELEMENTS)
+  {
+    bRetVal = m_Flob.write(reinterpret_cast<const char*>(&nValue),
+                           sizeof(int),
+                           nIndex * sizeof(int));
+  }
+
+  return bRetVal;
+}
+
 bool tintFlob::Adjacent(const Attribute* pAttribute) const
 {
   return false;
@@ -81,7 +125,7 @@ bool tintFlob::Adjacent(const Attribute* pAttribute) const
 Attribute* tintFlob::Clone() const
 {
   Attribute* pAttribute = new tintFlob(*this);
-  assert(pAttribute != NULL);
+  assert(pAttribute != 0);
 
   return pAttribute;
 }
@@ -282,8 +326,204 @@ Word tintFlob::In(const ListExpr typeInfo,
 { 
   Word word;
 
-  // TODO: add implementation
-  
+  NList instanceList(instance);
+  rCorrect = false;
+
+  if(instanceList.isAtom() == false)
+  {
+    NList gridList = instanceList.elem(1);
+
+    if(gridList.length() == 3)
+    {
+      if(gridList.isReal(1) &&
+         gridList.isReal(2) &&
+         gridList.isReal(3))
+      {
+        tintFlob* ptintFlob = new tintFlob(true);
+
+        if(ptintFlob != 0)
+        {
+          bool bOK = ptintFlob->SetGrid(gridList.elem(1).realval(),
+                                        gridList.elem(2).realval(),
+                                        gridList.elem(3).realval());
+
+          if(bOK == true)
+          {
+            instanceList.rest();
+
+            if(instanceList.isEmpty() == false)
+            {
+              NList sizeList = instanceList.elem(1);
+
+              if(sizeList.length() == 2)
+              {
+                if(sizeList.isInt(1) &&
+                   sizeList.isInt(2) &&
+                   sizeList.elem(1).intval() > 0 &&
+                   sizeList.elem(2).intval() > 0)
+                {
+                  int sizeX = sizeList.elem(1).intval();
+                  int sizeY = sizeList.elem(2).intval();
+                  Cardinal valueListLength = static_cast<Cardinal>
+                                             (sizeX * sizeY);
+
+                  instanceList.rest();
+
+                  while(bOK &&
+                        instanceList.isEmpty() == false)
+                  {
+                    NList pageList = instanceList.first();
+
+                    if(pageList.length() == 3)
+                    {
+                      if(pageList.isInt(1) &&
+                         pageList.isInt(2))
+                      {
+                        int indexX = pageList.elem(1).intval();
+                        int indexY = pageList.elem(2).intval();
+
+                        if(indexX >= 0 &&
+                           indexX <= TINTFLOB_DIMENSION_SIZE - sizeX &&
+                           indexY >= 0 &&
+                           indexY <= TINTFLOB_DIMENSION_SIZE - sizeY)
+                        {
+                          pageList.rest();
+                          pageList.rest();
+
+                          NList valueList = pageList.first();
+
+                          if(valueList.length() == valueListLength)
+                          {
+                            for(int row = 0; row < sizeY; row++)
+                            {
+                              for(int column = 0; column < sizeX; column++)
+                              {
+                                int listIndex = row * sizeX + column + 1;
+                                int flobIndex = (indexY + row) *
+                                                TINTFLOB_DIMENSION_SIZE +
+                                                (indexX + column);
+                                int value = UNDEFINED_INT;
+
+                                if(valueList.elem(listIndex).
+                                   isSymbol(Symbol::UNDEFINED()) == false)
+                                {
+                                  if(valueList.elem(listIndex).isInt())
+                                  {
+                                    value = valueList.elem(listIndex).intval();
+                                  }
+
+                                  else
+                                  {
+                                    bOK = false;
+                                    cmsg.inFunError("Type mismatch: "
+                                                    "list value in "
+                                                    "partial grid has "
+                                                    "wrong type.");
+                                  }
+                                }
+
+                                ptintFlob->SetValue(flobIndex, value);
+                              }
+                            }
+
+                            instanceList.rest();
+                          }
+
+                          else
+                          {
+                            bOK = false;
+                            cmsg.inFunError("Type mismatch: "
+                                            "list for partial grid values "
+                                            "is too short or too long.");
+                          }
+                        }
+
+                        else
+                        {
+                          bOK = false;
+                          cmsg.inFunError("Type mismatch: "
+                                          "page list index is "
+                                          "out of valid range.");
+                        }
+                      }
+
+                      else
+                      {
+                        bOK = false;
+                        cmsg.inFunError("Type mismatch: "
+                                        "partial grid content must start "
+                                        "with two integers.");
+                      }
+                    }
+
+                    else
+                    {
+                      bOK = false;
+                      cmsg.inFunError("Type mismatch: "
+                                      "partial grid content must contain "
+                                      "three elements.");
+                    }
+                  }
+
+                }
+
+                else
+                {
+                  bOK = false;
+                  cmsg.inFunError("Type mismatch: "
+                                  "partial grid size must contain "
+                                  "two positive integers.");
+                }
+              }
+
+              else
+              {
+                bOK = false;
+                cmsg.inFunError("Size list must have a length of 2.");
+              }
+            }
+
+            else
+            {
+              bOK = false;
+              cmsg.inFunError("Expected list as second element, "
+                              "got an empty list.");
+            }
+          }
+
+          if(bOK)
+          {
+            word.setAddr(ptintFlob);
+            rCorrect = true;
+          }
+
+          else
+          {
+            delete ptintFlob;
+            ptintFlob = 0;
+            rCorrect = false;
+          }
+        }
+      }
+
+      else
+      {
+        cmsg.inFunError("Type mismatch: expected 3 reals as grid2 sublist.");
+      }
+    }
+
+    else
+    {
+      cmsg.inFunError("Type mismatch: list for grid2 is too short "
+                      "or too long.");
+    }
+  }
+
+  else
+  {
+    cmsg.inFunError("Expected list as first element, got an atom.");
+  }
+
   return word;
 }
 
@@ -324,7 +564,7 @@ ListExpr tintFlob::Out(ListExpr typeInfo,
                        Word value)
 { 
   ListExpr pListExpr = 0;
-  
+
   if(nl != 0)
   {  
     tintFlob* ptintFlob = static_cast<tintFlob*>(value.addr);
@@ -333,7 +573,49 @@ ListExpr tintFlob::Out(ListExpr typeInfo,
     {
       if(ptintFlob->IsDefined() == true)
       {
-        
+        NList instanceList;
+
+        NList gridList;
+        gridList.append(ptintFlob->m_Grid.GetX());
+        gridList.append(ptintFlob->m_Grid.GetY());
+        gridList.append(ptintFlob->m_Grid.GetLength());
+        instanceList.append(gridList);
+
+        NList sizeList;
+        sizeList.append(TINTFLOB_DIMENSION_SIZE);
+        sizeList.append(TINTFLOB_DIMENSION_SIZE);
+        instanceList.append(sizeList);
+
+        NList tintList;
+        tintList.append(0);
+        tintList.append(0);
+
+        NList valueList;
+
+        for(int i = 0; i < TINTFLOB_ELEMENTS; i++)
+        {
+          int nValue = UNDEFINED_INT;
+
+          bool bOK = ptintFlob->m_Flob.read(reinterpret_cast<char*>(&nValue),
+                                            sizeof(int),
+                                            i * sizeof(int));
+          assert(bOK);
+
+          if(nValue == UNDEFINED_INT)
+          {
+            valueList.append(NList(Symbol::UNDEFINED()));
+          }
+
+          else
+          {
+            valueList.append(nValue);
+          }
+        }
+
+        tintList.append(valueList);
+        instanceList.append(tintList);
+
+        pListExpr = instanceList.listExpr();
       }
       
       else

@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define TILEALGEBRA_TINTFLOB_H
 
 #include "Attribute.h"
+#include "../Grid/Grid2.h"
 #include "../../Tools/Flob/Flob.h"
 
 namespace TileAlgebra
@@ -61,6 +62,9 @@ class tintFlob : public Attribute
   */
   
   void Destroy();
+  void Load();
+  bool SetGrid(const double& rX, const double& rY, const double& rLength);
+  bool SetValue(int nIndex, int nValue);
 
   /*
   override functions from base class Attribute
@@ -113,11 +117,13 @@ class tintFlob : public Attribute
   static int SizeOfObj();
     
   private:
+
   /*
   members
    
   */
 
+  Grid2 m_Grid;
   Flob m_Flob;
 };
 
