@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 includes for TileAlgebra types
 
 */
+
 #include "Grid2.h"
 #include "Grid3.h"
 #include "tintArray.h"
@@ -39,7 +40,7 @@ includes for TileAlgebra operators
 
 */
 
-
+#include "load.h"
 
 /*
 extern declarations
@@ -72,10 +73,22 @@ namespace TileAlgebra
 TileAlgebra::TileAlgebra()
             :Algebra()
 {
+  /*
+  Type Constructors
+
+  */
+
   AddTypeConstructor(new TypeConstructor(Grid2::GetTypeConstructor()));
   AddTypeConstructor(new TypeConstructor(Grid3::GetTypeConstructor()));
   AddTypeConstructor(new TypeConstructor(tintArray::GetTypeConstructor()));
   AddTypeConstructor(new TypeConstructor(tintFlob::GetTypeConstructor()));
+
+  /*
+  Operators
+
+  */
+
+  AddOperator(loadInfo(), loadFunctions, loadSelectFunction, loadTypeMapping);
 }
 
 TileAlgebra::~TileAlgebra()
