@@ -33,6 +33,48 @@ const undefined value for type int
 
 extern const int UNDEFINED_INT;
 
+/*
+const Grid2 size
+
+*/
+
+extern const unsigned int GRID2_SIZE;
+
+/*
+const tintArray size
+
+*/
+
+extern const int TINTARRAY_SIZE;
+
+/*
+const tintArray dimension size
+
+*/
+
+extern const int TINTARRAY_DIMENSION_SIZE;
+
+/*
+const tintFlob elements
+
+*/
+
+extern const int TINTFLOB_ELEMENTS;
+
+/*
+const tintFlob size
+
+*/
+
+extern const int TINTFLOB_SIZE;
+
+/*
+const tintFlob dimension size
+
+*/
+
+extern const int TINTFLOB_DIMENSION_SIZE;
+
 }
 
 #endif // TILEALGEBRA_CONSTANTS_H
