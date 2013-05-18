@@ -24,7 +24,7 @@
 #
 ########################################################################
 
-# inlcude global definitions
+# include global definitions
 include ../../makefile.env
 
 # expand compile flags if necessary
@@ -37,6 +37,7 @@ all: $(OBJECTS) $(LIBOBJ)
 	make -C Grid
 	make -C Operators
 	make -C t
+	make -C Tests
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -53,4 +54,5 @@ clean:
 	make -C Grid clean
 	make -C Operators clean
 	make -C t clean
+	make -C Tests clean
 	$(clean-algebra)
