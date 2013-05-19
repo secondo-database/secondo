@@ -26,6 +26,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "AlgebraTypes.h"
 #include "Operator.h"
 #include "QueryProcessor.h"
+#include "../t/tintArray.h"
+#include "../t/tintFlob.h"
+#include "StandardTypes.h"
 
 namespace TileAlgebra
 {
@@ -39,8 +42,8 @@ struct loadInfo : OperatorInfo
   loadInfo()
   {
     name      = "load";
-    signature = "tintArray";
-    appendSignature("tintFlob");
+    signature = tintArray::BasicType() + " -> " + CcBool::BasicType();
+    appendSignature(tintFlob::BasicType() + " -> " + CcBool::BasicType());
     syntax    = "load(_)";
     meaning   = "Loads the values of a tintArray or a tintFlob.";
   }
@@ -57,9 +60,14 @@ int loadFunction(Word* pArguments,
 
   if(pImplementationType != 0)
   {
-    // rResult = qp->ResultStorage(supplier);
+    rResult = qp->ResultStorage(supplier);
 
-    pImplementationType->Load();
+    CcBool* pResult = static_cast<CcBool*>(rResult.addr);
+
+    if(pResult != 0)
+    {
+      pResult->Set(true, pImplementationType->Load());
+    }
   }
 
   return 0;
