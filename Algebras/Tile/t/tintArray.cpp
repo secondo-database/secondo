@@ -69,9 +69,11 @@ tintArray& tintArray::operator=(const tintArray& rtintArray)
   return *this;
 }
 
-void tintArray::Load()
+bool tintArray::Load()
 {
+  bool bRetVal = true;
 
+  return bRetVal;
 }
 
 bool tintArray::SetGrid(const double& rX,
@@ -505,7 +507,7 @@ bool tintArray::Open(SmiRecord& rValueRecord,
                      Word& rValue)
 { 
   bool bRetVal = false;
-  
+
   tintArray* ptintArray = static_cast<tintArray*>(Attribute::Open(rValueRecord,
                                                                   rOffset,
                                                                   typeInfo));
@@ -515,7 +517,7 @@ bool tintArray::Open(SmiRecord& rValueRecord,
     rValue = SetWord(ptintArray);
     bRetVal = true;
   }
-  
+
   return bRetVal;
 }
 

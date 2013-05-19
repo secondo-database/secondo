@@ -61,7 +61,7 @@ class tintArray : public Attribute
 
   */
 
-  void Load();
+  bool Load();
   bool SetGrid(const double& rX, const double& rY, const double& rLength);
   bool SetValue(int nIndex, int nValue);
 
@@ -114,6 +114,7 @@ class tintArray : public Attribute
   static int SizeOfObj();
     
   private:
+
   /*
   members
    
