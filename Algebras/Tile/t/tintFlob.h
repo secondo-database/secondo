@@ -62,7 +62,7 @@ class tintFlob : public Attribute
   */
   
   void Destroy();
-  void Load();
+  bool Load();
   bool SetGrid(const double& rX, const double& rY, const double& rLength);
   bool SetValue(int nIndex, int nValue);
 

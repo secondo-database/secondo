@@ -82,9 +82,11 @@ void tintFlob::Destroy()
   m_Flob.destroy();
 }
 
-void tintFlob::Load()
+bool tintFlob::Load()
 {
+  bool bRetVal = true;
 
+  return bRetVal;
 }
 
 bool tintFlob::SetGrid(const double& rX,
