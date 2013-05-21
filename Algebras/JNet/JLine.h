@@ -249,6 +249,17 @@ Returns the bounding ~jpoints~ of the  ~jline~.
 
 void GetBGP(JPoints* result) const;
 
+/*
+1.1.1.1 Shortest Path
+
+Computes the shortest path to the given target as jpath.
+
+*/
+
+void ShortestPath(const JPoint* target, JPath* result) const;
+void ShortestPath(const JPoints* target, JPath* result) const;
+void ShortestPath(const JLine* target, JPath* result) const;
+
 private:
 
 /*

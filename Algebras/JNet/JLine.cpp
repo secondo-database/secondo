@@ -864,6 +864,94 @@ void JLine::GetBGP(JPoints* result) const
   }
 }
 
+/*
+1.1.1 ~ShortestPath~
+
+*/
+
+void JLine::ShortestPath(const jnetwork::JPoint* target, JPath* result) const
+{
+  result->Clear();
+  if (IsDefined() && !IsEmpty() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    result->SetNetworkId(nid);
+    if (!Contains(target))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      JPoints* bgp = new JPoints(false);
+      GetBGP(bgp);
+      jnet->ShortestPath(bgp->GetRouteLocations(), target->GetLocation(),
+                         result);
+      ManageJNet::CloseNetwork(jnet);
+      bgp->Destroy();
+      bgp->DeleteIfAllowed();
+    }
+    else
+      result->SetDefined(true);
+  }
+  else
+    result->SetDefined(false);
+
+}
+
+void JLine::ShortestPath(const jnetwork::JPoints* target, JPath* result) const
+{
+  result->Clear();
+  if (IsDefined() && !IsEmpty() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    result->SetNetworkId(nid);
+    if (!JNetUtil::ArrayContainIntersections(GetRouteIntervals(),
+                                             target->GetRouteLocations()))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      JPoints* bgp = new JPoints(false);
+      GetBGP(bgp);
+      jnet->ShortestPath(&bgp->GetRouteLocations(),
+                         &target->GetRouteLocations(),
+                         result);
+      ManageJNet::CloseNetwork(jnet);
+      bgp->Destroy();
+      bgp->DeleteIfAllowed();
+    }
+    else
+      result->SetDefined(true);
+  }
+  else
+    result->SetDefined(false);
+}
+
+void JLine::ShortestPath(const jnetwork::JLine* target, JPath* result) const
+{
+  result->Clear();
+  if (IsDefined() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    result->SetNetworkId(nid);
+    if (!JNetUtil::ArrayContainIntersections(GetRouteIntervals(),
+                                             target->GetRouteIntervals()))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      JPoints* srcbgp = new JPoints(false);
+      JPoints* tgtbgp = new JPoints(false);
+      GetBGP(srcbgp);
+      target->GetBGP(tgtbgp);
+      jnet->ShortestPath(&srcbgp->GetRouteLocations(),
+                         &tgtbgp->GetRouteLocations(),
+                         result);
+      ManageJNet::CloseNetwork(jnet);
+      srcbgp->Destroy();
+      tgtbgp->Destroy();
+      srcbgp->DeleteIfAllowed();
+      tgtbgp->DeleteIfAllowed();
+    }
+    else
+      result->SetDefined(true);
+  }
+  else
+    result->SetDefined(false);
+}
 
 /*
 1.1 private Methods
