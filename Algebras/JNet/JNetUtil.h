@@ -97,6 +97,19 @@ Returns the index in list where rloc is contained in the JRouteInterval.
                                       const int endindex);
 
 /*
+1.1.1.1 GetIndexOfRouteLocationFor
+
+Returns the index of the list where an identic rloc postion is stored.
+
+*/
+
+  static int GetIndexOfRouteLocationFor(
+                                      const DbArray<RouteLocation>& list,
+                                      const RouteLocation& rloc,
+                                      const int startindex,
+                                      const int endindex);
+
+/*
 1.1.1.1 GetIndexOfJRouteIntervalForRLoc
 
 Returns the index in list where rint is overlapped by jrint of list.
@@ -119,6 +132,9 @@ Returns true if at least one pair of jrint one of lhs and one of rhs intersects.
 
   static bool ArrayContainIntersections (const DbArray<RouteLocation>& lhs,
                                          const DbArray<RouteLocation>& rhs);
+
+  static bool ArrayContainIntersections(const DbArray<JRouteInterval>& lhs,
+                                        const DbArray<RouteLocation>& rhs);
 
 };
 

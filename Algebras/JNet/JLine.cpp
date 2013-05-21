@@ -677,6 +677,17 @@ bool JLine::Contains(const JPoint* jp) const
     return false;
 }
 
+bool JLine::Contains(const jnetwork::JPoints* jpts) const
+{
+  if (IsDefined() && !IsEmpty() && jpts != NULL && jpts->IsDefined() &&
+      !jpts->IsEmpty())
+    return JNetUtil::ArrayContainIntersections(GetRouteIntervals(),
+                                               jpts->GetRouteLocations());
+  else
+    return false;
+}
+
+
 /*
 1.1.1 Union
 

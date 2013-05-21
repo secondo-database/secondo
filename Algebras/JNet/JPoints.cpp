@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 #include "JRLTree.h"
 #include "ManageJNet.h"
+#include "JNetUtil.h"
 
 using namespace jnetwork;
 
@@ -556,6 +557,94 @@ JPoints& JPoints::Add(const jnetwork::JListRLoc& rlocs)
   }
   return *this;
 }
+
+/*
+1.1.1 Shortest Path
+
+*/
+
+void JPoints::ShortestPath(const JPoint* target, JPath* result) const
+{
+  result->Clear();
+  if (IsDefined() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    result->SetNetworkId(nid);
+    if (!Contains(target))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      jnet->ShortestPath(GetRouteLocations(), target->GetLocation(),
+                         result);
+      ManageJNet::CloseNetwork(jnet);
+    }
+    else
+      result->SetDefined(true);
+  }
+  else
+    result->SetDefined(false);
+}
+
+void JPoints::ShortestPath(const JPoints* target, JPath* result) const
+{
+  result->Clear();
+  if (IsDefined() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    result->SetNetworkId(nid);
+    if (!JNetUtil::ArrayContainIntersections(GetRouteLocations(),
+                                             target->GetRouteLocations()))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      jnet->ShortestPath(&GetRouteLocations(), &target->GetRouteLocations(),
+                         result);
+      ManageJNet::CloseNetwork(jnet);
+    }
+    else
+      result->SetDefined(true);
+  }
+  else
+    result->SetDefined(false);
+}
+
+void JPoints::ShortestPath(const JLine* target, JPath* result) const
+{
+  result->Clear();
+  if (IsDefined() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    result->SetNetworkId(nid);
+    if (!target->Contains(this))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      JPoints* bgp = new JPoints(false);
+      target->GetBGP(bgp);
+      jnet->ShortestPath(&GetRouteLocations(), &bgp->GetRouteLocations(),
+                         result);
+      ManageJNet::CloseNetwork(jnet);
+      bgp->Destroy();
+      bgp->DeleteIfAllowed();
+    }
+    else
+      result->SetDefined(true);
+  }
+  else
+    result->SetDefined(false);
+}
+
+/*
+1.1.1 Contains
+
+*/
+
+bool JPoints::Contains(const jnetwork::JPoint* target) const
+{
+  return (IsDefined() && target != NULL && target->IsDefined() &&
+          strcmp(nid, *target->GetNetworkId()) == 0 &&
+          -1 < JNetUtil::GetIndexOfRouteLocationFor(this->GetRouteLocations(),
+                                                    target->GetLocation(),
+                                                    0, routelocations.Size()));
+}
+
 
 /*
 1.1 Management of RouteIntervals

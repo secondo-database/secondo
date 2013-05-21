@@ -472,7 +472,7 @@ JListRLoc* JPoint::OtherNetworkPositions() const
 
 */
 
-void JPoint::ShortestPath(const jnetwork::JPoint* target,
+void JPoint::ShortestPath(const JPoint* target,
                           JPath* result) const
 {
   result->Clear();
@@ -480,43 +480,59 @@ void JPoint::ShortestPath(const jnetwork::JPoint* target,
       strcmp(nid, *target->GetNetworkId()) == 0)
   {
     result->SetNetworkId(nid);
-    JNetwork* jnet = ManageJNet::GetNetwork(nid);
-    jnet->ShortestPath(npos, target->GetLocation(), result);
-    ManageJNet::CloseNetwork(jnet);
+    if (!(npos.IsOnSamePlace(target->GetLocation())))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      jnet->ShortestPath(npos, target->GetLocation(), result);
+      ManageJNet::CloseNetwork(jnet);
+    }
+    else
+      result->SetDefined(true);
   }
   else
     result->SetDefined(false);
 }
 
-void JPoint::ShortestPath(const jnetwork::JPoints* target, JPath* result) const
+void JPoint::ShortestPath(const JPoints* target, JPath* result) const
 {
   result->Clear();
   if (IsDefined() && target != NULL && target->IsDefined() &&
       strcmp(nid, *target->GetNetworkId()) == 0)
   {
     result->SetNetworkId(nid);
-    JNetwork* jnet = ManageJNet::GetNetwork(nid);
-    jnet->ShortestPath(npos, target->GetRouteLocations(), result);
-    ManageJNet::CloseNetwork(jnet);
+    if (!target->Contains(this))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      jnet->ShortestPath(npos, target->GetRouteLocations(), result);
+      ManageJNet::CloseNetwork(jnet);
+    }
+    else
+      result->SetDefined(true);
   }
   else
     result->SetDefined(false);
 }
 
-void JPoint::ShortestPath(const jnetwork::JLine* target, JPath* result) const
+void JPoint::ShortestPath(const JLine* target, JPath* result) const
 {
   result->Clear();
   if (IsDefined() && target != NULL && target->IsDefined() &&
       strcmp(nid, *target->GetNetworkId()) == 0)
   {
     result->SetNetworkId(nid);
-    JNetwork* jnet = ManageJNet::GetNetwork(nid);
-    JPoints* bgp = new JPoints(false);
-    target->GetBGP(bgp);
-    jnet->ShortestPath(npos, bgp->GetRouteLocations(), result);
-    ManageJNet::CloseNetwork(jnet);
-    bgp->Destroy();
-    bgp->DeleteIfAllowed();
+    if (!target->Contains(this))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      JPoints* bgp = new JPoints(false);
+      target->GetBGP(bgp);
+      jnet->ShortestPath(npos, bgp->GetRouteLocations(), result);
+      ManageJNet::CloseNetwork(jnet);
+      bgp->Destroy();
+      bgp->DeleteIfAllowed();
+    }
+    else
+      result->SetDefined(true);
+
   }
   else
     result->SetDefined(false);

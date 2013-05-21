@@ -2229,7 +2229,7 @@ void JNetwork::ShortestPath(const RouteLocation& source,
   delete tgtPositions;
 }
 
-void JNetwork::ShortestPath(const jnetwork::RouteLocation& source,
+void JNetwork::ShortestPath(const RouteLocation& source,
                             const DbArray< RouteLocation >& target,
                             JPath* result)
 {
@@ -2238,6 +2238,17 @@ void JNetwork::ShortestPath(const jnetwork::RouteLocation& source,
   ShortestPath(srcPositions, &target, result);
   srcPositions->Destroy();
   delete srcPositions;
+}
+
+void JNetwork::ShortestPath(const DbArray< RouteLocation >& source,
+                            const RouteLocation& target,
+                            JPath* result)
+{
+  DbArray<RouteLocation>* tgtPositions = new DbArray<RouteLocation>(0);
+  tgtPositions->Append(target);
+  ShortestPath(&source, tgtPositions, result);
+  tgtPositions->Destroy();
+  delete tgtPositions;
 }
 
 

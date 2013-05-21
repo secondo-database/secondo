@@ -34,10 +34,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "StandardTypes.h"
 #include "../Tools/Flob/DbArray.h"
 #include "JList.h"
+#include "JLine.h"
+#include "JPath.h"
 #include "JNetwork.h"
+
 
 namespace jnetwork {
 
+  class JPoint;
 /*
 1 class JPoints
 
@@ -203,6 +207,25 @@ sets of route locations can only can be added in activBulkload.
  JPoints& Add(const RouteLocation& rint);
  JPoints& Add(const JListRLoc& rlocs);
 
+/*
+1.1.1.1 Shortest Path
+
+Computes the shortest path to the given target.
+
+*/
+
+void ShortestPath(const JPoint* target, JPath* result) const;
+void ShortestPath(const JPoints* target, JPath* result) const;
+void ShortestPath(const JLine* target, JPath* result) const;
+
+/*
+1.1.1.1 Contains
+
+Returns true if the target is contained.
+
+*/
+
+bool Contains(const JPoint* target) const;
 
 /*
 

@@ -251,6 +251,39 @@ int JNetUtil::GetIndexOfJRouteIntervalForRLoc(
   }
 }
 
+int JNetUtil::GetIndexOfRouteLocationFor(const DbArray< RouteLocation >& list,
+                                         const RouteLocation& rloc,
+                                         const int startindex,
+                                         const int endindex)
+{
+  if (!rloc.IsDefined() || startindex < 0 || endindex > list.Size()-1 ||
+      startindex > endindex)
+    return -1;
+  else
+  {
+    RouteLocation rl;
+    int mid = (startindex + endindex)/ 2;
+    list.Get(mid, rl);
+    if (rl.GetRouteId() < rloc.GetRouteId())
+      return JNetUtil::GetIndexOfRouteLocationFor(list, rloc,
+                                                   mid+1,endindex);
+    else if (rl.GetRouteId() > rloc.GetRouteId())
+      return JNetUtil::GetIndexOfRouteLocationFor(list, rloc,
+                                                  startindex, mid-1);
+    else if (rl.GetPosition()< rloc.GetPosition())
+      return JNetUtil::GetIndexOfRouteLocationFor(list, rloc,
+                                                    mid+1,endindex);
+    else if (rl.GetPosition() > rloc.GetPosition())
+      return JNetUtil::GetIndexOfRouteLocationFor(list, rloc,
+                                                   startindex, mid-1);
+    else if (rl.GetSide().SameSide(rloc.GetSide(),false))
+      return mid;
+    else
+      return -1;
+  }
+}
+
+
 bool JNetUtil::ArrayContainIntersections(const DbArray< JRouteInterval >& lhs,
                                          const DbArray< JRouteInterval >& rhs)
 {
@@ -290,15 +323,58 @@ bool JNetUtil::ArrayContainIntersections(const DbArray< JRouteInterval >& lhs,
 bool JNetUtil::ArrayContainIntersections(const DbArray< RouteLocation >& lhs,
                                          const DbArray< RouteLocation >& rhs)
 {
-  RouteLocation lhsRLoc, rhsRLoc;
-  for (int i = 0; i < lhs.Size(); i++)
+  RouteLocation lhsRLoc(false);
+  RouteLocation rhsRLoc(false);
+  int i = 0;
+  int j = 0;
+  while (i < lhs.Size() && j < rhs.Size())
   {
-    lhs.Get(i, lhsRLoc);
-    for (int j = 0; j < rhs.Size(); j++)
+    lhs.Get(i,lhsRLoc);
+    rhs.Get(j,rhsRLoc);
+    if (lhsRLoc.IsOnSamePlace(rhsRLoc))
+      return true;
+    else if (lhsRLoc.GetRouteId() < rhsRLoc.GetRouteId())
+      i++;
+    else if (lhsRLoc.GetRouteId() > rhsRLoc.GetRouteId())
+      j++;
+    else if (lhsRLoc.GetPosition() < rhsRLoc.GetPosition())
+      i++;
+    else if (lhsRLoc.GetPosition() > rhsRLoc.GetPosition())
+      j++;
+    else
     {
-      rhs.Get(j,rhsRLoc);
-      if (lhsRLoc.IsOnSamePlace(rhsRLoc))
-        return true;
+      i++;
+      j++;
+    }
+  }
+  return false;
+}
+
+bool JNetUtil::ArrayContainIntersections(const DbArray< JRouteInterval >& lhs,
+                                         const DbArray< RouteLocation >& rhs)
+{
+  JRouteInterval rint(false);
+  RouteLocation rloc(false);
+  int i = 0;
+  int j = 0;
+  while (i < lhs.Size() && j < rhs.Size())
+  {
+    lhs.Get(i, rint);
+    rhs.Get(j,rloc);
+    if (rint.Contains(rloc))
+      return true;
+    else if (rint.GetRouteId() < rloc.GetRouteId())
+      i++;
+    else if (rint.GetRouteId() > rloc.GetRouteId())
+      j++;
+    else if (rint.GetLastPosition() < rloc.GetPosition())
+      i++;
+    else if (rint.GetFirstPosition() > rloc.GetPosition())
+      j++;
+    else
+    {
+      i++;
+      j++;
     }
   }
   return false;

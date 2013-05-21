@@ -229,6 +229,7 @@ Returns true if the ~jpoint~ is inside the ~jline~, false otherwise.
 */
 
 bool Contains(const JPoint* jp) const;
+bool Contains(const JPoints* jpts) const;
 
 /*
 1.1.1.1 ~Union~

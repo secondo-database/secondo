@@ -984,7 +984,28 @@ Operator : shortest_path
 Number   : 4
 Signature: jpoint x jline -> jpath
 Example  : query shortest_path([const jpoint value("testjnet" (1 0.0015 (Up)))], testjl);
-Result   : (jpath("testjnet"((1 0.0015 0.002 (Up)))))
+Result   : (jpath("testjnet"()))
+Tolerance: 0.01%
+
+Operator : shortest_path
+Number   : 5
+Signature: jpoints x jpoint -> jpath
+Example  : query shortest_path(createjpoints(testjnet, testlistrloc2),[const jpoint value("testjnet" (1 0.001 (Up)))]);
+Result   : (jpath("testjnet"()))
+Tolerance: 0.01%
+
+Operator : shortest_path
+Number   : 6
+Signature: jpoints x jpoints -> jpath
+Example  : query shortest_path(createjpoints(testjnet, testlistrloc2), getBGP(testjl));
+Result   : (jpath("testjnet"((1 0.0 0.001 (Down)))))
+Tolerance: 0.01%
+
+Operator : shortest_path
+Number   : 7
+Signature: jpoints x jline -> jpath
+Example  : query shortest_path(createjpoints(testjnet, testlistrloc2), testjl);
+Result   : (jpath("testjnet"()))
 Tolerance: 0.01%
 
 Operator : tempnetbox

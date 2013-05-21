@@ -3701,21 +3701,24 @@ second parameter as jpath.
 
 */
 
-const string maps_shortestpath[3][3] =
+const string maps_shortestpath[6][3] =
 {
   {JPoint::BasicType(), JPoint::BasicType(), JPath::BasicType()},
   {JPoint::BasicType(), JPoints::BasicType(), JPath::BasicType()},
-  {JPoint::BasicType(), JLine::BasicType(), JPath::BasicType()}
+  {JPoint::BasicType(), JLine::BasicType(), JPath::BasicType()},
+  {JPoints::BasicType(), JPoint::BasicType(), JPath::BasicType()},
+  {JPoints::BasicType(), JPoints::BasicType(), JPath::BasicType()},
+  {JPoints::BasicType(), JLine::BasicType(), JPath::BasicType()}
 };
 
 ListExpr shortestpathTM(ListExpr args)
 {
-  return SimpleMaps<3,3>(maps_shortestpath, args);
+  return SimpleMaps<6,3>(maps_shortestpath, args);
 }
 
 int shortestpathSelect(ListExpr args)
 {
-  return SimpleSelect<3,3>(maps_shortestpath, args);
+  return SimpleSelect<6,3>(maps_shortestpath, args);
 }
 
 template<class Source, class Target>
@@ -3738,7 +3741,10 @@ ValueMapping shortestpathMap[] =
 {
   shortestpathVM<JPoint, JPoint>,
   shortestpathVM<JPoint, JPoints>,
-  shortestpathVM<JPoint, JLine>
+  shortestpathVM<JPoint, JLine>,
+  shortestpathVM<JPoints, JPoint>,
+  shortestpathVM<JPoints, JPoints>,
+  shortestpathVM<JPoints, JLine>
 };
 
 const string shortestpathSpec =
@@ -3749,13 +3755,19 @@ const string shortestpathSpec =
   JPoint::BasicType() + " X " + JPoints::BasicType() + " -> "
   + JPath::BasicType() + ", \n" +
   JPoint::BasicType() + " X " + JLine::BasicType() + " -> "
+  + JPath::BasicType() + ", \n" +
+  JPoints::BasicType() + " X " + JPoint::BasicType() + " -> "
+  + JPath::BasicType() + ", \n" +
+  JPoints::BasicType() + " X " + JPoints::BasicType() + " -> "
+  + JPath::BasicType() + ", \n" +
+  JPoints::BasicType() + " X " + JLine::BasicType() + " -> "
   + JPath::BasicType() +
   "</text--->"
   "<text>shortest_path(<source>, <target>) </text--->"
   "<text>Returns the shortest path from the source to the target. </text--->"
   "<text>query shortest_path(src, tgt)</text--->))";
 
-Operator shortestpathJNet("shortest_path", shortestpathSpec, 3, shortestpathMap,
+Operator shortestpathJNet("shortest_path", shortestpathSpec, 6, shortestpathMap,
                           shortestpathSelect, shortestpathTM);
 
 /*
