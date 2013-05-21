@@ -840,6 +840,76 @@ Example  : query netbox(createjpoint(testjnet, createrloc(1, 0.0, [const jdirect
 Result   : (rect(1.0 1.0 0.0 0.0))
 Tolerance: 0.01%
 
+Operator : netdistance
+Number   : 1
+Signature: jpoint x jpoint -> real
+Example  : query netdistance([const jpoint value("testjnet" (1 0.001 (Up)))],[const jpoint value("testjnet" (2 0.003(Up)))])
+Result   : 0.003
+Tolerance: 0.01%
+
+Operator : netdistance
+Number   : 2
+Signature: jpoint x jpoint -> real
+Example  : query netdistance([const jpoint value("testjnet" (1 0.001 (Up)))],[const jpoint value("testjnet" (5 0.001(Up)))])
+Result   : 0.008946276
+Tolerance: 0.01%
+
+Operator : netdistance
+Number   : 3
+Signature: jpoint x jpoints -> real
+Example  : query netdistance([const jpoint value("testjnet" (1 0.001 (Up)))], createjpoints(testjnet, testlistrloc2));
+Result   : 0.0
+Tolerance: 0.01%
+
+Operator : netdistance
+Number   : 4
+Signature: jpoint x jline -> real
+Example  : query netdistance([const jpoint value("testjnet" (1 0.0015 (Up)))], testjl);
+Result   : 0.0
+Tolerance: 0.01%
+
+Operator : netdistance
+Number   : 5
+Signature: jpoints x jpoint -> real
+Example  : query netdistance(createjpoints(testjnet, testlistrloc2),[const jpoint value("testjnet" (1 0.001 (Up)))]);
+Result   : 0.0
+Tolerance: 0.01%
+
+Operator : netdistance
+Number   : 6
+Signature: jpoints x jpoints -> real
+Example  : query netdistance(createjpoints(testjnet, testlistrloc2), getBGP(testjl));
+Result   : 0.001
+Tolerance: 0.01%
+
+Operator : netdistance
+Number   : 7
+Signature: jpoints x jline -> real
+Example  : query netdistance(createjpoints(testjnet, testlistrloc2), testjl);
+Result   : 0.0
+Tolerance: 0.01%
+
+Operator : netdistance
+Number   : 8
+Signature: jline x jpoint -> real
+Example  : query netdistance(testjl,[const jpoint value("testjnet" (1 0.001 (Up)))]);
+Result   : 0.0
+Tolerance: 0.01%
+
+Operator : netdistance
+Number   : 9
+Signature: jline x jpoints -> real
+Example  : query netdistance(testjl, createjpoints(testjnet, testlistrloc2));
+Result   : 0.0
+Tolerance: 0.01%
+
+Operator : netdistance
+Number   : 10
+Signature: jline x jline -> real
+Example  : query netdistance(testjl, testjl);
+Result   : 0.0
+Tolerance: 0.01%
+
 Operator : passes
 Number   : 1
 Signature: mjpoint x jpoint -> bool

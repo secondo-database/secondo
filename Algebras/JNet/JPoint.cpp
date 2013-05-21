@@ -538,6 +538,77 @@ void JPoint::ShortestPath(const JLine* target, JPath* result) const
     result->SetDefined(false);
 }
 
+/*
+1.1.1 Netdistance
+
+*/
+
+void JPoint::Netdistance(const jnetwork::JPoint* target, CcReal* result) const
+{
+  if (IsDefined() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    if (!(npos.IsOnSamePlace(target->GetLocation())))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      jnet->Netdistance(npos, target->GetLocation(), result);
+      ManageJNet::CloseNetwork(jnet);
+    }
+    else
+    {
+      result->SetDefined(true);
+      result->Set(0.0);
+    }
+  }
+  else
+    result->SetDefined(false);
+}
+
+void JPoint::Netdistance(const jnetwork::JPoints* target, CcReal* result) const
+{
+  if (IsDefined() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    if (!target->Contains(this))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      jnet->Netdistance(npos, target->GetRouteLocations(), result);
+      ManageJNet::CloseNetwork(jnet);
+    }
+    else
+    {
+      result->SetDefined(true);
+      result->Set(0.0);
+    }
+  }
+  else
+    result->SetDefined(false);
+}
+
+void JPoint::Netdistance(const jnetwork::JLine* target, CcReal* result) const
+{
+  if (IsDefined() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    if (!target->Contains(this))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      JPoints* bgp = new JPoints(false);
+      target->GetBGP(bgp);
+      jnet->Netdistance(npos, bgp->GetRouteLocations(), result);
+      ManageJNet::CloseNetwork(jnet);
+      bgp->Destroy();
+      bgp->DeleteIfAllowed();
+    }
+    else
+    {
+      result->SetDefined(true);
+      result->Set(0.0);
+    }
+  }
+  else
+    result->SetDefined(false);
+}
 
 /*
 1.1 Private Methods

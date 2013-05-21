@@ -35,6 +35,7 @@ operator isempty alias ISEMPTY pattern op ( _ )
 operator junctions alias JUNCTIONS pattern op ( _ )
 operator length alias LENGTH pattern op ( _ )
 operator netbox alias NETBOX pattern op ( _ )
+operator netdistance alias NETDISTANCE pattern op ( _ , _ )
 operator passes alias PASSES pattern _ infixop _
 operator present alias PRESENT pattern _ infixop _
 operator restrict alias RESTRICT pattern op( _ , _ )

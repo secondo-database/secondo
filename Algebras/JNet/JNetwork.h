@@ -397,6 +397,29 @@ void ShortestPath(const DbArray<RouteLocation>* sources,
                   JPath* result);
 
 /*
+1.1.1 ~Netdistance~
+
+Returns the length of the shortest path from source to target.
+
+*/
+
+void Netdistance(const RouteLocation& source,
+                 const RouteLocation& target,
+                 CcReal* result);
+
+void Netdistance(const RouteLocation& source,
+                 const DbArray<RouteLocation>& target,
+                 CcReal* result);
+
+void Netdistance(const DbArray<RouteLocation>& source,
+                 const RouteLocation& target,
+                 CcReal* result);
+
+void Netdistance(const DbArray<RouteLocation>* sources,
+                 const DbArray<RouteLocation>* targets,
+                 CcReal* result);
+
+/*
 1.1.1 Tuple Access on internal relations
 
 The returned tuple must be deleted by the caller.
@@ -697,20 +720,24 @@ Uses netdistance table.
 
 */
 
-void WriteShortestPath(const RouteLocation& source,
-                      const double distSourceStartSect,
-                      const RouteLocation& target,
-                      const double distTargetStartSect,
-                      const Tuple* startSectTup, const Tuple* endSectTup,
-                      const int startPathJID, const int endPathJID,
-                      const double distTarget,
-                      DbArray<JRouteInterval>* res, double& length) const;
-
 void WriteShortestPath(const DbArray<PosJNetSpatial>* sources,
                       const DbArray<PosJNetSpatial>* targets,
                       const int srcStartPathJID, const int tgtPosInArray,
                       const bool tgtOverStartJunction,
                       DbArray<JRouteInterval>*& result);
+
+/*
+1.1.1.1 WriteNetdistance
+
+Computes the network distance from sources to targets and stores it in result.
+
+*/
+
+void WriteNetdistance(const DbArray<PosJNetSpatial>* sources,
+                      const DbArray<PosJNetSpatial>* targets,
+                      const int srcStartPathJID, const int tgtPosInArray,
+                      const bool tgtOverStartJunction,
+                      CcReal* res);
 
 /*
 1.1.1.1 ExistsCommonRoute

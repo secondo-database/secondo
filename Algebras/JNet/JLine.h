@@ -260,6 +260,18 @@ void ShortestPath(const JPoint* target, JPath* result) const;
 void ShortestPath(const JPoints* target, JPath* result) const;
 void ShortestPath(const JLine* target, JPath* result) const;
 
+/*
+1.1.1.1 Netdistance
+
+Returns the network distance to the target, which is given by the length of
+the shortest path to the target.
+
+*/
+
+void Netdistance(const JPoint* target, CcReal* result) const;
+void Netdistance(const JPoints* target, CcReal* result) const;
+void Netdistance(const JLine* target, CcReal* result) const;
+
 private:
 
 /*

@@ -632,6 +632,82 @@ void JPoints::ShortestPath(const JLine* target, JPath* result) const
 }
 
 /*
+1.1.1 Netdistance
+
+*/
+
+void JPoints::Netdistance(const JPoint* target, CcReal* result) const
+{
+  if (IsDefined() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    if (!Contains(target))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      jnet->Netdistance(GetRouteLocations(), target->GetLocation(),
+                         result);
+      ManageJNet::CloseNetwork(jnet);
+    }
+    else
+    {
+      result->SetDefined(true);
+      result->Set(0.0);
+    }
+  }
+  else
+    result->SetDefined(false);
+}
+
+void JPoints::Netdistance(const JPoints* target, CcReal* result) const
+{
+  if (IsDefined() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    if (!JNetUtil::ArrayContainIntersections(GetRouteLocations(),
+                                             target->GetRouteLocations()))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      jnet->Netdistance(&GetRouteLocations(), &target->GetRouteLocations(),
+                         result);
+      ManageJNet::CloseNetwork(jnet);
+    }
+    else
+    {
+      result->SetDefined(true);
+      result->Set(0.0);
+    }
+  }
+  else
+    result->SetDefined(false);
+}
+
+void JPoints::Netdistance(const JLine* target, CcReal* result) const
+{
+  if (IsDefined() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    if (!target->Contains(this))
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      JPoints* bgp = new JPoints(false);
+      target->GetBGP(bgp);
+      jnet->Netdistance(&GetRouteLocations(), &bgp->GetRouteLocations(),
+                         result);
+      ManageJNet::CloseNetwork(jnet);
+      bgp->Destroy();
+      bgp->DeleteIfAllowed();
+    }
+    else
+    {
+      result->SetDefined(true);
+      result->Set(0.0);
+    }
+  }
+  else
+    result->SetDefined(false);
+}
+
+/*
 1.1.1 Contains
 
 */

@@ -3753,6 +3753,7 @@ ValueMapping shortestpathMap[] =
   shortestpathVM<JLine, JLine>
 };
 
+
 const string shortestpathSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text>" +
@@ -3781,6 +3782,97 @@ const string shortestpathSpec =
 
 Operator shortestpathJNet("shortest_path", shortestpathSpec, 9, shortestpathMap,
                           shortestpathSelect, shortestpathTM);
+
+
+/*
+1.1.1 ~netdistance~
+
+Returns the length of the shortestpath from the first parameter to the
+second parameter.
+
+*/
+
+const string maps_netdistance[9][3] =
+{
+  {JPoint::BasicType(), JPoint::BasicType(), CcReal::BasicType()},
+  {JPoint::BasicType(), JPoints::BasicType(), CcReal::BasicType()},
+  {JPoint::BasicType(), JLine::BasicType(), CcReal::BasicType()},
+  {JPoints::BasicType(), JPoint::BasicType(), CcReal::BasicType()},
+  {JPoints::BasicType(), JPoints::BasicType(), CcReal::BasicType()},
+  {JPoints::BasicType(), JLine::BasicType(), CcReal::BasicType()},
+  {JLine::BasicType(), JPoint::BasicType(), CcReal::BasicType()},
+  {JLine::BasicType(), JPoints::BasicType(), CcReal::BasicType()},
+  {JLine::BasicType(), JLine::BasicType(), CcReal::BasicType()}
+};
+
+ListExpr netdistanceTM(ListExpr args)
+{
+  return SimpleMaps<9,3>(maps_netdistance, args);
+}
+
+int netdistanceSelect(ListExpr args)
+{
+  return SimpleSelect<9,3>(maps_netdistance, args);
+}
+
+template<class Source, class Target>
+int netdistanceVM( Word* args, Word& result, int message, Word& local,
+            Supplier s)
+{
+  result = qp->ResultStorage(s);
+  CcReal* res = static_cast<CcReal*> (result.addr);
+  Source* source = static_cast<Source*> (args[0].addr);
+  Target* target = static_cast<Target*> (args[1].addr);
+  if (source != NULL && source->IsDefined() &&
+      target != NULL && target->IsDefined())
+    source->Netdistance(target, res);
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping netdistanceMap[] =
+{
+  netdistanceVM<JPoint, JPoint>,
+  netdistanceVM<JPoint, JPoints>,
+  netdistanceVM<JPoint, JLine>,
+  netdistanceVM<JPoints, JPoint>,
+  netdistanceVM<JPoints, JPoints>,
+  netdistanceVM<JPoints, JLine>,
+  netdistanceVM<JLine, JPoint>,
+  netdistanceVM<JLine, JPoints>,
+  netdistanceVM<JLine, JLine>
+};
+
+const string netdistanceSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JPoint::BasicType() + " X " + JPoint::BasicType() + " -> "
+  + CcReal::BasicType() + ", \n" +
+  JPoint::BasicType() + " X " + JPoints::BasicType() + " -> "
+  + CcReal::BasicType() + ", \n" +
+  JPoint::BasicType() + " X " + JLine::BasicType() + " -> "
+  + CcReal::BasicType() + ", \n" +
+  JPoints::BasicType() + " X " + JPoint::BasicType() + " -> "
+  + CcReal::BasicType() + ", \n" +
+  JPoints::BasicType() + " X " + JPoints::BasicType() + " -> "
+  + CcReal::BasicType() + ", \n" +
+  JPoints::BasicType() + " X " + JLine::BasicType() + " -> "
+  + CcReal::BasicType() + ", \n" +
+  JLine::BasicType() + " X " + JPoint::BasicType() + " -> "
+  + CcReal::BasicType() + ", \n" +
+  JLine::BasicType() + " X " + JPoints::BasicType() + " -> "
+  + CcReal::BasicType() + ", \n" +
+  JLine::BasicType() + " X " + JLine::BasicType() + " -> "
+  + CcReal::BasicType() +
+  "</text--->"
+  "<text>netdistance(<source>, <target>) </text--->"
+  "<text>Returns the network distance (length of the shortest path) " +
+  "from the source to the target. </text--->"
+  "<text>query netdistance(src, tgt)</text--->))";
+
+Operator netdistanceJNet("netdistance", netdistanceSpec, 9, netdistanceMap,
+                          netdistanceSelect, netdistanceTM);
 
 /*
 
@@ -4203,7 +4295,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddOperator(&shortestpathJNet);
   //AddOperator(&shortestPathTreeJNet);
   //AddOperator(&spsearchvisitedJNet);
-  //AddOperator(&netdistanceJNet);
+  AddOperator(&netdistanceJNet);
   //AddOperator(&circlenJNet);
   //AddOperator(&in_circlenJNet);
   //AddOperator(&out_circlenJNet);
