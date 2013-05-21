@@ -980,6 +980,13 @@ Example  : query shortest_path([const jpoint value("testjnet" (1 0.001 (Up)))], 
 Result   : (jpath("testjnet"()))
 Tolerance: 0.01%
 
+Operator : shortest_path
+Number   : 4
+Signature: jpoint x jline -> jpath
+Example  : query shortest_path([const jpoint value("testjnet" (1 0.0015 (Up)))], testjl);
+Result   : (jpath("testjnet"((1 0.0015 0.002 (Up)))))
+Tolerance: 0.01%
+
 Operator : tempnetbox
 Number   : 1
 Signature: ujpoint -> rect3

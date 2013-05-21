@@ -203,6 +203,7 @@ sets of route locations can only can be added in activBulkload.
  JPoints& Add(const RouteLocation& rint);
  JPoints& Add(const JListRLoc& rlocs);
 
+
 /*
 
 1.1 private Deklaration part

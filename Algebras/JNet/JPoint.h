@@ -38,6 +38,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 namespace jnetwork {
 
 class JPoints;
+class JLine;
 
 /*
 1 class ~JPoint~
@@ -194,6 +195,7 @@ Returns the shortest path from this to target as jpath.
 
 void ShortestPath(const JPoint* target, JPath* result) const;
 void ShortestPath(const JPoints* target, JPath* result) const;
+void ShortestPath(const JLine* target, JPath* result) const;
 
 /*
 1.1 Private declarations

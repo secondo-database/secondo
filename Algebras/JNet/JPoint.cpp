@@ -484,6 +484,8 @@ void JPoint::ShortestPath(const jnetwork::JPoint* target,
     jnet->ShortestPath(npos, target->GetLocation(), result);
     ManageJNet::CloseNetwork(jnet);
   }
+  else
+    result->SetDefined(false);
 }
 
 void JPoint::ShortestPath(const jnetwork::JPoints* target, JPath* result) const
@@ -497,6 +499,27 @@ void JPoint::ShortestPath(const jnetwork::JPoints* target, JPath* result) const
     jnet->ShortestPath(npos, target->GetRouteLocations(), result);
     ManageJNet::CloseNetwork(jnet);
   }
+  else
+    result->SetDefined(false);
+}
+
+void JPoint::ShortestPath(const jnetwork::JLine* target, JPath* result) const
+{
+  result->Clear();
+  if (IsDefined() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    result->SetNetworkId(nid);
+    JNetwork* jnet = ManageJNet::GetNetwork(nid);
+    JPoints* bgp = new JPoints(false);
+    target->GetBGP(bgp);
+    jnet->ShortestPath(npos, bgp->GetRouteLocations(), result);
+    ManageJNet::CloseNetwork(jnet);
+    bgp->Destroy();
+    bgp->DeleteIfAllowed();
+  }
+  else
+    result->SetDefined(false);
 }
 
 

@@ -557,7 +557,6 @@ JPoints& JPoints::Add(const jnetwork::JListRLoc& rlocs)
   return *this;
 }
 
-
 /*
 1.1 Management of RouteIntervals
 
