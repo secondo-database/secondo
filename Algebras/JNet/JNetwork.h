@@ -384,6 +384,10 @@ void ShortestPath(const RouteLocation& source,
                   const RouteLocation& target,
                   JPath* result);
 
+void ShortestPath(const RouteLocation& source,
+                  const DbArray<RouteLocation>& target,
+                  JPath* result);
+
 void ShortestPath(const DbArray<RouteLocation>* sources,
                   const DbArray<RouteLocation>* targets,
                   JPath* result);

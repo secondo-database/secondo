@@ -486,6 +486,20 @@ void JPoint::ShortestPath(const jnetwork::JPoint* target,
   }
 }
 
+void JPoint::ShortestPath(const jnetwork::JPoints* target, JPath* result) const
+{
+  result->Clear();
+  if (IsDefined() && target != NULL && target->IsDefined() &&
+      strcmp(nid, *target->GetNetworkId()) == 0)
+  {
+    result->SetNetworkId(nid);
+    JNetwork* jnet = ManageJNet::GetNetwork(nid);
+    jnet->ShortestPath(npos, target->GetRouteLocations(), result);
+    ManageJNet::CloseNetwork(jnet);
+  }
+}
+
+
 /*
 1.1 Private Methods
 

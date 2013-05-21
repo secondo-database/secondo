@@ -3701,19 +3701,20 @@ second parameter as jpath.
 
 */
 
-const string maps_shortestpath[1][3] =
+const string maps_shortestpath[2][3] =
 {
-  {JPoint::BasicType(), JPoint::BasicType(), JPath::BasicType()}
+  {JPoint::BasicType(), JPoint::BasicType(), JPath::BasicType()},
+  {JPoint::BasicType(), JPoints::BasicType(), JPath::BasicType()}
 };
 
 ListExpr shortestpathTM(ListExpr args)
 {
-  return SimpleMaps<1,3>(maps_shortestpath, args);
+  return SimpleMaps<2,3>(maps_shortestpath, args);
 }
 
 int shortestpathSelect(ListExpr args)
 {
-  return SimpleSelect<1,3>(maps_shortestpath, args);
+  return SimpleSelect<2,3>(maps_shortestpath, args);
 }
 
 template<class Source, class Target>
@@ -3734,21 +3735,23 @@ int shortestpathVM( Word* args, Word& result, int message, Word& local,
 
 ValueMapping shortestpathMap[] =
 {
-  shortestpathVM<JPoint, JPoint>
+  shortestpathVM<JPoint, JPoint>,
+  shortestpathVM<JPoint, JPoints>
 };
 
 const string shortestpathSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text>" +
   JPoint::BasicType() + " X " + JPoint::BasicType() + " -> "
+  + JPath::BasicType() + ", \n" +
+  JPoint::BasicType() + " X " + JPoints::BasicType() + " -> "
   + JPath::BasicType() +
   "</text--->"
-  "<text>shortest_path(<sourcepoint>, <targetpoint>) </text--->"
-  "<text>Returns the shortest path from the source to the target "+
-  " point.</text--->"
-  "<text>query shortest_path(jp1, jp2)</text--->))";
+  "<text>shortest_path(<source>, <target>) </text--->"
+  "<text>Returns the shortest path from the source to the target. </text--->"
+  "<text>query shortest_path(src, tgt)</text--->))";
 
-Operator shortestpathJNet("shortest_path", shortestpathSpec, 1, shortestpathMap,
+Operator shortestpathJNet("shortest_path", shortestpathSpec, 2, shortestpathMap,
                           shortestpathSelect, shortestpathTM);
 
 /*

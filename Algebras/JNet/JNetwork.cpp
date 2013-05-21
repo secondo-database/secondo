@@ -2229,6 +2229,18 @@ void JNetwork::ShortestPath(const RouteLocation& source,
   delete tgtPositions;
 }
 
+void JNetwork::ShortestPath(const jnetwork::RouteLocation& source,
+                            const DbArray< RouteLocation >& target,
+                            JPath* result)
+{
+  DbArray<RouteLocation>* srcPositions = new DbArray<RouteLocation>(0);
+  srcPositions->Append(source);
+  ShortestPath(srcPositions, &target, result);
+  srcPositions->Destroy();
+  delete srcPositions;
+}
+
+
 void JNetwork::ShortestPath(const DbArray<RouteLocation>* sources,
                             const DbArray<RouteLocation>* targets,
                             JPath* result)
@@ -3498,7 +3510,7 @@ JRouteInterval* JNetwork::DirectConnection(const int sectId,
         if (sectDir->SameSide(moveDir, false))
         {
           res = new JRouteInterval(source.GetRouteId(), source.GetPosition(),
-                                   target.GetPosition(), moveDir);
+                                  target.GetPosition(), moveDir);
         }
       }
       sectDir->DeleteIfAllowed();
@@ -4595,7 +4607,8 @@ bool JNetwork::CheckForSameSections(const DbArray< PosJNetSpatial >* sources,
     if (jri != NULL)
     {
       sp = new DbArray<JRouteInterval>(0);
-      sp->Append(*jri);
+      if (jri->GetLength() > 0.0)
+        sp->Append(*jri);
       jri->DeleteIfAllowed();
     }
   }
