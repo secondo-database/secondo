@@ -186,6 +186,16 @@ Builds a jline from the current object.
 */
   void ToJLine(JLine* result);
 
+/*
+1.1.1.1 Length
+
+Returns the total length of the path.
+
+*/
+
+ double Length() const;
+
+
 private:
 
 /*

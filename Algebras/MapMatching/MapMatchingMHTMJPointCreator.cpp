@@ -95,8 +95,7 @@ bool  MJPointCreator::CreateResult(
 
         if (endRLoc != NULL)
         {
-          jnet->SimulateTrip(*startRLoc, *endRLoc,
-                             pData2->GetPointProjection(), pData1->GetTime(),
+          jnet->SimulateTrip(*startRLoc, *endRLoc, pData1->GetTime(),
                              pData2->GetTime(), resMJPoint);
           pData1 = pData2;
           startRLoc->DeleteIfAllowed();

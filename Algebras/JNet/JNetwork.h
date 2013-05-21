@@ -359,18 +359,14 @@ the algorithm, which might change the netdistances relation.
 */
 
 void SimulateTrip(const RouteLocation& source, const RouteLocation& target,
-                  const Point* targetPos,
                   const Instant& starttime, const Instant& endtime,
-                  const bool& lc, const bool& rc,
-                  const Tuple* startSectTup, const Tuple* endSectTup,
-                  const double distSourceStartSect,
-                  const double distTargetStartSect, MJPoint* result);
+                  const bool& lc, const bool& rc, MJPoint* result);
 
 void SimulateTrip(const RouteLocation& source, const RouteLocation& target,
-                  const Point* targetPos, const Instant& starttime,
-                  const Instant& endtime, MJPoint* result);
+                  const Instant& starttime, const Instant& endtime,
+                  MJPoint* result);
 
-void ComputeAndAddUnits(const DbArray<JRouteInterval>* path,
+void ComputeAndAddUnits(const JPath* path,
                         const Instant& startime, const Instant& endtime,
                         const bool lc, const bool rc, double length,
                         MJPoint* result) const;
@@ -640,9 +636,6 @@ JNetwork();
 */
 
    int GetNetdistanceNextSID(const Tuple* actNetDistTup) const;
-   bool ExistsNetworkdistanceFor(const int startPathJID,
-                                const vector<pair<int, double> >* endJunctions,
-                                 int& endPathJID, double& distTarget) const;
 
 /*
 1.1.1.1 DirectConnectionExists
@@ -796,28 +789,6 @@ void GetSpatialValueOf(const JRouteInterval& rint,
                        SimpleLine& result) const;
 
 /*
-1.1.1.1 ShortestPath
-
-Private Methods for shortest path computation used by public shortest
-path and simulate trip methods.
-
-*/
-
-DbArray<JRouteInterval>* ShortestPath(const RouteLocation& source,
-                                      const RouteLocation& target,
-                                      const Point* targetPos,
-                                      double& length);
-
-DbArray<JRouteInterval>* ShortestPath(const RouteLocation& source,
-                                      const RouteLocation& target,
-                                      const Point* targetPos,
-                                      double& length,
-                                      const Tuple* startSectTup,
-                                      const Tuple* endSectTup,
-                                      const double distSourceStartSect,
-                                      const double distTargetStartSect);
-
-/*
 1.1.1.1.1 ConnectTargetsAndSpatialPositions
 
 Connects the route locations of targets with their spatial positions for
@@ -827,6 +798,7 @@ A-Star Path Computing, and some other parameters used later in path computing.
 
 void ConnectSpatialPositions(const DbArray<RouteLocation>* targets,
                             DbArray<PosJNetSpatial>* tgtEntries,
+                            const bool start,
                             Points* spatialPositions = 0);
 
 /*
@@ -878,10 +850,10 @@ bool ExistsNetdistancesFor(const PosJNetSpatial& start,
 
 bool ExistsNetdistanceFor(const int startjid, const double startdist,
                           const int endjid, const double enddist,
-                          const bool endStartJunction,
+                          const bool endJIDisStartJunc,
                           double& minDist,
                           int& srcStartPathJID,
-                          bool& tgtOverStartJunction);
+                          bool& tgtOverStartJunc);
 
 /*
 Returns the shortest path given by the priority queue to the element of
