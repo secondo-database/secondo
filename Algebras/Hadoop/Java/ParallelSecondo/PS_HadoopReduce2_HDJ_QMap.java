@@ -38,15 +38,15 @@ implements Constant
 		String AcceptDLOName = parameters[8];
 		String AcceptDLOLoc = parameters[9];
 		//------------------------------------------------------------------
-		String[] 	InputObjectName		= { parameters[12], parameters[19]} ;
+		String[] 	InputObjectName		= { parameters[12], parameters[21]} ;
 		int[] 		slaveIdx					= 
-									{ Integer.parseInt(parameters[13]), Integer.parseInt(parameters[20])};							 							
+									{ Integer.parseInt(parameters[13]), Integer.parseInt(parameters[22])};							 							
 		int[] 		duplicateTimes    = 
-									{ Integer.parseInt(parameters[14]), Integer.parseInt(parameters[21])};
-		String[] 	PAName						= { parameters[15], parameters[22]} ;
-		String[] 	mapCreateQuery 		= { parameters[16], parameters[23]} ;
-		String[] 	mapFileName 			= { parameters[17], parameters[24]} ;
-		String[] 	mapFileLoc				= { parameters[18], parameters[25]} ;
+									{ Integer.parseInt(parameters[14]), Integer.parseInt(parameters[23])};
+		String[] 	PAName						= { parameters[15], parameters[24]} ;
+		String[] 	mapCreateQuery 		= { parameters[16], parameters[25]} ;
+		String[] 	mapFileName 			= { parameters[17], parameters[26]} ;
+		String[] 	mapFileLoc				= { parameters[18], parameters[27]} ;
 
 		ListExpr recvFileList = new ListExpr();
 		recvFileList.readFromString(AcceptFileLocList);
