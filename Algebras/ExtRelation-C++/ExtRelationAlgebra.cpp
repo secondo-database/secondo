@@ -12719,6 +12719,7 @@ int pfilterVM( Word* args, Word& result, int message,
            lastTuple->DeleteIfAllowed();
             local.addr = 0;
         }
+        qp->Close(args[0].addr);
         return 0;
     }
 
