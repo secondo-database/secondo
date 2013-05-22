@@ -11422,18 +11422,17 @@ class ExtendLastInfo{
 
 
 
-
-int
-extend_lastVM(Word* args, Word& result, int message,
+template<class T>
+int extend_lastVMT(Word* args, Word& result, int message,
                  Word& local, Supplier s1){
 
-   ExtendLastInfo* li = (ExtendLastInfo*) local.addr;
+   T* li = (T*) local.addr;
    switch(message){
     case OPEN : {
                   if(li){
                      delete li;
                   }
-                  local.addr = new ExtendLastInfo(args[0], args[1].addr, 
+                  local.addr = new T(args[0], args[1].addr, 
                                           nl->Second(GetTupleResultType(s1)));
                   return 0;
                   }
@@ -11485,9 +11484,142 @@ const string extend_lastSpec  =
 Operator extend_last(
           "extend_last",
           extend_lastSpec,
-          extend_lastVM,
+          extend_lastVMT<ExtendLastInfo>,
           Operator::SimpleSelect,
           extend_lastTM);
+
+
+/*
+2.116 Operator extend\_next
+
+
+2.116.1 Type Mapping
+
+The Type mapping is the same as for the extend[_]last operator.
+
+*/
+
+
+class ExtendNextInfo{
+  public:
+    ExtendNextInfo(Word& _stream, Supplier _s1, 
+                   ListExpr resType):
+      stream(_stream), s1(_s1), first(true), lastTuple(0){
+      tupleType = new TupleType(resType);
+      stream.open();
+    }
+    ~ExtendNextInfo(){
+      stream.close();
+      tupleType->DeleteIfAllowed();
+      if(lastTuple){
+         lastTuple->DeleteIfAllowed();
+      }
+    }
+
+    Tuple* getNextTuple(){
+
+      Tuple* srcTuple = stream.request();
+      if(srcTuple==0){
+         if(lastTuple){ // copy default values
+            int no_attr = lastTuple->GetNoAttributes();
+            Tuple* resTuple = getResTuple(lastTuple);
+            lastTuple->DeleteIfAllowed();
+            lastTuple = 0;
+            int noDefaults = qp->GetNoSons(s1);
+            for(int i=0;i<noDefaults;i++){
+               Supplier s = qp->GetSon(qp->GetSon(s1,i),2);
+               Word res;
+               qp->Request(s,res);
+               Attribute* resAttr = (Attribute*) res.addr;
+               resTuple->PutAttribute(i + no_attr, resAttr->Clone());
+            }
+            return resTuple;
+         }
+         return 0;
+      }
+
+      if(!lastTuple){ // it's the first tuple in stream
+         lastTuple = srcTuple;
+         return getNextTuple();     
+      }
+     
+
+      int no_attr = lastTuple->GetNoAttributes();
+      Tuple* resTuple= getResTuple(lastTuple);   
+      int noFuns = qp->GetNoSons(s1);
+      for(int i=0; i < noFuns; i++){
+          Supplier fun1 = qp->GetSon(s1,i); // (Name Function default)
+          Supplier fun = qp->GetSon(fun1,1); // get function
+          ArgVectorPointer funargs = qp->Argument(fun);
+          (*funargs)[0] = lastTuple;
+          (*funargs)[1] = srcTuple;
+          Word funres;
+          qp->Request(fun, funres);
+          resTuple->PutAttribute(i+no_attr,
+                            ((Attribute*) funres.addr)->Clone());
+      }
+      lastTuple->DeleteIfAllowed();
+      lastTuple = srcTuple;
+      return resTuple; 
+    }
+
+
+  private:
+    Stream<Tuple> stream;
+    Supplier s1;
+    bool first;
+    TupleType* tupleType;
+    Tuple* lastTuple;
+
+    // creates a new tuple and copies the content of srctuple
+    // to the first attributes of the result
+    Tuple* getResTuple(Tuple* srcTuple){
+         Tuple* resTuple = new Tuple(tupleType);
+         // copy the original attributesA
+         int no_attr = srcTuple->GetNoAttributes();
+         for(int i=0;i<no_attr; i++){
+             resTuple->CopyAttribute(i,srcTuple,i);
+         }
+         return resTuple;
+    }
+
+
+};
+
+
+
+
+const string extend_nextSpec  =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>stream(tuple(x)) x funlist x list  -> "
+  "stream(tuple(x @ newAttributes))</text--->"
+  "<text>stream extend_next [ funlist ; list ] )</text--->"
+  "<text>Computes new attributes from the current tuple and the"
+  " nexxt one in the stream.  The current tuple can be accessed using"
+  " the dot(.). Attribute values from the next  tuple can be accessed "
+  " by ..\n"
+  " For the last tuple, no next tuple is available. For this reason,"
+  " the default value from the list is used instead of the funtion."
+  "</text--->"
+  "<text>query ten feed extend_next[ NNum : .no - ..no ; 3] tconsume "
+  " </text--->"
+  ") )";
+
+
+
+/*
+2.114.4 Operator instance
+
+*/
+
+Operator extend_next(
+          "extend_next",
+          extend_nextSpec,
+          extend_lastVMT<ExtendNextInfo>,
+          Operator::SimpleSelect,
+          extend_lastTM);
+
+
 
 /*
 
@@ -12857,6 +12989,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelslidingwindow);
     AddOperator(&extend_aggr);
     AddOperator(&extend_last);
+    AddOperator(&extend_next);
     AddOperator(&aggregateC);
     AddOperator(toFieldsInfo(), toFieldsFun, toFieldsType );
     AddOperator(fromFieldsInfo(), fromFieldsFun, fromFieldsType );

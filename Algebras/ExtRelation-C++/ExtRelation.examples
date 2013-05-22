@@ -362,6 +362,11 @@ Signature: stream(tuple(X) x funlist with defaults
 Example  : query ten feed extend_last[ A : .No + ..No :: 0 , B : .No - ..No :: 0  ] max[B]
 Result   : 1
 
+Operator : extend_next
+Number   : 1
+Signature: stream(tuple(X) x funlist with defaults 
+Example  : query ten feed extend_next[ A : .No + ..No :: 0 , B : ..No - .No :: 0  ] max[B]
+Result   : 1
 
 Operator : toFields
 Number   : 1

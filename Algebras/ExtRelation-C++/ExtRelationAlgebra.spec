@@ -78,6 +78,8 @@ operator extend_aggr alias EXTEND_AGGR pattern _ op [list  ; funlist ]
 
 operator extend_last alias EXTEND_LAST pattern _ op [funlist ] implicit parameters currenttuple, lasttuple types TUPLE, TUPLE
 
+operator extend_next alias EXTEND_NEXT pattern _ op [funlist ] implicit parameters currenttuple, lasttuple types TUPLE, TUPLE
+
 operator toFields alias TOFIELDS pattern _ op [ _ ]
 operator fromFields alias FROMFIELDS pattern _ _ op
 
