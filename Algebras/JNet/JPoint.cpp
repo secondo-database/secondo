@@ -468,6 +468,26 @@ JListRLoc* JPoint::OtherNetworkPositions() const
 }
 
 /*
+1.1.1 ShortestPathTree
+
+*/
+
+void JPoint::ShortestPathTree(DbArray< std::pair< int, double > >* result) const
+{
+  if (result != NULL)
+  {
+    result->clean();
+    if (IsDefined())
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      jnet->ShortestPathTree(this, result, numeric_limits< double >::max());
+      ManageJNet::CloseNetwork(jnet);
+    }
+  }
+}
+
+
+/*
 1.1.1 ShortestPath
 
 */

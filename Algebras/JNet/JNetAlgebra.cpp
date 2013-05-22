@@ -55,6 +55,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "JList.h"
 #include "JPath.h"
+#include <../Tools/SyntaxParser/SyntaxParser.y>
 
 using namespace std;
 using namespace mappings;
@@ -3694,6 +3695,154 @@ const string getBGPSpec =
 Operator getBGPJNet("getBGP", getBGPSpec, 1, getBGPMap, getBGPSelect, getBGPTM);
 
 /*
+1.1.1 ~shortestpathtree~
+
+Returns the shortestpathtree from an given gpoint to all junction in the
+network.
+
+*/
+
+ListExpr shortestpathtreeTM(ListExpr args)
+{
+  if (nl->ListLength(args) != 1 || nl->SymbolValue(args) != JPoint::BasicType())
+    return listutils::typeError("Expected single" + JPoint::BasicType());
+  else
+  {
+     NList jid("JuncID");
+     NList intVal(CcInt::BasicType());
+     NList intAttr(jid, intVal);
+     NList dist("Dist");
+     NList realVal(CcReal::BasicType());
+     NList distAttr(dist,realVal);
+     NList tupleType(intAttr, distAttr);
+     return NList().tupleStreamOf(tupleType).listExpr();
+  }
+}
+
+struct ShortestPathTreeInfo
+{
+  ShortestPathTreeInfo()
+  {
+    pos = 0;
+    list = 0;
+    resTupleType = 0;
+  }
+
+  void Destroy()
+  {
+    list->Destroy();
+  }
+
+  ~ShortestPathTreeInfo(){};
+
+  int pos;
+  DbArray<pair<int, double> >* list;
+  TupleType* resTupleType;
+};
+
+int shortestpathtreeVM( Word* args, Word& result, int message, Word& local,
+                        Supplier s)
+{
+  ShortestPathTreeInfo* localinfo = 0;
+
+    switch(message)
+    {
+      case OPEN:
+      {
+        JPoint* jp = (JPoint*) args[0].addr;
+        if (jp != NULL && jp->IsDefined())
+        {
+          localinfo = new ShortestPathTreeInfo();
+          localinfo->pos = 0;
+          ListExpr resultType = GetTupleResultType(s);
+          localinfo->resTupleType = new TupleType(nl->Second(resultType));
+          localinfo->list = new DbArray<pair<int, double> >(0);
+          jp->ShortestPathTree(localinfo->list);
+        }
+        local = SetWord(localinfo);
+        return 0;
+        break;
+      }
+
+      case REQUEST:
+      {
+        localinfo = (ShortestPathTreeInfo*) local.addr;
+        if (localinfo != NULL && localinfo->pos < localinfo->list->Size())
+        {
+          Tuple *res = new Tuple(localinfo->resTupleType);
+          pair<int, double> actJunc;
+          localinfo->list->Get(localinfo->pos, actJunc);
+          res->PutAttribute(0,new CcInt(true, actJunc.first));
+          res->PutAttribute(1,new CcReal(true, actJunc.second));
+          localinfo->pos++;
+          result.setAddr(res);
+          return YIELD;
+        }
+        else
+          return CANCEL;
+        break;
+      }
+
+      case CLOSE:
+      {
+        localinfo = (ShortestPathTreeInfo*) local.addr;
+        if (localinfo != NULL)
+        {
+          localinfo->Destroy();
+          delete localinfo->list;
+          localinfo->list = 0;
+          if (localinfo->resTupleType != 0)
+          {
+            localinfo->resTupleType->DeleteIfAllowed();
+            localinfo->resTupleType = 0;
+          }
+          delete localinfo;
+          localinfo = 0;
+          local.setAddr(0);
+        }
+        return 0;
+        break;
+      }
+
+      default:
+      {
+        return 0;
+        break;
+      }
+    }
+}
+
+ValueMapping shortestpathtreeMap [] =
+{
+  shortestpathtreeVM
+};
+
+int shortestpathtreeSelect(ListExpr args)
+{
+  if (nl->ListLength(args) == 1)
+    return 0;
+  else
+    return -1;
+}
+
+const string shortestpathtreeSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JPoint::BasicType() + " -> " + Symbol::STREAM() + "(" +
+  CcInt::BasicType() + ")" +
+  "</text--->"
+  "<text>shortestpathtree(<source>) </text--->"
+  "<text>Returns a " + Symbol::STREAM() + " of tuple, where each tuple "
+  " consists of a junction id and the network distance from the source "
+  "to the junction. </text--->"
+  "<text>query shortestpathtree(src)</text--->))";
+
+Operator shortestpathJNet("shortestpathtree", shortestpathtreeSpec, 1,
+                          shortestpathtreeMap, shortestpathtreeSelect,
+                          shortestpathtreeTM);
+
+
+/*
 1.1.1 ~shortestpath~
 
 Returns the shortestpath from the first parameter to the
@@ -4293,7 +4442,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddOperator(&reverseAdjacentJNet);
   AddOperator(&getBGPJNet);
   AddOperator(&shortestpathJNet);
-  //AddOperator(&shortestPathTreeJNet);
+  AddOperator(&shortestPathTreeJNet);
   //AddOperator(&spsearchvisitedJNet);
   AddOperator(&netdistanceJNet);
   //AddOperator(&circlenJNet);

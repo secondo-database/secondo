@@ -153,11 +153,11 @@ ALGEBRAS     += DateTimeAlgebra
 ALGEBRA_DIRS += Raster2
 ALGEBRAS     += Raster2Algebra
 
-#ALGEBRA_DIRS += Network
-#ALGEBRAS     += NetworkAlgebra
+ALGEBRA_DIRS += Network
+ALGEBRAS     += NetworkAlgebra
 
-#ALGEBRA_DIRS += TemporalNet
-#ALGEBRAS     += TemporalNetAlgebra
+ALGEBRA_DIRS += TemporalNet
+ALGEBRAS     += TemporalNetAlgebra
 
 ALGEBRA_DIRS += PlugJoin
 ALGEBRAS     += PlugJoinAlgebra
@@ -331,8 +331,8 @@ ALGEBRAS     += MMRTreeAlgebra
 #ALGEBRA_DIRS  += HadoopParallel
 #ALGEBRAS     += HadoopParallelAlgebra
 
-#ALGEBRA_DIRS += JNet
-#ALGEBRAS     += JNetAlgebra
+ALGEBRA_DIRS += JNet
+ALGEBRAS     += JNetAlgebra
 
 # JNI Algebras - Java code will be called from C++ code.
 

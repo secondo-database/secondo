@@ -372,6 +372,18 @@ void ComputeAndAddUnits(const JPath* path,
                         MJPoint* result) const;
 
 /*
+1.1.1 ~ShortestPathTree~
+
+Computes the distance to all junctions in the jnet from source. Operation
+leaves jnetwork not const, because the relation with the precomputed network
+distances might be updated.
+
+*/
+
+void ShortestPathTree(const JPoint* source,
+                      DbArray<pair<int, double> >* result);
+
+/*
 1.1.1 ~ShortestPath~
 
 Returns the shortest path from source to target. Operation leaves jnetwork
@@ -849,6 +861,11 @@ bool InitPriorityQueue(PQManagement* pqueue,
                        const DbArray< PosJNetSpatial>* sources,
                        const Points* endPositions);
 
+void InitPriorityQueue(PQManagement* pqueue,
+                       const RouteLocation& source,
+                       int& startJID1, double& dist1,
+                       int& startJID2, double& dist2) const;
+
 /*
 1.1.1.1.1 CheckForSameSections
 
@@ -903,6 +920,12 @@ bool ProcessPriorityQueue(PQManagement* pqueue,
                                        bool& tgtOverStartJunc,
                                        int& srcStartPathJID,
                                        double& minDist);
+
+void ProcessPriorityQueue(PQManagement* pqueue,
+                          DbArray<pair<int, double> >* result,
+                          const double targetDist,
+                          const int startJID1, const int startJID2,
+                          const double dist1, const double dist2);
 
 };
 

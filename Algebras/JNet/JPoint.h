@@ -187,6 +187,16 @@ Returns a list of alternative route locations for this jpoint.
 JListRLoc* OtherNetworkPositions() const;
 
 /*
+1.1.1.1 ShortestPathTree
+
+Computes the network distance to all junctions in the network and stores
+them in result.
+
+*/
+
+void ShortestPathTree(DbArray<pair<int, double> >* result) const;
+
+/*
 1.1.1.1 ShortestPath
 
 Returns the shortest path from this to target as jpath.
