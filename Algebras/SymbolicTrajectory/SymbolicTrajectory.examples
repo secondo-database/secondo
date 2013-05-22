@@ -47,7 +47,7 @@ Operator : classify
 Number   : 1
 Signature: stream(tuple(string, text)) x stream(mlabel) -> stream(tuple(string, mlabel))
 Example  : query (patterns4 feed SymbolicTripsTiny feed projecttransformstream[SymTrip] classify) count
-Result   : 50
+Result   : 49
 
 Operator : indexclassify
 Number   : 1
@@ -59,7 +59,7 @@ Operator : rewrite
 Number   : 2
 Signature: stream(text) x stream(mlabel) -> stream(mlabel)
 Example  : query (rewrite1 feed projecttransformstream[Pattern] SymbolicTripsTiny feed projecttransformstream[SymTrip] rewrite) count
-Result   : 18
+Result   : 17
 
 Operator : compress
 Number   : 1

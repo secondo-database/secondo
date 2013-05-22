@@ -534,7 +534,7 @@ bool labelsMatch(string label, set<string> lbs) {
 }
 
 /*
-function ~checkAndPrintSeq~
+function ~checkRewriteSeq~
 
 Checks a rewrite sequence and prints it
 

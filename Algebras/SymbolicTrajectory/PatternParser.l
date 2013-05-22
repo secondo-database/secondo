@@ -64,7 +64,7 @@ label ([a-zA-Z_\-][a-zA-Z0-9_\-]*)|\"[a-zA-Z0-9\. \ß\ä\ö\ü\Ä\Ö\Ü\/\(\)\[\
 labelset {label}|(\{{label}(\,[ ]*{label})*\})
 contents {intervalset}[\ ]+{labelset}
 contents_result {interval}[\ ]+{label}
-variable [A-Z]{1,2}[0-9]*
+variable [A-Z][a-zA-Z0-9_\-]*
 doubleslash \/{2}
 conditiontype label|time|start|end|leftclosed|rightclosed|card|labels
 assigntype label|time|start|end|leftclosed|rightclosed

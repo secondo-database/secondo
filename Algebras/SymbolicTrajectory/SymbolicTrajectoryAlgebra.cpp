@@ -1861,17 +1861,17 @@ Checks the pattern and the condition and (if no problem occurs) invokes the NFA
 construction and the matching procedure.
 
 */
-bool Pattern::matches(MLabel &ml) const {
+ExtBool Pattern::matches(MLabel &ml) const {
   if (!isVerified()) {
     if (!verifyPattern()) {
       cout << "Error: Invalid pattern." << endl;
-      return false;
+      return FALSE;
     }
   }
 /*  cout << nfa2String() << endl;*/
   Match *match = new Match(patterns.size() + 1);
   match->copyFromPattern(*this);
-  bool result = match->matches(ml);
+  ExtBool result = match->matches(ml);
   ml.index.removeTrie();
   delete match;
   return result;
@@ -2080,7 +2080,7 @@ the loop. If ~rewrite~ is true (which happens in case of the operator ~rewrite~)
 the matching procedure ends after the unit pattern test.
 
 */
-bool Match::matches(MLabel &ml, bool rewrite) {
+ExtBool Match::matches(MLabel &ml, bool rewrite) {
   numOfLabels = (size_t)ml.GetNoComponents();
   if (ml.index.getNodeRefSize() && ml.index.getNodeLinkSize()
       && ml.index.getLabelIndexSize()) { // use index
@@ -2090,11 +2090,11 @@ bool Match::matches(MLabel &ml, bool rewrite) {
     for (int i = 0; i < f; i++) {
       positions = updatePositionsIndex(ml, i, positions);
       if (positions.empty()) {
-        return false;
+        return FALSE;
       }
     }
     if (!positions.count(ml.GetNoComponents())) { // final ml position inactive?
-      return false;
+      return FALSE;
     }
   }
   else { // no index => process whole mlabel
@@ -2103,7 +2103,7 @@ bool Match::matches(MLabel &ml, bool rewrite) {
       ulId = i;
       updateStates();
       if (currentStates.empty()) {
-        return false;
+        return FALSE;
       }
     }
     if (!numOfLabels) { // empty MLabel
@@ -2114,26 +2114,30 @@ bool Match::matches(MLabel &ml, bool rewrite) {
       }
     }
     if (!currentStates.count(f)) { // is the final state inactive?
-      return false;
+      return FALSE;
     }
   }
   if (rewrite) {
     if (!numOfLabels) {
       cout << "no rewriting for an empty MLabel." << endl;
-      return false;
+      return FALSE;
     }
     computeCardsets();
-    initCondOpTrees();
-    return true;
+    if (!initCondOpTrees()) {
+      return UNDEF;
+    }
+    return TRUE;
   }
   if (conds.size()) {
     computeCardsets();
-    initCondOpTrees();
+    if (!initCondOpTrees()) {
+      return UNDEF;
+    }
     if (!conditionsMatch(ml)) {
-      return false;
+      return FALSE;
     }
   }
-  return true;
+  return TRUE;
 }
 
 /*
@@ -2758,6 +2762,10 @@ bool Match::evaluateCond(MLabel const &ml, int cId, multiset<unsigned int> sq){
   for (int i = 0; i < conds[cId].getKeysSize(); i++) {
     int pId = conds[cId].getPId(i);
     size_t max = (pId == f - 1 ? numOfLabels - 1 : seq[pId + 1] - 1);
+    if ((max > (size_t)ml.GetNoComponents()) || max < seq[pId]) {
+      // cout << conds[cId].getVar(i) << " bound to empty sequence" << endl;
+      return false;
+    }
     switch (conds[cId].getKey(i)) {
       case 0: { // label
         ml.Get(seq[pId], ul);
@@ -3434,9 +3442,21 @@ int matchesVM_PatMS(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>(result.addr);
   ml = new MLabel(ms);
-  bool match = p->matches(*ml);
+  ExtBool res = p->matches(*ml);
   delete ml;
-  b->Set(true, match);
+  switch (res) {
+    case FALSE: {
+      b->Set(true, false);
+      break;
+    }
+    case TRUE: {
+      b->Set(true, true);
+      break;
+    }
+    default: {
+      b->SetDefined(false);
+    }
+  }
   return 0;
 }
 
@@ -3463,9 +3483,21 @@ int matchesVM_TextML(Word* args, Word& result, int message,
     b->SetDefined(false);
   }
   else {
-    bool res = pattern->matches(*ml);
+    ExtBool res = pattern->matches(*ml);
     delete pattern;
-    b->Set(true, res);
+    switch (res) {
+      case FALSE: {
+        b->Set(true, false);
+        break;
+      }
+      case TRUE: {
+        b->Set(true, true);
+        break;
+      }
+      default: {
+        b->SetDefined(false);
+      }
+    }
   }
   return 0;
 }

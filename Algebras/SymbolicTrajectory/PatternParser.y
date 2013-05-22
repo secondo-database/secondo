@@ -134,8 +134,35 @@ assignment : ZZVAR_DOT_TYPE ZZASSIGN assignment_expressionlist {
                }
                int key = getKey(type);
                if (key < 6) {
+                 bool redundant = false;
+                 if (key == 1) {
+                   for (int i = 1; i <= 5; i++) {
+                     if (!wholepat->getAssign(posR).getText(i).empty()) {
+                       redundant = true;
+                     }
+                   }
+                 }
+                 else if (key > 1) {
+                   if (!wholepat->getAssign(posR).getText(1).empty()
+                    || !wholepat->getAssign(posR).getText(key).empty()) {
+                     redundant = true;
+                   }
+                 }
+                 else {
+                   if (!wholepat->getAssign(posR).getText(0).empty()) {
+                     redundant = true;
+                   }
+                 }
+                 if (redundant) {
+                   errMsg = convert("redundant assignment(s)");
+                   assign.clear();
+                   exprList.exprs.clear();
+                   yyerror(errMsg);
+                   free($1);
+                   YYERROR;
+                 }
                  wholepat->setAssign(posR, posP, key, arg);
-                 while (assign.getRightSize(6)) {
+                 while (assign.getRightSize(6)) { // distribute assignments
                    varKey = assign.getVarKey(6);
                    wholepat->addAssignRight(posR, key, varKey);
                    assign.removeUnordered();
@@ -241,16 +268,16 @@ condition : expressionlist {
 expression : ZZVAR_DOT_TYPE {
                if (cond.convertVarKey($1) == -1) {
                  string varDotType($1);
-                 errMsg = convert("error: " + varDotType + " not accepted");
-                 yyerror(errMsg);
+                 /*errMsg = convert("error: " + varDotType + " not accepted");
+                 yyerror(errMsg);*/
                  YYERROR;
                  free($1);
                } else {
                  if (assignNow) {
                    if (!assign.convertVarKey($1)) {
                      string varDotType($1);
-                     errMsg = convert("error: " + varDotType + " not accepted");
-                     yyerror(errMsg);
+/*                     errMsg = convert("error: " + varDotType + " not accepted");
+                     yyerror(errMsg);*/
                      YYERROR;
                      free($1);
                    }
@@ -462,7 +489,7 @@ Pattern* stj::parseString(const char* input, bool classify = false) {
   uPat.clearI();
   if (result) {
     result->setVerified(false);
-    if (!classify) { //classification => no single NFA needed
+    if (!classify) { // classification => no single NFA needed
       result->initDelta();
       result->buildNFA();
     }
@@ -642,7 +669,7 @@ bool Assign::convertVarKey(const char *varKey) {
   string kInput(input.substr(dotpos + 1));
   pair<string, int> right;
   for (unsigned int i = 0; i < wholepat->getPats().size(); i++) {
-    if (!varInput.compare((wholepat->getPat(i)).getV())) {
+    if (varInput == (wholepat->getPat(i)).getV()) {
       right.first = varInput;
       right.second = getKey(kInput);
       addRight(6, right); // assign to n \in {0, 1, ..., 5} afterwards

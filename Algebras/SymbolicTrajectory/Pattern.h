@@ -62,6 +62,7 @@ class ClassifyLI;
 class Label;
 class IndexLI;
 
+enum ExtBool {FALSE, TRUE, UNDEF};
 enum Wildcard {NO, STAR, PLUS};
 
 Pattern* parseString(const char* input, bool classify);
@@ -330,7 +331,7 @@ class Pattern {
   static const string BasicType();
   static const bool checkType(const ListExpr type);
   static Pattern* getPattern(string input, bool classify = false);
-  bool matches(MLabel &ml) const;
+  ExtBool matches(MLabel &ml) const;
   bool verifyPattern() const;
   set<pair<vector<unsigned int>, vector<unsigned int> > > getRewriteSeqs
                                                                    (MLabel &ml);
@@ -426,7 +427,7 @@ class Match {
     delete[] seqOrder;
   }
 
-  bool matches(MLabel &ml, bool rewrite = false);
+  ExtBool matches(MLabel &ml, bool rewrite = false);
   void printCurrentStates();
   void printCards();
   void printSequences(unsigned int max);
