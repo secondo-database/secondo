@@ -15,7 +15,6 @@ IndoorAlgebra Indoor
 MAttiaTestsAlgebra MAttiaTests
 PartitionedStreamAlgebra PartitionedStream
 TrafficAlgebra Traffic
-JNetAlgebra JNet
 RIndexAlgebra RIndex
 
 
@@ -101,6 +100,7 @@ CM-Scripts/cvs-documentation.txt
 CM-Scripts/cvspass.odg
 CM-Scripts/studentlist.ods
 CM-Scripts/cvspass.odg
+CM-Scripts/studentlist.tex
 Algebras/Relation-C++/Measurements-feed-project-consume.sxc
 Algebras/Relation-C++/Measurements-feed-project-consume.xls
 
