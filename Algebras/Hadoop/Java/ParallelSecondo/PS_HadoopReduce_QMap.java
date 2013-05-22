@@ -124,8 +124,8 @@ public class PS_HadoopReduce_QMap
 				ListExpr inputStreamList = ListExpr.twoElemList(
 						ListExpr.symbolAtom("feed"), 
 						ListExpr.symbolAtom(InputObjectName));
-				comMapQuery = ExtListExpr.replace(comMapQuery, InterSymbol, inputStreamList);
-				pattern = inputStreamList;
+				comMapQuery = ExtListExpr.replace(comMapQuery, InterSymbol, mapQueryList);
+//				pattern = inputStreamList;
 			}
 			
 			secEntity.open(mapperIPAddr, databaseName, mapperPortNum, true);

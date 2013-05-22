@@ -135,7 +135,8 @@ public class PS_HadoopReduce2 implements Constant{
 		int[] mapTaskNums = new int[2];
 		String[] MapQueryStr = {"", ""};
 		String Map_DLF_Name_ListStr[] = {"", ""};
-		
+		String Map_DLO_Name_ListStr[] = {"", ""};
+	
 //------------------------------------------------------------------------------------------
 		
 		//Prepare two sections of parameters for the mappers.
@@ -147,9 +148,10 @@ public class PS_HadoopReduce2 implements Constant{
 				//Map map query
 				ListExpr mamfnList = UEMapQueryLists[i].second().first();		//Map DLF name list
 				Map_DLF_Name_ListStr[i] = HPA_AuxFunctions.plainStr(mamfnList);
-				
 				ListExpr mamflList = UEMapQueryLists[i].second().second(); 	//Map DLF location list
+
 				ListExpr mamonList = UEMapQueryLists[i].third().first(); 		//Map DLO name list
+				Map_DLO_Name_ListStr[i] = HPA_AuxFunctions.plainStr(mamonList);
 				ListExpr mamolList = UEMapQueryLists[i].third().second();		//Map DLO location list
 				mapTaskNums[i] = UEMapQueryLists[i].fourth().intValue();
 				
@@ -289,6 +291,9 @@ public class PS_HadoopReduce2 implements Constant{
 						String[] dlfLocStr = new String[2];
 						dlfLocStr [0] = HPA_AuxFunctions.plainStr(amap_DLF[0]);
 						dlfLocStr [1] = HPA_AuxFunctions.plainStr(amap_DLF[1]);
+						String[] dloLocStr = new String[2];
+						dloLocStr[0] = HPA_AuxFunctions.plainStr(amap_DLO[0]);
+						dloLocStr[1] = HPA_AuxFunctions.plainStr(amap_DLO[1]);
 						int[] slaveIdx = {0, 0}; 
 						slaveIdx[0] = HPA_AuxFunctions.findFirstSlave(amap_DLF[0]);
 						slaveIdx[1] = HPA_AuxFunctions.findFirstSlave(amap_DLF[1]);
@@ -318,14 +323,20 @@ public class PS_HadoopReduce2 implements Constant{
 								MapQueryStr[0]					+ inDim +//16
 								Map_DLF_Name_ListStr[0] + inDim +//17
 								dlfLocStr [0]						+ inDim +//18
+								Map_DLO_Name_ListStr[0]	+ inDim +//19
+								dloLocStr[0]						+ inDim +//20
+
 								//-------------------------------
-								inObjName[1]						+ inDim +//19
-								slaveIdx[1]							+ inDim +//20
-								duplicateTimes[1]				+ inDim +//21
-								PAName[1]								+ inDim +//22	
-								MapQueryStr[1]					+ inDim +//23
-								Map_DLF_Name_ListStr[1] + inDim +//24
-								dlfLocStr [1]						+ inDim +//25
+								inObjName[1]						+ inDim +//21
+								slaveIdx[1]							+ inDim +//22
+								duplicateTimes[1]				+ inDim +//23
+								PAName[1]								+ inDim +//24	
+								MapQueryStr[1]					+ inDim +//25
+								Map_DLF_Name_ListStr[1] + inDim +//26
+								dlfLocStr [1]						+ inDim +//27
+								Map_DLO_Name_ListStr[1]	+ inDim +//28
+								dloLocStr[1]						+ inDim +//29
+
 						"");
 						
 						out.close();

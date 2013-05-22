@@ -451,8 +451,13 @@ then the other mappers should indicate that as an empty row.
 			ListExpr nml = nameRest.first();
 			ListExpr lcl = locsRest.first();
 			
-			String name = nml.first().stringValue();
 			
+			String name;
+			if (nml.isAtom())
+				name = nml.stringValue();
+			else
+				name = nml.first().stringValue();
+
 			if (name.matches(DLOFPattern))
 			{
 				name = name.substring(name.lastIndexOf(':') + 1, 

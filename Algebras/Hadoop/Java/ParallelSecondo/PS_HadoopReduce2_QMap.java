@@ -41,15 +41,18 @@ public class PS_HadoopReduce2_QMap
 		String AcceptDLOName = parameters[8];
 		String AcceptDLOLoc = parameters[9];
 		//-----------------------------------------------------------
-		String[] 	InputObjectName		= { parameters[12], parameters[19]} ;
+		String[] 	InputObjectName		= { parameters[12], parameters[21]} ;
 		int[] 		slaveIdx					= 
-									{ Integer.parseInt(parameters[13]), Integer.parseInt(parameters[20])};							 							
+									{ Integer.parseInt(parameters[13]), Integer.parseInt(parameters[22])};							 							
 		int[] 		duplicateTimes    = 
-									{ Integer.parseInt(parameters[14]), Integer.parseInt(parameters[21])};
-		String[] 	PAName						= { parameters[15], parameters[22]} ;
-		String[] 	mapCreateQuery 		= { parameters[16], parameters[23]} ;
-		String[] 	mapFileName 			= { parameters[17], parameters[24]} ;
-		String[] 	mapFileLoc				= { parameters[18], parameters[25]} ;
+									{ Integer.parseInt(parameters[14]), Integer.parseInt(parameters[23])};
+		String[] 	PAName						= { parameters[15], parameters[24]} ;
+		String[] 	mapCreateQuery 		= { parameters[16], parameters[25]} ;
+		String[] 	mapFileName 			= { parameters[17], parameters[26]} ;
+		String[] 	mapFileLoc				= { parameters[18], parameters[27]} ;
+		String[]	mapObjName				= { parameters[19], parameters[28]} ;
+		String[]	mapObjLoc					= { parameters[20], parameters[29]} ;
+
 
 		ListExpr recvFileList = new ListExpr();
 		recvFileList.readFromString(AcceptFileLocList);
@@ -143,15 +146,37 @@ public class PS_HadoopReduce2_QMap
 					}
 					else
 					{
-						//Impossible happen, as unexecuted flist can only be DLF type
-						isInputFile = false;
-						inputStream = ListExpr.twoElemList(
-								ListExpr.symbolAtom("feed"), 
-								ListExpr.symbolAtom(InputObjectName[side]));
-						comMapQuery[side] = ExtListExpr.replace(
-								comMapQuery[side], InterSymbol, inputStream);
+						ListExpr omnList = new ListExpr();
+						ListExpr omlList = new ListExpr();
+						omnList.readFromString(mapObjName[side]);
+						omlList.readFromString(mapObjLoc[side]);
+						ListExpr nmRest = omnList;
+						boolean isObjExist = true;
+						while (!nmRest.isEmpty())
+						{
+						  String objName = nmRest.first().stringValue();
+						  if (objName.matches(DLOFPattern))
+						  {
+						    objName = objName.substring(objName.lastIndexOf(':') +1, objName.lastIndexOf("/>"));
+						    if ( !HPA_AuxFunctions.objectExist(objName, omnList, omlList))
+						    {
+						      isObjExist = false;
+						      break;
+						    } 
+					  	  }
+						  nmRest = nmRest.rest();
+						}
+						if (isObjExist)
+						{
+						  comMapQuery[side] = ExtListExpr.replace(comMapQuery[side], InterSymbol, mapQueryList);
+						  replaced = (!comMapQuery[side].isEmpty());
+						}
+						else
+						{
+						  comMapQuery[side] = ListExpr.theEmptyList();
+						  replaced = false;
+						}
 					}
-					
 				}
 				else
 				{
