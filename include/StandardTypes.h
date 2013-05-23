@@ -338,10 +338,14 @@ class CcInt : public Attribute
       if(value.size()==0){
          SetDefined(false);
       } else {
-         stringstream ss(value);
-         int v=0;
-         ss >> v;
-         Set(true,v);
+         if(listutils::isSymbolUndefined(value)){
+             SetDefined(false);
+         } else {
+            stringstream ss(value);
+            int v=0;
+            ss >> v;
+            Set(true,v);
+         }
       }
   }
 
@@ -590,10 +594,14 @@ class CcReal : public Attribute
       if(value.size()==0){
          SetDefined(false);
       } else {
-         stringstream ss(value);
-         double v=0.0;
-         ss >> v;
-         Set(true,v);
+         if(listutils::isSymbolUndefined(value)){
+            SetDefined(false);
+         } else {
+           stringstream ss(value);
+           double v=0.0;
+           ss >> v;
+           Set(true,v);
+        } 
       }
   }
 
@@ -768,16 +776,21 @@ class CcBool : public Attribute
   }
 
   virtual void ReadFromString(string value){
+     trimstring(value);
      string::size_type p = value.find_first_not_of(" \t");
      if(p==string::npos){
        SetDefined(false);
      } else {
-       char c = value[p];
-       if(c=='F' || c=='f' || c=='0'){
-          Set(true,false);
-       } else{
-          Set(true,true);
-       }
+       if(listutils::isSymbolUndefined(value)){
+           SetDefined(false);
+       } else {
+         char c = value[p];
+         if(c=='F' || c=='f' || c=='0'){
+            Set(true,false);
+         } else{
+            Set(true,true);
+         }
+      }
      }
   }
 
