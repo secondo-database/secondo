@@ -63,6 +63,7 @@ using namespace datetime;
 #include "TemporalAlgebra.h"
 #include "MovingRegionAlgebra.h"
 #include "TemporalExtAlgebra.h"
+#include "RefinementStream.h"
 
 
 extern NestedList* nl;
@@ -435,46 +436,35 @@ void DistanceMPoint( const MPoint& p1, const MPoint& p2, MReal& result)
 {
   if(TLA_DEBUG)
     cout<<"DistanceMPoint called"<<endl;
+
   result.Clear();
   if( !p1.IsDefined() || !p2.IsDefined() ){
     result.SetDefined( false );
     return;
   }
   result.SetDefined( true );
+
   UReal uReal(true);
 
-  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(p1, p2);
-  if(TLA_DEBUG)
-    cout<<"Refinement finished, rp.size: "<<rp.Size()<<endl;
+  result.Resize(p1.GetNoComponents() + p2.GetNoComponents());
 
-  result.Resize(rp.Size());
   result.StartBulkLoad();
-  for( unsigned int i = 0; i < rp.Size(); i++ )
-  {
-    Interval<Instant> iv;
-    int u1Pos, u2Pos;
-    UPoint u1;
-    UPoint u2;
+  RefinementStream<MPoint,MPoint,UPoint,UPoint> rs(&p1,&p2);
 
-    rp.Get(i, iv, u1Pos, u2Pos);
-    if(TLA_DEBUG){
-      cout<< "Compare interval #"<< i<< ": ["<< iv.start.ToString()<< " "
-      << iv.end.ToString()<< " "<< iv.lc<< " " << iv.rc<< "] "
-      << u1Pos<< " "<< u2Pos<< endl;}
-
-    if (u1Pos == -1 || u2Pos == -1)
-      continue;
-    else {
-      if(TLA_DEBUG)
-        cout<<"Both operators existant in interval iv #"<<i<<endl;
-      p1.Get(u1Pos, u1);
-      p2.Get(u2Pos, u2);
-    }
-    if(u1.IsDefined() && u2.IsDefined())
-    { // do not need to test for overlapping deftimes anymore...
-      u1.Distance( u2, uReal );
-      result.MergeAdd( uReal );
-    }
+  int i1;
+  int i2;
+  Interval<Instant> iv;   
+  UPoint u1;
+  UPoint u2;  
+  UReal ur;
+  while(rs.hasNext()){
+     rs.getNext(iv,i1,i2);
+     if((i1>=0) && (i2>=0)){
+        p1.Get(i1,u1);
+        p2.Get(i2,u2);
+        u1.Distance(u2,ur);
+        result.MergeAdd(ur);
+     }
   }
   result.EndBulkLoad();
 }

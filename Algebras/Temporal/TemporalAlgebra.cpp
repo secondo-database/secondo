@@ -2059,11 +2059,11 @@ void UPoint::Distance( const Point& p,
       if(geoid){  // spherical distance squared
         bool ok=false;
         resunit.c = p.DistanceOrthodrome(p0,*geoid,ok);
-        resunit.c *= resunit.c;
+        //resunit.c *= resunit.c;
       } else {    // euclidean distance squared
-        resunit.c = (pow(x0-x,2) + pow(y0-y,2));
+        resunit.c = sqrt((pow(x0-x,2) + pow(y0-y,2)));
       }
-      resunit.r = true; // draw square root
+      resunit.r = false; // square root encoded in c
       result.push_back(resunit);
     } else { // non-constant, non-instant unit
       if(geoid){  // spherical distance squared
@@ -2126,6 +2126,34 @@ void UPoint::Distance( const UPoint& up,
     return;
   }
   result.SetDefined( true );
+
+
+
+  if((timeInterval.start==timeInterval.end) &&
+     (up.timeInterval.start == up.timeInterval.end)){
+     // only for two points at the same time
+     result.timeInterval = timeInterval;
+     result.a = 0.0;
+     result.b = 0.0;
+     result.c = p0.Distance(up.p0);
+     result.r = false;
+    return;
+  }
+
+  if(timeInterval.start == timeInterval.end){
+      // this is joint an ipoint
+      result.timeInterval = timeInterval;
+      up.Distance(p0,result);
+      return;
+  }
+
+  if(up.timeInterval.start == up.timeInterval.end){
+      // up is just an ipoint
+      result.timeInterval = up.timeInterval;
+      Distance(up.p0,result);
+      return;
+  }
+
   Interval<Instant>iv;
   DateTime DT(durationtype);
   Point rp10, rp11, rp20, rp21;
@@ -2171,9 +2199,9 @@ void UPoint::Distance( const UPoint& up,
   { // almost equal start and end time -> constant distance
     result.a = 0.0;
     result.b = 0.0;
-    result.c =   pow( ( (x11-x10) - (x21-x20) ) / 2, 2)
-        + pow( ( (y11-y10) - (y21-y20) ) / 2, 2);
-    result.r = true;
+    result.c =  sqrt( pow( ( (x11-x10) - (x21-x20) ) / 2, 2)
+        + pow( ( (y11-y10) - (y21-y20) ) / 2, 2));
+    result.r = false;
     return;
   }
 
