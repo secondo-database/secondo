@@ -2043,6 +2043,28 @@ ListExpr DurationIntDuration(ListExpr args){
   return nl->SymbolAtom(Symbol::TYPEERROR());
 }
 
+ListExpr MulTM(ListExpr args){
+  string err ="{int,real} x duration or duration x {int,real} expected";
+  if(!nl->HasLength(args,2)){
+     return listutils::typeError(err);
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if(Duration::checkType(arg1)){
+     if(!CcReal::checkType(arg2) && !CcInt::checkType(arg2)){
+         return listutils::typeError(err);
+     }
+  } else if(Duration::checkType(arg2)){
+     if(!CcReal::checkType(arg1) && !CcInt::checkType(arg1)){
+         return listutils::typeError(err);
+     }
+  } else {
+      return listutils::typeError(err);
+  }
+  return nl->SymbolAtom(Duration::BasicType());
+}
+
+
 ListExpr DurationRealDuration(ListExpr args){
   if(nl->ListLength(args)!=2){
      ErrorReporter::ReportError("Two arguments required\n");
@@ -2478,16 +2500,60 @@ int AfterFun(Word* args, Word& result, int message, Word& local, Supplier s){
     return 0;
 }
 
-int MulFun(Word* args, Word& result, int message, Word& local, Supplier s){
+
+template<class T>
+int MulFunDurNum(Word* args, Word& result, int message, 
+                 Word& local, Supplier s){
   result = qp->ResultStorage(s);
-  DateTime* T1 = (DateTime*) args[0].addr;
-  CcReal* Fact = (CcReal*) args[1].addr;
-  DateTime* TRes = T1->Clone();
-  TRes->Mul(Fact->GetRealval());
-  ((DateTime*) result.addr)->Equalize(TRes);
-  delete TRes;
+  DateTime* dur = (DateTime*) args[0].addr;
+  T*  num = (T*) args[1].addr;
+  if(!dur->IsDefined() || !num->IsDefined()){
+      ((DateTime*) result.addr)->SetDefined(false);
+      return 0;
+  }
+  *((DateTime*) result.addr) = *dur * num->GetValue();
   return 0;
 }
+
+template<class T>
+int MulFunNumDur(Word* args, Word& result, int message, 
+                 Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  T*  num = (T*) args[0].addr;
+  DateTime* dur = (DateTime*) args[1].addr;
+  if(!dur->IsDefined() || !num->IsDefined()){
+      ((DateTime*) result.addr)->SetDefined(false);
+      return 0;
+  }
+  *((DateTime*) result.addr) = *dur * num->GetValue();
+  return 0;
+}
+
+ValueMapping MulVM[] = {
+   MulFunNumDur<CcInt>,
+   MulFunNumDur<CcReal>,
+   MulFunDurNum<CcInt>,
+   MulFunDurNum<CcReal>
+};
+
+int MulSelect(ListExpr args){
+   ListExpr numArg;
+   int offset = 0;
+   if(Duration::checkType(nl->First(args))){
+      offset = 2;
+      numArg = nl->Second(args);
+   }  else {
+      numArg = nl->First(args);
+   }
+   int p = CcInt::checkType(numArg)?0:1;
+   return offset + p;
+}
+
+
+
+
+
+
 
 int DivFun(Word* args, Word& result, int message, Word& local, Supplier s){
   result = qp->ResultStorage(s);
@@ -2867,7 +2933,8 @@ const string GreaterSpec =
 
 const string MulSpec =
    "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-   " ( \"duration x real -> duration\""
+   " ( 'duration x {int,real} -> duration  | "
+   "{int,real} x duration -> duration'"
    " \" _ * _ \" "
    "   \"computes the multiple of a duration\" "
    "   \" query D * 7.0\" ))";
@@ -3201,9 +3268,10 @@ Operator dt_equals(
 Operator dt_mul(
        "*", // name
        MulSpec, // specification
-       MulFun,
-       Operator::SimpleSelect,
-       DurationRealDuration);
+       4,
+       MulVM,
+       MulSelect,
+       MulTM);
 
 Operator dt_weekday(
        "weekday_of", // name
