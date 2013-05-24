@@ -2143,14 +2143,14 @@ void UPoint::Distance( const UPoint& up,
   if(timeInterval.start == timeInterval.end){
       // this is joint an ipoint
       result.timeInterval = timeInterval;
-      up.Distance(p0,result);
+      Distance(up.p0,result);
       return;
   }
 
   if(up.timeInterval.start == up.timeInterval.end){
       // up is just an ipoint
       result.timeInterval = up.timeInterval;
-      Distance(up.p0,result);
+      up.Distance(p0,result);
       return;
   }
 
