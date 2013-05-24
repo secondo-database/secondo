@@ -4517,7 +4517,8 @@ ListExpr createFListTypeMap(ListExpr args){
   string ifaErr = "ERROR! Infeasible evaluation in TM of attribute:";
   string onmErr = "ERROR! Operator createFList expects the created "
       "object name starts with upper case. ";
-  string hnmErr = "ERROR! Exists homonymous flist type file in: ";
+  string hnmErr = "ERROR! Unmatched type "
+      "or Exists homonymous flist type file in: ";
   string fwtErr = "ERROR! Failed writing type into file: ";
 
 
