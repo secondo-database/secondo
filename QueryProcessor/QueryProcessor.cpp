@@ -5080,7 +5080,15 @@ QueryProcessor::GetNLArgValueInTM(const NList& arg, NList& value,
       {
         ListExpr valueList = SecondoSystem::GetCatalog()
           ->OutObject(queryResType, queryresultword);
-        SecondoSystem::GetCatalog()->CloseObject(queryResType, queryresultword);
+        if((nli->AtomType(queryList)==SymbolType) && 
+           SecondoSystem::GetCatalog()->IsObjectName(
+                                          nli->SymbolValue(queryList))){
+            SecondoSystem::GetCatalog()->CloseObject(queryResType, 
+                                                     queryresultword);
+        } else {
+            SecondoSystem::GetCatalog()->DeleteObj(queryResType, 
+                                                    queryresultword);
+        }
         value = NList(valueList);
         return true;
       }
