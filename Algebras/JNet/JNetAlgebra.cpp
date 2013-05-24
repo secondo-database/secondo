@@ -55,7 +55,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "JList.h"
 #include "JPath.h"
-#include <../Tools/SyntaxParser/SyntaxParser.y>
 
 using namespace std;
 using namespace mappings;
