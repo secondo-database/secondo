@@ -32,13 +32,17 @@ namespace TileAlgebra
 
 class tintFlob : public Attribute
 {  
-  public:
   /*
   constructors
   
   */
+
+  private:
   
   tintFlob();
+
+  public:
+
   tintFlob(bool bDefined);
   tintFlob(const tintFlob& rtintFlob);
   
@@ -55,6 +59,7 @@ class tintFlob : public Attribute
   */
   
   tintFlob& operator=(const tintFlob& rtintFlob);
+  bool operator==(const tintFlob& rtintFlob) const;
   
   /*
   methods

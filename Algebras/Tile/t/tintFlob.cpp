@@ -77,6 +77,22 @@ tintFlob& tintFlob::operator=(const tintFlob& rtintFlob)
   return *this;
 }
 
+bool tintFlob::operator==(const tintFlob& rtintFlob) const
+{
+  bool bIsEqual = false;
+
+  if(this != &rtintFlob)
+  {
+    if(m_Grid == rtintFlob.m_Grid &&
+       m_Flob == rtintFlob.m_Flob)
+    {
+      bIsEqual = true;
+    }
+  }
+
+  return bIsEqual;
+}
+
 void tintFlob::Destroy()
 {
   m_Flob.destroy();
@@ -85,6 +101,16 @@ void tintFlob::Destroy()
 bool tintFlob::Load()
 {
   bool bRetVal = true;
+
+  /*
+  According to Prof. Dr. Gueting open method of an attribute type loads
+  only root record in memory. Flob data will be read immediately before
+  an operator tries to access flob object and will be stored in a read cache.
+
+  */
+
+  char buffer[TINTFLOB_SIZE];
+  bRetVal = m_Flob.read(buffer, TINTFLOB_SIZE, 0);
 
   return bRetVal;
 }
@@ -149,10 +175,13 @@ int tintFlob::Compare(const Attribute* pAttribute) const
       {
         if(btintFlobIsDefined == true) // defined x defined
         {
-          if(m_Flob == ptintFlob->m_Flob)
-          {
-            nRetVal = 0;
-          }
+          char buffer1[TINTFLOB_SIZE];
+          m_Flob.read(buffer1, TINTFLOB_SIZE, 0);
+
+          char buffer2[TINTFLOB_SIZE];
+          ptintFlob->m_Flob.read(buffer2, TINTFLOB_SIZE, 0);
+
+          nRetVal = memcmp(buffer1, buffer2, TINTFLOB_SIZE);
         }
         
         else // defined x undefined
@@ -547,18 +576,11 @@ bool tintFlob::Open(SmiRecord& rValueRecord,
                     const ListExpr typeInfo,
                     Word& rValue)
 { 
-  bool bRetVal = false;
-  
-  tintFlob* ptintFlob = static_cast<tintFlob*>(Attribute::Open(rValueRecord,
-                                                               rOffset,
-                                                               typeInfo));
-  
-  if(ptintFlob != 0)
-  { 
-    rValue = SetWord(ptintFlob);
-    bRetVal = true;
-  }
-  
+  bool bRetVal = OpenAttribute<tintFlob>(rValueRecord,
+                                         rOffset,
+                                         typeInfo,
+                                         rValue);
+
   return bRetVal;
 }
 
@@ -662,16 +684,11 @@ bool tintFlob::Save(SmiRecord& rValueRecord,
                     const ListExpr typeInfo,
                     Word& rValue)
 { 
-  bool bRetVal = false;
-  
-  tintFlob* ptintFlob = static_cast<tintFlob*>(rValue.addr);
-  
-  if(ptintFlob != 0)
-  {
-    Attribute::Save(rValueRecord, rOffset, typeInfo, ptintFlob);
-    bRetVal = true;
-  }
-  
+  bool bRetVal = SaveAttribute<tintFlob>(rValueRecord,
+                                         rOffset,
+                                         typeInfo,
+                                         rValue);
+
   return bRetVal;
 }
 
