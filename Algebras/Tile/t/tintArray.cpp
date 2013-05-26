@@ -69,6 +69,22 @@ tintArray& tintArray::operator=(const tintArray& rtintArray)
   return *this;
 }
 
+bool tintArray::operator==(const tintArray& rtintArray) const
+{
+  bool bIsEqual = false;
+
+  if(this != &rtintArray)
+  {
+    if(m_Grid == rtintArray.m_Grid &&
+       memcmp(m_Array, rtintArray.m_Array, TINTARRAY_SIZE * sizeof(int)) == 0)
+    {
+      bIsEqual = true;
+    }
+  }
+
+  return bIsEqual;
+}
+
 bool tintArray::Load()
 {
   bool bRetVal = true;
@@ -246,7 +262,7 @@ void tintArray::Delete(const ListExpr typeInfo,
 {
   tintArray* ptintArray = static_cast<tintArray*>(rWord.addr);
   
-  if(ptintArray != NULL)
+  if(ptintArray != 0)
   {
     delete ptintArray;
     rWord.addr = 0;
@@ -506,17 +522,10 @@ bool tintArray::Open(SmiRecord& rValueRecord,
                      const ListExpr typeInfo,
                      Word& rValue)
 { 
-  bool bRetVal = false;
-
-  tintArray* ptintArray = static_cast<tintArray*>(Attribute::Open(rValueRecord,
-                                                                  rOffset,
-                                                                  typeInfo));
-  
-  if(ptintArray != 0)
-  { 
-    rValue = SetWord(ptintArray);
-    bRetVal = true;
-  }
+  bool bRetVal = OpenAttribute<tintArray>(rValueRecord,
+                                          rOffset,
+                                          typeInfo,
+                                          rValue);
 
   return bRetVal;
 }
@@ -614,16 +623,11 @@ bool tintArray::Save(SmiRecord& rValueRecord,
                      const ListExpr typeInfo,
                      Word& rValue)
 { 
-  bool bRetVal = false;
-  
-  tintArray* ptintArray = static_cast<tintArray*>(rValue.addr);
-  
-  if(ptintArray != 0)
-  {
-    Attribute::Save(rValueRecord, rOffset, typeInfo, ptintArray);
-    bRetVal = true;
-  }
-  
+  bool bRetVal = SaveAttribute<tintArray>(rValueRecord,
+                                          rOffset,
+                                          typeInfo,
+                                          rValue);
+
   return bRetVal;
 }
 

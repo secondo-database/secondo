@@ -32,13 +32,17 @@ namespace TileAlgebra
 
 class tintArray : public Attribute
 {  
-  public:
   /*
   constructors
   
   */
-  
+
+  private:
+
   tintArray();
+
+  public:
+
   tintArray(bool bDefined);
   tintArray(const tintArray& rtintArray);
   
@@ -55,6 +59,7 @@ class tintArray : public Attribute
   */
   
   tintArray& operator=(const tintArray& rtintArray);
+  bool operator==(const tintArray& rtintArray) const;
 
   /*
   methods
