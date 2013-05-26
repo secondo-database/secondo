@@ -74,6 +74,23 @@ const Grid2& Grid2::operator=(const Grid2& rGrid2)
   return *this;
 }
 
+bool Grid2::operator==(const Grid2& rGrid2) const
+{
+  bool bIsEqual = false;
+
+  if(this != &rGrid2)
+  {
+    if(m_dX == rGrid2.m_dX &&
+       m_dY == rGrid2.m_dY &&
+       m_dLength == rGrid2.m_dLength)
+    {
+      bIsEqual = true;
+    }
+  }
+
+  return bIsEqual;
+}
+
 const double& Grid2::GetX() const
 {
   return m_dX;
@@ -415,16 +432,10 @@ bool Grid2::Open(SmiRecord& rValueRecord,
                  const ListExpr typeInfo,
                  Word& rValue)
 {
-  bool bRetVal = false;
-
-  Grid2* pGrid2 = static_cast<Grid2*>(Attribute::Open(rValueRecord, rOffset,
-                                                      typeInfo));
-
-  if(pGrid2 != 0)
-  {
-    rValue = SetWord(pGrid2);
-    bRetVal = true;
-  }
+  bool bRetVal = OpenAttribute<Grid2>(rValueRecord,
+                                      rOffset,
+                                      typeInfo,
+                                      rValue);
 
   return bRetVal;
 }
@@ -475,15 +486,10 @@ bool Grid2::Save(SmiRecord& rValueRecord,
                  const ListExpr typeInfo,
                  Word& rValue)
 {
-  bool bRetVal = false;
-
-  Grid2* pGrid2 = static_cast<Grid2*>(rValue.addr);
-
-  if(pGrid2 != 0)
-  {
-    Attribute::Save(rValueRecord, rOffset, typeInfo, pGrid2);
-    bRetVal = true;
-  }
+  bool bRetVal = SaveAttribute<Grid2>(rValueRecord,
+                                      rOffset,
+                                      typeInfo,
+                                      rValue);
 
   return bRetVal;
 }

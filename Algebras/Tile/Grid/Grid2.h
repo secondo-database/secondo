@@ -30,12 +30,12 @@ namespace TileAlgebra
 
 class Grid2 : public Attribute
 {
-  public:
-
   /*
   constructors
 
   */
+
+  public:
 
   Grid2();
   Grid2(bool bDefined);
@@ -55,7 +55,7 @@ class Grid2 : public Attribute
   */
 
   const Grid2& operator=(const Grid2& rGrid2);
-
+  bool operator==(const Grid2& rGrid2) const;
   /*
   getter
 
@@ -134,6 +134,7 @@ class Grid2 : public Attribute
   static int SizeOfObj();
 
   private:
+
   /*
   members
 
