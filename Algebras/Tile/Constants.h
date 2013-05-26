@@ -75,6 +75,13 @@ const tintFlob dimension size
 
 extern const int TINTFLOB_DIMENSION_SIZE;
 
+/*
+const type name for type tint
+
+*/
+
+extern const char* TYPE_NAME_TINT;
+
 }
 
 #endif // TILEALGEBRA_CONSTANTS_H

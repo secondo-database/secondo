@@ -95,4 +95,11 @@ const tintFlob dimension size
 const int TINTFLOB_DIMENSION_SIZE = static_cast<unsigned int>
                                     (std::sqrt(TINTFLOB_ELEMENTS));
 
+/*
+const type name for type tint
+
+*/
+
+const char* TYPE_NAME_TINT = "tint";
+
 }
