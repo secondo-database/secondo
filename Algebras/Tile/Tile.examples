@@ -6,3 +6,9 @@ Number   : 1
 Signature: tintArray -> bool
 Example  : query load([const tintArray value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (957 958 959 960)))])
 Result   : TRUE
+
+Operator : load
+Number   : 2
+Signature: tintFlob -> bool
+Example  : query load([const tintFlob value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (957 958 959 960)))])
+Result   : TRUE
