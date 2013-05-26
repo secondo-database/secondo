@@ -60,7 +60,7 @@ ListExpr loadTypeMapping(ListExpr args)
   if(types.first() == NList(tintArray::BasicType()) ||
      types.first() == NList(tintFlob::BasicType()))
   {
-    return NList().listExpr();
+    return NList(CcBool::BasicType()).listExpr();
   }
 
   return NList::typeError("Expecting a tintArray or a tintFlob.");
