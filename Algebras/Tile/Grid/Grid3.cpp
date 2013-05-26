@@ -73,6 +73,22 @@ const Grid3& Grid3::operator=(const Grid3& rGrid3)
   return *this;
 }
 
+bool Grid3::operator==(const Grid3& rGrid3) const
+{
+  bool bIsEqual = false;
+
+  if(this != &rGrid3)
+  {
+    if(Grid2::operator==(rGrid3) &&
+       m_Duration == rGrid3.m_Duration)
+    {
+      bIsEqual = true;
+    }
+  }
+
+  return bIsEqual;
+}
+
 const datetime::DateTime& Grid3::GetDuration() const
 {
   return m_Duration;
@@ -92,7 +108,7 @@ bool Grid3::Adjacent(const Attribute* pAttribute) const
 Attribute* Grid3::Clone() const
 {
   Attribute* pAttribute = new Grid3(*this);
-  assert(pAttribute != NULL);
+  assert(pAttribute != 0);
 
   return pAttribute;
 }
@@ -196,7 +212,7 @@ Word Grid3::Clone(const ListExpr typeInfo,
   if(pGrid3 != 0)
   {
     word.addr = new Grid3(*pGrid3);
-    assert(word.addr != NULL);
+    assert(word.addr != 0);
   }
 
   return word;
@@ -220,7 +236,7 @@ Word Grid3::Create(const ListExpr typeInfo)
   Word word;
 
   word.addr = new Grid3(0.0, 0.0, 1.0, 1.0);
-  assert(word.addr != NULL);
+  assert(word.addr != 0);
 
   return word;
 }
@@ -350,16 +366,10 @@ bool Grid3::Open(SmiRecord& rValueRecord,
                  const ListExpr typeInfo,
                  Word& rValue)
 {
-  bool bRetVal = false;
-
-  Grid3* pGrid3 = static_cast<Grid3*>(Attribute::Open(rValueRecord, rOffset,
-                                                      typeInfo));
-
-  if(pGrid3 != 0)
-  {
-    rValue = SetWord(pGrid3);
-    bRetVal = true;
-  }
+  bool bRetVal = OpenAttribute<Grid3>(rValueRecord,
+                                      rOffset,
+                                      typeInfo,
+                                      rValue);
 
   return bRetVal;
 }
@@ -371,7 +381,7 @@ ListExpr Grid3::Out(ListExpr typeInfo,
 
   Grid3* pGrid3 = static_cast<Grid3*>(value.addr);
 
-  if(pGrid3 != NULL)
+  if(pGrid3 != 0)
   {
     nlist.append(NList(pGrid3->GetX()));
     nlist.append(NList(pGrid3->GetY()));
@@ -411,15 +421,10 @@ bool Grid3::Save(SmiRecord& rValueRecord,
                  const ListExpr typeInfo,
                  Word& rValue)
 {
-  bool bRetVal = false;
-
-  Grid3* pGrid3 = static_cast<Grid3*>(rValue.addr);
-
-  if(pGrid3 != 0)
-  {
-    Attribute::Save(rValueRecord, rOffset, typeInfo, pGrid3);
-    bRetVal = true;
-  }
+  bool bRetVal = SaveAttribute<Grid3>(rValueRecord,
+                                      rOffset,
+                                      typeInfo,
+                                      rValue);
 
   return bRetVal;
 }

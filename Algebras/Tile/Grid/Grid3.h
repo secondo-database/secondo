@@ -31,14 +31,17 @@ namespace TileAlgebra
 
 class Grid3 : public Grid2
 {
-  public:
-
   /*
   constructors
   
   */
 
+  private:
+
   Grid3();
+
+  public:
+
   Grid3(bool bDefined);
   Grid3(const double& rX, const double& rY, const double& rLength,
         const datetime::DateTime& rDuration);
@@ -57,6 +60,7 @@ class Grid3 : public Grid2
   */
 
   const Grid3& operator=(const Grid3& rGrid3);
+  bool operator==(const Grid3& rGrid3) const;
 
   /*
   getter
@@ -125,6 +129,7 @@ class Grid3 : public Grid2
   static int SizeOfObj();
 
   private:
+
   /*
   members
    
