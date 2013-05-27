@@ -41,14 +41,16 @@ using namespace jnetwork;
   InterSP::InterSP(const InterSP& other) :
     origjid(other.GetOrigStartPathJID()), curjid(other.GetCurStartPathJID()),
     nextjid(other.GetNextJID()), nextsid(other.GetNextSID()),
-    dist(other.GetDistFromOrigStartPath())
+    distJID(other.GetDistFromOrigStartPath()),
+    distStartOrigJID(other.GetDistFromStartPointToOrigJID())
   {}
 
   InterSP::InterSP(const int origStartPathJID, const int curStartPathJID,
             const double distOfOriginStartPath, const int nextJIDOnPath,
-            const int nextSIDOnPath) :
+            const int nextSIDOnPath, const double distStartPointOrigJID) :
     origjid(origStartPathJID), curjid(curStartPathJID), nextjid(nextJIDOnPath),
-    nextsid(nextSIDOnPath), dist(distOfOriginStartPath)
+    nextsid(nextSIDOnPath), distJID(distOfOriginStartPath),
+    distStartOrigJID(distStartPointOrigJID)
   {}
 
   InterSP::~InterSP()
@@ -81,8 +83,14 @@ int InterSP::GetNextSID() const
 
 double InterSP::GetDistFromOrigStartPath() const
 {
-  return dist;
+  return distJID;
 }
+
+double InterSP::GetDistFromStartPointToOrigJID() const
+{
+  return distStartOrigJID;
+}
+
 
 void InterSP::SetOrigStartPathJID(const int id)
 {
@@ -106,7 +114,12 @@ void InterSP::SetNextSID(const int id)
 
 void InterSP::SetDistFromOrigStartPath(const double distance)
 {
-  dist = distance;
+  distJID = distance;
+}
+
+void InterSP::SetDistFromStartPointToOrigJID(const double distance)
+{
+  distStartOrigJID = distance;
 }
 
 /*
@@ -118,8 +131,8 @@ void InterSP::SetDistFromOrigStartPath(const double distance)
   {
     if (origjid < other.GetOrigStartPathJID()) return -1;
     if (origjid > other.GetOrigStartPathJID()) return 1;
-    if (dist < other.GetDistFromOrigStartPath()) return -1;
-    if (dist > other.GetDistFromOrigStartPath()) return 1;
+    if (distJID < other.GetDistFromOrigStartPath()) return -1;
+    if (distJID > other.GetDistFromOrigStartPath()) return 1;
     return 0;
   }
 
@@ -129,7 +142,8 @@ void InterSP::SetDistFromOrigStartPath(const double distance)
     curjid = other.GetCurStartPathJID();
     nextjid = other.GetNextJID();
     nextsid = other.GetNextSID();
-    dist = other.GetDistFromOrigStartPath();
+    distJID = other.GetDistFromOrigStartPath();
+    distStartOrigJID = other.GetDistFromStartPointToOrigJID();
     return *this;
   }
 
@@ -139,7 +153,8 @@ void InterSP::SetDistFromOrigStartPath(const double distance)
        << ", curstart: " << curjid
        << ", nextjid: " << nextjid
        << ", viasid: " << nextsid
-       << ", dist: " << dist
+       << ", distFromStart: " << distJID
+       << ", distStartPoint from origJunc: " << distStartOrigJID
        << endl;
     return os;
   }

@@ -52,19 +52,17 @@ void PQManagement::Insert(const JPQEntry& e)
 {
   int visitedPos = 0;
   bool visitedLeft = true;
-  //Checks if the end junction of the new entry has already been used
   if (FindVisited(e, visitedPos, visitedLeft))
   {
-    //Found before. Check if it is still in priority queue
+    //cout << "Found before. Check if it is still in priority queue" << endl;
     VisitedJunctionTreeElement actVisitedElem = GetVisited(visitedPos);
     int pqPos = actVisitedElem.GetValue().GetIndexPQ();
     if ( pqPos > 0)
     {
-      //still in pq check if the new distance is smaller than the old one.
       JPQEntryTreeElement actPQEntry = GetPQ(pqPos);
       if (actPQEntry.GetValue().GetPriority() > e.GetPriority())
       {
-        //Update actPQEntry with values from e
+        //cout << "Update actPQEntry with values from e" << endl;
         SetPQ(pqPos, e);
         actVisitedElem.SetValue(VisitedJunction(e, pqPos));
         SetVisited(visitedPos, actVisitedElem);
@@ -76,7 +74,7 @@ void PQManagement::Insert(const JPQEntry& e)
   }
   else
   {
-    //New node found insert in pq and visited junctions
+    //cout << "New node found insert in pq and visited junctions" << endl;
     int pqPos = InsertPQ(e);
     InsertVisited(VisitedJunction(e,pqPos), visitedPos, visitedLeft);
     if (pqPos > 0)
@@ -84,6 +82,25 @@ void PQManagement::Insert(const JPQEntry& e)
       JPQEntryTreeElement newEntry = GetPQ(pqPos);
       CorrectPositionUp(newEntry, pqPos);
     }
+  }
+}
+
+/*
+1.1 InsertJunctionAsVisited
+
+*/
+
+void PQManagement::InsertJunctionAsVisited(const JPQEntry juncE)
+{
+  int visitedPos = 0;
+  bool visitedLeft = true;
+  //cout << "InsertJunction as Visited: " << juncE << endl;
+  if (!FindVisited(juncE, visitedPos, visitedLeft))
+  {
+    //cout << "new junction" << endl;
+    if (visitedPos < 0)
+      visitedPos = 0;
+    InsertVisited(VisitedJunction(juncE,-1), visitedPos, visitedLeft);
   }
 }
 
@@ -99,6 +116,7 @@ JPQEntry* PQManagement::GetAndDeleteMin()
     int first = 0;
     JPQEntryTreeElement minElem = GetPQ(first);
     JPQEntry* result = new JPQEntry(minElem.GetValue());
+    SetVisitedEntryToPQPos(*result, -1);
     int last = firstFreePQ-1;
     JPQEntryTreeElement lastElem = GetPQ(last);
     JPQEntry root = lastElem.GetValue();
@@ -106,6 +124,7 @@ JPQEntry* PQManagement::GetAndDeleteMin()
     SetPQ(first, minElem);
     SetPQ(last, JPQEntryTreeElement(JPQEntry(Direction(Both),
                                             -1, -1, -1, -1, -1, -1,
+                                            numeric_limits<double>::max(),
                                             numeric_limits<double>::max(),
                                             numeric_limits<double>::max()),
                                    -1,-1));
@@ -122,16 +141,7 @@ JPQEntry* PQManagement::GetAndDeleteMin()
       SetPQ(fatherPos, father);
     }
     firstFreePQ--;
-    int visitedPos = 0;
-    bool visitedLeft = true;
-    if (FindVisited(root, visitedPos, visitedLeft))
-    {
-      VisitedJunctionTreeElement rootAtVisited = GetVisited(visitedPos);
-      VisitedJunction rootVisited = rootAtVisited.GetValue();
-      rootVisited.SetIndexPQ(first);
-      rootAtVisited.SetValue(rootVisited);
-      SetVisited(visitedPos, rootAtVisited);
-    }
+    SetVisitedEntryToPQPos(root, first);
     if (!IsEmptyPQ())
     {
       minElem = GetPQ(first);
@@ -272,6 +282,7 @@ bool PQManagement::FindVisited(const JPQEntry& e, int& visitedPos,
     return false;
   }
 }
+
 
 /*
 1.1 Getter and Setter
@@ -479,6 +490,20 @@ void PQManagement::CorrectPositionDown(JPQEntryTreeElement& newElem, int& pos)
   }
 }
 
+void PQManagement::SetVisitedEntryToPQPos(const JPQEntry& result,
+                                          const int pos)
+{
+  int visitedPos = 0;
+  bool visitedLeft = true;
+  if (FindVisited(result, visitedPos, visitedLeft))
+  {
+    VisitedJunctionTreeElement minElemAtVisited = GetVisited(visitedPos);
+    VisitedJunction minElemVisited = minElemAtVisited.GetValue();
+    minElemVisited.SetIndexPQ(pos);
+    minElemAtVisited.SetValue(minElemVisited);
+    SetVisited(visitedPos, minElemAtVisited);
+  }
+}
 /*
 1 Overload output operator
 

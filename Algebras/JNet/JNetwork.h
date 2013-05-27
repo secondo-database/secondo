@@ -46,6 +46,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SectionInterval.h"
 #include "PosJNetSpatial.h"
 #include "InterSP.h"
+#include "PairIntDouble.h"
 
 namespace jnetwork {
 
@@ -380,8 +381,9 @@ distances might be updated.
 
 */
 
-void ShortestPathTree(const JPoint* source,
-                      DbArray<pair<int, double> >* result);
+void ShortestPathTree(const RouteLocation& source,
+                      DbArray<PairIntDouble>* result,
+                      const double distlimit);
 
 /*
 1.1.1 ~ShortestPath~
@@ -863,8 +865,17 @@ bool InitPriorityQueue(PQManagement* pqueue,
 
 void InitPriorityQueue(PQManagement* pqueue,
                        const RouteLocation& source,
-                       int& startJID1, double& dist1,
-                       int& startJID2, double& dist2) const;
+                       DbArray<PairIntDouble>* result);
+
+void WriteToLists(PQManagement* pqueue,
+                  DbArray<PairIntDouble>* result,
+                  JPQEntry& junc);
+
+void WriteToLists(PQManagement* pqueue,
+                  DbArray<PairIntDouble>* result,
+                  JPQEntry& start,
+                  JPQEntry& end,
+                  const Tuple* sectTup);
 
 /*
 1.1.1.1.1 CheckForSameSections
@@ -922,10 +933,8 @@ bool ProcessPriorityQueue(PQManagement* pqueue,
                                        double& minDist);
 
 void ProcessPriorityQueue(PQManagement* pqueue,
-                          DbArray<pair<int, double> >* result,
-                          const double targetDist,
-                          const int startJID1, const int startJID2,
-                          const double dist1, const double dist2);
+                          DbArray<PairIntDouble>* result,
+                          const double distLimit);
 
 };
 

@@ -67,7 +67,8 @@ class JPQEntry{
     JPQEntry(const Direction dir, const int sect,
              const int startPathJunc, const int startPathNextJID,
              const int startPathSID, const int startPartJunc,
-             const int endPartJunc, const double dist, const double prio);
+             const int endPartJunc, const double dist, const double prio,
+             const double distStartFromStartPathJunc);
     ~JPQEntry();
 
 /*
@@ -81,7 +82,8 @@ int GetStartNextSID() const;
 int GetStartPartJID() const;
 int GetEndPartJID() const;
 double GetPriority() const;
-double GetDistFromStart() const;
+double GetDistFromStartPoint() const;
+double GetDistStartToStartJID() const;
 int GetSectionId() const;
 Direction GetDirection() const;
 
@@ -91,7 +93,8 @@ void SetStartNextSID(const int id);
 void SetStartPartJID(const int id);
 void SetEndPartJID(const int id);
 void SetPriority(const double prio);
-void SetDistFromStart(const double dist);
+void SetDistFromStartPoint(const double dist);
+void SetDistStartToStartJID(const double dist);
 void SetSectionId(const int id);
 void SetDirection(const Direction& dir);
 
@@ -113,7 +116,7 @@ void SetDirection(const Direction& dir);
 
     Direction movDir;
     int sid, startPathJID, startNextJID, startNextSID, startPartJID, endPartJID;
-    double distFromStart, prioval;
+    double distFromStartJID, prioval, distStartPathJIDFromStartPoint;
 
 };
 

@@ -92,6 +92,19 @@ Returns true if pq is empty false elsewhere.
 
 bool IsEmpty() const;
 
+
+/*
+1.1.1 InsertJunctionVisited
+
+Inserts the given Junction as visited junction without inserting it into pqueue.
+Used to mark junctions visited which are used in initialization phase of the
+priority queue, and therefore do not become members of priority queue
+themselves.
+
+*/
+
+void InsertJunctionAsVisited(const JPQEntry juncE);
+
 /*
 1.1.1 Destroy
 
@@ -203,6 +216,16 @@ Inserts the value into the list of visited junctions.
 
 void InsertVisited(const VisitedJunction& elem, const int fatherPos,
                    const bool fatherLeft);
+
+/*
+1.1.1 SetVisitedEntryToPQPos
+
+Changes the position of the entry belonging to result to the given
+pos in the priority queue.
+
+*/
+
+void SetVisitedEntryToPQPos(const JPQEntry& result, const int pos);
 
 /*
 1.1.1 Swap

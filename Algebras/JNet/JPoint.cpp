@@ -472,15 +472,17 @@ JListRLoc* JPoint::OtherNetworkPositions() const
 
 */
 
-void JPoint::ShortestPathTree(DbArray< std::pair< int, double > >* result) const
+void JPoint::ShortestPathTree(DbArray<PairIntDouble>* result) const
 {
+  //cout << "JPShortestPathTree for: " << *this << endl;
   if (result != NULL)
   {
     result->clean();
     if (IsDefined())
     {
       JNetwork* jnet = ManageJNet::GetNetwork(nid);
-      jnet->ShortestPathTree(this, result, numeric_limits< double >::max());
+      jnet->ShortestPathTree(this->GetLocation(), result,
+                             numeric_limits< double >::max());
       ManageJNet::CloseNetwork(jnet);
     }
   }

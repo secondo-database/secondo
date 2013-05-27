@@ -1099,6 +1099,13 @@ Example  : query shortest_path(testjl, testjl);
 Result   : (jpath("testjnet"()))
 Tolerance: 0.01%
 
+Operator : shortestpathtree
+Number   : 1
+Signature: jpoint -> stream(tuple((int)(real)))
+Example  : query shortestpathtree([const jpoint value("testjnet" (1 0.001 (Up)))]) count;
+Result   : 16
+Tolerance: 0.01%
+
 Operator : tempnetbox
 Number   : 1
 Signature: ujpoint -> rect3

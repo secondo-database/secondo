@@ -43,18 +43,20 @@ JPQEntry::JPQEntry(const JPQEntry& other) :
   movDir(other.GetDirection()), sid(other.GetSectionId()),
   startPathJID(other.GetStartPathJID()), startNextJID(other.GetStartNextJID()),
   startNextSID(other.GetStartNextSID()), startPartJID(other.GetStartPartJID()),
-  endPartJID(other.GetEndPartJID()), distFromStart(other.GetDistFromStart()),
-  prioval(other.GetPriority())
+  endPartJID(other.GetEndPartJID()),
+  distFromStartJID(other.GetDistFromStartPoint()), prioval(other.GetPriority()),
+  distStartPathJIDFromStartPoint(other.GetDistStartToStartJID())
 {}
 
 JPQEntry::JPQEntry(const Direction dir, const int sect,
                    const int startPathJunc, const int startNextJunc,
                    const int startNextSect, const int startPartJunc,
-                   const int endPartJunc, const double dist, const double prio)
+                   const int endPartJunc, const double dist, const double prio,
+                   const double distStartPathFromStartPoint)
 : movDir(dir), sid(sect), startPathJID(startPathJunc),
   startNextJID(startNextJunc), startNextSID(startNextSect),
-  startPartJID(startPartJunc), endPartJID(endPartJunc),  distFromStart(dist),
-  prioval(prio)
+  startPartJID(startPartJunc), endPartJID(endPartJunc),  distFromStartJID(dist),
+  prioval(prio), distStartPathJIDFromStartPoint(distStartPathFromStartPoint)
 {}
 
 JPQEntry::~JPQEntry()
@@ -96,9 +98,14 @@ double JPQEntry::GetPriority() const
   return prioval;
 }
 
-double JPQEntry::GetDistFromStart() const
+double JPQEntry::GetDistFromStartPoint() const
 {
-  return distFromStart;
+  return distFromStartJID;
+}
+
+double JPQEntry::GetDistStartToStartJID() const
+{
+  return distStartPathJIDFromStartPoint;
 }
 
 int JPQEntry::GetSectionId() const
@@ -143,10 +150,16 @@ void JPQEntry::SetPriority(const double prio)
   prioval = prio;
 }
 
-void JPQEntry::SetDistFromStart(const double dist)
+void JPQEntry::SetDistFromStartPoint(const double dist)
 {
-  distFromStart = dist;
+  distFromStartJID = dist;
 }
+
+void JPQEntry::SetDistStartToStartJID(const double dist)
+{
+  distStartPathJIDFromStartPoint = dist;
+}
+
 
 void JPQEntry::SetSectionId(const int id)
 {
@@ -167,8 +180,8 @@ int JPQEntry::Compare(const JPQEntry& other) const
 {
   if (prioval < other.GetPriority()) return -1;
   if (prioval > other.GetPriority()) return 1;
-  if (distFromStart < other.GetDistFromStart()) return -1;
-  if (distFromStart > other.GetDistFromStart()) return 1;
+  if (distFromStartJID < other.GetDistFromStartPoint()) return -1;
+  if (distFromStartJID > other.GetDistFromStartPoint()) return 1;
   return movDir.Compare(other.GetDirection());
 }
 
@@ -181,8 +194,10 @@ ostream& JPQEntry::Print(ostream& os) const
      << ", from junction: " << startPartJID
      << ", using section: " << sid
      << ", in direction: " << movDir
-     << ", distFromStart: " << distFromStart
-     << ", priority: " << prioval << endl;
+     << ", distFromStart: " << distFromStartJID
+     << ", priority: " << prioval
+     << ", distStartJuncFromStart: " << distStartPathJIDFromStartPoint
+     << endl;
   return os;
 }
 
@@ -195,8 +210,9 @@ JPQEntry& JPQEntry::operator=(const JPQEntry& other)
   startNextSID = other.GetStartNextSID();
   startPartJID = other.GetStartPartJID();
   endPartJID = other.GetEndPartJID();
-  distFromStart = other.GetDistFromStart();
+  distFromStartJID = other.GetDistFromStartPoint();
   prioval = other.GetPriority();
+  distStartPathJIDFromStartPoint = other.GetDistStartToStartJID();
   return *this;
 }
 

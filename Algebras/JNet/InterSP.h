@@ -64,7 +64,7 @@ class InterSP{
     InterSP(const InterSP& other);
     InterSP(const int origStartPathJID, const int curStartPathJID,
             const double distOfOriginStartPath, const int nextJIDOnPath,
-            const int nextSIDOnPath);
+            const int nextSIDOnPath, const double distStartPointOrigJID);
     ~InterSP();
 
 /*
@@ -77,12 +77,14 @@ int GetCurStartPathJID() const;
 int GetNextJID() const;
 int GetNextSID() const;
 double GetDistFromOrigStartPath() const;
+double GetDistFromStartPointToOrigJID() const;
 
 void SetOrigStartPathJID(const int id);
 void SetCurStartPathJID(const int id);
 void SetNextJID(const int id);
 void SetNextSID(const int id);
 void SetDistFromOrigStartPath(const double distance);
+void SetDistFromStartPointToOrigJID(const double distance);
 
 /*
 1.1.1 Some standard functions
@@ -101,7 +103,7 @@ void SetDistFromOrigStartPath(const double distance);
   private:
 
     int origjid, curjid, nextjid, nextsid;
-    double dist;
+    double distJID, distStartOrigJID;
 
 };
 
