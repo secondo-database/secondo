@@ -2212,6 +2212,8 @@ void JNetwork::ShortestPathTree(const RouteLocation& source,
       PQManagement* pqueue = new PQManagement();
       InitPriorityQueue(pqueue, source, result);
       ProcessPriorityQueue(pqueue, result, distLimit);
+      pqueue->Destroy();
+      delete pqueue;
     }
   }
 }
@@ -2335,8 +2337,10 @@ void JNetwork::ShortestPath(const DbArray<RouteLocation>* sources,
       //Cleanup
       tgtEntries->Destroy();
       delete tgtEntries;
+      srcEntries->Destroy();
+      delete srcEntries;
       spatialEndPositions->Destroy();
-      delete spatialEndPositions;
+      spatialEndPositions->DeleteIfAllowed();
     }
   }
   else
@@ -2428,7 +2432,6 @@ void JNetwork::Netdistance(const DbArray<RouteLocation>* sources,
                                      tgtPosInArray, tgtOverStartJunction,
                                      srcStartPathJID, minDist))
             {
-              sp = new DbArray<JRouteInterval>(0);
               //cout << "Write Shortest Path" << endl;
               WriteNetdistance(srcEntries, tgtEntries, srcStartPathJID,
                                tgtPosInArray, tgtOverStartJunction, result);
@@ -2462,8 +2465,10 @@ void JNetwork::Netdistance(const DbArray<RouteLocation>* sources,
       //Cleanup
       tgtEntries->Destroy();
       delete tgtEntries;
+      srcEntries->Destroy();
+      delete srcEntries;
       spatialEndPositions->Destroy();
-      delete spatialEndPositions;
+      spatialEndPositions->DeleteIfAllowed();
     }
     else
     {
@@ -4719,60 +4724,65 @@ bool JNetwork::InitPriorityQueue(PQManagement* pqueue,
         if (sectTup != 0)
         {
           Direction* sectDir = GetSectionDirection(sectTup);
-          int test = sectDir->Compare(compD);
-          if (test != 0)
+          if (sectDir != NULL)
           {
-            jid = curSource.GetEndJID();
-            juncTup = GetJunctionTupleWithId(jid);
-            if (juncTup != 0)
+            int test = sectDir->Compare(compD);
+            if (test != 0)
             {
-              Point* curJuncPoint = GetJunctionSpatialPos(juncTup);
-              if (curJuncPoint != 0)
+              jid = curSource.GetEndJID();
+              juncTup = GetJunctionTupleWithId(jid);
+              if (juncTup != 0)
               {
-                adjSectList = GetSectionListAdjSectionsUp(sectTup);
-                JPQEntry tmp1((Direction) Up,
-                                       -1, jid, jid,
-                                       -1, jid, jid,
-                                       curSource.GetDistFromEndJunction(),
-                                       curSource.GetDistFromEndJunction() +
-                                        endPositions->Distance(*curJuncPoint),
-                                       curSource.GetDistFromEndJunction());
-                pqueue->InsertJunctionAsVisited(tmp1);
-                AddAdjacentSections<Points>(pqueue, adjSectList, tmp1,
-                                            endPositions);
-                adjSectList->Destroy();
-                adjSectList->DeleteIfAllowed();
-                curJuncPoint->DeleteIfAllowed();
+                Point* curJuncPoint = GetJunctionSpatialPos(juncTup);
+                if (curJuncPoint != 0)
+                {
+                  adjSectList = GetSectionListAdjSectionsUp(sectTup);
+                  JPQEntry tmp1((Direction) Up,
+                                         -1, jid, jid,
+                                         -1, jid, jid,
+                                         curSource.GetDistFromEndJunction(),
+                                         curSource.GetDistFromEndJunction() +
+                                          endPositions->Distance(*curJuncPoint),
+                                         curSource.GetDistFromEndJunction());
+                  pqueue->InsertJunctionAsVisited(tmp1);
+                  AddAdjacentSections<Points>(pqueue, adjSectList, tmp1,
+                                              endPositions);
+                  adjSectList->Destroy();
+                  adjSectList->DeleteIfAllowed();
+                  curJuncPoint->DeleteIfAllowed();
+                }
+                juncTup->DeleteIfAllowed();
               }
-              juncTup->DeleteIfAllowed();
             }
-          }
-          if (test >= 0)
-          {
-            jid = curSource.GetStartJID();
-            juncTup = GetJunctionTupleWithId(jid);
-            if (juncTup != 0)
+            if (test >= 0)
             {
-              Point* curJuncPoint = GetJunctionSpatialPos(juncTup);
-              if (curJuncPoint != 0)
+              jid = curSource.GetStartJID();
+              juncTup = GetJunctionTupleWithId(jid);
+              if (juncTup != 0)
               {
-                adjSectList = GetSectionListAdjSectionsDown(sectTup);
-                JPQEntry tmp2((Direction) Down,
-                                       -1, jid, jid,
-                                       -1, jid, jid,
-                                       curSource.GetDistFromStartJunction(),
-                                       curSource.GetDistFromStartJunction() +
-                                        endPositions->Distance(*curJuncPoint),
-                                        curSource.GetDistFromStartJunction());
-                pqueue->InsertJunctionAsVisited(tmp2);
-                AddAdjacentSections<Points>(pqueue, adjSectList, tmp2,
-                                            endPositions);
-                adjSectList->Destroy();
-                adjSectList->DeleteIfAllowed();
-                curJuncPoint->DeleteIfAllowed();
+                Point* curJuncPoint = GetJunctionSpatialPos(juncTup);
+                if (curJuncPoint != 0)
+                {
+                  adjSectList = GetSectionListAdjSectionsDown(sectTup);
+                  JPQEntry tmp2((Direction) Down,
+                                         -1, jid, jid,
+                                         -1, jid, jid,
+                                         curSource.GetDistFromStartJunction(),
+                                         curSource.GetDistFromStartJunction() +
+                                          endPositions->Distance(*curJuncPoint),
+                                          curSource.GetDistFromStartJunction());
+                  pqueue->InsertJunctionAsVisited(tmp2);
+                  AddAdjacentSections<Points>(pqueue, adjSectList, tmp2,
+                                              endPositions);
+                  adjSectList->Destroy();
+                  adjSectList->DeleteIfAllowed();
+                  curJuncPoint->DeleteIfAllowed();
+                }
+                juncTup->DeleteIfAllowed();
               }
-              juncTup->DeleteIfAllowed();
             }
+            sectDir->DeleteIfAllowed();
+            sectDir = 0;
           }
           sectTup->DeleteIfAllowed();
           sectTup = 0;
@@ -4805,55 +4815,60 @@ void JNetwork::InitPriorityQueue(PQManagement* pqueue,
                    -1, startJuncId, startJuncId, distFromStart, distFromStart,
                    distFromStart);
     Direction* sectDir = GetSectionDirection(sectTup);
-    if (AlmostEqualAbsolute(distFromStart, 0.0, tolerance) ||
+    if (sectDir != NULL)
+    {
+      if (AlmostEqualAbsolute(distFromStart, 0.0, tolerance) ||
         AlmostEqualAbsolute(distFromStart, GetSectionLength(sectTup),
                                      tolerance))
-    {
-      //cout << "is junction" << endl;
-      if (AlmostEqualAbsolute(distFromStart, 0.0, tolerance))
       {
-        //cout << "is startjunction" << endl;
-        WriteToLists(pqueue, result, start);
+        //cout << "is junction" << endl;
+        if (AlmostEqualAbsolute(distFromStart, 0.0, tolerance))
+        {
+          //cout << "is startjunction" << endl;
+          WriteToLists(pqueue, result, start);
+        }
+        else
+        {
+          //cout << "is endjunction" << endl;
+          WriteToLists(pqueue, result, end);
+        }
       }
       else
       {
-        //cout << "is endjunction" << endl;
-        WriteToLists(pqueue, result, end);
-      }
-    }
-    else
-    {
-      //cout << "within section" << endl;
-      Direction compD(Down);
-      switch(sectDir->Compare(compD))
-      {
-        case -1: //sectDir up
+        //cout << "within section" << endl;
+        Direction compD(Down);
+        switch(sectDir->Compare(compD))
         {
-          //cout << "sectDir up" << endl;
-          WriteToLists(pqueue, result, end);
-          break;
-        }
+          case -1: //sectDir up
+          {
+            //cout << "sectDir up" << endl;
+            WriteToLists(pqueue, result, end);
+            break;
+          }
 
-        case 0: //sectDir down
-        {
-          //cout << "sectDir down" << endl;
-          WriteToLists(pqueue, result, start);
-          break;
-        }
+          case 0: //sectDir down
+          {
+            //cout << "sectDir down" << endl;
+            WriteToLists(pqueue, result, start);
+            break;
+          }
 
-        case 1: //sectDir both
-        {
-          //cout << "sectdir both" << endl;
-          WriteToLists(pqueue, result, start, end, sectTup);
-          break;
-        }
+          case 1: //sectDir both
+          {
+            //cout << "sectdir both" << endl;
+            WriteToLists(pqueue, result, start, end, sectTup);
+            break;
+          }
 
-        default: //should never been reached
-        {
-          assert(false);
-          break;
+          default: //should never been reached
+          {
+            assert(false);
+            break;
+          }
         }
       }
+      sectDir->DeleteIfAllowed();
+      sectDir = 0;
     }
     sectTup->DeleteIfAllowed();
     sectTup = 0;
@@ -4999,6 +5014,8 @@ bool JNetwork::ProcessPriorityQueue(PQManagement* pqueue,
       delete curPQElement;
     curPQElement = 0;
   }
+  wayEntries->Destroy();
+  delete wayEntries;
   return found;
 }
 
@@ -5027,6 +5044,8 @@ void JNetwork::ProcessPriorityQueue(PQManagement* pqueue,
       curPQElement = 0;
     }
   }
+  wayEntries->Destroy();
+  delete wayEntries;
 }
 
 bool JNetwork::CheckForExistingNetdistance(

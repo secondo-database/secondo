@@ -1651,7 +1651,7 @@ int unitsJLineVM ( Word* args, Word& result, int message, Word& local,
       {
         JRouteInterval elem(false);
         (li->in)->Get(li->index, elem);
-        result = SetWord(new JRouteInterval(elem));
+        result = SetWord(&elem);
         li->index++;
         while (!elem.IsDefined() &&
                li->index < li->in->GetNoComponents())
