@@ -3172,6 +3172,27 @@ indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects Y, _))
 /*
 Here ~ArgS~ is meant to indicate ``argument stream''.
 
+*/
+
+/*
+Apply an invfile for a relation containing moving labels (symbolic trajectories)
+
+*/
+matches(rel(Name, *), Attr, Text)
+               => indexmatches(rel(Name, *), Attr, dbobject(IndexName), Text) :-
+  writeln('start indexmatches'),
+  hasIndex(rel(Name, *), attr(Attr, _, _), DCindex, IndexType),
+  !,
+  IndexType = invfile,
+  dcName2externalName(DCindex, IndexName).
+
+matches(rel(Name, *), Attr, Text)
+                             => filtermatches(feed(rel(Name, *)), Attr, Text) :-
+  writeln('start filtermatches').
+
+
+/*
+
 5.2.3 Translation of Joins
 
 A join can always be translated to a ~symmjoin~.
@@ -4264,21 +4285,6 @@ End of Goehr's extension
 
 */
 
-/*
-Apply an invfile for a relation containing moving labels (symbolic trajectories)
-
-*/
-matches(rel(Name, *), Attr, Text)
-               => indexmatches(rel(Name, *), Attr, dbobject(IndexName), Text) :-
-  writeln('start indexmatches'),
-  hasIndex(rel(Name, *), attr(Attr, Arg, AttrCase), DCindex, IndexType),
-  !,
-  IndexType = invfile,
-  dcName2externalName(DCindex, IndexName).
-
-matches(rel(Name, *), Attr, Text)
-                             => filtermatches(feed(rel(Name, *)), Attr, Text) :-
-  writeln('start filtermatches').
 
 /*
 6 Creating Query Plan Edges
@@ -7821,11 +7827,8 @@ makeStream(RelT, Stream3) :-
 % Catch this delayed error coz it is very nasty to track.
 makeStream(RelTerm, _) :-
   RelTerm=..[where, _, _],
-  throw(error_Internal(optimizer_makeStream(RelTerm, _)::
-   'The first parameter can\'t be a where-term, but when this happens, the '
-   'first parameter was set to this value during backtracking. Everytime I got '
-   'this error, the problem is that a costEdge could not be created for an '
-   'edge/planEdge. So you might want to check this first.')).
+  throw(error_Internal(optimizer_makeStream(RelTerm, _)::malformedExpression:
+   'where at beginning')).
 
 makeStream(RelTerm, _) :-
   optimizerOption(nestedRelations),
@@ -8563,10 +8566,21 @@ queryToPlan(drop index IndexList, [], 0) :-
   fail.
 
 % case: count query
+% special case: just inquring the cardinality of a relation
+queryToPlan(select count(*) from Rel, count(Rel), 0):-
+  Rel = rel(R, _),
+  not(is_nrel(R)),
+  !.
+
+% general counting query
 queryToPlan(Query, StreamOut, Cost) :-
   countQuery(Query),
   queryToStream(Query, Stream, Cost), !,
-  addTmpVariables(count(Stream), StreamOut).
+  addTmpVariables(count(Stream), StreamOut),
+  write('Query = '), write(Query), nl,
+  write('Stream = '), write(Stream), nl,
+  write('StreamOut = '), write(StreamOut), nl.
+ 
 
 % case: predefined aggregation query (New Method)
 queryToPlan(Query, StreamOut, Cost) :-
@@ -8790,7 +8804,7 @@ queryToStream(Query last N, tail(Stream, N), Cost) :-
 
 % NVK ADDED MA
 /*
-The sort operation is na important part of a query, hence it should be respected within the memory optimization.
+The sort operation is an important part of a query, hence it should be respected within the memory optimization.
 Queries just with a sort without ~Preds~ are still handled by the below default predicate.
 
 */
