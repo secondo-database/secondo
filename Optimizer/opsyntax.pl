@@ -319,7 +319,6 @@ secondoOp( exactmatchS,       postfixbrackets, 1).
 secondoOp( export,            postfix, 1).
 secondoOp( extattrsize,       postfixbrackets, 1).
 secondoOp( extend,            postfixbrackets, 1).
-%secondoOp( extendstream,      special, 1). NVK REMOVED because there is no such rule?!?. Added below with the type postfixbrackets.
 secondoOp( extenddeftime,     prefix, 2).
 secondoOp( extract,           postfixbrackets, 1).
 secondoOp( exttuplesize,      postfix, 1).
@@ -547,6 +546,7 @@ secondoOp( stpatternexextendstream,special, 1).
 secondoOp( stpatternexextendstream2,special, 1).
 secondoOp( stdpgroup,         prefix , 0).
 secondoOp( strequal,          prefix, 2).
+secondoOp( str2date,          prefix, 1).
 secondoOp( sum,               postfixbrackets, 1).
 secondoOp( summarize,         prefix, 1).
 secondoOp( symmjoin,          special, 2).
