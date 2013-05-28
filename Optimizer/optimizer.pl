@@ -1456,6 +1456,7 @@ plan_to_atom(res(N), Result) :-
 
 /*
 NVK NOTE: changed varname from SubqueryPred to Subquery because it is not in every case a predicate.
+
 */
 plan_to_atom(Subquery, Result) :-
   optimizerOption(subqueries),
@@ -1464,11 +1465,12 @@ plan_to_atom(Subquery, Result) :-
 /*
 NVK MODIFIED NR
 Removed, don't know why this is called twice and i can't see a reason for this.
-plan_to_atom(SubqueryPred, Result) :-
+plan\_to\_atom(SubqueryPred, Result) :-
   optimizerOption(subqueries),
-  subquery_plan_to_atom(SubqueryPred, Result),
+  subquery\_plan\_to\_atom(SubqueryPred, Result),
   !.
 NVK MODIFIED NR END
+
 */
 
 plan_to_atom(pr(P,_), Result) :-
@@ -1818,6 +1820,7 @@ plan_to_atom(memory(X, MID, _), Result) :-
 /*
 NVK ADDED NR
 unnest is handled by the postfixbrackets method. But nest has a special syntax that is handled here.
+
 */
 plan_to_atom(nest(X, Atts, NewAttLabel), Result) :-
   plan_to_atom(X, XAtom),
@@ -1829,6 +1832,7 @@ plan_to_atom(nest(X, Atts, NewAttLabel), Result) :-
 
 /*
 Could be handeld by the postfixbrackets case as well.
+
 */
 plan_to_atom(unnest(X, Att), Result) :-
   plan_to_atom(X, XAtom),
@@ -1911,23 +1915,34 @@ plan_to_atom(attrname(attr(Name, Arg, Case)), Result) :-
 
 /*
 NVK ADDED NR
-The idea behind this is to allow terms like attr(o:p:bevt, _, _) to reflect the renaming process when nested relations are used.
+The idea behind this is to allow terms like 
+
+----
+attr(o:p:bevt, _, _) 
+----
+
+to reflect the renaming process when nested relations are used.
 
 Example:
+
+----
 plan_to_atom(a(p:o:subrel, 0, u), R).
 R = Subrel_o_p.
+----
 
 Note that the case is only related to the last element (in the example this is subrel).
+
 */
 
 /*
-
+----
 plan_to_atom(a(A:B:C, _, l), Result) :-
   optimizerOption(nestedRelations),
   attributeTermToList(A:B:C, LST),
   reverse(LST, RLST),
   atomic_list_concat(RLST, '_', Result),
   !.
+----
 
 */
 
@@ -2381,9 +2396,10 @@ plan_to_atom(Term, Result) :-
   arg(1, Term, Arg1),
   plan_to_atom(Arg1, Res1),
   concat_atom([Op, '(', Res1, ')'], '', Result), !,
-  write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for unary',
-              'prefix operator ',Op, '/1. Please add the following fact to file ',
-              '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', prefix, 1).\n']), !.
+  write_list(
+    ['WARNING: Applied deprecated default plan_to_atom/2 rule for unary',
+     'prefix operator ',Op, '/1. Please add the following fact to file ',
+     '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', prefix, 1).\n']), !.
 
 /* 2 arguments: infix */
 plan_to_atom(Term, Result) :-
@@ -2395,8 +2411,8 @@ plan_to_atom(Term, Result) :-
   plan_to_atom(Arg2, Res2),
   concat_atom(['(', Res1, ' ', Op, ' ', Res2, ')'], '', Result), !,
   write_list(['WARNING: Applied deprecated default plan_to_atom/2 rule for ',
-              'infix operator ', Op, '/2. Please add the following fact to file ',
-              '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', infix, 2).\n']), !.
+    'infix operator ', Op, '/2. Please add the following fact to file ',
+    '\'opsyntax.pl\':\n','\tsecondoOp( ',Op,', infix, 2).\n']), !.
 
 /* 3+ arguments: prefix */
 plan_to_atom(InTerm,OutTerm) :-
@@ -2601,15 +2617,19 @@ NVK ADDED NR
 */
 
 /*
-There is even no afeedproject operator as for arel's (see below). Note that these rules are used for optimization of subquries, there are usually subqueries create like 0 COMPARE_OP (select count(*) ...) and count(*) is NOT a isStarQuery, so the above rules are not used.
+There is even no afeedproject operator as for arel's (see below). Note that these rules are used for optimization of subquries, there are usually subqueries create like 0 COMPARE\_OP (select count(*) ...) and count(*) is NOT a isStarQuery, so the above rules are not used.
+
 */
 
 /*
-This translation rule handels all the cases:
+This translation rule handles all the cases:
 
-arel access
-subquery access
-post added nest or unnest.
+  * arel access
+
+  * subquery access
+
+  * post added nest or unnest.
+
 */
 arg(N) => Stream4 :-
   argument(N, RelT),
@@ -2665,6 +2685,7 @@ arg(N) => rename(feedproject(rel(Name, Var), AttrNames), Var) :-
 
 /*
 There is no feedproject operator for nrel relations, hence this is translated into a project after the regular feed.
+
 */
 arg(N) => project(feed(rel(Name, *)), AttrNames) :-
   optimizerOption(nestedRelations),
@@ -2685,10 +2706,17 @@ arg(N) => rename(project(feed(rel(Name, Var)), AttrNames), Var) :-
 /*
 NVK ADDED MA
 There is not much to translate. Used to integrate the sortby operator into the memory allocation optimization.
+
 */
+
 /*
+----
 sortby(N, AttrNames) => sortby(N, AttrNames) :-
   !.
+----
+
+
+
 */
 % NVK ADDED MA END
 
@@ -3288,7 +3316,8 @@ arguments (no expressions).
 */
 
 join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpExpr),Pred) :-
-  dm(translation,['Call is:',join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpExpr),Pred),'\n']),
+  dm(translation,['Call is:',join(arg(N), Arg2, pr(Pred, _, _))
+    => filter(loopjoin(Arg2S, RTSpExpr),Pred),'\n']),
   Pred =.. [Op, X, Y],
   isBBoxPredicate(Op),
   isOfFirst(Attr1, X, Y),     % determine attribute from the first relation
@@ -3323,7 +3352,8 @@ rtSpExpr(IndexName, arg(N), Expr) =>
 
 join(arg(N), Arg2, pr(Pred, _, _))
   => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred) :-
-  dm(translation,['Call is:',join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred),'\n']),
+  dm(translation,['Call is:',join(arg(N), Arg2, pr(Pred, _, _)) 
+    => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred),'\n']),
   fetchAttributeList(Pred,L),
   dm(translation,['L = ', L , '\n']),
   L = [A,B,C],
@@ -3503,8 +3533,8 @@ join(Arg1, Arg2, pr(Pred, R1, R2)) => JoinPlan :-
   ),
   X = attr(_, _, _),
   Y = attr(_, _, _), %!, % perhaps, this cut is the reason to the ^^^problem
-                     % indeed, the cut prevented use of symmjoin for bbox operators. 
-                     % RHG 5.2.2013
+                     % indeed, the cut prevented use of symmjoin for  
+                     % bbox operators. RHG 5.2.2013
   Arg1 => Arg1S,
   Arg2 => Arg2S,
   join00(Arg1S, Arg2S, pr(Pred, R1, R2)) => JoinPlan.
@@ -3889,22 +3919,27 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _))
 % Section:End:translationRule_2_e
 
 % translation rule for sometimes(Pred). It is necessary for STPattern
-indexselect(arg(N), pr(sometimes(InnerPred), _)) => filter(ISL, sometimes(InnerPred)) :-
+indexselect(arg(N), pr(sometimes(InnerPred), _)) 
+  => filter(ISL, sometimes(InnerPred)) :-
   indexselectLifted(arg(N), InnerPred)=> ISL.
 
 % special rules for range queries in the form distance(m(x), y) < d
 % 'distance <' with spatial(rtree,object) index
 
-indexselectLifted(arg(N), distance(Y, attr(AttrName, Arg, AttrCase)) < D ) => Res :-
-  indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) => Res.
+indexselectLifted(arg(N), distance(Y, attr(AttrName, Arg, AttrCase)) < D ) 
+    => Res :-
+  indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) 
+    => Res.
 
 indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
-  gettuples(windowintersectsS(dbobject(IndexName), enlargeRect(bbox(Y),D,D)),  rel(Name, *))
+  gettuples(windowintersectsS(dbobject(IndexName), 
+    enlargeRect(bbox(Y),D,D)),  rel(Name, *))
   :-
   argument(N, rel(Name, *)),
   getTypeTree(Y, rel(Name, *), [_, _, T]),
   memberchk(T, [point, region]),
-  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase), DCindex, spatial(rtree,object)),
+  hasIndex(rel(Name, _), 
+    attr(AttrName, Arg, AttrCase), DCindex, spatial(rtree,object)),
   dcName2externalName(DCindex,IndexName).
 
 indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
@@ -3914,7 +3949,8 @@ indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
   argument(N, rel(Name, RelAlias)), RelAlias \= *,
   getTypeTree(Y, rel(Name, RelAlias), [_, _, T]),
   memberchk(T, [point, region]),
-  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase), DCindex, spatial(rtree,object)),
+  hasIndex(rel(Name, _), 
+    attr(AttrName, Arg, AttrCase), DCindex, spatial(rtree,object)),
   dcName2externalName(DCindex,IndexName).
 
 % 'distance <' with spatial(rtree,unit) index
@@ -3925,7 +3961,8 @@ indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
   argument(N, rel(Name, *)),
   getTypeTree(Y, rel(Name, *), [_, _, T]),
   memberchk(T, [point, region]),
-  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, spatial(rtree,unit)),
+  hasIndex(rel(Name,_), 
+    attr(AttrName,Arg,AttrCase), DCindex, spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
 indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
@@ -3935,7 +3972,8 @@ indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
   argument(N, rel(Name, RelAlias)), RelAlias \= *,
   getTypeTree(Y, rel(Name, RelAlias), [_, _, T]),
   memberchk(T, [point, region]),
-  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase), DCindex, spatial(rtree,unit)),
+  hasIndex(rel(Name, _), 
+    attr(AttrName, Arg, AttrCase), DCindex, spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
 
@@ -3951,14 +3989,17 @@ indexselectLifted(arg(N), Pred ) =>
   getTypeTree(Arg1, _, [_, _, T1]),
   getTypeTree(Arg2, _, [_, _, T2]),
   isLiftedSpatialRangePred(Op, [T1,T2]),
-  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg1));
-   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg2))),
+  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), 
+      BBox= bbox(Arg1));
+   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), 
+      BBox= bbox(Arg2))),
   hasIndex(rel(Name, _), Attr, DCindex, spatial(rtree,object)),
   dcName2externalName(DCindex,IndexName).
 
 % spatial(rtree,unit) index, no rename
 indexselectLifted(arg(N), Pred ) =>
-  gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), BBox))),  rel(Name, *))
+  gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), BBox))),  
+    rel(Name, *))
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -3966,8 +4007,10 @@ indexselectLifted(arg(N), Pred ) =>
   getTypeTree(Arg1, _, [_, _, T1]),
   getTypeTree(Arg2, _, [_, _, T2]),
   isLiftedSpatialRangePred(Op, [T1,T2]),
-  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg1));
-   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg2))),
+  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), 
+     BBox= bbox(Arg1));
+   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), 
+     BBox= bbox(Arg2))),
   hasIndex(rel(Name, _), Attr, DCindex, spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
@@ -3982,8 +4025,10 @@ indexselectLifted(arg(N), Pred ) =>
   getTypeTree(Arg1, _, [_, _, T1]),
   getTypeTree(Arg2, _, [_, _, T2]),
   isLiftedSpatialRangePred(Op, [T1,T2]),
-  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg1));
-   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg2))),
+  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), 
+    BBox= bbox(Arg1));
+   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), 
+    BBox= bbox(Arg2))),
   hasIndex(rel(Name, _), Attr, DCindex, spatial(rtree,object)),
   dcName2externalName(DCindex,IndexName).
 
@@ -3998,8 +4043,10 @@ indexselectLifted(arg(N), Pred ) =>
   getTypeTree(Arg1, _, [_, _, T1]),
   getTypeTree(Arg2, _, [_, _, T2]),
   isLiftedSpatialRangePred(Op, [T1,T2]),
-  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg1));
-   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg2))),
+  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), 
+     BBox= bbox(Arg1));
+   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), 
+     BBox= bbox(Arg2))),
   hasIndex(rel(Name, _), Attr, DCindex, spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
@@ -4007,7 +4054,8 @@ indexselectLifted(arg(N), Pred ) =>
 % general rules for liftedEqualityQueries
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
-  gettuples(rdup(sort(exactmatchS(dbobject(IndexName), rel(Name, *), Y))), rel(Name, *))
+  gettuples(rdup(sort(exactmatchS(dbobject(IndexName), rel(Name, *), Y))), 
+    rel(Name, *))
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -4022,7 +4070,8 @@ indexselectLifted(arg(N), Pred ) =>
 
 % constuni(btree) index, rename
 indexselectLifted(arg(N), Pred ) =>
-  rename( gettuples(rdup(sort(exactmatchS(dbobject(IndexName), rel(Name, Var), Y))), rel(Name, Var)), Var)
+  rename( gettuples(rdup(sort(exactmatchS(dbobject(IndexName), 
+    rel(Name, Var), Y))), rel(Name, Var)), Var)
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -4038,7 +4087,8 @@ indexselectLifted(arg(N), Pred ) =>
 % general rules for liftedRangeQueries
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
-  gettuples(rdup(sort(rangeS(dbobject(IndexName), rel(Name, *), Arg2 , Arg3))), rel(Name, *))
+  gettuples(rdup(sort(rangeS(dbobject(IndexName), rel(Name, *), Arg2 , Arg3))), 
+    rel(Name, *))
   :-
   Pred =..[Op, Arg1, Arg2, Arg3],
   Arg1 = attr(_, _, _),
@@ -4052,7 +4102,8 @@ indexselectLifted(arg(N), Pred ) =>
 
 % constuni(btree) index, rename
 indexselectLifted(arg(N), Pred ) =>
-  rename(gettuples(rdup(sort(rangeS(dbobject(IndexName), rel(Name, Var), Arg2 , Arg3))), rel(Name, Var)), Var)
+  rename(gettuples(rdup(sort(rangeS(dbobject(IndexName), 
+    rel(Name, Var), Arg2 , Arg3))), rel(Name, Var)), Var)
   :-
   Pred =..[Op, Arg1, Arg2, Arg3],
   Arg1 = attr(_, _, _),
@@ -4067,7 +4118,8 @@ indexselectLifted(arg(N), Pred ) =>
 % general rules for liftedLeftRangeQueries
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
-  gettuples(rdup(sort(leftrangeS(dbobject(IndexName), rel(Name, *), Y))), rel(Name, *))
+  gettuples(rdup(sort(leftrangeS(dbobject(IndexName), rel(Name, *), Y))), 
+    rel(Name, *))
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -4082,7 +4134,8 @@ indexselectLifted(arg(N), Pred ) =>
 
 % constuni(btree) index, rename
 indexselectLifted(arg(N), Pred ) =>
-  rename(gettuples(rdup(sort(leftrangeS(dbobject(IndexName), rel(Name, Var), Y))), rel(Name, Var)), Var)
+  rename(gettuples(rdup(sort(leftrangeS(dbobject(IndexName), 
+    rel(Name, Var), Y))), rel(Name, Var)), Var)
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -4098,7 +4151,8 @@ indexselectLifted(arg(N), Pred ) =>
 % general rules for liftedRightRangeQueries
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
-  gettuples(rdup(sort(rightrangeS(dbobject(IndexName), rel(Name, *), Y))), rel(Name, *))
+  gettuples(rdup(sort(rightrangeS(dbobject(IndexName), rel(Name, *), Y))), 
+    rel(Name, *))
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -4113,7 +4167,8 @@ indexselectLifted(arg(N), Pred ) =>
 
 % constuni(btree) index, rename
 indexselectLifted(arg(N), Pred ) =>
-  rename(gettuples(rdup(sort(rightrangeS(dbobject(IndexName), rel(Name, Var), Y))), rel(Name, Var)), Var)
+  rename(gettuples(rdup(sort(rightrangeS(dbobject(IndexName), 
+    rel(Name, Var), Y))), rel(Name, Var)), Var)
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -4368,9 +4423,10 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
 
 /*
 NVK ADDED MA
-Currently not used, it was just a hack to integrated the sort operation
+Currently not used, it was just a hack to integrate the sort operation
 into the pog optimization. But because there are no CostEstimation 
-implementantions for the sort operation available, this is not needed.
+implementations for the sort operation available, this is not needed.
+
 */
 assignSize(Source, Target, sortby(Arg1, _), Result) :-
   optimizerOption(memoryAllocation),
@@ -4476,6 +4532,7 @@ Get the size of one single tuple from argument number ~N~.
 /*
 NVK ADDED NR
 Return saved sizes.
+
 */
 resTupleSize(arg(N), SizeTerm) :-
   optimizerOption(nestedRelations),
@@ -4796,6 +4853,7 @@ It is assumed that only a single operator of this kind occurs within the term.
 /*
 NVK ADDED NR
 Added because the dcName2internalName evaluation of the below predicate fails for non atomic values. Note that if other cost models should support the nested relations, this cost predicates must be added first.
+
 */
 cost(rel(T, _), _, _, Card, 0) :-
   optimizerOption(nestedRelations),
@@ -4834,6 +4892,7 @@ cost(feed(X), Sel, P, S, C) :-
 /*
 NVK ADDED NR
 I didn't analyzed the cost of the nested relations operators, hence, the same costs as for the regular feed operator are assumed. Note that the aspect of cost estimation wasn't looked at all under the topic "nested relations".
+
 */
 cost(afeed(X), Sel, P, S, C) :-
   cost(X, Sel, P, S, C1),
@@ -4847,6 +4906,7 @@ cost(aconsume(X), Sel, P, S, C) :-
 
 /*
 This is now needed, but i don't have any costs models for this operations so i just make this work with no costs.
+
 */
 cost(unnest(X, _), Sel, P, S, C) :-
   cost(X, Sel, P, S, C).
@@ -5367,14 +5427,15 @@ createCostEdge :- % use Nawra's cost functions
 
 /*
 NVK ADDED MA
-The costs are now based on a given operator function to estimate the costs. This is based on the ma_improvedcosts and the CostEstimation class.
+The costs are now based on a given operator function to estimate the costs. This is based on the ma\_improvedcosts and the CostEstimation class.
+
 */
 createCostEdge :-
   optimizerOption(memoryAllocation),
   planEdge(Source, Target, Term, Result),
   edge(Source, Target, EdgeTerm, _, _, _),
   % Here it is ensured that no predicate will fail because the error 
-	% will occur later and then there is no reference what edge had a problem.
+  % will occur later and then there is no reference what edge had a problem.
   ensure((
     extractPredFromEdgeTerm(EdgeTerm, Pred),
     edgeSelectivity(Source, Target, Sel),
@@ -5524,6 +5585,7 @@ successor(node(Source, Distance, Path), node(Target, Distance2, Path2)) :-
 
 /*
 NVK ADDED MA
+
 */
 successor(node(Source, Distance, Path), node(Target, Distance2, RPath)) :-
   optimizerOption(memoryAllocation),
@@ -5959,6 +6021,7 @@ bestPlan :-
 /*
 NVK ADDED MA
 See MemoryAllocation/ma.pl for more information.
+
 */
 bestPlan(Plan, Cost) :-
   optimizerOption(memoryAllocation),
@@ -6371,6 +6434,7 @@ callLookup(Query, Query2) :-
 
 /*
   Intended for subquery lookup's.
+
 */
 callSubqueryLookup(Query, Query2) :-
   optimizerOption(nestedRelations),!,
@@ -6871,6 +6935,7 @@ lookupAttr(rowid, rowid) :- !.
 NVK ADDED NR
 lookup subqueries within the attribute list.
 This will create a new arel attribute.
+
 */
 lookupAttr(InTerm, OutTerm) :-
   optimizerOption(nestedRelations),
@@ -7353,13 +7418,19 @@ lookupSetExpr(Expr, Expr).
 % NVK ADDED
 /*
 Examples:
+
+----
 ?- spelled(staedte:sName, X).
 X = attr(sName, 0, u).
 ?- spelled(orteh:subrel:kennzeichen, X).
 X = attr(kennzeichen, 0, u).
-Here there is no atomic check anymore, donwcase_atom will throw a exception 
-if there is a non-atomic value between the ~:~. This predicate could 
+----
+
+
+Here there is no atomic check anymore, downcase\_atom will throw an exception 
+if there is a non-atomic value between the colons. This predicate could 
 handle the next two predicate cases as well.
+
 */
 spelled(Rel:Atts, attr(Attr2, 0, Case)) :-
   optimizerOption(nestedRelations),
@@ -7503,7 +7574,8 @@ translate1(Select from Rels where Preds, Stream2, Select2, Update, Cost) :-
 % default handling
 translate1(Query, Stream2, Select2, Update, Cost) :-
   translate(Query, Stream, Select, Update, Cost),
-  rewritePlanforCSE(Stream, Stream2, Select, Select2), % Hook for CSE substitution
+  rewritePlanforCSE(Stream, Stream2, Select, Select2), 
+    % Hook for CSE substitution
   !.
 
 %    the main predicate which does the translation of a query
@@ -7589,6 +7661,7 @@ translate(Select from Rels where Preds, Stream, Select2, Update, Cost) :-
 
 % NVK ADDED MA
 /*
+----
 translate(Select from Rels where Preds orderby OrderAtts, Stream, Select2, Update, Cost) :-
   not( optimizerOption(immediatePlan) ),
   not( optimizerOption(intOrders(_))  ),  % standard behaviour
@@ -7605,6 +7678,8 @@ translate(Select from Rels where Preds orderby OrderAtts, Stream, Select2, Updat
   ),
   splitSelect(Select, Select2, Update),
   !.
+----
+
 */
 
 translate(Select from Rels where Preds, Stream, Select2, Update, Cost) :-
@@ -7722,6 +7797,7 @@ makeStream(Rel, rename(feed(Rel), Var)) :-
 /*
 NVK ADDED NR
 arel attributes of the NestedRelation Algebra needs a afeed instead of a feed.
+
 */
 makeStream(Rel, Plan) :-
   optimizerOption(nestedRelations),
@@ -7745,7 +7821,11 @@ makeStream(RelT, Stream3) :-
 % Catch this delayed error coz it is very nasty to track.
 makeStream(RelTerm, _) :-
   RelTerm=..[where, _, _],
-  throw(error_Internal(optimizer_makeStream(RelTerm, _)::'The first parameter can\'t be a where-term, but when this happens, the first parameter was set to this value during backtracking. Everytime i got this error, the problem is that a costEdge could not been created for a edge/planEdge. So you might want to check this first.')).
+  throw(error_Internal(optimizer_makeStream(RelTerm, _)::
+   'The first parameter can\'t be a where-term, but when this happens, the '
+   'first parameter was set to this value during backtracking. Everytime I got '
+   'this error, the problem is that a costEdge could not be created for an '
+   'edge/planEdge. So you might want to check this first.')).
 
 makeStream(RelTerm, _) :-
   optimizerOption(nestedRelations),
@@ -7827,6 +7907,7 @@ to find all goal for query ~usedAttr(Rel,X)~.
 NVK NOTE 
 To handle nested relations this needs to work for terms like rel(irrel(...), Var). This is done by adding the facts in the appropriate way.
 NVK NOTE END
+
 */
 %   usedAttrList(+Rel, -ResList)
 usedAttrList(Rel, ResList) :-
@@ -8295,6 +8376,7 @@ Translates one column in a create table command
 
 /*
 NVK ADDED NR
+
 */
 
 translateColumn(Name:Type, column(Name, arel(LColsT))) :-
@@ -8515,6 +8597,7 @@ queryToPlan(Query, StreamOut, Cost) :-
 /*
 NVK ADDED NR
 All plan for subqueries needs to be consumed with the aconsume operator. Even if the stream wasn't feed with the afeed operator.
+
 */
 queryToPlan(Query, StreamOut, Cost) :-
   optimizerOption(nestedRelations),
@@ -8707,9 +8790,13 @@ queryToStream(Query last N, tail(Stream, N), Cost) :-
 
 % NVK ADDED MA
 /*
-The sort operation is a important part of a query, hence it should be respected within the memory optimization.
-Queries just with a sort without ~Preds~ are still handeld by the below default predicate.
-* /
+The sort operation is na important part of a query, hence it should be respected within the memory optimization.
+Queries just with a sort without ~Preds~ are still handled by the below default predicate.
+
+*/
+
+/*
+----
 queryToStream(Query from Rels where Preds orderby SortAttrs, Stream3, Cost) :-
   optimizerOption(memoryAllocation),
   % Note that this edge is not really important for the dijkstra algorithm because
@@ -8722,6 +8809,8 @@ queryToStream(Query from Rels where Preds orderby SortAttrs, Stream3, Cost) :-
   finish(Stream, Select, [], Stream2),
   finishUpdate(Update, Stream2, Stream3),
   !.
+----
+
 */
 % NVK ADDED MA END
 
@@ -10019,7 +10108,8 @@ updateIndex(_, _, [], StreamIn, StreamIn) :-
 
 /*
 NVK ADDED NR
-No indicies handling for attributes within nested relations.
+No indices handling for attributes within nested relations.
+
 */
 updateIndex(Operation, Rel, [Attr|Attrs], StreamIn, StreamOut) :-
 	Attr=_:_,
