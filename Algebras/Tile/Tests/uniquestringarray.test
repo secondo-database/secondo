@@ -1,0 +1,45 @@
+#
+# Tests for the uniquestringarray type of the TileAlgebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup TileAlgebraTest
+
+create database TileAlgebraTest;
+open database TileAlgebraTest;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# Valid UniqueStringArray Objects      #
+########################################
+
+#testcase uniquestringarray
+#yields (uniquestringarray ("Raster" "Daten"))
+query [const uniquestringarray value ("Raster" "Daten")];
+
+#testcase uniquestringarray with Duplicates in Input
+#yields (uniquestringarray ("Raster" "Daten"))
+query [const uniquestringarray value ("Raster" "Daten" "Raster")];
+
+#testcase uniquestringarray with Type Error in element
+#yields (uniquestringarray ("Raster" "Daten"))
+query [const uniquestringarray value (1 "Raster" 2 "Daten")];
+
+#testcase uniquestringarray with Atom as Expression
+#yields (uniquestringarray ())
+query [const uniquestringarray value "Rasterdaten"];
+
+#testcase uniquestringarray with undefined Value
+#yields (uniquestringarray ())
+query [const uniquestringarray value undefined];
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+
