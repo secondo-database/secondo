@@ -44,31 +44,31 @@ query [const tstring value "Foo"];
 # Invalid Grid Lists                   #
 ########################################
 
-#testcase Parse tstring with Grid2 List too short
+#testcase Parse tstring with grid2 List too short
 #yields error
 query [const tstring value ((0.0 1.0) (2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
 
-#testcase Parse tstring with Grid2 List too long
+#testcase Parse tstring with grid2 List too long
 #yields error
 query [const tstring value ((0.0 0.0 1.0 1.0) (2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
 
-#testcase Parse tstring with Grid2 List of zero Grid Length
+#testcase Parse tstring with grid2 List of zero Grid Length
 #yields error
 query [const tstring value ((0.0 0.0 0.0) (2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
 
-#testcase Parse tstring with Grid2 List of negative Grid Length
+#testcase Parse tstring with grid2 List of negative Grid Length
 #yields error
 query [const tstring value ((0.0 0.0 -1.0) (2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
 
-#testcase Parse tstring with Type Mismatch in Grid2 X-Origin 
+#testcase Parse tstring with Type Mismatch in grid2 X-Origin 
 #yields error
 query [const tstring value ((undefined 0.0 1.0) (2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
 
-#testcase Parse tstring with Type Mismatch in Grid2 Y-Origin
+#testcase Parse tstring with Type Mismatch in grid2 Y-Origin
 #yields error
 query [const tstring value ((0.0 undefined 1.0) (2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
 
-#testcase Parse tstring with Type Mismatch in Grid2 Length
+#testcase Parse tstring with Type Mismatch in grid2 Length
 #yields error
 query [const tstring value ((0.0 0.0 undefined) (2 2) (0 0 ("Zero" "Zero" "Zero" "Zero")))];
 
