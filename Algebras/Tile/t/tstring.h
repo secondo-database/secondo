@@ -777,7 +777,7 @@ implementation of template class tProperties<string>
 int tProperties<std::string>::GetDimensionSize()
 {
   int dimensionSize = static_cast<unsigned int>
-                      (std::sqrt((WinUnix::getPageSize() - sizeof(Grid2)) /
+                      (std::sqrt((WinUnix::getPageSize() - sizeof(grid2)) /
                       sizeof(int)));
 
   return dimensionSize;
