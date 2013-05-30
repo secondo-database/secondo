@@ -45,7 +45,7 @@ grid3::grid3(const double& rX,
              const double& rY,
              const double& rLength,
              const datetime::DateTime& rDuration)
-      :Grid2(rX, rY, rLength),
+      :grid2(rX, rY, rLength),
        m_Duration(rDuration)
 {
   m_Duration.SetType(datetime::durationtype);
@@ -67,7 +67,7 @@ const grid3& grid3::operator=(const grid3& rgrid3)
   if(this != &rgrid3)
   {
     SetDefined(rgrid3.IsDefined());
-    Grid2::operator=(rgrid3);
+    grid2::operator=(rgrid3);
     m_Duration = rgrid3.m_Duration;
   }
 
@@ -80,7 +80,7 @@ bool grid3::operator==(const grid3& rgrid3) const
 
   if(this != &rgrid3)
   {
-    if(Grid2::operator==(rgrid3) &&
+    if(grid2::operator==(rgrid3) &&
        m_Duration == rgrid3.m_Duration)
     {
       bIsEqual = true;
@@ -97,7 +97,7 @@ const datetime::DateTime& grid3::GetDuration() const
 
 void grid3::Reset()
 {
-  Grid2::Reset();
+  grid2::Reset();
   m_Duration.SetToZero();
 }
 
@@ -131,7 +131,7 @@ int grid3::Compare(const Attribute* pAttribute) const
       {
         if(bgrid3IsDefined == true) // defined x defined
         {
-          nRetVal = Grid2::Compare(pgrid3);
+          nRetVal = grid2::Compare(pgrid3);
 
           if(nRetVal == 0)
           {
@@ -182,7 +182,7 @@ size_t grid3::HashValue() const
   
   if(IsDefined())
   {
-    hashValue = Grid2::HashValue() + (size_t)&m_Duration;
+    hashValue = grid2::HashValue() + (size_t)&m_Duration;
   }
   
   return hashValue;
@@ -195,7 +195,7 @@ size_t grid3::Sizeof() const
 
 const std::string grid3::BasicType()
 {
-  return TYPE_NAME_grid3;
+  return TYPE_NAME_GRID3;
 }
 
 void* grid3::Cast(void* pVoid)
