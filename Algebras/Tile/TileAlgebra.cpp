@@ -34,7 +34,10 @@ includes for TileAlgebra types
 #include "Grid3.h"
 #include "tintArray.h"
 #include "tintFlob.h"
-// #include "tint.h"
+#include "tint.h"
+#include "treal.h"
+#include "tbool.h"
+#include "tstring.h"
 
 /*
 includes for TileAlgebra operators
@@ -83,7 +86,10 @@ TileAlgebra::TileAlgebra()
   AddTypeConstructor(new TypeConstructor(Grid3::GetTypeConstructor()));
   AddTypeConstructor(new TypeConstructor(tintArray::GetTypeConstructor()));
   AddTypeConstructor(new TypeConstructor(tintFlob::GetTypeConstructor()));
-  // AddTypeConstructor(new TypeConstructor(tint::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(tint::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(treal::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(tbool::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(tstring::GetTypeConstructor()));
 
   /*
   Operators
