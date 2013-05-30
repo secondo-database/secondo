@@ -25,20 +25,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <limits>
 #include "WinUnix.h"
 #include "Constants.h"
-#include "Grid2.h"
+#include "grid/grid2.h"
 
 namespace TileAlgebra
 {
 
 /*
-const type name for type Grid2
+const type name for type Gridg
 
 */
 
 const char* TYPE_NAME_GRID2 = "grid2";
 
 /*
-const type name for type Grid3
+const type name for type grid3
 
 */
 
@@ -180,7 +180,7 @@ const int TINTARRAY_SIZE = static_cast<unsigned int>
                            (
                             static_cast<unsigned int>
                            (std::sqrt((WinUnix::getPageSize() -
-                            sizeof(Grid2)) / sizeof(int))), 2
+                            sizeof(grid2)) / sizeof(int))), 2
                            )
                            );
 
@@ -202,7 +202,7 @@ const int TINTFLOB_ELEMENTS = static_cast<unsigned int>
                               (
                                static_cast<unsigned int>
                               (std::sqrt((WinUnix::getPageSize() -
-                               sizeof(Grid2)) / sizeof(int))), 2
+                               sizeof(grid2)) / sizeof(int))), 2
                               )
                               );
 
