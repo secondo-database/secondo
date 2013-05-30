@@ -53,6 +53,8 @@ implementation of template class tProperties
 
 */
 
+
+
 }
 
 #endif // TILEALGEBRA_TPROPERTIES_H
