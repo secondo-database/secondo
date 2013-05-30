@@ -31,6 +31,111 @@ namespace TileAlgebra
 {
 
 /*
+const type name for type Grid2
+
+*/
+
+const char* TYPE_NAME_GRID2 = "grid2";
+
+/*
+const type name for type Grid3
+
+*/
+
+const char* TYPE_NAME_GRID3 = "grid3";
+
+/*
+const type name for type uniquestringarray
+
+*/
+
+const char* TYPE_NAME_UNIQUESTRINGARRAY = "uniquestringarray";
+
+/*
+const type name for type tint
+
+*/
+
+const char* TYPE_NAME_TINT = "tint";
+
+/*
+const type name for type treal
+
+*/
+
+const char* TYPE_NAME_TREAL = "treal";
+
+/*
+const type name for type tbool
+
+*/
+
+const char* TYPE_NAME_TBOOL = "tbool";
+
+/*
+const type name for type tstring
+
+*/
+
+const char* TYPE_NAME_TSTRING = "tstring";
+
+/*
+const type name for type mtint
+
+*/
+
+const char* TYPE_NAME_MTINT = "mtint";
+
+/*
+const type name for type mtreal
+
+*/
+
+const char* TYPE_NAME_MTREAL = "mtreal";
+
+/*
+const type name for type mtbool
+
+*/
+
+const char* TYPE_NAME_MTBOOL = "mtbool";
+
+/*
+const type name for type mtstring
+
+*/
+
+const char* TYPE_NAME_MTSTRING = "mtstring";
+
+/*
+const type name for type itint
+
+*/
+
+const char* TYPE_NAME_ITINT = "itint";
+
+/*
+const type name for type itreal
+
+*/
+
+const char* TYPE_NAME_ITREAL = "itreal";
+
+/*
+const type name for type itbool
+
+*/
+
+const char* TYPE_NAME_ITBOOL = "itbool";
+
+/*
+const type name for type itstring
+
+*/
+
+const char* TYPE_NAME_ITSTRING = "itstring";
+
+/*
 const undefined value for type int
 
 */
@@ -38,11 +143,32 @@ const undefined value for type int
 const int UNDEFINED_INT = std::numeric_limits<int>::min();
 
 /*
-const Grid2 size
+const undefined value for type real
 
 */
 
-const unsigned int GRID2_SIZE = sizeof(Grid2);
+const int UNDEFINED_REAL = std::numeric_limits<double>::quiet_NaN();
+
+/*
+const undefined value for type bool
+
+*/
+
+const int UNDEFINED_BOOL = -1;
+
+/*
+const undefined value for type string
+
+*/
+
+const std::string UNDEFINED_STRING = "";
+
+/*
+const undefined string index value
+
+*/
+
+const int UNDEFINED_STRING_INDEX = -1;
 
 /*
 const tintArray size
@@ -54,7 +180,7 @@ const int TINTARRAY_SIZE = static_cast<unsigned int>
                            (
                             static_cast<unsigned int>
                            (std::sqrt((WinUnix::getPageSize() -
-                            GRID2_SIZE) / sizeof(int))), 2
+                            sizeof(Grid2)) / sizeof(int))), 2
                            )
                            );
 
@@ -76,7 +202,7 @@ const int TINTFLOB_ELEMENTS = static_cast<unsigned int>
                               (
                                static_cast<unsigned int>
                               (std::sqrt((WinUnix::getPageSize() -
-                               GRID2_SIZE) / sizeof(int))), 2
+                               sizeof(Grid2)) / sizeof(int))), 2
                               )
                               );
 
@@ -94,12 +220,5 @@ const tintFlob dimension size
 
 const int TINTFLOB_DIMENSION_SIZE = static_cast<unsigned int>
                                     (std::sqrt(TINTFLOB_ELEMENTS));
-
-/*
-const type name for type tint
-
-*/
-
-const char* TYPE_NAME_TINT = "tint";
 
 }

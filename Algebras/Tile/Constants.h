@@ -23,8 +23,115 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_CONSTANTS_H
 #define TILEALGEBRA_CONSTANTS_H
 
+#include <string>
+
 namespace TileAlgebra
 {
+
+/*
+const type name for type grid2
+
+*/
+
+extern const char* TYPE_NAME_GRID2;
+
+/*
+const type name for type grid3
+
+*/
+
+extern const char* TYPE_NAME_GRID3;
+
+/*
+const type name for type uniquestringarray
+
+*/
+
+extern const char* TYPE_NAME_UNIQUESTRINGARRAY;
+
+/*
+const type name for type tint
+
+*/
+
+extern const char* TYPE_NAME_TINT;
+
+/*
+const type name for type treal
+
+*/
+
+extern const char* TYPE_NAME_TREAL;
+
+/*
+const type name for type tbool
+
+*/
+
+extern const char* TYPE_NAME_TBOOL;
+
+/*
+const type name for type tstring
+
+*/
+
+extern const char* TYPE_NAME_TSTRING;
+
+/*
+const type name for type mtint
+
+*/
+
+extern const char* TYPE_NAME_MTINT;
+
+/*
+const type name for type mtreal
+
+*/
+
+extern const char* TYPE_NAME_MTREAL;
+
+/*
+const type name for type mtbool
+
+*/
+
+extern const char* TYPE_NAME_MTBOOL;
+
+/*
+const type name for type mtstring
+
+*/
+
+extern const char* TYPE_NAME_MTSTRING;
+
+/*
+const type name for type itint
+
+*/
+
+extern const char* TYPE_NAME_ITINT;
+
+/*
+const type name for type itreal
+
+*/
+
+extern const char* TYPE_NAME_ITREAL;
+
+/*
+const type name for type itbool
+
+*/
+
+extern const char* TYPE_NAME_ITBOOL;
+
+/*
+const type name for type itstring
+
+*/
+
+extern const char* TYPE_NAME_ITSTRING;
 
 /*
 const undefined value for type int
@@ -34,11 +141,32 @@ const undefined value for type int
 extern const int UNDEFINED_INT;
 
 /*
-const Grid2 size
+const undefined value for type real
 
 */
 
-extern const unsigned int GRID2_SIZE;
+extern const int UNDEFINED_REAL;
+
+/*
+const undefined value for type bool
+
+*/
+
+extern const int UNDEFINED_BOOL;
+
+/*
+const undefined value for type string
+
+*/
+
+extern const std::string UNDEFINED_STRING;
+
+/*
+const undefined string index value
+
+*/
+
+extern const int UNDEFINED_STRING_INDEX;
 
 /*
 const tintArray size
@@ -74,13 +202,6 @@ const tintFlob dimension size
 */
 
 extern const int TINTFLOB_DIMENSION_SIZE;
-
-/*
-const type name for type tint
-
-*/
-
-extern const char* TYPE_NAME_TINT;
 
 }
 
