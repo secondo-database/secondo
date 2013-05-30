@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define TILEALGEBRA_TINTFLOB_H
 
 #include "Attribute.h"
-#include "../Grid/Grid2.h"
+#include "../grid/grid2.h"
 #include "../../Tools/Flob/Flob.h"
 
 namespace TileAlgebra
@@ -128,7 +128,7 @@ class tintFlob : public Attribute
    
   */
 
-  Grid2 m_Grid;
+  grid2 m_Grid;
   Flob m_Flob;
 };
 
