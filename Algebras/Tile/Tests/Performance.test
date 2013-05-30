@@ -37,36 +37,36 @@ let tintFlobRelation2 = tintFlobRelation feed tenRelation feed product consume;
 
 
 #testcase scan without data access on tintArrayRelation1
-#yields (int 100000)
+#yields (int 10000)
 query tintArrayRelation1 feed count;
 
 #testcase scan without data access on tintFlobRelation1
-#yields (int 100000)
+#yields (int 10000)
 query tintFlobRelation1 feed count;
 
 #testcase scan with data access on tintArrayRelation1
-#yields (int 100000)
+#yields (int 10000)
 query tintArrayRelation1 feed extend[Dummy:load(.Array)] count;
 
 #testcase scan with data access on tintFlobRelation1
-#yields (int 100000)
+#yields (int 10000)
 query tintFlobRelation1 feed extend[Dummy:load(.Flob)] count;
 
 
 #testcase sortmergejoin without data access on tintArrayRelation1 and tintArrayRelation2
-#yields (int 10000000)
+#yields (int 100000)
 query tintArrayRelation1 feed {a} tintArrayRelation2 feed {b} sortmergejoin[Number_a, Number_b] count;
 
 #testcase sortmergejoin without data access on tintFlobRelation1 and tintFlobRelation2
-#yields (int 10000000)
+#yields (int 100000)
 query tintFlobRelation1 feed {a} tintFlobRelation2 feed {b} sortmergejoin[Number_a, Number_b] count;
 
 #testcase sortmergejoin with data access on tintArrayRelation1 and tintArrayRelation2
-#yields (int 10000000)
+#yields (int 100000)
 query tintArrayRelation1 feed {a} tintArrayRelation2 feed {b} sortmergejoin[Array_a, Array_b] count;
 
 #testcase sortmergejoin with data access on tintFlobRelation1 and tintFlobRelation2
-#yields (int 10000000)
+#yields (int 100000)
 query tintFlobRelation1 feed {a} tintFlobRelation2 feed {b} sortmergejoin[Flob_a, Flob_b] count;
 
 let PerformanceStatistics = SEC2COMMANDS feed consume;
