@@ -35,9 +35,12 @@ CCFLAGS += $(ALG_INC_DIRS)
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
 	make -C Grid
+	make -C it
+	make -C mt
 	make -C Operators
 	make -C t
 	make -C Tests
+	make -C UniqueStringArray
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
@@ -52,7 +55,10 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	make -C Grid clean
+	make -C it clean
+	make -C mt clean
 	make -C Operators clean
 	make -C t clean
 	make -C Tests clean
+	make -C UniqueStringArray clean
 	$(clean-algebra)
