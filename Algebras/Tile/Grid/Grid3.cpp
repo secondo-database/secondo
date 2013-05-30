@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
+#include "../Constants.h"
 #include "Grid3.h"
 #include "TypeConstructor.h"
 #include "Symbols.h"
@@ -194,7 +195,7 @@ size_t Grid3::Sizeof() const
 
 const std::string Grid3::BasicType()
 {
-  return "Grid3";
+  return TYPE_NAME_GRID3;
 }
 
 void* Grid3::Cast(void* pVoid)
