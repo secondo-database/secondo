@@ -34,7 +34,7 @@ CCFLAGS += $(ALG_INC_DIRS)
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
 .PHONY: all
 all: $(OBJECTS) $(LIBOBJ)
-	make -C Grid
+	make -C grid
 	make -C it
 	make -C mt
 	make -C Operators
@@ -54,7 +54,7 @@ $(LIBOBJ): $(OBJECTS)
 # generic rule for cleaning all generated files
 .PHONY: clean
 clean:
-	make -C Grid clean
+	make -C grid clean
 	make -C it clean
 	make -C mt clean
 	make -C Operators clean
