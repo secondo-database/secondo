@@ -66,8 +66,8 @@ implementation of template class tProperties<int>
 int tProperties<int>::GetDimensionSize()
 {
   int dimensionSize = static_cast<unsigned int>
-                      (std::sqrt((WinUnix::getPageSize() -
-                       GRID2_SIZE) / sizeof(int)));
+                      (std::sqrt((WinUnix::getPageSize() - sizeof(Grid2)) /
+                      sizeof(int)));
 
   return dimensionSize;
 }
@@ -106,7 +106,7 @@ bool tProperties<int>::IsUndefinedValue(const int& rint)
 {
   bool bUndefinedValue = false;
   
-  if(rint == tProperties<int>::GetUndefinedValue())
+  if(rint == GetUndefinedValue())
   {
     bUndefinedValue = true;
   }
@@ -116,7 +116,9 @@ bool tProperties<int>::IsUndefinedValue(const int& rint)
 
 bool tProperties<int>::IsValidValueType(const NList& rNList)
 {
-  return rNList.isInt();
+  bool bValidValueType = rNList.isInt();
+
+  return bValidValueType;
 }
 
 NList tProperties<int>::ToNList(const int& rint)
