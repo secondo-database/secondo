@@ -283,7 +283,7 @@ size_t grid2::Sizeof() const
 
 const std::string grid2::BasicType()
 {
-  return TYPE_NAME_grid2;
+  return TYPE_NAME_GRID2;
 }
 
 void* grid2::Cast(void* pVoid)
