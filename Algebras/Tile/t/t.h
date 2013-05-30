@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Attribute.h"
 #include "../Grid/Grid2.h"
 #include "../../Tools/Flob/Flob.h"
+#include "../Index.h"
 
 namespace TileAlgebra
 {
@@ -44,7 +45,7 @@ class t : public Attribute
 
   */
 
-  private:
+  protected:
 
   t();
 
@@ -72,9 +73,8 @@ class t : public Attribute
 
   */
 
-  bool Load();
   bool SetGrid(const double& rX, const double& rY, const double& rLength);
-  bool SetValue(int nIndex, Type nValue);
+  bool SetValue(const Index<2>& rIndex, const Type& rValue);
 
   /*
   override functions from base class Attribute
@@ -126,7 +126,7 @@ class t : public Attribute
                    Word& rValue);
   static int SizeOfObj();
 
-  private:
+  protected:
 
   /*
   members
@@ -155,12 +155,16 @@ t<Type, Properties>::t(bool bDefined)
                      m_Grid(false),
                      m_Flob(Properties::GetFlobSize())
 {
-  int flobElements = Properties::GetFlobElements();
+  int dimensionSize = Properties::GetDimensionSize();
   Type undefinedValue = Properties::GetUndefinedValue();
   
-  for(int i = 0; i < flobElements; i++)
+  for(int row = 0; row < dimensionSize; row++)
   {
-    SetValue(i, undefinedValue);
+    for(int column = 0; column < dimensionSize; column++)
+    {
+      Index<2> indexes = (int[]){column, row};
+      SetValue(indexes, undefinedValue);
+    }
   }
 }
 
@@ -199,27 +203,6 @@ t<Type, Properties>& t<Type, Properties>::operator=
 }
 
 template <typename Type, typename Properties>
-bool t<Type, Properties>::Load()
-{
-  bool bRetVal = true;
-
-  /*
-  According to Prof. Dr. Gueting open method of an attribute type loads
-  only root record in memory. Flob data will be read immediately before
-  an operator tries to access flob object and will be stored in a read cache.
-
-  */
-
-  const int flobSize = Properties::GetFlobSize();
-
-  char buffer[flobSize];
-  memset(buffer, 0, flobSize);
-  bRetVal = m_Flob.read(buffer, flobSize, 0);
-
-  return bRetVal;
-}
-
-template <typename Type, typename Properties>
 bool t<Type, Properties>::SetGrid(const double& rX,
                                   const double& rY,
                                   const double& rLength)
@@ -235,18 +218,24 @@ bool t<Type, Properties>::SetGrid(const double& rX,
 }
 
 template <typename Type, typename Properties>
-bool t<Type, Properties>::SetValue(int nIndex,
-                                   Type nValue)
+bool t<Type, Properties>::SetValue(const Index<2>& rIndex,
+                                   const Type& rValue)
 {
   bool bRetVal = false;
 
+  int dimensionSize = Properties::GetDimensionSize();
+
   if(IsDefined() &&
-     nIndex >= 0 &&
-     nIndex < Properties::GetFlobElements())
+     rIndex[0] >= 0 &&
+     rIndex[0] < dimensionSize &&
+     rIndex[1] >= 0 &&
+     rIndex[1] < dimensionSize)
   {
-    bRetVal = m_Flob.write(reinterpret_cast<const char*>(&nValue),
+    int flobIndex = rIndex[1] * dimensionSize + rIndex[0];
+    
+    bRetVal = m_Flob.write(reinterpret_cast<const char*>(&rValue),
                            sizeof(Type),
-                           nIndex * sizeof(Type));
+                           flobIndex * sizeof(Type));
   }
 
   return bRetVal;
@@ -286,10 +275,15 @@ int t<Type, Properties>::Compare(const Attribute* pAttribute) const
       {
         if(btIsDefined == true) // defined x defined
         {
-          if(m_Flob == pt->m_Flob)
-          {
-            nRetVal = 0;
-          }
+          SmiSize flobSize = Properties::GetFlobSize();
+          
+          char buffer1[flobSize];
+          m_Flob.read(buffer1, flobSize, 0);
+
+          char buffer2[flobSize];
+          pt->m_Flob.read(buffer2, flobSize, 0);
+
+          nRetVal = memcmp(buffer1, buffer2, flobSize);
         }
 
         else // defined x undefined
@@ -553,9 +547,8 @@ Word t<Type, Properties>::In(const ListExpr typeInfo,
                               for(int column = 0; column < sizeX; column++)
                               {
                                 int listIndex = row * sizeX + column + 1;
-                                int flobIndex = (indexY + row) *
-                                                 dimensionSize +
-                                                (indexX + column);
+                                Index<2> index = (int[]){(indexX + column),
+                                                         (indexY + row)};
                                 Type value = Properties::GetUndefinedValue();
 
                                 if(valueList.elem(listIndex).
@@ -578,7 +571,7 @@ Word t<Type, Properties>::In(const ListExpr typeInfo,
                                   }
                                 }
 
-                                pt->SetValue(flobIndex, value);
+                                pt->SetValue(index, value);
                               }
                             }
 
@@ -638,18 +631,11 @@ Word t<Type, Properties>::In(const ListExpr typeInfo,
                 cmsg.inFunError("Size list must have a length of 2.");
               }
             }
-
-            else
-            {
-              bOK = false;
-              cmsg.inFunError("Expected list as second element, "
-                              "got an empty list.");
-            }
           }
 
           if(bOK)
           {
-            word.setAddr(pt);
+            word.addr = pt;
             rCorrect = true;
           }
 
@@ -792,7 +778,7 @@ ListExpr t<Type, Properties>::Property()
                (std::string("((x y l) (szx szy) ((ix iy (v*)))*)"),
                 true));
   values.append(NList
-               (std::string("((0.0 0.0 1.0) (2 2) ((-32 -32 (1 2 3 4))))"),
+               (std::string("((0.0 0.0 1.0) (2 2) ((0 0 (0 1 2 3))))"),
                 true));
   values.append(NList(std::string(""), true));
 
