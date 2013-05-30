@@ -66,7 +66,7 @@ implementation of template class tProperties<double>
 int tProperties<double>::GetDimensionSize()
 {
   int dimensionSize = static_cast<unsigned int>
-                      (std::sqrt((WinUnix::getPageSize() - sizeof(Grid2)) /
+                      (std::sqrt((WinUnix::getPageSize() - sizeof(grid2)) /
                       sizeof(double)));
 
   return dimensionSize;
