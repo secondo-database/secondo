@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Attribute.h"
 #include "../Constants.h"
-#include "../Grid/Grid2.h"
+#include "../grid/grid2.h"
 
 namespace TileAlgebra
 {
@@ -125,7 +125,7 @@ class tintArray : public Attribute
    
   */
 
-  Grid2 m_Grid;
+  grid2 m_Grid;
   int m_Array[961];
 };
 
