@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */ 
 
+#include "../Constants.h"
 #include "Grid2.h"
 #include "TypeConstructor.h"
 #include "Symbols.h"
@@ -282,7 +283,7 @@ size_t Grid2::Sizeof() const
 
 const std::string Grid2::BasicType()
 {
-  return "Grid2";
+  return TYPE_NAME_GRID2;
 }
 
 void* Grid2::Cast(void* pVoid)
