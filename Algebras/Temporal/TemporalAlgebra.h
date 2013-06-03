@@ -1435,7 +1435,7 @@ The output operator:
 */
 
 template<class Alpha>
-ostream& operator<<(ostream& o, const StandardTemporalUnit<Alpha> u)
+ostream& operator<<(ostream& o, const StandardTemporalUnit<Alpha>& u)
 {
   return  u.Print(o);
 }
@@ -1556,7 +1556,7 @@ The output operator
 
 */
 template<class Alpha, unsigned dim>
-ostream& operator<<(ostream& o, const SpatialTemporalUnit<Alpha, dim> u)
+ostream& operator<<(ostream& o, const SpatialTemporalUnit<Alpha, dim>& u)
 {
   return  u.Print(o);
 }
@@ -2012,6 +2012,35 @@ class UReal : public StandardTemporalUnit<CcReal>
     del.isDefined = true;
   }
 
+
+  void Normalize(){
+     if(!IsDefined()){
+       return;
+     }   
+     if(!r){
+       return;
+     }
+     if(AlmostEqual(a,0) && AlmostEqual(b,0)){
+        r = false;
+        c = sqrt(c);
+        return;
+     }
+     if(AlmostEqual(b,0) && AlmostEqual(c,0)){
+        b = sqrt(a);
+        a = 0;
+        r = false;
+        return;
+     }     
+  }
+
+  UReal getNormalized() const{
+      UReal n(*this);
+      n.Normalize();
+      return n;        
+  }
+
+
+
 /*
 Symbol for use in typemappings
 
@@ -2082,22 +2111,26 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   virtual void AtInterval( const Interval<Instant>& i,
                            TemporalUnit<CcReal>& result ) const;
 
-  virtual bool EqualValue( const UReal& i ) const
+  virtual bool EqualValue( const UReal& i1 ) const
   {
-    if( !this->IsDefined() && !i.IsDefined() ) {
+    if( !this->IsDefined() && !i1.IsDefined() ) {
       return true;
     }
-    if( !this->IsDefined() || !i.IsDefined() ) {
+    if( !this->IsDefined() || !i1.IsDefined() ) {
       return false;
     }
-    double offset = (i.timeInterval.start - timeInterval.start).ToDouble();
+    double offset = (i1.timeInterval.start - timeInterval.start).ToDouble();
 
-    return
-      (AlmostEqual( a, i.a ) &&
-       (r == i.r) &&
-       AlmostEqual( 2 * a * offset + b, i.b ) &&
-       AlmostEqual( a * pow(offset, 2) + b * offset + c, i.c )
+    UReal t = this->getNormalized();
+    UReal i = i1.getNormalized();
+
+    bool res = 
+      (AlmostEqual( t.a, i.a ) &&
+       (t.r == i.r) &&
+       AlmostEqual( 2 * t.a * offset + t.b, i.b ) &&
+       AlmostEqual( t.a * pow(offset, 2) + t.b * offset + t.c, i.c )
        );
+    return res;
   }
 
 /*
