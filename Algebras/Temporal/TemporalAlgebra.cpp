@@ -5123,8 +5123,13 @@ void MPoint::SquaredDistance( const Point& p, MReal& result,
     for(vector<UReal>::iterator it(resvec.begin()); it!=resvec.end(); it++ ){
       if(it->IsDefined()){
         UReal resunit(*it);
-        assert( resunit.r );
-        resunit.r = false;
+        if( resunit.r ) {
+           resunit.r = false;
+        } else {
+           assert(resunit.a==0);
+           assert(resunit.b==0);
+           resunit.c = resunit.c * resunit.c;
+        }
         result.MergeAdd( resunit );
       }
     }
