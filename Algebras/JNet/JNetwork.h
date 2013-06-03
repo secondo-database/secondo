@@ -182,7 +182,8 @@ network indexes over the copied relations.
   JNetwork(const string nid, const double t, const Relation* inJuncRel,
            const Relation* inSectRel, const Relation* inRoutesRel,
            OrderedRelation* inNetDistRel);
-  JNetwork(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo);
+  JNetwork(SmiRecord& valueRecord, size_t& offset, const ListExpr typeInfo,
+           bool& ok);
 
   ~JNetwork();
 
