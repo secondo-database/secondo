@@ -2638,6 +2638,8 @@ void Relation::Delete()
   tupleFile.Close();
   tupleFile.Drop();
   if(relDesc.lobFileId){
+    char mode = relDesc.isTemp?1:0;
+    Flob::dropFile(relDesc.lobFileId, mode);
     SmiRecordFile rf(false,0, relDesc.isTemp);
     rf.Open(relDesc.lobFileId);
     rf.Close();
