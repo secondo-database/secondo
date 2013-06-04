@@ -635,11 +635,11 @@ query speed(up1)
 
 
 #testcase distance_point_upoint ZERODISTANCE
-#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(0.0 0.0 0.0 TRUE)))
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(0.0 0.0 0.0 FALSE)))
 query distance(p, up6)
 
 #testcase distance_upoint_point ZERODISTANCE
-#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(0.0 0.0 0.0 TRUE)))
+#yields (ureal (("2003-11-20-06:00" "2003-11-20-07:00" TRUE FALSE)(0.0 0.0 0.0 FALSE)))
 query distance(up6, p)
 
 
