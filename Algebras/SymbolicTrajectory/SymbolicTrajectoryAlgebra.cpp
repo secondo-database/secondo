@@ -807,6 +807,7 @@ void MLabel::rewrite(MLabel const &ml,
           this->MergeAdd(uls);
         }
       }
+      seqPos = seqPos + 2;
     }
     else { // variable does not occur in p
       uls.constValue.Set(true, label);
@@ -825,7 +826,6 @@ void MLabel::rewrite(MLabel const &ml,
       }
       this->MergeAdd(uls);
     }
-    seqPos = seqPos + 2;
   }
   if (!this->IsValid()) {
     this->SetDefined(false);
@@ -1069,8 +1069,7 @@ Flob *Labels::GetFLOB(const int i) {
 Not yet implemented. 
 
 */
-int Labels::Compare(const Attribute*) const
-{
+int Labels::Compare(const Attribute* arg) const {
   return 0;
 }
 
@@ -1080,7 +1079,7 @@ int Labels::Compare(const Attribute*) const
 Because Compare returns alway 0, we can only return a constant hash value.
 
 */
-size_t Labels::HashValue() const{
+size_t Labels::HashValue() const {
   return  1;
 }
 
@@ -1090,8 +1089,7 @@ size_t Labels::HashValue() const{
 Not yet implemented. 
 
 */
-bool Labels::Adjacent(const Attribute*) const
-{
+bool Labels::Adjacent(const Attribute*) const {
   return 0;
 }
 
@@ -1102,8 +1100,7 @@ Returns a new created element labels (clone) which is a
 copy of ~this~.
 
 */
-Labels *Labels::Clone() const
-{
+Labels *Labels::Clone() const {
   assert(state == complete);
   Labels *lbs = new Labels(*this);
   return lbs;
@@ -1547,9 +1544,7 @@ Word Pattern::In(const ListExpr typeInfo, const ListExpr instance,
   if (list.isAtom()) {
     if (list.isText()) {
       string text = list.str();
-      Pattern *pattern = new Pattern();
-      pattern = getPattern(text);
-//       pattern->buildNFA();
+      Pattern *pattern = getPattern(text);
       if (pattern) {
         correct = true;
         result.addr = pattern;
@@ -2134,8 +2129,10 @@ ExtBool Match::matches(MLabel &ml, bool rewrite) {
       return UNDEF;
     }
     if (!conditionsMatch(ml)) {
+      deleteCondOpTrees();
       return FALSE;
     }
+    deleteCondOpTrees();
   }
   return TRUE;
 }
@@ -2919,10 +2916,13 @@ string Assign::getDataType(int key) {
 */
 void Match::buildMultiNFA(ClassifyLI* c) {
   int start = 0;
+  map<int, set<int> > emptyMapping;
   for (unsigned int p = 0; p < c->pats.size(); p++) {
     int f = start + c->pats[p]->getSize();
     int prev[3] = {start - 1, start - 1, start - 1}; // prevStar, prevNotStar,
+    delta.push_back(emptyMapping);
     for (int i = start; i < f; i++) {                // secondPrevNotStar
+      delta.push_back(emptyMapping);
       delta[i][i - start].insert(i + 1);//state i,read pattern i =>new state i+1
       UPat u = c->pats[p]->getPat(i - start);//next line: any pattern except +,*
       if (!u.getW() || !u.getI().empty() || !u.getL().empty() || (i == f - 1)) {
@@ -3253,6 +3253,7 @@ vector<int> Match::applyConditions(ClassifyLI* c) {
       if (conditionsMatch(*c->currentML)) {
         result.push_back(c->matched[i]);
       }
+      deleteCondOpTrees();
       f = numOfStates;
     }
   }
@@ -3375,6 +3376,387 @@ struct topatternInfo : OperatorInfo {
 };
 
 /*
+\section{Functions for class ~Classifier~}
+
+\subsection{List Representation}
+
+The list representation of a classifier is
+
+----    ((desc_1 pat_1) (desc_2 pat_2) ...)
+----
+
+\subsection{Constructors}
+
+*/
+Classifier::Classifier(vector<string> cl, vector<Pattern> pats) {
+  classes = cl;
+  p = pats;
+  defined = buildMultiNFA();
+}
+
+Classifier::Classifier(const Classifier& src) {
+  classes = src.classes;
+  p = src.p;
+  delta = src.delta;
+  defined = src.defined;
+}
+
+bool Classifier::buildMultiNFA() {
+  
+  return true;
+}
+
+/*
+\subsection{Function Describing the Signature of the Type Constructor}
+
+*/
+ListExpr Classifier::Property() {
+  return (nl->TwoElemList(
+    nl->FiveElemList(nl->StringAtom("Signature"),
+             nl->StringAtom("Example Type List"),
+             nl->StringAtom("List Rep"),
+             nl->StringAtom("Example List"),
+             nl->StringAtom("Remarks")),
+    nl->FiveElemList(nl->StringAtom("->" + Kind::DATA() ),
+             nl->StringAtom(Classifier::BasicType()),
+             nl->StringAtom("((d1:text, p1:text) ((d2:text) (p2:text)) ...)"),
+             nl->StringAtom("((home (_ at_home) *))"),
+             nl->StringAtom("a collection of pairs (description, pattern)"))));
+}
+
+/*
+\subsection{~In~ and ~Out~ Functions}
+
+*/
+Word Classifier::In(const ListExpr typeInfo, const ListExpr instance,
+                    const int errorPos, ListExpr& errorInfo, bool& correct) {
+  Word result = SetWord(Address(0));
+  if (nl->IsEmpty(instance)) {
+    cmsg.inFunError("Empty list");
+    return SetWord(Address(0));
+  }
+  NList list(instance);
+  Classifier* c = new Classifier(0);
+  Pattern* p = 0;
+  c->SetDefined(true);
+  while (!list.isEmpty()) {
+    if ((list.length() % 2 == 0) && !list.isAtom() && list.first().isAtom() &&
+     list.first().isText() && list.second().isAtom() && list.second().isText()){
+      p = Pattern::getPattern(list.second().str(), true);
+      c->add(*p, list.first().str());
+      delete p;
+    }
+    else {
+      cmsg.inFunError("Expecting a list of an even number of text atoms!");
+      delete c;
+      return SetWord(Address(0));
+    }
+    list.rest();
+    list.rest();
+  }
+  if (!c->buildMultiNFA()) {
+    cmsg.inFunError("Multi NFA could not be built");
+    delete c;
+    return SetWord(Address(0));
+  }
+  result.addr = c;
+  return result;
+}
+
+ListExpr Classifier::Out(ListExpr typeInfo, Word value) { // TODO: change?
+  Classifier* c = static_cast<Classifier*>(value.addr);
+  if (!c->IsDefined()) {
+    return (NList(Symbol::UNDEFINED())).listExpr();
+  }
+  if (c->IsEmpty()) {
+    return (NList()).listExpr();
+  }
+  else {
+    NList list(c->getDesc(0), true, true);
+    list.append(NList(c->getPat(0)->GetText(), true, true));
+    for (int i = 1; i < c->getSize(); i++) {
+      list.append(NList(c->getDesc(i), true, true));
+      list.append(NList(c->getPat(i)->GetText(), true, true));
+    }
+    return list.listExpr();
+  }
+}
+
+/*
+\subsection{Kind Checking Function}
+
+This function checks whether the type constructor is applied correctly. Since
+type constructor ~classifier~ does not have arguments, this is trivial.
+
+*/
+bool Classifier::KindCheck(ListExpr type, ListExpr& errorInfo) {
+  return (nl->IsEqual(type, Classifier::BasicType()));
+}
+
+/*
+
+\subsection{~Create~-function}
+
+*/
+Word Classifier::Create(const ListExpr typeInfo) {
+  Classifier* c = new Classifier(0);
+  return (SetWord(c));
+}
+
+/*
+\subsection{~Delete~-function}
+
+*/
+void Classifier::Delete(const ListExpr typeInfo, Word& w) {
+  Classifier* c = (Classifier*)w.addr;
+  delete c;
+}
+
+/*
+\subsection{~Open~-function}
+
+*/
+bool Classifier::Open(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value) {
+  Classifier *c = (Classifier*)Attribute::Open(valueRecord, offset, typeInfo);
+  value.setAddr(c);
+  return true;
+}
+
+/*
+\subsection{~Save~-function}
+
+*/
+bool Classifier::Save(SmiRecord& valueRecord, size_t& offset,
+                      const ListExpr typeInfo, Word& value) {
+  Classifier *c = (Classifier*)value.addr;
+  Attribute::Save(valueRecord, offset, typeInfo, c);
+  return true;
+}
+
+/*
+\subsection{~Close~-function}
+
+*/
+void Classifier::Close(const ListExpr typeInfo, Word& w) {
+  Classifier* c = (Classifier*)w.addr;
+  delete c;
+}
+
+/*
+\subsection{~Clone~-function}
+
+*/
+Word Classifier::Clone(const ListExpr typeInfo, const Word& w) {
+  return SetWord(((Classifier*)w.addr)->Clone());
+}
+
+/*
+\subsection{~SizeOf~-function}
+
+*/
+int Classifier::SizeOfObj() {
+  return sizeof(Classifier);
+}
+
+/*
+\subsection{~Cast~-function}
+
+*/
+void* Classifier::Cast(void* addr) {
+  return (new (addr)Classifier);
+}
+
+/*
+\subsection{Compare}
+
+*/
+int Classifier::Compare(const Attribute* arg) const {
+  if (getSize() > ((Classifier*)arg)->getSize()) {
+    return 1;
+  }
+  else if (getSize() < ((Classifier*)arg)->getSize()) {
+    return -1;
+  }
+  else {
+    int sum1(0), sum2(0);
+    for (int i = 0; i < getSize(); i++) {
+      sum1 += getSize(i);
+      sum2 += ((Classifier*)arg)->getSize(i);
+    }
+    if (sum1 > sum2) {
+      return 1;
+    }
+    else if (sum1 < sum2) {
+      return -1;
+    }
+    else {
+      return 0;
+    }
+  }
+}
+
+/*
+\subsection{HashValue}
+
+*/
+size_t Classifier::HashValue() const {
+  int sum = 0;
+  for (int i = 0; i < getSize(); i++) {
+    sum += getSize(i);
+    sum += getText(i).length();
+  }
+  return sum;
+}
+
+/*
+\subsection{Adjacent}
+
+Not implemented.
+
+*/
+bool Classifier::Adjacent(const Attribute* arg) const {
+  return 0;
+}
+
+/*
+\subsection{Clone}
+
+Returns a new created element labels (clone) which is a copy of ~this~.
+
+*/
+Classifier* Classifier::Clone() const {
+  assert(defined);
+  Classifier *c = new Classifier(*this);
+  return c;
+}
+
+/*
+\subsection{CopyFrom}
+
+*/
+void Classifier::CopyFrom(const Attribute* right) {
+  *this = *((Classifier*)right);
+}
+
+/*
+\subsection{Sizeof}
+
+*/
+size_t Classifier::Sizeof() const {
+  return sizeof(*this);
+}
+
+/*
+\subsection{Creation of the Type Constructor Instance}
+
+*/
+TypeConstructor classifierTC(
+  Classifier::BasicType(),             // name of the type in SECONDO
+  Classifier::Property,                // property function describing signature
+  Classifier::Out, Classifier::In,     // Out and In functions
+  0, 0,                                // SaveToList, RestoreFromList functions
+  Classifier::Create, Classifier::Delete, // object creation and deletion
+  0, 0,                                // object open, save
+  Classifier::Close, Classifier::Clone,// close, and clone
+  0,                                   // cast function
+  Classifier::SizeOfObj,               // sizeof function
+  Classifier::KindCheck );             // kind checking function
+
+/*
+\section{Operator ~toclassifier~}
+
+\subsection{Type Mapping}
+
+*/
+ListExpr toclassifierTM(ListExpr args) {
+  const string errMsg = "Expecting stream(tuple(s: text, t: text))";
+  if (nl->HasLength(args, 1)) {
+    if (Stream<Tuple>::checkType(nl->First(args))) {
+      ListExpr dType, pType;
+      if (nl->ListLength(nl->Second(nl->Second(nl->First(args)))) != 2) {
+        return listutils::typeError("Tuple must have exactly 2 attributes");
+      }
+      dType = nl->Second(nl->First(nl->Second(nl->Second(nl->First(args)))));
+      pType = nl->Second(nl->Second(nl->Second(nl->Second(nl->First(args)))));
+      if (FText::checkType(dType) && FText::checkType(pType)) {
+        return nl->OneElemList(nl->SymbolAtom(Classifier::BasicType()));
+      }
+    }
+  }
+  return listutils::typeError(errMsg);
+}
+
+/*
+\subsection{Value Mapping}
+
+*/
+int toclassifierVM(Word* args, Word& result, int message, Word& local,
+                   Supplier s) {
+  cout << "before static_cast" << endl;
+  Stream<Tuple> stream = static_cast<Stream<Tuple> >(args[0].addr);
+  cout << "static_cast ok" << endl;
+  stream.open();
+  cout << "stream opened" << endl;
+  result = qp->ResultStorage(s);
+  Classifier* c = static_cast<Classifier*>(result.addr);
+  Tuple* tuple = stream.request();
+  cout << "first request ok" << endl;
+  FText *desc, *ptext;
+  bool ok = true;
+  Pattern* p = 0;
+  while (tuple && ok) {
+    desc = (FText*)tuple->GetAttribute(0);
+    cout << "attribute 0 is " << desc->GetValue() << endl;
+    if (!desc->IsDefined()) {
+      cout << "Undefined description" << endl;
+      ok = false;
+    }
+    else {
+      ptext = (FText*)tuple->GetAttribute(1);
+      if (!ptext->IsDefined()) {
+        cout << "Undefined pattern text" << endl;
+        ok = false;
+      }
+      else {
+        p = Pattern::getPattern(ptext->GetValue(), true); // do not build NFA
+        if (!p) {
+          cout << "invalid pattern" << endl;
+          ok = false;
+        }
+        else {
+          if (!p->verifyPattern()) {
+            ok = false;
+          }
+          else {
+            c->add(*p, desc->GetValue());
+            cout << "c has " << c->getSize() << " components" << endl;
+          }
+        }
+        delete p;
+      }
+    }
+    tuple = stream.request();
+  }
+  c->buildMultiNFA();
+  stream.close();
+  return 0;
+}
+
+/*
+\subsection{Operator Info}
+
+*/
+struct toclassifierInfo : OperatorInfo {
+  toclassifierInfo() {
+    name      = "toclassifier";
+    signature = "stream(tuple(s: string, t: text)) -> "+Classifier::BasicType();
+    syntax    = "_ toclassifier";
+    meaning   = "creates a classifier from a stream(tuple(s: string, t: text))";
+  }
+};
+
+/*
 \section{Operator ~matches~}
 
 \subsection{Type Mapping}
@@ -3421,11 +3803,23 @@ int matchesVM_PatML(Word* args, Word& result, int message,
   }
   result = qp->ResultStorage(s);
   CcBool* b = static_cast<CcBool*>(result.addr);
-  if (ml->index.getNodeRefSize()) {
-    cout << "The mlabel has an index." << endl;
+//   if (ml->index.getNodeRefSize()) {
+//     cout << "The mlabel has an index." << endl;
+//   }
+  ExtBool match = p->matches(*ml);
+  switch (match) {
+    case FALSE: {
+      b->Set(true, false);
+      break;
+    }
+    case TRUE: {
+      b->Set(true, true);
+      break;
+    }
+    default: {
+      b->SetDefined(false);
+    }
   }
-  bool match = p->matches(*ml);
-  b->Set(true, match);
   return 0;
 }
 
@@ -3663,14 +4057,15 @@ struct indexmatchesInfo : OperatorInfo {
 
 */
 ListExpr filtermatchesTM(ListExpr args) {
-  string err = "the expected syntax is: stream(tuple(X)) x attrname x text";
+  string err = "the expected syntax is: stream(tuple(X)) x attrname x text"
+               "or stream(tuple(X)) x attrname x pattern";
   if (!nl->HasLength(args, 3)) {
     return listutils::typeError(err + " (wrong number of arguments)");
   }
   ListExpr stream = nl->First(args);
   ListExpr anlist = nl->Second(args);
-  if (!Stream<Tuple>::checkType(stream) || !listutils::isSymbol(anlist)
-   || !FText::checkType(nl->Third(args))) {
+  if (!Stream<Tuple>::checkType(stream) || !listutils::isSymbol(anlist) ||
+  (!FText::checkType(nl->Third(args)) && !Pattern::checkType(nl->Third(args)))){
     return listutils::typeError(err);
   }
   string name = nl->SymbolValue(anlist);
@@ -3701,11 +4096,12 @@ class FiltermatchesLI {
       p->setVerified(false);
       if (p->verifyPattern()) {
         match = new Match(p->getPats().size() + 1);
-        p->buildNFA();
+//         p->buildNFA();
         p->setVerified(true);
         match->copyFromPattern(*p);
         stream.open();
         streamOpened = true;
+        delete p;
       }
     }
     else {
@@ -3714,8 +4110,26 @@ class FiltermatchesLI {
     }
   }
 
+  FiltermatchesLI(Word _stream, int _attrIndex, Pattern* p):
+      stream(_stream), attrIndex(_attrIndex) {
+    if (p) {
+      match = new Match(p->getPats().size() + 1);
+//       p->buildNFA();
+      match->copyFromPattern(*p);
+      stream.open();
+      streamOpened = true;
+    }
+    else {
+      match = 0;
+      streamOpened = false;
+    }
+  }
+
   ~FiltermatchesLI() {
-    delete match;
+    if (match) {
+      delete match;
+      match = 0;
+    }
     if (streamOpened) {
       stream.close();
     }
@@ -3726,15 +4140,35 @@ class FiltermatchesLI {
       return 0;
     }
     Tuple* cand = stream.request();
-    while (cand) {
-      MLabel* ml = (MLabel*)cand->GetAttribute(attrIndex);
-      bool matching = match->matches(*ml);
-      match->resetStates();
-      if (matching) {
-        return cand;
+    MLabel* ml = 0;
+    if (cand) {
+      if (cand->GetTupleType()->GetAttributeType(attrIndex).typeId == 3) {
+        while (cand) {
+          ml = (MLabel*)cand->GetAttribute(attrIndex);
+          bool matching = match->matches(*ml);
+          match->resetStates();
+          if (matching) {
+            return cand;
+          }
+          cand->DeleteIfAllowed();
+          cand = stream.request();
+        }
       }
-      cand->DeleteIfAllowed();
-      cand = stream.request();
+      else {
+        while (cand) {
+          ml = new MLabel((MString*)cand->GetAttribute(attrIndex));
+          bool matching = match->matches(*ml);
+          match->resetStates();
+          if (ml) {
+            delete ml;
+          }
+          if (matching) {
+            return cand;
+          }
+          cand->DeleteIfAllowed();
+          cand = stream.request();
+        }
+      }
     }
     return 0;
   }
@@ -3747,11 +4181,20 @@ class FiltermatchesLI {
 };
 
 /*
-\subsection{Value Mapping}
+\subsection{Selection Function}
 
 */
-int filtermatchesVM(Word* args, Word& result, int message,
-                    Word& local, Supplier s) {
+int filtermatchesSelect(ListExpr args) {
+  return (FText::checkType(nl->Third(args)) ? 0 : 1);
+}
+
+
+/*
+\subsection{Value Mapping for a Text}
+
+*/
+int filtermatchesVM_Text(Word* args, Word& result, int message,
+                         Word& local, Supplier s) {
   FiltermatchesLI* li = (FiltermatchesLI*)local.addr;
   switch (message) {
     case OPEN: {
@@ -3763,6 +4206,41 @@ int filtermatchesVM(Word* args, Word& result, int message,
       FText* text = (FText*)args[2].addr;
       if (text->IsDefined()) {
         local.addr = new FiltermatchesLI(args[0], index, text);
+      }
+      return 0;
+    }
+    case REQUEST: {
+      result.addr = li ? li->next() : 0;
+      return result.addr ? YIELD : CANCEL;
+    }
+    case CLOSE: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      return 0;
+    }
+  }
+  return  0;
+}
+
+/*
+\subsection{Value Mapping for a Pattern}
+
+*/
+int filtermatchesVM_Pat(Word* args, Word& result, int message,
+                        Word& local, Supplier s) {
+  FiltermatchesLI* li = (FiltermatchesLI*)local.addr;
+  switch (message) {
+    case OPEN: {
+      if (li) {
+        delete li;
+        local.addr = 0;
+      }
+      int index = ((CcInt*)args[3].addr)->GetValue();
+      Pattern* p = (Pattern*)args[2].addr;
+      if (p->isVerified()) {
+        local.addr = new FiltermatchesLI(args[0], index, p);
       }
       return 0;
     }
@@ -3972,8 +4450,6 @@ int rewriteVM_MT(Word* args, Word& result, int message, Word& local,
           }
           else {
             p->setVerified(true);
-            p->initDelta();
-            p->buildNFA();
           }
         }
         if (!p->hasAssigns()) {
@@ -4156,6 +4632,8 @@ struct rewriteInfo : OperatorInfo {
     appendSignature("mstring x text -> + stream(mstring)");
     appendSignature("stream(text) x stream(mlabel) -> stream(mlabel)");
     appendSignature("stream(text) x stream(mstring) -> stream(mlabel)");
+    appendSignature("mlabel x pattern -> + stream(mlabel)");
+    appendSignature("mstring x pattern -> + stream(mstring)");
     syntax    = "_ rewrite _";
     meaning   = "Rewrite a mlabel or a stream of them.";
   }
@@ -4491,7 +4969,7 @@ int classifyVM(Word* args, Word& result, int message, Word& local, Supplier s){
 \subsection{Operator Info}
 
 */
-struct classifyInfo : OperatorInfo {
+struct classifyInfo : OperatorInfo { // TODO: change this!
   classifyInfo() {
     name      = "classify";
     signature = "text x stream(mlabel) -> stream(tuple(string, mlabel))";
@@ -5475,12 +5953,15 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
       AddTypeConstructor(&labelsTC);
       AddTypeConstructor(&patternTC);
+      AddTypeConstructor(&classifierTC);
 
 //       AddOperator(&temporalatinstantext);
 
       AddOperator(containsInfo(), containsVM, containsTM);
       
       AddOperator(topatternInfo(), topatternVM, topatternTM);
+
+      AddOperator(toclassifierInfo(), toclassifierVM, toclassifierTM);
 
       ValueMapping matchesVMs[] = {matchesVM_TextML,
                                    matchesVM_PatML,
@@ -5490,7 +5971,11 @@ class SymbolicTrajectoryAlgebra : public Algebra {
 
       AddOperator(indexmatchesInfo(), indexmatchesVM, indexmatchesTM);
 
-      AddOperator(filtermatchesInfo(), filtermatchesVM, filtermatchesTM);
+      ValueMapping filtermatchesVMs[] = {filtermatchesVM_Text,
+                                         filtermatchesVM_Pat, 0};
+
+      AddOperator(filtermatchesInfo(), filtermatchesVMs, filtermatchesSelect,
+                  filtermatchesTM);
       
       ValueMapping rewriteVMs[] = {rewriteVM_MT<MLabel>,
                                    rewriteVM_MT<MString>,

@@ -1,5 +1,6 @@
 operator contains alias CONTAINS pattern _ infixop _
 operator topattern alias TOPATTERN pattern _ op
+operator toclassifier alias TOCLASSIFIER pattern _ op
 operator matches alias MATCHES pattern _ infixop _
 operator indexmatches alias INDEXMATCHES pattern _ op [ _ , _ , _ ]
 operator filtermatches alias FILTERMATCHES pattern _ op [ _ , _ ]

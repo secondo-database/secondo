@@ -13,6 +13,13 @@ Signature: text -> pattern
 Example  : query michael matches ('(_ at_home) * (_ at_home)' topattern)
 Result   : TRUE
 
+Operator : toclassifier
+Number   : 1
+Signature: stream(tuple(s: text, t: text)) -> classifier
+Example  : query class1 feed toclassifier
+Result   : unpredictable
+Remark   : A classifier has no out function.
+
 Operator : matches
 Number   : 1
 Signature: mlabel x text -> bool

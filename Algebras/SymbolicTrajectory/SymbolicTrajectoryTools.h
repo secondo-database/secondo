@@ -39,7 +39,13 @@ Started March 2012, Fabio Vald\'{e}s
 #include "TemporalUnitAlgebra.h"
 #include "SecParser.h"
 
-using namespace std; 
+using namespace std;
+
+struct NFAtransition {
+  int oldState;
+  int trigger;
+  int newState;
+};
 
 string int2String(int i);
 int str2Int(string const &text);
@@ -63,6 +69,7 @@ bool checkRewriteSeq(pair<vector<unsigned int>, vector<unsigned int> > seq,
 Word evaluate(string input);
 vector<string> createTrajectory(int size);
 void fillML(const MString& source, MString& result, DateTime* duration);
+DbArray<NFAtransition> makeNFApersistent(vector<map<int, set<int> > > &nfa);
 
 struct TrieNode;
 

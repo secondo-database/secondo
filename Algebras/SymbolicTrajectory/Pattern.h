@@ -359,7 +359,7 @@ class Pattern {
   void              setText(string newText) {text = newText;}
   void       addVarPos(string var, int pos) {varPos[var] = pos;}
   int               getVarPos(string var)   {return varPos[var];}
-  int               getSize()               {return patterns.size();}
+  int               getSize() const         {return patterns.size();}
   map<string, int>  getVarPos()             {return varPos;}
   void              insertAssVar(string v)  {assignedVars.insert(v);}
   set<string>       getAssVars()            {return assignedVars;}
@@ -379,6 +379,58 @@ class Pattern {
   string            getDescr()              {return description;}
   void deleteAssignOpTrees()   {for (unsigned int i = 0;i < assigns.size();i++){
                                   assigns[i].deleteOpTrees();}}
+};
+
+class Classifier : public Attribute {
+ public:
+  Classifier() {}
+  Classifier(int i) : Attribute(true), defined(true) {}
+  Classifier(vector<string> cl, vector<Pattern> pats);
+  Classifier(const Classifier& src);
+
+  ~Classifier() {}
+
+  static const string BasicType() {return "classifier";}
+  void add(Pattern pat, string desc) {p.push_back(pat);classes.push_back(desc);}
+  int getSize() const {return p.size();}
+  int getSize(int pos) const {return p[pos].getSize();}
+  string getText(int pos) const {return p[pos].GetText();}
+  bool buildMultiNFA();
+  void SetDefined(const bool def) {defined = def;}
+  bool IsDefined() const {return defined;}
+  bool IsEmpty() const {return (p.size() == 0);}
+  string getDesc(int pos) {return classes[pos];}
+  Pattern* getPat(int pos) {return &p[pos];}
+
+     // algebra support functions
+  static Word     In(const ListExpr typeInfo, const ListExpr instance,
+                     const int errorPos, ListExpr& errorInfo, bool& correct);
+  static ListExpr Out(ListExpr typeInfo, Word value);
+  static Word     Create(const ListExpr typeInfo);
+  static void     Delete(const ListExpr typeInfo, Word& w);
+  static void     Close(const ListExpr typeInfo, Word& w);
+  static Word     Clone(const ListExpr typeInfo, const Word& w);
+  static bool     Open(SmiRecord& valueRecord, size_t& offset,
+                       const ListExpr typeInfo, Word& value);
+  static bool     Save(SmiRecord& valueRecord, size_t& offset,
+                       const ListExpr typeInfo, Word& value);
+  static bool     KindCheck(ListExpr type, ListExpr& errorInfo);
+  static int      SizeOfObj();
+  static void*    Cast(void* addr);
+         int      Compare(const Attribute* arg) const;
+         size_t   HashValue() const;
+         bool     Adjacent(const Attribute* arg) const;
+         Classifier* Clone() const;
+         void     CopyFrom(const Attribute* right);
+         size_t   Sizeof() const;
+  static ListExpr Property();
+  
+ private:
+  vector<string> classes;
+  vector<Pattern> p;
+  vector<map<int, set<int> > > delta; // multiNFA
+//   DbArray<NFAtransition> nfa; //multiNFA
+  bool defined;
 };
 
 struct DoubleParsInfo {
@@ -410,10 +462,10 @@ class Match {
     f = size - 1;
     numOfLabels = 0;
     currentStates.insert(0);
-    map<int, set<int> > emptyMapping;
-    for (int i = 0; i < f; i++) {
-      delta.push_back(emptyMapping);
-    }
+//     map<int, set<int> > emptyMapping;
+//     for (int i = 0; i < f; i++) {
+//       delta.push_back(emptyMapping);
+//     }
     match = new set<unsigned int>[f];
     cardsets = new set<unsigned int>[f];
     seqOrder = new int[f];
