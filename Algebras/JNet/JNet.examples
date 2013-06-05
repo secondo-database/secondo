@@ -1015,6 +1015,13 @@ Example  : query restrict(testlistndg, testlistndg);
 Result   : (listndg((1 23 1 34 54.3)(2 3 4 423 545.5)(3 34 2 23 132.5)(4 24 4 34 15.5)(5 42 9 54 546.6)))
 Tolerance: 0.01%
 
+Operator : reverseshortestpathtree
+Number   : 1
+Signature: jpoint -> stream(tuple((int)(real)))
+Example  : query reverseshortestpathtree([const jpoint value("testjnet" (1 0.001 (Up)))]) consume;
+Result   : file
+Tolerance: 0.01%
+
 Operator : routes
 Number   : 1
 Signature: jnet -> rel
@@ -1102,8 +1109,8 @@ Tolerance: 0.01%
 Operator : shortestpathtree
 Number   : 1
 Signature: jpoint -> stream(tuple((int)(real)))
-Example  : query shortestpathtree([const jpoint value("testjnet" (1 0.001 (Up)))]) count;
-Result   : 16
+Example  : query shortestpathtree([const jpoint value("testjnet" (1 0.001 (Up)))]) consume;
+Result   : file
 Tolerance: 0.01%
 
 Operator : tempnetbox

@@ -386,6 +386,10 @@ void ShortestPathTree(const RouteLocation& source,
                       DbArray<PairIntDouble>* result,
                       const double distlimit);
 
+void ReverseShortestPathTree(const RouteLocation& source,
+                      DbArray<PairIntDouble>* result,
+                      const double distlimit);
+
 /*
 1.1.1 ~ShortestPath~
 
@@ -725,6 +729,11 @@ template<class SpatialTarget>
 void AddAdjacentSections(PQManagement* pq, const JListInt* listSID,
                         JPQEntry curEntry, const SpatialTarget* targetPos);
 
+void AddReverseAdjacentSections(PQManagement* pq, JPQEntry curEntry);
+
+void AddReverseAdjacentSections(PQManagement* pq, const JListInt* listSID,
+                                JPQEntry curEntry);
+
 
 
 /*
@@ -868,6 +877,10 @@ void InitPriorityQueue(PQManagement* pqueue,
                        const RouteLocation& source,
                        DbArray<PairIntDouble>* result);
 
+void InitReversePriorityQueue(PQManagement* pqueue,
+                              const RouteLocation& source,
+                              DbArray<PairIntDouble>* result);
+
 void WriteToLists(PQManagement* pqueue,
                   DbArray<PairIntDouble>* result,
                   JPQEntry& junc);
@@ -877,6 +890,16 @@ void WriteToLists(PQManagement* pqueue,
                   JPQEntry& start,
                   JPQEntry& end,
                   const Tuple* sectTup);
+
+void WriteToReverseLists(PQManagement* pqueue,
+                         DbArray<PairIntDouble>* result,
+                         JPQEntry& junc);
+
+void WriteToReverseLists(PQManagement* pqueue,
+                         DbArray<PairIntDouble>* result,
+                         JPQEntry& start,
+                         JPQEntry& end,
+                         const Tuple* sectTup);
 
 /*
 1.1.1.1.1 CheckForSameSections
@@ -936,6 +959,10 @@ bool ProcessPriorityQueue(PQManagement* pqueue,
 void ProcessPriorityQueue(PQManagement* pqueue,
                           DbArray<PairIntDouble>* result,
                           const double distLimit);
+
+void ProcessReversePriorityQueue(PQManagement* pqueue,
+                                 DbArray<PairIntDouble>* result,
+                                 const double distLimit);
 
 };
 

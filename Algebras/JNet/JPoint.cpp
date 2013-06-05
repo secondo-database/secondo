@@ -488,6 +488,21 @@ void JPoint::ShortestPathTree(DbArray<PairIntDouble>* result) const
   }
 }
 
+void JPoint::ReverseShortestPathTree(DbArray< PairIntDouble >* result) const
+{
+  if (result != NULL)
+  {
+    result->clean();
+    if (IsDefined())
+    {
+      JNetwork* jnet = ManageJNet::GetNetwork(nid);
+      jnet->ReverseShortestPathTree(this->GetLocation(), result,
+                                    numeric_limits< double >::max());
+      ManageJNet::CloseNetwork(jnet);
+    }
+  }
+}
+
 
 /*
 1.1.1 ShortestPath

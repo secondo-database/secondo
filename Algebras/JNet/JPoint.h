@@ -195,6 +195,7 @@ them in result.
 */
 
 void ShortestPathTree(DbArray<PairIntDouble>* result) const;
+void ReverseShortestPathTree(DbArray<PairIntDouble>* result) const;
 
 /*
 1.1.1.1 ShortestPath

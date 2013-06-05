@@ -39,6 +39,7 @@ operator netdistance alias NETDISTANCE pattern op ( _ , _ )
 operator passes alias PASSES pattern _ infixop _
 operator present alias PRESENT pattern _ infixop _
 operator restrict alias RESTRICT pattern op( _ , _ )
+operator reverseshortestpathtree alias REVERSESHORTESTPATHTREE pattern op ( _ )
 operator routes alias ROUTES pattern op ( _ )
 operator sections alias SECTIONS pattern op ( _ )
 operator shortest_path alias SHORTEST_PATH pattern op( _ , _ )

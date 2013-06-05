@@ -3744,6 +3744,7 @@ struct ShortestPathTreeInfo
   TupleType* resTupleType;
 };
 
+template<bool notreverse>
 int shortestpathtreeVM( Word* args, Word& result, int message, Word& local,
                         Supplier s)
 {
@@ -3761,7 +3762,10 @@ int shortestpathtreeVM( Word* args, Word& result, int message, Word& local,
         ListExpr resultType = GetTupleResultType(s);
         localinfo->resTupleType = new TupleType(nl->Second(resultType));
         localinfo->list = new DbArray<PairIntDouble>(0);
-        jp->ShortestPathTree(localinfo->list);
+        if (notreverse)
+          jp->ShortestPathTree(localinfo->list);
+        else
+          jp->ReverseShortestPathTree(localinfo->list);
       }
       local = SetWord(localinfo);
       return 0;
@@ -3818,7 +3822,7 @@ int shortestpathtreeVM( Word* args, Word& result, int message, Word& local,
 
 ValueMapping shortestpathtreeMap [] =
 {
-  shortestpathtreeVM
+  shortestpathtreeVM<true>
 };
 
 int shortestpathtreeSelect(ListExpr args)
@@ -3832,8 +3836,8 @@ int shortestpathtreeSelect(ListExpr args)
 const string shortestpathtreeSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "(<text>" +
-  JPoint::BasicType() + " -> " + Symbol::STREAM() + "(" +
-  CcInt::BasicType() + ")" +
+  JPoint::BasicType() + " -> " + Symbol::STREAM() + "(" + Tuple::BasicType() +
+  "(" + CcInt::BasicType() + " " + CcReal::BasicType() + "))" +
   "</text--->"
   "<text>shortestpathtree(<source>) </text--->"
   "<text>Returns a " + Symbol::STREAM() + " of tuple, where each tuple "
@@ -3845,7 +3849,37 @@ Operator shortestpathtreeJNet("shortestpathtree", shortestpathtreeSpec, 1,
                           shortestpathtreeMap, shortestpathtreeSelect,
                           shortestpathtreeTM);
 
+/*
+1.1.1 ~reverseshortestpathtree~
 
+Returns the reverse shortes path tree from all junctions in the jnetwork to
+the given jpoint.
+
+*/
+
+
+
+ValueMapping reverseshortestpathtreeMap [] =
+{
+  shortestpathtreeVM<false>
+};
+
+const string reverseshortestpathtreeSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JPoint::BasicType() + " -> " + Symbol::STREAM() + "(" + Tuple::BasicType() +
+  "(" + CcInt::BasicType() + " " + CcReal::BasicType() + "))" +
+  "</text--->"
+  "<text>reverseshortestpathtree(<source>) </text--->"
+  "<text>Returns a " + Symbol::STREAM() + " of tuple, where each tuple "
+  " consists of a junction id and the network distance from the junction to"
+  " the given jpoint. </text--->"
+  "<text>query reverseshortestpathtree(tgt)</text--->))";
+Operator reverseshortestpathtreeJNet("reverseshortestpathtree",
+                                     reverseshortestpathtreeSpec, 1,
+                                     reverseshortestpathtreeMap,
+                                     shortestpathtreeSelect,
+                                     shortestpathtreeTM);
 /*
 1.1.1 ~shortestpath~
 
@@ -4449,7 +4483,7 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddOperator(&getBGPJNet);
   AddOperator(&shortestpathJNet);
   AddOperator(&shortestpathtreeJNet);
-  //AddOperator(&spsearchvisitedJNet);
+  AddOperator(&reverseshortestpathtreeJNet);
   AddOperator(&netdistanceJNet);
   //AddOperator(&circlenJNet);
   //AddOperator(&in_circlenJNet);
