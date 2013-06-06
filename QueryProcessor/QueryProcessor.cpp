@@ -3589,20 +3589,31 @@ the function in a database object.
     DestroyValuesArray();
     throw ERR_IN_QUERY_EXPR;
   }
-
+ 
   resultType = nl->Second( list );
   if ( TypeOfSymbol(resultType) == QP_TYPEERROR )
   {   // check if a type error was detected
-      try {
-        type = nl->Second(nl->First(nl->Second(nl->Third(nl->First(list)))));
-        if (nl->ToString(type) != "pointer") {
+    if (nl->ListLength(nl->Third(nl->First(list))) > 1) {
+      if (nl->ListLength(nl->First(nl->Second(nl->Third(nl->First(list))))) >1){
+        try {
+          type = nl->Second(nl->First(nl->Second(nl->Third(nl->First(list)))));
+          if (nl->ToString(type) != "pointer") {
+            DestroyValuesArray();
+          }
+        }
+        catch (...) {
           DestroyValuesArray();
         }
+        throw ERR_IN_QUERY_EXPR;
       }
-      catch (...) {
+      else {
         DestroyValuesArray();
       }
-      throw ERR_IN_QUERY_EXPR;
+    }
+    else {
+      DestroyValuesArray();
+    }
+    
   }
 
   // Make a consistency check of the annotated list structure.
