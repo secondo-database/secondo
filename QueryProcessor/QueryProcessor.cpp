@@ -3573,6 +3573,7 @@ the function in a database object.
   isFunction = false;
 
   ListExpr list = nl->TheEmptyList();
+  ListExpr type;
 
   try
   {
@@ -3592,7 +3593,15 @@ the function in a database object.
   resultType = nl->Second( list );
   if ( TypeOfSymbol(resultType) == QP_TYPEERROR )
   {   // check if a type error was detected
-      DestroyValuesArray();
+      try {
+        type = nl->Second(nl->First(nl->Second(nl->Third(nl->First(list)))));
+        if (nl->ToString(type) != "pointer") {
+          DestroyValuesArray();
+        }
+      }
+      catch (...) {
+        DestroyValuesArray();
+      }
       throw ERR_IN_QUERY_EXPR;
   }
 
