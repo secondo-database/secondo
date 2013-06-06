@@ -102,7 +102,6 @@ ostream& PairIntDouble::Print(ostream& os) const
      << endl;
 }
 
-
 /*
 1 Overwrite output operator
 

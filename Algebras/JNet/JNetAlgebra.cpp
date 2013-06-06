@@ -4061,6 +4061,152 @@ const string netdistanceSpec =
 Operator netdistanceJNet("netdistance", netdistanceSpec, 9, netdistanceMap,
                           netdistanceSelect, netdistanceTM);
 
+
+/*
+1.1. Circle
+
+The operations ~circle~, ~incircle~ and ~outcircle~ compute the network part
+around the given ~jpoint~ which can be reached from the position in a given
+network distance (~outcircle~), from which the point can be reached in a given
+network distance (~incircle~), and at least the combination of both (~circle~).
+
+The type mapping and select functions for ~circle~, ~incircle~ and ~outcircle~
+are the same so we have to define them only ones.
+
+*/
+
+const string maps_circle[1][3] =
+{
+  {JPoint::BasicType(), CcReal::BasicType(), JLine::BasicType()}
+};
+
+ListExpr circleTM(ListExpr args)
+{
+  return SimpleMaps<1,3>(maps_circle, args);
+}
+
+int circleSelect(ListExpr args)
+{
+  return SimpleSelect<1,3>(maps_circle, args);
+}
+
+/*
+1.1.1 ~incircle~ and ~outcirlce~
+
+The valuemapping is almost the same for ~incircle~ and ~outcircle~ so we used
+a boolean template parameter to distinguish between the two variants.
+
+*/
+
+template<bool incircle>
+int iocircleVM( Word* args, Word& result, int message, Word& local,
+                Supplier s)
+{
+  result = qp->ResultStorage(s);
+  JLine* res = static_cast<JLine*> (result.addr);
+  JPoint* jp = static_cast<JPoint*> (args[0].addr);
+  CcReal* dist = static_cast<CcReal*> (args[1].addr);
+  if (jp != NULL && jp->IsDefined() &&
+      dist != NULL && dist->IsDefined())
+  {
+    if  (incircle)
+      jp->InCircle(dist->GetRealval(), res);
+    else
+      jp->OutCircle(dist->GetRealval(),res);
+  }
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+/*
+1.1.1.1 ~incircle~
+
+Returns the network part from which the jpoint can be reached within the given
+network distance.
+
+*/
+
+ValueMapping incircleMap[] =
+{
+  iocircleVM<true>
+};
+
+const string incircleSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JPoint::BasicType() + " X " + CcReal::BasicType() + " -> "
+  + JLine::BasicType() + "</text--->"
+  "<text>incircle(jp, 1.0) </text--->"
+  "<text>Returns the network part from which jp can be reached within the "
+  "given network distance. </text--->"
+  "<text>query incircle(testjp, 0.004)</text--->))";
+
+Operator incircleJNet("incircle", incircleSpec, 1, incircleMap, circleSelect,
+                      circleTM);
+
+/*
+1.1.1.1 ~outcircle~
+
+Returns the network part which can be reached from the jpoint within the given
+network distance.
+
+*/
+
+ValueMapping outcircleMap[] =
+{
+  iocircleVM<false>
+};
+
+const string outcircleSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JPoint::BasicType() + " X " + CcReal::BasicType() + " -> "
+  + JLine::BasicType() + "</text--->"
+  "<text>outcircle(jp, 1.0) </text--->"
+  "<text>Returns the network part which can be reached from the jp within the "
+  "given network distance. </text--->"
+  "<text>query outcircle(testjp, 0.004)</text--->))";
+
+Operator outcircleJNet("outcircle", outcircleSpec, 1, outcircleMap,
+                       circleSelect, circleTM);
+
+/*
+1.1.1 ~circle~
+
+*/
+
+int circleVM( Word* args, Word& result, int message, Word& local,
+              Supplier s)
+{
+  result = qp->ResultStorage(s);
+  JLine* res = static_cast<JLine*> (result.addr);
+  JPoint* jp = static_cast<JPoint*> (args[0].addr);
+  CcReal* dist = static_cast<CcReal*> (args[1].addr);
+  if (jp != NULL && jp->IsDefined() && dist != NULL && dist->IsDefined())
+    jp->Circle(dist->GetRealval(), res);
+  else
+    res->SetDefined(false);
+  return 0;
+}
+
+ValueMapping circleMap[] =
+{
+  circleVM
+};
+
+const string circleSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "(<text>" +
+  JPoint::BasicType() + " X " + CcReal::BasicType() + " -> "
+  + JLine::BasicType() + "</text--->"
+  "<text>circle(jp, 1.0) </text--->"
+  "<text>Returns the network part from which jp can be reached and which can "
+  "be reached from jp within the given network distance. </text--->"
+  "<text>query circle(testjp, 0.004)</text--->))";
+
+Operator circleJNet("circle", circleSpec, 1, circleMap, circleSelect, circleTM);
+
 /*
 
 1.1 Translation beteween spatial(-temporal) and network(-temporal) data types
@@ -4485,9 +4631,9 @@ JNetAlgebra::JNetAlgebra():Algebra()
   AddOperator(&shortestpathtreeJNet);
   AddOperator(&reverseshortestpathtreeJNet);
   AddOperator(&netdistanceJNet);
-  //AddOperator(&circlenJNet);
-  //AddOperator(&in_circlenJNet);
-  //AddOperator(&out_circlenJNet);
+  AddOperator(&circleJNet);
+  AddOperator(&incircleJNet);
+  AddOperator(&outcircleJNet);
 
 
 

@@ -146,6 +146,7 @@ public:
   void EndBulkload(const bool sort = true);
 
   JLine& Add(const JRouteInterval& rint);
+  void Add(const JLine* other);
 
 /*
 1.1.1 Other helpful operators
@@ -307,15 +308,6 @@ possible.
 */
 
   void Sort();
-
-/*
-1.1.1.1 Append
-
-Appends the intervals of the jline into the current jline.
-
-*/
-
-void Append(const JLine* other);
 
 /*
 1.1.1.1 FillIntervalList

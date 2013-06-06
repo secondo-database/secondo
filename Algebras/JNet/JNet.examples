@@ -567,6 +567,13 @@ Example  : query bbox([const ujpoint value("testjnet" (("2000-01-03-09:36" "2000
 Result   : (rect3 (7.481126374724948 7.489988582869583 51.35944219 51.35994302458907 0.4 0.45))
 Tolerance: 0.01%
 
+Operator : circle
+Number   : 1
+Signature: jpoint x real -> jline
+Example  : query circle(testjp, 0.004);
+Result   : file
+Tolerance: 0.01%
+
 Operator : createijpoint
 Number   : 1
 Signature: jpoint x instant -> ijpoint
@@ -763,6 +770,13 @@ Signature: jnet x int x jdirection -> jlistint
 Example  : query getReverseAdjacentSections(testjnet, 2, [const jdirection value("Both")])
 Result   : (listint(1 2 4 6 7))
 
+Operator : incircle
+Number   : 1
+Signature: jpoint x real -> jline
+Example  : query incircle(testjp, 0.004);
+Result   : file
+Tolerance: 0.01%
+
 Operator : initial
 Number   : 1
 Signature: mjpoint -> ijpoint
@@ -908,6 +922,13 @@ Number   : 10
 Signature: jline x jline -> real
 Example  : query netdistance(testjl, testjl);
 Result   : 0.0
+Tolerance: 0.01%
+
+Operator : outcircle
+Number   : 1
+Signature: jpoint x real -> jline
+Example  : query outcircle(testjp, 0.004);
+Result   : file
 Tolerance: 0.01%
 
 Operator : passes

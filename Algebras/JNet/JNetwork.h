@@ -391,6 +391,21 @@ void ReverseShortestPathTree(const RouteLocation& source,
                       const double distlimit);
 
 /*
+1.1.1 Network Part Around
+
+The circle operations compute the network part in a given network distance
+around the location. Whereas incircle computes the part from which the rloc
+can be reached within the given distance, outcircle computes the part which
+can be reached from the rloc within the given network distance and
+circle combines both previous results.
+
+*/
+
+void Circle(const RouteLocation& src, const double distLimit, JLine* result);
+void InCircle(const RouteLocation& src, const double distLimit, JLine* result);
+void OutCircle(const RouteLocation& src, const double distLimit, JLine* result);
+
+/*
 1.1.1 ~ShortestPath~
 
 Returns the shortest path from source to target. Operation leaves jnetwork
@@ -729,12 +744,24 @@ template<class SpatialTarget>
 void AddAdjacentSections(PQManagement* pq, const JListInt* listSID,
                         JPQEntry curEntry, const SpatialTarget* targetPos);
 
+void AddAdjacentSections(PQManagement* pq, JPQEntry curEntry,
+                         JLine* result, const double distLimit);
+
+void AddAdjacentSections(PQManagement* pq, const JListInt* listSID,
+                         JPQEntry curEntry, JLine* result,
+                         const double distLimit);
+
 void AddReverseAdjacentSections(PQManagement* pq, JPQEntry curEntry);
 
 void AddReverseAdjacentSections(PQManagement* pq, const JListInt* listSID,
                                 JPQEntry curEntry);
 
+void AddReverseAdjacentSections(PQManagement* pq, JPQEntry curEntry,
+                                JLine* result, const double distLimit);
 
+void AddReverseAdjacentSections(PQManagement* pq, const JListInt* listSID,
+                                JPQEntry curEntry , JLine* result,
+                                const double distLimit);
 
 /*
 1.1.1.1 WriteShortestPath
@@ -873,33 +900,65 @@ bool InitPriorityQueue(PQManagement* pqueue,
                        const DbArray< PosJNetSpatial>* sources,
                        const Points* endPositions);
 
-void InitPriorityQueue(PQManagement* pqueue,
-                       const RouteLocation& source,
+void InitPriorityQueue(PQManagement* pqueue, const RouteLocation& source,
                        DbArray<PairIntDouble>* result);
 
-void InitReversePriorityQueue(PQManagement* pqueue,
-                              const RouteLocation& source,
+void InitPriorityQueue(PQManagement* pqueue, const RouteLocation& source,
+                       const double distLimit, JLine* result);
+
+void InitReversePriorityQueue(PQManagement* pqueue, const RouteLocation& source,
                               DbArray<PairIntDouble>* result);
 
-void WriteToLists(PQManagement* pqueue,
-                  DbArray<PairIntDouble>* result,
+void InitReversePriorityQueue(PQManagement* pqueue, const RouteLocation& source,
+                              const double distLimit, JLine* result);
+
+/*
+1.1.1.1.1. Some Helpful Functions for Priority Queue Initialization
+
+*/
+
+void WriteToLists(PQManagement* pqueue, DbArray<PairIntDouble>* result,
                   JPQEntry& junc);
 
-void WriteToLists(PQManagement* pqueue,
-                  DbArray<PairIntDouble>* result,
-                  JPQEntry& start,
-                  JPQEntry& end,
+void WriteToLists(PQManagement* pqueue, JLine* result, JPQEntry& junc,
+                  const double distLimit, const RouteLocation& src,
+                  const bool up, const Direction* sectDir);
+
+void WriteToLists(PQManagement* pqueue, JPQEntry& junc);
+
+void WriteToLists(PQManagement* pqueue,  DbArray<PairIntDouble>* result,
+                  JPQEntry& start, JPQEntry& end, const Tuple* sectTup);
+
+void WriteToLists(PQManagement* pqueue,  JLine* result, JPQEntry& start,
+                  JPQEntry& end, const Tuple* sectTup, const double distLimit,
+                  const RouteLocation& src, const Direction* sectDir);
+
+void WriteToLists(PQManagement* pqueue, JPQEntry& start, JPQEntry& end,
                   const Tuple* sectTup);
 
 void WriteToReverseLists(PQManagement* pqueue,
                          DbArray<PairIntDouble>* result,
                          JPQEntry& junc);
 
+void WriteToReverseLists(PQManagement* pqueue, JLine* result, JPQEntry& junc,
+                         const double distLimit, const RouteLocation& src,
+                         const bool up, const Direction* sectDir);
+
+void WriteToReverseLists(PQManagement* pqueue, JPQEntry& junc);
+
 void WriteToReverseLists(PQManagement* pqueue,
                          DbArray<PairIntDouble>* result,
                          JPQEntry& start,
                          JPQEntry& end,
                          const Tuple* sectTup);
+
+void WriteToReverseLists(PQManagement* pqueue, JLine* result, JPQEntry& start,
+                         JPQEntry& end, const Tuple* sectTup,
+                         const double distLimit, const RouteLocation& src,
+                         const Direction* sectDir);
+
+void WriteToReverseLists(PQManagement* pqueue, JPQEntry& start,
+                         JPQEntry& end, const Tuple* sectTup);
 
 /*
 1.1.1.1.1 CheckForSameSections
@@ -960,9 +1019,17 @@ void ProcessPriorityQueue(PQManagement* pqueue,
                           DbArray<PairIntDouble>* result,
                           const double distLimit);
 
+void ProcessPriorityQueue(PQManagement* pqueue,
+                          const double distLimit,
+                          JLine* result);
+
 void ProcessReversePriorityQueue(PQManagement* pqueue,
                                  DbArray<PairIntDouble>* result,
                                  const double distLimit);
+
+void ProcessReversePriorityQueue(PQManagement* pqueue,
+                                 const double distLimit,
+                                 JLine* result);
 
 };
 

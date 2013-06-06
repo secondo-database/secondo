@@ -648,6 +648,48 @@ void JPoint::Netdistance(const jnetwork::JLine* target, CcReal* result) const
 }
 
 /*
+1.1.1 Network Parts Around
+
+*/
+
+void JPoint::InCircle(const double netdist, JLine* result) const
+{
+  if (result != 0) result->Clear();
+  if (IsDefined())
+  {
+    JNetwork* jnet = ManageJNet::GetNetwork(nid);
+    jnet->InCircle(this->GetLocation(), netdist, result);
+    ManageJNet::CloseNetwork(jnet);
+  }
+  else
+    result->SetDefined(false);
+}
+
+void JPoint::OutCircle(const double netdist, JLine* result) const
+{
+  if (IsDefined())
+  {
+    JNetwork* jnet = ManageJNet::GetNetwork(nid);
+    jnet->OutCircle(this->GetLocation(), netdist, result);
+    ManageJNet::CloseNetwork(jnet);
+  }
+  else
+    result->SetDefined(false);
+}
+
+void JPoint::Circle(const double netdist, JLine* result) const
+{
+  if (IsDefined())
+  {
+    JNetwork* jnet = ManageJNet::GetNetwork(nid);
+    jnet->Circle(this->GetLocation(), netdist, result);
+    ManageJNet::CloseNetwork(jnet);
+  }
+  else
+    result->SetDefined(false);
+}
+
+/*
 1.1 Private Methods
 
 1.1.1 PosExists

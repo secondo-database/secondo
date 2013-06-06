@@ -10,6 +10,7 @@ operator at alias AT pattern _ infixop _
 operator atinstant alias ATINSTANT pattern _ infixop _
 operator atperiods alias ATPERIODS pattern _ infixop _
 operator bbox alias BBOX pattern op ( _ , _ )
+operator circle alias CIRCLE pattern op ( _ , _ , _ )
 operator createijpoint alias CREATEIJPOINT pattern op ( _ , _ )
 operator createjline alias CREATEJLINE pattern op ( _ , _ )
 operator createjnet alias CREATEJNET pattern op ( _ , _ , _ , _ , _ )
@@ -27,6 +28,7 @@ operator getAdjacentSections alias GETADJACENTSECTIONS pattern op ( _ , _ , _ )
 operator getBGP alias GETBGP pattern op ( _ )
 operator getReverseAdjacentSections alias GETREVERSEADJACENTSECTIONS pattern op ( _ , _ , _ )
 operator distances alias DISTANCES pattern op ( _ )
+operator incircle alias INCIRCLE pattern op ( _ , _ )
 operator initial alias INITIAL pattern op ( _ )
 operator inside alias INSIDE pattern _ infixop _
 operator inst alias INST pattern op ( _ )
@@ -36,6 +38,7 @@ operator junctions alias JUNCTIONS pattern op ( _ )
 operator length alias LENGTH pattern op ( _ )
 operator netbox alias NETBOX pattern op ( _ )
 operator netdistance alias NETDISTANCE pattern op ( _ , _ )
+operator outcircle alias OUTCIRCLE pattern op ( _ , _ )
 operator passes alias PASSES pattern _ infixop _
 operator present alias PRESENT pattern _ infixop _
 operator restrict alias RESTRICT pattern op( _ , _ )

@@ -221,6 +221,21 @@ void Netdistance(const JPoints* target, CcReal* result) const;
 void Netdistance(const JLine* target, CcReal* result) const;
 
 /*
+1.1.1.1 Network Part Around
+
+The circle operations compute the network part in a given network distance
+around the jpoint. Whereas incircle computes the part from which the jpoint
+can be reached within the given distance, outcircle computes the part which
+can be reached from the jpoint within the given network distance and
+circle combines both previous results.
+
+*/
+
+void Circle(const double netdist, JLine* result) const;
+void InCircle(const double netdist, JLine* result) const;
+void OutCircle(const double netdist, JLine* result) const;
+
+/*
 1.1 Private declarations
 
 */

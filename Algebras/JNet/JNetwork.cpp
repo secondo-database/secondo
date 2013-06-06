@@ -2247,6 +2247,70 @@ void JNetwork::ReverseShortestPathTree(const RouteLocation& source,
   }
 }
 
+/*
+1.1.1 Network parts around location
+
+*/
+
+void JNetwork::OutCircle(const jnetwork::RouteLocation& src,
+                         const double distLimit, JLine* result)
+{
+  if (result != NULL)
+    result->Clear();
+  if (IsDefined() && src.IsDefined())
+  {
+    result->SetDefined(true);
+    result->SetNetworkId(id);
+    result->StartBulkload();
+    PQManagement* pqueue = new PQManagement();
+    InitPriorityQueue(pqueue, src, distLimit, result);
+    ProcessPriorityQueue(pqueue, distLimit, result);
+    result->EndBulkload();
+  }
+  else
+    result->SetDefined(false);
+}
+
+void JNetwork::InCircle(const jnetwork::RouteLocation& src,
+                        const double distLimit, JLine* result)
+{
+  if (result != NULL)
+    result->Clear();
+  if (IsDefined() && src.IsDefined())
+  {
+    result->SetDefined(true);
+    result->SetNetworkId(id);
+    result->StartBulkload();
+    PQManagement* pqueue = new PQManagement();
+    InitReversePriorityQueue(pqueue, src, distLimit, result);
+    ProcessReversePriorityQueue(pqueue, distLimit, result);
+    result->EndBulkload();
+  }
+  else
+    result->SetDefined(false);
+}
+
+void JNetwork::Circle(const jnetwork::RouteLocation& src,
+                      const double netdist, JLine* result)
+{
+  if (result != NULL)
+    result->Clear();
+  if (IsDefined() && src.IsDefined())
+  {
+    JLine* inJL = new JLine(false);
+    JLine* outJL = new JLine(false);
+    InCircle(src, netdist, inJL);
+    OutCircle(src, netdist, outJL);
+    inJL->Union(outJL, result);
+    inJL->DeleteIfAllowed();
+    outJL->DeleteIfAllowed();
+  }
+  else
+  {
+    result->SetDefined(false);
+  }
+}
+
 
 
 /*
@@ -3794,7 +3858,6 @@ void JNetwork::AddAdjacentSections(PQManagement* pq, JPQEntry curEntry,
       pqSectTup->DeleteIfAllowed();
       pqSectTup = 0;
     }
-
   }
 }
 
@@ -3865,6 +3928,126 @@ void JNetwork::AddAdjacentSections(PQManagement* pq, const JListInt* listSID,
   }
 }
 
+void JNetwork::AddAdjacentSections(PQManagement* pq, JPQEntry curEntry,
+                                   JLine* result, const double distLimit)
+{
+  if (pq !=  0 && curEntry.GetDistFromStartPoint() < distLimit)
+  {
+    Tuple* pqSectTup = GetSectionTupleWithId(curEntry.GetSectionId());
+    if (pqSectTup != 0)
+    {
+      Direction movDir = curEntry.GetDirection();
+      JListInt* listSID = 0;
+      Direction compU(Up);
+      if (movDir.Compare(compU) == 0)
+        listSID = GetSectionListAdjSectionsUp(pqSectTup);
+      else
+        listSID = GetSectionListAdjSectionsDown(pqSectTup);
+      if (listSID != 0)
+      {
+        AddAdjacentSections(pq, listSID, curEntry, result, distLimit);
+        listSID->Destroy();
+        listSID->DeleteIfAllowed();
+        listSID = 0;
+      }
+      pqSectTup->DeleteIfAllowed();
+      pqSectTup = 0;
+    }
+  }
+}
+
+void JNetwork::AddAdjacentSections(PQManagement* pq, const JListInt* listSID,
+                                   JPQEntry curEntry, JLine* result,
+                                   const double distLimit)
+{
+  if (pq != 0 && listSID != 0)
+  {
+    Tuple* curSectTup = 0;
+    CcInt nextSID;
+    JPQEntry* tmpEntry= 0;
+    for (int i = 0; i < listSID->GetNoOfComponents(); i++)
+    {
+      listSID->Get(i,nextSID);
+      int curSID = nextSID.GetIntval();
+      tmpEntry = new JPQEntry(curEntry);
+      if (curEntry.GetSectionId() < 0 && curEntry.GetStartNextSID() < 0)
+      {
+        tmpEntry->SetSectionId(curSID);
+        tmpEntry->SetStartNextSID(curSID);
+      }
+      tmpEntry->SetSectionId(curSID);
+      curSectTup = GetSectionTupleWithId(nextSID.GetIntval());
+      if (curSectTup != 0)
+      {
+        int sectEndJuncId = GetSectionEndJunctionID(curSectTup);
+        int sectStartJuncId = GetSectionStartJunctionID(curSectTup);
+        if (sectEndJuncId == tmpEntry->GetEndPartJID())
+        {
+          tmpEntry->SetDirection((Direction) Down);
+          tmpEntry->SetStartPartJID(sectEndJuncId);
+          tmpEntry->SetEndPartJID(sectStartJuncId);
+        }
+        else
+        {
+          tmpEntry->SetDirection((Direction) Up);
+          tmpEntry->SetStartPartJID(sectStartJuncId);
+          tmpEntry->SetEndPartJID(sectEndJuncId);
+        }
+        Tuple* curJunc = GetJunctionTupleWithId(tmpEntry->GetEndPartJID());
+        if (curJunc != 0)
+        {
+          Point* curEndPoint = GetJunctionSpatialPos(curJunc);
+          if (curEndPoint != 0)
+          {
+            double curDist = curEntry.GetDistFromStartPoint() +
+                                      GetSectionLength(curSectTup);
+            tmpEntry->SetDistFromStartPoint(curDist);
+            tmpEntry->SetPriority(curDist);
+            JRouteInterval* sectRint = GetSectionFirstRouteInterval(curSectTup);
+            if (sectRint != NULL)
+            {
+              JRouteInterval tmp(*sectRint);
+              sectRint->DeleteIfAllowed();
+              sectRint = 0;
+              if (curDist <= distLimit)
+              {
+                result->Add(tmp);
+                pq->Insert(*tmpEntry);
+              }
+              else
+              {
+                Direction compD(Down);
+                int test2 = tmpEntry->GetDirection().Compare(compD);
+                if (test2 < 0) // Up
+                {
+                  tmp.SetInterval(tmp.GetFirstPosition(),
+                                  tmp.GetFirstPosition() + distLimit -
+                                      curEntry.GetDistFromStartPoint());
+                }
+                else // Down
+                {
+                  tmp.SetInterval(tmp.GetLastPosition() - (distLimit -
+                                      curEntry.GetDistFromStartPoint()),
+                                  tmp.GetLastPosition());
+                }
+                result->Add(tmp);
+              }
+            }
+            curEndPoint->DeleteIfAllowed();
+            curEndPoint = 0;
+          }
+          curJunc->DeleteIfAllowed();
+          curJunc = 0;
+        }
+        curSectTup->DeleteIfAllowed();
+        curSectTup = 0;
+      }
+      delete tmpEntry;
+      tmpEntry = 0;
+    }
+  }
+}
+
 void JNetwork::AddReverseAdjacentSections(PQManagement* pq, JPQEntry curEntry)
 {
   if (pq !=  0)
@@ -3889,7 +4072,6 @@ void JNetwork::AddReverseAdjacentSections(PQManagement* pq, JPQEntry curEntry)
       pqSectTup->DeleteIfAllowed();
       pqSectTup = 0;
     }
-
   }
 }
 
@@ -3956,6 +4138,126 @@ void JNetwork::AddReverseAdjacentSections(PQManagement* pq,
   }
 }
 
+void JNetwork::AddReverseAdjacentSections(PQManagement* pq, JPQEntry curEntry,
+                                          JLine* result, const double distLimit)
+{
+  if (pq !=  0)
+  {
+    Tuple* pqSectTup = GetSectionTupleWithId(curEntry.GetSectionId());
+    if (pqSectTup != 0)
+    {
+      Direction movDir = curEntry.GetDirection();
+      JListInt* listSID = 0;
+      Direction compU(Up);
+      if (movDir.Compare(compU) == 0)
+        listSID = GetSectionListReverseAdjSectionsUp(pqSectTup);
+      else
+        listSID = GetSectionListReverseAdjSectionsDown(pqSectTup);
+      if (listSID != 0)
+      {
+        AddReverseAdjacentSections(pq, listSID, curEntry, result, distLimit);
+        listSID->Destroy();
+        listSID->DeleteIfAllowed();
+        listSID = 0;
+      }
+      pqSectTup->DeleteIfAllowed();
+      pqSectTup = 0;
+    }
+  }
+}
+
+void JNetwork::AddReverseAdjacentSections(PQManagement* pq,
+                                          const JListInt* listSID,
+                                          JPQEntry curEntry, JLine* result,
+                                          const double distLimit)
+{
+  if (pq != 0 && listSID != 0)
+  {
+    Tuple* curSectTup = 0;
+    CcInt nextSID;
+    JPQEntry* tmpEntry= 0;
+    for (int i = 0; i < listSID->GetNoOfComponents(); i++)
+    {
+      listSID->Get(i,nextSID);
+      int curSID = nextSID.GetIntval();
+      tmpEntry = new JPQEntry(curEntry);
+      if (curEntry.GetSectionId() < 0 && curEntry.GetStartNextSID() < 0)
+      {
+        tmpEntry->SetSectionId(curSID);
+        tmpEntry->SetStartNextSID(curSID);
+      }
+      tmpEntry->SetSectionId(curSID);
+      curSectTup = GetSectionTupleWithId(curSID);
+      if (curSectTup != 0)
+      {
+        int sectEndJuncId = GetSectionEndJunctionID(curSectTup);
+        int sectStartJuncId = GetSectionStartJunctionID(curSectTup);
+        if (sectEndJuncId == tmpEntry->GetEndPartJID())
+        {
+          tmpEntry->SetDirection((Direction) Up);
+          tmpEntry->SetStartPartJID(sectEndJuncId);
+          tmpEntry->SetEndPartJID(sectStartJuncId);
+        }
+        else
+        {
+          tmpEntry->SetDirection((Direction) Down);
+          tmpEntry->SetStartPartJID(sectStartJuncId);
+          tmpEntry->SetEndPartJID(sectEndJuncId);
+        }
+        Tuple* curJunc = GetJunctionTupleWithId(tmpEntry->GetEndPartJID());
+        if (curJunc != 0)
+        {
+          Point* curEndPoint = GetJunctionSpatialPos(curJunc);
+          if (curEndPoint != 0)
+          {
+            double curDist = curEntry.GetDistFromStartPoint() +
+                                      GetSectionLength(curSectTup);
+            tmpEntry->SetDistFromStartPoint(curDist);
+            tmpEntry->SetPriority(curDist);
+            JRouteInterval* sectRint = GetSectionFirstRouteInterval(curSectTup);
+            if (sectRint != NULL)
+            {
+              JRouteInterval tmp(*sectRint);
+              sectRint->DeleteIfAllowed();
+              sectRint = 0;
+              if (curDist <= distLimit)
+              {
+                result->Add(tmp);
+                pq->Insert(*tmpEntry);
+              }
+              else
+              {
+                Direction compD(Down);
+                int test = tmpEntry->GetDirection().Compare(compD);
+                if (test < 0) // Up
+                {
+                  tmp.SetInterval(tmp.GetLastPosition() - (distLimit -
+                                      curEntry.GetDistFromStartPoint()),
+                                  tmp.GetLastPosition());
+                }
+                else // Down
+                {
+                  tmp.SetInterval(tmp.GetFirstPosition(),
+                                  tmp.GetFirstPosition() + distLimit -
+                                      curEntry.GetDistFromStartPoint());
+                }
+                result->Add(tmp);
+              }
+            }
+            curEndPoint->DeleteIfAllowed();
+            curEndPoint = 0;
+          }
+          curJunc->DeleteIfAllowed();
+          curJunc = 0;
+        }
+        curSectTup->DeleteIfAllowed();
+        curSectTup = 0;
+      }
+      delete tmpEntry;
+      tmpEntry = 0;
+    }
+  }
+}
 
 /*
 1.1.1.1 WriteShortestPath
@@ -4850,13 +5152,9 @@ void JNetwork::InitPriorityQueue(PQManagement* pqueue,
                                      tolerance))
       {
         if (AlmostEqualAbsolute(distFromStart, 0.0, tolerance))
-        {
           WriteToLists(pqueue, result, start);
-        }
         else
-        {
           WriteToLists(pqueue, result, end);
-        }
       }
       else
       {
@@ -4878,6 +5176,76 @@ void JNetwork::InitPriorityQueue(PQManagement* pqueue,
           case 1: //sectDir both
           {
             WriteToLists(pqueue, result, start, end, sectTup);
+            break;
+          }
+
+          default: //should never been reached
+          {
+            assert(false);
+            break;
+          }
+        }
+      }
+      sectDir->DeleteIfAllowed();
+      sectDir = 0;
+    }
+    sectTup->DeleteIfAllowed();
+    sectTup = 0;
+  }
+}
+
+void JNetwork::InitPriorityQueue(PQManagement* pqueue,
+                                 const jnetwork::RouteLocation& source,
+                                 const double distLimit, JLine* result)
+{
+  double distFromStart(0.0);
+  Tuple* sectTup = GetSectionTupleFor(source, distFromStart);
+  if (sectTup != NULL)
+  {
+    int endJuncId = GetSectionEndJunctionID(sectTup);
+    double distFromEnd = GetSectionLength(sectTup)- distFromStart;
+    JPQEntry end((Direction) Up, -1, endJuncId, endJuncId,
+                      -1, endJuncId, endJuncId,
+                      distFromEnd, distFromEnd, distFromEnd);
+    int startJuncId = GetSectionStartJunctionID(sectTup);
+    JPQEntry start((Direction) Down, -1, startJuncId, startJuncId,
+                   -1, startJuncId, startJuncId, distFromStart, distFromStart,
+                   distFromStart);
+    Direction* sectDir = GetSectionDirection(sectTup);
+    if (sectDir != NULL)
+    {
+      if (AlmostEqualAbsolute(distFromStart, 0.0, tolerance) ||
+          AlmostEqualAbsolute(distFromStart, GetSectionLength(sectTup),
+                                     tolerance))
+      {
+        if (AlmostEqualAbsolute(distFromStart, 0.0, tolerance))
+          WriteToLists(pqueue, result, start, distLimit, source, false,
+                       sectDir);
+        else
+          WriteToLists(pqueue, result, end, distLimit, source, true, sectDir);
+      }
+      else
+      {
+        Direction compD(Down);
+        switch(sectDir->Compare(compD))
+        {
+          case -1: //sectDir up
+          {
+            WriteToLists(pqueue, result, end, distLimit, source, true, sectDir);
+            break;
+          }
+
+          case 0: //sectDir down
+          {
+            WriteToLists(pqueue, result, start, distLimit, source, false,
+                         sectDir);
+            break;
+          }
+
+          case 1: //sectDir both
+          {
+            WriteToLists(pqueue, result, start, end, sectTup, distLimit,
+                         source, sectDir);
             break;
           }
 
@@ -4921,13 +5289,9 @@ void JNetwork::InitReversePriorityQueue(PQManagement* pqueue,
                                      tolerance))
       {
         if (AlmostEqualAbsolute(distFromStart, 0.0, tolerance))
-        {
           WriteToReverseLists(pqueue, result, start);
-        }
         else
-        {
           WriteToReverseLists(pqueue, result, end);
-        }
       }
       else
       {
@@ -4966,6 +5330,79 @@ void JNetwork::InitReversePriorityQueue(PQManagement* pqueue,
     sectTup = 0;
   }
 }
+
+void JNetwork::InitReversePriorityQueue(PQManagement* pqueue,
+                                        const jnetwork::RouteLocation& source,
+                                        const double distLimit, JLine* result)
+{
+  double distFromStart(0.0);
+  Tuple* sectTup = GetSectionTupleFor(source, distFromStart);
+  if (sectTup != NULL)
+  {
+    int endJuncId = GetSectionEndJunctionID(sectTup);
+    double distFromEnd = GetSectionLength(sectTup)- distFromStart;
+    JPQEntry end((Direction) Down, -1, endJuncId, endJuncId,
+                      -1, endJuncId, endJuncId,
+                      distFromEnd, distFromEnd, distFromEnd);
+    int startJuncId = GetSectionStartJunctionID(sectTup);
+    JPQEntry start((Direction) Up, -1, startJuncId, startJuncId,
+                   -1, startJuncId, startJuncId, distFromStart, distFromStart,
+                   distFromStart);
+    Direction* sectDir = GetSectionDirection(sectTup);
+    if (sectDir != NULL)
+    {
+      if (AlmostEqualAbsolute(distFromStart, 0.0, tolerance) ||
+          AlmostEqualAbsolute(distFromStart, GetSectionLength(sectTup),
+                                     tolerance))
+      {
+        if (AlmostEqualAbsolute(distFromStart, 0.0, tolerance))
+          WriteToReverseLists(pqueue, result, start, distLimit, source, true,
+                              sectDir);
+        else
+          WriteToReverseLists(pqueue, result, end, distLimit, source, false,
+                              sectDir);
+      }
+      else
+      {
+        Direction compD(Down);
+        switch(sectDir->Compare(compD))
+        {
+          case -1: //sectDir up
+          {
+            WriteToReverseLists(pqueue, result, start, distLimit, source, true,
+                                sectDir);
+            break;
+          }
+
+          case 0: //sectDir down
+          {
+            WriteToReverseLists(pqueue, result, end, distLimit, source, false,
+                                sectDir);
+            break;
+          }
+
+          case 1: //sectDir both
+          {
+            WriteToReverseLists(pqueue, result, start, end, sectTup, distLimit,
+                                source, sectDir);
+            break;
+          }
+
+          default: //should never been reached
+          {
+            assert(false);
+            break;
+          }
+        }
+      }
+      sectDir->DeleteIfAllowed();
+      sectDir = 0;
+    }
+    sectTup->DeleteIfAllowed();
+    sectTup = 0;
+  }
+}
+
 
 bool JNetwork::CheckForSameSections(const DbArray< PosJNetSpatial >* sources,
                                     const DbArray< PosJNetSpatial >* targets,
@@ -5077,14 +5514,10 @@ bool JNetwork::ProcessPriorityQueue(PQManagement* pqueue,
               }
             }
             else
-            {
               AddAdjacentSections<Points>(pqueue, *test, spatialPosTargets);
-            }
           }
           else
-          {
             testOther = true;
-          }
           if (test != NULL)
           {
             if (test != curPQElement)
@@ -5094,14 +5527,10 @@ bool JNetwork::ProcessPriorityQueue(PQManagement* pqueue,
         }
       }
       else
-      {
         AddAdjacentSections<Points>(pqueue, *curPQElement, spatialPosTargets);
-      }
     }
     else
-    {
       found = true;
-    }
     if (curPQElement != NULL)
       delete curPQElement;
     curPQElement = 0;
@@ -5138,6 +5567,26 @@ void JNetwork::ProcessPriorityQueue(PQManagement* pqueue,
   delete wayEntries;
 }
 
+void JNetwork::ProcessPriorityQueue(PQManagement* pqueue,
+                                    const double distLimit,
+                                    JLine* result)
+{
+  JPQEntry* curPQElement = 0;
+  double lastDist = numeric_limits<double>::min();
+  while(!pqueue->IsEmpty() && lastDist <= distLimit)
+  {
+    curPQElement = pqueue->GetAndDeleteMin();
+    lastDist = curPQElement->GetDistFromStartPoint();
+    if(curPQElement != NULL)
+    {
+      AddAdjacentSections(pqueue, *curPQElement, result, distLimit);
+      delete curPQElement;
+      curPQElement = 0;
+    }
+  }
+}
+
+
 void JNetwork::ProcessReversePriorityQueue(PQManagement* pqueue,
                                            DbArray<PairIntDouble>* result,
                                            const double distLimit)
@@ -5159,6 +5608,26 @@ void JNetwork::ProcessReversePriorityQueue(PQManagement* pqueue,
     }
   }
 }
+
+void JNetwork::ProcessReversePriorityQueue(PQManagement* pqueue,
+                                           const double distLimit,
+                                           JLine* result)
+{
+  JPQEntry* curPQElement = 0;
+  double lastDist = numeric_limits<double>::min();
+  while(!pqueue->IsEmpty() && lastDist <= distLimit)
+  {
+    curPQElement = pqueue->GetAndDeleteMin();
+    lastDist = curPQElement->GetDistFromStartPoint();
+    if(curPQElement != NULL)
+    {
+      AddReverseAdjacentSections(pqueue, *curPQElement, result, distLimit);
+      delete curPQElement;
+      curPQElement = 0;
+    }
+  }
+}
+
 
 bool JNetwork::CheckForExistingNetdistance(
                                 const DbArray< PosJNetSpatial >* srcEntries,
@@ -5284,18 +5753,90 @@ bool JNetwork::ExistsNetdistanceFor(const int startjid,
     return true;
   }
   else
-  {
     return false;
-  }
 }
+
+/*
+1.1.1.1 Helpful Functions for Priority Queue Initialization
+
+*/
 
 void JNetwork::WriteToLists(PQManagement* pqueue,
                             DbArray<PairIntDouble>* result,
                             JPQEntry& junc)
 {
-  pqueue->InsertJunctionAsVisited(junc);
   PairIntDouble curPair(junc.GetEndPartJID(), junc.GetDistFromStartPoint());
   result->Append(curPair);
+  WriteToLists(pqueue, junc);
+}
+
+void JNetwork::WriteToLists(PQManagement* pqueue, JLine* result,
+                            JPQEntry& junc, const double distLimit,
+                            const RouteLocation& src, const bool up,
+                            const Direction* sectDir)
+{
+  JRouteInterval tmp(false);
+  Direction compD(Down);
+  int test = sectDir->Compare(compD);
+  double distcorrection = distLimit;
+  if (distLimit >= junc.GetDistStartToStartJID())
+  {
+    distcorrection = junc.GetDistStartToStartJID();
+  }
+  if (up)
+  {
+    if (test < 0)
+    {
+      tmp = JRouteInterval(src.GetRouteId(), src.GetPosition(),
+                          src.GetPosition() + distcorrection,
+                          (Direction) Up);
+    }
+    else if (test > 0)
+    {
+      tmp = JRouteInterval(src.GetRouteId(), src.GetPosition(),
+                          src.GetPosition() + distcorrection,
+                          (Direction) Both);
+    }
+  }
+  else
+  {
+    if (test == 0)
+    {
+      tmp = JRouteInterval(src.GetRouteId(),
+                           src.GetPosition()- distcorrection,
+                           src.GetPosition(),
+                          (Direction) Down);
+    }
+    else if (test > 0)
+    {
+      tmp = JRouteInterval(src.GetRouteId(),
+                           src.GetPosition()- distcorrection,
+                           src.GetPosition(),
+                          (Direction) Both);
+    }
+  }
+  if (tmp.IsDefined() && tmp.GetLength() > 0.0)
+    result->Add(tmp);
+  pqueue->InsertJunctionAsVisited(junc);
+  Tuple* juncTup = GetJunctionTupleWithId(junc.GetEndPartJID());
+  if (juncTup != NULL)
+  {
+    JListInt* adjSect = GetJunctionOutSectionList(juncTup);
+    if (adjSect != NULL)
+    {
+      AddAdjacentSections(pqueue, adjSect, junc, result, distLimit);
+      adjSect->Destroy();
+      adjSect->DeleteIfAllowed();
+    }
+    juncTup->DeleteIfAllowed();
+  }
+}
+
+
+void JNetwork::WriteToLists(PQManagement* pqueue,
+                            JPQEntry& junc)
+{
+  pqueue->InsertJunctionAsVisited(junc);
   Tuple* juncTup = GetJunctionTupleWithId(junc.GetEndPartJID());
   if (juncTup != NULL)
   {
@@ -5315,12 +5856,95 @@ void JNetwork::WriteToLists(PQManagement* pqueue,
                             JPQEntry& start, JPQEntry& end,
                             const Tuple* sectTup)
 {
-  pqueue->InsertJunctionAsVisited(start);
-  pqueue->InsertJunctionAsVisited(end);
   PairIntDouble startPair(start.GetEndPartJID(), start.GetDistFromStartPoint());
   result->Append(startPair);
   PairIntDouble endPair(end.GetEndPartJID(), end.GetDistFromStartPoint());
   result->Append(endPair);
+  WriteToLists(pqueue, start, end, sectTup);
+}
+
+void JNetwork::WriteToLists(PQManagement* pqueue, JLine* result,
+                            JPQEntry& start, JPQEntry& end,
+                            const Tuple* sectTup, const double distLimit,
+                            const jnetwork::RouteLocation& src,
+                            const Direction* sectDir)
+{
+  JRouteInterval tmp(false);
+  Direction compD(Down);
+  int test = sectDir->Compare(compD);
+  double distcorrection = distLimit;
+  if (distLimit >= start.GetDistStartToStartJID())
+  {
+    distcorrection = start.GetDistStartToStartJID();
+  }
+  if (test == 0)
+  {
+    tmp = JRouteInterval(src.GetRouteId(), src.GetPosition(),
+                         src.GetPosition() - distcorrection,
+                        (Direction) Down);
+  }
+  else if (test > 0)
+  {
+    tmp = JRouteInterval(src.GetRouteId(), src.GetPosition(),
+                         src.GetPosition() - distcorrection,
+                        (Direction) Both);
+  }
+  if (tmp.IsDefined() && tmp.GetLength() > 0.0)
+  {
+    result->Add(tmp);
+    tmp.SetDefined(false);
+  }
+  distcorrection = distLimit;
+  if (distLimit >= end.GetDistStartToStartJID())
+  {
+    distcorrection = end.GetDistStartToStartJID();
+  }
+  if (test < 0)
+  {
+     tmp = JRouteInterval(src.GetRouteId(), src.GetPosition(),
+                          src.GetPosition() + distcorrection,
+                          (Direction) Up);
+  }
+  else if (test == 0)
+  {
+    tmp = JRouteInterval(src.GetRouteId(), src.GetPosition(),
+                          src.GetPosition() + distcorrection,
+                          (Direction) Both);
+  }
+  if (tmp.IsDefined() && tmp.GetLength() > 0.0)
+  {
+    result->Add(tmp);
+  }
+  pqueue->InsertJunctionAsVisited(start);
+  pqueue->InsertJunctionAsVisited(end);
+  if (sectTup != 0)
+  {
+    JListInt* adjSect = GetSectionListAdjSectionsUp(sectTup);
+    if (adjSect != NULL)
+    {
+      AddAdjacentSections(pqueue, adjSect, end, result, distLimit);
+      adjSect->Destroy();
+      adjSect->DeleteIfAllowed();
+      adjSect = 0;
+    }
+    adjSect = GetSectionListAdjSectionsDown(sectTup);
+    if (adjSect != NULL)
+    {
+      AddAdjacentSections(pqueue, adjSect, start, result, distLimit);
+      adjSect->Destroy();
+      adjSect->DeleteIfAllowed();
+      adjSect = 0;
+    }
+  }
+}
+
+
+void JNetwork::WriteToLists(PQManagement* pqueue,
+                            JPQEntry& start, JPQEntry& end,
+                            const Tuple* sectTup)
+{
+  pqueue->InsertJunctionAsVisited(start);
+  pqueue->InsertJunctionAsVisited(end);
   if (sectTup != 0)
   {
     JListInt* adjSect = GetSectionListAdjSectionsUp(sectTup);
@@ -5346,9 +5970,77 @@ void JNetwork::WriteToReverseLists(PQManagement* pqueue,
                                    DbArray<PairIntDouble>* result,
                                    JPQEntry& junc)
 {
-  pqueue->InsertJunctionAsVisited(junc);
   PairIntDouble curPair(junc.GetEndPartJID(), junc.GetDistFromStartPoint());
   result->Append(curPair);
+  WriteToReverseLists(pqueue, junc);
+}
+
+void JNetwork::WriteToReverseLists(PQManagement* pqueue, JLine* result,
+                                   JPQEntry& junc, const double distLimit,
+                                   const jnetwork::RouteLocation& src,
+                                   const bool up, const Direction* sectDir)
+{
+  JRouteInterval tmp(false);
+  Direction compD(Down);
+  int test = sectDir->Compare(compD);
+  double distcorrection = distLimit;
+  if (distLimit >= junc.GetDistStartToStartJID())
+  {
+    distcorrection = junc.GetDistStartToStartJID();
+  }
+  if (up)
+  {
+    if (test < 0)
+    {
+      tmp = JRouteInterval(src.GetRouteId(),
+                           src.GetPosition()- distcorrection,
+                           src.GetPosition(),
+                           (Direction) Up);
+    }
+    else if (test > 0)
+    {
+      tmp = JRouteInterval(src.GetRouteId(),
+                           src.GetPosition()- distcorrection,
+                           src.GetPosition(),
+                          (Direction) Both);
+    }
+  }
+  else
+  {
+    if (test == 0)
+    {
+      tmp = JRouteInterval(src.GetRouteId(), src.GetPosition(),
+                           src.GetPosition() + distcorrection,
+                           (Direction) Down);
+    }
+    else if ( test > 0)
+    {
+      tmp = JRouteInterval(src.GetRouteId(), src.GetPosition(),
+                           src.GetPosition() + distcorrection,
+                           (Direction) Both);
+    }
+  }
+  if (tmp.IsDefined() && tmp.GetLength() > 0.0)
+    result->Add(tmp);
+  pqueue->InsertJunctionAsVisited(junc);
+  Tuple* juncTup = GetJunctionTupleWithId(junc.GetEndPartJID());
+  if (juncTup != NULL)
+  {
+    JListInt* adjSect = GetJunctionInSectionList(juncTup);
+    if (adjSect != NULL)
+    {
+      AddReverseAdjacentSections(pqueue, adjSect, junc, result, distLimit);
+      adjSect->Destroy();
+      adjSect->DeleteIfAllowed();
+    }
+    juncTup->DeleteIfAllowed();
+  }
+}
+
+
+void JNetwork::WriteToReverseLists(PQManagement* pqueue, JPQEntry& junc)
+{
+  pqueue->InsertJunctionAsVisited(junc);
   Tuple* juncTup = GetJunctionTupleWithId(junc.GetEndPartJID());
   if (juncTup != NULL)
   {
@@ -5368,12 +6060,94 @@ void JNetwork::WriteToReverseLists(PQManagement* pqueue,
                                    JPQEntry& start, JPQEntry& end,
                                    const Tuple* sectTup)
 {
-  pqueue->InsertJunctionAsVisited(start);
-  pqueue->InsertJunctionAsVisited(end);
   PairIntDouble startPair(start.GetEndPartJID(), start.GetDistFromStartPoint());
   result->Append(startPair);
   PairIntDouble endPair(end.GetEndPartJID(), end.GetDistFromStartPoint());
   result->Append(endPair);
+  WriteToReverseLists(pqueue, start, end, sectTup);
+}
+
+void JNetwork::WriteToReverseLists(PQManagement* pqueue, JLine* result,
+                                   JPQEntry& start, JPQEntry& end,
+                                   const Tuple* sectTup, const double distLimit,
+                                   const jnetwork::RouteLocation& src,
+                                   const Direction* sectDir)
+{
+  JRouteInterval tmp(false);
+  Direction compD(Down);
+  int test = sectDir->Compare(compD);
+  double distCorrection = distLimit;
+  if (distLimit >= start.GetDistStartToStartJID())
+  {
+    distCorrection = start.GetDistStartToStartJID();
+  }
+  if (test < 0)
+  {
+    tmp = JRouteInterval(src.GetRouteId(),
+                         src.GetPosition() - distCorrection,
+                         src.GetPosition(),
+                         (Direction) Up);
+  }
+  else if (test > 0)
+  {
+    tmp = JRouteInterval(src.GetRouteId(),
+                         src.GetPosition() - distCorrection,
+                         src.GetPosition(),
+                        (Direction) Both);
+  }
+  if (tmp.IsDefined() && tmp.GetLength() > 0.0)
+  {
+    result->Add(tmp);
+    tmp.SetDefined(false);
+  }
+  distCorrection = distLimit;
+  if (distLimit >= end.GetDistStartToStartJID())
+  {
+    distCorrection = end.GetDistStartToStartJID();
+  }
+  if (test == 0)
+  {
+    tmp = JRouteInterval(src.GetRouteId(), src.GetPosition(),
+                         src.GetPosition() + distCorrection,
+                         (Direction) Down);
+  }
+  else if (test > 0)
+  {
+    tmp = JRouteInterval(src.GetRouteId(), src.GetPosition(),
+                         src.GetPosition() + distCorrection,
+                        (Direction) Both);
+  }
+  if (tmp.IsDefined() && tmp.GetLength() > 0.0)
+    result->Add(tmp);
+  pqueue->InsertJunctionAsVisited(start);
+  pqueue->InsertJunctionAsVisited(end);
+  if (sectTup != 0)
+  {
+    JListInt* adjSect = GetSectionListReverseAdjSectionsUp(sectTup);
+    if (adjSect != NULL)
+    {
+      AddReverseAdjacentSections(pqueue, adjSect, start, result, distLimit);
+      adjSect->Destroy();
+      adjSect->DeleteIfAllowed();
+      adjSect = 0;
+    }
+    adjSect = GetSectionListReverseAdjSectionsDown(sectTup);
+    if (adjSect != NULL)
+    {
+      AddReverseAdjacentSections(pqueue, adjSect, end, result, distLimit);
+      adjSect->Destroy();
+      adjSect->DeleteIfAllowed();
+      adjSect = 0;
+    }
+  }
+}
+
+
+void JNetwork::WriteToReverseLists(PQManagement* pqueue, JPQEntry& start,
+                                   JPQEntry& end, const Tuple* sectTup)
+{
+  pqueue->InsertJunctionAsVisited(start);
+  pqueue->InsertJunctionAsVisited(end);
   if (sectTup != 0)
   {
     JListInt* adjSect = GetSectionListReverseAdjSectionsUp(sectTup);

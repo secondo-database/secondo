@@ -1141,7 +1141,7 @@ void JLine::Sort()
 
 */
 
-void JLine::Append(const JLine* other)
+void JLine::Add(const JLine* other)
 {
   assert(activBulkload);
   JRouteInterval curInt;
