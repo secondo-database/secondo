@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2013, University in Hagen, Department of Computer Science, 
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -38,6 +38,7 @@ all: $(OBJECTS) $(LIBOBJ)
 	make -C it
 	make -C mt
 	make -C Operators
+	make -C Properties
 	make -C t
 	make -C Tests
 	make -C UniqueStringArray
@@ -58,6 +59,7 @@ clean:
 	make -C it clean
 	make -C mt clean
 	make -C Operators clean
+	make -C Properties clean
 	make -C t clean
 	make -C Tests clean
 	make -C UniqueStringArray clean
