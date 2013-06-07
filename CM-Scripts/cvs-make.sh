@@ -47,7 +47,7 @@ opt_logRoot="/var/tmp/cvs-make"
 
 opt_waitMax=900
 opt_tarFile="none"
-opt_tarMail="Thomas.Behr@Fernuni-Hagen.de Simone.Jandt@Fernuni-Hagen.de"
+opt_tarMail="Thomas.Behr@Fernuni-Hagen.de Fabio.Valdes@fernuni-hagen.de"
 
 opt_runTests="yes"
 opt_mkStable="yes"
@@ -55,9 +55,9 @@ opt_earlyExit="no"
 
 # options for automatic mails  
 LU_SENDMAIL="true"
-LU_SENDMAIL_FROM="simone.jandt@fernuni-hagen.de"
-failedBuild_DefaultRecipients="Thomas.Behr@Fernuni-Hagen.de Fabio.Valdes@Fernuni-Hagen.de Christian.Duentgen@Fernuni-Hagen.de Simone.Jandt@Fernuni-Hagen.de"
-newTarFile_MailRecipients="Simone.Jandt@Fernuni-Hagen.de"
+LU_SENDMAIL_FROM="fabio.valdes@fernuni-hagen.de"
+failedBuild_DefaultRecipients="Thomas.Behr@Fernuni-Hagen.de Fabio.Valdes@Fernuni-Hagen.de Christian.Duentgen@Fernuni-Hagen.de"
+newTarFile_MailRecipients="fabio.valdes@fernuni-Hagen.de"
 
 LU_LOG_SCREEN="true"
 

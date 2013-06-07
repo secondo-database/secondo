@@ -3,17 +3,18 @@
 \usepackage[utf8x]{inputenc}
 \usepackage[ngerman]{babel}
 \usepackage{tabularx}
+\usepackage{tabu}
 \usepackage{longtable}
 \usepackage{graphicx}
 \usepackage{color}
 \usepackage{colortbl}
 \begin{document}
 \section{CVS-Zug\"ange f\"ur Studenten, Stand: \today}
-\begin{longtable}{|l|l|l|l|l|l|l|l|}
+\begin{longtabu}to 1\textwidth{|l|l|l|l|l|X|l|l|}
   \hline \hline
 \textbf{Linux-User}        &\textbf{CVS-User}        &\textbf{Student}&\textbf{E-Mail}   &\textbf{Verzeichnis}            &\textbf{von}&\textbf{bis}\\
 \hline
-\hline
+\hline\endhead
 \rowcolor{yellow}\cellcolor{green}diplomand1 &rentergent&Lisa Rentergent &lisa@rentergent.de&Javagui/viewer/queryconstruction&16.4.12     &\\
 \cline{2-7}
 \cellcolor{green}           &uchdorf                  &Thomas Uchdorf  &                  &Algebras/OSM                    &8.2.11      &5.3.12\\
@@ -116,5 +117,5 @@
 \cellcolor{green}diplomand20&                          &                   &                          &                        &         &\\
 \hline
 \hline
-\end{longtable}
+\end{longtabu}
 \end{document}

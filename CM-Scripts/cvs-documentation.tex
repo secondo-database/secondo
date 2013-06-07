@@ -1,0 +1,151 @@
+\documentclass[a4paper, 10pt]{article}
+\usepackage[left=2cm, right=2cm]{geometry}
+\usepackage[utf8x]{inputenc}
+\usepackage[ngerman]{babel}
+
+\newcommand{\file}[1]{\texttt{#1}}
+
+\title{CVS Installation und Konfiguration}
+\author{Markus Spiekermann, Simone Jandt}
+\date{\today}
+\begin{document}
+  \maketitle
+\section{CVS-Konfiguration auf Server f\"ur Zugriff von au\ss{}erhalb}
+Damit CVS-Clients von entfernten Rechnern aus eine Verbindung herstellen
+k\"onnen ist \"uber den Benutzer \file{root} auf Zeppelin der Internet-D\"amon
+\file{xinet} f\"ur CVS konfiguriert worden. Wenn dieser Dienst nicht l\"auft,
+kann CVS nur von Benutzern, die sich auf dem Server einloggen k\"onnen
+benutzt werden.
+
+Die \file{xinet}-Konfiguration ist in der Datei \file{/etc/xinet.d/cvs} definiert.
+
+\begin{verbatim}
+service cvspserver
+{
+  socket_type  = stream
+  protocol     = tcp
+  wait         = no
+  user         = root
+  server       = /usr/bin/cvs
+  server_args  = -f --allow-root=/home/cvsroot pserver
+}
+\end{verbatim}
+
+\section{CVS-Server des Lehrgebiets}
+CVS-Server laufen im Moment auf Zeppelin (Standard) und im wesentlichen f\"ur
+das Fachpraktikum genutzt auf Agnesi. Die Verwaltung ist im wesentlichen analog.
+Allerdings heisst der Linuxbenutzer hier nicht \file{spieker} sondern \file{cvsadmin}.
+Die Kennworte der beiden User sind bis auf die Gro\ss{}- und Kleinschreibung identisch.
+
+\section{Wichtige Verzeichnisse f\"ur CVS-Verwaltung auf Zeppelin}
+Auf Zeppelin gibt es das Verzeichnis \file{/cvsroot}
+unterhalb dieses Verzeichnisses befinden sich die verschiedenen Repositories im
+CVS-System, wie z.B. \file{secondo} und \file{secondo-documents}. Au\ss{}erdem
+befindet sich dort das Unterverzeichnis \file{CVSROOT}, dass die eigentlichen
+Verwaltungsdateien der CVS-Installation enth\"alt.
+
+Die Skripte die \"uber die Eintr\"age in den Verwaltungsdateien bzw. die
+Cron Jobs des Benutzers \file{spieker} aufgerufen werden befinden sich im
+Verzeichnis \file{/home/spieker/cvs-snapshot/CM-Scripts}.
+
+Die Schreibberechtigung f\"ur die Verwaltungs- und Skript-Dateien l\"auft  zur
+Zeit \"uber den Linuxbenutzer \file{spieker}.
+
+\section{CVS-Userverwaltung}
+Im Verzeichnis \file{CVSROOT} gibt es folgende f\"ur die Verwaltung besonders wichtige Dateien:
+\begin{itemize}
+  \item \file{passwd} : Zuordnung CVS-Benutzernamen, Passwort, Linux-User
+  \item \file{user} : Zuordnung CVS-Benutzername, E-Mailadresse
+  \item \file{readers} : CVS-User die nur lesen d\"urfen
+\end{itemize}
+Jeder CVS-Benutzer wird einem Betriebsystembenutzer zugeordnet. In der Datei
+\file{readers} k\"onnen Benutzer festgelegt werden, denen nur lesender Zugriff
+auf die Repositories gestattet werden soll.
+
+Dass Passwort f\"ur einen neuen Benutzer wird in der Passwortdatei in
+verschl\"usselter Form hinterlegt. Die Verschl\"usselung kann durch Aufruf
+des Perl-Scripts \file{CM-Scripts/cvspass.pl <passwort>} erfolgen. CVS-Benutzer
+k\"onnen nicht selbst\"andig Ihr Passwort \"andern. Falls Sie es vergessen
+muss ein neues definiert werden.
+
+Schreibberechtigungen auf der Ebene einzelner Dateien oder Verzeichnisse,
+insbesondere f\"ur Abschlussarbeiten von Studenten, werden durch die
+Berechtigungskonzepte des Betriebssystems realisiert.
+
+Uneingeschr\"ankt schreibberechtigte Benutzer sind dem Linux-Benutzer \file{spieker},
+der den Gruppen \file{crew} und \file{cvs-crew} angeh\"ort zuzuordnen. F\"ur
+Studenten stehen die Linux-Benutzer \file{diplomand1} bis \file{diplomand20}
+zur Verf\"ugung. F\"ur $1 \leq X \leq 20$ sind die Benutzer jeweils der Gruppe
+\file{diplomandX} und \file{cvs-dipl} zugeordnet.
+
+Durch eine geeignete Zuordnung der CVS-Benutzer zu Linux-Benutzern sowie der
+Zuordnung von Owner- und Gruppenrechten auf Dateien und Verzeichnisse k\"onnen
+so beliebige Zugriffsbeschr\"ankungen auf Betriebsystemebene realisiert
+werden.
+
+Bei Abschlussarbeiten wird im Verzeichnis des Repositories \file{secondo} f\"ur
+das vom Studenten zu schreibende Algebraverzeichnis die Gruppenberechtigung auf
+\file{diplomandX} mittels \file{chgrp} ge\"andert. Ist die Abschlussarbeit beendet
+wird die Gruppenzuordnung wieder auf \file{cvs-crew} ge\"andert.
+
+F\"ur CVS-User ist zus\"atzlich auf Bassi in \file{/etc/mail/secondo-users.txt}
+ein Mailverteiler eingerichtet \"uber den alle \textsc{Secondo} CVS-User mit
+\file{secondo-users@bassi.fernuni-hagen.de}
+angemailt werden k\"onnen. Studenten mit Abschlussarbeit sind dort jeweils
+ein- bzw. auszutragen.
+
+Im Verzeichnis \file{secondo/CM-Scripts/} findet sich die Datei
+\file{studentuserlist.tex}, die ein \"Ubersicht \"uber die aktuelle und vergangene
+Zuordnung von Studenten zu diplomandX Usern und den jeweiligen Schreibverzeichnissen
+enth\"alt.
+
+F\"ur den Versand der Benutzerinformationen an Studenten gibt es im selben Verzeichnis
+eine Musterdatei \file{cvspass.odg}, die mit den jeweiligen Benutzerdaten
+anzupassen und dann jeweils in eine PDF zu verwandeln ist. Die PDF kann dann
+zusammen mit einer CVS-Kurzanleitung als Anhang einer E-Mail an den Studenten
+versandt werden.
+
+\section{Cron Jobs f\"ur CVS}
+Der Linux-Benutzer \file{spieker} hat einige cron-jobs definiert, die t\"aglich
+durchgef\"uhrt werden. Dazu werden einige Scripte die unter
+\file{/home/spieker/cvs-snapshot/CM-Scripts} liegen ausgef\"uhrt.
+Diese Scripte werden ebenfalls von CVS verwaltet.
+
+Die Cron Jobs versenden E-Mails mit Ihren Ergebnissen an spieker@zeppelin. Der
+CVS-Verwalter kann diese erhalten in dem er sein E-Mail-Adresse in
+\file{/home/spieker/.forward} eintr\"agt.
+
+Die aktuellen cron-jobs k\"onnen unter dem Benutzer \file{spieker} mit
+\file{crontab -l} abgefragt und mit \file{crontab -e} editiert werden.
+Erl\"auterung der Bedeutung der Eintr\"age zur Ausf\"uhrungszeit finden sich
+\"uber \file{man crontab} auf jedem Linuxsystem.
+
+Zur Zeit findet 2mal t\"aglich eine \"Uberpr\"ufung des eingecheckten Secondo-Systems
+auf Funktionsf\"ahigkeit statt. Ausgecheckt wird jeweils der Stand um 4.30 Uhr bzw.
+12 Uhr. Gepr\"uft wird die aktuelle Version dann mit dem Skript \file{cvs-make.sh}
+im Verzeichns \file{/home/spieker/cvs-snapshot/CM-Scripts/cvs-make.sh}. Dieses
+Skript \"Ubersetzt den Quellcode sofern seit dem letzten Lauf des Skriptes
+\"Anderungen ins CVS \"ubertragen wurden. Und kontrolliert die Lauff\"ahigkeit
+des aktuellen Systems \"uber die in Secondo hinterlegten Selbsttests und Testfalldateien.
+Aufgetretene Fehler werden protokolliert und den Personen, die zuletzt
+\"Anderungen am Quellcode gemacht haben per E-mail zugesendet zus\"atzlich
+werden die Protokolle unter \file{/var/tmp/cvs-make} archiviert.
+
+Andere Cron Jobs dienen der kontrolle der korrekten Zugriffsberechtigungen f\"ur
+neu eingecheckte Dateien. Hierzu gibt es noch zus\"atzliche Cron Jobs des Benutzers
+\file{root}, die dem Benutzer \file{spieker} entsprechende Dateirechte zuweisen.
+
+\section{Commit-Check}
+Die \"Uberpr\"ufung der Dateien beim \file{cvs commit} wird \"uber das Skript
+\file{citest.sh} im Verzeichnis \file{/home/spieker/cvs-snapshot/CM-Scripts}
+gesteuert. In dieser Datei ist, wenn Dateien gr\"o\ss{}er als
+700 KB eingecheckt werden sollen, die Zeile (95) mit der Gr\"o\ss{}en\"uberpr\"ufung
+tempor\"ar entsprechend zu\"andern.
+
+\section{Sicherungen}
+Sicherungen werden \"uber den Backup-Service des ZMI durchgef\"uhrt. Dazu
+wurde ein Tivoli Backup-Client auf dem Server installiert, der das Verzeichnis
+\file{/cvsroot} sichert.
+
+Ansprechpartner f\"ur Backups: Thomas Behr
+\end{document}
