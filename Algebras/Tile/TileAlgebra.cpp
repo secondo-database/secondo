@@ -52,12 +52,12 @@ includes for TileAlgebra operators
 
 */
 
-#include "Operators/load.h"
-// #include "Operators/getgrid.h"
-#include "Operators/minimum.h"
-#include "Operators/maximum.h"
-#include "Operators/inst.h"
-#include "Operators/val.h"
+#include "operators/load.h"
+// #include "operators/getgrid.h"
+#include "operators/minimum.h"
+#include "operators/maximum.h"
+#include "operators/inst.h"
+#include "operators/val.h"
 
 /*
 extern declarations
