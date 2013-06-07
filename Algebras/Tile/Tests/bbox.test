@@ -1,0 +1,61 @@
+#
+# Tests for the inst operator of the TileAlgebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup TileAlgebraTest
+
+create database TileAlgebraTest;
+open database TileAlgebraTest;
+
+let tint1 = ([const tint value ((1.1 2.2 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (957 958 959 960)))]);
+let treal1 = ([const treal value ((-12.0 -12.0 1.0) (2 2) (1 1 (1.2 5.3 3.12 4.23)) (4 4 (undefined -1.2 -2.0 1.0)))]);
+let tbool1 = ([const tbool value (((2.0 2.0 1.0) (2 2) (1 1 (TRUE TRUE FALSE FALSE)) (4 4 (undefined TRUE TRUE undefined)))]);
+let tstring1 = ([const tstring value ((0.0 0.0 1.0) (2 2) (13 13 ("zero" "one" "two" "three")))]);
+let mtint1 = ([const mtint value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0 1 2 3)) (8 8 9 (996 997 998 999)))]);
+let mtreal1 = ([const mtreal value ((0.0 0.0 1.0 30.12000) (2 1 2) (1 1 1 (1.2 5.3 3.12 4.23)) (4 4 4 (undefined -3.2 -2.0 12.0)))]);
+let mtbool1 = ([const mtbool value ((0.0 0.0 1.0 5.0) (1 2 2) (1 1 1 (TRUE TRUE FALSE FALSE)) (4 4 4 (undefined TRUE TRUE undefined)))]);
+let mtstring1 = ([const msstring value ((0.0 0.0 1.0 2.0) (2 1 2) (1 1 1 ("one" "two" "one" "three")))]);
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#testcase query bbox for type tint
+#yields (rect (1.1 32.1 2.2 33.2))
+query bbox(tint1);
+
+#testcase query bbox for type treal
+#yields (rect (-11.0 -6.0 -11.0 -6.0))
+query bbox(treal1);
+
+#testcase query bbox for type tbool
+#yields (rect (3.0 8.0 3.0 8.0))
+query bbox(tbool1);
+
+#testcase query bbox for type tstring
+#yields (rect (13.0 15.0 13.0 15.0))
+query bbox(tstring1);
+
+#testcase query bbox for mtint
+#yields (rect3 (0.0 9.0 0.0 9.0 0.0 9.0))
+query bbox(mtint1);
+
+#testcase query bbox for mtreal
+#yields (rect3 (1.0 6.0 1.0 5.0 30.12 180.72))
+query bbox(mtreal1);
+
+#testcase query bbox for mtbool
+#yields (rect3 (1.0 5.0 1.0 6.0 5.0 30.0))
+query bbox(mtbool1);
+
+#testcase query bbox for type mtstring
+#yields (rect3 (1.0 3.0 1.0 2.0 2.0 6.0))
+query bbox(mtstring);
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
