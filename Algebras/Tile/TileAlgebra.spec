@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science,
+#Copyright (C) 2013, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -18,3 +18,7 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator load alias LOAD pattern op(_)
+operator minimum alias MINIMUM pattern op(_)
+operator maximum alias MAXIMUM pattern op(_)
+operator inst alias INST pattern op(_)
+operator val alias VAL pattern op(_)
