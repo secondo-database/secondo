@@ -53,31 +53,31 @@ query [const tintArray value "Foo"];
 # Invalid Grid Lists                   #
 ########################################
 
-#testcase Parse tintArray with grid2 List too short
+#testcase Parse tintArray with tgrid List too short
 #yields error
 query [const tintArray value ((0.0 1.0) (2 2) (0 0 (0 0 0 0)))];
 
-#testcase Parse tintArray with grid2 List too long
+#testcase Parse tintArray with tgrid List too long
 #yields error
 query [const tintArray value ((0.0 0.0 1.0 1.0) (2 2) (0 0 (0 0 0 0)))];
 
-#testcase Parse tintArray with grid2 List of zero Grid Length
+#testcase Parse tintArray with tgrid List of zero Grid Length
 #yields error
 query [const tintArray value ((0.0 0.0 0.0) (2 2) (0 0 (0 0 0 0)))];
 
-#testcase Parse tintArray with grid2 List of negative Grid Length
+#testcase Parse tintArray with tgrid List of negative Grid Length
 #yields error
 query [const tintArray value ((0.0 0.0 -1.0) (2 2) (0 0 (0 0 0 0)))];
 
-#testcase Parse tintArray with Type Mismatch in grid2 X-Origin 
+#testcase Parse tintArray with Type Mismatch in tgrid X-Origin 
 #yields error
 query [const tintArray value ((undefined 0.0 1.0) (2 2) (0 0 (0 0 0 0)))];
 
-#testcase Parse tintArray with Type Mismatch in grid2 Y-Origin
+#testcase Parse tintArray with Type Mismatch in tgrid Y-Origin
 #yields error
 query [const tintArray value ((0.0 undefined 1.0) (2 2) (0 0 (0 0 0 0)))];
 
-#testcase Parse tintArray with Type Mismatch in grid2 Length
+#testcase Parse tintArray with Type Mismatch in tgrid Length
 #yields error
 query [const tintArray value ((0.0 0.0 undefined) (2 2) (0 0 (0 0 0 0)))];
 
