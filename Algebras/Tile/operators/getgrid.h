@@ -64,7 +64,7 @@ struct getgridInfo : OperatorInfo
     signature = "tT -> tgrid";
     appendSignature("mtT -> mtgrid");
     syntax    = "getgrid(_)";
-    meaning   = "Returns the grid of a t or mt type.";
+    meaning   = "Returns the grid of a t type or a mt type.";
   }
 };
 
