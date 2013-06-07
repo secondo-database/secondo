@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2011, University in Hagen, Department of Computer Science,
+Copyright (C) 2013, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 	  
 SECONDO is free software; you can redistribute it and/or modify
@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "Attribute.h"
 #include "../Constants.h"
-#include "../grid/grid2.h"
+#include "../grid/tgrid.h"
 
 namespace TileAlgebra
 {
@@ -125,7 +125,7 @@ class tintArray : public Attribute
    
   */
 
-  grid2 m_Grid;
+  tgrid m_Grid;
   int m_Array[961];
 };
 
