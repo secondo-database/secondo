@@ -1,0 +1,109 @@
+#
+# Tests for the mtgrid type of the TileAlgebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup TileAlgebraTest
+
+create database TileAlgebraTest;
+open database TileAlgebraTest;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# mtgrid Objects                       #
+########################################
+
+###
+# Valid mtgrid Objects
+###
+
+#testcase Parse mtgrid
+#yields (mtgrid (1.2 3.4 5.6 (duration (1 0))))
+query [const mtgrid value (1.2 3.4 5.6 (duration (1 0)))];
+
+###
+# Invalid mtgrid Objects
+###
+
+#
+# mtgrid Objects with wrong List Type
+#
+
+#testcase Parse mtgrid from Atom
+#yields error
+query [const mtgrid value "Foo"];
+
+#
+# mtgrid Objects with wrong Length Value
+#
+
+#testcase Parse mtgrid with zero Length
+#yields error
+query [const mtgrid value (1.2 3.4 0.0 (duration (1 0)))];
+
+#testcase Parse mtgrid with negative Length
+#yields error
+query [const mtgrid value (1.2 3.4 -10.0 (duration (1 0)))];
+
+#
+# mtgrid Objects with undefined Values
+#
+
+#testcase Parse mtgrid with undefined Values (1)
+#yields error
+query [const mtgrid value (undefined 3.4 5.6 (duration (1 0)))];
+
+#testcase Parse mtgrid with undefined Values (2)
+#yields error
+query [const mtgrid value (1.2 undefined 5.6 (duration (1 0)))];
+
+#testcase Parse mtgrid with undefined Values (3)
+#yields error
+query [const mtgrid value (1.2 3.4 undefined (duration (1 0)))];
+
+#testcase Parse mtgrid with undefined Values (4)
+#yields error
+query [const mtgrid value (1.2 3.4 5.6 undefined)];
+
+#
+# mtgrid Objects with Type Errors
+#
+
+#testcase Parse mtgrid with Type Error (1)
+#yields error
+query [const mtgrid value ("Foo" 3.4 5.6 (duration (1 0)))];
+
+#testcase Parse mtgrid with Type Error (2)
+#yields error
+query [const mtgrid value (1.2 "Foo" 5.6 (duration (1 0)))];
+
+#testcase Parse mtgrid with Type Error (3)
+#yields error
+query [const mtgrid value (1.2 3.4 "Foo" (duration (1 0)))];
+
+#testcase Parse mtgrid with Type Error (4)
+#yields error
+query [const mtgrid value (1.2 3.4 5.6 "Foo")];
+
+#
+# mtgrid Objects with wrong List Length
+#
+
+#testcase Parse mtgrid with short List
+#yields error
+query [const mtgrid value (1.2 3.4 5.6)];
+
+#testcase Parse mtgrid with long List
+#yields error
+query [const mtgrid value (1.2 3.4 5.6 (duration (1 0)) (duration (1 0)))];
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+
