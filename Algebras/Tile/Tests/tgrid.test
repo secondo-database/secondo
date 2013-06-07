@@ -1,0 +1,100 @@
+#
+# Tests for the tgrid type of the TileAlgebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup TileAlgebraTest
+
+create database TileAlgebraTest;
+open database TileAlgebraTest;
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+########################################
+# tgrid Objects                        #
+########################################
+
+###
+# Valid tgrid Objects
+###
+
+#testcase Parse tgrid
+#yields (tgrid (1.2 3.4 5.6))
+query [const tgrid value (1.2 3.4 5.6)];
+
+###
+# Invalid tgrid Objects
+###
+
+#
+# tgrid Objects with wrong List Type
+#
+
+#testcase Parse tgrid from Atom
+#yields error
+query [const tgrid value "Foo"];
+
+#
+# tgrid Objects with wrong Length Value
+#
+
+#testcase Parse tgrid with zero Length
+#yields error
+query [const tgrid value (1.2 3.4 0.0)];
+
+#testcase Parse tgrid with negative Length
+#yields error
+query [const tgrid value (1.2 3.4 -10.0)];
+
+#
+# tgrid Objects with undefined Values
+#
+
+#testcase Parse tgrid with undefined Values (1)
+#yields error
+query [const tgrid value (undefined 3.4 5.6)];
+
+#testcase Parse tgrid with undefined Values (2)
+#yields error
+query [const tgrid value (1.2 undefined 5.6)];
+
+#testcase Parse tgrid with undefined Values (3)
+#yields error
+query [const tgrid value (1.2 3.4 undefined)];
+
+#
+# tgrid Objects with Type Errors
+#
+
+#testcase Parse tgrid with Type Error (1)
+#yields error
+query [const tgrid value ("Foo" 3.4 5.6)];
+
+#testcase Parse tgrid with Type Error (2)
+#yields error
+query [const tgrid value (1.2 "Foo" 5.6)];
+
+#testcase Parse tgrid with Type Error (3)
+#yields error
+query [const tgrid value (1.2 3.4 "Foo")];
+
+#
+# tgrid Objects with wrong List Length
+#
+
+#testcase Parse tgrid with short List
+#yields error
+query [const tgrid value (1.2 3.4)];
+
+#testcase Parse tgrid with long List
+#yields error
+query [const tgrid value (1.2 3.4 5.6 7.8)];
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
