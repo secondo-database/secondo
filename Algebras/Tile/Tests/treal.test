@@ -49,31 +49,31 @@ query [const treal value "Foo"];
 # Invalid Grid Lists                   #
 ########################################
 
-#testcase Parse treal with grid2 List too short
+#testcase Parse treal with tgrid List too short
 #yields error
 query [const treal value ((0.0 1.0) (2 2) (0 0 (0.0 0.0 0.0 0.0)))];
 
-#testcase Parse treal with grid2 List too long
+#testcase Parse treal with tgrid List too long
 #yields error
 query [const treal value ((0.0 0.0 1.0 1.0) (2 2) (0 0 (0.0 0.0 0.0 0.0)))];
 
-#testcase Parse treal with grid2 List of zero Grid Length
+#testcase Parse treal with tgrid List of zero Grid Length
 #yields error
 query [const treal value ((0.0 0.0 0.0) (2 2) (0 0 (0.0 0.0 0.0 0.0)))];
 
-#testcase Parse treal with grid2 List of negative Grid Length
+#testcase Parse treal with tgrid List of negative Grid Length
 #yields error
 query [const treal value ((0.0 0.0 -1.0) (2 2) (0 0 (0.0 0.0 0.0 0.0)))];
 
-#testcase Parse treal with Type Mismatch in grid2 X-Origin 
+#testcase Parse treal with Type Mismatch in tgrid X-Origin 
 #yields error
 query [const treal value ((undefined 0.0 1.0) (2 2) (0 0 (0.0 0.0 0.0 0.0)))];
 
-#testcase Parse treal with Type Mismatch in grid2 Y-Origin
+#testcase Parse treal with Type Mismatch in tgrid Y-Origin
 #yields error
 query [const treal value ((0.0 undefined 1.0) (2 2) (0 0 (0.0 0.0 0.0 0.0)))];
 
-#testcase Parse treal with Type Mismatch in grid2 Length
+#testcase Parse treal with Type Mismatch in tgrid Length
 #yields error
 query [const treal value ((0.0 0.0 undefined) (2 2) (0 0 (0.0 0.0 0.0 0.0)))];
 
