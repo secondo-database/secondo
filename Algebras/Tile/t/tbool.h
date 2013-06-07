@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "t.h"
 #include "tProperties.h"
 #include "../Properties/Propertiesbool.h"
+#include "RectangleAlgebra.h"
 
 namespace TileAlgebra
 {
@@ -48,6 +49,7 @@ class tProperties<char>
   public:
 
   typedef Properties<char> TypeProperties;
+  typedef Rectangle<2> bboxType;
   typedef tgrid gridType;
   typedef tbool tType;
   static int GetDimensionSize();
