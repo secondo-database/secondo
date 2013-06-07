@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2011, University in Hagen, Department of Computer Science,
+Copyright (C) 2013, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -25,10 +25,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "t.h"
 #include "tProperties.h"
-#include "../Constants.h"
+#include "../Properties/Propertiesbool.h"
 
 namespace TileAlgebra
 {
+
 /*
 typedef of tbool type
 
@@ -46,92 +47,14 @@ class tProperties<char>
 {
   public:
 
-  typedef tbool ImplementationType;
+  typedef Properties<char> TypeProperties;
+  typedef tgrid gridType;
+  typedef tbool tType;
   static int GetDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();
-  static std::string GetTypeName(); 
-  static char GetUndefinedValue();
-  static char GetValue(const NList& rNList);
-  static bool IsUndefinedValue(const char& rchar);
-  static bool IsValidValueType(const NList& rNList);
-  static NList ToNList(const char& rchar);
+  static std::string GetTypeName();
 };
-
-/*
-implementation of template class tProperties<char>
-
-*/
-
-int tProperties<char>::GetDimensionSize()
-{
-  int dimensionSize = static_cast<unsigned int>
-                      (std::sqrt((WinUnix::getPageSize() - sizeof(grid2)) /
-                       sizeof(char)));
-
-  return dimensionSize;
-}
-
-int tProperties<char>::GetFlobElements()
-{
-  int nFlobElements = static_cast<unsigned int>
-                      (std::pow(GetDimensionSize(), 2));
-
-  return nFlobElements;
-}
-
-SmiSize tProperties<char>::GetFlobSize()
-{
-  SmiSize flobSize = GetFlobElements() * sizeof(char);
-
-  return flobSize;
-}
-
-std::string tProperties<char>::GetTypeName()
-{
-  return TYPE_NAME_TBOOL;
-}
-
-char tProperties<char>::GetUndefinedValue()
-{
-  return UNDEFINED_BOOL;
-}
-
-char tProperties<char>::GetValue(const NList& rNList)
-{
-  return rNList.boolval();
-}
-
-bool tProperties<char>::IsUndefinedValue(const char& rchar)
-{
-  bool bUndefinedValue = false;
-  
-  if(rchar == GetUndefinedValue())
-  {
-    bUndefinedValue = true;
-  }
-
-  return bUndefinedValue;
-}
-
-bool tProperties<char>::IsValidValueType(const NList& rNList)
-{
-  bool bValidValueType = rNList.isBool();
-
-  return bValidValueType;
-}
-
-NList tProperties<char>::ToNList(const char& rchar)
-{
-  NList nList = NList(Symbol::UNDEFINED());
-
-  if(IsUndefinedValue(rchar) == false)
-  {
-    nList = NList(bool(rchar), true);
-  }
-
-  return nList;
-}
 
 }
 
