@@ -20,41 +20,47 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef TILEALGEBRA_TREAL_H
-#define TILEALGEBRA_TREAL_H
-
-#include "t.h"
-#include "tProperties.h"
-#include "../Properties/Propertiesreal.h"
+#include "treal.h"
 
 namespace TileAlgebra
 {
+
 /*
-typedef of treal type
+implementation of template class tProperties<double>
 
 */
 
-typedef t<double> treal;
-
-/*
-declaration of template class tProperties<double>
-
-*/
-
-template <>
-class tProperties<double>
+int tProperties<double>::GetDimensionSize()
 {
-  public:
+  int dimensionSize = static_cast<unsigned int>
+                      (std::pow((WinUnix::getPageSize() -
+                                 sizeof(tgrid) -
+                                 2 * sizeof(double)) /
+                                 sizeof(double),
+                                 0.5)
+                      );
 
-  typedef Properties<double> TypeProperties;
-  typedef tgrid gridType;
-  typedef treal tType;
-  static int GetDimensionSize();
-  static int GetFlobElements();
-  static SmiSize GetFlobSize();
-  static std::string GetTypeName(); 
-};
-
+  return dimensionSize;
 }
 
-#endif // TILEALGEBRA_TREAL_H
+int tProperties<double>::GetFlobElements()
+{
+  int nFlobElements = static_cast<unsigned int>
+                      (std::pow(GetDimensionSize(), 2));
+
+  return nFlobElements;
+}
+
+SmiSize tProperties<double>::GetFlobSize()
+{
+  SmiSize flobSize = GetFlobElements() * sizeof(double);
+
+  return flobSize;
+}
+
+std::string tProperties<double>::GetTypeName()
+{
+  return TYPE_NAME_TREAL;
+}
+
+}
