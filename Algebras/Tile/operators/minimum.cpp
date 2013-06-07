@@ -98,7 +98,7 @@ definition of minimum type mapping function
 
 ListExpr minimumTypeMapping(ListExpr arguments)
 {
-  ListExpr type = NList::typeError("Expecting a t or a mt type.");
+  ListExpr type = NList::typeError("Expecting a t type or a mt type.");
 
   NList argumentsList(arguments);
   NList argument1 = argumentsList.first();

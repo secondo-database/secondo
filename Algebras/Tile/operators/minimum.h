@@ -64,7 +64,7 @@ struct minimumInfo : OperatorInfo
     signature = "tT -> T";
     appendSignature("mtT -> T");
     syntax    = "minimum(_)";
-    meaning   = "Returns the minimum value of a t or a mt type.";
+    meaning   = "Returns the minimum value of a t type or a mt type.";
   }
 };
 
