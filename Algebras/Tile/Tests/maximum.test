@@ -1,0 +1,97 @@
+#
+# Tests for the maximum operator of the TileAlgebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup TileAlgebraTest
+
+create database TileAlgebraTest;
+open database TileAlgebraTest;
+
+let tint1 = ([const tint value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (957 958 959 960)))]);
+let treal1 = ([const treal value ((0.0 0.0 1.0) (2 2) (0 0 (0.0 1.0 2.0 3.0)) (20 20 (480.0 481.0 482.0 483.0)))]);
+let tbool1 = ([const tbool value ((0.0 0.0 1.0) (2 2) (0 0 (FALSE TRUE TRUE FALSE)) (61 61 (FALSE TRUE TRUE FALSE)))]);
+let tstring1 = ([const tstring value ((0.0 0.0 1.0) (2 2) (0 0 ("zero" "one" "two" "three")) (29 29 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty")))]);
+let mtint1 = ([const mtint value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0 1 2 3)) (8 8 9 (996 997 998 999)))]);
+let mtreal1 = ([const mtreal value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0.0 1.0 2.0 3.0)) (4 4 5 (339.0 340.0 341.0 342.0)))]);
+let mtbool1 = ([const mtbool value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (FALSE TRUE TRUE FALSE)) (13 13 14 (FALSE TRUE TRUE FALSE)))]);
+let mtstring1 = ([const mtstring value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 ("zero" "one" "two" "three")) (8 8 9 ("nine hundred ninety six" "nine hundred ninety seven" "nine hundred ninety eight" "nine hundred ninety nine")))]);
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#testcase query maximum for type tint
+#yields (int 960)
+query maximum(tint1)
+
+#testcase query maximum for type treal
+#yields (real 483.0)
+query maximum(treal1)
+
+#testcase query maximum for type tbool
+#yields (bool TRUE)
+query maximum(tbool1);
+
+#testcase query maximum for type tstring
+#yields (string "zero")
+query maximum(tstring1);
+
+#testcase query maximum for type mtint
+#yields (int 999)
+query maximum(mtint1)
+
+#testcase query maximum for type mtreal
+#yields (real 342.0)
+query maximum(mtreal1)
+
+#testcase query maximum for type mtbool
+#yields (bool TRUE)
+query maximum(mtbool1);
+
+#testcase query maximum for type mtstring
+#yields (string "zero")
+query maximum(mtstring1);
+
+#
+# Empty objects
+#
+
+#testcase query maximum for empty type tint
+#yields (int undefined)
+query maximum([const tint value ((0.0 0.0 1.0))])
+
+#testcase query maximum for empty type treal
+#yields (real undefined)
+query maximum([const treal value ((0.0 0.0 1.0))])
+
+#testcase query maximum for empty type tbool
+#yields (bool undefined)
+query maximum([const tbool value ((0.0 0.0 1.0))])
+
+#testcase query maximum for empty type tstring
+#yields (string undefined)
+query maximum([const tstring value ((0.0 0.0 1.0))])
+
+#testcase query maximum for empty type mtint
+#yields (int undefined)
+query maximum([const mtint value ((0.0 0.0 1.0 1.0))])
+
+#testcase query maximum for empty type mtreal
+#yields (real undefined)
+query maximum([const mtreal value ((0.0 0.0 1.0 1.0))])
+
+#testcase query maximum for empty type mtbool
+#yields (bool undefined)
+query maximum([const mtbool value ((0.0 0.0 1.0 1.0))])
+
+#testcase query maximum for empty type mtstring
+#yields (string undefined)
+query maximum([const mtstring value ((0.0 0.0 1.0 1.0))])
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
