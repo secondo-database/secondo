@@ -16,7 +16,7 @@ open database TileAlgebraTest;
 ################################################################################
 
 ########################################
-# Valid UniqueStringArray Objects      #
+# Valid uniquestringarray Objects      #
 ########################################
 
 #testcase uniquestringarray
