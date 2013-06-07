@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../grid/mtgrid.h"
 #include "../../Tools/Flob/Flob.h"
 #include "../Index.h"
+#include "RectangleAlgebra.h"
 
 namespace TileAlgebra
 {
@@ -74,10 +75,10 @@ class mt : public Attribute
 
   */
 
-  mtgrid GetGrid() const;
+  Rectangle<3> GetBoundingBox() const;
   Type GetMinimum() const;
   Type GetMaximum() const;
-  // Rectangle<3> GetBoundingBox() const;
+  mtgrid GetGrid() const;
 
   protected:
 
@@ -90,7 +91,7 @@ class mt : public Attribute
                const datetime::DateTime& rDuration);
   void SetMinimum(const Type& rValue);
   void SetMaximum(const Type& rValue);
-  Type GetValue(const Index<3>& rIndex);
+  Type GetValue(const Index<3>& rIndex) const;
   bool SetValue(const Index<3>& rIndex, const Type& rValue);
 
   public:
@@ -235,9 +236,205 @@ mt<Type, Properties>& mt<Type, Properties>::operator=
 }
 
 template <typename Type, typename Properties>
-mtgrid mt<Type, Properties>::GetGrid() const
+Rectangle<3> mt<Type, Properties>::GetBoundingBox() const
 {
-  return m_Grid;
+  Rectangle<3> boundingBox;
+
+  double minima[3] = { 0.0, 0.0, 0.0 };
+  double maxima[3] = { 0.0, 0.0, 0.0 };
+
+  int dimensionSize = Properties::GetDimensionSize();
+  Type value = Properties::TypeProperties::GetUndefinedValue();
+
+  for(int column = 0; column < dimensionSize; column++)
+  {
+    bool bbreak = false;
+
+    for(int row = 0; row < dimensionSize; row++)
+    {
+      for(int time = 0; time < dimensionSize; time++)
+      {
+        Index<3> indexes = (int[]){column, row, time};
+        value = GetValue(indexes);
+
+        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+        {
+          minima[0] = m_Grid.GetX() + column * m_Grid.GetLength();
+          bbreak = true;
+          break;
+        }
+      }
+
+      if(bbreak == true)
+      {
+        break;
+      }
+    }
+
+    if(bbreak == true)
+    {
+      break;
+    }
+  }
+
+  for(int column = dimensionSize - 1; column >= 0; column--)
+  {
+    bool bbreak = false;
+
+    for(int row = 0; row < dimensionSize; row++)
+    {
+      for(int time = 0; time < dimensionSize; time++)
+      {
+        Index<3> indexes = (int[]){column, row, time};
+        value = GetValue(indexes);
+
+        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+        {
+          maxima[0] = m_Grid.GetX() + (column + 1) * m_Grid.GetLength();
+          bbreak = true;
+          break;
+        }
+      }
+
+      if(bbreak == true)
+      {
+        break;
+      }
+    }
+
+    if(bbreak == true)
+    {
+      break;
+    }
+  }
+
+  for(int row = 0; row < dimensionSize; row++)
+  {
+    bool bbreak = false;
+
+    for(int column = 0; column < dimensionSize; column++)
+    {
+      for(int time = 0; time < dimensionSize; time++)
+      {
+        Index<3> indexes = (int[]){column, row, time};
+        value = GetValue(indexes);
+
+        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+        {
+          minima[1] = m_Grid.GetY() + row * m_Grid.GetLength();
+          bbreak = true;
+          break;
+        }
+      }
+
+      if(bbreak == true)
+      {
+        break;
+      }
+    }
+
+    if(bbreak == true)
+    {
+      break;
+    }
+  }
+
+  for(int row = dimensionSize - 1; row >= 0; row--)
+  {
+    bool bbreak = false;
+
+    for(int column = 0; column < dimensionSize; column++)
+    {
+      for(int time = 0; time < dimensionSize; time++)
+      {
+        Index<3> indexes = (int[]){column, row, time};
+        value = GetValue(indexes);
+
+        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+        {
+          maxima[1] = m_Grid.GetY() + (row + 1) * m_Grid.GetLength();
+          bbreak = true;
+          break;
+        }
+      }
+
+      if(bbreak == true)
+      {
+        break;
+      }
+    }
+
+    if(bbreak == true)
+    {
+      break;
+    }
+  }
+
+  for(int time = 0; time < dimensionSize; time++)
+  {
+    bool bbreak = false;
+
+    for(int column = 0; column < dimensionSize; column++)
+    {
+      for(int row = 0; row < dimensionSize; row++)
+      {
+        Index<3> indexes = (int[]){column, row, time};
+        value = GetValue(indexes);
+
+        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+        {
+          minima[2] = time * m_Grid.GetDuration().ToDouble();
+          bbreak = true;
+          break;
+        }
+      }
+
+      if(bbreak == true)
+      {
+        break;
+      }
+    }
+
+    if(bbreak == true)
+    {
+      break;
+    }
+  }
+
+  for(int time = dimensionSize - 1; time >= 0; time--)
+  {
+    bool bbreak = false;
+
+    for(int column = 0; column < dimensionSize; column++)
+    {
+      for(int row = 0; row < dimensionSize; row++)
+      {
+        Index<3> indexes = (int[]){column, row, time};
+        value = GetValue(indexes);
+
+        if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+        {
+          maxima[2] = (time + 1) * m_Grid.GetDuration().ToDouble();
+          bbreak = true;
+          break;
+        }
+      }
+
+      if(bbreak == true)
+      {
+        break;
+      }
+    }
+
+    if(bbreak == true)
+    {
+      break;
+    }
+  }
+
+  boundingBox.Set(true, minima, maxima);
+
+  return boundingBox;
 }
 
 template <typename Type, typename Properties>
@@ -252,14 +449,11 @@ Type mt<Type, Properties>::GetMaximum() const
   return m_Maximum;
 }
 
-/*
 template <typename Type, typename Properties>
-Rectangle<3> mt<Type, Properties>::GetBoundingBox() const
+mtgrid mt<Type, Properties>::GetGrid() const
 {
-
+  return m_Grid;
 }
-
-*/
 
 template <typename Type, typename Properties>
 bool mt<Type, Properties>::SetGrid(const double& rX,
@@ -291,7 +485,7 @@ void mt<Type, Properties>::SetMaximum(const Type& rValue)
 }
 
 template <typename Type, typename Properties>
-Type mt<Type, Properties>::GetValue(const Index<3>& rIndex)
+Type mt<Type, Properties>::GetValue(const Index<3>& rIndex) const
 {
   Type value = Properties::TypeProperties::GetUndefinedValue();
 
@@ -308,7 +502,7 @@ Type mt<Type, Properties>::GetValue(const Index<3>& rIndex)
     int flobIndex = rIndex[2] * dimensionSize * dimensionSize +
                     rIndex[1] * dimensionSize + rIndex[0];
 
-    bool bOK = m_Flob.read(reinterpret_cast<const char*>(&value),
+    bool bOK = m_Flob.read(reinterpret_cast<char*>(&value),
                            sizeof(Type),
                            flobIndex * sizeof(Type));
     assert(bOK);
