@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2011, University in Hagen, Department of Computer Science,
+Copyright (C) 2013, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -36,24 +36,14 @@ class tProperties
 {
   public:
 
-  typedef Type ImplementationType;
+  typedef Type TypeProperties;
+  typedef Type gridType;
+  typedef Type tType;
   static int GetDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();
-  static std::string GetTypeName(); 
-  static Type GetUndefinedValue();
-  static Type GetValue(const NList& rNList);
-  static bool IsUndefinedValue(const Type& rType);
-  static bool IsValidValueType(const NList& rNList);
-  static NList ToNList(const Type& rType);
+  static std::string GetTypeName();
 };
-
-/*
-implementation of template class tProperties
-
-*/
-
-
 
 }
 
