@@ -2,7 +2,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2011, University in Hagen, Department of Computer Science,
+Copyright (C) 2013, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -321,7 +321,7 @@ size_t UniqueStringArray::HashValue() const
   
   if(IsDefined())
   {
-    hashValue = (size_t)&m_StringData + (size_t)&m_StringFlob;
+    hashValue = reinterpret_cast<size_t>(this);
   }
   
   return hashValue;
