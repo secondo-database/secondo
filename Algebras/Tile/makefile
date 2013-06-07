@@ -37,7 +37,7 @@ all: $(OBJECTS) $(LIBOBJ)
 	make -C grid
 	make -C it
 	make -C mt
-	make -C Operators
+	make -C operators
 	make -C Properties
 	make -C t
 	make -C Tests
@@ -58,7 +58,7 @@ clean:
 	make -C grid clean
 	make -C it clean
 	make -C mt clean
-	make -C Operators clean
+	make -C operators clean
 	make -C Properties clean
 	make -C t clean
 	make -C Tests clean
