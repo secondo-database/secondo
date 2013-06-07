@@ -2,7 +2,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2011, University in Hagen, Department of Computer Science,
+Copyright (C) 2013, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -25,24 +25,24 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <limits>
 #include "WinUnix.h"
 #include "Constants.h"
-#include "grid/grid2.h"
+#include "grid/tgrid.h"
 
 namespace TileAlgebra
 {
 
 /*
-const type name for type Gridg
+const type name for type tgrid
 
 */
 
-const char* TYPE_NAME_GRID2 = "grid2";
+const char* TYPE_NAME_TGRID = "tgrid";
 
 /*
-const type name for type grid3
+const type name for type mtgrid
 
 */
 
-const char* TYPE_NAME_GRID3 = "grid3";
+const char* TYPE_NAME_MTGRID = "mtgrid";
 
 /*
 const type name for type uniquestringarray
@@ -177,11 +177,12 @@ const tintArray size
 
 const int TINTARRAY_SIZE = static_cast<unsigned int>
                            (std::pow
-                           (
-                            static_cast<unsigned int>
-                           (std::sqrt((WinUnix::getPageSize() -
-                            sizeof(grid2)) / sizeof(int))), 2
-                           )
+                             (static_cast<unsigned int>
+                             (std::pow((WinUnix::getPageSize() -
+                                        sizeof(tgrid)) /
+                                        sizeof(int),
+                                        0.5)),
+                             2)
                            );
 
 /*
@@ -190,7 +191,7 @@ const tintArray dimension size
 */
 
 const int TINTARRAY_DIMENSION_SIZE = static_cast<unsigned int>
-                                     (std::sqrt(TINTARRAY_SIZE));
+                                     (std::pow(TINTARRAY_SIZE, 0.5));
 
 /*
 const tintFlob elements
@@ -199,11 +200,12 @@ const tintFlob elements
 
 const int TINTFLOB_ELEMENTS = static_cast<unsigned int>
                               (std::pow
-                              (
-                               static_cast<unsigned int>
-                              (std::sqrt((WinUnix::getPageSize() -
-                               sizeof(grid2)) / sizeof(int))), 2
-                              )
+                                (static_cast<unsigned int>
+                                (std::pow((WinUnix::getPageSize() -
+                                           sizeof(tgrid)) /
+                                           sizeof(int),
+                                           0.5)),
+                                2)
                               );
 
 /*
@@ -219,6 +221,6 @@ const tintFlob dimension size
 */
 
 const int TINTFLOB_DIMENSION_SIZE = static_cast<unsigned int>
-                                    (std::sqrt(TINTFLOB_ELEMENTS));
+                                    (std::pow(TINTFLOB_ELEMENTS, 0.5));
 
 }

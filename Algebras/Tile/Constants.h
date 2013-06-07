@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2011, University in Hagen, Department of Computer Science,
+Copyright (C) 2013, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -29,18 +29,18 @@ namespace TileAlgebra
 {
 
 /*
-const type name for type grid2
+const type name for type tgrid
 
 */
 
-extern const char* TYPE_NAME_GRID2;
+extern const char* TYPE_NAME_TGRID;
 
 /*
-const type name for type grid3
+const type name for type mtgrid
 
 */
 
-extern const char* TYPE_NAME_GRID3;
+extern const char* TYPE_NAME_MTGRID;
 
 /*
 const type name for type uniquestringarray
