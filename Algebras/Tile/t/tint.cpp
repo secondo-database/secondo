@@ -20,41 +20,47 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-#ifndef TILEALGEBRA_TINT_H
-#define TILEALGEBRA_TINT_H
-
-#include "t.h"
-#include "tProperties.h"
-#include "../Properties/Propertiesint.h"
+#include "tint.h"
 
 namespace TileAlgebra
 {
+
 /*
-typedef of tint type
+implementation of template class tProperties<int>
 
 */
 
-typedef t<int> tint;
-
-/*
-declaration of template class tProperties<int>
-
-*/
-
-template <>
-class tProperties<int>
+int tProperties<int>::GetDimensionSize()
 {
-  public:
+  int dimensionSize = static_cast<unsigned int>
+                      (std::pow((WinUnix::getPageSize() -
+                                 sizeof(tgrid) -
+                                 2 * sizeof(int)) /
+                                 sizeof(int),
+                                 0.5)
+                      );
 
-  typedef Properties<int> TypeProperties;
-  typedef tgrid gridType;
-  typedef tint tType;
-  static int GetDimensionSize();
-  static int GetFlobElements();
-  static SmiSize GetFlobSize();
-  static std::string GetTypeName(); 
-};
-
+  return dimensionSize;
 }
 
-#endif // TILEALGEBRA_TINT_H
+int tProperties<int>::GetFlobElements()
+{
+  int nFlobElements = static_cast<unsigned int>
+                      (std::pow(GetDimensionSize(), 2));
+
+  return nFlobElements;
+}
+
+SmiSize tProperties<int>::GetFlobSize()
+{
+  SmiSize flobSize = GetFlobElements() * sizeof(int);
+
+  return flobSize;
+}
+
+std::string tProperties<int>::GetTypeName()
+{
+  return TYPE_NAME_TINT;
+}
+
+}
