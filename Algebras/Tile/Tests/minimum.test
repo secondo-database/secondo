@@ -1,0 +1,97 @@
+#
+# Tests for the minimum operator of the TileAlgebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup TileAlgebraTest
+
+create database TileAlgebraTest;
+open database TileAlgebraTest;
+
+let tint1 = ([const tint value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (957 958 959 960)))]);
+let treal1 = ([const treal value ((0.0 0.0 1.0) (2 2) (0 0 (0.0 1.0 2.0 3.0)) (20 20 (480.0 481.0 482.0 483.0)))]);
+let tbool1 = ([const tbool value ((0.0 0.0 1.0) (2 2) (0 0 (FALSE TRUE TRUE FALSE)) (61 61 (FALSE TRUE TRUE FALSE)))]);
+let tstring1 = ([const tstring value ((0.0 0.0 1.0) (2 2) (0 0 ("zero" "one" "two" "three")) (29 29 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty")))]);
+let mtint1 = ([const mtint value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0 1 2 3)) (8 8 9 (996 997 998 999)))]);
+let mtreal1 = ([const mtreal value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0.0 1.0 2.0 3.0)) (4 4 5 (339.0 340.0 341.0 342.0)))]);
+let mtbool1 = ([const mtbool value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (FALSE TRUE TRUE FALSE)) (13 13 14 (FALSE TRUE TRUE FALSE)))]);
+let mtstring1 = ([const mtstring value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 ("zero" "one" "two" "three")) (8 8 9 ("nine hundred ninety six" "nine hundred ninety seven" "nine hundred ninety eight" "nine hundred ninety nine")))]);
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#testcase query minimum for type tint
+#yields (int 0)
+query minimum(tint1)
+
+#testcase query minimum for type treal
+#yields (real 0.0)
+query minimum(treal1)
+
+#testcase query minimum for type tbool
+#yields (bool FALSE)
+query minimum(tbool1);
+
+#testcase query minimum for type tstring
+#yields (string "nine hundred fifty eight")
+query minimum(tstring1);
+
+#testcase query minimum for type mtint
+#yields (int 0)
+query minimum(mtint1)
+
+#testcase query minimum for type mtreal
+#yields (real 0.0)
+query minimum(mtreal1)
+
+#testcase query minimum for type mtbool
+#yields (bool FALSE)
+query minimum(mtbool1);
+
+#testcase query minimum for type mtstring
+#yields (string "nine hundred ninety eight")
+query minimum(mtstring1);
+
+#
+# Empty objects
+#
+
+#testcase query minimum for empty type tint
+#yields (int undefined)
+query minimum([const tint value ((0.0 0.0 1.0))])
+
+#testcase query minimum for empty type treal
+#yields (real undefined)
+query minimum([const treal value ((0.0 0.0 1.0))])
+
+#testcase query minimum for empty type tbool
+#yields (bool undefined)
+query minimum([const tbool value ((0.0 0.0 1.0))])
+
+#testcase query minimum for empty type tstring
+#yields (string undefined)
+query minimum([const tstring value ((0.0 0.0 1.0))])
+
+#testcase query minimum for empty type mtint
+#yields (int undefined)
+query minimum([const mtint value ((0.0 0.0 1.0 1.0))])
+
+#testcase query minimum for empty type mtreal
+#yields (real undefined)
+query minimum([const mtreal value ((0.0 0.0 1.0 1.0))])
+
+#testcase query minimum for empty type mtbool
+#yields (bool undefined)
+query minimum([const mtbool value ((0.0 0.0 1.0 1.0))])
+
+#testcase query minimum for empty type mtstring
+#yields (string undefined)
+query minimum([const mtstring value ((0.0 0.0 1.0 1.0))])
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
