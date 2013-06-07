@@ -2,7 +2,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2011, University in Hagen, Department of Computer Science,
+Copyright (C) 2013, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -247,7 +247,7 @@ size_t tintFlob::HashValue() const
   
   if(IsDefined())
   {
-    hashValue = (size_t)&m_Flob;
+    hashValue = reinterpret_cast<size_t>(this);
   }
   
   return hashValue;
@@ -539,13 +539,13 @@ Word tintFlob::In(const ListExpr typeInfo,
 
       else
       {
-        cmsg.inFunError("Type mismatch: expected 3 reals as grid2 sublist.");
+        cmsg.inFunError("Type mismatch: expected 3 reals as tgrid sublist.");
       }
     }
 
     else
     {
-      cmsg.inFunError("Type mismatch: list for grid2 is too short "
+      cmsg.inFunError("Type mismatch: list for tgrid is too short "
                       "or too long.");
     }
   }

@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2011, University in Hagen, Department of Computer Science,
+Copyright (C) 2013, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 	  
 SECONDO is free software; you can redistribute it and/or modify
@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define TILEALGEBRA_TINTFLOB_H
 
 #include "Attribute.h"
-#include "../grid/grid2.h"
+#include "../grid/tgrid.h"
 #include "../../Tools/Flob/Flob.h"
 
 namespace TileAlgebra
@@ -128,7 +128,7 @@ class tintFlob : public Attribute
    
   */
 
-  grid2 m_Grid;
+  tgrid m_Grid;
   Flob m_Flob;
 };
 
