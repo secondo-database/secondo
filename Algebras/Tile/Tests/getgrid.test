@@ -1,0 +1,61 @@
+#
+# Tests for the getgrid operator of the TileAlgebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup TileAlgebraTest
+
+create database TileAlgebraTest;
+open database TileAlgebraTest;
+
+let tint1 = ([const tint value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (957 958 959 960)))]);
+let treal1 = ([const treal value ((0.0 0.0 1.0) (2 2) (0 0 (0.0 1.0 2.0 3.0)) (20 20 (480.0 481.0 482.0 483.0)))]);
+let tbool1 = ([const tbool value ((0.0 0.0 1.0) (2 2) (0 0 (FALSE TRUE TRUE FALSE)) (61 61 (FALSE TRUE TRUE FALSE)))]);
+let tstring1 = ([const tstring value ((0.0 0.0 1.0) (2 2) (0 0 ("zero" "one" "two" "three")) (29 29 ("nine hundred fifty seven" "nine hundred fifty eight" "nine hundred fifty nine" "nine hundred sixty")))]);
+let mtint1 = ([const mtint value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0 1 2 3)) (8 8 9 (996 997 998 999)))]);
+let mtreal1 = ([const mtreal value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0.0 1.0 2.0 3.0)) (4 4 5 (339.0 340.0 341.0 342.0)))]);
+let mtbool1 = ([const mtbool value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (FALSE TRUE TRUE FALSE)) (13 13 14 (FALSE TRUE TRUE FALSE)))]);
+let mtstring1 = ([const mtstring value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 ("zero" "one" "two" "three")) (8 8 9 ("nine hundred ninety six" "nine hundred ninety seven" "nine hundred ninety eight" "nine hundred ninety nine")))]);
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#testcase query getgrid for type tint
+#yields (tgrid (0.0 0.0 1.0))
+query getgrid(tint1);
+
+#testcase query getgrid for type treal
+#yields (tgrid (0.0 0.0 1.0))
+query getgrid(treal1);
+
+#testcase query getgrid for type tbool
+#yields (tgrid (0.0 0.0 1.0))
+query getgrid(tbool1);
+
+#testcase query getgrid for type tstring
+#yields (tgrid (0.0 0.0 1.0))
+query getgrid(tstring1);
+
+#testcase query getgrid for type mtint
+#yields (mtgrid (0.0 0.0 1.0 (duration (1 0))))
+query getgrid(mtint1);
+
+#testcase query getgrid for type mtreal
+#yields (mtgrid (0.0 0.0 1.0 (duration (1 0))))
+query getgrid(mtreal1);
+
+#testcase query getgrid for type msbool
+#yields (mtgrid (0.0 0.0 1.0 (duration (1 0))))
+query getgrid(mtbool1);
+
+#testcase query getgrid for type mtstring
+#yields (mtgrid (0.0 0.0 1.0 (duration (1 0))))
+query getgrid(mtstring1);
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
