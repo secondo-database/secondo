@@ -53,11 +53,12 @@ includes for TileAlgebra operators
 */
 
 #include "operators/load.h"
-// #include "operators/getgrid.h"
-#include "operators/minimum.h"
-#include "operators/maximum.h"
 #include "operators/inst.h"
 #include "operators/val.h"
+#include "operators/bbox.h"
+#include "operators/minimum.h"
+#include "operators/maximum.h"
+#include "operators/getgrid.h"
 
 /*
 extern declarations
@@ -117,17 +118,20 @@ TileAlgebra::TileAlgebra()
 
   */
 
-  AddOperator(loadInfo(), loadFunctions, loadSelectFunction, loadTypeMapping);
-  // AddOperator(getgridInfo(), getgridFunctions, getgridSelectFunction,
-  //             getgridTypeMapping);
-  AddOperator(minimumInfo(), minimumFunctions, minimumSelectFunction,
-              minimumTypeMapping);
-  AddOperator(maximumInfo(), maximumFunctions, maximumSelectFunction,
-              maximumTypeMapping);
+  AddOperator(loadInfo(), loadFunctions, loadSelectFunction,
+              loadTypeMapping);
   AddOperator(instInfo(), instFunctions, instSelectFunction,
               instTypeMapping);
   AddOperator(valInfo(), valFunctions, valSelectFunction,
               valTypeMapping);
+  AddOperator(bboxInfo(), bboxFunctions, bboxSelectFunction,
+              bboxTypeMapping);
+  AddOperator(minimumInfo(), minimumFunctions, minimumSelectFunction,
+              minimumTypeMapping);
+  AddOperator(maximumInfo(), maximumFunctions, maximumSelectFunction,
+              maximumTypeMapping);
+  AddOperator(getgridInfo(), getgridFunctions, getgridSelectFunction,
+              getgridTypeMapping);
 }
 
 TileAlgebra::~TileAlgebra()
