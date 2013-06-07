@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "mt.h"
 #include "mtProperties.h"
 #include "../Properties/Propertiesbool.h"
+#include "RectangleAlgebra.h"
 
 namespace TileAlgebra
 {
@@ -48,6 +49,7 @@ class mtProperties<char>
   public:
 
   typedef Properties<char> TypeProperties;
+  typedef Rectangle<3> bboxType;
   typedef mtgrid gridType;
   typedef mtbool mtType;
   static int GetDimensionSize();
