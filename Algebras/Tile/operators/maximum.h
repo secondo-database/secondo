@@ -64,7 +64,7 @@ struct maximumInfo : OperatorInfo
     signature = "tT -> T";
     appendSignature("mtT -> T");
     syntax    = "maximum(_)";
-    meaning   = "Returns the maximum value of a t or a mt type.";
+    meaning   = "Returns the maximum value of a t type or a mt type.";
   }
 };
 
