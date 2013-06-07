@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../grid/tgrid.h"
 #include "../../Tools/Flob/Flob.h"
 #include "../Index.h"
+#include "RectangleAlgebra.h"
 
 namespace TileAlgebra
 {
@@ -75,10 +76,10 @@ class t : public Attribute
 
   */
 
-  tgrid GetGrid() const;
+  Rectangle<2> GetBoundingBox() const;
   Type GetMinimum() const;
   Type GetMaximum() const;
-  // Rectangle<2> GetBoundingBox() const;
+  tgrid GetGrid() const;
 
   protected:
 
@@ -90,7 +91,7 @@ class t : public Attribute
   bool SetGrid(const double& rX, const double& rY, const double& rLength);
   void SetMinimum(const Type& rValue);
   void SetMaximum(const Type& rValue);
-  Type GetValue(const Index<2>& rIndex);
+  Type GetValue(const Index<2>& rIndex) const;
   bool SetValue(const Index<2>& rIndex, const Type& rValue);
 
   public:
@@ -232,9 +233,111 @@ t<Type, Properties>& t<Type, Properties>::operator=
 }
 
 template <typename Type, typename Properties>
-tgrid t<Type, Properties>::GetGrid() const
+Rectangle<2> t<Type, Properties>::GetBoundingBox() const
 {
-  return m_Grid;
+  Rectangle<2> boundingBox;
+
+  double minima[2] = { 0.0, 0.0 };
+  double maxima[2] = { 0.0, 0.0 };
+
+  int dimensionSize = Properties::GetDimensionSize();
+  Type value = Properties::TypeProperties::GetUndefinedValue();
+
+  for(int column = 0; column < dimensionSize; column++)
+  {
+    bool bbreak = false;
+
+    for(int row = 0; row < dimensionSize; row++)
+    {
+      Index<2> indexes = (int[]){column, row};
+      value = GetValue(indexes);
+
+      if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+      {
+        minima[0] = m_Grid.GetX() + column * m_Grid.GetLength();
+        bbreak = true;
+        break;
+      }
+    }
+
+    if(bbreak == true)
+    {
+      break;
+    }
+  }
+
+  for(int column = dimensionSize - 1; column >= 0; column--)
+  {
+    bool bbreak = false;
+
+    for(int row = 0; row < dimensionSize; row++)
+    {
+      Index<2> indexes = (int[]){column, row};
+      value = GetValue(indexes);
+
+      if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+      {
+        maxima[0] = m_Grid.GetX() + (column + 1) * m_Grid.GetLength();
+        bbreak = true;
+        break;
+      }
+    }
+
+    if(bbreak == true)
+    {
+      break;
+    }
+  }
+
+  for(int row = 0; row < dimensionSize; row++)
+  {
+    bool bbreak = false;
+
+    for(int column = 0; column < dimensionSize; column++)
+    {
+      Index<2> indexes = (int[]){column, row};
+      value = GetValue(indexes);
+
+      if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+      {
+        minima[1] = m_Grid.GetY() + row * m_Grid.GetLength();
+        bbreak = true;
+        break;
+      }
+    }
+
+    if(bbreak == true)
+    {
+      break;
+    }
+  }
+
+  for(int row = dimensionSize - 1; row >= 0; row--)
+  {
+    bool bbreak = false;
+
+    for(int column = 0; column < dimensionSize; column++)
+    {
+      Index<2> indexes = (int[]){column, row};
+      value = GetValue(indexes);
+
+      if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+      {
+        maxima[1] = m_Grid.GetY() + (row + 1) * m_Grid.GetLength();
+        bbreak = true;
+        break;
+      }
+    }
+
+    if(bbreak == true)
+    {
+      break;
+    }
+  }
+
+  boundingBox.Set(true, minima, maxima);
+
+  return boundingBox;
 }
 
 template <typename Type, typename Properties>
@@ -247,6 +350,12 @@ template <typename Type, typename Properties>
 Type t<Type, Properties>::GetMaximum() const
 {
   return m_Maximum;
+}
+
+template <typename Type, typename Properties>
+tgrid t<Type, Properties>::GetGrid() const
+{
+  return m_Grid;
 }
 
 template <typename Type, typename Properties>
@@ -277,7 +386,7 @@ void t<Type, Properties>::SetMaximum(const Type& rValue)
 }
 
 template <typename Type, typename Properties>
-Type t<Type, Properties>::GetValue(const Index<2>& rIndex)
+Type t<Type, Properties>::GetValue(const Index<2>& rIndex) const
 {
   Type value = Properties::TypeProperties::GetUndefinedValue();
 
@@ -291,9 +400,9 @@ Type t<Type, Properties>::GetValue(const Index<2>& rIndex)
   {
     int flobIndex = rIndex[1] * dimensionSize + rIndex[0];
     
-    bool bOK = m_Flob.read(reinterpret_cast<const char*>(&value),
-                          sizeof(Type),
-                          flobIndex * sizeof(Type));
+    bool bOK = m_Flob.read(reinterpret_cast<char*>(&value),
+                           sizeof(Type),
+                           flobIndex * sizeof(Type));
     assert(bOK);
   }
 
