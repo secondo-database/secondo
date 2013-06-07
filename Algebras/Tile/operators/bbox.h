@@ -65,7 +65,7 @@ struct bboxInfo : OperatorInfo
     signature = "tT -> " + Rect::BasicType();
     appendSignature("mtT -> " + Rect::BasicType());
     syntax    = "bbox(_)";
-    meaning   = "Returns the bounding box Rect of a t type or a mt type.";
+    meaning   = "Returns the bounding box Rectangle of a t type or a mt type.";
   }
 };
 
@@ -94,7 +94,6 @@ int bboxFunction(Word* pArguments,
 
       if(rResult.addr != 0)
       {
-        /*
         typename Properties::bboxType* pResult =
         static_cast<typename Properties::bboxType*>(rResult.addr);
         
@@ -102,7 +101,6 @@ int bboxFunction(Word* pArguments,
         {
           *pResult = pType->GetBoundingBox();
         }
-        */
       }
     }
   }

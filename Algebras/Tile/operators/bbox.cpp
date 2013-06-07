@@ -56,7 +56,7 @@ definition of bbox select function
 
 */
 
-int bboxSelectFun(ListExpr arguments)
+int bboxSelectFunction(ListExpr arguments)
 {
   int nSelection = -1;
 
@@ -97,7 +97,7 @@ definition of bbox type mapping function
 
 ListExpr bboxTypeMapping(ListExpr arguments)
 {
-  ListExpr type = NList::typeError("Expecting a t or a mt type.");
+  ListExpr type = NList::typeError("Expecting a t type or a mt type.");
 
   NList argumentsList(arguments);
   NList argument1 = argumentsList.first();
