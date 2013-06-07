@@ -39,6 +39,7 @@ class mtProperties
   public:
 
   typedef Type TypeProperties;
+  typedef Type bboxType;
   typedef Type gridType;
   typedef Type mtType;
   static int GetDimensionSize();
