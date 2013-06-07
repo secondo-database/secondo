@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2011, University in Hagen, Department of Computer Science,
+Copyright (C) 2013, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -23,9 +23,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_T_H
 #define TILEALGEBRA_T_H
 
+#include "TypeConstructor.h"
+#include "Symbols.h"
 #include "tProperties.h"
 #include "Attribute.h"
-#include "../grid/grid2.h"
+#include "../grid/tgrid.h"
 #include "../../Tools/Flob/Flob.h"
 #include "../Index.h"
 
@@ -69,12 +71,29 @@ class t : public Attribute
   t& operator=(const t& rt);
 
   /*
-  methods
+  TileAlgebra operator methods
+
+  */
+
+  tgrid GetGrid() const;
+  Type GetMinimum() const;
+  Type GetMaximum() const;
+  // Rectangle<2> GetBoundingBox() const;
+
+  protected:
+
+  /*
+  internal methods
 
   */
 
   bool SetGrid(const double& rX, const double& rY, const double& rLength);
+  void SetMinimum(const Type& rValue);
+  void SetMaximum(const Type& rValue);
+  Type GetValue(const Index<2>& rIndex);
   bool SetValue(const Index<2>& rIndex, const Type& rValue);
+
+  public:
 
   /*
   override functions from base class Attribute
@@ -133,7 +152,9 @@ class t : public Attribute
 
   */
 
-  grid2 m_Grid;
+  tgrid m_Grid;
+  Type m_Minimum;
+  Type m_Maximum;
   Flob m_Flob;
 };
 
@@ -153,10 +174,14 @@ template <typename Type, typename Properties>
 t<Type, Properties>::t(bool bDefined)
                     :Attribute(bDefined),
                      m_Grid(false),
+                     m_Minimum(Properties::TypeProperties::
+                               GetUndefinedValue()),
+                     m_Maximum(Properties::TypeProperties::
+                               GetUndefinedValue()),
                      m_Flob(Properties::GetFlobSize())
 {
   int dimensionSize = Properties::GetDimensionSize();
-  Type undefinedValue = Properties::GetUndefinedValue();
+  Type undefinedValue = Properties::TypeProperties::GetUndefinedValue();
   
   for(int row = 0; row < dimensionSize; row++)
   {
@@ -172,6 +197,8 @@ template <typename Type, typename Properties>
 t<Type, Properties>::t(const t<Type, Properties>& rt)
                     :Attribute(rt.IsDefined()),
                      m_Grid(rt.m_Grid),
+                     m_Minimum(rt.m_Minimum),
+                     m_Maximum(rt.m_Maximum),
                      m_Flob(rt.m_Flob)
 {
   
@@ -189,8 +216,10 @@ t<Type, Properties>& t<Type, Properties>::operator=
 {
   if(this != &rt)
   {
-    SetDefined(rt.IsDefined());
+    Attribute::operator=(rt);
     m_Grid = rt.m_Grid;
+    m_Minimum = rt.m_Minimum;
+    m_Maximum = rt.m_Maximum;
 
     bool bOK = false;
     bOK = m_Flob.clean();
@@ -200,6 +229,24 @@ t<Type, Properties>& t<Type, Properties>::operator=
   }
 
   return *this;
+}
+
+template <typename Type, typename Properties>
+tgrid t<Type, Properties>::GetGrid() const
+{
+  return m_Grid;
+}
+
+template <typename Type, typename Properties>
+Type t<Type, Properties>::GetMinimum() const
+{
+  return m_Minimum;
+}
+
+template <typename Type, typename Properties>
+Type t<Type, Properties>::GetMaximum() const
+{
+  return m_Maximum;
 }
 
 template <typename Type, typename Properties>
@@ -215,6 +262,42 @@ bool t<Type, Properties>::SetGrid(const double& rX,
   bRetVal &= m_Grid.SetLength(rLength);
 
   return bRetVal;
+}
+
+template <typename Type, typename Properties>
+void t<Type, Properties>::SetMinimum(const Type& rValue)
+{
+  m_Minimum = rValue;
+}
+
+template <typename Type, typename Properties>
+void t<Type, Properties>::SetMaximum(const Type& rValue)
+{
+  m_Maximum = rValue;
+}
+
+template <typename Type, typename Properties>
+Type t<Type, Properties>::GetValue(const Index<2>& rIndex)
+{
+  Type value = Properties::TypeProperties::GetUndefinedValue();
+
+  int dimensionSize = Properties::GetDimensionSize();
+
+  if(IsDefined() &&
+     rIndex[0] >= 0 &&
+     rIndex[0] < dimensionSize &&
+     rIndex[1] >= 0 &&
+     rIndex[1] < dimensionSize)
+  {
+    int flobIndex = rIndex[1] * dimensionSize + rIndex[0];
+    
+    bool bOK = m_Flob.read(reinterpret_cast<const char*>(&value),
+                          sizeof(Type),
+                          flobIndex * sizeof(Type));
+    assert(bOK);
+  }
+
+  return value;
 }
 
 template <typename Type, typename Properties>
@@ -275,15 +358,20 @@ int t<Type, Properties>::Compare(const Attribute* pAttribute) const
       {
         if(btIsDefined == true) // defined x defined
         {
-          SmiSize flobSize = Properties::GetFlobSize();
-          
-          char buffer1[flobSize];
-          m_Flob.read(buffer1, flobSize, 0);
+          nRetVal = m_Grid.Compare(&(pt->m_Grid));
 
-          char buffer2[flobSize];
-          pt->m_Flob.read(buffer2, flobSize, 0);
+          if(nRetVal == 0)
+          {
+            SmiSize flobSize = Properties::GetFlobSize();
+            
+            char buffer1[flobSize];
+            m_Flob.read(buffer1, flobSize, 0);
 
-          nRetVal = memcmp(buffer1, buffer2, flobSize);
+            char buffer2[flobSize];
+            pt->m_Flob.read(buffer2, flobSize, 0);
+
+            nRetVal = memcmp(buffer1, buffer2, flobSize);
+          }
         }
 
         else // defined x undefined
@@ -353,7 +441,7 @@ size_t t<Type, Properties>::HashValue() const
 
   if(IsDefined())
   {
-    hashValue = (size_t)&m_Flob;
+    hashValue = reinterpret_cast<size_t>(this);
   }
 
   return hashValue;
@@ -549,16 +637,38 @@ Word t<Type, Properties>::In(const ListExpr typeInfo,
                                 int listIndex = row * sizeX + column + 1;
                                 Index<2> index = (int[]){(indexX + column),
                                                          (indexY + row)};
-                                Type value = Properties::GetUndefinedValue();
+                                Type value = Properties::TypeProperties::
+                                             GetUndefinedValue();
 
                                 if(valueList.elem(listIndex).
                                    isSymbol(Symbol::UNDEFINED()) == false)
                                 {
-                                  if(Properties::IsValidValueType
-                                    (valueList.elem(listIndex)))
+                                  if(Properties::TypeProperties::
+                                     IsValidValueType
+                                     (valueList.elem
+                                     (listIndex)))
                                   {
-                                    value = Properties::GetValue(
-                                            valueList.elem(listIndex));
+                                    value = Properties::TypeProperties::
+                                            GetValue
+                                            (valueList.elem(listIndex));
+
+                                    Type minimum = pt->GetMinimum();
+
+                                    if(Properties::TypeProperties::
+                                       IsUndefinedValue(minimum) ||
+                                       value < minimum)
+                                    {
+                                      pt->SetMinimum(value);
+                                    }
+
+                                    Type maximum = pt->GetMaximum();
+
+                                    if(Properties::TypeProperties::
+                                       IsUndefinedValue(maximum) ||
+                                       value > maximum)
+                                    {
+                                      pt->SetMaximum(value);
+                                    }
                                   }
 
                                   else
@@ -650,13 +760,13 @@ Word t<Type, Properties>::In(const ListExpr typeInfo,
 
       else
       {
-        cmsg.inFunError("Type mismatch: expected 3 reals as grid2 sublist.");
+        cmsg.inFunError("Type mismatch: expected 3 reals as tgrid sublist.");
       }
     }
 
     else
     {
-      cmsg.inFunError("Type mismatch: list for grid2 is too short "
+      cmsg.inFunError("Type mismatch: list for tgrid is too short "
                       "or too long.");
     }
   }
@@ -728,7 +838,7 @@ ListExpr t<Type, Properties>::Out(ListExpr typeInfo,
         tintList.append(0);
         tintList.append(0);
 
-        Type undefinedValue = Properties::GetUndefinedValue();
+        Type undefinedValue = Properties::TypeProperties::GetUndefinedValue();
         NList valueList;
 
         for(int i = 0; i < Properties::GetFlobElements(); i++)
@@ -740,7 +850,7 @@ ListExpr t<Type, Properties>::Out(ListExpr typeInfo,
                                      i * sizeof(Type));
           assert(bOK);
 
-          valueList.append(Properties::ToNList(value));
+          valueList.append(Properties::TypeProperties::ToNList(value));
         }
 
         tintList.append(valueList);
