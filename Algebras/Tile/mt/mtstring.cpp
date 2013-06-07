@@ -336,11 +336,13 @@ Word mtstring::In(const ListExpr typeInfo,
 
         if(pmtstring != 0)
         {
+          datetime::DateTime duration(gridList.elem(4).realval());
+          duration.SetType(datetime::durationtype);
+
           bool bOK = pmtstring->SetGrid(gridList.elem(1).realval(),
                                         gridList.elem(2).realval(),
                                         gridList.elem(3).realval(),
-                                        datetime::DateTime(
-                                        gridList.elem(4).realval()));
+                                        duration);
 
           if(bOK == true)
           {
