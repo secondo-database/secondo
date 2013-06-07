@@ -1,7 +1,7 @@
 /*
 This file is part of SECONDO.
 
-Copyright (C) 2011, University in Hagen, Department of Computer Science,
+Copyright (C) 2013, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
       
 SECONDO is free software; you can redistribute it and/or modify
@@ -30,21 +30,34 @@ includes for TileAlgebra types
 
 */
 
-#include "grid/grid2.h"
-#include "grid/grid3.h"
 #include "t/tintArray.h"
 #include "t/tintFlob.h"
+#include "grid/tgrid.h"
+#include "grid/mtgrid.h"
 #include "t/tint.h"
 #include "t/treal.h"
 #include "t/tbool.h"
 #include "t/tstring.h"
+#include "mt/mtint.h"
+#include "mt/mtreal.h"
+#include "mt/mtbool.h"
+#include "mt/mtstring.h"
+#include "it/itint.h"
+#include "it/itreal.h"
+#include "it/itbool.h"
+#include "it/itstring.h"
 
 /*
 includes for TileAlgebra operators
 
 */
 
-#include "load.h"
+#include "Operators/load.h"
+// #include "Operators/getgrid.h"
+#include "Operators/minimum.h"
+#include "Operators/maximum.h"
+#include "Operators/inst.h"
+#include "Operators/val.h"
 
 /*
 extern declarations
@@ -82,14 +95,22 @@ TileAlgebra::TileAlgebra()
 
   */
 
-  AddTypeConstructor(new TypeConstructor(grid2::GetTypeConstructor()));
-  AddTypeConstructor(new TypeConstructor(grid3::GetTypeConstructor()));
   AddTypeConstructor(new TypeConstructor(tintArray::GetTypeConstructor()));
   AddTypeConstructor(new TypeConstructor(tintFlob::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(tgrid::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(mtgrid::GetTypeConstructor()));
   AddTypeConstructor(new TypeConstructor(tint::GetTypeConstructor()));
   AddTypeConstructor(new TypeConstructor(treal::GetTypeConstructor()));
   AddTypeConstructor(new TypeConstructor(tbool::GetTypeConstructor()));
   AddTypeConstructor(new TypeConstructor(tstring::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(mtint::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(mtreal::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(mtbool::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(mtstring::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(itint::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(itreal::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(itbool::GetTypeConstructor()));
+  AddTypeConstructor(new TypeConstructor(itstring::GetTypeConstructor()));
 
   /*
   Operators
@@ -97,6 +118,16 @@ TileAlgebra::TileAlgebra()
   */
 
   AddOperator(loadInfo(), loadFunctions, loadSelectFunction, loadTypeMapping);
+  // AddOperator(getgridInfo(), getgridFunctions, getgridSelectFunction,
+  //             getgridTypeMapping);
+  AddOperator(minimumInfo(), minimumFunctions, minimumSelectFunction,
+              minimumTypeMapping);
+  AddOperator(maximumInfo(), maximumFunctions, maximumSelectFunction,
+              maximumTypeMapping);
+  AddOperator(instInfo(), instFunctions, instSelectFunction,
+              instTypeMapping);
+  AddOperator(valInfo(), valFunctions, valSelectFunction,
+              valTypeMapping);
 }
 
 TileAlgebra::~TileAlgebra()
