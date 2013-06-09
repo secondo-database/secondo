@@ -48,6 +48,7 @@ class tProperties<double>
   public:
 
   typedef Properties<double> TypeProperties;
+  typedef CcReal atlocationType;
   typedef Rectangle<2> bboxType;
   typedef tgrid gridType;
   typedef treal tType;
