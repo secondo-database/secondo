@@ -62,12 +62,18 @@ class tintFlob : public Attribute
   bool operator==(const tintFlob& rtintFlob) const;
   
   /*
-  methods
+  TileAlgebra operator methods
+
+  */
+
+  bool load();
   
+  /*
+  internal methods
+
   */
   
   void Destroy();
-  bool Load();
   bool SetGrid(const double& rX, const double& rY, const double& rLength);
   bool SetValue(int nIndex, int nValue);
 

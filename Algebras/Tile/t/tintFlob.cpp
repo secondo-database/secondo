@@ -93,12 +93,7 @@ bool tintFlob::operator==(const tintFlob& rtintFlob) const
   return bIsEqual;
 }
 
-void tintFlob::Destroy()
-{
-  m_Flob.destroy();
-}
-
-bool tintFlob::Load()
+bool tintFlob::load()
 {
   bool bRetVal = true;
 
@@ -113,6 +108,11 @@ bool tintFlob::Load()
   bRetVal = m_Flob.read(buffer, TINTFLOB_SIZE, 0);
 
   return bRetVal;
+}
+
+void tintFlob::Destroy()
+{
+  m_Flob.destroy();
 }
 
 bool tintFlob::SetGrid(const double& rX,
