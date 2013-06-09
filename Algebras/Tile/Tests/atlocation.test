@@ -1,0 +1,302 @@
+#
+# Tests for the atlocation operator of the TileAlgebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup TileAlgebraTest
+
+create database TileAlgebraTest;
+open database TileAlgebraTest;
+
+let tint1 = [const tint value ((0.0 0.0 1.0) (3 3) (0 0 (1 1 1 1 2 1 1 1 1)))];
+let treal1 = [const treal value ((0.2 0.3 0.7) (3 3) (0 0 (1.0 1.0 1.0 1.0 2.0 1.0 1.0 1.0 1.0)))];
+let tbool1 = [const tbool value ((0.0 0.0 1.0) (3 3) (0 0 (FALSE FALSE FALSE FALSE TRUE FALSE FALSE FALSE FALSE)))];
+let tstring1 = [const tstring value ((0.0 0.0 1.0) (3 3) (0 0 ("Foo" "Foo" "Foo" "Foo" "Bar" "Foo" "Foo" "Foo" "Foo")))];
+let mtint1 = ([const mtint value ((0.0 0.0 1.0 1.0) (2 2 2) (0 0 0 (0 1 2 3 4 5 6 7)))]);
+let mtreal1 = ([const mtreal value ((0.0 0.0 1.0 1.0) (2 2 2) (0 0 0 (0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0)))]);
+let mtbool1 = ([const mtbool value ((0.0 0.0 1.0 1.0) (2 2 2) (0 0 0 (FALSE TRUE TRUE FALSE FALSE TRUE TRUE FALSE)))]);
+let mtstring1 = ([const mtstring value ((0.0 0.0 1.0 1.0) (2 2 2) (0 0 0 ("zero" "one" "two" "three" "four" "five" "six" "seven")))]);
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#######################################
+# tint                                #
+#######################################
+
+#testcase tint atlocation with undefined point
+#yields (int undefined)
+query tint1 atlocation [[const point value undefined]]
+
+#testcase tint atlocation at center of cell
+#yields (int 2)
+query tint1 atlocation [[const point value (1.5 1.5)]]
+
+#testcase tint atlocation at left edge of cell
+#yields (int 2)
+query tint1 atlocation [[const point value (1 1.5)]]
+
+#testcase tint atlocation at bottom edge of cell
+#yields (int 2)
+query tint1 atlocation [[const point value (1.5 1)]]
+
+#testcase tint atlocation at top edge of cell
+#yields (int 1)
+query tint1 atlocation [[const point value (1.5 2)]]
+
+#testcase tint atlocation at right edge of cell
+#yields (int 1)
+query tint1 atlocation [[const point value (2 1.5)]]
+
+#testcase tint1 atlocation outside bbox
+#yields (int undefined)
+query tint1 atlocation [[const point value (3.01 1.5)]]
+
+#######################################
+# treal                               #
+#######################################
+
+#testcase treal atlocation with undefined point
+#yields (real undefined)
+query treal1 atlocation [[const point value undefined]]
+
+#testcase treal atlocation at center of cell
+#yields (real 2.0)
+query treal1 atlocation [[const point value (1.25 1.35)]]
+
+#testcase treal atlocation at left edge of cell
+#yields (real 2.0)
+query treal1 atlocation [[const point value (0.9 1.35)]]
+
+#testcase treal atlocation at bottom edge of cell
+#yields (real 2.0)
+query treal1 atlocation [[const point value (1.25 1.0)]]
+
+#testcase treal atlocation at top edge of cell
+#yields (real 1.0)
+query treal1 atlocation [[const point value (1.25 1.7)]]
+
+#testcase treal atlocation at right edge of cell
+#yields (real 1.0)
+query treal1 atlocation [[const point value (1.6 1.35)]]
+
+#testcase treal atlocation outside bbox
+#yields (real undefined)
+query treal1 atlocation [[const point value (2.301 1.35)]]
+
+#######################################
+# tbool                               #
+#######################################
+
+#testcase tbool atlocation with undefined point
+#yields (bool undefined)
+query tbool1 atlocation [[const point value undefined]]
+
+#testcase tbool atlocation at center of cell
+#yields (bool TRUE)
+query tbool1 atlocation [[const point value (1.5 1.5)]]
+
+#testcase tbool atlocation at left edge of cell
+#yields (bool TRUE)
+query tbool1 atlocation [[const point value (1 1.5)]]
+
+#testcase tbool atlocation at bottom edge of cell
+#yields (bool TRUE)
+query tbool1 atlocation [[const point value (1.5 1)]]
+
+#testcase tbool atlocation at top edge of cell
+#yields (bool FALSE)
+query tbool1 atlocation [[const point value (1.5 2)]]
+
+#testcase tbool atlocation at right edge of cell
+#yields (bool FALSE)
+query tbool1 atlocation [[const point value (2 1.5)]]
+
+#testcase tbool atlocation outside bbox
+#yields (bool undefined)
+query tbool1 atlocation [[const point value (3.01 1.5)]]
+
+#######################################
+# tstring                             #
+#######################################
+
+#testcase tstring atlocation with undefined point
+#yields (string undefined)
+query tstring1 atlocation [[const point value undefined]]
+
+#testcase tstring atlocation at center of cell
+#yields (string "Bar")
+query tstring1 atlocation [[const point value (1.5 1.5)]]
+
+#testcase tstring atlocation at left edge of cell
+#yields (string "Bar")
+query tstring1 atlocation [[const point value (1 1.5)]]
+
+#testcase tstring atlocation at bottom edge of cell
+#yields (string "Bar")
+query tstring1 atlocation [[const point value (1.5 1)]]
+
+#testcase tstring atlocation at top edge of cell
+#yields (string "Foo")
+query tstring1 atlocation [[const point value (1.5 2)]]
+
+#testcase tstring atlocation at right edge of cell
+#yields (string "Foo")
+query tstring1 atlocation [[const point value (2 1.5)]]
+
+#testcase tstring atlocation outside bbox
+#yields (string undefined)
+query tstring1 atlocation [[const point value (3.01 1.5)]]
+
+#######################################
+# mtint                               #
+#######################################
+
+#testcase mtint atlocation with undefined point
+#yields (mint undefined)
+query mtint1 atlocation [[const point value undefined]]
+
+#testcase mtint atlocation at center of cell
+#yields (mint((("2000-01-03" "2000-01-04" TRUE FALSE) 3) (("2000-01-04" "2000-01-05" TRUE FALSE) 7)))
+query mtint1 atlocation [[const point value (1.5 1.5)]]
+
+#testcase mtint atlocation at left edge of cell
+#yields (mint((("2000-01-03" "2000-01-04" TRUE FALSE) 3) (("2000-01-04" "2000-01-05" TRUE FALSE) 7)))
+query mtint1 atlocation [[const point value (1 1.5)]]
+
+#testcase mtint atlocation at bottom edge of cell
+#yields (mint((("2000-01-03" "2000-01-04" TRUE FALSE) 3) (("2000-01-04" "2000-01-05" TRUE FALSE) 7)))
+query mtint1 atlocation [[const point value (1.5 1)]]
+
+#testcase mtint atlocation at top edge of cell
+#yields (mint((("2000-01-03" "2000-01-04" TRUE FALSE) 3) (("2000-01-04" "2000-01-05" TRUE FALSE) 7)))
+query mtint1 atlocation [[const point value (1.5 1)]]
+
+#testcase mtint atlocation at right edge of cell
+#yields (mint((("2000-01-03" "2000-01-04" TRUE FALSE) 3) (("2000-01-04" "2000-01-05" TRUE FALSE) 7)))
+query mtint1 atlocation [[const point value (1 1.5)]]
+
+#testcase mtint1 atlocation outside bbox
+#yields (mint undefined)
+query mtint1 atlocation [[const point value (3.01 1.5)]]
+
+#testcase mtint atlocation with defined point
+#yields (mint((("2000-01-03" "2000-01-04" TRUE FALSE) 3) (("2000-01-04" "2000-01-05" TRUE FALSE) 7)))
+query mtint1 atlocation [[const point value (1.5 1.5)]]
+
+#######################################
+# mtreal                              #
+#######################################
+
+#testcase mtreal atlocation with undefined point
+#yields (mreal undefined)
+query mtreal1 atlocation [[const point value undefined]]
+
+#testcase mtreal atlocation at center of cell
+#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) 3.0) (("2000-01-04" "2000-01-05" TRUE FALSE) 7.0)))
+query mtreal1 atlocation [[const point value (1.5 1.5)]]
+
+#testcase mtreal atlocation at left edge of cell
+#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) 3.0) (("2000-01-04" "2000-01-05" TRUE FALSE) 7.0)))
+query mtreal1 atlocation [[const point value (1 1.5)]]
+
+#testcase mtreal atlocation at bottom edge of cell
+#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) 3.0) (("2000-01-04" "2000-01-05" TRUE FALSE) 7.0)))
+query mtreal1 atlocation [[const point value (1.5 1)]]
+
+#testcase mtreal atlocation at top edge of cell
+#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) 3.0) (("2000-01-04" "2000-01-05" TRUE FALSE) 7.0)))
+query mtreal1 atlocation [[const point value (1.5 1)]]
+
+#testcase mtreal atlocation at right edge of cell
+#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) 3.0) (("2000-01-04" "2000-01-05" TRUE FALSE) 7.0)))
+query mtreal1 atlocation [[const point value (1 1.5)]]
+
+#testcase mtreal atlocation outside bbox
+#yields (mreal undefined)
+query mtreal1 atlocation [[const point value (3.01 1.5)]]
+
+#testcase mtreal atlocation with defined point
+#yields (mreal((("2000-01-03" "2000-01-04" TRUE FALSE) 3.0) (("2000-01-04" "2000-01-05" TRUE FALSE) 7.0)))
+query mtreal1 atlocation [[const point value (1.5 1.5)]]
+
+#######################################
+# mtbool                              #
+#######################################
+
+#testcase mtbool atlocation with undefined point
+#yields (mbool undefined)
+query mtbool1 atlocation [[const point value undefined]]
+
+#testcase mtbool atlocation at center of cell
+#yields (mbool((("2000-01-03" "2000-01-04" TRUE FALSE) FALSE) (("2000-01-04" "2000-01-05" TRUE FALSE) FALSE)))
+query mtbool1 atlocation [[const point value (1.5 1.5)]]
+
+#testcase mtbool atlocation at left edge of cell
+#yields (mbool((("2000-01-03" "2000-01-04" TRUE FALSE) FALSE) (("2000-01-04" "2000-01-05" TRUE FALSE) FALSE)))
+query mtbool1 atlocation [[const point value (1 1.5)]]
+
+#testcase mtbool atlocation at bottom edge of cell
+#yields (mbool((("2000-01-03" "2000-01-04" TRUE FALSE) FALSE) (("2000-01-04" "2000-01-05" TRUE FALSE) FALSE)))
+query mtbool1 atlocation [[const point value (1.5 1)]]
+
+#testcase mtbool atlocation at top edge of cell
+#yields (mbool((("2000-01-03" "2000-01-04" TRUE FALSE) FALSE) (("2000-01-04" "2000-01-05" TRUE FALSE) FALSE)))
+query mtbool1 atlocation [[const point value (1.5 1)]]
+
+#testcase mtbool atlocation at right edge of cell
+#yields (mbool((("2000-01-03" "2000-01-04" TRUE FALSE) FALSE) (("2000-01-04" "2000-01-05" TRUE FALSE) FALSE)))
+query mtbool1 atlocation [[const point value (1 1.5)]]
+
+#testcase mtbool atlocation outside bbox
+#yields (mbool undefined)
+query mtbool1 atlocation [[const point value (3.01 1.5)]]
+
+#testcase mtbool atlocation with defined point
+#yields (mbool((("2000-01-03" "2000-01-04" TRUE FALSE) FALSE) (("2000-01-04" "2000-01-05" TRUE FALSE) FALSE)))
+query mtbool1 atlocation [[const point value (1.5 1.5)]]
+
+#######################################
+# mtstring                            #
+#######################################
+
+#testcase mtstring atlocation with undefined point
+#yields (mstring undefined)
+query mtstring1 atlocation [[const point value undefined]]
+
+#testcase mtstring atlocation at center of cell
+#yields (mstring((("2000-01-03" "2000-01-04" TRUE FALSE) "three") (("2000-01-04" "2000-01-05" TRUE FALSE) "seven")))
+query mtstring1 atlocation [[const point value (1.5 1.5)]]
+
+#testcase mtstring atlocation at left edge of cell
+#yields (mstring((("2000-01-03" "2000-01-04" TRUE FALSE) "three") (("2000-01-04" "2000-01-05" TRUE FALSE) "seven")))
+query mtstring1 atlocation [[const point value (1 1.5)]]
+
+#testcase mtstring atlocation at bottom edge of cell
+#yields (mstring((("2000-01-03" "2000-01-04" TRUE FALSE) "three") (("2000-01-04" "2000-01-05" TRUE FALSE) "seven")))
+query mtstring1 atlocation [[const point value (1.5 1)]]
+
+#testcase mtstring atlocation at top edge of cell
+#yields (mstring((("2000-01-03" "2000-01-04" TRUE FALSE) "three") (("2000-01-04" "2000-01-05" TRUE FALSE) "seven")))
+query mtstring1 atlocation [[const point value (1.5 1)]]
+
+#testcase mtstring atlocation at right edge of cell
+#yields (mstring((("2000-01-03" "2000-01-04" TRUE FALSE) "three") (("2000-01-04" "2000-01-05" TRUE FALSE) "seven")))
+query mtstring1 atlocation [[const point value (1 1.5)]]
+
+#testcase mtstring atlocation outside bbox
+#yields (mstring undefined)
+query mtstring1 atlocation [[const point value (3.01 1.5)]]
+
+#testcase mtstring atlocation with defined point
+#yields (mstring((("2000-01-03" "2000-01-04" TRUE FALSE) "three") (("2000-01-04" "2000-01-05" TRUE FALSE) "seven")))
+query mtstring1 atlocation [[const point value (1.5 1.5)]]
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
+
