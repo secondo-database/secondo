@@ -76,6 +76,12 @@ Signature: region2 x real -> region2
 Example  : query reg21 scale[10.0]
 Result   : (region2 (2 ((((10 10 ()) (0 30 ()) (10 50 ()) (30 50 ()) (60 40 ()) (50 20 ()) (30 10 ())) ((30 20 ()) (10 20 ()) (10 40 ()) (30 40 ()))))))
 
+Operator : scale2
+Number   : 1
+Signature: region2 x real x real -> region2
+Example  : query reg21 scale2[10.0, 1.0]
+Result   : (region2 (2 ((((10 1 ()) (0 3 ()) (10 5 ()) (30 5 ()) (60 4 ()) (50 2 ()) (30 1 ())) ((30 2 ()) (10 2 ()) (10 4 ()) (30 4 ()))))))
+
 Operator : components
 Number   : 1
 Signature: region2 -> stream(region2)
@@ -94,11 +100,23 @@ Signature: region -> region2
 Example  : query [const region value ((((3.5 0.8) (10.2 1.75) (3.5 1.75))((3.9 1.1) (5.45 1.35) (3.9 1.35))))] region2region2
 Result   : (region2 (0 ((((10 1 ('1/5' '3/4')) (3 0 ('1/2' '4/5')) (3 1 ('1/2' '3/4'))) ((5 1 ('9/20' '7/20')) (3 1 ('9/10' '1/10')) (3 1 ('9/10' '7/20')))))))
 
+Operator : regiontoregion2
+Number   : 1
+Signature: region x int -> region2
+Example  : query regiontoregion2([const region value ((((3.5 0.8) (10.2 1.75) (3.5 1.75))((3.9 1.1) (5.45 1.35) (3.9 1.35))))], 2)
+Result   : (region2 (2 ((((1020 175 ()) (350 80 ()) (350 175 ())) ((545 135 ()) (390 110 ()) (390 135 ()))))))
+
 Operator : rect2region2
 Number   : 1
 Signature: rect -> region2
 Example  : query [const rect value (-100.0 200.0 -50.0 500.0)] rect2region2
 Result   : (region2 (0 ((((200 -50 ()) (-100 -50 ()) (-100 500 ()) (200 500 ()))))))
+
+Operator : recttoregion2
+Number   : 1
+Signature: rect x int -> region2
+Example  : query recttoregion2([const rect value (-100.0 200.0 -50.0 500.0)], 2)
+Result   : (region2 (2 ((((20000 -5000 ()) (-10000 -5000 ()) (-10000 50000 ()) (20000 50000 ()))))))
 
 Operator : size
 Number   : 1

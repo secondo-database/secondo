@@ -59,8 +59,8 @@ class Region2 : public StandardSpatialAttribute<2>
 
     explicit inline Region2( const int n );
     Region2( const Region2& r, bool onlyLeft = false );
-    explicit Region2( const Region& r );
-    explicit Region2( const Rectangle<2>& r );
+    explicit Region2( const Region& r, const int sFactor = 0 );
+    explicit Region2( const Rectangle<2>& r, const int sFactor = 0 );
 
     inline void Destroy();
     inline ~Region2() {}
@@ -97,7 +97,7 @@ class Region2 : public StandardSpatialAttribute<2>
     bool Overlaps( const Region2& r ) const;
     void Translate(const double& x, const double& y, Region2& result) const;
 
-    void Translate(const double& x, const double& y)
+    bool Translate(const double& x, const double& y)
     {
        double t[2];
        t[0] = x;
@@ -109,9 +109,24 @@ class Region2 : public StandardSpatialAttribute<2>
        {
            Get(i,hs);
            hs.Translate(x,y);
+           if ( overflowAsInt(hs.GetLeftPoint().x, 
+                              hs.GetRightPoint().x, scaleFactor) )
+           {
+             cerr << "Overflow of Int values: x-translation with value " 
+                  << x << " is too big!" << endl;
+             return false;
+           }
+           if ( overflowAsInt(hs.GetLeftPoint().y, 
+                              hs.GetRightPoint().y, scaleFactor) )
+           {
+             cerr << "Overflow of Int values: y-translation with value " 
+                  << y << " is too big!" << endl;
+             return false;
+           }
        }
 
        buildDbArrays();
+       return true;
     }
   
     double Area() const;
@@ -248,10 +263,28 @@ class Region2 : public StandardSpatialAttribute<2>
             return false;
     }
     
-    inline void SetScaleFactor(int factor, bool buildDb = true)
+    inline bool SetScaleFactor(int factor, bool buildDb = true)
     {
-      if ( scaleFactor != factor) scaleFactor = factor;
-      if (buildDb) buildDbArrays();
+      if ( scaleFactor != factor) 
+      {
+        int maxInt = max(maxIntx, maxInty);
+        int minInt = min(minIntx, minInty);
+        if (factor > scaleFactor 
+            && checkFactorOverflow(maxInt, minInt+1, factor-scaleFactor))
+            return false;
+
+        if (precHSvectorIsEmpty()) buildHSvector(); 
+
+        if (factor > scaleFactor 
+            && checkFactorOverflow(maxInt+1, minInt, factor-scaleFactor)
+            && (overflowAsInt(maxPrecx, minPrecx, factor)
+             || overflowAsInt(maxPrecy, minPrecy, factor)))
+          return false;
+        
+        scaleFactor = factor;
+        if (buildDb) buildDbArrays();
+      }
+      return true;
     }
 
     inline int GetScaleFactor() const
@@ -271,21 +304,43 @@ class Region2 : public StandardSpatialAttribute<2>
       noComponents = nc;
     }
 
+    inline bool factorOverflow(const double f)
+    {
+      if (checkFactorOverflow(max(maxIntx, maxInty), 
+                              min(minIntx, minInty)+1, f))
+      {
+        cerr << "Overflow of Int values: Factor " << f 
+             << " is too big!" << endl;
+        return true;
+      }
+
+      return false;
+    }
+    
+    inline bool factorOverflow(const double xf, const double yf)
+    {
+      if (checkFactorOverflow(maxIntx, minIntx+1, xf))
+      {
+        cerr << "Overflow of Int values: x-Factor " << xf 
+             << " is too big!" << endl;
+        return true;
+      }
+      if (checkFactorOverflow(maxInty, minInty+1, yf))
+      {
+        cerr << "Overflow of Int values: y-Factor " << yf 
+             << " is too big!" << endl;
+        return true;
+      }
+
+      return false;
+    }
+    
     void Components( vector<Region2*>& components );
     void getFaces(Region2& result) const;
     void getHoles(Region2& result) const;
     
-    inline bool Get(const unsigned int i, Reg2PreciseHalfSegment& hs) const
-    {
-      if (i >= 0 && i < precHSvector.size())
-      {
-        hs = precHSvector[i];
-        return true;
-      }
-      else
-        return false;
-    }
-
+    bool Get(const unsigned int i, Reg2PreciseHalfSegment& hs) const;
+    
     const DbArray<Reg2GridHalfSegment>* getgridCoordinates() 
     { return &gridCoordinates; }
     const DbArray<Reg2PrecHalfSegment>* getprecCoordinates() 
@@ -307,6 +362,8 @@ private:
     int noComponents;
     bool ordered;
     vector<Reg2PreciseHalfSegment> precHSvector;
+    int maxIntx, maxInty, minIntx, minInty;
+    mpq_class maxPrecx, maxPrecy, minPrecx, minPrecy;
     
 };
 
@@ -389,7 +446,15 @@ precCoordinates( initsize ),
 preciseCoordinates( 0 ),
 bbox( false ),
 noComponents( 0 ),
-ordered( true )
+ordered( true ),
+maxIntx(0),
+maxInty(0),
+minIntx(0),
+minInty(0),
+maxPrecx(0),
+maxPrecy(0),
+minPrecx(0),
+minPrecy(0)
 {
 //  cout << "Region2(int)... " << initsize << endl;
 }

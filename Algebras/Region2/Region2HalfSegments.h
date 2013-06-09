@@ -63,7 +63,7 @@ class Reg2PreciseHalfSegment
     inline int LogicCompare( const Reg2PreciseHalfSegment& hs ) const;
 
     inline void Translate( const double& x, const double& y );
-    inline void Scale( const double& f );
+    inline void Scale( const double& xf, const double& yf );
 
     inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
     bool Intersects( const Reg2PreciseHalfSegment& hs ) const;
@@ -430,7 +430,7 @@ inline void Reg2PrecHalfSegment::SetrPointy (mpq_class y,
 }
 
 
-inline Reg2PreciseHalfSegment::Reg2PreciseHalfSegment(         bool ldp,
+inline Reg2PreciseHalfSegment::Reg2PreciseHalfSegment( bool ldp,
                                                 const Reg2PrecisePoint& lp,
                                                 const Reg2PrecisePoint& rp ):
 ldp( ldp ),
@@ -755,10 +755,10 @@ inline void Reg2PreciseHalfSegment::Translate( const double& x,
   rp.Translate( x, y );
 }
 
-inline void Reg2PreciseHalfSegment::Scale( const double& f )
+inline void Reg2PreciseHalfSegment::Scale( const double& xf, const double& yf )
 {
-  lp.Scale( f );
-  rp.Scale( f );
+  lp.Scale( xf, yf );
+  rp.Scale( xf, yf );
 }
 
 bool Reg2PreciseHalfSegment::Contains( const Reg2PrecisePoint& p ) const
