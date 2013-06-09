@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef TILEALGEBRA_INDEX_H
 #define TILEALGEBRA_INDEX_H
 
+#include "Properties/Propertiesint.h"
+
 namespace TileAlgebra
 {
 
@@ -62,6 +64,15 @@ class Index
   bool operator>=(const Index<Dimension>& rIndex) const;
   Index<Dimension>& operator+=(const Index<Dimension>& rIndex);
   Index<Dimension>& operator-=(const Index<Dimension>& rIndex);
+
+  public:
+
+  /*
+  methods
+
+  */
+
+  int Get(const int& rIndex);
 
   private:
 
@@ -230,6 +241,19 @@ Index<Dimension>& Index<Dimension>::operator-=(const Index<Dimension>& rIndex)
   }
 
   return *this;
+}
+
+template <int Dimension>
+int Index<Dimension>::Get(const int& rIndex)
+{
+  int indexValue = Properties<int>::GetUndefinedValue();
+
+  if(rIndex < Dimension)
+  {
+    indexValue = m_Index[rIndex];
+  }
+
+  return indexValue;
 }
 
 }
