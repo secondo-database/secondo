@@ -18,7 +18,7 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator load alias LOAD pattern op(_)
-
+operator atlocation alias ATLOCATION pattern _ op [_,_]
 operator inst alias INST pattern op(_)
 operator val alias VAL pattern op(_)
 operator bbox alias BBOX pattern op(_,_)
