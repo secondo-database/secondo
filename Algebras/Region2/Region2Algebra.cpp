@@ -1023,7 +1023,15 @@ precCoordinates( cr.Size() ),
 preciseCoordinates( 0 ),
 bbox( cr.bbox ),
 noComponents( cr.noComponents ),
-ordered( true )
+ordered( true ),
+maxIntx(cr.maxIntx),
+maxInty(cr.maxInty),
+minIntx(cr.minIntx),
+minInty(cr.minInty),
+maxPrecx(0),
+maxPrecy(0),
+minPrecx(0),
+minPrecy(0)
 { 
 //  cout << "Region2(Region2, Bool)... " << endl;
 //cout << "Constructor called..." << endl;
@@ -1060,9 +1068,9 @@ ordered( true )
 1.1 Constructor ~Region2~ 
 
 */
-Region2::Region2( const Region& r ) :
+Region2::Region2( const Region& r, const int sFactor ) :
 StandardSpatialAttribute<2>(r.IsDefined()),
-scaleFactor( 0 ),
+scaleFactor( sFactor ),
 gridCoordinates(0),
 precCoordinates(0),
 preciseCoordinates(0)
@@ -1084,6 +1092,21 @@ preciseCoordinates(0)
         {
 //cout << i << ": " << hs << endl;
           phs = Reg2PreciseHalfSegment(hs);
+          if ( overflowAsInt(phs.GetLeftPoint().x, 
+                             phs.GetLeftPoint().y, sFactor)
+             || overflowAsInt(phs.GetRightPoint().x, 
+                              phs.GetRightPoint().y, sFactor) )
+          {
+            if (sFactor != 0)
+              cerr << "Integer Overflow - scale factor " << sFactor 
+                   << " is too big!";
+            else
+              cerr << "Integer Overflow - please use a scale factor!";
+            cerr << endl;
+            Clear();
+            SetDefined( false );
+            return;
+          }
 //cout << phs << endl;
           phs.attr.edgeno = e++;
           *this += phs;
@@ -1106,9 +1129,9 @@ preciseCoordinates(0)
 1.1 Constructor ~Region2~ 
 
 */
-Region2::Region2( const Rectangle<2>& r ) :
+Region2::Region2( const Rectangle<2>& r, const int sFactor ) :
 StandardSpatialAttribute<2>(r.IsDefined()),
-scaleFactor( 0 ),
+scaleFactor( sFactor ),
 gridCoordinates(0),
 precCoordinates(0),
 preciseCoordinates(0)
@@ -1136,6 +1159,22 @@ preciseCoordinates(0)
         return;
       }
 
+      if ( overflowAsInt(v1.x, v1.y, sFactor)
+         || overflowAsInt(v2.x, v2.y, sFactor)
+         || overflowAsInt(v3.x, v3.y, sFactor)
+         || overflowAsInt(v4.x, v4.y, sFactor) )
+      {
+        if (sFactor != 0)
+          cerr << "Integer Overflow - scale factor " << sFactor 
+               << " is too big!";
+        else
+          cerr << "Integer Overflow - please use a scale factor!";
+        cerr << endl;
+        Clear();
+        SetDefined( false );
+        return;
+      }
+              
       SetDefined( true );
       StartBulkLoad();
 
@@ -1185,6 +1224,74 @@ preciseCoordinates(0)
       SetDefined( false );
     } 
 }
+
+
+/*
+1.1 ~Get~ of Region2
+
+*/
+bool Region2::Get(const unsigned int i, Reg2PreciseHalfSegment& hs) const
+    {
+      if (i < 0 || i >= Size())
+        return false;
+      else if (precHSvector.size() == 0)
+      {
+        Reg2GridHalfSegment gHS;
+        Reg2PrecHalfSegment pHS;
+
+        gridCoordinates.Get(i, gHS);
+        precCoordinates.Get(i, pHS);
+
+        mpz_t sFactor;
+        mpz_init(sFactor);
+        mpq_class sFac(0);
+        uint sfactor;
+    
+        if (scaleFactor < 0)
+        {
+          sfactor = -scaleFactor;
+          mpz_ui_pow_ui(sFactor, 10, sfactor);
+          sFac = mpq_class(mpz_class(sFactor), mpz_class(1));
+        }
+        else
+        {
+          sfactor = scaleFactor;
+          mpz_ui_pow_ui(sFactor, 10, sfactor);
+          sFac = mpq_class(mpz_class(1), mpz_class(sFactor));
+        }
+        sFac.canonicalize();
+        mpz_clear(sFactor);
+        
+        mpq_class lx = (pHS.GetlPointx(&preciseCoordinates) 
+                        + gHS.GetLeftPointX()) * sFac;
+        lx.canonicalize();
+        mpq_class ly = (pHS.GetlPointy(&preciseCoordinates) 
+                        + gHS.GetLeftPointY()) * sFac;
+        ly.canonicalize();
+        mpq_class rx = (pHS.GetrPointx(&preciseCoordinates) 
+                        + gHS.GetRightPointX()) * sFac;
+        rx.canonicalize();
+        mpq_class ry = (pHS.GetrPointy(&preciseCoordinates) 
+                        + gHS.GetRightPointY()) * sFac;
+        ry.canonicalize();
+
+        Reg2PrecisePoint pl = Reg2PrecisePoint(lx, ly);
+        Reg2PrecisePoint pr = Reg2PrecisePoint(rx, ry);
+
+        hs = Reg2PreciseHalfSegment(gHS.IsLeftDomPoint(), pl, pr);
+        AttrType attr = AttrType(gHS.GetAttr());
+        hs.SetAttr(attr);
+        return true;
+      }
+      else if (i >= 0 && i < precHSvector.size())
+      {
+        hs = precHSvector[i];
+        return true;
+      }
+      else
+        return false;
+    }
+
 
 
 /*
@@ -1556,6 +1663,14 @@ Region2& Region2::operator=( const Region2& r )
   precHSvector = r.precHSvector;
   bbox = r.bbox;
   noComponents = r.noComponents;
+  maxIntx = r.maxIntx;
+  maxInty = r.maxInty;
+  minIntx = r.minIntx;
+  minInty = r.minInty;
+  maxPrecx = r.maxPrecx;
+  maxPrecy = r.maxPrecy;
+  minPrecx = r.minPrecx;
+  minPrecy = r.minPrecy;
   return *this;
 }
 
@@ -1595,6 +1710,16 @@ Region2& Region2::operator+=( const Reg2PreciseHalfSegment& hs )
       }
     }
   }
+  
+  if (cmp(hs.GetLeftPoint().x, maxPrecx) > 0) maxPrecx = hs.GetLeftPoint().x;
+  if (cmp(hs.GetLeftPoint().y, maxPrecy) > 0) maxPrecy = hs.GetLeftPoint().y;
+  if (cmp(hs.GetRightPoint().x, maxPrecx) > 0) maxPrecx = hs.GetRightPoint().x;
+  if (cmp(hs.GetRightPoint().y, maxPrecy) > 0) maxPrecy = hs.GetRightPoint().y;
+  if (cmp(hs.GetLeftPoint().x, minPrecx) < 0) minPrecx = hs.GetLeftPoint().x;
+  if (cmp(hs.GetLeftPoint().y, minPrecy) < 0) minPrecy = hs.GetLeftPoint().y;
+  if (cmp(hs.GetRightPoint().x, minPrecx) < 0) minPrecx = hs.GetRightPoint().x;
+  if (cmp(hs.GetRightPoint().y, minPrecy) < 0) minPrecy = hs.GetRightPoint().y;
+
   return *this;
 }
 
@@ -1872,10 +1997,27 @@ void Region2::Translate( const double& x,
   {
     Get( i, hs );
     hs.Translate( x, y );
+    if ( overflowAsInt(hs.GetLeftPoint().x, 
+                       hs.GetRightPoint().x, scaleFactor) )
+    {
+      cerr << "Overflow of Int values: x-translation with value " 
+           << x << " is too big!" << endl;
+      result.SetDefined( false );
+      return;
+    }
+    if ( overflowAsInt(hs.GetLeftPoint().y, 
+                       hs.GetRightPoint().y, scaleFactor) )
+    {
+      cerr << "Overflow of Int values: y-translation with value " 
+           << y << " is too big!" << endl;
+      result.SetDefined( false );
+      return;
+    }
     result += hs;
   }
   result.SetNoComponents( NoComponents() );
-  result.EndBulkLoad( false, false, false, false, false );
+  result.SetScaleFactor( scaleFactor );
+  result.EndBulkLoad( false, false, false, false, true );
 }
 
 
@@ -2684,6 +2826,10 @@ void Region2::buildDbArrays()
   gridCoordinates.clean();
   precCoordinates.clean();
   preciseCoordinates.clean();
+  maxIntx = 0;
+  maxInty = 0;
+  minIntx = 0;
+  minInty = 0;
   
   Reg2PreciseHalfSegment hs;
   Reg2GridHalfSegment gHS;
@@ -2725,11 +2871,19 @@ void Region2::buildDbArrays()
     rys.canonicalize();            
     
     int lxi = (int)floor(lxs.get_d());
+    if (lxi > maxIntx) maxIntx = lxi;
+    if (lxi < minIntx) minIntx = lxi;
     int lyi = (int)floor(lys.get_d());
+    if (lyi > maxInty) maxInty = lyi;
+    if (lyi < minInty) minInty = lyi;
     Reg2GridPoint lgp(lxi, lyi);
 
     int rxi = (int)floor(rxs.get_d());
+    if (rxi > maxIntx) maxIntx = rxi;
+    if (rxi < minIntx) minIntx = rxi;
     int ryi = (int)floor(rys.get_d());
+    if (ryi > maxInty) maxInty = ryi;
+    if (ryi < minInty) minInty = ryi;
     Reg2GridPoint rgp(rxi, ryi);
 //cout << lxi << " " << lyi << " " << rxi << " " << ryi << " ";
 //cout <<  lgp << " " << rgp << endl;
@@ -2786,6 +2940,10 @@ void Region2::buildHSvector()
   Reg2PrecHalfSegment pHS;
   
   precHSvector.clear();
+  maxPrecx = mpq_class(0);
+  maxPrecy = mpq_class(0);
+  minPrecx = mpq_class(0);
+  minPrecy = mpq_class(0);
 
 //cout << "Build HS vector: " << endl;  
   for (int i=0; i < gridCoordinates.Size(); i++)
@@ -2832,6 +2990,15 @@ void Region2::buildHSvector()
                         + gHS.GetRightPointY()) * sFac;
     ry.canonicalize();
 
+    if (cmp(lx, maxPrecx) > 0) maxPrecx = lx;
+    if (cmp(ly, maxPrecy) > 0) maxPrecy = ly;
+    if (cmp(rx, maxPrecx) > 0) maxPrecx = rx;
+    if (cmp(ry, maxPrecy) > 0) maxPrecy = ry;
+    if (cmp(lx, minPrecx) < 0) minPrecx = lx;
+    if (cmp(ly, minPrecy) < 0) minPrecy = ly;
+    if (cmp(rx, minPrecx) < 0) minPrecx = rx;
+    if (cmp(ry, minPrecy) < 0) minPrecy = ry;
+
     Reg2PrecisePoint pl = Reg2PrecisePoint(lx, ly);
     Reg2PrecisePoint pr = Reg2PrecisePoint(rx, ry);
 
@@ -2852,14 +3019,18 @@ bool Region2::validateRegion2()
 //  return true;
   
   Reg2PreciseHalfSegment hsi, hsj;
+  Reg2PrecisePoint pp;
 //cout << "Start validateRegion2: "<< endl;  
   for( unsigned int i = 0; i < precHSvector.size()-1; i++ )
   {
     Get( i, hsi );
+    hsj = hsi;
 
     if (hsi.IsLeftDomPoint())
     {
-      for( unsigned int j = i+1; j < precHSvector.size(); j++ )
+      for( unsigned int j = i+1; j < precHSvector.size() 
+                                && hsj.GetLeftPoint() < hsi.GetRightPoint();
+           j++ )
       {
         Get( j, hsj );
       
@@ -2871,10 +3042,15 @@ bool Region2::validateRegion2()
             if ((hsi.attr.faceno!=hsj.attr.faceno) ||
                 (hsi.attr.cycleno!=hsj.attr.cycleno))
             {
-              cout << "two cycles intersect with the ";
-              cout << "following edges:";
-              cout << hsj << " :: " << hsi << endl;
-              return false;
+              if ( !hsi.Intersection(hsj, pp) || 
+                    ( pp != hsi.GetLeftPoint() && pp != hsi.GetRightPoint() &&
+                      pp != hsj.GetLeftPoint() && pp != hsj.GetRightPoint() ))
+              {
+                cout << "two cycles intersect with the ";
+                cout << "following edges:";
+                cout << hsj << " :: " << hsi << endl;
+                return false;
+              }
             }
             else
             {
@@ -3717,6 +3893,19 @@ InRegion2(const ListExpr typeInfo, const ListExpr instance,
                                 preciseY);
            }
 
+           mpq_class prX = mpq_class(preciseX 
+                                     + nl->IntValue(nl->First(pointNL)));
+           mpq_class prY = mpq_class(preciseY 
+                                     + nl->IntValue(nl->Second(pointNL)));
+           if (overflowAsInt(prX, prY, scale))
+           {
+             cerr << "Integer Overflow of the Values " 
+                  << nl->ToString(pointNL) << endl;
+             cerr << "Please use a bigger scale factor!" << endl;
+             correct = false;
+             return SetWord(Address(0));
+           }
+
 //cerr << "Schritt 8b" << endl;
            p = Reg2PrecisePoint(
                      preciseX, 
@@ -3738,6 +3927,14 @@ InRegion2(const ListExpr typeInfo, const ListExpr instance,
                                 nl->First(pointNL)));
              preciseY = D2MPQ(listutils::getNumValue(
                                 nl->Second(pointNL)));
+             if (overflowAsInt(preciseX, preciseY, scale))
+             {
+               cerr << "Integer Overflow of the Values " 
+                    << nl->ToString(pointNL) << endl;
+               cerr << "Please use a bigger scale factor!" << endl;
+               correct = false;
+               return SetWord(Address(0));
+             }
              p = Reg2PrecisePoint(preciseX, preciseY);
            }
            else if ( nl->AtomType(nl->First(pointNL)) == TextType &&
@@ -3746,6 +3943,14 @@ InRegion2(const ListExpr typeInfo, const ListExpr instance,
              syntaxtyp = 4;
              textTypeToGmpType2(nl->First(pointNL), preciseX);
              textTypeToGmpType2(nl->Second(pointNL), preciseY);
+             if (overflowAsInt(preciseX, preciseY, scale))
+             {
+               cerr << "Integer Overflow of the Values " 
+                    << nl->ToString(pointNL) << endl;
+               cerr << "Please use a bigger scale factor!" << endl;
+               correct = false;
+               return SetWord(Address(0));
+             }
              p = Reg2PrecisePoint(preciseX, preciseY);
            }
            else
@@ -3768,6 +3973,14 @@ InRegion2(const ListExpr typeInfo, const ListExpr instance,
              preciseY = D2MPQ(listutils::getNumValue(
                                       nl->Second(pointNL)));
            }
+           if (overflowAsInt(preciseX, preciseY, scale))
+           {
+             cerr << "Integer Overflow of the Values " 
+                  << nl->ToString(pointNL) << endl;
+             cerr << "Please use a bigger scale factor!" << endl;
+             correct = false;
+             return SetWord(Address(0));
+           }
            p = Reg2PrecisePoint(preciseX, preciseY);
          }
          else if ( syntaxtyp == 4 )
@@ -3781,6 +3994,14 @@ InRegion2(const ListExpr typeInfo, const ListExpr instance,
            {
              textTypeToGmpType2(nl->First(pointNL), preciseX);
              textTypeToGmpType2(nl->Second(pointNL), preciseY);
+           }
+           if (overflowAsInt(preciseX, preciseY, scale))
+           {
+             cerr << "Integer Overflow of the Values " 
+                  << nl->ToString(pointNL) << endl;
+             cerr << "Please use a bigger scale factor!" << endl;
+             correct = false;
+             return SetWord(Address(0));
            }
            p = Reg2PrecisePoint(preciseX, preciseY);
          }
@@ -3879,7 +4100,7 @@ OpenRegion2( SmiRecord& valueRecord,
   Region2 *r = (Region2*)Attribute::Open( valueRecord, 
                                           offset, 
                                           typeInfo );
-  r->buildHSvector();
+//  r->buildHSvector();
   value = SetWord( r );
   return true;
 }
@@ -3897,7 +4118,7 @@ SaveRegion2( SmiRecord& valueRecord,
 {
 //  cout << "SaveRegion2... " << endl;
   Region2 *r = (Region2 *)value.addr;
-  r->buildDbArrays();
+//  r->buildDbArrays();
   Attribute::Save( valueRecord, offset, typeInfo, r );
   return true;
 }
@@ -4043,7 +4264,12 @@ static int SetScaleValueMap(Word* args, Word& result, int message,
         int newScale = ((CcInt*)args[1].addr)->GetIntval();
 
         Region2 reg2(*reg);
-        reg2.SetScaleFactor(newScale);
+        if (!reg2.SetScaleFactor(newScale))
+        {
+          cerr << "Scalefactor " << newScale << " is too big!!" << endl;
+          ((Region2*)result.addr)->SetDefined( false );
+          return 0;
+        }
 
         ((Region2*)result.addr)->CopyFrom(&reg2);
         return 0;
@@ -4480,12 +4706,12 @@ ListExpr scaleTypeMap(ListExpr args)
 {
    if(nl->ListLength(args)!=2){
       return listutils::typeError(
-                 "operator scale requires two arguments");
+                 "Operator scale requires two arguments");
    }
    ListExpr arg1 = nl->First(args);
    ListExpr arg2 = nl->Second(args);
    if(!(nl->IsEqual(arg2 , CcReal::BasicType()))){
-      return listutils::typeError("expectes real as 2nd");
+      return listutils::typeError("expects real as 2nd argument");
    }
    if(nl->IsEqual(arg1,Region2::BasicType()))
      return nl->SymbolAtom(Region2::BasicType());
@@ -4500,7 +4726,8 @@ int scaleValueMap( Word* args, Word& result, int message,
   Region2 *R = (Region2*) args[0].addr;
   CcReal *factor = (CcReal*) args[1].addr;
   Region2 *res = (Region2*) result.addr;
-  if( !R->IsDefined() || !factor->IsDefined() )
+  if( !R->IsDefined() || !factor->IsDefined() 
+          || R->factorOverflow(factor->GetRealval()) )
   {
     res->SetDefined(false);
   }
@@ -4515,12 +4742,22 @@ int scaleValueMap( Word* args, Word& result, int message,
        Reg2PreciseHalfSegment hs;
        for(int i=0;i<size;i++){
          R->Get(i,hs);
-         hs.Scale(f);
+         hs.Scale(f, f);
+         if ( overflowAsInt(hs.GetLeftPoint().x, hs.GetLeftPoint().y, 
+                            R->GetScaleFactor())
+           || overflowAsInt(hs.GetRightPoint().x, hs.GetRightPoint().y, 
+                            R->GetScaleFactor()) )
+         {
+           cerr << "Overflow of Int values: Factor " 
+                << f << " is too big!!" << endl;
+           res->SetDefined( false );
+           return 0;
+         }
          (*res) += hs;
        }
       res->SetNoComponents( R->NoComponents() );
       res->SetScaleFactor( R->GetScaleFactor() );
-      res->EndBulkLoad( false, false, false, false, false );
+      res->EndBulkLoad( false, false, false, false, true );
     }
   }
   return 0;
@@ -4531,7 +4768,7 @@ const string scalespec  =
   "( <text>region2 x real -> region2</text--->"
   "<text> _ scale [ _ ] </text--->"
   "<text> scales a region2 object by the given factor.</text--->"
-  "<text> query region21 scale[1000.0]</text--->"
+  "<text> query region21 scale[10.0]</text--->"
   ") )";
 
 static Operator scale ( "scale",
@@ -4539,6 +4776,99 @@ static Operator scale ( "scale",
                 scaleValueMap,
                 simpleSelect,
                 scaleTypeMap );
+
+
+/*
+1.1 scale2
+
+*/
+ListExpr scale2TypeMap(ListExpr args)
+{
+   if(nl->ListLength(args)!=3){
+      return listutils::typeError(
+                 "Operator scale2 requires three arguments");
+   }
+   ListExpr arg1 = nl->First(args);
+   ListExpr arg2 = nl->Second(args);
+   if(!(nl->IsEqual(arg2 , CcReal::BasicType()))){
+      return listutils::typeError("expects real as 2nd argument");
+   }
+   ListExpr arg3 = nl->Third(args);
+   if(!(nl->IsEqual(arg3 , CcReal::BasicType()))){
+      return listutils::typeError("expects real as 3rd argument");
+   }
+   if(nl->IsEqual(arg1,Region2::BasicType()))
+     return nl->SymbolAtom(Region2::BasicType());
+   return listutils::typeError(
+                  "Expected first argument to be of region2");
+}
+
+int scale2ValueMap( Word* args, Word& result, int message, 
+                   Word& local, Supplier s )
+{
+  result = qp->ResultStorage(s);
+  Region2 *R = (Region2*) args[0].addr;
+  CcReal *xfactor = (CcReal*) args[1].addr;
+  CcReal *yfactor = (CcReal*) args[2].addr;
+  Region2 *res = (Region2*) result.addr;
+  if( !R->IsDefined() || !xfactor->IsDefined() || !yfactor->IsDefined() 
+      || R->factorOverflow(xfactor->GetRealval(), yfactor->GetRealval()) )
+  {
+    res->SetDefined(false);
+  }
+  else
+  {
+    res->Clear();
+    res->SetDefined(true);
+    double xf = xfactor->GetRealval();
+    double yf = yfactor->GetRealval();
+    if(!R->IsEmpty()){
+       res->StartBulkLoad();
+       int size = R->Size();
+       Reg2PreciseHalfSegment hs;
+       for(int i=0;i<size;i++){
+         R->Get(i,hs);
+         hs.Scale(xf, yf);
+         if ( overflowAsInt(hs.GetLeftPoint().x, hs.GetRightPoint().x,
+                            R->GetScaleFactor()) )
+         {
+           cerr << "Overflow of Int values: x-Factor " 
+                << xf << " is too big!!" << endl;
+           res->SetDefined( false );
+           return 0;
+         }
+         if ( overflowAsInt(hs.GetLeftPoint().y, hs.GetRightPoint().y, 
+                            R->GetScaleFactor()) )
+         {
+           cerr << "Overflow of Int values: y-Factor " 
+                << yf << " is too big!!" << endl;
+           res->SetDefined( false );
+           return 0;
+         }
+         (*res) += hs;
+       }
+      res->SetNoComponents( R->NoComponents() );
+      res->SetScaleFactor( R->GetScaleFactor() );
+      res->EndBulkLoad( false, false, false, false, true );
+    }
+  }
+  return 0;
+}
+
+const string scale2spec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>region2 x real x real -> region2</text--->"
+  "<text> _ scale2 [ _, _ ] </text--->"
+  "<text>scales a region2 object by the given factors in x-"
+  " and y-direction differently.</text--->"
+  "<text>query region21 scale[10.0, 1.0]</text--->"
+  ") )";
+
+static Operator scale2 ( "scale2",
+                scale2spec,
+                scale2ValueMap,
+                simpleSelect,
+                scale2TypeMap );
 
 
 /*
@@ -4700,6 +5030,58 @@ static Operator region2region2 ( "region2region2",
 
 
 /*
+1.1 regiontoregion2
+
+*/
+ListExpr regiontoregion2TypeMap( ListExpr args )
+{
+  if (nl->ListLength(args) != 2){
+    ErrorReporter::ReportError(
+      "Invalid number of arguments: "
+      "operator expects 2 arguments");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  }
+  if (!nl->IsEqual(nl->First(args),Region::BasicType())){
+    ErrorReporter::ReportError(
+      "Region as first argument required");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  }
+  if (!nl->IsEqual(nl->Second(args),CcInt::BasicType())){
+    ErrorReporter::ReportError(
+      "Type Integer as second argument required");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  }
+  return nl->SymbolAtom(Region2::BasicType());
+}
+
+int regiontoregion2ValueMap( Word* args, Word& result, int message, 
+                            Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Region *r = (Region *)args[0].addr;
+  int scale = ((CcInt *)args[1].addr)->GetIntval();
+  Region2 *res = (Region2*)result.addr;
+  *res = Region2( *r, scale);
+  return 0;
+}
+
+const string regiontoregion2spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>region x int -> region2</text--->"
+    "<text>regiontoregion2 (_, _)</text--->"
+    "<text>Converts a region object to a region2 object with "
+    "the given scalefactor.</text--->"
+    "<text>query regiontoregion2([const region value ( (1 1 2 2)(3 3"
+    " 4 4) )], 2)</text--->) )";
+
+static Operator regiontoregion2 ( "regiontoregion2",
+                regiontoregion2spec,
+                regiontoregion2ValueMap,
+                simpleSelect,
+                regiontoregion2TypeMap );
+
+
+/*
 1.1 rect2region2
 
 */
@@ -4727,7 +5109,7 @@ const string rect2region2spec  =
     "( <text>rect -> region2</text--->"
     "<text>_ rect2region2</text--->"
     "<text>Converts a rect object to a region2 object.</text--->"
-    "<text> query [const rect value (-100.0 200.0 -50.0 500.0)] "
+    "<text>query [const rect value (-100.0 200.0 -50.0 500.0)] "
     "rect2region2 </text--->) )";
 
 static Operator rect2region2 ( "rect2region2",
@@ -4735,6 +5117,59 @@ static Operator rect2region2 ( "rect2region2",
                 rect2region2ValueMap,
                 simpleSelect,
                 rect2region2TypeMap );
+
+
+/*
+1.1 recttoregion2
+
+*/
+ListExpr recttoregion2TypeMap( ListExpr args )
+{
+  if (nl->ListLength(args) != 2){
+    ErrorReporter::ReportError(
+      "Invalid number of arguments: "
+      "operator expects 2 arguments");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  }
+  if (!nl->IsEqual(nl->First(args),Rectangle<2>::BasicType())){
+    ErrorReporter::ReportError(
+      "Rectangle<2> as first argument required");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  }
+  if (!nl->IsEqual(nl->Second(args),CcInt::BasicType())){
+    ErrorReporter::ReportError(
+      "Type Integer as second argument required");
+    return nl->SymbolAtom(Symbol::TYPEERROR());
+  }
+  return nl->SymbolAtom(Region2::BasicType());
+}
+
+int recttoregion2ValueMap( Word* args, Word& result, int message, 
+                          Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  Rectangle<2> *rect = (Rectangle<2> *)args[0].addr;
+  int scale = ((CcInt *)args[1].addr)->GetIntval();
+  Region2 *res = (Region2*)result.addr;
+  *res = Region2( *rect, scale );
+  return 0;
+}
+
+const string recttoregion2spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>rect x int -> region2</text--->"
+    "<text>recttoregion2 (_, _)</text--->"
+    "<text>Converts a rect object to a region2 object with "
+    "the given scalefactor.</text--->"
+    "<text>query recttoregion2([const rect value (-100.0 200.0 "
+    "-50.0 500.0)], 2)</text--->) )";
+
+static Operator recttoregion2 ( "recttoregion2",
+                recttoregion2spec,
+                recttoregion2ValueMap,
+                simpleSelect,
+                recttoregion2TypeMap );
 
 
 /*
@@ -4820,10 +5255,13 @@ class Region2Algebra : public Algebra
     AddOperator( &bbox);
     AddOperator( &reg2translate );
     AddOperator( &scale );
+    AddOperator( &scale2 );
     AddOperator( &components );
     AddOperator( &getholes );
     AddOperator( &region2region2 );
+    AddOperator( &regiontoregion2 );
     AddOperator( &rect2region2 );
+    AddOperator( &recttoregion2 );
     AddOperator( &size );
     AddOperator( &area );
 
