@@ -100,7 +100,7 @@ int maximumFunction(Word* pArguments,
         if(pResult != 0)
         {
           *pResult = Properties::TypeProperties::GetWrappedValue
-                     (pType->GetMaximum());
+                     (pType->maximum());
         }
       }
     }
