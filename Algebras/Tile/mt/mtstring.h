@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../Properties/Propertiesstring.h"
 #include "../UniqueStringArray/UniqueStringArray.h"
 #include "RectangleAlgebra.h"
+#include "TemporalAlgebra.h"
 
 namespace TileAlgebra
 {
@@ -75,8 +76,11 @@ class mtstring : public mtint
 
   */
 
-  std::string GetMinimum() const;
-  std::string GetMaximum() const;
+  MString atlocation(const double& rX, const double& rY) const;
+  CcString atlocation(const double& rX, const double& rY,
+                      const double& rInstant) const;
+  std::string minimum() const;
+  std::string maximum() const;
 
   /*
   override functions from base class mtint
@@ -149,9 +153,11 @@ class mtProperties<std::string>
   public:
 
   typedef Properties<std::string> TypeProperties;
+  typedef MString atlocationType;
   typedef Rectangle<3> bboxType;
   typedef mtgrid gridType;
   typedef mtstring mtType;
+  typedef UString unitType;
   static int GetDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();

@@ -74,7 +74,78 @@ mtstring& mtstring::operator=(const mtstring& rmtstring)
   return *this;
 }
 
-std::string mtstring::GetMinimum() const
+MString mtstring::atlocation(const double& rX,
+                             const double& rY) const
+{
+  MString atlocationValues(0);
+  atlocationValues.SetDefined(false);
+
+  if(IsValidLocation(rX, rY))
+  {
+    atlocationValues.SetDefined(true);
+
+    Rectangle<3> boundingBox = bbox();
+    Instant minimumTime = boundingBox.MinD(2);
+    Instant maximumTime = boundingBox.MaxD(2);
+    datetime::DateTime duration = m_Grid.GetDuration();
+
+    atlocationValues.StartBulkLoad();
+
+    for(Instant currentTime = minimumTime;
+        currentTime < maximumTime;
+        currentTime += duration)
+    {
+      CcString value = atlocation(rX, rY, currentTime.ToDouble());
+
+      if(value.IsDefined())
+      {
+        Interval<Instant> interval(currentTime, currentTime + duration,
+                                   true, false);
+        atlocationValues.Add(UString(interval, value, value));
+      }
+    }
+
+    atlocationValues.EndBulkLoad();
+
+    if(atlocationValues.IsEmpty())
+    {
+      atlocationValues.SetDefined(false);
+    }
+  }
+
+  return atlocationValues;
+}
+
+CcString mtstring::atlocation(const double& rX,
+                              const double& rY,
+                              const double& rInstant) const
+{
+  CcString atlocationValue;
+  atlocationValue.SetDefined(false);
+
+  if(IsValidLocation(rX, rY, rInstant))
+  {
+    Index<3> index = GetLocationIndex(rX, rY, rInstant);
+    int stringIndex = GetValue(index);
+
+    if(mtProperties<int>::TypeProperties::IsUndefinedValue(stringIndex)
+       == false)
+    {
+      std::string stringValue;
+      bool bOK = m_UniqueStringArray.GetUniqueString(stringIndex, stringValue);
+
+      if(bOK == true)
+      {
+        atlocationValue = mtProperties<std::string>::TypeProperties::
+                          GetWrappedValue(stringValue);
+      }
+    }
+  }
+
+  return atlocationValue;
+}
+
+std::string mtstring::minimum() const
 {
   std::string minimum;
 
@@ -87,7 +158,7 @@ std::string mtstring::GetMinimum() const
   return minimum;
 }
 
-std::string mtstring::GetMaximum() const
+std::string mtstring::maximum() const
 {
   std::string maximum;
 
@@ -440,7 +511,7 @@ Word mtstring::In(const ListExpr typeInfo,
                                                       AddString(stringValue);
 
                                         std::string minimum = pmtstring->
-                                                              GetMinimum();
+                                                              minimum();
 
                                         if(mtProperties<std::string>::
                                            TypeProperties::
@@ -451,7 +522,7 @@ Word mtstring::In(const ListExpr typeInfo,
                                         }
 
                                         std::string maximum = pmtstring->
-                                                              GetMaximum();
+                                                              maximum();
 
                                         if(mtProperties<std::string>::
                                            TypeProperties::
