@@ -98,7 +98,7 @@ int valFunction(Word* pArguments,
         
         if(pResult != 0)
         {
-          *pResult = pType->GetValue();
+          *pResult = pType->val();
         }
       }
     }
