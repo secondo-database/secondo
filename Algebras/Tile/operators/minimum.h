@@ -100,7 +100,7 @@ int minimumFunction(Word* pArguments,
         if(pResult != 0)
         {
           *pResult = Properties::TypeProperties::GetWrappedValue
-                     (pType->GetMinimum());
+                     (pType->minimum());
         }
       }
     }
