@@ -37,6 +37,7 @@ class tProperties
   public:
 
   typedef Type TypeProperties;
+  typedef Type atlocationType;
   typedef Type bboxType;
   typedef Type gridType;
   typedef Type tType;
