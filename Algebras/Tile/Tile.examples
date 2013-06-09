@@ -15,6 +15,25 @@ Example  : query load([const tintFlob value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3))
 Result   : TRUE
 
 
+Operator : atlocation
+Number   : 1
+Signature: tT x point -> T
+Example  : query [const tint value ((0.0 0.0 1.0) (2 2) (0 0 (0 1 2 3)) (29 29 (957 958 959 960)))] atlocation [[const point value (1.5 1.5)]]
+Result   : (int 3)
+
+Operator : atlocation
+Number   : 2
+Signature: mtT x point -> mT
+Example  : query [const mtint value ((0.0 0.0 1.0 1.0) (2 2 2) (0 0 0 (0 1 2 3 4 5 6 7)))] atlocation [[const point value (1.5 1.5)]]
+Result   : (mint((("2000-01-03" "2000-01-04" TRUE FALSE) 3) (("2000-01-04" "2000-01-05" TRUE FALSE) 7)))
+
+Operator : atlocation
+Number   : 3
+Signature: mtT x point x instant -> T
+Example  : query [const mtint value ((0.0 0.0 1.0 1.0) (2 2 1) (0 0 0 (0 1 2 3)) (8 8 9 (996 997 998 999)))] atlocation [[const point value (1.5 1.5)] , [const instant value "2000-01-03-00:00:00.001"]]
+Result   : (int 3)
+
+
 Operator : inst
 Number   : 1
 Signature: itT -> instant
