@@ -74,7 +74,45 @@ tstring& tstring::operator=(const tstring& rtstring)
   return *this;
 }
 
-std::string tstring::GetMinimum() const
+CcString tstring::atlocation(const double& rX,
+                             const double& rY) const
+{
+  CcString atlocationValue;
+  atlocationValue.SetDefined(false);
+
+  CcInt intValue = tint::atlocation(rX, rY);
+
+  if(intValue.IsDefined())
+  {
+    std::string stringValue;
+    bool bOK = m_UniqueStringArray.GetUniqueString(intValue.GetValue(),
+                                                   stringValue);
+
+    if(bOK == true)
+    {
+      atlocationValue = tProperties<std::string>::TypeProperties::
+                        GetWrappedValue(stringValue);
+    }
+  }
+
+  return atlocationValue;
+}
+
+CcString tstring::atlocation(const double& rX,
+                             const double& rY,
+                             const double& rInstant) const
+{
+  CcString atlocationValue = atlocation(rX, rY);
+
+  /*
+  instant value is not relevant for tstring type.
+
+  */
+
+  return atlocationValue;
+}
+
+std::string tstring::minimum() const
 {
   std::string minimum;
 
@@ -87,7 +125,7 @@ std::string tstring::GetMinimum() const
   return minimum;
 }
 
-std::string tstring::GetMaximum() const
+std::string tstring::maximum() const
 {
   std::string maximum;
 
@@ -421,7 +459,7 @@ Word tstring::In(const ListExpr typeInfo,
                                                     AddString(stringValue);
 
                                       std::string minimum = ptstring->
-                                                            GetMinimum();
+                                                            minimum();
 
                                       if(tProperties<std::string>::
                                          TypeProperties::
@@ -432,7 +470,7 @@ Word tstring::In(const ListExpr typeInfo,
                                       }
 
                                       std::string maximum = ptstring->
-                                                            GetMaximum();
+                                                            maximum();
 
                                       if(tProperties<std::string>::
                                          TypeProperties::

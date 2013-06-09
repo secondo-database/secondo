@@ -75,8 +75,11 @@ class tstring : public tint
 
   */
 
-  std::string GetMinimum() const;
-  std::string GetMaximum() const;
+  CcString atlocation(const double& rX, const double& rY) const;
+  CcString atlocation(const double& rX, const double& rY,
+                      const double& rInstant) const;
+  std::string minimum() const;
+  std::string maximum() const;
 
   /*
   override functions from base class tint
@@ -149,6 +152,7 @@ class tProperties<std::string>
   public:
 
   typedef Properties<std::string> TypeProperties;
+  typedef CcString atlocationType;
   typedef Rectangle<2> bboxType;
   typedef tgrid gridType;
   typedef tstring tType;
