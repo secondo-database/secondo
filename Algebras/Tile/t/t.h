@@ -76,10 +76,16 @@ class t : public Attribute
 
   */
 
-  Rectangle<2> GetBoundingBox() const;
-  Type GetMinimum() const;
-  Type GetMaximum() const;
-  tgrid GetGrid() const;
+  typename Properties::atlocationType atlocation(const double& rX,
+                                                 const double& rY) const;
+  typename Properties::TypeProperties::WrapperType atlocation(const double& rX,
+                                                              const double& rY,
+                                                              const double&
+                                                              rInstant) const;
+  typename Properties::bboxType bbox() const;
+  Type minimum() const;
+  Type maximum() const;
+  tgrid getgrid() const;
 
   protected:
 
@@ -88,10 +94,12 @@ class t : public Attribute
 
   */
 
+  Index<2> GetLocationIndex(const double& rX, const double& rY) const;
+  Type GetValue(const Index<2>& rIndex) const;
+  bool IsValidLocation(const double& rX, const double& rY) const;
   bool SetGrid(const double& rX, const double& rY, const double& rLength);
   void SetMinimum(const Type& rValue);
   void SetMaximum(const Type& rValue);
-  Type GetValue(const Index<2>& rIndex) const;
   bool SetValue(const Index<2>& rIndex, const Type& rValue);
 
   public:
@@ -233,9 +241,50 @@ t<Type, Properties>& t<Type, Properties>::operator=
 }
 
 template <typename Type, typename Properties>
-Rectangle<2> t<Type, Properties>::GetBoundingBox() const
+typename Properties::atlocationType t<Type, Properties>::atlocation
+                                                         (const double& rX,
+                                                          const double& rY)
+                                                          const
 {
-  Rectangle<2> boundingBox;
+  typename Properties::atlocationType atlocationValue;
+  atlocationValue.SetDefined(false);
+
+  if(IsValidLocation(rX, rY))
+  {
+    Index<2> index = GetLocationIndex(rX, rY);
+    Type value = GetValue(index);
+
+    if(Properties::TypeProperties::IsUndefinedValue(value) == false)
+    {
+      atlocationValue = Properties::TypeProperties::GetWrappedValue(value);
+    }
+  }
+
+  return atlocationValue;
+}
+
+template <typename Type, typename Properties>
+typename Properties::TypeProperties::WrapperType t<Type, Properties>::
+                                                 atlocation(const double& rX,
+                                                            const double& rY,
+                                                            const double&
+                                                            rInstant) const
+{
+  typename Properties::TypeProperties::WrapperType
+  atlocationValue = atlocation(rX, rY);
+
+  /*
+  instant value is not relevant for t types.
+
+  */
+
+  return atlocationValue;
+}
+
+template <typename Type, typename Properties>
+typename Properties::bboxType t<Type, Properties>::bbox() const
+{
+  typename Properties::bboxType boundingBox;
 
   double minima[2] = { 0.0, 0.0 };
   double maxima[2] = { 0.0, 0.0 };
@@ -341,21 +390,84 @@ Rectangle<2> t<Type, Properties>::GetBoundingBox() const
 }
 
 template <typename Type, typename Properties>
-Type t<Type, Properties>::GetMinimum() const
+Type t<Type, Properties>::minimum() const
 {
   return m_Minimum;
 }
 
 template <typename Type, typename Properties>
-Type t<Type, Properties>::GetMaximum() const
+Type t<Type, Properties>::maximum() const
 {
   return m_Maximum;
 }
 
 template <typename Type, typename Properties>
-tgrid t<Type, Properties>::GetGrid() const
+tgrid t<Type, Properties>::getgrid() const
 {
   return m_Grid;
+}
+
+template <typename Type, typename Properties>
+Index<2> t<Type, Properties>::GetLocationIndex(const double& rX,
+                                               const double& rY) const
+{
+  int dimensionSize = Properties::GetDimensionSize();
+  double gridX = m_Grid.GetX();
+  double gridY = m_Grid.GetY();
+  double gridLength = m_Grid.GetLength();
+  int indexX = static_cast<int>((rX - gridX) / gridLength);
+  int indexY = static_cast<int>((rY - gridY) / gridLength);
+  assert(indexX < dimensionSize);
+  assert(indexY < dimensionSize);
+
+  Index<2> locationIndex = (int[]){indexX, indexY};
+  return locationIndex;
+}
+
+template <typename Type, typename Properties>
+Type t<Type, Properties>::GetValue(const Index<2>& rIndex) const
+{
+  Type value = Properties::TypeProperties::GetUndefinedValue();
+
+  int dimensionSize = Properties::GetDimensionSize();
+
+  if(IsDefined() &&
+     rIndex[0] >= 0 &&
+     rIndex[0] < dimensionSize &&
+     rIndex[1] >= 0 &&
+     rIndex[1] < dimensionSize)
+  {
+    int flobIndex = rIndex[1] * dimensionSize + rIndex[0];
+
+    bool bOK = m_Flob.read(reinterpret_cast<char*>(&value),
+                           sizeof(Type),
+                           flobIndex * sizeof(Type));
+    assert(bOK);
+  }
+
+  return value;
+}
+
+template <typename Type, typename Properties>
+bool t<Type, Properties>::IsValidLocation(const double& rX,
+                                          const double& rY) const
+{
+  bool bIsValidLocation = false;
+
+  int dimensionSize = Properties::GetDimensionSize();
+  double gridX = m_Grid.GetX();
+  double gridY = m_Grid.GetY();
+  double gridLength = m_Grid.GetLength();
+
+  if(rX >= gridX &&
+     rX < (gridX + dimensionSize * gridLength) &&
+     rY >= gridY &&
+     rY < (gridY + dimensionSize * gridLength))
+  {
+    bIsValidLocation = true;
+  }
+
+  return bIsValidLocation;
 }
 
 template <typename Type, typename Properties>
@@ -383,30 +495,6 @@ template <typename Type, typename Properties>
 void t<Type, Properties>::SetMaximum(const Type& rValue)
 {
   m_Maximum = rValue;
-}
-
-template <typename Type, typename Properties>
-Type t<Type, Properties>::GetValue(const Index<2>& rIndex) const
-{
-  Type value = Properties::TypeProperties::GetUndefinedValue();
-
-  int dimensionSize = Properties::GetDimensionSize();
-
-  if(IsDefined() &&
-     rIndex[0] >= 0 &&
-     rIndex[0] < dimensionSize &&
-     rIndex[1] >= 0 &&
-     rIndex[1] < dimensionSize)
-  {
-    int flobIndex = rIndex[1] * dimensionSize + rIndex[0];
-    
-    bool bOK = m_Flob.read(reinterpret_cast<char*>(&value),
-                           sizeof(Type),
-                           flobIndex * sizeof(Type));
-    assert(bOK);
-  }
-
-  return value;
 }
 
 template <typename Type, typename Properties>
@@ -761,7 +849,7 @@ Word t<Type, Properties>::In(const ListExpr typeInfo,
                                             GetValue
                                             (valueList.elem(listIndex));
 
-                                    Type minimum = pt->GetMinimum();
+                                    Type minimum = pt->minimum();
 
                                     if(Properties::TypeProperties::
                                        IsUndefinedValue(minimum) ||
@@ -770,7 +858,7 @@ Word t<Type, Properties>::In(const ListExpr typeInfo,
                                       pt->SetMinimum(value);
                                     }
 
-                                    Type maximum = pt->GetMaximum();
+                                    Type maximum = pt->maximum();
 
                                     if(Properties::TypeProperties::
                                        IsUndefinedValue(maximum) ||
