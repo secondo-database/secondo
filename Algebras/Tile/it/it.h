@@ -76,8 +76,8 @@ class it : public Properties::tType
 
   */
 
-  datetime::DateTime GetInstant();
-  typename Properties::tType GetValue();
+  datetime::DateTime inst();
+  typename Properties::tType val();
 
   /*
   override functions from base class Attribute
@@ -196,13 +196,13 @@ it<Type, Properties>& it<Type, Properties>::operator=
 }
 
 template <typename Type, typename Properties>
-datetime::DateTime it<Type, Properties>::GetInstant()
+datetime::DateTime it<Type, Properties>::inst()
 {
   return m_Instant;
 }
 
 template <typename Type, typename Properties>
-typename Properties::tType it<Type, Properties>::GetValue()
+typename Properties::tType it<Type, Properties>::val()
 {
   return *this;
 }
