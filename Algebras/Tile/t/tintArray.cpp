@@ -85,7 +85,7 @@ bool tintArray::operator==(const tintArray& rtintArray) const
   return bIsEqual;
 }
 
-bool tintArray::Load()
+bool tintArray::load()
 {
   bool bRetVal = true;
 

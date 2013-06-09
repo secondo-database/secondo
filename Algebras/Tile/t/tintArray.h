@@ -62,13 +62,23 @@ class tintArray : public Attribute
   bool operator==(const tintArray& rtintArray) const;
 
   /*
-  methods
+  TileAlgebra operator methods
 
   */
 
-  bool Load();
+  bool load();
+
+  private:
+
+  /*
+  internal methods
+
+  */
+
   bool SetGrid(const double& rX, const double& rY, const double& rLength);
   bool SetValue(int nIndex, int nValue);
+
+  public:
 
   /*
   override functions from base class Attribute
