@@ -53,6 +53,7 @@ includes for TileAlgebra operators
 */
 
 #include "operators/load.h"
+#include "operators/atlocation.h"
 #include "operators/inst.h"
 #include "operators/val.h"
 #include "operators/bbox.h"
@@ -120,6 +121,8 @@ TileAlgebra::TileAlgebra()
 
   AddOperator(loadInfo(), loadFunctions, loadSelectFunction,
               loadTypeMapping);
+  AddOperator(atlocationInfo(), atlocationFunctions, atlocationSelectFunction,
+              atlocationTypeMapping);
   AddOperator(instInfo(), instFunctions, instSelectFunction,
               instTypeMapping);
   AddOperator(valInfo(), valFunctions, valSelectFunction,
