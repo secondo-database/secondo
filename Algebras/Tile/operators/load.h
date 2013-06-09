@@ -93,7 +93,7 @@ int loadFunction(Word* pArguments,
 
     if(pResult != 0)
     {
-      pResult->Set(true, pImplementationType->Load());
+      pResult->Set(true, pImplementationType->load());
     }
   }
 
