@@ -98,7 +98,7 @@ int instFunction(Word* pArguments,
         
         if(pResult != 0)
         {
-          *pResult = pType->GetInstant();
+          *pResult = pType->inst();
         }
       }
     }
