@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "mtProperties.h"
 #include "../Properties/Propertiesreal.h"
 #include "RectangleAlgebra.h"
+#include "TemporalAlgebra.h"
 
 namespace TileAlgebra
 {
@@ -49,9 +50,11 @@ class mtProperties<double>
   public:
 
   typedef Properties<double> TypeProperties;
+  typedef MReal atlocationType;
   typedef Rectangle<3> bboxType;
   typedef mtgrid gridType;
   typedef mtreal mtType;
+  typedef UReal unitType;
   static int GetDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();
