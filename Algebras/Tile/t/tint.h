@@ -48,6 +48,7 @@ class tProperties<int>
   public:
 
   typedef Properties<int> TypeProperties;
+  typedef CcInt atlocationType;
   typedef Rectangle<2> bboxType;
   typedef tgrid gridType;
   typedef tint tType;
