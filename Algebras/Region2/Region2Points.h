@@ -149,7 +149,7 @@ public:
 	inline bool operator<=(const Reg2PrecisePoint& other) const;
 	
 	inline void Translate( const double& dx, const double& dy );
-        inline void Scale( const double& f );
+        inline void Scale( const double& xf, const double& yf );
 
 	inline const Rectangle<2> BoundingBox(const Geoid* geoid = 0) const;
 	inline bool Inside(const Rectangle<2>& r) const;
@@ -441,12 +441,12 @@ inline void Reg2PrecisePoint::Translate( const double& dx, const double& dy )
   y.canonicalize();
 }
 
-inline void Reg2PrecisePoint::Scale( const double& f )
+inline void Reg2PrecisePoint::Scale( const double& xf, const double& yf )
 {
   assert( IsDefined() );
-  x = x * f;
+  x = x * xf;
   x.canonicalize();
-  y = y * f;
+  y = y * yf;
   y.canonicalize();
 }
 

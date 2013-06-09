@@ -199,18 +199,22 @@ static mpq_class D2MPQ( const double d )
   denStream.put('1');
 
   s << d;
-  for (unsigned int i = 0; i < s.str().length(); i++)
+  if (s.str().find("E") == string::npos 
+      && s.str().find("e") == string::npos)
   {
-    if (denStart) denStream.put('0');
-    if ((int)s.str()[i] != 46) numStream.put(s.str()[i]);
-    else
+    for (unsigned int i = 0; i < s.str().length(); i++)
     {
-      denStart = true;
+      if (denStart) denStream.put('0');
+      if ((int)s.str()[i] != 46) numStream.put(s.str()[i]);
+      else
+      {
+        denStart = true;
+      }
     }
+    res = mpq_class(mpz_class(numStream.str(), 10), 
+                    mpz_class(denStream.str(), 10));
+    res.canonicalize();
   }
-  res = mpq_class(mpz_class(numStream.str(), 10), 
-                  mpz_class(denStream.str(), 10));
-  res.canonicalize();
 
   return res;
 }
@@ -272,5 +276,267 @@ static mpz_class GetValueX(const int startpos, const int numofInt,
     }
     return theValue;
 }  
+
+
+/*
+1.1 ~overflowAsInt~
+
+*/
+static bool overflowAsInt(mpq_class x1, mpq_class x2, int s = 0)
+{
+  mpz_t sFactor;
+  mpz_init(sFactor);
+  mpq_class sFac(0);
+  uint sfactor;
+  mpz_class zdiv;
+  mpq_class quot;
+    
+  if (s < 0)
+  {
+    sfactor = -s;
+    mpz_ui_pow_ui(sFactor, 10, sfactor);
+    sFac = mpq_class(mpz_class(1), mpz_class(sFactor));
+  }
+  else
+  {
+    sfactor = s;
+    mpz_ui_pow_ui(sFactor, 10, sfactor);
+    sFac = mpq_class(mpz_class(sFactor), mpz_class(1));
+  }
+  sFac.canonicalize();
+  mpz_clear(sFactor);
+
+  if (cmp(x1, 0) > 0)
+  {
+    x1 = x1*sFac;
+    zdiv = mpz_class(numeric_limits<int>::max())+1;
+    quot = x1 / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) >= 0)
+       return true;
+  }
+  if (cmp(x1, 0) < 0)
+  {
+    x1 = x1*sFac;
+    zdiv = mpz_class(numeric_limits<int>::min())-1;
+    quot = x1 / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) >= 0)
+       return true;
+  }
+  
+  if (cmp(x2, 0) > 0)
+  {
+    x2 = x2*sFac;
+    zdiv = mpz_class(numeric_limits<int>::max())+1;
+    quot = x2 / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) >= 0)
+       return true;
+  }
+  if (cmp(x2, 0) < 0)
+  {
+    x2 = x2*sFac;
+    zdiv = mpz_class(numeric_limits<int>::min())-1;
+    quot = x2 / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) >= 0)
+       return true;
+  }
+  
+  return false;
+}
+
+
+/*
+1.1 ~overflowAsInt~
+
+*/
+static bool overflowAsInt(mpq_class x1, mpq_class x2, double s = 1.0)
+{
+  if (s == 1.0)
+    return false;
+  
+  mpq_class sFac(s);
+  mpz_class zdiv;
+  mpq_class quot;
+    
+  if (cmp(x1, 0) > 0 && s > 1.0)
+  {
+    x1 = x1*sFac;
+    zdiv = mpz_class(numeric_limits<int>::max())+1;
+    quot = x1 / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) >= 0)
+       return true;
+  }
+  if (cmp(x1, 0) > 0 && s < -1.0)
+  {
+    x1 = x1*sFac;
+    zdiv = mpz_class(numeric_limits<int>::min())-1;
+    quot = x1 / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) >= 0)
+       return true;
+  }
+  if (cmp(x1, 0) < 0 && s > 1.0)
+  {
+    x1 = x1*sFac;
+    zdiv = mpz_class(numeric_limits<int>::min())-1;
+    quot = x1 / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) >= 0)
+       return true;
+  }
+  if (cmp(x1, 0) < 0 && s < -1.0)
+  {
+    x1 = x1*sFac;
+    zdiv = mpz_class(numeric_limits<int>::max())+1;
+    quot = x1 / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) >= 0)
+       return true;
+  }
+  
+  if (cmp(x2, 0) > 0 && s > 1.0)
+  {
+    x2 = x2*sFac;
+    zdiv = mpz_class(numeric_limits<int>::max())+1;
+    quot = x2 / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) >= 0)
+       return true;
+  }
+  if (cmp(x2, 0) > 0 && s < -1.0)
+  {
+    x2 = x2*sFac;
+    zdiv = mpz_class(numeric_limits<int>::min())-1;
+    quot = x2 / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) >= 0)
+       return true;
+  }
+  if (cmp(x2, 0) < 0 && s > 1.0)
+  {
+    x2 = x2*sFac;
+    zdiv = mpz_class(numeric_limits<int>::min())-1;
+    quot = x2 / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) >= 0)
+       return true;
+  }
+  if (cmp(x2, 0) < 0 && s < -1.0)
+  {
+    x2 = x2*sFac;
+    zdiv = mpz_class(numeric_limits<int>::max())+1;
+    quot = x2 / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) >= 0)
+       return true;
+  }
+  
+  return false;
+}
+
+
+/*
+1.1 ~checkFactorOverflow~
+
+*/
+static bool checkFactorOverflow(int maxI, int minI, int s = 0)
+{
+  if (s <= 0 || (maxI == 0 && minI == 0)) 
+    return false;
+
+  mpz_t sFactor;
+  mpz_init(sFactor);
+  mpq_class sFac(0);
+  uint sfactor;
+  mpz_class zdiv;
+  mpq_class quot;
+  mpz_class x;
+    
+  sfactor = s;
+  mpz_ui_pow_ui(sFactor, 10, sfactor);
+  sFac = mpq_class(mpz_class(sFactor), mpz_class(1));
+  sFac.canonicalize();
+  mpz_clear(sFactor);
+
+  if (maxI > 0)
+  {
+    x = mpz_class(maxI);
+    zdiv = mpz_class(numeric_limits<int>::max());
+    quot = x * sFac / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) > 0)
+       return true;
+  }
+  if (minI < 0)
+  {
+    x = mpz_class(minI);
+    zdiv = mpz_class(numeric_limits<int>::min());
+    quot = x * sFac / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) > 0)
+       return true;
+  }
+  
+  return false;
+}
+
+
+/*
+1.1 ~checkFactorOverflow~
+
+*/
+static bool checkFactorOverflow(int maxI, int minI, double s = 1.0)
+{
+  if (s == 1.0 || (maxI == 0 && minI == 0)) 
+    return false;
+
+  mpq_class sFac(s);
+  mpz_class zdiv;
+  mpq_class quot;
+  mpz_class x;
+    
+  if (maxI > 0 && s > 1.0)
+  {
+    x = mpz_class(maxI);
+    zdiv = mpz_class(numeric_limits<int>::max());
+    quot = x * sFac / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) > 0)
+       return true;
+  }
+  if (maxI > 0 && s < -1.0)
+  {
+    x = mpz_class(maxI);
+    zdiv = mpz_class(numeric_limits<int>::min());
+    quot = x * sFac / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) > 0)
+       return true;
+  }
+  if (minI < 0 && s > 1.0)
+  {
+    x = mpz_class(minI);
+    zdiv = mpz_class(numeric_limits<int>::min());
+    quot = x * sFac / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) > 0)
+       return true;
+  }
+  if (minI < 0 && s < -1.0)
+  {
+    x = mpz_class(minI);
+    zdiv = mpz_class(numeric_limits<int>::max());
+    quot = x * sFac / zdiv;
+    quot.canonicalize();
+    if (cmp(quot, 1) > 0)
+       return true;
+  }
+  
+  return false;
+}
 
 
