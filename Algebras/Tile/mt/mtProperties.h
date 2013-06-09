@@ -39,9 +39,11 @@ class mtProperties
   public:
 
   typedef Type TypeProperties;
+  typedef Type atlocationType;
   typedef Type bboxType;
   typedef Type gridType;
   typedef Type mtType;
+  typedef Type unitType;
   static int GetDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();
