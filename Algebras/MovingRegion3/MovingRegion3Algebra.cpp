@@ -5739,7 +5739,15 @@ The class definition has been moved to ~MovingRegion2Algebra.h~.
 URegionEmb2::URegionEmb2( const bool Defined ) :
     segmentsStartPos(0),
     segmentsNum(0),
-    bbox(false)
+    bbox(false),
+    minIntx(0),
+    minInty(0),
+    maxIntx(0),
+    maxInty(0),
+    minPrecx(0),
+    minPrecy(0),
+    maxPrecx(0),
+    maxPrecy(0)
     {
       if (MR2_DEBUG)
         cerr << "URegionEmb2::URegionEmb2(bool) called"
@@ -5752,6 +5760,14 @@ URegionEmb2::URegionEmb2(const Interval<Instant>& tiv,
     segmentsStartPos(pos),
     segmentsNum(0),
     bbox(false),
+    minIntx(0),
+    minInty(0),
+    maxIntx(0),
+    maxInty(0),
+    minPrecx(0),
+    minPrecy(0),
+    maxPrecx(0),
+    maxPrecy(0),
     timeInterval(tiv),
     pInterval(piv){
     if (MR2_DEBUG)
@@ -5768,7 +5784,7 @@ URegionEmb2::URegionEmb2(DbArray<MSegmentData2>* segments,
                 const URegionEmb& origUremb,
                 const DbArray<MSegmentData>* origSegments,
                 unsigned int pos,
-                unsigned int scaleFactor) :
+                int scaleFactor) :
                 segmentsStartPos(pos),
                 segmentsNum(0),
                 timeInterval(tiv),
@@ -5844,7 +5860,15 @@ URegionEmb2::URegionEmb2(DbArray<MSegmentData2>* segments,
                                         prestE, preciseInstants);
         }
 
-
+        minIntx = 0;
+        minInty = 0;
+        maxIntx = 0;
+        maxInty = 0;
+        minPrecx = mpq_class(0);
+        minPrecy = mpq_class(0);
+        maxPrecx = mpq_class(0);
+        maxPrecy = mpq_class(0);
+        
         //Store all the segments
         for (int i = 0; i < origUremb.GetSegmentsNum(); i++)
         {
@@ -5895,12 +5919,52 @@ URegionEmb2::URegionEmb2(DbArray<MSegmentData2>* segments,
                 //calculate new coordinates...
                 mpq_class pisx(segment.GetInitialStartX());
                 mpq_class pisy(segment.GetInitialStartY());
+                if ( overflowAsInt(pisx, pisy, scaleFactor) )
+                {
+                  segmentsNum = 0;
+                  return;
+                }
+                
                 mpq_class piex(segment.GetInitialEndX());
                 mpq_class piey(segment.GetInitialEndY());
+                if ( overflowAsInt(piex, piey, scaleFactor) )
+                {
+                  segmentsNum = 0;
+                  return;
+                }
+                
                 mpq_class pfsx(segment.GetFinalStartX());
                 mpq_class pfsy(segment.GetFinalStartY());
+                if ( overflowAsInt(pfsx, pfsy, scaleFactor) )
+                {
+                  segmentsNum = 0;
+                  return;
+                }
+                
                 mpq_class pfex(segment.GetFinalEndX());
                 mpq_class pfey(segment.GetFinalEndY());
+                if ( overflowAsInt(pfex, pfey, scaleFactor) )
+                {
+                  segmentsNum = 0;
+                  return;
+                }
+                
+                if (cmp(pisx, maxPrecx) > 0) maxPrecx = pisx;
+                if (cmp(pisy, maxPrecy) > 0) maxPrecy = pisy;
+                if (cmp(piex, maxPrecx) > 0) maxPrecx = piex;
+                if (cmp(piey, maxPrecy) > 0) maxPrecy = piey;
+                if (cmp(pfsx, maxPrecx) > 0) maxPrecx = pfsx;
+                if (cmp(pfsy, maxPrecy) > 0) maxPrecy = pfsy;
+                if (cmp(pfex, maxPrecx) > 0) maxPrecx = pfex;
+                if (cmp(pfey, maxPrecy) > 0) maxPrecy = pfey;
+                if (cmp(pisx, minPrecx) < 0) minPrecx = pisx;
+                if (cmp(pisy, minPrecy) < 0) minPrecy = pisy;
+                if (cmp(piex, minPrecx) < 0) minPrecx = piex;
+                if (cmp(piey, minPrecy) < 0) minPrecy = piey;
+                if (cmp(pfsx, minPrecx) < 0) minPrecx = pfsx;
+                if (cmp(pfsy, minPrecy) < 0) minPrecy = pfsy;
+                if (cmp(pfex, minPrecx) < 0) minPrecx = pfex;
+                if (cmp(pfey, minPrecy) < 0) minPrecy = pfey;
 
                 pisx = pisx * sFac;
                 pisy = pisy * sFac;
@@ -5928,6 +5992,23 @@ URegionEmb2::URegionEmb2(DbArray<MSegmentData2>* segments,
                 int fex = (int)floor(pfex.get_d());
                 int fey = (int)floor(pfey.get_d());
 
+                if (isx > maxIntx) maxIntx = isx;
+                if (isy > maxInty) maxInty = isy;
+                if (iex > maxIntx) maxIntx = iex;
+                if (iey > maxInty) maxInty = iey;
+                if (fsx > maxIntx) maxIntx = fsx;
+                if (fsy > maxInty) maxInty = fsy;
+                if (fex > maxIntx) maxIntx = fex;
+                if (fey > maxInty) maxInty = fey;
+                if (isx < minIntx) minIntx = isx;
+                if (isy < minInty) minInty = isy;
+                if (iex < minIntx) minIntx = iex;
+                if (iey < minInty) minInty = iey;
+                if (fsx < minIntx) minIntx = fsx;
+                if (fsy < minInty) minInty = fsy;
+                if (fex < minIntx) minIntx = fex;
+                if (fey < minInty) minInty = fey;
+                        
                 pisx = pisx - isx;
                 pisy = pisy - isy;
                 piex = piex - iex;
@@ -6435,6 +6516,15 @@ void URegionEmb2::NewScale(int newscale, int oldscale,
         sFac.canonicalize();
         mpz_clear(sFactor);
         
+        minIntx = 0;
+        minInty = 0;
+        maxIntx = 0;
+        maxInty = 0;
+        minPrecx = mpq_class(0);
+        minPrecy = mpq_class(0);
+        maxPrecx = mpq_class(0);
+        maxPrecy = mpq_class(0);
+        
         for (int j = 0; j < this->GetSegmentsNum(); j++)
         {
                 if (MR2_DEBUG)
@@ -6457,25 +6547,48 @@ void URegionEmb2::NewScale(int newscale, int oldscale,
                 mpq_class newInitialStartY = 
                         (psegment.GetInitialStartY(preciseCoordinates) + 
                         segment.GetInitialStartY()) * sFac;
+                if ( overflowAsInt(newInitialStartX, newInitialStartY) )
+                {
+                  SetDefined(false);
+                  return;
+                }
+                   
                 mpq_class newInitialEndX = 
                         (psegment.GetInitialEndX(preciseCoordinates) + 
                         segment.GetInitialEndX()) * sFac;
                 mpq_class newInitialEndY = 
                         (psegment.GetInitialEndY(preciseCoordinates) + 
                         segment.GetInitialEndY()) * sFac;
+                if ( overflowAsInt(newInitialEndX, newInitialEndY) )
+                {
+                  SetDefined(false);
+                  return;
+                }
+                   
                 mpq_class newFinalStartX = 
                         (psegment.GetFinalStartX(preciseCoordinates) + 
                         segment.GetFinalStartX()) * sFac;
                 mpq_class newFinalStartY = 
                         (psegment.GetFinalStartY(preciseCoordinates) + 
                         segment.GetFinalStartY()) * sFac;
+                if ( overflowAsInt(newFinalStartX, newFinalStartY) )
+                {
+                  SetDefined(false);
+                  return;
+                }
+                   
                 mpq_class newFinalEndX = 
                         (psegment.GetFinalEndX(preciseCoordinates) + 
                         segment.GetFinalEndX()) * sFac;
                 mpq_class newFinalEndY = 
                         (psegment.GetFinalEndY(preciseCoordinates) + 
                         segment.GetFinalEndY()) * sFac;
-
+                if ( overflowAsInt(newFinalEndX, newFinalEndY) )
+                {
+                  SetDefined(false);
+                  return;
+                }
+                   
                 if (MR2_DEBUG)
                         cerr << "New coordinates: "
                         << endl
@@ -6497,54 +6610,62 @@ Also reset flag isBasicSegment.
                 segment.SetIsBasicSegment(true);
 
                 int temp = broughtDown(newInitialStartX.get_d());
+                if (temp > maxIntx) maxIntx = temp;
+                if (temp < minIntx) minIntx = temp;
                 segment.SetInitialStartX(temp);
                 psegment.SetInitialStartX(
                         newInitialStartX - temp, preciseCoordinates);
                 if (newInitialStartX - temp != 0) 
                         segment.SetIsBasicSegment(false);
 
-
                 temp = broughtDown(newInitialStartY.get_d());
+                if (temp > maxInty) maxInty = temp;
+                if (temp < minInty) minInty = temp;
                 segment.SetInitialStartY(temp);
                 psegment.SetInitialStartY(
                         newInitialStartY - temp, preciseCoordinates);
                 if (newInitialStartY - temp != 0) 
                         segment.SetIsBasicSegment(false);
 
-
                 temp = broughtDown(newInitialEndX.get_d());
+                if (temp > maxIntx) maxIntx = temp;
+                if (temp < minIntx) minIntx = temp;
                 segment.SetInitialEndX(temp);
                 psegment.SetInitialEndX(
                         newInitialEndX - temp, preciseCoordinates);
                 if (newInitialEndX - temp != 0) 
                         segment.SetIsBasicSegment(false);
 
-
                 temp = broughtDown(newInitialEndY.get_d());
+                if (temp > maxInty) maxInty = temp;
+                if (temp < minInty) minInty = temp;
                 segment.SetInitialEndY(temp);
                 psegment.SetInitialEndY(
                         newInitialEndY - temp, preciseCoordinates);
                 if (newInitialEndY - temp != 0) 
                         segment.SetIsBasicSegment(false);
 
-
                 temp = broughtDown(newFinalStartX.get_d());
+                if (temp > maxIntx) maxIntx = temp;
+                if (temp < minIntx) minIntx = temp;
                 segment.SetFinalStartX(temp);
                 psegment.SetFinalStartX(
                         newFinalStartX - temp, preciseCoordinates);
                 if (newFinalStartX - temp != 0) 
                         segment.SetIsBasicSegment(false);
 
-
                 temp = broughtDown(newFinalStartY.get_d());
+                if (temp > maxInty) maxInty = temp;
+                if (temp < minInty) minInty = temp;
                 segment.SetFinalStartY(temp);
                 psegment.SetFinalStartY(
                         newFinalStartY - temp, preciseCoordinates);
                 if (newFinalStartY - temp != 0) 
                         segment.SetIsBasicSegment(false);
 
-
                 temp = broughtDown(newFinalEndX.get_d());
+                if (temp > maxIntx) maxIntx = temp;
+                if (temp < minIntx) minIntx = temp;
                 segment.SetFinalEndX(temp);
                 psegment.SetFinalEndX(
                         newFinalEndX - temp, preciseCoordinates);
@@ -6552,17 +6673,17 @@ Also reset flag isBasicSegment.
                         segment.SetIsBasicSegment(false);
 
                 temp = broughtDown(newFinalEndY.get_d());
+                if (temp > maxInty) maxInty = temp;
+                if (temp < minInty) minInty = temp;
                 segment.SetFinalEndY(temp);
                 psegment.SetFinalEndY(
                         newFinalEndY - temp, preciseCoordinates);
                 if (newFinalEndY - temp != 0) 
                         segment.SetIsBasicSegment(false);
 
-
                 //Write the segments back
                 this->PutSegment(segments, j, segment, false);
                 this->PutPreciseSegment(preciseSegments, j, psegment);
-
         }
 }
 
@@ -7317,7 +7438,7 @@ static URegionEmb2* InURegionEmbedded2(
     DbArray<unsigned int>* preciseCoordinates,
     DbArray<unsigned int>* preciseInstants,
     unsigned int segmentsStartPos,
-    unsigned int scaleFactor) {
+    int scaleFactor) {
 
         if (MR2_DEBUG)
                 cerr << "InURegionEmbedded2() called, segmentsStartPos = "
@@ -8073,7 +8194,7 @@ static ListExpr OutURegionEmbedded2(
     DbArray<PreciseMSegmentData>* preciseSegments,
     DbArray<unsigned int>* preciseCoordinates,
     DbArray<unsigned int>* preciseInstants,
-    unsigned int scaleFactor) {
+    int scaleFactor) {
 
         if (MR2_DEBUG)
                  cerr << "OutURegionEmbedded2() called" << endl;
@@ -8296,7 +8417,7 @@ bool URegionEmb2::AddSegment(
     DateTime& intervalLen,
     ListExpr start,
     ListExpr end,
-    unsigned int scaleFactor) {
+    int scaleFactor) {
 
         if (MR2_DEBUG)
                 cerr << "URegionEmb2::AddSegment() called "
@@ -9070,34 +9191,60 @@ This can only be a provisional solution, but not the final one!
 
                 double t = intervalLen.IsZero() ? 0 : 0.5;
 
-                mpq_class pxs =
-                    dms.GetInitialStartX() + 
-                            pdms.GetInitialStartX(preciseCoordinates)
-                    + (dms.GetFinalStartX() + 
-                            pdms.GetFinalStartX(preciseCoordinates) -
-                            (dms.GetInitialStartX() + 
-                            pdms.GetInitialStartX(preciseCoordinates)))*t;
-                mpq_class pys =
-                    dms.GetInitialStartY() + 
-                            pdms.GetInitialStartY(preciseCoordinates)
-                    + (dms.GetFinalStartY() + 
-                            pdms.GetFinalStartY(preciseCoordinates) -
-                            (dms.GetInitialStartY() + 
-                            pdms.GetInitialStartY(preciseCoordinates)))*t;
-                mpq_class pxe =
-                    dms.GetInitialEndX() + 
-                            pdms.GetInitialEndX(preciseCoordinates)
-                    + (dms.GetFinalEndX() + 
-                            pdms.GetFinalEndX(preciseCoordinates) -
-                            (dms.GetInitialEndX() + 
-                            pdms.GetInitialEndX(preciseCoordinates)))*t;
-                mpq_class pye =
-                    dms.GetInitialEndY() + 
-                            pdms.GetInitialEndY(preciseCoordinates)
-                    + (dms.GetFinalEndY() + 
-                            pdms.GetFinalEndY(preciseCoordinates) -
-                            (dms.GetInitialEndY() + 
-                            pdms.GetInitialEndY(preciseCoordinates)))*t;
+                mpq_class pisx = dms.GetInitialStartX() + 
+                                pdms.GetInitialStartX(preciseCoordinates);
+                mpq_class pisy = dms.GetInitialStartY() + 
+                                pdms.GetInitialStartY(preciseCoordinates);
+                mpq_class piex = dms.GetInitialEndX() + 
+                                pdms.GetInitialEndX(preciseCoordinates);
+                mpq_class piey = dms.GetInitialEndY() + 
+                                pdms.GetInitialEndY(preciseCoordinates);
+                mpq_class pfsx = dms.GetFinalStartX() + 
+                                pdms.GetFinalStartX(preciseCoordinates);
+                mpq_class pfsy = dms.GetFinalStartY() + 
+                                pdms.GetFinalStartY(preciseCoordinates);
+                mpq_class pfex = dms.GetFinalEndX() + 
+                                pdms.GetFinalEndX(preciseCoordinates);
+                mpq_class pfey = dms.GetFinalEndY() + 
+                                pdms.GetFinalEndY(preciseCoordinates);
+                
+                if (dms.GetInitialStartX() > maxIntx) 
+                        maxIntx = dms.GetInitialStartX();
+                if (dms.GetInitialStartY() > maxInty) 
+                        maxInty = dms.GetInitialStartY();
+                if (dms.GetInitialEndX() > maxIntx) 
+                        maxIntx = dms.GetInitialEndX();
+                if (dms.GetInitialEndY() > maxInty) 
+                        maxInty = dms.GetInitialEndY();
+                if (dms.GetFinalStartX() > maxIntx) 
+                        maxIntx = dms.GetFinalStartX();
+                if (dms.GetFinalStartY() > maxInty) 
+                        maxInty = dms.GetFinalStartY();
+                if (dms.GetFinalEndX() > maxIntx) 
+                        maxIntx = dms.GetFinalEndX();
+                if (dms.GetFinalEndY() > maxInty) 
+                        maxInty = dms.GetFinalEndY();
+                if (dms.GetInitialStartX() < minIntx) 
+                        minIntx = dms.GetInitialStartX();
+                if (dms.GetInitialStartY() < minInty) 
+                        minInty = dms.GetInitialStartY();
+                if (dms.GetInitialEndX() < minIntx) 
+                        minIntx = dms.GetInitialEndX();
+                if (dms.GetInitialEndY() < minInty) 
+                        minInty = dms.GetInitialEndY();
+                if (dms.GetFinalStartX() < minIntx) 
+                        minIntx = dms.GetFinalStartX();
+                if (dms.GetFinalStartY() < minInty) 
+                        minInty = dms.GetFinalStartY();
+                if (dms.GetFinalEndX() < minIntx) 
+                        minIntx = dms.GetFinalEndX();
+                if (dms.GetFinalEndY() < minInty) 
+                        minInty = dms.GetFinalEndY();
+                
+                mpq_class pxs = pisx + (pfsx - pisx)*t;
+                mpq_class pys = pisy + (pfsy - pisy)*t;
+                mpq_class pxe = piex + (pfex - piex)*t;
+                mpq_class pye = piey + (pfey - piey)*t;
 
                 mpz_t sFactor;
                 mpz_init(sFactor);
@@ -9119,6 +9266,32 @@ This can only be a provisional solution, but not the final one!
                 sFac.canonicalize();
                 mpz_clear(sFactor);
             
+                pisx = pisx * sFac;
+                pisy = pisy * sFac;
+                piex = piex * sFac;
+                piey = piey * sFac;
+                pfsx = pfsx * sFac;
+                pfsy = pfsy * sFac;
+                pfex = pfex * sFac;
+                pfey = pfey * sFac;
+
+                if (cmp(pisx, maxPrecx) > 0) maxPrecx = pisx;
+                if (cmp(pisy, maxPrecy) > 0) maxPrecy = pisy;
+                if (cmp(piex, maxPrecx) > 0) maxPrecx = piex;
+                if (cmp(piey, maxPrecy) > 0) maxPrecy = piey;
+                if (cmp(pfsx, maxPrecx) > 0) maxPrecx = pfsx;
+                if (cmp(pfsy, maxPrecy) > 0) maxPrecy = pfsy;
+                if (cmp(pfex, maxPrecx) > 0) maxPrecx = pfex;
+                if (cmp(pfey, maxPrecy) > 0) maxPrecy = pfey;
+                if (cmp(pisx, minPrecx) < 0) minPrecx = pisx;
+                if (cmp(pisy, minPrecy) < 0) minPrecy = pisy;
+                if (cmp(piex, minPrecx) < 0) minPrecx = piex;
+                if (cmp(piey, minPrecy) < 0) minPrecy = piey;
+                if (cmp(pfsx, minPrecx) < 0) minPrecx = pfsx;
+                if (cmp(pfsy, minPrecy) < 0) minPrecy = pfsy;
+                if (cmp(pfex, minPrecx) < 0) minPrecx = pfex;
+                if (cmp(pfey, minPrecy) < 0) minPrecy = pfey;
+
                 pxs = pxs * sFac;
                 pys = pys * sFac;
                 pxe = pxe * sFac;
@@ -10548,7 +10721,16 @@ URegion2::URegion2(unsigned int n) :
     segments(n),
     preciseSegments(n),
     preciseCoordinates(0),
-    preciseInstants(0) {
+    preciseInstants(0),
+    minIntx(0),
+    minInty(0),
+    maxIntx(0),
+    maxInty(0),
+    minPrecx(0),
+    minPrecy(0),
+    maxPrecx(0),
+    maxPrecy(0)
+{
     SetDefined(true);
     if (MR2_DEBUG)
                 cerr << "URegion2::URegion2() #1 called"
@@ -10579,6 +10761,14 @@ URegion2::URegion2(URegion& coarseRegion, const int scaleFactor) :
                  << coarseRegion.GetMSegmentData()->Size() << " " << endl;
 
         this->scaleFactor = scaleFactor;
+        minIntx = 0;
+        minInty = 0;
+        maxIntx = 0;
+        maxInty = 0;
+        minPrecx = mpq_class(0);
+        minPrecy = mpq_class(0);
+        maxPrecx = mpq_class(0);
+        maxPrecy = mpq_class(0);
 
 //Transform the time interval to integer grid coordinates - 
 //preciseInterval is calculated in URegionEmb2-Constructor
@@ -10603,9 +10793,17 @@ URegion2::URegion2(URegion& coarseRegion, const int scaleFactor) :
                         interval, pInt, origUremb,
                         coarseRegion.GetMSegmentData(), 0, scaleFactor);
 
+        if ( uremb.GetSegmentsNum() == 0 )
+        {
+          cerr << "Integer Overflow - scale factor " << scaleFactor
+               << " is too big!" << endl;
+          SetDefined(false);
+          return;
+        }
+        
+        SetMinMax(uremb);
         SetEmbedded(&uremb);
         timeInterval = uremb.timeInterval;
-
 }
 
 
@@ -10848,6 +11046,10 @@ void URegion2::CopyFrom(const Attribute* right) {
     if (MR2_DEBUG) cerr << "URegion2::CopyFrom() called" << endl;
 
     const URegion2* ur = (const URegion2*) right;
+    if( !ur->IsDefined() ){
+      SetDefined( false );
+      return;
+    }
 
     *this = *ur;
     this->SetDefined( ur->IsDefined() );
@@ -10874,9 +11076,14 @@ URegion2& URegion2::operator= ( const URegion2& U) {
    uremb = U.uremb;      
    uremb.SetStartPos(0); // set uremb.segmentsStartPos = 0
    scaleFactor = U.scaleFactor;
-   URegionEmb2 Uuremb = U.uremb;
-   uremb.pInterval = Uuremb.pInterval;
+//   URegionEmb2 Uuremb = U.uremb;
+//   uremb.pInterval = Uuremb.pInterval;
+   uremb.pInterval = U.uremb.pInterval;
    del.isDefined = U.del.isDefined;
+   minIntx = U.minIntx;
+   minInty = U.minInty;
+   maxIntx = U.maxIntx;
+   maxInty = U.maxInty;
 
    int start = U.uremb.GetStartPos(); //this is always zero!
    int numsegs = U.uremb.GetSegmentsNum();
@@ -10958,15 +11165,53 @@ void URegion2::SetScaleFactor(int factor) {
         scaleFactor = factor;
 }
 
-void URegion2::NewScaleFactor(int factor) {
+bool URegion2::NewScaleFactor(int factor) {
   
         if (MR2_DEBUG)
                 cerr << "URegion2::NewScaleFactor() called" << endl;
 
-        uremb.NewScale(factor, scaleFactor, &segments, &preciseSegments, 
-                       &preciseCoordinates);
+        if ( scaleFactor != factor) 
+        {
+          if (factor > scaleFactor)
+          {
+            int maxInt = max(maxIntx, maxInty);
+            int minInt = min(minIntx, minInty);
+            if (checkFactorOverflow(maxInt, minInt+1, factor-scaleFactor))
+              return false;
+          }
+          
+          minIntx = 0;
+          minInty = 0;
+          maxIntx = 0;
+          maxInty = 0;
+          minPrecx = 0;
+          minPrecy = 0;
+          maxPrecx = 0;
+          maxPrecy = 0;
+          
+          uremb.NewScale(factor, scaleFactor, &segments, &preciseSegments, 
+                         &preciseCoordinates);
+          if ( !uremb.IsDefined() )
+            return false;
         
-        scaleFactor = factor;
+          scaleFactor = factor;
+          SetMinMax(uremb);
+        }
+        return true;
+}
+
+
+void URegion2::SetMinMax(URegionEmb2 ur)
+{
+  maxIntx = ur.maxIntx;
+  maxInty = ur.maxInty;
+  minIntx = ur.minIntx;
+  minInty = ur.minInty;
+
+  maxPrecx = ur.maxPrecx;
+  maxPrecy = ur.maxPrecy;
+  minPrecx = ur.minPrecx;
+  minPrecy = ur.minPrecy;
 }
 
 
@@ -11060,6 +11305,7 @@ static Word InURegion2(const ListExpr typeInfo,
     }
 
     ur->timeInterval = uremb->timeInterval;
+    ur->SetMinMax(*uremb);
     ur->SetEmbedded(uremb);
     ur->SetDefined(true);
 
@@ -11289,7 +11535,16 @@ MRegion2::MRegion2(const int n) :
     msegmentdata(n),
     preciseSegmentData(n),
     preciseCoordinates(0),
-    preciseInstants(0){
+    preciseInstants(0),
+    minIntx(0),
+    minInty(0),
+    maxIntx(0),
+    maxInty(0),
+    minPrecx(0),
+    minPrecy(0),
+    maxPrecx(0),
+    maxPrecy(0)
+{
         if (MR2_DEBUG)
                 cerr << "MRegion2::MRegion2(int) called" << endl;
 }
@@ -11308,7 +11563,8 @@ MRegion2::MRegion2(MRegion& coarseRegion, const int scaleFactor) :
         msegmentdata(coarseRegion.GetMSegmentData()->Size()),
         preciseSegmentData(coarseRegion.GetMSegmentData()->Size()),
         preciseCoordinates(0),
-        preciseInstants(0){
+        preciseInstants(0)
+{
 
         if (MR2_DEBUG)
                 cerr << "MRegion2::MRegion2"
@@ -11320,6 +11576,14 @@ MRegion2::MRegion2(MRegion& coarseRegion, const int scaleFactor) :
                 << coarseRegion.GetMSegmentData()->Size() << " " << endl;
 
         this->scaleFactor = scaleFactor;
+        minIntx = 0;
+        minInty = 0;
+        maxIntx = 0;
+        maxInty = 0;
+        minPrecx = mpq_class(0);
+        minPrecy = mpq_class(0);
+        maxPrecx = mpq_class(0);
+        maxPrecy = mpq_class(0);
 
         //For each of the units of coarseRegion
         for (int i = 0; i < coarseRegion.GetNoComponents(); i++)
@@ -11352,9 +11616,16 @@ MRegion2::MRegion2(MRegion& coarseRegion, const int scaleFactor) :
                                 coarseRegion.GetMSegmentData(), 
                                 origUremb.GetStartPos(), scaleFactor);
 
+                if ( uremb.GetSegmentsNum() == 0 )
+                {
+                  cerr << "Integer Overflow - scale factor " << scaleFactor
+                       << " is too big!" << endl;
+                  SetDefined(false);
+                  return;
+                }
+                SetMinMax(uremb);
                 this->Put(i, uremb);
         }
-
 }
 
 
@@ -11394,22 +11665,47 @@ void MRegion2::SetScaleFactor(int factor) {
         scaleFactor = factor;
 }
 
-void MRegion2::NewScaleFactor(int factor) {
+bool MRegion2::NewScaleFactor(int factor) {
 
         if (MR2_DEBUG)
                 cerr << "MRegion2::NewScaleFactor() called" << endl;
 
-        //for every unit
-        for (int i = 0; i < this->GetNoComponents(); i++)
+        if ( scaleFactor != factor) 
         {
-                URegionEmb2 uremb;
-                this->Get(i, uremb);
+          if (factor > scaleFactor)
+          {
+            int maxInt = max(maxIntx, maxInty);
+            int minInt = min(minIntx, minInty);
+            if (checkFactorOverflow(maxInt, minInt+1, factor-scaleFactor))
+              return false;
+          }
+          
+          minIntx = 0;
+          minInty = 0;
+          maxIntx = 0;
+          maxInty = 0;
+          minPrecx = 0;
+          minPrecy = 0;
+          maxPrecx = 0;
+          maxPrecy = 0;
+          
+          //for every unit
+          for (int i = 0; i < this->GetNoComponents(); i++)
+          {
+                  URegionEmb2 uremb;
+                  this->Get(i, uremb);
+ 
+                  uremb.NewScale(factor, scaleFactor, &msegmentdata, 
+                                 &preciseSegmentData, &preciseCoordinates);
+                  if ( !uremb.IsDefined() )
+                    return false;
 
-                uremb.NewScale(factor, scaleFactor, &msegmentdata, 
-                               &preciseSegmentData, &preciseCoordinates);
-        }
+                  SetMinMax(uremb);
+          }
         
-        scaleFactor = factor;
+          scaleFactor = factor;
+        }
+        return true;
 }
 
 /*
@@ -11649,10 +11945,6 @@ and point unit, both restricted to this interval, intersect.
 
     AddUPoints(vpup, res1);
     AddUBools(vpub, res2);
-
-    if (MR2_DEBUG) 
-            cerr << "MRegion2::IntersectionMP() res.IsEmpty()=" 
-            << res1.IsEmpty() << endl;
 }
 
 void MRegion2::CollectHS(vector<Reg2PreciseHalfSegment>& pHSvector)
@@ -12290,6 +12582,19 @@ void MRegion2::Traversed(Region2& res)
 }
 
 
+void MRegion2::SetMinMax(URegionEmb2 ur)
+{
+  if (ur.maxIntx > maxIntx) maxIntx = ur.maxIntx;
+  if (ur.maxInty > maxInty) maxInty = ur.maxInty;
+  if (ur.minIntx < minIntx) minIntx = ur.minIntx;
+  if (ur.minInty < minInty) minInty = ur.minInty;
+
+  if (cmp(ur.maxPrecx, maxPrecx) > 0) maxPrecx = ur.maxPrecx;
+  if (cmp(ur.maxPrecy, maxPrecy) > 0) maxPrecy = ur.maxPrecy;
+  if (cmp(ur.minPrecx, minPrecx) < 0) minPrecx = ur.minPrecx;
+  if (cmp(ur.minPrecy, minPrecy) < 0) minPrecy = ur.minPrecy;
+}
+
 
 /*
 1.1.1 Methods for algebra integration
@@ -12347,6 +12652,7 @@ their moving segments points to this instance's ~DBArray~.
     for(int i = 0; i < mr->GetNoComponents(); i++) {
       URegionEmb2 ur;
       mr->Get(i, ur);
+      SetMinMax(ur);
       Add(ur);
     }
     EndBulkLoad(false);
@@ -12600,6 +12906,8 @@ First get the scaleFactor from the list.
             delete mr;
             return SetWord(Address(0));
         }
+
+        mr->SetMinMax(*ur);
         mr->Add(*ur);
         delete ur;
     }
@@ -12930,6 +13238,39 @@ static ListExpr AtInstantTypeMap(ListExpr args) {
 }
 
 
+/*
+Used by ~inst~:
+
+*/
+
+static ListExpr IRegion2ToInstantTypeMap(ListExpr args) {
+    if (MR2_DEBUG)
+        cerr << "IRegion2ToInstantTypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 1
+        && nl->IsEqual(nl->First(args), IRegion2::BasicType()))
+        return nl->SymbolAtom(Instant::BasicType());
+    else
+        return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
+
+/*
+Used by ~val~:
+
+*/
+
+static ListExpr IRegion2ToRegion2TypeMap(ListExpr args) {
+    if (MR2_DEBUG)
+        cerr << "IRegion2ToRegion2TypeMap() called" << endl;
+
+    if (nl->ListLength(args) == 1
+        && nl->IsEqual(nl->First(args), IRegion2::BasicType()))
+        return nl->SymbolAtom(Region2::BasicType());
+    else
+        return nl->SymbolAtom(Symbol::TYPEERROR());
+}
+
 
 /*
 Used by ~mregiontomregion2~:
@@ -12984,6 +13325,30 @@ Used by ~scale~:
 
 */
 static ListExpr ScaleTypeMap(ListExpr args){
+        if (MR2_DEBUG) cout << "ScaleTypeMap called " << endl;
+        if (nl->ListLength(args) != 2){
+                ErrorReporter::ReportError("invalid number of arguments");
+                return nl->SymbolAtom(Symbol::TYPEERROR());
+        }
+        if (!nl->IsEqual(nl->First(args),MRegion2::BasicType())){
+                ErrorReporter::ReportError(
+                        "MRegion2 as first argument required");
+                return nl->SymbolAtom(Symbol::TYPEERROR());
+        }
+        if (!nl->IsEqual(nl->Second(args),CcReal::BasicType())){
+                ErrorReporter::ReportError(
+                        "double as second argument required");
+                return nl->SymbolAtom(Symbol::TYPEERROR());
+        }
+        if(MR2_DEBUG) cout << "Typemap returns mregion2" << endl;
+        return nl->SymbolAtom(MRegion2::BasicType());
+}
+
+/*
+Used by ~scale2~:
+
+*/
+static ListExpr Scale2TypeMap(ListExpr args){
         if (MR2_DEBUG) cout << "ScaleTypeMap called " << endl;
         if (nl->ListLength(args) != 3){
                 ErrorReporter::ReportError("invalid number of arguments");
@@ -13078,6 +13443,30 @@ static int MRegion2Select(ListExpr args) {
 }
 
 
+/*
+Used by ~inst~ and ~val~:
+
+*/
+
+static int IRegion2Select(ListExpr args) {
+    if (MR2_DEBUG)
+        cerr << "IRegion2Select() called" << endl;
+
+    if (MR2_DEBUG)
+        cerr << "IRegion2Select() len="
+             << nl->ListLength(args)
+             << endl;
+    if (MR2_DEBUG)
+        cerr << "IRegio2Select() symbolvalue(first)="
+             << nl->SymbolValue(nl->First(args))
+             << endl;
+
+    if (nl->ListLength(args) == 1
+        && nl->SymbolValue(nl->First(args)) == IRegion2::BasicType())
+        return 0;
+    else
+        return -1;
+}
 
 
 /*
@@ -13183,6 +13572,23 @@ static int ScaleValueMap(Word* args,
                          Supplier s) {
         result = qp->ResultStorage(s);
         MRegion2* mr = (MRegion2*) args[0].addr;
+        CcReal* delta = static_cast<CcReal*>(args[1].addr);
+
+        MRegion2 res(true);
+        res.CopyFrom(*&mr);
+
+        res.Scale(delta->GetRealval(), delta->GetRealval());
+        ((MRegion2*)result.addr)->CopyFrom(&res);
+        return (0);
+}
+
+static int Scale2ValueMap(Word* args,
+                         Word& result,
+                         int message,
+                         Word& local,
+                         Supplier s) {
+        result = qp->ResultStorage(s);
+        MRegion2* mr = (MRegion2*) args[0].addr;
         CcReal* deltaX = static_cast<CcReal*>(args[1].addr);
         CcReal* deltaY = static_cast<CcReal*>(args[2].addr);
 
@@ -13228,6 +13634,12 @@ static ValueMapping initialvaluemap[] =
 static ValueMapping finalvaluemap[] =
     { MappingFinal<MRegion2, URegionEmb2, Region2> };
 
+static ValueMapping instvaluemap[] =
+    { IntimeInst<Region2> };
+
+static ValueMapping valvaluemap[] =
+    { IntimeVal<Region2> };
+
 
 /*
 1.1 Operator specifications
@@ -13260,6 +13672,20 @@ static const string finalspec =
     "    </text--->"
     "    <text>final( mregion2_1 )</text---> ) )";
 
+static const string instspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>iregion2 -> instant</text--->"
+    "    <text>inst ( _ )</text--->"
+    "    <text>iregion time instant.</text--->"
+    "    <text>inst ( ireg2 )</text---> ) )";
+
+static const string valspec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "  ( <text>iregion2 -> region2</text--->"
+    "    <text>val ( _ )</text--->"
+    "    <text>Intime value.</text--->"
+    "    <text>val ( ireg2 )</text---> ) )";
+
 static const string mregiontomregion2spec =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
         " ( <text>mregion x int -> mregion2</text--->"
@@ -13279,20 +13705,28 @@ static const string uregiontouregion2spec =
 
 static const string scalespec =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-        " ( <text>mregion2 x double x double -> mregion2</text--->"
-        "   <text>scale( _, _, _)</text--->"
+        " ( <text>mregion2 x real -> mregion2</text--->"
+        "   <text>_ scale( _ )</text--->"
+        "   <text>Changes a given moving region2 through scaling"
+        " with the given real value.</text--->"
+        "   <text>query mr2 scale(delta)</text--->) )";
+
+static const string scale2spec =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+        " ( <text>mregion2 x real x real -> mregion2</text--->"
+        "   <text>_ scale2(_, _)</text--->"
         "   <text>Changes a given moving region2 through scaling,"
-        " using the double values as scale factors for x and y </text--->"
-        "   <text>query scale(mr2, deltax, deltay)</text--->) )";
+        " using the real values as scale factors for x and y </text--->"
+        "   <text>query mr2 scale2(deltax, deltay)</text--->) )";
 
 static const string transformspec =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-        " ( <text>mregion2 x double x double -> mregion2</text--->"
-        "   <text>transform( _, _, _)</text--->"
+        " ( <text>mregion2 x real x real -> mregion2</text--->"
+        "   <text>mra2transform( _, _, _)</text--->"
         "   <text>Changes a given moving region2 through transforming"
-        " using the double values to transform each point"
+        " using the real values to transform each point"
         " in x and y direction </text--->"
-        "   <text>query transform(mr2, deltax, deltay)</text--->) )";
+        "   <text>query mra2transform(mr2, deltax, deltay)</text--->) )";
 
 
 
@@ -13324,6 +13758,20 @@ static Operator final("final",
                       MRegion2Select,
                       MRegion2ToIRegion2TypeMap);
 
+static Operator inst("inst",
+                      instspec,
+                      1,
+                      instvaluemap,
+                      IRegion2Select,
+                      IRegion2ToInstantTypeMap);
+
+static Operator val("val",
+                      valspec,
+                      1,
+                      valvaluemap,
+                      IRegion2Select,
+                      IRegion2ToRegion2TypeMap);
+
 static Operator mregiontomregion2("mregiontomregion2",
                         mregiontomregion2spec,
                         MRegionToMRegion2ValueMap,
@@ -13341,6 +13789,12 @@ static Operator scale("scale",
                 ScaleValueMap,
                 simpleSelect,
                 ScaleTypeMap);
+
+static Operator scale2("scale2",
+                scale2spec,
+                Scale2ValueMap,
+                simpleSelect,
+                Scale2TypeMap);
 
 static Operator mra2transform("mra2transform",
                 transformspec,
@@ -13397,9 +13851,14 @@ static int SetScaleValueMap_MRegion2(Word* args, Word& result,
 
         MRegion2 reg2(0);
         reg2.CopyFrom(reg);
-        reg2.NewScaleFactor(newScale);
-
-        ((MRegion2*)result.addr)->CopyFrom(&reg2);
+        if (reg2.NewScaleFactor(newScale))
+          ((MRegion2*)result.addr)->CopyFrom(&reg2);
+        else
+        {
+          cerr << "Scalefactor " << newScale << " is too big!!" << endl;
+          ((MRegion2*)result.addr)->SetDefined( false );
+        }
+                
         return 0;
 }
 
@@ -13413,9 +13872,14 @@ static int SetScaleValueMap_URegion2(Word* args, Word& result,
 
         URegion2 reg2((uint)0);
         reg2.CopyFrom(reg);
-        reg2.NewScaleFactor(newScale);
-
-        ((URegion2*)result.addr)->CopyFrom(&reg2);
+        if (reg2.NewScaleFactor(newScale))
+          ((URegion2*)result.addr)->CopyFrom(&reg2);
+        else
+        {
+          cerr << "Scalefactor " << newScale << " is too big!!" << endl;
+          ((MRegion2*)result.addr)->SetDefined( false );
+        }
+        
         return 0;
 }
 
@@ -13425,12 +13889,12 @@ static ValueMapping SetScaleValueMap[] =
       
 static const string setscalespec =
         "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-        " ( <text>mregion2 x int -> mregion2 "
-        " ( uregion2 x int -> uregion2</text--->"
-        "   <text>setscalefactor( _, _)</text--->"
-        "   <text>Changes the scale factor for a given mregion2 or uregion2,"
+        "( <text>mregion2 x int -> mregion2, "
+        "uregion2 x int -> uregion2</text--->"
+        " <text>setscalefactor( _, _)</text--->"
+        " <text>Changes the scale factor for a given mregion2 or uregion2,"
         " the integer value is the new scale factor.</text--->"
-        "   <text>query setscalefactor(reg2, 4)</text--->) )";
+        "<text>query setscalefactor(reg2, 4)</text--->) )";
 
 static Operator setscale("setscalefactor",
                 setscalespec,
@@ -13637,9 +14101,12 @@ public:
     AddOperator(&atinstant);
     AddOperator(&initial);
     AddOperator(&final);
+    AddOperator(&inst);
+    AddOperator(&val);
     AddOperator(&mregiontomregion2);
     AddOperator(&uregiontouregion2);
     AddOperator(&scale);
+    AddOperator(&scale2);
     AddOperator(&mra2transform);
 
     AddOperator(&setscale);

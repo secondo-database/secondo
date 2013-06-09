@@ -297,12 +297,14 @@ static bool overflowAsInt(mpq_class x1, mpq_class x2, int s = 0)
     mpz_ui_pow_ui(sFactor, 10, sfactor);
     sFac = mpq_class(mpz_class(1), mpz_class(sFactor));
   }
-  else
+  else if (s > 0)
   {
     sfactor = s;
     mpz_ui_pow_ui(sFactor, 10, sfactor);
     sFac = mpq_class(mpz_class(sFactor), mpz_class(1));
   }
+  else
+    sFac = mpq_class(1);
   sFac.canonicalize();
   mpz_clear(sFactor);
 
@@ -352,7 +354,7 @@ static bool overflowAsInt(mpq_class x1, mpq_class x2, int s = 0)
 1.1 ~overflowAsInt~
 
 */
-static bool overflowAsInt(mpq_class x1, mpq_class x2, double s = 1.0)
+static bool overflowAsInt(mpq_class x1, mpq_class x2, double s)
 {
   if (s == 1.0)
     return false;

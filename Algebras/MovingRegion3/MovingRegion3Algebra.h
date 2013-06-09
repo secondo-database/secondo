@@ -585,16 +585,16 @@ Constructor that initializes all the indices.
 
 */
 
-        PreciseMSegmentData(int isxPos, int isyPos, int iexPos, int ieyPos, 
-                            int fsxPos, int fsyPos, int fexPos, int feyPos,
-                            int isxNum, int isyNum, int iexNum, int ieyNum, 
-                            int fsxNum, int fsyNum, int fexNum, int feyNum,
-                            int isxdPos, int isydPos, int iexdPos, int ieydPos, 
-                            int fsxdPos, int fsydPos, int fexdPos, int feydPos,
-                            int isxdNum, int isydNum, int iexdNum, int ieydNum, 
-                            int fsxdNum, int fsydNum, int fexdNum, int feydNum);
+    PreciseMSegmentData(int isxPos, int isyPos, int iexPos, int ieyPos, 
+                        int fsxPos, int fsyPos, int fexPos, int feyPos,
+                        int isxNum, int isyNum, int iexNum, int ieyNum, 
+                        int fsxNum, int fsyNum, int fexNum, int feyNum,
+                        int isxdPos, int isydPos, int iexdPos, int ieydPos, 
+                        int fsxdPos, int fsydPos, int fexdPos, int feydPos,
+                        int isxdNum, int isydNum, int iexdNum, int ieydNum, 
+                        int fsxdNum, int fsydNum, int fexdNum, int feydNum);
 
-        PreciseMSegmentData(int startPos);
+    PreciseMSegmentData(int startPos);
 
 /*
 1.1.1 Attribute read access methods
@@ -722,7 +722,7 @@ from class PreciseMSegmentData. Private attributes are used as indices to the gi
                 DbArray<unsigned int>* preciseInstants);
 
         void SetPreciseInitialInstant (mpq_class initial, 
-                                       DbArray<unsigned int>* preciseInstants);
+                                     DbArray<unsigned int>* preciseInstants);
         void SetPreciseFinalInstant (mpq_class final, 
                                      DbArray<unsigned int>* preciseInstants);
 
@@ -854,6 +854,9 @@ representing a time interval from the respective integer grid representations).
     Interval<Instant> timeInterval;
     PreciseInterval pInterval;
 
+    int minIntx, minInty, maxIntx, maxInty;
+    mpq_class minPrecx, minPrecy, maxPrecx, maxPrecy;
+
 /*
 1.1 Constructors
 
@@ -892,7 +895,7 @@ MRegion unit (of previous implementation)
                 const URegionEmb& origUremb,
                 const DbArray<MSegmentData>* origSegments,
                 unsigned int pos,
-                unsigned int scaleFactor);
+                int scaleFactor);
 
 /*
 1.1 Moving segments access methods
@@ -982,7 +985,7 @@ description below for details.
                 DateTime& intervalLen,
                 ListExpr start,
                 ListExpr end,
-                unsigned int scaleFactor);
+                int scaleFactor);
 
 
 
@@ -1176,7 +1179,11 @@ methods.
   DbArray<unsigned int> preciseCoordinates;
   DbArray<unsigned int> preciseInstants;
   URegionEmb2 uremb;
+
   int scaleFactor;
+
+  int minIntx, minInty, maxIntx, maxInty;
+  mpq_class minPrecx, minPrecy, maxPrecx, maxPrecy;
 
   public:
 /*
@@ -1294,8 +1301,10 @@ Return the internal arrays containing the moving segments for read-only access.
 
   const int GetScaleFactor(void);
   void SetScaleFactor(int factor);
-  void NewScaleFactor(int factor);
+  bool NewScaleFactor(int factor);
 
+  void SetMinMax(URegionEmb2 ur);
+  
 /*
 Return the bounding box of the region unit. This is an $O(1)$ operation
 since the bounding box is calculated when the region unit is created.
@@ -1429,6 +1438,9 @@ private:
     DbArray<unsigned int> preciseInstants;
 
     int scaleFactor;
+    
+    int minIntx, minInty, maxIntx, maxInty;
+    mpq_class minPrecx, minPrecy, maxPrecx, maxPrecy;
 
 /*
 1.1 Private methods
@@ -1524,7 +1536,17 @@ Allow read-only access to DbArrays.
 
     const int GetScaleFactor(void);
     void SetScaleFactor(int factor);
-    void NewScaleFactor(int factor);
+    bool NewScaleFactor(int factor);
+    
+    void SetMinMax(URegionEmb2 ur);
+    int GetMinIntx() { return minIntx; }
+    int GetMinInty() { return minInty; }
+    int GetMaxIntx() { return maxIntx; }
+    int GetMaxInty() { return maxInty; }
+    mpq_class GetMinPrecx() { return minPrecx; }
+    mpq_class GetMinPrecy() { return minPrecy; }
+    mpq_class GetMaxPrecx() { return maxPrecx; }
+    mpq_class GetMaxPrecy() { return maxPrecy; }
     
 /*
 1.1 Methods for database operators

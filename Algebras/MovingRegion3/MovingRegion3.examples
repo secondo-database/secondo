@@ -19,15 +19,33 @@ Signature: mregion2 -> iregion2
 Example  : query initial(mr2)
 Result   : (iregion2 ("2000-01-03" (3 ((((30 15 ()) (10 35 ()) (20 55 ()) (30 65 ()) (40 65 ()) (40 55 ()) (50 45 ()) (50 25 ()) (40 15 ())) ((30 30 ()) (20 30 ()) (20 40 ()) (30 40 ())))))))
    
+Operator : inst
+Number   : 1
+Signature: iregion2 -> instant
+Example  : query inst(initial(mr2))
+Result   : (instant ("2000-01-03"))
+   
+Operator : val
+Number   : 1
+Signature: iregion2 -> region2
+Example  : query val(initial(mr2))
+Result   : (region2 (3 ((((30 15 ()) (10 35 ()) (20 55 ()) (30 65 ()) (40 65 ()) (40 55 ()) (50 45 ()) (50 25 ()) (40 15 ())) ((30 30 ()) (20 30 ()) (20 40 ()) (30 40 ()))))))
+   
 Operator  : scale
 Number    : 1
-Signature : mregion2 x double x double -> mregion2
-Example   : query mr2 scale[0.5, 0.1]
+Signature : mregion2 x real -> mregion2
+Example   : query mr2 scale[0.1]
+Result    : (mregion2 (3 ((("2000-01-03" "2000-01-13" TRUE TRUE ()) ((((5 3 7 1 ('0' '1/2' '1/2' '1/2')) (10 5 15 4 ('0' '1/2' '0' '1/2')) (15 6 17 5 ('0' '1/2' '1/2' '0')) (20 6 27 5 ('0' '1/2' '1/2' '0')) (20 5 27 4 ('0' '1/2' '1/2' '1/2')) (25 4 37 2 ('0' '1/2' '1/2' '1/2')) (25 2 37 1 ('0' '1/2' '1/2' '0')) (20 1 35 0 ('0' '1/2' '0' '1/2')) (15 1 12 0 ('0' '1/2' '1/2' '1/2'))) ((10 3 15 2 ()) (10 4 15 3 ()) (15 4 20 3 ()) (15 3 20 2 ()))))))))
+
+Operator  : scale2
+Number    : 1
+Signature : mregion2 x real x real -> mregion2
+Example   : query mr2 scale2[0.5, 0.1]
 Result    : (mregion2 (3 ((("2000-01-03" "2000-01-13" TRUE TRUE ()) ((((5 3 7 1 ('0' '1/2' '1/2' '1/2')) (10 5 15 4 ('0' '1/2' '0' '1/2')) (15 6 17 5 ('0' '1/2' '1/2' '0')) (20 6 27 5 ('0' '1/2' '1/2' '0')) (20 5 27 4 ('0' '1/2' '1/2' '1/2')) (25 4 37 2 ('0' '1/2' '1/2' '1/2')) (25 2 37 1 ('0' '1/2' '1/2' '0')) (20 1 35 0 ('0' '1/2' '0' '1/2')) (15 1 12 0 ('0' '1/2' '1/2' '1/2'))) ((10 3 15 2 ()) (10 4 15 3 ()) (15 4 20 3 ()) (15 3 20 2 ()))))))))
 
 Operator  : mra2transform
 Number    : 1
-Signature : mregion2 x double x double -> mregion2
+Signature : mregion2 x real x real -> mregion2
 Example   : query mra2transform(mr2, 0.0, 5.0)
 Result    : (mregion2 (3 ((("2000-01-03" "2000-01-13" TRUE TRUE ()) ((((10 40 15 20 ()) (20 60 30 50 ()) (30 70 35 55 ()) (40 70 55 55 ()) (40 60 55 50 ()) (50 50 75 30 ()) (50 30 75 15 ()) (40 20 70 10 ()) (30 20 25 10 ())) ((20 35 30 25 ()) (20 45 30 35 ()) (30 45 40 35 ()) (30 35 40 25 ()))))))))
 
