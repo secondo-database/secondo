@@ -359,6 +359,7 @@ alway use const string Symbol::UNDEFINED()!
 
 
   ListExpr getUndefined(); 
+  string getUndefinedString(); 
 
 
 /*
