@@ -4,7 +4,7 @@ Restore  : No
 Operator : contains
 Number   : 1
 Signature: labels x string -> bool
-Example  : query [const labels value ("hummels" "bittencourt")] contains "bittencourt"
+Example  : query [const labels value ("hummels" "reus")] contains "reus"
 Result   : TRUE
 
 Operator : topattern
@@ -16,9 +16,8 @@ Result   : TRUE
 Operator : toclassifier
 Number   : 1
 Signature: stream(tuple(s: text, t: text)) -> classifier
-Example  : query class1 feed toclassifier
-Result   : unpredictable
-Remark   : A classifier has no out function.
+Example  : query SymbolicTripsTiny feed projecttransformstream[SymTrip] class2 feed toclassifier classify count
+Result   : 12
 
 Operator : matches
 Number   : 1
@@ -26,17 +25,11 @@ Signature: mlabel x text -> bool
 Example  : query michael matches '()'
 Result   : FALSE
 
-Operator : matches
-Number   : 2
-Signature: mstring x text -> bool
-Example  : query [const mstring value ((("2013-01-01" "2013-01-02" TRUE FALSE) "at_home"))] matches '()'
-Result   : TRUE
-
 Operator : indexmatches
 Number   : 1
 Signature: rel(tuple(X)) x IDENT x invfile x text -> stream(tuple(X))
 Example  : query Dotraj indexmatches[Trajectory, Dotrajindex, '(_ "Innenstadt-Ost") X * (_ "Innenstadt-Ost") // X.labels contains "Brackel"'] count
-Result   : 0
+Result   : 5
 
 Operator : filtermatches
 Number   : 1
@@ -52,15 +45,15 @@ Result   : 62
  
 Operator : classify
 Number   : 1
-Signature: stream(tuple(string, text)) x stream(mlabel) -> stream(tuple(string, mlabel))
-Example  : query (patterns4 feed SymbolicTripsTiny feed projecttransformstream[SymTrip] classify) count
-Result   : 49
+Signature: stream(mlabel) x classifier -> stream(tuple(string, mlabel))
+Example  : query SymbolicTripsTiny feed projecttransformstream[SymTrip] classifier2 classify count
+Result   : 12
 
 Operator : indexclassify
 Number   : 1
-Signature: stream(tuple(string, text)) x rel(tuple(..., mlabel, ...)) x attrname x invfile -> stream(tuple(string, mlabel))
-Example  : query (patterns1 feed indexclassify [Dotraj, Trajectory, Dotrajindex]) count
-Result   : 0
+Signature: rel(tuple(..., mlabel, ...)) x attrname x invfile x classifier-> stream(tuple(string, mlabel))
+Example  : query (Dotraj indexclassify[Trajectory, Dotrajindex, classifier1]) count
+Result   : 305
 
 Operator : rewrite
 Number   : 2
@@ -75,12 +68,6 @@ Example  : query compress([const mlabel value ((("2013-01-01" "2013-01-02" TRUE 
 Result   : (mlabel ((("2013-01-01" "2013-01-03" TRUE FALSE) "at_home")))
 
 Operator : compress
-Number   : 2
-Signature: mstring -> mstring
-Example  : query compress([const mstring value ((("2013-01-01" "2013-01-02" TRUE FALSE) "at_home") (("2013-01-02" "2013-01-03" TRUE FALSE) "at_home"))])
-Result   : (mstring ((("2013-01-01" "2013-01-03" TRUE FALSE) "at_home")))
-
-Operator : compress
 Number   : 3
 Signature: stream(mlabel) -> stream(mlabel)
 Example  : query compress(SymbolicTripsTiny feed head[1] projecttransformstream[SymTrip]) = (SymbolicTripsTiny feed head[1] projecttransformstream[SymTrip])
@@ -88,9 +75,9 @@ Result   : FALSE
 
 Operator : fillgaps
 Number   : 1
-Signature: mstring -> mstring
-Example  : query fillgaps([const mstring value ((("2012-10-01" "2012-10-02-05:00:00" TRUE FALSE) "at_home") (("2012-10-02-05:00:58" "2012-10-02-07:00:00" TRUE FALSE) "at_home"))], 60000)
-Result   : (mstring ((("2012-10-01" "2012-10-02-07:00" TRUE FALSE) "at_home")))
+Signature: mlabel -> mlabel
+Example  : query fillgaps([const mlabel value ((("2012-10-01" "2012-10-02-05:00:00" TRUE FALSE) "at_home") (("2012-10-02-05:00:58" "2012-10-02-07:00:00" TRUE FALSE) "at_home"))], 60000)
+Result   : (mlabel ((("2012-10-01" "2012-10-02-07:00" TRUE FALSE) "at_home")))
 
 Operator : fillgaps
 Number   : 2

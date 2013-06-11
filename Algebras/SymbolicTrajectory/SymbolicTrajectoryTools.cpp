@@ -677,6 +677,38 @@ void fillML(const MString& source, MString& result, DateTime* duration) {
   result.MergeAdd(last);
 }
 
+DbArray<NFAtransition> makeNFApersistent(vector<map<int, set<int> > > nfa) {
+  DbArray<NFAtransition> persNFA(0);
+  NFAtransition trans;
+  map<int, set<int> >::iterator im;
+  set<int>::iterator is;
+  for (unsigned int i = 0; i < nfa.size(); i++) {
+    trans.oldState = i;
+    for (im = nfa[i].begin(); im != nfa[i].end(); im++) {
+      trans.trigger = im->first;
+      for (is = im->second.begin(); is != im->second.end(); is++) {
+        trans.newState = *is;
+        persNFA.Append(trans);
+      }
+    }
+  }
+  return persNFA;
+}
+
+vector<map<int, set<int> > > createNFAfromPersistent(DbArray<NFAtransition> db){
+  vector<map<int, set<int> > > result;
+  map<int, set<int> > emptymap;
+  NFAtransition trans;
+  for (int i = 0; i < db.Size(); i++) {
+    db.Get(i, trans);
+    while (trans.oldState >= (int)result.size()) {
+      result.push_back(emptymap);
+    }
+    result[trans.oldState][trans.trigger].insert(trans.newState);
+  }
+  return result;
+}
+
 MLabelIndex::MLabelIndex(DbArray<NodeRef> n, DbArray<NodeLink> nL,
                      DbArray<size_t> lI) {
   nodes = n;

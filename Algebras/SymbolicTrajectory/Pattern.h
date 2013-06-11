@@ -384,23 +384,30 @@ class Pattern {
 class Classifier : public Attribute {
  public:
   Classifier() {}
-  Classifier(int i) : Attribute(true), defined(true) {}
-  Classifier(vector<string> cl, vector<Pattern> pats);
+  Classifier(int i) : Attribute(true), charpos(0), chars(0), delta(0),
+                      defined(true) {}
   Classifier(const Classifier& src);
 
-  ~Classifier() {}
+  ~Classifier() {
+    charpos.Destroy();
+    chars.Destroy();
+    delta.Destroy();
+  }
 
   static const string BasicType() {return "classifier";}
-  void add(Pattern pat, string desc) {p.push_back(pat);classes.push_back(desc);}
-  int getSize() const {return p.size();}
-  int getSize(int pos) const {return p[pos].getSize();}
-  string getText(int pos) const {return p[pos].GetText();}
-  bool buildMultiNFA();
+  int getCharPosSize() const {return charpos.Size();}
+  int getCharSize() const {return chars.Size();}
+  void appendCharPos(int pos) {charpos.Append(pos);}
+  void appendChar(char ch) {chars.Append(ch);}
   void SetDefined(const bool def) {defined = def;}
   bool IsDefined() const {return defined;}
-  bool IsEmpty() const {return (p.size() == 0);}
-  string getDesc(int pos) {return classes[pos];}
-  Pattern* getPat(int pos) {return &p[pos];}
+  bool IsEmpty() const {return (chars.Size() == 0);}
+  string getDesc(int pos);
+  string getPatText(int pos);
+  void setPersistentNFA(vector<map<int, set<int> > > *nfa) {
+    delta = makeNFApersistent(*nfa);
+  }
+  DbArray<NFAtransition> *getDelta() {return &delta;}
 
      // algebra support functions
   static Word     In(const ListExpr typeInfo, const ListExpr instance,
@@ -424,12 +431,17 @@ class Classifier : public Attribute {
          void     CopyFrom(const Attribute* right);
          size_t   Sizeof() const;
   static ListExpr Property();
+  static bool     checkType(ListExpr t) {
+    return listutils::isSymbol(t, BasicType());
+  }
   
  private:
-  vector<string> classes;
-  vector<Pattern> p;
-  vector<map<int, set<int> > > delta; // multiNFA
-//   DbArray<NFAtransition> nfa; //multiNFA
+//   vector<string> classes;
+//   vector<Pattern> p;
+//   vector<map<int, set<int> > > delta; // multiNFA
+  DbArray<int> charpos;
+  DbArray<char> chars;
+  DbArray<NFAtransition> delta; //multiNFA
   bool defined;
 };
 
@@ -518,7 +530,11 @@ class Match {
     currentStates.clear();
     currentStates.insert(0);
   }
-  void buildMultiNFA(ClassifyLI* c);
+  void buildMultiNFA(vector<Pattern*> pats);
+  vector<map<int, set<int> > >* getNFA() {return &delta;}
+  void setNFAfromDbArray(DbArray<NFAtransition> *d) {
+    delta = createNFAfromPersistent(*d);
+  }
   void printMultiNFA();
   vector<int> applyMultiNFA(ClassifyLI* c, bool rewrite = false);
   vector<int> applyConditions(ClassifyLI* c);
@@ -569,8 +585,8 @@ class ClassifyLI {
 friend class Match;
 
 public:
-  ClassifyLI(Word _pstream, Word _mlstream);
-  ClassifyLI(Word _pstream, Word _mlstream, bool rewrite);
+  ClassifyLI(Word _mlstream, Word _classifier);
+  ClassifyLI(Word _mlstream, Word _classifier, bool rewrite);
 
   ~ClassifyLI();
 
@@ -599,9 +615,9 @@ class IndexLI {
 friend class Match;
 
 public:
-  IndexLI(Word _pstream, Word _mlrel, Word _inv, Word _attrNr);
-  IndexLI(Word _mlrel, Word _inv, Word _attrNr, Pattern* _p);
-  IndexLI(Word _pstream, Word _mlrel, Word _inv, Word _attrNr,bool rew);
+  IndexLI(Word _mlrel, Word _inv, Word _classifier, Word _attrNr); //indexclass.
+  IndexLI(Word _mlrel, Word _inv, Word _attrNr, Pattern* _p); //indexmatches
+  IndexLI(Word _pstream, Word _mlrel, Word _inv, Word _attrNr, bool rew);
 
   ~IndexLI();
 
@@ -614,10 +630,9 @@ public:
   ULabel getUL(TupleId tId, unsigned int ulId);
   bool timesMatch(TupleId tId, unsigned int ulId, set<string> ivs);
   set<unsigned int>::iterator initIterator(int tId, int pPos);
-  void closeStream() {pStream.close();}
 
 private:
-  Stream<Tuple> pStream;
+  Classifier *c;
   Relation *mlRel;
   queue<pair<string, TupleId> > classification;
   queue<TupleId> resultIds;
@@ -625,7 +640,7 @@ private:
   TupleType* classifyTT;
   Pattern* p;
   InvertedFile* invFile;
-  int attrNr;
+  int attrNr, pCounter;
   size_t maxMLsize;
 };
 

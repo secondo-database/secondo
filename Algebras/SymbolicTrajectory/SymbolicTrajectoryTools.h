@@ -69,7 +69,8 @@ bool checkRewriteSeq(pair<vector<unsigned int>, vector<unsigned int> > seq,
 Word evaluate(string input);
 vector<string> createTrajectory(int size);
 void fillML(const MString& source, MString& result, DateTime* duration);
-DbArray<NFAtransition> makeNFApersistent(vector<map<int, set<int> > > &nfa);
+DbArray<NFAtransition> makeNFApersistent(vector<map<int, set<int> > > nfa);
+vector<map<int, set<int> > > createNFAfromPersistent(DbArray<NFAtransition> db);
 
 struct TrieNode;
 

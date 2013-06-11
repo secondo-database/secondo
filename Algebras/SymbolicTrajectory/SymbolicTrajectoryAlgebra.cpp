@@ -2914,17 +2914,17 @@ string Assign::getDataType(int key) {
 \subsection{Function ~buildMultiNFA~}
 
 */
-void Match::buildMultiNFA(ClassifyLI* c) {
+void Match::buildMultiNFA(vector<Pattern*> pats) {
   int start = 0;
   map<int, set<int> > emptyMapping;
-  for (unsigned int p = 0; p < c->pats.size(); p++) {
-    int f = start + c->pats[p]->getSize();
+  for (unsigned int p = 0; p < pats.size(); p++) {
+    int f = start + pats[p]->getSize();
     int prev[3] = {start - 1, start - 1, start - 1}; // prevStar, prevNotStar,
     delta.push_back(emptyMapping);
     for (int i = start; i < f; i++) {                // secondPrevNotStar
       delta.push_back(emptyMapping);
       delta[i][i - start].insert(i + 1);//state i,read pattern i =>new state i+1
-      UPat u = c->pats[p]->getPat(i - start);//next line: any pattern except +,*
+      UPat u = pats[p]->getPat(i - start);//next line: any pattern except +,*
       if (!u.getW() || !u.getI().empty() || !u.getL().empty() || (i == f - 1)) {
         if ((prev[0] == i - 1) || (i == f - 1)) { //last pat or'...* #(1 a)...'
           for (int j = prev[1] + 1; j < i; j++) {
@@ -2973,10 +2973,10 @@ void Match::buildMultiNFA(ClassifyLI* c) {
         prev[1] = i;
       }
     }
-    if (c->pats[p]->getPat(f - 1 - start).getW()) { // '... #*' or '... #+'
+    if (pats[p]->getPat(f - 1 - start).getW()) { // '... #*' or '... #+'
       delta[f - 1][f - 1 - start].insert(f - 1);
     }
-    start += c->pats[p]->getSize() + 1;
+    start += pats[p]->getSize() + 1;
   }
 }
 
@@ -3388,22 +3388,39 @@ The list representation of a classifier is
 \subsection{Constructors}
 
 */
-Classifier::Classifier(vector<string> cl, vector<Pattern> pats) {
-  classes = cl;
-  p = pats;
-  defined = buildMultiNFA();
-}
-
 Classifier::Classifier(const Classifier& src) {
-  classes = src.classes;
-  p = src.p;
+  charpos = src.charpos;
+  chars = src.chars;
   delta = src.delta;
   defined = src.defined;
 }
 
-bool Classifier::buildMultiNFA() {
-  
-  return true;
+string Classifier::getDesc(int pos) {
+  int chpos = -1;
+  int chposnext = -1;
+  charpos.Get(pos * 2, chpos);
+  charpos.Get(pos * 2 + 1, chposnext);
+  string result = "";
+  char ch;
+  for (int i = chpos; i < chposnext; i++) {
+    chars.Get(i, ch);
+    result += ch;
+  }
+  return result;
+}
+
+string Classifier::getPatText(int pos) {
+  int chpos = -1;
+  int chposnext = -1;
+  charpos.Get(pos * 2 + 1, chpos);
+  charpos.Get(pos * 2 + 2, chposnext);
+  string result = "";
+  char ch;
+  for (int i = chpos; i < chposnext; i++) {
+    chars.Get(i, ch);
+    result += ch;
+  }
+  return result;
 }
 
 /*
@@ -3425,7 +3442,7 @@ ListExpr Classifier::Property() {
 }
 
 /*
-\subsection{~In~ and ~Out~ Functions}
+\subsection{~In~ Function}
 
 */
 Word Classifier::In(const ListExpr typeInfo, const ListExpr instance,
@@ -3439,12 +3456,21 @@ Word Classifier::In(const ListExpr typeInfo, const ListExpr instance,
   Classifier* c = new Classifier(0);
   Pattern* p = 0;
   c->SetDefined(true);
+  c->appendCharPos(0);
+  vector<Pattern*> patterns;
   while (!list.isEmpty()) {
     if ((list.length() % 2 == 0) && !list.isAtom() && list.first().isAtom() &&
      list.first().isText() && list.second().isAtom() && list.second().isText()){
+      for (unsigned int i = 0; i < list.first().str().length(); i++) { //descr
+        c->appendChar(list.first().str()[i]);
+      }
+      c->appendCharPos(c->getCharSize());
+      for (unsigned int i = 0; i < list.second().str().length(); i++) {//pattern
+        c->appendChar(list.second().str()[i]);
+      }
+      c->appendCharPos(c->getCharSize());
       p = Pattern::getPattern(list.second().str(), true);
-      c->add(*p, list.first().str());
-      delete p;
+      patterns.push_back(p);
     }
     else {
       cmsg.inFunError("Expecting a list of an even number of text atoms!");
@@ -3454,16 +3480,23 @@ Word Classifier::In(const ListExpr typeInfo, const ListExpr instance,
     list.rest();
     list.rest();
   }
-  if (!c->buildMultiNFA()) {
-    cmsg.inFunError("Multi NFA could not be built");
-    delete c;
-    return SetWord(Address(0));
+  Match *match = new Match(1);
+  match->buildMultiNFA(patterns);
+  for (unsigned int i = 0; i < patterns.size(); i++) {
+    delete patterns[i];
   }
+  vector<map<int, set<int> > > *delta = match->getNFA();
+  c->setPersistentNFA(delta);
+  delete match;
   result.addr = c;
   return result;
 }
 
-ListExpr Classifier::Out(ListExpr typeInfo, Word value) { // TODO: change?
+/*
+\subsection{~Out~ Function}
+
+*/
+ListExpr Classifier::Out(ListExpr typeInfo, Word value) {
   Classifier* c = static_cast<Classifier*>(value.addr);
   if (!c->IsDefined()) {
     return (NList(Symbol::UNDEFINED())).listExpr();
@@ -3473,10 +3506,10 @@ ListExpr Classifier::Out(ListExpr typeInfo, Word value) { // TODO: change?
   }
   else {
     NList list(c->getDesc(0), true, true);
-    list.append(NList(c->getPat(0)->GetText(), true, true));
-    for (int i = 1; i < c->getSize(); i++) {
+    list.append(NList(c->getPatText(0), true, true));
+    for (int i = 1; i < (c->getCharPosSize() / 2); i++) {
       list.append(NList(c->getDesc(i), true, true));
-      list.append(NList(c->getPat(i)->GetText(), true, true));
+      list.append(NList(c->getPatText(i), true, true));
     }
     return list.listExpr();
   }
@@ -3572,22 +3605,17 @@ void* Classifier::Cast(void* addr) {
 
 */
 int Classifier::Compare(const Attribute* arg) const {
-  if (getSize() > ((Classifier*)arg)->getSize()) {
+  if (getCharPosSize() > ((Classifier*)arg)->getCharPosSize()) {
     return 1;
   }
-  else if (getSize() < ((Classifier*)arg)->getSize()) {
+  else if (getCharPosSize() < ((Classifier*)arg)->getCharPosSize()) {
     return -1;
   }
   else {
-    int sum1(0), sum2(0);
-    for (int i = 0; i < getSize(); i++) {
-      sum1 += getSize(i);
-      sum2 += ((Classifier*)arg)->getSize(i);
-    }
-    if (sum1 > sum2) {
+    if (getCharSize() > ((Classifier*)arg)->getCharPosSize()) {
       return 1;
     }
-    else if (sum1 < sum2) {
+    else if (getCharSize() < ((Classifier*)arg)->getCharPosSize()) {
       return -1;
     }
     else {
@@ -3601,12 +3629,7 @@ int Classifier::Compare(const Attribute* arg) const {
 
 */
 size_t Classifier::HashValue() const {
-  int sum = 0;
-  for (int i = 0; i < getSize(); i++) {
-    sum += getSize(i);
-    sum += getText(i).length();
-  }
-  return sum;
+  return getCharPosSize() * getCharSize();
 }
 
 /*
@@ -3680,7 +3703,7 @@ ListExpr toclassifierTM(ListExpr args) {
       dType = nl->Second(nl->First(nl->Second(nl->Second(nl->First(args)))));
       pType = nl->Second(nl->Second(nl->Second(nl->Second(nl->First(args)))));
       if (FText::checkType(dType) && FText::checkType(pType)) {
-        return nl->OneElemList(nl->SymbolAtom(Classifier::BasicType()));
+        return nl->SymbolAtom(Classifier::BasicType());
       }
     }
   }
@@ -3693,21 +3716,18 @@ ListExpr toclassifierTM(ListExpr args) {
 */
 int toclassifierVM(Word* args, Word& result, int message, Word& local,
                    Supplier s) {
-  cout << "before static_cast" << endl;
   Stream<Tuple> stream = static_cast<Stream<Tuple> >(args[0].addr);
-  cout << "static_cast ok" << endl;
   stream.open();
-  cout << "stream opened" << endl;
   result = qp->ResultStorage(s);
   Classifier* c = static_cast<Classifier*>(result.addr);
   Tuple* tuple = stream.request();
-  cout << "first request ok" << endl;
   FText *desc, *ptext;
   bool ok = true;
   Pattern* p = 0;
+  vector<string> texts;
+  vector<Pattern*> patterns;
   while (tuple && ok) {
     desc = (FText*)tuple->GetAttribute(0);
-    cout << "attribute 0 is " << desc->GetValue() << endl;
     if (!desc->IsDefined()) {
       cout << "Undefined description" << endl;
       ok = false;
@@ -3728,18 +3748,33 @@ int toclassifierVM(Word* args, Word& result, int message, Word& local,
           if (!p->verifyPattern()) {
             ok = false;
           }
-          else {
-            c->add(*p, desc->GetValue());
-            cout << "c has " << c->getSize() << " components" << endl;
+          else { // store information iff no problem was found
+            texts.push_back(desc->GetValue());
+            texts.push_back(ptext->GetValue());
+            patterns.push_back(p);
           }
         }
-        delete p;
       }
     }
+    tuple->DeleteIfAllowed();
     tuple = stream.request();
   }
-  c->buildMultiNFA();
   stream.close();
+  c->appendCharPos(0);
+  for (unsigned int i = 0; i < texts.size(); i++) {
+    for (unsigned int j = 0; j < texts[i].length(); j++) { //store desc&pattern
+      c->appendChar(texts[i][j]);
+    }
+    c->appendCharPos(c->getCharSize());
+  }
+  Match *match = new Match(1);
+  match->buildMultiNFA(patterns);
+  for (unsigned int i = 0; i < patterns.size(); i++) {
+    delete patterns[i];
+  }
+  vector<map<int, set<int> > > *delta = match->getNFA();
+  c->setPersistentNFA(delta);
+  delete match;
   return 0;
 }
 
@@ -3750,9 +3785,9 @@ int toclassifierVM(Word* args, Word& result, int message, Word& local,
 struct toclassifierInfo : OperatorInfo {
   toclassifierInfo() {
     name      = "toclassifier";
-    signature = "stream(tuple(s: string, t: text)) -> "+Classifier::BasicType();
+    signature = "stream(tuple(s: text, t: text)) -> "+Classifier::BasicType();
     syntax    = "_ toclassifier";
-    meaning   = "creates a classifier from a stream(tuple(s: string, t: text))";
+    meaning   = "creates a classifier from a stream(tuple(s: text, t: text))";
   }
 };
 
@@ -3982,7 +4017,7 @@ ListExpr indexmatchesTM(ListExpr args) {
   return listutils::typeError(errMsg);
 }
 
-IndexLI::IndexLI(Word _mlrel, Word _inv, Word _attrNr, Pattern* _p):pStream(0) {
+IndexLI::IndexLI(Word _mlrel, Word _inv, Word _attrNr, Pattern* _p) {
   mlRel = (Relation*)_mlrel.addr;
   invFile = static_cast<InvertedFile*>(_inv.addr);
   attrNr = ((CcInt*)_attrNr.addr)->GetIntval() - 1;
@@ -4646,29 +4681,20 @@ struct rewriteInfo : OperatorInfo {
 
 */
 ListExpr classifyTM(ListExpr args) {
-  const string errMsg = "Expecting a stream(tuple(x, y)) with x,y in "
-             "{string, text} and a stream(z) with z in {mlabel, mstring}. ";
+  const string errMsg = "Expecting a stream(z) with z in {mlabel, mstring} "
+                        "and a classifier. ";
   if (nl->HasLength(args, 2)) {
-    if (Stream<Tuple>::checkType(nl->First(args))) {
-      ListExpr dType, pType;
-      if(nl->ListLength(nl->Second(nl->Second(nl->First(args)))) < 2){
-        return listutils::typeError("tuple has not enough attributes");
-      }
-      dType = nl->Second(nl->First(nl->Second(nl->Second(nl->First(args)))));
-      pType = nl->Second(nl->Second(nl->Second(nl->Second(nl->First(args)))));
-      if ((CcString::checkType(dType) || FText::checkType(dType))
-       && (CcString::checkType(pType) || FText::checkType(pType))) {
-        ListExpr arg2 = nl->Second(args);
-        if (Stream<MLabel>::checkType(arg2)
-         || Stream<MString>::checkType(arg2)) {
-          ListExpr outputAttrs = nl->TwoElemList(
-              nl->TwoElemList(nl->SymbolAtom("Description"),
-                              nl->SymbolAtom(FText::BasicType())),
-              nl->TwoElemList(nl->SymbolAtom("Trajectory"), nl->Second(arg2)));
-          return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                             nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-                                             outputAttrs));
-        }
+    ListExpr arg1 = nl->First(args);
+    ListExpr arg2 = nl->Second(args);
+    if (Stream<MLabel>::checkType(arg1) || Stream<MString>::checkType(arg1)) {
+      if (Classifier::checkType(arg2)) {
+        ListExpr outputAttrs = nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("Description"),
+                            nl->SymbolAtom(FText::BasicType())),
+            nl->TwoElemList(nl->SymbolAtom("Trajectory"), nl->Second(arg1)));
+        return nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                           nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                           outputAttrs));
       }
     }
   }
@@ -4681,52 +4707,41 @@ ListExpr classifyTM(ListExpr args) {
 This constructor is used for the operator ~classify~.
 
 */
-ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream) :
+ClassifyLI::ClassifyLI(Word _mlstream, Word _classifier) :
                        mlStream(_mlstream), currentML(0), mainMatch(0) {
   classifyTT = getTupleType();
-  Stream<Tuple> pStream(_pstream);
-  pStream.open();
   mlStream.open();
-  Tuple* inputTuple = pStream.request();
+  Classifier *c = static_cast<Classifier*>(_classifier.addr);
   int startPos = 0;
   set<unsigned int> emptyset;
-  while (inputTuple) {
-    if (!(CcString*)inputTuple->GetAttribute(0)->IsDefined()
-     || !(FText*)inputTuple->GetAttribute(1)->IsDefined()) {
-      cout << "undefined classification data" << endl;
+  Pattern *p = 0;
+  for (int i = 0; i < (c->getCharPosSize() / 2); i++) {
+    p = Pattern::getPattern(c->getPatText(i), true);
+    if (p) {
+      p->setDescr(c->getDesc(i));
+      start2pat[startPos] = pats.size();
+      pat2start[pats.size()] = startPos;
+      initialStates.insert(startPos);
+      startPos += p->getSize() + 1;
+      end2pat[startPos - 1] = pats.size();
+      if (!p->getConds().empty()) {
+        for (int j = 0; j < p->getSize(); j++) {
+          matches[pats.size()].push_back(emptyset);
+        }
+      }
+      pats.push_back(p);
     }
     else {
-      Pattern *p = Pattern::getPattern(
-                  ((FText*)inputTuple->GetAttribute(1))->GetValue(), true);
-      if (p) {
-        p->setDescr(((CcString*)inputTuple->GetAttribute(0))->GetValue());
-        start2pat[startPos] = pats.size();
-        pat2start[pats.size()] = startPos;
-        initialStates.insert(startPos);
-        startPos += p->getSize() + 1;
-        end2pat[startPos - 1] = pats.size();
-        if (!p->getConds().empty()) {
-          for (int i = 0; i < p->getSize(); i++) {
-            matches[pats.size()].push_back(emptyset);
-          }
-        }
-        pats.push_back(p);
-      }
-      else {
-        cout << "pattern could not be parsed" << endl;
-      }
+      cout << "pattern could not be parsed" << endl;
     }
-    inputTuple->DeleteIfAllowed();
-    inputTuple = pStream.request();
-  }
-  pStream.close();
+  } 
   if (!pats.size()) {
     cout << "no classification data specified" << endl;
   }
   else {
     numOfStates = startPos;
     mainMatch = new Match(numOfStates);
-    mainMatch->buildMultiNFA(this);
+    mainMatch->setNFAfromDbArray(c->getDelta());
 //     mainMatch->printMultiNFA();
   }
 }
@@ -4782,7 +4797,7 @@ ClassifyLI::ClassifyLI(Word _pstream, Word _mlstream, bool rewrite) :
   else {
     numOfStates = startPos;
     mainMatch = new Match(numOfStates);
-    mainMatch->buildMultiNFA(this);
+    mainMatch->buildMultiNFA(pats);
     //mainMatch->printMultiNFA();
   }
 }
@@ -4969,14 +4984,14 @@ int classifyVM(Word* args, Word& result, int message, Word& local, Supplier s){
 \subsection{Operator Info}
 
 */
-struct classifyInfo : OperatorInfo { // TODO: change this!
+struct classifyInfo : OperatorInfo {
   classifyInfo() {
     name      = "classify";
-    signature = "text x stream(mlabel) -> stream(tuple(string, mlabel))";
-    appendSignature("text x stream(mstring) -> stream(tuple(string, mstring))");
+    signature = "stream(mlabel) x classifier -> stream(tuple(text, mlabel))";
+    appendSignature("stream(mstring) x classifier -> "
+                                               "stream(tuple(text, mstring))");
     syntax    = "_ _ classify";
-    meaning   = "Classifies a stream of trajectories according to a set of "
-                "patterns and descriptions from a file";
+    meaning   = "Classifies a stream of trajectories according to a classifier";
   }
 };
 
@@ -4987,47 +5002,35 @@ struct classifyInfo : OperatorInfo { // TODO: change this!
 
 */
 ListExpr indexclassifyTM(ListExpr args) {
-  const string errMsg = "Expecting a stream(tuple(x, y)) with x,y in "
-             "{string, text}, a relation, the name of an {mlabel, mstring} "
-             "attribute of that relation, and an invfile";
+  const string errMsg = "Expecting a relation, the name of an {mlabel, mstring}"
+             " attribute of that relation, an invfile, and a classifier";
   if (nl->HasLength(args, 4)) {
-    if (Stream<Tuple>::checkType(nl->First(args))) {
-      ListExpr dType, pType;
-      if(nl->ListLength(nl->Second(nl->Second(nl->First(args)))) != 2){
-        return listutils::typeError("tuples must have two attributes");
-      }
-      dType = nl->Second(nl->First(nl->Second(nl->Second(nl->First(args)))));
-      pType = nl->Second(nl->Second(nl->Second(nl->Second(nl->First(args)))));
-      if ((CcString::checkType(dType) || FText::checkType(dType))
-       && (CcString::checkType(pType) || FText::checkType(pType))) {
-        if (Relation::checkType(nl->Second(args))) {
-          if (Tuple::checkType(nl->First(nl->Rest(nl->Second(args))))
-           && listutils::isSymbol(nl->Third(args))) {
-            ListExpr attrType;
-            ListExpr attrList =
-                              nl->Second(nl->First(nl->Rest(nl->Second(args))));
-            string attrName = nl->SymbolValue(nl->Third(args));
-            int i = listutils::findAttribute(attrList, attrName, attrType);
-            if (i == 0) {
-              return listutils::typeError(attrName + " not found");
-            }
-            if (!MLabel::checkType(attrType) && !MString::checkType(attrType)) {
-              return listutils::typeError
-                     ("type " + nl->ToString(attrType) + " is an invalid type");
-            }
-            if (InvertedFile::checkType(nl->Fourth(args))) {
-              ListExpr outputAttrs = nl->TwoElemList(
-                            nl->TwoElemList(nl->SymbolAtom("Description"),
-                                            nl->SymbolAtom(FText::BasicType())),
-                            nl->TwoElemList(nl->SymbolAtom("Trajectory"),
-                                            attrType));
-              return nl->ThreeElemList(
-                nl->SymbolAtom(Symbol::APPEND()),
-                nl->OneElemList(nl->IntAtom(i)),
-                nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
-                            nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
-                                            outputAttrs)));
-            }
+    if (Classifier::checkType(nl->Fourth(args))) {
+      if (Relation::checkType(nl->First(args))) {
+        if (Tuple::checkType(nl->First(nl->Rest(nl->First(args))))
+         && listutils::isSymbol(nl->Second(args))) {
+          ListExpr attrType;
+          ListExpr attrList = nl->Second(nl->First(nl->Rest(nl->First(args))));
+          string attrName = nl->SymbolValue(nl->Second(args));
+          int i = listutils::findAttribute(attrList, attrName, attrType);
+          if (i == 0) {
+            return listutils::typeError("Attribute " + attrName + " not found");
+          }
+          if (!MLabel::checkType(attrType) && !MString::checkType(attrType)) {
+            return listutils::typeError
+                   ("Type " + nl->ToString(attrType) + " is invalid");
+          }
+          if (InvertedFile::checkType(nl->Third(args))) {
+            ListExpr outputAttrs = nl->TwoElemList(
+                       nl->TwoElemList(nl->SymbolAtom("Description"),
+                                       nl->SymbolAtom(FText::BasicType())),
+                       nl->TwoElemList(nl->SymbolAtom("Trajectory"), attrType));
+            return nl->ThreeElemList(
+              nl->SymbolAtom(Symbol::APPEND()),
+              nl->OneElemList(nl->IntAtom(i)),
+              nl->TwoElemList(nl->SymbolAtom(Symbol::STREAM()),
+                          nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
+                                          outputAttrs)));
           }
         }
       }
@@ -5042,20 +5045,20 @@ ListExpr indexclassifyTM(ListExpr args) {
 This constructor is used for the operator ~indexclassify~.
 
 */
-IndexLI::IndexLI(Word _pstream, Word _mlrel, Word _inv, Word _attrNr) :
-                 pStream(_pstream), p(0) {
+IndexLI::IndexLI(Word _mlrel, Word _inv, Word _classifier, Word _attrNr) :
+                 p(0), pCounter(0) {
   mlRel = (Relation*)_mlrel.addr;
   invFile = static_cast<InvertedFile*>(_inv.addr);
   attrNr = ((CcInt*)_attrNr.addr)->GetIntval() - 1;
+  c = (Classifier*)_classifier.addr;
   classifyTT = ClassifyLI::getTupleType();
-  pStream.open();
 }
 
 /*
 \subsection{Function ~timesMatch~}
 
 */
-bool IndexLI::timesMatch(TupleId tId,unsigned int ulId,set<string> ivs) {
+bool IndexLI::timesMatch(TupleId tId, unsigned int ulId, set<string> ivs) {
   if (ivs.empty()) {
     return true;
   }
@@ -5305,40 +5308,28 @@ Tuple* IndexLI::nextResultTuple(bool classify) {
     return result;
   }
   pair<string, TupleId> onePair;
-  Tuple* pTuple;
-  while (classification.empty()) {
+  while (classification.empty() && pCounter < c->getCharPosSize() / 2) {
     if (p) {
       delete p;
       p = 0;
     }
-    pTuple = pStream.request();
-    if (!pTuple) { // stream finished
-      return 0;
-    }
-    if (!(CcString*)pTuple->GetAttribute(0)->IsDefined()
-     || !(FText*)pTuple->GetAttribute(1)->IsDefined()) {
-      cout << "undefined pattern data" << endl;
-      pTuple->DeleteIfAllowed();
-      return 0;
-    }
-    else {
-      p = Pattern::getPattern(
-                   ((FText*)pTuple->GetAttribute(1))->GetValue(), true);
-      if (p) {
-        p->setDescr(((CcString*)pTuple->GetAttribute(0))->GetValue());
-        matches = new vector<set<unsigned int> >[mlRel->GetNoTuples()];
-        for (int i = 0; i < mlRel->GetNoTuples(); i++) {
-          matches[i].resize(p->getSize());
-        }
-        vector<TupleId> matchingMLs = applyPattern();
-        applyConditions(matchingMLs, true);
-        delete[] matches;
+    p = Pattern::getPattern(c->getPatText(pCounter), true);
+    if (p) {
+      p->setDescr(c->getDesc(pCounter));
+      matches = new vector<set<unsigned int> >[mlRel->GetNoTuples()];
+      for (int i = 0; i < mlRel->GetNoTuples(); i++) {
+        matches[i].resize(p->getSize());
       }
+      vector<TupleId> matchingMLs = applyPattern();
+      applyConditions(matchingMLs, true);
+      delete[] matches;
     }
-    pTuple->DeleteIfAllowed();
-    pTuple = 0;
+    pCounter++;
   }
   MLabel* ml = 0;
+  if (classification.empty()) {
+    return 0;
+  }
   onePair = classification.front();
   Tuple *result = new Tuple(classifyTT);
   result->PutAttribute(0, new FText(true, onePair.first));
@@ -5378,7 +5369,7 @@ int indexclassifyVM(Word* args, Word& result, int message, Word& local,
         delete li;
         local.addr = 0;
       }
-      local.addr = new IndexLI(args[0], args[1], args[3], args[4]);
+      local.addr = new IndexLI(args[0], args[2], args[3], args[4]);
       return 0;
     }
     case REQUEST: {
@@ -5387,7 +5378,6 @@ int indexclassifyVM(Word* args, Word& result, int message, Word& local,
     }
     case CLOSE: {
       if (li) {
-        li->closeStream();
         delete li;
         local.addr = 0;
       }
@@ -5400,13 +5390,13 @@ int indexclassifyVM(Word* args, Word& result, int message, Word& local,
 struct indexclassifyInfo : OperatorInfo {
   indexclassifyInfo() {
     name      = "indexclassify";
-    signature = "stream(tuple(string, text)) x rel(tuple(..., mlabel, ...)) x "
-                "attrname x invfile -> stream(tuple(string, mlabel))";
-    appendSignature("stream(tuple(string, text)) x rel(tuple(..., mstring, ...)"
-                ") x attrname x invfile -> stream(tuple(string, mstring))");
+    signature = "rel(tuple(..., mlabel, ...)) x attrname x invfile x classifier"
+                " -> stream(tuple(string, mlabel))";
+    appendSignature("rel(tuple(..., mstring, ...)) x attrname x invfile x "
+                    "classifier -> stream(tuple(string, mstring))");
     syntax    = "_ indexclassify [_ , _ , _]";
     meaning   = "Classifies an indexed relation of trajectories according to a "
-                " set of patterns and descriptions from a file";
+                " classifier";
   }
 };
 
