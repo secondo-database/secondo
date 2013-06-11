@@ -194,10 +194,12 @@ ListExpr ToListExpr(ListExpr typeinfo){
       (value>numeric_limits<int32_t>::min())){
      return nl->IntAtom( (int)value);
    }  else {
-     int64_t v = value;
-     return nl->TwoElemList(
-                  nl->IntAtom((int)(v>>32)),
-                  nl->IntAtom((int)(v&0xFFFFFFFF)));
+     int32_t v1 = (int)(value>>32);
+     int32_t v2 = (int)(value&0xFFFFFFFF);
+     ListExpr res =  nl->TwoElemList(
+                         nl->IntAtom(v1),
+                         nl->IntAtom(v2));
+      return res;
    }
 }
 
@@ -228,7 +230,7 @@ bool ReadFrom(const ListExpr LE, const ListExpr typeInfo){
   }
   SetDefined(true);
   int64_t v1 = nl->IntValue(f);
-  int64_t v2 = nl->IntValue(s);
+  int32_t v2 = nl->IntValue(s);
   value = v1<<32 | v2; 
   return true;
 }
