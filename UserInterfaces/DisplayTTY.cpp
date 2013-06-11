@@ -791,7 +791,7 @@ struct DisplayLongInt : DisplayFunction {
        if( (nl->AtomType(a1)==IntType) &&
            (nl->AtomType(a2)==IntType)){
           int64_t v1 = nl->IntValue(a1);
-          int64_t v2 = nl->IntValue(a2);
+          int64_t v2 = (uint32_t)nl->IntValue(a2);
           int64_t v = (v1<<32) | v2;
           cout << v;
        } else {
