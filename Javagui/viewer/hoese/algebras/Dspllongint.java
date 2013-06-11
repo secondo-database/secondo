@@ -54,7 +54,17 @@ public class Dspllongint extends DsplGeneric implements  RenderAttribute, LabelA
           (value.first().atomType()==ListExpr.INT_ATOM) &&
           (value.second().atomType()==ListExpr.INT_ATOM) ){
           long v1 = value.first().intValue();
-          long v2 = value.second().intValue();
+          int v2i = value.second().intValue();
+          long v2;
+          // conversion signed int32 -> unsigned int32
+          if(v2i<0){
+             long v3 = 0x80000000l;
+             int k = (v2i & 0x7FFFFFFF);
+             long v2l = k;
+             v2 = ((long)v2l) | v3;
+          }else {
+            v2 = v2i;
+          }
           this.value = (v1<<32) | v2;
           defined = true;
           return true;
