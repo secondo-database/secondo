@@ -386,6 +386,11 @@ Signature: int -> real
 Example  : query int2real(-2)
 Result   : -2.0
 
+Operator : int2longint
+Number   : 1
+Signature: int -> longint
+Example  : query int2longint(-2)
+Result   : (longint -2)
 
 Operator : real2int
 Number   : 1
@@ -445,6 +450,11 @@ Signature:  real -> string
 Example  : query num2string(-684.25)
 Result   : "-684.25"
 
+Operator : num2string
+Number   : 3
+Signature:  longint -> string
+Example  : query num2string([const longint value 68])
+Result   : "68"
 
 Operator : char
 Number   : 1

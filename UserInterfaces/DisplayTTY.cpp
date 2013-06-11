@@ -773,6 +773,36 @@ struct DisplayInt : DisplayFunction {
 
 };
 
+struct DisplayLongInt : DisplayFunction {
+
+  virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
+  {
+    if( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType &&
+        nl->SymbolValue( value ) == Symbol::UNDEFINED() )
+    {
+      cout << Symbol::UNDEFINED();
+    }
+    else if(nl->AtomType(value)==IntType)
+    {
+      cout << nl->IntValue( value );
+    } else if(nl->HasLength(value,2) ){
+       ListExpr a1 = nl->First(value);
+       ListExpr a2 = nl->Second(value);
+       if( (nl->AtomType(a1)==IntType) &&
+           (nl->AtomType(a2)==IntType)){
+          int64_t v1 = nl->IntValue(a1);
+          int64_t v2 = nl->IntValue(a2);
+          int64_t v = (v1<<32) | v2;
+          cout << v;
+       } else {
+         cout << nl->ToString(value);
+       }
+    } else {
+      cout << nl->ToString(value);
+    }
+  }
+
+};
 struct DisplayDRM : DisplayFunction {
 
   virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
@@ -3454,6 +3484,7 @@ DisplayTTY::Initialize()
   DisplayTTY& d = DisplayTTY::GetInstance();
 
   d.Insert( "int",     new DisplayInt() );
+  d.Insert( "longint", new DisplayLongInt() );
   d.Insert( "real",    new DisplayReal() );
   d.Insert( "bool",    new DisplayBoolean() );
   d.Insert( "string",  new DisplayString() );

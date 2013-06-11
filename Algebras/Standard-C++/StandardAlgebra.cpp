@@ -253,6 +253,7 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 #include <errno.h>
 #include <cerrno>
 #include <time.h>       //needed for random number generator
+#include <LongInt.h>
 
 
 extern NestedList* nl;
@@ -925,6 +926,11 @@ TypeConstructor ccString( CcString::BasicType(),       CcStringProperty,
                           CloseCcString,  CloneCcString,
                           CastString,     SizeOfCcString, CheckString );
 
+
+
+GenTC<LongInt> longint;
+
+
 /*
 4 Operators
 
@@ -1196,27 +1202,36 @@ IntString( ListExpr args )
 }
 
 /*
-4.2.5 Type mapping function CcMathTypeMapBool
+4.2.5 Type mapping function CompareTypeMap
 
 It is for the Compare operators which have ~bool~ as resulttype.
 
 */
 
-const string maps_comp[6][3] =
+const string maps_comp[11][3] =
 {
   {CcInt::BasicType(),    CcInt::BasicType(),    CcBool::BasicType()},
   {CcInt::BasicType(),    CcReal::BasicType(),   CcBool::BasicType()},
+  {CcInt::BasicType(),    LongInt::BasicType(),   CcBool::BasicType()},
+
   {CcReal::BasicType(),   CcInt::BasicType(),    CcBool::BasicType()},
   {CcReal::BasicType(),   CcReal::BasicType(),   CcBool::BasicType()},
+  {CcReal::BasicType(),   LongInt::BasicType(),   CcBool::BasicType()},
+
+  {LongInt::BasicType(),   CcInt::BasicType(),    CcBool::BasicType()},
+  {LongInt::BasicType(),   CcReal::BasicType(),   CcBool::BasicType()},
+  {LongInt::BasicType(),   LongInt::BasicType(),   CcBool::BasicType()},
+
   {CcBool::BasicType(),   CcBool::BasicType(),   CcBool::BasicType()},
-  {CcString::BasicType(), CcString::BasicType(), CcBool::BasicType()}
+  {CcString::BasicType(), CcString::BasicType(), CcBool::BasicType()},
+ 
 };
 
 
 ListExpr
-CcMathTypeMapBool( ListExpr args )
+CompareTypeMap( ListExpr args )
 {
-  return SimpleMaps<6,3>(maps_comp, args);
+  return SimpleMaps<11,3>(maps_comp, args);
 }
 
 /*
@@ -1227,7 +1242,7 @@ CcMathTypeMapBool( ListExpr args )
 int
 CcMathSelectCompare( ListExpr args )
 {
-  return SimpleSelect<6,3>(maps_comp, args);
+  return SimpleSelect<11,3>(maps_comp, args);
 }
 
 
@@ -1555,22 +1570,23 @@ For operator ~num2string~
 
 */
 
-const string maps_num2str[2][2] =
+const string maps_num2str[3][2] =
 {
   {CcReal::BasicType(), CcString::BasicType()},
-  {CcInt::BasicType(),  CcString::BasicType()}
+  {CcInt::BasicType(),  CcString::BasicType()},
+  {LongInt::BasicType(),  CcString::BasicType()}
 };
 
 ListExpr
 NumStringTypeMap( ListExpr args )
 {
-  return SimpleMaps<2,2>(maps_num2str, args);
+  return SimpleMaps<3,2>(maps_num2str, args);
 }
 
 int
 ccnum2stringSelect( ListExpr args )
 {
-  return SimpleSelect<2,2>(maps_num2str, args);
+  return SimpleSelect<3,2>(maps_num2str, args);
 }
 
 /*
@@ -4253,36 +4269,61 @@ ValueMapping ccsqrtmap[] = { CcSqrt };
 
 ValueMapping cclessmap[] = { CcLess<CcInt>,
                              CcLess2<CcInt, CcReal>,
+                             CcLess2<CcInt, LongInt>,
                              CcLess2<CcReal, CcInt>,
                              CcLess<CcReal>,
+                             CcLess2<CcReal, LongInt>,
+                             CcLess2<LongInt, CcInt>,
+                             CcLess2<LongInt, CcReal>,
+                             CcLess<LongInt>,
                              CcLess<CcBool>,
                              CcLess<CcString> };
 
 ValueMapping cclessequalmap[] = { CcLessEqual<CcInt>,
                                   CcLessEqual2<CcInt, CcReal>,
+                                  CcLessEqual2<CcInt, LongInt>,
                                   CcLessEqual2<CcReal, CcInt>,
                                   CcLessEqual<CcReal>,
+                                  CcLessEqual2<CcReal,LongInt>,
+                                  CcLessEqual2<LongInt, CcInt>,
+                                  CcLessEqual2<LongInt, CcReal>,
+                                  CcLessEqual<LongInt>,
                                   CcLessEqual<CcBool>,
                                   CcLessEqual<CcString> };
 
 ValueMapping ccgreatermap[] = { CcGreater<CcInt>,
                                 CcGreater2<CcInt, CcReal>,
+                                CcGreater2<CcInt, LongInt>,
                                 CcGreater2<CcReal, CcInt>,
                                 CcGreater<CcReal>,
+                                CcGreater2<CcReal, LongInt>,
+                                CcGreater2<LongInt, CcInt>,
+                                CcGreater2<LongInt, CcReal>,
+                                CcGreater<LongInt>,
                                 CcGreater<CcBool>,
                                 CcGreater<CcString> };
 
 ValueMapping ccgreaterequalmap[] = { CcGreaterEqual<CcInt>,
                                      CcGreaterEqual2<CcInt, CcReal>,
+                                     CcGreaterEqual2<CcInt, LongInt>,
                                      CcGreaterEqual2<CcReal, CcInt>,
                                      CcGreaterEqual<CcReal>,
+                                     CcGreaterEqual2<CcReal, LongInt>,
+                                     CcGreaterEqual2<LongInt, CcInt>,
+                                     CcGreaterEqual2<LongInt, CcReal>,
+                                     CcGreaterEqual<LongInt>,
                                      CcGreaterEqual<CcBool>,
                                      CcGreaterEqual<CcString> };
 
 ValueMapping ccequalmap[] = { CcEqual<CcInt>,
                               CcEqual2<CcInt, CcReal>,
+                              CcEqual2<CcInt, LongInt>,
                               CcEqual2<CcReal, CcInt>,
                               CcEqual<CcReal>,
+                              CcEqual2<CcReal, LongInt>,
+                              CcEqual2<LongInt, CcInt>,
+                              CcEqual2<LongInt, CcReal>,
+                              CcEqual<LongInt>,
                               CcEqual<CcBool>,
                               CcEqual<CcString> };
 
@@ -4325,7 +4366,8 @@ ValueMapping ccbool2intvaluemap[] = { CcBool2intValueMap };
 ValueMapping ccfloorvaluemap[] = { CcFloorValueMap };
 ValueMapping ccceilvaluemap[] = { CcCeilValueMap };
 ValueMapping ccnum2stringvaluemap[] =
-                          { CcNum2String<CcReal>, CcNum2String<CcInt> };
+                          { CcNum2String<CcReal>, CcNum2String<CcInt>,
+                            CcNum2String<LongInt> };
 ValueMapping abs_vms[] = { abs_vm<CcReal, double>, abs_vm<CcInt, int>, 0 };
 ValueMapping cccharvaluemap[] = { CcCharFun };
 
@@ -4841,7 +4883,7 @@ const string CCceilSpec =
 
 const string CCnum2stringSpec =
              "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-             "( <text>real -> string\n int -> string</text--->"
+             "( <text>{real, int, longint} -> string</text--->"
              "<text>num2string( num )</text--->"
              "<text>Returns the string representation of numeric argument "
              "'num'.</text--->"
@@ -5123,23 +5165,23 @@ Operator ccseqnext( "seqnext", CCSpecNextSeq, NextSeq,
 Operator cclog( "log", CCSpecLog, LogFun,
                 Operator::SimpleSelect, IntInt );
 
-Operator ccless( "<", CCSpecLT, 6, cclessmap,
-                 CcMathSelectCompare, CcMathTypeMapBool );
+Operator ccless( "<", CCSpecLT, 11, cclessmap,
+                 CcMathSelectCompare, CompareTypeMap);
 
-Operator cclessequal( "<=", CCSpecLE, 6, cclessequalmap,
-                      CcMathSelectCompare, CcMathTypeMapBool );
+Operator cclessequal( "<=", CCSpecLE, 11, cclessequalmap,
+                      CcMathSelectCompare, CompareTypeMap );
 
-Operator ccgreater( ">", CCSpecGT, 6, ccgreatermap,
-                    CcMathSelectCompare, CcMathTypeMapBool );
+Operator ccgreater( ">", CCSpecGT, 11, ccgreatermap,
+                    CcMathSelectCompare, CompareTypeMap );
 
-Operator ccgreaterequal( ">=", CCSpecGE, 6, ccgreaterequalmap,
-                         CcMathSelectCompare, CcMathTypeMapBool );
+Operator ccgreaterequal( ">=", CCSpecGE, 11, ccgreaterequalmap,
+                         CcMathSelectCompare, CompareTypeMap );
 
-Operator ccequal( "=", CCSpecEQ, 6, ccequalmap,
-                  CcMathSelectCompare, CcMathTypeMapBool );
+Operator ccequal( "=", CCSpecEQ, 11, ccequalmap,
+                  CcMathSelectCompare, CompareTypeMap );
 
-Operator ccdiff( "#", CCSpecNE, 6, ccdiffmap,
-                 CcMathSelectCompare, CcMathTypeMapBool );
+Operator ccdiff( "#", CCSpecNE, 11, ccdiffmap,
+                 CcMathSelectCompare, CompareTypeMap );
 
 Operator ccstarts( "starts", CCSpecBeg, 1, ccstartsmap,
                    Operator::SimpleSelect, CcMathTypeMapBool3 );
@@ -5228,7 +5270,7 @@ Operator ccceil( "ceil", CCceilSpec, 1, ccceilvaluemap,
 Operator ccfloor( "floor", CCfloorSpec, 1, ccfloorvaluemap,
                  Operator::SimpleSelect, RealReal);
 
-Operator ccnum2string( "num2string", CCnum2stringSpec, 2, ccnum2stringvaluemap,
+Operator ccnum2string( "num2string", CCnum2stringSpec, 3, ccnum2stringvaluemap,
                  ccnum2stringSelect, NumStringTypeMap);
 
 Operator ccchar( "char", CCcharSpec, 1, cccharvaluemap,
@@ -5480,7 +5522,7 @@ ValueMapping switchVM[]={
 OperatorSpec switchSpec(
   "t x (t x r)* x r -> r. with t in DATA, r in DATA U STREAM",
   " switchvalue switch[ case1 , res1; case2 , res2 ; ... ; default] ",
-  " Returns the res_i fow what holds case_i = switchvalue. If no such"
+  " Returns the first res_i for what holds case_i = switchvalue. If no such"
   " case exists, default is returned",
   " query randint(2) switch[ 0 , 'Null'; 1, 'One'; 2 , 'Two'; 'Unknown']"
 );
@@ -5496,6 +5538,49 @@ Operator switchOp(
    switchVM,
    switchSelect,
    switchTM);
+
+
+
+/*
+1.99 Operator int2longint
+
+*/
+ListExpr int2longintTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("int expected");
+  }
+  if(CcInt::checkType(nl->First(args))){
+    return listutils::basicSymbol<LongInt>();
+  }
+  return listutils::typeError("int expected");
+}
+
+int int2longintVM (Word* args, Word& result, int message, 
+              Word& local, Supplier s ) {
+
+  CcInt* arg = (CcInt*) args[0].addr;
+  result=qp->ResultStorage(s);
+  LongInt* res = (LongInt*) result.addr;
+  res->SetValue(*arg);
+  return 0;
+}
+
+
+OperatorSpec int2longintSpec(
+  "int -> longint",
+  "int2longint(_) ",
+  "Converts an int to a longint. ",
+  " query int2longint(2)"
+);
+
+
+Operator int2longint(
+   "int2longint",
+   int2longintSpec.getStr(),
+   int2longintVM,
+   Operator::SimpleSelect,
+   int2longintTM);
+
 
 
 /*
@@ -5525,26 +5610,31 @@ class CcAlgebra1 : public Algebra
     AddTypeConstructor( &ccReal );
     AddTypeConstructor( &ccBool );
     AddTypeConstructor( &ccString );
+    AddTypeConstructor( &longint);
 
     ccInt.AssociateKind( Kind::DATA() );
     ccReal.AssociateKind( Kind::DATA() );
     ccBool.AssociateKind( Kind::DATA() );
     ccString.AssociateKind( Kind::DATA() );
+    longint.AssociateKind(Kind::DATA());
 
     ccInt.AssociateKind( Kind::BASE() );
     ccReal.AssociateKind( Kind::BASE() );
     ccBool.AssociateKind( Kind::BASE() );
     ccString.AssociateKind( Kind::BASE() );
+    longint.AssociateKind( Kind::BASE() );
 
     ccInt.AssociateKind( Kind::CSVEXPORTABLE() );
     ccReal.AssociateKind( Kind::CSVEXPORTABLE() );
     ccBool.AssociateKind( Kind::CSVEXPORTABLE() );
     ccString.AssociateKind( Kind::CSVEXPORTABLE() );
+    longint.AssociateKind( Kind::CSVEXPORTABLE() );
 
     ccInt.AssociateKind( Kind::CSVIMPORTABLE() );
     ccReal.AssociateKind( Kind::CSVIMPORTABLE() );
     ccBool.AssociateKind( Kind::CSVIMPORTABLE() );
     ccString.AssociateKind( Kind::CSVIMPORTABLE() );
+    longint.AssociateKind( Kind::CSVIMPORTABLE() );
     
     ccInt.AssociateKind( Kind::SQLEXPORTABLE() );
     ccReal.AssociateKind( Kind::SQLEXPORTABLE() );
@@ -5636,6 +5726,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccbinands);
 
     AddOperator (&switchOp);
+    AddOperator (&int2longint);
 
 #ifdef USE_PROGRESS
     ccopifthenelse.EnableProgress();
