@@ -58,6 +58,9 @@ public:
         value = s.GetValue();
       }
    }
+   LongInt(const string& s):IndexableAttribute(true), value(0){
+       ReadFrom(s);
+   }
    LongInt(bool defined): IndexableAttribute(defined), value(0) {}
 
    LongInt& operator=(const LongInt& s){
