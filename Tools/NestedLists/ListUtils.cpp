@@ -770,8 +770,8 @@ Checks whether the list represents a stream.
   }
 
  void* getPtr( const ListExpr ptrList){
-    uint64_t v2 = (uint64_t) nl->IntValue(nl->First(ptrList));
-    uint64_t v1 = (uint64_t) nl->IntValue(nl->Second(ptrList));
+    uint64_t v2 = (uint32_t) nl->IntValue(nl->First(ptrList));
+    uint64_t v1 = (uint32_t) nl->IntValue(nl->Second(ptrList));
 
     uint64_t v = (v2 << 32) | v1;
     return (void*) v;
