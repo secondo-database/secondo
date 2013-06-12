@@ -47,7 +47,6 @@ This header file essentially contains the definition of the classes ~OsmAlgebra~
 #include <libxml/xmlreader.h>
 #include <libxml/xmlmemory.h>
 #include "RelationAlgebra.h"
-#include "InvertedFile.h"
 #include <string>
 
 enum entityKind {NODE, WAY, RELATION};
@@ -56,8 +55,7 @@ class FullOsmImport {
   public:
      FullOsmImport(const string& fileName, const string& prefix);
     ~FullOsmImport();
-
-    void removeTries();
+    
     bool initRelations(const string& prefix);
     bool openFile(const string&fileName);
     void defineRelations();
@@ -70,7 +68,6 @@ class FullOsmImport {
     void processTag(xmlTextReaderPtr reader, entityKind kind);
     void storeRelations();
     void storeRel(string name, ListExpr type, Relation *rel);
-    int translateId(string oldId, entityKind kind);
     
     SecondoCatalog* sc;
     bool isTemp;
@@ -92,13 +89,6 @@ class FullOsmImport {
     Tuple *rel;
     int read, next, currentId, refCount;
     bool tagged;
-    // attributes for id mapping
-    InvertedFile* inv[3]; // Nodes, Ways, Relations
-    int counter[3];
-    InvertedFile::exactIterator* eit;
-    TupleId newId;
-    wordPosType wc;
-    charPosType cc;
 };
 
 

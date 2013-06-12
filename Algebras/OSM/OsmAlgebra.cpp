@@ -719,11 +719,6 @@ ListExpr fullosmimportTypeMap(ListExpr args) {
 
 */
 FullOsmImport::FullOsmImport(const string& fileName, const string& prefix) {
-  for (int i = 0; i < 3; i++) { // initialize inverted files
-    inv[i] = new InvertedFile();
-    inv[i]->setParams(true, 1, "");
-    counter[i] = 0;
-  }
   sc = SecondoSystem::GetCatalog();
   isTemp = false;
   reader = 0;
@@ -737,7 +732,6 @@ FullOsmImport::FullOsmImport(const string& fileName, const string& prefix) {
     cout << "file could not be initialized" << endl;
     return;
   }
-  eit = 0;
   defineRelations();
   node = 0;
   tag = 0;
@@ -749,16 +743,6 @@ FullOsmImport::FullOsmImport(const string& fileName, const string& prefix) {
 }
 
 FullOsmImport::~FullOsmImport() {
-  removeTries();
-}
-
-void FullOsmImport::removeTries() {
-  for (int i = 0; i < 3; i++) {
-    if (inv[i]) {
-      delete inv[i];
-      inv[i] = 0;
-    }
-  }
 }
 
 bool FullOsmImport::initRelations(const string& prefix) {
@@ -889,37 +873,13 @@ void FullOsmImport::defineRelations() {
   relTagRel = new Relation(relTagType, isTemp);
 }
 
-int FullOsmImport::translateId(string oldId, entityKind kind) {
-  int k = kind;
-  int result = INT_MIN;
-  eit = inv[k]->getExactIterator(oldId, 4096);
-  if (eit->next(newId, wc, cc)) { // id already exists
-    result = newId;
-  }
-  else { // id is new
-    inv[k]->insertString(counter[k], oldId, 0, 0/*, cache[k], trieCache[k]*/);
-    result = counter[k];
-    counter[k]++;
-  }
-  if (counter[k] == INT_MAX) {
-    counter[k] = INT_MIN;
-  }
-  if (counter[k] % 10000 == 0) {
-    cout << "counter[" << k << "] == " << counter[k] << endl;
-  }
-  if (eit) {
-    delete eit;
-  }
-  return result;
-}
-
 void FullOsmImport::processNode(xmlTextReaderPtr reader) {
   int attrCount = 0;
   currentId = 0;
   xmlChar *id, *lat, *lon, *subNameXml;
   id = xmlTextReaderGetAttribute(reader, (xmlChar *)"id");
   if (id != NULL) {
-    currentId = translateId((const char*)id, NODE);
+    currentId = OsmImportOperator::convStrToInt((const char *)id);
     node->PutAttribute(0, new CcInt(true, currentId));
     xmlFree(id);
     lat = xmlTextReaderGetAttribute(reader, (xmlChar *)"lat");
@@ -936,7 +896,7 @@ void FullOsmImport::processNode(xmlTextReaderPtr reader) {
       attrCount++;
       xmlFree(lon);
     }
-    // ~tagged~ solves the node duplication problem. Otherwise, every tagged
+    // ~ŧagged~ solves the node duplication problem. Otherwise, every tagged
     // node would be read twice
     if (attrCount == 2 && !tagged) {
       nodeRel->AppendTuple(node);
@@ -963,7 +923,7 @@ void FullOsmImport::processWay(xmlTextReaderPtr reader) {
   xmlChar *id, *subNameXml;
   id = xmlTextReaderGetAttribute(reader, (xmlChar *)"id");
   if (id != NULL) {
-    currentId = translateId((const char*)id, WAY);
+    currentId = OsmImportOperator::convStrToInt((const char *)id);
     xmlFree(id);
     read = xmlTextReaderRead(reader);
     next = xmlTextReaderNext(reader);
@@ -992,8 +952,8 @@ void FullOsmImport::processWayNodeRef(xmlTextReaderPtr reader) {
   nodeRef = xmlTextReaderGetAttribute(reader, (xmlChar *)"ref");
   if (nodeRef != NULL) {
     way->PutAttribute(1, new CcInt(true, refCount));
-    way->PutAttribute(2, new CcInt(true,
-                                   translateId((const char*)nodeRef, NODE)));
+    way->PutAttribute(2, new CcInt(true, OsmImportOperator::convStrToInt
+        (( char *)nodeRef)));
     refCount++;
     attrCount++;
     xmlFree(nodeRef);
@@ -1012,7 +972,7 @@ void FullOsmImport::processRel(xmlTextReaderPtr reader) {
   xmlChar *id, *subNameXml;
   id = xmlTextReaderGetAttribute(reader, (xmlChar *)"id");
   if (id != NULL) {
-    currentId = translateId((const char*)id, RELATION);
+    currentId = OsmImportOperator::convStrToInt((const char *)id);
     xmlFree(id);
     read = xmlTextReaderRead(reader);
     next = xmlTextReaderNext(reader);
@@ -1041,8 +1001,8 @@ void FullOsmImport::processRelMemberRef(xmlTextReaderPtr reader) {
   memberRef = xmlTextReaderGetAttribute(reader, (xmlChar *)"ref");
   if (memberRef != NULL) {
     rel->PutAttribute(1, new CcInt(true, refCount));
-    rel->PutAttribute(3, new CcInt(true,
-                                   translateId((const char*)memberRef, NODE)));
+    rel->PutAttribute(3, new CcInt(true, OsmImportOperator::convStrToInt
+        (( char *)memberRef)));
     refCount++;
     attrCount++;
     xmlFree(memberRef);
@@ -1121,7 +1081,7 @@ void FullOsmImport::fillRelations() {
   string currentName = "undefined string";
   read = xmlTextReaderRead(reader);
   next = xmlTextReaderNext(reader);
-   
+  
   while ((read == 1) && (next == 1)) {
     subNameXml = xmlTextReaderLocalName(reader);
     currentName = (char *)subNameXml;
@@ -1181,7 +1141,7 @@ void FullOsmImport::storeRel(string name, ListExpr typeInfo, Relation *rel) {
 
 */
 int fullosmimportValueMap(Word* args, Word& result, int message, Word& local,
-                          Supplier s) {
+                           Supplier s) {
   FText *file = (FText *)(args[0].addr);
   string fileName = file->GetValue();
   string prefix = ((CcString *)args[1].addr)->GetValue();
@@ -1194,8 +1154,7 @@ int fullosmimportValueMap(Word* args, Word& result, int message, Word& local,
   else { // success
     res->Set(true, true);
   }
-  fullOsmImport.removeTries();
-  return 0;
+  return 0;                           
 }
 
 /*
