@@ -799,7 +799,7 @@ void FullOsmImport::defineRelations() {
   // define node relation
   nodeTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
       nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("NodeId"), 
-                                      nl->SymbolAtom(CcInt::BasicType())),
+                                      nl->SymbolAtom(LongInt::BasicType())),
                       nl->TwoElemList(nl->SymbolAtom("Lat"),
                                       nl->SymbolAtom(CcReal::BasicType())),
                       nl->TwoElemList(nl->SymbolAtom("Lon"),
@@ -811,7 +811,7 @@ void FullOsmImport::defineRelations() {
   // define nodeTag relation
   nodeTagTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
       nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("NodeIdInTag"), 
-                                        nl->SymbolAtom(CcInt::BasicType())),
+                                        nl->SymbolAtom(LongInt::BasicType())),
                         nl->TwoElemList(nl->SymbolAtom("NodeTagKey"),
                                         nl->SymbolAtom(FText::BasicType())),
                         nl->TwoElemList(nl->SymbolAtom("NodeTagValue"),
@@ -823,11 +823,11 @@ void FullOsmImport::defineRelations() {
   // define way relation
   wayTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
       nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("WayId"), 
-                                        nl->SymbolAtom(CcInt::BasicType())),
+                                        nl->SymbolAtom(LongInt::BasicType())),
                         nl->TwoElemList(nl->SymbolAtom("NodeCounter"),
                                         nl->SymbolAtom(CcInt::BasicType())),
                         nl->TwoElemList(nl->SymbolAtom("NodeRef"),
-                                        nl->SymbolAtom(CcInt::BasicType()))));
+                                        nl->SymbolAtom(LongInt::BasicType()))));
   numWayTypeInfo = sc->NumericType(wayTypeInfo);
   wayType = new TupleType(numWayTypeInfo);
   wayRel = new Relation(wayType, isTemp);
@@ -835,7 +835,7 @@ void FullOsmImport::defineRelations() {
   //define wayTag relation
   wayTagTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
       nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("WayIdInTag"), 
-                                        nl->SymbolAtom(CcInt::BasicType())),
+                                        nl->SymbolAtom(LongInt::BasicType())),
                         nl->TwoElemList(nl->SymbolAtom("WayTagKey"),
                                         nl->SymbolAtom(FText::BasicType())),
                         nl->TwoElemList(nl->SymbolAtom("WayTagValue"),
@@ -847,13 +847,13 @@ void FullOsmImport::defineRelations() {
   // define relation relation
   relTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
       nl->FiveElemList(nl->TwoElemList(nl->SymbolAtom("RelId"), 
-                                       nl->SymbolAtom(CcInt::BasicType())),
+                                       nl->SymbolAtom(LongInt::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("RefCounter"),
                                        nl->SymbolAtom(CcInt::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("MemberType"),
                                        nl->SymbolAtom(FText::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("MemberRef"),
-                                       nl->SymbolAtom(CcInt::BasicType())),
+                                       nl->SymbolAtom(LongInt::BasicType())),
                        nl->TwoElemList(nl->SymbolAtom("MemberRole"),
                                        nl->SymbolAtom(FText::BasicType()))));
   numRelTypeInfo = sc->NumericType(relTypeInfo);
@@ -863,7 +863,7 @@ void FullOsmImport::defineRelations() {
   // define relationTag relation
   relTagTypeInfo = nl->TwoElemList(nl->SymbolAtom(Tuple::BasicType()),
       nl->ThreeElemList(nl->TwoElemList(nl->SymbolAtom("RelIdInTag"), 
-                                        nl->SymbolAtom(CcInt::BasicType())),
+                                        nl->SymbolAtom(LongInt::BasicType())),
                         nl->TwoElemList(nl->SymbolAtom("RelTagKey"),
                                         nl->SymbolAtom(FText::BasicType())),
                         nl->TwoElemList(nl->SymbolAtom("RelTagValue"),
@@ -879,8 +879,8 @@ void FullOsmImport::processNode(xmlTextReaderPtr reader) {
   xmlChar *id, *lat, *lon, *subNameXml;
   id = xmlTextReaderGetAttribute(reader, (xmlChar *)"id");
   if (id != NULL) {
-    currentId = OsmImportOperator::convStrToInt((const char *)id);
-    node->PutAttribute(0, new CcInt(true, currentId));
+    currentId.ReadFrom((const char*)id);
+    node->PutAttribute(0, new LongInt(currentId));
     xmlFree(id);
     lat = xmlTextReaderGetAttribute(reader, (xmlChar *)"lat");
     if (lat != NULL) {
@@ -923,7 +923,7 @@ void FullOsmImport::processWay(xmlTextReaderPtr reader) {
   xmlChar *id, *subNameXml;
   id = xmlTextReaderGetAttribute(reader, (xmlChar *)"id");
   if (id != NULL) {
-    currentId = OsmImportOperator::convStrToInt((const char *)id);
+    currentId.ReadFrom((const char*)id);
     xmlFree(id);
     read = xmlTextReaderRead(reader);
     next = xmlTextReaderNext(reader);
@@ -948,12 +948,11 @@ void FullOsmImport::processWay(xmlTextReaderPtr reader) {
 void FullOsmImport::processWayNodeRef(xmlTextReaderPtr reader) {
   int attrCount = 0;
   xmlChar *nodeRef;
-  way->PutAttribute(0, new CcInt(true, currentId));
+  way->PutAttribute(0, new LongInt(currentId));
   nodeRef = xmlTextReaderGetAttribute(reader, (xmlChar *)"ref");
   if (nodeRef != NULL) {
     way->PutAttribute(1, new CcInt(true, refCount));
-    way->PutAttribute(2, new CcInt(true, OsmImportOperator::convStrToInt
-        (( char *)nodeRef)));
+    way->PutAttribute(2, new LongInt(string((const char*)nodeRef)));
     refCount++;
     attrCount++;
     xmlFree(nodeRef);
@@ -972,7 +971,7 @@ void FullOsmImport::processRel(xmlTextReaderPtr reader) {
   xmlChar *id, *subNameXml;
   id = xmlTextReaderGetAttribute(reader, (xmlChar *)"id");
   if (id != NULL) {
-    currentId = OsmImportOperator::convStrToInt((const char *)id);
+    currentId.ReadFrom((const char*)id);
     xmlFree(id);
     read = xmlTextReaderRead(reader);
     next = xmlTextReaderNext(reader);
@@ -997,12 +996,11 @@ void FullOsmImport::processRel(xmlTextReaderPtr reader) {
 void FullOsmImport::processRelMemberRef(xmlTextReaderPtr reader) {
   int attrCount = 0;
   xmlChar *memberRef, *type, *role;
-  rel->PutAttribute(0, new CcInt(true, currentId));
+  rel->PutAttribute(0, new LongInt(currentId));
   memberRef = xmlTextReaderGetAttribute(reader, (xmlChar *)"ref");
   if (memberRef != NULL) {
     rel->PutAttribute(1, new CcInt(true, refCount));
-    rel->PutAttribute(3, new CcInt(true, OsmImportOperator::convStrToInt
-        (( char *)memberRef)));
+    rel->PutAttribute(3, new LongInt(string((const char*)memberRef)));
     refCount++;
     attrCount++;
     xmlFree(memberRef);
@@ -1050,7 +1048,7 @@ void FullOsmImport::processTag(xmlTextReaderPtr reader, entityKind kind) {
     default:
       assert(false);
   }  
-  tag->PutAttribute(0, new CcInt(true, currentId));
+  tag->PutAttribute(0, new LongInt(currentId));
   if (key != NULL) {
     tag->PutAttribute(1, new FText(true, (char *)key));
     attrCount++;

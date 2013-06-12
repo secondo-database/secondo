@@ -47,6 +47,7 @@ This header file essentially contains the definition of the classes ~OsmAlgebra~
 #include <libxml/xmlreader.h>
 #include <libxml/xmlmemory.h>
 #include "RelationAlgebra.h"
+#include "LongInt.h"
 #include <string>
 
 enum entityKind {NODE, WAY, RELATION};
@@ -87,7 +88,8 @@ class FullOsmImport {
     Tuple *tag;
     Tuple *way;
     Tuple *rel;
-    int read, next, currentId, refCount;
+    int read, next, refCount;
+    LongInt currentId;
     bool tagged;
 };
 
