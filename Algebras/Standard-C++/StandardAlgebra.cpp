@@ -5643,6 +5643,8 @@ class CcAlgebra1 : public Algebra
 
     ccInt.AssociateKind( Kind::DELIVERABLE() );
     ccReal.AssociateKind( Kind::DELIVERABLE() );
+    
+    longint.AssociateKind(Kind::INDEXABLE());
 
     AddOperator( &ccplus );
     AddOperator( &ccminus );
