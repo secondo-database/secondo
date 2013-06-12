@@ -4329,8 +4329,13 @@ ValueMapping ccequalmap[] = { CcEqual<CcInt>,
 
 ValueMapping ccdiffmap[] = { CcDiff<CcInt>,
                              CcDiff2<CcInt, CcReal>,
+                             CcDiff2<CcInt, LongInt>,
                              CcDiff2<CcReal, CcInt>,
                              CcDiff<CcReal>,
+                             CcDiff2<CcReal, LongInt>,
+                             CcDiff2<LongInt, CcInt>,
+                             CcDiff2<LongInt,CcReal>,
+                             CcDiff<LongInt>,
                              CcDiff<CcBool>,
                              CcDiff<CcString> };
 
