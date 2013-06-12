@@ -34,6 +34,7 @@ This class implements a longint type in Secondo.
 #include "ListUtils.h"
 #include <limits>
 #include "GenericTC.h"
+#include <errno.h>
 
 /*
 1 Class Definition for ~LongInt~
@@ -50,7 +51,13 @@ public:
    LongInt() {} 
    LongInt(int64_t v):IndexableAttribute(true),value(v){}
    LongInt(int32_t v):IndexableAttribute(true),value(v){}
+   LongInt(bool defined, int64_t v):IndexableAttribute(defined),value(v){}
    LongInt(const LongInt& s): IndexableAttribute(s),value(s.value) {}
+   LongInt(const CcInt& s):IndexableAttribute(s.IsDefined()),value(0) {
+      if(IsDefined()){
+        value = s.GetValue();
+      }
+   }
    LongInt(bool defined): IndexableAttribute(defined), value(0) {}
 
    LongInt& operator=(const LongInt& s){
@@ -182,8 +189,372 @@ SmiSize SizeOfChars() const{
 ostream& Print(ostream &os) const{
   return os << ToString();
 }
+/*
+1.4 Some operators
+
+1.4.1 Arithmetic operators
+
+*/
+ LongInt operator+(const LongInt& i)const{
+   LongInt res(*this);
+   if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value += i.value;
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+ LongInt& operator+=(const LongInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value += i.value;
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+ LongInt operator+(const CcInt& i)const{
+   LongInt res(*this);
+   if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value += i.GetValue();
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+ LongInt& operator+=(const CcInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value += i.GetValue();
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
 
 
+ LongInt operator-(const LongInt& i)const{
+   LongInt res(*this);
+   if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value -= i.value;
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+ LongInt& operator-=(const LongInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value -= i.value;
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+ LongInt operator-(const CcInt& i)const{
+   LongInt res(*this);
+   if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value -= i.GetValue();
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+ LongInt& operator-=(const CcInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value -= i.GetValue();
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+
+ LongInt operator*(const LongInt& i)const{
+   LongInt res(*this);
+   if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value *= i.value;
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+ LongInt& operator*=(const LongInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value *= i.value;
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+ LongInt operator*(const CcInt& i)const{
+   LongInt res(*this);
+   if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value *= i.GetValue();
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+ LongInt& operator*=(const CcInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value *= i.GetValue();
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+
+ LongInt operator/(const LongInt& i)const{
+   LongInt res(*this);
+   if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value /= i.value;
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+ LongInt& operator/=(const LongInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value /= i.value;
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+ LongInt operator/(const CcInt& i)const{
+   LongInt res(*this);
+   if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value /= i.GetValue();
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+ LongInt& operator/=(const CcInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value /= i.GetValue();
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+
+
+ LongInt operator%(const LongInt& i)const{
+   LongInt res(*this);
+   if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value %= i.value;
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+ LongInt& operator%=(const LongInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value %= i.value;
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+ LongInt operator%(const CcInt& i)const{
+   LongInt res(*this);
+   if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value %= i.GetValue();
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+ LongInt& operator%=(const CcInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value %= i.GetValue();
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+
+/*
+1.4.2 Comparisons
+
+*/
+bool operator==(const LongInt& i)const{
+   if(!IsDefined() || !i.IsDefined()){
+      return IsDefined() == i.IsDefined();
+   }
+   return value == i.value;
+}
+
+bool operator==(const CcInt& i)const{
+   if(!IsDefined() || !i.IsDefined()){
+      return IsDefined() == i.IsDefined();
+   }
+   return value == i.GetValue();
+}
+
+bool operator!=(const LongInt& i)const{
+   if(!IsDefined() || !i.IsDefined()){
+      return IsDefined() != i.IsDefined();
+   }
+   return value != i.value;
+}
+
+bool operator!=(const CcInt& i)const{
+   if(!IsDefined() || !i.IsDefined()){
+      return IsDefined() != i.IsDefined();
+   }
+   return value != i.GetValue();
+}
+
+
+bool operator<(const LongInt& i)const{
+   if(!IsDefined()){
+      return i.IsDefined();
+   }
+   if(!i.IsDefined()){
+      return false;
+   }
+   return value < i.value;
+}
+
+bool operator<(const CcInt& i)const{
+   if(!IsDefined()){
+      return i.IsDefined();
+   }
+   if(!i.IsDefined()){
+      return false;
+   }
+   return value < i.GetValue();
+}
+
+bool operator<=(const LongInt& i)const{
+   if(!IsDefined()){
+      return true;
+   }
+   if(!i.IsDefined()){
+      return false;
+   }
+   return value <= i.value;
+}
+
+bool operator<=(const CcInt& i)const{
+   if(!IsDefined()){
+      return true;
+   }
+   if(!i.IsDefined()){
+      return false;
+   }
+   return value <= i.GetValue();
+}
+
+
+bool operator>(const LongInt& i)const{
+   if(!IsDefined()){
+      return false;
+   }
+   if(!i.IsDefined()){
+      return true;
+   }
+   return value > i.value;
+}
+
+bool operator>(const CcInt& i)const{
+   if(!IsDefined()){
+      return false;
+   }
+   if(!i.IsDefined()){
+      return true;
+   }
+   return value > i.GetValue();
+}
+
+bool operator>=(const LongInt& i)const{
+   if(!IsDefined()){
+      return !i.IsDefined();
+   }
+   if(!i.IsDefined()){
+      return true;
+   }
+   return value >= i.value;
+}
+
+bool operator>=(const CcInt& i)const{
+   if(!IsDefined()){
+      return !i.IsDefined();
+   }
+   if(!i.IsDefined()){
+      return true;
+   }
+   return value >= i.GetValue();
+}
 
 /*
 1.5 Conversion between lists and Class
@@ -230,7 +601,7 @@ bool ReadFrom(const ListExpr LE, const ListExpr typeInfo){
   }
   SetDefined(true);
   int64_t v1 = nl->IntValue(f);
-  int32_t v2 = nl->IntValue(s);
+  uint32_t v2 = nl->IntValue(s);
   value = v1<<32 | v2; 
   return true;
 }
