@@ -288,21 +288,226 @@ class CcInt : public Attribute
   static Word In(ListExpr typeInfo, ListExpr value,
                  int errorPos, ListExpr& errorInfo, bool& correct);
 
-  inline bool operator==(const CcInt& rhs) const
-  {
-    return intval == rhs.intval;
-  }
+
+/*
+Comparison operators.
+
+*/
 
   inline bool operator<(const CcInt& rhs) const
   {
-    return intval < rhs.intval;
+     if(!IsDefined()){
+       return rhs.IsDefined();
+     } 
+     return rhs.IsDefined() && (intval < rhs.intval); 
   }
 
+  inline bool operator<=(const CcInt& rhs) const
+  {
+     if(!IsDefined()){
+       return true; 
+     } 
+     return rhs.IsDefined() && (intval <= rhs.intval); 
+  }
+
+  inline bool operator==(const CcInt& rhs) const
+  { 
+     if(IsDefined()!=rhs.IsDefined()){
+        return false;
+     } 
+     return !IsDefined() || (intval == rhs.intval); 
+  }
+
+  inline bool operator>=(const CcInt& rhs) const
+  {
+     if(!IsDefined()){
+       return !rhs.IsDefined(); 
+     } 
+     return !rhs.IsDefined() || (intval >= rhs.intval); 
+  }
+  inline bool operator>(const CcInt& rhs) const
+  {
+     if(!IsDefined()){
+       return false; 
+     } 
+     return !rhs.IsDefined() || (intval > rhs.intval); 
+  }
+/*
+Assignment Operator
+
+*/
   inline void operator=(const CcInt& rhs)
   {
     intval = rhs.intval;
     SetDefined( rhs.IsDefined() );
   }
+/*
+Arithmetic operators
+
+Addition
+
+*/
+CcInt operator+(const CcInt& i) const{
+  CcInt res(*this);
+  if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+  }
+  res.intval += i.intval;
+  if(errno){
+     res.SetDefined(false);
+  }
+  return res;
+}
+
+CcInt operator+(const int i) const{
+  CcInt res(*this);
+  if(IsDefined()){
+     res.intval += i;
+     if(errno){
+        res.SetDefined(false);
+     }
+  }
+  return res;
+}
+/*
+Subtraction
+
+*/
+CcInt operator-(const CcInt& i) const{
+  CcInt res(*this);
+  if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+  }
+  res.intval -= i.intval;
+  if(errno){
+     res.SetDefined(false);
+  }
+  return res;
+}
+
+CcInt operator-(const int i) const{
+  CcInt res(*this);
+  if(IsDefined()){
+     res.intval -= i;
+     if(errno){
+        res.SetDefined(false);
+     }
+  }
+  return res;
+}
+/*
+Multiplication
+
+*/
+CcInt operator*(const CcInt& i) const{
+  CcInt res(*this);
+  if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+  }
+  res.intval *= i.intval;
+  if(errno){
+     res.SetDefined(false);
+  }
+  return res;
+}
+
+CcInt operator*(const int i) const{
+  CcInt res(*this);
+  if(IsDefined()){
+     res.intval *= i;
+     if(errno){
+        res.SetDefined(false);
+     }
+  }
+  return res;
+}
+/*
+Division
+
+*/
+CcInt operator/(const CcInt& i) const{
+  CcInt res(*this);
+  if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+  }
+  res.intval /= i.intval;
+  if(errno){
+     res.SetDefined(false);
+  }
+  return res;
+}
+
+CcInt operator/(const int i) const{
+  CcInt res(*this);
+  if(IsDefined()){
+     res.intval /= i;
+     if(errno){
+        res.SetDefined(false);
+     }
+  }
+  return res;
+}
+/*
+Modulo
+
+*/
+CcInt operator%(const CcInt& i) const{
+  CcInt res(*this);
+  if(!IsDefined() || !i.IsDefined()){
+     res.SetDefined(false);
+     return res;
+  }
+  res.intval %= i.intval;
+  if(errno){
+     res.SetDefined(false);
+  }
+  return res;
+}
+
+CcInt operator%(const int i) const{
+  CcInt res(*this);
+  if(IsDefined()){
+     res.intval %= i;
+     if(errno){
+        res.SetDefined(false);
+     }
+  }
+  return res;
+}
+
+
+CcInt& operator++(){
+   intval++;
+   if(errno){
+     SetDefined(false);
+   }   
+   return *this;
+ }
+
+CcInt operator++(int){
+  CcInt res(*this);
+  ++(*this);
+  return res;
+}
+
+CcInt& operator--(){
+   intval--;
+   if(errno){
+     SetDefined(false);
+   }   
+   return *this;
+ }
+
+CcInt operator--(int){
+  CcInt res(*this);
+  --(*this);
+  return res;
+}
+
 
   virtual string getCsvStr() const{
     if(!IsDefined()){
