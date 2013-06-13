@@ -198,6 +198,20 @@ ostream& Print(ostream &os) const{
 1.4.1 Arithmetic operators
 
 */
+
+
+ inline void Inc(){
+    value++;
+ }
+ inline void Dec(){
+    value--;
+ } 
+
+/*
+Addition
+
+*/
+
  LongInt operator+(const LongInt& i)const{
    LongInt res(*this);
    if(!IsDefined() || !i.IsDefined()){
@@ -211,17 +225,6 @@ ostream& Print(ostream &os) const{
    return res;
  }
 
- LongInt& operator+=(const LongInt& i){
-   if(!IsDefined() || !i.IsDefined()){
-      SetDefined(false);
-   } else {
-      value += i.value;
-      if(errno){
-         SetDefined(false);
-      }
-   }
-   return *this;
- }
  LongInt operator+(const CcInt& i)const{
    LongInt res(*this);
    if(!IsDefined() || !i.IsDefined()){
@@ -233,6 +236,38 @@ ostream& Print(ostream &os) const{
      res.SetDefined(false);
    }
    return res;
+ }
+
+ LongInt operator+(const int64_t i)const{
+   LongInt res(*this);
+   if(!IsDefined() ){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value += i;
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+/*
+Internal Addition
+
+*/
+
+
+
+ LongInt& operator+=(const LongInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value += i.value;
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
  }
 
  LongInt& operator+=(const CcInt& i){
@@ -247,6 +282,21 @@ ostream& Print(ostream &os) const{
    return *this;
  }
 
+ LongInt& operator+=(const int64_t i){
+   if(IsDefined()){
+      value += i;
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+
+/*
+Subtraction
+
+*/
+
 
  LongInt operator-(const LongInt& i)const{
    LongInt res(*this);
@@ -259,18 +309,6 @@ ostream& Print(ostream &os) const{
      res.SetDefined(false);
    }
    return res;
- }
-
- LongInt& operator-=(const LongInt& i){
-   if(!IsDefined() || !i.IsDefined()){
-      SetDefined(false);
-   } else {
-      value -= i.value;
-      if(errno){
-         SetDefined(false);
-      }
-   }
-   return *this;
  }
  LongInt operator-(const CcInt& i)const{
    LongInt res(*this);
@@ -285,6 +323,36 @@ ostream& Print(ostream &os) const{
    return res;
  }
 
+ LongInt operator-(const int64_t i)const{
+   LongInt res(*this);
+   if(!IsDefined() ){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value -= i;
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+/*
+Internal Subtraction
+
+*/
+
+ LongInt& operator-=(const LongInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value -= i.value;
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+
  LongInt& operator-=(const CcInt& i){
    if(!IsDefined() || !i.IsDefined()){
       SetDefined(false);
@@ -296,6 +364,21 @@ ostream& Print(ostream &os) const{
    }
    return *this;
  }
+
+ LongInt& operator-=(const int64_t i){
+   if(IsDefined() ){
+      value -= i;
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+
+/*
+Multiplication
+
+*/
 
  LongInt operator*(const LongInt& i)const{
    LongInt res(*this);
@@ -309,18 +392,6 @@ ostream& Print(ostream &os) const{
    }
    return res;
  }
-
- LongInt& operator*=(const LongInt& i){
-   if(!IsDefined() || !i.IsDefined()){
-      SetDefined(false);
-   } else {
-      value *= i.value;
-      if(errno){
-         SetDefined(false);
-      }
-   }
-   return *this;
- }
  LongInt operator*(const CcInt& i)const{
    LongInt res(*this);
    if(!IsDefined() || !i.IsDefined()){
@@ -332,6 +403,36 @@ ostream& Print(ostream &os) const{
      res.SetDefined(false);
    }
    return res;
+ }
+ 
+ LongInt operator*(const int64_t i)const{
+   LongInt res(*this);
+   if(!IsDefined() ){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value *= i;
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+/*
+Internal Muliplication
+
+*/
+
+ LongInt& operator*=(const LongInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value *= i.value;
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
  }
 
  LongInt& operator*=(const CcInt& i){
@@ -346,6 +447,20 @@ ostream& Print(ostream &os) const{
    return *this;
  }
 
+ LongInt& operator*=(const int64_t i){
+   if(IsDefined() ){
+      value *= i;
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+/*
+Division
+
+*/
+
  LongInt operator/(const LongInt& i)const{
    LongInt res(*this);
    if(!IsDefined() || !i.IsDefined()){
@@ -357,18 +472,6 @@ ostream& Print(ostream &os) const{
      res.SetDefined(false);
    }
    return res;
- }
-
- LongInt& operator/=(const LongInt& i){
-   if(!IsDefined() || !i.IsDefined()){
-      SetDefined(false);
-   } else {
-      value /= i.value;
-      if(errno){
-         SetDefined(false);
-      }
-   }
-   return *this;
  }
  LongInt operator/(const CcInt& i)const{
    LongInt res(*this);
@@ -383,6 +486,37 @@ ostream& Print(ostream &os) const{
    return res;
  }
 
+ LongInt operator/(const int64_t i)const{
+   LongInt res(*this);
+   if(!IsDefined() ){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value /= i;
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+/*
+Internal Division
+
+*/
+
+
+ LongInt& operator/=(const LongInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value /= i.value;
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+
  LongInt& operator/=(const CcInt& i){
    if(!IsDefined() || !i.IsDefined()){
       SetDefined(false);
@@ -395,7 +529,19 @@ ostream& Print(ostream &os) const{
    return *this;
  }
 
+ LongInt& operator/=(const int64_t i){
+   if(IsDefined() ){
+      value /= i;
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+/*
+Modulo function
 
+*/
  LongInt operator%(const LongInt& i)const{
    LongInt res(*this);
    if(!IsDefined() || !i.IsDefined()){
@@ -409,17 +555,6 @@ ostream& Print(ostream &os) const{
    return res;
  }
 
- LongInt& operator%=(const LongInt& i){
-   if(!IsDefined() || !i.IsDefined()){
-      SetDefined(false);
-   } else {
-      value %= i.value;
-      if(errno){
-         SetDefined(false);
-      }
-   }
-   return *this;
- }
  LongInt operator%(const CcInt& i)const{
    LongInt res(*this);
    if(!IsDefined() || !i.IsDefined()){
@@ -433,11 +568,51 @@ ostream& Print(ostream &os) const{
    return res;
  }
 
+ LongInt operator%(const int64_t i)const{
+   LongInt res(*this);
+   if(!IsDefined() ){
+     res.SetDefined(false);
+     return res;
+   }
+   res.value %= i;
+   if(errno){
+     res.SetDefined(false);
+   }
+   return res;
+ }
+
+/*
+Internal Modulo function
+
+*/
+
+ LongInt& operator%=(const LongInt& i){
+   if(!IsDefined() || !i.IsDefined()){
+      SetDefined(false);
+   } else {
+      value %= i.value;
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+
  LongInt& operator%=(const CcInt& i){
    if(!IsDefined() || !i.IsDefined()){
       SetDefined(false);
    } else {
       value %= i.GetValue();
+      if(errno){
+         SetDefined(false);
+      }
+   }
+   return *this;
+ }
+ 
+ LongInt& operator%=(const int64_t i){
+   if(IsDefined()){
+      value %= i;
       if(errno){
          SetDefined(false);
       }
