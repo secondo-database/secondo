@@ -122,6 +122,7 @@ tuples into a relation schema.
 #include "Stream.h"
 #include "FTextAlgebra.h"
 #include "SecondoCatalog.h"
+#include "LongInt.h"
 
 #ifdef USE_PROGRESS
 #include "../CostEstimation/ExtRelationAlgebraCostEstimation.h"
@@ -10725,9 +10726,9 @@ ListExpr nameL   = nl->Second(args);
 ListExpr init   = nl->Third(args);
 
 // check init
-if(!nl->IsEqual(init,CcInt::BasicType())){
-  ErrorReporter::ReportError("the third argument has to be of type int");
-  return nl->TypeError();
+if(!CcInt::checkType(init) && !LongInt::checkType(init) ){
+  return listutils::typeError("third argument must be of "
+                              "type int or longint");
 }
 
 string errmsg;
@@ -10786,7 +10787,7 @@ if(nl->IsEmpty(last)){ // stream without attributes
                               nl->OneElemList(
                                  nl->TwoElemList(
                                      nl->SymbolAtom(name),
-                                     nl->SymbolAtom(CcInt::BasicType())))));
+                                     init))));
 }
 
 // make a copy of the attributes
@@ -10800,7 +10801,7 @@ if(nl->IsEmpty(last)){ // stream without attributes
   }
   lastlist = nl->Append(lastlist,nl->TwoElemList(
                         nl->SymbolAtom(name),
-                        nl->SymbolAtom(CcInt::BasicType())));
+                        init));
 
   return nl->TwoElemList( nl->SymbolAtom(Symbol::STREAM()),
                 nl->TwoElemList( nl->SymbolAtom(Tuple::BasicType()),
@@ -10812,11 +10813,12 @@ if(nl->IsEmpty(last)){ // stream without attributes
 5.10.7.2 Value mapping of the ~addcounter~ operator
 
 */
+template< class T>
 class AddCounterLocalInfo{
 public:
-  AddCounterLocalInfo(CcInt* init, Supplier s){
+  AddCounterLocalInfo(T* init, Supplier s){
      defined = init->IsDefined();
-     value = init->GetIntval();
+     value = *init;
      tupleType = new TupleType(nl->Second(GetTupleResultType(s)));
   }
   ~AddCounterLocalInfo(){
@@ -10832,28 +10834,28 @@ public:
     for(int i=0;i<size;i++){
        result->CopyAttribute(i,orig,i);
     }
-    result->PutAttribute(size, new CcInt(true,value));
-    value++;
+    result->PutAttribute(size, value.Clone());
+    value.Inc();
     return result;
   }
 
 
 private:
   bool  defined;
-  int value;
+  T value;
   TupleType* tupleType;
 };
 
-
+template<class T>
 int AddCounterValueMap(Word* args, Word& result, int message,
                Word& local, Supplier s){
 
    Word orig;
    switch(message){
     case OPEN: {
-       CcInt* Init = ((CcInt*)args[2].addr);
+       T* Init = ((T*)args[2].addr);
        qp->Open(args[0].addr);
-       local.addr = new AddCounterLocalInfo(Init,s);
+       local.addr = new AddCounterLocalInfo<T>(Init,s);
        break;
     }
     case REQUEST: {
@@ -10861,7 +10863,7 @@ int AddCounterValueMap(Word* args, Word& result, int message,
        if(!qp->Received(args[0].addr)){
           return CANCEL;
        }  else {
-          Tuple* tmp = ((AddCounterLocalInfo*)local.addr)->
+          Tuple* tmp = ((AddCounterLocalInfo<T>*)local.addr)->
                           createTuple((Tuple*)orig.addr);
           ((Tuple*)orig.addr)->DeleteIfAllowed();
           result.setAddr(tmp);
@@ -10873,7 +10875,7 @@ int AddCounterValueMap(Word* args, Word& result, int message,
        qp->Close(args[0].addr);
        if(local.addr)
        {
-         AddCounterLocalInfo* acli = (AddCounterLocalInfo*)local.addr;
+         AddCounterLocalInfo<T>* acli = (AddCounterLocalInfo<T>*)local.addr;
          delete acli;
          local.addr=0;
        }
@@ -10893,14 +10895,28 @@ int AddCounterValueMap(Word* args, Word& result, int message,
 const string AddCounterSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text>(stream (tuple(X))) x name x int "
+  "( <text>(stream (tuple(X))) x name x {int,longint} "
   " -> (stream (tuple(X (name int)))) "
   "))</text--->"
-  "<text>_ symmproduct [_, _]</text--->"
+  "<text> stream addcounter[AttrName, Initial]  </text--->"
   "<text>Adds a counter with the given name to the stream "
   "starting at the initial value </text--->"
   "<text>query ten feed addCounter[ Cnt , 1] consume</text--->"
   " ) )";
+
+/*
+ValueMapping Array and SelectionFunction
+
+*/
+ValueMapping AddCounterVM[] = {
+     AddCounterValueMap<CcInt>,
+     AddCounterValueMap<LongInt>
+  };
+
+int AddCounterSelect(ListExpr args){
+  return CcInt::checkType(nl->Third(args))?0:1;
+}
+
 
 /*
 
@@ -10910,8 +10926,9 @@ const string AddCounterSpec  =
 Operator extreladdcounter (
          "addcounter",           // name
          AddCounterSpec,         // specification
-         AddCounterValueMap,      // value mapping
-         Operator::SimpleSelect,  // trivial selection function
+         2,
+         AddCounterVM,      // value mapping
+         AddCounterSelect,  // trivial selection function
          AddCounterTypeMap       // type mapping
 );
 
