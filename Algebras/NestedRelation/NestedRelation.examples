@@ -56,4 +56,9 @@ Signature: stream(tuple (A) ) x nrel(tuple(B) ) -> stream(tuple ( A \ a_tid  B))
 Example  : query authordoc_Name_btree exactmatchS["Alejandro Munoz"] authordoc gettuples count
 Result   : 1
 
+Operator : count
+Number   : 1
+Signature : nrel -> int
+Example   : query (Papers feed count) = (Papers count)
+Result    : TRUE
 

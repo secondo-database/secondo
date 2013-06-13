@@ -472,6 +472,17 @@ Used to delete the primary relation and all subrelations.
 */         
           
           NestedRelation* Clone(ListExpr typeInfo);
+
+
+          size_t GetNoTuples() const{
+            return primary->GetNoTuples();
+          }
+/*
+Returns the number of tuples in the primary relation.
+
+*/
+
+
 /*
 Used to clone a nested relation
           

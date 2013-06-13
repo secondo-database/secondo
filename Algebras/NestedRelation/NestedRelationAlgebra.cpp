@@ -3292,6 +3292,64 @@ struct extractInfo : OperatorInfo {
   }
 };
 
+
+/*
+5.9 Operator count
+
+5.9.1 Type Mapping
+
+*/
+ListExpr countTM(ListExpr args){
+  string err = "nreel expected";
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError(err);
+  }
+  if(!NestedRelation::checkType(nl->First(args))){
+    return listutils::typeError(err);
+  }
+  return listutils::basicSymbol<CcInt>();
+}
+
+/*
+5.9.2 Value Mapping
+
+*/
+
+int countnrelVM(Word* args, Word& result, int message, Word& local,
+                 Supplier s)
+{
+  NestedRelation* r = (NestedRelation*) args[0].addr;
+  result = qp->ResultStorage(s);
+  ((CcInt*)result.addr)->Set(true, r->GetNoTuples());
+  return  0;
+}
+
+/*
+5.9.3 Specification
+
+*/
+OperatorSpec countSpec(
+      "nrel -> int",
+      "_ count",
+      "Returns number of tuples in the primary relation. ",
+      " query literature count"
+);
+
+/*
+5.9.4 Operator instance
+
+*/
+Operator countop(
+   "count",
+   countSpec.getStr(),
+   countnrelVM,
+   Operator::SimpleSelect,
+   countTM
+);
+
+
+
+
 /*
 6 NestedRelationAlgebra
 
@@ -3314,6 +3372,7 @@ class NestedRelationAlgebra : public Algebra
       attributeRelationTC.AssociateKind( Kind::DATA() );
 
       AddOperator(&nr_gettuples);
+      AddOperator(&countop);
 
 #ifdef USE_PROGRESS
       nest.EnableProgress();
