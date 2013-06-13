@@ -38,8 +38,8 @@ WARNINFO="Warning !! "
 ERRORINFO="ERROR !! "
 
 # AMI-ID
-AMID="ami-cfbcdea6"
-AMIVersion="ParallelSecondo_1_1"
+AMID="ami-f3167d9a"
+AMIVersion="ParallelSecondo_1.2"
 
 # Instance Number
 ITNum=1
