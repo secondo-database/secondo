@@ -164,6 +164,14 @@ class CcInt : public Attribute
     SetDefined(d); intval = v;
   }
 
+  inline void Inc(){
+     intval++;
+  }
+
+  inline void Dec(){
+      intval--;
+  }
+
   inline size_t HashValue() const
   {
     static long& ctr = Counter::getRef(Symbol::CTR_INT_HASH());
