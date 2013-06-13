@@ -61,7 +61,10 @@ public:
    LongInt(const string& s):IndexableAttribute(true), value(0){
        ReadFrom(s);
    }
-   LongInt(bool defined): IndexableAttribute(defined), value(0) {}
+   LongInt(const char* s):IndexableAttribute(true), value(0){
+      ReadFrom(s);
+   }
+   explicit LongInt(bool defined): IndexableAttribute(defined), value(0) {}
 
    LongInt& operator=(const LongInt& s){
       SetDefined(s.IsDefined());
@@ -619,6 +622,38 @@ Internal Modulo function
    }
    return *this;
  }
+
+/*
+Increment, Decrement
+
+*/
+ LongInt& operator++(){
+   value++;
+   if(errno){
+     SetDefined(false);
+   }
+   return *this;
+ }
+
+LongInt operator++(int){
+  LongInt res(*this);
+  ++(*this);
+  return res;
+}
+
+ LongInt& operator--(){
+   value--;
+   if(errno){
+     SetDefined(false);
+   }
+   return *this;
+ }
+
+LongInt operator--(int){
+  LongInt res(*this);
+  --(*this);
+  return res;
+}
 
 /*
 1.4.2 Comparisons
