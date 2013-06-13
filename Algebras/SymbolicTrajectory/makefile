@@ -23,8 +23,14 @@
 #
 ########################################################################
 
+CURRENT_ALGEBRA := SymbolicTrajectoryAlgebra
+
+ALGEBRA_DEPENDENCIES := TrieAlgebra
+
 # inlcude global definitions
 include ../../makefile.env
+
+
 
 # expand compile flags if necessary
 CCFLAGS += $(ALG_INC_DIRS) 
@@ -35,8 +41,12 @@ BASE:=PatternParser
 
 # create objects and algebra library. The values for the variables
 # OBJECTS and LIBOBJ are computed automatically by makefile.env 
-.PHONY: all
-all: $(OBJECTS) $(LIBOBJ)
+.PHONY: all 
+all: check_dependencies $(OBJECTS) $(LIBOBJ)
+
+check_dependencies:
+	$(check-algebra-dependencies)
+
 
 # include pre-computed dependencies
 ifneq ($(MAKECMDGOALS),clean)
