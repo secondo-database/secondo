@@ -5587,6 +5587,55 @@ Operator int2longint(
    int2longintTM);
 
 
+/*
+1.99 Operator longint2int
+
+*/
+ListExpr longint2intTM(ListExpr args){
+  if(!nl->HasLength(args,1)){
+    return listutils::typeError("longint expected");
+  }
+  if(LongInt::checkType(nl->First(args))){
+    return listutils::basicSymbol<CcInt>();
+  }
+  return listutils::typeError("longint expected");
+}
+
+int longint2intVM (Word* args, Word& result, int message, 
+              Word& local, Supplier s ) {
+
+  LongInt* arg = (LongInt*) args[0].addr;
+  result=qp->ResultStorage(s);
+  CcInt* res = (CcInt*) result.addr;
+  if(!arg->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    int64_t v = arg->GetValue();
+    int32_t vi = (int32_t) v;
+    if(v!=vi){
+       res->SetDefined(false);
+    } else {
+       res->Set(true,vi);
+    }
+  }
+  return 0;
+}
+
+
+OperatorSpec longint2intSpec(
+  "longint -> int",
+  "longint2int(_) ",
+  "Converts a longint to an int. ",
+  " query longint2int(int2longint(2))"
+);
+
+
+Operator longint2int(
+   "longint2int",
+   longint2intSpec.getStr(),
+   longint2intVM,
+   Operator::SimpleSelect,
+   longint2intTM);
 
 /*
 6 Class ~CcAlgebra~
@@ -5734,6 +5783,7 @@ class CcAlgebra1 : public Algebra
 
     AddOperator (&switchOp);
     AddOperator (&int2longint);
+    AddOperator (&longint2int);
 
 #ifdef USE_PROGRESS
     ccopifthenelse.EnableProgress();

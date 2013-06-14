@@ -392,6 +392,13 @@ Signature: int -> longint
 Example  : query int2longint(-2)
 Result   : (longint -2)
 
+Operator : longint2int
+Number   : 1
+Signature: longint -> int
+Example  : query longint2int([const longint value -2])
+Result   : -2
+
+
 Operator : real2int
 Number   : 1
 Signature: real -> int
@@ -700,7 +707,6 @@ Number    : 2
 Signature : d x (d x r)* x r -> r, d in DATA, r in STREAM
 Example   : query "ten" switch [ "ten", ten feed; "thousand", thousand feed; intstream(0,0) namedtransformstream[No]  ] count
 Result    : 10
-
 
 
 
