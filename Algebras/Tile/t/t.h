@@ -95,6 +95,7 @@ class t : public Attribute
 
   */
 
+  Type GetValue(const Index<2>& rIndex) const;
   bool SetGrid(const double& rX,
                const double& rY,
                const double& rLength);
@@ -111,7 +112,6 @@ class t : public Attribute
 
   Index<2> GetLocationIndex(const double& rX,
                             const double& rY) const;
-  Type GetValue(const Index<2>& rIndex) const;
   bool IsValidIndex(const Index<2>& rIndex) const;
   bool IsValidLocation(const double& rX,
                        const double& rY) const;
@@ -203,12 +203,13 @@ t<Type, Properties>::t(bool bDefined)
                                GetUndefinedValue()),
                      m_Flob(Properties::GetFlobSize())
 {
-  int dimensionSize = Properties::GetDimensionSize();
+  int xDimensionSize = Properties::GetXDimensionSize();
+  int yDimensionSize = Properties::GetYDimensionSize();
   Type undefinedValue = Properties::TypeProperties::GetUndefinedValue();
   
-  for(int row = 0; row < dimensionSize; row++)
+  for(int row = 0; row < yDimensionSize; row++)
   {
-    for(int column = 0; column < dimensionSize; column++)
+    for(int column = 0; column < xDimensionSize; column++)
     {
       Index<2> indexes = (int[]){column, row};
       SetValue(indexes, undefinedValue, false);
@@ -296,14 +297,15 @@ void t<Type, Properties>::bbox(typename Properties::bboxType& rBoundingBox)
   double minima[2] = { 0.0, 0.0 };
   double maxima[2] = { 0.0, 0.0 };
 
-  int dimensionSize = Properties::GetDimensionSize();
+  int xDimensionSize = Properties::GetXDimensionSize();
+  int yDimensionSize = Properties::GetYDimensionSize();
   Type value = Properties::TypeProperties::GetUndefinedValue();
 
-  for(int column = 0; column < dimensionSize; column++)
+  for(int column = 0; column < xDimensionSize; column++)
   {
     bool bbreak = false;
 
-    for(int row = 0; row < dimensionSize; row++)
+    for(int row = 0; row < yDimensionSize; row++)
     {
       Index<2> indexes = (int[]){column, row};
       value = GetValue(indexes);
@@ -322,11 +324,11 @@ void t<Type, Properties>::bbox(typename Properties::bboxType& rBoundingBox)
     }
   }
 
-  for(int column = dimensionSize - 1; column >= 0; column--)
+  for(int column = xDimensionSize - 1; column >= 0; column--)
   {
     bool bbreak = false;
 
-    for(int row = 0; row < dimensionSize; row++)
+    for(int row = 0; row < yDimensionSize; row++)
     {
       Index<2> indexes = (int[]){column, row};
       value = GetValue(indexes);
@@ -345,11 +347,11 @@ void t<Type, Properties>::bbox(typename Properties::bboxType& rBoundingBox)
     }
   }
 
-  for(int row = 0; row < dimensionSize; row++)
+  for(int row = 0; row < yDimensionSize; row++)
   {
     bool bbreak = false;
 
-    for(int column = 0; column < dimensionSize; column++)
+    for(int column = 0; column < xDimensionSize; column++)
     {
       Index<2> indexes = (int[]){column, row};
       value = GetValue(indexes);
@@ -368,11 +370,11 @@ void t<Type, Properties>::bbox(typename Properties::bboxType& rBoundingBox)
     }
   }
 
-  for(int row = dimensionSize - 1; row >= 0; row--)
+  for(int row = yDimensionSize - 1; row >= 0; row--)
   {
     bool bbreak = false;
 
-    for(int column = 0; column < dimensionSize; column++)
+    for(int column = 0; column < xDimensionSize; column++)
     {
       Index<2> indexes = (int[]){column, row};
       value = GetValue(indexes);
@@ -413,6 +415,26 @@ void t<Type, Properties>::getgrid(tgrid& rtgrid) const
 }
 
 template <typename Type, typename Properties>
+Type t<Type, Properties>::GetValue(const Index<2>& rIndex) const
+{
+  Type value = Properties::TypeProperties::GetUndefinedValue();
+
+  if(IsDefined() &&
+     IsValidIndex(rIndex))
+  {
+    int yDimensionSize = Properties::GetYDimensionSize();
+    int flobIndex = rIndex[1] * yDimensionSize + rIndex[0];
+
+    bool bOK = m_Flob.read(reinterpret_cast<char*>(&value),
+                           sizeof(Type),
+                           flobIndex * sizeof(Type));
+    assert(bOK);
+  }
+
+  return value;
+}
+
+template <typename Type, typename Properties>
 bool t<Type, Properties>::SetGrid(const double& rX,
                                   const double& rY,
                                   const double& rLength)
@@ -437,8 +459,8 @@ bool t<Type, Properties>::SetValue(const Index<2>& rIndex,
   if(IsDefined() &&
      IsValidIndex(rIndex))
   {
-    int dimensionSize = Properties::GetDimensionSize();
-    int flobIndex = rIndex[1] * dimensionSize + rIndex[0];
+    int yDimensionSize = Properties::GetYDimensionSize();
+    int flobIndex = rIndex[1] * yDimensionSize + rIndex[0];
 
     bRetVal = m_Flob.write(reinterpret_cast<const char*>(&rValue),
                            sizeof(Type),
@@ -467,37 +489,18 @@ template <typename Type, typename Properties>
 Index<2> t<Type, Properties>::GetLocationIndex(const double& rX,
                                                const double& rY) const
 {
-  int dimensionSize = Properties::GetDimensionSize();
+  int xDimensionSize = Properties::GetXDimensionSize();
+  int yDimensionSize = Properties::GetYDimensionSize();
   double gridX = m_Grid.GetX();
   double gridY = m_Grid.GetY();
   double gridLength = m_Grid.GetLength();
   int indexX = static_cast<int>((rX - gridX) / gridLength);
   int indexY = static_cast<int>((rY - gridY) / gridLength);
-  assert(indexX < dimensionSize);
-  assert(indexY < dimensionSize);
+  assert(indexX < xDimensionSize);
+  assert(indexY < yDimensionSize);
 
   Index<2> locationIndex = (int[]){indexX, indexY};
   return locationIndex;
-}
-
-template <typename Type, typename Properties>
-Type t<Type, Properties>::GetValue(const Index<2>& rIndex) const
-{
-  Type value = Properties::TypeProperties::GetUndefinedValue();
-
-  if(IsDefined() &&
-     IsValidIndex(rIndex))
-  {
-    int dimensionSize = Properties::GetDimensionSize();
-    int flobIndex = rIndex[1] * dimensionSize + rIndex[0];
-
-    bool bOK = m_Flob.read(reinterpret_cast<char*>(&value),
-                           sizeof(Type),
-                           flobIndex * sizeof(Type));
-    assert(bOK);
-  }
-
-  return value;
 }
 
 template <typename Type, typename Properties>
@@ -505,12 +508,13 @@ bool t<Type, Properties>::IsValidIndex(const Index<2>& rIndex) const
 {
   bool bIsValidIndex = false;
 
-  int dimensionSize = Properties::GetDimensionSize();
+  int xDimensionSize = Properties::GetXDimensionSize();
+  int yDimensionSize = Properties::GetYDimensionSize();
 
   if(rIndex[0] >= 0 &&
-     rIndex[0] < dimensionSize &&
+     rIndex[0] < xDimensionSize &&
      rIndex[1] >= 0 &&
-     rIndex[1] < dimensionSize)
+     rIndex[1] < yDimensionSize)
   {
     bIsValidIndex = true;
   }
@@ -524,15 +528,16 @@ bool t<Type, Properties>::IsValidLocation(const double& rX,
 {
   bool bIsValidLocation = false;
 
-  int dimensionSize = Properties::GetDimensionSize();
+  int xDimensionSize = Properties::GetXDimensionSize();
+  int yDimensionSize = Properties::GetYDimensionSize();
   double gridX = m_Grid.GetX();
   double gridY = m_Grid.GetY();
   double gridLength = m_Grid.GetLength();
 
   if(rX >= gridX &&
-     rX < (gridX + dimensionSize * gridLength) &&
+     rX < (gridX + xDimensionSize * gridLength) &&
      rY >= gridY &&
-     rY < (gridY + dimensionSize * gridLength))
+     rY < (gridY + yDimensionSize * gridLength))
   {
     bIsValidLocation = true;
   }
@@ -832,12 +837,13 @@ Word t<Type, Properties>::In(const ListExpr typeInfo,
                       {
                         int indexX = pageList.elem(1).intval();
                         int indexY = pageList.elem(2).intval();
-                        int dimensionSize = Properties::GetDimensionSize();
+                        int xDimensionSize = Properties::GetXDimensionSize();
+                        int yDimensionSize = Properties::GetYDimensionSize();
 
                         if(indexX >= 0 &&
-                           indexX <= dimensionSize - sizeX &&
+                           indexX <= xDimensionSize - sizeX &&
                            indexY >= 0 &&
-                           indexY <= dimensionSize - sizeY)
+                           indexY <= yDimensionSize - sizeY)
                         {
                           pageList.rest();
                           pageList.rest();
@@ -1028,8 +1034,8 @@ ListExpr t<Type, Properties>::Out(ListExpr typeInfo,
         instanceList.append(gridList);
 
         NList sizeList;
-        sizeList.append(Properties::GetDimensionSize());
-        sizeList.append(Properties::GetDimensionSize());
+        sizeList.append(Properties::GetXDimensionSize());
+        sizeList.append(Properties::GetYDimensionSize());
         instanceList.append(sizeList);
 
         NList tintList;
