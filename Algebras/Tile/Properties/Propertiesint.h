@@ -40,6 +40,7 @@ class Properties<int>
 {
   public:
 
+  typedef int PropertiesType;
   typedef CcInt WrapperType;
   static int GetUndefinedValue();
   static int GetValue(const NList& rNList);
