@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "mtint.h"
 #include "../Properties/Propertiesstring.h"
 #include "../UniqueStringArray/UniqueStringArray.h"
+#include "../it/itstring.h"
 #include "RectangleAlgebra.h"
 #include "TemporalAlgebra.h"
 
@@ -76,11 +77,29 @@ class mtstring : public mtint
 
   */
 
-  MString atlocation(const double& rX, const double& rY) const;
-  CcString atlocation(const double& rX, const double& rY,
-                      const double& rInstant) const;
+  void atlocation(const double& rX,
+                  const double& rY,
+                  MString& rValues) const;
+  void atlocation(const double& rX,
+                  const double& rY,
+                  const double& rInstant,
+                  CcString& rValue) const;
+  void atinstant(const Instant& rInstant,
+                 itstring& ritstring) const;
   std::string minimum() const;
   std::string maximum() const;
+
+  protected:
+
+  /*
+  internal methods
+
+  */
+
+  std::string GetValue(const Index<3>& rIndex) const;
+  bool SetValue(const Index<3>& rIndex, const std::string& rValue);
+
+  public:
 
   /*
   override functions from base class mtint
@@ -152,11 +171,13 @@ class mtProperties<std::string>
 {
   public:
 
+  typedef mtstring PropertiesType;
   typedef Properties<std::string> TypeProperties;
   typedef MString atlocationType;
   typedef Rectangle<3> bboxType;
   typedef mtgrid gridType;
-  typedef mtstring mtType;
+  typedef itstring itType;
+  typedef tstring tType;
   typedef UString unitType;
   static int GetDimensionSize();
   static int GetFlobElements();

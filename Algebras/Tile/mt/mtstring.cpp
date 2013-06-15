@@ -74,75 +74,106 @@ mtstring& mtstring::operator=(const mtstring& rmtstring)
   return *this;
 }
 
-MString mtstring::atlocation(const double& rX,
-                             const double& rY) const
+ void mtstring::atlocation(const double& rX,
+                           const double& rY,
+                           MString& rValues) const
 {
-  MString atlocationValues(0);
-  atlocationValues.SetDefined(false);
+  rValues.SetDefined(false);
 
   if(IsValidLocation(rX, rY))
   {
-    atlocationValues.SetDefined(true);
+    rValues.SetDefined(true);
 
-    Rectangle<3> boundingBox = bbox();
+    Rectangle<3> boundingBox;
+    bbox(boundingBox);
     Instant minimumTime = boundingBox.MinD(2);
     Instant maximumTime = boundingBox.MaxD(2);
     datetime::DateTime duration = m_Grid.GetDuration();
 
-    atlocationValues.StartBulkLoad();
+    rValues.StartBulkLoad();
 
     for(Instant currentTime = minimumTime;
         currentTime < maximumTime;
         currentTime += duration)
     {
-      CcString value = atlocation(rX, rY, currentTime.ToDouble());
+      CcString value;
+      atlocation(rX, rY, currentTime.ToDouble(), value);
 
       if(value.IsDefined())
       {
         Interval<Instant> interval(currentTime, currentTime + duration,
                                    true, false);
-        atlocationValues.Add(UString(interval, value, value));
+        rValues.Add(UString(interval, value, value));
       }
     }
 
-    atlocationValues.EndBulkLoad();
+    rValues.EndBulkLoad();
 
-    if(atlocationValues.IsEmpty())
+    if(rValues.IsEmpty())
     {
-      atlocationValues.SetDefined(false);
+      rValues.SetDefined(false);
     }
   }
-
-  return atlocationValues;
 }
 
-CcString mtstring::atlocation(const double& rX,
-                              const double& rY,
-                              const double& rInstant) const
+void mtstring::atlocation(const double& rX,
+                          const double& rY,
+                          const double& rInstant,
+                          CcString& rValue) const
 {
-  CcString atlocationValue;
-  atlocationValue.SetDefined(false);
+  rValue.SetDefined(false);
 
   if(IsValidLocation(rX, rY, rInstant))
   {
     Index<3> index = GetLocationIndex(rX, rY, rInstant);
-    int stringIndex = GetValue(index);
+    std::string value = GetValue(index);
 
-    if(mtProperties<int>::TypeProperties::IsUndefinedValue(stringIndex)
-       == false)
+    if(mtProperties<std::string>::TypeProperties::
+       IsUndefinedValue(value) == false)
     {
-      std::string stringValue;
-      bool bOK = m_UniqueStringArray.GetUniqueString(stringIndex, stringValue);
+      rValue = mtProperties<std::string>::TypeProperties::
+               GetWrappedValue(value);
+    }
+  }
+}
 
-      if(bOK == true)
+void mtstring::atinstant(const Instant& rInstant,
+                         itstring& ritstring) const
+{
+  ritstring.SetDefined(false);
+
+  tstring tstring(true);
+  tstring.SetGrid(m_Grid.GetX(), m_Grid.GetY(), m_Grid.GetLength());
+
+  int dimensionSize = mtProperties<std::string>::GetDimensionSize();
+  double gridDuration = m_Grid.GetDuration().ToDouble();
+  int time = static_cast<int>(rInstant.ToDouble() / gridDuration);
+  bool bmtstringDefined = false;
+
+  for(int row = 0; row < dimensionSize; row++)
+  {
+    for(int column = 0; column < dimensionSize; column++)
+    {
+      Index<3> index3 = (int[]){column, row, time};
+      std::string value = GetValue(index3);
+
+      if(mtProperties<std::string>::TypeProperties::
+         IsUndefinedValue(value) == false)
       {
-        atlocationValue = mtProperties<std::string>::TypeProperties::
-                          GetWrappedValue(stringValue);
+        bmtstringDefined = true;
+        Index<2> index2 = (int[]){column, row};
+        tstring.SetValue(index2, value);
       }
     }
   }
+  
+  if(bmtstringDefined == false)
+  {
+    tstring.SetDefined(false);
+  }
 
-  return atlocationValue;
+  ritstring.SetInstant(rInstant);
+  ritstring.SetValues(tstring);
 }
 
 std::string mtstring::minimum() const
@@ -169,6 +200,60 @@ std::string mtstring::maximum() const
   }
 
   return maximum;
+}
+
+std::string mtstring::GetValue(const Index<3>& rIndex) const
+{
+  std::string value = mtProperties<std::string>::TypeProperties::
+                      GetUndefinedValue();
+
+  int intValue = mtint::GetValue(rIndex);
+
+  if(mtProperties<int>::TypeProperties::IsUndefinedValue(intValue) == false)
+  {
+    bool bOK = m_UniqueStringArray.GetUniqueString(intValue, value);
+    assert(bOK);
+  }
+
+  return value;
+}
+
+bool mtstring::SetValue(const Index<3>& rIndex,
+                        const std::string& rValue)
+{
+  bool bRetVal = false;
+
+  int dimensionSize = mtProperties<std::string>::GetDimensionSize();
+
+  if(IsDefined() &&
+     rIndex[0] >= 0 &&
+     rIndex[0] < dimensionSize &&
+     rIndex[1] >= 0 &&
+     rIndex[1] < dimensionSize &&
+     rIndex[2] >= 0 &&
+     rIndex[2] < dimensionSize)
+  {
+    int stringIndex = m_UniqueStringArray.AddString(rValue);
+
+    if(stringIndex != UNDEFINED_STRING_INDEX)
+    {
+      bRetVal = mtint::SetValue(rIndex, stringIndex, false);
+    }
+
+    if(mtProperties<int>::TypeProperties::IsUndefinedValue(m_Minimum) ||
+       rValue < minimum())
+    {
+      m_Minimum = stringIndex;
+    }
+   
+    if(mtProperties<int>::TypeProperties::IsUndefinedValue(m_Maximum) ||
+       rValue > maximum())
+    {
+      m_Maximum = stringIndex;
+    }
+  }
+
+  return bRetVal;
 }
 
 bool mtstring::Adjacent(const Attribute* pAttribute) const
@@ -489,7 +574,6 @@ Word mtstring::In(const ListExpr typeInfo,
                                                             <std::string>::
                                                             TypeProperties::
                                                             GetUndefinedValue();
-                                  int stringIndex = UNDEFINED_STRING_INDEX;
 
                                   if(valueList.elem(listIndex).
                                      isSymbol(Symbol::UNDEFINED()) == false)
@@ -501,37 +585,6 @@ Word mtstring::In(const ListExpr typeInfo,
                                       stringValue = mtProperties<std::string>::
                                                     TypeProperties::GetValue(
                                                     valueList.elem(listIndex));
-
-                                      if(mtProperties<std::string>::
-                                         TypeProperties::
-                                         IsUndefinedValue(stringValue) == false)
-                                      {
-                                        stringIndex = pmtstring->
-                                                      m_UniqueStringArray.
-                                                      AddString(stringValue);
-
-                                        std::string minimum = pmtstring->
-                                                              minimum();
-
-                                        if(mtProperties<std::string>::
-                                           TypeProperties::
-                                           IsUndefinedValue(minimum) ||
-                                           stringValue < minimum)
-                                        {
-                                          pmtstring->SetMinimum(stringIndex);
-                                        }
-
-                                        std::string maximum = pmtstring->
-                                                              maximum();
-
-                                        if(mtProperties<std::string>::
-                                           TypeProperties::
-                                           IsUndefinedValue(maximum) ||
-                                           stringValue > maximum)
-                                        {
-                                          pmtstring->SetMaximum(stringIndex);
-                                        }
-                                      }
                                     }
 
                                     else
@@ -544,7 +597,12 @@ Word mtstring::In(const ListExpr typeInfo,
                                     }
                                   }
 
-                                  pmtstring->SetValue(index, stringIndex);
+                                  if(mtProperties<std::string>::TypeProperties::
+                                     IsUndefinedValue(stringValue) == false)
+                                  {
+                                    bOK = pmtstring->SetValue(index,
+                                                              stringValue);
+                                  }
                                 }
                               }
                             }
