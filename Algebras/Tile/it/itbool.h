@@ -48,9 +48,9 @@ class itProperties<char>
 {
   public:
 
+  typedef itbool PropertiesType;
   typedef Properties<char> TypeProperties;
   typedef tbool tType;
-  typedef itbool itType;
   static std::string GetTypeName();
 };
 
