@@ -19,8 +19,10 @@
 
 operator load alias LOAD pattern op(_)
 operator atlocation alias ATLOCATION pattern _ op [_,_]
+operator atinstant alias ATINSTANT pattern _ infixop _
 operator inst alias INST pattern op(_)
 operator val alias VAL pattern op(_)
+operator deftime alias DEFTIME pattern op(_)
 operator bbox alias BBOX pattern op(_,_)
 operator minimum alias MINIMUM pattern op(_)
 operator maximum alias MAXIMUM pattern op(_)
