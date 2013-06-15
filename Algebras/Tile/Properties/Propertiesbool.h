@@ -40,6 +40,7 @@ class Properties<char>
 {
   public:
 
+  typedef char PropertiesType;
   typedef CcBool WrapperType;
   static char GetUndefinedValue();
   static char GetValue(const NList& rNList);
