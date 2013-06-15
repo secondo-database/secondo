@@ -171,6 +171,13 @@ const undefined string index value
 const int UNDEFINED_STRING_INDEX = -1;
 
 /*
+const time dimension size
+
+*/
+
+const int TIME_DIMENSION_SIZE = 10;
+
+/*
 const tintArray size
 
 */

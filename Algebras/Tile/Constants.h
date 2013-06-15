@@ -169,6 +169,13 @@ const undefined string index value
 extern const int UNDEFINED_STRING_INDEX;
 
 /*
+const time dimension size
+
+*/
+
+extern const int TIME_DIMENSION_SIZE;
+
+/*
 const tintArray size
 
 */
