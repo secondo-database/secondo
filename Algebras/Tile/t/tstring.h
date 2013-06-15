@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "../Properties/Propertiesstring.h"
 #include "../UniqueStringArray/UniqueStringArray.h"
 #include "RectangleAlgebra.h"
+#include "../grid/tgrid.h"
 
 namespace TileAlgebra
 {
@@ -75,11 +76,29 @@ class tstring : public tint
 
   */
 
-  CcString atlocation(const double& rX, const double& rY) const;
-  CcString atlocation(const double& rX, const double& rY,
-                      const double& rInstant) const;
+  void atlocation(const double& rX,
+                  const double& rY,
+                  CcString& rValue) const;
+  void atlocation(const double& rX,
+                  const double& rY,
+                  const double& rInstant,
+                  CcString& rValue) const;
   std::string minimum() const;
   std::string maximum() const;
+  /*
+  void t2mt(const Duration& rDuration,
+            const Instant& rInstant1,
+            const Instant& rInstant2,
+            mtstring& rmtstring) const;
+  */
+
+  /*
+  internal methods
+
+  */
+
+  std::string GetValue(const Index<2>& rIndex) const;
+  bool SetValue(const Index<2>& rIndex, const std::string& rValue);
 
   /*
   override functions from base class tint
@@ -151,11 +170,11 @@ class tProperties<std::string>
 {
   public:
 
+  typedef tstring PropertiesType;
   typedef Properties<std::string> TypeProperties;
   typedef CcString atlocationType;
   typedef Rectangle<2> bboxType;
   typedef tgrid gridType;
-  typedef tstring tType;
   static int GetDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();

@@ -74,13 +74,14 @@ tstring& tstring::operator=(const tstring& rtstring)
   return *this;
 }
 
-CcString tstring::atlocation(const double& rX,
-                             const double& rY) const
+void tstring::atlocation(const double& rX,
+                         const double& rY,
+                         CcString& rValue) const
 {
-  CcString atlocationValue;
-  atlocationValue.SetDefined(false);
+  rValue.SetDefined(false);
 
-  CcInt intValue = tint::atlocation(rX, rY);
+  CcInt intValue;
+  tint::atlocation(rX, rY, intValue);
 
   if(intValue.IsDefined())
   {
@@ -90,26 +91,23 @@ CcString tstring::atlocation(const double& rX,
 
     if(bOK == true)
     {
-      atlocationValue = tProperties<std::string>::TypeProperties::
-                        GetWrappedValue(stringValue);
+      rValue = tProperties<std::string>::TypeProperties::
+               GetWrappedValue(stringValue);
     }
   }
-
-  return atlocationValue;
 }
 
-CcString tstring::atlocation(const double& rX,
-                             const double& rY,
-                             const double& rInstant) const
+void tstring::atlocation(const double& rX,
+                         const double& rY,
+                         const double& rInstant,
+                         CcString& rValue) const
 {
-  CcString atlocationValue = atlocation(rX, rY);
-
   /*
   instant value is not relevant for tstring type.
 
   */
-
-  return atlocationValue;
+  
+  atlocation(rX, rY, rValue);
 }
 
 std::string tstring::minimum() const
@@ -136,6 +134,57 @@ std::string tstring::maximum() const
   }
 
   return maximum;
+}
+
+std::string tstring::GetValue(const Index<2>& rIndex) const
+{
+  std::string value = tProperties<std::string>::TypeProperties::
+                      GetUndefinedValue();
+
+  if(IsDefined() &&
+     IsValidIndex(rIndex))
+  {
+    int intValue = tint::GetValue(rIndex);
+
+    if(tProperties<int>::TypeProperties::IsUndefinedValue(intValue) == false)
+    {
+      bool bOK = m_UniqueStringArray.GetUniqueString(intValue, value);
+      assert(bOK);
+    }
+  }
+
+  return value;
+}
+
+bool tstring::SetValue(const Index<2>& rIndex,
+                       const std::string& rValue)
+{
+  bool bRetVal = false;
+
+  if(IsDefined() &&
+     IsValidIndex(rIndex))
+  {
+    int stringIndex = m_UniqueStringArray.AddString(rValue);
+
+    if(stringIndex != UNDEFINED_STRING_INDEX)
+    {
+      bRetVal = tint::SetValue(rIndex, stringIndex, false);
+    }
+
+    if(tProperties<int>::TypeProperties::IsUndefinedValue(m_Minimum) ||
+       rValue < minimum())
+    {
+      m_Minimum = stringIndex;
+    }
+   
+    if(tProperties<int>::TypeProperties::IsUndefinedValue(m_Maximum) ||
+       rValue > maximum())
+    {
+      m_Maximum = stringIndex;
+    }
+  }
+
+  return bRetVal;
 }
 
 bool tstring::Adjacent(const Attribute* pAttribute) const
@@ -437,7 +486,6 @@ Word tstring::In(const ListExpr typeInfo,
                                                           <std::string>::
                                                           TypeProperties::
                                                           GetUndefinedValue();
-                                int stringIndex = UNDEFINED_STRING_INDEX;
 
                                 if(valueList.elem(listIndex).
                                    isSymbol(Symbol::UNDEFINED()) == false)
@@ -449,37 +497,6 @@ Word tstring::In(const ListExpr typeInfo,
                                     stringValue = tProperties<std::string>::
                                                   TypeProperties::GetValue(
                                                   valueList.elem(listIndex));
-
-                                    if(tProperties<std::string>::
-                                       TypeProperties::
-                                       IsUndefinedValue(stringValue) == false)
-                                    {
-                                      stringIndex = ptstring->
-                                                    m_UniqueStringArray.
-                                                    AddString(stringValue);
-
-                                      std::string minimum = ptstring->
-                                                            minimum();
-
-                                      if(tProperties<std::string>::
-                                         TypeProperties::
-                                         IsUndefinedValue(minimum) ||
-                                         stringValue < minimum)
-                                      {
-                                        ptstring->SetMinimum(stringIndex);
-                                      }
-
-                                      std::string maximum = ptstring->
-                                                            maximum();
-
-                                      if(tProperties<std::string>::
-                                         TypeProperties::
-                                         IsUndefinedValue(maximum) ||
-                                         stringValue > maximum)
-                                      {
-                                        ptstring->SetMaximum(stringIndex);
-                                      }
-                                    }
                                   }
 
                                   else
@@ -492,7 +509,11 @@ Word tstring::In(const ListExpr typeInfo,
                                   }
                                 }
 
-                                bOK = ptstring->SetValue(index, stringIndex);
+                                if(tProperties<std::string>::TypeProperties::
+                                   IsUndefinedValue(stringValue) == false)
+                                {
+                                  bOK = ptstring->SetValue(index, stringValue);
+                                }
                               }
                             }
 
