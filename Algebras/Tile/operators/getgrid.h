@@ -98,7 +98,7 @@ int getgridFunction(Word* pArguments,
         
         if(pResult != 0)
         {
-          *pResult = pType->getgrid();
+          pType->getgrid(*pResult);
         }
       }
     }
