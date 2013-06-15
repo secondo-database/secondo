@@ -58,7 +58,9 @@ class mtProperties<char>
   typedef itbool itType;
   typedef tbool tType;
   typedef UBool unitType;
-  static int GetDimensionSize();
+  static int GetXDimensionSize();
+  static int GetYDimensionSize();
+  static int GetTDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();
   static std::string GetTypeName();
