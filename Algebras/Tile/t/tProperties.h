@@ -41,7 +41,8 @@ class tProperties
   typedef Type atlocationType;
   typedef Type bboxType;
   typedef Type gridType;
-  static int GetDimensionSize();
+  static int GetXDimensionSize();
+  static int GetYDimensionSize();
   static int GetFlobElements();
   static SmiSize GetFlobSize();
   static std::string GetTypeName();
