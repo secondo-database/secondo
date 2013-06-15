@@ -1,0 +1,102 @@
+#
+# Tests for the deftime operator of the TileAlgebra
+#
+
+################################################################################
+# Create Test Fixtures #########################################################
+################################################################################
+
+#setup TileAlgebraTest
+
+create database TileAlgebraTest;
+open database TileAlgebraTest;
+
+
+################################################################################
+# Run Tests ####################################################################
+################################################################################
+
+#######################################
+# mtint                               #
+#######################################
+
+#testcase mtint deftime of empty object
+#yields (periods ()) 
+query deftime([const mtint value ((0.0 0.0 1.0 1.0))])
+
+#testcase mtint deftime of single cell object
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE))) 
+query deftime([const mtint value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1)))])
+
+#testcase mtint deftime two consecutive cells
+#yields (periods (("2000-01-03" "2000-01-05" TRUE FALSE))) 
+query deftime([const mtint value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1)) (1 1 1 (1)))])
+
+#testcase mtint deftime non-consecutive cells
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE) ("2000-01-05" "2000-01-06" TRUE FALSE))) 
+query deftime([const mtint value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1)) (1 1 2 (1)))])
+
+#######################################
+# mtreal                              #
+#######################################
+
+#testcase mtreal deftime of empty object
+#yields (periods ()) 
+query deftime([const mtreal value ((0.0 0.0 1.0 1.0))])
+
+#testcase mtreal deftime of single cell object
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE))) 
+query deftime([const mtreal value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1.0)))])
+
+#testcase mtreal deftime two consecutive cells
+#yields (periods (("2000-01-03" "2000-01-05" TRUE FALSE))) 
+query deftime([const mtreal value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1.0)) (1 1 1 (1.0)))])
+
+#testcase mtreal deftime non-consecutive cells
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE) ("2000-01-05" "2000-01-06" TRUE FALSE))) 
+query deftime([const mtreal value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (1.0)) (1 1 2 (1.0)))])
+
+#######################################
+# mtbool                              #
+#######################################
+
+#testcase mtbool deftime of empty object
+#yields (periods ()) 
+query deftime([const mtbool value ((0.0 0.0 1.0 1.0))])
+
+#testcase mtbool deftime of single cell object
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE))) 
+query deftime([const mtbool value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (TRUE)))])
+
+#testcase mtbool deftime two consecutive cells
+#yields (periods (("2000-01-03" "2000-01-05" TRUE FALSE))) 
+query deftime([const mtbool value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (TRUE)) (1 1 1 (TRUE)))])
+
+#testcase mtbool deftime non-consecutive cells
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE) ("2000-01-05" "2000-01-06" TRUE FALSE))) 
+query deftime([const mtbool value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 (TRUE)) (1 1 2 (TRUE)))])
+
+#######################################
+# mtstring                            #
+#######################################
+
+#testcase mtstring deftime of empty object
+#yields (periods ()) 
+query deftime([const mtstring value ((0.0 0.0 1.0 1.0))])
+
+#testcase mtstring deftime of single cell object
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE))) 
+query deftime([const mtstring value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 ("zero")))])
+
+#testcase mtstring deftime two consecutive cells
+#yields (periods (("2000-01-03" "2000-01-05" TRUE FALSE))) 
+query deftime([const mtstring value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 ("zero")) (1 1 1 ("one")))])
+
+#testcase mtstring deftime non-consecutive cells
+#yields (periods (("2000-01-03" "2000-01-04" TRUE FALSE) ("2000-01-05" "2000-01-06" TRUE FALSE))) 
+query deftime([const mtstring value ((0.0 0.0 1.0 1.0) (1 1 1) (0 0 0 ("zero")) (1 1 2 ("two")))])
+
+
+################################################################################
+# Clean up #####################################################################
+################################################################################
